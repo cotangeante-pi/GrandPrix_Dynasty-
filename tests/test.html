@@ -1,0 +1,48 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>tests</title></head><body>
+<pre id="res"></pre>
+<script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));window.addEventListener('unhandledrejection',e=>__err.push('promesse : '+(e.reason&&e.reason.message||e.reason)));</script>
+<script src="../donnees.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../principal.js"></script>
+<script>
+const L=[];let ok=0,ko=0;
+function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
+const v=(c,m)=>{if(!c)throw new Error(m||'faux');};
+// le résultat s'écrit au fil de l'eau : si la page est coupée, #res montre jusqu'où elle est allée
+function ecrire(etape){document.getElementById('res').textContent=`${etape?'EN COURS ('+etape+') ':''}RESULTAT ${ok}/${ok+ko}\n`+L.join('\n');}
+
+// --- les réglages
+t('la physique avance par pas de 1/120 s', ()=>{v(REGLAGES.PAS_PHYSIQUE===1/120);});
+
+// --- la boucle à rythme fixe
+let pasVus=0; BOUCLE.surPhysique(()=>pasVus++);
+// une seconde de temps réel découpée en images de 1/ips : combien de pas ?
+function uneSeconde(ips){BOUCLE.arreter();pasVus=0;for(let i=0;i<ips;i++) BOUCLE.avancer(1/ips);return pasVus;}
+for(const ips of [30,60,144,24,75,120,165,240])
+  t(`1 s affichée à ${ips} images/s = exactement 120 pas`, ()=>{const n=uneSeconde(ips);v(n===120,n+' pas');});
+t('10 s à 144 images/s = exactement 1200 pas (pas de dérive)', ()=>{BOUCLE.arreter();pasVus=0;for(let i=0;i<1440;i++) BOUCLE.avancer(1/144);v(pasVus===1200,pasVus+' pas');});
+t('des images irrégulières donnent quand même 120 pas par seconde', ()=>{BOUCLE.arreter();pasVus=0;ALEATOIRE.semer(3);let total=0;
+  while(total<0.999){const dt=Math.min(1-total,0.004+hasard()*0.03);BOUCLE.avancer(dt);total+=dt;} v(pasVus===120,pasVus+' pas');ALEATOIRE.semer();});
+t('plafond : une image de 5 s ne fait que '+REGLAGES.PAS_MAX_PAR_IMAGE+' pas, et le retard est oublié', ()=>{BOUCLE.arreter();
+  const n=BOUCLE.avancer(5);v(n===REGLAGES.PAS_MAX_PAR_IMAGE,n+' pas');v(BOUCLE.avancer(0)===0,'le retard revient à l’image suivante');});
+t('simuler(1) = 120 pas, sans affichage', ()=>{let images=0;BOUCLE.surAffichage(()=>images++);pasVus=0;v(BOUCLE.simuler(1)===120);v(pasVus===120);v(images===0,'l’affichage a été appelé');});
+t('simuler(60) = 7200 pas', ()=>{pasVus=0;BOUCLE.simuler(60);v(pasVus===7200,pasVus+' pas');});
+t('l’onglet caché arrête la boucle, revenu il la relance', ()=>{BOUCLE.demarrer();v(BOUCLE.tourne,'pas démarrée');
+  BOUCLE.changerVisibilite(true);v(!BOUCLE.tourne,'tourne encore onglet caché');
+  BOUCLE.changerVisibilite(false);v(BOUCLE.tourne,'pas relancée');BOUCLE.arreter();v(!BOUCLE.tourne);});
+t('arrêtée, la boucle ne repart pas quand l’onglet revient', ()=>{BOUCLE.arreter();BOUCLE.changerVisibilite(true);BOUCLE.changerVisibilite(false);v(!BOUCLE.tourne);});
+
+// --- le cube tourne avec la physique, pas avec l'affichage
+t('le cube tourne de VITESSE_CUBE radians par seconde de physique', ()=>{BOUCLE.surPhysique(pasDemo);DEMO.angleCube=0;BOUCLE.simuler(1);
+  v(Math.abs(DEMO.angleCube-REGLAGES.VITESSE_CUBE)<1e-9,'angle '+DEMO.angleCube);});
+t('même angle à 30 et à 144 images/s', ()=>{DEMO.angleCube=0;uneSeconde(30);const a=DEMO.angleCube;DEMO.angleCube=0;uneSeconde(144);v(a===DEMO.angleCube,a+' / '+DEMO.angleCube);});
+
+// --- le hasard
+const suite=(g,n)=>{ALEATOIRE.semer(g);const s=[];for(let i=0;i<n;i++) s.push(hasard());return s;};
+t('même graine, même suite', ()=>{v(suite(42,1000).join()===suite(42,1000).join());});
+t('deux graines, deux suites', ()=>{v(suite(42,50).join()!==suite(43,50).join());v(suite(1,50).join()!==suite(2,50).join());});
+t('les nombres sont dans [0, 1[ et bien répartis', ()=>{const s=suite(7,20000);v(s.every(x=>x>=0&&x<1));const m=s.reduce((a,b)=>a+b)/s.length;v(Math.abs(m-0.5)<0.01,'moyenne '+m);
+  const cases=new Array(10).fill(0);s.forEach(x=>cases[Math.floor(x*10)]++);v(cases.every(c=>c>1800&&c<2200),cases.join());});
+t('sans graine, le hasard vient de Math.random', ()=>{const vrai=Math.random;Math.random=()=>0.25;ALEATOIRE.semer();const x=hasard();Math.random=vrai;v(x===0.25,String(x));});
+
+t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
+ecrire();
+</script></body></html>

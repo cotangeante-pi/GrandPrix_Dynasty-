@@ -1,0 +1,44 @@
+:root {
+  --fond: #0b0f17;
+  --texte: #f2f4f8;
+  --police: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--fond);
+  color: var(--texte);
+  font-family: var(--police);
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+#scene3d {
+  position: fixed;
+  inset: 0;
+}
+
+#scene3d canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+#ips {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.6);
+  font: 600 14px/1.5 ui-monospace, Menlo, monospace;
+  pointer-events: none;
+}
+
+.cache {
+  display: none;
+}
