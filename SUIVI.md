@@ -13,7 +13,7 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 
 ## Tour en cours
 
-**Tour 4 terminé** (vérifié par le Chef : 168/168 vert, 09ae548). Tour 5 : en attente de l'avis du propriétaire sur la conduite (étape 2 acceptée ?).
+**Tour 5 — étape 3 (le chrono)** : ordres envoyés (`rapports/tour-05-rapport.md`), à finir avant 20h40.
 
 ## Notes du Chef
 
@@ -26,12 +26,11 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 
 ## À essayer par le propriétaire
 
-- **Étape 2 : conduire** `index.html` (flèches/ZQSD, C = caméra, Espace = retour en piste). Dire : tourne trop / pas assez ? freinage ? facile ou dur de rester en piste ? caméra derrière trop loin ? cockpit trop chargé (halo, capot) ?
 - Étape 1 : survol `index.html?camera=libre`.
 
 ## Étape en cours
 
-**Étape 1 — Le circuit** : critère atteint (tours 2–3, ondulations corrigées), reste le survol par le propriétaire. **Étape 2 — La voiture** : physique, F1 3D, caméras, robot faits (tour 3) ; son et panneau de réglage au tour 4 ; attend l'essai du propriétaire.
+**Étape 1 — Le circuit** : finie (tours 2–3). **Étape 2 — La voiture** : **finie** (tours 3–4 ; le propriétaire, 19h45 : « oui la conduite me va »). **Étape 3 — Une course seule** : en cours (tour 5).
 
 ## Fini
 
@@ -61,6 +60,7 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 | 2026-10-18 | 0 | **100 i/s** sur le Mac du propriétaire (Chrome, index.html?debug=1) | three.min.js 633 Ko + < 25 Ko | scène du cube ; Chrome sans fenêtre = rendu logiciel, sans valeur |
 | 2026-10-18 | 1 (en cours) | **100 i/s** (le propriétaire) | — | circuit de test, version pas encore finie |
 | 2026-10-18 | 2 (tour 3) | **70 i/s** (le propriétaire) | — | 1 voiture ; charge du Mac 12–13 à ce moment ; pixelRatio 2 + beaucoup d'appels de dessin par voiture → tour 4, ordre 7 |
+| 2026-10-18 | 2 (tour 4) | **> 90 i/s** en général (le propriétaire) | — | 1 voiture, 6 appels de dessin, pixelRatio 1,5 |
 
 ## Retours du propriétaire
 
@@ -85,4 +85,5 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 | 2026-10-18 | 0 | Tour 1 : fondations, 47/47 tests, a4f5bdd, vérifié par le Chef |
 | 2026-10-18 | 1 | Tour 2 : le circuit, 82/82 tests, 16de5dc, vérifié par le Chef ; ondulations à corriger |
 | 2026-10-18 | 1–2 | Tour 3 : la voiture roule, 121/121 tests, 43a3fa8, robot 66,55 s, nom Grand Prix Dynasty dans le jeu |
+| 2026-10-18 | 3 | Tour 5 : ordres envoyés (chrono, pénalité de virage coupé, interface de course, écran de fin) |
 | 2026-10-18 | 2 | Tour 4 : son, 8 rapports, ?reglages=1 (22 curseurs), caméra fixe, direction en deux temps, tête-à-queue corrigé, herbe, voiture 28 → 6 appels ; 168/168, 09ae548 |
