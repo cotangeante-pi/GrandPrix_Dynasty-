@@ -13,7 +13,7 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 
 ## Tour en cours
 
-**Tour 4 — étape 2b (son, rapports, panneau de réglage)** : ordres envoyés (`rapports/tour-04-rapport.md`). Tour 3 vérifié par le Chef : vert, commit 43a3fa8. Le propriétaire conduit pendant ce tour.
+**Tour 4 terminé** (vérifié par le Chef : 168/168 vert, 09ae548). Tour 5 : en attente de l'avis du propriétaire sur la conduite (étape 2 acceptée ?).
 
 ## Notes du Chef
 
@@ -22,6 +22,7 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 | 1 | a4f5bdd | 10 | 0 | 0 | 0 | 0 | 1 | 8 | 1 |
 | 2 | 16de5dc | 15 | 0 | 0 | 0 | 0 | 5 | 9 | 1 |
 | 3 | 43a3fa8 | 27 | 7 | 1 | 0 | 2 | 7 | 9 | 1 |
+| 4 | 09ae548 | 35 | 11 | 1 | 0 | 4 | 8 | 9 | 2 |
 
 ## À essayer par le propriétaire
 
@@ -84,4 +85,4 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 | 2026-10-18 | 0 | Tour 1 : fondations, 47/47 tests, a4f5bdd, vérifié par le Chef |
 | 2026-10-18 | 1 | Tour 2 : le circuit, 82/82 tests, 16de5dc, vérifié par le Chef ; ondulations à corriger |
 | 2026-10-18 | 1–2 | Tour 3 : la voiture roule, 121/121 tests, 43a3fa8, robot 66,55 s, nom Grand Prix Dynasty dans le jeu |
-| 2026-10-18 | 2 | Tour 4 : ordres envoyés (son, rapports, panneau ?reglages=1, mesures) |
+| 2026-10-18 | 2 | Tour 4 : son, 8 rapports, ?reglages=1 (22 curseurs), caméra fixe, direction en deux temps, tête-à-queue corrigé, herbe, voiture 28 → 6 appels ; 168/168, 09ae548 |
