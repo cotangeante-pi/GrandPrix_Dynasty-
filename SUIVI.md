@@ -13,20 +13,21 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 
 ## Tour en cours
 
-**Tour 1 — étape 0** : ordres envoyés le 2026-10-18 (`rapports/tour-01-rapport.md`). On attend le compte rendu du Codeur.
+**Tour 2 — étape 1 (le circuit)** : ordres envoyés (`rapports/tour-02-rapport.md`). Tour 1 vérifié par le Chef : vert, commit a4f5bdd.
 
 ## Notes du Chef
 
 | Tour | Commit | Note /100 | Conduite /20 | Course et IA /20 | Championnat /15 | Interface /15 | 3D et perf /15 | Code /10 | Poki /5 |
 |---|---|---|---|---|---|---|---|---|---|
+| 1 | a4f5bdd | 10 | 0 | 0 | 0 | 0 | 1 | 8 | 1 |
 
 ## À essayer par le propriétaire
 
-- Rien pour l'instant.
+- Rien pour l'instant (étape 0 essayée le 2026-10-18 : 100 i/s).
 
 ## Étape en cours
 
-**Étape 0 — Fondations** : en cours (tour 1).
+**Étape 1 — Le circuit** : en cours (tour 2). Étape 0 : **finie** (tour 1, essayée par le propriétaire).
 
 ## Fini
 
@@ -47,6 +48,12 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 
 | Date | Étape | Images par seconde | Poids du jeu | Notes |
 |---|---|---|---|---|
+| 2026-10-18 | 0 | **100 i/s** sur le Mac du propriétaire (Chrome, index.html?debug=1) | three.min.js 633 Ko + < 25 Ko | scène du cube ; Chrome sans fenêtre = rendu logiciel, sans valeur |
+| 2026-10-18 | 1 (en cours) | **100 i/s** (le propriétaire) | — | circuit de test, version pas encore finie |
+
+## Retours du propriétaire
+
+- 2026-10-18, tour 2 en cours : il voit la piste, « elle est longue un peu comme je voulais », la forme n'est pas encore avancée. → Garder des circuits longs ; la forme viendra avec les vrais tracés (étape 10).
 
 ## Décisions en attente (pour le propriétaire)
 
@@ -60,4 +67,5 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 | Date | Étape | Ce qui a été fait |
 |---|---|---|
 | 2026-10-18 | — | `CLAUDE.md` écrit avec le propriétaire |
-| 2026-10-18 | 0 | Tour 1 : ordres envoyés au Codeur |
+| 2026-10-18 | 0 | Tour 1 : fondations, 47/47 tests, a4f5bdd, vérifié par le Chef |
+| 2026-10-18 | 1 | Tour 2 : ordres envoyés (le circuit) |

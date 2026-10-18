@@ -122,6 +122,7 @@ Pour que ce soit beau **et** léger :
 
 - **JavaScript pur + Three.js** (`lib/three.min.js` en local, **version fixée : r152, build UMD**, copiée de `../jeu poki/lib/`, avec l'avertissement de dépréciation déjà retiré pour garder la console vide), comme `../jeu poki`. Pas de build, pas de framework. Ouvrir `index.html` suffit pour jouer.
 - La physique et les IA sont faites par nous. Pas de moteur physique externe.
+- **Unité : 1 = 1 mètre**, les angles en radians. Le sol est le plan x, z ; y monte. Sur la piste, `d > 0` veut dire à droite du pilote.
 - **Le moteur ne touche pas à l'écran.** Les règles, la physique, les IA, le championnat et l'argent marchent sans 3D, pour être testés seuls.
 - Le hasard passe par une seule fonction qui peut prendre une graine, pour rejouer exactement une course pendant les tests.
 - La sauvegarde (saison, rivaux, argent, améliorations, réglages) passe par **un seul module**. Elle a un numéro de version, pour pouvoir transformer les anciennes sauvegardes quand le jeu change. On sauvegarde **après chaque course**.
@@ -130,8 +131,10 @@ Pour que ce soit beau **et** léger :
   - `donnees.js` : tous les réglages (`REGLAGES`) ;
   - `aleatoire.js` : le seul hasard, `hasard()`, avec une graine par `ALEATOIRE.semer(n)` ;
   - `boucle.js` : la boucle (`BOUCLE`), physique à 120 pas par seconde, et `BOUCLE.simuler(secondes)` sans affichage ;
+  - `circuits.js` : les circuits en calcul pur, sans Three.js : la spline (Catmull-Rom centripète), les échantillons tous les 2 m, et `positionSurPiste(circuit, x, z, indiceDepart)` ; les points de chaque circuit sont dans `CIRCUITS` (`donnees.js`) ;
   - `scene3d.js` : l'affichage Three.js (`SCENE3D`), qui lit l'état sans le changer ;
-  - `principal.js` : le démarrage, qui branche la physique et l'affichage sur la boucle ; `?debug=1` affiche les images par seconde ;
+  - `camera.js` : les caméras de survol (`?camera=libre`, `dessus`, `virage` ; `auto` par défaut) ;
+  - `principal.js` : le démarrage, qui branche la physique et l'affichage sur la boucle ; `?debug=1` affiche les images par seconde et les triangles ;
   - `tests/lancer.py` : tous les tests (`tests/test.html` pour le moteur, `tests/ecrans.py` pour la vraie page avec Playwright, captures dans `tests/captures/`).
 
 **Performance** : 60 images par seconde visées sur un ordinateur moyen, avec 20 voitures et un circuit détaillé. Le chargement doit être court. On mesure les images par seconde et le poids du jeu à chaque étape, et on note les mesures dans `SUIVI.md`.

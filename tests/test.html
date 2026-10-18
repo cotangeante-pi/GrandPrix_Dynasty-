@@ -1,7 +1,7 @@
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><title>tests</title></head><body>
 <pre id="res"></pre>
 <script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));window.addEventListener('unhandledrejection',e=>__err.push('promesse : '+(e.reason&&e.reason.message||e.reason)));</script>
-<script src="../donnees.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../principal.js"></script>
+<script src="../donnees.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits.js"></script><script src="../principal.js"></script>
 <script>
 const L=[];let ok=0,ko=0;
 function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
@@ -30,10 +30,54 @@ t('l’onglet caché arrête la boucle, revenu il la relance', ()=>{BOUCLE.demar
   BOUCLE.changerVisibilite(false);v(BOUCLE.tourne,'pas relancée');BOUCLE.arreter();v(!BOUCLE.tourne);});
 t('arrêtée, la boucle ne repart pas quand l’onglet revient', ()=>{BOUCLE.arreter();BOUCLE.changerVisibilite(true);BOUCLE.changerVisibilite(false);v(!BOUCLE.tourne);});
 
-// --- le cube tourne avec la physique, pas avec l'affichage
-t('le cube tourne de VITESSE_CUBE radians par seconde de physique', ()=>{BOUCLE.surPhysique(pasDemo);DEMO.angleCube=0;BOUCLE.simuler(1);
-  v(Math.abs(DEMO.angleCube-REGLAGES.VITESSE_CUBE)<1e-9,'angle '+DEMO.angleCube);});
-t('même angle à 30 et à 144 images/s', ()=>{DEMO.angleCube=0;uneSeconde(30);const a=DEMO.angleCube;DEMO.angleCube=0;uneSeconde(144);v(a===DEMO.angleCube,a+' / '+DEMO.angleCube);});
+// --- le circuit (calcul pur)
+const C=CIRCUIT_TEST;
+t('CIRCUIT_TEST fait entre 2,5 et 3,5 km', ()=>{v(C.longueur>2500&&C.longueur<3500,C.longueur+' m');});
+t('la longueur est stable : échantillons à 1 m et à 2 m, moins de 0,5 % d’écart', ()=>{const c1=construireCircuit(CIRCUITS.test,1),c2=construireCircuit(CIRCUITS.test,2);
+  const e=Math.abs(c1.longueur-c2.longueur)/c1.longueur;v(e<0.005,(e*100).toFixed(4)+' %');});
+t('les échantillons sont régulièrement espacés (±1 %)', ()=>{let mn=Infinity,mx=0;for(let i=0;i<C.nb;i++){const k=(i+1)%C.nb,g=Math.hypot(C.x[k]-C.x[i],C.z[k]-C.z[i]);mn=Math.min(mn,g);mx=Math.max(mx,g);}
+  v(mn>C.pas*0.99&&mx<C.pas*1.01,'écarts de '+mn.toFixed(3)+' à '+mx.toFixed(3)+' m');});
+t('la piste ne se recoupe nulle part (deux morceaux éloignés le long de la courbe restent à plus d’une largeur)', ()=>{
+  const loin=3*C.largeur;let pire=Infinity,ou='';
+  for(let i=0;i<C.nb;i++) for(let j=i+1;j<C.nb;j++){const ds=Math.min(C.s[j]-C.s[i],C.longueur-(C.s[j]-C.s[i]));if(ds<loin) continue;
+    const d=Math.hypot(C.x[i]-C.x[j],C.z[i]-C.z[j]);if(d<pire){pire=d;ou=i+'/'+j;}}
+  v(pire>C.largeur,'deux morceaux à '+pire.toFixed(1)+' m ('+ou+')');});
+t('aucun virage plus serré que la demi-largeur (le bord intérieur ne se replie pas)', ()=>{let k=0;for(let i=0;i<C.nb;i++) k=Math.max(k,Math.abs(C.courbure[i]));v(1/k>C.largeur/2,'rayon '+(1/k).toFixed(1)+' m');});
+t('il y a un virage serré (rayon < 60 m) et des parties droites', ()=>{let k=0,droit=0;for(let i=0;i<C.nb;i++){k=Math.max(k,Math.abs(C.courbure[i]));if(Math.abs(C.courbure[i])<1e-4) droit++;}v(1/k<60,'rayon '+(1/k).toFixed(1));v(droit>C.nb/4,droit+' échantillons droits');});
+t('la ligne d’arrivée est au premier point, et s y vaut 0', ()=>{v(Math.hypot(C.x[0]-CIRCUITS.test.points[0][0],C.z[0]-CIRCUITS.test.points[0][1])<1e-6);v(C.s[0]===0);});
+t('trois secteurs dans l’ordre', ()=>{v(C.secteurs.length===3&&C.secteurs[0]===0&&C.secteurs[1]<C.secteurs[2]&&C.secteurs[2]<C.longueur);});
+const P=(x,z,i)=>positionSurPiste(C,x,z,i);
+const proche=(a,b,e)=>Math.abs(a-b)<=e;
+t('sur la ligne : s = 0, d = 0, sur la piste, secteur 1', ()=>{const p=P(0,0);v(proche(p.s,0,0.01)||proche(p.s,C.longueur,0.01),'s '+p.s);v(proche(p.d,0,0.01),'d '+p.d);v(p.surPiste&&p.secteur===1);});
+t('au milieu de la droite des stands : s = 150', ()=>{const p=P(150,0);v(proche(p.s,150,0.05),'s '+p.s);v(proche(p.d,0,0.01));});
+t('à droite du pilote : d > 0 ; à gauche : d < 0', ()=>{v(proche(P(150,5).d,5,0.01),'droite '+P(150,5).d);v(proche(P(150,-5).d,-5,0.01),'gauche '+P(150,-5).d);
+  // la droite opposée se roule vers -x : la droite du pilote est vers -z
+  v(proche(P(200,315).d,5,0.01),'droite opposée '+P(200,315).d);});
+t('au bord : sur la piste ; un peu plus loin : dehors', ()=>{v(P(150,6.4).surPiste);v(P(150,-6.4).surPiste);v(!P(150,6.6).surPiste);v(!P(150,-30).surPiste);v(proche(P(150,-30).d,-30,0.01));});
+t('juste avant la ligne : s presque égal à la longueur ; juste après : s presque 0', ()=>{const a=P(-1,0),b=P(1,0);v(proche(a.s,C.longueur-1,0.05),'avant '+a.s);v(proche(b.s,1,0.05),'après '+b.s);v(a.secteur===3&&b.secteur===1);});
+t('un point de chaque secteur', ()=>{v(P(150,0).secteur===1);v(P(200,320).secteur===2,'droite opposée : '+P(200,320).secteur);v(P(-500,160).secteur===3,'petite droite : '+P(-500,160).secteur);});
+t('chaque échantillon se retrouve à sa place (s, d = 0)', ()=>{for(let i=0;i<C.nb;i+=7){const p=P(C.x[i],C.z[i],i);v(proche(p.s,C.s[i],0.01)&&proche(p.d,0,0.01),'échantillon '+i+' : '+p.s+' / '+C.s[i]);}});
+t('avec indiceDepart, même résultat que la recherche complète (2000 points au hasard près de la piste)', ()=>{ALEATOIRE.semer(11);
+  for(let n=0;n<2000;n++){const i=Math.floor(hasard()*C.nb),d=(hasard()-0.5)*40,x=C.x[i]+C.nx[i]*d,z=C.z[i]+C.nz[i]*d;
+    const depart=(i+Math.floor((hasard()-0.5)*10)+C.nb)%C.nb;const a=P(x,z,depart),b=P(x,z);
+    v(proche(a.s,b.s,1e-6)&&proche(a.d,b.d,1e-6),'point '+n+' : '+a.s+'/'+b.s+' '+a.d+'/'+b.d);}ALEATOIRE.semer();});
+t('un indiceDepart faux (à l’autre bout du circuit) est rattrapé par la recherche complète', ()=>{const p=P(150,0,Math.floor(C.nb/2));v(proche(p.s,150,0.05),'s '+p.s);});
+let mesureVitesse='';
+t('vitesse : 20 voitures × 120 pas = 2400 appels en moins de 2 ms', ()=>{
+  // 20 voitures réparties sur le tour, à 72 m/s (0,6 m par pas), qui zigzaguent un peu
+  const pts=[];ALEATOIRE.semer(5);
+  for(let v_=0;v_<20;v_++){const s0=v_*C.longueur/20;for(let k=0;k<120;k++){const s=(s0+k*0.6)%C.longueur,i=Math.floor(s/C.pas),d=Math.sin(k/20+v_)*5;pts.push([C.x[i]+C.nx[i]*d,C.z[i]+C.nz[i]*d]);}}
+  ALEATOIRE.semer();
+  const temps=[];
+  // 3 passages pour chauffer le compilateur JavaScript, puis 15 mesures. Le critère porte sur la meilleure :
+  // les autres programmes du Mac ne peuvent que rallonger une mesure, jamais la raccourcir. La médiane est affichée aussi.
+  for(let essai=-3;essai<15;essai++){const t0=performance.now();
+    for(let v_=0;v_<20;v_++){let ind=null;for(let k=0;k<120;k++){const q=pts[v_*120+k];ind=positionSurPiste(C,q[0],q[1],ind).indice;}}
+    if(essai>=0) temps.push(performance.now()-t0);}
+  temps.sort((a,b)=>a-b);const med=temps[7];mesureVitesse='médiane '+med.toFixed(2)+' ms, meilleur '+temps[0].toFixed(2)+' ms ['+temps.map(x=>x.toFixed(1)).join(' ')+']';
+  L.push('  ('+mesureVitesse+')');v(temps[0]<2,mesureVitesse);});
+t('construction : longueur, échantillons, temps', ()=>{const t0=performance.now();const c=construireCircuit(CIRCUITS.test);const ms=performance.now()-t0;
+  L.push('  (longueur '+c.longueur.toFixed(1)+' m, '+c.nb+' échantillons de '+c.pas.toFixed(3)+' m, construit en '+ms.toFixed(1)+' ms)');v(ms<200,ms+' ms');});
 
 // --- le hasard
 const suite=(g,n)=>{ALEATOIRE.semer(g);const s=[];for(let i=0;i<n;i++) s.push(hasard());return s;};

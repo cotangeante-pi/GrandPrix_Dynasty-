@@ -1,12 +1,8 @@
 // Le démarrage : il branche la physique et l'affichage sur la boucle.
-// Étape 0 : la seule « physique » est un cube qui tourne.
-const DEMO = { angleCube: 0 };
+// Étape 1 : le circuit de test, survolé par la caméra (?camera=libre, dessus ou virage ; auto par défaut).
+const PARAMETRES = new URLSearchParams(location.search);
 
-function pasDemo(pas) {
-  DEMO.angleCube = (DEMO.angleCube + REGLAGES.VITESSE_CUBE * pas) % (2 * Math.PI);
-}
-
-// ?debug=1 : le nombre d'images par seconde dans un coin
+// ?debug=1 : les images par seconde et les triangles dessinés, dans un coin
 function brancherDebug() {
   const boite = document.getElementById('ips');
   boite.classList.remove('cache');
@@ -15,7 +11,7 @@ function brancherDebug() {
     images++;
     temps += dt;
     if (temps >= REGLAGES.DEBUG_PERIODE_IPS) {
-      boite.textContent = Math.round(images / temps) + ' i/s';
+      boite.textContent = Math.round(images / temps) + ' i/s · ' + SCENE3D.trianglesDessines + ' triangles';
       images = 0;
       temps = 0;
     }
@@ -30,10 +26,13 @@ function demarrerJeu() {
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'PageUp', 'PageDown', 'Home', 'End'].includes(e.key)) e.preventDefault();
   });
 
-  SCENE3D.init(document.getElementById('scene3d'));
-  BOUCLE.surPhysique(pasDemo);
-  BOUCLE.surAffichage(() => SCENE3D.dessiner(DEMO));
-  if (new URLSearchParams(location.search).get('debug') === '1') brancherDebug();
+  if (!SCENE3D.init(document.getElementById('scene3d'), CIRCUIT_TEST)) return;
+  CAMERA.init(SCENE3D.camera, CIRCUIT_TEST, PARAMETRES.get('camera'));
+  BOUCLE.surAffichage((alpha, dt) => {
+    CAMERA.maj(dt);
+    SCENE3D.dessiner();
+  });
+  if (PARAMETRES.get('debug') === '1') brancherDebug();
   BOUCLE.demarrer();
 }
 
