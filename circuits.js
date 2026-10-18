@@ -32,9 +32,43 @@ function courbeFine(points) {
   return fine;
 }
 
-// def : { nom, largeur, secteurs, points } (voir CIRCUITS dans donnees.js)
+// un circuit décrit par morceaux → { points (tous les PAS_POINTS_MORCEAUX m, la ligne au premier), morceaux, fermeture }
+// morceaux : [{ type, debut, fin, angles }] en mètres le long de la géométrie exacte ; fermeture : l'écart entre la fin et le départ
+function pointsDepuisMorceaux(def) {
+  let [x, z, cap] = def.depart;
+  const points = [], morceaux = [];
+  let s = 0;
+  const pasMax = REGLAGES.PAS_POINTS_MORCEAUX;
+  for (const m of def.morceaux) {
+    // un morceau = une suite de droites et d'arcs : [longueur, courbure]
+    const arcs = m[0] === 'droite' ? [[m[1], 0]]
+      : m[0] === 'virage' ? [[m[1] * Math.abs(m[2]) * Math.PI / 180, Math.sign(m[2]) / m[1]]]
+      : [m[2], -2 * m[2], m[2]].map(a => [m[1] * Math.abs(a) * Math.PI / 180, Math.sign(a) / m[1]]);
+    const debut = s;
+    for (const [longueur, k] of arcs) {
+      const nb = Math.max(1, Math.ceil(longueur / pasMax)), ds = longueur / nb;
+      for (let i = 0; i < nb; i++) {
+        points.push([x, z]);
+        // pas exact sur l'arc (corde), pour que l'erreur ne s'accumule pas
+        if (k === 0) { x += Math.cos(cap) * ds; z += Math.sin(cap) * ds; }
+        else {
+          const r = 1 / k, cap2 = cap + k * ds;
+          // le centre est à droite (k > 0) ou à gauche : n = (-sin cap, cos cap)
+          x += r * (Math.sin(cap2) - Math.sin(cap)); z += r * (Math.cos(cap) - Math.cos(cap2));
+          cap = cap2;
+        }
+      }
+      s += longueur;
+    }
+    morceaux.push({ type: m[0], debut, fin: s, angles: m[0] === 'droite' ? [] : arcs.map(a => Math.sign(a[1])) });
+  }
+  return { points, morceaux, longueur: s, fermeture: Math.hypot(x - def.depart[0], z - def.depart[1]) };
+}
+
+// def : { nom, largeur, secteurs, points ou morceaux } (voir CIRCUITS dans donnees.js)
 function construireCircuit(def, pas = REGLAGES.PAS_ECHANTILLON) {
-  const pts = def.points, n = pts.length;
+  const decrit = def.morceaux ? pointsDepuisMorceaux(def) : null;
+  const pts = decrit ? decrit.points : def.points, n = pts.length;
   const fine = courbeFine(pts);
   const longueurFine = fine[fine.length - 1].s;
   const nb = Math.round(longueurFine / pas);
@@ -80,6 +114,9 @@ function construireCircuit(def, pas = REGLAGES.PAS_ECHANTILLON) {
     nom: def.nom, largeur: def.largeur, nb, x, z, s, tx, tz, nx, nz, courbure, longueur,
     pas: longueur / nb,
     secteurs: def.secteurs.map(f => f * longueur),   // en mètres depuis la ligne
+    // les morceaux, ramenés à la longueur de la spline ; fermeture : l'écart de la description par morceaux (m)
+    morceaux: decrit ? decrit.morceaux.map(m => Object.assign({}, m, { debut: m.debut * longueur / decrit.longueur, fin: m.fin * longueur / decrit.longueur })) : [],
+    fermeture: decrit ? decrit.fermeture : 0,
   };
 }
 
@@ -103,7 +140,7 @@ function plusProche(circuit, px, pz, debut, fin) {
   return meilleur;
 }
 
-// où est (px, pz) sur la piste : { s, d, surPiste, secteur, indice }
+// où est (px, pz) sur la piste : { s, d, surPiste, secteur, indice, nx, nz } (nx, nz : la normale du morceau, vers la droite)
 // indiceDepart (facultatif) : l'indice rendu au pas d'avant, pour ne chercher qu'autour
 function positionSurPiste(circuit, px, pz, indiceDepart) {
   const nb = circuit.nb, F = REGLAGES.FENETRE_RECHERCHE;
@@ -119,7 +156,7 @@ function positionSurPiste(circuit, px, pz, indiceDepart) {
 
   // on projette sur le morceau de courbe d'avant ou d'après l'échantillon, et on garde le plus proche des deux
   const x = circuit.x, z = circuit.z;
-  let d2min = Infinity, sMeilleur = 0, dMeilleur = 0;
+  let d2min = Infinity, sMeilleur = 0, dMeilleur = 0, nxM = 0, nzM = 0;
   for (let cote = 0; cote < 2; cote++) {
     const a = cote === 0 ? (i - 1 + nb) % nb : i, b = cote === 0 ? i : (i + 1) % nb;
     const sx = x[b] - x[a], sz = z[b] - z[a], l2 = sx * sx + sz * sz;
@@ -131,10 +168,11 @@ function positionSurPiste(circuit, px, pz, indiceDepart) {
       d2min = d2;
       sMeilleur = circuit.s[a] + f * l;
       dMeilleur = (az * sx - ax * sz) / l;
+      nxM = -sz / l; nzM = sx / l;
     }
   }
   const s = sMeilleur % circuit.longueur;
-  return { s, d: dMeilleur, surPiste: Math.abs(dMeilleur) <= circuit.largeur / 2, secteur: secteurDe(circuit, s), indice: i };
+  return { s, d: dMeilleur, surPiste: Math.abs(dMeilleur) <= circuit.largeur / 2, secteur: secteurDe(circuit, s), indice: i, nx: nxM, nz: nzM };
 }
 
 const CIRCUIT_TEST = construireCircuit(CIRCUITS.test);

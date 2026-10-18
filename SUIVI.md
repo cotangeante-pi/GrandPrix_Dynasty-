@@ -13,21 +13,23 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 
 ## Tour en cours
 
-**Tour 2 — étape 1 (le circuit)** : ordres envoyés (`rapports/tour-02-rapport.md`). Tour 1 vérifié par le Chef : vert, commit a4f5bdd.
+**Tour 3 — fin de l'étape 1 (ondulations) + étape 2a (la voiture roule)** : ordres envoyés (`rapports/tour-03-rapport.md`). Tour 2 vérifié par le Chef : vert, commit 16de5dc.
 
 ## Notes du Chef
 
 | Tour | Commit | Note /100 | Conduite /20 | Course et IA /20 | Championnat /15 | Interface /15 | 3D et perf /15 | Code /10 | Poki /5 |
 |---|---|---|---|---|---|---|---|---|---|
 | 1 | a4f5bdd | 10 | 0 | 0 | 0 | 0 | 1 | 8 | 1 |
+| 2 | 16de5dc | 15 | 0 | 0 | 0 | 0 | 5 | 9 | 1 |
 
 ## À essayer par le propriétaire
 
-- Rien pour l'instant (étape 0 essayée le 2026-10-18 : 100 i/s).
+- Étape 1 : `index.html?camera=libre` — survoler le circuit (glisser la souris, molette, flèches).
+- Après le tour 3 : conduire la voiture (étape 2) et dire ce qu'il ressent.
 
 ## Étape en cours
 
-**Étape 1 — Le circuit** : en cours (tour 2). Étape 0 : **finie** (tour 1, essayée par le propriétaire).
+**Étape 1 — Le circuit** : critère presque atteint (tour 2), reste les ondulations (tour 3) et le survol par le propriétaire. **Étape 2 — La voiture** : commencée au tour 3. Étape 0 : **finie** (tour 1, essayée par le propriétaire).
 
 ## Fini
 
@@ -40,9 +42,13 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 - [ ] la boucle avec la physique à rythme fixe
 - [ ] `tests/lancer.py` et une première page de test
 
+## Décidé
+
+- 2026-10-18 : le nom du jeu est **Grand Prix Dynasty** (remplacer `NOM_DU_JEU` au tour 4).
+
 ## Bugs connus
 
-- Aucun.
+- La courbe du circuit de test ondule sur les droites (tour 3, ordre 1).
 
 ## Mesures
 
@@ -57,7 +63,6 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 
 ## Décisions en attente (pour le propriétaire)
 
-- Le nom du jeu (propositions dans `CLAUDE.md`).
 - La liste des 12 circuits.
 - La liste exacte des améliorations du garage.
 - La météo à l'étape 12 : oui ou non.
@@ -68,4 +73,5 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 |---|---|---|
 | 2026-10-18 | — | `CLAUDE.md` écrit avec le propriétaire |
 | 2026-10-18 | 0 | Tour 1 : fondations, 47/47 tests, a4f5bdd, vérifié par le Chef |
-| 2026-10-18 | 1 | Tour 2 : ordres envoyés (le circuit) |
+| 2026-10-18 | 1 | Tour 2 : le circuit, 82/82 tests, 16de5dc, vérifié par le Chef ; ondulations à corriger |
+| 2026-10-18 | 1–2 | Tour 3 : ordres envoyés (ondulations, physique, F1 3D, caméras, robot d'essai) |

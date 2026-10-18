@@ -3,22 +3,29 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<!-- le nom attend l'accord du propriétaire (voir CLAUDE.md) -->
-<title>NOM_DU_JEU</title>
+<!-- le même texte que texte('nomDuJeu') (textes.js) ; jamais « F1 » ni « Formula 1 » : ce sont des marques -->
+<title>Grand Prix Dynasty</title>
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div id="scene3d"></div>
 <div id="ips" class="cache"></div>
+<!-- l'affichage provisoire de la conduite (étape 2) -->
+<div id="tableau"><span id="vitesse">0</span> <span id="unite"></span></div>
+<div id="horsPiste" class="cache"></div>
+<div id="aide"></div>
 
 <!-- des scripts classiques : les modules ES ne se chargent pas depuis file:// -->
 <script src="lib/three.min.js"></script>
 <script src="donnees.js"></script>
+<script src="textes.js"></script>
 <script src="aleatoire.js"></script>
 <script src="boucle.js"></script>
 <script src="circuits.js"></script>
+<script src="physique.js"></script>
 <script src="scene3d.js"></script>
+<script src="voiture3d.js"></script>
 <script src="camera.js"></script>
 <script src="principal.js"></script>
 </body>

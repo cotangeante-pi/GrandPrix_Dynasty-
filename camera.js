@@ -1,28 +1,53 @@
-// Les caméras de survol du circuit (étape 1). Elles ne touchent qu'à la caméra Three.js, jamais à l'état du jeu.
-// Modes (?camera=…) : auto (par défaut, fait le tour en hauteur), libre (souris et clavier), dessus, virage.
+// Les caméras. Elles ne touchent qu'à la caméra Three.js, jamais à l'état du jeu.
+// Course (C passe de l'une à l'autre) : derriere (par défaut), cockpit, tele.
+// Survol (?camera=…) : auto (fait le tour en hauteur), libre (souris et clavier), dessus, virage, vitrine (la voiture de près).
 const CAMERA = (function () {
   const R = REGLAGES;
-  let cam = null, mode = 'auto';
+  const COURSE = ['derriere', 'cockpit', 'tele'];
+  let cam = null, mode = 'derriere', circuit = null;
   let centre = null, demiTaille = 0, angle = 0;
   const libre = { x: 0, y: 0, z: 0, lacet: 0, tangage: 0 };
+  const ressort = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, pret: false };
+  let postesTele = [];
   const touches = new Set();
 
-  function init(camera, circuit, modeDemande) {
+  function init(camera, c, modeDemande) {
     cam = camera;
-    mode = ['libre', 'dessus', 'virage'].includes(modeDemande) ? modeDemande : 'auto';
+    circuit = c;
+    mode = ['auto', 'libre', 'dessus', 'virage', 'vitrine', 'cockpit', 'tele'].includes(modeDemande) ? modeDemande : 'derriere';
     let xmin = Infinity, xmax = -Infinity, zmin = Infinity, zmax = -Infinity;
-    for (let i = 0; i < circuit.nb; i++) { xmin = Math.min(xmin, circuit.x[i]); xmax = Math.max(xmax, circuit.x[i]); zmin = Math.min(zmin, circuit.z[i]); zmax = Math.max(zmax, circuit.z[i]); }
+    for (let i = 0; i < c.nb; i++) { xmin = Math.min(xmin, c.x[i]); xmax = Math.max(xmax, c.x[i]); zmin = Math.min(zmin, c.z[i]); zmax = Math.max(zmax, c.z[i]); }
     centre = { x: (xmin + xmax) / 2, z: (zmin + zmax) / 2, l: xmax - xmin, p: zmax - zmin };
     demiTaille = Math.max(xmax - xmin, zmax - zmin) / 2;
 
+    // les caméras télé : au bord de la piste, derrière la barrière, un côté puis l'autre
+    postesTele = [];
+    const n = Math.max(1, Math.round(c.longueur / R.TELE_ESPACEMENT));
+    for (let k = 0; k < n; k++) {
+      const i = Math.round(k * c.nb / n) % c.nb, cote = k % 2 ? 1 : -1;
+      const d = cote * (c.largeur / 2 + R.DISTANCE_BARRIERE + R.TELE_RECUL);
+      postesTele.push({ x: c.x[i] + c.nx[i] * d, z: c.z[i] + c.nz[i] * d });
+    }
+
     if (mode === 'dessus') placerDessus();
-    if (mode === 'virage') placerVirage(circuit);
+    if (mode === 'virage') placerVirage();
     if (mode === 'libre') {
       // on part d'en haut, au-dessus du bord du circuit, en regardant le centre
       Object.assign(libre, { x: centre.x, y: R.CAMERA_AUTO_HAUTEUR / 2, z: centre.z + demiTaille, lacet: 0, tangage: -0.5 });
       brancherCommandes();
     }
-    maj(0);
+  }
+
+  // C : la caméra de course suivante
+  function suivante() {
+    if (!COURSE.includes(mode)) return mode;
+    mode = COURSE[(COURSE.indexOf(mode) + 1) % COURSE.length];
+    ressort.pret = false;
+    return mode;
+  }
+
+  function regler(champ, pres) {
+    if (cam.fov !== champ || cam.near !== pres) { cam.fov = champ; cam.near = pres; cam.updateProjectionMatrix(); }
   }
 
   // tout le circuit dans l'image, vu d'en haut (le nord, -z, en haut de l'écran)
@@ -35,7 +60,8 @@ const CAMERA = (function () {
   }
 
   // au ras de la piste, un peu avant le virage le plus serré, en regardant son milieu
-  function placerVirage(c) {
+  function placerVirage() {
+    const c = circuit;
     let iv = 0;
     for (let i = 0; i < c.nb; i++) if (Math.abs(c.courbure[i]) > Math.abs(c.courbure[iv])) iv = i;
     const recul = Math.round(35 / c.pas), ia = (iv - recul + c.nb) % c.nb;
@@ -68,10 +94,55 @@ const CAMERA = (function () {
     });
   }
 
-  // dt : le temps de l'image, en secondes (la caméra suit l'affichage, pas la physique)
-  function maj(dt) {
+  // derrière la voiture, avec un ressort amorti (critique : il rattrape sans osciller)
+  function suivreDerriere(etat, v, dt) {
+    const f = { x: Math.cos(etat.cap), z: Math.sin(etat.cap) };
+    const [recul, haut] = R.CAMERA_DERRIERE;
+    const cible = { x: etat.x - f.x * recul, y: haut, z: etat.z - f.z * recul };
+    if (!ressort.pret) { Object.assign(ressort, cible, { vx: 0, vy: 0, vz: 0, pret: true }); }
+    // en petits pas : le ressort reste stable même quand une image dure longtemps
+    const w = R.CAMERA_RESSORT, n = Math.ceil(dt / 0.01);
+    for (let k = 0; k < n; k++) {
+      const h = dt / n;
+      for (const a of ['x', 'y', 'z']) {
+        const va = 'v' + a;
+        ressort[va] += (w * w * (cible[a] - ressort[a]) - 2 * w * ressort[va]) * h;
+        ressort[a] += ressort[va] * h;
+      }
+    }
+    regler(R.CAMERA_CHAMP[0] + R.CAMERA_CHAMP[1] * Math.min(1, Math.max(0, v.u) / 90), 0.5);
+    cam.up.set(0, 1, 0);
+    cam.position.set(ressort.x, ressort.y, ressort.z);
+    cam.lookAt(etat.x + f.x * 4, 1, etat.z + f.z * 4);
+  }
+
+  // dt : le temps de l'image (la caméra suit l'affichage, pas la physique) ; etat : la voiture affichée ; v : la voiture
+  function maj(dt, etat, v) {
     dt = Math.min(dt, 0.1);
-    if (mode === 'auto') {
+    if (mode === 'derriere') suivreDerriere(etat, v, dt);
+    else if (mode === 'cockpit') {
+      const f = { x: Math.cos(etat.cap), z: Math.sin(etat.cap) };
+      const [av, haut] = R.CAMERA_COCKPIT;
+      regler(R.CAMERA_COCKPIT_CHAMP, 0.05);
+      cam.up.set(0, 1, 0);
+      cam.position.set(etat.x + f.x * av, haut, etat.z + f.z * av);
+      cam.lookAt(etat.x + f.x * 30, haut - 0.3, etat.z + f.z * 30);
+    } else if (mode === 'tele') {
+      // le poste le plus proche de la voiture la suit, en zoomant
+      let p = postesTele[0], dmin = Infinity;
+      for (const q of postesTele) { const d = Math.hypot(q.x - etat.x, q.z - etat.z); if (d < dmin) { dmin = d; p = q; } }
+      const distance = Math.hypot(dmin, R.TELE_HAUTEUR);
+      regler(Math.max(6, Math.min(50, 2 * Math.atan(R.TELE_CADRAGE / 2 / distance) * 180 / Math.PI)), 0.5);
+      cam.up.set(0, 1, 0);
+      cam.position.set(p.x, R.TELE_HAUTEUR, p.z);
+      cam.lookAt(etat.x, 0.6, etat.z);
+    } else if (mode === 'vitrine') {
+      // trois quarts avant, de près
+      const f = { x: Math.cos(etat.cap), z: Math.sin(etat.cap) }, d = { x: -f.z, z: f.x };
+      regler(40, 0.1);
+      cam.position.set(etat.x + f.x * 6 + d.x * 5, 2.2, etat.z + f.z * 6 + d.z * 5);
+      cam.lookAt(etat.x, 0.5, etat.z);
+    } else if (mode === 'auto') {
       angle += R.CAMERA_AUTO_VITESSE * dt;
       const rayon = demiTaille * R.CAMERA_AUTO_RECUL;
       cam.position.set(centre.x + Math.cos(angle) * rayon, R.CAMERA_AUTO_HAUTEUR, centre.z + Math.sin(angle) * rayon);
@@ -79,10 +150,10 @@ const CAMERA = (function () {
     } else if (mode === 'libre') {
       const avant = (touches.has('ArrowUp') || touches.has('KeyW') ? 1 : 0) - (touches.has('ArrowDown') || touches.has('KeyS') ? 1 : 0);
       const cote = (touches.has('ArrowRight') || touches.has('KeyD') ? 1 : 0) - (touches.has('ArrowLeft') || touches.has('KeyA') ? 1 : 0);
-      const v = Math.max(R.CAMERA_LIBRE_VITESSE_MIN, R.CAMERA_LIBRE_VITESSE * libre.y) * dt;
+      const vit = Math.max(R.CAMERA_LIBRE_VITESSE_MIN, R.CAMERA_LIBRE_VITESSE * libre.y) * dt;
       const s = Math.sin(libre.lacet), c = Math.cos(libre.lacet);
-      libre.x += (-s * avant + c * cote) * v;
-      libre.z += (-c * avant - s * cote) * v;
+      libre.x += (-s * avant + c * cote) * vit;
+      libre.z += (-c * avant - s * cote) * vit;
       cam.position.set(libre.x, libre.y, libre.z);
       cam.rotation.order = 'YXZ';
       cam.rotation.set(libre.tangage, libre.lacet, 0);
@@ -90,8 +161,9 @@ const CAMERA = (function () {
   }
 
   return {
-    init, maj,
+    init, maj, suivante,
     get mode() { return mode; },
+    get conduite() { return mode !== 'libre'; },   // en caméra libre, les flèches déplacent la caméra, pas la voiture
     get position() { return cam ? { x: cam.position.x, y: cam.position.y, z: cam.position.z } : null; },
   };
 })();

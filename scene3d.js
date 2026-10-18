@@ -156,8 +156,13 @@ const SCENE3D = (function () {
     return trianglesDessines;
   }
 
+  // un objet de plus dans la scène (une voiture)
+  function ajouter(objet) {
+    if (scene) scene.add(objet);
+  }
+
   return {
-    init, dessiner,
+    init, dessiner, ajouter,
     get actif() { return rendu !== null; },
     get camera() { return camera; },
     get infoCircuit() { return infoCircuit; },

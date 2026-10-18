@@ -1,4 +1,4 @@
-# [NOM À APPROUVER] — un championnat de Formule 1 pour Poki
+# Grand Prix Dynasty — un championnat de Formule 1 pour Poki
 
 Un jeu de Formule 1 en 3D pour navigateur, publié sur Poki, **sur ordinateur seulement**.
 Il part de l'idée de *Super Star Car* (Poki, Barnzmu) : on conduit une F1, on gagne de l'argent, on améliore son équipe.
@@ -8,12 +8,10 @@ Ce qu'on ajoute, c'est **un vrai championnat** : des saisons de 12 Grands Prix, 
 
 ## Le nom
 
-Le propriétaire doit l'approuver. Tant que ce n'est pas fait, on ne l'écrit nulle part dans le code : on écrit `NOM_DU_JEU` dans le fichier de traduction.
-Voici les propositions (en anglais, parce que Poki est international) :
-- **Paddock Stars**
-- **Formula Rivals**
-- **Apex Season**
-- **Pit Lane Kings**
+**Grand Prix Dynasty** (approuvé par le propriétaire le 2026-10-18). Le même nom en anglais et en français.
+- « Grand Prix » fait penser à la F1 sans utiliser de marque : **jamais « F1 » ni « Formula 1 » dans le nom**, le titre ou les textes de présentation.
+- « Dynasty » : la carrière de 15 saisons, le palmarès, la légende.
+- Il est dans le fichier de traduction (une seule clé), dans le `<title>` et sur l'écran d'accueil ; nulle part ailleurs en dur.
 
 ## Le jeu en une phrase
 
@@ -133,7 +131,11 @@ Pour que ce soit beau **et** léger :
   - `boucle.js` : la boucle (`BOUCLE`), physique à 120 pas par seconde, et `BOUCLE.simuler(secondes)` sans affichage ;
   - `circuits.js` : les circuits en calcul pur, sans Three.js : la spline (Catmull-Rom centripète), les échantillons tous les 2 m, et `positionSurPiste(circuit, x, z, indiceDepart)` ; les points de chaque circuit sont dans `CIRCUITS` (`donnees.js`) ;
   - `scene3d.js` : l'affichage Three.js (`SCENE3D`), qui lit l'état sans le changer ;
-  - `camera.js` : les caméras de survol (`?camera=libre`, `dessus`, `virage` ; `auto` par défaut) ;
+  - `physique.js` : la physique des voitures en calcul pur (modèle « vélo », herbe, barrières) ; le joueur et les IA utilisent le même code ;
+  - `robot.js` : le robot d'essai (suit la ligne du milieu) ; ce n'est pas l'IA ;
+  - `voiture3d.js` : la F1 en 3D, faite par le code, avec la couleur de son écurie ;
+  - `textes.js` : tous les textes, en anglais et en français (`texte(cle)`) ;
+  - `camera.js` : les caméras de course (`derriere` par défaut, `cockpit`, `tele` ; touche C) et de survol (`?camera=auto`, `libre`, `dessus`, `virage`, `vitrine`) ;
   - `principal.js` : le démarrage, qui branche la physique et l'affichage sur la boucle ; `?debug=1` affiche les images par seconde et les triangles ;
   - `tests/lancer.py` : tous les tests (`tests/test.html` pour le moteur, `tests/ecrans.py` pour la vraie page avec Playwright, captures dans `tests/captures/`).
 
