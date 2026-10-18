@@ -133,10 +133,13 @@ Pour que ce soit beau **et** léger :
   - `scene3d.js` : l'affichage Three.js (`SCENE3D`), qui lit l'état sans le changer ;
   - `physique.js` : la physique des voitures en calcul pur (modèle « vélo », herbe, barrières) ; le joueur et les IA utilisent le même code ;
   - `robot.js` : le robot d'essai (suit la ligne du milieu) ; ce n'est pas l'IA ;
+  - `boite.js` : les 8 rapports et le régime, tirés de la vitesse, pour l'affichage et le son seulement (la physique ne les lit pas) ;
+  - `son.js` : le son synthétisé en Web Audio (moteur, pneus, chocs), rien avant le premier geste, M et 🔊 pour couper ;
+  - `reglages.js` : `?reglages=1`, le panneau de curseurs du pilote d'essai, avec « copier » pour `donnees.js` ;
   - `voiture3d.js` : la F1 en 3D, faite par le code, avec la couleur de son écurie ;
   - `textes.js` : tous les textes, en anglais et en français (`texte(cle)`) ;
   - `camera.js` : les caméras de course (`derriere` par défaut, `cockpit`, `tele` ; touche C) et de survol (`?camera=auto`, `libre`, `dessus`, `virage`, `vitrine`) ;
-  - `principal.js` : le démarrage, qui branche la physique et l'affichage sur la boucle ; `?debug=1` affiche les images par seconde et les triangles ;
+  - `principal.js` : le démarrage, qui branche la physique et l'affichage sur la boucle ; `?debug=1` affiche les images par seconde, les triangles et les appels de dessin, la dérive, les g latéraux, et ce que coûte une voiture ;
   - `tests/lancer.py` : tous les tests (`tests/test.html` pour le moteur, `tests/ecrans.py` pour la vraie page avec Playwright, captures dans `tests/captures/`).
 
 **Performance** : 60 images par seconde visées sur un ordinateur moyen, avec 20 voitures et un circuit détaillé. Le chargement doit être court. On mesure les images par seconde et le poids du jeu à chaque étape, et on note les mesures dans `SUIVI.md`.

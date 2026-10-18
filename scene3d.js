@@ -3,7 +3,7 @@ const SCENE3D = (function () {
   const R = REGLAGES;
   let rendu = null, scene = null, camera = null, conteneur = null;
   let infoCircuit = null;   // { triangles, msConstruction }
-  let trianglesDessines = 0;
+  let trianglesDessines = 0, appelsDessin = 0;
 
   function init(element, circuit) {
     conteneur = element;
@@ -12,7 +12,8 @@ const SCENE3D = (function () {
     } catch (e) {
       return false;   // pas de WebGL : le jeu le dira plus tard à l'écran
     }
-    rendu.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    // un écran Retina a 4 fois plus de pixels : on plafonne (réglage), c'est là que partent les images par seconde
+    rendu.setPixelRatio(Math.min(window.devicePixelRatio || 1, R.PIXEL_RATIO_MAX));
     conteneur.appendChild(rendu.domElement);
 
     scene = new THREE.Scene();
@@ -153,6 +154,7 @@ const SCENE3D = (function () {
     if (!rendu) return 0;
     rendu.render(scene, camera);
     trianglesDessines = rendu.info.render.triangles;
+    appelsDessin = rendu.info.render.calls;
     return trianglesDessines;
   }
 
@@ -167,5 +169,6 @@ const SCENE3D = (function () {
     get camera() { return camera; },
     get infoCircuit() { return infoCircuit; },
     get trianglesDessines() { return trianglesDessines; },
+    get appelsDessin() { return appelsDessin; },
   };
 })();

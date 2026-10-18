@@ -28,19 +28,48 @@ const REGLAGES = {
   ADHERENCE_FREIN: 1.8,         // coefficient au freinage
   RIGIDITE_PNEU: 18,            // N de force latérale par N de charge et par radian de glissement
   BRAQUAGE_MAX: 0.35,           // rad, à l'arrêt
-  BRAQUAGE_VITESSE: 25,         // m/s : le braquage max est divisé par (1 + v / BRAQUAGE_VITESSE)
+  BRAQUAGE_VITESSE: 18,         // m/s : le braquage max est divisé par (1 + v / BRAQUAGE_VITESSE)
   VITESSE_CINEMATIQUE: 3,       // m/s : en dessous, la voiture tourne sans glisser (évite les à-coups à l'arrêt)
   MARCHE_ARRIERE_MAX: 2.5,      // m/s (sous VITESSE_CINEMATIQUE : en marche arrière, la voiture ne glisse pas)
   FORCE_MARCHE_ARRIERE: 3000,   // N
-  ADHERENCE_HERBE: 0.5,         // l'adhérence est multipliée par ce nombre sur l'herbe
-  FROTTEMENT_HERBE: 160,        // N par m/s, en plus, sur l'herbe
+  ADHERENCE_ARRIERE: 1.25,      // l'arrière accroche plus que l'avant : c'est l'avant qui glisse d'abord, pas de tête-à-queue
+  STABILITE_LACET: 4,           // 1/s : la rotation de la voiture rejoint ce que demande le volant (aide arcade)
+  ANTI_DERIVE: 2.5,             // 1/s : la glissade de côté s'amortit (aide arcade)
+  // l'herbe ne fait que ralentir, et fort : la direction et l'adhérence restent presque celles de la piste
+  ADHERENCE_HERBE: 0.9,         // l'adhérence est multipliée par ce nombre sur l'herbe (au moins 0,85)
+  FROTTEMENT_HERBE: 0,          // N par m/s, en plus, sur l'herbe
+  FROTTEMENT_HERBE_CARRE: 11,   // N par (m/s)², en plus : on freine fort à haute vitesse, et on plafonne vers 80 km/h
+  GAZ_HERBE: 0.7,               // sur l'herbe, le moteur pousse à cette part de sa force
   MARGE_HERBE: 1,               // m au-delà du bord de la piste avant d'être dans l'herbe (les vibreurs)
   DEMI_LARGEUR_VOITURE: 1,      // m : la voiture touche la barrière à cette distance
   REBOND_BARRIERE: 0.3,         // part de la vitesse vers la barrière qui repart dans l'autre sens
   FROTTEMENT_BARRIERE: 0.3,     // part de la vitesse le long de la barrière perdue au choc
   RAYON_ROUE: 0.33,
   // les commandes au clavier montent et descendent progressivement (par seconde)
-  RAMPE_GAZ: 4, RAMPE_FREIN: 8, RAMPE_DIRECTION: 3, RETOUR_DIRECTION: 5,
+  RAMPE_GAZ: 4, RAMPE_FREIN: 8,
+  // la direction au clavier monte en deux temps : vite jusqu'au palier (un appui court = une petite correction),
+  // puis lentement jusqu'au bout si on garde la touche ; elle revient vite au centre quand on lâche
+  DIRECTION_PALIER: 0.35,
+  RAMPE_DIRECTION_RAPIDE: 3.5,  // jusqu'au palier en 0,1 s
+  RAMPE_DIRECTION_LENTE: 0.65,  // du palier au bout en 1 s
+  RETOUR_DIRECTION: 5,          // du bout au centre en 0,2 s
+
+  // la boîte de vitesses : seulement pour l'affichage et le son, elle ne change pas la physique
+  RAPPORTS_HAUT_KMH: [95, 130, 165, 200, 235, 268, 300, 345],   // la vitesse où chaque rapport est au régime max
+  REGIME_RALENTI: 4000,         // tr/min
+  REGIME_MAX: 12000,
+
+  // le son (Web Audio, synthétisé)
+  SON_VOLUME: 0.35,
+  SON_EXPLOSIONS_PAR_TOUR: 3,   // un V6 à 4 temps : 3 explosions par tour de vilebrequin → la note du moteur
+  SON_FILTRE_MOTEUR: [900, 3200],   // le filtre du moteur s'ouvre de ces Hz (pied levé) à ceux-ci (plein gaz)
+  SON_DERIVE_CRISSEMENT: 0.08,  // rad : au-dessus de cet angle de dérive, les pneus crissent
+  SON_VOLUME_PNEUS: 0.25,
+  SON_VOLUME_CHOC: 0.6,
+  SON_MOTEUR_PIED_LEVE: 0.35,   // le volume du moteur sans gaz (1 = plein gaz)
+  SON_PNEUS_FREQUENCE: 2500,    // Hz, le centre du bruit des pneus
+  SON_CHOC_DUREE: 0.35,         // s
+  SON_LISSAGE: 0.03,            // s : le son rejoint sa nouvelle valeur en ce temps (pas de clics)
 
   // le robot d'essai (préparation des IA)
   ROBOT_VISEE_MIN: 12,          // m : il vise un point au moins à cette distance devant lui
@@ -83,16 +112,21 @@ const REGLAGES = {
   CAMERA_LIBRE_MOLETTE: 0.0015, // part de la hauteur par cran de molette
   CAMERA_LIBRE_HAUTEUR: [3, 2000],
   CAMERA_VIRAGE_HAUTEUR: 3,     // ?camera=virage : vue basse, au bord du virage le plus serré
+  HALO_EPAISSEUR: 0.035,        // m, le rayon du tube du halo (on le voit en vue cockpit)
   // les caméras de course (C passe de l'une à l'autre)
-  CAMERA_DERRIERE: [7.5, 2.4],  // recul et hauteur derrière la voiture (m)
-  CAMERA_RESSORT: 9,            // raideur du ressort amorti qui suit la voiture (1/s)
-  CAMERA_CHAMP: [60, 15],       // champ de vision derrière : de base, plus ce nombre à pleine vitesse (degrés)
+  CAMERA_DERRIERE: [7.5, 2.4],  // recul et hauteur derrière la voiture (m) : fixes, la caméra ne traîne pas derrière
+  CAMERA_RECUL_VITESSE: 0.5,    // m de recul en plus à pleine vitesse (90 m/s)
+  CAMERA_SUIVI_CAP: 6,          // 1/s : la caméra tourne autour de la voiture avec un léger retard dans les virages
+  CAMERA_SUIVI_HAUTEUR: 4,      // 1/s : la hauteur est un peu lissée
+  CAMERA_CHAMP: [60, 6],        // champ de vision derrière : de base, plus ce nombre à pleine vitesse (degrés)
   CAMERA_COCKPIT: [0.2, 0.88],  // l'œil du pilote, à la place du casque (caché en vue cockpit) : avant, hauteur (m)
   CAMERA_COCKPIT_CHAMP: 72,
   TELE_ESPACEMENT: 250,         // une caméra télé tous les 250 m le long de la piste
   TELE_RECUL: 8,                // à cette distance derrière la barrière (m)
   TELE_HAUTEUR: 7,
   TELE_CADRAGE: 9,              // la voiture et ce qui l'entoure, en mètres, remplissent l'image
+
+  PIXEL_RATIO_MAX: 1.5,         // au plus 1,5 pixel dessiné par pixel CSS (un écran Retina en demande 2)
 
   // le mode ?debug=1
   DEBUG_PERIODE_IPS: 0.5,       // secondes entre deux mises à jour du compteur d'images

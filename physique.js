@@ -55,9 +55,22 @@ function lisserCommandes(v, cibles, dt) {
   const vers = (actuel, cible, vitesse) => actuel < cible ? Math.min(cible, actuel + vitesse * dt) : Math.max(cible, actuel - vitesse * dt);
   v.gaz = vers(v.gaz, cibles.gaz, R.RAMPE_GAZ);
   v.frein = vers(v.frein, cibles.frein, R.RAMPE_FREIN);
-  // la direction revient au centre plus vite qu'elle ne braque
+  // la direction revient au centre vite ; elle braque vite jusqu'au palier, puis lentement jusqu'au bout
   const retour = cibles.direction === 0 || (v.direction !== 0 && Math.sign(cibles.direction) !== Math.sign(v.direction));
-  v.direction = vers(v.direction, cibles.direction, retour ? R.RETOUR_DIRECTION : R.RAMPE_DIRECTION);
+  if (retour) v.direction = vers(v.direction, cibles.direction, R.RETOUR_DIRECTION);
+  else {
+    const sens = Math.sign(cibles.direction), cible = Math.abs(cibles.direction);
+    let a = Math.abs(v.direction), reste = dt;
+    // le temps du pas passe d'abord dans la montée rapide, le reste dans la montée lente
+    if (a < R.DIRECTION_PALIER) {
+      const jusquAuPalier = (Math.min(R.DIRECTION_PALIER, cible) - a) / R.RAMPE_DIRECTION_RAPIDE;
+      const t = Math.min(reste, Math.max(0, jusquAuPalier));
+      a += t * R.RAMPE_DIRECTION_RAPIDE;
+      reste -= t;
+    }
+    if (a >= R.DIRECTION_PALIER - 1e-12) a += reste * R.RAMPE_DIRECTION_LENTE;
+    v.direction = sens * Math.min(cible, a);
+  }
 }
 
 // commandes directes (le robot, les IA) : sans rampe
@@ -91,10 +104,10 @@ function pasVoiture(v, circuit, dt) {
   // la force vers l'avant : moteur, frein, traînée, roulement, herbe
   let fx = 0;
   const avance = v.u > 0.01;
-  if (v.gaz > 0) fx += v.gaz * Math.min(R.FORCE_MOTEUR_MAX, R.PUISSANCE / Math.max(v.u, 1));
+  if (v.gaz > 0) fx += v.gaz * Math.min(R.FORCE_MOTEUR_MAX, R.PUISSANCE / Math.max(v.u, 1)) * (herbe ? R.GAZ_HERBE : 1);
   // le frein à l'arrêt devient la marche arrière (si on n'accélère pas)
   if (v.frein > 0 && v.u <= 0.5 && v.gaz === 0 && v.u > -R.MARCHE_ARRIERE_MAX) fx -= v.frein * R.FORCE_MARCHE_ARRIERE;
-  const resistance = R.TRAINEE * v.u * v.u + R.ROULEMENT + (herbe ? R.FROTTEMENT_HERBE * Math.abs(v.u) : 0)
+  const resistance = R.TRAINEE * v.u * v.u + R.ROULEMENT + (herbe ? R.FROTTEMENT_HERBE * Math.abs(v.u) + R.FROTTEMENT_HERBE_CARRE * v.u * v.u : 0)
     + (avance ? v.frein * R.ADHERENCE_FREIN * (herbe ? R.ADHERENCE_HERBE : 1) * fz : 0);
 
   if (Math.abs(v.u) < R.VITESSE_CINEMATIQUE) {
@@ -113,7 +126,7 @@ function pasVoiture(v, circuit, dt) {
     const alphaArriere = Math.atan2(v.v - b * v.r, Math.abs(v.u));
     const plafond = (f, max) => Math.max(-max, Math.min(max, f));
     const fyAvant = plafond(-R.RIGIDITE_PNEU * fzAvant * alphaAvant, mu * fzAvant);
-    const fyArriere = plafond(-R.RIGIDITE_PNEU * fzArriere * alphaArriere, mu * fzArriere);
+    const fyArriere = plafond(-R.RIGIDITE_PNEU * fzArriere * alphaArriere, mu * R.ADHERENCE_ARRIERE * fzArriere);
 
     const sensU = Math.sign(v.u);
     const du = (fx - sensU * resistance - fyAvant * Math.sin(delta)) / m + v.v * v.r;
@@ -125,6 +138,12 @@ function pasVoiture(v, circuit, dt) {
     if (uAvant > 0 && v.u < 0) v.u = 0;
     v.v += dv * dt;
     v.r += dr * dt;
+    // l'aide de stabilité (arcade) : la rotation rejoint celle que demande le volant, plafonnée par l'adhérence,
+    // et la glissade de côté s'amortit. Lâcher la direction remet la voiture droite, sans tête-à-queue.
+    const rMax = mu * fz / (m * Math.abs(v.u));
+    const rVoulue = Math.max(-rMax, Math.min(rMax, v.u * Math.tan(delta) / R.EMPATTEMENT));
+    v.r += (rVoulue - v.r) * (1 - Math.exp(-R.STABILITE_LACET * dt));
+    v.v *= Math.exp(-R.ANTI_DERIVE * dt);
   }
 
   // la position, avec les vitesses nouvelles (Euler semi-implicite : stable)

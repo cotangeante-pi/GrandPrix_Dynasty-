@@ -13,7 +13,7 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 
 ## Tour en cours
 
-**Tour 3 — fin de l'étape 1 (ondulations) + étape 2a (la voiture roule)** : ordres envoyés (`rapports/tour-03-rapport.md`). Tour 2 vérifié par le Chef : vert, commit 16de5dc.
+**Tour 4 — étape 2b (son, rapports, panneau de réglage)** : ordres envoyés (`rapports/tour-04-rapport.md`). Tour 3 vérifié par le Chef : vert, commit 43a3fa8. Le propriétaire conduit pendant ce tour.
 
 ## Notes du Chef
 
@@ -21,15 +21,16 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 |---|---|---|---|---|---|---|---|---|---|
 | 1 | a4f5bdd | 10 | 0 | 0 | 0 | 0 | 1 | 8 | 1 |
 | 2 | 16de5dc | 15 | 0 | 0 | 0 | 0 | 5 | 9 | 1 |
+| 3 | 43a3fa8 | 27 | 7 | 1 | 0 | 2 | 7 | 9 | 1 |
 
 ## À essayer par le propriétaire
 
-- Étape 1 : `index.html?camera=libre` — survoler le circuit (glisser la souris, molette, flèches).
-- Après le tour 3 : conduire la voiture (étape 2) et dire ce qu'il ressent.
+- **Étape 2 : conduire** `index.html` (flèches/ZQSD, C = caméra, Espace = retour en piste). Dire : tourne trop / pas assez ? freinage ? facile ou dur de rester en piste ? caméra derrière trop loin ? cockpit trop chargé (halo, capot) ?
+- Étape 1 : survol `index.html?camera=libre`.
 
 ## Étape en cours
 
-**Étape 1 — Le circuit** : critère presque atteint (tour 2), reste les ondulations (tour 3) et le survol par le propriétaire. **Étape 2 — La voiture** : commencée au tour 3. Étape 0 : **finie** (tour 1, essayée par le propriétaire).
+**Étape 1 — Le circuit** : critère atteint (tours 2–3, ondulations corrigées), reste le survol par le propriétaire. **Étape 2 — La voiture** : physique, F1 3D, caméras, robot faits (tour 3) ; son et panneau de réglage au tour 4 ; attend l'essai du propriétaire.
 
 ## Fini
 
@@ -46,9 +47,11 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 
 - 2026-10-18 : le nom du jeu est **Grand Prix Dynasty** (remplacer `NOM_DU_JEU` au tour 4).
 
+- 2026-10-18 : dépôt GitHub **public** https://github.com/cotangeante-pi/Grand-Prix-Dynasty (choix du propriétaire, pour GitHub Pages). Le Chef pousse `main` après chaque tour vérifié ; le Codeur ne pousse pas.
+
 ## Bugs connus
 
-- La courbe du circuit de test ondule sur les droites (tour 3, ordre 1).
+- Aucun. (Ondulations du circuit corrigées au tour 3 : circuit décrit par morceaux.)
 
 ## Mesures
 
@@ -56,12 +59,18 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 |---|---|---|---|---|
 | 2026-10-18 | 0 | **100 i/s** sur le Mac du propriétaire (Chrome, index.html?debug=1) | three.min.js 633 Ko + < 25 Ko | scène du cube ; Chrome sans fenêtre = rendu logiciel, sans valeur |
 | 2026-10-18 | 1 (en cours) | **100 i/s** (le propriétaire) | — | circuit de test, version pas encore finie |
+| 2026-10-18 | 2 (tour 3) | **70 i/s** (le propriétaire) | — | 1 voiture ; charge du Mac 12–13 à ce moment ; pixelRatio 2 + beaucoup d'appels de dessin par voiture → tour 4, ordre 7 |
 
 ## Retours du propriétaire
 
 - 2026-10-18, tour 2 en cours : il voit la piste, « elle est longue un peu comme je voulais », la forme n'est pas encore avancée. → Garder des circuits longs ; la forme viendra avec les vrais tracés (étape 10).
 
+- 2026-10-18 19h15, conduite (tour 3) : « la voiture tourne trop quand tu appuies un peu longtemps sur tourner et la caméra est trop loin quand on accélère trop ». → Tour 4, ordres 5 (caméra : retard du ressort 2v/w ≈ 20 m à pleine vitesse, + champ de vision) et 6 (direction au clavier en deux temps, braquage plus réduit à haute vitesse).
+- 2026-10-18 19h35, conduite (ordres 5–6) : « quand tu appuies sur tourner pendant 1 sec il ne doit pas rester braqué » ; « hors piste c'est juste la vitesse qui diminue (bcp), pas les manettes qui bloquent ». → Tour 4, ordres 8 (la voiture continue de tourner après le lâcher : à mesurer) et 9 (herbe : garder l'adhérence, freiner fort).
+- le propriétaire veut le projet sur GitHub (voir « Décisions en attente »).
+
 ## Décisions en attente (pour le propriétaire)
+
 
 - La liste des 12 circuits.
 - La liste exacte des améliorations du garage.
@@ -74,4 +83,5 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 | 2026-10-18 | — | `CLAUDE.md` écrit avec le propriétaire |
 | 2026-10-18 | 0 | Tour 1 : fondations, 47/47 tests, a4f5bdd, vérifié par le Chef |
 | 2026-10-18 | 1 | Tour 2 : le circuit, 82/82 tests, 16de5dc, vérifié par le Chef ; ondulations à corriger |
-| 2026-10-18 | 1–2 | Tour 3 : ordres envoyés (ondulations, physique, F1 3D, caméras, robot d'essai) |
+| 2026-10-18 | 1–2 | Tour 3 : la voiture roule, 121/121 tests, 43a3fa8, robot 66,55 s, nom Grand Prix Dynasty dans le jeu |
+| 2026-10-18 | 2 | Tour 4 : ordres envoyés (son, rapports, panneau ?reglages=1, mesures) |

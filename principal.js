@@ -33,6 +33,8 @@ function brancherClavier() {
   });
   window.addEventListener('keyup', e => { enfoncees.delete(e.code); majCibles(); });
   window.addEventListener('blur', () => { enfoncees.clear(); majCibles(); });
+  // une touche lâchée pendant que l'onglet est caché n'envoie jamais son keyup : on remet tout à zéro
+  document.addEventListener('visibilitychange', () => { enfoncees.clear(); majCibles(); });
 }
 
 function pasJoueur(pas) {
@@ -46,7 +48,17 @@ function pasJoueur(pas) {
 function majTableau() {
   const v = JEU.joueur;
   document.getElementById('vitesse').textContent = Math.round(Math.abs(v.u) * 3.6);
+  document.getElementById('rapport').textContent = rapportPourVitesse(v.u);
   document.getElementById('horsPiste').classList.toggle('cache', !v.surHerbe);
+}
+
+// les mesures pour régler la conduite : la dérive (l'angle entre l'avant et la trajectoire), les g latéraux,
+// et les triangles et appels de dessin d'une voiture
+function mesuresConduite() {
+  const v = JEU.joueur;
+  const derive = Math.abs(v.u) > 1 ? Math.atan2(v.v, Math.abs(v.u)) * 180 / Math.PI : 0;
+  const gLateraux = v.u * v.r / REGLAGES.GRAVITE;   // l'accélération vers le centre du virage, en g
+  return 'dérive ' + derive.toFixed(1) + '° · ' + Math.abs(gLateraux).toFixed(2) + ' g · voiture ' + VOITURE3D.triangles(JEU.modele) + ' triangles, ' + VOITURE3D.appels(JEU.modele) + ' appels';
 }
 
 // ?debug=1 : les images par seconde et les triangles dessinés, dans un coin
@@ -58,7 +70,7 @@ function brancherDebug() {
     images++;
     temps += dt;
     if (temps >= REGLAGES.DEBUG_PERIODE_IPS) {
-      boite.textContent = Math.round(images / temps) + ' i/s · ' + SCENE3D.trianglesDessines + ' triangles';
+      boite.textContent = Math.round(images / temps) + ' i/s · ' + SCENE3D.trianglesDessines + ' triangles · ' + SCENE3D.appelsDessin + ' appels\n' + mesuresConduite();
       images = 0;
       temps = 0;
     }
@@ -82,6 +94,14 @@ function demarrerJeu() {
   JEU.modele = VOITURE3D.creer(REGLAGES.COULEUR_JOUEUR);
   SCENE3D.ajouter(JEU.modele.groupe);
   brancherClavier();
+  const boutonSon = document.getElementById('boutonSon');
+  boutonSon.title = texte('son');
+  const majBoutonSon = () => { boutonSon.textContent = SON.muet ? '🔇' : '🔊'; };
+  // pas de focus sur le bouton : Espace ne doit pas le cliquer
+  boutonSon.addEventListener('mousedown', e => e.preventDefault());
+  boutonSon.addEventListener('click', () => { SON.basculer(); majBoutonSon(); });
+  window.addEventListener('keydown', e => { if (e.code === 'KeyM' && !e.repeat) { SON.basculer(); majBoutonSon(); } });
+  if (PARAMETRES.get('reglages') === '1') PANNEAU_REGLAGES.creer(cle => { if (cle === 'HALO_EPAISSEUR') VOITURE3D.majHalo(JEU.modele); });
 
   BOUCLE.surPhysique(pasJoueur);
   BOUCLE.surAffichage((alpha, dt) => {
@@ -91,6 +111,7 @@ function demarrerJeu() {
     JEU.modele.tete.visible = CAMERA.mode !== 'cockpit';   // en vue cockpit, l'œil est dans le casque
     CAMERA.maj(dt, etat, JEU.joueur);
     majTableau();
+    SON.maj(JEU.joueur);
     SCENE3D.dessiner();
   });
   if (PARAMETRES.get('debug') === '1') brancherDebug();

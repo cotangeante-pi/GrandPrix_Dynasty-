@@ -22,6 +22,7 @@ PAGES = [
     ('index.html?camera=dessus', 1280, 720, 'dessus.png'),
     ('index.html?camera=virage', 1280, 720, 'virage.png'),
     ('index.html?camera=vitrine', 1280, 720, 'voiture.png'),
+    ('index.html?reglages=1', 1280, 720, 'reglages.png'),
 ]
 POSITION = '() => CAMERA.position'
 
@@ -44,20 +45,23 @@ INTERPOLE = """() => { const v = JEU.joueur, g = JEU.modele.groupe.position, e =
 
 def conduite(pg, titre):
     t(f'{titre} : la voiture attend sur la ligne, à l’arrêt', pg.evaluate(JOUEUR)['u'] == 0)
+    t(f'{titre} : aucun son avant le premier geste', pg.evaluate('() => !SON.actif'))
     t(f'{titre} : le titre est le nom du jeu, sans « F1 »', pg.evaluate('() => document.title === texte("nomDuJeu") && document.title === "Grand Prix Dynasty"'), pg.evaluate('() => document.title'))
     depart = pg.evaluate(JOUEUR)
     pg.keyboard.down('ArrowUp')
-    t(f'{titre} : ↑ fait avancer la voiture', attendre(pg, '() => JEU.joueur.u > 15', None, 8000), str(pg.evaluate(JOUEUR)))
+    t(f'{titre} : le premier geste allume le son', attendre(pg, '() => SON.actif'), pg.evaluate('() => SON.etatContexte'))
+    t(f'{titre} : ↑ fait avancer la voiture', attendre(pg, '() => JEU.joueur.u > 15', None, 20000), str(pg.evaluate(JOUEUR)))
     i = pg.evaluate(INTERPOLE)
     t(f'{titre} : la voiture est dessinée entre l’état d’avant et l’état d’après', i['ok'], str(i))
     pg.screenshot(path=os.path.join(CAPTURES, 'derriere.png'))
     p1 = pg.evaluate(JOUEUR)
     pg.keyboard.down('ArrowLeft')
-    t(f'{titre} : ← fait tourner la voiture à gauche', attendre(pg, 'c => JEU.joueur.cap < c - 0.05', p1['cap']), f"cap {p1['cap']} → {pg.evaluate(JOUEUR)['cap']}")
+    t(f'{titre} : ← fait tourner la voiture à gauche', attendre(pg, 'c => JEU.joueur.cap < c - 0.05', p1['cap'], 20000), f"cap {p1['cap']} → {pg.evaluate(JOUEUR)['cap']}")
+    t(f'{titre} : le rapport monte et s’affiche', attendre(pg, '() => Number(document.getElementById("rapport").textContent) >= 2'), pg.evaluate('() => document.getElementById("rapport").textContent'))
     pg.keyboard.up('ArrowLeft'); pg.keyboard.up('ArrowUp')
     p2 = pg.evaluate(JOUEUR)
     pg.keyboard.down('ArrowDown')
-    t(f'{titre} : ↓ freine', attendre(pg, 'u => JEU.joueur.u < u * 0.5', p2['u']), f"{p2['u']} → {pg.evaluate(JOUEUR)['u']}")
+    t(f'{titre} : ↓ freine', attendre(pg, 'u => JEU.joueur.u < u * 0.5', p2['u'], 20000), f"{p2['u']} → {pg.evaluate(JOUEUR)['u']}")
     pg.keyboard.up('ArrowDown')
     t(f'{titre} : la voiture a roulé', math.hypot(p2['x'] - depart['x'], p2['z'] - depart['z']) > 10, str(p2))
     # C : derrière → cockpit → télé → derrière
@@ -74,9 +78,35 @@ def conduite(pg, titre):
     t(f'{titre} : dans l’herbe, « hors piste » s’affiche', attendre(pg, '() => JEU.joueur.surHerbe && !document.getElementById("horsPiste").classList.contains("cache")'), str(pg.evaluate(JOUEUR)))
     pg.keyboard.press('Space')
     t(f'{titre} : Espace remet la voiture au centre de la piste, à l’arrêt', attendre(pg, '() => Math.abs(JEU.joueur.piste.d) < 0.05 && JEU.joueur.u === 0 && !JEU.joueur.surHerbe'), str(pg.evaluate(JOUEUR)))
+    pg.keyboard.press('KeyM')
+    t(f'{titre} : M coupe le son', pg.evaluate('() => SON.muet && document.getElementById("boutonSon").textContent === "🔇"'))
+    pg.keyboard.press('KeyM')
+    t(f'{titre} : M le remet', pg.evaluate('() => !SON.muet && document.getElementById("boutonSon").textContent === "🔊"'))
+    pg.click('#boutonSon')
+    t(f'{titre} : le bouton 🔊 coupe le son', pg.evaluate('() => SON.muet'))
+    pg.click('#boutonSon')
+    t(f'{titre} : le bouton ne garde pas le focus (Espace ne le clique pas)', pg.evaluate('() => document.activeElement !== document.getElementById("boutonSon") && !SON.muet'))
     t(f'{titre} : la vitesse s’affiche en km/h', bool(re.fullmatch(r'\d+', pg.evaluate('() => document.getElementById("vitesse").textContent'))))
 
+def reglages(pg, titre):
+    # un curseur bouge : REGLAGES change tout de suite, et « copier » donne la ligne pour donnees.js
+    pg.evaluate("""() => { const c = document.querySelector('#reglages input[data-cle="ADHERENCE"]'); c.value = 2.2; c.dispatchEvent(new Event('input')); }""")
+    t(f'{titre} : le curseur ADHERENCE change REGLAGES.ADHERENCE', pg.evaluate('() => REGLAGES.ADHERENCE') == 2.2, str(pg.evaluate('() => REGLAGES.ADHERENCE')))
+    pg.evaluate("""() => { const c = document.querySelector('#reglages input[data-cle="CAMERA_DERRIERE.0"]'); c.value = 6; c.dispatchEvent(new Event('input')); }""")
+    t(f'{titre} : un réglage dans un tableau (CAMERA_DERRIERE[0]) change aussi', pg.evaluate('() => REGLAGES.CAMERA_DERRIERE[0]') == 6)
+    tri = pg.evaluate('() => VOITURE3D.triangles(JEU.modele)')
+    pg.evaluate("""() => { const c = document.querySelector('#reglages input[data-cle="HALO_EPAISSEUR"]'); c.value = 0.06; c.dispatchEvent(new Event('input')); }""")
+    t(f'{titre} : l’épaisseur du halo refait la voiture (mêmes triangles, mêmes appels)', pg.evaluate('() => REGLAGES.HALO_EPAISSEUR') == 0.06 and pg.evaluate('() => VOITURE3D.triangles(JEU.modele)') == tri and pg.evaluate('() => VOITURE3D.appels(JEU.modele)') <= 8)
+    pg.click('#reglages button')
+    copie = pg.evaluate('() => document.querySelector("#reglages pre").textContent')
+    t(f'{titre} : « copier » donne les valeurs changées, prêtes pour donnees.js', 'ADHERENCE: 2.2,' in copie and 'CAMERA_DERRIERE: [6, 2.4],' in copie and 'APPUI' not in copie, repr(copie))
+    # les flèches conduisent toujours après avoir touché le panneau
+    pg.keyboard.down('ArrowUp')
+    t(f'{titre} : après le panneau, ↑ fait toujours rouler', attendre(pg, '() => JEU.joueur.u > 5', None, 20000))
+    pg.keyboard.up('ArrowUp')
+
 mesures = None
+mesures_voiture = []
 os.makedirs(CAPTURES, exist_ok=True)
 with sync_playwright() as p:
     b = p.chromium.launch(channel='chrome', args=['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--allow-file-access-from-files', '--disable-audio-output'])
@@ -96,8 +126,11 @@ with sync_playwright() as p:
             t(f'{titre} : le circuit est dessiné', attendre(pg, '() => SCENE3D.trianglesDessines > 5000'), f'{pg.evaluate("() => SCENE3D.trianglesDessines")} triangles')
             if mesures is None: mesures = pg.evaluate('() => SCENE3D.infoCircuit')
 
+            t(f'{titre} : le panneau de réglage n’existe que avec ?reglages=1', pg.evaluate('() => !!document.getElementById("reglages")') == ('reglages=1' in page))
             if page == 'index.html' and l == 1280:
                 conduite(pg, titre)
+            if 'reglages=1' in page:
+                reglages(pg, titre)
             if 'camera=auto' in page:
                 p1 = pg.evaluate(POSITION)
                 t(f'{titre} : la caméra fait le tour toute seule', attendre(pg, 'p => CAMERA.position.x !== p.x || CAMERA.position.z !== p.z', p1), str(p1))
@@ -120,12 +153,18 @@ with sync_playwright() as p:
             if 'debug=1' in page:
                 attendre(pg, '() => /triangles/.test(document.getElementById("ips").textContent)')
                 ips = pg.evaluate('() => document.getElementById("ips").textContent')
-                t(f'{titre} : images par seconde et triangles affichés', bool(re.fullmatch(r'\d+ i/s · \d+ triangles', ips or '')), repr(ips))
+                m = re.fullmatch(r'\d+ i/s · \d+ triangles · (\d+) appels\ndérive (-?[\d.]+)° · ([\d.]+) g · voiture (\d+) triangles, (\d+) appels', ips or '')
+                t(f'{titre} : images par seconde, triangles, dérive, g latéraux et triangles d’une voiture affichés', bool(m), repr(ips))
+                if m:
+                    t(f'{titre} : à l’arrêt, 0° de dérive et 0 g', float(m.group(2)) == 0 and float(m.group(3)) == 0, repr(ips))
+                    t(f'{titre} : une voiture fait au plus 8 appels de dessin', int(m.group(5)) <= 8, repr(ips))
+                    mesures_voiture.append((int(m.group(4)), int(m.group(5)), int(m.group(1))))
             else: t(f'{titre} : sans debug, pas de compteur', ips is None, repr(ips))
             ctx.close()
     finally:
         b.close()
 
 print(f'RESULTAT {ok}/{ok + ko}'); print('\n'.join(L))
+if mesures_voiture: print(f'  (une voiture : {mesures_voiture[0][0]} triangles, {mesures_voiture[0][1]} appels de dessin ; toute l’image : {mesures_voiture[0][2]} appels)')
 if mesures: print(f'  (circuit 3D : {mesures["triangles"]:.0f} triangles, construit en {mesures["msConstruction"]:.0f} ms sous swiftshader)')
 sys.exit(0 if ko == 0 else 1)

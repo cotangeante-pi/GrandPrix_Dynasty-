@@ -1,7 +1,7 @@
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><title>tests</title></head><body>
 <pre id="res"></pre>
 <script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));window.addEventListener('unhandledrejection',e=>__err.push('promesse : '+(e.reason&&e.reason.message||e.reason)));</script>
-<script src="../donnees.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../robot.js"></script><script src="../principal.js"></script>
+<script src="../donnees.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../son.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../principal.js"></script>
 <script>
 const L=[];let ok=0,ko=0;
 function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
@@ -101,18 +101,42 @@ t('virage de 100 m à 80 % de la vitesse limite : la voiture tient le cercle à 
   let dMax=0,uMin=Infinity,uMax=0;rouler(vo,ROND,30,(v_)=>piloteRobot(v_,ROND,cible),(v_,k)=>{if(k*DT>20){dMax=Math.max(dMax,Math.abs(v_.piste.d));uMin=Math.min(uMin,v_.u);uMax=Math.max(uMax,v_.u);}});
   L.push('  (limite théorique à 100 m : '+(vl*KMH).toFixed(0)+' km/h ; à 80 % : écart au centre ≤ '+dMax.toFixed(2)+' m, vitesse '+(uMin*KMH).toFixed(1)+'–'+(uMax*KMH).toFixed(1)+' km/h)');
   v(dMax<3,'écart '+dMax.toFixed(2));v(uMax-uMin<cible*0.03,'vitesse instable');});
-t('virage de 100 m à 125 % de la vitesse limite : la voiture sort du virage', ()=>{const cible=1.25*vitesseVirage(1/100);const vo=creerVoiture(ROND,0);vo.u=cible;let dMax=0;
-  rouler(vo,ROND,10,(v_)=>piloteRobot(v_,ROND,cible),(v_)=>{dMax=Math.max(dMax,Math.abs(v_.piste.d));});v(dMax>ROND.largeur/2,'écart max '+dMax.toFixed(2));});
+t('virage de 100 m à 125 % de la vitesse limite : la voiture ne tient plus la ligne (elle s’écarte de plus de 4 m)', ()=>{const cible=1.25*vitesseVirage(1/100);const vo=creerVoiture(ROND,0);vo.u=cible;let dMax=0;
+  rouler(vo,ROND,10,(v_)=>piloteRobot(v_,ROND,cible),(v_)=>{dMax=Math.max(dMax,Math.abs(v_.piste.d));});L.push('  (à 125 % : écart max '+dMax.toFixed(2)+' m)');v(dMax>4,'écart max '+dMax.toFixed(2));});
 t('l’herbe ralentit', ()=>{const a=creerVoiture(C,60,0),b=creerVoiture(C,60,12);rouler(a,C,4,{gaz:1,frein:0,direction:0});rouler(b,C,4,{gaz:1,frein:0,direction:0});
   v(b.surHerbe&&!a.surHerbe);L.push('  (4 s plein gaz : piste '+(a.u*KMH).toFixed(0)+' km/h, herbe '+(b.u*KMH).toFixed(0)+' km/h)');v(b.u<a.u*0.85,(a.u*KMH).toFixed(0)+' / '+(b.u*KMH).toFixed(0));});
+// le lâcher de la direction (ordre 8 du tour 4)
+function lacher(kmh){const vo=creerVoiture(null);vo.u=kmh/3.6;const tenir=()=>vo.u<kmh/3.6?1:0;
+  for(let k=0;k<120;k++){lisserCommandes(vo,{gaz:tenir(),frein:0,direction:1},DT);pasVoiture(vo,null,DT);}
+  const cap0=vo.cap;let tR=null,capMax=0;
+  for(let j=0;j<600;j++){lisserCommandes(vo,{gaz:tenir(),frein:0,direction:0},DT);pasVoiture(vo,null,DT);if(tR===null&&Math.abs(vo.r)<0.05) tR=(j+1)*DT;capMax=Math.max(capMax,Math.abs(vo.cap-cap0));}
+  return {tR,deg:capMax*180/Math.PI,r:vo.r};}
+for(const kmh of [150,250]) t(`touche gardée 1 s à ${kmh} km/h puis lâchée : |r| < 0,05 rad/s en moins de 0,6 s, le cap tourne de moins de 8° de plus`, ()=>{const m=lacher(kmh);
+  L.push(`  (${kmh} km/h : |r| < 0,05 en ${m.tR===null?'jamais':m.tR.toFixed(3)+' s'}, cap encore ${m.deg.toFixed(1)}° ; au tour 3 : tête-à-queue, 184°)`);v(m.tR!==null&&m.tR<0.6,String(m.tR));v(m.deg<8,m.deg.toFixed(1)+'°');v(Math.abs(m.r)<0.01);});
+// l'herbe ne fait que ralentir (ordre 9 du tour 4)
+function rayonA(kmh,herbe){const vo=creerVoiture(null);vo.u=kmh/3.6;vo.surHerbe=herbe;
+  for(let k=0;k<120;k++){vo.surHerbe=herbe;appliquerCommandes(vo,{gaz:0,frein:0,direction:1});pasVoiture(vo,null,DT);vo.u=kmh/3.6;}return kmh/3.6/Math.abs(vo.r);}
+t('sur l’herbe, on tourne presque aussi serré que sur la piste (à 80 km/h)', ()=>{const p=rayonA(80,false),h=rayonA(80,true);L.push('  (rayon à 80 km/h : piste '+p.toFixed(1)+' m, herbe '+h.toFixed(1)+' m)');v(h<p*1.2,p.toFixed(1)+' / '+h.toFixed(1));});
+t('sur l’herbe à 250 km/h, plein gaz : sous 100 km/h en moins de 3 s, puis une vitesse limite vers 80–100 km/h', ()=>{const vo=creerVoiture(null);vo.u=250/3.6;let t100=null;
+  for(let k=0;k<120*20;k++){vo.surHerbe=true;appliquerCommandes(vo,{gaz:1,frein:0,direction:0});pasVoiture(vo,null,DT);if(t100===null&&vo.u<100/3.6) t100=(k+1)*DT;}
+  L.push('  (herbe : sous 100 km/h en '+(t100===null?'—':t100.toFixed(2)+' s')+', vitesse limite '+(vo.u*3.6).toFixed(0)+' km/h)');v(t100!==null&&t100<3,String(t100));v(vo.u*3.6>=75&&vo.u*3.6<=100,(vo.u*3.6).toFixed(0));});
 t('une barrière n’est jamais traversée, même de face à 330 km/h', ()=>{const lim=C.largeur/2+REGLAGES.DISTANCE_BARRIERE-REGLAGES.DEMI_LARGEUR_VOITURE;
   for(const cote of [1,-1]){const vo=creerVoiture(C,150,0);vo.cap+=cote*Math.PI/2;vo.u=330/KMH;memoriserAvant(vo);let pire=0;
     rouler(vo,C,3,{gaz:1,frein:0,direction:0},(v_)=>{pire=Math.max(pire,Math.abs(positionSurPiste(C,v_.x,v_.z).d));});
     v(pire<=lim+1e-6,'côté '+cote+' : '+pire.toFixed(3)+' > '+lim);v(vo.contactsBarriere>0,'pas de contact');}});
 t('Espace : remise au centre, dans le bon sens, à l’arrêt', ()=>{const vo=creerVoiture(C,700,15);vo.cap+=2.5;vo.u=30;remettreSurPiste(vo,C);const p=positionSurPiste(C,vo.x,vo.z);
   v(Math.abs(p.d)<0.01&&vo.u===0&&vo.v===0&&vo.r===0,'d '+p.d);const i=p.indice;v(Math.abs(Math.atan2(Math.sin(vo.cap-Math.atan2(C.tz[i],C.tx[i])),Math.cos(vo.cap-Math.atan2(C.tz[i],C.tx[i]))))<0.01,'mauvais sens');v(Math.abs(p.s-700)<3,'s '+p.s);});
-t('au clavier, les commandes montent progressivement', ()=>{const vo=creerVoiture(null);for(let k=0;k<12;k++) lisserCommandes(vo,{gaz:1,frein:0,direction:1},DT);
-  v(Math.abs(vo.gaz-REGLAGES.RAMPE_GAZ*0.1)<1e-9,'gaz '+vo.gaz);v(Math.abs(vo.direction-REGLAGES.RAMPE_DIRECTION*0.1)<1e-9,'direction '+vo.direction);});
+t('au clavier, le gaz monte progressivement', ()=>{const vo=creerVoiture(null);for(let k=0;k<12;k++) lisserCommandes(vo,{gaz:1,frein:0,direction:0},DT);
+  v(Math.abs(vo.gaz-REGLAGES.RAMPE_GAZ*0.1)<1e-9,'gaz '+vo.gaz);});
+const appui=(secondes)=>{const vo=creerVoiture(null);for(let k=0;k<Math.round(secondes/DT);k++) lisserCommandes(vo,{gaz:0,frein:0,direction:1},DT);return vo;};
+t('direction : un appui de 0,15 s donne une entrée ≤ 0,4 (petite correction)', ()=>{const d=appui(0.15).direction;L.push('  (appui de 0,15 s : entrée '+d.toFixed(3)+')');v(d<=0.4&&d>0.3,String(d));});
+t('direction : garder la touche 1,5 s atteint 1', ()=>{const d=appui(1.5).direction;v(d===1,String(d));});
+t('direction : le retour au centre est complet en 0,25 s au plus', ()=>{const vo=appui(1.5);let k=0;while(vo.direction!==0&&k<1000){lisserCommandes(vo,{gaz:0,frein:0,direction:0},DT);k++;}
+  L.push('  (retour au centre : '+(k*DT).toFixed(3)+' s)');v(k*DT<=0.25,(k*DT)+' s');});
+t('direction : changer de côté passe par le centre, puis repart vite', ()=>{const vo=appui(1.5);for(let k=0;k<36;k++) lisserCommandes(vo,{gaz:0,frein:0,direction:-1},DT);v(vo.direction<0&&vo.direction>=-0.4,String(vo.direction));});
+t('à 200 km/h, touche gardée 2 s : le virage est plus large qu’au tour 3 (45,9 m)', ()=>{const vo=creerVoiture(null);vo.u=200/3.6;
+  for(let k=0;k<240;k++){lisserCommandes(vo,{gaz:vo.u<200/3.6?1:0,frein:0,direction:1},DT);pasVoiture(vo,null,DT);}
+  const r=vo.u/Math.abs(vo.r);L.push('  (rayon : tour 3 = 45,9 m (à 128 km/h en fin d’essai) ; maintenant = '+r.toFixed(1)+' m (à '+(vo.u*3.6).toFixed(0)+' km/h))');v(r>45.9,r.toFixed(1)+' m');});
 t('la direction est moins sensible à haute vitesse', ()=>{v(braquageMax(80)<braquageMax(10)/2);});
 // les mêmes entrées, à 30 et à 144 images/s, par la vraie boucle
 let pasCourant=null;BOUCLE.surPhysique(pas=>{if(pasCourant) pasCourant(pas);});
@@ -123,6 +147,13 @@ t('mêmes entrées = exactement la même trajectoire, à 30 et à 144 images/s',
   v(a.x===b.x&&a.z===b.z&&a.cap===b.cap&&a.u===b.u,a.x+','+a.z+' / '+b.x+','+b.z);v(a.x===c.x&&a.z===c.z);v(Math.hypot(a.x,a.z)>100,'la voiture n’a pas roulé : '+a.x+','+a.z+' u '+a.u+' contacts '+a.contactsBarriere);});
 t('l’affichage interpole entre l’état d’avant et l’état d’après', ()=>{const vo=creerVoiture(C,0);vo.u=60;pasVoiture(vo,C,DT);
   const e0=etatAffiche(vo,0),e1=etatAffiche(vo,1),em=etatAffiche(vo,0.5);v(e0.x===vo.avant.x&&e1.x===vo.x);v(Math.abs(em.x-(vo.avant.x+vo.x)/2)<1e-9&&em.x>vo.avant.x&&em.x<vo.x,'milieu');});
+t('caméra derrière : de 0 à pleine vitesse, elle reste à recul − 0,3 m … recul + 0,8 m de la voiture', ()=>{const recul=REGLAGES.CAMERA_DERRIERE[0];const vo=creerVoiture(null),suivi={cap:null,hauteur:0};
+  let dmin=Infinity,dmax=0;
+  for(let k=0;k<120*45;k++){appliquerCommandes(vo,{gaz:1,frein:0,direction:k>120*20&&k<120*22?0.05:0});pasVoiture(vo,null,DT);
+    if(k%2===1){const e=etatAffiche(vo,1),p=CAMERA.poseDerriere(e,vo.u,suivi,1/60),d=Math.hypot(p.x-e.x,p.z-e.z);dmin=Math.min(dmin,d);dmax=Math.max(dmax,d);}}
+  L.push('  (caméra derrière : distance '+dmin.toFixed(2)+' à '+dmax.toFixed(2)+' m, recul '+recul+' m, vitesse finale '+(vo.u*3.6).toFixed(0)+' km/h)');
+  v(dmin>=recul-0.3&&dmax<=recul+0.8,dmin.toFixed(2)+' … '+dmax.toFixed(2));v(vo.u*3.6>320);});
+t('caméra derrière : le champ de vision va de 60° à 66° au plus', ()=>{const s0=CAMERA.poseDerriere({x:0,z:0,cap:0},0,{cap:null,hauteur:0},1/60),s1=CAMERA.poseDerriere({x:0,z:0,cap:0},92,{cap:null,hauteur:0},1/60);v(s0.champ===60&&s1.champ<=66,s0.champ+' / '+s1.champ);});
 let tourRobot='';
 t('le robot fait un tour complet sans toucher de barrière, en 45 à 75 s, et le test dure moins de 5 s', ()=>{const t0=performance.now();const vo=creerVoiture(C,0);
   let sAvant=0,parcouru=0,temps=null,dMax=0,herbe=0;
@@ -130,6 +161,28 @@ t('le robot fait un tour complet sans toucher de barrière, en 45 à 75 s, et le
     dMax=Math.max(dMax,Math.abs(v_.piste.d));if(v_.surHerbe) herbe++;if(parcouru>=C.longueur){temps=(k+1)*DT;return false;}});
   const ms=performance.now()-t0;tourRobot='tour en '+(temps===null?'—':temps.toFixed(2)+' s')+', écart max au centre '+dMax.toFixed(2)+' m, '+vo.contactsBarriere+' contacts de barrière, '+herbe+' pas dans l’herbe, calcul '+ms.toFixed(0)+' ms';
   L.push('  (robot : '+tourRobot+')');v(temps!==null,'tour pas fini');v(vo.contactsBarriere===0,'barrière touchée');v(temps>45&&temps<75,temps+' s');v(ms<5000,ms+' ms');});
+
+// --- la boîte et le son (sans écouter)
+t('pour une même entrée, la physique est celle du tour 3 (commit 43a3fa8) : 20 s de conduite, mêmes positions au dernier chiffre', ()=>{
+  // les valeurs de référence ont été produites par le code du tour 3, avec ce même script et des commandes directes.
+  // Depuis, le tour 4 a changé des réglages (BRAQUAGE_VITESSE, l'herbe) et ajouté l'aide de stabilité :
+  // on remet les valeurs du tour 3 le temps du test (l'aide est coupée), le reste du calcul doit être identique.
+  const REF=['15.011200714940182 2.9712763380398565e-11 1.9793728659444527e-12 17.82354328606775 0','58.91277114506435 0.17653556801612777 0.05293515316071349 34.47921475260294 0','128.39118261151094 8.075932115114291 0.12626221715143557 48.219648696353175 0','206.41484837920314 17.97989942947163 0.12626221969936735 46.3297535121388 0','232.7229130683903 19.47732352939903 0.12626221969936735 -1.095358448429546 77','233.21903555324891 19.5 0.12626221969936735 0.1991009482432061 96','233.6891203230637 19.5 0.12626221969936735 0.19446137484375756 296','234.1624069568319 19.5 0.10960747871927978 0.19799433263563676 496','234.63914241812813 19.5 0.10960747871927978 0.19799433265412295 696','235.11412684542802 19.5 0.11879963731252999 0.19611544944636425 896','235.58534815811404 19.5 0.12797573178749008 0.1940977174308243 1096','236.05260457103012 19.5 0.1370860759291222 0.19198022146571084 1296'];
+  const TOUR3={BRAQUAGE_VITESSE:25,ADHERENCE_ARRIERE:1,STABILITE_LACET:0,ANTI_DERIVE:0,ADHERENCE_HERBE:0.5,FROTTEMENT_HERBE:160,FROTTEMENT_HERBE_CARRE:0,GAZ_HERBE:1};
+  const garde={};for(const k in TOUR3){garde[k]=REGLAGES[k];REGLAGES[k]=TOUR3[k];}
+  const vo=creerVoiture(C,0),out=[];
+  for(let k=0;k<2400;k++){const t_=k/120;appliquerCommandes(vo,{gaz:t_<8||t_>9?1:0,frein:t_>=8&&t_<9?1:0,direction:t_>3&&t_<3.6?0.15:(t_>12&&t_<13?-0.6:(t_>15?0.2:0))});pasVoiture(vo,C,1/120);if(k%200===199) out.push([vo.x,vo.z,vo.cap,vo.u,vo.contactsBarriere].join(' '));}
+  for(const k in garde) REGLAGES[k]=garde[k];
+  for(let i=0;i<REF.length;i++) v(out[i]===REF[i],'point '+i+' : '+out[i]+' au lieu de '+REF[i]);});
+t('à fond, le rapport passe de 1 à 8, sans jamais redescendre', ()=>{const vo=creerVoiture(null);let avant=1,vus=new Set([1]);
+  for(let k=0;k<120*60;k++){appliquerCommandes(vo,{gaz:1,frein:0,direction:0});pasVoiture(vo,null,DT);const g=rapportPourVitesse(vo.u);v(g>=avant,'redescend : '+avant+' → '+g);avant=g;vus.add(g);}
+  v([1,2,3,4,5,6,7,8].every(g=>vus.has(g)),'rapports vus : '+[...vus].join(','));});
+t('le régime monte avec la vitesse dans un rapport, et retombe au changement de rapport', ()=>{const hauts=REGLAGES.RAPPORTS_HAUT_KMH;
+  v(regimeMoteur(0)===REGLAGES.REGIME_RALENTI);v(regimeMoteur(50/3.6)>regimeMoteur(30/3.6));
+  for(let g=0;g<7;g++){const avant=regimeMoteur((hauts[g]-0.5)/3.6),apres=regimeMoteur((hauts[g]+0.5)/3.6);v(apres<avant-1000,'rapport '+(g+1)+' : '+avant.toFixed(0)+' → '+apres.toFixed(0));}});
+t('le son : la note suit le régime, les pneus se taisent quand la voiture ne glisse pas', ()=>{const vo=creerVoiture(null);const p0=SON.parametres(vo);v(p0.volumePneus===0&&p0.rapport===1);
+  vo.u=60;vo.v=0;const p1=SON.parametres(vo);vo.v=12;const p2=SON.parametres(vo);v(p1.frequence>p0.frequence);v(p1.volumePneus===0&&p2.volumePneus>0,'pneus '+p1.volumePneus+' / '+p2.volumePneus);});
+t('aucun son avant un geste du joueur', ()=>{v(!SON.actif,'un AudioContext existe déjà');});
 
 // --- le hasard
 const suite=(g,n)=>{ALEATOIRE.semer(g);const s=[];for(let i=0;i<n;i++) s.push(hasard());return s;};

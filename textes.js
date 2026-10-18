@@ -4,13 +4,21 @@ const TEXTES = {
     nomDuJeu: 'Grand Prix Dynasty',
     kmh: 'km/h',
     horsPiste: 'OFF TRACK',
-    aideConduite: '↑ ↓ ← → drive · C camera · Space back on track',
+    aideConduite: '↑ ↓ ← → drive · C camera · Space back on track · M sound',
+    son: 'Sound on / off (M)',
+    reglagesTitre: 'Tuning',
+    reglagesCopier: 'Copy the changed values',
+    reglagesRienChange: '(nothing changed)',
   },
   fr: {
     nomDuJeu: 'Grand Prix Dynasty',
     kmh: 'km/h',
     horsPiste: 'HORS PISTE',
-    aideConduite: '↑ ↓ ← → conduire · C caméra · Espace retour en piste',
+    aideConduite: '↑ ↓ ← → conduire · C caméra · Espace retour en piste · M son',
+    son: 'Son oui / non (M)',
+    reglagesTitre: 'Réglages',
+    reglagesCopier: 'Copier les valeurs changées',
+    reglagesRienChange: '(rien n’a changé)',
   },
 };
 

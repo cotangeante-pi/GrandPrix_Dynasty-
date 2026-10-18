@@ -7,7 +7,7 @@ const CAMERA = (function () {
   let cam = null, mode = 'derriere', circuit = null;
   let centre = null, demiTaille = 0, angle = 0;
   const libre = { x: 0, y: 0, z: 0, lacet: 0, tangage: 0 };
-  const ressort = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, pret: false };
+  const suiviDerriere = { cap: null, hauteur: 0 };
   let postesTele = [];
   const touches = new Set();
 
@@ -42,7 +42,7 @@ const CAMERA = (function () {
   function suivante() {
     if (!COURSE.includes(mode)) return mode;
     mode = COURSE[(COURSE.indexOf(mode) + 1) % COURSE.length];
-    ressort.pret = false;
+    suiviDerriere.cap = null;
     return mode;
   }
 
@@ -94,26 +94,32 @@ const CAMERA = (function () {
     });
   }
 
-  // derrière la voiture, avec un ressort amorti (critique : il rattrape sans osciller)
-  function suivreDerriere(etat, v, dt) {
-    const f = { x: Math.cos(etat.cap), z: Math.sin(etat.cap) };
+  // derrière la voiture, à distance fixe : seul l'angle autour de la voiture suit le cap avec un léger retard
+  // (on sent les virages), et la hauteur est un peu lissée. Un ressort sur la position traînerait derrière la voiture
+  // d'autant plus qu'elle va vite.
+  // suivi : { cap, hauteur } lissés ; renvoie la position de la caméra et le point visé (calcul pur, testé)
+  function poseDerriere(etat, u, suivi, dt) {
     const [recul, haut] = R.CAMERA_DERRIERE;
-    const cible = { x: etat.x - f.x * recul, y: haut, z: etat.z - f.z * recul };
-    if (!ressort.pret) { Object.assign(ressort, cible, { vx: 0, vy: 0, vz: 0, pret: true }); }
-    // en petits pas : le ressort reste stable même quand une image dure longtemps
-    const w = R.CAMERA_RESSORT, n = Math.ceil(dt / 0.01);
-    for (let k = 0; k < n; k++) {
-      const h = dt / n;
-      for (const a of ['x', 'y', 'z']) {
-        const va = 'v' + a;
-        ressort[va] += (w * w * (cible[a] - ressort[a]) - 2 * w * ressort[va]) * h;
-        ressort[a] += ressort[va] * h;
-      }
-    }
-    regler(R.CAMERA_CHAMP[0] + R.CAMERA_CHAMP[1] * Math.min(1, Math.max(0, v.u) / 90), 0.5);
+    if (suivi.cap === null) { suivi.cap = etat.cap; suivi.hauteur = haut; }
+    const ecart = Math.atan2(Math.sin(etat.cap - suivi.cap), Math.cos(etat.cap - suivi.cap));
+    suivi.cap += ecart * (1 - Math.exp(-R.CAMERA_SUIVI_CAP * dt));
+    suivi.hauteur += (haut - suivi.hauteur) * (1 - Math.exp(-R.CAMERA_SUIVI_HAUTEUR * dt));
+    const vitesse = Math.min(1, Math.max(0, u) / 90);
+    const d = recul + R.CAMERA_RECUL_VITESSE * vitesse;
+    const fx = Math.cos(suivi.cap), fz = Math.sin(suivi.cap);
+    return {
+      x: etat.x - fx * d, y: suivi.hauteur, z: etat.z - fz * d,
+      vise: { x: etat.x + Math.cos(etat.cap) * 4, y: 1, z: etat.z + Math.sin(etat.cap) * 4 },
+      champ: R.CAMERA_CHAMP[0] + R.CAMERA_CHAMP[1] * vitesse,
+    };
+  }
+
+  function suivreDerriere(etat, v, dt) {
+    const p = poseDerriere(etat, v.u, suiviDerriere, dt);
+    regler(p.champ, 0.5);
     cam.up.set(0, 1, 0);
-    cam.position.set(ressort.x, ressort.y, ressort.z);
-    cam.lookAt(etat.x + f.x * 4, 1, etat.z + f.z * 4);
+    cam.position.set(p.x, p.y, p.z);
+    cam.lookAt(p.vise.x, p.vise.y, p.vise.z);
   }
 
   // dt : le temps de l'image (la caméra suit l'affichage, pas la physique) ; etat : la voiture affichée ; v : la voiture
@@ -161,7 +167,7 @@ const CAMERA = (function () {
   }
 
   return {
-    init, maj, suivante,
+    init, maj, suivante, poseDerriere,
     get mode() { return mode; },
     get conduite() { return mode !== 'libre'; },   // en caméra libre, les flèches déplacent la caméra, pas la voiture
     get position() { return cam ? { x: cam.position.x, y: cam.position.y, z: cam.position.z } : null; },
