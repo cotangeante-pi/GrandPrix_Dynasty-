@@ -93,6 +93,23 @@ const REGLAGES = {
   ROBOT_DECELERATION: 22,       // m/s² : le freinage qu'il prévoit (prudent)
   ROBOT_REGARD: 400,            // m : il regarde la courbure jusque-là
 
+  // l'IA (étape 4) : la trajectoire idéale et la vitesse conseillée sont calculées une fois par circuit (ia.js)
+  IA_MARGE_BORD: 1.5,           // m : la trajectoire reste à cette distance du bord de la piste
+  IA_LISSAGE_PASSES: [[24, 60], [12, 60], [6, 60], [3, 60], [1, 60]],   // [écart entre voisins (échantillons), nombre de passes]
+  IA_LISSAGE_FORCE: 0.5,        // à chaque passe, un point fait cette part du chemin vers la courbure moyenne de ses voisins
+  IA_PLATEAU_PASSES: [[24, 40], [12, 40], [6, 40], [3, 40], [1, 40]],   // puis l'aplatissement du pic de chaque virage : [voisins à ±k, passes]
+  IA_PLATEAU_PUISSANCE: 8,      // plus elle est grande, plus le pic de chaque virage est écrasé
+  IA_PLATEAU_FENETRE: 30,       // échantillons : le pic d'un virage est cherché à ±60 m
+  IA_COURBURE_DEMI_BASE: 3,     // la courbure de la trajectoire est mesurée sur ±3 échantillons (±6 m)
+  IA_MARGE_VIRAGE: 1,           // elle prend les virages à cette part de la vitesse limite (sa marge : la trajectoire reste loin du bord)
+  IA_MARGE_BRAQUAGE: 0.95,      // … et sans demander plus que cette part du braquage max
+  IA_MARGE_FREIN: 0.95,         // elle prévoit de freiner à cette part du freinage possible
+  IA_VISEE_MIN: 8,              // m : elle vise un point de sa trajectoire au moins à cette distance devant elle
+  IA_VISEE_TEMPS: 0.35,         // s : … ou à la distance parcourue en ce temps
+  IA_ANTICIPATION: 0.15,        // s : elle prend la vitesse conseillée là où elle sera dans ce temps
+  IA_GAIN_GAZ: 1,               // gaz par m/s de retard sur la vitesse conseillée
+  IA_GAIN_FREIN: 1,             // frein par m/s d'avance
+
   // le dessin du circuit
   LARGEUR_BORD: 0.35,           // la ligne blanche de chaque bord
   LARGEUR_VIBREUR: 1.4,
@@ -171,6 +188,27 @@ const CIRCUITS = {
       ['droite', 240],
       ['virage', 40, 90],
       ['droite', 460],                      // retour sur la ligne
+    ],
+  },
+  // un circuit d'essai technique, pour entraîner et tester les IA sur de vrais virages
+  technique: {
+    nom: 'Technique',
+    largeur: 13,
+    secteurs: [0, 0.3, 0.62],
+    depart: [0, 0, 0],
+    morceaux: [
+      ['droite', 628.086],                  // la ligne des stands
+      ['virage', 250, 80],                  // la courbe rapide
+      ['droite', 150],
+      ['virage', 50, 55], ['virage', 45, -75], ['virage', 55, 60],   // l'enchaînement en S
+      ['droite', 300],
+      ['virage', 70, 60],
+      ['droite', 800],                      // la longue droite…
+      ['virage', 16, 155],                  // … et le gros freinage dans l'épingle
+      ['droite', 70],
+      ['virage', 60, -65],
+      ['droite', 648.012],                  // les deux longueurs droites referment le tour
+      ['virage', 40, 90],                   // retour sur la ligne
     ],
   },
 };

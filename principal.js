@@ -1,6 +1,8 @@
 // Le démarrage : il branche la physique et l'affichage sur la boucle.
-// Étape 2 : la voiture du joueur roule sur le circuit de test.
+// La voiture du joueur roule sur le circuit de test, ou sur celui de ?circuit=… (un nom de CIRCUITS, donnees.js).
 const PARAMETRES = new URLSearchParams(location.search);
+const NOM_CIRCUIT = Object.prototype.hasOwnProperty.call(CIRCUITS, PARAMETRES.get('circuit')) ? PARAMETRES.get('circuit') : 'test';
+const CIRCUIT = NOM_CIRCUIT === 'test' ? CIRCUIT_TEST : construireCircuit(CIRCUITS[NOM_CIRCUIT]);
 
 // l'état du jeu, lisible par les tests
 const JEU = {
@@ -12,6 +14,8 @@ const JEU = {
   course: null,         // la course en cours (course.js), ou null
   ecran: 'choix',       // choix, course, pause, fin, survol (les caméras ?camera=… sans course)
   robot: false,         // ?robot=1 : le robot d'essai conduit la voiture du joueur (tests, démonstration)
+  ia: false,            // ?ia=1 : l'IA conduit la voiture du joueur (pour la regarder rouler)
+  trajectoire: null,    // la trajectoire idéale de l'IA sur ce circuit (ia.js), calculée seulement avec ?ia=1
   pas: 0,               // le nombre de pas de physique faits (pour vérifier la pause)
   apresArrivee: 0,      // s depuis l'arrivée
   arretApres: null,     // s entre l'arrivée et l'arrêt de la voiture
@@ -22,11 +26,11 @@ const JEU = {
 const SURVOL = ['auto', 'libre', 'dessus', 'virage', 'vitrine'];
 
 function lancerCourse(nbTours) {
-  JEU.course = creerCourse(CIRCUIT_TEST, nbTours);
+  JEU.course = creerCourse(CIRCUIT, nbTours);
   JEU.apresArrivee = 0;
   JEU.arretApres = null;
   JEU.signal = null;
-  placerAuDepart(JEU.joueur, CIRCUIT_TEST);
+  placerAuDepart(JEU.joueur, CIRCUIT);
   JEU.ecran = 'course';
   INTERFACE.montrer('course');
 }
@@ -39,8 +43,8 @@ function pause(oui) {
 function allerAuChoix() {
   JEU.course = null;
   JEU.ecran = 'choix';
-  placerAuDepart(JEU.joueur, CIRCUIT_TEST);
-  INTERFACE.preparerChoix(lancerCourse);
+  placerAuDepart(JEU.joueur, CIRCUIT);
+  INTERFACE.preparerChoix(lancerCourse, NOM_CIRCUIT);
   INTERFACE.montrer('choix');
 }
 
@@ -57,7 +61,7 @@ function signauxCourse(c) {
 // la course est finie : le record, puis l'écran de fin
 function finDeCourse() {
   const c = JEU.course;
-  const nouveau = SAUVEGARDE.proposerRecord(c.nbTours, c.meilleurTour);
+  const nouveau = SAUVEGARDE.proposerRecord(c.nbTours, c.meilleurTour, NOM_CIRCUIT);
   INTERFACE.remplirFin(c, nouveau);
   SON.signal('arrivee');
   JEU.ecran = 'fin';
@@ -99,15 +103,16 @@ function pasJoueur(pas) {
   const v = JEU.joueur, c = JEU.course;
   // on conduit en survol, en essai, et en course une fois le GO donné (pas pendant le compte à rebours ni après l'arrivée)
   const permis = JEU.ecran === 'survol' ? CAMERA.conduite : (JEU.ecran === 'course' && c && courseAutorise(c));
-  if (JEU.remettre) { if (permis) remettreSurPiste(v, CIRCUIT_TEST); JEU.remettre = false; }
+  if (JEU.remettre) { if (permis) remettreSurPiste(v, CIRCUIT); JEU.remettre = false; }
   if (c && c.etat === 'finie') {
     // après l'arrivée : les commandes sont coupées et la voiture freine seule jusqu'à l'arrêt
     appliquerCommandes(v, { gaz: 0, frein: v.u > REGLAGES.ARRET_APRES_ARRIVEE ? 1 : 0, direction: 0 });
     JEU.apresArrivee += pas;
     if (v.u === 0 && JEU.arretApres === null) JEU.arretApres = JEU.apresArrivee;
-  } else if (JEU.robot && permis) appliquerCommandes(v, piloteRobot(v, CIRCUIT_TEST));
+  } else if (JEU.ia && permis) appliquerCommandes(v, piloteIA(v, CIRCUIT, JEU.trajectoire));
+  else if (JEU.robot && permis) appliquerCommandes(v, piloteRobot(v, CIRCUIT));
   else lisserCommandes(v, permis ? JEU.cibles : AUCUNE, pas);
-  pasVoiture(v, CIRCUIT_TEST, pas);
+  pasVoiture(v, CIRCUIT, pas);
   if (c && JEU.ecran === 'course') majCourse(c, v, pas);
 }
 
@@ -156,10 +161,12 @@ function demarrerJeu() {
   document.getElementById('horsPiste').textContent = texte('horsPiste');
   document.getElementById('aide').textContent = texte('aideConduite');
 
-  if (!SCENE3D.init(document.getElementById('scene3d'), CIRCUIT_TEST)) return;
-  CAMERA.init(SCENE3D.camera, CIRCUIT_TEST, PARAMETRES.get('camera'));
-  JEU.joueur = creerVoiture(CIRCUIT_TEST, 0);
+  if (!SCENE3D.init(document.getElementById('scene3d'), CIRCUIT)) return;
+  CAMERA.init(SCENE3D.camera, CIRCUIT, PARAMETRES.get('camera'));
+  JEU.joueur = creerVoiture(CIRCUIT, 0);
   JEU.robot = PARAMETRES.get('robot') === '1';
+  JEU.ia = PARAMETRES.get('ia') === '1';
+  if (JEU.ia) JEU.trajectoire = calculerTrajectoire(CIRCUIT);
   INTERFACE.preparerPause(() => pause(false), () => lancerCourse(JEU.course.nbTours));
   INTERFACE.preparerFin(() => lancerCourse(JEU.course.nbTours), allerAuChoix);
   // ?course=5, 12, 18 ou 0 (essai libre) lance directement une course (tests, développement)

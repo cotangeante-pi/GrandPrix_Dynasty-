@@ -16,8 +16,8 @@ const INTERFACE = (function () {
     return cle ? REGLAGES.LONGUEURS_COURSE[cle] : 0;
   }
 
-  // l'écran de choix ; choisir(nbTours) lance la course
-  function preparerChoix(choisir) {
+  // l'écran de choix ; choisir(nbTours) lance la course ; circuit : son nom, pour ses records
+  function preparerChoix(choisir, circuit) {
     $('choixTitre').textContent = texte('choixTitre');
     const liste = $('choixListe');
     liste.textContent = '';
@@ -32,7 +32,7 @@ const INTERFACE = (function () {
       detail.textContent = nb ? nb + ' ' + texte('tours') : texte('toursSansFin');
       const rec = document.createElement('em');
       rec.id = 'record' + nb;
-      const r = SAUVEGARDE.record(nb);
+      const r = SAUVEGARDE.record(nb, circuit);
       rec.textContent = r === null ? '' : texte('record') + ' ' + formatTemps(r);
       b.append(nom, detail, rec);
       b.addEventListener('mousedown', e => e.preventDefault());

@@ -6,7 +6,9 @@ const SAUVEGARDE = (function () {
   const VERSION = 1;
 
   function vierge() {
-    return { version: VERSION, records: {} };   // records : le meilleur tour de chaque longueur (« 5 », « 12 », « 18 », « 0 »)
+    // records : le meilleur tour de chaque longueur (« 5 », « 12 », « 18 », « 0 ») ; sur un autre circuit que celui de test,
+    // la clé commence par son nom (« technique-5 »)
+    return { version: VERSION, records: {} };
   }
 
   // une sauvegarde d'une ancienne version est transformée ici (aucune pour l'instant)
@@ -35,17 +37,21 @@ const SAUVEGARDE = (function () {
     }
   }
 
-  function record(nbTours) {
-    const r = lire().records[String(nbTours)];
+  function cle(nbTours, circuit) {
+    return !circuit || circuit === 'test' ? String(nbTours) : circuit + '-' + nbTours;
+  }
+
+  function record(nbTours, circuit) {
+    const r = lire().records[cle(nbTours, circuit)];
     return typeof r === 'number' ? r : null;
   }
 
   // garde le temps s'il bat le record ; renvoie true si c'est un nouveau record
-  function proposerRecord(nbTours, temps) {
+  function proposerRecord(nbTours, temps, circuit) {
     if (temps === null) return false;
-    const d = lire(), ancien = d.records[String(nbTours)];
+    const d = lire(), ancien = d.records[cle(nbTours, circuit)];
     if (typeof ancien === 'number' && ancien <= temps) return false;
-    d.records[String(nbTours)] = temps;
+    d.records[cle(nbTours, circuit)] = temps;
     ecrire(d);
     return true;
   }

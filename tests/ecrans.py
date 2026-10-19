@@ -24,6 +24,8 @@ PAGES = [
     ('index.html?camera=vitrine', 1280, 720, 'voiture.png'),
     ('index.html?reglages=1&course=0', 1280, 720, 'reglages.png'),
     ('index.html?course=5&robot=1', 1280, 720, None),
+    ('index.html?camera=dessus&circuit=technique', 1280, 720, 'technique.png'),
+    ('index.html?course=5&ia=1&circuit=technique', 1280, 720, 'ia.png'),
 ]
 POSITION = '() => CAMERA.position'
 
@@ -150,6 +152,16 @@ def course_robot(pg, titre, page):
     pg.click('#choix0')
     t(f'{titre} : l’essai libre n’a pas de nombre de tours', pg.evaluate('() => JEU.course.nbTours === 0 && !/\\//.test(document.getElementById("hudTour").textContent)'))
 
+def course_ia(pg, titre):
+    # l'IA conduit la voiture du joueur sur le circuit technique : elle part, fait au moins un tour, sans faute
+    t(f'{titre} : le circuit technique est chargé et la trajectoire de l’IA calculée', pg.evaluate('() => CIRCUIT.nom === "Technique" && JEU.ia && JEU.trajectoire !== null && JEU.trajectoire.vitesse.length === CIRCUIT.nb'))
+    pg.evaluate('() => { JEU.course.compte = 0.01; }')
+    t(f'{titre} : l’IA part après le compte à rebours', attendre(pg, '() => JEU.course.etat === "course" && JEU.joueur.u > 1', None, 20000), pg.evaluate('() => JEU.course.etat'))
+    pg.evaluate('() => BOUCLE.simuler(75)')
+    etat = pg.evaluate('() => ({ tours: JEU.course.tours.map(t => t.temps), progression: JEU.course.progression, contacts: JEU.joueur.contactsBarriere, penalites: JEU.course.penalites, kmh: JEU.joueur.u * 3.6 })')
+    t(f'{titre} : en 75 s, l’IA a fini au moins un tour, sans barrière ni pénalité', len(etat['tours']) >= 1 and etat['contacts'] == 0 and etat['penalites'] == 0 and etat['kmh'] > 30, str(etat))
+    if etat['tours']: L.append(f"  (?ia=1 sur le circuit technique : premier tour {etat['tours'][0]:.2f} s, départ arrêté)")
+
 def INTERFACE_TEMPS(t):
     m = int(t // 60); s = t - m * 60
     return f'{m}:{s:06.3f}'
@@ -182,6 +194,8 @@ with sync_playwright() as p:
                 reglages(pg, titre)
             if 'robot=1' in page:
                 course_robot(pg, titre, page)
+            if 'ia=1' in page:
+                course_ia(pg, titre)
             if 'camera=auto' in page:
                 p1 = pg.evaluate(POSITION)
                 t(f'{titre} : la caméra fait le tour toute seule', attendre(pg, 'p => CAMERA.position.x !== p.x || CAMERA.position.z !== p.z', p1), str(p1))

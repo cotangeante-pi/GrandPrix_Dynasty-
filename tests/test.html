@@ -1,7 +1,7 @@
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><title>tests</title></head><body>
 <pre id="res"></pre>
 <script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));window.addEventListener('unhandledrejection',e=>__err.push('promesse : '+(e.reason&&e.reason.message||e.reason)));</script>
-<script src="../donnees.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../son.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../course.js"></script><script src="../principal.js"></script>
+<script src="../donnees.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../son.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../course.js"></script><script src="../principal.js"></script>
 <script>
 const L=[];let ok=0,ko=0;
 function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
@@ -237,6 +237,59 @@ t('deux graines, deux suites', ()=>{v(suite(42,50).join()!==suite(43,50).join())
 t('les nombres sont dans [0, 1[ et bien répartis', ()=>{const s=suite(7,20000);v(s.every(x=>x>=0&&x<1));const m=s.reduce((a,b)=>a+b)/s.length;v(Math.abs(m-0.5)<0.01,'moyenne '+m);
   const cases=new Array(10).fill(0);s.forEach(x=>cases[Math.floor(x*10)]++);v(cases.every(c=>c>1800&&c<2200),cases.join());});
 t('sans graine, le hasard vient de Math.random', ()=>{const vrai=Math.random;Math.random=()=>0.25;ALEATOIRE.semer();const x=hasard();Math.random=vrai;v(x===0.25,String(x));});
+
+// --- le circuit technique (étape 4a)
+const TQ=construireCircuit(CIRCUITS.technique),DEF_TQ=CIRCUITS.technique;
+t('CIRCUITS.technique : 3 à 4,5 km, largeur 13, décrit par morceaux, refermé à moins de 1 m', ()=>{
+  L.push('  (technique : '+TQ.longueur.toFixed(1)+' m, fermeture '+TQ.fermeture.toFixed(4)+' m)');v(TQ.longueur>=3000&&TQ.longueur<=4500,TQ.longueur+' m');v(TQ.largeur===13);v(!!DEF_TQ.morceaux);v(TQ.fermeture<1,TQ.fermeture+' m');});
+t('technique : aucun croisement (à plus de 100 m le long du tour, deux points restent à plus de largeur + 2 × DISTANCE_BARRIERE)', ()=>{
+  const seuil=TQ.largeur+2*REGLAGES.DISTANCE_BARRIERE;let pire=Infinity,ou='';
+  for(let i=0;i<TQ.nb;i++) for(let j=i+1;j<TQ.nb;j++){const ds=Math.min(TQ.s[j]-TQ.s[i],TQ.longueur-(TQ.s[j]-TQ.s[i]));if(ds<=100) continue;
+    const d=Math.hypot(TQ.x[i]-TQ.x[j],TQ.z[i]-TQ.z[j]);if(d<pire){pire=d;ou='s = '+TQ.s[i].toFixed(0)+' / '+TQ.s[j].toFixed(0);}}
+  L.push('  (technique : écart le plus petit '+pire.toFixed(1)+' m ('+ou+'), il faut plus de '+seuil+' m)');v(pire>seuil,pire.toFixed(1)+' m, '+ou);});
+t('technique : un rayon de moins de 25 m (l’épingle), et pas plus serré que la demi-largeur', ()=>{let k=0;for(let i=0;i<TQ.nb;i++) k=Math.max(k,Math.abs(TQ.courbure[i]));
+  L.push('  (technique : rayon le plus serré '+(1/k).toFixed(1)+' m)');v(1/k<25,(1/k).toFixed(1)+' m');v(1/k>TQ.largeur/2);});
+t('technique : une épingle (15–20 m, ~180°), un S (2–3 virages de 40–70 m, sens alternés), une courbe rapide (200–300 m, 60–100°), une droite ≥ 700 m suivie d’un virage serré', ()=>{
+  const m=DEF_TQ.morceaux,virages=m.map((x,i)=>[x,i]).filter(([x])=>x[0]==='virage');
+  v(virages.some(([x])=>x[1]>=15&&x[1]<=20&&Math.abs(x[2])>=150),'pas d’épingle');
+  let s=false;for(let i=0;i+1<m.length;i++){const a=m[i],b=m[i+1];if(a[0]==='virage'&&b[0]==='virage'&&a[1]>=40&&a[1]<=70&&b[1]>=40&&b[1]<=70&&Math.sign(a[2])!==Math.sign(b[2])) s=true;}v(s,'pas de S');
+  v(virages.some(([x])=>x[1]>=200&&x[1]<=300&&Math.abs(x[2])>=60&&Math.abs(x[2])<=100),'pas de courbe rapide');
+  v(m.some((x,i)=>x[0]==='droite'&&x[1]>=700&&m[(i+1)%m.length][0]==='virage'&&m[(i+1)%m.length][1]<=25),'pas de longue droite avant un virage serré');});
+
+// --- l'IA : la trajectoire idéale et la vitesse conseillée (étape 4a)
+const TRAJ={};
+for(const [nom,circ] of [['test',C],['technique',TQ]]){
+  t(`IA ${nom} : la trajectoire se calcule en moins de 5 s`, ()=>{const t0=performance.now();TRAJ[nom]=calculerTrajectoire(circ);const ms=performance.now()-t0;L.push('  (trajectoire '+nom+' : '+ms.toFixed(0)+' ms)');v(ms<5000,ms+' ms');});
+  t(`IA ${nom} : la trajectoire reste dans la piste, à ±(largeur/2 − IA_MARGE_BORD)`, ()=>{const T=TRAJ[nom],lim=circ.largeur/2-REGLAGES.IA_MARGE_BORD;let pire=0;
+    for(let i=0;i<circ.nb;i++){pire=Math.max(pire,Math.abs(T.ecart[i]));const p=positionSurPiste(circ,T.x[i],T.z[i],i);v(Math.abs(p.d)<=lim+0.01,'point '+i+' à '+p.d.toFixed(3)+' m');}
+    v(pire<=lim+1e-9,pire+' m');});
+  t(`IA ${nom} : courbure max de la trajectoire au moins 20 % plus petite que celle du milieu`, ()=>{const T=TRAJ[nom];let km=0,kt=0;
+    for(let i=0;i<circ.nb;i++){km=Math.max(km,Math.abs(circ.courbure[i]));kt=Math.max(kt,Math.abs(T.courbure[i]));}
+    L.push('  ('+nom+' : rayon le plus serré '+(1/km).toFixed(1)+' m au milieu, '+(1/kt).toFixed(1)+' m sur la trajectoire, courbure max −'+((1-kt/km)*100).toFixed(1)+' %)');v(kt<=0.8*km,(1/kt).toFixed(1)+' m');});
+  t(`IA ${nom} : la vitesse conseillée ne descend jamais plus vite que le freinage possible`, ()=>{const T=TRAJ[nom];let pire=-Infinity,ou=0;
+    for(let i=0;i<circ.nb;i++){const j=(i+1)%circ.nb,besoin=T.vitesse[i]**2-T.vitesse[j]**2,possible=2*REGLAGES.IA_MARGE_FREIN*freinagePossible(T.vitesse[j])*T.ds[i];if(besoin-possible>pire){pire=besoin-possible;ou=i;}}
+    v(pire<=1e-6,'point '+ou+' : '+pire);
+    let vmin=Infinity;for(let i=0;i<circ.nb;i++) vmin=Math.min(vmin,T.vitesse[i]);v(vmin>5,'vitesse min '+vmin);
+    let tour=0;for(let i=0;i<circ.nb;i++) tour+=T.ds[i]*2/(T.vitesse[i]+T.vitesse[(i+1)%circ.nb]);
+    L.push('  ('+nom+' : vitesse conseillée de '+(vmin*KMH).toFixed(0)+' à '+(Math.max(...T.vitesse)*KMH).toFixed(0)+' km/h, tour théorique '+tour.toFixed(2)+' s)');});
+}
+t('IA : la vitesse conseillée suit la physique (pente du freinage et de l’accélération, vitesse de pointe ≈ 330 km/h)', ()=>{const p=vitesseDePointe()*KMH;v(p>320&&p<340,p+' km/h');
+  v(freinagePossible(80)>freinagePossible(20));v(accelerationPossible(10)>accelerationPossible(80));v(vitesseBraquage(1/15)<vitesseBraquage(1/40));v(vitesseBraquage(0)===Infinity);});
+// 5 tours, sans affichage, graine fixe : l'IA ne donne que { gaz, frein, direction }
+const TOURS_IA={};
+for(const [nom,circ] of [['test',C],['technique',TQ]]){
+  t(`IA ${nom} : 5 tours sans toucher de barrière, sans couper, sans herbe`, ()=>{ALEATOIRE.semer(7);const T=TRAJ[nom],c=creerCourse(circ,5),vo=creerVoiture(circ);placerAuDepart(vo,circ);let herbe=0,touche=false;
+    const t0=performance.now();
+    for(let k=0;k<600*120&&c.etat!=='finie';k++){const cmd=courseAutorise(c)?piloteIA(vo,circ,T):RIEN;
+      v(Object.keys(cmd).sort().join()==='direction,frein,gaz','commandes '+Object.keys(cmd));
+      appliquerCommandes(vo,cmd);pasVoiture(vo,circ,DT);majCourse(c,vo,DT);if(vo.surHerbe) herbe++;}
+    ALEATOIRE.semer();TOURS_IA[nom]=c;
+    L.push('  (IA '+nom+' : '+c.tours.map(t_=>t_.temps.toFixed(2)).join(' / ')+' s ; meilleur tour '+(c.meilleurTour===null?'—':c.meilleurTour.toFixed(2)+' s')+' ; '+vo.contactsBarriere+' contacts, '+c.penalites+' s de pénalités, '+herbe+' pas dans l’herbe ; calcul '+(performance.now()-t0).toFixed(0)+' ms)');
+    v(c.etat==='finie','course '+c.etat+' après '+c.tours.length+' tours');v(vo.contactsBarriere===0,vo.contactsBarriere+' contacts');v(c.penalites===0&&c.tours.every(t_=>!t_.coupe),'virage coupé');v(herbe===0,herbe+' pas dans l’herbe');});
+}
+t('IA test : tour lancé en 50 s au plus (le propriétaire ≈ 45 s, le robot ≈ 62 s)', ()=>{const c=TOURS_IA.test;v(c&&c.tours.length===5);const lances=c.tours.slice(1).map(t_=>t_.temps);const m=Math.min(...lances);v(m<=50,m+' s');});
+t('IA : mêmes réglages, même circuit = exactement les mêmes tours (déterministe)', ()=>{const c=creerCourse(C,1),vo=creerVoiture(C);placerAuDepart(vo,C);
+  for(let k=0;k<200*120&&c.etat!=='finie';k++){appliquerCommandes(vo,courseAutorise(c)?piloteIA(vo,C,TRAJ.test):RIEN);pasVoiture(vo,C,DT);majCourse(c,vo,DT);}v(c.tours[0].temps===TOURS_IA.test.tours[0].temps,c.tours[0].temps+' / '+TOURS_IA.test.tours[0].temps);});
 
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 ecrire();
