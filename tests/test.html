@@ -291,6 +291,42 @@ t('IA test : tour lancé en 50 s au plus (le propriétaire ≈ 45 s, le robot �
 t('IA : mêmes réglages, même circuit = exactement les mêmes tours (déterministe)', ()=>{const c=creerCourse(C,1),vo=creerVoiture(C);placerAuDepart(vo,C);
   for(let k=0;k<200*120&&c.etat!=='finie';k++){appliquerCommandes(vo,courseAutorise(c)?piloteIA(vo,C,TRAJ.test):RIEN);pasVoiture(vo,C,DT);majCourse(c,vo,DT);}v(c.tours[0].temps===TOURS_IA.test.tours[0].temps,c.tours[0].temps+' / '+TOURS_IA.test.tours[0].temps);});
 
+// --- l'IA retrouve sa trajectoire depuis n'importe où (tour 8)
+const ecartTraj=(circ,T,s_)=>{const f=((s_%circ.longueur)+circ.longueur)%circ.longueur/circ.pas,i=Math.floor(f)%circ.nb,j=(i+1)%circ.nb,a=f-Math.floor(f);return T.ecart[i]*(1-a)+T.ecart[j]*a;};
+// un départ : à s0, à l'écart d0, à la vitesse u0, le cap décalé de dc ; on roule jusqu'à la fin du tour suivant
+function departIA(circ,T,s0,d0,u0,dc){const vo=creerVoiture(circ,s0,d0);vo.cap+=dc;vo.u=u0;memoriserAvant(vo);
+  const c=creerCourse(circ,0);c.etat='course';c.sAvant=vo.piste.s;c.xAvant=vo.x;c.zAvant=vo.z;
+  let rejoint=null,herbe=0,ligne=false;
+  for(let k=0;k<200*120&&c.tours.length<1;k++){appliquerCommandes(vo,piloteIA(vo,circ,T));pasVoiture(vo,circ,DT);majCourse(c,vo,DT);if(vo.surHerbe) herbe++;
+    // le tour suivant commence à la ligne
+    if(c.etape===0&&!ligne){c.debutTour=c.temps;ligne=true;}
+    if(rejoint===null&&Math.abs(vo.piste.d-ecartTraj(circ,T,vo.piste.s))<1) rejoint=c.progression;}
+  return {rejoint,tour:c.tours.length?c.tours[0].temps:null,coupe:c.penalites>0||c.tours.some(t_=>t_.coupe),contacts:vo.contactsBarriere,herbe};}
+t('IA technique : 18 départs (ligne droite, S, entrée de l’épingle × écart −5, 0, +5 m × arrêtée et à 60 m/s, cap ±0,3 rad pour la moitié) : trajectoire rejointe à moins de 1 m en moins de 300 m, tour suivant à moins de 3 s du meilleur, aucun virage coupé, aucune barrière', ()=>{
+  const T=TRAJ.technique,meilleur=TOURS_IA.technique.meilleurTour,ep=TQ.morceaux.find(m=>m.type==='virage'&&m.fin-m.debut<60);
+  const lieux=[['ligne droite',300],['S',TQ.morceaux[3].debut-30],['entrée de l’épingle',ep.debut-60]];let n=0,ko=[];
+  for(const [lieu,s0] of lieux) for(const d0 of [-5,0,5]) for(const u0 of [0,60]){const dc=n%2?(n%4===1?0.3:-0.3):0;n++;
+    const r_=departIA(TQ,T,s0,d0,u0,dc);
+    L.push(`  (départ ${lieu}, ${d0} m, ${u0} m/s, cap ${dc>0?'+':''}${dc} : rejointe en ${r_.rejoint===null?'—':r_.rejoint.toFixed(0)+' m'}, tour suivant ${r_.tour===null?'—':r_.tour.toFixed(2)+' s'}, ${r_.contacts} contacts, ${r_.herbe} pas dans l’herbe${r_.coupe?', VIRAGE COUPÉ':''})`);
+    if(r_.rejoint===null||r_.rejoint>300||r_.tour===null||r_.tour>meilleur+3||r_.coupe||r_.contacts>0) ko.push(lieu+' '+d0+' '+u0+' '+dc);}
+  v(n===18);v(ko.length===0,ko.join(' | '));});
+t('IA technique : départ impossible, au début même de l’épingle à 60 m/s, nez vers l’extérieur : elle touche la barrière (il faudrait ≈ 60 m pour freiner), mais repart, rejoint sa trajectoire et finit le tour suivant sans couper', ()=>{
+  const T=TRAJ.technique,ep=TQ.morceaux.find(m=>m.type==='virage'&&m.fin-m.debut<60);const r_=departIA(TQ,T,ep.debut,-5,60,-0.3);
+  L.push(`  (départ impossible : ${r_.contacts} contacts de barrière, rejointe en ${r_.rejoint===null?'—':r_.rejoint.toFixed(0)+' m'}, tour suivant ${r_.tour===null?'—':r_.tour.toFixed(2)+' s'})`);
+  v(r_.rejoint!==null&&r_.tour!==null&&r_.tour<TOURS_IA.technique.meilleurTour+3&&!r_.coupe,JSON.stringify(r_));});
+// --- une voiture lente devant : l'IA freine et reste derrière (tour 8)
+t('IA technique : 40 m derrière une voiture à 60 % de sa vitesse conseillée, pendant 2 tours : jamais à moins de IA_DISTANCE_MIN, 0 contact, 0 herbe', ()=>{
+  const T=TRAJ.technique,vo=creerVoiture(TQ,0,0),c=creerCourse(TQ,0);c.etat='course';c.sAvant=vo.piste.s;c.xAvant=vo.x;c.zAvant=vo.z;
+  // la voiture de devant avance le long de la piste à 60 % de la vitesse conseillée ; l'IA ne reçoit que sa distance et sa vitesse
+  let sDevant=40,dMin=Infinity,herbe=0,k=0;
+  for(;k<400*120&&c.progression<2*TQ.longueur;k++){const vDevant=0.6*vitesseConseillee(TQ,T,sDevant);
+    appliquerCommandes(vo,piloteIA(vo,TQ,T,{distance:sDevant-c.progression,vitesse:vDevant}));pasVoiture(vo,TQ,DT);majCourse(c,vo,DT);
+    sDevant+=vDevant*DT;dMin=Math.min(dMin,sDevant-c.progression);if(vo.surHerbe) herbe++;}
+  L.push('  (derrière une voiture à 60 % : distance la plus courte '+dMin.toFixed(2)+' m, à la fin '+(sDevant-c.progression).toFixed(1)+' m, '+(k*DT).toFixed(0)+' s pour 2 tours)');
+  v(c.progression>=2*TQ.longueur,'pas fini');v(dMin>=REGLAGES.IA_DISTANCE_MIN,dMin.toFixed(2)+' m');v(vo.contactsBarriere===0);v(herbe===0,herbe+' pas dans l’herbe');});
+t('IA : le calcul découpé (etapesTrajectoire) donne exactement la même trajectoire que d’un coup', ()=>{const e=etapesTrajectoire(TQ);let r_=e.next(),n=0;while(!r_.done){r_=e.next();n++;}
+  const a=r_.value,b=TRAJ.technique;v(n>50,n+' étapes');for(let i=0;i<TQ.nb;i++) v(a.ecart[i]===b.ecart[i]&&a.vitesse[i]===b.vitesse[i],'point '+i);});
+
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 ecrire();
 </script></body></html>

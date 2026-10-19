@@ -94,6 +94,7 @@ const REGLAGES = {
   ROBOT_REGARD: 400,            // m : il regarde la courbure jusque-là
 
   // l'IA (étape 4) : la trajectoire idéale et la vitesse conseillée sont calculées une fois par circuit (ia.js)
+  CALCUL_TRANCHE_MS: 20,        // ms : dans la page, le calcul de la trajectoire est découpé en tranches de cette durée
   IA_MARGE_BORD: 1.5,           // m : la trajectoire reste à cette distance du bord de la piste
   IA_LISSAGE_PASSES: [[24, 60], [12, 60], [6, 60], [3, 60], [1, 60]],   // [écart entre voisins (échantillons), nombre de passes]
   IA_LISSAGE_FORCE: 0.5,        // à chaque passe, un point fait cette part du chemin vers la courbure moyenne de ses voisins
@@ -109,6 +110,11 @@ const REGLAGES = {
   IA_ANTICIPATION: 0.15,        // s : elle prend la vitesse conseillée là où elle sera dans ce temps
   IA_GAIN_GAZ: 1,               // gaz par m/s de retard sur la vitesse conseillée
   IA_GAIN_FREIN: 1,             // frein par m/s d'avance
+  IA_ECART_RATTRAPAGE: 2.5,      // m : plus loin que ça de sa trajectoire, elle ralentit pour pouvoir prendre le virage qui l'y ramène
+  // derrière une voiture plus lente (sans la dépasser, étape 4a) ; distances d'un centre de voiture à l'autre
+  IA_DISTANCE_MIN: 8,           // m : jamais plus près
+  IA_DISTANCE_SUIVI: 14,        // m : la distance où elle se cale derrière
+  IA_GAIN_DISTANCE: 0.5,        // m/s de vitesse en plus par m d'écart en trop
 
   // le dessin du circuit
   LARGEUR_BORD: 0.35,           // la ligne blanche de chaque bord

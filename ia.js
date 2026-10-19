@@ -38,9 +38,19 @@ function courbureTroisPoints(ax, az, bx, bz, cx, cz) {
   return produit < 1e-12 ? 0 : 2 * (abx * acz - abz * acx) / produit;
 }
 
-// la trajectoire idéale d'un circuit : un écart latéral par échantillon de la piste, puis la vitesse conseillée
-// renvoie { ecart, x, z, courbure, ds, vitesse, vitesseLimite } (des tableaux de circuit.nb valeurs)
+// la trajectoire idéale d'un circuit, d'un coup (les tests) : voir etapesTrajectoire
 function calculerTrajectoire(circuit) {
+  const etapes = etapesTrajectoire(circuit);
+  let r = etapes.next();
+  while (!r.done) r = etapes.next();
+  return r.value;
+}
+
+// la trajectoire idéale d'un circuit : un écart latéral par échantillon de la piste, puis la vitesse conseillée.
+// C'est un générateur : il s'arrête (yield) après chaque passe, pour que la page puisse découper le calcul sur
+// plusieurs images sans se bloquer. Le calcul est exactement le même, découpé ou d'un coup.
+// À la fin : { ecart, x, z, courbure, ds, vitesse, vitesseLimite } (des tableaux de circuit.nb valeurs)
+function* etapesTrajectoire(circuit) {
   const R = REGLAGES, n = circuit.nb, cx = circuit.x, cz = circuit.z, nx = circuit.nx, nz = circuit.nz;
   const limite = circuit.largeur / 2 - R.IA_MARGE_BORD;
   const ecart = new Float64Array(n), x = new Float64Array(n), z = new Float64Array(n);
@@ -63,6 +73,7 @@ function calculerTrajectoire(circuit) {
         if (Math.abs(pente) < 1e-12) continue;
         placer(i, Math.max(-limite, Math.min(limite, ecart[i] + R.IA_LISSAGE_FORCE * (voulue - ici) / pente)));
       }
+      yield;
     }
   }
 
@@ -107,6 +118,7 @@ function calculerTrajectoire(circuit) {
         }
         if (d2 > 1e-30) glisser(i, k, -d1 / d2);
       }
+      yield;
     }
   }
 
@@ -145,8 +157,19 @@ function vitesseConseillee(circuit, trajectoire, s) {
   return trajectoire.vitesse[i] * (1 - a) + trajectoire.vitesse[j] * a;
 }
 
-// le pilote : il vise un point de sa trajectoire devant lui (« poursuite pure ») et suit la vitesse conseillée
-function piloteIA(v, circuit, trajectoire) {
+// la vitesse pour rester derrière une voiture plus lente : devant = { distance, vitesse } (distance entre les deux
+// voitures, le long de la piste, en m). Assez lente pour pouvoir freiner jusqu'à sa vitesse avant d'être à
+// IA_DISTANCE_MIN d'elle, et qui revient doucement à IA_DISTANCE_SUIVI derrière elle.
+function vitesseDerriere(devant) {
+  const R = REGLAGES, vd = Math.max(0, devant.vitesse);
+  const marge = Math.max(0, devant.distance - R.IA_DISTANCE_MIN);
+  const freinable = Math.sqrt(vd * vd + 2 * R.IA_MARGE_FREIN * freinagePossible(vd) * marge);
+  return Math.max(0, Math.min(freinable, vd + R.IA_GAIN_DISTANCE * (devant.distance - R.IA_DISTANCE_SUIVI)));
+}
+
+// le pilote : il vise un point de sa trajectoire devant lui (« poursuite pure ») et suit la vitesse conseillée.
+// devant (facultatif) : { distance, vitesse } de la voiture qui la précède, ce qu'un pilote voit ; elle reste derrière.
+function piloteIA(v, circuit, trajectoire, devant) {
   const R = REGLAGES;
   const p = v.piste || positionSurPiste(circuit, v.x, v.z);
   const u = Math.max(0, v.u);
@@ -157,11 +180,21 @@ function piloteIA(v, circuit, trajectoire) {
   const dx = trajectoire.x[iv] - v.x, dz = trajectoire.z[iv] - v.z;
   const c = Math.cos(v.cap), s = Math.sin(v.cap);
   const angle = Math.atan2(-s * dx + c * dz, c * dx + s * dz);
-  const braquageVoulu = Math.atan(2 * R.EMPATTEMENT * Math.sin(angle) / Math.hypot(dx, dz));
+  const courbureVoulue = 2 * Math.sin(angle) / Math.hypot(dx, dz);
+  const braquageVoulu = Math.atan(R.EMPATTEMENT * courbureVoulue);
   const direction = braquageVoulu / braquageMax(v.u);
 
   // la vitesse : celle qu'on conseille un peu plus loin, là où la voiture sera dans IA_ANTICIPATION secondes
-  const ecartVitesse = vitesseConseillee(circuit, trajectoire, p.s + u * R.IA_ANTICIPATION) - v.u;
+  let cible = vitesseConseillee(circuit, trajectoire, p.s + u * R.IA_ANTICIPATION);
+  // loin de sa trajectoire (ou dans l'herbe), le virage qu'elle demande pour la rejoindre peut être plus serré que
+  // celui de la trajectoire : elle ralentit jusqu'à pouvoir le prendre
+  const ip = Math.round(p.s / circuit.pas) % circuit.nb;
+  if (v.surHerbe || Math.abs(p.d - trajectoire.ecart[ip]) > R.IA_ECART_RATTRAPAGE) {
+    const mu = R.ADHERENCE * (v.surHerbe ? R.ADHERENCE_HERBE : 1);
+    cible = Math.min(cible, Math.max(R.VITESSE_CINEMATIQUE, Math.min(vitesseVirage(courbureVoulue, mu) * R.IA_MARGE_VIRAGE, vitesseBraquage(courbureVoulue))));
+  }
+  if (devant) cible = Math.min(cible, vitesseDerriere(devant));
+  const ecartVitesse = cible - v.u;
   return {
     gaz: ecartVitesse > 0 ? Math.min(1, ecartVitesse * R.IA_GAIN_GAZ) : 0,
     frein: ecartVitesse < 0 ? Math.min(1, -ecartVitesse * R.IA_GAIN_FREIN) : 0,

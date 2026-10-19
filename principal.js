@@ -15,7 +15,8 @@ const JEU = {
   ecran: 'choix',       // choix, course, pause, fin, survol (les caméras ?camera=… sans course)
   robot: false,         // ?robot=1 : le robot d'essai conduit la voiture du joueur (tests, démonstration)
   ia: false,            // ?ia=1 : l'IA conduit la voiture du joueur (pour la regarder rouler)
-  trajectoire: null,    // la trajectoire idéale de l'IA sur ce circuit (ia.js), calculée seulement avec ?ia=1
+  trajectoire: null,    // la trajectoire idéale de l'IA sur ce circuit (ia.js), calculée seulement avec ?ia=1, en fond
+  calculTrajectoire: null,   // le suivi de ce calcul (calculerEnFond)
   pas: 0,               // le nombre de pas de physique faits (pour vérifier la pause)
   apresArrivee: 0,      // s depuis l'arrivée
   arretApres: null,     // s entre l'arrivée et l'arrêt de la voiture
@@ -109,7 +110,7 @@ function pasJoueur(pas) {
     appliquerCommandes(v, { gaz: 0, frein: v.u > REGLAGES.ARRET_APRES_ARRIVEE ? 1 : 0, direction: 0 });
     JEU.apresArrivee += pas;
     if (v.u === 0 && JEU.arretApres === null) JEU.arretApres = JEU.apresArrivee;
-  } else if (JEU.ia && permis) appliquerCommandes(v, piloteIA(v, CIRCUIT, JEU.trajectoire));
+  } else if (JEU.ia && permis) appliquerCommandes(v, JEU.trajectoire ? piloteIA(v, CIRCUIT, JEU.trajectoire) : AUCUNE);   // tant que la trajectoire se calcule, elle attend
   else if (JEU.robot && permis) appliquerCommandes(v, piloteRobot(v, CIRCUIT));
   else lisserCommandes(v, permis ? JEU.cibles : AUCUNE, pas);
   pasVoiture(v, CIRCUIT, pas);
@@ -150,6 +151,24 @@ function brancherDebug() {
   });
 }
 
+// un calcul long (un générateur, voir etapesTrajectoire) découpé en tranches d'environ CALCUL_TRANCHE_MS,
+// entre lesquelles la page dessine et répond : elle n'est jamais bloquée. fini(résultat) à la fin.
+// Renvoie son suivi : { tranches, plusLongue (ms), debut, fin } (pour les tests et ?debug=1).
+function calculerEnFond(etapes, fini) {
+  const suivi = { tranches: 0, plusLongue: 0, debut: performance.now(), fin: null };
+  const tranche = () => {
+    const debut = performance.now();
+    let r;
+    do r = etapes.next(); while (!r.done && performance.now() - debut < REGLAGES.CALCUL_TRANCHE_MS);
+    suivi.tranches++;
+    suivi.plusLongue = Math.max(suivi.plusLongue, performance.now() - debut);
+    if (r.done) { suivi.fin = performance.now(); fini(r.value); }
+    else setTimeout(tranche, 0);
+  };
+  setTimeout(tranche, 0);
+  return suivi;
+}
+
 function demarrerJeu() {
   // un jeu, pas une page : ni menu contextuel, ni défilement par les touches ou la molette
   document.addEventListener('contextmenu', e => e.preventDefault());
@@ -166,7 +185,7 @@ function demarrerJeu() {
   JEU.joueur = creerVoiture(CIRCUIT, 0);
   JEU.robot = PARAMETRES.get('robot') === '1';
   JEU.ia = PARAMETRES.get('ia') === '1';
-  if (JEU.ia) JEU.trajectoire = calculerTrajectoire(CIRCUIT);
+  if (JEU.ia) JEU.calculTrajectoire = calculerEnFond(etapesTrajectoire(CIRCUIT), t => { JEU.trajectoire = t; });
   INTERFACE.preparerPause(() => pause(false), () => lancerCourse(JEU.course.nbTours));
   INTERFACE.preparerFin(() => lancerCourse(JEU.course.nbTours), allerAuChoix);
   // ?course=5, 12, 18 ou 0 (essai libre) lance directement une course (tests, développement)

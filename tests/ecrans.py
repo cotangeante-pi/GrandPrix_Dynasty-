@@ -154,7 +154,19 @@ def course_robot(pg, titre, page):
 
 def course_ia(pg, titre):
     # l'IA conduit la voiture du joueur sur le circuit technique : elle part, fait au moins un tour, sans faute
-    t(f'{titre} : le circuit technique est chargé et la trajectoire de l’IA calculée', pg.evaluate('() => CIRCUIT.nom === "Technique" && JEU.ia && JEU.trajectoire !== null && JEU.trajectoire.vitesse.length === CIRCUIT.nb'))
+    # la trajectoire se calcule en fond, découpée en tranches : la page ne doit jamais rester bloquée plus de 300 ms
+    pret = attendre(pg, '() => JEU.trajectoire !== null', None, 120000)
+    t(f'{titre} : le circuit technique est chargé et la trajectoire de l’IA calculée', pret and pg.evaluate('() => CIRCUIT.nom === "Technique" && JEU.ia && JEU.trajectoire.vitesse.length === CIRCUIT.nb'))
+    # ce que bloque le calcul : chaque tranche est chronométrée par le jeu. Les autres tâches longues de la page
+    # (le premier dessin 3D en logiciel sous swiftshader) existent aussi sans ?ia=1 : elles sont seulement affichées
+    calcul = pg.evaluate('() => JEU.calculTrajectoire')
+    longues = pg.evaluate('() => window.__longues')
+    L.append(f"  (?ia=1 : trajectoire calculée en {calcul['tranches']} tranches, la plus longue {calcul['plusLongue']:.0f} ms, en {(calcul['fin'] - calcul['debut']) / 1000:.1f} s ; tâches de plus de 50 ms dans la page : {sorted(round(x) for x in longues)[-6:]} ms)")
+    t(f'{titre} : le calcul de la trajectoire ne bloque jamais la page plus de 300 ms d’affilée', calcul['tranches'] > 10 and calcul['plusLongue'] < 300, str(calcul))
+    tour = pg.evaluate('''() => { const c = creerCourse(CIRCUIT, 5), v = creerVoiture(CIRCUIT); placerAuDepart(v, CIRCUIT);
+      for (let k = 0; k < 600 * 120 && c.etat !== 'finie'; k++) { appliquerCommandes(v, courseAutorise(c) ? piloteIA(v, CIRCUIT, JEU.trajectoire) : { gaz: 0, frein: 0, direction: 0 }); pasVoiture(v, CIRCUIT, 1 / 120); majCourse(c, v, 1 / 120); }
+      return c.meilleurTour; }''')
+    t(f'{titre} : la trajectoire calculée en fond est la même (meilleur tour 54,43 s comme dans test.html)', tour is not None and abs(tour - 54.43) < 0.006, str(tour))
     pg.evaluate('() => { JEU.course.compte = 0.01; }')
     t(f'{titre} : l’IA part après le compte à rebours', attendre(pg, '() => JEU.course.etat === "course" && JEU.joueur.u > 1', None, 20000), pg.evaluate('() => JEU.course.etat'))
     pg.evaluate('() => BOUCLE.simuler(75)')
@@ -176,6 +188,8 @@ with sync_playwright() as p:
             titre = f'{page} {l}×{h}'
             ctx = b.new_context(viewport={'width': l, 'height': h})
             pg = ctx.new_page(); console = []
+            # les tâches longues (> 50 ms) qui bloquent la page, relevées dès le début du chargement
+            pg.add_init_script('window.__longues = []; new PerformanceObserver(l => { for (const e of l.getEntries()) window.__longues.push(e.duration); }).observe({ entryTypes: ["longtask"] });')
             pg.on('console', lambda m: console.append(m.type + ': ' + m.text) if m.type in ('error', 'warning') else None)
             pg.on('pageerror', lambda e: console.append('PAGEERROR ' + str(e)))
             pg.on('requestfailed', lambda r: console.append('FICHIER MANQUANT ' + r.url))
