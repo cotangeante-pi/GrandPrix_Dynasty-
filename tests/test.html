@@ -1,7 +1,7 @@
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><title>tests</title></head><body>
 <pre id="res"></pre>
 <script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));window.addEventListener('unhandledrejection',e=>__err.push('promesse : '+(e.reason&&e.reason.message||e.reason)));</script>
-<script src="../donnees.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../son.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../principal.js"></script>
+<script src="../donnees.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../son.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../course.js"></script><script src="../principal.js"></script>
 <script>
 const L=[];let ok=0,ko=0;
 function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
@@ -183,6 +183,52 @@ t('le régime monte avec la vitesse dans un rapport, et retombe au changement de
 t('le son : la note suit le régime, les pneus se taisent quand la voiture ne glisse pas', ()=>{const vo=creerVoiture(null);const p0=SON.parametres(vo);v(p0.volumePneus===0&&p0.rapport===1);
   vo.u=60;vo.v=0;const p1=SON.parametres(vo);vo.v=12;const p2=SON.parametres(vo);v(p1.frequence>p0.frequence);v(p1.volumePneus===0&&p2.volumePneus>0,'pneus '+p1.volumePneus+' / '+p2.volumePneus);});
 t('aucun son avant un geste du joueur', ()=>{v(!SON.actif,'un AudioContext existe déjà');});
+
+// --- la course seule (étape 3)
+const RIEN={gaz:0,frein:0,direction:0};
+function faireCourse(nb,maxSec){const c=creerCourse(C,nb),vo=creerVoiture(C);placerAuDepart(vo,C);
+  for(let k=0;k<maxSec*120&&c.etat!=='finie';k++){appliquerCommandes(vo,courseAutorise(c)?piloteRobot(vo,C):RIEN);pasVoiture(vo,C,DT);majCourse(c,vo,DT);}return {c,vo};}
+let course5=null;
+t('le robot finit une course de 5 tours : le total = la somme des tours, chaque tour = la somme de ses 3 secteurs', ()=>{const {c}=faireCourse(5,600);course5=c;
+  v(c.etat==='finie','état '+c.etat+', '+c.tours.length+' tours');v(c.tours.length===5);
+  const somme=c.tours.reduce((a,t_)=>a+t_.temps,0);v(Math.abs(somme-c.temps)<1e-9,'somme '+somme+' / chrono '+c.temps);v(Math.abs(tempsTotal(c)-somme)<1e-9&&c.penalites===0,'pénalités '+c.penalites);
+  for(const t_ of c.tours){v(Math.abs(t_.secteurs[0]+t_.secteurs[1]+t_.secteurs[2]-t_.temps)<1e-9);v(t_.secteurs.every(x=>x>5),t_.secteurs.join(' / '));}
+  v(c.meilleurTour===Math.min(...c.tours.map(t_=>t_.temps)));
+  L.push('  (5 tours : '+c.tours.map(t_=>t_.temps.toFixed(2)).join(' / ')+' s ; total '+tempsTotal(c).toFixed(2)+' s ; meilleur '+c.meilleurTour.toFixed(2)+' s)');});
+t('pendant le compte à rebours, rien ne bouge ; le chrono part au premier mouvement', ()=>{const c=creerCourse(C,5),vo=creerVoiture(C);placerAuDepart(vo,C);
+  for(let k=0;k<120*2;k++){appliquerCommandes(vo,courseAutorise(c)?{gaz:1,frein:0,direction:0}:RIEN);pasVoiture(vo,C,DT);majCourse(c,vo,DT);}v(c.etat==='compte'&&vo.u===0);
+  for(let k=0;k<120*2;k++){appliquerCommandes(vo,RIEN);pasVoiture(vo,C,DT);majCourse(c,vo,DT);}v(c.etat==='attente'&&c.temps===0,'GO : '+c.etat+' '+c.temps);
+  appliquerCommandes(vo,{gaz:1,frein:0,direction:0});pasVoiture(vo,C,DT);majCourse(c,vo,DT);v(c.etat==='course'&&c.temps>0);});
+// une course déjà lancée, la voiture à s, pour les tests de ligne et de coupe
+function courseLancee(s,d){const c=creerCourse(C,5),vo=creerVoiture(C,s,d||0);c.etat='course';c.sAvant=vo.piste.s;c.xAvant=vo.x;c.zAvant=vo.z;c.etape=0;return {c,vo};}
+t('reculer sur la ligne puis la repasser ne compte pas de tour', ()=>{const {c,vo}=courseLancee(C.longueur-6);c.etape=-1;
+  let k=0;while(vo.piste.s>C.longueur/2||vo.piste.s<10){appliquerCommandes(vo,{gaz:0.3,frein:0,direction:0});pasVoiture(vo,C,DT);majCourse(c,vo,DT);if(++k>12000) break;}
+  v(c.etape===0,'la ligne de départ');
+  // marche arrière jusque derrière la ligne
+  for(let j=0;j<120*3;j++){appliquerCommandes(vo,{gaz:0,frein:1,direction:0});pasVoiture(vo,C,DT);majCourse(c,vo,DT);}
+  k=0;while(!(vo.piste.s>C.longueur/2)){appliquerCommandes(vo,{gaz:0,frein:1,direction:0});pasVoiture(vo,C,DT);majCourse(c,vo,DT);if(++k>120*60) break;}
+  v(vo.piste.s>C.longueur/2,'pas reculé derrière la ligne : s '+vo.piste.s);
+  for(let j=0;j<120*4;j++){appliquerCommandes(vo,{gaz:0.4,frein:0,direction:0});pasVoiture(vo,C,DT);majCourse(c,vo,DT);}
+  v(vo.piste.s<C.longueur/2&&vo.piste.s>5,'pas repassé la ligne : s '+vo.piste.s);v(c.tours.length===0,c.tours.length+' tours');});
+t('repasser la ligne sans avoir fait le tour ne compte pas', ()=>{const {c,vo}=courseLancee(100);
+  placerSurPiste(vo,C,C.longueur-20,0);majCourse(c,vo,DT);
+  for(let j=0;j<120*4;j++){appliquerCommandes(vo,{gaz:0.5,frein:0,direction:0});pasVoiture(vo,C,DT);majCourse(c,vo,DT);}
+  v(vo.piste.s<C.longueur/2,'pas repassé : s '+vo.piste.s);v(c.tours.length===0,c.tours.length+' tours');});
+// un pilote d'essai qui suit une ligne parallèle à la piste, à l'écart d (pour sortir large)
+function suivreEcart(vo,d,vitesse){const i=Math.round((vo.piste.s+15)/C.pas)%C.nb,tx=C.x[i]+C.nx[i]*d,tz=C.z[i]+C.nz[i]*d,dx=tx-vo.x,dz=tz-vo.z;
+  const c_=Math.cos(vo.cap),s_=Math.sin(vo.cap),a=Math.atan2(-s_*dx+c_*dz,c_*dx+s_*dz);
+  return {gaz:vo.u<vitesse?1:0,frein:vo.u>vitesse+2?1:0,direction:Math.max(-1,Math.min(1,Math.atan(2*REGLAGES.EMPATTEMENT*Math.sin(a)/Math.hypot(dx,dz))/braquageMax(vo.u)))};}
+t('couper la chicane tout droit : +5 s et le tour marqué ✂', ()=>{const ch=C.morceaux.filter(m=>m.type==='chicane')[0];const {c,vo}=courseLancee(ch.debut-60);vo.u=25;
+  // tout droit, à travers la chicane
+  while(vo.piste.s<ch.fin+40){appliquerCommandes(vo,{gaz:vo.u<25?1:0,frein:0,direction:0});pasVoiture(vo,C,DT);majCourse(c,vo,DT);}
+  L.push('  (chicane coupée : pénalité '+c.penalites+' s)');v(c.penalites===REGLAGES.PENALITE_COUPE,'pénalités '+c.penalites);v(c.coupeTour);});
+t('sortir large dans le grand virage (sans raccourci) ne coûte rien', ()=>{const g=C.morceaux.find(m=>m.type==='virage'&&m.angles[0]>0&&m.fin-m.debut>300);const {c,vo}=courseLancee(g.debut-80);vo.u=30;
+  let sorti=false;
+  while(vo.piste.s<g.fin+60){appliquerCommandes(vo,suivreEcart(vo,vo.piste.s>g.debut-20?-(C.largeur/2+5):0,30));pasVoiture(vo,C,DT);majCourse(c,vo,DT);if(c.sortie) sorti=true;}
+  v(sorti,'la voiture n’est pas sortie');v(c.penalites===0,'pénalités '+c.penalites);v(!c.coupeTour);});
+t('un tour coupé ne peut pas être le meilleur tour', ()=>{const c=creerCourse(C,0);c.etat='course';c.etape=3;c.secteursTour=[20,20];c.temps=50;c.coupeTour=true;finirTour(c);v(c.meilleurTour===null);
+  c.etape=3;c.secteursTour=[25,25];c.temps=130;finirTour(c);v(c.meilleurTour===80,String(c.meilleurTour));v(c.etat==='course','l’essai libre ne finit jamais');});
+t('couleurs des secteurs : violet = meilleur, vert = mieux qu’au tour d’avant, jaune = plus lent', ()=>{const c={meilleursSecteurs:[20,20,20]};v(couleurSecteur(c,0,19.5,null)==='violet');v(couleurSecteur(c,0,21,{secteurs:[22,0,0]})==='vert');v(couleurSecteur(c,0,23,{secteurs:[22,0,0]})==='jaune');});
 
 // --- le hasard
 const suite=(g,n)=>{ALEATOIRE.semer(g);const s=[];for(let i=0;i<n;i++) s.push(hasard());return s;};

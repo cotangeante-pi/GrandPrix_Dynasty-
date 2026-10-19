@@ -71,6 +71,14 @@ const REGLAGES = {
   SON_CHOC_DUREE: 0.35,         // s
   SON_LISSAGE: 0.03,            // s : le son rejoint sa nouvelle valeur en ce temps (pas de clics)
 
+  // la course seule (étape 3)
+  LONGUEURS_COURSE: { tresCourte: 5, moyenne: 12, longue: 18 },   // nombre de tours ; 0 = essai libre
+  COMPTE_A_REBOURS: 3,          // s : 3, 2, 1, GO (les vrais feux viendront à l'étape 5)
+  DEPART_RECUL: 6,              // m : la voiture part arrêtée juste derrière la ligne
+  MARGE_COUPE: 1,               // m au-delà du bord : à partir de là, on est sorti de la piste
+  SEUIL_COUPE: 2,               // m : virage coupé si la sortie fait gagner plus que ça le long de la piste
+  PENALITE_COUPE: 5,            // s ajoutées au temps total
+
   // le robot d'essai (préparation des IA)
   ROBOT_VISEE_MIN: 12,          // m : il vise un point au moins à cette distance devant lui
   ROBOT_VISEE_TEMPS: 0.55,      // s : … ou à la distance parcourue en ce temps

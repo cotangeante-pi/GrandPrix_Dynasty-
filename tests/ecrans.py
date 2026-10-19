@@ -22,7 +22,8 @@ PAGES = [
     ('index.html?camera=dessus', 1280, 720, 'dessus.png'),
     ('index.html?camera=virage', 1280, 720, 'virage.png'),
     ('index.html?camera=vitrine', 1280, 720, 'voiture.png'),
-    ('index.html?reglages=1', 1280, 720, 'reglages.png'),
+    ('index.html?reglages=1&course=0', 1280, 720, 'reglages.png'),
+    ('index.html?course=5&robot=1', 1280, 720, None),
 ]
 POSITION = '() => CAMERA.position'
 
@@ -46,11 +47,16 @@ INTERPOLE = """() => { const v = JEU.joueur, g = JEU.modele.groupe.position, e =
 def conduite(pg, titre):
     t(f'{titre} : la voiture attend sur la ligne, à l’arrêt', pg.evaluate(JOUEUR)['u'] == 0)
     t(f'{titre} : aucun son avant le premier geste', pg.evaluate('() => !SON.actif'))
+    t(f'{titre} : au départ, l’écran de choix (5, 12, 18 tours, essai libre)', pg.evaluate('() => !document.getElementById("choix").classList.contains("cache") && ["choix5","choix12","choix18","choix0"].every(id => document.getElementById(id))'))
+    pg.screenshot(path=os.path.join(CAPTURES, 'choix.png'))
+    pg.click('#choix5')
+    t(f'{titre} : choisir « 5 tours » lance le compte à rebours', pg.evaluate('() => JEU.ecran === "course" && JEU.course.nbTours === 5 && JEU.course.etat === "compte"'))
     t(f'{titre} : le titre est le nom du jeu, sans « F1 »', pg.evaluate('() => document.title === texte("nomDuJeu") && document.title === "Grand Prix Dynasty"'), pg.evaluate('() => document.title'))
     depart = pg.evaluate(JOUEUR)
+    t(f'{titre} : après le compte à rebours, GO', attendre(pg, '() => JEU.course.etat === "attente"', None, 40000), pg.evaluate('() => JEU.course.etat'))
     pg.keyboard.down('ArrowUp')
     t(f'{titre} : le premier geste allume le son', attendre(pg, '() => SON.actif'), pg.evaluate('() => SON.etatContexte'))
-    t(f'{titre} : ↑ fait avancer la voiture', attendre(pg, '() => JEU.joueur.u > 15', None, 20000), str(pg.evaluate(JOUEUR)))
+    t(f'{titre} : ↑ fait avancer la voiture', attendre(pg, '() => JEU.joueur.u > 15', None, 40000), str(pg.evaluate(JOUEUR)))
     i = pg.evaluate(INTERPOLE)
     t(f'{titre} : la voiture est dessinée entre l’état d’avant et l’état d’après', i['ok'], str(i))
     pg.screenshot(path=os.path.join(CAPTURES, 'derriere.png'))
@@ -86,6 +92,12 @@ def conduite(pg, titre):
     t(f'{titre} : le bouton 🔊 coupe le son', pg.evaluate('() => SON.muet'))
     pg.click('#boutonSon')
     t(f'{titre} : le bouton ne garde pas le focus (Espace ne le clique pas)', pg.evaluate('() => document.activeElement !== document.getElementById("boutonSon") && !SON.muet'))
+    # Échap : la pause arrête la physique
+    pg.keyboard.press('Escape')
+    n1 = pg.evaluate('() => JEU.pas'); pg.wait_for_timeout(600); n2 = pg.evaluate('() => JEU.pas')
+    t(f'{titre} : Échap met en pause et la physique s’arrête', pg.evaluate('() => JEU.ecran') == 'pause' and n1 == n2, f'{n1} → {n2}')
+    pg.click('#boutonReprendre')
+    t(f'{titre} : « Reprendre » relance la physique', attendre(pg, 'n => JEU.pas > n', n2) and pg.evaluate('() => JEU.ecran') == 'course')
     t(f'{titre} : la vitesse s’affiche en km/h', bool(re.fullmatch(r'\d+', pg.evaluate('() => document.getElementById("vitesse").textContent'))))
 
 def reglages(pg, titre):
@@ -101,9 +113,36 @@ def reglages(pg, titre):
     copie = pg.evaluate('() => document.querySelector("#reglages pre").textContent')
     t(f'{titre} : « copier » donne les valeurs changées, prêtes pour donnees.js', 'ADHERENCE: 2.2,' in copie and 'CAMERA_DERRIERE: [6, 2.4],' in copie and 'APPUI' not in copie, repr(copie))
     # les flèches conduisent toujours après avoir touché le panneau
+    pg.evaluate('() => { JEU.course.compte = 0.01; }')
     pg.keyboard.down('ArrowUp')
     t(f'{titre} : après le panneau, ↑ fait toujours rouler', attendre(pg, '() => JEU.joueur.u > 5', None, 20000))
     pg.keyboard.up('ArrowUp')
+
+def course_robot(pg, titre, page):
+    # le robot conduit : on attend le GO, puis on avance la physique sans affichage (BOUCLE.simuler)
+    # le compte à rebours est vérifié ailleurs ; ici on le raccourcit (sous swiftshader, 3 s de jeu peuvent prendre 30 s)
+    pg.evaluate('() => { JEU.course.compte = 0.01; }')
+    t(f'{titre} : le robot part après le compte à rebours', attendre(pg, '() => JEU.course.etat === "course"', None, 20000), pg.evaluate('() => JEU.course.etat'))
+    pg.evaluate('() => BOUCLE.simuler(140)')
+    t(f'{titre} : en course, Tour n/N, chrono et secteurs en couleurs', attendre(pg, '() => /^Tour 3 \\/ 5$|^Lap 3 \\/ 5$/.test(document.getElementById("hudTour").textContent) && /violet|vert|jaune/.test(document.getElementById("hudS1").className)'),
+      pg.evaluate('() => [document.getElementById("hudTour").textContent, document.getElementById("hudS1").className]'))
+    pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'course.png'))
+    pg.evaluate('() => BOUCLE.simuler(260)')
+    t(f'{titre} : la course finie, l’écran de fin', attendre(pg, '() => !document.getElementById("fin").classList.contains("cache")'), pg.evaluate('() => JEU.course.etat'))
+    fin = pg.evaluate('() => ({ tours: document.querySelectorAll("#finTours li").length, total: document.getElementById("finTotal").textContent, record: document.getElementById("finRecord").textContent, meilleur: JEU.course.meilleurTour, garde: SAUVEGARDE.record(5) })')
+    t(f'{titre} : l’écran de fin montre les 5 tours, le total et le nouveau record', fin['tours'] == 5 and re.search(r'\d:\d\d\.\d{3}', fin['total']) and fin['record'] != '', str(fin))
+    t(f'{titre} : le meilleur tour est gardé comme record des 5 tours', fin['garde'] == fin['meilleur'], str(fin))
+    pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'fin.png'))
+    # après rechargement, le record est toujours là (sur l'écran de choix)
+    pg.goto('file://' + RACINE + '/index.html'); pg.wait_for_timeout(1500)
+    rec = pg.evaluate('() => document.getElementById("record5").textContent')
+    t(f'{titre} : après rechargement, le record des 5 tours est affiché', INTERFACE_TEMPS(fin['meilleur']) in rec, repr(rec))
+    pg.click('#choix0')
+    t(f'{titre} : l’essai libre n’a pas de nombre de tours', pg.evaluate('() => JEU.course.nbTours === 0 && !/\\//.test(document.getElementById("hudTour").textContent)'))
+
+def INTERFACE_TEMPS(t):
+    m = int(t // 60); s = t - m * 60
+    return f'{m}:{s:06.3f}'
 
 mesures = None
 mesures_voiture = []
@@ -131,6 +170,8 @@ with sync_playwright() as p:
                 conduite(pg, titre)
             if 'reglages=1' in page:
                 reglages(pg, titre)
+            if 'robot=1' in page:
+                course_robot(pg, titre, page)
             if 'camera=auto' in page:
                 p1 = pg.evaluate(POSITION)
                 t(f'{titre} : la caméra fait le tour toute seule', attendre(pg, 'p => CAMERA.position.x !== p.x || CAMERA.position.z !== p.z', p1), str(p1))

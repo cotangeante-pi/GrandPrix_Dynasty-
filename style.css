@@ -146,6 +146,127 @@ html, body {
   white-space: pre-wrap;
 }
 
+#hudCourse {
+  position: fixed;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 6px 16px;
+  border-radius: 8px;
+  background: rgba(11, 15, 23, 0.6);
+  font: 600 14px/1.3 var(--police);
+  pointer-events: none;
+}
+
+#hudChrono {
+  font: 700 26px/1.1 ui-monospace, Menlo, monospace;
+}
+
+#hudSecteurs {
+  display: flex;
+  gap: 6px;
+}
+
+.secteur {
+  min-width: 78px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.12);
+  font: 600 12px/1.4 ui-monospace, Menlo, monospace;
+  text-align: center;
+}
+
+.secteur.violet { background: #8e3fd6; }
+.secteur.vert { background: #1e9e4a; }
+.secteur.jaune { background: #c9a015; color: #111; }
+
+#hudPenalite {
+  position: fixed;
+  top: 110px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 14px;
+  border-radius: 4px;
+  background: rgba(216, 38, 46, 0.9);
+  font: 700 16px/1.4 var(--police);
+  pointer-events: none;
+}
+
+#compte {
+  position: fixed;
+  top: 30%;
+  left: 50%;
+  transform: translateX(-50%);
+  font: 800 96px/1 var(--police);
+  text-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+}
+
+.ecran {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: rgba(11, 15, 23, 0.72);
+  text-align: center;
+}
+
+.ecran h1 {
+  margin: 0 0 8px;
+  font: 800 34px/1.2 var(--police);
+}
+
+.ecran p {
+  margin: 0;
+  font: 600 18px/1.4 var(--police);
+}
+
+#choixListe, .boutons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+
+.ecran button {
+  display: grid;
+  gap: 4px;
+  min-width: 170px;
+  padding: 14px 18px;
+  border: 0;
+  border-radius: 10px;
+  background: #1f6fe0;
+  color: var(--texte);
+  font: 600 16px/1.3 var(--police);
+  cursor: pointer;
+}
+
+.ecran button:hover {
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.5);
+}
+
+.ecran button strong { font-size: 19px; }
+.ecran button em { font-style: normal; font-size: 13px; opacity: 0.85; min-height: 1.3em; }
+
+#finTours {
+  max-height: 34vh;
+  overflow-y: auto;
+  margin: 4px 0 8px;
+  padding: 0;
+  list-style: none;
+  font: 600 15px/1.5 ui-monospace, Menlo, monospace;
+}
+
+#finRecord {
+  color: #f2c230;
+}
+
 .cache {
-  display: none;
+  display: none !important;   /* plus fort que les display des éléments à id */
 }

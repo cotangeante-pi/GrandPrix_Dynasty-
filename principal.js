@@ -9,7 +9,43 @@ const JEU = {
   alpha: 0,             // l'alpha de la dernière image
   cibles: { gaz: 0, frein: 0, direction: 0 },   // ce que demandent les touches
   remettre: false,      // Espace : traité au prochain pas de physique
+  course: null,         // la course en cours (course.js), ou null
+  ecran: 'choix',       // choix, course, pause, fin, survol (les caméras ?camera=… sans course)
+  robot: false,         // ?robot=1 : le robot d'essai conduit la voiture du joueur (tests, démonstration)
+  pas: 0,               // le nombre de pas de physique faits (pour vérifier la pause)
 };
+
+// les caméras de survol n'ont pas de course
+const SURVOL = ['auto', 'libre', 'dessus', 'virage', 'vitrine'];
+
+function lancerCourse(nbTours) {
+  JEU.course = creerCourse(CIRCUIT_TEST, nbTours);
+  placerAuDepart(JEU.joueur, CIRCUIT_TEST);
+  JEU.ecran = 'course';
+  INTERFACE.montrer('course');
+}
+
+function pause(oui) {
+  if (oui && JEU.ecran === 'course') { JEU.ecran = 'pause'; INTERFACE.montrer('pause'); }
+  else if (!oui && JEU.ecran === 'pause') { JEU.ecran = 'course'; INTERFACE.montrer('course'); }
+}
+
+function allerAuChoix() {
+  JEU.course = null;
+  JEU.ecran = 'choix';
+  placerAuDepart(JEU.joueur, CIRCUIT_TEST);
+  INTERFACE.preparerChoix(lancerCourse);
+  INTERFACE.montrer('choix');
+}
+
+// la course est finie : le record, puis l'écran de fin
+function finDeCourse() {
+  const c = JEU.course;
+  const nouveau = SAUVEGARDE.proposerRecord(c.nbTours, c.meilleurTour);
+  INTERFACE.remplirFin(c, nouveau);
+  JEU.ecran = 'fin';
+  INTERFACE.montrer('fin');
+}
 
 // les touches de conduite, par leur place (e.code) : ZQSD en AZERTY = WASD en QWERTY
 const TOUCHES = {
@@ -28,6 +64,7 @@ function brancherClavier() {
   window.addEventListener('keydown', e => {
     if (e.code === 'KeyC' && !e.repeat) CAMERA.suivante();
     if (e.code === 'Space' && !e.repeat) JEU.remettre = true;
+    if (e.code === 'Escape' && !e.repeat) pause(JEU.ecran === 'course');
     enfoncees.add(e.code);
     majCibles();
   });
@@ -37,11 +74,19 @@ function brancherClavier() {
   document.addEventListener('visibilitychange', () => { enfoncees.clear(); majCibles(); });
 }
 
+const AUCUNE = { gaz: 0, frein: 0, direction: 0 };
+
 function pasJoueur(pas) {
-  const v = JEU.joueur;
-  if (JEU.remettre) { remettreSurPiste(v, CIRCUIT_TEST); JEU.remettre = false; }
-  lisserCommandes(v, CAMERA.conduite ? JEU.cibles : { gaz: 0, frein: 0, direction: 0 }, pas);
+  if (JEU.ecran === 'pause') return;   // la pause arrête la physique
+  JEU.pas++;
+  const v = JEU.joueur, c = JEU.course;
+  // on conduit en survol, en essai, et en course une fois le GO donné (pas pendant le compte à rebours ni après l'arrivée)
+  const permis = JEU.ecran === 'survol' ? CAMERA.conduite : (JEU.ecran === 'course' && c && courseAutorise(c));
+  if (JEU.remettre) { if (permis) remettreSurPiste(v, CIRCUIT_TEST); JEU.remettre = false; }
+  if (JEU.robot && permis) appliquerCommandes(v, piloteRobot(v, CIRCUIT_TEST));
+  else lisserCommandes(v, permis ? JEU.cibles : AUCUNE, pas);
   pasVoiture(v, CIRCUIT_TEST, pas);
+  if (c && JEU.ecran === 'course') majCourse(c, v, pas);
 }
 
 // l'affichage provisoire : la vitesse et « hors piste »
@@ -49,7 +94,8 @@ function majTableau() {
   const v = JEU.joueur;
   document.getElementById('vitesse').textContent = Math.round(Math.abs(v.u) * 3.6);
   document.getElementById('rapport').textContent = rapportPourVitesse(v.u);
-  document.getElementById('horsPiste').classList.toggle('cache', !v.surHerbe);
+  const roule = JEU.ecran === 'course' || JEU.ecran === 'survol';
+  document.getElementById('horsPiste').classList.toggle('cache', !(v.surHerbe && roule));
 }
 
 // les mesures pour régler la conduite : la dérive (l'angle entre l'avant et la trajectoire), les g latéraux,
@@ -91,6 +137,14 @@ function demarrerJeu() {
   if (!SCENE3D.init(document.getElementById('scene3d'), CIRCUIT_TEST)) return;
   CAMERA.init(SCENE3D.camera, CIRCUIT_TEST, PARAMETRES.get('camera'));
   JEU.joueur = creerVoiture(CIRCUIT_TEST, 0);
+  JEU.robot = PARAMETRES.get('robot') === '1';
+  INTERFACE.preparerPause(() => pause(false), () => lancerCourse(JEU.course.nbTours));
+  INTERFACE.preparerFin(() => lancerCourse(JEU.course.nbTours), allerAuChoix);
+  // ?course=5, 12, 18 ou 0 (essai libre) lance directement une course (tests, développement)
+  const demandee = PARAMETRES.get('course');
+  if (SURVOL.includes(PARAMETRES.get('camera'))) { JEU.ecran = 'survol'; INTERFACE.montrer('survol'); }
+  else if (demandee !== null && !isNaN(Number(demandee))) lancerCourse(Number(demandee));
+  else allerAuChoix();
   JEU.modele = VOITURE3D.creer(REGLAGES.COULEUR_JOUEUR);
   SCENE3D.ajouter(JEU.modele.groupe);
   brancherClavier();
@@ -111,6 +165,8 @@ function demarrerJeu() {
     JEU.modele.tete.visible = CAMERA.mode !== 'cockpit';   // en vue cockpit, l'œil est dans le casque
     CAMERA.maj(dt, etat, JEU.joueur);
     majTableau();
+    INTERFACE.majCourse(JEU.course);
+    if (JEU.ecran === 'course' && JEU.course && JEU.course.etat === 'finie') finDeCourse();
     SON.maj(JEU.joueur);
     SCENE3D.dessiner();
   });

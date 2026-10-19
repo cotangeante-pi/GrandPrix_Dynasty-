@@ -17,6 +17,36 @@
 <div id="horsPiste" class="cache"></div>
 <div id="aide"></div>
 
+<!-- la course (étape 3) -->
+<div id="hudCourse" class="cache">
+  <div id="hudTour"></div>
+  <div id="hudChrono"></div>
+  <div id="hudMeilleur"></div>
+  <div id="hudSecteurs"><span id="hudS1" class="secteur"></span><span id="hudS2" class="secteur"></span><span id="hudS3" class="secteur"></span></div>
+</div>
+<div id="hudPenalite" class="cache"></div>
+<div id="compte" class="cache"></div>
+
+<section id="choix" class="ecran cache">
+  <h1 id="choixTitre"></h1>
+  <div id="choixListe"></div>
+</section>
+
+<section id="pause" class="ecran cache">
+  <h1 id="pauseTitre"></h1>
+  <div class="boutons"><button id="boutonReprendre" tabindex="-1"></button><button id="boutonRecommencer" tabindex="-1"></button></div>
+</section>
+
+<section id="fin" class="ecran cache">
+  <h1 id="finTitre"></h1>
+  <p id="finRecord"></p>
+  <p id="finTotal"></p>
+  <p id="finMeilleur"></p>
+  <p id="finPenalites"></p>
+  <ol id="finTours"></ol>
+  <div class="boutons"><button id="boutonRejouer" tabindex="-1"></button><button id="boutonChanger" tabindex="-1"></button></div>
+</section>
+
 <!-- des scripts classiques : les modules ES ne se chargent pas depuis file:// -->
 <script src="lib/three.min.js"></script>
 <script src="donnees.js"></script>
@@ -25,12 +55,16 @@
 <script src="boucle.js"></script>
 <script src="circuits.js"></script>
 <script src="physique.js"></script>
+<script src="robot.js"></script>
+<script src="course.js"></script>
+<script src="sauvegarde.js"></script>
 <script src="boite.js"></script>
 <script src="son.js"></script>
 <script src="scene3d.js"></script>
 <script src="voiture3d.js"></script>
 <script src="camera.js"></script>
 <script src="reglages.js"></script>
+<script src="interface.js"></script>
 <script src="principal.js"></script>
 </body>
 </html>
