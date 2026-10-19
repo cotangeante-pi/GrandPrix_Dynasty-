@@ -13,7 +13,7 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 
 ## Tour en cours
 
-**Tour 7 — étape 4a** (lancé le 2026-10-19, 17h55) : circuit d'essai technique, ia.js (trajectoire idéale + vitesse conseillée), piloteIA, ?ia=1. Rapport : rapports/tour-07-rapport.md. Attend le compte rendu d'session-dd.
+**Tour 8 — étape 4a, finition** (lancé à 18h50) : IA robuste (départs décalés, voiture lente devant), chargement < 300 ms. Rapport : rapports/tour-08-rapport.md. Tour 7 vérifié : 47/100.
 
 Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤ 50 s sur Test) → 4b (plusieurs IA sans se toucher) → 4c (dépasser, défendre) → 4d (caractères, niveaux, page des 50 courses).
 
@@ -27,10 +27,12 @@ Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤
 | 4 | 09ae548 | 35 | 11 | 1 | 0 | 4 | 8 | 9 | 2 |
 | 5 | 44b3624 | 42 | 12 | 5 | 1 | 6 | 8 | 9 | 1 |
 | 6 | e59f5a2 | 44 | 12 | 5 | 1 | 8 | 8 | 9 | 1 |
+| 7 | fbbf844 | 47 | 12 | 8 | 1 | 8 | 8 | 9 | 1 |
 
 ## À essayer par le propriétaire
 
 - Étape 1 : survol `index.html?camera=libre`.
+- Étape 4a : regarder l'IA rouler : `index.html?ia=1` et `index.html?ia=1&circuit=technique`. Le circuit technique : assez technique ?
 
 ## Étape en cours
 
@@ -65,6 +67,7 @@ Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤
 | 2026-10-18 | 0 | **100 i/s** sur le Mac du propriétaire (Chrome, index.html?debug=1) | three.min.js 633 Ko + < 25 Ko | scène du cube ; Chrome sans fenêtre = rendu logiciel, sans valeur |
 | 2026-10-18 | 1 (en cours) | **100 i/s** (le propriétaire) | — | circuit de test, version pas encore finie |
 | 2026-10-18 | 2 (tour 3) | **70 i/s** (le propriétaire) | — | 1 voiture ; charge du Mac 12–13 à ce moment ; pixelRatio 2 + beaucoup d'appels de dessin par voiture → tour 4, ordre 7 |
+| 2026-10-19 | 4a (tour 7) | — | three 618 Ko + code 111 Ko ≈ 729 Ko (zip ≈ 195 Ko) | IA : Test 47,88 s, Technique 54,43 s par tour lancé ; trajectoire 0,3–4,6 s de calcul (Mac chargé) |
 | 2026-10-18 | 2 (tour 4) | **> 90 i/s** en général (le propriétaire) | — | 1 voiture, 6 appels de dessin, pixelRatio 1,5 |
 
 ## Retours du propriétaire
@@ -82,6 +85,7 @@ Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤
 - La liste des 12 circuits.
 - La liste exacte des améliorations du garage.
 - La météo à l'étape 12 : oui ou non.
+- Le Chef peut-il ajouter ia.js, ?circuit= et ?ia=1 à la liste des fichiers de CLAUDE.md ?
 
 ## Journal des sessions
 
@@ -93,5 +97,5 @@ Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤
 | 2026-10-18 | 1–2 | Tour 3 : la voiture roule, 121/121 tests, 43a3fa8, robot 66,55 s, nom Grand Prix Dynasty dans le jeu |
 | 2026-10-18 | 3 | Tour 5 : chrono, tours, secteurs, ✂ +5 s, écran de choix, pause, écran de fin, records ; 194/194, 44b3624 |
 | 2026-10-18 | 3 | Tour 6 : secteurs du tour en cours, arrêt après l'arrivée, sons 3-2-1-GO et arrivée ; 200/200, e59f5a2. Fin de session (20h20). |
-| 2026-10-19 | 4a | Tour 7 lancé (Chef session-76, Codeur session-dd) ; état de départ vérifié : TOUT PASSE sur 039457d |
+| 2026-10-19 | 4a | Tour 7 : circuit technique, ia.js, piloteIA, ?ia=1 ; 99/99 + 133/133, fbbf844, vérifié par le Chef (47/100). Ordre 5 (CLAUDE.md) refusé par le Codeur : question à le propriétaire |
 | 2026-10-18 | 2 | Tour 4 : son, 8 rapports, ?reglages=1 (22 curseurs), caméra fixe, direction en deux temps, tête-à-queue corrigé, herbe, voiture 28 → 6 appels ; 168/168, 09ae548 |
