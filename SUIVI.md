@@ -51,6 +51,8 @@ Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤
 
 ## Décidé
 
+- 2026-10-19 19h15 : **Le propriétaire ne veut pas d'IA sur un rail** (« tous les ia suivent une trajectoire précise définie ; je ne veux pas ça, je veux une INTELLIGENCE artificielle »). Choix : **des pilotes qui décident** (chaque IA choisit sa ligne en roulant, selon la piste et les voitures autour), pas un réseau de neurones. Cause : c'était le plan de CLAUDE.md (4a « trajectoire idéale ») et les ordres du Chef aux tours 7–8. Le tour 9 finit (contacts, simulation), l'IA change au tour 10.
+
 - 2026-10-19 : le propriétaire trouve que l'IA de 4a (`?ia=1`) roule comme une vraie F1. Le circuit technique lui va comme circuit d'essai ; **pour un circuit officiel, il préfère « un giant loop »** (à préciser à l'étape 10). Le Chef peut compléter CLAUDE.md (« c'est pour ça que c'est en auto mode ») : liste des fichiers mise à jour (ia.js, ?ia=1, ?circuit=).
 
 - 2026-10-18 : le nom du jeu est **Grand Prix Dynasty** (remplacer `NOM_DU_JEU` au tour 4).
