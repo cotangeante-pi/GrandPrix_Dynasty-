@@ -69,6 +69,12 @@ const REGLAGES = {
   SON_MOTEUR_PIED_LEVE: 0.35,   // le volume du moteur sans gaz (1 = plein gaz)
   SON_PNEUS_FREQUENCE: 2500,    // Hz, le centre du bruit des pneus
   SON_CHOC_DUREE: 0.35,         // s
+  SON_SIGNAUX: {                // les signaux de course : [fréquences (Hz) jouées l'une après l'autre, durée de chaque note (s)]
+    compte: [[440], 0.15],      // 3, 2, 1
+    go: [[880], 0.45],
+    arrivee: [[523, 659, 784, 1047], 0.16],
+  },
+  SON_VOLUME_SIGNAL: 0.25,
   SON_LISSAGE: 0.03,            // s : le son rejoint sa nouvelle valeur en ce temps (pas de clics)
 
   // la course seule (étape 3)
@@ -78,6 +84,7 @@ const REGLAGES = {
   MARGE_COUPE: 1,               // m au-delà du bord : à partir de là, on est sorti de la piste
   SEUIL_COUPE: 2,               // m : virage coupé si la sortie fait gagner plus que ça le long de la piste
   PENALITE_COUPE: 5,            // s ajoutées au temps total
+  ARRET_APRES_ARRIVEE: 0.3,     // m/s : après l'arrivée, la voiture freine seule jusque-là, puis roule jusqu'à l'arrêt
 
   // le robot d'essai (préparation des IA)
   ROBOT_VISEE_MIN: 12,          // m : il vise un point au moins à cette distance devant lui

@@ -43,24 +43,31 @@ const INTERFACE = (function () {
 
   function montrer(ecran) {
     for (const id of ['choix', 'pause', 'fin']) $(id).classList.toggle('cache', id !== ecran);
-    $('hudCourse').classList.toggle('cache', ecran === 'choix' || ecran === 'survol');
+    // le bandeau de course n'est là que pendant la course et la pause (pas sous l'écran de fin)
+    const course = ecran === 'course' || ecran === 'pause';
+    for (const id of ['hudCourse', 'hudPenalite', 'compte']) if (!course) $(id).classList.add('cache');
+    if (course) $('hudCourse').classList.remove('cache');
   }
 
   // à chaque image, pendant la course
-  function majCourse(c) {
-    if (!c) return;
+  function majCourse(c, ecran) {
+    if (!c || (ecran !== 'course' && ecran !== 'pause')) return;
     $('compte').classList.toggle('cache', !(c.etat === 'compte' || (c.etat === 'attente' && c.compte === 0 && c.temps === 0)));
     $('compte').textContent = c.etat === 'compte' ? Math.ceil(c.compte) : texte('go');
     const numero = Math.min(c.tours.length + 1, c.nbTours || Infinity);
     $('hudTour').textContent = texte('tour') + ' ' + numero + (c.nbTours ? ' / ' + c.nbTours : '');
     $('hudChrono').textContent = formatTemps(c.etat === 'finie' ? c.tours[c.tours.length - 1].temps : c.temps - c.debutTour);
     $('hudMeilleur').textContent = texte('meilleurTour') + ' ' + formatTemps(c.meilleurTour);
-    // les secteurs : ceux du tour en cours, sinon ceux du dernier tour
-    const enCours = c.secteursTour.length > 0;
-    const tour = enCours ? { secteurs: c.secteursTour } : c.tours[c.tours.length - 1];
-    const avant = c.tours[c.tours.length - (enCours ? 1 : 2)];
+    // les secteurs du tour EN COURS seulement : une case reste grise tant que son secteur n'est pas fini dans ce tour
+    // (à l'arrivée, ceux du dernier tour) ; le tour d'avant est rappelé en petit
+    const finie = c.etat === 'finie';
+    const secteurs = finie ? c.tours[c.tours.length - 1].secteurs : c.secteursTour;
+    const avant = c.tours[c.tours.length - (finie ? 2 : 1)];
+    const precedent = c.tours[c.tours.length - 1];
+    $('hudPrecedent').classList.toggle('cache', !precedent || finie);
+    if (precedent) $('hudPrecedent').textContent = texte('tourPrecedent') + ' ' + formatTemps(precedent.temps) + (precedent.coupe ? ' ✂' : '');
     for (let i = 0; i < 3; i++) {
-      const el = $('hudS' + (i + 1)), t = tour && tour.secteurs[i];
+      const el = $('hudS' + (i + 1)), t = secteurs[i];
       el.textContent = texte('secteur') + (i + 1) + ' ' + (t === undefined || t === null ? '–' : t.toFixed(3));
       el.className = 'secteur' + (t === undefined || t === null ? '' : ' ' + couleurSecteur(c, i, t, avant));
     }

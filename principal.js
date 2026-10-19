@@ -13,6 +13,9 @@ const JEU = {
   ecran: 'choix',       // choix, course, pause, fin, survol (les caméras ?camera=… sans course)
   robot: false,         // ?robot=1 : le robot d'essai conduit la voiture du joueur (tests, démonstration)
   pas: 0,               // le nombre de pas de physique faits (pour vérifier la pause)
+  apresArrivee: 0,      // s depuis l'arrivée
+  arretApres: null,     // s entre l'arrivée et l'arrêt de la voiture
+  signal: null,         // le dernier signal de course joué (3, 2, 1, go)
 };
 
 // les caméras de survol n'ont pas de course
@@ -20,6 +23,9 @@ const SURVOL = ['auto', 'libre', 'dessus', 'virage', 'vitrine'];
 
 function lancerCourse(nbTours) {
   JEU.course = creerCourse(CIRCUIT_TEST, nbTours);
+  JEU.apresArrivee = 0;
+  JEU.arretApres = null;
+  JEU.signal = null;
   placerAuDepart(JEU.joueur, CIRCUIT_TEST);
   JEU.ecran = 'course';
   INTERFACE.montrer('course');
@@ -38,11 +44,22 @@ function allerAuChoix() {
   INTERFACE.montrer('choix');
 }
 
+// les bips du compte à rebours (3, 2, 1) et le GO, joués une fois chacun
+function signauxCourse(c) {
+  if (!c || JEU.ecran !== 'course') return;
+  const s = c.etat === 'compte' ? String(Math.ceil(c.compte)) : (c.etat === 'attente' || c.etat === 'course' ? 'go' : null);
+  if (s && s !== JEU.signal) {
+    JEU.signal = s;
+    SON.signal(s === 'go' ? 'go' : 'compte');
+  }
+}
+
 // la course est finie : le record, puis l'écran de fin
 function finDeCourse() {
   const c = JEU.course;
   const nouveau = SAUVEGARDE.proposerRecord(c.nbTours, c.meilleurTour);
   INTERFACE.remplirFin(c, nouveau);
+  SON.signal('arrivee');
   JEU.ecran = 'fin';
   INTERFACE.montrer('fin');
 }
@@ -83,7 +100,12 @@ function pasJoueur(pas) {
   // on conduit en survol, en essai, et en course une fois le GO donné (pas pendant le compte à rebours ni après l'arrivée)
   const permis = JEU.ecran === 'survol' ? CAMERA.conduite : (JEU.ecran === 'course' && c && courseAutorise(c));
   if (JEU.remettre) { if (permis) remettreSurPiste(v, CIRCUIT_TEST); JEU.remettre = false; }
-  if (JEU.robot && permis) appliquerCommandes(v, piloteRobot(v, CIRCUIT_TEST));
+  if (c && c.etat === 'finie') {
+    // après l'arrivée : les commandes sont coupées et la voiture freine seule jusqu'à l'arrêt
+    appliquerCommandes(v, { gaz: 0, frein: v.u > REGLAGES.ARRET_APRES_ARRIVEE ? 1 : 0, direction: 0 });
+    JEU.apresArrivee += pas;
+    if (v.u === 0 && JEU.arretApres === null) JEU.arretApres = JEU.apresArrivee;
+  } else if (JEU.robot && permis) appliquerCommandes(v, piloteRobot(v, CIRCUIT_TEST));
   else lisserCommandes(v, permis ? JEU.cibles : AUCUNE, pas);
   pasVoiture(v, CIRCUIT_TEST, pas);
   if (c && JEU.ecran === 'course') majCourse(c, v, pas);
@@ -165,7 +187,8 @@ function demarrerJeu() {
     JEU.modele.tete.visible = CAMERA.mode !== 'cockpit';   // en vue cockpit, l'œil est dans le casque
     CAMERA.maj(dt, etat, JEU.joueur);
     majTableau();
-    INTERFACE.majCourse(JEU.course);
+    INTERFACE.majCourse(JEU.course, JEU.ecran);
+    signauxCourse(JEU.course);
     if (JEU.ecran === 'course' && JEU.course && JEU.course.etat === 'finie') finDeCourse();
     SON.maj(JEU.joueur);
     SCENE3D.dessiner();

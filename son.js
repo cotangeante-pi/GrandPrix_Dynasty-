@@ -112,6 +112,27 @@ const SON = (function () {
     contactsVus = v.contactsBarriere;
   }
 
+  // un signal de course (compte, go, arrivee) : des notes courtes. Chaque demande est notée (pour les tests),
+  // mais rien ne joue avant le premier geste ni quand le son est coupé.
+  const historique = [];
+  function signal(type) {
+    historique.push(type);
+    if (!ctx || muet) return;
+    const [notes, duree] = R.SON_SIGNAUX[type];
+    let t = ctx.currentTime;
+    for (const f of notes) {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'square';
+      o.frequency.value = f;
+      g.gain.setValueAtTime(R.SON_VOLUME_SIGNAL, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + duree);
+      o.connect(g).connect(general);
+      o.start(t);
+      o.stop(t + duree + 0.02);
+      t += duree;
+    }
+  }
+
   function basculer() {
     muet = !muet;
     appliquerVolume();
@@ -124,7 +145,7 @@ const SON = (function () {
   document.addEventListener('visibilitychange', () => { cache = document.hidden; appliquerVolume(); });
 
   return {
-    maj, basculer, parametres,
+    maj, basculer, parametres, signal, historique,
     get actif() { return ctx !== null; },
     get muet() { return muet; },
     get etatContexte() { return ctx ? ctx.state : 'aucun'; },
