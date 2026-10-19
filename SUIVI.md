@@ -13,7 +13,7 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 
 ## Tour en cours
 
-Aucun. **Étape 4a : critère atteint** (tours 7–8, vérifié par le Chef, 48/100). En pause : attend que le propriétaire regarde `?ia=1` avant de lancer 4b.
+**Tour 9 — étape 4b** (lancé à 19h, le propriétaire : « continuez à travailler ») : contacts entre voitures, simulation.js, rythmes, 10 courses de 10 IA, ?ia=N. Rapport : rapports/tour-09-rapport.md. Étape 4a : critère atteint (tours 7–8), le propriétaire n'a pas encore regardé ?ia=1.
 
 Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤ 50 s sur Test) → 4b (plusieurs IA sans se toucher) → 4c (dépasser, défendre) → 4d (caractères, niveaux, page des 50 courses).
 
