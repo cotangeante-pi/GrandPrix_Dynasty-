@@ -26,6 +26,7 @@ PAGES = [
     ('index.html?course=5&robot=1', 1280, 720, None),
     ('index.html?camera=dessus&circuit=technique', 1280, 720, 'technique.png'),
     ('index.html?course=5&ia=1&circuit=technique', 1280, 720, 'ia.png'),
+    ('index.html?course=5&ia=10&circuit=technique&debug=1', 1280, 720, 'ia10.png'),
 ]
 POSITION = '() => CAMERA.position'
 
@@ -174,6 +175,23 @@ def course_ia(pg, titre):
     t(f'{titre} : en 75 s, l’IA a fini au moins un tour, sans barrière ni pénalité', len(etat['tours']) >= 1 and etat['contacts'] == 0 and etat['penalites'] == 0 and etat['kmh'] > 30, str(etat))
     if etat['tours']: L.append(f"  (?ia=1 sur le circuit technique : premier tour {etat['tours'][0]:.2f} s, départ arrêté)")
 
+def course_ia10(pg, titre):
+    # 10 IA dans la page : chacune sa couleur, la caméra en suit une, Tab passe à la suivante
+    t(f'{titre} : 10 IA en course, 10 modèles de couleurs différentes', pg.evaluate('() => JEU.plateau.pilotes.length === 10 && JEU.modeles.length === 10 && new Set(JEU.modeles.map(m => m.couleur)).size === 10'))
+    t(f'{titre} : la trajectoire se calcule en fond', attendre(pg, '() => JEU.plateau.trajectoire !== null', None, 120000))
+    pg.evaluate('() => { for (const p of JEU.plateau.pilotes) p.course.compte = 0.01; }')
+    t(f'{titre} : les 10 partent après le compte à rebours', attendre(pg, '() => JEU.plateau.pilotes.every(p => p.v.u > 1)', None, 30000), pg.evaluate('() => JEU.plateau.pilotes.map(p => p.v.u.toFixed(1)).join(" ")'))
+    pg.evaluate('() => BOUCLE.simuler(30)')
+    etat = pg.evaluate('() => JEU.plateau.pilotes.map(p => ({ progression: Math.round(p.course.progression), chocs: p.v.chocs, barriere: p.v.contactsBarriere }))')
+    t(f'{titre} : en 30 s, les 10 avancent (plus de 500 m chacune), sans choc à plus de 5 m/s ni barrière', all(e['progression'] > 500 and all(c <= 5 for c in e['chocs']) and e['barriere'] == 0 for e in etat), str(etat))
+    L.append(f"  (?ia=10 : après 30 s, de {min(e['progression'] for e in etat)} à {max(e['progression'] for e in etat)} m parcourus, {sum(len(e['chocs']) for e in etat) // 2} contacts)")
+    avant = pg.evaluate('() => JEU.suivie')
+    pg.keyboard.press('Tab')
+    t(f'{titre} : Tab : la caméra suit la voiture suivante', pg.evaluate('s => JEU.suivie === (s + 1) % 10 && JEU.joueur === JEU.plateau.pilotes[JEU.suivie].v', avant))
+    attendre(pg, '() => /i\/s/.test(document.getElementById("ips").textContent)')
+    ips = pg.evaluate('() => document.getElementById("ips").textContent.split(String.fromCharCode(10))[0]')
+    L.append(f'  (?ia=10 sous swiftshader : {ips})')
+
 def INTERFACE_TEMPS(t):
     m = int(t // 60); s = t - m * 60
     return f'{m}:{s:06.3f}'
@@ -208,8 +226,10 @@ with sync_playwright() as p:
                 reglages(pg, titre)
             if 'robot=1' in page:
                 course_robot(pg, titre, page)
-            if 'ia=1' in page:
+            if re.search(r'[?&]ia=1(&|$)', page):
                 course_ia(pg, titre)
+            if re.search(r'[?&]ia=10(&|$)', page):
+                course_ia10(pg, titre)
             if 'camera=auto' in page:
                 p1 = pg.evaluate(POSITION)
                 t(f'{titre} : la caméra fait le tour toute seule', attendre(pg, 'p => CAMERA.position.x !== p.x || CAMERA.position.z !== p.z', p1), str(p1))
@@ -235,9 +255,11 @@ with sync_playwright() as p:
                 m = re.fullmatch(r'\d+ i/s · \d+ triangles · (\d+) appels\ndérive (-?[\d.]+)° · ([\d.]+) g · voiture (\d+) triangles, (\d+) appels', ips or '')
                 t(f'{titre} : images par seconde, triangles, dérive, g latéraux et triangles d’une voiture affichés', bool(m), repr(ips))
                 if m:
-                    t(f'{titre} : à l’arrêt, 0° de dérive et 0 g', float(m.group(2)) == 0 and float(m.group(3)) == 0, repr(ips))
+                    # (avec ?ia=10, la voiture suivie roule : ni « à l'arrêt », ni la mesure d'une voiture seule)
+                    if 'ia=10' not in page:
+                        t(f'{titre} : à l’arrêt, 0° de dérive et 0 g', float(m.group(2)) == 0 and float(m.group(3)) == 0, repr(ips))
+                        mesures_voiture.append((int(m.group(4)), int(m.group(5)), int(m.group(1))))
                     t(f'{titre} : une voiture fait au plus 8 appels de dessin', int(m.group(5)) <= 8, repr(ips))
-                    mesures_voiture.append((int(m.group(4)), int(m.group(5)), int(m.group(1))))
             else: t(f'{titre} : sans debug, pas de compteur', ips is None, repr(ips))
             ctx.close()
     finally:

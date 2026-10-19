@@ -14,7 +14,10 @@ const JEU = {
   course: null,         // la course en cours (course.js), ou null
   ecran: 'choix',       // choix, course, pause, fin, survol (les caméras ?camera=… sans course)
   robot: false,         // ?robot=1 : le robot d'essai conduit la voiture du joueur (tests, démonstration)
-  ia: false,            // ?ia=1 : l'IA conduit la voiture du joueur (pour la regarder rouler)
+  ia: 0,                // ?ia=1 : l'IA conduit la voiture du joueur ; ?ia=N (N ≥ 2) : une course de N IA (simulation.js)
+  plateau: null,        // avec ?ia=N : la course entre IA (creerCourseIA) ; JEU.joueur et JEU.course sont ceux de la voiture suivie
+  modeles: [],          // avec ?ia=N : le modèle 3D de chaque IA
+  suivie: 0,            // avec ?ia=N : la voiture que suit la caméra (Tab : la suivante)
   trajectoire: null,    // la trajectoire idéale de l'IA sur ce circuit (ia.js), calculée seulement avec ?ia=1, en fond
   calculTrajectoire: null,   // le suivi de ce calcul (calculerEnFond)
   pas: 0,               // le nombre de pas de physique faits (pour vérifier la pause)
@@ -26,12 +29,35 @@ const JEU = {
 // les caméras de survol n'ont pas de course
 const SURVOL = ['auto', 'libre', 'dessus', 'virage', 'vitrine'];
 
+// ?ia=N : la caméra, le tableau et le bandeau de course suivent la voiture k
+function suivre(k) {
+  JEU.suivie = k;
+  const p = JEU.plateau.pilotes[k];
+  JEU.joueur = p.v;
+  JEU.course = p.course;
+  JEU.modele = JEU.modeles[k];
+}
+
+// Tab : la voiture suivante encore en course
+function suivreSuivante() {
+  const pilotes = JEU.plateau.pilotes;
+  for (let i = 1; i <= pilotes.length; i++) {
+    const k = (JEU.suivie + i) % pilotes.length;
+    if (pilotes[k].arrivee === null) { suivre(k); return; }
+  }
+}
+
 function lancerCourse(nbTours) {
-  JEU.course = creerCourse(CIRCUIT, nbTours);
+  if (JEU.ia >= 2) {
+    JEU.plateau = creerCourseIA(CIRCUIT, JEU.ia, nbTours, Number(PARAMETRES.get('graine')) || 1, JEU.trajectoire);
+    suivre(0);
+  } else {
+    JEU.course = creerCourse(CIRCUIT, nbTours);
+    placerAuDepart(JEU.joueur, CIRCUIT);
+  }
   JEU.apresArrivee = 0;
   JEU.arretApres = null;
   JEU.signal = null;
-  placerAuDepart(JEU.joueur, CIRCUIT);
   JEU.ecran = 'course';
   INTERFACE.montrer('course');
 }
@@ -62,7 +88,8 @@ function signauxCourse(c) {
 // la course est finie : le record, puis l'écran de fin
 function finDeCourse() {
   const c = JEU.course;
-  const nouveau = SAUVEGARDE.proposerRecord(c.nbTours, c.meilleurTour, NOM_CIRCUIT);
+  // une course entre IA ne bat pas les records du joueur
+  const nouveau = JEU.plateau ? false : SAUVEGARDE.proposerRecord(c.nbTours, c.meilleurTour, NOM_CIRCUIT);
   INTERFACE.remplirFin(c, nouveau);
   SON.signal('arrivee');
   JEU.ecran = 'fin';
@@ -87,6 +114,7 @@ function brancherClavier() {
     if (e.code === 'KeyC' && !e.repeat) CAMERA.suivante();
     if (e.code === 'Space' && !e.repeat) JEU.remettre = true;
     if (e.code === 'Escape' && !e.repeat) pause(JEU.ecran === 'course');
+    if (e.code === 'Tab') { e.preventDefault(); if (JEU.plateau && !e.repeat) suivreSuivante(); }
     enfoncees.add(e.code);
     majCibles();
   });
@@ -101,6 +129,12 @@ const AUCUNE = { gaz: 0, frein: 0, direction: 0 };
 function pasJoueur(pas) {
   if (JEU.ecran === 'pause') return;   // la pause arrête la physique
   JEU.pas++;
+  // ?ia=N : toutes les IA, leurs contacts, leurs courses (la voiture suivie comprise)
+  if (JEU.plateau) {
+    JEU.remettre = false;
+    if (JEU.ecran === 'course') pasCourseIA(JEU.plateau, pas);
+    return;
+  }
   const v = JEU.joueur, c = JEU.course;
   // on conduit en survol, en essai, et en course une fois le GO donné (pas pendant le compte à rebours ni après l'arrivée)
   const permis = JEU.ecran === 'survol' ? CAMERA.conduite : (JEU.ecran === 'course' && c && courseAutorise(c));
@@ -184,8 +218,21 @@ function demarrerJeu() {
   CAMERA.init(SCENE3D.camera, CIRCUIT, PARAMETRES.get('camera'));
   JEU.joueur = creerVoiture(CIRCUIT, 0);
   JEU.robot = PARAMETRES.get('robot') === '1';
-  JEU.ia = PARAMETRES.get('ia') === '1';
-  if (JEU.ia) JEU.calculTrajectoire = calculerEnFond(etapesTrajectoire(CIRCUIT), t => { JEU.trajectoire = t; });
+  JEU.ia = Math.max(0, Math.min(REGLAGES.IA_PAGE_MAX, Math.floor(Number(PARAMETRES.get('ia'))) || 0));
+  if (JEU.ia) JEU.calculTrajectoire = calculerEnFond(etapesTrajectoire(CIRCUIT), t => {
+    JEU.trajectoire = t;
+    if (JEU.plateau) JEU.plateau.trajectoire = t;
+  });
+  // ?ia=N : un modèle par IA, chacune sa couleur ; sinon, la voiture du joueur
+  const couleurs = REGLAGES.COULEURS_IA;
+  for (let k = 0; k < (JEU.ia >= 2 ? JEU.ia : 0); k++) {
+    JEU.modeles.push(VOITURE3D.creer(couleurs[k % couleurs.length]));
+    SCENE3D.ajouter(JEU.modeles[k].groupe);
+  }
+  if (JEU.ia < 2) {
+    JEU.modele = VOITURE3D.creer(REGLAGES.COULEUR_JOUEUR);
+    SCENE3D.ajouter(JEU.modele.groupe);
+  } else JEU.modele = JEU.modeles[0];   // avant la course (écran de choix), la première IA attend sur la ligne
   INTERFACE.preparerPause(() => pause(false), () => lancerCourse(JEU.course.nbTours));
   INTERFACE.preparerFin(() => lancerCourse(JEU.course.nbTours), allerAuChoix);
   // ?course=5, 12, 18 ou 0 (essai libre) lance directement une course (tests, développement)
@@ -193,8 +240,6 @@ function demarrerJeu() {
   if (SURVOL.includes(PARAMETRES.get('camera'))) { JEU.ecran = 'survol'; INTERFACE.montrer('survol'); }
   else if (demandee !== null && !isNaN(Number(demandee))) lancerCourse(Number(demandee));
   else allerAuChoix();
-  JEU.modele = VOITURE3D.creer(REGLAGES.COULEUR_JOUEUR);
-  SCENE3D.ajouter(JEU.modele.groupe);
   brancherClavier();
   const boutonSon = document.getElementById('boutonSon');
   boutonSon.title = texte('son');
@@ -208,6 +253,12 @@ function demarrerJeu() {
   BOUCLE.surPhysique(pasJoueur);
   BOUCLE.surAffichage((alpha, dt) => {
     JEU.alpha = alpha;
+    // ?ia=N : chaque IA à sa place ; une IA arrivée quitte la piste (elle n'est plus dessinée)
+    if (JEU.plateau) JEU.plateau.pilotes.forEach((p, k) => {
+      const m = JEU.modeles[k];
+      m.groupe.visible = p.arrivee === null || k === JEU.suivie;
+      if (m !== JEU.modele) { VOITURE3D.placer(m, etatAffiche(p.v, alpha), p.v); m.tete.visible = true; }
+    });
     const etat = etatAffiche(JEU.joueur, alpha);
     VOITURE3D.placer(JEU.modele, etat, JEU.joueur);
     JEU.modele.tete.visible = CAMERA.mode !== 'cockpit';   // en vue cockpit, l'œil est dans le casque

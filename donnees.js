@@ -123,6 +123,9 @@ const REGLAGES = {
   GRILLE_ESPACEMENT: 8,         // m entre deux places qui se suivent (une file sur deux)
   GRILLE_ECART: 3,              // m : chaque file est à cette distance du milieu de la piste
   SIMULATION_TEMPS_MAX: 150,    // s par tour : une course simulée s'arrête là, même si des voitures n'ont pas fini
+  IA_PAGE_MAX: 20,              // ?ia=N : au plus ce nombre d'IA dans la page
+  // ?ia=N : la couleur de chaque IA (provisoire : les écuries viendront à l'étape 6)
+  COULEURS_IA: [0x1f6fe0, 0xd8262e, 0xf2c230, 0x2fa84f, 0xf07d1a, 0x8e44ad, 0x1abc9c, 0xecf0f1, 0x34495e, 0xe84393],
   // derrière une voiture plus lente (sans la dépasser, étape 4a) ; distances d'un centre de voiture à l'autre
   IA_DISTANCE_MIN: 8,           // m : jamais plus près
   IA_DISTANCE_SUIVI: 14,        // m : la distance où elle se cale derrière

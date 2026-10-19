@@ -35,11 +35,11 @@ function voitureDevant(v, voitures) {
   return { distance: dMin, vitesse: vx * c + vz * s };
 }
 
-// une course entre nb IA : chacune a sa voiture, sa course (course.js) et son rythme, tiré avec la graine
-function creerCourseIA(circuit, nb, nbTours, graine) {
+// une course entre nb IA : chacune a sa voiture, sa course (course.js) et son rythme, tiré avec la graine.
+// trajectoire : celle du circuit ; la page la passe à null tant qu'elle se calcule en fond (les IA attendent)
+function creerCourseIA(circuit, nb, nbTours, graine, trajectoire = trajectoireDe(circuit)) {
   const R = REGLAGES;
   ALEATOIRE.semer(graine);
-  const trajectoire = trajectoireDe(circuit);
   const pilotes = placesGrille(circuit, nb).map((place, k) => {
     const v = creerVoiture(circuit, place.s, place.d);
     return {
@@ -59,7 +59,7 @@ const COMMANDES_AUCUNE = { gaz: 0, frein: 0, direction: 0 };
 function pasCourseIA(e, dt) {
   const enCourse = e.pilotes.filter(p => p.arrivee === null);
   const voitures = enCourse.map(p => p.v);
-  const commandes = enCourse.map(p => courseAutorise(p.course)
+  const commandes = enCourse.map(p => courseAutorise(p.course) && e.trajectoire
     ? piloteIA(p.v, e.circuit, e.trajectoire, voitureDevant(p.v, voitures), p.rythme) : COMMANDES_AUCUNE);
   enCourse.forEach((p, k) => { appliquerCommandes(p.v, commandes[k]); pasVoiture(p.v, e.circuit, dt); });
   contactsVoitures(voitures, e.circuit);
