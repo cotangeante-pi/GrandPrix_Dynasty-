@@ -13,7 +13,7 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 
 ## Tour en cours
 
-**Tour 9 — étape 4b** (lancé à 19h, le propriétaire : « continuez à travailler ») : contacts entre voitures, simulation.js, rythmes, 10 courses de 10 IA, ?ia=N. Rapport : rapports/tour-09-rapport.md. Étape 4a : critère atteint (tours 7–8), le propriétaire n'a pas encore regardé ?ia=1.
+**Tour 10 — IA refaite** (lancé à 19h40) : des pilotes qui choisissent leur ligne en roulant, chacun sa façon de piloter, premiers dépassements. Rapport : rapports/tour-10-rapport.md. Tour 9 vérifié : 49/100, mais procession (ordre d'arrivée = grille).
 
 Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤ 50 s sur Test) → 4b (plusieurs IA sans se toucher) → 4c (dépasser, défendre) → 4d (caractères, niveaux, page des 50 courses).
 
@@ -29,6 +29,7 @@ Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤
 | 6 | e59f5a2 | 44 | 12 | 5 | 1 | 8 | 8 | 9 | 1 |
 | 7 | fbbf844 | 47 | 12 | 8 | 1 | 8 | 8 | 9 | 1 |
 | 8 | 7cd8ce5 | 48 | 12 | 9 | 1 | 8 | 8 | 9 | 1 |
+| 9 | bc85623 | 49 | 12 | 10 | 1 | 8 | 8 | 9 | 1 |
 
 ## À essayer par le propriétaire
 
@@ -61,6 +62,7 @@ Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤
 
 ## Bugs connus
 
+- Git n'a plus d'identité (le nom réseau du Mac a changé) : les commits utilisent `-c user.name=le propriétaire -c user.email=266356357+cotangeante-pi@users.noreply.github.com`. À régler par le propriétaire s'il veut (`git config --global`).
 - À surveiller en 4b : départ impossible (épingle à 60 m/s, nez vers l'extérieur) = 1288 pas (≈ 10 s) contre la barrière avant de repartir. Une IA collée au mur 10 s se verra.
 - Sous swiftshader, le premier dessin 3D bloque la page 0,3–2 s même sans IA (critère 3 du tour 8 adapté : seule la plus longue tranche du calcul de l'IA est < 300 ms, 67 ms mesurés).
 - À voir : en grand virage rapide, la caméra derrière montre surtout l'herbe (CAMERA_SUIVI_CAP 6/s). Seulement si le propriétaire le remarque.
@@ -102,6 +104,7 @@ Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤
 | 2026-10-18 | 1–2 | Tour 3 : la voiture roule, 121/121 tests, 43a3fa8, robot 66,55 s, nom Grand Prix Dynasty dans le jeu |
 | 2026-10-18 | 3 | Tour 5 : chrono, tours, secteurs, ✂ +5 s, écran de choix, pause, écran de fin, records ; 194/194, 44b3624 |
 | 2026-10-18 | 3 | Tour 6 : secteurs du tour en cours, arrêt après l'arrivée, sons 3-2-1-GO et arrivée ; 200/200, e59f5a2. Fin de session (20h20). |
+| 2026-10-19 | 4b | Tour 9 : contacts entre voitures, simulation.js, rythmes, ?ia=N ; 124/124 + 147/147, 37196cd + bc85623, vérifié (49/100). 10 courses propres mais procession : l'ordre d'arrivée = la grille |
 | 2026-10-19 | 4a | Tour 8 : IA robuste (18 départs, voiture lente devant, calcul en fond) ; 103/103 + 135/135, 7cd8ce5, vérifié par le Chef (48/100). 4a atteinte, attend le propriétaire |
 | 2026-10-19 | 4a | Tour 7 : circuit technique, ia.js, piloteIA, ?ia=1 ; 99/99 + 133/133, fbbf844, vérifié par le Chef (47/100). Ordre 5 (CLAUDE.md) refusé par le Codeur : question à le propriétaire |
 | 2026-10-18 | 2 | Tour 4 : son, 8 rapports, ?reglages=1 (22 curseurs), caméra fixe, direction en deux temps, tête-à-queue corrigé, herbe, voiture 28 → 6 appels ; 168/168, 09ae548 |
