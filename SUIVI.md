@@ -4,8 +4,8 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 
 ## Sessions
 
-- Chef : session-2d (la session qui a écrit CLAUDE.md avec le propriétaire)
-- Codeur : session-0e (« instructions claude.md améliorées », confirmé par le propriétaire)
+- 2026-10-18 : Chef session-2d, Codeur session-0e
+- 2026-10-19 : Chef **session-76**, Codeur **session-dd** (donné par le propriétaire)
 
 ## Horaires
 
@@ -13,7 +13,9 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 
 ## Tour en cours
 
-Aucun. Session du 2026-10-18 figée à 20h20 sur e59f5a2 (tour 6, vert). **Prochain tour : étape 4a (une IA fait le tour seule)**, une fois l'étape 3 acceptée par le propriétaire.
+**Tour 7 — étape 4a** (lancé le 2026-10-19, 17h55) : circuit d'essai technique, ia.js (trajectoire idéale + vitesse conseillée), piloteIA, ?ia=1. Rapport : rapports/tour-07-rapport.md. Attend le compte rendu d'session-dd.
+
+Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤ 50 s sur Test) → 4b (plusieurs IA sans se toucher) → 4c (dépasser, défendre) → 4d (caractères, niveaux, page des 50 courses).
 
 ## Notes du Chef
 
@@ -91,4 +93,5 @@ Aucun. Session du 2026-10-18 figée à 20h20 sur e59f5a2 (tour 6, vert). **Proch
 | 2026-10-18 | 1–2 | Tour 3 : la voiture roule, 121/121 tests, 43a3fa8, robot 66,55 s, nom Grand Prix Dynasty dans le jeu |
 | 2026-10-18 | 3 | Tour 5 : chrono, tours, secteurs, ✂ +5 s, écran de choix, pause, écran de fin, records ; 194/194, 44b3624 |
 | 2026-10-18 | 3 | Tour 6 : secteurs du tour en cours, arrêt après l'arrivée, sons 3-2-1-GO et arrivée ; 200/200, e59f5a2. Fin de session (20h20). |
+| 2026-10-19 | 4a | Tour 7 lancé (Chef session-76, Codeur session-dd) ; état de départ vérifié : TOUT PASSE sur 039457d |
 | 2026-10-18 | 2 | Tour 4 : son, 8 rapports, ?reglages=1 (22 curseurs), caméra fixe, direction en deux temps, tête-à-queue corrigé, herbe, voiture 28 → 6 appels ; 168/168, 09ae548 |
