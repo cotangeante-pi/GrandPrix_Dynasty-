@@ -13,7 +13,7 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 
 ## Tour en cours
 
-**Tour 6 — finition de l'étape 3** : ordres envoyés (`rapports/tour-06-rapport.md`), commit avant 20h35. Tour 5 vérifié par le Chef : vert, 44b3624.
+Aucun. Session du 2026-10-18 figée à 20h20 sur e59f5a2 (tour 6, vert). **Prochain tour : étape 4a (une IA fait le tour seule)**, une fois l'étape 3 acceptée par le propriétaire.
 
 ## Notes du Chef
 
@@ -24,6 +24,7 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 | 3 | 43a3fa8 | 27 | 7 | 1 | 0 | 2 | 7 | 9 | 1 |
 | 4 | 09ae548 | 35 | 11 | 1 | 0 | 4 | 8 | 9 | 2 |
 | 5 | 44b3624 | 42 | 12 | 5 | 1 | 6 | 8 | 9 | 1 |
+| 6 | e59f5a2 | 44 | 12 | 5 | 1 | 8 | 8 | 9 | 1 |
 
 ## À essayer par le propriétaire
 
@@ -32,7 +33,7 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 
 ## Étape en cours
 
-**Étape 1 — Le circuit** : finie (tours 2–3). **Étape 2 — La voiture** : **finie** (tours 3–4 ; le propriétaire, 19h45 : « oui la conduite me va »). **Étape 3 — Une course seule** : en cours (tour 5).
+**Étape 1 — Le circuit** : finie (tours 2–3). **Étape 2 — La voiture** : **finie** (tours 3–4 ; le propriétaire, 19h45 : « oui la conduite me va »). **Étape 3 — Une course seule** : critère atteint (tours 5–6) ; le propriétaire a fait des courses, attend son avis (record, seuil du virage coupé).
 
 ## Fini
 
@@ -53,7 +54,9 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 
 ## Bugs connus
 
-- Aucun. (Ondulations du circuit corrigées au tour 3 : circuit décrit par morceaux.)
+- À voir : en grand virage rapide, la caméra derrière montre surtout l'herbe (CAMERA_SUIVI_CAP 6/s). Seulement si le propriétaire le remarque.
+- Seuil du virage coupé (2 m) pas encore validé par un vrai joueur.
+- Panneau ?reglages=1 : le texte « Copier » est coupé en bas, noms des curseurs = noms du code. (Ondulations du circuit corrigées au tour 3 : circuit décrit par morceaux.)
 
 ## Mesures
 
@@ -88,5 +91,5 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 | 2026-10-18 | 1 | Tour 2 : le circuit, 82/82 tests, 16de5dc, vérifié par le Chef ; ondulations à corriger |
 | 2026-10-18 | 1–2 | Tour 3 : la voiture roule, 121/121 tests, 43a3fa8, robot 66,55 s, nom Grand Prix Dynasty dans le jeu |
 | 2026-10-18 | 3 | Tour 5 : chrono, tours, secteurs, ✂ +5 s, écran de choix, pause, écran de fin, records ; 194/194, 44b3624 |
-| 2026-10-18 | 3 | Tour 6 : ordres envoyés (secteurs du tour en cours, arrêt après l'arrivée, sons du départ et de l'arrivée) |
+| 2026-10-18 | 3 | Tour 6 : secteurs du tour en cours, arrêt après l'arrivée, sons 3-2-1-GO et arrivée ; 200/200, e59f5a2. Fin de session (20h20). |
 | 2026-10-18 | 2 | Tour 4 : son, 8 rapports, ?reglages=1 (22 curseurs), caméra fixe, direction en deux temps, tête-à-queue corrigé, herbe, voiture 28 → 6 appels ; 168/168, 09ae548 |
