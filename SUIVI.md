@@ -13,7 +13,7 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 
 ## Tour en cours
 
-**Tour 5 — étape 3 (le chrono)** : ordres envoyés (`rapports/tour-05-rapport.md`), à finir avant 20h40.
+**Tour 6 — finition de l'étape 3** : ordres envoyés (`rapports/tour-06-rapport.md`), commit avant 20h35. Tour 5 vérifié par le Chef : vert, 44b3624.
 
 ## Notes du Chef
 
@@ -23,9 +23,11 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 | 2 | 16de5dc | 15 | 0 | 0 | 0 | 0 | 5 | 9 | 1 |
 | 3 | 43a3fa8 | 27 | 7 | 1 | 0 | 2 | 7 | 9 | 1 |
 | 4 | 09ae548 | 35 | 11 | 1 | 0 | 4 | 8 | 9 | 2 |
+| 5 | 44b3624 | 42 | 12 | 5 | 1 | 6 | 8 | 9 | 1 |
 
 ## À essayer par le propriétaire
 
+- **Étape 3 : faire une course** (`index.html`, choisir 5 tours). Essayer de couper une chicane (+5 s ✂ ?) et de sortir large dans l'herbe (rien ?). Dire si le seuil est juste.
 - Étape 1 : survol `index.html?camera=libre`.
 
 ## Étape en cours
@@ -85,5 +87,6 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 | 2026-10-18 | 0 | Tour 1 : fondations, 47/47 tests, a4f5bdd, vérifié par le Chef |
 | 2026-10-18 | 1 | Tour 2 : le circuit, 82/82 tests, 16de5dc, vérifié par le Chef ; ondulations à corriger |
 | 2026-10-18 | 1–2 | Tour 3 : la voiture roule, 121/121 tests, 43a3fa8, robot 66,55 s, nom Grand Prix Dynasty dans le jeu |
-| 2026-10-18 | 3 | Tour 5 : ordres envoyés (chrono, pénalité de virage coupé, interface de course, écran de fin) |
+| 2026-10-18 | 3 | Tour 5 : chrono, tours, secteurs, ✂ +5 s, écran de choix, pause, écran de fin, records ; 194/194, 44b3624 |
+| 2026-10-18 | 3 | Tour 6 : ordres envoyés (secteurs du tour en cours, arrêt après l'arrivée, sons du départ et de l'arrivée) |
 | 2026-10-18 | 2 | Tour 4 : son, 8 rapports, ?reglages=1 (22 curseurs), caméra fixe, direction en deux temps, tête-à-queue corrigé, herbe, voiture 28 → 6 appels ; 168/168, 09ae548 |
