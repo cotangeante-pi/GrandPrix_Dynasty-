@@ -169,7 +169,8 @@ function vitesseDerriere(devant) {
 
 // le pilote : il vise un point de sa trajectoire devant lui (« poursuite pure ») et suit la vitesse conseillée.
 // devant (facultatif) : { distance, vitesse } de la voiture qui la précède, ce qu'un pilote voit ; elle reste derrière.
-function piloteIA(v, circuit, trajectoire, devant) {
+// rythme (facultatif, 1 par défaut) : la part de la vitesse conseillée qu'il vise (son talent, IA_RYTHME)
+function piloteIA(v, circuit, trajectoire, devant, rythme = 1) {
   const R = REGLAGES;
   const p = v.piste || positionSurPiste(circuit, v.x, v.z);
   const u = Math.max(0, v.u);
@@ -185,7 +186,7 @@ function piloteIA(v, circuit, trajectoire, devant) {
   const direction = braquageVoulu / braquageMax(v.u);
 
   // la vitesse : celle qu'on conseille un peu plus loin, là où la voiture sera dans IA_ANTICIPATION secondes
-  let cible = vitesseConseillee(circuit, trajectoire, p.s + u * R.IA_ANTICIPATION);
+  let cible = rythme * vitesseConseillee(circuit, trajectoire, p.s + u * R.IA_ANTICIPATION);
   // loin de sa trajectoire (ou dans l'herbe), le virage qu'elle demande pour la rejoindre peut être plus serré que
   // celui de la trajectoire : elle ralentit jusqu'à pouvoir le prendre
   const ip = Math.round(p.s / circuit.pas) % circuit.nb;

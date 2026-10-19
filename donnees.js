@@ -43,6 +43,9 @@ const REGLAGES = {
   MARGE_HERBE: 1,               // m au-delà du bord de la piste avant d'être dans l'herbe (les vibreurs)
   DEMI_LARGEUR_VOITURE: 1,      // m : la voiture touche la barrière à cette distance
   REBOND_BARRIERE: 0.3,         // part de la vitesse vers la barrière qui repart dans l'autre sens
+  LONGUEUR_VOITURE: 5.5,        // m : le rectangle de chaque voiture, pour les contacts entre voitures
+  LARGEUR_VOITURE: 2,
+  REBOND_VOITURE: 0.2,          // choc entre voitures : part de la vitesse de rapprochement qui repart (0 = elles restent ensemble)
   FROTTEMENT_BARRIERE: 0.3,     // part de la vitesse le long de la barrière perdue au choc
   RAYON_ROUE: 0.33,
   // les commandes au clavier montent et descendent progressivement (par seconde)
@@ -111,6 +114,15 @@ const REGLAGES = {
   IA_GAIN_GAZ: 1,               // gaz par m/s de retard sur la vitesse conseillée
   IA_GAIN_FREIN: 1,             // frein par m/s d'avance
   IA_ECART_RATTRAPAGE: 2.5,      // m : plus loin que ça de sa trajectoire, elle ralentit pour pouvoir prendre le virage qui l'y ramène
+  IA_RYTHME: [0.94, 1],         // le rythme de chaque IA (part de la vitesse conseillée), tiré entre ces deux nombres
+  IA_VISION_ANGLE: 0.6,         // rad : elle voit les voitures devant elle à ±0,6 rad (±34°) de son axe…
+  IA_VISION_DISTANCE: 120,      // m : … et à moins de cette distance
+  IA_VISION_COULOIR: 4.5,       // m : … et aussi toute voiture devant elle à moins de ça de son axe (même tout près, sur le côté)
+
+  // la grille de départ : deux files décalées
+  GRILLE_ESPACEMENT: 8,         // m entre deux places qui se suivent (une file sur deux)
+  GRILLE_ECART: 3,              // m : chaque file est à cette distance du milieu de la piste
+  SIMULATION_TEMPS_MAX: 150,    // s par tour : une course simulée s'arrête là, même si des voitures n'ont pas fini
   // derrière une voiture plus lente (sans la dépasser, étape 4a) ; distances d'un centre de voiture à l'autre
   IA_DISTANCE_MIN: 8,           // m : jamais plus près
   IA_DISTANCE_SUIVI: 14,        // m : la distance où elle se cale derrière

@@ -1,7 +1,7 @@
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><title>tests</title></head><body>
 <pre id="res"></pre>
 <script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));window.addEventListener('unhandledrejection',e=>__err.push('promesse : '+(e.reason&&e.reason.message||e.reason)));</script>
-<script src="../donnees.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../son.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../course.js"></script><script src="../principal.js"></script>
+<script src="../donnees.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../son.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../course.js"></script><script src="../principal.js"></script>
 <script>
 const L=[];let ok=0,ko=0;
 function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
@@ -326,6 +326,54 @@ t('IA technique : 40 m derrière une voiture à 60 % de sa vitesse conseillée, 
   v(c.progression>=2*TQ.longueur,'pas fini');v(dMin>=REGLAGES.IA_DISTANCE_MIN,dMin.toFixed(2)+' m');v(vo.contactsBarriere===0);v(herbe===0,herbe+' pas dans l’herbe');});
 t('IA : le calcul découpé (etapesTrajectoire) donne exactement la même trajectoire que d’un coup', ()=>{const e=etapesTrajectoire(TQ);let r_=e.next(),n=0;while(!r_.done){r_=e.next();n++;}
   const a=r_.value,b=TRAJ.technique;v(n>50,n+' étapes');for(let i=0;i<TQ.nb;i++) v(a.ecart[i]===b.ecart[i]&&a.vitesse[i]===b.vitesse[i],'point '+i);});
+
+// --- les contacts entre voitures (tour 9)
+// deux voitures sur un terrain plat : a derrière b (ou à côté), a lancée
+function deuxVoitures(){const a=creerVoiture(null),b=creerVoiture(null);return {a,b};}
+const quantite=ws=>ws.reduce((q,w)=>{const c_=Math.cos(w.cap),s_=Math.sin(w.cap);q[0]+=c_*w.u-s_*w.v;q[1]+=s_*w.u+c_*w.v;return q;},[0,0]);
+// a, dans le repère de b : combien elle est devant (> 0) ou derrière (< 0) le centre de b
+const devantDe=(a,b)=>Math.cos(b.cap)*(a.x-b.x)+Math.sin(b.cap)*(a.z-b.z);
+for(const ecart of [30,90]) t(`contact par l’arrière à ${ecart} m/s d’écart : la voiture rapide ne traverse jamais, la lente est poussée`, ()=>{const {a,b}=deuxVoitures();
+  a.x=-(REGLAGES.LONGUEUR_VOITURE+0.3);a.u=ecart;memoriserAvant(a);let pire=-Infinity,pasEnContact=0;
+  for(let k=0;k<120;k++){pasVoiture(a,null,DT);pasVoiture(b,null,DT);contactsVoitures([a,b]);pire=Math.max(pire,devantDe(a,b));if(a.touche.size) pasEnContact++;}
+  L.push(`  (choc à ${ecart} m/s : après 1 s, lente ${b.u.toFixed(1)} m/s, rapide ${a.u.toFixed(1)} m/s, ${pasEnContact} pas au contact, ${a.contactsVoiture} contact, choc ${a.chocMax.toFixed(1)} m/s)`);
+  v(pire<=-REGLAGES.LONGUEUR_VOITURE+1e-6,'la rapide est passée à '+pire.toFixed(3)+' m du centre de la lente');v(b.u>ecart*0.4,'la lente n’a pas été poussée : '+b.u);
+  v(a.contactsVoiture===1&&b.contactsVoiture===1,a.contactsVoiture+' contacts');v(Math.abs(a.chocMax-ecart)<1,'choc '+a.chocMax);});
+t('contact : la quantité de mouvement des deux voitures est conservée (mêmes masses)', ()=>{const {a,b}=deuxVoitures();a.x=-5;a.u=40;a.cap=0.2;b.cap=-0.1;b.u=10;b.v=1;const q0=quantite([a,b]);
+  contactsVoitures([a,b]);const q1=quantite([a,b]);v(a.contactsVoiture===1,'pas de contact');v(Math.hypot(q1[0]-q0[0],q1[1]-q0[1])<1e-9,q0+' → '+q1);});
+t('contact latéral : la voiture touchée est poussée sur le côté, et les deux s’écartent', ()=>{const {a,b}=deuxVoitures();a.z=-(REGLAGES.LARGEUR_VOITURE+0.2);a.u=30;b.u=30;a.v=4;memoriserAvant(a);
+  for(let k=0;k<60;k++){pasVoiture(a,null,DT);pasVoiture(b,null,DT);contactsVoitures([a,b]);}
+  L.push(`  (choc latéral à 4 m/s : la voiture touchée part de côté à ${(b.z).toFixed(2)} m, écart final ${(b.z-a.z).toFixed(2)} m ; contacts : ${a.chocs.map(c_=>c_.toFixed(2)).join(', ')} m/s)`);
+  // elles roulent ensuite côte à côte, à 2 m : elles peuvent se frôler encore, mais sans chevauchement ni vrai choc
+  v(b.z>0.05,'pas poussée de côté : '+b.z);v(b.z-a.z>=REGLAGES.LARGEUR_VOITURE-0.01,'chevauchement '+(b.z-a.z));v(a.chocs[0]>1,'premier choc '+a.chocs[0]);v(a.chocs.slice(1).every(c_=>c_<1),'frôlements : '+a.chocs);});
+t('deux voitures au contact ne restent pas collées : posées l’une dans l’autre, elles sont séparées dès le premier pas (par le côté où elles se chevauchent le moins)', ()=>{const {a,b}=deuxVoitures();a.x=-3;contactsVoitures([a,b]);
+  v(Math.hypot(b.x-a.x,b.z-a.z)>3.5,'pas écartées');contactsVoitures([a,b]);v(!a.touche.size&&!b.touche.size,'encore au contact');v(a.contactsVoiture===1);});
+t('coût des contacts : 20 voitures × 120 pas', ()=>{const vs=placesGrille(C,20).map(p_=>creerVoiture(C,p_.s,p_.d));const temps=[];
+  for(let essai=-2;essai<9;essai++){const t0=performance.now();for(let k=0;k<120;k++) contactsVoitures(vs,C);if(essai>=0) temps.push(performance.now()-t0);}
+  temps.sort((x,y)=>x-y);L.push('  (contacts de 20 voitures × 120 pas : meilleur '+temps[0].toFixed(2)+' ms, médiane '+temps[4].toFixed(2)+' ms)');v(temps[0]<20,temps[0]+' ms');});
+
+// --- les courses entre IA (tour 9)
+t('vision : l’IA voit la voiture devant elle dans son cône ou son couloir, pas celle derrière ni celle de l’autre file', ()=>{const a=creerVoiture(C,250,0),b=creerVoiture(C,280,0),c=creerVoiture(C,230,0),d=creerVoiture(C,255,6);
+  const vu=voitureDevant(a,[a,b,c]);v(vu&&Math.abs(vu.distance-30)<0.5,JSON.stringify(vu));v(voitureDevant(b,[a,b])===null,'voit derrière');v(voitureDevant(a,[a,d])===null,'voit l’autre file à 6 m');
+  b.u=40;v(Math.abs(voitureDevant(a,[a,b]).vitesse-40)<1e-9);});
+t('simulerCourse : même graine, mêmes résultats ; autre graine, autres rythmes', ()=>{const r1=simulerCourse(C,4,1,9),r2=simulerCourse(C,4,1,9),r3=simulerCourse(C,4,1,10);
+  v(JSON.stringify(r1.voitures)===JSON.stringify(r2.voitures),'différent');v(r1.voitures.every(x=>x.fini));v(r1.voitures[0].rythme!==r3.voitures[0].rythme);});
+t('un rapide (rythme 1,00) qui part 60 m derrière un lent (0,94) le rattrape, puis reste derrière sans le toucher (2 tours du circuit technique)', ()=>{
+  const e=creerCourseIA(TQ,2,2,1);e.pilotes[0].rythme=0.94;e.pilotes[1].rythme=1;placerSurPiste(e.pilotes[1].v,TQ,TQ.longueur-REGLAGES.DEPART_RECUL-60,0);
+  const ecartS=()=>((e.pilotes[0].v.piste.s-e.pilotes[1].v.piste.s)%TQ.longueur+TQ.longueur)%TQ.longueur;let debut=ecartS(),mini=Infinity,dMin=Infinity;
+  for(let k=0;k<300*120&&e.arrives<1;k++){pasCourseIA(e,DT);if(e.temps>4){mini=Math.min(mini,ecartS());dMin=Math.min(dMin,Math.hypot(e.pilotes[0].v.x-e.pilotes[1].v.x,e.pilotes[0].v.z-e.pilotes[1].v.z));}}
+  for(let k=0;k<60*120&&e.arrives<2;k++) pasCourseIA(e,DT);
+  L.push(`  (rapide derrière lent : écart de départ ${debut.toFixed(0)} m, le plus court ${mini.toFixed(1)} m le long de la piste, ${dMin.toFixed(1)} m de centre à centre ; arrivées : lent ${e.pilotes[0].place}, rapide ${e.pilotes[1].place})`);
+  v(e.arrives===2);v(mini<25,'jamais rattrapé : '+mini.toFixed(1));v(dMin>=REGLAGES.IA_DISTANCE_MIN-0.5,'trop près : '+dMin.toFixed(2));v(e.pilotes[0].v.contactsVoiture===0,'contact');v(e.pilotes[0].place===1,'le rapide est passé');});
+// le critère de 4b : 10 voitures, 5 tours, graines 1 à 5, deux circuits ; puis 20 voitures, graine 1
+function tableauCourse(titre,r){L.push(`  ${titre} : ${r.voitures.filter(x=>x.fini).length}/${r.voitures.length} arrivées, calcul ${r.dureeMs.toFixed(0)} ms`);
+  for(const x of [...r.voitures].sort((p_,q)=>(p_.place||99)-(q.place||99)))
+    L.push(`    P${String(x.place).padStart(2)}  n°${String(x.numero).padStart(2)}  rythme ${x.rythme.toFixed(3)}  ${x.temps===null?'—':x.temps.toFixed(2)+' s'}  meilleur ${x.meilleurTour===null?'—':x.meilleurTour.toFixed(2)}  contacts ${x.contactsVoiture}${x.contactsVoiture?' (choc max '+x.chocMax.toFixed(1)+' m/s)':''}  barrière ${x.contactsBarriere}  herbe ${x.herbe}  coupes ${x.coupes}`);}
+const verifierCourse=r=>{v(r.voitures.every(x=>x.fini),'pas toutes arrivées');v(r.voitures.every(x=>x.chocs.every(c_=>c_<=5)),'choc à plus de 5 m/s');v(r.voitures.every(x=>x.contactsBarriere===0),'barrière');v(r.voitures.every(x=>x.coupes===0),'virage coupé');};
+for(const [nom,circ] of [['test',C],['technique',TQ]]) for(let g=1;g<=5;g++)
+  t(`4b : ${nom}, 10 voitures, 5 tours, graine ${g} : toutes arrivent, aucun choc à plus de 5 m/s, aucune barrière, aucun virage coupé`, ()=>{const r_=simulerCourse(circ,10,5,g);tableauCourse(`${nom}, graine ${g}`,r_);verifierCourse(r_);});
+for(const [nom,circ] of [['test',C],['technique',TQ]])
+  t(`4b : ${nom}, 20 voitures, 5 tours, graine 1 : les mêmes critères`, ()=>{const r_=simulerCourse(circ,20,5,1);tableauCourse(`${nom}, 20 voitures, graine 1`,r_);verifierCourse(r_);});
 
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 ecrire();

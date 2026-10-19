@@ -13,6 +13,10 @@ function creerVoiture(circuit, s = 0, d = 0) {
     avant: { x: 0, z: 0, cap: 0 },    // l'état au début du pas, pour l'interpolation de l'affichage
     piste: null,                      // le dernier positionSurPiste
     surHerbe: false, contactsBarriere: 0,
+    contactsVoiture: 0,               // les contacts avec une autre voiture (un frottement qui dure compte pour un)
+    chocMax: 0,                       // la plus forte vitesse de choc contre une voiture (m/s, vitesse relative)
+    chocs: [],                        // pour chaque contact, la plus forte vitesse de rapprochement (m/s)
+    touche: new Set(),                // les voitures touchées au dernier pas
   };
   if (circuit) placerSurPiste(v, circuit, s, d);
   memoriserAvant(v);
@@ -187,6 +191,63 @@ function contactPiste(v, circuit) {
   }
   v.piste = p;
   v.surHerbe = Math.abs(p.d) > circuit.largeur / 2 + R.MARGE_HERBE;
+}
+
+// Les contacts entre voitures, après le pas de chacune. Chaque voiture est un rectangle LONGUEUR_VOITURE ×
+// LARGEUR_VOITURE. Deux rectangles qui se chevauchent sont écartés (moitié chacun, le long de l'axe où ils se
+// chevauchent le moins), et, s'ils se rapprochaient, ils échangent de la vitesse le long de cet axe : un choc
+// mou (REBOND_VOITURE), mêmes masses, la quantité de mouvement est conservée. Une voiture fait moins de 0,8 m par
+// pas même à 90 m/s d'écart, bien moins que sa longueur : elle ne peut pas en traverser une autre.
+// circuit (facultatif) : les voitures poussées sont replacées sur la piste (herbe, barrières)
+function contactsVoitures(voitures, circuit) {
+  const R = REGLAGES, hl = R.LONGUEUR_VOITURE / 2, hw = R.LARGEUR_VOITURE / 2;
+  const portee2 = (2 * Math.hypot(hl, hw)) ** 2;
+  const avant = voitures.map(w => w.touche);
+  for (const w of voitures) w.touche = new Set();
+  for (let i = 0; i < voitures.length; i++) {
+    for (let j = i + 1; j < voitures.length; j++) {
+      const a = voitures[i], b = voitures[j];
+      const dx = b.x - a.x, dz = b.z - a.z;
+      if (dx * dx + dz * dz > portee2) continue;
+      // les 4 axes des deux rectangles : on cherche celui où ils se chevauchent le moins
+      const ca = Math.cos(a.cap), sa = Math.sin(a.cap), cb = Math.cos(b.cap), sb = Math.sin(b.cap);
+      const axes = [[ca, sa], [-sa, ca], [cb, sb], [-sb, cb]];
+      let profondeur = Infinity, nx = 0, nz = 0;
+      for (const [ax, az] of axes) {
+        // la demi-taille de chaque rectangle sur cet axe
+        const ra = hl * Math.abs(ca * ax + sa * az) + hw * Math.abs(-sa * ax + ca * az);
+        const rb = hl * Math.abs(cb * ax + sb * az) + hw * Math.abs(-sb * ax + cb * az);
+        const centre = dx * ax + dz * az;
+        const p = ra + rb - Math.abs(centre);
+        if (p <= 0) { profondeur = 0; break; }   // un axe qui les sépare : pas de contact
+        if (p < profondeur) { profondeur = p; const sg = centre < 0 ? -1 : 1; nx = ax * sg; nz = az * sg; }
+      }
+      if (profondeur <= 0) continue;
+      // n va de a vers b : on les écarte, moitié chacun
+      a.x -= nx * profondeur / 2; a.z -= nz * profondeur / 2;
+      b.x += nx * profondeur / 2; b.z += nz * profondeur / 2;
+      // les vitesses dans le monde
+      const wax = ca * a.u - sa * a.v, waz = sa * a.u + ca * a.v;
+      const wbx = cb * b.u - sb * b.v, wbz = sb * b.u + cb * b.v;
+      const rapproche = (wax - wbx) * nx + (waz - wbz) * nz;   // > 0 : a va vers b
+      if (rapproche > 0) {
+        const choc = rapproche * (1 + R.REBOND_VOITURE) / 2;   // mêmes masses
+        const nwax = wax - nx * choc, nwaz = waz - nz * choc, nwbx = wbx + nx * choc, nwbz = wbz + nz * choc;
+        a.u = ca * nwax + sa * nwaz; a.v = -sa * nwax + ca * nwaz;
+        b.u = cb * nwbx + sb * nwbz; b.v = -sb * nwbx + cb * nwbz;
+      }
+      // un nouveau contact (elles ne se touchaient pas au pas d'avant), ou le même qui continue
+      const nouveau = !avant[i].has(b);
+      a.touche.add(b); b.touche.add(a);
+      for (const w of [a, b]) {
+        if (nouveau) { w.contactsVoiture++; w.chocs.push(0); }
+        const vitesseChoc = Math.max(0, rapproche);
+        w.chocs[w.chocs.length - 1] = Math.max(w.chocs[w.chocs.length - 1], vitesseChoc);
+        w.chocMax = Math.max(w.chocMax, vitesseChoc);
+      }
+      if (circuit) { contactPiste(a, circuit); contactPiste(b, circuit); }
+    }
+  }
 }
 
 // la vitesse limite dans un virage de courbure k (m/s), avec l'appui : v² |k| = mu (g + APPUI v² / m)
