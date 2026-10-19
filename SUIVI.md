@@ -33,7 +33,6 @@ Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤
 ## À essayer par le propriétaire
 
 - Étape 1 : survol `index.html?camera=libre`.
-- Étape 4a : regarder l'IA rouler : `index.html?ia=1` et `index.html?ia=1&circuit=technique`. Le circuit technique : assez technique ?
 
 ## Étape en cours
 
@@ -51,6 +50,8 @@ Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤
 - [ ] `tests/lancer.py` et une première page de test
 
 ## Décidé
+
+- 2026-10-19 : le propriétaire trouve que l'IA de 4a (`?ia=1`) roule comme une vraie F1. Le circuit technique lui va comme circuit d'essai ; **pour un circuit officiel, il préfère « un giant loop »** (à préciser à l'étape 10). Le Chef peut compléter CLAUDE.md (« c'est pour ça que c'est en auto mode ») : liste des fichiers mise à jour (ia.js, ?ia=1, ?circuit=).
 
 - 2026-10-18 : le nom du jeu est **Grand Prix Dynasty** (remplacer `NOM_DU_JEU` au tour 4).
 
@@ -88,7 +89,6 @@ Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤
 - La liste des 12 circuits.
 - La liste exacte des améliorations du garage.
 - La météo à l'étape 12 : oui ou non.
-- Le Chef peut-il ajouter ia.js, ?circuit= et ?ia=1 à la liste des fichiers de CLAUDE.md ?
 
 ## Journal des sessions
 
