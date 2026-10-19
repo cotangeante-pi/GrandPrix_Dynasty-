@@ -28,12 +28,11 @@ Aucun. Session du 2026-10-18 figée à 20h20 sur e59f5a2 (tour 6, vert). **Proch
 
 ## À essayer par le propriétaire
 
-- **Étape 3 : faire une course** (`index.html`, choisir 5 tours). Essayer de couper une chicane (+5 s ✂ ?) et de sortir large dans l'herbe (rien ?). Dire si le seuil est juste.
 - Étape 1 : survol `index.html?camera=libre`.
 
 ## Étape en cours
 
-**Étape 1 — Le circuit** : finie (tours 2–3). **Étape 2 — La voiture** : **finie** (tours 3–4 ; le propriétaire, 19h45 : « oui la conduite me va »). **Étape 3 — Une course seule** : critère atteint (tours 5–6) ; le propriétaire a fait des courses, attend son avis (record, seuil du virage coupé).
+**Étape 1 — Le circuit** : finie (tours 2–3). **Étape 2 — La voiture** : **finie** (tours 3–4 ; le propriétaire, 19h45 : « oui la conduite me va »). **Étape 3 — Une course seule** : **finie** (tours 5–6 ; le propriétaire : « oui tout me va, l'étape 3 est finie »).
 
 ## Fini
 
@@ -55,7 +54,6 @@ Aucun. Session du 2026-10-18 figée à 20h20 sur e59f5a2 (tour 6, vert). **Proch
 ## Bugs connus
 
 - À voir : en grand virage rapide, la caméra derrière montre surtout l'herbe (CAMERA_SUIVI_CAP 6/s). Seulement si le propriétaire le remarque.
-- Seuil du virage coupé (2 m) pas encore validé par un vrai joueur.
 - Panneau ?reglages=1 : le texte « Copier » est coupé en bas, noms des curseurs = noms du code. (Ondulations du circuit corrigées au tour 3 : circuit décrit par morceaux.)
 
 ## Mesures
@@ -74,6 +72,7 @@ Aucun. Session du 2026-10-18 figée à 20h20 sur e59f5a2 (tour 6, vert). **Proch
 - 2026-10-18 19h15, conduite (tour 3) : « la voiture tourne trop quand tu appuies un peu longtemps sur tourner et la caméra est trop loin quand on accélère trop ». → Tour 4, ordres 5 (caméra : retard du ressort 2v/w ≈ 20 m à pleine vitesse, + champ de vision) et 6 (direction au clavier en deux temps, braquage plus réduit à haute vitesse).
 - 2026-10-18 19h35, conduite (ordres 5–6) : « quand tu appuies sur tourner pendant 1 sec il ne doit pas rester braqué » ; « hors piste c'est juste la vitesse qui diminue (bcp), pas les manettes qui bloquent ». → Tour 4, ordres 8 (la voiture continue de tourner après le lâcher : à mesurer) et 9 (herbe : garder l'adhérence, freiner fort).
 - le propriétaire veut le projet sur GitHub (voir « Décisions en attente »).
+- 2026-10-18 20h25, étape 3 : meilleur tour du propriétaire ≈ **45 s** en course très courte (le robot fait 1:02) ; pénalité de chicane et herbe sans pénalité : « oui oui » ; « j'espère que c'est une arène de test parce qu'elle a beaucoup trop de lignes droites ». → Oui, c'est un circuit de test. **Au début de l'étape 4 : un 2e circuit d'essai, technique (épingle, enchaînement en S, courbe rapide, freinage fort après une longue droite), pour entraîner et tester les IA sur de vrais virages.** Les IA devront approcher 45 s sur CIRCUIT_TEST (le robot naïf, à 1:02, est bien trop lent).
 
 ## Décisions en attente (pour le propriétaire)
 
