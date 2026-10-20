@@ -23,7 +23,9 @@ function voituresVues(v, voitures) {
   const R = REGLAGES, c = Math.cos(v.cap), s = Math.sin(v.cap), tanAngle = Math.tan(R.IA_VISION_ANGLE), vues = [];
   for (const w of voitures) {
     if (w === v || !w.piste) continue;
-    const dx = w.x - v.x, dz = w.z - v.z, avant = c * dx + s * dz, cote = Math.abs(-s * dx + c * dz);
+    const dx = w.x - v.x, dz = w.z - v.z;
+    if (dx * dx + dz * dz > R.IA_VISION_DISTANCE * R.IA_VISION_DISTANCE) continue;   // trop loin pour être vue
+    const avant = c * dx + s * dz, cote = Math.abs(-s * dx + c * dz);
     const aCote = Math.abs(avant) <= R.IA_VISION_COTE[0] && cote <= R.IA_VISION_COTE[1];
     const devant = avant > 0 && Math.hypot(dx, dz) <= R.IA_VISION_DISTANCE && (cote <= avant * tanAngle || cote <= R.IA_VISION_COULOIR);
     if (!aCote && !devant) continue;

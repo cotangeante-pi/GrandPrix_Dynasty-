@@ -185,7 +185,7 @@ function carteDepuis(circuit, trajectoire) {
     }
     if (sommet) virages.push({ s: circuit.s[i], sens: Math.sign(k[i]) });
   }
-  return { circuit, trajectoire, virages };
+  return { circuit, trajectoire, virages, pointe: vitesseDePointe() };
 }
 
 // un écart de s ramené dans ]-L/2, L/2]
@@ -246,12 +246,15 @@ function creerPilote(carte, rythme = 1, style = styleNeutre(), decalage = 0) {
 }
 
 // la ligne rapide du pilote au point s (s compté depuis le début de son tour en cours, il peut dépasser L) :
-// la carte, avec son point de corde et sa marge au bord, et la variation de ce tour pour chaque virage
-function ligneRapide(pilote, s) {
+// la carte, avec son point de corde et sa marge au bord, et la variation de ce tour pour chaque virage.
+// proches (facultatif) : les numéros des seuls virages qui peuvent compter (les autres sont trop loin)
+function ligneRapide(pilote, s, proches) {
   const R = REGLAGES, carte = pilote.carte, c = carte.circuit, st = pilote.style;
   const tour = (pilote.tour + Math.floor(s / c.longueur)) % st.tours, nv = carte.virages.length;
   let sCarte = s, cote = 0, corde = 0;
-  for (let j = 0; j < nv; j++) {
+  const nb = proches ? proches.length : nv;
+  for (let q = 0; q < nb; q++) {
+    const j = proches ? proches[q] : q;
     const x = ecartLeLong(c, s - carte.virages[j].s) / R.IA_VIRAGE_LARGEUR;
     if (Math.abs(x) >= 1) continue;
     const bosse = (1 - x * x) * (1 - x * x);
@@ -280,14 +283,15 @@ function sensProchainVirage(carte, s) {
 
 // la note d'une ligne (e[0..N-1], tous les IA_LIGNE_PAS m depuis s0) : son temps (s) plus les pénalités.
 // Remplit t.vb : la vitesse visée en chaque point (la plus haute dont on peut encore freiner pour la suite).
-function noterLigne(pilote, v, vues, s0, t, type) {
+// voisines : les voitures vues qui comptent (devant, à côté, juste derrière : voir deciderLigne)
+function noterLigne(pilote, v, voisines, s0, t, type) {
   const R = REGLAGES, c = pilote.carte.circuit, pas = R.IA_LIGNE_PAS, e = t.e, x = t.x, z = t.z, k = t.k, vb = t.vb, N = e.length;
   const p = [0, 0];
   for (let i = 0; i < N; i++) { pointPiste(c, s0 + i * pas, e[i], p); x[i] = p[0]; z[i] = p[1]; }
   const h = R.IA_LIGNE_DEMI_BASE;
   for (let i = h; i < N - h; i++) k[i] = courbureTroisPoints(x[i - h], z[i - h], x[i], z[i], x[i + h], z[i + h]);
   for (let i = 0; i < h; i++) { k[i] = k[h]; k[N - 1 - i] = k[N - 1 - h]; }
-  const pointe = vitesseDePointe(), dehors = c.largeur / 2 + R.MARGE_HERBE, bord = c.largeur / 2 - R.IA_MARGE_BORD_MIN;
+  const pointe = pilote.carte.pointe, dehors = c.largeur / 2 + R.MARGE_HERBE, bord = c.largeur / 2 - R.IA_MARGE_BORD_MIN;
   let penalite = 0;
   for (let i = 0; i < N; i++) {
     const mu = R.ADHERENCE * (Math.abs(e[i]) > dehors ? R.ADHERENCE_HERBE : 1);
@@ -307,9 +311,7 @@ function noterLigne(pilote, v, vues, s0, t, type) {
   if (u > vb[0]) penalite += R.IA_PENALITE_FREIN * (u - vb[0]);
   // le temps, en partant de sa vitesse : il accélère au plus comme le moteur, freine au plus comme les freins
   let temps = 0, vitesse = u;
-  // seulement celles devant lui, à côté, ou juste derrière (dans ses rétroviseurs : il ne se rabat pas sur elles) ;
-  // celle qui arrive de plus loin derrière doit faire attention, pas lui
-  const voisines = vues.filter(w => ecartLeLong(c, w.s - s0) > -R.IA_VISION_COTE[0]), touchees = new Set();
+  const touchees = new Set();
   for (let i = 0; i < N - 1; i++) {
     const ds = Math.hypot(x[i + 1] - x[i], z[i + 1] - z[i]);
     const monte = Math.sqrt(vitesse * vitesse + 2 * Math.max(0, accelerationPossible(vitesse)) * ds);
@@ -353,8 +355,11 @@ function deciderLigne(pilote, v, vues) {
     pente0 = Math.max(-1, Math.min(1, Math.tan(psi)));
   }
   // sa ligne rapide sur l'horizon (s compté depuis le début de son tour)
+  // les seuls virages assez près de l'horizon pour changer sa ligne rapide
+  const proches = [];
+  carte.virages.forEach((x, j) => { const d = ((x.s - s0) % L + L) % L; if (d <= R.IA_HORIZON + pas + R.IA_VIRAGE_LARGEUR || d >= L - R.IA_VIRAGE_LARGEUR) proches.push(j); });
   for (let i = 0; i <= N; i++) {
-    t.rapide[i] = ligneRapide(pilote, s0 + i * pas);
+    t.rapide[i] = ligneRapide(pilote, s0 + i * pas, proches);
     // au départ, il garde sa file, puis la quitte doucement pour sa ligne
     if (pilote.grille !== null) {
       const m = Math.max(0, Math.min(1, (pilote.parcouru + i * pas - R.IA_DEPART[0]) / (R.IA_DEPART[1] - R.IA_DEPART[0])));
@@ -374,6 +379,9 @@ function deciderLigne(pilote, v, vues) {
   const essais = [['rapide', 0], ['continuer', 0]];
   if (sens) essais.push(['interieur', sens], ['exterieur', -sens]);
   if (devant && R.IA_DEPASSEMENT) essais.push(['gauche', -1], ['droite', 1]);
+  // les voitures qui comptent pour noter ses lignes : devant lui, à côté, ou juste derrière (dans ses rétroviseurs :
+  // il ne se rabat pas sur elles) ; celle qui arrive de plus loin derrière doit faire attention, pas lui
+  const voisines = vues.filter(w => ecartLeLong(c, w.s - s0) > -R.IA_VISION_COTE[0]);
   let meilleure = Infinity, choix = null;
   for (const [type, cote] of essais) {
     const cible = t.cible;
@@ -398,7 +406,7 @@ function deciderLigne(pilote, v, vues) {
       const a = i / iT, a2 = a * a, a3 = a2 * a;
       t.e[i] = cible[i] + (2 * a3 - 3 * a2 + 1) * ecart0 + (a3 - 2 * a2 + a) * longueur * pente;
     }
-    const note = noterLigne(pilote, v, vues, s0, t, type);
+    const note = noterLigne(pilote, v, voisines, s0, t, type);
     if (pilote.journal && devant && devant.g < 40) pilote.journal.push([s0.toFixed(0), devant.g.toFixed(1), type, note.toFixed(3)].join(' '));
     if (note < meilleure) { meilleure = note; choix = type; t.meilleurE.set(t.e); t.meilleurV.set(t.vb); }
   }
