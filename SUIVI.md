@@ -15,7 +15,7 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 
 ## Tour en cours
 
-**Tour 14 — étape 4c** (lancé à 18h45, fin 21h) : courses.html sur main, une seule façon de doubler (l'attaque), jamais à deux de front dans un virage lent, réparer le duel. Rapport : rapports/tour-14-rapport.md. Tour 13 : pas vert, rien fusionné (branche tour-13 : 88–96 dépassements mais 11–16 chocs, herbe dans l'épingle).
+**Tour 15 — étape 4c** (lancé à 19h10, fin 21h) : suivi en temps (0,4 s), sillage, puis fusion des dépassements sur main avant 20h50 si propres. Rapport : rapports/tour-15-rapport.md. Tour 14 : courses.html sur main (vérifié, 53/100) ; branche tour-14 propre (4 chocs) mais 28 dépassements, 1 surprise.
 
 Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤ 50 s sur Test) → 4b (plusieurs IA sans se toucher) → 4c (dépasser, défendre) → 4d (caractères, niveaux, page des 50 courses).
 
@@ -35,6 +35,8 @@ Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤
 | 10 | 7b2b1bf | 50 | 12 | 11 | 1 | 8 | 8 | 9 | 1 |
 | 11 | eebcb25 | 51 | 12 | 12 | 1 | 8 | 8 | 9 | 1 |
 | 12 | 2c13e30 | 52 | 12 | 13 | 1 | 8 | 8 | 9 | 1 |
+| 13 | — | 52 | — | — | — | — | — | — | — |
+| 14 | d840007 | 53 | 12 | 13 | 1 | 8 | 8 | 10 | 1 |
 
 ## À essayer par le propriétaire
 
@@ -115,6 +117,7 @@ Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤
 | 2026-10-18 | 1–2 | Tour 3 : la voiture roule, 121/121 tests, 43a3fa8, robot 66,55 s, nom Grand Prix Dynasty dans le jeu |
 | 2026-10-18 | 3 | Tour 5 : chrono, tours, secteurs, ✂ +5 s, écran de choix, pause, écran de fin, records ; 194/194, 44b3624 |
 | 2026-10-18 | 3 | Tour 6 : secteurs du tour en cours, arrêt après l'arrivée, sons 3-2-1-GO et arrivée ; 200/200, e59f5a2. Fin de session (20h20). |
+| 2026-10-20 | 4c | Tour 14 : tests/courses.html sur main (30 courses, critère de l'étape 4) ; 115/115 + 33/33 + 159/159 chez le Chef, d840007, 53/100. Branche tour-14 : 28 dépassements, 4 chocs, duel bloqué par le suivi à 14 m |
 | 2026-10-20 | 4c | Tour 13 : pas vert (branche tour-13) : tests/courses.html (30 courses), zones d'attaque ; 88–96 dépassements, 11–16 chocs > 5 m/s, duel cassé. Main inchangé |
 | 2026-10-20 | 4c | Tour 12 (interrompu par la veille du Mac jusqu'à 18h) : grille qualifiée, tests moins pressés, 4b « au plus 1 choc > 5 m/s par course » ; 129/129 + ecrans vert chez le Chef, 2c13e30, 52/100. Dépassements sur la branche tour-12-attaque : duel OK, 2–4 chocs sur 10 courses |
 | 2026-10-19/20 | 4c | Tour 11 : ?ia=N&joueur=1 (le propriétaire conduit au milieu des IA), calcul 2–3 s ; attaque sur une branche à part (44–65 dépassements mais 7–28 chocs) ; main 128/128, ecrans 157/159 chez le Chef (2 tests trop pressés), 159/159 chez le Codeur ; 51/100. Un Chrome de test orphelin (5 h 38) tué à 2h34 |
