@@ -15,7 +15,8 @@ function creerVoiture(circuit, s = 0, d = 0) {
     surHerbe: false, contactsBarriere: 0,
     contactsVoiture: 0,               // les contacts avec une autre voiture (un frottement qui dure compte pour un)
     chocMax: 0,                       // la plus forte vitesse de choc contre une voiture (m/s, vitesse relative)
-    chocs: [],                        // pour chaque contact, la plus forte vitesse de rapprochement (m/s)
+    chocs: [],                        // pour chaque contact, la plus forte vitesse de rapprochement (m/s)…
+    lieuxChocs: [],                   // … et où il a commencé sur la piste (s, en m ; null sans circuit)
     touche: new Set(),                // les voitures touchées au dernier pas
     aspiration: 0,                    // 0 à 1 : dans le sillage d'une voiture (aspirationVoitures), la traînée baisse
   };
@@ -258,7 +259,7 @@ function contactsVoitures(voitures, circuit) {
       const nouveau = !avant[i].has(b);
       a.touche.add(b); b.touche.add(a);
       for (const w of [a, b]) {
-        if (nouveau) { w.contactsVoiture++; w.chocs.push(0); }
+        if (nouveau) { w.contactsVoiture++; w.chocs.push(0); w.lieuxChocs.push(w.piste ? w.piste.s : null); }
         const vitesseChoc = Math.max(0, rapproche);
         w.chocs[w.chocs.length - 1] = Math.max(w.chocs[w.chocs.length - 1], vitesseChoc);
         w.chocMax = Math.max(w.chocMax, vitesseChoc);

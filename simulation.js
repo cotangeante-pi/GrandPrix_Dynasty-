@@ -49,12 +49,13 @@ function creerCourseIA(circuit, nb, nbTours, graine, carte = carteDe(circuit), a
     const humain = k === nb;
     return {
       numero: k + 1, v, course: creerCourse(circuit, nbTours), humain,
+      depart: place.s - circuit.longueur,   // m : sa place sur la grille, derrière la ligne (pour savoir qui est devant)
       rythme: humain ? null : R.IA_RYTHME[0] + hasard() * (R.IA_RYTHME[1] - R.IA_RYTHME[0]),
       pilote: null, herbe: 0, arrivee: null, place: null,
     };
   });
   ALEATOIRE.semer();
-  const e = { circuit, carte: null, graine, nbTours, pilotes, temps: 0, arrives: 0, grille: null };
+  const e = { circuit, carte: null, graine, nbTours, pilotes, temps: 0, arrives: 0, grille: null, depassements: [], devant: new Map() };
   if (carte) donnerCarte(e, carte);
   return e;
 }
@@ -86,7 +87,11 @@ function qualifier(e) {
   ALEATOIRE.semer();
   const ordre = e.pilotes.filter(p => !p.humain).sort((a, b) => a.qualif - b.qualif).concat(e.pilotes.filter(p => p.humain));
   const places = placesGrille(c, ordre.length);
-  ordre.forEach((p, k) => placerSurPiste(p.v, c, places[k].s, places[k].d));
+  ordre.forEach((p, k) => {
+    placerSurPiste(p.v, c, places[k].s, places[k].d);
+    p.depart = places[k].s - c.longueur;
+  });
+  e.devant.clear();
   e.grille = ordre.map(p => ({ numero: p.numero, qualif: p.qualif }));
 }
 
@@ -112,9 +117,40 @@ function pasCourseIA(e, dt, conduireJoueur) {
     if (p.v.surHerbe) p.herbe++;
     if (p.course.etat === 'finie') { p.arrivee = e.temps; arrives.push(p); }
   }
+  compterDepassements(e, enCourse);
   // arrivés au même pas : le plus avancé d'abord
   arrives.sort((a, b) => b.course.progression - a.course.progression);
   for (const p of arrives) p.place = ++e.arrives;
+}
+
+// l'endroit d'un point de la piste, pour ranger les dépassements : « freinage » (entre le point de freinage d'un virage
+// et son sommet), « sortie » (jusqu'à IA_VIRAGE_LARGEUR après le sommet), sinon « autre »
+function endroitSur(carte, s) {
+  if (!carte) return 'autre';
+  const c = carte.circuit;
+  for (const x of carte.virages) {
+    if (ecartLeLong(c, s - x.freinage) >= 0 && ecartLeLong(c, s - x.s) <= 0) return 'freinage';
+    const apres = ecartLeLong(c, s - x.s);
+    if (apres > 0 && apres <= REGLAGES.IA_VIRAGE_LARGEUR) return 'sortie';
+  }
+  return 'autre';
+}
+
+// les dépassements : pour chaque paire de voitures en course, qui est devant (avec une marge de SIMULATION_MARGE_DEVANT,
+// pour ne pas compter deux voitures côte à côte qui s'échangent sans cesse) ; quand ça change, c'est un dépassement
+function compterDepassements(e, enCourse) {
+  const R = REGLAGES, distance = p => p.depart + p.course.progression;
+  for (let i = 0; i < enCourse.length; i++) for (let j = i + 1; j < enCourse.length; j++) {
+    const a = enCourse[i], b = enCourse[j], cle = a.numero * 1000 + b.numero, ecart = distance(a) - distance(b);
+    const maintenant = ecart > R.SIMULATION_MARGE_DEVANT ? 1 : ecart < -R.SIMULATION_MARGE_DEVANT ? -1 : 0;
+    const avant = e.devant.get(cle);
+    if (maintenant === 0) continue;
+    if (avant !== undefined && avant !== maintenant) {
+      const qui = maintenant > 0 ? a : b, sur = maintenant > 0 ? b : a;
+      e.depassements.push({ temps: e.temps, tour: qui.course.tours.length + 1, s: qui.v.piste.s, endroit: endroitSur(e.carte, qui.v.piste.s), qui: qui.numero, sur: sur.numero });
+    }
+    e.devant.set(cle, maintenant);
+  }
 }
 
 // une course entière, sans affichage. Rend pour chaque voiture (dans l'ordre de la grille) : place, temps,
@@ -127,10 +163,11 @@ function simulerCourse(circuit, nbVoitures, nbTours, graine) {
   return {
     dureeMs: performance.now() - t0,
     grille: e.grille,
+    depassements: e.depassements,
     voitures: e.pilotes.map(p => ({
       numero: p.numero, rythme: p.rythme, place: p.place, fini: p.arrivee !== null,
       temps: p.arrivee !== null ? tempsTotal(p.course) : null, meilleurTour: p.course.meilleurTour,
-      contactsVoiture: p.v.contactsVoiture, chocMax: p.v.chocMax, chocs: p.v.chocs.slice(),
+      contactsVoiture: p.v.contactsVoiture, chocMax: p.v.chocMax, chocs: p.v.chocs.slice(), lieuxChocs: p.v.lieuxChocs.slice(),
       contactsBarriere: p.v.contactsBarriere, herbe: p.herbe, coupes: Math.round(p.course.penalites / REGLAGES.PENALITE_COUPE),
     })),
   };

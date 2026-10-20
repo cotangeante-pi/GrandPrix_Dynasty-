@@ -1,0 +1,52 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>courses entre IA</title></head><body>
+<pre id="res"></pre>
+<script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));</script>
+<script src="../donnees.js"></script><script src="../aleatoire.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../course.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script>
+<script>
+// Le critère de l'étape 4 : des courses entre IA, sans affichage. RESULTAT : le critère de 4b course par course ;
+// et celui de 4c (les dépassements) quand les IA attaquent (REGLAGES.IA_DEPASSEMENT). ?graines=15 (par circuit, 15 par défaut),
+// ?voitures=10, ?tours=5. Résumé : dépassements (et où), vainqueur ≠ poleman, meilleur rythme dans les 3 premiers,
+// chocs à plus de 5 m/s (où, à quelle vitesse), barrières, coupes, herbe, temps de calcul ; puis la course de 20 voitures.
+const Q=new URLSearchParams(location.search),GRAINES=+(Q.get('graines')||15),NB=+(Q.get('voitures')||10),TOURS=+(Q.get('tours')||5);
+const L=[];let ok=0,ko=0;
+function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
+const v=(c,m)=>{if(!c)throw new Error(m||'faux');};
+const ecrire=etape=>{document.getElementById('res').textContent=`${etape?'EN COURS ('+etape+') ':''}RESULTAT ${ok}/${ok+ko}\n`+L.join('\n');};
+const circuits={test:CIRCUIT_TEST,technique:construireCircuit(CIRCUITS.technique)};
+// les chocs forts d'une course, un par contact : { s, vitesse, numéros } (le plus fort des deux voitures)
+function chocsForts(r){const n=r.voitures.flatMap(x=>x.chocs).filter(c=>c>5).length/2;return n;}
+const t0=performance.now(),resultats=[];
+for(const nom of ['test','technique']) for(let g=1;g<=GRAINES;g++){
+  const r=simulerCourse(circuits[nom],NB,TOURS,g);r.nom=nom;r.graine=g;resultats.push(r);
+  // où et à quelle vitesse ont eu lieu les chocs forts (vus par la voiture au plus petit numéro, pour ne pas les compter deux fois)
+  r.chocsLieux=r.voitures.flatMap(x=>x.chocs.map((c,i)=>({c,s:x.lieuxChocs[i],n:x.numero}))).filter(x=>x.c>5).sort((a,b)=>a.s-b.s)
+    .filter((x,i,tab)=>i%2===0).map(x=>(x.s===null?'?':x.s.toFixed(0))+' m à '+x.c.toFixed(1)+' m/s ('+endroitSur(carteDe(circuits[nom]),x.s)+')').join(', ');
+  const V=r.voitures,parPlace=[...V].sort((a,b)=>a.place-b.place),pole=r.grille[0].numero,meilleur=[...V].sort((a,b)=>b.rythme-a.rythme)[0];
+  const endroits={freinage:0,sortie:0,autre:0};r.depassements.forEach(d=>endroits[d.endroit]++);
+  r.resume={dep:r.depassements.length,endroits,pasPole:parPlace[0].numero!==pole,top3:meilleur.place<=3,chocs:chocsForts(r),
+    barr:V.reduce((a,x)=>a+x.contactsBarriere,0),coupes:V.reduce((a,x)=>a+x.coupes,0),herbe:V.reduce((a,x)=>a+x.herbe,0),fini:V.every(x=>x.fini)};
+  const s=r.resume;
+  L.push(`  ${nom} graine ${String(g).padStart(2)} : grille ${r.grille.map(x=>x.numero).join(',')} → arrivée ${parPlace.map(x=>x.numero).join(',')} | ${s.dep} dépassements (freinage ${endroits.freinage}, sortie ${endroits.sortie}, autre ${endroits.autre}) | pole n°${pole}, vainqueur n°${parPlace[0].numero} | meilleur rythme n°${meilleur.numero} P${meilleur.place} | chocs>5 ${s.chocs}${r.chocsLieux&&r.chocsLieux.length?' ('+r.chocsLieux+')':''} | barrière ${s.barr} | coupes ${s.coupes} | herbe ${s.herbe} | ${r.dureeMs.toFixed(0)} ms`);
+  ecrire(nom+' '+g);
+}
+const tot=resultats.reduce((a,r)=>{const s=r.resume;a.dep+=s.dep;a.pasPole+=s.pasPole;a.top3+=s.top3;a.chocs+=s.chocs;a.barr+=s.barr+s.coupes;a.herbe+=s.herbe;a.fini&=s.fini;
+  for(const k in s.endroits) a.endroits[k]+=s.endroits[k];return a;},{dep:0,pasPole:0,top3:0,chocs:0,barr:0,herbe:0,fini:true,endroits:{freinage:0,sortie:0,autre:0}});
+const N=resultats.length,ms=performance.now()-t0;
+L.push(`  TOTAL sur ${N} courses : ${tot.dep} dépassements (freinage ${tot.endroits.freinage}, sortie ${tot.endroits.sortie}, autre ${tot.endroits.autre}) ; vainqueur ≠ poleman ${tot.pasPole} ; meilleur rythme top 3 ${tot.top3} ; chocs > 5 m/s ${tot.chocs} ; barrières + coupes ${tot.barr} ; herbe ${tot.herbe} pas ; calcul ${(ms/1000).toFixed(1)} s`);
+// le critère de 4b, course par course : toutes arrivent, au plus 1 choc à plus de 5 m/s, aucune barrière, aucune coupe
+for(const r of resultats) t(`4b : ${r.nom}, graine ${r.graine} : toutes arrivent, au plus 1 choc à plus de 5 m/s, aucune barrière, aucune coupe`,()=>{
+  const s=r.resume;v(s.fini,'pas toutes arrivées');v(s.chocs<=1,s.chocs+' chocs');v(s.barr===0,s.barr+' barrières');v(s.coupes===0,s.coupes+' coupes');});
+// le critère de 4c (les dépassements), seulement quand les IA attaquent (IA_DEPASSEMENT) ; pour 30 courses, à l'échelle sinon
+if(REGLAGES.IA_DEPASSEMENT){const k=N/30;
+  t(`4c : au moins ${Math.ceil(30*k)} dépassements`,()=>v(tot.dep>=30*k,tot.dep));
+  t(`4c : vainqueur ≠ poleman dans au moins ${Math.ceil(3*k)} courses`,()=>v(tot.pasPole>=3*k,tot.pasPole));
+  t(`4c : meilleur rythme dans les 3 premiers dans au moins ${Math.ceil(20*k)} courses`,()=>v(tot.top3>=20*k,tot.top3));
+  t(`4c : au plus ${Math.floor(6*k)} chocs à plus de 5 m/s au total`,()=>v(tot.chocs<=6*k,tot.chocs));
+  t(`4c : au plus ${Math.floor(6*k)} barrières + coupes au total`,()=>v(tot.barr<=6*k,tot.barr));}
+// la course de 20 voitures, sur chaque circuit
+for(const nom of ['test','technique']) t(`${nom}, 20 voitures, graine 1 : toutes arrivent, au plus 1 choc à plus de 5 m/s`,()=>{const r=simulerCourse(circuits[nom],20,TOURS,1);
+  L.push(`  ${nom}, 20 voitures : ${r.depassements.length} dépassements, chocs>5 ${chocsForts(r)}, barrière ${r.voitures.reduce((a,x)=>a+x.contactsBarriere,0)}, herbe ${r.voitures.reduce((a,x)=>a+x.herbe,0)}, ${r.dureeMs.toFixed(0)} ms`);
+  v(r.voitures.every(x=>x.fini));v(chocsForts(r)<=1,chocsForts(r)+' chocs');});
+t('aucune erreur JavaScript',()=>v(__err.length===0,__err.join(' | ')));
+ecrire();
+</script></body></html>

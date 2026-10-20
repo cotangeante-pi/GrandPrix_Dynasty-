@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Lance tous les tests du jeu dans Chrome sans fenêtre : python3 tests/lancer.py
-1. tests/test.html (le moteur, sans 3D) dans Chrome --headless ;
+1. tests/test.html (le moteur, sans 3D) et tests/courses.html (30 courses entre IA) dans Chrome --headless ;
 2. tests/ecrans.py (la vraie page dans Playwright : console vide, rendu, captures dans tests/captures/)."""
 import os, re, html, signal, subprocess, sys, tempfile, shutil, threading, time
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -53,7 +53,8 @@ def ecrans(delai=600):
     return p.returncode == 0
 
 def tests():
-    return all([serie('tests/test.html'), ecrans()])   # une liste : les deux tournent même si le premier échoue
+    # une liste : tout tourne même si le premier échoue ; courses.html = le critère de l'étape 4 (30 courses entre IA)
+    return all([serie('tests/test.html'), serie('tests/courses.html'), ecrans()])
 
 if __name__ == '__main__':
     # le Mac ne s'endort pas tant que la suite tourne (caffeinate s'arrête de lui-même avec ce processus)

@@ -183,9 +183,19 @@ function carteDepuis(circuit, trajectoire) {
       const voisin = Math.abs(k[(i + d + n) % n]);
       if (d < 0 ? voisin >= a : d > 0 && voisin > a) sommet = false;
     }
-    if (sommet) virages.push({ s: circuit.s[i], sens: Math.sign(k[i]) });
+    if (sommet) virages.push({ s: circuit.s[i], sens: Math.sign(k[i]), freinage: pointDeFreinage(circuit, trajectoire, i, fenetre) });
   }
   return { circuit, trajectoire, virages, pointe: vitesseDePointe() };
+}
+
+// le point de freinage d'un virage (sommet à l'échantillon i) : là où la vitesse possible commence à baisser avant
+// le virage. On part de la vitesse la plus basse près du sommet et on remonte tant que la vitesse monte.
+function pointDeFreinage(circuit, trajectoire, i, fenetre) {
+  const n = circuit.nb, vit = trajectoire.vitesse;
+  let j = i;
+  for (let d = -fenetre; d <= fenetre; d++) if (vit[(i + d + n) % n] < vit[j]) j = (i + d + n) % n;
+  for (let k = 0; k < n && vit[(j - 1 + n) % n] > vit[j]; k++) j = (j - 1 + n) % n;
+  return circuit.s[j];
 }
 
 // le meilleur tour d'un pilote seul, estimé sans le simuler : la vitesse de la carte, à son rythme dans les virages
