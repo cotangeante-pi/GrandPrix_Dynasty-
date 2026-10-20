@@ -25,3 +25,7 @@ ORDRES :
 Commit « Tour 11 : les IA doublent » seulement si `python3 tests/lancer.py` passe. Si 3 n'est pas atteint, commite 1, 2 et 4 verts, laisse IA_DEPASSEMENT à false, et donne les chiffres. Compte rendu dans rapports/tour-11-compte-rendu.md, puis « Réévalue. » à session-76.
 
 Pour le propriétaire : l'aspiration est maintenant dans la physique (35 % de traînée en moins collé derrière une voiture, jusqu'à 50 m). Il la sentira à l'étape 5.
+
+AJOUT (20h20, demande du propriétaire : « le problème c'est que je me commande pas ») — ordre 0, à faire EN PREMIER :
+0. `?ia=N&joueur=1` : le joueur conduit au clavier au milieu de N IA (il part dernier), caméra et bandeau sur lui, les IA le voient et le touchent comme les autres. Pas de feux, de classement ni de podium (étape 5).
+   Fini quand : ecrans.py ?course=5&ia=9&joueur=1&circuit=technique, ↑ quelques secondes : console vide, joueur et IA avancent, capture joueur-ia.png ; test moteur : une IA évite ou s'arrête derrière une voiture joueur arrêtée, sans choc > 5 m/s. Commit à part « Tour 11 : jouer contre les IA ».
