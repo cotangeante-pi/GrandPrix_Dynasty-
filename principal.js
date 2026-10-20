@@ -18,7 +18,9 @@ const JEU = {
   plateau: null,        // avec ?ia=N : la course entre IA (creerCourseIA) ; JEU.joueur et JEU.course sont ceux de la voiture suivie
   modeles: [],          // avec ?ia=N : le modèle 3D de chaque IA
   suivie: 0,            // avec ?ia=N : la voiture que suit la caméra (Tab : la suivante)
-  trajectoire: null,    // la trajectoire idéale de l'IA sur ce circuit (ia.js), calculée seulement avec ?ia=1, en fond
+  trajectoire: null,    // la trajectoire idéale de ce circuit (ia.js), calculée seulement avec ?ia=…, en fond
+  carte: null,          // la carte du circuit pour les pilotes IA (carteDepuis), quand la trajectoire est prête
+  pilote: null,         // ?ia=1 : le pilote IA qui conduit la voiture du joueur (ia.js)
   calculTrajectoire: null,   // le suivi de ce calcul (calculerEnFond)
   pas: 0,               // le nombre de pas de physique faits (pour vérifier la pause)
   apresArrivee: 0,      // s depuis l'arrivée
@@ -49,11 +51,12 @@ function suivreSuivante() {
 
 function lancerCourse(nbTours) {
   if (JEU.ia >= 2) {
-    JEU.plateau = creerCourseIA(CIRCUIT, JEU.ia, nbTours, Number(PARAMETRES.get('graine')) || 1, JEU.trajectoire);
+    JEU.plateau = creerCourseIA(CIRCUIT, JEU.ia, nbTours, Number(PARAMETRES.get('graine')) || 1, JEU.carte);
     suivre(0);
   } else {
     JEU.course = creerCourse(CIRCUIT, nbTours);
     placerAuDepart(JEU.joueur, CIRCUIT);
+    if (JEU.carte) JEU.pilote = creerPilote(JEU.carte);
   }
   JEU.apresArrivee = 0;
   JEU.arretApres = null;
@@ -144,7 +147,7 @@ function pasJoueur(pas) {
     appliquerCommandes(v, { gaz: 0, frein: v.u > REGLAGES.ARRET_APRES_ARRIVEE ? 1 : 0, direction: 0 });
     JEU.apresArrivee += pas;
     if (v.u === 0 && JEU.arretApres === null) JEU.arretApres = JEU.apresArrivee;
-  } else if (JEU.ia && permis) appliquerCommandes(v, JEU.trajectoire ? piloteIA(v, CIRCUIT, JEU.trajectoire) : AUCUNE);   // tant que la trajectoire se calcule, elle attend
+  } else if (JEU.ia && permis) appliquerCommandes(v, JEU.pilote ? piloterIA(JEU.pilote, v, [], pas) : AUCUNE);   // tant que la carte se calcule, il attend
   else if (JEU.robot && permis) appliquerCommandes(v, piloteRobot(v, CIRCUIT));
   else lisserCommandes(v, permis ? JEU.cibles : AUCUNE, pas);
   pasVoiture(v, CIRCUIT, pas);
@@ -221,7 +224,9 @@ function demarrerJeu() {
   JEU.ia = Math.max(0, Math.min(REGLAGES.IA_PAGE_MAX, Math.floor(Number(PARAMETRES.get('ia'))) || 0));
   if (JEU.ia) JEU.calculTrajectoire = calculerEnFond(etapesTrajectoire(CIRCUIT), t => {
     JEU.trajectoire = t;
-    if (JEU.plateau) JEU.plateau.trajectoire = t;
+    JEU.carte = carteDepuis(CIRCUIT, t);
+    if (JEU.plateau) donnerCarte(JEU.plateau, JEU.carte);
+    else JEU.pilote = creerPilote(JEU.carte);
   });
   // ?ia=N : un modèle par IA, chacune sa couleur ; sinon, la voiture du joueur
   const couleurs = REGLAGES.COULEURS_IA;

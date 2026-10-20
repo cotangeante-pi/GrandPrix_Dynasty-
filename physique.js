@@ -17,6 +17,7 @@ function creerVoiture(circuit, s = 0, d = 0) {
     chocMax: 0,                       // la plus forte vitesse de choc contre une voiture (m/s, vitesse relative)
     chocs: [],                        // pour chaque contact, la plus forte vitesse de rapprochement (m/s)
     touche: new Set(),                // les voitures touchées au dernier pas
+    aspiration: 0,                    // 0 à 1 : dans le sillage d'une voiture (aspirationVoitures), la traînée baisse
   };
   if (circuit) placerSurPiste(v, circuit, s, d);
   memoriserAvant(v);
@@ -111,7 +112,7 @@ function pasVoiture(v, circuit, dt) {
   if (v.gaz > 0) fx += v.gaz * Math.min(R.FORCE_MOTEUR_MAX, R.PUISSANCE / Math.max(v.u, 1)) * (herbe ? R.GAZ_HERBE : 1);
   // le frein à l'arrêt devient la marche arrière (si on n'accélère pas)
   if (v.frein > 0 && v.u <= 0.5 && v.gaz === 0 && v.u > -R.MARCHE_ARRIERE_MAX) fx -= v.frein * R.FORCE_MARCHE_ARRIERE;
-  const resistance = R.TRAINEE * v.u * v.u + R.ROULEMENT + (herbe ? R.FROTTEMENT_HERBE * Math.abs(v.u) + R.FROTTEMENT_HERBE_CARRE * v.u * v.u : 0)
+  const resistance = R.TRAINEE * (1 - R.ASPIRATION_MAX * v.aspiration) * v.u * v.u + R.ROULEMENT + (herbe ? R.FROTTEMENT_HERBE * Math.abs(v.u) + R.FROTTEMENT_HERBE_CARRE * v.u * v.u : 0)
     + (avance ? v.frein * R.ADHERENCE_FREIN * (herbe ? R.ADHERENCE_HERBE : 1) * fz : 0);
 
   if (Math.abs(v.u) < R.VITESSE_CINEMATIQUE) {
@@ -191,6 +192,23 @@ function contactPiste(v, circuit) {
   }
   v.piste = p;
   v.surHerbe = Math.abs(p.d) > circuit.largeur / 2 + R.MARGE_HERBE;
+}
+
+// L'aspiration : derrière une voiture, dans son sillage (à moins de ASPIRATION_DISTANCE devant, à moins de
+// ASPIRATION_LARGEUR de son axe), l'air est déjà poussé : la traînée baisse, d'autant plus qu'on est près.
+// À appeler avant le pas des voitures ; v.aspiration va de 0 (air libre) à 1 (collé derrière).
+function aspirationVoitures(voitures) {
+  const R = REGLAGES;
+  for (const v of voitures) {
+    const c = Math.cos(v.cap), s = Math.sin(v.cap);
+    let a = 0;
+    for (const w of voitures) {
+      if (w === v) continue;
+      const dx = w.x - v.x, dz = w.z - v.z, avant = c * dx + s * dz, cote = Math.abs(-s * dx + c * dz);
+      if (avant > R.LONGUEUR_VOITURE && avant < R.ASPIRATION_DISTANCE && cote < R.ASPIRATION_LARGEUR) a = Math.max(a, 1 - avant / R.ASPIRATION_DISTANCE);
+    }
+    v.aspiration = a;
+  }
 }
 
 // Les contacts entre voitures, après le pas de chacune. Chaque voiture est un rectangle LONGUEUR_VOITURE ×

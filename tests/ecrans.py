@@ -165,9 +165,11 @@ def course_ia(pg, titre):
     L.append(f"  (?ia=1 : trajectoire calculée en {calcul['tranches']} tranches, la plus longue {calcul['plusLongue']:.0f} ms, en {(calcul['fin'] - calcul['debut']) / 1000:.1f} s ; tâches de plus de 50 ms dans la page : {sorted(round(x) for x in longues)[-6:]} ms)")
     t(f'{titre} : le calcul de la trajectoire ne bloque jamais la page plus de 300 ms d’affilée', calcul['tranches'] > 10 and calcul['plusLongue'] < 300, str(calcul))
     tour = pg.evaluate('''() => { const c = creerCourse(CIRCUIT, 5), v = creerVoiture(CIRCUIT); placerAuDepart(v, CIRCUIT);
-      for (let k = 0; k < 600 * 120 && c.etat !== 'finie'; k++) { appliquerCommandes(v, courseAutorise(c) ? piloteIA(v, CIRCUIT, JEU.trajectoire) : { gaz: 0, frein: 0, direction: 0 }); pasVoiture(v, CIRCUIT, 1 / 120); majCourse(c, v, 1 / 120); }
+      const pilote = creerPilote(JEU.carte);
+      for (let k = 0; k < 600 * 120 && c.etat !== 'finie'; k++) { appliquerCommandes(v, courseAutorise(c) ? piloterIA(pilote, v, [], 1 / 120) : { gaz: 0, frein: 0, direction: 0 }); pasVoiture(v, CIRCUIT, 1 / 120); majCourse(c, v, 1 / 120); }
       return c.meilleurTour; }''')
-    t(f'{titre} : la trajectoire calculée en fond est la même (meilleur tour 54,43 s comme dans test.html)', tour is not None and abs(tour - 54.43) < 0.006, str(tour))
+    t(f'{titre} : la carte calculée en fond est la même (le pilote neutre seul fait le même meilleur tour que dans test.html, 55,10 s)', tour is not None and abs(tour - 55.10) < 0.006, str(tour))
+    t(f'{titre} : le pilote IA de ?ia=1 est prêt', pg.evaluate('() => JEU.pilote !== null && JEU.carte !== null'))
     pg.evaluate('() => { JEU.course.compte = 0.01; }')
     t(f'{titre} : l’IA part après le compte à rebours', attendre(pg, '() => JEU.course.etat === "course" && JEU.joueur.u > 1', None, 20000), pg.evaluate('() => JEU.course.etat'))
     pg.evaluate('() => BOUCLE.simuler(75)')
@@ -178,7 +180,7 @@ def course_ia(pg, titre):
 def course_ia10(pg, titre):
     # 10 IA dans la page : chacune sa couleur, la caméra en suit une, Tab passe à la suivante
     t(f'{titre} : 10 IA en course, 10 modèles de couleurs différentes', pg.evaluate('() => JEU.plateau.pilotes.length === 10 && JEU.modeles.length === 10 && new Set(JEU.modeles.map(m => m.couleur)).size === 10'))
-    t(f'{titre} : la trajectoire se calcule en fond', attendre(pg, '() => JEU.plateau.trajectoire !== null', None, 120000))
+    t(f'{titre} : la carte se calcule en fond, puis chaque IA reçoit son pilote', attendre(pg, '() => JEU.plateau.carte !== null && JEU.plateau.pilotes.every(p => p.pilote !== null)', None, 120000))
     pg.evaluate('() => { for (const p of JEU.plateau.pilotes) p.course.compte = 0.01; }')
     t(f'{titre} : les 10 partent après le compte à rebours', attendre(pg, '() => JEU.plateau.pilotes.every(p => p.v.u > 1)', None, 30000), pg.evaluate('() => JEU.plateau.pilotes.map(p => p.v.u.toFixed(1)).join(" ")'))
     pg.evaluate('() => BOUCLE.simuler(30)')

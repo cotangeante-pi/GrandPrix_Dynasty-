@@ -1,12 +1,12 @@
 // Une course entre IA, en calcul pur (sans Three.js) : la grille, toutes les voitures, leurs contacts.
-// Chaque IA ne voit que la piste, sa voiture, et la voiture la plus proche devant elle (voitureDevant).
+// Chaque IA ne voit que la piste, sa voiture, et les voitures dans son champ de vision (voituresVues).
 // Sert aux tests (simulerCourse, sans affichage) et à la page (?ia=N : creerCourseIA, puis pasCourseIA à chaque pas).
 
-// la trajectoire de chaque circuit, calculée une seule fois
-const TRAJECTOIRES = new WeakMap();
-function trajectoireDe(circuit) {
-  if (!TRAJECTOIRES.has(circuit)) TRAJECTOIRES.set(circuit, calculerTrajectoire(circuit));
-  return TRAJECTOIRES.get(circuit);
+// la carte de chaque circuit (ia.js), calculée une seule fois
+const CARTES = new WeakMap();
+function carteDe(circuit) {
+  if (!CARTES.has(circuit)) CARTES.set(circuit, carteDepuis(circuit, calculerTrajectoire(circuit)));
+  return CARTES.get(circuit);
 }
 
 // les places de la grille, de la pole à la dernière : { s, d }, deux files décalées derrière la ligne
@@ -16,28 +16,28 @@ function placesGrille(circuit, nb) {
   return places;
 }
 
-// ce que le pilote de v voit devant lui : la voiture la plus proche dans son cône de vision (IA_VISION_ANGLE,
-// IA_VISION_DISTANCE) ou dans son couloir (IA_VISION_COULOIR), avec sa distance (de centre à centre) et sa vitesse dans le sens de v ; null s'il n'y en a pas
-function voitureDevant(v, voitures) {
-  const R = REGLAGES, c = Math.cos(v.cap), s = Math.sin(v.cap), tanAngle = Math.tan(R.IA_VISION_ANGLE);
-  let meilleure = null, dMin = R.IA_VISION_DISTANCE;
+// ce que le pilote de v voit : les voitures dans son cône de vision devant (IA_VISION_ANGLE, IA_VISION_DISTANCE),
+// juste devant dans son couloir (IA_VISION_COULOIR), et à côté de lui (IA_VISION_COTE, ses rétroviseurs).
+// Pour chacune : où elle est sur la piste (s, d) et sa vitesse le long de la piste. Rien de ce qu'il ne verrait pas.
+function voituresVues(v, voitures) {
+  const R = REGLAGES, c = Math.cos(v.cap), s = Math.sin(v.cap), tanAngle = Math.tan(R.IA_VISION_ANGLE), vues = [];
   for (const w of voitures) {
-    if (w === v) continue;
-    const dx = w.x - v.x, dz = w.z - v.z, avant = c * dx + s * dz, cote = -s * dx + c * dz;
-    // dans le cône, ou juste devant dans son couloir (une voiture presque à côté qui se rabat sur sa trajectoire)
-    if (avant <= 0 || (Math.abs(cote) > avant * tanAngle && Math.abs(cote) > R.IA_VISION_COULOIR)) continue;
-    const d = Math.hypot(dx, dz);
-    if (d < dMin) { dMin = d; meilleure = w; }
+    if (w === v || !w.piste) continue;
+    const dx = w.x - v.x, dz = w.z - v.z, avant = c * dx + s * dz, cote = Math.abs(-s * dx + c * dz);
+    const aCote = Math.abs(avant) <= R.IA_VISION_COTE[0] && cote <= R.IA_VISION_COTE[1];
+    const devant = avant > 0 && Math.hypot(dx, dz) <= R.IA_VISION_DISTANCE && (cote <= avant * tanAngle || cote <= R.IA_VISION_COULOIR);
+    if (!aCote && !devant) continue;
+    const cw = Math.cos(w.cap), sw = Math.sin(w.cap);
+    const vx = cw * w.u - sw * w.v, vz = sw * w.u + cw * w.v;
+    vues.push({ s: w.piste.s, d: w.piste.d, vitesse: vx * w.piste.nz - vz * w.piste.nx });   // la tangente : (nz, -nx)
   }
-  if (!meilleure) return null;
-  const cw = Math.cos(meilleure.cap), sw = Math.sin(meilleure.cap);
-  const vx = cw * meilleure.u - sw * meilleure.v, vz = sw * meilleure.u + cw * meilleure.v;
-  return { distance: dMin, vitesse: vx * c + vz * s };
+  return vues;
 }
 
-// une course entre nb IA : chacune a sa voiture, sa course (course.js) et son rythme, tiré avec la graine.
-// trajectoire : celle du circuit ; la page la passe à null tant qu'elle se calcule en fond (les IA attendent)
-function creerCourseIA(circuit, nb, nbTours, graine, trajectoire = trajectoireDe(circuit)) {
+// une course entre nb IA : chacune a sa voiture, sa course (course.js), son rythme et son pilote (sa façon de
+// piloter), tirés avec la graine. carte : celle du circuit ; la page la passe à null tant qu'elle se calcule en
+// fond (les IA attendent sur la grille), puis appelle donnerCarte.
+function creerCourseIA(circuit, nb, nbTours, graine, carte = carteDe(circuit)) {
   const R = REGLAGES;
   ALEATOIRE.semer(graine);
   const pilotes = placesGrille(circuit, nb).map((place, k) => {
@@ -45,11 +45,25 @@ function creerCourseIA(circuit, nb, nbTours, graine, trajectoire = trajectoireDe
     return {
       numero: k + 1, v, course: creerCourse(circuit, nbTours),
       rythme: R.IA_RYTHME[0] + hasard() * (R.IA_RYTHME[1] - R.IA_RYTHME[0]),
-      herbe: 0, arrivee: null, place: null,
+      pilote: null, herbe: 0, arrivee: null, place: null,
     };
   });
   ALEATOIRE.semer();
-  return { circuit, trajectoire, pilotes, temps: 0, arrives: 0 };
+  const e = { circuit, carte: null, graine, nbTours, pilotes, temps: 0, arrives: 0 };
+  if (carte) donnerCarte(e, carte);
+  return e;
+}
+
+// la carte est prête : chaque IA reçoit son pilote, sa façon de piloter tirée avec la graine
+function donnerCarte(e, carte) {
+  const R = REGLAGES;
+  e.carte = carte;
+  ALEATOIRE.semer(e.graine + R.GRAINE_STYLES);
+  e.pilotes.forEach((p, k) => {
+    p.pilote = creerPilote(carte, p.rythme, tirerStyle(carte, e.nbTours + 2), R.IA_PERIODE_DECISION * k / e.pilotes.length);
+    p.pilote.grille = p.v.piste.d;   // il part dans sa file
+  });
+  ALEATOIRE.semer();
 }
 
 const COMMANDES_AUCUNE = { gaz: 0, frein: 0, direction: 0 };
@@ -59,8 +73,9 @@ const COMMANDES_AUCUNE = { gaz: 0, frein: 0, direction: 0 };
 function pasCourseIA(e, dt) {
   const enCourse = e.pilotes.filter(p => p.arrivee === null);
   const voitures = enCourse.map(p => p.v);
-  const commandes = enCourse.map(p => courseAutorise(p.course) && e.trajectoire
-    ? piloteIA(p.v, e.circuit, e.trajectoire, voitureDevant(p.v, voitures), p.rythme) : COMMANDES_AUCUNE);
+  const commandes = enCourse.map(p => courseAutorise(p.course) && p.pilote
+    ? piloterIA(p.pilote, p.v, voituresVues(p.v, voitures), dt) : COMMANDES_AUCUNE);
+  aspirationVoitures(voitures);
   enCourse.forEach((p, k) => { appliquerCommandes(p.v, commandes[k]); pasVoiture(p.v, e.circuit, dt); });
   contactsVoitures(voitures, e.circuit);
   e.temps += dt;

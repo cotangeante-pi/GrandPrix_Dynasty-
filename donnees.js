@@ -45,6 +45,10 @@ const REGLAGES = {
   REBOND_BARRIERE: 0.3,         // part de la vitesse vers la barrière qui repart dans l'autre sens
   LONGUEUR_VOITURE: 5.5,        // m : le rectangle de chaque voiture, pour les contacts entre voitures
   LARGEUR_VOITURE: 2,
+  // l'aspiration : derrière une autre voiture, la traînée baisse (jusqu'à ASPIRATION_MAX collé derrière)
+  ASPIRATION_MAX: 0.35,
+  ASPIRATION_DISTANCE: 50,      // m : le sillage s'étend jusque-là derrière une voiture…
+  ASPIRATION_LARGEUR: 2.5,      // m : … à moins de ça de son axe
   REBOND_VOITURE: 0.2,          // choc entre voitures : part de la vitesse de rapprochement qui repart (0 = elles restent ensemble)
   FROTTEMENT_BARRIERE: 0.3,     // part de la vitesse le long de la barrière perdue au choc
   RAYON_ROUE: 0.33,
@@ -113,16 +117,56 @@ const REGLAGES = {
   IA_ANTICIPATION: 0.15,        // s : elle prend la vitesse conseillée là où elle sera dans ce temps
   IA_GAIN_GAZ: 1,               // gaz par m/s de retard sur la vitesse conseillée
   IA_GAIN_FREIN: 1,             // frein par m/s d'avance
-  IA_ECART_RATTRAPAGE: 2.5,      // m : plus loin que ça de sa trajectoire, elle ralentit pour pouvoir prendre le virage qui l'y ramène
+  // le pilote qui choisit sa ligne (ia.js, piloterIA)
+  IA_PERIODE_DECISION: 0.15,    // s : il choisit sa ligne à ce rythme
+  IA_HORIZON: 200,              // m : la longueur des lignes qu'il compare
+  IA_LIGNE_PAS: 4,              // m entre deux points d'une ligne
+  IA_LIGNE_DEMI_BASE: 2,        // la courbure d'une ligne est mesurée sur ±2 points (±8 m)
+  IA_TRANSITION_MIN: 20,        // m : de là où il est jusqu'à la ligne voulue, au moins cette distance…
+  IA_TRANSITION_TEMPS: 0.7,     // s : … ou la distance parcourue en ce temps
+  IA_ECART_REPLANIF: 1.5,       // m : une nouvelle ligne part de l'ancienne (là où il en est), sauf s'il en est plus loin que ça
+  IA_MARGE_BORD_MIN: 1,         // m : aucune ligne ne passe plus près du bord
+  IA_DECALAGE_CANDIDAT: 2,      // m : les lignes « intérieur » et « extérieur » sont décalées d'autant
+  IA_CONTINUER: [60, 140],      // m : la ligne « continuer » garde sa place jusque-là, puis rejoint sa ligne rapide
+  IA_VIRAGE_COURBURE: 1 / 300,  // la carte : un virage a un sommet plus serré que ça…
+  IA_VIRAGE_ECART: 40,          // m : … et c'est le plus serré à ±40 m
+  IA_VIRAGE_LARGEUR: 60,        // m : le style d'un pilote change sa ligne à ±60 m du sommet de chaque virage
+  IA_PREDICTION: 3,             // s : il prévoit où seront les voitures qu'il voit jusque-là
+  IA_MARGE_LONG: 2,             // m en plus de la longueur d'une voiture : la ligne passe trop près d'une voiture…
+  IA_MARGE_LAT: 1,              // m en plus de la largeur d'une voiture : … ou trop à côté
+  IA_REFLEXE_COTE: 3.5,         // m : il ne braque pas vers une voiture à côté de lui plus près que ça
+  IA_CEDER: 1,                  // m/s : à côté d'une voiture et un peu en retrait, il roule moins vite qu'elle d'autant
+  IA_PENALITE_VOITURE: 5,       // s ajoutées à la note d'une ligne qui touche une voiture
+  IA_PENALITE_BORD: 0.5,        // s par m² au-delà de IA_MARGE_BORD_MIN
+  IA_PENALITE_FREIN: 0.5,       // s par m/s de trop qu'il ne peut plus perdre à temps
+  IA_PENALITE_SORTIE: 0.8,      // s par m/s qui lui manque au bout de la ligne (ce qu'il perdra après)
+  IA_PENALITE_CHANGEMENT: 0.03, // s : changer d'idée doit valoir la peine
+  IA_DEPART: [150, 350],        // m : au départ, il garde sa file jusque-là, puis rejoint sa ligne avant là
+  IA_DEPASSEMENT: false,        // les lignes « à gauche / à droite de la voiture devant » (pas encore au point : tour 11)
+  IA_DEPASSEMENT_PORTEE: 80,    // m : il cherche à passer une voiture devant lui à moins de ça
+  IA_ECART_DEPASSEMENT: 1.2,    // m entre les deux voitures quand il passe à côté
+  IA_DEPASSEMENT_AVANT: 25,     // m : il est à côté d'elle à partir de là avant elle…
+  IA_DEPASSEMENT_APRES: 30,     // m : … jusqu'à là après elle…
+  IA_DEPASSEMENT_TEMPS: 1.5,    // s : … plus ce qu'elle parcourt en ce temps
+  IA_DEPASSEMENT_RAMPE: 40,     // m pour se décaler, puis pour revenir
+  // la façon de piloter de chaque IA, tirée avec la graine
+  IA_STYLE_APEX: [-5, 5],       // m : point de corde plus tôt (< 0) ou plus tard
+  IA_STYLE_CORDE: [0, 1.5],     // m de largeur de piste qu'il n'utilise pas près des virages (0 = il va d'un bord à l'autre)
+  IA_STYLE_MARGE_BORD: [1.1, 2],// m : marge au bord (petite = prend des risques)
+  IA_STYLE_FREIN: [0.92, 1],    // part du freinage qu'il ose
+  IA_VARIATION_APEX: 2,         // m : d'un tour à l'autre, le point de corde varie de ±2 m…
+  IA_VARIATION_COTE: 0.4,       // m : … et sa place sur la piste de ±0,4 m
   IA_RYTHME: [0.94, 1],         // le rythme de chaque IA (part de la vitesse conseillée), tiré entre ces deux nombres
   IA_VISION_ANGLE: 0.6,         // rad : elle voit les voitures devant elle à ±0,6 rad (±34°) de son axe…
   IA_VISION_DISTANCE: 120,      // m : … et à moins de cette distance
   IA_VISION_COULOIR: 4.5,       // m : … et aussi toute voiture devant elle à moins de ça de son axe (même tout près, sur le côté)
+  IA_VISION_COTE: [8, 7],       // m : … et celles à côté d'elle (dans les rétroviseurs) : à moins de 8 m devant ou derrière, 7 m de côté
 
   // la grille de départ : deux files décalées
   GRILLE_ESPACEMENT: 8,         // m entre deux places qui se suivent (une file sur deux)
   GRILLE_ECART: 3,              // m : chaque file est à cette distance du milieu de la piste
   SIMULATION_TEMPS_MAX: 150,    // s par tour : une course simulée s'arrête là, même si des voitures n'ont pas fini
+  GRAINE_STYLES: 1000,          // les façons de piloter sont tirées avec la graine de la course + ce nombre
   IA_PAGE_MAX: 20,              // ?ia=N : au plus ce nombre d'IA dans la page
   // ?ia=N : la couleur de chaque IA (provisoire : les écuries viendront à l'étape 6)
   COULEURS_IA: [0x1f6fe0, 0xd8262e, 0xf2c230, 0x2fa84f, 0xf07d1a, 0x8e44ad, 0x1abc9c, 0xecf0f1, 0x34495e, 0xe84393],
