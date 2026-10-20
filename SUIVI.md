@@ -13,7 +13,7 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 
 ## Tour en cours
 
-**Tour 12 — étape 4c** (lancé le 2026-10-20 à 8h55) : règle de priorité, grille qualifiée, dépassements en marche, deux tests trop pressés. Rapport : rapports/tour-12-rapport.md. Tour 11 vérifié : 51/100 (jouer contre les IA : `?ia=9&joueur=1` ; calcul 2–3 s ; dépassements seulement sur la branche tour-11-attaque, trop de chocs).
+**Tour 13 — étape 4c** (lancé le 2026-10-20 à 18h35) : zones d'attaque, page de 30 courses (tests/courses.html), dépassements sur main. Rapport : rapports/tour-13-rapport.md. Tour 12 vérifié : 52/100 (grille qualifiée, tests moins pressés ; dépassements encore sur la branche tour-12-attaque, 2–4 chocs).
 
 Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤ 50 s sur Test) → 4b (plusieurs IA sans se toucher) → 4c (dépasser, défendre) → 4d (caractères, niveaux, page des 50 courses).
 
@@ -32,6 +32,7 @@ Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤
 | 9 | bc85623 | 49 | 12 | 10 | 1 | 8 | 8 | 9 | 1 |
 | 10 | 7b2b1bf | 50 | 12 | 11 | 1 | 8 | 8 | 9 | 1 |
 | 11 | eebcb25 | 51 | 12 | 12 | 1 | 8 | 8 | 9 | 1 |
+| 12 | 2c13e30 | 52 | 12 | 13 | 1 | 8 | 8 | 9 | 1 |
 
 ## À essayer par le propriétaire
 
@@ -112,6 +113,7 @@ Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤
 | 2026-10-18 | 1–2 | Tour 3 : la voiture roule, 121/121 tests, 43a3fa8, robot 66,55 s, nom Grand Prix Dynasty dans le jeu |
 | 2026-10-18 | 3 | Tour 5 : chrono, tours, secteurs, ✂ +5 s, écran de choix, pause, écran de fin, records ; 194/194, 44b3624 |
 | 2026-10-18 | 3 | Tour 6 : secteurs du tour en cours, arrêt après l'arrivée, sons 3-2-1-GO et arrivée ; 200/200, e59f5a2. Fin de session (20h20). |
+| 2026-10-20 | 4c | Tour 12 (interrompu par la veille du Mac jusqu'à 18h) : grille qualifiée, tests moins pressés, 4b « au plus 1 choc > 5 m/s par course » ; 129/129 + ecrans vert chez le Chef, 2c13e30, 52/100. Dépassements sur la branche tour-12-attaque : duel OK, 2–4 chocs sur 10 courses |
 | 2026-10-19/20 | 4c | Tour 11 : ?ia=N&joueur=1 (le propriétaire conduit au milieu des IA), calcul 2–3 s ; attaque sur une branche à part (44–65 dépassements mais 7–28 chocs) ; main 128/128, ecrans 157/159 chez le Chef (2 tests trop pressés), 159/159 chez le Codeur ; 51/100. Un Chrome de test orphelin (5 h 38) tué à 2h34 |
 | 2026-10-19 | 4 | Tour 10 : plus de rail, chaque IA choisit sa ligne (styles, variation), aspiration dans la physique ; 126/126 + 148/148, 7b2b1bf, vérifié (50/100). Dépassements pas encore en marche |
 | 2026-10-19 | 4b | Tour 9 : contacts entre voitures, simulation.js, rythmes, ?ia=N ; 124/124 + 147/147, 37196cd + bc85623, vérifié (49/100). 10 courses propres mais procession : l'ordre d'arrivée = la grille |
