@@ -15,7 +15,7 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 
 ## Tour en cours
 
-**Tour 13 — étape 4c** (lancé le 2026-10-20 à 18h35) : zones d'attaque, page de 30 courses (tests/courses.html), dépassements sur main. Rapport : rapports/tour-13-rapport.md. Tour 12 vérifié : 52/100 (grille qualifiée, tests moins pressés ; dépassements encore sur la branche tour-12-attaque, 2–4 chocs).
+**Tour 14 — étape 4c** (lancé à 18h45, fin 21h) : courses.html sur main, une seule façon de doubler (l'attaque), jamais à deux de front dans un virage lent, réparer le duel. Rapport : rapports/tour-14-rapport.md. Tour 13 : pas vert, rien fusionné (branche tour-13 : 88–96 dépassements mais 11–16 chocs, herbe dans l'épingle).
 
 Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤ 50 s sur Test) → 4b (plusieurs IA sans se toucher) → 4c (dépasser, défendre) → 4d (caractères, niveaux, page des 50 courses).
 
@@ -115,6 +115,7 @@ Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤
 | 2026-10-18 | 1–2 | Tour 3 : la voiture roule, 121/121 tests, 43a3fa8, robot 66,55 s, nom Grand Prix Dynasty dans le jeu |
 | 2026-10-18 | 3 | Tour 5 : chrono, tours, secteurs, ✂ +5 s, écran de choix, pause, écran de fin, records ; 194/194, 44b3624 |
 | 2026-10-18 | 3 | Tour 6 : secteurs du tour en cours, arrêt après l'arrivée, sons 3-2-1-GO et arrivée ; 200/200, e59f5a2. Fin de session (20h20). |
+| 2026-10-20 | 4c | Tour 13 : pas vert (branche tour-13) : tests/courses.html (30 courses), zones d'attaque ; 88–96 dépassements, 11–16 chocs > 5 m/s, duel cassé. Main inchangé |
 | 2026-10-20 | 4c | Tour 12 (interrompu par la veille du Mac jusqu'à 18h) : grille qualifiée, tests moins pressés, 4b « au plus 1 choc > 5 m/s par course » ; 129/129 + ecrans vert chez le Chef, 2c13e30, 52/100. Dépassements sur la branche tour-12-attaque : duel OK, 2–4 chocs sur 10 courses |
 | 2026-10-19/20 | 4c | Tour 11 : ?ia=N&joueur=1 (le propriétaire conduit au milieu des IA), calcul 2–3 s ; attaque sur une branche à part (44–65 dépassements mais 7–28 chocs) ; main 128/128, ecrans 157/159 chez le Chef (2 tests trop pressés), 159/159 chez le Codeur ; 51/100. Un Chrome de test orphelin (5 h 38) tué à 2h34 |
 | 2026-10-19 | 4 | Tour 10 : plus de rail, chaque IA choisit sa ligne (styles, variation), aspiration dans la physique ; 126/126 + 148/148, 7b2b1bf, vérifié (50/100). Dépassements pas encore en marche |
