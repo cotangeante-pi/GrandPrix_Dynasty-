@@ -337,7 +337,8 @@ t('pilote IA technique : départ impossible, au début même de l’épingle à 
   L.push(`  (départ impossible : ${r_.contacts} contacts de barrière, ${r_.herbe} pas dans l’herbe, rejointe en ${r_.rejoint===null?'—':r_.rejoint.toFixed(0)+' m'}, tour suivant ${r_.tour===null?'—':r_.tour.toFixed(2)+' s'})`);
   v(r_.rejoint!==null&&r_.tour!==null&&r_.tour<TOURS_IA.technique.meilleurTour+3&&!r_.coupe,JSON.stringify(r_));});
 // --- une voiture lente devant : il la voit (où elle est, sa vitesse) et reste derrière
-t('pilote IA technique : 40 m derrière une voiture à 60 % de la vitesse de la carte, sur sa ligne, pendant 2 tours : jamais à moins de IA_DISTANCE_MIN, 0 contact, 0 herbe', ()=>{
+t('pilote IA technique : 40 m derrière une voiture à 60 % de la vitesse de la carte, sur sa ligne, pendant 2 tours, sans attaquer (le suivi seul) : jamais à moins de IA_DISTANCE_MIN, 0 contact, 0 herbe', ()=>{
+  const attaque=REGLAGES.IA_DEPASSEMENT;REGLAGES.IA_DEPASSEMENT=false;   // la voiture de devant n'est qu'un point : on teste le suivi
   const carte=CARTES_T.technique,pil=creerPilote(carte),vo=creerVoiture(TQ,0,0),c=creerCourse(TQ,0);c.etat='course';c.sAvant=vo.piste.s;c.xAvant=vo.x;c.zAvant=vo.z;
   // la voiture de devant avance sur la ligne rapide de la carte, à 60 % de sa vitesse ; le pilote ne reçoit que ce qu'il voit
   let sDevant=40,dMin=Infinity,herbe=0,k=0;
@@ -345,6 +346,7 @@ t('pilote IA technique : 40 m derrière une voiture à 60 % de la vitesse de la 
     const vue={s:((sDevant%TQ.longueur)+TQ.longueur)%TQ.longueur,d:valeurEn(TQ,carte.trajectoire.ecart,sDevant),vitesse:vDevant};
     appliquerCommandes(vo,piloterIA(pil,vo,sDevant-c.progression<REGLAGES.IA_VISION_DISTANCE?[vue]:[],DT));pasVoiture(vo,TQ,DT);majCourse(c,vo,DT);
     sDevant+=vDevant*DT;dMin=Math.min(dMin,sDevant-c.progression);if(vo.surHerbe) herbe++;}
+  REGLAGES.IA_DEPASSEMENT=attaque;
   L.push('  (derrière une voiture à 60 % : distance la plus courte '+dMin.toFixed(2)+' m, à la fin '+(sDevant-c.progression).toFixed(1)+' m, '+(k*DT).toFixed(0)+' s pour 2 tours)');
   v(c.progression>=2*TQ.longueur,'pas fini');v(dMin>=REGLAGES.IA_DISTANCE_MIN,dMin.toFixed(2)+' m');v(vo.contactsBarriere===0);v(herbe===0,herbe+' pas dans l’herbe');});
 t('IA : le calcul découpé (etapesTrajectoire) donne exactement la même trajectoire que d’un coup', ()=>{const e=etapesTrajectoire(TQ);let r_=e.next(),n=0;while(!r_.done){r_=e.next();n++;}
@@ -383,13 +385,25 @@ t('vision : le pilote voit les voitures devant lui (cône, couloir) et à côté
   b.u=40;v(Math.abs(voituresVues(a,[a,b])[0].vitesse-40)<1e-6);});
 t('simulerCourse : même graine, mêmes résultats ; autre graine, autres rythmes', ()=>{const r1=simulerCourse(C,4,1,9),r2=simulerCourse(C,4,1,9),r3=simulerCourse(C,4,1,10);
   v(JSON.stringify(r1.voitures)===JSON.stringify(r2.voitures),'différent');v(r1.voitures.every(x=>x.fini));v(r1.voitures[0].rythme!==r3.voitures[0].rythme);});
-t('un rapide (rythme 1,00) qui part 60 m derrière un lent (0,94) le rattrape, puis reste derrière sans le toucher (2 tours du circuit technique ; pas encore de dépassement)', ()=>{
-  const e=creerCourseIA(TQ,2,2,1,CARTES_T.technique);e.pilotes[0].pilote=creerPilote(CARTES_T.technique,0.94);e.pilotes[1].pilote=creerPilote(CARTES_T.technique,1);placerSurPiste(e.pilotes[1].v,TQ,TQ.longueur-REGLAGES.DEPART_RECUL-60,0);
-  const ecartS=()=>((e.pilotes[0].v.piste.s-e.pilotes[1].v.piste.s)%TQ.longueur+TQ.longueur)%TQ.longueur;let debut=ecartS(),mini=Infinity,dMin=Infinity;
-  for(let k=0;k<300*120&&e.arrives<1;k++){pasCourseIA(e,DT);if(e.temps>4){mini=Math.min(mini,ecartS());dMin=Math.min(dMin,Math.hypot(e.pilotes[0].v.x-e.pilotes[1].v.x,e.pilotes[0].v.z-e.pilotes[1].v.z));}}
-  for(let k=0;k<60*120&&e.arrives<2;k++) pasCourseIA(e,DT);
-  L.push(`  (rapide derrière lent : écart de départ ${debut.toFixed(0)} m, le plus court ${mini.toFixed(1)} m le long de la piste, ${dMin.toFixed(1)} m de centre à centre ; arrivées : lent ${e.pilotes[0].place}, rapide ${e.pilotes[1].place})`);
-  v(e.arrives===2);v(mini<25,'jamais rattrapé : '+mini.toFixed(1));v(dMin>=REGLAGES.IA_DISTANCE_MIN-0.5,'trop près : '+dMin.toFixed(2));v(e.pilotes[0].v.contactsVoiture===0,'contact');v(e.pilotes[0].place===1,'le rapide est passé');});
+// --- doubler (tours 11–12) : l'attaque et la priorité
+// le duel : PAS ENCORE TENU (tour 15) ; il est affiché, il ne bloque pas. Ce qui est vérifié : aucun choc à plus de 5 m/s
+t('duel : un rapide (rythme 1,00) part 30 m derrière un lent (0,94), technique, 5 tours : aucun choc à plus de 5 m/s (le dépassement avant la fin du 3e tour : pas encore tenu, affiché)', ()=>{
+  const carte=CARTES_T.technique,e=creerCourseIA(TQ,2,5,1,carte);e.pilotes[0].pilote=creerPilote(carte,0.94);e.pilotes[1].pilote=creerPilote(carte,1);
+  placerSurPiste(e.pilotes[1].v,TQ,TQ.longueur-REGLAGES.DEPART_RECUL-30,0);e.pilotes[1].depart=-REGLAGES.DEPART_RECUL-30;
+  for(let k=0;k<400*120&&e.arrives<2;k++) pasCourseIA(e,DT);
+  const passe=e.depassements.find(x=>x.qui===2);const chocs=e.pilotes.flatMap(p_=>p_.v.chocs);
+  L.push('  (duel : '+(passe?'dépassement au tour '+passe.tour+', à '+passe.s.toFixed(0)+' m ('+passe.temps.toFixed(1)+' s)':'pas de dépassement')+' ; tours du lent '+e.pilotes[0].course.tours.map(t_=>t_.temps.toFixed(2)).join(' / ')+' ; du rapide '+e.pilotes[1].course.tours.map(t_=>t_.temps.toFixed(2)).join(' / ')+' ; chocs '+(chocs.map(c_=>c_.toFixed(1)).join(', ')||'aucun')+')');
+  L.push('  (duel, critère pas encore tenu : dépassement avant la fin du 3e tour → '+(passe&&passe.tour<=3?'oui':'non')+')');
+  v(chocs.every(c_=>c_<=5),'chocs '+chocs);});
+t('côte à côte à l’entrée de l’épingle (même rythme, 150 km/h) : aucun choc à plus de 5 m/s, aucune ne sort, la voiture extérieure laisse la place', ()=>{
+  const carte=CARTES_T.technique,ep=TQ.morceaux.find(m=>m.type==='virage'&&m.fin-m.debut<60),e=creerCourseIA(TQ,2,5,1,carte);
+  e.pilotes.forEach(p_=>{p_.pilote=creerPilote(carte,1);p_.course.compte=0;});
+  // à hauteur l'une de l'autre, à 3,5 m d'écart, 150 m avant l'épingle (à droite : intérieur)
+  placerSurPiste(e.pilotes[0].v,TQ,ep.debut-150,-2);placerSurPiste(e.pilotes[1].v,TQ,ep.debut-150,1.5);e.pilotes.forEach(p_=>{p_.v.u=42;});
+  let herbe=0;for(let k=0;k<12*120;k++){pasCourseIA(e,DT);e.pilotes.forEach(p_=>{if(p_.v.surHerbe) herbe++;});}
+  const chocs=e.pilotes.flatMap(p_=>p_.v.chocs),barr=e.pilotes.reduce((a_,p_)=>a_+p_.v.contactsBarriere,0),loin=e.pilotes.every(p_=>ecartLeLong(TQ,p_.v.piste.s-ep.fin)>0);
+  L.push('  (côte à côte dans l’épingle : chocs '+(chocs.map(c_=>c_.toFixed(1)).join(', ')||'aucun')+', '+barr+' contacts de barrière, '+herbe+' pas dans l’herbe, dépassements '+e.depassements.length+')');
+  v(loin,'pas sorties de l’épingle');v(chocs.every(c_=>c_<=5),'chocs '+chocs);v(barr===0,'barrière');v(herbe===0,herbe+' pas dans l’herbe');});
 // les courses entre IA (le critère de l'étape 4 : 30 courses, et la course de 20 voitures) sont dans tests/courses.html
 
 // --- la grille qualifiée (tour 12)

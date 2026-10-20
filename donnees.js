@@ -131,10 +131,24 @@ const REGLAGES = {
   IA_VIRAGE_COURBURE: 1 / 300,  // la carte : un virage a un sommet plus serré que ça…
   IA_VIRAGE_ECART: 40,          // m : … et c'est le plus serré à ±40 m
   IA_VIRAGE_LARGEUR: 60,        // m : le style d'un pilote change sa ligne à ±60 m du sommet de chaque virage
+  IA_PREVISION_PROCHE: 15,      // m : une voiture plus près que ça (devant, à côté) pourrait aussi garder sa place sur la piste
   IA_PREDICTION: 3,             // s : il prévoit où seront les voitures qu'il voit jusque-là
-  IA_MARGE_LONG: 2,             // m en plus de la longueur d'une voiture : la ligne passe trop près d'une voiture…
-  IA_MARGE_LAT: 1,              // m en plus de la largeur d'une voiture : … ou trop à côté
-  IA_REFLEXE_COTE: 3.5,         // m : il ne braque pas vers une voiture à côté de lui plus près que ça
+  IA_MARGE_LONG: 4,             // m en plus de la longueur d'une voiture : la ligne passe trop près d'une voiture…
+  IA_MARGE_LAT: 1.5,            // m en plus de la largeur d'une voiture : … ou trop à côté
+  IA_VITESSE_RAPIDE: 50,        // m/s (180 km/h) : au-dessus, l'écart sûr entre deux voitures côte à côte est plus grand…
+  IA_MARGE_LAT_RAPIDE: 2.5,     // m en plus de la largeur d'une voiture (au lieu de IA_MARGE_LAT)
+  IA_PENALITE_HERBE: 1,         // s par point de ligne dans l'herbe, pendant un dépassement
+  IA_DROITE_COURBURE: 1 / 500,  // la carte : la piste est droite là où elle tourne moins que ça…
+  IA_DROITE_ATTAQUE: 150,       // m : une attaque ne démarre qu'avant un virage précédé d'au moins tant de ligne droite
+  IA_FILE_DISTANCE: 30,         // m : hors attaque, une voiture devant lui à moins de ça…
+  IA_FILE_COTE: 6,              // m : … et à moins de ça de côté, il la suit (il reste à la file)
+  IA_VITESSE_VIRAGE_LENT: 36,   // m/s (130 km/h) : un virage lent, la carte y passe moins vite que ça…
+  IA_NEZ_DEVANT: 0.5,           // … au point de freinage, l'attaquant doit y avoir le nez devant (son centre au moins cette part de longueur devant)
+  IA_REFLEXE_COTE: 4.5,         // m : il ne braque pas vers une voiture à côté de lui plus près que ça
+  IA_REFLEXE_TEMPS: 0.6,        // s : … plus ce qu'il gagne sur elle en ce temps, devant lui
+  IA_CEDER_ECART: 1,            // m : coincé à côté d'une voiture (sa ligne empiète d'autant sur la place à laisser), il cède…
+  IA_CEDER_FORT: 4,             // m/s : … en roulant d'autant moins vite qu'elle, tant qu'elle est à côté…
+  IA_CEDER_DUREE_MAX: 4,        // s : … au plus ce temps
   IA_CEDER: 1,                  // m/s : à côté d'une voiture et un peu en retrait, il roule moins vite qu'elle d'autant
   IA_PENALITE_VOITURE: 5,       // s ajoutées à la note d'une ligne qui touche une voiture
   IA_PENALITE_BORD: 0.5,        // s par m² au-delà de IA_MARGE_BORD_MIN
@@ -142,13 +156,25 @@ const REGLAGES = {
   IA_PENALITE_SORTIE: 0.8,      // s par m/s qui lui manque au bout de la ligne (ce qu'il perdra après)
   IA_PENALITE_CHANGEMENT: 0.03, // s : changer d'idée doit valoir la peine
   IA_DEPART: [150, 350],        // m : au départ, il garde sa file jusque-là, puis rejoint sa ligne avant là
-  IA_DEPASSEMENT: false,        // les lignes « à gauche / à droite de la voiture devant » (pas encore au point : tour 11)
-  IA_DEPASSEMENT_PORTEE: 80,    // m : il cherche à passer une voiture devant lui à moins de ça
-  IA_ECART_DEPASSEMENT: 1.2,    // m entre les deux voitures quand il passe à côté
-  IA_DEPASSEMENT_AVANT: 25,     // m : il est à côté d'elle à partir de là avant elle…
-  IA_DEPASSEMENT_APRES: 30,     // m : … jusqu'à là après elle…
-  IA_DEPASSEMENT_TEMPS: 1.5,    // s : … plus ce qu'elle parcourt en ce temps
-  IA_DEPASSEMENT_RAMPE: 40,     // m pour se décaler, puis pour revenir
+  IA_DEPASSEMENT: true,         // les IA attaquent (voir majAttaque)
+  IA_ATTENTE_ATTAQUE: 1.5,      // s : retenue depuis ce temps par la voiture devant, elle l'attaque
+  IA_RETENUE_ECART: 1,          // m/s : retenue = elle voudrait aller au moins ça plus vite
+  IA_ATTAQUE_ECART_TEMPS: 1,    // s : la voiture attaquée s'échappe à plus de ça devant : l'attaque s'arrête
+  IA_DISTANCE_ATTAQUE: 7,       // m : en préparant son attaque, elle se cale à ça derrière (dans le sillage)
+  IA_DECALAGE_ECART: 20,        // m : elle ne se décale que si elle est à moins de ça derrière
+  IA_DECALAGE_DISTANCE: 60,     // m avant le point de freinage, au moins, elle se décale à côté…
+  IA_DECALAGE_TEMPS: 1.2,       // s : … ou la distance parcourue en ce temps
+  IA_RAPPROCHEMENT: 5,          // m/s : … ou s'il arrive au moins ça plus vite qu'elle (au freinage)
+  IA_ATTAQUE_CONTROLE: 40,      // m avant le sommet du virage : l'entrée, où elle doit être à hauteur…
+  IA_ATTAQUE_HAUTEUR: 0.5,      // … à moins de cette part de longueur derrière : elle plonge ; sinon elle abandonne
+  IA_ATTAQUE_FREIN: 1.05,       // en attaque, elle ose cette part du freinage de la marge habituelle (son style : 0,92 à 1)
+  IA_ATTAQUE_APRES_SOMMET: 30,  // m après le sommet du virage, elle revient sur sa ligne
+  IA_PREPARER_DUREE_MAX: 30,    // s : collée derrière sans trouver l'occasion de se décaler, elle renonce
+  IA_ATTAQUE_DUREE_MAX: 10,     // s : décalée depuis plus longtemps sans passer, elle abandonne
+  IA_ATTAQUE_REPOS: 3,          // s avant de réattaquer après une attaque abandonnée
+  IA_DEPASSEMENT_RAMPE: 40,     // m pour revenir sur sa ligne
+  IA_HAUTEUR_LAISSER: 1 / 3,    // une voiture à côté, à hauteur d'au moins ce tiers de longueur : on lui laisse la place…
+  IA_ESPACE_LAISSE: 1.5,        // m : … une largeur de voiture plus ça, jusqu'à la sortie du virage
   // la façon de piloter de chaque IA, tirée avec la graine
   IA_STYLE_APEX: [-5, 5],       // m : point de corde plus tôt (< 0) ou plus tard
   IA_STYLE_CORDE: [0, 1.5],     // m de largeur de piste qu'il n'utilise pas près des virages (0 = il va d'un bord à l'autre)
@@ -176,7 +202,8 @@ const REGLAGES = {
   // derrière une voiture plus lente (sans la dépasser, étape 4a) ; distances d'un centre de voiture à l'autre
   IA_DISTANCE_MIN: 8,           // m : jamais plus près
   IA_DISTANCE_SUIVI: 14,        // m : la distance où elle se cale derrière
-  IA_GAIN_DISTANCE: 0.5,        // m/s de vitesse en plus par m d'écart en trop
+  IA_GAIN_DISTANCE: 1,          // m/s de vitesse en plus par m d'écart en trop, près d'elle…
+  IA_GAIN_DISTANCE_LOIN: 1.5,   // … et loin d'elle (au-delà de deux fois la distance de suivi)
 
   // le dessin du circuit
   LARGEUR_BORD: 0.35,           // la ligne blanche de chaque bord

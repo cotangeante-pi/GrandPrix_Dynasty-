@@ -31,7 +31,8 @@ function voituresVues(v, voitures) {
     if (!aCote && !devant) continue;
     const cw = Math.cos(w.cap), sw = Math.sin(w.cap);
     const vx = cw * w.u - sw * w.v, vz = sw * w.u + cw * w.v;
-    vues.push({ s: w.piste.s, d: w.piste.d, vitesse: vx * w.piste.nz - vz * w.piste.nx });   // la tangente : (nz, -nx)
+    // id : la voiture elle-même, pour la reconnaître d'un instant à l'autre (comme un pilote reconnaît une voiture)
+    vues.push({ id: w, s: w.piste.s, d: w.piste.d, vitesse: vx * w.piste.nz - vz * w.piste.nx });   // la tangente : (nz, -nx)
   }
   return vues;
 }
@@ -55,13 +56,13 @@ function creerCourseIA(circuit, nb, nbTours, graine, carte = carteDe(circuit), a
     };
   });
   ALEATOIRE.semer();
-  const e = { circuit, carte: null, graine, nbTours, pilotes, temps: 0, arrives: 0, grille: null, depassements: [], devant: new Map() };
+  const e = { circuit, carte: null, graine, nbTours, pilotes, temps: 0, arrives: 0, depassements: [], devant: new Map(), grille: null };
   if (carte) donnerCarte(e, carte);
   return e;
 }
 
-// la carte est prête : chaque IA reçoit son pilote, sa façon de piloter tirée avec la graine ; avant, la
-// qualification range la grille (si les IA n'ont pas encore bougé)
+// la carte est prête : chaque IA reçoit son pilote, sa façon de piloter tirée avec la graine ; puis la qualification
+// range la grille (si les IA n'ont pas encore bougé)
 function donnerCarte(e, carte) {
   const R = REGLAGES;
   e.carte = carte;
@@ -162,13 +163,14 @@ function simulerCourse(circuit, nbVoitures, nbTours, graine) {
   for (let k = 0; k < pasMax && e.arrives < nbVoitures; k++) pasCourseIA(e, REGLAGES.PAS_PHYSIQUE);
   return {
     dureeMs: performance.now() - t0,
-    grille: e.grille,
     depassements: e.depassements,
+    grille: e.grille,
     voitures: e.pilotes.map(p => ({
       numero: p.numero, rythme: p.rythme, place: p.place, fini: p.arrivee !== null,
       temps: p.arrivee !== null ? tempsTotal(p.course) : null, meilleurTour: p.course.meilleurTour,
       contactsVoiture: p.v.contactsVoiture, chocMax: p.v.chocMax, chocs: p.v.chocs.slice(), lieuxChocs: p.v.lieuxChocs.slice(),
       contactsBarriere: p.v.contactsBarriere, herbe: p.herbe, coupes: Math.round(p.course.penalites / REGLAGES.PENALITE_COUPE),
+      attaques: p.pilote ? p.pilote.attaques : 0, attaquesReussies: p.pilote ? p.pilote.reussies : 0,
     })),
   };
 }

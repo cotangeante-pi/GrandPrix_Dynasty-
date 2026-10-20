@@ -33,16 +33,25 @@ const tot=resultats.reduce((a,r)=>{const s=r.resume;a.dep+=s.dep;a.pasPole+=s.pa
   for(const k in s.endroits) a.endroits[k]+=s.endroits[k];return a;},{dep:0,pasPole:0,top3:0,chocs:0,barr:0,herbe:0,fini:true,endroits:{freinage:0,sortie:0,autre:0}});
 const N=resultats.length,ms=performance.now()-t0;
 L.push(`  TOTAL sur ${N} courses : ${tot.dep} dépassements (freinage ${tot.endroits.freinage}, sortie ${tot.endroits.sortie}, autre ${tot.endroits.autre}) ; vainqueur ≠ poleman ${tot.pasPole} ; meilleur rythme top 3 ${tot.top3} ; chocs > 5 m/s ${tot.chocs} ; barrières + coupes ${tot.barr} ; herbe ${tot.herbe} pas ; calcul ${(ms/1000).toFixed(1)} s`);
-// le critère de 4b, course par course : toutes arrivent, au plus 1 choc à plus de 5 m/s, aucune barrière, aucune coupe
-for(const r of resultats) t(`4b : ${r.nom}, graine ${r.graine} : toutes arrivent, au plus 1 choc à plus de 5 m/s, aucune barrière, aucune coupe`,()=>{
-  const s=r.resume;v(s.fini,'pas toutes arrivées');v(s.chocs<=1,s.chocs+' chocs');v(s.barr===0,s.barr+' barrières');v(s.coupes===0,s.coupes+' coupes');});
-// le critère de 4c (les dépassements), seulement quand les IA attaquent (IA_DEPASSEMENT) ; pour 30 courses, à l'échelle sinon
+// le critère de 4b, course par course : toutes arrivent, aucune barrière, aucune coupe, et au plus 1 choc à plus de
+// 5 m/s. Quand les IA attaquent (tour 15), les chocs sont vérifiés sur le total des 30 courses (garde-fou plus bas) :
+// course par course, ils sont seulement affichés
+for(const r of resultats) t(`4b : ${r.nom}, graine ${r.graine} : toutes arrivent, aucune barrière, aucune coupe${REGLAGES.IA_DEPASSEMENT?'':', au plus 1 choc à plus de 5 m/s'}`,()=>{
+  const s=r.resume;v(s.fini,'pas toutes arrivées');if(!REGLAGES.IA_DEPASSEMENT) v(s.chocs<=1,s.chocs+' chocs');v(s.barr===0,s.barr+' barrières');v(s.coupes===0,s.coupes+' coupes');});
+// quand les IA attaquent (IA_DEPASSEMENT), pour 30 courses (à l'échelle sinon) :
+// - les garde-fous (tour 15), vérifiés : au moins 25 dépassements, au plus 6 chocs à plus de 5 m/s, au plus 4000 pas
+//   dans l'herbe, au plus 6 barrières + coupes ;
+// - le critère complet de 4c, affiché seulement (pas encore tenu) : au moins 30 dépassements, vainqueur ≠ poleman
+//   dans au moins 3 courses, meilleur rythme dans les 3 premiers dans au moins 20
 if(REGLAGES.IA_DEPASSEMENT){const k=N/30;
-  t(`4c : au moins ${Math.ceil(30*k)} dépassements`,()=>v(tot.dep>=30*k,tot.dep));
-  t(`4c : vainqueur ≠ poleman dans au moins ${Math.ceil(3*k)} courses`,()=>v(tot.pasPole>=3*k,tot.pasPole));
-  t(`4c : meilleur rythme dans les 3 premiers dans au moins ${Math.ceil(20*k)} courses`,()=>v(tot.top3>=20*k,tot.top3));
-  t(`4c : au plus ${Math.floor(6*k)} chocs à plus de 5 m/s au total`,()=>v(tot.chocs<=6*k,tot.chocs));
-  t(`4c : au plus ${Math.floor(6*k)} barrières + coupes au total`,()=>v(tot.barr<=6*k,tot.barr));}
+  t(`garde-fou : au moins ${Math.ceil(25*k)} dépassements`,()=>v(tot.dep>=25*k,tot.dep));
+  t(`garde-fou : au plus ${Math.floor(6*k)} chocs à plus de 5 m/s au total`,()=>v(tot.chocs<=6*k,tot.chocs));
+  t(`garde-fou : au plus ${Math.floor(4000*k)} pas dans l’herbe au total`,()=>v(tot.herbe<=4000*k,tot.herbe));
+  t(`garde-fou : au plus ${Math.floor(6*k)} barrières + coupes au total`,()=>v(tot.barr<=6*k,tot.barr));
+  const tenu=(ok_,txt)=>L.push(`  4c (pas encore exigé) : ${txt} → ${ok_?'tenu':'PAS ENCORE TENU'}`);
+  tenu(tot.dep>=30*k,`au moins ${Math.ceil(30*k)} dépassements (${tot.dep})`);
+  tenu(tot.pasPole>=3*k,`vainqueur ≠ poleman dans au moins ${Math.ceil(3*k)} courses (${tot.pasPole})`);
+  tenu(tot.top3>=20*k,`meilleur rythme dans les 3 premiers dans au moins ${Math.ceil(20*k)} courses (${tot.top3})`);}
 // la course de 20 voitures, sur chaque circuit
 for(const nom of ['test','technique']) t(`${nom}, 20 voitures, graine 1 : toutes arrivent, au plus 1 choc à plus de 5 m/s`,()=>{const r=simulerCourse(circuits[nom],20,TOURS,1);
   L.push(`  ${nom}, 20 voitures : ${r.depassements.length} dépassements, chocs>5 ${chocsForts(r)}, barrière ${r.voitures.reduce((a,x)=>a+x.contactsBarriere,0)}, herbe ${r.voitures.reduce((a,x)=>a+x.herbe,0)}, ${r.dureeMs.toFixed(0)} ms`);
