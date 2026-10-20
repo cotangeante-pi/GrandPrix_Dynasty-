@@ -37,14 +37,17 @@ function voituresVues(v, voitures) {
 // une course entre nb IA : chacune a sa voiture, sa course (course.js), son rythme et son pilote (sa façon de
 // piloter), tirés avec la graine. carte : celle du circuit ; la page la passe à null tant qu'elle se calcule en
 // fond (les IA attendent sur la grille), puis appelle donnerCarte.
-function creerCourseIA(circuit, nb, nbTours, graine, carte = carteDe(circuit)) {
+// avecJoueur : une voiture de plus, celle du joueur, à la dernière place de la grille (humain: true) ; elle a la même
+// physique, les IA la voient et la touchent comme les autres ; c'est la page qui la conduit (pasCourseIA)
+function creerCourseIA(circuit, nb, nbTours, graine, carte = carteDe(circuit), avecJoueur = false) {
   const R = REGLAGES;
   ALEATOIRE.semer(graine);
-  const pilotes = placesGrille(circuit, nb).map((place, k) => {
+  const pilotes = placesGrille(circuit, nb + (avecJoueur ? 1 : 0)).map((place, k) => {
     const v = creerVoiture(circuit, place.s, place.d);
+    const humain = k === nb;
     return {
-      numero: k + 1, v, course: creerCourse(circuit, nbTours),
-      rythme: R.IA_RYTHME[0] + hasard() * (R.IA_RYTHME[1] - R.IA_RYTHME[0]),
+      numero: k + 1, v, course: creerCourse(circuit, nbTours), humain,
+      rythme: humain ? null : R.IA_RYTHME[0] + hasard() * (R.IA_RYTHME[1] - R.IA_RYTHME[0]),
       pilote: null, herbe: 0, arrivee: null, place: null,
     };
   });
@@ -60,6 +63,7 @@ function donnerCarte(e, carte) {
   e.carte = carte;
   ALEATOIRE.semer(e.graine + R.GRAINE_STYLES);
   e.pilotes.forEach((p, k) => {
+    if (p.humain) return;
     p.pilote = creerPilote(carte, p.rythme, tirerStyle(carte, e.nbTours + 2), R.IA_PERIODE_DECISION * k / e.pilotes.length);
     p.pilote.grille = p.v.piste.d;   // il part dans sa file
   });
@@ -70,13 +74,18 @@ const COMMANDES_AUCUNE = { gaz: 0, frein: 0, direction: 0 };
 
 // un pas de physique pour toutes les voitures encore en course. Ce que chaque IA voit est pris avant que
 // quiconque bouge : l'ordre des voitures ne change rien. Une voiture arrivée quitte la piste.
-function pasCourseIA(e, dt) {
+// conduireJoueur(p, dt) (facultatif) : met les commandes de la voiture du joueur (sinon, elle ne bouge pas)
+function pasCourseIA(e, dt, conduireJoueur) {
   const enCourse = e.pilotes.filter(p => p.arrivee === null);
   const voitures = enCourse.map(p => p.v);
-  const commandes = enCourse.map(p => courseAutorise(p.course) && p.pilote
+  const commandes = enCourse.map(p => !p.humain && courseAutorise(p.course) && p.pilote
     ? piloterIA(p.pilote, p.v, voituresVues(p.v, voitures), dt) : COMMANDES_AUCUNE);
   aspirationVoitures(voitures);
-  enCourse.forEach((p, k) => { appliquerCommandes(p.v, commandes[k]); pasVoiture(p.v, e.circuit, dt); });
+  enCourse.forEach((p, k) => {
+    if (p.humain && conduireJoueur) conduireJoueur(p, dt);
+    else appliquerCommandes(p.v, commandes[k]);
+    pasVoiture(p.v, e.circuit, dt);
+  });
   contactsVoitures(voitures, e.circuit);
   e.temps += dt;
   const arrives = [];

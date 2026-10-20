@@ -16,7 +16,8 @@ const JEU = {
   robot: false,         // ?robot=1 : le robot d'essai conduit la voiture du joueur (tests, démonstration)
   ia: 0,                // ?ia=1 : l'IA conduit la voiture du joueur ; ?ia=N (N ≥ 2) : une course de N IA (simulation.js)
   plateau: null,        // avec ?ia=N : la course entre IA (creerCourseIA) ; JEU.joueur et JEU.course sont ceux de la voiture suivie
-  modeles: [],          // avec ?ia=N : le modèle 3D de chaque IA
+  contre: false,        // ?ia=N&joueur=1 : le joueur conduit sa voiture au clavier, au milieu des N IA
+  modeles: [],          // avec ?ia=N : le modèle 3D de chaque voiture de la course (celle du joueur en dernier)
   suivie: 0,            // avec ?ia=N : la voiture que suit la caméra (Tab : la suivante)
   trajectoire: null,    // la trajectoire idéale de ce circuit (ia.js), calculée seulement avec ?ia=…, en fond
   carte: null,          // la carte du circuit pour les pilotes IA (carteDepuis), quand la trajectoire est prête
@@ -50,9 +51,9 @@ function suivreSuivante() {
 }
 
 function lancerCourse(nbTours) {
-  if (JEU.ia >= 2) {
-    JEU.plateau = creerCourseIA(CIRCUIT, JEU.ia, nbTours, Number(PARAMETRES.get('graine')) || 1, JEU.carte);
-    suivre(0);
+  if (JEU.ia >= 2 || JEU.contre) {
+    JEU.plateau = creerCourseIA(CIRCUIT, JEU.ia, nbTours, Number(PARAMETRES.get('graine')) || 1, JEU.carte, JEU.contre);
+    suivre(JEU.contre ? JEU.ia : 0);   // contre les IA : la caméra suit le joueur
   } else {
     JEU.course = creerCourse(CIRCUIT, nbTours);
     placerAuDepart(JEU.joueur, CIRCUIT);
@@ -117,7 +118,7 @@ function brancherClavier() {
     if (e.code === 'KeyC' && !e.repeat) CAMERA.suivante();
     if (e.code === 'Space' && !e.repeat) JEU.remettre = true;
     if (e.code === 'Escape' && !e.repeat) pause(JEU.ecran === 'course');
-    if (e.code === 'Tab') { e.preventDefault(); if (JEU.plateau && !e.repeat) suivreSuivante(); }
+    if (e.code === 'Tab') { e.preventDefault(); if (JEU.plateau && !JEU.contre && !e.repeat) suivreSuivante(); }
     enfoncees.add(e.code);
     majCibles();
   });
@@ -129,13 +130,22 @@ function brancherClavier() {
 
 const AUCUNE = { gaz: 0, frein: 0, direction: 0 };
 
+// ?ia=N&joueur=1 : les commandes du joueur pour sa voiture dans la course entre IA (comme seul : rampes, Espace)
+function conduireJoueur(p, pas) {
+  const permis = courseAutorise(p.course);
+  if (JEU.remettre && permis) remettreSurPiste(p.v, CIRCUIT);
+  JEU.remettre = false;
+  lisserCommandes(p.v, permis ? JEU.cibles : AUCUNE, pas);
+}
+
 function pasJoueur(pas) {
   if (JEU.ecran === 'pause') return;   // la pause arrête la physique
   JEU.pas++;
-  // ?ia=N : toutes les IA, leurs contacts, leurs courses (la voiture suivie comprise)
+  // ?ia=N : toutes les IA, leurs contacts, leurs courses (la voiture suivie comprise) ; avec &joueur=1, la voiture du
+  // joueur est dans la même course et il la conduit au clavier
   if (JEU.plateau) {
+    if (JEU.ecran === 'course') pasCourseIA(JEU.plateau, pas, conduireJoueur);
     JEU.remettre = false;
-    if (JEU.ecran === 'course') pasCourseIA(JEU.plateau, pas);
     return;
   }
   const v = JEU.joueur, c = JEU.course;
@@ -221,23 +231,27 @@ function demarrerJeu() {
   CAMERA.init(SCENE3D.camera, CIRCUIT, PARAMETRES.get('camera'));
   JEU.joueur = creerVoiture(CIRCUIT, 0);
   JEU.robot = PARAMETRES.get('robot') === '1';
-  JEU.ia = Math.max(0, Math.min(REGLAGES.IA_PAGE_MAX, Math.floor(Number(PARAMETRES.get('ia'))) || 0));
+  JEU.contre = PARAMETRES.get('joueur') === '1' && Number(PARAMETRES.get('ia')) >= 1;
+  JEU.ia = Math.max(0, Math.min(REGLAGES.IA_PAGE_MAX - (JEU.contre ? 1 : 0), Math.floor(Number(PARAMETRES.get('ia'))) || 0));
   if (JEU.ia) JEU.calculTrajectoire = calculerEnFond(etapesTrajectoire(CIRCUIT), t => {
     JEU.trajectoire = t;
     JEU.carte = carteDepuis(CIRCUIT, t);
     if (JEU.plateau) donnerCarte(JEU.plateau, JEU.carte);
     else JEU.pilote = creerPilote(JEU.carte);
   });
-  // ?ia=N : un modèle par IA, chacune sa couleur ; sinon, la voiture du joueur
+  // ?ia=N : un modèle par IA, chacune sa couleur (contre le joueur, aucune n'a la sienne), puis celui du joueur ;
+  // sinon, seulement la voiture du joueur
   const couleurs = REGLAGES.COULEURS_IA;
-  for (let k = 0; k < (JEU.ia >= 2 ? JEU.ia : 0); k++) {
-    JEU.modeles.push(VOITURE3D.creer(couleurs[k % couleurs.length]));
-    SCENE3D.ajouter(JEU.modeles[k].groupe);
+  if (JEU.ia >= 2 || JEU.contre) {
+    const choix = JEU.contre ? couleurs.filter(x => x !== REGLAGES.COULEUR_JOUEUR) : couleurs;
+    for (let k = 0; k < JEU.ia; k++) JEU.modeles.push(VOITURE3D.creer(choix[k % choix.length]));
+    if (JEU.contre) JEU.modeles.push(VOITURE3D.creer(REGLAGES.COULEUR_JOUEUR));
+    for (const m of JEU.modeles) SCENE3D.ajouter(m.groupe);
   }
-  if (JEU.ia < 2) {
+  if (!JEU.modeles.length) {
     JEU.modele = VOITURE3D.creer(REGLAGES.COULEUR_JOUEUR);
     SCENE3D.ajouter(JEU.modele.groupe);
-  } else JEU.modele = JEU.modeles[0];   // avant la course (écran de choix), la première IA attend sur la ligne
+  } else JEU.modele = JEU.modeles[JEU.contre ? JEU.ia : 0];   // avant la course (écran de choix), sur la ligne
   INTERFACE.preparerPause(() => pause(false), () => lancerCourse(JEU.course.nbTours));
   INTERFACE.preparerFin(() => lancerCourse(JEU.course.nbTours), allerAuChoix);
   // ?course=5, 12, 18 ou 0 (essai libre) lance directement une course (tests, développement)

@@ -400,6 +400,22 @@ for(const [nom,circ] of [['test',C],['technique',TQ]]) for(let g=1;g<=5;g++)
 for(const [nom,circ] of [['test',C],['technique',TQ]])
   t(`4b : ${nom}, 20 voitures, 5 tours, graine 1 : les mêmes critères`, ()=>{const r_=simulerCourse(circ,20,5,1);tableauCourse(`${nom}, 20 voitures, graine 1`,r_);verifierCourse(r_);});
 
+// --- jouer contre les IA (tour 11) : la voiture du joueur est dans la même course, même physique
+t('contre le joueur : la voiture du joueur est en dernière place de la grille, sans pilote IA ; les IA la voient', ()=>{const e=creerCourseIA(TQ,3,1,2,CARTES_T.technique,true);
+  v(e.pilotes.length===4&&e.pilotes[3].humain&&e.pilotes[3].pilote===null&&e.pilotes.slice(0,3).every(p_=>p_.pilote!==null));
+  const r0=creerCourseIA(TQ,3,1,2,CARTES_T.technique,false);v(e.pilotes.slice(0,3).every((p_,k)=>p_.rythme===r0.pilotes[k].rythme),'les rythmes des IA changent avec le joueur');
+  const vues=voituresVues(e.pilotes[1].v,e.pilotes.map(p_=>p_.v));v(vues.length>=1,'personne ne voit rien');});
+t('contre le joueur : une IA lancée derrière la voiture du joueur arrêtée en pleine piste l’évite ou s’arrête, sans choc à plus de 5 m/s', ()=>{
+  const carte=CARTES_T.technique,e=creerCourseIA(TQ,1,5,4,carte,true);for(const p_ of e.pilotes) p_.course.compte=0;
+  const ia=e.pilotes[0],joueur=e.pilotes[1];
+  // le joueur arrêté sur la ligne rapide, au milieu de la droite des stands ; l'IA 300 m derrière, à 50 m/s
+  const sJ=400;placerSurPiste(joueur.v,TQ,sJ,valeurEn(TQ,carte.trajectoire.ecart,sJ));placerSurPiste(ia.v,TQ,sJ-300,valeurEn(TQ,carte.trajectoire.ecart,sJ-300));ia.v.u=50;
+  let dMin=Infinity;
+  for(let k=0;k<25*120;k++){pasCourseIA(e,DT,(p_)=>appliquerCommandes(p_.v,RIEN));dMin=Math.min(dMin,Math.hypot(ia.v.x-joueur.v.x,ia.v.z-joueur.v.z));}
+  const passe=ecartLeLong(TQ,ia.v.piste.s-sJ)>0;
+  L.push(`  (IA derrière le joueur arrêté : ${passe?'elle l’a évité et est passée':'elle s’est arrêtée derrière'}, au plus près ${dMin.toFixed(1)} m de centre à centre, chocs ${ia.v.chocs.map(c_=>c_.toFixed(1)).join(', ')||'aucun'}, joueur poussé à ${joueur.v.u.toFixed(1)} m/s)`);
+  v(ia.v.chocs.every(c_=>c_<=5),'choc '+ia.v.chocs);v(ia.v.contactsBarriere===0,'barrière');});
+
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 ecrire();
 </script></body></html>

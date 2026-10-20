@@ -27,6 +27,7 @@ PAGES = [
     ('index.html?camera=dessus&circuit=technique', 1280, 720, 'technique.png'),
     ('index.html?course=5&ia=1&circuit=technique', 1280, 720, 'ia.png'),
     ('index.html?course=5&ia=10&circuit=technique&debug=1', 1280, 720, 'ia10.png'),
+    ('index.html?course=5&ia=9&joueur=1&circuit=technique', 1280, 720, None),   # capture joueur-ia.png prise en roulant
 ]
 POSITION = '() => CAMERA.position'
 
@@ -194,6 +195,24 @@ def course_ia10(pg, titre):
     ips = pg.evaluate('() => document.getElementById("ips").textContent.split(String.fromCharCode(10))[0]')
     L.append(f'  (?ia=10 sous swiftshader : {ips})')
 
+def course_joueur(pg, titre):
+    # le joueur conduit sa voiture au clavier, au milieu de 9 IA ; la caméra le suit, Tab ne change rien
+    t(f'{titre} : 9 IA et la voiture du joueur, en dernière place de la grille ; la caméra suit le joueur',
+      pg.evaluate('() => JEU.contre && JEU.plateau.pilotes.length === 10 && JEU.plateau.pilotes[9].humain && JEU.joueur === JEU.plateau.pilotes[9].v && JEU.course === JEU.plateau.pilotes[9].course && JEU.modeles.length === 10'))
+    t(f'{titre} : la carte se calcule en fond, les 9 IA reçoivent leur pilote', attendre(pg, '() => JEU.plateau.carte !== null && JEU.plateau.pilotes.filter(p => p.pilote !== null).length === 9', None, 120000))
+    pg.evaluate('() => { for (const p of JEU.plateau.pilotes) p.course.compte = 0.01; }')
+    attendre(pg, '() => JEU.course.etat === "attente"', None, 20000)
+    pg.keyboard.down('ArrowUp')
+    t(f'{titre} : ↑ fait avancer la voiture du joueur', attendre(pg, '() => JEU.joueur.u > 15', None, 40000), pg.evaluate('() => JEU.joueur.u'))
+    pg.keyboard.press('Tab')
+    t(f'{titre} : Tab ne change pas la voiture suivie', pg.evaluate('() => JEU.suivie === 9 && JEU.joueur === JEU.plateau.pilotes[9].v'))
+    pg.wait_for_timeout(1500)
+    pg.screenshot(path=os.path.join(CAPTURES, 'joueur-ia.png'))
+    pg.keyboard.up('ArrowUp')
+    etat = pg.evaluate('() => JEU.plateau.pilotes.map(p => ({ humain: p.humain, progression: Math.round(p.course.progression), chocs: p.v.chocs.length }))')
+    t(f'{titre} : la voiture du joueur et les 9 IA ont avancé', all(e['progression'] > 20 for e in etat), str(etat))
+    L.append(f"  (contre 9 IA : joueur {etat[9]['progression']} m, IA de {min(e['progression'] for e in etat[:9])} à {max(e['progression'] for e in etat[:9])} m, {sum(e['chocs'] for e in etat) // 2} contacts)")
+
 def INTERFACE_TEMPS(t):
     m = int(t // 60); s = t - m * 60
     return f'{m}:{s:06.3f}'
@@ -232,6 +251,8 @@ with sync_playwright() as p:
                 course_ia(pg, titre)
             if re.search(r'[?&]ia=10(&|$)', page):
                 course_ia10(pg, titre)
+            if 'joueur=1' in page:
+                course_joueur(pg, titre)
             if 'camera=auto' in page:
                 p1 = pg.evaluate(POSITION)
                 t(f'{titre} : la caméra fait le tour toute seule', attendre(pg, 'p => CAMERA.position.x !== p.x || CAMERA.position.z !== p.z', p1), str(p1))
