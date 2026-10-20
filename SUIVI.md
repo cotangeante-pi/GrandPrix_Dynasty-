@@ -15,7 +15,7 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 
 ## Tour en cours
 
-**Tour 15 — étape 4c** (lancé à 19h10, fin 21h) : suivi en temps (0,4 s), sillage, puis fusion des dépassements sur main avant 20h50 si propres. Rapport : rapports/tour-15-rapport.md. Tour 14 : courses.html sur main (vérifié, 53/100) ; branche tour-14 propre (4 chocs) mais 28 dépassements, 1 surprise.
+**Tour 16 — étape 4d** (lancé à 19h25, fin 21h) : caractère chiffré des pilotes, régularité, erreurs, agressivité, pour des courses moins prévisibles. Rapport : rapports/tour-16-rapport.md. Tour 15 vérifié : 54/100, les IA doublent sur main (28 dépassements, 4 chocs sur 30 courses).
 
 Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤ 50 s sur Test) → 4b (plusieurs IA sans se toucher) → 4c (dépasser, défendre) → 4d (caractères, niveaux, page des 50 courses).
 
@@ -37,10 +37,11 @@ Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤
 | 12 | 2c13e30 | 52 | 12 | 13 | 1 | 8 | 8 | 9 | 1 |
 | 13 | — | 52 | — | — | — | — | — | — | — |
 | 14 | d840007 | 53 | 12 | 13 | 1 | 8 | 8 | 10 | 1 |
+| 15 | bde5dd6 | 54 | 12 | 14 | 1 | 8 | 8 | 10 | 1 |
 
 ## À essayer par le propriétaire
 
-- **Jouer contre les IA** : `index.html?course=5&ia=9&joueur=1&circuit=technique` (ou sans `&circuit=…`). Tu pars dernier ; elles ne doublent pas encore. Dire : trop rapides ou trop lentes ? Bizarres ?
+- **Jouer contre les IA** : `index.html?course=5&ia=9&joueur=1&circuit=technique` (ou sans `&circuit=…`). Tu pars dernier ; depuis le tour 15, elles doublent (peu, au freinage). Dire : trop rapides ou trop lentes ? Bizarres ?
 
 - Regarder `index.html?ia=10&circuit=technique` (Tab change de voiture) : les IA ne passent plus au même endroit. L'aspiration est dans la physique (traînée −35 % collé derrière) : à sentir à l'étape 5.
 
@@ -117,6 +118,7 @@ Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤
 | 2026-10-18 | 1–2 | Tour 3 : la voiture roule, 121/121 tests, 43a3fa8, robot 66,55 s, nom Grand Prix Dynasty dans le jeu |
 | 2026-10-18 | 3 | Tour 5 : chrono, tours, secteurs, ✂ +5 s, écran de choix, pause, écran de fin, records ; 194/194, 44b3624 |
 | 2026-10-18 | 3 | Tour 6 : secteurs du tour en cours, arrêt après l'arrivée, sons 3-2-1-GO et arrivée ; 200/200, e59f5a2. Fin de session (20h20). |
+| 2026-10-20 | 4c | Tour 15 : IA_DEPASSEMENT = true sur main (fusion de repli : 28 dépassements, 4 chocs > 5 m/s, herbe 3666 pas, 20 voitures 0 choc) ; suivi en temps essayé et abandonné ; 116/116 + 37/37 + 159/159 chez le Chef, 54/100 |
 | 2026-10-20 | 4c | Tour 14 : tests/courses.html sur main (30 courses, critère de l'étape 4) ; 115/115 + 33/33 + 159/159 chez le Chef, d840007, 53/100. Branche tour-14 : 28 dépassements, 4 chocs, duel bloqué par le suivi à 14 m |
 | 2026-10-20 | 4c | Tour 13 : pas vert (branche tour-13) : tests/courses.html (30 courses), zones d'attaque ; 88–96 dépassements, 11–16 chocs > 5 m/s, duel cassé. Main inchangé |
 | 2026-10-20 | 4c | Tour 12 (interrompu par la veille du Mac jusqu'à 18h) : grille qualifiée, tests moins pressés, 4b « au plus 1 choc > 5 m/s par course » ; 129/129 + ecrans vert chez le Chef, 2c13e30, 52/100. Dépassements sur la branche tour-12-attaque : duel OK, 2–4 chocs sur 10 courses |
