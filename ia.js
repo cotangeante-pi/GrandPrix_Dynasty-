@@ -188,6 +188,18 @@ function carteDepuis(circuit, trajectoire) {
   return { circuit, trajectoire, virages, pointe: vitesseDePointe() };
 }
 
+// le meilleur tour d'un pilote seul, estimé sans le simuler : la vitesse de la carte, à son rythme dans les virages
+// (la vitesse de pointe reste celle de la voiture)
+function tourEstime(carte, rythme) {
+  const tr = carte.trajectoire;
+  let t = 0;
+  for (let i = 0; i < tr.vitesse.length; i++) {
+    const v = tr.vitesse[i];
+    t += tr.ds[i] / (v < carte.pointe * 0.999 ? rythme * v : v);
+  }
+  return t;
+}
+
 // un écart de s ramené dans ]-L/2, L/2]
 function ecartLeLong(circuit, ds) {
   const L = circuit.longueur;

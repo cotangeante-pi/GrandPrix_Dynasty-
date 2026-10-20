@@ -167,6 +167,8 @@ const REGLAGES = {
   GRILLE_ECART: 3,              // m : chaque file est à cette distance du milieu de la piste
   SIMULATION_TEMPS_MAX: 150,    // s par tour : une course simulée s'arrête là, même si des voitures n'ont pas fini
   GRAINE_STYLES: 1000,          // les façons de piloter sont tirées avec la graine de la course + ce nombre
+  GRAINE_QUALIF: 2000,          // … et la qualification avec la graine + ce nombre
+  IA_QUALIF_HASARD: 0.005,      // le temps de qualification d'une IA varie de ±0,5 % autour de son meilleur tour estimé
   IA_PAGE_MAX: 20,              // ?ia=N : au plus ce nombre d'IA dans la page
   // ?ia=N : la couleur de chaque IA (provisoire : les écuries viendront à l'étape 6)
   COULEURS_IA: [0x1f6fe0, 0xd8262e, 0xf2c230, 0x2fa84f, 0xf07d1a, 0x8e44ad, 0x1abc9c, 0xecf0f1, 0x34495e, 0xe84393],

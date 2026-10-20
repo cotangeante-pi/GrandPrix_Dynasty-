@@ -54,15 +54,17 @@ function creerCourseIA(circuit, nb, nbTours, graine, carte = carteDe(circuit), a
     };
   });
   ALEATOIRE.semer();
-  const e = { circuit, carte: null, graine, nbTours, pilotes, temps: 0, arrives: 0 };
+  const e = { circuit, carte: null, graine, nbTours, pilotes, temps: 0, arrives: 0, grille: null };
   if (carte) donnerCarte(e, carte);
   return e;
 }
 
-// la carte est prête : chaque IA reçoit son pilote, sa façon de piloter tirée avec la graine
+// la carte est prête : chaque IA reçoit son pilote, sa façon de piloter tirée avec la graine ; avant, la
+// qualification range la grille (si les IA n'ont pas encore bougé)
 function donnerCarte(e, carte) {
   const R = REGLAGES;
   e.carte = carte;
+  if (e.pilotes.every(p => p.humain || p.v.u === 0)) qualifier(e);
   ALEATOIRE.semer(e.graine + R.GRAINE_STYLES);
   e.pilotes.forEach((p, k) => {
     if (p.humain) return;
@@ -73,6 +75,20 @@ function donnerCarte(e, carte) {
 }
 
 const COMMANDES_AUCUNE = { gaz: 0, frein: 0, direction: 0 };
+
+// la qualification, simplifiée (on ne simule pas le tour) : le temps de chaque IA est son meilleur tour estimé
+// (tourEstime) × un peu de hasard (IA_QUALIF_HASARD, tiré avec la graine). La grille suit ces temps ; le joueur
+// reste dernier. e.grille : [{ numero, qualif }] dans l'ordre de la grille.
+function qualifier(e) {
+  const R = REGLAGES, c = e.circuit;
+  ALEATOIRE.semer(e.graine + R.GRAINE_QUALIF);
+  for (const p of e.pilotes) p.qualif = p.humain ? null : tourEstime(e.carte, p.rythme) * (1 + R.IA_QUALIF_HASARD * (2 * hasard() - 1));
+  ALEATOIRE.semer();
+  const ordre = e.pilotes.filter(p => !p.humain).sort((a, b) => a.qualif - b.qualif).concat(e.pilotes.filter(p => p.humain));
+  const places = placesGrille(c, ordre.length);
+  ordre.forEach((p, k) => placerSurPiste(p.v, c, places[k].s, places[k].d));
+  e.grille = ordre.map(p => ({ numero: p.numero, qualif: p.qualif }));
+}
 
 // un pas de physique pour toutes les voitures encore en course. Ce que chaque IA voit est pris avant que
 // quiconque bouge : l'ordre des voitures ne change rien. Une voiture arrivée quitte la piste.
@@ -110,6 +126,7 @@ function simulerCourse(circuit, nbVoitures, nbTours, graine) {
   for (let k = 0; k < pasMax && e.arrives < nbVoitures; k++) pasCourseIA(e, REGLAGES.PAS_PHYSIQUE);
   return {
     dureeMs: performance.now() - t0,
+    grille: e.grille,
     voitures: e.pilotes.map(p => ({
       numero: p.numero, rythme: p.rythme, place: p.place, fini: p.arrivee !== null,
       temps: p.arrivee !== null ? tempsTotal(p.course) : null, meilleurTour: p.course.meilleurTour,

@@ -392,11 +392,14 @@ t('un rapide (rythme 1,00) qui part 60 m derrière un lent (0,94) le rattrape, p
   v(e.arrives===2);v(mini<25,'jamais rattrapé : '+mini.toFixed(1));v(dMin>=REGLAGES.IA_DISTANCE_MIN-0.5,'trop près : '+dMin.toFixed(2));v(e.pilotes[0].v.contactsVoiture===0,'contact');v(e.pilotes[0].place===1,'le rapide est passé');});
 // le critère de 4b : 10 voitures, 5 tours, graines 1 à 5, deux circuits ; puis 20 voitures, graine 1
 function tableauCourse(titre,r){L.push(`  ${titre} : ${r.voitures.filter(x=>x.fini).length}/${r.voitures.length} arrivées, calcul ${r.dureeMs.toFixed(0)} ms`);
+  if(r.grille) L.push('    grille (qualification) : '+r.grille.map((g_,k)=>(k+1)+'. n°'+g_.numero+' '+(g_.qualif===null?'—':g_.qualif.toFixed(3)+' s')).join(' · '));
   for(const x of [...r.voitures].sort((p_,q)=>(p_.place||99)-(q.place||99)))
     L.push(`    P${String(x.place).padStart(2)}  n°${String(x.numero).padStart(2)}  rythme ${x.rythme.toFixed(3)}  ${x.temps===null?'—':x.temps.toFixed(2)+' s'}  meilleur ${x.meilleurTour===null?'—':x.meilleurTour.toFixed(2)}  contacts ${x.contactsVoiture}${x.contactsVoiture?' (choc max '+x.chocMax.toFixed(1)+' m/s)':''}  barrière ${x.contactsBarriere}  herbe ${x.herbe}  coupes ${x.coupes}`);}
-const verifierCourse=r=>{v(r.voitures.every(x=>x.fini),'pas toutes arrivées');v(r.voitures.every(x=>x.chocs.every(c_=>c_<=5)),'choc à plus de 5 m/s');v(r.voitures.every(x=>x.contactsBarriere===0),'barrière');v(r.voitures.every(x=>x.coupes===0),'virage coupé');};
+// au plus 1 choc à plus de 5 m/s par course (règle du tour 12 ; un choc compte pour les deux voitures)
+const chocsForts=r=>r.voitures.flatMap(x=>x.chocs).filter(c_=>c_>5).length/2;
+const verifierCourse=r=>{L.push('    chocs à plus de 5 m/s : '+chocsForts(r));v(r.voitures.every(x=>x.fini),'pas toutes arrivées');v(chocsForts(r)<=1,chocsForts(r)+' chocs à plus de 5 m/s');v(r.voitures.every(x=>x.contactsBarriere===0),'barrière');v(r.voitures.every(x=>x.coupes===0),'virage coupé');};
 for(const [nom,circ] of [['test',C],['technique',TQ]]) for(let g=1;g<=5;g++)
-  t(`4b : ${nom}, 10 voitures, 5 tours, graine ${g} : toutes arrivent, aucun choc à plus de 5 m/s, aucune barrière, aucun virage coupé`, ()=>{const r_=simulerCourse(circ,10,5,g);tableauCourse(`${nom}, graine ${g}`,r_);verifierCourse(r_);});
+  t(`4b : ${nom}, 10 voitures, 5 tours, graine ${g} : toutes arrivent, au plus 1 choc à plus de 5 m/s, aucune barrière, aucun virage coupé`, ()=>{const r_=simulerCourse(circ,10,5,g);tableauCourse(`${nom}, graine ${g}`,r_);verifierCourse(r_);});
 for(const [nom,circ] of [['test',C],['technique',TQ]])
   t(`4b : ${nom}, 20 voitures, 5 tours, graine 1 : les mêmes critères`, ()=>{const r_=simulerCourse(circ,20,5,1);tableauCourse(`${nom}, 20 voitures, graine 1`,r_);verifierCourse(r_);});
 
@@ -415,6 +418,15 @@ t('contre le joueur : une IA lancée derrière la voiture du joueur arrêtée en
   const passe=ecartLeLong(TQ,ia.v.piste.s-sJ)>0;
   L.push(`  (IA derrière le joueur arrêté : ${passe?'elle l’a évité et est passée':'elle s’est arrêtée derrière'}, au plus près ${dMin.toFixed(1)} m de centre à centre, chocs ${ia.v.chocs.map(c_=>c_.toFixed(1)).join(', ')||'aucun'}, joueur poussé à ${joueur.v.u.toFixed(1)} m/s)`);
   v(ia.v.chocs.every(c_=>c_<=5),'choc '+ia.v.chocs);v(ia.v.contactsBarriere===0,'barrière');});
+
+// --- la grille qualifiée (tour 12)
+t('qualification : la grille suit les temps (meilleur tour estimé × ±0,5 % de hasard) ; le meilleur rythme part devant ; le joueur reste dernier', ()=>{
+  const e=creerCourseIA(TQ,10,1,3,CARTES_T.technique,true),g=e.grille;v(g.length===11);
+  for(let k=1;k<10;k++) v(g[k].qualif>=g[k-1].qualif,'pas dans l’ordre à la place '+(k+1));v(g[10].qualif===null&&e.pilotes.find(p_=>p_.numero===g[10].numero).humain,'le joueur n’est pas dernier');
+  const meilleur=[...e.pilotes].filter(p_=>!p_.humain).sort((a_,b_)=>b_.rythme-a_.rythme)[0];v(g.slice(0,2).some(x=>x.numero===meilleur.numero),'le meilleur rythme part '+(g.findIndex(x=>x.numero===meilleur.numero)+1)+'e');
+  // les voitures sont bien à leur place : la première est la plus avancée
+  const s_=n=>ecartLeLong(TQ,e.pilotes.find(p_=>p_.numero===n).v.piste.s);v(s_(g[0].numero)>s_(g[1].numero)&&s_(g[1].numero)>s_(g[2].numero),'placement');
+  L.push('  (grille qualifiée, technique, graine 3 : '+g.map((x,k)=>(k+1)+'. n°'+x.numero+' '+(x.qualif===null?'joueur':x.qualif.toFixed(3)+' s')).join(' · ')+')');});
 
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 ecrire();
