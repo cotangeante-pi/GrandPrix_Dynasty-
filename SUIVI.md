@@ -9,6 +9,8 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 
 ## Horaires
 
+- 2026-10-20 : boucle jusqu'à **21h**, Chef 100 % autonome (le propriétaire : « tu as tous mes droits, ne me demande rien et n'exige rien de moi »). À 21h, on fige sur le dernier commit vert.
+
 - 2026-10-18 : boucle jusqu'à 21h (demandée par le propriétaire). À 21h, on fige sur le dernier commit vert.
 
 ## Tour en cours
