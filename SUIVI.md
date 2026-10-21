@@ -15,7 +15,7 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 
 ## Tour en cours
 
-**Tour 16 — étape 4d** (lancé à 19h25, fin 21h) : caractère chiffré des pilotes, régularité, erreurs, agressivité, pour des courses moins prévisibles. Rapport : rapports/tour-16-rapport.md. Tour 15 vérifié : 54/100, les IA doublent sur main (28 dépassements, 4 chocs sur 30 courses).
+**Tour 17** (lancé à 20h15, dernier de la soirée, fin 21h) : une ligne choisie se garde (régularité), « GPU stall due to ReadPixels » ignoré dans « console vide ». Rapport : rapports/tour-17-rapport.md. Tour 16 vérifié : caractère et régularité sur main (régularité à l'envers), erreurs sur la branche tour-16 (pas verte).
 
 Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤ 50 s sur Test) → 4b (plusieurs IA sans se toucher) → 4c (dépasser, défendre) → 4d (caractères, niveaux, page des 50 courses).
 
@@ -38,6 +38,7 @@ Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤
 | 13 | — | 52 | — | — | — | — | — | — | — |
 | 14 | d840007 | 53 | 12 | 13 | 1 | 8 | 8 | 10 | 1 |
 | 15 | bde5dd6 | 54 | 12 | 14 | 1 | 8 | 8 | 10 | 1 |
+| 16 | 3a33150 | 54 | 12 | 14 | 1 | 8 | 8 | 10 | 1 |
 
 ## À essayer par le propriétaire
 
@@ -75,6 +76,7 @@ Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤
 ## Bugs connus
 
 - Git n'a plus d'identité (le nom réseau du Mac a changé) : les commits utilisent `-c user.name=le propriétaire -c user.email=266356357+cotangeante-pi@users.noreply.github.com`. À régler par le propriétaire s'il veut (`git config --global`).
+- « console vide » échoue parfois sur « GPU stall due to ReadPixels » quand le Mac est chargé : causé par les captures de Playwright (le jeu ne lit jamais les pixels). Tour 17 : ignoré dans le test.
 - À surveiller en 4b : départ impossible (épingle à 60 m/s, nez vers l'extérieur) = 1288 pas (≈ 10 s) contre la barrière avant de repartir. Une IA collée au mur 10 s se verra.
 - Sous swiftshader, le premier dessin 3D bloque la page 0,3–2 s même sans IA (critère 3 du tour 8 adapté : seule la plus longue tranche du calcul de l'IA est < 300 ms, 67 ms mesurés).
 - À voir : en grand virage rapide, la caméra derrière montre surtout l'herbe (CAMERA_SUIVI_CAP 6/s). Seulement si le propriétaire le remarque.
@@ -118,6 +120,7 @@ Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤
 | 2026-10-18 | 1–2 | Tour 3 : la voiture roule, 121/121 tests, 43a3fa8, robot 66,55 s, nom Grand Prix Dynasty dans le jeu |
 | 2026-10-18 | 3 | Tour 5 : chrono, tours, secteurs, ✂ +5 s, écran de choix, pause, écran de fin, records ; 194/194, 44b3624 |
 | 2026-10-18 | 3 | Tour 6 : secteurs du tour en cours, arrêt après l'arrivée, sons 3-2-1-GO et arrivée ; 200/200, e59f5a2. Fin de session (20h20). |
+| 2026-10-20 | 4d | Tour 16 : caractère chiffré (régularité, agressivité, erreurs) et régularité sur main, 117/117 + 37/37 + 159/159 chez le Chef, 54/100 ; régularité à l'envers (0,274 contre 0,102 s) ; erreurs sur la branche tour-16 (149 erreurs, mais chocs) ; vainqueur ≠ poleman 0/30 |
 | 2026-10-20 | 4c | Tour 15 : IA_DEPASSEMENT = true sur main (fusion de repli : 28 dépassements, 4 chocs > 5 m/s, herbe 3666 pas, 20 voitures 0 choc) ; suivi en temps essayé et abandonné ; 116/116 + 37/37 + 159/159 chez le Chef, 54/100 |
 | 2026-10-20 | 4c | Tour 14 : tests/courses.html sur main (30 courses, critère de l'étape 4) ; 115/115 + 33/33 + 159/159 chez le Chef, d840007, 53/100. Branche tour-14 : 28 dépassements, 4 chocs, duel bloqué par le suivi à 14 m |
 | 2026-10-20 | 4c | Tour 13 : pas vert (branche tour-13) : tests/courses.html (30 courses), zones d'attaque ; 88–96 dépassements, 11–16 chocs > 5 m/s, duel cassé. Main inchangé |
