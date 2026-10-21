@@ -114,6 +114,17 @@ const CAMERA = (function () {
     };
   }
 
+  // la caméra embarquée : devant le halo (ni pilier ni arceau dans l'image), au-dessus du pilote, elle regarde la piste
+  // par-dessus le nez ; renvoie la position et le point visé (calcul pur, testé)
+  function poseCockpit(etat) {
+    const [av, haut] = R.CAMERA_COCKPIT;
+    const fx = Math.cos(etat.cap), fz = Math.sin(etat.cap);
+    return {
+      x: etat.x + fx * av, y: haut, z: etat.z + fz * av,
+      vise: { x: etat.x + fx * 30, y: haut - R.CAMERA_COCKPIT_VISEE, z: etat.z + fz * 30 },
+    };
+  }
+
   function suivreDerriere(etat, v, dt) {
     const p = poseDerriere(etat, v.u, suiviDerriere, dt);
     regler(p.champ, 0.5);
@@ -127,12 +138,11 @@ const CAMERA = (function () {
     dt = Math.min(dt, 0.1);
     if (mode === 'derriere') suivreDerriere(etat, v, dt);
     else if (mode === 'cockpit') {
-      const f = { x: Math.cos(etat.cap), z: Math.sin(etat.cap) };
-      const [av, haut] = R.CAMERA_COCKPIT;
+      const p = poseCockpit(etat);
       regler(R.CAMERA_COCKPIT_CHAMP, 0.05);
       cam.up.set(0, 1, 0);
-      cam.position.set(etat.x + f.x * av, haut, etat.z + f.z * av);
-      cam.lookAt(etat.x + f.x * 30, haut - 0.3, etat.z + f.z * 30);
+      cam.position.set(p.x, p.y, p.z);
+      cam.lookAt(p.vise.x, p.vise.y, p.vise.z);
     } else if (mode === 'tele') {
       // le poste le plus proche de la voiture la suit, en zoomant
       let p = postesTele[0], dmin = Infinity;
@@ -167,7 +177,7 @@ const CAMERA = (function () {
   }
 
   return {
-    init, maj, suivante, poseDerriere,
+    init, maj, suivante, poseDerriere, poseCockpit,
     get mode() { return mode; },
     get conduite() { return mode !== 'libre'; },   // en caméra libre, les flèches déplacent la caméra, pas la voiture
     get position() { return cam ? { x: cam.position.x, y: cam.position.y, z: cam.position.z } : null; },

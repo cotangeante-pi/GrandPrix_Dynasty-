@@ -298,11 +298,11 @@ function demarrerJeu() {
     const choix = JEU.contre ? couleurs.filter(x => x !== REGLAGES.COULEUR_JOUEUR) : couleurs;
     for (let k = 0; k < JEU.ia; k++) JEU.couleurs.push(choix[k % choix.length]);
     if (JEU.contre) JEU.couleurs.push(REGLAGES.COULEUR_JOUEUR);
-    for (const couleur of JEU.couleurs) JEU.modeles.push(VOITURE3D.creer(couleur));
+    JEU.couleurs.forEach((couleur, k) => JEU.modeles.push(VOITURE3D.creer(couleur, JEU.contre && k === JEU.ia)));   // le joueur : détaillée
     for (const m of JEU.modeles) SCENE3D.ajouter(m.groupe);
   }
   if (!JEU.modeles.length) {
-    JEU.modele = VOITURE3D.creer(REGLAGES.COULEUR_JOUEUR);
+    JEU.modele = VOITURE3D.creer(REGLAGES.COULEUR_JOUEUR, true);
     SCENE3D.ajouter(JEU.modele.groupe);
   } else JEU.modele = JEU.modeles[JEU.contre ? JEU.ia : 0];   // avant la course (écran de choix), sur la ligne
   INTERFACE.preparerPause(() => pause(false), () => lancerCourse(JEU.course.nbTours));
