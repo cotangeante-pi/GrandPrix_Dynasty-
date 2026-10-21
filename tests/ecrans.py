@@ -205,14 +205,20 @@ def course_joueur(pg, titre):
     # le joueur conduit sa voiture au clavier, au milieu de 9 IA ; la caméra le suit, Tab ne change rien
     t(f'{titre} : 9 IA et la voiture du joueur, en dernière place de la grille ; la caméra suit le joueur',
       pg.evaluate('() => JEU.contre && JEU.plateau.pilotes.length === 10 && JEU.plateau.pilotes[9].humain && JEU.joueur === JEU.plateau.pilotes[9].v && JEU.course === JEU.plateau.pilotes[9].course && JEU.modeles.length === 10'))
+    # tant que la carte se calcule, le compte à rebours attend (« Préparation de la course… ») : jamais de GO sans carte
+    t(f'{titre} : pas de GO avant la carte : elle est prête, ou le compte à rebours attend avec « Préparation de la course… »',
+      pg.evaluate('() => JEU.plateau.carte !== null || (JEU.course.etat === "compte" && JEU.course.compte === REGLAGES.COMPTE_A_REBOURS && document.getElementById("compte").textContent === texte("preparation"))'),
+      str(pg.evaluate('() => [JEU.plateau.carte !== null, JEU.course.etat, JEU.course.compte, document.getElementById("compte").textContent]')))
     t(f'{titre} : la carte se calcule en fond, les 9 IA reçoivent leur pilote', attendre(pg, '() => JEU.plateau.carte !== null && JEU.plateau.pilotes.filter(p => p.pilote !== null).length === 9', None, 120000))
     pg.evaluate('() => { for (const p of JEU.plateau.pilotes) p.course.compte = 0.01; }')
     attendre(pg, '() => JEU.course.etat === "attente"', None, 20000)
+    depart = pg.evaluate('() => JEU.plateau.temps')
     pg.keyboard.down('ArrowUp')
     t(f'{titre} : ↑ fait avancer la voiture du joueur', attendre(pg, '() => JEU.joueur.u > 15', None, 40000), pg.evaluate('() => JEU.joueur.u'))
     pg.keyboard.press('Tab')
     t(f'{titre} : Tab ne change pas la voiture suivie', pg.evaluate('() => JEU.suivie === 9 && JEU.joueur === JEU.plateau.pilotes[9].v'))
-    pg.wait_for_timeout(1500)
+    # 5 s de course (le temps de la course, pas l'horloge : un Mac chargé fait moins de pas de physique par seconde)
+    attendre(pg, f'() => JEU.plateau.temps > {depart} + 5', None, 60000)
     pg.screenshot(path=os.path.join(CAPTURES, 'joueur-ia.png'))
     pg.keyboard.up('ArrowUp')
     etat = pg.evaluate('() => JEU.plateau.pilotes.map(p => ({ humain: p.humain, progression: Math.round(p.course.progression), chocs: p.v.chocs.length }))')

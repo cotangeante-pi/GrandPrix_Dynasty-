@@ -176,7 +176,9 @@ function pasJoueur(pas) {
   // ?ia=N : toutes les IA, leurs contacts, leurs courses (la voiture suivie comprise) ; avec &joueur=1, la voiture du
   // joueur est dans la même course et il la conduit au clavier
   if (JEU.plateau) {
-    if (JEU.ecran === 'course') pasCourseIA(JEU.plateau, pas, conduireJoueur);
+    // tant que la carte se calcule, la course attend (le compte à rebours ne part pas) : sur un ordinateur lent,
+    // les IA resteraient sinon plantées sur la grille après le GO
+    if (JEU.ecran === 'course' && JEU.plateau.carte) pasCourseIA(JEU.plateau, pas, conduireJoueur);
     JEU.remettre = false;
     return;
   }
@@ -193,7 +195,7 @@ function pasJoueur(pas) {
   else if (JEU.robot && permis) appliquerCommandes(v, piloteRobot(v, CIRCUIT));
   else lisserCommandes(v, permis ? JEU.cibles : AUCUNE, pas);
   pasVoiture(v, CIRCUIT, pas);
-  if (c && JEU.ecran === 'course') majCourse(c, v, pas);
+  if (c && JEU.ecran === 'course' && !(JEU.ia && !JEU.carte)) majCourse(c, v, pas);   // ?ia=1 : pareil, la course attend la carte
 }
 
 // la tour de classement (course à plusieurs) et le radar, pendant la course et la pause ; la voiture suivie est « moi »
@@ -345,6 +347,7 @@ function demarrerJeu() {
     }
     majTableau();
     INTERFACE.majCourse(JEU.course, JEU.ecran);
+    INTERFACE.majPreparation(JEU.ecran === 'course' && JEU.ia > 0 && !JEU.carte);
     majClassementRadar();
     signauxCourse(JEU.course);
     // la voiture suivie a fini : seule, l'écran de fin ; à plusieurs, le podium dès que les trois premiers sont connus

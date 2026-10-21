@@ -177,6 +177,14 @@ const INTERFACE = (function () {
     }
   }
 
+  // tant que la carte des IA se calcule, la course attend : « Préparation de la course… » à la place du compte à rebours
+  function majPreparation(oui) {
+    $('compte').classList.toggle('preparation', oui);
+    if (!oui) return;
+    $('compte').classList.remove('cache');
+    $('compte').textContent = texte('preparation');
+  }
+
   function preparerPause(reprendre, recommencer) {
     $('pauseTitre').textContent = texte('pause');
     $('boutonReprendre').textContent = texte('reprendre');
@@ -212,5 +220,5 @@ const INTERFACE = (function () {
     });
   }
 
-  return { formatTemps, formatEcart, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats };
+  return { formatTemps, formatEcart, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation };
 })();
