@@ -9,13 +9,15 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 
 ## Horaires
 
+- 2026-10-21 : boucle relancée à 17h (« recommence la boucle »), fin à 21h comme la veille. Mac gardé éveillé jusqu'à 21h10.
+
 - 2026-10-20 : boucle jusqu'à **21h**, Chef 100 % autonome (le propriétaire : « tu as tous mes droits, ne me demande rien et n'exige rien de moi »). À 21h, on fige sur le dernier commit vert.
 
 - 2026-10-18 : boucle jusqu'à 21h (demandée par le propriétaire). À 21h, on fige sur le dernier commit vert.
 
 ## Tour en cours
 
-Aucun. Boucle du 2026-10-20 **figée à 20h35 sur e592b44 (tour 17, vert, 55/100)**. Reprise : voir rapports/tour-17-verification.md (refaire les erreurs sur main pour des surprises, le duel, puis les niveaux de difficulté).
+**Tour 18 — étape 4d** (lancé le 2026-10-21 à 17h10, fin 21h) : test du joueur au milieu des IA (1 échec à la reprise), erreurs sur main pour des surprises, puis le duel. Rapport : rapports/tour-18-rapport.md. Le dossier s'appelle maintenant « Grand Prix Dynasty ».
 
 Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤ 50 s sur Test) → 4b (plusieurs IA sans se toucher) → 4c (dépasser, défendre) → 4d (caractères, niveaux, page des 50 courses).
 
@@ -96,7 +98,7 @@ Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤
 
 ## Retours du propriétaire
 
-- 2026-10-19 ~19h50 (au Codeur) : « session-76 a mon accord pour faire ce qu'il veut dans le dossier super star car amélioré ».
+- 2026-10-19 ~19h50 (au Codeur) : « session-76 a mon accord pour faire ce qu'il veut dans le dossier super star car amélioré (renommé « Grand Prix Dynasty » le 2026-10-21) ».
 
 - 2026-10-18, tour 2 en cours : il voit la piste, « elle est longue un peu comme je voulais », la forme n'est pas encore avancée. → Garder des circuits longs ; la forme viendra avec les vrais tracés (étape 10).
 
