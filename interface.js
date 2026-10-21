@@ -54,7 +54,8 @@ const INTERFACE = (function () {
     if (!c || (ecran !== 'course' && ecran !== 'pause')) return;
     $('compte').classList.toggle('cache', !!c.feux || !(c.etat === 'compte' || (c.etat === 'attente' && c.compte === 0 && c.temps === 0)));
     // les feux : visibles pendant le départ, et un instant après l'extinction (tous éteints)
-    $('feux').classList.toggle('cache', !c.feux || !(c.etat === 'compte' || (c.etat !== 'finie' && c.temps < 1)));
+    // (pas avant que le compte ait commencé : tant que la carte des IA se calcule, « Préparation… » est affiché à la place)
+    $('feux').classList.toggle('cache', !c.feux || !((c.etat === 'compte' && c.compte < c.feux.total) || (c.etat !== 'finie' && c.temps < 1)));
     if (c.feux) { const n = feuxAllumes(c); $('feux').querySelectorAll('span').forEach((f, i) => f.classList.toggle('allume', i < n)); }
     $('compte').textContent = c.etat === 'compte' ? Math.ceil(c.compte) : texte('go');
     const numero = Math.min(c.tours.length + 1, c.nbTours || Infinity);
