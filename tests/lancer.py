@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Lance tous les tests du jeu dans Chrome sans fenêtre : python3 tests/lancer.py
+(ou seulement certaines parties : python3 tests/lancer.py moteur, courses, ecrans, ou plusieurs : moteur ecrans)
 1. tests/test.html (le moteur, sans 3D) et tests/courses.html (30 courses entre IA) dans Chrome --headless ;
 2. tests/ecrans.py (la vraie page dans Playwright : console vide, rendu, captures dans tests/captures/)."""
 import os, re, html, signal, subprocess, sys, tempfile, shutil, threading, time
@@ -52,15 +53,23 @@ def ecrans(delai=600):
     print(out.strip()); print(f'⏱ tests/ecrans.py : {time.monotonic() - t0:.0f} s')
     return p.returncode == 0
 
-def tests():
+# les parties de la suite, dans l'ordre : moteur (test.html), courses (courses.html, 30 courses entre IA), ecrans (ecrans.py)
+PARTIES = {'moteur': lambda: serie('tests/test.html'), 'courses': lambda: serie('tests/courses.html'), 'ecrans': lambda: ecrans()}
+
+def tests(parties=tuple(PARTIES)):
     # une liste : tout tourne même si le premier échoue ; courses.html = le critère de l'étape 4 (30 courses entre IA)
-    return all([serie('tests/test.html'), serie('tests/courses.html'), ecrans()])
+    return all([PARTIES[n]() for n in PARTIES if n in parties])
 
 if __name__ == '__main__':
     # le Mac ne s'endort pas tant que la suite tourne (caffeinate s'arrête de lui-même avec ce processus)
     if sys.platform == 'darwin' and shutil.which('caffeinate'):
         subprocess.Popen(['caffeinate', '-i', '-w', str(os.getpid())], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     signal.signal(signal.SIGTERM, lambda *a: sys.exit(1))
-    ok = tests()
-    print('TOUT PASSE' if ok else 'ÉCHECS')
+    demandees = sys.argv[1:]
+    inconnues = [n for n in demandees if n not in PARTIES]
+    if inconnues: sys.exit(f'partie inconnue : {" ".join(inconnues)} (au choix : {" ".join(PARTIES)})')
+    ok = tests(demandees or tuple(PARTIES))
+    # « TOUT PASSE » seulement si toute la suite a tourné ; pour une partie : « PARTIE OK »
+    if demandees and set(demandees) != set(PARTIES): print('PARTIE OK : ' + ' '.join(n for n in PARTIES if n in demandees) if ok else 'ÉCHECS')
+    else: print('TOUT PASSE' if ok else 'ÉCHECS')
     sys.exit(0 if ok else 1)
