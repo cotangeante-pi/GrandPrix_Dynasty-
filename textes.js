@@ -30,6 +30,7 @@ const TEXTES = {
     resultats: 'Race results',
     colonnesResultats: ['Pos', 'No', 'Time', 'Penalty', 'Gap', 'Grid'],
     enCourse: 'running',
+    preparation: 'Preparing the race…',
   },
   fr: {
     nomDuJeu: 'Grand Prix Dynasty',
@@ -61,6 +62,7 @@ const TEXTES = {
     resultats: 'Résultats de la course',
     colonnesResultats: ['Pos', 'N°', 'Temps', 'Pénalité', 'Écart', 'Grille'],
     enCourse: 'en course',
+    preparation: 'Préparation de la course…',
   },
 };
 

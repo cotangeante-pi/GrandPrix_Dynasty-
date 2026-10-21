@@ -6,7 +6,13 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 
 - 2026-10-18 : Chef session-2d, Codeur session-0e
 - 2026-10-19 : Chef **session-76**, Codeur **session-dd** (donné par le propriétaire)
+- 2026-10-21 ~19h10 : session-dd (Codeur 1, les IA) passe sur le modèle **Fable 5.1**, effort **high** (choix du propriétaire, conseil du Chef) ; session-9e et le Chef restent sur Opus 5.5.
 - 2026-10-21 18h20 : **Codeur 2 = session-9e** (donné par le propriétaire, « ça ne va pas très vite »). Il travaille dans « Grand Prix Dynasty - codeur 2 » (git worktree, branche codeur2) sur ce qui se voit (caméra, voiture 3D, feux) ; le Chef vérifie et fusionne. Un seul passage de tests à la fois (verrou /tmp/gpd-tests.lock). Rapport : rapports/tour-18b-rapport.md.
+
+## Règles de tests (2026-10-21, accord du propriétaire)
+
+- Le Mac est un Mac mini 2014 (i5 2 cœurs / 4 fils, 8 Go) : charge 6–15 avec 2 Codeurs. Pas de 3e Codeur (le Chef l'a déconseillé : il attendrait le verrou).
+- Pendant le travail : seulement la partie concernée (`tests/lancer.py moteur|courses|ecrans`, ou `tests/ecrans.py`) ; avant chaque commit : la suite complète, une fois. Toujours sous le verrou /tmp/gpd-tests.lock.
 
 ## Horaires
 

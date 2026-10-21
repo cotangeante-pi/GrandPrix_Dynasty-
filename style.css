@@ -262,6 +262,10 @@ html, body {
   pointer-events: none;
 }
 
+#compte.preparation {
+  font-size: 30px;
+}
+
 .ecran {
   position: fixed;
   inset: 0;
