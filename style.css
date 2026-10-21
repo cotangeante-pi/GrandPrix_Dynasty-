@@ -4,7 +4,7 @@
   --police: system-ui, -apple-system, "Segoe UI", sans-serif;
   --panneau: rgba(11, 15, 23, 0.6);   /* le fond des panneaux de course */
   --accent: #1f6fe0;
-  --classement-largeur: 184px;
+  --classement-largeur: 214px;
   --classement-ligne: 20px;           /* la hauteur d'une ligne de la tour de classement */
   --radar-taille: 170px;
 }
@@ -370,6 +370,12 @@ html, body {
   width: 2em;
 }
 
+#classementListe .penalite {
+  margin-left: auto;
+  font: 600 11px/1 var(--police);
+  color: #ff8a8a;
+}
+
 #classementListe .ecart {
   margin-left: auto;
   font: 600 12px/1 ui-monospace, Menlo, monospace;
@@ -384,6 +390,98 @@ html, body {
   height: var(--radar-taille);
   pointer-events: none;
 }
+
+/* le podium, par-dessus la 3D : le titre en haut, les trois premiers en bas (2e, 1er, 3e), le bouton des résultats */
+#podium {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 0 24px;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+#podium h1 {
+  margin: 0;
+  font: 800 40px/1.2 var(--police);
+  text-shadow: 0 3px 12px rgba(0, 0, 0, 0.6);
+}
+
+#podiumMarches {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  margin-top: auto;
+  margin-bottom: 14px;
+}
+
+.marche {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  min-width: 150px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: var(--panneau);
+  font: 600 15px/1.3 var(--police);
+}
+
+.marche strong { font-size: 19px; }
+.marche span { font-family: ui-monospace, Menlo, monospace; }
+.marche .pastille, #resultatsTable .pastille {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6);
+}
+.marche1 { padding-bottom: 26px; border-bottom: 4px solid #d4af37; }
+.marche2 { padding-bottom: 16px; border-bottom: 4px solid #c0c4cc; }
+.marche3 { padding-bottom: 8px; border-bottom: 4px solid #cd7f32; }
+
+#boutonResultats {
+  pointer-events: auto;
+  padding: 10px 22px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--accent);
+  color: var(--texte);
+  font: 600 16px/1.3 var(--police);
+  cursor: pointer;
+}
+
+#boutonResultats:hover {
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.5);
+}
+
+/* les résultats : une ligne par voiture, celle du joueur en surbrillance */
+#resultatsTable {
+  display: block;
+  max-height: 62vh;
+  overflow-y: auto;
+  border-collapse: collapse;
+  font: 600 14px/1.5 ui-monospace, Menlo, monospace;
+}
+
+#resultatsTable th {
+  padding: 2px 12px;
+  font: 700 12px/1.4 var(--police);
+  opacity: 0.75;
+  text-align: left;
+}
+
+#resultatsTable td {
+  padding: 2px 12px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+#resultatsTable tr.moi td { background: var(--accent); }
+#resultatsTable td.gagne { color: #3ddc7a; }
+#resultatsTable td.perd { color: #ff6b6b; }
 
 .cache {
   display: none !important;   /* plus fort que les display des éléments à id */

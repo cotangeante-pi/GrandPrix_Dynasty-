@@ -28,6 +28,8 @@ const JEU = {
   apresArrivee: 0,      // s depuis l'arrivée
   arretApres: null,     // s entre l'arrivée et l'arrêt de la voiture
   signal: null,         // le dernier signal de course joué (3, 2, 1, go)
+  final: null,          // le classement final d'une course à plusieurs (classementFinal), une fois le podium connu
+  tempsPodium: 0,       // s depuis le début du podium (la caméra qui tourne)
 };
 
 // les caméras de survol n'ont pas de course
@@ -64,6 +66,8 @@ function lancerCourse(nbTours) {
   JEU.apresArrivee = 0;
   JEU.arretApres = null;
   JEU.signal = null;
+  JEU.final = null;
+  PODIUM3D.cacher();
   JEU.ecran = 'course';
   INTERFACE.montrer('course');
 }
@@ -75,6 +79,7 @@ function pause(oui) {
 
 function allerAuChoix() {
   JEU.course = null;
+  PODIUM3D.cacher();
   JEU.ecran = 'choix';
   placerAuDepart(JEU.joueur, CIRCUIT);
   INTERFACE.preparerChoix(lancerCourse, NOM_CIRCUIT);
@@ -90,6 +95,31 @@ function signauxCourse(c) {
     JEU.signal = s;
     if (s !== 'feu0') SON.signal(s === 'go' ? 'go' : 'compte');
   }
+}
+
+// une course à plusieurs : les trois premiers du classement final (pénalités comprises) sont connus. Les trois
+// voitures montent sur le podium 3D ; les résultats sont prêts derrière (bouton pour passer le podium)
+function montrerPodium() {
+  const e = JEU.plateau, P = e.pilotes;
+  JEU.final = classementFinal(e);
+  const trois = JEU.final.slice(0, 3);
+  for (const m of JEU.modeles) m.groupe.visible = false;
+  PODIUM3D.montrer(trois.map(x => JEU.modeles[x.k]));
+  INTERFACE.remplirPodium(trois.map(x => ({ numero: P[x.k].numero, couleur: JEU.couleurs[x.k], total: x.total, penalites: x.penalites })));
+  INTERFACE.remplirResultats(JEU.final.map(x => ({
+    place: x.place, numero: P[x.k].numero, couleur: JEU.couleurs[x.k], total: x.total, penalites: x.penalites,
+    ecart: x.ecart, grille: x.grille, moi: x.k === JEU.suivie,
+  })));
+  JEU.tempsPodium = 0;
+  SON.signal('arrivee');
+  JEU.ecran = 'podium';
+  INTERFACE.montrer('podium');
+}
+
+function voirResultats() {
+  if (JEU.ecran !== 'podium') return;
+  JEU.ecran = 'resultats';
+  INTERFACE.montrer('resultats');
 }
 
 // la course est finie : le record, puis l'écran de fin
@@ -131,13 +161,14 @@ function brancherClavier() {
   document.addEventListener('visibilitychange', () => { enfoncees.clear(); majCibles(); });
 }
 
-const AUCUNE = { gaz: 0, frein: 0, direction: 0 };
+const AUCUNE = { gaz: 0, frein: 0, direction: 0 }, FREIN_SEUL = { gaz: 0, frein: 1, direction: 0 };
 
 // ?ia=N&joueur=1 : les commandes du joueur pour sa voiture dans la course entre IA (comme seul : rampes, Espace)
 function conduireJoueur(p, pas) {
   if (JEU.remettre && courseAutorise(p.course)) remettreSurPiste(p.v, CIRCUIT);
   JEU.remettre = false;
-  lisserCommandes(p.v, commandesPermises(p.course) ? JEU.cibles : AUCUNE, pas);   // avant l'extinction des feux : faux départ
+  // avant l'extinction des feux : faux départ ; après l'arrivée, sa voiture freine seule jusqu'à l'arrêt (les autres finissent leur course)
+  lisserCommandes(p.v, commandesPermises(p.course) ? JEU.cibles : p.course.etat === 'finie' ? FREIN_SEUL : AUCUNE, pas);
 }
 
 function pasJoueur(pas) {
@@ -174,7 +205,7 @@ function majClassementRadar() {
   if (!enCourse) { INTERFACE.majClassement(null); return; }
   const P = JEU.plateau ? JEU.plateau.pilotes : [];
   INTERFACE.majClassement(JEU.plateau ? classementCourse(JEU.plateau).map(x => ({
-    numero: P[x.k].numero, couleur: JEU.couleurs[x.k], ecart: x.ecart, tours: x.tours, moi: x.k === JEU.suivie,
+    numero: P[x.k].numero, couleur: JEU.couleurs[x.k], ecart: x.ecart, tours: x.tours, penalites: x.penalites, moi: x.k === JEU.suivie,
   })) : null);
   const autres = [];
   P.forEach((p, k) => { if (k !== JEU.suivie && p.arrivee === null) autres.push({ x: p.v.x, z: p.v.z, couleur: JEU.couleurs[k] }); });
@@ -187,6 +218,10 @@ function majTableau() {
   document.getElementById('vitesse').textContent = Math.round(Math.abs(v.u) * 3.6);
   document.getElementById('rapport').textContent = rapportPourVitesse(v.u);
   const roule = JEU.ecran === 'course' || JEU.ecran === 'survol';
+  // sur le podium et les résultats, ni vitesse ni aide des touches
+  const apres = JEU.ecran === 'podium' || JEU.ecran === 'resultats';
+  document.getElementById('tableau').classList.toggle('cache', apres);
+  document.getElementById('aide').classList.toggle('cache', apres);
   document.getElementById('horsPiste').classList.toggle('cache', !(v.surHerbe && roule));
 }
 
@@ -273,6 +308,8 @@ function demarrerJeu() {
   } else JEU.modele = JEU.modeles[JEU.contre ? JEU.ia : 0];   // avant la course (écran de choix), sur la ligne
   INTERFACE.preparerPause(() => pause(false), () => lancerCourse(JEU.course.nbTours));
   INTERFACE.preparerFin(() => lancerCourse(JEU.course.nbTours), allerAuChoix);
+  INTERFACE.preparerResultats(voirResultats, () => lancerCourse(JEU.course.nbTours), allerAuChoix);
+  PODIUM3D.init(CIRCUIT);
   // ?course=5, 12, 18 ou 0 (essai libre) lance directement une course (tests, développement)
   const demandee = PARAMETRES.get('course');
   if (SURVOL.includes(PARAMETRES.get('camera'))) { JEU.ecran = 'survol'; INTERFACE.montrer('survol'); }
@@ -291,21 +328,31 @@ function demarrerJeu() {
   BOUCLE.surPhysique(pasJoueur);
   BOUCLE.surAffichage((alpha, dt) => {
     JEU.alpha = alpha;
+    const apres = JEU.ecran === 'podium' || JEU.ecran === 'resultats';   // le podium : les voitures n'y bougent plus
     // ?ia=N : chaque IA à sa place ; une IA arrivée quitte la piste (elle n'est plus dessinée)
-    if (JEU.plateau) JEU.plateau.pilotes.forEach((p, k) => {
+    if (JEU.plateau && !apres) JEU.plateau.pilotes.forEach((p, k) => {
       const m = JEU.modeles[k];
       m.groupe.visible = p.arrivee === null || k === JEU.suivie;
       if (m !== JEU.modele) { VOITURE3D.placer(m, etatAffiche(p.v, alpha), p.v); m.tete.visible = true; }
     });
     const etat = etatAffiche(JEU.joueur, alpha);
-    VOITURE3D.placer(JEU.modele, etat, JEU.joueur);
-    JEU.modele.tete.visible = CAMERA.mode !== 'cockpit';   // en vue cockpit, l'œil est dans le casque
-    CAMERA.maj(dt, etat, JEU.joueur);
+    if (apres) {
+      JEU.tempsPodium += dt;
+      PODIUM3D.camera(SCENE3D.camera, JEU.tempsPodium);
+    } else {
+      VOITURE3D.placer(JEU.modele, etat, JEU.joueur);
+      JEU.modele.tete.visible = CAMERA.mode !== 'cockpit';   // en vue cockpit, l'œil est dans le casque
+      CAMERA.maj(dt, etat, JEU.joueur);
+    }
     majTableau();
     INTERFACE.majCourse(JEU.course, JEU.ecran);
     majClassementRadar();
     signauxCourse(JEU.course);
-    if (JEU.ecran === 'course' && JEU.course && JEU.course.etat === 'finie') finDeCourse();
+    // la voiture suivie a fini : seule, l'écran de fin ; à plusieurs, le podium dès que les trois premiers sont connus
+    if (JEU.ecran === 'course' && JEU.course && JEU.course.etat === 'finie') {
+      if (!JEU.plateau) finDeCourse();
+      else if (podiumConnu(JEU.plateau)) montrerPodium();
+    }
     SON.maj(JEU.joueur);
     SCENE3D.dessiner();
   });

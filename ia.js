@@ -664,7 +664,12 @@ function piloterIA(pilote, v, vues, dt) {
     if (!surSaLigne && !aLaFile && Math.abs(w.d - p.d) >= R.IA_VISION_COULOIR) continue;
     // en préparant son attaque, il se colle dans le sillage de la voiture attaquée (s'il est bien derrière elle, pas en biais)
     const sillage = a && w.id === a.id && Math.abs(w.d - p.d) < R.ASPIRATION_LARGEUR;
-    const derriere = vitesseDerriere({ distance: g, vitesse: w.vitesse }, sillage ? R.IA_DISTANCE_ATTAQUE : R.IA_DISTANCE_SUIVI);
+    // au départ (sur la grille, dans sa file), la voiture devant lui est à GRILLE_ESPACEMENT × 2 m : s'il voulait
+    // s'en tenir à IA_DISTANCE_SUIVI, il attendrait qu'elle parte, et les rangées partiraient l'une après l'autre (le
+    // joueur, derrière, leur rentrait dedans) : tout le monde part en même temps, et pendant le lancement (ses
+    // IA_DEPART_LANCEMENT premiers mètres), il la suit à IA_DISTANCE_MIN ; ensuite, la distance habituelle revient
+    const suivi = sillage ? R.IA_DISTANCE_ATTAQUE : pilote.parcouru < R.IA_DEPART_LANCEMENT ? R.IA_DISTANCE_MIN : R.IA_DISTANCE_SUIVI;
+    const derriere = vitesseDerriere({ distance: g, vitesse: w.vitesse }, suivi);
     if (derriere < cible) { cible = derriere; retenuPar = w.id; }
   }
   // retenu : il voudrait aller nettement plus vite que la voiture devant ne le laisse

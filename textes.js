@@ -23,6 +23,11 @@ const TEXTES = {
     virgule: '.',                 // le séparateur décimal des écarts du classement (+0.8 s)
     tourRetard: 'lap',
     toursRetard: 'laps',
+    podium: 'Podium',
+    voirResultats: 'Results',
+    resultats: 'Race results',
+    colonnesResultats: ['Pos', 'No', 'Time', 'Penalty', 'Gap', 'Grid'],
+    enCourse: 'running',
   },
   fr: {
     nomDuJeu: 'Grand Prix Dynasty',
@@ -47,6 +52,11 @@ const TEXTES = {
     virgule: ',',
     tourRetard: 'tour',
     toursRetard: 'tours',
+    podium: 'Podium',
+    voirResultats: 'Résultats',
+    resultats: 'Résultats de la course',
+    colonnesResultats: ['Pos', 'N°', 'Temps', 'Pénalité', 'Écart', 'Grille'],
+    enCourse: 'en course',
   },
 };
 

@@ -207,6 +207,16 @@ const REGLAGES = {
   SIMULATION_MARGE_DEVANT: 6,   // m : une voiture est devant une autre à partir de cet écart (un dépassement compte quand ça change)
   SIMULATION_TEMPS_MAX: 150,    // s par tour : une course simulée s'arrête là, même si des voitures n'ont pas fini
   RADAR_RAYON: 150,             // m : le radar montre la piste et les voitures jusque-là autour du joueur
+  // le podium 3D (podium3d.js)
+  PODIUM_DISTANCE: 30,          // m : à cette distance du bord gauche de la piste, en face de la ligne
+  PODIUM_LARGEUR: 6.5,          // m : la largeur d'une marche…
+  PODIUM_PROFONDEUR: 7,         // … sa profondeur
+  PODIUM_HAUTEURS: [2.4, 1.6, 1], // m : la hauteur des marches du 1er, du 2e, du 3e
+  PODIUM_COULEUR: 0xe9ebf0,
+  PODIUM_COULEUR_SOL: 0x2a2f3a,
+  PODIUM_COULEURS: [0xd4af37, 0xc0c4cc, 0xcd7f32],   // or, argent, bronze
+  PODIUM_CAMERA: [26, 8],       // m : la caméra du podium, à cette distance et à cette hauteur…
+  PODIUM_ROTATION: 0.25,        // … et elle se balance doucement de part et d'autre (rad/s de la phase)
   CLASSEMENT_PAS: 2,            // m : pour les écarts du classement, on note quand chaque voiture passe tous les 2 m
   GRAINE_STYLES: 1000,          // les façons de piloter sont tirées avec la graine de la course + ce nombre
   GRAINE_CARACTERE: 3000,       // … et le caractère des pilotes avec la graine + ce nombre
@@ -219,6 +229,7 @@ const REGLAGES = {
   // derrière une voiture plus lente (sans la dépasser, étape 4a) ; distances d'un centre de voiture à l'autre
   IA_DISTANCE_MIN: 8,           // m : jamais plus près
   IA_DISTANCE_SUIVI: 14,        // m : la distance où elle se cale derrière
+  IA_DEPART_LANCEMENT: 100,     // m : au départ, sur cette distance, elle suit à IA_DISTANCE_MIN (tout le monde part ensemble)
   IA_GAIN_DISTANCE: 1,          // m/s de vitesse en plus par m d'écart en trop, près d'elle…
   IA_GAIN_DISTANCE_LOIN: 1.5,   // … et loin d'elle (au-delà de deux fois la distance de suivi)
 
