@@ -98,6 +98,9 @@ const REGLAGES = {
   FEUX_REACTION_IA: [0.15, 0.45], // s : le temps de réaction de chaque IA à l'extinction, tiré avec la graine
   FAUX_DEPART_VITESSE: 0.5,     // m/s : le joueur qui roule plus vite avant l'extinction fait un faux départ
   PENALITE_FAUX_DEPART: 5,      // s ajoutées au temps total (comme le virage coupé)
+  // après l'arrivée du joueur (arrivee.js) : la vue télé sur les autres, puis le podium
+  ARRIVEE_ATTENTE_MAX: 90,      // s : le podium vient au plus tard là ; les voitures pas arrivées sont classées dans l'ordre de course
+  ARRIVEE_BAGARRE: 15,          // m : deux voitures plus proches que ça se bagarrent (la caméra télé les préfère)
   ARRET_APRES_ARRIVEE: 0.3,     // m/s : après l'arrivée, la voiture freine seule jusque-là, puis roule jusqu'à l'arrêt
 
   // le robot d'essai (préparation des IA)

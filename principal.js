@@ -30,6 +30,7 @@ const JEU = {
   signal: null,         // le dernier signal de course joué (3, 2, 1, go)
   final: null,          // le classement final d'une course à plusieurs (classementFinal), une fois le podium connu
   tempsPodium: 0,       // s depuis le début du podium (la caméra qui tourne)
+  attente: null,        // contre les IA, après l'arrivée du joueur : { tele (la voiture suivie par la caméra télé), camera (celle d'avant), passer }
 };
 
 // les caméras de survol n'ont pas de course
@@ -67,6 +68,7 @@ function lancerCourse(nbTours) {
   JEU.arretApres = null;
   JEU.signal = null;
   JEU.final = null;
+  finirAttente();
   PODIUM3D.cacher();
   JEU.ecran = 'course';
   INTERFACE.montrer('course');
@@ -116,6 +118,33 @@ function montrerPodium() {
   INTERFACE.montrer('podium');
 }
 
+// contre les IA, le joueur a passé la ligne : sa voiture freine seule, la caméra télé suit les voitures encore en
+// course (arrivee.js), et le podium attend la dernière voiture, la limite ARRIVEE_ATTENTE_MAX, ou le bouton « passer »
+function attendreLesAutres() {
+  const e = JEU.plateau, moi = e.pilotes[JEU.suivie];
+  if (moi.arrivee === null) return;   // sa course est finie, la simulation note son arrivée au pas suivant
+  if (!JEU.attente) {
+    JEU.attente = { tele: null, camera: CAMERA.mode, passer: false };
+    CAMERA.forcer('tele');
+  }
+  JEU.attente.tele = ARRIVEE.voitureTele(e, JEU.attente.tele);
+  if (JEU.attente.passer || ARRIVEE.podiumPret(e, e.temps - moi.arrivee)) {
+    finirAttente();
+    montrerPodium();
+  }
+}
+
+// la fin de l'attente (podium, nouvelle course) : la caméra d'avant revient, le bandeau part
+function finirAttente() {
+  if (JEU.attente) CAMERA.forcer(JEU.attente.camera);
+  JEU.attente = null;
+  document.getElementById('attenteArrivee').classList.add('cache');
+}
+
+function passerAuPodium() {
+  if (JEU.attente && JEU.ecran === 'course') JEU.attente.passer = true;
+}
+
 function voirResultats() {
   if (JEU.ecran !== 'podium') return;
   JEU.ecran = 'resultats';
@@ -151,6 +180,7 @@ function brancherClavier() {
     if (e.code === 'KeyC' && !e.repeat) CAMERA.suivante();
     if (e.code === 'Space' && !e.repeat) JEU.remettre = true;
     if (e.code === 'Escape' && !e.repeat) pause(JEU.ecran === 'course');
+    if (e.code === 'Enter' && !e.repeat) passerAuPodium();
     if (e.code === 'Tab') { e.preventDefault(); if (JEU.plateau && !JEU.contre && !e.repeat) suivreSuivante(); }
     enfoncees.add(e.code);
     majCibles();
@@ -206,6 +236,7 @@ function majClassementRadar() {
   const P = JEU.plateau ? JEU.plateau.pilotes : [];
   INTERFACE.majClassement(JEU.plateau ? classementCourse(JEU.plateau).map(x => ({
     numero: P[x.k].numero, couleur: JEU.couleurs[x.k], ecart: x.ecart, tours: x.tours, penalites: x.penalites, moi: x.k === JEU.suivie,
+    arrive: P[x.k].arrivee !== null,
   })) : null);
   const autres = [];
   P.forEach((p, k) => { if (k !== JEU.suivie && p.arrivee === null) autres.push({ x: p.v.x, z: p.v.z, couleur: JEU.couleurs[k] }); });
@@ -309,6 +340,11 @@ function demarrerJeu() {
   INTERFACE.preparerPause(() => pause(false), () => lancerCourse(JEU.course.nbTours));
   INTERFACE.preparerFin(() => lancerCourse(JEU.course.nbTours), allerAuChoix);
   INTERFACE.preparerResultats(voirResultats, () => lancerCourse(JEU.course.nbTours), allerAuChoix);
+  document.getElementById('attenteTexte').textContent = texte('attenteArrivee');
+  const boutonPasser = document.getElementById('boutonPasser');
+  boutonPasser.textContent = texte('passerPodium');
+  boutonPasser.addEventListener('mousedown', e => e.preventDefault());
+  boutonPasser.addEventListener('click', passerAuPodium);
   PODIUM3D.init(CIRCUIT);
   // ?course=5, 12, 18 ou 0 (essai libre) lance directement une course (tests, développement)
   const demandee = PARAMETRES.get('course');
@@ -342,17 +378,22 @@ function demarrerJeu() {
     } else {
       VOITURE3D.placer(JEU.modele, etat, JEU.joueur);
       JEU.modele.tete.visible = CAMERA.mode !== 'cockpit';   // en vue cockpit, l'œil est dans le casque
-      CAMERA.maj(dt, etat, JEU.joueur);
+      // après l'arrivée du joueur, la caméra télé suit une voiture encore en course
+      const tele = JEU.attente && JEU.attente.tele !== null ? JEU.plateau.pilotes[JEU.attente.tele].v : null;
+      CAMERA.maj(dt, tele ? etatAffiche(tele, alpha) : etat, tele || JEU.joueur);
     }
     majTableau();
     INTERFACE.majCourse(JEU.course, JEU.ecran);
     majClassementRadar();
     signauxCourse(JEU.course);
-    // la voiture suivie a fini : seule, l'écran de fin ; à plusieurs, le podium dès que les trois premiers sont connus
+    // la voiture suivie a fini : seule, l'écran de fin ; contre les IA, on attend les autres (vue télé) ; entre IA, le
+    // podium dès que les trois premiers sont connus
     if (JEU.ecran === 'course' && JEU.course && JEU.course.etat === 'finie') {
       if (!JEU.plateau) finDeCourse();
+      else if (JEU.contre) attendreLesAutres();
       else if (podiumConnu(JEU.plateau)) montrerPodium();
     }
+    document.getElementById('attenteArrivee').classList.toggle('cache', !(JEU.attente && JEU.ecran === 'course'));
     SON.maj(JEU.joueur);
     SCENE3D.dessiner();
   });

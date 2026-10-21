@@ -114,6 +114,7 @@ const INTERFACE = (function () {
       }
       li.style.setProperty('--rang', i);
       li.classList.toggle('moi', l.moi);
+      li.classList.toggle('arrive', !!l.arrive);   // arrivé : 🏁 devant son écart
       li.children[0].textContent = i + 1;
       // une voiture pénalisée porte ses pénalités (« ✂ +15 s ») : elles sont déjà comptées dans sa place et son écart
       li.children[3].textContent = l.penalites > 0 ? '✂ +' + l.penalites + ' s' : '';

@@ -228,9 +228,24 @@ def course_joueur(pg, titre):
     pg.wait_for_timeout(1500)
     pg.screenshot(path=os.path.join(CAPTURES, 'joueur-ia.png'))
     pg.keyboard.up('ArrowUp')
+    # (sur un Mac chargé, la physique prend du retard sur l'horloge : on attend que tout le monde ait roulé)
+    avance = attendre(pg, '() => JEU.plateau.pilotes.every(p => p.course.progression > 20)', None, 20000)
     etat = pg.evaluate('() => JEU.plateau.pilotes.map(p => ({ humain: p.humain, progression: Math.round(p.course.progression), chocs: p.v.chocs.length }))')
-    t(f'{titre} : la voiture du joueur et les 9 IA ont avancé', all(e['progression'] > 20 for e in etat), str(etat))
+    t(f'{titre} : la voiture du joueur et les 9 IA ont avancé', avance, str(etat))
     L.append(f"  (contre 9 IA : joueur {etat[9]['progression']} m, IA de {min(e['progression'] for e in etat[:9])} à {max(e['progression'] for e in etat[:9])} m, {sum(e['chocs'] for e in etat) // 2} contacts)")
+    # le joueur passe la ligne (on lui donne ses tours) : la caméra télé suit une IA encore en course, le podium attend
+    pg.evaluate('() => { const c = JEU.course; while (c.tours.length < c.nbTours) c.tours.push({ temps: 60, secteurs: [20, 20, 20], coupe: false }); c.etat = "finie"; }')
+    t(f'{titre} : après l’arrivée du joueur, caméra télé sur une IA encore en course, bandeau d’attente, pas encore de podium',
+      attendre(pg, '() => JEU.attente && CAMERA.mode === "tele" && JEU.attente.tele !== null && !JEU.plateau.pilotes[JEU.attente.tele].humain && JEU.plateau.pilotes[JEU.attente.tele].arrivee === null'
+                   ' && !document.getElementById("attenteArrivee").classList.contains("cache") && JEU.ecran === "course"', None, 20000),
+      str(pg.evaluate('() => [JEU.ecran, CAMERA.mode, JEU.attente && JEU.attente.tele]')))
+    t(f'{titre} : la tour de classement reste, le joueur marqué 🏁', pg.evaluate('() => !document.getElementById("classement").classList.contains("cache") && document.querySelector("#classementListe li.moi").classList.contains("arrive")'))
+    pg.wait_for_timeout(1000)
+    pg.screenshot(path=os.path.join(CAPTURES, 'apres-arrivee.png'))
+    pg.click('#boutonPasser')
+    t(f'{titre} : le bouton « passer » mène au podium (la caméra d’avant revient, le bandeau part)',
+      attendre(pg, '() => JEU.ecran === "podium" && CAMERA.mode !== "tele" && document.getElementById("attenteArrivee").classList.contains("cache")'),
+      str(pg.evaluate('() => [JEU.ecran, CAMERA.mode]')))
 
 # les éléments fixes de l'écran de course, qui ne doivent jamais se chevaucher
 ELEMENTS_COURSE = ['classement', 'radar', 'boutonSon', 'aide', 'hudCourse', 'tableau']

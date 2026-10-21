@@ -209,6 +209,24 @@ html, body {
   pointer-events: none;
 }
 
+/* après l'arrivée du joueur : le bandeau d'attente et le bouton pour passer au podium */
+#attenteArrivee {
+  position: fixed;
+  top: 150px;   /* sous l'avis de pénalité (#hudPenalite) */
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 10px 8px 16px;
+  border-radius: 6px;
+  background: rgba(11, 15, 23, 0.85);
+  font: 700 16px/1.3 var(--police);
+  white-space: nowrap;
+}
+#attenteArrivee button { font: 700 14px/1 var(--police); padding: 8px 12px; cursor: pointer; }
+#classementListe li.arrive .ecart::before { content: '🏁 '; }
+
 /* les feux de départ : cinq feux rouges, éteints puis allumés un par un */
 #feux {
   position: fixed;

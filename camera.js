@@ -46,6 +46,11 @@ const CAMERA = (function () {
     return mode;
   }
 
+  // une caméra de course imposée (la vue télé après l'arrivée du joueur, puis celle d'avant)
+  function forcer(m) {
+    if (COURSE.includes(m)) { mode = m; suiviDerriere.cap = null; }
+  }
+
   function regler(champ, pres) {
     if (cam.fov !== champ || cam.near !== pres) { cam.fov = champ; cam.near = pres; cam.updateProjectionMatrix(); }
   }
@@ -177,7 +182,7 @@ const CAMERA = (function () {
   }
 
   return {
-    init, maj, suivante, poseDerriere, poseCockpit,
+    init, maj, suivante, forcer, poseDerriere, poseCockpit,
     get mode() { return mode; },
     get conduite() { return mode !== 'libre'; },   // en caméra libre, les flèches déplacent la caméra, pas la voiture
     get position() { return cam ? { x: cam.position.x, y: cam.position.y, z: cam.position.z } : null; },
