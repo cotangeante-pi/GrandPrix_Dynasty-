@@ -26,7 +26,7 @@ Ce qu'on ajoute, c'est **un vrai championnat** : des saisons de 12 Grands Prix, 
 - **Les règles de course sont volontairement simples**, pour ne pas avoir besoin d'un long tutoriel :
   - usure des pneus simple : une seule jauge, la voiture perd un peu d'adhérence quand elle s'use ;
   - **un arrêt au stand obligatoire** en course moyenne et longue, aucun en très courte. C'est là que les améliorations des changeurs de roues comptent ;
-  - couper un virage, c'est une pénalité de temps qui s'affiche à l'écran ;
+  - couper un virage, c'est une pénalité de temps qui s'affiche à l'écran. **Pendant la course, la place est celle de la piste** (la pénalité est seulement affichée à côté) ; **les pénalités s'appliquent à l'arrivée**, au classement final et au podium (décision du propriétaire, 2026-10-21) ;
   - Espace remet la voiture sur la piste, avec quelques secondes de perte ;
   - **ni météo, ni dégâts, ni drapeaux au début**. Ces règles pourront venir plus tard, chacune comme une étape à part, seulement si le propriétaire le décide.
 - **La conduite** : flèches ou WASD/ZQSD, Espace pour revenir sur la piste, C pour la caméra (derrière la voiture, cockpit, télé), Échap pour la pause.
@@ -135,11 +135,12 @@ Pour que ce soit beau **et** léger :
   - `physique.js` : la physique des voitures en calcul pur (modèle « vélo », herbe, barrières) et `contactsVoitures` (les voitures sont des rectangles qui se poussent, choc mou, jamais traversées) et `aspirationVoitures` (dans le sillage d'une voiture, moins de traînée) ; le joueur et les IA utilisent le même code ;
   - `robot.js` : le robot d'essai (suit la ligne du milieu) ; ce n'est pas l'IA ;
   - `ia.js` : l'IA des adversaires en calcul pur. La carte d'un circuit (`carteDepuis` : la trajectoire idéale, calculée une fois et découpée en tranches par `etapesTrajectoire`, ses virages et les vitesses possibles) est ce que le pilote sait de la piste, pas une ligne à suivre. `piloterIA(pilote, v, vues, dt)` : toutes les 0,15 s, le pilote compare quelques lignes sur 200 m qui partent de là où il est, les note avec la physique et les voitures qu'il voit, suit la meilleure et ne sort que `{ gaz, frein, direction }` ; chaque pilote a sa façon de piloter (`tirerStyle`, avec la graine) ;
-  - `simulation.js` : une course entre IA en calcul pur : la grille (deux files), ce que chaque IA voit (`voituresVues` : cône devant, couloir, rétroviseurs), `creerCourseIA` / `pasCourseIA` (aussi utilisés par la page), `classementCourse` (le classement en direct : ordre, écart en temps au pilote devant, tours de retard) et `simulerCourse(circuit, nbVoitures, nbTours, graine)` pour les tests ;
+  - `simulation.js` : une course entre IA en calcul pur : la grille (deux files), ce que chaque IA voit (`voituresVues` : cône devant, couloir, rétroviseurs), `creerCourseIA` / `pasCourseIA` (aussi utilisés par la page), `classementCourse` (le classement en direct : ordre, écart en temps au pilote devant, tours de retard), `classementFinal` (temps de course + pénalités, la même règle pour tous ; ordre de passage et ordre final) et `podiumConnu`, et `simulerCourse(circuit, nbVoitures, nbTours, graine)` pour les tests ;
   - `course.js` : une course seule en calcul pur : compte à rebours, chrono, tours (secteurs 1 → 2 → 3 puis la ligne), secteurs, meilleur tour, virage coupé (+5 s, tour ✂) ;
   - `sauvegarde.js` : la seule sauvegarde (localStorage, une clé, un numéro de version, en try/catch) ; pour l'instant, les records, séparés par circuit et par longueur ;
   - `interface.js` : les écrans (choix de la longueur, pause, fin) et l'affichage de course (tour, chrono, secteurs en couleurs, tour de classement en haut à droite) ;
   - `radar.js` : le radar en bas à gauche (canvas 2D, pas Three.js) : la piste proche et les voitures autour du joueur, tourné avec lui ;
+  - `podium3d.js` : le podium 3D fait par le code (2e, 1er, 3e), à côté de la ligne, avec sa caméra qui se balance ; après une course à plusieurs, `interface.js` montre le podium puis les résultats (place, temps, pénalités, écart, grille) ;
   - `boite.js` : les 8 rapports et le régime, tirés de la vitesse, pour l'affichage et le son seulement (la physique ne les lit pas) ;
   - `son.js` : le son synthétisé en Web Audio (moteur, pneus, chocs), rien avant le premier geste, M et 🔊 pour couper ;
   - `reglages.js` : `?reglages=1`, le panneau de curseurs du pilote d'essai, avec « copier » pour `donnees.js` ;

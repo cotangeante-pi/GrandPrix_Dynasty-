@@ -98,7 +98,7 @@ Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤
 
 ## Retours du propriétaire
 
-- 2026-10-21 ~17h45 : « j'ai fait une course avec 15 s de pénalités et je ne suis pas descendu de la place normale ». → Décision du Chef : les pénalités comptent dans la tour en direct (écart + pénalités, « ✂ +15 s ») et au classement final, pour tous.
+- 2026-10-21 ~17h45 : « j'ai fait une course avec 15 s de pénalités et je ne suis pas descendu de la place normale ». → **Décision du propriétaire** (elle remplace celle du Chef) : en course, la place est celle de la piste, la pénalité est seulement affichée (« ✂ +15 s ») ; elle s'applique à l'arrivée (classement final, podium, résultats). Même règle pour tous.
 - 2026-10-21 ~17h20 : « pendant la course je veux un radar en bas à gauche et le positionnement en haut à droite » (fait : 2a500e5), puis « aussi un podium (qui prend en compte les pénalités) » (en cours).
 
 - 2026-10-19 ~19h50 (au Codeur) : « session-76 a mon accord pour faire ce qu'il veut dans le dossier super star car amélioré (renommé « Grand Prix Dynasty » le 2026-10-21) ».
