@@ -90,7 +90,7 @@ Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤
 | 2026-10-18 | 0 | **100 i/s** sur le Mac du propriétaire (Chrome, index.html?debug=1) | three.min.js 633 Ko + < 25 Ko | scène du cube ; Chrome sans fenêtre = rendu logiciel, sans valeur |
 | 2026-10-18 | 1 (en cours) | **100 i/s** (le propriétaire) | — | circuit de test, version pas encore finie |
 | 2026-10-18 | 2 (tour 3) | **70 i/s** (le propriétaire) | — | 1 voiture ; charge du Mac 12–13 à ce moment ; pixelRatio 2 + beaucoup d'appels de dessin par voiture → tour 4, ordre 7 |
-| 2026-10-20 | 4d (tour 17) | — | code ≈ 150 Ko + three 618 Ko | 30 courses de 10 IA : 69 s de calcul ; 20 voitures × 120 pas : < 1 ms |
+| 2026-10-20 | 4d (tour 17) | — | code 174 Ko + three 618 Ko ≈ 792 Ko | 30 courses de 10 IA : 69 s de calcul ; 20 voitures × 120 pas : < 1 ms |
 | 2026-10-19 | 4a (tour 7) | — | three 618 Ko + code 111 Ko ≈ 729 Ko (zip ≈ 195 Ko) | IA : Test 47,88 s, Technique 54,43 s par tour lancé ; trajectoire 0,3–4,6 s de calcul (Mac chargé) |
 | 2026-10-18 | 2 (tour 4) | **> 90 i/s** en général (le propriétaire) | — | 1 voiture, 6 appels de dessin, pixelRatio 1,5 |
 
