@@ -33,6 +33,34 @@ function courseAutorise(c) {
   return c.etat === 'attente' || c.etat === 'course';
 }
 
+// les feux de départ, à la place du 3-2-1-GO : un feu de plus chaque seconde, puis tous éteints après un délai tiré
+// avec la graine, le même pour toutes les voitures. Chaque IA part avec un petit temps de réaction ; le joueur peut
+// partir trop tôt (faux départ, pénalité). pilotes : [{ course, humain }]
+function armerFeux(pilotes, graine) {
+  const R = REGLAGES;
+  ALEATOIRE.semer(graine + R.GRAINE_FEUX);
+  const delai = R.FEUX_DELAI[0] + hasard() * (R.FEUX_DELAI[1] - R.FEUX_DELAI[0]);
+  for (const p of pilotes) {
+    const c = p.course;
+    c.feux = { delai, total: R.FEUX_NB * R.FEUX_INTERVALLE + delai };
+    c.compte = c.feux.total;
+    c.reaction = p.humain ? 0 : R.FEUX_REACTION_IA[0] + hasard() * (R.FEUX_REACTION_IA[1] - R.FEUX_REACTION_IA[0]);
+    c.surveille = !!p.humain;   // le faux départ n'est surveillé que pour le joueur (pas pour les IA pour l'instant)
+  }
+  ALEATOIRE.semer();
+}
+
+// le nombre de feux allumés (0 avant le premier, et une fois éteints)
+function feuxAllumes(c) {
+  if (!c.feux || c.etat !== 'compte' || c.compte <= 0) return 0;
+  return Math.min(REGLAGES.FEUX_NB, Math.floor((c.feux.total - c.compte) / REGLAGES.FEUX_INTERVALLE + 1e-9));
+}
+
+// le joueur peut-il appuyer ? Avec les feux, oui même avant l'extinction : c'est là qu'on fait un faux départ
+function commandesPermises(c) {
+  return courseAutorise(c) || (!!c.feux && c.etat === 'compte');
+}
+
 function tempsTotal(c) {
   return c.tours.reduce((a, t) => a + t.temps, 0) + c.penalites;
 }
@@ -41,8 +69,14 @@ function tempsTotal(c) {
 function majCourse(c, v, dt) {
   const R = REGLAGES, L = c.circuit.longueur;
   if (c.etat === 'compte') {
+    // le faux départ : rouler avant l'extinction des feux, une seule pénalité
+    if (c.surveille && !c.fauxDepart && c.compte > 0 && Math.abs(v.u) > R.FAUX_DEPART_VITESSE) {
+      c.fauxDepart = true;
+      c.penalites += R.PENALITE_FAUX_DEPART;
+    }
     c.compte -= dt;
-    if (c.compte <= 0) { c.compte = 0; c.etat = 'attente'; }
+    // une IA attend encore son temps de réaction après l'extinction
+    if (c.compte <= -(c.reaction || 0)) { c.compte = 0; c.etat = 'attente'; }
     c.sAvant = v.piste.s; c.xAvant = v.x; c.zAvant = v.z;
     return;
   }

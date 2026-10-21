@@ -45,14 +45,17 @@ const INTERFACE = (function () {
     for (const id of ['choix', 'pause', 'fin']) $(id).classList.toggle('cache', id !== ecran);
     // le bandeau de course n'est là que pendant la course et la pause (pas sous l'écran de fin)
     const course = ecran === 'course' || ecran === 'pause';
-    for (const id of ['hudCourse', 'hudPenalite', 'compte', 'classement', 'radar']) if (!course) $(id).classList.add('cache');
+    for (const id of ['hudCourse', 'hudPenalite', 'compte', 'feux', 'classement', 'radar']) if (!course) $(id).classList.add('cache');
     if (course) $('hudCourse').classList.remove('cache');
   }
 
   // à chaque image, pendant la course
   function majCourse(c, ecran) {
     if (!c || (ecran !== 'course' && ecran !== 'pause')) return;
-    $('compte').classList.toggle('cache', !(c.etat === 'compte' || (c.etat === 'attente' && c.compte === 0 && c.temps === 0)));
+    $('compte').classList.toggle('cache', !!c.feux || !(c.etat === 'compte' || (c.etat === 'attente' && c.compte === 0 && c.temps === 0)));
+    // les feux : visibles pendant le départ, et un instant après l'extinction (tous éteints)
+    $('feux').classList.toggle('cache', !c.feux || !(c.etat === 'compte' || (c.etat !== 'finie' && c.temps < 1)));
+    if (c.feux) { const n = feuxAllumes(c); $('feux').querySelectorAll('span').forEach((f, i) => f.classList.toggle('allume', i < n)); }
     $('compte').textContent = c.etat === 'compte' ? Math.ceil(c.compte) : texte('go');
     const numero = Math.min(c.tours.length + 1, c.nbTours || Infinity);
     $('hudTour').textContent = texte('tour') + ' ' + numero + (c.nbTours ? ' / ' + c.nbTours : '');
@@ -72,8 +75,9 @@ const INTERFACE = (function () {
       el.className = 'secteur' + (t === undefined || t === null ? '' : ' ' + couleurSecteur(c, i, t, avant));
     }
     const recente = c.derniereCoupe !== undefined && c.temps - c.derniereCoupe < 3;
-    $('hudPenalite').classList.toggle('cache', !recente);
-    $('hudPenalite').textContent = texte('penalite').replace('{s}', REGLAGES.PENALITE_COUPE);
+    const faux = c.fauxDepart && (c.etat === 'compte' || c.temps < 4);   // le faux départ, affiché jusqu'à 4 s après le départ
+    $('hudPenalite').classList.toggle('cache', !recente && !faux);
+    $('hudPenalite').textContent = recente ? texte('penalite').replace('{s}', REGLAGES.PENALITE_COUPE) : texte('fauxDepart').replace('{s}', REGLAGES.PENALITE_FAUX_DEPART);
   }
 
   // l'écart au pilote devant : « +0,8 s », ou « +1 tour » s'il a un tour de retard ; rien pour le premier

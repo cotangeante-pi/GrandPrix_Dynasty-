@@ -91,6 +91,13 @@ const REGLAGES = {
   MARGE_COUPE: 1,               // m au-delà du bord : à partir de là, on est sorti de la piste
   SEUIL_COUPE: 2,               // m : virage coupé si la sortie fait gagner plus que ça le long de la piste
   PENALITE_COUPE: 5,            // s ajoutées au temps total
+  // les feux de départ (?ia=N&joueur=1) : à la place du 3-2-1-GO
+  FEUX_NB: 5,                   // cinq feux rouges…
+  FEUX_INTERVALLE: 1,           // s : … qui s'allument un par un, un par seconde
+  FEUX_DELAI: [0.8, 2.6],       // s : puis tous éteints après ce délai, tiré avec la graine : c'est le départ
+  FEUX_REACTION_IA: [0.15, 0.45], // s : le temps de réaction de chaque IA à l'extinction, tiré avec la graine
+  FAUX_DEPART_VITESSE: 0.5,     // m/s : le joueur qui roule plus vite avant l'extinction fait un faux départ
+  PENALITE_FAUX_DEPART: 5,      // s ajoutées au temps total (comme le virage coupé)
   ARRET_APRES_ARRIVEE: 0.3,     // m/s : après l'arrivée, la voiture freine seule jusque-là, puis roule jusqu'à l'arrêt
 
   // le robot d'essai (préparation des IA)
@@ -204,6 +211,7 @@ const REGLAGES = {
   GRAINE_STYLES: 1000,          // les façons de piloter sont tirées avec la graine de la course + ce nombre
   GRAINE_CARACTERE: 3000,       // … et le caractère des pilotes avec la graine + ce nombre
   GRAINE_QUALIF: 2000,          // … et la qualification avec la graine + ce nombre
+  GRAINE_FEUX: 4000,            // … et le délai des feux et les réactions des IA avec la graine + ce nombre
   IA_QUALIF_HASARD: 0.005,      // le temps de qualification d'une IA varie de ±0,5 % autour de son meilleur tour estimé
   IA_PAGE_MAX: 20,              // ?ia=N : au plus ce nombre d'IA dans la page
   // ?ia=N : la couleur de chaque IA (provisoire : les écuries viendront à l'étape 6)

@@ -160,6 +160,26 @@ t('caméra cockpit : devant le halo et son pilier, au-dessus de la coque, elle r
     const av=(p.x-e.x)*fx+(p.z-e.z)*fz,cote=-(p.x-e.x)*fz+(p.z-e.z)*fx,vise=(p.vise.x-e.x)*fx+(p.vise.z-e.z)*fz;
     v(av>avantHalo,'caméra à '+av.toFixed(2)+' m, halo jusqu’à '+avantHalo.toFixed(2)+' m');v(Math.abs(cote)<1e-9,'caméra décalée');
     v(p.y>0.75&&p.y<1.3,'hauteur '+p.y);v(vise>20&&p.vise.y<p.y,'visée');}});
+t('feux de départ : 5 feux un par seconde, même extinction pour tous (graine), réaction des IA, faux départ = +5 s, départ à l’extinction = 0', ()=>{
+  const R=REGLAGES,DT_=1/120,mk=h=>({course:creerCourse(C,5),humain:h});
+  const P=[mk(false),mk(false),mk(true)],Q=[mk(false),mk(false),mk(true)];armerFeux(P,7);armerFeux(Q,7);
+  const c0=P[2].course;v(P.every(p=>p.course.compte===c0.compte)&&c0.feux.delai>=R.FEUX_DELAI[0]&&c0.feux.delai<=R.FEUX_DELAI[1],'délai');
+  v(Q[0].course.reaction===P[0].course.reaction&&P[0].course.reaction>=R.FEUX_REACTION_IA[0]&&P[0].course.reaction<=R.FEUX_REACTION_IA[1]&&c0.reaction===0,'réactions');
+  // le joueur qui attend l'extinction : 0 s ; les feux s'allument un par un
+  const arret={u:0,x:0,z:0,piste:{s:0}},vus=[];let k=0;
+  while(c0.etat==='compte'&&k<2000){if(k%120===60)vus.push(feuxAllumes(c0));majCourse(c0,arret,DT_);k++;}
+  v(vus.slice(0,5).join()==='0,1,2,3,4'&&vus[5]===5,'feux '+vus.join());v(c0.penalites===0&&!c0.fauxDepart&&feuxAllumes(c0)===0,'pénalité sans faux départ');
+  v(Math.abs(k*DT_-c0.feux.total)<0.02,'extinction à '+(k*DT_)+' s, attendu '+c0.feux.total);
+  // l'IA part après son temps de réaction, et ne fait pas de faux départ même si elle bouge
+  const ia=P[0].course;let j=0;while(ia.etat==='compte'&&j<3000){majCourse(ia,{u:2,x:0,z:0,piste:{s:0}},DT_);j++;}
+  v(Math.abs(j*DT_-c0.feux.total-ia.reaction)<0.02&&ia.penalites===0,'IA partie à '+(j*DT_));
+  // le joueur qui roule pendant les feux : faux départ, +5 s une seule fois, commandes permises avant l'extinction
+  const Z=[mk(true)];armerFeux(Z,7);const cz=Z[0].course;v(commandesPermises(cz)&&!courseAutorise(cz),'commandes');
+  for(let i=0;i<300;i++)majCourse(cz,{u:i>100?3:0,x:0,z:0,piste:{s:0}},DT_);
+  v(cz.fauxDepart&&cz.penalites===R.PENALITE_FAUX_DEPART,'faux départ '+cz.penalites);
+  for(let i=0;i<1000;i++)majCourse(cz,{u:3,x:0,z:0,piste:{s:0}},DT_);v(cz.penalites===R.PENALITE_FAUX_DEPART&&cz.etat==='course','une seule pénalité');
+  // sans feux (course seule), le 3-2-1 ne change pas
+  const s1=creerCourse(C,5);v(!commandesPermises(s1)&&s1.compte===R.COMPTE_A_REBOURS,'course seule');});
 let tourRobot='';
 t('le robot fait un tour complet sans toucher de barrière, en 45 à 75 s, et le test dure moins de 5 s', ()=>{const t0=performance.now();const vo=creerVoiture(C,0);
   let sAvant=0,parcouru=0,temps=null,dMax=0,herbe=0;

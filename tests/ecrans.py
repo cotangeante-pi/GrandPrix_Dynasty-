@@ -204,8 +204,21 @@ def course_joueur(pg, titre):
     t(f'{titre} : 9 IA et la voiture du joueur, en dernière place de la grille ; la caméra suit le joueur',
       pg.evaluate('() => JEU.contre && JEU.plateau.pilotes.length === 10 && JEU.plateau.pilotes[9].humain && JEU.joueur === JEU.plateau.pilotes[9].v && JEU.course === JEU.plateau.pilotes[9].course && JEU.modeles.length === 10'))
     t(f'{titre} : la carte se calcule en fond, les 9 IA reçoivent leur pilote', attendre(pg, '() => JEU.plateau.carte !== null && JEU.plateau.pilotes.filter(p => p.pilote !== null).length === 9', None, 120000))
+    # les feux de départ : on retient l'extinction (un long délai) pour voir les 5 feux allumés
+    t(f'{titre} : les feux de départ remplacent le 3-2-1 (même extinction pour toutes les voitures)', pg.evaluate('() => JEU.plateau.pilotes.every(p => p.course.feux && p.course.feux.total === JEU.course.feux.total) && JEU.plateau.pilotes.every(p => p.course.etat === "compte") && document.getElementById("compte").classList.contains("cache")'))
+    pg.evaluate('() => { for (const p of JEU.plateau.pilotes) { p.course.feux.delai = 30; p.course.feux.total = 35; p.course.compte = 30; } }')
+    t(f'{titre} : les 5 feux rouges sont allumés', attendre(pg, '() => !document.getElementById("feux").classList.contains("cache") && document.querySelectorAll("#feux span.allume").length === 5'),
+      pg.evaluate('() => document.getElementById("feux").outerHTML'))
+    pg.screenshot(path=os.path.join(CAPTURES, 'feux.png'))
+    # partir avant l'extinction : faux départ, +5 s affichés
+    pg.keyboard.down('ArrowUp')
+    t(f'{titre} : rouler avant l’extinction = faux départ, +5 s affichés', attendre(pg, '() => JEU.course.fauxDepart && JEU.course.penalites === 5 && !document.getElementById("hudPenalite").classList.contains("cache")', None, 20000),
+      pg.evaluate('() => [JEU.course.penalites, JEU.joueur.u, document.getElementById("hudPenalite").textContent]'))
+    t(f'{titre} : les IA ne bougent pas avant l’extinction', pg.evaluate('() => JEU.plateau.pilotes.every(p => p.humain || p.v.u === 0)'))
+    pg.keyboard.up('ArrowUp')
     pg.evaluate('() => { for (const p of JEU.plateau.pilotes) p.course.compte = 0.01; }')
-    attendre(pg, '() => JEU.course.etat === "attente"', None, 20000)
+    attendre(pg, '() => JEU.course.etat !== "compte"', None, 20000)
+    t(f'{titre} : à l’extinction, les feux s’éteignent tous', pg.evaluate('() => document.querySelectorAll("#feux span.allume").length === 0'))
     pg.keyboard.down('ArrowUp')
     t(f'{titre} : ↑ fait avancer la voiture du joueur', attendre(pg, '() => JEU.joueur.u > 15', None, 40000), pg.evaluate('() => JEU.joueur.u'))
     pg.keyboard.press('Tab')

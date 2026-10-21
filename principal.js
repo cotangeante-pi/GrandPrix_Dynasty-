@@ -55,6 +55,7 @@ function lancerCourse(nbTours) {
   if (JEU.ia >= 2 || JEU.contre) {
     JEU.plateau = creerCourseIA(CIRCUIT, JEU.ia, nbTours, Number(PARAMETRES.get('graine')) || 1, JEU.carte, JEU.contre);
     suivre(JEU.contre ? JEU.ia : 0);   // contre les IA : la caméra suit le joueur
+    if (JEU.contre) armerFeux(JEU.plateau.pilotes, Number(PARAMETRES.get('graine')) || 1);   // les feux de départ
   } else {
     JEU.course = creerCourse(CIRCUIT, nbTours);
     placerAuDepart(JEU.joueur, CIRCUIT);
@@ -83,10 +84,11 @@ function allerAuChoix() {
 // les bips du compte à rebours (3, 2, 1) et le GO, joués une fois chacun
 function signauxCourse(c) {
   if (!c || JEU.ecran !== 'course') return;
-  const s = c.etat === 'compte' ? String(Math.ceil(c.compte)) : (c.etat === 'attente' || c.etat === 'course' ? 'go' : null);
+  // avec les feux : un bip à chaque feu qui s'allume, le GO à l'extinction
+  const s = c.etat === 'compte' ? (c.feux ? 'feu' + feuxAllumes(c) : String(Math.ceil(c.compte))) : (c.etat === 'attente' || c.etat === 'course' ? 'go' : null);
   if (s && s !== JEU.signal) {
     JEU.signal = s;
-    SON.signal(s === 'go' ? 'go' : 'compte');
+    if (s !== 'feu0') SON.signal(s === 'go' ? 'go' : 'compte');
   }
 }
 
@@ -133,10 +135,9 @@ const AUCUNE = { gaz: 0, frein: 0, direction: 0 };
 
 // ?ia=N&joueur=1 : les commandes du joueur pour sa voiture dans la course entre IA (comme seul : rampes, Espace)
 function conduireJoueur(p, pas) {
-  const permis = courseAutorise(p.course);
-  if (JEU.remettre && permis) remettreSurPiste(p.v, CIRCUIT);
+  if (JEU.remettre && courseAutorise(p.course)) remettreSurPiste(p.v, CIRCUIT);
   JEU.remettre = false;
-  lisserCommandes(p.v, permis ? JEU.cibles : AUCUNE, pas);
+  lisserCommandes(p.v, commandesPermises(p.course) ? JEU.cibles : AUCUNE, pas);   // avant l'extinction des feux : faux départ
 }
 
 function pasJoueur(pas) {
