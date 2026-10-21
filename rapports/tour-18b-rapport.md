@@ -37,3 +37,13 @@ AJOUT 2 (2026-10-21, ~19h05) — ÉTAPE 6 COMMENCÉE EN PARALLÈLE (accord du pr
    - la sauvegarde passe par sauvegarde.js (le seul module) : numéro de version augmenté, ancienne sauvegarde (records) transformée sans rien perdre, sauvegarde après chaque course.
    Fini quand : tests moteur : points d'une course, classement pilotes et écuries avec égalités, 3 Grands Prix simulés (simulerCourse) puis sauvegarde → rechargement → tout est identique (points, classements, stats, n° du prochain Grand Prix) ; ancienne sauvegarde v1 transformée ; aucun réglage en dur. Commit sur codeur2 (suite complète verte), message au Chef.
    Pas d'écran de championnat, pas de création du pilote, pas de branchement dans la page : ce sera au tour suivant, après les retours du propriétaire sur les noms.
+
+AJOUT 3 (19h50) — ordre suivant du Codeur 2, à finir avant 20h40 (sinon branche) :
+6. Brancher le championnat dans la page, version simple : `index.html?championnat=1`.
+   - Au démarrage : si une sauvegarde de championnat existe, on la reprend ; sinon, CHAMPIONNAT.creer.
+   - Écran entre les courses (HTML/CSS, style existant) : « Grand Prix n / 12 — circuit », le classement des pilotes (place, pastille de l'écurie, nom provisoire, points ; le joueur en surbrillance) et celui des écuries, un bouton « Course suivante ».
+   - La course : le joueur et les 19 pilotes du championnat (couleurs de leurs écuries, leurs caractères), sur le circuit du calendrier, avec tout ce qui existe (feux, classement, radar, vue après l'arrivée, podium, résultats). La grille suit la qualification simplifiée ; le joueur part dernier tant qu'il n'y a pas de qualification à lui.
+   - Après les résultats : finirGrandPrix (points + sauvegarde), puis l'écran entre les courses avec les points gagnés.
+   - Une longueur de course fixe pour l'instant (la plus courte, 5 tours) ; ?tours=1 pour les tests.
+   Fini quand : ecrans.py joue 2 Grands Prix de 1 tour avec ?championnat=1&tours=1 (le joueur conduit par l'IA de test), recharge la page et retrouve le Grand Prix 3 et les mêmes points ; captures championnat.png ; console vide ; 960×600 et 1280×720 sans défilement. Suite complète verte, commit sur codeur2, message au Chef.
+   Ne touche pas à ia.js ni à simulation.js (session-dd y travaille).
