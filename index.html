@@ -25,6 +25,9 @@
   <div id="hudMeilleur"></div>
   <div id="hudSecteurs"><span id="hudS1" class="secteur"></span><span id="hudS2" class="secteur"></span><span id="hudS3" class="secteur"></span></div>
 </div>
+<!-- la tour de classement (en haut à droite) et le radar (en bas à gauche), pendant une course à plusieurs -->
+<div id="classement" class="cache"><div id="classementPlace"></div><ol id="classementListe"></ol></div>
+<canvas id="radar" class="cache" width="170" height="170"></canvas>
 <div id="hudPenalite" class="cache"></div>
 <div id="compte" class="cache"></div>
 
@@ -67,6 +70,7 @@
 <script src="voiture3d.js"></script>
 <script src="camera.js"></script>
 <script src="reglages.js"></script>
+<script src="radar.js"></script>
 <script src="interface.js"></script>
 <script src="principal.js"></script>
 </body>

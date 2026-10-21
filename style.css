@@ -2,6 +2,11 @@
   --fond: #0b0f17;
   --texte: #f2f4f8;
   --police: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --panneau: rgba(11, 15, 23, 0.6);   /* le fond des panneaux de course */
+  --accent: #1f6fe0;
+  --classement-largeur: 184px;
+  --classement-ligne: 20px;           /* la hauteur d'une ligne de la tour de classement */
+  --radar-taille: 170px;
 }
 
 html, body {
@@ -67,10 +72,13 @@ html, body {
   pointer-events: none;
 }
 
+/* en bas au milieu : le radar a le coin en bas à gauche */
 #aide {
   position: fixed;
-  left: 16px;
+  left: 50%;
+  transform: translateX(-50%);
   bottom: 12px;
+  white-space: nowrap;
   font: 500 13px/1.4 var(--police);
   opacity: 0.75;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
@@ -87,10 +95,11 @@ html, body {
   text-align: center;
 }
 
+/* en haut à droite, à gauche de la tour de classement */
 #boutonSon {
   position: fixed;
   top: 10px;
-  right: 12px;
+  right: calc(24px + var(--classement-largeur));
   width: 40px;
   height: 40px;
   border: 0;
@@ -270,6 +279,85 @@ html, body {
 
 #finRecord {
   color: #f2c230;
+}
+
+/* la tour de classement, en haut à droite : la place du joueur en gros, puis une ligne par voiture */
+#classement {
+  position: fixed;
+  top: 10px;
+  right: 12px;
+  box-sizing: border-box;
+  width: var(--classement-largeur);
+  padding: 6px 8px 8px;
+  border-radius: 8px;
+  background: var(--panneau);
+  font: 600 13px/1 var(--police);
+  pointer-events: none;
+}
+
+#classementPlace {
+  margin-bottom: 6px;
+  font: 800 26px/1.1 var(--police);
+}
+
+#classementListe {
+  position: relative;
+  height: calc(var(--nb, 0) * var(--classement-ligne));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* chaque ligne est placée par son rang (--rang) : quand l'ordre change, elle glisse */
+#classementListe li {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: var(--classement-ligne);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 4px;
+  border-radius: 4px;
+  transform: translateY(calc(var(--rang, 0) * var(--classement-ligne)));
+  transition: transform 0.4s ease;
+}
+
+#classementListe li.moi {
+  background: var(--accent);
+}
+
+#classementListe .place {
+  width: 1.6em;
+  text-align: right;
+  opacity: 0.8;
+}
+
+#classementListe .pastille {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6);
+}
+
+#classementListe .numero {
+  width: 2em;
+}
+
+#classementListe .ecart {
+  margin-left: auto;
+  font: 600 12px/1 ui-monospace, Menlo, monospace;
+}
+
+/* le radar, en bas à gauche */
+#radar {
+  position: fixed;
+  left: 16px;
+  bottom: 12px;
+  width: var(--radar-taille);
+  height: var(--radar-taille);
+  pointer-events: none;
 }
 
 .cache {

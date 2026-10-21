@@ -30,6 +30,7 @@ PAGES = [
     ('index.html?course=5&ia=1&circuit=technique', 1280, 720, 'ia.png'),
     ('index.html?course=5&ia=10&circuit=technique&debug=1', 1280, 720, 'ia10.png'),
     ('index.html?course=5&ia=9&joueur=1&circuit=technique', 1280, 720, None),   # capture joueur-ia.png prise en roulant
+    ('index.html?course=5&ia=9&joueur=1&circuit=technique', 960, 600, None),    # la tour de classement et le radar en petit
 ]
 POSITION = '() => CAMERA.position'
 
@@ -216,6 +217,28 @@ def course_joueur(pg, titre):
     t(f'{titre} : la voiture du joueur et les 9 IA ont avancé', all(e['progression'] > 20 for e in etat), str(etat))
     L.append(f"  (contre 9 IA : joueur {etat[9]['progression']} m, IA de {min(e['progression'] for e in etat[:9])} à {max(e['progression'] for e in etat[:9])} m, {sum(e['chocs'] for e in etat) // 2} contacts)")
 
+# les éléments fixes de l'écran de course, qui ne doivent jamais se chevaucher
+ELEMENTS_COURSE = ['classement', 'radar', 'boutonSon', 'aide', 'hudCourse', 'tableau']
+
+def hud(pg, titre, l):
+    # la tour de classement en haut à droite et le radar en bas à gauche, pendant une course contre les IA
+    t(f'{titre} : la tour de classement est visible, avec 10 lignes et la ligne du joueur marquée', attendre(pg,
+      '() => !document.getElementById("classement").classList.contains("cache") && document.querySelectorAll("#classementListe li").length === 10'
+      ' && document.querySelectorAll("#classementListe li.moi").length === 1 && /^P\\d+ \\/ 10$/.test(document.getElementById("classementPlace").textContent)'),
+      pg.evaluate('() => document.getElementById("classement").innerText'))
+    t(f'{titre} : la ligne marquée est celle du joueur (n°10)', pg.evaluate('() => document.querySelector("#classementListe li.moi").dataset.numero') == '10')
+    t(f'{titre} : le radar est visible, avec des points de voitures', attendre(pg, '() => !document.getElementById("radar").classList.contains("cache") && RADAR.etat.points > 0'),
+      str(pg.evaluate('() => RADAR.etat.points')))
+    boites = pg.evaluate('ids => ids.map(id => { const e = document.getElementById(id), r = e.getBoundingClientRect(); return [id, getComputedStyle(e).display === "none" ? null : [r.left, r.top, r.right, r.bottom]]; })', ELEMENTS_COURSE)
+    vus = [(n, b) for n, b in boites if b and b[2] > b[0] and b[3] > b[1]]
+    chevauchent = [f'{a[0]} / {b[0]}' for i, a in enumerate(vus) for b in vus[i + 1:]
+                   if a[1][0] < b[1][2] and b[1][0] < a[1][2] and a[1][1] < b[1][3] and b[1][1] < a[1][3]]
+    dehors = [n for n, b in vus if b[0] < 0 or b[1] < 0 or b[2] > pg.viewport_size['width'] or b[3] > pg.viewport_size['height']]
+    t(f'{titre} : ni chevauchement ni débordement entre {", ".join(n for n, _ in vus)}', not chevauchent and not dehors and len(vus) == len(ELEMENTS_COURSE),
+      f'chevauchent : {chevauchent}, dehors : {dehors}, visibles : {[n for n, _ in vus]}')
+    pg.wait_for_timeout(300)
+    pg.screenshot(path=os.path.join(CAPTURES, f'hud-{l}.png'))
+
 def INTERFACE_TEMPS(t):
     m = int(t // 60); s = t - m * 60
     return f'{m}:{s:06.3f}'
@@ -257,7 +280,8 @@ with sync_playwright() as p:
             if re.search(r'[?&]ia=10(&|$)', page):
                 course_ia10(pg, titre)
             if 'joueur=1' in page:
-                course_joueur(pg, titre)
+                hud(pg, titre, l)
+                if l == 1280: course_joueur(pg, titre)
             if 'camera=auto' in page:
                 p1 = pg.evaluate(POSITION)
                 t(f'{titre} : la caméra fait le tour toute seule', attendre(pg, 'p => CAMERA.position.x !== p.x || CAMERA.position.z !== p.z', p1), str(p1))

@@ -45,7 +45,7 @@ const INTERFACE = (function () {
     for (const id of ['choix', 'pause', 'fin']) $(id).classList.toggle('cache', id !== ecran);
     // le bandeau de course n'est là que pendant la course et la pause (pas sous l'écran de fin)
     const course = ecran === 'course' || ecran === 'pause';
-    for (const id of ['hudCourse', 'hudPenalite', 'compte']) if (!course) $(id).classList.add('cache');
+    for (const id of ['hudCourse', 'hudPenalite', 'compte', 'classement', 'radar']) if (!course) $(id).classList.add('cache');
     if (course) $('hudCourse').classList.remove('cache');
   }
 
@@ -74,6 +74,45 @@ const INTERFACE = (function () {
     const recente = c.derniereCoupe !== undefined && c.temps - c.derniereCoupe < 3;
     $('hudPenalite').classList.toggle('cache', !recente);
     $('hudPenalite').textContent = texte('penalite').replace('{s}', REGLAGES.PENALITE_COUPE);
+  }
+
+  // l'écart au pilote devant : « +0,8 s », ou « +1 tour » s'il a un tour de retard ; rien pour le premier
+  function formatEcart(l) {
+    if (l.ecart === null) return '';
+    if (l.tours > 0) return '+' + l.tours + ' ' + texte(l.tours > 1 ? 'toursRetard' : 'tourRetard');
+    return '+' + l.ecart.toFixed(1).replace('.', texte('virgule')) + ' s';
+  }
+
+  // la tour de classement : lignes = [{ numero, couleur (0xrrggbb), ecart, tours, moi }] dans l'ordre (classementCourse),
+  // ou null pour la cacher. Une ligne par voiture, gardée d'une image à l'autre : quand l'ordre change, elle glisse
+  // à sa nouvelle place (transition CSS sur --rang)
+  const lignesClassement = new Map();
+  function majClassement(lignes) {
+    $('classement').classList.toggle('cache', !lignes);
+    if (!lignes) return;
+    const liste = $('classementListe');
+    $('classementPlace').textContent = 'P' + (lignes.findIndex(l => l.moi) + 1) + ' / ' + lignes.length;
+    liste.style.setProperty('--nb', lignes.length);
+    lignes.forEach((l, i) => {
+      let li = lignesClassement.get(l.numero);
+      if (!li) {
+        li = document.createElement('li');
+        li.dataset.numero = l.numero;
+        for (const classe of ['place', 'pastille', 'numero', 'ecart']) {
+          const span = document.createElement('span');
+          span.className = classe;
+          li.appendChild(span);
+        }
+        li.children[1].style.background = '#' + l.couleur.toString(16).padStart(6, '0');
+        li.children[2].textContent = l.numero;
+        liste.appendChild(li);
+        lignesClassement.set(l.numero, li);
+      }
+      li.style.setProperty('--rang', i);
+      li.classList.toggle('moi', l.moi);
+      li.children[0].textContent = i + 1;
+      li.children[3].textContent = formatEcart(l);
+    });
   }
 
   function preparerPause(reprendre, recommencer) {
@@ -111,5 +150,5 @@ const INTERFACE = (function () {
     });
   }
 
-  return { formatTemps, preparerChoix, montrer, majCourse, preparerPause, preparerFin, remplirFin };
+  return { formatTemps, formatEcart, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin };
 })();

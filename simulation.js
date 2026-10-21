@@ -53,10 +53,12 @@ function creerCourseIA(circuit, nb, nbTours, graine, carte = carteDe(circuit), a
       depart: place.s - circuit.longueur,   // m : sa place sur la grille, derrière la ligne (pour savoir qui est devant)
       rythme: humain ? null : R.IA_RYTHME[0] + hasard() * (R.IA_RYTHME[1] - R.IA_RYTHME[0]),
       pilote: null, herbe: 0, arrivee: null, place: null,
+      passages: [],   // le temps de course (e.temps) où il a passé chaque CLASSEMENT_PAS m depuis la grille (classementCourse)
     };
   });
   ALEATOIRE.semer();
-  const e = { circuit, carte: null, graine, nbTours, pilotes, temps: 0, arrives: 0, depassements: [], devant: new Map(), grille: null };
+  const e = { circuit, carte: null, graine, nbTours, pilotes, temps: 0, arrives: 0, depassements: [], devant: new Map(), grille: null,
+    origine: Math.min(...pilotes.map(p => p.depart)), go: null };   // origine : la place la plus reculée ; go : le temps du GO
   if (carte) donnerCarte(e, carte);
   return e;
 }
@@ -118,6 +120,8 @@ function pasCourseIA(e, dt, conduireJoueur) {
   const arrives = [];
   for (const p of enCourse) {
     majCourse(p.course, p.v, dt);
+    if (e.go === null && p.course.etat !== 'compte') e.go = e.temps;
+    noterPassages(e, p, dt);
     if (p.v.surHerbe) p.herbe++;
     if (p.course.etat === 'finie') { p.arrivee = e.temps; arrives.push(p); }
   }
@@ -125,6 +129,59 @@ function pasCourseIA(e, dt, conduireJoueur) {
   // arrivés au même pas : le plus avancé d'abord
   arrives.sort((a, b) => b.course.progression - a.course.progression);
   for (const p of arrives) p.place = ++e.arrives;
+}
+
+// sa distance depuis la ligne de départ (négative sur la grille, derrière la ligne), tours compris
+function distanceCourse(p) {
+  return p.depart + p.course.progression;
+}
+
+// chaque fois qu'il passe un nouveau point tous les CLASSEMENT_PAS m (comptés depuis e.origine), le temps exact où il y
+// est passé (au prorata dans ce pas) ; un point qu'il avait déjà dépassé sur la grille : -Infinity (avant le départ).
+// parti : le temps où il a quitté sa place sur la grille
+function noterPassages(e, p, dt) {
+  const pas = REGLAGES.CLASSEMENT_PAS, d = distanceCourse(p), avant = p.distanceAvant === undefined ? p.depart : p.distanceAvant;
+  const quand = x => e.temps - dt * (d - x) / Math.max(1e-9, d - avant);
+  if (p.parti === undefined && d > p.depart) p.parti = quand(p.depart);
+  for (let m = p.passages.length; e.origine + m * pas <= d; m++) {
+    const x = e.origine + m * pas;
+    p.passages.push(x <= p.depart ? -Infinity : quand(x));
+  }
+  p.distanceAvant = d;
+}
+
+// le temps où p est passé à cette distance (entre deux points notés : au prorata) ; -Infinity si c'était avant le départ
+function passageA(e, p, distance) {
+  if (distance <= p.depart) return -Infinity;
+  const pas = REGLAGES.CLASSEMENT_PAS, i = Math.floor((distance - e.origine) / pas);
+  if (i < 0 || i + 1 >= p.passages.length) return e.temps;
+  let t0 = p.passages[i], d0 = e.origine + i * pas;
+  if (t0 === -Infinity) { t0 = p.parti === undefined ? e.temps : p.parti; d0 = p.depart; }   // il partait de sa place
+  return t0 + (distance - d0) / (e.origine + (i + 1) * pas - d0) * (p.passages[i + 1] - t0);
+}
+
+// le classement en direct (la tour de classement) : les arrivés dans leur ordre d'arrivée, puis les autres du plus
+// avancé au moins avancé (tours finis, puis distance dans le tour : c'est leur distance depuis la ligne).
+// Pour chacun, dans l'ordre : { k (sa place dans e.pilotes), place, ecart, tours } ; ecart : les secondes depuis que
+// celui de devant est passé là où il est (null pour le premier, 0 avant le GO) ; tours : ses tours de retard sur lui
+function classementCourse(e) {
+  const P = e.pilotes, rang = p => p.place === null ? Infinity : p.place;
+  const ordre = P.map((p, k) => k).sort((a, b) => {
+    const A = P[a], B = P[b];
+    if (A.place !== null || B.place !== null) return rang(A) - rang(B);
+    return distanceCourse(B) - distanceCourse(A);
+  });
+  return ordre.map((k, i) => {
+    const p = P[k];
+    if (i === 0) return { k, place: 1, ecart: null, tours: 0 };
+    const q = P[ordre[i - 1]];
+    let ecart;
+    if (e.go === null) ecart = 0;
+    else if (p.arrivee !== null) ecart = p.arrivee - q.arrivee;
+    else ecart = e.temps - Math.max(e.go, passageA(e, q, distanceCourse(p)));
+    const tours = Math.max(0, Math.floor((distanceCourse(q) - distanceCourse(p)) / e.circuit.longueur));
+    return { k, place: i + 1, ecart: Math.max(0, ecart), tours };
+  });
 }
 
 // l'endroit d'un point de la piste, pour ranger les dépassements : « freinage » (entre le point de freinage d'un virage
@@ -143,7 +200,7 @@ function endroitSur(carte, s) {
 // les dépassements : pour chaque paire de voitures en course, qui est devant (avec une marge de SIMULATION_MARGE_DEVANT,
 // pour ne pas compter deux voitures côte à côte qui s'échangent sans cesse) ; quand ça change, c'est un dépassement
 function compterDepassements(e, enCourse) {
-  const R = REGLAGES, distance = p => p.depart + p.course.progression;
+  const R = REGLAGES, distance = distanceCourse;
   for (let i = 0; i < enCourse.length; i++) for (let j = i + 1; j < enCourse.length; j++) {
     const a = enCourse[i], b = enCourse[j], cle = a.numero * 1000 + b.numero, ecart = distance(a) - distance(b);
     const maintenant = ecart > R.SIMULATION_MARGE_DEVANT ? 1 : ecart < -R.SIMULATION_MARGE_DEVANT ? -1 : 0;

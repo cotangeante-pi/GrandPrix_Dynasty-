@@ -199,6 +199,8 @@ const REGLAGES = {
   GRILLE_ECART: 3,              // m : chaque file est à cette distance du milieu de la piste
   SIMULATION_MARGE_DEVANT: 6,   // m : une voiture est devant une autre à partir de cet écart (un dépassement compte quand ça change)
   SIMULATION_TEMPS_MAX: 150,    // s par tour : une course simulée s'arrête là, même si des voitures n'ont pas fini
+  RADAR_RAYON: 150,             // m : le radar montre la piste et les voitures jusque-là autour du joueur
+  CLASSEMENT_PAS: 2,            // m : pour les écarts du classement, on note quand chaque voiture passe tous les 2 m
   GRAINE_STYLES: 1000,          // les façons de piloter sont tirées avec la graine de la course + ce nombre
   GRAINE_CARACTERE: 3000,       // … et le caractère des pilotes avec la graine + ce nombre
   GRAINE_QUALIF: 2000,          // … et la qualification avec la graine + ce nombre

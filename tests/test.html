@@ -430,6 +430,38 @@ t('caractère : chaque IA d’une course a son caractère, tiré avec la graine,
     for(const k_ of ['regularite','agressivite','erreurs']) v(c_[k_]>=C_[k_][0]&&c_[k_]<=C_[k_][1],k_+' '+c_[k_]);}
   v(JSON.stringify(e.pilotes.map(p_=>p_.pilote.caractere.regularite))===JSON.stringify(e2.pilotes.map(p_=>p_.pilote.caractere.regularite)),'pas la même avec la même graine');});
 
+// --- le classement en direct (tour 18) : classementCourse
+t('classement : les arrivés d’abord (dans l’ordre d’arrivée), puis les plus avancés ; les tours de retard comptés', ()=>{
+  const e=creerCourseIA(TQ,3,5,1,CARTES_T.technique),P=e.pilotes;
+  P[2].place=1;P[2].arrivee=10;P[0].course.progression=500;P[1].course.progression=550+TQ.longueur;
+  const c_=classementCourse(e);
+  v(c_.map(x=>x.k).join()==='2,1,0',c_.map(x=>x.k).join());v(c_.map(x=>x.place).join()==='1,2,3');
+  v(c_[0].ecart===null,'le premier a un écart');v(c_[2].tours===1,'tours de retard '+c_[2].tours);});
+t('classement : 10 IA, 2 min sur le technique : toujours du plus avancé au moins avancé, écarts justes (à 0,1 s près) ; après chaque dépassement, celui qui double passe devant', ()=>{
+  const e=creerCourseIA(TQ,10,5,3,CARTES_T.technique),P=e.pilotes,histoire=[],releve=P.map(()=>[]);
+  const ordre=()=>classementCourse(e).map(x=>P[x.k].numero);
+  let nd=0,controles=0,ecarts=0;
+  for(let k=1;k<=120*120;k++){
+    pasCourseIA(e,REGLAGES.PAS_PHYSIQUE);
+    P.forEach((p_,i)=>{const r_=releve[i];if(!r_.length||distanceCourse(p_)>r_[r_.length-1][1]) r_.push([e.temps,distanceCourse(p_)]);});
+    if(k%60===0) histoire.push(ordre());
+    for(const d of e.depassements.slice(nd)){const o=ordre();
+      v(o.indexOf(d.qui)<o.indexOf(d.sur),'après le dépassement de n°'+d.qui+' sur n°'+d.sur+' : '+o.join(','));
+      v(histoire.some(h=>h.indexOf(d.sur)<h.indexOf(d.qui)),'n°'+d.sur+' n’a jamais été devant n°'+d.qui);}
+    nd=e.depassements.length;
+    if(k%120===0&&e.go!==null){const c_=classementCourse(e);controles++;
+      c_.forEach((x,i)=>{v(x.place===i+1);if(i===0){v(x.ecart===null);return;}
+        const p_=P[x.k],q_=P[c_[i-1].k],dp=distanceCourse(q_)-distanceCourse(p_);
+        v(dp>=0,'pas dans l’ordre des distances');v(x.ecart>=0,'écart négatif');
+        // l'écart en temps : depuis quand celui de devant est passé là où est celui de derrière, retrouvé ici dans
+        // un relevé à part (distance de chaque voiture à chaque pas), à 0,1 s près (sauf dans les CLASSEMENT_PAS premiers
+        // mètres après sa place sur la grille : il y démarre à peine, l'interpolation linéaire s'y trompe un peu)
+        const r_=releve[c_[i-1].k];let j_=r_.length-1;while(j_>0&&r_[j_-1][1]>=distanceCourse(p_)) j_--;
+        if(p_.v.u>5&&dp>5&&r_[j_][1]>=distanceCourse(p_)&&r_[j_][0]>=e.go&&distanceCourse(p_)>q_.depart+REGLAGES.CLASSEMENT_PAS){ecarts++;const attendu=e.temps-r_[j_][0];
+          v(Math.abs(x.ecart-attendu)<=0.1,'n°'+p_.numero+' : écart '+x.ecart.toFixed(2)+' s, relevé '+attendu.toFixed(2)+' s');}});}}
+  v(nd>0,'aucun dépassement en 2 min');v(ecarts>50,'peu d’écarts contrôlés : '+ecarts);
+  L.push('  (classement : '+controles+' contrôles, '+ecarts+' écarts comparés, '+nd+' dépassements suivis)');});
+
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 ecrire();
 </script></body></html>

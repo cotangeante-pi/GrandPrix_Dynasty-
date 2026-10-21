@@ -18,6 +18,7 @@ const JEU = {
   plateau: null,        // avec ?ia=N : la course entre IA (creerCourseIA) ; JEU.joueur et JEU.course sont ceux de la voiture suivie
   contre: false,        // ?ia=N&joueur=1 : le joueur conduit sa voiture au clavier, au milieu des N IA
   modeles: [],          // avec ?ia=N : le modèle 3D de chaque voiture de la course (celle du joueur en dernier)
+  couleurs: [],         // … et sa couleur (0xrrggbb), pour la tour de classement et le radar
   suivie: 0,            // avec ?ia=N : la voiture que suit la caméra (Tab : la suivante)
   trajectoire: null,    // la trajectoire idéale de ce circuit (ia.js), calculée seulement avec ?ia=…, en fond
   carte: null,          // la carte du circuit pour les pilotes IA (carteDepuis), quand la trajectoire est prête
@@ -164,6 +165,21 @@ function pasJoueur(pas) {
   if (c && JEU.ecran === 'course') majCourse(c, v, pas);
 }
 
+// la tour de classement (course à plusieurs) et le radar, pendant la course et la pause ; la voiture suivie est « moi »
+function majClassementRadar() {
+  const enCourse = JEU.course && (JEU.ecran === 'course' || JEU.ecran === 'pause');
+  const radar = document.getElementById('radar');
+  radar.classList.toggle('cache', !enCourse);
+  if (!enCourse) { INTERFACE.majClassement(null); return; }
+  const P = JEU.plateau ? JEU.plateau.pilotes : [];
+  INTERFACE.majClassement(JEU.plateau ? classementCourse(JEU.plateau).map(x => ({
+    numero: P[x.k].numero, couleur: JEU.couleurs[x.k], ecart: x.ecart, tours: x.tours, moi: x.k === JEU.suivie,
+  })) : null);
+  const autres = [];
+  P.forEach((p, k) => { if (k !== JEU.suivie && p.arrivee === null) autres.push({ x: p.v.x, z: p.v.z, couleur: JEU.couleurs[k] }); });
+  RADAR.dessiner(CIRCUIT, JEU.joueur, autres);
+}
+
 // l'affichage provisoire : la vitesse et « hors piste »
 function majTableau() {
   const v = JEU.joueur;
@@ -226,6 +242,7 @@ function demarrerJeu() {
   document.getElementById('unite').textContent = texte('kmh');
   document.getElementById('horsPiste').textContent = texte('horsPiste');
   document.getElementById('aide').textContent = texte('aideConduite');
+  RADAR.init(document.getElementById('radar'));
 
   if (!SCENE3D.init(document.getElementById('scene3d'), CIRCUIT)) return;
   CAMERA.init(SCENE3D.camera, CIRCUIT, PARAMETRES.get('camera'));
@@ -244,8 +261,9 @@ function demarrerJeu() {
   const couleurs = REGLAGES.COULEURS_IA;
   if (JEU.ia >= 2 || JEU.contre) {
     const choix = JEU.contre ? couleurs.filter(x => x !== REGLAGES.COULEUR_JOUEUR) : couleurs;
-    for (let k = 0; k < JEU.ia; k++) JEU.modeles.push(VOITURE3D.creer(choix[k % choix.length]));
-    if (JEU.contre) JEU.modeles.push(VOITURE3D.creer(REGLAGES.COULEUR_JOUEUR));
+    for (let k = 0; k < JEU.ia; k++) JEU.couleurs.push(choix[k % choix.length]);
+    if (JEU.contre) JEU.couleurs.push(REGLAGES.COULEUR_JOUEUR);
+    for (const couleur of JEU.couleurs) JEU.modeles.push(VOITURE3D.creer(couleur));
     for (const m of JEU.modeles) SCENE3D.ajouter(m.groupe);
   }
   if (!JEU.modeles.length) {
@@ -284,6 +302,7 @@ function demarrerJeu() {
     CAMERA.maj(dt, etat, JEU.joueur);
     majTableau();
     INTERFACE.majCourse(JEU.course, JEU.ecran);
+    majClassementRadar();
     signauxCourse(JEU.course);
     if (JEU.ecran === 'course' && JEU.course && JEU.course.etat === 'finie') finDeCourse();
     SON.maj(JEU.joueur);

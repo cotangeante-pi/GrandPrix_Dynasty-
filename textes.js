@@ -19,6 +19,9 @@ const TEXTES = {
     reglagesTitre: 'Tuning',
     reglagesCopier: 'Copy the changed values',
     reglagesRienChange: '(nothing changed)',
+    virgule: '.',                 // le séparateur décimal des écarts du classement (+0.8 s)
+    tourRetard: 'lap',
+    toursRetard: 'laps',
   },
   fr: {
     nomDuJeu: 'Grand Prix Dynasty',
@@ -39,6 +42,9 @@ const TEXTES = {
     reglagesTitre: 'Réglages',
     reglagesCopier: 'Copier les valeurs changées',
     reglagesRienChange: '(rien n’a changé)',
+    virgule: ',',
+    tourRetard: 'tour',
+    toursRetard: 'tours',
   },
 };
 
