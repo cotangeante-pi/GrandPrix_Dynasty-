@@ -246,6 +246,10 @@ def course_joueur(pg, titre):
                    ' && !document.getElementById("attenteArrivee").classList.contains("cache") && JEU.ecran === "course"', None, 20000),
       str(pg.evaluate('() => [JEU.ecran, CAMERA.mode, JEU.attente && JEU.attente.tele]')))
     t(f'{titre} : la tour de classement reste, le joueur marqué 🏁', pg.evaluate('() => !document.getElementById("classement").classList.contains("cache") && document.querySelector("#classementListe li.moi").classList.contains("arrive")'))
+    # sa voiture dans l'herbe : plus de « hors piste » après l'arrivée (il ne chevaucherait le bandeau)
+    pg.evaluate('() => { const v = JEU.joueur; const e = 12 - v.piste.d; v.x += v.piste.nx * e; v.z += v.piste.nz * e; }')
+    t(f'{titre} : après l’arrivée, pas de « hors piste » même dans l’herbe', attendre(pg, '() => JEU.joueur.surHerbe && document.getElementById("horsPiste").classList.contains("cache")', None, 10000),
+      str(pg.evaluate('() => [JEU.joueur.surHerbe, document.getElementById("horsPiste").className]')))
     pg.wait_for_timeout(1000)
     pg.screenshot(path=os.path.join(CAPTURES, 'apres-arrivee.png'))
     pg.click('#boutonPasser')

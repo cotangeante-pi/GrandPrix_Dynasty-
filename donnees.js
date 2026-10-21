@@ -103,6 +103,25 @@ const REGLAGES = {
   ARRIVEE_BAGARRE: 15,          // m : deux voitures plus proches que ça se bagarrent (la caméra télé les préfère)
   ARRET_APRES_ARRIVEE: 0.3,     // m/s : après l'arrivée, la voiture freine seule jusque-là, puis roule jusqu'à l'arrêt
 
+  // le championnat (étape 6, championnat.js) : la partie calcul seulement, les écrans viendront après
+  POINTS: [25, 18, 15, 12, 10, 8, 6, 4, 2, 1],   // les points des 10 premiers d'un Grand Prix
+  NB_GRANDS_PRIX: 12,
+  CALENDRIER_CIRCUITS: ['test', 'technique'],   // en alternance, en attendant les 12 vrais circuits (étape 10)
+  GRAINE_CHAMPIONNAT: 5000,     // les caractères des 19 pilotes IA sont tirés avec la graine du championnat + ce nombre
+  ECURIE_JOUEUR: 9,             // le joueur est le 2e pilote de cette écurie (une des plus faibles)
+  NOM_JOUEUR: 'Pilote joueur',  // provisoire : la création du pilote viendra avec les écrans
+  // les 10 écuries, de la plus forte à la plus faible ; niveau : la qualité de la voiture (1 = la meilleure).
+  // NOMS PROVISOIRES, à approuver par le propriétaire
+  ECURIES: [
+    { nom: 'Écurie 1', niveau: 1 }, { nom: 'Écurie 2', niveau: 0.98 }, { nom: 'Écurie 3', niveau: 0.96 },
+    { nom: 'Écurie 4', niveau: 0.95 }, { nom: 'Écurie 5', niveau: 0.94 }, { nom: 'Écurie 6', niveau: 0.93 },
+    { nom: 'Écurie 7', niveau: 0.92 }, { nom: 'Écurie 8', niveau: 0.91 }, { nom: 'Écurie 9', niveau: 0.9 },
+    { nom: 'Écurie 10', niveau: 0.89 },
+  ],
+  // les 20 pilotes, deux par écurie dans l'ordre (le 20e est remplacé par le joueur). NOMS PROVISOIRES, à approuver par le propriétaire
+  NOMS_PILOTES: ['Pilote 1', 'Pilote 2', 'Pilote 3', 'Pilote 4', 'Pilote 5', 'Pilote 6', 'Pilote 7', 'Pilote 8', 'Pilote 9', 'Pilote 10',
+    'Pilote 11', 'Pilote 12', 'Pilote 13', 'Pilote 14', 'Pilote 15', 'Pilote 16', 'Pilote 17', 'Pilote 18', 'Pilote 19', 'Pilote 20'],
+
   // le robot d'essai (préparation des IA)
   ROBOT_VISEE_MIN: 12,          // m : il vise un point au moins à cette distance devant lui
   ROBOT_VISEE_TEMPS: 0.55,      // s : … ou à la distance parcourue en ce temps

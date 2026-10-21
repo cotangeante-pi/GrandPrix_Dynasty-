@@ -255,7 +255,8 @@ function majTableau() {
   const apres = JEU.ecran === 'podium' || JEU.ecran === 'resultats';
   document.getElementById('tableau').classList.toggle('cache', apres);
   document.getElementById('aide').classList.toggle('cache', apres);
-  document.getElementById('horsPiste').classList.toggle('cache', !(v.surHerbe && roule));
+  // après l'arrivée du joueur (en attendant les autres), il ne court plus : pas de « hors piste »
+  document.getElementById('horsPiste').classList.toggle('cache', !(v.surHerbe && roule) || !!JEU.attente);
 }
 
 // les mesures pour régler la conduite : la dérive (l'angle entre l'avant et la trajectoire), les g latéraux,

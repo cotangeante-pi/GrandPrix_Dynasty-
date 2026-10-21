@@ -3,20 +3,33 @@
 // et le jeu marche sans.
 const SAUVEGARDE = (function () {
   const CLE = 'grand-prix-dynasty';
-  const VERSION = 1;
+  const VERSION = 2;
 
   function vierge() {
     // records : le meilleur tour de chaque longueur (« 5 », « 12 », « 18 », « 0 ») ; sur un autre circuit que celui de test,
-    // la clé commence par son nom (« technique-5 »)
-    return { version: VERSION, records: {} };
+    // la clé commence par son nom (« technique-5 ») ; championnat : le championnat en cours (championnat.js), ou null
+    return { version: VERSION, records: {}, championnat: null };
   }
 
-  // une sauvegarde d'une ancienne version est transformée ici (aucune pour l'instant)
+  // une sauvegarde d'une ancienne version est transformée ici, sans rien perdre :
+  // v1 → v2 : le championnat (étape 6) ; une v1 n'en a pas
   function migrer(d) {
     if (!d || typeof d !== 'object' || typeof d.version !== 'number' || d.version > VERSION) return vierge();
     if (!d.records || typeof d.records !== 'object') d.records = {};
+    if (d.version < 2 || d.championnat === undefined) d.championnat = null;
     d.version = VERSION;
     return d;
+  }
+
+  // le championnat en cours (null s'il n'y en a pas), et son écriture après chaque course
+  function championnat() {
+    return lire().championnat;
+  }
+
+  function ecrireChampionnat(ch) {
+    const d = lire();
+    d.championnat = ch;
+    return ecrire(d);
   }
 
   function lire() {
@@ -56,5 +69,5 @@ const SAUVEGARDE = (function () {
     return true;
   }
 
-  return { lire, record, proposerRecord, VERSION, CLE };
+  return { lire, ecrire, record, proposerRecord, championnat, ecrireChampionnat, VERSION, CLE };
 })();

@@ -1,7 +1,7 @@
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><title>tests</title></head><body>
 <pre id="res"></pre>
 <script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));window.addEventListener('unhandledrejection',e=>__err.push('promesse : '+(e.reason&&e.reason.message||e.reason)));</script>
-<script src="../donnees.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../son.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../principal.js"></script>
+<script src="../donnees.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../son.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../principal.js"></script>
 <script>
 const L=[];let ok=0,ko=0;
 function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
@@ -523,6 +523,62 @@ t('classement final : une voiture qui passe la ligne moins de 5 s devant une aut
   // le 4e roule encore : à 106 s, il pourrait encore finir en 104 s, mieux que le 3e (106 s, pénalité comprise) ; à 108,5 s, non
   v(!podiumConnu(e),'podium connu trop tôt');e.temps=108.5;v(podiumConnu(e),'podium pas connu');
   v(f.every(x=>x.grille>=1&&x.grille<=4)&&new Set(f.map(x=>x.grille)).size===4,'places de grille '+f.map(x=>x.grille).join());});
+
+// --- le championnat (étape 6, calcul pur)
+t('championnat : les points viennent de REGLAGES.POINTS, 0 au-delà du 10e', ()=>{const P=REGLAGES.POINTS;
+  v(P.length===10&&CHAMPIONNAT.pointsPour(1)===P[0]&&CHAMPIONNAT.pointsPour(10)===P[9]&&CHAMPIONNAT.pointsPour(11)===0&&CHAMPIONNAT.pointsPour(20)===0);});
+t('championnat : 10 écuries de 2 pilotes, le joueur seul humain dans ECURIE_JOUEUR, 19 caractères tirés avec la graine, calendrier de NB_GRANDS_PRIX en alternance', ()=>{
+  const R=REGLAGES,a=CHAMPIONNAT.creer(1),b=CHAMPIONNAT.creer(1),c=CHAMPIONNAT.creer(2);
+  v(a.ecuries.length===10&&a.pilotes.length===20&&a.ecuries.every(e=>a.pilotes.filter(p=>p.ecurie===e.id).length===2),'écuries');
+  const h=a.pilotes.filter(p=>p.humain);v(h.length===1&&h[0].ecurie===R.ECURIE_JOUEUR&&h[0].nom===R.NOM_JOUEUR&&h[0].caractere===null,'joueur');
+  v(a.pilotes.filter(p=>!p.humain).every(p=>p.caractere&&p.caractere.regularite>0&&p.caractere.agressivite>=0),'caractères');
+  v(a.pilotes.every((p,k)=>p.humain||p.nom===R.NOMS_PILOTES[k])&&new Set(a.pilotes.map(p=>p.numero)).size===20,'noms et numéros');
+  v(JSON.stringify(a.pilotes.map(p=>p.caractere))===JSON.stringify(b.pilotes.map(p=>p.caractere)),'même graine, mêmes caractères');
+  v(JSON.stringify(a.pilotes.map(p=>p.caractere))!==JSON.stringify(c.pilotes.map(p=>p.caractere)),'autre graine, autres caractères');
+  v(a.calendrier.length===R.NB_GRANDS_PRIX&&a.calendrier.every((g,i)=>g.numero===i+1&&g.circuit===R.CALENDRIER_CIRCUITS[i%R.CALENDRIER_CIRCUITS.length]),'calendrier');
+  v(a.prochain===0&&a.saison===1&&a.ecuries.every(e=>e.points===0)&&a.pilotes.every(p=>p.stats.points===0&&p.stats.courses===0),'à zéro');});
+t('championnat : une course donne les points, les stats (courses, victoires, podiums, poles, meilleur tour), et les classements pilotes et écuries ; à égalité, les victoires puis les 2es places', ()=>{
+  const R=REGLAGES,ch=CHAMPIONNAT.creer(1),ordre=k=>ch.pilotes.map((p,i)=>(i+k)%20);
+  const lignes=(ord,mt)=>ord.map((k,i)=>({k,place:i+1,grille:ord.indexOf(k)===0?1:i+1,meilleurTour:k===mt?70:80}));
+  // GP 1 : 0,1,2,… ; le 5 fait le meilleur tour
+  CHAMPIONNAT.enregistrerCourse(ch,lignes(ordre(0),5));
+  v(ch.prochain===1&&ch.resultats.length===1,'prochain');
+  v(ch.pilotes[0].stats.points===R.POINTS[0]&&ch.pilotes[9].stats.points===R.POINTS[9]&&ch.pilotes[10].stats.points===0,'points');
+  const s0=ch.pilotes[0].stats;v(s0.courses===1&&s0.victoires===1&&s0.podiums===1&&s0.poles===1&&s0.meilleursTours===0,'stats du vainqueur');
+  v(ch.pilotes[2].stats.podiums===1&&ch.pilotes[3].stats.podiums===0&&ch.pilotes[5].stats.meilleursTours===1,'podiums, meilleur tour');
+  v(ch.ecuries[0].points===R.POINTS[0]+R.POINTS[1]&&ch.ecuries[9].points===0,'points écurie');
+  // GP 2 : 1,0,2,… : 0 et 1 ont 43 points chacun, 0 a une victoire et une 2e place, 1 aussi… puis GP 3 départage : 0 gagne
+  CHAMPIONNAT.enregistrerCourse(ch,lignes(ordre(0).map(k=>k===0?1:k===1?0:k),5));
+  let cp=CHAMPIONNAT.classementPilotes(ch);v(cp[0].points===cp[1].points&&cp[0].points===R.POINTS[0]+R.POINTS[1],'égalité 43');
+  v(cp[0].k===0&&cp[1].k===1,'égalité parfaite : le plus petit id d’abord ('+cp[0].k+')');
+  // le 2 (deux 3es places) devant un pilote qui aurait les mêmes points autrement : on vérifie l'ordre entier décroissant
+  v(cp.every((x,i)=>i===0||x.points<=cp[i-1].points),'ordre');
+  // GP 3 : 1 gagne, 0 est 3e : 1 passe devant avec 2 victoires contre 1
+  CHAMPIONNAT.enregistrerCourse(ch,lignes([1,2,0].concat(ordre(0).slice(3)),5));
+  cp=CHAMPIONNAT.classementPilotes(ch);v(cp[0].k===1&&cp[1].k===0,'2 victoires devant 1 : '+cp.slice(0,3).map(x=>x.k+':'+x.points).join(' '));
+  const ce=CHAMPIONNAT.classementEcuries(ch);v(ce[0].id===0&&ce.every((x,i)=>i===0||x.points<=ce[i-1].points)&&ce[0].points===ch.pilotes[0].stats.points+ch.pilotes[1].stats.points,'écuries');
+  // deux écuries à points égaux : celle qui a la meilleure place devant
+  const ch2=CHAMPIONNAT.creer(1);CHAMPIONNAT.enregistrerCourse(ch2,lignes([2,18,19,0,1,3].concat(ordre(0).filter(k=>![2,18,19,0,1,3].includes(k))),2));
+  const e2=CHAMPIONNAT.classementEcuries(ch2);v(ch2.ecuries[1].points===ch2.ecuries[9].points&&e2[0].id===1&&e2[1].id===9,'égalité écuries : '+e2.slice(0,3).map(x=>x.id+':'+x.points).join(' '));});
+t('championnat : 3 Grands Prix simulés (simulerCourse, 20 voitures), sauvegarde → rechargement → tout est identique ; la sauvegarde v1 (records) est transformée sans perte', ()=>{
+  const R=REGLAGES,t0=performance.now(),circuits={test:C,technique:construireCircuit(CIRCUITS.technique)};
+  // une sauvegarde v1 déjà là : les records restent
+  localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:1,records:{'5':61.5,'technique-12':70.25}}));
+  let d=SAUVEGARDE.lire();v(d.version===SAUVEGARDE.VERSION&&d.version===2&&d.records['5']===61.5&&d.records['technique-12']===70.25&&d.championnat===null,'v1 → v2 : '+JSON.stringify(d));
+  v(SAUVEGARDE.record(5)===61.5&&SAUVEGARDE.championnat()===null,'records gardés');
+  const ch=CHAMPIONNAT.creer(3);
+  for(let g=0;g<3;g++){const gp=ch.calendrier[ch.prochain],r=simulerCourse(circuits[gp.circuit],20,1,100+g);
+    const lignes=CHAMPIONNAT.lignesDepuisSimulation(r);v(lignes.length===20&&new Set(lignes.map(l=>l.k)).size===20&&lignes.every((l,i)=>l.place===i+1&&l.grille>=1&&l.grille<=20),'lignes GP '+(g+1));
+    CHAMPIONNAT.finirGrandPrix(ch,lignes);}
+  v(ch.prochain===3&&ch.pilotes.every(p=>p.stats.courses===3)&&ch.pilotes.reduce((a,p)=>a+p.stats.points,0)===3*R.POINTS.reduce((a,b)=>a+b,0),'3 GP enregistrés');
+  v(ch.pilotes.reduce((a,p)=>a+p.stats.victoires,0)===3&&ch.pilotes.reduce((a,p)=>a+p.stats.meilleursTours,0)===3&&ch.pilotes.reduce((a,p)=>a+p.stats.poles,0)===3,'3 victoires, 3 meilleurs tours, 3 poles');
+  const avant={pilotes:CHAMPIONNAT.classementPilotes(ch),ecuries:CHAMPIONNAT.classementEcuries(ch),stats:ch.pilotes.map(p=>p.stats),prochain:ch.prochain};
+  d=SAUVEGARDE.lire();const re=d.championnat;v(re&&re.prochain===3&&d.records['5']===61.5,'sauvegardé après chaque course, records gardés');
+  const apres={pilotes:CHAMPIONNAT.classementPilotes(re),ecuries:CHAMPIONNAT.classementEcuries(re),stats:re.pilotes.map(p=>p.stats),prochain:re.prochain};
+  v(JSON.stringify(avant)===JSON.stringify(apres),'rechargement différent');
+  v(JSON.stringify(re.pilotes.map(p=>p.caractere))===JSON.stringify(ch.pilotes.map(p=>p.caractere))&&re.calendrier.length===R.NB_GRANDS_PRIX,'caractères et calendrier');
+  localStorage.removeItem(SAUVEGARDE.CLE);
+  const ms=performance.now()-t0;L.push('  (championnat : 3 GP de 20 voitures simulés et sauvegardés en '+ms.toFixed(0)+' ms)');v(ms<20000,ms+' ms');});
 
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 ecrire();
