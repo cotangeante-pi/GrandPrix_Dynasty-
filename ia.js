@@ -374,14 +374,14 @@ function noterLigne(pilote, v, voisines, s0, t, type) {
   for (let i = h; i < N - h; i++) k[i] = courbureTroisPoints(x[i - h], z[i - h], x[i], z[i], x[i + h], z[i + h]);
   for (let i = 0; i < h; i++) { k[i] = k[h]; k[N - 1 - i] = k[N - 1 - h]; }
   const pointe = pilote.carte.pointe, rythme = rythmeDuTour(pilote), dehors = c.largeur / 2 + R.MARGE_HERBE, bord = c.largeur / 2 - R.IA_MARGE_BORD_MIN;
-  let penalite = 0;
+  let penalite = 0, danger = false;   // danger : la ligne passe trop près du bord, dans l'herbe ou sur une voiture
   for (let i = 0; i < N; i++) {
     const mu = R.ADHERENCE * (Math.abs(e[i]) > dehors ? R.ADHERENCE_HERBE : 1);
     // le rythme (le talent) joue dans les virages ; la vitesse de pointe est celle de la voiture
     vb[i] = Math.min(pointe, rythme * Math.min(vitesseVirage(k[i], mu) * R.IA_MARGE_VIRAGE, vitesseBraquage(k[i])));
-    if (Math.abs(e[i]) > bord) penalite += R.IA_PENALITE_BORD * (Math.abs(e[i]) - bord) * pas;
+    if (Math.abs(e[i]) > bord) { penalite += R.IA_PENALITE_BORD * (Math.abs(e[i]) - bord) * pas; danger = true; }
     // pendant un dépassement (il attaque, ou une voiture est à côté de lui), passer dans l'herbe coûte très cher
-    if (pilote.depassement && Math.abs(e[i]) > dehors) penalite += R.IA_PENALITE_HERBE;
+    if (pilote.depassement && Math.abs(e[i]) > dehors) { penalite += R.IA_PENALITE_HERBE; danger = true; }
   }
   // au bout de la ligne, la carte dit à quelle vitesse il faut arriver (les virages d'après)
   const fin = valeurEn(c, pilote.carte.trajectoire.vitesse, s0 + (N - 1) * pas);
@@ -413,6 +413,7 @@ function noterLigne(pilote, v, voisines, s0, t, type) {
       const ecart = ecartLeLong(c, sPrevu - (s0 + (i + 1) * pas));
       if (!touchees.has(w) && Math.abs(ecart) < R.LONGUEUR_VOITURE + R.IA_MARGE_LONG) {
         penalite += R.IA_PENALITE_VOITURE;
+        danger = true;
         touchees.add(w);
       }
     }
@@ -421,7 +422,9 @@ function noterLigne(pilote, v, voisines, s0, t, type) {
   }
   // au bout de la ligne, ce qu'il lui manque de vitesse se paiera plus loin
   penalite += R.IA_PENALITE_SORTIE * Math.max(0, vb[N - 1] - vitesse);
-  if (pilote.choix !== null && type !== pilote.choix) penalite += R.IA_PENALITE_CHANGEMENT;
+  // une ligne choisie se garde : une autre doit lui faire gagner plus de IA_GAIN_CHANGEMENT, sauf si la sienne
+  // l'envoie sur une voiture, au bord ou dans l'herbe
+  if (type === pilote.choix && !danger) penalite -= R.IA_GAIN_CHANGEMENT;
   return temps + penalite;
 }
 
@@ -467,7 +470,9 @@ function deciderLigne(pilote, v, vues) {
   // d'une autre, il ne fait pas d'écart imprévu, il garde sa ligne (et la priorité règle le reste)
   const entoure = vues.some(w => Math.abs(ecartLeLong(c, w.s - s0)) < R.LONGUEUR_VOITURE + R.IA_MARGE_LONG && Math.abs(w.d - e0) < R.IA_REFLEXE_COTE);
   if (entoure && !enAttaque) essais.length = 1;
-  if (!enAttaque && !entoure && sens) essais.push(['interieur', sens], ['exterieur', -sens]);
+  // (seul, sans aucune voiture en vue, il n'en a pas besoin : sur 200 m, elles semblent parfois meilleures et lui
+  // coûtent jusqu'à 0,8 s au tour)
+  if (!enAttaque && !entoure && sens && vues.length) essais.push(['interieur', sens], ['exterieur', -sens]);
   const finAttaque = enAttaque ? ((carte.virages[a.virage].s + R.IA_ATTAQUE_APRES_SOMMET - s0) % L + L) % L : 0;
   // la priorité, avec les voitures à côté de lui ou dans ses rétroviseurs à moins d'une longueur, jusqu'à la sortie
   // du prochain virage : il ne se décale pas vers elles (au mieux jusqu'à l'écart sûr) ; et si l'une est à hauteur

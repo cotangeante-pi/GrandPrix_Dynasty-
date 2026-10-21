@@ -154,7 +154,7 @@ const REGLAGES = {
   IA_PENALITE_BORD: 0.5,        // s par m² au-delà de IA_MARGE_BORD_MIN
   IA_PENALITE_FREIN: 0.5,       // s par m/s de trop qu'il ne peut plus perdre à temps
   IA_PENALITE_SORTIE: 0.8,      // s par m/s qui lui manque au bout de la ligne (ce qu'il perdra après)
-  IA_PENALITE_CHANGEMENT: 0.03, // s : changer d'idée doit valoir la peine
+  IA_GAIN_CHANGEMENT: 0.05,     // s : il ne change de ligne que si la nouvelle lui fait gagner plus que ça (sauf danger)
   IA_DEPART: [150, 350],        // m : au départ, il garde sa file jusque-là, puis rejoint sa ligne avant là
   IA_DEPASSEMENT: true,         // les IA attaquent (voir majAttaque)
   IA_ATTENTE_ATTAQUE: 1.5,      // s : retenue depuis ce temps par la voiture devant, elle l'attaque
@@ -177,7 +177,7 @@ const REGLAGES = {
   IA_ESPACE_LAISSE: 1.5,        // m : … une largeur de voiture plus ça, jusqu'à la sortie du virage
   // la façon de piloter de chaque IA, tirée avec la graine
   IA_STYLE_APEX: [-5, 5],       // m : point de corde plus tôt (< 0) ou plus tard
-  IA_STYLE_CORDE: [0, 1.5],     // m de largeur de piste qu'il n'utilise pas près des virages (0 = il va d'un bord à l'autre)
+  IA_STYLE_CORDE: [0, 2.5],     // m de largeur de piste qu'il n'utilise pas près des virages (0 = il va d'un bord à l'autre)
   IA_STYLE_MARGE_BORD: [1.1, 2],// m : marge au bord (petite = prend des risques)
   IA_STYLE_FREIN: [0.92, 1],    // part du freinage qu'il ose
   IA_VARIATION_APEX: 2,         // m : d'un tour à l'autre, le point de corde varie de ±2 m…

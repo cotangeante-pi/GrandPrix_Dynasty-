@@ -416,17 +416,14 @@ t('qualification : la grille suit les temps (meilleur tour estimé × ±0,5 % de
   L.push('  (grille qualifiée, technique, graine 3 : '+g.map((x,k)=>(k+1)+'. n°'+x.numero+' '+(x.qualif===null?'joueur':x.qualif.toFixed(3)+' s')).join(' · ')+')');});
 
 // --- le caractère : la régularité (tour 16)
-// (affiché, pas encore exigé : seul, un petit changement de rythme le fait parfois changer de ligne, ce qui coûte
-// jusqu'à 0,7 s ; ce bruit est plus fort que l'effet de la régularité, 1,5 % de rythme ne coûtant qu'environ 0,3 s)
-{const ecarts=[];try{(()=>{
-  const carte=CARTES_T.technique;
+t('régularité : seuls sur le technique, 7 tours, un pilote irrégulier (jusqu’à 1,5 % de rythme perdu par tour) a des tours au moins 3 fois plus dispersés qu’un régulier (0,2 %)', ()=>{
+  const carte=CARTES_T.technique,ecarts=[];
   for(const reg of [0.002,0.015]){const pil=creerPilote(carte,1);ALEATOIRE.semer(17);pil.caractere=tirerCaractere(9);pil.caractere.regularite=reg;
     for(let t_=0;t_<9;t_++) pil.caractere.tours[t_]=1-2*reg*hasard();ALEATOIRE.semer();
     const {c}=tourPilote(TQ,pil,7),tours=c.tours.slice(1).map(x=>x.temps),m=tours.reduce((a_,b_)=>a_+b_,0)/tours.length;
     ecarts.push(Math.sqrt(tours.reduce((a_,b_)=>a_+(b_-m)**2,0)/tours.length));
     L.push('  (régularité '+(reg*100).toFixed(1)+' % : tours '+tours.map(x=>x.toFixed(2)).join(' / ')+' s, écart-type '+ecarts[ecarts.length-1].toFixed(3)+' s)');}
-})();}catch(e){ko++;L.push('✘ régularité : '+e.message);}
-  L.push('  (régularité, critère pas encore tenu : un irrégulier (1,5 %) a des tours au moins 3 fois plus dispersés qu’un régulier (0,2 %) → '+(ecarts[1]>=3*ecarts[0]?'oui':'non')+', '+ecarts.map(x=>x.toFixed(3)).join(' / ')+')');}
+  v(ecarts[1]>=3*ecarts[0],ecarts.map(x=>x.toFixed(3)).join(' / '));});
 t('caractère : chaque IA d’une course a son caractère, tiré avec la graine, entre les bornes de IA_CARACTERE', ()=>{
   const e=creerCourseIA(TQ,10,5,4,CARTES_T.technique),e2=creerCourseIA(TQ,10,5,4,CARTES_T.technique),C_=REGLAGES.IA_CARACTERE;
   for(const p_ of e.pilotes){const c_=p_.pilote.caractere;v(c_,'pas de caractère');

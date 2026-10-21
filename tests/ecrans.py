@@ -10,6 +10,8 @@ except ImportError:
     # la console vide est un critère de l'étape 0 : sans Playwright, ce n'est pas vérifié, donc c'est un échec
     print('RESULTAT 0/1 (Playwright absent : pip install playwright)'); sys.exit(1)
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# l'avertissement de Chrome quand une capture lit les pixels de l'écran (voir « console vide »)
+LECTURE_PIXELS = re.compile(r'\[\.WebGL-0x[0-9a-f]+\]GL Driver Message \(OpenGL, Performance, GL_CLOSE_PATH_NV, High\): GPU stall due to ReadPixels')
 CAPTURES = os.path.join(RACINE, 'tests', 'captures')
 # (page, largeur, hauteur, capture)
 PAGES = [
@@ -170,7 +172,7 @@ def course_ia(pg, titre):
       const pilote = creerPilote(JEU.carte);
       for (let k = 0; k < 600 * 120 && c.etat !== 'finie'; k++) { appliquerCommandes(v, courseAutorise(c) ? piloterIA(pilote, v, [], 1 / 120) : { gaz: 0, frein: 0, direction: 0 }); pasVoiture(v, CIRCUIT, 1 / 120); majCourse(c, v, 1 / 120); }
       return c.meilleurTour; }''')
-    t(f'{titre} : la carte calculée en fond est la même (le pilote neutre seul fait le même meilleur tour que dans test.html, 55,10 s)', tour is not None and abs(tour - 55.10) < 0.006, str(tour))
+    t(f'{titre} : la carte calculée en fond est la même (le pilote neutre seul fait le même meilleur tour que dans test.html, 55,08 s)', tour is not None and abs(tour - 55.0833) < 0.006, str(tour))
     t(f'{titre} : le pilote IA de ?ia=1 est prêt', pg.evaluate('() => JEU.pilote !== null && JEU.carte !== null'))
     pg.evaluate('() => { JEU.course.compte = 0.01; }')
     t(f'{titre} : l’IA part après le compte à rebours', attendre(pg, '() => JEU.course.etat === "course" && JEU.joueur.u > 1', None, 20000), pg.evaluate('() => JEU.course.etat'))
@@ -230,7 +232,9 @@ with sync_playwright() as p:
             pg = ctx.new_page(); console = []
             # les tâches longues (> 50 ms) qui bloquent la page, relevées dès le début du chargement
             pg.add_init_script('window.__longues = []; new PerformanceObserver(l => { for (const e of l.getEntries()) window.__longues.push(e.duration); }).observe({ entryTypes: ["longtask"] });')
-            pg.on('console', lambda m: console.append(m.type + ': ' + m.text) if m.type in ('error', 'warning') else None)
+            # sauf l'avertissement du pilote graphique quand Playwright fait une capture (le jeu ne lit jamais les pixels) :
+            # seulement ce message exact (l'adresse entre crochets change), tout autre message reste une erreur
+            pg.on('console', lambda m: console.append(m.type + ': ' + m.text) if m.type in ('error', 'warning') and not LECTURE_PIXELS.fullmatch(m.text) else None)
             pg.on('pageerror', lambda e: console.append('PAGEERROR ' + str(e)))
             pg.on('requestfailed', lambda r: console.append('FICHIER MANQUANT ' + r.url))
             pg.goto('file://' + RACINE + '/' + page); pg.wait_for_timeout(1500)
