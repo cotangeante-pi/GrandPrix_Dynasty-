@@ -160,10 +160,12 @@ function passageA(e, p, distance) {
   return t0 + (distance - d0) / (e.origine + (i + 1) * pas - d0) * (p.passages[i + 1] - t0);
 }
 
-// le classement en direct (la tour de classement) : les arrivés dans leur ordre d'arrivée, puis les autres du plus
-// avancé au moins avancé (tours finis, puis distance dans le tour : c'est leur distance depuis la ligne).
-// Pour chacun, dans l'ordre : { k (sa place dans e.pilotes), place, ecart, tours } ; ecart : les secondes depuis que
-// celui de devant est passé là où il est (null pour le premier, 0 avant le GO) ; tours : ses tours de retard sur lui
+// le classement en direct (la tour de classement) : celui de la PISTE, sans les pénalités (décision du propriétaire : « si t'as
+// une minute de pénalité et que t'es 2e pendant la course, c'est 2e » ; elles ne comptent qu'au classement final,
+// classementFinal). Les arrivés dans leur ordre de passage de la ligne, puis les autres du plus avancé au moins avancé
+// (tours finis, puis distance dans le tour). Pour chacun, dans l'ordre : { k (sa place dans e.pilotes), place, ecart,
+// tours, penalites (affichées seulement) } ; ecart : les secondes depuis que celui de devant est passé là où il est
+// (null pour le premier et pour une voiture qui n'a pas encore passé la ligne) ; tours : ses tours de retard sur lui
 function classementCourse(e) {
   const P = e.pilotes, rang = p => p.place === null ? Infinity : p.place;
   const ordre = P.map((p, k) => k).sort((a, b) => {
@@ -173,15 +175,46 @@ function classementCourse(e) {
   });
   return ordre.map((k, i) => {
     const p = P[k];
-    if (i === 0) return { k, place: 1, ecart: null, tours: 0 };
+    if (i === 0) return { k, place: 1, ecart: null, tours: 0, penalites: p.course.penalites };
     const q = P[ordre[i - 1]];
-    let ecart;
-    if (e.go === null) ecart = 0;
-    else if (p.arrivee !== null) ecart = p.arrivee - q.arrivee;
-    else ecart = e.temps - Math.max(e.go, passageA(e, q, distanceCourse(p)));
+    const passe = p.arrivee !== null || (e.go !== null && distanceCourse(p) > 0);   // il a passé la ligne au moins une fois
+    let ecart = null;
+    if (passe) ecart = p.arrivee !== null ? p.arrivee - q.arrivee : e.temps - Math.max(e.go, passageA(e, q, distanceCourse(p)));
     const tours = Math.max(0, Math.floor((distanceCourse(q) - distanceCourse(p)) / e.circuit.longueur));
-    return { k, place: i + 1, ecart: Math.max(0, ecart), tours };
+    return { k, place: i + 1, ecart: ecart === null ? null : Math.max(0, ecart), tours, penalites: p.course.penalites };
   });
+}
+
+// le classement final (podium, résultats) : temps de course (du GO à l'arrivée) + pénalités (virage coupé), la même
+// règle pour toutes les voitures, joueur et IA. Une voiture qui passe la ligne 3e avec +5 s peut finir 4e. Les arrivés
+// d'abord, du plus petit total au plus grand ; puis ceux qui ne sont pas encore arrivés, dans l'ordre de course.
+// Pour chacun, dans l'ordre : { k, place, ligne (sa place au passage de la ligne, null s'il n'est pas arrivé),
+// temps (sans les pénalités) et total (avec), null s'il n'est pas arrivé, penalites, ecart (au vainqueur, null),
+// grille (sa place au départ) }
+function classementFinal(e) {
+  const P = e.pilotes, go = e.go === null ? 0 : e.go;
+  const total = p => p.arrivee - go + p.course.penalites;
+  const arrives = P.map((p, k) => k).filter(k => P[k].arrivee !== null)
+    .sort((a, b) => total(P[a]) - total(P[b]) || P[a].place - P[b].place);
+  const suite = classementCourse(e).map(x => x.k).filter(k => P[k].arrivee === null);
+  const grille = P.map((p, k) => k).sort((a, b) => P[b].depart - P[a].depart);
+  const premier = arrives.length ? total(P[arrives[0]]) : null;
+  return arrives.concat(suite).map((k, i) => {
+    const p = P[k], arrive = p.arrivee !== null;
+    return {
+      k, place: i + 1, ligne: arrive ? p.place : null, temps: arrive ? p.arrivee - go : null, total: arrive ? total(p) : null,
+      penalites: p.course.penalites, ecart: arrive ? total(p) - premier : null, grille: grille.indexOf(k) + 1,
+    };
+  });
+}
+
+// les trois premiers du classement final sont-ils connus ? Il faut qu'ils soient arrivés, et qu'aucune voiture encore
+// en course ne puisse plus faire mieux que le 3e (au mieux, elle arriverait maintenant, sans pénalité)
+function podiumConnu(e) {
+  const n = Math.min(3, e.pilotes.length), f = classementFinal(e).slice(0, n);
+  if (f.some(x => x.total === null)) return false;
+  if (e.pilotes.every(p => p.arrivee !== null)) return true;
+  return e.temps - e.go > f[n - 1].total;
 }
 
 // l'endroit d'un point de la piste, pour ranger les dépassements : « freinage » (entre le point de freinage d'un virage

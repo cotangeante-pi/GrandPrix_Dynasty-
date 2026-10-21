@@ -457,10 +457,37 @@ t('classement : 10 IA, 2 min sur le technique : toujours du plus avancé au moin
         // un relevé à part (distance de chaque voiture à chaque pas), à 0,1 s près (sauf dans les CLASSEMENT_PAS premiers
         // mètres après sa place sur la grille : il y démarre à peine, l'interpolation linéaire s'y trompe un peu)
         const r_=releve[c_[i-1].k];let j_=r_.length-1;while(j_>0&&r_[j_-1][1]>=distanceCourse(p_)) j_--;
-        if(p_.v.u>5&&dp>5&&r_[j_][1]>=distanceCourse(p_)&&r_[j_][0]>=e.go&&distanceCourse(p_)>q_.depart+REGLAGES.CLASSEMENT_PAS){ecarts++;const attendu=e.temps-r_[j_][0];
+        if(x.ecart!==null&&p_.v.u>5&&dp>5&&r_[j_][1]>=distanceCourse(p_)&&r_[j_][0]>=e.go&&distanceCourse(p_)>q_.depart+REGLAGES.CLASSEMENT_PAS){ecarts++;const attendu=e.temps-r_[j_][0];
           v(Math.abs(x.ecart-attendu)<=0.1,'n°'+p_.numero+' : écart '+x.ecart.toFixed(2)+' s, relevé '+attendu.toFixed(2)+' s');}});}}
   v(nd>0,'aucun dépassement en 2 min');v(ecarts>50,'peu d’écarts contrôlés : '+ecarts);
   L.push('  (classement : '+controles+' contrôles, '+ecarts+' écarts comparés, '+nd+' dépassements suivis)');});
+
+t('classement en direct : une pénalité en course est affichée mais ne change ni la place ni les écarts (celui de la piste) ; avant de passer la ligne, pas d’écart', ()=>{
+  const e=creerCourseIA(TQ,10,5,3,CARTES_T.technique),P=e.pilotes;
+  for(let k=0;k<3*120;k++) pasCourseIA(e,REGLAGES.PAS_PHYSIQUE);
+  v(classementCourse(e).every(x=>x.ecart===null),'un écart avant la ligne');
+  for(let k=0;k<30*120;k++) pasCourseIA(e,REGLAGES.PAS_PHYSIQUE);
+  const c_=classementCourse(e);P[c_[2].k].course.penalites=60;const d_=classementCourse(e);
+  v(JSON.stringify(c_.map(x=>[x.k,x.ecart]))===JSON.stringify(d_.map(x=>[x.k,x.ecart])),'la pénalité a changé la tour');
+  v(d_[2].penalites===60,'pénalité pas transmise');
+  // à l'arrivée, elle compte : avec +60 s, il finit derrière tous ceux qui arrivent moins de 60 s après lui
+  for(let k=0;k<400*120&&e.arrives<10;k++) pasCourseIA(e,REGLAGES.PAS_PHYSIQUE);
+  const f=classementFinal(e),moi=f.find(x=>x.k===c_[2].k),avant=f.filter(x=>x.total<moi.total).length;
+  v(moi.place===avant+1&&moi.total===moi.temps+60,'place finale '+moi.place+', total '+moi.total);
+  v(moi.place>moi.ligne,'pas descendu : ligne '+moi.ligne+', finale '+moi.place);
+  L.push('  (pénalité de 60 s en course : n°'+P[c_[2].k].numero+' toujours 3e dans la tour ; passé la ligne '+moi.ligne+'e, classé '+moi.place+'e)');});
+// --- le classement final, pénalités comprises (tour 18)
+t('classement final : une voiture qui passe la ligne moins de 5 s devant une autre, avec +5 s de pénalité, finit derrière ; on garde l’ordre de passage et l’ordre final ; le podium est connu quand plus personne ne peut faire mieux que le 3e', ()=>{
+  const e=creerCourseIA(TQ,4,5,1,CARTES_T.technique),P=e.pilotes;e.go=2;
+  P[0].arrivee=102;P[0].place=1;P[1].arrivee=103;P[1].place=2;P[1].course.penalites=5;P[2].arrivee=105;P[2].place=3;e.arrives=3;e.temps=106;
+  let f=classementFinal(e);
+  v(f.map(x=>x.k).join()==='0,2,1,3','ordre final '+f.map(x=>x.k).join());
+  v(f.map(x=>x.ligne).join()==='1,3,2,','ordre de passage '+f.map(x=>x.ligne).join());
+  v(f[2].total===106&&f[2].temps===101&&f[2].penalites===5&&f[2].ecart===6,JSON.stringify(f[2]));
+  v(f[3].total===null&&f[3].place===4,'pas arrivé : '+JSON.stringify(f[3]));
+  // le 4e roule encore : à 106 s, il pourrait encore finir en 104 s, mieux que le 3e (106 s, pénalité comprise) ; à 108,5 s, non
+  v(!podiumConnu(e),'podium connu trop tôt');e.temps=108.5;v(podiumConnu(e),'podium pas connu');
+  v(f.every(x=>x.grille>=1&&x.grille<=4)&&new Set(f.map(x=>x.grille)).size===4,'places de grille '+f.map(x=>x.grille).join());});
 
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 ecrire();

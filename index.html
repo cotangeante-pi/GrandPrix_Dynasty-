@@ -41,6 +41,19 @@
   <div class="boutons"><button id="boutonReprendre" tabindex="-1"></button><button id="boutonRecommencer" tabindex="-1"></button></div>
 </section>
 
+<!-- après une course à plusieurs : le podium (sur la 3D), puis les résultats -->
+<section id="podium" class="cache">
+  <h1 id="podiumTitre"></h1>
+  <div id="podiumMarches"></div>
+  <button id="boutonResultats" tabindex="-1"></button>
+</section>
+
+<section id="resultats" class="ecran cache">
+  <h1 id="resultatsTitre"></h1>
+  <table id="resultatsTable"><thead><tr id="resultatsEntete"></tr></thead><tbody id="resultatsLignes"></tbody></table>
+  <div class="boutons"><button id="boutonRejouerResultats" tabindex="-1"></button><button id="boutonChangerResultats" tabindex="-1"></button></div>
+</section>
+
 <section id="fin" class="ecran cache">
   <h1 id="finTitre"></h1>
   <p id="finRecord"></p>
@@ -71,6 +84,7 @@
 <script src="camera.js"></script>
 <script src="reglages.js"></script>
 <script src="radar.js"></script>
+<script src="podium3d.js"></script>
 <script src="interface.js"></script>
 <script src="principal.js"></script>
 </body>

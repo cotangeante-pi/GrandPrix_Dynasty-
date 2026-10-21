@@ -31,6 +31,8 @@ PAGES = [
     ('index.html?course=5&ia=10&circuit=technique&debug=1', 1280, 720, 'ia10.png'),
     ('index.html?course=5&ia=9&joueur=1&circuit=technique', 1280, 720, None),   # capture joueur-ia.png prise en roulant
     ('index.html?course=5&ia=9&joueur=1&circuit=technique', 960, 600, None),    # la tour de classement et le radar en petit
+    ('index.html?course=1&ia=8&circuit=test', 1280, 720, None),   # une course d'un tour, jusqu'au podium et aux résultats
+    ('index.html?course=1&ia=8&circuit=test', 960, 600, None),
 ]
 POSITION = '() => CAMERA.position'
 
@@ -38,7 +40,7 @@ L, ok, ko = [], 0, 0
 def t(nom, cond, detail=''):
     global ok, ko
     if cond: ok += 1; L.append('✔ ' + nom)
-    else: ko += 1; L.append('✘ ' + nom + (' — ' + detail if detail else ''))
+    else: ko += 1; L.append('✘ ' + nom + (' — ' + str(detail) if detail else ''))   # str : un détail peut être un nombre ou une liste
 
 def attendre(pg, condition, arg=None, delai=5000):
     # swiftshader rame parfois (une image > 300 ms) : on attend que la condition soit vraie, 5 s au plus
@@ -220,6 +222,14 @@ def course_joueur(pg, titre):
 # les éléments fixes de l'écran de course, qui ne doivent jamais se chevaucher
 ELEMENTS_COURSE = ['classement', 'radar', 'boutonSon', 'aide', 'hudCourse', 'tableau']
 
+# les lignes de la tour, de haut en bas (par leur place à l'écran) : 1, 2, 3… et chacune posée à sa place (fin du glissement)
+ORDRE_TOUR = '''() => {
+  const lis = [...document.querySelectorAll("#classementListe li")], haut = document.getElementById("classementListe").getBoundingClientRect().top;
+  const h = lis.length ? lis[0].getBoundingClientRect().height : 0;
+  return lis.length > 0 && lis.every(li => Math.abs(li.getBoundingClientRect().top - haut - (Number(li.children[0].textContent) - 1) * h) < 0.5)
+    && lis.map(li => li.getBoundingClientRect().top).sort((a, b) => a - b).every((y, i, t) => i === 0 || y > t[i - 1]);
+}'''
+
 def hud(pg, titre, l):
     # la tour de classement en haut à droite et le radar en bas à gauche, pendant une course contre les IA
     t(f'{titre} : la tour de classement est visible, avec 10 lignes et la ligne du joueur marquée', attendre(pg,
@@ -236,8 +246,49 @@ def hud(pg, titre, l):
     dehors = [n for n, b in vus if b[0] < 0 or b[1] < 0 or b[2] > pg.viewport_size['width'] or b[3] > pg.viewport_size['height']]
     t(f'{titre} : ni chevauchement ni débordement entre {", ".join(n for n, _ in vus)}', not chevauchent and not dehors and len(vus) == len(ELEMENTS_COURSE),
       f'chevauchent : {chevauchent}, dehors : {dehors}, visibles : {[n for n, _ in vus]}')
-    pg.wait_for_timeout(300)
+    # les lignes glissent quand l'ordre change (la grille se range quand la carte est prête) : on attend qu'elles soient
+    # à leur place, et les places affichées doivent aller de 1 à N, de haut en bas
+    t(f'{titre} : les places de la tour vont de 1 à 10, de haut en bas, chaque ligne à sa place', attendre(pg, ORDRE_TOUR, None, 10000),
+      pg.evaluate('() => [...document.querySelectorAll("#classementListe li")].map(li => [li.children[0].textContent, Math.round(li.getBoundingClientRect().top)])'))
     pg.screenshot(path=os.path.join(CAPTURES, f'hud-{l}.png'))
+
+def course_podium(pg, titre, l):
+    # une course d'un tour entre 8 IA, accélérée (BOUCLE.simuler) jusqu'à ce que les trois premiers soient connus
+    t(f'{titre} : la carte se calcule en fond', attendre(pg, '() => JEU.plateau.carte !== null', None, 180000))
+    pg.evaluate('() => BOUCLE.simuler(25)')
+    # une pénalité (décision du propriétaire) : pendant la course, elle est affichée dans la tour sans changer la place ;
+    # elle compte au podium et aux résultats. On suit le premier, on lui donne +60 s : il reste P1 dans la tour,
+    # et finit derrière tous ceux qui arrivent moins de 60 s après lui
+    pg.evaluate('() => suivre(classementCourse(JEU.plateau)[0].k)')
+    pg.wait_for_timeout(300)
+    pg.evaluate('() => { JEU.course.penalites += 60; }')
+    t(f'{titre} : +60 s de pénalité au premier : la tour l’affiche (« ✂ +60 s ») et il reste P1',
+      attendre(pg, '() => document.getElementById("classementPlace").textContent.startsWith("P1 ") && document.querySelector("#classementListe li.moi .penalite").textContent === "✂ +60 s"'),
+      pg.evaluate('() => document.getElementById("classementPlace").textContent'))
+    for _ in range(40):
+        pg.evaluate('() => BOUCLE.simuler(5)')
+        if pg.evaluate('() => JEU.ecran') == 'podium': break
+        pg.wait_for_timeout(50)
+    t(f'{titre} : après l’arrivée, le podium avec 3 voitures (2e, 1er, 3e), dans l’ordre du classement final', pg.evaluate('''() => JEU.ecran === "podium"
+      && [...document.querySelectorAll("#podiumMarches .marche")].map(e => e.className).join() === "marche marche2,marche marche1,marche marche3"
+      && JEU.final.slice(0, 3).every(x => JEU.modeles[x.k].groupe.visible) && JEU.modeles.filter(m => m.groupe.visible).length === 3'''),
+      str(pg.evaluate('() => [JEU.ecran, JEU.plateau.arrives, JEU.plateau.temps]')))
+    pg.wait_for_timeout(800)
+    if l == 1280: pg.screenshot(path=os.path.join(CAPTURES, 'podium.png'))
+    pg.click('#boutonResultats')
+    t(f'{titre} : au podium, la pénalité compte : le premier sur la ligne (+60 s) n’est pas sur le podium',
+      pg.evaluate('() => JEU.final.slice(0, 3).every(x => x.k !== JEU.suivie) && JEU.final.find(x => x.k === JEU.suivie).ligne === 1'),
+      str(pg.evaluate('() => JEU.final.map(x => [x.k, x.ligne, x.place, x.penalites])')))
+    t(f'{titre} : le bouton passe aux résultats : 8 lignes, la voiture suivie marquée, temps et pénalités du classement final',
+      attendre(pg, '''() => JEU.ecran === "resultats" && document.querySelectorAll("#resultatsLignes tr").length === 8
+        && document.querySelectorAll("#resultatsLignes tr.moi").length === 1
+        && [...document.querySelectorAll("#resultatsLignes tr")].every((tr, i) => tr.children[0].textContent === String(i + 1)
+             && tr.children[3].textContent === (JEU.final[i].penalites > 0 ? "+" + JEU.final[i].penalites + " s ✂" : ""))'''),
+      pg.evaluate('() => document.getElementById("resultatsTable").innerText.slice(0, 300)'))
+    defile = pg.evaluate('() => [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth]')
+    t(f'{titre} : résultats sans défilement', defile[0] <= defile[1] + 2 and defile[2] <= defile[3] + 2, str(defile))
+    pg.wait_for_timeout(300)
+    pg.screenshot(path=os.path.join(CAPTURES, 'resultats.png' if l == 1280 else 'resultats-960.png'))
 
 def INTERFACE_TEMPS(t):
     m = int(t // 60); s = t - m * 60
@@ -279,6 +330,8 @@ with sync_playwright() as p:
                 course_ia(pg, titre)
             if re.search(r'[?&]ia=10(&|$)', page):
                 course_ia10(pg, titre)
+            if 'course=1&ia=8' in page:
+                course_podium(pg, titre, l)
             if 'joueur=1' in page:
                 hud(pg, titre, l)
                 if l == 1280: course_joueur(pg, titre)
