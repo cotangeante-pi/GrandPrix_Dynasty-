@@ -15,7 +15,7 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 
 ## Tour en cours
 
-**Tour 17** (lancé à 20h15, dernier de la soirée, fin 21h) : une ligne choisie se garde (régularité), « GPU stall due to ReadPixels » ignoré dans « console vide ». Rapport : rapports/tour-17-rapport.md. Tour 16 vérifié : caractère et régularité sur main (régularité à l'envers), erreurs sur la branche tour-16 (pas verte).
+Aucun. Boucle du 2026-10-20 **figée à 20h35 sur e592b44 (tour 17, vert, 55/100)**. Reprise : voir rapports/tour-17-verification.md (refaire les erreurs sur main pour des surprises, le duel, puis les niveaux de difficulté).
 
 Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤ 50 s sur Test) → 4b (plusieurs IA sans se toucher) → 4c (dépasser, défendre) → 4d (caractères, niveaux, page des 50 courses).
 
@@ -39,6 +39,7 @@ Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤
 | 14 | d840007 | 53 | 12 | 13 | 1 | 8 | 8 | 10 | 1 |
 | 15 | bde5dd6 | 54 | 12 | 14 | 1 | 8 | 8 | 10 | 1 |
 | 16 | 3a33150 | 54 | 12 | 14 | 1 | 8 | 8 | 10 | 1 |
+| 17 | fa19fdb | 55 | 12 | 15 | 1 | 8 | 8 | 10 | 1 |
 
 ## À essayer par le propriétaire
 
@@ -89,6 +90,7 @@ Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤
 | 2026-10-18 | 0 | **100 i/s** sur le Mac du propriétaire (Chrome, index.html?debug=1) | three.min.js 633 Ko + < 25 Ko | scène du cube ; Chrome sans fenêtre = rendu logiciel, sans valeur |
 | 2026-10-18 | 1 (en cours) | **100 i/s** (le propriétaire) | — | circuit de test, version pas encore finie |
 | 2026-10-18 | 2 (tour 3) | **70 i/s** (le propriétaire) | — | 1 voiture ; charge du Mac 12–13 à ce moment ; pixelRatio 2 + beaucoup d'appels de dessin par voiture → tour 4, ordre 7 |
+| 2026-10-20 | 4d (tour 17) | — | code ≈ 150 Ko + three 618 Ko | 30 courses de 10 IA : 69 s de calcul ; 20 voitures × 120 pas : < 1 ms |
 | 2026-10-19 | 4a (tour 7) | — | three 618 Ko + code 111 Ko ≈ 729 Ko (zip ≈ 195 Ko) | IA : Test 47,88 s, Technique 54,43 s par tour lancé ; trajectoire 0,3–4,6 s de calcul (Mac chargé) |
 | 2026-10-18 | 2 (tour 4) | **> 90 i/s** en général (le propriétaire) | — | 1 voiture, 6 appels de dessin, pixelRatio 1,5 |
 
@@ -120,6 +122,7 @@ Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤
 | 2026-10-18 | 1–2 | Tour 3 : la voiture roule, 121/121 tests, 43a3fa8, robot 66,55 s, nom Grand Prix Dynasty dans le jeu |
 | 2026-10-18 | 3 | Tour 5 : chrono, tours, secteurs, ✂ +5 s, écran de choix, pause, écran de fin, records ; 194/194, 44b3624 |
 | 2026-10-18 | 3 | Tour 6 : secteurs du tour en cours, arrêt après l'arrivée, sons 3-2-1-GO et arrivée ; 200/200, e59f5a2. Fin de session (20h20). |
+| 2026-10-20 | 4d | Tour 17 : une ligne choisie se garde (régularité 4,2 ×, 31 dépassements, 5 chocs), « GPU stall » ignoré ; 118/118 + 37/37 + 159/159 chez le Chef, 55/100. Fin de la boucle à 20h35 |
 | 2026-10-20 | 4d | Tour 16 : caractère chiffré (régularité, agressivité, erreurs) et régularité sur main, 117/117 + 37/37 + 159/159 chez le Chef, 54/100 ; régularité à l'envers (0,274 contre 0,102 s) ; erreurs sur la branche tour-16 (149 erreurs, mais chocs) ; vainqueur ≠ poleman 0/30 |
 | 2026-10-20 | 4c | Tour 15 : IA_DEPASSEMENT = true sur main (fusion de repli : 28 dépassements, 4 chocs > 5 m/s, herbe 3666 pas, 20 voitures 0 choc) ; suivi en temps essayé et abandonné ; 116/116 + 37/37 + 159/159 chez le Chef, 54/100 |
 | 2026-10-20 | 4c | Tour 14 : tests/courses.html sur main (30 courses, critère de l'étape 4) ; 115/115 + 33/33 + 159/159 chez le Chef, d840007, 53/100. Branche tour-14 : 28 dépassements, 4 chocs, duel bloqué par le suivi à 14 m |
