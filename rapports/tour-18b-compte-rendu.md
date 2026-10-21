@@ -7,7 +7,7 @@ Commits, dans l'ordre :
 - 67de4ab : après l'arrivée du joueur, vue télé sur les autres jusqu'au podium (ordre 4)
 - 095011a : fusion de main 9f29dbf (course qui attend la carte, lancer.py moteur|courses|ecrans)
 - bf3b57d : les feux cachés tant que la carte se calcule — vérifié en entier par le Chef
-- 93df8cb : championnat.js (ordre 5, étape 6 calcul pur), « hors piste » caché après l'arrivée
+- f7fe108 : championnat.js (ordre 5, étape 6 calcul pur), « hors piste » caché après l'arrivée
 
 Ordres : 1 fait / 2 fait / 3 fait / 4 fait (avec une réserve, ci-dessous) / 5 fait (calcul seulement, comme demandé)
 
