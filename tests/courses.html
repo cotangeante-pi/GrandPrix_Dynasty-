@@ -27,6 +27,7 @@ for(const nom of ['test','technique']) for(let g=1;g<=GRAINES;g++){
     barr:V.reduce((a,x)=>a+x.contactsBarriere,0),coupes:V.reduce((a,x)=>a+x.coupes,0),herbe:V.reduce((a,x)=>a+x.herbe,0),fini:V.every(x=>x.fini)};
   const s=r.resume;
   L.push(`  ${nom} graine ${String(g).padStart(2)} : grille ${r.grille.map(x=>x.numero).join(',')} → arrivée ${parPlace.map(x=>x.numero).join(',')} | ${s.dep} dépassements (freinage ${endroits.freinage}, sortie ${endroits.sortie}, autre ${endroits.autre}) | pole n°${pole}, vainqueur n°${parPlace[0].numero} | meilleur rythme n°${meilleur.numero} P${meilleur.place} | chocs>5 ${s.chocs}${r.chocsLieux&&r.chocsLieux.length?' ('+r.chocsLieux+')':''} | barrière ${s.barr} | coupes ${s.coupes} | herbe ${s.herbe} | ${r.dureeMs.toFixed(0)} ms`);
+  L.push('      caractères : '+V.map(x=>'n°'+x.numero+' r'+x.rythme.toFixed(3)+(x.caractere?' rég ±'+(x.caractere.regularite*100).toFixed(1)+'% agr '+x.caractere.agressivite.toFixed(2)+' err '+x.caractere.erreurs.toFixed(2):'')).join(' · '));
   ecrire(nom+' '+g);
 }
 const tot=resultats.reduce((a,r)=>{const s=r.resume;a.dep+=s.dep;a.pasPole+=s.pasPole;a.top3+=s.top3;a.chocs+=s.chocs;a.barr+=s.barr+s.coupes;a.herbe+=s.herbe;a.fini&=s.fini;

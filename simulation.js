@@ -73,6 +73,9 @@ function donnerCarte(e, carte) {
     p.pilote = creerPilote(carte, p.rythme, tirerStyle(carte, e.nbTours + 2), R.IA_PERIODE_DECISION * k / e.pilotes.length);
     p.pilote.grille = p.v.piste.d;   // il part dans sa file
   });
+  // le caractère de chaque IA, avec sa propre graine (les styles ne changent pas)
+  ALEATOIRE.semer(e.graine + R.GRAINE_CARACTERE);
+  for (const p of e.pilotes) if (!p.humain) p.pilote.caractere = tirerCaractere(e.nbTours + 2);
   ALEATOIRE.semer();
 }
 
@@ -171,6 +174,7 @@ function simulerCourse(circuit, nbVoitures, nbTours, graine) {
       contactsVoiture: p.v.contactsVoiture, chocMax: p.v.chocMax, chocs: p.v.chocs.slice(), lieuxChocs: p.v.lieuxChocs.slice(),
       contactsBarriere: p.v.contactsBarriere, herbe: p.herbe, coupes: Math.round(p.course.penalites / REGLAGES.PENALITE_COUPE),
       attaques: p.pilote ? p.pilote.attaques : 0, attaquesReussies: p.pilote ? p.pilote.reussies : 0,
+      caractere: p.pilote && p.pilote.caractere ? { regularite: p.pilote.caractere.regularite, agressivite: p.pilote.caractere.agressivite, erreurs: p.pilote.caractere.erreurs } : null,
     })),
   };
 }

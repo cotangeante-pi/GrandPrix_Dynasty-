@@ -261,6 +261,24 @@ function tirerStyle(carte, nbTours) {
   return style;
 }
 
+// le caractère d'un pilote (CLAUDE.md, étape 4d), tiré avec hasard() entre les bornes de IA_CARACTERE : sa
+// régularité (d'un tour à l'autre, il perd jusqu'à cette part de son rythme), son agressivité (0 à 1) et son taux d'erreurs
+// (erreurs par course de 5 tours). tours : pour chaque tour, le facteur de rythme de ce tour.
+function tirerCaractere(nbTours) {
+  const C = REGLAGES.IA_CARACTERE, entre = ([a, b]) => a + hasard() * (b - a);
+  const caractere = { regularite: entre(C.regularite), agressivite: entre(C.agressivite), erreurs: entre(C.erreurs), tours: new Float64Array(nbTours) };
+  // jamais au-delà de son rythme (au-delà, il dépasserait la limite d'adhérence de la carte) : un tour, il perd entre
+  // 0 et deux fois sa régularité (± sa régularité autour de sa moyenne)
+  for (let t = 0; t < nbTours; t++) caractere.tours[t] = 1 - 2 * caractere.regularite * hasard();
+  return caractere;
+}
+
+// le rythme qu'il vise dans ce tour : le sien, moins ce que lui coûte sa régularité dans ce tour
+function rythmeDuTour(pilote) {
+  const c = pilote.caractere;
+  return pilote.rythme * (c ? c.tours[pilote.tour % c.tours.length] : 1);
+}
+
 // le pilote neutre : la carte telle quelle, sans variation (les essais d'une IA seule)
 function styleNeutre() {
   return { apex: 0, corde: 0, margeBord: REGLAGES.IA_MARGE_BORD, frein: 1, tours: 1, variations: null };
@@ -272,6 +290,7 @@ function creerPilote(carte, rythme = 1, style = styleNeutre(), decalage = 0) {
   const N = Math.round(REGLAGES.IA_HORIZON / REGLAGES.IA_LIGNE_PAS) + 1;
   return {
     carte, rythme, style, attente: decalage, tour: 0, sAvant: null, choix: null, decisions: 0,
+    caractere: null, // son caractère (tirerCaractere) ; null = un pilote parfaitement régulier, sans erreur
     grille: null,    // au départ : sa place sur la grille (d) ; il garde sa file sur les premiers mètres (IA_DEPART)
     parcouru: 0,     // m roulés depuis le départ
     retenue: 0,      // s : depuis combien de temps une voiture devant le retient…
@@ -354,21 +373,22 @@ function noterLigne(pilote, v, voisines, s0, t, type) {
   const h = R.IA_LIGNE_DEMI_BASE;
   for (let i = h; i < N - h; i++) k[i] = courbureTroisPoints(x[i - h], z[i - h], x[i], z[i], x[i + h], z[i + h]);
   for (let i = 0; i < h; i++) { k[i] = k[h]; k[N - 1 - i] = k[N - 1 - h]; }
-  const pointe = pilote.carte.pointe, dehors = c.largeur / 2 + R.MARGE_HERBE, bord = c.largeur / 2 - R.IA_MARGE_BORD_MIN;
+  const pointe = pilote.carte.pointe, rythme = rythmeDuTour(pilote), dehors = c.largeur / 2 + R.MARGE_HERBE, bord = c.largeur / 2 - R.IA_MARGE_BORD_MIN;
   let penalite = 0;
   for (let i = 0; i < N; i++) {
     const mu = R.ADHERENCE * (Math.abs(e[i]) > dehors ? R.ADHERENCE_HERBE : 1);
     // le rythme (le talent) joue dans les virages ; la vitesse de pointe est celle de la voiture
-    vb[i] = Math.min(pointe, pilote.rythme * Math.min(vitesseVirage(k[i], mu) * R.IA_MARGE_VIRAGE, vitesseBraquage(k[i])));
+    vb[i] = Math.min(pointe, rythme * Math.min(vitesseVirage(k[i], mu) * R.IA_MARGE_VIRAGE, vitesseBraquage(k[i])));
     if (Math.abs(e[i]) > bord) penalite += R.IA_PENALITE_BORD * (Math.abs(e[i]) - bord) * pas;
     // pendant un dépassement (il attaque, ou une voiture est à côté de lui), passer dans l'herbe coûte très cher
     if (pilote.depassement && Math.abs(e[i]) > dehors) penalite += R.IA_PENALITE_HERBE;
   }
   // au bout de la ligne, la carte dit à quelle vitesse il faut arriver (les virages d'après)
   const fin = valeurEn(c, pilote.carte.trajectoire.vitesse, s0 + (N - 1) * pas);
-  vb[N - 1] = Math.min(vb[N - 1], fin < pointe * 0.999 ? pilote.rythme * fin : fin);
+  vb[N - 1] = Math.min(vb[N - 1], fin < pointe * 0.999 ? rythme * fin : fin);
   // son freinage : la marge habituelle, son style et son rythme (un pilote plus rapide freine plus près de la limite) ;
-  // en attaque, il ose le freinage complet
+  // en attaque, il ose le freinage complet. Son rythme moyen, pas celui du tour : un freinage qui change d'un tour à
+  // l'autre surprend celui qui le suit (tour 16 : 9 chocs au lieu de 6 sur les 30 courses)
   const frein = R.IA_MARGE_FREIN * pilote.rythme * (pilote.attaque && pilote.attaque.etat !== 'preparer' ? R.IA_ATTAQUE_FREIN : pilote.style.frein);
   for (let i = N - 2; i >= 0; i--) {
     const ds = Math.hypot(x[i + 1] - x[i], z[i + 1] - z[i]);
