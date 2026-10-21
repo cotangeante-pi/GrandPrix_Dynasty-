@@ -154,6 +154,12 @@ t('caméra derrière : de 0 à pleine vitesse, elle reste à recul − 0,3 m …
   L.push('  (caméra derrière : distance '+dmin.toFixed(2)+' à '+dmax.toFixed(2)+' m, recul '+recul+' m, vitesse finale '+(vo.u*3.6).toFixed(0)+' km/h)');
   v(dmin>=recul-0.3&&dmax<=recul+0.8,dmin.toFixed(2)+' … '+dmax.toFixed(2));v(vo.u*3.6>320);});
 t('caméra derrière : le champ de vision va de 60° à 66° au plus', ()=>{const s0=CAMERA.poseDerriere({x:0,z:0,cap:0},0,{cap:null,hauteur:0},1/60),s1=CAMERA.poseDerriere({x:0,z:0,cap:0},92,{cap:null,hauteur:0},1/60);v(s0.champ===60&&s1.champ<=66,s0.champ+' / '+s1.champ);});
+t('caméra cockpit : devant le halo et son pilier, au-dessus de la coque, elle regarde devant (quel que soit le cap)', ()=>{
+  const [hx,hr]=REGLAGES.HALO,avantHalo=hx+hr+REGLAGES.HALO_EPAISSEUR+0.03;
+  for(const cap of [0,1,-2.5]){const e={x:10,z:-4,cap},p=CAMERA.poseCockpit(e),fx=Math.cos(cap),fz=Math.sin(cap);
+    const av=(p.x-e.x)*fx+(p.z-e.z)*fz,cote=-(p.x-e.x)*fz+(p.z-e.z)*fx,vise=(p.vise.x-e.x)*fx+(p.vise.z-e.z)*fz;
+    v(av>avantHalo,'caméra à '+av.toFixed(2)+' m, halo jusqu’à '+avantHalo.toFixed(2)+' m');v(Math.abs(cote)<1e-9,'caméra décalée');
+    v(p.y>0.75&&p.y<1.3,'hauteur '+p.y);v(vise>20&&p.vise.y<p.y,'visée');}});
 let tourRobot='';
 t('le robot fait un tour complet sans toucher de barrière, en 45 à 75 s, et le test dure moins de 5 s', ()=>{const t0=performance.now();const vo=creerVoiture(C,0);
   let sAvant=0,parcouru=0,temps=null,dMax=0,herbe=0;

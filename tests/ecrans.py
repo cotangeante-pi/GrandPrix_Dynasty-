@@ -117,7 +117,7 @@ def reglages(pg, titre):
     t(f'{titre} : un réglage dans un tableau (CAMERA_DERRIERE[0]) change aussi', pg.evaluate('() => REGLAGES.CAMERA_DERRIERE[0]') == 6)
     tri = pg.evaluate('() => VOITURE3D.triangles(JEU.modele)')
     pg.evaluate("""() => { const c = document.querySelector('#reglages input[data-cle="HALO_EPAISSEUR"]'); c.value = 0.06; c.dispatchEvent(new Event('input')); }""")
-    t(f'{titre} : l’épaisseur du halo refait la voiture (mêmes triangles, mêmes appels)', pg.evaluate('() => REGLAGES.HALO_EPAISSEUR') == 0.06 and pg.evaluate('() => VOITURE3D.triangles(JEU.modele)') == tri and pg.evaluate('() => VOITURE3D.appels(JEU.modele)') <= 8)
+    t(f'{titre} : l’épaisseur du halo refait la voiture (mêmes triangles, mêmes appels)', pg.evaluate('() => REGLAGES.HALO_EPAISSEUR') == 0.06 and pg.evaluate('() => VOITURE3D.triangles(JEU.modele)') == tri and pg.evaluate('() => VOITURE3D.appels(JEU.modele)') <= 7)
     pg.click('#reglages button')
     copie = pg.evaluate('() => document.querySelector("#reglages pre").textContent')
     t(f'{titre} : « copier » donne les valeurs changées, prêtes pour donnees.js', 'ADHERENCE: 2.2,' in copie and 'CAMERA_DERRIERE: [6, 2.4],' in copie and 'APPUI' not in copie, repr(copie))
@@ -311,7 +311,11 @@ with sync_playwright() as p:
                     if 'ia=10' not in page:
                         t(f'{titre} : à l’arrêt, 0° de dérive et 0 g', float(m.group(2)) == 0 and float(m.group(3)) == 0, repr(ips))
                         mesures_voiture.append((int(m.group(4)), int(m.group(5)), int(m.group(1))))
-                    t(f'{titre} : une voiture fait au plus 8 appels de dessin', int(m.group(5)) <= 8, repr(ips))
+                    t(f'{titre} : une voiture fait au plus 7 appels de dessin et moins de 1500 triangles', int(m.group(5)) <= 7 and int(m.group(4)) < 1500, repr(ips))
+                    if 'ia=10' in page:
+                        t(f'{titre} : les IA gardent le modèle léger (moins de triangles que la voiture du joueur)', not pg.evaluate('() => JEU.modeles.some(m => m.detaille)') and pg.evaluate('() => VOITURE3D.triangles(JEU.modeles[0]) < VOITURE3D.triangles(VOITURE3D.creer(0xffffff, true))'), repr(ips))
+                    else:
+                        t(f'{titre} : la voiture du joueur est la voiture détaillée', pg.evaluate('() => JEU.modele.detaille'))
             else: t(f'{titre} : sans debug, pas de compteur', ips is None, repr(ips))
             ctx.close()
     finally:

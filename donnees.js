@@ -248,14 +248,16 @@ const REGLAGES = {
   CAMERA_LIBRE_MOLETTE: 0.0015, // part de la hauteur par cran de molette
   CAMERA_LIBRE_HAUTEUR: [3, 2000],
   CAMERA_VIRAGE_HAUTEUR: 3,     // ?camera=virage : vue basse, au bord du virage le plus serré
-  HALO_EPAISSEUR: 0.035,        // m, le rayon du tube du halo (on le voit en vue cockpit)
+  HALO_EPAISSEUR: 0.035,        // m, le rayon du tube du halo
+  HALO: [0.25, 0.34],           // m, le centre de l'arceau du halo (en avant du centre de la voiture) et son rayon ; le pilier est au bout
   // les caméras de course (C passe de l'une à l'autre)
   CAMERA_DERRIERE: [7.5, 2.4],  // recul et hauteur derrière la voiture (m) : fixes, la caméra ne traîne pas derrière
   CAMERA_RECUL_VITESSE: 0.5,    // m de recul en plus à pleine vitesse (90 m/s)
   CAMERA_SUIVI_CAP: 6,          // 1/s : la caméra tourne autour de la voiture avec un léger retard dans les virages
   CAMERA_SUIVI_HAUTEUR: 4,      // 1/s : la hauteur est un peu lissée
   CAMERA_CHAMP: [60, 6],        // champ de vision derrière : de base, plus ce nombre à pleine vitesse (degrés)
-  CAMERA_COCKPIT: [0.2, 0.88],  // l'œil du pilote, à la place du casque (caché en vue cockpit) : avant, hauteur (m)
+  CAMERA_COCKPIT: [0.75, 1.02], // caméra embarquée, devant le halo et au-dessus du pilote : avant, hauteur (m) ; on voit le nez et les roues avant
+  CAMERA_COCKPIT_VISEE: 0.45,   // m : la caméra vise à 30 m devant, plus bas d'autant (le nez reste dans l'image)
   CAMERA_COCKPIT_CHAMP: 72,
   TELE_ESPACEMENT: 250,         // une caméra télé tous les 250 m le long de la piste
   TELE_RECUL: 8,                // à cette distance derrière la barrière (m)

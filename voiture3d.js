@@ -3,9 +3,10 @@
 // Pour 20 voitures, chaque voiture coûte peu d'appels de dessin : toutes les pièces fixes sont fusionnées en une seule
 // géométrie (les couleurs sont portées par les sommets), le casque est à part (caché en vue cockpit), et chaque
 // roue est une géométrie (pneu et jante fusionnés) qui tourne seule. Total : 6 appels par voiture.
+// La voiture du joueur a des détails en plus (aileron, suspensions, rétroviseurs, volant), dans la même géométrie du corps.
 const VOITURE3D = (function () {
   const R = REGLAGES;
-  const NOIR = 0x18191c, CARBONE = 0x2a2c31, CASQUE = 0xf2c230, JANTE = 0xb8bcc4;
+  const NOIR = 0x18191c, CARBONE = 0x2a2c31, CASQUE = 0xf2c230, JANTE = 0xb8bcc4, MIROIR = 0xc9d4de, ECRAN = 0x3fd0ff;
   let materiauSommets = null, materiauCasque = null;   // partagés par toutes les voitures
 
   // un paquet de pièces à fusionner : positions, normales, couleurs
@@ -24,9 +25,11 @@ const VOITURE3D = (function () {
     g.dispose();
   }
 
-  function boite(p, l, h, pr, couleur, x, y, z, rotZ) {
+  function boite(p, l, h, pr, couleur, x, y, z, rotZ, rotX, rotY) {
     const g = new THREE.BoxGeometry(l, h, pr);
     if (rotZ) g.rotateZ(rotZ);
+    if (rotX) g.rotateX(rotX);
+    if (rotY) g.rotateY(rotY);
     g.translate(x, y, z);
     ajouter(p, g, couleur);
   }
@@ -39,8 +42,52 @@ const VOITURE3D = (function () {
     return g;
   }
 
-  // toutes les pièces fixes de la voiture, en une seule géométrie
-  function geometrieCorps(couleur) {
+  // un bras fin d'un point à un autre (suspensions, tiges) : une boîte allongée, tournée dans la bonne direction
+  function bras(p, a, b, epaisseur, couleur) {
+    const dx = b[0] - a[0], dy = b[1] - a[1], dz = b[2] - a[2];
+    const g = new THREE.BoxGeometry(epaisseur, epaisseur, Math.hypot(dx, dy, dz));
+    g.lookAt(new THREE.Vector3(dx, dy, dz));
+    g.translate((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2);
+    ajouter(p, g, couleur);
+  }
+
+  // les détails de la voiture du joueur (surtout pour la vue cockpit), fusionnés avec le reste : aucun appel de dessin en plus
+  function details(p, couleur) {
+    const xa = R.CG_AVANT, xr = R.CG_AVANT - R.EMPATTEMENT;
+    // l'aileron avant : deux volets étagés au-dessus du plan principal, et les deux supports sous le nez
+    boite(p, 0.22, 0.03, 1.75, couleur, 2.82, 0.21, 0, 0.25);
+    boite(p, 0.16, 0.025, 1.6, CARBONE, 2.66, 0.28, 0, 0.45);
+    for (const c of [1, -1]) boite(p, 0.3, 0.14, 0.03, CARBONE, 2.95, 0.24, c * 0.12, 0.3);
+    // les suspensions : à chaque roue, un triangle en haut, un en bas et la tige de poussée
+    for (const [x, h] of [[xa, 0.33], [xr, 0.35]]) {
+      for (const c of [1, -1]) {
+        const roue = c * (x === xa ? 0.68 : 0.62);
+        for (const [y, dy] of [[h + 0.13, 0.1], [h - 0.1, 0.06]]) {
+          bras(p, [x + 0.28, y + dy, c * 0.22], [x, y, roue], 0.03, CARBONE);
+          bras(p, [x - 0.28, y + dy, c * 0.22], [x, y, roue], 0.03, CARBONE);
+        }
+        bras(p, [x, h - 0.08, roue - c * 0.04], [x + (x === xa ? -0.15 : 0.15), 0.62, c * 0.18], 0.035, CARBONE);
+      }
+    }
+    // les rétroviseurs : un bras, le boîtier aux couleurs de l'écurie et le miroir clair vers l'arrière
+    for (const c of [1, -1]) {
+      bras(p, [0.95, 0.68, c * 0.34], [0.9, 0.8, c * 0.52], 0.025, CARBONE);
+      boite(p, 0.07, 0.07, 0.17, couleur, 0.9, 0.82, c * 0.55);
+      boite(p, 0.01, 0.055, 0.15, MIROIR, 0.86, 0.82, c * 0.55);
+    }
+    // le volant et son petit écran
+    boite(p, 0.04, 0.16, 0.28, NOIR, 0.55, 0.8, 0);
+    boite(p, 0.01, 0.06, 0.1, ECRAN, 0.525, 0.82, 0);
+    // la caméra embarquée sur la prise d'air, les bouches des pontons, le volet mobile de l'aileron arrière
+    boite(p, 0.14, 0.06, 0.22, NOIR, -0.3, 1.2, 0);
+    for (const c of [1, -1]) boite(p, 0.03, 0.26, 0.3, NOIR, 0.46, 0.4, c * 0.62);
+    boite(p, 0.2, 0.04, 0.98, couleur, -2.68, 1.05, 0, 0.5);
+    // le diffuseur : quelques ailettes sous l'arrière
+    for (const z of [-0.45, -0.15, 0.15, 0.45]) boite(p, 0.45, 0.16, 0.025, CARBONE, -2.3, 0.2, z, -0.3);
+  }
+
+  // toutes les pièces fixes de la voiture, en une seule géométrie ; detaille : la voiture du joueur
+  function geometrieCorps(couleur, detaille) {
     const p = paquet();
     // la coque, le nez, le capot moteur et la prise d'air au-dessus du pilote
     boite(p, 2.6, 0.5, 0.8, couleur, 0.1, 0.45, 0);
@@ -63,15 +110,17 @@ const VOITURE3D = (function () {
     boite(p, 0.6, 0.65, 0.04, CARBONE, -2.4, 0.75, -0.52);
     boite(p, 0.12, 0.45, 0.06, CARBONE, -2.3, 0.62, 0);
     // le halo (un arceau devant et au-dessus de la tête, posé sur un pilier) ; même orientation qu'au tour 3
-    const halo = new THREE.TorusGeometry(0.34, R.HALO_EPAISSEUR, 6, 14, Math.PI);
+    const [hx, hr] = R.HALO;
+    const halo = new THREE.TorusGeometry(hr, R.HALO_EPAISSEUR, 6, 14, Math.PI);
     halo.rotateZ(-Math.PI / 2);
     halo.rotateX(-Math.PI / 2);
-    halo.translate(0.25, 1.02, 0);
+    halo.translate(hx, 1.02, 0);
     ajouter(p, halo, CARBONE);
-    boite(p, 0.04, 0.3, 0.035, CARBONE, 0.6, 0.86, 0);
+    boite(p, 0.04, 0.3, 0.035, CARBONE, hx + hr + 0.01, 0.86, 0);
     // les bras de suspension, de la coque aux roues
     boite(p, 0.08, 0.04, 1.5, CARBONE, R.CG_AVANT, 0.36, 0);
     boite(p, 0.08, 0.04, 1.4, CARBONE, R.CG_AVANT - R.EMPATTEMENT, 0.4, 0);
+    if (detaille) details(p, couleur);
     return geometrie(p);
   }
 
@@ -94,14 +143,15 @@ const VOITURE3D = (function () {
     return { pivot, tourne, avant };
   }
 
-  // couleur : la couleur de l'écurie ; renvoie { groupe, roues, tete, corps, couleur }
-  function creer(couleur) {
+  // couleur : la couleur de l'écurie ; detaille : la voiture du joueur, avec plus de détails (les autres restent légères) ;
+  // renvoie { groupe, roues, tete, corps, couleur, detaille }
+  function creer(couleur, detaille) {
     if (!materiauSommets) {
       materiauSommets = new THREE.MeshLambertMaterial({ vertexColors: true });
       materiauCasque = new THREE.MeshLambertMaterial({ color: CASQUE });
     }
     const groupe = new THREE.Group();
-    const corps = new THREE.Mesh(geometrieCorps(couleur), materiauSommets);
+    const corps = new THREE.Mesh(geometrieCorps(couleur, detaille), materiauSommets);
     groupe.add(corps);
     const tete = new THREE.Mesh(new THREE.SphereGeometry(0.17, 10, 8), materiauCasque);
     tete.position.set(0.2, 0.85, 0);
@@ -113,13 +163,13 @@ const VOITURE3D = (function () {
       roue(0.35, 0.42, xr, 0.8, false), roue(0.35, 0.42, xr, -0.8, false),
     ];
     for (const r of roues) groupe.add(r.pivot);
-    return { groupe, roues, tete, corps, couleur };
+    return { groupe, roues, tete, corps, couleur, detaille: !!detaille };
   }
 
   // le panneau de réglage change l'épaisseur du halo : on refait la géométrie du corps
   function majHalo(modele) {
     modele.corps.geometry.dispose();
-    modele.corps.geometry = geometrieCorps(modele.couleur);
+    modele.corps.geometry = geometrieCorps(modele.couleur, modele.detaille);
   }
 
   // les triangles d'une voiture
