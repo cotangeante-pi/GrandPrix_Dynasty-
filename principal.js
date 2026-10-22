@@ -35,6 +35,7 @@ const JEU = {
   tempsPodium: 0,       // s depuis le début du podium (la caméra qui tourne)
   championnat: null,    // ?championnat=1 : le championnat en cours (championnat.js)
   grandPrixFini: false, // … et le Grand Prix de cette page est joué et enregistré : « Course suivante » recharge la page (le circuit change)
+  qualif: null,         // contre les IA, avant la course : la qualification du joueur { etat (choix, tour, attente, resultat), q (qualification.js), v (sa voiture du tour), passe }
   attente: null,        // contre les IA, après l'arrivée du joueur : { tele (la voiture suivie par la caméra télé), camera (celle d'avant), passer }
 };
 
@@ -76,6 +77,67 @@ function lancerCourse(nbTours) {
   JEU.final = null;
   finirAttente();
   PODIUM3D.cacher();
+  // contre les IA : d'abord la qualification du joueur (un tour, ou passer) ; la course attend
+  if (JEU.contre) { commencerQualif(); return; }
+  JEU.ecran = 'course';
+  INTERFACE.montrer('course');
+}
+
+// la qualification du joueur (qualification.js) : l'écran de choix, le tour seul sur la piste (sa voiture du tour est
+// à part : les IA restent sur la grille, et la carte peut finir de se calculer pendant ce temps), puis la grille
+function commencerQualif() {
+  JEU.qualif = { etat: 'choix', q: null, v: null, passe: false };
+  INTERFACE.remplirQualif('choix');
+  JEU.ecran = 'qualif';
+  INTERFACE.montrer('qualif');
+}
+
+function faireMonTour() {
+  if (!JEU.qualif || JEU.qualif.etat !== 'choix') return;
+  const v = creerVoiture(CIRCUIT, 0);
+  JEU.qualif.v = v;
+  JEU.qualif.q = QUALIFICATION.creer(CIRCUIT, v);
+  JEU.qualif.etat = 'tour';
+  JEU.joueur = v;                     // la caméra, le tableau et le chrono suivent la voiture du tour
+  JEU.course = JEU.qualif.q.course;
+  JEU.signal = null;
+  INTERFACE.montrer('course');        // le bandeau de course (chrono, secteurs), sans la tour ni le radar
+}
+
+function passerQualif() {
+  if (!JEU.qualif || JEU.qualif.etat !== 'choix') return;
+  JEU.qualif.passe = true;
+  finirQualif();
+}
+
+// un pas de physique du tour de qualification : sa voiture seule, conduite au clavier ou par le robot
+function pasTourQualif(pas) {
+  const q = JEU.qualif.q, v = JEU.qualif.v, c = q.course;
+  const permis = courseAutorise(c);
+  if (JEU.remettre) { if (permis) remettreSurPiste(v, CIRCUIT); JEU.remettre = false; }
+  if (c.etat === 'finie') appliquerCommandes(v, { gaz: 0, frein: v.u > REGLAGES.ARRET_APRES_ARRIVEE ? 1 : 0, direction: 0 });
+  else if (JEU.robot && permis) appliquerCommandes(v, piloteRobot(v, CIRCUIT));
+  else lisserCommandes(v, permis ? JEU.cibles : AUCUNE, pas);
+  pasVoiture(v, CIRCUIT, pas);
+  if (QUALIFICATION.pas(q, v, pas)) finirQualif();
+}
+
+// le tour est fini (ou passé) : la grille avec tous les temps, dès que les IA ont le leur (la carte), puis le résultat
+function finirQualif() {
+  const e = JEU.plateau;
+  if (!e.carte) { JEU.qualif.etat = 'attente'; INTERFACE.remplirQualif('attente'); INTERFACE.montrer('qualif'); return; }
+  const temps = JEU.qualif.passe ? null : JEU.qualif.q.temps;
+  const place = QUALIFICATION.grille(e, temps);
+  suivre(JEU.suivie);   // JEU.joueur et JEU.course : de nouveau sa voiture de course, sur la grille
+  JEU.qualif.etat = 'resultat';
+  INTERFACE.remplirQualif('resultat', { place, nb: e.pilotes.length, temps, valide: temps !== null, passe: JEU.qualif.passe, ecart: QUALIFICATION.ecartPole(e) });
+  JEU.ecran = 'qualif';
+  INTERFACE.montrer('qualif');
+}
+
+function partirEnCourse() {
+  if (!JEU.qualif || JEU.qualif.etat !== 'resultat') return;
+  JEU.qualif = null;
   JEU.ecran = 'course';
   INTERFACE.montrer('course');
 }
@@ -250,6 +312,8 @@ function pasJoueur(pas) {
   // ?ia=N : toutes les IA, leurs contacts, leurs courses (la voiture suivie comprise) ; avec &joueur=1, la voiture du
   // joueur est dans la même course et il la conduit au clavier
   if (JEU.plateau) {
+    // la qualification : seule la voiture du tour roule
+    if (JEU.ecran === 'qualif' && JEU.qualif && JEU.qualif.etat === 'tour') { pasTourQualif(pas); return; }
     // tant que la carte se calcule, la course attend (le compte à rebours ne part pas) : sur un ordinateur lent,
     // les IA resteraient sinon plantées sur la grille après le GO
     if (JEU.ecran === 'course' && JEU.plateau.carte) pasCourseIA(JEU.plateau, pas, conduireJoueur);
@@ -270,6 +334,11 @@ function pasJoueur(pas) {
   else lisserCommandes(v, permis ? JEU.cibles : AUCUNE, pas);
   pasVoiture(v, CIRCUIT, pas);
   if (c && JEU.ecran === 'course' && !(JEU.ia && !JEU.carte)) majCourse(c, v, pas);   // ?ia=1 : pareil, la course attend la carte
+}
+
+// le joueur fait son tour de qualification (le chrono s'affiche, « hors piste » aussi)
+function enTourQualif() {
+  return JEU.ecran === 'qualif' && !!JEU.qualif && JEU.qualif.etat === 'tour';
 }
 
 // la tour de classement (course à plusieurs) et le radar, pendant la course et la pause ; la voiture suivie est « moi »
@@ -293,7 +362,7 @@ function majTableau() {
   const v = JEU.joueur;
   document.getElementById('vitesse').textContent = Math.round(Math.abs(v.u) * 3.6);
   document.getElementById('rapport').textContent = rapportPourVitesse(v.u);
-  const roule = JEU.ecran === 'course' || JEU.ecran === 'survol';
+  const roule = JEU.ecran === 'course' || JEU.ecran === 'survol' || enTourQualif();
   // sur le podium et les résultats, ni vitesse ni aide des touches
   const apres = JEU.ecran === 'podium' || JEU.ecran === 'resultats' || JEU.ecran === 'championnat';
   document.getElementById('tableau').classList.toggle('cache', apres);
@@ -368,8 +437,10 @@ function demarrerJeu() {
   if (JEU.ia) JEU.calculTrajectoire = calculerEnFond(etapesTrajectoire(CIRCUIT), t => {
     JEU.trajectoire = t;
     JEU.carte = carteDepuis(CIRCUIT, t);
-    if (JEU.plateau) { donnerCarte(JEU.plateau, JEU.carte); appliquerCaracteres(); }
-    else JEU.pilote = creerPilote(JEU.carte);
+    if (JEU.plateau) {
+      donnerCarte(JEU.plateau, JEU.carte); appliquerCaracteres();
+      if (JEU.qualif && JEU.qualif.etat === 'attente') finirQualif();   // le joueur a fini son tour avant la carte
+    } else JEU.pilote = creerPilote(JEU.carte);
   });
   // ?ia=N : un modèle par IA, chacune sa couleur (contre le joueur, aucune n'a la sienne), puis celui du joueur ;
   // sinon, seulement la voiture du joueur
@@ -403,6 +474,7 @@ function demarrerJeu() {
   boutonPasser.textContent = texte('passerPodium');
   boutonPasser.addEventListener('mousedown', e => e.preventDefault());
   boutonPasser.addEventListener('click', passerAuPodium);
+  INTERFACE.preparerQualif(faireMonTour, passerQualif, partirEnCourse);
   PODIUM3D.init(CIRCUIT);
   // ?course=5, 12, 18 ou 0 (essai libre) lance directement une course (tests, développement)
   const demandee = PARAMETRES.get('course');
@@ -442,7 +514,7 @@ function demarrerJeu() {
       CAMERA.maj(dt, tele ? etatAffiche(tele, alpha) : etat, tele || JEU.joueur);
     }
     majTableau();
-    INTERFACE.majCourse(JEU.course, JEU.ecran);
+    INTERFACE.majCourse(JEU.course, enTourQualif() ? 'course' : JEU.ecran);   // le chrono du tour de qualification
     INTERFACE.majPreparation(JEU.ecran === 'course' && JEU.ia > 0 && !JEU.carte);
     majClassementRadar();
     signauxCourse(JEU.course);

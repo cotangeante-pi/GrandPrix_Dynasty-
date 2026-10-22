@@ -1,0 +1,23 @@
+TOUR 19b — compte rendu du Codeur 2 (session-9e), 2026-10-22
+Branche : codeur2 (worktree « Grand Prix Dynasty - codeur 2 »), base main 73fdbc9 (avance rapide).
+Commits :
+- <hash ordre 1> : la qualification du joueur (ordre 1)
+- <hash ordre 2> : le niveau des écuries sur le rythme des IA du championnat (ordre 2)
+
+Ordres : 1 fait / 2 <état>
+
+1. La qualification (qualification.js nouveau, calcul pur ; principal.js, interface.js, index.html, textes.js, donnees.js).
+   Réglage : QUALIF_LANCEMENT 250 m. QUALIFICATION.creer(circuit, v) pose la voiture 250 m avant la ligne, à l'arrêt, avec une course d'un tour (course.js) ; QUALIFICATION.pas(q, v, dt) appelle majCourse et, au premier passage de la ligne, remet c.debutTour à c.temps : le chrono du tour part à la ligne (tour lancé), pas au premier mouvement ; à la fin, q.temps (null si le tour a un virage coupé : q.valide false). QUALIFICATION.grille(e, tempsJoueur) : les IA gardent leur temps de qualification simplifié (qualifier, simulation.js, inchangé), le joueur prend le sien (null = passé ou annulé → dernier), tri par temps, chaque voiture posée à sa place (placesGrille, placerSurPiste), p.depart et p.pilote.grille (la file de l'IA) mis à jour, e.grille refait, e.devant vidé ; renvoie la place du joueur. ecartPole(e).
+   Page : avec le joueur contre les IA (?ia=N&joueur=1 et ?championnat=1), lancerCourse s'arrête à commencerQualif() : écran #qualif (« Qualification : un tour chronométré », explication, « Faire mon tour » / « Passer (départ dernier) »). « Faire mon tour » : une voiture à part (creerVoiture) pour le tour, JEU.joueur et JEU.course pointent dessus (caméra, tableau, chrono, secteurs ; pas de tour de classement ni de radar) ; les IA restent sur la grille et ne roulent pas (pasTourQualif ne fait rouler que cette voiture, au clavier ou par le robot avec ?robot=1 ; Espace remet en piste) ; pas de feux, pas de faux départ (compte à rebours 3-2-1 de course.js). Pendant ce tour, la carte des IA peut finir de se calculer : donnerCarte → qualifier replace les voitures de la grille sans toucher à la voiture du tour. Le tour fini (ou « Passer ») : finirQualif() ; s'il n'y a pas encore de carte, état « attente » (« Préparation de la course… ») et le calcul en fond rappelle finirQualif ; sinon la grille, puis le résultat : « P n / N — temps · +x,xxx s de la pole » (ou « Pole position ! », « Tour annulé (virage coupé) : départ dernier », « Qualification passée : départ dernier ») et « Départ de la course » → la course avec les feux (armés dans lancerCourse, le compte ne part qu'à l'écran de course). Pas de pause ni de bips pendant le tour de qualification.
+   Tests : test.html : le robot fait un tour lancé (62,5 s ; la ligne passée 7,1 s après le départ, le chrono = de la ligne à la ligne à 0,05 s près), un virage coupé l'annule ; la grille avec le joueur en pole, au milieu, dernier (passé ou plus lent), chaque voiture à sa place, les IA dans leur file, écart à la pole. ecrans.py : page ?course=1&ia=5&joueur=1&robot=1&circuit=test&test=qualif : écran, carte, « Faire mon tour » (voiture à part, chrono, classement caché), tour accéléré (BOUCLE.simuler), résultat (temps, place = celle de la grille, voiture posée à cette place, IA immobiles), texte « P6 / 6 — 1:02.533 · +15,595 s de la pole » (le robot est plus lent que les IA : P6), capture qualif.png, « Départ de la course » → course, feux ; page rechargée, « Passer » → P6 / 6, dernier. Les tests existants avec joueur (hud, course_joueur, championnat) passent la qualification par passer_qualif(). Console vide.
+2. Le niveau des écuries (championnat.js, donnees.js, principal.js). <à compléter>
+
+Pour CLAUDE.md (à ajouter par le Chef) :
+  - `qualification.js` : la qualification du joueur en calcul pur (`QUALIFICATION`) : un tour lancé seul (le chrono part à la ligne, virage coupé = annulé), puis la grille avec tous les temps (`grille` ; tour passé ou annulé = dernier) ; les IA gardent leur qualification simplifiée ;
+  - principal.js : « avant une course contre les IA, l'écran de qualification (« Faire mon tour » / « Passer ») ; `?robot=1` y fait conduire le robot » ;
+  - championnat.js : « `appliquerNiveaux` (rythme des IA × niveau de l'écurie, avant la carte), `simulerGrandPrix` (tests) ».
+
+Sortie des tests : <à compléter>
+Ce que je n'ai pas pu vérifier : la sensation du tour de qualification au clavier (à essayer par le propriétaire) ; le robot est plus lent que toutes les IA, donc dans la page il part toujours dernier (le placement au milieu de la grille est testé en calcul pur seulement).
+Jamais touchés : ia.js, simulation.js, podium3d.js, CLAUDE.md.
+Réévalue.

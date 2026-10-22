@@ -42,7 +42,7 @@ const INTERFACE = (function () {
   }
 
   function montrer(ecran) {
-    for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat']) $(id).classList.toggle('cache', id !== ecran);
+    for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif']) $(id).classList.toggle('cache', id !== ecran);
     // le bandeau de course n'est là que pendant la course et la pause (pas sous l'écran de fin)
     const course = ecran === 'course' || ecran === 'pause';
     for (const id of ['hudCourse', 'hudPenalite', 'compte', 'feux', 'classement', 'radar']) if (!course) $(id).classList.add('cache');
@@ -191,6 +191,34 @@ const INTERFACE = (function () {
     $('compte').textContent = texte('preparation');
   }
 
+  // la qualification du joueur : etat = 'choix' (deux boutons), 'attente' (la carte des IA se calcule encore),
+  // 'resultat' ({ place, nb, temps, valide, passe, ecart } ; bouton vers la course)
+  function remplirQualif(etat, r) {
+    $('qualifTitre').textContent = texte('qualifTitre');
+    $('boutonQualifTour').textContent = texte('qualifTour');
+    $('boutonQualifPasser').textContent = texte('qualifPasser');
+    $('boutonQualifCourse').textContent = texte('qualifCourse');
+    $('boutonQualifTour').classList.toggle('cache', etat !== 'choix');
+    $('boutonQualifPasser').classList.toggle('cache', etat !== 'choix');
+    $('boutonQualifCourse').classList.toggle('cache', etat !== 'resultat');
+    let t = texte('qualifExplication');
+    if (etat === 'attente') t = texte('preparation');
+    else if (etat === 'resultat') {
+      if (r.passe) t = texte('qualifPasse');
+      else if (!r.valide) t = texte('qualifInvalide');
+      else t = texte('qualifResultat').replace('{p}', r.place).replace('{n}', r.nb).replace('{t}', formatTemps(r.temps))
+        + ' · ' + (r.ecart > 0 ? texte('qualifEcart').replace('{s}', r.ecart.toFixed(3).replace('.', texte('virgule'))) : texte('qualifPole'));
+    }
+    $('qualifTexte').textContent = t;
+  }
+
+  function preparerQualif(tour, passer, course) {
+    for (const [id, f] of [['boutonQualifTour', tour], ['boutonQualifPasser', passer], ['boutonQualifCourse', course]]) {
+      $(id).addEventListener('mousedown', e => e.preventDefault());
+      $(id).addEventListener('click', f);
+    }
+  }
+
   // ?championnat=1 : l'écran entre les courses. ch : le championnat ; gagne : les points du joueur à la course qui
   // vient de finir (null au démarrage) ; nomCircuit : celui du prochain Grand Prix ; suivante : le bouton
   function remplirChampionnat(ch, gagne, nomCircuit) {
@@ -254,5 +282,5 @@ const INTERFACE = (function () {
     });
   }
 
-  return { formatTemps, formatEcart, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, preparerChampionnat };
+  return { formatTemps, formatEcart, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, preparerChampionnat, remplirQualif, preparerQualif };
 })();

@@ -32,6 +32,7 @@ PAGES = [
     ('index.html?course=5&ia=9&joueur=1&circuit=technique', 1280, 720, None),   # capture joueur-ia.png prise en roulant
     ('index.html?course=5&ia=9&joueur=1&circuit=technique', 960, 600, None),    # la tour de classement et le radar en petit
     ('index.html?course=1&ia=8&circuit=test', 1280, 720, None),
+    ('index.html?course=1&ia=5&joueur=1&robot=1&circuit=test&test=qualif', 1280, 720, None),   # la qualification du joueur (robot), capture qualif.png
     ('index.html?championnat=1&tours=1&robot=1', 960, 600, 'championnat-960.png'),   # l'écran du championnat en petit
     ('index.html?championnat=1&tours=1&robot=1', 1280, 720, None),   # 2 Grands Prix joués par le robot, rechargement, capture championnat.png   # une course d'un tour, jusqu'au podium et aux résultats
     ('index.html?course=1&ia=8&circuit=test', 960, 600, None),
@@ -203,6 +204,44 @@ def course_ia10(pg, titre):
     ips = pg.evaluate('() => document.getElementById("ips").textContent.split(String.fromCharCode(10))[0]')
     L.append(f'  (?ia=10 sous swiftshader : {ips})')
 
+# avant une course contre les IA, l'écran de qualification : on le passe (le joueur part dernier)
+def passer_qualif(pg, titre):
+    t(f'{titre} : avant la course, l’écran de qualification (« Faire mon tour » / « Passer »)', attendre(pg, '() => JEU.ecran === "qualif" && JEU.qualif && JEU.qualif.etat === "choix" && !document.getElementById("qualif").classList.contains("cache")', None, 10000), str(pg.evaluate('() => [JEU.ecran, JEU.qualif]')))
+    pg.click('#boutonQualifPasser')
+    attendre(pg, '() => JEU.qualif && JEU.qualif.etat === "resultat"', None, 180000)   # (la carte des IA d'abord, s'il le faut)
+    pg.click('#boutonQualifCourse')
+    attendre(pg, '() => JEU.ecran === "course"', None, 10000)
+
+def qualif(pg, titre):
+    # le robot fait le tour de qualification : il part à la place que donne son temps ; « Passer » le met dernier
+    t(f'{titre} : l’écran de qualification, les IA sur la grille', attendre(pg, '() => JEU.ecran === "qualif" && JEU.qualif.etat === "choix" && JEU.plateau.pilotes.length === 6', None, 10000), str(pg.evaluate('() => [JEU.ecran, JEU.qualif]')))
+    t(f'{titre} : la carte se calcule en fond', attendre(pg, '() => JEU.plateau.carte !== null', None, 180000))
+    pg.click('#boutonQualifTour')
+    t(f'{titre} : « Faire mon tour » : sa voiture du tour, seule, 250 m avant la ligne ; le chrono s’affiche ; les IA ne bougent pas',
+      attendre(pg, '() => JEU.qualif.etat === "tour" && JEU.joueur === JEU.qualif.v && JEU.joueur !== JEU.plateau.pilotes[5].v && !document.getElementById("hudCourse").classList.contains("cache") && document.getElementById("classement").classList.contains("cache")'),
+      str(pg.evaluate('() => [JEU.qualif.etat, JEU.joueur.piste.s]')))
+    pg.evaluate('() => { JEU.course.compte = 0.01; }')
+    for _ in range(40):
+        pg.evaluate('() => BOUCLE.simuler(5)')
+        if pg.evaluate('() => JEU.qualif.etat') == 'resultat': break
+        pg.wait_for_timeout(50)
+    r = pg.evaluate('''() => { const e = JEU.plateau, g = e.grille, k = g.findIndex(x => e.pilotes[x.numero - 1].humain); return { etat: JEU.qualif.etat, temps: JEU.qualif.q.temps, valide: JEU.qualif.q.valide,
+      place: k + 1, depart: e.pilotes[5].depart, attendu: placesGrille(CIRCUIT, 6)[k].s - CIRCUIT.longueur, texte: document.getElementById("qualifTexte").textContent, ordre: g.map(x => x.qualif), ia: JEU.plateau.pilotes.slice(0, 5).every(p => p.v.u === 0) }; }''')
+    t(f'{titre} : le tour fini : un temps, une place dans la grille selon ce temps, la voiture posée à cette place', r['etat'] == 'resultat' and r['valide'] and 40 < r['temps'] < 80 and abs(r['depart'] - r['attendu']) < 1e-6 and r['ia']
+      and all(r['ordre'][i] <= r['ordre'][i + 1] for i in range(len(r['ordre']) - 1)), str(r))
+    t(f'{titre} : le résultat affiché : « P{r["place"]} / 6 — temps » et l’écart à la pole', re.match(rf'^P{r["place"]} / 6 — \d:\d\d\.\d\d\d · ', r['texte']) is not None, repr(r['texte']))
+    L.append(f"  (qualification du robot : {r['temps']:.2f} s, P{r['place']} / 6)")
+    pg.wait_for_timeout(300)
+    pg.screenshot(path=os.path.join(CAPTURES, 'qualif.png'))
+    pg.click('#boutonQualifCourse')
+    t(f'{titre} : « Départ de la course » : la course, sa voiture de course suivie, les feux', attendre(pg, '() => JEU.ecran === "course" && JEU.qualif === null && JEU.joueur === JEU.plateau.pilotes[5].v && JEU.course.feux', None, 10000))
+    # une nouvelle page : « Passer » = dernier
+    pg.reload()
+    t(f'{titre} : « Passer (départ dernier) » : P6 / 6, la voiture dernière sur la grille', attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "qualif" && JEU.qualif.etat === "choix"', None, 60000)
+      and (pg.click('#boutonQualifPasser') or True) and attendre(pg, '() => JEU.qualif.etat === "resultat"', None, 180000)
+      and pg.evaluate('() => { const e = JEU.plateau; return e.grille[5].numero === 6 && e.pilotes[5].depart === Math.min(...e.pilotes.map(p => p.depart)) && /dernier/.test(document.getElementById("qualifTexte").textContent); }'),
+      pg.evaluate('() => [JEU.qualif && JEU.qualif.etat, document.getElementById("qualifTexte").textContent]'))
+
 def course_joueur(pg, titre):
     # le joueur conduit sa voiture au clavier, au milieu de 9 IA ; la caméra le suit, Tab ne change rien
     t(f'{titre} : 9 IA et la voiture du joueur, en dernière place de la grille ; la caméra suit le joueur',
@@ -272,6 +311,7 @@ ORDRE_TOUR = '''() => {
 
 def hud(pg, titre, l):
     # la tour de classement en haut à droite et le radar en bas à gauche, pendant une course contre les IA
+    passer_qualif(pg, titre)
     t(f'{titre} : la tour de classement est visible, avec 10 lignes et la ligne du joueur marquée', attendre(pg,
       '() => !document.getElementById("classement").classList.contains("cache") && document.querySelectorAll("#classementListe li").length === 10'
       ' && document.querySelectorAll("#classementListe li.moi").length === 1 && /^P\\d+ \\/ 10$/.test(document.getElementById("classementPlace").textContent)'),
@@ -345,6 +385,7 @@ def championnat(pg, titre, l):
             with pg.expect_navigation(): pg.click('#boutonCourseSuivante')   # le Grand Prix joué : la page se recharge sur le suivant
             t(f'{titre} : « Course suivante » recharge la page sur le Grand Prix {gp}', attendre(pg, f'() => typeof JEU !== "undefined" && JEU.ecran === "championnat" && JEU.championnat.prochain === {gp - 1}', None, 60000), str(pg.evaluate(ECRAN)))
         pg.click('#boutonCourseSuivante')
+        passer_qualif(pg, titre)
         t(f'{titre} : GP {gp} : la course part sur le circuit du calendrier, le joueur (robot) et 19 IA aux couleurs des écuries',
           attendre(pg, '() => JEU.ecran === "course" && JEU.contre && JEU.robot && JEU.plateau && JEU.plateau.pilotes.length === 20 && NOM_CIRCUIT === JEU.championnat.calendrier[JEU.championnat.prochain].circuit'
                        ' && JEU.couleurs.every((c, k) => c === JEU.championnat.ecuries[JEU.championnat.pilotes[k].ecurie].couleur) && JEU.course.nbTours === 1', None, 10000), str(pg.evaluate(ECRAN)))
@@ -407,7 +448,7 @@ with sync_playwright() as p:
                 conduite(pg, titre)
             if 'reglages=1' in page:
                 reglages(pg, titre)
-            if 'robot=1' in page and 'championnat=1' not in page:   # (avec ?championnat=1, le robot joue dans championnat())
+            if 'robot=1' in page and 'championnat=1' not in page and 'joueur=1' not in page:   # (avec ?championnat=1 ou &joueur=1, le robot joue dans championnat() ou qualif())
                 course_robot(pg, titre, page)
             if re.search(r'[?&]ia=1(&|$)', page):
                 course_ia(pg, titre)
@@ -417,7 +458,9 @@ with sync_playwright() as p:
                 course_podium(pg, titre, l)
             if 'championnat=1' in page:
                 championnat(pg, titre, l)
-            if 'joueur=1' in page:
+            if 'test=qualif' in page:
+                qualif(pg, titre)
+            elif 'joueur=1' in page:
                 hud(pg, titre, l)
                 if l == 1280: course_joueur(pg, titre)
             if 'camera=auto' in page:

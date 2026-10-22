@@ -239,6 +239,8 @@ const REGLAGES = {
   IA_VISION_COULOIR: 4.5,       // m : … et aussi toute voiture devant elle à moins de ça de son axe (même tout près, sur le côté)
   IA_VISION_COTE: [8, 7],       // m : … et celles à côté d'elle (dans les rétroviseurs) : à moins de 8 m devant ou derrière, 7 m de côté
 
+  // la qualification du joueur (qualification.js) : un tour lancé, seul
+  QUALIF_LANCEMENT: 250,        // m avant la ligne : la voiture part de là, à l'arrêt ; le chrono part à la ligne
   // la grille de départ : deux files décalées
   GRILLE_ESPACEMENT: 8,         // m entre deux places qui se suivent (une file sur deux)
   GRILLE_ECART: 3,              // m : chaque file est à cette distance du milieu de la piste

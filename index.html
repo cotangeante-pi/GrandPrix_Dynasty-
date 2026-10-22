@@ -38,6 +38,13 @@
   <div id="choixListe"></div>
 </section>
 
+<!-- la qualification du joueur, avant une course contre les IA : le choix, puis le résultat -->
+<section id="qualif" class="ecran cache">
+  <h1 id="qualifTitre"></h1>
+  <p id="qualifTexte"></p>
+  <div class="boutons"><button id="boutonQualifTour" tabindex="-1"></button><button id="boutonQualifPasser" tabindex="-1"></button><button id="boutonQualifCourse" tabindex="-1"></button></div>
+</section>
+
 <!-- ?championnat=1 : l'écran entre les courses -->
 <section id="championnat" class="ecran cache">
   <h1 id="championnatTitre"></h1>
@@ -90,6 +97,7 @@
 <script src="simulation.js"></script>
 <script src="course.js"></script>
 <script src="arrivee.js"></script>
+<script src="qualification.js"></script>
 <script src="sauvegarde.js"></script>
 <script src="championnat.js"></script>
 <script src="boite.js"></script>
