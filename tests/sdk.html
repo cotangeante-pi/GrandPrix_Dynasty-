@@ -1,0 +1,102 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>tests du SDK</title></head><body>
+<pre id="res"></pre>
+<script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));window.addEventListener('unhandledrejection',e=>__err.push('promesse : '+(e.reason&&e.reason.message||e.reason)));
+// la console doit rester vide : on compte les avertissements et les erreurs
+window.__console=[];for(const n of ['warn','error']){const o=console[n].bind(console);console[n]=(...a)=>{__console.push(n+' : '+a.join(' '));o(...a);};}
+// le faux SDK Poki : il note chaque appel dans JOURNAL, et ses pubs finissent un peu plus tard (comme les vraies)
+const JOURNAL=[];
+const FAUX_POKI={
+  recompense:true,  // ce que rewardedBreak renverra
+  init(){JOURNAL.push('init');return Promise.resolve();},
+  gameLoadingFinished(){JOURNAL.push('gameLoadingFinished');},
+  gameplayStart(){JOURNAL.push('gameplayStart');},
+  gameplayStop(){JOURNAL.push('gameplayStop');},
+  commercialBreak(){JOURNAL.push('commercialBreak');return new Promise(r=>setTimeout(r,10));},
+  rewardedBreak(){JOURNAL.push('rewardedBreak');const g=this.recompense;return new Promise(r=>setTimeout(()=>r(g),10));},
+};
+window.PokiSDK=FAUX_POKI;
+</script>
+<script src="../sdk.js"></script>
+<script>
+const L=[];let ok=0,ko=0;
+async function t(n,f){try{await f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}ecrire();}
+const v=(c,m)=>{if(!c)throw new Error(m||'faux');};
+function ecrire(fin){document.getElementById('res').textContent=`${fin?'':'EN COURS '}RESULTAT ${ok}/${ok+ko}\n`+L.join('\n');}
+// une fonction à rappel devient une promesse ; si le rappel n'arrive jamais, on échoue au bout d'1 s
+const attendre=(lancer)=>new Promise((ok,ko)=>{const minuteur=setTimeout(()=>ko(new Error('le rappel n’est jamais venu')),1000);lancer((...a)=>{clearTimeout(minuteur);ok(a);});});
+// jamais deux fois de suite le même gameplayStart / gameplayStop dans le journal
+function pasDeDoublon(){const etats=JOURNAL.filter(x=>x==='gameplayStart'||x==='gameplayStop');
+  for(let i=1;i<etats.length;i++) if(etats[i]===etats[i-1]) throw new Error('deux '+etats[i]+' de suite : '+etats.join(','));}
+
+(async()=>{
+// --- avec le faux SDK Poki
+await t('le SDK est vu', ()=>{v(SDK.present===true);});
+await t('init() appelle PokiSDK.init puis le rappel', async()=>{await attendre(r=>SDK.init(r));v(JOURNAL.filter(x=>x==='init').length===1,JOURNAL.join(','));});
+await t('chargementFini : gameLoadingFinished une seule fois, même appelé trois fois', ()=>{SDK.chargementFini();SDK.chargementFini();SDK.chargementFini();
+  v(JOURNAL.filter(x=>x==='gameLoadingFinished').length===1,JOURNAL.join(','));});
+await t('jeuArrete au départ (déjà arrêté) n’envoie rien', ()=>{const n=JOURNAL.length;SDK.jeuArrete();v(JOURNAL.length===n,JOURNAL.slice(n).join(','));});
+await t('jeuCommence deux fois = un seul gameplayStart', ()=>{const n=JOURNAL.length;SDK.jeuCommence();SDK.jeuCommence();
+  v(JOURNAL.slice(n).join(',')==='gameplayStart',JOURNAL.slice(n).join(','));v(SDK.enJeu);});
+await t('jeuArrete deux fois = un seul gameplayStop', ()=>{const n=JOURNAL.length;SDK.jeuArrete();SDK.jeuArrete();
+  v(JOURNAL.slice(n).join(',')==='gameplayStop',JOURNAL.slice(n).join(','));v(!SDK.enJeu);});
+await t('une suite au hasard de commence/arrête ne donne jamais deux fois le même de suite', ()=>{
+  for(let i=0;i<200;i++) (Math.random()<0.5?SDK.jeuCommence:SDK.jeuArrete)();SDK.jeuArrete();pasDeDoublon();});
+
+await t('pub entre courses (en jeu) : gameplayStop, son coupé, pub, son rendu, reprise du jeu, puis le rappel', async()=>{
+  SDK.jeuCommence();const n=JOURNAL.length;
+  const son=c=>JOURNAL.push(c?'son coupé':'son rendu');
+  const p=attendre(r=>SDK.pubEntreCourses(()=>{JOURNAL.push('rappel');r();},son));
+  v(SDK.pubEnCours,'pubEnCours devrait être vrai pendant la pub');
+  await p;
+  const vu=JOURNAL.slice(n).join(',');
+  v(vu==='gameplayStop,son coupé,commercialBreak,son rendu,gameplayStart,rappel',vu);v(!SDK.pubEnCours);pasDeDoublon();});
+await t('pub entre courses (au menu) : pas de gameplayStop en double, et le jeu reste arrêté après', async()=>{
+  SDK.jeuArrete();const n=JOURNAL.length;
+  const son=c=>JOURNAL.push(c?'son coupé':'son rendu');
+  await attendre(r=>SDK.pubEntreCourses(r,son));
+  const vu=JOURNAL.slice(n).join(',');
+  v(vu==='son coupé,commercialBreak,son rendu',vu);v(!SDK.enJeu);pasDeDoublon();});
+await t('pendant une pub, jeuCommence attend la fin de la pub', async()=>{
+  SDK.jeuArrete();const n=JOURNAL.length;
+  const p=attendre(r=>SDK.pubEntreCourses(r));SDK.jeuCommence();
+  v(!JOURNAL.slice(n).includes('gameplayStart'),'gameplayStart pendant la pub');
+  await p;v(JOURNAL.slice(n).join(',')==='commercialBreak,gameplayStart',JOURNAL.slice(n).join(','));SDK.jeuArrete();pasDeDoublon();});
+await t('deux pubs en même temps : la deuxième ne lance rien et rappelle tout de suite', async()=>{
+  const n=JOURNAL.length;const p1=attendre(r=>SDK.pubEntreCourses(r));
+  let vu2=false;SDK.pubEntreCourses(()=>{vu2=true;});v(vu2,'la deuxième n’a pas rappelé');
+  await p1;v(JOURNAL.slice(n).filter(x=>x==='commercialBreak').length===1);});
+
+await t('récompense gagnée : rappel(vrai), avec gameplayStop et son coupé avant', async()=>{
+  FAUX_POKI.recompense=true;SDK.jeuCommence();const n=JOURNAL.length;
+  const [g]=await attendre(r=>SDK.pubRecompense(r,c=>JOURNAL.push(c?'son coupé':'son rendu')));
+  v(g===true,'reçu '+g);
+  const vu=JOURNAL.slice(n).join(',');v(vu==='gameplayStop,son coupé,rewardedBreak,son rendu,gameplayStart',vu);SDK.jeuArrete();pasDeDoublon();});
+await t('récompense perdue (pub fermée avant la fin) : rappel(faux)', async()=>{
+  FAUX_POKI.recompense=false;const [g]=await attendre(r=>SDK.pubRecompense(r));v(g===false,'reçu '+g);});
+await t('un SDK qui échoue (bloqueur de pub) : rappel(faux), sans exception', async()=>{
+  const avant=FAUX_POKI.rewardedBreak;FAUX_POKI.rewardedBreak=()=>Promise.reject(new Error('bloqué'));
+  const [g]=await attendre(r=>SDK.pubRecompense(r));FAUX_POKI.rewardedBreak=avant;v(g===false,'reçu '+g);v(!SDK.pubEnCours);});
+await t('un SDK qui lance une exception : le rappel vient quand même', async()=>{
+  const avant=FAUX_POKI.commercialBreak;FAUX_POKI.commercialBreak=()=>{throw new Error('cassé');};
+  await attendre(r=>SDK.pubEntreCourses(r));FAUX_POKI.commercialBreak=avant;v(!SDK.pubEnCours);});
+
+// --- sans SDK Poki (hors Poki, ou dans les autres tests)
+await t('sans PokiSDK : rien ne casse, chaque fonction rappelle tout de suite', ()=>{
+  delete window.PokiSDK;v(SDK.present===false);
+  let vus=[];
+  SDK.init(()=>vus.push('init'));
+  SDK.chargementFini();SDK.jeuCommence();SDK.jeuArrete();SDK.jeuCommence();SDK.jeuArrete();
+  SDK.pubEntreCourses(()=>vus.push('pub'),()=>vus.push('son'));
+  SDK.pubRecompense(g=>vus.push('recompense:'+g),()=>vus.push('son'));
+  v(vus.join(',')==='init,pub,recompense:false',vus.join(','));v(!SDK.pubEnCours);
+  window.PokiSDK=FAUX_POKI;});
+await t('sans rappel ou avec un rappel qui lance une exception : aucune exception', ()=>{
+  delete window.PokiSDK;
+  SDK.init();SDK.pubEntreCourses();SDK.pubRecompense();SDK.pubEntreCourses(()=>{throw new Error('rappel cassé');});
+  window.PokiSDK=FAUX_POKI;});
+
+await t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
+await t('console vide (ni avertissement, ni erreur)', ()=>{v(__console.length===0,__console.join(' | '));});
+ecrire(true);
+})();
+</script></body></html>
