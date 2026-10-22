@@ -1,0 +1,144 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>tests de l'enregistreur</title></head><body>
+<pre id="res"></pre>
+<script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));</script>
+<script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script>
+<script>
+// Page autonome : des voitures fictives, sans le moteur du jeu.
+const L=[];let ok=0,ko=0;
+function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
+const v=(c,m)=>{if(!c)throw new Error(m||'faux');};
+function ecrire(etape){document.getElementById('res').textContent=`${etape?'EN COURS ('+etape+') ':''}RESULTAT ${ok}/${ok+ko}\n`+L.join('\n');}
+const PAS=1/120, ecartAngle=(a,b)=>{let d=(a-b)%(2*Math.PI);if(d>Math.PI)d-=2*Math.PI;if(d<-Math.PI)d+=2*Math.PI;return Math.abs(d);};
+// un petit hasard à graine, à part de celui du jeu
+let graine=7;const alea=()=>{graine=(graine*1103515245+12345)%2147483648;return graine/2147483648;};
+// une voiture sur un cercle de rayon r, centré en (cx, cz), à la distance s : position et cap (avant = (cos cap, sin cap))
+const surCercle=(r,cx,cz,s)=>({x:cx+r*Math.cos(s/r),z:cz+r*Math.sin(s/r),cap:s/r+Math.PI/2});
+
+// --- 1. l'interpolation
+// quatre voitures : un virage serré (r = 50 m à 70 m/s), un grand virage rapide, une voiture qui accélère et freine
+// dans un virage, et une ligne droite ; le cap passe plusieurs fois par ±π
+function etatsFictifs(temps){
+  const s2=40*temps+15*Math.sin(temps*0.7)/0.7;   // vitesse 40 + 15 cos(0,7 t)
+  return [
+    Object.assign(surCercle(50,0,0,70*temps),{u:70}),
+    Object.assign(surCercle(220,300,-100,85*temps),{u:85}),
+    Object.assign(surCercle(90,-400,600,s2),{u:40+15*Math.cos(temps*0.7)}),
+    {x:-800+92*temps,z:500,cap:0,u:92},
+  ];
+}
+const enr1=creerEnregistreur(4);
+for(let n=0;n<=60*120;n++){const tt=n*PAS;enr1.enregistrer(tt,etatsFictifs(tt));}
+t('10 images par seconde : 60 s → 601 images', ()=>{v(enr1.nbImages===601,enr1.nbImages+' images');});
+t('aux instants enregistrés, lire(t) rend exactement la position (Float32) et le cap', ()=>{let pire=0,pireCap=0;
+  for(let i=0;i<=600;i+=7){const tt=i/10,a=enr1.lire(tt),b=etatsFictifs(tt);
+    for(let k=0;k<4;k++){pire=Math.max(pire,Math.hypot(a[k].x-b[k].x,a[k].z-b[k].z));pireCap=Math.max(pireCap,ecartAngle(a[k].cap,b[k].cap));}}
+  v(pire<0.001,pire+' m');v(pireCap<0.001,pireCap+' rad');});
+let pireInterp=0,pireCapInterp=0;
+t('entre les images, l’interpolation retrouve les positions à moins de 5 cm (3000 instants au hasard)', ()=>{
+  for(let n=0;n<3000;n++){const tt=alea()*60,a=enr1.lire(tt),b=etatsFictifs(tt);
+    for(let k=0;k<4;k++){pireInterp=Math.max(pireInterp,Math.hypot(a[k].x-b[k].x,a[k].z-b[k].z));pireCapInterp=Math.max(pireCapInterp,ecartAngle(a[k].cap,b[k].cap));}}
+  L.push('  (pire écart : '+(pireInterp*100).toFixed(2)+' cm ; pire cap : '+pireCapInterp.toFixed(4)+' rad)');
+  v(pireInterp<0.05,(pireInterp*100).toFixed(2)+' cm');});
+t('le cap interpolé reste à moins de 0,01 rad, même en passant par ±π', ()=>{v(pireCapInterp<0.01,pireCapInterp+' rad');});
+t('le cap prend le plus court chemin entre deux angles (3,1 → −3,1 passe par π, pas par 0)', ()=>{
+  const e=creerEnregistreur(1);e.enregistrer(0,[{x:0,z:0,cap:3.1}]);e.enregistrer(0.1,[{x:1,z:0,cap:-3.1}]);
+  const c=e.lire(0.05)[0].cap;v(ecartAngle(c,Math.PI)<1e-3,'cap au milieu : '+c);});
+t('avant le début et après la fin : la première et la dernière image', ()=>{
+  const a=enr1.lire(-5),b=etatsFictifs(0),c=enr1.lire(999),d=etatsFictifs(60);
+  v(Math.hypot(a[0].x-b[0].x,a[0].z-b[0].z)<1e-3&&Math.hypot(c[3].x-d[3].x,c[3].z-d[3].z)<1e-3);});
+t('la vitesse est gardée (à 1 cm/s près)', ()=>{const a=enr1.lire(12.3),b=etatsFictifs(12.3);v(Math.abs(a[2].vitesse-b[2].u)<0.05,a[2].vitesse+' / '+b[2].u);});
+ecrire('interpolation');
+
+// --- 2. une course fictive de 20 voitures, 20 minutes (18 tours de 4 km environ) : la mémoire et le résumé
+// les voitures tournent sur un ovale de 4 km ; chacune a son rythme qui change, donc elles se doublent
+const NB=20,DUREE=20*60,LONGUEUR=4000,RAYON=LONGUEUR/(2*Math.PI);
+const course={s:new Float64Array(NB),phase:[],rythme:[],amp:[]};
+for(let k=0;k<NB;k++){course.s[k]=-8*k;course.phase.push(alea()*6.28);course.rythme.push(0.05+alea()*0.1);course.amp.push(3+alea()*4);}
+const voitures=Array.from({length:NB},()=>({x:0,z:0,cap:0,u:0,surHerbe:false}));
+const enr2=creerEnregistreur(NB,{joueur:NB-1});
+let ordre=[...Array(NB).keys()];
+const t0=performance.now();let nbPas=0,vainqueur=null;
+enr2.depart(0);
+for(let n=0;n<=DUREE*120;n++){const tt=n*PAS;
+  for(let k=0;k<NB;k++){const u=80-k*0.05+course.amp[k]*Math.sin(tt*course.rythme[k]+course.phase[k]);course.s[k]+=u*PAS;
+    const p=surCercle(RAYON,0,0,course.s[k]);const w=voitures[k];w.x=p.x;w.z=p.z;w.cap=p.cap;w.u=u;}
+  // une sortie de piste toutes les 5 minutes : la voiture 5 va dans l'herbe et perd 35 m/s
+  const dansSortie=tt%300>100&&tt%300<101.5;voitures[5].surHerbe=dansSortie;if(dansSortie){course.s[5]-=(tt%300-100)*25*PAS;voitures[5].u-=(tt%300-100)*25;}
+  ordre.sort((a,b)=>course.s[b]-course.s[a]);
+  enr2.enregistrer(tt,voitures,ordre);nbPas++;
+  if(vainqueur===null&&course.s[ordre[0]]>=18*LONGUEUR){vainqueur=ordre[0];enr2.arrivee(tt,vainqueur);}
+}
+const msCourse=performance.now()-t0;
+const octets=enr2.octets(),mo=octets/1e6;
+t('mémoire : 20 voitures × 20 min à 10 images/s sous 5 Mo (5 000 000 octets)', ()=>{
+  L.push('  ('+enr2.nbImages+' images, '+octets+' octets = '+mo.toFixed(2)+' Mo, soit '+(octets/enr2.nbImages/NB).toFixed(1)+' octets par voiture et par image ; '+nbPas+' pas enregistrés en '+msCourse.toFixed(0)+' ms)');
+  v(enr2.nbImages===DUREE*10+1,enr2.nbImages+' images');v(octets<5e6,mo.toFixed(2)+' Mo');});
+const moments=enr2.momentsForts();
+const compte=ty=>moments.filter(m=>m.type===ty).length;
+L.push('  (moments forts : '+moments.length+' — départ '+compte('depart')+', dépassements '+compte('depassement')+', sorties '+compte('sortie')+', arrivée '+compte('arrivee')+')');
+t('les moments forts sont triés, chacun avec un début avant son instant et une fin après (dans l’enregistrement)', ()=>{
+  v(moments.length>3);for(let i=0;i<moments.length;i++){const m=moments[i];v(m.debut<=m.temps&&m.temps<=m.fin&&m.debut<m.fin,'moment '+i+' '+JSON.stringify(m));
+    v(m.debut>=enr2.debut&&m.fin<=enr2.fin,'hors enregistrement');if(i)v(moments[i-1].debut<=m.debut,'pas trié');}});
+t('il y a un départ (au GO), une arrivée (le vainqueur) et des dépassements', ()=>{
+  const d=moments.find(m=>m.type==='depart'),a=moments.find(m=>m.type==='arrivee');
+  v(d&&d.temps===0,'départ');v(a&&a.qui===vainqueur,'arrivée : '+(a&&a.qui)+' / '+vainqueur);v(compte('depassement')>5,compte('depassement')+' dépassements');});
+t('les 4 sorties de piste dans l’herbe de la voiture 5 sont trouvées, et seulement elles', ()=>{
+  const s=moments.filter(m=>m.type==='sortie');v(s.length===4&&s.every(m=>m.qui===5&&Math.abs(m.temps%300-100)<0.02&&m.perte>30),JSON.stringify(s.map(m=>[m.qui,m.temps.toFixed(2),m.perte.toFixed(1)])));});
+for(const duree of [5,10,20,45,60,90,120,240,1e6])
+  t('résumé('+duree+' s) : jamais plus long que '+duree+' s, plages triées et séparées', ()=>{
+    const r=enr2.resume(duree),total=enr2.dureePlages(r);
+    v(total<=duree+1e-9,total+' s');
+    for(let i=0;i<r.length;i++){v(r[i].fin>r[i].debut,'plage vide');if(i)v(r[i].debut>r[i-1].fin,'plages qui se touchent');
+      for(const m of r[i].moments) v(m.debut>=r[i].debut-1e-9&&m.fin<=r[i].fin+1e-9,'moment hors de sa plage');}
+    if(duree===90){L.push('  (résumé de 90 s : '+r.length+' plages, '+total.toFixed(1)+' s, '+r.reduce((n,p)=>n+p.moments.length,0)+' moments)');
+      const types=r.flatMap(p=>p.moments.map(m=>m.type));v(types.includes('depart')&&types.includes('arrivee'),'départ et arrivée d’abord : '+types);}
+    if(duree===1e6)v(r.reduce((n,p)=>n+p.moments.length,0)===moments.length,'sans limite, tous les moments');});
+t('le résumé prend d’abord les plus importants (aucun moment laissé n’est plus important qu’un pris, s’il tenait dans la place)', ()=>{
+  const r=enr2.resume(60),pris=r.flatMap(p=>p.moments),minPris=Math.min(...pris.map(m=>m.importance));
+  const laisses=moments.filter(m=>!pris.some(p=>p.type===m.type&&p.temps===m.temps&&p.qui===m.qui));
+  const total=enr2.dureePlages(r);
+  for(const m of laisses) if(m.importance>minPris) v(total+(m.fin-m.debut)>60,'un moment plus important tenait encore');});
+ecrire('course de 20 minutes');
+
+// --- 3. un dépassement fabriqué
+// 4 voitures sur une ligne droite : 0 loin devant, 3 loin derrière ; 1 part 50 m devant 2 à 50 m/s, 2 roule à 60 m/s :
+// 2 passe 1 à t = 5 s exactement. Le classement est donné à chaque pas (par la distance)
+function ligneDroite(vit,depart,duree,enr,saut){const s=depart.slice(),ws=s.map(()=>({x:0,z:0,cap:0,u:0}));
+  for(let n=0;n<=duree*120;n++){const tt=n*PAS;for(let k=0;k<s.length;k++){s[k]=depart[k]+vit[k]*tt;ws[k].x=s[k];ws[k].u=vit[k];}
+    let o=[...s.keys()].sort((a,b)=>s[b]-s[a]);if(saut)o=saut(tt,o);enr.enregistrer(tt,ws,o);}}
+t('dépassement fabriqué : la voiture 2 passe la 1 à t = 5 s, et c’est le seul', ()=>{
+  const e=creerEnregistreur(4);ligneDroite([55,50,60,40],[1000,50,0,-500],12,e);
+  const d=e.momentsForts().filter(m=>m.type==='depassement');
+  v(d.length===1,d.length+' dépassements : '+JSON.stringify(d));
+  v(d[0].qui===2&&d[0].sur===1,'qui '+d[0].qui+' sur '+d[0].sur);
+  v(Math.abs(d[0].temps-5)<=1/60,'à '+d[0].temps.toFixed(4)+' s');v(d[0].place===2,'pour la place '+d[0].place);
+  L.push('  (dépassement trouvé : '+d[0].qui+' sur '+d[0].sur+' à '+d[0].temps.toFixed(4)+' s, de '+d[0].debut.toFixed(2)+' à '+d[0].fin.toFixed(2)+' s)');});
+t('deux voitures côte à côte qui s’échangent 0,3 s puis reviennent : pas de dépassement', ()=>{
+  const e=creerEnregistreur(4);
+  ligneDroite([50,50,50,50],[300,200,100,0],12,e,(tt,o)=>tt>4&&tt<4.3?[o[0],o[2],o[1],o[3]]:o);
+  const d=e.momentsForts().filter(m=>m.type==='depassement');v(d.length===0,JSON.stringify(d));});
+t('un dépassement pour la tête vaut plus qu’un dépassement pour la 3e place', ()=>{
+  const e=creerEnregistreur(4);ligneDroite([50,60,40,30],[50,0,-500,-1000],12,e);
+  const e2=creerEnregistreur(4);ligneDroite([100,50,40,50],[2000,1000,50,0],12,e2);
+  const a=e.momentsForts().find(m=>m.type==='depassement'),b=e2.momentsForts().find(m=>m.type==='depassement');
+  v(a&&b&&a.place===1&&b.place===3&&a.importance>b.importance,JSON.stringify([a,b]));});
+
+// --- 4. les sorties sans indicateur d'herbe : par la décélération
+t('sans indicateur d’herbe : une perte de 100 m/s² est une sortie, un freinage de 40 m/s² non', ()=>{
+  const e=creerEnregistreur(2),w=[{x:0,z:0,cap:0,u:80},{x:0,z:10,cap:0,u:80}];
+  for(let n=0;n<=20*120;n++){const tt=n*PAS;
+    w[0].u=tt<10?80:tt<10.6?80-100*(tt-10):20;   // le choc : 60 m/s perdus en 0,6 s
+    w[1].u=tt<10?80:tt<11.5?80-40*(tt-10):20;    // un gros freinage : 60 m/s en 1,5 s
+    for(const c of w)c.x+=c.u*PAS;e.enregistrer(tt,w);}
+  const s=e.momentsForts().filter(m=>m.type==='sortie');v(s.length===1&&s[0].qui===0&&Math.abs(s[0].temps-10)<0.5,JSON.stringify(s));});
+t('sans vitesse donnée : elle est tirée des positions', ()=>{
+  const e=creerEnregistreur(1),w=[{x:0,z:0,cap:0}];for(let n=0;n<=240;n++){w[0].x=33*n*PAS;e.enregistrer(n*PAS,w);}
+  v(Math.abs(e.lire(1.5)[0].vitesse-33)<0.05,e.lire(1.5)[0].vitesse);});
+t('une sortie dans l’herbe qui coûte peu (5 m/s) n’est pas un moment fort', ()=>{
+  const e=creerEnregistreur(1),w=[{x:0,z:0,cap:0,u:60,surHerbe:false}];
+  for(let n=0;n<=10*120;n++){const tt=n*PAS;w[0].surHerbe=tt>3&&tt<4;w[0].u=w[0].surHerbe?60-5*(tt-3):60;w[0].x+=w[0].u*PAS;e.enregistrer(tt,w);}
+  v(e.momentsForts().filter(m=>m.type==='sortie').length===0);});
+
+t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
+ecrire();
+</script></body></html>
