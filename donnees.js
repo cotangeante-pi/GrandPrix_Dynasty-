@@ -187,6 +187,20 @@ const REGLAGES = {
   IA_PENALITE_SORTIE: 0.8,      // s par m/s qui lui manque au bout de la ligne (ce qu'il perdra après)
   IA_GAIN_CHANGEMENT: 0.05,     // s : il ne change de ligne que si la nouvelle lui fait gagner plus que ça (sauf danger)
   IA_DEPART: [150, 350],        // m : au départ, il garde sa file jusque-là, puis rejoint sa ligne avant là
+  // les erreurs des pilotes (étape 4d) : seulement de mauvaises commandes, la même physique
+  IA_ERREUR_TYPES: ['freinage', 'blocage', 'large'],   // freinage trop tard, roues bloquées, sortie large
+  IA_ERREUR_TOURS: 5,           // le taux d'erreurs du caractère compte les erreurs par course de ce nombre de tours
+  IA_ERREUR_DUREES: { freinage: 1.5, blocage: 1, large: 1.2 },   // s : combien de temps dure chaque erreur
+  IA_ERREUR_FREINAGE: 0.3,      // freinage trop tard : il vise 30 % trop vite (15 % restait dans sa marge de freinage)
+  IA_ERREUR_BLOCAGE: 0.45,      // roues bloquées : il ne freine qu'à cette part
+  IA_ERREUR_LARGE: 0.6,         // sortie large : il ne braque qu'à cette part
+  IA_ERREUR_AVANT_SOMMET: 25,   // m : la sortie large commence là avant le sommet du virage
+  IA_ERREUR_FENETRE: 15,        // m : une erreur se déclenche dans cette fenêtre après son endroit
+  IA_DISTANCE_ERREUR: 25,       // m : jamais d'erreur avec une voiture à côté ou derrière lui à moins de ça
+  IA_ERREUR_TEMPS_DEVANT: 2,    // s : ni freinage raté avec une voiture devant lui à moins de ça de route (il la percuterait)
+  IA_ERREUR_SUITE: 2,           // s : après une erreur, il cède encore la place ; l'herbe et les chocs comptent encore pour elle
+  IA_ERREUR_RECUPERATION: 0.7,  // pendant ces secondes, il se remet : il roule à cette part de sa vitesse visée (le coût de l'erreur)
+  IA_AGRESSIVITE_DROITE: 0.4,   // le plus agressif attaque après une droite 40 % plus courte que IA_DROITE_ATTAQUE
   IA_DEPASSEMENT: true,         // les IA attaquent (voir majAttaque)
   IA_ATTENTE_ATTAQUE: 1.5,      // s : retenue depuis ce temps par la voiture devant, elle l'attaque
   IA_RETENUE_ECART: 1,          // m/s : retenue = elle voudrait aller au moins ça plus vite

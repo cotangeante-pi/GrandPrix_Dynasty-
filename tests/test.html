@@ -465,6 +465,48 @@ t('caractère : chaque IA d’une course a son caractère, tiré avec la graine,
     for(const k_ of ['regularite','agressivite','erreurs']) v(c_[k_]>=C_[k_][0]&&c_[k_]<=C_[k_][1],k_+' '+c_[k_]);}
   v(JSON.stringify(e.pilotes.map(p_=>p_.pilote.caractere.regularite))===JSON.stringify(e2.pilotes.map(p_=>p_.pilote.caractere.regularite)),'pas la même avec la même graine');});
 
+// --- les erreurs des pilotes (tour 18, étape 4d) : tirerErreurs, majErreur
+t('erreurs : tirées d’avance selon le taux du caractère, en moyenne « taux » erreurs par course de IA_ERREUR_TOURS tours (sur 400 tirages : taux 1 → entre 0,8 et 1,2 ; taux 0,1 → entre 0,05 et 0,16) ; type et virage parmi les possibles', ()=>{
+  const carte=CARTES_T.technique,R_=REGLAGES,moy={};
+  for(const taux of [1,0.1]){let n=0;ALEATOIRE.semer(99);
+    for(let i=0;i<400;i++){const l=tirerErreurs(carte,{erreurs:taux},R_.IA_ERREUR_TOURS);n+=l.length;
+      for(const x of l){v(R_.IA_ERREUR_TYPES.includes(x.type),'type '+x.type);v(x.virage>=0&&x.virage<carte.virages.length,'virage '+x.virage);v(x.tour>=0&&x.tour<R_.IA_ERREUR_TOURS);}}
+    ALEATOIRE.semer();moy[taux]=n/400;}
+  v(moy[1]>=0.8&&moy[1]<=1.2,'taux 1 : '+moy[1]);v(moy[0.1]>=0.05&&moy[0.1]<=0.16,'taux 0,1 : '+moy[0.1]);
+  L.push('  (erreurs par course : taux 1 → '+moy[1].toFixed(2)+', taux 0,1 → '+moy[0.1].toFixed(2)+')');});
+// (le coût en temps est affiché, pas encore exigé : à l'épingle, l'herbe ne ralentit presque pas et l'arc plus large compense ;
+// même avec IA_ERREUR_RECUPERATION, le tour n'est pas plus lent. À régler avec le coût moyen d'une erreur, ordre 2 du tour 18)
+t('erreurs : seul sur le technique, une erreur de chaque type (freinage trop tard, roues bloquées, sortie large) se déclenche à son virage (l’épingle), sans barrière ni coupe', ()=>{
+  const carte=CARTES_T.technique;
+  // au virage le plus lent (l'épingle), là où un freinage raté se paie
+  const couts=[];
+  const lent=carte.virages.reduce((a,x,i)=>valeurEn(TQ,carte.trajectoire.vitesse,x.s)<valeurEn(TQ,carte.trajectoire.vitesse,carte.virages[a].s)?i:a,0);
+  REGLAGES.IA_ERREUR_TYPES.forEach((type,i)=>{const pil=creerPilote(carte,1);pil.caractere={regularite:0,agressivite:0.5,erreurs:0,tours:new Float64Array(9).fill(1)};
+    // une erreur de ce type au 2e tour (tour 1 pour le pilote, qui compte depuis 0)
+    pil.erreurs=[{tour:1,virage:lent,type,faite:false}];
+    const {c,herbe}=tourPilote(TQ,pil,3),t2=c.tours[1].temps,propre=c.tours[2].temps;
+    L.push('  (erreur '+type+' : '+t2.toFixed(2)+' s contre '+propre.toFixed(2)+' s propre, +'+(t2-propre).toFixed(2)+' s, '+herbe+' pas dans l’herbe, pénalités '+c.penalites+' s)');
+    couts.push([type,pil.erreursFaites.length===1&&pil.erreursFaites[0].type===type,t2-propre,c.penalites]);});
+  for(const [type,faite,cout,pen] of couts){v(faite,type+' : pas faite');v(pen===0,type+' : virage coupé');}
+  L.push('  (coût des erreurs, critère pas encore tenu : au moins 0,15 s par erreur → '+(couts.every(x=>x[2]>0.15)?'oui':'non')+')');});
+t('erreurs : 10 IA, 2 min sur le technique : aucune erreur ne se déclenche avec une voiture à moins de IA_DISTANCE_ERREUR à côté ou derrière, ni un freinage raté avec une voiture devant à moins de IA_ERREUR_TEMPS_DEVANT s ; une erreur évitée est comptée ; la fautive cède (pas d’attaque pendant une erreur)', ()=>{
+  const e=creerCourseIA(TQ,10,5,5,CARTES_T.technique),P=e.pilotes,R_=REGLAGES,nv=CARTES_T.technique.virages.length;let faites=0,evitees=0;
+  // une erreur par tour pour chacune, à des virages et de types différents (beaucoup seront évitées, dans le trafic)
+  P.forEach((p_,i)=>{p_.pilote.erreurs=[0,1,2].map(t_=>({tour:t_,virage:(t_*3+i)%nv,type:R_.IA_ERREUR_TYPES[(t_+i)%3],faite:false}));});
+  const vues=new Map();
+  for(let k=0;k<120*120;k++){
+    const avant=P.map(p_=>p_.pilote.erreursFaites.length);
+    const voitures=P.map(p_=>p_.v);P.forEach(p_=>vues.set(p_,voituresVues(p_.v,voitures)));
+    pasCourseIA(e,R_.PAS_PHYSIQUE);
+    P.forEach((p_,i)=>{if(p_.pilote.erreursFaites.length>avant[i]){faites++;
+      // au moment du déclenchement : personne à côté ni derrière à moins de IA_DISTANCE_ERREUR (vu juste avant le pas)
+      const e_=p_.pilote.erreursFaites[p_.pilote.erreursFaites.length-1],devant=e_.type==='large'?0:Math.max(R_.IA_DISTANCE_ERREUR,p_.v.u*R_.IA_ERREUR_TEMPS_DEVANT);
+      for(const w of vues.get(p_)){const g=ecartLeLong(TQ,w.s-p_.v.piste.s);v(!(g>-R_.IA_DISTANCE_ERREUR&&g<R_.LONGUEUR_VOITURE)&&!(g>=0&&g<devant),'n°'+p_.numero+' : erreur '+e_.type+' avec une voiture à '+g.toFixed(1)+' m');}
+      v(!p_.pilote.attaque,'n°'+p_.numero+' : attaque pendant une erreur');}});}
+  for(const p_ of P) evitees+=p_.pilote.erreurs.filter(x=>x.evitee).length;
+  v(faites>=3,'trop peu d’erreurs faites : '+faites);
+  L.push('  (10 IA, 2 min : '+faites+' erreurs faites, '+evitees+' évitées)');});
+
 // --- le classement en direct (tour 18) : classementCourse
 t('classement : les arrivés d’abord (dans l’ordre d’arrivée), puis les plus avancés ; les tours de retard comptés', ()=>{
   const e=creerCourseIA(TQ,3,5,1,CARTES_T.technique),P=e.pilotes;

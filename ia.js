@@ -273,6 +273,48 @@ function tirerCaractere(nbTours) {
   return caractere;
 }
 
+// ses erreurs, tirées d'avance avec hasard() : à chaque tour, avec une probabilité « taux d'erreurs / IA_ERREUR_TOURS »,
+// une erreur à un virage tiré au hasard, d'un type tiré au hasard (IA_ERREUR_TYPES). On tire toujours les trois
+// nombres de chaque tour, pour que la suite du hasard ne dépende pas du taux.
+function tirerErreurs(carte, caractere, nbTours) {
+  const R = REGLAGES, liste = [];
+  for (let t = 0; t < nbTours; t++) {
+    const h = hasard(), j = Math.floor(hasard() * carte.virages.length), k = Math.floor(hasard() * R.IA_ERREUR_TYPES.length);
+    if (h < caractere.erreurs / R.IA_ERREUR_TOURS) liste.push({ tour: t, virage: j, type: R.IA_ERREUR_TYPES[k], faite: false });
+  }
+  return liste;
+}
+
+// une erreur prévue à ce tour, à ce virage, se déclenche à son endroit : au point de freinage (freinage trop tard,
+// blocage de roues) ou un peu avant le sommet (sortie large) ; jamais avec une voiture à côté ou derrière lui à moins
+// de IA_DISTANCE_ERREUR : il l'évite (elle ne se fera pas). Pendant l'erreur, seulement de mauvaises commandes.
+function majErreur(pilote, v, vues, dt) {
+  const R = REGLAGES, carte = pilote.carte, c = carte.circuit, p = v.piste;
+  pilote.horloge += dt;
+  if (pilote.erreur && pilote.horloge > pilote.erreur.fin) pilote.erreur = null;
+  pilote.enErreur = pilote.erreur !== null || pilote.horloge < pilote.finSuiteErreur;
+  if (pilote.erreur || !pilote.erreurs) return;
+  for (const x of pilote.erreurs) {
+    if (x.faite || x.tour !== pilote.tour) continue;
+    const vir = carte.virages[x.virage], ou = x.type === 'large' ? vir.s - R.IA_ERREUR_AVANT_SOMMET : vir.freinage;
+    const d = ecartLeLong(c, p.s - ou);
+    if (d < 0 || d > R.IA_ERREUR_FENETRE) continue;
+    x.faite = true;
+    // … ni, pour un freinage raté (freinage, blocage), avec une voiture devant lui à moins de IA_ERREUR_TEMPS_DEVANT s
+    // de route : il lui rentrerait dedans (tour 18 : un blocage à 2350 m, choc à 18 m/s 96 m plus loin)
+    const devant = x.type === 'large' ? 0 : Math.max(R.IA_DISTANCE_ERREUR, Math.max(0, v.u) * R.IA_ERREUR_TEMPS_DEVANT);
+    const proche = vues.some(w => { const g = ecartLeLong(c, w.s - p.s); return (g > -R.IA_DISTANCE_ERREUR && g < R.LONGUEUR_VOITURE) || (g >= 0 && g < devant); });
+    if (proche) { x.evitee = true; continue; }
+    const duree = R.IA_ERREUR_DUREES[x.type];
+    pilote.erreur = { type: x.type, fin: pilote.horloge + duree };
+    pilote.finSuiteErreur = pilote.horloge + duree + R.IA_ERREUR_SUITE;
+    pilote.erreursFaites.push({ type: x.type, tour: x.tour, s: p.s });
+    pilote.enErreur = true;
+    if (pilote.attaque) finirAttaque(pilote, false, 'erreur');   // une erreur met fin à son attaque
+    return;
+  }
+}
+
 // le rythme qu'il vise dans ce tour : le sien, moins ce que lui coûte sa régularité dans ce tour
 function rythmeDuTour(pilote) {
   const c = pilote.caractere;
@@ -291,6 +333,8 @@ function creerPilote(carte, rythme = 1, style = styleNeutre(), decalage = 0) {
   return {
     carte, rythme, style, attente: decalage, tour: 0, sAvant: null, choix: null, decisions: 0,
     caractere: null, // son caractère (tirerCaractere) ; null = un pilote parfaitement régulier, sans erreur
+    erreurs: null,   // ses erreurs prévues (tirerErreurs) ; erreur : celle en cours { type, fin } ; enErreur : pendant et juste après
+    erreur: null, enErreur: false, finSuiteErreur: -1, horloge: 0, erreursFaites: [],
     grille: null,    // au départ : sa place sur la grille (d) ; il garde sa file sur les premiers mètres (IA_DEPART)
     parcouru: 0,     // m roulés depuis le départ
     retenue: 0,      // s : depuis combien de temps une voiture devant le retient…
@@ -545,6 +589,11 @@ function prochainFreinage(carte, s) {
   return mieux;
 }
 
+// son agressivité (0 à 1 ; 0,5 sans caractère)
+function agressivite(pilote) {
+  return pilote.caractere ? pilote.caractere.agressivite : 0.5;
+}
+
 function finirAttaque(pilote, reussie, pourquoi) {
   if (pilote.journal) pilote.journal.push(pourquoi);
   if (reussie) pilote.reussies++;
@@ -560,7 +609,8 @@ function majAttaque(pilote, v, vues, dt) {
   const R = REGLAGES, carte = pilote.carte, c = carte.circuit, p = v.piste, a = pilote.attaque;
   pilote.repos = Math.max(0, pilote.repos - dt);
   if (!a) {
-    if (R.IA_DEPASSEMENT && pilote.repos <= 0 && pilote.retenue >= R.IA_ATTENTE_ATTAQUE && pilote.retenuePar !== null) {
+    // plus agressif : il attaque plus tôt (après moins de temps retenu)
+    if (R.IA_DEPASSEMENT && pilote.repos <= 0 && pilote.retenue >= R.IA_ATTENTE_ATTAQUE * (1.5 - agressivite(pilote)) && pilote.retenuePar !== null) {
       pilote.attaque = { id: pilote.retenuePar, etat: 'preparer', virage: null, cote: 0, vue: null, duree: 0, impossible: false };
       pilote.attaques++;
     }
@@ -584,7 +634,8 @@ function majAttaque(pilote, v, vues, dt) {
       a.duree = 0;   // la durée maximale compte à partir du décalage
       // côté intérieur du virage, s'il y a la place ; sinon l'extérieur ; sinon il attend le virage suivant
       // seulement dans une zone de freinage après une vraie ligne droite, jamais dans un enchaînement
-      if (carte.virages[f.j].droite < R.IA_DROITE_ATTAQUE) return;
+      // (plus agressif : une droite un peu plus courte lui suffit)
+      if (carte.virages[f.j].droite < R.IA_DROITE_ATTAQUE * (1 - R.IA_AGRESSIVITE_DROITE * agressivite(pilote))) return;
       const sens = carte.virages[f.j].sens;
       const cote = Math.abs(w.d + sens * ecart) <= limite ? sens : Math.abs(w.d - sens * ecart) <= limite ? -sens : 0;
       if (cote) { a.etat = 'decaler'; a.virage = f.j; a.cote = cote; }
@@ -632,6 +683,7 @@ function piloterIA(pilote, v, vues, dt) {
   pilote.sAvant = p.s;
   pilote.attente -= dt;
   majAttaque(pilote, v, vues, dt);
+  majErreur(pilote, v, vues, dt);
   let r = pilote.ligne ? ((p.s - pilote.ligne.s0) % L + L) % L : Infinity;
   if (!pilote.ligne || pilote.attente <= 0 || r > R.IA_HORIZON / 2) {
     deciderLigne(pilote, v, vues);
@@ -673,7 +725,8 @@ function piloterIA(pilote, v, vues, dt) {
     if (derriere < cible) { cible = derriere; retenuPar = w.id; }
   }
   // retenu : il voudrait aller nettement plus vite que la voiture devant ne le laisse
-  if (retenuPar !== null && libre - cible > R.IA_RETENUE_ECART) { pilote.retenue += dt; pilote.retenuePar = retenuPar; }
+  // (plus agressif : il se sent retenu avec moins d'avance de vitesse)
+  if (retenuPar !== null && libre - cible > R.IA_RETENUE_ECART * (1.5 - agressivite(pilote))) { pilote.retenue += dt; pilote.retenuePar = retenuPar; }
   else pilote.retenue = Math.max(0, pilote.retenue - dt);
   // le réflexe : il ne braque pas vers une voiture qui est à côté de lui, trop près ; s'il est un peu en retrait, il lui cède
   let dir = direction;
@@ -685,10 +738,26 @@ function piloterIA(pilote, v, vues, dt) {
     if (Math.sign(dir) === Math.sign(cote)) dir = 0;
     if (g > 0) cible = Math.min(cible, w.vitesse - (pilote.cede && pilote.cede.id === w.id ? R.IA_CEDER_FORT : R.IA_CEDER));
   }
+  // une erreur en cours : de mauvaises commandes, rien d'autre (même physique)
+  const er = pilote.erreur ? pilote.erreur.type : null;
+  if (er === 'freinage') cible *= 1 + R.IA_ERREUR_FREINAGE;   // il freine trop tard : il vise trop vite
+  if (er === 'large') dir *= R.IA_ERREUR_LARGE;              // il ne braque pas assez : il sort large
+  // juste après (IA_ERREUR_SUITE), il se remet : il roule à IA_ERREUR_RECUPERATION de sa vitesse visée, c'est là
+  // qu'une erreur coûte du temps (seule, l'erreur ne coûtait presque rien : à l'épingle, l'herbe raccourcit même le chemin)
+  if (!pilote.erreur && pilote.enErreur) cible *= R.IA_ERREUR_RECUPERATION;
+  // pendant une erreur et IA_ERREUR_SUITE s après, il cède la place : toute voiture à côté de lui, même un peu en
+  // retrait, passe d'abord (il ralentit sous sa vitesse)
+  if (pilote.enErreur) for (const w of vues) {
+    const g = ecartLeLong(c, w.s - p.s);
+    if (g > -2 * R.LONGUEUR_VOITURE && g < R.LONGUEUR_VOITURE + R.IA_MARGE_LONG && Math.abs(w.d - p.d) < R.IA_REFLEXE_COTE)
+      cible = Math.min(cible, w.vitesse - R.IA_CEDER_FORT);
+  }
   const ecartVitesse = cible - v.u;
+  let frein = ecartVitesse < 0 ? Math.min(1, -ecartVitesse * R.IA_GAIN_FREIN) : 0;
+  if (er === 'blocage') frein = Math.min(frein, R.IA_ERREUR_BLOCAGE);   // roues bloquées : il freine moins, plus longtemps
   return {
     gaz: ecartVitesse > 0 ? Math.min(1, ecartVitesse * R.IA_GAIN_GAZ) : 0,
-    frein: ecartVitesse < 0 ? Math.min(1, -ecartVitesse * R.IA_GAIN_FREIN) : 0,
+    frein,
     direction: Math.max(-1, Math.min(1, dir)),
   };
 }

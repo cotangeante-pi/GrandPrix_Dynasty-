@@ -52,7 +52,7 @@ function creerCourseIA(circuit, nb, nbTours, graine, carte = carteDe(circuit), a
       numero: k + 1, v, course: creerCourse(circuit, nbTours), humain,
       depart: place.s - circuit.longueur,   // m : sa place sur la grille, derrière la ligne (pour savoir qui est devant)
       rythme: humain ? null : R.IA_RYTHME[0] + hasard() * (R.IA_RYTHME[1] - R.IA_RYTHME[0]),
-      pilote: null, herbe: 0, arrivee: null, place: null,
+      pilote: null, herbe: 0, herbeErreur: 0, chocsVus: 0, chocsErreur: new Set(), arrivee: null, place: null,
       passages: [],   // le temps de course (e.temps) où il a passé chaque CLASSEMENT_PAS m depuis la grille (classementCourse)
     };
   });
@@ -77,7 +77,10 @@ function donnerCarte(e, carte) {
   });
   // le caractère de chaque IA, avec sa propre graine (les styles ne changent pas)
   ALEATOIRE.semer(e.graine + R.GRAINE_CARACTERE);
-  for (const p of e.pilotes) if (!p.humain) p.pilote.caractere = tirerCaractere(e.nbTours + 2);
+  for (const p of e.pilotes) if (!p.humain) {
+    p.pilote.caractere = tirerCaractere(e.nbTours + 2);
+    p.pilote.erreurs = tirerErreurs(carte, p.pilote.caractere, e.nbTours + 1);
+  }
   ALEATOIRE.semer();
 }
 
@@ -122,7 +125,10 @@ function pasCourseIA(e, dt, conduireJoueur) {
     majCourse(p.course, p.v, dt);
     if (e.go === null && p.course.etat !== 'compte') e.go = e.temps;
     noterPassages(e, p, dt);
-    if (p.v.surHerbe) p.herbe++;
+    // l'herbe et les chocs pendant une erreur (et juste après) sont comptés à part
+    const enErreur = p.pilote && p.pilote.enErreur;
+    if (p.v.surHerbe) { if (enErreur) p.herbeErreur++; else p.herbe++; }
+    while (p.chocsVus < p.v.chocs.length) { if (enErreur) p.chocsErreur.add(p.chocsVus); p.chocsVus++; }
     if (p.course.etat === 'finie') { p.arrivee = e.temps; arrives.push(p); }
   }
   compterDepassements(e, enCourse);
@@ -264,6 +270,8 @@ function simulerCourse(circuit, nbVoitures, nbTours, graine) {
       contactsVoiture: p.v.contactsVoiture, chocMax: p.v.chocMax, chocs: p.v.chocs.slice(), lieuxChocs: p.v.lieuxChocs.slice(),
       contactsBarriere: p.v.contactsBarriere, herbe: p.herbe, coupes: Math.round(p.course.penalites / REGLAGES.PENALITE_COUPE),
       attaques: p.pilote ? p.pilote.attaques : 0, attaquesReussies: p.pilote ? p.pilote.reussies : 0,
+      erreurs: p.pilote ? p.pilote.erreursFaites.slice() : [], erreursEvitees: p.pilote && p.pilote.erreurs ? p.pilote.erreurs.filter(x => x.evitee).length : 0,
+      herbeErreur: p.herbeErreur, chocsErreur: p.v.chocs.filter((c, i) => p.chocsErreur.has(i)),
       caractere: p.pilote && p.pilote.caractere ? { regularite: p.pilote.caractere.regularite, agressivite: p.pilote.caractere.agressivite, erreurs: p.pilote.caractere.erreurs } : null,
     })),
   };
