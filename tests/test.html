@@ -474,21 +474,22 @@ t('erreurs : tirées d’avance selon le taux du caractère, en moyenne « taux 
     ALEATOIRE.semer();moy[taux]=n/400;}
   v(moy[1]>=0.8&&moy[1]<=1.2,'taux 1 : '+moy[1]);v(moy[0.1]>=0.05&&moy[0.1]<=0.16,'taux 0,1 : '+moy[0.1]);
   L.push('  (erreurs par course : taux 1 → '+moy[1].toFixed(2)+', taux 0,1 → '+moy[0.1].toFixed(2)+')');});
-// (le coût en temps est affiché, pas encore exigé : à l'épingle, l'herbe ne ralentit presque pas et l'arc plus large compense ;
-// même avec IA_ERREUR_RECUPERATION, le tour n'est pas plus lent. À régler avec le coût moyen d'une erreur, ordre 2 du tour 18)
-t('erreurs : seul sur le technique, une erreur de chaque type (freinage trop tard, roues bloquées, sortie large) se déclenche à son virage (l’épingle), sans barrière ni coupe', ()=>{
+// (l'erreur seule ne coûte presque rien : à l'épingle, l'herbe ne ralentit guère et l'arc plus large compense ; c'est la
+// récupération, IA_ERREUR_RECUPERATION pendant IA_ERREUR_SUITE, qui coûte)
+t('erreurs : seul sur le technique, une erreur de chaque type (freinage trop tard, roues bloquées, sortie large) se déclenche à son virage (l’épingle), sans barrière ni coupe, et coûte en moyenne entre 0,5 et 1,5 s', ()=>{
   const carte=CARTES_T.technique;
   // au virage le plus lent (l'épingle), là où un freinage raté se paie
   const couts=[];
   const lent=carte.virages.reduce((a,x,i)=>valeurEn(TQ,carte.trajectoire.vitesse,x.s)<valeurEn(TQ,carte.trajectoire.vitesse,carte.virages[a].s)?i:a,0);
   REGLAGES.IA_ERREUR_TYPES.forEach((type,i)=>{const pil=creerPilote(carte,1);pil.caractere={regularite:0,agressivite:0.5,erreurs:0,tours:new Float64Array(9).fill(1)};
-    // une erreur de ce type au 2e tour (tour 1 pour le pilote, qui compte depuis 0)
-    pil.erreurs=[{tour:1,virage:lent,type,faite:false}];
+    // une erreur de ce type au 2e tour : tour 2 pour le pilote, dont le compteur passe à 1 dès la ligne, juste après le départ
+    pil.erreurs=[{tour:2,virage:lent,type,faite:false}];
     const {c,herbe}=tourPilote(TQ,pil,3),t2=c.tours[1].temps,propre=c.tours[2].temps;
     L.push('  (erreur '+type+' : '+t2.toFixed(2)+' s contre '+propre.toFixed(2)+' s propre, +'+(t2-propre).toFixed(2)+' s, '+herbe+' pas dans l’herbe, pénalités '+c.penalites+' s)');
     couts.push([type,pil.erreursFaites.length===1&&pil.erreursFaites[0].type===type,t2-propre,c.penalites]);});
   for(const [type,faite,cout,pen] of couts){v(faite,type+' : pas faite');v(pen===0,type+' : virage coupé');}
-  L.push('  (coût des erreurs, critère pas encore tenu : au moins 0,15 s par erreur → '+(couts.every(x=>x[2]>0.15)?'oui':'non')+')');});
+  const moy=couts.reduce((a_,x)=>a_+x[2],0)/couts.length;v(moy>=0.5&&moy<=1.5,'coût moyen '+moy.toFixed(2)+' s');
+  L.push('  (coût moyen d’une erreur : +'+moy.toFixed(2)+' s)');});
 t('erreurs : 10 IA, 2 min sur le technique : aucune erreur ne se déclenche avec une voiture à moins de IA_DISTANCE_ERREUR à côté ou derrière, ni un freinage raté avec une voiture devant à moins de IA_ERREUR_TEMPS_DEVANT s ; une erreur évitée est comptée ; la fautive cède (pas d’attaque pendant une erreur)', ()=>{
   const e=creerCourseIA(TQ,10,5,5,CARTES_T.technique),P=e.pilotes,R_=REGLAGES,nv=CARTES_T.technique.virages.length;let faites=0,evitees=0;
   // une erreur par tour pour chacune, à des virages et de types différents (beaucoup seront évitées, dans le trafic)
@@ -507,7 +508,25 @@ t('erreurs : 10 IA, 2 min sur le technique : aucune erreur ne se déclenche avec
   v(faites>=3,'trop peu d’erreurs faites : '+faites);
   L.push('  (10 IA, 2 min : '+faites+' erreurs faites, '+evitees+' évitées)');});
 
-// --- le classement en direct (tour 18) : classementCourse
+// --- les niveaux de difficulté (tour 19, étape 4d)
+t('niveaux : à chaque niveau, les 10 IA d’une course gardent le même ordre de rythmes et le même ordre de taux d’erreurs ; un rythme ne dépasse jamais 1 ; le meilleur tour moyen des IA sur le circuit test est plus lent en débutant qu’en légende (affiché pour les 4 niveaux)', ()=>{
+  const R_=REGLAGES,noms=Object.keys(R_.NIVEAUX),ordres={},moyens={},seuls={};
+  v(noms.join()==='debutant,normal,expert,legende','niveaux : '+noms.join());
+  for(const n of noms){R_.NIVEAU=n;
+    const e=creerCourseIA(TQ,10,5,4,CARTES_T.technique),P=e.pilotes;
+    ordres[n]=[P.map(p_=>p_.numero).sort((a,b)=>P[b-1].rythme-P[a-1].rythme).join(),P.map(p_=>p_.numero).sort((a,b)=>P[b-1].pilote.caractere.erreurs-P[a-1].pilote.caractere.erreurs).join()];
+    v(P.every(p_=>p_.rythme<=1&&p_.rythme>0),n+' : rythme hors bornes');
+    v(P.every(p_=>p_.pilote.caractere.agressivite>=0&&p_.pilote.caractere.agressivite<=1),n+' : agressivité hors bornes');
+    const r=simulerCourse(C,10,3,4),temps=r.voitures.filter(x=>x.meilleurTour!==null).map(x=>x.meilleurTour);   // le meilleur tour de chaque IA (sans le départ arrêté)
+    moyens[n]=temps.reduce((a,b)=>a+b,0)/temps.length;
+    // et seul sur la piste, un pilote au rythme moyen du niveau (le milieu de IA_RYTHME, plus le rythme du niveau)
+    const rythme=Math.min(1,(R_.IA_RYTHME[0]+R_.IA_RYTHME[1])/2+R_.NIVEAUX[n].rythme),pil=creerPilote(CARTES_T.test,rythme);
+    seuls[n]=tourPilote(C,pil,3).c.meilleurTour;}
+  R_.NIVEAU='normal';
+  for(const n of noms){v(ordres[n][0]===ordres.normal[0],n+' : ordre des rythmes '+ordres[n][0]+' ≠ '+ordres.normal[0]);v(ordres[n][1]===ordres.normal[1],n+' : ordre des erreurs');}
+  v(moyens.debutant>moyens.legende+0.5,'débutant '+moyens.debutant.toFixed(2)+' s, légende '+moyens.legende.toFixed(2)+' s');
+  L.push('  (meilleur tour moyen des 10 IA sur le circuit test, course de 3 tours : '+noms.map(n=>n+' '+moyens[n].toFixed(2)+' s').join(', ')+' ; seul, au rythme moyen du niveau : '+noms.map(n=>n+' '+seuls[n].toFixed(2)+' s').join(', ')+' ; le propriétaire ≈ 45 s)');});
+
 t('classement : les arrivés d’abord (dans l’ordre d’arrivée), puis les plus avancés ; les tours de retard comptés', ()=>{
   const e=creerCourseIA(TQ,3,5,1,CARTES_T.technique),P=e.pilotes;
   P[2].place=1;P[2].arrivee=10;P[0].course.progression=500;P[1].course.progression=550+TQ.longueur;
