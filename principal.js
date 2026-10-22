@@ -6,6 +6,8 @@ const CHAMPIONNAT_EN_COURS = PARAMETRES.get('championnat') === '1' ? (SAUVEGARDE
 const NOM_CIRCUIT = CHAMPIONNAT_EN_COURS && CHAMPIONNAT_EN_COURS.prochain < CHAMPIONNAT_EN_COURS.calendrier.length ? CHAMPIONNAT_EN_COURS.calendrier[CHAMPIONNAT_EN_COURS.prochain].circuit
   : Object.prototype.hasOwnProperty.call(CIRCUITS, PARAMETRES.get('circuit')) ? PARAMETRES.get('circuit') : 'test';
 const CIRCUIT = NOM_CIRCUIT === 'test' ? CIRCUIT_TEST : construireCircuit(CIRCUITS[NOM_CIRCUIT]);
+// ?niveau=debutant|normal|expert|legende : le niveau de difficulté des IA (normal par défaut)
+if (Object.prototype.hasOwnProperty.call(REGLAGES.NIVEAUX, PARAMETRES.get('niveau'))) REGLAGES.NIVEAU = PARAMETRES.get('niveau');
 
 // l'état du jeu, lisible par les tests
 const JEU = {

@@ -228,6 +228,17 @@ const REGLAGES = {
   IA_VARIATION_APEX: 2,         // m : d'un tour à l'autre, le point de corde varie de ±2 m…
   IA_VARIATION_COTE: 0.4,       // m : … et sa place sur la piste de ±0,4 m
   IA_RYTHME: [0.94, 1],         // le rythme de chaque IA (part de la vitesse conseillée), tiré entre ces deux nombres
+  // les niveaux de difficulté (étape 4d) : un niveau change tous les caractères ensemble, en gardant les écarts entre
+  // pilotes : rythme ajouté au rythme tiré (jamais au-dessus de 1 : au-delà, il dépasserait l'adhérence de la carte,
+  // donc les niveaux durs ne gagnent pas en rythme, ils font moins d'erreurs et attaquent plus), erreurs : le taux
+  // multiplié, agressivite ajoutée (bornée entre 0 et 1), regularite multipliée
+  NIVEAU: 'normal',             // le niveau en cours (?niveau=…, principal.js) ; normal = les réglages tels quels
+  NIVEAUX: {
+    debutant: { rythme: -0.05, erreurs: 2, agressivite: -0.3, regularite: 1.5 },
+    normal: { rythme: 0, erreurs: 1, agressivite: 0, regularite: 1 },
+    expert: { rythme: 0, erreurs: 0.5, agressivite: 0.2, regularite: 0.7 },
+    legende: { rythme: 0, erreurs: 0.25, agressivite: 0.4, regularite: 0.5 },
+  },
   // le caractère de chaque IA (étape 4d), tiré avec la graine entre ces bornes :
   IA_CARACTERE: {
     regularite: [0.002, 0.015], // d'un tour à l'autre, son rythme varie de ± cette part autour de sa moyenne, sans jamais dépasser le sien

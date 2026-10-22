@@ -51,7 +51,7 @@ function creerCourseIA(circuit, nb, nbTours, graine, carte = carteDe(circuit), a
     return {
       numero: k + 1, v, course: creerCourse(circuit, nbTours), humain,
       depart: place.s - circuit.longueur,   // m : sa place sur la grille, derrière la ligne (pour savoir qui est devant)
-      rythme: humain ? null : R.IA_RYTHME[0] + hasard() * (R.IA_RYTHME[1] - R.IA_RYTHME[0]),
+      rythme: humain ? null : Math.min(1, R.IA_RYTHME[0] + hasard() * (R.IA_RYTHME[1] - R.IA_RYTHME[0]) + niveau().rythme),
       pilote: null, herbe: 0, herbeErreur: 0, chocsVus: 0, chocsErreur: new Set(), arrivee: null, place: null,
       passages: [],   // le temps de course (e.temps) où il a passé chaque CLASSEMENT_PAS m depuis la grille (classementCourse)
     };
@@ -78,7 +78,7 @@ function donnerCarte(e, carte) {
   // le caractère de chaque IA, avec sa propre graine (les styles ne changent pas)
   ALEATOIRE.semer(e.graine + R.GRAINE_CARACTERE);
   for (const p of e.pilotes) if (!p.humain) {
-    p.pilote.caractere = tirerCaractere(e.nbTours + 2);
+    p.pilote.caractere = appliquerNiveau(tirerCaractere(e.nbTours + 2));
     p.pilote.erreurs = tirerErreurs(carte, p.pilote.caractere, e.nbTours + 1);
   }
   ALEATOIRE.semer();
@@ -140,6 +140,21 @@ function pasCourseIA(e, dt, conduireJoueur) {
 // sa distance depuis la ligne de départ (négative sur la grille, derrière la ligne), tours compris
 function distanceCourse(p) {
   return p.depart + p.course.progression;
+}
+
+// le niveau de difficulté en cours (REGLAGES.NIVEAU, voir NIVEAUX)
+function niveau() {
+  return REGLAGES.NIVEAUX[REGLAGES.NIVEAU] || REGLAGES.NIVEAUX.normal;
+}
+
+// le niveau appliqué à un caractère tiré (tirerCaractere) : les écarts entre pilotes sont gardés
+function appliquerNiveau(c) {
+  const n = niveau();
+  c.erreurs *= n.erreurs;
+  c.agressivite = Math.max(0, Math.min(1, c.agressivite + n.agressivite));
+  c.regularite *= n.regularite;
+  for (let t = 0; t < c.tours.length; t++) c.tours[t] = 1 - (1 - c.tours[t]) * n.regularite;
+  return c;
 }
 
 // chaque fois qu'il passe un nouveau point tous les CLASSEMENT_PAS m (comptés depuis e.origine), le temps exact où il y
