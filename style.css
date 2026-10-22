@@ -466,7 +466,7 @@ html, body {
 
 .marche strong { font-size: 19px; }
 .marche span { font-family: ui-monospace, Menlo, monospace; }
-.marche .pastille, #resultatsTable .pastille {
+.marche .pastille, #resultatsTable .pastille, #championnatTableaux .pastille {
   display: inline-block;
   width: 10px;
   height: 10px;
