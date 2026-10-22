@@ -198,8 +198,8 @@ const REGLAGES = {
   IA_ERREUR_FENETRE: 15,        // m : une erreur se déclenche dans cette fenêtre après son endroit
   IA_DISTANCE_ERREUR: 25,       // m : jamais d'erreur avec une voiture à côté ou derrière lui à moins de ça
   IA_ERREUR_TEMPS_DEVANT: 2,    // s : ni freinage raté avec une voiture devant lui à moins de ça de route (il la percuterait)
-  IA_ERREUR_SUITE: 2,           // s : après une erreur, il cède encore la place ; l'herbe et les chocs comptent encore pour elle
-  IA_ERREUR_RECUPERATION: 0.7,  // pendant ces secondes, il se remet : il roule à cette part de sa vitesse visée (le coût de l'erreur)
+  IA_ERREUR_SUITE: 2.5,         // s : après une erreur, il se remet (plus lent), il cède encore la place ; l'herbe et les chocs comptent encore pour elle (3 s : herbe hors erreurs 4027)
+  IA_ERREUR_RECUPERATION: 0.5,  // pendant ces secondes, il roule à cette part de sa vitesse visée : le coût de l'erreur (≈ 1 s en moyenne, seul à l'épingle)
   IA_AGRESSIVITE_DROITE: 0.4,   // le plus agressif attaque après une droite 40 % plus courte que IA_DROITE_ATTAQUE
   IA_DEPASSEMENT: true,         // les IA attaquent (voir majAttaque)
   IA_ATTENTE_ATTAQUE: 1.5,      // s : retenue depuis ce temps par la voiture devant, elle l'attaque
