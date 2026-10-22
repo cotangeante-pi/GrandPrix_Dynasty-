@@ -30,6 +30,8 @@ const TEXTES = {
     resultats: 'Race results',
     colonnesResultats: ['Pos', 'No', 'Time', 'Penalty', 'Gap', 'Grid'],
     enCourse: 'running',
+    grandPrix: 'Grand Prix', classementPilotes: 'Drivers', classementEcuries: 'Teams', courseSuivante: 'Next race', continuer: 'Continue',
+    pointsGagnes: 'You scored {n} points', pts: 'pts', finChampionnat: 'Season over',
     preparation: 'Preparing the race…',
   },
   fr: {
@@ -62,6 +64,8 @@ const TEXTES = {
     resultats: 'Résultats de la course',
     colonnesResultats: ['Pos', 'N°', 'Temps', 'Pénalité', 'Écart', 'Grille'],
     enCourse: 'en course',
+    grandPrix: 'Grand Prix', classementPilotes: 'Pilotes', classementEcuries: 'Écuries', courseSuivante: 'Course suivante', continuer: 'Continuer',
+    pointsGagnes: 'Tu marques {n} points', pts: 'pts', finChampionnat: 'Saison terminée',
     preparation: 'Préparation de la course…',
   },
 };

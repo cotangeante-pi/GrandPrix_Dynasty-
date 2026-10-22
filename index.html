@@ -38,6 +38,17 @@
   <div id="choixListe"></div>
 </section>
 
+<!-- ?championnat=1 : l'écran entre les courses -->
+<section id="championnat" class="ecran cache">
+  <h1 id="championnatTitre"></h1>
+  <p id="championnatGagne"></p>
+  <div id="championnatTableaux">
+    <div><h2 id="championnatPilotesTitre"></h2><ol id="championnatPilotes"></ol></div>
+    <div><h2 id="championnatEcuriesTitre"></h2><ol id="championnatEcuries"></ol></div>
+  </div>
+  <div class="boutons"><button id="boutonCourseSuivante" tabindex="-1"></button></div>
+</section>
+
 <section id="pause" class="ecran cache">
   <h1 id="pauseTitre"></h1>
   <div class="boutons"><button id="boutonReprendre" tabindex="-1"></button><button id="boutonRecommencer" tabindex="-1"></button></div>
@@ -80,6 +91,7 @@
 <script src="course.js"></script>
 <script src="arrivee.js"></script>
 <script src="sauvegarde.js"></script>
+<script src="championnat.js"></script>
 <script src="boite.js"></script>
 <script src="son.js"></script>
 <script src="scene3d.js"></script>

@@ -209,6 +209,19 @@ html, body {
   pointer-events: none;
 }
 
+/* ?championnat=1 : l'écran entre les courses, deux classements côte à côte (tient en 960×600) */
+#championnat h1 { margin: 0; }
+#championnat p { margin: 0; font-weight: 700; }
+#championnatTableaux { display: flex; gap: 28px; }
+#championnatTableaux h2 { margin: 0 0 4px; font-size: 14px; text-align: center; opacity: 0.85; }
+#championnatTableaux ol { margin: 0; padding: 0; list-style: none; font: 12px/1.35 var(--police); columns: 2; column-gap: 18px; }
+#championnatEcuries { columns: 1 !important; }
+#championnatTableaux li { display: flex; gap: 6px; align-items: center; padding: 0 6px; border-radius: 3px; white-space: nowrap; break-inside: avoid; }
+#championnatTableaux li.moi { background: rgba(31, 111, 224, 0.75); }
+#championnatTableaux li .place { width: 18px; text-align: right; opacity: 0.8; }
+#championnatTableaux li .nom { flex: 1; }
+#championnatTableaux li .points { font-weight: 700; }
+
 /* après l'arrivée du joueur : le bandeau d'attente et le bouton pour passer au podium */
 #attenteArrivee {
   position: fixed;

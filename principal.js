@@ -1,7 +1,10 @@
 // Le démarrage : il branche la physique et l'affichage sur la boucle.
 // La voiture du joueur roule sur le circuit de test, ou sur celui de ?circuit=… (un nom de CIRCUITS, donnees.js).
 const PARAMETRES = new URLSearchParams(location.search);
-const NOM_CIRCUIT = Object.prototype.hasOwnProperty.call(CIRCUITS, PARAMETRES.get('circuit')) ? PARAMETRES.get('circuit') : 'test';
+// ?championnat=1 : le championnat sauvegardé, ou un nouveau ; son prochain Grand Prix choisit le circuit de la page
+const CHAMPIONNAT_EN_COURS = PARAMETRES.get('championnat') === '1' ? (SAUVEGARDE.championnat() || CHAMPIONNAT.creer(Number(PARAMETRES.get('graine')) || 1)) : null;
+const NOM_CIRCUIT = CHAMPIONNAT_EN_COURS && CHAMPIONNAT_EN_COURS.prochain < CHAMPIONNAT_EN_COURS.calendrier.length ? CHAMPIONNAT_EN_COURS.calendrier[CHAMPIONNAT_EN_COURS.prochain].circuit
+  : Object.prototype.hasOwnProperty.call(CIRCUITS, PARAMETRES.get('circuit')) ? PARAMETRES.get('circuit') : 'test';
 const CIRCUIT = NOM_CIRCUIT === 'test' ? CIRCUIT_TEST : construireCircuit(CIRCUITS[NOM_CIRCUIT]);
 
 // l'état du jeu, lisible par les tests
@@ -30,6 +33,8 @@ const JEU = {
   signal: null,         // le dernier signal de course joué (3, 2, 1, go)
   final: null,          // le classement final d'une course à plusieurs (classementFinal), une fois le podium connu
   tempsPodium: 0,       // s depuis le début du podium (la caméra qui tourne)
+  championnat: null,    // ?championnat=1 : le championnat en cours (championnat.js)
+  grandPrixFini: false, // … et le Grand Prix de cette page est joué et enregistré : « Course suivante » recharge la page (le circuit change)
   attente: null,        // contre les IA, après l'arrivée du joueur : { tele (la voiture suivie par la caméra télé), camera (celle d'avant), passer }
 };
 
@@ -58,6 +63,7 @@ function lancerCourse(nbTours) {
   if (JEU.ia >= 2 || JEU.contre) {
     JEU.plateau = creerCourseIA(CIRCUIT, JEU.ia, nbTours, Number(PARAMETRES.get('graine')) || 1, JEU.carte, JEU.contre);
     suivre(JEU.contre ? JEU.ia : 0);   // contre les IA : la caméra suit le joueur
+    appliquerCaracteres();
     if (JEU.contre) armerFeux(JEU.plateau.pilotes, Number(PARAMETRES.get('graine')) || 1);   // les feux de départ
   } else {
     JEU.course = creerCourse(CIRCUIT, nbTours);
@@ -72,6 +78,41 @@ function lancerCourse(nbTours) {
   PODIUM3D.cacher();
   JEU.ecran = 'course';
   INTERFACE.montrer('course');
+}
+
+// ?championnat=1 : chaque IA de la course prend le caractère de son pilote du championnat (la voiture k = le pilote k ;
+// le joueur, dernier, n'en a pas). Les variations par tour (tours) restent celles tirées pour la course
+function appliquerCaracteres() {
+  if (!JEU.championnat || !JEU.plateau || !JEU.plateau.carte) return;
+  JEU.plateau.pilotes.forEach((p, k) => {
+    const c = JEU.championnat.pilotes[k] && JEU.championnat.pilotes[k].caractere;
+    if (c && p.pilote && p.pilote.caractere) Object.assign(p.pilote.caractere, c);
+  });
+}
+
+// ?championnat=1 : l'écran entre les courses ; gagne : les points du Grand Prix qui vient de finir (null au démarrage)
+function montrerChampionnat(gagne) {
+  PODIUM3D.cacher();
+  INTERFACE.remplirChampionnat(JEU.championnat, gagne, CIRCUIT.nom);
+  JEU.ecran = 'championnat';
+  INTERFACE.montrer('championnat');
+}
+
+// « Course suivante » : la course de ce Grand Prix ; s'il est déjà joué, la page se recharge sur le suivant
+function courseSuivante() {
+  if (JEU.ecran !== 'championnat') return;
+  if (JEU.grandPrixFini) { location.reload(); return; }
+  lancerCourse(Number(PARAMETRES.get('tours')) || REGLAGES.CHAMPIONNAT_TOURS);
+}
+
+// après les résultats : les points et la sauvegarde (finirGrandPrix), puis l'écran du championnat
+function apresGrandPrix() {
+  if (JEU.ecran !== 'resultats' || JEU.grandPrixFini) return;
+  const lignes = CHAMPIONNAT.lignesDepuisCourse(JEU.plateau);
+  const moi = lignes.find(l => l.k === JEU.ia);
+  CHAMPIONNAT.finirGrandPrix(JEU.championnat, lignes);
+  JEU.grandPrixFini = true;
+  montrerChampionnat(CHAMPIONNAT.pointsPour(moi.place));
 }
 
 function pause(oui) {
@@ -198,7 +239,9 @@ function conduireJoueur(p, pas) {
   if (JEU.remettre && courseAutorise(p.course)) remettreSurPiste(p.v, CIRCUIT);
   JEU.remettre = false;
   // avant l'extinction des feux : faux départ ; après l'arrivée, sa voiture freine seule jusqu'à l'arrêt (les autres finissent leur course)
-  lisserCommandes(p.v, commandesPermises(p.course) ? JEU.cibles : p.course.etat === 'finie' ? FREIN_SEUL : AUCUNE, pas);
+  // ?robot=1 : le robot d'essai conduit sa voiture (tests), sans faux départ
+  const cibles = JEU.robot ? (courseAutorise(p.course) ? piloteRobot(p.v, CIRCUIT) : AUCUNE) : JEU.cibles;
+  lisserCommandes(p.v, commandesPermises(p.course) ? cibles : p.course.etat === 'finie' ? FREIN_SEUL : AUCUNE, pas);
 }
 
 function pasJoueur(pas) {
@@ -252,7 +295,7 @@ function majTableau() {
   document.getElementById('rapport').textContent = rapportPourVitesse(v.u);
   const roule = JEU.ecran === 'course' || JEU.ecran === 'survol';
   // sur le podium et les résultats, ni vitesse ni aide des touches
-  const apres = JEU.ecran === 'podium' || JEU.ecran === 'resultats';
+  const apres = JEU.ecran === 'podium' || JEU.ecran === 'resultats' || JEU.ecran === 'championnat';
   document.getElementById('tableau').classList.toggle('cache', apres);
   document.getElementById('aide').classList.toggle('cache', apres);
   // après l'arrivée du joueur (en attendant les autres), il ne court plus : pas de « hors piste »
@@ -318,12 +361,14 @@ function demarrerJeu() {
   CAMERA.init(SCENE3D.camera, CIRCUIT, PARAMETRES.get('camera'));
   JEU.joueur = creerVoiture(CIRCUIT, 0);
   JEU.robot = PARAMETRES.get('robot') === '1';
-  JEU.contre = PARAMETRES.get('joueur') === '1' && Number(PARAMETRES.get('ia')) >= 1;
-  JEU.ia = Math.max(0, Math.min(REGLAGES.IA_PAGE_MAX - (JEU.contre ? 1 : 0), Math.floor(Number(PARAMETRES.get('ia'))) || 0));
+  // ?championnat=1 : le joueur contre les 19 pilotes du championnat, comme ?ia=19&joueur=1
+  JEU.championnat = CHAMPIONNAT_EN_COURS;
+  JEU.contre = (PARAMETRES.get('joueur') === '1' && Number(PARAMETRES.get('ia')) >= 1) || !!JEU.championnat;
+  JEU.ia = JEU.championnat ? JEU.championnat.pilotes.length - 1 : Math.max(0, Math.min(REGLAGES.IA_PAGE_MAX - (JEU.contre ? 1 : 0), Math.floor(Number(PARAMETRES.get('ia'))) || 0));
   if (JEU.ia) JEU.calculTrajectoire = calculerEnFond(etapesTrajectoire(CIRCUIT), t => {
     JEU.trajectoire = t;
     JEU.carte = carteDepuis(CIRCUIT, t);
-    if (JEU.plateau) donnerCarte(JEU.plateau, JEU.carte);
+    if (JEU.plateau) { donnerCarte(JEU.plateau, JEU.carte); appliquerCaracteres(); }
     else JEU.pilote = creerPilote(JEU.carte);
   });
   // ?ia=N : un modèle par IA, chacune sa couleur (contre le joueur, aucune n'a la sienne), puis celui du joueur ;
@@ -331,8 +376,12 @@ function demarrerJeu() {
   const couleurs = REGLAGES.COULEURS_IA;
   if (JEU.ia >= 2 || JEU.contre) {
     const choix = JEU.contre ? couleurs.filter(x => x !== REGLAGES.COULEUR_JOUEUR) : couleurs;
-    for (let k = 0; k < JEU.ia; k++) JEU.couleurs.push(choix[k % choix.length]);
-    if (JEU.contre) JEU.couleurs.push(REGLAGES.COULEUR_JOUEUR);
+    // ?championnat=1 : chaque voiture a la couleur de son écurie (le joueur en dernier, comme dans la course)
+    if (JEU.championnat) for (const p of JEU.championnat.pilotes) JEU.couleurs.push(JEU.championnat.ecuries[p.ecurie].couleur);
+    else {
+      for (let k = 0; k < JEU.ia; k++) JEU.couleurs.push(choix[k % choix.length]);
+      if (JEU.contre) JEU.couleurs.push(REGLAGES.COULEUR_JOUEUR);
+    }
     JEU.couleurs.forEach((couleur, k) => JEU.modeles.push(VOITURE3D.creer(couleur, JEU.contre && k === JEU.ia)));   // le joueur : détaillée
     for (const m of JEU.modeles) SCENE3D.ajouter(m.groupe);
   }
@@ -342,7 +391,13 @@ function demarrerJeu() {
   } else JEU.modele = JEU.modeles[JEU.contre ? JEU.ia : 0];   // avant la course (écran de choix), sur la ligne
   INTERFACE.preparerPause(() => pause(false), () => lancerCourse(JEU.course.nbTours));
   INTERFACE.preparerFin(() => lancerCourse(JEU.course.nbTours), allerAuChoix);
-  INTERFACE.preparerResultats(voirResultats, () => lancerCourse(JEU.course.nbTours), allerAuChoix);
+  if (JEU.championnat) {
+    // après les résultats d'un Grand Prix, un seul bouton : « Continuer »
+    INTERFACE.preparerResultats(voirResultats, apresGrandPrix, apresGrandPrix);
+    document.getElementById('boutonRejouerResultats').classList.add('cache');
+    document.getElementById('boutonChangerResultats').textContent = texte('continuer');
+    INTERFACE.preparerChampionnat(courseSuivante);
+  } else INTERFACE.preparerResultats(voirResultats, () => lancerCourse(JEU.course.nbTours), allerAuChoix);
   document.getElementById('attenteTexte').textContent = texte('attenteArrivee');
   const boutonPasser = document.getElementById('boutonPasser');
   boutonPasser.textContent = texte('passerPodium');
@@ -352,6 +407,7 @@ function demarrerJeu() {
   // ?course=5, 12, 18 ou 0 (essai libre) lance directement une course (tests, développement)
   const demandee = PARAMETRES.get('course');
   if (SURVOL.includes(PARAMETRES.get('camera'))) { JEU.ecran = 'survol'; INTERFACE.montrer('survol'); }
+  else if (JEU.championnat) montrerChampionnat(null);
   else if (demandee !== null && !isNaN(Number(demandee))) lancerCourse(Number(demandee));
   else allerAuChoix();
   brancherClavier();

@@ -112,12 +112,14 @@ const REGLAGES = {
   NOM_JOUEUR: 'Pilote joueur',  // provisoire : la création du pilote viendra avec les écrans
   // les 10 écuries, de la plus forte à la plus faible ; niveau : la qualité de la voiture (1 = la meilleure).
   // NOMS PROVISOIRES, à approuver par le propriétaire
+  // couleur : celle des deux voitures de l'écurie (provisoire, les mêmes que COULEURS_IA)
   ECURIES: [
-    { nom: 'Écurie 1', niveau: 1 }, { nom: 'Écurie 2', niveau: 0.98 }, { nom: 'Écurie 3', niveau: 0.96 },
-    { nom: 'Écurie 4', niveau: 0.95 }, { nom: 'Écurie 5', niveau: 0.94 }, { nom: 'Écurie 6', niveau: 0.93 },
-    { nom: 'Écurie 7', niveau: 0.92 }, { nom: 'Écurie 8', niveau: 0.91 }, { nom: 'Écurie 9', niveau: 0.9 },
-    { nom: 'Écurie 10', niveau: 0.89 },
+    { nom: 'Écurie 1', niveau: 1, couleur: 0xd8262e }, { nom: 'Écurie 2', niveau: 0.98, couleur: 0xf2c230 }, { nom: 'Écurie 3', niveau: 0.96, couleur: 0x2fa84f },
+    { nom: 'Écurie 4', niveau: 0.95, couleur: 0xf07d1a }, { nom: 'Écurie 5', niveau: 0.94, couleur: 0x8e44ad }, { nom: 'Écurie 6', niveau: 0.93, couleur: 0x1abc9c },
+    { nom: 'Écurie 7', niveau: 0.92, couleur: 0xecf0f1 }, { nom: 'Écurie 8', niveau: 0.91, couleur: 0x34495e }, { nom: 'Écurie 9', niveau: 0.9, couleur: 0xe84393 },
+    { nom: 'Écurie 10', niveau: 0.89, couleur: 0x1f6fe0 },
   ],
+  CHAMPIONNAT_TOURS: 5,         // ?championnat=1 : la longueur des Grands Prix, fixe pour l'instant (?tours=1 pour les tests)
   // les 20 pilotes, deux par écurie dans l'ordre (le 20e est remplacé par le joueur). NOMS PROVISOIRES, à approuver par le propriétaire
   NOMS_PILOTES: ['Pilote 1', 'Pilote 2', 'Pilote 3', 'Pilote 4', 'Pilote 5', 'Pilote 6', 'Pilote 7', 'Pilote 8', 'Pilote 9', 'Pilote 10',
     'Pilote 11', 'Pilote 12', 'Pilote 13', 'Pilote 14', 'Pilote 15', 'Pilote 16', 'Pilote 17', 'Pilote 18', 'Pilote 19', 'Pilote 20'],

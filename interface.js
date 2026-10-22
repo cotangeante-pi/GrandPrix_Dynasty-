@@ -42,7 +42,7 @@ const INTERFACE = (function () {
   }
 
   function montrer(ecran) {
-    for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats']) $(id).classList.toggle('cache', id !== ecran);
+    for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat']) $(id).classList.toggle('cache', id !== ecran);
     // le bandeau de course n'est là que pendant la course et la pause (pas sous l'écran de fin)
     const course = ecran === 'course' || ecran === 'pause';
     for (const id of ['hudCourse', 'hudPenalite', 'compte', 'feux', 'classement', 'radar']) if (!course) $(id).classList.add('cache');
@@ -191,6 +191,34 @@ const INTERFACE = (function () {
     $('compte').textContent = texte('preparation');
   }
 
+  // ?championnat=1 : l'écran entre les courses. ch : le championnat ; gagne : les points du joueur à la course qui
+  // vient de finir (null au démarrage) ; nomCircuit : celui du prochain Grand Prix ; suivante : le bouton
+  function remplirChampionnat(ch, gagne, nomCircuit) {
+    const fini = ch.prochain >= ch.calendrier.length;
+    $('championnatTitre').textContent = fini ? texte('finChampionnat') : texte('grandPrix') + ' ' + (ch.prochain + 1) + ' / ' + ch.calendrier.length + ' — ' + nomCircuit;
+    $('championnatGagne').textContent = gagne === null ? '' : texte('pointsGagnes').replace('{n}', gagne);
+    $('championnatPilotesTitre').textContent = texte('classementPilotes');
+    $('championnatEcuriesTitre').textContent = texte('classementEcuries');
+    $('boutonCourseSuivante').textContent = texte('courseSuivante');
+    $('boutonCourseSuivante').classList.toggle('cache', fini);
+    const ligne = (place, couleur, nom, points, moi) => {
+      const li = document.createElement('li');
+      if (moi) li.className = 'moi';
+      const sp = (classe, contenu) => { const e = document.createElement('span'); e.className = classe; e.append(contenu); return e; };
+      li.append(sp('place', String(place)), pastille(couleur), sp('nom', nom), sp('points', points + ' ' + texte('pts')));
+      return li;
+    };
+    const pilotes = $('championnatPilotes'), ecuries = $('championnatEcuries');
+    pilotes.textContent = ''; ecuries.textContent = '';
+    CHAMPIONNAT.classementPilotes(ch).forEach((x, i) => { const p = ch.pilotes[x.k]; pilotes.appendChild(ligne(i + 1, ch.ecuries[p.ecurie].couleur, p.nom, x.points, p.humain)); });
+    CHAMPIONNAT.classementEcuries(ch).forEach((x, i) => { const e = ch.ecuries[x.id]; ecuries.appendChild(ligne(i + 1, e.couleur, e.nom, x.points, e.id === REGLAGES.ECURIE_JOUEUR)); });
+  }
+
+  function preparerChampionnat(suivante) {
+    $('boutonCourseSuivante').addEventListener('mousedown', e => e.preventDefault());
+    $('boutonCourseSuivante').addEventListener('click', suivante);
+  }
+
   function preparerPause(reprendre, recommencer) {
     $('pauseTitre').textContent = texte('pause');
     $('boutonReprendre').textContent = texte('reprendre');
@@ -226,5 +254,5 @@ const INTERFACE = (function () {
     });
   }
 
-  return { formatTemps, formatEcart, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation };
+  return { formatTemps, formatEcart, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, preparerChampionnat };
 })();

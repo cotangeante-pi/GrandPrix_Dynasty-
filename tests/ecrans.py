@@ -31,7 +31,9 @@ PAGES = [
     ('index.html?course=5&ia=10&circuit=technique&debug=1', 1280, 720, 'ia10.png'),
     ('index.html?course=5&ia=9&joueur=1&circuit=technique', 1280, 720, None),   # capture joueur-ia.png prise en roulant
     ('index.html?course=5&ia=9&joueur=1&circuit=technique', 960, 600, None),    # la tour de classement et le radar en petit
-    ('index.html?course=1&ia=8&circuit=test', 1280, 720, None),   # une course d'un tour, jusqu'au podium et aux résultats
+    ('index.html?course=1&ia=8&circuit=test', 1280, 720, None),
+    ('index.html?championnat=1&tours=1&robot=1', 960, 600, 'championnat-960.png'),   # l'écran du championnat en petit
+    ('index.html?championnat=1&tours=1&robot=1', 1280, 720, None),   # 2 Grands Prix joués par le robot, rechargement, capture championnat.png   # une course d'un tour, jusqu'au podium et aux résultats
     ('index.html?course=1&ia=8&circuit=test', 960, 600, None),
 ]
 POSITION = '() => CAMERA.position'
@@ -328,6 +330,49 @@ def course_podium(pg, titre, l):
     pg.wait_for_timeout(300)
     pg.screenshot(path=os.path.join(CAPTURES, 'resultats.png' if l == 1280 else 'resultats-960.png'))
 
+def championnat(pg, titre, l):
+    # ?championnat=1 : l'écran entre les courses au démarrage (nouveau championnat : Grand Prix 1), le robot joue deux
+    # Grands Prix d'un tour, « Continuer » enregistre et sauvegarde ; la page rechargée retrouve le Grand Prix 3 et les points
+    ECRAN = '() => [JEU.ecran, JEU.championnat && JEU.championnat.prochain, document.getElementById("championnatTitre").textContent]'
+    t(f'{titre} : au démarrage, l’écran du championnat : Grand Prix 1 / 12, 20 pilotes (le joueur marqué), 10 écuries',
+      pg.evaluate('''() => JEU.ecran === "championnat" && JEU.championnat.prochain === 0 && /^Grand Prix 1 \/ 12 — /.test(document.getElementById("championnatTitre").textContent)
+        && document.querySelectorAll("#championnatPilotes li").length === 20 && document.querySelectorAll("#championnatPilotes li.moi").length === 1
+        && document.querySelectorAll("#championnatEcuries li").length === 10 && document.getElementById("championnatGagne").textContent === ""'''), str(pg.evaluate(ECRAN)))
+    if l != 1280: return
+    points = None
+    for gp in (1, 2):
+        if gp == 2:
+            with pg.expect_navigation(): pg.click('#boutonCourseSuivante')   # le Grand Prix joué : la page se recharge sur le suivant
+            t(f'{titre} : « Course suivante » recharge la page sur le Grand Prix {gp}', attendre(pg, f'() => typeof JEU !== "undefined" && JEU.ecran === "championnat" && JEU.championnat.prochain === {gp - 1}', None, 60000), str(pg.evaluate(ECRAN)))
+        pg.click('#boutonCourseSuivante')
+        t(f'{titre} : GP {gp} : la course part sur le circuit du calendrier, le joueur (robot) et 19 IA aux couleurs des écuries',
+          attendre(pg, '() => JEU.ecran === "course" && JEU.contre && JEU.robot && JEU.plateau && JEU.plateau.pilotes.length === 20 && NOM_CIRCUIT === JEU.championnat.calendrier[JEU.championnat.prochain].circuit'
+                       ' && JEU.couleurs.every((c, k) => c === JEU.championnat.ecuries[JEU.championnat.pilotes[k].ecurie].couleur) && JEU.course.nbTours === 1', None, 10000), str(pg.evaluate(ECRAN)))
+        t(f'{titre} : GP {gp} : la carte se calcule, chaque IA prend le caractère de son pilote du championnat',
+          attendre(pg, '() => JEU.plateau.carte !== null && JEU.plateau.pilotes.slice(0, 19).every((p, k) => p.pilote && p.pilote.caractere.regularite === JEU.championnat.pilotes[k].caractere.regularite)', None, 180000))
+        for _ in range(80):
+            pg.evaluate('() => BOUCLE.simuler(5)')
+            if pg.evaluate('() => JEU.ecran') == 'podium': break
+            pg.wait_for_timeout(50)
+        t(f'{titre} : GP {gp} : la course va jusqu’au podium', pg.evaluate('() => JEU.ecran === "podium"'), str(pg.evaluate('() => [JEU.ecran, JEU.plateau.arrives, JEU.plateau.temps, JEU.course.etat]')))
+        pg.click('#boutonResultats')
+        attendre(pg, '() => JEU.ecran === "resultats"')
+        t(f'{titre} : GP {gp} : un seul bouton, « Continuer »', pg.evaluate('() => document.getElementById("boutonRejouerResultats").classList.contains("cache") && document.getElementById("boutonChangerResultats").textContent === "Continuer"'))
+        pg.click('#boutonChangerResultats')
+        t(f'{titre} : GP {gp} : « Continuer » enregistre le Grand Prix et le sauvegarde, puis l’écran du championnat avec les points gagnés',
+          attendre(pg, f'''() => JEU.ecran === "championnat" && JEU.championnat.prochain === {gp} && SAUVEGARDE.championnat().prochain === {gp}
+            && /^Tu marques \d+ points$/.test(document.getElementById("championnatGagne").textContent)
+            && document.getElementById("championnatTitre").textContent.startsWith("Grand Prix {gp + 1} / 12")'''), str(pg.evaluate(ECRAN)) + ' ' + pg.evaluate('() => document.getElementById("championnatGagne").textContent'))
+        points = pg.evaluate('() => JEU.championnat.pilotes.map(p => p.stats.points)')
+        total = pg.evaluate('() => REGLAGES.POINTS.reduce((a, b) => a + b, 0)')
+        t(f'{titre} : GP {gp} : les points sont ceux du classement final (somme = {total} par Grand Prix)', sum(points) == gp * total, str(points))
+        if gp == 1:
+            pg.wait_for_timeout(300)
+            pg.screenshot(path=os.path.join(CAPTURES, 'championnat.png'))
+    pg.reload()
+    t(f'{titre} : la page rechargée retrouve le Grand Prix 3 et les mêmes points', attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat" && JEU.championnat.prochain === 2', None, 60000)
+      and pg.evaluate('() => JEU.championnat.pilotes.map(p => p.stats.points)') == points and pg.evaluate('() => document.getElementById("championnatTitre").textContent').startswith('Grand Prix 3 / 12'), str(pg.evaluate(ECRAN)))
+
 def INTERFACE_TEMPS(t):
     m = int(t // 60); s = t - m * 60
     return f'{m}:{s:06.3f}'
@@ -362,7 +407,7 @@ with sync_playwright() as p:
                 conduite(pg, titre)
             if 'reglages=1' in page:
                 reglages(pg, titre)
-            if 'robot=1' in page:
+            if 'robot=1' in page and 'championnat=1' not in page:   # (avec ?championnat=1, le robot joue dans championnat())
                 course_robot(pg, titre, page)
             if re.search(r'[?&]ia=1(&|$)', page):
                 course_ia(pg, titre)
@@ -370,6 +415,8 @@ with sync_playwright() as p:
                 course_ia10(pg, titre)
             if 'course=1&ia=8' in page:
                 course_podium(pg, titre, l)
+            if 'championnat=1' in page:
+                championnat(pg, titre, l)
             if 'joueur=1' in page:
                 hud(pg, titre, l)
                 if l == 1280: course_joueur(pg, titre)

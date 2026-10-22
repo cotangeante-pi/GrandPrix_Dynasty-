@@ -529,7 +529,7 @@ t('championnat : les points viennent de REGLAGES.POINTS, 0 au-delà du 10e', ()=
   v(P.length===10&&CHAMPIONNAT.pointsPour(1)===P[0]&&CHAMPIONNAT.pointsPour(10)===P[9]&&CHAMPIONNAT.pointsPour(11)===0&&CHAMPIONNAT.pointsPour(20)===0);});
 t('championnat : 10 écuries de 2 pilotes, le joueur seul humain dans ECURIE_JOUEUR, 19 caractères tirés avec la graine, calendrier de NB_GRANDS_PRIX en alternance', ()=>{
   const R=REGLAGES,a=CHAMPIONNAT.creer(1),b=CHAMPIONNAT.creer(1),c=CHAMPIONNAT.creer(2);
-  v(a.ecuries.length===10&&a.pilotes.length===20&&a.ecuries.every(e=>a.pilotes.filter(p=>p.ecurie===e.id).length===2),'écuries');
+  v(a.ecuries.length===10&&a.pilotes.length===20&&a.ecuries.every(e=>a.pilotes.filter(p=>p.ecurie===e.id).length===2&&typeof e.couleur==='number'&&e.niveau>0),'écuries');
   const h=a.pilotes.filter(p=>p.humain);v(h.length===1&&h[0].ecurie===R.ECURIE_JOUEUR&&h[0].nom===R.NOM_JOUEUR&&h[0].caractere===null,'joueur');
   v(a.pilotes.filter(p=>!p.humain).every(p=>p.caractere&&p.caractere.regularite>0&&p.caractere.agressivite>=0),'caractères');
   v(a.pilotes.every((p,k)=>p.humain||p.nom===R.NOMS_PILOTES[k])&&new Set(a.pilotes.map(p=>p.numero)).size===20,'noms et numéros');

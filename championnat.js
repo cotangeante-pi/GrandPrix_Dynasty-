@@ -11,7 +11,7 @@ const CHAMPIONNAT = (function () {
   // un nouveau championnat : chaque écurie aligne deux pilotes (le joueur est le 2e de l'écurie ECURIE_JOUEUR) ; chaque
   // pilote IA reçoit son caractère (ia.js), tiré une fois pour toutes avec la graine du championnat
   function creer(graine) {
-    const ecuries = R.ECURIES.map((e, i) => ({ id: i, nom: e.nom, niveau: e.niveau, points: 0 }));
+    const ecuries = R.ECURIES.map((e, i) => ({ id: i, nom: e.nom, niveau: e.niveau, couleur: e.couleur, points: 0 }));
     const pilotes = [];
     ALEATOIRE.semer(graine + R.GRAINE_CHAMPIONNAT);
     for (const e of ecuries) {
