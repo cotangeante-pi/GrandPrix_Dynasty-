@@ -89,6 +89,32 @@ const CHAMPIONNAT = (function () {
       .map(id => ({ id, points: ch.ecuries[id].points }));
   }
 
+  // le niveau de l'écurie agit sur le rythme de chaque IA de la course e (la voiture k = le pilote k) : rythme × niveau.
+  // À faire AVANT donnerCarte (le pilote et la qualification lisent le rythme). Le joueur garde sa voiture (FACTEUR_VOITURE_JOUEUR)
+  function appliquerNiveaux(ch, e) {
+    e.pilotes.forEach((p, k) => {
+      const pilote = ch.pilotes[k];
+      if (!pilote || p.humain || p.rythmeBase !== undefined) return;
+      p.rythmeBase = p.rythme;
+      p.rythme = p.rythme * ch.ecuries[pilote.ecurie].niveau;
+    });
+    return e;
+  }
+
+  // un Grand Prix simulé sans affichage (tests) : les 19 IA du championnat avec leur niveau d'écurie, et la voiture
+  // du joueur conduite par le robot d'essai (immobile sur la grille, elle bloquerait les IA qui finissent leur tour) ;
+  // renvoie la course (lignesDepuisCourse pour l'enregistrer)
+  function simulerGrandPrix(ch, circuit, nbTours, graine) {
+    const R = REGLAGES, nb = ch.pilotes.length - 1;
+    const e = creerCourseIA(circuit, nb, nbTours, graine, null, true);
+    appliquerNiveaux(ch, e);
+    donnerCarte(e, carteDe(circuit));
+    const robot = (p, dt) => appliquerCommandes(p.v, courseAutorise(p.course) ? piloteRobot(p.v, circuit) : COMMANDES_AUCUNE);
+    const pasMax = Math.round(nbTours * R.SIMULATION_TEMPS_MAX / R.PAS_PHYSIQUE);
+    for (let k = 0; k < pasMax && e.pilotes.some(p => p.arrivee === null); k++) pasCourseIA(e, R.PAS_PHYSIQUE, robot);
+    return e;
+  }
+
   // les lignes d'une course de la page (simulation.js : classementFinal, pénalités comprises) ; la voiture k de la
   // course est le pilote k du championnat
   function lignesDepuisCourse(e) {
@@ -104,5 +130,5 @@ const CHAMPIONNAT = (function () {
     return ordre.map((v, i) => ({ k: k(v), place: i + 1, grille: grille.indexOf(v.numero) + 1, meilleurTour: v.meilleurTour }));
   }
 
-  return { creer, pointsPour, enregistrerCourse, finirGrandPrix, classementPilotes, classementEcuries, lignesDepuisCourse, lignesDepuisSimulation };
+  return { creer, pointsPour, enregistrerCourse, finirGrandPrix, classementPilotes, classementEcuries, lignesDepuisCourse, lignesDepuisSimulation, appliquerNiveaux, simulerGrandPrix };
 })();

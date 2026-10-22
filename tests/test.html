@@ -643,6 +643,18 @@ t('qualification : la grille suit tous les temps (joueur en pole, au milieu, ou 
   v(QUALIFICATION.grille(e,null)===5,'dernier');verif(5);v(QUALIFICATION.ecartPole(e)===null,'écart sans temps');
   v(QUALIFICATION.grille(e,ia[3]+1)===5,'plus lent que tous : dernier');verif(5);});
 
+t('championnat : le niveau de l’écurie agit sur le rythme des IA (rythme × niveau, avant la carte) ; sur 6 Grands Prix simulés, les 5 écuries fortes marquent plus que les 5 faibles', ()=>{
+  const R=REGLAGES,ch=CHAMPIONNAT.creer(11),circuits={test:C,technique:construireCircuit(CIRCUITS.technique)},t0=performance.now();
+  for(let g=0;g<6;g++){const gp=ch.calendrier[ch.prochain],e=CHAMPIONNAT.simulerGrandPrix(ch,circuits[gp.circuit],1,200+g);
+    v(e.pilotes.slice(0,19).every((p,k)=>p.pilote&&Math.abs(p.rythme-p.rythmeBase*ch.ecuries[ch.pilotes[k].ecurie].niveau)<1e-9&&Math.abs(p.pilote.rythme-p.rythme)<1e-9),'rythme × niveau, GP '+(g+1));
+    v(e.pilotes.every(p=>p.arrivee!==null),'pas tous arrivés : '+e.pilotes.map(p=>p.arrivee===null?'-':'✓').join(''));
+    CHAMPIONNAT.enregistrerCourse(ch,CHAMPIONNAT.lignesDepuisCourse(e));}
+  // par pilote IA (le joueur, conduit par le robot, est à part) : les 10 des écuries 1 à 5 contre les 9 des écuries 6 à 10
+  const ia=ch.pilotes.filter(p=>!p.humain),moy=l=>l.reduce((a,p)=>a+p.stats.points,0)/l.length;
+  const fortes=moy(ia.filter(p=>p.ecurie<5)),faibles=moy(ia.filter(p=>p.ecurie>=5));
+  L.push('  (niveau des écuries, 6 GP : fortes '+fortes.toFixed(1)+' pts par pilote IA, faibles '+faibles.toFixed(1)+' ; par écurie '+ch.ecuries.map(e=>e.points).join(' ')+' ; joueur (robot) '+ch.pilotes[19].stats.points+' ; '+(performance.now()-t0).toFixed(0)+' ms)');
+  v(ch.prochain===6,'prochain');v(fortes>faibles,fortes+' vs '+faibles);});
+
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 ecrire();
 </script></body></html>

@@ -112,13 +112,15 @@ const REGLAGES = {
   NOM_JOUEUR: 'Pilote joueur',  // provisoire : la création du pilote viendra avec les écrans
   // les 10 écuries, de la plus forte à la plus faible ; niveau : la qualité de la voiture (1 = la meilleure).
   // NOMS PROVISOIRES, à approuver par le propriétaire
+  // niveau : la qualité de la voiture, un facteur sur le rythme des IA de l'écurie (1 = la meilleure, 0,955 = 4,5 % plus lente)
   // couleur : celle des deux voitures de l'écurie (provisoire, les mêmes que COULEURS_IA)
   ECURIES: [
-    { nom: 'Écurie 1', niveau: 1, couleur: 0xd8262e }, { nom: 'Écurie 2', niveau: 0.98, couleur: 0xf2c230 }, { nom: 'Écurie 3', niveau: 0.96, couleur: 0x2fa84f },
-    { nom: 'Écurie 4', niveau: 0.95, couleur: 0xf07d1a }, { nom: 'Écurie 5', niveau: 0.94, couleur: 0x8e44ad }, { nom: 'Écurie 6', niveau: 0.93, couleur: 0x1abc9c },
-    { nom: 'Écurie 7', niveau: 0.92, couleur: 0xecf0f1 }, { nom: 'Écurie 8', niveau: 0.91, couleur: 0x34495e }, { nom: 'Écurie 9', niveau: 0.9, couleur: 0xe84393 },
-    { nom: 'Écurie 10', niveau: 0.89, couleur: 0x1f6fe0 },
+    { nom: 'Écurie 1', niveau: 1, couleur: 0xd8262e }, { nom: 'Écurie 2', niveau: 0.995, couleur: 0xf2c230 }, { nom: 'Écurie 3', niveau: 0.99, couleur: 0x2fa84f },
+    { nom: 'Écurie 4', niveau: 0.985, couleur: 0xf07d1a }, { nom: 'Écurie 5', niveau: 0.98, couleur: 0x8e44ad }, { nom: 'Écurie 6', niveau: 0.975, couleur: 0x1abc9c },
+    { nom: 'Écurie 7', niveau: 0.97, couleur: 0xecf0f1 }, { nom: 'Écurie 8', niveau: 0.965, couleur: 0x34495e }, { nom: 'Écurie 9', niveau: 0.96, couleur: 0xe84393 },
+    { nom: 'Écurie 10', niveau: 0.955, couleur: 0x1f6fe0 },
   ],
+  FACTEUR_VOITURE_JOUEUR: 1,    // la qualité de la voiture du joueur : 1 pour l'instant (sa conduite, c'est le propriétaire qui la valide) ; plus tard celle de son écurie, dans ±3 %
   CHAMPIONNAT_TOURS: 5,         // ?championnat=1 : la longueur des Grands Prix, fixe pour l'instant (?tours=1 pour les tests)
   // les 20 pilotes, deux par écurie dans l'ordre (le 20e est remplacé par le joueur). NOMS PROVISOIRES, à approuver par le propriétaire
   NOMS_PILOTES: ['Pilote 1', 'Pilote 2', 'Pilote 3', 'Pilote 4', 'Pilote 5', 'Pilote 6', 'Pilote 7', 'Pilote 8', 'Pilote 9', 'Pilote 10',

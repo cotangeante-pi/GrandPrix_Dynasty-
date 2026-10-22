@@ -62,7 +62,9 @@ function suivreSuivante() {
 
 function lancerCourse(nbTours) {
   if (JEU.ia >= 2 || JEU.contre) {
-    JEU.plateau = creerCourseIA(CIRCUIT, JEU.ia, nbTours, Number(PARAMETRES.get('graine')) || 1, JEU.carte, JEU.contre);
+    // ?championnat=1 : le niveau de l'écurie sur le rythme de chaque IA, avant que la carte leur donne un pilote
+    JEU.plateau = creerCourseIA(CIRCUIT, JEU.ia, nbTours, Number(PARAMETRES.get('graine')) || 1, JEU.championnat ? null : JEU.carte, JEU.contre);
+    if (JEU.championnat) { CHAMPIONNAT.appliquerNiveaux(JEU.championnat, JEU.plateau); if (JEU.carte) donnerCarte(JEU.plateau, JEU.carte); }
     suivre(JEU.contre ? JEU.ia : 0);   // contre les IA : la caméra suit le joueur
     appliquerCaracteres();
     if (JEU.contre) armerFeux(JEU.plateau.pilotes, Number(PARAMETRES.get('graine')) || 1);   // les feux de départ
