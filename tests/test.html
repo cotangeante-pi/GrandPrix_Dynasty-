@@ -674,6 +674,20 @@ t('championnat : le niveau de l’écurie agit sur le rythme des IA (rythme × n
   L.push('  (niveau des écuries, 6 GP : fortes '+fortes.toFixed(1)+' pts par pilote IA, faibles '+faibles.toFixed(1)+' ; par écurie '+ch.ecuries.map(e=>e.points).join(' ')+' ; joueur (robot) '+ch.pilotes[19].stats.points+' ; '+(performance.now()-t0).toFixed(0)+' ms)');
   v(ch.prochain===6,'prochain');v(fortes>faibles,fortes+' vs '+faibles);});
 
+t('championnat (page) : appliquerCaracteres donne à chaque IA le caractère de son pilote du championnat au niveau en cours (légende : erreurs × 0,25, agressivité + 0,4 bornée à 1, régularité × 0,5), et re-tire ses erreurs avec ce taux ; les tours restent ceux de la course', ()=>{
+  const R_=REGLAGES,ch=CHAMPIONNAT.creer(3),e=creerCourseIA(TQ,19,3,4,CARTES_T.technique,true),tours=e.pilotes.map(p=>p.pilote&&p.pilote.caractere.tours.slice());
+  const avant=e.pilotes.map(p=>p.pilote?p.pilote.erreurs:null);
+  JEU.championnat=ch;JEU.plateau=e;R_.NIVEAU='legende';
+  try{appliquerCaracteres();}finally{R_.NIVEAU='normal';JEU.championnat=null;JEU.plateau=null;}
+  e.pilotes.slice(0,19).forEach((p,k)=>{const c=ch.pilotes[k].caractere,pc=p.pilote.caractere;
+    v(Math.abs(pc.erreurs-c.erreurs*0.25)<1e-12&&Math.abs(pc.agressivite-Math.min(1,c.agressivite+0.4))<1e-12&&Math.abs(pc.regularite-c.regularite*0.5)<1e-12,'IA '+(k+1)+' : '+JSON.stringify(pc));
+    v(Array.isArray(p.pilote.erreurs)&&p.pilote.erreurs!==avant[k]&&p.pilote.erreurs.every(x=>x.faite===false),'IA '+(k+1)+' : erreurs re-tirées');
+    v(pc.tours.every((x,t)=>x===tours[k][t]),'IA '+(k+1)+' : tours changés');});
+  v(e.pilotes[19].humain&&!e.pilotes[19].pilote,'le joueur sans pilote');
+  // au niveau normal, le caractère du championnat tel quel
+  JEU.championnat=ch;JEU.plateau=e;try{appliquerCaracteres();}finally{JEU.championnat=null;JEU.plateau=null;}
+  v(e.pilotes.slice(0,19).every((p,k)=>p.pilote.caractere.erreurs===ch.pilotes[k].caractere.erreurs&&p.pilote.caractere.regularite===ch.pilotes[k].caractere.regularite),'normal : tel quel');});
+
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 ecrire();
 </script></body></html>

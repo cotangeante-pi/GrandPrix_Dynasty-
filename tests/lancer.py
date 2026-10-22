@@ -2,7 +2,8 @@
 """Lance tous les tests du jeu dans Chrome sans fenêtre : python3 tests/lancer.py
 (ou seulement certaines parties : python3 tests/lancer.py moteur, courses, ecrans, ou plusieurs : moteur ecrans)
 1. tests/test.html (le moteur, sans 3D) et tests/courses.html (30 courses entre IA) dans Chrome --headless ;
-2. tests/ecrans.py (la vraie page dans Playwright : console vide, rendu, captures dans tests/captures/)."""
+2. tests/ecrans.py (la vraie page dans Playwright : console vide, rendu, captures dans tests/captures/) ;
+3. les annexes : les pages de test des modules pas encore branchés (sdk, pneus, enregistreur, circuits officiels, textes)."""
 import os, re, html, signal, subprocess, sys, tempfile, shutil, threading, time
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
@@ -30,9 +31,9 @@ def chrome(args, delai=120):
     proc.wait(); shutil.rmtree(profil, ignore_errors=True)
     return ''.join(out)
 
-def serie(page, delai=300):
+def serie(page, delai=300, options=()):
     t0 = time.monotonic()
-    dom = chrome(['--dump-dom', 'file://' + os.path.join(RACINE, page)], delai=delai)
+    dom = chrome(list(options) + ['--dump-dom', 'file://' + os.path.join(RACINE, page)], delai=delai)
     print(f'⏱ {page} : {time.monotonic() - t0:.0f} s')
     m = re.search(r'<pre id="res">(.*?)</pre>', dom, re.S)
     if not m: print(f'✘ {page} : aucun résultat'); return False
@@ -53,8 +54,14 @@ def ecrans(delai=600):
     print(out.strip()); print(f'⏱ tests/ecrans.py : {time.monotonic() - t0:.0f} s')
     return p.returncode == 0
 
-# les parties de la suite, dans l'ordre : moteur (test.html), courses (courses.html, 30 courses entre IA), ecrans (ecrans.py)
-PARTIES = {'moteur': lambda: serie('tests/test.html'), 'courses': lambda: serie('tests/courses.html'), 'ecrans': lambda: ecrans()}
+# les annexes : les pages de test des modules écrits d'avance, pas encore branchés dans le jeu (ni index.html) ; sdk.html attend
+# des rappels (promesses, minuteurs) : --virtual-time-budget fait avancer l'horloge de la page avant de rendre le DOM
+ANNEXES = ['tests/sdk.html', 'tests/pneus.html', 'tests/enregistreur.html', 'tests/circuits-a.html', 'tests/circuits-b.html', 'tests/textes.html']
+def annexes():
+    return all([serie(p, delai=120, options=['--virtual-time-budget=5000'] if p.endswith('sdk.html') else []) for p in ANNEXES])
+
+# les parties de la suite, dans l'ordre : moteur (test.html), courses (courses.html, 30 courses entre IA), ecrans (ecrans.py), annexes
+PARTIES = {'moteur': lambda: serie('tests/test.html'), 'courses': lambda: serie('tests/courses.html'), 'ecrans': lambda: ecrans(), 'annexes': annexes}
 
 def tests(parties=tuple(PARTIES)):
     # une liste : tout tourne même si le premier échoue ; courses.html = le critère de l'étape 4 (30 courses entre IA)

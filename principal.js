@@ -147,13 +147,21 @@ function partirEnCourse() {
 }
 
 // ?championnat=1 : chaque IA de la course prend le caractère de son pilote du championnat (la voiture k = le pilote k ;
-// le joueur, dernier, n'en a pas). Les variations par tour (tours) restent celles tirées pour la course
+// le joueur, dernier, n'en a pas), au niveau de difficulté en cours (?niveau=, simulation.js : appliquerNiveau, comme
+// pour un caractère tiré par donnerCarte). Les variations par tour (tours) restent celles tirées pour la course, déjà au
+// niveau ; ses erreurs sont re-tirées avec son taux (même graine que donnerCarte : le même hasard pour la même course)
 function appliquerCaracteres() {
-  if (!JEU.championnat || !JEU.plateau || !JEU.plateau.carte) return;
-  JEU.plateau.pilotes.forEach((p, k) => {
+  const e = JEU.plateau;
+  if (!JEU.championnat || !e || !e.carte) return;
+  ALEATOIRE.semer(e.graine + REGLAGES.GRAINE_CARACTERE);
+  e.pilotes.forEach((p, k) => {
     const c = JEU.championnat.pilotes[k] && JEU.championnat.pilotes[k].caractere;
-    if (c && p.pilote && p.pilote.caractere) Object.assign(p.pilote.caractere, c);
+    if (!c || !p.pilote || !p.pilote.caractere) return;
+    const { regularite, agressivite, erreurs } = appliquerNiveau({ regularite: c.regularite, agressivite: c.agressivite, erreurs: c.erreurs, tours: [] });
+    Object.assign(p.pilote.caractere, { regularite, agressivite, erreurs });
+    p.pilote.erreurs = tirerErreurs(e.carte, p.pilote.caractere, e.nbTours + 1);
   });
+  ALEATOIRE.semer();
 }
 
 // ?championnat=1 : l'écran entre les courses ; gagne : les points du Grand Prix qui vient de finir (null au démarrage)
