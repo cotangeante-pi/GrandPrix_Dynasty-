@@ -127,6 +127,9 @@ Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤
 
 ## Décisions en attente (pour le propriétaire)
 
+- Les 12 tracés de circuits (tests/circuits-a.svg et tests/circuits-b.svg) : assez sinueux ? noms ?
+- Les IA, même en légende, font 49,4 s seules sur le circuit test (le propriétaire ≈ 45 s) : les rendre plus rapides ?
+
 - Rendre l'herbe plus pénalisante (pour que les erreurs des IA coûtent, et donc des surprises) : ça change aussi la conduite du joueur.
 - Les noms des 20 pilotes et des 10 écuries (provisoires dans donnees.js).
 
@@ -145,6 +148,7 @@ Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤
 | 2026-10-18 | 1–2 | Tour 3 : la voiture roule, 121/121 tests, 43a3fa8, robot 66,55 s, nom Grand Prix Dynasty dans le jeu |
 | 2026-10-18 | 3 | Tour 5 : chrono, tours, secteurs, ✂ +5 s, écran de choix, pause, écran de fin, records ; 194/194, 44b3624 |
 | 2026-10-18 | 3 | Tour 6 : secteurs du tour en cours, arrêt après l'arrivée, sons 3-2-1-GO et arrivée ; 200/200, e59f5a2. Fin de session (20h20). |
+| 2026-10-22 | 4d–5–6–7–13–15 | Grande fusion f2ff5ee vérifiée par le Chef (137/137, 38/38, 257/257 + annexes sdk 19, pneus 28, enregistreur 28, circuits-a 49, circuits-b 45, textes 85) : coût des erreurs (+0,89 s), niveaux de difficulté (?niveau=), qualification du joueur, niveau des écuries ; fichiers des 6 agents (sdk.js, pneus.js, enregistreur.js, 12 tracés de circuits à approuver, audit des textes), pas encore branchés. Le « cloud » n'était pas disponible : les agents ont tourné sur le Mac ; le propriétaire : plus d'agents. Encore : vainqueur ≠ poleman 0/30 (le duel, en cours chez session-dd) |
 | 2026-10-21 | 4d–5–6 | Reprise dans « Grand Prix Dynasty ». Demandes du propriétaire faites et vérifiées par le Chef : radar + tour de classement (2a500e5), podium 3D + résultats avec pénalités à l'arrivée (3077e74), course qui attend la carte des IA (9f29dbf, défaut réel du départ), tests par partie (16165f5) ; Codeur 2 (session-9e) : vue cockpit devant le halo et voiture du joueur détaillée (6 appels, 1276 triangles), 5 feux et faux départ +5 s, vue télé après l'arrivée jusqu'à la dernière voiture ; main = bf3b57d (125/125, 37/37, 211/211). En cours : erreurs des IA (dd, Fable 5.1), moteur du championnat (9e) |
 | 2026-10-20 | 4d | Tour 17 : une ligne choisie se garde (régularité 4,2 ×, 31 dépassements, 5 chocs), « GPU stall » ignoré ; 118/118 + 37/37 + 159/159 chez le Chef, 55/100. Fin de la boucle à 20h35 |
 | 2026-10-20 | 4d | Tour 16 : caractère chiffré (régularité, agressivité, erreurs) et régularité sur main, 117/117 + 37/37 + 159/159 chez le Chef, 54/100 ; régularité à l'envers (0,274 contre 0,102 s) ; erreurs sur la branche tour-16 (149 erreurs, mais chocs) ; vainqueur ≠ poleman 0/30 |
