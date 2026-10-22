@@ -24,7 +24,7 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 
 ## Tour en cours
 
-**Tour 18 — étape 4d** (lancé le 2026-10-21 à 17h10, fin 21h) : test du joueur au milieu des IA (1 échec à la reprise), erreurs sur main pour des surprises, puis le duel. Rapport : rapports/tour-18-rapport.md. Le dossier s'appelle maintenant « Grand Prix Dynasty ».
+Aucun. Boucle du 2026-10-21 **figée à 21h02 sur 3962493 (vert, 60/100)**, poussé comme main. Reprise : rapports/fin-2026-10-21.md.
 
 Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤ 50 s sur Test) → 4b (plusieurs IA sans se toucher) → 4c (dépasser, défendre) → 4d (caractères, niveaux, page des 50 courses).
 
@@ -49,8 +49,12 @@ Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤
 | 15 | bde5dd6 | 54 | 12 | 14 | 1 | 8 | 8 | 10 | 1 |
 | 16 | 3a33150 | 54 | 12 | 14 | 1 | 8 | 8 | 10 | 1 |
 | 17 | fa19fdb | 55 | 12 | 15 | 1 | 8 | 8 | 10 | 1 |
+| 18 + 18b | 3962493 | 60 | 12 | 16 | 4 | 11 | 9 | 10 | 1 |
 
 ## À essayer par le propriétaire
+
+- **Le championnat** : `index.html?championnat=1` (écran entre les courses, points, sauvegarde ; fermer et revenir).
+- Vue cockpit (touche C), feux de départ, vue télé après l'arrivée, podium : `index.html?course=5&ia=9&joueur=1&circuit=technique`.
 
 - **Jouer contre les IA** : `index.html?course=5&ia=9&joueur=1&circuit=technique` (ou sans `&circuit=…`). Tu pars dernier ; depuis le tour 15, elles doublent (peu, au freinage). Dire : trop rapides ou trop lentes ? Bizarres ?
 
@@ -120,6 +124,9 @@ Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤
 - 2026-10-18 20h25, étape 3 : meilleur tour du propriétaire ≈ **45 s** en course très courte (le robot fait 1:02) ; pénalité de chicane et herbe sans pénalité : « oui oui » ; « j'espère que c'est une arène de test parce qu'elle a beaucoup trop de lignes droites ». → Oui, c'est un circuit de test. **Au début de l'étape 4 : un 2e circuit d'essai, technique (épingle, enchaînement en S, courbe rapide, freinage fort après une longue droite), pour entraîner et tester les IA sur de vrais virages.** Les IA devront approcher 45 s sur CIRCUIT_TEST (le robot naïf, à 1:02, est bien trop lent).
 
 ## Décisions en attente (pour le propriétaire)
+
+- Rendre l'herbe plus pénalisante (pour que les erreurs des IA coûtent, et donc des surprises) : ça change aussi la conduite du joueur.
+- Les noms des 20 pilotes et des 10 écuries (provisoires dans donnees.js).
 
 
 - La liste des 12 circuits.
