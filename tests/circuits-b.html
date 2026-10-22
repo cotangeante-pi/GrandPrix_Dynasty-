@@ -1,0 +1,53 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>tests circuits officiels (b)</title></head><body>
+<pre id="res"></pre>
+<div id="dessins"></div>
+<script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));</script>
+<script src="../donnees.js"></script><script src="../circuits.js"></script><script src="../circuits-officiels-b.js"></script>
+<script>
+// les tracés proposés de 6 circuits officiels (circuits-officiels-b.js) : fermés, sans croisement, dans la plage de longueur,
+// sans virage plus serré que la demi-largeur, avec au moins un vrai point de dépassement
+const L=[];let ok=0,ko=0;
+function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
+const v=(c,m)=>{if(!c)throw new Error(m||'faux');};
+const LONGUEUR_MIN=3500,LONGUEUR_MAX=7000,DEPASSEMENT_DROITE=400,DEPASSEMENT_RAYON=50;
+
+// la plus longue droite d'un circuit (les droites qui se suivent comptent ensemble), en m, et le morceau qui la suit
+function plusLongueDroite(def,circ){let meilleur={l:0,suivant:null},l=0;const ms=circ.morceaux,n=ms.length;
+  for(let k=0;k<2*n;k++){const i=k%n,m=ms[i];if(m.type==='droite'){l+=m.fin-m.debut;continue;}
+    if(l>meilleur.l) meilleur={l,suivant:def.morceaux[i]};l=0;}
+  return meilleur;}
+
+const longueurs={};
+for(const [cle,def] of Object.entries(CIRCUITS_OFFICIELS_B)){
+  const c=construireCircuit(def);
+  let k=0;for(let i=0;i<c.nb;i++) k=Math.max(k,Math.abs(c.courbure[i]));
+  const droite=plusLongueDroite(def,c);longueurs[cle]=c.longueur;
+  L.push('  ('+def.nom+' : '+(c.longueur/1000).toFixed(2)+' km, largeur '+def.largeur+' m, rayon le plus serré '+(1/k).toFixed(1)+' m, plus longue droite '+droite.l.toFixed(0)+' m)');
+  t(cle+' : refermé à moins de 1 m', ()=>{v(c.fermeture<1,c.fermeture.toFixed(3)+' m');});
+  t(cle+' : aucun croisement (à plus de 100 m le long du tour, deux points restent à plus de largeur + 2 × DISTANCE_BARRIERE)', ()=>{
+    const seuil=c.largeur+2*REGLAGES.DISTANCE_BARRIERE;let pire=Infinity,ou='';
+    for(let i=0;i<c.nb;i++) for(let j=i+1;j<c.nb;j++){const ds=Math.min(c.s[j]-c.s[i],c.longueur-(c.s[j]-c.s[i]));if(ds<=100) continue;
+      const d=Math.hypot(c.x[i]-c.x[j],c.z[i]-c.z[j]);if(d<pire){pire=d;ou='s = '+c.s[i].toFixed(0)+' / '+c.s[j].toFixed(0);}}
+    L.push('    (écart le plus petit '+pire.toFixed(1)+' m ('+ou+'), il faut plus de '+seuil+' m)');v(pire>seuil,pire.toFixed(1)+' m, '+ou);});
+  t(cle+' : longueur entre 3,5 et 7 km', ()=>{v(c.longueur>=LONGUEUR_MIN&&c.longueur<=LONGUEUR_MAX,c.longueur.toFixed(0)+' m');});
+  t(cle+' : largeur entre 12 et 15 m', ()=>{v(def.largeur>=12&&def.largeur<=15,def.largeur+' m');});
+  t(cle+' : aucun virage plus serré que la demi-largeur', ()=>{v(1/k>=c.largeur/2,(1/k).toFixed(1)+' m');});
+  t(cle+' : un point de dépassement (une droite d’au moins 400 m qui finit dans un virage de rayon ≤ 50 m)', ()=>{
+    let trouve=false;const ms=c.morceaux,n=ms.length;let l=0;
+    for(let k2=0;k2<2*n;k2++){const i=k2%n,m=ms[i];if(m.type==='droite'){l+=m.fin-m.debut;continue;}
+      if(l>=DEPASSEMENT_DROITE&&def.morceaux[i][1]<=DEPASSEMENT_RAYON) trouve=true;l=0;}
+    v(trouve,'aucun');});
+  t(cle+' : nom, secteurs croissants dans [0, 1), départ [0, 0, 0]', ()=>{v(typeof def.nom==='string'&&def.nom.length>0);
+    v(def.secteurs.length===3&&def.secteurs[0]===0&&def.secteurs[1]>0&&def.secteurs[2]>def.secteurs[1]&&def.secteurs[2]<1,JSON.stringify(def.secteurs));
+    v(JSON.stringify(def.depart)==='[0,0,0]');});
+  // le tracé vu de dessus (le point rouge : la ligne ; le gris clair : le sens)
+  let mx=Infinity,Mx=-Infinity,mz=Infinity,Mz=-Infinity;for(let i=0;i<c.nb;i++){mx=Math.min(mx,c.x[i]);Mx=Math.max(Mx,c.x[i]);mz=Math.min(mz,c.z[i]);Mz=Math.max(Mz,c.z[i]);}
+  const T=300,m=12,e=(T-2*m)/Math.max(Mx-mx,Mz-mz),P=i=>((c.x[i]-mx)*e+m).toFixed(1)+','+((c.z[i]-mz)*e+m).toFixed(1);
+  let d='M'+P(0);for(let i=4;i<c.nb;i+=4) d+='L'+P(i);d+='Z';let sens='M'+P(0);for(let i=4;i<120&&i<c.nb;i+=4) sens+='L'+P(i);
+  document.getElementById('dessins').insertAdjacentHTML('beforeend','<figure style="display:inline-block;margin:6px"><svg width="'+T+'" height="'+T+'"><path d="'+d+'" fill="none" stroke="#333" stroke-width="'+Math.max(2,c.largeur*e)+'" stroke-linejoin="round"/><path d="'+sens+'" fill="none" stroke="#bbb" stroke-width="'+Math.max(2,c.largeur*e)+'"/><circle cx="'+P(0).split(',')[0]+'" cy="'+P(0).split(',')[1]+'" r="5" fill="red"/></svg><figcaption>'+def.nom+' — '+(c.longueur/1000).toFixed(2)+' km</figcaption></figure>');
+}
+t('Yas Marino (le « giant loop ») est le plus long des 6', ()=>{const max=Math.max(...Object.values(longueurs));v(longueurs.yasmarino===max,JSON.stringify(longueurs));});
+t('les noms ne sont pas ceux des circuits d’essai et les clés sont nouvelles', ()=>{for(const cle of Object.keys(CIRCUITS_OFFICIELS_B)) v(!(cle in CIRCUITS),cle);});
+t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
+document.getElementById('res').textContent=`RESULTAT ${ok}/${ok+ko}\n`+L.join('\n');
+</script></body></html>

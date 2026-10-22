@@ -1,0 +1,56 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>tests des pneus</title></head><body>
+<pre id="res"></pre>
+<script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));</script>
+<script src="../pneus-donnees.js"></script><script src="../pneus.js"></script>
+<script>
+// les pneus (étape 7) en calcul pur : seulement pneus-donnees.js et pneus.js, sans le reste du jeu
+const L=[];let ok=0,ko=0;
+function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
+const v=(c,m)=>{if(!c)throw new Error(m||'faux');};
+const P=REGLAGES_PNEUS, DT=1/120;
+// une voiture « comme creerVoiture » : u vers l'avant, v de côté (m/s), frein 0–1, herbe
+const voiture=(u,cote=0,frein=0,herbe=false)=>({u,v:cote,frein,surHerbe:herbe});
+// rouler n secondes dans un état donné
+function rouler(etat,vt,secondes,gestion){for(let k=0;k<Math.round(secondes/DT);k++) pasPneus(etat,vt,DT,gestion);return etat.usure;}
+
+t('des pneus neufs : usure 0, aucun arrêt', ()=>{const e=creerPneus();v(e.usure===0&&e.arrets===0);});
+t('l’usure monte quand on roule tout droit', ()=>{const e=creerPneus();const a=rouler(e,voiture(60),5);const b=rouler(e,voiture(60),5);v(a>0&&b>a,a+' puis '+b);});
+t('à l’arrêt, l’usure ne bouge pas', ()=>{const e=creerPneus();v(rouler(e,voiture(0),10)===0);});
+t('en glissant de côté, l’usure monte plus vite', ()=>{const d=rouler(creerPneus(),voiture(50),10),g=rouler(creerPneus(),voiture(50,2),10);
+  L.push('  (10 s à 50 m/s : droit '+d.toFixed(4)+', en glissant à 2 m/s '+g.toFixed(4)+')');v(g>2*d,g+' contre '+d);});
+t('plus on glisse, plus ça use', ()=>{v(tauxUsure(voiture(50,3))>tauxUsure(voiture(50,1)));});
+t('un freinage fort use plus qu’un freinage léger (sous le seuil, rien de plus)', ()=>{
+  const sans=tauxUsure(voiture(60)),leger=tauxUsure(voiture(60,0,P.SEUIL_FREIN_FORT)),fort=tauxUsure(voiture(60,0,1));
+  v(leger===sans,'léger '+leger+' / '+sans);v(fort>sans,'fort '+fort);});
+t('l’herbe use plus que la piste', ()=>{v(tauxUsure(voiture(40,0,0,true))>tauxUsure(voiture(40)));});
+t('la gestion des pneus ralentit l’usure (0 > 0,5 > 1)', ()=>{const vt=voiture(55,1.5,0.8);
+  const a=tauxUsure(vt,0),b=tauxUsure(vt,0.5),c=tauxUsure(vt,1);v(a>b&&b>c,a+' '+b+' '+c);
+  v(Math.abs(c/a-(1-P.GESTION_EFFET_MAX))<1e-12,'gestion 1 : × '+(c/a));});
+t('la gestion est bornée entre 0 et 1', ()=>{const vt=voiture(55,1.5);v(tauxUsure(vt,5)===tauxUsure(vt,1)&&tauxUsure(vt,-2)===tauxUsure(vt,0));});
+t('sans gestion donnée : celle d’un pilote moyen', ()=>{const vt=voiture(55,1.5);v(tauxUsure(vt)===tauxUsure(vt,P.GESTION_MOYENNE));});
+t('en marche arrière aussi, l’usure monte (jamais négative)', ()=>{v(tauxUsure(voiture(-2,-0.5))>0);});
+t('la jauge s’arrête à 1 (pneus morts)', ()=>{const e=creerPneus();rouler(e,voiture(80,5,1,true),600);v(e.usure===P.USURE_MAX,e.usure);});
+
+t('adhérence : exactement 1 avec des pneus neufs', ()=>{v(facteurAdherence(0)===1);});
+t('adhérence : baisse avec l’usure, sans jamais remonter', ()=>{let avant=1;for(let u=0.05;u<=1.0001;u+=0.05){const f=facteurAdherence(u);v(f<avant,'à '+u.toFixed(2));avant=f;}});
+t('adhérence : baisse douce au début (moins de 1 % à usure 0,25)', ()=>{v(1-facteurAdherence(0.25)<0.01,facteurAdherence(0.25));});
+t('adhérence : à usure 1, exactement 1 - '+P.PERTE_ADHERENCE_MAX, ()=>{v(Math.abs(facteurAdherence(1)-(1-P.PERTE_ADHERENCE_MAX))<1e-12,facteurAdherence(1));});
+t('adhérence : jamais sous la limite, jamais au-dessus de 1 (même hors de 0–1)', ()=>{for(const u of [-1,0,0.3,0.7,1,1.5,10]){const f=facteurAdherence(u);v(f>=1-P.PERTE_ADHERENCE_MAX-1e-12&&f<=1,u+' → '+f);}});
+t('au plus −8 % (CLAUDE.md : « un peu d’adhérence »)', ()=>{v(P.PERTE_ADHERENCE_MAX>0&&P.PERTE_ADHERENCE_MAX<=0.08);});
+
+t('arrêt au stand : usure remise à 0, arrêt compté', ()=>{const e=creerPneus();rouler(e,voiture(60,2),60);v(e.usure>0);arretAuStand(e);v(e.usure===0&&e.arrets===1);arretAuStand(e);v(e.arrets===2);});
+t('arrêt au stand : durée de base sans changeurs améliorés', ()=>{v(arretAuStand(creerPneus())===P.ARRET_DUREE_BASE);v(dureeArret(0)===P.ARRET_DUREE_BASE);});
+t('les changeurs de roues raccourcissent l’arrêt', ()=>{const d1=arretAuStand(creerPneus(),1),d2=arretAuStand(creerPneus(),2);
+  v(Math.abs(d1-P.ARRET_DUREE_BASE*(1-P.CHANGEURS_GAIN_PAR_NIVEAU))<1e-12,d1);v(d2<d1);});
+t('l’amélioration des changeurs est plafonnée', ()=>{const min=P.ARRET_DUREE_BASE*(1-P.CHANGEURS_GAIN_MAX);
+  v(Math.abs(dureeArret(100)-min)<1e-12,dureeArret(100));v(dureeArret(100)===dureeArret(1000));v(dureeArret(-3)===P.ARRET_DUREE_BASE);});
+
+t('arrêt obligatoire : oui en 12 et 18 tours', ()=>{v(arretObligatoire(12)&&arretObligatoire(18));});
+t('arrêt obligatoire : non en 5 tours ni en essai libre (0)', ()=>{v(!arretObligatoire(5)&&!arretObligatoire(0));});
+t('pénalité sans arrêt : en 12 et 18 tours sans s’arrêter', ()=>{for(const n of [12,18]) v(penaliteSansArret(creerPneus(),n)===P.PENALITE_SANS_ARRET,n+' tours');});
+t('pas de pénalité après un arrêt, ni en 5 tours', ()=>{const e=creerPneus();arretAuStand(e);v(penaliteSansArret(e,12)===0&&penaliteSansArret(e,18)===0);v(penaliteSansArret(creerPneus(),5)===0);});
+t('la pénalité coûte plus que l’arrêt lui-même', ()=>{v(P.PENALITE_SANS_ARRET>P.ARRET_DUREE_BASE);});
+
+t('aucune erreur JavaScript sur la page', ()=>{v(window.__err.length===0,window.__err.join(' | '));});
+document.getElementById('res').textContent=`RESULTAT ${ok}/${ok+ko}\n`+L.join('\n');
+</script></body></html>

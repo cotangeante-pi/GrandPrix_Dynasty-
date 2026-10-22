@@ -1,0 +1,96 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>tests des textes</title></head><body>
+<pre id="res"></pre>
+<script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));</script>
+<script>
+// Cette page sert aussi de « cadre » : ouverte avec ?cadre=xx-YY, elle fait croire à textes.js que le navigateur
+// est dans cette langue (avant qu'il ne la lise), puis envoie à la page de test ce que renvoie texte().
+const CADRE = new URLSearchParams(location.search).get('cadre');
+if (CADRE && CADRE !== 'aucun') Object.defineProperty(navigator, 'language', { get: () => CADRE, configurable: true });
+</script>
+<script src="../textes.js"></script>
+<script>
+if (CADRE) {
+  // le cadre : la langue choisie et quelques textes, envoyés à la page de test
+  parent.postMessage({ cadre: location.search, langue: LANGUE, horsPiste: texte('horsPiste'), pause: texte('reprendre'), nom: texte('nomDuJeu') }, '*');
+} else {
+const L=[];let ok=0,ko=0;
+function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
+const v=(c,m)=>{if(!c)throw new Error(m||'faux');};
+function ecrire(etape){document.getElementById('res').textContent=`${etape?'EN COURS ('+etape+') ':''}RESULTAT ${ok}/${ok+ko}\n`+L.join('\n');}
+
+// une valeur est « remplie » : une chaîne non vide, ou une liste de chaînes non vides
+const remplie = x => typeof x === 'string' ? x.trim() !== '' : Array.isArray(x) && x.length > 0 && x.every(remplie);
+const morceaux = x => Array.isArray(x) ? x : [x];
+const en = Object.keys(TEXTES.en), fr = Object.keys(TEXTES.fr);
+
+// --- les deux langues ont les mêmes clés
+t('il y a des textes en anglais et en français', ()=>{v(en.length>0&&fr.length>0, en.length+' / '+fr.length);});
+t('chaque clé anglaise existe en français', ()=>{const m=en.filter(k=>!(k in TEXTES.fr));v(!m.length,'manquent : '+m.join(', '));});
+t('chaque clé française existe en anglais', ()=>{const m=fr.filter(k=>!(k in TEXTES.en));v(!m.length,'manquent : '+m.join(', '));});
+// --- chaque clé, une par une : en et fr non vides
+for (const k of new Set([...en, ...fr]))
+  t('« '+k+' » : anglais et français non vides', ()=>{v(remplie(TEXTES.en[k]),'anglais vide');v(remplie(TEXTES.fr[k]),'français vide');});
+// --- les listes (colonnes du tableau) ont autant d'éléments dans les deux langues
+for (const k of en.filter(k=>Array.isArray(TEXTES.en[k])))
+  t('« '+k+' » : autant d’éléments en anglais et en français', ()=>{v(TEXTES.en[k].length===(TEXTES.fr[k]||[]).length,TEXTES.en[k].length+' / '+(TEXTES.fr[k]||[]).length);});
+// --- les {s} et {n} à remplacer sont les mêmes dans les deux langues
+t('les trous {…} sont les mêmes en anglais et en français', ()=>{const trous=x=>morceaux(x).join(' ').match(/\{[a-z]+\}/g)||[];
+  const m=en.filter(k=>trous(TEXTES.en[k]).sort().join()!==trous(TEXTES.fr[k]).sort().join());v(!m.length,m.join(', '));});
+
+// --- le nom : jamais « F1 » ni « Formula 1 » dans un texte, le nom par sa clé
+t('aucun texte ne contient « F1 » ni « Formula 1 »', ()=>{const m=[];
+  for (const l of ['en','fr']) for (const k of Object.keys(TEXTES[l])) for (const s of morceaux(TEXTES[l][k]))
+    if (/\bF1\b|formula\s*1|formule\s*1/i.test(s)) m.push(l+'.'+k+' = '+s);
+  v(!m.length,m.join(' ; '));});
+t('le nom du jeu est « Grand Prix Dynasty », le même dans les deux langues', ()=>{v(TEXTES.en.nomDuJeu==='Grand Prix Dynasty',TEXTES.en.nomDuJeu);v(TEXTES.fr.nomDuJeu==='Grand Prix Dynasty',TEXTES.fr.nomDuJeu);});
+t('« Grand Prix Dynasty » n’apparaît que par sa clé nomDuJeu', ()=>{const m=[];
+  for (const l of ['en','fr']) for (const k of Object.keys(TEXTES[l])) if (k!=='nomDuJeu') for (const s of morceaux(TEXTES[l][k]))
+    if (/dynasty/i.test(s)) m.push(l+'.'+k);
+  v(!m.length,m.join(', '));});
+
+// --- les clés que le jeu demande (relevées le 2026-10-22, rapports/audit-textes.md) existent toutes
+const UTILISEES = ['aideConduite','attenteArrivee','changerLongueur','choixTitre','classementEcuries','classementPilotes','colonnesResultats',
+  'continuer','courseSuivante','enCourse','fauxDepart','fin','finChampionnat','go','grandPrix','horsPiste','kmh','meilleurTour','nouveauRecord',
+  'passerPodium','pause','penalite','penalites','podium','pointsGagnes','preparation','pts','recommencer','record','reglagesCopier',
+  'reglagesRienChange','reglagesTitre','rejouer','reprendre','resultats','secteur','son','tempsTotal','tour','tourPrecedent','tourRetard',
+  'tours','toursRetard','toursSansFin','virgule','voirResultats','tresCourte','moyenne','longue','essaiLibre'];
+t('chaque clé demandée par le jeu existe', ()=>{const m=UTILISEES.filter(k=>!(k in TEXTES.en));v(!m.length,m.join(', '));});
+
+// --- texte() dans cette page : la langue du navigateur de test
+t('LANGUE vaut « en » ou « fr »', ()=>{v(LANGUE==='en'||LANGUE==='fr',LANGUE);});
+t('texte() renvoie la valeur de la langue choisie', ()=>{for (const k of en) v(JSON.stringify(texte(k))===JSON.stringify(TEXTES[LANGUE][k]),k);});
+t('une clé inconnue donne undefined (pas d’erreur)', ()=>{v(texte('cleQuiNExistePas')===undefined);});
+
+// --- texte() selon le navigateur : des cadres qui rechargent textes.js en simulant une autre langue
+const ATTENDU = {
+  '?cadre=en-US': 'en', '?cadre=en-GB': 'en', '?cadre=de-DE': 'en',   // anglais par défaut, même pour une autre langue
+  '?cadre=fr-FR': 'fr', '?cadre=fr': 'fr', '?cadre=fr-CA': 'fr', '?cadre=FR-be': 'fr',
+  '?cadre=fr-FR&lang=en': 'en', '?cadre=en-US&lang=fr': 'fr',           // ?lang= force la langue
+  '?cadre=en-US&lang=xx': 'en',                                          // une langue inconnue est ignorée
+};
+const recus = {};
+window.addEventListener('message', e => {
+  if (!e.data || !e.data.cadre) return;
+  recus[e.data.cadre] = e.data;
+  if (Object.keys(recus).length < Object.keys(ATTENDU).length) return;
+  for (const [cadre, langue] of Object.entries(ATTENDU)) {
+    const r = recus[cadre];
+    t('navigateur '+cadre.replace('?cadre=','').replace('&',' + ')+' → '+langue, ()=>{
+      v(r.langue===langue,'LANGUE = '+r.langue);
+      v(r.horsPiste===TEXTES[langue].horsPiste,'horsPiste = '+r.horsPiste);
+      v(r.pause===TEXTES[langue].reprendre,'reprendre = '+r.pause);
+      v(r.nom==='Grand Prix Dynasty','nomDuJeu = '+r.nom);
+    });
+  }
+  t('aucune erreur JavaScript', ()=>{v(!__err.length,__err.join(' | '));});
+  ecrire();
+});
+for (const cadre of Object.keys(ATTENDU)) {
+  const f = document.createElement('iframe');
+  f.src = 'textes.html' + cadre; f.style.display = 'none';
+  document.body.appendChild(f);
+}
+ecrire('attente des cadres');
+}
+</script>
+</body></html>
