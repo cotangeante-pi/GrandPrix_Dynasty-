@@ -1,0 +1,48 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>tests circuits officiels A</title></head><body>
+<pre id="res"></pre>
+<script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));</script>
+<script src="../donnees.js"></script><script src="../circuits.js"></script><script src="../circuits-officiels-a.js"></script>
+<script>
+// Les tracés de 6 circuits officiels (CIRCUITS_OFFICIELS_A) : fermés, sans croisement, à la bonne longueur, pas trop serrés
+const L=[];let ok=0,ko=0;
+function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
+const v=(c,m)=>{if(!c)throw new Error(m||'faux');};
+function ecrire(etape){document.getElementById('res').textContent=`${etape?'EN COURS ('+etape+') ':''}RESULTAT ${ok}/${ok+ko}\n`+L.join('\n');}
+
+// la plage de longueur de chaque circuit (m), selon son caractère ; toutes entre 3,3 et 6,5 km
+const PLAGES={monoco:[3300,3500],silverstoun:[5600,6000],monzo:[5500,5900],spaa:[6200,6500],suzuko:[5400,5800],interlagas:[4100,4400]};
+const SENS={interlagas:-1};   // Interlagas tourne dans l'autre sens (à gauche)
+// les droites qui se suivent comptent pour une seule ; [longueur (m), morceau qui suit]
+function droites(def,c){const m=c.morceaux,n=m.length,res=[];let i0=0;while(i0<n&&m[i0].type==='droite') i0++;
+  // on part d'un virage, pour ne pas couper une droite en deux à la ligne
+  let lg=0;for(let k=1;k<=n;k++){const i=(i0+k)%n;if(m[i].type==='droite') lg+=m[i].fin-m[i].debut;else{if(lg>0) res.push([lg,def.morceaux[i]]);lg=0;}}
+  return res;}
+
+t('CIRCUITS_OFFICIELS_A : 6 circuits, Monoco, Silverstoun, Monzo, Spaa, Suzuko, Interlagas', ()=>{v(Object.keys(CIRCUITS_OFFICIELS_A).join()==='monoco,silverstoun,monzo,spaa,suzuko,interlagas',Object.keys(CIRCUITS_OFFICIELS_A).join());});
+for(const [cle,def] of Object.entries(CIRCUITS_OFFICIELS_A)){
+  let c=null;
+  t(def.nom+' : se construit (construireCircuit), décrit par morceaux, 3 secteurs', ()=>{c=construireCircuit(def);v(!!def.morceaux&&def.morceaux.length>5);v(c.nb>1000,c.nb+' échantillons');
+    v(def.secteurs.length===3&&def.secteurs[0]===0&&def.secteurs[1]<def.secteurs[2]&&def.secteurs[2]<1,'secteurs');});
+  if(!c) continue;
+  const [lo,hi]=PLAGES[cle],ds=droites(def,c);
+  let k=0;for(let i=0;i<c.nb;i++) k=Math.max(k,Math.abs(c.courbure[i]));
+  const plusLongue=Math.max(...ds.map(d=>d[0]));
+  L.push(`  (${def.nom} : ${(c.longueur/1000).toFixed(3)} km, largeur ${def.largeur} m, rayon le plus serré ${(1/k).toFixed(1)} m, plus longue droite ${plusLongue.toFixed(0)} m, fermeture ${c.fermeture.toFixed(4)} m)`);
+  t(def.nom+' : refermé à moins de 1 m', ()=>{v(c.fermeture<1,c.fermeture+' m');});
+  t(def.nom+' : les virages font un tour complet, dans le bon sens', ()=>{const s=def.morceaux.reduce((a,m)=>a+(m[0]==='virage'?m[2]:0),0);v(Math.abs(s-360*(SENS[cle]||1))<1e-6,s+'°');});
+  t(def.nom+' : longueur entre '+lo/1000+' et '+hi/1000+' km (et entre 3,3 et 6,5)', ()=>{v(c.longueur>=lo&&c.longueur<=hi&&c.longueur>=3300&&c.longueur<=6500,c.longueur.toFixed(1)+' m');});
+  t(def.nom+' : largeur '+(cle==='monoco'?'10 à 12 (plus étroit)':'12 à 15'), ()=>{v(cle==='monoco'?def.largeur>=10&&def.largeur<=12:def.largeur>=12&&def.largeur<=15,def.largeur+' m');});
+  t(def.nom+' : aucun croisement (à plus de 100 m le long du tour, deux points restent à plus de largeur + 2 × DISTANCE_BARRIERE)', ()=>{
+    const seuil=c.largeur+2*REGLAGES.DISTANCE_BARRIERE;let pire=Infinity,ou='';
+    for(let i=0;i<c.nb;i++) for(let j=i+1;j<c.nb;j++){const d_=Math.min(c.s[j]-c.s[i],c.longueur-(c.s[j]-c.s[i]));if(d_<=100) continue;
+      const d=Math.hypot(c.x[i]-c.x[j],c.z[i]-c.z[j]);if(d<pire){pire=d;ou='s = '+c.s[i].toFixed(0)+' / '+c.s[j].toFixed(0);}}
+    L.push(`  (${def.nom} : écart le plus petit ${pire.toFixed(1)} m (${ou}), il faut plus de ${seuil} m)`);v(pire>seuil,pire.toFixed(1)+' m, '+ou);});
+  t(def.nom+' : rayon le plus serré au moins la demi-largeur', ()=>{v(1/k>=c.largeur/2,(1/k).toFixed(1)+' m');});
+  if(cle!=='monoco')
+    t(def.nom+' : un vrai point de dépassement (une droite ≥ 400 m qui finit par un freinage fort : rayon ≤ 50 m)', ()=>{
+      v(ds.some(([lg,m])=>lg>=400&&m[1]<=50),ds.map(d=>d[0].toFixed(0)+' → r'+d[1][1]).join(', '));});
+  ecrire(def.nom);
+}
+t('la console reste vide', ()=>{v(__err.length===0,__err.join(' | '));});
+ecrire();
+</script></body></html>
