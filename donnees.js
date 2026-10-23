@@ -246,8 +246,8 @@ const REGLAGES = {
   IA_ESPACE_LAISSE: 1.5,        // m : … une largeur de voiture plus ça, jusqu'à la sortie du virage
   // la façon de piloter de chaque IA, tirée avec la graine
   IA_STYLE_APEX: [-5, 5],       // m : point de corde plus tôt (< 0) ou plus tard
-  IA_STYLE_CORDE: [0, 3.5],     // m de largeur de piste qu'il n'utilise pas près des virages (0 = il va d'un bord à l'autre ; tour 22 : 2,5 → 3,5, pour que les styles se voient encore à l'épingle)
-  IA_STYLE_MARGE_BORD: [1.1, 2.6],// m : marge au bord (petite = prend des risques ; tour 22 : 2 → 2,6)
+  IA_STYLE_CORDE: [0, 2.5],     // m de largeur de piste qu'il n'utilise pas près des virages (0 = il va d'un bord à l'autre)
+  IA_STYLE_MARGE_BORD: [1.1, 2],// m : marge au bord (petite = prend des risques)
   IA_STYLE_FREIN: [0.92, 1],    // part du freinage qu'il ose
   IA_VARIATION_APEX: 2,         // m : d'un tour à l'autre, le point de corde varie de ±2 m…
   IA_VARIATION_COTE: 0.4,       // m : … et sa place sur la piste de ±0,4 m
