@@ -95,7 +95,25 @@ const REGLAGES = {
   FEUX_NB: 5,                   // cinq feux rouges…
   FEUX_INTERVALLE: 1,           // s : … qui s'allument un par un, un par seconde
   FEUX_DELAI: [0.8, 2.6],       // s : puis tous éteints après ce délai, tiré avec la graine : c'est le départ
-  FEUX_REACTION_IA: [0.15, 0.45], // s : le temps de réaction de chaque IA à l'extinction, tiré avec la graine
+  FEUX_REACTION_IA: [0.15, 0.45], // s : les bornes humaines du temps de réaction d'une IA à l'extinction (depart.js, tirerIA)
+  // le départ parfait (depart.js, étape 5) : le régime de départ (0 à 1, pas celui de boite.js), tenu avec l'accélérateur pendant
+  // les feux ; à l'extinction, on lâche puis on réappuie. La sensation (montée, zone verte, sévérité) est à juger par le propriétaire (?reglages=1)
+  DEPART_MONTEE: 0.9,           // par seconde : la montée de l'aiguille quand on tient la touche (0 → 1 en 1,1 s)
+  DEPART_DESCENTE: 0.6,         // par seconde : sa descente quand on la lâche
+  DEPART_VERT: [0.55, 0.75],    // la zone verte de la jauge…
+  DEPART_BORD: 0.06,            // … et la marge autour, où le départ est seulement « bon »
+  DEPART_REACTION_PARFAITE: 0.3, // s : réaction au plus égale à ça, régime dans le vert = départ parfait ; plus lente = bon
+  DEPART_ANTICIPATION: 0.1,     // s : un appui moins de ça après l'extinction (ou dans ce délai avant) est un faux départ
+  // les effets, [facteur sur la force du moteur, durée en s] : parfait et faux = la voiture normale (jamais un bonus)
+  DEPART_BON: [0.85, 1],
+  DEPART_PATINAGE: [0.5, 1.5],
+  DEPART_CALE: [0.3, 1.5],
+  DEPART_AFFICHAGE: 1.5,        // s : le résultat et le temps de réaction restent affichés ce temps
+  DEPART_ROBOT_REACTION: 0.2,   // s : le robot d'essai (tests) fait toujours un départ parfait, après ce temps
+  // les IA (tirerIA) : la part de la plage FEUX_REACTION_IA qu'un pilote parfaitement régulier garde (le reste vient de son irrégularité)
+  DEPART_IA_REACTION_BASE: 0.35,
+  DEPART_IA_RATE: [0.04, 0.35], // la probabilité de sortir du vert (patinage ou calé), du pilote qui fait le moins d'erreurs à celui qui en fait le plus
+  DEPART_IA_FAUX: 0.01,         // la probabilité d'un faux départ (anticipation), rare
   FAUX_DEPART_VITESSE: 0.5,     // m/s : le joueur qui roule plus vite avant l'extinction fait un faux départ
   PENALITE_FAUX_DEPART: 5,      // s ajoutées au temps total (comme le virage coupé)
   // après l'arrivée du joueur (arrivee.js) : la vue télé sur les autres, puis le podium
@@ -264,6 +282,11 @@ const REGLAGES = {
   SIMULATION_MARGE_DEVANT: 6,   // m : une voiture est devant une autre à partir de cet écart (un dépassement compte quand ça change)
   SIMULATION_TEMPS_MAX: 150,    // s par tour : une course simulée s'arrête là, même si des voitures n'ont pas fini
   RADAR_RAYON: 150,             // m : le radar montre la piste et les voitures jusque-là autour du joueur
+  // le fantôme du meilleur tour (fantome.js, étape 5) : le tour de qualification enregistré avec l'enregistreur
+  FANTOME_PAS: 0.1,             // s entre deux images du fantôme (un nombre entier de pas de physique : 12) ; le rejeu interpole entre elles
+  FANTOME_DECIMALES: 2,         // les positions et distances sont arrondies au cm dans la sauvegarde (compact)
+  FANTOME_COULEUR: 0xdfe3ea,    // une couleur neutre, claire…
+  FANTOME_OPACITE: 0.45,        // … et légèrement transparente
   // le podium 3D (podium3d.js)
   PODIUM_DISTANCE: 30,          // m : à cette distance du bord gauche de la piste, en face de la ligne
   PODIUM_LARGEUR: 6.5,          // m : la largeur d'une marche…

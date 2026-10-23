@@ -9,6 +9,7 @@
 //   enr.momentsForts()           → [{ type, temps, debut, fin, importance, qui, sur, ... }] triés par début
 //   enr.resume(dureeMax)         → [{ debut, fin, moments }] : les plages à rejouer, triées, au total ≤ dureeMax
 //   enr.octets()                 → la mémoire prise par les tableaux typés
+//   enr.temps(i)                 → l'instant de l'image i (lire(enr.temps(i)) redonne exactement cette image : le fantôme)
 //
 // Une voiture : { x, z, cap } et, si on les a, la vitesse (vitesse, ou u comme dans physique.js) et un indicateur de
 // sortie de piste (surHerbe comme dans physique.js, ou horsPiste, ou ecartPiste : les mètres hors de la piste, > 0 = dehors).
@@ -295,6 +296,7 @@ function creerEnregistreur(nbVoitures, options = {}) {
     enregistrer, lire, momentsForts, resume, octets, dureePlages,
     depart(t) { tGo = t; },
     arrivee(t, k) { if (!arrivees.some(a => a.k === k)) arrivees.push({ temps: t, k }); },
+    temps(i) { return tempsImage(i); },
     get nbImages() { return nbImages; },
     get debut() { return nbImages ? tempsImage(0) : null; },
     get fin() { return nbImages ? tempsImage(nbImages - 1) : null; },

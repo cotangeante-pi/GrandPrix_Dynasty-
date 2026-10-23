@@ -42,7 +42,12 @@ const JEU = {
   qualif: null,         // contre les IA, avant la course : la qualification du joueur { etat (choix, tour, attente, resultat), q (qualification.js), v (sa voiture du tour), passe }
   attente: null,        // contre les IA, après l'arrivée du joueur : { tele (la voiture suivie par la caméra télé), camera (celle d'avant), passer }
   sdkPret: false,       // SDK.init fini (sdk.js) : à partir de là, gameplayStart / gameplayStop suivent l'écran
-  enregistreur: null,   // l'enregistrement de la course en cours (enregistreur.js, étape 13), voir creerEnregistrement
+  enregistreur: null,   // l'enregistrement de la course en cours (enregistreur.js, étape 13), voir creerEnregistreur
+  // le fantôme du meilleur tour (fantome.js), pendant le tour de qualification seulement : { rejeu (le record du circuit chargé,
+  // ou null s'il n'y en a pas), tour (l'enregistrement du tour en cours), ecart (en direct, s), visible (l'option), roues (rad) }
+  fantome: null,
+  modeleFantome: null,  // sa voiture 3D transparente (voiture3d.js), créée une fois, visible seulement pendant le tour
+  departRecord: false,  // le départ parfait (depart.js) : le lancement du joueur a battu son record de temps de réaction (sauvegardé)
 };
 
 // les caméras de survol n'ont pas de course
@@ -87,6 +92,8 @@ function lancerCourse(nbTours) {
   JEU.joueur.pneus = REGLAGES.PNEUS_ACTIFS && (JEU.contre || !JEU.plateau) ? creerPneus() : null;
   JEU.joueur.adherence = 1;
   JEU.enregistreur = creerEnregistrement();
+  JEU.fantome = null;   // le fantôme ne vit que pendant le tour de qualification (commencerFantome)
+  JEU.departRecord = false;
   finirAttente();
   PODIUM3D.cacher();
   // contre les IA : d'abord la qualification du joueur (un tour, ou passer) ; la course attend
@@ -113,7 +120,60 @@ function faireMonTour() {
   JEU.joueur = v;                     // la caméra, le tableau et le chrono suivent la voiture du tour
   JEU.course = JEU.qualif.q.course;
   JEU.signal = null;
+  commencerFantome();
   INTERFACE.montrer('course');        // le bandeau de course (chrono, secteurs), sans la tour ni le radar
+}
+
+// le fantôme du meilleur tour (fantome.js) : le record du circuit est chargé pour être rejoué pendant le tour, et le tour
+// qui commence est enregistré (le même enregistreur que la course, pour une voiture)
+function commencerFantome() {
+  JEU.fantome = { rejeu: FANTOME.charger(SAUVEGARDE.fantome(NOM_CIRCUIT)), tour: FANTOME.commencer(), ecart: null, visible: SAUVEGARDE.option('fantome', true), roues: 0 };
+  if (JEU.fantome.rejeu && !JEU.modeleFantome) {
+    JEU.modeleFantome = VOITURE3D.creerFantome(REGLAGES.FANTOME_COULEUR, REGLAGES.FANTOME_OPACITE);
+    SCENE3D.ajouter(JEU.modeleFantome.groupe);
+  }
+}
+
+// à chaque pas du tour lancé : la position du joueur est notée (fini : le pas de l'arrivée, avec le temps et la distance du tour)
+// et l'écart en direct avec le fantôme est calculé à distance égale
+function noterFantome(q, v, fini) {
+  const f = JEU.fantome;
+  if (!f) return;
+  const t = fini ? q.temps : QUALIFICATION.chrono(q), s = fini ? q.fin : QUALIFICATION.distance(q);
+  if (t !== null) FANTOME.noter(f.tour, t, v, s);
+  if (f.rejeu) f.ecart = fini ? (q.temps === null ? null : FANTOME.ecartFinal(f.rejeu, q.temps)) : FANTOME.ecart(f.rejeu, t, s);
+}
+
+// le tour fini : s'il est valide et bat le record du circuit, son fantôme compact le remplace dans la sauvegarde ;
+// le résultat pour l'écran : { record, gagne, ecart } (remplirQualif)
+function finirFantome(q) {
+  const f = JEU.fantome;
+  if (!f || q.temps === null) return null;
+  const compact = FANTOME.compacter(f.tour, q.temps, q.fin);
+  const record = SAUVEGARDE.proposerFantome(NOM_CIRCUIT, compact, !q.valide);
+  const ecart = f.rejeu ? FANTOME.ecartFinal(f.rejeu, q.temps) : null;
+  return { record, gagne: record && ecart !== null ? -ecart : null, ecart: !record && ecart !== null ? ecart : null, taille: FANTOME.taille(compact) };
+}
+
+// le bouton « Fantôme : affiché / masqué » : l'option est sauvegardée, et le fantôme en cours la suit
+function basculerFantome() {
+  const visible = !SAUVEGARDE.option('fantome', true);
+  SAUVEGARDE.ecrireOption('fantome', visible);
+  if (JEU.fantome) JEU.fantome.visible = visible;
+  INTERFACE.majBoutonsFantome(visible);
+}
+
+// à chaque image : la voiture transparente du fantôme à sa position au chrono du tour (interpolée entre deux pas comme la
+// voiture du joueur), seulement pendant le tour lancé de la qualification ; jamais en course
+function majFantome(dt) {
+  const m = JEU.modeleFantome, f = JEU.fantome, q = JEU.qualif && JEU.qualif.q;
+  if (!m) return;
+  const visible = !!(f && f.rejeu && f.visible && enTourQualif() && q && q.lance && !q.fini);
+  m.groupe.visible = visible;
+  if (!visible) return;
+  const p = FANTOME.position(f.rejeu, QUALIFICATION.chrono(q) - (1 - JEU.alpha) * REGLAGES.PAS_PHYSIQUE);
+  f.roues = (f.roues + p.vitesse * dt / REGLAGES.RAYON_ROUE) % (2 * Math.PI);
+  VOITURE3D.placer(m, p, { braquage: 0, rotationRoues: f.roues });
 }
 
 function passerQualif() {
@@ -131,7 +191,9 @@ function pasTourQualif(pas) {
   else if (JEU.robot && permis) appliquerCommandes(v, piloteRobot(v, CIRCUIT));
   else lisserCommandes(v, permis ? JEU.cibles : AUCUNE, pas);
   pasVoiture(v, CIRCUIT, pas);
-  if (QUALIFICATION.pas(q, v, pas)) finirQualif();
+  const finiAvant = q.fini, fini = QUALIFICATION.pas(q, v, pas);
+  if (q.lance && !finiAvant) noterFantome(q, v, fini);   // le fantôme : le tour lancé, jusqu'au pas de l'arrivée
+  if (fini) { JEU.qualif.fantome = finirFantome(q); finirQualif(); }
 }
 
 // le tour est fini (ou passé) : la grille avec tous les temps, dès que les IA ont le leur (la carte), puis le résultat
@@ -142,7 +204,7 @@ function finirQualif() {
   const place = QUALIFICATION.grille(e, temps);
   suivre(JEU.suivie);   // JEU.joueur et JEU.course : de nouveau sa voiture de course, sur la grille
   JEU.qualif.etat = 'resultat';
-  INTERFACE.remplirQualif('resultat', { place, nb: e.pilotes.length, temps, valide: temps !== null, passe: JEU.qualif.passe, ecart: QUALIFICATION.ecartPole(e) });
+  INTERFACE.remplirQualif('resultat', { place, nb: e.pilotes.length, temps, valide: temps !== null, passe: JEU.qualif.passe, ecart: QUALIFICATION.ecartPole(e), fantome: JEU.qualif.fantome || null });
   JEU.ecran = 'qualif';
   INTERFACE.montrer('qualif');
 }
@@ -150,6 +212,7 @@ function finirQualif() {
 function partirEnCourse() {
   if (!JEU.qualif || JEU.qualif.etat !== 'resultat') return;
   JEU.qualif = null;
+  JEU.fantome = null;   // jamais de fantôme en course
   JEU.ecran = 'course';
   INTERFACE.montrer('course');
 }
@@ -348,9 +411,18 @@ const AUCUNE = { gaz: 0, frein: 0, direction: 0 }, FREIN_SEUL = { gaz: 0, frein:
 function conduireJoueur(p, pas) {
   if (JEU.remettre && courseAutorise(p.course)) remettreSurPiste(p.v, CIRCUIT);
   JEU.remettre = false;
-  // avant l'extinction des feux : faux départ ; après l'arrivée, sa voiture freine seule jusqu'à l'arrêt (les autres finissent leur course)
-  // ?robot=1 : le robot d'essai conduit sa voiture (tests), sans faux départ
-  const cibles = JEU.robot ? (courseAutorise(p.course) ? piloteRobot(p.v, CIRCUIT) : AUCUNE) : JEU.cibles;
+  // après l'arrivée, sa voiture freine seule jusqu'à l'arrêt (les autres finissent leur course)
+  // ?robot=1 : le robot d'essai conduit sa voiture (tests) ; il fait toujours un départ parfait, DEPART_ROBOT_REACTION après l'extinction
+  let cibles = JEU.robot ? (courseAutorise(p.course) ? piloteRobot(p.v, CIRCUIT) : AUCUNE) : JEU.cibles;
+  // le départ parfait (depart.js) : tant que la voiture n'est pas lancée, elle est tenue sur place ; la touche d'accélérateur
+  // règle le régime de départ, et la pression qui suit l'extinction est le lancement (ou un faux départ : anticipation)
+  const d = p.course.depart;
+  if (d && d.lance === null) {
+    if (JEU.robot) { if (d.extinction !== null && d.t - d.extinction >= REGLAGES.DEPART_ROBOT_REACTION) DEPART.lancer(d, 'parfait', REGLAGES.DEPART_ROBOT_REACTION); }
+    else DEPART.commande(d, JEU.cibles.gaz > 0, p.course.compte);
+    if (d.lance === null) cibles = AUCUNE;
+    else if (!JEU.robot && d.resultat !== 'faux') JEU.departRecord = SAUVEGARDE.proposerReaction(d.reaction);   // le record du temps de réaction (pas celui du robot)
+  }
   lisserCommandes(p.v, commandesPermises(p.course) ? cibles : p.course.etat === 'finie' ? FREIN_SEUL : AUCUNE, pas);
   pasPneusJoueur(p.v, pas);
 }
@@ -529,6 +601,8 @@ function demarrerJeu() {
   boutonPasser.addEventListener('mousedown', e => e.preventDefault());
   boutonPasser.addEventListener('click', passerAuPodium);
   INTERFACE.preparerQualif(faireMonTour, passerQualif, partirEnCourse);
+  INTERFACE.preparerFantome(basculerFantome);
+  INTERFACE.majBoutonsFantome(SAUVEGARDE.option('fantome', true));
   PODIUM3D.init(CIRCUIT);
   // ?course=5, 12, 18 ou 0 (essai libre) lance directement une course (tests, développement)
   const demandee = PARAMETRES.get('course');
@@ -569,6 +643,9 @@ function demarrerJeu() {
     }
     majTableau();
     INTERFACE.majCourse(JEU.course, enTourQualif() ? 'course' : JEU.ecran);   // le chrono du tour de qualification
+    majFantome(dt);
+    INTERFACE.majDepart(JEU.course, JEU.ecran, JEU.departRecord);
+    INTERFACE.majEcartFantome(enTourQualif() && JEU.fantome && JEU.fantome.rejeu && JEU.qualif.q.lance ? JEU.fantome.ecart : null);
     INTERFACE.majPreparation(JEU.ecran === 'course' && JEU.ia > 0 && !JEU.carte);
     majClassementRadar();
     signauxCourse(JEU.course);
