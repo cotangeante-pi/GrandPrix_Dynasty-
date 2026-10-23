@@ -92,6 +92,7 @@ function lancerCourse(nbTours) {
   // ?pneus=1 : des pneus neufs à chaque course, seulement sur la voiture que le joueur conduit (jamais sur une IA suivie)
   JEU.joueur.pneus = REGLAGES.PNEUS_ACTIFS && (JEU.contre || !JEU.plateau) ? creerPneus() : null;
   JEU.joueur.adherence = 1;
+  GARAGE.appliquer(JEU.joueur, JEU.championnat ? JEU.championnat.garage : null);   // ?championnat=1 : les améliorations du garage sur la voiture du joueur (1 = rien sans championnat)
   JEU.enregistreur = creerEnregistrement();
   JEU.fantome = null;   // le fantôme ne vit que pendant le tour de qualification (commencerFantome)
   JEU.departRecord = false;
@@ -115,6 +116,7 @@ function commencerQualif() {
 function faireMonTour() {
   if (!JEU.qualif || JEU.qualif.etat !== 'choix') return;
   const v = creerVoiture(CIRCUIT, 0);
+  GARAGE.appliquer(v, JEU.championnat ? JEU.championnat.garage : null);   // la même voiture qu'en course (garage)
   JEU.qualif.v = v;
   JEU.qualif.q = QUALIFICATION.creer(CIRCUIT, v);
   JEU.qualif.etat = 'tour';
@@ -269,6 +271,7 @@ function montrerChampionnat(gagne) {
   PODIUM3D.cacher();
   INTERFACE.remplirChampionnat(JEU.championnat, gagne, texte('circuit_' + NOM_CIRCUIT) || CIRCUIT.nom);   // les circuits d'essai ont leur texte ; les autres gardent leur nom
   INTERFACE.remplirDuel(CHAMPIONNAT.scoreDuel(JEU.championnat), JEU.championnat);
+  INTERFACE.remplirSolde(JEU.championnat);
   JEU.ecran = 'championnat';
   INTERFACE.montrer('championnat');
 }
@@ -302,6 +305,27 @@ function montrerUne(une) {
 
 function passerUne() {
   if (JEU.ecran !== 'une') return;
+  montrerChampionnat(JEU.gagne);
+}
+
+// ?championnat=1 : le garage (garage.js, argent.js), depuis l'écran du championnat ; un achat est sauvegardé tout de suite
+function montrerGarage() {
+  if (JEU.ecran !== 'championnat') return;
+  INTERFACE.remplirGarage(JEU.championnat);
+  JEU.ecran = 'garage';
+  INTERFACE.montrer('garage');
+}
+
+function acheterAmelioration(nom) {
+  if (JEU.ecran !== 'garage') return null;
+  const r = GARAGE.acheter(JEU.championnat, nom);
+  if (r.ok) SAUVEGARDE.ecrireChampionnat(JEU.championnat);
+  INTERFACE.remplirGarage(JEU.championnat);
+  return r;
+}
+
+function quitterGarage() {
+  if (JEU.ecran !== 'garage') return;
   montrerChampionnat(JEU.gagne);
 }
 
@@ -343,6 +367,12 @@ function montrerPodium() {
     place: x.place, numero: P[x.k].numero, couleur: JEU.couleurs[x.k], total: x.total, penalites: x.penalites,
     ecart: x.ecart, grille: x.grille, moi: x.k === JEU.suivie,
   })));
+  // ?championnat=1 : les gains du joueur (argent.js), calculés sur le classement final de cet instant (encaissés à « Continuer »)
+  if (JEU.championnat) {
+    const lignes = CHAMPIONNAT.lignesDepuisCourse(e), g = ARGENT.gains(JEU.championnat, lignes), moi = lignes.find(l => l.k === JEU.ia);
+    if (g) g.placeNumero = moi.place;
+    INTERFACE.remplirArgent(g);
+  } else INTERFACE.remplirArgent(null);
   JEU.tempsPodium = 0;
   SON.signal('arrivee');
   JEU.ecran = 'podium';
@@ -522,7 +552,7 @@ function majTableau() {
   document.getElementById('rapport').textContent = rapportPourVitesse(v.u);
   const roule = JEU.ecran === 'course' || JEU.ecran === 'survol' || enTourQualif();
   // sur le podium et les résultats, ni vitesse ni aide des touches
-  const apres = JEU.ecran === 'podium' || JEU.ecran === 'resultats' || JEU.ecran === 'championnat' || JEU.ecran === 'une';
+  const apres = JEU.ecran === 'podium' || JEU.ecran === 'resultats' || JEU.ecran === 'championnat' || JEU.ecran === 'une' || JEU.ecran === 'garage';
   document.getElementById('tableau').classList.toggle('cache', apres);
   document.getElementById('aide').classList.toggle('cache', apres);
   // après l'arrivée du joueur (en attendant les autres), il ne court plus : pas de « hors piste »
@@ -629,8 +659,9 @@ function demarrerJeu() {
     INTERFACE.preparerResultats(voirResultats, apresGrandPrix, apresGrandPrix);
     document.getElementById('boutonRejouerResultats').classList.add('cache');
     document.getElementById('boutonChangerResultats').textContent = texte('continuer');
-    INTERFACE.preparerChampionnat(courseSuivante);
+    INTERFACE.preparerChampionnat(courseSuivante, montrerGarage);
     INTERFACE.preparerUne(passerUne);
+    INTERFACE.preparerGarage(acheterAmelioration, quitterGarage);
   } else INTERFACE.preparerResultats(voirResultats, () => lancerCourse(JEU.course.nbTours), allerAuChoix);
   document.getElementById('attenteTexte').textContent = texte('attenteArrivee');
   const boutonPasser = document.getElementById('boutonPasser');

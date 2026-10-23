@@ -45,7 +45,7 @@ const INTERFACE = (function () {
   }
 
   function montrer(ecran) {
-    for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une']) $(id).classList.toggle('cache', id !== ecran);
+    for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une', 'garage']) $(id).classList.toggle('cache', id !== ecran);
     // le bandeau de course n'est là que pendant la course et la pause (pas sous l'écran de fin)
     const course = ecran === 'course' || ecran === 'pause';
     for (const id of ['hudCourse', 'hudPenalite', 'compte', 'feux', 'classement', 'radar', 'jauge', 'departResultat']) if (!course) $(id).classList.add('cache');
@@ -355,9 +355,66 @@ const INTERFACE = (function () {
     CHAMPIONNAT.classementEcuries(ch).forEach((x, i) => { const e = ch.ecuries[x.id]; ecuries.appendChild(ligne(i + 1, e.couleur, nomEcurie(e), x.points, e.id === REGLAGES.ECURIE_JOUEUR)); });
   }
 
-  function preparerChampionnat(suivante) {
+  function preparerChampionnat(suivante, garage) {
     $('boutonCourseSuivante').addEventListener('mousedown', e => e.preventDefault());
     $('boutonCourseSuivante').addEventListener('click', suivante);
+    $('boutonGarage').textContent = texte('garage');
+    $('boutonGarage').addEventListener('mousedown', e => e.preventDefault());
+    if (garage) $('boutonGarage').addEventListener('click', garage);
+  }
+
+  // --- l'argent et le garage (Codeur 3, argent.js et garage.js) ---
+  // les résultats : les gains du Grand Prix (ARGENT.gains, avec placeNumero : la place), avec le détail ; g null : rien
+  function remplirArgent(g) {
+    const p = $('resultatsArgent'), F = ARGENT.formater;
+    if (!g) { p.textContent = ''; return; }
+    const detail = [];
+    if (g.place) detail.push(avec(texte('argentPlace'), { p: g.placeNumero, n: F(g.place) }));
+    if (g.meilleurTour) detail.push(avec(texte('argentMeilleurTour'), { n: F(g.meilleurTour) }));
+    if (g.placesGagnees) detail.push(avec(texte('argentPlacesGagnees'), { p: g.nbPlacesGagnees, n: F(g.placesGagnees) }));
+    if (g.duel) detail.push(avec(texte('argentDuel'), { n: F(g.duel) }));
+    if (g.plafonne) detail.push(avec(texte('argentPlafond'), { n: F(g.total) }));
+    p.textContent = avec(texte('argentGagne'), { n: F(g.total) }) + (detail.length ? ' (' + detail.join(' · ') + ')' : '');
+  }
+
+  // l'écran du championnat : le solde
+  function remplirSolde(ch) {
+    $('championnatArgent').textContent = avec(texte('solde'), { n: ARGENT.formater(ARGENT.solde(ch)) });
+  }
+
+  // l'écran du garage : les 4 améliorations (niveau, prix du suivant, « Acheter » grisé si impossible), le solde, le bonus
+  let achatGarage = null;
+  function remplirGarage(ch) {
+    const R = REGLAGES, F = ARGENT.formater, g = GARAGE.completer(ch);
+    $('garageTitre').textContent = texte('garageTitre');
+    $('garageSolde').textContent = avec(texte('solde'), { n: F(ARGENT.solde(ch)) });
+    $('garageBonus').textContent = avec(texte('garageBonus'), { a: (GARAGE.bonus(g) * 100).toFixed(1).replace('.', texte('virgule')), b: Math.round(R.GARAGE_PLAFOND * 100) });
+    $('boutonGarageRetour').textContent = texte('garageRetour');
+    const liste = $('garageListe');
+    liste.textContent = '';
+    for (const nom of GARAGE.NOMS) {
+      const li = document.createElement('li'), prix = GARAGE.prix(ch, nom), refus = GARAGE.refus(ch, nom);
+      li.dataset.nom = nom;
+      const sp = (classe, contenu) => { const e = document.createElement('span'); e.className = classe; e.textContent = contenu; return e; };
+      li.append(sp('nom', texte('garage_' + nom)), sp('effet', texte('garageEffet_' + nom)),
+        sp('niveau', avec(texte('garageNiveau'), { a: g[nom], b: R.GARAGE_NIVEAUX })), sp('prix', prix === null ? texte('garageMax') : F(prix)));
+      const b = document.createElement('button');
+      b.className = 'acheter';
+      b.tabIndex = -1;
+      b.textContent = texte('garageAcheter');
+      b.disabled = refus !== null;
+      b.title = refus === 'argent' ? texte('garageRefusArgent') : '';
+      b.addEventListener('mousedown', e => e.preventDefault());
+      b.addEventListener('click', () => { if (achatGarage) achatGarage(nom); });
+      li.appendChild(b);
+      liste.appendChild(li);
+    }
+  }
+
+  function preparerGarage(acheter, retour) {
+    achatGarage = acheter;
+    $('boutonGarageRetour').addEventListener('mousedown', e => e.preventDefault());
+    $('boutonGarageRetour').addEventListener('click', retour);
   }
 
   function preparerPause(reprendre, recommencer) {
@@ -396,6 +453,6 @@ const INTERFACE = (function () {
   }
 
   return { formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, preparerChampionnat, remplirQualif, preparerQualif,
-    remplirDuel, avec, remplirUne, preparerUne,
+    remplirDuel, avec, remplirUne, preparerUne, remplirArgent, remplirSolde, remplirGarage, preparerGarage,
     majEcartFantome, preparerFantome, majBoutonsFantome, majDepart };
 })();
