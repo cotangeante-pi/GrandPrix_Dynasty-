@@ -31,7 +31,7 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 
 Trois tours ouverts le 2026-10-23, main = c0e4cb3 (72/100), Chef session-5b :
 - **Tour 22, Codeur 1** : **ordre 1 fait et fusionné** (determinisme 4dd5066 → main, ~19h10 ; GitHub 40035940484 : TOUT PASSE, 157/157, 38/38, 320/320 + annexes) : puissanceEntiere à la place de Math.pow, empreintes épinglées, tests « styles » et « suivi » refaits selon la décision du Chef, tour du pilote neutre 55,2583 s. **Main est vert sur GitHub pour la première fois depuis le 2026-10-22 : « vert » = 0 échec.** En cours : ordre 3 (contournement d'une voiture bloquée, branche `contournement` : épingle 7,2 s, robot à 40 % OK, la grande droite ~12 s à confirmer), puis ordre 2 (duel). rapports/tour-22-rapport.md.
-- **Tour 22b, Codeur 2** (branche codeur2, dossier « - codeur 2 », fantome.js commencé, non commité) : le fantôme du meilleur tour, puis le départ parfait. rapports/tour-22b-rapport.md.
+- **Tour 22b, Codeur 2** : **fait et fusionné** (6d150d0 → main 5bb3484, ~19h40 ; GitHub 40037491667 : TOUT PASSE, 169/169, 38/38, 345/345 ; captures depart.png, fantome.png, qualif.png relues) : le fantôme du meilleur tour (16 043 octets par circuit, +6 appels de dessin, écart contre soi-même ≤ 1,7 ms) et le départ parfait (50 courses × 20 IA : réguliers ratés 22/500, fautifs 188/500, faux départs 7/1000, aucune réaction sous 0,15 s hors faux départ ; parfait = la voiture normale au bit près). physique.js : 2 lignes (× 1). Suite : tour 23b (rapports/tour-23b-rapport.md).
 - **Tour 21c, Codeur 3** : **fait et fusionné** (4a8e731 → main 5d548d6, ~18h35 ; GitHub 40033832212 : seulement les 6 échecs connus ; captures une.png, une-en.png, une-960.png, duel.png, duel-tour.png relues par le Chef) : score du duel contre le coéquipier (qualifs + courses, saison et carrière), sa ligne marquée dans la tour avec l'écart, « Toi 2 – 2 Pilote 19 » sur l'écran du championnat, journal.js (La Gazette du Paddock / The Paddock Gazette : titre par priorité, texte, brèves, classement, album compact : 180 unes = 59 843 octets, 332 par une), la une affichée après les résultats. Depuis ~19h : les 12 circuits ressemblants sur la branche `circuits`. À vérifier : sur duel-tour.png, la tour montre 1–9, 11–13, le joueur « 10 », 15–20 (la ligne 14 manque).
 
 Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤ 50 s sur Test) → 4b (plusieurs IA sans se toucher) → 4c (dépasser, défendre) → 4d (caractères, niveaux, page des 50 courses).
@@ -62,11 +62,14 @@ Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤
 | 21b | 81c254d | 68 | 12 | 16 | 6 | 12 | 9 | 10 | 3 |
 | 21c | 5d548d6 | 71 | 12 | 16 | 8 | 13 | 9 | 10 | 3 |
 | 22 (ordre 1) | c0e4cb3 | 72 | 12 | 17 | 8 | 13 | 9 | 10 | 3 |
+| 22b | 5bb3484 | 74 | 12 | 18 | 8 | 14 | 9 | 10 | 3 |
 
 Note du Chef session-5b (2026-10-23) : les lignes 18 à 19b ne s'additionnaient pas (19 + 19b : 12 + 16 + 6 + 12 + 9 + 10 + 2 = 67, noté 62 ; 18 : 63 noté 60). Les axes sont justes, c'est le total qui était faux ; depuis la ligne 21b, le total est la somme des axes. Le saut de 62 à 68 vient de cette correction, pas d'un progrès.
 
 ## À essayer par le propriétaire
 
+- **Le départ parfait** (tour 22b) : `index.html?course=5&ia=9&joueur=1` : pendant les feux, tiens ↑ pour garder l'aiguille dans le vert, lâche, et réappuie dès que les feux s'éteignent. Dire : l'aiguille monte trop vite ou trop lentement ? le vert est trop étroit ? le patinage est trop sévère ? (`&reglages=1` : 13 curseurs DEPART_*). Lisible en 960×600 ?
+- **Le fantôme** (tour 22b) : deux qualifications de suite sur le même circuit (`index.html?course=5&ia=9&joueur=1`, « Faire mon tour ») : au 2e tour, la voiture transparente et l'écart sous le chrono. Dire : on la voit assez ? elle gêne ? le bouton « Fantôme : masqué » suffit ?
 - **Le duel et la une du journal** (tour 21c) : `index.html?championnat=1` : en course, la ligne de ton coéquipier est marquée dans la tour avec l'écart ; après les résultats, la une du journal (clic ou touche pour passer) ; sur l'écran entre les courses, le score du duel. Dire : le ton des titres te plaît ? la place de la « photo » (vide pour l'instant) ?
 - **Le championnat** : `index.html?championnat=1` (écran entre les courses, points, sauvegarde ; fermer et revenir).
 - Vue cockpit (touche C), feux de départ, vue télé après l'arrivée, podium : `index.html?course=5&ia=9&joueur=1&circuit=technique`.
