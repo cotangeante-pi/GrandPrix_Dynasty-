@@ -298,7 +298,8 @@ const REGLAGES = {
   FANTOME_PAS: 0.1,             // s entre deux images du fantôme (un nombre entier de pas de physique : 12) ; le rejeu interpole entre elles
   FANTOME_DECIMALES: 2,         // les positions et distances sont arrondies au cm dans la sauvegarde (compact)
   FANTOME_COULEUR: 0xdfe3ea,    // une couleur neutre, claire…
-  FANTOME_OPACITE: 0.45,        // … et légèrement transparente
+  FANTOME_OPACITE: 0.55,        // … et légèrement transparente (toute la voiture d'une seule couleur, sans ses pièces sombres : on le reconnaît comme un fantôme)
+  FANTOME_PIXELS_MIN: 400,      // tests : au moins ce nombre de pixels changent dans la moitié basse de l'image quand le fantôme est caché (il est visible)
   // le podium 3D (podium3d.js)
   PODIUM_DISTANCE: 30,          // m : à cette distance du bord gauche de la piste, en face de la ligne
   PODIUM_LARGEUR: 6.5,          // m : la largeur d'une marche…
