@@ -18,8 +18,9 @@ function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' �
 const v=(c,m)=>{if(!c)throw new Error(m||'faux');};
 function ecrire(etape){document.getElementById('res').textContent=`${etape?'EN COURS ('+etape+') ':''}RESULTAT ${ok}/${ok+ko}\n`+L.join('\n');}
 
-// une valeur est « remplie » : une chaîne non vide, ou une liste de chaînes non vides
-const remplie = x => typeof x === 'string' ? x.trim() !== '' : Array.isArray(x) && x.length > 0 && x.every(remplie);
+// une valeur est « remplie » : une chaîne non vide (un seul caractère compte, même un espace : le séparateur des milliers « milliers »
+// est une espace fine insécable en français), ou une liste de chaînes non vides
+const remplie = x => typeof x === 'string' ? (x.trim() !== '' || x.length === 1) : Array.isArray(x) && x.length > 0 && x.every(remplie);
 const morceaux = x => Array.isArray(x) ? x : [x];
 const en = Object.keys(TEXTES.en), fr = Object.keys(TEXTES.fr);
 
