@@ -8,6 +8,8 @@ const NOM_CIRCUIT = CHAMPIONNAT_EN_COURS && CHAMPIONNAT_EN_COURS.prochain < CHAM
 const CIRCUIT = NOM_CIRCUIT === 'test' ? CIRCUIT_TEST : construireCircuit(CIRCUITS[NOM_CIRCUIT]);
 // ?niveau=debutant|normal|expert|legende : le niveau de difficulté des IA (normal par défaut)
 if (Object.prototype.hasOwnProperty.call(REGLAGES.NIVEAUX, PARAMETRES.get('niveau'))) REGLAGES.NIVEAU = PARAMETRES.get('niveau');
+// ?pneus=1 : les pneus du joueur (pneus.js), désactivés par défaut (PNEUS_ACTIFS) tant que le propriétaire n'a pas jugé la sensation
+if (PARAMETRES.get('pneus') === '1') REGLAGES.PNEUS_ACTIFS = true;
 
 // l'état du jeu, lisible par les tests
 const JEU = {
@@ -39,6 +41,8 @@ const JEU = {
   grandPrixFini: false, // … et le Grand Prix de cette page est joué et enregistré : « Course suivante » recharge la page (le circuit change)
   qualif: null,         // contre les IA, avant la course : la qualification du joueur { etat (choix, tour, attente, resultat), q (qualification.js), v (sa voiture du tour), passe }
   attente: null,        // contre les IA, après l'arrivée du joueur : { tele (la voiture suivie par la caméra télé), camera (celle d'avant), passer }
+  sdkPret: false,       // SDK.init fini (sdk.js) : à partir de là, gameplayStart / gameplayStop suivent l'écran
+  enregistreur: null,   // l'enregistrement de la course en cours (enregistreur.js, étape 13), voir creerEnregistrement
 };
 
 // les caméras de survol n'ont pas de course
@@ -79,6 +83,10 @@ function lancerCourse(nbTours) {
   JEU.arretApres = null;
   JEU.signal = null;
   JEU.final = null;
+  // ?pneus=1 : des pneus neufs à chaque course, seulement sur la voiture que le joueur conduit (jamais sur une IA suivie)
+  JEU.joueur.pneus = REGLAGES.PNEUS_ACTIFS && (JEU.contre || !JEU.plateau) ? creerPneus() : null;
+  JEU.joueur.adherence = 1;
+  JEU.enregistreur = creerEnregistrement();
   finirAttente();
   PODIUM3D.cacher();
   // contre les IA : d'abord la qualification du joueur (un tour, ou passer) ; la course attend
@@ -146,6 +154,34 @@ function partirEnCourse() {
   INTERFACE.montrer('course');
 }
 
+// l'enregistrement de la course qui commence (enregistreur.js, étape 13) : toutes les voitures de la course (le plateau,
+// ou le joueur seul), à chaque pas de physique (enregistrerPas) ; rien n'est affiché encore (le résumé viendra).
+// Le classement, qui coûte cher, ne lui est donné qu'un pas sur CLASSEMENT_PAS (une image sur dix par seconde)
+function creerEnregistrement() {
+  const voitures = JEU.plateau ? JEU.plateau.pilotes.map(p => p.v) : [JEU.joueur];
+  const joueur = JEU.plateau ? (JEU.contre ? JEU.ia : null) : 0;
+  return { enr: creerEnregistreur(voitures.length, { joueur }), voitures, parti: false, arrivees: new Set(), pas: 0, ms: 0 };
+}
+
+// après chaque pas de physique de la course : l'instant du GO (depart), l'image, les arrivées ; ms : le temps passé (?debug=1, tests)
+function enregistrerPas() {
+  const r = JEU.enregistreur, e = JEU.plateau, c = JEU.course;
+  if (!r || !c) return;
+  const t0 = performance.now(), temps = e ? e.temps : c.temps;
+  if (!r.parti && courseAutorise(c)) { r.parti = true; r.enr.depart(temps); }
+  r.enr.enregistrer(temps, r.voitures, e && r.pas % REGLAGES_ENREGISTREUR.CLASSEMENT_PAS === 0 ? classementCourse(e) : null);
+  if (e) e.pilotes.forEach((p, k) => { if (p.arrivee !== null && !r.arrivees.has(k)) { r.arrivees.add(k); r.enr.arrivee(p.arrivee, k); } });
+  r.pas++;
+  r.ms += performance.now() - t0;
+}
+
+// ?pneus=1 : l'usure des pneus du joueur à chaque pas (pneus.js) et son effet sur l'adhérence de sa voiture
+function pasPneusJoueur(v, dt) {
+  if (!v.pneus) return;
+  pasPneus(v.pneus, v, dt, REGLAGES_PNEUS.GESTION_MOYENNE);
+  v.adherence = facteurAdherence(v.pneus.usure);
+}
+
 // ?championnat=1 : chaque IA de la course prend le caractère de son pilote du championnat (la voiture k = le pilote k ;
 // le joueur, dernier, n'en a pas), au niveau de difficulté en cours (?niveau=, simulation.js : appliquerNiveau, comme
 // pour un caractère tiré par donnerCarte). Les variations par tour (tours) restent celles tirées pour la course, déjà au
@@ -167,7 +203,7 @@ function appliquerCaracteres() {
 // ?championnat=1 : l'écran entre les courses ; gagne : les points du Grand Prix qui vient de finir (null au démarrage)
 function montrerChampionnat(gagne) {
   PODIUM3D.cacher();
-  INTERFACE.remplirChampionnat(JEU.championnat, gagne, CIRCUIT.nom);
+  INTERFACE.remplirChampionnat(JEU.championnat, gagne, texte('circuit_' + NOM_CIRCUIT) || CIRCUIT.nom);   // les circuits d'essai ont leur texte ; les autres gardent leur nom
   JEU.ecran = 'championnat';
   INTERFACE.montrer('championnat');
 }
@@ -316,6 +352,7 @@ function conduireJoueur(p, pas) {
   // ?robot=1 : le robot d'essai conduit sa voiture (tests), sans faux départ
   const cibles = JEU.robot ? (courseAutorise(p.course) ? piloteRobot(p.v, CIRCUIT) : AUCUNE) : JEU.cibles;
   lisserCommandes(p.v, commandesPermises(p.course) ? cibles : p.course.etat === 'finie' ? FREIN_SEUL : AUCUNE, pas);
+  pasPneusJoueur(p.v, pas);
 }
 
 function pasJoueur(pas) {
@@ -328,7 +365,7 @@ function pasJoueur(pas) {
     if (JEU.ecran === 'qualif' && JEU.qualif && JEU.qualif.etat === 'tour') { pasTourQualif(pas); return; }
     // tant que la carte se calcule, la course attend (le compte à rebours ne part pas) : sur un ordinateur lent,
     // les IA resteraient sinon plantées sur la grille après le GO
-    if (JEU.ecran === 'course' && JEU.plateau.carte) pasCourseIA(JEU.plateau, pas, conduireJoueur);
+    if (JEU.ecran === 'course' && JEU.plateau.carte) { pasCourseIA(JEU.plateau, pas, conduireJoueur); enregistrerPas(); }
     JEU.remettre = false;
     return;
   }
@@ -345,7 +382,8 @@ function pasJoueur(pas) {
   else if (JEU.robot && permis) appliquerCommandes(v, piloteRobot(v, CIRCUIT));
   else lisserCommandes(v, permis ? JEU.cibles : AUCUNE, pas);
   pasVoiture(v, CIRCUIT, pas);
-  if (c && JEU.ecran === 'course' && !(JEU.ia && !JEU.carte)) majCourse(c, v, pas);   // ?ia=1 : pareil, la course attend la carte
+  pasPneusJoueur(v, pas);
+  if (c && JEU.ecran === 'course' && !(JEU.ia && !JEU.carte)) { majCourse(c, v, pas); enregistrerPas(); }   // ?ia=1 : pareil, la course attend la carte
 }
 
 // le joueur fait son tour de qualification (le chrono s'affiche, « hors piste » aussi)
@@ -389,7 +427,8 @@ function mesuresConduite() {
   const v = JEU.joueur;
   const derive = Math.abs(v.u) > 1 ? Math.atan2(v.v, Math.abs(v.u)) * 180 / Math.PI : 0;
   const gLateraux = v.u * v.r / REGLAGES.GRAVITE;   // l'accélération vers le centre du virage, en g
-  return 'dérive ' + derive.toFixed(1) + '° · ' + Math.abs(gLateraux).toFixed(2) + ' g · voiture ' + VOITURE3D.triangles(JEU.modele) + ' triangles, ' + VOITURE3D.appels(JEU.modele) + ' appels';
+  return 'dérive ' + derive.toFixed(1) + '° · ' + Math.abs(gLateraux).toFixed(2) + ' g · voiture ' + VOITURE3D.triangles(JEU.modele) + ' triangles, ' + VOITURE3D.appels(JEU.modele) + ' appels'
+    + (v.pneus ? ' · pneus ' + Math.round(v.pneus.usure * 100) + ' %' : '');   // ?pneus=1 : l'usure
 }
 
 // ?debug=1 : les images par seconde et les triangles dessinés, dans un coin
@@ -433,6 +472,9 @@ function demarrerJeu() {
   window.addEventListener('keydown', e => {
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'PageUp', 'PageDown', 'Home', 'End'].includes(e.key)) e.preventDefault();
   });
+  // la langue de la page et son titre viennent de textes.js (le <title> de index.html est le même texte, pour le chargement)
+  document.documentElement.lang = LANGUE;
+  document.title = texte('nomDuJeu');
   document.getElementById('unite').textContent = texte('kmh');
   document.getElementById('horsPiste').textContent = texte('horsPiste');
   document.getElementById('aide').textContent = texte('aideConduite');
@@ -530,6 +572,9 @@ function demarrerJeu() {
     INTERFACE.majPreparation(JEU.ecran === 'course' && JEU.ia > 0 && !JEU.carte);
     majClassementRadar();
     signauxCourse(JEU.course);
+    // Poki (sdk.js) : la voiture roule (course, tour de qualification) = gameplayStart, tout le reste = gameplayStop ;
+    // sdk.js n'envoie jamais deux fois le même de suite
+    if (JEU.sdkPret) SDK[JEU.ecran === 'course' || enTourQualif() ? 'jeuCommence' : 'jeuArrete']();
     // la voiture suivie a fini : seule, l'écran de fin ; contre les IA, on attend les autres (vue télé) ; entre IA, le
     // podium dès que les trois premiers sont connus
     if (JEU.ecran === 'course' && JEU.course && JEU.course.etat === 'finie') {
@@ -542,6 +587,8 @@ function demarrerJeu() {
     SCENE3D.dessiner();
   });
   if (PARAMETRES.get('debug') === '1') brancherDebug();
+  // Poki (sdk.js, le seul passage vers le SDK) : init, puis « chargement fini » une seule fois ; hors Poki, le rappel vient tout de suite
+  SDK.init(() => { JEU.sdkPret = true; SDK.chargementFini(); });
   BOUCLE.demarrer();
 }
 

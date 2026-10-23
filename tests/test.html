@@ -1,7 +1,7 @@
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><title>tests</title></head><body>
 <pre id="res"></pre>
 <script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));window.addEventListener('unhandledrejection',e=>__err.push('promesse : '+(e.reason&&e.reason.message||e.reason)));</script>
-<script src="../donnees.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../son.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../principal.js"></script>
+<script src="../donnees.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../son.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../principal.js"></script>
 <script>
 const L=[];let ok=0,ko=0;
 function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
@@ -646,9 +646,9 @@ t('championnat : les points viennent de REGLAGES.POINTS, 0 au-delà du 10e', ()=
 t('championnat : 10 écuries de 2 pilotes, le joueur seul humain dans ECURIE_JOUEUR, 19 caractères tirés avec la graine, calendrier de NB_GRANDS_PRIX en alternance', ()=>{
   const R=REGLAGES,a=CHAMPIONNAT.creer(1),b=CHAMPIONNAT.creer(1),c=CHAMPIONNAT.creer(2);
   v(a.ecuries.length===10&&a.pilotes.length===20&&a.ecuries.every(e=>a.pilotes.filter(p=>p.ecurie===e.id).length===2&&typeof e.couleur==='number'&&e.niveau>0),'écuries');
-  const h=a.pilotes.filter(p=>p.humain);v(h.length===1&&h[0].ecurie===R.ECURIE_JOUEUR&&h[0].nom===R.NOM_JOUEUR&&h[0].caractere===null,'joueur');
+  const h=a.pilotes.filter(p=>p.humain);v(h.length===1&&h[0].ecurie===R.ECURIE_JOUEUR&&h[0].nom===(R.NOM_JOUEUR||null)&&h[0].caractere===null,'joueur');
   v(a.pilotes.filter(p=>!p.humain).every(p=>p.caractere&&p.caractere.regularite>0&&p.caractere.agressivite>=0),'caractères');
-  v(a.pilotes.every((p,k)=>p.humain||p.nom===R.NOMS_PILOTES[k])&&new Set(a.pilotes.map(p=>p.numero)).size===20,'noms et numéros');
+  v(a.pilotes.every((p,k)=>p.humain||p.nom===(R.NOMS_PILOTES[k]||null))&&new Set(a.pilotes.map(p=>p.numero)).size===20,'noms et numéros');
   v(JSON.stringify(a.pilotes.map(p=>p.caractere))===JSON.stringify(b.pilotes.map(p=>p.caractere)),'même graine, mêmes caractères');
   v(JSON.stringify(a.pilotes.map(p=>p.caractere))!==JSON.stringify(c.pilotes.map(p=>p.caractere)),'autre graine, autres caractères');
   v(a.calendrier.length===R.NB_GRANDS_PRIX&&a.calendrier.every((g,i)=>g.numero===i+1&&g.circuit===R.CALENDRIER_CIRCUITS[i%R.CALENDRIER_CIRCUITS.length]),'calendrier');
@@ -680,7 +680,7 @@ t('championnat : 3 Grands Prix simulés (simulerCourse, 20 voitures), sauvegarde
   const R=REGLAGES,t0=performance.now(),circuits={test:C,technique:construireCircuit(CIRCUITS.technique)};
   // une sauvegarde v1 déjà là : les records restent
   localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:1,records:{'5':61.5,'technique-12':70.25}}));
-  let d=SAUVEGARDE.lire();v(d.version===SAUVEGARDE.VERSION&&d.version===2&&d.records['5']===61.5&&d.records['technique-12']===70.25&&d.championnat===null,'v1 → v2 : '+JSON.stringify(d));
+  let d=SAUVEGARDE.lire();v(d.version===SAUVEGARDE.VERSION&&d.version===3&&d.records['5']===61.5&&d.records['technique-12']===70.25&&d.championnat===null,'v1 → v3 : '+JSON.stringify(d));
   v(SAUVEGARDE.record(5)===61.5&&SAUVEGARDE.championnat()===null,'records gardés');
   const ch=CHAMPIONNAT.creer(3);
   for(let g=0;g<3;g++){const gp=ch.calendrier[ch.prochain],r=simulerCourse(circuits[gp.circuit],20,1,100+g);
@@ -742,6 +742,48 @@ t('championnat (page) : appliquerCaracteres donne à chaque IA le caractère de 
   // au niveau normal, le caractère du championnat tel quel
   JEU.championnat=ch;JEU.plateau=e;try{appliquerCaracteres();}finally{JEU.championnat=null;JEU.plateau=null;}
   v(e.pilotes.slice(0,19).every((p,k)=>p.pilote.caractere.erreurs===ch.pilotes[k].caractere.erreurs&&p.pilote.caractere.regularite===ch.pilotes[k].caractere.regularite),'normal : tel quel');});
+
+t('sauvegarde v2 → v3 : les noms provisoires du championnat (« Pilote joueur », « Pilote 3 », « Écurie 1 ») deviennent null (le nom par défaut vient de textes.js, dans la langue du joueur), un vrai nom et le reste sont gardés', ()=>{
+  localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:2,records:{'5':61.5},championnat:{prochain:1,pilotes:[{nom:'Pilote joueur',humain:true},{nom:'Pilote 3'},{nom:'Ayrton'}],ecuries:[{nom:'Écurie 1'},{nom:'Rossa'}]}}));
+  const d=SAUVEGARDE.lire();v(d.version===3&&d.records['5']===61.5&&d.championnat.prochain===1,'gardé : '+JSON.stringify(d));
+  v(d.championnat.pilotes.map(p=>p.nom).join()===',,Ayrton'&&d.championnat.ecuries.map(e=>e.nom).join()===',Rossa',JSON.stringify(d.championnat));
+  localStorage.removeItem(SAUVEGARDE.CLE);});
+
+// --- les pneus (étape 7, préparés dans pneus.js) : branchés dans la page, désactivés sans ?pneus=1 (PNEUS_ACTIFS)
+t('pneus : PNEUS_ACTIFS est faux par défaut ; une voiture neuve n’a pas de pneus et son facteur d’adhérence vaut 1 (ADHERENCE × 1 = ADHERENCE au bit près) ; des pneus posés mais jamais usés ne changent rien aux positions du robot (3 tours, au bit près)', ()=>{
+  v(REGLAGES.PNEUS_ACTIFS===false,'PNEUS_ACTIFS');v(REGLAGES.ADHERENCE*1===REGLAGES.ADHERENCE);
+  const a=creerVoiture(C),b=creerVoiture(C);placerAuDepart(a,C);placerAuDepart(b,C);v(a.pneus===null&&a.adherence===1,'voiture neuve');
+  b.pneus=creerPneus();rouler(a,C,190,v_=>piloteRobot(v_,C));rouler(b,C,190,v_=>piloteRobot(v_,C));
+  v(a.x===b.x&&a.z===b.z&&a.u===b.u&&a.cap===b.cap&&b.pneus.usure===0&&b.adherence===1,'différent : '+[a.x-b.x,a.z-b.z,a.u-b.u]);});
+// (le robot d'essai roule loin de la limite d'adhérence : avec moins d'adhérence, il fait exactement la même course ;
+// c'est le pilote IA, qui roule à la limite de la carte, qui la sent)
+t('pneus actifs : le pilote IA (seul, technique) use ses pneus à chaque tour (pasPneus après chaque pas), son adhérence baisse (facteurAdherence), et avec des pneus déjà à moitié usés sa course n’est plus la même qu’avec des pneus neufs', ()=>{
+  const P=REGLAGES_PNEUS,vs=[creerVoiture(TQ),creerVoiture(TQ)],cs=[creerCourse(TQ,3),creerCourse(TQ,3)];
+  const pils=[0,1].map(()=>{ALEATOIRE.semer(42);const pil=creerPilote(CARTES_T.technique);ALEATOIRE.semer();return pil;});
+  vs[1].pneus=creerPneus();vs[1].pneus.usure=0.5;const usures=[];
+  vs.forEach((v_,i)=>{placerAuDepart(v_,TQ);const c=cs[i],pil=pils[i];
+    rouler(v_,TQ,300,x=>courseAutorise(c)?piloterIA(pil,x,[],DT):{gaz:0,frein:0,direction:0},x=>{majCourse(c,x,DT);
+      if(x.pneus){pasPneus(x.pneus,x,DT,P.GESTION_MOYENNE);x.adherence=facteurAdherence(x.pneus.usure);if(c.tours.length>usures.length) usures.push(x.pneus.usure);}
+      return c.etat!=='finie';});});
+  const t0=cs[0].tours.map(t=>t.temps),t1=cs[1].tours.map(t=>t.temps);
+  L.push('  (pneus actifs, pilote IA : usure après chaque tour '+usures.map(u=>u.toFixed(3)).join(', ')+' ; adhérence × '+vs[1].adherence.toFixed(4)+' ; tours '+t1.map(t=>t.toFixed(2)).join(', ')+' s contre '+t0.map(t=>t.toFixed(2)).join(', ')+' s neufs)');
+  v(cs[0].etat==='finie'&&cs[1].etat==='finie','3 tours');v(usures.length===3&&usures[0]>0&&usures[1]>usures[0]&&usures[2]>usures[1],'usure qui monte : '+usures);
+  v(vs[1].adherence<1&&vs[1].adherence>=1-P.PERTE_ADHERENCE_MAX,'adhérence '+vs[1].adherence);v(t1.join()!==t0.join()||vs[1].x!==vs[0].x||vs[1].z!==vs[0].z,'la même course avec moins d’adhérence');});
+
+// --- l'enregistreur (étape 13, préparé dans enregistreur.js), branché dans la page (principal.js) : la mesure en calcul pur
+t('enregistreur : 20 voitures (19 IA + le robot), 5 tours sur le circuit test, enregistrées à chaque pas (le classement une fois sur CLASSEMENT_PAS) : relu à chaque image, écart < 1 cm ; mémoire < 1,5 Mo ; moins de 100 µs par pas ; départ et arrivée notés', ()=>{
+  const R_=REGLAGES,DT_=R_.PAS_PHYSIQUE,e=creerCourseIA(C,19,5,7,CARTES_T.test,true),voitures=e.pilotes.map(p=>p.v),enr=creerEnregistreur(20,{joueur:19});
+  const robot=(p,dt)=>appliquerCommandes(p.v,courseAutorise(p.course)?piloteRobot(p.v,C):COMMANDES_AUCUNE);
+  let pas=0,ms=0,pire=0,images=0,parti=false;const t0=performance.now(),pasMax=Math.round(5*R_.SIMULATION_TEMPS_MAX/DT_);
+  while(pas<pasMax&&e.pilotes.some(p=>p.arrivee===null)){pasCourseIA(e,DT_,robot);
+    const a=performance.now();if(!parti&&courseAutorise(e.pilotes[0].course)){parti=true;enr.depart(e.temps);}
+    enr.enregistrer(e.temps,voitures,pas%REGLAGES_ENREGISTREUR.CLASSEMENT_PAS===0?classementCourse(e):null);ms+=performance.now()-a;pas++;
+    if(enr.nbImages>images){images=enr.nbImages;const lu=enr.lire(enr.fin);for(let k=0;k<20;k++) pire=Math.max(pire,Math.hypot(lu[k].x-voitures[k].x,lu[k].z-voitures[k].z));}}
+  e.pilotes.forEach((p,k)=>{if(p.arrivee!==null) enr.arrivee(p.arrivee,k);});
+  const total=performance.now()-t0,m=enr.momentsForts();
+  L.push('  (enregistreur : '+pas+' pas, '+images+' images, '+(enr.octets()/1024).toFixed(0)+' Ko, '+(ms/pas*1000).toFixed(1)+' µs par pas pour l’enregistreur, sur '+(total/pas*1000).toFixed(0)+' µs par pas en tout ; pire écart relu '+(pire*1000).toFixed(2)+' mm ; '+m.length+' moments forts dont '+m.filter(x=>x.type==='depassement').length+' dépassements et '+m.filter(x=>x.type==='sortie').length+' sorties)');
+  v(e.pilotes.every(p=>p.arrivee!==null),'tout le monde arrive');v(pire<0.01,'écart relu '+pire);v(enr.octets()<1.5e6,enr.octets()+' octets');v(ms/pas<0.1,(ms/pas*1000).toFixed(1)+' µs par pas');
+  v(m.some(x=>x.type==='depart')&&m.some(x=>x.type==='arrivee'&&x.qui!==null),'départ et arrivée');});
 
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 ecrire();

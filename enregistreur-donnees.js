@@ -4,6 +4,7 @@ const REGLAGES_ENREGISTREUR = {
   // l'enregistrement
   IMAGES_PAR_SECONDE: 10,       // on garde 10 images par seconde (la physique en fait 120) ; lire(t) interpole entre elles
   IMAGES_PAR_BLOC: 600,         // la mémoire est prise par blocs de 600 images (60 s à 10 images/s), jamais recopiée
+  CLASSEMENT_PAS: 12,           // la page (principal.js) ne lui donne le classement qu'un pas de physique sur 12 (10 fois par seconde : une image) ; il coûte cher à chaque pas
   CAP_PAS: Math.PI / 32767,     // rad : le cap est rangé dans un entier 16 bits (précision 0,0001 rad)
   VITESSE_PAS: 0.01,            // m/s : la vitesse est rangée dans un entier 16 bits (±327 m/s)
 

@@ -18,6 +18,8 @@ function creerVoiture(circuit, s = 0, d = 0) {
     chocs: [],                        // pour chaque contact, la plus forte vitesse de rapprochement (m/s)…
     lieuxChocs: [],                   // … et où il a commencé sur la piste (s, en m ; null sans circuit)
     touche: new Set(),                // les voitures touchées au dernier pas
+    pneus: null,                      // les pneus du joueur (pneus.js, ?pneus=1 : principal.js), null sinon…
+    adherence: 1,                     // … et leur facteur sur l'adhérence (facteurAdherence) ; 1 = rien ne change
     aspiration: 0,                    // 0 à 1 : dans le sillage d'une voiture (aspirationVoitures), la traînée baisse
   };
   if (circuit) placerSurPiste(v, circuit, s, d);
@@ -101,7 +103,7 @@ function pasVoiture(v, circuit, dt) {
   memoriserAvant(v);
 
   const herbe = v.surHerbe;
-  const mu = R.ADHERENCE * (herbe ? R.ADHERENCE_HERBE : 1);
+  const mu = R.ADHERENCE * (v.adherence || 1) * (herbe ? R.ADHERENCE_HERBE : 1);   // × 1 sans pneus : le même nombre au bit près
   const fz = charge(v.u);
   const fzAvant = fz * b / R.EMPATTEMENT, fzArriere = fz * a / R.EMPATTEMENT;
   const delta = v.direction * braquageMax(v.u);
