@@ -1,0 +1,41 @@
+# Les tests du jeu sur les machines de GitHub, à chaque envoi (git push) sur n'importe quelle branche.
+# Gratuit et sans limite : le dépôt est public. Le résultat se lit dans l'onglet « Actions » du dépôt.
+name: Tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:   # bouton « Run workflow » dans l'onglet Actions
+
+# un nouvel envoi sur la même branche arrête le passage précédent, devenu inutile
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # Google Chrome est déjà installé sur les machines de GitHub (google-chrome) ;
+      # ecrans.py le prend par channel='chrome', donc pas de navigateur à télécharger
+      - name: Playwright
+        run: pip install playwright
+
+      - name: Toute la suite (moteur, courses, ecrans, annexes)
+        run: python3 tests/lancer.py
+
+      # les captures de tests/ecrans.py, à télécharger depuis la page du passage, même en cas d'échec
+      - name: Captures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: captures
+          path: tests/captures/
+          if-no-files-found: ignore
