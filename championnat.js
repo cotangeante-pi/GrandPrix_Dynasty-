@@ -30,7 +30,7 @@ const CHAMPIONNAT = (function () {
     ALEATOIRE.semer();
     const calendrier = [];
     for (let i = 0; i < R.NB_GRANDS_PRIX; i++) calendrier.push({ numero: i + 1, circuit: R.CALENDRIER_CIRCUITS[i % R.CALENDRIER_CIRCUITS.length] });
-    return completer({ graine, saison: 1, prochain: 0, calendrier, ecuries, pilotes, resultats: [], duel: null });
+    return completer({ graine, saison: 1, prochain: 0, calendrier, ecuries, pilotes, resultats: [], duel: null, album: [] });
   }
 
   function pointsPour(place) {
@@ -100,7 +100,7 @@ const CHAMPIONNAT = (function () {
       // une sauvegarde d'avant le duel : les courses déjà jouées se retrouvent dans l'ordre d'arrivée (le non classé
       // y est après tous les classés) ; les qualifs n'étaient pas gardées
       const j = joueurDe(ch);
-      for (const r of ch.resultats) {
+      for (const r of ch.resultats || []) {
         if (!c || r.duel !== undefined) continue;
         const pj = r.ordre.indexOf(j.id), pc = r.ordre.indexOf(c.id);
         if (pj < 0 || pc < 0) continue;
@@ -149,13 +149,15 @@ const CHAMPIONNAT = (function () {
 
   // une sauvegarde d'une ancienne version : ce qui manque est ajouté (sauvegarde.js, migrer)
   function completer(ch) {
-    duelDe(ch);
+    if (ch.pilotes) duelDe(ch);   // (une sauvegarde de test peut n'avoir que des pilotes)
+    if (!ch.album) ch.album = [];   // l'album des unes du journal (journal.js) : vide dans une sauvegarde d'avant
     return ch;
   }
 
   // la course finie, puis la sauvegarde (après chaque course)
   function finirGrandPrix(ch, lignes) {
     enregistrerCourse(ch, lignes);
+    if (typeof JOURNAL !== 'undefined') JOURNAL.ranger(ch, JOURNAL.composer(ch, lignes));   // la une du journal (journal.js), dans l'album du championnat
     SAUVEGARDE.ecrireChampionnat(ch);
     return ch;
   }
@@ -201,10 +203,10 @@ const CHAMPIONNAT = (function () {
     return e;
   }
 
-  // les lignes d'une course de la page (simulation.js : classementFinal, pénalités comprises) ; la voiture k de la
-  // course est le pilote k du championnat
+  // les lignes d'une course de la page (simulation.js : classementFinal, pénalités comprises ; ligne : la place au passage
+  // de la ligne, pour la une du journal) ; la voiture k de la course est le pilote k du championnat
   function lignesDepuisCourse(e) {
-    return classementFinal(e).map(x => ({ k: x.k, place: x.place, grille: x.grille, meilleurTour: e.pilotes[x.k].course.meilleurTour, classe: x.temps !== null }));
+    return classementFinal(e).map(x => ({ k: x.k, place: x.place, grille: x.grille, ligne: x.ligne, penalites: x.penalites, meilleurTour: e.pilotes[x.k].course.meilleurTour, classe: x.temps !== null }));
   }
 
   // les lignes d'une course simulée (simulerCourse) : la même règle que classementFinal (temps total, pénalités
