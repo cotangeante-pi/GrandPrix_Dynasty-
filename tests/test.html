@@ -320,6 +320,26 @@ t('déterminisme : empreintes des fonctions Math, du circuit et de la trajectoir
     L.push('  (déterminisme, circuit '+nom+' : nb '+circ.nb+', Σx '+f(sx)+', Σz '+f(sz)+', Σn '+f(sn)+', x[100] '+f(circ.x[100])+', courbure[500] '+f(circ.courbure[500])+')');
     L.push('  (déterminisme, trajectoire '+nom+' : Σécart '+f(se)+', Σcourbure '+f(sk)+', Σvitesse '+f(sv)+', écart[100] '+f(T.ecart[100])+', écart[800] '+f(T.ecart[800])+', vitesse[300] '+f(T.vitesse[300])+')');}
   v(true);});
+t('déterminisme : empreintes sur 2000 entrées des fonctions Math, et du lissage passe par passe (affichées)', ()=>{
+  const f=x=>x.toString();let sp=0,sh=0,ss=0,sc=0,sa=0,se=0,sq=0,s3=0;
+  for(let i=1;i<=2000;i++){const a=i*0.000731,b=1/(i+0.37);sp+=Math.pow(a,2.5)+Math.pow(b,3)+Math.pow(a,1.5);sh+=Math.hypot(a,b)+Math.hypot(a*3,b*7);ss+=Math.sin(a*9)+Math.sin(b*1000);sc+=Math.cos(a*9)+Math.cos(b*1000);sa+=Math.atan2(a,b)+Math.atan(b*50);se+=Math.exp(-a*3)+Math.exp(b);sq+=Math.sqrt(a)+Math.tan(b);s3+=courbureTroisPoints(0,0,2+a,b*0.1,4+a*b,b*0.3-a);}
+  L.push('  (déterminisme, 2000 entrées : Σpow '+f(sp)+' ; Σhypot '+f(sh)+' ; Σsin '+f(ss)+' ; Σcos '+f(sc)+' ; Σatan '+f(sa)+' ; Σexp '+f(se)+' ; Σsqrt+tan '+f(sq)+' ; Σcourbure3 '+f(s3)+')');
+  // le lissage, recopié d'etapesTrajectoire, passe par passe
+  const R=REGLAGES,circuit=C,n=circuit.nb,cx=circuit.x,cz=circuit.z,nx=circuit.nx,nz=circuit.nz,limite=circuit.largeur/2-R.IA_MARGE_BORD;
+  const ecart=new Float64Array(n),x=new Float64Array(n),z=new Float64Array(n);for(let i=0;i<n;i++){x[i]=cx[i];z[i]=cz[i];}
+  const placer=(i,e)=>{ecart[i]=e;x[i]=cx[i]+nx[i]*e;z[i]=cz[i]+nz[i]*e;},DELTA=0.01,empreintes=[];let np=0;
+  for(const [k,passes] of R.IA_LISSAGE_PASSES){for(let p=0;p<passes;p++){
+    for(let i=0;i<n;i++){const a=(i-k+n)%n,b=(i+k)%n,a2=(i-2*k+2*n)%n,b2=(i+2*k)%n;
+      const voulue=(courbureTroisPoints(x[a2],z[a2],x[a],z[a],x[i],z[i])+courbureTroisPoints(x[i],z[i],x[b],z[b],x[b2],z[b2]))/2;
+      const ici=courbureTroisPoints(x[a],z[a],x[i],z[i],x[b],z[b]);
+      const decale=courbureTroisPoints(x[a],z[a],x[i]+nx[i]*DELTA,z[i]+nz[i]*DELTA,x[b],z[b]);
+      const pente=(decale-ici)/DELTA;
+      if(np===0&&i<6) empreintes.push('i'+i+' voulue '+f(voulue)+' ici '+f(ici)+' pente '+f(pente));
+      if(Math.abs(pente)<1e-12) continue;
+      placer(i,Math.max(-limite,Math.min(limite,ecart[i]+R.IA_LISSAGE_FORCE*(voulue-ici)/pente)));}
+    np++;let s=0;for(let i=0;i<n;i++) s+=ecart[i]*(i%3+1);
+    if(np<=4||np%10===0||p===passes-1) empreintes.push('passe '+np+' (k '+k+') Σ '+f(s)+' e[7] '+f(ecart[7]));}}
+  L.push('  (déterminisme, lissage test : '+empreintes.join(' | ')+')');v(true);});
 t('déterminisme : la trajectoire calculée en tranches (une étape par tranche, comme dans la page) est identique au bit près à celle calculée d’un coup, et un deuxième calcul d’un coup aussi', ()=>{
   for(const [nom,circ] of [['test',C],['technique',TQ]]){const T=TRAJ[nom];
     const etapes=etapesTrajectoire(circ);let r=etapes.next(),nb=0;while(!r.done){nb++;r=etapes.next();}const T2=r.value,T3=calculerTrajectoire(circ);
