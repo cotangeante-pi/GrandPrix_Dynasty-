@@ -625,7 +625,7 @@ t('championnat : 3 Grands Prix simulés (simulerCourse, 20 voitures), sauvegarde
   const R=REGLAGES,t0=performance.now(),circuits={test:C,technique:construireCircuit(CIRCUITS.technique)};
   // une sauvegarde v1 déjà là : les records restent
   localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:1,records:{'5':61.5,'technique-12':70.25}}));
-  let d=SAUVEGARDE.lire();v(d.version===SAUVEGARDE.VERSION&&d.version===2&&d.records['5']===61.5&&d.records['technique-12']===70.25&&d.championnat===null,'v1 → v2 : '+JSON.stringify(d));
+  let d=SAUVEGARDE.lire();v(d.version===SAUVEGARDE.VERSION&&d.version===3&&d.records['5']===61.5&&d.records['technique-12']===70.25&&d.championnat===null,'v1 → v3 : '+JSON.stringify(d));
   v(SAUVEGARDE.record(5)===61.5&&SAUVEGARDE.championnat()===null,'records gardés');
   const ch=CHAMPIONNAT.creer(3);
   for(let g=0;g<3;g++){const gp=ch.calendrier[ch.prochain],r=simulerCourse(circuits[gp.circuit],20,1,100+g);
@@ -640,6 +640,66 @@ t('championnat : 3 Grands Prix simulés (simulerCourse, 20 voitures), sauvegarde
   v(JSON.stringify(re.pilotes.map(p=>p.caractere))===JSON.stringify(ch.pilotes.map(p=>p.caractere))&&re.calendrier.length===R.NB_GRANDS_PRIX,'caractères et calendrier');
   localStorage.removeItem(SAUVEGARDE.CLE);
   const ms=performance.now()-t0;L.push('  (championnat : 3 GP de 20 voitures simulés et sauvegardés en '+ms.toFixed(0)+' ms)');v(ms<20000,ms+' ms');});
+
+// --- le duel contre le coéquipier (étape 6, calcul pur) : le joueur est le pilote 19, son coéquipier le 18
+// des lignes de course : ordre = les pilotes du 1er au dernier ; grille = leur place de départ (par défaut, l'ordre) ; nc = les non classés
+const lignesDuel=(ordre,grille,nc)=>ordre.map((k,i)=>({k,place:i+1,grille:grille?grille.indexOf(k)+1:i+1,meilleurTour:null,classe:!(nc||[]).includes(k)}));
+const ordreAvec=(devant)=>devant.concat([...Array(20).keys()].filter(k=>!devant.includes(k)));
+t('duel : le coéquipier est l’autre pilote de l’écurie du joueur ; qualifs = la meilleure place sur la grille, course = la meilleure place au classement final', ()=>{
+  const ch=CHAMPIONNAT.creer(1),j=ch.pilotes.find(p=>p.humain),c=CHAMPIONNAT.coequipierDe(ch);
+  v(j.id===19&&c.id===18&&c.ecurie===j.ecurie&&!c.humain,'coéquipier '+c.id);
+  // le joueur part devant, le coéquipier finit devant
+  CHAMPIONNAT.enregistrerCourse(ch,lignesDuel(ordreAvec([18,19]),ordreAvec([19,18])));
+  let s=CHAMPIONNAT.scoreDuel(ch);v(s.k===18&&s.nom===c.nom&&s.qualifs.join()==='1,0'&&s.courses.join()==='0,1'&&s.total.join()==='1,1','GP 1 : '+JSON.stringify(s));
+  v(JSON.stringify(ch.resultats[0].duel)===JSON.stringify({coequipier:18,qualif:0,course:1}),'le duel du GP est gardé');
+  // le joueur devant partout
+  CHAMPIONNAT.enregistrerCourse(ch,lignesDuel(ordreAvec([19,18])));
+  s=CHAMPIONNAT.scoreDuel(ch);v(s.qualifs.join()==='2,0'&&s.courses.join()==='1,1'&&s.total.join()==='3,1','GP 2 : '+JSON.stringify(s));});
+t('duel : un pilote non classé perd le point de la course (même devant au classement), les deux non classés = personne ; les qualifs comptent toujours', ()=>{
+  const G=CHAMPIONNAT.gagnantDuel;
+  let g=G({place:5,grille:3,classe:false},{place:12,grille:8,classe:true});v(g.qualif===0&&g.course===1,'joueur non classé : '+JSON.stringify(g));
+  g=G({place:12,grille:9,classe:true},{place:5,grille:2,classe:false});v(g.qualif===1&&g.course===0,'coéquipier non classé : '+JSON.stringify(g));
+  g=G({place:19,grille:9},{place:20,grille:2,classe:false});v(g.qualif===1&&g.course===0,'classe absent = classé');
+  g=G({place:19,grille:9,classe:false},{place:20,grille:2,classe:false});v(g.course===null,'deux non classés');
+  const ch=CHAMPIONNAT.creer(1);CHAMPIONNAT.enregistrerCourse(ch,lignesDuel(ordreAvec([19,18]),null,[19,18]));
+  const s=CHAMPIONNAT.scoreDuel(ch);v(s.qualifs.join()==='1,0'&&s.courses.join()==='0,0','score '+JSON.stringify(s));});
+t('duel : une pénalité qui inverse l’ordre à l’arrivée inverse le point (classementFinal, pénalités comprises) ; non arrivé = non classé', ()=>{
+  // une course de 20 voitures déjà finie : le joueur (19) passe la ligne 1er, son coéquipier (18) 2e, 0,5 s derrière ; le joueur a 5 s de pénalité
+  const mk=(k,arrivee,place,pen)=>({arrivee,place,depart:-k,course:{penalites:pen,progression:15000,meilleurTour:null}});
+  const P=[...Array(20).keys()].map(k=>mk(k,100+k,k+3,0));P[19]=mk(19,90,1,5);P[18]=mk(18,90.5,2,0);
+  const e={pilotes:P,go:0,temps:200,circuit:{longueur:3000}};
+  const L1=CHAMPIONNAT.lignesDepuisCourse(e),lj=L1.find(l=>l.k===19),lc=L1.find(l=>l.k===18);
+  v(lc.place<lj.place&&lj.classe&&lc.classe,'final : joueur '+lj.place+', coéquipier '+lc.place);
+  v(CHAMPIONNAT.gagnantDuel(lj,lc).course===1,'le point va au coéquipier');
+  P[19]=mk(19,90,1,0);const L2=CHAMPIONNAT.lignesDepuisCourse(e);v(CHAMPIONNAT.gagnantDuel(L2.find(l=>l.k===19),L2.find(l=>l.k===18)).course===0,'sans pénalité, au joueur');
+  P[18]=mk(18,null,null,0);P[18].course.progression=0;const L3=CHAMPIONNAT.lignesDepuisCourse(e);v(L3.find(l=>l.k===18).classe===false,'non arrivé = non classé');});
+t('duel : le score de la saison repart de 0 à une nouvelle saison (et avec un nouveau coéquipier) ; le total de carrière contre chaque coéquipier reste', ()=>{
+  const ch=CHAMPIONNAT.creer(1);
+  for(let g=0;g<3;g++) CHAMPIONNAT.enregistrerCourse(ch,lignesDuel(ordreAvec(g<2?[19,18]:[18,19])));
+  let s=CHAMPIONNAT.scoreDuel(ch);v(s.total.join()==='4,2'&&s.carriere.courses.join()==='2,1','saison 1 : '+JSON.stringify(s));
+  ch.saison=2;s=CHAMPIONNAT.scoreDuel(ch);v(s.qualifs.join()==='0,0'&&s.courses.join()==='0,0','remise à 0 : '+JSON.stringify(s));
+  v(s.carriere.qualifs.join()==='2,1'&&s.carriere.courses.join()==='2,1','carrière gardée');
+  CHAMPIONNAT.enregistrerCourse(ch,lignesDuel(ordreAvec([19,18])));s=CHAMPIONNAT.scoreDuel(ch);
+  v(s.total.join()==='2,0'&&s.carriere.courses.join()==='3,1','saison 2 : '+JSON.stringify(s));
+  // un nouveau coéquipier (le pilote 0 passe dans l'écurie du joueur, le 18 part) : score à 0, carrière à part
+  ch.pilotes[18].ecurie=0;ch.pilotes[0].ecurie=REGLAGES.ECURIE_JOUEUR;s=CHAMPIONNAT.scoreDuel(ch);
+  v(s.k===0&&s.total.join()==='0,0'&&s.carriere.courses.join()==='0,0','nouveau coéquipier : '+JSON.stringify(s));
+  CHAMPIONNAT.enregistrerCourse(ch,lignesDuel(ordreAvec([0,19])));
+  v(ch.duel.carriere[0].courses.join()==='0,1'&&ch.duel.carriere[18].courses.join()==='3,1','carrière par coéquipier : '+JSON.stringify(ch.duel.carriere));});
+t('duel : sauvegarde → rechargement identique ; une sauvegarde v2 (sans duel) devient v3 sans rien perdre, et ses courses comptent', ()=>{
+  const ch=CHAMPIONNAT.creer(4);
+  CHAMPIONNAT.finirGrandPrix(ch,lignesDuel(ordreAvec([18,19]),ordreAvec([19,18])));
+  CHAMPIONNAT.finirGrandPrix(ch,lignesDuel(ordreAvec([19,18])));
+  const re=SAUVEGARDE.championnat();v(JSON.stringify(re)===JSON.stringify(ch),'rechargement différent');
+  v(JSON.stringify(CHAMPIONNAT.scoreDuel(re))===JSON.stringify(CHAMPIONNAT.scoreDuel(ch)),'score différent');
+  // la même partie, écrite comme avant le duel (v2) : ni ch.duel ni duel dans les résultats
+  const vieux=JSON.parse(JSON.stringify(ch));delete vieux.duel;for(const r of vieux.resultats) delete r.duel;
+  localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:2,records:{'5':61.5},championnat:vieux}));
+  const d=SAUVEGARDE.lire(),s=CHAMPIONNAT.scoreDuel(d.championnat);
+  v(d.version===3&&d.records['5']===61.5&&d.championnat.prochain===2,'v2 → v3 : '+d.version);
+  v(JSON.stringify(d.championnat.pilotes)===JSON.stringify(ch.pilotes)&&JSON.stringify(d.championnat.ecuries)===JSON.stringify(ch.ecuries),'rien de perdu');
+  v(s.courses.join()==='1,1'&&s.qualifs.join()==='0,0','les courses d’avant comptent (qualifs inconnues) : '+JSON.stringify(s));
+  localStorage.removeItem(SAUVEGARDE.CLE);});
 
 // --- la qualification du joueur (étape 5)
 t('qualification : tour lancé (le chrono part à la ligne, pas au départ), fini en un tour du robot ; un virage coupé l’annule', ()=>{

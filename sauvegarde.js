@@ -3,7 +3,7 @@
 // et le jeu marche sans.
 const SAUVEGARDE = (function () {
   const CLE = 'grand-prix-dynasty';
-  const VERSION = 2;
+  const VERSION = 3;
 
   function vierge() {
     // records : le meilleur tour de chaque longueur (« 5 », « 12 », « 18 », « 0 ») ; sur un autre circuit que celui de test,
@@ -13,10 +13,12 @@ const SAUVEGARDE = (function () {
 
   // une sauvegarde d'une ancienne version est transformée ici, sans rien perdre :
   // v1 → v2 : le championnat (étape 6) ; une v1 n'en a pas
+  // v2 → v3 : le duel contre le coéquipier, dans le championnat (championnat.js : completer le reconstruit)
   function migrer(d) {
     if (!d || typeof d !== 'object' || typeof d.version !== 'number' || d.version > VERSION) return vierge();
     if (!d.records || typeof d.records !== 'object') d.records = {};
     if (d.version < 2 || d.championnat === undefined) d.championnat = null;
+    if (d.championnat && typeof CHAMPIONNAT !== 'undefined') CHAMPIONNAT.completer(d.championnat);
     d.version = VERSION;
     return d;
   }
