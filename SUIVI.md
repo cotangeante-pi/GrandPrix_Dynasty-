@@ -4,7 +4,7 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 
 ## Sessions
 
-- 2026-10-23 17h35 : **Chef = session-5b** (le propriétaire : « tu vas être un chef de codeurs » ; les sessions session-76, dd, 9e et a7 étaient fermées). Les Codeurs sont relancés par le propriétaire avec « Le Chef est la session session-5b ». Les ordres des tours 21c (Codeur 3) et 22b (Codeur 2) restent valables ; le Codeur 1 reçoit le tour 22 (rapports/tour-22-rapport.md : la cause du non-déterminisme, trouvée par le Chef, puis le duel).
+- 2026-10-23 17h35 : **Chef = session-5b** (le propriétaire : « tu vas être un chef de codeurs » ; les sessions session-76, dd, 9e et a7 étaient fermées). À 17h55, le propriétaire : « fais 3 codeurs avec des tâches précises et différentes » → le Chef lance lui-même les 3 Codeurs (sessions filles de session-5b, sur le Mac) : Codeur 1 dans « Grand Prix Dynasty - codeur 1 » (worktree neuf, branche determinisme) pour le tour 22 ; Codeur 2 dans « - codeur 2 » (codeur2) pour le tour 22b ; Codeur 3 dans « - codeur 3 » (remis sur codeur3) pour les ordres 2–4 du tour 21c puis les circuits. Fichiers disjoints : IA/physique/simulation au 1 ; fantôme/départ/course/qualification/3D au 2 ; journal/championnat au 3 ; dans les fichiers partagés (interface, textes, donnees, principal, index, style, tests), chacun ajoute ses blocs sans reformater. Les ordres des tours 21c (Codeur 3) et 22b (Codeur 2) restent valables ; le Codeur 1 reçoit le tour 22 (rapports/tour-22-rapport.md : la cause du non-déterminisme, trouvée par le Chef, puis le duel).
 - 2026-10-18 : Chef session-2d, Codeur session-0e
 - 2026-10-19 : Chef **session-76**, Codeur **session-dd** (donné par le propriétaire)
 - 2026-10-21 ~19h10 : session-dd (Codeur 1, les IA) passe sur le modèle **Fable 5.1**, effort **high** (choix du propriétaire, conseil du Chef) ; session-9e et le Chef restent sur Opus 5.5.
@@ -32,7 +32,7 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 Trois tours ouverts le 2026-10-23, main = ab23312 (63/100), Chef session-5b :
 - **Tour 22, Codeur 1** (branche determinisme 7ad2d50 → duel) : remplacer les deux `Math.pow` de l'aplatissement (ia.js:117-118) par des multiplications (cause des 6 échecs GitHub, voir « Bugs connus »), re-épingler les temps, GitHub vert ; puis le duel (vainqueur ≠ poleman ≥ 3/30). rapports/tour-22-rapport.md.
 - **Tour 22b, Codeur 2** (branche codeur2, dossier « - codeur 2 », fantome.js commencé, non commité) : le fantôme du meilleur tour, puis le départ parfait. rapports/tour-22b-rapport.md.
-- **Tour 21c, Codeur 3** (branche codeur3, dossier « - codeur 3 », actuellement sur la branche `circuits`) : ordre 1 (score du duel) poussé en f7255ce et vert ; ordres 2–4 (duel à l'écran, journal.js, la une à l'écran) en cours dans le commit local 752831a, pas poussé. Ensuite : les 12 circuits ressemblants (rapports/circuits-ressemblants-rapport.md, branche circuits). rapports/tour-21c-rapport.md (sur la branche codeur3).
+- **Tour 21c, Codeur 3** : **fait et fusionné** (4a8e731 → main 5d548d6, ~19h05 ; GitHub 40033832212 : seulement les 6 échecs connus ; captures une.png, une-en.png, une-960.png, duel.png, duel-tour.png relues par le Chef) : score du duel contre le coéquipier (qualifs + courses, saison et carrière), sa ligne marquée dans la tour avec l'écart, « Toi 2 – 2 Pilote 19 » sur l'écran du championnat, journal.js (La Gazette du Paddock / The Paddock Gazette : titre par priorité, texte, brèves, classement, album compact : 180 unes = 59 843 octets, 332 par une), la une affichée après les résultats. Depuis ~19h : les 12 circuits ressemblants sur la branche `circuits`. À vérifier : sur duel-tour.png, la tour montre 1–9, 11–13, le joueur « 10 », 15–20 (la ligne 14 manque).
 
 Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤ 50 s sur Test) → 4b (plusieurs IA sans se toucher) → 4c (dépasser, défendre) → 4d (caractères, niveaux, page des 50 courses).
 
@@ -60,9 +60,11 @@ Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤
 | 18 + 18b | 3962493 | 60 | 12 | 16 | 4 | 11 | 9 | 10 | 1 |
 | 19 + 19b | f2ff5ee | 62 | 12 | 16 | 6 | 12 | 9 | 10 | 2 |
 | 21b | 81c254d | 63 | 12 | 16 | 6 | 12 | 9 | 10 | 3 |
+| 21c | 5d548d6 | 66 | 12 | 16 | 8 | 13 | 9 | 10 | 3 |
 
 ## À essayer par le propriétaire
 
+- **Le duel et la une du journal** (tour 21c) : `index.html?championnat=1` : en course, la ligne de ton coéquipier est marquée dans la tour avec l'écart ; après les résultats, la une du journal (clic ou touche pour passer) ; sur l'écran entre les courses, le score du duel. Dire : le ton des titres te plaît ? la place de la « photo » (vide pour l'instant) ?
 - **Le championnat** : `index.html?championnat=1` (écran entre les courses, points, sauvegarde ; fermer et revenir).
 - Vue cockpit (touche C), feux de départ, vue télé après l'arrivée, podium : `index.html?course=5&ia=9&joueur=1&circuit=technique`.
 
@@ -81,6 +83,8 @@ Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤
 - Étapes 0, 1, 2, 3 (acceptées par le propriétaire). L'étape 4 (IA) est presque là : il manque le duel (vainqueur ≠ poleman 0/30). Des morceaux des étapes 5 (feux, qualification, podium), 6 (championnat, sauvegarde), 7 (pneus désactivés), 13 (enregistreur) et 15 (sdk.js) sont posés.
 
 ## Décidé
+
+- 2026-10-23 ~18h45 (Chef session-5b) : le Codeur 1 a réglé le déterminisme (determinisme 5865b0f, GitHub 40031444023 : les 6 échecs connus ont disparu ; empreintes identiques au bit près Mac/GitHub : trajectoire test Σécart −5591.154986164103, technique −8626.812883967046, épinglées en dur). Deux tests sont devenus rouges sur les deux machines, avec les mêmes chiffres : **le Chef a tranché : on corrige la mesure, pas les seuils, pas le jeu.** « styles » mesurait l'écart-type pile à l'apex, où les lignes « apex tôt / apex tard » se croisent (0,26 m à l'épingle) : on mesure maintenant le max à l'apex, 30 m avant et 30 m après, seuil 0,5 m inchangé. « suivi seul » supposait que l'IA resterait 2 tours derrière une voiture à 60 % ; par la règle de la file elle-même (IA_FILE_COTE 6 m), à 8,7 m de côté elle n'est plus à la file et contourne : le test vérifie désormais la distance de sécurité tant qu'elle est à la file, un contournement propre (écart latéral ≥ largeur + marge), 0 contact, 0 herbe.
 
 - 2026-10-19 19h15 : **Le propriétaire ne veut pas d'IA sur un rail** (« tous les ia suivent une trajectoire précise définie ; je ne veux pas ça, je veux une INTELLIGENCE artificielle »). Choix : **des pilotes qui décident** (chaque IA choisit sa ligne en roulant, selon la piste et les voitures autour), pas un réseau de neurones. Cause : c'était le plan de CLAUDE.md (4a « trajectoire idéale ») et les ordres du Chef aux tours 7–8. Le tour 9 finit (contacts, simulation), l'IA change au tour 10.
 
@@ -113,6 +117,7 @@ Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤
 
 ## Retours du propriétaire
 
+- 2026-10-23 ~18h50 : « c'est normal que si on bloque une formule 1 tout un trafic à la queue leu leu attend ? ils sont censés doubler » → **décision du propriétaire** : une voiture bloquée ou très lente se contourne, partout, sans attendre une zone d'attaque (écrit dans CLAUDE.md, « Les IA des adversaires »). Cause : la règle de la file (IA_FILE_DISTANCE 30 m, IA_FILE_COTE 6 m) et l'attaque seulement avant un virage précédé de 150 m de droite. Ordre 3 du tour 22 au Codeur 1. Ça tranche aussi la question « contournement sans attaque » : voulu.
 - 2026-10-23 ~17h05 : « c'est possible de faire plus ressemblant au vrai ? » (les 12 tracés) → **décision du propriétaire** : circuits très ressemblants (reconnaissables au premier coup d'œil), noms changés, aucun logo. CLAUDE.md mis à jour ; ordre dans rapports/circuits-ressemblants-rapport.md, pour le premier Codeur libre (branche `circuits`). Codeur 3 = session-a7 (branche codeur3), donné par le propriétaire le même jour.
 
 - 2026-10-21 ~18h10 : « un autre Claude fait des changements dans le CLAUDE.md, il fait des idées, laisse-le ». → Le Chef et le Codeur ne touchent pas à ses changements de CLAUDE.md et ne les commitent pas avec leur travail (`git add -p` pour leurs propres lignes).

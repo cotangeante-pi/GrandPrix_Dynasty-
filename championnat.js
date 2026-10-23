@@ -30,7 +30,7 @@ const CHAMPIONNAT = (function () {
     ALEATOIRE.semer();
     const calendrier = [];
     for (let i = 0; i < R.NB_GRANDS_PRIX; i++) calendrier.push({ numero: i + 1, circuit: R.CALENDRIER_CIRCUITS[i % R.CALENDRIER_CIRCUITS.length] });
-    return { graine, saison: 1, prochain: 0, calendrier, ecuries, pilotes, resultats: [] };
+    return completer({ graine, saison: 1, prochain: 0, calendrier, ecuries, pilotes, resultats: [], duel: null, album: [] });
   }
 
   function pointsPour(place) {
@@ -62,14 +62,102 @@ const CHAMPIONNAT = (function () {
       if (l === meilleur) s.meilleursTours++;
       ch.ecuries[p.ecurie].points += pts;
     }
-    ch.resultats.push({ grandPrix: ch.prochain + 1, ordre: lignes.map(l => l.k) });
+    const duel = enregistrerDuel(ch, lignes);
+    ch.resultats.push({ grandPrix: ch.prochain + 1, ordre: lignes.map(l => l.k), duel });
     ch.prochain++;
+    return ch;
+  }
+
+  // --- le duel contre le coéquipier (CLAUDE.md « Le duel contre le coéquipier ») : les scores sont des paires
+  // [joueur, coéquipier] ; duel.saison et duel.coequipier disent à quoi s'applique le score de la saison (il repart
+  // de 0 à une nouvelle saison ou avec un nouveau coéquipier) ; duel.carriere : le total contre chaque coéquipier (k)
+  function joueurDe(ch) {
+    return ch.pilotes.find(p => p.humain);
+  }
+
+  // le coéquipier : l'autre pilote de l'écurie du joueur
+  function coequipierDe(ch) {
+    const j = joueurDe(ch);
+    return ch.pilotes.find(p => p.ecurie === j.ecurie && !p.humain) || null;
+  }
+
+  // qui gagne le duel d'un Grand Prix : 0 = le joueur, 1 = le coéquipier, null = personne. Lignes { place, grille,
+  // classe } (classe absent : classé). Qualifs : la meilleure place sur la grille ; course : la meilleure place au
+  // classement final (pénalités comprises) ; un pilote non classé perd le point de la course (les deux : personne)
+  function gagnantDuel(lj, lc) {
+    const classeJ = lj.classe !== false, classeC = lc.classe !== false;
+    return {
+      qualif: lj.grille === lc.grille ? null : lj.grille < lc.grille ? 0 : 1,
+      course: classeJ && classeC ? (lj.place < lc.place ? 0 : 1) : classeJ ? 0 : classeC ? 1 : null,
+    };
+  }
+
+  // le duel de ch, mis à la saison et au coéquipier en cours (créé s'il manque : une ancienne sauvegarde)
+  function duelDe(ch) {
+    const c = coequipierDe(ch);
+    if (!ch.duel) {
+      ch.duel = { saison: ch.saison, coequipier: c ? c.id : null, qualifs: [0, 0], courses: [0, 0], carriere: {} };
+      // une sauvegarde d'avant le duel : les courses déjà jouées se retrouvent dans l'ordre d'arrivée (le non classé
+      // y est après tous les classés) ; les qualifs n'étaient pas gardées
+      const j = joueurDe(ch);
+      for (const r of ch.resultats || []) {
+        if (!c || r.duel !== undefined) continue;
+        const pj = r.ordre.indexOf(j.id), pc = r.ordre.indexOf(c.id);
+        if (pj < 0 || pc < 0) continue;
+        compter(ch.duel, c.id, { qualif: null, course: pj < pc ? 0 : 1 });
+      }
+    }
+    const d = ch.duel;
+    if (d.saison !== ch.saison || d.coequipier !== (c ? c.id : null)) {
+      d.saison = ch.saison;
+      d.coequipier = c ? c.id : null;
+      d.qualifs = [0, 0];
+      d.courses = [0, 0];
+    }
+    return d;
+  }
+
+  // ajoute le résultat g d'un Grand Prix au score de la saison et au total de carrière contre le coéquipier k
+  function compter(d, k, g) {
+    const c = d.carriere[k] || (d.carriere[k] = { qualifs: [0, 0], courses: [0, 0] });
+    if (g.qualif !== null) { d.qualifs[g.qualif]++; c.qualifs[g.qualif]++; }
+    if (g.course !== null) { d.courses[g.course]++; c.courses[g.course]++; }
+  }
+
+  // le duel d'un Grand Prix fini (enregistrerCourse) ; renvoie { coequipier, qualif, course } (null : pas de duel)
+  function enregistrerDuel(ch, lignes) {
+    const d = duelDe(ch), j = joueurDe(ch);
+    const lj = lignes.find(l => l.k === j.id), lc = lignes.find(l => l.k === d.coequipier);
+    if (d.coequipier === null || !lj || !lc) return null;
+    const g = gagnantDuel(lj, lc);
+    compter(d, d.coequipier, g);
+    return { coequipier: d.coequipier, qualif: g.qualif, course: g.course };
+  }
+
+  // le score de la saison pour l'écran : { k (le coéquipier), nom, qualifs, courses, total } (paires [joueur, coéquipier]),
+  // ou null sans coéquipier ; carriere : le total de carrière contre lui
+  function scoreDuel(ch) {
+    const d = duelDe(ch);
+    if (d.coequipier === null) return null;
+    const c = d.carriere[d.coequipier] || { qualifs: [0, 0], courses: [0, 0] };
+    return {
+      k: d.coequipier, nom: ch.pilotes[d.coequipier].nom, qualifs: d.qualifs.slice(), courses: d.courses.slice(),
+      total: [d.qualifs[0] + d.courses[0], d.qualifs[1] + d.courses[1]],
+      carriere: { qualifs: c.qualifs.slice(), courses: c.courses.slice() },
+    };
+  }
+
+  // une sauvegarde d'une ancienne version : ce qui manque est ajouté (sauvegarde.js, migrer)
+  function completer(ch) {
+    if (ch.pilotes) duelDe(ch);   // (une sauvegarde de test peut n'avoir que des pilotes)
+    if (!ch.album) ch.album = [];   // l'album des unes du journal (journal.js) : vide dans une sauvegarde d'avant
     return ch;
   }
 
   // la course finie, puis la sauvegarde (après chaque course)
   function finirGrandPrix(ch, lignes) {
     enregistrerCourse(ch, lignes);
+    if (typeof JOURNAL !== 'undefined') JOURNAL.ranger(ch, JOURNAL.composer(ch, lignes));   // la une du journal (journal.js), dans l'album du championnat
     SAUVEGARDE.ecrireChampionnat(ch);
     return ch;
   }
@@ -115,10 +203,10 @@ const CHAMPIONNAT = (function () {
     return e;
   }
 
-  // les lignes d'une course de la page (simulation.js : classementFinal, pénalités comprises) ; la voiture k de la
-  // course est le pilote k du championnat
+  // les lignes d'une course de la page (simulation.js : classementFinal, pénalités comprises ; ligne : la place au passage
+  // de la ligne, pour la une du journal) ; la voiture k de la course est le pilote k du championnat
   function lignesDepuisCourse(e) {
-    return classementFinal(e).map(x => ({ k: x.k, place: x.place, grille: x.grille, meilleurTour: e.pilotes[x.k].course.meilleurTour }));
+    return classementFinal(e).map(x => ({ k: x.k, place: x.place, grille: x.grille, ligne: x.ligne, penalites: x.penalites, meilleurTour: e.pilotes[x.k].course.meilleurTour, classe: x.temps !== null }));
   }
 
   // les lignes d'une course simulée (simulerCourse) : la même règle que classementFinal (temps total, pénalités
@@ -127,8 +215,9 @@ const CHAMPIONNAT = (function () {
     const V = r.voitures, k = v => v.numero - 1;
     const ordre = V.filter(v => v.fini).sort((a, b) => a.temps - b.temps || a.place - b.place).concat(V.filter(v => !v.fini));
     const grille = r.grille ? r.grille.map(g => g.numero) : V.map(v => v.numero);
-    return ordre.map((v, i) => ({ k: k(v), place: i + 1, grille: grille.indexOf(v.numero) + 1, meilleurTour: v.meilleurTour }));
+    return ordre.map((v, i) => ({ k: k(v), place: i + 1, grille: grille.indexOf(v.numero) + 1, meilleurTour: v.meilleurTour, classe: !!v.fini }));
   }
 
-  return { creer, pointsPour, enregistrerCourse, finirGrandPrix, classementPilotes, classementEcuries, lignesDepuisCourse, lignesDepuisSimulation, appliquerNiveaux, simulerGrandPrix };
+  return { creer, pointsPour, enregistrerCourse, finirGrandPrix, classementPilotes, classementEcuries, lignesDepuisCourse, lignesDepuisSimulation, appliquerNiveaux, simulerGrandPrix,
+    coequipierDe, gagnantDuel, scoreDuel, completer };
 })();

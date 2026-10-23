@@ -40,10 +40,10 @@ PAGES = [
     ('index.html?course=0&robot=1&pneus=1&debug=1', 1280, 720, None),   # ?pneus=1 : l'usure monte sur 10 tours du robot, affichée dans ?debug=1
     ('index.html?championnat=1&tours=1&robot=1&lang=en', 1280, 720, None),   # la page en anglais : championnat et podium sans un mot français, capture championnat-en.png
 ]
-# le faux SDK Poki (comme dans tests/sdk.html), posé avant le chargement de la page ?test=sdk : il note chaque appel
-FAUX_SDK = """window.JOURNAL = []; window.PokiSDK = { init() { JOURNAL.push('init'); return Promise.resolve(); }, gameLoadingFinished() { JOURNAL.push('gameLoadingFinished'); },
-  gameplayStart() { JOURNAL.push('gameplayStart'); }, gameplayStop() { JOURNAL.push('gameplayStop'); },
-  commercialBreak() { JOURNAL.push('commercialBreak'); return Promise.resolve(); }, rewardedBreak() { JOURNAL.push('rewardedBreak'); return Promise.resolve(true); } };"""
+# le faux SDK Poki (comme dans tests/sdk.html), posé avant le chargement de la page ?test=sdk : il note chaque appel dans APPELS_SDK (pas « JOURNAL » : c'est le module de la une du journal, journal.js)
+FAUX_SDK = """window.APPELS_SDK = []; window.PokiSDK = { init() { APPELS_SDK.push('init'); return Promise.resolve(); }, gameLoadingFinished() { APPELS_SDK.push('gameLoadingFinished'); },
+  gameplayStart() { APPELS_SDK.push('gameplayStart'); }, gameplayStop() { APPELS_SDK.push('gameplayStop'); },
+  commercialBreak() { APPELS_SDK.push('commercialBreak'); return Promise.resolve(); }, rewardedBreak() { APPELS_SDK.push('rewardedBreak'); return Promise.resolve(true); } };"""
 SEP = r'[.,]'   # le séparateur décimal des temps affichés : la virgule en français (texte('virgule')), le point en anglais
 POSITION = '() => CAMERA.position'
 
@@ -274,12 +274,12 @@ def enregistreur(pg, titre):
 # sdk.js est le seul passage vers Poki : avec le faux SDK posé avant la page, les appels viennent dans l'ordre, et jamais
 # deux fois le même état (gameplayStart / gameplayStop) de suite ; une course d'un tour par le robot
 def sdk(pg, titre):
-    J = '() => window.JOURNAL.join(",")'
-    t(f'{titre} : le faux SDK est vu ; au démarrage d’une course : init, gameLoadingFinished, gameplayStart, dans cet ordre', attendre(pg, '() => SDK.present && JEU.sdkPret && window.JOURNAL.join(",") === "init,gameLoadingFinished,gameplayStart"', None, 20000), pg.evaluate(J))
+    J = '() => window.APPELS_SDK.join(",")'
+    t(f'{titre} : le faux SDK est vu ; au démarrage d’une course : init, gameLoadingFinished, gameplayStart, dans cet ordre', attendre(pg, '() => SDK.present && JEU.sdkPret && window.APPELS_SDK.join(",") === "init,gameLoadingFinished,gameplayStart"', None, 20000), pg.evaluate(J))
     pg.keyboard.press('Escape')
-    t(f'{titre} : la pause envoie gameplayStop', attendre(pg, '() => JEU.ecran === "pause" && window.JOURNAL.slice(-1)[0] === "gameplayStop"'), pg.evaluate(J))
+    t(f'{titre} : la pause envoie gameplayStop', attendre(pg, '() => JEU.ecran === "pause" && window.APPELS_SDK.slice(-1)[0] === "gameplayStop"'), pg.evaluate(J))
     pg.click('#boutonReprendre')
-    t(f'{titre} : « Reprendre » renvoie gameplayStart', attendre(pg, '() => JEU.ecran === "course" && window.JOURNAL.slice(-1)[0] === "gameplayStart"'), pg.evaluate(J))
+    t(f'{titre} : « Reprendre » renvoie gameplayStart', attendre(pg, '() => JEU.ecran === "course" && window.APPELS_SDK.slice(-1)[0] === "gameplayStart"'), pg.evaluate(J))
     pg.evaluate('() => { JEU.course.compte = 0.01; }')
     attendre(pg, '() => JEU.course.etat === "course"', None, 20000)
     for _ in range(40):
@@ -287,9 +287,9 @@ def sdk(pg, titre):
         if pg.evaluate('() => JEU.ecran') == 'fin': break
         pg.wait_for_timeout(50)
     t(f'{titre} : à l’arrivée (écran de fin), gameplayStop ; sur toute la course, jamais deux fois le même état de suite',
-      attendre(pg, '() => JEU.ecran === "fin" && window.JOURNAL.slice(-1)[0] === "gameplayStop"') and pg.evaluate(J) == 'init,gameLoadingFinished,gameplayStart,gameplayStop,gameplayStart,gameplayStop', pg.evaluate(J))
+      attendre(pg, '() => JEU.ecran === "fin" && window.APPELS_SDK.slice(-1)[0] === "gameplayStop"') and pg.evaluate(J) == 'init,gameLoadingFinished,gameplayStart,gameplayStop,gameplayStart,gameplayStop', pg.evaluate(J))
     pg.click('#boutonRejouer')
-    t(f'{titre} : « Rejouer » : gameplayStart, une seule fois', attendre(pg, '() => JEU.ecran === "course" && window.JOURNAL.slice(-2).join(",") === "gameplayStop,gameplayStart"'), pg.evaluate(J))
+    t(f'{titre} : « Rejouer » : gameplayStart, une seule fois', attendre(pg, '() => JEU.ecran === "course" && window.APPELS_SDK.slice(-2).join(",") === "gameplayStop,gameplayStart"'), pg.evaluate(J))
 
 # ?pneus=1 : les pneus du joueur (pneus.js) s'usent, son adhérence baisse, ?debug=1 l'affiche (sans ?pneus=1 : rien, PNEUS_ACTIFS faux)
 def pneus(pg, titre):
@@ -331,6 +331,9 @@ def championnat_en(pg, titre):
     res = pg.evaluate('() => ({ entete: [...document.querySelectorAll("#resultatsEntete th")].map(e => e.textContent).join(","), texte: document.getElementById("resultats").innerText })')
     t(f'{titre} : les résultats en anglais (Pos, No, Time, Penalty, Gap, Grid ; « Continue »)', res['entete'] == 'Pos,No,Time,Penalty,Gap,Grid' and 'Continue' in res['texte'] and not re.search(MOTS_FR, res['texte']), str(res)[:300])
     pg.click('#boutonChangerResultats')
+    t(f'{titre} : après les résultats, la une du journal en anglais, pas un mot français', attendre(pg, '() => JEU.ecran === "une"') and not re.search(MOTS_FR, pg.evaluate('() => document.getElementById("une").innerText')),
+      pg.evaluate('() => document.getElementById("une").innerText')[:300])
+    une_ecran(pg, titre, 'une-en.png')
     t(f'{titre} : après le Grand Prix, « You scored n points » et le classement en anglais', attendre(pg, '() => JEU.ecran === "championnat" && /^You scored \\d+ points$/.test(document.getElementById("championnatGagne").textContent)')
       and not re.search(MOTS_FR, pg.evaluate('() => document.getElementById("championnat").innerText')), pg.evaluate('() => document.getElementById("championnatGagne").textContent'))
     pg.wait_for_timeout(300)
@@ -464,6 +467,50 @@ def course_podium(pg, titre, l):
     pg.wait_for_timeout(300)
     pg.screenshot(path=os.path.join(CAPTURES, 'resultats.png' if l == 1280 else 'resultats-960.png'))
 
+# ?championnat=1 : la ligne du coéquipier dans la tour (null si elle n'y est pas encore)
+DUEL_TOUR = '''() => { const li = document.querySelectorAll("#classementListe li.coequipier"); if (!li.length || document.getElementById("classement").classList.contains("cache")) return null;
+  return { n: li.length, numero: Number(li[0].dataset.numero), attendu: JEU.plateau.pilotes[CHAMPIONNAT.coequipierDe(JEU.championnat).id].numero,
+    couleur: li[0].style.getPropertyValue("--ecurie") !== "", ecart: li[0].querySelector(".ecart").textContent }; }'''
+
+def duel_ecran(pg, titre, gp):
+    # l'écran entre les courses : « ⚔ Duel contre ton coéquipier : Toi 1 – 3 Pilote 19 (qualifs 0–2, courses 1–1) », les chiffres de
+    # CHAMPIONNAT.scoreDuel ; après gp Grands Prix, 2 points par Grand Prix au plus (une qualif, une course) ; la ligne ne déborde pas
+    d = pg.evaluate('''() => { const p = document.getElementById("championnatDuel"), s = CHAMPIONNAT.scoreDuel(JEU.championnat);
+      return { texte: p.textContent, s, nom: INTERFACE.nomPilote(JEU.championnat.pilotes[s.k]), deborde: p.scrollWidth > p.clientWidth + 1 || p.getBoundingClientRect().right > innerWidth }; }''')
+    s = d['s']
+    attendu = f"⚔ Duel contre ton coéquipier : Toi {s['total'][0]} – {s['total'][1]} {d['nom']} (qualifs {s['qualifs'][0]}–{s['qualifs'][1]}, courses {s['courses'][0]}–{s['courses'][1]})"
+    t(f'{titre} : après {gp} Grand(s) Prix, le score du duel contre le coéquipier est affiché, sans déborder', d['texte'] == attendu and not d['deborde']
+      and sum(s['qualifs']) <= gp and sum(s['courses']) <= gp and sum(s['qualifs']) + sum(s['courses']) >= gp, str(d))
+
+# ?championnat=1 : la une du journal (journal.js) à l'écran, après les résultats : la dernière une de l'album, rendue avec les
+# noms de l'affichage ; grand titre, petit texte, 2 ou 3 brèves, le classement (5 premiers + le joueur) ; rien ne déborde de la
+# page de journal, et la page ne défile pas ; puis un clic (ou une touche) mène à l'écran du championnat
+UNE = '''() => { const ch = JEU.championnat, une = ch.album[ch.album.length - 1], r = JOURNAL.rendre(une, ch, { pilote: INTERFACE.nomPilote, ecurie: INTERFACE.nomEcurie });
+  const $ = id => document.getElementById(id), page = $("unePage").getBoundingClientRect(), dedans = [];
+  for (const id of ["uneNom", "uneTitre", "uneTexte", "uneBreves", "uneClassement", "unePhoto"]) { const b = $(id).getBoundingClientRect();
+    dedans.push(b.left >= page.left - 1 && b.right <= page.right + 1 && b.top >= page.top - 1 && b.bottom <= page.bottom + 1 && b.width > 0 && b.height > 0); }
+  const coupe = ["unePrincipal", "uneCote", "unePage"].filter(id => $(id).scrollHeight > $(id).clientHeight + 1 || $(id).scrollWidth > $(id).clientWidth + 1);
+  return { ecran: JEU.ecran, visible: !$("une").classList.contains("cache"), nom: $("uneNom").textContent, attenduNom: r.nom, titre: $("uneTitre").textContent, attenduTitre: r.titre,
+    texte: $("uneTexte").textContent, attenduTexte: r.texte, breves: [...document.querySelectorAll("#uneBreves li")].map(e => e.textContent), attenduBreves: r.breves,
+    classement: [...document.querySelectorAll("#uneClassement li")].map(e => e.textContent), moi: document.querySelectorAll("#uneClassement li.moi").length, attenduClassement: r.classement.length,
+    photo: $("unePhoto").textContent, passer: $("unePasser").textContent, dedans, coupe, fait: une.f,
+    defile: [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth] }; }'''
+
+def une_ecran(pg, titre, capture, touche=False):
+    u = pg.evaluate(UNE)
+    t(f'{titre} : la une du journal : le nom du journal, le grand titre et le petit texte de la dernière une de l’album (fait « {u["fait"]} »), rendus avec les noms de l’affichage',
+      u['ecran'] == 'une' and u['visible'] and u['nom'] == u['attenduNom'] and u['nom'] != '' and u['titre'] == u['attenduTitre'] and len(u['titre']) > 5 and u['texte'] == u['attenduTexte'] and len(u['texte']) > 10, str(u)[:600])
+    t(f'{titre} : la une : 2 ou 3 brèves sur le côté, le classement (5 premiers + le joueur, le joueur marqué), la place de la photo vide, « clique ou appuie sur une touche »',
+      u['breves'] == u['attenduBreves'] and 2 <= len(u['breves']) <= 3 and u['classement'] and len(u['classement']) == u['attenduClassement'] and 5 <= len(u['classement']) <= 6 and u['moi'] == 1
+      and u['photo'] == '' and u['passer'] != '', str(u)[:600])
+    t(f'{titre} : la une tient dans sa page (rien ne déborde, rien n’est coupé) et la page ne défile pas', all(u['dedans']) and not u['coupe'] and u['defile'][0] <= u['defile'][1] + 2 and u['defile'][2] <= u['defile'][3] + 2, str([u['dedans'], u['coupe'], u['defile']]))
+    pg.wait_for_timeout(300)
+    pg.screenshot(path=os.path.join(CAPTURES, capture))
+    if touche: pg.keyboard.press('Enter')
+    else: pg.click('#uneTitre')
+    t(f'{titre} : {"une touche" if touche else "un clic"} passe la une : l’écran du championnat', attendre(pg, '() => JEU.ecran === "championnat" && !document.getElementById("championnat").classList.contains("cache") && document.getElementById("une").classList.contains("cache")'), str(pg.evaluate('() => JEU.ecran')))
+    return u
+
 def championnat(pg, titre, l):
     # ?championnat=1 : l'écran entre les courses au démarrage (nouveau championnat : Grand Prix 1), le robot joue deux
     # Grands Prix d'un tour, « Continuer » enregistre et sauvegarde ; la page rechargée retrouve le Grand Prix 3 et les points
@@ -472,7 +519,15 @@ def championnat(pg, titre, l):
       pg.evaluate('''() => JEU.ecran === "championnat" && JEU.championnat.prochain === 0 && /^Grand Prix 1 \/ 12 — /.test(document.getElementById("championnatTitre").textContent)
         && document.querySelectorAll("#championnatPilotes li").length === 20 && document.querySelectorAll("#championnatPilotes li.moi").length === 1
         && document.querySelectorAll("#championnatEcuries li").length === 10 && document.getElementById("championnatGagne").textContent === ""'''), str(pg.evaluate(ECRAN)))
-    if l != 1280: return
+    duel_ecran(pg, titre, 0)
+    if l != 1280:
+        # en petit : la une d'un Grand Prix fabriqué en mémoire (le joueur 2e, sans sauvegarde), pour vérifier qu'elle tient en 960×600
+        pg.evaluate('''() => { const ch = JEU.championnat, o = [0, 19].concat([...Array(20).keys()].filter(k => k !== 0 && k !== 19));
+          const lignes = o.map((k, i) => ({ k, place: i + 1, grille: i + 1, ligne: i + 1, penalites: 0, meilleurTour: 60 + i, classe: true }));
+          CHAMPIONNAT.enregistrerCourse(ch, lignes); montrerUne(JOURNAL.ranger(ch, JOURNAL.composer(ch, lignes))); }''')
+        u = une_ecran(pg, titre, 'une-960.png', touche=True)
+        t(f'{titre} : la une du joueur 2e est « premier podium »', u['fait'] == 'premierPodium', u['fait'])
+        return
     points = None
     for gp in (1, 2):
         if gp == 2:
@@ -485,25 +540,39 @@ def championnat(pg, titre, l):
                        ' && JEU.couleurs.every((c, k) => c === JEU.championnat.ecuries[JEU.championnat.pilotes[k].ecurie].couleur) && JEU.course.nbTours === 1', None, 10000), str(pg.evaluate(ECRAN)))
         t(f'{titre} : GP {gp} : la carte se calcule, chaque IA prend le caractère de son pilote du championnat',
           attendre(pg, '() => JEU.plateau.carte !== null && JEU.plateau.pilotes.slice(0, 19).every((p, k) => p.pilote && p.pilote.caractere.regularite === JEU.championnat.pilotes[k].caractere.regularite)', None, 180000))
+        tour = None   # la ligne du coéquipier dans la tour, vue pendant la course
         for _ in range(80):
             pg.evaluate('() => BOUCLE.simuler(5)')
             if pg.evaluate('() => JEU.ecran') == 'podium': break
             pg.wait_for_timeout(50)
+            if tour is None:
+                tour = pg.evaluate(DUEL_TOUR)
+                if tour and tour['ecart'] and gp == 1: pg.screenshot(path=os.path.join(CAPTURES, 'duel-tour.png'))
+                if tour and not tour['ecart']: tour = None   # l'écart n'est pas encore connu : on regarde à l'image suivante
+        t(f'{titre} : GP {gp} : en course, une seule ligne du coéquipier dans la tour (son numéro, la couleur de l’écurie), avec l’écart en temps « ▲/▼ x,x s »',
+          bool(tour) and tour['n'] == 1 and tour['numero'] == tour['attendu'] and tour['couleur'] and bool(re.fullmatch(r'[▲▼] \d+,\d s', tour['ecart'])), str(tour))
         t(f'{titre} : GP {gp} : la course va jusqu’au podium', pg.evaluate('() => JEU.ecran === "podium"'), str(pg.evaluate('() => [JEU.ecran, JEU.plateau.arrives, JEU.plateau.temps, JEU.course.etat]')))
         pg.click('#boutonResultats')
         attendre(pg, '() => JEU.ecran === "resultats"')
         t(f'{titre} : GP {gp} : un seul bouton, « Continuer »', pg.evaluate('() => document.getElementById("boutonRejouerResultats").classList.contains("cache") && document.getElementById("boutonChangerResultats").textContent === "Continuer"'))
         pg.click('#boutonChangerResultats')
-        t(f'{titre} : GP {gp} : « Continuer » enregistre le Grand Prix et le sauvegarde, puis l’écran du championnat avec les points gagnés',
-          attendre(pg, f'''() => JEU.ecran === "championnat" && JEU.championnat.prochain === {gp} && SAUVEGARDE.championnat().prochain === {gp}
-            && /^Tu marques \d+ points$/.test(document.getElementById("championnatGagne").textContent)
+        t(f'{titre} : GP {gp} : « Continuer » enregistre le Grand Prix, range sa une dans l’album et sauvegarde, puis montre la une du journal',
+          attendre(pg, f'''() => JEU.ecran === "une" && JEU.championnat.prochain === {gp} && SAUVEGARDE.championnat().prochain === {gp} && SAUVEGARDE.championnat().album.length === {gp}
+            && JEU.championnat.album.length === {gp} && JEU.championnat.album[{gp - 1}].g === {gp}'''), str(pg.evaluate(ECRAN)) + ' ' + str(pg.evaluate('() => JEU.championnat.album.length')))
+        une_ecran(pg, titre, 'une.png' if gp == 1 else 'une-2.png')
+        t(f'{titre} : GP {gp} : après la une, l’écran du championnat avec les points gagnés',
+          attendre(pg, f'''() => JEU.ecran === "championnat" && /^Tu marques \d+ points$/.test(document.getElementById("championnatGagne").textContent)
             && document.getElementById("championnatTitre").textContent.startsWith("Grand Prix {gp + 1} / 12")'''), str(pg.evaluate(ECRAN)) + ' ' + pg.evaluate('() => document.getElementById("championnatGagne").textContent'))
         points = pg.evaluate('() => JEU.championnat.pilotes.map(p => p.stats.points)')
         total = pg.evaluate('() => REGLAGES.POINTS.reduce((a, b) => a + b, 0)')
         t(f'{titre} : GP {gp} : les points sont ceux du classement final (somme = {total} par Grand Prix)', sum(points) == gp * total, str(points))
+        duel_ecran(pg, titre, gp)
         if gp == 1:
             pg.wait_for_timeout(300)
             pg.screenshot(path=os.path.join(CAPTURES, 'championnat.png'))
+        else:
+            pg.wait_for_timeout(300)
+            pg.screenshot(path=os.path.join(CAPTURES, 'duel.png'))
     pg.reload()
     t(f'{titre} : la page rechargée retrouve le Grand Prix 3 et les mêmes points', attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat" && JEU.championnat.prochain === 2', None, 60000)
       and pg.evaluate('() => JEU.championnat.pilotes.map(p => p.stats.points)') == points and pg.evaluate('() => document.getElementById("championnatTitre").textContent').startswith('Grand Prix 3 / 12'), str(pg.evaluate(ECRAN)))

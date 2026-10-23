@@ -344,6 +344,7 @@ Décidé par le propriétaire le 2026-10-21. **But** : faire jouer **un groupe**
 - **Plusieurs niveaux de difficulté** pour tout le jeu : débutant, normal, expert et légende. Le niveau change tous les caractères ensemble, mais garde les différences entre pilotes.
 - **Les IA ne trichent pas** : aucune voiture n'accélère toute seule pour rattraper le joueur, et aucun pilote IA ne voit plus que ce qu'un pilote verrait.
 - **Pas de voitures fantômes** : les IA s'évitent, et une IA évite le joueur. Elles ne passent pas à travers les autres voitures.
+- **Une voiture bloquée ou très lente se contourne, elle ne s'attend pas** (décision du propriétaire, 2026-10-23 : « si on bloque une F1, tout un trafic à la queue leu leu attend, ils sont censés doubler »). Dès qu'il y a la place, une IA passe une voiture arrêtée ou nettement plus lente, n'importe où sur le circuit, sans attendre une zone d'attaque. La file (suivre à distance) est pour une voiture qui roule à peu près au même rythme. Test : une voiture arrêtée sur la ligne idéale, 10 IA derrière : toutes passent en moins de 15 s, sans choc.
 - Les IA sont **testées sans écran** : on simule des courses entre IA seulement, avec une graine fixe, et on vérifie que les meilleurs pilotes gagnent plus souvent, sans gagner toujours.
 
 ## L'interface
