@@ -308,6 +308,24 @@ for(const [nom,circ] of [['test',C],['technique',TQ]]){
     let tour=0;for(let i=0;i<circ.nb;i++) tour+=T.ds[i]*2/(T.vitesse[i]+T.vitesse[(i+1)%circ.nb]);
     L.push('  ('+nom+' : vitesse conseillée de '+(vmin*KMH).toFixed(0)+' à '+(Math.max(...T.vitesse)*KMH).toFixed(0)+' km/h, tour théorique '+tour.toFixed(2)+' s)');});
 }
+// --- déterminisme (tour 21) : la même graine doit donner la même course sur toute machine. Empreintes au bit près
+// (affichées pour comparer le Mac et GitHub), et le calcul en tranches identique au calcul d'un coup.
+t('déterminisme : empreintes des fonctions Math, du circuit et de la trajectoire (affichées, au bit près)', ()=>{
+  const f=x=>typeof x==='number'?x.toString():String(x);
+  const maths=[['pow 0.7^1.5',Math.pow(0.7,1.5)],['pow 0.123^2.5',Math.pow(0.123,2.5)],['pow 0.9^0.5',Math.pow(0.9,0.5)],['hypot 0.3,0.4',Math.hypot(0.3,0.4)],['hypot 1.7e-3,2.9e-3',Math.hypot(1.7e-3,2.9e-3)],['hypot 3 args',Math.hypot(1.1,2.2,3.3)],['sin 1.2345',Math.sin(1.2345)],['cos 2.3456',Math.cos(2.3456)],['tan 0.5',Math.tan(0.5)],['atan2 0.3,0.7',Math.atan2(0.3,0.7)],['atan 0.37',Math.atan(0.37)],['exp 1.2',Math.exp(1.2)],['exp -0.03',Math.exp(-0.03)],['sqrt 2',Math.sqrt(2)],['1.1*1.1+0.1',1.1*1.1+0.1],['courbure3',courbureTroisPoints(0,0,2.001,0.0137,4.003,0.0551)]];
+  L.push('  (déterminisme, Math : '+maths.map(([n,x])=>n+' = '+f(x)).join(' ; ')+')');
+  L.push('  (déterminisme, physique : pointe '+f(vitesseDePointe())+', virage(0.01) '+f(vitesseVirage(0.01))+', braquage(0.02) '+f(vitesseBraquage(0.02))+', frein(50) '+f(freinagePossible(50))+', accél(30) '+f(accelerationPossible(30))+')');
+  for(const [nom,circ] of [['test',C],['technique',TQ]]){const T=TRAJ[nom];let sx=0,sz=0,sn=0,se=0,sk=0,sv=0;
+    for(let i=0;i<circ.nb;i++){sx+=circ.x[i]*(i%7+1);sz+=circ.z[i]*(i%5+1);sn+=circ.nx[i]*i+circ.nz[i];se+=T.ecart[i]*(i%3+1);sk+=T.courbure[i]*i;sv+=T.vitesse[i];}
+    L.push('  (déterminisme, circuit '+nom+' : nb '+circ.nb+', Σx '+f(sx)+', Σz '+f(sz)+', Σn '+f(sn)+', x[100] '+f(circ.x[100])+', courbure[500] '+f(circ.courbure[500])+')');
+    L.push('  (déterminisme, trajectoire '+nom+' : Σécart '+f(se)+', Σcourbure '+f(sk)+', Σvitesse '+f(sv)+', écart[100] '+f(T.ecart[100])+', écart[800] '+f(T.ecart[800])+', vitesse[300] '+f(T.vitesse[300])+')');}
+  v(true);});
+t('déterminisme : la trajectoire calculée en tranches (une étape par tranche, comme dans la page) est identique au bit près à celle calculée d’un coup, et un deuxième calcul d’un coup aussi', ()=>{
+  for(const [nom,circ] of [['test',C],['technique',TQ]]){const T=TRAJ[nom];
+    const etapes=etapesTrajectoire(circ);let r=etapes.next(),nb=0;while(!r.done){nb++;r=etapes.next();}const T2=r.value,T3=calculerTrajectoire(circ);
+    for(const cle of ['ecart','x','z','courbure','ds','vitesse','vitesseLimite']){let d2=0,d3=0;for(let i=0;i<circ.nb;i++){if(T[cle][i]!==T2[cle][i])d2++;if(T[cle][i]!==T3[cle][i])d3++;}
+      v(d2===0,nom+' '+cle+' : '+d2+' valeurs différentes en tranches');v(d3===0,nom+' '+cle+' : '+d3+' valeurs différentes au 2e calcul');}
+    L.push('  (tranches '+nom+' : '+nb+' étapes, résultat identique au bit près)');}});
 t('IA : la vitesse conseillée suit la physique (pente du freinage et de l’accélération, vitesse de pointe ≈ 330 km/h)', ()=>{const p=vitesseDePointe()*KMH;v(p>320&&p<340,p+' km/h');
   v(freinagePossible(80)>freinagePossible(20));v(accelerationPossible(10)>accelerationPossible(80));v(vitesseBraquage(1/15)<vitesseBraquage(1/40));v(vitesseBraquage(0)===Infinity);});
 // --- le pilote qui choisit sa ligne (tour 10) : la trajectoire ci-dessus n'est plus que sa carte du circuit
