@@ -13,11 +13,17 @@ const SAUVEGARDE = (function () {
 
   // une sauvegarde d'une ancienne version est transformée ici, sans rien perdre :
   // v1 → v2 : le championnat (étape 6) ; une v1 n'en a pas
-  // v2 → v3 : le duel contre le coéquipier, dans le championnat (championnat.js : completer le reconstruit)
+  // v2 → v3 : les noms provisoires (voir plus bas) et le duel contre le coéquipier (championnat.js : completer le reconstruit)
   function migrer(d) {
     if (!d || typeof d !== 'object' || typeof d.version !== 'number' || d.version > VERSION) return vierge();
     if (!d.records || typeof d.records !== 'object') d.records = {};
     if (d.version < 2 || d.championnat === undefined) d.championnat = null;
+    // v2 → v3 : les noms provisoires en français (« Pilote joueur », « Pilote 3 », « Écurie 1 ») deviennent null : le nom
+    // par défaut vient de textes.js, dans la langue du joueur (un nom choisi ou inventé est gardé)
+    if (d.version < 3 && d.championnat) {
+      for (const p of d.championnat.pilotes || []) if (p.nom === 'Pilote joueur' || /^Pilote \d+$/.test(p.nom)) p.nom = null;
+      for (const e of d.championnat.ecuries || []) if (/^Écurie \d+$/.test(e.nom)) e.nom = null;
+    }
     if (d.championnat && typeof CHAMPIONNAT !== 'undefined') CHAMPIONNAT.completer(d.championnat);
     d.version = VERSION;
     return d;

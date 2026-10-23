@@ -36,7 +36,15 @@ PAGES = [
     ('index.html?championnat=1&tours=1&robot=1', 960, 600, 'championnat-960.png'),   # l'écran du championnat en petit
     ('index.html?championnat=1&tours=1&robot=1', 1280, 720, None),   # 2 Grands Prix joués par le robot, rechargement, capture championnat.png   # une course d'un tour, jusqu'au podium et aux résultats
     ('index.html?course=1&ia=8&circuit=test', 960, 600, None),
+    ('index.html?course=1&robot=1&test=sdk', 1280, 720, None),   # le faux SDK Poki (sdk.js) : l'ordre des appels sur une course d'un tour
+    ('index.html?course=0&robot=1&pneus=1&debug=1', 1280, 720, None),   # ?pneus=1 : l'usure monte sur 10 tours du robot, affichée dans ?debug=1
+    ('index.html?championnat=1&tours=1&robot=1&lang=en', 1280, 720, None),   # la page en anglais : championnat et podium sans un mot français, capture championnat-en.png
 ]
+# le faux SDK Poki (comme dans tests/sdk.html), posé avant le chargement de la page ?test=sdk : il note chaque appel
+FAUX_SDK = """window.JOURNAL = []; window.PokiSDK = { init() { JOURNAL.push('init'); return Promise.resolve(); }, gameLoadingFinished() { JOURNAL.push('gameLoadingFinished'); },
+  gameplayStart() { JOURNAL.push('gameplayStart'); }, gameplayStop() { JOURNAL.push('gameplayStop'); },
+  commercialBreak() { JOURNAL.push('commercialBreak'); return Promise.resolve(); }, rewardedBreak() { JOURNAL.push('rewardedBreak'); return Promise.resolve(true); } };"""
+SEP = r'[.,]'   # le séparateur décimal des temps affichés : la virgule en français (texte('virgule')), le point en anglais
 POSITION = '() => CAMERA.position'
 
 L, ok, ko = [], 0, 0
@@ -65,6 +73,7 @@ def conduite(pg, titre):
     # sur un Mac chargé, le clic peut arriver tard : on attend la course (le compte à rebours, ou déjà le GO s'il a fini)
     t(f'{titre} : choisir « 5 tours » lance le compte à rebours', attendre(pg, '() => JEU.ecran === "course" && JEU.course.nbTours === 5 && (JEU.course.etat === "compte" || JEU.course.etat === "attente")', None, 30000), pg.evaluate('() => [JEU.ecran, JEU.course && JEU.course.etat]'))
     t(f'{titre} : le titre est le nom du jeu, sans « F1 »', pg.evaluate('() => document.title === texte("nomDuJeu") && document.title === "Grand Prix Dynasty"'), pg.evaluate('() => document.title'))
+    t(f'{titre} : <html lang> est la langue des textes', pg.evaluate('() => document.documentElement.lang === LANGUE && (LANGUE === "fr" || LANGUE === "en")'), pg.evaluate('() => [document.documentElement.lang, LANGUE]'))
     depart = pg.evaluate(JOUEUR)
     t(f'{titre} : après le compte à rebours, GO', attendre(pg, '() => JEU.course.etat === "attente"', None, 40000), pg.evaluate('() => JEU.course.etat'))
     t(f'{titre} : les bips 3, 2, 1 puis le GO aigu sont demandés, une fois chacun', pg.evaluate('() => SON.historique.join(",")') == 'compte,compte,compte,go', pg.evaluate('() => SON.historique.join(",")'))
@@ -138,7 +147,7 @@ def course_robot(pg, titre, page):
     pg.evaluate('() => { JEU.course.compte = 0.01; }')
     t(f'{titre} : le robot part après le compte à rebours', attendre(pg, '() => JEU.course.etat === "course"', None, 20000), pg.evaluate('() => JEU.course.etat'))
     CASES = '() => ["hudS1", "hudS2", "hudS3"].map(id => document.getElementById(id).className).join(",")'
-    t(f'{titre} : au début du tour, les 3 cases de secteur sont grises', attendre(pg, '() => JEU.course.etat === "course" && document.getElementById("hudChrono").textContent !== "0:00.000"', None, 20000)
+    t(f'{titre} : au début du tour, les 3 cases de secteur sont grises', attendre(pg, '() => JEU.course.etat === "course" && !/^0:00[.,]000$/.test(document.getElementById("hudChrono").textContent)', None, 20000)
       and pg.evaluate(CASES) == 'secteur,secteur,secteur' and pg.evaluate('() => document.getElementById("hudPrecedent").classList.contains("cache")'), pg.evaluate(CASES))
     pg.evaluate('() => BOUCLE.simuler(25)')
     t(f'{titre} : après le secteur 1, S1 se colore et S2, S3 restent grises', attendre(pg, 'c => /^secteur (violet|vert|jaune),secteur,secteur$/.test(eval(c)())', CASES), pg.evaluate(CASES))
@@ -149,7 +158,7 @@ def course_robot(pg, titre, page):
     pg.evaluate('() => BOUCLE.simuler(245)')
     t(f'{titre} : la course finie, l’écran de fin', attendre(pg, '() => !document.getElementById("fin").classList.contains("cache")'), pg.evaluate('() => JEU.course.etat'))
     fin = pg.evaluate('() => ({ tours: document.querySelectorAll("#finTours li").length, total: document.getElementById("finTotal").textContent, record: document.getElementById("finRecord").textContent, meilleur: JEU.course.meilleurTour, garde: SAUVEGARDE.record(5) })')
-    t(f'{titre} : l’écran de fin montre les 5 tours, le total et le nouveau record', fin['tours'] == 5 and re.search(r'\d:\d\d\.\d{3}', fin['total']) and fin['record'] != '', str(fin))
+    t(f'{titre} : l’écran de fin montre les 5 tours, le total et le nouveau record', fin['tours'] == 5 and re.search(r'\d:\d\d' + SEP + r'\d{3}', fin['total']) and fin['record'] != '', str(fin))
     t(f'{titre} : le meilleur tour est gardé comme record des 5 tours', fin['garde'] == fin['meilleur'], str(fin))
     arret = pg.evaluate('() => ({ u: JEU.joueur.u, arret: JEU.arretApres, bandeau: document.getElementById("hudCourse").classList.contains("cache"), sons: SON.historique.slice(-1)[0] })')
     t(f'{titre} : après l’arrivée, la voiture s’arrête seule en moins de 6 s', arret['u'] == 0 and arret['arret'] is not None and arret['arret'] < 6, str(arret))
@@ -159,7 +168,7 @@ def course_robot(pg, titre, page):
     # après rechargement, le record est toujours là (sur l'écran de choix)
     pg.goto('file://' + RACINE + '/index.html'); pg.wait_for_timeout(1500)
     rec = pg.evaluate('() => document.getElementById("record5").textContent')
-    t(f'{titre} : après rechargement, le record des 5 tours est affiché', INTERFACE_TEMPS(fin['meilleur']) in rec, repr(rec))
+    t(f'{titre} : après rechargement, le record des 5 tours est affiché', INTERFACE_TEMPS(fin['meilleur'], pg.evaluate('() => texte("virgule")')) in rec, repr(rec))
     pg.click('#choix0')
     t(f'{titre} : l’essai libre n’a pas de nombre de tours', pg.evaluate('() => JEU.course.nbTours === 0 && !/\\//.test(document.getElementById("hudTour").textContent)'))
 
@@ -229,18 +238,103 @@ def qualif(pg, titre):
       place: k + 1, depart: e.pilotes[5].depart, attendu: placesGrille(CIRCUIT, 6)[k].s - CIRCUIT.longueur, texte: document.getElementById("qualifTexte").textContent, ordre: g.map(x => x.qualif), ia: JEU.plateau.pilotes.slice(0, 5).every(p => p.v.u === 0) }; }''')
     t(f'{titre} : le tour fini : un temps, une place dans la grille selon ce temps, la voiture posée à cette place', r['etat'] == 'resultat' and r['valide'] and 40 < r['temps'] < 80 and abs(r['depart'] - r['attendu']) < 1e-6 and r['ia']
       and all(r['ordre'][i] <= r['ordre'][i + 1] for i in range(len(r['ordre']) - 1)), str(r))
-    t(f'{titre} : le résultat affiché : « P{r["place"]} / 6 — temps » et l’écart à la pole', re.match(rf'^P{r["place"]} / 6 — \d:\d\d\.\d\d\d · ', r['texte']) is not None, repr(r['texte']))
+    t(f'{titre} : le résultat affiché : « P{r["place"]} / 6 — temps » et l’écart à la pole', re.match(rf'^P{r["place"]} / 6 — \d:\d\d{SEP}\d\d\d · ', r['texte']) is not None, repr(r['texte']))
     L.append(f"  (qualification du robot : {r['temps']:.2f} s, P{r['place']} / 6)")
     pg.wait_for_timeout(300)
     pg.screenshot(path=os.path.join(CAPTURES, 'qualif.png'))
     pg.click('#boutonQualifCourse')
     t(f'{titre} : « Départ de la course » : la course, sa voiture de course suivie, les feux', attendre(pg, '() => JEU.ecran === "course" && JEU.qualif === null && JEU.joueur === JEU.plateau.pilotes[5].v && JEU.course.feux', None, 10000))
+    enregistreur(pg, titre)
     # une nouvelle page : « Passer » = dernier
     pg.reload()
     t(f'{titre} : « Passer (départ dernier) » : P6 / 6, la voiture dernière sur la grille', attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "qualif" && JEU.qualif.etat === "choix"', None, 60000)
       and (pg.click('#boutonQualifPasser') or True) and attendre(pg, '() => JEU.qualif.etat === "resultat"', None, 180000)
       and pg.evaluate('() => { const e = JEU.plateau; return e.grille[5].numero === 6 && e.pilotes[5].depart === Math.min(...e.pilotes.map(p => p.depart)) && /dernier/.test(document.getElementById("qualifTexte").textContent); }'),
       pg.evaluate('() => [JEU.qualif && JEU.qualif.etat, document.getElementById("qualifTexte").textContent]'))
+
+# l'enregistreur (enregistreur.js, étape 13), branché dans la page sans rien afficher : la course d'un tour (5 IA + le robot)
+# est enregistrée à chaque pas ; relue à sa dernière image, elle redonne les positions de toutes les voitures
+def enregistreur(pg, titre):
+    pg.evaluate('() => { for (const p of JEU.plateau.pilotes) p.course.compte = 0.01; }')
+    attendre(pg, '() => JEU.course.etat === "course"', None, 20000)
+    pg.evaluate('() => BOUCLE.simuler(20)')
+    # on avance pas par pas jusqu'à la prochaine image, puis on compare la relecture à cet instant avec les vraies positions
+    RELU = '''() => { const r = JEU.enregistreur, enr = r.enr, n = enr.nbImages; let k = 0; while (enr.nbImages === n && k++ < 24) BOUCLE.simuler(1 / 120);
+      const lu = enr.lire(enr.fin), ecart = Math.max(...JEU.plateau.pilotes.map((p, i) => Math.hypot(lu[i].x - p.v.x, lu[i].z - p.v.z)));
+      return { nouvelle: enr.nbImages === n + 1, ecart, images: enr.nbImages, octets: enr.octets(), temps: JEU.plateau.temps, parti: r.parti, pas: r.pas, ms: r.ms, arrivees: r.arrivees.size }; }'''
+    r1 = pg.evaluate(RELU)
+    t(f'{titre} : en course, l’enregistrement relu à sa dernière image redonne les 6 positions à moins d’1 cm ; le GO est noté', r1['nouvelle'] and r1['ecart'] < 0.01 and r1['parti'] and r1['pas'] > 2000, str(r1))
+    for _ in range(40):
+        pg.evaluate('() => BOUCLE.simuler(5)')
+        if pg.evaluate('() => JEU.plateau.arrives >= 1 || JEU.ecran !== "course"'): break
+    r2 = pg.evaluate(RELU)
+    t(f'{titre} : à la fin (la première voiture arrivée), relu : écart < 1 cm, l’arrivée notée', r2['nouvelle'] and r2['ecart'] < 0.01 and r2['images'] > r1['images'] and r2['arrivees'] >= 1, str(r2))
+    L.append(f"  (enregistreur, 6 voitures, 1 tour : {r2['images']} images, {r2['octets'] / 1024:.0f} Ko, {r2['ms'] / max(1, r2['pas']) * 1000:.0f} µs par pas en moyenne)")
+
+# sdk.js est le seul passage vers Poki : avec le faux SDK posé avant la page, les appels viennent dans l'ordre, et jamais
+# deux fois le même état (gameplayStart / gameplayStop) de suite ; une course d'un tour par le robot
+def sdk(pg, titre):
+    J = '() => window.JOURNAL.join(",")'
+    t(f'{titre} : le faux SDK est vu ; au démarrage d’une course : init, gameLoadingFinished, gameplayStart, dans cet ordre', attendre(pg, '() => SDK.present && JEU.sdkPret && window.JOURNAL.join(",") === "init,gameLoadingFinished,gameplayStart"', None, 20000), pg.evaluate(J))
+    pg.keyboard.press('Escape')
+    t(f'{titre} : la pause envoie gameplayStop', attendre(pg, '() => JEU.ecran === "pause" && window.JOURNAL.slice(-1)[0] === "gameplayStop"'), pg.evaluate(J))
+    pg.click('#boutonReprendre')
+    t(f'{titre} : « Reprendre » renvoie gameplayStart', attendre(pg, '() => JEU.ecran === "course" && window.JOURNAL.slice(-1)[0] === "gameplayStart"'), pg.evaluate(J))
+    pg.evaluate('() => { JEU.course.compte = 0.01; }')
+    attendre(pg, '() => JEU.course.etat === "course"', None, 20000)
+    for _ in range(40):
+        pg.evaluate('() => BOUCLE.simuler(5)')
+        if pg.evaluate('() => JEU.ecran') == 'fin': break
+        pg.wait_for_timeout(50)
+    t(f'{titre} : à l’arrivée (écran de fin), gameplayStop ; sur toute la course, jamais deux fois le même état de suite',
+      attendre(pg, '() => JEU.ecran === "fin" && window.JOURNAL.slice(-1)[0] === "gameplayStop"') and pg.evaluate(J) == 'init,gameLoadingFinished,gameplayStart,gameplayStop,gameplayStart,gameplayStop', pg.evaluate(J))
+    pg.click('#boutonRejouer')
+    t(f'{titre} : « Rejouer » : gameplayStart, une seule fois', attendre(pg, '() => JEU.ecran === "course" && window.JOURNAL.slice(-2).join(",") === "gameplayStop,gameplayStart"'), pg.evaluate(J))
+
+# ?pneus=1 : les pneus du joueur (pneus.js) s'usent, son adhérence baisse, ?debug=1 l'affiche (sans ?pneus=1 : rien, PNEUS_ACTIFS faux)
+def pneus(pg, titre):
+    t(f'{titre} : ?pneus=1 active PNEUS_ACTIFS, la voiture du joueur part avec des pneus neufs (usure 0, adhérence × 1)', pg.evaluate('() => REGLAGES.PNEUS_ACTIFS === true && !!JEU.joueur.pneus && JEU.joueur.pneus.usure === 0 && JEU.joueur.adherence === 1'))
+    pg.evaluate('() => { JEU.course.compte = 0.01; }')
+    attendre(pg, '() => JEU.course.etat === "course"', None, 20000)
+    releves = []
+    for _ in range(10):
+        pg.evaluate('() => BOUCLE.simuler(64)')
+        releves.append(pg.evaluate('() => [JEU.course.tours.length, JEU.joueur.pneus.usure, JEU.joueur.adherence]'))
+    monte = all(b[1] > a[1] and b[2] < a[2] for a, b in zip(releves, releves[1:]))
+    t(f'{titre} : en 10 tours du robot (essai libre), l’usure monte à chaque tour et l’adhérence baisse', monte and releves[-1][0] >= 9 and 0 < releves[-1][1] <= 1 and releves[-1][2] < 1, str(releves))
+    L.append(f'  (?pneus=1, robot : après {releves[-1][0]} tours, usure {releves[-1][1]:.2f}, adhérence × {releves[-1][2]:.3f})')
+    t(f'{titre} : ?debug=1 affiche l’usure des pneus', attendre(pg, '() => /pneus \\d+ %/.test(document.getElementById("ips").textContent)'), pg.evaluate('() => document.getElementById("ips").textContent'))
+
+# ?lang=en : la page en anglais : lang et title remplis au démarrage, puis le classement du championnat, le podium et les
+# résultats sans un mot français (les 11 textes en dur de l'audit) ; le robot joue le Grand Prix 1 (un tour)
+MOTS_FR = r'Écurie|Pilote|\bToi\b|Tu marques|Course suivante|Continuer|Pénalit|Résultat|n°'
+def championnat_en(pg, titre):
+    t(f'{titre} : <html lang> et le titre de la page viennent de textes.js (en)', pg.evaluate('() => document.documentElement.lang === "en" && LANGUE === "en" && document.title === texte("nomDuJeu")'))
+    ecran = pg.evaluate('''() => ({ titre: document.getElementById("championnatTitre").textContent, h2: [...document.querySelectorAll("#championnatTableaux h2")].map(e => e.textContent),
+      pilotes: [...document.querySelectorAll("#championnatPilotes li .nom")].map(e => e.textContent), ecuries: [...document.querySelectorAll("#championnatEcuries li .nom")].map(e => e.textContent),
+      bouton: document.getElementById("boutonCourseSuivante").textContent, tout: document.getElementById("championnat").innerText })''')
+    t(f'{titre} : l’écran du championnat en anglais : « Grand Prix 1 / 12 — Test track », Drivers / Teams, « You » et « Driver n », « Team n », « Next race », pas un mot français',
+      ecran['titre'] == 'Grand Prix 1 / 12 — Test track' and ecran['h2'] == ['Drivers', 'Teams'] and all(re.fullmatch(r'Driver \d+|You', n) for n in ecran['pilotes']) and ecran['pilotes'].count('You') == 1
+      and all(re.fullmatch(r'Team \d+', n) for n in ecran['ecuries']) and ecran['bouton'] == 'Next race' and not re.search(MOTS_FR, ecran['tout']), str(ecran)[:400])
+    pg.click('#boutonCourseSuivante')
+    passer_qualif(pg, titre)
+    attendre(pg, '() => JEU.plateau.carte !== null', None, 180000)
+    for _ in range(80):
+        pg.evaluate('() => BOUCLE.simuler(5)')
+        if pg.evaluate('() => JEU.ecran') == 'podium': break
+        pg.wait_for_timeout(50)
+    podium = pg.evaluate('() => ({ ecran: JEU.ecran, marches: [...document.querySelectorAll("#podiumMarches .marche")].map(e => e.innerText), bouton: document.getElementById("boutonResultats").textContent, tout: document.getElementById("podium").innerText })')
+    t(f'{titre} : le podium en anglais : « No. n », le temps avec le point, « Results », pas un mot français', podium['ecran'] == 'podium' and len(podium['marches']) == 3
+      and all(re.search(r'No\. \d+', m) and re.search(r'\d:\d\d\.\d{3}', m) for m in podium['marches']) and podium['bouton'] == 'Results' and not re.search(MOTS_FR, podium['tout']), str(podium))
+    pg.click('#boutonResultats')
+    attendre(pg, '() => JEU.ecran === "resultats"')
+    res = pg.evaluate('() => ({ entete: [...document.querySelectorAll("#resultatsEntete th")].map(e => e.textContent).join(","), texte: document.getElementById("resultats").innerText })')
+    t(f'{titre} : les résultats en anglais (Pos, No, Time, Penalty, Gap, Grid ; « Continue »)', res['entete'] == 'Pos,No,Time,Penalty,Gap,Grid' and 'Continue' in res['texte'] and not re.search(MOTS_FR, res['texte']), str(res)[:300])
+    pg.click('#boutonChangerResultats')
+    t(f'{titre} : après le Grand Prix, « You scored n points » et le classement en anglais', attendre(pg, '() => JEU.ecran === "championnat" && /^You scored \\d+ points$/.test(document.getElementById("championnatGagne").textContent)')
+      and not re.search(MOTS_FR, pg.evaluate('() => document.getElementById("championnat").innerText')), pg.evaluate('() => document.getElementById("championnatGagne").textContent'))
+    pg.wait_for_timeout(300)
+    pg.screenshot(path=os.path.join(CAPTURES, 'championnat-en.png'))
 
 def course_joueur(pg, titre):
     # le joueur conduit sa voiture au clavier, au milieu de 9 IA ; la caméra le suit, Tab ne change rien
@@ -441,9 +535,9 @@ def championnat(pg, titre, l):
     t(f'{titre} : la page rechargée retrouve le Grand Prix 3 et les mêmes points', attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat" && JEU.championnat.prochain === 2', None, 60000)
       and pg.evaluate('() => JEU.championnat.pilotes.map(p => p.stats.points)') == points and pg.evaluate('() => document.getElementById("championnatTitre").textContent').startswith('Grand Prix 3 / 12'), str(pg.evaluate(ECRAN)))
 
-def INTERFACE_TEMPS(t):
+def INTERFACE_TEMPS(t, virgule='.'):
     m = int(t // 60); s = t - m * 60
-    return f'{m}:{s:06.3f}'
+    return f'{m}:{s:06.3f}'.replace('.', virgule)
 
 mesures = None
 mesures_voiture = []
@@ -462,6 +556,7 @@ with sync_playwright() as p:
             pg.on('console', lambda m: console.append(m.type + ': ' + m.text) if m.type in ('error', 'warning') and not LECTURE_PIXELS.fullmatch(m.text) else None)
             pg.on('pageerror', lambda e: console.append('PAGEERROR ' + str(e)))
             pg.on('requestfailed', lambda r: console.append('FICHIER MANQUANT ' + r.url))
+            if 'test=sdk' in page: pg.add_init_script(FAUX_SDK)
             pg.goto('file://' + RACINE + '/' + page); pg.wait_for_timeout(1500)
             t(f'{titre} : console vide', not console, ' | '.join(console)[:500])
             defile = pg.evaluate('() => [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth]')
@@ -475,15 +570,21 @@ with sync_playwright() as p:
                 conduite(pg, titre)
             if 'reglages=1' in page:
                 reglages(pg, titre)
-            if 'robot=1' in page and 'championnat=1' not in page and 'joueur=1' not in page:   # (avec ?championnat=1 ou &joueur=1, le robot joue dans championnat() ou qualif())
+            if 'robot=1' in page and 'championnat=1' not in page and 'joueur=1' not in page and 'test=sdk' not in page and 'pneus=1' not in page:   # (avec ?championnat=1 ou &joueur=1, le robot joue dans championnat() ou qualif() ; sdk() et pneus() ont leur page)
                 course_robot(pg, titre, page)
+            if 'test=sdk' in page:
+                sdk(pg, titre)
+            if 'pneus=1' in page:
+                pneus(pg, titre)
             if re.search(r'[?&]ia=1(&|$)', page):
                 course_ia(pg, titre)
             if re.search(r'[?&]ia=10(&|$)', page):
                 course_ia10(pg, titre)
             if 'course=1&ia=8' in page:
                 course_podium(pg, titre, l)
-            if 'championnat=1' in page:
+            if 'championnat=1' in page and 'lang=en' in page:
+                championnat_en(pg, titre)
+            elif 'championnat=1' in page:
                 championnat(pg, titre, l)
             if 'test=qualif' in page:
                 qualif(pg, titre)
@@ -512,11 +613,11 @@ with sync_playwright() as p:
             if 'debug=1' in page:
                 attendre(pg, '() => /triangles/.test(document.getElementById("ips").textContent)')
                 ips = pg.evaluate('() => document.getElementById("ips").textContent')
-                m = re.fullmatch(r'\d+ i/s · \d+ triangles · (\d+) appels\ndérive (-?[\d.]+)° · ([\d.]+) g · voiture (\d+) triangles, (\d+) appels', ips or '')
+                m = re.fullmatch(r'\d+ i/s · \d+ triangles · (\d+) appels\ndérive (-?[\d.]+)° · ([\d.]+) g · voiture (\d+) triangles, (\d+) appels(?: · pneus \d+ %)?', ips or '')
                 t(f'{titre} : images par seconde, triangles, dérive, g latéraux et triangles d’une voiture affichés', bool(m), repr(ips))
                 if m:
                     # (avec ?ia=10, la voiture suivie roule : ni « à l'arrêt », ni la mesure d'une voiture seule)
-                    if 'ia=10' not in page:
+                    if 'ia=10' not in page and 'pneus=1' not in page:   # (avec ?pneus=1, le robot a roulé)
                         t(f'{titre} : à l’arrêt, 0° de dérive et 0 g', float(m.group(2)) == 0 and float(m.group(3)) == 0, repr(ips))
                         mesures_voiture.append((int(m.group(4)), int(m.group(5)), int(m.group(1))))
                     t(f'{titre} : une voiture fait au plus 7 appels de dessin et moins de 1500 triangles', int(m.group(5)) <= 7 and int(m.group(4)) < 1500, repr(ips))

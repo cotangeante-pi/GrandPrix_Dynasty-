@@ -109,22 +109,26 @@ const REGLAGES = {
   CALENDRIER_CIRCUITS: ['test', 'technique'],   // en alternance, en attendant les 12 vrais circuits (étape 10)
   GRAINE_CHAMPIONNAT: 5000,     // les caractères des 19 pilotes IA sont tirés avec la graine du championnat + ce nombre
   ECURIE_JOUEUR: 9,             // le joueur est le 2e pilote de cette écurie (une des plus faibles)
-  NOM_JOUEUR: 'Pilote joueur',  // provisoire : la création du pilote viendra avec les écrans
+  NOM_JOUEUR: null,             // null : le nom par défaut, texte('nomJoueur') (« You » / « Toi ») ; la création du pilote (étape 6) le remplira
   // les 10 écuries, de la plus forte à la plus faible ; niveau : la qualité de la voiture (1 = la meilleure).
-  // NOMS PROVISOIRES, à approuver par le propriétaire
+  // nom : pas encore (les noms inventés, à approuver par le propriétaire, viendront ici) ; sans nom, l'écran affiche
+  // texte('ecurie') avec son numéro (« Team 3 » / « Écurie 3 »)
   // niveau : la qualité de la voiture, un facteur sur le rythme des IA de l'écurie (1 = la meilleure, 0,955 = 4,5 % plus lente)
   // couleur : celle des deux voitures de l'écurie (provisoire, les mêmes que COULEURS_IA)
   ECURIES: [
-    { nom: 'Écurie 1', niveau: 1, couleur: 0xd8262e }, { nom: 'Écurie 2', niveau: 0.995, couleur: 0xf2c230 }, { nom: 'Écurie 3', niveau: 0.99, couleur: 0x2fa84f },
-    { nom: 'Écurie 4', niveau: 0.985, couleur: 0xf07d1a }, { nom: 'Écurie 5', niveau: 0.98, couleur: 0x8e44ad }, { nom: 'Écurie 6', niveau: 0.975, couleur: 0x1abc9c },
-    { nom: 'Écurie 7', niveau: 0.97, couleur: 0xecf0f1 }, { nom: 'Écurie 8', niveau: 0.965, couleur: 0x34495e }, { nom: 'Écurie 9', niveau: 0.96, couleur: 0xe84393 },
-    { nom: 'Écurie 10', niveau: 0.955, couleur: 0x1f6fe0 },
+    { niveau: 1, couleur: 0xd8262e }, { niveau: 0.995, couleur: 0xf2c230 }, { niveau: 0.99, couleur: 0x2fa84f },
+    { niveau: 0.985, couleur: 0xf07d1a }, { niveau: 0.98, couleur: 0x8e44ad }, { niveau: 0.975, couleur: 0x1abc9c },
+    { niveau: 0.97, couleur: 0xecf0f1 }, { niveau: 0.965, couleur: 0x34495e }, { niveau: 0.96, couleur: 0xe84393 },
+    { niveau: 0.955, couleur: 0x1f6fe0 },
   ],
   FACTEUR_VOITURE_JOUEUR: 1,    // la qualité de la voiture du joueur : 1 pour l'instant (sa conduite, c'est le propriétaire qui la valide) ; plus tard celle de son écurie, dans ±3 %
   CHAMPIONNAT_TOURS: 5,         // ?championnat=1 : la longueur des Grands Prix, fixe pour l'instant (?tours=1 pour les tests)
-  // les 20 pilotes, deux par écurie dans l'ordre (le 20e est remplacé par le joueur). NOMS PROVISOIRES, à approuver par le propriétaire
-  NOMS_PILOTES: ['Pilote 1', 'Pilote 2', 'Pilote 3', 'Pilote 4', 'Pilote 5', 'Pilote 6', 'Pilote 7', 'Pilote 8', 'Pilote 9', 'Pilote 10',
-    'Pilote 11', 'Pilote 12', 'Pilote 13', 'Pilote 14', 'Pilote 15', 'Pilote 16', 'Pilote 17', 'Pilote 18', 'Pilote 19', 'Pilote 20'],
+  // les noms des 20 pilotes, deux par écurie dans l'ordre (le 20e est remplacé par le joueur) : pas encore (les noms
+  // inventés, à approuver par le propriétaire, viendront ici) ; sans nom, l'écran affiche texte('pilote') avec son numéro (« Driver 7 » / « Pilote 7 »)
+  NOMS_PILOTES: [],
+  // les pneus (étape 7, pneus.js) : branchés dans la page mais désactivés tant que le propriétaire n'a pas jugé la sensation ;
+  // ?pneus=1 les active (l'usure de la voiture du joueur baisse son adhérence) ; sans ça, la course est identique au bit près
+  PNEUS_ACTIFS: false,
 
   // la une du journal après chaque Grand Prix (journal.js, Codeur 3) ; les titres et les brèves sont dans textes.js (uneTitre_…, uneTexte_…, breve…)
   JOURNAL_PRIORITES: ['titreChampion', 'premiereVictoire', 'victoire', 'premierPodium', 'podium', 'record', 'duelGagne', 'duelPerdu',
