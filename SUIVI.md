@@ -32,7 +32,7 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 Trois tours ouverts le 2026-10-23, main = ab23312 (63/100), Chef session-5b :
 - **Tour 22, Codeur 1** (branche determinisme 7ad2d50 → duel) : remplacer les deux `Math.pow` de l'aplatissement (ia.js:117-118) par des multiplications (cause des 6 échecs GitHub, voir « Bugs connus »), re-épingler les temps, GitHub vert ; puis le duel (vainqueur ≠ poleman ≥ 3/30). rapports/tour-22-rapport.md.
 - **Tour 22b, Codeur 2** (branche codeur2, dossier « - codeur 2 », fantome.js commencé, non commité) : le fantôme du meilleur tour, puis le départ parfait. rapports/tour-22b-rapport.md.
-- **Tour 21c, Codeur 3** (branche codeur3, dossier « - codeur 3 », actuellement sur la branche `circuits`) : ordre 1 (score du duel) poussé en f7255ce et vert ; ordres 2–4 (duel à l'écran, journal.js, la une à l'écran) en cours dans le commit local 752831a, pas poussé. Ensuite : les 12 circuits ressemblants (rapports/circuits-ressemblants-rapport.md, branche circuits). rapports/tour-21c-rapport.md (sur la branche codeur3).
+- **Tour 21c, Codeur 3** : **fait et fusionné** (4a8e731 → main 5d548d6, ~19h05 ; GitHub 40033832212 : seulement les 6 échecs connus ; captures une.png, une-en.png, une-960.png, duel.png, duel-tour.png relues par le Chef) : score du duel contre le coéquipier (qualifs + courses, saison et carrière), sa ligne marquée dans la tour avec l'écart, « Toi 2 – 2 Pilote 19 » sur l'écran du championnat, journal.js (La Gazette du Paddock / The Paddock Gazette : titre par priorité, texte, brèves, classement, album compact : 180 unes = 59 843 octets, 332 par une), la une affichée après les résultats. Depuis ~19h : les 12 circuits ressemblants sur la branche `circuits`. À vérifier : sur duel-tour.png, la tour montre 1–9, 11–13, le joueur « 10 », 15–20 (la ligne 14 manque).
 
 Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤ 50 s sur Test) → 4b (plusieurs IA sans se toucher) → 4c (dépasser, défendre) → 4d (caractères, niveaux, page des 50 courses).
 
@@ -60,9 +60,11 @@ Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤
 | 18 + 18b | 3962493 | 60 | 12 | 16 | 4 | 11 | 9 | 10 | 1 |
 | 19 + 19b | f2ff5ee | 62 | 12 | 16 | 6 | 12 | 9 | 10 | 2 |
 | 21b | 81c254d | 63 | 12 | 16 | 6 | 12 | 9 | 10 | 3 |
+| 21c | 5d548d6 | 66 | 12 | 16 | 8 | 13 | 9 | 10 | 3 |
 
 ## À essayer par le propriétaire
 
+- **Le duel et la une du journal** (tour 21c) : `index.html?championnat=1` : en course, la ligne de ton coéquipier est marquée dans la tour avec l'écart ; après les résultats, la une du journal (clic ou touche pour passer) ; sur l'écran entre les courses, le score du duel. Dire : le ton des titres te plaît ? la place de la « photo » (vide pour l'instant) ?
 - **Le championnat** : `index.html?championnat=1` (écran entre les courses, points, sauvegarde ; fermer et revenir).
 - Vue cockpit (touche C), feux de départ, vue télé après l'arrivée, podium : `index.html?course=5&ia=9&joueur=1&circuit=technique`.
 
