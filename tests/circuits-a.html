@@ -52,6 +52,10 @@ for(const [cle,def] of Object.entries(CIRCUITS_OFFICIELS_A)){
       v(ds.some(([lg,m])=>lg>=400&&m[1]<=50),ds.map(d=>d[0].toFixed(0)+' → r'+d[1][1]).join(', '));});
   ecrire(def.nom);
 }
+t('le plus long des 6 est Spaa et le plus court Monoco, comme les vrais circuits (vraieLongueur) : les tracés disent le vrai', ()=>{
+  const Lg={},V={};for(const [k,d] of Object.entries(CIRCUITS_OFFICIELS_A)){Lg[k]=construireCircuit(d).longueur;V[k]=d.vraieLongueur;}
+  const plus=o=>Object.keys(o).reduce((a,b)=>o[a]>o[b]?a:b),moins=o=>Object.keys(o).reduce((a,b)=>o[a]<o[b]?a:b);
+  v(plus(V)==='spaa'&&moins(V)==='monoco','vraies : '+JSON.stringify(V));v(plus(Lg)==='spaa'&&moins(Lg)==='monoco',JSON.stringify(Lg));});
 t('la console reste vide', ()=>{v(__err.length===0,__err.join(' | '));});
 ecrire();
 </script></body></html>
