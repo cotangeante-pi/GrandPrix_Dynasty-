@@ -26,7 +26,7 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 
 ## Tour en cours
 
-Aucun. Boucle du 2026-10-21 **figée à 21h02 sur 3962493 (vert, 60/100)**, poussé comme main. Reprise : rapports/fin-2026-10-21.md.
+Aucun. Boucle du 2026-10-22 **figée à 20h35 sur 23ba770 (vert, 62/100)**. Reprise : rapports/fin-2026-10-22.md.
 
 Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤ 50 s sur Test) → 4b (plusieurs IA sans se toucher) → 4c (dépasser, défendre) → 4d (caractères, niveaux, page des 50 courses).
 
@@ -52,6 +52,7 @@ Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤
 | 16 | 3a33150 | 54 | 12 | 14 | 1 | 8 | 8 | 10 | 1 |
 | 17 | fa19fdb | 55 | 12 | 15 | 1 | 8 | 8 | 10 | 1 |
 | 18 + 18b | 3962493 | 60 | 12 | 16 | 4 | 11 | 9 | 10 | 1 |
+| 19 + 19b | f2ff5ee | 62 | 12 | 16 | 6 | 12 | 9 | 10 | 2 |
 
 ## À essayer par le propriétaire
 
