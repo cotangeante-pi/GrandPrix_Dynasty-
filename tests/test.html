@@ -352,20 +352,25 @@ t('pilote IA : coût de 20 pilotes en course × 120 pas, moins de 2 ms par pas e
   const t0=performance.now();for(let k=0;k<120*3;k++) pasCourseIA(e,DT);const ms=(performance.now()-t0)/(120*3);
   L.push('  (20 pilotes en course, sur 3 s : '+ms.toFixed(3)+' ms par pas en moyenne, décisions, vision, physique et contacts compris)');v(ms<2,ms+' ms');});
 // la façon de piloter : 10 IA, chacune seule sur le technique, 4 tours
-t('styles : 10 IA seules sur le technique : à l’apex de chaque virage, écart-type de leurs places > 0,5 m ; chacune passe ailleurs d’un tour à l’autre (> 0,2 m à au moins un apex)', ()=>{
-  const carte=CARTES_T.technique,vs=carte.virages;ALEATOIRE.semer(21);const styles=[];for(let i=0;i<10;i++) styles.push(tirerStyle(carte,6));ALEATOIRE.semer();
-  const places=[];   // places[ia][tour][virage]
-  for(const st of styles){const pil=creerPilote(carte,1,st),c=creerCourse(TQ,4),vo=creerVoiture(TQ);placerAuDepart(vo,TQ);const parTour=[];let sAvant=null;
+// tour 22 (décision du Chef) : le style déplace l'apex de ±IA_STYLE_APEX m, donc les lignes « apex tôt » et « apex tard » se
+// croisent près du sommet géométrique : mesuré pile à l'apex, l'écart-type peut être petit alors que les lignes diffèrent.
+// On mesure à trois endroits par virage (−IA_VIRAGE_LARGEUR/2, apex, +IA_VIRAGE_LARGEUR/2) et on garde le plus grand.
+t('styles : 10 IA seules sur le technique : à chaque virage, écart-type de leurs places > 0,5 m à l’un de trois endroits (30 m avant l’apex, apex, 30 m après) ; chacune passe ailleurs d’un tour à l’autre (> 0,2 m à au moins un apex)', ()=>{
+  const carte=CARTES_T.technique,vs=carte.virages,W=REGLAGES.IA_VIRAGE_LARGEUR/2,LT=TQ.longueur,OFF=[-W,0,W];ALEATOIRE.semer(21);const styles=[];for(let i=0;i<10;i++) styles.push(tirerStyle(carte,6));ALEATOIRE.semer();
+  const places=[];   // places[ia][tour][virage][endroit]
+  for(const st of styles){const pil=creerPilote(carte,1,st),c=creerCourse(TQ,4),vo=creerVoiture(TQ);placerAuDepart(vo,TQ);const parTour=[[],[],[]];let sAvant=null;
     for(let k=0;k<400*120&&c.etat!=='finie';k++){appliquerCommandes(vo,courseAutorise(c)?piloterIA(pil,vo,[],DT):RIEN);pasVoiture(vo,TQ,DT);majCourse(c,vo,DT);
-      const s_=vo.piste.s,tour=c.tours.length;if(sAvant!==null&&tour>=1&&tour<=3) vs.forEach((x,j)=>{if(sAvant<x.s&&s_>=x.s){(parTour[tour-1]=parTour[tour-1]||[])[j]=vo.piste.d;}});sAvant=s_;}
+      const s_=vo.piste.s,tour=c.tours.length;
+      if(sAvant!==null) vs.forEach((x,j)=>OFF.forEach((off,m)=>{let pos=x.s+off,t_=tour-1;if(pos>=LT){pos-=LT;t_--;}else if(pos<0){pos+=LT;t_++;}   // un endroit au-delà de la ligne : c'est le tour d'après (ou d'avant)
+        if(t_>=0&&t_<=2&&sAvant<pos&&s_>=pos){(parTour[t_][j]=parTour[t_][j]||[])[m]=vo.piste.d;}}));sAvant=s_;}
     places.push(parTour);}
-  const ecartType=a=>{const m=a.reduce((x,y)=>x+y,0)/a.length;return Math.sqrt(a.reduce((x,y)=>x+(y-m)**2,0)/a.length);};
-  const parVirage=vs.map((x,j)=>ecartType(places.map(p_=>p_[0][j])));
-  L.push('  (écart-type des places à l’apex, tour 2 : '+parVirage.map((x,j)=>vs[j].s.toFixed(0)+' m → '+x.toFixed(2)+' m').join(', ')+')');
-  const changements=places.map(p_=>Math.max(...vs.map((x,j)=>Math.max(Math.abs(p_[1][j]-p_[0][j]),Math.abs(p_[2][j]-p_[1][j])))));
+  const ecartType=a=>{const m=a.reduce((x,y)=>x+y,0)/a.length;return Math.sqrt(a.reduce((x,y)=>x+(y-m)*(y-m),0)/a.length);};
+  const parEndroit=vs.map((x,j)=>OFF.map((off,m)=>ecartType(places.map(p_=>p_[0][j][m]))));
+  const parVirage=parEndroit.map(e=>Math.max(...e));
+  L.push('  (écart-type des places, tour 2, à −30 m / apex / +30 m : '+parEndroit.map((e,j)=>vs[j].s.toFixed(0)+' m → '+e.map(x=>x.toFixed(2)).join(' / ')+' m').join(', ')+')');
+  const changements=places.map(p_=>Math.max(...vs.map((x,j)=>Math.max(Math.abs(p_[1][j][1]-p_[0][j][1]),Math.abs(p_[2][j][1]-p_[1][j][1])))));
   L.push('  (pour chaque IA, le plus grand changement de place à un apex d’un tour à l’autre : '+changements.map(x=>x.toFixed(2)).join(', ')+' m)');
-  v(parVirage.every(x=>x>0.5),'écarts-types '+parVirage.map(x=>x.toFixed(2)));v(changements.every(x=>x>0.2),'changements '+changements.map(x=>x.toFixed(2)));});
-
+  v(parVirage.every(x=>x>0.5),'écarts-types (max des trois) '+parVirage.map(x=>x.toFixed(2)));v(changements.every(x=>x>0.2),'changements '+changements.map(x=>x.toFixed(2)));});
 // --- le pilote retrouve sa ligne depuis n'importe où
 // un départ : à s0, à l'écart d0, à la vitesse u0, le cap décalé de dc ; on roule jusqu'à la fin du tour suivant
 // « rejointe » : à moins de 1 m de la ligne rapide de la carte
@@ -390,18 +395,27 @@ t('pilote IA technique : départ impossible, au début même de l’épingle à 
   L.push(`  (départ impossible : ${r_.contacts} contacts de barrière, ${r_.herbe} pas dans l’herbe, rejointe en ${r_.rejoint===null?'—':r_.rejoint.toFixed(0)+' m'}, tour suivant ${r_.tour===null?'—':r_.tour.toFixed(2)+' s'})`);
   v(r_.rejoint!==null&&r_.tour!==null&&r_.tour<TOURS_IA.technique.meilleurTour+3&&!r_.coupe,JSON.stringify(r_));});
 // --- une voiture lente devant : il la voit (où elle est, sa vitesse) et reste derrière
-t('pilote IA technique : 40 m derrière une voiture à 60 % de la vitesse de la carte, sur sa ligne, pendant 2 tours, sans attaquer (le suivi seul) : jamais à moins de IA_DISTANCE_MIN, 0 contact, 0 herbe', ()=>{
-  const attaque=REGLAGES.IA_DEPASSEMENT;REGLAGES.IA_DEPASSEMENT=false;   // la voiture de devant n'est qu'un point : on teste le suivi
+// tour 22 (décision du Chef) : la règle de la file (IA_FILE_DISTANCE, IA_FILE_COTE) ne le retient que derrière une voiture à
+// moins de 30 m et de 6 m de côté ; plus loin de côté, il peut la contourner par une ligne d'évitement (CLAUDE.md : « une
+// ligne pour défendre ou pour éviter »). Ce qu'on vérifie : à la file, jamais à moins de IA_DISTANCE_MIN ; s'il contourne,
+// c'est propre (écart latéral ≥ ecartSur au passage), sans barrière ni herbe ; et il finit ses 2 tours.
+t('pilote IA technique : 40 m derrière une voiture à 60 % de la vitesse de la carte, sur sa ligne, 2 tours, sans attaquer : à la file (à moins de IA_FILE_DISTANCE et IA_FILE_COTE), jamais à moins de IA_DISTANCE_MIN ; s’il la contourne, c’est à au moins LARGEUR_VOITURE + IA_MARGE_LAT de côté ; 0 contact, 0 herbe', ()=>{
+  const R_=REGLAGES,attaque=R_.IA_DEPASSEMENT;R_.IA_DEPASSEMENT=false;   // la voiture de devant n'est qu'un point : on teste le suivi
   const carte=CARTES_T.technique,pil=creerPilote(carte),vo=creerVoiture(TQ,0,0),c=creerCourse(TQ,0);c.etat='course';c.sAvant=vo.piste.s;c.xAvant=vo.x;c.zAvant=vo.z;
   // la voiture de devant avance sur la ligne rapide de la carte, à 60 % de sa vitesse ; le pilote ne reçoit que ce qu'il voit
-  let sDevant=40,dMin=Infinity,herbe=0,k=0;
+  let sDevant=40,dMinFile=Infinity,herbe=0,k=0,gAvant=40,passages=[];
   for(;k<400*120&&c.progression<2*TQ.longueur;k++){const vDevant=0.6*valeurEn(TQ,carte.trajectoire.vitesse,sDevant);
     const vue={s:((sDevant%TQ.longueur)+TQ.longueur)%TQ.longueur,d:valeurEn(TQ,carte.trajectoire.ecart,sDevant),vitesse:vDevant};
-    appliquerCommandes(vo,piloterIA(pil,vo,sDevant-c.progression<REGLAGES.IA_VISION_DISTANCE?[vue]:[],DT));pasVoiture(vo,TQ,DT);majCourse(c,vo,DT);
-    sDevant+=vDevant*DT;dMin=Math.min(dMin,sDevant-c.progression);if(vo.surHerbe) herbe++;}
-  REGLAGES.IA_DEPASSEMENT=attaque;
-  L.push('  (derrière une voiture à 60 % : distance la plus courte '+dMin.toFixed(2)+' m, à la fin '+(sDevant-c.progression).toFixed(1)+' m, '+(k*DT).toFixed(0)+' s pour 2 tours)');
-  v(c.progression>=2*TQ.longueur,'pas fini');v(dMin>=REGLAGES.IA_DISTANCE_MIN,dMin.toFixed(2)+' m');v(vo.contactsBarriere===0);v(herbe===0,herbe+' pas dans l’herbe');});
+    appliquerCommandes(vo,piloterIA(pil,vo,sDevant-c.progression<R_.IA_VISION_DISTANCE?[vue]:[],DT));pasVoiture(vo,TQ,DT);majCourse(c,vo,DT);
+    sDevant+=vDevant*DT;const g=sDevant-c.progression,cote=Math.abs(vo.piste.d-vue.d);
+    if(g>0&&g<R_.IA_FILE_DISTANCE&&cote<R_.IA_FILE_COTE) dMinFile=Math.min(dMinFile,g);   // à la file
+    if(Math.sign(g)!==Math.sign(gAvant)) passages.push({s:vo.piste.s,cote});   // il la passe (ou repasse derrière)
+    gAvant=g;if(vo.surHerbe) herbe++;}
+  R_.IA_DEPASSEMENT=attaque;
+  L.push('  (derrière une voiture à 60 % : distance la plus courte à la file '+(dMinFile===Infinity?'— (jamais à la file)':dMinFile.toFixed(2)+' m')+' ; '+(passages.length?'contournée à s = '+passages.map(p_=>p_.s.toFixed(0)+' m, écart latéral '+p_.cote.toFixed(2)+' m').join(' puis '):'pas contournée')+' ; à la fin '+(sDevant-c.progression).toFixed(1)+' m, '+(k*DT).toFixed(0)+' s pour 2 tours)');
+  v(c.progression>=2*TQ.longueur,'pas fini');v(dMinFile>=R_.IA_DISTANCE_MIN,'à la file à '+dMinFile.toFixed(2)+' m');
+  for(const p_ of passages) v(p_.cote>=ecartSur(vo.u),'contournement à '+p_.cote.toFixed(2)+' m de côté à s = '+p_.s.toFixed(0));
+  v(vo.contactsBarriere===0,vo.contactsBarriere+' contacts');v(herbe===0,herbe+' pas dans l’herbe');});
 t('IA : le calcul découpé (etapesTrajectoire) donne exactement la même trajectoire que d’un coup', ()=>{const e=etapesTrajectoire(TQ);let r_=e.next(),n=0;while(!r_.done){r_=e.next();n++;}
   const a=r_.value,b=TRAJ.technique;v(n>50,n+' étapes');for(let i=0;i<TQ.nb;i++) v(a.ecart[i]===b.ecart[i]&&a.vitesse[i]===b.vitesse[i],'point '+i);});
 
