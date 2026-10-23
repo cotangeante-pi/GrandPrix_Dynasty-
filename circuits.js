@@ -149,7 +149,7 @@ function positionSurPiste(circuit, px, pz, indiceDepart) {
     i = plusProche(circuit, px, pz, indiceDepart - F, indiceDepart + F + 1);
     let ecartIndice = Math.abs(i - indiceDepart);
     if (ecartIndice > nb / 2) ecartIndice = nb - ecartIndice;
-    const loin = plusProche.d2 > (circuit.largeur * REGLAGES.ECART_RECHERCHE_COMPLETE) ** 2;
+    const rayon = circuit.largeur * REGLAGES.ECART_RECHERCHE_COMPLETE, loin = plusProche.d2 > rayon * rayon;   // un carré par multiplication
     if (ecartIndice >= F || loin) i = -1;   // au bord de la fenêtre ou loin de la piste : on n'est pas sûr
   }
   if (i < 0) i = plusProche(circuit, px, pz, 0, nb);
