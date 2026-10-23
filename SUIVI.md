@@ -115,6 +115,7 @@ Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤
 
 ## Retours du propriétaire
 
+- 2026-10-23 ~18h50 : « c'est normal que si on bloque une formule 1 tout un trafic à la queue leu leu attend ? ils sont censés doubler » → **décision du propriétaire** : une voiture bloquée ou très lente se contourne, partout, sans attendre une zone d'attaque (écrit dans CLAUDE.md, « Les IA des adversaires »). Cause : la règle de la file (IA_FILE_DISTANCE 30 m, IA_FILE_COTE 6 m) et l'attaque seulement avant un virage précédé de 150 m de droite. Ordre 3 du tour 22 au Codeur 1. Ça tranche aussi la question « contournement sans attaque » : voulu.
 - 2026-10-23 ~17h05 : « c'est possible de faire plus ressemblant au vrai ? » (les 12 tracés) → **décision du propriétaire** : circuits très ressemblants (reconnaissables au premier coup d'œil), noms changés, aucun logo. CLAUDE.md mis à jour ; ordre dans rapports/circuits-ressemblants-rapport.md, pour le premier Codeur libre (branche `circuits`). Codeur 3 = session-a7 (branche codeur3), donné par le propriétaire le même jour.
 
 - 2026-10-21 ~18h10 : « un autre Claude fait des changements dans le CLAUDE.md, il fait des idées, laisse-le ». → Le Chef et le Codeur ne touchent pas à ses changements de CLAUDE.md et ne les commitent pas avec leur travail (`git add -p` pour leurs propres lignes).
@@ -133,7 +134,6 @@ Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤
 
 ## Décisions en attente (pour le propriétaire)
 
-- Une IA qui n'attaque pas peut quand même contourner une voiture très lente (60 %) par une ligne d'évitement (vu au tour 22). Voulu (on double les retardataires) ou à interdire hors attaque ?
 - Les 12 tracés de circuits (tests/circuits-a.svg et tests/circuits-b.svg) : assez sinueux ? noms ?
 - Les IA, même en légende, font 49,4 s seules sur le circuit test (le propriétaire ≈ 45 s) : les rendre plus rapides ?
 
