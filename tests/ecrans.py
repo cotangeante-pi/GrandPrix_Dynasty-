@@ -370,6 +370,21 @@ def course_podium(pg, titre, l):
     pg.wait_for_timeout(300)
     pg.screenshot(path=os.path.join(CAPTURES, 'resultats.png' if l == 1280 else 'resultats-960.png'))
 
+# ?championnat=1 : la ligne du coéquipier dans la tour (null si elle n'y est pas encore)
+DUEL_TOUR = '''() => { const li = document.querySelectorAll("#classementListe li.coequipier"); if (!li.length || document.getElementById("classement").classList.contains("cache")) return null;
+  return { n: li.length, numero: Number(li[0].dataset.numero), attendu: JEU.plateau.pilotes[CHAMPIONNAT.coequipierDe(JEU.championnat).id].numero,
+    couleur: li[0].style.getPropertyValue("--ecurie") !== "", ecart: li[0].querySelector(".ecart").textContent }; }'''
+
+def duel_ecran(pg, titre, gp):
+    # l'écran entre les courses : « ⚔ Duel contre ton coéquipier : Toi 1 – 3 Pilote 19 (qualifs 0–2, courses 1–1) », les chiffres de
+    # CHAMPIONNAT.scoreDuel ; après gp Grands Prix, 2 points par Grand Prix au plus (une qualif, une course) ; la ligne ne déborde pas
+    d = pg.evaluate('''() => { const p = document.getElementById("championnatDuel"), s = CHAMPIONNAT.scoreDuel(JEU.championnat);
+      return { texte: p.textContent, s, deborde: p.scrollWidth > p.clientWidth + 1 || p.getBoundingClientRect().right > innerWidth }; }''')
+    s = d['s']
+    attendu = f"⚔ Duel contre ton coéquipier : Toi {s['total'][0]} – {s['total'][1]} {s['nom']} (qualifs {s['qualifs'][0]}–{s['qualifs'][1]}, courses {s['courses'][0]}–{s['courses'][1]})"
+    t(f'{titre} : après {gp} Grand(s) Prix, le score du duel contre le coéquipier est affiché, sans déborder', d['texte'] == attendu and not d['deborde']
+      and sum(s['qualifs']) <= gp and sum(s['courses']) <= gp and sum(s['qualifs']) + sum(s['courses']) >= gp, str(d))
+
 def championnat(pg, titre, l):
     # ?championnat=1 : l'écran entre les courses au démarrage (nouveau championnat : Grand Prix 1), le robot joue deux
     # Grands Prix d'un tour, « Continuer » enregistre et sauvegarde ; la page rechargée retrouve le Grand Prix 3 et les points
@@ -378,6 +393,7 @@ def championnat(pg, titre, l):
       pg.evaluate('''() => JEU.ecran === "championnat" && JEU.championnat.prochain === 0 && /^Grand Prix 1 \/ 12 — /.test(document.getElementById("championnatTitre").textContent)
         && document.querySelectorAll("#championnatPilotes li").length === 20 && document.querySelectorAll("#championnatPilotes li.moi").length === 1
         && document.querySelectorAll("#championnatEcuries li").length === 10 && document.getElementById("championnatGagne").textContent === ""'''), str(pg.evaluate(ECRAN)))
+    duel_ecran(pg, titre, 0)
     if l != 1280: return
     points = None
     for gp in (1, 2):
@@ -391,10 +407,17 @@ def championnat(pg, titre, l):
                        ' && JEU.couleurs.every((c, k) => c === JEU.championnat.ecuries[JEU.championnat.pilotes[k].ecurie].couleur) && JEU.course.nbTours === 1', None, 10000), str(pg.evaluate(ECRAN)))
         t(f'{titre} : GP {gp} : la carte se calcule, chaque IA prend le caractère de son pilote du championnat',
           attendre(pg, '() => JEU.plateau.carte !== null && JEU.plateau.pilotes.slice(0, 19).every((p, k) => p.pilote && p.pilote.caractere.regularite === JEU.championnat.pilotes[k].caractere.regularite)', None, 180000))
+        tour = None   # la ligne du coéquipier dans la tour, vue pendant la course
         for _ in range(80):
             pg.evaluate('() => BOUCLE.simuler(5)')
             if pg.evaluate('() => JEU.ecran') == 'podium': break
             pg.wait_for_timeout(50)
+            if tour is None:
+                tour = pg.evaluate(DUEL_TOUR)
+                if tour and tour['ecart'] and gp == 1: pg.screenshot(path=os.path.join(CAPTURES, 'duel-tour.png'))
+                if tour and not tour['ecart']: tour = None   # l'écart n'est pas encore connu : on regarde à l'image suivante
+        t(f'{titre} : GP {gp} : en course, une seule ligne du coéquipier dans la tour (son numéro, la couleur de l’écurie), avec l’écart en temps « ▲/▼ x,x s »',
+          bool(tour) and tour['n'] == 1 and tour['numero'] == tour['attendu'] and tour['couleur'] and bool(re.fullmatch(r'[▲▼] \d+,\d s', tour['ecart'])), str(tour))
         t(f'{titre} : GP {gp} : la course va jusqu’au podium', pg.evaluate('() => JEU.ecran === "podium"'), str(pg.evaluate('() => [JEU.ecran, JEU.plateau.arrives, JEU.plateau.temps, JEU.course.etat]')))
         pg.click('#boutonResultats')
         attendre(pg, '() => JEU.ecran === "resultats"')
@@ -407,9 +430,13 @@ def championnat(pg, titre, l):
         points = pg.evaluate('() => JEU.championnat.pilotes.map(p => p.stats.points)')
         total = pg.evaluate('() => REGLAGES.POINTS.reduce((a, b) => a + b, 0)')
         t(f'{titre} : GP {gp} : les points sont ceux du classement final (somme = {total} par Grand Prix)', sum(points) == gp * total, str(points))
+        duel_ecran(pg, titre, gp)
         if gp == 1:
             pg.wait_for_timeout(300)
             pg.screenshot(path=os.path.join(CAPTURES, 'championnat.png'))
+        else:
+            pg.wait_for_timeout(300)
+            pg.screenshot(path=os.path.join(CAPTURES, 'duel.png'))
     pg.reload()
     t(f'{titre} : la page rechargée retrouve le Grand Prix 3 et les mêmes points', attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat" && JEU.championnat.prochain === 2', None, 60000)
       and pg.evaluate('() => JEU.championnat.pilotes.map(p => p.stats.points)') == points and pg.evaluate('() => document.getElementById("championnatTitre").textContent').startswith('Grand Prix 3 / 12'), str(pg.evaluate(ECRAN)))

@@ -120,7 +120,32 @@ const INTERFACE = (function () {
       // une voiture pénalisée porte ses pénalités (« ✂ +15 s ») : elles sont déjà comptées dans sa place et son écart
       li.children[3].textContent = l.penalites > 0 ? '✂ +' + l.penalites + ' s' : '';
       li.children[4].textContent = formatEcart(l);
+      marquerCoequipier(li, l);
     });
+  }
+
+  // --- le duel contre le coéquipier (Codeur 3) ---
+  // ?championnat=1 : la ligne du coéquipier (l.coequipier) porte la couleur de l'écurie et, à la place de son écart,
+  // l'écart en temps avec le joueur (l.ecartDuel, s : > 0 = il est derrière le joueur ▼, < 0 = devant ▲ ; null : inconnu)
+  function marquerCoequipier(li, l) {
+    li.classList.toggle('coequipier', !!l.coequipier);
+    if (!l.coequipier) return;
+    li.style.setProperty('--ecurie', couleurCss(l.couleur));
+    li.title = texte('duelTour');
+    if (l.ecartDuel !== null && l.ecartDuel !== undefined)
+      li.children[4].textContent = (l.ecartDuel > 0 ? '▼ ' : '▲ ') + Math.abs(l.ecartDuel).toFixed(1).replace('.', texte('virgule')) + ' s';
+  }
+
+  // remplace {cle} par valeurs[cle] dans un texte
+  function avec(t, valeurs) {
+    return t.replace(/\{(\w+)\}/g, (m, cle) => valeurs[cle] !== undefined ? valeurs[cle] : m);
+  }
+
+  // l'écran entre les courses : le score de la saison contre le coéquipier (CHAMPIONNAT.scoreDuel), ou rien (null)
+  function remplirDuel(s) {
+    const p = $('championnatDuel');
+    p.textContent = s ? '⚔ ' + texte('duelTitre') + ' : ' + avec(texte('duelScore'), { a: s.total[0], b: s.total[1], nom: s.nom }) + ' '
+      + avec(texte('duelDetail'), { qa: s.qualifs[0], qb: s.qualifs[1], ca: s.courses[0], cb: s.courses[1] }) : '';
   }
 
   const couleurCss = c => '#' + c.toString(16).padStart(6, '0');
@@ -282,5 +307,6 @@ const INTERFACE = (function () {
     });
   }
 
-  return { formatTemps, formatEcart, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, preparerChampionnat, remplirQualif, preparerQualif };
+  return { formatTemps, formatEcart, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, preparerChampionnat, remplirQualif, preparerQualif,
+    remplirDuel, avec };
 })();

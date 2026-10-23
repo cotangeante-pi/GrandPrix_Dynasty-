@@ -168,6 +168,7 @@ function appliquerCaracteres() {
 function montrerChampionnat(gagne) {
   PODIUM3D.cacher();
   INTERFACE.remplirChampionnat(JEU.championnat, gagne, CIRCUIT.nom);
+  INTERFACE.remplirDuel(CHAMPIONNAT.scoreDuel(JEU.championnat));
   JEU.ecran = 'championnat';
   INTERFACE.montrer('championnat');
 }
@@ -360,13 +361,31 @@ function majClassementRadar() {
   radar.classList.toggle('cache', !enCourse);
   if (!enCourse) { INTERFACE.majClassement(null); return; }
   const P = JEU.plateau ? JEU.plateau.pilotes : [];
-  INTERFACE.majClassement(JEU.plateau ? classementCourse(JEU.plateau).map(x => ({
+  const ordre = JEU.plateau ? classementCourse(JEU.plateau) : null;
+  // ?championnat=1 : le coéquipier du joueur (la voiture k = le pilote k du championnat), et l'écart entre eux
+  const kc = JEU.championnat && JEU.contre ? (CHAMPIONNAT.coequipierDe(JEU.championnat) || { id: null }).id : null;
+  const duel = kc !== null && ordre ? ecartCoequipier(ordre, kc) : null;
+  INTERFACE.majClassement(ordre ? ordre.map(x => ({
     numero: P[x.k].numero, couleur: JEU.couleurs[x.k], ecart: x.ecart, tours: x.tours, penalites: x.penalites, moi: x.k === JEU.suivie,
-    arrive: P[x.k].arrivee !== null,
+    arrive: P[x.k].arrivee !== null, coequipier: x.k === kc, ecartDuel: x.k === kc ? duel : null,
   })) : null);
   const autres = [];
   P.forEach((p, k) => { if (k !== JEU.suivie && p.arrivee === null) autres.push({ x: p.v.x, z: p.v.z, couleur: JEU.couleurs[k] }); });
   RADAR.dessiner(CIRCUIT, JEU.joueur, autres);
+}
+
+// ?championnat=1 : l'écart en temps entre le joueur et son coéquipier kc dans le classement en direct (classementCourse) :
+// la somme des écarts entre eux ; > 0 : le coéquipier est derrière. null s'il n'est pas connu (pas encore passé la ligne,
+// ou un tour d'écart)
+function ecartCoequipier(ordre, kc) {
+  const ij = ordre.findIndex(x => x.k === JEU.suivie), ic = ordre.findIndex(x => x.k === kc);
+  if (ij < 0 || ic < 0) return null;
+  let s = 0;
+  for (let i = Math.min(ij, ic) + 1; i <= Math.max(ij, ic); i++) {
+    if (ordre[i].ecart === null || ordre[i].tours > 0) return null;
+    s += ordre[i].ecart;
+  }
+  return ij < ic ? s : -s;
 }
 
 // l'affichage provisoire : la vitesse et « hors piste »

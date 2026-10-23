@@ -521,3 +521,8 @@ html, body {
 .cache {
   display: none !important;   /* plus fort que les display des éléments à id */
 }
+
+/* le duel contre le coéquipier (Codeur 3) : sa ligne dans la tour, à la couleur de l'écurie, et le score entre les courses */
+#classementListe li.coequipier { background: linear-gradient(90deg, var(--ecurie) 0 4px, rgba(255, 255, 255, 0.16) 4px); }
+#classementListe li.coequipier .ecart { font-weight: 800; }
+#championnatDuel { font-size: 15px; }

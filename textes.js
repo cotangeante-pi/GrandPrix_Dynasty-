@@ -37,6 +37,9 @@ const TEXTES = {
     grandPrix: 'Grand Prix', classementPilotes: 'Drivers', classementEcuries: 'Teams', courseSuivante: 'Next race', continuer: 'Continue',
     pointsGagnes: 'You scored {n} points', pts: 'pts', finChampionnat: 'Season over',
     preparation: 'Preparing the race…',
+    // le duel contre le coéquipier (Codeur 3)
+    duelTitre: 'Teammate duel', duelScore: 'You {a} – {b} {nom}', duelDetail: '(qualifying {qa}–{qb}, races {ca}–{cb})',
+    duelTour: 'Your teammate: ▲ ahead of you, ▼ behind you',
   },
   fr: {
     nomDuJeu: 'Grand Prix Dynasty',
@@ -75,6 +78,9 @@ const TEXTES = {
     grandPrix: 'Grand Prix', classementPilotes: 'Pilotes', classementEcuries: 'Écuries', courseSuivante: 'Course suivante', continuer: 'Continuer',
     pointsGagnes: 'Tu marques {n} points', pts: 'pts', finChampionnat: 'Saison terminée',
     preparation: 'Préparation de la course…',
+    // le duel contre le coéquipier (Codeur 3)
+    duelTitre: 'Duel contre ton coéquipier', duelScore: 'Toi {a} – {b} {nom}', duelDetail: '(qualifs {qa}–{qb}, courses {ca}–{cb})',
+    duelTour: 'Ton coéquipier : ▲ devant toi, ▼ derrière toi',
   },
 };
 

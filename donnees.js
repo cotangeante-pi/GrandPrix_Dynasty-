@@ -126,6 +126,18 @@ const REGLAGES = {
   NOMS_PILOTES: ['Pilote 1', 'Pilote 2', 'Pilote 3', 'Pilote 4', 'Pilote 5', 'Pilote 6', 'Pilote 7', 'Pilote 8', 'Pilote 9', 'Pilote 10',
     'Pilote 11', 'Pilote 12', 'Pilote 13', 'Pilote 14', 'Pilote 15', 'Pilote 16', 'Pilote 17', 'Pilote 18', 'Pilote 19', 'Pilote 20'],
 
+  // la une du journal après chaque Grand Prix (journal.js, Codeur 3) ; les titres et les brèves sont dans textes.js (uneTitre_…, uneTexte_…, breve…)
+  JOURNAL_PRIORITES: ['titreChampion', 'premiereVictoire', 'victoire', 'premierPodium', 'podium', 'record', 'duelGagne', 'duelPerdu',
+    'penalite', 'serie', 'leader', 'vainqueur'],   // le grand titre : le premier fait vrai de cette liste (« vainqueur » est toujours vrai)
+  JOURNAL_DUEL_NET: 3,          // le duel contre le coéquipier fait le titre quand l'écart de la saison est d'au moins ce nombre de points
+  JOURNAL_SERIE: 3,             // … une série de ce nombre de Grands Prix sans point
+  JOURNAL_ECART_LEADER: 25,     // … le leader (pas le joueur) s'envole : au moins ces points d'avance, et l'avance a grandi
+  JOURNAL_FORME_COURSES: 3,     // brève « en grande forme » : un rival qui a fait au moins JOURNAL_FORME_PODIUMS podiums sur ces derniers Grands Prix
+  JOURNAL_FORME_PODIUMS: 2,
+  JOURNAL_BREVES_MAX: 3,        // les brèves sur le côté, au plus
+  JOURNAL_CLASSEMENT: 5,        // en bas : les premiers du championnat (et le joueur s'il n'y est pas)
+  JOURNAL_GRAINE: 6000,         // les variantes des titres sont tirées avec la graine du championnat + ce nombre + le Grand Prix
+
   // le robot d'essai (préparation des IA)
   ROBOT_VISEE_MIN: 12,          // m : il vise un point au moins à cette distance devant lui
   ROBOT_VISEE_TEMPS: 0.55,      // s : … ou à la distance parcourue en ce temps
