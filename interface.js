@@ -5,12 +5,15 @@ const INTERFACE = (function () {
   // les longueurs proposées, dans l'ordre de l'écran de choix ; 0 = essai libre
   const CHOIX = [['tresCourte', 'tresCourte'], ['moyenne', 'moyenne'], ['longue', 'longue'], ['essaiLibre', null]];
 
-  // 62.345 → « 1:02.345 »
+  // 62.345 → « 1:02.345 » (« 1:02,345 » en français : texte('virgule'), comme les écarts)
   function formatTemps(t) {
     if (t === null || t === undefined) return '–:––.–––';
     const m = Math.floor(t / 60), s = t - m * 60;
-    return m + ':' + (s < 10 ? '0' : '') + s.toFixed(3);
+    return m + ':' + (s < 10 ? '0' : '') + s.toFixed(3).replace('.', texte('virgule'));
   }
+
+  // 5 → « 5 s » (texte('secondes')) ; 0.812 → « 0,812 s » en français
+  const secondes = s => texte('secondes').replace('{s}', String(s).replace('.', texte('virgule')));
 
   function nbToursDe(cle) {
     return cle ? REGLAGES.LONGUEURS_COURSE[cle] : 0;
@@ -72,7 +75,7 @@ const INTERFACE = (function () {
     if (precedent) $('hudPrecedent').textContent = texte('tourPrecedent') + ' ' + formatTemps(precedent.temps) + (precedent.coupe ? ' ✂' : '');
     for (let i = 0; i < 3; i++) {
       const el = $('hudS' + (i + 1)), t = secteurs[i];
-      el.textContent = texte('secteur') + (i + 1) + ' ' + (t === undefined || t === null ? '–' : t.toFixed(3));
+      el.textContent = texte('secteur') + (i + 1) + ' ' + (t === undefined || t === null ? '–' : t.toFixed(3).replace('.', texte('virgule')));
       el.className = 'secteur' + (t === undefined || t === null ? '' : ' ' + couleurSecteur(c, i, t, avant));
     }
     const recente = c.derniereCoupe !== undefined && c.temps - c.derniereCoupe < 3;
@@ -85,7 +88,7 @@ const INTERFACE = (function () {
   function formatEcart(l) {
     if (l.ecart === null) return '';
     if (l.tours > 0) return '+' + l.tours + ' ' + texte(l.tours > 1 ? 'toursRetard' : 'tourRetard');
-    return '+' + l.ecart.toFixed(1).replace('.', texte('virgule')) + ' s';
+    return '+' + secondes(l.ecart.toFixed(1));
   }
 
   // la tour de classement : lignes = [{ numero, couleur (0xrrggbb), ecart, tours, penalites, moi }] dans l'ordre (classementCourse),
@@ -96,7 +99,7 @@ const INTERFACE = (function () {
     $('classement').classList.toggle('cache', !lignes);
     if (!lignes) return;
     const liste = $('classementListe');
-    $('classementPlace').textContent = 'P' + (lignes.findIndex(l => l.moi) + 1) + ' / ' + lignes.length;
+    $('classementPlace').textContent = texte('placeCourse').replace('{p}', lignes.findIndex(l => l.moi) + 1).replace('{n}', lignes.length);
     liste.style.setProperty('--nb', lignes.length);
     lignes.forEach((l, i) => {
       let li = lignesClassement.get(l.numero);
@@ -118,14 +121,14 @@ const INTERFACE = (function () {
       li.classList.toggle('arrive', !!l.arrive);   // arrivé : 🏁 devant son écart
       li.children[0].textContent = i + 1;
       // une voiture pénalisée porte ses pénalités (« ✂ +15 s ») : elles sont déjà comptées dans sa place et son écart
-      li.children[3].textContent = l.penalites > 0 ? '✂ +' + l.penalites + ' s' : '';
+      li.children[3].textContent = l.penalites > 0 ? '✂ +' + secondes(l.penalites) : '';
       li.children[4].textContent = formatEcart(l);
     });
   }
 
   const couleurCss = c => '#' + c.toString(16).padStart(6, '0');
   const pastille = c => { const e = document.createElement('span'); e.className = 'pastille'; e.style.background = couleurCss(c); return e; };
-  const penalite = p => p > 0 ? '+' + p + ' s ✂' : '';
+  const penalite = p => p > 0 ? '+' + secondes(p) + ' ✂' : '';
 
   // les boutons du podium (passer aux résultats) et des résultats (rejouer, changer de longueur)
   function preparerResultats(passer, rejouer, changer) {
@@ -153,7 +156,7 @@ const INTERFACE = (function () {
       const carte = document.createElement('div');
       carte.className = 'marche marche' + place;
       const titre = document.createElement('strong');
-      titre.append(String(place) + ' ', pastille(x.couleur), ' n°' + x.numero);
+      titre.append(String(place) + ' ', pastille(x.couleur), ' ' + texte('numero').replace('{n}', x.numero));
       const temps = document.createElement('span');
       temps.textContent = formatTemps(x.total) + (x.penalites > 0 ? ' (' + penalite(x.penalites) + ')' : '');
       carte.append(titre, temps);
@@ -170,7 +173,7 @@ const INTERFACE = (function () {
       if (l.moi) tr.className = 'moi';
       const numero = document.createElement('span');
       numero.append(pastille(l.couleur), ' ' + l.numero);
-      const ecart = l.ecart === null || l.place === 1 ? '' : '+' + l.ecart.toFixed(3).replace('.', texte('virgule')) + ' s';
+      const ecart = l.ecart === null || l.place === 1 ? '' : '+' + secondes(l.ecart.toFixed(3));
       // sa place sur la grille, et les places gagnées (▲) ou perdues (▼) depuis
       const gagne = l.grille - l.place, grille = l.grille + ' ' + (gagne > 0 ? '▲' + gagne : gagne < 0 ? '▼' + -gagne : '=');
       for (const contenu of [String(l.place), numero, l.total === null ? texte('enCourse') : formatTemps(l.total), penalite(l.penalites), ecart, grille]) {
@@ -219,11 +222,16 @@ const INTERFACE = (function () {
     }
   }
 
+  // le nom affiché d'un pilote et d'une écurie du championnat : le sien, sinon le nom par défaut de textes.js
+  // (« You » / « Toi » pour le joueur, « Driver 7 » / « Pilote 7 », « Team 3 » / « Écurie 3 »)
+  const nomPilote = p => p.nom || (p.humain ? texte('nomJoueur') : texte('pilote').replace('{n}', p.numero));
+  const nomEcurie = e => e.nom || texte('ecurie').replace('{n}', e.id + 1);
+
   // ?championnat=1 : l'écran entre les courses. ch : le championnat ; gagne : les points du joueur à la course qui
-  // vient de finir (null au démarrage) ; nomCircuit : celui du prochain Grand Prix ; suivante : le bouton
+  // vient de finir (null au démarrage) ; nomCircuit : celui du prochain Grand Prix (déjà traduit) ; suivante : le bouton
   function remplirChampionnat(ch, gagne, nomCircuit) {
     const fini = ch.prochain >= ch.calendrier.length;
-    $('championnatTitre').textContent = fini ? texte('finChampionnat') : texte('grandPrix') + ' ' + (ch.prochain + 1) + ' / ' + ch.calendrier.length + ' — ' + nomCircuit;
+    $('championnatTitre').textContent = fini ? texte('finChampionnat') : texte('titreGrandPrix').replace('{i}', ch.prochain + 1).replace('{n}', ch.calendrier.length).replace('{circuit}', nomCircuit);
     $('championnatGagne').textContent = gagne === null ? '' : texte('pointsGagnes').replace('{n}', gagne);
     $('championnatPilotesTitre').textContent = texte('classementPilotes');
     $('championnatEcuriesTitre').textContent = texte('classementEcuries');
@@ -238,8 +246,8 @@ const INTERFACE = (function () {
     };
     const pilotes = $('championnatPilotes'), ecuries = $('championnatEcuries');
     pilotes.textContent = ''; ecuries.textContent = '';
-    CHAMPIONNAT.classementPilotes(ch).forEach((x, i) => { const p = ch.pilotes[x.k]; pilotes.appendChild(ligne(i + 1, ch.ecuries[p.ecurie].couleur, p.nom, x.points, p.humain)); });
-    CHAMPIONNAT.classementEcuries(ch).forEach((x, i) => { const e = ch.ecuries[x.id]; ecuries.appendChild(ligne(i + 1, e.couleur, e.nom, x.points, e.id === REGLAGES.ECURIE_JOUEUR)); });
+    CHAMPIONNAT.classementPilotes(ch).forEach((x, i) => { const p = ch.pilotes[x.k]; pilotes.appendChild(ligne(i + 1, ch.ecuries[p.ecurie].couleur, nomPilote(p), x.points, p.humain)); });
+    CHAMPIONNAT.classementEcuries(ch).forEach((x, i) => { const e = ch.ecuries[x.id]; ecuries.appendChild(ligne(i + 1, e.couleur, nomEcurie(e), x.points, e.id === REGLAGES.ECURIE_JOUEUR)); });
   }
 
   function preparerChampionnat(suivante) {
@@ -271,7 +279,7 @@ const INTERFACE = (function () {
     $('finTitre').textContent = texte('fin');
     $('finTotal').textContent = texte('tempsTotal') + ' ' + formatTemps(tempsTotal(c));
     $('finMeilleur').textContent = texte('meilleurTour') + ' ' + formatTemps(c.meilleurTour);
-    $('finPenalites').textContent = c.penalites ? texte('penalites') + ' +' + c.penalites + ' s' : '';
+    $('finPenalites').textContent = c.penalites ? texte('penalites') + ' +' + secondes(c.penalites) : '';
     $('finRecord').textContent = nouveauRecord ? texte('nouveauRecord') : '';
     const liste = $('finTours');
     liste.textContent = '';
@@ -282,5 +290,5 @@ const INTERFACE = (function () {
     });
   }
 
-  return { formatTemps, formatEcart, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, preparerChampionnat, remplirQualif, preparerQualif };
+  return { formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, preparerChampionnat, remplirQualif, preparerQualif };
 })();
