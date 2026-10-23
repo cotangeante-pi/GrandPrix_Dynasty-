@@ -889,7 +889,7 @@ with sync_playwright() as p:
                 t(f'{titre} : la page nue, sans sauvegarde : l’écran titre (« ▶ Jouer », « 👥 Entre amis »), pas de qualification ni d’écran de choix', pg.evaluate('() => JEU.ecran === "titre" && JEU.decouverte && !document.getElementById("titre").classList.contains("cache") && document.getElementById("choix").classList.contains("cache") && document.getElementById("boutonJouer").textContent === texte("titreJouer")'), str(pg.evaluate('() => [JEU.ecran, JEU.decouverte]')))
                 if l == 960:
                     # une ancienne sauvegarde : un championnat déjà commencé, sans pilote créé → la création est demandée une fois, en 960×600 sans défilement
-                    pg.evaluate('() => { const ch = CHAMPIONNAT.creer(1); ch.prochain = 2; SAUVEGARDE.ecrireChampionnat(ch); }')
+                    pg.evaluate('() => { const ch = CHAMPIONNAT.creer(1); ch.prochain = 2; localStorage.setItem(SAUVEGARDE.CLE, JSON.stringify({ version: 3, records: {}, championnat: ch })); }')   # (une sauvegarde d'avant : sans decouverteFaite ni argent)
                     pg.reload()
                     t(f'{titre} : une ancienne sauvegarde (championnat sans pilote) se charge et demande la création du pilote, une fois', attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "pilote" && SAUVEGARDE.decouverteFaite() && !JEU.decouverte', None, 60000), str(pg.evaluate('() => [JEU.ecran, SAUVEGARDE.decouverteFaite()]')))
                     defile = pg.evaluate('() => [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth]')
