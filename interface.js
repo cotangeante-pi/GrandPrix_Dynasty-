@@ -45,7 +45,7 @@ const INTERFACE = (function () {
   }
 
   function montrer(ecran) {
-    for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif']) $(id).classList.toggle('cache', id !== ecran);
+    for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une']) $(id).classList.toggle('cache', id !== ecran);
     // le bandeau de course n'est là que pendant la course et la pause (pas sous l'écran de fin)
     const course = ecran === 'course' || ecran === 'pause';
     for (const id of ['hudCourse', 'hudPenalite', 'compte', 'feux', 'classement', 'radar']) if (!course) $(id).classList.add('cache');
@@ -123,7 +123,62 @@ const INTERFACE = (function () {
       // une voiture pénalisée porte ses pénalités (« ✂ +15 s ») : elles sont déjà comptées dans sa place et son écart
       li.children[3].textContent = l.penalites > 0 ? '✂ +' + secondes(l.penalites) : '';
       li.children[4].textContent = formatEcart(l);
+      marquerCoequipier(li, l);
     });
+  }
+
+  // --- le duel contre le coéquipier (Codeur 3) ---
+  // ?championnat=1 : la ligne du coéquipier (l.coequipier) porte la couleur de l'écurie et, à la place de son écart,
+  // l'écart en temps avec le joueur (l.ecartDuel, s : > 0 = il est derrière le joueur ▼, < 0 = devant ▲ ; null : inconnu)
+  function marquerCoequipier(li, l) {
+    li.classList.toggle('coequipier', !!l.coequipier);
+    if (!l.coequipier) return;
+    li.style.setProperty('--ecurie', couleurCss(l.couleur));
+    li.title = texte('duelTour');
+    if (l.ecartDuel !== null && l.ecartDuel !== undefined)
+      li.children[4].textContent = (l.ecartDuel > 0 ? '▼ ' : '▲ ') + secondes(Math.abs(l.ecartDuel).toFixed(1));
+  }
+
+  // remplace {cle} par valeurs[cle] dans un texte
+  function avec(t, valeurs) {
+    return t.replace(/\{(\w+)\}/g, (m, cle) => valeurs[cle] !== undefined ? valeurs[cle] : m);
+  }
+
+  // l'écran entre les courses : le score de la saison contre le coéquipier (CHAMPIONNAT.scoreDuel ; ch : le championnat,
+  // pour son nom), ou rien (null)
+  function remplirDuel(s, ch) {
+    const p = $('championnatDuel');
+    p.textContent = s ? '⚔ ' + texte('duelTitre') + ' : ' + avec(texte('duelScore'), { a: s.total[0], b: s.total[1], nom: nomPilote(ch.pilotes[s.k]) }) + ' '
+      + avec(texte('duelDetail'), { qa: s.qualifs[0], qb: s.qualifs[1], ca: s.courses[0], cb: s.courses[1] }) : '';
+  }
+
+  // --- la une du journal (Codeur 3) : r = JOURNAL.rendre(une, ch, { pilote: nomPilote, ecurie: nomEcurie }), déjà en phrases
+  function remplirUne(r) {
+    const sp = (classe, contenu) => { const e = document.createElement('span'); e.className = classe; e.append(String(contenu)); return e; };
+    $('uneNom').textContent = r.nom;
+    $('uneEdition').textContent = avec(texte('uneEdition'), { n: r.grandPrix, circuit: r.circuit });
+    $('uneTitre').textContent = r.titre;
+    $('uneTexte').textContent = r.texte;
+    $('uneBrevesTitre').textContent = texte('uneBreves');
+    const ul = $('uneBreves');
+    ul.textContent = '';
+    for (const b of r.breves) { const li = document.createElement('li'); li.textContent = b; ul.appendChild(li); }
+    $('uneClassementTitre').textContent = texte('uneClassement');
+    const ol = $('uneClassement');
+    ol.textContent = '';
+    for (const x of r.classement) {
+      const li = document.createElement('li');
+      if (x.moi) li.className = 'moi';
+      li.append(sp('place', x.place), sp('nom', x.nom), sp('points', x.points + ' ' + texte('pts')));
+      ol.appendChild(li);
+    }
+    $('unePasser').textContent = texte('unePasser');
+  }
+
+  // un clic n'importe où sur la une la passe (les touches : principal.js)
+  function preparerUne(passer) {
+    $('une').addEventListener('mousedown', e => e.preventDefault());
+    $('une').addEventListener('click', passer);
   }
 
   const couleurCss = c => '#' + c.toString(16).padStart(6, '0');
@@ -290,5 +345,6 @@ const INTERFACE = (function () {
     });
   }
 
-  return { formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, preparerChampionnat, remplirQualif, preparerQualif };
+  return { formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, preparerChampionnat, remplirQualif, preparerQualif,
+    remplirDuel, avec, remplirUne, preparerUne };
 })();

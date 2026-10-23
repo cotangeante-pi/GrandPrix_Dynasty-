@@ -49,11 +49,29 @@
 <section id="championnat" class="ecran cache">
   <h1 id="championnatTitre"></h1>
   <p id="championnatGagne"></p>
+  <p id="championnatDuel"></p>
   <div id="championnatTableaux">
     <div><h2 id="championnatPilotesTitre"></h2><ol id="championnatPilotes"></ol></div>
     <div><h2 id="championnatEcuriesTitre"></h2><ol id="championnatEcuries"></ol></div>
   </div>
   <div class="boutons"><button id="boutonCourseSuivante" tabindex="-1"></button></div>
+</section>
+
+<!-- ?championnat=1 : la une du journal (journal.js), après les résultats ; un clic ou une touche la passe (Codeur 3) -->
+<section id="une" class="ecran cache">
+  <div id="unePage">
+    <header id="uneEntete"><span id="uneNom"></span><span id="uneEdition"></span></header>
+    <div id="uneCorps">
+      <div id="unePrincipal">
+        <h1 id="uneTitre"></h1>
+        <p id="uneTexte"></p>
+        <div id="unePhoto"></div>
+      </div>
+      <aside id="uneCote"><h2 id="uneBrevesTitre"></h2><ul id="uneBreves"></ul></aside>
+    </div>
+    <footer id="unePied"><h2 id="uneClassementTitre"></h2><ol id="uneClassement"></ol></footer>
+  </div>
+  <p id="unePasser"></p>
 </section>
 
 <section id="pause" class="ecran cache">
@@ -100,6 +118,7 @@
 <script src="qualification.js"></script>
 <script src="sauvegarde.js"></script>
 <script src="championnat.js"></script>
+<script src="journal.js"></script>
 <script src="sdk.js"></script>
 <script src="pneus-donnees.js"></script>
 <script src="pneus.js"></script>

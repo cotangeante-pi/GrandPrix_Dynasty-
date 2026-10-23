@@ -39,6 +39,7 @@ const JEU = {
   tempsPodium: 0,       // s depuis le début du podium (la caméra qui tourne)
   championnat: null,    // ?championnat=1 : le championnat en cours (championnat.js)
   grandPrixFini: false, // … et le Grand Prix de cette page est joué et enregistré : « Course suivante » recharge la page (le circuit change)
+  gagne: null,          // … les points du joueur au Grand Prix qui vient de finir, montrés sur l'écran du championnat après la une du journal
   qualif: null,         // contre les IA, avant la course : la qualification du joueur { etat (choix, tour, attente, resultat), q (qualification.js), v (sa voiture du tour), passe }
   attente: null,        // contre les IA, après l'arrivée du joueur : { tele (la voiture suivie par la caméra télé), camera (celle d'avant), passer }
   sdkPret: false,       // SDK.init fini (sdk.js) : à partir de là, gameplayStart / gameplayStop suivent l'écran
@@ -204,6 +205,7 @@ function appliquerCaracteres() {
 function montrerChampionnat(gagne) {
   PODIUM3D.cacher();
   INTERFACE.remplirChampionnat(JEU.championnat, gagne, texte('circuit_' + NOM_CIRCUIT) || CIRCUIT.nom);   // les circuits d'essai ont leur texte ; les autres gardent leur nom
+  INTERFACE.remplirDuel(CHAMPIONNAT.scoreDuel(JEU.championnat), JEU.championnat);
   JEU.ecran = 'championnat';
   INTERFACE.montrer('championnat');
 }
@@ -215,14 +217,29 @@ function courseSuivante() {
   lancerCourse(Number(PARAMETRES.get('tours')) || REGLAGES.CHAMPIONNAT_TOURS);
 }
 
-// après les résultats : les points et la sauvegarde (finirGrandPrix), puis l'écran du championnat
+// après les résultats : les points, la une du journal et la sauvegarde (finirGrandPrix), puis la une à l'écran
 function apresGrandPrix() {
   if (JEU.ecran !== 'resultats' || JEU.grandPrixFini) return;
   const lignes = CHAMPIONNAT.lignesDepuisCourse(JEU.plateau);
   const moi = lignes.find(l => l.k === JEU.ia);
   CHAMPIONNAT.finirGrandPrix(JEU.championnat, lignes);
   JEU.grandPrixFini = true;
-  montrerChampionnat(CHAMPIONNAT.pointsPour(moi.place));
+  JEU.gagne = CHAMPIONNAT.pointsPour(moi.place);
+  montrerUne(JEU.championnat.album[JEU.championnat.album.length - 1]);
+}
+
+// ?championnat=1 : la une du journal (journal.js) du Grand Prix qui vient de finir, entre les résultats et l'écran du
+// championnat ; un clic (interface.js) ou une touche (brancherClavier) la passe
+function montrerUne(une) {
+  PODIUM3D.cacher();
+  INTERFACE.remplirUne(JOURNAL.rendre(une, JEU.championnat, { pilote: INTERFACE.nomPilote, ecurie: INTERFACE.nomEcurie }));
+  JEU.ecran = 'une';
+  INTERFACE.montrer('une');
+}
+
+function passerUne() {
+  if (JEU.ecran !== 'une') return;
+  montrerChampionnat(JEU.gagne);
 }
 
 function pause(oui) {
@@ -332,6 +349,7 @@ function brancherClavier() {
     if (e.code === 'Space' && !e.repeat) JEU.remettre = true;
     if (e.code === 'Escape' && !e.repeat) pause(JEU.ecran === 'course');
     if (e.code === 'Enter' && !e.repeat) passerAuPodium();
+    if (JEU.ecran === 'une' && !e.repeat) passerUne();   // n'importe quelle touche passe la une du journal
     if (e.code === 'Tab') { e.preventDefault(); if (JEU.plateau && !JEU.contre && !e.repeat) suivreSuivante(); }
     enfoncees.add(e.code);
     majCibles();
@@ -398,13 +416,31 @@ function majClassementRadar() {
   radar.classList.toggle('cache', !enCourse);
   if (!enCourse) { INTERFACE.majClassement(null); return; }
   const P = JEU.plateau ? JEU.plateau.pilotes : [];
-  INTERFACE.majClassement(JEU.plateau ? classementCourse(JEU.plateau).map(x => ({
+  const ordre = JEU.plateau ? classementCourse(JEU.plateau) : null;
+  // ?championnat=1 : le coéquipier du joueur (la voiture k = le pilote k du championnat), et l'écart entre eux
+  const kc = JEU.championnat && JEU.contre ? (CHAMPIONNAT.coequipierDe(JEU.championnat) || { id: null }).id : null;
+  const duel = kc !== null && ordre ? ecartCoequipier(ordre, kc) : null;
+  INTERFACE.majClassement(ordre ? ordre.map(x => ({
     numero: P[x.k].numero, couleur: JEU.couleurs[x.k], ecart: x.ecart, tours: x.tours, penalites: x.penalites, moi: x.k === JEU.suivie,
-    arrive: P[x.k].arrivee !== null,
+    arrive: P[x.k].arrivee !== null, coequipier: x.k === kc, ecartDuel: x.k === kc ? duel : null,
   })) : null);
   const autres = [];
   P.forEach((p, k) => { if (k !== JEU.suivie && p.arrivee === null) autres.push({ x: p.v.x, z: p.v.z, couleur: JEU.couleurs[k] }); });
   RADAR.dessiner(CIRCUIT, JEU.joueur, autres);
+}
+
+// ?championnat=1 : l'écart en temps entre le joueur et son coéquipier kc dans le classement en direct (classementCourse) :
+// la somme des écarts entre eux ; > 0 : le coéquipier est derrière. null s'il n'est pas connu (pas encore passé la ligne,
+// ou un tour d'écart)
+function ecartCoequipier(ordre, kc) {
+  const ij = ordre.findIndex(x => x.k === JEU.suivie), ic = ordre.findIndex(x => x.k === kc);
+  if (ij < 0 || ic < 0) return null;
+  let s = 0;
+  for (let i = Math.min(ij, ic) + 1; i <= Math.max(ij, ic); i++) {
+    if (ordre[i].ecart === null || ordre[i].tours > 0) return null;
+    s += ordre[i].ecart;
+  }
+  return ij < ic ? s : -s;
 }
 
 // l'affichage provisoire : la vitesse et « hors piste »
@@ -414,7 +450,7 @@ function majTableau() {
   document.getElementById('rapport').textContent = rapportPourVitesse(v.u);
   const roule = JEU.ecran === 'course' || JEU.ecran === 'survol' || enTourQualif();
   // sur le podium et les résultats, ni vitesse ni aide des touches
-  const apres = JEU.ecran === 'podium' || JEU.ecran === 'resultats' || JEU.ecran === 'championnat';
+  const apres = JEU.ecran === 'podium' || JEU.ecran === 'resultats' || JEU.ecran === 'championnat' || JEU.ecran === 'une';
   document.getElementById('tableau').classList.toggle('cache', apres);
   document.getElementById('aide').classList.toggle('cache', apres);
   // après l'arrivée du joueur (en attendant les autres), il ne court plus : pas de « hors piste »
@@ -522,6 +558,7 @@ function demarrerJeu() {
     document.getElementById('boutonRejouerResultats').classList.add('cache');
     document.getElementById('boutonChangerResultats').textContent = texte('continuer');
     INTERFACE.preparerChampionnat(courseSuivante);
+    INTERFACE.preparerUne(passerUne);
   } else INTERFACE.preparerResultats(voirResultats, () => lancerCourse(JEU.course.nbTours), allerAuChoix);
   document.getElementById('attenteTexte').textContent = texte('attenteArrivee');
   const boutonPasser = document.getElementById('boutonPasser');
