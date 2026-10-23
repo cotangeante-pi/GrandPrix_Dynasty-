@@ -113,7 +113,7 @@ def analyser(cle, c):
           f" · dépassement {'%.0f m → r%.0f' % depassement if depassement else 'AUCUN'}" + (' · CROISEMENT marqué %s' % (c['croisement'],) if c['croisement'] else ''))
     pb = []
     if ferm >= 1: pb.append('fermeture')
-    if abs(abs(tour) - 360) > 1e-6: pb.append('tour')
+    if abs(abs(tour) - (0 if c['croisement'] else 360)) > 1e-6: pb.append('tour')   # un huit (Suzuko) : les virages se compensent
     if rmin < c['largeur'] / 2: pb.append('rayon')
     if pire[0] <= seuil and not c['croisement']: pb.append('croisement')
     if vraie and abs(ecart) > 10: pb.append('longueur')
@@ -122,7 +122,7 @@ def analyser(cle, c):
     return pts, bornes, longueur
 
 def svg(fichier, circuits, sortie):
-    T, marge, cols = 620, 50, 3
+    T, marge, cols = 620, 50, 2
     lignes = math.ceil(len(circuits) / cols)
     out = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{T * cols}" height="{T * lignes}" viewBox="0 0 {T * cols} {T * lignes}" font-family="sans-serif">',
            '<rect width="100%" height="100%" fill="#e6eee0"/>']

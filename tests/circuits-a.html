@@ -3,15 +3,15 @@
 <script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));</script>
 <script src="../donnees.js"></script><script src="../circuits.js"></script><script src="../circuits-officiels-a.js"></script>
 <script>
-// Les tracés de 6 circuits officiels (CIRCUITS_OFFICIELS_A) : fermés, sans croisement, à la bonne longueur, pas trop serrés
+// Les tracés de 6 circuits officiels (CIRCUITS_OFFICIELS_A) : fermés, sans croisement (sauf le huit de Suzuko, marqué), à la vraie longueur (±10 %), pas trop serrés
 const L=[];let ok=0,ko=0;
 function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
 const v=(c,m)=>{if(!c)throw new Error(m||'faux');};
 function ecrire(etape){document.getElementById('res').textContent=`${etape?'EN COURS ('+etape+') ':''}RESULTAT ${ok}/${ok+ko}\n`+L.join('\n');}
 
-// la plage de longueur de chaque circuit (m), selon son caractère ; toutes entre 3,3 et 6,5 km
-const PLAGES={monoco:[3300,3500],silverstoun:[5600,6000],monzo:[5500,5900],spaa:[6200,6500],suzuko:[5400,5800],interlagas:[4100,4400]};
-const SENS={interlagas:-1};   // Interlagas tourne dans l'autre sens (à gauche)
+// la plage de longueur de chaque circuit (m) : la vraie longueur (vraieLongueur, dans les données) à ±10 % ; toutes entre 3 et 7,1 km (Monaco fait 3,337 km, Spa 7,004)
+const PLAGES=Object.fromEntries(Object.entries(CIRCUITS_OFFICIELS_A).map(([k,d])=>[k,[Math.round(d.vraieLongueur*0.9),Math.round(d.vraieLongueur*1.1)]]));
+const SENS={interlagas:-1,suzuko:0};   // Interlagas tourne dans l'autre sens (à gauche) ; Suzuko est un huit : les virages se compensent (0°)
 // les droites qui se suivent comptent pour une seule ; [longueur (m), morceau qui suit]
 function droites(def,c){const m=c.morceaux,n=m.length,res=[];let i0=0;while(i0<n&&m[i0].type==='droite') i0++;
   // on part d'un virage, pour ne pas couper une droite en deux à la ligne
@@ -29,14 +29,23 @@ for(const [cle,def] of Object.entries(CIRCUITS_OFFICIELS_A)){
   const plusLongue=Math.max(...ds.map(d=>d[0]));
   L.push(`  (${def.nom} : ${(c.longueur/1000).toFixed(3)} km, largeur ${def.largeur} m, rayon le plus serré ${(1/k).toFixed(1)} m, plus longue droite ${plusLongue.toFixed(0)} m, fermeture ${c.fermeture.toFixed(4)} m)`);
   t(def.nom+' : refermé à moins de 1 m', ()=>{v(c.fermeture<1,c.fermeture+' m');});
-  t(def.nom+' : les virages font un tour complet, dans le bon sens', ()=>{const s=def.morceaux.reduce((a,m)=>a+(m[0]==='virage'?m[2]:0),0);v(Math.abs(s-360*(SENS[cle]||1))<1e-6,s+'°');});
-  t(def.nom+' : longueur entre '+lo/1000+' et '+hi/1000+' km (et entre 3,3 et 6,5)', ()=>{v(c.longueur>=lo&&c.longueur<=hi&&c.longueur>=3300&&c.longueur<=6500,c.longueur.toFixed(1)+' m');});
+  t(def.nom+' : les virages font un tour complet, dans le bon sens'+(cle in SENS&&SENS[cle]===0?' (un huit : 0°)':''), ()=>{const s=def.morceaux.reduce((a,m)=>a+(m[0]==='virage'?m[2]:0),0);v(Math.abs(s-360*(cle in SENS?SENS[cle]:1))<1e-6,s+'°');});
+  t(def.nom+' : longueur entre '+lo/1000+' et '+hi/1000+' km (la vraie, '+def.vraieLongueur/1000+' km, à ±10 % ; et entre 3 et 7,1)', ()=>{v(c.longueur>=lo&&c.longueur<=hi&&c.longueur>=3000&&c.longueur<=7100,c.longueur.toFixed(1)+' m');});
   t(def.nom+' : largeur '+(cle==='monoco'?'10 à 12 (plus étroit)':'12 à 15'), ()=>{v(cle==='monoco'?def.largeur>=10&&def.largeur<=12:def.largeur>=12&&def.largeur<=15,def.largeur+' m');});
-  t(def.nom+' : aucun croisement (à plus de 100 m le long du tour, deux points restent à plus de largeur + 2 × DISTANCE_BARRIERE)', ()=>{
-    const seuil=c.largeur+2*REGLAGES.DISTANCE_BARRIERE;let pire=Infinity,ou='';
-    for(let i=0;i<c.nb;i++) for(let j=i+1;j<c.nb;j++){const d_=Math.min(c.s[j]-c.s[i],c.longueur-(c.s[j]-c.s[i]));if(d_<=100) continue;
-      const d=Math.hypot(c.x[i]-c.x[j],c.z[i]-c.z[j]);if(d<pire){pire=d;ou='s = '+c.s[i].toFixed(0)+' / '+c.s[j].toFixed(0);}}
-    L.push(`  (${def.nom} : écart le plus petit ${pire.toFixed(1)} m (${ou}), il faut plus de ${seuil} m)`);v(pire>seuil,pire.toFixed(1)+' m, '+ou);});
+  // les points proches (à plus de 100 m le long du tour, à moins de largeur + 2 × DISTANCE_BARRIERE) : aucun, sauf le huit de
+  // Suzuko (def.croisement = [s1, s2]) : tous à moins de 80 m de ce croisement, et les deux passages s'y coupent presque à angle droit
+  const seuil=c.largeur+2*REGLAGES.DISTANCE_BARRIERE,proches=[];let pire=Infinity,ou='';
+  for(let i=0;i<c.nb;i++) for(let j=i+1;j<c.nb;j++){const d_=Math.min(c.s[j]-c.s[i],c.longueur-(c.s[j]-c.s[i]));if(d_<=100) continue;
+    const d=Math.hypot(c.x[i]-c.x[j],c.z[i]-c.z[j]);if(d<pire){pire=d;ou='s = '+c.s[i].toFixed(0)+' / '+c.s[j].toFixed(0);}if(d<=seuil) proches.push([c.s[i],c.s[j]]);}
+  L.push(`  (${def.nom} : écart le plus petit ${pire.toFixed(1)} m (${ou}), il faut plus de ${seuil} m${def.croisement?', sauf au croisement '+def.croisement.join(' / '):''})`);
+  if(!def.croisement)
+    t(def.nom+' : aucun croisement (à plus de 100 m le long du tour, deux points restent à plus de largeur + 2 × DISTANCE_BARRIERE)', ()=>{v(pire>seuil,pire.toFixed(1)+' m, '+ou);});
+  else
+    t(def.nom+' : un huit : exactement un croisement, à l’endroit marqué (croisement), presque à angle droit (60° à 120°) ; nulle part ailleurs', ()=>{
+      const [s1,s2]=def.croisement;v(proches.length>0,'pas de croisement');
+      const loin=proches.filter(([a,b])=>Math.abs(a-s1)>80||Math.abs(b-s2)>80);v(!loin.length,'ailleurs : '+loin.slice(0,3).map(x=>x.map(y=>y.toFixed(0)).join('/')).join(', '));
+      const cap=s_=>{const i=Math.round(s_/c.pas)%c.nb,k=(i+1)%c.nb;return Math.atan2(c.z[k]-c.z[i],c.x[k]-c.x[i]);};
+      let a=Math.abs(cap(s1)-cap(s2))*180/Math.PI;a=a%180;if(a>90) a=180-a;L.push(`  (${def.nom} : les deux passages du pont se coupent à ${a.toFixed(0)}°)`);v(a>=60&&a<=90,a.toFixed(0)+'°');});
   t(def.nom+' : rayon le plus serré au moins la demi-largeur', ()=>{v(1/k>=c.largeur/2,(1/k).toFixed(1)+' m');});
   if(cle!=='monoco')
     t(def.nom+' : un vrai point de dépassement (une droite ≥ 400 m qui finit par un freinage fort : rayon ≤ 50 m)', ()=>{
