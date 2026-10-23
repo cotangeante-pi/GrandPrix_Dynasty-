@@ -45,7 +45,7 @@ const INTERFACE = (function () {
   }
 
   function montrer(ecran) {
-    for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une', 'titre', 'amis', 'bravo']) $(id).classList.toggle('cache', id !== ecran);
+    for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une', 'titre', 'amis', 'bravo', 'pilote']) $(id).classList.toggle('cache', id !== ecran);
     // le bandeau de course n'est là que pendant la course et la pause (pas sous l'écran de fin)
     const course = ecran === 'course' || ecran === 'pause';
     for (const id of ['hudCourse', 'hudPenalite', 'compte', 'feux', 'classement', 'radar', 'jauge', 'departResultat', 'aides']) if (!course) $(id).classList.add('cache');
@@ -282,6 +282,56 @@ const INTERFACE = (function () {
     $('aideGaz').classList.toggle('clignote', !!a.clignote);
   }
 
+  // la création du pilote (pilote.js) : l'écran et ses champs. remplirPilote(ch) : les listes (pays par nom traduit, les 12
+  // circuits), les valeurs de départ (nom par défaut, premier numéro libre) ; lirePilote() : les choix tapés ; montrerErreursPilote
+  const nomCircuit = c => texte('circuit_' + c) || c;
+  function remplirPilote(ch) {
+    const R = REGLAGES;
+    $('piloteTitre').textContent = texte('piloteTitre');
+    $('piloteNomTexte').textContent = texte('piloteNom');
+    $('piloteNumeroTexte').textContent = texte('piloteNumero').replace('{min}', R.NUMERO_MIN).replace('{max}', R.NUMERO_MAX);
+    $('pilotePaysTexte').textContent = texte('pilotePays');
+    $('piloteCoeurTexte').textContent = texte('piloteCoeur');
+    $('boutonPiloteValider').textContent = texte('piloteValider');
+    const nom = $('piloteNom'), numero = $('piloteNumero');
+    nom.maxLength = R.NOM_LONGUEUR_MAX; nom.placeholder = texte('nomJoueur'); nom.value = '';
+    numero.min = R.NUMERO_MIN; numero.max = R.NUMERO_MAX;
+    let libre = R.NUMERO_MIN; while (!PILOTE.numeroLibre(ch, libre) && libre < R.NUMERO_MAX) libre++;
+    numero.value = libre;
+    const pays = $('pilotePays'), coeur = $('piloteCoeur');
+    pays.textContent = ''; coeur.textContent = '';
+    for (const code of R.PAYS.slice().sort((a, b) => texte('pays_' + a).localeCompare(texte('pays_' + b), LANGUE))) { const o = document.createElement('option'); o.value = code; o.textContent = texte('pays_' + code); pays.appendChild(o); }
+    for (const c of Object.keys(R.CIRCUITS_PAYS)) { const o = document.createElement('option'); o.value = c; o.textContent = nomCircuit(c); coeur.appendChild(o); }
+    pays.value = R.PAYS[0];
+    $('piloteErreur').textContent = '';
+    majDomicilePilote();
+  }
+
+  // le pays choisi a-t-il un circuit ? alors la course de cœur est imposée et montrée 🏠
+  function majDomicilePilote() {
+    const maison = PILOTE.domicile($('pilotePays').value);
+    $('piloteCoeur').disabled = !!maison;
+    if (maison) $('piloteCoeur').value = maison;
+    $('piloteDomicile').textContent = maison ? texte('piloteDomicile').replace('{circuit}', nomCircuit(maison)) : '';
+  }
+
+  function lirePilote() {
+    return { nom: $('piloteNom').value, numero: $('piloteNumero').value, pays: $('pilotePays').value, coeur: $('piloteCoeur').value };
+  }
+
+  function montrerErreursPilote(erreurs) {
+    const R = REGLAGES;
+    $('piloteErreur').textContent = erreurs.includes('numero') ? texte('piloteErreurNumero').replace('{min}', R.NUMERO_MIN).replace('{max}', R.NUMERO_MAX) : erreurs.includes('coeur') ? texte('piloteErreurCoeur') : '';
+  }
+
+  function preparerPilote(valider) {
+    $('pilotePays').addEventListener('change', majDomicilePilote);
+    $('boutonPiloteValider').addEventListener('mousedown', e => e.preventDefault());
+    $('boutonPiloteValider').addEventListener('click', valider);
+    $('piloteNom').addEventListener('keydown', e => e.stopPropagation());     // taper son nom ne conduit pas la voiture
+    $('piloteNumero').addEventListener('keydown', e => e.stopPropagation());
+  }
+
   // le départ parfait (depart.js) : pendant les feux, la jauge du régime de départ avec sa zone verte (DEPART_VERT), jusqu'au
   // lancement ; après, le résultat et le temps de réaction pendant DEPART_AFFICHAGE s (record : « ★ record de réaction ! »)
   function majDepart(c, ecran, record) {
@@ -430,5 +480,5 @@ const INTERFACE = (function () {
 
   return { formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, preparerChampionnat, remplirQualif, preparerQualif,
     remplirDuel, avec, remplirUne, preparerUne,
-    majEcartFantome, preparerFantome, majBoutonsFantome, majDepart, preparerTitre, remplirBravo, majAides };
+    majEcartFantome, preparerFantome, majBoutonsFantome, majDepart, preparerTitre, remplirBravo, majAides, remplirPilote, lirePilote, montrerErreursPilote, preparerPilote, nomCircuit };
 })();

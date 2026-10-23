@@ -41,7 +41,7 @@ PAGES = [
     ('index.html?course=0&robot=1&pneus=1&debug=1', 1280, 720, None),   # ?pneus=1 : l'usure monte sur 10 tours du robot, affichée dans ?debug=1
     ('index.html?championnat=1&tours=1&robot=1&lang=en', 1280, 720, None),   # la page en anglais : championnat et podium sans un mot français, capture championnat-en.png
     ('index.html?course=1&ia=5&joueur=1&robot=1&circuit=test&test=fantome', 1280, 720, None),   # le fantôme du meilleur tour : deux qualifications de suite, la 2e contre le fantôme, capture fantome.png
-    ('index.html?robot=1&test=decouverte', 1280, 720, None),   # le premier lancement : titre → course de découverte (robot) → Bravo → paddock ; captures titre.png, decouverte.png, bravo.png
+    ('index.html?robot=1&test=decouverte&tours=1', 1280, 720, None),   # le premier lancement : titre → course de découverte (robot) → Bravo → paddock ; captures titre.png, decouverte.png, bravo.png
 ]
 # le faux SDK Poki (comme dans tests/sdk.html), posé avant le chargement de la page ?test=sdk : il note chaque appel dans APPELS_SDK (pas « JOURNAL » : c'est le module de la une du journal, journal.js)
 FAUX_SDK = """window.APPELS_SDK = []; window.PokiSDK = { init() { APPELS_SDK.push('init'); return Promise.resolve(); }, gameLoadingFinished() { APPELS_SDK.push('gameLoadingFinished'); },
@@ -169,7 +169,7 @@ def course_robot(pg, titre, page):
     t(f'{titre} : le son d’arrivée est demandé', arret['sons'] == 'arrivee', str(arret))
     pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'fin.png'))
     # après rechargement, le record est toujours là (sur l'écran de choix)
-    pg.goto('file://' + RACINE + '/index.html'); pg.wait_for_timeout(1500)
+    pg.goto('file://' + RACINE + '/index.html?seul=1'); pg.wait_for_timeout(1500)   # (la page nue est maintenant l'écran titre : l'écran de choix est ?seul=1)
     rec = pg.evaluate('() => document.getElementById("record5").textContent')
     t(f'{titre} : après rechargement, le record des 5 tours est affiché', INTERFACE_TEMPS(fin['meilleur'], pg.evaluate('() => texte("virgule")')) in rec, repr(rec))
     pg.click('#choix0')
@@ -435,12 +435,42 @@ def decouverte(pg, titre):
     L.append(f"  (découverte du robot : P{bravo['place']} / {R['ia'] + 1}, prime {bravo['prime']} $)")
     pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'bravo.png'))
     t(f'{titre} : aucun point de championnat n’est donné', pg.evaluate('() => SAUVEGARDE.championnat().pilotes.every(p => p.stats.points === 0 && p.stats.courses === 0) && SAUVEGARDE.championnat().prochain === 0'))
-    with pg.expect_navigation(): pg.click('#boutonCarriere')
-    t(f'{titre} : « Commencer ma carrière » : la découverte est faite, la prime gardée, et la page rechargée arrive au paddock (le championnat, Grand Prix 1), sans écran titre',
-      attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat" && !JEU.decouverte && JEU.championnat && JEU.championnat.prochain === 0', None, 60000)
-      and pg.evaluate(f'() => SAUVEGARDE.decouverteFaite() && SAUVEGARDE.argent() === {bravo["prime"]} && JEU.championnat.pilotes.length === 20 && document.getElementById("titre").classList.contains("cache")'),
-      str(pg.evaluate('() => [JEU.ecran, JEU.decouverte, SAUVEGARDE.decouverteFaite(), SAUVEGARDE.argent()]')))
     t(f'{titre} : jamais de commercialBreak', pg.evaluate('() => !window.APPELS_SDK.includes("commercialBreak")'), str(pg.evaluate('() => window.APPELS_SDK')))
+    # la création du pilote (pilote.js) : après « Commencer ma carrière », l'écran ; un numéro de rival est refusé, un pays sans
+    # circuit demande la course de cœur, un pays avec circuit l'impose (🏠) ; validé → sauvegardé, la page recharge sur le paddock
+    # avec le nom du joueur ; puis un Grand Prix d'un tour : son numéro dans la tour, son nom sur la une du journal
+    pg.click('#boutonCarriere')
+    t(f'{titre} : « Commencer ma carrière » ouvre la création du pilote (nom, numéro, pays, course de cœur), rien n’est encore sauvegardé',
+      attendre(pg, '() => JEU.ecran === "pilote" && !document.getElementById("pilote").classList.contains("cache")') and pg.evaluate('() => !SAUVEGARDE.decouverteFaite() && document.querySelectorAll("#pilotePays option").length === REGLAGES.PAYS.length && document.querySelectorAll("#piloteCoeur option").length === 12 && document.getElementById("piloteNom").placeholder === texte("nomJoueur")'),
+      str(pg.evaluate('() => [JEU.ecran, document.querySelectorAll("#pilotePays option").length]')))
+    pg.fill('#piloteNom', 'Léo'); pg.fill('#piloteNumero', '7'); pg.select_option('#pilotePays', 'fr')
+    t(f'{titre} : la France n’a pas de circuit : la course de cœur est à choisir (liste active, pas de 🏠)', pg.evaluate('() => !document.getElementById("piloteCoeur").disabled && document.getElementById("piloteDomicile").textContent === ""'))
+    pg.select_option('#pilotePays', 'it')
+    t(f'{titre} : l’Italie a Monzo : la course de cœur est imposée (🏠 Grand Prix à domicile : Monzo)', pg.evaluate('() => document.getElementById("piloteCoeur").disabled && document.getElementById("piloteCoeur").value === "monzo" && document.getElementById("piloteDomicile").textContent === texte("piloteDomicile").replace("{circuit}", texte("circuit_monzo"))'), pg.evaluate('() => document.getElementById("piloteDomicile").textContent'))
+    pg.select_option('#pilotePays', 'fr'); pg.select_option('#piloteCoeur', 'monoco')
+    pg.click('#boutonPiloteValider')
+    t(f'{titre} : le numéro 7 est celui d’un rival : refusé, l’erreur affichée, on reste sur l’écran', pg.evaluate('() => JEU.ecran === "pilote" && document.getElementById("piloteErreur").textContent === texte("piloteErreurNumero").replace("{min}", REGLAGES.NUMERO_MIN).replace("{max}", REGLAGES.NUMERO_MAX)'), pg.evaluate('() => document.getElementById("piloteErreur").textContent'))
+    pg.wait_for_timeout(200); pg.screenshot(path=os.path.join(CAPTURES, 'pilote.png'))
+    pg.fill('#piloteNumero', '27')
+    with pg.expect_navigation(): pg.click('#boutonPiloteValider')
+    t(f'{titre} : numéro 27 : validé, sauvegardé (nom, numéro, pays, course de cœur), la découverte faite avec sa prime, et la page rechargée arrive au paddock avec « Léo » dans le classement',
+      attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat" && JEU.championnat', None, 60000)
+      and pg.evaluate(f'''() => {{ const j = PILOTE.joueur(JEU.championnat), s = PILOTE.joueur(SAUVEGARDE.championnat()); return j.nom === "Léo" && j.numero === 27 && j.pays === "fr" && j.coeur === "monoco" && s.nom === "Léo" && s.numero === 27
+        && SAUVEGARDE.decouverteFaite() && SAUVEGARDE.argent() === {bravo["prime"]} && [...document.querySelectorAll("#championnatPilotes li .nom")].some(e => e.textContent === "Léo") && !PILOTE.manque(JEU.championnat); }}'''),
+      str(pg.evaluate('() => [JEU.ecran, PILOTE.joueur(JEU.championnat)]')))
+    # un Grand Prix d'un tour : le numéro 27 dans la tour de classement, le nom sur la une du journal
+    pg.click('#boutonCourseSuivante')
+    passer_qualif(pg, titre)
+    t(f'{titre} : en course, la ligne du joueur dans la tour porte son numéro 27', attendre(pg, '() => document.querySelector("#classementListe li.moi") && document.querySelector("#classementListe li.moi .numero").textContent === "27"', None, 20000), pg.evaluate('() => document.querySelector("#classementListe li.moi") && document.querySelector("#classementListe li.moi").innerText'))
+    attendre(pg, '() => JEU.plateau.carte !== null', None, 240000)
+    for _ in range(80):
+        pg.evaluate('() => BOUCLE.simuler(5)')
+        if pg.evaluate('() => JEU.ecran') == 'podium': break
+        pg.wait_for_timeout(50)
+    pg.click('#boutonResultats'); attendre(pg, '() => JEU.ecran === "resultats"')
+    t(f'{titre} : dans les résultats, le joueur a le numéro 27', pg.evaluate('() => /\\b27\\b/.test(document.querySelector("#resultatsLignes tr.moi").innerText)'), pg.evaluate('() => document.querySelector("#resultatsLignes tr.moi") && document.querySelector("#resultatsLignes tr.moi").innerText'))
+    pg.click('#boutonChangerResultats')
+    t(f'{titre} : la une du journal nomme « Léo »', attendre(pg, '() => JEU.ecran === "une"', None, 10000) and pg.evaluate('() => document.getElementById("une").innerText.includes("Léo")'), pg.evaluate('() => document.getElementById("une").innerText.slice(0, 300)'))
 
 # sdk.js est le seul passage vers Poki : avec le faux SDK posé avant la page, les appels viennent dans l'ordre, et jamais
 # deux fois le même état (gameplayStart / gameplayStop) de suite ; une course d'un tour par le robot
@@ -857,6 +887,17 @@ with sync_playwright() as p:
                 conduite(pg, titre)
             if page == 'index.html':
                 t(f'{titre} : la page nue, sans sauvegarde : l’écran titre (« ▶ Jouer », « 👥 Entre amis »), pas de qualification ni d’écran de choix', pg.evaluate('() => JEU.ecran === "titre" && JEU.decouverte && !document.getElementById("titre").classList.contains("cache") && document.getElementById("choix").classList.contains("cache") && document.getElementById("boutonJouer").textContent === texte("titreJouer")'), str(pg.evaluate('() => [JEU.ecran, JEU.decouverte]')))
+                if l == 960:
+                    # une ancienne sauvegarde : un championnat déjà commencé, sans pilote créé → la création est demandée une fois, en 960×600 sans défilement
+                    pg.evaluate('() => { const ch = CHAMPIONNAT.creer(1); ch.prochain = 2; SAUVEGARDE.ecrireChampionnat(ch); }')
+                    pg.reload()
+                    t(f'{titre} : une ancienne sauvegarde (championnat sans pilote) se charge et demande la création du pilote, une fois', attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "pilote" && SAUVEGARDE.decouverteFaite() && !JEU.decouverte', None, 60000), str(pg.evaluate('() => [JEU.ecran, SAUVEGARDE.decouverteFaite()]')))
+                    defile = pg.evaluate('() => [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth]')
+                    t(f'{titre} : l’écran de création tient en 960×600 sans défilement', defile[0] <= defile[1] + 2 and defile[2] <= defile[3] + 2, str(defile))
+                    pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'pilote-960.png'))
+                    pg.select_option('#pilotePays', 'jp')
+                    with pg.expect_navigation(): pg.click('#boutonPiloteValider')
+                    t(f'{titre} : validée (Japon → 🏠 Suzuko d’office), la page revient au paddock, Grand Prix 3, et ne redemande plus la création', attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat" && JEU.championnat.prochain === 2 && PILOTE.joueur(JEU.championnat).coeur === "suzuko" && PILOTE.joueur(JEU.championnat).pays === "jp"', None, 60000), str(pg.evaluate('() => [JEU.ecran, PILOTE.joueur(JEU.championnat)]')))
             if 'test=decouverte' in page:
                 decouverte(pg, titre)
             if 'reglages=1' in page:

@@ -334,12 +334,38 @@ function montrerBravo() {
   INTERFACE.montrer('bravo');
 }
 
-// « Commencer ma carrière » : la découverte est faite, la prime est gardée, et la page se recharge sur le paddock
-// (le championnat, créé au premier lancement) ; aucun point de championnat n'est donné
+// « Commencer ma carrière » : la création du pilote (pilote.js), puis le paddock
 function commencerCarriere() {
   if (JEU.ecran !== 'bravo') return;
-  SAUVEGARDE.finirDecouverte(JEU.prime);
+  montrerPilote();
+}
+
+// la création du pilote (pilote.js) : après la découverte (le monde), ou au chargement d'un championnat dont le joueur n'a
+// pas encore de pilote (une ancienne sauvegarde : demandée une fois)
+function montrerPilote() {
+  PODIUM3D.cacher();
+  INTERFACE.remplirPilote(JEU.monde || JEU.championnat);
+  JEU.ecran = 'pilote';
+  INTERFACE.montrer('pilote');
+}
+
+// « C'est parti ! » : les choix vérifiés (numéro libre, pays, course de cœur ou domicile) et écrits dans le championnat ; la
+// découverte est faite (sa prime gardée), aucun point n'est donné ; la page se recharge sur le paddock
+function validerPilote() {
+  if (JEU.ecran !== 'pilote') return;
+  const ch = JEU.monde || JEU.championnat, r = PILOTE.valider(ch, INTERFACE.lirePilote());
+  INTERFACE.montrerErreursPilote(r.erreurs);
+  if (!r.ok) return;
+  PILOTE.appliquer(ch, r.choix);
+  SAUVEGARDE.ecrireChampionnat(ch);
+  if (JEU.decouverte) SAUVEGARDE.finirDecouverte(JEU.prime);
   location.reload();
+}
+
+// le numéro affiché de la voiture k de la course : celui de son pilote du championnat (le joueur a le sien), sinon celui de la course
+function numeroDe(k) {
+  const ch = JEU.championnat, P = JEU.plateau.pilotes;
+  return ch && ch.pilotes[k] ? ch.pilotes[k].numero : P[k].numero;
 }
 
 // ?championnat=1 : l'écran entre les courses ; gagne : les points du Grand Prix qui vient de finir (null au démarrage)
@@ -416,9 +442,9 @@ function montrerPodium() {
   const trois = JEU.final.slice(0, 3);
   for (const m of JEU.modeles) m.groupe.visible = false;
   PODIUM3D.montrer(trois.map(x => JEU.modeles[x.k]));
-  INTERFACE.remplirPodium(trois.map(x => ({ numero: P[x.k].numero, couleur: JEU.couleurs[x.k], total: x.total, penalites: x.penalites })));
+  INTERFACE.remplirPodium(trois.map(x => ({ numero: numeroDe(x.k), couleur: JEU.couleurs[x.k], total: x.total, penalites: x.penalites })));
   INTERFACE.remplirResultats(JEU.final.map(x => ({
-    place: x.place, numero: P[x.k].numero, couleur: JEU.couleurs[x.k], total: x.total, penalites: x.penalites,
+    place: x.place, numero: numeroDe(x.k), couleur: JEU.couleurs[x.k], total: x.total, penalites: x.penalites,
     ecart: x.ecart, grille: x.grille, moi: x.k === JEU.suivie,
   })));
   JEU.tempsPodium = 0;
@@ -573,7 +599,7 @@ function majClassementRadar() {
   const kc = JEU.championnat && JEU.contre ? (CHAMPIONNAT.coequipierDe(JEU.championnat) || { id: null }).id : null;
   const duel = kc !== null && ordre ? ecartCoequipier(ordre, kc) : null;
   INTERFACE.majClassement(ordre ? ordre.map(x => ({
-    numero: P[x.k].numero, couleur: JEU.couleurs[x.k], ecart: x.ecart, tours: x.tours, penalites: x.penalites, moi: x.k === JEU.suivie,
+    numero: numeroDe(x.k), couleur: JEU.couleurs[x.k], ecart: x.ecart, tours: x.tours, penalites: x.penalites, moi: x.k === JEU.suivie,
     arrive: P[x.k].arrivee !== null, coequipier: x.k === kc, ecartDuel: x.k === kc ? duel : null,
   })) : null);
   const autres = [];
@@ -725,6 +751,7 @@ function demarrerJeu() {
   } else if (JEU.decouverte) INTERFACE.preparerResultats(montrerBravo, () => {}, () => {});   // la découverte : après le podium, « Bravo ! »
   else INTERFACE.preparerResultats(voirResultats, () => lancerCourse(JEU.course.nbTours), allerAuChoix);
   INTERFACE.preparerTitre(jouerDecouverte, montrerAmis, retourTitre, commencerCarriere);
+  INTERFACE.preparerPilote(validerPilote);
   document.getElementById('attenteTexte').textContent = texte('attenteArrivee');
   const boutonPasser = document.getElementById('boutonPasser');
   boutonPasser.textContent = texte('passerPodium');
@@ -738,6 +765,7 @@ function demarrerJeu() {
   const demandee = PARAMETRES.get('course');
   if (SURVOL.includes(PARAMETRES.get('camera'))) { JEU.ecran = 'survol'; INTERFACE.montrer('survol'); }
   else if (JEU.decouverte) montrerTitre();   // le premier lancement
+  else if (JEU.championnat && PILOTE.manque(JEU.championnat)) montrerPilote();   // une sauvegarde sans pilote : la création, une fois
   else if (JEU.championnat) montrerChampionnat(null);
   else if (demandee !== null && !isNaN(Number(demandee))) lancerCourse(Number(demandee));
   else allerAuChoix();

@@ -56,6 +56,20 @@
   <div class="boutons"><button id="boutonCarriere" tabindex="-1"></button></div>
 </section>
 
+<!-- la création du pilote (pilote.js) : après « Prêt pour ta carrière ? », ou au chargement d'une sauvegarde sans pilote -->
+<section id="pilote" class="ecran cache">
+  <h1 id="piloteTitre"></h1>
+  <div id="piloteChamps">
+    <label><span id="piloteNomTexte"></span><input id="piloteNom" type="text" maxlength="12" autocomplete="off" spellcheck="false"></label>
+    <label><span id="piloteNumeroTexte"></span><input id="piloteNumero" type="number" min="1" max="99"></label>
+    <label><span id="pilotePaysTexte"></span><select id="pilotePays"></select></label>
+    <label id="piloteCoeurLigne"><span id="piloteCoeurTexte"></span><select id="piloteCoeur"></select></label>
+    <p id="piloteDomicile"></p>
+  </div>
+  <p id="piloteErreur"></p>
+  <div class="boutons"><button id="boutonPiloteValider" tabindex="-1"></button></div>
+</section>
+
 <section id="choix" class="ecran cache">
   <h1 id="choixTitre"></h1>
   <div id="choixListe"></div>
@@ -146,6 +160,7 @@
 <script src="sauvegarde.js"></script>
 <script src="championnat.js"></script>
 <script src="decouverte.js"></script>
+<script src="pilote.js"></script>
 <script src="journal.js"></script>
 <script src="sdk.js"></script>
 <script src="pneus-donnees.js"></script>

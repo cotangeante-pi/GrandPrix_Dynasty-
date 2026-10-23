@@ -1,7 +1,7 @@
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><title>tests</title></head><body>
 <pre id="res"></pre>
 <script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));window.addEventListener('unhandledrejection',e=>__err.push('promesse : '+(e.reason&&e.reason.message||e.reason)));</script>
-<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../son.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../decouverte.js"></script><script src="../journal.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../fantome.js"></script><script src="../principal.js"></script>
+<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../son.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../decouverte.js"></script><script src="../pilote.js"></script><script src="../journal.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../fantome.js"></script><script src="../principal.js"></script>
 <script>
 const L=[];let ok=0,ko=0;
 function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
@@ -1062,6 +1062,26 @@ t('découverte : la sauvegarde : sans sauvegarde, découverte pas faite et argen
   SAUVEGARDE.finirDecouverte(-5);v(SAUVEGARDE.argent()===600,'négatif');const d=SAUVEGARDE.lire();v(d.decouverteFaite===true&&d.argent===600&&d.version===SAUVEGARDE.VERSION,'lire');
   localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:3,records:{},championnat:{prochain:2,pilotes:[],ecuries:[]}}));v(SAUVEGARDE.decouverteFaite()&&SAUVEGARDE.argent()===0,'ancienne avec championnat');
   localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:3,records:{'5':61.5},championnat:null}));v(!SAUVEGARDE.decouverteFaite()&&SAUVEGARDE.record(5)===61.5,'ancienne sans championnat');
+  localStorage.removeItem(SAUVEGARDE.CLE);});
+
+// --- la création du pilote (tour 23b, pilote.js) : calcul pur
+t('pilote : un numéro de rival est refusé (et hors 1–99, ou pas entier) ; un pays avec circuit → Grand Prix à domicile d’office ; un pays sans circuit → la course de cœur demandée ; le nom est nettoyé (12 caractères, vide → nom par défaut) ; chaque pays et chaque circuit a son texte dans les deux langues', ()=>{
+  const R_=REGLAGES,ch=CHAMPIONNAT.creer(1),pris=ch.pilotes.find(p=>!p.humain).numero;
+  v(!PILOTE.numeroLibre(ch,pris)&&PILOTE.numeroLibre(ch,27)&&!PILOTE.numeroLibre(ch,0)&&!PILOTE.numeroLibre(ch,100)&&!PILOTE.numeroLibre(ch,7.5),'numéros');
+  v(PILOTE.domicile('it')==='monzo'&&PILOTE.domicile('jp')==='suzuko'&&PILOTE.domicile('fr')===null,'domicile');
+  const a=PILOTE.valider(ch,{nom:'  Léo  ',numero:'27',pays:'fr',coeur:'monoco'});v(a.ok&&a.choix.nom==='Léo'&&a.choix.numero===27&&a.choix.coeur==='monoco'&&!a.choix.domicile,'valide '+JSON.stringify(a));
+  const b=PILOTE.valider(ch,{nom:'',numero:pris,pays:'fr',coeur:null});v(!b.ok&&b.erreurs.includes('numero')&&b.erreurs.includes('coeur')&&b.choix.nom===null,'refus '+JSON.stringify(b));
+  const c=PILOTE.valider(ch,{nom:'Un nom beaucoup trop long',numero:27,pays:'it',coeur:'monoco'});v(c.ok&&c.choix.coeur==='monzo'&&c.choix.domicile&&c.choix.nom.length<=R_.NOM_LONGUEUR_MAX,'domicile imposé '+JSON.stringify(c));
+  v(!PILOTE.valider(ch,{nom:'x',numero:27,pays:'xx',coeur:'monoco'}).ok,'pays inconnu');v(!PILOTE.valider(ch,{nom:'x',numero:27,pays:'fr',coeur:'nulle-part'}).ok,'circuit inconnu');
+  for(const p of R_.PAYS) v(TEXTES.en['pays_'+p]&&TEXTES.fr['pays_'+p],'pays sans texte : '+p);
+  for(const c_ of Object.keys(R_.CIRCUITS_PAYS)) v(TEXTES.en['circuit_'+c_]&&TEXTES.fr['circuit_'+c_]&&R_.PAYS.includes(R_.CIRCUITS_PAYS[c_]),'circuit sans texte ou pays hors liste : '+c_);});
+t('pilote : appliquer écrit le nom, le numéro, le pays et la course de cœur dans le pilote du joueur ; sauvegardé puis rechargé, identique ; une ancienne sauvegarde sans pilote (pas de pays) demande la création (manque), plus après', ()=>{
+  const ch=CHAMPIONNAT.creer(1);v(PILOTE.manque(ch),'un championnat neuf demande la création');
+  const r=PILOTE.valider(ch,{nom:'Léo',numero:27,pays:'fr',coeur:'monoco'});const j=PILOTE.appliquer(ch,r.choix);
+  v(j.humain&&j.nom==='Léo'&&j.numero===27&&j.pays==='fr'&&j.coeur==='monoco'&&!PILOTE.manque(ch),'appliqué');
+  localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:3,records:{},championnat:ch}));const re=SAUVEGARDE.championnat(),rj=PILOTE.joueur(re);
+  v(rj.nom==='Léo'&&rj.numero===27&&rj.pays==='fr'&&rj.coeur==='monoco'&&!PILOTE.manque(re)&&SAUVEGARDE.decouverteFaite(),'rechargé '+JSON.stringify(rj));
+  localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:3,records:{},championnat:CHAMPIONNAT.creer(2)}));v(PILOTE.manque(SAUVEGARDE.championnat())&&SAUVEGARDE.decouverteFaite(),'ancienne sans pilote');
   localStorage.removeItem(SAUVEGARDE.CLE);});
 
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
