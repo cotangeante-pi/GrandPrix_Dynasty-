@@ -19,7 +19,7 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 
 ## Horaires
 
-- 2026-10-23 : boucle jusqu'à **21h** (ordres des tours 21, 21b, 21c, 22, 22b). Rien de nouveau après 20h40, dernier push à 20h50, comptes rendus avant 20h55.
+- 2026-10-23 18h45 : le propriétaire : « jusqu'à nouvel ordre » → **plus d'heure de fin** ; les 3 Codeurs continuent leurs ordres, le Chef redonne un ordre à chacun dès qu'il finit, jusqu'à ce que le propriétaire dise stop. Le Mac est gardé éveillé sans limite (`caffeinate -i -s`, lancé par le Chef ; à arrêter à la fin). Avant : boucle jusqu'à 21h (20h40 / 20h50 / 20h55).
 
 - 2026-10-21 : boucle relancée à 17h (« recommence la boucle »), fin à 21h comme la veille. Mac gardé éveillé jusqu'à 21h10.
 
