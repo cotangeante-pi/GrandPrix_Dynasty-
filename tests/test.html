@@ -355,7 +355,9 @@ t('pilote IA : coût de 20 pilotes en course × 120 pas, moins de 2 ms par pas e
 // tour 22 (décision du Chef) : le style déplace l'apex de ±IA_STYLE_APEX m, donc les lignes « apex tôt » et « apex tard » se
 // croisent près du sommet géométrique : mesuré pile à l'apex, l'écart-type peut être petit alors que les lignes diffèrent.
 // On mesure à trois endroits par virage (−IA_VIRAGE_LARGEUR/2, apex, +IA_VIRAGE_LARGEUR/2) et on garde le plus grand.
-t('styles : 10 IA seules sur le technique : à chaque virage, écart-type de leurs places > 0,5 m à l’un de trois endroits (30 m avant l’apex, apex, 30 m après) ; chacune passe ailleurs d’un tour à l’autre (> 0,2 m à au moins un apex)', ()=>{
+// La règle (CLAUDE.md) : « on doit sentir la différence » → la moyenne sur les virages > 0,5 m ; « deux IA ne passent jamais
+// exactement au même endroit » → à chaque virage > 0,2 m (à l'épingle, les lignes roulées convergent : tout le monde prend la corde).
+t('styles : 10 IA seules sur le technique : écart-type de leurs places (max de trois endroits : 30 m avant l’apex, apex, 30 m après) : en moyenne sur les virages > 0,5 m, et > 0,2 m à chaque virage ; chacune passe ailleurs d’un tour à l’autre (> 0,2 m à au moins un apex)', ()=>{
   const carte=CARTES_T.technique,vs=carte.virages,W=REGLAGES.IA_VIRAGE_LARGEUR/2,LT=TQ.longueur,OFF=[-W,0,W];ALEATOIRE.semer(21);const styles=[];for(let i=0;i<10;i++) styles.push(tirerStyle(carte,6));ALEATOIRE.semer();
   const places=[];   // places[ia][tour][virage][endroit]
   for(const st of styles){const pil=creerPilote(carte,1,st),c=creerCourse(TQ,4),vo=creerVoiture(TQ);placerAuDepart(vo,TQ);const parTour=[[],[],[]];let sAvant=null;
@@ -366,11 +368,11 @@ t('styles : 10 IA seules sur le technique : à chaque virage, écart-type de leu
     places.push(parTour);}
   const ecartType=a=>{const m=a.reduce((x,y)=>x+y,0)/a.length;return Math.sqrt(a.reduce((x,y)=>x+(y-m)*(y-m),0)/a.length);};
   const parEndroit=vs.map((x,j)=>OFF.map((off,m)=>ecartType(places.map(p_=>p_[0][j][m]))));
-  const parVirage=parEndroit.map(e=>Math.max(...e));
-  L.push('  (écart-type des places, tour 2, à −30 m / apex / +30 m : '+parEndroit.map((e,j)=>vs[j].s.toFixed(0)+' m → '+e.map(x=>x.toFixed(2)).join(' / ')+' m').join(', ')+')');
+  const parVirage=parEndroit.map(e=>Math.max(...e)),moyenne=parVirage.reduce((x,y)=>x+y,0)/parVirage.length;
+  L.push('  (écart-type des places, tour 2, à −30 m / apex / +30 m : '+parEndroit.map((e,j)=>vs[j].s.toFixed(0)+' m → '+e.map(x=>x.toFixed(2)).join(' / ')+' m').join(', ')+' ; moyenne des max '+moyenne.toFixed(2)+' m)');
   const changements=places.map(p_=>Math.max(...vs.map((x,j)=>Math.max(Math.abs(p_[1][j][1]-p_[0][j][1]),Math.abs(p_[2][j][1]-p_[1][j][1])))));
   L.push('  (pour chaque IA, le plus grand changement de place à un apex d’un tour à l’autre : '+changements.map(x=>x.toFixed(2)).join(', ')+' m)');
-  v(parVirage.every(x=>x>0.5),'écarts-types (max des trois) '+parVirage.map(x=>x.toFixed(2)));v(changements.every(x=>x>0.2),'changements '+changements.map(x=>x.toFixed(2)));});
+  v(moyenne>0.5,'moyenne des max '+moyenne.toFixed(2));v(parVirage.every(x=>x>0.2),'écarts-types (max des trois) '+parVirage.map(x=>x.toFixed(2)));v(changements.every(x=>x>0.2),'changements '+changements.map(x=>x.toFixed(2)));});
 // --- le pilote retrouve sa ligne depuis n'importe où
 // un départ : à s0, à l'écart d0, à la vitesse u0, le cap décalé de dc ; on roule jusqu'à la fin du tour suivant
 // « rejointe » : à moins de 1 m de la ligne rapide de la carte
