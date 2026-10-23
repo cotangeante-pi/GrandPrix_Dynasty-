@@ -55,7 +55,11 @@ const UTILISEES = ['aideConduite','attenteArrivee','changerLongueur','choixTitre
   'reglagesRienChange','reglagesTitre','rejouer','reprendre','resultats','secteur','son','tempsTotal','tour','tourPrecedent','tourRetard',
   'tours','toursRetard','toursSansFin','virgule','voirResultats','tresCourte','moyenne','longue','essaiLibre',
   // les clés des 11 textes en dur de l'audit (tour 21b)
-  'nomJoueur','pilote','ecurie','numero','circuit_test','circuit_technique','titreGrandPrix','placeCourse','secondes'];
+  'nomJoueur','pilote','ecurie','numero','circuit_test','circuit_technique','titreGrandPrix','placeCourse','secondes',
+  // le fantôme du meilleur tour (tour 22b)
+  'fantomeRecord','fantomeEcart','fantomeOui','fantomeNon',
+  // le départ parfait (tour 22b)
+  'departAide','departParfait','departBon','departPatinage','departCale','departFaux','departRecord'];
 t('chaque clé demandée par le jeu existe', ()=>{const m=UTILISEES.filter(k=>!(k in TEXTES.en));v(!m.length,m.join(', '));});
 
 // --- les 11 textes en dur de l'audit (rapports/audit-textes.md) ont leur clé, dans les deux langues

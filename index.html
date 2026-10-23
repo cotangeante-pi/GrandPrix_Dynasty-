@@ -21,6 +21,7 @@
 <div id="hudCourse" class="cache">
   <div id="hudTour"></div>
   <div id="hudChrono"></div>
+  <div id="hudEcart" class="cache"></div>   <!-- l'écart en direct avec le fantôme (qualification) -->
   <div id="hudPrecedent" class="cache"></div>
   <div id="hudMeilleur"></div>
   <div id="hudSecteurs"><span id="hudS1" class="secteur"></span><span id="hudS2" class="secteur"></span><span id="hudS3" class="secteur"></span></div>
@@ -32,6 +33,9 @@
 <div id="compte" class="cache"></div>
 <div id="attenteArrivee" class="cache"><span id="attenteTexte"></span><button id="boutonPasser"></button></div>
 <div id="feux" class="cache"><span></span><span></span><span></span><span></span><span></span></div>
+<!-- le départ parfait (depart.js) : la jauge du régime de départ avec sa zone verte, au centre bas, puis le résultat -->
+<div id="jauge" class="cache"><div id="jaugeBarre"><div id="jaugeVert"></div><div id="jaugeAiguille"></div></div><div id="jaugeAide"></div></div>
+<div id="departResultat" class="cache"></div>
 
 <section id="choix" class="ecran cache">
   <h1 id="choixTitre"></h1>
@@ -42,7 +46,9 @@
 <section id="qualif" class="ecran cache">
   <h1 id="qualifTitre"></h1>
   <p id="qualifTexte"></p>
+  <p id="qualifFantome"></p>   <!-- après le tour : nouveau record, ou l'écart final avec le fantôme -->
   <div class="boutons"><button id="boutonQualifTour" tabindex="-1"></button><button id="boutonQualifPasser" tabindex="-1"></button><button id="boutonQualifCourse" tabindex="-1"></button></div>
+  <div class="boutons"><button id="boutonFantomeQualif" class="boutonFantome" tabindex="-1"></button></div>
 </section>
 
 <!-- ?championnat=1 : l'écran entre les courses -->
@@ -77,6 +83,7 @@
 <section id="pause" class="ecran cache">
   <h1 id="pauseTitre"></h1>
   <div class="boutons"><button id="boutonReprendre" tabindex="-1"></button><button id="boutonRecommencer" tabindex="-1"></button></div>
+  <div class="boutons"><button id="boutonFantomePause" class="boutonFantome" tabindex="-1"></button></div>   <!-- le fantôme affiché ou masqué (sauvegardé) -->
 </section>
 
 <!-- après une course à plusieurs : le podium (sur la 3D), puis les résultats -->
@@ -113,6 +120,7 @@
 <script src="robot.js"></script>
 <script src="ia.js"></script>
 <script src="simulation.js"></script>
+<script src="depart.js"></script>
 <script src="course.js"></script>
 <script src="arrivee.js"></script>
 <script src="qualification.js"></script>
@@ -124,6 +132,7 @@
 <script src="pneus.js"></script>
 <script src="enregistreur-donnees.js"></script>
 <script src="enregistreur.js"></script>
+<script src="fantome.js"></script>
 <script src="boite.js"></script>
 <script src="son.js"></script>
 <script src="scene3d.js"></script>

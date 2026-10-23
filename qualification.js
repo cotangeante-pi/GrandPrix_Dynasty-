@@ -8,7 +8,8 @@ const QUALIFICATION = (function () {
   function creer(circuit, v) {
     const course = creerCourse(circuit, 1);
     placerSurPiste(v, circuit, circuit.longueur - R.QUALIF_LANCEMENT, 0);
-    return { circuit, course, lance: false, fini: false, valide: false, temps: null };
+    // progressionLigne : la progression (course.js) au passage de la ligne ; fin : la distance depuis la ligne à l'arrivée (fantôme)
+    return { circuit, course, lance: false, fini: false, valide: false, temps: null, progressionLigne: 0, fin: null };
   }
 
   // à chaque pas de physique, après pasVoiture ; renvoie true quand le tour est fini
@@ -16,15 +17,20 @@ const QUALIFICATION = (function () {
     const c = q.course;
     majCourse(c, v, dt);
     // la ligne passée une première fois : le tour lancé commence là (le chrono de course.js partait au premier mouvement)
-    if (!q.lance && c.etape === 0) { q.lance = true; c.debutTour = c.temps; c.secteursTour = []; c.coupeTour = false; }
+    if (!q.lance && c.etape === 0) { q.lance = true; c.debutTour = c.temps; c.secteursTour = []; c.coupeTour = false; q.progressionLigne = c.progression; }
     if (c.etat === 'finie' && !q.fini) {
       q.fini = true;
       const t = c.tours[0];
       q.valide = !t.coupe;
       q.temps = q.valide ? t.temps : null;
+      q.fin = c.progression - q.progressionLigne;
     }
     return q.fini;
   }
+
+  // pendant le tour lancé (fantome.js) : la distance depuis la ligne (m) et le chrono du tour (s)
+  function distance(q) { return q.course.progression - q.progressionLigne; }
+  function chrono(q) { return q.course.temps - q.course.debutTour; }
 
   // la grille avec le temps du joueur (null : tour passé ou invalide, il part dernier) ; e : la course à plusieurs,
   // dont les IA ont déjà leur temps (qualifier). Chaque voiture est posée à sa place ; renvoie la place du joueur (1 = pole)
@@ -49,5 +55,5 @@ const QUALIFICATION = (function () {
     return moi && moi.qualif !== null ? moi.qualif - e.grille[0].qualif : null;
   }
 
-  return { creer, pas, grille, ecartPole };
+  return { creer, pas, grille, ecartPole, distance, chrono };
 })();

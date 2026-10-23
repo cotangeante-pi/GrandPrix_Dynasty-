@@ -8,7 +8,9 @@ const SAUVEGARDE = (function () {
   function vierge() {
     // records : le meilleur tour de chaque longueur (« 5 », « 12 », « 18 », « 0 ») ; sur un autre circuit que celui de test,
     // la clé commence par son nom (« technique-5 ») ; championnat : le championnat en cours (championnat.js), ou null
-    return { version: VERSION, records: {}, championnat: null };
+    // fantomes : le fantôme du meilleur tour de chaque circuit (fantome.js, compact), par nom de circuit ; options : les
+    // réglages du joueur (fantome : le fantôme affiché, vrai par défaut) ; reaction : le meilleur temps de réaction au départ (s)
+    return { version: VERSION, records: {}, championnat: null, fantomes: {}, options: {}, reaction: null };
   }
 
   // une sauvegarde d'une ancienne version est transformée ici, sans rien perdre :
@@ -24,6 +26,10 @@ const SAUVEGARDE = (function () {
       for (const p of d.championnat.pilotes || []) if (p.nom === 'Pilote joueur' || /^Pilote \d+$/.test(p.nom)) p.nom = null;
       for (const e of d.championnat.ecuries || []) if (/^Écurie \d+$/.test(e.nom)) e.nom = null;
     }
+    // le fantôme, les options et le record de réaction (tour 22b) : ajoutés s'ils manquent, sans changer de version
+    if (!d.fantomes || typeof d.fantomes !== 'object') d.fantomes = {};
+    if (!d.options || typeof d.options !== 'object') d.options = {};
+    if (typeof d.reaction !== 'number') d.reaction = null;
     if (d.championnat && typeof CHAMPIONNAT !== 'undefined') CHAMPIONNAT.completer(d.championnat);
     d.version = VERSION;
     return d;
@@ -77,5 +83,47 @@ const SAUVEGARDE = (function () {
     return true;
   }
 
-  return { lire, ecrire, record, proposerRecord, championnat, ecrireChampionnat, VERSION, CLE };
+  // --- le fantôme du meilleur tour (fantome.js), un par circuit
+  function fantome(circuit) {
+    const f = lire().fantomes[circuit || 'test'];
+    return FANTOME.valide(f) ? f : null;
+  }
+
+  // garde ce fantôme compact s'il bat l'ancien (FANTOME.bat : jamais un tour coupé, ni un temps égal ou plus lent) ;
+  // renvoie true si c'est le nouveau record du circuit
+  function proposerFantome(circuit, f, coupe) {
+    const d = lire(), cle = circuit || 'test';
+    if (!FANTOME.bat(d.fantomes[cle], f && f.temps, coupe)) return false;
+    d.fantomes[cle] = f;
+    ecrire(d);
+    return true;
+  }
+
+  // --- les options du joueur (le fantôme affiché ou masqué, …)
+  function option(nom, defaut) {
+    const o = lire().options[nom];
+    return o === undefined ? defaut : o;
+  }
+
+  function ecrireOption(nom, valeur) {
+    const d = lire();
+    d.options[nom] = valeur;
+    return ecrire(d);
+  }
+
+  // --- le record du temps de réaction au départ (depart.js) : gardé s'il est meilleur ; renvoie true si c'est un record
+  function reaction() {
+    return lire().reaction;
+  }
+
+  function proposerReaction(t) {
+    if (typeof t !== 'number' || !(t > 0)) return false;
+    const d = lire();
+    if (typeof d.reaction === 'number' && d.reaction <= t) return false;
+    d.reaction = t;
+    ecrire(d);
+    return true;
+  }
+
+  return { lire, ecrire, record, proposerRecord, championnat, ecrireChampionnat, fantome, proposerFantome, option, ecrireOption, reaction, proposerReaction, VERSION, CLE };
 })();

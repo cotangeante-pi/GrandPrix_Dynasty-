@@ -45,6 +45,13 @@ const TEXTES = {
     titreGrandPrix: 'Grand Prix {i} / {n} — {circuit}',
     placeCourse: 'P{p} / {n}',
     secondes: '{s} s',
+    // le fantôme du meilleur tour (fantome.js)
+    fantomeRecord: 'New record! {s} s faster', fantomeEcart: '+{s} s off your record',
+    fantomeOui: 'Ghost: shown', fantomeNon: 'Ghost: hidden',
+    // le départ parfait (depart.js)
+    departAide: 'Hold ↑ to keep the needle in the green · lights out: release, then press ↑',
+    departParfait: 'Perfect start!', departBon: 'Good start', departPatinage: 'Wheelspin!', departCale: 'Stalled!', departFaux: 'False start!',
+    departRecord: 'reaction record!',
     // le duel contre le coéquipier (Codeur 3)
     duelTitre: 'Teammate duel', duelScore: 'You {a} – {b} {nom}', duelDetail: '(qualifying {qa}–{qb}, races {ca}–{cb})',
     duelTour: 'Your teammate: ▲ ahead of you, ▼ behind you',
@@ -131,6 +138,11 @@ const TEXTES = {
     titreGrandPrix: 'Grand Prix {i} / {n} — {circuit}',
     placeCourse: 'P{p} / {n}',
     secondes: '{s} s',
+    fantomeRecord: 'Nouveau record ! {s} s de mieux', fantomeEcart: '+{s} s du record',
+    fantomeOui: 'Fantôme : affiché', fantomeNon: 'Fantôme : masqué',
+    departAide: 'Tiens ↑ pour garder l’aiguille dans le vert · feux éteints : lâche, puis réappuie ↑',
+    departParfait: 'Départ parfait !', departBon: 'Bon départ', departPatinage: 'Patinage !', departCale: 'Calé !', departFaux: 'Faux départ !',
+    departRecord: 'record de réaction !',
     // le duel contre le coéquipier (Codeur 3)
     duelTitre: 'Duel contre ton coéquipier', duelScore: 'Toi {a} – {b} {nom}', duelDetail: '(qualifs {qa}–{qb}, courses {ca}–{cb})',
     duelTour: 'Ton coéquipier : ▲ devant toi, ▼ derrière toi',

@@ -1,7 +1,7 @@
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><title>tests</title></head><body>
 <pre id="res"></pre>
 <script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));window.addEventListener('unhandledrejection',e=>__err.push('promesse : '+(e.reason&&e.reason.message||e.reason)));</script>
-<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../son.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../journal.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../principal.js"></script>
+<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../son.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../journal.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../fantome.js"></script><script src="../principal.js"></script>
 <script>
 const L=[];let ok=0,ko=0;
 function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
@@ -901,6 +901,148 @@ t('enregistreur : 20 voitures (19 IA + le robot), 5 tours sur le circuit test, e
   L.push('  (enregistreur : '+pas+' pas, '+images+' images, '+(enr.octets()/1024).toFixed(0)+' Ko, '+(ms/pas*1000).toFixed(1)+' µs par pas pour l’enregistreur, sur '+(total/pas*1000).toFixed(0)+' µs par pas en tout ; pire écart relu '+(pire*1000).toFixed(2)+' mm ; '+m.length+' moments forts dont '+m.filter(x=>x.type==='depassement').length+' dépassements et '+m.filter(x=>x.type==='sortie').length+' sorties)');
   v(e.pilotes.every(p=>p.arrivee!==null),'tout le monde arrive');v(pire<0.01,'écart relu '+pire);v(enr.octets()<1.5e6,enr.octets()+' octets');v(ms/pas<0.1,(ms/pas*1000).toFixed(1)+' µs par pas');
   v(m.some(x=>x.type==='depart')&&m.some(x=>x.type==='arrivee'&&x.qui!==null),'départ et arrivée');});
+
+// --- le fantôme du meilleur tour (tour 22b, étape 5, fantome.js) : calcul pur, sur l'enregistreur
+// un tour de qualification du robot (QUALIFICATION.pas), noté à chaque pas du tour lancé comme dans principal.js (noterFantome) ;
+// marge : la part de la vitesse limite que le robot ose dans les virages (ROBOT_MARGE_VIRAGE) : plus petite, le tour est plus lent
+function tourFantome(marge){const vo=creerVoiture(C,0),q=QUALIFICATION.creer(C,vo);q.course.compte=0;const tour=FANTOME.commencer(),pts=[],margeAvant=REGLAGES.ROBOT_MARGE_VIRAGE;
+  if(marge) REGLAGES.ROBOT_MARGE_VIRAGE=marge;
+  rouler(vo,C,200,v_=>piloteRobot(v_,C),(v_,i)=>{const finiAvant=q.fini,fini=QUALIFICATION.pas(q,v_,DT);
+    if(q.lance&&!finiAvant){const t_=fini?q.temps:QUALIFICATION.chrono(q),s_=fini?q.fin:QUALIFICATION.distance(q);FANTOME.noter(tour,t_,v_,s_);pts.push({t:t_,s:s_,x:v_.x,z:v_.z});}
+    if(fini) return false;});
+  REGLAGES.ROBOT_MARGE_VIRAGE=margeAvant;
+  return {q,tour,pts};}
+let FANTOME_F=null;
+t('fantôme : FANTOME_PAS est un nombre entier de pas de physique (les images tombent sur des pas)', ()=>{const n=REGLAGES.FANTOME_PAS/REGLAGES.PAS_PHYSIQUE;v(Math.abs(n-Math.round(n))<1e-9,String(n));});
+t('fantôme : un tour du robot enregistré puis compacté (nombres arrondis) et rejoué repasse aux mêmes positions (< 2 cm aux images, < 30 cm entre deux images) ; rejoué contre soi-même, l’écart vaut 0 (|écart| < 0,01 s sur tout le tour, écart final 0) ; la taille d’un fantôme est mesurée', ()=>{
+  const a=tourFantome();v(a.q.fini&&a.q.valide,'tour pas fini');
+  const f=FANTOME.compacter(a.tour,a.q.temps,a.q.fin),rejeu=FANTOME.charger(f);FANTOME_F=f;
+  v(rejeu&&rejeu.nb===f.x.length&&f.x.length>100&&f.pas===REGLAGES.FANTOME_PAS,'images '+f.x.length);
+  v(Math.abs(f.temps-a.q.temps)<0.001&&Math.abs(f.fin-C.longueur)<2,'temps '+f.temps+' / '+a.q.temps+', fin '+f.fin+' / '+C.longueur);
+  v(f.x.every(x=>Math.round(x*100)===x*100||Math.abs(Math.round(x*100)-x*100)<1e-6),'arrondi');
+  let pireImage=0,pireEntre=0,pireEcart=0,nImages=0;
+  for(const p of a.pts){const q_=FANTOME.position(rejeu,p.t),d=Math.hypot(q_.x-p.x,q_.z-p.z),k=p.t/f.pas,surImage=Math.abs(k-Math.round(k))<1e-6&&k<f.x.length;
+    if(surImage){pireImage=Math.max(pireImage,d);nImages++;} else if(p.t<=rejeu.duree) pireEntre=Math.max(pireEntre,d);   // après la dernière image (moins de FANTOME_PAS avant la ligne), le fantôme attend sur elle
+    pireEcart=Math.max(pireEcart,Math.abs(FANTOME.ecart(rejeu,p.t,p.s)));}
+  const final=FANTOME.ecartFinal(rejeu,a.q.temps);
+  L.push('  (fantôme : tour du robot '+a.q.temps.toFixed(2)+' s, '+f.x.length+' images à '+f.pas+' s, '+FANTOME.taille(f)+' octets sauvegardés ; rejoué : pire écart '+(pireImage*100).toFixed(2)+' cm aux '+nImages+' images, '+(pireEntre*100).toFixed(1)+' cm entre elles ; écart contre soi-même au plus '+(pireEcart*1000).toFixed(1)+' ms, final '+final.toFixed(3)+' s)');
+  v(nImages>=f.x.length-1,'images relues '+nImages+' / '+f.x.length);v(pireImage<0.02,'aux images : '+pireImage);v(pireEntre<0.3,'entre les images : '+pireEntre);
+  v(pireEcart<0.01,'écart contre soi-même '+pireEcart);v(Math.abs(final)<0.001,'écart final '+final);
+  v(FANTOME.taille(f)<60000,'taille '+FANTOME.taille(f));});
+t('fantôme : contre un tour plus lent (robot plus prudent en virage), l’écart en direct est positif après le premier virage et grandit ; l’écart final = la différence des temps ; un tour plus lent ne remplace pas le record, un tour coupé jamais, un meilleur temps oui, le premier tour valide aussi', ()=>{
+  const f=FANTOME_F,rejeu=FANTOME.charger(f),b=tourFantome(0.7);v(b.q.fini&&b.q.valide&&b.q.temps>f.temps+1,'tour prudent '+b.q.temps+' / '+f.temps);
+  const ecarts=b.pts.map(p=>FANTOME.ecart(rejeu,p.t,p.s));const milieu=ecarts[Math.floor(ecarts.length/2)],fin=ecarts[ecarts.length-1];
+  v(ecarts.slice(Math.floor(ecarts.length/4)).every(e=>e>0),'écart pas toujours positif');v(fin>milieu&&milieu>0,'écart qui grandit : '+milieu+' → '+fin);
+  v(Math.abs(FANTOME.ecartFinal(rejeu,b.q.temps)-(b.q.temps-f.temps))<1e-9,'écart final');
+  L.push('  (contre le fantôme, robot bridé : tour '+b.q.temps.toFixed(2)+' s, écart au milieu +'+milieu.toFixed(2)+' s, final +'+(b.q.temps-f.temps).toFixed(2)+' s)');
+  v(!FANTOME.bat(f,b.q.temps,false),'plus lent');v(!FANTOME.bat(f,f.temps,false),'égal');v(!FANTOME.bat(f,f.temps-1,true),'coupé');v(!FANTOME.bat(null,50,true),'coupé sans record');
+  v(FANTOME.bat(f,f.temps-0.001,false),'meilleur');v(FANTOME.bat(null,50,false),'premier');v(!FANTOME.bat(f,null,false)&&!FANTOME.bat(f,NaN,false),'sans temps');});
+t('fantôme : la sauvegarde garde le fantôme du circuit (proposerFantome : un tour plus lent ou coupé ne le remplace pas, un meilleur oui) et l’option « masqué » ; une ancienne sauvegarde sans fantôme se charge sans erreur (fantomes {}, options {}, reaction null) ; un fantôme abîmé est ignoré', ()=>{
+  const f=FANTOME_F;localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:3,records:{'5':61.5},championnat:null}));
+  let d=SAUVEGARDE.lire();v(d.version===SAUVEGARDE.VERSION&&d.records['5']===61.5&&JSON.stringify(d.fantomes)==='{}'&&JSON.stringify(d.options)==='{}'&&d.reaction===null,'ancienne : '+JSON.stringify(d));
+  v(SAUVEGARDE.fantome('test')===null&&SAUVEGARDE.fantome('technique')===null&&SAUVEGARDE.option('fantome',true)===true,'rien au départ');
+  v(SAUVEGARDE.proposerFantome('test',f,false)===true,'premier record');v(SAUVEGARDE.fantome('test').temps===f.temps&&SAUVEGARDE.fantome('technique')===null,'gardé pour le circuit test seulement');
+  const lent=Object.assign({},f,{temps:f.temps+0.5}),mieux=Object.assign({},f,{temps:f.temps-0.5});
+  v(SAUVEGARDE.proposerFantome('test',lent,false)===false&&SAUVEGARDE.fantome('test').temps===f.temps,'plus lent gardé');
+  v(SAUVEGARDE.proposerFantome('test',mieux,true)===false&&SAUVEGARDE.fantome('test').temps===f.temps,'coupé gardé');
+  v(SAUVEGARDE.proposerFantome('test',mieux,false)===true&&SAUVEGARDE.fantome('test').temps===mieux.temps,'meilleur pas gardé');
+  v(SAUVEGARDE.proposerFantome('technique',f,false)===true&&SAUVEGARDE.fantome('technique').temps===f.temps&&SAUVEGARDE.fantome('test').temps===mieux.temps,'par circuit');
+  d=SAUVEGARDE.lire();v(d.records['5']===61.5&&FANTOME.valide(JSON.parse(JSON.stringify(d.fantomes.test))),'records gardés, fantôme relisible');
+  v(SAUVEGARDE.ecrireOption('fantome',false)&&SAUVEGARDE.option('fantome',true)===false&&SAUVEGARDE.lire().fantomes.test.temps===mieux.temps,'option');
+  d=SAUVEGARDE.lire();d.fantomes.test={temps:1,x:[1]};SAUVEGARDE.ecrire(d);v(SAUVEGARDE.fantome('test')===null&&FANTOME.charger(d.fantomes.test)===null,'abîmé');
+  localStorage.removeItem(SAUVEGARDE.CLE);});
+t('fantôme : il n’est pas une voiture : il n’a pas de place sur la piste, voituresVues ne le voit pas, et une course entre IA (pasCourseIA) ne connaît que les voitures de ses pilotes (ni contact ni aspiration possibles)', ()=>{
+  const rejeu=FANTOME.charger(FANTOME_F),p=FANTOME.position(rejeu,10);v(p.piste===undefined&&typeof p.x==='number','position');
+  const e=creerCourseIA(C,3,1,7,CARTES_T.test,true);
+  // le fantôme posé juste devant chaque voiture de la grille : même là, voituresVues ne le voit pas (il n'a pas de piste)
+  for(const pil of e.pilotes){const q_={x:pil.v.x+Math.cos(pil.v.cap)*8,z:pil.v.z+Math.sin(pil.v.cap)*8,cap:pil.v.cap,vitesse:0};const vues=voituresVues(pil.v,e.pilotes.map(x=>x.v).concat([q_]));v(vues.every(w=>w.id!==q_),'le fantôme est vu');
+    v(voituresVues(pil.v,e.pilotes.map(x=>x.v).concat([Object.assign({},q_,{piste:pil.v.piste})])).some(w=>w.d!==undefined),'une vraie voiture au même endroit serait vue');}
+  for(let k=0;k<120;k++) pasCourseIA(e,DT);v(e.pilotes.every(x=>x.v.contactsVoiture===0&&!x.v.touche.has(p)),'contact');});
+
+// --- le départ parfait (tour 22b, étape 5, depart.js) : calcul pur
+// une voiture lancée de l'arrêt plein gaz avec un départ donné (resultat), sur terrain plat ; renvoie sa vitesse et sa position après 3 s
+function lancement(res){const vo=creerVoiture(null),d=DEPART.creer(true);DEPART.pas(d,DT,true);DEPART.lancer(d,res,0.2);
+  for(let k=0;k<360;k++){vo.facteurDepart=DEPART.facteur(d);appliquerCommandes(vo,{gaz:1,frein:0,direction:0});pasVoiture(vo,null,DT);DEPART.pas(d,DT,true);}
+  return {u:vo.u,x:vo.x,facteurFinal:DEPART.facteur(d)};}
+t('départ : une voiture neuve a facteurDepart = 1 ; un départ parfait donne exactement la voiture normale (3 s plein gaz : mêmes nombres au bit près) ; bon, patinage et calé font perdre du temps, dans cet ordre, et l’effet s’arrête après sa durée (facteur 1)', ()=>{
+  const neuve=creerVoiture(null);v(neuve.facteurDepart===1,'facteurDepart '+neuve.facteurDepart);
+  const normale=creerVoiture(null);for(let k=0;k<360;k++){appliquerCommandes(normale,{gaz:1,frein:0,direction:0});pasVoiture(normale,null,DT);}
+  const sans=creerVoiture(null);sans.facteurDepart=undefined;for(let k=0;k<360;k++){appliquerCommandes(sans,{gaz:1,frein:0,direction:0});pasVoiture(sans,null,DT);}
+  const p=lancement('parfait'),b=lancement('bon'),pa=lancement('patinage'),c=lancement('cale'),f=lancement('faux');
+  v(p.x===normale.x&&p.u===normale.u&&sans.x===normale.x,'parfait ≠ normale : '+p.x+' / '+normale.x+' / '+sans.x);v(f.x===normale.x,'faux ≠ normale');
+  v(b.x<p.x&&pa.x<b.x&&c.x<pa.x,'ordre : '+[p.x,b.x,pa.x,c.x].map(x=>x.toFixed(1)));
+  v([p,b,pa,c].every(r=>r.facteurFinal===1),'effet pas fini');
+  L.push('  (départ, 3 s plein gaz : parfait '+p.x.toFixed(1)+' m (= normale), bon '+b.x.toFixed(1)+' m, patinage '+pa.x.toFixed(1)+' m, calé '+c.x.toFixed(1)+' m)');});
+t('départ : le résultat selon le régime et la réaction : dans le vert et rapide = parfait ; dans le vert et lent = bon ; au bord = bon ; trop haut = patinage ; trop bas = calé', ()=>{
+  const R=REGLAGES,[bas,haut]=R.DEPART_VERT,m=(bas+haut)/2,rp=R.DEPART_REACTION_PARFAITE;
+  v(DEPART.resultat(m,rp)==='parfait'&&DEPART.resultat(bas,0.1)==='parfait'&&DEPART.resultat(haut,0.2)==='parfait','parfait');
+  v(DEPART.resultat(m,rp+0.01)==='bon'&&DEPART.resultat(m,1)==='bon','lent');
+  v(DEPART.resultat(haut+R.DEPART_BORD/2,0.1)==='bon'&&DEPART.resultat(bas-R.DEPART_BORD/2,0.1)==='bon','bord');
+  v(DEPART.resultat(haut+R.DEPART_BORD+0.01,0.1)==='patinage'&&DEPART.resultat(1,0.1)==='patinage','patinage');
+  v(DEPART.resultat(bas-R.DEPART_BORD-0.01,0.1)==='cale'&&DEPART.resultat(0,0.1)==='cale','calé');
+  v(JSON.stringify(DEPART.effet('parfait'))==='[1,0]'&&JSON.stringify(DEPART.effet('faux'))==='[1,0]'&&DEPART.effet('patinage')[0]<1&&DEPART.effet('cale')[0]<DEPART.effet('patinage')[0],'effets');});
+// une course avec les feux, un joueur ; appuyer(oui) = la touche d'accélérateur ; pas() = un pas de physique de la course (voiture tenue)
+function departJoueur(){const c=creerCourse(C,5);armerFeux([{course:c,humain:true}],7);const vo={u:0,x:0,z:0,piste:{s:0}};
+  return {c,d:c.depart,vo,pas(appui){DEPART.commande(c.depart,appui,c.compte);majCourse(c,vo,DT);}};}
+t('départ : pendant les feux, tenir la touche fait monter le régime (DEPART_MONTEE), la lâcher le fait descendre, la voiture n’est pas lancée ; tenir la touche pendant l’extinction ne lance pas la voiture tant qu’on ne l’a pas lâchée ; lâcher puis réappuyer lance : réaction mesurée, régime dans le vert + rapide = parfait, et le facteur moteur reste 1', ()=>{
+  const R=REGLAGES,j=departJoueur(),d=j.d,c=j.c;v(d.humain&&d.lance===null&&d.regime===0,'armé');
+  for(let k=0;k<60;k++) j.pas(true);v(Math.abs(d.regime-R.DEPART_MONTEE*0.5)<1e-9&&d.lance===null,'montée '+d.regime);
+  for(let k=0;k<30;k++) j.pas(false);v(Math.abs(d.regime-(R.DEPART_MONTEE*0.5-R.DEPART_DESCENTE*0.25))<1e-9&&d.lance===null,'descente '+d.regime);
+  // on règle le régime au milieu du vert, puis on tient la touche à travers l'extinction
+  d.regime=(R.DEPART_VERT[0]+R.DEPART_VERT[1])/2;const vise=d.regime;c.compte=0.5;
+  for(let k=0;k<84;k++) j.pas(true);   // 0,7 s : l'extinction est passée depuis 0,2 s, la touche toujours tenue
+  v(d.extinction!==null&&c.etat==='attente'&&d.lance===null&&c.penalites===0,'lancée en tenant la touche : '+[d.lance,c.etat,c.penalites]);
+  v(d.regime===1,'le régime monte jusqu’au bout tant qu’on tient : '+d.regime);
+  d.regime=vise;j.pas(false);j.pas(false);   // lâcher 2 pas…
+  j.pas(true);                               // … et réappuyer : le lancement
+  v(d.lance!==null&&d.resultat==='parfait'&&d.reaction>0.2-1e-9&&d.reaction<0.3,'lancement '+[d.resultat,d.reaction]);
+  v(j.vo.facteurDepart===1&&DEPART.facteur(d)===1&&c.penalites===0&&!c.fauxDepart,'facteur '+j.vo.facteurDepart);
+  L.push('  (départ du joueur : réaction '+d.reaction.toFixed(3)+' s, régime '+vise.toFixed(2)+' → '+d.resultat+')');});
+t('départ : régime trop haut = patinage (facteur < 1 pendant DEPART_PATINAGE[1] s, puis 1) ; trop bas = calé ; lent dans le vert = bon', ()=>{
+  const R=REGLAGES;const essai=(regime,attente)=>{const j=departJoueur(),d=j.d;j.c.compte=0.05;for(let k=0;k<12;k++) j.pas(false);
+    for(let k=0;k<Math.round(attente*120);k++) j.pas(false);d.regime=regime;j.pas(true);const f=j.vo.facteurDepart;for(let k=0;k<Math.round(DEPART.effet(d.resultat)[1]*120)+2;k++) j.pas(true);return {res:d.resultat,f,apres:j.vo.facteurDepart,reaction:d.reaction};};
+  const p=essai(1,0.2),c=essai(0,0.2),b=essai(0.65,0.5);
+  v(p.res==='patinage'&&p.f===R.DEPART_PATINAGE[0]&&p.apres===1,'patinage '+JSON.stringify(p));v(c.res==='cale'&&c.f===R.DEPART_CALE[0]&&c.apres===1,'calé '+JSON.stringify(c));
+  v(b.res==='bon'&&b.f===R.DEPART_BON[0]&&b.reaction>0.5,'bon '+JSON.stringify(b));});
+t('départ : appuyer avant l’extinction (dans l’anticipation) ou trop vite après = faux départ, la voiture part, pénalité de 5 s une seule fois (à l’arrivée : classementFinal) ; appuyer plus tôt pendant les feux règle seulement le régime', ()=>{
+  const R=REGLAGES;
+  const a=departJoueur();a.c.compte=1;a.pas(false);a.pas(true);v(a.d.lance===null&&a.d.regime>0&&a.c.penalites===0,'un appui pendant les feux n’est pas un faux départ');
+  const b=departJoueur();b.c.compte=R.DEPART_ANTICIPATION/2;b.pas(false);b.pas(true);
+  v(b.d.lance!==null&&b.d.resultat==='faux'&&b.c.fauxDepart&&b.c.penalites===R.PENALITE_FAUX_DEPART&&b.d.reaction<0,'avant l’extinction : '+[b.d.resultat,b.c.penalites,b.d.reaction]);
+  for(let k=0;k<300;k++){b.vo.u=5;b.pas(true);}v(b.c.penalites===R.PENALITE_FAUX_DEPART&&b.c.etat==='course'&&b.vo.facteurDepart===1,'une seule pénalité, la voiture part normalement');
+  const c=departJoueur();c.c.compte=0.01;c.pas(false);c.pas(false);c.pas(false);c.pas(true);
+  v(c.d.resultat==='faux'&&c.d.reaction>=0&&c.d.reaction<R.DEPART_ANTICIPATION&&c.c.penalites===R.PENALITE_FAUX_DEPART,'trop vite après : '+[c.d.resultat,c.d.reaction]);
+  // à l'arrivée : la pénalité compte dans le classement final (comme le virage coupé)
+  const e=creerCourseIA(C,2,1,7,CARTES_T.test,true);e.go=0;e.pilotes.forEach((p,k)=>{p.arrivee=100+k;p.place=k+1;});e.pilotes[0].course.penalites=5;
+  const f=classementFinal(e);v(f[0].k===1&&f.find(x=>x.k===0).total===105,'classement final avec la pénalité');});
+t('départ : les IA, sur 50 courses de 20 pilotes (graines 1 à 50) : les pilotes réguliers et sans faute ratent moins de départs (patinage, calé, faux) que les pilotes irréguliers qui font des fautes ; aucune réaction sous le minimum humain FEUX_REACTION_IA[0] hors faux départ (rare, sous DEPART_ANTICIPATION) ; même graine = mêmes départs', ()=>{
+  const R=REGLAGES,Cc=R.IA_CARACTERE;const car=(reg,err)=>({regularite:reg,erreurs:err,agressivite:0.5,tours:[]});
+  const reguliers=car(Cc.regularite[0],Cc.erreurs[0]),fautifs=car(Cc.regularite[1],Cc.erreurs[1]);
+  let rates={reg:0,faux_:0},n=0,faux=0,sousMin=0,reactions=[],premiers=null;
+  for(let g=1;g<=50;g++){const pilotes=[];for(let k=0;k<20;k++) pilotes.push({course:creerCourse(C,5),humain:false,pilote:{caractere:k<10?reguliers:fautifs}});
+    armerFeux(pilotes,g);const vo={u:0,x:0,z:0,piste:{s:0}};
+    // jusqu'au lancement de chaque IA (son temps de réaction après l'extinction)
+    for(const p of pilotes){const c=p.course;let k=0;while(c.depart.lance===null&&k<2000){majCourse(c,vo,DT);k++;}
+      const d=c.depart;v(d.lance!==null&&d.resultat,'IA pas lancée');n++;
+      if(d.resultat==='faux'){faux++;v(d.reaction<R.DEPART_ANTICIPATION&&c.penalites===R.PENALITE_FAUX_DEPART,'faux départ IA : '+d.reaction+' '+c.penalites);}
+      else{if(d.reaction<R.FEUX_REACTION_IA[0]-1e-9) sousMin++;v(d.reaction<=R.FEUX_REACTION_IA[1]+1e-9&&c.penalites===0,'réaction '+d.reaction);reactions.push(d.reaction);}
+      if(d.resultat!=='parfait'&&d.resultat!=='bon') rates[pilotes.indexOf(p)<10?'reg':'faux_']++;}
+    if(g===3){const res=pilotes.map(p=>p.course.depart.resultat+'/'+p.course.depart.reaction.toFixed(3)).join();if(premiers===null) premiers=res;}
+  }
+  // la même graine redonne les mêmes départs
+  const P2=[];for(let k=0;k<20;k++) P2.push({course:creerCourse(C,5),humain:false,pilote:{caractere:k<10?reguliers:fautifs}});armerFeux(P2,3);const vo2={u:0,x:0,z:0,piste:{s:0}};
+  for(const p of P2){let k=0;while(p.course.depart.lance===null&&k<2000){majCourse(p.course,vo2,DT);k++;}}
+  v(P2.map(p=>p.course.depart.resultat+'/'+p.course.depart.reaction.toFixed(3)).join()===premiers,'pas les mêmes départs avec la même graine');
+  const moy=reactions.reduce((a,b)=>a+b,0)/reactions.length;
+  L.push('  (départs des IA sur 50 courses : réguliers ratés '+rates.reg+' / 500, fautifs ratés '+rates.faux_+' / 500, faux départs '+faux+' / '+n+', réaction moyenne '+moy.toFixed(3)+' s)');
+  v(rates.reg<rates.faux_,'réguliers '+rates.reg+' ≥ fautifs '+rates.faux_);v(rates.reg<=500*R.DEPART_IA_RATE[0]*2+10,'les réguliers ratent trop : '+rates.reg);
+  v(sousMin===0,sousMin+' réactions sous le minimum humain');v(faux<=n*R.DEPART_IA_FAUX*3+3&&faux>=0,'faux départs '+faux);});
+t('départ : le record du temps de réaction est sauvegardé (proposerReaction : seulement un meilleur temps) et une ancienne sauvegarde sans record se charge (null)', ()=>{
+  localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:3,records:{},championnat:null}));
+  v(SAUVEGARDE.reaction()===null,'sans record');v(SAUVEGARDE.proposerReaction(0.31)===true&&SAUVEGARDE.reaction()===0.31,'premier');
+  v(SAUVEGARDE.proposerReaction(0.35)===false&&SAUVEGARDE.reaction()===0.31,'plus lent gardé');v(SAUVEGARDE.proposerReaction(0.31)===false,'égal');
+  v(SAUVEGARDE.proposerReaction(0.2)===true&&SAUVEGARDE.lire().reaction===0.2,'meilleur');v(SAUVEGARDE.proposerReaction(null)===false&&SAUVEGARDE.proposerReaction(-1)===false,'invalide');
+  localStorage.removeItem(SAUVEGARDE.CLE);});
 
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 ecrire();

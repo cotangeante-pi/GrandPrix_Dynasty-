@@ -26,6 +26,19 @@ const PANNEAU_REGLAGES = (function () {
     ['CAMERA_SUIVI_CAP', null, 1, 20, 0.5],
     ['CAMERA_CHAMP', 1, 0, 20, 1],
     ['HALO_EPAISSEUR', null, 0.01, 0.08, 0.005],
+    // le départ parfait (depart.js) : la sensation à régler par le propriétaire
+    ['DEPART_MONTEE', null, 0.2, 3, 0.05],
+    ['DEPART_DESCENTE', null, 0.1, 3, 0.05],
+    ['DEPART_VERT', 0, 0.1, 0.9, 0.01],
+    ['DEPART_VERT', 1, 0.2, 1, 0.01],
+    ['DEPART_BORD', null, 0, 0.2, 0.01],
+    ['DEPART_REACTION_PARFAITE', null, 0.1, 0.8, 0.01],
+    ['DEPART_ANTICIPATION', null, 0.02, 0.3, 0.01],
+    ['DEPART_PATINAGE', 0, 0.1, 1, 0.05],
+    ['DEPART_PATINAGE', 1, 0, 4, 0.1],
+    ['DEPART_CALE', 0, 0.1, 1, 0.05],
+    ['DEPART_CALE', 1, 0, 4, 0.1],
+    ['DEPART_BON', 0, 0.1, 1, 0.05],
   ];
   const depart = {};   // les valeurs de donnees.js, pour savoir ce qui a changé
   let surChangement = null;

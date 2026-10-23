@@ -48,7 +48,7 @@ const INTERFACE = (function () {
     for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une']) $(id).classList.toggle('cache', id !== ecran);
     // le bandeau de course n'est là que pendant la course et la pause (pas sous l'écran de fin)
     const course = ecran === 'course' || ecran === 'pause';
-    for (const id of ['hudCourse', 'hudPenalite', 'compte', 'feux', 'classement', 'radar']) if (!course) $(id).classList.add('cache');
+    for (const id of ['hudCourse', 'hudPenalite', 'compte', 'feux', 'classement', 'radar', 'jauge', 'departResultat']) if (!course) $(id).classList.add('cache');
     if (course) $('hudCourse').classList.remove('cache');
   }
 
@@ -249,8 +249,54 @@ const INTERFACE = (function () {
     $('compte').textContent = texte('preparation');
   }
 
+  // le départ parfait (depart.js) : pendant les feux, la jauge du régime de départ avec sa zone verte (DEPART_VERT), jusqu'au
+  // lancement ; après, le résultat et le temps de réaction pendant DEPART_AFFICHAGE s (record : « ★ record de réaction ! »)
+  function majDepart(c, ecran, record) {
+    const d = c && c.depart, jauge = $('jauge'), res = $('departResultat');
+    const tenue = !!d && d.humain && d.lance === null && ecran === 'course' && c.etat !== 'finie' && (c.etat !== 'compte' || c.compte < c.feux.total);
+    jauge.classList.toggle('cache', !tenue);
+    if (tenue) {
+      const [bas, haut] = REGLAGES.DEPART_VERT;
+      $('jaugeVert').style.left = (bas * 100) + '%';
+      $('jaugeVert').style.width = ((haut - bas) * 100) + '%';
+      $('jaugeAiguille').style.left = (d.regime * 100) + '%';
+      $('jaugeAide').textContent = texte('departAide');
+    }
+    const montre = !!d && d.humain && d.lance !== null && ecran === 'course' && d.t - d.lance < REGLAGES.DEPART_AFFICHAGE;
+    res.classList.toggle('cache', !montre);
+    if (montre) {
+      const cle = { parfait: 'departParfait', bon: 'departBon', patinage: 'departPatinage', cale: 'departCale', faux: 'departFaux' }[d.resultat];
+      res.textContent = texte(cle) + ' · ' + secondes(Math.max(0, d.reaction).toFixed(2)) + (record ? ' ★ ' + texte('departRecord') : '');
+      res.className = d.resultat;
+    }
+  }
+
+  // l'écart en direct avec le fantôme du meilleur tour (fantome.js), sous le chrono : « −0,34 » en vert (le joueur est
+  // devant), « +0,12 » en rouge (derrière), « 0,00 » neutre ; null : caché
+  function majEcartFantome(e) {
+    const el = $('hudEcart');
+    el.classList.toggle('cache', e === null || e === undefined);
+    if (e === null || e === undefined) return;
+    const r = Math.round(e * 100) / 100, classe = r < 0 ? 'vert' : r > 0 ? 'rouge' : 'egal';
+    el.textContent = (r < 0 ? '−' : r > 0 ? '+' : '') + Math.abs(r).toFixed(2).replace('.', texte('virgule'));
+    if (!el.classList.contains(classe)) el.className = classe;
+  }
+
+  // le bouton « Fantôme : affiché / masqué » (écran de qualification et menu pause) ; bascule() change le réglage
+  function preparerFantome(bascule) {
+    for (const id of ['boutonFantomeQualif', 'boutonFantomePause']) {
+      $(id).addEventListener('mousedown', e => e.preventDefault());
+      $(id).addEventListener('click', bascule);
+    }
+  }
+  function majBoutonsFantome(visible) {
+    for (const id of ['boutonFantomeQualif', 'boutonFantomePause']) $(id).textContent = texte(visible ? 'fantomeOui' : 'fantomeNon');
+  }
+
   // la qualification du joueur : etat = 'choix' (deux boutons), 'attente' (la carte des IA se calcule encore),
-  // 'resultat' ({ place, nb, temps, valide, passe, ecart } ; bouton vers la course)
+  // 'resultat' ({ place, nb, temps, valide, passe, ecart, fantome } ; bouton vers la course). fantome (facultatif, le tour
+  // fait) : { record (nouveau record du circuit), gagne (s de mieux que l'ancien, null s'il n'y en avait pas), ecart (s de
+  // plus que le record, sinon) }
   function remplirQualif(etat, r) {
     $('qualifTitre').textContent = texte('qualifTitre');
     $('boutonQualifTour').textContent = texte('qualifTour');
@@ -268,6 +314,10 @@ const INTERFACE = (function () {
         + ' · ' + (r.ecart > 0 ? texte('qualifEcart').replace('{s}', r.ecart.toFixed(3).replace('.', texte('virgule'))) : texte('qualifPole'));
     }
     $('qualifTexte').textContent = t;
+    const f = etat === 'resultat' && r.fantome, s = x => x.toFixed(2).replace('.', texte('virgule'));
+    $('qualifFantome').textContent = !f ? '' : f.record ? (f.gagne === null ? texte('nouveauRecord') : texte('fantomeRecord').replace('{s}', s(f.gagne)))
+      : f.ecart !== null ? texte('fantomeEcart').replace('{s}', s(f.ecart)) : '';
+    $('boutonFantomeQualif').classList.toggle('cache', etat !== 'choix');
   }
 
   function preparerQualif(tour, passer, course) {
@@ -346,5 +396,6 @@ const INTERFACE = (function () {
   }
 
   return { formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, preparerChampionnat, remplirQualif, preparerQualif,
-    remplirDuel, avec, remplirUne, preparerUne };
+    remplirDuel, avec, remplirUne, preparerUne,
+    majEcartFantome, preparerFantome, majBoutonsFantome, majDepart };
 })();
