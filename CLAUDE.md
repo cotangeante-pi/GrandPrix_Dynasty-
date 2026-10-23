@@ -509,6 +509,47 @@ Il note **brutalement honnête**. Une étape qui n'existe pas encore vaut 0 sur 
 - **Le Chef met `SUIVI.md` à jour à chaque tour** : étape, note, ordres en cours, ce qui attend le propriétaire, mesures.
 - **Horaires** : si le propriétaire fixe une plage (par exemple 17h–21h), on la respecte. À l'heure de fin, on fige le jeu sur le dernier commit vert et on ne lance plus rien.
 
+### Aller plus vite : les tests sur GitHub, plus de Codeurs ailleurs
+
+Ajouté le 2026-10-22, à la demande du propriétaire (« le travail avance lentement du côté des codeurs »). **Le frein n'est pas le nombre de Claude, c'est l'ordinateur qui lance les tests.**
+
+**La machine du propriétaire** : un Mac mini de 2014 (Intel i5, 2 cœurs / 4 fils, 8 Go). Une session Claude y prend environ 450 Mo et presque pas de processeur (elle réfléchit sur les serveurs d'Anthropic) ; ce qui coûte, c'est **un passage de tests** (Chrome sans fenêtre, 3D en logiciel, 30 courses entre IA), qui prend presque tout le processeur pendant plusieurs minutes. Les tests passent un par un (verrou `/tmp/gpd-tests.lock`, voir `SUIVI.md`). Donc, sur ce Mac : **au plus 2 Codeurs qui testent** (un 3e attendrait le verrou), plus le Chef et une ou deux sessions sans tests. Ajouter des Claude sur ce Mac ne fait pas aller plus vite.
+
+**1. La suite complète tourne sur GitHub Actions** (fichier `.github/workflows/tests.yml`). Le Chrome de GitHub est réglé en français (`LANG=fr_FR.UTF-8`), comme le Mac : sinon le jeu s'affiche en anglais et les tests qui lisent les textes échouent. Le dépôt `cotangeante-pi/Grand-Prix-Dynasty` est **public** : c'est gratuit et sans limite.
+- À **chaque `git push`, sur n'importe quelle branche**, une machine de GitHub (Linux, Chrome déjà installé) lance `python3 tests/lancer.py` en entier et garde les captures de `tests/ecrans.py` (à télécharger depuis la page du passage, même en cas d'échec). Un nouvel envoi sur la même branche arrête le passage précédent.
+- **Le résultat** : dans l'onglet « Actions » du dépôt sur GitHub, ou depuis le terminal (`gh` n'est pas installé sur le Mac ; on passe par l'API de GitHub avec le jeton que git a déjà dans le trousseau, **sans jamais l'afficher**) :
+  ```
+  T=$(printf "protocol=https\nhost=github.com\n\n" | git credential fill | sed -n 's/^password=//p')
+  A=https://api.github.com/repos/cotangeante-pi/Grand-Prix-Dynasty
+  # l'état du passage du commit actuel
+  curl -s -H "Authorization: Bearer $T" "$A/actions/workflows/tests.yml/runs?per_page=1&head_sha=$(git rev-parse HEAD)" | python3 -c "import sys,json;r=json.loads(sys.stdin.read(),strict=False)['workflow_runs'];print(*(r[0]['status'],r[0]['conclusion'],r[0]['id']) if r else ['aucun passage'])"
+  # la sortie de lancer.py (remplacer RUN par l'id ci-dessus)
+  J=$(curl -s -H "Authorization: Bearer $T" "$A/actions/runs/RUN/jobs" | python3 -c "import sys,json;print(json.loads(sys.stdin.read(),strict=False)['jobs'][0]['id'])")
+  curl -sL -H "Authorization: Bearer $T" "$A/actions/jobs/$J/logs" | grep -E "✘|RESULTAT|⏱|ÉCHECS|TOUT PASSE"
+  ```
+  `completed success` = vert ; `completed failure` = rouge ; `in_progress` = pas fini (une suite complète prend **environ 3 minutes** sur GitHub, contre plus de 4 sur le Mac). Pièges vécus : `json.loads(..., strict=False)` (les messages de commit ont des retours à la ligne) ; **toujours le jeton** (sans lui, GitHub coupe après 60 demandes par heure, et les journaux demandent d'être propriétaire) ; attendre en vérifiant toutes les 30 s au plus, pas plus souvent.
+- **La nouvelle façon de travailler** :
+  - **Le Codeur, pendant le travail** : seulement la partie concernée, sur le Mac, sous le verrou (`tests/lancer.py moteur|courses|ecrans|annexes`). **Il ne lance plus la suite complète sur le Mac** : il pousse sa branche et attend le vert de GitHub. Son compte rendu donne le lien du passage et son résultat.
+  - **Le Chef** fusionne sur main **seulement si le passage GitHub de ce commit est vert**. Il relit la sortie du passage (il ne croit pas le compte rendu sur parole, comme toujours) et regarde les captures si c'est un tour qui se voit. Il relance lui-même une partie sur le Mac seulement s'il a un doute.
+  - Après une fusion sur main, le passage de main doit être vert aussi. S'il est rouge, c'est la première chose à réparer.
+  - « Toujours vert sur main » veut maintenant dire : **le passage GitHub de main est vert**.
+- **Attention, Linux n'est pas macOS** : les polices ne sont pas les mêmes, donc les tests d'écran qui mesurent le texte (débordements, ellipses) peuvent donner un autre résultat sur GitHub que sur le Mac. Si un test échoue seulement sur GitHub, on regarde la capture : un vrai débordement se corrige dans le jeu ; un écart de police se corrige dans le test (marge), jamais en désactivant le test.
+- **Le verrou** reste pour les tests sur le Mac. GitHub n'en a pas besoin : chaque passage a sa machine.
+- **État au 2026-10-22 (à régler en premier par le Codeur, ordre du Chef)** : sur main (a2f4169 et suivants), GitHub donne **6 tests rouges** qui sont **verts sur le Mac** (vérifié le même soir : `moteur` 137/137, `courses` 38/38 sur le Mac) :
+  - `test.html` : « styles » (écarts-types aux apex), « régularité » (0,061 / 0,107), « erreurs » (coût moyen 1,52 s, limite 1,5) ;
+  - `courses.html` : « au moins 25 dépassements » (18), « au plus 4000 pas dans l'herbe » (14 661) ;
+  - `ecrans.py` : « la carte calculée en fond est la même » (55,25 s au lieu de 55,08 s), **rouge aussi avec Chrome 150**, la version du Mac.
+
+  Ça veut dire que **la même graine ne donne pas la même course sur deux machines**, alors que la règle de « La technique » dit qu'une graine rejoue exactement une course. Pistes à vérifier, dans l'ordre : quelque chose qui dépend du temps réel (`performance.now()` : le calcul de la carte en tranches dans `principal.js`, `CALCUL_TRANCHE_MS`, ou ce qui se passe pendant que la carte se calcule) ; ensuite la version de Chrome (GitHub a Chrome 155, le Mac 150). **On ne corrige pas en élargissant les seuils** : on trouve ce qui dépend de la machine. Tant que ce n'est pas réglé, le Chef compare les échecs GitHub à cette liste : un échec **hors** de ces 6 est un vrai problème.
+
+**2. Plus de Codeurs, ailleurs que sur le Mac** (seulement quand le propriétaire le décide, pas encore en place au 2026-10-22) :
+- **Le cloud d'Anthropic** : `claude --cloud "Tu es le Codeur 3. Lis CLAUDE.md et SUIVI.md. …"` lance une session sur une machine d'Anthropic, qui récupère le dépôt **depuis GitHub** (pousser avant !) et pousse sa branche. Suite : `claude -p "…" --cloud <session>` ; récupérer localement : `claude --teleport`. Elle utilise le même forfait Claude que le propriétaire. Elle **ne peut pas répondre au Chef par `SendMessage`** : son travail arrive par sa branche, ses comptes rendus dans `rapports/` et le passage GitHub Actions de sa branche. Chrome n'y est pas installé (à faire par un script d'installation de l'environnement, pas encore essayé).
+- **GitHub Codespaces** : environ 60 h gratuites par mois sur 2 cœurs ; un Codeur y tourne comme sur le Mac (Claude Code à installer, `/login` par le propriétaire).
+- **Oracle Cloud « Always Free »** : 4 cœurs et 24 Go gratuits, mais il faut une carte bancaire et être majeur ; à décider par le propriétaire.
+- Dans tous les cas : **une branche par Codeur**, le passage GitHub de la branche doit être vert, et le Chef vérifie et fusionne, comme pour le Codeur 2.
+
+**3. Des tours plus gros pour ce qui se vérifie avec des chiffres** (règles, points, sauvegarde, classements, journal, interview, tournoi) : jusqu'à 6 ordres par tour, puisque la vérification est automatique. Les tours qui demandent de jouer (conduite, sensation, beauté) restent petits et attendent le propriétaire.
+
 ### Pièges connus (déjà vécus sur `../jeu poki`)
 
 - **Le Mac doit rester éveillé**, branché, capot ouvert. Sinon, les tests « ne finissent jamais » à cause de la veille.
