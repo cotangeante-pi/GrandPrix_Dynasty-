@@ -112,6 +112,8 @@ Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤
 
 ## Retours du propriétaire
 
+- 2026-10-23 ~17h05 : « c'est possible de faire plus ressemblant au vrai ? » (les 12 tracés) → **décision du propriétaire** : circuits très ressemblants (reconnaissables au premier coup d'œil), noms changés, aucun logo. CLAUDE.md mis à jour ; ordre dans rapports/circuits-ressemblants-rapport.md, pour le premier Codeur libre (branche `circuits`). Codeur 3 = session-a7 (branche codeur3), donné par le propriétaire le même jour.
+
 - 2026-10-21 ~18h10 : « un autre Claude fait des changements dans le CLAUDE.md, il fait des idées, laisse-le ». → Le Chef et le Codeur ne touchent pas à ses changements de CLAUDE.md et ne les commitent pas avec leur travail (`git add -p` pour leurs propres lignes).
 
 - 2026-10-21 ~17h45 : « j'ai fait une course avec 15 s de pénalités et je ne suis pas descendu de la place normale ». → **Décision du propriétaire** (elle remplace celle du Chef) : en course, la place est celle de la piste, la pénalité est seulement affichée (« ✂ +15 s ») ; elle s'applique à l'arrivée (classement final, podium, résultats). Même règle pour tous.
