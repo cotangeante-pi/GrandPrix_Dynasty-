@@ -168,12 +168,13 @@ const VOITURE3D = (function () {
     return { groupe, roues, tete, corps, couleur, detaille: !!detaille };
   }
 
-  // le fantôme du meilleur tour (fantome.js) : la même voiture légère, d'une couleur neutre et légèrement transparente,
+  // le fantôme du meilleur tour (fantome.js) : la même voiture légère, toute d'une couleur neutre et légèrement transparente,
   // avec ses propres matériaux (ceux des voitures sont partagés et opaques) ; 6 appels de dessin de plus quand il est visible.
   // Il n'écrit pas dans le tampon de profondeur : la vraie voiture reste visible à travers lui
   function creerFantome(couleur, opacite) {
     const options = { transparent: true, opacity: opacite, depthWrite: false };
-    const materiaux = { corps: new THREE.MeshLambertMaterial(Object.assign({ vertexColors: true }, options)), casque: new THREE.MeshLambertMaterial(Object.assign({ color: couleur }, options)) };
+    // une seule couleur pour tout (les couleurs des sommets sont ignorées : ni carbone ni pneus noirs), c'est ce qui le distingue d'une vraie voiture
+    const materiaux = { corps: new THREE.MeshLambertMaterial(Object.assign({ color: couleur }, options)), casque: new THREE.MeshLambertMaterial(Object.assign({ color: couleur }, options)) };
     const m = creer(couleur, false, materiaux);
     m.groupe.visible = false;
     return m;

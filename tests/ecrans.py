@@ -3,7 +3,7 @@
 Pour chaque page : la console reste vide (ni erreur, ni avertissement, ni fichier manquant), la page ne défile
 pas, la scène 3D dessine le circuit. En plus : la conduite au clavier (avancer, tourner, freiner, Espace, C),
 l'interpolation de l'affichage, les caméras de survol, ?debug=1. Captures dans tests/captures/."""
-import math, os, re, sys
+import base64, math, os, re, sys
 try:
     from playwright.sync_api import sync_playwright
 except ImportError:
@@ -345,6 +345,37 @@ def fantome(pg, titre):
     pg.click('#boutonQualifCourse')
     t(f'{titre} : en course, aucun fantôme : pas de voiture transparente, pas d’écart, et seules les voitures des pilotes existent pour les IA', attendre(pg, '() => JEU.ecran === "course" && JEU.fantome === null && !JEU.modeleFantome.groupe.visible && document.getElementById("hudEcart").classList.contains("cache")', None, 10000)
       and pg.evaluate('() => JEU.plateau.pilotes.every(p => voituresVues(p.v, JEU.plateau.pilotes.map(x => x.v)).every(w => w.id !== JEU.modeleFantome))'), str(pg.evaluate('() => [JEU.ecran, JEU.fantome]')))
+    # le fantôme PROUVÉ visible (tour 23b) : un 3e tour, par un robot moins puissant (FORCE_MOTEUR_MAX et PUISSANCE × 0,7, ce
+    # qui ne change que cette page) : dès la ligne, le fantôme (le record) le distance ; ~1 s après la ligne, il est à quelques
+    # mètres devant. Capture fantome-proche.png, puis deux rendus de la même image, fantôme montré / caché (BOUCLE arrêtée,
+    # SCENE3D.dessiner) : dans la moitié basse, les pixels qui changent sont ceux du fantôme, plus clairs (sa couleur neutre)
+    pg.reload()
+    attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "qualif" && JEU.qualif.etat === "choix"', None, 60000)
+    pg.evaluate('() => { SAUVEGARDE.ecrireOption("fantome", true); INTERFACE.majBoutonsFantome(true); REGLAGES.FORCE_MOTEUR_MAX *= 0.7; REGLAGES.PUISSANCE *= 0.7; }')
+    mon_tour()
+    pg.evaluate('() => { BOUCLE.arreter(); while (QUALIFICATION.chrono(JEU.qualif.q) < 1) BOUCLE.simuler(1 / 120); }')
+    image()
+    pg.evaluate('() => BOUCLE.arreter()')
+    pos = pg.evaluate('''() => { const p = FANTOME.position(JEU.fantome.rejeu, QUALIFICATION.chrono(JEU.qualif.q)), v = JEU.joueur, c = Math.cos(v.cap), s = Math.sin(v.cap);
+      return { chrono: QUALIFICATION.chrono(JEU.qualif.q), devant: c * (p.x - v.x) + s * (p.z - v.z), cote: -s * (p.x - v.x) + c * (p.z - v.z), visible: JEU.modeleFantome.groupe.visible, ecart: JEU.fantome.ecart }; }''')
+    t(f'{titre} : 3e tour (robot moins puissant), ~1 s après la ligne : le fantôme est quelques mètres devant la voiture, visible', pos['visible'] and 1 <= pos['devant'] <= 40 and abs(pos['cote']) < 6 and pos['ecart'] > 0, str(pos))
+    pg.screenshot(path=os.path.join(CAPTURES, 'fantome-proche.png'))
+    avec = base64.b64encode(pg.screenshot()).decode()
+    pg.evaluate('() => { JEU.modeleFantome.groupe.visible = false; SCENE3D.dessiner(); }')
+    sans = base64.b64encode(pg.screenshot()).decode()
+    pg.evaluate('() => { JEU.modeleFantome.groupe.visible = true; SCENE3D.dessiner(); }')
+    diff = pg.evaluate('''async ([a, b]) => { const lire = async b64 => { const img = new Image(); img.src = 'data:image/png;base64,' + b64; await img.decode();
+        const c = document.createElement('canvas'); c.width = img.width; c.height = img.height; const ctx = c.getContext('2d'); ctx.drawImage(img, 0, 0);
+        return { w: img.width, h: img.height, d: ctx.getImageData(0, Math.floor(img.height / 2), img.width, img.height - Math.floor(img.height / 2)).data }; };
+      const A = await lire(a), B = await lire(b); let n = 0, clairA = 0, clairB = 0;
+      for (let i = 0; i < A.d.length; i += 4) { const la = A.d[i] + A.d[i + 1] + A.d[i + 2], lb = B.d[i] + B.d[i + 1] + B.d[i + 2];
+        if (Math.abs(la - lb) > 30) { n++; clairA += la; clairB += lb; } }
+      return { pixels: n, clairA: n ? clairA / n / 3 : 0, clairB: n ? clairB / n / 3 : 0, taille: A.w + 'x' + A.h }; }''', [avec, sans])
+    seuil = pg.evaluate('() => REGLAGES.FANTOME_PIXELS_MIN')
+    t(f'{titre} : contrôle en pixels : dans la moitié basse, au moins FANTOME_PIXELS_MIN = {seuil} pixels changent quand le fantôme est caché, et ils sont plus clairs avec lui (sa teinte neutre mélangée à la piste)',
+      diff['pixels'] >= seuil and diff['clairA'] > diff['clairB'], str(diff))
+    L.append(f"  (fantôme à {pos['devant']:.1f} m devant, {diff['pixels']} pixels changés dans la moitié basse, clarté {diff['clairB']:.0f} → {diff['clairA']:.0f})")
+    pg.evaluate('() => BOUCLE.demarrer()')
 
 # sdk.js est le seul passage vers Poki : avec le faux SDK posé avant la page, les appels viennent dans l'ordre, et jamais
 # deux fois le même état (gameplayStart / gameplayStop) de suite ; une course d'un tour par le robot
@@ -555,6 +586,28 @@ def hud(pg, titre, l):
     t(f'{titre} : les places de la tour vont de 1 à 10, de haut en bas, chaque ligne à sa place', attendre(pg, ORDRE_TOUR, None, 10000),
       pg.evaluate('() => [...document.querySelectorAll("#classementListe li")].map(li => [li.children[0].textContent, Math.round(li.getBoundingClientRect().top)])'))
     pg.screenshot(path=os.path.join(CAPTURES, f'hud-{l}.png'))
+    # le faux départ par la touche (tour 23b, en 960×600) : la carte prête, les feux retenus, ↑ pressée DEPART_ANTICIPATION / 2
+    # avant l'extinction (la boucle arrêtée, la physique par BOUCLE.simuler) : faux départ, la voiture part, « +5 s faux départ »
+    # affiché, et la pénalité compte dans le classement final
+    if l == 960:
+        attendre(pg, '() => JEU.plateau.carte !== null && JEU.course.depart && JEU.course.depart.lance === null', None, 180000)
+        pg.evaluate('() => { BOUCLE.arreter(); for (const p of JEU.plateau.pilotes) { p.course.feux.delai = 30; p.course.feux.total = 35; p.course.compte = 30; } }')
+        pg.evaluate('() => { BOUCLE.simuler(0.5); JEU.course.depart.regime = (REGLAGES.DEPART_VERT[0] + REGLAGES.DEPART_VERT[1]) / 2; for (const p of JEU.plateau.pilotes) p.course.compte = REGLAGES.DEPART_ANTICIPATION / 2 + 1 / 120; BOUCLE.simuler(1 / 120); }')
+        pg.keyboard.down('ArrowUp')
+        pg.evaluate('() => BOUCLE.simuler(0.5)')
+        n = pg.evaluate('() => { if (window.__images === undefined) { window.__images = 0; BOUCLE.surAffichage(() => window.__images++); } BOUCLE.demarrer(); return window.__images; }')
+        attendre(pg, 'n => window.__images > n + 1', n, 20000)
+        pg.evaluate('() => BOUCLE.arreter()')
+        f = pg.evaluate('() => ({ resultat: JEU.course.depart.resultat, reaction: JEU.course.depart.reaction, faux: JEU.course.fauxDepart, penalites: JEU.course.penalites, u: JEU.joueur.u, affiche: !document.getElementById("hudPenalite").classList.contains("cache"), texte: document.getElementById("hudPenalite").textContent, resultatTexte: document.getElementById("departResultat").textContent })')
+        t(f'{titre} : ↑ juste avant l’extinction (dans DEPART_ANTICIPATION) = faux départ : la voiture part, « +5 s faux départ » affiché, pénalité de 5 s',
+          f['resultat'] == 'faux' and f['reaction'] < 0 and f['faux'] and f['penalites'] == 5 and f['u'] > 0.5 and f['affiche'] and f['texte'] == pg.evaluate('() => texte("fauxDepart").replace("{s}", REGLAGES.PENALITE_FAUX_DEPART)'), str(f))
+        pg.keyboard.up('ArrowUp')
+        # le joueur passe la ligne (ses tours donnés) : au classement final, son total porte les 5 s
+        pg.evaluate('() => { const c = JEU.course; while (c.tours.length < c.nbTours) c.tours.push({ temps: 60, secteurs: [20, 20, 20], coupe: false }); c.etat = "finie"; BOUCLE.simuler(1 / 120); }')
+        cf = pg.evaluate('() => { const f = classementFinal(JEU.plateau), moi = f.find(x => x.k === JEU.suivie); return { penalites: moi.penalites, total: moi.total, temps: moi.temps }; }')
+        t(f'{titre} : la pénalité du faux départ est dans le classement final (total = temps + 5 s)', cf['penalites'] == 5 and cf['total'] is not None and abs(cf['total'] - cf['temps'] - 5) < 1e-9, str(cf))
+        L.append(f"  (faux départ joué par le test : réaction {f['reaction']:.3f} s, « {f['resultatTexte']} », « {f['texte']} »)")
+        pg.evaluate('() => BOUCLE.demarrer()')
 
 def course_podium(pg, titre, l):
     # une course d'un tour entre 8 IA, accélérée (BOUCLE.simuler) jusqu'à ce que les trois premiers soient connus
