@@ -53,8 +53,18 @@ const UTILISEES = ['aideConduite','attenteArrivee','changerLongueur','choixTitre
   'continuer','courseSuivante','enCourse','fauxDepart','fin','finChampionnat','go','grandPrix','horsPiste','kmh','meilleurTour','nouveauRecord',
   'passerPodium','pause','penalite','penalites','podium','pointsGagnes','preparation','pts','recommencer','record','reglagesCopier',
   'reglagesRienChange','reglagesTitre','rejouer','reprendre','resultats','secteur','son','tempsTotal','tour','tourPrecedent','tourRetard',
-  'tours','toursRetard','toursSansFin','virgule','voirResultats','tresCourte','moyenne','longue','essaiLibre'];
+  'tours','toursRetard','toursSansFin','virgule','voirResultats','tresCourte','moyenne','longue','essaiLibre',
+  // les clés des 11 textes en dur de l'audit (tour 21b)
+  'nomJoueur','pilote','ecurie','numero','circuit_test','circuit_technique','titreGrandPrix','placeCourse','secondes'];
 t('chaque clé demandée par le jeu existe', ()=>{const m=UTILISEES.filter(k=>!(k in TEXTES.en));v(!m.length,m.join(', '));});
+
+// --- les 11 textes en dur de l'audit (rapports/audit-textes.md) ont leur clé, dans les deux langues
+t('le joueur s’appelle « You » / « Toi » tant qu’il n’a pas de nom ; pilote, écurie, numéro, place, secondes et titre du Grand Prix ont leurs trous ; les circuits d’essai ont leur texte ; la virgule en français', ()=>{
+  v(TEXTES.en.nomJoueur==='You'&&TEXTES.fr.nomJoueur==='Toi','nomJoueur');
+  for (const [k,trou] of [['pilote','{n}'],['ecurie','{n}'],['numero','{n}'],['placeCourse','{p}'],['placeCourse','{n}'],['secondes','{s}'],['titreGrandPrix','{i}'],['titreGrandPrix','{n}'],['titreGrandPrix','{circuit}']])
+    v(TEXTES.en[k].includes(trou)&&TEXTES.fr[k].includes(trou),k+' sans '+trou);
+  v(remplie(TEXTES.en.circuit_test)&&remplie(TEXTES.fr.circuit_test)&&remplie(TEXTES.en.circuit_technique)&&remplie(TEXTES.fr.circuit_technique),'circuits');
+  v(TEXTES.en.virgule==='.'&&TEXTES.fr.virgule===',','virgule');});
 
 // --- texte() dans cette page : la langue du navigateur de test
 t('LANGUE vaut « en » ou « fr »', ()=>{v(LANGUE==='en'||LANGUE==='fr',LANGUE);});
