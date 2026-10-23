@@ -36,7 +36,9 @@ jobs:
       # les deux pointent sur le Chrome 150 installé ci-dessus
       - name: Chrome 150 par défaut, et Playwright
         run: |
-          sudo ln -sf "${{ steps.chrome.outputs.chrome-path }}" /usr/bin/google-chrome
+          # lancer.py lance Chrome lui-même : le Chrome de test n'a pas de bac à sable installé, d'où --no-sandbox
+          printf '#!/bin/sh\nexec "%s" --no-sandbox "$@"\n' "${{ steps.chrome.outputs.chrome-path }}" | sudo tee /usr/bin/google-chrome > /dev/null
+          sudo chmod +x /usr/bin/google-chrome
           sudo ln -sf "${{ steps.chrome.outputs.chrome-path }}" /opt/google/chrome/chrome
           pip install playwright
 
