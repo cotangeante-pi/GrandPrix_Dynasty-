@@ -160,6 +160,16 @@ const REGLAGES = {
   JOURNAL_CLASSEMENT: 5,        // en bas : les premiers du championnat (et le joueur s'il n'y est pas)
   JOURNAL_GRAINE: 6000,         // les variantes des titres sont tirées avec la graine du championnat + ce nombre + le Grand Prix
 
+  // la course de découverte du premier lancement (decouverte.js, CLAUDE.md « En piste en 10 secondes »)
+  DECOUVERTE_TOURS: 3,          // une longueur à part, seulement pour elle
+  DECOUVERTE_IA: 6,             // quelques IA seulement…
+  DECOUVERTE_NIVEAU: 'debutant',   // … au niveau débutant (NIVEAUX)
+  DECOUVERTE_CIRCUIT: 'test',   // sur un circuit facile (le circuit test tant que les 12 circuits n'existent pas)
+  DECOUVERTE_PILOTES: [0, 3, 6, 9, 12, 15],   // les pilotes du monde (ids dans championnat.pilotes) qui courent la découverte : un par écurie
+  DECOUVERTE_ARGENT: [1000, 800, 600, 400, 300, 200, 100],   // la prime d'argent de départ selon la place (1er, 2e, …)
+  DECOUVERTE_ARGENT_MAX: 1000,  // … et son plafond
+  AIDE_CLIGNOTE_APRES: 3,       // s : sur la grille, sans aucune touche pendant ce temps, l'aide « ↑ » clignote
+
   // le robot d'essai (préparation des IA)
   ROBOT_VISEE_MIN: 12,          // m : il vise un point au moins à cette distance devant lui
   ROBOT_VISEE_TEMPS: 0.55,      // s : … ou à la distance parcourue en ce temps

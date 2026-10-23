@@ -52,6 +52,12 @@ const TEXTES = {
     departAide: 'Hold ↑ to keep the needle in the green · lights out: release, then press ↑',
     departParfait: 'Perfect start!', departBon: 'Good start', departPatinage: 'Wheelspin!', departCale: 'Stalled!', departFaux: 'False start!',
     departRecord: 'reaction record!',
+    // le premier lancement (decouverte.js) : l'écran titre, les aides, « Prêt pour ta carrière ? »
+    titreJouer: '▶ Play', titreAmis: '👥 With friends', retour: 'Back',
+    amisBientot: 'Coming soon: split screen for two, and the time-trial tournament with friends.',
+    aideGaz: '↑ accelerate', aideDirection: '← → steer', aideFrein: '↓ brake',
+    bravoTitre: 'Well done!', bravoPlace: 'You finished P{p} / {n}', bravoArgent: 'Your prize: {n} $, the first money of your career',
+    bravoQuestion: 'Ready for your career?', bravoBouton: 'Start my career',
     // le duel contre le coéquipier (Codeur 3)
     duelTitre: 'Teammate duel', duelScore: 'You {a} – {b} {nom}', duelDetail: '(qualifying {qa}–{qb}, races {ca}–{cb})',
     duelTour: 'Your teammate: ▲ ahead of you, ▼ behind you',
@@ -143,6 +149,11 @@ const TEXTES = {
     departAide: 'Tiens ↑ pour garder l’aiguille dans le vert · feux éteints : lâche, puis réappuie ↑',
     departParfait: 'Départ parfait !', departBon: 'Bon départ', departPatinage: 'Patinage !', departCale: 'Calé !', departFaux: 'Faux départ !',
     departRecord: 'record de réaction !',
+    titreJouer: '▶ Jouer', titreAmis: '👥 Entre amis', retour: 'Retour',
+    amisBientot: 'Bientôt : l’écran partagé à deux, et le tournoi chrono entre copains.',
+    aideGaz: '↑ accélérer', aideDirection: '← → tourner', aideFrein: '↓ freiner',
+    bravoTitre: 'Bravo !', bravoPlace: 'Tu finis P{p} / {n}', bravoArgent: 'Ta prime : {n} $, ton premier argent de carrière',
+    bravoQuestion: 'Prêt pour ta carrière ?', bravoBouton: 'Commencer ma carrière',
     // le duel contre le coéquipier (Codeur 3)
     duelTitre: 'Duel contre ton coéquipier', duelScore: 'Toi {a} – {b} {nom}', duelDetail: '(qualifs {qa}–{qb}, courses {ca}–{cb})',
     duelTour: 'Ton coéquipier : ▲ devant toi, ▼ derrière toi',

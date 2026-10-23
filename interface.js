@@ -45,10 +45,10 @@ const INTERFACE = (function () {
   }
 
   function montrer(ecran) {
-    for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une']) $(id).classList.toggle('cache', id !== ecran);
+    for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une', 'titre', 'amis', 'bravo']) $(id).classList.toggle('cache', id !== ecran);
     // le bandeau de course n'est là que pendant la course et la pause (pas sous l'écran de fin)
     const course = ecran === 'course' || ecran === 'pause';
-    for (const id of ['hudCourse', 'hudPenalite', 'compte', 'feux', 'classement', 'radar', 'jauge', 'departResultat']) if (!course) $(id).classList.add('cache');
+    for (const id of ['hudCourse', 'hudPenalite', 'compte', 'feux', 'classement', 'radar', 'jauge', 'departResultat', 'aides']) if (!course) $(id).classList.add('cache');
     if (course) $('hudCourse').classList.remove('cache');
   }
 
@@ -249,6 +249,39 @@ const INTERFACE = (function () {
     $('compte').textContent = texte('preparation');
   }
 
+  // le premier lancement (decouverte.js) : l'écran titre (jouer, entre amis → « bientôt », retour) et « Prêt pour ta carrière ? »
+  function preparerTitre(jouer, amis, retour, carriere) {
+    $('titreNom').textContent = texte('nomDuJeu');
+    $('boutonJouer').textContent = texte('titreJouer');
+    $('boutonAmis').textContent = texte('titreAmis');
+    $('amisTexte').textContent = texte('amisBientot');
+    $('boutonAmisRetour').textContent = texte('retour');
+    $('bravoTitre').textContent = texte('bravoTitre');
+    $('bravoQuestion').textContent = texte('bravoQuestion');
+    $('boutonCarriere').textContent = texte('bravoBouton');
+    for (const [id, f] of [['boutonJouer', jouer], ['boutonAmis', amis], ['boutonAmisRetour', retour], ['boutonCarriere', carriere]]) {
+      $(id).addEventListener('mousedown', e => e.preventDefault());
+      $(id).addEventListener('click', f);
+    }
+  }
+
+  // « Bravo ! » : la place du joueur (place, nb) et sa prime
+  function remplirBravo(place, nb, prime) {
+    $('bravoPlace').textContent = texte('bravoPlace').replace('{p}', place).replace('{n}', nb);
+    $('bravoArgent').textContent = texte('bravoArgent').replace('{n}', prime);
+  }
+
+  // les aides en surimpression de la découverte : a = { gaz, direction, frein (vrais quand la touche a servi), clignote } ou null (cachées)
+  function majAides(a) {
+    $('aides').classList.toggle('cache', !a);
+    if (!a) return;
+    for (const [id, cle, servi] of [['aideGaz', 'aideGaz', a.gaz], ['aideDirection', 'aideDirection', a.direction], ['aideFrein', 'aideFrein', a.frein]]) {
+      $(id).textContent = texte(cle);
+      $(id).classList.toggle('cache', !!servi);
+    }
+    $('aideGaz').classList.toggle('clignote', !!a.clignote);
+  }
+
   // le départ parfait (depart.js) : pendant les feux, la jauge du régime de départ avec sa zone verte (DEPART_VERT), jusqu'au
   // lancement ; après, le résultat et le temps de réaction pendant DEPART_AFFICHAGE s (record : « ★ record de réaction ! »)
   function majDepart(c, ecran, record) {
@@ -397,5 +430,5 @@ const INTERFACE = (function () {
 
   return { formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, preparerChampionnat, remplirQualif, preparerQualif,
     remplirDuel, avec, remplirUne, preparerUne,
-    majEcartFantome, preparerFantome, majBoutonsFantome, majDepart };
+    majEcartFantome, preparerFantome, majBoutonsFantome, majDepart, preparerTitre, remplirBravo, majAides };
 })();

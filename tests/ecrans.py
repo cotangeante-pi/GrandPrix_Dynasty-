@@ -15,9 +15,10 @@ LECTURE_PIXELS = re.compile(r'\[\.WebGL-0x[0-9a-f]+\]GL Driver Message \(OpenGL,
 CAPTURES = os.path.join(RACINE, 'tests', 'captures')
 # (page, largeur, hauteur, capture)
 PAGES = [
-    ('index.html', 960, 600, 'poki.png'),
+    ('index.html', 960, 600, 'poki.png'),   # la page nue = le premier lancement : l'écran titre
     ('index.html?debug=1', 960, 600, 'poki-debug.png'),
     ('index.html', 1280, 720, 'large.png'),
+    ('index.html?seul=1', 1280, 720, None),   # l'écran de choix d'une course seule (étape 3), la conduite au clavier
     ('index.html?debug=1', 1280, 720, 'large-debug.png'),
     ('index.html?camera=auto', 1280, 720, 'auto.png'),
     ('index.html?camera=libre', 1280, 720, 'libre.png'),
@@ -40,6 +41,7 @@ PAGES = [
     ('index.html?course=0&robot=1&pneus=1&debug=1', 1280, 720, None),   # ?pneus=1 : l'usure monte sur 10 tours du robot, affichée dans ?debug=1
     ('index.html?championnat=1&tours=1&robot=1&lang=en', 1280, 720, None),   # la page en anglais : championnat et podium sans un mot français, capture championnat-en.png
     ('index.html?course=1&ia=5&joueur=1&robot=1&circuit=test&test=fantome', 1280, 720, None),   # le fantôme du meilleur tour : deux qualifications de suite, la 2e contre le fantôme, capture fantome.png
+    ('index.html?robot=1&test=decouverte', 1280, 720, None),   # le premier lancement : titre → course de découverte (robot) → Bravo → paddock ; captures titre.png, decouverte.png, bravo.png
 ]
 # le faux SDK Poki (comme dans tests/sdk.html), posé avant le chargement de la page ?test=sdk : il note chaque appel dans APPELS_SDK (pas « JOURNAL » : c'est le module de la une du journal, journal.js)
 FAUX_SDK = """window.APPELS_SDK = []; window.PokiSDK = { init() { APPELS_SDK.push('init'); return Promise.resolve(); }, gameLoadingFinished() { APPELS_SDK.push('gameLoadingFinished'); },
@@ -376,6 +378,69 @@ def fantome(pg, titre):
       diff['pixels'] >= seuil and diff['clairA'] > diff['clairB'], str(diff))
     L.append(f"  (fantôme à {pos['devant']:.1f} m devant, {diff['pixels']} pixels changés dans la moitié basse, clarté {diff['clairB']:.0f} → {diff['clairA']:.0f})")
     pg.evaluate('() => BOUCLE.demarrer()')
+
+# le premier lancement (decouverte.js, CLAUDE.md « En piste en 10 secondes ») : sans sauvegarde, l'écran titre ; « ▶ Jouer »
+# mène directement à la grille de la course de découverte (3 tours, 6 IA débutant, pilotes du monde, le joueur au milieu, les
+# aides) ; le robot la joue jusqu'au podium, puis « Bravo ! Prêt pour ta carrière ? », la prime, et la page rechargée arrive au
+# paddock. Le faux SDK note les appels : gameLoadingFinished une fois, gameplayStart aux feux éteints, jamais commercialBreak
+def decouverte(pg, titre):
+    R = pg.evaluate('() => ({ tours: REGLAGES.DECOUVERTE_TOURS, ia: REGLAGES.DECOUVERTE_IA, niveau: REGLAGES.DECOUVERTE_NIVEAU, circuit: REGLAGES.DECOUVERTE_CIRCUIT, argent: REGLAGES.DECOUVERTE_ARGENT, max: REGLAGES.DECOUVERTE_ARGENT_MAX })')
+    t(f'{titre} : sans sauvegarde, l’écran titre : le nom du jeu par sa clé, « ▶ Jouer », le petit « 👥 Entre amis », rien d’autre ; le monde du championnat est créé et sauvegardé ; aucun gameplayStart',
+      pg.evaluate('''() => JEU.ecran === "titre" && JEU.decouverte && !document.getElementById("titre").classList.contains("cache") && document.getElementById("titreNom").textContent === texte("nomDuJeu")
+        && document.getElementById("boutonJouer").textContent === texte("titreJouer") && document.getElementById("boutonAmis").textContent === texte("titreAmis")
+        && SAUVEGARDE.championnat() !== null && SAUVEGARDE.championnat().pilotes.length === 20 && !SAUVEGARDE.decouverteFaite() && JEU.monde === null === false
+        && window.APPELS_SDK.join(",") === "init,gameLoadingFinished"'''), str(pg.evaluate('() => [JEU.ecran, JEU.decouverte, window.APPELS_SDK]')))
+    pg.screenshot(path=os.path.join(CAPTURES, 'titre.png'))
+    pg.click('#boutonAmis')
+    t(f'{titre} : « Entre amis » ouvre « bientôt », « Retour » revient au titre', pg.evaluate('() => JEU.ecran === "amis" && document.getElementById("amisTexte").textContent === texte("amisBientot")')
+      and (pg.click('#boutonAmisRetour') or True) and pg.evaluate('() => JEU.ecran === "titre"'))
+    chargement = pg.evaluate('() => performance.timing.domContentLoadedEventEnd - performance.timing.navigationStart')
+    pg.click('#boutonJouer')
+    t(f'{titre} : « ▶ Jouer » mène directement à la grille (écran course, pas de qualification), {R["tours"]} tours, {R["ia"]} IA au niveau {R["niveau"]} sur le circuit {R["circuit"]}, le joueur nommé « Toi » par défaut',
+      attendre(pg, '() => JEU.ecran === "course" && JEU.plateau && JEU.qualif === null', None, 10000)
+      and pg.evaluate(f'() => JEU.course.nbTours === {R["tours"]} && JEU.plateau.pilotes.length === {R["ia"]} + 1 && JEU.plateau.pilotes[{R["ia"]}].humain && REGLAGES.NIVEAU === "{R["niveau"]}" && NOM_CIRCUIT === "{R["circuit"]}" && JEU.course.feux && !!JEU.course.depart'),
+      str(pg.evaluate('() => [JEU.ecran, JEU.course && JEU.course.nbTours, JEU.plateau && JEU.plateau.pilotes.length, REGLAGES.NIVEAU, NOM_CIRCUIT]')))
+    t(f'{titre} : les {R["ia"]} IA sont des pilotes du monde (DECOUVERTE_PILOTES), aux couleurs de leur écurie',
+      pg.evaluate('() => JEU.indices.length === REGLAGES.DECOUVERTE_IA && JEU.indices.every(id => !JEU.monde.pilotes[id].humain) && new Set(JEU.indices).size === JEU.indices.length && JEU.couleurs.slice(0, JEU.indices.length).every((c, k) => c === JEU.monde.ecuries[JEU.monde.pilotes[JEU.indices[k]].ecurie].couleur)'),
+      str(pg.evaluate('() => JEU.indices')))
+    # la carte des IA se calcule en fond : les feux attendent ; du clic aux feux éteints, la mesure (but : 10 s)
+    t(f'{titre} : la carte se calcule, les IA reçoivent le caractère de leur pilote du monde', attendre(pg, '() => JEU.plateau.carte !== null && JEU.plateau.pilotes.slice(0, REGLAGES.DECOUVERTE_IA).every((p, k) => p.pilote && p.pilote.caractere && Math.abs(p.pilote.caractere.agressivite - Math.max(0, Math.min(1, JEU.monde.pilotes[JEU.indices[k]].caractere.agressivite + REGLAGES.NIVEAUX.debutant.agressivite))) < 1e-9)', None, 240000))
+    grille = pg.evaluate('() => { const P = JEU.plateau.pilotes, moi = P[P.length - 1], devant = P.filter(p => !p.humain && p.depart > moi.depart).length, derriere = P.filter(p => !p.humain && p.depart < moi.depart).length; return { devant, derriere, bouge: P.some(p => p.v.u !== 0) }; }')
+    t(f'{titre} : le joueur part au milieu de la grille ({R["ia"] // 2} IA devant, {R["ia"] - R["ia"] // 2} derrière)', grille['devant'] == R['ia'] // 2 and grille['derriere'] == R['ia'] - R['ia'] // 2 and not grille['bouge'], str(grille))
+    t(f'{titre} : sur la grille, les aides sont affichées (↑ ← → ↓), aucune touche encore', attendre(pg, '() => !document.getElementById("aides").classList.contains("cache") && ["aideGaz", "aideDirection", "aideFrein"].every(id => !document.getElementById(id).classList.contains("cache"))', None, 10000))
+    t(f'{titre} : sans aucune touche pendant AIDE_CLIGNOTE_APRES s sur la grille, « ↑ » clignote', attendre(pg, '() => document.getElementById("aideGaz").classList.contains("clignote")', None, 20000), str(pg.evaluate('() => [JEU.course.depart && JEU.course.depart.t, JEU.aides]')))
+    extinction = attendre(pg, '() => JEU.course.etat !== "compte"', None, 60000)
+    mesure = pg.evaluate('() => JEU.clicAuxFeux')
+    t(f'{titre} : les feux s’éteignent, le temps du clic aux feux est mesuré (sous swiftshader, la carte en fond pèse : la valeur est donnée telle quelle)', extinction and mesure is not None and mesure > 0, str(mesure))
+    L.append(f"  (premier lancement : page chargée en {chargement} ms ; du clic sur « Jouer » à l’extinction des feux : {(mesure or 0) / 1000:.1f} s, carte des IA comprise, sous swiftshader)")
+    t(f'{titre} : gameplayStart seulement aux feux éteints, une fois', attendre(pg, '() => window.APPELS_SDK.join(",") === "init,gameLoadingFinished,gameplayStart"', None, 10000), str(pg.evaluate('() => window.APPELS_SDK')))
+    # les touches : chaque aide part quand sa touche a servi (le robot conduit ; les touches ne font que marquer les aides)
+    pg.keyboard.press('ArrowUp'); pg.wait_for_timeout(100)
+    t(f'{titre} : ↑ pressée : l’aide « ↑ accélérer » disparaît, les autres restent', attendre(pg, '() => document.getElementById("aideGaz").classList.contains("cache") && !document.getElementById("aideDirection").classList.contains("cache") && !document.getElementById("aideFrein").classList.contains("cache")', None, 5000), str(pg.evaluate('() => JEU.aides')))
+    pg.wait_for_timeout(400); pg.screenshot(path=os.path.join(CAPTURES, 'decouverte.png'))
+    pg.keyboard.press('ArrowLeft'); pg.keyboard.press('ArrowDown')
+    t(f'{titre} : ← et ↓ pressées : plus aucune aide', attendre(pg, '() => document.getElementById("aides").classList.contains("cache") || ["aideGaz", "aideDirection", "aideFrein"].every(id => document.getElementById(id).classList.contains("cache"))', None, 5000), str(pg.evaluate('() => JEU.aides')))
+    # le robot roule jusqu'au podium (3 tours, 7 voitures)
+    for _ in range(90):
+        pg.evaluate('() => BOUCLE.simuler(5)')
+        if pg.evaluate('() => JEU.ecran') == 'podium': break
+        pg.wait_for_timeout(50)
+    t(f'{titre} : la course va jusqu’au podium ; gameplayStop au podium', pg.evaluate('() => JEU.ecran === "podium" && JEU.final && JEU.final.length === REGLAGES.DECOUVERTE_IA + 1') and attendre(pg, '() => window.APPELS_SDK.slice(-1)[0] === "gameplayStop"'), str(pg.evaluate('() => [JEU.ecran, window.APPELS_SDK]')))
+    pg.click('#boutonResultats')
+    bravo = pg.evaluate('''() => { const moi = JEU.final.find(x => x.k === JEU.suivie); return { ecran: JEU.ecran, place: moi.place, prime: JEU.prime, attendu: DECOUVERTE.prime(moi.place),
+      titre: document.getElementById("bravoTitre").textContent, question: document.getElementById("bravoQuestion").textContent, placeTexte: document.getElementById("bravoPlace").textContent, argentTexte: document.getElementById("bravoArgent").textContent, faite: SAUVEGARDE.decouverteFaite(), argent: SAUVEGARDE.argent() }; }''')
+    t(f'{titre} : après le podium, « Bravo ! Prêt pour ta carrière ? », la place et la prime selon la place (plafond {R["max"]}) ; rien n’est encore sauvegardé',
+      bravo['ecran'] == 'bravo' and bravo['prime'] == bravo['attendu'] and bravo['prime'] == min(R['argent'][bravo['place'] - 1], R['max']) and bravo['titre'] == pg.evaluate('() => texte("bravoTitre")')
+      and bravo['question'] == pg.evaluate('() => texte("bravoQuestion")') and f"P{bravo['place']} / {R['ia'] + 1}" in bravo['placeTexte'] and str(bravo['prime']) in bravo['argentTexte'] and not bravo['faite'] and bravo['argent'] == 0, str(bravo))
+    L.append(f"  (découverte du robot : P{bravo['place']} / {R['ia'] + 1}, prime {bravo['prime']} $)")
+    pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'bravo.png'))
+    t(f'{titre} : aucun point de championnat n’est donné', pg.evaluate('() => SAUVEGARDE.championnat().pilotes.every(p => p.stats.points === 0 && p.stats.courses === 0) && SAUVEGARDE.championnat().prochain === 0'))
+    with pg.expect_navigation(): pg.click('#boutonCarriere')
+    t(f'{titre} : « Commencer ma carrière » : la découverte est faite, la prime gardée, et la page rechargée arrive au paddock (le championnat, Grand Prix 1), sans écran titre',
+      attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat" && !JEU.decouverte && JEU.championnat && JEU.championnat.prochain === 0', None, 60000)
+      and pg.evaluate(f'() => SAUVEGARDE.decouverteFaite() && SAUVEGARDE.argent() === {bravo["prime"]} && JEU.championnat.pilotes.length === 20 && document.getElementById("titre").classList.contains("cache")'),
+      str(pg.evaluate('() => [JEU.ecran, JEU.decouverte, SAUVEGARDE.decouverteFaite(), SAUVEGARDE.argent()]')))
+    t(f'{titre} : jamais de commercialBreak', pg.evaluate('() => !window.APPELS_SDK.includes("commercialBreak")'), str(pg.evaluate('() => window.APPELS_SDK')))
 
 # sdk.js est le seul passage vers Poki : avec le faux SDK posé avant la page, les appels viennent dans l'ordre, et jamais
 # deux fois le même état (gameplayStart / gameplayStop) de suite ; une course d'un tour par le robot
@@ -778,7 +843,7 @@ with sync_playwright() as p:
             pg.on('console', lambda m: console.append(m.type + ': ' + m.text) if m.type in ('error', 'warning') and not LECTURE_PIXELS.fullmatch(m.text) else None)
             pg.on('pageerror', lambda e: console.append('PAGEERROR ' + str(e)))
             pg.on('requestfailed', lambda r: console.append('FICHIER MANQUANT ' + r.url))
-            if 'test=sdk' in page: pg.add_init_script(FAUX_SDK)
+            if 'test=sdk' in page or 'test=decouverte' in page: pg.add_init_script(FAUX_SDK)
             pg.goto('file://' + RACINE + '/' + page); pg.wait_for_timeout(1500)
             t(f'{titre} : console vide', not console, ' | '.join(console)[:500])
             defile = pg.evaluate('() => [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth]')
@@ -788,11 +853,15 @@ with sync_playwright() as p:
             if mesures is None: mesures = pg.evaluate('() => SCENE3D.infoCircuit')
 
             t(f'{titre} : le panneau de réglage n’existe que avec ?reglages=1', pg.evaluate('() => !!document.getElementById("reglages")') == ('reglages=1' in page))
-            if page == 'index.html' and l == 1280:
+            if page == 'index.html?seul=1' and l == 1280:
                 conduite(pg, titre)
+            if page == 'index.html':
+                t(f'{titre} : la page nue, sans sauvegarde : l’écran titre (« ▶ Jouer », « 👥 Entre amis »), pas de qualification ni d’écran de choix', pg.evaluate('() => JEU.ecran === "titre" && JEU.decouverte && !document.getElementById("titre").classList.contains("cache") && document.getElementById("choix").classList.contains("cache") && document.getElementById("boutonJouer").textContent === texte("titreJouer")'), str(pg.evaluate('() => [JEU.ecran, JEU.decouverte]')))
+            if 'test=decouverte' in page:
+                decouverte(pg, titre)
             if 'reglages=1' in page:
                 reglages(pg, titre)
-            if 'robot=1' in page and 'championnat=1' not in page and 'joueur=1' not in page and 'test=sdk' not in page and 'pneus=1' not in page:   # (avec ?championnat=1 ou &joueur=1, le robot joue dans championnat() ou qualif() ; sdk() et pneus() ont leur page)
+            if 'robot=1' in page and 'championnat=1' not in page and 'joueur=1' not in page and 'test=sdk' not in page and 'pneus=1' not in page and 'test=decouverte' not in page:   # (avec ?championnat=1 ou &joueur=1, le robot joue dans championnat() ou qualif() ; sdk() et pneus() ont leur page)
                 course_robot(pg, titre, page)
             if 'test=sdk' in page:
                 sdk(pg, titre)

@@ -37,6 +37,25 @@
 <div id="jauge" class="cache"><div id="jaugeBarre"><div id="jaugeVert"></div><div id="jaugeAiguille"></div></div><div id="jaugeAide"></div></div>
 <div id="departResultat" class="cache"></div>
 
+<!-- le premier lancement (decouverte.js) : l'écran titre, « Entre amis » (bientôt), les aides de la découverte, « Prêt pour ta carrière ? » -->
+<section id="titre" class="ecran cache">
+  <h1 id="titreNom"></h1>
+  <div class="boutons"><button id="boutonJouer" tabindex="-1"></button></div>
+  <div class="boutons"><button id="boutonAmis" class="petit" tabindex="-1"></button></div>
+</section>
+<section id="amis" class="ecran cache">
+  <p id="amisTexte"></p>
+  <div class="boutons"><button id="boutonAmisRetour" tabindex="-1"></button></div>
+</section>
+<div id="aides" class="cache"><span id="aideGaz"></span><span id="aideDirection"></span><span id="aideFrein"></span></div>
+<section id="bravo" class="ecran cache">
+  <h1 id="bravoTitre"></h1>
+  <p id="bravoPlace"></p>
+  <p id="bravoArgent"></p>
+  <h2 id="bravoQuestion"></h2>
+  <div class="boutons"><button id="boutonCarriere" tabindex="-1"></button></div>
+</section>
+
 <section id="choix" class="ecran cache">
   <h1 id="choixTitre"></h1>
   <div id="choixListe"></div>
@@ -126,6 +145,7 @@
 <script src="qualification.js"></script>
 <script src="sauvegarde.js"></script>
 <script src="championnat.js"></script>
+<script src="decouverte.js"></script>
 <script src="journal.js"></script>
 <script src="sdk.js"></script>
 <script src="pneus-donnees.js"></script>
