@@ -339,7 +339,24 @@ t('déterminisme : empreintes sur 2000 entrées des fonctions Math, et du lissag
       placer(i,Math.max(-limite,Math.min(limite,ecart[i]+R.IA_LISSAGE_FORCE*(voulue-ici)/pente)));}
     np++;let s=0;for(let i=0;i<n;i++) s+=ecart[i]*(i%3+1);
     if(np<=4||np%10===0||p===passes-1) empreintes.push('passe '+np+' (k '+k+') Σ '+f(s)+' e[7] '+f(ecart[7]));}}
-  L.push('  (déterminisme, lissage test : '+empreintes.join(' | ')+')');v(true);});
+  L.push('  (déterminisme, lissage test : '+empreintes.join(' | ')+')');
+  // l'aplatissement, recopié aussi ; puis la comparaison au bit près avec la trajectoire réelle (etapesTrajectoire)
+  const P=R.IA_PLATEAU_PUISSANCE,W=R.IA_PLATEAU_FENETRE,kA=new Float64Array(3),kB=new Float64Array(3),absolu=new Float64Array(n),pic=new Float64Array(n),emp2=[];let sp=0,sp7=0;
+  const glisser=(i,k,c)=>{for(let m=1-k;m<k;m++){const j=(i+m+n)%n;placer(j,Math.max(-limite,Math.min(limite,ecart[j]+c*(1-Math.abs(m)/k))));}};
+  for(const [k,passes] of R.IA_PLATEAU_PASSES){const courbureEn=j=>{const a=(j-k+n)%n,b=(j+k)%n;return courbureTroisPoints(x[a],z[a],x[j],z[j],x[b],z[b]);};
+    for(let p=0;p<passes;p++){
+      for(let j=0;j<n;j++) absolu[j]=Math.abs(courbureEn(j));
+      for(let j=0;j<n;j++){let m=1e-4;for(let d=-W;d<=W;d++) m=Math.max(m,absolu[(j+d+n)%n]);pic[j]=m;}
+      for(let i=0;i<n;i++){const voisins=[(i-k+n)%n,i,(i+k)%n],e0=ecart[i];
+        for(let m=0;m<3;m++) kA[m]=courbureEn(voisins[m]);
+        placer(i,e0+DELTA);for(let m=0;m<3;m++) kB[m]=(courbureEn(voisins[m])-kA[m])/DELTA;placer(i,e0);
+        let d1=0,d2=0;for(let m=0;m<3;m++){const q=pic[voisins[m]],u=kA[m]/q,b=kB[m]/q;const p7=Math.pow(Math.abs(u),P-1),p6=Math.pow(Math.abs(u),P-2);if(sp<1e6){sp+=p7;sp7+=p6;}
+          d1+=(2*u+P*p7*Math.sign(u))*b;d2+=(2+P*(P-1)*p6)*b*b;}
+        if(d2>1e-30) glisser(i,k,-d1/d2);}
+      sp+=1e6;np++;let s=0;for(let i=0;i<n;i++) s+=ecart[i]*(i%3+1);
+      if(p<3||p===passes-1) emp2.push('passe '+np+' (k '+k+') Σ '+f(s)+' e[7] '+f(ecart[7]));}}
+  let diff=0,premier=-1;for(let i=0;i<n;i++) if(ecart[i]!==TRAJ.test.ecart[i]){diff++;if(premier<0)premier=i;}
+  L.push('  (déterminisme, aplatissement test : '+emp2.join(' | ')+' ; Σpow7 1re passe '+f(sp%1e6)+' ; copie ≠ trajectoire réelle : '+diff+' valeurs'+(premier>=0?', la 1re à i='+premier+' ('+f(ecart[premier])+' / '+f(TRAJ.test.ecart[premier])+')':'')+')');v(true);});
 t('déterminisme : la trajectoire calculée en tranches (une étape par tranche, comme dans la page) est identique au bit près à celle calculée d’un coup, et un deuxième calcul d’un coup aussi', ()=>{
   for(const [nom,circ] of [['test',C],['technique',TQ]]){const T=TRAJ[nom];
     const etapes=etapesTrajectoire(circ);let r=etapes.next(),nb=0;while(!r.done){nb++;r=etapes.next();}const T2=r.value,T3=calculerTrajectoire(circ);
