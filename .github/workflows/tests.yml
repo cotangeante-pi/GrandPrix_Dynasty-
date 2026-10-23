@@ -28,8 +28,15 @@ jobs:
       - name: Playwright
         run: pip install playwright
 
+      # le Mac du propriétaire est en français et les tests attendent les textes français : même langue ici
+      # (sinon navigator.language = en-US et le jeu s'affiche en anglais)
       - name: Toute la suite (moteur, courses, ecrans, annexes)
-        run: python3 tests/lancer.py
+        env:
+          LANG: fr_FR.UTF-8
+          LANGUAGE: fr
+        run: |
+          google-chrome --version
+          python3 tests/lancer.py
 
       # les captures de tests/ecrans.py, à télécharger depuis la page du passage, même en cas d'échec
       - name: Captures
