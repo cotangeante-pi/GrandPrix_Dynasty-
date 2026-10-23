@@ -82,6 +82,8 @@ Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤
 
 ## Décidé
 
+- 2026-10-23 ~18h45 (Chef session-5b) : le Codeur 1 a réglé le déterminisme (determinisme 5865b0f, GitHub 40031444023 : les 6 échecs connus ont disparu ; empreintes identiques au bit près Mac/GitHub : trajectoire test Σécart −5591.154986164103, technique −8626.812883967046, épinglées en dur). Deux tests sont devenus rouges sur les deux machines, avec les mêmes chiffres : **le Chef a tranché : on corrige la mesure, pas les seuils, pas le jeu.** « styles » mesurait l'écart-type pile à l'apex, où les lignes « apex tôt / apex tard » se croisent (0,26 m à l'épingle) : on mesure maintenant le max à l'apex, 30 m avant et 30 m après, seuil 0,5 m inchangé. « suivi seul » supposait que l'IA resterait 2 tours derrière une voiture à 60 % ; par la règle de la file elle-même (IA_FILE_COTE 6 m), à 8,7 m de côté elle n'est plus à la file et contourne : le test vérifie désormais la distance de sécurité tant qu'elle est à la file, un contournement propre (écart latéral ≥ largeur + marge), 0 contact, 0 herbe.
+
 - 2026-10-19 19h15 : **Le propriétaire ne veut pas d'IA sur un rail** (« tous les ia suivent une trajectoire précise définie ; je ne veux pas ça, je veux une INTELLIGENCE artificielle »). Choix : **des pilotes qui décident** (chaque IA choisit sa ligne en roulant, selon la piste et les voitures autour), pas un réseau de neurones. Cause : c'était le plan de CLAUDE.md (4a « trajectoire idéale ») et les ordres du Chef aux tours 7–8. Le tour 9 finit (contacts, simulation), l'IA change au tour 10.
 
 - 2026-10-19 : le propriétaire trouve que l'IA de 4a (`?ia=1`) roule comme une vraie F1. Le circuit technique lui va comme circuit d'essai ; **pour un circuit officiel, il préfère « un giant loop »** (à préciser à l'étape 10). Le Chef peut compléter CLAUDE.md (« c'est pour ça que c'est en auto mode ») : liste des fichiers mise à jour (ia.js, ?ia=1, ?circuit=).
@@ -131,6 +133,7 @@ Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤
 
 ## Décisions en attente (pour le propriétaire)
 
+- Une IA qui n'attaque pas peut quand même contourner une voiture très lente (60 %) par une ligne d'évitement (vu au tour 22). Voulu (on double les retardataires) ou à interdire hors attaque ?
 - Les 12 tracés de circuits (tests/circuits-a.svg et tests/circuits-b.svg) : assez sinueux ? noms ?
 - Les IA, même en légende, font 49,4 s seules sur le circuit test (le propriétaire ≈ 45 s) : les rendre plus rapides ?
 
