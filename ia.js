@@ -746,7 +746,7 @@ function piloterIA(pilote, v, vues, dt) {
     // (la seule façon de la passer, c'est l'attaque)
     const aLaFile = g < R.IA_FILE_DISTANCE && Math.abs(w.d - p.d) < R.IA_FILE_COTE;
     // (une voiture lente ou arrêtée : ni la file ni le couloir ; seule une ligne qui passe sur elle le retient, sinon il la contourne)
-    if (estLente(carte, w) ? !surSaLigne : !surSaLigne && !aLaFile && Math.abs(w.d - p.d) >= R.IA_VISION_COULOIR) continue;
+    if (estLente(pilote.carte, w) ? !surSaLigne : !surSaLigne && !aLaFile && Math.abs(w.d - p.d) >= R.IA_VISION_COULOIR) continue;
     // en préparant son attaque, il se colle dans le sillage de la voiture attaquée (s'il est bien derrière elle, pas en biais)
     const sillage = a && w.id === a.id && Math.abs(w.d - p.d) < R.ASPIRATION_LARGEUR;
     // au départ (sur la grille, dans sa file), la voiture devant lui est à GRILLE_ESPACEMENT × 2 m : s'il voulait
@@ -770,7 +770,7 @@ function piloterIA(pilote, v, vues, dt) {
     if (g > portee || g < -(R.LONGUEUR_VOITURE + R.IA_MARGE_LONG) || Math.abs(cote) > R.IA_REFLEXE_COTE) continue;
     if (Math.sign(dir) === Math.sign(cote)) dir = 0;
     // (devant lui, une voiture lente que sa ligne contourne ne le freine pas : sinon il s'arrêterait à côté d'une voiture arrêtée)
-    if (g > 0 && estLente(carte, w) && Math.abs(valeurLigne(ligne.e, r + g) - w.d) >= ecartSur(v.u)) continue;
+    if (g > 0 && estLente(pilote.carte, w) && Math.abs(valeurLigne(ligne.e, r + g) - w.d) >= ecartSur(v.u)) continue;
     if (g > 0) cible = Math.min(cible, w.vitesse - (pilote.cede && pilote.cede.id === w.id ? R.IA_CEDER_FORT : R.IA_CEDER));
   }
   // une erreur en cours : de mauvaises commandes, rien d'autre (même physique)
