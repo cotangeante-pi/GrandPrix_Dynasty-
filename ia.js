@@ -47,6 +47,14 @@ function calculerTrajectoire(circuit) {
   return r.value;
 }
 
+// x^n pour n entier ≥ 0, par multiplications seulement : le même résultat au bit près sur toute machine
+// (Math.pow, lui, change d'arrondi entre Chrome macOS et Chrome Linux ; voir l'aplatissement ci-dessous)
+function puissanceEntiere(x, n) {
+  let r = 1;
+  for (let k = 0; k < n; k++) r *= x;
+  return r;
+}
+
 // la trajectoire idéale d'un circuit : un écart latéral par échantillon de la piste, puis la vitesse conseillée.
 // C'est un générateur : il s'arrête (yield) après chaque passe, pour que la page puisse découper le calcul sur
 // plusieurs images sans se bloquer. Le calcul est exactement le même, découpé ou d'un coup.
@@ -84,6 +92,8 @@ function* etapesTrajectoire(circuit) {
   // u² garde la trajectoire lisse partout, u^puissance écrase le pic, qui s'étale en un arc presque rond.
   // Le point emmène ses voisins jusqu'à ±k en chapeau (pas de vagues entre les points). Les courbures changent
   // presque en ligne droite quand il glisse : le déplacement est un pas de Newton.
+  // Jamais Math.pow ici : Chrome ne l'arrondit pas pareil sur macOS et sur Linux (tour 22 : Σ|u|⁷ différait à la
+  // 13e décimale, et toute la trajectoire avec), alors qu'une multiplication IEEE est la même sur toute machine.
   const P = R.IA_PLATEAU_PUISSANCE, W = R.IA_PLATEAU_FENETRE;
   const kA = new Float64Array(3), kB = new Float64Array(3), absolu = new Float64Array(n), pic = new Float64Array(n);
   const glisser = (i, k, c) => {
@@ -114,8 +124,9 @@ function* etapesTrajectoire(circuit) {
         let d1 = 0, d2 = 0;
         for (let m = 0; m < 3; m++) {
           const q = pic[voisins[m]], u = kA[m] / q, b = kB[m] / q;
-          d1 += (2 * u + P * Math.pow(Math.abs(u), P - 1) * Math.sign(u)) * b;
-          d2 += (2 + P * (P - 1) * Math.pow(Math.abs(u), P - 2)) * b * b;
+          const uP2 = puissanceEntiere(Math.abs(u), P - 2), uP1 = uP2 * Math.abs(u);   // |u|^(P-2) et |u|^(P-1)
+          d1 += (2 * u + P * uP1 * Math.sign(u)) * b;
+          d2 += (2 + P * (P - 1) * uP2) * b * b;
         }
         if (d2 > 1e-30) glisser(i, k, -d1 / d2);
       }

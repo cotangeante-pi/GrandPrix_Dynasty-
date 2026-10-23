@@ -188,7 +188,7 @@ def course_ia(pg, titre):
       const pilote = creerPilote(JEU.carte);
       for (let k = 0; k < 600 * 120 && c.etat !== 'finie'; k++) { appliquerCommandes(v, courseAutorise(c) ? piloterIA(pilote, v, [], 1 / 120) : { gaz: 0, frein: 0, direction: 0 }); pasVoiture(v, CIRCUIT, 1 / 120); majCourse(c, v, 1 / 120); }
       return c.meilleurTour; }''')
-    t(f'{titre} : la carte calculée en fond est la même (le pilote neutre seul fait le même meilleur tour que dans test.html, 55,08 s)', tour is not None and abs(tour - 55.0833) < 0.006, str(tour))
+    t(f'{titre} : la carte calculée en fond est la même (le pilote neutre seul fait le même meilleur tour que dans test.html, 55,26 s)', tour is not None and abs(tour - 55.2583) < 0.006, str(tour))
     t(f'{titre} : le pilote IA de ?ia=1 est prêt', pg.evaluate('() => JEU.pilote !== null && JEU.carte !== null'))
     pg.evaluate('() => { JEU.course.compte = 0.01; }')
     t(f'{titre} : l’IA part après le compte à rebours', attendre(pg, '() => JEU.course.etat === "course" && JEU.joueur.u > 1', None, 20000), pg.evaluate('() => JEU.course.etat'))

@@ -223,7 +223,7 @@ function aspirationVoitures(voitures) {
 // circuit (facultatif) : les voitures poussées sont replacées sur la piste (herbe, barrières)
 function contactsVoitures(voitures, circuit) {
   const R = REGLAGES, hl = R.LONGUEUR_VOITURE / 2, hw = R.LARGEUR_VOITURE / 2;
-  const portee2 = (2 * Math.hypot(hl, hw)) ** 2;
+  const portee = 2 * Math.hypot(hl, hw), portee2 = portee * portee;   // un carré par multiplication : identique sur toute machine
   const avant = voitures.map(w => w.touche);
   for (const w of voitures) w.touche = new Set();
   for (let i = 0; i < voitures.length; i++) {

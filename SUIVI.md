@@ -30,7 +30,7 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 ## Tour en cours
 
 Trois tours ouverts le 2026-10-23, main = ab23312 (63/100), Chef session-5b :
-- **Tour 22, Codeur 1** (branche determinisme 7ad2d50 → duel) : remplacer les deux `Math.pow` de l'aplatissement (ia.js:117-118) par des multiplications (cause des 6 échecs GitHub, voir « Bugs connus »), re-épingler les temps, GitHub vert ; puis le duel (vainqueur ≠ poleman ≥ 3/30). rapports/tour-22-rapport.md.
+- **Tour 22, Codeur 1** : **ordre 1 fait et fusionné** (determinisme 4dd5066 → main, ~19h10 ; GitHub 40035940484 : TOUT PASSE, 157/157, 38/38, 320/320 + annexes) : puissanceEntiere à la place de Math.pow, empreintes épinglées, tests « styles » et « suivi » refaits selon la décision du Chef, tour du pilote neutre 55,2583 s. **Main est vert sur GitHub pour la première fois depuis le 2026-10-22 : « vert » = 0 échec.** En cours : ordre 3 (contournement d'une voiture bloquée, branche `contournement` : épingle 7,2 s, robot à 40 % OK, la grande droite ~12 s à confirmer), puis ordre 2 (duel). rapports/tour-22-rapport.md.
 - **Tour 22b, Codeur 2** (branche codeur2, dossier « - codeur 2 », fantome.js commencé, non commité) : le fantôme du meilleur tour, puis le départ parfait. rapports/tour-22b-rapport.md.
 - **Tour 21c, Codeur 3** : **fait et fusionné** (4a8e731 → main 5d548d6, ~18h35 ; GitHub 40033832212 : seulement les 6 échecs connus ; captures une.png, une-en.png, une-960.png, duel.png, duel-tour.png relues par le Chef) : score du duel contre le coéquipier (qualifs + courses, saison et carrière), sa ligne marquée dans la tour avec l'écart, « Toi 2 – 2 Pilote 19 » sur l'écran du championnat, journal.js (La Gazette du Paddock / The Paddock Gazette : titre par priorité, texte, brèves, classement, album compact : 180 unes = 59 843 octets, 332 par une), la une affichée après les résultats. Depuis ~19h : les 12 circuits ressemblants sur la branche `circuits`. À vérifier : sur duel-tour.png, la tour montre 1–9, 11–13, le joueur « 10 », 15–20 (la ligne 14 manque).
 
@@ -61,6 +61,7 @@ Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤
 | 19 + 19b | f2ff5ee | 62 | 12 | 16 | 6 | 12 | 9 | 10 | 2 |
 | 21b | 81c254d | 63 | 12 | 16 | 6 | 12 | 9 | 10 | 3 |
 | 21c | 5d548d6 | 66 | 12 | 16 | 8 | 13 | 9 | 10 | 3 |
+| 22 (ordre 1) | fusion determinisme 4dd5066 | 67 | 12 | 16 | 8 | 13 | 9 | 10 | 3 |   (+1 code et tests : main vert partout, déterminisme garanti ; 10/10 → le code reste à 10, le +1 est pris sur « course et IA » 16 → 17 pour les 41 dépassements et le suivi propre)
 
 ## À essayer par le propriétaire
 
