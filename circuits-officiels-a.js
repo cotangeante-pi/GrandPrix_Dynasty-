@@ -76,24 +76,28 @@ const CIRCUITS_OFFICIELS_A = {
     largeur: 14,
     secteurs: [0, 0.33, 0.66],
     depart: [0, 0, 0],
+    // le vrai : 5,793 km, dans le sens des aiguilles d'une montre ; la ligne droite des stands, la première chicane (Rettifilo),
+    // Curva Grande, la deuxième chicane (Roggia), les deux Lesmo, le Serraglio, Ascari, la droite du retour, la Parabolica
+    reperes: [[1, 'première chicane'], [3, 'Curva Grande'], [5, 'deuxième chicane'], [7, 'Lesmo 1'], [9, 'Lesmo 2'], [13, 'Ascari'], [15, 'Parabolica']],
     morceaux: [
-      ['droite', 1165],                     // la ligne des stands, très longue…
-      ['chicane', 16, 50],                  // … et la première chicane (le gros freinage)
-      ['droite', 217],
-      ['virage', 300, 81],                  // la grande courbe, à fond
-      ['droite', 662.918],
-      ['chicane', 22, -40],                 // la deuxième chicane
-      ['droite', 221],
-      ['virage', 60, 57],                   // deux droites moyennes
-      ['droite', 125],
-      ['virage', 55, 57],
-      ['droite', 1204.255],                 // la longue droite du retour
-      ['virage', 90, -18], ['virage', 70, 59],    // un pli rapide
-      ['droite', 983],
-      ['virage', 110, 124],                 // la grande courbe qui ramène sur la ligne
+      ['droite', 1000],                     // la ligne des stands, très longue (referme le tour)
+      ['chicane', 16, 55],                  // la première chicane : le gros freinage, droite-gauche
+      ['droite', 120],
+      ['virage', 290, 38],                  // Curva Grande, à fond
+      ['droite', 420],                      // (referme le tour)
+      ['chicane', 22, -45],                 // la deuxième chicane, gauche-droite
+      ['droite', 110],
+      ['virage', 70, 62],                   // Lesmo 1
+      ['droite', 300],
+      ['virage', 45, 80],                   // Lesmo 2
+      ['droite', 400],
+      ['virage', 600, -14],                 // le Serraglio, un pli à gauche à fond
+      ['droite', 500],
+      ['chicane', 60, 38],                  // Ascari, rapide : gauche-droite-gauche
+      ['droite', 1050],                     // la droite du retour
+      ['virage', 150, 194],                 // la Parabolica, qui ramène sur la ligne
     ],
   },
-  // long et raide : l'épingle du départ, la descente puis la grande courbe rapide en montée, la très longue droite
   spaa: {
     nom: 'Spaa',
     largeur: 14,
