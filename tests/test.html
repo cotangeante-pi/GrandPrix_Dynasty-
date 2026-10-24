@@ -473,6 +473,42 @@ t('côte à côte à l’entrée de l’épingle (même rythme, 150 km/h) : aucu
   const chocs=e.pilotes.flatMap(p_=>p_.v.chocs),barr=e.pilotes.reduce((a_,p_)=>a_+p_.v.contactsBarriere,0),loin=e.pilotes.every(p_=>ecartLeLong(TQ,p_.v.piste.s-ep.fin)>0);
   L.push('  (côte à côte dans l’épingle : chocs '+(chocs.map(c_=>c_.toFixed(1)).join(', ')||'aucun')+', '+barr+' contacts de barrière, '+herbe+' pas dans l’herbe, dépassements '+e.depassements.length+')');
   v(loin,'pas sorties de l’épingle');v(chocs.every(c_=>c_<=5),'chocs '+chocs);v(barr===0,'barrière');v(herbe===0,herbe+' pas dans l’herbe');});
+// --- une voiture lente ou arrêtée se contourne (ordre 3 du tour 22, décision du propriétaire : « ils sont censés doubler »)
+// une voiture arrêtée en sArret sur la ligne idéale, nbIA IA à l'arrêt en file derrière elle (à 40 m, puis tous les 12 m) :
+// le temps pour que toutes l'aient passée, les chocs > 5 m/s, les barrières, l'herbe, et celles encore derrière
+// poser une voiture d'une course entre IA ailleurs que sur la grille, sans que sa course compte le saut
+function poserVoiture(p_,circ,s,d){placerSurPiste(p_.v,circ,s,d);p_.v.piste=positionSurPiste(circ,p_.v.x,p_.v.z);p_.course.sAvant=p_.v.piste.s;p_.course.xAvant=p_.v.x;p_.course.zAvant=p_.v.z;p_.course.compte=0;}
+function contournerArretee(sArret,nbIA,duree){const carte=CARTES_T.technique,e=creerCourseIA(TQ,nbIA,2,1,carte,true),arret=e.pilotes[nbIA];
+  poserVoiture(arret,TQ,sArret,valeurEn(TQ,carte.trajectoire.ecart,sArret));
+  const d0=[];e.pilotes.forEach((p_,k)=>{if(k<nbIA){const s_=sArret-40-12*k;poserVoiture(p_,TQ,s_,valeurEn(TQ,carte.trajectoire.ecart,s_));p_.pilote.grille=null;p_.pilote.parcouru=REGLAGES.IA_DEPART_LANCEMENT;d0[k]=sArret-s_;}});   // déjà en course (pas le lancement du départ)
+  const passee=(p_,k)=>p_.course.progression>d0[k]+REGLAGES.LONGUEUR_VOITURE;let temps=null,herbe=0,k=0;
+  for(;k<duree*120;k++){pasCourseIA(e,DT);for(let i=0;i<nbIA;i++) if(e.pilotes[i].v.surHerbe) herbe++;
+    if(e.pilotes.slice(0,nbIA).every(passee)){temps=k*DT;break;}}
+  const chocs=e.pilotes.flatMap(p_=>p_.v.chocs).filter(c_=>c_>5).length/2,barr=e.pilotes.reduce((a_,p_)=>a_+p_.v.contactsBarriere,0);
+  const derriere=e.pilotes.slice(0,nbIA).filter(passee_=>false).concat(e.pilotes.slice(0,nbIA).filter((p_,i)=>!passee(p_,i))).map((p_,i)=>'n°'+p_.numero+' à '+(d0[p_.numero-1]-p_.course.progression).toFixed(0)+' m');
+  return {temps,chocs,barr,herbe,derriere,arretBougee:Math.abs(arret.v.u)>0.5};}
+t('voiture arrêtée sur la ligne idéale au milieu de la grande droite du technique, 10 IA en file derrière : toutes l’ont passée en moins de 15 s, 0 choc > 5 m/s, 0 barrière', ()=>{
+  const droite=CARTES_T.technique.virages.find(x=>x.droite>500),r_=contournerArretee(droite.freinage-droite.droite/2,10,40);
+  L.push('  (arrêtée dans la droite : toutes passées en '+(r_.temps===null?'— (pas toutes)':r_.temps.toFixed(1)+' s')+', chocs > 5 m/s '+r_.chocs+', '+r_.barr+' barrières, '+r_.herbe+' pas dans l’herbe'+(r_.derriere.length?', encore derrière : '+r_.derriere.join(', '):'')+')');
+  v(r_.temps!==null&&r_.temps<=15,'temps '+r_.temps+' '+r_.derriere.join(', '));v(r_.chocs===0,r_.chocs+' chocs');v(r_.barr===0,r_.barr+' barrières');});
+t('voiture arrêtée à l’entrée de l’épingle du technique, 10 IA en file derrière : toutes l’ont passée en moins de 25 s, 0 choc > 5 m/s', ()=>{
+  const ep=TQ.morceaux.find(m=>m.type==='virage'&&m.fin-m.debut<60),r_=contournerArretee(ep.debut,10,50);
+  L.push('  (arrêtée à l’entrée de l’épingle : toutes passées en '+(r_.temps===null?'— (pas toutes)':r_.temps.toFixed(1)+' s')+', chocs > 5 m/s '+r_.chocs+', '+r_.barr+' barrières, '+r_.herbe+' pas dans l’herbe'+(r_.derriere.length?', encore derrière : '+r_.derriere.join(', '):'')+')');
+  v(r_.temps!==null&&r_.temps<=25,'temps '+r_.temps+' '+r_.derriere.join(', '));v(r_.chocs===0,r_.chocs+' chocs');});
+t('une voiture (le robot) à 40 % de la vitesse de la carte, partie en pole d’une course de 10 IA, 2 tours (technique) : elle finit dernière et aucune IA ne reste derrière elle (à moins de 40 m) plus de 20 s d’affilée', ()=>{
+  const carte=CARTES_T.technique,e=creerCourseIA(TQ,10,2,3,carte,true),lent=e.pilotes[10],places=placesGrille(TQ,11);
+  // la voiture lente part de la pole, l'IA n°1 prend sa place au fond de la grille
+  poserVoiture(lent,TQ,places[0].s,places[0].d);lent.depart=places[0].s-TQ.longueur;
+  poserVoiture(e.pilotes[0],TQ,places[10].s,places[10].d);e.pilotes[0].depart=places[10].s-TQ.longueur;e.pilotes[0].pilote.grille=places[10].d;
+  e.pilotes.forEach(p_=>{p_.course.compte=0;});
+  const derriere=new Float64Array(10),pire=new Float64Array(10);let k=0;
+  const conduire=(p_,dt)=>appliquerCommandes(p_.v,piloteRobot(p_.v,TQ,0.4*valeurEn(TQ,carte.trajectoire.vitesse,p_.v.piste.s)));
+  for(;k<300*120&&e.arrives<10;k++){pasCourseIA(e,DT,conduire);
+    for(let i=0;i<10;i++){const p_=e.pilotes[i];if(p_.arrivee!==null) continue;const g=distanceCourse(lent)-distanceCourse(p_);
+      if(g>0&&g<40){derriere[i]+=DT;pire[i]=Math.max(pire[i],derriere[i]);}else derriere[i]=0;}}
+  const chocs=e.pilotes.flatMap(p_=>p_.v.chocs).filter(c_=>c_>5).length/2,pires=Array.from(pire);
+  L.push('  (voiture à 40 % : '+(e.arrives>=10?'les 10 IA arrivées en '+(k*DT).toFixed(0)+' s':'IA pas toutes arrivées en '+(k*DT).toFixed(0)+' s')+' ; elle : '+(lent.course.etat==='finie'?'arrivée':'encore en piste, tour '+(lent.course.tours.length+1))+' ; le plus longtemps derrière elle : '+pires.map(x=>x.toFixed(1)).join(' / ')+' s ; chocs > 5 m/s '+chocs+' ; dépassements '+e.depassements.length+')');
+  v(e.arrives>=10&&lent.course.etat!=='finie','pas dernière');v(pires.every(x=>x<=20),'derrière elle '+pires.map(x=>x.toFixed(1)).join(' / '));});
 // les courses entre IA (le critère de l'étape 4 : 30 courses, et la course de 20 voitures) sont dans tests/courses.html
 
 // --- la grille qualifiée (tour 12)

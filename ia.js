@@ -352,6 +352,7 @@ function creerPilote(carte, rythme = 1, style = styleNeutre(), decalage = 0) {
     retenuePar: null,  // … et laquelle (le repère de voituresVues)
     attaque: null,   // { id, etat: preparer | decaler | plonger, virage, cote, duree } quand il attaque
     cede: null,      // { id, duree } : la voiture à côté de lui à qui il cède le virage
+    lentesVues: new Map(),   // voiture vue devant lui → { lente, arret } : depuis combien de secondes elle roule sous IA_LENTE_PART de la carte, sous IA_ARRET_VITESSE (estLente)
     repos: 0,        // s avant de pouvoir réattaquer après une attaque abandonnée
     attaques: 0, reussies: 0,
     ligne: null,   // { s0, e, v } : l'écart et la vitesse visée tous les IA_LIGNE_PAS m à partir de s0
@@ -394,6 +395,29 @@ function sensProchainVirage(carte, s) {
     if (d < REGLAGES.IA_HORIZON && d < mieux) { mieux = d; sens = v.sens; }
   }
   return sens;
+}
+
+// une voiture vue qui roule très en dessous de la vitesse de la carte à son endroit (IA_LENTE_PART), ou arrêtée :
+// on la contourne par la ligne « éviter » dès qu'il y a la place, n'importe où sur le circuit (décision du propriétaire, tour 22 :
+// « ils sont censés doubler ») ; la file et l'attaque sont pour une voiture qui roule à peu près au même rythme
+// Tour 25 : arrêtée ou presque (IA_ARRET_VITESSE), ou lente depuis plus de IA_LENTE_DUREE (pilote.lentesVues, tenu à jour par
+// piloterIA d'un pas à l'autre) : une voiture en erreur qui se remet n'est pas contournée, une voiture bloquée l'est toujours.
+// Et pas plus rapide que lui (de plus de IA_LENTE_PLUS_RAPIDE) : une voiture qui repart devant lui n'est pas un obstacle.
+function estLente(pilote, v, w) {
+  const R = REGLAGES;
+  // (pas pendant le lancement du départ : tout le monde est lent, personne n'est à contourner)
+  if (pilote.parcouru < R.IA_DEPART_LANCEMENT) return false;
+  const vue = pilote.lentesVues.get(w.id);
+  if (!vue) return false;
+  // (des durées : le peloton du départ roule groupé sous la vitesse de la carte pendant ~3 s, un bouchon à l'épingle descend
+  // sous IA_ARRET_VITESSE une seconde ; ni l'un ni l'autre n'est une voiture bloquée, qui, elle, le reste)
+  if (vue.arret >= R.IA_ARRET_DUREE) return true;
+  return w.vitesse < v.u + R.IA_LENTE_PLUS_RAPIDE && vue.lente >= R.IA_LENTE_DUREE;
+}
+
+// sous IA_LENTE_PART de la vitesse de la carte à son endroit
+function sousLaCarte(carte, w) {
+  return w.vitesse < REGLAGES.IA_LENTE_PART * valeurEn(carte.circuit, carte.trajectoire.vitesse, w.s);
 }
 
 // l'écart sûr entre deux voitures côte à côte (de centre à centre) : une largeur de voiture et IA_MARGE_LAT
@@ -462,12 +486,14 @@ function noterLigne(pilote, v, voisines, s0, t, type) {
     // les voitures qu'il voit : où seront-elles quand il passera ici ? Elles gardent leur vitesse et leur place
     // prévue (dPrevu). Une ligne qui en touche une est très chère. (Rester derrière une voiture plus lente, c'est la
     // vitesse de piloterIA qui s'en charge ; la passer, c'est l'attaque, une décision à part.)
-    if (temps < R.IA_PREDICTION) for (const w of voisines) {
+    // (une voiture lente ou arrêtée : sur toute la ligne, pas seulement IA_PREDICTION s : elle sera encore là)
+    for (const w of voisines) {
+      if (!w.lente && temps >= R.IA_PREDICTION) continue;
       const sPrevu = w.s + w.vitesse * temps;
-      if (Math.abs(e[i + 1] - dPrevu(pilote.carte, w, sPrevu, s0)) >= ecartSur(v.u)) continue;
+      if (Math.abs(e[i + 1] - dPrevu(pilote.carte, w, sPrevu, s0)) >= (w.lente ? R.IA_LENTE_CONTACT : ecartSur(v.u))) continue;   // (une voiture lente : plus large, hors du réflexe)
       const ecart = ecartLeLong(c, sPrevu - (s0 + (i + 1) * pas));
       if (!touchees.has(w) && Math.abs(ecart) < R.LONGUEUR_VOITURE + R.IA_MARGE_LONG) {
-        penalite += R.IA_PENALITE_VOITURE;
+        penalite += w.lente ? R.IA_PENALITE_LENTE : R.IA_PENALITE_VOITURE;   // (une voiture arrêtée : on ne passe pas à travers)
         danger = true;
         touchees.add(w);
       }
@@ -490,8 +516,9 @@ function deciderLigne(pilote, v, vues) {
   // la nouvelle ligne part de sa ligne d'avant, là où il en est (pas de saut) ; s'il en est loin (poussé, sorti,
   // ou au départ), elle part de la voiture : sa place sur la piste et la direction où elle pointe (de/ds)
   let e0, pente0;
-  const ancienne = pilote.ligne, r = ancienne ? ((s0 - ancienne.s0) % L + L) % L : Infinity;
-  if (r < R.IA_HORIZON / 2 && Math.abs(valeurLigne(ancienne.e, r) - v.piste.d) < R.IA_ECART_REPLANIF) {
+  // (r signé : poussé en arrière de quelques centimètres, il est « avant » le début de sa ligne, pas au bout d'un tour)
+  const ancienne = pilote.ligne, r = ancienne ? ecartLeLong(c, s0 - ancienne.s0) : Infinity;
+  if (r >= 0 && r < R.IA_HORIZON / 2 && Math.abs(valeurLigne(ancienne.e, r) - v.piste.d) < R.IA_ECART_REPLANIF) {
     e0 = valeurLigne(ancienne.e, r);
     pente0 = (valeurLigne(ancienne.e, r + pas) - valeurLigne(ancienne.e, r - pas)) / (2 * pas);
   } else {
@@ -521,13 +548,21 @@ function deciderLigne(pilote, v, vues) {
   const a = pilote.attaque, enAttaque = a && a.etat !== 'preparer';
   const essais = enAttaque ? [['attaque', a.cote]] : [['rapide', 0], ['continuer', 0]];
   pilote.depassement = !!enAttaque;
+  // les voitures lentes ou arrêtées qu'il voit (estLente), et les plus proches devant lui (IA_LENTE_NB) : il les contourne
+  const lentes = [];
+  // (seulement devant lui : derrière, une voiture lente qui remonte compte comme une autre, c'est à elle de faire attention)
+  for (const w of vues) { const g = ecartLeLong(c, w.s - s0); w.lente = g > 0 && estLente(pilote, v, w); if (w.lente && g <= R.IA_HORIZON) lentes.push({ w, g }); }
+  lentes.sort((a, b) => a.g - b.g); lentes.length = Math.min(lentes.length, R.IA_LENTE_NB);
   // les lignes de rechange (intérieur, extérieur, garder sa place), seulement sans voiture tout près de lui : à côté
   // d'une autre, il ne fait pas d'écart imprévu, il garde sa ligne (et la priorité règle le reste)
-  const entoure = vues.some(w => Math.abs(ecartLeLong(c, w.s - s0)) < R.LONGUEUR_VOITURE + R.IA_MARGE_LONG && Math.abs(w.d - e0) < R.IA_REFLEXE_COTE);
+  // (une voiture lente devant lui ne l'entoure pas : c'est justement elle qu'il contourne)
+  const entoure = vues.some(w => { const g = ecartLeLong(c, w.s - s0); return !(w.lente && g > 0) && Math.abs(g) < R.LONGUEUR_VOITURE + R.IA_MARGE_LONG && Math.abs(w.d - e0) < R.IA_REFLEXE_COTE; });
   if (entoure && !enAttaque) essais.length = 1;
   // (seul, sans aucune voiture en vue, il n'en a pas besoin : sur 200 m, elles semblent parfois meilleures et lui
   // coûtent jusqu'à 0,8 s au tour)
   if (!enAttaque && !entoure && sens && vues.length) essais.push(['interieur', sens], ['exterieur', -sens]);
+  // une voiture lente devant : les deux lignes qui la contournent, d'un côté ou de l'autre, à IA_LENTE_ECART d'elle
+  if (!enAttaque) for (const l of lentes) essais.push(['eviter', 1, l], ['eviter', -1, l]);
   const finAttaque = enAttaque ? ((carte.virages[a.virage].s + R.IA_ATTAQUE_APRES_SOMMET - s0) % L + L) % L : 0;
   // la priorité, avec les voitures à côté de lui ou dans ses rétroviseurs à moins d'une longueur, jusqu'à la sortie
   // du prochain virage : il ne se décale pas vers elles (au mieux jusqu'à l'écart sûr) ; et si l'une est à hauteur
@@ -544,7 +579,7 @@ function deciderLigne(pilote, v, vues) {
     places.push({ cote, borne, jusque: prochain + R.IA_VIRAGE_LARGEUR });
     // coincé : sa ligne rapide empiète de plus de IA_CEDER_ECART sur la place à laisser, avant la sortie du virage ;
     // deux voitures ne passent pas de front : il cède (piloterIA le fait ralentir derrière elle)
-    if (aHauteur) for (let i = 0; i <= N && i * pas <= prochain + R.IA_VIRAGE_LARGEUR; i++) {
+    if (aHauteur && !w.lente) for (let i = 0; i <= N && i * pas <= prochain + R.IA_VIRAGE_LARGEUR; i++) {
       if ((borne - t.rapide[i]) * cote < -R.IA_CEDER_ECART) { pilote.cede = { id: w.id, duree: 0 }; break; }
     }
     pilote.depassement = true;
@@ -553,15 +588,33 @@ function deciderLigne(pilote, v, vues) {
   // il ne se rabat pas sur elles) ; celle qui arrive de plus loin derrière doit faire attention, pas lui
   // Une voiture déjà devant lui, dans sa file, ne compte pas : derrière elle, c'est sa vitesse qui le garde à distance
   // (piloterIA) ; la note ne doit pas le pousser sur une autre ligne pour l'éviter
-  const voisines = vues.filter(w => { const g = ecartLeLong(c, w.s - s0); return g > -R.IA_VISION_COTE[0] && !(g > R.LONGUEUR_VOITURE && Math.abs(w.d - e0) < ecartSur(v.u)); });
+  // (une voiture lente compte toujours : sa ligne doit la contourner)
+  const voisines = vues.filter(w => { const g = ecartLeLong(c, w.s - s0); return g > -R.IA_VISION_COTE[0] && !(!w.lente && g > R.LONGUEUR_VOITURE && Math.abs(w.d - e0) < ecartSur(v.u)); });
   let meilleure = Infinity, choix = null;
-  for (const [type, cote] of essais) {
-    const cible = t.cible;
+  for (const [type, cote, l] of essais) {
+    const cible = t.cible, lente = l ? l.w : null, gLente = l ? l.g : 0;
+    let penteLigne = pente0;
     for (let i = 0; i <= N; i++) {
       const s = i * pas, r = t.rapide[i];
       let val = r;
       if (type === 'continuer') { const m = Math.max(0, Math.min(1, (s - R.IA_CONTINUER[0]) / (R.IA_CONTINUER[1] - R.IA_CONTINUER[0]))); val = e0 * (1 - m) + r * m; }
       else if (type === 'interieur' || type === 'exterieur') val = r + cote * R.IA_DECALAGE_CANDIDAT;
+      else if (type === 'eviter') {
+        // à IA_LENTE_ECART de la voiture lente, côté cote : il s'y porte sur IA_LENTE_AVANT m (plus, vite : ce qu'il fait en
+        // IA_LENTE_TEMPS), reste à côté jusqu'à IA_LENTE_APRES m derrière elle, puis revient sur sa ligne (IA_DEPASSEMENT_RAMPE)
+        // (tout près d'elle, à l'arrêt derrière : la ligne part de là où il est et s'écarte tout de suite, sans la transition
+        // habituelle, sinon elle passe encore sur elle et il ne repart jamais)
+        // L'écart est atteint une longueur de voiture et IA_MARGE_LONG avant elle (là où une ligne commence à la « toucher ») ;
+        // tout près d'elle, la rampe va de sa place à elle (jamais une marche au départ : la transition repasserait sur elle)
+        const marge = R.LONGUEUR_VOITURE + R.IA_MARGE_LONG, avant = Math.max(R.IA_LENTE_AVANT, Math.max(0, v.u) * R.IA_LENTE_TEMPS);
+        const finRampe = Math.max(gLente - marge, Math.min(gLente, marge));
+        const debut = Math.max(0, finRampe - avant), fin = gLente + R.IA_LENTE_APRES, base = debut > 0 ? r : e0;
+        const m = s < debut ? 0 : s < finRampe ? (s - debut) / (finRampe - debut) : s < fin ? 1 : Math.max(0, 1 - (s - fin) / R.IA_DEPASSEMENT_RAMPE);
+        val = base * (1 - m) + (lente.d + cote * R.IA_LENTE_ECART) * m;
+        // (la ligne part de sa place : elle prend tout de suite la pente de la rampe, pas celle de sa voiture ; à l'arrêt, il
+        // braque sur place, sinon la transition ramenait la ligne sur la voiture)
+        if (debut === 0 && i === 1) penteLigne = (val - e0) / pas;
+      }
       else if (type === 'attaque') {
         // à côté de la voiture attaquée, côté a.cote, jusqu'après le sommet du virage, puis retour à sa ligne
         const m = s <= finAttaque ? 1 : Math.max(0, 1 - (s - finAttaque) / R.IA_DEPASSEMENT_RAMPE);
@@ -575,14 +628,16 @@ function deciderLigne(pilote, v, vues) {
     }
     // la transition : de là où il est (écart e0, pente0) jusqu'à la cible, sans saut. L'écart à la cible
     // s'éteint doucement (Hermite) : la forme de la cible est gardée, même dans un enchaînement de virages
-    const ecart0 = e0 - cible[0], pente = pente0 - (cible[1] - cible[0]) / pas, longueur = iT * pas;
+    const ecart0 = e0 - cible[0], pente = penteLigne - (cible[1] - cible[0]) / pas, longueur = iT * pas;
     for (let i = 0; i < N; i++) {
       if (i >= iT) { t.e[i] = cible[i]; continue; }
       const a = i / iT, a2 = a * a, a3 = a2 * a;
       t.e[i] = cible[i] + (2 * a3 - 3 * a2 + 1) * ecart0 + (a3 - 2 * a2 + a) * longueur * pente;
     }
-    const note = noterLigne(pilote, v, voisines, s0, t, type);
-    if (note < meilleure) { meilleure = note; choix = type; t.meilleurE.set(t.e); t.meilleurV.set(t.vb); }
+    // (le nom d'une ligne « éviter » dit son côté : la prime d'une ligne gardée ne passe pas d'un côté à l'autre)
+    const nom = type === 'eviter' ? (cote > 0 ? 'eviter+' : 'eviter-') + (l === lentes[0] ? '' : '2') : type;
+    const note = noterLigne(pilote, v, voisines, s0, t, nom);
+    if (note < meilleure) { meilleure = note; choix = nom; t.meilleurE.set(t.e); t.meilleurV.set(t.vb); }
   }
   if (!pilote.ligne) pilote.ligne = { s0: 0, e: new Float64Array(N), v: new Float64Array(N) };
   pilote.ligne.s0 = s0;
@@ -695,8 +750,19 @@ function piloterIA(pilote, v, vues, dt) {
   pilote.attente -= dt;
   majAttaque(pilote, v, vues, dt);
   majErreur(pilote, v, vues, dt);
-  let r = pilote.ligne ? ((p.s - pilote.ligne.s0) % L + L) % L : Infinity;
-  if (!pilote.ligne || pilote.attente <= 0 || r > R.IA_HORIZON / 2) {
+  // les voitures lentes devant lui, d'un pas à l'autre : depuis combien de temps chacune roule sous IA_LENTE_PART de la carte,
+  // et sous IA_ARRET_VITESSE (arrêtée ou presque)
+  for (const w of vues) {
+    const devant = ecartLeLong(c, w.s - p.s) > 0, lente = devant && sousLaCarte(pilote.carte, w), arret = devant && w.vitesse < R.IA_ARRET_VITESSE;
+    if (!lente && !arret) { pilote.lentesVues.delete(w.id); continue; }
+    const vue = pilote.lentesVues.get(w.id) || { lente: 0, arret: 0 };
+    vue.lente = lente ? vue.lente + dt : 0; vue.arret = arret ? vue.arret + dt : 0;
+    pilote.lentesVues.set(w.id, vue);
+  }
+  for (const id of pilote.lentesVues.keys()) if (!vues.some(w => w.id === id)) pilote.lentesVues.delete(id);
+  // (r signé : reculé de quelques centimètres, il refait sa ligne au lieu de lire le bout de l'ancienne)
+  let r = pilote.ligne ? ecartLeLong(c, p.s - pilote.ligne.s0) : Infinity;
+  if (!pilote.ligne || pilote.attente <= 0 || r < 0 || r > R.IA_HORIZON / 2) {
     deciderLigne(pilote, v, vues);
     pilote.attente = R.IA_PERIODE_DECISION;
     r = 0;
@@ -720,11 +786,17 @@ function piloterIA(pilote, v, vues, dt) {
     const g = ecartLeLong(c, w.s - p.s);
     if (g <= 0 || (a && a.etat !== 'preparer' && w.id === a.id)) continue;
     // sur sa ligne, ou tout près de son axe (une voiture qui se rabat devant lui) : il reste derrière
-    const surSaLigne = Math.abs(valeurLigne(ligne.e, r + g) - w.d) < ecartSur(v.u);
+    // (une voiture lente ou arrêtée : ni la file ni le couloir ; il la contourne, et seule une ligne qui passe sur elle le
+    // retient. Au pas (sous IA_LENTE_VITESSE_FROLE), il la frôle s'il le faut, à IA_LENTE_SUR : sinon, à l'arrêt derrière elle,
+    // sa ligne ne peut plus s'en écarter et il ne repart jamais. Plus vite, une voiture lente devant lui, de côté à moins de
+    // l'écart sûr et à moins de IA_LENTE_PROCHE, le retient aussi, quoi que dise sa ligne : il n'est pas encore à côté.)
+    const lente = estLente(pilote, v, w), froler = lente && v.u < R.IA_LENTE_VITESSE_FROLE;
+    const surSaLigne = Math.abs(valeurLigne(ligne.e, r + g) - w.d) < (froler ? R.IA_LENTE_SUR : ecartSur(v.u));
+    const dessus = lente && !froler && g < R.IA_LENTE_PROCHE && Math.abs(w.d - p.d) < ecartSur(v.u);
     // hors attaque, on reste à la file : une voiture devant lui, assez près, il la suit, même s'il sort mieux du virage
     // (la seule façon de la passer, c'est l'attaque)
     const aLaFile = g < R.IA_FILE_DISTANCE && Math.abs(w.d - p.d) < R.IA_FILE_COTE;
-    if (!surSaLigne && !aLaFile && Math.abs(w.d - p.d) >= R.IA_VISION_COULOIR) continue;
+    if (lente ? !surSaLigne && !dessus : !surSaLigne && !aLaFile && Math.abs(w.d - p.d) >= R.IA_VISION_COULOIR) continue;
     // en préparant son attaque, il se colle dans le sillage de la voiture attaquée (s'il est bien derrière elle, pas en biais)
     const sillage = a && w.id === a.id && Math.abs(w.d - p.d) < R.ASPIRATION_LARGEUR;
     // au départ (sur la grille, dans sa file), la voiture devant lui est à GRILLE_ESPACEMENT × 2 m : s'il voulait
@@ -747,6 +819,8 @@ function piloterIA(pilote, v, vues, dt) {
     const portee = R.LONGUEUR_VOITURE + R.IA_MARGE_LONG + (g > 0 ? Math.max(0, v.u - w.vitesse) * R.IA_REFLEXE_TEMPS : 0);
     if (g > portee || g < -(R.LONGUEUR_VOITURE + R.IA_MARGE_LONG) || Math.abs(cote) > R.IA_REFLEXE_COTE) continue;
     if (Math.sign(dir) === Math.sign(cote)) dir = 0;
+    // (devant lui, une voiture lente que sa ligne contourne ne le freine pas : sinon il s'arrêterait à côté d'une voiture arrêtée)
+    if (g > 0 && estLente(pilote, v, w) && Math.abs(valeurLigne(ligne.e, r + g) - w.d) >= R.IA_LENTE_SUR) continue;
     if (g > 0) cible = Math.min(cible, w.vitesse - (pilote.cede && pilote.cede.id === w.id ? R.IA_CEDER_FORT : R.IA_CEDER));
   }
   // une erreur en cours : de mauvaises commandes, rien d'autre (même physique)
