@@ -80,6 +80,8 @@ Note du Chef session-5b (2026-10-23) : les lignes 18 à 19b ne s'additionnaient 
 
 ## À essayer par le propriétaire
 
+- **Les pneus et l'arrêt au stand** (tour 26) : `index.html?course=12&ia=9&joueur=1&pneus=1&circuit=technique` : le message te dit quand t'arrêter ; entre dans la voie (80 km/h), arrête-toi dans la zone, pneus neufs ; les IA s'arrêtent aussi. Dire : l'usure se sent ? l'arrêt (4 s) est trop long ? Ton accord = on active les pneus par défaut.
+- **Le tournoi chrono** : « Entre amis » → « Tournoi chrono » : de 2 à 8 joueurs, chacun son tour au clavier.
 - **Passer la télé** (ta demande) : finis une course contre les IA, clique « passer » : « ⏩ En accéléré : encore N voitures », puis le podium avec tout le monde arrivé.
 - **Le mode 2 joueurs complet** : au titre ou au paddock, « Entre amis » → « Écran partagé » : vos noms, couleurs et casques, le circuit, les tours, les IA ; après la course, le score de la rivalité et « Revanche ».
 - **La relève** : après le bilan, « Continuer la dynastie » : ton héritier (prénom, lien, casque proposé depuis le tien) repart d'une petite écurie dans le même monde. Dire : « de Alex » ou « d'Alex » (l'élision n'est pas faite) ?
