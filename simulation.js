@@ -105,7 +105,7 @@ function poserRivalites(e, rivalites) {
 // l'arrêt au stand des IA (étape 7) : en course de 12 et 18 tours (arretObligatoire), chaque IA choisit le tour de son arrêt,
 // avec sa propre graine (GRAINE_STANDS) : la moitié de la course, plus tard pour qui ménage ses pneus (gestionPneus), un peu de
 // hasard ; entre STAND_TOUR_MIN et nbTours − 2 (jamais au dernier tour) ; deux pilotes de la même écurie (deux par écurie, dans
-// l'ordre de la course) pas au même tour. pilote.standTour, null sans arrêt.
+// l'ordre de la course) à deux tours d'écart au moins (jamais au même tour). pilote.standTour, null sans arrêt.
 function strategieStands(e) {
   const R = REGLAGES;
   if (!R.PNEUS_ACTIFS || !e.circuit.stands || !arretObligatoire(e.nbTours)) return;
@@ -116,7 +116,9 @@ function strategieStands(e) {
     const part = R.STAND_PART + R.STAND_PART_GESTION * (p.pilote.caractere.gestionPneus - 0.5) + R.STAND_PART_HASARD * (2 * hasard() - 1);
     let tour = Math.max(R.STAND_TOUR_MIN, Math.min(max, Math.round(e.nbTours * part)));
     const equipier = k % 2 === 1 ? e.pilotes[k - 1] : null;
-    if (equipier && equipier.pilote && equipier.pilote.standTour === tour) tour = tour < max ? tour + 1 : tour - 1;
+    // (à deux tours au moins de son équipier : une voiture qui s'arrête juste après la ligne le fait au tour suivant)
+    const te = equipier && equipier.pilote ? equipier.pilote.standTour : null;
+    if (te && Math.abs(tour - te) < 2) tour = te + 2 <= max ? te + 2 : te - 2 >= R.STAND_TOUR_MIN ? te - 2 : tour;
     p.pilote.standTour = tour;
   });
   ALEATOIRE.semer();

@@ -566,12 +566,12 @@ def stand_ecran(pg, titre):
         if pg.evaluate('() => !!JEU.course.arretEnCours'): arrete = True; break
     pg.wait_for_timeout(500)
     texte = pg.evaluate('() => document.getElementById("hudStand").textContent')
-    t(f'{titre} : le robot entre dans la voie et s’arrête dans la zone ; le message « Arrêt au stand… » pendant l’arrêt', arrete and 'Arrêt au stand' in texte and pg.evaluate('() => JEU.joueur.dansStands && JEU.joueur.u === 0'), texte)
+    t(f'{titre} : le robot entre dans la voie et s’arrête dans la zone ; le message « Arrêt au stand… x,x s » pendant l’arrêt', arrete and re.fullmatch(r'Arrêt au stand… \d,\d s', texte) is not None and pg.evaluate('() => JEU.joueur.dansStands && JEU.joueur.u === 0'), texte)
     pg.screenshot(path=os.path.join(CAPTURES, 'stand.png'))
     for _ in range(40):
         pg.evaluate('() => BOUCLE.simuler(1)')
         if pg.evaluate('() => JEU.course.arrets.length === 1'): break
-    pg.wait_for_timeout(300)
+    attendre(pg, '() => /Pneus neufs/.test(document.getElementById("hudStand").textContent)', None, 2000)   # (l'affichage suit à l'image suivante)
     neufs = pg.evaluate('() => [JEU.course.arrets.length, JEU.joueur.pneus.usure, document.getElementById("hudStand").textContent, JEU.course.penalites]')
     t(f'{titre} : il repart avec des pneus neufs (« Pneus neufs ! »), sans pénalité', neufs[0] == 1 and neufs[1] < 0.05 and 'Pneus neufs' in neufs[2] and neufs[3] == 0, str(neufs))
     for _ in range(20):

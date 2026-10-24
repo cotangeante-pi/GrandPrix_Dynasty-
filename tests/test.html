@@ -591,12 +591,12 @@ t('arrêt au stand : sans arrêt, une course de 12 ou 18 tours prend PENALITE_SA
   const r={c5:finir(5,0,true),c12:finir(12,0,true),c18:finir(18,0,true),c12arret:finir(12,1,true),c18arret:finir(18,1,true),c12sans:finir(12,0,false)};
   L.push('  (pénalité sans arrêt : '+JSON.stringify(r)+')');
   v(r.c5===0&&r.c12===30&&r.c18===30&&r.c12arret===0&&r.c18arret===0&&r.c12sans===0,JSON.stringify(r));});
-t('arrêt au stand : la stratégie des IA (graine à part) : en 12 et 18 tours, chacune choisit un tour entre STAND_TOUR_MIN et l’avant-dernier moins un, deux pilotes de la même écurie jamais au même tour, des tours variés ; aucun arrêt prévu en 5 tours ni sans PNEUS_ACTIFS ; les autres tirages (caractères, styles) ne bougent pas', ()=>{
+t('arrêt au stand : la stratégie des IA (graine à part) : en 12 et 18 tours, chacune choisit un tour entre STAND_TOUR_MIN et l’avant-dernier moins un, deux pilotes de la même écurie à deux tours d’écart au moins, des tours variés ; aucun arrêt prévu en 5 tours ni sans PNEUS_ACTIFS ; les autres tirages (caractères, styles) ne bougent pas', ()=>{
   const R_=REGLAGES,tours=e=>e.pilotes.map(p_=>p_.pilote.standTour);
   const e12=avecPneus(()=>creerCourseIA(C,20,12,3,CARTES_T.test)),e18=avecPneus(()=>creerCourseIA(C,20,18,3,CARTES_T.test)),e5=avecPneus(()=>creerCourseIA(C,20,5,3,CARTES_T.test)),sans=creerCourseIA(C,20,12,3,CARTES_T.test);
   L.push('  (stratégie, 20 IA, graine 3 : 12 tours '+tours(e12).join(',')+' ; 18 tours '+tours(e18).join(',')+')');
   for(const [e,n] of [[e12,12],[e18,18]]){const t_=tours(e);v(t_.every(x=>x>=R_.STAND_TOUR_MIN&&x<=n-2),n+' : '+t_);v(new Set(t_).size>=3,'pas variés '+t_);
-    for(let k=1;k<t_.length;k+=2)v(t_[k]!==t_[k-1],'même écurie '+k);}
+    for(let k=1;k<t_.length;k+=2)v(Math.abs(t_[k]-t_[k-1])>=2,'même écurie '+k);}
   v(tours(e5).every(x=>!x)&&tours(sans).every(x=>!x),'arrêt prévu en 5 tours ou sans pneus');
   v(e12.pilotes.every((p_,k)=>p_.pilote.caractere.agressivite===sans.pilotes[k].pilote.caractere.agressivite&&p_.pilote.style.apex===sans.pilotes[k].pilote.style.apex),'tirages décalés');});
 t('arrêt au stand : une IA seule, 12 tours sur le technique : elle va aux stands à son tour, s’y arrête une fois (pneus neufs), sans dépasser la limite, sans toucher le muret ni la barrière, sans herbe ; son tour d’arrêt coûte le temps de la voie et de l’arrêt', ()=>{
