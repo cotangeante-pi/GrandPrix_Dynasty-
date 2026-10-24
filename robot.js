@@ -24,10 +24,10 @@ function piloteRobot(v, circuit, vitesseCible) {
     const i0 = p.indice, n = Math.ceil(R.ROBOT_REGARD / circuit.pas);
     for (let k = 0; k < n; k++) {
       const i = (i0 + k) % circuit.nb;
-      const vMax = vitesseVirage(circuit.courbure[i]) * R.ROBOT_MARGE_VIRAGE;
+      const vMax = vitesseVirage(circuit.courbure[i], R.ADHERENCE * (v.aero || 1)) * R.ROBOT_MARGE_VIRAGE;   // × 1 sans garage : pareil
       if (vMax === Infinity) continue;
       const distance = k * circuit.pas;
-      cible = Math.min(cible, Math.sqrt(vMax * vMax + 2 * R.ROBOT_DECELERATION * distance));
+      cible = Math.min(cible, Math.sqrt(vMax * vMax + 2 * R.ROBOT_DECELERATION * (v.freins || 1) * distance));   // de meilleurs freins (garage) : il freine plus tard
     }
   }
   const ecart = cible - v.u;

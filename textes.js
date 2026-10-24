@@ -111,6 +111,14 @@ const TEXTES = {
     brevePole: ['Pole position at {circuit} for {pilote}.', '{pilote} started from pole at {circuit}.'],
     breveLeader: ['Championship: {pilote} leads with {points} points.', '{pilote} tops the standings, {points} points.'],
     breveChasseur: ['Chasing: {pilote} is {ecart} points behind the leader.', '{pilote}, {ecart} points back, is not giving up.'],
+    // l'argent et le garage (argent.js, garage.js, Codeur 3)
+    milliers: ',', montant: '€{n}',   // le séparateur des milliers et la forme d'un montant (« €12,500 »)
+    argentGagne: 'Prize money: +{n}', argentPlace: 'P{p}: {n}', argentMeilleurTour: 'fastest lap: {n}', argentPlacesGagnees: '{p} places gained: {n}',
+    argentDuel: 'teammate beaten: {n}', argentPlafond: 'capped at {n}', solde: 'Balance: {n}',
+    garage: 'Garage', garageTitre: 'Garage', garageNiveau: 'level {a} / {b}', garageAcheter: 'Buy', garageMax: 'Max', garageRetour: 'Back',
+    garageBonus: 'Car: +{a} % / {b} % max', garageRefusArgent: 'not enough money',
+    garage_roues: 'Wheel changers', garage_moteur: 'Engine', garage_aero: 'Aero', garage_freins: 'Brakes',
+    garageEffet_roues: 'faster pit stops (later)', garageEffet_moteur: 'top speed', garageEffet_aero: 'grip', garageEffet_freins: 'braking',
   },
   fr: {
     nomDuJeu: 'Grand Prix Dynasty',
@@ -214,6 +222,14 @@ const TEXTES = {
     brevePole: ['Pole position à {circuit} pour {pilote}.', '{pilote} partait de la pole à {circuit}.'],
     breveLeader: ['Championnat : {pilote} en tête avec {points} points.', '{pilote} domine le classement, {points} points.'],
     breveChasseur: ['À la poursuite : {pilote} à {ecart} points du leader.', '{pilote}, à {ecart} points, ne lâche rien.'],
+    // l'argent et le garage (argent.js, garage.js, Codeur 3)
+    milliers: '\u202f', montant: '{n} €',   // l'espace fine insécable des milliers (« 12 500 € »)
+    argentGagne: 'Gains : +{n}', argentPlace: 'P{p} : {n}', argentMeilleurTour: 'meilleur tour : {n}', argentPlacesGagnees: '{p} places gagnées : {n}',
+    argentDuel: 'coéquipier battu : {n}', argentPlafond: 'plafonné à {n}', solde: 'Solde : {n}',
+    garage: 'Garage', garageTitre: 'Garage', garageNiveau: 'niveau {a} / {b}', garageAcheter: 'Acheter', garageMax: 'Maxi', garageRetour: 'Retour',
+    garageBonus: 'Voiture : +{a} % / {b} % maxi', garageRefusArgent: 'pas assez d’argent',
+    garage_roues: 'Changeurs de roues', garage_moteur: 'Moteur', garage_aero: 'Aéro', garage_freins: 'Freins',
+    garageEffet_roues: 'arrêt au stand plus court (plus tard)', garageEffet_moteur: 'vitesse de pointe', garageEffet_aero: 'adhérence', garageEffet_freins: 'freinage',
   },
 };
 

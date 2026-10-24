@@ -151,6 +151,8 @@ const CHAMPIONNAT = (function () {
   function completer(ch) {
     if (ch.pilotes) duelDe(ch);   // (une sauvegarde de test peut n'avoir que des pilotes)
     if (!ch.album) ch.album = [];   // l'album des unes du journal (journal.js) : vide dans une sauvegarde d'avant
+    if (typeof ARGENT !== 'undefined') ARGENT.completer(ch);   // le solde et les gains (argent.js) : 0 dans une sauvegarde d'avant
+    if (typeof GARAGE !== 'undefined') GARAGE.completer(ch);   // les niveaux du garage (garage.js) : 0 dans une sauvegarde d'avant
     return ch;
   }
 
@@ -158,6 +160,7 @@ const CHAMPIONNAT = (function () {
   function finirGrandPrix(ch, lignes) {
     enregistrerCourse(ch, lignes);
     if (typeof JOURNAL !== 'undefined') JOURNAL.ranger(ch, JOURNAL.composer(ch, lignes));   // la une du journal (journal.js), dans l'album du championnat
+    if (typeof ARGENT !== 'undefined') ARGENT.encaisser(ch, lignes);   // les gains du Grand Prix (argent.js), au solde
     SAUVEGARDE.ecrireChampionnat(ch);
     return ch;
   }

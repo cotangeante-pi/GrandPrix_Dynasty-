@@ -89,11 +89,21 @@
   <h1 id="championnatTitre"></h1>
   <p id="championnatGagne"></p>
   <p id="championnatDuel"></p>
+  <p id="championnatArgent"></p>
   <div id="championnatTableaux">
     <div><h2 id="championnatPilotesTitre"></h2><ol id="championnatPilotes"></ol></div>
     <div><h2 id="championnatEcuriesTitre"></h2><ol id="championnatEcuries"></ol></div>
   </div>
-  <div class="boutons"><button id="boutonCourseSuivante" tabindex="-1"></button></div>
+  <div class="boutons"><button id="boutonCourseSuivante" tabindex="-1"></button><button id="boutonGarage" tabindex="-1"></button></div>
+</section>
+
+<!-- ?championnat=1 : le garage (garage.js, argent.js) : 4 améliorations, depuis l'écran du championnat (Codeur 3) -->
+<section id="garage" class="ecran cache">
+  <h1 id="garageTitre"></h1>
+  <p id="garageSolde"></p>
+  <p id="garageBonus"></p>
+  <ul id="garageListe"></ul>
+  <div class="boutons"><button id="boutonGarageRetour" tabindex="-1"></button></div>
 </section>
 
 <!-- ?championnat=1 : la une du journal (journal.js), après les résultats ; un clic ou une touche la passe (Codeur 3) -->
@@ -129,6 +139,7 @@
 <section id="resultats" class="ecran cache">
   <h1 id="resultatsTitre"></h1>
   <table id="resultatsTable"><thead><tr id="resultatsEntete"></tr></thead><tbody id="resultatsLignes"></tbody></table>
+  <p id="resultatsArgent"></p>
   <div class="boutons"><button id="boutonRejouerResultats" tabindex="-1"></button><button id="boutonChangerResultats" tabindex="-1"></button></div>
 </section>
 
@@ -162,6 +173,8 @@
 <script src="decouverte.js"></script>
 <script src="pilote.js"></script>
 <script src="journal.js"></script>
+<script src="argent.js"></script>
+<script src="garage.js"></script>
 <script src="sdk.js"></script>
 <script src="pneus-donnees.js"></script>
 <script src="pneus.js"></script>
