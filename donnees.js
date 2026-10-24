@@ -121,6 +121,12 @@ const REGLAGES = {
   ARRIVEE_ACCELERE: 100,        // « passer » la vue télé : le reste de la course joué 100 fois plus vite (les mêmes pas de physique, sans les dessiner)…
   ARRIVEE_TRANCHE_MS: 40,       // … au plus ce temps de calcul par image (la page n'est jamais bloquée), l'horloge relue tous les…
   ARRIVEE_PAS_CONTROLE: 12,     // … ce nombre de pas
+  // en accéléré, le podium attend que tout le monde ait fini (pas ARRIVEE_ATTENTE_MAX, qui reste pour la vue télé regardée) ; seule une voiture
+  // vraiment bloquée (moins de ARRIVEE_BLOQUEE_DISTANCE m en ARRIVEE_BLOQUEE s de course) est classée dans l'ordre de course, et un plafond
+  // de temps réel protège la page
+  ARRIVEE_BLOQUEE: 20,          // s de course
+  ARRIVEE_BLOQUEE_DISTANCE: 5,  // m
+  ARRIVEE_ACCELERE_MAX_REEL: 30, // s réelles au plus après le clic sur « passer »
   ARRIVEE_BAGARRE: 15,          // m : deux voitures plus proches que ça se bagarrent (la caméra télé les préfère)
   ARRET_APRES_ARRIVEE: 0.3,     // m/s : après l'arrivée, la voiture freine seule jusque-là, puis roule jusqu'à l'arrêt
 

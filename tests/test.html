@@ -1889,6 +1889,25 @@ t('passer en accéléré : une course de 8 IA (2 tours) finie en regardant (2 pa
   const r=ARRIVEE.accelerer(e,()=>pasCourseIA(e,DT),1e6,5,0,()=>(h+=1));v(r.pas===5*R.ARRIVEE_PAS_CONTROLE&&!r.pret,'coupe : '+JSON.stringify(r));
   L.push('  (8 IA, 2 tours : fin en regardant '+a.images+' images de 2 pas, en accéléré '+b.images+' images ('+b.pasAccel+' pas) ; classement identique au bit près)');});
 
+t('passer en accéléré : le podium attend que tout le monde ait fini (même au-delà d’ARRIVEE_ATTENTE_MAX) ; une voiture immobilisée exprès est classée dans l’ordre de course après ARRIVEE_BLOQUEE s de course sans avancer', ()=>{
+  const R=REGLAGES,e=creerCourseIA(C,5,2,5,CARTES_T.test);let k=0;
+  while(!e.pilotes.some(p=>p.arrivee!==null)&&k++<400*120)pasCourseIA(e,DT);
+  const arrivee=e.pilotes.find(p=>p.arrivee!==null).arrivee,lente=e.pilotes.find(p=>p.arrivee===null);
+  // la dernière voiture encore en course est immobilisée (posée à sa place à chaque pas)
+  const x0=lente.v.x,z0=lente.v.z,cap0=lente.v.cap,bloquer=()=>{lente.v.x=x0;lente.v.z=z0;lente.v.cap=cap0;lente.v.u=0;lente.v.v=0;lente.v.r=0;};
+  const suivi=ARRIVEE.creerSuivi(e),debut=e.temps;let r={pret:false},images=0;
+  while(!r.pret&&images++<5000)r=ARRIVEE.accelerer(e,()=>{pasCourseIA(e,DT);bloquer();},200,1e9,arrivee,()=>0,suivi);
+  v(r.pret,'jamais prêt');
+  v(e.pilotes.every(p=>p===lente||p.arrivee!==null),'les autres ne sont pas toutes arrivées : '+e.pilotes.map(p=>p.arrivee));
+  v(lente.arrivee===null&&e.temps-debut>=R.ARRIVEE_BLOQUEE-1e-9,'la bloquée : '+[lente.arrivee,(e.temps-debut).toFixed(1)]);
+  const f=classementFinal(e);v(f.length===e.pilotes.length&&f[f.length-1].k===e.pilotes.indexOf(lente),'classée dernière');
+  // sans voiture bloquée : la course de 2 tours finit bien après ARRIVEE_ATTENTE_MAX (la première arrivée), et tout le monde arrive
+  const e2=creerCourseIA(C,5,2,5,CARTES_T.test);k=0;while(!e2.pilotes.some(p=>p.arrivee!==null)&&k++<400*120)pasCourseIA(e2,DT);
+  const s2=ARRIVEE.creerSuivi(e2),a2=e2.pilotes.find(p=>p.arrivee!==null).arrivee;r={pret:false};images=0;
+  while(!r.pret&&images++<5000)r=ARRIVEE.accelerer(e2,()=>pasCourseIA(e2,DT),200,1e9,a2,()=>0,s2);
+  v(r.pret&&e2.pilotes.every(p=>p.arrivee!==null),'pas toutes arrivées');
+  L.push('  (accéléré : voiture immobilisée classée après '+(e.temps-debut).toFixed(1)+' s de course ; sans elle, la dernière arrive '+(Math.max(...e2.pilotes.map(p=>p.arrivee))-a2).toFixed(1)+' s après la première)');});
+
 // --- le tournoi chrono entre copains (tournoi.js, tour 26b)
 const TJ=n=>[...Array(n)].map((x,i)=>({prenom:['Léo','Sarah','Tom','Inès','Max','Zoé','Noa','Lina','Hugo'][i]}));
 const TDEF=i=>'Joueur '+(i+1);
