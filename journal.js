@@ -183,7 +183,7 @@ const JOURNAL = (function () {
 
   // remplace {cle} par p[cle], en texte
   function remplir(t, p, ch, noms) {
-    return t.replace(/\{(\w+)\}/g, (m, cle) => p[cle] !== undefined ? enTexte(cle, p[cle], ch, noms) : m);
+    return elider(t.replace(/\{(\w+)\}/g, (m, cle) => p[cle] !== undefined ? enTexte(cle, p[cle], ch, noms) : m));   // (« d’Alex » : textes.js, elider)
   }
 
   // la une en phrases, dans la langue du jeu : { nom (du journal), grandPrix, circuit, titre, texte, breves, classement

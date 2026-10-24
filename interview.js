@@ -137,13 +137,13 @@ const INTERVIEW = (function () {
     const nomPilote = noms && noms.pilote ? noms.pilote : (p => p.nom || (p.humain ? texte('nomJoueur') : texte('pilote').replace('{n}', p.numero)));
     let t = texte(cle);
     if (Array.isArray(t)) t = t[Math.min(variante || 0, t.length - 1)];
-    return String(t).replace(/\{(\w+)\}/g, (m, k) => {
+    return elider(String(t).replace(/\{(\w+)\}/g, (m, k) => {
       const x = params ? params[k] : undefined;
       if (x === undefined || x === null) return m;
       if (k === 'pilote' || k === 'rival' || k === 'coequipier') return nomPilote(ch.pilotes[x]);
       if (k === 'circuit') return texte('circuit_' + x) || (CIRCUITS[x] ? CIRCUITS[x].nom : x);
       return String(x);
-    });
+    }));   // (« d’Alex » : textes.js, elider)
   }
 
   // les clés de texte que l'interview demande (tests : toutes dans les deux langues)
