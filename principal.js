@@ -115,6 +115,7 @@ function lancerCourse(nbTours) {
     // ?championnat=1 : le niveau de l'écurie sur le rythme de chaque IA, avant que la carte leur donne un pilote
     JEU.plateau = creerCourseIA(CIRCUIT, JEU.ia, nbTours, Number(PARAMETRES.get('graine')) || 1, JEU.championnat ? null : JEU.carte, JEU.contre);
     if (JEU.championnat) { CHAMPIONNAT.appliquerNiveaux(JEU.championnat, JEU.plateau); if (JEU.carte) donnerCarte(JEU.plateau, JEU.carte); }
+    if (JEU.championnat) poserRivalites(JEU.plateau, JEU.championnat.pilotes.map(q => !!(q && q.rivalite)));   // les rivaux de l'interview (ia.js, Codeur 1)
     suivre(JEU.contre ? JEU.ia : 0);   // contre les IA : la caméra suit le joueur
     appliquerCaracteres();
     if (JEU.contre) armerFeux(JEU.plateau.pilotes, Number(PARAMETRES.get('graine')) || 1);   // les feux de départ
@@ -1045,6 +1046,7 @@ function montrerPodium() {
   INTERFACE.remplirResultats(JEU.final.map(x => ({
     place: x.place, numero: numeroDe(x.k), couleur: JEU.couleurs[x.k], total: x.total, penalites: x.penalites,
     ecart: x.ecart, grille: x.grille, moi: x.k === JEU.suivie || !!joueurDe(x.k), casque: casqueDe(x.k), nom: nomDe(x.k),
+    arrets: x.arrets,   // les tours de ses arrêts au stand (étape 7, Codeur 1)
   })));
   INTERFACE.remplirPodiumDeux(JEU.deux ? DEUX_JOUEURS.joueurs(e).map(p => { const k = P.indexOf(p); return { nom: nomDe(k), place: JEU.final.find(x => x.k === k).place }; }) : null);
   INTERFACE.remplirRivalite(JEU.deux ? noterRivaliteDeux() : null);
@@ -1250,6 +1252,7 @@ function majClassementRadar() {
   INTERFACE.majClassement(ordre ? ordre.map(x => ({
     numero: numeroDe(x.k), couleur: JEU.couleurs[x.k], ecart: x.ecart, tours: x.tours, penalites: x.penalites, moi: x.k === JEU.suivie || (!!JEU.deux && !!P[x.k].joueur), casque: casqueDe(x.k),
     arrive: P[x.k].arrivee !== null, coequipier: x.k === kc, ecartDuel: x.k === kc ? duel : null,
+    stand: x.stand,   // dans la voie des stands (étape 7, Codeur 1)
   })) : null);
   const autres = [];
   P.forEach((p, k) => { if (k !== JEU.suivie && p.arrivee === null) autres.push({ x: p.v.x, z: p.v.z, couleur: JEU.couleurs[k] }); });

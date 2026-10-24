@@ -69,6 +69,7 @@ const GARAGE = (function () {
     const f = g ? facteurs(g) : { moteur: 1, aero: 1, freins: 1 };
     const n = R.NIVEAU_JOUEUR_ACTIF && typeof niveau === 'number' && niveau > 0 ? niveau : 1;
     v.moteur = f.moteur * n; v.aero = f.aero * n; v.freins = f.freins * n;
+    v.changeurs = g ? g.roues || 0 : 0;   // les changeurs de roues : l'arrêt au stand plus court (étape 7, course.js : dureeArret)
     return { moteur: v.moteur, aero: v.aero, freins: v.freins, niveau: n };
   }
 

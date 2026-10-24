@@ -51,7 +51,7 @@ const INTERFACE = (function () {
     $('une').classList.toggle('album', ecran === 'album');
     // le bandeau de course n'est là que pendant la course et la pause (pas sous l'écran de fin)
     const course = ecran === 'course' || ecran === 'pause';
-    for (const id of ['hudCourse', 'hudPenalite', 'compte', 'feux', 'classement', 'radar', 'jauge', 'departResultat', 'aides', 'feux2', 'jauge2', 'departResultat2', 'deuxHaut', 'deuxBas', 'deuxSeparation']) if (!course) $(id).classList.add('cache');
+    for (const id of ['hudCourse', 'hudPenalite', 'hudStand', 'compte', 'feux', 'classement', 'radar', 'jauge', 'departResultat', 'aides', 'feux2', 'jauge2', 'departResultat2', 'deuxHaut', 'deuxBas', 'deuxSeparation']) if (!course) $(id).classList.add('cache');
     if (course) $('hudCourse').classList.remove('cache');
   }
 
@@ -85,6 +85,25 @@ const INTERFACE = (function () {
     const faux = c.fauxDepart && (c.etat === 'compte' || c.temps < 4);   // le faux départ, affiché jusqu'à 4 s après le départ
     $('hudPenalite').classList.toggle('cache', !recente && !faux);
     $('hudPenalite').textContent = recente ? texte('penalite').replace('{s}', REGLAGES.PENALITE_COUPE) : texte('fauxDepart').replace('{s}', REGLAGES.PENALITE_FAUX_DEPART);
+    majStand(c);
+  }
+
+  // l'arrêt au stand (étape 7, course.js : c.arrets, c.arretEnCours, c.arretConseille) : pendant l'arrêt, le temps qui reste ;
+  // juste après, « pneus neufs » ; avant son arrêt obligatoire, le tour conseillé (au départ, puis à partir du tour d'avant)
+  function messageStand(c) {
+    if (!c.arrets || c.etat !== 'course') return null;
+    const v = n => secondes(n.toFixed(1));
+    if (c.arretEnCours) return texte('standEnCours').replace('{s}', v(Math.max(0, c.arretEnCours.reste)));
+    const dernier = c.arrets[c.arrets.length - 1];
+    if (dernier && c.temps - c.arretFin < 3) return texte('standFait').replace('{s}', v(dernier.duree));
+    if (c.arretConseille && !c.arrets.length && (c.temps < 6 || c.tours.length + 2 >= c.arretConseille))
+      return texte('standConseille').replace('{t}', c.arretConseille).replace('{s}', REGLAGES_PNEUS.PENALITE_SANS_ARRET);
+    return null;
+  }
+  function majStand(c) {
+    const m = messageStand(c);
+    $('hudStand').classList.toggle('cache', !m);
+    if (m) $('hudStand').textContent = m;
   }
 
   // l'écart au pilote devant : « +0,8 s », ou « +1 tour » s'il a un tour de retard ; rien pour le premier
@@ -127,6 +146,8 @@ const INTERFACE = (function () {
       li.children[0].textContent = i + 1;
       // une voiture pénalisée porte ses pénalités (« ✂ +15 s ») : elles sont déjà comptées dans sa place et son écart
       li.children[3].textContent = l.penalites > 0 ? '✂ +' + secondes(l.penalites) : '';
+      if (l.stand) li.children[3].textContent = texte('standTour');   // dans la voie des stands (étape 7)
+      li.children[3].classList.toggle('stand', !!l.stand);
       li.children[4].textContent = formatEcart(l);
       marquerCoequipier(li, l);
     });
@@ -269,7 +290,9 @@ const INTERFACE = (function () {
       const ecart = l.ecart === null || l.place === 1 ? '' : '+' + secondes(l.ecart.toFixed(3));
       // sa place sur la grille, et les places gagnées (▲) ou perdues (▼) depuis
       const gagne = l.grille - l.place, grille = l.grille + ' ' + (gagne > 0 ? '▲' + gagne : gagne < 0 ? '▼' + -gagne : '=');
-      for (const contenu of [String(l.place), numero, l.total === null ? texte('enCourse') : formatTemps(l.total), penalite(l.penalites), ecart, grille]) {
+      // (le tour de ses arrêts au stand, étape 7, à côté des pénalités)
+      const arrets = l.arrets && l.arrets.length ? ' · ' + l.arrets.map(t => texte('resultatArret').replace('{t}', t)).join(' · ') : '';
+      for (const contenu of [String(l.place), numero, l.total === null ? texte('enCourse') : formatTemps(l.total), penalite(l.penalites) + arrets, ecart, grille]) {
         const td = document.createElement('td');
         td.append(contenu);
         tr.appendChild(td);

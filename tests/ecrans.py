@@ -39,7 +39,8 @@ PAGES = [
     ('index.html?championnat=1&tours=1&robot=1', 1280, 720, None),   # 2 Grands Prix joués par le robot, rechargement, capture championnat.png   # une course d'un tour, jusqu'au podium et aux résultats
     ('index.html?course=1&ia=8&circuit=test', 960, 600, None),
     ('index.html?course=1&robot=1&test=sdk', 1280, 720, None),   # le faux SDK Poki (sdk.js) : l'ordre des appels sur une course d'un tour
-    ('index.html?course=0&robot=1&pneus=1&debug=1', 1280, 720, None),   # ?pneus=1 : l'usure monte sur 10 tours du robot, affichée dans ?debug=1
+    ('index.html?course=0&robot=1&pneus=1&debug=1', 1280, 720, None),
+    ('index.html?course=12&robot=1&pneus=1&circuit=test&test=stand', 1280, 720, None),   # l'arrêt au stand (étape 7) : le message, le robot entre dans la voie, s'arrête, ressort ; capture stand.png   # ?pneus=1 : l'usure monte sur 10 tours du robot, affichée dans ?debug=1
     ('index.html?championnat=1&tours=1&robot=1&gp=12', 1280, 720, None),   # la fin de saison : le 12e Grand Prix joué par le robot, champion, duel de la saison, contrats, saison 2 ; captures champion.png, duel-saison.png, contrats.png
     ('index.html?championnat=1&tours=1&robot=1&gp=12', 960, 600, None),    # les écrans de fin de saison en petit (Grand Prix 12 fabriqué), la retraite
     ('index.html?championnat=1&tours=1&robot=1&lang=en', 1280, 720, None),   # la page en anglais : championnat et podium sans un mot français, capture championnat-en.png
@@ -550,6 +551,37 @@ def pneus(pg, titre):
     t(f'{titre} : en 10 tours du robot (essai libre), l’usure monte à chaque tour et l’adhérence baisse', monte and releves[-1][0] >= 9 and 0 < releves[-1][1] <= 1 and releves[-1][2] < 1, str(releves))
     L.append(f'  (?pneus=1, robot : après {releves[-1][0]} tours, usure {releves[-1][1]:.2f}, adhérence × {releves[-1][2]:.3f})')
     t(f'{titre} : ?debug=1 affiche l’usure des pneus', attendre(pg, '() => /pneus \\d+ %/.test(document.getElementById("ips").textContent)'), pg.evaluate('() => document.getElementById("ips").textContent'))
+
+# l'arrêt au stand (étape 7, ?pneus=1, course de 12 tours, le robot) : le message du tour conseillé au départ ; le robot va aux stands
+# (v.versStands, robot.js), s'arrête dans la zone (capture stand.png pendant l'arrêt, le message « Arrêt au stand… »), repart avec des
+# pneus neufs, « Pneus neufs ! », sans pénalité ; son tour compte
+def stand_ecran(pg, titre):
+    attendre(pg, '() => typeof JEU !== "undefined" && !!JEU.course && !!JEU.joueur.pneus', None, 30000)
+    pg.evaluate('() => { JEU.course.compte = 0.01; }')
+    attendre(pg, '() => JEU.course.etat === "course"', None, 20000)
+    conseil = attendre(pg, '() => !document.getElementById("hudStand").classList.contains("cache") && /tour 6 conseillé/.test(document.getElementById("hudStand").textContent)', None, 10000)
+    t(f'{titre} : au départ, le message « Arrêt au stand obligatoire : tour 6 conseillé »', conseil, pg.evaluate('() => document.getElementById("hudStand").textContent'))
+    pg.evaluate('() => { BOUCLE.simuler(3); JEU.joueur.pneus.usure = 0.5; JEU.joueur.versStands = true; }')
+    arrete = False
+    for _ in range(60):
+        pg.evaluate('() => BOUCLE.simuler(2)')
+        if pg.evaluate('() => !!JEU.course.arretEnCours'): arrete = True; break
+    attendre(pg, '() => /^Arrêt au stand… \\d,\\d s$/.test(document.getElementById("hudStand").textContent)', None, 3000)   # (l'affichage suit à l'image suivante)
+    texte = pg.evaluate('() => document.getElementById("hudStand").textContent')
+    t(f'{titre} : le robot entre dans la voie et s’arrête dans la zone ; le message « Arrêt au stand… x,x s » pendant l’arrêt', arrete and re.fullmatch(r'Arrêt au stand… \d,\d s', texte) is not None and pg.evaluate('() => JEU.joueur.dansStands && JEU.joueur.u === 0'), texte)
+    pg.screenshot(path=os.path.join(CAPTURES, 'stand.png'))
+    for _ in range(40):
+        pg.evaluate('() => BOUCLE.simuler(1)')
+        if pg.evaluate('() => JEU.course.arrets.length === 1'): break
+    attendre(pg, '() => /Pneus neufs/.test(document.getElementById("hudStand").textContent)', None, 2000)   # (l'affichage suit à l'image suivante)
+    neufs = pg.evaluate('() => [JEU.course.arrets.length, JEU.joueur.pneus.usure, document.getElementById("hudStand").textContent, JEU.course.penalites]')
+    t(f'{titre} : il repart avec des pneus neufs (« Pneus neufs ! »), sans pénalité', neufs[0] == 1 and neufs[1] < 0.05 and 'Pneus neufs' in neufs[2] and neufs[3] == 0, str(neufs))
+    for _ in range(20):
+        pg.evaluate('() => BOUCLE.simuler(2)')
+        if pg.evaluate('() => !JEU.joueur.versStands'): break
+    fin = pg.evaluate('() => [JEU.joueur.versStands, JEU.joueur.dansStands, JEU.course.tours.length, JEU.joueur.contactsMurStands, JEU.course.penalites]')
+    t(f'{titre} : il ressort sur la piste, sans toucher le muret, et son tour compte', fin[0] is False and fin[1] is False and fin[2] >= 1 and fin[3] == 0 and fin[4] == 0, str(fin))
+    L.append(f'  (arrêt au stand dans la page : arrêts {pg.evaluate("() => JSON.stringify(JEU.course.arrets)")}, tours {fin[2]})')
 
 # ?lang=en : la page en anglais : lang et title remplis au démarrage, puis le classement du championnat, le podium et les
 # résultats sans un mot français (les 11 textes en dur de l'audit) ; le robot joue le Grand Prix 1 (un tour)
@@ -1693,8 +1725,10 @@ with sync_playwright() as p:
                 amis(pg, titre, l, h)
             if 'test=tournoi' in page:
                 tournoi(pg, titre, l, h)
-            if 'pneus=1' in page:
+            if 'pneus=1' in page and 'test=stand' not in page:
                 pneus(pg, titre)
+            if 'test=stand' in page:
+                stand_ecran(pg, titre)
             if re.search(r'[?&]ia=1(&|$)', page):
                 course_ia(pg, titre)
             if re.search(r'[?&]ia=10(&|$)', page):
