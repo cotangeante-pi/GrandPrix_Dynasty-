@@ -10,7 +10,8 @@ const SAUVEGARDE = (function () {
     // la clé commence par son nom (« technique-5 ») ; championnat : le championnat en cours (championnat.js), ou null
     // fantomes : le fantôme du meilleur tour de chaque circuit (fantome.js, compact), par nom de circuit ; options : les
     // réglages du joueur (fantome : le fantôme affiché, vrai par défaut) ; reaction : le meilleur temps de réaction au départ (s)
-    return { version: VERSION, records: {}, championnat: null, fantomes: {}, options: {}, reaction: null };
+    // decouverteFaite : la course de découverte du premier lancement est jouée ; argent : l'argent du joueur (la prime de la découverte, pas encore dépensable)
+    return { version: VERSION, records: {}, championnat: null, fantomes: {}, options: {}, reaction: null, decouverteFaite: false, argent: 0 };
   }
 
   // une sauvegarde d'une ancienne version est transformée ici, sans rien perdre :
@@ -30,6 +31,9 @@ const SAUVEGARDE = (function () {
     if (!d.fantomes || typeof d.fantomes !== 'object') d.fantomes = {};
     if (!d.options || typeof d.options !== 'object') d.options = {};
     if (typeof d.reaction !== 'number') d.reaction = null;
+    // le premier lancement (tour 23b) : la découverte faite (une sauvegarde qui a déjà un championnat compte comme faite) et l'argent
+    if (d.decouverteFaite === undefined) d.decouverteFaite = !!d.championnat;
+    if (typeof d.argent !== 'number') d.argent = 0;
     if (d.championnat && typeof CHAMPIONNAT !== 'undefined') CHAMPIONNAT.completer(d.championnat);
     d.version = VERSION;
     return d;
@@ -125,5 +129,22 @@ const SAUVEGARDE = (function () {
     return true;
   }
 
-  return { lire, ecrire, record, proposerRecord, championnat, ecrireChampionnat, fantome, proposerFantome, option, ecrireOption, reaction, proposerReaction, VERSION, CLE };
+  // --- le premier lancement (decouverte.js) : la découverte faite, et l'argent
+  function decouverteFaite() {
+    return lire().decouverteFaite === true;
+  }
+
+  function argent() {
+    return lire().argent;
+  }
+
+  // la découverte jouée : la prime s'ajoute à l'argent, et elle ne revient plus
+  function finirDecouverte(prime) {
+    const d = lire();
+    d.decouverteFaite = true;
+    d.argent += Math.max(0, prime || 0);
+    return ecrire(d);
+  }
+
+  return { lire, ecrire, record, proposerRecord, championnat, ecrireChampionnat, fantome, proposerFantome, option, ecrireOption, reaction, proposerReaction, decouverteFaite, argent, finirDecouverte, VERSION, CLE };
 })();
