@@ -138,7 +138,7 @@
     <div><h2 id="championnatPilotesTitre"></h2><ol id="championnatPilotes"></ol></div>
     <div><h2 id="championnatEcuriesTitre"></h2><ol id="championnatEcuries"></ol></div>
   </div>
-  <div class="boutons"><button id="boutonCourseSuivante" tabindex="-1"></button><button id="boutonGarage" tabindex="-1"></button><button id="boutonMonCasque" class="petit" tabindex="-1"></button><button id="boutonSponsors" tabindex="-1"></button><button id="boutonAmisPaddock" class="petit" tabindex="-1"></button></div>
+  <div class="boutons"><button id="boutonCourseSuivante" tabindex="-1"></button><button id="boutonGarage" tabindex="-1"></button><button id="boutonMonCasque" class="petit" tabindex="-1"></button><button id="boutonSponsors" tabindex="-1"></button><button id="boutonAlbum" class="petit" tabindex="-1"></button><button id="boutonAmisPaddock" class="petit" tabindex="-1"></button></div>
 </section>
 
 <!-- ?championnat=1 : les sponsors (sponsors.js) : les offres au début de la saison, puis le rappel ; la fiche d'un rival (fiche.js) (Codeur 3) -->
@@ -198,6 +198,20 @@
   <h1 id="retraiteTitre"></h1>
   <p id="retraiteRaison"></p>
   <p id="retraiteBilan"></p>
+  <!-- le bilan de carrière (étape 14, carriere.js, Codeur 3) -->
+  <ul id="bilanStats"></ul>
+  <p id="bilanDuels"></p>
+  <p id="bilanUne"></p>
+  <p id="bilanTemple"></p>
+  <div id="bilanBoutons" class="boutons"><button id="boutonTemple" tabindex="-1"></button></div>
+</section>
+<!-- le temple de la renommée et les records de carrière (carriere.js, Codeur 3) -->
+<section id="temple" class="ecran cache">
+  <h1 id="templeTitre"></h1>
+  <ol id="templeListe"></ol>
+  <h2 id="templeRecordsTitre"></h2>
+  <ul id="templeRecords"></ul>
+  <div class="boutons"><button id="boutonTempleRetour" tabindex="-1"></button></div>
 </section>
 
 <!-- ?championnat=1 : le garage (garage.js, argent.js) : 4 améliorations, depuis l'écran du championnat (Codeur 3) -->
@@ -240,6 +254,8 @@
     <footer id="unePied"><h2 id="uneClassementTitre"></h2><ol id="uneClassement"></ol></footer>
   </div>
   <p id="unePasser"></p>
+  <!-- l'album des unes (Codeur 3) : la même page, feuilletée depuis le paddock ; la barre n'est là qu'en mode album -->
+  <div id="albumBarre" class="boutons"><button id="boutonAlbumSaisonAvant" class="petit" tabindex="-1">⏮</button><button id="boutonAlbumAvant" class="petit" tabindex="-1">◀</button><span id="albumPage"></span><button id="boutonAlbumApres" class="petit" tabindex="-1">▶</button><button id="boutonAlbumSaisonApres" class="petit" tabindex="-1">⏭</button><button id="boutonAlbumFermer" class="petit" tabindex="-1"></button></div>
 </section>
 
 <section id="pause" class="ecran cache">
@@ -302,7 +318,7 @@
 <script src="saisons.js"></script>
 <script src="sponsors.js"></script>
 <script src="fiche.js"></script>
-<script src="interview.js"></script>
+<script src="interview.js"></script><script src="carriere.js"></script>
 <script src="sdk.js"></script>
 <script src="pneus-donnees.js"></script>
 <script src="pneus.js"></script>

@@ -193,11 +193,59 @@ const JOURNAL = (function () {
     };
   }
 
+  // --- l'album des unes (tour 28c) : feuilleté depuis le paddock, saison par saison, chaque une redessinée À L'IDENTIQUE
+  // une sauvegarde d'avant (unes sans saison) : la saison de chaque une se retrouve en remontant l'album depuis la fin (la
+  // dernière est de la saison en cours ; quand le numéro du Grand Prix ne descend plus, c'est la saison d'avant)
+  function completer(ch) {
+    const A = ch.album || [];
+    if (!A.length || A.every(u => typeof u.s === 'number')) return ch;
+    let s = ch.saison || 1;
+    for (let i = A.length - 1; i >= 0; i--) {
+      if (i < A.length - 1 && A[i].g >= A[i + 1].g) s = Math.max(1, s - 1);
+      if (typeof A[i].s !== 'number') A[i].s = s;
+      else s = A[i].s;
+    }
+    return ch;
+  }
+
+  // les noms tels qu'ils étaient pendant la saison s : un pilote IA parti à la retraite à la fin d'une saison ≥ s y courait
+  // encore (son résumé compact dans ch.retraites : nom, numéro) ; le joueur d'une génération d'avant (la relève :
+  // ch.dynastie.generations, nom et numéro) ; sinon le pilote d'aujourd'hui. Les noms passent par l'affichage (noms.pilote)
+  function nomsAu(ch, s, noms) {
+    noms = noms || NOMS;
+    const ancien = p => {
+      if (p.humain) {
+        const g = ch.dynastie && (ch.dynastie.generations || []).find(x => typeof x.fin === 'number' && s <= x.fin && s >= (x.debut || 1));
+        return g ? { nom: g.nom, numero: g.numero, humain: true } : null;
+      }
+      const r = (ch.retraites || []).find(x => x.id === p.id && typeof x.saison === 'number' && x.saison >= s);
+      return r ? { nom: r.nom, numero: r.numero, humain: false } : null;
+    };
+    return { pilote: p => { const a = ancien(p); return noms.pilote(a ? Object.assign({}, p, a) : p); }, ecurie: noms.ecurie };
+  }
+
+  // la une n° i de l'album, en phrases, avec les noms de sa saison (= la une du jour même)
+  function rendreAlbum(ch, i, noms) {
+    const u = ch.album[i];
+    return u ? rendre(u, ch, nomsAu(ch, u.s, noms)) : null;
+  }
+
+  // les saisons de l'album : [{ saison, debut (indice de sa première une), n (son nombre d'unes) }], dans l'ordre
+  function saisonsAlbum(ch) {
+    const r = [];
+    (ch.album || []).forEach((u, i) => {
+      const d = r[r.length - 1];
+      if (d && d.saison === u.s) d.n++;
+      else r.push({ saison: u.s, debut: i, n: 1 });
+    });
+    return r;
+  }
+
   // les clés de texte que le journal demande (tests : toutes dans les deux langues, avec des variantes)
   const BREVES = ['breveForme', 'breveRetraite', 'breveEcurie', 'breveVainqueur', 'breveRival', 'breveMeilleurTour', 'brevePole', 'breveLeader', 'breveChasseur', 'breveRumeur'];
   function cles() {
     return ['journalNom'].concat(R.JOURNAL_PRIORITES.flatMap(f => ['uneTitre_' + f, 'uneTexte_' + f]), BREVES);
   }
 
-  return { faits, breves, composer, ranger, rendre, remplir, cles, nbVariantes };
+  return { faits, breves, composer, ranger, rendre, remplir, cles, nbVariantes, completer, nomsAu, rendreAlbum, saisonsAlbum };
 })();

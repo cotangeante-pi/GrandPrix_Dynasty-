@@ -247,6 +247,8 @@ const REGLAGES = {
   CEREMONIE_CONFETTI_VITESSE: [1.1, 2.6],   // m/s : leur vitesse de chute (tirée entre ces bornes)
   CEREMONIE_CONFETTI_BALANCE: 0.6,   // m : ils se balancent de part et d'autre en tombant
   CEREMONIE_COULEURS: [0xffd23f, 0xff5a5f, 0x3ddc97, 0x2f80ed, 0xffffff],
+  // la fin de carrière (carriere.js, Codeur 3) : le temple de la renommée garde au plus ce nombre de carrières finies (les meilleures)
+  TEMPLE_MAX: 30,
 
   // la course de découverte du premier lancement (decouverte.js, CLAUDE.md « En piste en 10 secondes »)
   DECOUVERTE_TOURS: 3,          // une longueur à part, seulement pour elle
