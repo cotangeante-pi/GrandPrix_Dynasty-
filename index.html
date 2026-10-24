@@ -66,6 +66,15 @@
     <label id="piloteCoeurLigne"><span id="piloteCoeurTexte"></span><select id="piloteCoeur"></select></label>
     <p id="piloteDomicile"></p>
   </div>
+  <!-- le casque (casque.js) : le motif, les trois couleurs, et le casque qui tourne en 3D -->
+  <div id="casqueEditeur">
+    <canvas id="casqueApercu" width="160" height="160"></canvas>
+    <div id="casqueChamps">
+      <h2 id="casqueTitre"></h2>
+      <label><span id="casqueMotifTexte"></span><select id="casqueMotif"></select></label>
+      <label><span id="casqueCouleursTexte"></span><span class="couleurs"><input id="casqueC1" type="color"><input id="casqueC2" type="color"><input id="casqueC3" type="color"></span></label>
+    </div>
+  </div>
   <p id="piloteErreur"></p>
   <div class="boutons"><button id="boutonPiloteValider" tabindex="-1"></button></div>
 </section>
@@ -94,7 +103,7 @@
     <div><h2 id="championnatPilotesTitre"></h2><ol id="championnatPilotes"></ol></div>
     <div><h2 id="championnatEcuriesTitre"></h2><ol id="championnatEcuries"></ol></div>
   </div>
-  <div class="boutons"><button id="boutonCourseSuivante" tabindex="-1"></button><button id="boutonGarage" tabindex="-1"></button></div>
+  <div class="boutons"><button id="boutonCourseSuivante" tabindex="-1"></button><button id="boutonGarage" tabindex="-1"></button><button id="boutonMonCasque" class="petit" tabindex="-1"></button></div>
 </section>
 
 <!-- ?championnat=1 : le garage (garage.js, argent.js) : 4 améliorations, depuis l'écran du championnat (Codeur 3) -->
@@ -172,6 +181,7 @@
 <script src="championnat.js"></script>
 <script src="decouverte.js"></script>
 <script src="pilote.js"></script>
+<script src="casque.js"></script>
 <script src="cache-carte.js"></script>
 <script src="journal.js"></script>
 <script src="argent.js"></script>

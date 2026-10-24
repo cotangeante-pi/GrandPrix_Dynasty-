@@ -309,6 +309,18 @@ html, body {
 #piloteChamps input, #piloteChamps select { width: 190px; padding: 6px 8px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.35); background: rgba(255, 255, 255, 0.1); color: inherit; font: 600 15px/1.3 var(--police); user-select: text; -webkit-user-select: text; }
 #piloteChamps select option { color: #111; }
 #piloteDomicile { margin: 0; font-weight: 700; min-height: 1.3em; }
+/* le casque : l'aperçu 3D qui tourne et ses réglages, côte à côte */
+#casqueEditeur { display: flex; align-items: center; gap: 16px; }
+#casqueApercu { width: 120px; height: 120px; border-radius: 10px; background: rgba(255, 255, 255, 0.08); }
+#casqueChamps { display: flex; flex-direction: column; gap: 8px; width: 224px; }
+#casqueChamps h2 { margin: 0; font-size: 15px; }
+#casqueChamps label { display: flex; align-items: center; justify-content: space-between; gap: 10px; font: 600 14px/1.3 var(--police); }
+#casqueChamps select { width: 120px; padding: 4px 6px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.35); background: rgba(255, 255, 255, 0.1); color: inherit; font: 600 14px/1.3 var(--police); }
+#casqueChamps select option { color: #111; }
+#casqueChamps .couleurs { display: flex; gap: 6px; }
+#casqueChamps input[type=color] { width: 34px; height: 26px; padding: 0; border: 1px solid rgba(255, 255, 255, 0.35); border-radius: 6px; background: none; }
+#pilote.casqueSeul #piloteChamps { display: none; }
+.casqueIcone { width: 14px; height: 14px; vertical-align: middle; margin-right: 4px; border-radius: 50%; flex: none; }
 #piloteErreur { margin: 0; min-height: 1.3em; color: #ff8a80; font-weight: 700; }
 
 /* le départ parfait : la jauge du régime au centre bas (grande, lisible sans quitter les feux des yeux) */

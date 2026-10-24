@@ -6,8 +6,72 @@
 // La voiture du joueur a des détails en plus (aileron, suspensions, rétroviseurs, volant), dans la même géométrie du corps.
 const VOITURE3D = (function () {
   const R = REGLAGES;
-  const NOIR = 0x18191c, CARBONE = 0x2a2c31, CASQUE = 0xf2c230, JANTE = 0xb8bcc4, MIROIR = 0xc9d4de, ECRAN = 0x3fd0ff;
+  const NOIR = 0x18191c, CARBONE = 0x2a2c31, COULEUR_CASQUE = 0xf2c230, JANTE = 0xb8bcc4, MIROIR = 0xc9d4de, ECRAN = 0x3fd0ff;   // (COULEUR_CASQUE : le casque d'avant l'atlas ; CASQUE est le module casque.js)
   let materiauSommets = null, materiauCasque = null;   // partagés par toutes les voitures
+  // l'atlas des casques (casque.js) : une case par casque dessinée une fois dans un canvas, UNE texture et UN matériau pour
+  // toutes les têtes ; chaque tête a sa case par ses UV. Sans atlas (pages sans pilotes), le casque jaune d'avant
+  let atlas = null;   // { canvas, ctx, texture, materiau, casques, colonnes, lignes, t }
+  function dessinerCase(i, casque) {
+    const x = (i % atlas.colonnes) * atlas.t, y = Math.floor(i / atlas.colonnes) * atlas.t, t = atlas.t;
+    CASQUE.dessiner(atlas.ctx, x, y, t, casque);
+    // la visière, sombre, devant (le milieu de la case fait face à l'avant de la voiture sur la sphère de Three.js)
+    atlas.ctx.fillStyle = 'rgba(20, 22, 28, 0.9)';
+    atlas.ctx.fillRect(x + t * 0.3, y + t * 0.36, t * 0.4, t * 0.2);
+  }
+
+  // les casques des voitures de la page, dans l'ordre des voitures (le même indice que celui passé à creer)
+  function preparerCasques(casques) {
+    const n = Math.max(1, casques.length), colonnes = Math.ceil(Math.sqrt(n)), lignes = Math.ceil(n / colonnes), t = R.CASQUE_ATLAS_CASE;
+    const canvas = document.createElement('canvas');
+    canvas.width = colonnes * t; canvas.height = lignes * t;
+    const texture = new THREE.CanvasTexture(canvas);
+    if (THREE.SRGBColorSpace !== undefined) texture.colorSpace = THREE.SRGBColorSpace;
+    atlas = { canvas, ctx: canvas.getContext('2d'), texture, materiau: new THREE.MeshLambertMaterial({ map: texture }), casques: casques.slice(), colonnes, lignes, t };
+    casques.forEach((c, i) => dessinerCase(i, c));
+    texture.needsUpdate = true;
+  }
+
+  // le casque i a changé (l'éditeur) : sa case est redessinée, la texture renvoyée
+  function majCasque(i, casque) {
+    if (!atlas || i < 0 || i >= atlas.casques.length) return;
+    atlas.casques[i] = casque;
+    dessinerCase(i, casque);
+    atlas.texture.needsUpdate = true;
+  }
+
+  // la sphère d'une tête, ses UV ramenés dans la case i de l'atlas (le haut de la case = le sommet du casque)
+  function geometrieTete(i, rayon, segments) {
+    const g = new THREE.SphereGeometry(rayon, segments[0], segments[1]);
+    if (!atlas) return g;
+    const uv = g.attributes.uv, col = i % atlas.colonnes, lig = Math.floor(i / atlas.colonnes);
+    for (let k = 0; k < uv.count; k++) uv.setXY(k, (col + uv.getX(k)) / atlas.colonnes, (atlas.lignes - lig - 1 + uv.getY(k)) / atlas.lignes);
+    uv.needsUpdate = true;
+    return g;
+  }
+
+  // l'aperçu du casque i qui tourne dans l'éditeur : un petit rendu à part sur le canvas donné (la même texture)
+  let apercu = null;
+  function apercuCasque(canvas, i) {
+    if (!atlas) return;
+    if (!apercu) {
+      const rendu = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+      rendu.setPixelRatio(Math.min(window.devicePixelRatio || 1, R.PIXEL_RATIO_MAX));
+      const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(35, 1, 0.1, 10);
+      camera.position.set(0, 0.6, 3.2); camera.lookAt(0, 0, 0);
+      scene.add(new THREE.HemisphereLight(0xffffff, 0x445566, 0.9));
+      const soleil = new THREE.DirectionalLight(0xffffff, 0.8); soleil.position.set(2, 3, 2); scene.add(soleil);
+      apercu = { rendu, scene, camera, tete: null, angle: 0 };
+    }
+    if (apercu.tete) { apercu.scene.remove(apercu.tete); apercu.tete.geometry.dispose(); }
+    apercu.tete = new THREE.Mesh(geometrieTete(i, 1, [32, 20]), atlas.materiau);
+    apercu.scene.add(apercu.tete);
+  }
+  function tournerApercu(dt) {
+    if (!apercu || !apercu.tete) return;
+    apercu.angle += R.CASQUE_APERCU_VITESSE * dt;
+    apercu.tete.rotation.y = apercu.angle;
+    apercu.rendu.render(apercu.scene, apercu.camera);
+  }
 
   // un paquet de pièces à fusionner : positions, normales, couleurs
   function paquet() {
@@ -146,16 +210,17 @@ const VOITURE3D = (function () {
   // couleur : la couleur de l'écurie ; detaille : la voiture du joueur, avec plus de détails (les autres restent légères) ;
   // materiaux (facultatif, le fantôme) : { corps, casque } à la place des matériaux partagés ;
   // renvoie { groupe, roues, tete, corps, couleur, detaille }
-  function creer(couleur, detaille, materiaux) {
+  // casque (facultatif) : l'indice de la case de la voiture dans l'atlas des casques (preparerCasques)
+  function creer(couleur, detaille, materiaux, casque) {
     if (!materiauSommets) {
       materiauSommets = new THREE.MeshLambertMaterial({ vertexColors: true });
-      materiauCasque = new THREE.MeshLambertMaterial({ color: CASQUE });
+      materiauCasque = new THREE.MeshLambertMaterial({ color: COULEUR_CASQUE });
     }
-    const matCorps = materiaux ? materiaux.corps : materiauSommets, matCasque = materiaux ? materiaux.casque : materiauCasque;
+    const matCorps = materiaux ? materiaux.corps : materiauSommets, matCasque = materiaux ? materiaux.casque : (atlas ? atlas.materiau : materiauCasque);
     const groupe = new THREE.Group();
     const corps = new THREE.Mesh(geometrieCorps(couleur, detaille), matCorps);
     groupe.add(corps);
-    const tete = new THREE.Mesh(new THREE.SphereGeometry(0.17, 10, 8), matCasque);
+    const tete = new THREE.Mesh(materiaux ? new THREE.SphereGeometry(0.17, 10, 8) : geometrieTete(casque === undefined ? 0 : casque, 0.17, [10, 8]), matCasque);
     tete.position.set(0.2, 0.85, 0);
     groupe.add(tete);
     // les roues : l'avant à CG_AVANT devant le centre, l'arrière à l'empattement derrière
@@ -210,5 +275,5 @@ const VOITURE3D = (function () {
     }
   }
 
-  return { creer, creerFantome, placer, majHalo, triangles, appels };
+  return { creer, creerFantome, placer, majHalo, triangles, appels, preparerCasques, majCasque, apercuCasque, tournerApercu, get atlas() { return atlas; } };
 })();

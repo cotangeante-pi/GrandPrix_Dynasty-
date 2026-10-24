@@ -445,6 +445,15 @@ def decouverte(pg, titre):
     t(f'{titre} : « Commencer ma carrière » ouvre la création du pilote (nom, numéro, pays, course de cœur), rien n’est encore sauvegardé',
       attendre(pg, '() => JEU.ecran === "pilote" && !document.getElementById("pilote").classList.contains("cache")') and pg.evaluate('() => !SAUVEGARDE.decouverteFaite() && document.querySelectorAll("#pilotePays option").length === REGLAGES.PAYS.length && document.querySelectorAll("#piloteCoeur option").length === 12 && document.getElementById("piloteNom").placeholder === texte("nomJoueur")'),
       str(pg.evaluate('() => [JEU.ecran, document.querySelectorAll("#pilotePays option").length]')))
+    # l'éditeur du casque : le motif et une couleur changent, la case du joueur dans l'atlas change, l'aperçu 3D tourne
+    casque0 = pg.evaluate('() => { const a = VOITURE3D.atlas, i = JEU.contre ? JEU.ia : 0, t = a.t; return Array.from(a.ctx.getImageData((i % a.colonnes) * t, Math.floor(i / a.colonnes) * t, t, t).data).join(); }')
+    t(f'{titre} : l’éditeur du casque est là (motif, 3 couleurs, aperçu 3D), avec le casque neutre du joueur ; les 19 rivaux ont chacun le leur', pg.evaluate('() => document.querySelectorAll("#casqueMotif option").length === REGLAGES.CASQUE_MOTIFS.length && document.getElementById("casqueMotif").value === "uni" && !!VOITURE3D.atlas && CASQUE.doublons(JEU.monde).length === 0 && JEU.monde.pilotes.filter(p => !p.humain).every(p => CASQUE.valide(p.casque))'))
+    pg.select_option('#casqueMotif', 'flammes')
+    pg.evaluate('() => { const c = document.getElementById("casqueC1"); c.value = "#d8262e"; c.dispatchEvent(new Event("input")); }')
+    pg.wait_for_timeout(300)
+    casque1 = pg.evaluate('() => { const a = VOITURE3D.atlas, i = JEU.contre ? JEU.ia : 0, t = a.t; return Array.from(a.ctx.getImageData((i % a.colonnes) * t, Math.floor(i / a.colonnes) * t, t, t).data).join(); }')
+    t(f'{titre} : changer le motif (flammes) et la couleur 1 redessine la case du joueur dans l’atlas (une seule texture, un seul matériau), et le casque tourne', casque1 != casque0 and pg.evaluate('() => INTERFACE.lireCasque().motif === "flammes" && INTERFACE.lireCasque().couleurs[0] === 0xd8262e && JEU.modeles.every(m => m.tete.material === VOITURE3D.atlas.materiau)'))
+    pg.wait_for_timeout(400); pg.screenshot(path=os.path.join(CAPTURES, 'casque.png'))
     pg.fill('#piloteNom', 'Léo'); pg.fill('#piloteNumero', '7'); pg.select_option('#pilotePays', 'fr')
     t(f'{titre} : la France n’a pas de circuit : la course de cœur est à choisir (liste active, pas de 🏠)', pg.evaluate('() => !document.getElementById("piloteCoeur").disabled && document.getElementById("piloteDomicile").textContent === ""'))
     pg.select_option('#pilotePays', 'it')
@@ -458,7 +467,8 @@ def decouverte(pg, titre):
     t(f'{titre} : numéro 27 : validé, sauvegardé (nom, numéro, pays, course de cœur), la découverte faite avec sa prime, et la page rechargée arrive au paddock avec « Léo » dans le classement',
       attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat" && JEU.championnat', None, 60000)
       and pg.evaluate(f'''() => {{ const j = PILOTE.joueur(JEU.championnat), s = PILOTE.joueur(SAUVEGARDE.championnat()); return j.nom === "Léo" && j.numero === 27 && j.pays === "fr" && j.coeur === "monoco" && s.nom === "Léo" && s.numero === 27
-        && SAUVEGARDE.decouverteFaite() && SAUVEGARDE.argent() === {bravo["prime"]} && (typeof ARGENT === "undefined" || ARGENT.solde(JEU.championnat) === {bravo["prime"]}) && [...document.querySelectorAll("#championnatPilotes li .nom")].some(e => e.textContent === "Léo") && !PILOTE.manque(JEU.championnat); }}'''),
+        && SAUVEGARDE.decouverteFaite() && SAUVEGARDE.argent() === {bravo["prime"]} && (typeof ARGENT === "undefined" || ARGENT.solde(JEU.championnat) === {bravo["prime"]}) && [...document.querySelectorAll("#championnatPilotes li .nom")].some(e => e.textContent === "Léo") && !PILOTE.manque(JEU.championnat)
+        && j.casque.motif === "flammes" && j.casque.couleurs[0] === 0xd8262e && document.querySelectorAll("#championnatPilotes li .nom canvas.casqueIcone").length === 20; }}'''),
       str(pg.evaluate('() => [JEU.ecran, PILOTE.joueur(JEU.championnat)]')))
     # un Grand Prix d'un tour : le numéro 27 dans la tour de classement, le nom sur la une du journal
     t(f'{titre} : au lancement suivant, la carte des IA vient du cache de la sauvegarde (pas de calcul en fond, les IA ont déjà leur pilote)', pg.evaluate('() => JEU.carteDuCache === true && JEU.carte !== null && JEU.calculTrajectoire === null'), str(pg.evaluate('() => [JEU.carteDuCache, JEU.carte !== null]')))
@@ -476,7 +486,12 @@ def decouverte(pg, titre):
     # avant le premier feu qui mesure la carte)
     t(f'{titre} : avec le cache, du départ de la course au premier feu : aucune attente de la carte (moins de 3 s, contre {(premier or 0) / 1000:.1f} s au premier lancement)', premier2 and attente2 < 3 and feux2, f'{attente2:.1f} s')
     L.append(f"  (deuxième lancement, carte en cache : du départ de la course au premier feu {attente2:.1f} s, aux feux éteints {mesure2:.1f} s ; au premier lancement : {(premier or 0) / 1000:.1f} s et {(mesure or 0) / 1000:.1f} s)")
-    t(f'{titre} : en course, la ligne du joueur dans la tour porte son numéro 27', attendre(pg, '() => document.querySelector("#classementListe li.moi") && document.querySelector("#classementListe li.moi .numero").textContent === "27"', None, 20000), pg.evaluate('() => document.querySelector("#classementListe li.moi") && document.querySelector("#classementListe li.moi").innerText'))
+    t(f'{titre} : en course, la ligne du joueur dans la tour porte son numéro 27 et l’icône de son casque (une par ligne)', attendre(pg, '() => document.querySelector("#classementListe li.moi") && document.querySelector("#classementListe li.moi .numero").textContent === "27" && document.querySelectorAll("#classementListe li canvas.casqueIcone").length === 20', None, 20000), pg.evaluate('() => document.querySelector("#classementListe li.moi") && document.querySelector("#classementListe li.moi").innerText'))
+    # la vue télé pendant la course : des casques différents sur les voitures (capture casques-course.png)
+    pg.evaluate('() => BOUCLE.simuler(8)')
+    pg.evaluate('() => CAMERA.forcer("tele")'); pg.wait_for_timeout(500)
+    pg.screenshot(path=os.path.join(CAPTURES, 'casques-course.png'))
+    pg.evaluate('() => CAMERA.forcer("derriere")')
     attendre(pg, '() => JEU.plateau.carte !== null', None, 240000)
     for _ in range(80):
         pg.evaluate('() => BOUCLE.simuler(5)')

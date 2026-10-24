@@ -113,6 +113,7 @@ const INTERFACE = (function () {
         }
         li.children[1].style.background = '#' + l.couleur.toString(16).padStart(6, '0');
         li.children[2].textContent = l.numero;
+        if (l.casque) li.children[2].prepend(CASQUE.icone(l.casque, REGLAGES.CASQUE_ICONE));   // l'icône du casque (casque.js)
         liste.appendChild(li);
         lignesClassement.set(l.numero, li);
       }
@@ -211,7 +212,9 @@ const INTERFACE = (function () {
       const carte = document.createElement('div');
       carte.className = 'marche marche' + place;
       const titre = document.createElement('strong');
-      titre.append(String(place) + ' ', pastille(x.couleur), ' ' + texte('numero').replace('{n}', x.numero));
+      titre.append(String(place) + ' ', pastille(x.couleur), ' ');
+      if (x.casque) titre.append(CASQUE.icone(x.casque, REGLAGES.CASQUE_ICONE + 4));
+      titre.append(texte('numero').replace('{n}', x.numero));
       const temps = document.createElement('span');
       temps.textContent = formatTemps(x.total) + (x.penalites > 0 ? ' (' + penalite(x.penalites) + ')' : '');
       carte.append(titre, temps);
@@ -227,7 +230,9 @@ const INTERFACE = (function () {
       const tr = document.createElement('tr');
       if (l.moi) tr.className = 'moi';
       const numero = document.createElement('span');
-      numero.append(pastille(l.couleur), ' ' + l.numero);
+      numero.append(pastille(l.couleur), ' ');
+      if (l.casque) numero.append(CASQUE.icone(l.casque, REGLAGES.CASQUE_ICONE));
+      numero.append(String(l.numero));
       const ecart = l.ecart === null || l.place === 1 ? '' : '+' + secondes(l.ecart.toFixed(3));
       // sa place sur la grille, et les places gagnées (▲) ou perdues (▼) depuis
       const gagne = l.grille - l.place, grille = l.grille + ' ' + (gagne > 0 ? '▲' + gagne : gagne < 0 ? '▼' + -gagne : '=');
@@ -305,6 +310,37 @@ const INTERFACE = (function () {
     pays.value = R.PAYS[0];
     $('piloteErreur').textContent = '';
     majDomicilePilote();
+    remplirCasque(PILOTE.joueur(ch) && PILOTE.joueur(ch).casque);
+  }
+
+  // l'éditeur du casque (casque.js) : le motif et les trois couleurs du casque donné (sinon le neutre)
+  function remplirCasque(casque) {
+    const c = CASQUE.valide(casque) ? casque : CASQUE.neutre();
+    $('casqueTitre').textContent = texte('casqueTitre');
+    $('casqueMotifTexte').textContent = texte('casqueMotif');
+    $('casqueCouleursTexte').textContent = texte('casqueCouleurs');
+    const motif = $('casqueMotif');
+    motif.textContent = '';
+    for (const m of REGLAGES.CASQUE_MOTIFS) { const o = document.createElement('option'); o.value = m; o.textContent = texte('motif_' + m); motif.appendChild(o); }
+    motif.value = c.motif;
+    for (let i = 0; i < 3; i++) $('casqueC' + (i + 1)).value = '#' + c.couleurs[i].toString(16).padStart(6, '0');
+  }
+
+  function lireCasque() {
+    return CASQUE.creer($('casqueMotif').value, [1, 2, 3].map(i => parseInt($('casqueC' + i).value.slice(1), 16)));
+  }
+
+  // casqueSeul : l'écran ne montre que le casque (« Mon casque » depuis le paddock)
+  function modePilote(casqueSeul) {
+    $('pilote').classList.toggle('casqueSeul', !!casqueSeul);
+    $('piloteTitre').textContent = texte(casqueSeul ? 'casqueTitre' : 'piloteTitre');
+    $('boutonPiloteValider').textContent = texte(casqueSeul ? 'casqueValider' : 'piloteValider');
+  }
+
+  // changement(casque) : appelé à chaque changement de motif ou de couleur (l'aperçu 3D suit)
+  function preparerCasque(changement) {
+    for (const id of ['casqueMotif', 'casqueC1', 'casqueC2', 'casqueC3']) $(id).addEventListener('input', () => changement(lireCasque()));
+    $('casqueMotif').addEventListener('change', () => changement(lireCasque()));
   }
 
   // le pays choisi a-t-il un circuit ? alors la course de cœur est imposée et montrée 🏠
@@ -316,7 +352,7 @@ const INTERFACE = (function () {
   }
 
   function lirePilote() {
-    return { nom: $('piloteNom').value, numero: $('piloteNumero').value, pays: $('pilotePays').value, coeur: $('piloteCoeur').value };
+    return { nom: $('piloteNom').value, numero: $('piloteNumero').value, pays: $('pilotePays').value, coeur: $('piloteCoeur').value, casque: lireCasque() };
   }
 
   function montrerErreursPilote(erreurs) {
@@ -425,16 +461,18 @@ const INTERFACE = (function () {
     $('championnatEcuriesTitre').textContent = texte('classementEcuries');
     $('boutonCourseSuivante').textContent = texte('courseSuivante');
     $('boutonCourseSuivante').classList.toggle('cache', fini);
-    const ligne = (place, couleur, nom, points, moi) => {
+    const ligne = (place, couleur, nom, points, moi, casque) => {
       const li = document.createElement('li');
       if (moi) li.className = 'moi';
       const sp = (classe, contenu) => { const e = document.createElement('span'); e.className = classe; e.append(contenu); return e; };
-      li.append(sp('place', String(place)), pastille(couleur), sp('nom', nom), sp('points', points + ' ' + texte('pts')));
+      const spNom = sp('nom', nom);
+      if (casque) spNom.prepend(CASQUE.icone(casque, REGLAGES.CASQUE_ICONE));   // l'icône du casque (casque.js)
+      li.append(sp('place', String(place)), pastille(couleur), spNom, sp('points', points + ' ' + texte('pts')));
       return li;
     };
     const pilotes = $('championnatPilotes'), ecuries = $('championnatEcuries');
     pilotes.textContent = ''; ecuries.textContent = '';
-    CHAMPIONNAT.classementPilotes(ch).forEach((x, i) => { const p = ch.pilotes[x.k]; pilotes.appendChild(ligne(i + 1, ch.ecuries[p.ecurie].couleur, nomPilote(p), x.points, p.humain)); });
+    CHAMPIONNAT.classementPilotes(ch).forEach((x, i) => { const p = ch.pilotes[x.k]; pilotes.appendChild(ligne(i + 1, ch.ecuries[p.ecurie].couleur, nomPilote(p), x.points, p.humain, p.casque)); });
     CHAMPIONNAT.classementEcuries(ch).forEach((x, i) => { const e = ch.ecuries[x.id]; ecuries.appendChild(ligne(i + 1, e.couleur, nomEcurie(e), x.points, e.id === REGLAGES.ECURIE_JOUEUR)); });
   }
 
@@ -537,5 +575,5 @@ const INTERFACE = (function () {
 
   return { formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, preparerChampionnat, remplirQualif, preparerQualif,
     remplirDuel, avec, remplirUne, preparerUne, remplirArgent, remplirSolde, remplirGarage, preparerGarage,
-    majEcartFantome, preparerFantome, majBoutonsFantome, majDepart, preparerTitre, remplirBravo, majAides, remplirPilote, lirePilote, montrerErreursPilote, preparerPilote, nomCircuit };
+    majEcartFantome, preparerFantome, majBoutonsFantome, majDepart, preparerTitre, remplirBravo, majAides, remplirPilote, lirePilote, montrerErreursPilote, preparerPilote, nomCircuit, remplirCasque, lireCasque, modePilote, preparerCasque };
 })();
