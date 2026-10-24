@@ -1,7 +1,7 @@
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><title>tests</title></head><body>
 <pre id="res"></pre>
 <script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));window.addEventListener('unhandledrejection',e=>__err.push('promesse : '+(e.reason&&e.reason.message||e.reason)));</script>
-<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../son.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../decouverte.js"></script><script src="../pilote.js"></script><script src="../deux-joueurs.js"></script><script src="../casque.js"></script><script src="../cache-carte.js"></script><script src="../journal.js"></script><script src="../argent.js"></script><script src="../garage.js"></script><script src="../saisons.js"></script><script src="../sponsors.js"></script><script src="../fiche.js"></script><script src="../interview.js"></script><script src="../carriere.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../fantome.js"></script><script src="../principal.js"></script>
+<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../son.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../decouverte.js"></script><script src="../pilote.js"></script><script src="../deux-joueurs.js"></script><script src="../tournoi.js"></script><script src="../casque.js"></script><script src="../cache-carte.js"></script><script src="../journal.js"></script><script src="../argent.js"></script><script src="../garage.js"></script><script src="../saisons.js"></script><script src="../sponsors.js"></script><script src="../fiche.js"></script><script src="../interview.js"></script><script src="../carriere.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../fantome.js"></script><script src="../principal.js"></script>
 <script>
 const L=[];let ok=0,ko=0;
 function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
@@ -1824,6 +1824,83 @@ t('passer en accéléré : une course de 8 IA (2 tours) finie en regardant (2 pa
   const e=creerCourseIA(C,4,1,3,CARTES_T.test);let h=0;for(let k=0;k<30*120;k++)pasCourseIA(e,DT);
   const r=ARRIVEE.accelerer(e,()=>pasCourseIA(e,DT),1e6,5,0,()=>(h+=1));v(r.pas===5*R.ARRIVEE_PAS_CONTROLE&&!r.pret,'coupe : '+JSON.stringify(r));
   L.push('  (8 IA, 2 tours : fin en regardant '+a.images+' images de 2 pas, en accéléré '+b.images+' images ('+b.pasAccel+' pas) ; classement identique au bit près)');});
+
+// --- le tournoi chrono entre copains (tournoi.js, tour 26b)
+const TJ=n=>[...Array(n)].map((x,i)=>({prenom:['Léo','Sarah','Tom','Inès','Max','Zoé','Noa','Lina','Hugo'][i]}));
+const TDEF=i=>'Joueur '+(i+1);
+// un tournoi joué d'après une table des temps : temps[m][j] = le tour (s), ou [tour, pénalités], ou null (abandon)
+function jouerTournoi(t,temps){for(let m=0;m<TOURNOI.nbManches(t);m++){if(m)v(TOURNOI.mancheSuivante(t),'manche '+m);
+  while(!TOURNOI.mancheFinie(t,m)){const j=TOURNOI.joueurActuel(t),x=temps[m][j];v(TOURNOI.enregistrer(t,j,x===null?{abandon:true}:Array.isArray(x)?{tour:x[0],penalites:x[1]}:{tour:x,penalites:0}),'passage '+j);}}
+  v(TOURNOI.fini(t)&&!TOURNOI.mancheSuivante(t)&&TOURNOI.joueurActuel(t)===null,'fini');return t;}
+t('tournoi : de 2 à 8 joueurs (jamais 1 ni 9) ; deux prénoms pareils (majuscules, espaces) refusés ; un prénom vide prend le nom par défaut ; chaque joueur a un casque (le sien, ou celui par défaut)', ()=>{
+  const R=REGLAGES;v(R.TOURNOI_JOUEURS_MIN===2&&R.TOURNOI_JOUEURS_MAX===8,'réglages');
+  for(const n of [0,1,9,12]){const r=TOURNOI.valider(TJ(Math.min(n,9)).concat(n>9?TJ(3).map((x,i)=>({prenom:'X'+i})):[]),TDEF);v(!r.ok&&r.erreurs.includes('nombre'),n+' joueurs acceptés');}
+  for(const n of [2,5,8]){const r=TOURNOI.valider(TJ(n),TDEF);v(r.ok&&r.joueurs.length===n&&r.joueurs.every(j=>CASQUE.valide(j.casque)),n+' joueurs refusés '+r.erreurs);}
+  let r=TOURNOI.valider([{prenom:'Sarah'},{prenom:'Léo'},{prenom:' sarah '}],TDEF);v(!r.ok&&r.erreurs.includes('prenom'),'prénoms pareils acceptés');
+  r=TOURNOI.valider([{prenom:''},{prenom:'   '},{prenom:'Tom',casque:{motif:'damier',couleurs:[1,2,3]}}],TDEF);v(r.ok&&r.joueurs[0].prenom==='Joueur 1'&&r.joueurs[1].prenom==='Joueur 2'&&r.joueurs[2].casque.motif==='damier','vides : '+JSON.stringify(r.joueurs));
+  r=TOURNOI.valider([{prenom:'Maximilien-Alexandre'},{prenom:'Tom'}],TDEF);v(r.joueurs[0].prenom.length===R.NOM_LONGUEUR_MAX,'trop long');});
+t('tournoi : l’ordre de passage : l’inscription à la première manche, puis l’inverse du classement général (le leader en dernier) ; seul le joueur dont c’est le tour peut être noté', ()=>{
+  const t_=TOURNOI.creer(TOURNOI.valider(TJ(4),TDEF).joueurs,'tournoi',['test','technique','test']);
+  v(TOURNOI.ordre(t_,0).join()==='0,1,2,3'&&TOURNOI.joueurActuel(t_)===0,'manche 1 : '+TOURNOI.ordre(t_,0));
+  v(!TOURNOI.enregistrer(t_,2,{tour:60,penalites:0}),'le joueur 2 passe avant son tour');
+  for(const [j,x] of [[0,62],[1,60],[2,61],[3,63]]) v(TOURNOI.enregistrer(t_,j,{tour:x,penalites:0}),'j'+j);
+  v(!TOURNOI.enregistrer(t_,0,{tour:50,penalites:0}),'pas de deuxième essai');
+  v(TOURNOI.mancheSuivante(t_)&&t_.manche===1,'manche 2');
+  // général après la manche 1 : Sarah (1) 25, Tom (2) 18, Léo (0) 15, Inès (3) 12 → l'ordre inverse : 3, 0, 2, 1
+  v(TOURNOI.ordre(t_,1).join()==='3,0,2,1'&&TOURNOI.joueurActuel(t_)===3,'manche 2 : '+TOURNOI.ordre(t_,1));
+  for(const [j,x] of [[3,55],[0,58],[2,59],[1,70]]) TOURNOI.enregistrer(t_,j,{tour:x,penalites:0});
+  // après 2 manches : Inès 12+25=37, Sarah 25+12=37 (égalité : meilleur temps Inès 55 < Sarah 60 → Inès devant), Léo 15+18=33, Tom 18+15=33 (Léo 58 < Tom 59)
+  const g=TOURNOI.classementGeneral({...t_,passages:t_.passages.slice(0,2)});v(g.map(x=>x.j).join()==='3,1,0,2'&&g[0].points===37&&g[1].points===37,'général '+JSON.stringify(g));
+  TOURNOI.mancheSuivante(t_);v(TOURNOI.ordre(t_,2).join()==='2,0,1,3','manche 3 : '+TOURNOI.ordre(t_,2));});
+t('tournoi : un virage coupé ajoute ses 5 s au temps (pénalités du tour, course.js) ; « abandonner » = pas de temps, dernier de la manche, aucun point ; les points 25, 18, 15, 12… par place ; ⚡ Éclair : le meilleur temps gagne', ()=>{
+  const R=REGLAGES,t_=jouerTournoi(TOURNOI.creer(TOURNOI.valider(TJ(5),TDEF).joueurs,'eclair',['test']),[[61,[57,R.PENALITE_COUPE],null,60,59]]);
+  const c=TOURNOI.classementManche(t_,0);
+  v(c.map(x=>x.j).join()==='4,3,0,1,2','ordre '+c.map(x=>x.j));   // 59, 60, 61, 57 + 5 = 62, abandon
+  v(c[3].temps===57+R.PENALITE_COUPE&&c[3].penalites===R.PENALITE_COUPE,'la coupe '+JSON.stringify(c[3]));
+  v(c[4].j===2&&c[4].temps===null&&c[4].points===0,'abandon '+JSON.stringify(c[4]));
+  v(c.slice(0,4).map(x=>x.points).join()===R.TOURNOI_POINTS.slice(0,4).join(),'points');
+  v(TOURNOI.classementGeneral(t_).map(x=>x.j).join()==='4,3,0,1,2'&&TOURNOI.podium(t_).map(x=>x.j).join()==='4,3,0','éclair : '+JSON.stringify(TOURNOI.classementGeneral(t_)));
+  v(TOURNOI.nbManches(t_)===1&&t_.circuits.length===1,'une manche');
+  // deux temps égaux : celui qui l'a fait le premier devant
+  const e=jouerTournoi(TOURNOI.creer(TOURNOI.valider(TJ(2),TDEF).joueurs,'eclair',['test']),[[60,60]]);v(TOURNOI.classementManche(e,0)[0].j===0,'égalité');});
+t('tournoi : un 🏆 tournoi de 3 manches à 4 joueurs se joue jusqu’au bout avec le bon classement (points, égalité au meilleur temps) ; le fantôme est celui du meilleur temps du moment (pénalités comprises), absent pour le premier joueur de chaque manche', ()=>{
+  const R=REGLAGES,P=R.TOURNOI_POINTS,t_=TOURNOI.creer(TOURNOI.valider(TJ(4),TDEF).joueurs,'tournoi',['test','technique','test']);
+  const temps=[[62,60,61,63],[58,70,59,55],[60,[52,R.PENALITE_COUPE],61,null]];
+  // le fantôme : avant chaque passage, le leader du moment
+  const leaders=[];
+  for(let m=0;m<3;m++){if(m)TOURNOI.mancheSuivante(t_);
+    while(!TOURNOI.mancheFinie(t_,m)){const j=TOURNOI.joueurActuel(t_),x=temps[m][j];leaders.push(TOURNOI.leader(t_,m));TOURNOI.enregistrer(t_,j,x===null?{abandon:true}:Array.isArray(x)?{tour:x[0],penalites:x[1]}:{tour:x,penalites:0});}}
+  // manche 1 (0,1,2,3) : rien, 0, 1, 1 ; manche 2 (3,0,2,1) : rien, 3, 3, 3 ; manche 3 (2,0,1,3) : rien, 0, 0 (le 1 : 52 + 5 = 57 > 60 ? non : 57 < 60 → 1), …
+  v(leaders.slice(0,8).map(String).join()==='null,0,1,1,null,3,3,3','fantômes '+leaders.join());
+  v(leaders[8]===null&&leaders[9]===2&&leaders[10]===0,'manche 3 : '+leaders.join());
+  v(leaders[11]===1,'le tour coupé (52 + 5 s = 57) est le meilleur pénalités comprises : '+leaders[11]);
+  v(TOURNOI.fini(t_),'fini');
+  // les points : m1 Sarah 25, Tom 18, Léo 15, Inès 12 ; m2 Inès 25, Léo 18, Tom 15, Sarah 12 ; m3 Sarah 25 (57), Léo 18 (60), Tom 15 (61), Inès 0 (abandon)
+  const g=TOURNOI.classementGeneral(t_),pts=[15+18+18,25+12+25,18+15+15,12+25+0];
+  v(g.map(x=>x.j).join()==='1,0,2,3'&&g.every(x=>x.points===pts[x.j]),'général '+JSON.stringify(g));
+  v(TOURNOI.podium(t_).map(x=>x.j).join()==='1,0,2','podium');
+  L.push('  (tournoi 3 manches à 4 : '+g.map(x=>t_.joueurs[x.j].prenom+' '+x.points).join(', ')+')');});
+t('tournoi : les circuits tirés au sort (graine) : autant que de manches, jamais deux fois de suite le même, les mêmes pour la même graine ; Poki : une pub entre deux manches du 🏆 et à la fin, jamais entre deux joueurs d’une même manche', ()=>{
+  for(let g=1;g<=20;g++){const c=TOURNOI.tirerCircuits(['test','technique'],3,g);v(c.length===3&&c.every((x,i)=>!i||x!==c[i-1]),'graine '+g+' : '+c);v(c.join()===TOURNOI.tirerCircuits(['test','technique'],3,g).join(),'pas la même');}
+  const a=TOURNOI.creer(TOURNOI.valider(TJ(3),TDEF).joueurs,'tournoi',['test','technique','test']),e=TOURNOI.creer(TOURNOI.valider(TJ(3),TDEF).joueurs,'eclair',['test']);
+  v(!TOURNOI.pubPermise(a,'entreJoueurs')&&TOURNOI.pubPermise(a,'entreManches')&&TOURNOI.pubPermise(a,'fin'),'tournoi');
+  v(!TOURNOI.pubPermise(e,'entreJoueurs')&&!TOURNOI.pubPermise(e,'entreManches')&&TOURNOI.pubPermise(e,'fin'),'éclair');});
+t('tournoi : la qualification note le temps du tour même coupé (q.tour) et ses pénalités (q.penalites = PENALITE_COUPE par virage coupé du tour lancé, rien de ce qui précède la ligne)', ()=>{
+  const v_=creerVoiture(C,0),q=QUALIFICATION.creer(C,v_);let coupeAvant=false,coupe=false;
+  for(let i=0;i<120*120&&!q.fini;i++){appliquerCommandes(v_,piloteRobot(v_,C));pasVoiture(v_,C,DT);
+    if(!q.lance&&!coupeAvant&&q.course.etat==='course'){q.course.penalites+=REGLAGES.PENALITE_COUPE;coupeAvant=true;}   // (une coupe avant la ligne : ne compte pas)
+    QUALIFICATION.pas(q,v_,DT);
+    if(q.lance&&!coupe&&QUALIFICATION.distance(q)>500){q.course.penalites+=REGLAGES.PENALITE_COUPE;q.course.coupeTour=true;coupe=true;}}   // (comme course.js à un virage coupé)
+  v(q.fini&&!q.valide&&q.temps===null&&q.tour>40&&q.penalites===REGLAGES.PENALITE_COUPE,JSON.stringify({fini:q.fini,tour:q.tour,pen:q.penalites}));});
+t('tournoi : la liste des joueurs passe par la sauvegarde unique, à part : la carrière ne change pas ; rechargée pareille ; une ancienne sauvegarde sans tournoi se charge (null)', ()=>{
+  localStorage.removeItem(SAUVEGARDE.CLE);const ch=CHAMPIONNAT.creer(4);SAUVEGARDE.ecrireChampionnat(ch);SAUVEGARDE.proposerRecord(5,61.5);
+  const avant=SAUVEGARDE.lire();delete avant.tournoi;const emp=JSON.stringify(avant);
+  v(SAUVEGARDE.tournoi()===null,'vierge');const js=TOURNOI.valider(TJ(3),TDEF).joueurs,t_=TOURNOI.creer(js,'tournoi',['test','technique','test']);TOURNOI.enregistrer(t_,0,{tour:61,penalites:5});
+  SAUVEGARDE.ecrireTournoi({joueurs:js,formule:'tournoi',enCours:t_});const re=SAUVEGARDE.tournoi();
+  v(JSON.stringify(re.joueurs)===JSON.stringify(js)&&JSON.stringify(re.enCours)===JSON.stringify(t_)&&TOURNOI.joueurActuel(re.enCours)===1,'rechargé');
+  const apres=SAUVEGARDE.lire();delete apres.tournoi;v(JSON.stringify(apres)===emp,'la carrière a changé');
+  localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:3,records:{},championnat:null}));v(SAUVEGARDE.tournoi()===null,'ancienne');
+  localStorage.removeItem(SAUVEGARDE.CLE);});
 
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 ecrire();

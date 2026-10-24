@@ -739,12 +739,15 @@ def amis(pg, titre, l, h):
     pg.evaluate('() => { BOUCLE.arreter(); BOUCLE.simuler(20); BOUCLE.demarrer(); }')
     t(f'{titre} : pendant la revanche, pas de pub : gameplayStart aux feux éteints', attendre(pg, '() => JEU.ecran === "course" && window.APPELS_SDK.slice(-1)[0] === "gameplayStart"', None, 10000) and pg.evaluate(J).count('commercialBreak') == 1, pg.evaluate(J))
     # la revanche : les deux joueurs finissent, puis « passer » : le reste de la course en accéléré (les deux ont fini : c'est permis)
-    for _ in range(200):
-        if pg.evaluate('() => !!JEU.attente || JEU.ecran === "podium"'): break
-        pg.evaluate('() => BOUCLE.simuler(2)')
+    # (les deux joueurs « finissent » 15 s après le départ, on leur donne leurs tours : les IA ont encore la course à faire)
+    pg.evaluate('''() => { BOUCLE.arreter(); let n = 0; while (!(JEU.course.etat === "course" && JEU.plateau.temps > 15) && n++ < 200 * 120) BOUCLE.simuler(REGLAGES.PAS_PHYSIQUE);
+      for (const p of DEUX_JOUEURS.joueurs(JEU.plateau)) { const c = p.course; while (c.tours.length < c.nbTours) c.tours.push({ temps: 60, secteurs: [20, 20, 20], coupe: false }); c.etat = "finie"; } BOUCLE.demarrer(); }''')
+    attendre(pg, '() => !!JEU.attente', None, 20000)
     attente = pg.evaluate('() => [!!JEU.attente, DEUX_JOUEURS.finie(JEU.plateau), ARRIVEE.restantes(JEU.plateau)]')
     if attente[0] and pg.evaluate('() => JEU.ecran === "course"'): pg.click('#boutonPasser')
-    t(f'{titre} : à deux, l’attente vient quand les deux joueurs ont fini, et « passer » mène au podium avec toutes les voitures arrivées', attente[0] and attente[1] and attendre(pg, '() => JEU.ecran === "podium" && JEU.plateau.pilotes.every(p => p.arrivee !== null)', None, 120000), str(attente))
+    # (3 tours d'IA restent : le filet ARRIVEE_ATTENTE_MAX, 90 s de course après l'arrivée des joueurs, arrive avant elles ; le podium vient en accéléré)
+    t(f'{titre} : à deux, l’attente vient quand les deux joueurs ont fini, et « passer » joue la suite en accéléré jusqu’au podium (ici le filet ARRIVEE_ATTENTE_MAX)', attente[0] and attente[1] and attente[2] > 0 and attendre(pg, '() => JEU.ecran === "podium" && JEU.final && JEU.final.length === 5', None, 120000)
+      and pg.evaluate('() => { const [a, b] = DEUX_JOUEURS.joueurs(JEU.plateau); return JEU.plateau.temps - Math.max(a.arrivee, b.arrivee) >= REGLAGES.ARRIVEE_ATTENTE_MAX - 0.1; }'), str([attente, pg.evaluate('() => [JEU.ecran, JEU.plateau.temps, JEU.plateau.pilotes.map(p => p.arrivee)]')]))
     t(f'{titre} : la revanche finit, la rivalité s’additionne (2 courses comptées)', JEU_PODIUM(pg) and sum(pg.evaluate('() => SAUVEGARDE.deux().rivalite.score')) == 2, str(pg.evaluate('() => SAUVEGARDE.deux()')))
     pg.click('#boutonResultats')
     with pg.expect_navigation(): pg.click('#boutonChangerResultats')
@@ -766,11 +769,15 @@ def accelere(pg, titre, page):
         if champ: pg.click('#boutonCourseSuivante')
         passer_qualif(pg, titre)
         attendre(pg, '() => JEU.plateau.carte !== null', None, 180000)
-        for _ in range(200):
-            if pg.evaluate('() => !!JEU.attente || JEU.ecran === "podium"'): break
-            pg.evaluate('() => BOUCLE.simuler(2)')
+        # le joueur « finit » au même pas de physique dans les deux courses (15 s après le départ, la boucle arrêtée : on lui donne ses
+        # tours, comme course_joueur) ; les IA ont encore toute la course à faire ; l'attente commence à l'image suivante
+        pg.evaluate('''() => { BOUCLE.arreter(); let n = 0; while (!(JEU.course.etat === "course" && JEU.plateau.temps > 15) && n++ < 200 * 120) BOUCLE.simuler(REGLAGES.PAS_PHYSIQUE);
+          const c = JEU.course; while (c.tours.length < c.nbTours) c.tours.push({ temps: 60, secteurs: [20, 20, 20], coupe: false }); c.etat = "finie"; BOUCLE.demarrer(); }''')
+        attendre(pg, '() => !!JEU.attente', None, 20000)
         return pg.evaluate('() => !!JEU.attente && JEU.ecran === "course" && JEU.plateau.pilotes.some(p => p.arrivee === null)')
-    t(f'{titre} : le joueur (robot) a fini, des voitures sont encore en course, le bandeau d’attente', jusqua_arrivee(), str(pg.evaluate('() => [JEU.ecran, !!JEU.attente, JEU.plateau && JEU.plateau.pilotes.map(p => p.arrivee)]')))
+    pret = jusqua_arrivee()
+    t(f'{titre} : le joueur (robot) a fini, des voitures sont encore en course, le bandeau d’attente', pret, str(pg.evaluate('() => [JEU.ecran, !!JEU.attente, JEU.plateau && JEU.plateau.pilotes.map(p => p.arrivee)]')))
+    if not pret: return
     restantes = pg.evaluate('() => ARRIVEE.restantes(JEU.plateau)')
     t0 = time.monotonic()
     pg.click('#boutonPasser')
