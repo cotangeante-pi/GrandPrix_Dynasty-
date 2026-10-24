@@ -202,6 +202,26 @@ const REGLAGES = {
   JOURNAL_CLASSEMENT: 5,        // en bas : les premiers du championnat (et le joueur s'il n'y est pas)
   JOURNAL_GRAINE: 6000,         // les variantes des titres sont tirées avec la graine du championnat + ce nombre + le Grand Prix
 
+  // la course de découverte du premier lancement (decouverte.js, CLAUDE.md « En piste en 10 secondes »)
+  DECOUVERTE_TOURS: 3,          // une longueur à part, seulement pour elle
+  DECOUVERTE_IA: 6,             // quelques IA seulement…
+  DECOUVERTE_NIVEAU: 'debutant',   // … au niveau débutant (NIVEAUX)
+  DECOUVERTE_CIRCUIT: 'test',   // sur un circuit facile (le circuit test tant que les 12 circuits n'existent pas)
+  DECOUVERTE_PILOTES: [0, 3, 6, 9, 12, 15],   // les pilotes du monde (ids dans championnat.pilotes) qui courent la découverte : un par écurie
+  DECOUVERTE_ARGENT: [1000, 800, 600, 400, 300, 200, 100],   // la prime d'argent de départ selon la place (1er, 2e, …)
+  DECOUVERTE_ARGENT_MAX: 1000,  // … et son plafond
+  AIDE_CLIGNOTE_APRES: 3,       // s : sur la grille, sans aucune touche pendant ce temps, l'aide « ↑ » clignote
+  CACHE_CARTE_TAILLE_MAX: 150000,   // octets : la carte des IA d'un circuit en cache dans la sauvegarde (cache-carte.js) ne doit pas peser plus (test)
+
+  // la création du pilote (pilote.js, étape 6) : le nom, le numéro, le pays, la course de cœur
+  NOM_LONGUEUR_MAX: 12,         // caractères du nom du pilote
+  NUMERO_MIN: 1, NUMERO_MAX: 99, // le numéro du pilote (jamais celui d'un rival)
+  // les pays proposés (codes ; le nom par texte('pays_<code>')), de vrais pays
+  PAYS: ['fr', 'be', 'ch', 'ca', 'gb', 'it', 'es', 'de', 'nl', 'at', 'pt', 'mc', 'se', 'fi', 'dk', 'no', 'pl', 'us', 'mx', 'br', 'ar', 'jp', 'cn', 'au', 'nz', 'sg', 'ae', 'bh', 'za', 'in', 'ma'],
+  // le pays de chaque circuit (celui du vrai circuit dont il s'inspire, CLAUDE.md « Le Grand Prix à domicile ») : si le joueur
+  // vient d'un de ces pays, ce circuit est son Grand Prix à domicile ; sinon il choisit sa course de cœur parmi les 12
+  CIRCUITS_PAYS: { monoco: 'mc', silverstoun: 'gb', monzo: 'it', spaa: 'be', suzuko: 'jp', interlagas: 'br', montreol: 'ca', melbourn: 'au', barcelana: 'es', bahrayn: 'bh', singapura: 'sg', yasmarino: 'ae' },
+
   // le robot d'essai (préparation des IA)
   ROBOT_VISEE_MIN: 12,          // m : il vise un point au moins à cette distance devant lui
   ROBOT_VISEE_TEMPS: 0.55,      // s : … ou à la distance parcourue en ce temps

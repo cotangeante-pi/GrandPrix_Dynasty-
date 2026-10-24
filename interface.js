@@ -45,10 +45,10 @@ const INTERFACE = (function () {
   }
 
   function montrer(ecran) {
-    for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une', 'garage', 'saison', 'duelSaison', 'contrats', 'retraite']) $(id).classList.toggle('cache', id !== ecran);
+    for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une', 'garage', 'saison', 'duelSaison', 'contrats', 'retraite', 'titre', 'amis', 'bravo', 'pilote']) $(id).classList.toggle('cache', id !== ecran);
     // le bandeau de course n'est là que pendant la course et la pause (pas sous l'écran de fin)
     const course = ecran === 'course' || ecran === 'pause';
-    for (const id of ['hudCourse', 'hudPenalite', 'compte', 'feux', 'classement', 'radar', 'jauge', 'departResultat']) if (!course) $(id).classList.add('cache');
+    for (const id of ['hudCourse', 'hudPenalite', 'compte', 'feux', 'classement', 'radar', 'jauge', 'departResultat', 'aides']) if (!course) $(id).classList.add('cache');
     if (course) $('hudCourse').classList.remove('cache');
   }
 
@@ -247,6 +247,89 @@ const INTERFACE = (function () {
     if (!oui) return;
     $('compte').classList.remove('cache');
     $('compte').textContent = texte('preparation');
+  }
+
+  // le premier lancement (decouverte.js) : l'écran titre (jouer, entre amis → « bientôt », retour) et « Prêt pour ta carrière ? »
+  function preparerTitre(jouer, amis, retour, carriere) {
+    $('titreNom').textContent = texte('nomDuJeu');
+    $('boutonJouer').textContent = texte('titreJouer');
+    $('boutonAmis').textContent = texte('titreAmis');
+    $('amisTexte').textContent = texte('amisBientot');
+    $('boutonAmisRetour').textContent = texte('retour');
+    $('bravoTitre').textContent = texte('bravoTitre');
+    $('bravoQuestion').textContent = texte('bravoQuestion');
+    $('boutonCarriere').textContent = texte('bravoBouton');
+    for (const [id, f] of [['boutonJouer', jouer], ['boutonAmis', amis], ['boutonAmisRetour', retour], ['boutonCarriere', carriere]]) {
+      $(id).addEventListener('mousedown', e => e.preventDefault());
+      $(id).addEventListener('click', f);
+    }
+  }
+
+  // « Bravo ! » : la place du joueur (place, nb) et sa prime
+  function remplirBravo(place, nb, prime) {
+    $('bravoPlace').textContent = texte('bravoPlace').replace('{p}', place).replace('{n}', nb);
+    $('bravoArgent').textContent = texte('bravoArgent').replace('{n}', typeof ARGENT !== 'undefined' ? ARGENT.formater(prime) : String(prime));   // la seule monnaie du jeu (argent.js)
+  }
+
+  // les aides en surimpression de la découverte : a = { gaz, direction, frein (vrais quand la touche a servi), clignote } ou null (cachées)
+  function majAides(a) {
+    $('aides').classList.toggle('cache', !a);
+    if (!a) return;
+    for (const [id, cle, servi] of [['aideGaz', 'aideGaz', a.gaz], ['aideDirection', 'aideDirection', a.direction], ['aideFrein', 'aideFrein', a.frein]]) {
+      $(id).textContent = texte(cle);
+      $(id).classList.toggle('cache', !!servi);
+    }
+    $('aideGaz').classList.toggle('clignote', !!a.clignote);
+  }
+
+  // la création du pilote (pilote.js) : l'écran et ses champs. remplirPilote(ch) : les listes (pays par nom traduit, les 12
+  // circuits), les valeurs de départ (nom par défaut, premier numéro libre) ; lirePilote() : les choix tapés ; montrerErreursPilote
+  const nomCircuit = c => texte('circuit_' + c) || c;
+  function remplirPilote(ch) {
+    const R = REGLAGES;
+    $('piloteTitre').textContent = texte('piloteTitre');
+    $('piloteNomTexte').textContent = texte('piloteNom');
+    $('piloteNumeroTexte').textContent = texte('piloteNumero').replace('{min}', R.NUMERO_MIN).replace('{max}', R.NUMERO_MAX);
+    $('pilotePaysTexte').textContent = texte('pilotePays');
+    $('piloteCoeurTexte').textContent = texte('piloteCoeur');
+    $('boutonPiloteValider').textContent = texte('piloteValider');
+    const nom = $('piloteNom'), numero = $('piloteNumero');
+    nom.maxLength = R.NOM_LONGUEUR_MAX; nom.placeholder = texte('nomJoueur'); nom.value = '';
+    numero.min = R.NUMERO_MIN; numero.max = R.NUMERO_MAX;
+    let libre = R.NUMERO_MIN; while (!PILOTE.numeroLibre(ch, libre) && libre < R.NUMERO_MAX) libre++;
+    numero.value = libre;
+    const pays = $('pilotePays'), coeur = $('piloteCoeur');
+    pays.textContent = ''; coeur.textContent = '';
+    for (const code of R.PAYS.slice().sort((a, b) => texte('pays_' + a).localeCompare(texte('pays_' + b), LANGUE))) { const o = document.createElement('option'); o.value = code; o.textContent = texte('pays_' + code); pays.appendChild(o); }
+    for (const c of Object.keys(R.CIRCUITS_PAYS)) { const o = document.createElement('option'); o.value = c; o.textContent = nomCircuit(c); coeur.appendChild(o); }
+    pays.value = R.PAYS[0];
+    $('piloteErreur').textContent = '';
+    majDomicilePilote();
+  }
+
+  // le pays choisi a-t-il un circuit ? alors la course de cœur est imposée et montrée 🏠
+  function majDomicilePilote() {
+    const maison = PILOTE.domicile($('pilotePays').value);
+    $('piloteCoeur').disabled = !!maison;
+    if (maison) $('piloteCoeur').value = maison;
+    $('piloteDomicile').textContent = maison ? texte('piloteDomicile').replace('{circuit}', nomCircuit(maison)) : '';
+  }
+
+  function lirePilote() {
+    return { nom: $('piloteNom').value, numero: $('piloteNumero').value, pays: $('pilotePays').value, coeur: $('piloteCoeur').value };
+  }
+
+  function montrerErreursPilote(erreurs) {
+    const R = REGLAGES;
+    $('piloteErreur').textContent = erreurs.includes('numero') ? texte('piloteErreurNumero').replace('{min}', R.NUMERO_MIN).replace('{max}', R.NUMERO_MAX) : erreurs.includes('coeur') ? texte('piloteErreurCoeur') : '';
+  }
+
+  function preparerPilote(valider) {
+    $('pilotePays').addEventListener('change', majDomicilePilote);
+    $('boutonPiloteValider').addEventListener('mousedown', e => e.preventDefault());
+    $('boutonPiloteValider').addEventListener('click', valider);
+    $('piloteNom').addEventListener('keydown', e => e.stopPropagation());     // taper son nom ne conduit pas la voiture
+    $('piloteNumero').addEventListener('keydown', e => e.stopPropagation());
   }
 
   // le départ parfait (depart.js) : pendant les feux, la jauge du régime de départ avec sa zone verte (DEPART_VERT), jusqu'au
@@ -538,5 +621,5 @@ const INTERFACE = (function () {
   return { formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, preparerChampionnat, remplirQualif, preparerQualif,
     remplirDuel, avec, remplirUne, preparerUne, remplirArgent, remplirSolde, remplirGarage, preparerGarage,
     remplirSaison, remplirDuelSaison, remplirContrats, remplirRetraite, preparerSaison, retraiteEnAttente,
-    majEcartFantome, preparerFantome, majBoutonsFantome, majDepart };
+    majEcartFantome, preparerFantome, majBoutonsFantome, majDepart, preparerTitre, remplirBravo, majAides, remplirPilote, lirePilote, montrerErreursPilote, preparerPilote, nomCircuit };
 })();

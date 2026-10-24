@@ -1,11 +1,20 @@
 // Le démarrage : il branche la physique et l'affichage sur la boucle.
 // La voiture du joueur roule sur le circuit de test, ou sur celui de ?circuit=… (un nom de CIRCUITS, donnees.js).
 const PARAMETRES = new URLSearchParams(location.search);
-// ?championnat=1 : le championnat sauvegardé, ou un nouveau ; son prochain Grand Prix choisit le circuit de la page
-const CHAMPIONNAT_EN_COURS = PARAMETRES.get('championnat') === '1' ? (SAUVEGARDE.championnat() || CHAMPIONNAT.creer(Number(PARAMETRES.get('graine')) || 1)) : null;
+// la page nue (index.html sans paramètre de développement) est le vrai jeu (CLAUDE.md « En piste en 10 secondes ») : au
+// premier lancement, l'écran titre puis la course de découverte ; ensuite (découverte faite), le championnat = le paddock.
+// Les paramètres ?course=, ?ia=, ?camera=, ?seul=1 (l'écran de choix d'une course seule), ?joueur=1 et ?championnat=1 restent
+// les chemins des tests et du développement. (La page de test charge ce fichier sans scène : rien n'est décidé ni sauvegardé)
+const EST_PAGE = !!document.getElementById('scene3d');
+const PAGE_NUE = !['course', 'ia', 'camera', 'seul', 'joueur', 'championnat'].some(k => PARAMETRES.has(k));
+const DECOUVERTE_EN_COURS = EST_PAGE && PAGE_NUE && !SAUVEGARDE.decouverteFaite();
+if (DECOUVERTE_EN_COURS) REGLAGES.NIVEAU = REGLAGES.DECOUVERTE_NIVEAU;   // les IA de la découverte sont au niveau débutant
+// ?championnat=1 (ou la page nue après la découverte) : le championnat sauvegardé, ou un nouveau ; son prochain Grand Prix choisit le circuit de la page
+const CHAMPIONNAT_EN_COURS = PARAMETRES.get('championnat') === '1' || (EST_PAGE && PAGE_NUE && !DECOUVERTE_EN_COURS) ? (SAUVEGARDE.championnat() || CHAMPIONNAT.creer(Number(PARAMETRES.get('graine')) || 1)) : null;
 // ?gp=N (tests) : un championnat NEUF arrive au N-ième Grand Prix, les N − 1 premiers joués d'avance sans physique (SAISONS.avancer)
 if (CHAMPIONNAT_EN_COURS && !SAUVEGARDE.championnat() && Number(PARAMETRES.get('gp')) > 1) SAISONS.avancer(CHAMPIONNAT_EN_COURS, Number(PARAMETRES.get('gp')) - 1);
-const NOM_CIRCUIT = CHAMPIONNAT_EN_COURS && CHAMPIONNAT_EN_COURS.prochain < CHAMPIONNAT_EN_COURS.calendrier.length ? CHAMPIONNAT_EN_COURS.calendrier[CHAMPIONNAT_EN_COURS.prochain].circuit
+const NOM_CIRCUIT = DECOUVERTE_EN_COURS ? REGLAGES.DECOUVERTE_CIRCUIT
+  : CHAMPIONNAT_EN_COURS && CHAMPIONNAT_EN_COURS.prochain < CHAMPIONNAT_EN_COURS.calendrier.length ? CHAMPIONNAT_EN_COURS.calendrier[CHAMPIONNAT_EN_COURS.prochain].circuit
   : Object.prototype.hasOwnProperty.call(CIRCUITS, PARAMETRES.get('circuit')) ? PARAMETRES.get('circuit') : 'test';
 const CIRCUIT = NOM_CIRCUIT === 'test' ? CIRCUIT_TEST : construireCircuit(CIRCUITS[NOM_CIRCUIT]);
 // ?niveau=debutant|normal|expert|legende : le niveau de difficulté des IA (normal par défaut)
@@ -51,6 +60,11 @@ const JEU = {
   fantome: null,
   modeleFantome: null,  // sa voiture 3D transparente (voiture3d.js), créée une fois, visible seulement pendant le tour
   departRecord: false,  // le départ parfait (depart.js) : le lancement du joueur a battu son record de temps de réaction (sauvegardé)
+  // le premier lancement (decouverte.js) : la course de découverte, dans le monde du championnat créé à ce moment (monde : ses
+  // pilotes et écuries ; indices : pour chaque voiture IA k de la course, l'id de son pilote dans monde.pilotes) ; aides : les
+  // touches déjà utilisées pendant le premier tour ; depuisClic : l'instant du clic sur « Jouer » (la mesure du clic aux feux, ms)
+  decouverte: false, monde: null, indices: null, aides: null, depuisClic: null, clicAuxFeux: null, clicAuPremierFeu: null,
+  carteDuCache: false,  // la carte des IA est venue du cache de la sauvegarde (cache-carte.js) : pas de calcul en fond
 };
 
 // les caméras de survol n'ont pas de course
@@ -100,6 +114,8 @@ function lancerCourse(nbTours) {
   JEU.departRecord = false;
   finirAttente();
   PODIUM3D.cacher();
+  // la découverte : pas de qualification, le joueur au milieu de la grille (dès que la carte des IA a donné leurs temps)
+  if (JEU.decouverte) { JEU.aides = { gaz: false, direction: false, frein: false, clignote: false }; placerDecouverte(); JEU.ecran = 'course'; INTERFACE.montrer('course'); return; }
   // contre les IA : d'abord la qualification du joueur (un tour, ou passer) ; la course attend
   if (JEU.contre) { commencerQualif(); return; }
   JEU.ecran = 'course';
@@ -255,17 +271,108 @@ function pasPneusJoueur(v, dt) {
 // pour un caractère tiré par donnerCarte). Les variations par tour (tours) restent celles tirées pour la course, déjà au
 // niveau ; ses erreurs sont re-tirées avec son taux (même graine que donnerCarte : le même hasard pour la même course)
 function appliquerCaracteres() {
-  const e = JEU.plateau;
-  if (!JEU.championnat || !e || !e.carte) return;
+  const e = JEU.plateau, ch = JEU.championnat || JEU.monde;   // la découverte : les pilotes du monde, par JEU.indices
+  if (!ch || !e || !e.carte) return;
   ALEATOIRE.semer(e.graine + REGLAGES.GRAINE_CARACTERE);
   e.pilotes.forEach((p, k) => {
-    const c = JEU.championnat.pilotes[k] && JEU.championnat.pilotes[k].caractere;
+    const id = JEU.indices ? JEU.indices[k] : k, c = ch.pilotes[id] && ch.pilotes[id].caractere;
     if (!c || !p.pilote || !p.pilote.caractere) return;
     const { regularite, agressivite, erreurs } = appliquerNiveau({ regularite: c.regularite, agressivite: c.agressivite, erreurs: c.erreurs, tours: [] });
     Object.assign(p.pilote.caractere, { regularite, agressivite, erreurs });
     p.pilote.erreurs = tirerErreurs(e.carte, p.pilote.caractere, e.nbTours + 1);
   });
   ALEATOIRE.semer();
+}
+
+// le premier lancement (decouverte.js) : l'écran titre, puis « ▶ Jouer » lance la course de découverte tout de suite
+function montrerTitre() {
+  PODIUM3D.cacher();
+  JEU.ecran = 'titre';
+  INTERFACE.montrer('titre');
+}
+
+function jouerDecouverte() {
+  if (JEU.ecran !== 'titre') return;
+  JEU.depuisClic = performance.now();
+  lancerCourse(REGLAGES.DECOUVERTE_TOURS);
+}
+
+// « 👥 Entre amis » : le mode 2 joueurs et le tournoi n'existent pas encore, un petit écran « bientôt »
+function montrerAmis() {
+  if (JEU.ecran !== 'titre') return;
+  JEU.ecran = 'amis';
+  INTERFACE.montrer('amis');
+}
+
+function retourTitre() {
+  if (JEU.ecran === 'amis') montrerTitre();
+}
+
+// la découverte : le joueur au milieu de la grille, avec le temps médian des IA (decouverte.js), une fois leurs temps connus
+// (la carte, donnerCarte → qualifier) et tant que personne n'a bougé ; appelée à lancerCourse et quand la carte arrive
+function placerDecouverte() {
+  const e = JEU.plateau;
+  if (!JEU.decouverte || !e || !e.carte || !e.pilotes.every(p => p.v.u === 0)) return;
+  QUALIFICATION.grille(e, DECOUVERTE.tempsMilieu(e.pilotes.filter(p => !p.humain).map(p => p.qualif)));
+}
+
+// les aides en surimpression du premier tour de la découverte : chacune part quand sa touche a servi, toutes au plus tard à la
+// fin du premier tour ; « ↑ » clignote si le joueur ne touche à rien sur la grille pendant AIDE_CLIGNOTE_APRES s
+function majAides() {
+  const c = JEU.course, a = JEU.aides;
+  if (!JEU.decouverte || !a || JEU.ecran !== 'course' || !c || c.etat === 'finie' || c.tours.length >= 1) { INTERFACE.majAides(null); return; }
+  if (JEU.cibles.gaz) a.gaz = true;
+  if (JEU.cibles.direction) a.direction = true;
+  if (JEU.cibles.frein) a.frein = true;
+  const d = c.depart;
+  a.clignote = !!d && d.lance === null && d.t >= REGLAGES.AIDE_CLIGNOTE_APRES && !a.gaz && !a.direction && !a.frein;
+  INTERFACE.majAides(a);
+}
+
+// après le podium de la découverte : « Bravo ! Prêt pour ta carrière ? », la place et la prime (decouverte.js)
+function montrerBravo() {
+  if (JEU.ecran !== 'podium' || !JEU.final) return;
+  const moi = JEU.final.find(x => x.k === JEU.suivie);
+  JEU.prime = DECOUVERTE.prime(moi.place);
+  INTERFACE.remplirBravo(moi.place, JEU.final.length, JEU.prime);
+  JEU.ecran = 'bravo';
+  INTERFACE.montrer('bravo');
+}
+
+// « Commencer ma carrière » : la création du pilote (pilote.js), puis le paddock
+function commencerCarriere() {
+  if (JEU.ecran !== 'bravo') return;
+  montrerPilote();
+}
+
+// la création du pilote (pilote.js) : après la découverte (le monde), ou au chargement d'un championnat dont le joueur n'a
+// pas encore de pilote (une ancienne sauvegarde : demandée une fois)
+function montrerPilote() {
+  PODIUM3D.cacher();
+  INTERFACE.remplirPilote(JEU.monde || JEU.championnat);
+  JEU.ecran = 'pilote';
+  INTERFACE.montrer('pilote');
+}
+
+// « C'est parti ! » : les choix vérifiés (numéro libre, pays, course de cœur ou domicile) et écrits dans le championnat ; la
+// découverte est faite (sa prime gardée), aucun point n'est donné ; la page se recharge sur le paddock
+function validerPilote() {
+  if (JEU.ecran !== 'pilote') return;
+  const ch = JEU.monde || JEU.championnat, r = PILOTE.valider(ch, INTERFACE.lirePilote());
+  INTERFACE.montrerErreursPilote(r.erreurs);
+  if (!r.ok) return;
+  PILOTE.appliquer(ch, r.choix);
+  // la prime de la découverte va au solde du championnat (argent.js, Codeur 3) : un seul argent dans le jeu
+  if (JEU.decouverte && typeof ARGENT !== 'undefined') ARGENT.crediter(ch, JEU.prime, 'decouverte');
+  SAUVEGARDE.ecrireChampionnat(ch);
+  if (JEU.decouverte) SAUVEGARDE.finirDecouverte(JEU.prime);
+  location.reload();
+}
+
+// le numéro affiché de la voiture k de la course : celui de son pilote du championnat (le joueur a le sien), sinon celui de la course
+function numeroDe(k) {
+  const ch = JEU.championnat, P = JEU.plateau.pilotes;
+  return ch && ch.pilotes[k] ? ch.pilotes[k].numero : P[k].numero;
 }
 
 // ?championnat=1 : l'écran entre les courses ; gagne : les points du Grand Prix qui vient de finir (null au démarrage)
@@ -423,9 +530,9 @@ function montrerPodium() {
   const trois = JEU.final.slice(0, 3);
   for (const m of JEU.modeles) m.groupe.visible = false;
   PODIUM3D.montrer(trois.map(x => JEU.modeles[x.k]));
-  INTERFACE.remplirPodium(trois.map(x => ({ numero: P[x.k].numero, couleur: JEU.couleurs[x.k], total: x.total, penalites: x.penalites })));
+  INTERFACE.remplirPodium(trois.map(x => ({ numero: numeroDe(x.k), couleur: JEU.couleurs[x.k], total: x.total, penalites: x.penalites })));
   INTERFACE.remplirResultats(JEU.final.map(x => ({
-    place: x.place, numero: P[x.k].numero, couleur: JEU.couleurs[x.k], total: x.total, penalites: x.penalites,
+    place: x.place, numero: numeroDe(x.k), couleur: JEU.couleurs[x.k], total: x.total, penalites: x.penalites,
     ecart: x.ecart, grille: x.grille, moi: x.k === JEU.suivie,
   })));
   // ?championnat=1 : les gains du joueur (argent.js), calculés sur le classement final de cet instant (encaissés à « Continuer »)
@@ -495,6 +602,8 @@ function majCibles() {
   JEU.cibles.gaz = appui(TOUCHES.gaz) ? 1 : 0;
   JEU.cibles.frein = appui(TOUCHES.frein) ? 1 : 0;
   JEU.cibles.direction = (appui(TOUCHES.droite) ? 1 : 0) - (appui(TOUCHES.gauche) ? 1 : 0);
+  // la découverte : une touche qui a servi, même un instant, éteint son aide (majAides)
+  if (JEU.aides) { if (JEU.cibles.gaz) JEU.aides.gaz = true; if (JEU.cibles.direction) JEU.aides.direction = true; if (JEU.cibles.frein) JEU.aides.frein = true; }
 }
 
 function brancherClavier() {
@@ -584,7 +693,7 @@ function majClassementRadar() {
   const kc = JEU.championnat && JEU.contre ? (CHAMPIONNAT.coequipierDe(JEU.championnat) || { id: null }).id : null;
   const duel = kc !== null && ordre ? ecartCoequipier(ordre, kc) : null;
   INTERFACE.majClassement(ordre ? ordre.map(x => ({
-    numero: P[x.k].numero, couleur: JEU.couleurs[x.k], ecart: x.ecart, tours: x.tours, penalites: x.penalites, moi: x.k === JEU.suivie,
+    numero: numeroDe(x.k), couleur: JEU.couleurs[x.k], ecart: x.ecart, tours: x.tours, penalites: x.penalites, moi: x.k === JEU.suivie,
     arrive: P[x.k].arrivee !== null, coequipier: x.k === kc, ecartDuel: x.k === kc ? duel : null,
   })) : null);
   const autres = [];
@@ -613,8 +722,7 @@ function majTableau() {
   document.getElementById('rapport').textContent = rapportPourVitesse(v.u);
   const roule = JEU.ecran === 'course' || JEU.ecran === 'survol' || enTourQualif();
   // sur le podium et les résultats, ni vitesse ni aide des touches
-  const apres = JEU.ecran === 'podium' || JEU.ecran === 'resultats' || JEU.ecran === 'championnat' || JEU.ecran === 'une' || JEU.ecran === 'garage'
-    || JEU.ecran === 'saison' || JEU.ecran === 'duelSaison' || JEU.ecran === 'contrats' || JEU.ecran === 'retraite';
+  const apres = ['podium', 'resultats', 'championnat', 'une', 'garage', 'titre', 'amis', 'bravo', 'saison', 'duelSaison', 'contrats', 'retraite'].includes(JEU.ecran);
   document.getElementById('tableau').classList.toggle('cache', apres);
   document.getElementById('aide').classList.toggle('cache', apres);
   // après l'arrivée du joueur (en attendant les autres), il ne court plus : pas de « hors piste »
@@ -686,16 +794,31 @@ function demarrerJeu() {
   JEU.robot = PARAMETRES.get('robot') === '1';
   // ?championnat=1 : le joueur contre les 19 pilotes du championnat, comme ?ia=19&joueur=1
   JEU.championnat = CHAMPIONNAT_EN_COURS;
-  JEU.contre = (PARAMETRES.get('joueur') === '1' && Number(PARAMETRES.get('ia')) >= 1) || !!JEU.championnat;
-  JEU.ia = JEU.championnat ? JEU.championnat.pilotes.length - 1 : Math.max(0, Math.min(REGLAGES.IA_PAGE_MAX - (JEU.contre ? 1 : 0), Math.floor(Number(PARAMETRES.get('ia'))) || 0));
-  if (JEU.ia) JEU.calculTrajectoire = calculerEnFond(etapesTrajectoire(CIRCUIT), t => {
+  // le premier lancement : le monde du championnat est créé et sauvegardé maintenant, et DECOUVERTE_IA de ses pilotes courent la découverte
+  JEU.decouverte = DECOUVERTE_EN_COURS;
+  if (JEU.decouverte) {
+    JEU.monde = SAUVEGARDE.championnat() || CHAMPIONNAT.creer(Number(PARAMETRES.get('graine')) || 1);
+    SAUVEGARDE.ecrireChampionnat(JEU.monde);
+    JEU.indices = DECOUVERTE.pilotes(JEU.monde).map(p => p.id);
+  }
+  JEU.contre = (PARAMETRES.get('joueur') === '1' && Number(PARAMETRES.get('ia')) >= 1) || !!JEU.championnat || JEU.decouverte;
+  JEU.ia = JEU.championnat ? JEU.championnat.pilotes.length - 1 : JEU.decouverte ? JEU.indices.length : Math.max(0, Math.min(REGLAGES.IA_PAGE_MAX - (JEU.contre ? 1 : 0), Math.floor(Number(PARAMETRES.get('ia'))) || 0));
+  // la carte des IA : lue du cache de la sauvegarde si elle y est et si sa clé est encore valable (cache-carte.js : les mêmes
+  // nombres au bit près, les feux n'attendent plus), sinon calculée en fond puis mise en cache
+  const carteFinie = t => {
     JEU.trajectoire = t;
     JEU.carte = carteDepuis(CIRCUIT, t);
     if (JEU.plateau) {
       donnerCarte(JEU.plateau, JEU.carte); appliquerCaracteres();
+      placerDecouverte();   // la découverte : le joueur au milieu de la grille
       if (JEU.qualif && JEU.qualif.etat === 'attente') finirQualif();   // le joueur a fini son tour avant la carte
     } else JEU.pilote = creerPilote(JEU.carte);
-  });
+  };
+  if (JEU.ia) {
+    const enCache = CACHE_CARTE.decoder(SAUVEGARDE.carte(NOM_CIRCUIT), NOM_CIRCUIT, CIRCUITS[NOM_CIRCUIT], CIRCUIT);
+    if (enCache) { JEU.carteDuCache = true; carteFinie(enCache); }
+    else JEU.calculTrajectoire = calculerEnFond(etapesTrajectoire(CIRCUIT), t => { SAUVEGARDE.ecrireCarte(NOM_CIRCUIT, CACHE_CARTE.encoder(NOM_CIRCUIT, CIRCUITS[NOM_CIRCUIT], t)); carteFinie(t); });
+  }
   // ?ia=N : un modèle par IA, chacune sa couleur (contre le joueur, aucune n'a la sienne), puis celui du joueur ;
   // sinon, seulement la voiture du joueur
   const couleurs = REGLAGES.COULEURS_IA;
@@ -703,7 +826,10 @@ function demarrerJeu() {
     const choix = JEU.contre ? couleurs.filter(x => x !== REGLAGES.COULEUR_JOUEUR) : couleurs;
     // ?championnat=1 : chaque voiture a la couleur de son écurie (le joueur en dernier, comme dans la course)
     if (JEU.championnat) for (const p of JEU.championnat.pilotes) JEU.couleurs.push(JEU.championnat.ecuries[p.ecurie].couleur);
-    else {
+    else if (JEU.decouverte) {   // les pilotes du monde aux couleurs de leur écurie, puis le joueur à celle de la sienne
+      for (const p of DECOUVERTE.pilotes(JEU.monde)) JEU.couleurs.push(p.couleur);
+      JEU.couleurs.push(JEU.monde.ecuries[REGLAGES.ECURIE_JOUEUR].couleur);
+    } else {
       for (let k = 0; k < JEU.ia; k++) JEU.couleurs.push(choix[k % choix.length]);
       if (JEU.contre) JEU.couleurs.push(REGLAGES.COULEUR_JOUEUR);
     }
@@ -725,7 +851,10 @@ function demarrerJeu() {
     INTERFACE.preparerUne(passerUne);
     INTERFACE.preparerGarage(acheterAmelioration, quitterGarage);
     INTERFACE.preparerSaison(suiteClassementSaison, suiteDuelSaison, signerContrat, prendreRetraite);
-  } else INTERFACE.preparerResultats(voirResultats, () => lancerCourse(JEU.course.nbTours), allerAuChoix);
+  } else if (JEU.decouverte) INTERFACE.preparerResultats(montrerBravo, () => {}, () => {});   // la découverte : après le podium, « Bravo ! »
+  else INTERFACE.preparerResultats(voirResultats, () => lancerCourse(JEU.course.nbTours), allerAuChoix);
+  INTERFACE.preparerTitre(jouerDecouverte, montrerAmis, retourTitre, commencerCarriere);
+  INTERFACE.preparerPilote(validerPilote);
   document.getElementById('attenteTexte').textContent = texte('attenteArrivee');
   const boutonPasser = document.getElementById('boutonPasser');
   boutonPasser.textContent = texte('passerPodium');
@@ -738,6 +867,8 @@ function demarrerJeu() {
   // ?course=5, 12, 18 ou 0 (essai libre) lance directement une course (tests, développement)
   const demandee = PARAMETRES.get('course');
   if (SURVOL.includes(PARAMETRES.get('camera'))) { JEU.ecran = 'survol'; INTERFACE.montrer('survol'); }
+  else if (JEU.decouverte) montrerTitre();   // le premier lancement
+  else if (JEU.championnat && PAGE_NUE && PILOTE.manque(JEU.championnat)) montrerPilote();   // le vrai jeu, une sauvegarde sans pilote : la création, une fois (pas les pages ?championnat=1 des tests)
   else if (JEU.championnat && (JEU.championnat.retraite || SAISONS.finie(JEU.championnat))) montrerFinSaison();   // la saison est finie (la page a été rechargée pendant les contrats), ou la carrière
   else if (JEU.championnat) montrerChampionnat(null);
   else if (demandee !== null && !isNaN(Number(demandee))) lancerCourse(Number(demandee));
@@ -755,7 +886,7 @@ function demarrerJeu() {
   BOUCLE.surPhysique(pasJoueur);
   BOUCLE.surAffichage((alpha, dt) => {
     JEU.alpha = alpha;
-    const apres = JEU.ecran === 'podium' || JEU.ecran === 'resultats';   // le podium : les voitures n'y bougent plus
+    const apres = JEU.ecran === 'podium' || JEU.ecran === 'resultats' || JEU.ecran === 'bravo';   // le podium : les voitures n'y bougent plus
     // ?ia=N : chaque IA à sa place ; une IA arrivée quitte la piste (elle n'est plus dessinée)
     if (JEU.plateau && !apres) JEU.plateau.pilotes.forEach((p, k) => {
       const m = JEU.modeles[k];
@@ -779,11 +910,18 @@ function demarrerJeu() {
     INTERFACE.majDepart(JEU.course, JEU.ecran, JEU.departRecord);
     INTERFACE.majEcartFantome(enTourQualif() && JEU.fantome && JEU.fantome.rejeu && JEU.qualif.q.lance ? JEU.fantome.ecart : null);
     INTERFACE.majPreparation(JEU.ecran === 'course' && JEU.ia > 0 && !JEU.carte);
+    majAides();
+    // la mesure du premier lancement : du clic sur « Jouer » à l'extinction des feux (ms)
+    if (JEU.depuisClic !== null && JEU.clicAuxFeux === null && JEU.course && JEU.course.feux && JEU.course.etat !== 'compte') JEU.clicAuxFeux = performance.now() - JEU.depuisClic;
+    // … et jusqu'au premier feu (la fin de l'attente de la carte des IA)
+    if (JEU.depuisClic !== null && JEU.clicAuPremierFeu === null && JEU.course && JEU.course.feux && (JEU.course.etat !== 'compte' || JEU.course.compte < JEU.course.feux.total)) JEU.clicAuPremierFeu = performance.now() - JEU.depuisClic;
     majClassementRadar();
     signauxCourse(JEU.course);
     // Poki (sdk.js) : la voiture roule (course, tour de qualification) = gameplayStart, tout le reste = gameplayStop ;
     // sdk.js n'envoie jamais deux fois le même de suite
-    if (JEU.sdkPret) SDK[JEU.ecran === 'course' || enTourQualif() ? 'jeuCommence' : 'jeuArrete']();
+    // (avec les feux, la voiture ne roule qu'à leur extinction : gameplayStart à ce moment-là)
+    const feuxAllumesEncore = !!(JEU.course && JEU.course.feux && JEU.course.etat === 'compte');
+    if (JEU.sdkPret) SDK[(JEU.ecran === 'course' && !feuxAllumesEncore) || enTourQualif() ? 'jeuCommence' : 'jeuArrete']();
     // la voiture suivie a fini : seule, l'écran de fin ; contre les IA, on attend les autres (vue télé) ; entre IA, le
     // podium dès que les trois premiers sont connus
     if (JEU.ecran === 'course' && JEU.course && JEU.course.etat === 'finie') {
