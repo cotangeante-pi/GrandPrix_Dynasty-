@@ -1,7 +1,7 @@
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><title>tests</title></head><body>
 <pre id="res"></pre>
 <script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));window.addEventListener('unhandledrejection',e=>__err.push('promesse : '+(e.reason&&e.reason.message||e.reason)));</script>
-<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../son.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../decouverte.js"></script><script src="../pilote.js"></script><script src="../deux-joueurs.js"></script><script src="../casque.js"></script><script src="../cache-carte.js"></script><script src="../journal.js"></script><script src="../argent.js"></script><script src="../garage.js"></script><script src="../saisons.js"></script><script src="../sponsors.js"></script><script src="../fiche.js"></script><script src="../interview.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../fantome.js"></script><script src="../principal.js"></script>
+<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../son.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../decouverte.js"></script><script src="../pilote.js"></script><script src="../deux-joueurs.js"></script><script src="../casque.js"></script><script src="../cache-carte.js"></script><script src="../journal.js"></script><script src="../argent.js"></script><script src="../garage.js"></script><script src="../saisons.js"></script><script src="../sponsors.js"></script><script src="../fiche.js"></script><script src="../interview.js"></script><script src="../carriere.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../fantome.js"></script><script src="../principal.js"></script>
 <script>
 const L=[];let ok=0,ko=0;
 function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
@@ -945,6 +945,49 @@ t('album : chaque une redessinée depuis l’album (JOURNAL.rendreAlbum) est exa
   const S=JOURNAL.saisonsAlbum(ch);v(S.length===6&&S.every((x,k)=>x.saison===k+1&&x.debut===12*k&&x.n===12),JSON.stringify(S));
   const vieux=JSON.parse(JSON.stringify(ch));vieux.album.forEach(u=>delete u.s);JOURNAL.completer(vieux);v(vieux.album.every((u,i)=>u.s===ch.album[i].s),'sans saison : '+vieux.album.map(u=>u.s).join(''));
   L.push('  (album : 6 saisons, '+ch.retraites.length+' retraites, '+changent+' unes sur 72 auraient changé de noms sans rendreAlbum)');
+  localStorage.removeItem(SAUVEGARDE.CLE);});
+
+// --- la fin de carrière (tour 28c, carriere.js, Codeur 3) : une carrière simulée de 15 saisons (SAISONS.avancer), le joueur 19
+// avec la course de cœur « technique » ; on compte à côté ce que le bilan doit dire
+function carriere15(graine){
+  const ch=CHAMPIONNAT.creer(graine),j=ch.pilotes[19],compte={v:0,p:0,dom:null,titres:0,duel:0};j.nom='Alex Rossi';j.numero=27;j.coeur='technique';j.pays='fr';
+  for(let s=1;s<=15;s++){
+    for(let g=0;g<12;g++){SAISONS.avancer(ch,1);const r=ch.resultats[ch.resultats.length-1],pl=r.ordre.indexOf(19)+1;
+      if(pl===1)compte.v++;if(pl<=3)compte.p++;if(ch.calendrier[r.grandPrix-1].circuit==='technique'&&(compte.dom===null||pl<compte.dom))compte.dom=pl;}
+    SAISONS.terminerSaison(ch);const h=ch.saisons[ch.saisons.length-1];if(h.champion===19)compte.titres++;if(h.duel)compte.duel+=h.duel[1]+h.duel[2]+h.duel[3]+h.duel[4];
+    if(s<15)SAISONS.signer(ch,SAISONS.offres(ch)[Math.min(1,SAISONS.offres(ch).length-1)].ecurie);}
+  return {ch,compte};}
+t('carrière : le bilan d’une carrière simulée de 15 saisons est juste (saisons, titres, victoires, podiums, poles, meilleurs tours, domicile, réaction, duels contre chaque coéquipier, la une préférée = la plus haute priorité) ; la retraite par l’âge arrive à la 15e', ()=>{
+  const {ch,compte}=carriere15(41),j=ch.pilotes[19];
+  v(ch.retraite&&ch.retraite.raison==='age'&&ch.saison===15,'retraite : '+JSON.stringify(ch.retraite));
+  CARRIERE.noterReaction(ch,0.31);CARRIERE.noterReaction(ch,0.24);CARRIERE.noterReaction(ch,0.4);CARRIERE.noterReaction(ch,-1);
+  const b=CARRIERE.bilan(ch);
+  v(b.saisons===15&&b.titres===compte.titres&&b.victoires===compte.v&&b.podiums===compte.p&&b.poles===j.stats.poles&&b.meilleursTours===j.stats.meilleursTours&&b.courses===180,'chiffres : '+JSON.stringify([b.saisons,b.titres,b.victoires,b.podiums,b.courses])+' attendu '+JSON.stringify(compte));
+  v(b.domicile===compte.dom&&b.reaction===0.24&&b.meilleurePlace===Math.min(...ch.saisons.map(s=>s.joueur)),'domicile '+b.domicile+' / '+compte.dom+', réaction '+b.reaction);
+  const tot=b.duels.reduce((a,d)=>a+d.total[0]+d.total[1],0);v(b.duels.length>=2&&tot===compte.duel,'duels : '+b.duels.length+' coéquipiers, '+tot+' points / '+compte.duel);
+  v(b.duels.every(d=>d.qualifs.length===2&&d.total[0]===d.qualifs[0]+d.courses[0]),'duel mal compté');
+  const P=REGLAGES.JOURNAL_PRIORITES,rang=u=>P.indexOf(u.f),meilleur=Math.min(...ch.album.map(rang));
+  v(b.une===ch.album.findIndex(u=>rang(u)===meilleur),'une préférée '+b.une+' ('+ch.album[b.une].f+'), attendu le premier '+P[meilleur]);
+  L.push('  (carrière de 15 saisons : '+b.titres+' titres, '+b.victoires+' victoires, '+b.podiums+' podiums, '+b.duels.length+' coéquipiers, une préférée « '+ch.album[b.une].f+' » ; sauvegarde '+(JSON.stringify(ch).length/1024).toFixed(1)+' Ko, album '+(JSON.stringify(ch.album).length/1024).toFixed(1)+' Ko)');});
+t('carrière : le temple de la renommée classe les carrières par titres, puis victoires, puis podiums ; il garde TEMPLE_MAX carrières au plus ; les records de carrière (le plus grand nombre, la réaction la plus courte) gardent le nom', ()=>{
+  const t_=CARRIERE.templeVierge(),r=(nom,titres,victoires,podiums,reaction)=>({nom,numero:5,titres,victoires,podiums,poles:1,meilleursTours:0,saisons:15,reaction});
+  CARRIERE.entrer(t_,r('A',1,10,20,0.3));CARRIERE.entrer(t_,r('B',2,5,9,0.25));CARRIERE.entrer(t_,r('C',1,12,15,null));const nD=CARRIERE.entrer(t_,r('D',1,10,25,0.5));
+  v(CARRIERE.classer(t_).map(c=>c.nom).join('')==='BCDA','ordre : '+CARRIERE.classer(t_).map(c=>c.nom).join(''));v(CARRIERE.place(t_,nD)===3,'place de D');
+  v(t_.records.titres.nom==='B'&&t_.records.victoires.valeur===12&&t_.records.victoires.nom==='C'&&t_.records.podiums.nom==='D'&&t_.records.reaction.valeur===0.25&&t_.records.reaction.nom==='B','records : '+JSON.stringify(t_.records));
+  for(let i=0;i<REGLAGES.TEMPLE_MAX+5;i++) CARRIERE.entrer(t_,r('Z'+i,0,0,i,null));
+  v(t_.carrieres.length===REGLAGES.TEMPLE_MAX&&t_.carrieres[0].nom==='B'&&!t_.carrieres.some(c=>c.nom==='Z0'),'plafond : '+t_.carrieres.length);});
+t('carrière : la retraite entre au temple une seule fois, sauvegardée ; les records et le temple survivent à une nouvelle carrière (un nouveau championnat) ; une ancienne sauvegarde (v3, sans temple ni carrière) se charge', ()=>{
+  localStorage.removeItem(SAUVEGARDE.CLE);
+  const {ch}=carriere15(42);const p1=SAUVEGARDE.entrerAuTemple(ch),p2=SAUVEGARDE.entrerAuTemple(ch);
+  let t_=SAUVEGARDE.temple();v(p1===1&&p2===1&&t_.carrieres.length===1&&t_.carrieres[0].nom==='Alex Rossi'&&t_.carrieres[0].saisons===15&&SAUVEGARDE.championnat().retraite.temple===t_.carrieres[0].n,'entrée : '+JSON.stringify(t_));
+  const taille=localStorage.getItem(SAUVEGARDE.CLE).length;
+  SAUVEGARDE.ecrireChampionnat(CHAMPIONNAT.creer(9));t_=SAUVEGARDE.temple();
+  v(t_.carrieres.length===1&&t_.records.victoires&&t_.records.victoires.nom==='Alex Rossi'&&SAUVEGARDE.championnat().saison===1&&!SAUVEGARDE.championnat().retraite,'nouvelle carrière : '+JSON.stringify(t_.records));
+  const vieux=JSON.parse(JSON.stringify(ch));delete vieux.carriere;vieux.album.forEach(u=>delete u.s);delete vieux.retraite.temple;
+  localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:3,records:{},championnat:vieux}));
+  const d=SAUVEGARDE.lire();v(d.temple&&d.temple.carrieres.length===0&&d.championnat.carriere.debut===1&&d.championnat.carriere.domicile===null&&d.championnat.album.every(u=>typeof u.s==='number'),'ancienne : '+JSON.stringify(d.championnat.carriere));
+  const b=CARRIERE.bilan(d.championnat);v(b.saisons===15&&b.duels.length>=1&&b.une!==null,'bilan d’une ancienne sauvegarde');
+  L.push('  (sauvegarde après une carrière de 15 saisons, temple compris : '+taille+' octets = '+(taille/1024).toFixed(1)+' Ko)');
   localStorage.removeItem(SAUVEGARDE.CLE);});
 
 t('championnat : le niveau de l’écurie agit sur le rythme des IA (rythme × niveau, avant la carte) ; sur 6 Grands Prix simulés, les 5 écuries fortes marquent plus que les 5 faibles', ()=>{
