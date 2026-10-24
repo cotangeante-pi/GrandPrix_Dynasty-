@@ -1,7 +1,7 @@
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><title>tests</title></head><body>
 <pre id="res"></pre>
 <script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));window.addEventListener('unhandledrejection',e=>__err.push('promesse : '+(e.reason&&e.reason.message||e.reason)));</script>
-<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../son.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../journal.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../fantome.js"></script><script src="../principal.js"></script>
+<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../son.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../journal.js"></script><script src="../argent.js"></script><script src="../garage.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../fantome.js"></script><script src="../principal.js"></script>
 <script>
 const L=[];let ok=0,ko=0;
 function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
@@ -1043,6 +1043,81 @@ t('départ : le record du temps de réaction est sauvegardé (proposerReaction :
   v(SAUVEGARDE.proposerReaction(0.35)===false&&SAUVEGARDE.reaction()===0.31,'plus lent gardé');v(SAUVEGARDE.proposerReaction(0.31)===false,'égal');
   v(SAUVEGARDE.proposerReaction(0.2)===true&&SAUVEGARDE.lire().reaction===0.2,'meilleur');v(SAUVEGARDE.proposerReaction(null)===false&&SAUVEGARDE.proposerReaction(-1)===false,'invalide');
   localStorage.removeItem(SAUVEGARDE.CLE);});
+
+// --- l'argent (étape 8, argent.js, calcul pur, Codeur 3) : le joueur est le pilote 19, son coéquipier le 18 ; le meilleur tour au pilote mt
+const lignesArgent=(ordre,grille,mt)=>ordre.map((k,i)=>({k,place:i+1,grille:grille?grille.indexOf(k)+1:i+1,ligne:i+1,penalites:0,meilleurTour:mt===k?60:61,classe:true}));
+const AUTRES=[...Array(18).keys()];   // les pilotes 0 à 17
+const ordrePlace=p=>{const o=AUTRES.slice();if(p===1){o.splice(0,0,19,18);}else{o.splice(p-2,0,18,19);}return o;};   // le joueur p-ième, le coéquipier juste devant (ou juste derrière s'il gagne)
+t('argent : les gains selon la place (ARGENT_PLACE, du 1er au 20e, décroissants), sans meilleur tour ni place gagnée (grille = arrivée) ; le coéquipier juste devant (pas de bonus), sauf pour la victoire', ()=>{
+  const R_=REGLAGES;v(R_.ARGENT_PLACE.length===20&&R_.ARGENT_PLACE.every((x,i)=>x>0&&(i===0||x<=R_.ARGENT_PLACE[i-1])),'20 montants décroissants');
+  for(let p=1;p<=20;p++){const ch=CHAMPIONNAT.creer(1),l=lignesArgent(ordrePlace(p),null,0),g=ARGENT.gains(ch,l);
+    const attendu=Math.min(R_.ARGENT_PLACE[p-1]+(p===1?R_.DUEL_BONUS:0),R_.ARGENT_PLAFOND_COURSE);
+    v(g.place===R_.ARGENT_PLACE[p-1]&&g.meilleurTour===0&&g.placesGagnees===0&&g.nbPlacesGagnees===0&&g.duel===(p===1?R_.DUEL_BONUS:0)&&g.total===attendu,'P'+p+' : '+JSON.stringify(g));}});
+t('argent : le meilleur tour (+ARGENT_MEILLEUR_TOUR), les places gagnées (grille 12 → arrivée 8 : 4 × ARGENT_PLACE_GAGNEE ; grille 5 → arrivée 10 : 0, jamais négatif), le bonus du duel seulement devant le coéquipier (classement final, non classé = perdu)', ()=>{
+  const R_=REGLAGES,ch=CHAMPIONNAT.creer(1);
+  let g=ARGENT.gains(ch,lignesArgent(ordrePlace(8),null,19));v(g.meilleurTour===R_.ARGENT_MEILLEUR_TOUR&&g.total===R_.ARGENT_PLACE[7]+R_.ARGENT_MEILLEUR_TOUR,'meilleur tour : '+JSON.stringify(g));
+  const o8=ordrePlace(8),g12=o8.slice();g12.splice(7,1);g12.splice(11,0,19);   // sur la grille, le joueur 12e
+  g=ARGENT.gains(ch,lignesArgent(o8,g12,0));v(g.nbPlacesGagnees===4&&g.placesGagnees===4*R_.ARGENT_PLACE_GAGNEE&&g.total===R_.ARGENT_PLACE[7]+4*R_.ARGENT_PLACE_GAGNEE,'4 places : '+JSON.stringify(g));
+  const o10=ordrePlace(10),g5=o10.slice();g5.splice(9,1);g5.splice(4,0,19);
+  g=ARGENT.gains(ch,lignesArgent(o10,g5,0));v(g.nbPlacesGagnees===0&&g.placesGagnees===0,'places perdues : '+JSON.stringify(g));
+  // le duel : le joueur 8e devant le coéquipier 9e
+  const devant=AUTRES.slice();devant.splice(7,0,19,18);g=ARGENT.gains(ch,lignesArgent(devant,null,0));v(g.duel===R_.DUEL_BONUS&&g.total===R_.ARGENT_PLACE[7]+R_.DUEL_BONUS,'duel gagné : '+JSON.stringify(g));
+  const l=lignesArgent(devant,null,0);l.find(x=>x.k===19).classe=false;g=ARGENT.gains(ch,l);v(g.duel===0,'non classé : pas de bonus : '+JSON.stringify(g));
+  v(ARGENT.gains(ch,lignesArgent(ordrePlace(8),null,0).filter(x=>x.k!==19))===null,'sans le joueur : null');});
+t('argent : le plafond par course : P1 depuis la 20e place sur la grille, avec le meilleur tour et le duel (79 000) → total = ARGENT_PLAFOND_COURSE, plafonne = vrai', ()=>{
+  const R_=REGLAGES,ch=CHAMPIONNAT.creer(1),o=ordrePlace(1),gr=o.slice();gr.splice(0,1);gr.push(19);
+  const g=ARGENT.gains(ch,lignesArgent(o,gr,19));v(g.brut===R_.ARGENT_PLACE[0]+R_.ARGENT_MEILLEUR_TOUR+19*R_.ARGENT_PLACE_GAGNEE+R_.DUEL_BONUS&&g.brut>R_.ARGENT_PLAFOND_COURSE,'brut '+g.brut);
+  v(g.total===R_.ARGENT_PLAFOND_COURSE&&g.plafonne===true,JSON.stringify(g));});
+t('argent : le solde après 3 Grands Prix = la somme des gains, l’historique compact (un [gp, total, …] par Grand Prix) ; crediter (l’argent de départ) et debiter (refusé sans argent : jamais de dette) ; sauvegarde → rechargement identique ; une ancienne sauvegarde sans argent se charge à 0', ()=>{
+  const ch=CHAMPIONNAT.creer(6);v(ch.argent&&ch.argent.solde===0&&ch.argent.historique.length===0,'neuf : '+JSON.stringify(ch.argent));
+  let attendu=0;for(const p of [8,3,12]){const l=lignesArgent(ordrePlace(p),null,0);attendu+=ARGENT.gains(ch,l).total;CHAMPIONNAT.finirGrandPrix(ch,l);}
+  v(ch.argent.solde===attendu&&ch.argent.historique.length===3&&ch.argent.historique.every((h,i)=>h[0]===i+1&&h.length===6&&h[1]===h[2]+h[3]+h[4]+h[5]),JSON.stringify(ch.argent));
+  v(ARGENT.crediter(ch,12345,'decouverte')===attendu+12345&&ch.argent.historique[3][0]===0&&ch.argent.historique[3][2]==='decouverte','crediter');
+  v(ARGENT.crediter(ch,-5,'x')===attendu+12345,'un crédit négatif ne change rien');
+  v(ARGENT.debiter(ch,attendu+12345+1)===false&&ch.argent.solde===attendu+12345,'refus sans argent');v(ARGENT.debiter(ch,10000)===true&&ch.argent.solde===attendu+2345,'débit');
+  SAUVEGARDE.ecrireChampionnat(ch);const re=SAUVEGARDE.championnat();v(JSON.stringify(re.argent)===JSON.stringify(ch.argent),'rechargement');
+  const vieux=JSON.parse(JSON.stringify(ch));delete vieux.argent;localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:3,records:{},championnat:vieux}));
+  const d=SAUVEGARDE.lire();v(d.championnat.argent.solde===0&&d.championnat.argent.historique.length===0&&d.championnat.prochain===3,'sans argent : '+JSON.stringify(d.championnat.argent));
+  localStorage.removeItem(SAUVEGARDE.CLE);});
+t('argent : formater : 12 500 avec le séparateur des milliers et la forme du montant de la langue (« 12 500 € » / « €12,500 »), 0 et 1 234 567 aussi', ()=>{
+  const T=TEXTES[LANGUE],f=n=>T.montant.replace('{n}',n);
+  v(ARGENT.formater(12500)===f('12'+T.milliers+'500'),ARGENT.formater(12500));v(ARGENT.formater(0)===f('0'));v(ARGENT.formater(1234567)===f('1'+T.milliers+'234'+T.milliers+'567'),ARGENT.formater(1234567));
+  v(TEXTES.fr.montant==='{n} €'&&TEXTES.en.montant==='€{n}'&&TEXTES.en.milliers===','&&TEXTES.fr.milliers.length===1,'textes');});
+
+// --- le garage (étape 8, garage.js, calcul pur)
+t('garage : 4 améliorations (roues, moteur, aero, freins) de GARAGE_NIVEAUX niveaux, prix croissants ; prix() = le prochain, null au maximum ; acheter refuse sans argent (solde inchangé) et au niveau maximum ; les niveaux montent et le solde baisse du prix ; jamais de dette', ()=>{
+  const R_=REGLAGES,ch=CHAMPIONNAT.creer(1);v(GARAGE.NOMS.join()==='roues,moteur,aero,freins'&&R_.GARAGE_NIVEAUX===5,'liste');
+  for(const n of GARAGE.NOMS){const px=R_.GARAGE[n].prix;v(px.length===R_.GARAGE_NIVEAUX&&px.every((x,i)=>x>0&&(i===0||x>px[i-1])),n+' : prix croissants');v(ch.garage[n]===0&&GARAGE.prix(ch,n)===px[0],n+' : niveau 0');}
+  let r=GARAGE.acheter(ch,'moteur');v(r.ok===false&&r.raison==='argent'&&ch.garage.moteur===0&&ch.argent.solde===0,'sans argent : '+JSON.stringify(r));
+  ARGENT.crediter(ch,R_.GARAGE.moteur.prix[0]-1,'t');r=GARAGE.acheter(ch,'moteur');v(r.ok===false&&r.raison==='argent'&&ch.argent.solde===R_.GARAGE.moteur.prix[0]-1,'à 1 près');
+  ARGENT.crediter(ch,1,'t');r=GARAGE.acheter(ch,'moteur');v(r.ok===true&&r.niveau===1&&ch.garage.moteur===1&&ch.argent.solde===0&&GARAGE.prix(ch,'moteur')===R_.GARAGE.moteur.prix[1],'achat : '+JSON.stringify(r));
+  ARGENT.crediter(ch,10000000,'t');const total=R_.GARAGE.moteur.prix.slice(1).reduce((a,b)=>a+b,0);for(let i=1;i<R_.GARAGE_NIVEAUX;i++) v(GARAGE.acheter(ch,'moteur').ok,'niveau '+(i+1));
+  v(ch.garage.moteur===R_.GARAGE_NIVEAUX&&ch.argent.solde===10000000-total&&GARAGE.prix(ch,'moteur')===null,'au maximum');r=GARAGE.acheter(ch,'moteur');v(r.ok===false&&r.raison==='max'&&ch.argent.solde===10000000-total,'refus au maximum');
+  v(GARAGE.acheter(ch,'inconnu').ok===false,'inconnu');v(ch.argent.solde>=0,'jamais de dette');});
+t('garage : le plafond : moteur + aero + freins ≤ GARAGE_PLAFOND (7 %) pour toutes les combinaisons de niveaux, bonus = 0,07 exactement tout au maximum ; les facteurs valent 1 + niveau × effet ; les roues n’ont pas d’effet ; 0 partout = 1 partout', ()=>{
+  const R_=REGLAGES,N=R_.GARAGE_NIVEAUX;v(R_.GARAGE_PLAFOND===0.07,'plafond');
+  v(Math.abs(N*(R_.GARAGE.moteur.effet+R_.GARAGE.aero.effet+R_.GARAGE.freins.effet)-R_.GARAGE_PLAFOND)<1e-12&&R_.GARAGE.roues.effet===0,'la somme des effets au maximum = le plafond');
+  for(let m=0;m<=N;m++) for(let a=0;a<=N;a++) for(let f=0;f<=N;f++) for(const ro of [0,N]){const g={roues:ro,moteur:m,aero:a,freins:f},F=GARAGE.facteurs(g),b=GARAGE.bonus(g);
+    v(b<=R_.GARAGE_PLAFOND+1e-12&&b>=0,'bonus '+b+' pour '+JSON.stringify(g));v(F.moteur+F.aero+F.freins-3<=R_.GARAGE_PLAFOND+1e-12,'facteurs '+JSON.stringify(F));
+    v(Math.abs(F.moteur-(1+m*R_.GARAGE.moteur.effet))<1e-12&&Math.abs(F.aero-(1+a*R_.GARAGE.aero.effet))<1e-12&&Math.abs(F.freins-(1+f*R_.GARAGE.freins.effet))<1e-12,'exact '+JSON.stringify(g));}
+  v(Math.abs(GARAGE.bonus({roues:5,moteur:5,aero:5,freins:5})-0.07)<1e-12,'maximum');const F0=GARAGE.facteurs({roues:0,moteur:0,aero:0,freins:0});v(F0.moteur===1&&F0.aero===1&&F0.freins===1,'1 partout');
+  // un réglage qui dépasserait le plafond est ramené au plafond (la règle d'or tient même si donnees.js change)
+  const ancien=R_.GARAGE.moteur.effet;R_.GARAGE.moteur.effet=0.02;try{v(Math.abs(GARAGE.bonus({roues:0,moteur:5,aero:5,freins:5})-0.07)<1e-12,'ramené au plafond');}finally{R_.GARAGE.moteur.effet=ancien;}});
+t('garage : appliquer pose moteur, aero et freins sur la voiture ; au niveau 0 (ou sans garage), 1 partout et la physique du robot est la même au bit près (3 tours) ; les niveaux suivent le joueur (ch.garage, même si son écurie change) ; sauvegarde → rechargement identique ; une ancienne sauvegarde sans garage se charge à 0 partout', ()=>{
+  const a=creerVoiture(C),b=creerVoiture(C);placerAuDepart(a,C);placerAuDepart(b,C);v(a.moteur===1&&a.aero===1&&a.freins===1,'voiture neuve');
+  GARAGE.appliquer(b,{roues:3,moteur:0,aero:0,freins:0});v(b.moteur===1&&b.aero===1&&b.freins===1,'niveau 0 = 1');GARAGE.appliquer(b,null);
+  rouler(a,C,190,v_=>piloteRobot(v_,C));rouler(b,C,190,v_=>piloteRobot(v_,C));v(a.x===b.x&&a.z===b.z&&a.u===b.u&&a.cap===b.cap,'différent : '+[a.x-b.x,a.z-b.z]);
+  const ch=CHAMPIONNAT.creer(7);ARGENT.crediter(ch,1000000,'t');GARAGE.acheter(ch,'aero');GARAGE.acheter(ch,'freins');GARAGE.acheter(ch,'freins');
+  ch.pilotes[19].ecurie=0;v(ch.garage.aero===1&&ch.garage.freins===2,'les niveaux restent au joueur');
+  SAUVEGARDE.ecrireChampionnat(ch);const re=SAUVEGARDE.championnat();v(JSON.stringify(re.garage)===JSON.stringify(ch.garage)&&re.argent.solde===ch.argent.solde,'rechargement');
+  const vieux=JSON.parse(JSON.stringify(ch));delete vieux.garage;localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:3,records:{},championnat:vieux}));
+  const d=SAUVEGARDE.lire();v(JSON.stringify(d.championnat.garage)==='{"roues":0,"moteur":0,"aero":0,"freins":0}','sans garage : '+JSON.stringify(d.championnat.garage));localStorage.removeItem(SAUVEGARDE.CLE);});
+t('garage : les améliorations aident un peu (la règle d’or) : le robot avec +7 % (tout au niveau 5) sur le circuit test gagne entre 1 et 4 % de temps au tour, pas plus', ()=>{
+  const cs=[creerCourse(C,3),creerCourse(C,3)],vs=[creerVoiture(C),creerVoiture(C)];GARAGE.appliquer(vs[1],{roues:5,moteur:5,aero:5,freins:5});
+  vs.forEach((v_,i)=>{placerAuDepart(v_,C);const c=cs[i];rouler(v_,C,400,x=>courseAutorise(c)?piloteRobot(x,C):{gaz:0,frein:0,direction:0},x=>{majCourse(c,x,DT);return c.etat!=='finie';});});
+  v(cs[0].etat==='finie'&&cs[1].etat==='finie','3 tours');const t0=cs[0].meilleurTour,t1=cs[1].meilleurTour,gain=1-t1/t0;
+  L.push('  (garage +7 % : meilleur tour du robot '+t1.toFixed(3)+' s contre '+t0.toFixed(3)+' s, soit '+(gain*100).toFixed(2)+' % de gagné)');
+  v(gain>=0.01&&gain<=0.04,(gain*100).toFixed(2)+' %');});
 
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 ecrire();

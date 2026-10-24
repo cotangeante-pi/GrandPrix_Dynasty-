@@ -413,7 +413,7 @@ def pneus(pg, titre):
 
 # ?lang=en : la page en anglais : lang et title remplis au démarrage, puis le classement du championnat, le podium et les
 # résultats sans un mot français (les 11 textes en dur de l'audit) ; le robot joue le Grand Prix 1 (un tour)
-MOTS_FR = r'Écurie|Pilote|\bToi\b|Tu marques|Course suivante|Continuer|Pénalit|Résultat|n°'
+MOTS_FR = r'Écurie|Pilote|\bToi\b|Tu marques|Course suivante|Continuer|Pénalit|Résultat|n°|Solde|Gains'
 def championnat_en(pg, titre):
     t(f'{titre} : <html lang> et le titre de la page viennent de textes.js (en)', pg.evaluate('() => document.documentElement.lang === "en" && LANGUE === "en" && document.title === texte("nomDuJeu")'))
     ecran = pg.evaluate('''() => ({ titre: document.getElementById("championnatTitre").textContent, h2: [...document.querySelectorAll("#championnatTableaux h2")].map(e => e.textContent),
@@ -691,6 +691,37 @@ def une_ecran(pg, titre, capture, touche=False):
     t(f'{titre} : {"une touche" if touche else "un clic"} passe la une : l’écran du championnat', attendre(pg, '() => JEU.ecran === "championnat" && !document.getElementById("championnat").classList.contains("cache") && document.getElementById("une").classList.contains("cache")'), str(pg.evaluate('() => JEU.ecran')))
     return u
 
+# ?championnat=1 : le garage (garage.js) depuis l'écran du championnat : on crédite de quoi acheter (en mémoire), on achète un niveau
+# de moteur : le solde baisse du prix, le niveau monte, c'est sauvegardé ; capture garage.png ; « Retour » ramène au championnat
+GARAGE_ETAT = '''() => { const ch = JEU.championnat, lis = [...document.querySelectorAll("#garageListe li")];
+  return { ecran: JEU.ecran, visible: !document.getElementById("garage").classList.contains("cache"), n: lis.length, noms: lis.map(li => li.dataset.nom),
+    actifs: lis.map(li => !li.querySelector("button").disabled), niveaux: lis.map(li => li.querySelector(".niveau").textContent), prix: lis.map(li => li.querySelector(".prix").textContent),
+    solde: ch.argent.solde, soldeTexte: document.getElementById("garageSolde").textContent, bonus: document.getElementById("garageBonus").textContent, garage: Object.assign({}, ch.garage),
+    sauve: SAUVEGARDE.championnat() && { garage: SAUVEGARDE.championnat().garage, solde: SAUVEGARDE.championnat().argent.solde },
+    defile: [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth] }; }'''
+def garage_ecran(pg, titre, achat=True, capture='garage.png'):
+    if achat: pg.evaluate('() => ARGENT.crediter(JEU.championnat, 200000, "test")')
+    pg.click('#boutonGarage')
+    e = pg.evaluate(GARAGE_ETAT)
+    t(f'{titre} : « Garage » ouvre le garage : 4 améliorations (roues, moteur, aero, freins) au niveau 0, leur prix, le solde, le bonus de la voiture, sans défilement',
+      e['ecran'] == 'garage' and e['visible'] and e['noms'] == ['roues', 'moteur', 'aero', 'freins'] and all('0 / 5' in n for n in e['niveaux']) and e['soldeTexte'] == 'Solde : ' + pg.evaluate('() => ARGENT.formater(JEU.championnat.argent.solde)')
+      and e['bonus'].startswith('Voiture : +0,0 % / 7 % maxi') and e['defile'][0] <= e['defile'][1] + 2 and e['defile'][2] <= e['defile'][3] + 2, str(e))
+    if not achat:
+        t(f'{titre} : sans argent, tous les boutons « Acheter » sont grisés', not any(e['actifs']), str(e['actifs']))
+    else:
+        t(f'{titre} : avec de l’argent, « Acheter » est actif', all(e['actifs']), str(e['actifs']))
+        prix = pg.evaluate('() => REGLAGES.GARAGE.moteur.prix[0]')
+        pg.click('#garageListe li[data-nom="moteur"] button')
+        e2 = pg.evaluate(GARAGE_ETAT)
+        t(f'{titre} : acheter le moteur : le solde baisse du prix ({prix}), le niveau passe à 1 / 5, le prix suivant s’affiche, le bonus monte, et c’est sauvegardé',
+          e2['solde'] == e['solde'] - prix and e2['garage']['moteur'] == 1 and '1 / 5' in e2['niveaux'][1] and e2['prix'][1] != e['prix'][1] and e2['bonus'].startswith('Voiture : +0,5 %')
+          and e2['sauve'] and e2['sauve']['garage']['moteur'] == 1 and e2['sauve']['solde'] == e2['solde'], str(e2))
+    pg.wait_for_timeout(300)
+    pg.screenshot(path=os.path.join(CAPTURES, capture))
+    pg.click('#boutonGarageRetour')
+    t(f'{titre} : « Retour » ramène à l’écran du championnat, avec le solde à jour', attendre(pg, '() => JEU.ecran === "championnat" && document.getElementById("garage").classList.contains("cache")')
+      and pg.evaluate('() => document.getElementById("championnatArgent").textContent === "Solde : " + ARGENT.formater(JEU.championnat.argent.solde)'), str(pg.evaluate('() => [JEU.ecran, document.getElementById("championnatArgent").textContent]')))
+
 def championnat(pg, titre, l):
     # ?championnat=1 : l'écran entre les courses au démarrage (nouveau championnat : Grand Prix 1), le robot joue deux
     # Grands Prix d'un tour, « Continuer » enregistre et sauvegarde ; la page rechargée retrouve le Grand Prix 3 et les points
@@ -701,6 +732,7 @@ def championnat(pg, titre, l):
         && document.querySelectorAll("#championnatEcuries li").length === 10 && document.getElementById("championnatGagne").textContent === ""'''), str(pg.evaluate(ECRAN)))
     duel_ecran(pg, titre, 0)
     if l != 1280:
+        garage_ecran(pg, titre, achat=False, capture='garage-960.png')
         # en petit : la une d'un Grand Prix fabriqué en mémoire (le joueur 2e, sans sauvegarde), pour vérifier qu'elle tient en 960×600
         pg.evaluate('''() => { const ch = JEU.championnat, o = [0, 19].concat([...Array(20).keys()].filter(k => k !== 0 && k !== 19));
           const lignes = o.map((k, i) => ({ k, place: i + 1, grille: i + 1, ligne: i + 1, penalites: 0, meilleurTour: 60 + i, classe: true }));
@@ -727,7 +759,12 @@ def championnat(pg, titre, l):
             pg.wait_for_timeout(50)
             if tour is None:
                 tour = pg.evaluate(DUEL_TOUR)
-                if tour and tour['ecart'] and gp == 1: pg.screenshot(path=os.path.join(CAPTURES, 'duel-tour.png'))
+                if tour and tour['ecart'] and gp == 1:
+                    # la capture seulement une fois les lignes posées (elles glissent quand l'ordre change), et les 20 rangs de 1 à 20 de haut en bas
+                    t(f'{titre} : GP {gp} : avant duel-tour.png, la tour est stable : 20 lignes, les rangs 1 à 20 de haut en bas, chacune à sa place',
+                      attendre(pg, ORDRE_TOUR, None, 10000) and pg.evaluate('() => [...document.querySelectorAll("#classementListe li")].sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top).map(li => li.children[0].textContent).join(",")') == ','.join(str(i) for i in range(1, 21)),
+                      pg.evaluate('() => [...document.querySelectorAll("#classementListe li")].map(li => [li.children[0].textContent, Math.round(li.getBoundingClientRect().top)])'))
+                    pg.screenshot(path=os.path.join(CAPTURES, 'duel-tour.png'))
                 if tour and not tour['ecart']: tour = None   # l'écart n'est pas encore connu : on regarde à l'image suivante
         t(f'{titre} : GP {gp} : en course, une seule ligne du coéquipier dans la tour (son numéro, la couleur de l’écurie), avec l’écart en temps « ▲/▼ x,x s »',
           bool(tour) and tour['n'] == 1 and tour['numero'] == tour['attendu'] and tour['couleur'] and bool(re.fullmatch(r'[▲▼] \d+,\d s', tour['ecart'])), str(tour))
@@ -735,6 +772,13 @@ def championnat(pg, titre, l):
         pg.click('#boutonResultats')
         attendre(pg, '() => JEU.ecran === "resultats"')
         t(f'{titre} : GP {gp} : un seul bouton, « Continuer »', pg.evaluate('() => document.getElementById("boutonRejouerResultats").classList.contains("cache") && document.getElementById("boutonChangerResultats").textContent === "Continuer"'))
+        # l'argent (argent.js) : la ligne des gains sous les résultats, calculée sur le classement final de cet instant
+        arg = pg.evaluate('''() => { const g = ARGENT.gains(JEU.championnat, CHAMPIONNAT.lignesDepuisCourse(JEU.plateau)), p = document.getElementById("resultatsArgent");
+          return { texte: p.textContent, total: g.total, attendu: ARGENT.formater(g.total), deborde: p.getBoundingClientRect().right > innerWidth || p.getBoundingClientRect().bottom > innerHeight, g }; }''')
+        t(f'{titre} : GP {gp} : les résultats montrent l’argent gagné (« Gains : +n € » avec le détail), sans déborder', arg['texte'].startswith('Gains : +' + arg['attendu']) and '(' in arg['texte'] and not arg['deborde'] and arg['total'] > 0, str(arg))
+        if gp == 1:
+            pg.wait_for_timeout(300)
+            pg.screenshot(path=os.path.join(CAPTURES, 'argent.png'))
         pg.click('#boutonChangerResultats')
         t(f'{titre} : GP {gp} : « Continuer » enregistre le Grand Prix, range sa une dans l’album et sauvegarde, puis montre la une du journal',
           attendre(pg, f'''() => JEU.ecran === "une" && JEU.championnat.prochain === {gp} && SAUVEGARDE.championnat().prochain === {gp} && SAUVEGARDE.championnat().album.length === {gp}
@@ -747,9 +791,15 @@ def championnat(pg, titre, l):
         total = pg.evaluate('() => REGLAGES.POINTS.reduce((a, b) => a + b, 0)')
         t(f'{titre} : GP {gp} : les points sont ceux du classement final (somme = {total} par Grand Prix)', sum(points) == gp * total, str(points))
         duel_ecran(pg, titre, gp)
+        # le solde = les gains des Grands Prix + les crédits (le test du garage en ajoute un) − les achats du garage (la somme des prix des niveaux achetés)
+        sol = pg.evaluate('''() => { const ch = JEU.championnat, s = ch.argent.solde, R = REGLAGES; return { texte: document.getElementById("championnatArgent").textContent, attendu: "Solde : " + ARGENT.formater(s), s,
+          somme: ch.argent.historique.reduce((a, h) => a + h[1], 0) - GARAGE.NOMS.reduce((a, n) => a + R.GARAGE[n].prix.slice(0, ch.garage[n]).reduce((x, y) => x + y, 0), 0),
+          sauve: SAUVEGARDE.championnat().argent.solde, n: ch.argent.historique.filter(h => h[0] > 0).length }; }''')
+        t(f'{titre} : GP {gp} : l’écran du championnat montre le solde = les gains + les crédits − les achats, sauvegardé, {gp} Grand(s) Prix dans l’historique', sol['texte'] == sol['attendu'] and sol['s'] == sol['somme'] and sol['sauve'] == sol['s'] and sol['n'] == gp and sol['s'] > 0, str(sol))
         if gp == 1:
             pg.wait_for_timeout(300)
             pg.screenshot(path=os.path.join(CAPTURES, 'championnat.png'))
+            garage_ecran(pg, titre)
         else:
             pg.wait_for_timeout(300)
             pg.screenshot(path=os.path.join(CAPTURES, 'duel.png'))

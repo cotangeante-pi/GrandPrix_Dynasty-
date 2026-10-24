@@ -124,29 +124,29 @@ const CIRCUITS_OFFICIELS_B = {
     vraieLongueur: 5412,   // m, celle du vrai circuit : le tracé en reste à moins de 10 %
     reperes: [[1, 'virage 1'], [3, 'virage 2'], [5, 'virage 4'], [7, 'virage 5-6'], [9, 'virage 8'], [11, 'virage 9'], [13, 'virage 10'], [15, 'virage 11'], [17, 'virage 12'], [19, 'virage 13'], [21, 'virage 14']],   // les virages célèbres (indice du morceau), pour la vue de dessus
     morceaux: [
-      ['droite', 639.001],                  // (referme le tour)
+      ['droite', 666.681],                  // (referme le tour)
       ['virage', 18, -58],                  // virage 1
-      ['droite', 93.8],
+      ['droite', 98.1],
       ['virage', 50, 15.6],                 // virage 2
-      ['droite', 415.7],
+      ['droite', 434.4],
       ['virage', 40, -92.6],                // virage 4
-      ['droite', 549.1],
+      ['droite', 572.4],
       ['virage', 60, 26.6],                 // virage 5-6
-      ['droite', 563.8],
+      ['droite', 586.2],
       ['virage', 20, -45],                  // virage 8
-      ['droite', 461.3],
+      ['droite', 480.8],
       ['virage', 40, -90],                  // virage 9
-      ['droite', 320.6],
+      ['droite', 336.9],
       ['virage', 45, 40.2],                 // virage 10
-      ['droite', 516.4],
+      ['droite', 541.1],
       ['virage', 35, -108.4],               // virage 11
-      ['droite', 310.5],
+      ['droite', 323.6],
       ['virage', 60, -4.8],                 // virage 12
-      ['droite', 250.9],
+      ['droite', 261],
       ['virage', 40, 38.5],                 // virage 13
-      ['droite', 568.380],                  // (referme le tour)
+      ['droite', 590.239],                  // (referme le tour)
       ['virage', 25, -82.1],                // virage 14
-      ['droite', 182.8],
+      ['droite', 191],
     ],
   },
   // singapour (4,940 km, de nuit, sens inverse) : beaucoup de virages à 90° dans les rues
