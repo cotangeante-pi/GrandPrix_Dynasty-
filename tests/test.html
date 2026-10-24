@@ -1036,7 +1036,7 @@ t('aileron : le cran du joueur est gardé par circuit dans la sauvegarde ; une a
   const vieux=JSON.parse(JSON.stringify(ch));delete vieux.ailerons;localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:4,records:{},championnat:vieux}));
   const d=SAUVEGARDE.lire();v(d.championnat.ailerons&&AILERON.cranDe(d.championnat,'technique')===2,'ancienne : '+JSON.stringify(d.championnat.ailerons));
   const e=creerCourseIA(C,19,1,3,null,true);CHAMPIONNAT.appliquerNiveaux(ch,e);const crans=AILERON.cransIA(ch,C);
-  v(e.pilotes.slice(0,19).every((p,k)=>p.aileron===crans[k]&&p.v.aileronAdherence===AILERON.facteurs(crans[k]).adherence)&&e.pilotes[19].aileron===undefined,'IA : '+e.pilotes.map(p=>p.aileron).join());
+  v(e.pilotes.slice(0,19).every((p,k)=>p.aileron===crans[k]&&(REGLAGES.AILERON_IA_ACTIF?p.v.aileronAdherence===AILERON.facteurs(crans[k]).adherence:!p.v.aileronAdherence))&&e.pilotes[19].aileron===undefined,'IA : '+e.pilotes.map(p=>p.aileron).join());
   localStorage.removeItem(SAUVEGARDE.CLE);});
 t('aileron : la carte de la prochaine course se dessine pour chaque circuit (tracé, ligne de départ, sens, nom, longueur), sans erreur', ()=>{
   const cv=document.createElement('canvas');cv.width=360;cv.height=270;const ctx=cv.getContext('2d');const noms=Object.keys(CIRCUITS);

@@ -9,7 +9,8 @@
 // chocs à plus de 5 m/s (où, à quelle vitesse), barrières, coupes, herbe, temps de calcul ; puis la course de 20 voitures.
 const Q=new URLSearchParams(location.search),GRAINES=+(Q.get('graines')||15),NB=+(Q.get('voitures')||10),TOURS=+(Q.get('tours')||5);
 // ?ailerons=1 (tour 29c, Codeur 3) : chaque IA règle son aileron avant la course (aileron.js : le profil du circuit, son caractère,
-// la graine de la course) ; les mêmes garde-fous doivent tenir. Sans ce paramètre, rien ne change (le cran du milieu partout)
+// la graine de la course) ; les mêmes garde-fous doivent tenir. Sans ce paramètre, rien ne change (le cran du milieu partout).
+// Pas encore dans la suite (tests/lancer.py) : il dépasse les garde-fous, d'où AILERON_IA_ACTIF = false (donnees.js) ; à lancer à la main
 if(Q.get('ailerons')==='1'){const sansAileron=creerCourseIA;creerCourseIA=function(circuit,nb,nbTours,graine,...reste){const e=sansAileron(circuit,nb,nbTours,graine,...reste);
   const prof=AILERON.profil(circuit);ALEATOIRE.semer(graine+REGLAGES.GRAINE_AILERON);for(const p of e.pilotes) if(!p.humain){p.aileron=AILERON.choisirIA(p.pilote&&p.pilote.caractere,prof);AILERON.appliquer(p.v,p.aileron);}ALEATOIRE.semer();return e;};}
 const L=[];let ok=0,ko=0;

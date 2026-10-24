@@ -206,7 +206,8 @@ const CHAMPIONNAT = (function () {
   function appliquerNiveaux(ch, e) {
     // l'aileron (aileron.js) : chaque IA règle le sien avant le Grand Prix (le circuit, son caractère, la graine) ; mêmes effets que le joueur
     const crans = typeof AILERON !== 'undefined' && e.circuit ? AILERON.cransIA(ch, e.circuit) : null;
-    if (crans) e.pilotes.forEach((p, k) => { if (ch.pilotes[k] && !p.humain && crans[k] !== null) { AILERON.appliquer(p.v, crans[k]); p.aileron = crans[k]; } });
+    // (l'effet sur les voitures des IA attend AILERON_IA_ACTIF : voir donnees.js ; le cran est choisi et gardé quand même)
+    if (crans) e.pilotes.forEach((p, k) => { if (ch.pilotes[k] && !p.humain && crans[k] !== null) { if (REGLAGES.AILERON_IA_ACTIF) AILERON.appliquer(p.v, crans[k]); p.aileron = crans[k]; } });
     e.pilotes.forEach((p, k) => {
       const pilote = ch.pilotes[k];
       if (!pilote || p.humain || p.rythmeBase !== undefined) return;
