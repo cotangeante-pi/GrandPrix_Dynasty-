@@ -236,6 +236,14 @@ const REGLAGES = {
   JOURNAL_RUMEUR_DES_GP: 7,     // brève « rumeur de transfert » à partir de ce Grand Prix de la saison (les intentions de saisons.js)
   JOURNAL_RUMEUR_FAUSSE: 0.35,  // la part des rumeurs fausses (un pilote et une écurie tirés au hasard) ; la première rumeur de la saison est toujours vraie
   JOURNAL_GRAINE: 6000,         // les variantes des titres sont tirées avec la graine du championnat + ce nombre + le Grand Prix
+  // la cérémonie du champion à la fin de la saison (podium3d.js, principal.js, Codeur 3) : le champion seul sur la plus haute marche
+  // et des confettis faits par le code (UN objet THREE.Points : un seul appel de dessin, quel que soit leur nombre)
+  CEREMONIE_CONFETTIS: 700,     // le nombre de confettis
+  CEREMONIE_CONFETTI_TAILLE: 0.32,   // m : la taille d'un confetti
+  CEREMONIE_CONFETTI_ZONE: [24, 14, 16],   // m : la largeur, la hauteur et la profondeur de la zone où ils tombent, autour du podium
+  CEREMONIE_CONFETTI_VITESSE: [1.1, 2.6],   // m/s : leur vitesse de chute (tirée entre ces bornes)
+  CEREMONIE_CONFETTI_BALANCE: 0.6,   // m : ils se balancent de part et d'autre en tombant
+  CEREMONIE_COULEURS: [0xffd23f, 0xff5a5f, 0x3ddc97, 0x2f80ed, 0xffffff],
 
   // la course de découverte du premier lancement (decouverte.js, CLAUDE.md « En piste en 10 secondes »)
   DECOUVERTE_TOURS: 3,          // une longueur à part, seulement pour elle

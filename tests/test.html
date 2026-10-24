@@ -878,7 +878,9 @@ t('journal : le duel gagné ou perdu nettement (écart de la saison ≥ JOURNAL_
   v(fs.join()==='vainqueur,vainqueur,vainqueur,leader','leader : '+fs.join());v(ch.album[3].p.pilote===0&&ch.album[3].p.ecart===28,JSON.stringify(ch.album[3]));
   // le champion : le joueur gagne les 12 Grands Prix
   ch=CHAMPIONNAT.creer(1);for(let g=0;g<12;g++) u=uneDe(ch,ordreAvec([19]));
-  v(ch.prochain===12&&u.f==='titreChampion'&&u.p.points===300&&ch.album[10].f==='victoire','champion : '+JSON.stringify(u));});
+  v(ch.prochain===12&&u.f==='titreChampion'&&u.p.points===300&&ch.album[10].f==='victoire','champion : '+JSON.stringify(u));
+  // la une spéciale du champion (tour 28c) : toujours le titre « CHAMPION ! … » (la variante 0), marquée spéciale au rendu ; chaque une porte sa saison
+  const rs=JOURNAL.rendre(u,ch);v(u.t===0&&rs.speciale&&rs.titre.startsWith(texte('uneTitre_titreChampion')[0].split('{')[0])&&ch.album.every(x=>x.s===1)&&!JOURNAL.rendre(ch.album[10],ch).speciale,'une spéciale : '+JSON.stringify(rs));});
 t('journal : la priorité (JOURNAL_PRIORITES) quand plusieurs faits sont vrais : première victoire + record + duel gagné → première victoire ; la liste commence par le titre de champion et finit par le vainqueur', ()=>{
   const P=REGLAGES.JOURNAL_PRIORITES;v(P[0]==='titreChampion'&&P[P.length-1]==='vainqueur'&&P.indexOf('premiereVictoire')<P.indexOf('record')&&P.indexOf('record')<P.indexOf('duelGagne'),P.join());
   const ch=CHAMPIONNAT.creer(1);uneDe(ch,devant(4,[19,18]));const l=lignesUne(ordreAvec([19]));CHAMPIONNAT.enregistrerCourse(ch,l);

@@ -45,7 +45,7 @@ const INTERFACE = (function () {
   }
 
   function montrer(ecran) {
-    for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une', 'garage', 'saison', 'duelSaison', 'contrats', 'retraite', 'titre', 'amis', 'bravo', 'pilote', 'sponsors', 'fiche', 'interview']) $(id).classList.toggle('cache', id !== ecran);
+    for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une', 'garage', 'saison', 'duelSaison', 'contrats', 'retraite', 'titre', 'amis', 'bravo', 'pilote', 'sponsors', 'fiche', 'interview', 'ceremonie']) $(id).classList.toggle('cache', id !== ecran);
     // le bandeau de course n'est là que pendant la course et la pause (pas sous l'écran de fin)
     const course = ecran === 'course' || ecran === 'pause';
     for (const id of ['hudCourse', 'hudPenalite', 'compte', 'feux', 'classement', 'radar', 'jauge', 'departResultat', 'aides', 'feux2', 'jauge2', 'departResultat2', 'deuxHaut', 'deuxBas', 'deuxSeparation']) if (!course) $(id).classList.add('cache');
@@ -157,6 +157,7 @@ const INTERFACE = (function () {
   // --- la une du journal (Codeur 3) : r = JOURNAL.rendre(une, ch, { pilote: nomPilote, ecurie: nomEcurie }), déjà en phrases
   function remplirUne(r) {
     const sp = (classe, contenu) => { const e = document.createElement('span'); e.className = classe; e.append(String(contenu)); return e; };
+    $('unePage').classList.toggle('speciale', !!r.speciale);   // la une spéciale du champion (« CHAMPION ! »)
     $('uneNom').textContent = r.nom;
     $('uneEdition').textContent = avec(texte('uneEdition'), { n: r.grandPrix, circuit: r.circuit });
     $('uneTitre').textContent = r.titre;
@@ -625,6 +626,25 @@ const INTERFACE = (function () {
     $('retraiteBilan').textContent = avec(texte('retraiteBilan'), { s: r.saisons, v: r.victoires, p: r.podiums, t: r.titres });
   }
 
+  // la cérémonie du champion (b = SAISONS.terminerSaison) : le joueur champion → « CHAMPION DU MONDE », son nom, ses points ;
+  // un rival → l'écran court « <nom> est champion du monde » et la place du joueur
+  function remplirCeremonie(ch, b) {
+    const p = ch.pilotes[b.champion], toi = !!p.humain, e = ch.ecuries[p.ecurie];
+    $('ceremonie').classList.toggle('court', !toi);
+    $('ceremonieSaison').textContent = avec(texte('ceremonieSaison'), { n: b.saison });
+    $('ceremonieTitre').textContent = toi ? texte('ceremonieTitre') : avec(texte('ceremonieRival'), { pilote: nomPilote(p) });
+    $('ceremonieNom').textContent = toi ? nomPilote(p) : '';
+    const victoires = p.places.filter(x => x === 1).length, points = b.pilotes[0].points;
+    $('ceremonieDetail').textContent = toi ? avec(texte('ceremonieDetail'), { points, v: victoires, ecurie: nomEcurie(e) })
+      : avec(texte('ceremonieRivalDetail'), { points, ecurie: nomEcurie(e), place: b.joueurPlace });
+    $('boutonCeremonieSuite').textContent = texte('suite');
+  }
+
+  function preparerCeremonie(suite) {
+    $('boutonCeremonieSuite').addEventListener('mousedown', e => e.preventDefault());
+    $('boutonCeremonieSuite').addEventListener('click', suite);
+  }
+
   // suite : après le classement, puis après le duel ; signer(ecurie) ; retraite() : le premier clic demande une confirmation
   function preparerSaison(suiteClassement, suiteDuel, signer, retraite) {
     signatureContrat = signer;
@@ -815,7 +835,7 @@ const INTERFACE = (function () {
 
   return { formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, preparerChampionnat, remplirQualif, preparerQualif,
     remplirDuel, avec, remplirUne, preparerUne, remplirArgent, remplirSolde, remplirGarage, preparerGarage,
-    remplirSaison, remplirDuelSaison, remplirContrats, remplirRetraite, preparerSaison, retraiteEnAttente,
+    remplirSaison, remplirDuelSaison, remplirContrats, remplirRetraite, preparerSaison, retraiteEnAttente, remplirCeremonie, preparerCeremonie,
     remplirSponsors, remplirRappelSponsor, preparerSponsors, remplirFiche, preparerFiche, remplirInterview, montrerEffetInterview, preparerInterview, remplirReputation,
     majEcartFantome, preparerFantome, majBoutonsFantome, majDepart, majDeux, preparerTitre, remplirBravo, majAides, remplirPilote, lirePilote, montrerErreursPilote, preparerPilote, nomCircuit, remplirCasque, lireCasque, modePilote, preparerCasque };
 })();
