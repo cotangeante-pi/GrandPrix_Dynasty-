@@ -106,7 +106,7 @@ function pasVoiture(v, circuit, dt) {
   memoriserAvant(v);
 
   const herbe = v.surHerbe;
-  const mu = R.ADHERENCE * (v.adherence || 1) * (v.aero || 1) * (herbe ? R.ADHERENCE_HERBE : 1);   // × 1 sans pneus ni garage : le même nombre au bit près
+  const mu = R.ADHERENCE * (v.adherence || 1) * (v.aero || 1) * (v.aileronAdherence || 1) * (herbe ? R.ADHERENCE_HERBE : 1);   // × 1 sans pneus ni garage ni aileron (aileron, Codeur 3) : le même nombre au bit près
   const fz = charge(v.u);
   const fzAvant = fz * b / R.EMPATTEMENT, fzArriere = fz * a / R.EMPATTEMENT;
   const delta = v.direction * braquageMax(v.u);
@@ -118,7 +118,7 @@ function pasVoiture(v, circuit, dt) {
   if (v.gaz > 0) fx += v.gaz * Math.min(R.FORCE_MOTEUR_MAX, R.PUISSANCE / Math.max(v.u, 1)) * (herbe ? R.GAZ_HERBE : 1) * (v.facteurDepart || 1) * (v.moteur || 1);   // × 1 sans départ ni garage : le même nombre au bit près
   // le frein à l'arrêt devient la marche arrière (si on n'accélère pas)
   if (v.frein > 0 && v.u <= 0.5 && v.gaz === 0 && v.u > -R.MARCHE_ARRIERE_MAX) fx -= v.frein * R.FORCE_MARCHE_ARRIERE;
-  const resistance = R.TRAINEE * (1 - R.ASPIRATION_MAX * v.aspiration) * v.u * v.u + R.ROULEMENT + (herbe ? R.FROTTEMENT_HERBE * Math.abs(v.u) + R.FROTTEMENT_HERBE_CARRE * v.u * v.u : 0)
+  const resistance = R.TRAINEE * (v.aileronTrainee || 1) * (1 - R.ASPIRATION_MAX * v.aspiration) * v.u * v.u + R.ROULEMENT + (herbe ? R.FROTTEMENT_HERBE * Math.abs(v.u) + R.FROTTEMENT_HERBE_CARRE * v.u * v.u : 0)
     + (avance ? v.frein * R.ADHERENCE_FREIN * (v.freins || 1) * (herbe ? R.ADHERENCE_HERBE : 1) * fz : 0);   // × 1 sans garage
 
   if (Math.abs(v.u) < R.VITESSE_CINEMATIQUE) {
@@ -295,6 +295,15 @@ function contactsVoitures(voitures, circuit) {
       if (circuit) { contactPiste(a, circuit); contactPiste(b, circuit); }
     }
   }
+}
+
+// (aileron, Codeur 3) la racine cubique par la méthode de Newton (des additions, multiplications et divisions seulement : le même
+// nombre sur toutes les machines, ni Math.pow ni Math.cbrt) ; racineCubique(1) = 1 exactement. Sert à la vitesse de pointe qu'un
+// pilote IA attend avec son aileron (la pointe varie comme traînée^(−1/3) quand la puissance l'emporte)
+function racineCubique(x) {
+  let r = 1;
+  for (let i = 0; i < 8; i++) r = (2 * r + x / (r * r)) / 3;
+  return r;
 }
 
 // la vitesse limite dans un virage de courbure k (m/s), avec l'appui : v² |k| = mu (g + APPUI v² / m)
