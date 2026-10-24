@@ -50,6 +50,12 @@ t('le plus long des 6 est celui dont le vrai circuit est le plus long (Bahrayn),
   const V=Object.fromEntries(Object.entries(CIRCUITS_OFFICIELS_B).map(([k,d])=>[k,d.vraieLongueur])),plus=o=>Object.keys(o).reduce((a,b)=>o[a]>o[b]?a:b),moins=o=>Object.keys(o).reduce((a,b)=>o[a]<o[b]?a:b);
   v(plus(V)==='bahrayn'&&moins(V)==='montreol','vraies : '+JSON.stringify(V));v(plus(longueurs)==='bahrayn'&&moins(longueurs)==='montreol',JSON.stringify(longueurs));});
 t('les noms ne sont pas ceux des circuits d’essai et les clés sont nouvelles', ()=>{for(const cle of Object.keys(CIRCUITS_OFFICIELS_B)) v(!(cle in CIRCUITS),cle);});
+// la voie des stands (étape 7) : calculée depuis les morceaux (circuits.js) pour chaque tracé : dans les lignes droites de la ligne, assez longue, aucun virage dessus
+for(const [cle,def] of Object.entries(CIRCUITS_OFFICIELS_B)) t(cle+' : une voie des stands, dans les lignes droites de la ligne, d’au moins STAND_LONGUEUR_MIN, sans virage sur sa longueur, et sa zone d’arrêt dedans', ()=>{
+  const c=construireCircuit(def),st=c.stands;v(!!st,'pas de voie');L.push('  ('+cle+' : stands de s = '+st.entree.toFixed(0)+' à '+st.sortie.toFixed(0)+' m ('+st.longueur.toFixed(0)+' m), côté '+st.cote+', arrêt à s = '+st.arret.toFixed(0)+')');
+  v(st.longueur>=REGLAGES.STAND_LONGUEUR_MIN,'trop courte : '+st.longueur);v(st.cote===1||st.cote===-1);
+  for(let s_=0;s_<=st.longueur;s_+=c.pas){const i=Math.round(((st.entree+s_)%c.longueur)/c.pas)%c.nb;v(Math.abs(c.courbure[i])<REGLAGES.IA_DROITE_COURBURE,'virage à s = '+((st.entree+s_)%c.longueur).toFixed(0));}
+  v(zoneStands(c,st.arret,st.cote*(st.dMur+3)).arret===true,'zone d’arrêt hors de la voie');});
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 document.getElementById('res').textContent=`RESULTAT ${ok}/${ok+ko}\n`+L.join('\n');
 </script></body></html>

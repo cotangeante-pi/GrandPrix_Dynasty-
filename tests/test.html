@@ -531,6 +531,43 @@ t('pneus IA : 10 IA, 12 tours sur le technique (graine 1) : avec les pneus actif
   L.push('  (10 IA, 12 tours : sans pneus '+chocs(sans)+' chocs, herbe '+herbe(sans)+', '+sans.depassements.length+' dépassements ; avec pneus '+chocs(avec)+' chocs, herbe '+herbe(avec)+', '+avec.depassements.length+' dépassements ; usures finales '+avec.voitures.map(x=>x.usure.toFixed(2)).join(' ')+')');
   v(avec.voitures.every(x=>x.fini),'pas toutes arrivées');v(avec.voitures.every(x=>x.usure>0.3),'pneus peu usés');v(sans.voitures.every(x=>x.usure===null),'des pneus sans PNEUS_ACTIFS');
   v(chocs(avec)<=chocs(sans),chocs(avec)+' chocs avec, '+chocs(sans)+' sans');});
+// --- la voie des stands (étape 7, tour 26) : circuit.stands, zoneStands, positionSurPiste(...).stands ; la physique derrière PNEUS_ACTIFS
+// un pilote d'essai qui suit l'écart dCible à la vitesse voulue (poursuite pure sur pointPiste), pour entrer et sortir des stands
+function suivreEcartSur(v_,circ,dCible,vitesse){const R_=REGLAGES,p_=v_.piste||positionSurPiste(circ,v_.x,v_.z),visee=Math.max(R_.ROBOT_VISEE_MIN,v_.u*R_.ROBOT_VISEE_TEMPS),q=[0,0];
+  pointPiste(circ,p_.s+visee,dCible,q);const dx=q[0]-v_.x,dz=q[1]-v_.z,cc=Math.cos(v_.cap),ss=Math.sin(v_.cap);const angle=Math.atan2(-ss*dx+cc*dz,cc*dx+ss*dz);
+  const direction=Math.atan(2*R_.EMPATTEMENT*Math.sin(angle)/Math.hypot(dx,dz))/braquageMax(v_.u),ecart=vitesse-v_.u;
+  return {gaz:ecart>0?Math.min(1,ecart/2):0,frein:ecart<-1?Math.min(1,-ecart/5):0,direction:Math.max(-1,Math.min(1,direction))};}
+t('stands : les deux circuits d’essai ont leur voie des stands, calculée depuis les morceaux : dans les lignes droites de la ligne (aucun virage sur sa longueur), du côté du premier virage, assez longue ; test : de 300 m avant la ligne à 250 m après (elle traverse la ligne, zone d’arrêt à la ligne) ; technique : de 20 m après la ligne à 250 m', ()=>{
+  const R_=REGLAGES;for(const [nom,circ,cote,entree,sortie] of [['test',C,-1,C.longueur-300,250],['technique',TQ,1,20,250]]){const st=circ.stands;v(!!st,nom+' : pas de voie');
+    L.push('  ('+nom+' : voie des stands de s = '+st.entree.toFixed(0)+' à '+st.sortie.toFixed(0)+' m ('+st.longueur.toFixed(0)+' m), côté '+st.cote+', muret à '+st.dMur+' m, bord à '+st.dExt+' m, arrêt à s = '+st.arret.toFixed(0)+')');
+    v(st.cote===cote,nom+' côté '+st.cote);v(Math.abs(st.entree-entree)<1e-6&&Math.abs(st.sortie-sortie)<1e-6,nom+' '+st.entree+' → '+st.sortie);v(st.longueur>=R_.STAND_LONGUEUR_MIN);
+    for(let s_=0;s_<=st.longueur;s_+=circ.pas){const i=Math.round(((st.entree+s_)%circ.longueur)/circ.pas)%circ.nb;v(Math.abs(circ.courbure[i])<R_.IA_DROITE_COURBURE,nom+' : virage à s = '+((st.entree+s_)%circ.longueur).toFixed(0));}
+    const milieu=(st.entree+st.longueur/2)%circ.longueur,z1=zoneStands(circ,milieu,cote*(st.dMur+3)),z2=zoneStands(circ,(st.entree+10)%circ.longueur,cote*(st.dMur+3)),z3=zoneStands(circ,milieu,0),z4=zoneStands(circ,(st.sortie+200)%circ.longueur,cote*(st.dMur+3));
+    v(z1&&z1.dansVoie&&!z1.rampe,'milieu');v(z2&&z2.dansVoie&&z2.rampe,'rampe d’entrée');v(z3&&!z3.voie&&!z3.dansVoie,'sur la piste');v(z4===null,'au-delà de la sortie');
+    const q=[0,0];pointPiste(circ,milieu,cote*(st.dMur+3),q);v(positionSurPiste(circ,q[0],q[1]).stands===true,'positionSurPiste.stands');pointPiste(circ,milieu,0,q);v(positionSurPiste(circ,q[0],q[1]).stands===false);}
+  v(zoneStands(C,C.stands.arret,-(C.stands.dMur+3)).arret===true&&zoneStands(C,(C.stands.arret+REGLAGES.STAND_ARRET_DEMI+5)%C.longueur,-(C.stands.dMur+3)).arret===false,'zone d’arrêt');});
+t('stands (pneus actifs) : une voiture qui entre dans la voie à 108 km/h y est ramenée à 80 km/h avec une seule pénalité STAND_PENALITE_VITESSE (dans course.penalites), elle est « dans les stands », elle ne touche ni muret ni barrière, son tour compte en passant la ligne par les stands, et elle ressort sur la piste après la sortie', ()=>{avecPneus(()=>{
+  const R_=REGLAGES,st=C.stands,cote=st.cote,v_=creerVoiture(C),c=creerCourse(C,0);placerSurPiste(v_,C,st.entree-150,cote*4);v_.u=25;v_.piste=positionSurPiste(C,v_.x,v_.z);c.etat='course';c.etape=3;c.sAvant=v_.piste.s;c.xAvant=v_.x;c.zAvant=v_.z;c.progression=0;   // (étape 3 : la ligne qui vient finit un tour)
+  let dedans=0,uMax=0,sortiDeLaVoie=null,entre=null,tourDansLaVoie=false;
+  for(let k=0;k<60*120;k++){const dansVoie=v_.dansStands,fini=entre!==null&&!dansVoie&&v_.piste.s>st.sortie&&v_.piste.s<st.sortie+400;
+    appliquerCommandes(v_,suivreEcartSur(v_,C,fini||(entre===null&&v_.piste.s>st.sortie&&v_.piste.s<st.entree-20)?cote*4:cote*(st.dMur+R_.STAND_LARGEUR/2),fini?40:30));pasVoiture(v_,C,DT);majCourse(c,v_,DT);
+    if(v_.dansStands){dedans++;uMax=Math.max(uMax,v_.u);if(entre===null)entre=v_.piste.s;if(c.tours.length===1)tourDansLaVoie=true;}
+    if(entre!==null&&!v_.dansStands&&sortiDeLaVoie===null) sortiDeLaVoie=v_.piste.s;
+    if(sortiDeLaVoie!==null&&v_.piste.s>st.sortie+150) break;}
+  L.push('  (stands, test : entrée à s = '+(entre===null?'—':entre.toFixed(0))+', '+(dedans*DT).toFixed(1)+' s dans la voie, vitesse max '+(uMax*3.6).toFixed(1)+' km/h, pénalités '+c.penalites+' s, sortie à s = '+(sortiDeLaVoie===null?'—':sortiDeLaVoie.toFixed(0))+', tours comptés '+c.tours.length+', muret '+v_.contactsMurStands+', barrière '+v_.contactsBarriere+', herbe '+v_.surHerbe+')');
+  v(entre!==null&&dedans>120,'jamais dans la voie');v(uMax<=R_.STAND_VITESSE_MAX+1e-9,'vitesse '+uMax*3.6);v(v_.penalitesStands===R_.STAND_PENALITE_VITESSE&&c.penalites===R_.STAND_PENALITE_VITESSE,'pénalités '+c.penalites);
+  v(c.tours.length===1&&tourDansLaVoie,'tour pas compté dans la voie : '+c.tours.length);v(sortiDeLaVoie!==null&&sortiDeLaVoie>=st.sortie-R_.STAND_RAMPE-5&&sortiDeLaVoie<=st.sortie+5,'sortie à '+sortiDeLaVoie);
+  v(v_.contactsMurStands===0&&v_.contactsBarriere===0,'contacts '+v_.contactsMurStands+' / '+v_.contactsBarriere);v(positionSurPiste(C,v_.x,v_.z).stands===false&&!v_.surHerbe,'pas revenue sur la piste');});});
+t('stands (pneus actifs) : hors des rampes, le muret sépare la piste et la voie : une voiture dans la voie qui braque vers la piste reste dans la voie (contacts du muret, pas de barrière), une voiture sur la piste qui braque vers la voie reste sur la piste ; sans pneus actifs, la physique ne connaît pas la voie (elle roule dans l’herbe au même endroit, sans limite ni pénalité)', ()=>{
+  const R_=REGLAGES,st=C.stands,cote=st.cote,sMilieu=C.longueur-150;
+  const essai=(dDepart,dCible)=>{const v_=creerVoiture(C);placerSurPiste(v_,C,sMilieu,dDepart);v_.u=15;v_.piste=positionSurPiste(C,v_.x,v_.z);let extreme=dDepart*cote,herbe=0,uMax=0;
+    for(let k=0;k<4*120;k++){appliquerCommandes(v_,suivreEcartSur(v_,C,dCible,20));pasVoiture(v_,C,DT);extreme=dCible*cote>dDepart*cote?Math.max(extreme,v_.piste.d*cote):Math.min(extreme,v_.piste.d*cote);if(v_.surHerbe)herbe++;uMax=Math.max(uMax,v_.u);}
+    return {v_,extreme,herbe,uMax};};
+  const a=avecPneus(()=>essai(cote*(st.dMur+3),0)),b=avecPneus(()=>essai(cote*3,cote*(st.dMur+3))),c_=essai(cote*3,cote*(st.dMur+3));
+  L.push('  (muret : depuis la voie vers la piste, au plus près à '+a.extreme.toFixed(2)+' m (muret à '+st.dMur+'), '+a.v_.contactsMurStands+' contacts de muret ; depuis la piste vers la voie, au plus loin à '+b.extreme.toFixed(2)+' m, '+b.v_.contactsMurStands+' contacts ; sans pneus actifs : jusqu’à '+c_.extreme.toFixed(2)+' m, '+c_.herbe+' pas dans l’herbe, '+c_.v_.penalitesStands+' s de pénalité)');
+  v(a.extreme>=st.dMur+R_.DEMI_LARGEUR_VOITURE-0.05&&a.v_.contactsMurStands>0&&a.v_.contactsBarriere===0,'traverse le muret depuis la voie : '+a.extreme);
+  v(b.extreme<=st.dMur-R_.DEMI_LARGEUR_VOITURE+0.05&&b.v_.contactsMurStands>0&&b.v_.contactsBarriere===0,'traverse le muret depuis la piste : '+b.extreme);
+  v(c_.extreme>st.dMur&&c_.herbe>0&&c_.v_.penalitesStands===0&&c_.v_.contactsMurStands===0,'sans pneus actifs : '+c_.extreme+' / '+c_.herbe);});
 // les courses entre IA (le critère de l'étape 4 : 30 courses, et la course de 20 voitures) sont dans tests/courses.html
 
 // --- la grille qualifiée (tour 12)

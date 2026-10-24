@@ -28,6 +28,7 @@ PAGES = [
     ('index.html?reglages=1&course=0', 1280, 720, 'reglages.png'),
     ('index.html?course=5&robot=1', 1280, 720, None),
     ('index.html?camera=dessus&circuit=technique', 1280, 720, 'technique.png'),
+    ('index.html?camera=dessus&circuit=test', 1280, 720, 'stands.png'),   # la voie des stands (étape 7) : la bande et le muret le long de la ligne droite, côté gauche
     ('index.html?course=5&ia=1&circuit=technique', 1280, 720, 'ia.png'),
     ('index.html?course=5&ia=10&circuit=technique&debug=1', 1280, 720, 'ia10.png'),
     ('index.html?course=5&ia=9&joueur=1&circuit=technique', 1280, 720, None),   # capture joueur-ia.png prise en roulant
