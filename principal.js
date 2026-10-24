@@ -765,7 +765,7 @@ function demarrerJeu() {
   const demandee = PARAMETRES.get('course');
   if (SURVOL.includes(PARAMETRES.get('camera'))) { JEU.ecran = 'survol'; INTERFACE.montrer('survol'); }
   else if (JEU.decouverte) montrerTitre();   // le premier lancement
-  else if (JEU.championnat && PILOTE.manque(JEU.championnat)) montrerPilote();   // une sauvegarde sans pilote : la création, une fois
+  else if (JEU.championnat && PAGE_NUE && PILOTE.manque(JEU.championnat)) montrerPilote();   // le vrai jeu, une sauvegarde sans pilote : la création, une fois (pas les pages ?championnat=1 des tests)
   else if (JEU.championnat) montrerChampionnat(null);
   else if (demandee !== null && !isNaN(Number(demandee))) lancerCourse(Number(demandee));
   else allerAuChoix();
