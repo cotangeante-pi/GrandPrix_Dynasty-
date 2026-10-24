@@ -894,6 +894,22 @@ t('journal : la taille de l’album pour une carrière (12 Grands Prix × 15 sai
   L.push('  (album : 180 unes = '+album+' octets ('+(album/1024).toFixed(1)+' Ko, '+(album/180).toFixed(0)+' par une) ; le championnat entier '+(tout/1024).toFixed(1)+' Ko ; composé en '+(performance.now()-t0).toFixed(0)+' ms ; faits : '+JSON.stringify(faits)+')');
   v(ch.album.length===180&&album<120000,album+' octets');});
 
+// --- l'album des unes (tour 28c, Codeur 3)
+t('album : chaque une redessinée depuis l’album (JOURNAL.rendreAlbum) est exactement celle du jour même, même après 6 saisons et des retraites (les noms de sa saison) ; rechargée de la sauvegarde aussi ; une sauvegarde d’avant (unes sans saison) retrouve la saison de chaque une', ()=>{
+  const ch=CHAMPIONNAT.creer(31),jour=[];
+  for(let s=0;s<6;s++){for(let g=0;g<12;g++){SAISONS.avancer(ch,1);jour.push(JSON.stringify(JOURNAL.rendre(ch.album[ch.album.length-1],ch)));}
+    SAISONS.terminerSaison(ch);if(s<5) SAISONS.signer(ch,SAISONS.offres(ch)[0].ecurie);}
+  v(ch.album.length===72&&ch.album.every((u,i)=>u.s===Math.floor(i/12)+1),'saisons : '+ch.album.map(u=>u.s).join(''));
+  const changent=ch.album.filter((u,i)=>JSON.stringify(JOURNAL.rendre(u,ch))!==jour[i]).length;
+  v(ch.retraites.length>0&&changent>0,'le test ne prouve rien : '+ch.retraites.length+' retraites, '+changent+' unes changeraient avec les noms d’aujourd’hui');
+  ch.album.forEach((u,i)=>v(JSON.stringify(JOURNAL.rendreAlbum(ch,i))===jour[i],'une '+(i+1)+' : '+JSON.stringify(JOURNAL.rendreAlbum(ch,i)).slice(0,200)+' ≠ '+jour[i].slice(0,200)));
+  localStorage.removeItem(SAUVEGARDE.CLE);SAUVEGARDE.ecrireChampionnat(ch);const re=SAUVEGARDE.championnat();
+  re.album.forEach((u,i)=>v(JSON.stringify(JOURNAL.rendreAlbum(re,i))===jour[i],'rechargée, une '+(i+1)));
+  const S=JOURNAL.saisonsAlbum(ch);v(S.length===6&&S.every((x,k)=>x.saison===k+1&&x.debut===12*k&&x.n===12),JSON.stringify(S));
+  const vieux=JSON.parse(JSON.stringify(ch));vieux.album.forEach(u=>delete u.s);JOURNAL.completer(vieux);v(vieux.album.every((u,i)=>u.s===ch.album[i].s),'sans saison : '+vieux.album.map(u=>u.s).join(''));
+  L.push('  (album : 6 saisons, '+ch.retraites.length+' retraites, '+changent+' unes sur 72 auraient changé de noms sans rendreAlbum)');
+  localStorage.removeItem(SAUVEGARDE.CLE);});
+
 t('championnat : le niveau de l’écurie agit sur le rythme des IA (rythme × niveau, avant la carte) ; sur 6 Grands Prix simulés, les 5 écuries fortes marquent plus que les 5 faibles', ()=>{
   const R=REGLAGES,ch=CHAMPIONNAT.creer(11),circuits={test:C,technique:construireCircuit(CIRCUITS.technique)},t0=performance.now();
   for(let g=0;g<6;g++){const gp=ch.calendrier[ch.prochain],e=CHAMPIONNAT.simulerGrandPrix(ch,circuits[gp.circuit],1,200+g);

@@ -155,6 +155,7 @@ const CHAMPIONNAT = (function () {
   function completer(ch) {
     if (ch.pilotes) duelDe(ch);   // (une sauvegarde de test peut n'avoir que des pilotes)
     if (!ch.album) ch.album = [];   // l'album des unes du journal (journal.js) : vide dans une sauvegarde d'avant
+    if (typeof JOURNAL !== 'undefined') JOURNAL.completer(ch);   // la saison de chaque une (une sauvegarde d'avant le tour 28c)
     if (typeof ARGENT !== 'undefined') ARGENT.completer(ch);   // le solde et les gains (argent.js) : 0 dans une sauvegarde d'avant
     if (typeof GARAGE !== 'undefined') GARAGE.completer(ch);   // les niveaux du garage (garage.js) : 0 dans une sauvegarde d'avant
     // les saisons (saisons.js) : âge, rythme, titres et saisons des pilotes d'une sauvegarde d'avant (âge : d'après son indice, pas de hasard)

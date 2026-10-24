@@ -448,6 +448,7 @@ function montrerChampionnat(gagne) {
   INTERFACE.remplirSolde(JEU.championnat);
   INTERFACE.remplirRappelSponsor(JEU.championnat);
   INTERFACE.remplirReputation(JEU.championnat);   // les trois jauges de l'interview (interview.js)
+  document.getElementById('boutonAlbum').disabled = !JEU.championnat.album.length;   // l'album des unes (Codeur 3) : rien avant la première une
   JEU.ecran = 'championnat';
   INTERFACE.montrer('championnat');
 }
@@ -505,9 +506,49 @@ function montrerUne(une) {
 }
 
 function passerUne() {
+  if (JEU.ecran === 'album') { feuilleterAlbum(1); return; }   // dans l'album, un clic sur la page tourne la page
   if (JEU.ecran !== 'une') return;
   if (SAISONS.finie(JEU.championnat)) montrerFinSaison();
   else montrerChampionnat(JEU.gagne);
+}
+
+// ?championnat=1 : l'album des unes (Codeur 3, journal.js), depuis le paddock : la dernière une d'abord ; ← → (ou les boutons)
+// feuillettent, un clic sur la page tourne la page, ⏮ ⏭ sautent d'une saison ; chaque une est redessinée avec les noms de sa
+// saison (JOURNAL.rendreAlbum), donc à l'identique ; Échap ou « Fermer » ramène au paddock
+function montrerAlbum() {
+  if (JEU.ecran !== 'championnat' || !JEU.championnat.album.length) return;
+  JEU.album = JEU.championnat.album.length - 1;
+  afficherAlbum();
+}
+
+function afficherAlbum() {
+  const ch = JEU.championnat;
+  INTERFACE.remplirUne(JOURNAL.rendreAlbum(ch, JEU.album, { pilote: INTERFACE.nomPilote, ecurie: INTERFACE.nomEcurie }));
+  INTERFACE.remplirAlbum(ch, JEU.album);
+  JEU.ecran = 'album';
+  INTERFACE.montrer('album');
+}
+
+function feuilleterAlbum(d) {
+  if (JEU.ecran !== 'album') return;
+  const i = Math.max(0, Math.min(JEU.championnat.album.length - 1, JEU.album + d));
+  if (i === JEU.album) return;
+  JEU.album = i;
+  afficherAlbum();
+}
+
+// la saison d'avant (sa première une ; si on n'est pas au début de la sienne, le début de la sienne) ou la suivante
+function saisonAlbum(d) {
+  if (JEU.ecran !== 'album') return;
+  const S = JOURNAL.saisonsAlbum(JEU.championnat), k = S.findIndex(x => x.saison === JEU.championnat.album[JEU.album].s);
+  const cible = d < 0 ? (JEU.album > S[k].debut ? S[k] : S[Math.max(0, k - 1)]) : S[Math.min(S.length - 1, k + 1)];
+  JEU.album = cible.debut;
+  afficherAlbum();
+}
+
+function quitterAlbum() {
+  if (JEU.ecran !== 'album') return;
+  montrerChampionnat(JEU.gagne);
 }
 
 // ?championnat=1 : la fin de saison (saisons.js) : le classement final et le champion → le duel de la saison → les contrats
@@ -775,6 +816,11 @@ function brancherClavier() {
     }
     if (e.code === 'Escape' && !e.repeat) pause(JEU.ecran === 'course');
     if (JEU.ecran === 'une' && !e.repeat) passerUne();   // n'importe quelle touche passe la une du journal
+    else if (JEU.ecran === 'album' && !e.repeat) {   // l'album : ← → feuillettent, Échap ferme
+      if (e.code === 'ArrowLeft') feuilleterAlbum(-1);
+      else if (e.code === 'ArrowRight') feuilleterAlbum(1);
+      else if (e.code === 'Escape') quitterAlbum();
+    }
     if (e.code === 'Tab') { e.preventDefault(); if (JEU.plateau && !JEU.contre && !e.repeat) suivreSuivante(); }
     enfoncees.add(e.code);
     majCibles();
@@ -908,7 +954,7 @@ function majTableau() {
   document.getElementById('rapport').textContent = rapportPourVitesse(v.u);
   const roule = JEU.ecran === 'course' || JEU.ecran === 'survol' || enTourQualif();
   // sur le podium et les résultats, ni vitesse ni aide des touches
-  const apres = ['podium', 'resultats', 'championnat', 'une', 'garage', 'titre', 'amis', 'bravo', 'saison', 'duelSaison', 'contrats', 'retraite', 'sponsors', 'fiche', 'interview', 'ceremonie'].includes(JEU.ecran);
+  const apres = ['podium', 'resultats', 'championnat', 'une', 'garage', 'titre', 'amis', 'bravo', 'saison', 'duelSaison', 'contrats', 'retraite', 'sponsors', 'fiche', 'interview', 'ceremonie', 'album'].includes(JEU.ecran);
   document.getElementById('tableau').classList.toggle('cache', apres);
   document.getElementById('aide').classList.toggle('cache', apres);
   // après l'arrivée du joueur (en attendant les autres), il ne court plus : pas de « hors piste »
@@ -1052,6 +1098,7 @@ function demarrerJeu() {
     INTERFACE.preparerChampionnat(courseSuivante, montrerGarage);
     INTERFACE.preparerUne(passerUne);
     INTERFACE.preparerCeremonie(suiteCeremonie);
+    INTERFACE.preparerAlbum(montrerAlbum, feuilleterAlbum, saisonAlbum, quitterAlbum);
     INTERFACE.preparerGarage(acheterAmelioration, quitterGarage);
     INTERFACE.preparerSaison(suiteClassementSaison, suiteDuelSaison, signerContrat, prendreRetraite);
     INTERFACE.preparerSponsors(montrerSponsors, choisirSponsor, quitterSponsors);

@@ -113,7 +113,7 @@
     <div><h2 id="championnatPilotesTitre"></h2><ol id="championnatPilotes"></ol></div>
     <div><h2 id="championnatEcuriesTitre"></h2><ol id="championnatEcuries"></ol></div>
   </div>
-  <div class="boutons"><button id="boutonCourseSuivante" tabindex="-1"></button><button id="boutonGarage" tabindex="-1"></button><button id="boutonMonCasque" class="petit" tabindex="-1"></button><button id="boutonSponsors" tabindex="-1"></button></div>
+  <div class="boutons"><button id="boutonCourseSuivante" tabindex="-1"></button><button id="boutonGarage" tabindex="-1"></button><button id="boutonMonCasque" class="petit" tabindex="-1"></button><button id="boutonSponsors" tabindex="-1"></button><button id="boutonAlbum" class="petit" tabindex="-1"></button></div>
 </section>
 
 <!-- ?championnat=1 : les sponsors (sponsors.js) : les offres au début de la saison, puis le rappel ; la fiche d'un rival (fiche.js) (Codeur 3) -->
@@ -215,6 +215,8 @@
     <footer id="unePied"><h2 id="uneClassementTitre"></h2><ol id="uneClassement"></ol></footer>
   </div>
   <p id="unePasser"></p>
+  <!-- l'album des unes (Codeur 3) : la même page, feuilletée depuis le paddock ; la barre n'est là qu'en mode album -->
+  <div id="albumBarre" class="boutons"><button id="boutonAlbumSaisonAvant" class="petit" tabindex="-1">⏮</button><button id="boutonAlbumAvant" class="petit" tabindex="-1">◀</button><span id="albumPage"></span><button id="boutonAlbumApres" class="petit" tabindex="-1">▶</button><button id="boutonAlbumSaisonApres" class="petit" tabindex="-1">⏭</button><button id="boutonAlbumFermer" class="petit" tabindex="-1"></button></div>
 </section>
 
 <section id="pause" class="ecran cache">
