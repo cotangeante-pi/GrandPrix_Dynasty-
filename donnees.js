@@ -158,6 +158,31 @@ const REGLAGES = {
   },
   GARAGE_NIVEAUX: 5,
   GARAGE_PLAFOND: 0.07,         // +7 % au plus (moteur + aero + freins), quelle que soit la combinaison
+  // les saisons (étape 9, saisons.js, Codeur 3)
+  SAISONS_MAX: 15,              // la retraite par l'âge : la carrière s'arrête après ce nombre de saisons
+  GRAINE_SAISONS: 7000,         // l'évolution des rivaux est tirée avec la graine du championnat + ce nombre + la saison
+  // les contrats : la note du joueur (0 à 1) = son classement, son duel (poids) et la confiance de l'écurie (poids) ; chaque
+  // écurie exige une note selon son niveau, de CONTRAT_EXIGENCE_MAX (la meilleure) à 0 (la plus faible accepte toujours)
+  CONTRAT_POIDS_DUEL: 0.3,
+  CONTRAT_POIDS_CONFIANCE: 0.1,
+  CONTRAT_EXIGENCE_MAX: 0.85,
+  CONFIANCE_DEPART: 50,         // la confiance de l'écurie (0 à 100), fixe tant que les consignes d'équipe n'existent pas
+  // les rivaux qui évoluent, entre deux saisons
+  AGE_DEPART: [21, 36],         // l'âge des 19 pilotes à la création (tiré)
+  AGE_ARRIVEE: [19, 23],        // l'âge d'un nouveau pilote
+  AGE_JEUNE: 26,                // jusqu'à cet âge, le rythme progresse de RYTHME_PROGRESSION (× 0,5 à 1,5) par saison
+  AGE_DECLIN: 33,               // à partir de cet âge, il baisse de RYTHME_DECLIN (× 0,5 à 1,5) par saison
+  AGE_RETRAITE: 36,             // à partir de cet âge, la retraite chaque saison avec la probabilité RETRAITE_PROBABILITE…
+  AGE_RETRAITE_MAX: 39,         // … et sûrement à cet âge
+  RETRAITE_PROBABILITE: 0.4,
+  RYTHME_PROGRESSION: 0.004,
+  RYTHME_DECLIN: 0.004,
+  RYTHME_MIN: 0.96, RYTHME_MAX: 1.03,   // le facteur de rythme d'un pilote (1 = la base de son caractère)
+  RYTHME_ARRIVEE: [0.97, 1.0],  // celui d'un nouveau pilote
+  TRANSFERTS_PAR_SAISON: 2,     // des échanges de place entre deux pilotes IA d'écuries différentes
+  NIVEAU_MONTENT: 3,            // les écuries les mieux classées montent de NIVEAU_EVOLUTION, les plus mal classées baissent d'autant
+  NIVEAU_EVOLUTION: 0.005,
+  NIVEAU_MIN: 0.94, NIVEAU_MAX: 1.0,
   // les noms des 20 pilotes, deux par écurie dans l'ordre (le 20e est remplacé par le joueur) : pas encore (les noms
   // inventés, à approuver par le propriétaire, viendront ici) ; sans nom, l'écran affiche texte('pilote') avec son numéro (« Driver 7 » / « Pilote 7 »)
   NOMS_PILOTES: [],
@@ -186,6 +211,16 @@ const REGLAGES = {
   DECOUVERTE_ARGENT: [1000, 800, 600, 400, 300, 200, 100],   // la prime d'argent de départ selon la place (1er, 2e, …)
   DECOUVERTE_ARGENT_MAX: 1000,  // … et son plafond
   AIDE_CLIGNOTE_APRES: 3,       // s : sur la grille, sans aucune touche pendant ce temps, l'aide « ↑ » clignote
+  // le casque du pilote (casque.js) : un motif et trois couleurs ; les rivaux tirent le leur avec la graine du championnat
+  CASQUE_MOTIFS: ['uni', 'bandes', 'etoile', 'flammes', 'damier', 'eclair'],
+  CASQUE_PALETTE: [0xd8262e, 0xf2c230, 0x2fa84f, 0xf07d1a, 0x8e44ad, 0x1abc9c, 0xecf0f1, 0x34495e, 0xe84393, 0x1f6fe0, 0x111111, 0xffffff],
+  CASQUE_NEUTRE: { motif: 'uni', couleurs: [0xdfe3ea, 0xdfe3ea, 0x34495e] },   // « Toi » avant la création, les voitures sans pilote
+  CASQUE_ESSAIS_MAX: 200,       // tirages pour trouver un casque que personne n'a
+  GRAINE_CASQUES: 6000,         // les casques des rivaux sont tirés avec la graine du championnat + ce nombre
+  CASQUE_ATLAS_CASE: 64,        // pixels : la case de chaque casque dans l'atlas (une petite texture partagée, un seul matériau)
+  CASQUE_ICONE: 14,             // pixels : l'icône du casque dans la tour, les résultats, le championnat
+  CASQUE_APERCU_VITESSE: 1.2,   // rad/s : le casque tourne dans l'éditeur
+  CACHE_CARTE_TAILLE_MAX: 150000,   // octets : la carte des IA d'un circuit en cache dans la sauvegarde (cache-carte.js) ne doit pas peser plus (test)
 
   // la création du pilote (pilote.js, étape 6) : le nom, le numéro, le pays, la course de cœur
   NOM_LONGUEUR_MAX: 12,         // caractères du nom du pilote

@@ -11,7 +11,7 @@ const SAUVEGARDE = (function () {
     // fantomes : le fantôme du meilleur tour de chaque circuit (fantome.js, compact), par nom de circuit ; options : les
     // réglages du joueur (fantome : le fantôme affiché, vrai par défaut) ; reaction : le meilleur temps de réaction au départ (s)
     // decouverteFaite : la course de découverte du premier lancement est jouée ; argent : l'argent du joueur (la prime de la découverte, pas encore dépensable)
-    return { version: VERSION, records: {}, championnat: null, fantomes: {}, options: {}, reaction: null, decouverteFaite: false, argent: 0 };
+    return { version: VERSION, records: {}, championnat: null, fantomes: {}, options: {}, reaction: null, decouverteFaite: false, argent: 0, cartes: {} };
   }
 
   // une sauvegarde d'une ancienne version est transformée ici, sans rien perdre :
@@ -34,6 +34,7 @@ const SAUVEGARDE = (function () {
     // le premier lancement (tour 23b) : la découverte faite (une sauvegarde qui a déjà un championnat compte comme faite) et l'argent
     if (d.decouverteFaite === undefined) d.decouverteFaite = !!d.championnat;
     if (typeof d.argent !== 'number') d.argent = 0;
+    if (!d.cartes || typeof d.cartes !== 'object') d.cartes = {};   // la carte des IA de chaque circuit en cache (cache-carte.js, tour 24b)
     if (d.championnat && typeof CHAMPIONNAT !== 'undefined') CHAMPIONNAT.completer(d.championnat);
     d.version = VERSION;
     return d;
@@ -146,5 +147,17 @@ const SAUVEGARDE = (function () {
     return ecrire(d);
   }
 
-  return { lire, ecrire, record, proposerRecord, championnat, ecrireChampionnat, fantome, proposerFantome, option, ecrireOption, reaction, proposerReaction, decouverteFaite, argent, finirDecouverte, VERSION, CLE };
+  // --- la carte des IA d'un circuit en cache (cache-carte.js) : le cache compact, par nom de circuit
+  function carte(nom) {
+    const c = lire().cartes[nom];
+    return c && typeof c === 'object' ? c : null;
+  }
+
+  function ecrireCarte(nom, cache) {
+    const d = lire();
+    d.cartes[nom] = cache;
+    return ecrire(d);
+  }
+
+  return { lire, ecrire, record, proposerRecord, championnat, ecrireChampionnat, fantome, proposerFantome, option, ecrireOption, reaction, proposerReaction, decouverteFaite, argent, finirDecouverte, carte, ecrireCarte, VERSION, CLE };
 })();

@@ -45,7 +45,7 @@ const INTERFACE = (function () {
   }
 
   function montrer(ecran) {
-    for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une', 'garage', 'titre', 'amis', 'bravo', 'pilote']) $(id).classList.toggle('cache', id !== ecran);
+    for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une', 'garage', 'saison', 'duelSaison', 'contrats', 'retraite', 'titre', 'amis', 'bravo', 'pilote']) $(id).classList.toggle('cache', id !== ecran);
     // le bandeau de course n'est là que pendant la course et la pause (pas sous l'écran de fin)
     const course = ecran === 'course' || ecran === 'pause';
     for (const id of ['hudCourse', 'hudPenalite', 'compte', 'feux', 'classement', 'radar', 'jauge', 'departResultat', 'aides']) if (!course) $(id).classList.add('cache');
@@ -113,6 +113,8 @@ const INTERFACE = (function () {
         }
         li.children[1].style.background = '#' + l.couleur.toString(16).padStart(6, '0');
         li.children[2].textContent = l.numero;
+        // l'icône du casque (casque.js) : sa propre colonne, ajoutée en dernier (les indices 0 à 4 ne bougent pas) et placée avant le numéro par CSS (order)
+        if (l.casque) { const c = document.createElement('span'); c.className = 'casque'; c.appendChild(CASQUE.icone(l.casque, REGLAGES.CASQUE_ICONE)); li.appendChild(c); }
         liste.appendChild(li);
         lignesClassement.set(l.numero, li);
       }
@@ -211,7 +213,9 @@ const INTERFACE = (function () {
       const carte = document.createElement('div');
       carte.className = 'marche marche' + place;
       const titre = document.createElement('strong');
-      titre.append(String(place) + ' ', pastille(x.couleur), ' ' + texte('numero').replace('{n}', x.numero));
+      titre.append(String(place) + ' ', pastille(x.couleur), ' ');
+      if (x.casque) titre.append(CASQUE.icone(x.casque, REGLAGES.CASQUE_ICONE + 4));
+      titre.append(texte('numero').replace('{n}', x.numero));
       const temps = document.createElement('span');
       temps.textContent = formatTemps(x.total) + (x.penalites > 0 ? ' (' + penalite(x.penalites) + ')' : '');
       carte.append(titre, temps);
@@ -227,7 +231,9 @@ const INTERFACE = (function () {
       const tr = document.createElement('tr');
       if (l.moi) tr.className = 'moi';
       const numero = document.createElement('span');
-      numero.append(pastille(l.couleur), ' ' + l.numero);
+      numero.append(pastille(l.couleur), ' ');
+      if (l.casque) numero.append(CASQUE.icone(l.casque, REGLAGES.CASQUE_ICONE));
+      numero.append(String(l.numero));
       const ecart = l.ecart === null || l.place === 1 ? '' : '+' + secondes(l.ecart.toFixed(3));
       // sa place sur la grille, et les places gagnées (▲) ou perdues (▼) depuis
       const gagne = l.grille - l.place, grille = l.grille + ' ' + (gagne > 0 ? '▲' + gagne : gagne < 0 ? '▼' + -gagne : '=');
@@ -268,7 +274,7 @@ const INTERFACE = (function () {
   // « Bravo ! » : la place du joueur (place, nb) et sa prime
   function remplirBravo(place, nb, prime) {
     $('bravoPlace').textContent = texte('bravoPlace').replace('{p}', place).replace('{n}', nb);
-    $('bravoArgent').textContent = texte('bravoArgent').replace('{n}', prime);
+    $('bravoArgent').textContent = texte('bravoArgent').replace('{n}', typeof ARGENT !== 'undefined' ? ARGENT.formater(prime) : String(prime));   // la seule monnaie du jeu (argent.js)
   }
 
   // les aides en surimpression de la découverte : a = { gaz, direction, frein (vrais quand la touche a servi), clignote } ou null (cachées)
@@ -305,6 +311,37 @@ const INTERFACE = (function () {
     pays.value = R.PAYS[0];
     $('piloteErreur').textContent = '';
     majDomicilePilote();
+    remplirCasque(PILOTE.joueur(ch) && PILOTE.joueur(ch).casque);
+  }
+
+  // l'éditeur du casque (casque.js) : le motif et les trois couleurs du casque donné (sinon le neutre)
+  function remplirCasque(casque) {
+    const c = CASQUE.valide(casque) ? casque : CASQUE.neutre();
+    $('casqueTitre').textContent = texte('casqueTitre');
+    $('casqueMotifTexte').textContent = texte('casqueMotif');
+    $('casqueCouleursTexte').textContent = texte('casqueCouleurs');
+    const motif = $('casqueMotif');
+    motif.textContent = '';
+    for (const m of REGLAGES.CASQUE_MOTIFS) { const o = document.createElement('option'); o.value = m; o.textContent = texte('motif_' + m); motif.appendChild(o); }
+    motif.value = c.motif;
+    for (let i = 0; i < 3; i++) $('casqueC' + (i + 1)).value = '#' + c.couleurs[i].toString(16).padStart(6, '0');
+  }
+
+  function lireCasque() {
+    return CASQUE.creer($('casqueMotif').value, [1, 2, 3].map(i => parseInt($('casqueC' + i).value.slice(1), 16)));
+  }
+
+  // casqueSeul : l'écran ne montre que le casque (« Mon casque » depuis le paddock)
+  function modePilote(casqueSeul) {
+    $('pilote').classList.toggle('casqueSeul', !!casqueSeul);
+    $('piloteTitre').textContent = texte(casqueSeul ? 'casqueTitre' : 'piloteTitre');
+    $('boutonPiloteValider').textContent = texte(casqueSeul ? 'casqueValider' : 'piloteValider');
+  }
+
+  // changement(casque) : appelé à chaque changement de motif ou de couleur (l'aperçu 3D suit)
+  function preparerCasque(changement) {
+    for (const id of ['casqueMotif', 'casqueC1', 'casqueC2', 'casqueC3']) $(id).addEventListener('input', () => changement(lireCasque()));
+    $('casqueMotif').addEventListener('change', () => changement(lireCasque()));
   }
 
   // le pays choisi a-t-il un circuit ? alors la course de cœur est imposée et montrée 🏠
@@ -316,7 +353,7 @@ const INTERFACE = (function () {
   }
 
   function lirePilote() {
-    return { nom: $('piloteNom').value, numero: $('piloteNumero').value, pays: $('pilotePays').value, coeur: $('piloteCoeur').value };
+    return { nom: $('piloteNom').value, numero: $('piloteNumero').value, pays: $('pilotePays').value, coeur: $('piloteCoeur').value, casque: lireCasque() };
   }
 
   function montrerErreursPilote(erreurs) {
@@ -425,16 +462,18 @@ const INTERFACE = (function () {
     $('championnatEcuriesTitre').textContent = texte('classementEcuries');
     $('boutonCourseSuivante').textContent = texte('courseSuivante');
     $('boutonCourseSuivante').classList.toggle('cache', fini);
-    const ligne = (place, couleur, nom, points, moi) => {
+    const ligne = (place, couleur, nom, points, moi, casque) => {
       const li = document.createElement('li');
       if (moi) li.className = 'moi';
       const sp = (classe, contenu) => { const e = document.createElement('span'); e.className = classe; e.append(contenu); return e; };
-      li.append(sp('place', String(place)), pastille(couleur), sp('nom', nom), sp('points', points + ' ' + texte('pts')));
+      const spNom = sp('nom', nom);
+      if (casque) spNom.prepend(CASQUE.icone(casque, REGLAGES.CASQUE_ICONE));   // l'icône du casque (casque.js)
+      li.append(sp('place', String(place)), pastille(couleur), spNom, sp('points', points + ' ' + texte('pts')));
       return li;
     };
     const pilotes = $('championnatPilotes'), ecuries = $('championnatEcuries');
     pilotes.textContent = ''; ecuries.textContent = '';
-    CHAMPIONNAT.classementPilotes(ch).forEach((x, i) => { const p = ch.pilotes[x.k]; pilotes.appendChild(ligne(i + 1, ch.ecuries[p.ecurie].couleur, nomPilote(p), x.points, p.humain)); });
+    CHAMPIONNAT.classementPilotes(ch).forEach((x, i) => { const p = ch.pilotes[x.k]; pilotes.appendChild(ligne(i + 1, ch.ecuries[p.ecurie].couleur, nomPilote(p), x.points, p.humain, p.casque)); });
     CHAMPIONNAT.classementEcuries(ch).forEach((x, i) => { const e = ch.ecuries[x.id]; ecuries.appendChild(ligne(i + 1, e.couleur, nomEcurie(e), x.points, e.id === REGLAGES.ECURIE_JOUEUR)); });
   }
 
@@ -494,6 +533,89 @@ const INTERFACE = (function () {
     }
   }
 
+  // --- la fin de saison (Codeur 3, saisons.js) ---
+  // le classement final de la saison et le champion (b = SAISONS.bilan ou terminerSaison)
+  function remplirSaison(ch, b) {
+    $('saisonTitre').textContent = avec(texte('saisonTitre'), { n: b.saison });
+    const champion = ch.pilotes[b.champion];
+    $('saisonChampion').textContent = champion.humain ? texte('saisonChampionToi') : avec(texte('saisonChampion'), { pilote: nomPilote(champion) });
+    $('saisonChampion').classList.toggle('toi', !!champion.humain);
+    $('saisonEcurie').textContent = avec(texte('saisonChampionEcurie'), { ecurie: nomEcurie(ch.ecuries[b.championEcurie]) });
+    $('saisonPilotesTitre').textContent = texte('saisonClassement');
+    $('boutonSaisonSuite').textContent = texte('suite');
+    const ol = $('saisonPilotes');
+    ol.textContent = '';
+    b.pilotes.forEach((x, i) => {
+      const p = ch.pilotes[x.k], li = document.createElement('li');
+      if (p.humain) li.className = 'moi';
+      if (i === 0) li.classList.add('champion');
+      const sp = (classe, contenu) => { const e = document.createElement('span'); e.className = classe; e.append(contenu); return e; };
+      li.append(sp('place', String(i + 1)), pastille(ch.ecuries[p.ecurie].couleur), sp('nom', nomPilote(p)), sp('points', x.points + ' ' + texte('pts')));
+      ol.appendChild(li);
+    });
+  }
+
+  // le duel de la saison : « Tu as battu X 9 à 3 » (s = CHAMPIONNAT.scoreDuel), avec le détail et le total de carrière
+  function remplirDuelSaison(ch, s) {
+    $('duelSaisonTitre').textContent = texte('duelSaisonTitre');
+    $('boutonDuelSaisonSuite').textContent = texte('suite');
+    if (!s) { $('duelSaisonScore').textContent = ''; $('duelSaisonDetail').textContent = ''; return; }
+    const nom = nomPilote(ch.pilotes[s.k]), a = s.total[0], b = s.total[1];
+    $('duelSaisonScore').textContent = avec(texte(a > b ? 'duelSaisonGagne' : a < b ? 'duelSaisonPerdu' : 'duelSaisonEgal'), { nom, a, b });
+    $('duelSaisonDetail').textContent = avec(texte('duelSaisonDetail'), { nom, qa: s.qualifs[0], qb: s.qualifs[1], ca: s.courses[0], cb: s.courses[1],
+      ta: s.carriere.qualifs[0] + s.carriere.courses[0], tb: s.carriere.qualifs[1] + s.carriere.courses[1] });
+  }
+
+  // les contrats : la note, une ligne par offre (écurie, voiture, coéquipier, un mot, « Signer »), « Prendre ma retraite »
+  let signatureContrat = null, retraiteDemandee = false;
+  function remplirContrats(ch, offres, note) {
+    $('contratsTitre').textContent = avec(texte('contratsTitre'), { n: ch.saison + 1 });
+    $('contratsNote').textContent = avec(texte('contratsNote'), { n: Math.round(note * 100) });
+    $('boutonRetraite').textContent = texte(retraiteDemandee ? 'retraiteConfirmer' : 'retraite');
+    const ul = $('contratsListe'), n = ch.ecuries.length;
+    ul.textContent = '';
+    for (const o of offres) {
+      const e = ch.ecuries[o.ecurie], li = document.createElement('li'), rang = SAISONS.rangEcurie(ch, o.ecurie);
+      li.dataset.ecurie = o.ecurie;
+      if (o.actuelle) li.classList.add('actuelle');
+      const sp = (classe, contenu) => { const el = document.createElement('span'); el.className = classe; el.append(contenu); return el; };
+      li.append(pastille(e.couleur), sp('nom', nomEcurie(e)), sp('mot', texte(rang < n / 3 ? 'contratMot_fort' : rang < 2 * n / 3 ? 'contratMot_moyen' : 'contratMot_faible') + (o.actuelle ? ' · ' + texte('contratActuelle') : '')),
+        sp('niveau', avec(texte('contratNiveau'), { n: Math.round(e.niveau * 100) })),
+        sp('coequipier', avec(texte('contratCoequipier'), { nom: o.coequipier === null ? '—' : nomPilote(ch.pilotes[o.coequipier]) })));
+      const b = document.createElement('button');
+      b.className = 'signer';
+      b.tabIndex = -1;
+      b.textContent = texte('contratSigner');
+      b.addEventListener('mousedown', ev => ev.preventDefault());
+      b.addEventListener('click', () => { if (signatureContrat) signatureContrat(o.ecurie); });
+      li.appendChild(b);
+      ul.appendChild(li);
+    }
+  }
+
+  // la retraite : « Carrière terminée », la raison, le bilan simple (le vrai bilan est l'étape 14)
+  function remplirRetraite(r) {
+    $('retraiteTitre').textContent = texte('retraiteTitre');
+    $('retraiteRaison').textContent = avec(texte(r.raison === 'age' ? 'retraiteAge' : 'retraiteChoix'), { n: r.saison });
+    $('retraiteBilan').textContent = avec(texte('retraiteBilan'), { s: r.saisons, v: r.victoires, p: r.podiums, t: r.titres });
+  }
+
+  // suite : après le classement, puis après le duel ; signer(ecurie) ; retraite() : le premier clic demande une confirmation
+  function preparerSaison(suiteClassement, suiteDuel, signer, retraite) {
+    signatureContrat = signer;
+    for (const [id, f] of [['boutonSaisonSuite', suiteClassement], ['boutonDuelSaisonSuite', suiteDuel]]) {
+      $(id).addEventListener('mousedown', e => e.preventDefault());
+      $(id).addEventListener('click', f);
+    }
+    $('boutonRetraite').addEventListener('mousedown', e => e.preventDefault());
+    $('boutonRetraite').addEventListener('click', () => {
+      if (!retraiteDemandee) { retraiteDemandee = true; $('boutonRetraite').textContent = texte('retraiteConfirmer'); return; }
+      retraiteDemandee = false;
+      retraite();
+    });
+  }
+  const retraiteEnAttente = () => retraiteDemandee;
+
   function preparerGarage(acheter, retour) {
     achatGarage = acheter;
     $('boutonGarageRetour').addEventListener('mousedown', e => e.preventDefault());
@@ -537,5 +659,6 @@ const INTERFACE = (function () {
 
   return { formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, preparerChampionnat, remplirQualif, preparerQualif,
     remplirDuel, avec, remplirUne, preparerUne, remplirArgent, remplirSolde, remplirGarage, preparerGarage,
-    majEcartFantome, preparerFantome, majBoutonsFantome, majDepart, preparerTitre, remplirBravo, majAides, remplirPilote, lirePilote, montrerErreursPilote, preparerPilote, nomCircuit };
+    remplirSaison, remplirDuelSaison, remplirContrats, remplirRetraite, preparerSaison, retraiteEnAttente,
+    majEcartFantome, preparerFantome, majBoutonsFantome, majDepart, preparerTitre, remplirBravo, majAides, remplirPilote, lirePilote, montrerErreursPilote, preparerPilote, nomCircuit, remplirCasque, lireCasque, modePilote, preparerCasque };
 })();
