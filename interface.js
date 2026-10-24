@@ -48,7 +48,7 @@ const INTERFACE = (function () {
     for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une', 'garage', 'saison', 'duelSaison', 'contrats', 'retraite', 'titre', 'amis', 'bravo', 'pilote', 'sponsors', 'fiche']) $(id).classList.toggle('cache', id !== ecran);
     // le bandeau de course n'est là que pendant la course et la pause (pas sous l'écran de fin)
     const course = ecran === 'course' || ecran === 'pause';
-    for (const id of ['hudCourse', 'hudPenalite', 'compte', 'feux', 'classement', 'radar', 'jauge', 'departResultat', 'aides']) if (!course) $(id).classList.add('cache');
+    for (const id of ['hudCourse', 'hudPenalite', 'compte', 'feux', 'classement', 'radar', 'jauge', 'departResultat', 'aides', 'feux2', 'jauge2', 'departResultat2', 'deuxHaut', 'deuxBas', 'deuxSeparation']) if (!course) $(id).classList.add('cache');
     if (course) $('hudCourse').classList.remove('cache');
   }
 
@@ -371,16 +371,17 @@ const INTERFACE = (function () {
 
   // le départ parfait (depart.js) : pendant les feux, la jauge du régime de départ avec sa zone verte (DEPART_VERT), jusqu'au
   // lancement ; après, le résultat et le temps de réaction pendant DEPART_AFFICHAGE s (record : « ★ record de réaction ! »)
-  function majDepart(c, ecran, record) {
-    const d = c && c.depart, jauge = $('jauge'), res = $('departResultat');
+  // n : '' pour le joueur (ou le joueur 1 à deux), '2' pour le joueur 2 de l'écran partagé (ses éléments ont ce suffixe)
+  function majDepart(c, ecran, record, n = '') {
+    const d = c && c.depart, jauge = $('jauge' + n), res = $('departResultat' + n);
     const tenue = !!d && d.humain && d.lance === null && ecran === 'course' && c.etat !== 'finie' && (c.etat !== 'compte' || c.compte < c.feux.total);
     jauge.classList.toggle('cache', !tenue);
     if (tenue) {
       const [bas, haut] = REGLAGES.DEPART_VERT;
-      $('jaugeVert').style.left = (bas * 100) + '%';
-      $('jaugeVert').style.width = ((haut - bas) * 100) + '%';
-      $('jaugeAiguille').style.left = (d.regime * 100) + '%';
-      $('jaugeAide').textContent = texte('departAide');
+      $('jaugeVert' + n).style.left = (bas * 100) + '%';
+      $('jaugeVert' + n).style.width = ((haut - bas) * 100) + '%';
+      $('jaugeAiguille' + n).style.left = (d.regime * 100) + '%';
+      $('jaugeAide' + n).textContent = texte('departAide');
     }
     const montre = !!d && d.humain && d.lance !== null && ecran === 'course' && d.t - d.lance < REGLAGES.DEPART_AFFICHAGE;
     res.classList.toggle('cache', !montre);
@@ -389,6 +390,26 @@ const INTERFACE = (function () {
       res.textContent = texte(cle) + ' · ' + secondes(Math.max(0, d.reaction).toFixed(2)) + (record ? ' ★ ' + texte('departRecord') : '');
       res.className = d.resultat;
     }
+  }
+
+  // le mode 2 joueurs (écran partagé) : l'affichage de chaque moitié ; j = [{ place, tour, nbTours, vitesse (m/s), ecart (s, < 0 : ce joueur
+  // est devant l'autre, null : inconnu) }, …] (joueur 1, joueur 2), ou null pour tout cacher ; les feux du joueur 2 copient ceux du joueur 1
+  function majDeux(j) {
+    const visible = !!j;
+    for (const id of ['deuxHaut', 'deuxBas', 'deuxSeparation']) $(id).classList.toggle('cache', !visible);
+    const f1 = $('feux'), f2 = $('feux2');
+    f2.classList.toggle('cache', !visible || f1.classList.contains('cache'));
+    if (!visible) return;
+    const allumes = f1.querySelectorAll('span');
+    f2.querySelectorAll('span').forEach((f, i) => f.classList.toggle('allume', allumes[i].classList.contains('allume')));
+    ['deuxHaut', 'deuxBas'].forEach((id, i) => {
+      const el = $(id), x = j[i];
+      el.querySelector('.deuxNom').textContent = (i ? '🔴 ' : '🔵 ') + texte(i ? 'joueur2' : 'joueur1');
+      el.querySelector('.deuxPlace').textContent = x.place ? 'P' + x.place : '';
+      el.querySelector('.deuxTour').textContent = texte('tour') + ' ' + x.tour + ' / ' + x.nbTours;
+      el.querySelector('.deuxVitesse').textContent = Math.round(x.vitesse * 3.6) + ' ' + texte('kmh');
+      el.querySelector('.deuxEcart').textContent = x.ecart === null ? '' : (x.ecart > 0 ? '+' : '−') + secondes(Math.abs(x.ecart).toFixed(1));
+    });
   }
 
   // l'écart en direct avec le fantôme du meilleur tour (fantome.js), sous le chrono : « −0,34 » en vert (le joueur est
@@ -739,5 +760,5 @@ const INTERFACE = (function () {
     remplirDuel, avec, remplirUne, preparerUne, remplirArgent, remplirSolde, remplirGarage, preparerGarage,
     remplirSaison, remplirDuelSaison, remplirContrats, remplirRetraite, preparerSaison, retraiteEnAttente,
     remplirSponsors, remplirRappelSponsor, preparerSponsors, remplirFiche, preparerFiche,
-    majEcartFantome, preparerFantome, majBoutonsFantome, majDepart, preparerTitre, remplirBravo, majAides, remplirPilote, lirePilote, montrerErreursPilote, preparerPilote, nomCircuit, remplirCasque, lireCasque, modePilote, preparerCasque };
+    majEcartFantome, preparerFantome, majBoutonsFantome, majDepart, majDeux, preparerTitre, remplirBravo, majAides, remplirPilote, lirePilote, montrerErreursPilote, preparerPilote, nomCircuit, remplirCasque, lireCasque, modePilote, preparerCasque };
 })();

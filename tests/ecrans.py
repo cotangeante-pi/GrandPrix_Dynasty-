@@ -43,7 +43,10 @@ PAGES = [
     ('index.html?championnat=1&tours=1&robot=1&gp=12', 960, 600, None),    # les écrans de fin de saison en petit (Grand Prix 12 fabriqué), la retraite
     ('index.html?championnat=1&tours=1&robot=1&lang=en', 1280, 720, None),   # la page en anglais : championnat et podium sans un mot français, capture championnat-en.png
     ('index.html?course=1&ia=5&joueur=1&robot=1&circuit=test&test=fantome', 1280, 720, None),   # le fantôme du meilleur tour : deux qualifications de suite, la 2e contre le fantôme, capture fantome.png
-    ('index.html?robot=1&test=decouverte&tours=1', 1280, 720, None),   # le premier lancement : titre → course de découverte (robot) → Bravo → paddock ; captures titre.png, decouverte.png, bravo.png
+    ('index.html?robot=1&test=decouverte&tours=1', 1280, 720, None),
+    ('index.html?deux=1&ia=5&robot=1&circuit=test&test=deux', 1280, 720, None),   # le mode 2 joueurs (deux-joueurs.js) : l'écran partagé, deux robots + 5 IA, jusqu'au podium ; capture deux-joueurs.png
+    ('index.html?deux=1&ia=5&robot=1&circuit=test&test=deux', 960, 600, None),    # … en petit : rien ne déborde ; capture deux-joueurs-960.png
+    ('index.html?deux=1&ia=5&robot=1&circuit=technique&test=deux', 1280, 720, None),   # … la mesure de la 3D dessinée deux fois sur le technique   # le premier lancement : titre → course de découverte (robot) → Bravo → paddock ; captures titre.png, decouverte.png, bravo.png
 ]
 # le faux SDK Poki (comme dans tests/sdk.html), posé avant le chargement de la page ?test=sdk : il note chaque appel dans APPELS_SDK (pas « JOURNAL » : c'est le module de la une du journal, journal.js)
 FAUX_SDK = """window.APPELS_SDK = []; window.PokiSDK = { init() { APPELS_SDK.push('init'); return Promise.resolve(); }, gameLoadingFinished() { APPELS_SDK.push('gameLoadingFinished'); },
@@ -571,6 +574,63 @@ def championnat_en(pg, titre):
       and not re.search(MOTS_FR, pg.evaluate('() => document.getElementById("championnat").innerText')), pg.evaluate('() => document.getElementById("championnatGagne").textContent'))
     pg.wait_for_timeout(300)
     pg.screenshot(path=os.path.join(CAPTURES, 'championnat-en.png'))
+
+# le mode 2 joueurs (deux-joueurs.js, CLAUDE.md « Le mode 2 joueurs (écran partagé) ») : ?deux=1&ia=5, les deux joueurs conduits par le
+# robot ; l'écran partagé haut (joueur 1) / bas (joueur 2), la tour partagée, ni radar ni bandeau seul, feux et jauge de chacun dans sa
+# moitié, rien ne déborde ; la mesure de la 3D dessinée deux fois (images/s, triangles, appels) contre une seule vue de la même scène
+def deux_ecran(pg, titre, l, h, page):
+    def image():
+        n = pg.evaluate('() => { if (window.__images === undefined) { window.__images = 0; BOUCLE.surAffichage(() => window.__images++); } BOUCLE.demarrer(); return window.__images; }')
+        attendre(pg, 'n => window.__images > n + 1', n, 20000)
+    def boite(sel):
+        return pg.evaluate('s => { const e = document.querySelector(s); if (!e || e.classList.contains("cache") || getComputedStyle(e).display === "none") return null; const r = e.getBoundingClientRect(); return [r.left, r.top, r.right, r.bottom]; }', sel)
+    def dans(b, x1, y1, x2, y2): return b is not None and b[0] >= x1 - 2 and b[1] >= y1 - 2 and b[2] <= x2 + 2 and b[3] <= y2 + 2
+    etat = pg.evaluate('() => ({ deux: !!JEU.deux, nb: JEU.plateau.pilotes.length, joueurs: DEUX_JOUEURS.joueurs(JEU.plateau).map(p => p.humain && p.joueur), partage: SCENE3D.partage, corps: document.body.classList.contains("deux"), ecran: JEU.ecran, modeles: JEU.modeles.length, detailles: JEU.modeles.filter(m => m.detaille).length })')
+    t(f'{titre} : ?deux=1&ia=5 : 7 voitures (2 joueurs + 5 IA), les deux joueurs humains, l’écran partagé allumé, la course tout de suite (pas de qualification)',
+      etat['deux'] and etat['nb'] == 7 and etat['joueurs'] == [1, 2] and etat['partage'] and etat['corps'] and etat['ecran'] == 'course' and etat['modeles'] == 7 and etat['detailles'] == 2, str(etat))
+    t(f'{titre} : la carte des IA arrive, les 5 IA ont leur pilote, la grille est tirée (les deux joueurs côte à côte)',
+      attendre(pg, '() => JEU.plateau.carte !== null && JEU.plateau.pilotes.filter(p => p.pilote).length === 5 && JEU.plateau.grille && (() => { const [a, b] = DEUX_JOUEURS.joueurs(JEU.plateau); const g = JEU.plateau.grille.map(x => x.numero); return g.indexOf(b.numero) === g.indexOf(a.numero) + 1; })()', None, 120000),
+      str(pg.evaluate('() => [JEU.plateau.carte !== null, JEU.plateau.grille]')))
+    # les feux : on les retient pour voir les deux jeux de feux et les deux jauges, chacun dans sa moitié
+    pg.evaluate('() => { for (const p of JEU.plateau.pilotes) { p.course.feux.delai = 30; p.course.feux.total = 35; p.course.compte = 30; } }')
+    t(f'{titre} : les 5 feux du joueur 1 en haut et leur copie en bas, allumés pareil', attendre(pg, '() => !document.getElementById("feux").classList.contains("cache") && !document.getElementById("feux2").classList.contains("cache") && document.querySelectorAll("#feux span.allume").length === 5 && document.querySelectorAll("#feux2 span.allume").length === 5', None, 20000),
+      pg.evaluate('() => [document.getElementById("feux").className, document.getElementById("feux2").className]'))
+    f1, f2, j1, j2 = boite('#feux'), boite('#feux2'), boite('#jauge'), boite('#jauge2')
+    t(f'{titre} : les feux et la jauge du joueur 1 sont dans la moitié du haut, ceux du joueur 2 dans celle du bas', dans(f1, 0, 0, l, h / 2) and dans(j1, 0, 0, l, h / 2) and dans(f2, 0, h / 2, l, h) and dans(j2, 0, h / 2, l, h), str([f1, j1, f2, j2]))
+    if l == 1280 and 'technique' not in page: pg.screenshot(path=os.path.join(CAPTURES, 'deux-feux.png'))
+    pg.evaluate('() => { for (const p of JEU.plateau.pilotes) p.course.compte = 0.01; }')
+    t(f'{titre} : les deux robots partent après les feux (chacun son départ)', attendre(pg, '() => DEUX_JOUEURS.joueurs(JEU.plateau).every(p => p.course.etat === "course" && p.course.depart.lance !== null)', None, 20000), str(pg.evaluate('() => DEUX_JOUEURS.joueurs(JEU.plateau).map(p => [p.course.etat, p.course.depart.resultat])')))
+    pg.evaluate('() => BOUCLE.simuler(12)'); image()
+    cams = pg.evaluate('() => { const [a, b] = DEUX_JOUEURS.joueurs(JEU.plateau), c1 = SCENE3D.camera.position, c2 = SCENE3D.camera2.position; return { d1: Math.hypot(c1.x - a.v.x, c1.z - a.v.z), d2: Math.hypot(c2.x - b.v.x, c2.z - b.v.z), entre: Math.hypot(c1.x - c2.x, c1.z - c2.z), aspect: [SCENE3D.camera.aspect, SCENE3D.camera2.aspect] }; }')
+    t(f'{titre} : deux vues : la caméra du haut est derrière le joueur 1, celle du bas derrière le joueur 2 (à moins de 30 m chacune, distinctes), à la proportion d’une moitié', cams['d1'] < 30 and cams['d2'] < 30 and cams['entre'] > 1 and abs(cams['aspect'][0] - l / (h / 2)) < 0.05 and cams['aspect'][0] == cams['aspect'][1], str(cams))
+    LIRE_HUD = '() => { const lire = id => [...document.querySelectorAll("#" + id + " span")].map(s => s.textContent); return { haut: lire("deuxHaut"), bas: lire("deuxBas"), tour: document.querySelectorAll("#classementListe li").length, classementCache: document.getElementById("classement").classList.contains("cache"), radar: getComputedStyle(document.getElementById("radar")).display, bandeau: getComputedStyle(document.getElementById("hudCourse")).display, tableau: getComputedStyle(document.getElementById("tableau")).display, moi: document.querySelectorAll("#classementListe li.moi").length, defile: [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth] }; }'
+    hud = pg.evaluate(LIRE_HUD)
+    t(f'{titre} : l’affichage de chaque moitié : « Joueur 1 », place, Tour 1 / 3, vitesse en km/h ; pareil pour le joueur 2', len(hud['haut']) == 5 and re.fullmatch(r'🔵 (Joueur|Player) 1', hud['haut'][0]) and re.fullmatch(r'P[1-7]', hud['haut'][1]) and re.fullmatch(r'(Tour|Lap) 1 / 3', hud['haut'][2]) and re.fullmatch(r'\d+ km/h', hud['haut'][3])
+      and re.fullmatch(r'🔴 (Joueur|Player) 2', hud['bas'][0]) and re.fullmatch(r'P[1-7]', hud['bas'][1]) and re.fullmatch(r'\d+ km/h', hud['bas'][3]) and hud['haut'][1] != hud['bas'][1], str(hud))
+    t(f'{titre} : UNE tour de classement partagée (7 lignes, les deux joueurs marqués), ni radar, ni bandeau de la course seule, ni compteur', hud['tour'] == 7 and not hud['classementCache'] and hud['moi'] == 2 and hud['radar'] == 'none' and hud['bandeau'] == 'none' and hud['tableau'] == 'none', str(hud))
+    bh, bb, bc, sep = boite('#deuxHaut'), boite('#deuxBas'), boite('#classement'), boite('#deuxSeparation')
+    t(f'{titre} : rien ne déborde en {l}×{h} : l’affichage du haut dans sa moitié, celui du bas dans la sienne, la tour au milieu à droite, pas de défilement',
+      dans(bh, 0, 0, l, h / 2) and dans(bb, 0, h / 2, l, h) and dans(bc, 0, 0, l, h) and bc[1] < h / 2 < bc[3] and bc[2] > l - 40 and sep is not None and abs((sep[1] + sep[3]) / 2 - h / 2) < 2 and pas_de_defilement(hud['defile']), str([bh, bb, bc, sep, hud['defile']]))
+    pg.wait_for_timeout(300)
+    if 'technique' not in page: pg.screenshot(path=os.path.join(CAPTURES, 'deux-joueurs.png' if l == 1280 else 'deux-joueurs-960.png'))
+    # la mesure : la même scène dessinée deux fois (écran partagé) contre une fois (une seule vue), 2 s chacune, la boucle tournant
+    def mesure():
+        n0 = pg.evaluate('() => window.__images'); pg.wait_for_timeout(2000); n1 = pg.evaluate('() => window.__images')
+        return [round((n1 - n0) / 2), pg.evaluate('() => SCENE3D.trianglesDessines'), pg.evaluate('() => SCENE3D.appelsDessin')]
+    pg.evaluate('() => { JEU.ecran = "pause"; }')   # la physique s'arrête, l'image continue : la mesure compare le dessin seul
+    deux = mesure()
+    pg.evaluate('() => { window.__deux = JEU.deux; JEU.deux = null; SCENE3D.partager(false); }'); pg.wait_for_timeout(300); seule = mesure()   # (sans JEU.deux, la boucle ne rallume pas le partage)
+    pg.evaluate('() => { JEU.deux = window.__deux; SCENE3D.partager(true); JEU.ecran = "course"; }')
+    circuit = 'technique' if 'technique' in page else 'test'
+    L.append(f'  (2 joueurs + 5 IA sur {circuit}, {l}×{h}, swiftshader : écran partagé {deux[0]} i/s, {deux[1]} triangles, {deux[2]} appels ; une seule vue {seule[0]} i/s, {seule[1]} triangles, {seule[2]} appels)')
+    t(f'{titre} : l’écran partagé dessine la scène deux fois : plus d’appels de dessin et plus de triangles qu’une seule vue (environ le double : chaque caméra voit sa part du circuit), moins du triple', deux[2] > seule[2] and deux[1] > seule[1] and deux[1] < 3 * seule[1] and deux[2] < 3 * seule[2], str([deux, seule]))
+    if l == 1280 and circuit == 'test':
+        pg.evaluate('() => BOUCLE.arreter()'); pg.evaluate('() => BOUCLE.simuler(260)'); pg.evaluate('() => BOUCLE.demarrer()')
+        t(f'{titre} : la course finit : les 7 voitures arrivent, le podium vient (une seule vue), les 7 classées', attendre(pg, '() => JEU.ecran === "podium" && !SCENE3D.partage && JEU.plateau.pilotes.every(p => p.arrivee !== null) && JEU.final && JEU.final.length === 7', None, 60000),
+          str(pg.evaluate('() => [JEU.ecran, SCENE3D.partage, JEU.plateau.pilotes.map(p => p.arrivee)]')))
+        sauve = pg.evaluate('() => { const d = JSON.parse(localStorage.getItem(SAUVEGARDE.CLE) || "{}"); return { championnat: d.championnat || null, records: Object.keys(d.records || {}).length, reaction: d.reaction === undefined ? null : d.reaction }; }')
+        t(f'{titre} : la sauvegarde de la carrière n’a pas bougé (ni championnat, ni record, ni temps de réaction)', sauve['championnat'] is None and sauve['records'] == 0 and sauve['reaction'] is None, str(sauve))
+        pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'deux-podium.png'))
 
 def course_joueur(pg, titre):
     # le joueur conduit sa voiture au clavier, au milieu de 9 IA ; la caméra le suit, Tab ne change rien
@@ -1117,10 +1177,12 @@ with sync_playwright() as p:
                 decouverte(pg, titre)
             if 'reglages=1' in page:
                 reglages(pg, titre)
-            if 'robot=1' in page and 'championnat=1' not in page and 'joueur=1' not in page and 'test=sdk' not in page and 'pneus=1' not in page and 'test=decouverte' not in page:   # (avec ?championnat=1 ou &joueur=1, le robot joue dans championnat() ou qualif() ; sdk() et pneus() ont leur page)
+            if 'robot=1' in page and 'championnat=1' not in page and 'joueur=1' not in page and 'test=sdk' not in page and 'pneus=1' not in page and 'test=decouverte' not in page and 'test=deux' not in page:   # (avec ?championnat=1 ou &joueur=1, le robot joue dans championnat() ou qualif() ; sdk() et pneus() ont leur page)
                 course_robot(pg, titre, page)
             if 'test=sdk' in page:
                 sdk(pg, titre)
+            if 'test=deux' in page:
+                deux_ecran(pg, titre, l, h, page)
             if 'pneus=1' in page:
                 pneus(pg, titre)
             if re.search(r'[?&]ia=1(&|$)', page):

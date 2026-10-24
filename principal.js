@@ -808,12 +808,34 @@ function majClassementRadar() {
   const kc = JEU.championnat && JEU.contre ? (CHAMPIONNAT.coequipierDe(JEU.championnat) || { id: null }).id : null;
   const duel = kc !== null && ordre ? ecartCoequipier(ordre, kc) : null;
   INTERFACE.majClassement(ordre ? ordre.map(x => ({
-    numero: numeroDe(x.k), couleur: JEU.couleurs[x.k], ecart: x.ecart, tours: x.tours, penalites: x.penalites, moi: x.k === JEU.suivie, casque: casqueDe(x.k),
+    numero: numeroDe(x.k), couleur: JEU.couleurs[x.k], ecart: x.ecart, tours: x.tours, penalites: x.penalites, moi: x.k === JEU.suivie || (!!JEU.deux && !!P[x.k].joueur), casque: casqueDe(x.k),
     arrive: P[x.k].arrivee !== null, coequipier: x.k === kc, ecartDuel: x.k === kc ? duel : null,
   })) : null);
   const autres = [];
   P.forEach((p, k) => { if (k !== JEU.suivie && p.arrivee === null) autres.push({ x: p.v.x, z: p.v.z, couleur: JEU.couleurs[k] }); });
-  RADAR.dessiner(CIRCUIT, JEU.joueur, autres);
+  if (!JEU.deux) RADAR.dessiner(CIRCUIT, JEU.joueur, autres);   // (pas de radar à deux : trop chargé en demi-écran)
+}
+
+// le mode 2 joueurs : l'affichage de chaque moitié (place, tour, vitesse, écart avec l'autre joueur), pendant la course et la pause
+function majDeuxHud() {
+  if (!JEU.deux || !JEU.plateau || !(JEU.ecran === 'course' || JEU.ecran === 'pause')) { INTERFACE.majDeux(null); return; }
+  const e = JEU.plateau, ordre = classementCourse(e), [p1, p2] = DEUX_JOUEURS.joueurs(e), k1 = e.pilotes.indexOf(p1), k2 = e.pilotes.indexOf(p2);
+  const ecart = ecartEntre(ordre, k1, k2);   // > 0 : le joueur 2 est derrière le joueur 1
+  const info = (p, k, signe) => ({ place: ordre.findIndex(x => x.k === k) + 1, tour: Math.min(p.course.tours.length + 1, p.course.nbTours), nbTours: p.course.nbTours, vitesse: p.v.u, ecart: ecart === null ? null : signe * ecart });
+  INTERFACE.majDeux([info(p1, k1, -1), info(p2, k2, 1)]);   // chacun voit « − » quand il est devant l'autre
+}
+
+// l'écart en temps entre les voitures a et b dans le classement en direct (classementCourse) : la somme des écarts entre elles ;
+// > 0 : b est derrière a ; null s'il n'est pas connu (pas encore passé la ligne, ou un tour d'écart)
+function ecartEntre(ordre, a, b) {
+  const ia = ordre.findIndex(x => x.k === a), ib = ordre.findIndex(x => x.k === b);
+  if (ia < 0 || ib < 0) return null;
+  let s = 0;
+  for (let i = Math.min(ia, ib) + 1; i <= Math.max(ia, ib); i++) {
+    if (ordre[i].ecart === null || ordre[i].tours > 0) return null;
+    s += ordre[i].ecart;
+  }
+  return ia < ib ? s : -s;
 }
 
 // ?championnat=1 : l'écart en temps entre le joueur et son coéquipier kc dans le classement en direct (classementCourse) :
@@ -905,6 +927,7 @@ function demarrerJeu() {
 
   if (!SCENE3D.init(document.getElementById('scene3d'), CIRCUIT)) return;
   CAMERA.init(SCENE3D.camera, CIRCUIT, PARAMETRES.get('camera'));
+  if (DEUX_EN_COURS) { document.body.classList.add('deux'); SCENE3D.partager(true); }   // le mode 2 joueurs : l'écran partagé haut / bas (scene3d.js), le CSS du mode
   JEU.joueur = creerVoiture(CIRCUIT, 0);
   JEU.robot = PARAMETRES.get('robot') === '1';
   // ?championnat=1 : le joueur contre les 19 pilotes du championnat, comme ?ia=19&joueur=1
@@ -1027,7 +1050,7 @@ function demarrerJeu() {
     // ?ia=N : chaque IA à sa place ; une IA arrivée quitte la piste (elle n'est plus dessinée)
     if (JEU.plateau && !apres) JEU.plateau.pilotes.forEach((p, k) => {
       const m = JEU.modeles[k];
-      m.groupe.visible = p.arrivee === null || k === JEU.suivie;
+      m.groupe.visible = p.arrivee === null || k === JEU.suivie || (JEU.deux && !!p.joueur);   // (à deux, les deux joueurs restent visibles après l'arrivée)
       if (m !== JEU.modele) { VOITURE3D.placer(m, etatAffiche(p.v, alpha), p.v); m.tete.visible = true; }
     });
     const etat = etatAffiche(JEU.joueur, alpha);
@@ -1040,11 +1063,16 @@ function demarrerJeu() {
       // après l'arrivée du joueur, la caméra télé suit une voiture encore en course
       const tele = JEU.attente && JEU.attente.tele !== null ? JEU.plateau.pilotes[JEU.attente.tele].v : null;
       CAMERA.maj(dt, tele ? etatAffiche(tele, alpha) : etat, tele || JEU.joueur);
+      // le mode 2 joueurs : la seconde caméra, derrière la voiture du joueur 2 (la moitié du bas)
+      if (JEU.deux) { const j2 = DEUX_JOUEURS.joueurs(JEU.plateau)[1]; CAMERA.majSeconde(dt, SCENE3D.camera2, etatAffiche(j2.v, alpha), j2.v); }
     }
+    if (JEU.deux && SCENE3D.partage === apres) SCENE3D.partager(!apres);   // le podium : une seule vue
     majTableau();
     INTERFACE.majCourse(JEU.course, enTourQualif() ? 'course' : JEU.ecran);   // le chrono du tour de qualification
     majFantome(dt);
     INTERFACE.majDepart(JEU.course, JEU.ecran, JEU.departRecord);
+    INTERFACE.majDepart(JEU.deux ? DEUX_JOUEURS.joueurs(JEU.plateau)[1].course : null, JEU.ecran, false, '2');   // la jauge et le résultat du joueur 2, dans sa moitié
+    majDeuxHud();
     INTERFACE.majEcartFantome(enTourQualif() && JEU.fantome && JEU.fantome.rejeu && JEU.qualif.q.lance ? JEU.fantome.ecart : null);
     INTERFACE.majPreparation(JEU.ecran === 'course' && JEU.ia > 0 && !JEU.carte);
     majAides();

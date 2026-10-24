@@ -8,6 +8,7 @@ const CAMERA = (function () {
   let centre = null, demiTaille = 0, angle = 0;
   const libre = { x: 0, y: 0, z: 0, lacet: 0, tangage: 0 };
   const suiviDerriere = { cap: null, hauteur: 0 };
+  const suiviSecond = { cap: null, hauteur: 0 };   // l'écran partagé : le suivi « derrière » de la seconde caméra (joueur 2)
   let postesTele = [];
   const touches = new Set();
 
@@ -138,6 +139,16 @@ const CAMERA = (function () {
     cam.lookAt(p.vise.x, p.vise.y, p.vise.z);
   }
 
+  // l'écran partagé (mode 2 joueurs) : la seconde caméra c, toujours derrière sa voiture (etat, v), avec son propre suivi
+  function majSeconde(dt, c, etat, v) {
+    dt = Math.min(dt, 0.1);
+    const p = poseDerriere(etat, v.u, suiviSecond, dt);
+    if (c.fov !== p.champ || c.near !== 0.5) { c.fov = p.champ; c.near = 0.5; c.updateProjectionMatrix(); }
+    c.up.set(0, 1, 0);
+    c.position.set(p.x, p.y, p.z);
+    c.lookAt(p.vise.x, p.vise.y, p.vise.z);
+  }
+
   // dt : le temps de l'image (la caméra suit l'affichage, pas la physique) ; etat : la voiture affichée ; v : la voiture
   function maj(dt, etat, v) {
     dt = Math.min(dt, 0.1);
@@ -182,7 +193,7 @@ const CAMERA = (function () {
   }
 
   return {
-    init, maj, suivante, forcer, poseDerriere, poseCockpit,
+    init, maj, majSeconde, suivante, forcer, poseDerriere, poseCockpit,
     get mode() { return mode; },
     get conduite() { return mode !== 'libre'; },   // en caméra libre, les flèches déplacent la caméra, pas la voiture
     get position() { return cam ? { x: cam.position.x, y: cam.position.y, z: cam.position.z } : null; },
