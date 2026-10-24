@@ -169,8 +169,8 @@ const REGLAGES = {
   GARAGE_PLAFOND: 0.07,         // +7 % au plus (moteur + aero + freins), quelle que soit la combinaison
   // le réglage de l'aileron (aileron.js, Codeur 3) : un échange, jamais un bonus, hors du plafond du garage ; le cran du milieu = rien
   AILERON_CRANS: 5,
-  AILERON_ADHERENCE_PAR_CRAN: 0.02,   // l'adhérence en virage : × (1 + écart au milieu × ce nombre), lue par physique.js (v.aileronAdherence)
-  AILERON_TRAINEE_PAR_CRAN: 0.06,     // la traînée : × (1 + écart au milieu × ce nombre), lue par physique.js (v.aileronTrainee)
+  AILERON_ADHERENCE_PAR_CRAN: 0.012,  // l'adhérence en virage : × (1 + écart au milieu × ce nombre), lue par physique.js (v.aileronAdherence)
+  AILERON_TRAINEE_PAR_CRAN: 0.036,    // la traînée : × (1 + écart au milieu × ce nombre), lue par physique.js (v.aileronTrainee)
   AILERON_MARGE: 0.01,          // test : sur le circuit test, aucun cran n'est plus rapide que le cran du milieu de plus de cette part du tour
   AILERON_VIRAGE_LENT: 0.5,     // un virage est « lent » quand sa vitesse limite est sous cette part de la vitesse de pointe (le profil du circuit, pour les IA)
   AILERON_IA_CIRCUIT: 6,        // le choix des IA : crans de plus par point de (part de virages lents − part de lignes droites)…
