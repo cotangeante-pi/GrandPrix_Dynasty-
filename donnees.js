@@ -118,6 +118,9 @@ const REGLAGES = {
   PENALITE_FAUX_DEPART: 5,      // s ajoutées au temps total (comme le virage coupé)
   // après l'arrivée du joueur (arrivee.js) : la vue télé sur les autres, puis le podium
   ARRIVEE_ATTENTE_MAX: 90,      // s : le podium vient au plus tard là ; les voitures pas arrivées sont classées dans l'ordre de course
+  ARRIVEE_ACCELERE: 100,        // « passer » la vue télé : le reste de la course joué 100 fois plus vite (les mêmes pas de physique, sans les dessiner)…
+  ARRIVEE_TRANCHE_MS: 40,       // … au plus ce temps de calcul par image (la page n'est jamais bloquée), l'horloge relue tous les…
+  ARRIVEE_PAS_CONTROLE: 12,     // … ce nombre de pas
   ARRIVEE_BAGARRE: 15,          // m : deux voitures plus proches que ça se bagarrent (la caméra télé les préfère)
   ARRET_APRES_ARRIVEE: 0.3,     // m/s : après l'arrivée, la voiture freine seule jusque-là, puis roule jusqu'à l'arrêt
 
@@ -275,6 +278,18 @@ const REGLAGES = {
   DEUX_CASQUES: [{ motif: 'bandes', couleurs: [0x1f6fe0, 0xffffff, 0x111111] }, { motif: 'flammes', couleurs: [0xd8262e, 0xf2c230, 0x111111] }],
   DEUX_NIVEAU: 'normal',
   DEUX_IA_DEFAUT: 3,            // le nombre d'IA proposé la première fois (DEUX_IA_CHOIX)
+  // le tournoi chrono entre copains (tournoi.js, CLAUDE.md « Le tournoi chrono entre copains ») : de 2 à 8 joueurs, chacun son tour
+  TOURNOI_JOUEURS_MIN: 2, TOURNOI_JOUEURS_MAX: 8,
+  TOURNOI_MANCHES: 3,           // 🏆 Tournoi : trois manches (⚡ Éclair : une)
+  TOURNOI_POINTS: [25, 18, 15, 12, 10, 8, 6, 4],   // les points d'une manche selon la place (aucun sans temps)
+  TOURNOI_COMPTE: 3,            // s : « À toi, Sarah ! » et le compte à rebours, le temps de prendre le clavier
+  GRAINE_TOURNOI: 8000,         // les circuits tirés au sort : la graine + ce nombre
+  TOURNOI_CASQUES: [            // les casques par défaut des joueurs (dans l'ordre d'inscription)
+    { motif: 'bandes', couleurs: [0x1f6fe0, 0xffffff, 0x111111] }, { motif: 'flammes', couleurs: [0xd8262e, 0xf2c230, 0x111111] },
+    { motif: 'etoile', couleurs: [0xf2c230, 0x111111, 0xffffff] }, { motif: 'damier', couleurs: [0x2fa84f, 0xffffff, 0x111111] },
+    { motif: 'eclair', couleurs: [0xf07d1a, 0x111111, 0xffffff] }, { motif: 'uni', couleurs: [0x8e44ad, 0xecf0f1, 0x111111] },
+    { motif: 'bandes', couleurs: [0x1abc9c, 0x111111, 0xffffff] }, { motif: 'etoile', couleurs: [0xe84393, 0xffffff, 0x111111] },
+  ],
   PISTE_GRIS_ECART_MAX: 16,     // tests d'écran : un pixel de piste est gris (ses trois composantes à moins de cet écart), l'herbe est verte
   AIDE_CLIGNOTE_APRES: 3,       // s : sur la grille, sans aucune touche pendant ce temps, l'aide « ↑ » clignote
   // le casque du pilote (casque.js) : un motif et trois couleurs ; les rivaux tirent le leur avec la graine du championnat

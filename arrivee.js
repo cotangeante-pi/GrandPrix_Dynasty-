@@ -23,5 +23,25 @@ const ARRIVEE = (function () {
     return enCourse[0];
   }
 
-  return { podiumPret, voitureTele };
+  // « passer » la vue télé (CLAUDE.md « La course ») : le reste de la course est vraiment joué, en accéléré. Une image fait jusqu'à
+  // nbPas pas de physique (unPas : le même pas que celui de la boucle, rien d'autre), sans dépasser msMax millisecondes (l'horloge
+  // maintenant(), relue tous les ARRIVEE_PAS_CONTROLE pas), et s'arrête dès que le podium est prêt (podiumPret, depuis l'arrivée
+  // « arrivee », en secondes de course) : les places et les temps sont ceux qu'on aurait eus en regardant. → { pas, pret }
+  function accelerer(e, unPas, nbPas, msMax, arrivee, maintenant) {
+    const t0 = maintenant();
+    let n = 0;
+    while (n < nbPas && !podiumPret(e, e.temps - arrivee)) {
+      unPas();
+      n++;
+      if (n % R.ARRIVEE_PAS_CONTROLE === 0 && maintenant() - t0 >= msMax) break;
+    }
+    return { pas: n, pret: podiumPret(e, e.temps - arrivee) };
+  }
+
+  // les voitures encore en course (pour l'affichage « ⏩ »)
+  function restantes(e) {
+    return e.pilotes.filter(p => p.arrivee === null).length;
+  }
+
+  return { podiumPret, voitureTele, accelerer, restantes };
 })();
