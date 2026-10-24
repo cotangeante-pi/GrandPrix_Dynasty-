@@ -1,6 +1,6 @@
 # TOUR 29c — compte rendu du Codeur 3 (l'aileron, l'arbre de la dynastie, l'élision)
 
-Commit : COMMIT_FINAL sur la branche `codeur3` (main fusionné). Passage GitHub PASSAGE_FINAL : RESULTAT_FINAL.
+Commit : `b52b9b0` sur la branche `codeur3` (main fusionné). Passage GitHub 40135709826 : TOUT PASSE (moteur 255/255, courses 38/38, ecrans 636/636, sdk 19/19, pneus 28/28, enregistreur 28/28, circuits 56/56 + 51/51, textes 541/541).
 
 Ordres : 1 fait, sauf un point : l'effet sur les voitures des IA est coupé (`AILERON_IA_ACTIF = false`), voir plus bas / 2 fait.
 
@@ -31,8 +31,8 @@ Ordres : 1 fait, sauf un point : l'effet sur les voitures des IA est coupé (`AI
   - aucun conseil.
   - Chaque changement est sauvegardé. Le cran s'applique aux qualifications et à la course (`lancerCourse`, `faireMonTour`).
 - **Mesures** (GitHub) :
-  - vitesse de pointe, du cran bas au cran haut : 337 → 321 km/h avec les effets d'avant (1,2 % / 3,6 %) ; avec 1,5 % / 4,5 % : MESURE_POINTE ;
-  - tours moyens : MESURE_TOURS ;
+  - vitesse de pointe, du cran bas au cran haut : 337 → 321 km/h avec les effets d'avant (1,2 % / 3,6 %) ; avec 1,5 % / 4,5 % : 339 / 334 / 329 / 324 / 320 km/h, virage de 80 m : 147,7 / 149,2 / 150,6 / 152,1 / 153,6 km/h ;
+  - tours moyens : test, robot 62,32 / 62,18 / 62,05 / 61,92 / 61,80 s (le cran haut gagne 0,4 %, sous la marge de 1 %) ; test, IA seule 55,01 / 55,00 / 54,98 / 54,90 / 54,97 ; technique, robot 64,51 → 64,64 (le bas gagne un peu) ; technique, IA 60,54 / 60,60 / 60,55 / 60,73 / 60,64 ; choix des IA : moyenne 1,0 sur l'ovale, 3,0 sur les virages lents ;
   - profils en part du temps : test lents 0,25 / droites 0,58 ; technique 0,30 / 0,70. **Le test passe un peu plus de temps dans des virages lents que le technique** : le choix des IA est donc testé sur deux circuits d'essai faits pour ça, un circuit de virages lents et un grand ovale.
 - **Le point pas tenu : l'effet sur les IA est coupé.**
   - Avec des crans tirés, `tests/courses.html?ailerons=1` casse ses garde-fous, en 4 passages GitHub. La base fait 41 dépassements, 4 chocs > 5 m/s et 2450 pas d'herbe.
@@ -61,7 +61,7 @@ Ordres : 1 fait, sauf un point : l'effet sur les voitures des IA est coupé (`AI
   - Test : les cas, la une de la relève « La fille d'Alex Rossi », et aucun texte fixe français avec « de » devant une voyelle.
 
 ## Sortie des tests
-- GitHub, le dernier commit : RESULTAT_FINAL.
+- GitHub, le dernier commit : TOUT PASSE (moteur 255/255, courses 38/38, ecrans 636/636, sdk 19/19, pneus 28/28, enregistreur 28/28, circuits 56/56 + 51/51, textes 541/541).
 - Mac : rien de complet ; des pages de mesure dans `scratchpad/codeur3/`, sous le verrou, avec une limite de temps (`perl alarm`) et le verrou rendu par `trap`.
 - Ma faute de 15h58 : un Chrome sans limite a gardé le verrou 28 minutes. Et mon `page.sh` avait écrasé celui du Codeur 1 dans le scratchpad partagé (le mien est maintenant dans `codeur3/`).
 
