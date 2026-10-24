@@ -59,7 +59,9 @@ const FICHE = (function () {
     const historique = { saisons: (p.stats.saisons || 0) + (saison.courses ? 1 : 0), titres: p.stats.titres || 0, victoires: p.stats.victoires, podiums: p.stats.podiums, poles: p.stats.poles, meilleur };
     const d = ch.rivaux[k] || [0, 0], c = ch.duel && ch.duel.carriere && ch.duel.carriere[k];
     const duels = { devant: d[0], derriere: d[1], coequipier: c ? [c.qualifs[0] + c.courses[0], c.qualifs[1] + c.courses[1]] : null };
-    return { pilote: p, mots: mots(p), saison, historique, duels };
+    // la rivalité posée par l'interview (interview.js) : la dernière phrase dite sur lui, où et quand, les courses qui restent
+    const rv = p.rivalite ? { courses: p.rivalite.courses, cle: p.rivalite.cle, variante: p.rivalite.variante, params: p.rivalite.params, circuit: p.rivalite.circuit, saison: p.rivalite.saison } : null;
+    return { pilote: p, mots: mots(p), saison, historique, duels, rivalite: rv };
   }
 
   return { completer, suivre, mots, fiche };

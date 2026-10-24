@@ -29,7 +29,8 @@ const SPONSORS = (function () {
     ALEATOIRE.semer(ch.graine + R.GRAINE_SPONSORS + ch.saison * 31);
     // la note du joueur à la fin de la saison précédente (ch.saisons, saisons.js) ; à la première saison, celle d'aujourd'hui (tous à 0)
     const derniere = ch.saisons && ch.saisons.length ? ch.saisons[ch.saisons.length - 1] : null;
-    const note = derniere && typeof derniere.note === 'number' ? derniere.note : SAISONS.note(ch), [mini, maxi] = R.SPONSORS_OFFRES;
+    const reputation = typeof INTERVIEW !== 'undefined' ? INTERVIEW.effetSponsors(ch) : 0;   // la jauge des sponsors de l'interview : ±INTERVIEW_EFFET_SPONSORS au plus
+    const note = (derniere && typeof derniere.note === 'number' ? derniere.note : SAISONS.note(ch)) + reputation, [mini, maxi] = R.SPONSORS_OFFRES;
     const possibles = R.SPONSORS.filter(s => s.exigence <= note + 1e-12).slice();
     for (let i = possibles.length - 1; i > 0; i--) { const j = Math.floor(hasard() * (i + 1)); [possibles[i], possibles[j]] = [possibles[j], possibles[i]]; }
     let choix = possibles.slice(0, maxi);
@@ -38,7 +39,7 @@ const SPONSORS = (function () {
     const resultat = choix.map(s => {
       const objectifs = s.objectifs.map(o => Object.assign({}, o, o.type === 'top5Circuit' ? { circuit: circuitObjectif(ch) } : {}));
       if (coeur) objectifs.push({ type: 'domicile', n: 1, prime: Math.min(R.SPONSOR_DOMICILE_PRIME, R.SPONSOR_DOMICILE_PLAFOND), circuit: coeur });
-      return { cle: s.cle, montant: s.montant, exigence: s.exigence, objectifs };
+      return { cle: s.cle, montant: Math.round(s.montant * (1 + reputation)), exigence: s.exigence, objectifs };
     }).sort((a, b) => b.montant - a.montant);
     ALEATOIRE.semer();
     return resultat;
