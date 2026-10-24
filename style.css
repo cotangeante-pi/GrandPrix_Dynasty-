@@ -805,6 +805,7 @@ body.deux #departResultat { bottom: auto; top: calc(50% - 60px); }
 #departResultat2 { bottom: 50px; }
 
 /* le mode 2 joueurs (tour 25b, ordre 3) : le menu « Entre amis », l'écran avant la course, le podium à deux et la rivalité */
+#amis .boutons, #deuxReglages .boutons { align-items: center; }   /* (le petit bouton « Retour » garde sa taille, son texte centré) */
 #amis .boutons button:disabled { opacity: 0.5; cursor: default; box-shadow: none; }
 #deuxJoueurs { display: flex; gap: 16px; }
 .deuxJoueur { display: flex; flex-direction: column; gap: 8px; width: 380px; max-width: 46vw; padding: 10px 14px; border-radius: 10px; background: rgba(255, 255, 255, 0.06); box-sizing: border-box; }

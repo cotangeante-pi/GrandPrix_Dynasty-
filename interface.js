@@ -861,6 +861,7 @@ const INTERFACE = (function () {
     return CASQUE.creer($('deuxMotif' + i).value, ['a', 'b', 'c'].map(x => parseInt($('deuxCasque' + i + x).value.slice(1), 16)));
   }
   function choisirCouleurDeux(i, c) {
+    $('deuxErreur').textContent = '';   // un choix changé : l'ancien message d'erreur part (il revient au prochain « C'est parti ! » s'il le faut)
     $('deuxCouleurs' + i).dataset.couleur = String(c);
     for (const b of $('deuxCouleurs' + i).children) b.classList.toggle('choisie', Number(b.dataset.couleur) === c);
   }
@@ -920,6 +921,7 @@ const INTERFACE = (function () {
     }
     for (const i of [1, 2]) {
       $('deuxNom' + i).addEventListener('keydown', e => e.stopPropagation());   // taper son nom ne conduit pas la voiture
+      $('deuxNom' + i).addEventListener('input', () => { $('deuxErreur').textContent = ''; });
       for (const id of ['deuxMotif' + i, 'deuxCasque' + i + 'a', 'deuxCasque' + i + 'b', 'deuxCasque' + i + 'c']) $(id).addEventListener('input', () => majIconeDeux(i));
       $('deuxMotif' + i).addEventListener('change', () => majIconeDeux(i));
     }
