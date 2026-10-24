@@ -233,6 +233,8 @@ const REGLAGES = {
   JOURNAL_FORME_PODIUMS: 2,
   JOURNAL_BREVES_MAX: 3,        // les brèves sur le côté, au plus
   JOURNAL_CLASSEMENT: 5,        // en bas : les premiers du championnat (et le joueur s'il n'y est pas)
+  JOURNAL_RUMEUR_DES_GP: 7,     // brève « rumeur de transfert » à partir de ce Grand Prix de la saison (les intentions de saisons.js)
+  JOURNAL_RUMEUR_FAUSSE: 0.35,  // la part des rumeurs fausses (un pilote et une écurie tirés au hasard) ; la première rumeur de la saison est toujours vraie
   JOURNAL_GRAINE: 6000,         // les variantes des titres sont tirées avec la graine du championnat + ce nombre + le Grand Prix
 
   // la course de découverte du premier lancement (decouverte.js, CLAUDE.md « En piste en 10 secondes »)

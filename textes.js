@@ -117,6 +117,7 @@ const TEXTES = {
     brevePole: ['Pole position at {circuit} for {pilote}.', '{pilote} started from pole at {circuit}.'],
     breveLeader: ['Championship: {pilote} leads with {points} points.', '{pilote} tops the standings, {points} points.'],
     breveChasseur: ['Chasing: {pilote} is {ecart} points behind the leader.', '{pilote}, {ecart} points back, is not giving up.'],
+    breveRumeur: ['{pilote} to {ecurie}? The paddock is buzzing.', 'Rumour: {pilote} could sign with {ecurie} for next season.', 'Transfer talk: {ecurie} is said to want {pilote}.'],
     // l'argent et le garage (argent.js, garage.js, Codeur 3)
     milliers: ',', montant: '€{n}',   // le séparateur des milliers et la forme d'un montant (« €12,500 »)
     argentGagne: 'Prize money: +{n}', argentPlace: 'P{p}: {n}', argentMeilleurTour: 'fastest lap: {n}', argentPlacesGagnees: '{p} places gained: {n}',
@@ -282,6 +283,7 @@ const TEXTES = {
     brevePole: ['Pole position à {circuit} pour {pilote}.', '{pilote} partait de la pole à {circuit}.'],
     breveLeader: ['Championnat : {pilote} en tête avec {points} points.', '{pilote} domine le classement, {points} points.'],
     breveChasseur: ['À la poursuite : {pilote} à {ecart} points du leader.', '{pilote}, à {ecart} points, ne lâche rien.'],
+    breveRumeur: ['{pilote} vers {ecurie} ? Les paddocks bruissent.', 'Rumeur : {pilote} pourrait signer chez {ecurie} pour la saison prochaine.', 'Bruits de transfert : {ecurie} voudrait {pilote}.'],
     // l'argent et le garage (argent.js, garage.js, Codeur 3)
     milliers: '\u202f', montant: '{n} €',   // l'espace fine insécable des milliers (« 12 500 € »)
     argentGagne: 'Gains : +{n}', argentPlace: 'P{p} : {n}', argentMeilleurTour: 'meilleur tour : {n}', argentPlacesGagnees: '{p} places gagnées : {n}',

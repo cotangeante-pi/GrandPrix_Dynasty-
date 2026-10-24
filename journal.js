@@ -95,6 +95,23 @@ const JOURNAL = (function () {
     if (mt && !humain(mt.k)) b.push(['breveMeilleurTour', { pilote: mt.k, temps: Math.round(mt.meilleurTour * 1000) / 1000 }]);
     const pole = lignes.find(l => l.grille === 1);
     if (pole && !humain(pole.k)) b.push(['brevePole', { pilote: pole.k, circuit }]);
+    // une rumeur de transfert, dans la seconde moitié de la saison (JOURNAL_RUMEUR_DES_GP) : vraie (une intention de transfert de
+    // saisons.js : le pilote vers l'écurie de l'autre) ou fausse (un pilote et une écurie au hasard, JOURNAL_RUMEUR_FAUSSE) ; la
+    // première rumeur de la saison est toujours vraie (jamais toutes fausses) ; rien de caché sur la prochaine course
+    const T = ch.transferts && ch.transferts.saison === ch.saison ? ch.transferts.liste : [];
+    if (n + 1 >= R.JOURNAL_RUMEUR_DES_GP && T.length) {
+      const premiere = n + 1 === R.JOURNAL_RUMEUR_DES_GP, fausse = !premiere && hasard() < R.JOURNAL_RUMEUR_FAUSSE;
+      const ia = ch.pilotes.filter(p => !p.humain && !T.some(x => x.includes(p.id)));
+      let r = null;
+      if (fausse && ia.length) {
+        const p = ia[Math.floor(hasard() * ia.length)], autres = ch.ecuries.filter(e => e.id !== p.ecurie);
+        r = { pilote: p.id, ecurie: autres[Math.floor(hasard() * autres.length)].id, vraie: 0 };
+      } else {
+        const x = T[Math.floor(hasard() * T.length)], sens = hasard() < 0.5 ? 0 : 1;
+        r = { pilote: x[sens], ecurie: ch.pilotes[x[1 - sens]].ecurie, vraie: 1 };
+      }
+      b.unshift(['breveRumeur', r]);
+    }
     const cp = CHAMPIONNAT.classementPilotes(ch);
     if (!humain(cp[0].k)) b.push(['breveLeader', { pilote: cp[0].k, points: cp[0].points }]);
     else b.push(['breveChasseur', { pilote: cp[1].k, ecart: cp[0].points - cp[1].points }]);
@@ -176,7 +193,7 @@ const JOURNAL = (function () {
   }
 
   // les clés de texte que le journal demande (tests : toutes dans les deux langues, avec des variantes)
-  const BREVES = ['breveForme', 'breveRetraite', 'breveEcurie', 'breveVainqueur', 'breveRival', 'breveMeilleurTour', 'brevePole', 'breveLeader', 'breveChasseur'];
+  const BREVES = ['breveForme', 'breveRetraite', 'breveEcurie', 'breveVainqueur', 'breveRival', 'breveMeilleurTour', 'brevePole', 'breveLeader', 'breveChasseur', 'breveRumeur'];
   function cles() {
     return ['journalNom'].concat(R.JOURNAL_PRIORITES.flatMap(f => ['uneTitre_' + f, 'uneTexte_' + f]), BREVES);
   }

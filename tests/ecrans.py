@@ -1088,6 +1088,11 @@ def fin_saison(pg, titre, l):
     pg.click('#boutonChangerResultats')
     interview_ecran(pg, titre, None, gp='12e : ')
     t(f'{titre} : « Continuer » : le 12e enregistré (la saison est finie), la une du journal', attendre(pg, '() => JEU.ecran === "une" && JEU.championnat.prochain === 12 && SAISONS.finie(JEU.championnat)'), str(pg.evaluate('() => [JEU.ecran, JEU.championnat.prochain]')))
+    # la rumeur de transfert (tour 27c) : au 12e Grand Prix, la première brève de la une est une rumeur (vraie ou fausse), rendue avec un nom de pilote et d'écurie
+    ru = pg.evaluate('''() => { const u = JEU.championnat.album[JEU.championnat.album.length - 1], r = JOURNAL.rendre(u, JEU.championnat, { pilote: INTERFACE.nomPilote, ecurie: INTERFACE.nomEcurie }), li = document.querySelector("#uneBreves li");
+      return { cle: u.b[0][0], vraie: u.b[0][2].vraie, texte: li ? li.textContent : null, attendu: r.breves[0], intentions: JEU.championnat.transferts.liste.length }; }''')
+    t(f'{titre} : la une du 12e porte une rumeur de transfert en première brève ({"vraie" if ru["vraie"] else "fausse"}), avec un pilote et une écurie nommés', ru['cle'] == 'breveRumeur' and ru['texte'] == ru['attendu'] and '{' not in (ru['texte'] or '{') and ru['intentions'] >= 1, str(ru))
+    pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'une-rumeur.png'))
     pg.click('#uneTitre')
     e = pg.evaluate(SAISON_ETAT)
     t(f'{titre} : après la une, le classement final de la saison : « La saison 1 est finie », le champion (« CHAMPION ! » si c’est le joueur), l’écurie championne, 20 lignes, la saison close et sauvegardée, sans défilement',

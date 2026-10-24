@@ -1508,6 +1508,42 @@ t('interview : le journal fait sa une de la phrase de l’interview (fait « int
   // une victoire passe devant la phrase de l'interview
   l=itwLignes(milieu(1,9),contact);q=INTERVIEW.question(ch,l);INTERVIEW.repondre(ch,q,'provocant');CHAMPIONNAT.finirGrandPrix(ch,l);v(ch.album[ch.album.length-1].f==='premiereVictoire'&&ch.album[ch.album.length-1].g===4,'victoire devant : '+ch.album[ch.album.length-1].f);
   localStorage.removeItem(SAUVEGARDE.CLE);});
+// --- les rumeurs de transfert (tour 27c, saisons.js intentions + journal.js breveRumeur, Codeur 3)
+t('rumeurs : les intentions de transfert sont décidées en début de saison (graine : les mêmes pour le même championnat, dans la sauvegarde) : des paires de pilotes IA d’écuries différentes, jamais le joueur, jamais un pilote deux fois ; une ancienne sauvegarde sans intentions les reçoit au chargement', ()=>{
+  const R_=REGLAGES,ch=CHAMPIONNAT.creer(80),T=ch.transferts;v(T&&T.saison===1&&T.liste.length>=1&&T.liste.length<=R_.TRANSFERTS_PAR_SAISON,'intentions : '+JSON.stringify(T));
+  const ids=T.liste.flat();v(new Set(ids).size===ids.length&&ids.every(k=>!ch.pilotes[k].humain)&&T.liste.every(([a,b])=>ch.pilotes[a].ecurie!==ch.pilotes[b].ecurie),'paires : '+JSON.stringify(T.liste));
+  v(JSON.stringify(SAISONS.intentions(ch))===JSON.stringify(T)&&JSON.stringify(CHAMPIONNAT.creer(80).transferts)===JSON.stringify(T),'pas les mêmes avec la même graine');
+  v(JSON.stringify(CHAMPIONNAT.creer(81).transferts)!==JSON.stringify(T),'les mêmes avec une autre graine');
+  delete ch.transferts;localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:3,records:{},championnat:ch}));const re=SAUVEGARDE.championnat();v(JSON.stringify(re.transferts)===JSON.stringify(T),'ancienne sauvegarde : '+JSON.stringify(re.transferts));localStorage.removeItem(SAUVEGARDE.CLE);
+  const re2=SAUVEGARDE.championnat();v(re2===null||JSON.stringify(re2.transferts)===JSON.stringify(T),'relue');});
+t('rumeurs : les transferts de fin de saison sont exactement ceux annoncés dans les intentions (sauf un pilote qui prend sa retraite) ; la saison suivante a de nouvelles intentions ; sur 10 saisons simulées, chaque transfert appliqué était annoncé', ()=>{
+  const ch=CHAMPIONNAT.creer(82);let verifies=0,sautes=0;
+  for(let s=0;s<10;s++){
+    SAISONS.avancer(ch,12);SAISONS.terminerSaison(ch);   // (signer appelle nouvelleSaison lui-même : ici le joueur reste, nouvelleSaison directement)
+    const T=ch.transferts,avant=ch.pilotes.map(p=>p.ecurie),nbRetraites=ch.retraites.length;v(T.saison===ch.saison,'intentions de la saison '+ch.saison+' : '+JSON.stringify(T));
+    SAISONS.nouvelleSaison(ch);
+    const retraites=new Set(ch.retraites.slice(nbRetraites).map(r=>r.id));
+    const attendu=avant.slice();for(const [a,b] of T.liste){if(retraites.has(a)||retraites.has(b)||avant[a]===avant[b]){sautes++;continue;}[attendu[a],attendu[b]]=[attendu[b],attendu[a]];verifies++;}
+    v(ch.pilotes.every(p=>p.ecurie===attendu[p.id]),'saison '+(ch.saison-1)+' : écuries '+JSON.stringify(ch.pilotes.map(p=>p.ecurie))+' attendu '+JSON.stringify(attendu)+' intentions '+JSON.stringify(T.liste)+' retraités '+JSON.stringify([...retraites]));
+    v(ch.transferts.saison===ch.saison&&ch.transferts.liste.length>=1,'nouvelles intentions : '+JSON.stringify(ch.transferts));}
+  v(verifies>=10,'transferts vérifiés : '+verifies);L.push('  (10 saisons : '+verifies+' transferts annoncés puis faits, '+sautes+' tombés avec une retraite)');});
+t('rumeurs : le journal tire une brève « rumeur » à partir du Grand Prix JOURNAL_RUMEUR_DES_GP (jamais avant), en tête des brèves ; sur 10 saisons simulées, la part des rumeurs fausses est proche de JOURNAL_RUMEUR_FAUSSE, jamais 100 % sur une saison (la première est toujours vraie) ; une rumeur vraie est une intention (le pilote vers l’écurie de l’autre), une fausse n’en est pas une ; la clé existe en + fr', ()=>{
+  const R_=REGLAGES,ch=CHAMPIONNAT.creer(83);let vraies=0,fausses=0;
+  for(let s=0;s<10;s++){
+    SAISONS.avancer(ch,12);const T=ch.transferts.liste,unes=ch.album.slice(-R_.NB_GRANDS_PRIX);let fs=0,vs=0;
+    for(const u of unes){const r=u.b.filter(x=>x[0]==='breveRumeur');
+      if(u.g<R_.JOURNAL_RUMEUR_DES_GP){v(r.length===0,'rumeur avant le GP '+R_.JOURNAL_RUMEUR_DES_GP+' (GP '+u.g+')');continue;}
+      v(r.length===1&&u.b[0][0]==='breveRumeur','saison '+ch.saison+' GP '+u.g+' : '+JSON.stringify(u.b.map(x=>x[0])));
+      const p=r[0][2],paire=T.find(x=>x.includes(p.pilote));
+      if(p.vraie){vs++;v(paire&&ch.pilotes[paire[0]===p.pilote?paire[1]:paire[0]].ecurie===p.ecurie,'vraie sans intention : '+JSON.stringify(p)+' '+JSON.stringify(T));}
+      else{fs++;v(!paire&&!ch.pilotes[p.pilote].humain&&ch.pilotes[p.pilote].ecurie!==p.ecurie,'fausse qui est une intention : '+JSON.stringify(p));}
+      if(u.g===R_.JOURNAL_RUMEUR_DES_GP) v(p.vraie===1,'la première rumeur de la saison est fausse');}
+    v(vs>=1,'saison '+ch.saison+' : toutes fausses');vraies+=vs;fausses+=fs;
+    SAISONS.terminerSaison(ch);SAISONS.nouvelleSaison(ch);}
+  const part=fausses/(vraies+fausses);v(vraies+fausses>=50&&part>0&&part<1&&Math.abs(part-R_.JOURNAL_RUMEUR_FAUSSE*(1-1/(R_.NB_GRANDS_PRIX-R_.JOURNAL_RUMEUR_DES_GP+1)))<0.15,'part de fausses '+part.toFixed(2)+' ('+fausses+'/'+(vraies+fausses)+')');
+  v(Array.isArray(TEXTES.en.breveRumeur)&&TEXTES.fr.breveRumeur.length===TEXTES.en.breveRumeur.length&&JOURNAL.cles().includes('breveRumeur'),'textes');
+  const u=ch.album[ch.album.length-1],r=JOURNAL.rendre(u,ch);v(r.breves.length>=2&&!r.breves.some(x=>x.includes('{')),'rendu : '+r.breves.join(' | '));
+  L.push('  (10 saisons : '+vraies+' rumeurs vraies, '+fausses+' fausses, part '+part.toFixed(2)+' pour un taux de '+R_.JOURNAL_RUMEUR_FAUSSE+')');});
 // --- le casque du pilote (tour 24b, casque.js) : calcul pur + dessin canvas
 t('casque : completer donne un casque à chacun des 20 pilotes d’un championnat neuf (19 rivaux tirés avec la graine, tous différents ; le joueur : le neutre), le même pour la même graine, un autre pour une autre graine ; les motifs ont tous leur texte', ()=>{
   const R_=REGLAGES,ch=CHAMPIONNAT.creer(1),n=CASQUE.completer(ch);v(n===20,'donnés '+n);
