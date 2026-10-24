@@ -158,6 +158,31 @@ const REGLAGES = {
   },
   GARAGE_NIVEAUX: 5,
   GARAGE_PLAFOND: 0.07,         // +7 % au plus (moteur + aero + freins), quelle que soit la combinaison
+  // les saisons (étape 9, saisons.js, Codeur 3)
+  SAISONS_MAX: 15,              // la retraite par l'âge : la carrière s'arrête après ce nombre de saisons
+  GRAINE_SAISONS: 7000,         // l'évolution des rivaux est tirée avec la graine du championnat + ce nombre + la saison
+  // les contrats : la note du joueur (0 à 1) = son classement, son duel (poids) et la confiance de l'écurie (poids) ; chaque
+  // écurie exige une note selon son niveau, de CONTRAT_EXIGENCE_MAX (la meilleure) à 0 (la plus faible accepte toujours)
+  CONTRAT_POIDS_DUEL: 0.3,
+  CONTRAT_POIDS_CONFIANCE: 0.1,
+  CONTRAT_EXIGENCE_MAX: 0.85,
+  CONFIANCE_DEPART: 50,         // la confiance de l'écurie (0 à 100), fixe tant que les consignes d'équipe n'existent pas
+  // les rivaux qui évoluent, entre deux saisons
+  AGE_DEPART: [21, 36],         // l'âge des 19 pilotes à la création (tiré)
+  AGE_ARRIVEE: [19, 23],        // l'âge d'un nouveau pilote
+  AGE_JEUNE: 26,                // jusqu'à cet âge, le rythme progresse de RYTHME_PROGRESSION (× 0,5 à 1,5) par saison
+  AGE_DECLIN: 33,               // à partir de cet âge, il baisse de RYTHME_DECLIN (× 0,5 à 1,5) par saison
+  AGE_RETRAITE: 36,             // à partir de cet âge, la retraite chaque saison avec la probabilité RETRAITE_PROBABILITE…
+  AGE_RETRAITE_MAX: 39,         // … et sûrement à cet âge
+  RETRAITE_PROBABILITE: 0.4,
+  RYTHME_PROGRESSION: 0.004,
+  RYTHME_DECLIN: 0.004,
+  RYTHME_MIN: 0.96, RYTHME_MAX: 1.03,   // le facteur de rythme d'un pilote (1 = la base de son caractère)
+  RYTHME_ARRIVEE: [0.97, 1.0],  // celui d'un nouveau pilote
+  TRANSFERTS_PAR_SAISON: 2,     // des échanges de place entre deux pilotes IA d'écuries différentes
+  NIVEAU_MONTENT: 3,            // les écuries les mieux classées montent de NIVEAU_EVOLUTION, les plus mal classées baissent d'autant
+  NIVEAU_EVOLUTION: 0.005,
+  NIVEAU_MIN: 0.94, NIVEAU_MAX: 1.0,
   // les noms des 20 pilotes, deux par écurie dans l'ordre (le 20e est remplacé par le joueur) : pas encore (les noms
   // inventés, à approuver par le propriétaire, viendront ici) ; sans nom, l'écran affiche texte('pilote') avec son numéro (« Driver 7 » / « Pilote 7 »)
   NOMS_PILOTES: [],

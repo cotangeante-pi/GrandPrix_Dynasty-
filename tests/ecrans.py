@@ -38,6 +38,8 @@ PAGES = [
     ('index.html?course=1&ia=8&circuit=test', 960, 600, None),
     ('index.html?course=1&robot=1&test=sdk', 1280, 720, None),   # le faux SDK Poki (sdk.js) : l'ordre des appels sur une course d'un tour
     ('index.html?course=0&robot=1&pneus=1&debug=1', 1280, 720, None),   # ?pneus=1 : l'usure monte sur 10 tours du robot, affichée dans ?debug=1
+    ('index.html?championnat=1&tours=1&robot=1&gp=12', 1280, 720, None),   # la fin de saison : le 12e Grand Prix joué par le robot, champion, duel de la saison, contrats, saison 2 ; captures champion.png, duel-saison.png, contrats.png
+    ('index.html?championnat=1&tours=1&robot=1&gp=12', 960, 600, None),    # les écrans de fin de saison en petit (Grand Prix 12 fabriqué), la retraite
     ('index.html?championnat=1&tours=1&robot=1&lang=en', 1280, 720, None),   # la page en anglais : championnat et podium sans un mot français, capture championnat-en.png
     ('index.html?course=1&ia=5&joueur=1&robot=1&circuit=test&test=fantome', 1280, 720, None),   # le fantôme du meilleur tour : deux qualifications de suite, la 2e contre le fantôme, capture fantome.png
 ]
@@ -722,6 +724,90 @@ def garage_ecran(pg, titre, achat=True, capture='garage.png'):
     t(f'{titre} : « Retour » ramène à l’écran du championnat, avec le solde à jour', attendre(pg, '() => JEU.ecran === "championnat" && document.getElementById("garage").classList.contains("cache")')
       and pg.evaluate('() => document.getElementById("championnatArgent").textContent === "Solde : " + ARGENT.formater(JEU.championnat.argent.solde)'), str(pg.evaluate('() => [JEU.ecran, document.getElementById("championnatArgent").textContent]')))
 
+# ?championnat=1&gp=12 : un championnat neuf arrive au 12e Grand Prix (les 11 premiers joués d'avance par SAISONS.avancer) ; après le
+# 12e : le classement final et le champion, le duel de la saison, les contrats, la signature → saison 2 ; en 960 : le 12e est fabriqué,
+# les écrans tiennent, et « Prendre ma retraite » (deux clics) mène à « Carrière terminée »
+SAISON_ETAT = '''() => { const ch = JEU.championnat, $ = id => document.getElementById(id), b = SAISONS.bilan(ch); return { ecran: JEU.ecran, saison: ch.saison, prochain: ch.prochain,
+  titre: $("saisonTitre").textContent, champion: $("saisonChampion").textContent, ecurie: $("saisonEcurie").textContent, lignes: document.querySelectorAll("#saisonPilotes li").length,
+  moi: document.querySelectorAll("#saisonPilotes li.moi").length, premier: document.querySelector("#saisonPilotes li.champion .nom").textContent, attenduChampion: INTERFACE.nomPilote(ch.pilotes[b.champion]), humain: ch.pilotes[b.champion].humain,
+  saisons: ch.saisons.length, sauve: SAUVEGARDE.championnat() ? SAUVEGARDE.championnat().saisons.length : -1, defile: [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth] }; }'''
+DUEL_SAISON_ETAT = '''() => { const ch = JEU.championnat, s = CHAMPIONNAT.scoreDuel(ch), nom = INTERFACE.nomPilote(ch.pilotes[s.k]), a = s.total[0], b = s.total[1];
+  return { ecran: JEU.ecran, score: document.getElementById("duelSaisonScore").textContent, detail: document.getElementById("duelSaisonDetail").textContent, nom, a, b,
+    defile: [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth] }; }'''
+CONTRATS_ETAT = '''() => { const ch = JEU.championnat, o = SAISONS.offres(ch), lis = [...document.querySelectorAll("#contratsListe li")]; return { ecran: JEU.ecran, note: SAISONS.note(ch),
+  texteNote: document.getElementById("contratsNote").textContent, n: lis.length, offres: o.map(x => x.ecurie), ecuries: lis.map(li => Number(li.dataset.ecurie)), actuelle: ch.pilotes[19].ecurie,
+  bouton: document.getElementById("boutonRetraite").textContent, defile: [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth] }; }'''
+RETRAITE_ETAT = '''() => { const ch = JEU.championnat; return { ecran: JEU.ecran, retraite: ch.retraite, bilan: document.getElementById("retraiteBilan").textContent, raison: document.getElementById("retraiteRaison").textContent,
+  sauve: SAUVEGARDE.championnat().retraite && SAUVEGARDE.championnat().retraite.raison, defile: [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth] }; }'''
+SAISON2_ETAT = '''() => { const ch = JEU.championnat, j = ch.pilotes[19]; return { ecran: JEU.ecran, saison: ch.saison, prochain: ch.prochain, ecurie: j.ecurie, titre: document.getElementById("championnatTitre").textContent,
+  garage: JSON.stringify(ch.garage), solde: ch.argent.solde, coequipier: CHAMPIONNAT.coequipierDe(ch).id, duel: CHAMPIONNAT.scoreDuel(ch).total, deux: ch.ecuries.every(e => ch.pilotes.filter(p => p.ecurie === e.id).length === 2),
+  sauve: SAUVEGARDE.championnat().saison, contrats: ch.contrats, gagne: document.getElementById("championnatGagne").textContent, pilotesLi: document.querySelectorAll("#championnatPilotes li").length, zero: ch.pilotes.every(p => p.stats.points === 0) }; }'''
+def pas_de_defilement(d): return d[0] <= d[1] + 2 and d[2] <= d[3] + 2
+def fin_saison(pg, titre, l):
+    t(f'{titre} : ?gp=12 : un championnat neuf arrive au Grand Prix 12 / 12, les 11 premiers joués d’avance (résultats, album, argent)',
+      pg.evaluate('() => JEU.ecran === "championnat" && JEU.championnat.prochain === 11 && JEU.championnat.resultats.length === 11 && JEU.championnat.album.length === 11 && JEU.championnat.argent.solde > 0 && document.getElementById("championnatTitre").textContent.startsWith("Grand Prix 12 / 12")'),
+      str(pg.evaluate('() => [JEU.ecran, JEU.championnat.prochain, document.getElementById("championnatTitre").textContent]')))
+    if l != 1280:
+        # en petit : le 12e Grand Prix fabriqué en mémoire, puis les écrans ; à la fin, la retraite anticipée
+        pg.evaluate('() => { SAISONS.avancer(JEU.championnat, 1); montrerFinSaison(); }')
+        e = pg.evaluate(SAISON_ETAT)
+        t(f'{titre} : le classement final de la saison tient en 960×600 (20 lignes, le champion en tête, le joueur marqué)', e['ecran'] == 'saison' and e['lignes'] == 20 and e['moi'] == 1 and e['premier'] == e['attenduChampion'] and pas_de_defilement(e['defile']), str(e))
+        pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'champion-960.png'))
+        pg.click('#boutonSaisonSuite')
+        d = pg.evaluate(DUEL_SAISON_ETAT)
+        t(f'{titre} : le duel de la saison tient en 960×600', d['ecran'] == 'duelSaison' and d['nom'] in d['score'] and pas_de_defilement(d['defile']), str(d))
+        pg.click('#boutonDuelSaisonSuite')
+        c = pg.evaluate(CONTRATS_ETAT)
+        t(f'{titre} : les contrats tiennent en 960×600, au moins une offre', c['ecran'] == 'contrats' and c['n'] >= 1 and c['n'] == len(c['offres']) and pas_de_defilement(c['defile']), str(c))
+        pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'contrats-960.png'))
+        pg.click('#boutonRetraite')
+        t(f'{titre} : « Prendre ma retraite » demande d’abord une confirmation', pg.evaluate('() => JEU.ecran === "contrats" && document.getElementById("boutonRetraite").textContent === texte("retraiteConfirmer")'), pg.evaluate('() => document.getElementById("boutonRetraite").textContent'))
+        pg.click('#boutonRetraite')
+        r = pg.evaluate(RETRAITE_ETAT)
+        t(f'{titre} : le second clic : « Carrière terminée », le bilan (1 saison), sauvegardé', r['ecran'] == 'retraite' and r['retraite'] and r['retraite']['raison'] == 'choix' and r['sauve'] == 'choix' and r['bilan'].startswith('1 saison') and r['raison'] != '' and pas_de_defilement(r['defile']), str(r))
+        pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'retraite-960.png'))
+        return
+    pg.click('#boutonCourseSuivante')
+    passer_qualif(pg, titre)
+    t(f'{titre} : le 12e Grand Prix part (circuit du calendrier, 20 voitures)', attendre(pg, '() => JEU.ecran === "course" && JEU.plateau && JEU.plateau.pilotes.length === 20', None, 10000))
+    attendre(pg, '() => JEU.plateau.carte !== null', None, 180000)
+    for _ in range(80):
+        pg.evaluate('() => BOUCLE.simuler(5)')
+        if pg.evaluate('() => JEU.ecran') == 'podium': break
+        pg.wait_for_timeout(50)
+    t(f'{titre} : la course va jusqu’au podium', pg.evaluate('() => JEU.ecran === "podium"'), str(pg.evaluate('() => [JEU.ecran, JEU.plateau.arrives]')))
+    pg.click('#boutonResultats'); attendre(pg, '() => JEU.ecran === "resultats"')
+    pg.click('#boutonChangerResultats')
+    t(f'{titre} : « Continuer » : le 12e enregistré (la saison est finie), la une du journal', attendre(pg, '() => JEU.ecran === "une" && JEU.championnat.prochain === 12 && SAISONS.finie(JEU.championnat)'), str(pg.evaluate('() => [JEU.ecran, JEU.championnat.prochain]')))
+    pg.click('#uneTitre')
+    e = pg.evaluate(SAISON_ETAT)
+    t(f'{titre} : après la une, le classement final de la saison : « La saison 1 est finie », le champion (« CHAMPION ! » si c’est le joueur), l’écurie championne, 20 lignes, la saison close et sauvegardée, sans défilement',
+      e['ecran'] == 'saison' and e['titre'] == 'La saison 1 est finie' and (e['champion'] == 'CHAMPION !' if e['humain'] else e['champion'] == 'Champion : ' + e['attenduChampion']) and e['ecurie'].startswith('Écurie championne : ')
+      and e['lignes'] == 20 and e['moi'] == 1 and e['premier'] == e['attenduChampion'] and e['saisons'] == 1 and e['sauve'] == 1 and pas_de_defilement(e['defile']), str(e))
+    pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'champion.png'))
+    pg.click('#boutonSaisonSuite')
+    d = pg.evaluate(DUEL_SAISON_ETAT)
+    attendu = (f"Tu as battu {d['nom']} {d['a']} à {d['b']}" if d['a'] > d['b'] else f"{d['nom']} t’a battu {d['b']} à {d['a']}" if d['a'] < d['b'] else f"Égalité avec {d['nom']} : {d['a']} à {d['b']}")
+    t(f'{titre} : le duel de la saison : « {attendu} », le détail (qualifs, courses, carrière)', d['ecran'] == 'duelSaison' and d['score'] == attendu and 'qualifs' in d['detail'] and 'carrière' in d['detail'] and pas_de_defilement(d['defile']), str(d))
+    pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'duel-saison.png'))
+    pg.click('#boutonDuelSaisonSuite')
+    c = pg.evaluate(CONTRATS_ETAT)
+    t(f'{titre} : les contrats : la note, les offres (au moins une, celles de SAISONS.offres, de la meilleure à la moins bonne), « Prendre ma retraite »',
+      c['ecran'] == 'contrats' and c['n'] >= 1 and c['ecuries'] == c['offres'] and c['texteNote'].startswith('Ta note : ' + str(round(c['note'] * 100))) and c['bouton'] == 'Prendre ma retraite' and pas_de_defilement(c['defile']), str(c))
+    pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'contrats.png'))
+    # signer : une autre écurie si on en propose une, sinon la sienne
+    choix = next((x for x in c['offres'] if x != c['actuelle']), c['actuelle'])
+    avant = pg.evaluate('() => ({ garage: JSON.stringify(JEU.championnat.garage), solde: JEU.championnat.argent.solde, coequipier: CHAMPIONNAT.coequipierDe(JEU.championnat).id })')
+    pg.click(f'#contratsListe li[data-ecurie="{choix}"] button')
+    s2 = pg.evaluate(SAISON2_ETAT)
+    t(f'{titre} : « Signer » (écurie {choix}) : la saison 2 commence (Grand Prix 1 / 12, points à 0), le joueur est dans l’écurie choisie, 10 écuries de 2, le garage et l’argent suivent, le duel repart de 0, sauvegardé',
+      s2['ecran'] == 'championnat' and s2['saison'] == 2 and s2['prochain'] == 0 and s2['ecurie'] == choix and s2['titre'].startswith('Grand Prix 1 / 12') and s2['garage'] == avant['garage'] and s2['solde'] == avant['solde']
+      and s2['deux'] and s2['duel'] == [0, 0] and s2['sauve'] == 2 and s2['contrats'] == [[2, choix]] and s2['gagne'] == '' and s2['pilotesLi'] == 20 and s2['zero'], str(s2))
+    if choix != c['actuelle']:
+        t(f'{titre} : le coéquipier a changé avec l’écurie', s2['coequipier'] != avant['coequipier'] and pg.evaluate(f'() => JEU.championnat.pilotes[CHAMPIONNAT.coequipierDe(JEU.championnat).id].ecurie === {choix}'), str([avant['coequipier'], s2['coequipier']]))
+    with pg.expect_navigation(): pg.click('#boutonCourseSuivante')
+    t(f'{titre} : « Course suivante » recharge la page sur le Grand Prix 1 de la saison 2', attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat" && JEU.championnat.saison === 2 && JEU.championnat.prochain === 0', None, 60000), str(pg.evaluate('() => [JEU.ecran, JEU.championnat && JEU.championnat.saison]')))
+
 def championnat(pg, titre, l):
     # ?championnat=1 : l'écran entre les courses au démarrage (nouveau championnat : Grand Prix 1), le robot joue deux
     # Grands Prix d'un tour, « Continuer » enregistre et sauvegarde ; la page rechargée retrouve le Grand Prix 3 et les points
@@ -854,7 +940,9 @@ with sync_playwright() as p:
                 course_ia10(pg, titre)
             if 'course=1&ia=8' in page:
                 course_podium(pg, titre, l)
-            if 'championnat=1' in page and 'lang=en' in page:
+            if 'gp=12' in page:
+                fin_saison(pg, titre, l)
+            elif 'championnat=1' in page and 'lang=en' in page:
                 championnat_en(pg, titre)
             elif 'championnat=1' in page:
                 championnat(pg, titre, l)

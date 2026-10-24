@@ -75,6 +75,9 @@ const JOURNAL = (function () {
     const forme = ch.pilotes.filter(p => !p.humain).map(p => ({ p, n: p.places.slice(-R.JOURNAL_FORME_COURSES).filter(x => x <= 3).length }))
       .filter(x => x.n >= R.JOURNAL_FORME_PODIUMS).sort((a, b) => b.n - a.n || a.p.id - b.p.id)[0];
     if (forme) b.push(['breveForme', { pilote: forme.p.id, ecurie: forme.p.ecurie, n: forme.n }]);
+    // un pilote âgé, proche de la retraite (saisons.js : AGE_RETRAITE), le plus vieux
+    const vieux = ch.pilotes.filter(p => !p.humain && typeof p.age === 'number' && p.age >= R.AGE_RETRAITE - 1).sort((a, b) => b.age - a.age || a.id - b.id)[0];
+    if (vieux) b.push(['breveRetraite', { pilote: vieux.id, age: vieux.age }]);
     const gpPts = pointsAu(ch, n), ptsEcuries = ch.ecuries.map(e => e.points);
     const avantEcuries = ptsEcuries.map((x, id) => x - ch.pilotes.filter(p => p.ecurie === id).reduce((a, p) => a + gpPts[p.id], 0));
     const rA = rangs(avantEcuries), rB = rangs(ptsEcuries), joueur = ch.pilotes.find(p => p.humain).ecurie;
@@ -169,7 +172,7 @@ const JOURNAL = (function () {
   }
 
   // les clés de texte que le journal demande (tests : toutes dans les deux langues, avec des variantes)
-  const BREVES = ['breveForme', 'breveEcurie', 'breveVainqueur', 'breveRival', 'breveMeilleurTour', 'brevePole', 'breveLeader', 'breveChasseur'];
+  const BREVES = ['breveForme', 'breveRetraite', 'breveEcurie', 'breveVainqueur', 'breveRival', 'breveMeilleurTour', 'brevePole', 'breveLeader', 'breveChasseur'];
   function cles() {
     return ['journalNom'].concat(R.JOURNAL_PRIORITES.flatMap(f => ['uneTitre_' + f, 'uneTexte_' + f]), BREVES);
   }
