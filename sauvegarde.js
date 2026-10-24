@@ -11,7 +11,8 @@ const SAUVEGARDE = (function () {
     // fantomes : le fantôme du meilleur tour de chaque circuit (fantome.js, compact), par nom de circuit ; options : les
     // réglages du joueur (fantome : le fantôme affiché, vrai par défaut) ; reaction : le meilleur temps de réaction au départ (s)
     // decouverteFaite : la course de découverte du premier lancement est jouée ; argent : l'argent du joueur (la prime de la découverte, pas encore dépensable)
-    return { version: VERSION, records: {}, championnat: null, fantomes: {}, options: {}, reaction: null, decouverteFaite: false, argent: 0, cartes: {} };
+    // temple : le temple de la renommée et les records de carrière (carriere.js), à côté du championnat : ils survivent à une nouvelle carrière
+    return { version: VERSION, records: {}, championnat: null, fantomes: {}, options: {}, reaction: null, decouverteFaite: false, argent: 0, cartes: {}, temple: { carrieres: [], records: {} } };
   }
 
   // une sauvegarde d'une ancienne version est transformée ici, sans rien perdre :
@@ -35,6 +36,7 @@ const SAUVEGARDE = (function () {
     if (d.decouverteFaite === undefined) d.decouverteFaite = !!d.championnat;
     if (typeof d.argent !== 'number') d.argent = 0;
     if (!d.cartes || typeof d.cartes !== 'object') d.cartes = {};   // la carte des IA de chaque circuit en cache (cache-carte.js, tour 24b)
+    if (typeof CARRIERE !== 'undefined') d.temple = CARRIERE.completerTemple(d.temple);   // le temple de la renommée (tour 28c) : vide dans une sauvegarde d'avant
     if (d.championnat && typeof CHAMPIONNAT !== 'undefined') CHAMPIONNAT.completer(d.championnat);
     d.version = VERSION;
     return d;
@@ -159,5 +161,21 @@ const SAUVEGARDE = (function () {
     return ecrire(d);
   }
 
-  return { lire, ecrire, record, proposerRecord, championnat, ecrireChampionnat, fantome, proposerFantome, option, ecrireOption, reaction, proposerReaction, decouverteFaite, argent, finirDecouverte, carte, ecrireCarte, VERSION, CLE };
+  // --- le temple de la renommée et les records de carrière (carriere.js) : la carrière finie y entre une seule fois
+  // (ch.retraite.temple garde son numéro d'entrée), en même temps que le championnat est écrit ; renvoie sa place (ou null)
+  function temple() {
+    const d = lire();
+    return d.temple || { carrieres: [], records: {} };
+  }
+
+  function entrerAuTemple(ch) {
+    if (!ch || !ch.retraite) return null;
+    const d = lire();
+    if (ch.retraite.temple === undefined) ch.retraite.temple = CARRIERE.entrer(d.temple, CARRIERE.resume(ch));
+    d.championnat = ch;
+    ecrire(d);
+    return CARRIERE.place(d.temple, ch.retraite.temple);
+  }
+
+  return { temple, entrerAuTemple, lire, ecrire, record, proposerRecord, championnat, ecrireChampionnat, fantome, proposerFantome, option, ecrireOption, reaction, proposerReaction, decouverteFaite, argent, finirDecouverte, carte, ecrireCarte, VERSION, CLE };
 })();

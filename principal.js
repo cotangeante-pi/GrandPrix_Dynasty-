@@ -665,9 +665,27 @@ function prendreRetraite() {
 
 function montrerRetraite() {
   PODIUM3D.cacher();
-  INTERFACE.remplirRetraite(JEU.championnat.retraite);
+  const ch = JEU.championnat, place = SAUVEGARDE.entrerAuTemple(ch);   // le temple de la renommée (carriere.js) : une seule fois, sauvegardé
+  INTERFACE.remplirRetraite(ch.retraite);
+  // le bilan de carrière (étape 14) : les chiffres, les duels, la une préférée (redessinée comme le jour même), la place au temple
+  const b = CARRIERE.bilan(ch), une = b.une === null ? null : JOURNAL.rendreAlbum(ch, b.une, { pilote: INTERFACE.nomPilote, ecurie: INTERFACE.nomEcurie });
+  INTERFACE.remplirBilan(ch, b, une, place, SAUVEGARDE.temple().carrieres.length);
   JEU.ecran = 'retraite';
   INTERFACE.montrer('retraite');
+}
+
+// le temple de la renommée (carriere.js), depuis le bilan : les carrières finies classées, les records ; « Retour » : le bilan
+function montrerTemple() {
+  if (JEU.ecran !== 'retraite') return;
+  const t = SAUVEGARDE.temple();
+  INTERFACE.remplirTemple(CARRIERE.classer(t), t.records, JEU.championnat.retraite ? JEU.championnat.retraite.temple : null);
+  JEU.ecran = 'temple';
+  INTERFACE.montrer('temple');
+}
+
+function quitterTemple() {
+  if (JEU.ecran !== 'temple') return;
+  montrerRetraite();
 }
 
 // ?championnat=1 : le garage (garage.js, argent.js), depuis l'écran du championnat ; un achat est sauvegardé tout de suite
@@ -849,7 +867,10 @@ function conduireJoueur(p, pas) {
     if (JEU.robot) { if (d.extinction !== null && d.t - d.extinction >= REGLAGES.DEPART_ROBOT_REACTION) DEPART.lancer(d, 'parfait', REGLAGES.DEPART_ROBOT_REACTION); }
     else DEPART.commande(d, cmd.cibles.gaz > 0, p.course.compte);
     if (d.lance === null) cibles = AUCUNE;
-    else if (!JEU.robot && !JEU.deux && d.resultat !== 'faux') JEU.departRecord = SAUVEGARDE.proposerReaction(d.reaction);   // le record du temps de réaction (pas celui du robot, ni à deux)
+    else if (!JEU.robot && !JEU.deux && d.resultat !== 'faux') {
+      JEU.departRecord = SAUVEGARDE.proposerReaction(d.reaction);   // le record du temps de réaction (pas celui du robot, ni à deux)
+      if (JEU.championnat && p === JEU.plateau.pilotes[JEU.ia]) CARRIERE.noterReaction(JEU.championnat, d.reaction);   // … et celui de la carrière (carriere.js, sauvegardé avec le Grand Prix)
+    }
   }
   lisserCommandes(p.v, commandesPermises(p.course) ? cibles : p.course.etat === 'finie' ? FREIN_SEUL : AUCUNE, pas);
   pasPneusJoueur(p.v, pas);
@@ -954,7 +975,7 @@ function majTableau() {
   document.getElementById('rapport').textContent = rapportPourVitesse(v.u);
   const roule = JEU.ecran === 'course' || JEU.ecran === 'survol' || enTourQualif();
   // sur le podium et les résultats, ni vitesse ni aide des touches
-  const apres = ['podium', 'resultats', 'championnat', 'une', 'garage', 'titre', 'amis', 'bravo', 'saison', 'duelSaison', 'contrats', 'retraite', 'sponsors', 'fiche', 'interview', 'ceremonie', 'album'].includes(JEU.ecran);
+  const apres = ['podium', 'resultats', 'championnat', 'une', 'garage', 'titre', 'amis', 'bravo', 'saison', 'duelSaison', 'contrats', 'retraite', 'sponsors', 'fiche', 'interview', 'ceremonie', 'album', 'temple'].includes(JEU.ecran);
   document.getElementById('tableau').classList.toggle('cache', apres);
   document.getElementById('aide').classList.toggle('cache', apres);
   // après l'arrivée du joueur (en attendant les autres), il ne court plus : pas de « hors piste »
@@ -1099,6 +1120,7 @@ function demarrerJeu() {
     INTERFACE.preparerUne(passerUne);
     INTERFACE.preparerCeremonie(suiteCeremonie);
     INTERFACE.preparerAlbum(montrerAlbum, feuilleterAlbum, saisonAlbum, quitterAlbum);
+    INTERFACE.preparerTemple(montrerTemple, quitterTemple);
     INTERFACE.preparerGarage(acheterAmelioration, quitterGarage);
     INTERFACE.preparerSaison(suiteClassementSaison, suiteDuelSaison, signerContrat, prendreRetraite);
     INTERFACE.preparerSponsors(montrerSponsors, choisirSponsor, quitterSponsors);

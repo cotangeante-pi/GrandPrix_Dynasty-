@@ -45,7 +45,7 @@ const INTERFACE = (function () {
   }
 
   function montrer(ecran) {
-    for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une', 'garage', 'saison', 'duelSaison', 'contrats', 'retraite', 'titre', 'amis', 'bravo', 'pilote', 'sponsors', 'fiche', 'interview', 'ceremonie']) $(id).classList.toggle('cache', id !== ecran);
+    for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une', 'garage', 'saison', 'duelSaison', 'contrats', 'retraite', 'titre', 'amis', 'bravo', 'pilote', 'sponsors', 'fiche', 'interview', 'ceremonie', 'temple']) $(id).classList.toggle('cache', id !== ecran);
     // l'album des unes (Codeur 3) : la page de la une, avec la barre pour feuilleter
     if (ecran === 'album') $('une').classList.remove('cache');
     $('une').classList.toggle('album', ecran === 'album');
@@ -676,6 +676,60 @@ const INTERFACE = (function () {
     $('boutonCeremonieSuite').addEventListener('click', suite);
   }
 
+  // --- le bilan de carrière et le temple de la renommée (Codeur 3, carriere.js) ---
+  // b = CARRIERE.bilan ; une = la une préférée rendue (JOURNAL.rendreAlbum) ou null ; place, n : sa place au temple et sa taille
+  function remplirBilan(ch, b, une, place, n) {
+    const E = texte('bilanEtiquettes'), tiret = '—';
+    const valeurs = [b.saisons, b.titres, b.victoires, b.podiums, b.poles, b.meilleursTours, b.meilleurePlace ? 'P' + b.meilleurePlace : tiret,
+      b.domicile ? 'P' + b.domicile : tiret, b.reaction ? secondes(Math.round(b.reaction * 1000) / 1000) : tiret];
+    const ul = $('bilanStats');
+    ul.textContent = '';
+    valeurs.forEach((x, i) => {
+      const li = document.createElement('li'), e = document.createElement('span'), v = document.createElement('span');
+      e.className = 'etiquette'; e.textContent = E[i]; v.className = 'valeur'; v.textContent = String(x);
+      li.append(e, v); ul.appendChild(li);
+    });
+    const duels = b.duels.slice(0, 3).map(d => avec(texte('bilanDuel'), { nom: nomPilote(Object.assign({ humain: false }, d.pilote)), a: d.total[0], b: d.total[1] }));
+    $('bilanDuels').textContent = duels.length ? avec(texte('bilanDuels'), { liste: duels.join(' · ') }) : texte('bilanAucunDuel');
+    $('bilanUne').textContent = une ? avec(texte('bilanUne'), { titre: une.titre, s: une.saison, g: une.grandPrix }) : texte('bilanAucuneUne');
+    $('bilanTemple').textContent = place ? avec(texte('bilanTemple'), { p: place, n }) : avec(texte('bilanHorsTemple'), { n: REGLAGES.TEMPLE_MAX });
+    $('boutonTemple').textContent = texte('temple');
+  }
+
+  // le temple : les carrières finies classées (titres, puis victoires) ; moi : le numéro d'entrée (n) de la carrière qui vient de finir
+  function remplirTemple(liste, records, moi) {
+    $('templeTitre').textContent = texte('templeTitre');
+    $('templeRecordsTitre').textContent = texte('templeRecordsTitre');
+    $('boutonTempleRetour').textContent = texte('templeRetour');
+    const ol = $('templeListe'), sp = (classe, contenu) => { const e = document.createElement('span'); e.className = classe; e.textContent = contenu; return e; };
+    ol.textContent = '';
+    if (!liste.length) ol.appendChild(sp('vide', texte('templeVide')));
+    liste.forEach((c, i) => {
+      const li = document.createElement('li');
+      if (c.n === moi) li.className = 'moi';
+      li.dataset.n = c.n;
+      li.append(sp('place', String(i + 1)), sp('nom', nomPilote({ nom: c.nom, numero: c.numero, humain: true }) + ' #' + c.numero), sp('ligne', avec(texte('templeLigne'), { t: c.titres, v: c.victoires, p: c.podiums, s: c.saisons })));
+      ol.appendChild(li);
+    });
+    const ul = $('templeRecords');
+    ul.textContent = '';
+    for (const cle of CARRIERE.RECORDS.concat(['reaction'])) {
+      const r = records[cle];
+      if (!r) continue;
+      const li = document.createElement('li');
+      li.dataset.record = cle;
+      li.textContent = avec(texte('recordLigne'), { quoi: texte('record_' + cle), valeur: cle === 'reaction' ? secondes(Math.round(r.valeur * 1000) / 1000) : r.valeur, nom: nomPilote({ nom: r.nom, numero: r.numero, humain: true }) });
+      ul.appendChild(li);
+    }
+  }
+
+  function preparerTemple(ouvrir, retour) {
+    for (const [id, f] of [['boutonTemple', ouvrir], ['boutonTempleRetour', retour]]) {
+      $(id).addEventListener('mousedown', e => e.preventDefault());
+      $(id).addEventListener('click', f);
+    }
+  }
+
   // suite : après le classement, puis après le duel ; signer(ecurie) ; retraite() : le premier clic demande une confirmation
   function preparerSaison(suiteClassement, suiteDuel, signer, retraite) {
     signatureContrat = signer;
@@ -866,7 +920,7 @@ const INTERFACE = (function () {
 
   return { formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, preparerChampionnat, remplirQualif, preparerQualif,
     remplirDuel, avec, remplirUne, preparerUne, remplirArgent, remplirSolde, remplirGarage, preparerGarage,
-    remplirSaison, remplirDuelSaison, remplirContrats, remplirRetraite, preparerSaison, retraiteEnAttente, remplirCeremonie, preparerCeremonie, remplirAlbum, preparerAlbum,
+    remplirSaison, remplirDuelSaison, remplirContrats, remplirRetraite, preparerSaison, retraiteEnAttente, remplirCeremonie, preparerCeremonie, remplirAlbum, preparerAlbum, remplirBilan, remplirTemple, preparerTemple,
     remplirSponsors, remplirRappelSponsor, preparerSponsors, remplirFiche, preparerFiche, remplirInterview, montrerEffetInterview, preparerInterview, remplirReputation,
     majEcartFantome, preparerFantome, majBoutonsFantome, majDepart, majDeux, preparerTitre, remplirBravo, majAides, remplirPilote, lirePilote, montrerErreursPilote, preparerPilote, nomCircuit, remplirCasque, lireCasque, modePilote, preparerCasque };
 })();

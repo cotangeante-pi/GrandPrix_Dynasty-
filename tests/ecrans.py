@@ -1113,6 +1113,33 @@ def ceremonie_ecran(pg, titre, toi, capture):
     pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, capture))
     pg.click('#boutonCeremonieSuite')
 
+# le bilan de carrière et le temple de la renommée (tour 28c, carriere.js) : après la retraite, le bilan (9 cases, les duels, la une
+# préférée, la place au temple) tient dans l'écran ; « Temple de la renommée » : la carrière y est (marquée), les records ; « Retour »
+BILAN_ETAT = '''() => { const ch = JEU.championnat, b = CARRIERE.bilan(ch), $ = id => document.getElementById(id), u = b.une === null ? null : JOURNAL.rendreAlbum(ch, b.une, { pilote: INTERFACE.nomPilote, ecurie: INTERFACE.nomEcurie });
+  return { ecran: JEU.ecran, cases: [...document.querySelectorAll("#bilanStats li")].map(li => [li.children[0].textContent, li.children[1].textContent]), b: { saisons: b.saisons, titres: b.titres, victoires: b.victoires, podiums: b.podiums },
+    duels: $("bilanDuels").textContent, une: $("bilanUne").textContent, attenduUne: u ? u.titre : null, temple: $("bilanTemple").textContent, bouton: $("boutonTemple").textContent,
+    dans: [...document.querySelectorAll("#retraite > *")].every(e => { const r = e.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight && r.right <= innerWidth; }),
+    sauve: SAUVEGARDE.temple().carrieres.length, defile: [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth] }; }'''
+def bilan_temple(pg, titre):
+    e = pg.evaluate(BILAN_ETAT)
+    vals = dict(e['cases'])
+    t(f'{titre} : le bilan de carrière : 9 cases (saisons, titres, victoires, podiums…) justes, les duels contre les coéquipiers, la une préférée (redessinée), la place au temple, tout dans l’écran',
+      e['ecran'] == 'retraite' and len(e['cases']) == 9 and vals.get('Saisons') == str(e['b']['saisons']) and vals.get('Titres') == str(e['b']['titres']) and vals.get('Victoires') == str(e['b']['victoires'])
+      and vals.get('Podiums') == str(e['b']['podiums']) and e['duels'].startswith('Duels contre les coéquipiers : ') and (e['attenduUne'] is None or e['attenduUne'] in e['une'])
+      and e['temple'] == 'Temple de la renommée : 1 sur 1' and e['sauve'] == 1 and e['bouton'] == '🏛 Temple de la renommée' and e['dans'] and pas_de_defilement(e['defile']), str(e))
+    pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'bilan.png'))
+    pg.click('#boutonTemple')
+    tp = pg.evaluate('''() => ({ ecran: JEU.ecran, lignes: [...document.querySelectorAll("#templeListe li")].map(li => li.textContent), moi: document.querySelectorAll("#templeListe li.moi").length,
+      records: [...document.querySelectorAll("#templeRecords li")].map(li => li.textContent), nom: INTERFACE.nomPilote(JEU.championnat.pilotes[19]),
+      defile: [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth] })''')
+    t(f'{titre} : le temple de la renommée : la carrière finie en 1re place, marquée, avec ses titres et victoires ; les records de carrière à son nom',
+      tp['ecran'] == 'temple' and len(tp['lignes']) == 1 and tp['moi'] == 1 and tp['lignes'][0].startswith('1' + tp['nom']) and 'victoires' in tp['lignes'][0] and len(tp['records']) >= 6 and all(tp['nom'] in r for r in tp['records']) and pas_de_defilement(tp['defile']), str(tp))
+    pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'temple.png'))
+    pg.click('#boutonTempleRetour')
+    t(f'{titre} : « Retour » ramène au bilan ; rechargée, la page revient au bilan sans entrer deux fois au temple', pg.evaluate('() => JEU.ecran') == 'retraite')
+    pg.reload()
+    t(f'{titre} : (rechargement) le bilan, le temple toujours à 1 carrière', attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "retraite" && SAUVEGARDE.temple().carrieres.length === 1', None, 60000), str(pg.evaluate('() => typeof JEU !== "undefined" && [JEU.ecran, SAUVEGARDE.temple().carrieres.length]')))
+
 def fin_saison(pg, titre, l):
     t(f'{titre} : ?gp=12 : un championnat neuf arrive au Grand Prix 12 / 12, les 11 premiers joués d’avance (résultats, album, argent)',
       pg.evaluate('() => JEU.ecran === "championnat" && JEU.championnat.prochain === 11 && JEU.championnat.resultats.length === 11 && JEU.championnat.album.length === 11 && JEU.championnat.argent.solde > 0 && document.getElementById("championnatTitre").textContent.startsWith("Grand Prix 12 / 12")'),
@@ -1146,6 +1173,7 @@ def fin_saison(pg, titre, l):
         r = pg.evaluate(RETRAITE_ETAT)
         t(f'{titre} : le second clic : « Carrière terminée », le bilan (1 saison), sauvegardé', r['ecran'] == 'retraite' and r['retraite'] and r['retraite']['raison'] == 'choix' and r['sauve'] == 'choix' and r['bilan'].startswith('1 saison') and r['raison'] != '' and pas_de_defilement(r['defile']), str(r))
         pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'retraite-960.png'))
+        bilan_temple(pg, titre)
         return
     # le joueur champion : les 11 premiers Grands Prix refaits avec de vraies places (il en gagne 5 et finit 2e des 6 autres : 233 points,
     # le titre est à lui avant le 12e) ; puis la une spéciale « CHAMPION ! » et la cérémonie, avec ses vrais points et ses vraies victoires

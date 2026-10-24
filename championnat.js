@@ -68,6 +68,7 @@ const CHAMPIONNAT = (function () {
     const duel = enregistrerDuel(ch, lignes);
     if (typeof FICHE !== 'undefined') FICHE.suivre(ch, lignes);   // les duels de chaque rival contre le joueur (fiche.js)
     ch.resultats.push({ grandPrix: ch.prochain + 1, ordre: lignes.map(l => l.k), duel });
+    if (typeof CARRIERE !== 'undefined') CARRIERE.suivre(ch, lignes);   // la carrière (carriere.js) : le meilleur résultat à domicile
     ch.prochain++;
     return ch;
   }
@@ -167,7 +168,8 @@ const CHAMPIONNAT = (function () {
     if (typeof SAISONS !== 'undefined') SAISONS.completer(ch);
     if (typeof SPONSORS !== 'undefined') SPONSORS.completer(ch);
     if (typeof FICHE !== 'undefined' && ch.pilotes) FICHE.completer(ch);
-    if (typeof INTERVIEW !== 'undefined' && ch.pilotes) INTERVIEW.completer(ch);   // la réputation (interview.js) : 50 partout dans une sauvegarde d'avant
+    if (typeof INTERVIEW !== 'undefined' && ch.pilotes) INTERVIEW.completer(ch);
+    if (typeof CARRIERE !== 'undefined' && ch.pilotes) CARRIERE.completer(ch);   // la carrière en cours (carriere.js) : commencée à la saison 1 dans une sauvegarde d'avant   // la réputation (interview.js) : 50 partout dans une sauvegarde d'avant
     return ch;
   }
 
