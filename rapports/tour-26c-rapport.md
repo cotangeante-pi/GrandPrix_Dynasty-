@@ -1,0 +1,21 @@
+TOUR 26c — après l'étape 6 — Codeur 3 : l'interview d'après course — rapport du Chef
+Chef : session-5b. Base : main (ton tour 25c fusionné). Note : 84/100 (championnat 14/15).
+Commit vérifié : 1ab073d (GitHub 40051042290, TOUT PASSE). Diff relu : moteur intact, aucun test retiré, pas de conflit resté. Captures sponsors.png, fiche.png relues : propres (la fiche a sa place de « photo » vide, le casque viendra).
+Ce qui manque : l'interview d'après course (CLAUDE.md « L'interview d'après course » : relis-la entière). Les rivaux ont un nom et un caractère ; le joueur ne leur « parle » jamais. L'interview crée les histoires, et nourrit les sponsors, les contrats et le journal que tu as faits.
+
+ORDRES
+
+1. L'INTERVIEW EN CALCUL PUR (interview.js, sans écran) :
+   - après chaque Grand Prix, au plus une question, choisie parmi les faits connus par priorité INTERVIEW_PRIORITES (donnees.js) : victoire ou podium, gros contact avec un pilote nommé (le moteur compte les chocs > 5 m/s par voiture : utilise ce qui existe, sinon le plus proche et dis-le), dépassement décisif, pénalité, duel gagné ou perdu contre le coéquipier, série de mauvais résultats, résultat moyen (question générale) ; la consigne d'équipe ignorée viendra plus tard ;
+   - plusieurs formulations par question, tirées par hasard() avec la graine, jamais la même deux fois de suite ; trois réponses par question avec un ton (provocant 😤, calme 🤝, malin 😏 : des clés, l'icône est l'affaire de l'écran) ; « pas de commentaire » sans effet ;
+   - la réputation : trois jauges sauvegardées (public, écurie, sponsors), de 0 à 100, à 50 au départ ; chaque réponse bouge une ou deux jauges d'un petit pas (INTERVIEW_PAS) ; plafonds dans donnees.js ; une ancienne sauvegarde sans réputation se charge à 50 ;
+   - les effets : les sponsors (sponsors.js : les offres et les montants pèsent un peu sur la jauge sponsors, plafond INTERVIEW_EFFET_SPONSORS) ; l'écurie (la confiance de saisons.js, aujourd'hui fixe à 50, devient cette jauge écurie) ; le public : affiché seulement ;
+   - les rivaux se souviennent : une réponse provocante contre un pilote nommé en fait ta bête noire pendant INTERVIEW_RIVALITE_COURSES Grands Prix ; une réponse calme apaise ; la rivalité est un champ sur le pilote (ch.pilotes[k].rivalite = { courses restantes, derniere phrase (clé + paramètres) }) : l'effet sur son pilotage (plus agressif, avec un plafond) est au Codeur 1, pas à toi : tu poses le champ, et tu l'affiches sur la fiche du rival (« Il conduit comme un dangereux. » — Monzo, saison 2) ;
+   - le journal : le fait « phrase de l'interview » (la réponse provocante devient un titre et le rival « répond ») dans journal.js, à sa priorité de CLAUDE.md.
+   Fini quand : tests moteur (la bonne question pour chaque fait et la priorité ; chaque réponse a l'effet prévu ; jauges entre 0 et 100 ; plafonds ; une rivalité s'arrête après le bon nombre de courses ; « pas de commentaire » ne change rien ; toutes les clés en et fr ; ancienne sauvegarde → 50 ; le titre de journal de l'interview) ; GitHub vert.
+
+2. L'INTERVIEW À L'ÉCRAN : après le podium et les résultats, avant la une : un journaliste inventé (nom dans textes.js), la question, trois boutons avec l'icône du ton, « Pas de commentaire » ; après le choix, une ligne d'effet (« Pilote 4 n'a pas aimé ») puis la une. Poki : gameplayStop pendant l'interview (c'est un menu). Les jauges de réputation visibles au paddock (trois petites barres). Textes + fr.
+   Fini quand : ecrans.py joue un Grand Prix, répond provocant, voit la ligne d'effet, la une, la rivalité sur la fiche du rival et les jauges au paddock ; captures interview.png, interview-960.png ; console vide ; GitHub vert.
+
+RÈGLES : les mêmes (tes fichiers + blocs ; le Codeur 2 est sur le mode 2 joueurs : scene3d.js, camera.js, principal.js, interface.js en blocs ; le Codeur 1 sur ia.js ; `git merge origin/main` avant chaque push ; vert = 0 échec ; CLAUDE.md pas touché). Horaires : jusqu'à nouvel ordre du propriétaire. Un push + un message au Chef par ordre vert ; compte rendu rapports/tour-26c-compte-rendu.md à la fin.
+Questions pour le propriétaire (le Codeur n'y répond pas) : le ton des questions et des réponses (à lire par lui) ; les noms des pilotes (toujours provisoires : « Pilote 4 » dans une interview, ça se voit).
