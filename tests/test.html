@@ -480,7 +480,7 @@ t('côte à côte à l’entrée de l’épingle (même rythme, 150 km/h) : aucu
 function poserVoiture(p_,circ,s,d){placerSurPiste(p_.v,circ,s,d);p_.v.piste=positionSurPiste(circ,p_.v.x,p_.v.z);p_.course.sAvant=p_.v.piste.s;p_.course.xAvant=p_.v.x;p_.course.zAvant=p_.v.z;p_.course.compte=0;}
 function contournerArretee(sArret,nbIA,duree){const carte=CARTES_T.technique,e=creerCourseIA(TQ,nbIA,2,1,carte,true),arret=e.pilotes[nbIA];
   poserVoiture(arret,TQ,sArret,valeurEn(TQ,carte.trajectoire.ecart,sArret));
-  const d0=[];e.pilotes.forEach((p_,k)=>{if(k<nbIA){const s_=sArret-40-12*k;poserVoiture(p_,TQ,s_,valeurEn(TQ,carte.trajectoire.ecart,s_));p_.pilote.grille=null;d0[k]=sArret-s_;}});
+  const d0=[];e.pilotes.forEach((p_,k)=>{if(k<nbIA){const s_=sArret-40-12*k;poserVoiture(p_,TQ,s_,valeurEn(TQ,carte.trajectoire.ecart,s_));p_.pilote.grille=null;p_.pilote.parcouru=REGLAGES.IA_DEPART_LANCEMENT;d0[k]=sArret-s_;}});   // déjà en course (pas le lancement du départ)
   const passee=(p_,k)=>p_.course.progression>d0[k]+REGLAGES.LONGUEUR_VOITURE;let temps=null,herbe=0,k=0;
   for(;k<duree*120;k++){pasCourseIA(e,DT);for(let i=0;i<nbIA;i++) if(e.pilotes[i].v.surHerbe) herbe++;
     if(e.pilotes.slice(0,nbIA).every(passee)){temps=k*DT;break;}}

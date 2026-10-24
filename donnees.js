@@ -192,7 +192,7 @@ const REGLAGES = {
   IA_FILE_DISTANCE: 30,         // m : hors attaque, une voiture devant lui à moins de ça…
   IA_FILE_COTE: 6,              // m : … et à moins de ça de côté, il la suit (il reste à la file)
   // une voiture lente ou arrêtée (décision du propriétaire, tour 22) : on la contourne, n'importe où, dès qu'il y a la place
-  IA_LENTE_PART: 0.6,           // une voiture vue à moins de cette part de la vitesse de la carte à son endroit est « lente »
+  IA_LENTE_PART: 0.45,          // une voiture vue à moins de cette part de la vitesse de la carte à son endroit est « lente » (0,6 : en course, les IA contournaient par l’herbe des voitures seulement retenues : herbe 4547, 3 coupes)
   IA_LENTE_ECART: 5,            // m : la ligne « éviter » passe à ça d'elle (plus que IA_REFLEXE_COTE : le réflexe ne le freine pas)
   IA_LENTE_CONTACT: 4,          // m : une ligne qui passe à moins de ça d'elle compte comme un contact (moins que IA_LENTE_ECART : près du bord, la ligne est bornée)
   IA_LENTE_NB: 2,               // il contourne les 2 voitures lentes les plus proches devant lui (une ligne « éviter » de chaque côté pour chacune)
