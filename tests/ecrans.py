@@ -811,6 +811,7 @@ def accelere(pg, titre, page):
 # podium 3D, le classement final, « Rejouer » ; Poki : commercialBreak entre deux manches et à la fin, jamais entre deux joueurs
 def tournoi(pg, titre, l, h):
     J = '() => window.APPELS_SDK.join(",")'
+    PUBS = '() => +sessionStorage.getItem("pubs") || 0'
     def boite(sel):
         return pg.evaluate('s => { const e = document.querySelector(s); if (!e) return null; const r = e.getBoundingClientRect(); return [r.left, r.top, r.right, r.bottom]; }', sel)
     pg.click('#boutonAmis')
@@ -862,18 +863,18 @@ def tournoi(pg, titre, l, h):
     vus = []
     for m in range(3):
         if m:
-            pubs = pg.evaluate(J).count('commercialBreak')
+            pubs = pg.evaluate(PUBS)
             with pg.expect_navigation(): pg.click('#boutonTournoiSuite')
             attendre(pg, '() => typeof JEU !== "undefined" && JEU.tournoi && JEU.ecran === "tournoiAToi"', None, 30000)
             t(f'{titre} : manche {m + 1} : une pub entre deux manches (une seule), puis la page de la manche (son circuit) ; l’ordre de passage = l’inverse du classement général',
-              pg.evaluate(J).count('commercialBreak') == pubs + 1 and pg.evaluate(f'() => JEU.tournoi.manche === {m} && NOM_CIRCUIT === JEU.tournoi.circuits[{m}] && TOURNOI.joueurActuel(JEU.tournoi) === TOURNOI.ordre(JEU.tournoi, {m})[0] && TOURNOI.ordre(JEU.tournoi, {m}).join() === TOURNOI.classementGeneral({{ ...JEU.tournoi, passages: JEU.tournoi.passages.slice(0, {m}) }}).map(x => x.j).reverse().join()'),
+              pg.evaluate(PUBS) == pubs + 1 and pg.evaluate(f'() => JEU.tournoi.manche === {m} && NOM_CIRCUIT === JEU.tournoi.circuits[{m}] && TOURNOI.joueurActuel(JEU.tournoi) === TOURNOI.ordre(JEU.tournoi, {m})[0] && TOURNOI.ordre(JEU.tournoi, {m}).join() === TOURNOI.classementGeneral({{ ...JEU.tournoi, passages: JEU.tournoi.passages.slice(0, {m}) }}).map(x => x.j).reverse().join()'),
               str([pg.evaluate(J), pg.evaluate('() => [JEU.tournoi.manche, TOURNOI.ordre(JEU.tournoi, JEU.tournoi.manche)]')]))
         for k in range(3):
-            pubs = pg.evaluate(J).count('commercialBreak')
+            pubs = pg.evaluate(PUBS)
             e = passage(abandon=(m == 0 and k == 2))
             vus.append(e)
             t(f'{titre} : manche {m + 1}, passage {k + 1} : le fantôme du leader du moment ({"aucun pour le premier" if k == 0 else "présent"}), gameplayStart pendant le tour, le classement s’anime (le nouveau temps marqué), aucune pub entre deux joueurs',
-              e['fantome'] == (k > 0) and (e['leader'] is None) == (k == 0) and e['sdk'] == 'gameplayStart' and e['nouveau'] != '' and pg.evaluate(J).count('commercialBreak') == pubs, str(e))
+              e['fantome'] == (k > 0) and (e['leader'] is None) == (k == 0) and e['sdk'] == 'gameplayStart' and e['nouveau'] != '' and pg.evaluate(PUBS) == pubs, str(e))
             if k < 2 or m == 2:
                 if k < 2: pg.click('#boutonTournoiSuite')
             if m == 0 and k == 2:
@@ -890,13 +891,13 @@ def tournoi(pg, titre, l, h):
     pg.click('#boutonResultats')
     fin = pg.evaluate('() => ({ ecran: JEU.ecran, lignes: [...document.querySelectorAll("#tournoiFinListe li")].map(li => li.textContent), attendu: TOURNOI.classementGeneral(JEU.tournoi).map(x => JEU.tournoi.joueurs[x.j].prenom) })')
     t(f'{titre} : le classement final (les points), puis « Rejouer » et « Nouveaux joueurs »', fin['ecran'] == 'tournoiFin' and len(fin['lignes']) == 3 and all(fin['lignes'][i].strip().startswith(fin['attendu'][i]) for i in range(3)), str(fin))
-    pubs = pg.evaluate(J).count('commercialBreak')
-    t(f'{titre} : en tout, une pub entre chaque manche (2), aucune entre deux joueurs', pubs == 2, pg.evaluate(J))
+    pubs = pg.evaluate(PUBS)
+    t(f'{titre} : en tout, une pub entre chaque manche (2), aucune entre deux joueurs', pubs == 2, str(pubs))
     apres = pg.evaluate('() => JSON.stringify([JSON.parse(localStorage.getItem(SAUVEGARDE.CLE)).championnat, JSON.parse(localStorage.getItem(SAUVEGARDE.CLE)).fantomes])')
     t(f'{titre} : la carrière n’a pas bougé (championnat, fantômes de carrière)', apres == carriere, str([carriere[:80], apres[:80]]))
     with pg.expect_navigation(): pg.click('#boutonTournoiRejouer')
     attendre(pg, '() => typeof JEU !== "undefined" && JEU.tournoi && JEU.ecran === "tournoiAToi"', None, 30000)
-    t(f'{titre} : « Rejouer » : une pub, puis un nouveau tournoi avec les mêmes joueurs et la même formule (manche 1, Léo d’abord)', pg.evaluate(J).count('commercialBreak') == 3 and pg.evaluate('() => JEU.tournoi.manche === 0 && JEU.tournoi.passages.every(p => !p.length) && JEU.tournoi.formule === "tournoi" && JEU.tournoi.joueurs.map(j => j.prenom).join() === "Léo,Sarah,Tom" && TOURNOI.joueurActuel(JEU.tournoi) === 0'), pg.evaluate(J))
+    t(f'{titre} : « Rejouer » : une pub, puis un nouveau tournoi avec les mêmes joueurs et la même formule (manche 1, Léo d’abord)', pg.evaluate(PUBS) == 3 and pg.evaluate('() => JEU.tournoi.manche === 0 && JEU.tournoi.passages.every(p => !p.length) && JEU.tournoi.formule === "tournoi" && JEU.tournoi.joueurs.map(j => j.prenom).join() === "Léo,Sarah,Tom" && TOURNOI.joueurActuel(JEU.tournoi) === 0'), pg.evaluate(J))
 
 def course_joueur(pg, titre):
     # le joueur conduit sa voiture au clavier, au milieu de 9 IA ; la caméra le suit, Tab ne change rien
@@ -1652,6 +1653,8 @@ with sync_playwright() as p:
             pg.on('pageerror', lambda e: console.append('PAGEERROR ' + str(e)))
             pg.on('requestfailed', lambda r: console.append('FICHIER MANQUANT ' + r.url))
             if 'test=sdk' in page or 'test=decouverte' in page or 'test=amis' in page or 'test=tournoi' in page: pg.add_init_script(FAUX_SDK)
+            # le tournoi change de page entre deux manches : les pubs sont aussi comptées dans sessionStorage (qui survit au rechargement)
+            if 'test=tournoi' in page: pg.add_init_script("const __cb = PokiSDK.commercialBreak; PokiSDK.commercialBreak = function () { sessionStorage.setItem('pubs', String((+sessionStorage.getItem('pubs') || 0) + 1)); return __cb.call(this); };")
             pg.goto('file://' + RACINE + '/' + page); pg.wait_for_timeout(1500)
             t(f'{titre} : console vide', not console, ' | '.join(console)[:500])
             defile = pg.evaluate('() => [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth]')
