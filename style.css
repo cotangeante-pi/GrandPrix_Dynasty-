@@ -776,7 +776,7 @@ html, body {
 /* le mode 2 joueurs (deux-joueurs.js) : l'écran partagé haut (joueur 1 🔵) / bas (joueur 2 🔴) ; ni radar ni bandeau de la course seule,
    la tour de classement partagée au milieu à droite, les feux et la jauge de chacun dans sa moitié, un petit affichage par moitié */
 body.deux #hudCourse, body.deux #radar, body.deux #tableau, body.deux #hudPenalite, body.deux #aide { display: none; }   /* (l’aide des touches de la course seule ne vaut pas à deux : ordre 3) */
-body.deux #classement { top: 50%; transform: translateY(-50%); }
+body.deux #classement { top: 50%; transform: translateY(-50%); z-index: 3; }   /* au-dessus du trait du milieu */
 #deuxSeparation { position: fixed; left: 0; right: 0; top: 50%; height: 2px; margin-top: -1px; background: rgba(255, 255, 255, 0.85); pointer-events: none; z-index: 2; }
 .deuxHud {
   position: fixed;

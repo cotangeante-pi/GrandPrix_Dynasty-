@@ -100,7 +100,9 @@ const SCENE3D = (function () {
     // l'herbe, centrée sur le circuit
     let xmin = Infinity, xmax = -Infinity, zmin = Infinity, zmax = -Infinity;
     for (let i = 0; i < c.nb; i++) { xmin = Math.min(xmin, c.x[i]); xmax = Math.max(xmax, c.x[i]); zmin = Math.min(zmin, c.z[i]); zmax = Math.max(zmax, c.z[i]); }
-    const sol = maillage(new THREE.PlaneGeometry(R.TAILLE_SOL, R.TAILLE_SOL), R.COULEUR_SOL);
+    // l'herbe est repoussée dans le tampon de profondeur (polygonOffset) : à 2 cm sous la route, elle gagnait parfois le combat de
+    // profondeur et la route disparaissait sous les voitures (vu au tour 25b, selon la taille de l'image et la caméra)
+    const sol = maillage(new THREE.PlaneGeometry(R.TAILLE_SOL, R.TAILLE_SOL), R.COULEUR_SOL, { polygonOffset: true, polygonOffsetFactor: R.SOL_RECUL_PROFONDEUR, polygonOffsetUnits: R.SOL_RECUL_PROFONDEUR });
     sol.rotation.x = -Math.PI / 2;
     sol.position.set((xmin + xmax) / 2, 0, (zmin + zmax) / 2);
     groupe.add(sol);
@@ -190,6 +192,7 @@ const SCENE3D = (function () {
     get actif() { return rendu !== null; },
     get camera() { return camera; },
     get camera2() { return camera2; },
+    get canvas() { return rendu ? rendu.domElement : null; },   // (tests : lire les pixels juste après dessiner)
     get partage() { return partage; },
     get infoCircuit() { return infoCircuit; },
     get trianglesDessines() { return trianglesDessines; },

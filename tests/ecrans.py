@@ -603,6 +603,16 @@ def deux_ecran(pg, titre, l, h, page):
     f1, f2, j1, j2 = boite('#feux'), boite('#feux2'), boite('#jauge'), boite('#jauge2')
     t(f'{titre} : les feux et la jauge du joueur 1 sont dans la moitié du haut, ceux du joueur 2 dans celle du bas', dans(f1, 0, 0, l, h / 2) and dans(j1, 0, 0, l, h / 2) and dans(f2, 0, h / 2, l, h) and dans(j2, 0, h / 2, l, h), str([f1, j1, f2, j2]))
     if l == 1280 and 'technique' not in page: pg.screenshot(path=os.path.join(CAPTURES, 'deux-feux.png'))
+    # la piste sous chaque voiture (en pixels, la boucle arrêtée, l'image lue juste après SCENE3D.dessiner) : la route est grise (PISTE_GRIS_ECART_MAX),
+    # l'herbe est verte ; vu au tour 25b : à 2 cm sous la route, l'herbe gagnait parfois le tampon de profondeur (SOL_RECUL_PROFONDEUR)
+    PISTE = '''(zones) => { BOUCLE.arreter(); const c = SCENE3D.canvas, l = c.width, h = c.height, k = document.createElement('canvas'); k.width = l; k.height = h; const ctx = k.getContext('2d');
+      SCENE3D.dessiner(); ctx.drawImage(c, 0, 0); const res = [];
+      for (const z of zones) { const x0 = Math.round(z[0] * l), y0 = Math.round(z[1] * h), w = Math.round(z[2] * l) - x0, ht = Math.round(z[3] * h) - y0, d = ctx.getImageData(x0, y0, w, ht).data; let gris = 0, n = 0;
+        for (let i = 0; i < d.length; i += 4) { n++; const m = Math.max(d[i], d[i + 1], d[i + 2]) - Math.min(d[i], d[i + 1], d[i + 2]); if (m <= REGLAGES.PISTE_GRIS_ECART_MAX) gris++; }
+        res.push({ gris: Math.round(100 * gris / n), exemple: [d[0], d[1], d[2]].join(',') }); }
+      BOUCLE.demarrer(); return res; }'''
+    piste = pg.evaluate(PISTE, [[0.45, 0.43, 0.55, 0.49], [0.45, 0.93, 0.55, 0.99]])
+    t(f'{titre} : la piste est dessinée sous chaque voiture : sur la grille, sous le joueur 1 (bas de la moitié haute) et sous le joueur 2 (bas de l’image), au moins 90 % de pixels gris de route', all(p['gris'] >= 90 for p in piste), str(piste))
     pg.evaluate('() => { for (const p of JEU.plateau.pilotes) p.course.compte = 0.01; }')
     t(f'{titre} : les deux robots partent après les feux (chacun son départ)', attendre(pg, '() => DEUX_JOUEURS.joueurs(JEU.plateau).every(p => p.course.etat === "course" && p.course.depart.lance !== null)', None, 20000), str(pg.evaluate('() => DEUX_JOUEURS.joueurs(JEU.plateau).map(p => [p.course.etat, p.course.depart.resultat])')))
     pg.evaluate('() => BOUCLE.simuler(12)'); image()
