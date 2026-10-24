@@ -194,6 +194,12 @@ const REGLAGES = {
   // une voiture lente ou arrêtée (décision du propriétaire, tour 22) : on la contourne, n'importe où, dès qu'il y a la place
   IA_LENTE_PART: 0.6,           // une voiture vue à moins de cette part de la vitesse de la carte à son endroit est « lente »
   IA_LENTE_ECART: 5,            // m : la ligne « éviter » passe à ça d'elle (plus que IA_REFLEXE_COTE : le réflexe ne le freine pas)
+  IA_LENTE_CONTACT: 4,          // m : une ligne qui passe à moins de ça d'elle compte comme un contact (moins que IA_LENTE_ECART : près du bord, la ligne est bornée)
+  IA_LENTE_NB: 2,               // il contourne les 2 voitures lentes les plus proches devant lui (une ligne « éviter » de chaque côté pour chacune)
+  IA_PENALITE_LENTE: 30,        // s ajoutées à la note d'une ligne qui touche une voiture lente ou arrêtée (on ne passe pas à travers)
+  IA_LENTE_SUR: 2.5,            // m : au pas, il ne se retient derrière elle que si sa ligne passe à moins de ça d'elle (il la frôle)
+  IA_LENTE_VITESSE_FROLE: 5,    // m/s (18 km/h) : « au pas », c'est en dessous de ça
+  IA_LENTE_PROCHE: 15,          // m : plus vite, une voiture lente à moins de ça devant lui et de côté à moins de l'écart sûr le retient
   IA_LENTE_AVANT: 40,           // m : il se porte à côté d'elle sur cette distance avant elle…
   IA_LENTE_TEMPS: 1,            // s : … ou ce qu'il parcourt en ce temps, si c'est plus
   IA_LENTE_APRES: 15,           // m : il reste à côté jusque-là derrière elle, puis revient sur sa ligne
