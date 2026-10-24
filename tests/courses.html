@@ -1,13 +1,17 @@
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><title>courses entre IA</title></head><body>
 <pre id="res"></pre>
 <script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));</script>
-<script src="../donnees.js"></script><script src="../aleatoire.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../course.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script>
+<script src="../donnees.js"></script><script src="../aleatoire.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../course.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../aileron.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script>
 <script>
 // Le critère de l'étape 4 : des courses entre IA, sans affichage. RESULTAT : le critère de 4b course par course ;
 // et celui de 4c (les dépassements) quand les IA attaquent (REGLAGES.IA_DEPASSEMENT). ?graines=15 (par circuit, 15 par défaut),
 // ?voitures=10, ?tours=5. Résumé : dépassements (et où), vainqueur ≠ poleman, meilleur rythme dans les 3 premiers,
 // chocs à plus de 5 m/s (où, à quelle vitesse), barrières, coupes, herbe, temps de calcul ; puis la course de 20 voitures.
 const Q=new URLSearchParams(location.search),GRAINES=+(Q.get('graines')||15),NB=+(Q.get('voitures')||10),TOURS=+(Q.get('tours')||5);
+// ?ailerons=1 (tour 29c, Codeur 3) : chaque IA règle son aileron avant la course (aileron.js : le profil du circuit, son caractère,
+// la graine de la course) ; les mêmes garde-fous doivent tenir. Sans ce paramètre, rien ne change (le cran du milieu partout)
+if(Q.get('ailerons')==='1'){const sansAileron=creerCourseIA;creerCourseIA=function(circuit,nb,nbTours,graine,...reste){const e=sansAileron(circuit,nb,nbTours,graine,...reste);
+  const prof=AILERON.profil(circuit);ALEATOIRE.semer(graine+REGLAGES.GRAINE_AILERON);for(const p of e.pilotes) if(!p.humain){p.aileron=AILERON.choisirIA(p.pilote&&p.pilote.caractere,prof);AILERON.appliquer(p.v,p.aileron);}ALEATOIRE.semer();return e;};}
 const L=[];let ok=0,ko=0;
 function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
 const v=(c,m)=>{if(!c)throw new Error(m||'faux');};

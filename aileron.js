@@ -48,16 +48,19 @@ const AILERON = (function () {
     return { virages: x, vitesse: 1 - x };
   }
 
-  // le profil d'un circuit (construireCircuit) : la part de la piste dans des virages lents (vitesse limite sous
-  // AILERON_VIRAGE_LENT m/s) et la part en lignes droites (courbure sous AILERON_DROITE) ; ce qu'un pilote sait de la piste
+  // le profil d'un circuit (construireCircuit), en part du TEMPS d'un tour (ce qui compte pour l'aileron) : chaque échantillon roulé
+  // à sa vitesse limite (l'adhérence, la vitesse de pointe ; comme la carte des IA, sans l'accélération) ; « lents » : là où la
+  // vitesse limite est sous AILERON_VIRAGE_LENT × la pointe ; « droites » : là où rien ne limite que la pointe. Ce qu'un pilote sait de la piste
   function profil(circuit) {
-    let lents = 0, droites = 0;
+    const pointe = vitesseDePointe();
+    let total = 0, lents = 0, droites = 0;
     for (let i = 0; i < circuit.nb; i++) {
-      const k = Math.abs(circuit.courbure[i]);
-      if (k < R.AILERON_DROITE) droites++;
-      else if (vitesseVirage(k) < R.AILERON_VIRAGE_LENT) lents++;
+      const v = Math.min(pointe, vitesseVirage(circuit.courbure[i])), dt = circuit.pas / v;
+      total += dt;
+      if (v < R.AILERON_VIRAGE_LENT * pointe) lents += dt;
+      else if (v >= pointe) droites += dt;
     }
-    return { lents: lents / circuit.nb, droites: droites / circuit.nb };
+    return { lents: lents / total, droites: droites / total };
   }
 
   // le cran d'une IA : le circuit (des virages lents → plus haut, des lignes droites → plus bas), son caractère (agressif en

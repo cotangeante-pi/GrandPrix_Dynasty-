@@ -56,9 +56,9 @@ def ecrans(delai=600):
 
 # les annexes : les pages de test des modules écrits d'avance, pas encore branchés dans le jeu (ni index.html) ; sdk.html attend
 # des rappels (promesses, minuteurs) : --virtual-time-budget fait avancer l'horloge de la page avant de rendre le DOM
-ANNEXES = ['tests/sdk.html', 'tests/pneus.html', 'tests/enregistreur.html', 'tests/circuits-a.html', 'tests/circuits-b.html', 'tests/textes.html']
+ANNEXES = ['tests/courses.html?ailerons=1', 'tests/sdk.html', 'tests/pneus.html', 'tests/enregistreur.html', 'tests/circuits-a.html', 'tests/circuits-b.html', 'tests/textes.html']
 def annexes():
-    return all([serie(p, delai=120, options=['--virtual-time-budget=5000'] if p.endswith('sdk.html') else []) for p in ANNEXES])
+    return all([serie(p, delai=300 if 'courses' in p else 120, options=['--virtual-time-budget=5000'] if p.endswith('sdk.html') else []) for p in ANNEXES])
 
 # les parties de la suite, dans l'ordre : moteur (test.html), courses (courses.html, 30 courses entre IA), ecrans (ecrans.py), annexes
 PARTIES = {'moteur': lambda: serie('tests/test.html'), 'courses': lambda: serie('tests/courses.html'), 'ecrans': lambda: ecrans(), 'annexes': annexes}

@@ -1016,14 +1016,19 @@ t('aileron : sur le circuit test, aucun cran n’est plus rapide que le milieu d
   for(const [nom,circ] of [['test',C],['technique',TQ]]) for(const ia of [false,true]){const t_=[0,1,2,3,4].map(c=>tourAileron(circ,c,ia));lignes.push(nom+(ia?' IA ':' robot ')+t_.map(x=>x.toFixed(2)).join(' / '));
     if(nom==='test') v(Math.min(...t_)>=t_[2]*(1-M),nom+(ia?' IA':' robot')+' : un cran domine '+t_.map(x=>x.toFixed(3)).join(' '));}
   L.push('  (aileron, tours moyens du cran bas au cran haut : '+lignes.join(' ; ')+')');});
-t('aileron : les IA choisissent un cran plus haut sur le technique (des virages lents) que sur le test (des lignes droites), en moyenne sur 6 graines ; leur caractère et le hasard font varier les crans', ()=>{
-  const TQ=construireCircuit(CIRCUITS.technique),pt=AILERON.profil(C),pq=AILERON.profil(TQ);let st=0,sq=0,n=0;const vus=new Set();
-  for(let g=1;g<=6;g++){const ch=CHAMPIONNAT.creer(g),a=AILERON.cransIA(ch,C),b=AILERON.cransIA(ch,TQ);
+// deux circuits d'essai pour le choix des IA : des virages lents (deux épingles serrées et de courtes droites) et des lignes droites (un
+// grand ovale) ; le test et le technique, eux, sont tous deux mixtes (le test passe même un peu plus de temps dans des virages lents)
+const VIRAGES_LENTS=construireCircuit({nom:'virages',largeur:13,secteurs:[0,0.34,0.67],depart:[0,0,0],morceaux:[['droite',150],['virage',20,180],['droite',150],['virage',20,180]]});
+const LIGNES_DROITES=construireCircuit({nom:'droites',largeur:13,secteurs:[0,0.34,0.67],depart:[0,0,0],morceaux:[['droite',1500],['virage',220,180],['droite',1500],['virage',220,180]]});
+t('aileron : les IA choisissent un cran plus haut sur un circuit de virages lents que sur un circuit de lignes droites, en moyenne sur 6 graines ; leur caractère et le hasard font varier les crans ; le profil du test et du technique est mesuré', ()=>{
+  const TQ=VIRAGES_LENTS,pt=AILERON.profil(LIGNES_DROITES),pq=AILERON.profil(TQ),C_=LIGNES_DROITES;let st=0,sq=0,n=0;const vus=new Set();
+  L.push('  (aileron, profils en part du temps : test '+JSON.stringify(AILERON.profil(C))+', technique '+JSON.stringify(AILERON.profil(construireCircuit(CIRCUITS.technique)))+')');
+  for(let g=1;g<=6;g++){const ch=CHAMPIONNAT.creer(g),a=AILERON.cransIA(ch,C_),b=AILERON.cransIA(ch,TQ);
     v(a[19]===null&&b[19]===null,'le joueur n’a pas de cran tiré');
     for(let k=0;k<19;k++){st+=a[k];sq+=b[k];n++;vus.add(a[k]);vus.add(b[k]);v(a[k]>=0&&a[k]<REGLAGES.AILERON_CRANS,'cran '+a[k]);}
-    v(JSON.stringify(AILERON.cransIA(ch,C))===JSON.stringify(a),'la même graine, les mêmes crans');}
+    v(JSON.stringify(AILERON.cransIA(ch,C_))===JSON.stringify(a),'la même graine, les mêmes crans');}
   v(pq.lents>pt.lents&&pt.droites>pq.droites,'profils : '+JSON.stringify([pt,pq]));v(sq/n>st/n&&vus.size>=3,'moyennes test '+(st/n).toFixed(2)+' technique '+(sq/n).toFixed(2)+', crans vus '+[...vus].join());
-  L.push('  (aileron des IA : moyenne '+(st/n).toFixed(2)+' sur le test, '+(sq/n).toFixed(2)+' sur le technique ; profils test '+JSON.stringify(pt)+', technique '+JSON.stringify(pq)+')');});
+  L.push('  (aileron des IA : moyenne '+(st/n).toFixed(2)+' sur les lignes droites, '+(sq/n).toFixed(2)+' sur les virages lents ; profils '+JSON.stringify(pt)+' / '+JSON.stringify(pq)+')');});
 t('aileron : le cran du joueur est gardé par circuit dans la sauvegarde ; une ancienne sauvegarde sans aileron se charge au cran du milieu ; les IA d’un Grand Prix du championnat ont leur cran (appliquerNiveaux), le joueur non', ()=>{
   localStorage.removeItem(SAUVEGARDE.CLE);const ch=CHAMPIONNAT.creer(1);v(AILERON.cranDe(ch,'test')===2&&AILERON.cranDe(ch,'technique')===2,'au départ');
   AILERON.regler(ch,'technique',4);AILERON.regler(ch,'test',9);SAUVEGARDE.ecrireChampionnat(ch);const re=SAUVEGARDE.championnat();
@@ -1043,7 +1048,7 @@ t('aileron : la carte de la prochaine course se dessine pour chaque circuit (tra
 // --- l'élision du français (tour 29c) : « d’Alex », « de Léo »
 t('textes : l’élision du français (elider) : « de Alex » → « d’Alex », « que Emma » → « qu’Emma », « de Léo » et « de Hugo » ne changent pas ; la une de la relève dit « La fille d’Alex Rossi » ; aucun texte fixe n’a « de » devant une voyelle', ()=>{
   if(LANGUE==='fr'){v(elider('La fille de Alex Rossi')==='La fille d’Alex Rossi'&&elider('plus vite que Emma')==='plus vite qu’Emma'&&elider('le fils de Léo')==='le fils de Léo'&&elider('de Hugo')==='de Hugo'&&elider('De Ines')==='D’Ines'&&elider('sans de Écurie')==='sans d’Écurie','elider : '+elider('La fille de Alex Rossi'));
-    const {ch}=carriere15(49);heritier(ch,'Léa','fille');SAISONS.avancer(ch,1);const r=JOURNAL.rendre(ch.album[ch.album.length-1],ch);v(/d’Alex Rossi/.test(r.titre+r.texte)&&!/de Alex/.test(r.titre+r.texte),'une : '+r.titre+' / '+r.texte);}
+    const {ch}=carriere15(49);CARRIERE.continuer(ch,{prenom:'Léa',lien:'fille',numero:[...Array(99).keys()].map(x=>x+1).find(n=>PILOTE.numeroLibre(ch,n)&&n!==ch.pilotes[19].numero)});SAISONS.avancer(ch,1);const r=JOURNAL.rendre(ch.album[ch.album.length-1],ch);v(/d’Alex Rossi/.test(r.titre+r.texte)&&!/de Alex/.test(r.titre+r.texte),'une : '+r.titre+' / '+r.texte);}
   const V=/(^|[\s(«“'’])([Dd]e|[Qq]ue) [AEIOUYÀÂÉÈÊÎÏÔÛaeiouyàâéèêîïôû]/;
   for(const [cle,x] of Object.entries(TEXTES.fr)) for(const s_ of (Array.isArray(x)?x:[x])) if(typeof s_==='string') v(!V.test(s_),'fr.'+cle+' : '+s_);
   v(TEXTES.en&&elider('daughter of Alex')===(LANGUE==='fr'?'daughter of Alex':'daughter of Alex'),'anglais');});
