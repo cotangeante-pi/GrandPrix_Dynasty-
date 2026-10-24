@@ -45,6 +45,31 @@ const TEXTES = {
     titreGrandPrix: 'Grand Prix {i} / {n} — {circuit}',
     placeCourse: 'P{p} / {n}',
     secondes: '{s} s',
+    // le fantôme du meilleur tour (fantome.js)
+    fantomeRecord: 'New record! {s} s faster', fantomeEcart: '+{s} s off your record',
+    fantomeOui: 'Ghost: shown', fantomeNon: 'Ghost: hidden',
+    // le départ parfait (depart.js)
+    departAide: 'Hold ↑ to keep the needle in the green · lights out: release, then press ↑',
+    departParfait: 'Perfect start!', departBon: 'Good start', departPatinage: 'Wheelspin!', departCale: 'Stalled!', departFaux: 'False start!',
+    departRecord: 'reaction record!',
+    // le premier lancement (decouverte.js) : l'écran titre, les aides, « Prêt pour ta carrière ? »
+    titreJouer: '▶ Play', titreAmis: '👥 With friends', retour: 'Back',
+    amisBientot: 'Coming soon: split screen for two, and the time-trial tournament with friends.',
+    aideGaz: '↑ accelerate', aideDirection: '← → steer', aideFrein: '↓ brake',
+    bravoTitre: 'Well done!', bravoPlace: 'You finished P{p} / {n}', bravoArgent: 'Your prize: {n} $, the first money of your career',
+    bravoQuestion: 'Ready for your career?', bravoBouton: 'Start my career',
+    // la création du pilote (pilote.js)
+    piloteTitre: 'Your driver', piloteNom: 'Name', piloteNumero: 'Number ({min}–{max})', pilotePays: 'Country', piloteCoeur: 'Home race',
+    piloteDomicile: '🏠 Home Grand Prix: {circuit}', piloteErreurNumero: 'This number belongs to a rival (or is not between {min} and {max})', piloteErreurCoeur: 'Choose your home race',
+    piloteValider: 'Let’s go!',
+    // les 12 circuits (clé : circuit_ + son nom dans CIRCUITS_PAYS), le même nom dans les deux langues
+    circuit_monoco: 'Monoco', circuit_silverstoun: 'Silverstoun', circuit_monzo: 'Monzo', circuit_spaa: 'Spaa', circuit_suzuko: 'Suzuko', circuit_interlagas: 'Interlagas',
+    circuit_montreol: 'Montréol', circuit_melbourn: 'Melbourn Park', circuit_barcelana: 'Barcelana', circuit_bahrayn: 'Bahrayn', circuit_singapura: 'Singapura', circuit_yasmarino: 'Yas Marino',
+    // les pays (clé : pays_ + code de PAYS)
+    pays_fr: 'France', pays_be: 'Belgium', pays_ch: 'Switzerland', pays_ca: 'Canada', pays_gb: 'United Kingdom', pays_it: 'Italy', pays_es: 'Spain', pays_de: 'Germany',
+    pays_nl: 'Netherlands', pays_at: 'Austria', pays_pt: 'Portugal', pays_mc: 'Monaco', pays_se: 'Sweden', pays_fi: 'Finland', pays_dk: 'Denmark', pays_no: 'Norway',
+    pays_pl: 'Poland', pays_us: 'United States', pays_mx: 'Mexico', pays_br: 'Brazil', pays_ar: 'Argentina', pays_jp: 'Japan', pays_cn: 'China', pays_au: 'Australia',
+    pays_nz: 'New Zealand', pays_sg: 'Singapore', pays_ae: 'United Arab Emirates', pays_bh: 'Bahrain', pays_za: 'South Africa', pays_in: 'India', pays_ma: 'Morocco',
     // le duel contre le coéquipier (Codeur 3)
     duelTitre: 'Teammate duel', duelScore: 'You {a} – {b} {nom}', duelDetail: '(qualifying {qa}–{qb}, races {ca}–{cb})',
     duelTour: 'Your teammate: ▲ ahead of you, ▼ behind you',
@@ -86,6 +111,14 @@ const TEXTES = {
     brevePole: ['Pole position at {circuit} for {pilote}.', '{pilote} started from pole at {circuit}.'],
     breveLeader: ['Championship: {pilote} leads with {points} points.', '{pilote} tops the standings, {points} points.'],
     breveChasseur: ['Chasing: {pilote} is {ecart} points behind the leader.', '{pilote}, {ecart} points back, is not giving up.'],
+    // l'argent et le garage (argent.js, garage.js, Codeur 3)
+    milliers: ',', montant: '€{n}',   // le séparateur des milliers et la forme d'un montant (« €12,500 »)
+    argentGagne: 'Prize money: +{n}', argentPlace: 'P{p}: {n}', argentMeilleurTour: 'fastest lap: {n}', argentPlacesGagnees: '{p} places gained: {n}',
+    argentDuel: 'teammate beaten: {n}', argentPlafond: 'capped at {n}', solde: 'Balance: {n}',
+    garage: 'Garage', garageTitre: 'Garage', garageNiveau: 'level {a} / {b}', garageAcheter: 'Buy', garageMax: 'Max', garageRetour: 'Back',
+    garageBonus: 'Car: +{a} % / {b} % max', garageRefusArgent: 'not enough money',
+    garage_roues: 'Wheel changers', garage_moteur: 'Engine', garage_aero: 'Aero', garage_freins: 'Brakes',
+    garageEffet_roues: 'faster pit stops (later)', garageEffet_moteur: 'top speed', garageEffet_aero: 'grip', garageEffet_freins: 'braking',
   },
   fr: {
     nomDuJeu: 'Grand Prix Dynasty',
@@ -131,6 +164,25 @@ const TEXTES = {
     titreGrandPrix: 'Grand Prix {i} / {n} — {circuit}',
     placeCourse: 'P{p} / {n}',
     secondes: '{s} s',
+    fantomeRecord: 'Nouveau record ! {s} s de mieux', fantomeEcart: '+{s} s du record',
+    fantomeOui: 'Fantôme : affiché', fantomeNon: 'Fantôme : masqué',
+    departAide: 'Tiens ↑ pour garder l’aiguille dans le vert · feux éteints : lâche, puis réappuie ↑',
+    departParfait: 'Départ parfait !', departBon: 'Bon départ', departPatinage: 'Patinage !', departCale: 'Calé !', departFaux: 'Faux départ !',
+    departRecord: 'record de réaction !',
+    titreJouer: '▶ Jouer', titreAmis: '👥 Entre amis', retour: 'Retour',
+    amisBientot: 'Bientôt : l’écran partagé à deux, et le tournoi chrono entre copains.',
+    aideGaz: '↑ accélérer', aideDirection: '← → tourner', aideFrein: '↓ freiner',
+    bravoTitre: 'Bravo !', bravoPlace: 'Tu finis P{p} / {n}', bravoArgent: 'Ta prime : {n} $, ton premier argent de carrière',
+    bravoQuestion: 'Prêt pour ta carrière ?', bravoBouton: 'Commencer ma carrière',
+    piloteTitre: 'Ton pilote', piloteNom: 'Nom', piloteNumero: 'Numéro ({min}–{max})', pilotePays: 'Pays', piloteCoeur: 'Course de cœur',
+    piloteDomicile: '🏠 Grand Prix à domicile : {circuit}', piloteErreurNumero: 'Ce numéro est celui d’un rival (ou n’est pas entre {min} et {max})', piloteErreurCoeur: 'Choisis ta course de cœur',
+    piloteValider: 'C’est parti !',
+    circuit_monoco: 'Monoco', circuit_silverstoun: 'Silverstoun', circuit_monzo: 'Monzo', circuit_spaa: 'Spaa', circuit_suzuko: 'Suzuko', circuit_interlagas: 'Interlagas',
+    circuit_montreol: 'Montréol', circuit_melbourn: 'Melbourn Park', circuit_barcelana: 'Barcelana', circuit_bahrayn: 'Bahrayn', circuit_singapura: 'Singapura', circuit_yasmarino: 'Yas Marino',
+    pays_fr: 'France', pays_be: 'Belgique', pays_ch: 'Suisse', pays_ca: 'Canada', pays_gb: 'Royaume-Uni', pays_it: 'Italie', pays_es: 'Espagne', pays_de: 'Allemagne',
+    pays_nl: 'Pays-Bas', pays_at: 'Autriche', pays_pt: 'Portugal', pays_mc: 'Monaco', pays_se: 'Suède', pays_fi: 'Finlande', pays_dk: 'Danemark', pays_no: 'Norvège',
+    pays_pl: 'Pologne', pays_us: 'États-Unis', pays_mx: 'Mexique', pays_br: 'Brésil', pays_ar: 'Argentine', pays_jp: 'Japon', pays_cn: 'Chine', pays_au: 'Australie',
+    pays_nz: 'Nouvelle-Zélande', pays_sg: 'Singapour', pays_ae: 'Émirats arabes unis', pays_bh: 'Bahreïn', pays_za: 'Afrique du Sud', pays_in: 'Inde', pays_ma: 'Maroc',
     // le duel contre le coéquipier (Codeur 3)
     duelTitre: 'Duel contre ton coéquipier', duelScore: 'Toi {a} – {b} {nom}', duelDetail: '(qualifs {qa}–{qb}, courses {ca}–{cb})',
     duelTour: 'Ton coéquipier : ▲ devant toi, ▼ derrière toi',
@@ -170,6 +222,14 @@ const TEXTES = {
     brevePole: ['Pole position à {circuit} pour {pilote}.', '{pilote} partait de la pole à {circuit}.'],
     breveLeader: ['Championnat : {pilote} en tête avec {points} points.', '{pilote} domine le classement, {points} points.'],
     breveChasseur: ['À la poursuite : {pilote} à {ecart} points du leader.', '{pilote}, à {ecart} points, ne lâche rien.'],
+    // l'argent et le garage (argent.js, garage.js, Codeur 3)
+    milliers: '\u202f', montant: '{n} €',   // l'espace fine insécable des milliers (« 12 500 € »)
+    argentGagne: 'Gains : +{n}', argentPlace: 'P{p} : {n}', argentMeilleurTour: 'meilleur tour : {n}', argentPlacesGagnees: '{p} places gagnées : {n}',
+    argentDuel: 'coéquipier battu : {n}', argentPlafond: 'plafonné à {n}', solde: 'Solde : {n}',
+    garage: 'Garage', garageTitre: 'Garage', garageNiveau: 'niveau {a} / {b}', garageAcheter: 'Acheter', garageMax: 'Maxi', garageRetour: 'Retour',
+    garageBonus: 'Voiture : +{a} % / {b} % maxi', garageRefusArgent: 'pas assez d’argent',
+    garage_roues: 'Changeurs de roues', garage_moteur: 'Moteur', garage_aero: 'Aéro', garage_freins: 'Freins',
+    garageEffet_roues: 'arrêt au stand plus court (plus tard)', garageEffet_moteur: 'vitesse de pointe', garageEffet_aero: 'adhérence', garageEffet_freins: 'freinage',
   },
 };
 

@@ -29,7 +29,7 @@ for(const [cle,def] of Object.entries(CIRCUITS_OFFICIELS_B)){
     for(let i=0;i<c.nb;i++) for(let j=i+1;j<c.nb;j++){const ds=Math.min(c.s[j]-c.s[i],c.longueur-(c.s[j]-c.s[i]));if(ds<=100) continue;
       const d=Math.hypot(c.x[i]-c.x[j],c.z[i]-c.z[j]);if(d<pire){pire=d;ou='s = '+c.s[i].toFixed(0)+' / '+c.s[j].toFixed(0);}}
     L.push('    (écart le plus petit '+pire.toFixed(1)+' m ('+ou+'), il faut plus de '+seuil+' m)');v(pire>seuil,pire.toFixed(1)+' m, '+ou);});
-  t(cle+' : longueur entre 3,5 et 7 km', ()=>{v(c.longueur>=LONGUEUR_MIN&&c.longueur<=LONGUEUR_MAX,c.longueur.toFixed(0)+' m');});
+  t(cle+' : longueur entre 3,5 et 7 km, et à moins de 10 % de la vraie ('+def.vraieLongueur/1000+' km)', ()=>{v(c.longueur>=LONGUEUR_MIN&&c.longueur<=LONGUEUR_MAX,c.longueur.toFixed(0)+' m');v(Math.abs(c.longueur/def.vraieLongueur-1)<=0.1,c.longueur.toFixed(0)+' m contre '+def.vraieLongueur);});
   t(cle+' : largeur entre 12 et 15 m', ()=>{v(def.largeur>=12&&def.largeur<=15,def.largeur+' m');});
   t(cle+' : aucun virage plus serré que la demi-largeur', ()=>{v(1/k>=c.largeur/2,(1/k).toFixed(1)+' m');});
   t(cle+' : un point de dépassement (une droite d’au moins 400 m qui finit dans un virage de rayon ≤ 50 m)', ()=>{
@@ -46,7 +46,9 @@ for(const [cle,def] of Object.entries(CIRCUITS_OFFICIELS_B)){
   let d='M'+P(0);for(let i=4;i<c.nb;i+=4) d+='L'+P(i);d+='Z';let sens='M'+P(0);for(let i=4;i<120&&i<c.nb;i+=4) sens+='L'+P(i);
   document.getElementById('dessins').insertAdjacentHTML('beforeend','<figure style="display:inline-block;margin:6px"><svg width="'+T+'" height="'+T+'"><path d="'+d+'" fill="none" stroke="#333" stroke-width="'+Math.max(2,c.largeur*e)+'" stroke-linejoin="round"/><path d="'+sens+'" fill="none" stroke="#bbb" stroke-width="'+Math.max(2,c.largeur*e)+'"/><circle cx="'+P(0).split(',')[0]+'" cy="'+P(0).split(',')[1]+'" r="5" fill="red"/></svg><figcaption>'+def.nom+' — '+(c.longueur/1000).toFixed(2)+' km</figcaption></figure>');
 }
-t('Yas Marino (le « giant loop ») est le plus long des 6', ()=>{const max=Math.max(...Object.values(longueurs));v(longueurs.yasmarino===max,JSON.stringify(longueurs));});
+t('le plus long des 6 est celui dont le vrai circuit est le plus long (Bahrayn), le plus court aussi (Montréol) : les tracés disent le vrai', ()=>{
+  const V=Object.fromEntries(Object.entries(CIRCUITS_OFFICIELS_B).map(([k,d])=>[k,d.vraieLongueur])),plus=o=>Object.keys(o).reduce((a,b)=>o[a]>o[b]?a:b),moins=o=>Object.keys(o).reduce((a,b)=>o[a]<o[b]?a:b);
+  v(plus(V)==='bahrayn'&&moins(V)==='montreol','vraies : '+JSON.stringify(V));v(plus(longueurs)==='bahrayn'&&moins(longueurs)==='montreol',JSON.stringify(longueurs));});
 t('les noms ne sont pas ceux des circuits d’essai et les clés sont nouvelles', ()=>{for(const cle of Object.keys(CIRCUITS_OFFICIELS_B)) v(!(cle in CIRCUITS),cle);});
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 document.getElementById('res').textContent=`RESULTAT ${ok}/${ok+ko}\n`+L.join('\n');

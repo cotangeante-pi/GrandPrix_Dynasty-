@@ -45,10 +45,10 @@ const INTERFACE = (function () {
   }
 
   function montrer(ecran) {
-    for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une']) $(id).classList.toggle('cache', id !== ecran);
+    for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une', 'garage', 'titre', 'amis', 'bravo', 'pilote']) $(id).classList.toggle('cache', id !== ecran);
     // le bandeau de course n'est là que pendant la course et la pause (pas sous l'écran de fin)
     const course = ecran === 'course' || ecran === 'pause';
-    for (const id of ['hudCourse', 'hudPenalite', 'compte', 'feux', 'classement', 'radar']) if (!course) $(id).classList.add('cache');
+    for (const id of ['hudCourse', 'hudPenalite', 'compte', 'feux', 'classement', 'radar', 'jauge', 'departResultat', 'aides']) if (!course) $(id).classList.add('cache');
     if (course) $('hudCourse').classList.remove('cache');
   }
 
@@ -249,8 +249,137 @@ const INTERFACE = (function () {
     $('compte').textContent = texte('preparation');
   }
 
+  // le premier lancement (decouverte.js) : l'écran titre (jouer, entre amis → « bientôt », retour) et « Prêt pour ta carrière ? »
+  function preparerTitre(jouer, amis, retour, carriere) {
+    $('titreNom').textContent = texte('nomDuJeu');
+    $('boutonJouer').textContent = texte('titreJouer');
+    $('boutonAmis').textContent = texte('titreAmis');
+    $('amisTexte').textContent = texte('amisBientot');
+    $('boutonAmisRetour').textContent = texte('retour');
+    $('bravoTitre').textContent = texte('bravoTitre');
+    $('bravoQuestion').textContent = texte('bravoQuestion');
+    $('boutonCarriere').textContent = texte('bravoBouton');
+    for (const [id, f] of [['boutonJouer', jouer], ['boutonAmis', amis], ['boutonAmisRetour', retour], ['boutonCarriere', carriere]]) {
+      $(id).addEventListener('mousedown', e => e.preventDefault());
+      $(id).addEventListener('click', f);
+    }
+  }
+
+  // « Bravo ! » : la place du joueur (place, nb) et sa prime
+  function remplirBravo(place, nb, prime) {
+    $('bravoPlace').textContent = texte('bravoPlace').replace('{p}', place).replace('{n}', nb);
+    $('bravoArgent').textContent = texte('bravoArgent').replace('{n}', prime);
+  }
+
+  // les aides en surimpression de la découverte : a = { gaz, direction, frein (vrais quand la touche a servi), clignote } ou null (cachées)
+  function majAides(a) {
+    $('aides').classList.toggle('cache', !a);
+    if (!a) return;
+    for (const [id, cle, servi] of [['aideGaz', 'aideGaz', a.gaz], ['aideDirection', 'aideDirection', a.direction], ['aideFrein', 'aideFrein', a.frein]]) {
+      $(id).textContent = texte(cle);
+      $(id).classList.toggle('cache', !!servi);
+    }
+    $('aideGaz').classList.toggle('clignote', !!a.clignote);
+  }
+
+  // la création du pilote (pilote.js) : l'écran et ses champs. remplirPilote(ch) : les listes (pays par nom traduit, les 12
+  // circuits), les valeurs de départ (nom par défaut, premier numéro libre) ; lirePilote() : les choix tapés ; montrerErreursPilote
+  const nomCircuit = c => texte('circuit_' + c) || c;
+  function remplirPilote(ch) {
+    const R = REGLAGES;
+    $('piloteTitre').textContent = texte('piloteTitre');
+    $('piloteNomTexte').textContent = texte('piloteNom');
+    $('piloteNumeroTexte').textContent = texte('piloteNumero').replace('{min}', R.NUMERO_MIN).replace('{max}', R.NUMERO_MAX);
+    $('pilotePaysTexte').textContent = texte('pilotePays');
+    $('piloteCoeurTexte').textContent = texte('piloteCoeur');
+    $('boutonPiloteValider').textContent = texte('piloteValider');
+    const nom = $('piloteNom'), numero = $('piloteNumero');
+    nom.maxLength = R.NOM_LONGUEUR_MAX; nom.placeholder = texte('nomJoueur'); nom.value = '';
+    numero.min = R.NUMERO_MIN; numero.max = R.NUMERO_MAX;
+    let libre = R.NUMERO_MIN; while (!PILOTE.numeroLibre(ch, libre) && libre < R.NUMERO_MAX) libre++;
+    numero.value = libre;
+    const pays = $('pilotePays'), coeur = $('piloteCoeur');
+    pays.textContent = ''; coeur.textContent = '';
+    for (const code of R.PAYS.slice().sort((a, b) => texte('pays_' + a).localeCompare(texte('pays_' + b), LANGUE))) { const o = document.createElement('option'); o.value = code; o.textContent = texte('pays_' + code); pays.appendChild(o); }
+    for (const c of Object.keys(R.CIRCUITS_PAYS)) { const o = document.createElement('option'); o.value = c; o.textContent = nomCircuit(c); coeur.appendChild(o); }
+    pays.value = R.PAYS[0];
+    $('piloteErreur').textContent = '';
+    majDomicilePilote();
+  }
+
+  // le pays choisi a-t-il un circuit ? alors la course de cœur est imposée et montrée 🏠
+  function majDomicilePilote() {
+    const maison = PILOTE.domicile($('pilotePays').value);
+    $('piloteCoeur').disabled = !!maison;
+    if (maison) $('piloteCoeur').value = maison;
+    $('piloteDomicile').textContent = maison ? texte('piloteDomicile').replace('{circuit}', nomCircuit(maison)) : '';
+  }
+
+  function lirePilote() {
+    return { nom: $('piloteNom').value, numero: $('piloteNumero').value, pays: $('pilotePays').value, coeur: $('piloteCoeur').value };
+  }
+
+  function montrerErreursPilote(erreurs) {
+    const R = REGLAGES;
+    $('piloteErreur').textContent = erreurs.includes('numero') ? texte('piloteErreurNumero').replace('{min}', R.NUMERO_MIN).replace('{max}', R.NUMERO_MAX) : erreurs.includes('coeur') ? texte('piloteErreurCoeur') : '';
+  }
+
+  function preparerPilote(valider) {
+    $('pilotePays').addEventListener('change', majDomicilePilote);
+    $('boutonPiloteValider').addEventListener('mousedown', e => e.preventDefault());
+    $('boutonPiloteValider').addEventListener('click', valider);
+    $('piloteNom').addEventListener('keydown', e => e.stopPropagation());     // taper son nom ne conduit pas la voiture
+    $('piloteNumero').addEventListener('keydown', e => e.stopPropagation());
+  }
+
+  // le départ parfait (depart.js) : pendant les feux, la jauge du régime de départ avec sa zone verte (DEPART_VERT), jusqu'au
+  // lancement ; après, le résultat et le temps de réaction pendant DEPART_AFFICHAGE s (record : « ★ record de réaction ! »)
+  function majDepart(c, ecran, record) {
+    const d = c && c.depart, jauge = $('jauge'), res = $('departResultat');
+    const tenue = !!d && d.humain && d.lance === null && ecran === 'course' && c.etat !== 'finie' && (c.etat !== 'compte' || c.compte < c.feux.total);
+    jauge.classList.toggle('cache', !tenue);
+    if (tenue) {
+      const [bas, haut] = REGLAGES.DEPART_VERT;
+      $('jaugeVert').style.left = (bas * 100) + '%';
+      $('jaugeVert').style.width = ((haut - bas) * 100) + '%';
+      $('jaugeAiguille').style.left = (d.regime * 100) + '%';
+      $('jaugeAide').textContent = texte('departAide');
+    }
+    const montre = !!d && d.humain && d.lance !== null && ecran === 'course' && d.t - d.lance < REGLAGES.DEPART_AFFICHAGE;
+    res.classList.toggle('cache', !montre);
+    if (montre) {
+      const cle = { parfait: 'departParfait', bon: 'departBon', patinage: 'departPatinage', cale: 'departCale', faux: 'departFaux' }[d.resultat];
+      res.textContent = texte(cle) + ' · ' + secondes(Math.max(0, d.reaction).toFixed(2)) + (record ? ' ★ ' + texte('departRecord') : '');
+      res.className = d.resultat;
+    }
+  }
+
+  // l'écart en direct avec le fantôme du meilleur tour (fantome.js), sous le chrono : « −0,34 » en vert (le joueur est
+  // devant), « +0,12 » en rouge (derrière), « 0,00 » neutre ; null : caché
+  function majEcartFantome(e) {
+    const el = $('hudEcart');
+    el.classList.toggle('cache', e === null || e === undefined);
+    if (e === null || e === undefined) return;
+    const r = Math.round(e * 100) / 100, classe = r < 0 ? 'vert' : r > 0 ? 'rouge' : 'egal';
+    el.textContent = (r < 0 ? '−' : r > 0 ? '+' : '') + Math.abs(r).toFixed(2).replace('.', texte('virgule'));
+    if (!el.classList.contains(classe)) el.className = classe;
+  }
+
+  // le bouton « Fantôme : affiché / masqué » (écran de qualification et menu pause) ; bascule() change le réglage
+  function preparerFantome(bascule) {
+    for (const id of ['boutonFantomeQualif', 'boutonFantomePause']) {
+      $(id).addEventListener('mousedown', e => e.preventDefault());
+      $(id).addEventListener('click', bascule);
+    }
+  }
+  function majBoutonsFantome(visible) {
+    for (const id of ['boutonFantomeQualif', 'boutonFantomePause']) $(id).textContent = texte(visible ? 'fantomeOui' : 'fantomeNon');
+  }
+
   // la qualification du joueur : etat = 'choix' (deux boutons), 'attente' (la carte des IA se calcule encore),
-  // 'resultat' ({ place, nb, temps, valide, passe, ecart } ; bouton vers la course)
+  // 'resultat' ({ place, nb, temps, valide, passe, ecart, fantome } ; bouton vers la course). fantome (facultatif, le tour
+  // fait) : { record (nouveau record du circuit), gagne (s de mieux que l'ancien, null s'il n'y en avait pas), ecart (s de
+  // plus que le record, sinon) }
   function remplirQualif(etat, r) {
     $('qualifTitre').textContent = texte('qualifTitre');
     $('boutonQualifTour').textContent = texte('qualifTour');
@@ -268,6 +397,10 @@ const INTERFACE = (function () {
         + ' · ' + (r.ecart > 0 ? texte('qualifEcart').replace('{s}', r.ecart.toFixed(3).replace('.', texte('virgule'))) : texte('qualifPole'));
     }
     $('qualifTexte').textContent = t;
+    const f = etat === 'resultat' && r.fantome, s = x => x.toFixed(2).replace('.', texte('virgule'));
+    $('qualifFantome').textContent = !f ? '' : f.record ? (f.gagne === null ? texte('nouveauRecord') : texte('fantomeRecord').replace('{s}', s(f.gagne)))
+      : f.ecart !== null ? texte('fantomeEcart').replace('{s}', s(f.ecart)) : '';
+    $('boutonFantomeQualif').classList.toggle('cache', etat !== 'choix');
   }
 
   function preparerQualif(tour, passer, course) {
@@ -305,9 +438,66 @@ const INTERFACE = (function () {
     CHAMPIONNAT.classementEcuries(ch).forEach((x, i) => { const e = ch.ecuries[x.id]; ecuries.appendChild(ligne(i + 1, e.couleur, nomEcurie(e), x.points, e.id === REGLAGES.ECURIE_JOUEUR)); });
   }
 
-  function preparerChampionnat(suivante) {
+  function preparerChampionnat(suivante, garage) {
     $('boutonCourseSuivante').addEventListener('mousedown', e => e.preventDefault());
     $('boutonCourseSuivante').addEventListener('click', suivante);
+    $('boutonGarage').textContent = texte('garage');
+    $('boutonGarage').addEventListener('mousedown', e => e.preventDefault());
+    if (garage) $('boutonGarage').addEventListener('click', garage);
+  }
+
+  // --- l'argent et le garage (Codeur 3, argent.js et garage.js) ---
+  // les résultats : les gains du Grand Prix (ARGENT.gains, avec placeNumero : la place), avec le détail ; g null : rien
+  function remplirArgent(g) {
+    const p = $('resultatsArgent'), F = ARGENT.formater;
+    if (!g) { p.textContent = ''; return; }
+    const detail = [];
+    if (g.place) detail.push(avec(texte('argentPlace'), { p: g.placeNumero, n: F(g.place) }));
+    if (g.meilleurTour) detail.push(avec(texte('argentMeilleurTour'), { n: F(g.meilleurTour) }));
+    if (g.placesGagnees) detail.push(avec(texte('argentPlacesGagnees'), { p: g.nbPlacesGagnees, n: F(g.placesGagnees) }));
+    if (g.duel) detail.push(avec(texte('argentDuel'), { n: F(g.duel) }));
+    if (g.plafonne) detail.push(avec(texte('argentPlafond'), { n: F(g.total) }));
+    p.textContent = avec(texte('argentGagne'), { n: F(g.total) }) + (detail.length ? ' (' + detail.join(' · ') + ')' : '');
+  }
+
+  // l'écran du championnat : le solde
+  function remplirSolde(ch) {
+    $('championnatArgent').textContent = avec(texte('solde'), { n: ARGENT.formater(ARGENT.solde(ch)) });
+  }
+
+  // l'écran du garage : les 4 améliorations (niveau, prix du suivant, « Acheter » grisé si impossible), le solde, le bonus
+  let achatGarage = null;
+  function remplirGarage(ch) {
+    const R = REGLAGES, F = ARGENT.formater, g = GARAGE.completer(ch);
+    $('garageTitre').textContent = texte('garageTitre');
+    $('garageSolde').textContent = avec(texte('solde'), { n: F(ARGENT.solde(ch)) });
+    $('garageBonus').textContent = avec(texte('garageBonus'), { a: (GARAGE.bonus(g) * 100).toFixed(1).replace('.', texte('virgule')), b: Math.round(R.GARAGE_PLAFOND * 100) });
+    $('boutonGarageRetour').textContent = texte('garageRetour');
+    const liste = $('garageListe');
+    liste.textContent = '';
+    for (const nom of GARAGE.NOMS) {
+      const li = document.createElement('li'), prix = GARAGE.prix(ch, nom), refus = GARAGE.refus(ch, nom);
+      li.dataset.nom = nom;
+      const sp = (classe, contenu) => { const e = document.createElement('span'); e.className = classe; e.textContent = contenu; return e; };
+      li.append(sp('nom', texte('garage_' + nom)), sp('effet', texte('garageEffet_' + nom)),
+        sp('niveau', avec(texte('garageNiveau'), { a: g[nom], b: R.GARAGE_NIVEAUX })), sp('prix', prix === null ? texte('garageMax') : F(prix)));
+      const b = document.createElement('button');
+      b.className = 'acheter';
+      b.tabIndex = -1;
+      b.textContent = texte('garageAcheter');
+      b.disabled = refus !== null;
+      b.title = refus === 'argent' ? texte('garageRefusArgent') : '';
+      b.addEventListener('mousedown', e => e.preventDefault());
+      b.addEventListener('click', () => { if (achatGarage) achatGarage(nom); });
+      li.appendChild(b);
+      liste.appendChild(li);
+    }
+  }
+
+  function preparerGarage(acheter, retour) {
+    achatGarage = acheter;
+    $('boutonGarageRetour').addEventListener('mousedown', e => e.preventDefault());
+    $('boutonGarageRetour').addEventListener('click', retour);
   }
 
   function preparerPause(reprendre, recommencer) {
@@ -346,5 +536,6 @@ const INTERFACE = (function () {
   }
 
   return { formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, preparerChampionnat, remplirQualif, preparerQualif,
-    remplirDuel, avec, remplirUne, preparerUne };
+    remplirDuel, avec, remplirUne, preparerUne, remplirArgent, remplirSolde, remplirGarage, preparerGarage,
+    majEcartFantome, preparerFantome, majBoutonsFantome, majDepart, preparerTitre, remplirBravo, majAides, remplirPilote, lirePilote, montrerErreursPilote, preparerPilote, nomCircuit };
 })();

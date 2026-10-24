@@ -1,7 +1,7 @@
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><title>tests</title></head><body>
 <pre id="res"></pre>
 <script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));window.addEventListener('unhandledrejection',e=>__err.push('promesse : '+(e.reason&&e.reason.message||e.reason)));</script>
-<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../son.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../journal.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../principal.js"></script>
+<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../son.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../decouverte.js"></script><script src="../pilote.js"></script><script src="../journal.js"></script><script src="../argent.js"></script><script src="../garage.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../fantome.js"></script><script src="../principal.js"></script>
 <script>
 const L=[];let ok=0,ko=0;
 function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
@@ -937,6 +937,262 @@ t('enregistreur : 20 voitures (19 IA + le robot), 5 tours sur le circuit test, e
   L.push('  (enregistreur : '+pas+' pas, '+images+' images, '+(enr.octets()/1024).toFixed(0)+' Ko, '+(ms/pas*1000).toFixed(1)+' µs par pas pour l’enregistreur, sur '+(total/pas*1000).toFixed(0)+' µs par pas en tout ; pire écart relu '+(pire*1000).toFixed(2)+' mm ; '+m.length+' moments forts dont '+m.filter(x=>x.type==='depassement').length+' dépassements et '+m.filter(x=>x.type==='sortie').length+' sorties)');
   v(e.pilotes.every(p=>p.arrivee!==null),'tout le monde arrive');v(pire<0.01,'écart relu '+pire);v(enr.octets()<1.5e6,enr.octets()+' octets');v(ms/pas<0.1,(ms/pas*1000).toFixed(1)+' µs par pas');
   v(m.some(x=>x.type==='depart')&&m.some(x=>x.type==='arrivee'&&x.qui!==null),'départ et arrivée');});
+
+// --- le fantôme du meilleur tour (tour 22b, étape 5, fantome.js) : calcul pur, sur l'enregistreur
+// un tour de qualification du robot (QUALIFICATION.pas), noté à chaque pas du tour lancé comme dans principal.js (noterFantome) ;
+// marge : la part de la vitesse limite que le robot ose dans les virages (ROBOT_MARGE_VIRAGE) : plus petite, le tour est plus lent
+function tourFantome(marge){const vo=creerVoiture(C,0),q=QUALIFICATION.creer(C,vo);q.course.compte=0;const tour=FANTOME.commencer(),pts=[],margeAvant=REGLAGES.ROBOT_MARGE_VIRAGE;
+  if(marge) REGLAGES.ROBOT_MARGE_VIRAGE=marge;
+  rouler(vo,C,200,v_=>piloteRobot(v_,C),(v_,i)=>{const finiAvant=q.fini,fini=QUALIFICATION.pas(q,v_,DT);
+    if(q.lance&&!finiAvant){const t_=fini?q.temps:QUALIFICATION.chrono(q),s_=fini?q.fin:QUALIFICATION.distance(q);FANTOME.noter(tour,t_,v_,s_);pts.push({t:t_,s:s_,x:v_.x,z:v_.z});}
+    if(fini) return false;});
+  REGLAGES.ROBOT_MARGE_VIRAGE=margeAvant;
+  return {q,tour,pts};}
+let FANTOME_F=null;
+t('fantôme : FANTOME_PAS est un nombre entier de pas de physique (les images tombent sur des pas)', ()=>{const n=REGLAGES.FANTOME_PAS/REGLAGES.PAS_PHYSIQUE;v(Math.abs(n-Math.round(n))<1e-9,String(n));});
+t('fantôme : un tour du robot enregistré puis compacté (nombres arrondis) et rejoué repasse aux mêmes positions (< 2 cm aux images, < 30 cm entre deux images) ; rejoué contre soi-même, l’écart vaut 0 (|écart| < 0,01 s sur tout le tour, écart final 0) ; la taille d’un fantôme est mesurée', ()=>{
+  const a=tourFantome();v(a.q.fini&&a.q.valide,'tour pas fini');
+  const f=FANTOME.compacter(a.tour,a.q.temps,a.q.fin),rejeu=FANTOME.charger(f);FANTOME_F=f;
+  v(rejeu&&rejeu.nb===f.x.length&&f.x.length>100&&f.pas===REGLAGES.FANTOME_PAS,'images '+f.x.length);
+  v(Math.abs(f.temps-a.q.temps)<0.001&&Math.abs(f.fin-C.longueur)<2,'temps '+f.temps+' / '+a.q.temps+', fin '+f.fin+' / '+C.longueur);
+  v(f.x.every(x=>Math.round(x*100)===x*100||Math.abs(Math.round(x*100)-x*100)<1e-6),'arrondi');
+  let pireImage=0,pireEntre=0,pireEcart=0,nImages=0;
+  for(const p of a.pts){const q_=FANTOME.position(rejeu,p.t),d=Math.hypot(q_.x-p.x,q_.z-p.z),k=p.t/f.pas,surImage=Math.abs(k-Math.round(k))<1e-6&&k<f.x.length;
+    if(surImage){pireImage=Math.max(pireImage,d);nImages++;} else if(p.t<=rejeu.duree) pireEntre=Math.max(pireEntre,d);   // après la dernière image (moins de FANTOME_PAS avant la ligne), le fantôme attend sur elle
+    pireEcart=Math.max(pireEcart,Math.abs(FANTOME.ecart(rejeu,p.t,p.s)));}
+  const final=FANTOME.ecartFinal(rejeu,a.q.temps);
+  L.push('  (fantôme : tour du robot '+a.q.temps.toFixed(2)+' s, '+f.x.length+' images à '+f.pas+' s, '+FANTOME.taille(f)+' octets sauvegardés ; rejoué : pire écart '+(pireImage*100).toFixed(2)+' cm aux '+nImages+' images, '+(pireEntre*100).toFixed(1)+' cm entre elles ; écart contre soi-même au plus '+(pireEcart*1000).toFixed(1)+' ms, final '+final.toFixed(3)+' s)');
+  v(nImages>=f.x.length-1,'images relues '+nImages+' / '+f.x.length);v(pireImage<0.02,'aux images : '+pireImage);v(pireEntre<0.3,'entre les images : '+pireEntre);
+  v(pireEcart<0.01,'écart contre soi-même '+pireEcart);v(Math.abs(final)<0.001,'écart final '+final);
+  v(FANTOME.taille(f)<60000,'taille '+FANTOME.taille(f));});
+t('fantôme : contre un tour plus lent (robot plus prudent en virage), l’écart en direct est positif après le premier virage et grandit ; l’écart final = la différence des temps ; un tour plus lent ne remplace pas le record, un tour coupé jamais, un meilleur temps oui, le premier tour valide aussi', ()=>{
+  const f=FANTOME_F,rejeu=FANTOME.charger(f),b=tourFantome(0.7);v(b.q.fini&&b.q.valide&&b.q.temps>f.temps+1,'tour prudent '+b.q.temps+' / '+f.temps);
+  const ecarts=b.pts.map(p=>FANTOME.ecart(rejeu,p.t,p.s));const milieu=ecarts[Math.floor(ecarts.length/2)],fin=ecarts[ecarts.length-1];
+  v(ecarts.slice(Math.floor(ecarts.length/4)).every(e=>e>0),'écart pas toujours positif');v(fin>milieu&&milieu>0,'écart qui grandit : '+milieu+' → '+fin);
+  v(Math.abs(FANTOME.ecartFinal(rejeu,b.q.temps)-(b.q.temps-f.temps))<1e-9,'écart final');
+  L.push('  (contre le fantôme, robot bridé : tour '+b.q.temps.toFixed(2)+' s, écart au milieu +'+milieu.toFixed(2)+' s, final +'+(b.q.temps-f.temps).toFixed(2)+' s)');
+  v(!FANTOME.bat(f,b.q.temps,false),'plus lent');v(!FANTOME.bat(f,f.temps,false),'égal');v(!FANTOME.bat(f,f.temps-1,true),'coupé');v(!FANTOME.bat(null,50,true),'coupé sans record');
+  v(FANTOME.bat(f,f.temps-0.001,false),'meilleur');v(FANTOME.bat(null,50,false),'premier');v(!FANTOME.bat(f,null,false)&&!FANTOME.bat(f,NaN,false),'sans temps');});
+t('fantôme : la sauvegarde garde le fantôme du circuit (proposerFantome : un tour plus lent ou coupé ne le remplace pas, un meilleur oui) et l’option « masqué » ; une ancienne sauvegarde sans fantôme se charge sans erreur (fantomes {}, options {}, reaction null) ; un fantôme abîmé est ignoré', ()=>{
+  const f=FANTOME_F;localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:3,records:{'5':61.5},championnat:null}));
+  let d=SAUVEGARDE.lire();v(d.version===SAUVEGARDE.VERSION&&d.records['5']===61.5&&JSON.stringify(d.fantomes)==='{}'&&JSON.stringify(d.options)==='{}'&&d.reaction===null,'ancienne : '+JSON.stringify(d));
+  v(SAUVEGARDE.fantome('test')===null&&SAUVEGARDE.fantome('technique')===null&&SAUVEGARDE.option('fantome',true)===true,'rien au départ');
+  v(SAUVEGARDE.proposerFantome('test',f,false)===true,'premier record');v(SAUVEGARDE.fantome('test').temps===f.temps&&SAUVEGARDE.fantome('technique')===null,'gardé pour le circuit test seulement');
+  const lent=Object.assign({},f,{temps:f.temps+0.5}),mieux=Object.assign({},f,{temps:f.temps-0.5});
+  v(SAUVEGARDE.proposerFantome('test',lent,false)===false&&SAUVEGARDE.fantome('test').temps===f.temps,'plus lent gardé');
+  v(SAUVEGARDE.proposerFantome('test',mieux,true)===false&&SAUVEGARDE.fantome('test').temps===f.temps,'coupé gardé');
+  v(SAUVEGARDE.proposerFantome('test',mieux,false)===true&&SAUVEGARDE.fantome('test').temps===mieux.temps,'meilleur pas gardé');
+  v(SAUVEGARDE.proposerFantome('technique',f,false)===true&&SAUVEGARDE.fantome('technique').temps===f.temps&&SAUVEGARDE.fantome('test').temps===mieux.temps,'par circuit');
+  d=SAUVEGARDE.lire();v(d.records['5']===61.5&&FANTOME.valide(JSON.parse(JSON.stringify(d.fantomes.test))),'records gardés, fantôme relisible');
+  v(SAUVEGARDE.ecrireOption('fantome',false)&&SAUVEGARDE.option('fantome',true)===false&&SAUVEGARDE.lire().fantomes.test.temps===mieux.temps,'option');
+  d=SAUVEGARDE.lire();d.fantomes.test={temps:1,x:[1]};SAUVEGARDE.ecrire(d);v(SAUVEGARDE.fantome('test')===null&&FANTOME.charger(d.fantomes.test)===null,'abîmé');
+  localStorage.removeItem(SAUVEGARDE.CLE);});
+t('fantôme : il n’est pas une voiture : il n’a pas de place sur la piste, voituresVues ne le voit pas, et une course entre IA (pasCourseIA) ne connaît que les voitures de ses pilotes (ni contact ni aspiration possibles)', ()=>{
+  const rejeu=FANTOME.charger(FANTOME_F),p=FANTOME.position(rejeu,10);v(p.piste===undefined&&typeof p.x==='number','position');
+  const e=creerCourseIA(C,3,1,7,CARTES_T.test,true);
+  // le fantôme posé juste devant chaque voiture de la grille : même là, voituresVues ne le voit pas (il n'a pas de piste)
+  for(const pil of e.pilotes){const q_={x:pil.v.x+Math.cos(pil.v.cap)*8,z:pil.v.z+Math.sin(pil.v.cap)*8,cap:pil.v.cap,vitesse:0};const vues=voituresVues(pil.v,e.pilotes.map(x=>x.v).concat([q_]));v(vues.every(w=>w.id!==q_),'le fantôme est vu');
+    v(voituresVues(pil.v,e.pilotes.map(x=>x.v).concat([Object.assign({},q_,{piste:pil.v.piste})])).some(w=>w.d!==undefined),'une vraie voiture au même endroit serait vue');}
+  for(let k=0;k<120;k++) pasCourseIA(e,DT);v(e.pilotes.every(x=>x.v.contactsVoiture===0&&!x.v.touche.has(p)),'contact');});
+
+// --- le départ parfait (tour 22b, étape 5, depart.js) : calcul pur
+// une voiture lancée de l'arrêt plein gaz avec un départ donné (resultat), sur terrain plat ; renvoie sa vitesse et sa position après 3 s
+function lancement(res){const vo=creerVoiture(null),d=DEPART.creer(true);DEPART.pas(d,DT,true);DEPART.lancer(d,res,0.2);
+  for(let k=0;k<360;k++){vo.facteurDepart=DEPART.facteur(d);appliquerCommandes(vo,{gaz:1,frein:0,direction:0});pasVoiture(vo,null,DT);DEPART.pas(d,DT,true);}
+  return {u:vo.u,x:vo.x,facteurFinal:DEPART.facteur(d)};}
+t('départ : une voiture neuve a facteurDepart = 1 ; un départ parfait donne exactement la voiture normale (3 s plein gaz : mêmes nombres au bit près) ; bon, patinage et calé font perdre du temps, dans cet ordre, et l’effet s’arrête après sa durée (facteur 1)', ()=>{
+  const neuve=creerVoiture(null);v(neuve.facteurDepart===1,'facteurDepart '+neuve.facteurDepart);
+  const normale=creerVoiture(null);for(let k=0;k<360;k++){appliquerCommandes(normale,{gaz:1,frein:0,direction:0});pasVoiture(normale,null,DT);}
+  const sans=creerVoiture(null);sans.facteurDepart=undefined;for(let k=0;k<360;k++){appliquerCommandes(sans,{gaz:1,frein:0,direction:0});pasVoiture(sans,null,DT);}
+  const p=lancement('parfait'),b=lancement('bon'),pa=lancement('patinage'),c=lancement('cale'),f=lancement('faux');
+  v(p.x===normale.x&&p.u===normale.u&&sans.x===normale.x,'parfait ≠ normale : '+p.x+' / '+normale.x+' / '+sans.x);v(f.x===normale.x,'faux ≠ normale');
+  v(b.x<p.x&&pa.x<b.x&&c.x<pa.x,'ordre : '+[p.x,b.x,pa.x,c.x].map(x=>x.toFixed(1)));
+  v([p,b,pa,c].every(r=>r.facteurFinal===1),'effet pas fini');
+  L.push('  (départ, 3 s plein gaz : parfait '+p.x.toFixed(1)+' m (= normale), bon '+b.x.toFixed(1)+' m, patinage '+pa.x.toFixed(1)+' m, calé '+c.x.toFixed(1)+' m)');});
+t('départ : le résultat selon le régime et la réaction : dans le vert et rapide = parfait ; dans le vert et lent = bon ; au bord = bon ; trop haut = patinage ; trop bas = calé', ()=>{
+  const R=REGLAGES,[bas,haut]=R.DEPART_VERT,m=(bas+haut)/2,rp=R.DEPART_REACTION_PARFAITE;
+  v(DEPART.resultat(m,rp)==='parfait'&&DEPART.resultat(bas,0.1)==='parfait'&&DEPART.resultat(haut,0.2)==='parfait','parfait');
+  v(DEPART.resultat(m,rp+0.01)==='bon'&&DEPART.resultat(m,1)==='bon','lent');
+  v(DEPART.resultat(haut+R.DEPART_BORD/2,0.1)==='bon'&&DEPART.resultat(bas-R.DEPART_BORD/2,0.1)==='bon','bord');
+  v(DEPART.resultat(haut+R.DEPART_BORD+0.01,0.1)==='patinage'&&DEPART.resultat(1,0.1)==='patinage','patinage');
+  v(DEPART.resultat(bas-R.DEPART_BORD-0.01,0.1)==='cale'&&DEPART.resultat(0,0.1)==='cale','calé');
+  v(JSON.stringify(DEPART.effet('parfait'))==='[1,0]'&&JSON.stringify(DEPART.effet('faux'))==='[1,0]'&&DEPART.effet('patinage')[0]<1&&DEPART.effet('cale')[0]<DEPART.effet('patinage')[0],'effets');});
+// une course avec les feux, un joueur ; appuyer(oui) = la touche d'accélérateur ; pas() = un pas de physique de la course (voiture tenue)
+function departJoueur(){const c=creerCourse(C,5);armerFeux([{course:c,humain:true}],7);const vo={u:0,x:0,z:0,piste:{s:0}};
+  return {c,d:c.depart,vo,pas(appui){DEPART.commande(c.depart,appui,c.compte);majCourse(c,vo,DT);}};}
+t('départ : pendant les feux, tenir la touche fait monter le régime (DEPART_MONTEE), la lâcher le fait descendre, la voiture n’est pas lancée ; tenir la touche pendant l’extinction ne lance pas la voiture tant qu’on ne l’a pas lâchée ; lâcher puis réappuyer lance : réaction mesurée, régime dans le vert + rapide = parfait, et le facteur moteur reste 1', ()=>{
+  const R=REGLAGES,j=departJoueur(),d=j.d,c=j.c;v(d.humain&&d.lance===null&&d.regime===0,'armé');
+  for(let k=0;k<60;k++) j.pas(true);v(Math.abs(d.regime-R.DEPART_MONTEE*0.5)<1e-9&&d.lance===null,'montée '+d.regime);
+  for(let k=0;k<30;k++) j.pas(false);v(Math.abs(d.regime-(R.DEPART_MONTEE*0.5-R.DEPART_DESCENTE*0.25))<1e-9&&d.lance===null,'descente '+d.regime);
+  // on règle le régime au milieu du vert, puis on tient la touche à travers l'extinction
+  d.regime=(R.DEPART_VERT[0]+R.DEPART_VERT[1])/2;const vise=d.regime;c.compte=0.5;
+  for(let k=0;k<84;k++) j.pas(true);   // 0,7 s : l'extinction est passée depuis 0,2 s, la touche toujours tenue
+  v(d.extinction!==null&&c.etat==='attente'&&d.lance===null&&c.penalites===0,'lancée en tenant la touche : '+[d.lance,c.etat,c.penalites]);
+  v(d.regime===1,'le régime monte jusqu’au bout tant qu’on tient : '+d.regime);
+  d.regime=vise;j.pas(false);j.pas(false);   // lâcher 2 pas…
+  j.pas(true);                               // … et réappuyer : le lancement
+  v(d.lance!==null&&d.resultat==='parfait'&&d.reaction>0.2-1e-9&&d.reaction<0.3,'lancement '+[d.resultat,d.reaction]);
+  v(j.vo.facteurDepart===1&&DEPART.facteur(d)===1&&c.penalites===0&&!c.fauxDepart,'facteur '+j.vo.facteurDepart);
+  L.push('  (départ du joueur : réaction '+d.reaction.toFixed(3)+' s, régime '+vise.toFixed(2)+' → '+d.resultat+')');});
+t('départ : régime trop haut = patinage (facteur < 1 pendant DEPART_PATINAGE[1] s, puis 1) ; trop bas = calé ; lent dans le vert = bon', ()=>{
+  const R=REGLAGES;const essai=(regime,attente)=>{const j=departJoueur(),d=j.d;j.c.compte=0.05;for(let k=0;k<12;k++) j.pas(false);
+    for(let k=0;k<Math.round(attente*120);k++) j.pas(false);d.regime=regime;j.pas(true);const f=j.vo.facteurDepart;for(let k=0;k<Math.round(DEPART.effet(d.resultat)[1]*120)+2;k++) j.pas(true);return {res:d.resultat,f,apres:j.vo.facteurDepart,reaction:d.reaction};};
+  const p=essai(1,0.2),c=essai(0,0.2),b=essai(0.65,0.5);
+  v(p.res==='patinage'&&p.f===R.DEPART_PATINAGE[0]&&p.apres===1,'patinage '+JSON.stringify(p));v(c.res==='cale'&&c.f===R.DEPART_CALE[0]&&c.apres===1,'calé '+JSON.stringify(c));
+  v(b.res==='bon'&&b.f===R.DEPART_BON[0]&&b.reaction>0.5,'bon '+JSON.stringify(b));});
+t('départ : appuyer avant l’extinction (dans l’anticipation) ou trop vite après = faux départ, la voiture part, pénalité de 5 s une seule fois (à l’arrivée : classementFinal) ; appuyer plus tôt pendant les feux règle seulement le régime', ()=>{
+  const R=REGLAGES;
+  const a=departJoueur();a.c.compte=1;a.pas(false);a.pas(true);v(a.d.lance===null&&a.d.regime>0&&a.c.penalites===0,'un appui pendant les feux n’est pas un faux départ');
+  const b=departJoueur();b.c.compte=R.DEPART_ANTICIPATION/2;b.pas(false);b.pas(true);
+  v(b.d.lance!==null&&b.d.resultat==='faux'&&b.c.fauxDepart&&b.c.penalites===R.PENALITE_FAUX_DEPART&&b.d.reaction<0,'avant l’extinction : '+[b.d.resultat,b.c.penalites,b.d.reaction]);
+  for(let k=0;k<300;k++){b.vo.u=5;b.pas(true);}v(b.c.penalites===R.PENALITE_FAUX_DEPART&&b.c.etat==='course'&&b.vo.facteurDepart===1,'une seule pénalité, la voiture part normalement');
+  const c=departJoueur();c.c.compte=0.01;c.pas(false);c.pas(false);c.pas(false);c.pas(true);
+  v(c.d.resultat==='faux'&&c.d.reaction>=0&&c.d.reaction<R.DEPART_ANTICIPATION&&c.c.penalites===R.PENALITE_FAUX_DEPART,'trop vite après : '+[c.d.resultat,c.d.reaction]);
+  // à l'arrivée : la pénalité compte dans le classement final (comme le virage coupé)
+  const e=creerCourseIA(C,2,1,7,CARTES_T.test,true);e.go=0;e.pilotes.forEach((p,k)=>{p.arrivee=100+k;p.place=k+1;});e.pilotes[0].course.penalites=5;
+  const f=classementFinal(e);v(f[0].k===1&&f.find(x=>x.k===0).total===105,'classement final avec la pénalité');});
+t('départ : les IA, sur 50 courses de 20 pilotes (graines 1 à 50) : les pilotes réguliers et sans faute ratent moins de départs (patinage, calé, faux) que les pilotes irréguliers qui font des fautes ; aucune réaction sous le minimum humain FEUX_REACTION_IA[0] hors faux départ (rare, sous DEPART_ANTICIPATION) ; même graine = mêmes départs', ()=>{
+  const R=REGLAGES,Cc=R.IA_CARACTERE;const car=(reg,err)=>({regularite:reg,erreurs:err,agressivite:0.5,tours:[]});
+  const reguliers=car(Cc.regularite[0],Cc.erreurs[0]),fautifs=car(Cc.regularite[1],Cc.erreurs[1]);
+  let rates={reg:0,faux_:0},n=0,faux=0,sousMin=0,reactions=[],premiers=null;
+  for(let g=1;g<=50;g++){const pilotes=[];for(let k=0;k<20;k++) pilotes.push({course:creerCourse(C,5),humain:false,pilote:{caractere:k<10?reguliers:fautifs}});
+    armerFeux(pilotes,g);const vo={u:0,x:0,z:0,piste:{s:0}};
+    // jusqu'au lancement de chaque IA (son temps de réaction après l'extinction)
+    for(const p of pilotes){const c=p.course;let k=0;while(c.depart.lance===null&&k<2000){majCourse(c,vo,DT);k++;}
+      const d=c.depart;v(d.lance!==null&&d.resultat,'IA pas lancée');n++;
+      if(d.resultat==='faux'){faux++;v(d.reaction<R.DEPART_ANTICIPATION&&c.penalites===R.PENALITE_FAUX_DEPART,'faux départ IA : '+d.reaction+' '+c.penalites);}
+      else{if(d.reaction<R.FEUX_REACTION_IA[0]-1e-9) sousMin++;v(d.reaction<=R.FEUX_REACTION_IA[1]+1e-9&&c.penalites===0,'réaction '+d.reaction);reactions.push(d.reaction);}
+      if(d.resultat!=='parfait'&&d.resultat!=='bon') rates[pilotes.indexOf(p)<10?'reg':'faux_']++;}
+    if(g===3){const res=pilotes.map(p=>p.course.depart.resultat+'/'+p.course.depart.reaction.toFixed(3)).join();if(premiers===null) premiers=res;}
+  }
+  // la même graine redonne les mêmes départs
+  const P2=[];for(let k=0;k<20;k++) P2.push({course:creerCourse(C,5),humain:false,pilote:{caractere:k<10?reguliers:fautifs}});armerFeux(P2,3);const vo2={u:0,x:0,z:0,piste:{s:0}};
+  for(const p of P2){let k=0;while(p.course.depart.lance===null&&k<2000){majCourse(p.course,vo2,DT);k++;}}
+  v(P2.map(p=>p.course.depart.resultat+'/'+p.course.depart.reaction.toFixed(3)).join()===premiers,'pas les mêmes départs avec la même graine');
+  const moy=reactions.reduce((a,b)=>a+b,0)/reactions.length;
+  L.push('  (départs des IA sur 50 courses : réguliers ratés '+rates.reg+' / 500, fautifs ratés '+rates.faux_+' / 500, faux départs '+faux+' / '+n+', réaction moyenne '+moy.toFixed(3)+' s)');
+  v(rates.reg<rates.faux_,'réguliers '+rates.reg+' ≥ fautifs '+rates.faux_);v(rates.reg<=500*R.DEPART_IA_RATE[0]*2+10,'les réguliers ratent trop : '+rates.reg);
+  v(sousMin===0,sousMin+' réactions sous le minimum humain');v(faux<=n*R.DEPART_IA_FAUX*3+3&&faux>=0,'faux départs '+faux);});
+t('départ : le record du temps de réaction est sauvegardé (proposerReaction : seulement un meilleur temps) et une ancienne sauvegarde sans record se charge (null)', ()=>{
+  localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:3,records:{},championnat:null}));
+  v(SAUVEGARDE.reaction()===null,'sans record');v(SAUVEGARDE.proposerReaction(0.31)===true&&SAUVEGARDE.reaction()===0.31,'premier');
+  v(SAUVEGARDE.proposerReaction(0.35)===false&&SAUVEGARDE.reaction()===0.31,'plus lent gardé');v(SAUVEGARDE.proposerReaction(0.31)===false,'égal');
+  v(SAUVEGARDE.proposerReaction(0.2)===true&&SAUVEGARDE.lire().reaction===0.2,'meilleur');v(SAUVEGARDE.proposerReaction(null)===false&&SAUVEGARDE.proposerReaction(-1)===false,'invalide');
+  localStorage.removeItem(SAUVEGARDE.CLE);});
+
+// --- le premier lancement (tour 23b, decouverte.js) : calcul pur
+t('découverte : DECOUVERTE_IA pilotes du monde (jamais le joueur, tous différents, aux couleurs de leur écurie) ; le temps médian met le joueur au milieu de la grille (QUALIFICATION.grille : autant d’IA devant que derrière) ; la prime suit la place et son plafond, 0 au-delà', ()=>{
+  const R_=REGLAGES,ch=CHAMPIONNAT.creer(1),pil=DECOUVERTE.pilotes(ch);
+  v(pil.length===R_.DECOUVERTE_IA&&new Set(pil.map(p=>p.id)).size===pil.length&&pil.every(p=>!ch.pilotes[p.id].humain&&p.couleur===ch.ecuries[ch.pilotes[p.id].ecurie].couleur),'pilotes '+JSON.stringify(pil));
+  v(DECOUVERTE.tempsMilieu([60,62,61,63])===61.5&&Math.abs(DECOUVERTE.tempsMilieu([60,62,61])-61)<1e-5&&DECOUVERTE.tempsMilieu([])===null,'médiane');
+  const e=creerCourseIA(C,R_.DECOUVERTE_IA,3,7,CARTES_T.test,true),P=e.pilotes,moi=P[P.length-1];
+  QUALIFICATION.grille(e,DECOUVERTE.tempsMilieu(P.filter(p=>!p.humain).map(p=>p.qualif)));
+  const devant=P.filter(p=>!p.humain&&p.depart>moi.depart).length,derriere=P.filter(p=>!p.humain&&p.depart<moi.depart).length;
+  v(devant===(R_.DECOUVERTE_IA>>1)&&derriere===R_.DECOUVERTE_IA-(R_.DECOUVERTE_IA>>1),'grille : '+devant+' devant, '+derriere+' derrière');
+  const primes=[1,2,3,4,5,6,7,8].map(DECOUVERTE.prime);v(primes[0]===Math.min(R_.DECOUVERTE_ARGENT[0],R_.DECOUVERTE_ARGENT_MAX)&&primes.every((x,i)=>i===0||x<=primes[i-1])&&primes.every(x=>x<=R_.DECOUVERTE_ARGENT_MAX)&&primes[7]===0&&DECOUVERTE.prime(null)===0,'primes '+primes);
+  const avant=R_.DECOUVERTE_ARGENT_MAX;R_.DECOUVERTE_ARGENT_MAX=500;v(DECOUVERTE.prime(1)===500,'plafond');R_.DECOUVERTE_ARGENT_MAX=avant;
+  L.push('  (découverte : pilotes '+pil.map(p=>p.id).join(', ')+' ; grille '+devant+' devant / '+derriere+' derrière ; primes '+primes.slice(0,R_.DECOUVERTE_IA+1).join(', ')+')');});
+t('découverte : la sauvegarde : sans sauvegarde, découverte pas faite et argent 0 ; finirDecouverte garde la prime et le drapeau (une seule fois, jamais négatif) ; une ancienne sauvegarde avec un championnat compte comme découverte faite, une sans championnat non', ()=>{
+  localStorage.removeItem(SAUVEGARDE.CLE);v(!SAUVEGARDE.decouverteFaite()&&SAUVEGARDE.argent()===0,'vierge');
+  v(SAUVEGARDE.finirDecouverte(600)&&SAUVEGARDE.decouverteFaite()&&SAUVEGARDE.argent()===600,'prime');
+  SAUVEGARDE.finirDecouverte(-5);v(SAUVEGARDE.argent()===600,'négatif');const d=SAUVEGARDE.lire();v(d.decouverteFaite===true&&d.argent===600&&d.version===SAUVEGARDE.VERSION,'lire');
+  localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:3,records:{},championnat:{prochain:2,pilotes:[],ecuries:[]}}));v(SAUVEGARDE.decouverteFaite()&&SAUVEGARDE.argent()===0,'ancienne avec championnat');
+  localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:3,records:{'5':61.5},championnat:null}));v(!SAUVEGARDE.decouverteFaite()&&SAUVEGARDE.record(5)===61.5,'ancienne sans championnat');
+  localStorage.removeItem(SAUVEGARDE.CLE);});
+
+// --- la création du pilote (tour 23b, pilote.js) : calcul pur
+t('pilote : un numéro de rival est refusé (et hors 1–99, ou pas entier) ; un pays avec circuit → Grand Prix à domicile d’office ; un pays sans circuit → la course de cœur demandée ; le nom est nettoyé (12 caractères, vide → nom par défaut) ; chaque pays et chaque circuit a son texte dans les deux langues', ()=>{
+  const R_=REGLAGES,ch=CHAMPIONNAT.creer(1),pris=ch.pilotes.find(p=>!p.humain).numero;
+  v(!PILOTE.numeroLibre(ch,pris)&&PILOTE.numeroLibre(ch,27)&&!PILOTE.numeroLibre(ch,0)&&!PILOTE.numeroLibre(ch,100)&&!PILOTE.numeroLibre(ch,7.5),'numéros');
+  v(PILOTE.domicile('it')==='monzo'&&PILOTE.domicile('jp')==='suzuko'&&PILOTE.domicile('fr')===null,'domicile');
+  const a=PILOTE.valider(ch,{nom:'  Léo  ',numero:'27',pays:'fr',coeur:'monoco'});v(a.ok&&a.choix.nom==='Léo'&&a.choix.numero===27&&a.choix.coeur==='monoco'&&!a.choix.domicile,'valide '+JSON.stringify(a));
+  const b=PILOTE.valider(ch,{nom:'',numero:pris,pays:'fr',coeur:null});v(!b.ok&&b.erreurs.includes('numero')&&b.erreurs.includes('coeur')&&b.choix.nom===null,'refus '+JSON.stringify(b));
+  const c=PILOTE.valider(ch,{nom:'Un nom beaucoup trop long',numero:27,pays:'it',coeur:'monoco'});v(c.ok&&c.choix.coeur==='monzo'&&c.choix.domicile&&c.choix.nom.length<=R_.NOM_LONGUEUR_MAX,'domicile imposé '+JSON.stringify(c));
+  v(!PILOTE.valider(ch,{nom:'x',numero:27,pays:'xx',coeur:'monoco'}).ok,'pays inconnu');v(!PILOTE.valider(ch,{nom:'x',numero:27,pays:'fr',coeur:'nulle-part'}).ok,'circuit inconnu');
+  for(const p of R_.PAYS) v(TEXTES.en['pays_'+p]&&TEXTES.fr['pays_'+p],'pays sans texte : '+p);
+  for(const c_ of Object.keys(R_.CIRCUITS_PAYS)) v(TEXTES.en['circuit_'+c_]&&TEXTES.fr['circuit_'+c_]&&R_.PAYS.includes(R_.CIRCUITS_PAYS[c_]),'circuit sans texte ou pays hors liste : '+c_);});
+t('pilote : appliquer écrit le nom, le numéro, le pays et la course de cœur dans le pilote du joueur ; sauvegardé puis rechargé, identique ; une ancienne sauvegarde sans pilote (pas de pays) demande la création (manque), plus après', ()=>{
+  const ch=CHAMPIONNAT.creer(1);v(PILOTE.manque(ch),'un championnat neuf demande la création');
+  const r=PILOTE.valider(ch,{nom:'Léo',numero:27,pays:'fr',coeur:'monoco'});const j=PILOTE.appliquer(ch,r.choix);
+  v(j.humain&&j.nom==='Léo'&&j.numero===27&&j.pays==='fr'&&j.coeur==='monoco'&&!PILOTE.manque(ch),'appliqué');
+  localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:3,records:{},championnat:ch}));const re=SAUVEGARDE.championnat(),rj=PILOTE.joueur(re);
+  v(rj.nom==='Léo'&&rj.numero===27&&rj.pays==='fr'&&rj.coeur==='monoco'&&!PILOTE.manque(re)&&SAUVEGARDE.decouverteFaite(),'rechargé '+JSON.stringify(rj));
+  localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:3,records:{},championnat:CHAMPIONNAT.creer(2)}));v(PILOTE.manque(SAUVEGARDE.championnat())&&SAUVEGARDE.decouverteFaite(),'ancienne sans pilote');
+  localStorage.removeItem(SAUVEGARDE.CLE);});
+// --- l'argent (étape 8, argent.js, calcul pur, Codeur 3) : le joueur est le pilote 19, son coéquipier le 18 ; le meilleur tour au pilote mt
+const lignesArgent=(ordre,grille,mt)=>ordre.map((k,i)=>({k,place:i+1,grille:grille?grille.indexOf(k)+1:i+1,ligne:i+1,penalites:0,meilleurTour:mt===k?60:61,classe:true}));
+const AUTRES=[...Array(18).keys()];   // les pilotes 0 à 17
+const ordrePlace=p=>{const o=AUTRES.slice();if(p===1){o.splice(0,0,19,18);}else{o.splice(p-2,0,18,19);}return o;};   // le joueur p-ième, le coéquipier juste devant (ou juste derrière s'il gagne)
+t('argent : les gains selon la place (ARGENT_PLACE, du 1er au 20e, décroissants), sans meilleur tour ni place gagnée (grille = arrivée) ; le coéquipier juste devant (pas de bonus), sauf pour la victoire', ()=>{
+  const R_=REGLAGES;v(R_.ARGENT_PLACE.length===20&&R_.ARGENT_PLACE.every((x,i)=>x>0&&(i===0||x<=R_.ARGENT_PLACE[i-1])),'20 montants décroissants');
+  for(let p=1;p<=20;p++){const ch=CHAMPIONNAT.creer(1),l=lignesArgent(ordrePlace(p),null,0),g=ARGENT.gains(ch,l);
+    const attendu=Math.min(R_.ARGENT_PLACE[p-1]+(p===1?R_.DUEL_BONUS:0),R_.ARGENT_PLAFOND_COURSE);
+    v(g.place===R_.ARGENT_PLACE[p-1]&&g.meilleurTour===0&&g.placesGagnees===0&&g.nbPlacesGagnees===0&&g.duel===(p===1?R_.DUEL_BONUS:0)&&g.total===attendu,'P'+p+' : '+JSON.stringify(g));}});
+t('argent : le meilleur tour (+ARGENT_MEILLEUR_TOUR), les places gagnées (grille 12 → arrivée 8 : 4 × ARGENT_PLACE_GAGNEE ; grille 5 → arrivée 10 : 0, jamais négatif), le bonus du duel seulement devant le coéquipier (classement final, non classé = perdu)', ()=>{
+  const R_=REGLAGES,ch=CHAMPIONNAT.creer(1);
+  let g=ARGENT.gains(ch,lignesArgent(ordrePlace(8),null,19));v(g.meilleurTour===R_.ARGENT_MEILLEUR_TOUR&&g.total===R_.ARGENT_PLACE[7]+R_.ARGENT_MEILLEUR_TOUR,'meilleur tour : '+JSON.stringify(g));
+  const o8=ordrePlace(8),g12=o8.slice();g12.splice(7,1);g12.splice(11,0,19);   // sur la grille, le joueur 12e
+  g=ARGENT.gains(ch,lignesArgent(o8,g12,0));v(g.nbPlacesGagnees===4&&g.placesGagnees===4*R_.ARGENT_PLACE_GAGNEE&&g.total===R_.ARGENT_PLACE[7]+4*R_.ARGENT_PLACE_GAGNEE,'4 places : '+JSON.stringify(g));
+  const o10=ordrePlace(10),g5=o10.slice();g5.splice(9,1);g5.splice(4,0,19);
+  g=ARGENT.gains(ch,lignesArgent(o10,g5,0));v(g.nbPlacesGagnees===0&&g.placesGagnees===0,'places perdues : '+JSON.stringify(g));
+  // le duel : le joueur 8e devant le coéquipier 9e
+  const devant=AUTRES.slice();devant.splice(7,0,19,18);g=ARGENT.gains(ch,lignesArgent(devant,null,0));v(g.duel===R_.DUEL_BONUS&&g.total===R_.ARGENT_PLACE[7]+R_.DUEL_BONUS,'duel gagné : '+JSON.stringify(g));
+  const l=lignesArgent(devant,null,0);l.find(x=>x.k===19).classe=false;g=ARGENT.gains(ch,l);v(g.duel===0,'non classé : pas de bonus : '+JSON.stringify(g));
+  v(ARGENT.gains(ch,lignesArgent(ordrePlace(8),null,0).filter(x=>x.k!==19))===null,'sans le joueur : null');});
+t('argent : le plafond par course : P1 depuis la 20e place sur la grille, avec le meilleur tour et le duel (79 000) → total = ARGENT_PLAFOND_COURSE, plafonne = vrai', ()=>{
+  const R_=REGLAGES,ch=CHAMPIONNAT.creer(1),o=ordrePlace(1),gr=o.slice();gr.splice(0,1);gr.push(19);
+  const g=ARGENT.gains(ch,lignesArgent(o,gr,19));v(g.brut===R_.ARGENT_PLACE[0]+R_.ARGENT_MEILLEUR_TOUR+19*R_.ARGENT_PLACE_GAGNEE+R_.DUEL_BONUS&&g.brut>R_.ARGENT_PLAFOND_COURSE,'brut '+g.brut);
+  v(g.total===R_.ARGENT_PLAFOND_COURSE&&g.plafonne===true,JSON.stringify(g));});
+t('argent : le solde après 3 Grands Prix = la somme des gains, l’historique compact (un [gp, total, …] par Grand Prix) ; crediter (l’argent de départ) et debiter (refusé sans argent : jamais de dette) ; sauvegarde → rechargement identique ; une ancienne sauvegarde sans argent se charge à 0', ()=>{
+  const ch=CHAMPIONNAT.creer(6);v(ch.argent&&ch.argent.solde===0&&ch.argent.historique.length===0,'neuf : '+JSON.stringify(ch.argent));
+  let attendu=0;for(const p of [8,3,12]){const l=lignesArgent(ordrePlace(p),null,0);attendu+=ARGENT.gains(ch,l).total;CHAMPIONNAT.finirGrandPrix(ch,l);}
+  v(ch.argent.solde===attendu&&ch.argent.historique.length===3&&ch.argent.historique.every((h,i)=>h[0]===i+1&&h.length===6&&h[1]===h[2]+h[3]+h[4]+h[5]),JSON.stringify(ch.argent));
+  v(ARGENT.crediter(ch,12345,'decouverte')===attendu+12345&&ch.argent.historique[3][0]===0&&ch.argent.historique[3][2]==='decouverte','crediter');
+  v(ARGENT.crediter(ch,-5,'x')===attendu+12345,'un crédit négatif ne change rien');
+  v(ARGENT.debiter(ch,attendu+12345+1)===false&&ch.argent.solde===attendu+12345,'refus sans argent');v(ARGENT.debiter(ch,10000)===true&&ch.argent.solde===attendu+2345,'débit');
+  SAUVEGARDE.ecrireChampionnat(ch);const re=SAUVEGARDE.championnat();v(JSON.stringify(re.argent)===JSON.stringify(ch.argent),'rechargement');
+  const vieux=JSON.parse(JSON.stringify(ch));delete vieux.argent;localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:3,records:{},championnat:vieux}));
+  const d=SAUVEGARDE.lire();v(d.championnat.argent.solde===0&&d.championnat.argent.historique.length===0&&d.championnat.prochain===3,'sans argent : '+JSON.stringify(d.championnat.argent));
+  localStorage.removeItem(SAUVEGARDE.CLE);});
+t('argent : formater : 12 500 avec le séparateur des milliers et la forme du montant de la langue (« 12 500 € » / « €12,500 »), 0 et 1 234 567 aussi', ()=>{
+  const T=TEXTES[LANGUE],f=n=>T.montant.replace('{n}',n);
+  v(ARGENT.formater(12500)===f('12'+T.milliers+'500'),ARGENT.formater(12500));v(ARGENT.formater(0)===f('0'));v(ARGENT.formater(1234567)===f('1'+T.milliers+'234'+T.milliers+'567'),ARGENT.formater(1234567));
+  v(TEXTES.fr.montant==='{n} €'&&TEXTES.en.montant==='€{n}'&&TEXTES.en.milliers===','&&TEXTES.fr.milliers.length===1,'textes');});
+
+// --- le garage (étape 8, garage.js, calcul pur)
+t('garage : 4 améliorations (roues, moteur, aero, freins) de GARAGE_NIVEAUX niveaux, prix croissants ; prix() = le prochain, null au maximum ; acheter refuse sans argent (solde inchangé) et au niveau maximum ; les niveaux montent et le solde baisse du prix ; jamais de dette', ()=>{
+  const R_=REGLAGES,ch=CHAMPIONNAT.creer(1);v(GARAGE.NOMS.join()==='roues,moteur,aero,freins'&&R_.GARAGE_NIVEAUX===5,'liste');
+  for(const n of GARAGE.NOMS){const px=R_.GARAGE[n].prix;v(px.length===R_.GARAGE_NIVEAUX&&px.every((x,i)=>x>0&&(i===0||x>px[i-1])),n+' : prix croissants');v(ch.garage[n]===0&&GARAGE.prix(ch,n)===px[0],n+' : niveau 0');}
+  let r=GARAGE.acheter(ch,'moteur');v(r.ok===false&&r.raison==='argent'&&ch.garage.moteur===0&&ch.argent.solde===0,'sans argent : '+JSON.stringify(r));
+  ARGENT.crediter(ch,R_.GARAGE.moteur.prix[0]-1,'t');r=GARAGE.acheter(ch,'moteur');v(r.ok===false&&r.raison==='argent'&&ch.argent.solde===R_.GARAGE.moteur.prix[0]-1,'à 1 près');
+  ARGENT.crediter(ch,1,'t');r=GARAGE.acheter(ch,'moteur');v(r.ok===true&&r.niveau===1&&ch.garage.moteur===1&&ch.argent.solde===0&&GARAGE.prix(ch,'moteur')===R_.GARAGE.moteur.prix[1],'achat : '+JSON.stringify(r));
+  ARGENT.crediter(ch,10000000,'t');const total=R_.GARAGE.moteur.prix.slice(1).reduce((a,b)=>a+b,0);for(let i=1;i<R_.GARAGE_NIVEAUX;i++) v(GARAGE.acheter(ch,'moteur').ok,'niveau '+(i+1));
+  v(ch.garage.moteur===R_.GARAGE_NIVEAUX&&ch.argent.solde===10000000-total&&GARAGE.prix(ch,'moteur')===null,'au maximum');r=GARAGE.acheter(ch,'moteur');v(r.ok===false&&r.raison==='max'&&ch.argent.solde===10000000-total,'refus au maximum');
+  v(GARAGE.acheter(ch,'inconnu').ok===false,'inconnu');v(ch.argent.solde>=0,'jamais de dette');});
+t('garage : le plafond : moteur + aero + freins ≤ GARAGE_PLAFOND (7 %) pour toutes les combinaisons de niveaux, bonus = 0,07 exactement tout au maximum ; les facteurs valent 1 + niveau × effet ; les roues n’ont pas d’effet ; 0 partout = 1 partout', ()=>{
+  const R_=REGLAGES,N=R_.GARAGE_NIVEAUX;v(R_.GARAGE_PLAFOND===0.07,'plafond');
+  v(Math.abs(N*(R_.GARAGE.moteur.effet+R_.GARAGE.aero.effet+R_.GARAGE.freins.effet)-R_.GARAGE_PLAFOND)<1e-12&&R_.GARAGE.roues.effet===0,'la somme des effets au maximum = le plafond');
+  for(let m=0;m<=N;m++) for(let a=0;a<=N;a++) for(let f=0;f<=N;f++) for(const ro of [0,N]){const g={roues:ro,moteur:m,aero:a,freins:f},F=GARAGE.facteurs(g),b=GARAGE.bonus(g);
+    v(b<=R_.GARAGE_PLAFOND+1e-12&&b>=0,'bonus '+b+' pour '+JSON.stringify(g));v(F.moteur+F.aero+F.freins-3<=R_.GARAGE_PLAFOND+1e-12,'facteurs '+JSON.stringify(F));
+    v(Math.abs(F.moteur-(1+m*R_.GARAGE.moteur.effet))<1e-12&&Math.abs(F.aero-(1+a*R_.GARAGE.aero.effet))<1e-12&&Math.abs(F.freins-(1+f*R_.GARAGE.freins.effet))<1e-12,'exact '+JSON.stringify(g));}
+  v(Math.abs(GARAGE.bonus({roues:5,moteur:5,aero:5,freins:5})-0.07)<1e-12,'maximum');const F0=GARAGE.facteurs({roues:0,moteur:0,aero:0,freins:0});v(F0.moteur===1&&F0.aero===1&&F0.freins===1,'1 partout');
+  // un réglage qui dépasserait le plafond est ramené au plafond (la règle d'or tient même si donnees.js change)
+  const ancien=R_.GARAGE.moteur.effet;R_.GARAGE.moteur.effet=0.02;try{v(Math.abs(GARAGE.bonus({roues:0,moteur:5,aero:5,freins:5})-0.07)<1e-12,'ramené au plafond');}finally{R_.GARAGE.moteur.effet=ancien;}});
+t('garage : appliquer pose moteur, aero et freins sur la voiture ; au niveau 0 (ou sans garage), 1 partout et la physique du robot est la même au bit près (3 tours) ; les niveaux suivent le joueur (ch.garage, même si son écurie change) ; sauvegarde → rechargement identique ; une ancienne sauvegarde sans garage se charge à 0 partout', ()=>{
+  const a=creerVoiture(C),b=creerVoiture(C);placerAuDepart(a,C);placerAuDepart(b,C);v(a.moteur===1&&a.aero===1&&a.freins===1,'voiture neuve');
+  GARAGE.appliquer(b,{roues:3,moteur:0,aero:0,freins:0});v(b.moteur===1&&b.aero===1&&b.freins===1,'niveau 0 = 1');GARAGE.appliquer(b,null);
+  rouler(a,C,190,v_=>piloteRobot(v_,C));rouler(b,C,190,v_=>piloteRobot(v_,C));v(a.x===b.x&&a.z===b.z&&a.u===b.u&&a.cap===b.cap,'différent : '+[a.x-b.x,a.z-b.z]);
+  const ch=CHAMPIONNAT.creer(7);ARGENT.crediter(ch,1000000,'t');GARAGE.acheter(ch,'aero');GARAGE.acheter(ch,'freins');GARAGE.acheter(ch,'freins');
+  ch.pilotes[19].ecurie=0;v(ch.garage.aero===1&&ch.garage.freins===2,'les niveaux restent au joueur');
+  SAUVEGARDE.ecrireChampionnat(ch);const re=SAUVEGARDE.championnat();v(JSON.stringify(re.garage)===JSON.stringify(ch.garage)&&re.argent.solde===ch.argent.solde,'rechargement');
+  const vieux=JSON.parse(JSON.stringify(ch));delete vieux.garage;localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:3,records:{},championnat:vieux}));
+  const d=SAUVEGARDE.lire();v(JSON.stringify(d.championnat.garage)==='{"roues":0,"moteur":0,"aero":0,"freins":0}','sans garage : '+JSON.stringify(d.championnat.garage));localStorage.removeItem(SAUVEGARDE.CLE);});
+t('garage : les améliorations aident un peu (la règle d’or) : le robot avec +7 % (tout au niveau 5) sur le circuit test gagne entre 1 et 4 % de temps au tour, pas plus', ()=>{
+  const cs=[creerCourse(C,3),creerCourse(C,3)],vs=[creerVoiture(C),creerVoiture(C)];GARAGE.appliquer(vs[1],{roues:5,moteur:5,aero:5,freins:5});
+  vs.forEach((v_,i)=>{placerAuDepart(v_,C);const c=cs[i];rouler(v_,C,400,x=>courseAutorise(c)?piloteRobot(x,C):{gaz:0,frein:0,direction:0},x=>{majCourse(c,x,DT);return c.etat!=='finie';});});
+  v(cs[0].etat==='finie'&&cs[1].etat==='finie','3 tours');const t0=cs[0].meilleurTour,t1=cs[1].meilleurTour,gain=1-t1/t0;
+  L.push('  (garage +7 % : meilleur tour du robot '+t1.toFixed(3)+' s contre '+t0.toFixed(3)+' s, soit '+(gain*100).toFixed(2)+' % de gagné)');
+  v(gain>=0.01&&gain<=0.04,(gain*100).toFixed(2)+' %');});
 
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 ecrire();

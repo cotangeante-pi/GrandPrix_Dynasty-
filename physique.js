@@ -21,6 +21,8 @@ function creerVoiture(circuit, s = 0, d = 0) {
     pneus: null,                      // les pneus du joueur (pneus.js, ?pneus=1 : principal.js), null sinon…
     adherence: 1,                     // … et leur facteur sur l'adhérence (facteurAdherence) ; 1 = rien ne change
     aspiration: 0,                    // 0 à 1 : dans le sillage d'une voiture (aspirationVoitures), la traînée baisse
+    facteurDepart: 1,                 // le départ (depart.js, course.js) : un facteur sur la force du moteur juste après le lancement ; 1 = rien
+    moteur: 1, aero: 1, freins: 1,    // le garage du joueur (garage.js, appliquer) : la force du moteur, l'adhérence, le freinage ; 1 = rien
   };
   if (circuit) placerSurPiste(v, circuit, s, d);
   memoriserAvant(v);
@@ -103,7 +105,7 @@ function pasVoiture(v, circuit, dt) {
   memoriserAvant(v);
 
   const herbe = v.surHerbe;
-  const mu = R.ADHERENCE * (v.adherence || 1) * (herbe ? R.ADHERENCE_HERBE : 1);   // × 1 sans pneus : le même nombre au bit près
+  const mu = R.ADHERENCE * (v.adherence || 1) * (v.aero || 1) * (herbe ? R.ADHERENCE_HERBE : 1);   // × 1 sans pneus ni garage : le même nombre au bit près
   const fz = charge(v.u);
   const fzAvant = fz * b / R.EMPATTEMENT, fzArriere = fz * a / R.EMPATTEMENT;
   const delta = v.direction * braquageMax(v.u);
@@ -112,11 +114,11 @@ function pasVoiture(v, circuit, dt) {
   // la force vers l'avant : moteur, frein, traînée, roulement, herbe
   let fx = 0;
   const avance = v.u > 0.01;
-  if (v.gaz > 0) fx += v.gaz * Math.min(R.FORCE_MOTEUR_MAX, R.PUISSANCE / Math.max(v.u, 1)) * (herbe ? R.GAZ_HERBE : 1);
+  if (v.gaz > 0) fx += v.gaz * Math.min(R.FORCE_MOTEUR_MAX, R.PUISSANCE / Math.max(v.u, 1)) * (herbe ? R.GAZ_HERBE : 1) * (v.facteurDepart || 1) * (v.moteur || 1);   // × 1 sans départ ni garage : le même nombre au bit près
   // le frein à l'arrêt devient la marche arrière (si on n'accélère pas)
   if (v.frein > 0 && v.u <= 0.5 && v.gaz === 0 && v.u > -R.MARCHE_ARRIERE_MAX) fx -= v.frein * R.FORCE_MARCHE_ARRIERE;
   const resistance = R.TRAINEE * (1 - R.ASPIRATION_MAX * v.aspiration) * v.u * v.u + R.ROULEMENT + (herbe ? R.FROTTEMENT_HERBE * Math.abs(v.u) + R.FROTTEMENT_HERBE_CARRE * v.u * v.u : 0)
-    + (avance ? v.frein * R.ADHERENCE_FREIN * (herbe ? R.ADHERENCE_HERBE : 1) * fz : 0);
+    + (avance ? v.frein * R.ADHERENCE_FREIN * (v.freins || 1) * (herbe ? R.ADHERENCE_HERBE : 1) * fz : 0);   // × 1 sans garage
 
   if (Math.abs(v.u) < R.VITESSE_CINEMATIQUE) {
     // presque à l'arrêt : la voiture roule sans glisser

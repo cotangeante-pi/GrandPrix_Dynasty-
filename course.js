@@ -1,4 +1,5 @@
 // Une course seule, en calcul pur : le compte à rebours, le chrono, les tours, les secteurs, le virage coupé.
+// Le départ parfait (depart.js) est armé avec les feux et avancé ici à chaque pas (pasDepart).
 // Un tour ne compte que si la voiture a passé les secteurs 1 → 2 → 3 dans l'ordre, puis la ligne en avançant.
 
 // nbTours : 5, 12, 18… ; 0 = essai libre (des tours sans fin)
@@ -44,10 +45,38 @@ function armerFeux(pilotes, graine) {
     const c = p.course;
     c.feux = { delai, total: R.FEUX_NB * R.FEUX_INTERVALLE + delai };
     c.compte = c.feux.total;
-    c.reaction = p.humain ? 0 : R.FEUX_REACTION_IA[0] + hasard() * (R.FEUX_REACTION_IA[1] - R.FEUX_REACTION_IA[0]);
-    c.surveille = !!p.humain;   // le faux départ n'est surveillé que pour le joueur (pas pour les IA pour l'instant)
+    // le départ parfait (depart.js) : le joueur dose son régime et lance lui-même ; une IA tire trois nombres avec la graine,
+    // convertis en régime et réaction selon son caractère (tirerIA : son caractère peut arriver après l'armement, avec la
+    // carte, donc on recalcule à l'extinction) ; sa réaction est dans les bornes humaines FEUX_REACTION_IA
+    c.depart = DEPART.creer(p.humain);
+    c.depart.source = p;
+    if (!p.humain) { c.depart.tirage = [hasard(), hasard(), hasard()]; c.depart.prevu = DEPART.tirerIA(c.depart.tirage, caractereDe(p)); }
+    c.reaction = p.humain ? 0 : c.depart.prevu.reaction;
+    c.surveille = !!p.humain;   // le faux départ par la vitesse (rouler avant l'extinction) n'est surveillé que pour le joueur
   }
   ALEATOIRE.semer();
+}
+
+// le caractère d'un pilote de la course ({ regularite, erreurs }), ou null tant qu'il n'a pas son pilote IA (la carte)
+function caractereDe(p) {
+  return p && p.pilote && p.pilote.caractere ? p.pilote.caractere : null;
+}
+
+// le départ (depart.js) à chaque pas : le temps et le régime ; à l'extinction, une IA convertit son tirage avec son caractère
+// (connu maintenant) ; un faux départ (anticipation) prend la pénalité, une seule fois ; l'effet sur le moteur est écrit
+// dans la voiture (physique.js : facteurDepart, 1 = rien)
+function pasDepart(c, v, dt, eteint) {
+  const d = c.depart;
+  if (!d) return;
+  if (eteint && d.extinction === null && !d.humain) { d.prevu = DEPART.tirerIA(d.tirage, caractereDe(d.source)); c.reaction = d.prevu.reaction; }
+  DEPART.pas(d, dt, eteint);
+  penaliserFauxDepart(c);
+  v.facteurDepart = DEPART.facteur(d);
+}
+
+// un faux départ (depart.js : anticipation) prend la pénalité de 5 s, une seule fois
+function penaliserFauxDepart(c) {
+  if (c.depart && c.depart.resultat === 'faux' && !c.fauxDepart) { c.fauxDepart = true; c.penalites += REGLAGES.PENALITE_FAUX_DEPART; }
 }
 
 // le nombre de feux allumés (0 avant le premier, et une fois éteints)
@@ -75,11 +104,13 @@ function majCourse(c, v, dt) {
       c.penalites += R.PENALITE_FAUX_DEPART;
     }
     c.compte -= dt;
-    // une IA attend encore son temps de réaction après l'extinction
-    if (c.compte <= -(c.reaction || 0)) { c.compte = 0; c.etat = 'attente'; }
+    pasDepart(c, v, dt, c.compte <= 0);
+    // une IA attend encore son temps de réaction après l'extinction : c'est son lancement (depart.js)
+    if (c.compte <= -(c.reaction || 0)) { c.compte = 0; c.etat = 'attente'; if (c.depart && !c.depart.humain) { DEPART.lancer(c.depart, c.depart.prevu.resultat, c.depart.prevu.reaction); penaliserFauxDepart(c); } }
     c.sAvant = v.piste.s; c.xAvant = v.x; c.zAvant = v.z;
     return;
   }
+  pasDepart(c, v, dt, true);
   if (c.etat === 'attente') {
     if (Math.abs(v.u) < 0.05) { c.sAvant = v.piste.s; c.xAvant = v.x; c.zAvant = v.z; return; }
     c.etat = 'course';

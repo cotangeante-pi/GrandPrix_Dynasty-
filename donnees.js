@@ -95,7 +95,25 @@ const REGLAGES = {
   FEUX_NB: 5,                   // cinq feux rouges…
   FEUX_INTERVALLE: 1,           // s : … qui s'allument un par un, un par seconde
   FEUX_DELAI: [0.8, 2.6],       // s : puis tous éteints après ce délai, tiré avec la graine : c'est le départ
-  FEUX_REACTION_IA: [0.15, 0.45], // s : le temps de réaction de chaque IA à l'extinction, tiré avec la graine
+  FEUX_REACTION_IA: [0.15, 0.45], // s : les bornes humaines du temps de réaction d'une IA à l'extinction (depart.js, tirerIA)
+  // le départ parfait (depart.js, étape 5) : le régime de départ (0 à 1, pas celui de boite.js), tenu avec l'accélérateur pendant
+  // les feux ; à l'extinction, on lâche puis on réappuie. La sensation (montée, zone verte, sévérité) est à juger par le propriétaire (?reglages=1)
+  DEPART_MONTEE: 0.9,           // par seconde : la montée de l'aiguille quand on tient la touche (0 → 1 en 1,1 s)
+  DEPART_DESCENTE: 0.6,         // par seconde : sa descente quand on la lâche
+  DEPART_VERT: [0.55, 0.75],    // la zone verte de la jauge…
+  DEPART_BORD: 0.06,            // … et la marge autour, où le départ est seulement « bon »
+  DEPART_REACTION_PARFAITE: 0.3, // s : réaction au plus égale à ça, régime dans le vert = départ parfait ; plus lente = bon
+  DEPART_ANTICIPATION: 0.1,     // s : un appui moins de ça après l'extinction (ou dans ce délai avant) est un faux départ
+  // les effets, [facteur sur la force du moteur, durée en s] : parfait et faux = la voiture normale (jamais un bonus)
+  DEPART_BON: [0.85, 1],
+  DEPART_PATINAGE: [0.5, 1.5],
+  DEPART_CALE: [0.3, 1.5],
+  DEPART_AFFICHAGE: 1.5,        // s : le résultat et le temps de réaction restent affichés ce temps
+  DEPART_ROBOT_REACTION: 0.2,   // s : le robot d'essai (tests) fait toujours un départ parfait, après ce temps
+  // les IA (tirerIA) : la part de la plage FEUX_REACTION_IA qu'un pilote parfaitement régulier garde (le reste vient de son irrégularité)
+  DEPART_IA_REACTION_BASE: 0.35,
+  DEPART_IA_RATE: [0.04, 0.35], // la probabilité de sortir du vert (patinage ou calé), du pilote qui fait le moins d'erreurs à celui qui en fait le plus
+  DEPART_IA_FAUX: 0.01,         // la probabilité d'un faux départ (anticipation), rare
   FAUX_DEPART_VITESSE: 0.5,     // m/s : le joueur qui roule plus vite avant l'extinction fait un faux départ
   PENALITE_FAUX_DEPART: 5,      // s ajoutées au temps total (comme le virage coupé)
   // après l'arrivée du joueur (arrivee.js) : la vue télé sur les autres, puis le podium
@@ -123,6 +141,23 @@ const REGLAGES = {
   ],
   FACTEUR_VOITURE_JOUEUR: 1,    // la qualité de la voiture du joueur : 1 pour l'instant (sa conduite, c'est le propriétaire qui la valide) ; plus tard celle de son écurie, dans ±3 %
   CHAMPIONNAT_TOURS: 5,         // ?championnat=1 : la longueur des Grands Prix, fixe pour l'instant (?tours=1 pour les tests)
+  // l'argent (étape 8, argent.js, Codeur 3) : les gains d'un Grand Prix, plafonnés par course ; les sponsors viendront à l'étape 9
+  ARGENT_PLACE: [50000, 40000, 32000, 26000, 22000, 18000, 15000, 12500, 10000, 8000, 6500, 5500, 4500, 4000, 3500, 3000, 2500, 2000, 1500, 1000],   // du 1er au 20e
+  ARGENT_MEILLEUR_TOUR: 5000,   // le meilleur tour de la course
+  ARGENT_PLACE_GAGNEE: 1000,    // par place gagnée entre la grille et l'arrivée (jamais négatif)
+  DUEL_BONUS: 5000,             // CLAUDE.md « Le duel » : quand le joueur finit devant son coéquipier
+  ARGENT_PLAFOND_COURSE: 70000, // au plus, par Grand Prix, tout compris
+  // le garage (garage.js) : 4 améliorations de GARAGE_NIVEAUX niveaux ; prix de chaque niveau ; effet par niveau (une fraction :
+  // × (1 + niveau × effet) dans physique.js). La qualité de la voiture (moteur + aero + freins) vaut au plus GARAGE_PLAFOND au total
+  // (la règle d'or : les améliorations aident un peu, c'est le pilotage qui fait gagner). LISTE À APPROUVER PAR LE PROPRIÉTAIRE.
+  GARAGE: {
+    roues: { prix: [20000, 40000, 70000, 110000, 160000], effet: 0 },        // les changeurs de roues : l'arrêt au stand plus court (étape 7) ; seul le niveau est gardé pour l'instant
+    moteur: { prix: [25000, 50000, 85000, 130000, 190000], effet: 0.005 },   // la vitesse de pointe (la force du moteur), +2,5 % au niveau 5
+    aero: { prix: [25000, 50000, 85000, 130000, 190000], effet: 0.005 },     // l'adhérence, +2,5 % au niveau 5
+    freins: { prix: [20000, 40000, 70000, 110000, 160000], effet: 0.004 },   // le freinage, +2 % au niveau 5
+  },
+  GARAGE_NIVEAUX: 5,
+  GARAGE_PLAFOND: 0.07,         // +7 % au plus (moteur + aero + freins), quelle que soit la combinaison
   // les noms des 20 pilotes, deux par écurie dans l'ordre (le 20e est remplacé par le joueur) : pas encore (les noms
   // inventés, à approuver par le propriétaire, viendront ici) ; sans nom, l'écran affiche texte('pilote') avec son numéro (« Driver 7 » / « Pilote 7 »)
   NOMS_PILOTES: [],
@@ -141,6 +176,25 @@ const REGLAGES = {
   JOURNAL_BREVES_MAX: 3,        // les brèves sur le côté, au plus
   JOURNAL_CLASSEMENT: 5,        // en bas : les premiers du championnat (et le joueur s'il n'y est pas)
   JOURNAL_GRAINE: 6000,         // les variantes des titres sont tirées avec la graine du championnat + ce nombre + le Grand Prix
+
+  // la course de découverte du premier lancement (decouverte.js, CLAUDE.md « En piste en 10 secondes »)
+  DECOUVERTE_TOURS: 3,          // une longueur à part, seulement pour elle
+  DECOUVERTE_IA: 6,             // quelques IA seulement…
+  DECOUVERTE_NIVEAU: 'debutant',   // … au niveau débutant (NIVEAUX)
+  DECOUVERTE_CIRCUIT: 'test',   // sur un circuit facile (le circuit test tant que les 12 circuits n'existent pas)
+  DECOUVERTE_PILOTES: [0, 3, 6, 9, 12, 15],   // les pilotes du monde (ids dans championnat.pilotes) qui courent la découverte : un par écurie
+  DECOUVERTE_ARGENT: [1000, 800, 600, 400, 300, 200, 100],   // la prime d'argent de départ selon la place (1er, 2e, …)
+  DECOUVERTE_ARGENT_MAX: 1000,  // … et son plafond
+  AIDE_CLIGNOTE_APRES: 3,       // s : sur la grille, sans aucune touche pendant ce temps, l'aide « ↑ » clignote
+
+  // la création du pilote (pilote.js, étape 6) : le nom, le numéro, le pays, la course de cœur
+  NOM_LONGUEUR_MAX: 12,         // caractères du nom du pilote
+  NUMERO_MIN: 1, NUMERO_MAX: 99, // le numéro du pilote (jamais celui d'un rival)
+  // les pays proposés (codes ; le nom par texte('pays_<code>')), de vrais pays
+  PAYS: ['fr', 'be', 'ch', 'ca', 'gb', 'it', 'es', 'de', 'nl', 'at', 'pt', 'mc', 'se', 'fi', 'dk', 'no', 'pl', 'us', 'mx', 'br', 'ar', 'jp', 'cn', 'au', 'nz', 'sg', 'ae', 'bh', 'za', 'in', 'ma'],
+  // le pays de chaque circuit (celui du vrai circuit dont il s'inspire, CLAUDE.md « Le Grand Prix à domicile ») : si le joueur
+  // vient d'un de ces pays, ce circuit est son Grand Prix à domicile ; sinon il choisit sa course de cœur parmi les 12
+  CIRCUITS_PAYS: { monoco: 'mc', silverstoun: 'gb', monzo: 'it', spaa: 'be', suzuko: 'jp', interlagas: 'br', montreol: 'ca', melbourn: 'au', barcelana: 'es', bahrayn: 'bh', singapura: 'sg', yasmarino: 'ae' },
 
   // le robot d'essai (préparation des IA)
   ROBOT_VISEE_MIN: 12,          // m : il vise un point au moins à cette distance devant lui
@@ -288,6 +342,12 @@ const REGLAGES = {
   SIMULATION_MARGE_DEVANT: 6,   // m : une voiture est devant une autre à partir de cet écart (un dépassement compte quand ça change)
   SIMULATION_TEMPS_MAX: 150,    // s par tour : une course simulée s'arrête là, même si des voitures n'ont pas fini
   RADAR_RAYON: 150,             // m : le radar montre la piste et les voitures jusque-là autour du joueur
+  // le fantôme du meilleur tour (fantome.js, étape 5) : le tour de qualification enregistré avec l'enregistreur
+  FANTOME_PAS: 0.1,             // s entre deux images du fantôme (un nombre entier de pas de physique : 12) ; le rejeu interpole entre elles
+  FANTOME_DECIMALES: 2,         // les positions et distances sont arrondies au cm dans la sauvegarde (compact)
+  FANTOME_COULEUR: 0xdfe3ea,    // une couleur neutre, claire…
+  FANTOME_OPACITE: 0.55,        // … et légèrement transparente (toute la voiture d'une seule couleur, sans ses pièces sombres : on le reconnaît comme un fantôme)
+  FANTOME_PIXELS_MIN: 400,      // tests : au moins ce nombre de pixels changent dans la moitié basse de l'image quand le fantôme est caché (il est visible)
   // le podium 3D (podium3d.js)
   PODIUM_DISTANCE: 30,          // m : à cette distance du bord gauche de la piste, en face de la ligne
   PODIUM_LARGEUR: 6.5,          // m : la largeur d'une marche…

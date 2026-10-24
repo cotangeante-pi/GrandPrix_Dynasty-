@@ -135,35 +135,49 @@ const VOITURE3D = (function () {
   }
 
   // une roue dans deux groupes : le pivot (braquage) et la roue qui tourne sur son axe
-  function roue(rayon, largeur, x, z, avant) {
+  function roue(rayon, largeur, x, z, avant, materiau = materiauSommets) {
     const pivot = new THREE.Group();
     pivot.position.set(x, rayon, z);
-    const tourne = new THREE.Mesh(geometrieRoue(rayon, largeur), materiauSommets);
+    const tourne = new THREE.Mesh(geometrieRoue(rayon, largeur), materiau);
     pivot.add(tourne);
     return { pivot, tourne, avant };
   }
 
   // couleur : la couleur de l'écurie ; detaille : la voiture du joueur, avec plus de détails (les autres restent légères) ;
+  // materiaux (facultatif, le fantôme) : { corps, casque } à la place des matériaux partagés ;
   // renvoie { groupe, roues, tete, corps, couleur, detaille }
-  function creer(couleur, detaille) {
+  function creer(couleur, detaille, materiaux) {
     if (!materiauSommets) {
       materiauSommets = new THREE.MeshLambertMaterial({ vertexColors: true });
       materiauCasque = new THREE.MeshLambertMaterial({ color: CASQUE });
     }
+    const matCorps = materiaux ? materiaux.corps : materiauSommets, matCasque = materiaux ? materiaux.casque : materiauCasque;
     const groupe = new THREE.Group();
-    const corps = new THREE.Mesh(geometrieCorps(couleur, detaille), materiauSommets);
+    const corps = new THREE.Mesh(geometrieCorps(couleur, detaille), matCorps);
     groupe.add(corps);
-    const tete = new THREE.Mesh(new THREE.SphereGeometry(0.17, 10, 8), materiauCasque);
+    const tete = new THREE.Mesh(new THREE.SphereGeometry(0.17, 10, 8), matCasque);
     tete.position.set(0.2, 0.85, 0);
     groupe.add(tete);
     // les roues : l'avant à CG_AVANT devant le centre, l'arrière à l'empattement derrière
     const xa = R.CG_AVANT, xr = R.CG_AVANT - R.EMPATTEMENT;
     const roues = [
-      roue(0.33, 0.36, xa, 0.85, true), roue(0.33, 0.36, xa, -0.85, true),
-      roue(0.35, 0.42, xr, 0.8, false), roue(0.35, 0.42, xr, -0.8, false),
+      roue(0.33, 0.36, xa, 0.85, true, matCorps), roue(0.33, 0.36, xa, -0.85, true, matCorps),
+      roue(0.35, 0.42, xr, 0.8, false, matCorps), roue(0.35, 0.42, xr, -0.8, false, matCorps),
     ];
     for (const r of roues) groupe.add(r.pivot);
     return { groupe, roues, tete, corps, couleur, detaille: !!detaille };
+  }
+
+  // le fantôme du meilleur tour (fantome.js) : la même voiture légère, toute d'une couleur neutre et légèrement transparente,
+  // avec ses propres matériaux (ceux des voitures sont partagés et opaques) ; 6 appels de dessin de plus quand il est visible.
+  // Il n'écrit pas dans le tampon de profondeur : la vraie voiture reste visible à travers lui
+  function creerFantome(couleur, opacite) {
+    const options = { transparent: true, opacity: opacite, depthWrite: false };
+    // une seule couleur pour tout (les couleurs des sommets sont ignorées : ni carbone ni pneus noirs), c'est ce qui le distingue d'une vraie voiture
+    const materiaux = { corps: new THREE.MeshLambertMaterial(Object.assign({ color: couleur }, options)), casque: new THREE.MeshLambertMaterial(Object.assign({ color: couleur }, options)) };
+    const m = creer(couleur, false, materiaux);
+    m.groupe.visible = false;
+    return m;
   }
 
   // le panneau de réglage change l'épaisseur du halo : on refait la géométrie du corps
@@ -196,5 +210,5 @@ const VOITURE3D = (function () {
     }
   }
 
-  return { creer, placer, majHalo, triangles, appels };
+  return { creer, creerFantome, placer, majHalo, triangles, appels };
 })();

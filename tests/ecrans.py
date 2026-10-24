@@ -3,7 +3,7 @@
 Pour chaque page : la console reste vide (ni erreur, ni avertissement, ni fichier manquant), la page ne défile
 pas, la scène 3D dessine le circuit. En plus : la conduite au clavier (avancer, tourner, freiner, Espace, C),
 l'interpolation de l'affichage, les caméras de survol, ?debug=1. Captures dans tests/captures/."""
-import math, os, re, sys
+import base64, math, os, re, sys
 try:
     from playwright.sync_api import sync_playwright
 except ImportError:
@@ -15,9 +15,10 @@ LECTURE_PIXELS = re.compile(r'\[\.WebGL-0x[0-9a-f]+\]GL Driver Message \(OpenGL,
 CAPTURES = os.path.join(RACINE, 'tests', 'captures')
 # (page, largeur, hauteur, capture)
 PAGES = [
-    ('index.html', 960, 600, 'poki.png'),
+    ('index.html', 960, 600, 'poki.png'),   # la page nue = le premier lancement : l'écran titre
     ('index.html?debug=1', 960, 600, 'poki-debug.png'),
     ('index.html', 1280, 720, 'large.png'),
+    ('index.html?seul=1', 1280, 720, None),   # l'écran de choix d'une course seule (étape 3), la conduite au clavier
     ('index.html?debug=1', 1280, 720, 'large-debug.png'),
     ('index.html?camera=auto', 1280, 720, 'auto.png'),
     ('index.html?camera=libre', 1280, 720, 'libre.png'),
@@ -39,6 +40,8 @@ PAGES = [
     ('index.html?course=1&robot=1&test=sdk', 1280, 720, None),   # le faux SDK Poki (sdk.js) : l'ordre des appels sur une course d'un tour
     ('index.html?course=0&robot=1&pneus=1&debug=1', 1280, 720, None),   # ?pneus=1 : l'usure monte sur 10 tours du robot, affichée dans ?debug=1
     ('index.html?championnat=1&tours=1&robot=1&lang=en', 1280, 720, None),   # la page en anglais : championnat et podium sans un mot français, capture championnat-en.png
+    ('index.html?course=1&ia=5&joueur=1&robot=1&circuit=test&test=fantome', 1280, 720, None),   # le fantôme du meilleur tour : deux qualifications de suite, la 2e contre le fantôme, capture fantome.png
+    ('index.html?robot=1&test=decouverte&tours=1', 1280, 720, None),   # le premier lancement : titre → course de découverte (robot) → Bravo → paddock ; captures titre.png, decouverte.png, bravo.png
 ]
 # le faux SDK Poki (comme dans tests/sdk.html), posé avant le chargement de la page ?test=sdk : il note chaque appel dans APPELS_SDK (pas « JOURNAL » : c'est le module de la une du journal, journal.js)
 FAUX_SDK = """window.APPELS_SDK = []; window.PokiSDK = { init() { APPELS_SDK.push('init'); return Promise.resolve(); }, gameLoadingFinished() { APPELS_SDK.push('gameLoadingFinished'); },
@@ -166,7 +169,7 @@ def course_robot(pg, titre, page):
     t(f'{titre} : le son d’arrivée est demandé', arret['sons'] == 'arrivee', str(arret))
     pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'fin.png'))
     # après rechargement, le record est toujours là (sur l'écran de choix)
-    pg.goto('file://' + RACINE + '/index.html'); pg.wait_for_timeout(1500)
+    pg.goto('file://' + RACINE + '/index.html?seul=1'); pg.wait_for_timeout(1500)   # (la page nue est maintenant l'écran titre : l'écran de choix est ?seul=1)
     rec = pg.evaluate('() => document.getElementById("record5").textContent')
     t(f'{titre} : après rechargement, le record des 5 tours est affiché', INTERFACE_TEMPS(fin['meilleur'], pg.evaluate('() => texte("virgule")')) in rec, repr(rec))
     pg.click('#choix0')
@@ -271,6 +274,204 @@ def enregistreur(pg, titre):
     t(f'{titre} : à la fin (la première voiture arrivée), relu : écart < 1 cm, l’arrivée notée', r2['nouvelle'] and r2['ecart'] < 0.01 and r2['images'] > r1['images'] and r2['arrivees'] >= 1, str(r2))
     L.append(f"  (enregistreur, 6 voitures, 1 tour : {r2['images']} images, {r2['octets'] / 1024:.0f} Ko, {r2['ms'] / max(1, r2['pas']) * 1000:.0f} µs par pas en moyenne)")
 
+# le fantôme du meilleur tour (fantome.js) : deux qualifications de suite par le robot. La première n'a pas de fantôme et
+# devient le record du circuit (sauvegardé, compact) ; la deuxième, par un robot plus prudent, roule contre le fantôme
+# (voiture transparente, écart en direct en rouge) et ne remplace pas le record. Puis l'option « masqué » et la course sans fantôme
+def fantome(pg, titre):
+    TOUR = '() => JEU.ecran === "qualif" && JEU.qualif.etat === "tour" && JEU.qualif.q.lance'
+    # après BOUCLE.simuler, l'écran et la 3D ne sont à jour qu'à l'image suivante : on attend deux images dessinées (sous
+    # swiftshader et un Mac chargé, une image peut prendre plus de 300 ms)
+    def image():
+        n = pg.evaluate('() => { if (window.__images === undefined) { window.__images = 0; BOUCLE.surAffichage(() => window.__images++); } return window.__images; }')
+        attendre(pg, 'n => window.__images > n + 1', n, 30000)
+    def mon_tour():
+        attendre(pg, '() => JEU.ecran === "qualif" && JEU.qualif && JEU.qualif.etat === "choix"', None, 60000)
+        attendre(pg, '() => JEU.plateau.carte !== null', None, 180000)
+        pg.click('#boutonQualifTour')
+        pg.evaluate('() => { JEU.course.compte = 0.01; }')
+        attendre(pg, TOUR, None, 20000)
+    def finir_tour():
+        for _ in range(40):
+            pg.evaluate('() => BOUCLE.simuler(5)')
+            if pg.evaluate('() => JEU.qualif.etat') == 'resultat': break
+            pg.wait_for_timeout(50)
+    t(f'{titre} : au départ, aucun fantôme sauvegardé pour ce circuit, l’option « affiché »', pg.evaluate('() => SAUVEGARDE.fantome(NOM_CIRCUIT) === null && SAUVEGARDE.option("fantome", true) === true && JEU.fantome === null'))
+    mon_tour()
+    t(f'{titre} : 1er tour : le tour est enregistré, mais sans record il n’y a ni fantôme (pas de voiture transparente) ni écart affiché',
+      pg.evaluate('() => !!(JEU.fantome && JEU.fantome.rejeu === null && JEU.fantome.tour && JEU.modeleFantome === null && document.getElementById("hudEcart").classList.contains("cache"))'), str(pg.evaluate('() => [JEU.fantome && JEU.fantome.rejeu, JEU.modeleFantome]')))
+    pg.evaluate('() => BOUCLE.simuler(15)'); image()
+    appels1 = pg.evaluate('() => SCENE3D.appelsDessin')
+    finir_tour()
+    r1 = pg.evaluate('''() => { const f = SAUVEGARDE.fantome(NOM_CIRCUIT); return { etat: JEU.qualif.etat, temps: JEU.qualif.q.temps, fantome: f && { temps: f.temps, images: f.x.length, pas: f.pas, taille: FANTOME.taille(f) },
+      texte: document.getElementById("qualifFantome").textContent, resultat: JEU.qualif.fantome, octets: localStorage.getItem(SAUVEGARDE.CLE).length }; }''')
+    t(f'{titre} : 1er tour fini : « Nouveau record ! », le fantôme sauvegardé pour le circuit (compact, son temps = le temps du tour)',
+      r1['etat'] == 'resultat' and r1['fantome'] and abs(r1['fantome']['temps'] - r1['temps']) < 0.001 and r1['fantome']['images'] > 100 and r1['resultat']['record'] and r1['texte'] == pg.evaluate('() => texte("nouveauRecord")'), str(r1))
+    if r1['fantome']: L.append(f"  (fantôme du robot sur le circuit test : {r1['temps']:.2f} s, {r1['fantome']['images']} images à {r1['fantome']['pas']} s, {r1['fantome']['taille']} octets ; la sauvegarde fait {r1['octets']} octets)")
+    # 2e qualification : un robot plus prudent en virage (plus lent) roule contre le fantôme
+    pg.reload()
+    attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "qualif"', None, 60000)
+    pg.evaluate('() => { REGLAGES.ROBOT_MARGE_VIRAGE = 0.7; }')
+    mon_tour()
+    t(f'{titre} : 2e tour : le fantôme est chargé et sa voiture transparente roule (visible, matériau transparent, couleur neutre)',
+      attendre(pg, '() => JEU.fantome && JEU.fantome.rejeu && JEU.fantome.visible && JEU.modeleFantome && JEU.modeleFantome.groupe.visible && JEU.modeleFantome.corps.material.transparent && JEU.modeleFantome.corps.material.opacity === REGLAGES.FANTOME_OPACITE', None, 10000), str(pg.evaluate('() => [JEU.fantome && !!JEU.fantome.rejeu, JEU.modeleFantome && JEU.modeleFantome.groupe.visible]')))
+    pg.evaluate('() => BOUCLE.simuler(15)'); image()
+    e = pg.evaluate('''() => { const el = document.getElementById("hudEcart"), p = FANTOME.position(JEU.fantome.rejeu, QUALIFICATION.chrono(JEU.qualif.q)), g = JEU.modeleFantome.groupe.position;
+      return { cache: el.classList.contains("cache"), texte: el.textContent, classe: el.className, ecart: JEU.fantome.ecart, appels: SCENE3D.appelsDessin, distance: Math.hypot(g.x - p.x, g.z - p.z), loin: Math.hypot(g.x - JEU.joueur.x, g.z - JEU.joueur.z) }; }''')
+    t(f'{titre} : 2e tour, après 15 s : l’écart en direct sous le chrono, positif et en rouge (« +1,23 »), le fantôme dessiné à sa position du rejeu, devant la voiture',
+      not e['cache'] and re.fullmatch(r'\+\d+' + SEP + r'\d\d', e['texte']) is not None and e['classe'] == 'rouge' and e['ecart'] > 0 and e['distance'] < 1 and e['loin'] > 5, str(e))
+    t(f'{titre} : le fantôme coûte 6 appels de dessin de plus', e['appels'] == appels1 + 6, f"{appels1} → {e['appels']}")
+    L.append(f"  (appels de dessin pendant le tour de qualification : {appels1} sans le fantôme, {e['appels']} avec)")
+    pg.screenshot(path=os.path.join(CAPTURES, 'fantome.png'))
+    # les classes de l'écart : vert devant, rouge derrière, neutre à 0
+    pg.evaluate('() => INTERFACE.majEcartFantome(-0.34)')
+    vert = pg.evaluate('() => [document.getElementById("hudEcart").textContent, document.getElementById("hudEcart").className]')
+    pg.evaluate('() => INTERFACE.majEcartFantome(0.004)')
+    egal = pg.evaluate('() => [document.getElementById("hudEcart").textContent, document.getElementById("hudEcart").className]')
+    t(f'{titre} : « −0,34 » en vert quand le joueur est devant, « 0,00 » neutre à égalité', vert == ['−0' + pg.evaluate('() => texte("virgule")') + '34', 'vert'] and egal[1] == 'egal', str([vert, egal]))
+    finir_tour(); image()
+    r2 = pg.evaluate('''() => ({ etat: JEU.qualif.etat, temps: JEU.qualif.q.temps, record: SAUVEGARDE.fantome(NOM_CIRCUIT).temps, resultat: JEU.qualif.fantome, texte: document.getElementById("qualifFantome").textContent, visible: JEU.modeleFantome.groupe.visible })''')
+    t(f'{titre} : 2e tour fini, plus lent : l’écart final affiché (« +x,xx s du record »), le record n’est pas remplacé, le fantôme disparaît',
+      r2['etat'] == 'resultat' and r2['temps'] > r2['record'] and abs(r2['record'] - r1['temps']) < 0.001 and not r2['resultat']['record'] and abs(r2['resultat']['ecart'] - (r2['temps'] - r2['record'])) < 0.01
+      and re.search(r'\+\d+' + SEP + r'\d\d s', r2['texte']) is not None and not r2['visible'], str(r2))
+    L.append(f"  (2e qualification, robot prudent : {r2['temps']:.2f} s, {r2['texte']})")
+    # l'option « masqué » (bouton sur l'écran de qualification, sauvegardée), puis la course : jamais de fantôme
+    pg.reload()
+    attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "qualif" && JEU.qualif.etat === "choix"', None, 60000)
+    t(f'{titre} : le bouton « Fantôme : affiché » est sur l’écran de qualification et dans le menu pause', pg.evaluate('() => document.getElementById("boutonFantomeQualif").textContent === texte("fantomeOui") && document.getElementById("boutonFantomePause").textContent === texte("fantomeOui") && !document.getElementById("boutonFantomeQualif").classList.contains("cache")'))
+    pg.click('#boutonFantomeQualif')
+    t(f'{titre} : un clic le masque, et l’option est sauvegardée', pg.evaluate('() => document.getElementById("boutonFantomeQualif").textContent === texte("fantomeNon") && SAUVEGARDE.option("fantome", true) === false'))
+    mon_tour()
+    pg.evaluate('() => BOUCLE.simuler(5)'); image()
+    t(f'{titre} : masqué : la voiture transparente n’est pas dessinée, l’écart reste affiché', pg.evaluate('() => !!(JEU.fantome.rejeu && !JEU.fantome.visible && !JEU.modeleFantome.groupe.visible && !document.getElementById("hudEcart").classList.contains("cache"))'))
+    finir_tour()
+    pg.click('#boutonQualifCourse')
+    t(f'{titre} : en course, aucun fantôme : pas de voiture transparente, pas d’écart, et seules les voitures des pilotes existent pour les IA', attendre(pg, '() => JEU.ecran === "course" && JEU.fantome === null && !JEU.modeleFantome.groupe.visible && document.getElementById("hudEcart").classList.contains("cache")', None, 10000)
+      and pg.evaluate('() => JEU.plateau.pilotes.every(p => voituresVues(p.v, JEU.plateau.pilotes.map(x => x.v)).every(w => w.id !== JEU.modeleFantome))'), str(pg.evaluate('() => [JEU.ecran, JEU.fantome]')))
+    # le fantôme PROUVÉ visible (tour 23b) : un 3e tour, par un robot moins puissant (FORCE_MOTEUR_MAX et PUISSANCE × 0,7, ce
+    # qui ne change que cette page) : dès la ligne, le fantôme (le record) le distance ; ~1 s après la ligne, il est à quelques
+    # mètres devant. Capture fantome-proche.png, puis deux rendus de la même image, fantôme montré / caché (BOUCLE arrêtée,
+    # SCENE3D.dessiner) : dans la moitié basse, les pixels qui changent sont ceux du fantôme, plus clairs (sa couleur neutre)
+    pg.reload()
+    attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "qualif" && JEU.qualif.etat === "choix"', None, 60000)
+    pg.evaluate('() => { SAUVEGARDE.ecrireOption("fantome", true); INTERFACE.majBoutonsFantome(true); REGLAGES.FORCE_MOTEUR_MAX *= 0.7; REGLAGES.PUISSANCE *= 0.7; }')
+    mon_tour()
+    pg.evaluate('() => { BOUCLE.arreter(); while (QUALIFICATION.chrono(JEU.qualif.q) < 1) BOUCLE.simuler(1 / 120); }')
+    image()
+    pg.evaluate('() => BOUCLE.arreter()')
+    pos = pg.evaluate('''() => { const p = FANTOME.position(JEU.fantome.rejeu, QUALIFICATION.chrono(JEU.qualif.q)), v = JEU.joueur, c = Math.cos(v.cap), s = Math.sin(v.cap);
+      return { chrono: QUALIFICATION.chrono(JEU.qualif.q), devant: c * (p.x - v.x) + s * (p.z - v.z), cote: -s * (p.x - v.x) + c * (p.z - v.z), visible: JEU.modeleFantome.groupe.visible, ecart: JEU.fantome.ecart }; }''')
+    t(f'{titre} : 3e tour (robot moins puissant), ~1 s après la ligne : le fantôme est quelques mètres devant la voiture, visible', pos['visible'] and 1 <= pos['devant'] <= 40 and abs(pos['cote']) < 6 and pos['ecart'] > 0, str(pos))
+    pg.screenshot(path=os.path.join(CAPTURES, 'fantome-proche.png'))
+    avec = base64.b64encode(pg.screenshot()).decode()
+    pg.evaluate('() => { JEU.modeleFantome.groupe.visible = false; SCENE3D.dessiner(); }')
+    sans = base64.b64encode(pg.screenshot()).decode()
+    pg.evaluate('() => { JEU.modeleFantome.groupe.visible = true; SCENE3D.dessiner(); }')
+    diff = pg.evaluate('''async ([a, b]) => { const lire = async b64 => { const img = new Image(); img.src = 'data:image/png;base64,' + b64; await img.decode();
+        const c = document.createElement('canvas'); c.width = img.width; c.height = img.height; const ctx = c.getContext('2d'); ctx.drawImage(img, 0, 0);
+        return { w: img.width, h: img.height, d: ctx.getImageData(0, Math.floor(img.height / 2), img.width, img.height - Math.floor(img.height / 2)).data }; };
+      const A = await lire(a), B = await lire(b); let n = 0, clairA = 0, clairB = 0;
+      for (let i = 0; i < A.d.length; i += 4) { const la = A.d[i] + A.d[i + 1] + A.d[i + 2], lb = B.d[i] + B.d[i + 1] + B.d[i + 2];
+        if (Math.abs(la - lb) > 30) { n++; clairA += la; clairB += lb; } }
+      return { pixels: n, clairA: n ? clairA / n / 3 : 0, clairB: n ? clairB / n / 3 : 0, taille: A.w + 'x' + A.h }; }''', [avec, sans])
+    seuil = pg.evaluate('() => REGLAGES.FANTOME_PIXELS_MIN')
+    t(f'{titre} : contrôle en pixels : dans la moitié basse, au moins FANTOME_PIXELS_MIN = {seuil} pixels changent quand le fantôme est caché, et ils sont plus clairs avec lui (sa teinte neutre mélangée à la piste)',
+      diff['pixels'] >= seuil and diff['clairA'] > diff['clairB'], str(diff))
+    L.append(f"  (fantôme à {pos['devant']:.1f} m devant, {diff['pixels']} pixels changés dans la moitié basse, clarté {diff['clairB']:.0f} → {diff['clairA']:.0f})")
+    pg.evaluate('() => BOUCLE.demarrer()')
+
+# le premier lancement (decouverte.js, CLAUDE.md « En piste en 10 secondes ») : sans sauvegarde, l'écran titre ; « ▶ Jouer »
+# mène directement à la grille de la course de découverte (3 tours, 6 IA débutant, pilotes du monde, le joueur au milieu, les
+# aides) ; le robot la joue jusqu'au podium, puis « Bravo ! Prêt pour ta carrière ? », la prime, et la page rechargée arrive au
+# paddock. Le faux SDK note les appels : gameLoadingFinished une fois, gameplayStart aux feux éteints, jamais commercialBreak
+def decouverte(pg, titre):
+    R = pg.evaluate('() => ({ tours: REGLAGES.DECOUVERTE_TOURS, ia: REGLAGES.DECOUVERTE_IA, niveau: REGLAGES.DECOUVERTE_NIVEAU, circuit: REGLAGES.DECOUVERTE_CIRCUIT, argent: REGLAGES.DECOUVERTE_ARGENT, max: REGLAGES.DECOUVERTE_ARGENT_MAX })')
+    t(f'{titre} : sans sauvegarde, l’écran titre : le nom du jeu par sa clé, « ▶ Jouer », le petit « 👥 Entre amis », rien d’autre ; le monde du championnat est créé et sauvegardé ; aucun gameplayStart',
+      pg.evaluate('''() => JEU.ecran === "titre" && JEU.decouverte && !document.getElementById("titre").classList.contains("cache") && document.getElementById("titreNom").textContent === texte("nomDuJeu")
+        && document.getElementById("boutonJouer").textContent === texte("titreJouer") && document.getElementById("boutonAmis").textContent === texte("titreAmis")
+        && SAUVEGARDE.championnat() !== null && SAUVEGARDE.championnat().pilotes.length === 20 && !SAUVEGARDE.decouverteFaite() && JEU.monde === null === false
+        && window.APPELS_SDK.join(",") === "init,gameLoadingFinished"'''), str(pg.evaluate('() => [JEU.ecran, JEU.decouverte, window.APPELS_SDK]')))
+    pg.screenshot(path=os.path.join(CAPTURES, 'titre.png'))
+    pg.click('#boutonAmis')
+    t(f'{titre} : « Entre amis » ouvre « bientôt », « Retour » revient au titre', pg.evaluate('() => JEU.ecran === "amis" && document.getElementById("amisTexte").textContent === texte("amisBientot")')
+      and (pg.click('#boutonAmisRetour') or True) and pg.evaluate('() => JEU.ecran === "titre"'))
+    chargement = pg.evaluate('() => performance.timing.domContentLoadedEventEnd - performance.timing.navigationStart')
+    pg.click('#boutonJouer')
+    t(f'{titre} : « ▶ Jouer » mène directement à la grille (écran course, pas de qualification), {R["tours"]} tours, {R["ia"]} IA au niveau {R["niveau"]} sur le circuit {R["circuit"]}, le joueur nommé « Toi » par défaut',
+      attendre(pg, '() => JEU.ecran === "course" && JEU.plateau && JEU.qualif === null', None, 10000)
+      and pg.evaluate(f'() => JEU.course.nbTours === {R["tours"]} && JEU.plateau.pilotes.length === {R["ia"]} + 1 && JEU.plateau.pilotes[{R["ia"]}].humain && REGLAGES.NIVEAU === "{R["niveau"]}" && NOM_CIRCUIT === "{R["circuit"]}" && JEU.course.feux && !!JEU.course.depart'),
+      str(pg.evaluate('() => [JEU.ecran, JEU.course && JEU.course.nbTours, JEU.plateau && JEU.plateau.pilotes.length, REGLAGES.NIVEAU, NOM_CIRCUIT]')))
+    t(f'{titre} : les {R["ia"]} IA sont des pilotes du monde (DECOUVERTE_PILOTES), aux couleurs de leur écurie',
+      pg.evaluate('() => JEU.indices.length === REGLAGES.DECOUVERTE_IA && JEU.indices.every(id => !JEU.monde.pilotes[id].humain) && new Set(JEU.indices).size === JEU.indices.length && JEU.couleurs.slice(0, JEU.indices.length).every((c, k) => c === JEU.monde.ecuries[JEU.monde.pilotes[JEU.indices[k]].ecurie].couleur)'),
+      str(pg.evaluate('() => JEU.indices')))
+    # la carte des IA se calcule en fond : les feux attendent ; du clic aux feux éteints, la mesure (but : 10 s)
+    t(f'{titre} : la carte se calcule, les IA reçoivent le caractère de leur pilote du monde', attendre(pg, '() => JEU.plateau.carte !== null && JEU.plateau.pilotes.slice(0, REGLAGES.DECOUVERTE_IA).every((p, k) => p.pilote && p.pilote.caractere && Math.abs(p.pilote.caractere.agressivite - Math.max(0, Math.min(1, JEU.monde.pilotes[JEU.indices[k]].caractere.agressivite + REGLAGES.NIVEAUX.debutant.agressivite))) < 1e-9)', None, 240000))
+    grille = pg.evaluate('() => { const P = JEU.plateau.pilotes, moi = P[P.length - 1], devant = P.filter(p => !p.humain && p.depart > moi.depart).length, derriere = P.filter(p => !p.humain && p.depart < moi.depart).length; return { devant, derriere, bouge: P.some(p => p.v.u !== 0) }; }')
+    t(f'{titre} : le joueur part au milieu de la grille ({R["ia"] // 2} IA devant, {R["ia"] - R["ia"] // 2} derrière)', grille['devant'] == R['ia'] // 2 and grille['derriere'] == R['ia'] - R['ia'] // 2 and not grille['bouge'], str(grille))
+    t(f'{titre} : sur la grille, les aides sont affichées (↑ ← → ↓), aucune touche encore', attendre(pg, '() => !document.getElementById("aides").classList.contains("cache") && ["aideGaz", "aideDirection", "aideFrein"].every(id => !document.getElementById(id).classList.contains("cache"))', None, 10000))
+    t(f'{titre} : sans aucune touche pendant AIDE_CLIGNOTE_APRES s sur la grille, « ↑ » clignote', attendre(pg, '() => document.getElementById("aideGaz").classList.contains("clignote")', None, 20000), str(pg.evaluate('() => [JEU.course.depart && JEU.course.depart.t, JEU.aides]')))
+    extinction = attendre(pg, '() => JEU.course.etat !== "compte"', None, 60000)
+    mesure = pg.evaluate('() => JEU.clicAuxFeux')
+    t(f'{titre} : les feux s’éteignent, le temps du clic aux feux est mesuré (sous swiftshader, la carte en fond pèse : la valeur est donnée telle quelle)', extinction and mesure is not None and mesure > 0, str(mesure))
+    L.append(f"  (premier lancement : page chargée en {chargement} ms ; du clic sur « Jouer » à l’extinction des feux : {(mesure or 0) / 1000:.1f} s, carte des IA comprise, sous swiftshader)")
+    t(f'{titre} : gameplayStart seulement aux feux éteints, une fois', attendre(pg, '() => window.APPELS_SDK.join(",") === "init,gameLoadingFinished,gameplayStart"', None, 10000), str(pg.evaluate('() => window.APPELS_SDK')))
+    # les touches : chaque aide part quand sa touche a servi (le robot conduit ; les touches ne font que marquer les aides)
+    pg.keyboard.press('ArrowUp'); pg.wait_for_timeout(100)
+    t(f'{titre} : ↑ pressée : l’aide « ↑ accélérer » disparaît, les autres restent', attendre(pg, '() => document.getElementById("aideGaz").classList.contains("cache") && !document.getElementById("aideDirection").classList.contains("cache") && !document.getElementById("aideFrein").classList.contains("cache")', None, 5000), str(pg.evaluate('() => JEU.aides')))
+    pg.wait_for_timeout(400); pg.screenshot(path=os.path.join(CAPTURES, 'decouverte.png'))
+    pg.keyboard.press('ArrowLeft'); pg.keyboard.press('ArrowDown')
+    t(f'{titre} : ← et ↓ pressées : plus aucune aide', attendre(pg, '() => document.getElementById("aides").classList.contains("cache") || ["aideGaz", "aideDirection", "aideFrein"].every(id => document.getElementById(id).classList.contains("cache"))', None, 5000), str(pg.evaluate('() => JEU.aides')))
+    # le robot roule jusqu'au podium (3 tours, 7 voitures)
+    for _ in range(90):
+        pg.evaluate('() => BOUCLE.simuler(5)')
+        if pg.evaluate('() => JEU.ecran') == 'podium': break
+        pg.wait_for_timeout(50)
+    t(f'{titre} : la course va jusqu’au podium ; gameplayStop au podium', pg.evaluate('() => JEU.ecran === "podium" && JEU.final && JEU.final.length === REGLAGES.DECOUVERTE_IA + 1') and attendre(pg, '() => window.APPELS_SDK.slice(-1)[0] === "gameplayStop"'), str(pg.evaluate('() => [JEU.ecran, window.APPELS_SDK]')))
+    pg.click('#boutonResultats')
+    bravo = pg.evaluate('''() => { const moi = JEU.final.find(x => x.k === JEU.suivie); return { ecran: JEU.ecran, place: moi.place, prime: JEU.prime, attendu: DECOUVERTE.prime(moi.place),
+      titre: document.getElementById("bravoTitre").textContent, question: document.getElementById("bravoQuestion").textContent, placeTexte: document.getElementById("bravoPlace").textContent, argentTexte: document.getElementById("bravoArgent").textContent, faite: SAUVEGARDE.decouverteFaite(), argent: SAUVEGARDE.argent() }; }''')
+    t(f'{titre} : après le podium, « Bravo ! Prêt pour ta carrière ? », la place et la prime selon la place (plafond {R["max"]}) ; rien n’est encore sauvegardé',
+      bravo['ecran'] == 'bravo' and bravo['prime'] == bravo['attendu'] and bravo['prime'] == min(R['argent'][bravo['place'] - 1], R['max']) and bravo['titre'] == pg.evaluate('() => texte("bravoTitre")')
+      and bravo['question'] == pg.evaluate('() => texte("bravoQuestion")') and f"P{bravo['place']} / {R['ia'] + 1}" in bravo['placeTexte'] and str(bravo['prime']) in bravo['argentTexte'] and not bravo['faite'] and bravo['argent'] == 0, str(bravo))
+    L.append(f"  (découverte du robot : P{bravo['place']} / {R['ia'] + 1}, prime {bravo['prime']} $)")
+    pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'bravo.png'))
+    t(f'{titre} : aucun point de championnat n’est donné', pg.evaluate('() => SAUVEGARDE.championnat().pilotes.every(p => p.stats.points === 0 && p.stats.courses === 0) && SAUVEGARDE.championnat().prochain === 0'))
+    t(f'{titre} : jamais de commercialBreak', pg.evaluate('() => !window.APPELS_SDK.includes("commercialBreak")'), str(pg.evaluate('() => window.APPELS_SDK')))
+    # la création du pilote (pilote.js) : après « Commencer ma carrière », l'écran ; un numéro de rival est refusé, un pays sans
+    # circuit demande la course de cœur, un pays avec circuit l'impose (🏠) ; validé → sauvegardé, la page recharge sur le paddock
+    # avec le nom du joueur ; puis un Grand Prix d'un tour : son numéro dans la tour, son nom sur la une du journal
+    pg.click('#boutonCarriere')
+    t(f'{titre} : « Commencer ma carrière » ouvre la création du pilote (nom, numéro, pays, course de cœur), rien n’est encore sauvegardé',
+      attendre(pg, '() => JEU.ecran === "pilote" && !document.getElementById("pilote").classList.contains("cache")') and pg.evaluate('() => !SAUVEGARDE.decouverteFaite() && document.querySelectorAll("#pilotePays option").length === REGLAGES.PAYS.length && document.querySelectorAll("#piloteCoeur option").length === 12 && document.getElementById("piloteNom").placeholder === texte("nomJoueur")'),
+      str(pg.evaluate('() => [JEU.ecran, document.querySelectorAll("#pilotePays option").length]')))
+    pg.fill('#piloteNom', 'Léo'); pg.fill('#piloteNumero', '7'); pg.select_option('#pilotePays', 'fr')
+    t(f'{titre} : la France n’a pas de circuit : la course de cœur est à choisir (liste active, pas de 🏠)', pg.evaluate('() => !document.getElementById("piloteCoeur").disabled && document.getElementById("piloteDomicile").textContent === ""'))
+    pg.select_option('#pilotePays', 'it')
+    t(f'{titre} : l’Italie a Monzo : la course de cœur est imposée (🏠 Grand Prix à domicile : Monzo)', pg.evaluate('() => document.getElementById("piloteCoeur").disabled && document.getElementById("piloteCoeur").value === "monzo" && document.getElementById("piloteDomicile").textContent === texte("piloteDomicile").replace("{circuit}", texte("circuit_monzo"))'), pg.evaluate('() => document.getElementById("piloteDomicile").textContent'))
+    pg.select_option('#pilotePays', 'fr'); pg.select_option('#piloteCoeur', 'monoco')
+    pg.click('#boutonPiloteValider')
+    t(f'{titre} : le numéro 7 est celui d’un rival : refusé, l’erreur affichée, on reste sur l’écran', pg.evaluate('() => JEU.ecran === "pilote" && document.getElementById("piloteErreur").textContent === texte("piloteErreurNumero").replace("{min}", REGLAGES.NUMERO_MIN).replace("{max}", REGLAGES.NUMERO_MAX)'), pg.evaluate('() => document.getElementById("piloteErreur").textContent'))
+    pg.wait_for_timeout(200); pg.screenshot(path=os.path.join(CAPTURES, 'pilote.png'))
+    pg.fill('#piloteNumero', '27')
+    with pg.expect_navigation(): pg.click('#boutonPiloteValider')
+    t(f'{titre} : numéro 27 : validé, sauvegardé (nom, numéro, pays, course de cœur), la découverte faite avec sa prime, et la page rechargée arrive au paddock avec « Léo » dans le classement',
+      attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat" && JEU.championnat', None, 60000)
+      and pg.evaluate(f'''() => {{ const j = PILOTE.joueur(JEU.championnat), s = PILOTE.joueur(SAUVEGARDE.championnat()); return j.nom === "Léo" && j.numero === 27 && j.pays === "fr" && j.coeur === "monoco" && s.nom === "Léo" && s.numero === 27
+        && SAUVEGARDE.decouverteFaite() && SAUVEGARDE.argent() === {bravo["prime"]} && (typeof ARGENT === "undefined" || ARGENT.solde(JEU.championnat) === {bravo["prime"]}) && [...document.querySelectorAll("#championnatPilotes li .nom")].some(e => e.textContent === "Léo") && !PILOTE.manque(JEU.championnat); }}'''),
+      str(pg.evaluate('() => [JEU.ecran, PILOTE.joueur(JEU.championnat)]')))
+    # un Grand Prix d'un tour : le numéro 27 dans la tour de classement, le nom sur la une du journal
+    pg.click('#boutonCourseSuivante')
+    passer_qualif(pg, titre)
+    t(f'{titre} : en course, la ligne du joueur dans la tour porte son numéro 27', attendre(pg, '() => document.querySelector("#classementListe li.moi") && document.querySelector("#classementListe li.moi .numero").textContent === "27"', None, 20000), pg.evaluate('() => document.querySelector("#classementListe li.moi") && document.querySelector("#classementListe li.moi").innerText'))
+    attendre(pg, '() => JEU.plateau.carte !== null', None, 240000)
+    for _ in range(80):
+        pg.evaluate('() => BOUCLE.simuler(5)')
+        if pg.evaluate('() => JEU.ecran') == 'podium': break
+        pg.wait_for_timeout(50)
+    pg.click('#boutonResultats'); attendre(pg, '() => JEU.ecran === "resultats"')
+    t(f'{titre} : dans les résultats, le joueur a le numéro 27', pg.evaluate('() => /\\b27\\b/.test(document.querySelector("#resultatsLignes tr.moi").innerText)'), pg.evaluate('() => document.querySelector("#resultatsLignes tr.moi") && document.querySelector("#resultatsLignes tr.moi").innerText'))
+    pg.click('#boutonChangerResultats')
+    t(f'{titre} : la une du journal nomme « Léo »', attendre(pg, '() => JEU.ecran === "une"', None, 10000) and pg.evaluate('() => document.getElementById("une").innerText.includes("Léo")'), pg.evaluate('() => document.getElementById("une").innerText.slice(0, 300)'))
+
 # sdk.js est le seul passage vers Poki : avec le faux SDK posé avant la page, les appels viennent dans l'ordre, et jamais
 # deux fois le même état (gameplayStart / gameplayStop) de suite ; une course d'un tour par le robot
 def sdk(pg, titre):
@@ -307,7 +508,7 @@ def pneus(pg, titre):
 
 # ?lang=en : la page en anglais : lang et title remplis au démarrage, puis le classement du championnat, le podium et les
 # résultats sans un mot français (les 11 textes en dur de l'audit) ; le robot joue le Grand Prix 1 (un tour)
-MOTS_FR = r'Écurie|Pilote|\bToi\b|Tu marques|Course suivante|Continuer|Pénalit|Résultat|n°'
+MOTS_FR = r'Écurie|Pilote|\bToi\b|Tu marques|Course suivante|Continuer|Pénalit|Résultat|n°|Solde|Gains'
 def championnat_en(pg, titre):
     t(f'{titre} : <html lang> et le titre de la page viennent de textes.js (en)', pg.evaluate('() => document.documentElement.lang === "en" && LANGUE === "en" && document.title === texte("nomDuJeu")'))
     ecran = pg.evaluate('''() => ({ titre: document.getElementById("championnatTitre").textContent, h2: [...document.querySelectorAll("#championnatTableaux h2")].map(e => e.textContent),
@@ -354,17 +555,44 @@ def course_joueur(pg, titre):
     t(f'{titre} : les 5 feux rouges sont allumés', attendre(pg, '() => !document.getElementById("feux").classList.contains("cache") && document.querySelectorAll("#feux span.allume").length === 5'),
       pg.evaluate('() => document.getElementById("feux").outerHTML'))
     pg.screenshot(path=os.path.join(CAPTURES, 'feux.png'))
-    # partir avant l'extinction : faux départ, +5 s affichés
+    # le départ parfait (depart.js) : pendant les feux, la voiture est tenue ; ↑ fait monter le régime de la jauge (centre bas).
+    # La boucle réelle est arrêtée : la physique avance seulement par BOUCLE.simuler, pour mesurer la réaction exactement ;
+    # image() la relance un instant pour que l'écran se redessine (au plus 0,1 s de physique par image)
+    def image():
+        n = pg.evaluate('() => { if (window.__images === undefined) { window.__images = 0; BOUCLE.surAffichage(() => window.__images++); } BOUCLE.demarrer(); return window.__images; }')
+        attendre(pg, 'n => window.__images > n', n, 20000)
+        pg.evaluate('() => BOUCLE.arreter()')
+    pg.evaluate('() => BOUCLE.arreter()')
     pg.keyboard.down('ArrowUp')
-    t(f'{titre} : rouler avant l’extinction = faux départ, +5 s affichés', attendre(pg, '() => JEU.course.fauxDepart && JEU.course.penalites === 5 && !document.getElementById("hudPenalite").classList.contains("cache")', None, 20000),
-      pg.evaluate('() => [JEU.course.penalites, JEU.joueur.u, document.getElementById("hudPenalite").textContent]'))
-    t(f'{titre} : les IA ne bougent pas avant l’extinction', pg.evaluate('() => JEU.plateau.pilotes.every(p => p.humain || p.v.u === 0)'))
+    pg.evaluate('() => BOUCLE.simuler(0.5)')
+    image()
+    d1 = pg.evaluate('() => ({ regime: JEU.course.depart.regime, u: JEU.joueur.u, lance: JEU.course.depart.lance, jauge: !document.getElementById("jauge").classList.contains("cache"), aiguille: document.getElementById("jaugeAiguille").style.left, vert: document.getElementById("jaugeVert").style.width })')
     pg.keyboard.up('ArrowUp')
-    pg.evaluate('() => { for (const p of JEU.plateau.pilotes) p.course.compte = 0.01; }')
-    attendre(pg, '() => JEU.course.etat !== "compte"', None, 20000)
-    t(f'{titre} : à l’extinction, les feux s’éteignent tous', pg.evaluate('() => document.querySelectorAll("#feux span.allume").length === 0'))
-    depart = pg.evaluate('() => JEU.plateau.temps')
+    pg.evaluate('() => BOUCLE.simuler(0.25)')
+    d2 = pg.evaluate('() => ({ regime: JEU.course.depart.regime, u: JEU.joueur.u })')
+    t(f'{titre} : pendant les feux, ↑ tenue 0,5 s fait monter le régime de départ sans lancer la voiture, et la jauge l’affiche au centre bas (zone verte)', abs(d1['regime'] - 0.5 * pg.evaluate('() => REGLAGES.DEPART_MONTEE')) < 0.02 and d1['u'] == 0 and d1['lance'] is None and d1['jauge'] and d1['aiguille'] and d1['vert'], str(d1))
+    t(f'{titre} : ↑ lâchée 0,25 s : le régime redescend, la voiture ne bouge toujours pas', d2['regime'] < d1['regime'] and d2['u'] == 0, str(d2))
+    t(f'{titre} : les IA ne bougent pas avant l’extinction', pg.evaluate('() => JEU.plateau.pilotes.every(p => p.humain || p.v.u === 0)'))
+    # le régime au milieu du vert, la capture avec la jauge, puis l'extinction : lâcher puis réappuyer 0,2 s après = départ parfait
+    pg.evaluate('() => { JEU.course.depart.regime = (REGLAGES.DEPART_VERT[0] + REGLAGES.DEPART_VERT[1]) / 2; }')
+    image()
+    pg.screenshot(path=os.path.join(CAPTURES, 'depart.png'))
+    pg.evaluate('() => { for (const p of JEU.plateau.pilotes) p.course.compte = 0.01; BOUCLE.simuler(0.05); }')
+    t(f'{titre} : à l’extinction, la voiture du joueur reste tenue tant qu’il n’a pas réappuyé', pg.evaluate('() => JEU.course.etat === "attente" && JEU.course.depart.extinction !== null && JEU.course.depart.lance === null && JEU.joueur.u === 0'),
+      str(pg.evaluate('() => [JEU.course.etat, JEU.course.depart.extinction, JEU.course.depart.lance, JEU.joueur.u]')))
+    # (le régime redescend pendant qu'on ne tient pas la touche : on le remet dans le vert juste avant d'appuyer, comme un joueur qui dose)
+    pg.evaluate('() => { BOUCLE.simuler(0.1); JEU.course.depart.regime = (REGLAGES.DEPART_VERT[0] + REGLAGES.DEPART_VERT[1]) / 2; }')
     pg.keyboard.down('ArrowUp')
+    pg.evaluate('() => BOUCLE.simuler(0.5)')
+    image()
+    t(f'{titre} : après l’extinction, les feux s’éteignent tous', pg.evaluate('() => document.querySelectorAll("#feux span.allume").length === 0'))
+    dp = pg.evaluate('() => ({ resultat: JEU.course.depart.resultat, reaction: JEU.course.depart.reaction, u: JEU.joueur.u, facteur: JEU.joueur.facteurDepart, penalites: JEU.course.penalites, record: JEU.departRecord, sauve: SAUVEGARDE.reaction(), texte: document.getElementById("departResultat").textContent, classe: document.getElementById("departResultat").className, jauge: document.getElementById("jauge").classList.contains("cache") })')
+    t(f'{titre} : réappuyer 0,2 s après l’extinction, régime dans le vert = départ parfait : la voiture part (facteur moteur 1, pas de pénalité), « Départ parfait ! · 0,2x s ★ record » affiché, le record de réaction sauvegardé',
+      dp['resultat'] == 'parfait' and 0.1 <= dp['reaction'] < 0.3 and dp['u'] > 1 and dp['facteur'] == 1 and dp['penalites'] == 0 and dp['record'] and abs(dp['sauve'] - dp['reaction']) < 1e-9
+      and dp['texte'].startswith(pg.evaluate('() => texte("departParfait")')) and '★' in dp['texte'] and dp['classe'] == 'parfait' and dp['jauge'], str(dp))
+    L.append(f"  (départ du joueur joué par le test : {dp['resultat']}, réaction {dp['reaction']:.3f} s, « {dp['texte']} »)")
+    pg.evaluate('() => BOUCLE.demarrer()')
+    depart = pg.evaluate('() => JEU.plateau.temps')
     t(f'{titre} : ↑ fait avancer la voiture du joueur', attendre(pg, '() => JEU.joueur.u > 15', None, 40000), pg.evaluate('() => JEU.joueur.u'))
     pg.keyboard.press('Tab')
     t(f'{titre} : Tab ne change pas la voiture suivie', pg.evaluate('() => JEU.suivie === 9 && JEU.joueur === JEU.plateau.pilotes[9].v'))
@@ -394,6 +622,31 @@ def course_joueur(pg, titre):
     t(f'{titre} : le bouton « passer » mène au podium (la caméra d’avant revient, le bandeau part)',
       attendre(pg, '() => JEU.ecran === "podium" && CAMERA.mode !== "tele" && document.getElementById("attenteArrivee").classList.contains("cache")'),
       str(pg.evaluate('() => [JEU.ecran, CAMERA.mode]')))
+    # le patinage, joué par le test sur une nouvelle course (podium → résultats → « Rejouer » → qualification passée) : la touche
+    # tenue à travers l'extinction ne lance pas la voiture (le régime monte au bout), lâcher puis réappuyer = patinage
+    pg.click('#boutonResultats')
+    attendre(pg, '() => JEU.ecran === "resultats"')
+    pg.click('#boutonRejouerResultats')
+    passer_qualif(pg, titre)
+    attendre(pg, '() => JEU.plateau.carte !== null && JEU.course.depart && JEU.course.depart.lance === null', None, 180000)
+    pg.evaluate('() => { BOUCLE.arreter(); for (const p of JEU.plateau.pilotes) { p.course.feux.delai = 30; p.course.feux.total = 35; p.course.compte = 30; } }')
+    pg.keyboard.down('ArrowUp')
+    pg.evaluate('() => { BOUCLE.simuler(2); for (const p of JEU.plateau.pilotes) p.course.compte = 0.01; BOUCLE.simuler(0.3); }')
+    tenue = pg.evaluate('() => ({ regime: JEU.course.depart.regime, lance: JEU.course.depart.lance, etat: JEU.course.etat, u: JEU.joueur.u, extinction: JEU.course.depart.extinction })')
+    t(f'{titre} : patinage : ↑ tenue 2 s puis à travers l’extinction : le régime est au bout, la voiture n’est pas lancée tant que la touche n’est pas lâchée', tenue['regime'] == 1 and tenue['lance'] is None and tenue['etat'] == 'attente' and tenue['u'] == 0 and tenue['extinction'] is not None, str(tenue))
+    pg.keyboard.up('ArrowUp')
+    pg.evaluate('() => BOUCLE.simuler(0.05)')
+    pg.keyboard.down('ArrowUp')
+    pg.evaluate('() => BOUCLE.simuler(0.5)')
+    image()
+    pt = pg.evaluate('() => ({ resultat: JEU.course.depart.resultat, reaction: JEU.course.depart.reaction, facteur: JEU.joueur.facteurDepart, u: JEU.joueur.u, penalites: JEU.course.penalites, texte: document.getElementById("departResultat").textContent, classe: document.getElementById("departResultat").className })')
+    t(f'{titre} : lâcher puis réappuyer avec le régime trop haut = patinage : la voiture part moins fort (facteur moteur DEPART_PATINAGE[0]), « Patinage ! » affiché, pas de pénalité',
+      pt['resultat'] == 'patinage' and pt['facteur'] == pg.evaluate('() => REGLAGES.DEPART_PATINAGE[0]') and pt['u'] > 0 and pt['penalites'] == 0 and pt['texte'].startswith(pg.evaluate('() => texte("departPatinage")')) and pt['classe'] == 'patinage', str(pt))
+    L.append(f"  (patinage joué par le test : réaction {pt['reaction']:.3f} s, facteur moteur {pt['facteur']}, « {pt['texte']} »)")
+    pg.evaluate('() => { BOUCLE.simuler(REGLAGES.DEPART_PATINAGE[1] + 0.1); }')
+    t(f'{titre} : après DEPART_PATINAGE[1] s, l’effet s’arrête (facteur 1)', pg.evaluate('() => JEU.joueur.facteurDepart === 1 && JEU.joueur.u > 5'), str(pg.evaluate('() => [JEU.joueur.facteurDepart, JEU.joueur.u]')))
+    pg.keyboard.up('ArrowUp')
+    pg.evaluate('() => BOUCLE.demarrer()')
 
 # les éléments fixes de l'écran de course, qui ne doivent jamais se chevaucher
 ELEMENTS_COURSE = ['classement', 'radar', 'boutonSon', 'aide', 'hudCourse', 'tableau']
@@ -428,6 +681,28 @@ def hud(pg, titre, l):
     t(f'{titre} : les places de la tour vont de 1 à 10, de haut en bas, chaque ligne à sa place', attendre(pg, ORDRE_TOUR, None, 10000),
       pg.evaluate('() => [...document.querySelectorAll("#classementListe li")].map(li => [li.children[0].textContent, Math.round(li.getBoundingClientRect().top)])'))
     pg.screenshot(path=os.path.join(CAPTURES, f'hud-{l}.png'))
+    # le faux départ par la touche (tour 23b, en 960×600) : la carte prête, les feux retenus, ↑ pressée DEPART_ANTICIPATION / 2
+    # avant l'extinction (la boucle arrêtée, la physique par BOUCLE.simuler) : faux départ, la voiture part, « +5 s faux départ »
+    # affiché, et la pénalité compte dans le classement final
+    if l == 960:
+        attendre(pg, '() => JEU.plateau.carte !== null && JEU.course.depart && JEU.course.depart.lance === null', None, 180000)
+        pg.evaluate('() => { BOUCLE.arreter(); for (const p of JEU.plateau.pilotes) { p.course.feux.delai = 30; p.course.feux.total = 35; p.course.compte = 30; } }')
+        pg.evaluate('() => { BOUCLE.simuler(0.5); JEU.course.depart.regime = (REGLAGES.DEPART_VERT[0] + REGLAGES.DEPART_VERT[1]) / 2; for (const p of JEU.plateau.pilotes) p.course.compte = REGLAGES.DEPART_ANTICIPATION / 2 + 1 / 120; BOUCLE.simuler(1 / 120); }')
+        pg.keyboard.down('ArrowUp')
+        pg.evaluate('() => BOUCLE.simuler(0.5)')
+        n = pg.evaluate('() => { if (window.__images === undefined) { window.__images = 0; BOUCLE.surAffichage(() => window.__images++); } BOUCLE.demarrer(); return window.__images; }')
+        attendre(pg, 'n => window.__images > n + 1', n, 20000)
+        pg.evaluate('() => BOUCLE.arreter()')
+        f = pg.evaluate('() => ({ resultat: JEU.course.depart.resultat, reaction: JEU.course.depart.reaction, faux: JEU.course.fauxDepart, penalites: JEU.course.penalites, u: JEU.joueur.u, affiche: !document.getElementById("hudPenalite").classList.contains("cache"), texte: document.getElementById("hudPenalite").textContent, resultatTexte: document.getElementById("departResultat").textContent })')
+        t(f'{titre} : ↑ juste avant l’extinction (dans DEPART_ANTICIPATION) = faux départ : la voiture part, « +5 s faux départ » affiché, pénalité de 5 s',
+          f['resultat'] == 'faux' and f['reaction'] < 0 and f['faux'] and f['penalites'] == 5 and f['u'] > 0.5 and f['affiche'] and f['texte'] == pg.evaluate('() => texte("fauxDepart").replace("{s}", REGLAGES.PENALITE_FAUX_DEPART)'), str(f))
+        pg.keyboard.up('ArrowUp')
+        # le joueur passe la ligne (ses tours donnés) : au classement final, son total porte les 5 s
+        pg.evaluate('() => { const c = JEU.course; while (c.tours.length < c.nbTours) c.tours.push({ temps: 60, secteurs: [20, 20, 20], coupe: false }); c.etat = "finie"; BOUCLE.simuler(1 / 120); }')
+        cf = pg.evaluate('() => { const f = classementFinal(JEU.plateau), moi = f.find(x => x.k === JEU.suivie); return { penalites: moi.penalites, total: moi.total, temps: moi.temps }; }')
+        t(f'{titre} : la pénalité du faux départ est dans le classement final (total = temps + 5 s)', cf['penalites'] == 5 and cf['total'] is not None and abs(cf['total'] - cf['temps'] - 5) < 1e-9, str(cf))
+        L.append(f"  (faux départ joué par le test : réaction {f['reaction']:.3f} s, « {f['resultatTexte']} », « {f['texte']} »)")
+        pg.evaluate('() => BOUCLE.demarrer()')
 
 def course_podium(pg, titre, l):
     # une course d'un tour entre 8 IA, accélérée (BOUCLE.simuler) jusqu'à ce que les trois premiers soient connus
@@ -511,6 +786,37 @@ def une_ecran(pg, titre, capture, touche=False):
     t(f'{titre} : {"une touche" if touche else "un clic"} passe la une : l’écran du championnat', attendre(pg, '() => JEU.ecran === "championnat" && !document.getElementById("championnat").classList.contains("cache") && document.getElementById("une").classList.contains("cache")'), str(pg.evaluate('() => JEU.ecran')))
     return u
 
+# ?championnat=1 : le garage (garage.js) depuis l'écran du championnat : on crédite de quoi acheter (en mémoire), on achète un niveau
+# de moteur : le solde baisse du prix, le niveau monte, c'est sauvegardé ; capture garage.png ; « Retour » ramène au championnat
+GARAGE_ETAT = '''() => { const ch = JEU.championnat, lis = [...document.querySelectorAll("#garageListe li")];
+  return { ecran: JEU.ecran, visible: !document.getElementById("garage").classList.contains("cache"), n: lis.length, noms: lis.map(li => li.dataset.nom),
+    actifs: lis.map(li => !li.querySelector("button").disabled), niveaux: lis.map(li => li.querySelector(".niveau").textContent), prix: lis.map(li => li.querySelector(".prix").textContent),
+    solde: ch.argent.solde, soldeTexte: document.getElementById("garageSolde").textContent, bonus: document.getElementById("garageBonus").textContent, garage: Object.assign({}, ch.garage),
+    sauve: SAUVEGARDE.championnat() && { garage: SAUVEGARDE.championnat().garage, solde: SAUVEGARDE.championnat().argent.solde },
+    defile: [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth] }; }'''
+def garage_ecran(pg, titre, achat=True, capture='garage.png'):
+    if achat: pg.evaluate('() => ARGENT.crediter(JEU.championnat, 200000, "test")')
+    pg.click('#boutonGarage')
+    e = pg.evaluate(GARAGE_ETAT)
+    t(f'{titre} : « Garage » ouvre le garage : 4 améliorations (roues, moteur, aero, freins) au niveau 0, leur prix, le solde, le bonus de la voiture, sans défilement',
+      e['ecran'] == 'garage' and e['visible'] and e['noms'] == ['roues', 'moteur', 'aero', 'freins'] and all('0 / 5' in n for n in e['niveaux']) and e['soldeTexte'] == 'Solde : ' + pg.evaluate('() => ARGENT.formater(JEU.championnat.argent.solde)')
+      and e['bonus'].startswith('Voiture : +0,0 % / 7 % maxi') and e['defile'][0] <= e['defile'][1] + 2 and e['defile'][2] <= e['defile'][3] + 2, str(e))
+    if not achat:
+        t(f'{titre} : sans argent, tous les boutons « Acheter » sont grisés', not any(e['actifs']), str(e['actifs']))
+    else:
+        t(f'{titre} : avec de l’argent, « Acheter » est actif', all(e['actifs']), str(e['actifs']))
+        prix = pg.evaluate('() => REGLAGES.GARAGE.moteur.prix[0]')
+        pg.click('#garageListe li[data-nom="moteur"] button')
+        e2 = pg.evaluate(GARAGE_ETAT)
+        t(f'{titre} : acheter le moteur : le solde baisse du prix ({prix}), le niveau passe à 1 / 5, le prix suivant s’affiche, le bonus monte, et c’est sauvegardé',
+          e2['solde'] == e['solde'] - prix and e2['garage']['moteur'] == 1 and '1 / 5' in e2['niveaux'][1] and e2['prix'][1] != e['prix'][1] and e2['bonus'].startswith('Voiture : +0,5 %')
+          and e2['sauve'] and e2['sauve']['garage']['moteur'] == 1 and e2['sauve']['solde'] == e2['solde'], str(e2))
+    pg.wait_for_timeout(300)
+    pg.screenshot(path=os.path.join(CAPTURES, capture))
+    pg.click('#boutonGarageRetour')
+    t(f'{titre} : « Retour » ramène à l’écran du championnat, avec le solde à jour', attendre(pg, '() => JEU.ecran === "championnat" && document.getElementById("garage").classList.contains("cache")')
+      and pg.evaluate('() => document.getElementById("championnatArgent").textContent === "Solde : " + ARGENT.formater(JEU.championnat.argent.solde)'), str(pg.evaluate('() => [JEU.ecran, document.getElementById("championnatArgent").textContent]')))
+
 def championnat(pg, titre, l):
     # ?championnat=1 : l'écran entre les courses au démarrage (nouveau championnat : Grand Prix 1), le robot joue deux
     # Grands Prix d'un tour, « Continuer » enregistre et sauvegarde ; la page rechargée retrouve le Grand Prix 3 et les points
@@ -521,6 +827,7 @@ def championnat(pg, titre, l):
         && document.querySelectorAll("#championnatEcuries li").length === 10 && document.getElementById("championnatGagne").textContent === ""'''), str(pg.evaluate(ECRAN)))
     duel_ecran(pg, titre, 0)
     if l != 1280:
+        garage_ecran(pg, titre, achat=False, capture='garage-960.png')
         # en petit : la une d'un Grand Prix fabriqué en mémoire (le joueur 2e, sans sauvegarde), pour vérifier qu'elle tient en 960×600
         pg.evaluate('''() => { const ch = JEU.championnat, o = [0, 19].concat([...Array(20).keys()].filter(k => k !== 0 && k !== 19));
           const lignes = o.map((k, i) => ({ k, place: i + 1, grille: i + 1, ligne: i + 1, penalites: 0, meilleurTour: 60 + i, classe: true }));
@@ -547,7 +854,12 @@ def championnat(pg, titre, l):
             pg.wait_for_timeout(50)
             if tour is None:
                 tour = pg.evaluate(DUEL_TOUR)
-                if tour and tour['ecart'] and gp == 1: pg.screenshot(path=os.path.join(CAPTURES, 'duel-tour.png'))
+                if tour and tour['ecart'] and gp == 1:
+                    # la capture seulement une fois les lignes posées (elles glissent quand l'ordre change), et les 20 rangs de 1 à 20 de haut en bas
+                    t(f'{titre} : GP {gp} : avant duel-tour.png, la tour est stable : 20 lignes, les rangs 1 à 20 de haut en bas, chacune à sa place',
+                      attendre(pg, ORDRE_TOUR, None, 10000) and pg.evaluate('() => [...document.querySelectorAll("#classementListe li")].sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top).map(li => li.children[0].textContent).join(",")') == ','.join(str(i) for i in range(1, 21)),
+                      pg.evaluate('() => [...document.querySelectorAll("#classementListe li")].map(li => [li.children[0].textContent, Math.round(li.getBoundingClientRect().top)])'))
+                    pg.screenshot(path=os.path.join(CAPTURES, 'duel-tour.png'))
                 if tour and not tour['ecart']: tour = None   # l'écart n'est pas encore connu : on regarde à l'image suivante
         t(f'{titre} : GP {gp} : en course, une seule ligne du coéquipier dans la tour (son numéro, la couleur de l’écurie), avec l’écart en temps « ▲/▼ x,x s »',
           bool(tour) and tour['n'] == 1 and tour['numero'] == tour['attendu'] and tour['couleur'] and bool(re.fullmatch(r'[▲▼] \d+,\d s', tour['ecart'])), str(tour))
@@ -555,6 +867,13 @@ def championnat(pg, titre, l):
         pg.click('#boutonResultats')
         attendre(pg, '() => JEU.ecran === "resultats"')
         t(f'{titre} : GP {gp} : un seul bouton, « Continuer »', pg.evaluate('() => document.getElementById("boutonRejouerResultats").classList.contains("cache") && document.getElementById("boutonChangerResultats").textContent === "Continuer"'))
+        # l'argent (argent.js) : la ligne des gains sous les résultats, calculée sur le classement final de cet instant
+        arg = pg.evaluate('''() => { const g = ARGENT.gains(JEU.championnat, CHAMPIONNAT.lignesDepuisCourse(JEU.plateau)), p = document.getElementById("resultatsArgent");
+          return { texte: p.textContent, total: g.total, attendu: ARGENT.formater(g.total), deborde: p.getBoundingClientRect().right > innerWidth || p.getBoundingClientRect().bottom > innerHeight, g }; }''')
+        t(f'{titre} : GP {gp} : les résultats montrent l’argent gagné (« Gains : +n € » avec le détail), sans déborder', arg['texte'].startswith('Gains : +' + arg['attendu']) and '(' in arg['texte'] and not arg['deborde'] and arg['total'] > 0, str(arg))
+        if gp == 1:
+            pg.wait_for_timeout(300)
+            pg.screenshot(path=os.path.join(CAPTURES, 'argent.png'))
         pg.click('#boutonChangerResultats')
         t(f'{titre} : GP {gp} : « Continuer » enregistre le Grand Prix, range sa une dans l’album et sauvegarde, puis montre la une du journal',
           attendre(pg, f'''() => JEU.ecran === "une" && JEU.championnat.prochain === {gp} && SAUVEGARDE.championnat().prochain === {gp} && SAUVEGARDE.championnat().album.length === {gp}
@@ -567,9 +886,15 @@ def championnat(pg, titre, l):
         total = pg.evaluate('() => REGLAGES.POINTS.reduce((a, b) => a + b, 0)')
         t(f'{titre} : GP {gp} : les points sont ceux du classement final (somme = {total} par Grand Prix)', sum(points) == gp * total, str(points))
         duel_ecran(pg, titre, gp)
+        # le solde = les gains des Grands Prix + les crédits (le test du garage en ajoute un) − les achats du garage (la somme des prix des niveaux achetés)
+        sol = pg.evaluate('''() => { const ch = JEU.championnat, s = ch.argent.solde, R = REGLAGES; return { texte: document.getElementById("championnatArgent").textContent, attendu: "Solde : " + ARGENT.formater(s), s,
+          somme: ch.argent.historique.reduce((a, h) => a + h[1], 0) - GARAGE.NOMS.reduce((a, n) => a + R.GARAGE[n].prix.slice(0, ch.garage[n]).reduce((x, y) => x + y, 0), 0),
+          sauve: SAUVEGARDE.championnat().argent.solde, n: ch.argent.historique.filter(h => h[0] > 0).length }; }''')
+        t(f'{titre} : GP {gp} : l’écran du championnat montre le solde = les gains + les crédits − les achats, sauvegardé, {gp} Grand(s) Prix dans l’historique', sol['texte'] == sol['attendu'] and sol['s'] == sol['somme'] and sol['sauve'] == sol['s'] and sol['n'] == gp and sol['s'] > 0, str(sol))
         if gp == 1:
             pg.wait_for_timeout(300)
             pg.screenshot(path=os.path.join(CAPTURES, 'championnat.png'))
+            garage_ecran(pg, titre)
         else:
             pg.wait_for_timeout(300)
             pg.screenshot(path=os.path.join(CAPTURES, 'duel.png'))
@@ -598,7 +923,7 @@ with sync_playwright() as p:
             pg.on('console', lambda m: console.append(m.type + ': ' + m.text) if m.type in ('error', 'warning') and not LECTURE_PIXELS.fullmatch(m.text) else None)
             pg.on('pageerror', lambda e: console.append('PAGEERROR ' + str(e)))
             pg.on('requestfailed', lambda r: console.append('FICHIER MANQUANT ' + r.url))
-            if 'test=sdk' in page: pg.add_init_script(FAUX_SDK)
+            if 'test=sdk' in page or 'test=decouverte' in page: pg.add_init_script(FAUX_SDK)
             pg.goto('file://' + RACINE + '/' + page); pg.wait_for_timeout(1500)
             t(f'{titre} : console vide', not console, ' | '.join(console)[:500])
             defile = pg.evaluate('() => [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth]')
@@ -608,11 +933,26 @@ with sync_playwright() as p:
             if mesures is None: mesures = pg.evaluate('() => SCENE3D.infoCircuit')
 
             t(f'{titre} : le panneau de réglage n’existe que avec ?reglages=1', pg.evaluate('() => !!document.getElementById("reglages")') == ('reglages=1' in page))
-            if page == 'index.html' and l == 1280:
+            if page == 'index.html?seul=1' and l == 1280:
                 conduite(pg, titre)
+            if page == 'index.html':
+                t(f'{titre} : la page nue, sans sauvegarde : l’écran titre (« ▶ Jouer », « 👥 Entre amis »), pas de qualification ni d’écran de choix', pg.evaluate('() => JEU.ecran === "titre" && JEU.decouverte && !document.getElementById("titre").classList.contains("cache") && document.getElementById("choix").classList.contains("cache") && document.getElementById("boutonJouer").textContent === texte("titreJouer")'), str(pg.evaluate('() => [JEU.ecran, JEU.decouverte]')))
+                if l == 960:
+                    # une ancienne sauvegarde : un championnat déjà commencé, sans pilote créé → la création est demandée une fois, en 960×600 sans défilement
+                    pg.evaluate('() => { const ch = CHAMPIONNAT.creer(1); ch.prochain = 2; localStorage.setItem(SAUVEGARDE.CLE, JSON.stringify({ version: 3, records: {}, championnat: ch })); }')   # (une sauvegarde d'avant : sans decouverteFaite ni argent)
+                    pg.reload()
+                    t(f'{titre} : une ancienne sauvegarde (championnat sans pilote) se charge et demande la création du pilote, une fois', attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "pilote" && SAUVEGARDE.decouverteFaite() && !JEU.decouverte', None, 60000), str(pg.evaluate('() => [JEU.ecran, SAUVEGARDE.decouverteFaite()]')))
+                    defile = pg.evaluate('() => [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth]')
+                    t(f'{titre} : l’écran de création tient en 960×600 sans défilement', defile[0] <= defile[1] + 2 and defile[2] <= defile[3] + 2, str(defile))
+                    pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'pilote-960.png'))
+                    pg.select_option('#pilotePays', 'jp')
+                    with pg.expect_navigation(): pg.click('#boutonPiloteValider')
+                    t(f'{titre} : validée (Japon → 🏠 Suzuko d’office), la page revient au paddock, Grand Prix 3, et ne redemande plus la création', attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat" && JEU.championnat.prochain === 2 && PILOTE.joueur(JEU.championnat).coeur === "suzuko" && PILOTE.joueur(JEU.championnat).pays === "jp"', None, 60000), str(pg.evaluate('() => [JEU.ecran, PILOTE.joueur(JEU.championnat)]')))
+            if 'test=decouverte' in page:
+                decouverte(pg, titre)
             if 'reglages=1' in page:
                 reglages(pg, titre)
-            if 'robot=1' in page and 'championnat=1' not in page and 'joueur=1' not in page and 'test=sdk' not in page and 'pneus=1' not in page:   # (avec ?championnat=1 ou &joueur=1, le robot joue dans championnat() ou qualif() ; sdk() et pneus() ont leur page)
+            if 'robot=1' in page and 'championnat=1' not in page and 'joueur=1' not in page and 'test=sdk' not in page and 'pneus=1' not in page and 'test=decouverte' not in page:   # (avec ?championnat=1 ou &joueur=1, le robot joue dans championnat() ou qualif() ; sdk() et pneus() ont leur page)
                 course_robot(pg, titre, page)
             if 'test=sdk' in page:
                 sdk(pg, titre)
@@ -630,6 +970,8 @@ with sync_playwright() as p:
                 championnat(pg, titre, l)
             if 'test=qualif' in page:
                 qualif(pg, titre)
+            elif 'test=fantome' in page:
+                fantome(pg, titre)
             elif 'joueur=1' in page:
                 hud(pg, titre, l)
                 if l == 1280: course_joueur(pg, titre)

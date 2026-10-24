@@ -18,8 +18,9 @@ function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' �
 const v=(c,m)=>{if(!c)throw new Error(m||'faux');};
 function ecrire(etape){document.getElementById('res').textContent=`${etape?'EN COURS ('+etape+') ':''}RESULTAT ${ok}/${ok+ko}\n`+L.join('\n');}
 
-// une valeur est « remplie » : une chaîne non vide, ou une liste de chaînes non vides
-const remplie = x => typeof x === 'string' ? x.trim() !== '' : Array.isArray(x) && x.length > 0 && x.every(remplie);
+// une valeur est « remplie » : une chaîne non vide (un seul caractère compte, même un espace : le séparateur des milliers « milliers »
+// est une espace fine insécable en français), ou une liste de chaînes non vides
+const remplie = x => typeof x === 'string' ? (x.trim() !== '' || x.length === 1) : Array.isArray(x) && x.length > 0 && x.every(remplie);
 const morceaux = x => Array.isArray(x) ? x : [x];
 const en = Object.keys(TEXTES.en), fr = Object.keys(TEXTES.fr);
 
@@ -55,7 +56,15 @@ const UTILISEES = ['aideConduite','attenteArrivee','changerLongueur','choixTitre
   'reglagesRienChange','reglagesTitre','rejouer','reprendre','resultats','secteur','son','tempsTotal','tour','tourPrecedent','tourRetard',
   'tours','toursRetard','toursSansFin','virgule','voirResultats','tresCourte','moyenne','longue','essaiLibre',
   // les clés des 11 textes en dur de l'audit (tour 21b)
-  'nomJoueur','pilote','ecurie','numero','circuit_test','circuit_technique','titreGrandPrix','placeCourse','secondes'];
+  'nomJoueur','pilote','ecurie','numero','circuit_test','circuit_technique','titreGrandPrix','placeCourse','secondes',
+  // le fantôme du meilleur tour (tour 22b)
+  'fantomeRecord','fantomeEcart','fantomeOui','fantomeNon',
+  // le départ parfait (tour 22b)
+  'departAide','departParfait','departBon','departPatinage','departCale','departFaux','departRecord',
+  // le premier lancement (tour 23b)
+  'titreJouer','titreAmis','retour','amisBientot','aideGaz','aideDirection','aideFrein','bravoTitre','bravoPlace','bravoArgent','bravoQuestion','bravoBouton',
+  // la création du pilote (tour 23b)
+  'piloteTitre','piloteNom','piloteNumero','pilotePays','piloteCoeur','piloteDomicile','piloteErreurNumero','piloteErreurCoeur','piloteValider'];
 t('chaque clé demandée par le jeu existe', ()=>{const m=UTILISEES.filter(k=>!(k in TEXTES.en));v(!m.length,m.join(', '));});
 
 // --- les 11 textes en dur de l'audit (rapports/audit-textes.md) ont leur clé, dans les deux langues
