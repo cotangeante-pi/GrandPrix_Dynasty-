@@ -3,6 +3,7 @@ const TEXTES = {
   en: {
     nomDuJeu: 'Grand Prix Dynasty',
     kmh: 'km/h',
+    joueur1: 'Player 1', joueur2: 'Player 2',   // the 2-player mode (split screen)
     horsPiste: 'OFF TRACK',
     aideConduite: '↑ ↓ ← → drive · C camera · Space back on track · M sound · Esc pause',
     son: 'Sound on / off (M)',
@@ -178,6 +179,7 @@ const TEXTES = {
   fr: {
     nomDuJeu: 'Grand Prix Dynasty',
     kmh: 'km/h',
+    joueur1: 'Joueur 1', joueur2: 'Joueur 2',   // le mode 2 joueurs (écran partagé)
     horsPiste: 'HORS PISTE',
     aideConduite: '↑ ↓ ← → conduire · C caméra · Espace retour en piste · M son · Échap pause',
     son: 'Son oui / non (M)',

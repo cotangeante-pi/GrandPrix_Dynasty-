@@ -255,6 +255,7 @@ const REGLAGES = {
   DEUX_IA_CHOIX: [0, 3, 5],     // les nombres d'IA permis (la première valeur par défaut)
   DEUX_VOITURES_MAX: 7,         // jamais plus de voitures en piste (2 joueurs + 5 IA) : la 3D est dessinée deux fois
   DEUX_COULEURS: [0x1f6fe0, 0xd8262e],   // la couleur des voitures du joueur 1 🔵 et du joueur 2 🔴 (en attendant leur choix, ordre 3)
+  PISTE_GRIS_ECART_MAX: 16,     // tests d'écran : un pixel de piste est gris (ses trois composantes à moins de cet écart), l'herbe est verte
   AIDE_CLIGNOTE_APRES: 3,       // s : sur la grille, sans aucune touche pendant ce temps, l'aide « ↑ » clignote
   // le casque du pilote (casque.js) : un motif et trois couleurs ; les rivaux tirent le leur avec la graine du championnat
   CASQUE_MOTIFS: ['uni', 'bandes', 'etoile', 'flammes', 'damier', 'eclair'],
@@ -475,6 +476,7 @@ const REGLAGES = {
 
   COULEUR_CIEL: 0x87c5ea,
   COULEUR_SOL: 0x4f7d3a,
+  SOL_RECUL_PROFONDEUR: 8,      // scene3d.js : l'herbe est repoussée de ce facteur dans le tampon de profondeur (polygonOffset), la route passe toujours devant
   COULEUR_ROUTE: 0x3b3d42,
   COULEUR_BORD: 0xf2f2f2,
   COULEUR_VIBREUR_A: 0xd8262e,
