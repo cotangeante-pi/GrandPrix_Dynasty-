@@ -269,6 +269,12 @@ const REGLAGES = {
   DEUX_IA_CHOIX: [0, 3, 5],     // les nombres d'IA permis (la première valeur par défaut)
   DEUX_VOITURES_MAX: 7,         // jamais plus de voitures en piste (2 joueurs + 5 IA) : la 3D est dessinée deux fois
   DEUX_COULEURS: [0x1f6fe0, 0xd8262e],   // la couleur des voitures du joueur 1 🔵 et du joueur 2 🔴 (en attendant leur choix, ordre 3)
+  // l'écran avant la course à deux (tour 25b, ordre 3) : les couleurs de voiture proposées (les deux premières = celles par défaut
+  // du joueur 1 et du joueur 2, DEUX_COULEURS ; deux joueurs n'ont jamais la même) ; les casques par défaut ; le niveau par défaut des IA
+  DEUX_COULEURS_CHOIX: [0x1f6fe0, 0xd8262e, 0xf2c230, 0x2fa84f, 0xf07d1a, 0x8e44ad, 0x1abc9c, 0xe84393],
+  DEUX_CASQUES: [{ motif: 'bandes', couleurs: [0x1f6fe0, 0xffffff, 0x111111] }, { motif: 'flammes', couleurs: [0xd8262e, 0xf2c230, 0x111111] }],
+  DEUX_NIVEAU: 'normal',
+  DEUX_IA_DEFAUT: 3,            // le nombre d'IA proposé la première fois (DEUX_IA_CHOIX)
   PISTE_GRIS_ECART_MAX: 16,     // tests d'écran : un pixel de piste est gris (ses trois composantes à moins de cet écart), l'herbe est verte
   AIDE_CLIGNOTE_APRES: 3,       // s : sur la grille, sans aucune touche pendant ce temps, l'aide « ↑ » clignote
   // le casque du pilote (casque.js) : un motif et trois couleurs ; les rivaux tirent le leur avec la graine du championnat

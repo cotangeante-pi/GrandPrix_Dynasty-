@@ -208,6 +208,13 @@ const TEXTES = {
     interview_serie_provocant: 'Give me a car that works and we will talk about points.', interview_serie_calme: 'We are working hard, it will turn around.', interview_serie_malin: 'I am saving my points for when it counts.',
     interview_moyen_q: ['P{place} at {circuit}. A normal day?', 'Not much to say about P{place}?', 'P{place} today. Where is the gap?'],
     interview_moyen_provocant: 'Normal? Nothing is normal until I win.', interview_moyen_calme: 'We got what the car could give, we keep going.', interview_moyen_malin: 'Ask me again when the car is as fast as I am.',
+    // le mode 2 joueurs : le menu « Entre amis », l'écran avant la course, le podium à deux, la rivalité (tour 25b, ordre 3)
+    amisTitre: 'With friends', amisDeux: 'Split screen (2 players)', amisTournoi: 'Time-trial tournament (2 to 8 players)', bientot: 'coming soon',
+    deuxTitre: 'Split screen', deuxNom: 'Name', deuxCouleur: 'Car', deuxCasque: 'Helmet', deuxCircuit: 'Track', deuxTours: 'Laps', deuxIA: 'AI drivers', deuxNiveau: 'Level',
+    niveau_debutant: 'Beginner', niveau_normal: 'Normal', niveau_expert: 'Expert', niveau_legende: 'Legend',
+    deuxTouches1: 'W A S D (Z Q S D) · E: back on track', deuxTouches2: 'Arrows · Enter: back on track',
+    deuxPartir: 'Race!', deuxErreurNom: 'The two players need different names.', deuxErreurCouleur: 'Pick two different car colours.',
+    deuxPlace: '{nom}: P{p}', rivalite: '{a} {x} – {y} {b}', rivaliteTitre: 'Rivalry', revanche: '↻ Rematch', menuAmis: 'Menu',
   },
   fr: {
     nomDuJeu: 'Grand Prix Dynasty',
@@ -405,6 +412,13 @@ const TEXTES = {
     interview_serie_provocant: 'Donnez-moi une voiture qui marche et on parlera de points.', interview_serie_calme: 'On travaille dur, ça va tourner.', interview_serie_malin: 'Je garde mes points pour quand ça compte.',
     interview_moyen_q: ['P{place} à {circuit}. Une journée normale ?', 'Pas grand-chose à dire sur cette P{place} ?', 'P{place} aujourd’hui. Il manque quoi ?'],
     interview_moyen_provocant: 'Normale ? Rien n’est normal tant que je ne gagne pas.', interview_moyen_calme: 'On a pris ce que la voiture pouvait donner, on continue.', interview_moyen_malin: 'Reposez-moi la question quand la voiture ira aussi vite que moi.',
+    // le mode 2 joueurs : le menu « Entre amis », l'écran avant la course, le podium à deux, la rivalité (tour 25b, ordre 3)
+    amisTitre: 'Entre amis', amisDeux: 'Écran partagé (2 joueurs)', amisTournoi: 'Tournoi chrono (2 à 8 joueurs)', bientot: 'bientôt',
+    deuxTitre: 'Écran partagé', deuxNom: 'Nom', deuxCouleur: 'Voiture', deuxCasque: 'Casque', deuxCircuit: 'Circuit', deuxTours: 'Tours', deuxIA: 'Pilotes IA', deuxNiveau: 'Niveau',
+    niveau_debutant: 'Débutant', niveau_normal: 'Normal', niveau_expert: 'Expert', niveau_legende: 'Légende',
+    deuxTouches1: 'Z Q S D (W A S D) · E : retour en piste', deuxTouches2: 'Flèches · Entrée : retour en piste',
+    deuxPartir: 'C’est parti !', deuxErreurNom: 'Les deux joueurs doivent avoir des noms différents.', deuxErreurCouleur: 'Choisissez deux couleurs de voiture différentes.',
+    deuxPlace: '{nom} : P{p}', rivalite: '{a} {x} – {y} {b}', rivaliteTitre: 'Rivalité', revanche: '↻ Revanche', menuAmis: 'Menu',
   },
 };
 
