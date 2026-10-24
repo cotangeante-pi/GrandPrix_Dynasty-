@@ -66,6 +66,7 @@ const CHAMPIONNAT = (function () {
       ch.ecuries[p.ecurie].points += pts;
     }
     const duel = enregistrerDuel(ch, lignes);
+    if (typeof FICHE !== 'undefined') FICHE.suivre(ch, lignes);   // les duels de chaque rival contre le joueur (fiche.js)
     ch.resultats.push({ grandPrix: ch.prochain + 1, ordre: lignes.map(l => l.k), duel });
     ch.prochain++;
     return ch;
@@ -163,6 +164,8 @@ const CHAMPIONNAT = (function () {
       if (p.stats) { if (typeof p.stats.titres !== 'number') p.stats.titres = 0; if (typeof p.stats.saisons !== 'number') p.stats.saisons = 0; }
     }
     if (typeof SAISONS !== 'undefined') SAISONS.completer(ch);
+    if (typeof SPONSORS !== 'undefined') SPONSORS.completer(ch);
+    if (typeof FICHE !== 'undefined' && ch.pilotes) FICHE.completer(ch);
     return ch;
   }
 
@@ -171,6 +174,7 @@ const CHAMPIONNAT = (function () {
     enregistrerCourse(ch, lignes);
     if (typeof JOURNAL !== 'undefined') JOURNAL.ranger(ch, JOURNAL.composer(ch, lignes));   // la une du journal (journal.js), dans l'album du championnat
     if (typeof ARGENT !== 'undefined') ARGENT.encaisser(ch, lignes);   // les gains du Grand Prix (argent.js), au solde
+    if (typeof SPONSORS !== 'undefined') SPONSORS.suivre(ch, lignes);   // les objectifs du sponsor (sponsors.js), les primes
     SAUVEGARDE.ecrireChampionnat(ch);
     return ch;
   }

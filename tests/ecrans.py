@@ -811,13 +811,52 @@ GARAGE_ETAT = '''() => { const ch = JEU.championnat, lis = [...document.querySel
     solde: ch.argent.solde, soldeTexte: document.getElementById("garageSolde").textContent, bonus: document.getElementById("garageBonus").textContent, garage: Object.assign({}, ch.garage),
     sauve: SAUVEGARDE.championnat() && { garage: SAUVEGARDE.championnat().garage, solde: SAUVEGARDE.championnat().argent.solde },
     defile: [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth] }; }'''
+# ?championnat=1 : les sponsors (sponsors.js) : au paddock « Pas encore de sponsor », le bouton « Sponsors » ouvre les offres (2 à 4),
+# « Choisir » la première : le rappel au paddock, le montant crédité, sauvegardé ; la fiche d'un rival (fiche.js) au clic sur son nom
+SPONSORS_ETAT = '''() => { const ch = JEU.championnat, lis = [...document.querySelectorAll("#sponsorsListe > li")], o = SPONSORS.offres(ch); return { ecran: JEU.ecran, n: lis.length, cles: lis.map(li => li.dataset.sponsor),
+  offres: o.map(x => x.cle), boutons: lis.map(li => !!li.querySelector("button.choisir")), objectifs: lis.map(li => li.querySelectorAll(".objectifs li").length), montant0: o.length ? o[0].montant : 0,
+  solde: ch.argent.solde, defile: [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth] }; }'''
+def sponsors_ecran(pg, titre, capture):
+    r0 = pg.evaluate('() => document.getElementById("championnatSponsor").textContent')
+    t(f'{titre} : au paddock, « Pas encore de sponsor »', r0 == 'Pas encore de sponsor', r0)
+    pg.click('#boutonSponsors')
+    e = pg.evaluate(SPONSORS_ETAT)
+    t(f'{titre} : « Sponsors » : les offres (2 à 4, celles de SPONSORS.offres, chacune avec ses objectifs et « Choisir »), sans défilement',
+      e['ecran'] == 'sponsors' and 2 <= e['n'] <= 4 and e['cles'] == e['offres'] and all(e['boutons']) and all(x >= 1 for x in e['objectifs']) and pas_de_defilement(e['defile']), str(e))
+    pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, capture))
+    pg.click('#sponsorsListe > li:first-child button.choisir')
+    r = pg.evaluate("""() => { const ch = JEU.championnat; return { ecran: JEU.ecran, sponsor: ch.sponsor && ch.sponsor.cle, rappel: document.getElementById("championnatSponsor").textContent, solde: ch.argent.solde,
+      sauve: SAUVEGARDE.championnat().sponsor && SAUVEGARDE.championnat().sponsor.cle, nom: ch.sponsor ? texte("sponsor_" + ch.sponsor.cle) : "" }; }""")
+    t(f'{titre} : « Choisir » : retour au paddock avec le rappel « Sponsor : <nom> · objectifs », le montant crédité, sauvegardé',
+      r['ecran'] == 'championnat' and r['sponsor'] == e['cles'][0] and r['rappel'].startswith('Sponsor : ' + r['nom']) and ' / ' in r['rappel'] and r['solde'] == e['solde'] + e['montant0'] and r['sauve'] == r['sponsor'], str(r))
+    pg.click('#boutonSponsors')
+    t(f'{titre} : « Sponsors » une fois signé : le sponsor et l’avancement de ses objectifs, sans bouton « Choisir » ; « Retour »',
+      pg.evaluate('() => JEU.ecran === "sponsors" && document.querySelectorAll("#sponsorsListe > li").length === 1 && !document.querySelector("#sponsorsListe button.choisir") && /0 \\/ \\d/.test(document.getElementById("sponsorsListe").textContent)'),
+      pg.evaluate('() => document.getElementById("sponsorsListe").textContent')[:200])
+    pg.click('#boutonSponsorsRetour')
+    t(f'{titre} : « Retour » ramène au paddock', attendre(pg, '() => JEU.ecran === "championnat"'))
+
+FICHE_ETAT = '''k => { const ch = JEU.championnat, f = FICHE.fiche(ch, k), p = ch.pilotes[k], $ = id => document.getElementById(id).textContent; return { ecran: JEU.ecran, nom: $("ficheNom"), attenduNom: INTERFACE.nomPilote(p),
+  infos: $("ficheInfos"), numero: p.numero, age: p.age, caractere: $("ficheCaractere"), mots: f.mots.map(m => texte("caractere_" + m)), saison: $("ficheSaison"), place: f.saison.place, points: f.saison.points,
+  historique: $("ficheHistorique"), duels: $("ficheDuels"), devant: f.duels.devant, derriere: f.duels.derriere, photo: document.getElementById("fichePhoto").getBoundingClientRect().width,
+  defile: [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth] }; }'''
+def fiche_ecran(pg, titre, capture):
+    pg.click('#championnatPilotes li[data-k="3"] .nom')
+    f = pg.evaluate(FICHE_ETAT, 3)
+    t(f'{titre} : un clic sur un rival ouvre sa fiche : nom, numéro, écurie, âge, caractère en mots, saison (place, points), historique, duels contre le joueur, la place de la photo, sans défilement',
+      f['ecran'] == 'fiche' and f['nom'] == f['attenduNom'] and f['nom'] != '' and str(f['numero']) in f['infos'] and (str(f['age']) + ' ans') in f['infos'] and f['caractere'] == 'Caractère : ' + ', '.join(f['mots'])
+      and f['saison'].startswith(f'Cette saison : P{f["place"]} · {f["points"]} pts') and f['historique'].startswith('Carrière : ') and f['duels'] == f'Contre toi : devant {f["devant"]} fois, derrière {f["derriere"]} fois' and f['photo'] > 50 and pas_de_defilement(f['defile']), str(f))
+    pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, capture))
+    pg.click('#boutonFicheRetour')
+    t(f'{titre} : « Retour » ramène au paddock ; un clic sur le joueur n’ouvre rien', attendre(pg, '() => JEU.ecran === "championnat"') and pg.evaluate('() => { const moi = document.querySelector("#championnatPilotes li.moi"); moi.click(); return JEU.ecran === "championnat" && !moi.dataset.k; }'))
+
 def garage_ecran(pg, titre, achat=True, capture='garage.png'):
     if achat: pg.evaluate('() => ARGENT.crediter(JEU.championnat, 200000, "test")')
     pg.click('#boutonGarage')
     e = pg.evaluate(GARAGE_ETAT)
     t(f'{titre} : « Garage » ouvre le garage : 4 améliorations (roues, moteur, aero, freins) au niveau 0, leur prix, le solde, le bonus de la voiture, sans défilement',
       e['ecran'] == 'garage' and e['visible'] and e['noms'] == ['roues', 'moteur', 'aero', 'freins'] and all('0 / 5' in n for n in e['niveaux']) and e['soldeTexte'] == 'Solde : ' + pg.evaluate('() => ARGENT.formater(JEU.championnat.argent.solde)')
-      and e['bonus'].startswith('Voiture : +0,0 % / 7 % maxi') and e['defile'][0] <= e['defile'][1] + 2 and e['defile'][2] <= e['defile'][3] + 2, str(e))
+      and e['bonus'] == 'Voiture de l’écurie : ' + str(pg.evaluate('() => Math.round(JEU.championnat.ecuries[JEU.championnat.pilotes[19].ecurie].niveau * 100)')) + ' / 100 · tes améliorations : +0,0 % / 7 % maxi' and e['defile'][0] <= e['defile'][1] + 2 and e['defile'][2] <= e['defile'][3] + 2, str(e))
     if not achat:
         t(f'{titre} : sans argent, tous les boutons « Acheter » sont grisés', not any(e['actifs']), str(e['actifs']))
     else:
@@ -826,7 +865,7 @@ def garage_ecran(pg, titre, achat=True, capture='garage.png'):
         pg.click('#garageListe li[data-nom="moteur"] button')
         e2 = pg.evaluate(GARAGE_ETAT)
         t(f'{titre} : acheter le moteur : le solde baisse du prix ({prix}), le niveau passe à 1 / 5, le prix suivant s’affiche, le bonus monte, et c’est sauvegardé',
-          e2['solde'] == e['solde'] - prix and e2['garage']['moteur'] == 1 and '1 / 5' in e2['niveaux'][1] and e2['prix'][1] != e['prix'][1] and e2['bonus'].startswith('Voiture : +0,5 %')
+          e2['solde'] == e['solde'] - prix and e2['garage']['moteur'] == 1 and '1 / 5' in e2['niveaux'][1] and e2['prix'][1] != e['prix'][1] and 'tes améliorations : +0,5 %' in e2['bonus']
           and e2['sauve'] and e2['sauve']['garage']['moteur'] == 1 and e2['sauve']['solde'] == e2['solde'], str(e2))
     pg.wait_for_timeout(300)
     pg.screenshot(path=os.path.join(CAPTURES, capture))
@@ -909,6 +948,10 @@ def fin_saison(pg, titre, l):
     choix = next((x for x in c['offres'] if x != c['actuelle']), c['actuelle'])
     avant = pg.evaluate('() => ({ garage: JSON.stringify(JEU.championnat.garage), solde: JEU.championnat.argent.solde, coequipier: CHAMPIONNAT.coequipierDe(JEU.championnat).id })')
     pg.click(f'#contratsListe li[data-ecurie="{choix}"] button')
+    t(f'{titre} : « Signer » mène d’abord au choix du sponsor de la saison 2 (2 à 4 offres)', attendre(pg, '() => JEU.ecran === "sponsors" && JEU.championnat.saison === 2 && document.querySelectorAll("#sponsorsListe > li").length >= 2 && SPONSORS.aChoisir(JEU.championnat)'), str(pg.evaluate('() => [JEU.ecran, JEU.championnat.saison]')))
+    montant = pg.evaluate('() => SPONSORS.offres(JEU.championnat)[0].montant')
+    pg.click('#sponsorsListe > li:first-child button.choisir')
+    avant['solde'] += montant   # le montant du sponsor est crédité au choix
     s2 = pg.evaluate(SAISON2_ETAT)
     t(f'{titre} : « Signer » (écurie {choix}) : la saison 2 commence (Grand Prix 1 / 12, points à 0), le joueur est dans l’écurie choisie, 10 écuries de 2, le garage et l’argent suivent, le duel repart de 0, sauvegardé',
       s2['ecran'] == 'championnat' and s2['saison'] == 2 and s2['prochain'] == 0 and s2['ecurie'] == choix and s2['titre'].startswith('Grand Prix 1 / 12') and s2['garage'] == avant['garage'] and s2['solde'] == avant['solde']
@@ -927,6 +970,8 @@ def championnat(pg, titre, l):
         && document.querySelectorAll("#championnatPilotes li").length === 20 && document.querySelectorAll("#championnatPilotes li.moi").length === 1
         && document.querySelectorAll("#championnatEcuries li").length === 10 && document.getElementById("championnatGagne").textContent === ""'''), str(pg.evaluate(ECRAN)))
     duel_ecran(pg, titre, 0)
+    fiche_ecran(pg, titre, 'fiche.png' if l == 1280 else 'fiche-960.png')
+    sponsors_ecran(pg, titre, 'sponsors.png' if l == 1280 else 'sponsors-960.png')
     if l != 1280:
         garage_ecran(pg, titre, achat=False, capture='garage-960.png')
         # en petit : la une d'un Grand Prix fabriqué en mémoire (le joueur 2e, sans sauvegarde), pour vérifier qu'elle tient en 960×600
