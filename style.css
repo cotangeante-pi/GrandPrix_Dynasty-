@@ -855,3 +855,4 @@ body.deux #departResultat { bottom: auto; top: calc(50% - 60px); }
 #arbreListe { margin: 0; padding: 0 0 0 18px; font: 13px/1.4 var(--police); max-height: 40vh; overflow: hidden; }
 #arbreListe li { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #heritierErreur { color: #ff8a8a; font-size: 14px !important; min-height: 18px; }
+#bilanBoutons button { align-content: center; }   /* (le petit bouton à la hauteur des autres : son texte au milieu) */

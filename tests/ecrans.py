@@ -1158,6 +1158,7 @@ def releve(pg, titre):
     pg.click('#boutonHeritierValider')
     t(f'{titre} : sans prénom, l’héritier est refusé (message)', pg.evaluate('() => JEU.ecran === "heritier" && document.getElementById("heritierErreur").textContent !== ""'))
     pg.fill('#heritierPrenom', 'Léa'); pg.select_option('#heritierLien', 'fille')
+    t(f'{titre} : le message d’erreur part dès que le prénom est corrigé', pg.evaluate('() => document.getElementById("heritierErreur").textContent === ""'))
     pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'releve.png'))
     pg.click('#boutonHeritierValider')
     s = pg.evaluate('''() => { const ch = JEU.championnat, j = ch.pilotes[19], faible = ch.ecuries.slice().sort((a, b) => a.niveau - b.niveau || b.id - a.id)[0].id;

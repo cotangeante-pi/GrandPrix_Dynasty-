@@ -714,6 +714,7 @@ const INTERFACE = (function () {
     });
     $('boutonHeritierValider').addEventListener('click', valider);
     $('heritierPays').addEventListener('change', majDomicileHeritier);
+    for (const id of ['heritierPrenom', 'heritierNumero']) $(id).addEventListener('input', () => montrerErreurHeritier(false));   // le message part dès qu'on corrige
   }
 
   // la course de cœur suit le pays (un pays qui a un circuit : son Grand Prix à domicile, d'office)
