@@ -25,3 +25,11 @@ Ce que je n'ai pas pu vérifier, et les remarques
 - La couleur de la voiture du tour est la même pour tous (COULEUR_JOUEUR) ; seul le casque change d'un joueur à l'autre. Au podium, chaque voiture a la couleur de son casque.
 Pour CLAUDE.md : tournoi.js (la liste des fonctions en tête du fichier), TOURNOI_* (donnees.js), SAUVEGARDE.tournoi / ecrireTournoi, ?tournoi=1 et ?menu=tournoi ; qualification.js (q.tour, q.penalites) ; tests ?test=tournoi (captures tournoi.png, tournoi-podium.png, tournoi-inscription-960.png).
 Réévalue.
+
+Ordre suivant (décision du propriétaire, 18h10) : l'écran partagé GAUCHE / DROITE — fait
+Commit : 85b8590 + fusion f88b448 (main avec les pneus) ; passage GitHub 40140956786 : TOUT PASSE (moteur 260/260, courses 43/43, 9/9, écrans 685/685, annexes vertes).
+- DEUX_PARTAGE ('cote' par défaut, 'haut' pour l'ancien) et DEUX_FOV_COTE = 70 (le champ de vision vertical de base de chaque moitié étroite, + CAMERA_CHAMP[1] à pleine vitesse ; CAMERA.reglerChampBase). scene3d.js : en côte à côte, le joueur 1 dessiné à gauche, le joueur 2 à droite (setViewport / setScissor), proportion (l/2)/h.
+- style.css (body.deux.cote) : le trait au milieu, vertical ; l'affichage de chaque joueur en haut de sa moitié, côté extérieur (il passe sur deux lignes en 960) ; la tour partagée en haut au milieu, à cheval sur le trait, plus étroite (190 px) ; les feux, la jauge et le résultat du départ au milieu de chaque moitié ; le bouton du son en bas à droite, pour ne pas toucher l'affichage du joueur 2.
+- Tests (deux_ecran, adaptés) : les feux et la jauge de chacun dans sa moitié ; la route sous chaque voiture, lue en pixels (bas de chaque moitié, au moins 90 % de gris) ; deux caméras, chacune à moins de 30 m derrière son joueur, à la proportion d'une moitié, avec un champ ≥ DEUX_FOV_COTE ; rien ne déborde, la tour au milieu ne touche aucun des deux affichages, le bouton du son non plus ; en 960×600 et en 1280×720. Captures refaites : deux-joueurs.png, deux-joueurs-960.png, deux-feux.png, deux-podium.png.
+- Mesure (GitHub, swiftshader) : sur test en 1280, 40 332 triangles et 55 appels à deux, contre 20 290 et 27 en une seule vue ; même rapport d'environ ×2 qu'en haut / bas.
+- À essayer par le propriétaire : la lisibilité d'une moitié étroite (DEUX_FOV_COTE à régler) ; la tour, qui cache le haut du ciel des deux côtés, pas la route.
