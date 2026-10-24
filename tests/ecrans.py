@@ -671,8 +671,8 @@ def amis(pg, titre, l, h):
         d = pg.evaluate('() => [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth]')
         return all(x is not None and x[0] >= -1 and x[1] >= -1 and x[2] <= l + 1 and x[3] <= h + 1 and x[2] > x[0] for x in b) and pas_de_defilement(d), str([b, d])
     pg.click('#boutonAmis')
-    t(f'{titre} : « Entre amis » (titre) ouvre le petit menu : « Écran partagé (2 joueurs) », « Tournoi chrono » grisé (bientôt), « Retour »',
-      pg.evaluate('() => JEU.ecran === "amis" && !document.getElementById("amis").classList.contains("cache") && document.getElementById("boutonAmisDeux").textContent === texte("amisDeux") && document.getElementById("boutonAmisTournoi").disabled && document.getElementById("boutonAmisTournoi").textContent.includes(texte("bientot"))'),
+    t(f'{titre} : « Entre amis » (titre) ouvre le petit menu : « Écran partagé (2 joueurs) », « Tournoi chrono (2 à 8 joueurs) » (ouvert depuis le tour 26b), « Retour »',
+      pg.evaluate('() => JEU.ecran === "amis" && !document.getElementById("amis").classList.contains("cache") && document.getElementById("boutonAmisDeux").textContent === texte("amisDeux") && !document.getElementById("boutonAmisTournoi").disabled && document.getElementById("boutonAmisTournoi").textContent === texte("amisTournoi")'),
       str(pg.evaluate('() => JEU.ecran')))
     ok_, det = tient(['#amisTitre', '#boutonAmisDeux', '#boutonAmisTournoi', '#boutonAmisRetour'])
     t(f'{titre} : le menu tient en {l}×{h}', ok_, det)
