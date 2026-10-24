@@ -48,6 +48,7 @@ function creerCourseIA(circuit, nb, nbTours, graine, carte = carteDe(circuit), a
   const pilotes = placesGrille(circuit, nb + (avecJoueur ? 1 : 0)).map((place, k) => {
     const v = creerVoiture(circuit, place.s, place.d);
     const humain = k === nb;
+    if (R.PNEUS_ACTIFS && !humain) v.pneus = creerPneus();   // les pneus des IA (étape 7) ; ceux du joueur, c'est la page (principal.js)
     return {
       numero: k + 1, v, course: creerCourse(circuit, nbTours), humain,
       depart: place.s - circuit.longueur,   // m : sa place sur la grille, derrière la ligne (pour savoir qui est devant)
@@ -81,6 +82,9 @@ function donnerCarte(e, carte) {
     p.pilote.caractere = appliquerNiveau(tirerCaractere(e.nbTours + 2));
     p.pilote.erreurs = tirerErreurs(carte, p.pilote.caractere, e.nbTours + 1);
   }
+  // la gestion des pneus (étape 7), avec sa propre graine : les tirages ci-dessus ne bougent pas
+  ALEATOIRE.semer(e.graine + R.GRAINE_PNEUS);
+  for (const p of e.pilotes) if (!p.humain) p.pilote.caractere.gestionPneus = Math.max(0, Math.min(1, tirerGestionPneus() + (niveau().gestionPneus || 0)));
   ALEATOIRE.semer();
 }
 
@@ -117,6 +121,11 @@ function pasCourseIA(e, dt, conduireJoueur) {
     if (p.humain && conduireJoueur) conduireJoueur(p, dt);
     else appliquerCommandes(p.v, commandes[k]);
     pasVoiture(p.v, e.circuit, dt);
+    // ses pneus s'usent (pneus.js), selon sa gestion des pneus ; son adhérence baisse, la physique et ses lignes la lisent
+    if (!p.humain && p.v.pneus) {
+      pasPneus(p.v.pneus, p.v, dt, p.pilote && p.pilote.caractere ? p.pilote.caractere.gestionPneus : undefined);
+      p.v.adherence = facteurAdherence(p.v.pneus.usure);
+    }
   });
   contactsVoitures(voitures, e.circuit);
   e.temps += dt;
@@ -287,7 +296,8 @@ function simulerCourse(circuit, nbVoitures, nbTours, graine) {
       attaques: p.pilote ? p.pilote.attaques : 0, attaquesReussies: p.pilote ? p.pilote.reussies : 0,
       erreurs: p.pilote ? p.pilote.erreursFaites.slice() : [], erreursEvitees: p.pilote && p.pilote.erreurs ? p.pilote.erreurs.filter(x => x.evitee).length : 0,
       herbeErreur: p.herbeErreur, chocsErreur: p.v.chocs.filter((c, i) => p.chocsErreur.has(i)),
-      caractere: p.pilote && p.pilote.caractere ? { regularite: p.pilote.caractere.regularite, agressivite: p.pilote.caractere.agressivite, erreurs: p.pilote.caractere.erreurs } : null,
+      caractere: p.pilote && p.pilote.caractere ? { regularite: p.pilote.caractere.regularite, agressivite: p.pilote.caractere.agressivite, erreurs: p.pilote.caractere.erreurs, gestionPneus: p.pilote.caractere.gestionPneus } : null,
+      usure: p.v.pneus ? p.v.pneus.usure : null, arrets: p.v.pneus ? p.v.pneus.arrets : 0,
     })),
   };
 }

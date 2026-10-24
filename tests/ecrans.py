@@ -505,6 +505,7 @@ def decouverte(pg, titre):
     pg.click('#boutonResultats'); attendre(pg, '() => JEU.ecran === "resultats"')
     t(f'{titre} : dans les résultats, le joueur a le numéro 27', pg.evaluate('() => /\\b27\\b/.test(document.querySelector("#resultatsLignes tr.moi").innerText)'), pg.evaluate('() => document.querySelector("#resultatsLignes tr.moi") && document.querySelector("#resultatsLignes tr.moi").innerText'))
     pg.click('#boutonChangerResultats')
+    passer_interview(pg)   # l'interview d'après course (Codeur 3) : « Pas de commentaire »
     t(f'{titre} : la une du journal nomme « Léo »', attendre(pg, '() => JEU.ecran === "une"', None, 10000) and pg.evaluate('() => document.getElementById("une").innerText.includes("Léo")'), pg.evaluate('() => document.getElementById("une").innerText.slice(0, 300)'))
 
 # sdk.js est le seul passage vers Poki : avec le faux SDK posé avant la page, les appels viennent dans l'ordre, et jamais
@@ -567,6 +568,10 @@ def championnat_en(pg, titre):
     res = pg.evaluate('() => ({ entete: [...document.querySelectorAll("#resultatsEntete th")].map(e => e.textContent).join(","), texte: document.getElementById("resultats").innerText })')
     t(f'{titre} : les résultats en anglais (Pos, No, Time, Penalty, Gap, Grid ; « Continue »)', res['entete'] == 'Pos,No,Time,Penalty,Gap,Grid' and 'Continue' in res['texte'] and not re.search(MOTS_FR, res['texte']), str(res)[:300])
     pg.click('#boutonChangerResultats')
+    attendre(pg, '() => JEU.ecran === "interview"', None, 10000)
+    t(f'{titre} : après les résultats, l’interview en anglais (« Post-race interview », « No comment »), pas un mot français', not re.search(MOTS_FR, pg.evaluate('() => document.getElementById("interview").innerText'))
+      and 'Post-race interview' in pg.evaluate('() => document.getElementById("interview").innerText') and 'No comment' in pg.evaluate('() => document.getElementById("interview").innerText'), pg.evaluate('() => document.getElementById("interview").innerText')[:300])
+    interview_ecran(pg, titre, 'calme', gp='en anglais : ')
     t(f'{titre} : après les résultats, la une du journal en anglais, pas un mot français', attendre(pg, '() => JEU.ecran === "une"') and not re.search(MOTS_FR, pg.evaluate('() => document.getElementById("une").innerText')),
       pg.evaluate('() => document.getElementById("une").innerText')[:300])
     une_ecran(pg, titre, 'une-en.png')
@@ -867,6 +872,71 @@ UNE = '''() => { const ch = JEU.championnat, une = ch.album[ch.album.length - 1]
     photo: $("unePhoto").textContent, passer: $("unePasser").textContent, dedans, coupe, fait: une.f,
     defile: [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth] }; }'''
 
+
+# ?championnat=1 : l'interview d'après course (interview.js, Codeur 3), entre « Continuer » des résultats et la une du journal :
+# le journaliste, la question, trois boutons avec l'icône du ton, « Pas de commentaire » ; après le choix, la ligne d'effet et
+# « Continuer » ; ton : 'provocant' | 'calme' | 'malin' | None (pas de commentaire : la une tout de suite, aucun effet)
+INTERVIEW_ETAT = """() => { const q = JEU.interview, ch = JEU.championnat, $ = id => document.getElementById(id), b = [...document.querySelectorAll("#interviewReponses button")];
+  return { ecran: JEU.ecran, visible: !$("interview").classList.contains("cache"), fait: q && q.fait, rival: q ? q.rival : null, journaliste: $("interviewJournaliste").textContent,
+    question: $("interviewQuestion").textContent, attenduQuestion: q ? INTERVIEW.phrase("interview_" + q.fait + "_q", q.variante, q.params, ch, { pilote: INTERFACE.nomPilote }) : null,
+    n: b.length, tons: b.map(x => x.dataset.ton), icones: b.map(x => x.querySelector(".icone").textContent), textes: b.map(x => x.querySelector(".reponse").textContent),
+    pas: $("boutonPasCommentaire").textContent, effet: $("interviewEffet").textContent, choixCache: $("interviewChoix").classList.contains("cache"), suiteCache: $("interviewSuite").classList.contains("cache"),
+    fini: !!JEU.grandPrixFini, prochain: ch.prochain, reputation: Object.assign({}, ch.reputation), confiance: ch.confiance,
+    rivalite: q && q.rival !== null && ch.pilotes[q.rival].rivalite ? ch.pilotes[q.rival].rivalite.courses : 0, nomRival: q && q.rival !== null ? INTERFACE.nomPilote(ch.pilotes[q.rival]) : null,
+    dedans: [...document.querySelectorAll("#interviewCarte, #interviewReponses button, #boutonPasCommentaire")].every(e => { const r = e.getBoundingClientRect(); return r.right <= innerWidth + 1 && r.bottom <= innerHeight + 1; }),
+    defile: [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth] }; }"""
+def interview_ecran(pg, titre, ton, capture=None, gp=''):
+    ok = attendre(pg, '() => JEU.ecran === "interview" && !document.getElementById("interview").classList.contains("cache")', None, 10000)
+    e = pg.evaluate(INTERVIEW_ETAT)
+    t(f'{titre} : {gp}après les résultats, l’interview (fait « {e["fait"]} ») : le journaliste et le journal, la question rendue avec les noms, trois boutons avec l’icône du ton (😤 🤝 😏), « Pas de commentaire », le Grand Prix pas encore enregistré, tout dans l’écran',
+      ok and e['visible'] and e['journaliste'].startswith(pg.evaluate('() => texte("interviewJournaliste")')) and e['question'] == e['attenduQuestion'] and len(e['question']) > 5 and '{' not in e['question']
+      and e['n'] == 3 and e['tons'] == ['provocant', 'calme', 'malin'] and e['icones'] == ['😤', '🤝', '😏'] and all(len(x) > 5 and '{' not in x for x in e['textes']) and e['pas'] == pg.evaluate('() => texte("interviewPasCommentaire")')
+      and not e['fini'] and e['suiteCache'] and not e['choixCache'] and e['dedans'] and pas_de_defilement(e['defile']), str(e)[:700])
+    if capture:
+        pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, capture))
+    avant = e
+    if ton is None:
+        pg.click('#boutonPasCommentaire')
+        t(f'{titre} : {gp}« Pas de commentaire » : aucun effet (jauges, confiance), le Grand Prix enregistré et la une tout de suite',
+          attendre(pg, '() => JEU.ecran === "une"', None, 10000) and pg.evaluate('() => [Object.assign({}, JEU.championnat.reputation), JEU.championnat.confiance, JEU.championnat.prochain, JEU.championnat.interview.derniere.ton]') == [avant['reputation'], avant['confiance'], avant['prochain'] + 1, None],
+          str(pg.evaluate(INTERVIEW_ETAT))[:400])
+        return avant
+    pg.click(f'#interviewReponses button[data-ton="{ton}"]')
+    e = pg.evaluate(INTERVIEW_ETAT)
+    effets = pg.evaluate('ton => REGLAGES.INTERVIEW_EFFETS[ton]', ton)
+    attendu = {j: max(0, min(100, avant['reputation'][j] + effets.get(j, 0))) for j in avant['reputation']}
+    ligne = pg.evaluate('ton => { const l = INTERVIEW.ligneEffet(JEU.interview, ton); return INTERVIEW.phrase(l.cle, 0, l.params, JEU.championnat, { pilote: INTERFACE.nomPilote }); }', ton)
+    t(f'{titre} : {gp}la réponse « {ton} » : la ligne d’effet (« {e["effet"]} »), les trois boutons cachés, « Continuer », les jauges bougées d’un pas (INTERVIEW_EFFETS), la confiance = la jauge écurie, le Grand Prix toujours pas enregistré',
+      e['effet'] == ligne and e['effet'] != '' and e['choixCache'] and not e['suiteCache'] and e['reputation'] == attendu and e['confiance'] == attendu['ecurie'] and not e['fini'] and e['prochain'] == avant['prochain'], str(e)[:600])
+    if ton == 'provocant':
+        n = pg.evaluate('() => REGLAGES.INTERVIEW_RIVALITE_COURSES')
+        if avant['rival'] is not None:
+            t(f'{titre} : {gp}provocant contre {avant["nomRival"]} : « n’a pas aimé » et la rivalité posée sur lui ({n} courses)', e['rivalite'] == n and avant['nomRival'] in e['effet'] and e['effet'].endswith('n’a pas aimé.'), str(e)[:300])
+        else:
+            t(f'{titre} : {gp}provocant sans rival nommé : aucune rivalité posée', pg.evaluate('() => JEU.championnat.pilotes.every(p => !p.rivalite)'), e['effet'])
+    pg.click('#boutonInterviewSuite')
+    t(f'{titre} : {gp}« Continuer » de l’interview enregistre le Grand Prix et montre la une du journal', attendre(pg, '() => JEU.ecran === "une"', None, 10000) and pg.evaluate('() => JEU.championnat.prochain') == avant['prochain'] + 1, str(pg.evaluate(INTERVIEW_ETAT))[:300])
+    return e
+def passer_interview(pg):   # pour les tests qui ne regardent pas l'interview : « Pas de commentaire »
+    attendre(pg, '() => JEU.ecran === "interview"', None, 10000); pg.click('#boutonPasCommentaire')
+# les trois jauges de réputation au paddock (trois petites barres), aux valeurs du championnat
+REPUTATION_ETAT = """() => { const ch = JEU.championnat, js = [...document.querySelectorAll("#championnatReputation .jauge")]; return { ecran: JEU.ecran, n: js.length, jauges: js.map(j => j.dataset.jauge),
+  noms: js.map(j => j.querySelector(".nom").textContent), valeurs: js.map(j => +j.querySelector(".valeur").textContent), largeurs: js.map(j => j.querySelector(".plein").style.width), attendu: INTERVIEW.JAUGES.map(j => Math.round(ch.reputation[j])),
+  visible: js.length > 0 && js.every(j => j.querySelector(".barre").getBoundingClientRect().width > 40 && j.getBoundingClientRect().bottom <= innerHeight), defile: [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth] }; }"""
+def reputation_paddock(pg, titre, attendu=None):
+    e = pg.evaluate(REPUTATION_ETAT)
+    t(f'{titre} : au paddock, les trois jauges de réputation (Public, Écurie, Sponsors) en petites barres, aux valeurs du championnat' + (f' ({attendu})' if attendu else '') + ', sans défilement',
+      e['ecran'] == 'championnat' and e['n'] == 3 and e['jauges'] == ['public', 'ecurie', 'sponsors'] and e['noms'] == ['Public', 'Écurie', 'Sponsors'] and e['valeurs'] == e['attendu'] and e['largeurs'] == [f'{v}%' for v in e['attendu']]
+      and e['visible'] and (attendu is None or e['valeurs'] == attendu) and pas_de_defilement(e['defile']), str(e))
+# la fiche d'un rival avec une rivalité en cours : « “phrase” — circuit, saison N · rivalité : encore n courses »
+def fiche_rivalite(pg, titre, k, n):
+    pg.click(f'#championnatPilotes li[data-k="{k}"] .nom')
+    e = pg.evaluate("""k => { const ch = JEU.championnat, p = ch.pilotes[k], rv = p.rivalite, $ = id => document.getElementById(id); return { ecran: JEU.ecran, texte: $("ficheRivalite").textContent, courses: rv ? rv.courses : null,
+      nom: INTERFACE.nomPilote(p), circuit: rv ? (texte("circuit_" + rv.circuit) || CIRCUITS[rv.circuit].nom) : null, saison: ch.saison, defile: [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth] }; }""", k)
+    t(f'{titre} : la fiche du rival montre la rivalité : « “phrase” — circuit, saison N · rivalité : encore {n} courses », la phrase le nomme, sans défilement',
+      e['ecran'] == 'fiche' and e['courses'] == n and e['texte'].startswith('« ') and e['nom'] in e['texte'] and (' » — ' + str(e['circuit']) + ', saison ' + str(e['saison']) + ' · ') in e['texte'] and e['texte'].endswith(f'rivalité : encore {n} courses') and pas_de_defilement(e['defile']), str(e))
+    pg.click('#boutonFicheRetour'); attendre(pg, '() => JEU.ecran === "championnat"')
+
 def une_ecran(pg, titre, capture, touche=False):
     u = pg.evaluate(UNE)
     t(f'{titre} : la une du journal : le nom du journal, le grand titre et le petit texte de la dernière une de l’album (fait « {u["fait"]} »), rendus avec les noms de l’affichage',
@@ -917,14 +987,14 @@ def sponsors_ecran(pg, titre, capture):
 
 FICHE_ETAT = '''k => { const ch = JEU.championnat, f = FICHE.fiche(ch, k), p = ch.pilotes[k], $ = id => document.getElementById(id).textContent; return { ecran: JEU.ecran, nom: $("ficheNom"), attenduNom: INTERFACE.nomPilote(p),
   infos: $("ficheInfos"), numero: p.numero, age: p.age, caractere: $("ficheCaractere"), mots: f.mots.map(m => texte("caractere_" + m)), saison: $("ficheSaison"), place: f.saison.place, points: f.saison.points,
-  historique: $("ficheHistorique"), duels: $("ficheDuels"), devant: f.duels.devant, derriere: f.duels.derriere, photo: document.getElementById("fichePhoto").getBoundingClientRect().width,
+  historique: $("ficheHistorique"), duels: $("ficheDuels"), rivalite: $("ficheRivalite"), devant: f.duels.devant, derriere: f.duels.derriere, photo: document.getElementById("fichePhoto").getBoundingClientRect().width,
   defile: [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth] }; }'''
 def fiche_ecran(pg, titre, capture):
     pg.click('#championnatPilotes li[data-k="3"] .nom')
     f = pg.evaluate(FICHE_ETAT, 3)
     t(f'{titre} : un clic sur un rival ouvre sa fiche : nom, numéro, écurie, âge, caractère en mots, saison (place, points), historique, duels contre le joueur, la place de la photo, sans défilement',
       f['ecran'] == 'fiche' and f['nom'] == f['attenduNom'] and f['nom'] != '' and str(f['numero']) in f['infos'] and (str(f['age']) + ' ans') in f['infos'] and f['caractere'] == 'Caractère : ' + ', '.join(f['mots'])
-      and f['saison'].startswith(f'Cette saison : P{f["place"]} · {f["points"]} pts') and f['historique'].startswith('Carrière : ') and f['duels'] == f'Contre toi : devant {f["devant"]} fois, derrière {f["derriere"]} fois' and f['photo'] > 50 and pas_de_defilement(f['defile']), str(f))
+      and f['saison'].startswith(f'Cette saison : P{f["place"]} · {f["points"]} pts') and f['historique'].startswith('Carrière : ') and f['duels'] == f'Contre toi : devant {f["devant"]} fois, derrière {f["derriere"]} fois' and f['photo'] > 50 and f['rivalite'] == '' and pas_de_defilement(f['defile']), str(f))
     pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, capture))
     pg.click('#boutonFicheRetour')
     t(f'{titre} : « Retour » ramène au paddock ; un clic sur le joueur n’ouvre rien', attendre(pg, '() => JEU.ecran === "championnat"') and pg.evaluate('() => { const moi = document.querySelector("#championnatPilotes li.moi"); moi.click(); return JEU.ecran === "championnat" && !moi.dataset.k; }'))
@@ -1006,6 +1076,7 @@ def fin_saison(pg, titre, l):
     t(f'{titre} : la course va jusqu’au podium', pg.evaluate('() => JEU.ecran === "podium"'), str(pg.evaluate('() => [JEU.ecran, JEU.plateau.arrives]')))
     pg.click('#boutonResultats'); attendre(pg, '() => JEU.ecran === "resultats"')
     pg.click('#boutonChangerResultats')
+    interview_ecran(pg, titre, None, gp='12e : ')
     t(f'{titre} : « Continuer » : le 12e enregistré (la saison est finie), la une du journal', attendre(pg, '() => JEU.ecran === "une" && JEU.championnat.prochain === 12 && SAISONS.finie(JEU.championnat)'), str(pg.evaluate('() => [JEU.ecran, JEU.championnat.prochain]')))
     pg.click('#uneTitre')
     e = pg.evaluate(SAISON_ETAT)
@@ -1053,6 +1124,18 @@ def championnat(pg, titre, l):
     sponsors_ecran(pg, titre, 'sponsors.png' if l == 1280 else 'sponsors-960.png')
     if l != 1280:
         garage_ecran(pg, titre, achat=False, capture='garage-960.png')
+        # en petit : l'interview d'un Grand Prix fabriqué en mémoire (le joueur 8e avec un gros contact, le pilote 3 aussi : la question
+        # « contact » nomme le 3) ; réponse provocante → « n'a pas aimé », la une « interview », les jauges au paddock, la rivalité sur la fiche du 3
+        pg.evaluate('''() => { const ch = JEU.championnat, o = [0, 1, 2, 3, 4, 5, 6, 19, 18].concat([...Array(20).keys()].filter(k => k > 6 && k < 18));
+          const lignes = o.map((k, i) => ({ k, place: i + 1, grille: i + 1, ligne: i + 1, penalites: 0, meilleurTour: 60 + i, classe: true, chocMax: k === 19 || k === 3 ? REGLAGES.INTERVIEW_CHOC + 3 : 0 }));
+          JEU.lignesGP = lignes; montrerInterview(INTERVIEW.question(ch, lignes)); }''')
+        itw = interview_ecran(pg, titre, 'provocant', capture='interview-960.png', gp='fabriqué (contact avec le pilote 3) : ')
+        t(f'{titre} : la question fabriquée est bien « contact » avec le pilote 3', itw['fait'] == 'contact' and itw['rival'] == 3, str([itw['fait'], itw['rival']]))
+        u = une_ecran(pg, titre, 'une-interview-960.png', touche=True)
+        t(f'{titre} : la une du journal reprend la phrase de l’interview (fait « interview »)', u['fait'] == 'interview', u['fait'])
+        E_ = pg.evaluate('() => REGLAGES.INTERVIEW_EFFETS.provocant'); D_ = pg.evaluate('() => REGLAGES.REPUTATION_DEPART')
+        reputation_paddock(pg, titre, [D_ + E_.get(j, 0) for j in ('public', 'ecurie', 'sponsors')])
+        fiche_rivalite(pg, titre, 3, pg.evaluate('() => REGLAGES.INTERVIEW_RIVALITE_COURSES'))
         # en petit : la une d'un Grand Prix fabriqué en mémoire (le joueur 2e, sans sauvegarde), pour vérifier qu'elle tient en 960×600
         pg.evaluate('''() => { const ch = JEU.championnat, o = [0, 19].concat([...Array(20).keys()].filter(k => k !== 0 && k !== 19));
           const lignes = o.map((k, i) => ({ k, place: i + 1, grille: i + 1, ligne: i + 1, penalites: 0, meilleurTour: 60 + i, classe: true }));
@@ -1100,6 +1183,7 @@ def championnat(pg, titre, l):
             pg.wait_for_timeout(300)
             pg.screenshot(path=os.path.join(CAPTURES, 'argent.png'))
         pg.click('#boutonChangerResultats')
+        itw = interview_ecran(pg, titre, 'provocant' if gp == 1 else None, capture='interview.png' if gp == 1 else None, gp=f'GP {gp} : ')
         t(f'{titre} : GP {gp} : « Continuer » enregistre le Grand Prix, range sa une dans l’album et sauvegarde, puis montre la une du journal',
           attendre(pg, f'''() => JEU.ecran === "une" && JEU.championnat.prochain === {gp} && SAUVEGARDE.championnat().prochain === {gp} && SAUVEGARDE.championnat().album.length === {gp}
             && JEU.championnat.album.length === {gp} && JEU.championnat.album[{gp - 1}].g === {gp}'''), str(pg.evaluate(ECRAN)) + ' ' + str(pg.evaluate('() => JEU.championnat.album.length')))
@@ -1108,6 +1192,10 @@ def championnat(pg, titre, l):
           attendre(pg, f'''() => JEU.ecran === "championnat" && /^Tu marques \d+ points$/.test(document.getElementById("championnatGagne").textContent)
             && document.getElementById("championnatTitre").textContent.startsWith("Grand Prix {gp + 1} / 12")'''), str(pg.evaluate(ECRAN)) + ' ' + pg.evaluate('() => document.getElementById("championnatGagne").textContent'))
         points = pg.evaluate('() => JEU.championnat.pilotes.map(p => p.stats.points)')
+        # la réputation après la réponse provocante du GP 1 (public +4, écurie −3, sponsors −3 : INTERVIEW_EFFETS), gardée au GP 2 (pas de commentaire, page rechargée entre les deux)
+        E_ = pg.evaluate('() => REGLAGES.INTERVIEW_EFFETS.provocant'); D_ = pg.evaluate('() => REGLAGES.REPUTATION_DEPART')
+        reputation_paddock(pg, titre, [D_ + E_.get(j, 0) for j in ('public', 'ecurie', 'sponsors')])
+        if gp == 1 and itw['rival'] is not None: fiche_rivalite(pg, titre, itw['rival'], pg.evaluate('() => REGLAGES.INTERVIEW_RIVALITE_COURSES'))
         total = pg.evaluate('() => REGLAGES.POINTS.reduce((a, b) => a + b, 0)')
         t(f'{titre} : GP {gp} : les points sont ceux du classement final (somme = {total} par Grand Prix)', sum(points) == gp * total, str(points))
         duel_ecran(pg, titre, gp)

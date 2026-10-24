@@ -203,6 +203,19 @@ const REGLAGES = {
   SPONSOR_DOMICILE_PLAFOND: 30000,  // … et son plafond
   // la fiche d'un rival (fiche.js) : les mots du caractère, d'après ses nombres
   FICHE_SEUILS: { rapide: 1.01, regulier: 0.006, agressif: 0.65, fautif: 0.6 },   // rythme ≥, régularité ≤, agressivité ≥, erreurs ≥
+  // l'interview d'après course (interview.js, Codeur 3) : la réputation (trois jauges 0 à 100 : public, écurie, sponsors)
+  REPUTATION_DEPART: 50,
+  // les faits, du plus marquant au moins marquant : au plus une question par Grand Prix
+  INTERVIEW_PRIORITES: ['victoire', 'podium', 'contact', 'depassement', 'penalite', 'duelGagne', 'duelPerdu', 'serie', 'moyen'],
+  INTERVIEW_EFFETS: { provocant: { public: 4, ecurie: -3, sponsors: -3 }, calme: { ecurie: 3, sponsors: 2 }, malin: { public: 2, sponsors: 3 } },   // le pas de chaque jauge, par ton
+  INTERVIEW_PAS: 5,                 // le plafond d'un pas (une réponse ne bouge jamais une jauge de plus)
+  INTERVIEW_CHOC: 5,                // m/s : un gros contact (v.chocMax du moteur)
+  INTERVIEW_DEPASSEMENT_PLACES: 3,  // places gagnées entre la grille et l'arrivée pour parler d'un dépassement décisif
+  INTERVIEW_SERIE: 3,               // Grands Prix de suite sans point : une série
+  INTERVIEW_DUEL_NET: 2,            // le duel contre le coéquipier fait question quand l'écart de la saison (cette course comprise) atteint ce score
+  INTERVIEW_RIVALITE_COURSES: 3,    // une réponse provocante contre un pilote nommé : sa rivalité dure ce nombre de courses
+  INTERVIEW_EFFET_SPONSORS: 0.1,    // le plafond (±) de ce que la jauge des sponsors ajoute à la note et aux montants des sponsors
+  GRAINE_INTERVIEW: 11000,          // la graine des formulations
   // les noms des 20 pilotes, deux par écurie dans l'ordre (le 20e est remplacé par le joueur) : pas encore (les noms
   // inventés, à approuver par le propriétaire, viendront ici) ; sans nom, l'écran affiche texte('pilote') avec son numéro (« Driver 7 » / « Pilote 7 »)
   NOMS_PILOTES: [],
@@ -211,7 +224,7 @@ const REGLAGES = {
   PNEUS_ACTIFS: false,
 
   // la une du journal après chaque Grand Prix (journal.js, Codeur 3) ; les titres et les brèves sont dans textes.js (uneTitre_…, uneTexte_…, breve…)
-  JOURNAL_PRIORITES: ['titreChampion', 'premiereVictoire', 'victoire', 'premierPodium', 'podium', 'record', 'duelGagne', 'duelPerdu',
+  JOURNAL_PRIORITES: ['titreChampion', 'premiereVictoire', 'victoire', 'premierPodium', 'podium', 'record', 'duelGagne', 'duelPerdu', 'interview',
     'penalite', 'serie', 'leader', 'vainqueur'],   // le grand titre : le premier fait vrai de cette liste (« vainqueur » est toujours vrai)
   JOURNAL_DUEL_NET: 3,          // le duel contre le coéquipier fait le titre quand l'écart de la saison est d'au moins ce nombre de points
   JOURNAL_SERIE: 3,             // … une série de ce nombre de Grands Prix sans point
@@ -388,16 +401,17 @@ const REGLAGES = {
   // multiplié, agressivite ajoutée (bornée entre 0 et 1), regularite multipliée
   NIVEAU: 'normal',             // le niveau en cours (?niveau=…, principal.js) ; normal = les réglages tels quels
   NIVEAUX: {
-    debutant: { rythme: -0.05, erreurs: 2, agressivite: -0.3, regularite: 1.5 },
-    normal: { rythme: 0, erreurs: 1, agressivite: 0, regularite: 1 },
-    expert: { rythme: 0, erreurs: 0.5, agressivite: 0.2, regularite: 0.7 },
-    legende: { rythme: 0, erreurs: 0.25, agressivite: 0.4, regularite: 0.5 },
+    debutant: { rythme: -0.05, erreurs: 2, agressivite: -0.3, regularite: 1.5, gestionPneus: -0.2 },
+    normal: { rythme: 0, erreurs: 1, agressivite: 0, regularite: 1, gestionPneus: 0 },
+    expert: { rythme: 0, erreurs: 0.5, agressivite: 0.2, regularite: 0.7, gestionPneus: 0.1 },
+    legende: { rythme: 0, erreurs: 0.25, agressivite: 0.4, regularite: 0.5, gestionPneus: 0.2 },
   },
   // le caractère de chaque IA (étape 4d), tiré avec la graine entre ces bornes :
   IA_CARACTERE: {
     regularite: [0.002, 0.015], // d'un tour à l'autre, son rythme varie de ± cette part autour de sa moyenne, sans jamais dépasser le sien
     agressivite: [0, 1],        // 0 : prudent ; 1 : attaque plus tôt
     erreurs: [0.1, 1],          // erreurs par course de 5 tours
+    gestionPneus: [0, 1],       // la gestion des pneus (pneus.js : 1 = use 30 % moins vite) ; tirée avec sa propre graine (GRAINE_PNEUS), le niveau la décale
   },
   IA_VISION_ANGLE: 0.6,         // rad : elle voit les voitures devant elle à ±0,6 rad (±34°) de son axe…
   IA_VISION_DISTANCE: 120,      // m : … et à moins de cette distance
@@ -432,6 +446,7 @@ const REGLAGES = {
   GRAINE_STYLES: 1000,          // les façons de piloter sont tirées avec la graine de la course + ce nombre
   GRAINE_CARACTERE: 3000,       // … et le caractère des pilotes avec la graine + ce nombre
   GRAINE_QUALIF: 2000,          // … et la qualification avec la graine + ce nombre
+  GRAINE_PNEUS: 8000,           // … et la gestion des pneus de chaque IA avec la graine + ce nombre (à part : les autres tirages ne bougent pas)
   GRAINE_FEUX: 4000,            // … et le délai des feux et les réactions des IA avec la graine + ce nombre
   IA_QUALIF_HASARD: 0.005,      // le temps de qualification d'une IA varie de ±0,5 % autour de son meilleur tour estimé
   IA_PAGE_MAX: 20,              // ?ia=N : au plus ce nombre d'IA dans la page

@@ -447,6 +447,7 @@ function montrerChampionnat(gagne) {
   INTERFACE.remplirDuel(CHAMPIONNAT.scoreDuel(JEU.championnat), JEU.championnat);
   INTERFACE.remplirSolde(JEU.championnat);
   INTERFACE.remplirRappelSponsor(JEU.championnat);
+  INTERFACE.remplirReputation(JEU.championnat);   // les trois jauges de l'interview (interview.js)
   JEU.ecran = 'championnat';
   INTERFACE.montrer('championnat');
 }
@@ -461,11 +462,36 @@ function courseSuivante() {
 // après les résultats : les points, la une du journal et la sauvegarde (finirGrandPrix), puis la une à l'écran
 function apresGrandPrix() {
   if (JEU.ecran !== 'resultats' || JEU.grandPrixFini) return;
-  const lignes = CHAMPIONNAT.lignesDepuisCourse(JEU.plateau);
-  const moi = lignes.find(l => l.k === JEU.ia);
+  JEU.lignesGP = CHAMPIONNAT.lignesDepuisCourse(JEU.plateau);
+  montrerInterview(INTERVIEW.question(JEU.championnat, JEU.lignesGP));
+}
+
+// ?championnat=1 : l'interview d'après course (interview.js), entre les résultats et la une du journal : la question se
+// calcule sur le classement final AVANT d'enregistrer le Grand Prix ; la réponse (un ton, ou « pas de commentaire ») montre
+// sa ligne d'effet, puis « Continuer » enregistre le Grand Prix (finirGrandPrix) et montre la une. Le podium 3D reste
+// derrière ; l'interview est un menu (pas de gameplayStart hors course : gameplayStop pour Poki)
+function montrerInterview(q) {
+  JEU.interview = q;
+  INTERFACE.remplirInterview(JEU.championnat, q);
+  JEU.ecran = 'interview';
+  INTERFACE.montrer('interview');
+}
+
+function repondreInterview(ton) {
+  if (JEU.ecran !== 'interview' || !JEU.interview) return;
+  const r = INTERVIEW.repondre(JEU.championnat, JEU.interview, ton);
+  if (!r.ligne) { finirInterview(); return; }   // pas de commentaire : rien à dire, la une tout de suite
+  INTERFACE.montrerEffetInterview(JEU.championnat, r);
+}
+
+function finirInterview() {
+  if (JEU.ecran !== 'interview' || !JEU.lignesGP) return;
+  const lignes = JEU.lignesGP, moi = lignes.find(l => l.k === JEU.ia);
   CHAMPIONNAT.finirGrandPrix(JEU.championnat, lignes);
   JEU.grandPrixFini = true;
-  JEU.gagne = CHAMPIONNAT.pointsPour(moi.place);
+  JEU.interview = null;
+  JEU.lignesGP = null;
+  JEU.gagne = moi ? CHAMPIONNAT.pointsPour(moi.place) : 0;
   montrerUne(JEU.championnat.album[JEU.championnat.album.length - 1]);
 }
 
@@ -859,7 +885,7 @@ function majTableau() {
   document.getElementById('rapport').textContent = rapportPourVitesse(v.u);
   const roule = JEU.ecran === 'course' || JEU.ecran === 'survol' || enTourQualif();
   // sur le podium et les résultats, ni vitesse ni aide des touches
-  const apres = ['podium', 'resultats', 'championnat', 'une', 'garage', 'titre', 'amis', 'bravo', 'saison', 'duelSaison', 'contrats', 'retraite', 'sponsors', 'fiche'].includes(JEU.ecran);
+  const apres = ['podium', 'resultats', 'championnat', 'une', 'garage', 'titre', 'amis', 'bravo', 'saison', 'duelSaison', 'contrats', 'retraite', 'sponsors', 'fiche', 'interview'].includes(JEU.ecran);
   document.getElementById('tableau').classList.toggle('cache', apres);
   document.getElementById('aide').classList.toggle('cache', apres);
   // après l'arrivée du joueur (en attendant les autres), il ne court plus : pas de « hors piste »
@@ -1006,6 +1032,7 @@ function demarrerJeu() {
     INTERFACE.preparerSaison(suiteClassementSaison, suiteDuelSaison, signerContrat, prendreRetraite);
     INTERFACE.preparerSponsors(montrerSponsors, choisirSponsor, quitterSponsors);
     INTERFACE.preparerFiche(montrerFiche, quitterFiche);
+    INTERFACE.preparerInterview(repondreInterview, finirInterview);
   } else if (JEU.decouverte) INTERFACE.preparerResultats(montrerBravo, () => {}, () => {});   // la découverte : après le podium, « Bravo ! »
   else INTERFACE.preparerResultats(voirResultats, () => lancerCourse(JEU.course.nbTours), allerAuChoix);
   INTERFACE.preparerTitre(jouerDecouverte, montrerAmis, retourTitre, commencerCarriere);
