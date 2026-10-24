@@ -951,6 +951,35 @@ function montrerTemple() {
   INTERFACE.montrer('temple');
 }
 
+// la relève (carriere.js) : « Continuer la dynastie » → l'écran de l'héritier ; « C'est parti ! » : le même monde passe à la saison
+// suivante, l'héritier dans la plus petite écurie, sauvegardé, puis le paddock (« Course suivante » recharge la page sur le nouveau
+// circuit) ; « Nouvelle dynastie » : un monde neuf (une autre graine), l'ancienne reste au temple, la page se recharge
+function montrerHeritier() {
+  if (JEU.ecran !== 'retraite') return;
+  INTERFACE.remplirHeritier(JEU.championnat);
+  JEU.ecran = 'heritier';
+  INTERFACE.montrer('heritier');
+}
+
+function validerHeritier() {
+  if (JEU.ecran !== 'heritier') return false;
+  const ch = JEU.championnat, choix = INTERFACE.lireHeritier(ch);
+  if (!CARRIERE.validerHeritier(ch, choix).ok || !CARRIERE.continuer(ch, choix)) { INTERFACE.montrerErreurHeritier(true); return false; }
+  SAUVEGARDE.ecrireChampionnat(ch);
+  JEU.gagne = null;
+  JEU.grandPrixFini = true;   // le circuit du Grand Prix 1 de la nouvelle saison : « Course suivante » recharge la page
+  montrerChampionnat(null);
+  return true;
+}
+
+function nouvelleDynastie() {
+  if (JEU.ecran !== 'retraite') return;
+  const ancien = JEU.championnat;
+  SAUVEGARDE.entrerAuTemple(ancien);   // (déjà fait au bilan : une seule fois)
+  SAUVEGARDE.ecrireChampionnat(CARRIERE.nouveauMonde(ancien));
+  location.reload();
+}
+
 function quitterTemple() {
   if (JEU.ecran !== 'temple') return;
   montrerRetraite();
@@ -1047,13 +1076,16 @@ function attendreLesAutres() {
   // « passer » (CLAUDE.md « La course ») : le reste de la course est vraiment joué, en accéléré (×ARRIVEE_ACCELERE) : à chaque image,
   // les mêmes pas de physique que la boucle (BOUCLE.simuler d'un pas), sans les dessiner, au plus ARRIVEE_TRANCHE_MS ; les places et
   // les temps sont ceux qu'on aurait eus en regardant ; ARRIVEE_ATTENTE_MAX reste le filet (une voiture bloquée)
-  if (JEU.attente.passer && !ARRIVEE.podiumPret(e, e.temps - arrivee)) {
+  if (JEU.attente.passer && !(JEU.attente.suivi && ARRIVEE.podiumPretAccelere(e, JEU.attente.suivi))) {
     const R = REGLAGES, nb = Math.max(1, Math.round(R.ARRIVEE_ACCELERE * Math.min(JEU.dtImage || 0, R.PAS_MAX_PAR_IMAGE * R.PAS_PHYSIQUE) / R.PAS_PHYSIQUE));
-    const r = ARRIVEE.accelerer(e, () => BOUCLE.simuler(R.PAS_PHYSIQUE), nb, R.ARRIVEE_TRANCHE_MS, arrivee, () => performance.now());
+    if (!JEU.attente.suivi) { JEU.attente.suivi = ARRIVEE.creerSuivi(e); JEU.attente.debutReel = performance.now(); }
+    const r = ARRIVEE.accelerer(e, () => BOUCLE.simuler(R.PAS_PHYSIQUE), nb, R.ARRIVEE_TRANCHE_MS, arrivee, () => performance.now(), JEU.attente.suivi);
     JEU.attente.accelere = (JEU.attente.accelere || 0) + r.pas;
   }
   majAttente();
-  if (ARRIVEE.podiumPret(e, e.temps - arrivee)) {
+  // en accéléré : tout le monde a fini (sauf une voiture bloquée), ou le plafond de temps réel ; en regardant : podiumPret (ARRIVEE_ATTENTE_MAX)
+  const a = JEU.attente, pret = a.suivi ? ARRIVEE.podiumPretAccelere(e, a.suivi) || performance.now() - a.debutReel >= REGLAGES.ARRIVEE_ACCELERE_MAX_REEL * 1000 : ARRIVEE.podiumPret(e, e.temps - arrivee);
+  if (pret) {
     finirAttente();
     montrerPodium();
   }
@@ -1267,7 +1299,7 @@ function majTableau() {
   document.getElementById('rapport').textContent = rapportPourVitesse(v.u);
   const roule = JEU.ecran === 'course' || JEU.ecran === 'survol' || enTourQualif();
   // sur le podium et les résultats, ni vitesse ni aide des touches
-  const apres = ['podium', 'resultats', 'championnat', 'une', 'garage', 'titre', 'amis', 'bravo', 'saison', 'duelSaison', 'contrats', 'retraite', 'sponsors', 'fiche', 'interview', 'ceremonie', 'album', 'temple', 'deuxReglages', 'tournoiInscription', 'tournoiAToi', 'tournoiPause', 'tournoiManche', 'tournoiFin'].includes(JEU.ecran);
+  const apres = ['podium', 'resultats', 'championnat', 'une', 'garage', 'titre', 'amis', 'bravo', 'saison', 'duelSaison', 'contrats', 'retraite', 'sponsors', 'fiche', 'interview', 'ceremonie', 'album', 'temple', 'heritier', 'deuxReglages', 'tournoiInscription', 'tournoiAToi', 'tournoiPause', 'tournoiManche', 'tournoiFin'].includes(JEU.ecran);
   document.getElementById('tableau').classList.toggle('cache', apres);
   document.getElementById('aide').classList.toggle('cache', apres);
   // après l'arrivée du joueur (en attendant les autres), il ne court plus : pas de « hors piste »
@@ -1421,6 +1453,7 @@ function demarrerJeu() {
     INTERFACE.preparerCeremonie(suiteCeremonie);
     INTERFACE.preparerAlbum(montrerAlbum, feuilleterAlbum, saisonAlbum, quitterAlbum);
     INTERFACE.preparerTemple(montrerTemple, quitterTemple);
+    INTERFACE.preparerReleve(montrerHeritier, nouvelleDynastie, validerHeritier);
     INTERFACE.preparerGarage(acheterAmelioration, quitterGarage);
     INTERFACE.preparerSaison(suiteClassementSaison, suiteDuelSaison, signerContrat, prendreRetraite);
     INTERFACE.preparerSponsors(montrerSponsors, choisirSponsor, quitterSponsors);

@@ -121,6 +121,12 @@ const REGLAGES = {
   ARRIVEE_ACCELERE: 100,        // « passer » la vue télé : le reste de la course joué 100 fois plus vite (les mêmes pas de physique, sans les dessiner)…
   ARRIVEE_TRANCHE_MS: 40,       // … au plus ce temps de calcul par image (la page n'est jamais bloquée), l'horloge relue tous les…
   ARRIVEE_PAS_CONTROLE: 12,     // … ce nombre de pas
+  // en accéléré, le podium attend que tout le monde ait fini (pas ARRIVEE_ATTENTE_MAX, qui reste pour la vue télé regardée) ; seule une voiture
+  // vraiment bloquée (moins de ARRIVEE_BLOQUEE_DISTANCE m en ARRIVEE_BLOQUEE s de course) est classée dans l'ordre de course, et un plafond
+  // de temps réel protège la page
+  ARRIVEE_BLOQUEE: 20,          // s de course
+  ARRIVEE_BLOQUEE_DISTANCE: 5,  // m
+  ARRIVEE_ACCELERE_MAX_REEL: 30, // s réelles au plus après le clic sur « passer »
   ARRIVEE_BAGARRE: 15,          // m : deux voitures plus proches que ça se bagarrent (la caméra télé les préfère)
   ARRET_APRES_ARRIVEE: 0.3,     // m/s : après l'arrivée, la voiture freine seule jusque-là, puis roule jusqu'à l'arrêt
 
@@ -227,7 +233,7 @@ const REGLAGES = {
   PNEUS_ACTIFS: false,
 
   // la une du journal après chaque Grand Prix (journal.js, Codeur 3) ; les titres et les brèves sont dans textes.js (uneTitre_…, uneTexte_…, breve…)
-  JOURNAL_PRIORITES: ['titreChampion', 'premiereVictoire', 'victoire', 'premierPodium', 'podium', 'record', 'duelGagne', 'duelPerdu', 'interview',
+  JOURNAL_PRIORITES: ['titreChampion', 'releve_fils', 'releve_fille', 'releve_protege', 'releve_protegee', 'premiereVictoire', 'victoire', 'premierPodium', 'podium', 'record', 'duelGagne', 'duelPerdu', 'interview',
     'penalite', 'serie', 'leader', 'vainqueur'],   // le grand titre : le premier fait vrai de cette liste (« vainqueur » est toujours vrai)
   JOURNAL_DUEL_NET: 3,          // le duel contre le coéquipier fait le titre quand l'écart de la saison est d'au moins ce nombre de points
   JOURNAL_SERIE: 3,             // … une série de ce nombre de Grands Prix sans point
@@ -249,6 +255,10 @@ const REGLAGES = {
   CEREMONIE_COULEURS: [0xffd23f, 0xff5a5f, 0x3ddc97, 0x2f80ed, 0xffffff],
   // la fin de carrière (carriere.js, Codeur 3) : le temple de la renommée garde au plus ce nombre de carrières finies (les meilleures)
   TEMPLE_MAX: 30,
+  // la relève (carriere.js) : l'héritier repart d'une petite écurie, il hérite seulement de peu, toujours plafonné
+  HERITAGE_REPUTATION_PAR_TITRE: 2,   // ses jauges de réputation partent de REPUTATION_DEPART + ce nombre par titre de la famille…
+  HERITAGE_REPUTATION_MAX: 8,         // … et jamais plus de ce bonus
+  HERITAGE_ATTENTION: 0.08,           // à la fin de sa première saison, ce bonus de note pour les offres des écuries moyennes et faibles (jamais une grande)
 
   // la course de découverte du premier lancement (decouverte.js, CLAUDE.md « En piste en 10 secondes »)
   DECOUVERTE_TOURS: 3,          // une longueur à part, seulement pour elle

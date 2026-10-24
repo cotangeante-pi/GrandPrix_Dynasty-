@@ -194,6 +194,7 @@
       <p id="ficheDuels"></p>
       <p id="ficheCoequipier"></p>
       <p id="ficheRivalite"></p>
+      <p id="ficheFamille"></p>
     </div>
   </div>
   <div class="boutons"><button id="boutonFicheRetour" tabindex="-1"></button></div>
@@ -238,7 +239,27 @@
   <p id="bilanDuels"></p>
   <p id="bilanUne"></p>
   <p id="bilanTemple"></p>
-  <div id="bilanBoutons" class="boutons"><button id="boutonTemple" tabindex="-1"></button></div>
+  <p id="bilanFamille"></p>
+  <div id="bilanBoutons" class="boutons"><button id="boutonTemple" tabindex="-1"></button><button id="boutonContinuerDynastie" tabindex="-1"></button><button id="boutonNouvelleDynastie" class="petit" tabindex="-1"></button></div>
+</section>
+<!-- la relève (carriere.js, Codeur 3) : l'héritier (prénom, numéro, lien, pays, course de cœur, motif du casque aux couleurs du parent) et l'arbre de la dynastie -->
+<section id="heritier" class="ecran cache">
+  <h1 id="heritierTitre"></h1>
+  <p id="heritierParent"></p>
+  <div id="heritierCorps">
+    <div id="heritierForme">
+      <label><span id="heritierPrenomTexte"></span><input id="heritierPrenom" type="text" autocomplete="off" spellcheck="false"></label>
+      <p id="heritierFamille"></p>
+      <label><span id="heritierNumeroTexte"></span><input id="heritierNumero" type="number"></label>
+      <label><span id="heritierLienTexte"></span><select id="heritierLien"></select></label>
+      <label><span id="heritierPaysTexte"></span><select id="heritierPays"></select></label>
+      <label><span id="heritierCoeurTexte"></span><select id="heritierCoeur"></select></label>
+      <label><span id="heritierMotifTexte"></span><select id="heritierMotif"></select></label>
+    </div>
+    <div id="heritierArbre"><h2 id="arbreTitre"></h2><ol id="arbreListe"></ol></div>
+  </div>
+  <p id="heritierErreur"></p>
+  <div class="boutons"><button id="boutonHeritierValider" tabindex="-1"></button></div>
 </section>
 <!-- le temple de la renommée et les records de carrière (carriere.js, Codeur 3) -->
 <section id="temple" class="ecran cache">

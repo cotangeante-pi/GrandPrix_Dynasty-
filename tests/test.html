@@ -754,7 +754,7 @@ t('championnat : 3 Grands Prix simulés (simulerCourse, 20 voitures), sauvegarde
   const R=REGLAGES,t0=performance.now(),circuits={test:C,technique:construireCircuit(CIRCUITS.technique)};
   // une sauvegarde v1 déjà là : les records restent
   localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:1,records:{'5':61.5,'technique-12':70.25}}));
-  let d=SAUVEGARDE.lire();v(d.version===SAUVEGARDE.VERSION&&d.version===3&&d.records['5']===61.5&&d.records['technique-12']===70.25&&d.championnat===null,'v1 → v3 : '+JSON.stringify(d));
+  let d=SAUVEGARDE.lire();v(d.version===SAUVEGARDE.VERSION&&d.version===4&&d.records['5']===61.5&&d.records['technique-12']===70.25&&d.championnat===null,'v1 → v4 : '+JSON.stringify(d));
   v(SAUVEGARDE.record(5)===61.5&&SAUVEGARDE.championnat()===null,'records gardés');
   const ch=CHAMPIONNAT.creer(3);
   for(let g=0;g<3;g++){const gp=ch.calendrier[ch.prochain],r=simulerCourse(circuits[gp.circuit],20,1,100+g);
@@ -825,7 +825,7 @@ t('duel : sauvegarde → rechargement identique ; une sauvegarde v2 (sans duel) 
   const vieux=JSON.parse(JSON.stringify(ch));delete vieux.duel;for(const r of vieux.resultats) delete r.duel;
   localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:2,records:{'5':61.5},championnat:vieux}));
   const d=SAUVEGARDE.lire(),s=CHAMPIONNAT.scoreDuel(d.championnat);
-  v(d.version===3&&d.records['5']===61.5&&d.championnat.prochain===2,'v2 → v3 : '+d.version);
+  v(d.version===SAUVEGARDE.VERSION&&d.records['5']===61.5&&d.championnat.prochain===2,'v2 → v4 : '+d.version);
   v(JSON.stringify(d.championnat.pilotes)===JSON.stringify(ch.pilotes)&&JSON.stringify(d.championnat.ecuries)===JSON.stringify(ch.ecuries),'rien de perdu');
   v(s.courses.join()==='1,1'&&s.qualifs.join()==='0,0','les courses d’avant comptent (qualifs inconnues) : '+JSON.stringify(s));
   localStorage.removeItem(SAUVEGARDE.CLE);});
@@ -914,7 +914,7 @@ t('journal : l’album est dans la sauvegarde ; rechargé, il redonne exactement
   CHAMPIONNAT.finirGrandPrix(d.championnat,lignesUne(devant(2,[19,18])));v(SAUVEGARDE.championnat().album.length===1&&SAUVEGARDE.championnat().album[0].g===4,'la une suivante');
   localStorage.removeItem(SAUVEGARDE.CLE);});
 t('journal : toutes les clés de texte existent en anglais et en français, avec le même nombre de variantes (≥ 2 titres par fait), les mêmes trous dans chaque paire, et aucun trou ne reste une fois rempli', ()=>{
-  const ex={pilote:19,coequipier:18,rival:3,ecurie:9,circuit:'test',place:2,n:3,points:25,ecart:30,a:4,b:1,ligne:3,secondes:5,ancien:7,rang:4,gain:2,temps:62.345,age:35},ch=CHAMPIONNAT.creer(1);
+  const ex={parent:0,pilote:19,coequipier:18,rival:3,ecurie:9,circuit:'test',place:2,n:3,points:25,ecart:30,a:4,b:1,ligne:3,secondes:5,ancien:7,rang:4,gain:2,temps:62.345,age:35},ch=CHAMPIONNAT.creer(1);
   const trous=s_=>(s_.match(/\{[a-z]+\}/g)||[]).sort().join();let nb=0;
   for(const cle of JOURNAL.cles()){const e=TEXTES.en[cle],f=TEXTES.fr[cle];v(e!==undefined&&f!==undefined,cle+' manque');
     if(cle==='journalNom'){v(typeof e==='string'&&typeof f==='string'&&e&&f,cle);continue;}
@@ -990,6 +990,70 @@ t('carrière : la retraite entre au temple une seule fois, sauvegardée ; les re
   L.push('  (sauvegarde après une carrière de 15 saisons, temple compris : '+taille+' octets = '+(taille/1024).toFixed(1)+' Ko)');
   localStorage.removeItem(SAUVEGARDE.CLE);});
 
+// --- un nombre devant un mot, accordé (textes.js : nombre) : « 1 saison », « 2 saisons », en français « 0 victoire »
+t('textes : nombre(n, cle) accorde le mot au nombre (singulier à 0 et 1 en français, à 1 en anglais), pour toutes les clés nb_ des deux langues', ()=>{
+  v(nombre(1,'saison')==='1 saison'&&nombre(2,'saison')==='2 saisons'&&nombre(0,'victoire')==='0 victoire'&&nombre(1,'titre')==='1 titre'&&nombre(15,'titre')==='15 titres'&&nombre(1,'championne')==='1 génération championne','fr : '+[nombre(1,'saison'),nombre(2,'saison'),nombre(0,'victoire')].join());
+  for(const l of ['en','fr']) for(const cle of Object.keys(TEXTES[l]).filter(c=>c.startsWith('nb_'))){const f=TEXTES[l][cle];v(Array.isArray(f)&&f.length===2&&f.every(x=>x.includes('{n}'))&&TEXTES[l==='en'?'fr':'en'][cle],l+' '+cle);}});
+
+// --- la relève (tour 28c, carriere.js) : continuer la dynastie dans le même monde, ou un monde neuf
+const heritier=(ch,prenom,lien,numero)=>CARRIERE.continuer(ch,{prenom,lien,numero:numero||[...Array(99).keys()].map(x=>x+1).find(n=>PILOTE.numeroLibre(ch,n)&&n!==ch.pilotes[19].numero)});
+t('relève : continuer la dynastie garde le monde (les écuries, les rivaux encore en activité, la saison suivante) et le nom de famille ; l’héritier repart de la plus petite écurie, sans statistiques, garage ni argent, et sa voiture n’est pas meilleure ; refusé sans prénom, sans lien ou avant la retraite', ()=>{
+  const {ch}=carriere15(43),j=ch.pilotes[19];for(const n of GARAGE.NOMS) ch.garage[n]=3;ch.argent.solde=500000;
+  const avant={ecuries:ch.ecuries.map(e=>e.couleur+e.nom),rivaux:ch.pilotes.filter(p=>!p.humain).map(p=>p.id),saison:ch.saison,albums:ch.album.length,famille:CARRIERE.famille(j.nom),titres:j.stats.titres};
+  v(!heritier(ch,'','fille')&&!heritier(ch,'Léa','cousin')&&ch.retraite,'refus');
+  const sans=CHAMPIONNAT.creer(1);v(!heritier(sans,'Léa','fille'),'sans retraite');
+  v(heritier(ch,'Léa','fille',33),'continuer refusé');
+  v(ch.saison===avant.saison+1&&ch.prochain===0&&!ch.retraite&&!ch.enFinDeSaison&&ch.album.length===avant.albums,'saison '+ch.saison);
+  v(JSON.stringify(ch.ecuries.map(e=>e.couleur+e.nom))===JSON.stringify(avant.ecuries)&&ch.pilotes.filter(p=>!p.humain).length===19,'écuries');
+  v(j.nom==='Léa Rossi'&&j.numero===33&&ch.dynastie.famille==='Rossi'&&ch.dynastie.lien==='fille'&&ch.dynastie.generations.length===1&&ch.dynastie.generations[0].nom==='Alex Rossi'&&ch.dynastie.generations[0].titres===avant.titres,'héritière : '+j.nom+' '+JSON.stringify(ch.dynastie));
+  const faible=ch.ecuries.reduce((a,e)=>e.niveau<a.niveau?e:a,ch.ecuries[0]);v(ch.ecuries[j.ecurie].niveau===faible.niveau&&ch.pilotes.filter(p=>p.ecurie===j.ecurie).length===2,'écurie '+j.ecurie+' niveau '+ch.ecuries[j.ecurie].niveau);
+  v(j.stats.courses===0&&j.stats.titres===0&&j.places.length===0&&ch.argent.solde===0&&GARAGE.NOMS.every(n=>ch.garage[n]===0),'repart de zéro');
+  const vo={};GARAGE.appliquer(vo,ch.garage);v(vo.moteur===1&&vo.aero===1&&vo.freins===1,'voiture : '+JSON.stringify(vo));
+  v(ch.carriere.debut===ch.saison&&ch.carriere.domicile===null&&CARRIERE.bilan(ch).duels.length===0,'carrière neuve : '+JSON.stringify(CARRIERE.bilan(ch).duels));
+  v(new Set(ch.pilotes.map(p=>p.numero)).size===20,'numéros en double');});
+t('relève : l’héritage respecte ses plafonds (réputation de départ, attention des écuries moyennes jamais d’une grande, seulement la première saison) ; une nouvelle dynastie repart d’un monde neuf et l’ancienne reste au temple', ()=>{
+  const R_=REGLAGES,{ch}=carriere15(44);ch.dynastie.generations.push({nom:'X',numero:1,titres:30,victoires:0,podiums:0});ch.pilotes[19].stats.titres=0;
+  heritier(ch,'Tom','fils');v(ch.reputation.public===R_.REPUTATION_DEPART+R_.HERITAGE_REPUTATION_MAX&&ch.reputation.ecurie===ch.reputation.public&&ch.confiance===ch.reputation.ecurie,'réputation : '+JSON.stringify(ch.reputation));
+  const n=ch.ecuries.length;let grande=0,moyenne=0;for(let id=0;id<n;id++){const a=CARRIERE.attention(ch,SAISONS.rangEcurie(ch,id),n);if(SAISONS.rangEcurie(ch,id)<n/3)grande+=a;else moyenne+=a;}
+  v(grande===0&&moyenne>0,'attention : grandes '+grande+', autres '+moyenne);
+  const ch1=CHAMPIONNAT.creer(1);CARRIERE.completer(ch1);v(CARRIERE.attention(ch1,9,10)===0&&CARRIERE.reputationDepart(ch1)===R_.REPUTATION_DEPART,'premier pilote : rien');
+  ch.saison++;v(CARRIERE.attention(ch,9,n)===0,'seulement la première saison');
+  localStorage.removeItem(SAUVEGARDE.CLE);const {ch:vieux}=carriere15(45);SAUVEGARDE.entrerAuTemple(vieux);const neuf=CARRIERE.nouveauMonde(vieux);SAUVEGARDE.ecrireChampionnat(neuf);
+  v(neuf.graine!==vieux.graine&&neuf.saison===1&&neuf.dynastie.generations.length===0&&JSON.stringify(neuf.pilotes.map(p=>p.caractere))!==JSON.stringify(vieux.pilotes.map(p=>p.caractere)),'monde neuf');
+  v(SAUVEGARDE.temple().carrieres.length===1&&SAUVEGARDE.temple().carrieres[0].saisons===15,'l’ancienne au temple');localStorage.removeItem(SAUVEGARDE.CLE);});
+t('relève : aucun texte sur le pilote précédent n’est genré (toutes les clés concernées, en + fr) ; les textes sur l’héritier s’accordent avec chacun des quatre liens ; la une du premier Grand Prix de l’héritier est celle de la relève', ()=>{
+  const GENRE={en:/\b(he|she|him|his|her|hers|father|mother|dad|mum|mom|himself|herself)\b/i,fr:/(^|[^\wàâçéèêëîïôûùüÿœ])(il|elle|lui|père|mère|papa|maman|ton père|ta mère)(?![\wàâçéèêëîïôûùüÿœ])/i};
+  const tout=x=>Array.isArray(x)?x:[x];let nb=0;
+  for(const l of ['en','fr']){for(const cle of CARRIERE.CLES_PARENT){const x=TEXTES[l][cle];v(x!==undefined,cle+' manque en '+l);for(const s_ of tout(x)){v(!GENRE[l].test(s_),l+' '+cle+' genré : '+s_);nb++;}}
+    // les phrases des textes d'héritier, une fois le parent retiré, ne parlent du parent que par {parent}
+    for(const lien of CARRIERE.LIENS) for(const cle of CARRIERE.CLES_HERITIER(lien)) for(const s_ of tout(TEXTES[l][cle])) v(s_.includes('{parent}'),cle+' sans {parent}');}
+  const FEM={fr:/la fille|la protégée|fille de|protégée de|à elle|La fille|La protégée/,en:/daughter|\bher\b|protégée/},MASC={fr:/le fils|fils de|le protégé(?!e)|protégé de|à lui|Le fils|Le protégé(?!e)/,en:/\bson\b|\bhis\b|protégé(?!e)/};
+  for(const l of ['en','fr']) for(const lien of CARRIERE.LIENS){const fem=lien==='fille'||lien==='protegee';
+    for(const cle of CARRIERE.CLES_HERITIER(lien)) for(const s_ of tout(TEXTES[l][cle])){
+      const sans=s_.replace(/\{parent\}/g,'P');
+      if(cle.startsWith('uneTitre_')||cle.startsWith('heritierLien_')) v((fem?FEM:MASC)[l].test(sans),l+' '+cle+' pas accordé : '+s_);
+      v(!(fem?MASC:FEM)[l].test(sans),l+' '+cle+' mal accordé : '+s_);nb++;}}
+  L.push('  (relève : '+nb+' textes vérifiés, sans genre sur le pilote précédent, accordés aux 4 liens)');
+  for(const lien of CARRIERE.LIENS){const {ch}=carriere15(46);heritier(ch,'Sam',lien);SAISONS.avancer(ch,1);const u=ch.album[ch.album.length-1],r=JOURNAL.rendre(u,ch);
+    v(u.f==='releve_'+lien&&u.p.parent===0&&r.titre.includes('Alex Rossi'),lien+' : '+u.f+' '+r.titre);
+    SAISONS.avancer(ch,1);v(ch.album[ch.album.length-1].f!=='releve_'+lien,'seulement au premier Grand Prix');
+    v(JOURNAL.rendreAlbum(ch,0).classement.some(x=>x.moi&&x.nom==='Alex Rossi')&&JOURNAL.rendreAlbum(ch,ch.album.length-1).classement.some(x=>x.moi&&x.nom==='Sam Rossi'),'l’album nomme chaque génération');}});
+t('relève : les records de famille s’additionnent sur 3 générations de 15 saisons ; les retraités gardent un résumé compact ; une ancienne sauvegarde (v3, sans dynastie) devient une dynastie d’une génération ; la taille après 3 générations est mesurée', ()=>{
+  const {ch}=carriere15(47),gens=[];
+  for(let g=0;g<2;g++){gens.push(CARRIERE.resume(ch));heritier(ch,['Léa','Tom'][g],['fille','fils'][g]);
+    for(let s=1;s<=15;s++){for(let k=0;k<12;k++) SAISONS.avancer(ch,1);SAISONS.terminerSaison(ch);if(s<15) SAISONS.signer(ch,SAISONS.offres(ch)[0].ecurie);}}
+  gens.push(CARRIERE.resume(ch));
+  const f=CARRIERE.recordsFamille(ch),som=k=>gens.reduce((a,x)=>a+x[k],0);
+  v(ch.dynastie.generations.length===2&&ch.saison===45&&ch.retraite&&f.generations===3&&f.titres===som('titres')&&f.victoires===som('victoires')&&f.podiums===som('podiums')&&f.championnes===gens.filter(x=>x.titres>0).length,'famille : '+JSON.stringify(f)+' / '+JSON.stringify(gens.map(x=>[x.titres,x.victoires])));
+  const vc=Object.values(f.circuits).reduce((a,b)=>a+b,0);v(vc===f.victoires,'victoires par circuit '+vc+' / '+f.victoires);
+  v(ch.retraites.every(r=>!r.places&&!r.stats&&Object.keys(r).length<=12)&&ch.dynastie.generations.every(x=>!x.places&&Object.keys(x).length<=22),'résumés compacts');
+  const taille=JSON.stringify(ch).length;
+  const vieux=JSON.parse(JSON.stringify(carriere15(48).ch));delete vieux.dynastie;delete vieux.carriere;localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:3,records:{},championnat:vieux}));
+  const d=SAUVEGARDE.lire();v(d.version===4&&d.championnat.dynastie.generations.length===0&&d.championnat.dynastie.famille==='Rossi'&&CARRIERE.recordsFamille(d.championnat).generations===1,'ancienne : '+JSON.stringify(d.championnat.dynastie));
+  localStorage.removeItem(SAUVEGARDE.CLE);
+  L.push('  (relève : 3 générations de 15 saisons = '+taille+' octets ('+(taille/1024).toFixed(1)+' Ko) ; '+ch.album.length+' unes, '+ch.retraites.length+' retraités ; famille : '+f.titres+' titres, '+f.victoires+' victoires, '+f.championnes+' générations championnes)');
+  v(taille<600000,taille+' octets');});
+
 t('championnat : le niveau de l’écurie agit sur le rythme des IA (rythme × niveau, avant la carte) ; sur 6 Grands Prix simulés, les 5 écuries fortes marquent plus que les 5 faibles', ()=>{
   const R=REGLAGES,ch=CHAMPIONNAT.creer(11),circuits={test:C,technique:construireCircuit(CIRCUITS.technique)},t0=performance.now();
   for(let g=0;g<6;g++){const gp=ch.calendrier[ch.prochain],e=CHAMPIONNAT.simulerGrandPrix(ch,circuits[gp.circuit],1,200+g);
@@ -1018,7 +1082,7 @@ t('championnat (page) : appliquerCaracteres donne à chaque IA le caractère de 
 
 t('sauvegarde v2 → v3 : les noms provisoires du championnat (« Pilote joueur », « Pilote 3 », « Écurie 1 ») deviennent null (le nom par défaut vient de textes.js, dans la langue du joueur), un vrai nom et le reste sont gardés', ()=>{
   localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:2,records:{'5':61.5},championnat:{prochain:1,pilotes:[{nom:'Pilote joueur',humain:true},{nom:'Pilote 3'},{nom:'Ayrton'}],ecuries:[{nom:'Écurie 1'},{nom:'Rossa'}]}}));
-  const d=SAUVEGARDE.lire();v(d.version===3&&d.records['5']===61.5&&d.championnat.prochain===1,'gardé : '+JSON.stringify(d));
+  const d=SAUVEGARDE.lire();v(d.version===SAUVEGARDE.VERSION&&d.records['5']===61.5&&d.championnat.prochain===1,'gardé : '+JSON.stringify(d));
   v(d.championnat.pilotes.map(p=>p.nom).join()===',,Ayrton'&&d.championnat.ecuries.map(e=>e.nom).join()===',Rossa',JSON.stringify(d.championnat));
   localStorage.removeItem(SAUVEGARDE.CLE);});
 
@@ -1824,6 +1888,25 @@ t('passer en accéléré : une course de 8 IA (2 tours) finie en regardant (2 pa
   const e=creerCourseIA(C,4,1,3,CARTES_T.test);let h=0;for(let k=0;k<30*120;k++)pasCourseIA(e,DT);
   const r=ARRIVEE.accelerer(e,()=>pasCourseIA(e,DT),1e6,5,0,()=>(h+=1));v(r.pas===5*R.ARRIVEE_PAS_CONTROLE&&!r.pret,'coupe : '+JSON.stringify(r));
   L.push('  (8 IA, 2 tours : fin en regardant '+a.images+' images de 2 pas, en accéléré '+b.images+' images ('+b.pasAccel+' pas) ; classement identique au bit près)');});
+
+t('passer en accéléré : le podium attend que tout le monde ait fini (même au-delà d’ARRIVEE_ATTENTE_MAX) ; une voiture immobilisée exprès est classée dans l’ordre de course après ARRIVEE_BLOQUEE s de course sans avancer', ()=>{
+  const R=REGLAGES,e=creerCourseIA(C,5,2,5,CARTES_T.test);let k=0;
+  while(!e.pilotes.some(p=>p.arrivee!==null)&&k++<400*120)pasCourseIA(e,DT);
+  const arrivee=e.pilotes.find(p=>p.arrivee!==null).arrivee,lente=e.pilotes.find(p=>p.arrivee===null);
+  // la dernière voiture encore en course est immobilisée (posée à sa place à chaque pas)
+  const x0=lente.v.x,z0=lente.v.z,cap0=lente.v.cap,bloquer=()=>{lente.v.x=x0;lente.v.z=z0;lente.v.cap=cap0;lente.v.u=0;lente.v.v=0;lente.v.r=0;};
+  const suivi=ARRIVEE.creerSuivi(e),debut=e.temps;let r={pret:false},images=0;
+  while(!r.pret&&images++<5000)r=ARRIVEE.accelerer(e,()=>{pasCourseIA(e,DT);bloquer();},200,1e9,arrivee,()=>0,suivi);
+  v(r.pret,'jamais prêt');
+  v(e.pilotes.every(p=>p===lente||p.arrivee!==null),'les autres ne sont pas toutes arrivées : '+e.pilotes.map(p=>p.arrivee));
+  v(lente.arrivee===null&&e.temps-debut>=R.ARRIVEE_BLOQUEE-1e-9,'la bloquée : '+[lente.arrivee,(e.temps-debut).toFixed(1)]);
+  const f=classementFinal(e);v(f.length===e.pilotes.length&&f[f.length-1].k===e.pilotes.indexOf(lente),'classée dernière');
+  // sans voiture bloquée : la course de 2 tours finit bien après ARRIVEE_ATTENTE_MAX (la première arrivée), et tout le monde arrive
+  const e2=creerCourseIA(C,5,2,5,CARTES_T.test);k=0;while(!e2.pilotes.some(p=>p.arrivee!==null)&&k++<400*120)pasCourseIA(e2,DT);
+  const s2=ARRIVEE.creerSuivi(e2),a2=e2.pilotes.find(p=>p.arrivee!==null).arrivee;r={pret:false};images=0;
+  while(!r.pret&&images++<5000)r=ARRIVEE.accelerer(e2,()=>pasCourseIA(e2,DT),200,1e9,a2,()=>0,s2);
+  v(r.pret&&e2.pilotes.every(p=>p.arrivee!==null),'pas toutes arrivées');
+  L.push('  (accéléré : voiture immobilisée classée après '+(e.temps-debut).toFixed(1)+' s de course ; sans elle, la dernière arrive '+(Math.max(...e2.pilotes.map(p=>p.arrivee))-a2).toFixed(1)+' s après la première)');});
 
 // --- le tournoi chrono entre copains (tournoi.js, tour 26b)
 const TJ=n=>[...Array(n)].map((x,i)=>({prenom:['Léo','Sarah','Tom','Inès','Max','Zoé','Noa','Lina','Hugo'][i]}));

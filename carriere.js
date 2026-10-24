@@ -172,7 +172,9 @@ const CARRIERE = (function () {
     if (!prenom) erreurs.push('prenom');
     if (!LIENS.includes(choix.lien)) erreurs.push('lien');
     const v = PILOTE.valider(ch, { nom: prenom, numero: choix.numero, pays: choix.pays || j.pays, coeur: choix.coeur || j.coeur });
-    for (const e of v.erreurs) erreurs.push(e);
+    // (la course de cœur du parent est gardée telle quelle, même si c'est un circuit d'essai)
+    if (v.erreurs.includes('coeur') && v.choix.pays && !choix.coeur && j.coeur) v.choix.coeur = j.coeur;
+    for (const e of v.erreurs) if (!(e === 'coeur' && v.choix.coeur)) erreurs.push(e);
     const fam = ch.dynastie.generations.length ? ch.dynastie.famille : famille(j.nom);   // (le premier pilote a pu se nommer après le chargement)
     const nom = prenom ? (fam ? prenom + ' ' + fam : prenom) : null;
     const casque = CASQUE.valide(choix.casque) ? CASQUE.creer(choix.casque.motif, choix.casque.couleurs) : (CASQUE.valide(j.casque) ? CASQUE.creer(j.casque.motif, j.casque.couleurs) : CASQUE.neutre());
@@ -197,16 +199,18 @@ const CARRIERE = (function () {
     const c = v.choix, j = joueur(ch), ancienNumero = j.numero;
     if (!ch.dynastie.generations.length) ch.dynastie.famille = famille(j.nom);
     ch.dynastie.generations.push(resume(ch));
-    // l'écurie la plus faible : il prend la place de son pilote le moins bien classé (qui va dans l'ancienne écurie du joueur)
-    const faible = plusFaible(ch);
-    if (j.ecurie !== faible) {
-      const partant = ch.pilotes.filter(p => p.ecurie === faible && !p.humain).sort((a, b) => a.stats.points - b.stats.points || b.id - a.id)[0];
-      partant.ecurie = j.ecurie;
-      j.ecurie = faible;
-    }
     ch.retraite = null;
     ch.enFinDeSaison = true;   // (la saison est close : terminerSaison)
     SAISONS.nouvelleSaison(ch);
+    // l'écurie la plus faible de la nouvelle saison (les niveaux viennent d'évoluer) : il prend la place de son pilote le moins bien
+    // classé, qui va dans l'ancienne écurie du joueur ; puis le duel repart avec le nouveau coéquipier
+    const faible = plusFaible(ch);
+    if (j.ecurie !== faible) {
+      const partant = ch.pilotes.filter(p => p.ecurie === faible && !p.humain).sort((a, b) => b.id - a.id)[0];
+      partant.ecurie = j.ecurie;
+      j.ecurie = faible;
+      CHAMPIONNAT.completer(ch);
+    }
     // l'héritier : tout repart de zéro, comme un premier pilote
     j.nom = c.nom; j.numero = c.numero; j.casque = c.casque; j.pays = c.pays; j.coeur = c.coeur;
     // (un nouveau rival arrivé à cette fin de saison a pu tirer le numéro choisi : il prend l'ancien numéro du parent, libre)
@@ -227,6 +231,12 @@ const CARRIERE = (function () {
     return true;
   }
 
+  // « Nouvelle dynastie » : un monde neuf (une autre graine : d'autres rivaux, d'autres caractères) ; l'ancienne carrière reste au
+  // temple (sauvegarde.js : entrerAuTemple, à la racine de la sauvegarde)
+  function nouveauMonde(ancien) {
+    return CHAMPIONNAT.creer(((ancien && ancien.graine) || 1) * 7 + 13);
+  }
+
   // la génération d'avant (son résumé), ou null pour un premier pilote
   function parent(ch) {
     completer(ch);
@@ -243,7 +253,7 @@ const CARRIERE = (function () {
   }
 
   // les clés de texte qui parlent du pilote précédent (jamais genrées : tests) et celles de l'héritier (une par lien)
-  const CLES_PARENT = ['ficheFamille', 'releveTitre', 'releveParent', 'heritierParent', 'arbreTitre', 'bilanFamille'];
+  const CLES_PARENT = ['ficheFamille', 'releveTitre', 'releveParent', 'heritierParent', 'heritierMotif', 'arbreTitre', 'bilanFamille', 'continuerDynastie', 'nouvelleDynastie', 'heritierTitre'];
   const CLES_HERITIER = l => ['uneTitre_releve_' + l, 'uneTexte_releve_' + l, 'heritierLien_' + l];
 
   // --- le temple de la renommée et les records de carrière (à la racine de la sauvegarde : t = { carrieres, records }) ---
@@ -285,5 +295,5 @@ const CARRIERE = (function () {
   }
 
   return { completer, suivre, noterReaction, duels, unePreferee, bilan, resume, templeVierge, completerTemple, classer, entrer, place, RECORDS,
-    famille, LIENS, recordsFamille, reputationDepart, attention, validerHeritier, casqueParent, continuer, parent, aCouruContreParent, CLES_PARENT, CLES_HERITIER };
+    famille, LIENS, recordsFamille, reputationDepart, attention, validerHeritier, casqueParent, continuer, nouveauMonde, parent, aCouruContreParent, CLES_PARENT, CLES_HERITIER };
 })();
