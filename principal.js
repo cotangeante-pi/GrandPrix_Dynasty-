@@ -11,6 +11,8 @@ const DECOUVERTE_EN_COURS = EST_PAGE && PAGE_NUE && !SAUVEGARDE.decouverteFaite(
 if (DECOUVERTE_EN_COURS) REGLAGES.NIVEAU = REGLAGES.DECOUVERTE_NIVEAU;   // les IA de la découverte sont au niveau débutant
 // ?championnat=1 (ou la page nue après la découverte) : le championnat sauvegardé, ou un nouveau ; son prochain Grand Prix choisit le circuit de la page
 const CHAMPIONNAT_EN_COURS = PARAMETRES.get('championnat') === '1' || (EST_PAGE && PAGE_NUE && !DECOUVERTE_EN_COURS) ? (SAUVEGARDE.championnat() || CHAMPIONNAT.creer(Number(PARAMETRES.get('graine')) || 1)) : null;
+// ?gp=N (tests) : un championnat NEUF arrive au N-ième Grand Prix, les N − 1 premiers joués d'avance sans physique (SAISONS.avancer)
+if (CHAMPIONNAT_EN_COURS && !SAUVEGARDE.championnat() && Number(PARAMETRES.get('gp')) > 1) SAISONS.avancer(CHAMPIONNAT_EN_COURS, Number(PARAMETRES.get('gp')) - 1);
 const NOM_CIRCUIT = DECOUVERTE_EN_COURS ? REGLAGES.DECOUVERTE_CIRCUIT
   : CHAMPIONNAT_EN_COURS && CHAMPIONNAT_EN_COURS.prochain < CHAMPIONNAT_EN_COURS.calendrier.length ? CHAMPIONNAT_EN_COURS.calendrier[CHAMPIONNAT_EN_COURS.prochain].circuit
   : Object.prototype.hasOwnProperty.call(CIRCUITS, PARAMETRES.get('circuit')) ? PARAMETRES.get('circuit') : 'test';
@@ -412,7 +414,66 @@ function montrerUne(une) {
 
 function passerUne() {
   if (JEU.ecran !== 'une') return;
-  montrerChampionnat(JEU.gagne);
+  if (SAISONS.finie(JEU.championnat)) montrerFinSaison();
+  else montrerChampionnat(JEU.gagne);
+}
+
+// ?championnat=1 : la fin de saison (saisons.js) : le classement final et le champion → le duel de la saison → les contrats
+// (ou la retraite par l'âge) → la saison suivante (l'écran du championnat, puis « Course suivante » recharge la page)
+function montrerFinSaison() {
+  const ch = JEU.championnat;
+  if (ch.retraite) { montrerRetraite(); return; }
+  const b = SAISONS.terminerSaison(ch);
+  SAUVEGARDE.ecrireChampionnat(ch);
+  PODIUM3D.cacher();
+  INTERFACE.remplirSaison(ch, b);
+  JEU.ecran = 'saison';
+  INTERFACE.montrer('saison');
+}
+
+function suiteClassementSaison() {
+  if (JEU.ecran !== 'saison') return;
+  INTERFACE.remplirDuelSaison(JEU.championnat, CHAMPIONNAT.scoreDuel(JEU.championnat));
+  JEU.ecran = 'duelSaison';
+  INTERFACE.montrer('duelSaison');
+}
+
+function suiteDuelSaison() {
+  if (JEU.ecran !== 'duelSaison') return;
+  if (JEU.championnat.retraite) { montrerRetraite(); return; }
+  montrerContrats();
+}
+
+function montrerContrats() {
+  const ch = JEU.championnat;
+  INTERFACE.remplirContrats(ch, SAISONS.offres(ch), SAISONS.note(ch));
+  JEU.ecran = 'contrats';
+  INTERFACE.montrer('contrats');
+}
+
+// le joueur signe : la nouvelle saison commence (saisons.js), la sauvegarde, puis l'écran du championnat (Grand Prix 1)
+function signerContrat(id) {
+  if (JEU.ecran !== 'contrats') return false;
+  if (!SAISONS.signer(JEU.championnat, id)) return false;
+  SAUVEGARDE.ecrireChampionnat(JEU.championnat);
+  JEU.gagne = null;
+  JEU.grandPrixFini = true;   // « Course suivante » recharge la page sur le premier Grand Prix de la nouvelle saison (le circuit change)
+  montrerChampionnat(null);
+  return true;
+}
+
+function prendreRetraite() {
+  if (JEU.ecran !== 'contrats') return;
+  SAISONS.prendreRetraite(JEU.championnat, 'choix');
+  SAUVEGARDE.ecrireChampionnat(JEU.championnat);
+  montrerRetraite();
+}
+
+function montrerRetraite() {
+  PODIUM3D.cacher();
+  INTERFACE.remplirRetraite(JEU.championnat.retraite);
+  JEU.ecran = 'retraite';
+  INTERFACE.montrer('retraite');
 }
 
 // ?championnat=1 : le garage (garage.js, argent.js), depuis l'écran du championnat ; un achat est sauvegardé tout de suite
@@ -661,7 +722,7 @@ function majTableau() {
   document.getElementById('rapport').textContent = rapportPourVitesse(v.u);
   const roule = JEU.ecran === 'course' || JEU.ecran === 'survol' || enTourQualif();
   // sur le podium et les résultats, ni vitesse ni aide des touches
-  const apres = ['podium', 'resultats', 'championnat', 'une', 'garage', 'titre', 'amis', 'bravo'].includes(JEU.ecran);
+  const apres = ['podium', 'resultats', 'championnat', 'une', 'garage', 'titre', 'amis', 'bravo', 'saison', 'duelSaison', 'contrats', 'retraite'].includes(JEU.ecran);
   document.getElementById('tableau').classList.toggle('cache', apres);
   document.getElementById('aide').classList.toggle('cache', apres);
   // après l'arrivée du joueur (en attendant les autres), il ne court plus : pas de « hors piste »
@@ -789,6 +850,7 @@ function demarrerJeu() {
     INTERFACE.preparerChampionnat(courseSuivante, montrerGarage);
     INTERFACE.preparerUne(passerUne);
     INTERFACE.preparerGarage(acheterAmelioration, quitterGarage);
+    INTERFACE.preparerSaison(suiteClassementSaison, suiteDuelSaison, signerContrat, prendreRetraite);
   } else if (JEU.decouverte) INTERFACE.preparerResultats(montrerBravo, () => {}, () => {});   // la découverte : après le podium, « Bravo ! »
   else INTERFACE.preparerResultats(voirResultats, () => lancerCourse(JEU.course.nbTours), allerAuChoix);
   INTERFACE.preparerTitre(jouerDecouverte, montrerAmis, retourTitre, commencerCarriere);
@@ -807,6 +869,7 @@ function demarrerJeu() {
   if (SURVOL.includes(PARAMETRES.get('camera'))) { JEU.ecran = 'survol'; INTERFACE.montrer('survol'); }
   else if (JEU.decouverte) montrerTitre();   // le premier lancement
   else if (JEU.championnat && PAGE_NUE && PILOTE.manque(JEU.championnat)) montrerPilote();   // le vrai jeu, une sauvegarde sans pilote : la création, une fois (pas les pages ?championnat=1 des tests)
+  else if (JEU.championnat && (JEU.championnat.retraite || SAISONS.finie(JEU.championnat))) montrerFinSaison();   // la saison est finie (la page a été rechargée pendant les contrats), ou la carrière
   else if (JEU.championnat) montrerChampionnat(null);
   else if (demandee !== null && !isNaN(Number(demandee))) lancerCourse(Number(demandee));
   else allerAuChoix();

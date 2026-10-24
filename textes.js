@@ -119,6 +119,18 @@ const TEXTES = {
     garageBonus: 'Car: +{a} % / {b} % max', garageRefusArgent: 'not enough money',
     garage_roues: 'Wheel changers', garage_moteur: 'Engine', garage_aero: 'Aero', garage_freins: 'Brakes',
     garageEffet_roues: 'faster pit stops (later)', garageEffet_moteur: 'top speed', garageEffet_aero: 'grip', garageEffet_freins: 'braking',
+    // la fin de saison, les contrats, la retraite (saisons.js, Codeur 3)
+    saisonTitre: 'Season {n} is over', saisonChampionToi: 'CHAMPION!', saisonChampion: 'Champion: {pilote}', saisonChampionEcurie: 'Teams’ champion: {ecurie}',
+    saisonClassement: 'Final standings', suite: 'Continue',
+    duelSaisonTitre: 'The season duel', duelSaisonGagne: 'You beat {nom} {a} to {b}', duelSaisonPerdu: '{nom} beat you {b} to {a}', duelSaisonEgal: 'Tie with {nom}: {a} to {b}',
+    duelSaisonDetail: 'qualifying {qa}–{qb} · races {ca}–{cb} · career against {nom}: {ta}–{tb}',
+    contratsTitre: 'Contracts for season {n}', contratsNote: 'Your rating: {n} / 100 (standings, teammate duel, team confidence)',
+    contratNiveau: 'car {n} / 100', contratCoequipier: 'teammate: {nom}', contratActuelle: 'your current team', contratSigner: 'Sign',
+    contratMot_fort: 'a top team', contratMot_moyen: 'a midfield team', contratMot_faible: 'a small team',
+    retraite: 'Retire', retraiteConfirmer: 'Confirm: retire now', retraiteTitre: 'Career over',
+    retraiteChoix: 'You chose to retire after season {n}.', retraiteAge: 'Too old to race on after {n} seasons.',
+    retraiteBilan: '{s} seasons · {v} wins · {p} podiums · {t} titles',
+    breveRetraite: ['{pilote}, {age}, is thinking about retirement.', 'At {age}, {pilote} may be in a final season.'],
   },
   fr: {
     nomDuJeu: 'Grand Prix Dynasty',
@@ -230,6 +242,18 @@ const TEXTES = {
     garageBonus: 'Voiture : +{a} % / {b} % maxi', garageRefusArgent: 'pas assez d’argent',
     garage_roues: 'Changeurs de roues', garage_moteur: 'Moteur', garage_aero: 'Aéro', garage_freins: 'Freins',
     garageEffet_roues: 'arrêt au stand plus court (plus tard)', garageEffet_moteur: 'vitesse de pointe', garageEffet_aero: 'adhérence', garageEffet_freins: 'freinage',
+    // la fin de saison, les contrats, la retraite (saisons.js, Codeur 3)
+    saisonTitre: 'La saison {n} est finie', saisonChampionToi: 'CHAMPION !', saisonChampion: 'Champion : {pilote}', saisonChampionEcurie: 'Écurie championne : {ecurie}',
+    saisonClassement: 'Classement final', suite: 'Continuer',
+    duelSaisonTitre: 'Le duel de la saison', duelSaisonGagne: 'Tu as battu {nom} {a} à {b}', duelSaisonPerdu: '{nom} t’a battu {b} à {a}', duelSaisonEgal: 'Égalité avec {nom} : {a} à {b}',
+    duelSaisonDetail: 'qualifs {qa}–{qb} · courses {ca}–{cb} · en carrière contre {nom} : {ta}–{tb}',
+    contratsTitre: 'Les contrats pour la saison {n}', contratsNote: 'Ta note : {n} / 100 (classement, duel contre le coéquipier, confiance de l’écurie)',
+    contratNiveau: 'voiture {n} / 100', contratCoequipier: 'coéquipier : {nom}', contratActuelle: 'ton écurie actuelle', contratSigner: 'Signer',
+    contratMot_fort: 'une écurie de pointe', contratMot_moyen: 'une écurie du milieu', contratMot_faible: 'une petite écurie',
+    retraite: 'Prendre ma retraite', retraiteConfirmer: 'Confirmer : arrêter maintenant', retraiteTitre: 'Carrière terminée',
+    retraiteChoix: 'Tu as choisi de t’arrêter après la saison {n}.', retraiteAge: 'Trop vieux pour continuer après {n} saisons.',
+    retraiteBilan: '{s} saisons · {v} victoires · {p} podiums · {t} titres',
+    breveRetraite: ['{pilote}, {age} ans, pense à la retraite.', 'À {age} ans, {pilote} vit peut-être une dernière saison.'],
   },
 };
 
