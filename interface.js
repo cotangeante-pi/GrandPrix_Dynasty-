@@ -45,7 +45,7 @@ const INTERFACE = (function () {
   }
 
   function montrer(ecran) {
-    for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une', 'garage', 'saison', 'duelSaison', 'contrats', 'retraite', 'titre', 'amis', 'bravo', 'pilote', 'sponsors', 'fiche', 'interview', 'ceremonie', 'temple', 'heritier', 'deuxReglages']) $(id).classList.toggle('cache', id !== ecran);
+    for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une', 'garage', 'saison', 'duelSaison', 'contrats', 'retraite', 'titre', 'amis', 'bravo', 'pilote', 'sponsors', 'fiche', 'interview', 'ceremonie', 'temple', 'heritier', 'deuxReglages', 'aileron', 'arbre']) $(id).classList.toggle('cache', id !== ecran);
     // l'album des unes (Codeur 3) : la page de la une, avec la barre pour feuilleter
     if (ecran === 'album') $('une').classList.remove('cache');
     $('une').classList.toggle('album', ecran === 'album');
@@ -146,7 +146,7 @@ const INTERFACE = (function () {
 
   // remplace {cle} par valeurs[cle] dans un texte
   function avec(t, valeurs) {
-    return t.replace(/\{(\w+)\}/g, (m, cle) => valeurs[cle] !== undefined ? valeurs[cle] : m);
+    return elider(t.replace(/\{(\w+)\}/g, (m, cle) => valeurs[cle] !== undefined ? valeurs[cle] : m));   // (« d’Alex » : textes.js, elider)
   }
 
   // l'écran entre les courses : le score de la saison contre le coéquipier (CHAMPIONNAT.scoreDuel ; ch : le championnat,
@@ -703,6 +703,37 @@ const INTERFACE = (function () {
   }
   let nouvelleDemandee = false;
 
+  // l'arbre de la dynastie : chaque génération (son casque, son nom, saisons, titres, victoires, podiums, meilleur résultat à
+  // domicile), la génération d'aujourd'hui marquée (en piste, ou qui vient de s'arrêter), puis les records de famille
+  function remplirArbre(ch) {
+    const gens = ch.dynastie.generations.concat([Object.assign(CARRIERE.resume(ch), { actuel: !ch.retraite })]);
+    $('arbreEcranTitre').textContent = texte('arbreTitre');
+    $('boutonArbreRetour').textContent = texte('arbreRetour');
+    const ol = $('arbreGenerations'), sp = (classe, contenu) => { const e = document.createElement('span'); e.className = classe; e.append(contenu); return e; };
+    ol.textContent = '';
+    gens.forEach((g, i) => {
+      const li = document.createElement('li');
+      if (i === gens.length - 1) li.classList.add('actuel');
+      const casque = CASQUE.valide(g.casque) ? CASQUE.icone(g.casque, 26) : document.createElement('span');
+      const chiffres = avec(texte('arbreLigne'), { s: nombre(g.saisons, 'saison'), t: nombre(g.titres, 'titre'), v: nombre(g.victoires, 'victoire'), p: nombre(g.podiums, 'podium'), dom: g.domicile ? 'P' + g.domicile : '—' });
+      li.append(sp('rang', String(i + 1)), sp('casque', casque), sp('nom', nomPilote({ nom: g.nom, numero: g.numero, humain: true }) + (g.actuel ? ' · ' + texte('arbreActuel') : '')), sp('chiffres', chiffres));
+      ol.appendChild(li);
+    });
+    const f = CARRIERE.recordsFamille(ch);
+    $('arbreFamille').textContent = avec(texte('bilanFamille'), { g: nombre(f.generations, 'generation'), t: nombre(f.titres, 'titre'), v: nombre(f.victoires, 'victoire'), c: nombre(f.championnes, 'championne') });
+    const circuits = Object.entries(f.circuits).sort((a, b) => b[1] - a[1]).map(([c, n]) => nomCircuit(c) + ' ' + n);
+    $('arbreCircuits').textContent = circuits.length ? avec(texte('arbreCircuits'), { liste: circuits.join(' · ') }) : texte('arbreAucuneVictoire');
+  }
+
+  function preparerArbre(ouvrir, retour) {
+    $('boutonArbre').textContent = texte('arbre');
+    $('boutonArbreBilan').textContent = texte('arbre');
+    for (const [id, f] of [['boutonArbre', ouvrir], ['boutonArbreBilan', ouvrir], ['boutonArbreRetour', retour]]) {
+      $(id).addEventListener('mousedown', e => e.preventDefault());
+      $(id).addEventListener('click', f);
+    }
+  }
+
   // continuer() : l'écran de l'héritier ; nouvelle() : un monde neuf (le premier clic demande une confirmation)
   function preparerReleve(continuer, nouvelle, valider) {
     for (const id of ['boutonContinuerDynastie', 'boutonNouvelleDynastie', 'boutonHeritierValider']) $(id).addEventListener('mousedown', e => e.preventDefault());
@@ -955,6 +986,45 @@ const INTERFACE = (function () {
     $('boutonFicheRetour').addEventListener('click', retour);
   }
 
+  // --- l'aileron (Codeur 3, aileron.js, carte2d.js) : circuit = construireCircuit de la prochaine course, nom = son nom ;
+  // cran = le cran du joueur sur ce circuit. Aucun conseil : la carte, le curseur, la voiture, deux barres
+  function remplirAileron(circuit, nom, cran) {
+    $('aileronTitre').textContent = avec(texte('aileronTitre'), { circuit: nom });
+    $('aileronBas').textContent = texte('aileronBas'); $('aileronHaut').textContent = texte('aileronHaut');
+    $('aileronVirages').textContent = texte('aileronVirages'); $('aileronVitesse').textContent = texte('aileronVitesse');
+    $('boutonAileronRetour').textContent = texte('garageRetour');
+    const km = (Math.round(circuit.longueur / 10) / 100).toFixed(2).replace('.', texte('virgule'));
+    CARTE2D.dessiner($('aileronCarte').getContext('2d'), circuit, $('aileronCarte').width, $('aileronCarte').height, nom, avec(texte('aileronLongueur'), { km }));
+    $('aileronCurseur').max = REGLAGES.AILERON_CRANS - 1;
+    majAileron(cran);
+  }
+
+  // le curseur, la voiture (son aileron arrière monte avec le cran) et les deux barres
+  function majAileron(cran) {
+    $('aileronCurseur').value = cran;
+    $('aileronCran').textContent = avec(texte('aileronCran'), { n: cran + 1, max: REGLAGES.AILERON_CRANS });
+    const b = AILERON.barres(cran);
+    $('barreVirages').style.width = Math.round(b.virages * 100) + '%';
+    $('barreVitesse').style.width = Math.round(b.vitesse * 100) + '%';
+    const c = $('aileronVoiture').getContext('2d'), x = cran / (REGLAGES.AILERON_CRANS - 1);
+    c.clearRect(0, 0, 220, 90);
+    c.fillStyle = '#d8dbe3';
+    c.beginPath(); c.moveTo(14, 64); c.lineTo(60, 52); c.lineTo(150, 46); c.lineTo(178, 34); c.lineTo(186, 64); c.closePath(); c.fill();   // le corps, vu de côté
+    c.fillStyle = '#222'; for (const rx of [48, 168]) { c.beginPath(); c.arc(rx, 66, 13, 0, 6.283); c.fill(); }   // les roues
+    // l'aileron arrière : son volet s'incline plus quand le cran monte (de presque plat à très incliné)
+    c.save(); c.translate(196, 24); c.rotate(-0.08 - x * 0.6); c.fillStyle = '#ffd666'; c.fillRect(-18, -3, 36, 6); c.restore();
+    c.fillStyle = '#888'; c.fillRect(188, 26, 4, 22);
+  }
+
+  function preparerAileron(ouvrir, changer, retour) {
+    $('boutonAileron').textContent = texte('aileron');
+    for (const [id, f] of [['boutonAileron', ouvrir], ['boutonAileronRetour', retour]]) {
+      $(id).addEventListener('mousedown', e => e.preventDefault());
+      $(id).addEventListener('click', f);
+    }
+    $('aileronCurseur').addEventListener('input', () => changer(Number($('aileronCurseur').value)));
+  }
+
   function preparerGarage(acheter, retour) {
     achatGarage = acheter;
     $('boutonGarageRetour').addEventListener('mousedown', e => e.preventDefault());
@@ -1106,7 +1176,7 @@ const INTERFACE = (function () {
 
   return { preparerAmis, remplirDeux, lireDeux, montrerErreursDeux, preparerDeux, remplirPodiumDeux, remplirRivalite, formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, preparerChampionnat, remplirQualif, preparerQualif,
     remplirDuel, avec, remplirUne, preparerUne, remplirArgent, remplirSolde, remplirGarage, preparerGarage,
-    remplirSaison, remplirDuelSaison, remplirContrats, remplirRetraite, preparerSaison, retraiteEnAttente, remplirCeremonie, preparerCeremonie, remplirAlbum, preparerAlbum, remplirBilan, remplirTemple, preparerTemple, preparerReleve, remplirHeritier, lireHeritier, montrerErreurHeritier,
+    remplirSaison, remplirDuelSaison, remplirContrats, remplirRetraite, preparerSaison, retraiteEnAttente, remplirCeremonie, preparerCeremonie, remplirAlbum, preparerAlbum, remplirBilan, remplirTemple, preparerTemple, preparerReleve, remplirHeritier, lireHeritier, montrerErreurHeritier, remplirAileron, majAileron, preparerAileron, remplirArbre, preparerArbre,
     remplirSponsors, remplirRappelSponsor, preparerSponsors, remplirFiche, preparerFiche, remplirInterview, montrerEffetInterview, preparerInterview, remplirReputation,
     majEcartFantome, preparerFantome, majBoutonsFantome, majDepart, majDeux, preparerTitre, remplirBravo, majAides, remplirPilote, lirePilote, montrerErreursPilote, preparerPilote, nomCircuit, remplirCasque, lireCasque, modePilote, preparerCasque };
 })();

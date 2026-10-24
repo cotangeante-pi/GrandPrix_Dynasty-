@@ -1,7 +1,7 @@
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><title>tests</title></head><body>
 <pre id="res"></pre>
 <script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));window.addEventListener('unhandledrejection',e=>__err.push('promesse : '+(e.reason&&e.reason.message||e.reason)));</script>
-<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../son.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../decouverte.js"></script><script src="../pilote.js"></script><script src="../deux-joueurs.js"></script><script src="../casque.js"></script><script src="../cache-carte.js"></script><script src="../journal.js"></script><script src="../argent.js"></script><script src="../garage.js"></script><script src="../saisons.js"></script><script src="../sponsors.js"></script><script src="../fiche.js"></script><script src="../interview.js"></script><script src="../carriere.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../fantome.js"></script><script src="../principal.js"></script>
+<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../son.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../decouverte.js"></script><script src="../pilote.js"></script><script src="../deux-joueurs.js"></script><script src="../casque.js"></script><script src="../cache-carte.js"></script><script src="../journal.js"></script><script src="../argent.js"></script><script src="../garage.js"></script><script src="../aileron.js"></script><script src="../carte2d.js"></script><script src="../saisons.js"></script><script src="../sponsors.js"></script><script src="../fiche.js"></script><script src="../interview.js"></script><script src="../carriere.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../fantome.js"></script><script src="../principal.js"></script>
 <script>
 const L=[];let ok=0,ko=0;
 function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
@@ -989,6 +989,64 @@ t('carrière : la retraite entre au temple une seule fois, sauvegardée ; les re
   const b=CARRIERE.bilan(d.championnat);v(b.saisons===15&&b.duels.length>=1&&b.une!==null,'bilan d’une ancienne sauvegarde');
   L.push('  (sauvegarde après une carrière de 15 saisons, temple compris : '+taille+' octets = '+(taille/1024).toFixed(1)+' Ko)');
   localStorage.removeItem(SAUVEGARDE.CLE);});
+
+// --- l'aileron (tour 29c, aileron.js, carte2d.js, Codeur 3)
+const tourAileron=(circuit,cran,ia)=>{   // le temps moyen des tours 2 et 3 du robot (ou d'une IA seule) avec ce cran
+  if(ia){const e=creerCourseIA(circuit,1,3,3);AILERON.appliquer(e.pilotes[0].v,cran);for(let k=0;k<600*120&&e.arrives<1;k++) pasCourseIA(e,DT);const T_=e.pilotes[0].course.tours;return (T_[1].temps+T_[2].temps)/2;}
+  const co=creerCourse(circuit,3),vo=creerVoiture(circuit);placerAuDepart(vo,circuit);AILERON.appliquer(vo,cran);
+  for(let k=0;k<600*120&&co.etat!=='finie';k++){appliquerCommandes(vo,courseAutorise(co)?piloteRobot(vo,circuit):RIEN);pasVoiture(vo,circuit,DT);majCourse(co,vo,DT);}
+  return (co.tours[1].temps+co.tours[2].temps)/2;};
+t('aileron : le cran du milieu = la voiture d’aujourd’hui au bit près (facteurs exactement 1 ; le robot et une course d’IA rejouées pas à pas : les mêmes nombres) ; un cran sans réglage est le milieu', ()=>{
+  const m=AILERON.milieu(),f=AILERON.facteurs(m);v(m===2&&f.adherence===1&&f.trainee===1&&racineCubique(1)===1,'milieu '+JSON.stringify(f));
+  const a=creerVoiture(C,0),b=creerVoiture(C,0);AILERON.appliquer(b,m);rouler(a,C,30,v_=>piloteRobot(v_,C));rouler(b,C,30,v_=>piloteRobot(v_,C));
+  v(a.x===b.x&&a.z===b.z&&a.u===b.u&&a.cap===b.cap,'robot : '+[a.x,b.x,a.u,b.u].join(' '));
+  const e1=creerCourseIA(C,4,1,7),e2=creerCourseIA(C,4,1,7);for(const p of e2.pilotes) AILERON.appliquer(p.v,m);
+  for(let k=0;k<20*120;k++){pasCourseIA(e1,DT);pasCourseIA(e2,DT);}
+  v(e1.pilotes.every((p,i)=>p.v.x===e2.pilotes[i].v.x&&p.v.z===e2.pilotes[i].v.z&&p.v.u===e2.pilotes[i].v.u),'IA : positions différentes');
+  const vo={};AILERON.appliquer(vo,null);v(vo.aileronAdherence===1&&vo.aileronTrainee===1,'null → milieu');});
+t('aileron : un cran plus haut a plus d’adhérence en virage et moins de vitesse de pointe, un cran plus bas l’inverse ; c’est un échange (hors du plafond du garage)', ()=>{
+  const pointe=[],virage=[];
+  for(let c=0;c<REGLAGES.AILERON_CRANS;c++){const vo=creerVoiture(null);AILERON.appliquer(vo,c);rouler(vo,null,60,{gaz:1,frein:0,direction:0});pointe.push(vo.u*KMH);
+    virage.push(vitesseVirage(1/80,REGLAGES.ADHERENCE*AILERON.facteurs(c).adherence)*KMH);}
+  for(let c=1;c<pointe.length;c++) v(pointe[c]<pointe[c-1]&&virage[c]>virage[c-1],'cran '+c+' : pointe '+pointe.map(x=>x.toFixed(1)).join(' ')+' ; virage de 80 m '+virage.map(x=>x.toFixed(1)).join(' '));
+  const g={roues:5,moteur:5,aero:5,freins:5};v(GARAGE.bonus(g)<=REGLAGES.GARAGE_PLAFOND+1e-12,'le garage ne compte pas l’aileron');
+  L.push('  (aileron : pointe '+pointe.map(x=>x.toFixed(1)).join(' / ')+' km/h ; virage de 80 m '+virage.map(x=>x.toFixed(1)).join(' / ')+' km/h, du cran bas au cran haut)');});
+t('aileron : sur le circuit test, aucun cran n’est plus rapide que le milieu de plus de AILERON_MARGE, avec le robot ET avec une IA seule ; sur le technique, les écarts sont mesurés', ()=>{
+  const TQ=construireCircuit(CIRCUITS.technique),M=REGLAGES.AILERON_MARGE,lignes=[];
+  for(const [nom,circ] of [['test',C],['technique',TQ]]) for(const ia of [false,true]){const t_=[0,1,2,3,4].map(c=>tourAileron(circ,c,ia));lignes.push(nom+(ia?' IA ':' robot ')+t_.map(x=>x.toFixed(2)).join(' / '));
+    if(nom==='test') v(Math.min(...t_)>=t_[2]*(1-M),nom+(ia?' IA':' robot')+' : un cran domine '+t_.map(x=>x.toFixed(3)).join(' '));}
+  L.push('  (aileron, tours moyens du cran bas au cran haut : '+lignes.join(' ; ')+')');});
+t('aileron : les IA choisissent un cran plus haut sur le technique (des virages lents) que sur le test (des lignes droites), en moyenne sur 6 graines ; leur caractère et le hasard font varier les crans', ()=>{
+  const TQ=construireCircuit(CIRCUITS.technique),pt=AILERON.profil(C),pq=AILERON.profil(TQ);let st=0,sq=0,n=0;const vus=new Set();
+  for(let g=1;g<=6;g++){const ch=CHAMPIONNAT.creer(g),a=AILERON.cransIA(ch,C),b=AILERON.cransIA(ch,TQ);
+    v(a[19]===null&&b[19]===null,'le joueur n’a pas de cran tiré');
+    for(let k=0;k<19;k++){st+=a[k];sq+=b[k];n++;vus.add(a[k]);vus.add(b[k]);v(a[k]>=0&&a[k]<REGLAGES.AILERON_CRANS,'cran '+a[k]);}
+    v(JSON.stringify(AILERON.cransIA(ch,C))===JSON.stringify(a),'la même graine, les mêmes crans');}
+  v(pq.lents>pt.lents&&pt.droites>pq.droites,'profils : '+JSON.stringify([pt,pq]));v(sq/n>st/n&&vus.size>=3,'moyennes test '+(st/n).toFixed(2)+' technique '+(sq/n).toFixed(2)+', crans vus '+[...vus].join());
+  L.push('  (aileron des IA : moyenne '+(st/n).toFixed(2)+' sur le test, '+(sq/n).toFixed(2)+' sur le technique ; profils test '+JSON.stringify(pt)+', technique '+JSON.stringify(pq)+')');});
+t('aileron : le cran du joueur est gardé par circuit dans la sauvegarde ; une ancienne sauvegarde sans aileron se charge au cran du milieu ; les IA d’un Grand Prix du championnat ont leur cran (appliquerNiveaux), le joueur non', ()=>{
+  localStorage.removeItem(SAUVEGARDE.CLE);const ch=CHAMPIONNAT.creer(1);v(AILERON.cranDe(ch,'test')===2&&AILERON.cranDe(ch,'technique')===2,'au départ');
+  AILERON.regler(ch,'technique',4);AILERON.regler(ch,'test',9);SAUVEGARDE.ecrireChampionnat(ch);const re=SAUVEGARDE.championnat();
+  v(AILERON.cranDe(re,'technique')===4&&AILERON.cranDe(re,'test')===4&&AILERON.cranDe(re,'monzo')===2,'gardé : '+JSON.stringify(re.ailerons));
+  const vieux=JSON.parse(JSON.stringify(ch));delete vieux.ailerons;localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:4,records:{},championnat:vieux}));
+  const d=SAUVEGARDE.lire();v(d.championnat.ailerons&&AILERON.cranDe(d.championnat,'technique')===2,'ancienne : '+JSON.stringify(d.championnat.ailerons));
+  const e=creerCourseIA(C,19,1,3,null,true);CHAMPIONNAT.appliquerNiveaux(ch,e);const crans=AILERON.cransIA(ch,C);
+  v(e.pilotes.slice(0,19).every((p,k)=>p.aileron===crans[k]&&p.v.aileronAdherence===AILERON.facteurs(crans[k]).adherence)&&e.pilotes[19].aileron===undefined,'IA : '+e.pilotes.map(p=>p.aileron).join());
+  localStorage.removeItem(SAUVEGARDE.CLE);});
+t('aileron : la carte de la prochaine course se dessine pour chaque circuit (tracé, ligne de départ, sens, nom, longueur), sans erreur', ()=>{
+  const cv=document.createElement('canvas');cv.width=360;cv.height=270;const ctx=cv.getContext('2d');const noms=Object.keys(CIRCUITS);
+  for(const nom of noms){const circ=construireCircuit(CIRCUITS[nom]);const n=CARTE2D.dessiner(ctx,circ,360,270,CIRCUITS[nom].nom,'3,0 km');
+    const px=ctx.getImageData(0,0,360,270).data;let clairs=0,jaunes=0;for(let i=0;i<px.length;i+=4){if(px[i]>200&&px[i+1]>200&&px[i+2]>200)clairs++;if(px[i]>240&&px[i+1]>190&&px[i+2]<130)jaunes++;}
+    v(n===circ.nb&&clairs>300&&jaunes>10,nom+' : '+clairs+' clairs, '+jaunes+' jaunes');}
+  L.push('  (aileron : la carte dessinée pour '+noms.length+' circuits : '+noms.join(', ')+')');});
+
+// --- l'élision du français (tour 29c) : « d’Alex », « de Léo »
+t('textes : l’élision du français (elider) : « de Alex » → « d’Alex », « que Emma » → « qu’Emma », « de Léo » et « de Hugo » ne changent pas ; la une de la relève dit « La fille d’Alex Rossi » ; aucun texte fixe n’a « de » devant une voyelle', ()=>{
+  if(LANGUE==='fr'){v(elider('La fille de Alex Rossi')==='La fille d’Alex Rossi'&&elider('plus vite que Emma')==='plus vite qu’Emma'&&elider('le fils de Léo')==='le fils de Léo'&&elider('de Hugo')==='de Hugo'&&elider('De Ines')==='D’Ines'&&elider('sans de Écurie')==='sans d’Écurie','elider : '+elider('La fille de Alex Rossi'));
+    const {ch}=carriere15(49);heritier(ch,'Léa','fille');SAISONS.avancer(ch,1);const r=JOURNAL.rendre(ch.album[ch.album.length-1],ch);v(/d’Alex Rossi/.test(r.titre+r.texte)&&!/de Alex/.test(r.titre+r.texte),'une : '+r.titre+' / '+r.texte);}
+  const V=/(^|[\s(«“'’])([Dd]e|[Qq]ue) [AEIOUYÀÂÉÈÊÎÏÔÛaeiouyàâéèêîïôû]/;
+  for(const [cle,x] of Object.entries(TEXTES.fr)) for(const s_ of (Array.isArray(x)?x:[x])) if(typeof s_==='string') v(!V.test(s_),'fr.'+cle+' : '+s_);
+  v(TEXTES.en&&elider('daughter of Alex')===(LANGUE==='fr'?'daughter of Alex':'daughter of Alex'),'anglais');});
 
 // --- un nombre devant un mot, accordé (textes.js : nombre) : « 1 saison », « 2 saisons », en français « 0 victoire »
 t('textes : nombre(n, cle) accorde le mot au nombre (singulier à 0 et 1 en français, à 1 en anglais), pour toutes les clés nb_ des deux langues', ()=>{

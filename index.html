@@ -138,7 +138,15 @@
     <div><h2 id="championnatPilotesTitre"></h2><ol id="championnatPilotes"></ol></div>
     <div><h2 id="championnatEcuriesTitre"></h2><ol id="championnatEcuries"></ol></div>
   </div>
-  <div class="boutons"><button id="boutonCourseSuivante" tabindex="-1"></button><button id="boutonGarage" tabindex="-1"></button><button id="boutonMonCasque" class="petit" tabindex="-1"></button><button id="boutonSponsors" tabindex="-1"></button><button id="boutonAlbum" class="petit" tabindex="-1"></button><button id="boutonAmisPaddock" class="petit" tabindex="-1"></button></div>
+  <div class="boutons"><button id="boutonCourseSuivante" tabindex="-1"></button><button id="boutonGarage" tabindex="-1"></button><button id="boutonMonCasque" class="petit" tabindex="-1"></button><button id="boutonSponsors" tabindex="-1"></button><button id="boutonAlbum" class="petit" tabindex="-1"></button><button id="boutonAmisPaddock" class="petit" tabindex="-1"></button><button id="boutonArbre" class="petit" tabindex="-1"></button></div>
+</section>
+<!-- l'arbre de la dynastie (carriere.js, Codeur 3) : depuis le paddock et depuis le bilan ; chaque génération et les records de famille -->
+<section id="arbre" class="ecran cache">
+  <h1 id="arbreEcranTitre"></h1>
+  <ol id="arbreGenerations"></ol>
+  <p id="arbreFamille"></p>
+  <p id="arbreCircuits"></p>
+  <div class="boutons"><button id="boutonArbreRetour" tabindex="-1"></button></div>
 </section>
 
 <!-- ?championnat=1 : les sponsors (sponsors.js) : les offres au début de la saison, puis le rappel ; la fiche d'un rival (fiche.js) (Codeur 3) -->
@@ -205,7 +213,7 @@
   <p id="bilanUne"></p>
   <p id="bilanTemple"></p>
   <p id="bilanFamille"></p>
-  <div id="bilanBoutons" class="boutons"><button id="boutonTemple" tabindex="-1"></button><button id="boutonContinuerDynastie" tabindex="-1"></button><button id="boutonNouvelleDynastie" class="petit" tabindex="-1"></button></div>
+  <div id="bilanBoutons" class="boutons"><button id="boutonTemple" tabindex="-1"></button><button id="boutonArbreBilan" class="petit" tabindex="-1"></button><button id="boutonContinuerDynastie" tabindex="-1"></button><button id="boutonNouvelleDynastie" class="petit" tabindex="-1"></button></div>
 </section>
 <!-- la relève (carriere.js, Codeur 3) : l'héritier (prénom, numéro, lien, pays, course de cœur, motif du casque aux couleurs du parent) et l'arbre de la dynastie -->
 <section id="heritier" class="ecran cache">
@@ -241,7 +249,22 @@
   <p id="garageSolde"></p>
   <p id="garageBonus"></p>
   <ul id="garageListe"></ul>
-  <div class="boutons"><button id="boutonGarageRetour" tabindex="-1"></button></div>
+  <div class="boutons"><button id="boutonAileron" tabindex="-1"></button><button id="boutonGarageRetour" tabindex="-1"></button></div>
+</section>
+<!-- l'aileron (aileron.js, carte2d.js, Codeur 3) : depuis le garage, avant le Grand Prix : la carte de la prochaine course, le curseur, la voiture, deux barres ; aucun conseil -->
+<section id="aileron" class="ecran cache">
+  <h1 id="aileronTitre"></h1>
+  <div id="aileronCorps">
+    <canvas id="aileronCarte" width="360" height="270"></canvas>
+    <div id="aileronReglage">
+      <canvas id="aileronVoiture" width="220" height="90"></canvas>
+      <div id="aileronCurseurLigne"><span id="aileronBas"></span><input id="aileronCurseur" type="range" min="0" max="4" step="1"><span id="aileronHaut"></span></div>
+      <p id="aileronCran"></p>
+      <div class="aileronBarre"><span id="aileronVirages"></span><div class="jaugeBarre"><i id="barreVirages"></i></div></div>
+      <div class="aileronBarre"><span id="aileronVitesse"></span><div class="jaugeBarre"><i id="barreVitesse"></i></div></div>
+    </div>
+  </div>
+  <div class="boutons"><button id="boutonAileronRetour" tabindex="-1"></button></div>
 </section>
 
 <!-- ?championnat=1 : la une du journal (journal.js), après les résultats ; un clic ou une touche la passe (Codeur 3) -->
@@ -335,7 +358,7 @@
 <script src="cache-carte.js"></script>
 <script src="journal.js"></script>
 <script src="argent.js"></script>
-<script src="garage.js"></script>
+<script src="garage.js"></script><script src="aileron.js"></script><script src="carte2d.js"></script>
 <script src="saisons.js"></script>
 <script src="sponsors.js"></script>
 <script src="fiche.js"></script>

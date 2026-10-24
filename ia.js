@@ -458,11 +458,13 @@ function noterLigne(pilote, v, voisines, s0, t, type) {
   const h = R.IA_LIGNE_DEMI_BASE;
   for (let i = h; i < N - h; i++) k[i] = courbureTroisPoints(x[i - h], z[i - h], x[i], z[i], x[i + h], z[i + h]);
   for (let i = 0; i < h; i++) { k[i] = k[h]; k[N - 1 - i] = k[N - 1 - h]; }
-  const pointe = pilote.carte.pointe, rythme = rythmeDuTour(pilote), dehors = c.largeur / 2 + R.MARGE_HERBE, bord = c.largeur / 2 - R.IA_MARGE_BORD_MIN;
+  // (aileron, Codeur 3 : sa vitesse de pointe avec la traînée de son aileron ; ÷ 1 au cran du milieu)
+  const pointe = pilote.carte.pointe / racineCubique(v.aileronTrainee || 1), rythme = rythmeDuTour(pilote), dehors = c.largeur / 2 + R.MARGE_HERBE, bord = c.largeur / 2 - R.IA_MARGE_BORD_MIN;
   let penalite = 0, danger = false;   // danger : la ligne passe trop près du bord, dans l'herbe ou sur une voiture
   for (let i = 0; i < N; i++) {
     // (ses pneus usés : il connaît son adhérence réelle, v.adherence ; × 1 sans pneus, le même nombre au bit près)
-    const mu = R.ADHERENCE * (v.adherence || 1) * (Math.abs(e[i]) > dehors ? R.ADHERENCE_HERBE : 1);
+    // (aileron, Codeur 3 : il connaît aussi l'adhérence de son aileron, v.aileronAdherence ; × 1 au cran du milieu)
+    const mu = R.ADHERENCE * (v.adherence || 1) * (v.aileronAdherence || 1) * (Math.abs(e[i]) > dehors ? R.ADHERENCE_HERBE : 1);
     // le rythme (le talent) joue dans les virages ; la vitesse de pointe est celle de la voiture
     vb[i] = Math.min(pointe, rythme * Math.min(vitesseVirage(k[i], mu) * R.IA_MARGE_VIRAGE, vitesseBraquage(k[i])));
     if (Math.abs(e[i]) > bord) { penalite += R.IA_PENALITE_BORD * (Math.abs(e[i]) - bord) * pas; danger = true; }
@@ -471,7 +473,7 @@ function noterLigne(pilote, v, voisines, s0, t, type) {
   }
   // au bout de la ligne, la carte dit à quelle vitesse il faut arriver (les virages d'après)
   // (la carte suppose des pneus neufs : avec moins d'adhérence, la vitesse des virages d'après baisse comme √adhérence ; √1 = 1 au bit près)
-  const fin = valeurEn(c, pilote.carte.trajectoire.vitesse, s0 + (N - 1) * pas) * Math.sqrt(v.adherence || 1);
+  const fin = valeurEn(c, pilote.carte.trajectoire.vitesse, s0 + (N - 1) * pas) * Math.sqrt(v.adherence || 1) * Math.sqrt(v.aileronAdherence || 1);   // (aileron, Codeur 3 : √1 = 1)
   vb[N - 1] = Math.min(vb[N - 1], fin < pointe * 0.999 ? rythme * fin : fin);
   // son freinage : la marge habituelle, son style et son rythme (un pilote plus rapide freine plus près de la limite) ;
   // en attaque, il ose le freinage complet. Son rythme moyen, pas celui du tour : un freinage qui change d'un tour à

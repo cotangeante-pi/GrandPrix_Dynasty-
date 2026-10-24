@@ -158,6 +158,18 @@ const REGLAGES = {
   },
   GARAGE_NIVEAUX: 5,
   GARAGE_PLAFOND: 0.07,         // +7 % au plus (moteur + aero + freins), quelle que soit la combinaison
+  // le réglage de l'aileron (aileron.js, Codeur 3) : un échange, jamais un bonus, hors du plafond du garage ; le cran du milieu = rien
+  AILERON_CRANS: 5,
+  AILERON_ADHERENCE_PAR_CRAN: 0.02,   // l'adhérence en virage : × (1 + écart au milieu × ce nombre), lue par physique.js (v.aileronAdherence)
+  AILERON_TRAINEE_PAR_CRAN: 0.06,     // la traînée : × (1 + écart au milieu × ce nombre), lue par physique.js (v.aileronTrainee)
+  AILERON_MARGE: 0.01,          // test : sur le circuit test, aucun cran n'est plus rapide que le cran du milieu de plus de cette part du tour
+  AILERON_VIRAGE_LENT: 45,      // m/s : un virage est « lent » sous cette vitesse limite (le profil du circuit, pour les IA)
+  AILERON_DROITE: 0.001,        // 1/m : une ligne droite a une courbure plus petite
+  AILERON_IA_CIRCUIT: 6,        // le choix des IA : crans de plus par point de (part de virages lents − part de lignes droites)…
+  AILERON_IA_REGULARITE: 1.2,   // … par point de régularité au-dessus de 0,5 (régulier → plus haut)…
+  AILERON_IA_AGRESSIVITE: 1.2,  // … et en moins par point d'agressivité au-dessus de 0,5 (pour doubler en ligne droite)…
+  AILERON_IA_HASARD: 1.5,       // … et une part de hasard (en crans, de part et d'autre)
+  GRAINE_AILERON: 12000,        // les crans des IA sont tirés avec la graine du championnat + ce nombre + la saison et le Grand Prix
   // les saisons (étape 9, saisons.js, Codeur 3)
   SAISONS_MAX: 15,              // la retraite par l'âge : la carrière s'arrête après ce nombre de saisons
   GRAINE_SAISONS: 7000,         // l'évolution des rivaux est tirée avec la graine du championnat + ce nombre + la saison
