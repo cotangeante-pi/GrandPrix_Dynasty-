@@ -65,6 +65,7 @@ const JEU = {
   // touches déjà utilisées pendant le premier tour ; depuisClic : l'instant du clic sur « Jouer » (la mesure du clic aux feux, ms)
   decouverte: false, monde: null, indices: null, aides: null, depuisClic: null, clicAuxFeux: null, clicAuPremierFeu: null,
   carteDuCache: false,  // la carte des IA est venue du cache de la sauvegarde (cache-carte.js) : pas de calcul en fond
+  casqueSeul: false,    // l'écran du pilote ouvert depuis le paddock pour le casque seulement (« Mon casque »)
 };
 
 // les caméras de survol n'ont pas de course
@@ -347,26 +348,68 @@ function commencerCarriere() {
 
 // la création du pilote (pilote.js) : après la découverte (le monde), ou au chargement d'un championnat dont le joueur n'a
 // pas encore de pilote (une ancienne sauvegarde : demandée une fois)
-function montrerPilote() {
+function montrerPilote(casqueSeul) {
   PODIUM3D.cacher();
+  JEU.casqueSeul = !!casqueSeul;
   INTERFACE.remplirPilote(JEU.monde || JEU.championnat);
+  INTERFACE.modePilote(JEU.casqueSeul);
+  VOITURE3D.apercuCasque(document.getElementById('casqueApercu'), indiceJoueur());   // le casque qui tourne, sur la case du joueur
   JEU.ecran = 'pilote';
   INTERFACE.montrer('pilote');
+}
+
+// la voiture du joueur dans la liste des modèles (sa case dans l'atlas des casques)
+function indiceJoueur() {
+  return JEU.modeles.length ? (JEU.contre ? JEU.ia : 0) : 0;
+}
+
+// l'éditeur : à chaque changement, la case du joueur dans l'atlas est redessinée (l'aperçu et sa voiture suivent)
+function changerCasque(casque) {
+  if (JEU.ecran !== 'pilote' || !CASQUE.valide(casque)) return;
+  VOITURE3D.majCasque(indiceJoueur(), casque);
+}
+
+// « Mon casque » depuis le paddock : l'écran du pilote réduit au casque ; « Garder ce casque » l'écrit et revient au paddock
+function monCasque() {
+  if (JEU.ecran !== 'championnat') return;
+  montrerPilote(true);
 }
 
 // « C'est parti ! » : les choix vérifiés (numéro libre, pays, course de cœur ou domicile) et écrits dans le championnat ; la
 // découverte est faite (sa prime gardée), aucun point n'est donné ; la page se recharge sur le paddock
 function validerPilote() {
   if (JEU.ecran !== 'pilote') return;
-  const ch = JEU.monde || JEU.championnat, r = PILOTE.valider(ch, INTERFACE.lirePilote());
+  const ch = JEU.monde || JEU.championnat, choix = INTERFACE.lirePilote();
+  if (JEU.casqueSeul) {   // le casque seulement : écrit, sauvegardé, retour au paddock (sans rechargement)
+    const j = PILOTE.joueur(ch);
+    if (j && CASQUE.valide(choix.casque)) { j.casque = choix.casque; SAUVEGARDE.ecrireChampionnat(ch); VOITURE3D.majCasque(indiceJoueur(), choix.casque); }
+    montrerChampionnat(JEU.gagne === undefined ? null : JEU.gagne);
+    return;
+  }
+  const r = PILOTE.valider(ch, choix);
   INTERFACE.montrerErreursPilote(r.erreurs);
   if (!r.ok) return;
   PILOTE.appliquer(ch, r.choix);
+  if (CASQUE.valide(choix.casque)) PILOTE.joueur(ch).casque = choix.casque;   // le casque choisi (casque.js)
   // la prime de la découverte va au solde du championnat (argent.js, Codeur 3) : un seul argent dans le jeu
   if (JEU.decouverte && typeof ARGENT !== 'undefined') ARGENT.crediter(ch, JEU.prime, 'decouverte');
   SAUVEGARDE.ecrireChampionnat(ch);
   if (JEU.decouverte) SAUVEGARDE.finirDecouverte(JEU.prime);
   location.reload();
+}
+
+// le pilote du championnat (ou du monde de la découverte) de la voiture k, ou null
+function piloteDe(k) {
+  const ch = JEU.championnat || JEU.monde;
+  if (!ch) return null;
+  const id = JEU.indices ? JEU.indices[k] : k;
+  return ch.pilotes[id] || null;
+}
+
+// le casque (casque.js) de la voiture k : celui de son pilote, sinon le neutre
+function casqueDe(k) {
+  const p = piloteDe(k);
+  return p && CASQUE.valide(p.casque) ? p.casque : CASQUE.neutre();
 }
 
 // le numéro affiché de la voiture k de la course : celui de son pilote du championnat (le joueur a le sien), sinon celui de la course
@@ -576,10 +619,10 @@ function montrerPodium() {
   const trois = JEU.final.slice(0, 3);
   for (const m of JEU.modeles) m.groupe.visible = false;
   PODIUM3D.montrer(trois.map(x => JEU.modeles[x.k]));
-  INTERFACE.remplirPodium(trois.map(x => ({ numero: numeroDe(x.k), couleur: JEU.couleurs[x.k], total: x.total, penalites: x.penalites })));
+  INTERFACE.remplirPodium(trois.map(x => ({ numero: numeroDe(x.k), couleur: JEU.couleurs[x.k], total: x.total, penalites: x.penalites, casque: casqueDe(x.k) })));
   INTERFACE.remplirResultats(JEU.final.map(x => ({
     place: x.place, numero: numeroDe(x.k), couleur: JEU.couleurs[x.k], total: x.total, penalites: x.penalites,
-    ecart: x.ecart, grille: x.grille, moi: x.k === JEU.suivie,
+    ecart: x.ecart, grille: x.grille, moi: x.k === JEU.suivie, casque: casqueDe(x.k),
   })));
   // ?championnat=1 : les gains du joueur (argent.js), calculés sur le classement final de cet instant (encaissés à « Continuer »)
   if (JEU.championnat) {
@@ -739,7 +782,7 @@ function majClassementRadar() {
   const kc = JEU.championnat && JEU.contre ? (CHAMPIONNAT.coequipierDe(JEU.championnat) || { id: null }).id : null;
   const duel = kc !== null && ordre ? ecartCoequipier(ordre, kc) : null;
   INTERFACE.majClassement(ordre ? ordre.map(x => ({
-    numero: numeroDe(x.k), couleur: JEU.couleurs[x.k], ecart: x.ecart, tours: x.tours, penalites: x.penalites, moi: x.k === JEU.suivie,
+    numero: numeroDe(x.k), couleur: JEU.couleurs[x.k], ecart: x.ecart, tours: x.tours, penalites: x.penalites, moi: x.k === JEU.suivie, casque: casqueDe(x.k),
     arrive: P[x.k].arrivee !== null, coequipier: x.k === kc, ecartDuel: x.k === kc ? duel : null,
   })) : null);
   const autres = [];
@@ -840,10 +883,12 @@ function demarrerJeu() {
   JEU.robot = PARAMETRES.get('robot') === '1';
   // ?championnat=1 : le joueur contre les 19 pilotes du championnat, comme ?ia=19&joueur=1
   JEU.championnat = CHAMPIONNAT_EN_COURS;
+  if (JEU.championnat) CASQUE.completer(JEU.championnat);   // (un championnat neuf de ?championnat=1 : ses casques)
   // le premier lancement : le monde du championnat est créé et sauvegardé maintenant, et DECOUVERTE_IA de ses pilotes courent la découverte
   JEU.decouverte = DECOUVERTE_EN_COURS;
   if (JEU.decouverte) {
     JEU.monde = SAUVEGARDE.championnat() || CHAMPIONNAT.creer(Number(PARAMETRES.get('graine')) || 1);
+    CASQUE.completer(JEU.monde);   // les casques des 19 rivaux, tirés une fois pour toutes
     SAUVEGARDE.ecrireChampionnat(JEU.monde);
     JEU.indices = DECOUVERTE.pilotes(JEU.monde).map(p => p.id);
   }
@@ -879,11 +924,13 @@ function demarrerJeu() {
       for (let k = 0; k < JEU.ia; k++) JEU.couleurs.push(choix[k % choix.length]);
       if (JEU.contre) JEU.couleurs.push(REGLAGES.COULEUR_JOUEUR);
     }
-    JEU.couleurs.forEach((couleur, k) => JEU.modeles.push(VOITURE3D.creer(couleur, JEU.contre && k === JEU.ia)));   // le joueur : détaillée
+    VOITURE3D.preparerCasques(JEU.couleurs.map((c, k) => casqueDe(k)));   // l'atlas des casques (casque.js) : une case par voiture
+    JEU.couleurs.forEach((couleur, k) => JEU.modeles.push(VOITURE3D.creer(couleur, JEU.contre && k === JEU.ia, undefined, k)));   // le joueur : détaillée
     for (const m of JEU.modeles) SCENE3D.ajouter(m.groupe);
   }
   if (!JEU.modeles.length) {
-    JEU.modele = VOITURE3D.creer(REGLAGES.COULEUR_JOUEUR, true);
+    VOITURE3D.preparerCasques([CASQUE.neutre()]);
+    JEU.modele = VOITURE3D.creer(REGLAGES.COULEUR_JOUEUR, true, undefined, 0);
     SCENE3D.ajouter(JEU.modele.groupe);
   } else JEU.modele = JEU.modeles[JEU.contre ? JEU.ia : 0];   // avant la course (écran de choix), sur la ligne
   INTERFACE.preparerPause(() => pause(false), () => lancerCourse(JEU.course.nbTours));
@@ -903,6 +950,10 @@ function demarrerJeu() {
   else INTERFACE.preparerResultats(voirResultats, () => lancerCourse(JEU.course.nbTours), allerAuChoix);
   INTERFACE.preparerTitre(jouerDecouverte, montrerAmis, retourTitre, commencerCarriere);
   INTERFACE.preparerPilote(validerPilote);
+  INTERFACE.preparerCasque(changerCasque);
+  document.getElementById('boutonMonCasque').textContent = texte('monCasque');
+  document.getElementById('boutonMonCasque').addEventListener('mousedown', e => e.preventDefault());
+  document.getElementById('boutonMonCasque').addEventListener('click', monCasque);
   document.getElementById('attenteTexte').textContent = texte('attenteArrivee');
   const boutonPasser = document.getElementById('boutonPasser');
   boutonPasser.textContent = texte('passerPodium');
@@ -959,6 +1010,7 @@ function demarrerJeu() {
     INTERFACE.majEcartFantome(enTourQualif() && JEU.fantome && JEU.fantome.rejeu && JEU.qualif.q.lance ? JEU.fantome.ecart : null);
     INTERFACE.majPreparation(JEU.ecran === 'course' && JEU.ia > 0 && !JEU.carte);
     majAides();
+    if (JEU.ecran === 'pilote') VOITURE3D.tournerApercu(dt);   // l'éditeur du casque
     // la mesure du premier lancement : du clic sur « Jouer » à l'extinction des feux (ms)
     if (JEU.depuisClic !== null && JEU.clicAuxFeux === null && JEU.course && JEU.course.feux && JEU.course.etat !== 'compte') JEU.clicAuxFeux = performance.now() - JEU.depuisClic;
     // … et jusqu'au premier feu (la fin de l'attente de la carte des IA)

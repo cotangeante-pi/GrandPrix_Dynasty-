@@ -64,7 +64,9 @@ const UTILISEES = ['aideConduite','attenteArrivee','changerLongueur','choixTitre
   // le premier lancement (tour 23b)
   'titreJouer','titreAmis','retour','amisBientot','aideGaz','aideDirection','aideFrein','bravoTitre','bravoPlace','bravoArgent','bravoQuestion','bravoBouton',
   // la création du pilote (tour 23b)
-  'piloteTitre','piloteNom','piloteNumero','pilotePays','piloteCoeur','piloteDomicile','piloteErreurNumero','piloteErreurCoeur','piloteValider'];
+  'piloteTitre','piloteNom','piloteNumero','pilotePays','piloteCoeur','piloteDomicile','piloteErreurNumero','piloteErreurCoeur','piloteValider',
+  // le casque (tour 24b)
+  'casqueTitre','casqueMotif','casqueCouleurs','monCasque','casqueValider','motif_uni','motif_bandes','motif_etoile','motif_flammes','motif_damier','motif_eclair'];
 t('chaque clé demandée par le jeu existe', ()=>{const m=UTILISEES.filter(k=>!(k in TEXTES.en));v(!m.length,m.join(', '));});
 
 // --- les 11 textes en dur de l'audit (rapports/audit-textes.md) ont leur clé, dans les deux langues

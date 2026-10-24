@@ -1,7 +1,7 @@
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><title>tests</title></head><body>
 <pre id="res"></pre>
 <script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));window.addEventListener('unhandledrejection',e=>__err.push('promesse : '+(e.reason&&e.reason.message||e.reason)));</script>
-<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../son.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../decouverte.js"></script><script src="../pilote.js"></script><script src="../cache-carte.js"></script><script src="../journal.js"></script><script src="../argent.js"></script><script src="../garage.js"></script><script src="../saisons.js"></script><script src="../sponsors.js"></script><script src="../fiche.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../fantome.js"></script><script src="../principal.js"></script>
+<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../son.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../decouverte.js"></script><script src="../pilote.js"></script><script src="../casque.js"></script><script src="../cache-carte.js"></script><script src="../journal.js"></script><script src="../argent.js"></script><script src="../garage.js"></script><script src="../saisons.js"></script><script src="../sponsors.js"></script><script src="../fiche.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../fantome.js"></script><script src="../principal.js"></script>
 <script>
 const L=[];let ok=0,ko=0;
 function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
@@ -1343,6 +1343,31 @@ t('fiche : les mots du caractère aux seuils FICHE_SEUILS (rapide, régulier, ag
   SAISONS.terminerSaison(ch);SAISONS.signer(ch,9);f=FICHE.fiche(ch,0);v(f.historique.titres===1&&f.historique.meilleur===1&&f.historique.saisons===1&&f.saison.courses===0&&f.duels.devant===12,'après la saison : '+JSON.stringify([f.historique,f.duels]));
   // une ancienne sauvegarde sans rivaux : recomptée sur les résultats de la saison
   const ch2=CHAMPIONNAT.creer(48);saisonJouee(ch2,()=>devant(3,[19,18]));delete ch2.rivaux;FICHE.completer(ch2);v(ch2.rivaux[0][0]===12&&ch2.rivaux[18][1]===12,'recompté : '+JSON.stringify(ch2.rivaux));});
+// --- le casque du pilote (tour 24b, casque.js) : calcul pur + dessin canvas
+t('casque : completer donne un casque à chacun des 20 pilotes d’un championnat neuf (19 rivaux tirés avec la graine, tous différents ; le joueur : le neutre), le même pour la même graine, un autre pour une autre graine ; les motifs ont tous leur texte', ()=>{
+  const R_=REGLAGES,ch=CHAMPIONNAT.creer(1),n=CASQUE.completer(ch);v(n===20,'donnés '+n);
+  v(ch.pilotes.every(p=>CASQUE.valide(p.casque)),'casques valides');v(CASQUE.doublons(ch).length===0,'doublons '+JSON.stringify(CASQUE.doublons(ch)));
+  const j=PILOTE.joueur(ch);v(CASQUE.cle(j.casque)===CASQUE.cle(CASQUE.neutre()),'le joueur porte le neutre');
+  const ch2=CHAMPIONNAT.creer(1);CASQUE.completer(ch2);v(ch2.pilotes.every((p,i)=>CASQUE.cle(p.casque)===CASQUE.cle(ch.pilotes[i].casque)),'pas les mêmes avec la même graine');
+  const ch3=CHAMPIONNAT.creer(2);CASQUE.completer(ch3);v(ch3.pilotes.some((p,i)=>!p.humain&&CASQUE.cle(p.casque)!==CASQUE.cle(ch.pilotes[i].casque)),'identiques avec une autre graine');
+  v(CASQUE.completer(ch)===0,'rien à redonner');
+  for(const m of R_.CASQUE_MOTIFS) v(TEXTES.en['motif_'+m]&&TEXTES.fr['motif_'+m],'motif sans texte : '+m);
+  v(!CASQUE.valide({motif:'inconnu',couleurs:[1,2,3]})&&!CASQUE.valide({motif:'uni',couleurs:[1,2]})&&CASQUE.valide(CASQUE.neutre()),'valide');
+  L.push('  (casques : '+ch.pilotes.slice(0,4).map(p=>CASQUE.cle(p.casque)).join(' · ')+' …)');});
+t('casque : la sauvegarde garde les casques (le joueur et les rivaux) après rechargement ; une ancienne sauvegarde sans casques en reçoit un pour chacun au chargement ; le casque choisi par le joueur est gardé', ()=>{
+  const ch=CHAMPIONNAT.creer(1);CASQUE.completer(ch);const j=PILOTE.joueur(ch);j.casque=CASQUE.creer('flammes',[0xd8262e,0xf2c230,0x111111]);
+  localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:3,records:{},championnat:ch}));const re=SAUVEGARDE.championnat();
+  v(re.pilotes.every((p,i)=>CASQUE.cle(p.casque)===CASQUE.cle(ch.pilotes[i].casque)),'casques changés au rechargement');v(PILOTE.joueur(re).casque.motif==='flammes','casque du joueur');
+  // une ancienne sauvegarde sans casques : la page les complète au chargement (CASQUE.completer dans demarrerJeu, pas dans migrer : la sauvegarde rechargée reste égale à ce qui a été écrit)
+  const sans=CHAMPIONNAT.creer(3);for(const p of sans.pilotes) delete p.casque;localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:3,records:{},championnat:sans}));
+  const re2=SAUVEGARDE.championnat();v(re2.pilotes.every(p=>p.casque===undefined),'migrer ne touche pas aux casques');v(CASQUE.completer(re2)===20&&re2.pilotes.every(p=>CASQUE.valide(p.casque))&&CASQUE.doublons(re2).length===0&&CASQUE.cle(PILOTE.joueur(re2).casque)===CASQUE.cle(CASQUE.neutre()),'ancienne sauvegarde complétée');
+  const re3=SAUVEGARDE.championnat();CASQUE.completer(re3);v(re3.pilotes.every((p,i)=>CASQUE.cle(p.casque)===CASQUE.cle(re2.pilotes[i].casque)),'le complément est déterministe');
+  localStorage.removeItem(SAUVEGARDE.CLE);});
+t('casque : le dessin (canvas 2D) : chaque motif donne une icône qui n’est pas unie (au moins 2 couleurs), et deux motifs différents donnent des pixels différents ; les mêmes couleurs avec le même motif, la même image', ()=>{
+  const couleurs=[0xd8262e,0xf2c230,0x111111],pixels=m=>{const c=CASQUE.icone(CASQUE.creer(m,couleurs),32);return Array.from(c.getContext('2d').getImageData(0,0,32,32).data);};
+  const images={};for(const m of REGLAGES.CASQUE_MOTIFS){const d=pixels(m);images[m]=d.join();const teintes=new Set();for(let i=0;i<d.length;i+=4) if(d[i+3]>0) teintes.add(d[i]+','+d[i+1]+','+d[i+2]);v(teintes.size>=2,m+' : uni');}
+  const ms=REGLAGES.CASQUE_MOTIFS;for(let a=0;a<ms.length;a++) for(let b=a+1;b<ms.length;b++) v(images[ms[a]]!==images[ms[b]],ms[a]+' = '+ms[b]);
+  v(pixels('bandes').join()===images.bandes,'pas reproductible');});
 
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 ecrire();
