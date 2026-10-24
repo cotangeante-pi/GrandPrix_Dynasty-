@@ -45,7 +45,7 @@ const INTERFACE = (function () {
   }
 
   function montrer(ecran) {
-    for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une', 'garage', 'saison', 'duelSaison', 'contrats', 'retraite', 'titre', 'amis', 'bravo', 'pilote', 'sponsors', 'fiche', 'interview', 'ceremonie', 'temple', 'heritier', 'deuxReglages']) $(id).classList.toggle('cache', id !== ecran);
+    for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une', 'garage', 'saison', 'duelSaison', 'contrats', 'retraite', 'titre', 'amis', 'bravo', 'pilote', 'sponsors', 'fiche', 'interview', 'ceremonie', 'temple', 'heritier', 'deuxReglages', 'tournoiInscription', 'tournoiAToi', 'tournoiPause', 'tournoiManche', 'tournoiFin']) $(id).classList.toggle('cache', id !== ecran);
     // l'album des unes (Codeur 3) : la page de la une, avec la barre pour feuilleter
     if (ecran === 'album') $('une').classList.remove('cache');
     $('une').classList.toggle('album', ecran === 'album');
@@ -1127,7 +1127,160 @@ const INTERFACE = (function () {
     $('resultatsRivalite').textContent = texte('rivaliteTitre') + ' : ' + avec(texte('rivalite'), { a: r.noms[0], x: r.score[0], y: r.score[1], b: r.noms[1] });
   }
 
-  return { preparerAmis, remplirDeux, lireDeux, montrerErreursDeux, preparerDeux, remplirPodiumDeux, remplirRivalite, formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, preparerChampionnat, remplirQualif, preparerQualif,
+  // --- le tournoi chrono entre copains (tournoi.js, tour 26b) : l'inscription, « À toi, Sarah ! », le classement de la manche (le
+  // nouveau temps glisse à sa place, une phrase), le classement général avec les points, le classement final
+  function ligneInscription(i, j) {
+    const li = document.createElement('li');
+    li.className = 'tournoiJoueur';
+    const nom = document.createElement('input');
+    nom.type = 'text'; nom.maxLength = REGLAGES.NOM_LONGUEUR_MAX; nom.placeholder = texte('joueurN').replace('{n}', i + 1); nom.value = j.prenom || '';
+    nom.className = 'tournoiPrenom'; nom.autocomplete = 'off'; nom.spellcheck = false;
+    nom.addEventListener('keydown', e => e.stopPropagation());   // taper son prénom ne conduit pas la voiture
+    nom.addEventListener('input', () => { $('tournoiErreur').textContent = ''; });
+    const icone = document.createElement('span'); icone.className = 'tournoiIcone';
+    const motif = document.createElement('select'); motif.className = 'tournoiMotif';
+    for (const m of REGLAGES.CASQUE_MOTIFS) { const o = document.createElement('option'); o.value = m; o.textContent = texte('motif_' + m); motif.appendChild(o); }
+    motif.value = j.casque.motif;
+    const couleurs = [0, 1, 2].map(k => { const c = document.createElement('input'); c.type = 'color'; c.className = 'tournoiCouleur'; c.value = hex(j.casque.couleurs[k]); return c; });
+    const maj = () => { icone.textContent = ''; icone.append(CASQUE.icone(casqueLigne(li), REGLAGES.CASQUE_ICONE + 6)); };
+    for (const e of [motif, ...couleurs]) e.addEventListener('input', maj);
+    motif.addEventListener('change', maj);
+    const enlever = document.createElement('button');
+    enlever.tabIndex = -1; enlever.className = 'tournoiEnlever'; enlever.textContent = '✕'; enlever.title = texte('tournoiEnlever');
+    enlever.addEventListener('mousedown', e => e.preventDefault());
+    enlever.addEventListener('click', () => { if ($('tournoiListe').children.length > REGLAGES.TOURNOI_JOUEURS_MIN) { li.remove(); majInscription(); } });
+    li.append(icone, nom, motif, ...couleurs, enlever);
+    maj();
+    return li;
+  }
+  function casqueLigne(li) {
+    return CASQUE.creer(li.querySelector('.tournoiMotif').value, [...li.querySelectorAll('.tournoiCouleur')].map(c => parseInt(c.value.slice(1), 16)));
+  }
+  // les numéros d'attente (« Joueur 3 ») et les boutons + / ✕ suivent le nombre de joueurs
+  function majInscription() {
+    const ls = [...$('tournoiListe').children], R = REGLAGES;
+    ls.forEach((li, i) => { li.querySelector('.tournoiPrenom').placeholder = texte('joueurN').replace('{n}', i + 1); li.querySelector('.tournoiEnlever').disabled = ls.length <= R.TOURNOI_JOUEURS_MIN; });
+    $('boutonTournoiAjouter').disabled = ls.length >= R.TOURNOI_JOUEURS_MAX;
+    $('tournoiErreur').textContent = '';
+  }
+  function choisirFormuleTournoi(f) {
+    $('tournoiInscription').dataset.formule = f;
+    $('boutonFormuleEclair').classList.toggle('choisie', f === 'eclair');
+    $('boutonFormuleTournoi').classList.toggle('choisie', f === 'tournoi');
+    for (let m = 1; m < REGLAGES.TOURNOI_MANCHES; m++) $('tournoiCircuit' + m).classList.toggle('cache', f !== 'tournoi');
+  }
+  // r = { joueurs: [{ prenom, casque }], formule, circuits: [nom ou '' (au hasard), …] }
+  function remplirInscription(r) {
+    const R = REGLAGES;
+    $('tournoiTitre').textContent = texte('tournoiTitre');
+    $('boutonTournoiAjouter').textContent = texte('tournoiAjouter');
+    $('boutonFormuleEclair').textContent = texte('formuleEclair');
+    $('boutonFormuleTournoi').textContent = texte('formuleTournoi');
+    $('tournoiCircuitsTexte').textContent = texte('tournoiCircuits');
+    $('boutonTournoiPartir').textContent = texte('deuxPartir');
+    $('boutonTournoiRetour').textContent = texte('retour');
+    const liste = $('tournoiListe');
+    liste.textContent = '';
+    r.joueurs.forEach((j, i) => liste.appendChild(ligneInscription(i, j)));
+    for (let m = 0; m < R.TOURNOI_MANCHES; m++) {
+      const s = $('tournoiCircuit' + m);
+      s.textContent = '';
+      for (const c of [''].concat(Object.keys(CIRCUITS))) { const o = document.createElement('option'); o.value = c; o.textContent = c ? nomCircuit(c) : texte('auHasard'); s.appendChild(o); }
+      s.value = r.circuits[m] || '';
+    }
+    choisirFormuleTournoi(r.formule);
+    majInscription();
+  }
+  function lireInscription() {
+    const f = $('tournoiInscription').dataset.formule;
+    return {
+      joueurs: [...$('tournoiListe').children].map(li => ({ prenom: li.querySelector('.tournoiPrenom').value, casque: casqueLigne(li) })),
+      formule: f, circuits: [...Array(REGLAGES.TOURNOI_MANCHES)].map((x, m) => $('tournoiCircuit' + m).value),
+    };
+  }
+  function montrerErreursTournoi(erreurs) {
+    $('tournoiErreur').textContent = erreurs.includes('nombre') ? avec(texte('tournoiErreurNombre'), { min: REGLAGES.TOURNOI_JOUEURS_MIN, max: REGLAGES.TOURNOI_JOUEURS_MAX }) : erreurs.includes('prenom') ? texte('tournoiErreurPrenom') : '';
+  }
+  // partir, retour : les boutons ; ajouter un joueur (son casque par défaut)
+  function preparerInscription(partir, retour) {
+    for (const [id, f] of [['boutonTournoiPartir', partir], ['boutonTournoiRetour', retour], ['boutonTournoiAjouter', () => {
+      const n = $('tournoiListe').children.length;
+      if (n >= REGLAGES.TOURNOI_JOUEURS_MAX) return;
+      $('tournoiListe').appendChild(ligneInscription(n, { prenom: '', casque: TOURNOI.casqueDefaut(n) }));
+      majInscription();
+    }], ['boutonFormuleEclair', () => choisirFormuleTournoi('eclair')], ['boutonFormuleTournoi', () => choisirFormuleTournoi('tournoi')]]) {
+      $(id).addEventListener('mousedown', e => e.preventDefault());
+      $(id).addEventListener('click', f);
+    }
+  }
+
+  // « À toi, Sarah ! » : j = { prenom, casque }, manche (0…), nbManches, circuit (son nom affiché), reste (s du compte à rebours)
+  function remplirAToi(j, manche, nbManches, circuit) {
+    $('atoiTitre').textContent = texte('aToi').replace('{prenom}', j.prenom);
+    $('atoiIcone').textContent = '';
+    $('atoiIcone').append(CASQUE.icone(j.casque, 64));
+    $('atoiManche').textContent = (nbManches > 1 ? avec(texte('tournoiManche'), { m: manche + 1, n: nbManches }) + ' · ' : '') + circuit;
+    $('atoiAide').textContent = texte('aToiAide');
+  }
+  function majCompteTournoi(reste) {
+    $('atoiCompte').textContent = reste > 0 ? String(Math.ceil(reste)) : texte('go');
+  }
+
+  // la pause pendant un tour du tournoi : reprendre ou abandonner (pas de temps)
+  function preparerPauseTournoi(reprendre, abandonner) {
+    $('tournoiPauseTitre').textContent = texte('pause');
+    $('boutonTournoiReprendre').textContent = texte('reprendre');
+    $('boutonTournoiAbandon').textContent = texte('tournoiAbandon');
+    for (const [id, f] of [['boutonTournoiReprendre', reprendre], ['boutonTournoiAbandon', abandonner]]) {
+      $(id).addEventListener('mousedown', e => e.preventDefault());
+      $(id).addEventListener('click', f);
+    }
+  }
+
+  // le tableau d'un classement : lignes = [{ prenom, casque, temps (null : pas de temps), penalites, points, nouveau }]
+  function tableauTournoi(id, lignes, avecPoints) {
+    const ol = $(id);
+    ol.textContent = '';
+    for (const l of lignes) {
+      const li = document.createElement('li');
+      if (l.nouveau) li.className = 'nouveau';
+      const nom = document.createElement('span'); nom.className = 'nom'; nom.append(CASQUE.icone(l.casque, REGLAGES.CASQUE_ICONE), ' ' + l.prenom);
+      const temps = document.createElement('span'); temps.className = 'temps';
+      temps.textContent = l.temps === null ? texte('pasDeTemps') : formatTemps(l.temps) + (l.penalites > 0 ? ' (' + penalite(l.penalites) + ')' : '');
+      li.append(nom, temps);
+      if (avecPoints) { const p = document.createElement('span'); p.className = 'points'; p.textContent = l.points + ' ' + texte('pts'); li.append(p); }
+      ol.appendChild(li);
+    }
+  }
+  // après un passage : le classement de la manche (le nouveau temps glisse à sa place), la phrase, et en 🏆 à la fin de la manche le
+  // général ; bouton : { texte, f }
+  function remplirMancheTournoi(titre, phrase, lignes, general, bouton) {
+    $('tournoiMancheTitre').textContent = titre;
+    $('tournoiPhrase').textContent = phrase;
+    tableauTournoi('tournoiMancheListe', lignes, false);
+    $('tournoiGeneral').classList.toggle('cache', !general);
+    if (general) { $('tournoiGeneralTitre').textContent = texte('tournoiGeneral'); tableauTournoi('tournoiGeneralListe', general, true); }
+    $('boutonTournoiSuite').textContent = bouton;
+  }
+  function preparerMancheTournoi(suite) {
+    $('boutonTournoiSuite').addEventListener('mousedown', e => e.preventDefault());
+    $('boutonTournoiSuite').addEventListener('click', suite);
+  }
+  // le classement final et ses boutons
+  function remplirFinTournoi(lignes, avecPoints) {
+    $('tournoiFinTitre').textContent = texte('tournoiFin');
+    tableauTournoi('tournoiFinListe', lignes, avecPoints);
+    $('boutonTournoiRejouer').textContent = texte('tournoiRejouer');
+    $('boutonTournoiNouveaux').textContent = texte('tournoiNouveaux');
+  }
+  function preparerFinTournoi(rejouer, nouveaux) {
+    for (const [id, f] of [['boutonTournoiRejouer', rejouer], ['boutonTournoiNouveaux', nouveaux]]) {
+      $(id).addEventListener('mousedown', e => e.preventDefault());
+      $(id).addEventListener('click', f);
+    }
+  }
+
+  return { remplirInscription, lireInscription, montrerErreursTournoi, preparerInscription, remplirAToi, majCompteTournoi, preparerPauseTournoi, remplirMancheTournoi, preparerMancheTournoi, remplirFinTournoi, preparerFinTournoi, preparerAmis, remplirDeux, lireDeux, montrerErreursDeux, preparerDeux, remplirPodiumDeux, remplirRivalite, formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, preparerChampionnat, remplirQualif, preparerQualif,
     remplirDuel, avec, remplirUne, preparerUne, remplirArgent, remplirSolde, remplirGarage, preparerGarage,
     remplirSaison, remplirDuelSaison, remplirContrats, remplirRetraite, preparerSaison, retraiteEnAttente, remplirCeremonie, preparerCeremonie, remplirAlbum, preparerAlbum, remplirBilan, remplirTemple, preparerTemple, preparerReleve, remplirHeritier, lireHeritier, montrerErreurHeritier,
     remplirSponsors, remplirRappelSponsor, preparerSponsors, remplirFiche, preparerFiche, remplirInterview, montrerEffetInterview, preparerInterview, remplirReputation,

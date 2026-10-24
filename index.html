@@ -81,6 +81,41 @@
   <p id="deuxErreur"></p>
   <div class="boutons"><button id="boutonDeuxPartir" tabindex="-1"></button><button id="boutonDeuxRetour" class="petit" tabindex="-1"></button></div>
 </section>
+<!-- le tournoi chrono entre copains (tournoi.js, tour 26b) : l'inscription, « À toi ! », la pause d'un tour, le classement de la manche, la fin -->
+<section id="tournoiInscription" class="ecran cache" data-formule="tournoi">
+  <h1 id="tournoiTitre"></h1>
+  <ol id="tournoiListe"></ol>
+  <div class="boutons"><button id="boutonTournoiAjouter" class="petit" tabindex="-1"></button></div>
+  <div class="boutons" id="tournoiFormules"><button id="boutonFormuleEclair" tabindex="-1"></button><button id="boutonFormuleTournoi" tabindex="-1"></button></div>
+  <div id="tournoiCircuits"><span id="tournoiCircuitsTexte"></span><select id="tournoiCircuit0"></select><select id="tournoiCircuit1"></select><select id="tournoiCircuit2"></select></div>
+  <p id="tournoiErreur"></p>
+  <div class="boutons"><button id="boutonTournoiPartir" tabindex="-1"></button><button id="boutonTournoiRetour" class="petit" tabindex="-1"></button></div>
+</section>
+<section id="tournoiAToi" class="ecran cache">
+  <div id="atoiIcone"></div>
+  <h1 id="atoiTitre"></h1>
+  <p id="atoiManche"></p>
+  <div id="atoiCompte"></div>
+  <p id="atoiAide"></p>
+</section>
+<section id="tournoiPause" class="ecran cache">
+  <h1 id="tournoiPauseTitre"></h1>
+  <div class="boutons"><button id="boutonTournoiReprendre" tabindex="-1"></button><button id="boutonTournoiAbandon" tabindex="-1"></button></div>
+</section>
+<section id="tournoiManche" class="ecran cache">
+  <h1 id="tournoiMancheTitre"></h1>
+  <p id="tournoiPhrase"></p>
+  <div id="tournoiTableaux">
+    <ol id="tournoiMancheListe" class="tournoiTableau"></ol>
+    <div id="tournoiGeneral" class="cache"><h2 id="tournoiGeneralTitre"></h2><ol id="tournoiGeneralListe" class="tournoiTableau"></ol></div>
+  </div>
+  <div class="boutons"><button id="boutonTournoiSuite" tabindex="-1"></button></div>
+</section>
+<section id="tournoiFin" class="ecran cache">
+  <h1 id="tournoiFinTitre"></h1>
+  <ol id="tournoiFinListe" class="tournoiTableau"></ol>
+  <div class="boutons"><button id="boutonTournoiRejouer" tabindex="-1"></button><button id="boutonTournoiNouveaux" tabindex="-1"></button></div>
+</section>
 <div id="aides" class="cache"><span id="aideGaz"></span><span id="aideDirection"></span><span id="aideFrein"></span></div>
 <section id="bravo" class="ecran cache">
   <h1 id="bravoTitre"></h1>
@@ -332,6 +367,7 @@
 <script src="decouverte.js"></script>
 <script src="pilote.js"></script>
 <script src="deux-joueurs.js"></script>
+<script src="tournoi.js"></script>
 <script src="casque.js"></script>
 <script src="cache-carte.js"></script>
 <script src="journal.js"></script>
