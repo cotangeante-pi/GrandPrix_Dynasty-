@@ -166,12 +166,14 @@ const CHAMPIONNAT = (function () {
     if (typeof SAISONS !== 'undefined') SAISONS.completer(ch);
     if (typeof SPONSORS !== 'undefined') SPONSORS.completer(ch);
     if (typeof FICHE !== 'undefined' && ch.pilotes) FICHE.completer(ch);
+    if (typeof INTERVIEW !== 'undefined' && ch.pilotes) INTERVIEW.completer(ch);   // la réputation (interview.js) : 50 partout dans une sauvegarde d'avant
     return ch;
   }
 
   // la course finie, puis la sauvegarde (après chaque course)
   function finirGrandPrix(ch, lignes) {
     enregistrerCourse(ch, lignes);
+    if (typeof INTERVIEW !== 'undefined') INTERVIEW.suivre(ch);   // les rivalités de l'interview (interview.js) s'usent d'une course
     if (typeof JOURNAL !== 'undefined') JOURNAL.ranger(ch, JOURNAL.composer(ch, lignes));   // la une du journal (journal.js), dans l'album du championnat
     if (typeof ARGENT !== 'undefined') ARGENT.encaisser(ch, lignes);   // les gains du Grand Prix (argent.js), au solde
     if (typeof SPONSORS !== 'undefined') SPONSORS.suivre(ch, lignes);   // les objectifs du sponsor (sponsors.js), les primes
@@ -224,7 +226,7 @@ const CHAMPIONNAT = (function () {
   // les lignes d'une course de la page (simulation.js : classementFinal, pénalités comprises ; ligne : la place au passage
   // de la ligne, pour la une du journal) ; la voiture k de la course est le pilote k du championnat
   function lignesDepuisCourse(e) {
-    return classementFinal(e).map(x => ({ k: x.k, place: x.place, grille: x.grille, ligne: x.ligne, penalites: x.penalites, meilleurTour: e.pilotes[x.k].course.meilleurTour, classe: x.temps !== null }));
+    return classementFinal(e).map(x => ({ k: x.k, place: x.place, grille: x.grille, ligne: x.ligne, penalites: x.penalites, meilleurTour: e.pilotes[x.k].course.meilleurTour, classe: x.temps !== null, chocMax: (e.pilotes[x.k].v && e.pilotes[x.k].v.chocMax) || 0 }));
   }
 
   // les lignes d'une course simulée (simulerCourse) : la même règle que classementFinal (temps total, pénalités

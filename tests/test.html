@@ -1,7 +1,7 @@
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><title>tests</title></head><body>
 <pre id="res"></pre>
 <script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));window.addEventListener('unhandledrejection',e=>__err.push('promesse : '+(e.reason&&e.reason.message||e.reason)));</script>
-<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../son.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../decouverte.js"></script><script src="../pilote.js"></script><script src="../casque.js"></script><script src="../cache-carte.js"></script><script src="../journal.js"></script><script src="../argent.js"></script><script src="../garage.js"></script><script src="../saisons.js"></script><script src="../sponsors.js"></script><script src="../fiche.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../fantome.js"></script><script src="../principal.js"></script>
+<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../son.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../decouverte.js"></script><script src="../pilote.js"></script><script src="../deux-joueurs.js"></script><script src="../casque.js"></script><script src="../cache-carte.js"></script><script src="../journal.js"></script><script src="../argent.js"></script><script src="../garage.js"></script><script src="../saisons.js"></script><script src="../sponsors.js"></script><script src="../fiche.js"></script><script src="../interview.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../fantome.js"></script><script src="../principal.js"></script>
 <script>
 const L=[];let ok=0,ko=0;
 function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
@@ -912,7 +912,7 @@ t('journal : l’album est dans la sauvegarde ; rechargé, il redonne exactement
   CHAMPIONNAT.finirGrandPrix(d.championnat,lignesUne(devant(2,[19,18])));v(SAUVEGARDE.championnat().album.length===1&&SAUVEGARDE.championnat().album[0].g===4,'la une suivante');
   localStorage.removeItem(SAUVEGARDE.CLE);});
 t('journal : toutes les clés de texte existent en anglais et en français, avec le même nombre de variantes (≥ 2 titres par fait), les mêmes trous dans chaque paire, et aucun trou ne reste une fois rempli', ()=>{
-  const ex={pilote:19,coequipier:18,ecurie:9,circuit:'test',place:2,n:3,points:25,ecart:30,a:4,b:1,ligne:3,secondes:5,ancien:7,rang:4,gain:2,temps:62.345,age:35},ch=CHAMPIONNAT.creer(1);
+  const ex={pilote:19,coequipier:18,rival:3,ecurie:9,circuit:'test',place:2,n:3,points:25,ecart:30,a:4,b:1,ligne:3,secondes:5,ancien:7,rang:4,gain:2,temps:62.345,age:35},ch=CHAMPIONNAT.creer(1);
   const trous=s_=>(s_.match(/\{[a-z]+\}/g)||[]).sort().join();let nb=0;
   for(const cle of JOURNAL.cles()){const e=TEXTES.en[cle],f=TEXTES.fr[cle];v(e!==undefined&&f!==undefined,cle+' manque');
     if(cle==='journalNom'){v(typeof e==='string'&&typeof f==='string'&&e&&f,cle);continue;}
@@ -1438,6 +1438,113 @@ t('fiche : les mots du caractère aux seuils FICHE_SEUILS (rapide, régulier, ag
   SAISONS.terminerSaison(ch);SAISONS.signer(ch,9);f=FICHE.fiche(ch,0);v(f.historique.titres===1&&f.historique.meilleur===1&&f.historique.saisons===1&&f.saison.courses===0&&f.duels.devant===12,'après la saison : '+JSON.stringify([f.historique,f.duels]));
   // une ancienne sauvegarde sans rivaux : recomptée sur les résultats de la saison
   const ch2=CHAMPIONNAT.creer(48);saisonJouee(ch2,()=>devant(3,[19,18]));delete ch2.rivaux;FICHE.completer(ch2);v(ch2.rivaux[0][0]===12&&ch2.rivaux[18][1]===12,'recompté : '+JSON.stringify(ch2.rivaux));});
+// --- l'interview d'après course (interview.js, calcul pur, Codeur 3) : la question se calcule AVANT d'enregistrer le Grand Prix
+// (ch.prochain = le Grand Prix qui vient de finir), la réponse aussi ; puis enregistrerCourse + INTERVIEW.suivre (finirGrandPrix)
+const itwLignes=(ordre,opts)=>lignesUne(ordre,opts);
+const itwGP=(ch,ordre,opts,ton)=>{const l=itwLignes(ordre,opts),q=INTERVIEW.question(ch,l),r=INTERVIEW.repondre(ch,q,ton===undefined?null:ton);CHAMPIONNAT.enregistrerCourse(ch,l);INTERVIEW.suivre(ch);return {q,r,l};};
+const milieu=(place,autre)=>{const o=AUTRES.slice();o.splice(place-1,0,19);o.splice(autre-1,0,18);return o;};   // le joueur à la place, le coéquipier à l'autre
+t('interview : la bonne question pour chaque fait : victoire, podium (place), gros contact (le rival au plus gros choc ≥ INTERVIEW_CHOC), dépassement décisif (≥ INTERVIEW_DEPASSEMENT_PLACES, le rival juste derrière), pénalité, duel gagné / perdu (écart net), série sans point, résultat moyen ; et la priorité INTERVIEW_PRIORITES quand il y en a plusieurs', ()=>{
+  const R_=REGLAGES,ch=CHAMPIONNAT.creer(60),Q=(ordre,opts)=>INTERVIEW.question(ch,itwLignes(ordre,opts));
+  let q=Q(milieu(1,2));v(q.fait==='victoire'&&q.params.place===1&&q.rival===null&&q.gp===1,'victoire : '+JSON.stringify(q));
+  q=Q(milieu(3,9));v(q.fait==='podium'&&q.params.place===3,'podium : '+JSON.stringify(q));
+  q=Q(milieu(8,9),{19:{chocMax:R_.INTERVIEW_CHOC},3:{chocMax:R_.INTERVIEW_CHOC+2},5:{chocMax:R_.INTERVIEW_CHOC+1}});v(q.fait==='contact'&&q.rival===3,'contact : '+JSON.stringify(q));
+  q=Q(milieu(8,9),{19:{chocMax:R_.INTERVIEW_CHOC-0.1},3:{chocMax:9}});v(q.fait!=='contact','pas de choc du joueur : pas de contact ('+q.fait+')');
+  q=Q(milieu(8,9),{19:{grille:8+R_.INTERVIEW_DEPASSEMENT_PLACES}});v(q.fait==='depassement'&&q.rival===18&&q.params.n===R_.INTERVIEW_DEPASSEMENT_PLACES,'dépassement : '+JSON.stringify(q));
+  q=Q(milieu(8,9),{19:{grille:7+R_.INTERVIEW_DEPASSEMENT_PLACES}});v(q.fait!=='depassement','une place de moins : pas de dépassement ('+q.fait+')');
+  q=Q(milieu(8,9),{19:{penalites:5}});v(q.fait==='penalite'&&q.params.secondes===5,'pénalité : '+JSON.stringify(q));
+  q=Q(milieu(8,9));v(q.fait==='moyen'&&q.params.place===8&&q.rival===null,'1re course, devant le coéquipier d’un point : moyen : '+JSON.stringify(q));
+  // la priorité : victoire + contact + pénalité → victoire ; contact + dépassement + pénalité → contact ; dépassement + pénalité → dépassement
+  q=Q(milieu(1,2),{19:{chocMax:9,penalites:5},3:{chocMax:9}});v(q.fait==='victoire','priorité victoire : '+q.fait);
+  const F=INTERVIEW.faits(ch,itwLignes(milieu(1,2),{19:{chocMax:9,penalites:5},3:{chocMax:9}}));v(F.victoire&&F.contact&&F.penalite&&F.moyen,'les faits : '+Object.keys(F));
+  q=Q(milieu(8,9),{19:{chocMax:9,penalites:5,grille:12},3:{chocMax:9}});v(q.fait==='contact','priorité contact : '+q.fait);
+  q=Q(milieu(8,9),{19:{penalites:5,grille:12}});v(q.fait==='depassement','priorité dépassement : '+q.fait);
+  // le duel : après deux courses devant le coéquipier, l'écart (3e course comprise) atteint INTERVIEW_DUEL_NET → duel gagné ; perdu dans l'autre sens
+  const ch2=CHAMPIONNAT.creer(61);for(let g=0;g<R_.INTERVIEW_DUEL_NET-1;g++) itwGP(ch2,milieu(8,9));
+  q=INTERVIEW.question(ch2,itwLignes(milieu(8,9)));v(q.fait==='duelGagne'&&q.rival===18,'duel gagné : '+JSON.stringify(q));
+  const ch3=CHAMPIONNAT.creer(62);for(let g=0;g<R_.INTERVIEW_DUEL_NET-1;g++) itwGP(ch3,milieu(9,8));
+  q=INTERVIEW.question(ch3,itwLignes(milieu(9,8)));v(q.fait==='duelPerdu'&&q.rival===18,'duel perdu : '+JSON.stringify(q));
+  // la série : INTERVIEW_SERIE courses sans point (celle-ci comprise), le joueur derrière son coéquipier d'un point à chaque fois (pas de duel net : alternance)
+  const ch4=CHAMPIONNAT.creer(63);for(let g=0;g<R_.INTERVIEW_SERIE-1;g++) itwGP(ch4,g%2?milieu(12,11):milieu(11,12));
+  q=INTERVIEW.question(ch4,itwLignes((R_.INTERVIEW_SERIE-1)%2?milieu(12,11):milieu(11,12)));v(q.fait==='serie'&&q.params.n===R_.INTERVIEW_SERIE,'série : '+JSON.stringify(q));
+  v(q.reponses.length===3&&q.reponses.map(r=>r.ton).join()==='provocant,calme,malin'&&q.reponses.every(r=>TEXTES.fr[r.cle]&&TEXTES.en[r.cle]),'trois réponses avec un ton : '+JSON.stringify(q.reponses));});
+t('interview : plusieurs formulations par question, tirées avec la graine (la même pour le même championnat), jamais la même deux fois de suite pour le même fait', ()=>{
+  const ch=CHAMPIONNAT.creer(64),vs=[];
+  for(let g=0;g<12;g++){const {q}=itwGP(ch,milieu(8+(g%2),9-(g%2)+(g%2?0:1)),null,null);vs.push(q.fait+':'+q.variante);}
+  const moyens=vs.filter(x=>x.startsWith('moyen:')).map(x=>+x.split(':')[1]);v(moyens.length>=4,'pas assez de questions moyennes : '+vs.join(' '));
+  for(let i=1;i<moyens.length;i++) v(moyens[i]!==moyens[i-1],'deux fois la variante '+moyens[i]+' de suite ('+moyens.join(',')+')');
+  v(new Set(moyens).size>=2,'une seule formulation tirée : '+moyens.join(','));
+  const ch2=CHAMPIONNAT.creer(64),vs2=[];for(let g=0;g<12;g++){const {q}=itwGP(ch2,milieu(8+(g%2),9-(g%2)+(g%2?0:1)),null,null);vs2.push(q.fait+':'+q.variante);}
+  v(vs.join()===vs2.join(),'pas les mêmes avec la même graine');
+  v(TEXTES.en.interview_moyen_q.length>=3&&INTERVIEW.cles().filter(c=>c.endsWith('_q')).every(c=>Array.isArray(TEXTES.en[c])&&TEXTES.en[c].length>=2&&TEXTES.fr[c].length===TEXTES.en[c].length),'au moins 2 formulations par question, autant en français');
+  L.push('  (variantes : '+vs.join(' ')+')');});
+t('interview : chaque réponse a l’effet prévu (INTERVIEW_EFFETS) sur les trois jauges, la confiance de l’écurie suit la jauge écurie, « pas de commentaire » ne change rien ; les jauges restent entre 0 et 100 ; un pas ne dépasse jamais INTERVIEW_PAS', ()=>{
+  const R_=REGLAGES,E=R_.INTERVIEW_EFFETS,ch=CHAMPIONNAT.creer(65),rep=()=>JSON.stringify(ch.reputation);
+  v(ch.reputation.public===R_.REPUTATION_DEPART&&ch.reputation.ecurie===R_.REPUTATION_DEPART&&ch.reputation.sponsors===R_.REPUTATION_DEPART&&ch.confiance===ch.reputation.ecurie,'départ : '+rep());
+  const q=INTERVIEW.question(ch,itwLignes(milieu(8,9)));
+  let r=INTERVIEW.repondre(ch,q,null);v(ch.reputation.public===50&&ch.reputation.ecurie===50&&ch.reputation.sponsors===50&&Object.keys(r.effets).length===0&&r.ligne===null&&r.rivalite===null&&ch.interview.derniere.ton===null,'pas de commentaire : '+rep());
+  for(const ton of INTERVIEW.TONS){const avant=Object.assign({},ch.reputation);r=INTERVIEW.repondre(ch,q,ton);
+    for(const j of INTERVIEW.JAUGES) v(ch.reputation[j]===avant[j]+(E[ton][j]||0),ton+' / '+j+' : '+avant[j]+' → '+ch.reputation[j]);
+    v(ch.confiance===ch.reputation.ecurie&&r.ligne&&TEXTES.fr[r.ligne.cle]&&TEXTES.en[r.ligne.cle],ton+' : confiance '+ch.confiance+' ligne '+JSON.stringify(r.ligne));}
+  ch.reputation.public=99;ch.reputation.ecurie=1;ch.reputation.sponsors=1;INTERVIEW.repondre(ch,q,'provocant');v(ch.reputation.public===100&&ch.reputation.ecurie===0&&ch.reputation.sponsors===0,'bornes : '+rep());
+  ch.reputation.ecurie=99;ch.reputation.sponsors=99;INTERVIEW.repondre(ch,q,'calme');v(ch.reputation.ecurie===100&&ch.reputation.sponsors===100,'bornes hautes : '+rep());
+  const sauve=E.provocant.public;E.provocant.public=R_.INTERVIEW_PAS*10;ch.reputation.public=20;INTERVIEW.repondre(ch,q,'provocant');E.provocant.public=sauve;v(ch.reputation.public===20+R_.INTERVIEW_PAS,'plafond du pas : '+ch.reputation.public);
+  for(const ton of INTERVIEW.TONS) for(const j of INTERVIEW.JAUGES) v(Math.abs(E[ton][j]||0)<=R_.INTERVIEW_PAS,'réglage '+ton+'/'+j+' au-dessus du plafond');
+  // une sauvegarde abîmée : une jauge hors bornes ou absente est remise entre 0 et 100 / à 50
+  ch.reputation.public=140;delete ch.reputation.sponsors;INTERVIEW.completer(ch);v(ch.reputation.public===100&&ch.reputation.sponsors===50,'abîmée : '+rep());});
+t('interview : une réponse provocante contre un pilote nommé pose une rivalité sur lui (INTERVIEW_RIVALITE_COURSES courses, la phrase), qui s’use d’une course par Grand Prix suivant et s’éteint ; une réponse calme l’apaise ; la fiche du rival la montre ; une réponse sans rival ne pose rien', ()=>{
+  const R_=REGLAGES,N=R_.INTERVIEW_RIVALITE_COURSES,ch=CHAMPIONNAT.creer(66),contact={19:{chocMax:9},3:{chocMax:9}};
+  let {q,r}=itwGP(ch,milieu(8,9),contact,'provocant');v(q.fait==='contact'&&q.rival===3&&r.rivalite==='nouvelle'&&r.ligne.cle==='effetProvocantRival'&&r.ligne.params.rival===3,'réponse : '+JSON.stringify([q.fait,r]));
+  let rv=ch.pilotes[3].rivalite;v(rv&&rv.courses===N&&rv.cle==='interview_contact_provocant'&&rv.params.rival===3&&rv.circuit===ch.calendrier[0].circuit&&rv.saison===1&&rv.gp===1,'rivalité posée : '+JSON.stringify(rv));
+  v(INTERVIEW.phrase(rv.cle,0,rv.params,ch).includes(texte('pilote').replace('{n}',ch.pilotes[3].numero)),'la phrase nomme le rival : '+INTERVIEW.phrase(rv.cle,0,rv.params,ch));
+  const f=FICHE.fiche(ch,3);v(f.rivalite&&f.rivalite.courses===N&&f.rivalite.cle===rv.cle,'fiche : '+JSON.stringify(f.rivalite));
+  for(let g=1;g<N;g++){itwGP(ch,milieu(8,9));v(ch.pilotes[3].rivalite&&ch.pilotes[3].rivalite.courses===N-g,'après '+g+' course(s) de plus : '+JSON.stringify(ch.pilotes[3].rivalite));}
+  itwGP(ch,milieu(8,9));v(ch.pilotes[3].rivalite===undefined&&FICHE.fiche(ch,3).rivalite===null,'éteinte après '+N+' courses');
+  // calme apaise ; malin ne touche pas à la rivalité ; une réponse provocante sans rival (podium) ne pose rien
+  itwGP(ch,milieu(8,9),contact,'provocant');v(ch.pilotes[3].rivalite,'reposée');itwGP(ch,milieu(8,9),contact,'malin');v(ch.pilotes[3].rivalite&&ch.pilotes[3].rivalite.courses===N-1,'malin : la rivalité continue');
+  ({r}=itwGP(ch,milieu(8,9),contact,'calme'));v(ch.pilotes[3].rivalite===undefined&&r.rivalite==='apaisee'&&r.ligne.cle==='effetCalmeRival','apaisée : '+JSON.stringify(r));
+  ({q,r}=itwGP(ch,milieu(2,9),null,'provocant'));v(q.fait==='podium'&&r.rivalite===null&&r.ligne.cle==='effetProvocant'&&ch.pilotes.every(p=>!p.rivalite),'sans rival : rien');
+  // la rivalité posée à la dernière course de la saison s'use à la saison suivante
+  const ch2=CHAMPIONNAT.creer(67);for(let g=0;g<11;g++) itwGP(ch2,milieu(8,9));
+  const k=ch2.pilotes.filter(p=>!p.humain&&p.id!==18).sort((a,b)=>a.age-b.age)[0].id;   // le plus jeune : il ne prend pas sa retraite
+  itwGP(ch2,milieu(8,9),{19:{chocMax:9},[k]:{chocMax:9}},'provocant');v(ch2.pilotes[k].rivalite&&ch2.pilotes[k].rivalite.courses===N,'posée au 12e sur le '+k);
+  SAISONS.terminerSaison(ch2);resigner(ch2);SAISONS.nouvelleSaison(ch2);v(ch2.pilotes[k].rivalite&&ch2.pilotes[k].rivalite.courses===N,'gardée au changement de saison');itwGP(ch2,milieu(8,9));v(ch2.pilotes[k].rivalite.courses===N-1,'usée à la saison suivante');});
+t('interview : la jauge des sponsors pèse un peu sur sponsors.js (note et montants, ±INTERVIEW_EFFET_SPONSORS au plus) ; à 50 rien ne change', ()=>{
+  const R_=REGLAGES,ch=CHAMPIONNAT.creer(68);saisonJouee(ch,()=>milieu(8,9));SAISONS.terminerSaison(ch);
+  const o50=SPONSORS.offres(ch);ch.reputation.sponsors=100;const o100=SPONSORS.offres(ch);ch.reputation.sponsors=0;const o0=SPONSORS.offres(ch);ch.reputation.sponsors=50;
+  v(Math.abs(INTERVIEW.effetSponsors(ch))<1e-12,'à 50 : 0');ch.reputation.sponsors=100;v(INTERVIEW.effetSponsors(ch)===R_.INTERVIEW_EFFET_SPONSORS,'à 100 : le plafond');ch.reputation.sponsors=0;v(INTERVIEW.effetSponsors(ch)===-R_.INTERVIEW_EFFET_SPONSORS,'à 0 : −plafond');ch.reputation.sponsors=75;v(Math.abs(INTERVIEW.effetSponsors(ch)-R_.INTERVIEW_EFFET_SPONSORS/2)<1e-12,'à 75 : la moitié');
+  const base=cle=>R_.SPONSORS.find(s=>s.cle===cle).montant;
+  v(o50.every(o=>o.montant===base(o.cle)),'à 50 : les montants de donnees.js');
+  v(o100.every(o=>o.montant===Math.round(base(o.cle)*(1+R_.INTERVIEW_EFFET_SPONSORS))),'à 100 : +'+R_.INTERVIEW_EFFET_SPONSORS*100+' % : '+JSON.stringify(o100.map(o=>[o.cle,o.montant])));
+  v(o0.every(o=>o.montant===Math.round(base(o.cle)*(1-R_.INTERVIEW_EFFET_SPONSORS))),'à 0 : −'+R_.INTERVIEW_EFFET_SPONSORS*100+' %');
+  v(o50.length>=R_.SPONSORS_OFFRES[0]&&o100.length>=R_.SPONSORS_OFFRES[0]&&o0.length>=R_.SPONSORS_OFFRES[0],'toujours des offres');
+  L.push('  (sponsors : note '+ch.saisons[0].note.toFixed(3)+', montants à 50 / 100 / 0 : '+[o50,o100,o0].map(o=>o.map(x=>x.montant).join('+')).join(' / ')+')');});
+t('interview : toutes les clés de texte existent dans les deux langues (questions, réponses, lignes d’effet, jauges, fiche) ; la phrase remplace le rival et le circuit par leur nom', ()=>{
+  for(const cle of INTERVIEW.cles()){const e=TEXTES.en[cle],f=TEXTES.fr[cle];v(e!==undefined&&f!==undefined,cle+' manque');if(Array.isArray(e)) v(Array.isArray(f)&&f.length===e.length,cle+' : '+e.length+' / '+(f&&f.length));}
+  const ch=CHAMPIONNAT.creer(69),p=INTERVIEW.phrase('interview_contact_q',0,{rival:3,circuit:ch.calendrier[0].circuit},ch);
+  v(p.includes(texte('pilote').replace('{n}',ch.pilotes[3].numero))&&p.includes(texte('circuit_'+ch.calendrier[0].circuit))&&!p.includes('{'),'phrase : '+p);
+  v(INTERVIEW.phrase('interview_contact_q',99,{rival:3,circuit:'test'},ch)===INTERVIEW.phrase('interview_contact_q',TEXTES.en.interview_contact_q.length-1,{rival:3,circuit:'test'},ch),'variante trop grande : la dernière');
+  v(INTERVIEW.phrase('effetProvocantRival',0,{rival:3},ch,{pilote:x=>'Garcia'})==='Garcia n’a pas aimé.'||texte('effetProvocantRival').indexOf('{rival}')>=0,'noms de l’affichage : '+INTERVIEW.phrase('effetProvocantRival',0,{rival:3},ch,{pilote:x=>'Garcia'}));});
+t('interview : une ancienne sauvegarde sans réputation ni interview se charge sans erreur : les trois jauges à 50, la confiance à 50, aucune question notée, aucune rivalité ; une sauvegarde avec réputation la garde après rechargement', ()=>{
+  const ch=CHAMPIONNAT.creer(70);delete ch.reputation;delete ch.interview;delete ch.confiance;
+  localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:3,records:{},championnat:ch}));const re=SAUVEGARDE.championnat();
+  v(re.reputation&&re.reputation.public===50&&re.reputation.ecurie===50&&re.reputation.sponsors===50&&re.confiance===50&&re.interview&&re.interview.derniere===null&&re.pilotes.every(p=>!p.rivalite),'ancienne : '+JSON.stringify([re.reputation,re.confiance,re.interview]));
+  const {q}=itwGP(re,milieu(8,9),{19:{chocMax:9},3:{chocMax:9}},'provocant');SAUVEGARDE.ecrireChampionnat(re);const re2=SAUVEGARDE.championnat();
+  v(re2.reputation.public===54&&re2.reputation.ecurie===47&&re2.reputation.sponsors===47&&re2.confiance===47&&re2.interview.derniere.fait==='contact'&&re2.interview.derniere.ton==='provocant'&&re2.pilotes[3].rivalite&&re2.pilotes[3].rivalite.courses===REGLAGES.INTERVIEW_RIVALITE_COURSES,'rechargée : '+JSON.stringify([re2.reputation,re2.confiance,re2.interview.derniere,re2.pilotes[3].rivalite]));
+  localStorage.removeItem(SAUVEGARDE.CLE);});
+t('interview : le journal fait sa une de la phrase de l’interview (fait « interview », après le duel, avant la pénalité dans JOURNAL_PRIORITES) : la réponse provocante contre un pilote nommé ce Grand Prix-là, pas une calme, pas celle d’un autre Grand Prix ; le titre nomme le pilote et le rival', ()=>{
+  const R_=REGLAGES,P=R_.JOURNAL_PRIORITES;v(P.indexOf('interview')>P.indexOf('duelPerdu')&&P.indexOf('interview')<P.indexOf('penalite'),'priorité : '+P.join());
+  const ch=CHAMPIONNAT.creer(71),contact={19:{chocMax:9},3:{chocMax:9}};
+  let l=itwLignes(milieu(8,9),contact),q=INTERVIEW.question(ch,l);INTERVIEW.repondre(ch,q,'provocant');CHAMPIONNAT.finirGrandPrix(ch,l);
+  let une=ch.album[ch.album.length-1];v(une.f==='interview'&&une.p.rival===3&&une.p.pilote===19,'la une : '+JSON.stringify(une));
+  v(ch.pilotes[3].rivalite&&ch.pilotes[3].rivalite.courses===R_.INTERVIEW_RIVALITE_COURSES,'finirGrandPrix n’use pas la rivalité posée à ce Grand Prix : '+JSON.stringify(ch.pilotes[3].rivalite));
+  const r=JOURNAL.rendre(une,ch);v(r.titre.includes(texte('nomJoueur'))&&r.titre.includes(texte('pilote').replace('{n}',ch.pilotes[3].numero))&&!r.titre.includes('{'),'titre : '+r.titre);
+  v(r.texte.includes(texte('pilote').replace('{n}',ch.pilotes[3].numero))&&!r.texte.includes('{'),'texte : '+r.texte);
+  // le Grand Prix suivant sans interview provocante : plus de une « interview »
+  l=itwLignes(milieu(8,9),contact);q=INTERVIEW.question(ch,l);INTERVIEW.repondre(ch,q,'calme');CHAMPIONNAT.finirGrandPrix(ch,l);v(ch.album[ch.album.length-1].f!=='interview','calme : '+ch.album[ch.album.length-1].f);
+  l=itwLignes(milieu(8,9));q=INTERVIEW.question(ch,l);INTERVIEW.repondre(ch,q,null);CHAMPIONNAT.finirGrandPrix(ch,l);v(ch.album[ch.album.length-1].f!=='interview','pas de commentaire : '+ch.album[ch.album.length-1].f);
+  // une victoire passe devant la phrase de l'interview
+  l=itwLignes(milieu(1,9),contact);q=INTERVIEW.question(ch,l);INTERVIEW.repondre(ch,q,'provocant');CHAMPIONNAT.finirGrandPrix(ch,l);v(ch.album[ch.album.length-1].f==='premiereVictoire'&&ch.album[ch.album.length-1].g===4,'victoire devant : '+ch.album[ch.album.length-1].f);
+  localStorage.removeItem(SAUVEGARDE.CLE);});
 // --- le casque du pilote (tour 24b, casque.js) : calcul pur + dessin canvas
 t('casque : completer donne un casque à chacun des 20 pilotes d’un championnat neuf (19 rivaux tirés avec la graine, tous différents ; le joueur : le neutre), le même pour la même graine, un autre pour une autre graine ; les motifs ont tous leur texte', ()=>{
   const R_=REGLAGES,ch=CHAMPIONNAT.creer(1),n=CASQUE.completer(ch);v(n===20,'donnés '+n);
@@ -1463,6 +1570,98 @@ t('casque : le dessin (canvas 2D) : chaque motif donne une icône qui n’est pa
   const images={};for(const m of REGLAGES.CASQUE_MOTIFS){const d=pixels(m);images[m]=d.join();const teintes=new Set();for(let i=0;i<d.length;i+=4) if(d[i+3]>0) teintes.add(d[i]+','+d[i+1]+','+d[i+2]);v(teintes.size>=2,m+' : uni');}
   const ms=REGLAGES.CASQUE_MOTIFS;for(let a=0;a<ms.length;a++) for(let b=a+1;b<ms.length;b++) v(images[ms[a]]!==images[ms[b]],ms[a]+' = '+ms[b]);
   v(pixels('bandes').join()===images.bandes,'pas reproductible');});
+
+// --- le mode 2 joueurs (tour 25b, deux-joueurs.js + principal.js) : calcul pur, les touches par e.code
+// une course à deux avec la carte du circuit test, les feux armés ; JEU.deux mis le temps du test (conduireJoueur lit JEU.deuxCommandes)
+function courseADeux(nbIA,nbTours,graine){const e=DEUX_JOUEURS.creer(C,nbIA,nbTours,graine,CARTES_T.test);armerFeux(e.pilotes,graine);return e;}
+// les touches enfoncées (un Set de e.code, comme le clavier de principal.js) : appuyer(codes) les remplace et met à jour les commandes
+function appuyer(codes){enfoncees.clear();for(const c of codes) enfoncees.add(c);majCibles();}
+const J1=REGLAGES.TOUCHES_DEUX[1],J2=REGLAGES.TOUCHES_DEUX[2];
+t('2 joueurs : les touches sont lues par leur place (e.code) : W A S D + E pour le joueur 1 (= Z Q S D en AZERTY, aucun KeyZ ni KeyQ), les flèches + Entrée ou Maj droite pour le joueur 2 ; les touches de l’un ne donnent jamais une commande à l’autre, seules ou ensemble', ()=>{
+  v(J1.gaz.includes('KeyW')&&J1.gauche.includes('KeyA')&&J1.frein.includes('KeyS')&&J1.droite.includes('KeyD')&&J1.remise.includes('KeyE'),'joueur 1 : '+JSON.stringify(J1));
+  v(J2.gaz.includes('ArrowUp')&&J2.gauche.includes('ArrowLeft')&&J2.frein.includes('ArrowDown')&&J2.droite.includes('ArrowRight')&&J2.remise.includes('Enter')&&J2.remise.includes('ShiftRight'),'joueur 2 : '+JSON.stringify(J2));
+  const tous=j=>Object.values(j).flat();v(!tous(J1).some(c=>c==='KeyZ'||c==='KeyQ'),'KeyZ/KeyQ : les touches sont par e.code, pas par lettre');
+  v(!tous(J1).some(c=>tous(J2).includes(c)),'une touche commune aux deux joueurs');
+  const rien={gaz:0,frein:0,direction:0},J=JSON.stringify;
+  // chaque touche du joueur 1, seule : une commande pour lui, rien pour le joueur 2 ; et inversement
+  for(const [nom,codes] of Object.entries(J1)) for(const c of codes){const s1=DEUX_JOUEURS.cibles(new Set([c]),1),s2=DEUX_JOUEURS.cibles(new Set([c]),2);
+    v(J(s2)===J(rien),'J1 '+c+' → J2 '+J(s2));v(nom==='remise'?J(s1)===J(rien)&&DEUX_JOUEURS.remise(new Set([c]),1)&&!DEUX_JOUEURS.remise(new Set([c]),2):J(s1)!==J(rien),'J1 '+c+' → J1 '+J(s1));}
+  for(const [nom,codes] of Object.entries(J2)) for(const c of codes){const s1=DEUX_JOUEURS.cibles(new Set([c]),1),s2=DEUX_JOUEURS.cibles(new Set([c]),2);
+    v(J(s1)===J(rien),'J2 '+c+' → J1 '+J(s1));v(nom==='remise'?J(s2)===J(rien)&&DEUX_JOUEURS.remise(new Set([c]),2)&&!DEUX_JOUEURS.remise(new Set([c]),1):J(s2)!==J(rien),'J2 '+c+' → J2 '+J(s2));}
+  // tout le monde appuie en même temps : J1 gaz + gauche, J2 frein + droite
+  const deux=new Set(['KeyW','KeyA','ArrowDown','ArrowRight']);
+  v(J(DEUX_JOUEURS.cibles(deux,1))===J({gaz:1,frein:0,direction:-1})&&J(DEUX_JOUEURS.cibles(deux,2))===J({gaz:0,frein:1,direction:1}),'ensemble : '+J(DEUX_JOUEURS.cibles(deux,1))+' '+J(DEUX_JOUEURS.cibles(deux,2)));
+  // le clavier de principal.js (majCibles) range les commandes dans JEU.deuxCommandes, et seulement en mode 2 joueurs
+  JEU.deux={nbIA:0,nbTours:3};appuyer(['KeyW','KeyD']);
+  v(J(JEU.deuxCommandes[1].cibles)===J({gaz:1,frein:0,direction:1})&&J(JEU.deuxCommandes[2].cibles)===J(rien),'majCibles J1 : '+J(JEU.deuxCommandes));
+  appuyer(['ArrowUp','ArrowLeft']);v(J(JEU.deuxCommandes[1].cibles)===J(rien)&&J(JEU.deuxCommandes[2].cibles)===J({gaz:1,frein:0,direction:-1}),'majCibles J2 : '+J(JEU.deuxCommandes));
+  appuyer([]);JEU.deux=null;});
+// un pas de la course à deux avec les touches données ; les humains sont conduits par conduireJoueur (principal.js), comme dans la page
+function pasADeux(e,codes){appuyer(codes);pasCourseIA(e,DT,conduireJoueur);}
+// amène la course juste avant l'extinction des feux (compte = reste), personne n'appuie
+function jusquAvantExtinction(e,reste){while(e.pilotes[0].course.compte>reste) pasADeux(e,[]);}
+// … puis DEPART_ROBOT_REACTION après l'extinction (un appui avant serait une anticipation : faux départ)
+function apresExtinction(e){jusquAvantExtinction(e,0);for(let k=0;k<Math.round(REGLAGES.DEPART_ROBOT_REACTION/DT)+1;k++) pasADeux(e,[]);}
+t('2 joueurs : dans la course (conduireJoueur), les touches du joueur 1 lancent et font rouler sa voiture seulement : celle du joueur 2 reste immobile au bit près (u = 0, même position), et inversement ; Espace ne remet personne en piste, E et Entrée remettent chacun le sien', ()=>{
+  JEU.deux={nbIA:0,nbTours:3};
+  const essai=(codes,qui)=>{const e=courseADeux(0,3,21),[p1,p2]=DEUX_JOUEURS.joueurs(e),actif=qui===1?p1:p2,autre=qui===1?p2:p1;
+    const x0=autre.v.x,z0=autre.v.z;apresExtinction(e);   // les feux sont éteints depuis 0,2 s, personne n'a appuyé
+    v(p1.course.depart!==p2.course.depart&&p1.course.depart.humain&&p2.course.depart.humain,'deux états de départ');
+    for(let k=0;k<4*120;k++) pasADeux(e,codes);   // 4 s plein gaz pour l'un
+    v(actif.course.depart.lance!==null&&actif.course.depart.resultat!=='faux'&&actif.v.u>1,'J'+qui+' pas parti : u='+actif.v.u.toFixed(1)+' '+actif.course.depart.resultat);
+    v(autre.course.depart.lance===null&&autre.v.u===0&&autre.v.x===x0&&autre.v.z===z0,'J'+(3-qui)+' a bougé : u='+autre.v.u+' lance='+autre.course.depart.lance);
+    return e;};
+  essai(['KeyW'],1);essai(['ArrowUp'],2);essai(['KeyW','KeyA','KeyD','KeyE'],1);essai(['ArrowUp','ArrowLeft','ArrowRight','Enter','ShiftRight'],2);   // (sans le frein : il gagnerait sur le gaz)
+  // la remise en piste : chacun la sienne (E, Entrée) ; Espace ne fait rien (JEU.remettre est ignoré à deux)
+  const e=courseADeux(0,3,21),[p1,p2]=DEUX_JOUEURS.joueurs(e);apresExtinction(e);for(let k=0;k<3*120;k++) pasADeux(e,['KeyW','ArrowUp']);
+  // chacun est poussé sur l'herbe, à 5 m du bord (en deçà de la barrière) ; une remise en piste le ramène au milieu : un saut de largeur / 2 + 5 m en un pas, bien plus que sa vitesse × DT
+  const loin=C.largeur/2+5,decaler=p=>{p.v.x+=loin*p.v.piste.nx;p.v.z+=loin*p.v.piste.nz;},pos=p=>[p.v.x,p.v.z],remis=(p,a)=>Math.hypot(p.v.x-a[0],p.v.z-a[1])>loin-3;
+  decaler(p1);decaler(p2);let a1=pos(p1),a2=pos(p2);JEU.remettre=true;pasADeux(e,[]);
+  v(!remis(p1,a1)&&!remis(p2,a2),'Espace a remis quelqu’un en piste');JEU.remettre=false;
+  a1=pos(p1);a2=pos(p2);JEU.deuxCommandes[1].remettre=true;pasADeux(e,[]);v(remis(p1,a1)&&!remis(p2,a2),'E : J1 '+remis(p1,a1)+' J2 '+remis(p2,a2));
+  a2=pos(p2);JEU.deuxCommandes[2].remettre=true;pasADeux(e,[]);v(remis(p2,a2),'Entrée : J2 pas remis');
+  appuyer([]);JEU.deux=null;});
+t('2 joueurs : deux départs indépendants : le joueur 1 fait un faux départ (appui DEPART_ANTICIPATION / 2 avant l’extinction), le joueur 2 part après l’extinction : seul le joueur 1 est pénalisé, le départ du joueur 2 n’est pas « faux » et sa pénalité est 0 ; les deux roulent ensuite', ()=>{
+  JEU.deux={nbIA:0,nbTours:3};const R=REGLAGES,e=courseADeux(0,3,22),[p1,p2]=DEUX_JOUEURS.joueurs(e);
+  jusquAvantExtinction(e,R.DEPART_ANTICIPATION/2);
+  for(let k=0;k<Math.round(R.DEPART_ROBOT_REACTION/DT)+12;k++) pasADeux(e,['KeyW']);   // J1 appuie avant l'extinction et tient : faux départ ; J2 attend
+  v(p1.course.depart.lance!==null&&p1.course.depart.resultat==='faux'&&p1.course.fauxDepart&&p1.course.penalites===R.PENALITE_FAUX_DEPART,'J1 : '+[p1.course.depart.resultat,p1.course.penalites]);
+  v(p2.course.depart.lance===null&&!p2.course.fauxDepart&&p2.course.penalites===0,'J2 touché : '+[p2.course.depart.lance,p2.course.penalites]);
+  for(let k=0;k<3*120;k++) pasADeux(e,['KeyW','ArrowUp']);   // J2 part maintenant (0,3 s après l'extinction)
+  v(p2.course.depart.lance!==null&&p2.course.depart.resultat!=='faux'&&!p2.course.fauxDepart&&p2.course.penalites===0,'J2 après : '+[p2.course.depart.resultat,p2.course.penalites]);
+  v(p1.v.u>5&&p2.v.u>5,'ils ne roulent pas : '+[p1.v.u,p2.v.u].map(x=>x.toFixed(1)));
+  L.push('  (départs : J1 '+p1.course.depart.resultat+' (pénalité '+p1.course.penalites+' s), J2 '+p2.course.depart.resultat+' réaction '+p2.course.depart.reaction.toFixed(2)+' s)');
+  appuyer([]);JEU.deux=null;});
+t('2 joueurs : la course : nbIA + 2 voitures, les deux joueurs humains (p.joueur = 1, 2) sans pilote IA ni rythme, côte à côte sur la grille tirée au sort (places k et k + 1, la place change avec la graine), pas de qualification ; jamais plus de DEUX_VOITURES_MAX voitures quel que soit le nombre demandé', ()=>{
+  const R=REGLAGES;
+  for(const n of R.DEUX_IA_CHOIX){const e=courseADeux(n,3,30+n);v(e.pilotes.length===n+2&&e.deux===true,n+' IA : '+e.pilotes.length+' voitures');
+    const [p1,p2]=DEUX_JOUEURS.joueurs(e);v(p1&&p2&&p1.humain&&p2.humain&&p1.pilote===null&&p2.pilote===null&&p1.rythme===null&&p2.rythme===null,'humains '+n);
+    v(e.pilotes.filter(p=>!p.humain).every(p=>p.pilote&&p.rythme>0),'les IA ont leur pilote');
+    v(e.grille&&e.grille.length===n+2&&e.grille.every(g=>g.qualif===null),'grille '+JSON.stringify(e.grille));
+    const k1=e.grille.findIndex(g=>g.numero===p1.numero),k2=e.grille.findIndex(g=>g.numero===p2.numero);v(k2===k1+1,'pas côte à côte : '+k1+' '+k2);
+    // les places de la grille (placesGrille) : le plus avancé d'abord ; chaque voiture est à sa place, sans deux dans la même file à la même hauteur
+    const ordre=e.pilotes.slice().sort((a,b)=>b.depart-a.depart);v(ordre.map(p=>p.numero).join()===e.grille.map(g=>g.numero).join(),'positions ≠ grille');
+    v(new Set(e.pilotes.map(p=>p.depart)).size===n+2,'deux voitures au même rang');}
+  const places=[];for(let g=1;g<=12;g++){const e=courseADeux(5,3,g);places.push(e.grille.findIndex(x=>x.numero===DEUX_JOUEURS.joueurs(e)[0].numero));}
+  v(new Set(places).size>=3&&places.every(k=>k>=0&&k<=5),'la place du joueur 1 selon la graine : '+places.join());
+  // jamais plus de DEUX_VOITURES_MAX : les nombres hors choix retombent sur le premier choix, et même un choix trop grand est plafonné
+  for(const n of [9,20,-1,NaN,2,4]) v(courseADeux(n,3,1).pilotes.length===R.DEUX_IA_CHOIX[0]+2,n+' IA demandées : '+courseADeux(n,3,1).pilotes.length);
+  const choix=R.DEUX_IA_CHOIX;R.DEUX_IA_CHOIX=[0,3,5,8];v(DEUX_JOUEURS.nbIAValide(8)===R.DEUX_VOITURES_MAX-2,'plafond '+DEUX_JOUEURS.nbIAValide(8));R.DEUX_IA_CHOIX=choix;
+  v(DEUX_JOUEURS.nbToursValide(5)===5&&DEUX_JOUEURS.nbToursValide(3)===3&&DEUX_JOUEURS.nbToursValide(4)===R.DEUX_TOURS_CHOIX[0]&&DEUX_JOUEURS.nbToursValide(NaN)===R.DEUX_TOURS_CHOIX[0],'tours');
+  L.push('  (grille à 2 + 5 IA, graines 1 à 12 : place du joueur 1 = '+places.join(' ')+')');});
+t('2 joueurs : une course à 2 + 5 IA (3 tours, les deux joueurs conduits par le robot) finit : les 7 voitures arrivent et sont classées 1 à 7, les deux joueurs classés ; la même graine redonne exactement le même classement et les mêmes temps', ()=>{
+  const jouer=graine=>{JEU.deux={nbIA:5,nbTours:3};JEU.robot=true;const e=courseADeux(5,3,graine);let k=0;
+    for(;k<400*120&&!e.pilotes.every(p=>p.arrivee!==null);k++) pasCourseIA(e,DT,conduireJoueur);
+    JEU.robot=false;JEU.deux=null;return {e,secondes:k*DT};};
+  const a=jouer(7),e=a.e,f=classementFinal(e);
+  v(e.pilotes.length===7&&e.pilotes.every(p=>p.arrivee!==null),'pas tous arrivés après '+a.secondes.toFixed(0)+' s : '+e.pilotes.map(p=>p.arrivee===null?'-':'ok').join());
+  v(f.length===7&&f.map(x=>x.place).join()==='1,2,3,4,5,6,7','classement '+f.map(x=>x.place).join());
+  const [p1,p2]=DEUX_JOUEURS.joueurs(e),c1=f.find(x=>e.pilotes[x.k]===p1),c2=f.find(x=>e.pilotes[x.k]===p2);
+  v(c1&&c2&&c1.place!==c2.place&&c1.total>0&&c2.total>0,'les joueurs : '+[c1&&c1.place,c2&&c2.place]);
+  v(DEUX_JOUEURS.finie(e)&&p1.course.etat==='finie'&&p2.course.etat==='finie'&&p1.course.tours.length===3,'finie : '+p1.course.tours.length+' tours');
+  v(p1.course.depart.lance!==null&&p2.course.depart.lance!==null&&p1.course.depart.resultat==='parfait'&&p2.course.depart.resultat==='parfait','départs des robots : '+[p1.course.depart.resultat,p2.course.depart.resultat]);
+  const b=jouer(7),g=classementFinal(b.e);v(JSON.stringify(f)===JSON.stringify(g),'la même graine ne redonne pas la même course');
+  L.push('  (course à 2 + 5 IA sur le circuit test, 3 tours : finie en '+a.secondes.toFixed(1)+' s de course ; joueur 1 '+c1.place+'e, joueur 2 '+c2.place+'e ; ordre : '+f.map(x=>e.pilotes[x.k].joueur?'J'+e.pilotes[x.k].joueur:'n°'+e.pilotes[x.k].numero).join(' ')+')');});
 
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 ecrire();

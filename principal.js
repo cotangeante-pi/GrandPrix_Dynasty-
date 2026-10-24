@@ -6,7 +6,7 @@ const PARAMETRES = new URLSearchParams(location.search);
 // Les paramètres ?course=, ?ia=, ?camera=, ?seul=1 (l'écran de choix d'une course seule), ?joueur=1 et ?championnat=1 restent
 // les chemins des tests et du développement. (La page de test charge ce fichier sans scène : rien n'est décidé ni sauvegardé)
 const EST_PAGE = !!document.getElementById('scene3d');
-const PAGE_NUE = !['course', 'ia', 'camera', 'seul', 'joueur', 'championnat'].some(k => PARAMETRES.has(k));
+const PAGE_NUE = !['course', 'ia', 'camera', 'seul', 'joueur', 'championnat', 'deux'].some(k => PARAMETRES.has(k));
 const DECOUVERTE_EN_COURS = EST_PAGE && PAGE_NUE && !SAUVEGARDE.decouverteFaite();
 if (DECOUVERTE_EN_COURS) REGLAGES.NIVEAU = REGLAGES.DECOUVERTE_NIVEAU;   // les IA de la découverte sont au niveau débutant
 // ?championnat=1 (ou la page nue après la découverte) : le championnat sauvegardé, ou un nouveau ; son prochain Grand Prix choisit le circuit de la page
@@ -19,6 +19,9 @@ const NOM_CIRCUIT = DECOUVERTE_EN_COURS ? REGLAGES.DECOUVERTE_CIRCUIT
 const CIRCUIT = NOM_CIRCUIT === 'test' ? CIRCUIT_TEST : construireCircuit(CIRCUITS[NOM_CIRCUIT]);
 // ?niveau=debutant|normal|expert|legende : le niveau de difficulté des IA (normal par défaut)
 if (Object.prototype.hasOwnProperty.call(REGLAGES.NIVEAUX, PARAMETRES.get('niveau'))) REGLAGES.NIVEAU = PARAMETRES.get('niveau');
+// ?deux=1 : le mode 2 joueurs (deux-joueurs.js, CLAUDE.md « Le mode 2 joueurs ») : &ia=0|3|5 IA, &tours=3|5, &niveau=… ; un mode à part de
+// la carrière (rien n'est écrit dans la sauvegarde) ; ses réglages gardés et son écran viendront avec l'ordre 3
+const DEUX_EN_COURS = EST_PAGE && PARAMETRES.get('deux') === '1';
 // ?pneus=1 : les pneus du joueur (pneus.js), désactivés par défaut (PNEUS_ACTIFS) tant que le propriétaire n'a pas jugé la sensation
 if (PARAMETRES.get('pneus') === '1') REGLAGES.PNEUS_ACTIFS = true;
 
@@ -66,6 +69,9 @@ const JEU = {
   decouverte: false, monde: null, indices: null, aides: null, depuisClic: null, clicAuxFeux: null, clicAuPremierFeu: null,
   carteDuCache: false,  // la carte des IA est venue du cache de la sauvegarde (cache-carte.js) : pas de calcul en fond
   casqueSeul: false,    // l'écran du pilote ouvert depuis le paddock pour le casque seulement (« Mon casque »)
+  // le mode 2 joueurs (deux-joueurs.js) : ses réglages { nbIA, nbTours }, ou null ; les commandes de chaque joueur (1, 2), lues
+  // de ses touches à lui (TOUCHES_DEUX) : cibles comme JEU.cibles, remettre comme JEU.remettre
+  deux: null, deuxCommandes: { 1: { cibles: { gaz: 0, frein: 0, direction: 0 }, remettre: false }, 2: { cibles: { gaz: 0, frein: 0, direction: 0 }, remettre: false } },
 };
 
 // les caméras de survol n'ont pas de course
@@ -90,7 +96,13 @@ function suivreSuivante() {
 }
 
 function lancerCourse(nbTours) {
-  if (JEU.ia >= 2 || JEU.contre) {
+  if (JEU.deux) {
+    // le mode 2 joueurs : la même course, deux humains (p.joueur = 1, 2) après les IA, la grille tirée au sort (dès la carte)
+    JEU.plateau = DEUX_JOUEURS.creer(CIRCUIT, JEU.deux.nbIA, JEU.deux.nbTours, Number(PARAMETRES.get('graine')) || 1, JEU.carte);
+    suivre(JEU.ia);   // la caméra suit le joueur 1 (l'écran partagé : ordre 2)
+    appliquerCaracteres();
+    armerFeux(JEU.plateau.pilotes, Number(PARAMETRES.get('graine')) || 1);
+  } else if (JEU.ia >= 2 || JEU.contre) {
     // ?championnat=1 : le niveau de l'écurie sur le rythme de chaque IA, avant que la carte leur donne un pilote
     JEU.plateau = creerCourseIA(CIRCUIT, JEU.ia, nbTours, Number(PARAMETRES.get('graine')) || 1, JEU.championnat ? null : JEU.carte, JEU.contre);
     if (JEU.championnat) { CHAMPIONNAT.appliquerNiveaux(JEU.championnat, JEU.plateau); if (JEU.carte) donnerCarte(JEU.plateau, JEU.carte); }
@@ -109,6 +121,7 @@ function lancerCourse(nbTours) {
   // ?pneus=1 : des pneus neufs à chaque course, seulement sur la voiture que le joueur conduit (jamais sur une IA suivie)
   JEU.joueur.pneus = REGLAGES.PNEUS_ACTIFS && (JEU.contre || !JEU.plateau) ? creerPneus() : null;
   JEU.joueur.adherence = 1;
+  if (JEU.deux) { const v2 = DEUX_JOUEURS.joueurs(JEU.plateau)[1].v; v2.pneus = JEU.joueur.pneus ? creerPneus() : null; v2.adherence = 1; }   // le joueur 2 : la même voiture
   GARAGE.appliquer(JEU.joueur, JEU.championnat ? JEU.championnat.garage : null, niveauEcurieJoueur());   // ?championnat=1 : les améliorations du garage × le niveau de l'écurie, sur la voiture du joueur (1 = rien sans championnat)
   JEU.enregistreur = creerEnregistrement();
   JEU.fantome = null;   // le fantôme ne vit que pendant le tour de qualification (commencerFantome)
@@ -117,6 +130,8 @@ function lancerCourse(nbTours) {
   PODIUM3D.cacher();
   // la découverte : pas de qualification, le joueur au milieu de la grille (dès que la carte des IA a donné leurs temps)
   if (JEU.decouverte) { JEU.aides = { gaz: false, direction: false, frein: false, clignote: false }; placerDecouverte(); JEU.ecran = 'course'; INTERFACE.montrer('course'); return; }
+  // le mode 2 joueurs : pas de qualification (la grille est tirée au sort), les feux tout de suite
+  if (JEU.deux) { JEU.ecran = 'course'; INTERFACE.montrer('course'); return; }
   // contre les IA : d'abord la qualification du joueur (un tour, ou passer) ; la course attend
   if (JEU.contre) { commencerQualif(); return; }
   JEU.ecran = 'course';
@@ -432,6 +447,7 @@ function montrerChampionnat(gagne) {
   INTERFACE.remplirDuel(CHAMPIONNAT.scoreDuel(JEU.championnat), JEU.championnat);
   INTERFACE.remplirSolde(JEU.championnat);
   INTERFACE.remplirRappelSponsor(JEU.championnat);
+  INTERFACE.remplirReputation(JEU.championnat);   // les trois jauges de l'interview (interview.js)
   JEU.ecran = 'championnat';
   INTERFACE.montrer('championnat');
 }
@@ -446,11 +462,36 @@ function courseSuivante() {
 // après les résultats : les points, la une du journal et la sauvegarde (finirGrandPrix), puis la une à l'écran
 function apresGrandPrix() {
   if (JEU.ecran !== 'resultats' || JEU.grandPrixFini) return;
-  const lignes = CHAMPIONNAT.lignesDepuisCourse(JEU.plateau);
-  const moi = lignes.find(l => l.k === JEU.ia);
+  JEU.lignesGP = CHAMPIONNAT.lignesDepuisCourse(JEU.plateau);
+  montrerInterview(INTERVIEW.question(JEU.championnat, JEU.lignesGP));
+}
+
+// ?championnat=1 : l'interview d'après course (interview.js), entre les résultats et la une du journal : la question se
+// calcule sur le classement final AVANT d'enregistrer le Grand Prix ; la réponse (un ton, ou « pas de commentaire ») montre
+// sa ligne d'effet, puis « Continuer » enregistre le Grand Prix (finirGrandPrix) et montre la une. Le podium 3D reste
+// derrière ; l'interview est un menu (pas de gameplayStart hors course : gameplayStop pour Poki)
+function montrerInterview(q) {
+  JEU.interview = q;
+  INTERFACE.remplirInterview(JEU.championnat, q);
+  JEU.ecran = 'interview';
+  INTERFACE.montrer('interview');
+}
+
+function repondreInterview(ton) {
+  if (JEU.ecran !== 'interview' || !JEU.interview) return;
+  const r = INTERVIEW.repondre(JEU.championnat, JEU.interview, ton);
+  if (!r.ligne) { finirInterview(); return; }   // pas de commentaire : rien à dire, la une tout de suite
+  INTERFACE.montrerEffetInterview(JEU.championnat, r);
+}
+
+function finirInterview() {
+  if (JEU.ecran !== 'interview' || !JEU.lignesGP) return;
+  const lignes = JEU.lignesGP, moi = lignes.find(l => l.k === JEU.ia);
   CHAMPIONNAT.finirGrandPrix(JEU.championnat, lignes);
   JEU.grandPrixFini = true;
-  JEU.gagne = CHAMPIONNAT.pointsPour(moi.place);
+  JEU.interview = null;
+  JEU.lignesGP = null;
+  JEU.gagne = moi ? CHAMPIONNAT.pointsPour(moi.place) : 0;
   montrerUne(JEU.championnat.album[JEU.championnat.album.length - 1]);
 }
 
@@ -641,12 +682,15 @@ function montrerPodium() {
 function attendreLesAutres() {
   const e = JEU.plateau, moi = e.pilotes[JEU.suivie];
   if (moi.arrivee === null) return;   // sa course est finie, la simulation note son arrivée au pas suivant
+  // le mode 2 joueurs : l'attente commence quand les deux joueurs sont arrivés (le dernier des deux)
+  if (JEU.deux && !DEUX_JOUEURS.finie(e)) return;
+  const arrivee = JEU.deux ? Math.max(...DEUX_JOUEURS.joueurs(e).map(p => p.arrivee)) : moi.arrivee;
   if (!JEU.attente) {
     JEU.attente = { tele: null, camera: CAMERA.mode, passer: false };
     CAMERA.forcer('tele');
   }
   JEU.attente.tele = ARRIVEE.voitureTele(e, JEU.attente.tele);
-  if (JEU.attente.passer || ARRIVEE.podiumPret(e, e.temps - moi.arrivee)) {
+  if (JEU.attente.passer || ARRIVEE.podiumPret(e, e.temps - arrivee)) {
     finirAttente();
     montrerPodium();
   }
@@ -693,14 +737,20 @@ function majCibles() {
   JEU.cibles.direction = (appui(TOUCHES.droite) ? 1 : 0) - (appui(TOUCHES.gauche) ? 1 : 0);
   // la découverte : une touche qui a servi, même un instant, éteint son aide (majAides)
   if (JEU.aides) { if (JEU.cibles.gaz) JEU.aides.gaz = true; if (JEU.cibles.direction) JEU.aides.direction = true; if (JEU.cibles.frein) JEU.aides.frein = true; }
+  // le mode 2 joueurs : les commandes de chacun, de ses touches à lui (TOUCHES_DEUX, par e.code) ; l'autre n'y voit rien
+  if (JEU.deux) for (const j of [1, 2]) JEU.deuxCommandes[j].cibles = DEUX_JOUEURS.cibles(enfoncees, j);
 }
 
 function brancherClavier() {
   window.addEventListener('keydown', e => {
-    if (e.code === 'KeyC' && !e.repeat) CAMERA.suivante();
-    if (e.code === 'Space' && !e.repeat) JEU.remettre = true;
+    // le mode 2 joueurs : ni C (la caméra reste derrière), ni Espace, ni Entrée pour le podium ; chacun sa touche de remise en piste
+    if (JEU.deux) { if (!e.repeat) for (const j of [1, 2]) if (DEUX_JOUEURS.remise(new Set([e.code]), j)) JEU.deuxCommandes[j].remettre = true; }
+    else {
+      if (e.code === 'KeyC' && !e.repeat) CAMERA.suivante();
+      if (e.code === 'Space' && !e.repeat) JEU.remettre = true;
+      if (e.code === 'Enter' && !e.repeat) passerAuPodium();
+    }
     if (e.code === 'Escape' && !e.repeat) pause(JEU.ecran === 'course');
-    if (e.code === 'Enter' && !e.repeat) passerAuPodium();
     if (JEU.ecran === 'une' && !e.repeat) passerUne();   // n'importe quelle touche passe la une du journal
     if (e.code === 'Tab') { e.preventDefault(); if (JEU.plateau && !JEU.contre && !e.repeat) suivreSuivante(); }
     enfoncees.add(e.code);
@@ -716,19 +766,21 @@ const AUCUNE = { gaz: 0, frein: 0, direction: 0 }, FREIN_SEUL = { gaz: 0, frein:
 
 // ?ia=N&joueur=1 : les commandes du joueur pour sa voiture dans la course entre IA (comme seul : rampes, Espace)
 function conduireJoueur(p, pas) {
-  if (JEU.remettre && courseAutorise(p.course)) remettreSurPiste(p.v, CIRCUIT);
-  JEU.remettre = false;
+  // le mode 2 joueurs : chaque joueur (p.joueur = 1, 2) a ses commandes, lues de ses touches à lui ; sinon celles de la course seule
+  const cmd = JEU.deux && p.joueur ? JEU.deuxCommandes[p.joueur] : JEU;
+  if (cmd.remettre && courseAutorise(p.course)) remettreSurPiste(p.v, CIRCUIT);
+  cmd.remettre = false;
   // après l'arrivée, sa voiture freine seule jusqu'à l'arrêt (les autres finissent leur course)
   // ?robot=1 : le robot d'essai conduit sa voiture (tests) ; il fait toujours un départ parfait, DEPART_ROBOT_REACTION après l'extinction
-  let cibles = JEU.robot ? (courseAutorise(p.course) ? piloteRobot(p.v, CIRCUIT) : AUCUNE) : JEU.cibles;
+  let cibles = JEU.robot ? (courseAutorise(p.course) ? piloteRobot(p.v, CIRCUIT) : AUCUNE) : cmd.cibles;
   // le départ parfait (depart.js) : tant que la voiture n'est pas lancée, elle est tenue sur place ; la touche d'accélérateur
   // règle le régime de départ, et la pression qui suit l'extinction est le lancement (ou un faux départ : anticipation)
   const d = p.course.depart;
   if (d && d.lance === null) {
     if (JEU.robot) { if (d.extinction !== null && d.t - d.extinction >= REGLAGES.DEPART_ROBOT_REACTION) DEPART.lancer(d, 'parfait', REGLAGES.DEPART_ROBOT_REACTION); }
-    else DEPART.commande(d, JEU.cibles.gaz > 0, p.course.compte);
+    else DEPART.commande(d, cmd.cibles.gaz > 0, p.course.compte);
     if (d.lance === null) cibles = AUCUNE;
-    else if (!JEU.robot && d.resultat !== 'faux') JEU.departRecord = SAUVEGARDE.proposerReaction(d.reaction);   // le record du temps de réaction (pas celui du robot)
+    else if (!JEU.robot && !JEU.deux && d.resultat !== 'faux') JEU.departRecord = SAUVEGARDE.proposerReaction(d.reaction);   // le record du temps de réaction (pas celui du robot, ni à deux)
   }
   lisserCommandes(p.v, commandesPermises(p.course) ? cibles : p.course.etat === 'finie' ? FREIN_SEUL : AUCUNE, pas);
   pasPneusJoueur(p.v, pas);
@@ -811,7 +863,7 @@ function majTableau() {
   document.getElementById('rapport').textContent = rapportPourVitesse(v.u);
   const roule = JEU.ecran === 'course' || JEU.ecran === 'survol' || enTourQualif();
   // sur le podium et les résultats, ni vitesse ni aide des touches
-  const apres = ['podium', 'resultats', 'championnat', 'une', 'garage', 'titre', 'amis', 'bravo', 'saison', 'duelSaison', 'contrats', 'retraite', 'sponsors', 'fiche'].includes(JEU.ecran);
+  const apres = ['podium', 'resultats', 'championnat', 'une', 'garage', 'titre', 'amis', 'bravo', 'saison', 'duelSaison', 'contrats', 'retraite', 'sponsors', 'fiche', 'interview'].includes(JEU.ecran);
   document.getElementById('tableau').classList.toggle('cache', apres);
   document.getElementById('aide').classList.toggle('cache', apres);
   // après l'arrivée du joueur (en attendant les autres), il ne court plus : pas de « hors piste »
@@ -892,8 +944,14 @@ function demarrerJeu() {
     SAUVEGARDE.ecrireChampionnat(JEU.monde);
     JEU.indices = DECOUVERTE.pilotes(JEU.monde).map(p => p.id);
   }
-  JEU.contre = (PARAMETRES.get('joueur') === '1' && Number(PARAMETRES.get('ia')) >= 1) || !!JEU.championnat || JEU.decouverte;
-  JEU.ia = JEU.championnat ? JEU.championnat.pilotes.length - 1 : JEU.decouverte ? JEU.indices.length : Math.max(0, Math.min(REGLAGES.IA_PAGE_MAX - (JEU.contre ? 1 : 0), Math.floor(Number(PARAMETRES.get('ia'))) || 0));
+  // le mode 2 joueurs : ses réglages de la page ; ses IA sont des rivaux du monde sauvegardé (leur caractère), s'il existe
+  if (DEUX_EN_COURS) {
+    JEU.deux = { nbIA: DEUX_JOUEURS.nbIAValide(Number(PARAMETRES.get('ia'))), nbTours: DEUX_JOUEURS.nbToursValide(Number(PARAMETRES.get('tours'))) };
+    JEU.monde = SAUVEGARDE.championnat();
+    if (JEU.monde) JEU.indices = DECOUVERTE.pilotes(JEU.monde).slice(0, JEU.deux.nbIA).map(p => p.id);
+  }
+  JEU.contre = (PARAMETRES.get('joueur') === '1' && Number(PARAMETRES.get('ia')) >= 1) || !!JEU.championnat || JEU.decouverte || !!JEU.deux;
+  JEU.ia = JEU.deux ? JEU.deux.nbIA : JEU.championnat ? JEU.championnat.pilotes.length - 1 : JEU.decouverte ? JEU.indices.length : Math.max(0, Math.min(REGLAGES.IA_PAGE_MAX - (JEU.contre ? 1 : 0), Math.floor(Number(PARAMETRES.get('ia'))) || 0));
   // la carte des IA : lue du cache de la sauvegarde si elle y est et si sa clé est encore valable (cache-carte.js : les mêmes
   // nombres au bit près, les feux n'attendent plus), sinon calculée en fond puis mise en cache
   const carteFinie = t => {
@@ -902,10 +960,11 @@ function demarrerJeu() {
     if (JEU.plateau) {
       donnerCarte(JEU.plateau, JEU.carte); appliquerCaracteres();
       placerDecouverte();   // la découverte : le joueur au milieu de la grille
+      if (JEU.deux) DEUX_JOUEURS.placerGrille(JEU.plateau);   // le mode 2 joueurs : la grille tirée au sort
       if (JEU.qualif && JEU.qualif.etat === 'attente') finirQualif();   // le joueur a fini son tour avant la carte
     } else JEU.pilote = creerPilote(JEU.carte);
   };
-  if (JEU.ia) {
+  if (JEU.ia || JEU.deux) {   // (à deux sans IA aussi : la course attend la carte, comme les autres)
     const enCache = CACHE_CARTE.decoder(SAUVEGARDE.carte(NOM_CIRCUIT), NOM_CIRCUIT, CIRCUITS[NOM_CIRCUIT], CIRCUIT);
     if (enCache) { JEU.carteDuCache = true; carteFinie(enCache); }
     else JEU.calculTrajectoire = calculerEnFond(etapesTrajectoire(CIRCUIT), t => { SAUVEGARDE.ecrireCarte(NOM_CIRCUIT, CACHE_CARTE.encoder(NOM_CIRCUIT, CIRCUITS[NOM_CIRCUIT], t)); carteFinie(t); });
@@ -920,12 +979,16 @@ function demarrerJeu() {
     else if (JEU.decouverte) {   // les pilotes du monde aux couleurs de leur écurie, puis le joueur à celle de la sienne
       for (const p of DECOUVERTE.pilotes(JEU.monde)) JEU.couleurs.push(p.couleur);
       JEU.couleurs.push(JEU.monde.ecuries[REGLAGES.ECURIE_JOUEUR].couleur);
+    } else if (JEU.deux) {   // les IA, puis le joueur 1 🔵 et le joueur 2 🔴 (DEUX_COULEURS)
+      const libres = couleurs.filter(x => !REGLAGES.DEUX_COULEURS.includes(x));
+      for (let k = 0; k < JEU.ia; k++) JEU.couleurs.push(libres[k % libres.length]);
+      JEU.couleurs.push(...REGLAGES.DEUX_COULEURS);
     } else {
       for (let k = 0; k < JEU.ia; k++) JEU.couleurs.push(choix[k % choix.length]);
       if (JEU.contre) JEU.couleurs.push(REGLAGES.COULEUR_JOUEUR);
     }
     VOITURE3D.preparerCasques(JEU.couleurs.map((c, k) => casqueDe(k)));   // l'atlas des casques (casque.js) : une case par voiture
-    JEU.couleurs.forEach((couleur, k) => JEU.modeles.push(VOITURE3D.creer(couleur, JEU.contre && k === JEU.ia, undefined, k)));   // le joueur : détaillée
+    JEU.couleurs.forEach((couleur, k) => JEU.modeles.push(VOITURE3D.creer(couleur, JEU.contre && (k === JEU.ia || (JEU.deux && k === JEU.ia + 1)), undefined, k)));   // le joueur (les deux, à deux) : détaillée
     for (const m of JEU.modeles) SCENE3D.ajouter(m.groupe);
   }
   if (!JEU.modeles.length) {
@@ -946,6 +1009,7 @@ function demarrerJeu() {
     INTERFACE.preparerSaison(suiteClassementSaison, suiteDuelSaison, signerContrat, prendreRetraite);
     INTERFACE.preparerSponsors(montrerSponsors, choisirSponsor, quitterSponsors);
     INTERFACE.preparerFiche(montrerFiche, quitterFiche);
+    INTERFACE.preparerInterview(repondreInterview, finirInterview);
   } else if (JEU.decouverte) INTERFACE.preparerResultats(montrerBravo, () => {}, () => {});   // la découverte : après le podium, « Bravo ! »
   else INTERFACE.preparerResultats(voirResultats, () => lancerCourse(JEU.course.nbTours), allerAuChoix);
   INTERFACE.preparerTitre(jouerDecouverte, montrerAmis, retourTitre, commencerCarriere);
@@ -970,6 +1034,7 @@ function demarrerJeu() {
   else if (JEU.championnat && PAGE_NUE && PILOTE.manque(JEU.championnat)) montrerPilote();   // le vrai jeu, une sauvegarde sans pilote : la création, une fois (pas les pages ?championnat=1 des tests)
   else if (JEU.championnat && (JEU.championnat.retraite || SAISONS.finie(JEU.championnat))) montrerFinSaison();   // la saison est finie (la page a été rechargée pendant les contrats), ou la carrière
   else if (JEU.championnat) montrerChampionnat(null);
+  else if (JEU.deux) lancerCourse(JEU.deux.nbTours);   // le mode 2 joueurs : la course tout de suite (son menu et ses réglages : ordre 3)
   else if (demandee !== null && !isNaN(Number(demandee))) lancerCourse(Number(demandee));
   else allerAuChoix();
   brancherClavier();

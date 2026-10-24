@@ -45,7 +45,7 @@ const INTERFACE = (function () {
   }
 
   function montrer(ecran) {
-    for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une', 'garage', 'saison', 'duelSaison', 'contrats', 'retraite', 'titre', 'amis', 'bravo', 'pilote', 'sponsors', 'fiche']) $(id).classList.toggle('cache', id !== ecran);
+    for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une', 'garage', 'saison', 'duelSaison', 'contrats', 'retraite', 'titre', 'amis', 'bravo', 'pilote', 'sponsors', 'fiche', 'interview']) $(id).classList.toggle('cache', id !== ecran);
     // le bandeau de course n'est là que pendant la course et la pause (pas sous l'écran de fin)
     const course = ecran === 'course' || ecran === 'pause';
     for (const id of ['hudCourse', 'hudPenalite', 'compte', 'feux', 'classement', 'radar', 'jauge', 'departResultat', 'aides']) if (!course) $(id).classList.add('cache');
@@ -683,9 +683,66 @@ const INTERFACE = (function () {
     $('ficheHistorique').textContent = avec(texte('ficheHistorique'), { s: f.historique.saisons, t: f.historique.titres, v: f.historique.victoires, p: f.historique.podiums, q: f.historique.poles, m: f.historique.meilleur === null ? '–' : f.historique.meilleur });
     $('ficheDuels').textContent = avec(texte('ficheDuels'), { a: f.duels.devant, b: f.duels.derriere });
     $('ficheCoequipier').textContent = f.duels.coequipier ? avec(texte('ficheCoequipier'), { a: f.duels.coequipier[0], b: f.duels.coequipier[1] }) : '';
+    // la rivalité posée par l'interview (interview.js) : « “phrase” — circuit, saison N · rivalité : encore n courses »
+    const rv = f.rivalite;
+    $('ficheRivalite').textContent = rv ? avec(texte('ficheRivalite'), { phrase: INTERVIEW.phrase(rv.cle, rv.variante, rv.params, ch, { pilote: nomPilote }),
+      circuit: rv.circuit ? (texte('circuit_' + rv.circuit) || (CIRCUITS[rv.circuit] ? CIRCUITS[rv.circuit].nom : rv.circuit)) : '–', saison: rv.saison, n: rv.courses }) : '';
     $('fichePhoto').title = texte('fichePhoto');   // la photo stylisée (le casque) viendra ; la place est gardée
     $('fichePhoto').style.setProperty('--ecurie', couleurCss(e.couleur));
     $('boutonFicheRetour').textContent = texte('ficheRetour');
+  }
+
+  // l'interview d'après course (interview.js, Codeur 3) : le journaliste (inventé, textes.js) et le journal, la question, les trois
+  // réponses avec l'icône de leur ton, « Pas de commentaire » ; après le choix : la ligne d'effet et « Continuer »
+  const ICONES_TON = { provocant: '😤', calme: '🤝', malin: '😏' };
+  const majuscule = s => s[0].toUpperCase() + s.slice(1);
+  function remplirInterview(ch, q) {
+    const noms = { pilote: nomPilote };
+    $('interviewTitre').textContent = texte('interviewTitre');
+    $('interviewJournaliste').textContent = texte('interviewJournaliste') + ' — ' + texte('journalNom');
+    $('interviewQuestion').textContent = INTERVIEW.phrase('interview_' + q.fait + '_q', q.variante, q.params, ch, noms);
+    const ul = $('interviewReponses');
+    ul.textContent = '';
+    for (const r of q.reponses) {
+      const li = document.createElement('li'), b = document.createElement('button'), ic = document.createElement('span'), tx = document.createElement('span');
+      b.dataset.ton = r.ton; b.tabIndex = -1; b.title = texte('ton' + majuscule(r.ton));
+      ic.className = 'icone'; ic.textContent = ICONES_TON[r.ton];
+      tx.className = 'reponse'; tx.textContent = INTERVIEW.phrase(r.cle, 0, q.params, ch, noms);
+      b.append(ic, tx); li.appendChild(b); ul.appendChild(li);
+    }
+    $('boutonPasCommentaire').textContent = texte('interviewPasCommentaire');
+    $('boutonInterviewSuite').textContent = texte('continuer');
+    $('interviewEffet').textContent = '';
+    $('interviewChoix').classList.remove('cache');
+    $('interviewSuite').classList.add('cache');
+  }
+
+  function montrerEffetInterview(ch, r) {
+    $('interviewEffet').textContent = r.ligne ? INTERVIEW.phrase(r.ligne.cle, 0, r.ligne.params, ch, { pilote: nomPilote }) : '';
+    $('interviewChoix').classList.add('cache');
+    $('interviewSuite').classList.remove('cache');
+  }
+
+  function preparerInterview(repondre, suite) {
+    for (const id of ['interviewReponses', 'boutonPasCommentaire', 'boutonInterviewSuite']) $(id).addEventListener('mousedown', e => e.preventDefault());
+    $('interviewReponses').addEventListener('click', e => { const b = e.target.closest('button[data-ton]'); if (b) repondre(b.dataset.ton); });
+    $('boutonPasCommentaire').addEventListener('click', () => repondre(null));
+    $('boutonInterviewSuite').addEventListener('click', suite);
+  }
+
+  // les trois jauges de réputation (public, écurie, sponsors ; 0 à 100) au paddock : trois petites barres
+  function remplirReputation(ch) {
+    const div = $('championnatReputation');
+    div.textContent = '';
+    for (const j of INTERVIEW.JAUGES) {
+      const x = ch.reputation && typeof ch.reputation[j] === 'number' ? Math.round(ch.reputation[j]) : REGLAGES.REPUTATION_DEPART;
+      const s = document.createElement('span'), nom = document.createElement('span'), barre = document.createElement('span'), plein = document.createElement('span'), val = document.createElement('span');
+      s.className = 'jauge'; s.dataset.jauge = j; s.title = texte('reputation' + majuscule(j)) + ' : ' + x + ' / 100';
+      nom.className = 'nom'; nom.textContent = texte('reputation' + majuscule(j));
+      barre.className = 'barre'; plein.className = 'plein'; plein.style.width = x + '%'; barre.appendChild(plein);
+      val.className = 'valeur'; val.textContent = x;
+      s.append(nom, barre, val); div.appendChild(s);
+    }
   }
 
   function preparerFiche(ouvrir, retour) {
@@ -738,6 +795,6 @@ const INTERFACE = (function () {
   return { formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, preparerChampionnat, remplirQualif, preparerQualif,
     remplirDuel, avec, remplirUne, preparerUne, remplirArgent, remplirSolde, remplirGarage, preparerGarage,
     remplirSaison, remplirDuelSaison, remplirContrats, remplirRetraite, preparerSaison, retraiteEnAttente,
-    remplirSponsors, remplirRappelSponsor, preparerSponsors, remplirFiche, preparerFiche,
+    remplirSponsors, remplirRappelSponsor, preparerSponsors, remplirFiche, preparerFiche, remplirInterview, montrerEffetInterview, preparerInterview, remplirReputation,
     majEcartFantome, preparerFantome, majBoutonsFantome, majDepart, preparerTitre, remplirBravo, majAides, remplirPilote, lirePilote, montrerErreursPilote, preparerPilote, nomCircuit, remplirCasque, lireCasque, modePilote, preparerCasque };
 })();
