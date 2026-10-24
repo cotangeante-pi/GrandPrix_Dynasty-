@@ -767,6 +767,35 @@ function montrerTemple() {
   INTERFACE.montrer('temple');
 }
 
+// la relève (carriere.js) : « Continuer la dynastie » → l'écran de l'héritier ; « C'est parti ! » : le même monde passe à la saison
+// suivante, l'héritier dans la plus petite écurie, sauvegardé, puis le paddock (« Course suivante » recharge la page sur le nouveau
+// circuit) ; « Nouvelle dynastie » : un monde neuf (une autre graine), l'ancienne reste au temple, la page se recharge
+function montrerHeritier() {
+  if (JEU.ecran !== 'retraite') return;
+  INTERFACE.remplirHeritier(JEU.championnat);
+  JEU.ecran = 'heritier';
+  INTERFACE.montrer('heritier');
+}
+
+function validerHeritier() {
+  if (JEU.ecran !== 'heritier') return false;
+  const ch = JEU.championnat, choix = INTERFACE.lireHeritier(ch);
+  if (!CARRIERE.validerHeritier(ch, choix).ok || !CARRIERE.continuer(ch, choix)) { INTERFACE.montrerErreurHeritier(true); return false; }
+  SAUVEGARDE.ecrireChampionnat(ch);
+  JEU.gagne = null;
+  JEU.grandPrixFini = true;   // le circuit du Grand Prix 1 de la nouvelle saison : « Course suivante » recharge la page
+  montrerChampionnat(null);
+  return true;
+}
+
+function nouvelleDynastie() {
+  if (JEU.ecran !== 'retraite') return;
+  const ancien = JEU.championnat;
+  SAUVEGARDE.entrerAuTemple(ancien);   // (déjà fait au bilan : une seule fois)
+  SAUVEGARDE.ecrireChampionnat(CARRIERE.nouveauMonde(ancien));
+  location.reload();
+}
+
 function quitterTemple() {
   if (JEU.ecran !== 'temple') return;
   montrerRetraite();
@@ -1063,7 +1092,7 @@ function majTableau() {
   document.getElementById('rapport').textContent = rapportPourVitesse(v.u);
   const roule = JEU.ecran === 'course' || JEU.ecran === 'survol' || enTourQualif();
   // sur le podium et les résultats, ni vitesse ni aide des touches
-  const apres = ['podium', 'resultats', 'championnat', 'une', 'garage', 'titre', 'amis', 'bravo', 'saison', 'duelSaison', 'contrats', 'retraite', 'sponsors', 'fiche', 'interview', 'ceremonie', 'album', 'temple', 'deuxReglages'].includes(JEU.ecran);
+  const apres = ['podium', 'resultats', 'championnat', 'une', 'garage', 'titre', 'amis', 'bravo', 'saison', 'duelSaison', 'contrats', 'retraite', 'sponsors', 'fiche', 'interview', 'ceremonie', 'album', 'temple', 'heritier', 'deuxReglages'].includes(JEU.ecran);
   document.getElementById('tableau').classList.toggle('cache', apres);
   document.getElementById('aide').classList.toggle('cache', apres);
   // après l'arrivée du joueur (en attendant les autres), il ne court plus : pas de « hors piste »
@@ -1210,6 +1239,7 @@ function demarrerJeu() {
     INTERFACE.preparerCeremonie(suiteCeremonie);
     INTERFACE.preparerAlbum(montrerAlbum, feuilleterAlbum, saisonAlbum, quitterAlbum);
     INTERFACE.preparerTemple(montrerTemple, quitterTemple);
+    INTERFACE.preparerReleve(montrerHeritier, nouvelleDynastie, validerHeritier);
     INTERFACE.preparerGarage(acheterAmelioration, quitterGarage);
     INTERFACE.preparerSaison(suiteClassementSaison, suiteDuelSaison, signerContrat, prendreRetraite);
     INTERFACE.preparerSponsors(montrerSponsors, choisirSponsor, quitterSponsors);

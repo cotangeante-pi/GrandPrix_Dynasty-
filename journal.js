@@ -38,6 +38,9 @@ const JOURNAL = (function () {
     const rApres = rangs(apres), leader = rApres.indexOf(1), second = rApres.indexOf(2);
     // la saison finie : le champion
     if (ch.prochain >= ch.calendrier.length && leader === j.id) f.titreChampion = { pilote: j.id, ecurie: j.ecurie, points: apres[leader] };
+    // la relève : le premier Grand Prix de l'héritier (« Le fils de Rossi débarque ») ; parent = l'indice de la génération d'avant
+    const D = ch.dynastie, G = D && D.generations ? D.generations.length : 0;
+    if (G && D.lien && n === 0 && ch.carriere && ch.saison === ch.carriere.debut) f['releve_' + D.lien] = Object.assign({ parent: G - 1 }, base);
     const s = j.stats, avantPlaces = j.places.slice(0, -1);
     if (place === 1) f[s.victoires === 1 ? 'premiereVictoire' : 'victoire'] = Object.assign({ n: s.victoires }, base);
     else if (place <= 3) f[s.podiums === 1 ? 'premierPodium' : 'podium'] = base;
@@ -169,6 +172,10 @@ const JOURNAL = (function () {
   function enTexte(cle, x, ch, noms) {
     if (cle === 'pilote' || cle === 'coequipier' || cle === 'rival') return noms.pilote(ch.pilotes[x]);
     if (cle === 'ecurie') return noms.ecurie(ch.ecuries[x]);
+    if (cle === 'parent') {   // la génération d'avant (la relève), par son nom
+      const g = ch.dynastie && ch.dynastie.generations ? ch.dynastie.generations[x] : null;
+      return noms.pilote(g ? { nom: g.nom, numero: g.numero, humain: true } : { nom: null, numero: 0, humain: true });
+    }
     if (cle === 'circuit') return nomCircuit(x);
     if (cle === 'temps') { const m = Math.floor(x / 60), s = x - m * 60; return (m + ':' + (s < 10 ? '0' : '') + s.toFixed(3)).replace('.', texte('virgule')); }
     return String(x).replace('.', texte('virgule'));

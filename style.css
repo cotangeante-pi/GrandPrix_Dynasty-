@@ -866,3 +866,18 @@ body.deux #departResultat { bottom: auto; top: calc(50% - 60px); }
 #templeListe .nom { font-weight: 700; overflow: hidden; text-overflow: ellipsis; }
 #templeRecords { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 18px; width: min(92vw, 720px); font: 13px/1.4 var(--police); text-align: left; }
 #templeRecords li { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* la relève (Codeur 3) : le formulaire de l'héritier à gauche, l'arbre de la dynastie à droite ; tient en 960×600 */
+#bilanFamille { font-size: 14px !important; opacity: 0.9; }
+#heritier h1, #heritier h2 { margin: 0; }
+#heritierCorps { display: flex; gap: 22px; align-items: flex-start; width: min(92vw, 820px); }
+#heritierForme { flex: 1.2; display: grid; gap: 6px; text-align: left; }
+#heritierForme label { display: grid; grid-template-columns: 150px 1fr; gap: 10px; align-items: center; font: 600 14px/1.3 var(--police); }
+#heritierForme input, #heritierForme select { font: 600 14px/1.2 var(--police); padding: 4px 6px; border-radius: 6px; border: 0; min-width: 0; }
+#heritierFamille { font-size: 13px !important; opacity: 0.85; }
+#heritierArbre { flex: 1; min-width: 0; text-align: left; }
+#heritierArbre h2 { font-size: 15px; margin-bottom: 4px; }
+#arbreListe { margin: 0; padding: 0 0 0 18px; font: 13px/1.4 var(--police); max-height: 40vh; overflow: hidden; }
+#arbreListe li { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#heritierErreur { color: #ff8a8a; font-size: 14px !important; min-height: 18px; }
+#bilanBoutons button { align-content: center; }   /* (le petit bouton à la hauteur des autres : son texte au milieu) */

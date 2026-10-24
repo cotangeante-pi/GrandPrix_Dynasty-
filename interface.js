@@ -45,7 +45,7 @@ const INTERFACE = (function () {
   }
 
   function montrer(ecran) {
-    for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une', 'garage', 'saison', 'duelSaison', 'contrats', 'retraite', 'titre', 'amis', 'bravo', 'pilote', 'sponsors', 'fiche', 'interview', 'ceremonie', 'temple', 'deuxReglages']) $(id).classList.toggle('cache', id !== ecran);
+    for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une', 'garage', 'saison', 'duelSaison', 'contrats', 'retraite', 'titre', 'amis', 'bravo', 'pilote', 'sponsors', 'fiche', 'interview', 'ceremonie', 'temple', 'heritier', 'deuxReglages']) $(id).classList.toggle('cache', id !== ecran);
     // l'album des unes (Codeur 3) : la page de la une, avec la barre pour feuilleter
     if (ecran === 'album') $('une').classList.remove('cache');
     $('une').classList.toggle('album', ecran === 'album');
@@ -653,8 +653,8 @@ const INTERFACE = (function () {
   // la retraite : « Carrière terminée », la raison, le bilan simple (le vrai bilan est l'étape 14)
   function remplirRetraite(r) {
     $('retraiteTitre').textContent = texte('retraiteTitre');
-    $('retraiteRaison').textContent = avec(texte(r.raison === 'age' ? 'retraiteAge' : 'retraiteChoix'), { n: r.saison });
-    $('retraiteBilan').textContent = avec(texte('retraiteBilan'), { s: r.saisons, v: r.victoires, p: r.podiums, t: r.titres });
+    $('retraiteRaison').textContent = avec(texte(r.raison === 'age' ? 'retraiteAge' : 'retraiteChoix'), { n: r.raison === 'age' ? r.saisons : r.saison });   // (l'âge : les saisons de la carrière, la relève compte les siennes)
+    $('retraiteBilan').textContent = avec(texte('retraiteBilan'), { s: nombre(r.saisons, 'saison'), v: nombre(r.victoires, 'victoire'), p: nombre(r.podiums, 'podium'), t: nombre(r.titres, 'titre') });
   }
 
   // la cérémonie du champion (b = SAISONS.terminerSaison) : le joueur champion → « CHAMPION DU MONDE », son nom, ses points ;
@@ -666,8 +666,8 @@ const INTERFACE = (function () {
     $('ceremonieTitre').textContent = toi ? texte('ceremonieTitre') : avec(texte('ceremonieRival'), { pilote: nomPilote(p) });
     $('ceremonieNom').textContent = toi ? nomPilote(p) : '';
     const victoires = p.places.filter(x => x === 1).length, points = b.pilotes[0].points;
-    $('ceremonieDetail').textContent = toi ? avec(texte('ceremonieDetail'), { points, v: victoires, ecurie: nomEcurie(e) })
-      : avec(texte('ceremonieRivalDetail'), { points, ecurie: nomEcurie(e), place: b.joueurPlace });
+    $('ceremonieDetail').textContent = toi ? avec(texte('ceremonieDetail'), { points: nombre(points, 'point'), v: nombre(victoires, 'victoire'), ecurie: nomEcurie(e) })
+      : avec(texte('ceremonieRivalDetail'), { points: nombre(points, 'point'), ecurie: nomEcurie(e), place: b.joueurPlace });
     $('boutonCeremonieSuite').textContent = texte('suite');
   }
 
@@ -694,6 +694,81 @@ const INTERFACE = (function () {
     $('bilanUne').textContent = une ? avec(texte('bilanUne'), { titre: une.titre, s: une.saison, g: une.grandPrix }) : texte('bilanAucuneUne');
     $('bilanTemple').textContent = place ? avec(texte('bilanTemple'), { p: place, n }) : avec(texte('bilanHorsTemple'), { n: REGLAGES.TEMPLE_MAX });
     $('boutonTemple').textContent = texte('temple');
+    // la relève : les records de la famille, et les deux suites (« Continuer la dynastie », « Nouvelle dynastie » avec confirmation)
+    const f = CARRIERE.recordsFamille(ch);
+    $('bilanFamille').textContent = avec(texte('bilanFamille'), { g: nombre(f.generations, 'generation'), t: nombre(f.titres, 'titre'), v: nombre(f.victoires, 'victoire'), c: nombre(f.championnes, 'championne') });
+    $('boutonContinuerDynastie').textContent = texte('continuerDynastie');
+    nouvelleDemandee = false;
+    $('boutonNouvelleDynastie').textContent = texte('nouvelleDynastie');
+  }
+  let nouvelleDemandee = false;
+
+  // continuer() : l'écran de l'héritier ; nouvelle() : un monde neuf (le premier clic demande une confirmation)
+  function preparerReleve(continuer, nouvelle, valider) {
+    for (const id of ['boutonContinuerDynastie', 'boutonNouvelleDynastie', 'boutonHeritierValider']) $(id).addEventListener('mousedown', e => e.preventDefault());
+    $('boutonContinuerDynastie').addEventListener('click', continuer);
+    $('boutonNouvelleDynastie').addEventListener('click', () => {
+      if (!nouvelleDemandee) { nouvelleDemandee = true; $('boutonNouvelleDynastie').textContent = texte('nouvelleConfirmer'); return; }
+      nouvelleDemandee = false;
+      nouvelle();
+    });
+    $('boutonHeritierValider').addEventListener('click', valider);
+    $('heritierPays').addEventListener('change', majDomicileHeritier);
+    for (const id of ['heritierPrenom', 'heritierNumero']) $(id).addEventListener('input', () => montrerErreurHeritier(false));   // le message part dès qu'on corrige
+  }
+
+  // la course de cœur suit le pays (un pays qui a un circuit : son Grand Prix à domicile, d'office)
+  function majDomicileHeritier() {
+    const maison = PILOTE.domicile($('heritierPays').value);
+    $('heritierCoeur').disabled = !!maison;
+    if (maison) $('heritierCoeur').value = maison;
+  }
+
+  // l'écran de l'héritier : le parent nommé (jamais genré), le nom de famille gardé, un numéro libre, les quatre liens, le pays et
+  // la course de cœur du parent par défaut, le motif du casque (les couleurs du parent) ; l'arbre de la dynastie
+  function remplirHeritier(ch) {
+    const R = REGLAGES, j = PILOTE.joueur(ch), parent = nomPilote(j), fam = ch.dynastie.generations.length ? ch.dynastie.famille : CARRIERE.famille(j.nom);
+    $('heritierTitre').textContent = texte('heritierTitre');
+    $('heritierParent').textContent = avec(texte('heritierParent'), { parent });
+    for (const [id, cle] of [['heritierPrenomTexte', 'heritierPrenom'], ['heritierNumeroTexte', 'heritierNumero'], ['heritierLienTexte', 'heritierLien'], ['heritierPaysTexte', 'heritierPays'], ['heritierCoeurTexte', 'heritierCoeur']]) $(id).textContent = texte(cle);
+    $('heritierMotifTexte').textContent = avec(texte('heritierMotif'), { parent });
+    $('heritierFamille').textContent = fam ? avec(texte('heritierFamille'), { famille: fam }) : '';
+    $('heritierPrenom').maxLength = R.NOM_LONGUEUR_MAX; $('heritierPrenom').value = '';
+    const numero = $('heritierNumero');
+    numero.min = R.NUMERO_MIN; numero.max = R.NUMERO_MAX;
+    let libre = R.NUMERO_MIN; while ((!PILOTE.numeroLibre(ch, libre) || libre === j.numero) && libre < R.NUMERO_MAX) libre++;
+    numero.value = libre;
+    const options = (id, liste, nom) => { const s = $(id); s.textContent = ''; for (const x of liste) { const o = document.createElement('option'); o.value = x; o.textContent = nom(x); s.appendChild(o); } };
+    options('heritierLien', CARRIERE.LIENS, l => avec(texte('heritierLien_' + l), { parent }));
+    options('heritierPays', R.PAYS.slice().sort((a, b) => texte('pays_' + a).localeCompare(texte('pays_' + b), LANGUE)), c => texte('pays_' + c));
+    options('heritierCoeur', Object.keys(R.CIRCUITS_PAYS), nomCircuit);
+    options('heritierMotif', R.CASQUE_MOTIFS, m => texte('motif_' + m));
+    $('heritierPays').value = j.pays || R.PAYS[0];
+    $('heritierCoeur').value = j.coeur || Object.keys(R.CIRCUITS_PAYS)[0];
+    majDomicileHeritier();
+    $('heritierMotif').value = CARRIERE.casqueParent(ch).motif;
+    $('heritierErreur').textContent = '';
+    $('boutonHeritierValider').textContent = texte('heritierValider');
+    // l'arbre : chaque génération finie, puis le pilote qui s'arrête
+    $('arbreTitre').textContent = texte('arbreTitre');
+    const ol = $('arbreListe');
+    ol.textContent = '';
+    for (const g of ch.dynastie.generations.concat([CARRIERE.resume(ch)])) {
+      const li = document.createElement('li');
+      li.textContent = avec(texte('releveParent'), { parent: nomPilote({ nom: g.nom, numero: g.numero, humain: true }), s: nombre(g.saisons, 'saison'), t: nombre(g.titres, 'titre'), v: nombre(g.victoires, 'victoire'), p: nombre(g.podiums, 'podium') });
+      ol.appendChild(li);
+    }
+  }
+
+  // les choix de l'écran de l'héritier (le casque : les couleurs du parent, le motif choisi)
+  function lireHeritier(ch) {
+    const c = CARRIERE.casqueParent(ch);
+    return { prenom: $('heritierPrenom').value, numero: $('heritierNumero').value, lien: $('heritierLien').value, pays: $('heritierPays').value, coeur: $('heritierCoeur').value,
+      casque: CASQUE.creer($('heritierMotif').value, c.couleurs) };
+  }
+
+  function montrerErreurHeritier(oui) {
+    $('heritierErreur').textContent = oui ? texte('heritierErreur') : '';
   }
 
   // le temple : les carrières finies classées (titres, puis victoires) ; moi : le numéro d'entrée (n) de la carrière qui vient de finir
@@ -708,7 +783,7 @@ const INTERFACE = (function () {
       const li = document.createElement('li');
       if (c.n === moi) li.className = 'moi';
       li.dataset.n = c.n;
-      li.append(sp('place', String(i + 1)), sp('nom', nomPilote({ nom: c.nom, numero: c.numero, humain: true }) + ' #' + c.numero), sp('ligne', avec(texte('templeLigne'), { t: c.titres, v: c.victoires, p: c.podiums, s: c.saisons })));
+      li.append(sp('place', String(i + 1)), sp('nom', nomPilote({ nom: c.nom, numero: c.numero, humain: true }) + ' #' + c.numero), sp('ligne', avec(texte('templeLigne'), { t: nombre(c.titres, 'titre'), v: nombre(c.victoires, 'victoire'), p: nombre(c.podiums, 'podium'), s: nombre(c.saisons, 'saison') })));
       ol.appendChild(li);
     });
     const ul = $('templeRecords');
@@ -802,6 +877,9 @@ const INTERFACE = (function () {
   function remplirFiche(ch, f) {
     const p = f.pilote, e = ch.ecuries[p.ecurie];
     $('ficheNom').textContent = nomPilote(p);
+    // la relève : « J'ai couru contre Alex Rossi. Alex Rossi ne lâchait jamais rien. » (jamais genré sur le pilote précédent)
+    const g = f.famille === null || f.famille === undefined ? null : ch.dynastie.generations[f.famille];
+    $('ficheFamille').textContent = g ? avec(texte('ficheFamille'), { parent: nomPilote({ nom: g.nom, numero: g.numero, humain: true }) }) : '';
     $('ficheInfos').textContent = '';
     $('ficheInfos').append(texte('numero').replace('{n}', p.numero) + ' · ', pastille(e.couleur), ' ' + avec(texte('ficheEcurie'), { ecurie: nomEcurie(e) }) + (typeof p.age === 'number' ? ' · ' + avec(texte('ficheAge'), { n: p.age }) : ''));
     $('ficheCaractere').textContent = f.mots.length ? avec(texte('ficheCaractere'), { mots: f.mots.map(m => texte('caractere_' + m)).join(', ') }) : '';
@@ -1028,7 +1106,7 @@ const INTERFACE = (function () {
 
   return { preparerAmis, remplirDeux, lireDeux, montrerErreursDeux, preparerDeux, remplirPodiumDeux, remplirRivalite, formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, preparerChampionnat, remplirQualif, preparerQualif,
     remplirDuel, avec, remplirUne, preparerUne, remplirArgent, remplirSolde, remplirGarage, preparerGarage,
-    remplirSaison, remplirDuelSaison, remplirContrats, remplirRetraite, preparerSaison, retraiteEnAttente, remplirCeremonie, preparerCeremonie, remplirAlbum, preparerAlbum, remplirBilan, remplirTemple, preparerTemple,
+    remplirSaison, remplirDuelSaison, remplirContrats, remplirRetraite, preparerSaison, retraiteEnAttente, remplirCeremonie, preparerCeremonie, remplirAlbum, preparerAlbum, remplirBilan, remplirTemple, preparerTemple, preparerReleve, remplirHeritier, lireHeritier, montrerErreurHeritier,
     remplirSponsors, remplirRappelSponsor, preparerSponsors, remplirFiche, preparerFiche, remplirInterview, montrerEffetInterview, preparerInterview, remplirReputation,
     majEcartFantome, preparerFantome, majBoutonsFantome, majDepart, majDeux, preparerTitre, remplirBravo, majAides, remplirPilote, lirePilote, montrerErreursPilote, preparerPilote, nomCircuit, remplirCasque, lireCasque, modePilote, preparerCasque };
 })();

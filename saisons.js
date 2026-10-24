@@ -52,7 +52,8 @@ const SAISONS = (function () {
     });
     ch.enFinDeSaison = true;
     // la retraite par l'âge : après SAISONS_MAX saisons, la carrière s'arrête (pas de contrat)
-    if (ch.saison >= R.SAISONS_MAX) prendreRetraite(ch, 'age');
+    // (les saisons de CETTE carrière : un héritier de la relève a ses propres 15 saisons, carriere.js : ch.carriere.debut)
+    if (ch.saison - (ch.carriere && typeof ch.carriere.debut === 'number' ? ch.carriere.debut : 1) + 1 >= R.SAISONS_MAX) prendreRetraite(ch, 'age');
     return b;
   }
 
@@ -88,7 +89,8 @@ const SAISONS = (function () {
   // actuelle propose de garder le joueur si sa note le permet ; la plus faible accepte toujours : il y a toujours une offre
   function offres(ch) {
     const n = note(ch), ex = exigences(ch), j = joueur(ch);
-    return ch.ecuries.filter(e => ex[e.id] <= n + 1e-12)
+    const bonus = id => typeof CARRIERE !== 'undefined' ? CARRIERE.attention(ch, rangEcurie(ch, id), ch.ecuries.length) : 0;   // la relève : un peu d'attention pour l'héritier (jamais d'une grande écurie)
+    return ch.ecuries.filter(e => ex[e.id] <= n + bonus(e.id) + 1e-12)
       .sort((a, b) => b.niveau - a.niveau || a.id - b.id)
       .map(e => ({ ecurie: e.id, niveau: e.niveau, coequipier: coequipierDans(ch, e.id) ? coequipierDans(ch, e.id).id : null, actuelle: e.id === j.ecurie, exigence: ex[e.id] }));
   }

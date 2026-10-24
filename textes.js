@@ -136,20 +136,40 @@ const TEXTES = {
     contratMot_fort: 'a top team', contratMot_moyen: 'a midfield team', contratMot_faible: 'a small team',
     retraite: 'Retire', retraiteConfirmer: 'Confirm: retire now', retraiteTitre: 'Career over',
     retraiteChoix: 'You chose to retire after season {n}.', retraiteAge: 'Too old to race on after {n} seasons.',
-    retraiteBilan: '{s} seasons · {v} wins · {p} podiums · {t} titles',
+    retraiteBilan: '{s} · {v} · {p} · {t}',
     // le bilan de carrière et le temple de la renommée (carriere.js, Codeur 3)
     bilanEtiquettes: ['Seasons', 'Titles', 'Wins', 'Podiums', 'Poles', 'Fastest laps', 'Best championship finish', 'Best home result', 'Best reaction'],
     bilanDuels: 'Team-mate duels: {liste}', bilanDuel: '{nom} {a}–{b}', bilanAucunDuel: 'Team-mate duels: none',
-    bilanUne: 'Favourite front page: “{titre}” — season {s}, Grand Prix {g}', bilanAucuneUne: 'Favourite front page: none yet',
+    bilanUne: 'Your favourite front page: “{titre}” — season {s}, Grand Prix {g}', bilanAucuneUne: 'Your favourite front page: none yet',
     bilanTemple: 'Hall of fame: {p} of {n}', bilanHorsTemple: 'Hall of fame: not among the best {n}',
-    temple: '🏛 Hall of fame', templeTitre: 'Hall of fame', templeLigne: '{t} titles · {v} wins · {p} podiums · {s} seasons',
+    temple: '🏛 Hall of fame', templeTitre: 'Hall of fame', templeLigne: '{t} · {v} · {p} · {s}',
     templeRecordsTitre: 'Career records', templeRetour: 'Back', templeVide: 'No finished career yet',
     record_titres: 'Titles', record_victoires: 'Wins', record_podiums: 'Podiums', record_poles: 'Poles', record_meilleursTours: 'Fastest laps', record_saisons: 'Seasons', record_reaction: 'Reaction',
     recordLigne: '{quoi}: {valeur} — {nom}',
+    // la relève (carriere.js, Codeur 3) : les textes sur le pilote précédent ne sont JAMAIS genrés (il est nommé) ; ceux de l'héritier suivent le lien
+    continuerDynastie: '👪 Continue the family legacy', nouvelleDynastie: '✨ A new family', nouvelleConfirmer: 'Confirm: a brand-new world',
+    heritierTitre: 'The next generation', heritierParent: 'Taking over from {parent}', heritierPrenom: 'First name', heritierFamille: 'Family name: {famille}',
+    heritierNumero: 'Number', heritierLien: 'Link', heritierPays: 'Country', heritierCoeur: 'Favourite race', heritierMotif: 'Helmet pattern (colours of {parent})',
+    heritierValider: 'Let’s go!', heritierErreur: 'Check the first name and the number (free, 1 to 99).',
+    heritierLien_fils: 'son of {parent}', heritierLien_fille: 'daughter of {parent}', heritierLien_protege: 'protégé of {parent}', heritierLien_protegee: 'protégée of {parent}',
+    releveTitre: 'The legacy', releveParent: '{parent}: {s} · {t} · {v} · {p}', arbreTitre: 'Family tree',
+    bilanFamille: 'Family records: {g} · {t} · {v} · {c}',
+    ficheFamille: '“I raced against {parent}. {parent} never gave an inch.”',
+    uneTitre_releve_fils: ['The son of {parent} arrives', '{pilote}, son of {parent}, takes the start', 'A famous name: {pilote}, son of {parent}, on the grid'],
+    uneTexte_releve_fils: ['P{place} at {circuit} in a first Grand Prix. The paddock has not forgotten {parent}.', 'First Grand Prix, P{place} at {circuit}. {parent} opened the way; now it is his turn.'],
+    uneTitre_releve_fille: ['The daughter of {parent} arrives', '{pilote}, daughter of {parent}, takes the start', 'A famous name: {pilote}, daughter of {parent}, on the grid'],
+    uneTexte_releve_fille: ['P{place} at {circuit} in a first Grand Prix. The paddock has not forgotten {parent}.', 'First Grand Prix, P{place} at {circuit}. {parent} opened the way; now it is her turn.'],
+    uneTitre_releve_protege: ['The protégé of {parent} arrives', '{pilote}, protégé of {parent}, takes the start', 'A famous mentor: {pilote}, protégé of {parent}, on the grid'],
+    uneTexte_releve_protege: ['P{place} at {circuit} in a first Grand Prix. The paddock has not forgotten {parent}.', 'First Grand Prix, P{place} at {circuit}. {parent} opened the way; now it is his turn.'],
+    uneTitre_releve_protegee: ['The protégée of {parent} arrives', '{pilote}, protégée of {parent}, takes the start', 'A famous mentor: {pilote}, protégée of {parent}, on the grid'],
+    uneTexte_releve_protegee: ['P{place} at {circuit} in a first Grand Prix. The paddock has not forgotten {parent}.', 'First Grand Prix, P{place} at {circuit}. {parent} opened the way; now it is her turn.'],
+    // un nombre devant un mot (nombre(n, cle), Codeur 3) : [singulier, pluriel] ; en anglais le singulier est pour 1 seulement
+    nb_saison: ['{n} season', '{n} seasons'], nb_titre: ['{n} title', '{n} titles'], nb_victoire: ['{n} win', '{n} wins'], nb_podium: ['{n} podium', '{n} podiums'],
+    nb_point: ['{n} point', '{n} points'], nb_generation: ['{n} generation', '{n} generations'], nb_championne: ['{n} champion generation', '{n} champion generations'],
     // la cérémonie du champion (Codeur 3)
-    ceremonieSaison: 'Season {n}', ceremonieTitre: 'WORLD CHAMPION', ceremonieDetail: '{points} points · {v} wins this season · {ecurie}',
+    ceremonieSaison: 'Season {n}', ceremonieTitre: 'WORLD CHAMPION', ceremonieDetail: '{points} · {v} this season · {ecurie}',
     album: '📰 Album', albumAide: 'Every front page of your career', albumPage: 'Season {s} · Grand Prix {g} · {i} / {n}', albumFermer: 'Close',
-    ceremonieRival: '{pilote} is world champion', ceremonieRivalDetail: '{points} points for {ecurie} · you finish P{place}',
+    ceremonieRival: '{pilote} is world champion', ceremonieRivalDetail: '{points} for {ecurie} · you finish P{place}',
     breveRetraite: ['{pilote}, {age}, is thinking about retirement.', 'At {age}, {pilote} may be in a final season.'],
     // les sponsors (sponsors.js) et la fiche du rival (fiche.js) (Codeur 3)
     sponsors: 'Sponsors', sponsorsTitre: 'Sponsors for season {n}', sponsorsChoisir: 'Choose', sponsorsRetour: 'Back', sponsorMontant: '{n} per season',
@@ -322,20 +342,40 @@ const TEXTES = {
     contratMot_fort: 'une écurie de pointe', contratMot_moyen: 'une écurie du milieu', contratMot_faible: 'une petite écurie',
     retraite: 'Prendre ma retraite', retraiteConfirmer: 'Confirmer : arrêter maintenant', retraiteTitre: 'Carrière terminée',
     retraiteChoix: 'Tu as choisi de t’arrêter après la saison {n}.', retraiteAge: 'Trop vieux pour continuer après {n} saisons.',
-    retraiteBilan: '{s} saisons · {v} victoires · {p} podiums · {t} titres',
+    retraiteBilan: '{s} · {v} · {p} · {t}',
     // le bilan de carrière et le temple de la renommée (carriere.js, Codeur 3)
     bilanEtiquettes: ['Saisons', 'Titres', 'Victoires', 'Podiums', 'Poles', 'Meilleurs tours', 'Meilleure place au championnat', 'Meilleur résultat à domicile', 'Meilleure réaction'],
     bilanDuels: 'Duels contre les coéquipiers : {liste}', bilanDuel: '{nom} {a}–{b}', bilanAucunDuel: 'Duels contre les coéquipiers : aucun',
-    bilanUne: 'Une préférée : « {titre} » — saison {s}, Grand Prix {g}', bilanAucuneUne: 'Une préférée : pas encore',
+    bilanUne: 'Ta une préférée : « {titre} » — saison {s}, Grand Prix {g}', bilanAucuneUne: 'Ta une préférée : pas encore',
     bilanTemple: 'Temple de la renommée : {p} sur {n}', bilanHorsTemple: 'Temple de la renommée : pas parmi les {n} meilleures',
-    temple: '🏛 Temple de la renommée', templeTitre: 'Temple de la renommée', templeLigne: '{t} titres · {v} victoires · {p} podiums · {s} saisons',
+    temple: '🏛 Temple de la renommée', templeTitre: 'Temple de la renommée', templeLigne: '{t} · {v} · {p} · {s}',
     templeRecordsTitre: 'Records de carrière', templeRetour: 'Retour', templeVide: 'Aucune carrière finie pour l’instant',
     record_titres: 'Titres', record_victoires: 'Victoires', record_podiums: 'Podiums', record_poles: 'Poles', record_meilleursTours: 'Meilleurs tours', record_saisons: 'Saisons', record_reaction: 'Réaction',
     recordLigne: '{quoi} : {valeur} — {nom}',
+    // la relève (carriere.js, Codeur 3) : les textes sur le pilote précédent ne sont JAMAIS genrés (il est nommé) ; ceux de l'héritier suivent le lien
+    continuerDynastie: '👪 Continuer la dynastie', nouvelleDynastie: '✨ Nouvelle dynastie', nouvelleConfirmer: 'Confirmer : un monde tout neuf',
+    heritierTitre: 'La relève', heritierParent: 'Prendre la suite de {parent}', heritierPrenom: 'Prénom', heritierFamille: 'Nom de famille : {famille}',
+    heritierNumero: 'Numéro', heritierLien: 'Lien', heritierPays: 'Pays', heritierCoeur: 'Course de cœur', heritierMotif: 'Motif du casque (couleurs de {parent})',
+    heritierValider: 'C’est parti !', heritierErreur: 'Vérifie le prénom et le numéro (libre, de 1 à 99).',
+    heritierLien_fils: 'fils de {parent}', heritierLien_fille: 'fille de {parent}', heritierLien_protege: 'protégé de {parent}', heritierLien_protegee: 'protégée de {parent}',
+    releveTitre: 'La dynastie', releveParent: '{parent} : {s} · {t} · {v} · {p}', arbreTitre: 'L’arbre de la dynastie',
+    bilanFamille: 'Records de famille : {g} · {t} · {v} · {c}',
+    ficheFamille: '« J’ai couru contre {parent}. {parent} ne lâchait jamais rien. »',
+    uneTitre_releve_fils: ['Le fils de {parent} débarque', '{pilote}, le fils de {parent}, prend le départ', 'Un nom qui compte : {pilote}, fils de {parent}, sur la grille'],
+    uneTexte_releve_fils: ['P{place} à {circuit} pour un premier Grand Prix. Le paddock n’a pas oublié {parent}.', 'Premier Grand Prix, P{place} à {circuit}. {parent} a ouvert la voie, à lui d’écrire la suite.'],
+    uneTitre_releve_fille: ['La fille de {parent} débarque', '{pilote}, la fille de {parent}, prend le départ', 'Un nom qui compte : {pilote}, fille de {parent}, sur la grille'],
+    uneTexte_releve_fille: ['P{place} à {circuit} pour un premier Grand Prix. Le paddock n’a pas oublié {parent}.', 'Premier Grand Prix, P{place} à {circuit}. {parent} a ouvert la voie, à elle d’écrire la suite.'],
+    uneTitre_releve_protege: ['Le protégé de {parent} débarque', '{pilote}, le protégé de {parent}, prend le départ', 'Un mentor qui compte : {pilote}, protégé de {parent}, sur la grille'],
+    uneTexte_releve_protege: ['P{place} à {circuit} pour un premier Grand Prix. Le paddock n’a pas oublié {parent}.', 'Premier Grand Prix, P{place} à {circuit}. {parent} a ouvert la voie, à lui d’écrire la suite.'],
+    uneTitre_releve_protegee: ['La protégée de {parent} débarque', '{pilote}, la protégée de {parent}, prend le départ', 'Un mentor qui compte : {pilote}, protégée de {parent}, sur la grille'],
+    uneTexte_releve_protegee: ['P{place} à {circuit} pour un premier Grand Prix. Le paddock n’a pas oublié {parent}.', 'Premier Grand Prix, P{place} à {circuit}. {parent} a ouvert la voie, à elle d’écrire la suite.'],
+    // un nombre devant un mot (nombre(n, cle), Codeur 3) : [singulier, pluriel] ; en français le singulier est pour 0 et 1
+    nb_saison: ['{n} saison', '{n} saisons'], nb_titre: ['{n} titre', '{n} titres'], nb_victoire: ['{n} victoire', '{n} victoires'], nb_podium: ['{n} podium', '{n} podiums'],
+    nb_point: ['{n} point', '{n} points'], nb_generation: ['{n} génération', '{n} générations'], nb_championne: ['{n} génération championne', '{n} générations championnes'],
     // la cérémonie du champion (Codeur 3)
-    ceremonieSaison: 'Saison {n}', ceremonieTitre: 'CHAMPION DU MONDE', ceremonieDetail: '{points} points · {v} victoires cette saison · {ecurie}',
+    ceremonieSaison: 'Saison {n}', ceremonieTitre: 'CHAMPION DU MONDE', ceremonieDetail: '{points} · {v} cette saison · {ecurie}',
     album: '📰 Album', albumAide: 'Toutes les unes de ta carrière', albumPage: 'Saison {s} · Grand Prix {g} · {i} / {n}', albumFermer: 'Fermer',
-    ceremonieRival: '{pilote} est champion du monde', ceremonieRivalDetail: '{points} points pour {ecurie} · tu finis P{place}',
+    ceremonieRival: '{pilote} est champion du monde', ceremonieRivalDetail: '{points} pour {ecurie} · tu finis P{place}',
     breveRetraite: ['{pilote}, {age} ans, pense à la retraite.', 'À {age} ans, {pilote} vit peut-être une dernière saison.'],
     // les sponsors (sponsors.js) et la fiche du rival (fiche.js) (Codeur 3)
     sponsors: 'Sponsors', sponsorsTitre: 'Les sponsors pour la saison {n}', sponsorsChoisir: 'Choisir', sponsorsRetour: 'Retour', sponsorMontant: '{n} par saison',
@@ -391,4 +431,11 @@ const LANGUE = (function () {
 
 function texte(cle) {
   return TEXTES[LANGUE][cle] !== undefined ? TEXTES[LANGUE][cle] : TEXTES.en[cle];
+}
+
+// un nombre devant un mot, accordé : nombre(1, 'saison') → « 1 saison », nombre(3, 'saison') → « 3 saisons » (texte('nb_<cle>') =
+// [singulier, pluriel] ; le singulier : 0 et 1 en français, 1 seulement en anglais)
+function nombre(n, cle) {
+  const formes = texte('nb_' + cle), un = LANGUE === 'fr' ? Math.abs(n) < 2 : n === 1;
+  return formes[un ? 0 : 1].replace('{n}', String(n).replace('.', texte('virgule')));
 }
