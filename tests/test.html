@@ -965,7 +965,7 @@ t('journal : l’album est dans la sauvegarde ; rechargé, il redonne exactement
   CHAMPIONNAT.finirGrandPrix(d.championnat,lignesUne(devant(2,[19,18])));v(SAUVEGARDE.championnat().album.length===1&&SAUVEGARDE.championnat().album[0].g===4,'la une suivante');
   localStorage.removeItem(SAUVEGARDE.CLE);});
 t('journal : toutes les clés de texte existent en anglais et en français, avec le même nombre de variantes (≥ 2 titres par fait), les mêmes trous dans chaque paire, et aucun trou ne reste une fois rempli', ()=>{
-  const ex={parent:0,pilote:19,coequipier:18,rival:3,ecurie:9,circuit:'test',place:2,n:3,points:25,ecart:30,a:4,b:1,ligne:3,secondes:5,ancien:7,rang:4,gain:2,temps:62.345,age:35},ch=CHAMPIONNAT.creer(1);
+  const ex={consultant:0,parent:0,pilote:19,coequipier:18,rival:3,ecurie:9,circuit:'test',place:2,n:3,points:25,ecart:30,a:4,b:1,ligne:3,secondes:5,ancien:7,rang:4,gain:2,temps:62.345,age:35},ch=CHAMPIONNAT.creer(1);
   const trous=s_=>(s_.match(/\{[a-z]+\}/g)||[]).sort().join();let nb=0;
   for(const cle of JOURNAL.cles()){const e=TEXTES.en[cle],f=TEXTES.fr[cle];v(e!==undefined&&f!==undefined,cle+' manque');
     if(cle==='journalNom'){v(typeof e==='string'&&typeof f==='string'&&e&&f,cle);continue;}
@@ -1152,6 +1152,21 @@ t('relève : aucun texte sur le pilote précédent n’est genré (toutes les cl
     v(u.f==='releve_'+lien&&u.p.parent===0&&r.titre.includes('Alex Rossi'),lien+' : '+u.f+' '+r.titre);
     SAISONS.avancer(ch,1);v(ch.album[ch.album.length-1].f!=='releve_'+lien,'seulement au premier Grand Prix');
     v(JOURNAL.rendreAlbum(ch,0).classement.some(x=>x.moi&&x.nom==='Alex Rossi')&&JOURNAL.rendreAlbum(ch,ch.album.length-1).classement.some(x=>x.moi&&x.nom==='Sam Rossi'),'l’album nomme chaque génération');}});
+t('relève : les anciens rivaux du parent deviennent patrons ou consultants, seulement des noms (une offre signée, une brève) : tirés avec la graine, gardés dans leur résumé, jamais un pilote en activité, rien pour un premier pilote ; une ancienne sauvegarde les reçoit, les mêmes', ()=>{
+  const {ch}=carriere15(50);v(SAISONS.anciensDuParent(ch,'patron').length===0&&SAISONS.anciensDuParent(ch,'consultant').length===0&&!ch.album.some(u=>u.b.some(b=>b[0]==='breveConsultant')),'premier pilote : rien');
+  v(ch.retraites.length>5&&ch.retraites.every(r=>r.role==='patron'||r.role==='consultant')&&ch.retraites.filter(r=>r.role==='patron').every(r=>Number.isInteger(r.ecurieDirigee)&&r.ecurieDirigee>=0&&r.ecurieDirigee<10),'rôles : '+ch.retraites.map(r=>r.role[0]+(r.ecurieDirigee===undefined?'':r.ecurieDirigee)).join(','));
+  const roles=JSON.stringify(ch.retraites.map(r=>[r.role,r.ecurieDirigee]));
+  heritier(ch,'Léa','fille');const g=ch.dynastie.generations[0],P=SAISONS.anciensDuParent(ch,'patron'),Cs=SAISONS.anciensDuParent(ch,'consultant');
+  const actifs=new Set(ch.pilotes.filter(p=>!p.humain).map(p=>(p.nom||'')+'#'+p.numero));
+  v(P.length+Cs.length>0&&P.concat(Cs).every(r=>ch.retraites[r.i].id===r.id&&r.saison>=g.debut&&r.saison<=g.fin&&!actifs.has((r.nom||'')+'#'+r.numero)),'anciens : '+JSON.stringify(P.concat(Cs).map(r=>[r.i,r.saison])));
+  if(P.length){const s_=SAISONS.signataire(ch,P[0].ecurieDirigee);v(s_&&s_.i===P.find(r=>r.ecurieDirigee===P[0].ecurieDirigee).i,'signataire');}
+  v(SAISONS.signataire(ch,-1)===null,'pas de signataire');
+  if(Cs.length){SAISONS.avancer(ch,1);const u=ch.album[ch.album.length-1],b=u.b.find(x=>x[0]==='breveConsultant');v(b&&Cs.some(r=>r.i===b[2].consultant),'brève : '+JSON.stringify(u.b));
+    const r=JOURNAL.rendre(u,ch),nom=JOURNAL.rendre(u,ch,{pilote:p=>'['+(p.nom||'')+'#'+p.numero+']',ecurie:e=>'E'}).breves.find(x=>x.includes('consultant')||x.includes('Consultant'));
+    v(r.breves.some(x=>/consultant/i.test(x))&&nom&&nom.includes('['+(ch.retraites[b[2].consultant].nom||'')+'#'+ch.retraites[b[2].consultant].numero+']'),'rendu : '+JSON.stringify(r.breves));}
+  const vieux=JSON.parse(JSON.stringify(ch));for(const r of vieux.retraites){delete r.role;delete r.ecurieDirigee;}SAISONS.completer(vieux);
+  v(JSON.stringify(vieux.retraites.map(r=>[r.role,r.ecurieDirigee]))===JSON.stringify(ch.retraites.map(r=>[r.role,r.ecurieDirigee]))&&JSON.stringify(ch.retraites.slice(0,JSON.parse(roles).length).map(r=>[r.role,r.ecurieDirigee]))===roles,'ancienne sauvegarde : les mêmes rôles');
+  L.push('  (relève : '+P.length+' anciens rivaux du parent patrons, '+Cs.length+' consultants)');});
 t('relève : les records de famille s’additionnent sur 3 générations de 15 saisons ; les retraités gardent un résumé compact ; une ancienne sauvegarde (v3, sans dynastie) devient une dynastie d’une génération ; la taille après 3 générations est mesurée', ()=>{
   const {ch}=carriere15(47),gens=[];
   for(let g=0;g<2;g++){gens.push(CARRIERE.resume(ch));heritier(ch,['Léa','Tom'][g],['fille','fils'][g]);

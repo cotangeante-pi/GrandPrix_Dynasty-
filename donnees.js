@@ -282,6 +282,8 @@ const REGLAGES = {
   // la relève (carriere.js) : l'héritier repart d'une petite écurie, il hérite seulement de peu, toujours plafonné
   HERITAGE_REPUTATION_PAR_TITRE: 2,   // ses jauges de réputation partent de REPUTATION_DEPART + ce nombre par titre de la famille…
   HERITAGE_REPUTATION_MAX: 8,         // … et jamais plus de ce bonus
+  ROLE_PATRON: 0.4,             // la part des rivaux retraités qui deviennent patrons d'une écurie (les autres : consultants) ; seulement des noms dans les textes
+  GRAINE_ROLES: 13000,
   HERITAGE_ATTENTION: 0.08,           // à la fin de sa première saison, ce bonus de note pour les offres des écuries moyennes et faibles (jamais une grande)
 
   // la course de découverte du premier lancement (decouverte.js, CLAUDE.md « En piste en 10 secondes »)

@@ -23,7 +23,37 @@ const SAISONS = (function () {
     if (typeof ch.confiance !== 'number') ch.confiance = R.CONFIANCE_DEPART;   // la confiance de l'écurie (les consignes d'équipe viendront)
     if (ch.pilotes && (!ch.transferts || ch.transferts.saison !== ch.saison)) ch.transferts = intentions(ch);   // une sauvegarde d'avant : les intentions de la saison en cours
     for (const e of ch.ecuries || []) if (typeof e.titres !== 'number') e.titres = 0;
+    roles(ch);   // ce que deviennent les retraités (une sauvegarde d'avant : tirés maintenant, avec la graine)
     return ch;
+  }
+
+  // --- la relève, « le monde se souvient » : un rival retraité devient patron d'une écurie ou consultant ; SEULEMENT un nom dans les
+  // textes (une offre de contrat signée de son nom, une brève du journal), aucune règle nouvelle. Tiré une fois par retraité, avec
+  // la graine du championnat, son indice et sa saison (son propre flux : le reste du hasard ne bouge pas), gardé dans son résumé
+  function roles(ch) {
+    for (const r of ch.retraites || []) {
+      if (r.role || typeof r.id !== 'number' || !ch.ecuries) continue;
+      ALEATOIRE.semer((ch.graine || 0) + R.GRAINE_ROLES + r.id * 31 + (r.saison || 0) * 977);
+      r.role = hasard() < R.ROLE_PATRON ? 'patron' : 'consultant';
+      if (r.role === 'patron') r.ecurieDirigee = Math.floor(hasard() * ch.ecuries.length);
+      ALEATOIRE.semer();
+    }
+    return ch;
+  }
+
+  // les anciens rivaux de la génération d'avant (retraités pendant sa carrière), devenus patrons ou consultants ; jamais quelqu'un
+  // qu'on confondrait avec un pilote encore en activité (même nom et même numéro). [] pour un premier pilote
+  function anciensDuParent(ch, role) {
+    const G = ch.dynastie && ch.dynastie.generations ? ch.dynastie.generations : [];
+    if (!G.length) return [];
+    const g = G[G.length - 1], actifs = new Set(ch.pilotes.filter(p => !p.humain).map(p => (p.nom || '') + '#' + p.numero));
+    roles(ch);
+    return (ch.retraites || []).map((r, i) => Object.assign({ i }, r)).filter(r => r.role === role && r.saison >= (g.debut || 1) && r.saison <= g.fin && !actifs.has((r.nom || '') + '#' + r.numero));
+  }
+
+  // l'ancien rival du parent qui dirige cette écurie (il signe son offre), ou null
+  function signataire(ch, ecurie) {
+    return anciensDuParent(ch, 'patron').find(r => r.ecurieDirigee === ecurie) || null;
   }
 
   // le bilan de la saison en cours : les classements, le champion, le duel, la place du joueur
@@ -185,6 +215,7 @@ const SAISONS = (function () {
       e.niveau = Math.round(Math.max(R.NIVEAU_MIN, Math.min(R.NIVEAU_MAX, e.niveau)) * 10000) / 10000;
     });
     ALEATOIRE.semer();
+    roles(ch);   // ce que deviennent les retraités de cette fin de saison (leur propre flux de hasard)
     return ch;
   }
 
@@ -223,5 +254,5 @@ const SAISONS = (function () {
     return ch;
   }
 
-  return { finie, completer, bilan, terminerSaison, note, exigences, offres, rangEcurie, coequipierDans, signer, prendreRetraite, intentions, evoluer, nouvelleSaison, avancer };
+  return { roles, anciensDuParent, signataire, finie, completer, bilan, terminerSaison, note, exigences, offres, rangEcurie, coequipierDans, signer, prendreRetraite, intentions, evoluer, nouvelleSaison, avancer };
 })();
