@@ -161,13 +161,15 @@ const SCENE3D = (function () {
     if (!rendu) return;
     const l = conteneur.clientWidth || 1, h = conteneur.clientHeight || 1;
     rendu.setSize(l, h, false);
-    camera.aspect = l / (partage ? h / 2 : h);   // l'écran partagé : chaque moitié a sa propre proportion
+    camera.aspect = !partage ? l / h : cote() ? (l / 2) / h : l / (h / 2);   // l'écran partagé : chaque moitié a sa propre proportion (côte à côte ou haut / bas)
     camera.updateProjectionMatrix();
     camera2.aspect = camera.aspect;
     camera2.updateProjectionMatrix();
   }
 
-  // l'écran partagé (haut / bas) : allumé ou éteint
+  // l'écran partagé côte à côte (DEUX_PARTAGE 'cote' : le joueur 1 à gauche, le joueur 2 à droite) ou haut / bas ('haut')
+  const cote = () => R.DEUX_PARTAGE !== 'haut';
+  // l'écran partagé : allumé ou éteint
   function partager(oui) {
     partage = !!oui;
     if (rendu) { rendu.setScissorTest(partage); if (!partage) { const l = conteneur.clientWidth || 1, h = conteneur.clientHeight || 1; rendu.setViewport(0, 0, l, h); rendu.setScissor(0, 0, l, h); } }
@@ -180,11 +182,20 @@ const SCENE3D = (function () {
     rendu.info.reset();
     if (partage) {
       // UN rendu, UNE scène, deux zones : le joueur 1 en haut, le joueur 2 en bas (la zone est en pixels CSS, Three.js applique le pixel ratio)
-      const l = conteneur.clientWidth || 1, h = conteneur.clientHeight || 1, demi = Math.floor(h / 2);
-      rendu.setViewport(0, h - demi, l, demi); rendu.setScissor(0, h - demi, l, demi);
-      rendu.render(scene, camera);
-      rendu.setViewport(0, 0, l, demi); rendu.setScissor(0, 0, l, demi);
-      rendu.render(scene, camera2);
+      const l = conteneur.clientWidth || 1, h = conteneur.clientHeight || 1;
+      if (cote()) {   // le joueur 1 à gauche, le joueur 2 à droite
+        const demi = Math.floor(l / 2);
+        rendu.setViewport(0, 0, demi, h); rendu.setScissor(0, 0, demi, h);
+        rendu.render(scene, camera);
+        rendu.setViewport(l - demi, 0, demi, h); rendu.setScissor(l - demi, 0, demi, h);
+        rendu.render(scene, camera2);
+      } else {
+        const demi = Math.floor(h / 2);
+        rendu.setViewport(0, h - demi, l, demi); rendu.setScissor(0, h - demi, l, demi);
+        rendu.render(scene, camera);
+        rendu.setViewport(0, 0, l, demi); rendu.setScissor(0, 0, l, demi);
+        rendu.render(scene, camera2);
+      }
     } else rendu.render(scene, camera);
     trianglesDessines = rendu.info.render.triangles;
     appelsDessin = rendu.info.render.calls;

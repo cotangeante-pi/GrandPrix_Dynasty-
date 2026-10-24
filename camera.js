@@ -116,9 +116,12 @@ const CAMERA = (function () {
     return {
       x: etat.x - fx * d, y: suivi.hauteur, z: etat.z - fz * d,
       vise: { x: etat.x + Math.cos(etat.cap) * 4, y: 1, z: etat.z + Math.sin(etat.cap) * 4 },
-      champ: R.CAMERA_CHAMP[0] + R.CAMERA_CHAMP[1] * vitesse,
+      champ: (champBase === null ? R.CAMERA_CHAMP[0] : champBase) + R.CAMERA_CHAMP[1] * vitesse,
     };
   }
+  // le champ de vision de base derrière la voiture : null = CAMERA_CHAMP[0] ; l'écran partagé côte à côte le change (DEUX_FOV_COTE)
+  let champBase = null;
+  function reglerChampBase(c) { champBase = typeof c === 'number' ? c : null; }
 
   // la caméra embarquée : devant le halo (ni pilier ni arceau dans l'image), au-dessus du pilote, elle regarde la piste
   // par-dessus le nez ; renvoie la position et le point visé (calcul pur, testé)
@@ -193,7 +196,7 @@ const CAMERA = (function () {
   }
 
   return {
-    init, maj, majSeconde, suivante, forcer, poseDerriere, poseCockpit,
+    init, maj, majSeconde, suivante, forcer, poseDerriere, poseCockpit, reglerChampBase,
     get mode() { return mode; },
     get conduite() { return mode !== 'libre'; },   // en caméra libre, les flèches déplacent la caméra, pas la voiture
     get position() { return cam ? { x: cam.position.x, y: cam.position.y, z: cam.position.z } : null; },

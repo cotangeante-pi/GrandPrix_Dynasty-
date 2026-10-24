@@ -280,6 +280,10 @@ const REGLAGES = {
   DEUX_COULEURS: [0x1f6fe0, 0xd8262e],   // la couleur des voitures du joueur 1 🔵 et du joueur 2 🔴 (en attendant leur choix, ordre 3)
   // l'écran avant la course à deux (tour 25b, ordre 3) : les couleurs de voiture proposées (les deux premières = celles par défaut
   // du joueur 1 et du joueur 2, DEUX_COULEURS ; deux joueurs n'ont jamais la même) ; les casques par défaut ; le niveau par défaut des IA
+  // l'écran partagé (décision du propriétaire, 2026-10-24) : 'cote' = gauche (joueur 1) / droite (joueur 2), 'haut' = l'ancien haut / bas ;
+  // en côte à côte, chaque moitié est étroite et haute : son champ de vision vertical de base (degrés, + CAMERA_CHAMP[1] à pleine vitesse)
+  DEUX_PARTAGE: 'cote',
+  DEUX_FOV_COTE: 70,
   DEUX_COULEURS_CHOIX: [0x1f6fe0, 0xd8262e, 0xf2c230, 0x2fa84f, 0xf07d1a, 0x8e44ad, 0x1abc9c, 0xe84393],
   DEUX_CASQUES: [{ motif: 'bandes', couleurs: [0x1f6fe0, 0xffffff, 0x111111] }, { motif: 'flammes', couleurs: [0xd8262e, 0xf2c230, 0x111111] }],
   DEUX_NIVEAU: 'normal',
