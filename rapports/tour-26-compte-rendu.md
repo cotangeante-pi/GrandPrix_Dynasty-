@@ -30,3 +30,42 @@ Pour CLAUDE.md (par le Chef) : circuits.js : `circuit.stands`, `standsDepuisMorc
 Ce que je n'ai pas pu vérifier : ecrans.py sur le Mac (GitHub seulement) ; la voie en 3D à l'œil (capture stands.png sur GitHub) ; la sensation des pneus chez les IA en jouant (?pneus=1&ia=9&joueur=1 : à essayer par le propriétaire).
 
 Réévalue.
+
+---
+
+TOUR 26 (suite, 2026-10-24) — compte rendu du Codeur 1 (sous-agent de session-5b)
+
+Commit : pneus 08295f0 (911c004 + 30ea8d0 + 08295f0, avec origin/main fbb8efa) — GitHub 40134629502 : TOUT PASSE. Avant : la voie des stands a126135, GitHub 40119895463 vert, fusionnée par le Chef.
+Ordres : 1 (finir la voie des stands) fait / 2 (l'arrêt au stand) fait / 3 (l'effet de la rivalité) fait.
+
+Tout est derrière PNEUS_ACTIFS (faux par défaut, ?pneus=1) pour l'arrêt ; la rivalité ne joue que si un pilote a `rivalite` ET que la voiture visée est celle du joueur. Sans ?pneus : courses.html identique au bit près (41 dépassements, vainqueur ≠ poleman 1, chocs 4, herbe 2450).
+
+Ordre 1 — la voie des stands : rien à refaire (Montréol réglé à la main par mon prédécesseur, 10 → 160 m) ; passage GitHub de 22637b4 et de a126135 verts. Trouvé ensuite : sur un circuit dont la voie est à gauche (test), la bande n'était pas dessinée (triangles tournés vers le bas) ; corrigé dans scene3d.js (capture stand.png).
+
+Ordre 2 — l'arrêt au stand :
+- course.js (mon bloc) : `pasArretStand` : dans la zone d'arrêt, sous STAND_VITESSE_ARRET (3 m/s), la voiture est tenue sur place pendant dureeArret(v.changeurs) (4 s ; 3 s avec les changeurs au niveau 5), le chrono tourne, puis pneus neufs (arretAuStand) ; un arrêt par passage ; `c.arrets` [{tour, duree}], `c.arretEnCours`, `c.arretConseille` (STAND_TOUR_CONSEILLE). `penaliserSansArret` : PENALITE_SANS_ARRET (30 s) à l'arrivée en 12 et 18 tours, rien en 5. Le même code pour le joueur et les IA. garage.js : `v.changeurs` = niveau « roues » du garage (une ligne).
+- simulation.js : `strategieStands` (GRAINE_STANDS 9000 : les autres tirages ne bougent pas) : tour = round(nbTours × (0,5 + 0,2 × (gestionPneus − 0,5) + 0,15 × hasard)), entre 2 et nbTours − 2, deux équipiers à deux tours d'écart au moins (à la ligne, l'arrêt peut tomber au tour suivant : 4 doublons vus sur GitHub avec un seul tour d'écart) ; `majStandsIA` (mode stands à 350 m de l'entrée, à son tour, jamais au dernier ; réessaie au tour suivant si la zone est manquée) ; `voituresVues` : on ne voit pas une voiture de l'autre côté du muret ; `classementCourse(...).stand`, `classementFinal(...).arrets` ; simulerCourse rend toursArrets, standTour, final, etc.
+- ia.js : la ligne « stands » (`cibleStands`) : se ranger côté voie (160 → 40 m avant), freiner à 76 km/h (STAND_DECEL), passer au milieu de la voie dans la rampe, ralentir au pas jusqu'à la place d'arrêt, ressortir au bord puis rejoindre sa ligne ; ni attaque ni erreur en route ; `cederSortieStands` : à la sortie, elle reste dans la voie tant qu'une voiture plus rapide arrive du côté voie (vu sur la graine 2 du test : un choc à 15 m/s à la sortie avant ça) ; une voiture qui entre ou sort est contournée tout de suite (estLente : `manoeuvreStands`, `rampeStands`).
+- physique.js : les rampes sont goudronnées du bord de la piste au bord de la voie (avant : 300 pas d'herbe par course à l'entrée et à la sortie) ; `campStands`, `rampeStands`.
+- robot.js : `v.versStands` (tests) : le robot entre, s'arrête, ressort.
+- interface.js / textes.js (en + fr) / index.html / style.css : #hudStand (« Arrêt au stand obligatoire : tour 6 conseillé (+30 s sans arrêt) » au départ et à partir du tour d'avant ; « Arrêt au stand… 2,7 s » ; « Pneus neufs ! Arrêt 4,0 s ») ; « STAND » dans la tour (principal.js : `stand: x.stand`) ; le tour d'arrêt aux résultats (« stand T6 », principal.js : `arrets: x.arrets`).
+
+Ordre 3 — l'effet de la rivalité (CLAUDE.md « Les rivaux se souviennent ») :
+- `poserRivalites(e, rivalites)` (simulation.js), appelé par principal.js avec `ch.pilotes[k].rivalite` (une ligne) ; la voiture du joueur a `v.joueur`.
+- ia.js : `agressivite(pilote, contre)` : + decalageRivalite() (INTERVIEW_RIVALITE_DECALAGE 0,3, plafond INTERVIEW_RIVALITE_PLAFOND 0,3) seulement contre la voiture du joueur (attente avant l'attaque, droite exigée, retenue) ; `defendreContreJoueur` : le joueur dans ses rétroviseurs (≤ 8 m derrière ou à côté, IA_VISION_COTE : il ne voit rien de plus) avant un freinage → sa ligne rapide couvre l'intérieur du virage (5 m × 0,3 = 1,5 m) ; à côté du joueur, il laisse IA_ESPACE_LAISSE × 0,7. Même physique, mêmes informations.
+
+Sortie des tests :
+- GitHub 40134629502 (08295f0) : TOUT PASSE — test.html 253/253, courses.html 43/43, stands.html 9/9, ecrans.py 637/637, sdk 19, pneus 28, enregistreur 28, circuits-a 56, circuits-b 51, textes 532.
+- Mac (sous le verrou, jamais la suite complète) : moteur ×3, stands.html à 1 puis 4 graines, courses.html à 1 graine, ecrans.py sur la seule page test=stand (10/10), pages de diagnostic (dans le scratchpad, pas commitées). « championnat : 3 GP… < 20 s » rouge sur le Mac chargé (31 s) mais vert sur GitHub (3,9 s) : la charge, pas le code.
+
+Mesures :
+- tests/stands.html, 30 courses de 12 tours (10 IA, test + technique) : chaque IA s'arrête une fois, à son tour prévu ou au suivant, jamais au dernier ; ordre d'arrivée ≠ même course sans pneus dans 30/30 (seuil STAND_COURSES_DIFFERENTES 20) ; chocs > 5 m/s 10 (16 sans pneus) ; herbe 6795 (6320 sans ; garde-fou × 12/5 : 9600) ; barrières + coupes 1 ; muret 0 ; pénalité de vitesse 0 ; sans arrêt 0 ; équipiers au même tour 0. Calcul 137 s sur GitHub.
+- IA seule, technique, 12 tours : arrêt au tour 8 (prévu 8), tour d'arrêt 78,0 s contre ~61 s : perte ≈ 16,9 s ; usure 0,49 → 0 ; 0 muret, 0 barrière, 0 herbe.
+- Joueur (robot) : arrêt au tour 3, 4 s, pneus neufs, « STAND » dans la tour, jamais vu par les IA derrière le muret.
+- Rivalité (courses.html, 8 courses de 5 tours sur le technique, l'IA « joueur » 5e ou 6e sur la grille) : rival derrière : il attaque le joueur 81 fois contre 76 sans rivalité ; rival devant : 6 défenses (0 sans), le joueur le passe 0 fois (0 sans : les attaques réussissent rarement, voir le duel) ; chocs 4 contre 4 ; sans voiture du joueur, course identique au bit près ; décalage demandé 5 → même course qu'au plafond.
+
+Pour CLAUDE.md (par le Chef) : course.js : pasArretStand, penaliserSansArret ; simulation.js : strategieStands, majStandsIA, poserRivalites, voituresVues et le muret ; ia.js : cibleStands, cederSortieStands, agressivite(pilote, contre), defendreContreJoueur ; physique.js : rampes goudronnées ; robot.js : v.versStands ; réglages STAND_* (arrêt, stratégie, sortie) et INTERVIEW_RIVALITE_DECALAGE/PLAFOND/DEFENSE/DISTANCE/RAMPE ; la durée de l'arrêt et la pénalité restent dans REGLAGES_PNEUS (pneus-donnees.js : ARRET_DUREE_BASE, CHANGEURS_GAIN_*, PENALITE_SANS_ARRET) parce que tests/pneus.html ne charge pas donnees.js ; tests/stands.html (partie « courses » de lancer.py, délai 1200 s) ; ecrans.py : stand.png ; l'étape 7 : « interview.js : l'effet de la rivalité sur le pilotage reste à faire » n'est plus vrai.
+
+Ce que je n'ai pas pu vérifier : la sensation (durée de l'arrêt, la voie à 80 km/h, le message) en jouant : à essayer par le propriétaire (`index.html?course=12&ia=9&joueur=1&pneus=1&circuit=technique`) ; les 12 tracés officiels avec l'arrêt (pas encore branchés) ; la rivalité en vrai championnat (?championnat=1 après une réponse provocante) : seulement en simulation ; la défense reste rare (6 sur 8 courses) parce que le joueur n'est dans les rétroviseurs (8 m) qu'un instant avant les freinages.
+
+Réévalue.

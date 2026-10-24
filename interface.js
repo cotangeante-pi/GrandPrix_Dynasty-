@@ -45,13 +45,13 @@ const INTERFACE = (function () {
   }
 
   function montrer(ecran) {
-    for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une', 'garage', 'saison', 'duelSaison', 'contrats', 'retraite', 'titre', 'amis', 'bravo', 'pilote', 'sponsors', 'fiche', 'interview', 'ceremonie', 'temple', 'heritier', 'deuxReglages', 'tournoiInscription', 'tournoiAToi', 'tournoiPause', 'tournoiManche', 'tournoiFin']) $(id).classList.toggle('cache', id !== ecran);
+    for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une', 'garage', 'saison', 'duelSaison', 'contrats', 'retraite', 'titre', 'amis', 'bravo', 'pilote', 'sponsors', 'fiche', 'interview', 'ceremonie', 'temple', 'heritier', 'deuxReglages', 'tournoiInscription', 'tournoiAToi', 'tournoiPause', 'tournoiManche', 'tournoiFin', 'aileron', 'arbre']) $(id).classList.toggle('cache', id !== ecran);
     // l'album des unes (Codeur 3) : la page de la une, avec la barre pour feuilleter
     if (ecran === 'album') $('une').classList.remove('cache');
     $('une').classList.toggle('album', ecran === 'album');
     // le bandeau de course n'est là que pendant la course et la pause (pas sous l'écran de fin)
     const course = ecran === 'course' || ecran === 'pause';
-    for (const id of ['hudCourse', 'hudPenalite', 'compte', 'feux', 'classement', 'radar', 'jauge', 'departResultat', 'aides', 'feux2', 'jauge2', 'departResultat2', 'deuxHaut', 'deuxBas', 'deuxSeparation']) if (!course) $(id).classList.add('cache');
+    for (const id of ['hudCourse', 'hudPenalite', 'hudStand', 'compte', 'feux', 'classement', 'radar', 'jauge', 'departResultat', 'aides', 'feux2', 'jauge2', 'departResultat2', 'deuxHaut', 'deuxBas', 'deuxSeparation']) if (!course) $(id).classList.add('cache');
     if (course) $('hudCourse').classList.remove('cache');
   }
 
@@ -85,6 +85,25 @@ const INTERFACE = (function () {
     const faux = c.fauxDepart && (c.etat === 'compte' || c.temps < 4);   // le faux départ, affiché jusqu'à 4 s après le départ
     $('hudPenalite').classList.toggle('cache', !recente && !faux);
     $('hudPenalite').textContent = recente ? texte('penalite').replace('{s}', REGLAGES.PENALITE_COUPE) : texte('fauxDepart').replace('{s}', REGLAGES.PENALITE_FAUX_DEPART);
+    majStand(c);
+  }
+
+  // l'arrêt au stand (étape 7, course.js : c.arrets, c.arretEnCours, c.arretConseille) : pendant l'arrêt, le temps qui reste ;
+  // juste après, « pneus neufs » ; avant son arrêt obligatoire, le tour conseillé (au départ, puis à partir du tour d'avant)
+  function messageStand(c) {
+    if (!c.arrets || c.etat !== 'course') return null;
+    const v = n => secondes(n.toFixed(1));
+    if (c.arretEnCours) return texte('standEnCours').replace('{s}', v(Math.max(0, c.arretEnCours.reste)));
+    const dernier = c.arrets[c.arrets.length - 1];
+    if (dernier && c.temps - c.arretFin < 3) return texte('standFait').replace('{s}', v(dernier.duree));
+    if (c.arretConseille && !c.arrets.length && (c.temps < 6 || c.tours.length + 2 >= c.arretConseille))
+      return texte('standConseille').replace('{t}', c.arretConseille).replace('{s}', REGLAGES_PNEUS.PENALITE_SANS_ARRET);
+    return null;
+  }
+  function majStand(c) {
+    const m = messageStand(c);
+    $('hudStand').classList.toggle('cache', !m);
+    if (m) $('hudStand').textContent = m;
   }
 
   // l'écart au pilote devant : « +0,8 s », ou « +1 tour » s'il a un tour de retard ; rien pour le premier
@@ -127,6 +146,8 @@ const INTERFACE = (function () {
       li.children[0].textContent = i + 1;
       // une voiture pénalisée porte ses pénalités (« ✂ +15 s ») : elles sont déjà comptées dans sa place et son écart
       li.children[3].textContent = l.penalites > 0 ? '✂ +' + secondes(l.penalites) : '';
+      if (l.stand) li.children[3].textContent = texte('standTour');   // dans la voie des stands (étape 7)
+      li.children[3].classList.toggle('stand', !!l.stand);
       li.children[4].textContent = formatEcart(l);
       marquerCoequipier(li, l);
     });
@@ -146,7 +167,7 @@ const INTERFACE = (function () {
 
   // remplace {cle} par valeurs[cle] dans un texte
   function avec(t, valeurs) {
-    return t.replace(/\{(\w+)\}/g, (m, cle) => valeurs[cle] !== undefined ? valeurs[cle] : m);
+    return elider(t.replace(/\{(\w+)\}/g, (m, cle) => valeurs[cle] !== undefined ? valeurs[cle] : m));   // (« d’Alex » : textes.js, elider)
   }
 
   // l'écran entre les courses : le score de la saison contre le coéquipier (CHAMPIONNAT.scoreDuel ; ch : le championnat,
@@ -269,7 +290,9 @@ const INTERFACE = (function () {
       const ecart = l.ecart === null || l.place === 1 ? '' : '+' + secondes(l.ecart.toFixed(3));
       // sa place sur la grille, et les places gagnées (▲) ou perdues (▼) depuis
       const gagne = l.grille - l.place, grille = l.grille + ' ' + (gagne > 0 ? '▲' + gagne : gagne < 0 ? '▼' + -gagne : '=');
-      for (const contenu of [String(l.place), numero, l.total === null ? texte('enCourse') : formatTemps(l.total), penalite(l.penalites), ecart, grille]) {
+      // (le tour de ses arrêts au stand, étape 7, à côté des pénalités)
+      const arrets = l.arrets && l.arrets.length ? ' · ' + l.arrets.map(t => texte('resultatArret').replace('{t}', t)).join(' · ') : '';
+      for (const contenu of [String(l.place), numero, l.total === null ? texte('enCourse') : formatTemps(l.total), penalite(l.penalites) + arrets, ecart, grille]) {
         const td = document.createElement('td');
         td.append(contenu);
         tr.appendChild(td);
@@ -703,6 +726,37 @@ const INTERFACE = (function () {
   }
   let nouvelleDemandee = false;
 
+  // l'arbre de la dynastie : chaque génération (son casque, son nom, saisons, titres, victoires, podiums, meilleur résultat à
+  // domicile), la génération d'aujourd'hui marquée (en piste, ou qui vient de s'arrêter), puis les records de famille
+  function remplirArbre(ch) {
+    const gens = ch.dynastie.generations.concat([Object.assign(CARRIERE.resume(ch), { actuel: !ch.retraite })]);
+    $('arbreEcranTitre').textContent = texte('arbreTitre');
+    $('boutonArbreRetour').textContent = texte('arbreRetour');
+    const ol = $('arbreGenerations'), sp = (classe, contenu) => { const e = document.createElement('span'); e.className = classe; e.append(contenu); return e; };
+    ol.textContent = '';
+    gens.forEach((g, i) => {
+      const li = document.createElement('li');
+      if (i === gens.length - 1) li.classList.add('actuel');
+      const casque = CASQUE.valide(g.casque) ? CASQUE.icone(g.casque, 26) : document.createElement('span');
+      const chiffres = avec(texte('arbreLigne'), { s: nombre(g.saisons, 'saison'), t: nombre(g.titres, 'titre'), v: nombre(g.victoires, 'victoire'), p: nombre(g.podiums, 'podium'), dom: g.domicile ? 'P' + g.domicile : '—' });
+      li.append(sp('rang', String(i + 1)), sp('casque', casque), sp('nom', nomPilote({ nom: g.nom, numero: g.numero, humain: true }) + (g.actuel ? ' · ' + texte('arbreActuel') : '')), sp('chiffres', chiffres));
+      ol.appendChild(li);
+    });
+    const f = CARRIERE.recordsFamille(ch);
+    $('arbreFamille').textContent = avec(texte('bilanFamille'), { g: nombre(f.generations, 'generation'), t: nombre(f.titres, 'titre'), v: nombre(f.victoires, 'victoire'), c: nombre(f.championnes, 'championne') });
+    const circuits = Object.entries(f.circuits).sort((a, b) => b[1] - a[1]).map(([c, n]) => nomCircuit(c) + ' ' + n);
+    $('arbreCircuits').textContent = circuits.length ? avec(texte('arbreCircuits'), { liste: circuits.join(' · ') }) : texte('arbreAucuneVictoire');
+  }
+
+  function preparerArbre(ouvrir, retour) {
+    $('boutonArbre').textContent = texte('arbre');
+    $('boutonArbreBilan').textContent = texte('arbre');
+    for (const [id, f] of [['boutonArbre', ouvrir], ['boutonArbreBilan', ouvrir], ['boutonArbreRetour', retour]]) {
+      $(id).addEventListener('mousedown', e => e.preventDefault());
+      $(id).addEventListener('click', f);
+    }
+  }
+
   // continuer() : l'écran de l'héritier ; nouvelle() : un monde neuf (le premier clic demande une confirmation)
   function preparerReleve(continuer, nouvelle, valider) {
     for (const id of ['boutonContinuerDynastie', 'boutonNouvelleDynastie', 'boutonHeritierValider']) $(id).addEventListener('mousedown', e => e.preventDefault());
@@ -953,6 +1007,45 @@ const INTERFACE = (function () {
     ouvertureFiche = ouvrir;
     $('boutonFicheRetour').addEventListener('mousedown', e => e.preventDefault());
     $('boutonFicheRetour').addEventListener('click', retour);
+  }
+
+  // --- l'aileron (Codeur 3, aileron.js, carte2d.js) : circuit = construireCircuit de la prochaine course, nom = son nom ;
+  // cran = le cran du joueur sur ce circuit. Aucun conseil : la carte, le curseur, la voiture, deux barres
+  function remplirAileron(circuit, nom, cran) {
+    $('aileronTitre').textContent = avec(texte('aileronTitre'), { circuit: nom });
+    $('aileronBas').textContent = texte('aileronBas'); $('aileronHaut').textContent = texte('aileronHaut');
+    $('aileronVirages').textContent = texte('aileronVirages'); $('aileronVitesse').textContent = texte('aileronVitesse');
+    $('boutonAileronRetour').textContent = texte('garageRetour');
+    const km = (Math.round(circuit.longueur / 10) / 100).toFixed(2).replace('.', texte('virgule'));
+    CARTE2D.dessiner($('aileronCarte').getContext('2d'), circuit, $('aileronCarte').width, $('aileronCarte').height, nom, avec(texte('aileronLongueur'), { km }));
+    $('aileronCurseur').max = REGLAGES.AILERON_CRANS - 1;
+    majAileron(cran);
+  }
+
+  // le curseur, la voiture (son aileron arrière monte avec le cran) et les deux barres
+  function majAileron(cran) {
+    $('aileronCurseur').value = cran;
+    $('aileronCran').textContent = avec(texte('aileronCran'), { n: cran + 1, max: REGLAGES.AILERON_CRANS });
+    const b = AILERON.barres(cran);
+    $('barreVirages').style.width = Math.round(b.virages * 100) + '%';
+    $('barreVitesse').style.width = Math.round(b.vitesse * 100) + '%';
+    const c = $('aileronVoiture').getContext('2d'), x = cran / (REGLAGES.AILERON_CRANS - 1);
+    c.clearRect(0, 0, 220, 90);
+    c.fillStyle = '#d8dbe3';
+    c.beginPath(); c.moveTo(14, 64); c.lineTo(60, 52); c.lineTo(150, 46); c.lineTo(178, 34); c.lineTo(186, 64); c.closePath(); c.fill();   // le corps, vu de côté
+    c.fillStyle = '#222'; for (const rx of [48, 168]) { c.beginPath(); c.arc(rx, 66, 13, 0, 6.283); c.fill(); }   // les roues
+    // l'aileron arrière : son volet s'incline plus quand le cran monte (de presque plat à très incliné)
+    c.save(); c.translate(196, 24); c.rotate(-0.08 - x * 0.6); c.fillStyle = '#ffd666'; c.fillRect(-18, -3, 36, 6); c.restore();
+    c.fillStyle = '#888'; c.fillRect(188, 26, 4, 22);
+  }
+
+  function preparerAileron(ouvrir, changer, retour) {
+    $('boutonAileron').textContent = texte('aileron');
+    for (const [id, f] of [['boutonAileron', ouvrir], ['boutonAileronRetour', retour]]) {
+      $(id).addEventListener('mousedown', e => e.preventDefault());
+      $(id).addEventListener('click', f);
+    }
+    $('aileronCurseur').addEventListener('input', () => changer(Number($('aileronCurseur').value)));
   }
 
   function preparerGarage(acheter, retour) {
@@ -1259,7 +1352,7 @@ const INTERFACE = (function () {
 
   return { remplirInscription, lireInscription, montrerErreursTournoi, preparerInscription, remplirAToi, majCompteTournoi, preparerPauseTournoi, remplirMancheTournoi, preparerMancheTournoi, remplirFinTournoi, preparerFinTournoi, preparerAmis, remplirDeux, lireDeux, montrerErreursDeux, preparerDeux, remplirPodiumDeux, remplirRivalite, formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, preparerChampionnat, remplirQualif, preparerQualif,
     remplirDuel, avec, remplirUne, preparerUne, remplirArgent, remplirSolde, remplirGarage, preparerGarage,
-    remplirSaison, remplirDuelSaison, remplirContrats, remplirRetraite, preparerSaison, retraiteEnAttente, remplirCeremonie, preparerCeremonie, remplirAlbum, preparerAlbum, remplirBilan, remplirTemple, preparerTemple, preparerReleve, remplirHeritier, lireHeritier, montrerErreurHeritier,
+    remplirSaison, remplirDuelSaison, remplirContrats, remplirRetraite, preparerSaison, retraiteEnAttente, remplirCeremonie, preparerCeremonie, remplirAlbum, preparerAlbum, remplirBilan, remplirTemple, preparerTemple, preparerReleve, remplirHeritier, lireHeritier, montrerErreurHeritier, remplirAileron, majAileron, preparerAileron, remplirArbre, preparerArbre,
     remplirSponsors, remplirRappelSponsor, preparerSponsors, remplirFiche, preparerFiche, remplirInterview, montrerEffetInterview, preparerInterview, remplirReputation,
     majEcartFantome, preparerFantome, majBoutonsFantome, majDepart, majDeux, preparerTitre, remplirBravo, majAides, remplirPilote, lirePilote, montrerErreursPilote, preparerPilote, nomCircuit, remplirCasque, lireCasque, modePilote, preparerCasque };
 })();

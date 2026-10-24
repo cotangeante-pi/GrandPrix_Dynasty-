@@ -115,6 +115,7 @@ function lancerCourse(nbTours) {
     // ?championnat=1 : le niveau de l'écurie sur le rythme de chaque IA, avant que la carte leur donne un pilote
     JEU.plateau = creerCourseIA(CIRCUIT, JEU.ia, nbTours, Number(PARAMETRES.get('graine')) || 1, JEU.championnat ? null : JEU.carte, JEU.contre);
     if (JEU.championnat) { CHAMPIONNAT.appliquerNiveaux(JEU.championnat, JEU.plateau); if (JEU.carte) donnerCarte(JEU.plateau, JEU.carte); }
+    if (JEU.championnat) poserRivalites(JEU.plateau, JEU.championnat.pilotes.map(q => !!(q && q.rivalite)));   // les rivaux de l'interview (ia.js, Codeur 1)
     suivre(JEU.contre ? JEU.ia : 0);   // contre les IA : la caméra suit le joueur
     appliquerCaracteres();
     if (JEU.contre) armerFeux(JEU.plateau.pilotes, Number(PARAMETRES.get('graine')) || 1);   // les feux de départ
@@ -131,6 +132,7 @@ function lancerCourse(nbTours) {
   JEU.joueur.pneus = REGLAGES.PNEUS_ACTIFS && (JEU.contre || !JEU.plateau) ? creerPneus() : null;
   JEU.joueur.adherence = 1;
   if (JEU.deux) { const v2 = DEUX_JOUEURS.joueurs(JEU.plateau)[1].v; v2.pneus = JEU.joueur.pneus ? creerPneus() : null; v2.adherence = 1; }   // le joueur 2 : la même voiture
+  AILERON.appliquer(JEU.joueur, JEU.championnat ? AILERON.cranDe(JEU.championnat, NOM_CIRCUIT) : null);   // l'aileron du joueur sur ce circuit (aileron.js ; le milieu = rien)
   GARAGE.appliquer(JEU.joueur, JEU.championnat ? JEU.championnat.garage : null, niveauEcurieJoueur());   // ?championnat=1 : les améliorations du garage × le niveau de l'écurie, sur la voiture du joueur (1 = rien sans championnat)
   JEU.enregistreur = creerEnregistrement();
   JEU.fantome = null;   // le fantôme ne vit que pendant le tour de qualification (commencerFantome)
@@ -160,6 +162,7 @@ function faireMonTour() {
   if (!JEU.qualif || JEU.qualif.etat !== 'choix') return;
   const v = creerVoiture(CIRCUIT, 0);
   GARAGE.appliquer(v, JEU.championnat ? JEU.championnat.garage : null, niveauEcurieJoueur());   // la même voiture qu'en course (garage, niveau de l'écurie)
+  AILERON.appliquer(v, JEU.championnat ? AILERON.cranDe(JEU.championnat, NOM_CIRCUIT) : null);   // … et le même aileron
   JEU.qualif.v = v;
   JEU.qualif.q = QUALIFICATION.creer(CIRCUIT, v);
   JEU.qualif.etat = 'tour';
@@ -980,6 +983,20 @@ function nouvelleDynastie() {
   location.reload();
 }
 
+// l'arbre de la dynastie (carriere.js), depuis le paddock ou le bilan ; « Retour » ramène là d'où on vient
+function montrerArbre() {
+  if (JEU.ecran !== 'championnat' && JEU.ecran !== 'retraite') return;
+  JEU.arbreDepuis = JEU.ecran;
+  INTERFACE.remplirArbre(JEU.championnat);
+  JEU.ecran = 'arbre';
+  INTERFACE.montrer('arbre');
+}
+
+function quitterArbre() {
+  if (JEU.ecran !== 'arbre') return;
+  if (JEU.arbreDepuis === 'retraite') { JEU.ecran = 'retraite'; montrerRetraite(); } else montrerChampionnat(JEU.gagne);
+}
+
 function quitterTemple() {
   if (JEU.ecran !== 'temple') return;
   montrerRetraite();
@@ -999,6 +1016,35 @@ function acheterAmelioration(nom) {
   if (r.ok) SAUVEGARDE.ecrireChampionnat(JEU.championnat);
   INTERFACE.remplirGarage(JEU.championnat);
   return r;
+}
+
+// ?championnat=1 : l'aileron (aileron.js), depuis le garage, avant le Grand Prix : la carte de la prochaine course ; le cran est
+// gardé par circuit et sauvegardé à chaque changement ; il s'applique aux qualifications et à la course (lancerCourse, faireMonTour)
+function circuitProchain() {
+  const ch = JEU.championnat, gp = ch.calendrier[Math.min(ch.prochain, ch.calendrier.length - 1)];
+  return gp ? gp.circuit : NOM_CIRCUIT;
+}
+
+function montrerAileron() {
+  if (JEU.ecran !== 'garage') return;
+  const nom = circuitProchain();
+  INTERFACE.remplirAileron(nom === NOM_CIRCUIT ? CIRCUIT : construireCircuit(CIRCUITS[nom]), texte('circuit_' + nom) || CIRCUITS[nom].nom, AILERON.cranDe(JEU.championnat, nom));
+  JEU.ecran = 'aileron';
+  INTERFACE.montrer('aileron');
+}
+
+function changerAileron(cran) {
+  if (JEU.ecran !== 'aileron') return;
+  AILERON.regler(JEU.championnat, circuitProchain(), cran);
+  SAUVEGARDE.ecrireChampionnat(JEU.championnat);
+  INTERFACE.majAileron(AILERON.cranDe(JEU.championnat, circuitProchain()));
+}
+
+function quitterAileron() {
+  if (JEU.ecran !== 'aileron') return;
+  INTERFACE.remplirGarage(JEU.championnat);
+  JEU.ecran = 'garage';
+  INTERFACE.montrer('garage');
 }
 
 function quitterGarage() {
@@ -1045,6 +1091,7 @@ function montrerPodium() {
   INTERFACE.remplirResultats(JEU.final.map(x => ({
     place: x.place, numero: numeroDe(x.k), couleur: JEU.couleurs[x.k], total: x.total, penalites: x.penalites,
     ecart: x.ecart, grille: x.grille, moi: x.k === JEU.suivie || !!joueurDe(x.k), casque: casqueDe(x.k), nom: nomDe(x.k),
+    arrets: x.arrets,   // les tours de ses arrêts au stand (étape 7, Codeur 1)
   })));
   INTERFACE.remplirPodiumDeux(JEU.deux ? DEUX_JOUEURS.joueurs(e).map(p => { const k = P.indexOf(p); return { nom: nomDe(k), place: JEU.final.find(x => x.k === k).place }; }) : null);
   INTERFACE.remplirRivalite(JEU.deux ? noterRivaliteDeux() : null);
@@ -1250,6 +1297,7 @@ function majClassementRadar() {
   INTERFACE.majClassement(ordre ? ordre.map(x => ({
     numero: numeroDe(x.k), couleur: JEU.couleurs[x.k], ecart: x.ecart, tours: x.tours, penalites: x.penalites, moi: x.k === JEU.suivie || (!!JEU.deux && !!P[x.k].joueur), casque: casqueDe(x.k),
     arrive: P[x.k].arrivee !== null, coequipier: x.k === kc, ecartDuel: x.k === kc ? duel : null,
+    stand: x.stand,   // dans la voie des stands (étape 7, Codeur 1)
   })) : null);
   const autres = [];
   P.forEach((p, k) => { if (k !== JEU.suivie && p.arrivee === null) autres.push({ x: p.v.x, z: p.v.z, couleur: JEU.couleurs[k] }); });
@@ -1299,7 +1347,7 @@ function majTableau() {
   document.getElementById('rapport').textContent = rapportPourVitesse(v.u);
   const roule = JEU.ecran === 'course' || JEU.ecran === 'survol' || enTourQualif();
   // sur le podium et les résultats, ni vitesse ni aide des touches
-  const apres = ['podium', 'resultats', 'championnat', 'une', 'garage', 'titre', 'amis', 'bravo', 'saison', 'duelSaison', 'contrats', 'retraite', 'sponsors', 'fiche', 'interview', 'ceremonie', 'album', 'temple', 'heritier', 'deuxReglages', 'tournoiInscription', 'tournoiAToi', 'tournoiPause', 'tournoiManche', 'tournoiFin'].includes(JEU.ecran);
+  const apres = ['podium', 'resultats', 'championnat', 'une', 'garage', 'titre', 'amis', 'bravo', 'saison', 'duelSaison', 'contrats', 'retraite', 'sponsors', 'fiche', 'interview', 'ceremonie', 'album', 'temple', 'heritier', 'deuxReglages', 'tournoiInscription', 'tournoiAToi', 'tournoiPause', 'tournoiManche', 'tournoiFin', 'aileron', 'arbre'].includes(JEU.ecran);
   document.getElementById('tableau').classList.toggle('cache', apres);
   document.getElementById('aide').classList.toggle('cache', apres);
   // après l'arrivée du joueur (en attendant les autres), il ne court plus : pas de « hors piste »
@@ -1453,6 +1501,8 @@ function demarrerJeu() {
     INTERFACE.preparerCeremonie(suiteCeremonie);
     INTERFACE.preparerAlbum(montrerAlbum, feuilleterAlbum, saisonAlbum, quitterAlbum);
     INTERFACE.preparerTemple(montrerTemple, quitterTemple);
+    INTERFACE.preparerAileron(montrerAileron, changerAileron, quitterAileron);
+    INTERFACE.preparerArbre(montrerArbre, quitterArbre);
     INTERFACE.preparerReleve(montrerHeritier, nouvelleDynastie, validerHeritier);
     INTERFACE.preparerGarage(acheterAmelioration, quitterGarage);
     INTERFACE.preparerSaison(suiteClassementSaison, suiteDuelSaison, signerContrat, prendreRetraite);

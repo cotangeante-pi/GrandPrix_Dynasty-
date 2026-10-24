@@ -1,0 +1,52 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>l'arrêt au stand</title></head><body>
+<pre id="res"></pre>
+<script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));</script>
+<script src="../donnees.js"></script><script src="../aleatoire.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../course.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script>
+<script>
+// Le critère de l'étape 7 (tour 26, ordre 3) : « l'arrêt change vraiment le classement ». 30 courses de 12 tours entre 10 IA
+// (15 graines par circuit, test et technique), avec les pneus et l'arrêt (PNEUS_ACTIFS), puis les mêmes courses sans pneus :
+// l'ordre d'arrivée (classement final) diffère dans au moins STAND_COURSES_DIFFERENTES courses ; chaque IA s'arrête une fois,
+// jamais au dernier tour, aucune pénalité sans arrêt ; deux pilotes d'une même écurie pas au même tour ; les garde-fous
+// de courses.html (herbe, barrières + coupes), à l'échelle de 12 tours (× 12/5), tiennent avec les arrêts ; pas plus de chocs que sans pneus.
+// ?graines=15 (par circuit), ?voitures=10, ?tours=12.
+const Q=new URLSearchParams(location.search),GRAINES=+(Q.get('graines')||15),NB=+(Q.get('voitures')||10),TOURS=+(Q.get('tours')||12);
+const L=[];let ok=0,ko=0;
+function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
+const v=(c,m)=>{if(!c)throw new Error(m||'faux');};
+const ecrire=etape=>{document.getElementById('res').textContent=`${etape?'EN COURS ('+etape+') ':''}RESULTAT ${ok}/${ok+ko}\n`+L.join('\n');};
+const circuits={test:CIRCUIT_TEST,technique:construireCircuit(CIRCUITS.technique)};
+const chocsForts=r=>r.voitures.flatMap(x=>x.chocs).filter(c=>c>5).length/2;
+const somme=(r,f)=>r.voitures.reduce((a,x)=>a+f(x),0);
+const t0=performance.now(),paires=[];
+for(const nom of ['test','technique']) for(let g=1;g<=GRAINES;g++){
+  REGLAGES.PNEUS_ACTIFS=true;const a=simulerCourse(circuits[nom],NB,TOURS,g);
+  REGLAGES.PNEUS_ACTIFS=false;const b=simulerCourse(circuits[nom],NB,TOURS,g);
+  const p={nom,g,a,b,differe:a.final.join(',')!==b.final.join(','),
+    chocs:chocsForts(a),chocsSans:chocsForts(b),herbe:somme(a,x=>x.herbe),herbeSans:somme(b,x=>x.herbe),barr:somme(a,x=>x.contactsBarriere+x.coupes),
+    mur:somme(a,x=>x.contactsMurStands),vitesse:somme(a,x=>x.penalitesStands),sansArret:a.voitures.filter(x=>x.penaliteSansArret>0).length,
+    // l'écurie : deux pilotes par écurie, dans l'ordre de la course (numéros 1-2, 3-4…)
+    memeTour:a.voitures.filter(x=>x.numero%2===0).filter(x=>{const q=a.voitures.find(y=>y.numero===x.numero-1);return q&&x.toursArrets.length&&q.toursArrets.length&&x.toursArrets[0]===q.toursArrets[0];}).length};
+  paires.push(p);
+  L.push(`  ${nom} graine ${String(g).padStart(2)} : arrivée ${a.final.join(',')} (sans pneus ${b.final.join(',')})${p.differe?' ≠':' ='} | arrêts (tour prévu→fait) ${a.voitures.map(x=>'n°'+x.numero+' '+x.standTour+'→'+(x.toursArrets.join('+')||'—')).join(' ')} | usure finale ${a.voitures.map(x=>x.usure.toFixed(2)).join(' ')} | chocs>5 ${p.chocs} (sans ${p.chocsSans}) | herbe ${p.herbe} (sans ${p.herbeSans}) | barrières+coupes ${p.barr} | muret ${p.mur} | vitesse voie ${p.vitesse} s | sans arrêt ${p.sansArret} | même écurie même tour ${p.memeTour} | ${(a.dureeMs+b.dureeMs).toFixed(0)} ms`);
+  ecrire(nom+' '+g);
+}
+REGLAGES.PNEUS_ACTIFS=false;
+const N=paires.length,k=N/30*TOURS/5,tot=f=>paires.reduce((s,p)=>s+f(p),0);
+const differentes=tot(p=>p.differe),chocs=tot(p=>p.chocs),chocsSans=tot(p=>p.chocsSans),herbe=tot(p=>p.herbe),herbeSans=tot(p=>p.herbeSans),barr=tot(p=>p.barr);
+L.push(`  TOTAL sur ${N} courses de ${TOURS} tours : ordre d'arrivée différent de la course sans pneus dans ${differentes} ; chocs > 5 m/s ${chocs} (sans pneus ${chocsSans}) ; herbe ${herbe} pas (sans ${herbeSans}) ; barrières + coupes ${barr} ; muret ${tot(p=>p.mur)} ; pénalités de vitesse dans la voie ${tot(p=>p.vitesse)} s ; sans arrêt ${tot(p=>p.sansArret)} ; même écurie au même tour ${tot(p=>p.memeTour)} ; calcul ${((performance.now()-t0)/1000).toFixed(1)} s`);
+t('toutes les voitures arrivent, avec et sans pneus',()=>v(paires.every(p=>p.a.voitures.every(x=>x.fini)&&p.b.voitures.every(x=>x.fini)),paires.filter(p=>!p.a.voitures.every(x=>x.fini)).map(p=>p.nom+' '+p.g).join(', ')));
+t('chaque IA s’arrête exactement une fois, à son tour prévu ou juste après, jamais au dernier tour',()=>{const mal=[];
+  for(const p of paires) for(const x of p.a.voitures) if(x.toursArrets.length!==1||x.toursArrets[0]>=TOURS||x.toursArrets[0]<x.standTour||x.toursArrets[0]>x.standTour+1) mal.push(p.nom+' '+p.g+' n°'+x.numero+' prévu '+x.standTour+' fait '+x.toursArrets.join('+'));
+  v(mal.length===0,mal.slice(0,8).join(' ; '));});
+t('aucune pénalité sans arrêt ni pour excès de vitesse dans la voie, aucun contact avec le muret',()=>v(tot(p=>p.sansArret)===0&&tot(p=>p.vitesse)===0&&tot(p=>p.mur)===0,tot(p=>p.sansArret)+' / '+tot(p=>p.vitesse)+' / '+tot(p=>p.mur)));
+t('deux pilotes de la même écurie ne s’arrêtent jamais au même tour',()=>v(tot(p=>p.memeTour)===0,tot(p=>p.memeTour)));
+t(`l’arrêt change vraiment le classement : l’ordre d’arrivée diffère de la même course sans pneus dans au moins ${Math.ceil(REGLAGES.STAND_COURSES_DIFFERENTES*N/30)} courses sur ${N}`,()=>v(differentes>=REGLAGES.STAND_COURSES_DIFFERENTES*N/30,differentes));
+// les garde-fous de courses.html (30 courses de 5 tours : chocs ≤ 6, herbe ≤ 4000, barrières + coupes ≤ 6), à l'échelle de la longueur
+// (les chocs : la même course de 12 tours sans pneus en a déjà autour de 6 × 12/5 ; l'arrêt ne doit pas en ajouter : on compare aux mêmes courses sans pneus)
+L.push(`  (chocs > 5 m/s : ${chocs} avec les arrêts, ${chocsSans} sans pneus ; le garde-fou de courses.html à l'échelle de 12 tours serait ${Math.floor(6*k)})`);
+t('garde-fou : pas plus de chocs à plus de 5 m/s avec les arrêts que dans les mêmes courses sans pneus',()=>v(chocs<=chocsSans,chocs+' / '+chocsSans));
+t(`garde-fou : au plus ${Math.floor(4000*k)} pas dans l’herbe au total`,()=>v(herbe<=4000*k,herbe));
+t(`garde-fou : au plus ${Math.floor(6*k)} barrières + coupes au total`,()=>v(barr<=6*k,barr));
+t('aucune erreur JavaScript',()=>v(__err.length===0,__err.join(' | ')));
+ecrire();
+</script></body></html>

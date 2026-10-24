@@ -167,6 +167,23 @@ const REGLAGES = {
   },
   GARAGE_NIVEAUX: 5,
   GARAGE_PLAFOND: 0.07,         // +7 % au plus (moteur + aero + freins), quelle que soit la combinaison
+  // le réglage de l'aileron (aileron.js, Codeur 3) : un échange, jamais un bonus, hors du plafond du garage ; le cran du milieu = rien
+  AILERON_CRANS: 5,
+  AILERON_ADHERENCE_PAR_CRAN: 0.015,  // l'adhérence en virage : × (1 + écart au milieu × ce nombre), lue par physique.js (v.aileronAdherence)
+  AILERON_TRAINEE_PAR_CRAN: 0.045,    // la traînée : × (1 + écart au milieu × ce nombre), lue par physique.js (v.aileronTrainee)
+  AILERON_MARGE: 0.01,          // test : sur le circuit test, aucun cran n'est plus rapide que le cran du milieu de plus de cette part du tour
+  AILERON_VIRAGE_LENT: 0.5,     // un virage est « lent » quand sa vitesse limite est sous cette part de la vitesse de pointe (le profil du circuit, pour les IA)
+  AILERON_IA_REFERENCE: -0.35,  // le choix des IA : un circuit mixte (le test : −0,33 ; le technique : −0,40, en part du temps) donne le cran du milieu…
+  AILERON_IA_CIRCUIT: 6,        // … puis des crans de plus par point de (part de virages lents − part de lignes droites − la référence)…
+  AILERON_IA_REGULARITE: 1.2,   // … par point de régularité au-dessus de 0,5 (régulier → plus haut)…
+  AILERON_IA_AGRESSIVITE: 1.2,  // … et en moins par point d'agressivité au-dessus de 0,5 (pour doubler en ligne droite)…
+  AILERON_IA_HASARD: 1.5,       // … et une part de hasard (en crans, de part et d'autre)
+  AILERON_IA_ECART: 1,          // une IA choisit au plus à ce nombre de crans du milieu
+  // l'effet de l'aileron sur les voitures des IA (même code que le joueur : physique.js, ia.js le sait). COUPÉ en attendant que ia.js
+  // gère les écarts de vitesse de pointe entre IA : avec les crans tirés, tests/courses.html?ailerons=1 dépasse les garde-fous (chocs,
+  // herbe ; tour 29c, 4 réglages essayés). Les IA choisissent et gardent leur cran ; vrai = elles le portent
+  AILERON_IA_ACTIF: false,
+  GRAINE_AILERON: 12000,        // les crans des IA sont tirés avec la graine du championnat + ce nombre + la saison et le Grand Prix
   // les saisons (étape 9, saisons.js, Codeur 3)
   SAISONS_MAX: 15,              // la retraite par l'âge : la carrière s'arrête après ce nombre de saisons
   GRAINE_SAISONS: 7000,         // l'évolution des rivaux est tirée avec la graine du championnat + ce nombre + la saison
@@ -223,6 +240,13 @@ const REGLAGES = {
   INTERVIEW_SERIE: 3,               // Grands Prix de suite sans point : une série
   INTERVIEW_DUEL_NET: 2,            // le duel contre le coéquipier fait question quand l'écart de la saison (cette course comprise) atteint ce score
   INTERVIEW_RIVALITE_COURSES: 3,    // une réponse provocante contre un pilote nommé : sa rivalité dure ce nombre de courses
+  // l'effet de la rivalité en piste (ia.js, Codeur 1) : contre le JOUEUR seulement, le rival est un peu plus agressif, en attaque et en
+  // défense ; jamais de triche (même physique, mêmes informations) : un petit décalage de ses réglages, plafonné
+  INTERVIEW_RIVALITE_DECALAGE: 0.3, // ajouté à son agressivité (0 à 1) quand il attaque le joueur…
+  INTERVIEW_RIVALITE_PLAFOND: 0.3,  // … jamais plus que ça (le décalage de ses réglages, au plus)
+  INTERVIEW_RIVALITE_DEFENSE: 5,    // m par point de décalage : le joueur le suit de près avant un freinage, il couvre l'intérieur du virage (0,3 → 1,5 m)…
+  INTERVIEW_RIVALITE_DISTANCE: 8,   // m : … le joueur derrière lui à moins de ça (dans ses rétroviseurs : pas plus que IA_VISION_COTE[0])…
+  INTERVIEW_RIVALITE_RAMPE: 40,     // m : … il s'y décale sur cette distance ; et, à côté du joueur, il lui laisse moins de place (IA_ESPACE_LAISSE × (1 − décalage))
   INTERVIEW_EFFET_SPONSORS: 0.1,    // le plafond (±) de ce que la jauge des sponsors ajoute à la note et aux montants des sponsors
   GRAINE_INTERVIEW: 11000,          // la graine des formulations
   // les noms des 20 pilotes, deux par écurie dans l'ordre (le 20e est remplacé par le joueur) : pas encore (les noms
@@ -528,6 +552,37 @@ const REGLAGES = {
   STAND_ARRET_DEMI: 20,         // m : la zone d'arrêt, de part et d'autre de circuit.stands.arret (la ligne si la voie la traverse, sinon le milieu de la voie)
   STAND_VITESSE_MAX: 80 / 3.6,  // m/s : la limite dans la voie ; la physique y ramène la voiture qui la dépasse…
   STAND_PENALITE_VITESSE: 5,    // s : … et ça coûte ça, une fois par passage
+  // l'arrêt au stand (étape 7, tour 26 ordre 3 ; derrière PNEUS_ACTIFS) : la durée de l'arrêt, le gain des changeurs de roues et la
+  // pénalité sans arrêt (30 s, en course de 12 et 18 tours) sont dans REGLAGES_PNEUS (pneus-donnees.js : ARRET_DUREE_BASE, CHANGEURS_GAIN_*,
+  // PENALITE_SANS_ARRET, TOURS_ARRET_OBLIGATOIRE), testés seuls par tests/pneus.html
+  STAND_VITESSE_ARRET: 3,       // m/s : une voiture dans la zone d'arrêt sous cette vitesse s'arrête (pneus neufs après la durée de l'arrêt)
+  STAND_CHANGEURS_IA: 0,        // le niveau des changeurs de roues des IA (le joueur : celui de son garage, v.changeurs)
+  STAND_VITESSE_VISEE: 76 / 3.6,  // m/s : la vitesse que vise une IA dans la voie (sous la limite STAND_VITESSE_MAX)
+  STAND_APPROCHE: 350,          // m avant l'entrée : l'IA qui va s'arrêter passe en mode « stands » (ni attaque ni erreur)…
+  STAND_RANGER: [160, 40],      // m avant l'entrée : … elle se range de ce côté de la piste entre ces deux points…
+  STAND_DECEL: 12,              // m/s² : … et freine jusqu'à STAND_VITESSE_VISEE avant l'entrée
+  STAND_DECEL_ARRET: 4,         // m/s² : elle ralentit ainsi jusqu'à sa place d'arrêt…
+  STAND_VITESSE_APPROCHE: 2.5,  // m/s : … où elle arrive au pas
+  STAND_BORD: 2,                // m : avant l'entrée et après la sortie, elle roule à ça du bord de la piste, côté voie
+  STAND_REJOINDRE: 200,         // m après la sortie : elle rejoint sa ligne (ensuite, elle décide comme d'habitude)
+  // à la sortie : une voiture de la piste qui arrive derrière (à moins de STAND_CEDER_DISTANCE m, plus vite de STAND_CEDER_VITESSE m/s, à moins de
+  // STAND_CEDER_COTE m du bord côté voie) : l'IA reste dans la voie et la laisse passer (dès STAND_CEDER_AVANT m avant la rampe de sortie)
+  STAND_CEDER_DISTANCE: 150,
+  STAND_CEDER_VITESSE: 3,
+  STAND_CEDER_COTE: 5,
+  STAND_CEDER_AVANT: 30,
+  // la stratégie des IA : un seul arrêt, au tour round(nbTours × part), part = STAND_PART + STAND_PART_GESTION × (gestionPneus − 0,5)
+  // + STAND_PART_HASARD × (2 hasard − 1) (le meilleur gestionnaire roule plus longtemps sur ses premiers pneus), entre le tour
+  // STAND_TOUR_MIN et l'avant-dernier tour moins un (jamais au dernier) ; deux pilotes de la même écurie (2 par écurie, dans l'ordre) pas au même tour
+  STAND_PART: 0.5,
+  STAND_PART_GESTION: 0.2,
+  STAND_PART_HASARD: 0.15,
+  STAND_TOUR_MIN: 2,
+  GRAINE_STANDS: 9000,          // la stratégie est tirée avec la graine de la course + ce nombre (à part : les autres tirages ne bougent pas)
+  STAND_TOUR_CONSEILLE: 0.5,    // le joueur : « Arrêt au stand : tour X conseillé », X = round(nbTours × ça)
+  // le critère de l'étape 7 (« l'arrêt change vraiment le classement », tests/stands.html) : sur 30 courses de 12 tours, l'ordre
+  // d'arrivée diffère de celui de la même course sans pneus dans au moins ce nombre de courses
+  STAND_COURSES_DIFFERENTES: 20,
   COULEUR_STANDS: 0x5a5a5a,     // la voie en 3D
   COULEUR_MUR_STANDS: 0xdddddd, // le muret
   HAUTEUR_MUR_STANDS: 0.8,

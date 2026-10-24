@@ -39,7 +39,8 @@ PAGES = [
     ('index.html?championnat=1&tours=1&robot=1', 1280, 720, None),   # 2 Grands Prix joués par le robot, rechargement, capture championnat.png   # une course d'un tour, jusqu'au podium et aux résultats
     ('index.html?course=1&ia=8&circuit=test', 960, 600, None),
     ('index.html?course=1&robot=1&test=sdk', 1280, 720, None),   # le faux SDK Poki (sdk.js) : l'ordre des appels sur une course d'un tour
-    ('index.html?course=0&robot=1&pneus=1&debug=1', 1280, 720, None),   # ?pneus=1 : l'usure monte sur 10 tours du robot, affichée dans ?debug=1
+    ('index.html?course=0&robot=1&pneus=1&debug=1', 1280, 720, None),
+    ('index.html?course=12&robot=1&pneus=1&circuit=test&test=stand', 1280, 720, None),   # l'arrêt au stand (étape 7) : le message, le robot entre dans la voie, s'arrête, ressort ; capture stand.png   # ?pneus=1 : l'usure monte sur 10 tours du robot, affichée dans ?debug=1
     ('index.html?championnat=1&tours=1&robot=1&gp=12', 1280, 720, None),   # la fin de saison : le 12e Grand Prix joué par le robot, champion, duel de la saison, contrats, saison 2 ; captures champion.png, duel-saison.png, contrats.png
     ('index.html?championnat=1&tours=1&robot=1&gp=12', 960, 600, None),    # les écrans de fin de saison en petit (Grand Prix 12 fabriqué), la retraite
     ('index.html?championnat=1&tours=1&robot=1&lang=en', 1280, 720, None),   # la page en anglais : championnat et podium sans un mot français, capture championnat-en.png
@@ -550,6 +551,37 @@ def pneus(pg, titre):
     t(f'{titre} : en 10 tours du robot (essai libre), l’usure monte à chaque tour et l’adhérence baisse', monte and releves[-1][0] >= 9 and 0 < releves[-1][1] <= 1 and releves[-1][2] < 1, str(releves))
     L.append(f'  (?pneus=1, robot : après {releves[-1][0]} tours, usure {releves[-1][1]:.2f}, adhérence × {releves[-1][2]:.3f})')
     t(f'{titre} : ?debug=1 affiche l’usure des pneus', attendre(pg, '() => /pneus \\d+ %/.test(document.getElementById("ips").textContent)'), pg.evaluate('() => document.getElementById("ips").textContent'))
+
+# l'arrêt au stand (étape 7, ?pneus=1, course de 12 tours, le robot) : le message du tour conseillé au départ ; le robot va aux stands
+# (v.versStands, robot.js), s'arrête dans la zone (capture stand.png pendant l'arrêt, le message « Arrêt au stand… »), repart avec des
+# pneus neufs, « Pneus neufs ! », sans pénalité ; son tour compte
+def stand_ecran(pg, titre):
+    attendre(pg, '() => typeof JEU !== "undefined" && !!JEU.course && !!JEU.joueur.pneus', None, 30000)
+    pg.evaluate('() => { JEU.course.compte = 0.01; }')
+    attendre(pg, '() => JEU.course.etat === "course"', None, 20000)
+    conseil = attendre(pg, '() => !document.getElementById("hudStand").classList.contains("cache") && /tour 6 conseillé/.test(document.getElementById("hudStand").textContent)', None, 10000)
+    t(f'{titre} : au départ, le message « Arrêt au stand obligatoire : tour 6 conseillé »', conseil, pg.evaluate('() => document.getElementById("hudStand").textContent'))
+    pg.evaluate('() => { BOUCLE.simuler(3); JEU.joueur.pneus.usure = 0.5; JEU.joueur.versStands = true; }')
+    arrete = False
+    for _ in range(60):
+        pg.evaluate('() => BOUCLE.simuler(2)')
+        if pg.evaluate('() => !!JEU.course.arretEnCours'): arrete = True; break
+    attendre(pg, '() => /^Arrêt au stand… \\d,\\d s$/.test(document.getElementById("hudStand").textContent)', None, 3000)   # (l'affichage suit à l'image suivante)
+    texte = pg.evaluate('() => document.getElementById("hudStand").textContent')
+    t(f'{titre} : le robot entre dans la voie et s’arrête dans la zone ; le message « Arrêt au stand… x,x s » pendant l’arrêt', arrete and re.fullmatch(r'Arrêt au stand… \d,\d s', texte) is not None and pg.evaluate('() => JEU.joueur.dansStands && JEU.joueur.u === 0'), texte)
+    pg.screenshot(path=os.path.join(CAPTURES, 'stand.png'))
+    for _ in range(40):
+        pg.evaluate('() => BOUCLE.simuler(1)')
+        if pg.evaluate('() => JEU.course.arrets.length === 1'): break
+    attendre(pg, '() => /Pneus neufs/.test(document.getElementById("hudStand").textContent)', None, 2000)   # (l'affichage suit à l'image suivante)
+    neufs = pg.evaluate('() => [JEU.course.arrets.length, JEU.joueur.pneus.usure, document.getElementById("hudStand").textContent, JEU.course.penalites]')
+    t(f'{titre} : il repart avec des pneus neufs (« Pneus neufs ! »), sans pénalité', neufs[0] == 1 and neufs[1] < 0.05 and 'Pneus neufs' in neufs[2] and neufs[3] == 0, str(neufs))
+    for _ in range(20):
+        pg.evaluate('() => BOUCLE.simuler(2)')
+        if pg.evaluate('() => !JEU.joueur.versStands'): break
+    fin = pg.evaluate('() => [JEU.joueur.versStands, JEU.joueur.dansStands, JEU.course.tours.length, JEU.joueur.contactsMurStands, JEU.course.penalites]')
+    t(f'{titre} : il ressort sur la piste, sans toucher le muret, et son tour compte', fin[0] is False and fin[1] is False and fin[2] >= 1 and fin[3] == 0 and fin[4] == 0, str(fin))
+    L.append(f'  (arrêt au stand dans la page : arrêts {pg.evaluate("() => JSON.stringify(JEU.course.arrets)")}, tours {fin[2]})')
 
 # ?lang=en : la page en anglais : lang et title remplis au démarrage, puis le classement du championnat, le podium et les
 # résultats sans un mot français (les 11 textes en dur de l'audit) ; le robot joue le Grand Prix 1 (un tour)
@@ -1290,6 +1322,28 @@ def fiche_ecran(pg, titre, capture):
     pg.click('#boutonFicheRetour')
     t(f'{titre} : « Retour » ramène au paddock ; un clic sur le joueur n’ouvre rien', attendre(pg, '() => JEU.ecran === "championnat"') and pg.evaluate('() => { const moi = document.querySelector("#championnatPilotes li.moi"); moi.click(); return JEU.ecran === "championnat" && !moi.dataset.k; }'))
 
+# l'aileron (tour 29c) : depuis le garage, « 🪽 Aileron » : la carte de la prochaine course (dessinée), le curseur au milieu, les deux
+# barres ; un cran choisi bouge les barres et l'aileron, il est gardé pour CE circuit et sauvegardé ; aucun conseil ; « Retour » : le garage
+AILERON_ETAT = '''() => { const $ = id => document.getElementById(id), ch = JEU.championnat, nom = circuitProchain(), cv = $("aileronCarte"), px = cv.getContext("2d").getImageData(0, 0, cv.width, cv.height).data;
+  let clairs = 0; for (let i = 0; i < px.length; i += 4) if (px[i] > 200 && px[i + 1] > 200 && px[i + 2] > 200) clairs++;
+  return { ecran: JEU.ecran, titre: $("aileronTitre").textContent, nom, curseur: Number($("aileronCurseur").value), cran: $("aileronCran").textContent, virages: $("barreVirages").style.width, vitesse: $("barreVitesse").style.width,
+    sauve: SAUVEGARDE.championnat().ailerons ? SAUVEGARDE.championnat().ailerons[nom] : undefined, clairs, texte: $("aileron").textContent,
+    dans: [...document.querySelectorAll("#aileron > *")].every(e => { const r = e.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight && r.right <= innerWidth; }),
+    defile: [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth] }; }'''
+def aileron_ecran(pg, titre, capture, cran):
+    pg.click('#boutonAileron')
+    a = pg.evaluate(AILERON_ETAT)
+    t(f'{titre} : « 🪽 Aileron » : la carte de la prochaine course ({a["nom"]}) dessinée, le curseur au milieu (cran 3 / 5), les barres à 50 %, sans conseil, tout dans l’écran',
+      a['ecran'] == 'aileron' and a['curseur'] == 2 and a['cran'] == 'Cran 3 / 5' and a['virages'] == '50%' and a['vitesse'] == '50%' and a['clairs'] > 300
+      and not any(m in a['texte'].lower() for m in ('conseil', 'recommand', 'ingénieur')) and a['dans'] and pas_de_defilement(a['defile']), str(a))
+    pg.evaluate(f'() => {{ const c = document.getElementById("aileronCurseur"); c.value = {cran}; c.dispatchEvent(new Event("input")); }}')
+    b = pg.evaluate(AILERON_ETAT)
+    t(f'{titre} : le cran {cran + 1} : les barres bougent (virages {b["virages"]}, vitesse {b["vitesse"]}), gardé pour {b["nom"]} et sauvegardé',
+      b['curseur'] == cran and b['sauve'] == cran and b['virages'] == f'{cran * 25}%' and b['vitesse'] == f'{100 - cran * 25}%', str(b))
+    pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, capture))
+    pg.click('#boutonAileronRetour')
+    t(f'{titre} : « Retour » ramène au garage', attendre(pg, '() => JEU.ecran === "garage"'), str(pg.evaluate('() => JEU.ecran')))
+
 def garage_ecran(pg, titre, achat=True, capture='garage.png'):
     if achat: pg.evaluate('() => ARGENT.crediter(JEU.championnat, 200000, "test")')
     pg.click('#boutonGarage')
@@ -1309,6 +1363,7 @@ def garage_ecran(pg, titre, achat=True, capture='garage.png'):
           and e2['sauve'] and e2['sauve']['garage']['moteur'] == 1 and e2['sauve']['solde'] == e2['solde'], str(e2))
     pg.wait_for_timeout(300)
     pg.screenshot(path=os.path.join(CAPTURES, capture))
+    aileron_ecran(pg, titre, 'aileron.png' if capture == 'garage.png' else 'aileron-960.png', 4 if capture == 'garage.png' else 0)
     pg.click('#boutonGarageRetour')
     t(f'{titre} : « Retour » ramène à l’écran du championnat, avec le solde à jour', attendre(pg, '() => JEU.ecran === "championnat" && document.getElementById("garage").classList.contains("cache")')
       and pg.evaluate('() => document.getElementById("championnatArgent").textContent === "Solde : " + ARGENT.formater(JEU.championnat.argent.solde)'), str(pg.evaluate('() => [JEU.ecran, document.getElementById("championnatArgent").textContent]')))
@@ -1419,6 +1474,18 @@ def releve(pg, titre):
     t(f'{titre} : « C’est parti ! » : Léa Rossi, la fille, au paddock de la saison {avant["saison"] + 1} (Grand Prix 1), le même monde (les mêmes écuries), dans la plus petite écurie, sans garage ni argent, sauvegardé',
       s['ecran'] == 'championnat' and s['saison'] == avant['saison'] + 1 and s['prochain'] == 0 and s['nom'] == 'Léa Rossi' and s['ecurie'] == s['faible'] and s['garage'] and s['solde'] == 0 and s['stats'] == 0
       and s['gens'] == 1 and s['lien'] == 'fille' and s['couleurs'] == json_couleurs(avant['casque']) and s['sauve'] == s['saison'] and s['retraite'] is None and s['ecuries'] == avant['ecuries'] and s['titre'].startswith('Grand Prix 1 / 12'), str(s))
+    # l'arbre de la dynastie au paddock (tour 29c) : les deux générations, Léa en piste, les records de famille ; « Retour »
+    pg.click('#boutonArbre')
+    ar = pg.evaluate('''() => ({ ecran: JEU.ecran, lignes: [...document.querySelectorAll("#arbreGenerations li")].map(li => li.textContent), actuel: document.querySelectorAll("#arbreGenerations li.actuel").length,
+      casques: document.querySelectorAll("#arbreGenerations canvas").length, famille: document.getElementById("arbreFamille").textContent, circuits: document.getElementById("arbreCircuits").textContent,
+      dans: [...document.querySelectorAll("#arbre > *")].every(e => { const r = e.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight && r.right <= innerWidth; }),
+      defile: [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth] })''')
+    t(f'{titre} : « 🌳 Arbre de la dynastie » au paddock : Marco Rossi puis Léa Rossi (en piste), leurs casques, les records de famille (2 générations), tout dans l’écran',
+      ar['ecran'] == 'arbre' and len(ar['lignes']) == 2 and 'Marco Rossi' in ar['lignes'][0] and 'Léa Rossi' in ar['lignes'][1] and 'en piste' in ar['lignes'][1] and ar['actuel'] == 1 and ar['casques'] == 2
+      and ar['famille'].startswith('Records de famille : 2 générations') and ar['circuits'].startswith('Victoires de la famille par circuit') and ar['dans'] and pas_de_defilement(ar['defile']), str(ar))
+    pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'arbre.png'))
+    pg.click('#boutonArbreRetour')
+    t(f'{titre} : « Retour » : le paddock', attendre(pg, '() => JEU.ecran === "championnat"'), str(pg.evaluate('() => JEU.ecran')))
     pg.evaluate('() => { SAISONS.avancer(JEU.championnat, 1); montrerUne(JEU.championnat.album[JEU.championnat.album.length - 1]); }')
     u = pg.evaluate('() => ({ f: JEU.championnat.album[JEU.championnat.album.length - 1].f, titre: document.getElementById("uneTitre").textContent })')
     t(f'{titre} : le premier Grand Prix de l’héritière : la une de la relève (« {u["titre"]} »), accordée au lien, le parent nommé', u['f'] == 'releve_fille' and 'Marco Rossi' in u['titre'] and ('fille' in u['titre']), str(u))
@@ -1571,6 +1638,9 @@ def championnat(pg, titre, l):
                        ' && JEU.couleurs.every((c, k) => c === JEU.championnat.ecuries[JEU.championnat.pilotes[k].ecurie].couleur) && JEU.course.nbTours === 1', None, 10000), str(pg.evaluate(ECRAN)))
         t(f'{titre} : GP {gp} : la carte se calcule, chaque IA prend le caractère de son pilote du championnat',
           attendre(pg, '() => JEU.plateau.carte !== null && JEU.plateau.pilotes.slice(0, 19).every((p, k) => p.pilote && p.pilote.caractere.regularite === JEU.championnat.pilotes[k].caractere.regularite)', None, 180000))
+        if gp == 2:   # l'aileron réglé au garage après le GP 1 (cran 5 pour ce circuit) est sur la voiture du joueur ; les IA ont le leur
+            al = pg.evaluate('() => ({ ad: JEU.joueur.aileronAdherence, tr: JEU.joueur.aileronTrainee, attendu: AILERON.facteurs(AILERON.cranDe(JEU.championnat, NOM_CIRCUIT)), cran: AILERON.cranDe(JEU.championnat, NOM_CIRCUIT), ia: JEU.plateau.pilotes.slice(0, 19).filter(p => typeof p.aileron === "number").length })')
+            t(f'{titre} : GP 2 : l’aileron réglé (cran {al["cran"] + 1}) est sur la voiture du joueur, et les 19 IA ont choisi le leur', al['cran'] == 4 and al['ad'] == al['attendu']['adherence'] and al['tr'] == al['attendu']['trainee'] and al['ia'] == 19, str(al))
         tour = None   # la ligne du coéquipier dans la tour, vue pendant la course
         for _ in range(80):
             pg.evaluate('() => BOUCLE.simuler(5)')
@@ -1695,8 +1765,10 @@ with sync_playwright() as p:
                 amis(pg, titre, l, h)
             if 'test=tournoi' in page:
                 tournoi(pg, titre, l, h)
-            if 'pneus=1' in page:
+            if 'pneus=1' in page and 'test=stand' not in page:
                 pneus(pg, titre)
+            if 'test=stand' in page:
+                stand_ecran(pg, titre)
             if re.search(r'[?&]ia=1(&|$)', page):
                 course_ia(pg, titre)
             if re.search(r'[?&]ia=10(&|$)', page):

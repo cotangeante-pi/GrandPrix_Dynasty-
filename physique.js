@@ -13,7 +13,7 @@ function creerVoiture(circuit, s = 0, d = 0) {
     avant: { x: 0, z: 0, cap: 0 },    // l'état au début du pas, pour l'interpolation de l'affichage
     piste: null,                      // le dernier positionSurPiste
     surHerbe: false, contactsBarriere: 0,
-    dansStands: false, standsExces: false, penalitesStands: 0, contactsMurStands: 0,   // la voie des stands (étape 7, derrière PNEUS_ACTIFS) : dedans, la limite de vitesse déjà dépassée à ce passage, les secondes de pénalité, les contacts du muret
+    dansStands: false, standsExces: false, penalitesStands: 0, contactsMurStands: 0, campStands: 0,   // la voie des stands (étape 7, derrière PNEUS_ACTIFS) : dedans, la limite de vitesse déjà dépassée à ce passage, les secondes de pénalité, les contacts du muret
     contactsVoiture: 0,               // les contacts avec une autre voiture (un frottement qui dure compte pour un)
     chocMax: 0,                       // la plus forte vitesse de choc contre une voiture (m/s, vitesse relative)
     chocs: [],                        // pour chaque contact, la plus forte vitesse de rapprochement (m/s)…
@@ -106,7 +106,7 @@ function pasVoiture(v, circuit, dt) {
   memoriserAvant(v);
 
   const herbe = v.surHerbe;
-  const mu = R.ADHERENCE * (v.adherence || 1) * (v.aero || 1) * (herbe ? R.ADHERENCE_HERBE : 1);   // × 1 sans pneus ni garage : le même nombre au bit près
+  const mu = R.ADHERENCE * (v.adherence || 1) * (v.aero || 1) * (v.aileronAdherence || 1) * (herbe ? R.ADHERENCE_HERBE : 1);   // × 1 sans pneus ni garage ni aileron (aileron, Codeur 3) : le même nombre au bit près
   const fz = charge(v.u);
   const fzAvant = fz * b / R.EMPATTEMENT, fzArriere = fz * a / R.EMPATTEMENT;
   const delta = v.direction * braquageMax(v.u);
@@ -118,7 +118,7 @@ function pasVoiture(v, circuit, dt) {
   if (v.gaz > 0) fx += v.gaz * Math.min(R.FORCE_MOTEUR_MAX, R.PUISSANCE / Math.max(v.u, 1)) * (herbe ? R.GAZ_HERBE : 1) * (v.facteurDepart || 1) * (v.moteur || 1);   // × 1 sans départ ni garage : le même nombre au bit près
   // le frein à l'arrêt devient la marche arrière (si on n'accélère pas)
   if (v.frein > 0 && v.u <= 0.5 && v.gaz === 0 && v.u > -R.MARCHE_ARRIERE_MAX) fx -= v.frein * R.FORCE_MARCHE_ARRIERE;
-  const resistance = R.TRAINEE * (1 - R.ASPIRATION_MAX * v.aspiration) * v.u * v.u + R.ROULEMENT + (herbe ? R.FROTTEMENT_HERBE * Math.abs(v.u) + R.FROTTEMENT_HERBE_CARRE * v.u * v.u : 0)
+  const resistance = R.TRAINEE * (v.aileronTrainee || 1) * (1 - R.ASPIRATION_MAX * v.aspiration) * v.u * v.u + R.ROULEMENT + (herbe ? R.FROTTEMENT_HERBE * Math.abs(v.u) + R.FROTTEMENT_HERBE_CARRE * v.u * v.u : 0)
     + (avance ? v.frein * R.ADHERENCE_FREIN * (v.freins || 1) * (herbe ? R.ADHERENCE_HERBE : 1) * fz : 0);   // × 1 sans garage
 
   if (Math.abs(v.u) < R.VITESSE_CINEMATIQUE) {
@@ -208,7 +208,9 @@ function contactPiste(v, circuit) {
   v.piste = p;
   // sur la voie des stands : pas d'herbe, et la limite de vitesse (la physique y ramène la voiture, une pénalité par passage)
   const dedans = !!(st && st.dansVoie);
-  v.surHerbe = dedans ? false : Math.abs(p.d) > circuit.largeur / 2 + R.MARGE_HERBE;
+  // (les rampes d'entrée et de sortie sont goudronnées, du bord de la piste jusqu'au bord de la voie)
+  const rampe = !!(st && st.rampe && p.d * st.cote > 0 && p.d * st.cote < st.dExt + R.MARGE_HERBE);
+  v.surHerbe = dedans || rampe ? false : Math.abs(p.d) > circuit.largeur / 2 + R.MARGE_HERBE;
   if (dedans) {
     if (v.u > R.STAND_VITESSE_MAX) {
       if (!v.standsExces) { v.standsExces = true; v.penalitesStands += R.STAND_PENALITE_VITESSE; }
@@ -216,6 +218,9 @@ function contactPiste(v, circuit) {
     }
   } else v.standsExces = false;
   v.dansStands = dedans;
+  // de quel côté du muret elle est (simulation.js, voituresVues : on ne voit pas une voiture de l'autre côté) : 1 la piste, 2 la voie, 0 sans muret ici
+  v.campStands = st && !st.rampe ? (st.voie ? 2 : 1) : 0;
+  v.rampeStands = rampe && p.d * st.cote > circuit.largeur / 2;   // dans une rampe, hors de la piste : elle entre aux stands ou en sort (ia.js, estLente)
 }
 
 // L'aspiration : derrière une voiture, dans son sillage (à moins de ASPIRATION_DISTANCE devant, à moins de
@@ -290,6 +295,15 @@ function contactsVoitures(voitures, circuit) {
       if (circuit) { contactPiste(a, circuit); contactPiste(b, circuit); }
     }
   }
+}
+
+// (aileron, Codeur 3) la racine cubique par la méthode de Newton (des additions, multiplications et divisions seulement : le même
+// nombre sur toutes les machines, ni Math.pow ni Math.cbrt) ; racineCubique(1) = 1 exactement. Sert à la vitesse de pointe qu'un
+// pilote IA attend avec son aileron (la pointe varie comme traînée^(−1/3) quand la puissance l'emporte)
+function racineCubique(x) {
+  let r = 1;
+  for (let i = 0; i < 8; i++) r = (2 * r + x / (r * r)) / 3;
+  return r;
 }
 
 // la vitesse limite dans un virage de courbure k (m/s), avec l'appui : v² |k| = mu (g + APPUI v² / m)

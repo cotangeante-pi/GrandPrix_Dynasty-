@@ -15,6 +15,9 @@ const TEXTES = {
     go: 'GO',
     penalite: '+{s} s ✂ corner cut',
     fauxDepart: '+{s} s false start',
+    // the pit stop (step 7, ?pneus=1)
+    standConseille: 'Mandatory pit stop: lap {t} recommended (+{s} s without it)', standEnCours: 'Pit stop… {s}', standFait: 'New tyres! Stop {s}',
+    standTour: 'PIT', resultatArret: 'pit L{t}',
     attenteArrivee: 'Finished — waiting for the other drivers',
     attenteAccelere: '⏩ Fast-forward: {n} cars still racing', attenteAccelere1: '⏩ Fast-forward: 1 car still racing',
     passerPodium: 'Skip to the podium (Enter)',
@@ -155,6 +158,7 @@ const TEXTES = {
     heritierLien_fils: 'son of {parent}', heritierLien_fille: 'daughter of {parent}', heritierLien_protege: 'protégé of {parent}', heritierLien_protegee: 'protégée of {parent}',
     releveTitre: 'The legacy', releveParent: '{parent}: {s} · {t} · {v} · {p}', arbreTitre: 'Family tree',
     bilanFamille: 'Family records: {g} · {t} · {v} · {c}',
+    arbre: '🌳 Family tree', arbreLigne: '{s} · {t} · {v} · {p} · best at home: {dom}', arbreActuel: 'racing now', arbreCircuits: 'Family wins by circuit: {liste}', arbreAucuneVictoire: 'Family wins by circuit: none yet', arbreRetour: 'Back',
     ficheFamille: '“I raced against {parent}. {parent} never gave an inch.”',
     uneTitre_releve_fils: ['The son of {parent} arrives', '{pilote}, son of {parent}, takes the start', 'A famous name: {pilote}, son of {parent}, on the grid'],
     uneTexte_releve_fils: ['P{place} at {circuit} in a first Grand Prix. The paddock has not forgotten {parent}.', 'First Grand Prix, P{place} at {circuit}. {parent} opened the way; now it is his turn.'],
@@ -164,6 +168,9 @@ const TEXTES = {
     uneTexte_releve_protege: ['P{place} at {circuit} in a first Grand Prix. The paddock has not forgotten {parent}.', 'First Grand Prix, P{place} at {circuit}. {parent} opened the way; now it is his turn.'],
     uneTitre_releve_protegee: ['The protégée of {parent} arrives', '{pilote}, protégée of {parent}, takes the start', 'A famous mentor: {pilote}, protégée of {parent}, on the grid'],
     uneTexte_releve_protegee: ['P{place} at {circuit} in a first Grand Prix. The paddock has not forgotten {parent}.', 'First Grand Prix, P{place} at {circuit}. {parent} opened the way; now it is her turn.'],
+    // l'aileron (aileron.js, Codeur 3) : aucun conseil, seulement ce que fait le curseur
+    aileron: '🪽 Rear wing', aileronTitre: 'Rear wing — {circuit}', aileronBas: 'Low', aileronHaut: 'High', aileronVirages: 'Corners', aileronVitesse: 'Speed',
+    aileronCran: 'Setting {n} / {max}', aileronLongueur: '{km} km',
     // un nombre devant un mot (nombre(n, cle), Codeur 3) : [singulier, pluriel] ; en anglais le singulier est pour 1 seulement
     nb_saison: ['{n} season', '{n} seasons'], nb_titre: ['{n} title', '{n} titles'], nb_victoire: ['{n} win', '{n} wins'], nb_podium: ['{n} podium', '{n} podiums'],
     nb_point: ['{n} point', '{n} points'], nb_generation: ['{n} generation', '{n} generations'], nb_championne: ['{n} champion generation', '{n} champion generations'],
@@ -240,6 +247,9 @@ const TEXTES = {
     go: 'GO',
     penalite: '+{s} s ✂ virage coupé',
     fauxDepart: '+{s} s faux départ',
+    // l'arrêt au stand (étape 7, ?pneus=1)
+    standConseille: 'Arrêt au stand obligatoire : tour {t} conseillé (+{s} s sans arrêt)', standEnCours: 'Arrêt au stand… {s}', standFait: 'Pneus neufs ! Arrêt {s}',
+    standTour: 'STAND', resultatArret: 'stand T{t}',
     attenteArrivee: 'Arrivée — en attendant les autres pilotes',
     attenteAccelere: '⏩ En accéléré : encore {n} voitures en course', attenteAccelere1: '⏩ En accéléré : encore 1 voiture en course',
     passerPodium: 'Passer au podium (Entrée)',
@@ -370,6 +380,7 @@ const TEXTES = {
     heritierLien_fils: 'fils de {parent}', heritierLien_fille: 'fille de {parent}', heritierLien_protege: 'protégé de {parent}', heritierLien_protegee: 'protégée de {parent}',
     releveTitre: 'La dynastie', releveParent: '{parent} : {s} · {t} · {v} · {p}', arbreTitre: 'L’arbre de la dynastie',
     bilanFamille: 'Records de famille : {g} · {t} · {v} · {c}',
+    arbre: '🌳 Arbre de la dynastie', arbreLigne: '{s} · {t} · {v} · {p} · à domicile : {dom}', arbreActuel: 'en piste', arbreCircuits: 'Victoires de la famille par circuit : {liste}', arbreAucuneVictoire: 'Victoires de la famille par circuit : aucune pour l’instant', arbreRetour: 'Retour',
     ficheFamille: '« J’ai couru contre {parent}. {parent} ne lâchait jamais rien. »',
     uneTitre_releve_fils: ['Le fils de {parent} débarque', '{pilote}, le fils de {parent}, prend le départ', 'Un nom qui compte : {pilote}, fils de {parent}, sur la grille'],
     uneTexte_releve_fils: ['P{place} à {circuit} pour un premier Grand Prix. Le paddock n’a pas oublié {parent}.', 'Premier Grand Prix, P{place} à {circuit}. {parent} a ouvert la voie, à lui d’écrire la suite.'],
@@ -379,6 +390,9 @@ const TEXTES = {
     uneTexte_releve_protege: ['P{place} à {circuit} pour un premier Grand Prix. Le paddock n’a pas oublié {parent}.', 'Premier Grand Prix, P{place} à {circuit}. {parent} a ouvert la voie, à lui d’écrire la suite.'],
     uneTitre_releve_protegee: ['La protégée de {parent} débarque', '{pilote}, la protégée de {parent}, prend le départ', 'Un mentor qui compte : {pilote}, protégée de {parent}, sur la grille'],
     uneTexte_releve_protegee: ['P{place} à {circuit} pour un premier Grand Prix. Le paddock n’a pas oublié {parent}.', 'Premier Grand Prix, P{place} à {circuit}. {parent} a ouvert la voie, à elle d’écrire la suite.'],
+    // l'aileron (aileron.js, Codeur 3) : aucun conseil, seulement ce que fait le curseur
+    aileron: '🪽 Aileron', aileronTitre: 'Aileron — {circuit}', aileronBas: 'Bas', aileronHaut: 'Haut', aileronVirages: 'Virages', aileronVitesse: 'Vitesse',
+    aileronCran: 'Cran {n} / {max}', aileronLongueur: '{km} km',
     // un nombre devant un mot (nombre(n, cle), Codeur 3) : [singulier, pluriel] ; en français le singulier est pour 0 et 1
     nb_saison: ['{n} saison', '{n} saisons'], nb_titre: ['{n} titre', '{n} titres'], nb_victoire: ['{n} victoire', '{n} victoires'], nb_podium: ['{n} podium', '{n} podiums'],
     nb_point: ['{n} point', '{n} points'], nb_generation: ['{n} génération', '{n} générations'], nb_championne: ['{n} génération championne', '{n} générations championnes'],
@@ -456,4 +470,12 @@ function texte(cle) {
 function nombre(n, cle) {
   const formes = texte('nb_' + cle), un = LANGUE === 'fr' ? Math.abs(n) < 2 : n === 1;
   return formes[un ? 0 : 1].replace('{n}', String(n).replace('.', texte('virgule')));
+}
+
+// l'élision du français (Codeur 3) : « de Alex » → « d’Alex », « que Alex » → « qu’Alex », devant un mot qui commence par une voyelle
+// (pas devant un h : « de Hugo » reste, le h aspiré est fréquent dans les noms) ; appliquée aux phrases où l'on met un nom
+// (interface.js : avec, journal.js : remplir, interview.js : phrase) ; en anglais, rien ne change
+function elider(t) {
+  if (LANGUE !== 'fr' || typeof t !== 'string') return t;
+  return t.replace(/(^|[\s(«“'’])([Dd]e|[Qq]ue) (?=[AEIOUYÀÂÄÆÉÈÊËÎÏÔÖŒÙÛÜaeiouyàâäæéèêëîïôöœùûü])/g, (m, avant, mot) => avant + mot.slice(0, -1) + '’');
 }

@@ -169,7 +169,8 @@ const CHAMPIONNAT = (function () {
     if (typeof SPONSORS !== 'undefined') SPONSORS.completer(ch);
     if (typeof FICHE !== 'undefined' && ch.pilotes) FICHE.completer(ch);
     if (typeof INTERVIEW !== 'undefined' && ch.pilotes) INTERVIEW.completer(ch);
-    if (typeof CARRIERE !== 'undefined' && ch.pilotes) CARRIERE.completer(ch);   // la carrière en cours (carriere.js) : commencée à la saison 1 dans une sauvegarde d'avant   // la réputation (interview.js) : 50 partout dans une sauvegarde d'avant
+    if (typeof CARRIERE !== 'undefined' && ch.pilotes) CARRIERE.completer(ch);
+    if (typeof AILERON !== 'undefined') AILERON.completer(ch);   // les crans du joueur par circuit (aileron.js) : aucun dans une sauvegarde d'avant (le milieu)   // la carrière en cours (carriere.js) : commencée à la saison 1 dans une sauvegarde d'avant   // la réputation (interview.js) : 50 partout dans une sauvegarde d'avant
     return ch;
   }
 
@@ -203,6 +204,10 @@ const CHAMPIONNAT = (function () {
   // pilote k) : rythme × niveau × rythme du pilote.
   // À faire AVANT donnerCarte (le pilote et la qualification lisent le rythme). Le joueur garde sa voiture (FACTEUR_VOITURE_JOUEUR)
   function appliquerNiveaux(ch, e) {
+    // l'aileron (aileron.js) : chaque IA règle le sien avant le Grand Prix (le circuit, son caractère, la graine) ; mêmes effets que le joueur
+    const crans = typeof AILERON !== 'undefined' && e.circuit ? AILERON.cransIA(ch, e.circuit) : null;
+    // (l'effet sur les voitures des IA attend AILERON_IA_ACTIF : voir donnees.js ; le cran est choisi et gardé quand même)
+    if (crans) e.pilotes.forEach((p, k) => { if (ch.pilotes[k] && !p.humain && crans[k] !== null) { if (REGLAGES.AILERON_IA_ACTIF) AILERON.appliquer(p.v, crans[k]); p.aileron = crans[k]; } });
     e.pilotes.forEach((p, k) => {
       const pilote = ch.pilotes[k];
       if (!pilote || p.humain || p.rythmeBase !== undefined) return;
