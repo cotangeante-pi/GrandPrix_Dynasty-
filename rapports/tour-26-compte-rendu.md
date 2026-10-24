@@ -69,3 +69,15 @@ Pour CLAUDE.md (par le Chef) : course.js : pasArretStand, penaliserSansArret ; s
 Ce que je n'ai pas pu vérifier : la sensation (durée de l'arrêt, la voie à 80 km/h, le message) en jouant : à essayer par le propriétaire (`index.html?course=12&ia=9&joueur=1&pneus=1&circuit=technique`) ; les 12 tracés officiels avec l'arrêt (pas encore branchés) ; la rivalité en vrai championnat (?championnat=1 après une réponse provocante) : seulement en simulation ; la défense reste rare (6 sur 8 courses) parce que le joueur n'est dans les rétroviseurs (8 m) qu'un instant avant les freinages.
 
 Réévalue.
+
+---
+
+APRÈS LE TOUR 26 (2026-10-24, 18h05 → 19h20) — Codeur 1 : la fusion avec le tournoi, puis l'aileron chez les IA
+
+- Fusion de main (le tournoi du Codeur 2) dans pneus : e301277, GitHub 40137000389 TOUT PASSE (conflit d'ecrans.py : tournoi() et stand_ecran() gardés) ; fusionné par le Chef.
+- Branche **ailerons-ia** (pneus + origin/codeur3 b52b9b0 + main), commit **d1e32f4**, GitHub **40140821956 : TOUT PASSE** (260/260, 43/43, ailerons 38/38, stands 9/9, ecrans 685/685).
+  - Cause des chocs avec ?ailerons=1 (diagnostic sur 6 courses) : au freinage, une IA collée à une voiture qui n'a pas le même aileron (elle freine plus tôt ou plus fort) suivait sa vitesse du moment et freinait trop tard (choc à 4 m, 33 contre 20 m/s).
+  - Remède (ia.js, `freinsVus`, `autreAileron`, `IA_FREIN_PREVU` 0,6 s) : derrière une voiture qui n'a pas le même aileron, quand elle ralentit, l'IA vise la vitesse qu'elle aura dans 0,6 s. Même aileron ou sans aileron : rien ne change, au bit près. (Une version pour toutes les voitures cassait courses.html : 31 dépassements, 1 coupe.)
+  - courses.html : 41 / 4 / 2450 inchangé ; courses.html?ailerons=1 : 38 dépassements, 5 chocs, herbe 2876, 0 coupe, 20 voitures 0 choc (avant : 49 / 12 / 4059 / 2 coupes ; avec 0,3 s : 8 chocs).
+  - AILERON_IA_ACTIF = true ; courses.html?ailerons=1 dans la partie « courses » de lancer.py (sans la rivalité, mesurée dans la page normale).
+- Pas vérifié : la sensation contre des IA aux ailerons différents (à essayer par le propriétaire) ; origin/codeur3 a avancé depuis b52b9b0 (5aac920) : la fusion des deux branches est à faire par le Chef.

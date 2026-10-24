@@ -363,6 +363,7 @@ function creerPilote(carte, rythme = 1, style = styleNeutre(), decalage = 0) {
     repos: 0,        // s avant de pouvoir réattaquer après une attaque abandonnée
     attaques: 0, reussies: 0,
     parCible: new Map(),   // voiture → { attaques, reussies } (compterCible)
+    vitessesVues: new Map(),   // voiture vue devant lui → sa vitesse au pas d'avant (freinsVus)
     rivalite: false,       // le rival du joueur (l'interview d'après course, simulation.js poserRivalites) : plus agressif contre lui seulement
     defenses: 0, defenseVirage: null,   // ses défenses contre le joueur (defendreContreJoueur)
     ligne: null,   // { s0, e, v } : l'écart et la vitesse visée tous les IA_LIGNE_PAS m à partir de s0
@@ -823,6 +824,19 @@ function majAttaque(pilote, v, vues, dt) {
   }
 }
 
+// la voiture vue w n'a pas le même réglage d'aileron que la sienne (aileron.js : v.aileronAdherence, v.aileronTrainee ; 1 = le milieu)
+function autreAileron(v, w) {
+  return !!w && ((w.aileronAdherence || 1) !== (v.aileronAdherence || 1) || (w.aileronTrainee || 1) !== (v.aileronTrainee || 1));
+}
+
+// la décélération (m/s²) d'une voiture vue devant lui, d'un pas à l'autre (pilote.vitessesVues : voiture → sa vitesse au pas d'avant) ;
+// 0 si elle ne ralentit pas ou s'il la voit pour la première fois
+function freinsVus(pilote, w, dt) {
+  const avant = pilote.vitessesVues.get(w.id);
+  pilote.vitessesVues.set(w.id, w.vitesse);
+  return avant === undefined || dt <= 0 ? 0 : Math.max(0, (avant - w.vitesse) / dt);
+}
+
 // une valeur de la ligne à la distance r (m) de son départ
 function valeurLigne(tableau, r) {
   const f = Math.max(0, Math.min(tableau.length - 1, r / REGLAGES.IA_LIGNE_PAS)), i = Math.min(tableau.length - 2, Math.floor(f)), a = f - i;
@@ -858,6 +872,8 @@ function piloterIA(pilote, v, vues, dt) {
     pilote.lentesVues.set(w.id, vue);
   }
   for (const id of pilote.lentesVues.keys()) if (!vues.some(w => w.id === id)) pilote.lentesVues.delete(id);
+  for (const id of pilote.vitessesVues.keys()) if (!vues.some(w => w.id === id)) pilote.vitessesVues.delete(id);   // (freinsVus : seulement d'un pas à l'autre)
+  for (const w of vues) w.freine = autreAileron(v, w.id) ? freinsVus(pilote, w, dt) : 0;   // (aileron : sa décélération, vue à chaque pas)
   // (r signé : reculé de quelques centimètres, il refait sa ligne au lieu de lire le bout de l'ancienne)
   let r = pilote.ligne ? ecartLeLong(c, p.s - pilote.ligne.s0) : Infinity;
   if (!pilote.ligne || pilote.attente <= 0 || r < 0 || r > R.IA_HORIZON / 2) {
@@ -902,7 +918,11 @@ function piloterIA(pilote, v, vues, dt) {
     // joueur, derrière, leur rentrait dedans) : tout le monde part en même temps, et pendant le lancement (ses
     // IA_DEPART_LANCEMENT premiers mètres), il la suit à IA_DISTANCE_MIN ; ensuite, la distance habituelle revient
     const suivi = sillage ? R.IA_DISTANCE_ATTAQUE : pilote.parcouru < R.IA_DEPART_LANCEMENT ? R.IA_DISTANCE_MIN : R.IA_DISTANCE_SUIVI;
-    const derriere = vitesseDerriere({ distance: g, vitesse: w.vitesse }, suivi);
+    // (aileron, Codeur 1 : derrière une voiture qui n'a pas le même aileron que lui — ça se voit —, elle ne freine pas aux mêmes
+    // endroits ni pareil : quand elle freine (sa vitesse qui baisse, ses feux), il prévoit qu'elle ralentira encore pendant IA_FREIN_PREVU s ;
+    // sinon il freinait trop tard. Même aileron (et sans aileron) : rien ne change, au bit près)
+    const ralentit = w.freine || 0;
+    const derriere = vitesseDerriere({ distance: g, vitesse: ralentit > 0 ? Math.max(0, w.vitesse - ralentit * R.IA_FREIN_PREVU) : w.vitesse }, suivi);
     if (derriere < cible) { cible = derriere; retenuPar = w.id; }
   }
   // retenu : il voudrait aller nettement plus vite que la voiture devant ne le laisse
