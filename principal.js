@@ -61,7 +61,7 @@ const JEU = {
   // le premier lancement (decouverte.js) : la course de découverte, dans le monde du championnat créé à ce moment (monde : ses
   // pilotes et écuries ; indices : pour chaque voiture IA k de la course, l'id de son pilote dans monde.pilotes) ; aides : les
   // touches déjà utilisées pendant le premier tour ; depuisClic : l'instant du clic sur « Jouer » (la mesure du clic aux feux, ms)
-  decouverte: false, monde: null, indices: null, aides: null, depuisClic: null, clicAuxFeux: null,
+  decouverte: false, monde: null, indices: null, aides: null, depuisClic: null, clicAuxFeux: null, clicAuPremierFeu: null,
   carteDuCache: false,  // la carte des IA est venue du cache de la sauvegarde (cache-carte.js) : pas de calcul en fond
 };
 
@@ -850,6 +850,8 @@ function demarrerJeu() {
     majAides();
     // la mesure du premier lancement : du clic sur « Jouer » à l'extinction des feux (ms)
     if (JEU.depuisClic !== null && JEU.clicAuxFeux === null && JEU.course && JEU.course.feux && JEU.course.etat !== 'compte') JEU.clicAuxFeux = performance.now() - JEU.depuisClic;
+    // … et jusqu'au premier feu (la fin de l'attente de la carte des IA)
+    if (JEU.depuisClic !== null && JEU.clicAuPremierFeu === null && JEU.course && JEU.course.feux && (JEU.course.etat !== 'compte' || JEU.course.compte < JEU.course.feux.total)) JEU.clicAuPremierFeu = performance.now() - JEU.depuisClic;
     majClassementRadar();
     signauxCourse(JEU.course);
     // Poki (sdk.js) : la voiture roule (course, tour de qualification) = gameplayStart, tout le reste = gameplayStop ;

@@ -410,11 +410,11 @@ def decouverte(pg, titre):
     t(f'{titre} : sur la grille, les aides sont affichées (↑ ← → ↓), aucune touche encore', attendre(pg, '() => !document.getElementById("aides").classList.contains("cache") && ["aideGaz", "aideDirection", "aideFrein"].every(id => !document.getElementById(id).classList.contains("cache"))', None, 10000))
     t(f'{titre} : sans aucune touche pendant AIDE_CLIGNOTE_APRES s sur la grille, « ↑ » clignote', attendre(pg, '() => document.getElementById("aideGaz").classList.contains("clignote")', None, 20000), str(pg.evaluate('() => [JEU.course.depart && JEU.course.depart.t, JEU.aides]')))
     extinction = attendre(pg, '() => JEU.course.etat !== "compte"', None, 60000)
-    mesure = pg.evaluate('() => JEU.clicAuxFeux')
+    mesure = pg.evaluate('() => JEU.clicAuxFeux'); premier = pg.evaluate('() => JEU.clicAuPremierFeu')
     t(f'{titre} : les feux s’éteignent, le temps du clic aux feux est mesuré (sous swiftshader, la carte en fond pèse : la valeur est donnée telle quelle)', extinction and mesure is not None and mesure > 0, str(mesure))
     cache = pg.evaluate('() => { const c = SAUVEGARDE.carte(NOM_CIRCUIT); return { present: !!c, taille: c ? CACHE_CARTE.taille(c) : 0, duCache: JEU.carteDuCache }; }')
     t(f'{titre} : au premier lancement, pas de cache : la carte est calculée en fond, puis mise en cache dans la sauvegarde (taille < CACHE_CARTE_TAILLE_MAX)', not cache['duCache'] and cache['present'] and 0 < cache['taille'] < pg.evaluate('() => REGLAGES.CACHE_CARTE_TAILLE_MAX'), str(cache))
-    L.append(f"  (premier lancement : page chargée en {chargement} ms ; du clic sur « Jouer » à l’extinction des feux : {(mesure or 0) / 1000:.1f} s, carte des IA calculée en fond, sous swiftshader ; carte mise en cache : {cache['taille']} octets)")
+    L.append(f"  (premier lancement : page chargée en {chargement} ms ; du clic sur « Jouer » au premier feu (l’attente de la carte des IA) : {(premier or 0) / 1000:.1f} s, à l’extinction des feux : {(mesure or 0) / 1000:.1f} s, sous swiftshader ; carte mise en cache : {cache['taille']} octets)")
     t(f'{titre} : gameplayStart seulement aux feux éteints, une fois', attendre(pg, '() => window.APPELS_SDK.join(",") === "init,gameLoadingFinished,gameplayStart"', None, 10000), str(pg.evaluate('() => window.APPELS_SDK')))
     # les touches : chaque aide part quand sa touche a servi (le robot conduit ; les touches ne font que marquer les aides)
     pg.keyboard.press('ArrowUp'); pg.wait_for_timeout(100)
@@ -468,10 +468,14 @@ def decouverte(pg, titre):
     attendre(pg, '() => JEU.qualif && JEU.qualif.etat === "resultat"', None, 10000)
     t0 = time.monotonic()
     pg.click('#boutonQualifCourse')
-    feux2 = attendre(pg, '() => JEU.ecran === "course" && JEU.course.etat !== "compte"', None, 60000)
+    premier2 = attendre(pg, '() => JEU.ecran === "course" && JEU.course.feux && (JEU.course.etat !== "compte" || JEU.course.compte < JEU.course.feux.total)', None, 60000)
+    attente2 = time.monotonic() - t0
+    feux2 = attendre(pg, '() => JEU.course.etat !== "compte"', None, 90000)
     mesure2 = time.monotonic() - t0
-    t(f'{titre} : avec le cache, du départ de la course aux feux éteints : les feux ne font qu’allumer leurs 5 lampes (moins de 12 s, contre {(mesure or 0) / 1000:.1f} s au premier lancement)', feux2 and mesure2 < 12, f'{mesure2:.1f} s')
-    L.append(f"  (deuxième lancement, carte en cache : du départ de la course aux feux éteints {mesure2:.1f} s, contre {(mesure or 0) / 1000:.1f} s au premier lancement)")
+    # (sous swiftshader avec 20 voitures, les 5 feux eux-mêmes prennent plus de temps réel que de temps de jeu : c'est l'attente
+    # avant le premier feu qui mesure la carte)
+    t(f'{titre} : avec le cache, du départ de la course au premier feu : aucune attente de la carte (moins de 3 s, contre {(premier or 0) / 1000:.1f} s au premier lancement)', premier2 and attente2 < 3 and feux2, f'{attente2:.1f} s')
+    L.append(f"  (deuxième lancement, carte en cache : du départ de la course au premier feu {attente2:.1f} s, aux feux éteints {mesure2:.1f} s ; au premier lancement : {(premier or 0) / 1000:.1f} s et {(mesure or 0) / 1000:.1f} s)")
     t(f'{titre} : en course, la ligne du joueur dans la tour porte son numéro 27', attendre(pg, '() => document.querySelector("#classementListe li.moi") && document.querySelector("#classementListe li.moi .numero").textContent === "27"', None, 20000), pg.evaluate('() => document.querySelector("#classementListe li.moi") && document.querySelector("#classementListe li.moi").innerText'))
     attendre(pg, '() => JEU.plateau.carte !== null', None, 240000)
     for _ in range(80):
