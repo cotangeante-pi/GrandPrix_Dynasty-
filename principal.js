@@ -61,7 +61,8 @@ const JEU = {
   // le premier lancement (decouverte.js) : la course de découverte, dans le monde du championnat créé à ce moment (monde : ses
   // pilotes et écuries ; indices : pour chaque voiture IA k de la course, l'id de son pilote dans monde.pilotes) ; aides : les
   // touches déjà utilisées pendant le premier tour ; depuisClic : l'instant du clic sur « Jouer » (la mesure du clic aux feux, ms)
-  decouverte: false, monde: null, indices: null, aides: null, depuisClic: null, clicAuxFeux: null,
+  decouverte: false, monde: null, indices: null, aides: null, depuisClic: null, clicAuxFeux: null, clicAuPremierFeu: null,
+  carteDuCache: false,  // la carte des IA est venue du cache de la sauvegarde (cache-carte.js) : pas de calcul en fond
 };
 
 // les caméras de survol n'ont pas de course
@@ -741,7 +742,9 @@ function demarrerJeu() {
   }
   JEU.contre = (PARAMETRES.get('joueur') === '1' && Number(PARAMETRES.get('ia')) >= 1) || !!JEU.championnat || JEU.decouverte;
   JEU.ia = JEU.championnat ? JEU.championnat.pilotes.length - 1 : JEU.decouverte ? JEU.indices.length : Math.max(0, Math.min(REGLAGES.IA_PAGE_MAX - (JEU.contre ? 1 : 0), Math.floor(Number(PARAMETRES.get('ia'))) || 0));
-  if (JEU.ia) JEU.calculTrajectoire = calculerEnFond(etapesTrajectoire(CIRCUIT), t => {
+  // la carte des IA : lue du cache de la sauvegarde si elle y est et si sa clé est encore valable (cache-carte.js : les mêmes
+  // nombres au bit près, les feux n'attendent plus), sinon calculée en fond puis mise en cache
+  const carteFinie = t => {
     JEU.trajectoire = t;
     JEU.carte = carteDepuis(CIRCUIT, t);
     if (JEU.plateau) {
@@ -749,7 +752,12 @@ function demarrerJeu() {
       placerDecouverte();   // la découverte : le joueur au milieu de la grille
       if (JEU.qualif && JEU.qualif.etat === 'attente') finirQualif();   // le joueur a fini son tour avant la carte
     } else JEU.pilote = creerPilote(JEU.carte);
-  });
+  };
+  if (JEU.ia) {
+    const enCache = CACHE_CARTE.decoder(SAUVEGARDE.carte(NOM_CIRCUIT), NOM_CIRCUIT, CIRCUITS[NOM_CIRCUIT], CIRCUIT);
+    if (enCache) { JEU.carteDuCache = true; carteFinie(enCache); }
+    else JEU.calculTrajectoire = calculerEnFond(etapesTrajectoire(CIRCUIT), t => { SAUVEGARDE.ecrireCarte(NOM_CIRCUIT, CACHE_CARTE.encoder(NOM_CIRCUIT, CIRCUITS[NOM_CIRCUIT], t)); carteFinie(t); });
+  }
   // ?ia=N : un modèle par IA, chacune sa couleur (contre le joueur, aucune n'a la sienne), puis celui du joueur ;
   // sinon, seulement la voiture du joueur
   const couleurs = REGLAGES.COULEURS_IA;
@@ -842,6 +850,8 @@ function demarrerJeu() {
     majAides();
     // la mesure du premier lancement : du clic sur « Jouer » à l'extinction des feux (ms)
     if (JEU.depuisClic !== null && JEU.clicAuxFeux === null && JEU.course && JEU.course.feux && JEU.course.etat !== 'compte') JEU.clicAuxFeux = performance.now() - JEU.depuisClic;
+    // … et jusqu'au premier feu (la fin de l'attente de la carte des IA)
+    if (JEU.depuisClic !== null && JEU.clicAuPremierFeu === null && JEU.course && JEU.course.feux && (JEU.course.etat !== 'compte' || JEU.course.compte < JEU.course.feux.total)) JEU.clicAuPremierFeu = performance.now() - JEU.depuisClic;
     majClassementRadar();
     signauxCourse(JEU.course);
     // Poki (sdk.js) : la voiture roule (course, tour de qualification) = gameplayStart, tout le reste = gameplayStop ;
