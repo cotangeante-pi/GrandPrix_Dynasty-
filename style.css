@@ -841,3 +841,28 @@ body.deux #departResultat { bottom: auto; top: calc(50% - 60px); }
 /* la une spéciale du champion : le titre en or, plus grand */
 #unePage.speciale h1#uneTitre { font-size: clamp(28px, 4.2vw, 46px); color: #8a6a00; letter-spacing: 1px; }
 #unePage.speciale #uneEntete { border-bottom-color: #b8901c; }
+
+/* l'album des unes (Codeur 3) : la une du journal, un peu plus petite, et la barre pour feuilleter (seulement en mode album) */
+#albumBarre { display: none; align-items: center; gap: 8px; }
+#une.album #albumBarre { display: flex; }
+#une.album #unePasser { display: none; }
+#une.album #unePage { height: min(80vh, 600px); }
+#albumBarre button { min-width: 0; padding: 6px 12px; }
+#albumPage { min-width: 230px; font: 700 14px/1.2 var(--police); }
+
+/* le bilan de carrière et le temple de la renommée (Codeur 3, carriere.js) : tiennent en 960×600 */
+#bilanStats { margin: 2px 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px 10px; width: min(92vw, 760px); }
+#bilanStats li { display: grid; gap: 2px; padding: 6px 10px; border-radius: 8px; background: rgba(255, 255, 255, 0.1); }
+#bilanStats .etiquette { font: 600 12px/1.2 var(--police); opacity: 0.8; }
+#bilanStats .valeur { font: 800 20px/1.2 var(--police); color: #ffd666; }
+#bilanDuels, #bilanUne, #bilanTemple { font-size: 15px !important; max-width: 92vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#bilanUne { font-style: italic; }
+#temple h1, #temple h2 { margin: 0; }
+#temple h2 { font-size: 16px; opacity: 0.9; }
+#templeListe { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; width: min(92vw, 720px); max-height: 46vh; overflow: hidden; }
+#templeListe li { display: grid; grid-template-columns: 32px 1fr auto; gap: 10px; align-items: center; padding: 4px 12px; border-radius: 8px; background: rgba(255, 255, 255, 0.1); font: 14px/1.3 var(--police); text-align: left; white-space: nowrap; }
+#templeListe li.moi { background: rgba(31, 111, 224, 0.75); }
+#templeListe .place { font-weight: 800; color: #ffd666; }
+#templeListe .nom { font-weight: 700; overflow: hidden; text-overflow: ellipsis; }
+#templeRecords { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 18px; width: min(92vw, 720px); font: 13px/1.4 var(--police); text-align: left; }
+#templeRecords li { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

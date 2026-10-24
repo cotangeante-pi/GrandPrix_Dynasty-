@@ -137,8 +137,18 @@ const TEXTES = {
     retraite: 'Retire', retraiteConfirmer: 'Confirm: retire now', retraiteTitre: 'Career over',
     retraiteChoix: 'You chose to retire after season {n}.', retraiteAge: 'Too old to race on after {n} seasons.',
     retraiteBilan: '{s} seasons · {v} wins · {p} podiums · {t} titles',
+    // le bilan de carrière et le temple de la renommée (carriere.js, Codeur 3)
+    bilanEtiquettes: ['Seasons', 'Titles', 'Wins', 'Podiums', 'Poles', 'Fastest laps', 'Best championship finish', 'Best home result', 'Best reaction'],
+    bilanDuels: 'Team-mate duels: {liste}', bilanDuel: '{nom} {a}–{b}', bilanAucunDuel: 'Team-mate duels: none',
+    bilanUne: 'Favourite front page: “{titre}” — season {s}, Grand Prix {g}', bilanAucuneUne: 'Favourite front page: none yet',
+    bilanTemple: 'Hall of fame: {p} of {n}', bilanHorsTemple: 'Hall of fame: not among the best {n}',
+    temple: '🏛 Hall of fame', templeTitre: 'Hall of fame', templeLigne: '{t} titles · {v} wins · {p} podiums · {s} seasons',
+    templeRecordsTitre: 'Career records', templeRetour: 'Back', templeVide: 'No finished career yet',
+    record_titres: 'Titles', record_victoires: 'Wins', record_podiums: 'Podiums', record_poles: 'Poles', record_meilleursTours: 'Fastest laps', record_saisons: 'Seasons', record_reaction: 'Reaction',
+    recordLigne: '{quoi}: {valeur} — {nom}',
     // la cérémonie du champion (Codeur 3)
     ceremonieSaison: 'Season {n}', ceremonieTitre: 'WORLD CHAMPION', ceremonieDetail: '{points} points · {v} wins this season · {ecurie}',
+    album: '📰 Album', albumAide: 'Every front page of your career', albumPage: 'Season {s} · Grand Prix {g} · {i} / {n}', albumFermer: 'Close',
     ceremonieRival: '{pilote} is world champion', ceremonieRivalDetail: '{points} points for {ecurie} · you finish P{place}',
     breveRetraite: ['{pilote}, {age}, is thinking about retirement.', 'At {age}, {pilote} may be in a final season.'],
     // les sponsors (sponsors.js) et la fiche du rival (fiche.js) (Codeur 3)
@@ -313,8 +323,18 @@ const TEXTES = {
     retraite: 'Prendre ma retraite', retraiteConfirmer: 'Confirmer : arrêter maintenant', retraiteTitre: 'Carrière terminée',
     retraiteChoix: 'Tu as choisi de t’arrêter après la saison {n}.', retraiteAge: 'Trop vieux pour continuer après {n} saisons.',
     retraiteBilan: '{s} saisons · {v} victoires · {p} podiums · {t} titres',
+    // le bilan de carrière et le temple de la renommée (carriere.js, Codeur 3)
+    bilanEtiquettes: ['Saisons', 'Titres', 'Victoires', 'Podiums', 'Poles', 'Meilleurs tours', 'Meilleure place au championnat', 'Meilleur résultat à domicile', 'Meilleure réaction'],
+    bilanDuels: 'Duels contre les coéquipiers : {liste}', bilanDuel: '{nom} {a}–{b}', bilanAucunDuel: 'Duels contre les coéquipiers : aucun',
+    bilanUne: 'Une préférée : « {titre} » — saison {s}, Grand Prix {g}', bilanAucuneUne: 'Une préférée : pas encore',
+    bilanTemple: 'Temple de la renommée : {p} sur {n}', bilanHorsTemple: 'Temple de la renommée : pas parmi les {n} meilleures',
+    temple: '🏛 Temple de la renommée', templeTitre: 'Temple de la renommée', templeLigne: '{t} titres · {v} victoires · {p} podiums · {s} saisons',
+    templeRecordsTitre: 'Records de carrière', templeRetour: 'Retour', templeVide: 'Aucune carrière finie pour l’instant',
+    record_titres: 'Titres', record_victoires: 'Victoires', record_podiums: 'Podiums', record_poles: 'Poles', record_meilleursTours: 'Meilleurs tours', record_saisons: 'Saisons', record_reaction: 'Réaction',
+    recordLigne: '{quoi} : {valeur} — {nom}',
     // la cérémonie du champion (Codeur 3)
     ceremonieSaison: 'Saison {n}', ceremonieTitre: 'CHAMPION DU MONDE', ceremonieDetail: '{points} points · {v} victoires cette saison · {ecurie}',
+    album: '📰 Album', albumAide: 'Toutes les unes de ta carrière', albumPage: 'Saison {s} · Grand Prix {g} · {i} / {n}', albumFermer: 'Fermer',
     ceremonieRival: '{pilote} est champion du monde', ceremonieRivalDetail: '{points} points pour {ecurie} · tu finis P{place}',
     breveRetraite: ['{pilote}, {age} ans, pense à la retraite.', 'À {age} ans, {pilote} vit peut-être une dernière saison.'],
     // les sponsors (sponsors.js) et la fiche du rival (fiche.js) (Codeur 3)
