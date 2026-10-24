@@ -13,6 +13,10 @@ if (DECOUVERTE_EN_COURS) REGLAGES.NIVEAU = REGLAGES.DECOUVERTE_NIVEAU;   // les 
 const CHAMPIONNAT_EN_COURS = PARAMETRES.get('championnat') === '1' || (EST_PAGE && PAGE_NUE && !DECOUVERTE_EN_COURS) ? (SAUVEGARDE.championnat() || CHAMPIONNAT.creer(Number(PARAMETRES.get('graine')) || 1)) : null;
 // ?gp=N (tests) : un championnat NEUF arrive au N-ième Grand Prix, les N − 1 premiers joués d'avance sans physique (SAISONS.avancer)
 if (CHAMPIONNAT_EN_COURS && !SAUVEGARDE.championnat() && Number(PARAMETRES.get('gp')) > 1) SAISONS.avancer(CHAMPIONNAT_EN_COURS, Number(PARAMETRES.get('gp')) - 1);
+// ?deux=1 : le mode 2 joueurs lit ses réglages sauvegardés (l'écran avant la course, deux-joueurs.js, tour 25b) ; les paramètres de
+// l'adresse (&circuit, &ia, &tours, &niveau : tests et développement) passent devant
+const DEUX_SAUVE = EST_PAGE && PARAMETRES.get('deux') === '1' ? DEUX_JOUEURS.completer(SAUVEGARDE.deux()) : null;
+if (DEUX_SAUVE) for (const [k, v] of [['circuit', DEUX_SAUVE.circuit], ['ia', DEUX_SAUVE.ia], ['tours', DEUX_SAUVE.tours], ['niveau', DEUX_SAUVE.niveau]]) if (!PARAMETRES.has(k)) PARAMETRES.set(k, String(v));
 const NOM_CIRCUIT = DECOUVERTE_EN_COURS ? REGLAGES.DECOUVERTE_CIRCUIT
   : CHAMPIONNAT_EN_COURS && CHAMPIONNAT_EN_COURS.prochain < CHAMPIONNAT_EN_COURS.calendrier.length ? CHAMPIONNAT_EN_COURS.calendrier[CHAMPIONNAT_EN_COURS.prochain].circuit
   : Object.prototype.hasOwnProperty.call(CIRCUITS, PARAMETRES.get('circuit')) ? PARAMETRES.get('circuit') : 'test';
@@ -98,10 +102,12 @@ function suivreSuivante() {
 function lancerCourse(nbTours) {
   if (JEU.deux) {
     // le mode 2 joueurs : la même course, deux humains (p.joueur = 1, 2) après les IA, la grille tirée au sort (dès la carte)
-    JEU.plateau = DEUX_JOUEURS.creer(CIRCUIT, JEU.deux.nbIA, JEU.deux.nbTours, Number(PARAMETRES.get('graine')) || 1, JEU.carte);
+    const graine = graineDeux();
+    JEU.plateau = DEUX_JOUEURS.creer(CIRCUIT, JEU.deux.nbIA, JEU.deux.nbTours, graine, JEU.carte);
     suivre(JEU.ia);   // la caméra suit le joueur 1 (l'écran partagé : ordre 2)
     appliquerCaracteres();
-    armerFeux(JEU.plateau.pilotes, Number(PARAMETRES.get('graine')) || 1);
+    armerFeux(JEU.plateau.pilotes, graine);
+    JEU.deux.rivaliteNotee = false;
   } else if (JEU.ia >= 2 || JEU.contre) {
     // ?championnat=1 : le niveau de l'écurie sur le rythme de chaque IA, avant que la carte leur donne un pilote
     JEU.plateau = creerCourseIA(CIRCUIT, JEU.ia, nbTours, Number(PARAMETRES.get('graine')) || 1, JEU.championnat ? null : JEU.carte, JEU.contre);
@@ -313,15 +319,92 @@ function jouerDecouverte() {
   lancerCourse(REGLAGES.DECOUVERTE_TOURS);
 }
 
-// « 👥 Entre amis » : le mode 2 joueurs et le tournoi n'existent pas encore, un petit écran « bientôt »
+// « Entre amis » (l'écran titre et le paddock) : le petit menu (l'écran partagé à deux, le tournoi chrono) ; « Retour » revient
+// là d'où on vient
 function montrerAmis() {
-  if (JEU.ecran !== 'titre') return;
+  if (JEU.ecran !== 'titre' && JEU.ecran !== 'championnat' && JEU.ecran !== 'deuxReglages') return;
+  if (JEU.ecran !== 'deuxReglages') JEU.amisDepuis = JEU.ecran;
+  PODIUM3D.cacher();
   JEU.ecran = 'amis';
   INTERFACE.montrer('amis');
 }
 
 function retourTitre() {
-  if (JEU.ecran === 'amis') montrerTitre();
+  if (JEU.ecran !== 'amis') return;
+  if (JEU.amisDepuis === 'championnat' && JEU.championnat) montrerChampionnat(JEU.gagne === undefined ? null : JEU.gagne);
+  else montrerTitre();
+}
+
+// --- le mode 2 joueurs (deux-joueurs.js, tour 25b ordre 3) : l'écran avant la course (les derniers choix, gardés dans la sauvegarde
+// unique à part de la carrière), puis la page ?deux=1 ; après la course, le podium à deux, la rivalité, « Revanche » et le menu
+function ouvrirDeux() {
+  if (JEU.ecran !== 'amis') return;
+  INTERFACE.remplirDeux(DEUX_JOUEURS.completer(SAUVEGARDE.deux()));
+  JEU.ecran = 'deuxReglages';
+  INTERFACE.montrer('deuxReglages');
+}
+
+// « C'est parti ! » : les choix vérifiés (deux noms et deux couleurs différents), écrits (la rivalité et le compte des courses
+// gardés), puis la page de la course à deux
+function partirDeux() {
+  if (JEU.ecran !== 'deuxReglages') return false;
+  const r = DEUX_JOUEURS.valider(INTERFACE.lireDeux(), [texte('joueur1'), texte('joueur2')]);
+  INTERFACE.montrerErreursDeux(r.erreurs);
+  if (!r.ok) return false;
+  const ancien = DEUX_JOUEURS.completer(SAUVEGARDE.deux());
+  r.reglages.rivalite = ancien.rivalite;
+  r.reglages.courses = ancien.courses;
+  SAUVEGARDE.ecrireDeux(r.reglages);
+  location.href = adresseAvec({ deux: '1' });
+  return true;
+}
+
+// l'adresse de la page avec ces paramètres (la langue forcée ?lang= est gardée)
+function adresseAvec(params) {
+  const p = new URLSearchParams(params);
+  if (PARAMETRES.get('lang')) p.set('lang', PARAMETRES.get('lang'));
+  return location.pathname + '?' + p.toString();
+}
+
+// la graine de la course à deux : celle de l'adresse (&graine=, tests) décalée à chaque revanche ; sinon le nombre de courses à deux
+// déjà lancées (sauvegardé : chaque course a sa grille)
+function graineDeux() {
+  const g = Number(PARAMETRES.get('graine'));
+  if (g) return g + JEU.deux.revanche;
+  const d = DEUX_JOUEURS.completer(SAUVEGARDE.deux());
+  d.courses++;
+  SAUVEGARDE.ecrireDeux(d);
+  return d.courses;
+}
+
+// le podium à deux : qui a fini devant (pénalités comprises) marque un point de la rivalité (une fois par course), gardée tant que
+// les deux noms sont les mêmes
+function noterRivaliteDeux() {
+  if (!JEU.deux || JEU.deux.rivaliteNotee || !JEU.final) return null;
+  JEU.deux.rivaliteNotee = true;
+  const d = DEUX_JOUEURS.completer(SAUVEGARDE.deux()), noms = JEU.deux.reglages.joueurs.map(j => j.nom || '');
+  d.rivalite = DEUX_JOUEURS.ajouterRivalite(d.rivalite, noms, DEUX_JOUEURS.gagnant(JEU.plateau, JEU.final));
+  SAUVEGARDE.ecrireDeux(d);
+  JEU.deux.rivalite = d.rivalite;
+  return d.rivalite;
+}
+
+// pendant une pub (sdk.js) : le son coupé, puis rendu (seulement s'il était allumé avant)
+function couperSonPub(oui) {
+  if (oui && !SON.muet) { SON.basculer(); JEU.sonCoupePub = true; }
+  else if (!oui && JEU.sonCoupePub) { SON.basculer(); JEU.sonCoupePub = false; }
+}
+
+// « Revanche » : une pause pub (Poki : entre deux courses à deux, jamais pendant), puis la même course, la grille retirée au sort
+function revancheDeux() {
+  if (!JEU.deux || (JEU.ecran !== 'resultats' && JEU.ecran !== 'podium') || SDK.pubEnCours) return;
+  SDK.pubEntreCourses(() => { JEU.deux.revanche++; lancerCourse(JEU.deux.nbTours); }, couperSonPub);
+}
+
+// « Menu » : une pause pub, puis le menu « Entre amis » de la page nue (l'écran titre ou le paddock derrière)
+function menuDeux() {
+  if (!JEU.deux || (JEU.ecran !== 'resultats' && JEU.ecran !== 'podium') || SDK.pubEnCours) return;
+  SDK.pubEntreCourses(() => { location.href = adresseAvec({ menu: 'amis' }); }, couperSonPub);
 }
 
 // la découverte : le joueur au milieu de la grille, avec le temps médian des IA (decouverte.js), une fois leurs temps connus
@@ -423,6 +506,7 @@ function piloteDe(k) {
 
 // le casque (casque.js) de la voiture k : celui de son pilote, sinon le neutre
 function casqueDe(k) {
+  if (JEU.deux && k >= JEU.ia) return JEU.deux.reglages.joueurs[k - JEU.ia].casque;   // le mode 2 joueurs : le casque choisi par chaque joueur
   const p = piloteDe(k);
   return p && CASQUE.valide(p.casque) ? p.casque : CASQUE.neutre();
 }
@@ -660,11 +744,15 @@ function montrerPodium() {
   const trois = JEU.final.slice(0, 3);
   for (const m of JEU.modeles) m.groupe.visible = false;
   PODIUM3D.montrer(trois.map(x => JEU.modeles[x.k]));
-  INTERFACE.remplirPodium(trois.map(x => ({ numero: numeroDe(x.k), couleur: JEU.couleurs[x.k], total: x.total, penalites: x.penalites, casque: casqueDe(x.k) })));
+  // le mode 2 joueurs : les deux joueurs (leur nom, mis en valeur), leur place même hors du podium, et la rivalité
+  const joueurDe = k => JEU.deux && P[k].joueur ? P[k].joueur : 0, nomDe = k => joueurDe(k) ? JEU.deux.reglages.joueurs[joueurDe(k) - 1].nom : null;
+  INTERFACE.remplirPodium(trois.map(x => ({ numero: numeroDe(x.k), couleur: JEU.couleurs[x.k], total: x.total, penalites: x.penalites, casque: casqueDe(x.k), joueur: joueurDe(x.k), nom: nomDe(x.k) })));
   INTERFACE.remplirResultats(JEU.final.map(x => ({
     place: x.place, numero: numeroDe(x.k), couleur: JEU.couleurs[x.k], total: x.total, penalites: x.penalites,
-    ecart: x.ecart, grille: x.grille, moi: x.k === JEU.suivie, casque: casqueDe(x.k),
+    ecart: x.ecart, grille: x.grille, moi: x.k === JEU.suivie || !!joueurDe(x.k), casque: casqueDe(x.k), nom: nomDe(x.k),
   })));
+  INTERFACE.remplirPodiumDeux(JEU.deux ? DEUX_JOUEURS.joueurs(e).map(p => { const k = P.indexOf(p); return { nom: nomDe(k), place: JEU.final.find(x => x.k === k).place }; }) : null);
+  INTERFACE.remplirRivalite(JEU.deux ? noterRivaliteDeux() : null);
   // ?championnat=1 : les gains du joueur (argent.js), calculés sur le classement final de cet instant (encaissés à « Continuer »)
   if (JEU.championnat) {
     const lignes = CHAMPIONNAT.lignesDepuisCourse(e), g = ARGENT.gains(JEU.championnat, lignes), moi = lignes.find(l => l.k === JEU.ia);
@@ -847,7 +935,7 @@ function majDeuxHud() {
   if (!JEU.deux || !JEU.plateau || !(JEU.ecran === 'course' || JEU.ecran === 'pause')) { INTERFACE.majDeux(null); return; }
   const e = JEU.plateau, ordre = classementCourse(e), [p1, p2] = DEUX_JOUEURS.joueurs(e), k1 = e.pilotes.indexOf(p1), k2 = e.pilotes.indexOf(p2);
   const ecart = ecartEntre(ordre, k1, k2);   // > 0 : le joueur 2 est derrière le joueur 1
-  const info = (p, k, signe) => ({ place: ordre.findIndex(x => x.k === k) + 1, tour: Math.min(p.course.tours.length + 1, p.course.nbTours), nbTours: p.course.nbTours, vitesse: p.v.u, ecart: ecart === null ? null : signe * ecart });
+  const info = (p, k, signe) => ({ nom: JEU.deux.reglages.joueurs[p.joueur - 1].nom, place: ordre.findIndex(x => x.k === k) + 1, tour: Math.min(p.course.tours.length + 1, p.course.nbTours), nbTours: p.course.nbTours, vitesse: p.v.u, ecart: ecart === null ? null : signe * ecart });
   INTERFACE.majDeux([info(p1, k1, -1), info(p2, k2, 1)]);   // chacun voit « − » quand il est devant l'autre
 }
 
@@ -885,7 +973,7 @@ function majTableau() {
   document.getElementById('rapport').textContent = rapportPourVitesse(v.u);
   const roule = JEU.ecran === 'course' || JEU.ecran === 'survol' || enTourQualif();
   // sur le podium et les résultats, ni vitesse ni aide des touches
-  const apres = ['podium', 'resultats', 'championnat', 'une', 'garage', 'titre', 'amis', 'bravo', 'saison', 'duelSaison', 'contrats', 'retraite', 'sponsors', 'fiche', 'interview'].includes(JEU.ecran);
+  const apres = ['podium', 'resultats', 'championnat', 'une', 'garage', 'titre', 'amis', 'bravo', 'saison', 'duelSaison', 'contrats', 'retraite', 'sponsors', 'fiche', 'interview', 'deuxReglages'].includes(JEU.ecran);
   document.getElementById('tableau').classList.toggle('cache', apres);
   document.getElementById('aide').classList.toggle('cache', apres);
   // après l'arrivée du joueur (en attendant les autres), il ne court plus : pas de « hors piste »
@@ -969,7 +1057,8 @@ function demarrerJeu() {
   }
   // le mode 2 joueurs : ses réglages de la page ; ses IA sont des rivaux du monde sauvegardé (leur caractère), s'il existe
   if (DEUX_EN_COURS) {
-    JEU.deux = { nbIA: DEUX_JOUEURS.nbIAValide(Number(PARAMETRES.get('ia'))), nbTours: DEUX_JOUEURS.nbToursValide(Number(PARAMETRES.get('tours'))) };
+    JEU.deux = { nbIA: DEUX_JOUEURS.nbIAValide(Number(PARAMETRES.get('ia'))), nbTours: DEUX_JOUEURS.nbToursValide(Number(PARAMETRES.get('tours'))), reglages: DEUX_SAUVE, revanche: 0, rivaliteNotee: false, rivalite: null };
+    JEU.deux.reglages.joueurs.forEach((j, i) => { if (!j.nom) j.nom = texte(i ? 'joueur2' : 'joueur1'); });   // (sans réglages sauvegardés : « Joueur 1 », « Joueur 2 »)
     JEU.monde = SAUVEGARDE.championnat();
     if (JEU.monde) JEU.indices = DECOUVERTE.pilotes(JEU.monde).slice(0, JEU.deux.nbIA).map(p => p.id);
   }
@@ -1003,9 +1092,9 @@ function demarrerJeu() {
       for (const p of DECOUVERTE.pilotes(JEU.monde)) JEU.couleurs.push(p.couleur);
       JEU.couleurs.push(JEU.monde.ecuries[REGLAGES.ECURIE_JOUEUR].couleur);
     } else if (JEU.deux) {   // les IA, puis le joueur 1 🔵 et le joueur 2 🔴 (DEUX_COULEURS)
-      const libres = couleurs.filter(x => !REGLAGES.DEUX_COULEURS.includes(x));
+      const choisies = JEU.deux.reglages.joueurs.map(j => j.couleur), libres = couleurs.filter(x => !choisies.includes(x));   // (les couleurs choisies à l'écran avant la course)
       for (let k = 0; k < JEU.ia; k++) JEU.couleurs.push(libres[k % libres.length]);
-      JEU.couleurs.push(...REGLAGES.DEUX_COULEURS);
+      JEU.couleurs.push(...choisies);
     } else {
       for (let k = 0; k < JEU.ia; k++) JEU.couleurs.push(choix[k % choix.length]);
       if (JEU.contre) JEU.couleurs.push(REGLAGES.COULEUR_JOUEUR);
@@ -1034,7 +1123,13 @@ function demarrerJeu() {
     INTERFACE.preparerFiche(montrerFiche, quitterFiche);
     INTERFACE.preparerInterview(repondreInterview, finirInterview);
   } else if (JEU.decouverte) INTERFACE.preparerResultats(montrerBravo, () => {}, () => {});   // la découverte : après le podium, « Bravo ! »
-  else INTERFACE.preparerResultats(voirResultats, () => lancerCourse(JEU.course.nbTours), allerAuChoix);
+  else if (JEU.deux) {   // le mode 2 joueurs : après les résultats, « Revanche » et « Menu »
+    INTERFACE.preparerResultats(voirResultats, revancheDeux, menuDeux);
+    document.getElementById('boutonRejouerResultats').textContent = texte('revanche');
+    document.getElementById('boutonChangerResultats').textContent = texte('menuAmis');
+  } else INTERFACE.preparerResultats(voirResultats, () => lancerCourse(JEU.course.nbTours), allerAuChoix);
+  INTERFACE.preparerAmis(ouvrirDeux, null, montrerAmis);
+  INTERFACE.preparerDeux(partirDeux, montrerAmis);
   INTERFACE.preparerTitre(jouerDecouverte, montrerAmis, retourTitre, commencerCarriere);
   INTERFACE.preparerPilote(validerPilote);
   INTERFACE.preparerCasque(changerCasque);
@@ -1060,6 +1155,7 @@ function demarrerJeu() {
   else if (JEU.deux) lancerCourse(JEU.deux.nbTours);   // le mode 2 joueurs : la course tout de suite (son menu et ses réglages : ordre 3)
   else if (demandee !== null && !isNaN(Number(demandee))) lancerCourse(Number(demandee));
   else allerAuChoix();
+  if (PARAMETRES.get('menu') === 'amis') montrerAmis();   // le retour du mode 2 joueurs : le menu « Entre amis » (sur le titre ou le paddock)
   brancherClavier();
   const boutonSon = document.getElementById('boutonSon');
   boutonSon.title = texte('son');

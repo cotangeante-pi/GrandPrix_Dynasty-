@@ -11,7 +11,7 @@ const SAUVEGARDE = (function () {
     // fantomes : le fantôme du meilleur tour de chaque circuit (fantome.js, compact), par nom de circuit ; options : les
     // réglages du joueur (fantome : le fantôme affiché, vrai par défaut) ; reaction : le meilleur temps de réaction au départ (s)
     // decouverteFaite : la course de découverte du premier lancement est jouée ; argent : l'argent du joueur (la prime de la découverte, pas encore dépensable)
-    return { version: VERSION, records: {}, championnat: null, fantomes: {}, options: {}, reaction: null, decouverteFaite: false, argent: 0, cartes: {} };
+    return { version: VERSION, records: {}, championnat: null, fantomes: {}, options: {}, reaction: null, decouverteFaite: false, argent: 0, cartes: {}, deux: null };
   }
 
   // une sauvegarde d'une ancienne version est transformée ici, sans rien perdre :
@@ -35,6 +35,7 @@ const SAUVEGARDE = (function () {
     if (d.decouverteFaite === undefined) d.decouverteFaite = !!d.championnat;
     if (typeof d.argent !== 'number') d.argent = 0;
     if (!d.cartes || typeof d.cartes !== 'object') d.cartes = {};   // la carte des IA de chaque circuit en cache (cache-carte.js, tour 24b)
+    if (!d.deux || typeof d.deux !== 'object') d.deux = null;   // les réglages et la rivalité du mode 2 joueurs (deux-joueurs.js, tour 25b), à part de la carrière
     if (d.championnat && typeof CHAMPIONNAT !== 'undefined') CHAMPIONNAT.completer(d.championnat);
     d.version = VERSION;
     return d;
@@ -159,5 +160,17 @@ const SAUVEGARDE = (function () {
     return ecrire(d);
   }
 
-  return { lire, ecrire, record, proposerRecord, championnat, ecrireChampionnat, fantome, proposerFantome, option, ecrireOption, reaction, proposerReaction, decouverteFaite, argent, finirDecouverte, carte, ecrireCarte, VERSION, CLE };
+  // --- le mode 2 joueurs (deux-joueurs.js) : ses derniers réglages et le score de la rivalité, à part de la carrière (rien d'autre
+  // n'est touché : ni le championnat, ni les records, ni les fantômes)
+  function deux() {
+    return lire().deux;
+  }
+
+  function ecrireDeux(r) {
+    const d = lire();
+    d.deux = r;
+    return ecrire(d);
+  }
+
+  return { deux, ecrireDeux, lire, ecrire, record, proposerRecord, championnat, ecrireChampionnat, fantome, proposerFantome, option, ecrireOption, reaction, proposerReaction, decouverteFaite, argent, finirDecouverte, carte, ecrireCarte, VERSION, CLE };
 })();

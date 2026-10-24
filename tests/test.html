@@ -1662,6 +1662,52 @@ t('2 joueurs : une course à 2 + 5 IA (3 tours, les deux joueurs conduits par le
   const b=jouer(7),g=classementFinal(b.e);v(JSON.stringify(f)===JSON.stringify(g),'la même graine ne redonne pas la même course');
   L.push('  (course à 2 + 5 IA sur le circuit test, 3 tours : finie en '+a.secondes.toFixed(1)+' s de course ; joueur 1 '+c1.place+'e, joueur 2 '+c2.place+'e ; ordre : '+f.map(x=>e.pilotes[x.k].joueur?'J'+e.pilotes[x.k].joueur:'n°'+e.pilotes[x.k].numero).join(' ')+')');});
 
+// --- le mode 2 joueurs, les écrans autour (tour 25b, ordre 3) : les réglages gardés à part de la carrière, la rivalité
+t('2 joueurs : les réglages sauvegardés sont complétés (rien, abîmés, une ancienne version : chaque champ faux prend sa valeur par défaut) ; deux noms pareils (majuscules, espaces) ou deux couleurs pareilles refusés ; un nom vide prend « Joueur 1 » / « Joueur 2 »', ()=>{
+  const R=REGLAGES,d=DEUX_JOUEURS.completer(null);
+  v(d.joueurs.length===2&&d.joueurs[0].couleur===R.DEUX_COULEURS[0]&&d.joueurs[1].couleur===R.DEUX_COULEURS[1]&&d.joueurs.every(j=>j.nom===''&&R.CASQUE_MOTIFS.includes(j.casque.motif)),'défaut '+JSON.stringify(d));
+  v(d.circuit==='test'&&d.tours===R.DEUX_TOURS_CHOIX[0]&&d.ia===R.DEUX_IA_DEFAUT&&d.niveau===R.DEUX_NIVEAU&&d.courses===0&&d.rivalite===null,'défaut course '+JSON.stringify(d));
+  const abime=DEUX_JOUEURS.completer({joueurs:[{nom:42,couleur:5,casque:{motif:'licorne'}},'x'],circuit:'lune',tours:4,ia:8,niveau:'dieu',courses:-3,rivalite:{noms:['a'],score:[1]}});
+  v(JSON.stringify(abime)===JSON.stringify(d),'abîmé '+JSON.stringify(abime));
+  const bon={joueurs:[{nom:'  Léo  ',couleur:R.DEUX_COULEURS_CHOIX[3],casque:{motif:'damier',couleurs:[1,2,3]}},{nom:'Sarah',couleur:R.DEUX_COULEURS_CHOIX[4],casque:{motif:'etoile',couleurs:[4,5,6]}}],circuit:'technique',tours:5,ia:0,niveau:'expert',courses:7,rivalite:{noms:['Léo','Sarah'],score:[3,2]}};
+  const c=DEUX_JOUEURS.completer(bon);v(c.joueurs[0].nom==='Léo'&&c.joueurs[0].casque.motif==='damier'&&c.joueurs[1].couleur===R.DEUX_COULEURS_CHOIX[4]&&c.circuit==='technique'&&c.tours===5&&c.ia===0&&c.niveau==='expert'&&c.courses===7&&c.rivalite.score.join()==='3,2','gardé '+JSON.stringify(c));
+  v(bon.joueurs[0].nom==='  Léo  ','l’objet donné ne change pas');
+  const D=['Joueur 1','Joueur 2'];
+  let r=DEUX_JOUEURS.valider(bon,D);v(r.ok&&!r.erreurs.length,'bon refusé '+r.erreurs);
+  r=DEUX_JOUEURS.valider({...bon,joueurs:[{...bon.joueurs[0],nom:'LÉO'},{...bon.joueurs[1],nom:' léo'}]},D);v(!r.ok&&r.erreurs.includes('nom'),'noms pareils acceptés');
+  r=DEUX_JOUEURS.valider({...bon,joueurs:[bon.joueurs[0],{...bon.joueurs[1],couleur:bon.joueurs[0].couleur}]},D);v(!r.ok&&r.erreurs.includes('couleur'),'couleurs pareilles acceptées');
+  r=DEUX_JOUEURS.valider({...bon,joueurs:[{...bon.joueurs[0],nom:''},{...bon.joueurs[1],nom:'   '}]},D);v(r.ok&&r.reglages.joueurs[0].nom==='Joueur 1'&&r.reglages.joueurs[1].nom==='Joueur 2','noms vides : '+JSON.stringify(r.reglages.joueurs.map(j=>j.nom)));
+  r=DEUX_JOUEURS.valider({...bon,joueurs:[{...bon.joueurs[0],nom:'Maximilien-Alexandre'},bon.joueurs[1]]},D);v(r.reglages.joueurs[0].nom.length===R.NOM_LONGUEUR_MAX,'nom trop long');});
+t('2 joueurs : la rivalité s’additionne course après course pour les mêmes noms (même s’ils échangent leur place), repart de 0 si un nom change ; le gagnant est celui qui finit devant au classement final (pénalités comprises)', ()=>{
+  let riv=null;const LS=['Léo','Sarah'];
+  for(const g of [0,1,0,0,null]) riv=DEUX_JOUEURS.ajouterRivalite(riv,LS,g);
+  v(riv.noms.join()==='Léo,Sarah'&&riv.score.join()==='3,1','score '+JSON.stringify(riv));
+  v(DEUX_JOUEURS.scoreRivalite(riv,['Sarah','Léo']).join()==='1,3','échangés');
+  const ech=DEUX_JOUEURS.ajouterRivalite(riv,['Sarah','Léo'],0);v(ech.score.join()==='2,3'&&ech.noms.join()==='Sarah,Léo','échangés + 1 : '+JSON.stringify(ech));
+  const neuf=DEUX_JOUEURS.ajouterRivalite(riv,['Léo','Tom'],1);v(neuf.score.join()==='0,1'&&neuf.noms.join()==='Léo,Tom','un nom change : '+JSON.stringify(neuf));
+  v(DEUX_JOUEURS.scoreRivalite(null,LS).join()==='0,0'&&DEUX_JOUEURS.scoreRivalite(riv,['léo','Sarah']).join()==='0,0','autres noms');
+  v(riv.score.join()==='3,1','l’ancienne rivalité n’a pas changé');
+  // le gagnant : sur une course à deux de 3 IA, d'après classementFinal (une pénalité qui inverse l'ordre compte)
+  const e=courseADeux(3,3,4),[p1,p2]=DEUX_JOUEURS.joueurs(e),k1=e.pilotes.indexOf(p1),k2=e.pilotes.indexOf(p2);
+  const final=[{k:0,place:1},{k:k2,place:2},{k:1,place:3},{k:k1,place:4},{k:2,place:5}];
+  v(DEUX_JOUEURS.gagnant(e,final)===1,'J2 devant');final[1].k=k1;final[3].k=k2;v(DEUX_JOUEURS.gagnant(e,final)===0,'J1 devant');
+  v(DEUX_JOUEURS.gagnant(e,[{k:0,place:1}])===null,'personne');});
+t('2 joueurs : les réglages et la rivalité passent par la sauvegarde unique, à part : la carrière (championnat, records, fantômes, découverte, argent) ne change pas d’un octet ; rechargés pareils ; une ancienne sauvegarde sans mode 2 joueurs se charge (deux = null)', ()=>{
+  localStorage.removeItem(SAUVEGARDE.CLE);
+  const ch=CHAMPIONNAT.creer(3);SAUVEGARDE.ecrireChampionnat(ch);SAUVEGARDE.proposerRecord(5,61.5);SAUVEGARDE.finirDecouverte(400);
+  const avant=SAUVEGARDE.lire();delete avant.deux;const empreinte=JSON.stringify(avant);
+  v(SAUVEGARDE.deux()===null,'vierge');
+  let r=DEUX_JOUEURS.completer(null);r.joueurs[0].nom='Léo';r.joueurs[1].nom='Sarah';
+  for(const g of [0,1,1]){r.rivalite=DEUX_JOUEURS.ajouterRivalite(r.rivalite,['Léo','Sarah'],g);r.courses++;SAUVEGARDE.ecrireDeux(r);r=DEUX_JOUEURS.completer(SAUVEGARDE.deux());}
+  v(r.rivalite.score.join()==='1,2'&&r.courses===3&&r.joueurs[0].nom==='Léo','rechargé '+JSON.stringify(r));
+  const apres=SAUVEGARDE.lire();v(apres.deux&&apres.deux.rivalite.score.join()==='1,2','deux');delete apres.deux;
+  v(JSON.stringify(apres)===empreinte,'la carrière a changé');
+  v(JSON.stringify(SAUVEGARDE.championnat())===JSON.stringify(ch)&&SAUVEGARDE.record(5)===61.5&&SAUVEGARDE.argent()===400,'carrière relue');
+  localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:3,records:{'5':61.5},championnat:null}));
+  v(SAUVEGARDE.deux()===null&&SAUVEGARDE.lire().version===SAUVEGARDE.VERSION&&DEUX_JOUEURS.completer(SAUVEGARDE.deux()).courses===0,'ancienne');
+  localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:3,records:{},championnat:null,deux:'abîmé'}));v(SAUVEGARDE.deux()===null,'abîmé');
+  localStorage.removeItem(SAUVEGARDE.CLE);});
+
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 ecrire();
 </script></body></html>
