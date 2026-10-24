@@ -934,10 +934,26 @@ function attendreLesAutres() {
     CAMERA.forcer('tele');
   }
   JEU.attente.tele = ARRIVEE.voitureTele(e, JEU.attente.tele);
-  if (JEU.attente.passer || ARRIVEE.podiumPret(e, e.temps - arrivee)) {
+  // « passer » (CLAUDE.md « La course ») : le reste de la course est vraiment joué, en accéléré (×ARRIVEE_ACCELERE) : à chaque image,
+  // les mêmes pas de physique que la boucle (BOUCLE.simuler d'un pas), sans les dessiner, au plus ARRIVEE_TRANCHE_MS ; les places et
+  // les temps sont ceux qu'on aurait eus en regardant ; ARRIVEE_ATTENTE_MAX reste le filet (une voiture bloquée)
+  if (JEU.attente.passer && !ARRIVEE.podiumPret(e, e.temps - arrivee)) {
+    const R = REGLAGES, nb = Math.max(1, Math.round(R.ARRIVEE_ACCELERE * Math.min(JEU.dtImage || 0, R.PAS_MAX_PAR_IMAGE * R.PAS_PHYSIQUE) / R.PAS_PHYSIQUE));
+    const r = ARRIVEE.accelerer(e, () => BOUCLE.simuler(R.PAS_PHYSIQUE), nb, R.ARRIVEE_TRANCHE_MS, arrivee, () => performance.now());
+    JEU.attente.accelere = (JEU.attente.accelere || 0) + r.pas;
+  }
+  majAttente();
+  if (ARRIVEE.podiumPret(e, e.temps - arrivee)) {
     finirAttente();
     montrerPodium();
   }
+}
+
+// le bandeau d'attente : « en attendant les autres » et le bouton pour passer ; en accéléré, « ⏩ » et les voitures encore en course
+function majAttente() {
+  const a = JEU.attente, n = ARRIVEE.restantes(JEU.plateau);
+  document.getElementById('attenteTexte').textContent = a && a.passer ? (n === 1 ? texte('attenteAccelere1') : texte('attenteAccelere').replace('{n}', n)) : texte('attenteArrivee');
+  document.getElementById('boutonPasser').classList.toggle('cache', !!(a && a.passer));
 }
 
 // la fin de l'attente (podium, nouvelle course) : la caméra d'avant revient, le bandeau part
@@ -945,6 +961,8 @@ function finirAttente() {
   if (JEU.attente) CAMERA.forcer(JEU.attente.camera);
   JEU.attente = null;
   document.getElementById('attenteArrivee').classList.add('cache');
+  document.getElementById('attenteTexte').textContent = texte('attenteArrivee');
+  document.getElementById('boutonPasser').classList.remove('cache');
 }
 
 function passerAuPodium() {
@@ -1339,6 +1357,7 @@ function demarrerJeu() {
   BOUCLE.surPhysique(pasJoueur);
   BOUCLE.surAffichage((alpha, dt) => {
     JEU.alpha = alpha;
+    JEU.dtImage = dt;   // (« passer » en accéléré : le nombre de pas de l'image suit sa durée)
     const apres = JEU.ecran === 'podium' || JEU.ecran === 'resultats' || JEU.ecran === 'bravo' || JEU.ecran === 'ceremonie';   // le podium (et la cérémonie du champion) : les voitures n'y bougent plus
     // ?ia=N : chaque IA à sa place ; une IA arrivée quitte la piste (elle n'est plus dessinée)
     if (JEU.plateau && !apres) JEU.plateau.pilotes.forEach((p, k) => {
