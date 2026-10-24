@@ -654,7 +654,7 @@ const INTERFACE = (function () {
   function remplirRetraite(r) {
     $('retraiteTitre').textContent = texte('retraiteTitre');
     $('retraiteRaison').textContent = avec(texte(r.raison === 'age' ? 'retraiteAge' : 'retraiteChoix'), { n: r.raison === 'age' ? r.saisons : r.saison });   // (l'âge : les saisons de la carrière, la relève compte les siennes)
-    $('retraiteBilan').textContent = avec(texte('retraiteBilan'), { s: r.saisons, v: r.victoires, p: r.podiums, t: r.titres });
+    $('retraiteBilan').textContent = avec(texte('retraiteBilan'), { s: nombre(r.saisons, 'saison'), v: nombre(r.victoires, 'victoire'), p: nombre(r.podiums, 'podium'), t: nombre(r.titres, 'titre') });
   }
 
   // la cérémonie du champion (b = SAISONS.terminerSaison) : le joueur champion → « CHAMPION DU MONDE », son nom, ses points ;
@@ -666,8 +666,8 @@ const INTERFACE = (function () {
     $('ceremonieTitre').textContent = toi ? texte('ceremonieTitre') : avec(texte('ceremonieRival'), { pilote: nomPilote(p) });
     $('ceremonieNom').textContent = toi ? nomPilote(p) : '';
     const victoires = p.places.filter(x => x === 1).length, points = b.pilotes[0].points;
-    $('ceremonieDetail').textContent = toi ? avec(texte('ceremonieDetail'), { points, v: victoires, ecurie: nomEcurie(e) })
-      : avec(texte('ceremonieRivalDetail'), { points, ecurie: nomEcurie(e), place: b.joueurPlace });
+    $('ceremonieDetail').textContent = toi ? avec(texte('ceremonieDetail'), { points: nombre(points, 'point'), v: nombre(victoires, 'victoire'), ecurie: nomEcurie(e) })
+      : avec(texte('ceremonieRivalDetail'), { points: nombre(points, 'point'), ecurie: nomEcurie(e), place: b.joueurPlace });
     $('boutonCeremonieSuite').textContent = texte('suite');
   }
 
@@ -696,7 +696,7 @@ const INTERFACE = (function () {
     $('boutonTemple').textContent = texte('temple');
     // la relève : les records de la famille, et les deux suites (« Continuer la dynastie », « Nouvelle dynastie » avec confirmation)
     const f = CARRIERE.recordsFamille(ch);
-    $('bilanFamille').textContent = avec(texte('bilanFamille'), { g: f.generations, t: f.titres, v: f.victoires, c: f.championnes });
+    $('bilanFamille').textContent = avec(texte('bilanFamille'), { g: nombre(f.generations, 'generation'), t: nombre(f.titres, 'titre'), v: nombre(f.victoires, 'victoire'), c: nombre(f.championnes, 'championne') });
     $('boutonContinuerDynastie').textContent = texte('continuerDynastie');
     nouvelleDemandee = false;
     $('boutonNouvelleDynastie').textContent = texte('nouvelleDynastie');
@@ -754,7 +754,7 @@ const INTERFACE = (function () {
     ol.textContent = '';
     for (const g of ch.dynastie.generations.concat([CARRIERE.resume(ch)])) {
       const li = document.createElement('li');
-      li.textContent = avec(texte('releveParent'), { parent: nomPilote({ nom: g.nom, numero: g.numero, humain: true }), s: g.saisons, t: g.titres, v: g.victoires, p: g.podiums });
+      li.textContent = avec(texte('releveParent'), { parent: nomPilote({ nom: g.nom, numero: g.numero, humain: true }), s: nombre(g.saisons, 'saison'), t: nombre(g.titres, 'titre'), v: nombre(g.victoires, 'victoire'), p: nombre(g.podiums, 'podium') });
       ol.appendChild(li);
     }
   }
@@ -782,7 +782,7 @@ const INTERFACE = (function () {
       const li = document.createElement('li');
       if (c.n === moi) li.className = 'moi';
       li.dataset.n = c.n;
-      li.append(sp('place', String(i + 1)), sp('nom', nomPilote({ nom: c.nom, numero: c.numero, humain: true }) + ' #' + c.numero), sp('ligne', avec(texte('templeLigne'), { t: c.titres, v: c.victoires, p: c.podiums, s: c.saisons })));
+      li.append(sp('place', String(i + 1)), sp('nom', nomPilote({ nom: c.nom, numero: c.numero, humain: true }) + ' #' + c.numero), sp('ligne', avec(texte('templeLigne'), { t: nombre(c.titres, 'titre'), v: nombre(c.victoires, 'victoire'), p: nombre(c.podiums, 'podium'), s: nombre(c.saisons, 'saison') })));
       ol.appendChild(li);
     });
     const ul = $('templeRecords');

@@ -1133,7 +1133,7 @@ def bilan_temple(pg, titre):
       records: [...document.querySelectorAll("#templeRecords li")].map(li => li.textContent), nom: INTERFACE.nomPilote(JEU.championnat.pilotes[19]),
       defile: [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth] })''')
     t(f'{titre} : le temple de la renommée : la carrière finie en 1re place, marquée, avec ses titres et victoires ; les records de carrière à son nom',
-      tp['ecran'] == 'temple' and len(tp['lignes']) == 1 and tp['moi'] == 1 and tp['lignes'][0].startswith('1' + tp['nom']) and 'victoires' in tp['lignes'][0] and len(tp['records']) >= 6 and all(tp['nom'] in r for r in tp['records']) and pas_de_defilement(tp['defile']), str(tp))
+      tp['ecran'] == 'temple' and len(tp['lignes']) == 1 and tp['moi'] == 1 and tp['lignes'][0].startswith('1' + tp['nom']) and 'victoire' in tp['lignes'][0] and len(tp['records']) >= 6 and all(tp['nom'] in r for r in tp['records']) and pas_de_defilement(tp['defile']), str(tp))
     pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'temple.png'))
     pg.click('#boutonTempleRetour')
     t(f'{titre} : « Retour » ramène au bilan ; rechargée, la page revient au bilan sans entrer deux fois au temple', pg.evaluate('() => JEU.ecran') == 'retraite')
