@@ -359,6 +359,8 @@ function validerPilote() {
   INTERFACE.montrerErreursPilote(r.erreurs);
   if (!r.ok) return;
   PILOTE.appliquer(ch, r.choix);
+  // la prime de la découverte va au solde du championnat (argent.js, Codeur 3) : un seul argent dans le jeu
+  if (JEU.decouverte && typeof ARGENT !== 'undefined') ARGENT.crediter(ch, JEU.prime, 'decouverte');
   SAUVEGARDE.ecrireChampionnat(ch);
   if (JEU.decouverte) SAUVEGARDE.finirDecouverte(JEU.prime);
   location.reload();
