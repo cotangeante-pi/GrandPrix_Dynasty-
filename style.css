@@ -819,3 +819,81 @@ body.deux #jauge { bottom: auto; top: calc(50% - 86px); }
 #jauge2 { bottom: 14px; }
 body.deux #departResultat { bottom: auto; top: calc(50% - 60px); }
 #departResultat2 { bottom: 50px; }
+
+/* le mode 2 joueurs (tour 25b, ordre 3) : le menu « Entre amis », l'écran avant la course, le podium à deux et la rivalité */
+#amis .boutons, #deuxReglages .boutons { align-items: center; }   /* (le petit bouton « Retour » garde sa taille, son texte centré) */
+#amis .boutons button:disabled { opacity: 0.5; cursor: default; box-shadow: none; }
+#deuxJoueurs { display: flex; gap: 16px; }
+.deuxJoueur { display: flex; flex-direction: column; gap: 8px; width: 380px; max-width: 46vw; padding: 10px 14px; border-radius: 10px; background: rgba(255, 255, 255, 0.06); box-sizing: border-box; }
+.deuxJoueur h2 { margin: 0; font: 800 18px/1.2 var(--police); }
+#deuxJoueur1 { border-top: 3px solid #1f6fe0; }
+#deuxJoueur2 { border-top: 3px solid #d8262e; }
+.deuxJoueur label, #deuxCourse label { display: flex; align-items: center; justify-content: space-between; gap: 10px; font: 600 14px/1.3 var(--police); }
+.deuxJoueur input[type=text], .deuxJoueur select, #deuxCourse select { padding: 4px 6px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.35); background: rgba(255, 255, 255, 0.1); color: inherit; font: 600 14px/1.3 var(--police); }
+.deuxJoueur input[type=text] { width: 180px; user-select: text; -webkit-user-select: text; }
+.deuxJoueur select option, #deuxCourse select option { color: #111; }
+.deuxCouleurs { display: flex; gap: 5px; }
+#deuxReglages .deuxCouleurs button.deuxPastille { display: block; min-width: 0; width: 22px; height: 22px; padding: 0; border-radius: 50%; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6); }
+#deuxReglages .deuxCouleurs button.deuxPastille.choisie { box-shadow: 0 0 0 3px #fff; }
+.deuxCasque { display: flex; align-items: center; gap: 5px; }
+.deuxCasque input[type=color] { width: 28px; height: 24px; padding: 0; border: 1px solid rgba(255, 255, 255, 0.35); border-radius: 6px; background: none; }
+.deuxIcone { display: inline-flex; }
+#deuxReglages p.deuxTouches { font: 600 12px/1.3 var(--police); opacity: 0.8; }
+#deuxCourse { display: grid; grid-template-columns: repeat(4, auto); gap: 8px 18px; }
+#deuxErreur { min-height: 1.4em; color: #ff8a80; }
+#podiumDeux { margin: 0 0 8px; padding: 6px 14px; border-radius: 8px; background: var(--panneau); font: 700 17px/1.3 var(--police); }
+.marche.joueur1 { box-shadow: 0 0 0 3px #1f6fe0; }
+.marche.joueur2 { box-shadow: 0 0 0 3px #d8262e; }
+#resultatsRivalite { font: 800 20px/1.3 var(--police); color: #f2c230; }
+/* la cérémonie du champion (Codeur 3) : le podium 3D se voit (pas de voile), le texte en haut, « Suite » en bas */
+#ceremonie { background: none; justify-content: space-between; padding: 22px 0 26px; box-sizing: border-box; pointer-events: none; }
+#ceremonie button { pointer-events: auto; }
+#ceremonieHaut { display: grid; gap: 4px; justify-items: center; text-shadow: 0 3px 14px rgba(0, 0, 0, 0.75); }
+#ceremonie h1#ceremonieTitre { margin: 0; font: 900 clamp(34px, 6vw, 64px)/1.05 var(--police); letter-spacing: 3px; color: #ffd666; }
+#ceremonieNom { font: 800 clamp(22px, 3.4vw, 34px)/1.2 var(--police) !important; }
+#ceremonieSaison { font-size: 15px !important; letter-spacing: 2px; text-transform: uppercase; opacity: 0.9; }
+#ceremonieDetail { font-size: 16px !important; }
+#ceremonie.court h1#ceremonieTitre { font-size: clamp(24px, 3.6vw, 38px); letter-spacing: 1px; color: #fff; }
+/* la une spéciale du champion : le titre en or, plus grand */
+#unePage.speciale h1#uneTitre { font-size: clamp(28px, 4.2vw, 46px); color: #8a6a00; letter-spacing: 1px; }
+#unePage.speciale #uneEntete { border-bottom-color: #b8901c; }
+
+/* l'album des unes (Codeur 3) : la une du journal, un peu plus petite, et la barre pour feuilleter (seulement en mode album) */
+#albumBarre { display: none; align-items: center; gap: 8px; }
+#une.album #albumBarre { display: flex; }
+#une.album #unePasser { display: none; }
+#une.album #unePage { height: min(80vh, 600px); }
+#albumBarre button { min-width: 0; padding: 6px 12px; }
+#albumPage { min-width: 230px; font: 700 14px/1.2 var(--police); }
+
+/* le bilan de carrière et le temple de la renommée (Codeur 3, carriere.js) : tiennent en 960×600 */
+#bilanStats { margin: 2px 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px 10px; width: min(92vw, 760px); }
+#bilanStats li { display: grid; gap: 2px; padding: 6px 10px; border-radius: 8px; background: rgba(255, 255, 255, 0.1); }
+#bilanStats .etiquette { font: 600 12px/1.2 var(--police); opacity: 0.8; }
+#bilanStats .valeur { font: 800 20px/1.2 var(--police); color: #ffd666; }
+#bilanDuels, #bilanUne, #bilanTemple { font-size: 15px !important; max-width: 92vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#bilanUne { font-style: italic; }
+#temple h1, #temple h2 { margin: 0; }
+#temple h2 { font-size: 16px; opacity: 0.9; }
+#templeListe { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; width: min(92vw, 720px); max-height: 46vh; overflow: hidden; }
+#templeListe li { display: grid; grid-template-columns: 32px 1fr auto; gap: 10px; align-items: center; padding: 4px 12px; border-radius: 8px; background: rgba(255, 255, 255, 0.1); font: 14px/1.3 var(--police); text-align: left; white-space: nowrap; }
+#templeListe li.moi { background: rgba(31, 111, 224, 0.75); }
+#templeListe .place { font-weight: 800; color: #ffd666; }
+#templeListe .nom { font-weight: 700; overflow: hidden; text-overflow: ellipsis; }
+#templeRecords { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 18px; width: min(92vw, 720px); font: 13px/1.4 var(--police); text-align: left; }
+#templeRecords li { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* la relève (Codeur 3) : le formulaire de l'héritier à gauche, l'arbre de la dynastie à droite ; tient en 960×600 */
+#bilanFamille { font-size: 14px !important; opacity: 0.9; }
+#heritier h1, #heritier h2 { margin: 0; }
+#heritierCorps { display: flex; gap: 22px; align-items: flex-start; width: min(92vw, 820px); }
+#heritierForme { flex: 1.2; display: grid; gap: 6px; text-align: left; }
+#heritierForme label { display: grid; grid-template-columns: 150px 1fr; gap: 10px; align-items: center; font: 600 14px/1.3 var(--police); }
+#heritierForme input, #heritierForme select { font: 600 14px/1.2 var(--police); padding: 4px 6px; border-radius: 6px; border: 0; min-width: 0; }
+#heritierFamille { font-size: 13px !important; opacity: 0.85; }
+#heritierArbre { flex: 1; min-width: 0; text-align: left; }
+#heritierArbre h2 { font-size: 15px; margin-bottom: 4px; }
+#arbreListe { margin: 0; padding: 0 0 0 18px; font: 13px/1.4 var(--police); max-height: 40vh; overflow: hidden; }
+#arbreListe li { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#heritierErreur { color: #ff8a8a; font-size: 14px !important; min-height: 18px; }
+#bilanBoutons button { align-content: center; }   /* (le petit bouton à la hauteur des autres : son texte au milieu) */

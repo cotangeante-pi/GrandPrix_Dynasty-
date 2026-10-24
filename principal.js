@@ -13,6 +13,10 @@ if (DECOUVERTE_EN_COURS) REGLAGES.NIVEAU = REGLAGES.DECOUVERTE_NIVEAU;   // les 
 const CHAMPIONNAT_EN_COURS = PARAMETRES.get('championnat') === '1' || (EST_PAGE && PAGE_NUE && !DECOUVERTE_EN_COURS) ? (SAUVEGARDE.championnat() || CHAMPIONNAT.creer(Number(PARAMETRES.get('graine')) || 1)) : null;
 // ?gp=N (tests) : un championnat NEUF arrive au N-ième Grand Prix, les N − 1 premiers joués d'avance sans physique (SAISONS.avancer)
 if (CHAMPIONNAT_EN_COURS && !SAUVEGARDE.championnat() && Number(PARAMETRES.get('gp')) > 1) SAISONS.avancer(CHAMPIONNAT_EN_COURS, Number(PARAMETRES.get('gp')) - 1);
+// ?deux=1 : le mode 2 joueurs lit ses réglages sauvegardés (l'écran avant la course, deux-joueurs.js, tour 25b) ; les paramètres de
+// l'adresse (&circuit, &ia, &tours, &niveau : tests et développement) passent devant
+const DEUX_SAUVE = EST_PAGE && PARAMETRES.get('deux') === '1' ? DEUX_JOUEURS.completer(SAUVEGARDE.deux()) : null;
+if (DEUX_SAUVE) for (const [k, v] of [['circuit', DEUX_SAUVE.circuit], ['ia', DEUX_SAUVE.ia], ['tours', DEUX_SAUVE.tours], ['niveau', DEUX_SAUVE.niveau]]) if (!PARAMETRES.has(k)) PARAMETRES.set(k, String(v));
 const NOM_CIRCUIT = DECOUVERTE_EN_COURS ? REGLAGES.DECOUVERTE_CIRCUIT
   : CHAMPIONNAT_EN_COURS && CHAMPIONNAT_EN_COURS.prochain < CHAMPIONNAT_EN_COURS.calendrier.length ? CHAMPIONNAT_EN_COURS.calendrier[CHAMPIONNAT_EN_COURS.prochain].circuit
   : Object.prototype.hasOwnProperty.call(CIRCUITS, PARAMETRES.get('circuit')) ? PARAMETRES.get('circuit') : 'test';
@@ -98,10 +102,12 @@ function suivreSuivante() {
 function lancerCourse(nbTours) {
   if (JEU.deux) {
     // le mode 2 joueurs : la même course, deux humains (p.joueur = 1, 2) après les IA, la grille tirée au sort (dès la carte)
-    JEU.plateau = DEUX_JOUEURS.creer(CIRCUIT, JEU.deux.nbIA, JEU.deux.nbTours, Number(PARAMETRES.get('graine')) || 1, JEU.carte);
+    const graine = graineDeux();
+    JEU.plateau = DEUX_JOUEURS.creer(CIRCUIT, JEU.deux.nbIA, JEU.deux.nbTours, graine, JEU.carte);
     suivre(JEU.ia);   // la caméra suit le joueur 1 (l'écran partagé : ordre 2)
     appliquerCaracteres();
-    armerFeux(JEU.plateau.pilotes, Number(PARAMETRES.get('graine')) || 1);
+    armerFeux(JEU.plateau.pilotes, graine);
+    JEU.deux.rivaliteNotee = false;
   } else if (JEU.ia >= 2 || JEU.contre) {
     // ?championnat=1 : le niveau de l'écurie sur le rythme de chaque IA, avant que la carte leur donne un pilote
     JEU.plateau = creerCourseIA(CIRCUIT, JEU.ia, nbTours, Number(PARAMETRES.get('graine')) || 1, JEU.championnat ? null : JEU.carte, JEU.contre);
@@ -314,15 +320,92 @@ function jouerDecouverte() {
   lancerCourse(REGLAGES.DECOUVERTE_TOURS);
 }
 
-// « 👥 Entre amis » : le mode 2 joueurs et le tournoi n'existent pas encore, un petit écran « bientôt »
+// « Entre amis » (l'écran titre et le paddock) : le petit menu (l'écran partagé à deux, le tournoi chrono) ; « Retour » revient
+// là d'où on vient
 function montrerAmis() {
-  if (JEU.ecran !== 'titre') return;
+  if (JEU.ecran !== 'titre' && JEU.ecran !== 'championnat' && JEU.ecran !== 'deuxReglages') return;
+  if (JEU.ecran !== 'deuxReglages') JEU.amisDepuis = JEU.ecran;
+  PODIUM3D.cacher();
   JEU.ecran = 'amis';
   INTERFACE.montrer('amis');
 }
 
 function retourTitre() {
-  if (JEU.ecran === 'amis') montrerTitre();
+  if (JEU.ecran !== 'amis') return;
+  if (JEU.amisDepuis === 'championnat' && JEU.championnat) montrerChampionnat(JEU.gagne === undefined ? null : JEU.gagne);
+  else montrerTitre();
+}
+
+// --- le mode 2 joueurs (deux-joueurs.js, tour 25b ordre 3) : l'écran avant la course (les derniers choix, gardés dans la sauvegarde
+// unique à part de la carrière), puis la page ?deux=1 ; après la course, le podium à deux, la rivalité, « Revanche » et le menu
+function ouvrirDeux() {
+  if (JEU.ecran !== 'amis') return;
+  INTERFACE.remplirDeux(DEUX_JOUEURS.completer(SAUVEGARDE.deux()));
+  JEU.ecran = 'deuxReglages';
+  INTERFACE.montrer('deuxReglages');
+}
+
+// « C'est parti ! » : les choix vérifiés (deux noms et deux couleurs différents), écrits (la rivalité et le compte des courses
+// gardés), puis la page de la course à deux
+function partirDeux() {
+  if (JEU.ecran !== 'deuxReglages') return false;
+  const r = DEUX_JOUEURS.valider(INTERFACE.lireDeux(), [texte('joueur1'), texte('joueur2')]);
+  INTERFACE.montrerErreursDeux(r.erreurs);
+  if (!r.ok) return false;
+  const ancien = DEUX_JOUEURS.completer(SAUVEGARDE.deux());
+  r.reglages.rivalite = ancien.rivalite;
+  r.reglages.courses = ancien.courses;
+  SAUVEGARDE.ecrireDeux(r.reglages);
+  location.href = adresseAvec({ deux: '1' });
+  return true;
+}
+
+// l'adresse de la page avec ces paramètres (la langue forcée ?lang= est gardée)
+function adresseAvec(params) {
+  const p = new URLSearchParams(params);
+  if (PARAMETRES.get('lang')) p.set('lang', PARAMETRES.get('lang'));
+  return location.pathname + '?' + p.toString();
+}
+
+// la graine de la course à deux : celle de l'adresse (&graine=, tests) décalée à chaque revanche ; sinon le nombre de courses à deux
+// déjà lancées (sauvegardé : chaque course a sa grille)
+function graineDeux() {
+  const g = Number(PARAMETRES.get('graine'));
+  if (g) return g + JEU.deux.revanche;
+  const d = DEUX_JOUEURS.completer(SAUVEGARDE.deux());
+  d.courses++;
+  SAUVEGARDE.ecrireDeux(d);
+  return d.courses;
+}
+
+// le podium à deux : qui a fini devant (pénalités comprises) marque un point de la rivalité (une fois par course), gardée tant que
+// les deux noms sont les mêmes
+function noterRivaliteDeux() {
+  if (!JEU.deux || JEU.deux.rivaliteNotee || !JEU.final) return null;
+  JEU.deux.rivaliteNotee = true;
+  const d = DEUX_JOUEURS.completer(SAUVEGARDE.deux()), noms = JEU.deux.reglages.joueurs.map(j => j.nom || '');
+  d.rivalite = DEUX_JOUEURS.ajouterRivalite(d.rivalite, noms, DEUX_JOUEURS.gagnant(JEU.plateau, JEU.final));
+  SAUVEGARDE.ecrireDeux(d);
+  JEU.deux.rivalite = d.rivalite;
+  return d.rivalite;
+}
+
+// pendant une pub (sdk.js) : le son coupé, puis rendu (seulement s'il était allumé avant)
+function couperSonPub(oui) {
+  if (oui && !SON.muet) { SON.basculer(); JEU.sonCoupePub = true; }
+  else if (!oui && JEU.sonCoupePub) { SON.basculer(); JEU.sonCoupePub = false; }
+}
+
+// « Revanche » : une pause pub (Poki : entre deux courses à deux, jamais pendant), puis la même course, la grille retirée au sort
+function revancheDeux() {
+  if (!JEU.deux || (JEU.ecran !== 'resultats' && JEU.ecran !== 'podium') || SDK.pubEnCours) return;
+  SDK.pubEntreCourses(() => { JEU.deux.revanche++; lancerCourse(JEU.deux.nbTours); }, couperSonPub);
+}
+
+// « Menu » : une pause pub, puis le menu « Entre amis » de la page nue (l'écran titre ou le paddock derrière)
+function menuDeux() {
+  if (!JEU.deux || (JEU.ecran !== 'resultats' && JEU.ecran !== 'podium') || SDK.pubEnCours) return;
+  SDK.pubEntreCourses(() => { location.href = adresseAvec({ menu: 'amis' }); }, couperSonPub);
 }
 
 // la découverte : le joueur au milieu de la grille, avec le temps médian des IA (decouverte.js), une fois leurs temps connus
@@ -424,6 +507,7 @@ function piloteDe(k) {
 
 // le casque (casque.js) de la voiture k : celui de son pilote, sinon le neutre
 function casqueDe(k) {
+  if (JEU.deux && k >= JEU.ia) return JEU.deux.reglages.joueurs[k - JEU.ia].casque;   // le mode 2 joueurs : le casque choisi par chaque joueur
   const p = piloteDe(k);
   return p && CASQUE.valide(p.casque) ? p.casque : CASQUE.neutre();
 }
@@ -449,6 +533,7 @@ function montrerChampionnat(gagne) {
   INTERFACE.remplirSolde(JEU.championnat);
   INTERFACE.remplirRappelSponsor(JEU.championnat);
   INTERFACE.remplirReputation(JEU.championnat);   // les trois jauges de l'interview (interview.js)
+  document.getElementById('boutonAlbum').disabled = !JEU.championnat.album.length;   // l'album des unes (Codeur 3) : rien avant la première une
   JEU.ecran = 'championnat';
   INTERFACE.montrer('championnat');
 }
@@ -506,9 +591,49 @@ function montrerUne(une) {
 }
 
 function passerUne() {
+  if (JEU.ecran === 'album') { feuilleterAlbum(1); return; }   // dans l'album, un clic sur la page tourne la page
   if (JEU.ecran !== 'une') return;
   if (SAISONS.finie(JEU.championnat)) montrerFinSaison();
   else montrerChampionnat(JEU.gagne);
+}
+
+// ?championnat=1 : l'album des unes (Codeur 3, journal.js), depuis le paddock : la dernière une d'abord ; ← → (ou les boutons)
+// feuillettent, un clic sur la page tourne la page, ⏮ ⏭ sautent d'une saison ; chaque une est redessinée avec les noms de sa
+// saison (JOURNAL.rendreAlbum), donc à l'identique ; Échap ou « Fermer » ramène au paddock
+function montrerAlbum() {
+  if (JEU.ecran !== 'championnat' || !JEU.championnat.album.length) return;
+  JEU.album = JEU.championnat.album.length - 1;
+  afficherAlbum();
+}
+
+function afficherAlbum() {
+  const ch = JEU.championnat;
+  INTERFACE.remplirUne(JOURNAL.rendreAlbum(ch, JEU.album, { pilote: INTERFACE.nomPilote, ecurie: INTERFACE.nomEcurie }));
+  INTERFACE.remplirAlbum(ch, JEU.album);
+  JEU.ecran = 'album';
+  INTERFACE.montrer('album');
+}
+
+function feuilleterAlbum(d) {
+  if (JEU.ecran !== 'album') return;
+  const i = Math.max(0, Math.min(JEU.championnat.album.length - 1, JEU.album + d));
+  if (i === JEU.album) return;
+  JEU.album = i;
+  afficherAlbum();
+}
+
+// la saison d'avant (sa première une ; si on n'est pas au début de la sienne, le début de la sienne) ou la suivante
+function saisonAlbum(d) {
+  if (JEU.ecran !== 'album') return;
+  const S = JOURNAL.saisonsAlbum(JEU.championnat), k = S.findIndex(x => x.saison === JEU.championnat.album[JEU.album].s);
+  const cible = d < 0 ? (JEU.album > S[k].debut ? S[k] : S[Math.max(0, k - 1)]) : S[Math.min(S.length - 1, k + 1)];
+  JEU.album = cible.debut;
+  afficherAlbum();
+}
+
+function quitterAlbum() {
+  if (JEU.ecran !== 'album') return;
+  montrerChampionnat(JEU.gagne);
 }
 
 // ?championnat=1 : la fin de saison (saisons.js) : le classement final et le champion → le duel de la saison → les contrats
@@ -517,11 +642,34 @@ function montrerFinSaison() {
   const ch = JEU.championnat;
   if (ch.retraite) { montrerRetraite(); return; }
   const b = SAISONS.terminerSaison(ch);
+  // la cérémonie du champion (une fois par saison, avant le classement final) : le joueur champion → le podium, « CHAMPION DU
+  // MONDE » et les confettis ; un rival → un écran plus court ; gardée dans l'historique de la saison (pas deux fois au rechargement)
+  const close = ch.saisons[ch.saisons.length - 1];
+  if (close && close.saison === ch.saison && !close.ceremonie) { close.ceremonie = 1; SAUVEGARDE.ecrireChampionnat(ch); montrerCeremonie(b); return; }
   SAUVEGARDE.ecrireChampionnat(ch);
   PODIUM3D.cacher();
   INTERFACE.remplirSaison(ch, b);
   JEU.ecran = 'saison';
   INTERFACE.montrer('saison');
+}
+
+// ?championnat=1 : la cérémonie du champion (Codeur 3) : le podium 3D avec le champion seul en haut ; le joueur champion a
+// « CHAMPION DU MONDE » et les confettis (podium3d.js : un seul appel de dessin), un rival un écran plus court ; Poki : un menu
+// (gameplayStop, comme tout ce qui n'est pas la course) ; « Suite » → le classement final de la saison
+function montrerCeremonie(b) {
+  const ch = JEU.championnat, k = b.champion, toi = !!ch.pilotes[k].humain;
+  for (const m of JEU.modeles) m.groupe.visible = false;
+  if (JEU.modeles[k]) { if (toi) PODIUM3D.ceremonie(JEU.modeles[k]); else PODIUM3D.montrer([JEU.modeles[k]]); }
+  INTERFACE.remplirCeremonie(ch, b);
+  JEU.tempsPodium = 0;
+  JEU.ecran = 'ceremonie';
+  INTERFACE.montrer('ceremonie');
+}
+
+function suiteCeremonie() {
+  if (JEU.ecran !== 'ceremonie') return;
+  PODIUM3D.cacher();
+  montrerFinSaison();
 }
 
 function suiteClassementSaison() {
@@ -602,9 +750,56 @@ function prendreRetraite() {
 
 function montrerRetraite() {
   PODIUM3D.cacher();
-  INTERFACE.remplirRetraite(JEU.championnat.retraite);
+  const ch = JEU.championnat, place = SAUVEGARDE.entrerAuTemple(ch);   // le temple de la renommée (carriere.js) : une seule fois, sauvegardé
+  INTERFACE.remplirRetraite(ch.retraite);
+  // le bilan de carrière (étape 14) : les chiffres, les duels, la une préférée (redessinée comme le jour même), la place au temple
+  const b = CARRIERE.bilan(ch), une = b.une === null ? null : JOURNAL.rendreAlbum(ch, b.une, { pilote: INTERFACE.nomPilote, ecurie: INTERFACE.nomEcurie });
+  INTERFACE.remplirBilan(ch, b, une, place, SAUVEGARDE.temple().carrieres.length);
   JEU.ecran = 'retraite';
   INTERFACE.montrer('retraite');
+}
+
+// le temple de la renommée (carriere.js), depuis le bilan : les carrières finies classées, les records ; « Retour » : le bilan
+function montrerTemple() {
+  if (JEU.ecran !== 'retraite') return;
+  const t = SAUVEGARDE.temple();
+  INTERFACE.remplirTemple(CARRIERE.classer(t), t.records, JEU.championnat.retraite ? JEU.championnat.retraite.temple : null);
+  JEU.ecran = 'temple';
+  INTERFACE.montrer('temple');
+}
+
+// la relève (carriere.js) : « Continuer la dynastie » → l'écran de l'héritier ; « C'est parti ! » : le même monde passe à la saison
+// suivante, l'héritier dans la plus petite écurie, sauvegardé, puis le paddock (« Course suivante » recharge la page sur le nouveau
+// circuit) ; « Nouvelle dynastie » : un monde neuf (une autre graine), l'ancienne reste au temple, la page se recharge
+function montrerHeritier() {
+  if (JEU.ecran !== 'retraite') return;
+  INTERFACE.remplirHeritier(JEU.championnat);
+  JEU.ecran = 'heritier';
+  INTERFACE.montrer('heritier');
+}
+
+function validerHeritier() {
+  if (JEU.ecran !== 'heritier') return false;
+  const ch = JEU.championnat, choix = INTERFACE.lireHeritier(ch);
+  if (!CARRIERE.validerHeritier(ch, choix).ok || !CARRIERE.continuer(ch, choix)) { INTERFACE.montrerErreurHeritier(true); return false; }
+  SAUVEGARDE.ecrireChampionnat(ch);
+  JEU.gagne = null;
+  JEU.grandPrixFini = true;   // le circuit du Grand Prix 1 de la nouvelle saison : « Course suivante » recharge la page
+  montrerChampionnat(null);
+  return true;
+}
+
+function nouvelleDynastie() {
+  if (JEU.ecran !== 'retraite') return;
+  const ancien = JEU.championnat;
+  SAUVEGARDE.entrerAuTemple(ancien);   // (déjà fait au bilan : une seule fois)
+  SAUVEGARDE.ecrireChampionnat(CARRIERE.nouveauMonde(ancien));
+  location.reload();
+}
+
+function quitterTemple() {
+  if (JEU.ecran !== 'temple') return;
+  montrerRetraite();
 }
 
 // ?championnat=1 : le garage (garage.js, argent.js), depuis l'écran du championnat ; un achat est sauvegardé tout de suite
@@ -661,12 +856,16 @@ function montrerPodium() {
   const trois = JEU.final.slice(0, 3);
   for (const m of JEU.modeles) m.groupe.visible = false;
   PODIUM3D.montrer(trois.map(x => JEU.modeles[x.k]));
-  INTERFACE.remplirPodium(trois.map(x => ({ numero: numeroDe(x.k), couleur: JEU.couleurs[x.k], total: x.total, penalites: x.penalites, casque: casqueDe(x.k) })));
+  // le mode 2 joueurs : les deux joueurs (leur nom, mis en valeur), leur place même hors du podium, et la rivalité
+  const joueurDe = k => JEU.deux && P[k].joueur ? P[k].joueur : 0, nomDe = k => joueurDe(k) ? JEU.deux.reglages.joueurs[joueurDe(k) - 1].nom : null;
+  INTERFACE.remplirPodium(trois.map(x => ({ numero: numeroDe(x.k), couleur: JEU.couleurs[x.k], total: x.total, penalites: x.penalites, casque: casqueDe(x.k), joueur: joueurDe(x.k), nom: nomDe(x.k) })));
   INTERFACE.remplirResultats(JEU.final.map(x => ({
     place: x.place, numero: numeroDe(x.k), couleur: JEU.couleurs[x.k], total: x.total, penalites: x.penalites,
-    ecart: x.ecart, grille: x.grille, moi: x.k === JEU.suivie, casque: casqueDe(x.k),
+    ecart: x.ecart, grille: x.grille, moi: x.k === JEU.suivie || !!joueurDe(x.k), casque: casqueDe(x.k), nom: nomDe(x.k),
     arrets: x.arrets,   // les tours de ses arrêts au stand (étape 7, Codeur 1)
   })));
+  INTERFACE.remplirPodiumDeux(JEU.deux ? DEUX_JOUEURS.joueurs(e).map(p => { const k = P.indexOf(p); return { nom: nomDe(k), place: JEU.final.find(x => x.k === k).place }; }) : null);
+  INTERFACE.remplirRivalite(JEU.deux ? noterRivaliteDeux() : null);
   // ?championnat=1 : les gains du joueur (argent.js), calculés sur le classement final de cet instant (encaissés à « Continuer »)
   if (JEU.championnat) {
     const lignes = CHAMPIONNAT.lignesDepuisCourse(e), g = ARGENT.gains(JEU.championnat, lignes), moi = lignes.find(l => l.k === JEU.ia);
@@ -692,10 +891,29 @@ function attendreLesAutres() {
     CAMERA.forcer('tele');
   }
   JEU.attente.tele = ARRIVEE.voitureTele(e, JEU.attente.tele);
-  if (JEU.attente.passer || ARRIVEE.podiumPret(e, e.temps - arrivee)) {
+  // « passer » (CLAUDE.md « La course ») : le reste de la course est vraiment joué, en accéléré (×ARRIVEE_ACCELERE) : à chaque image,
+  // les mêmes pas de physique que la boucle (BOUCLE.simuler d'un pas), sans les dessiner, au plus ARRIVEE_TRANCHE_MS ; les places et
+  // les temps sont ceux qu'on aurait eus en regardant ; ARRIVEE_ATTENTE_MAX reste le filet (une voiture bloquée)
+  if (JEU.attente.passer && !(JEU.attente.suivi && ARRIVEE.podiumPretAccelere(e, JEU.attente.suivi))) {
+    const R = REGLAGES, nb = Math.max(1, Math.round(R.ARRIVEE_ACCELERE * Math.min(JEU.dtImage || 0, R.PAS_MAX_PAR_IMAGE * R.PAS_PHYSIQUE) / R.PAS_PHYSIQUE));
+    if (!JEU.attente.suivi) { JEU.attente.suivi = ARRIVEE.creerSuivi(e); JEU.attente.debutReel = performance.now(); }
+    const r = ARRIVEE.accelerer(e, () => BOUCLE.simuler(R.PAS_PHYSIQUE), nb, R.ARRIVEE_TRANCHE_MS, arrivee, () => performance.now(), JEU.attente.suivi);
+    JEU.attente.accelere = (JEU.attente.accelere || 0) + r.pas;
+  }
+  majAttente();
+  // en accéléré : tout le monde a fini (sauf une voiture bloquée), ou le plafond de temps réel ; en regardant : podiumPret (ARRIVEE_ATTENTE_MAX)
+  const a = JEU.attente, pret = a.suivi ? ARRIVEE.podiumPretAccelere(e, a.suivi) || performance.now() - a.debutReel >= REGLAGES.ARRIVEE_ACCELERE_MAX_REEL * 1000 : ARRIVEE.podiumPret(e, e.temps - arrivee);
+  if (pret) {
     finirAttente();
     montrerPodium();
   }
+}
+
+// le bandeau d'attente : « en attendant les autres » et le bouton pour passer ; en accéléré, « ⏩ » et les voitures encore en course
+function majAttente() {
+  const a = JEU.attente, n = ARRIVEE.restantes(JEU.plateau);
+  document.getElementById('attenteTexte').textContent = a && a.passer ? (n === 1 ? texte('attenteAccelere1') : texte('attenteAccelere').replace('{n}', n)) : texte('attenteArrivee');
+  document.getElementById('boutonPasser').classList.toggle('cache', !!(a && a.passer));
 }
 
 // la fin de l'attente (podium, nouvelle course) : la caméra d'avant revient, le bandeau part
@@ -703,6 +921,8 @@ function finirAttente() {
   if (JEU.attente) CAMERA.forcer(JEU.attente.camera);
   JEU.attente = null;
   document.getElementById('attenteArrivee').classList.add('cache');
+  document.getElementById('attenteTexte').textContent = texte('attenteArrivee');
+  document.getElementById('boutonPasser').classList.remove('cache');
 }
 
 function passerAuPodium() {
@@ -754,6 +974,11 @@ function brancherClavier() {
     }
     if (e.code === 'Escape' && !e.repeat) pause(JEU.ecran === 'course');
     if (JEU.ecran === 'une' && !e.repeat) passerUne();   // n'importe quelle touche passe la une du journal
+    else if (JEU.ecran === 'album' && !e.repeat) {   // l'album : ← → feuillettent, Échap ferme
+      if (e.code === 'ArrowLeft') feuilleterAlbum(-1);
+      else if (e.code === 'ArrowRight') feuilleterAlbum(1);
+      else if (e.code === 'Escape') quitterAlbum();
+    }
     if (e.code === 'Tab') { e.preventDefault(); if (JEU.plateau && !JEU.contre && !e.repeat) suivreSuivante(); }
     enfoncees.add(e.code);
     majCibles();
@@ -782,7 +1007,10 @@ function conduireJoueur(p, pas) {
     if (JEU.robot) { if (d.extinction !== null && d.t - d.extinction >= REGLAGES.DEPART_ROBOT_REACTION) DEPART.lancer(d, 'parfait', REGLAGES.DEPART_ROBOT_REACTION); }
     else DEPART.commande(d, cmd.cibles.gaz > 0, p.course.compte);
     if (d.lance === null) cibles = AUCUNE;
-    else if (!JEU.robot && !JEU.deux && d.resultat !== 'faux') JEU.departRecord = SAUVEGARDE.proposerReaction(d.reaction);   // le record du temps de réaction (pas celui du robot, ni à deux)
+    else if (!JEU.robot && !JEU.deux && d.resultat !== 'faux') {
+      JEU.departRecord = SAUVEGARDE.proposerReaction(d.reaction);   // le record du temps de réaction (pas celui du robot, ni à deux)
+      if (JEU.championnat && p === JEU.plateau.pilotes[JEU.ia]) CARRIERE.noterReaction(JEU.championnat, d.reaction);   // … et celui de la carrière (carriere.js, sauvegardé avec le Grand Prix)
+    }
   }
   lisserCommandes(p.v, commandesPermises(p.course) ? cibles : p.course.etat === 'finie' ? FREIN_SEUL : AUCUNE, pas);
   pasPneusJoueur(p.v, pas);
@@ -850,7 +1078,7 @@ function majDeuxHud() {
   if (!JEU.deux || !JEU.plateau || !(JEU.ecran === 'course' || JEU.ecran === 'pause')) { INTERFACE.majDeux(null); return; }
   const e = JEU.plateau, ordre = classementCourse(e), [p1, p2] = DEUX_JOUEURS.joueurs(e), k1 = e.pilotes.indexOf(p1), k2 = e.pilotes.indexOf(p2);
   const ecart = ecartEntre(ordre, k1, k2);   // > 0 : le joueur 2 est derrière le joueur 1
-  const info = (p, k, signe) => ({ place: ordre.findIndex(x => x.k === k) + 1, tour: Math.min(p.course.tours.length + 1, p.course.nbTours), nbTours: p.course.nbTours, vitesse: p.v.u, ecart: ecart === null ? null : signe * ecart });
+  const info = (p, k, signe) => ({ nom: JEU.deux.reglages.joueurs[p.joueur - 1].nom, place: ordre.findIndex(x => x.k === k) + 1, tour: Math.min(p.course.tours.length + 1, p.course.nbTours), nbTours: p.course.nbTours, vitesse: p.v.u, ecart: ecart === null ? null : signe * ecart });
   INTERFACE.majDeux([info(p1, k1, -1), info(p2, k2, 1)]);   // chacun voit « − » quand il est devant l'autre
 }
 
@@ -888,7 +1116,7 @@ function majTableau() {
   document.getElementById('rapport').textContent = rapportPourVitesse(v.u);
   const roule = JEU.ecran === 'course' || JEU.ecran === 'survol' || enTourQualif();
   // sur le podium et les résultats, ni vitesse ni aide des touches
-  const apres = ['podium', 'resultats', 'championnat', 'une', 'garage', 'titre', 'amis', 'bravo', 'saison', 'duelSaison', 'contrats', 'retraite', 'sponsors', 'fiche', 'interview'].includes(JEU.ecran);
+  const apres = ['podium', 'resultats', 'championnat', 'une', 'garage', 'titre', 'amis', 'bravo', 'saison', 'duelSaison', 'contrats', 'retraite', 'sponsors', 'fiche', 'interview', 'ceremonie', 'album', 'temple', 'heritier', 'deuxReglages'].includes(JEU.ecran);
   document.getElementById('tableau').classList.toggle('cache', apres);
   document.getElementById('aide').classList.toggle('cache', apres);
   // après l'arrivée du joueur (en attendant les autres), il ne court plus : pas de « hors piste »
@@ -972,7 +1200,8 @@ function demarrerJeu() {
   }
   // le mode 2 joueurs : ses réglages de la page ; ses IA sont des rivaux du monde sauvegardé (leur caractère), s'il existe
   if (DEUX_EN_COURS) {
-    JEU.deux = { nbIA: DEUX_JOUEURS.nbIAValide(Number(PARAMETRES.get('ia'))), nbTours: DEUX_JOUEURS.nbToursValide(Number(PARAMETRES.get('tours'))) };
+    JEU.deux = { nbIA: DEUX_JOUEURS.nbIAValide(Number(PARAMETRES.get('ia'))), nbTours: DEUX_JOUEURS.nbToursValide(Number(PARAMETRES.get('tours'))), reglages: DEUX_SAUVE, revanche: 0, rivaliteNotee: false, rivalite: null };
+    JEU.deux.reglages.joueurs.forEach((j, i) => { if (!j.nom) j.nom = texte(i ? 'joueur2' : 'joueur1'); });   // (sans réglages sauvegardés : « Joueur 1 », « Joueur 2 »)
     JEU.monde = SAUVEGARDE.championnat();
     if (JEU.monde) JEU.indices = DECOUVERTE.pilotes(JEU.monde).slice(0, JEU.deux.nbIA).map(p => p.id);
   }
@@ -1006,9 +1235,9 @@ function demarrerJeu() {
       for (const p of DECOUVERTE.pilotes(JEU.monde)) JEU.couleurs.push(p.couleur);
       JEU.couleurs.push(JEU.monde.ecuries[REGLAGES.ECURIE_JOUEUR].couleur);
     } else if (JEU.deux) {   // les IA, puis le joueur 1 🔵 et le joueur 2 🔴 (DEUX_COULEURS)
-      const libres = couleurs.filter(x => !REGLAGES.DEUX_COULEURS.includes(x));
+      const choisies = JEU.deux.reglages.joueurs.map(j => j.couleur), libres = couleurs.filter(x => !choisies.includes(x));   // (les couleurs choisies à l'écran avant la course)
       for (let k = 0; k < JEU.ia; k++) JEU.couleurs.push(libres[k % libres.length]);
-      JEU.couleurs.push(...REGLAGES.DEUX_COULEURS);
+      JEU.couleurs.push(...choisies);
     } else {
       for (let k = 0; k < JEU.ia; k++) JEU.couleurs.push(choix[k % choix.length]);
       if (JEU.contre) JEU.couleurs.push(REGLAGES.COULEUR_JOUEUR);
@@ -1031,13 +1260,23 @@ function demarrerJeu() {
     document.getElementById('boutonChangerResultats').textContent = texte('continuer');
     INTERFACE.preparerChampionnat(courseSuivante, montrerGarage);
     INTERFACE.preparerUne(passerUne);
+    INTERFACE.preparerCeremonie(suiteCeremonie);
+    INTERFACE.preparerAlbum(montrerAlbum, feuilleterAlbum, saisonAlbum, quitterAlbum);
+    INTERFACE.preparerTemple(montrerTemple, quitterTemple);
+    INTERFACE.preparerReleve(montrerHeritier, nouvelleDynastie, validerHeritier);
     INTERFACE.preparerGarage(acheterAmelioration, quitterGarage);
     INTERFACE.preparerSaison(suiteClassementSaison, suiteDuelSaison, signerContrat, prendreRetraite);
     INTERFACE.preparerSponsors(montrerSponsors, choisirSponsor, quitterSponsors);
     INTERFACE.preparerFiche(montrerFiche, quitterFiche);
     INTERFACE.preparerInterview(repondreInterview, finirInterview);
   } else if (JEU.decouverte) INTERFACE.preparerResultats(montrerBravo, () => {}, () => {});   // la découverte : après le podium, « Bravo ! »
-  else INTERFACE.preparerResultats(voirResultats, () => lancerCourse(JEU.course.nbTours), allerAuChoix);
+  else if (JEU.deux) {   // le mode 2 joueurs : après les résultats, « Revanche » et « Menu »
+    INTERFACE.preparerResultats(voirResultats, revancheDeux, menuDeux);
+    document.getElementById('boutonRejouerResultats').textContent = texte('revanche');
+    document.getElementById('boutonChangerResultats').textContent = texte('menuAmis');
+  } else INTERFACE.preparerResultats(voirResultats, () => lancerCourse(JEU.course.nbTours), allerAuChoix);
+  INTERFACE.preparerAmis(ouvrirDeux, null, montrerAmis);
+  INTERFACE.preparerDeux(partirDeux, montrerAmis);
   INTERFACE.preparerTitre(jouerDecouverte, montrerAmis, retourTitre, commencerCarriere);
   INTERFACE.preparerPilote(validerPilote);
   INTERFACE.preparerCasque(changerCasque);
@@ -1063,6 +1302,7 @@ function demarrerJeu() {
   else if (JEU.deux) lancerCourse(JEU.deux.nbTours);   // le mode 2 joueurs : la course tout de suite (son menu et ses réglages : ordre 3)
   else if (demandee !== null && !isNaN(Number(demandee))) lancerCourse(Number(demandee));
   else allerAuChoix();
+  if (PARAMETRES.get('menu') === 'amis') montrerAmis();   // le retour du mode 2 joueurs : le menu « Entre amis » (sur le titre ou le paddock)
   brancherClavier();
   const boutonSon = document.getElementById('boutonSon');
   boutonSon.title = texte('son');
@@ -1076,7 +1316,8 @@ function demarrerJeu() {
   BOUCLE.surPhysique(pasJoueur);
   BOUCLE.surAffichage((alpha, dt) => {
     JEU.alpha = alpha;
-    const apres = JEU.ecran === 'podium' || JEU.ecran === 'resultats' || JEU.ecran === 'bravo';   // le podium : les voitures n'y bougent plus
+    JEU.dtImage = dt;   // (« passer » en accéléré : le nombre de pas de l'image suit sa durée)
+    const apres = JEU.ecran === 'podium' || JEU.ecran === 'resultats' || JEU.ecran === 'bravo' || JEU.ecran === 'ceremonie';   // le podium (et la cérémonie du champion) : les voitures n'y bougent plus
     // ?ia=N : chaque IA à sa place ; une IA arrivée quitte la piste (elle n'est plus dessinée)
     if (JEU.plateau && !apres) JEU.plateau.pilotes.forEach((p, k) => {
       const m = JEU.modeles[k];
@@ -1087,6 +1328,7 @@ function demarrerJeu() {
     if (apres) {
       JEU.tempsPodium += dt;
       PODIUM3D.camera(SCENE3D.camera, JEU.tempsPodium);
+      PODIUM3D.majConfettis(dt);   // la cérémonie du champion : les confettis tombent (rien sinon)
     } else {
       VOITURE3D.placer(JEU.modele, etat, JEU.joueur);
       JEU.modele.tete.visible = CAMERA.mode !== 'cockpit';   // en vue cockpit, l'œil est dans le casque

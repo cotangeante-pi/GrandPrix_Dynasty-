@@ -1,7 +1,7 @@
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><title>tests</title></head><body>
 <pre id="res"></pre>
 <script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));window.addEventListener('unhandledrejection',e=>__err.push('promesse : '+(e.reason&&e.reason.message||e.reason)));</script>
-<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../son.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../decouverte.js"></script><script src="../pilote.js"></script><script src="../deux-joueurs.js"></script><script src="../casque.js"></script><script src="../cache-carte.js"></script><script src="../journal.js"></script><script src="../argent.js"></script><script src="../garage.js"></script><script src="../saisons.js"></script><script src="../sponsors.js"></script><script src="../fiche.js"></script><script src="../interview.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../fantome.js"></script><script src="../principal.js"></script>
+<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../son.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../decouverte.js"></script><script src="../pilote.js"></script><script src="../deux-joueurs.js"></script><script src="../tournoi.js"></script><script src="../casque.js"></script><script src="../cache-carte.js"></script><script src="../journal.js"></script><script src="../argent.js"></script><script src="../garage.js"></script><script src="../saisons.js"></script><script src="../sponsors.js"></script><script src="../fiche.js"></script><script src="../interview.js"></script><script src="../carriere.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../fantome.js"></script><script src="../principal.js"></script>
 <script>
 const L=[];let ok=0,ko=0;
 function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
@@ -805,7 +805,7 @@ t('championnat : 3 Grands Prix simulés (simulerCourse, 20 voitures), sauvegarde
   const R=REGLAGES,t0=performance.now(),circuits={test:C,technique:construireCircuit(CIRCUITS.technique)};
   // une sauvegarde v1 déjà là : les records restent
   localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:1,records:{'5':61.5,'technique-12':70.25}}));
-  let d=SAUVEGARDE.lire();v(d.version===SAUVEGARDE.VERSION&&d.version===3&&d.records['5']===61.5&&d.records['technique-12']===70.25&&d.championnat===null,'v1 → v3 : '+JSON.stringify(d));
+  let d=SAUVEGARDE.lire();v(d.version===SAUVEGARDE.VERSION&&d.version===4&&d.records['5']===61.5&&d.records['technique-12']===70.25&&d.championnat===null,'v1 → v4 : '+JSON.stringify(d));
   v(SAUVEGARDE.record(5)===61.5&&SAUVEGARDE.championnat()===null,'records gardés');
   const ch=CHAMPIONNAT.creer(3);
   for(let g=0;g<3;g++){const gp=ch.calendrier[ch.prochain],r=simulerCourse(circuits[gp.circuit],20,1,100+g);
@@ -876,7 +876,7 @@ t('duel : sauvegarde → rechargement identique ; une sauvegarde v2 (sans duel) 
   const vieux=JSON.parse(JSON.stringify(ch));delete vieux.duel;for(const r of vieux.resultats) delete r.duel;
   localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:2,records:{'5':61.5},championnat:vieux}));
   const d=SAUVEGARDE.lire(),s=CHAMPIONNAT.scoreDuel(d.championnat);
-  v(d.version===3&&d.records['5']===61.5&&d.championnat.prochain===2,'v2 → v3 : '+d.version);
+  v(d.version===SAUVEGARDE.VERSION&&d.records['5']===61.5&&d.championnat.prochain===2,'v2 → v4 : '+d.version);
   v(JSON.stringify(d.championnat.pilotes)===JSON.stringify(ch.pilotes)&&JSON.stringify(d.championnat.ecuries)===JSON.stringify(ch.ecuries),'rien de perdu');
   v(s.courses.join()==='1,1'&&s.qualifs.join()==='0,0','les courses d’avant comptent (qualifs inconnues) : '+JSON.stringify(s));
   localStorage.removeItem(SAUVEGARDE.CLE);});
@@ -929,7 +929,9 @@ t('journal : le duel gagné ou perdu nettement (écart de la saison ≥ JOURNAL_
   v(fs.join()==='vainqueur,vainqueur,vainqueur,leader','leader : '+fs.join());v(ch.album[3].p.pilote===0&&ch.album[3].p.ecart===28,JSON.stringify(ch.album[3]));
   // le champion : le joueur gagne les 12 Grands Prix
   ch=CHAMPIONNAT.creer(1);for(let g=0;g<12;g++) u=uneDe(ch,ordreAvec([19]));
-  v(ch.prochain===12&&u.f==='titreChampion'&&u.p.points===300&&ch.album[10].f==='victoire','champion : '+JSON.stringify(u));});
+  v(ch.prochain===12&&u.f==='titreChampion'&&u.p.points===300&&ch.album[10].f==='victoire','champion : '+JSON.stringify(u));
+  // la une spéciale du champion (tour 28c) : toujours le titre « CHAMPION ! … » (la variante 0), marquée spéciale au rendu ; chaque une porte sa saison
+  const rs=JOURNAL.rendre(u,ch);v(u.t===0&&rs.speciale&&rs.titre.startsWith(texte('uneTitre_titreChampion')[0].split('{')[0])&&ch.album.every(x=>x.s===1)&&!JOURNAL.rendre(ch.album[10],ch).speciale,'une spéciale : '+JSON.stringify(rs));});
 t('journal : la priorité (JOURNAL_PRIORITES) quand plusieurs faits sont vrais : première victoire + record + duel gagné → première victoire ; la liste commence par le titre de champion et finit par le vainqueur', ()=>{
   const P=REGLAGES.JOURNAL_PRIORITES;v(P[0]==='titreChampion'&&P[P.length-1]==='vainqueur'&&P.indexOf('premiereVictoire')<P.indexOf('record')&&P.indexOf('record')<P.indexOf('duelGagne'),P.join());
   const ch=CHAMPIONNAT.creer(1);uneDe(ch,devant(4,[19,18]));const l=lignesUne(ordreAvec([19]));CHAMPIONNAT.enregistrerCourse(ch,l);
@@ -963,7 +965,7 @@ t('journal : l’album est dans la sauvegarde ; rechargé, il redonne exactement
   CHAMPIONNAT.finirGrandPrix(d.championnat,lignesUne(devant(2,[19,18])));v(SAUVEGARDE.championnat().album.length===1&&SAUVEGARDE.championnat().album[0].g===4,'la une suivante');
   localStorage.removeItem(SAUVEGARDE.CLE);});
 t('journal : toutes les clés de texte existent en anglais et en français, avec le même nombre de variantes (≥ 2 titres par fait), les mêmes trous dans chaque paire, et aucun trou ne reste une fois rempli', ()=>{
-  const ex={pilote:19,coequipier:18,rival:3,ecurie:9,circuit:'test',place:2,n:3,points:25,ecart:30,a:4,b:1,ligne:3,secondes:5,ancien:7,rang:4,gain:2,temps:62.345,age:35},ch=CHAMPIONNAT.creer(1);
+  const ex={parent:0,pilote:19,coequipier:18,rival:3,ecurie:9,circuit:'test',place:2,n:3,points:25,ecart:30,a:4,b:1,ligne:3,secondes:5,ancien:7,rang:4,gain:2,temps:62.345,age:35},ch=CHAMPIONNAT.creer(1);
   const trous=s_=>(s_.match(/\{[a-z]+\}/g)||[]).sort().join();let nb=0;
   for(const cle of JOURNAL.cles()){const e=TEXTES.en[cle],f=TEXTES.fr[cle];v(e!==undefined&&f!==undefined,cle+' manque');
     if(cle==='journalNom'){v(typeof e==='string'&&typeof f==='string'&&e&&f,cle);continue;}
@@ -979,6 +981,129 @@ t('journal : la taille de l’album pour une carrière (12 Grands Prix × 15 sai
   ALEATOIRE.semer();const album=JSON.stringify(ch.album).length,tout=JSON.stringify(ch).length,faits={};for(const u of ch.album) faits[u.f]=(faits[u.f]||0)+1;
   L.push('  (album : 180 unes = '+album+' octets ('+(album/1024).toFixed(1)+' Ko, '+(album/180).toFixed(0)+' par une) ; le championnat entier '+(tout/1024).toFixed(1)+' Ko ; composé en '+(performance.now()-t0).toFixed(0)+' ms ; faits : '+JSON.stringify(faits)+')');
   v(ch.album.length===180&&album<120000,album+' octets');});
+
+// --- l'album des unes (tour 28c, Codeur 3)
+t('album : chaque une redessinée depuis l’album (JOURNAL.rendreAlbum) est exactement celle du jour même, même après 6 saisons et des retraites (les noms de sa saison) ; rechargée de la sauvegarde aussi ; une sauvegarde d’avant (unes sans saison) retrouve la saison de chaque une', ()=>{
+  const ch=CHAMPIONNAT.creer(31),jour=[];
+  for(let s=0;s<6;s++){for(let g=0;g<12;g++){SAISONS.avancer(ch,1);jour.push(JSON.stringify(JOURNAL.rendre(ch.album[ch.album.length-1],ch)));}
+    SAISONS.terminerSaison(ch);if(s<5) SAISONS.signer(ch,SAISONS.offres(ch)[0].ecurie);}
+  v(ch.album.length===72&&ch.album.every((u,i)=>u.s===Math.floor(i/12)+1),'saisons : '+ch.album.map(u=>u.s).join(''));
+  const changent=ch.album.filter((u,i)=>JSON.stringify(JOURNAL.rendre(u,ch))!==jour[i]).length;
+  v(ch.retraites.length>0&&changent>0,'le test ne prouve rien : '+ch.retraites.length+' retraites, '+changent+' unes changeraient avec les noms d’aujourd’hui');
+  ch.album.forEach((u,i)=>v(JSON.stringify(JOURNAL.rendreAlbum(ch,i))===jour[i],'une '+(i+1)+' : '+JSON.stringify(JOURNAL.rendreAlbum(ch,i)).slice(0,200)+' ≠ '+jour[i].slice(0,200)));
+  localStorage.removeItem(SAUVEGARDE.CLE);SAUVEGARDE.ecrireChampionnat(ch);const re=SAUVEGARDE.championnat();
+  re.album.forEach((u,i)=>v(JSON.stringify(JOURNAL.rendreAlbum(re,i))===jour[i],'rechargée, une '+(i+1)));
+  const S=JOURNAL.saisonsAlbum(ch);v(S.length===6&&S.every((x,k)=>x.saison===k+1&&x.debut===12*k&&x.n===12),JSON.stringify(S));
+  const vieux=JSON.parse(JSON.stringify(ch));vieux.album.forEach(u=>delete u.s);JOURNAL.completer(vieux);v(vieux.album.every((u,i)=>u.s===ch.album[i].s),'sans saison : '+vieux.album.map(u=>u.s).join(''));
+  L.push('  (album : 6 saisons, '+ch.retraites.length+' retraites, '+changent+' unes sur 72 auraient changé de noms sans rendreAlbum)');
+  localStorage.removeItem(SAUVEGARDE.CLE);});
+
+// --- la fin de carrière (tour 28c, carriere.js, Codeur 3) : une carrière simulée de 15 saisons (SAISONS.avancer), le joueur 19
+// avec la course de cœur « technique » ; on compte à côté ce que le bilan doit dire
+function carriere15(graine){
+  const ch=CHAMPIONNAT.creer(graine),j=ch.pilotes[19],compte={v:0,p:0,dom:null,titres:0,duel:0};j.nom='Alex Rossi';j.numero=27;j.coeur='technique';j.pays='fr';
+  for(let s=1;s<=15;s++){
+    for(let g=0;g<12;g++){SAISONS.avancer(ch,1);const r=ch.resultats[ch.resultats.length-1],pl=r.ordre.indexOf(19)+1;
+      if(pl===1)compte.v++;if(pl<=3)compte.p++;if(ch.calendrier[r.grandPrix-1].circuit==='technique'&&(compte.dom===null||pl<compte.dom))compte.dom=pl;}
+    SAISONS.terminerSaison(ch);const h=ch.saisons[ch.saisons.length-1];if(h.champion===19)compte.titres++;if(h.duel)compte.duel+=h.duel[1]+h.duel[2]+h.duel[3]+h.duel[4];
+    if(s<15)SAISONS.signer(ch,SAISONS.offres(ch)[Math.min(1,SAISONS.offres(ch).length-1)].ecurie);}
+  return {ch,compte};}
+t('carrière : le bilan d’une carrière simulée de 15 saisons est juste (saisons, titres, victoires, podiums, poles, meilleurs tours, domicile, réaction, duels contre chaque coéquipier, la une préférée = la plus haute priorité) ; la retraite par l’âge arrive à la 15e', ()=>{
+  const {ch,compte}=carriere15(41),j=ch.pilotes[19];
+  v(ch.retraite&&ch.retraite.raison==='age'&&ch.saison===15,'retraite : '+JSON.stringify(ch.retraite));
+  CARRIERE.noterReaction(ch,0.31);CARRIERE.noterReaction(ch,0.24);CARRIERE.noterReaction(ch,0.4);CARRIERE.noterReaction(ch,-1);
+  const b=CARRIERE.bilan(ch);
+  v(b.saisons===15&&b.titres===compte.titres&&b.victoires===compte.v&&b.podiums===compte.p&&b.poles===j.stats.poles&&b.meilleursTours===j.stats.meilleursTours&&b.courses===180,'chiffres : '+JSON.stringify([b.saisons,b.titres,b.victoires,b.podiums,b.courses])+' attendu '+JSON.stringify(compte));
+  v(b.domicile===compte.dom&&b.reaction===0.24&&b.meilleurePlace===Math.min(...ch.saisons.map(s=>s.joueur)),'domicile '+b.domicile+' / '+compte.dom+', réaction '+b.reaction);
+  const tot=b.duels.reduce((a,d)=>a+d.total[0]+d.total[1],0);v(b.duels.length>=2&&tot===compte.duel,'duels : '+b.duels.length+' coéquipiers, '+tot+' points / '+compte.duel);
+  v(b.duels.every(d=>d.qualifs.length===2&&d.total[0]===d.qualifs[0]+d.courses[0]),'duel mal compté');
+  const P=REGLAGES.JOURNAL_PRIORITES,rang=u=>P.indexOf(u.f),meilleur=Math.min(...ch.album.map(rang));
+  v(b.une===ch.album.findIndex(u=>rang(u)===meilleur),'une préférée '+b.une+' ('+ch.album[b.une].f+'), attendu le premier '+P[meilleur]);
+  L.push('  (carrière de 15 saisons : '+b.titres+' titres, '+b.victoires+' victoires, '+b.podiums+' podiums, '+b.duels.length+' coéquipiers, une préférée « '+ch.album[b.une].f+' » ; sauvegarde '+(JSON.stringify(ch).length/1024).toFixed(1)+' Ko, album '+(JSON.stringify(ch.album).length/1024).toFixed(1)+' Ko)');});
+t('carrière : le temple de la renommée classe les carrières par titres, puis victoires, puis podiums ; il garde TEMPLE_MAX carrières au plus ; les records de carrière (le plus grand nombre, la réaction la plus courte) gardent le nom', ()=>{
+  const t_=CARRIERE.templeVierge(),r=(nom,titres,victoires,podiums,reaction)=>({nom,numero:5,titres,victoires,podiums,poles:1,meilleursTours:0,saisons:15,reaction});
+  CARRIERE.entrer(t_,r('A',1,10,20,0.3));CARRIERE.entrer(t_,r('B',2,5,9,0.25));CARRIERE.entrer(t_,r('C',1,12,15,null));const nD=CARRIERE.entrer(t_,r('D',1,10,25,0.5));
+  v(CARRIERE.classer(t_).map(c=>c.nom).join('')==='BCDA','ordre : '+CARRIERE.classer(t_).map(c=>c.nom).join(''));v(CARRIERE.place(t_,nD)===3,'place de D');
+  v(t_.records.titres.nom==='B'&&t_.records.victoires.valeur===12&&t_.records.victoires.nom==='C'&&t_.records.podiums.nom==='D'&&t_.records.reaction.valeur===0.25&&t_.records.reaction.nom==='B','records : '+JSON.stringify(t_.records));
+  for(let i=0;i<REGLAGES.TEMPLE_MAX+5;i++) CARRIERE.entrer(t_,r('Z'+i,0,0,i,null));
+  v(t_.carrieres.length===REGLAGES.TEMPLE_MAX&&t_.carrieres[0].nom==='B'&&!t_.carrieres.some(c=>c.nom==='Z0'),'plafond : '+t_.carrieres.length);});
+t('carrière : la retraite entre au temple une seule fois, sauvegardée ; les records et le temple survivent à une nouvelle carrière (un nouveau championnat) ; une ancienne sauvegarde (v3, sans temple ni carrière) se charge', ()=>{
+  localStorage.removeItem(SAUVEGARDE.CLE);
+  const {ch}=carriere15(42);const p1=SAUVEGARDE.entrerAuTemple(ch),p2=SAUVEGARDE.entrerAuTemple(ch);
+  let t_=SAUVEGARDE.temple();v(p1===1&&p2===1&&t_.carrieres.length===1&&t_.carrieres[0].nom==='Alex Rossi'&&t_.carrieres[0].saisons===15&&SAUVEGARDE.championnat().retraite.temple===t_.carrieres[0].n,'entrée : '+JSON.stringify(t_));
+  const taille=localStorage.getItem(SAUVEGARDE.CLE).length;
+  SAUVEGARDE.ecrireChampionnat(CHAMPIONNAT.creer(9));t_=SAUVEGARDE.temple();
+  v(t_.carrieres.length===1&&t_.records.victoires&&t_.records.victoires.nom==='Alex Rossi'&&SAUVEGARDE.championnat().saison===1&&!SAUVEGARDE.championnat().retraite,'nouvelle carrière : '+JSON.stringify(t_.records));
+  const vieux=JSON.parse(JSON.stringify(ch));delete vieux.carriere;vieux.album.forEach(u=>delete u.s);delete vieux.retraite.temple;
+  localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:3,records:{},championnat:vieux}));
+  const d=SAUVEGARDE.lire();v(d.temple&&d.temple.carrieres.length===0&&d.championnat.carriere.debut===1&&d.championnat.carriere.domicile===null&&d.championnat.album.every(u=>typeof u.s==='number'),'ancienne : '+JSON.stringify(d.championnat.carriere));
+  const b=CARRIERE.bilan(d.championnat);v(b.saisons===15&&b.duels.length>=1&&b.une!==null,'bilan d’une ancienne sauvegarde');
+  L.push('  (sauvegarde après une carrière de 15 saisons, temple compris : '+taille+' octets = '+(taille/1024).toFixed(1)+' Ko)');
+  localStorage.removeItem(SAUVEGARDE.CLE);});
+
+// --- un nombre devant un mot, accordé (textes.js : nombre) : « 1 saison », « 2 saisons », en français « 0 victoire »
+t('textes : nombre(n, cle) accorde le mot au nombre (singulier à 0 et 1 en français, à 1 en anglais), pour toutes les clés nb_ des deux langues', ()=>{
+  v(nombre(1,'saison')==='1 saison'&&nombre(2,'saison')==='2 saisons'&&nombre(0,'victoire')==='0 victoire'&&nombre(1,'titre')==='1 titre'&&nombre(15,'titre')==='15 titres'&&nombre(1,'championne')==='1 génération championne','fr : '+[nombre(1,'saison'),nombre(2,'saison'),nombre(0,'victoire')].join());
+  for(const l of ['en','fr']) for(const cle of Object.keys(TEXTES[l]).filter(c=>c.startsWith('nb_'))){const f=TEXTES[l][cle];v(Array.isArray(f)&&f.length===2&&f.every(x=>x.includes('{n}'))&&TEXTES[l==='en'?'fr':'en'][cle],l+' '+cle);}});
+
+// --- la relève (tour 28c, carriere.js) : continuer la dynastie dans le même monde, ou un monde neuf
+const heritier=(ch,prenom,lien,numero)=>CARRIERE.continuer(ch,{prenom,lien,numero:numero||[...Array(99).keys()].map(x=>x+1).find(n=>PILOTE.numeroLibre(ch,n)&&n!==ch.pilotes[19].numero)});
+t('relève : continuer la dynastie garde le monde (les écuries, les rivaux encore en activité, la saison suivante) et le nom de famille ; l’héritier repart de la plus petite écurie, sans statistiques, garage ni argent, et sa voiture n’est pas meilleure ; refusé sans prénom, sans lien ou avant la retraite', ()=>{
+  const {ch}=carriere15(43),j=ch.pilotes[19];for(const n of GARAGE.NOMS) ch.garage[n]=3;ch.argent.solde=500000;
+  const avant={ecuries:ch.ecuries.map(e=>e.couleur+e.nom),rivaux:ch.pilotes.filter(p=>!p.humain).map(p=>p.id),saison:ch.saison,albums:ch.album.length,famille:CARRIERE.famille(j.nom),titres:j.stats.titres};
+  v(!heritier(ch,'','fille')&&!heritier(ch,'Léa','cousin')&&ch.retraite,'refus');
+  const sans=CHAMPIONNAT.creer(1);v(!heritier(sans,'Léa','fille'),'sans retraite');
+  v(heritier(ch,'Léa','fille',33),'continuer refusé');
+  v(ch.saison===avant.saison+1&&ch.prochain===0&&!ch.retraite&&!ch.enFinDeSaison&&ch.album.length===avant.albums,'saison '+ch.saison);
+  v(JSON.stringify(ch.ecuries.map(e=>e.couleur+e.nom))===JSON.stringify(avant.ecuries)&&ch.pilotes.filter(p=>!p.humain).length===19,'écuries');
+  v(j.nom==='Léa Rossi'&&j.numero===33&&ch.dynastie.famille==='Rossi'&&ch.dynastie.lien==='fille'&&ch.dynastie.generations.length===1&&ch.dynastie.generations[0].nom==='Alex Rossi'&&ch.dynastie.generations[0].titres===avant.titres,'héritière : '+j.nom+' '+JSON.stringify(ch.dynastie));
+  const faible=ch.ecuries.reduce((a,e)=>e.niveau<a.niveau?e:a,ch.ecuries[0]);v(ch.ecuries[j.ecurie].niveau===faible.niveau&&ch.pilotes.filter(p=>p.ecurie===j.ecurie).length===2,'écurie '+j.ecurie+' niveau '+ch.ecuries[j.ecurie].niveau);
+  v(j.stats.courses===0&&j.stats.titres===0&&j.places.length===0&&ch.argent.solde===0&&GARAGE.NOMS.every(n=>ch.garage[n]===0),'repart de zéro');
+  const vo={};GARAGE.appliquer(vo,ch.garage);v(vo.moteur===1&&vo.aero===1&&vo.freins===1,'voiture : '+JSON.stringify(vo));
+  v(ch.carriere.debut===ch.saison&&ch.carriere.domicile===null&&CARRIERE.bilan(ch).duels.length===0,'carrière neuve : '+JSON.stringify(CARRIERE.bilan(ch).duels));
+  v(new Set(ch.pilotes.map(p=>p.numero)).size===20,'numéros en double');});
+t('relève : l’héritage respecte ses plafonds (réputation de départ, attention des écuries moyennes jamais d’une grande, seulement la première saison) ; une nouvelle dynastie repart d’un monde neuf et l’ancienne reste au temple', ()=>{
+  const R_=REGLAGES,{ch}=carriere15(44);ch.dynastie.generations.push({nom:'X',numero:1,titres:30,victoires:0,podiums:0});ch.pilotes[19].stats.titres=0;
+  heritier(ch,'Tom','fils');v(ch.reputation.public===R_.REPUTATION_DEPART+R_.HERITAGE_REPUTATION_MAX&&ch.reputation.ecurie===ch.reputation.public&&ch.confiance===ch.reputation.ecurie,'réputation : '+JSON.stringify(ch.reputation));
+  const n=ch.ecuries.length;let grande=0,moyenne=0;for(let id=0;id<n;id++){const a=CARRIERE.attention(ch,SAISONS.rangEcurie(ch,id),n);if(SAISONS.rangEcurie(ch,id)<n/3)grande+=a;else moyenne+=a;}
+  v(grande===0&&moyenne>0,'attention : grandes '+grande+', autres '+moyenne);
+  const ch1=CHAMPIONNAT.creer(1);CARRIERE.completer(ch1);v(CARRIERE.attention(ch1,9,10)===0&&CARRIERE.reputationDepart(ch1)===R_.REPUTATION_DEPART,'premier pilote : rien');
+  ch.saison++;v(CARRIERE.attention(ch,9,n)===0,'seulement la première saison');
+  localStorage.removeItem(SAUVEGARDE.CLE);const {ch:vieux}=carriere15(45);SAUVEGARDE.entrerAuTemple(vieux);const neuf=CARRIERE.nouveauMonde(vieux);SAUVEGARDE.ecrireChampionnat(neuf);
+  v(neuf.graine!==vieux.graine&&neuf.saison===1&&neuf.dynastie.generations.length===0&&JSON.stringify(neuf.pilotes.map(p=>p.caractere))!==JSON.stringify(vieux.pilotes.map(p=>p.caractere)),'monde neuf');
+  v(SAUVEGARDE.temple().carrieres.length===1&&SAUVEGARDE.temple().carrieres[0].saisons===15,'l’ancienne au temple');localStorage.removeItem(SAUVEGARDE.CLE);});
+t('relève : aucun texte sur le pilote précédent n’est genré (toutes les clés concernées, en + fr) ; les textes sur l’héritier s’accordent avec chacun des quatre liens ; la une du premier Grand Prix de l’héritier est celle de la relève', ()=>{
+  const GENRE={en:/\b(he|she|him|his|her|hers|father|mother|dad|mum|mom|himself|herself)\b/i,fr:/(^|[^\wàâçéèêëîïôûùüÿœ])(il|elle|lui|père|mère|papa|maman|ton père|ta mère)(?![\wàâçéèêëîïôûùüÿœ])/i};
+  const tout=x=>Array.isArray(x)?x:[x];let nb=0;
+  for(const l of ['en','fr']){for(const cle of CARRIERE.CLES_PARENT){const x=TEXTES[l][cle];v(x!==undefined,cle+' manque en '+l);for(const s_ of tout(x)){v(!GENRE[l].test(s_),l+' '+cle+' genré : '+s_);nb++;}}
+    // les phrases des textes d'héritier, une fois le parent retiré, ne parlent du parent que par {parent}
+    for(const lien of CARRIERE.LIENS) for(const cle of CARRIERE.CLES_HERITIER(lien)) for(const s_ of tout(TEXTES[l][cle])) v(s_.includes('{parent}'),cle+' sans {parent}');}
+  const FEM={fr:/la fille|la protégée|fille de|protégée de|à elle|La fille|La protégée/,en:/daughter|\bher\b|protégée/},MASC={fr:/le fils|fils de|le protégé(?!e)|protégé de|à lui|Le fils|Le protégé(?!e)/,en:/\bson\b|\bhis\b|protégé(?!e)/};
+  for(const l of ['en','fr']) for(const lien of CARRIERE.LIENS){const fem=lien==='fille'||lien==='protegee';
+    for(const cle of CARRIERE.CLES_HERITIER(lien)) for(const s_ of tout(TEXTES[l][cle])){
+      const sans=s_.replace(/\{parent\}/g,'P');
+      if(cle.startsWith('uneTitre_')||cle.startsWith('heritierLien_')) v((fem?FEM:MASC)[l].test(sans),l+' '+cle+' pas accordé : '+s_);
+      v(!(fem?MASC:FEM)[l].test(sans),l+' '+cle+' mal accordé : '+s_);nb++;}}
+  L.push('  (relève : '+nb+' textes vérifiés, sans genre sur le pilote précédent, accordés aux 4 liens)');
+  for(const lien of CARRIERE.LIENS){const {ch}=carriere15(46);heritier(ch,'Sam',lien);SAISONS.avancer(ch,1);const u=ch.album[ch.album.length-1],r=JOURNAL.rendre(u,ch);
+    v(u.f==='releve_'+lien&&u.p.parent===0&&r.titre.includes('Alex Rossi'),lien+' : '+u.f+' '+r.titre);
+    SAISONS.avancer(ch,1);v(ch.album[ch.album.length-1].f!=='releve_'+lien,'seulement au premier Grand Prix');
+    v(JOURNAL.rendreAlbum(ch,0).classement.some(x=>x.moi&&x.nom==='Alex Rossi')&&JOURNAL.rendreAlbum(ch,ch.album.length-1).classement.some(x=>x.moi&&x.nom==='Sam Rossi'),'l’album nomme chaque génération');}});
+t('relève : les records de famille s’additionnent sur 3 générations de 15 saisons ; les retraités gardent un résumé compact ; une ancienne sauvegarde (v3, sans dynastie) devient une dynastie d’une génération ; la taille après 3 générations est mesurée', ()=>{
+  const {ch}=carriere15(47),gens=[];
+  for(let g=0;g<2;g++){gens.push(CARRIERE.resume(ch));heritier(ch,['Léa','Tom'][g],['fille','fils'][g]);
+    for(let s=1;s<=15;s++){for(let k=0;k<12;k++) SAISONS.avancer(ch,1);SAISONS.terminerSaison(ch);if(s<15) SAISONS.signer(ch,SAISONS.offres(ch)[0].ecurie);}}
+  gens.push(CARRIERE.resume(ch));
+  const f=CARRIERE.recordsFamille(ch),som=k=>gens.reduce((a,x)=>a+x[k],0);
+  v(ch.dynastie.generations.length===2&&ch.saison===45&&ch.retraite&&f.generations===3&&f.titres===som('titres')&&f.victoires===som('victoires')&&f.podiums===som('podiums')&&f.championnes===gens.filter(x=>x.titres>0).length,'famille : '+JSON.stringify(f)+' / '+JSON.stringify(gens.map(x=>[x.titres,x.victoires])));
+  const vc=Object.values(f.circuits).reduce((a,b)=>a+b,0);v(vc===f.victoires,'victoires par circuit '+vc+' / '+f.victoires);
+  v(ch.retraites.every(r=>!r.places&&!r.stats&&Object.keys(r).length<=12)&&ch.dynastie.generations.every(x=>!x.places&&Object.keys(x).length<=22),'résumés compacts');
+  const taille=JSON.stringify(ch).length;
+  const vieux=JSON.parse(JSON.stringify(carriere15(48).ch));delete vieux.dynastie;delete vieux.carriere;localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:3,records:{},championnat:vieux}));
+  const d=SAUVEGARDE.lire();v(d.version===4&&d.championnat.dynastie.generations.length===0&&d.championnat.dynastie.famille==='Rossi'&&CARRIERE.recordsFamille(d.championnat).generations===1,'ancienne : '+JSON.stringify(d.championnat.dynastie));
+  localStorage.removeItem(SAUVEGARDE.CLE);
+  L.push('  (relève : 3 générations de 15 saisons = '+taille+' octets ('+(taille/1024).toFixed(1)+' Ko) ; '+ch.album.length+' unes, '+ch.retraites.length+' retraités ; famille : '+f.titres+' titres, '+f.victoires+' victoires, '+f.championnes+' générations championnes)');
+  v(taille<600000,taille+' octets');});
 
 t('championnat : le niveau de l’écurie agit sur le rythme des IA (rythme × niveau, avant la carte) ; sur 6 Grands Prix simulés, les 5 écuries fortes marquent plus que les 5 faibles', ()=>{
   const R=REGLAGES,ch=CHAMPIONNAT.creer(11),circuits={test:C,technique:construireCircuit(CIRCUITS.technique)},t0=performance.now();
@@ -1008,7 +1133,7 @@ t('championnat (page) : appliquerCaracteres donne à chaque IA le caractère de 
 
 t('sauvegarde v2 → v3 : les noms provisoires du championnat (« Pilote joueur », « Pilote 3 », « Écurie 1 ») deviennent null (le nom par défaut vient de textes.js, dans la langue du joueur), un vrai nom et le reste sont gardés', ()=>{
   localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:2,records:{'5':61.5},championnat:{prochain:1,pilotes:[{nom:'Pilote joueur',humain:true},{nom:'Pilote 3'},{nom:'Ayrton'}],ecuries:[{nom:'Écurie 1'},{nom:'Rossa'}]}}));
-  const d=SAUVEGARDE.lire();v(d.version===3&&d.records['5']===61.5&&d.championnat.prochain===1,'gardé : '+JSON.stringify(d));
+  const d=SAUVEGARDE.lire();v(d.version===SAUVEGARDE.VERSION&&d.records['5']===61.5&&d.championnat.prochain===1,'gardé : '+JSON.stringify(d));
   v(d.championnat.pilotes.map(p=>p.nom).join()===',,Ayrton'&&d.championnat.ecuries.map(e=>e.nom).join()===',Rossa',JSON.stringify(d.championnat));
   localStorage.removeItem(SAUVEGARDE.CLE);});
 
@@ -1749,6 +1874,167 @@ t('2 joueurs : une course à 2 + 5 IA (3 tours, les deux joueurs conduits par le
   v(p1.course.depart.lance!==null&&p2.course.depart.lance!==null&&p1.course.depart.resultat==='parfait'&&p2.course.depart.resultat==='parfait','départs des robots : '+[p1.course.depart.resultat,p2.course.depart.resultat]);
   const b=jouer(7),g=classementFinal(b.e);v(JSON.stringify(f)===JSON.stringify(g),'la même graine ne redonne pas la même course');
   L.push('  (course à 2 + 5 IA sur le circuit test, 3 tours : finie en '+a.secondes.toFixed(1)+' s de course ; joueur 1 '+c1.place+'e, joueur 2 '+c2.place+'e ; ordre : '+f.map(x=>e.pilotes[x.k].joueur?'J'+e.pilotes[x.k].joueur:'n°'+e.pilotes[x.k].numero).join(' ')+')');});
+
+// --- le mode 2 joueurs, les écrans autour (tour 25b, ordre 3) : les réglages gardés à part de la carrière, la rivalité
+t('2 joueurs : les réglages sauvegardés sont complétés (rien, abîmés, une ancienne version : chaque champ faux prend sa valeur par défaut) ; deux noms pareils (majuscules, espaces) ou deux couleurs pareilles refusés ; un nom vide prend « Joueur 1 » / « Joueur 2 »', ()=>{
+  const R=REGLAGES,d=DEUX_JOUEURS.completer(null);
+  v(d.joueurs.length===2&&d.joueurs[0].couleur===R.DEUX_COULEURS[0]&&d.joueurs[1].couleur===R.DEUX_COULEURS[1]&&d.joueurs.every(j=>j.nom===''&&R.CASQUE_MOTIFS.includes(j.casque.motif)),'défaut '+JSON.stringify(d));
+  v(d.circuit==='test'&&d.tours===R.DEUX_TOURS_CHOIX[0]&&d.ia===R.DEUX_IA_DEFAUT&&d.niveau===R.DEUX_NIVEAU&&d.courses===0&&d.rivalite===null,'défaut course '+JSON.stringify(d));
+  const abime=DEUX_JOUEURS.completer({joueurs:[{nom:42,couleur:5,casque:{motif:'licorne'}},'x'],circuit:'lune',tours:4,ia:8,niveau:'dieu',courses:-3,rivalite:{noms:['a'],score:[1]}});
+  v(JSON.stringify(abime)===JSON.stringify(d),'abîmé '+JSON.stringify(abime));
+  const bon={joueurs:[{nom:'  Léo  ',couleur:R.DEUX_COULEURS_CHOIX[3],casque:{motif:'damier',couleurs:[1,2,3]}},{nom:'Sarah',couleur:R.DEUX_COULEURS_CHOIX[4],casque:{motif:'etoile',couleurs:[4,5,6]}}],circuit:'technique',tours:5,ia:0,niveau:'expert',courses:7,rivalite:{noms:['Léo','Sarah'],score:[3,2]}};
+  const c=DEUX_JOUEURS.completer(bon);v(c.joueurs[0].nom==='Léo'&&c.joueurs[0].casque.motif==='damier'&&c.joueurs[1].couleur===R.DEUX_COULEURS_CHOIX[4]&&c.circuit==='technique'&&c.tours===5&&c.ia===0&&c.niveau==='expert'&&c.courses===7&&c.rivalite.score.join()==='3,2','gardé '+JSON.stringify(c));
+  v(bon.joueurs[0].nom==='  Léo  ','l’objet donné ne change pas');
+  const D=['Joueur 1','Joueur 2'];
+  let r=DEUX_JOUEURS.valider(bon,D);v(r.ok&&!r.erreurs.length,'bon refusé '+r.erreurs);
+  r=DEUX_JOUEURS.valider({...bon,joueurs:[{...bon.joueurs[0],nom:'LÉO'},{...bon.joueurs[1],nom:' léo'}]},D);v(!r.ok&&r.erreurs.includes('nom'),'noms pareils acceptés');
+  r=DEUX_JOUEURS.valider({...bon,joueurs:[bon.joueurs[0],{...bon.joueurs[1],couleur:bon.joueurs[0].couleur}]},D);v(!r.ok&&r.erreurs.includes('couleur'),'couleurs pareilles acceptées');
+  r=DEUX_JOUEURS.valider({...bon,joueurs:[{...bon.joueurs[0],nom:''},{...bon.joueurs[1],nom:'   '}]},D);v(r.ok&&r.reglages.joueurs[0].nom==='Joueur 1'&&r.reglages.joueurs[1].nom==='Joueur 2','noms vides : '+JSON.stringify(r.reglages.joueurs.map(j=>j.nom)));
+  r=DEUX_JOUEURS.valider({...bon,joueurs:[{...bon.joueurs[0],nom:'Maximilien-Alexandre'},bon.joueurs[1]]},D);v(r.reglages.joueurs[0].nom.length===R.NOM_LONGUEUR_MAX,'nom trop long');});
+t('2 joueurs : la rivalité s’additionne course après course pour les mêmes noms (même s’ils échangent leur place), repart de 0 si un nom change ; le gagnant est celui qui finit devant au classement final (pénalités comprises)', ()=>{
+  let riv=null;const LS=['Léo','Sarah'];
+  for(const g of [0,1,0,0,null]) riv=DEUX_JOUEURS.ajouterRivalite(riv,LS,g);
+  v(riv.noms.join()==='Léo,Sarah'&&riv.score.join()==='3,1','score '+JSON.stringify(riv));
+  v(DEUX_JOUEURS.scoreRivalite(riv,['Sarah','Léo']).join()==='1,3','échangés');
+  const ech=DEUX_JOUEURS.ajouterRivalite(riv,['Sarah','Léo'],0);v(ech.score.join()==='2,3'&&ech.noms.join()==='Sarah,Léo','échangés + 1 : '+JSON.stringify(ech));
+  const neuf=DEUX_JOUEURS.ajouterRivalite(riv,['Léo','Tom'],1);v(neuf.score.join()==='0,1'&&neuf.noms.join()==='Léo,Tom','un nom change : '+JSON.stringify(neuf));
+  v(DEUX_JOUEURS.scoreRivalite(null,LS).join()==='0,0'&&DEUX_JOUEURS.scoreRivalite(riv,['léo','Sarah']).join()==='0,0','autres noms');
+  v(riv.score.join()==='3,1','l’ancienne rivalité n’a pas changé');
+  // le gagnant : sur une course à deux de 3 IA, d'après classementFinal (une pénalité qui inverse l'ordre compte)
+  const e=courseADeux(3,3,4),[p1,p2]=DEUX_JOUEURS.joueurs(e),k1=e.pilotes.indexOf(p1),k2=e.pilotes.indexOf(p2);
+  const final=[{k:0,place:1},{k:k2,place:2},{k:1,place:3},{k:k1,place:4},{k:2,place:5}];
+  v(DEUX_JOUEURS.gagnant(e,final)===1,'J2 devant');final[1].k=k1;final[3].k=k2;v(DEUX_JOUEURS.gagnant(e,final)===0,'J1 devant');
+  v(DEUX_JOUEURS.gagnant(e,[{k:0,place:1}])===null,'personne');});
+t('2 joueurs : les réglages et la rivalité passent par la sauvegarde unique, à part : la carrière (championnat, records, fantômes, découverte, argent) ne change pas d’un octet ; rechargés pareils ; une ancienne sauvegarde sans mode 2 joueurs se charge (deux = null)', ()=>{
+  localStorage.removeItem(SAUVEGARDE.CLE);
+  const ch=CHAMPIONNAT.creer(3);SAUVEGARDE.ecrireChampionnat(ch);SAUVEGARDE.proposerRecord(5,61.5);SAUVEGARDE.finirDecouverte(400);
+  const avant=SAUVEGARDE.lire();delete avant.deux;const empreinte=JSON.stringify(avant);
+  v(SAUVEGARDE.deux()===null,'vierge');
+  let r=DEUX_JOUEURS.completer(null);r.joueurs[0].nom='Léo';r.joueurs[1].nom='Sarah';
+  for(const g of [0,1,1]){r.rivalite=DEUX_JOUEURS.ajouterRivalite(r.rivalite,['Léo','Sarah'],g);r.courses++;SAUVEGARDE.ecrireDeux(r);r=DEUX_JOUEURS.completer(SAUVEGARDE.deux());}
+  v(r.rivalite.score.join()==='1,2'&&r.courses===3&&r.joueurs[0].nom==='Léo','rechargé '+JSON.stringify(r));
+  const apres=SAUVEGARDE.lire();v(apres.deux&&apres.deux.rivalite.score.join()==='1,2','deux');delete apres.deux;
+  v(JSON.stringify(apres)===empreinte,'la carrière a changé');
+  v(JSON.stringify(SAUVEGARDE.championnat())===JSON.stringify(ch)&&SAUVEGARDE.record(5)===61.5&&SAUVEGARDE.argent()===400,'carrière relue');
+  localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:3,records:{'5':61.5},championnat:null}));
+  v(SAUVEGARDE.deux()===null&&SAUVEGARDE.lire().version===SAUVEGARDE.VERSION&&DEUX_JOUEURS.completer(SAUVEGARDE.deux()).courses===0,'ancienne');
+  localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:3,records:{},championnat:null,deux:'abîmé'}));v(SAUVEGARDE.deux()===null,'abîmé');
+  localStorage.removeItem(SAUVEGARDE.CLE);});
+
+// --- « passer » la vue télé : la fin de course en accéléré (décision du propriétaire, 2026-10-24, CLAUDE.md « La course »)
+t('passer en accéléré : une course de 8 IA (2 tours) finie en regardant (2 pas par image) et la même finie en accéléré (ARRIVEE.accelerer, jusqu’à ×100 par image, coupée par le temps) dès la première arrivée donnent les mêmes places, les mêmes temps et les mêmes pénalités, au bit près ; accelerer s’arrête dès que tout le monde est arrivé', ()=>{
+  const R=REGLAGES,jouer=accel=>{const e=creerCourseIA(C,8,2,11,CARTES_T.test);let arrivee=null,images=0,pasAccel=0,horloge=0;
+    for(let k=0;k<400*120&&!ARRIVEE.podiumPret(e,arrivee===null?0:e.temps-arrivee);){
+      if(arrivee===null){pasCourseIA(e,DT);k++;const a=e.pilotes.find(p=>p.arrivee!==null);if(a)arrivee=a.arrivee;continue;}
+      images++;
+      if(accel){const r=ARRIVEE.accelerer(e,()=>{pasCourseIA(e,DT);k++;},R.ARRIVEE_ACCELERE*2,R.ARRIVEE_TRANCHE_MS,arrivee,()=>(horloge+=1));pasAccel+=r.pas;v(r.pas<=R.ARRIVEE_ACCELERE*2,'trop de pas');}
+      else for(let i=0;i<2;i++){pasCourseIA(e,DT);k++;}}
+    return {e,final:classementFinal(e),images,pasAccel,temps:e.temps};};
+  const a=jouer(false),b=jouer(true);
+  v(a.e.pilotes.every(p=>p.arrivee!==null)&&b.e.pilotes.every(p=>p.arrivee!==null),'pas toutes arrivées');
+  v(JSON.stringify(a.final)===JSON.stringify(b.final),'classement différent');
+  v(a.e.pilotes.every((p,k)=>p.arrivee===b.e.pilotes[k].arrivee&&p.course.penalites===b.e.pilotes[k].course.penalites),'temps ou pénalités différents');
+  v(b.images<a.images/20,'pas assez accéléré : '+b.images+' images contre '+a.images);
+  // la limite de temps : une horloge qui avance de 1 ms à chaque lecture coupe l'image après ARRIVEE_TRANCHE_MS lectures (tous les ARRIVEE_PAS_CONTROLE pas)
+  const e=creerCourseIA(C,4,1,3,CARTES_T.test);let h=0;for(let k=0;k<30*120;k++)pasCourseIA(e,DT);
+  const r=ARRIVEE.accelerer(e,()=>pasCourseIA(e,DT),1e6,5,0,()=>(h+=1));v(r.pas===5*R.ARRIVEE_PAS_CONTROLE&&!r.pret,'coupe : '+JSON.stringify(r));
+  L.push('  (8 IA, 2 tours : fin en regardant '+a.images+' images de 2 pas, en accéléré '+b.images+' images ('+b.pasAccel+' pas) ; classement identique au bit près)');});
+
+t('passer en accéléré : le podium attend que tout le monde ait fini (même au-delà d’ARRIVEE_ATTENTE_MAX) ; une voiture immobilisée exprès est classée dans l’ordre de course après ARRIVEE_BLOQUEE s de course sans avancer', ()=>{
+  const R=REGLAGES,e=creerCourseIA(C,5,2,5,CARTES_T.test);let k=0;
+  while(!e.pilotes.some(p=>p.arrivee!==null)&&k++<400*120)pasCourseIA(e,DT);
+  const arrivee=e.pilotes.find(p=>p.arrivee!==null).arrivee,lente=e.pilotes.find(p=>p.arrivee===null);
+  // la dernière voiture encore en course est immobilisée (posée à sa place à chaque pas)
+  const x0=lente.v.x,z0=lente.v.z,cap0=lente.v.cap,bloquer=()=>{lente.v.x=x0;lente.v.z=z0;lente.v.cap=cap0;lente.v.u=0;lente.v.v=0;lente.v.r=0;};
+  const suivi=ARRIVEE.creerSuivi(e),debut=e.temps;let r={pret:false},images=0;
+  while(!r.pret&&images++<5000)r=ARRIVEE.accelerer(e,()=>{pasCourseIA(e,DT);bloquer();},200,1e9,arrivee,()=>0,suivi);
+  v(r.pret,'jamais prêt');
+  v(e.pilotes.every(p=>p===lente||p.arrivee!==null),'les autres ne sont pas toutes arrivées : '+e.pilotes.map(p=>p.arrivee));
+  v(lente.arrivee===null&&e.temps-debut>=R.ARRIVEE_BLOQUEE-1e-9,'la bloquée : '+[lente.arrivee,(e.temps-debut).toFixed(1)]);
+  const f=classementFinal(e);v(f.length===e.pilotes.length&&f[f.length-1].k===e.pilotes.indexOf(lente),'classée dernière');
+  // sans voiture bloquée : la course de 2 tours finit bien après ARRIVEE_ATTENTE_MAX (la première arrivée), et tout le monde arrive
+  const e2=creerCourseIA(C,5,2,5,CARTES_T.test);k=0;while(!e2.pilotes.some(p=>p.arrivee!==null)&&k++<400*120)pasCourseIA(e2,DT);
+  const s2=ARRIVEE.creerSuivi(e2),a2=e2.pilotes.find(p=>p.arrivee!==null).arrivee;r={pret:false};images=0;
+  while(!r.pret&&images++<5000)r=ARRIVEE.accelerer(e2,()=>pasCourseIA(e2,DT),200,1e9,a2,()=>0,s2);
+  v(r.pret&&e2.pilotes.every(p=>p.arrivee!==null),'pas toutes arrivées');
+  L.push('  (accéléré : voiture immobilisée classée après '+(e.temps-debut).toFixed(1)+' s de course ; sans elle, la dernière arrive '+(Math.max(...e2.pilotes.map(p=>p.arrivee))-a2).toFixed(1)+' s après la première)');});
+
+// --- le tournoi chrono entre copains (tournoi.js, tour 26b)
+const TJ=n=>[...Array(n)].map((x,i)=>({prenom:['Léo','Sarah','Tom','Inès','Max','Zoé','Noa','Lina','Hugo'][i]}));
+const TDEF=i=>'Joueur '+(i+1);
+// un tournoi joué d'après une table des temps : temps[m][j] = le tour (s), ou [tour, pénalités], ou null (abandon)
+function jouerTournoi(t,temps){for(let m=0;m<TOURNOI.nbManches(t);m++){if(m)v(TOURNOI.mancheSuivante(t),'manche '+m);
+  while(!TOURNOI.mancheFinie(t,m)){const j=TOURNOI.joueurActuel(t),x=temps[m][j];v(TOURNOI.enregistrer(t,j,x===null?{abandon:true}:Array.isArray(x)?{tour:x[0],penalites:x[1]}:{tour:x,penalites:0}),'passage '+j);}}
+  v(TOURNOI.fini(t)&&!TOURNOI.mancheSuivante(t)&&TOURNOI.joueurActuel(t)===null,'fini');return t;}
+t('tournoi : de 2 à 8 joueurs (jamais 1 ni 9) ; deux prénoms pareils (majuscules, espaces) refusés ; un prénom vide prend le nom par défaut ; chaque joueur a un casque (le sien, ou celui par défaut)', ()=>{
+  const R=REGLAGES;v(R.TOURNOI_JOUEURS_MIN===2&&R.TOURNOI_JOUEURS_MAX===8,'réglages');
+  for(const n of [0,1,9,12]){const r=TOURNOI.valider(TJ(Math.min(n,9)).concat(n>9?TJ(3).map((x,i)=>({prenom:'X'+i})):[]),TDEF);v(!r.ok&&r.erreurs.includes('nombre'),n+' joueurs acceptés');}
+  for(const n of [2,5,8]){const r=TOURNOI.valider(TJ(n),TDEF);v(r.ok&&r.joueurs.length===n&&r.joueurs.every(j=>CASQUE.valide(j.casque)),n+' joueurs refusés '+r.erreurs);}
+  let r=TOURNOI.valider([{prenom:'Sarah'},{prenom:'Léo'},{prenom:' sarah '}],TDEF);v(!r.ok&&r.erreurs.includes('prenom'),'prénoms pareils acceptés');
+  r=TOURNOI.valider([{prenom:''},{prenom:'   '},{prenom:'Tom',casque:{motif:'damier',couleurs:[1,2,3]}}],TDEF);v(r.ok&&r.joueurs[0].prenom==='Joueur 1'&&r.joueurs[1].prenom==='Joueur 2'&&r.joueurs[2].casque.motif==='damier','vides : '+JSON.stringify(r.joueurs));
+  r=TOURNOI.valider([{prenom:'Maximilien-Alexandre'},{prenom:'Tom'}],TDEF);v(r.joueurs[0].prenom.length===R.NOM_LONGUEUR_MAX,'trop long');});
+t('tournoi : l’ordre de passage : l’inscription à la première manche, puis l’inverse du classement général (le leader en dernier) ; seul le joueur dont c’est le tour peut être noté', ()=>{
+  const t_=TOURNOI.creer(TOURNOI.valider(TJ(4),TDEF).joueurs,'tournoi',['test','technique','test']);
+  v(TOURNOI.ordre(t_,0).join()==='0,1,2,3'&&TOURNOI.joueurActuel(t_)===0,'manche 1 : '+TOURNOI.ordre(t_,0));
+  v(!TOURNOI.enregistrer(t_,2,{tour:60,penalites:0}),'le joueur 2 passe avant son tour');
+  for(const [j,x] of [[0,62],[1,60],[2,61],[3,63]]) v(TOURNOI.enregistrer(t_,j,{tour:x,penalites:0}),'j'+j);
+  v(!TOURNOI.enregistrer(t_,0,{tour:50,penalites:0}),'pas de deuxième essai');
+  v(TOURNOI.mancheSuivante(t_)&&t_.manche===1,'manche 2');
+  // général après la manche 1 : Sarah (1) 25, Tom (2) 18, Léo (0) 15, Inès (3) 12 → l'ordre inverse : 3, 0, 2, 1
+  v(TOURNOI.ordre(t_,1).join()==='3,0,2,1'&&TOURNOI.joueurActuel(t_)===3,'manche 2 : '+TOURNOI.ordre(t_,1));
+  for(const [j,x] of [[3,55],[0,58],[2,59],[1,70]]) TOURNOI.enregistrer(t_,j,{tour:x,penalites:0});
+  // après 2 manches : Inès 12+25=37, Sarah 25+12=37 (égalité : meilleur temps Inès 55 < Sarah 60 → Inès devant), Léo 15+18=33, Tom 18+15=33 (Léo 58 < Tom 59)
+  const g=TOURNOI.classementGeneral({...t_,passages:t_.passages.slice(0,2)});v(g.map(x=>x.j).join()==='3,1,0,2'&&g[0].points===37&&g[1].points===37,'général '+JSON.stringify(g));
+  TOURNOI.mancheSuivante(t_);v(TOURNOI.ordre(t_,2).join()==='2,0,1,3','manche 3 : '+TOURNOI.ordre(t_,2));});
+t('tournoi : un virage coupé ajoute ses 5 s au temps (pénalités du tour, course.js) ; « abandonner » = pas de temps, dernier de la manche, aucun point ; les points 25, 18, 15, 12… par place ; ⚡ Éclair : le meilleur temps gagne', ()=>{
+  const R=REGLAGES,t_=jouerTournoi(TOURNOI.creer(TOURNOI.valider(TJ(5),TDEF).joueurs,'eclair',['test']),[[61,[57,R.PENALITE_COUPE],null,60,59]]);
+  const c=TOURNOI.classementManche(t_,0);
+  v(c.map(x=>x.j).join()==='4,3,0,1,2','ordre '+c.map(x=>x.j));   // 59, 60, 61, 57 + 5 = 62, abandon
+  v(c[3].temps===57+R.PENALITE_COUPE&&c[3].penalites===R.PENALITE_COUPE,'la coupe '+JSON.stringify(c[3]));
+  v(c[4].j===2&&c[4].temps===null&&c[4].points===0,'abandon '+JSON.stringify(c[4]));
+  v(c.slice(0,4).map(x=>x.points).join()===R.TOURNOI_POINTS.slice(0,4).join(),'points');
+  v(TOURNOI.classementGeneral(t_).map(x=>x.j).join()==='4,3,0,1,2'&&TOURNOI.podium(t_).map(x=>x.j).join()==='4,3,0','éclair : '+JSON.stringify(TOURNOI.classementGeneral(t_)));
+  v(TOURNOI.nbManches(t_)===1&&t_.circuits.length===1,'une manche');
+  // deux temps égaux : celui qui l'a fait le premier devant
+  const e=jouerTournoi(TOURNOI.creer(TOURNOI.valider(TJ(2),TDEF).joueurs,'eclair',['test']),[[60,60]]);v(TOURNOI.classementManche(e,0)[0].j===0,'égalité');});
+t('tournoi : un 🏆 tournoi de 3 manches à 4 joueurs se joue jusqu’au bout avec le bon classement (points, égalité au meilleur temps) ; le fantôme est celui du meilleur temps du moment (pénalités comprises), absent pour le premier joueur de chaque manche', ()=>{
+  const R=REGLAGES,P=R.TOURNOI_POINTS,t_=TOURNOI.creer(TOURNOI.valider(TJ(4),TDEF).joueurs,'tournoi',['test','technique','test']);
+  const temps=[[62,60,61,63],[58,70,59,55],[60,[52,R.PENALITE_COUPE],61,null]];
+  // le fantôme : avant chaque passage, le leader du moment
+  const leaders=[];
+  for(let m=0;m<3;m++){if(m)TOURNOI.mancheSuivante(t_);
+    while(!TOURNOI.mancheFinie(t_,m)){const j=TOURNOI.joueurActuel(t_),x=temps[m][j];leaders.push(TOURNOI.leader(t_,m));TOURNOI.enregistrer(t_,j,x===null?{abandon:true}:Array.isArray(x)?{tour:x[0],penalites:x[1]}:{tour:x,penalites:0});}}
+  // manche 1 (0,1,2,3) : rien, 0, 1, 1 ; manche 2 (3,0,2,1) : rien, 3, 3, 3 ; manche 3 (2,0,1,3) : rien, 0, 0 (le 1 : 52 + 5 = 57 > 60 ? non : 57 < 60 → 1), …
+  v(leaders.slice(0,8).map(String).join()==='null,0,1,1,null,3,3,3','fantômes '+leaders.join());
+  v(leaders[8]===null&&leaders[9]===2&&leaders[10]===0,'manche 3 : '+leaders.join());
+  v(leaders[11]===1,'le tour coupé (52 + 5 s = 57) est le meilleur pénalités comprises : '+leaders[11]);
+  v(TOURNOI.fini(t_),'fini');
+  // les points : m1 Sarah 25, Tom 18, Léo 15, Inès 12 ; m2 Inès 25, Léo 18, Tom 15, Sarah 12 ; m3 Sarah 25 (57), Léo 18 (60), Tom 15 (61), Inès 0 (abandon)
+  const g=TOURNOI.classementGeneral(t_),pts=[15+18+18,25+12+25,18+15+15,12+25+0];
+  v(g.map(x=>x.j).join()==='1,0,2,3'&&g.every(x=>x.points===pts[x.j]),'général '+JSON.stringify(g));
+  v(TOURNOI.podium(t_).map(x=>x.j).join()==='1,0,2','podium');
+  L.push('  (tournoi 3 manches à 4 : '+g.map(x=>t_.joueurs[x.j].prenom+' '+x.points).join(', ')+')');});
+t('tournoi : les circuits tirés au sort (graine) : autant que de manches, jamais deux fois de suite le même, les mêmes pour la même graine ; Poki : une pub entre deux manches du 🏆 et à la fin, jamais entre deux joueurs d’une même manche', ()=>{
+  for(let g=1;g<=20;g++){const c=TOURNOI.tirerCircuits(['test','technique'],3,g);v(c.length===3&&c.every((x,i)=>!i||x!==c[i-1]),'graine '+g+' : '+c);v(c.join()===TOURNOI.tirerCircuits(['test','technique'],3,g).join(),'pas la même');}
+  const a=TOURNOI.creer(TOURNOI.valider(TJ(3),TDEF).joueurs,'tournoi',['test','technique','test']),e=TOURNOI.creer(TOURNOI.valider(TJ(3),TDEF).joueurs,'eclair',['test']);
+  v(!TOURNOI.pubPermise(a,'entreJoueurs')&&TOURNOI.pubPermise(a,'entreManches')&&TOURNOI.pubPermise(a,'fin'),'tournoi');
+  v(!TOURNOI.pubPermise(e,'entreJoueurs')&&!TOURNOI.pubPermise(e,'entreManches')&&TOURNOI.pubPermise(e,'fin'),'éclair');});
+t('tournoi : la qualification note le temps du tour même coupé (q.tour) et ses pénalités (q.penalites = PENALITE_COUPE par virage coupé du tour lancé, rien de ce qui précède la ligne)', ()=>{
+  const v_=creerVoiture(C,0),q=QUALIFICATION.creer(C,v_);let coupeAvant=false,coupe=false;
+  for(let i=0;i<120*120&&!q.fini;i++){appliquerCommandes(v_,piloteRobot(v_,C));pasVoiture(v_,C,DT);
+    if(!q.lance&&!coupeAvant&&q.course.etat==='course'){q.course.penalites+=REGLAGES.PENALITE_COUPE;coupeAvant=true;}   // (une coupe avant la ligne : ne compte pas)
+    QUALIFICATION.pas(q,v_,DT);
+    if(q.lance&&!coupe&&QUALIFICATION.distance(q)>500){q.course.penalites+=REGLAGES.PENALITE_COUPE;q.course.coupeTour=true;coupe=true;}}   // (comme course.js à un virage coupé)
+  v(q.fini&&!q.valide&&q.temps===null&&q.tour>40&&q.penalites===REGLAGES.PENALITE_COUPE,JSON.stringify({fini:q.fini,tour:q.tour,pen:q.penalites}));});
+t('tournoi : la liste des joueurs passe par la sauvegarde unique, à part : la carrière ne change pas ; rechargée pareille ; une ancienne sauvegarde sans tournoi se charge (null)', ()=>{
+  localStorage.removeItem(SAUVEGARDE.CLE);const ch=CHAMPIONNAT.creer(4);SAUVEGARDE.ecrireChampionnat(ch);SAUVEGARDE.proposerRecord(5,61.5);
+  const avant=SAUVEGARDE.lire();delete avant.tournoi;const emp=JSON.stringify(avant);
+  v(SAUVEGARDE.tournoi()===null,'vierge');const js=TOURNOI.valider(TJ(3),TDEF).joueurs,t_=TOURNOI.creer(js,'tournoi',['test','technique','test']);TOURNOI.enregistrer(t_,0,{tour:61,penalites:5});
+  SAUVEGARDE.ecrireTournoi({joueurs:js,formule:'tournoi',enCours:t_});const re=SAUVEGARDE.tournoi();
+  v(JSON.stringify(re.joueurs)===JSON.stringify(js)&&JSON.stringify(re.enCours)===JSON.stringify(t_)&&TOURNOI.joueurActuel(re.enCours)===1,'rechargé');
+  const apres=SAUVEGARDE.lire();delete apres.tournoi;v(JSON.stringify(apres)===emp,'la carrière a changé');
+  localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:3,records:{},championnat:null}));v(SAUVEGARDE.tournoi()===null,'ancienne');
+  localStorage.removeItem(SAUVEGARDE.CLE);});
 
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 ecrire();

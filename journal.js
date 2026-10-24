@@ -38,6 +38,9 @@ const JOURNAL = (function () {
     const rApres = rangs(apres), leader = rApres.indexOf(1), second = rApres.indexOf(2);
     // la saison finie : le champion
     if (ch.prochain >= ch.calendrier.length && leader === j.id) f.titreChampion = { pilote: j.id, ecurie: j.ecurie, points: apres[leader] };
+    // la relève : le premier Grand Prix de l'héritier (« Le fils de Rossi débarque ») ; parent = l'indice de la génération d'avant
+    const D = ch.dynastie, G = D && D.generations ? D.generations.length : 0;
+    if (G && D.lien && n === 0 && ch.carriere && ch.saison === ch.carriere.debut) f['releve_' + D.lien] = Object.assign({ parent: G - 1 }, base);
     const s = j.stats, avantPlaces = j.places.slice(0, -1);
     if (place === 1) f[s.victoires === 1 ? 'premiereVictoire' : 'victoire'] = Object.assign({ n: s.victoires }, base);
     else if (place <= 3) f[s.podiums === 1 ? 'premierPodium' : 'podium'] = base;
@@ -138,13 +141,14 @@ const JOURNAL = (function () {
     const avant = ch.album && ch.album.length ? ch.album[ch.album.length - 1] : null;
     ALEATOIRE.semer(ch.graine + R.JOURNAL_GRAINE + n * 7919);
     const une = {
-      g: n + 1, f: fait, p: F[fait],
+      s: ch.saison, g: n + 1, f: fait, p: F[fait],
       t: variante('uneTitre_' + fait, avant && avant.f === fait ? avant.t : null),
       c: variante('uneTexte_' + fait, avant && avant.f === fait ? avant.c : null),
       b: breves(ch, lignes).slice(0, R.JOURNAL_BREVES_MAX).map(([cle, p]) => [cle, variante(cle), p]),
       h: CHAMPIONNAT.classementPilotes(ch).map((x, i) => [x.k, x.points, i + 1]).filter(([k, , place]) => place <= R.JOURNAL_CLASSEMENT || ch.pilotes[k].humain),
     };
     ALEATOIRE.semer();
+    if (fait === 'titreChampion') une.t = 0;   // la une spéciale du champion : toujours « CHAMPION ! … » (la variante est tirée quand même : le reste du tirage ne bouge pas)
     return une;
   }
 
@@ -168,6 +172,10 @@ const JOURNAL = (function () {
   function enTexte(cle, x, ch, noms) {
     if (cle === 'pilote' || cle === 'coequipier' || cle === 'rival') return noms.pilote(ch.pilotes[x]);
     if (cle === 'ecurie') return noms.ecurie(ch.ecuries[x]);
+    if (cle === 'parent') {   // la génération d'avant (la relève), par son nom
+      const g = ch.dynastie && ch.dynastie.generations ? ch.dynastie.generations[x] : null;
+      return noms.pilote(g ? { nom: g.nom, numero: g.numero, humain: true } : { nom: null, numero: 0, humain: true });
+    }
     if (cle === 'circuit') return nomCircuit(x);
     if (cle === 'temps') { const m = Math.floor(x / 60), s = x - m * 60; return (m + ':' + (s < 10 ? '0' : '') + s.toFixed(3)).replace('.', texte('virgule')); }
     return String(x).replace('.', texte('virgule'));
@@ -185,11 +193,59 @@ const JOURNAL = (function () {
     const phrase = (cle, v, p) => remplir(texte(cle)[v], p, ch, noms);
     const gp = ch.calendrier[une.g - 1];
     return {
-      nom: texte('journalNom'), grandPrix: une.g, circuit: nomCircuit(gp ? gp.circuit : 'test'),
+      nom: texte('journalNom'), grandPrix: une.g, saison: une.s, fait: une.f, speciale: une.f === 'titreChampion', circuit: nomCircuit(gp ? gp.circuit : 'test'),
       titre: phrase('uneTitre_' + une.f, une.t, une.p), texte: phrase('uneTexte_' + une.f, une.c, une.p),
       breves: une.b.map(([cle, v, p]) => phrase(cle, v, p)),
       classement: une.h.map(([k, points, place]) => ({ place, k, nom: noms.pilote(ch.pilotes[k]), points, moi: ch.pilotes[k].humain })),
     };
+  }
+
+  // --- l'album des unes (tour 28c) : feuilleté depuis le paddock, saison par saison, chaque une redessinée À L'IDENTIQUE
+  // une sauvegarde d'avant (unes sans saison) : la saison de chaque une se retrouve en remontant l'album depuis la fin (la
+  // dernière est de la saison en cours ; quand le numéro du Grand Prix ne descend plus, c'est la saison d'avant)
+  function completer(ch) {
+    const A = ch.album || [];
+    if (!A.length || A.every(u => typeof u.s === 'number')) return ch;
+    let s = ch.saison || 1;
+    for (let i = A.length - 1; i >= 0; i--) {
+      if (i < A.length - 1 && A[i].g >= A[i + 1].g) s = Math.max(1, s - 1);
+      if (typeof A[i].s !== 'number') A[i].s = s;
+      else s = A[i].s;
+    }
+    return ch;
+  }
+
+  // les noms tels qu'ils étaient pendant la saison s : un pilote IA parti à la retraite à la fin d'une saison ≥ s y courait
+  // encore (son résumé compact dans ch.retraites : nom, numéro) ; le joueur d'une génération d'avant (la relève :
+  // ch.dynastie.generations, nom et numéro) ; sinon le pilote d'aujourd'hui. Les noms passent par l'affichage (noms.pilote)
+  function nomsAu(ch, s, noms) {
+    noms = noms || NOMS;
+    const ancien = p => {
+      if (p.humain) {
+        const g = ch.dynastie && (ch.dynastie.generations || []).find(x => typeof x.fin === 'number' && s <= x.fin && s >= (x.debut || 1));
+        return g ? { nom: g.nom, numero: g.numero, humain: true } : null;
+      }
+      const r = (ch.retraites || []).find(x => x.id === p.id && typeof x.saison === 'number' && x.saison >= s);
+      return r ? { nom: r.nom, numero: r.numero, humain: false } : null;
+    };
+    return { pilote: p => { const a = ancien(p); return noms.pilote(a ? Object.assign({}, p, a) : p); }, ecurie: noms.ecurie };
+  }
+
+  // la une n° i de l'album, en phrases, avec les noms de sa saison (= la une du jour même)
+  function rendreAlbum(ch, i, noms) {
+    const u = ch.album[i];
+    return u ? rendre(u, ch, nomsAu(ch, u.s, noms)) : null;
+  }
+
+  // les saisons de l'album : [{ saison, debut (indice de sa première une), n (son nombre d'unes) }], dans l'ordre
+  function saisonsAlbum(ch) {
+    const r = [];
+    (ch.album || []).forEach((u, i) => {
+      const d = r[r.length - 1];
+      if (d && d.saison === u.s) d.n++;
+      else r.push({ saison: u.s, debut: i, n: 1 });
+    });
+    return r;
   }
 
   // les clés de texte que le journal demande (tests : toutes dans les deux langues, avec des variantes)
@@ -198,5 +254,5 @@ const JOURNAL = (function () {
     return ['journalNom'].concat(R.JOURNAL_PRIORITES.flatMap(f => ['uneTitre_' + f, 'uneTexte_' + f]), BREVES);
   }
 
-  return { faits, breves, composer, ranger, rendre, remplir, cles, nbVariantes };
+  return { faits, breves, composer, ranger, rendre, remplir, cles, nbVariantes, completer, nomsAu, rendreAlbum, saisonsAlbum };
 })();

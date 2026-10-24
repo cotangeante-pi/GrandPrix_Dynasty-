@@ -52,9 +52,34 @@
   <div class="boutons"><button id="boutonJouer" tabindex="-1"></button></div>
   <div class="boutons"><button id="boutonAmis" class="petit" tabindex="-1"></button></div>
 </section>
+<!-- « Entre amis » (titre et paddock) : le petit menu, puis l'écran avant la course à deux (deux-joueurs.js, tour 25b) -->
 <section id="amis" class="ecran cache">
-  <p id="amisTexte"></p>
-  <div class="boutons"><button id="boutonAmisRetour" tabindex="-1"></button></div>
+  <h1 id="amisTitre"></h1>
+  <div class="boutons"><button id="boutonAmisDeux" tabindex="-1"></button><button id="boutonAmisTournoi" tabindex="-1"></button></div>
+  <div class="boutons"><button id="boutonAmisRetour" class="petit" tabindex="-1"></button></div>
+</section>
+<section id="deuxReglages" class="ecran cache">
+  <h1 id="deuxTitre"></h1>
+  <div id="deuxJoueurs">
+    <div class="deuxJoueur" id="deuxJoueur1"><h2></h2>
+      <label><span class="deuxNomTexte"></span><input id="deuxNom1" type="text" maxlength="12" autocomplete="off" spellcheck="false"></label>
+      <label><span class="deuxCouleurTexte"></span><span class="deuxCouleurs" id="deuxCouleurs1"></span></label>
+      <label><span class="deuxCasqueTexte"></span><span class="deuxCasque"><span class="deuxIcone" id="deuxIcone1"></span><select id="deuxMotif1"></select><input id="deuxCasque1a" type="color"><input id="deuxCasque1b" type="color"><input id="deuxCasque1c" type="color"></span></label>
+      <p class="deuxTouches"></p></div>
+    <div class="deuxJoueur" id="deuxJoueur2"><h2></h2>
+      <label><span class="deuxNomTexte"></span><input id="deuxNom2" type="text" maxlength="12" autocomplete="off" spellcheck="false"></label>
+      <label><span class="deuxCouleurTexte"></span><span class="deuxCouleurs" id="deuxCouleurs2"></span></label>
+      <label><span class="deuxCasqueTexte"></span><span class="deuxCasque"><span class="deuxIcone" id="deuxIcone2"></span><select id="deuxMotif2"></select><input id="deuxCasque2a" type="color"><input id="deuxCasque2b" type="color"><input id="deuxCasque2c" type="color"></span></label>
+      <p class="deuxTouches"></p></div>
+  </div>
+  <div id="deuxCourse">
+    <label><span id="deuxCircuitTexte"></span><select id="deuxCircuit"></select></label>
+    <label><span id="deuxToursTexte"></span><select id="deuxTours"></select></label>
+    <label><span id="deuxIATexte"></span><select id="deuxIA"></select></label>
+    <label><span id="deuxNiveauTexte"></span><select id="deuxNiveau"></select></label>
+  </div>
+  <p id="deuxErreur"></p>
+  <div class="boutons"><button id="boutonDeuxPartir" tabindex="-1"></button><button id="boutonDeuxRetour" class="petit" tabindex="-1"></button></div>
 </section>
 <div id="aides" class="cache"><span id="aideGaz"></span><span id="aideDirection"></span><span id="aideFrein"></span></div>
 <section id="bravo" class="ecran cache">
@@ -114,7 +139,7 @@
     <div><h2 id="championnatPilotesTitre"></h2><ol id="championnatPilotes"></ol></div>
     <div><h2 id="championnatEcuriesTitre"></h2><ol id="championnatEcuries"></ol></div>
   </div>
-  <div class="boutons"><button id="boutonCourseSuivante" tabindex="-1"></button><button id="boutonGarage" tabindex="-1"></button><button id="boutonMonCasque" class="petit" tabindex="-1"></button><button id="boutonSponsors" tabindex="-1"></button></div>
+  <div class="boutons"><button id="boutonCourseSuivante" tabindex="-1"></button><button id="boutonGarage" tabindex="-1"></button><button id="boutonMonCasque" class="petit" tabindex="-1"></button><button id="boutonSponsors" tabindex="-1"></button><button id="boutonAlbum" class="petit" tabindex="-1"></button><button id="boutonAmisPaddock" class="petit" tabindex="-1"></button></div>
 </section>
 
 <!-- ?championnat=1 : les sponsors (sponsors.js) : les offres au début de la saison, puis le rappel ; la fiche d'un rival (fiche.js) (Codeur 3) -->
@@ -135,12 +160,23 @@
       <p id="ficheDuels"></p>
       <p id="ficheCoequipier"></p>
       <p id="ficheRivalite"></p>
+      <p id="ficheFamille"></p>
     </div>
   </div>
   <div class="boutons"><button id="boutonFicheRetour" tabindex="-1"></button></div>
 </section>
 
 <!-- ?championnat=1 : la fin de saison (saisons.js, Codeur 3) : le classement final et le champion, le duel de la saison, les contrats, la retraite -->
+<!-- la cérémonie du champion (Codeur 3) : le podium 3D derrière, le texte en haut, « Suite » en bas -->
+<section id="ceremonie" class="ecran cache">
+  <div id="ceremonieHaut">
+    <p id="ceremonieSaison"></p>
+    <h1 id="ceremonieTitre"></h1>
+    <p id="ceremonieNom"></p>
+    <p id="ceremonieDetail"></p>
+  </div>
+  <div class="boutons"><button id="boutonCeremonieSuite" tabindex="-1"></button></div>
+</section>
 <section id="saison" class="ecran cache">
   <h1 id="saisonTitre"></h1>
   <p id="saisonChampion"></p>
@@ -164,6 +200,40 @@
   <h1 id="retraiteTitre"></h1>
   <p id="retraiteRaison"></p>
   <p id="retraiteBilan"></p>
+  <!-- le bilan de carrière (étape 14, carriere.js, Codeur 3) -->
+  <ul id="bilanStats"></ul>
+  <p id="bilanDuels"></p>
+  <p id="bilanUne"></p>
+  <p id="bilanTemple"></p>
+  <p id="bilanFamille"></p>
+  <div id="bilanBoutons" class="boutons"><button id="boutonTemple" tabindex="-1"></button><button id="boutonContinuerDynastie" tabindex="-1"></button><button id="boutonNouvelleDynastie" class="petit" tabindex="-1"></button></div>
+</section>
+<!-- la relève (carriere.js, Codeur 3) : l'héritier (prénom, numéro, lien, pays, course de cœur, motif du casque aux couleurs du parent) et l'arbre de la dynastie -->
+<section id="heritier" class="ecran cache">
+  <h1 id="heritierTitre"></h1>
+  <p id="heritierParent"></p>
+  <div id="heritierCorps">
+    <div id="heritierForme">
+      <label><span id="heritierPrenomTexte"></span><input id="heritierPrenom" type="text" autocomplete="off" spellcheck="false"></label>
+      <p id="heritierFamille"></p>
+      <label><span id="heritierNumeroTexte"></span><input id="heritierNumero" type="number"></label>
+      <label><span id="heritierLienTexte"></span><select id="heritierLien"></select></label>
+      <label><span id="heritierPaysTexte"></span><select id="heritierPays"></select></label>
+      <label><span id="heritierCoeurTexte"></span><select id="heritierCoeur"></select></label>
+      <label><span id="heritierMotifTexte"></span><select id="heritierMotif"></select></label>
+    </div>
+    <div id="heritierArbre"><h2 id="arbreTitre"></h2><ol id="arbreListe"></ol></div>
+  </div>
+  <p id="heritierErreur"></p>
+  <div class="boutons"><button id="boutonHeritierValider" tabindex="-1"></button></div>
+</section>
+<!-- le temple de la renommée et les records de carrière (carriere.js, Codeur 3) -->
+<section id="temple" class="ecran cache">
+  <h1 id="templeTitre"></h1>
+  <ol id="templeListe"></ol>
+  <h2 id="templeRecordsTitre"></h2>
+  <ul id="templeRecords"></ul>
+  <div class="boutons"><button id="boutonTempleRetour" tabindex="-1"></button></div>
 </section>
 
 <!-- ?championnat=1 : le garage (garage.js, argent.js) : 4 améliorations, depuis l'écran du championnat (Codeur 3) -->
@@ -206,6 +276,8 @@
     <footer id="unePied"><h2 id="uneClassementTitre"></h2><ol id="uneClassement"></ol></footer>
   </div>
   <p id="unePasser"></p>
+  <!-- l'album des unes (Codeur 3) : la même page, feuilletée depuis le paddock ; la barre n'est là qu'en mode album -->
+  <div id="albumBarre" class="boutons"><button id="boutonAlbumSaisonAvant" class="petit" tabindex="-1">⏮</button><button id="boutonAlbumAvant" class="petit" tabindex="-1">◀</button><span id="albumPage"></span><button id="boutonAlbumApres" class="petit" tabindex="-1">▶</button><button id="boutonAlbumSaisonApres" class="petit" tabindex="-1">⏭</button><button id="boutonAlbumFermer" class="petit" tabindex="-1"></button></div>
 </section>
 
 <section id="pause" class="ecran cache">
@@ -218,6 +290,7 @@
 <section id="podium" class="cache">
   <h1 id="podiumTitre"></h1>
   <div id="podiumMarches"></div>
+  <p id="podiumDeux" class="cache"></p>   <!-- le mode 2 joueurs : la place des deux joueurs, même hors du podium -->
   <button id="boutonResultats" tabindex="-1"></button>
 </section>
 
@@ -225,6 +298,7 @@
   <h1 id="resultatsTitre"></h1>
   <table id="resultatsTable"><thead><tr id="resultatsEntete"></tr></thead><tbody id="resultatsLignes"></tbody></table>
   <p id="resultatsArgent"></p>
+  <p id="resultatsRivalite" class="cache"></p>   <!-- le mode 2 joueurs : le score de la rivalité (« Léo 3 – 2 Sarah ») -->
   <div class="boutons"><button id="boutonRejouerResultats" tabindex="-1"></button><button id="boutonChangerResultats" tabindex="-1"></button></div>
 </section>
 
@@ -266,7 +340,7 @@
 <script src="saisons.js"></script>
 <script src="sponsors.js"></script>
 <script src="fiche.js"></script>
-<script src="interview.js"></script>
+<script src="interview.js"></script><script src="carriere.js"></script>
 <script src="sdk.js"></script>
 <script src="pneus-donnees.js"></script>
 <script src="pneus.js"></script>

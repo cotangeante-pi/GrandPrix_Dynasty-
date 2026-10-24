@@ -118,6 +118,15 @@ const REGLAGES = {
   PENALITE_FAUX_DEPART: 5,      // s ajoutées au temps total (comme le virage coupé)
   // après l'arrivée du joueur (arrivee.js) : la vue télé sur les autres, puis le podium
   ARRIVEE_ATTENTE_MAX: 90,      // s : le podium vient au plus tard là ; les voitures pas arrivées sont classées dans l'ordre de course
+  ARRIVEE_ACCELERE: 100,        // « passer » la vue télé : le reste de la course joué 100 fois plus vite (les mêmes pas de physique, sans les dessiner)…
+  ARRIVEE_TRANCHE_MS: 40,       // … au plus ce temps de calcul par image (la page n'est jamais bloquée), l'horloge relue tous les…
+  ARRIVEE_PAS_CONTROLE: 12,     // … ce nombre de pas
+  // en accéléré, le podium attend que tout le monde ait fini (pas ARRIVEE_ATTENTE_MAX, qui reste pour la vue télé regardée) ; seule une voiture
+  // vraiment bloquée (moins de ARRIVEE_BLOQUEE_DISTANCE m en ARRIVEE_BLOQUEE s de course) est classée dans l'ordre de course, et un plafond
+  // de temps réel protège la page
+  ARRIVEE_BLOQUEE: 20,          // s de course
+  ARRIVEE_BLOQUEE_DISTANCE: 5,  // m
+  ARRIVEE_ACCELERE_MAX_REEL: 30, // s réelles au plus après le clic sur « passer »
   ARRIVEE_BAGARRE: 15,          // m : deux voitures plus proches que ça se bagarrent (la caméra télé les préfère)
   ARRET_APRES_ARRIVEE: 0.3,     // m/s : après l'arrivée, la voiture freine seule jusque-là, puis roule jusqu'à l'arrêt
 
@@ -231,7 +240,7 @@ const REGLAGES = {
   PNEUS_ACTIFS: false,
 
   // la une du journal après chaque Grand Prix (journal.js, Codeur 3) ; les titres et les brèves sont dans textes.js (uneTitre_…, uneTexte_…, breve…)
-  JOURNAL_PRIORITES: ['titreChampion', 'premiereVictoire', 'victoire', 'premierPodium', 'podium', 'record', 'duelGagne', 'duelPerdu', 'interview',
+  JOURNAL_PRIORITES: ['titreChampion', 'releve_fils', 'releve_fille', 'releve_protege', 'releve_protegee', 'premiereVictoire', 'victoire', 'premierPodium', 'podium', 'record', 'duelGagne', 'duelPerdu', 'interview',
     'penalite', 'serie', 'leader', 'vainqueur'],   // le grand titre : le premier fait vrai de cette liste (« vainqueur » est toujours vrai)
   JOURNAL_DUEL_NET: 3,          // le duel contre le coéquipier fait le titre quand l'écart de la saison est d'au moins ce nombre de points
   JOURNAL_SERIE: 3,             // … une série de ce nombre de Grands Prix sans point
@@ -243,6 +252,20 @@ const REGLAGES = {
   JOURNAL_RUMEUR_DES_GP: 7,     // brève « rumeur de transfert » à partir de ce Grand Prix de la saison (les intentions de saisons.js)
   JOURNAL_RUMEUR_FAUSSE: 0.35,  // la part des rumeurs fausses (un pilote et une écurie tirés au hasard) ; la première rumeur de la saison est toujours vraie
   JOURNAL_GRAINE: 6000,         // les variantes des titres sont tirées avec la graine du championnat + ce nombre + le Grand Prix
+  // la cérémonie du champion à la fin de la saison (podium3d.js, principal.js, Codeur 3) : le champion seul sur la plus haute marche
+  // et des confettis faits par le code (UN objet THREE.Points : un seul appel de dessin, quel que soit leur nombre)
+  CEREMONIE_CONFETTIS: 700,     // le nombre de confettis
+  CEREMONIE_CONFETTI_TAILLE: 0.32,   // m : la taille d'un confetti
+  CEREMONIE_CONFETTI_ZONE: [24, 14, 16],   // m : la largeur, la hauteur et la profondeur de la zone où ils tombent, autour du podium
+  CEREMONIE_CONFETTI_VITESSE: [1.1, 2.6],   // m/s : leur vitesse de chute (tirée entre ces bornes)
+  CEREMONIE_CONFETTI_BALANCE: 0.6,   // m : ils se balancent de part et d'autre en tombant
+  CEREMONIE_COULEURS: [0xffd23f, 0xff5a5f, 0x3ddc97, 0x2f80ed, 0xffffff],
+  // la fin de carrière (carriere.js, Codeur 3) : le temple de la renommée garde au plus ce nombre de carrières finies (les meilleures)
+  TEMPLE_MAX: 30,
+  // la relève (carriere.js) : l'héritier repart d'une petite écurie, il hérite seulement de peu, toujours plafonné
+  HERITAGE_REPUTATION_PAR_TITRE: 2,   // ses jauges de réputation partent de REPUTATION_DEPART + ce nombre par titre de la famille…
+  HERITAGE_REPUTATION_MAX: 8,         // … et jamais plus de ce bonus
+  HERITAGE_ATTENTION: 0.08,           // à la fin de sa première saison, ce bonus de note pour les offres des écuries moyennes et faibles (jamais une grande)
 
   // la course de découverte du premier lancement (decouverte.js, CLAUDE.md « En piste en 10 secondes »)
   DECOUVERTE_TOURS: 3,          // une longueur à part, seulement pour elle
@@ -262,6 +285,24 @@ const REGLAGES = {
   DEUX_IA_CHOIX: [0, 3, 5],     // les nombres d'IA permis (la première valeur par défaut)
   DEUX_VOITURES_MAX: 7,         // jamais plus de voitures en piste (2 joueurs + 5 IA) : la 3D est dessinée deux fois
   DEUX_COULEURS: [0x1f6fe0, 0xd8262e],   // la couleur des voitures du joueur 1 🔵 et du joueur 2 🔴 (en attendant leur choix, ordre 3)
+  // l'écran avant la course à deux (tour 25b, ordre 3) : les couleurs de voiture proposées (les deux premières = celles par défaut
+  // du joueur 1 et du joueur 2, DEUX_COULEURS ; deux joueurs n'ont jamais la même) ; les casques par défaut ; le niveau par défaut des IA
+  DEUX_COULEURS_CHOIX: [0x1f6fe0, 0xd8262e, 0xf2c230, 0x2fa84f, 0xf07d1a, 0x8e44ad, 0x1abc9c, 0xe84393],
+  DEUX_CASQUES: [{ motif: 'bandes', couleurs: [0x1f6fe0, 0xffffff, 0x111111] }, { motif: 'flammes', couleurs: [0xd8262e, 0xf2c230, 0x111111] }],
+  DEUX_NIVEAU: 'normal',
+  DEUX_IA_DEFAUT: 3,            // le nombre d'IA proposé la première fois (DEUX_IA_CHOIX)
+  // le tournoi chrono entre copains (tournoi.js, CLAUDE.md « Le tournoi chrono entre copains ») : de 2 à 8 joueurs, chacun son tour
+  TOURNOI_JOUEURS_MIN: 2, TOURNOI_JOUEURS_MAX: 8,
+  TOURNOI_MANCHES: 3,           // 🏆 Tournoi : trois manches (⚡ Éclair : une)
+  TOURNOI_POINTS: [25, 18, 15, 12, 10, 8, 6, 4],   // les points d'une manche selon la place (aucun sans temps)
+  TOURNOI_COMPTE: 3,            // s : « À toi, Sarah ! » et le compte à rebours, le temps de prendre le clavier
+  GRAINE_TOURNOI: 8000,         // les circuits tirés au sort : la graine + ce nombre
+  TOURNOI_CASQUES: [            // les casques par défaut des joueurs (dans l'ordre d'inscription)
+    { motif: 'bandes', couleurs: [0x1f6fe0, 0xffffff, 0x111111] }, { motif: 'flammes', couleurs: [0xd8262e, 0xf2c230, 0x111111] },
+    { motif: 'etoile', couleurs: [0xf2c230, 0x111111, 0xffffff] }, { motif: 'damier', couleurs: [0x2fa84f, 0xffffff, 0x111111] },
+    { motif: 'eclair', couleurs: [0xf07d1a, 0x111111, 0xffffff] }, { motif: 'uni', couleurs: [0x8e44ad, 0xecf0f1, 0x111111] },
+    { motif: 'bandes', couleurs: [0x1abc9c, 0x111111, 0xffffff] }, { motif: 'etoile', couleurs: [0xe84393, 0xffffff, 0x111111] },
+  ],
   PISTE_GRIS_ECART_MAX: 16,     // tests d'écran : un pixel de piste est gris (ses trois composantes à moins de cet écart), l'herbe est verte
   AIDE_CLIGNOTE_APRES: 3,       // s : sur la grille, sans aucune touche pendant ce temps, l'aide « ↑ » clignote
   // le casque du pilote (casque.js) : un motif et trois couleurs ; les rivaux tirent le leur avec la graine du championnat

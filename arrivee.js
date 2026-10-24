@@ -23,5 +23,45 @@ const ARRIVEE = (function () {
     return enCourse[0];
   }
 
-  return { podiumPret, voitureTele };
+  // « passer » la vue télé (CLAUDE.md « La course ») : le reste de la course est vraiment joué, en accéléré. Une image fait jusqu'à
+  // nbPas pas de physique (unPas : le même pas que celui de la boucle, rien d'autre), sans dépasser msMax millisecondes (l'horloge
+  // maintenant(), relue tous les ARRIVEE_PAS_CONTROLE pas), et s'arrête dès que le podium est prêt (podiumPret, depuis l'arrivée
+  // « arrivee », en secondes de course) : les places et les temps sont ceux qu'on aurait eus en regardant. → { pas, pret }
+  // suivi (en accéléré, CLAUDE.md « La course ») : { prog, t } la distance de chaque voiture et l'instant (s de course) où elle a avancé
+  // pour la dernière fois ; le podium est prêt quand chaque voiture est arrivée ou bloquée (ARRIVEE_BLOQUEE) ; sans suivi : podiumPret
+  function accelerer(e, unPas, nbPas, msMax, arrivee, maintenant, suivi) {
+    const t0 = maintenant(), pret = () => suivi ? podiumPretAccelere(e, suivi) : podiumPret(e, e.temps - arrivee);
+    let n = 0;
+    while (n < nbPas && !pret()) {
+      unPas();
+      n++;
+      if (suivi) suivreBloquees(e, suivi);
+      if (n % R.ARRIVEE_PAS_CONTROLE === 0 && maintenant() - t0 >= msMax) break;
+    }
+    return { pas: n, pret: pret() };
+  }
+
+  // le suivi des voitures bloquées : une voiture qui avance de plus de ARRIVEE_BLOQUEE_DISTANCE m repart de l'instant présent
+  function creerSuivi(e) {
+    const suivi = { prog: [], t: [] };
+    suivreBloquees(e, suivi);
+    return suivi;
+  }
+  function suivreBloquees(e, suivi) {
+    e.pilotes.forEach((p, k) => {
+      const d = distanceCourse(p);
+      if (suivi.prog[k] === undefined || d > suivi.prog[k] + R.ARRIVEE_BLOQUEE_DISTANCE) { suivi.prog[k] = d; suivi.t[k] = e.temps; }
+    });
+  }
+  // en accéléré : toutes les voitures arrivées, sauf celles bloquées depuis ARRIVEE_BLOQUEE s de course
+  function podiumPretAccelere(e, suivi) {
+    return e.pilotes.every((p, k) => p.arrivee !== null || e.temps - suivi.t[k] >= R.ARRIVEE_BLOQUEE);
+  }
+
+  // les voitures encore en course (pour l'affichage « ⏩ »)
+  function restantes(e) {
+    return e.pilotes.filter(p => p.arrivee === null).length;
+  }
+
+  return { podiumPret, voitureTele, accelerer, restantes, creerSuivi, podiumPretAccelere };
 })();

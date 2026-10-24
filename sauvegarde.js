@@ -3,7 +3,7 @@
 // et le jeu marche sans.
 const SAUVEGARDE = (function () {
   const CLE = 'grand-prix-dynasty';
-  const VERSION = 3;
+  const VERSION = 4;   // v4 (tour 28c) : la dynastie (carriere.js) ; une sauvegarde d'avant devient une dynastie d'une génération
 
   function vierge() {
     // records : le meilleur tour de chaque longueur (« 5 », « 12 », « 18 », « 0 ») ; sur un autre circuit que celui de test,
@@ -11,12 +11,14 @@ const SAUVEGARDE = (function () {
     // fantomes : le fantôme du meilleur tour de chaque circuit (fantome.js, compact), par nom de circuit ; options : les
     // réglages du joueur (fantome : le fantôme affiché, vrai par défaut) ; reaction : le meilleur temps de réaction au départ (s)
     // decouverteFaite : la course de découverte du premier lancement est jouée ; argent : l'argent du joueur (la prime de la découverte, pas encore dépensable)
-    return { version: VERSION, records: {}, championnat: null, fantomes: {}, options: {}, reaction: null, decouverteFaite: false, argent: 0, cartes: {} };
+    // temple : le temple de la renommée et les records de carrière (carriere.js), à côté du championnat : ils survivent à une nouvelle carrière
+    return { version: VERSION, records: {}, championnat: null, fantomes: {}, options: {}, reaction: null, decouverteFaite: false, argent: 0, cartes: {}, temple: { carrieres: [], records: {} }, deux: null, tournoi: null };
   }
 
   // une sauvegarde d'une ancienne version est transformée ici, sans rien perdre :
   // v1 → v2 : le championnat (étape 6) ; une v1 n'en a pas
   // v2 → v3 : les noms provisoires (voir plus bas) et le duel contre le coéquipier (championnat.js : completer le reconstruit)
+  // v3 → v4 : la dynastie et la carrière en cours (carriere.js : completer, une génération, commencée à la saison 1) et le temple
   function migrer(d) {
     if (!d || typeof d !== 'object' || typeof d.version !== 'number' || d.version > VERSION) return vierge();
     if (!d.records || typeof d.records !== 'object') d.records = {};
@@ -35,6 +37,9 @@ const SAUVEGARDE = (function () {
     if (d.decouverteFaite === undefined) d.decouverteFaite = !!d.championnat;
     if (typeof d.argent !== 'number') d.argent = 0;
     if (!d.cartes || typeof d.cartes !== 'object') d.cartes = {};   // la carte des IA de chaque circuit en cache (cache-carte.js, tour 24b)
+    if (!d.deux || typeof d.deux !== 'object') d.deux = null;
+    if (!d.tournoi || typeof d.tournoi !== 'object') d.tournoi = null;   // la dernière liste de joueurs du tournoi chrono et le tournoi en cours (tournoi.js, tour 26b), à part de la carrière   // les réglages et la rivalité du mode 2 joueurs (deux-joueurs.js, tour 25b), à part de la carrière
+    if (typeof CARRIERE !== 'undefined') d.temple = CARRIERE.completerTemple(d.temple);   // le temple de la renommée (tour 28c) : vide dans une sauvegarde d'avant
     if (d.championnat && typeof CHAMPIONNAT !== 'undefined') CHAMPIONNAT.completer(d.championnat);
     d.version = VERSION;
     return d;
@@ -159,5 +164,45 @@ const SAUVEGARDE = (function () {
     return ecrire(d);
   }
 
-  return { lire, ecrire, record, proposerRecord, championnat, ecrireChampionnat, fantome, proposerFantome, option, ecrireOption, reaction, proposerReaction, decouverteFaite, argent, finirDecouverte, carte, ecrireCarte, VERSION, CLE };
+  // --- le mode 2 joueurs (deux-joueurs.js) : ses derniers réglages et le score de la rivalité, à part de la carrière (rien d'autre
+  // n'est touché : ni le championnat, ni les records, ni les fantômes)
+  function deux() {
+    return lire().deux;
+  }
+
+  function ecrireDeux(r) {
+    const d = lire();
+    d.deux = r;
+    return ecrire(d);
+  }
+
+  // --- le temple de la renommée et les records de carrière (carriere.js) : la carrière finie y entre une seule fois
+  // (ch.retraite.temple garde son numéro d'entrée), en même temps que le championnat est écrit ; renvoie sa place (ou null)
+  function temple() {
+    const d = lire();
+    return d.temple || { carrieres: [], records: {} };
+  }
+
+  function entrerAuTemple(ch) {
+    if (!ch || !ch.retraite) return null;
+    const d = lire();
+    if (ch.retraite.temple === undefined) ch.retraite.temple = CARRIERE.entrer(d.temple, CARRIERE.resume(ch));
+    d.championnat = ch;
+    ecrire(d);
+    return CARRIERE.place(d.temple, ch.retraite.temple);
+  }
+
+  // --- le tournoi chrono (tournoi.js) : { joueurs (la dernière liste), formule, enCours (le tournoi qui se joue, ou null) }, à part
+  // de la carrière ; jamais de fantôme (ils restent en mémoire, le temps d'une manche)
+  function tournoi() {
+    return lire().tournoi;
+  }
+
+  function ecrireTournoi(r) {
+    const d = lire();
+    d.tournoi = r;
+    return ecrire(d);
+  }
+
+  return { tournoi, ecrireTournoi, deux, ecrireDeux, temple, entrerAuTemple, lire, ecrire, record, proposerRecord, championnat, ecrireChampionnat, fantome, proposerFantome, option, ecrireOption, reaction, proposerReaction, decouverteFaite, argent, finirDecouverte, carte, ecrireCarte, VERSION, CLE };
 })();

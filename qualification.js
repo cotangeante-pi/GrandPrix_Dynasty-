@@ -17,13 +17,16 @@ const QUALIFICATION = (function () {
     const c = q.course;
     majCourse(c, v, dt);
     // la ligne passée une première fois : le tour lancé commence là (le chrono de course.js partait au premier mouvement)
-    if (!q.lance && c.etape === 0) { q.lance = true; c.debutTour = c.temps; c.secteursTour = []; c.coupeTour = false; q.progressionLigne = c.progression; }
+    if (!q.lance && c.etape === 0) { q.lance = true; c.debutTour = c.temps; c.secteursTour = []; c.coupeTour = false; q.progressionLigne = c.progression; q.penalitesLigne = c.penalites; }
     if (c.etat === 'finie' && !q.fini) {
       q.fini = true;
       const t = c.tours[0];
       q.valide = !t.coupe;
       q.temps = q.valide ? t.temps : null;
       q.fin = c.progression - q.progressionLigne;
+      // le tournoi chrono (tournoi.js) : le temps du tour même coupé, et les pénalités du tour lancé (course.js : PENALITE_COUPE par virage coupé)
+      q.tour = t.temps;
+      q.penalites = c.penalites - (q.penalitesLigne || 0);
     }
     return q.fini;
   }
