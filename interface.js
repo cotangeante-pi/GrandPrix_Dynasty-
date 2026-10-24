@@ -659,7 +659,8 @@ const INTERFACE = (function () {
       li.dataset.ecurie = o.ecurie;
       if (o.actuelle) li.classList.add('actuelle');
       const sp = (classe, contenu) => { const el = document.createElement('span'); el.className = classe; el.append(contenu); return el; };
-      li.append(pastille(e.couleur), sp('nom', nomEcurie(e)), sp('mot', texte(rang < n / 3 ? 'contratMot_fort' : rang < 2 * n / 3 ? 'contratMot_moyen' : 'contratMot_faible') + (o.actuelle ? ' · ' + texte('contratActuelle') : '')),
+      li.append(pastille(e.couleur), sp('nom', nomEcurie(e)), sp('mot', texte(rang < n / 3 ? 'contratMot_fort' : rang < 2 * n / 3 ? 'contratMot_moyen' : 'contratMot_faible') + (o.actuelle ? ' · ' + texte('contratActuelle') : '')
+          + (SAISONS.signataire(ch, o.ecurie) ? ' · ' + avec(texte('contratSigne'), { nom: nomPilote(Object.assign({ humain: false }, SAISONS.signataire(ch, o.ecurie))) }) : '')),   // la relève : l'offre signée d'un ancien rival du parent
         sp('niveau', avec(texte('contratNiveau'), { n: Math.round(e.niveau * 100) })),
         sp('coequipier', avec(texte('contratCoequipier'), { nom: o.coequipier === null ? '—' : nomPilote(ch.pilotes[o.coequipier]) })));
       const b = document.createElement('button');

@@ -115,6 +115,9 @@ const JOURNAL = (function () {
       }
       b.unshift(['breveRumeur', r]);
     }
+    // la relève : un ancien rival de la génération d'avant, devenu consultant, parle du leader (un nom, aucune information de course)
+    const consultants = typeof SAISONS !== 'undefined' ? SAISONS.anciensDuParent(ch, 'consultant') : [];
+    if (consultants.length) { const lead = CHAMPIONNAT.classementPilotes(ch)[0].k; b.unshift(['breveConsultant', { consultant: consultants[n % consultants.length].i, pilote: lead }]); }
     const cp = CHAMPIONNAT.classementPilotes(ch);
     if (!humain(cp[0].k)) b.push(['breveLeader', { pilote: cp[0].k, points: cp[0].points }]);
     else b.push(['breveChasseur', { pilote: cp[1].k, ecart: cp[0].points - cp[1].points }]);
@@ -172,6 +175,7 @@ const JOURNAL = (function () {
   function enTexte(cle, x, ch, noms) {
     if (cle === 'pilote' || cle === 'coequipier' || cle === 'rival') return noms.pilote(ch.pilotes[x]);
     if (cle === 'ecurie') return noms.ecurie(ch.ecuries[x]);
+    if (cle === 'consultant') { const r = (ch.retraites || [])[x]; return noms.pilote(r ? { nom: r.nom, numero: r.numero, humain: false } : { nom: null, numero: 0, humain: false }); }   // un ancien rival retraité
     if (cle === 'parent') {   // la génération d'avant (la relève), par son nom
       const g = ch.dynastie && ch.dynastie.generations ? ch.dynastie.generations[x] : null;
       return noms.pilote(g ? { nom: g.nom, numero: g.numero, humain: true } : { nom: null, numero: 0, humain: true });
@@ -249,7 +253,7 @@ const JOURNAL = (function () {
   }
 
   // les clés de texte que le journal demande (tests : toutes dans les deux langues, avec des variantes)
-  const BREVES = ['breveForme', 'breveRetraite', 'breveEcurie', 'breveVainqueur', 'breveRival', 'breveMeilleurTour', 'brevePole', 'breveLeader', 'breveChasseur', 'breveRumeur'];
+  const BREVES = ['breveForme', 'breveRetraite', 'breveEcurie', 'breveVainqueur', 'breveRival', 'breveMeilleurTour', 'brevePole', 'breveLeader', 'breveChasseur', 'breveRumeur', 'breveConsultant'];
   function cles() {
     return ['journalNom'].concat(R.JOURNAL_PRIORITES.flatMap(f => ['uneTitre_' + f, 'uneTexte_' + f]), BREVES);
   }
