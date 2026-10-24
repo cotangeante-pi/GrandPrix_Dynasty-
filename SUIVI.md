@@ -30,6 +30,7 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 
 ## Tour en cours
 
+**Journée du 2026-10-24 finie à 19h35 sur main 461ef97 (vert, 84/100). Reprise : rapports/fin-2026-10-24.md.**
 **2026-10-24 ~17h15 : le propriétaire : « FINIS LE CODE À 21H » → fin à 21h** (rien de nouveau après 20h40, dernier push 20h50, comptes rendus avant 20h55 ; à 21h le Chef fige main sur le dernier commit vert et écrit rapports/fin-2026-10-24.md).
 **2026-10-24 14h15 : boucle relancée par le propriétaire (« relance les 3 codeurs », sur Opus 5.5, pas Fable ; sans heure de fin).** Codeur 1 : tour 26 (stands, arrêt, puis l'effet de la rivalité) ; Codeur 2 : tour 25b ordre 3 (écrans du mode 2 joueurs) puis le tournoi chrono ; Codeur 3 : tour 28c (cérémonie, album, bilan et temple, relève). 14h30 : voie des stands fusionnée (a126135, GitHub 40119895463 TOUT PASSE). 14h45 : cérémonie du champion ; 15h00 : album des unes ; 15h15 : bilan de carrière et temple (carriere.js) ; 15h25 : le mode 2 joueurs complet (menu Entre amis, réglages, podium à deux, rivalité, Revanche). 15h55 : la relève (tour 28c fini : cérémonie, album, bilan, temple, relève). 16h00 : « passer » finit la course en accéléré (ta demande de 14h35 : podium 2,6 s après le clic avec 9 voitures, 5,1 s avec 19 en championnat ; identique au bit près).
 
@@ -74,7 +75,8 @@ Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤
 | 25 (ordre 1) | fusion contournement 1113916 | 83 | 12 | 19 | 13 | 16 | 10 | 10 | 3 |
 | 25c | fusion codeur3 1ab073d | 84 | 12 | 19 | 14 | 16 | 10 | 10 | 3 |
 | 25b-1 + 26-1 + 26c | fusion codeur3 9d01a81 | 85 | 12 | 19 | 14 | 17 | 10 | 10 | 3 |
-| 25b-2 + 27c | fusion codeur2 194f592 | 83 | 12 | 19 | 14 | 15 | 10 | 10 | 3 |   (corrigé à minuit : l'interface plafonne à 15, le Chef avait dépassé le barème)
+| 25b-2 + 27c | fusion codeur2 194f592 | 83 | 12 | 19 | 14 | 15 | 10 | 10 | 3 |
+| 2026-10-24 | 461ef97 | 84 | 12 | 19 | 15 | 15 | 10 | 10 | 3 |   (corrigé à minuit : l'interface plafonne à 15, le Chef avait dépassé le barème)
 
 Note du Chef session-5b (2026-10-23) : les lignes 18 à 19b ne s'additionnaient pas (19 + 19b : 12 + 16 + 6 + 12 + 9 + 10 + 2 = 67, noté 62 ; 18 : 63 noté 60). Les axes sont justes, c'est le total qui était faux ; depuis la ligne 21b, le total est la somme des axes. Le saut de 62 à 68 vient de cette correction, pas d'un progrès.
 
