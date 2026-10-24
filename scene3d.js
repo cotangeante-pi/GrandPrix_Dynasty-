@@ -55,10 +55,11 @@ const SCENE3D = (function () {
     return geometrie(pos, col);
   }
 
-  // un mur vertical qui suit la piste à l'écart d
-  function mur(c, d, hauteur) {
+  // un mur vertical qui suit la piste à l'écart d ; garder(i) choisit les morceaux (facultatif)
+  function mur(c, d, hauteur, garder) {
     const pos = [];
     for (let i = 0; i < c.nb; i++) {
+      if (garder && !garder(i)) continue;
       const k = (i + 1) % c.nb;
       const ax = c.x[i] + c.nx[i] * d, az = c.z[i] + c.nz[i] * d, bx = c.x[k] + c.nx[k] * d, bz = c.z[k] + c.nz[k] * d;
       pos.push(ax, 0, az, ax, hauteur, az, bx, 0, bz, bx, 0, bz, ax, hauteur, az, bx, hauteur, bz);
@@ -116,6 +117,14 @@ const SCENE3D = (function () {
     const matBarriere = { side: THREE.DoubleSide };
     groupe.add(maillage(mur(c, -dB, R.HAUTEUR_BARRIERE), R.COULEUR_BARRIERE, matBarriere));
     groupe.add(maillage(mur(c, dB, R.HAUTEUR_BARRIERE), R.COULEUR_BARRIERE, matBarriere));
+
+    // la voie des stands (étape 7, circuit.stands) : une bande de route au-delà du muret, et le muret hors des rampes
+    if (c.stands) {
+      const st = c.stands, z = i => zoneStands(c, c.s[i], st.cote * (st.dMur + 1));
+      const dansVoie = i => z(i) !== null, muret = i => { const q = z(i); return q !== null && !q.rampe; };
+      groupe.add(maillage(ruban(c, st.cote * st.dMur, st.cote * st.dExt, 0.02, dansVoie), R.COULEUR_STANDS));
+      groupe.add(maillage(mur(c, st.cote * st.dMur, R.HAUTEUR_MUR_STANDS, muret), R.COULEUR_MUR_STANDS, matBarriere));
+    }
 
     // la ligne d'arrivée en damier, et un trait de couleur au début des secteurs 2 et 3
     const pos = [], col = [];

@@ -12,6 +12,7 @@ const CIRCUITS_OFFICIELS_B = {
     largeur: 13,
     secteurs: [0, 0.3, 0.62],
     depart: [0, 0, 0],
+    stands: { entree: 10, sortie: 160 },   // la voie des stands (étape 7) : la ligne droite de départ est courte (194 m), on la donne à la main : 150 m, côté du premier virage
     vraieLongueur: 4361,   // m, celle du vrai circuit : le tracé en reste à moins de 10 %
     reperes: [[1, 'virage 1'], [3, 'virage 2'], [5, 'virage 5'], [7, 'chicane'], [9, 'virage 6'], [11, 'virage 7'], [13, 'virage 9'], [15, 'chicane'], [17, 'épingle'], [19, 'chicane finale'], [21, 'mur des champions']],   // les virages célèbres (indice du morceau), pour la vue de dessus
     morceaux: [
