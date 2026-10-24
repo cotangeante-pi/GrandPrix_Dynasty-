@@ -63,12 +63,12 @@ const AILERON = (function () {
     return { lents: lents / total, droites: droites / total };
   }
 
-  // le cran d'une IA : le circuit (des virages lents → plus haut, des lignes droites → plus bas), son caractère (agressif en
+  // le cran d'une IA : le circuit (plus de virages lents qu'un circuit mixte, AILERON_IA_REFERENCE → plus haut, plus de lignes droites → plus bas), son caractère (agressif en
   // attaque → plus bas, pour doubler en ligne droite ; régulier → plus haut) et une part de hasard() (le flux de hasard en cours)
   function choisirIA(caractere, prof) {
     const c = caractere || {};
     const x = milieu()
-      + (prof.lents - prof.droites) * R.AILERON_IA_CIRCUIT
+      + (prof.lents - prof.droites - R.AILERON_IA_REFERENCE) * R.AILERON_IA_CIRCUIT
       + ((c.regularite === undefined ? 0.5 : c.regularite) - 0.5) * R.AILERON_IA_REGULARITE
       - ((c.agressivite === undefined ? 0.5 : c.agressivite) - 0.5) * R.AILERON_IA_AGRESSIVITE
       + (hasard() - 0.5) * R.AILERON_IA_HASARD;
