@@ -867,6 +867,36 @@ body.deux #departResultat { bottom: auto; top: calc(50% - 60px); }
 #templeRecords { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 18px; width: min(92vw, 720px); font: 13px/1.4 var(--police); text-align: left; }
 #templeRecords li { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+/* le tournoi chrono entre copains (tour 26b) : l'inscription, « À toi ! », les classements */
+#tournoiListe { display: flex; flex-direction: column; gap: 5px; margin: 0; padding: 0; list-style: none; }
+.tournoiJoueur { display: flex; align-items: center; gap: 6px; }
+.tournoiJoueur input.tournoiPrenom, .tournoiJoueur select, #tournoiCircuits select { padding: 3px 6px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.35); background: rgba(255, 255, 255, 0.1); color: inherit; font: 600 14px/1.3 var(--police); }
+.tournoiJoueur input.tournoiPrenom { width: 170px; user-select: text; -webkit-user-select: text; }
+.tournoiJoueur select option, #tournoiCircuits select option { color: #111; }
+.tournoiJoueur input.tournoiCouleur { width: 26px; height: 22px; padding: 0; border: 1px solid rgba(255, 255, 255, 0.35); border-radius: 6px; background: none; }
+.tournoiIcone { display: inline-flex; width: 22px; }
+#tournoiInscription button.tournoiEnlever { min-width: 0; padding: 2px 8px; font-size: 13px; background: rgba(255, 255, 255, 0.15); }
+#tournoiInscription button:disabled { opacity: 0.4; cursor: default; box-shadow: none; }
+#tournoiInscription .boutons, #tournoiManche .boutons, #tournoiFin .boutons { align-items: center; }
+#tournoiFormules button { background: rgba(255, 255, 255, 0.15); padding: 8px 16px; }
+#tournoiFormules button.choisie { background: #1f6fe0; box-shadow: 0 0 0 3px #fff; }
+#tournoiCircuits { display: flex; align-items: center; gap: 8px; font: 600 14px/1.3 var(--police); }
+#tournoiErreur { min-height: 1.4em; color: #ff8a80; }
+#atoiIcone { display: flex; justify-content: center; }
+#tournoiAToi h1 { font-size: 44px; }
+#atoiCompte { font: 800 72px/1 var(--police); color: #f2c230; min-height: 72px; }
+#tournoiAToi p#atoiAide { font-size: 14px; opacity: 0.8; }
+#tournoiTableaux { display: flex; gap: 28px; align-items: flex-start; }
+.tournoiTableau { margin: 0; padding: 0 0 0 26px; min-width: 300px; text-align: left; font: 600 16px/1.6 var(--police); }
+.tournoiTableau li { padding: 1px 6px; border-radius: 6px; }
+.tournoiTableau li span { display: inline-block; }
+.tournoiTableau .nom { min-width: 150px; }
+.tournoiTableau .temps { min-width: 110px; font-family: ui-monospace, Menlo, monospace; }
+.tournoiTableau .points { min-width: 60px; text-align: right; color: #f2c230; }
+.tournoiTableau li.nouveau { background: #1f6fe0; animation: tournoiGlisse 0.6s ease-out; }
+@keyframes tournoiGlisse { from { transform: translateY(-40px); opacity: 0.2; } to { transform: none; opacity: 1; } }
+#tournoiGeneral h2 { margin: 0 0 4px; font: 800 18px/1.2 var(--police); }
+#tournoiPhrase { color: #f2c230; font-size: 22px; }
 /* la relève (Codeur 3) : le formulaire de l'héritier à gauche, l'arbre de la dynastie à droite ; tient en 960×600 */
 #bilanFamille { font-size: 14px !important; opacity: 0.9; }
 #heritier h1, #heritier h2 { margin: 0; }

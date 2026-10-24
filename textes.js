@@ -215,6 +215,14 @@ const TEXTES = {
     niveau_debutant: 'Beginner', niveau_normal: 'Normal', niveau_expert: 'Expert', niveau_legende: 'Legend',
     deuxTouches1: 'W A S D (Z Q S D) · E: back on track', deuxTouches2: 'Arrows · Enter: back on track',
     deuxPartir: 'Race!', deuxErreurNom: 'The two players need different names.', deuxErreurCouleur: 'Pick two different car colours.',
+    // le tournoi chrono entre copains (tournoi.js, tour 26b)
+    joueurN: 'Player {n}', tournoiTitre: 'Time-trial tournament', tournoiAjouter: '+ Add a player', tournoiEnlever: 'Remove',
+    formuleEclair: 'Flash: one lap each', formuleTournoi: 'Tournament: 3 rounds', tournoiCircuits: 'Tracks', auHasard: 'Random',
+    tournoiErreurNombre: 'From {min} to {max} players.', tournoiErreurPrenom: 'Two players have the same first name.',
+    aToi: 'Your turn, {prenom}!', aToiAide: 'Arrows or W A S D · Space: back on track · C: camera · Esc: pause', tournoiManche: 'Round {m} / {n}',
+    tournoiAbandon: 'Give up (no time)', pasDeTemps: 'no time', tournoiGeneral: 'Overall', tournoiSuivant: 'Next: {prenom}', tournoiMancheSuivante: 'Next round',
+    tournoiPodium: 'Podium', tournoiFin: 'Final standings', tournoiRejouer: '↻ Play again', tournoiNouveaux: 'New players',
+    tournoiPhraseTete: '{prenom} takes the lead!', tournoiPhrasePres: '{s} s off the best time!', tournoiPhrasePlace: '{prenom}: P{p}', tournoiPhraseAbandon: '{prenom}: no time',
     deuxPlace: '{nom}: P{p}', rivalite: '{a} {x} – {y} {b}', rivaliteTitre: 'Rivalry', revanche: '↻ Rematch', menuAmis: 'Menu',
   },
   fr: {
@@ -420,6 +428,14 @@ const TEXTES = {
     niveau_debutant: 'Débutant', niveau_normal: 'Normal', niveau_expert: 'Expert', niveau_legende: 'Légende',
     deuxTouches1: 'Z Q S D (W A S D) · E : retour en piste', deuxTouches2: 'Flèches · Entrée : retour en piste',
     deuxPartir: 'C’est parti !', deuxErreurNom: 'Les deux joueurs doivent avoir des noms différents.', deuxErreurCouleur: 'Choisissez deux couleurs de voiture différentes.',
+    // le tournoi chrono entre copains (tournoi.js, tour 26b)
+    joueurN: 'Joueur {n}', tournoiTitre: 'Tournoi chrono', tournoiAjouter: '+ Ajouter un joueur', tournoiEnlever: 'Enlever',
+    formuleEclair: 'Éclair : un tour chacun', formuleTournoi: 'Tournoi : 3 manches', tournoiCircuits: 'Circuits', auHasard: 'Au hasard',
+    tournoiErreurNombre: 'De {min} à {max} joueurs.', tournoiErreurPrenom: 'Deux joueurs ont le même prénom.',
+    aToi: 'À toi, {prenom} !', aToiAide: 'Flèches ou Z Q S D · Espace : retour en piste · C : caméra · Échap : pause', tournoiManche: 'Manche {m} / {n}',
+    tournoiAbandon: 'Abandonner (pas de temps)', pasDeTemps: 'pas de temps', tournoiGeneral: 'Classement général', tournoiSuivant: 'Au tour de {prenom}', tournoiMancheSuivante: 'Manche suivante',
+    tournoiPodium: 'Podium', tournoiFin: 'Classement final', tournoiRejouer: '↻ Rejouer', tournoiNouveaux: 'Nouveaux joueurs',
+    tournoiPhraseTete: '{prenom} prend la tête !', tournoiPhrasePres: 'À {s} s du record !', tournoiPhrasePlace: '{prenom} : P{p}', tournoiPhraseAbandon: '{prenom} : pas de temps',
     deuxPlace: '{nom} : P{p}', rivalite: '{a} {x} – {y} {b}', rivaliteTitre: 'Rivalité', revanche: '↻ Revanche', menuAmis: 'Menu',
   },
 };
