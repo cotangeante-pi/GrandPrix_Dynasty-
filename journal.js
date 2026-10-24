@@ -59,6 +59,10 @@ const JOURNAL = (function () {
     const ecartApres = apres[leader] - apres[second], ecartAvant = avant[leader] - Math.max(...avant.filter((x, k) => k !== leader));
     if (leader !== j.id && ecartApres >= R.JOURNAL_ECART_LEADER && ecartApres > ecartAvant)
       f.leader = { pilote: leader, ecurie: ch.pilotes[leader].ecurie, ecart: ecartApres, circuit };
+    // la phrase de l'interview (interview.js) : la réponse provocante contre un pilote nommé, donnée à ce Grand Prix
+    const itw = ch.interview && ch.interview.derniere;
+    if (itw && itw.ton === 'provocant' && itw.rival !== null && itw.rival !== undefined && itw.gp === n + 1 && itw.saison === ch.saison)
+      f.interview = { pilote: j.id, rival: itw.rival, circuit };
     // toujours vrai : le vainqueur de la course
     const v = ch.resultats[n].ordre[0];
     f.vainqueur = { pilote: v, ecurie: ch.pilotes[v].ecurie, circuit };
@@ -145,7 +149,7 @@ const JOURNAL = (function () {
   // un paramètre en texte, selon sa clé : un pilote ou une écurie par son nom, le circuit, un temps « 1:02,345 »,
   // un nombre avec la virgule de la langue
   function enTexte(cle, x, ch, noms) {
-    if (cle === 'pilote' || cle === 'coequipier') return noms.pilote(ch.pilotes[x]);
+    if (cle === 'pilote' || cle === 'coequipier' || cle === 'rival') return noms.pilote(ch.pilotes[x]);
     if (cle === 'ecurie') return noms.ecurie(ch.ecuries[x]);
     if (cle === 'circuit') return nomCircuit(x);
     if (cle === 'temps') { const m = Math.floor(x / 60), s = x - m * 60; return (m + ':' + (s < 10 ? '0' : '') + s.toFixed(3)).replace('.', texte('virgule')); }

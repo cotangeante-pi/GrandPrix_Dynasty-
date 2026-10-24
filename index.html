@@ -100,6 +100,7 @@
   <p id="championnatDuel"></p>
   <p id="championnatArgent"></p>
   <p id="championnatSponsor"></p>
+  <div id="championnatReputation"></div>
   <div id="championnatTableaux">
     <div><h2 id="championnatPilotesTitre"></h2><ol id="championnatPilotes"></ol></div>
     <div><h2 id="championnatEcuriesTitre"></h2><ol id="championnatEcuries"></ol></div>
@@ -124,6 +125,7 @@
       <p id="ficheHistorique"></p>
       <p id="ficheDuels"></p>
       <p id="ficheCoequipier"></p>
+      <p id="ficheRivalite"></p>
     </div>
   </div>
   <div class="boutons"><button id="boutonFicheRetour" tabindex="-1"></button></div>
@@ -165,6 +167,22 @@
 </section>
 
 <!-- ?championnat=1 : la une du journal (journal.js), après les résultats ; un clic ou une touche la passe (Codeur 3) -->
+<!-- ?championnat=1 : l'interview d'après course (interview.js), entre les résultats et la une du journal (Codeur 3) -->
+<section id="interview" class="ecran cache">
+  <div id="interviewCarte">
+    <h1 id="interviewTitre"></h1>
+    <p id="interviewJournaliste"></p>
+    <p id="interviewQuestion"></p>
+    <div id="interviewChoix">
+      <ul id="interviewReponses"></ul>
+      <div class="boutons"><button id="boutonPasCommentaire" class="petit" tabindex="-1"></button></div>
+    </div>
+    <div id="interviewSuite" class="cache">
+      <p id="interviewEffet"></p>
+      <div class="boutons"><button id="boutonInterviewSuite" tabindex="-1"></button></div>
+    </div>
+  </div>
+</section>
 <section id="une" class="ecran cache">
   <div id="unePage">
     <header id="uneEntete"><span id="uneNom"></span><span id="uneEdition"></span></header>
@@ -239,6 +257,7 @@
 <script src="saisons.js"></script>
 <script src="sponsors.js"></script>
 <script src="fiche.js"></script>
+<script src="interview.js"></script>
 <script src="sdk.js"></script>
 <script src="pneus-donnees.js"></script>
 <script src="pneus.js"></script>
