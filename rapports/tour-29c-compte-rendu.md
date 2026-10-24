@@ -70,3 +70,8 @@ Ordres : 1 fait, sauf un point : l'effet sur les voitures des IA est coupé (`AI
 - L'effet sur les IA, coupé (voir plus haut).
 
 Réévalue.
+
+## Ordre supplémentaire — les anciens rivaux du parent, patrons ou consultants (5aac920, passage 40140065482 : TOUT PASSE)
+- `saisons.js` : `roles(ch)` tire une fois pour chaque retraité (son propre flux de hasard : la graine du championnat + `GRAINE_ROLES` + son indice et sa saison ; le reste du hasard ne bouge pas) `role` = patron (`ROLE_PATRON` = 0,4, avec `ecurieDirigee`) ou consultant, gardé dans son résumé ; une ancienne sauvegarde les reçoit au chargement, les mêmes. `anciensDuParent(ch, role)` : les retraités pendant la carrière de la génération d'avant, jamais confondables avec un pilote en activité (même nom et numéro) ; `[]` pour un premier pilote. `signataire(ch, ecurie)`.
+- Seulement des noms : l'offre de contrat « offre signée Pilote 7, à la tête de l'écurie » (`contratSigne`), la brève `breveConsultant` (« Pilote 12, consultant : « Pilote 3 est le pilote à battre en ce moment. » ») en tête des brèves dans la carrière de l'héritier ; aucune règle nouvelle. Textes en + fr (sans genre : « à la tête de l'écurie »).
+- Test moteur : rien pour un premier pilote ; tous les retraités ont un rôle ; après la relève, 7 patrons et 7 consultants parmi les anciens rivaux du parent (graine 50), tous des retraités de son époque, aucun pilote en activité ; le signataire ; la brève rendue avec le nom du retraité ; une ancienne sauvegarde retrouve les mêmes rôles.
