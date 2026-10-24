@@ -129,7 +129,8 @@ const SCENE3D = (function () {
     if (c.stands) {
       const st = c.stands, z = i => zoneStands(c, c.s[i], st.cote * (st.dMur + 1));
       const dansVoie = i => z(i) !== null, muret = i => { const q = z(i); return q !== null && !q.rampe; };
-      groupe.add(maillage(ruban(c, st.cote * st.dMur, st.cote * st.dExt, 0.02, dansVoie), R.COULEUR_STANDS));
+      // (de gauche à droite : sinon, côté gauche, les triangles regardent vers le bas et la bande n'est pas dessinée)
+      groupe.add(maillage(ruban(c, Math.min(st.cote * st.dMur, st.cote * st.dExt), Math.max(st.cote * st.dMur, st.cote * st.dExt), 0.02, dansVoie), R.COULEUR_STANDS));
       groupe.add(maillage(mur(c, st.cote * st.dMur, R.HAUTEUR_MUR_STANDS, muret), R.COULEUR_MUR_STANDS, matBarriere));
     }
 

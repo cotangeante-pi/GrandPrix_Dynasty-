@@ -61,7 +61,7 @@ def annexes():
     return all([serie(p, delai=300 if 'courses' in p else 120, options=['--virtual-time-budget=5000'] if p.endswith('sdk.html') else []) for p in ANNEXES])
 
 # les parties de la suite, dans l'ordre : moteur (test.html), courses (courses.html, 30 courses entre IA), ecrans (ecrans.py), annexes
-PARTIES = {'moteur': lambda: serie('tests/test.html'), 'courses': lambda: serie('tests/courses.html'), 'ecrans': lambda: ecrans(), 'annexes': annexes}
+PARTIES = {'moteur': lambda: serie('tests/test.html'), 'courses': lambda: all([serie('tests/courses.html'), serie('tests/stands.html', delai=1200)]), 'ecrans': lambda: ecrans(), 'annexes': annexes}
 
 def tests(parties=tuple(PARTIES)):
     # une liste : tout tourne même si le premier échoue ; courses.html = le critère de l'étape 4 (30 courses entre IA)

@@ -71,6 +71,33 @@ if(REGLAGES.IA_DEPASSEMENT){const k=N/30;
 for(const nom of ['test','technique']) t(`${nom}, 20 voitures, graine 1 : toutes arrivent, au plus 1 choc à plus de 5 m/s`,()=>{const r=simulerCourse(circuits[nom],20,TOURS,1);
   L.push(`  ${nom}, 20 voitures : ${r.depassements.length} dépassements, chocs>5 ${chocsForts(r)}, barrière ${r.voitures.reduce((a,x)=>a+x.contactsBarriere,0)}, herbe ${r.voitures.reduce((a,x)=>a+x.herbe,0)}, ${r.dureeMs.toFixed(0)} ms`);
   v(r.voitures.every(x=>x.fini));v(chocsForts(r)<=1,chocsForts(r)+' chocs');});
+// --- l'effet de la rivalité de l'interview (Codeur 1, CLAUDE.md « Les rivaux se souviennent ») : sur le technique, 10 IA, une IA tient le
+// rôle du joueur (v.joueur) et celle qui part juste derrière elle (l'attaque) ou juste devant (la défense) est son rival (pilote.rivalite) ;
+// mêmes courses avec et sans rivalité
+const RIV_GRAINES=+(Q.get('rivalite')||8);
+function courseRivalite(g,rival,marquerJoueur,rivalDevant){const e=creerCourseIA(circuits.technique,10,TOURS,g),ordre=e.grille.map(x=>x.numero),jn=ordre[rivalDevant?5:4],rn=ordre[rivalDevant?4:5];
+  const J=e.pilotes.find(p=>p.numero===jn),Rv=e.pilotes.find(p=>p.numero===rn);if(marquerJoueur)J.v.joueur=true;
+  poserRivalites(e,e.pilotes.map(p=>rival&&p===Rv));
+  const pasMax=Math.round(TOURS*REGLAGES.SIMULATION_TEMPS_MAX/REGLAGES.PAS_PHYSIQUE);for(let k=0;k<pasMax&&e.arrives<10;k++)pasCourseIA(e,REGLAGES.PAS_PHYSIQUE);
+  const sur=(p,q)=>p.pilote.parCible.get(q.v)||{attaques:0,reussies:0};
+  return {e,J,Rv,attaquesRival:sur(Rv,J).attaques,reussiesRival:sur(Rv,J).reussies,attaquesJoueur:sur(J,Rv).attaques,reussiesJoueur:sur(J,Rv).reussies,defenses:Rv.pilote.defenses,
+    autres:e.pilotes.filter(p=>p!==J).reduce((a,p)=>a+sur(Rv,p).attaques,0),empreinte:e.pilotes.map(p=>p.arrivee+':'+p.v.x+':'+p.v.contactsVoiture).join('|'),
+    chocs:e.pilotes.flatMap(p=>p.v.chocs).filter(c=>c>5).length/2,herbe:e.pilotes.reduce((a,p)=>a+p.herbe,0)};}
+const riv={avec:[],sans:[],defAvec:[],defSans:[]};
+for(let g=1;g<=RIV_GRAINES;g++){riv.avec.push(courseRivalite(g,true,true,false));riv.sans.push(courseRivalite(g,false,true,false));riv.defAvec.push(courseRivalite(g,true,true,true));riv.defSans.push(courseRivalite(g,false,true,true));ecrire('rivalité '+g);}
+const sRiv=(l,f)=>l.reduce((a,x)=>a+f(x),0);
+for(const nom of ['avec','sans','defAvec','defSans']) L.push(`  rivalité ${nom} (${RIV_GRAINES} courses de ${TOURS} tours, technique, rival ${nom.startsWith('def')?'devant':'derrière'} le joueur sur la grille) : le rival attaque le joueur ${sRiv(riv[nom],x=>x.attaquesRival)} fois (${sRiv(riv[nom],x=>x.reussiesRival)} réussies), les autres ${sRiv(riv[nom],x=>x.autres)} fois ; défenses ${sRiv(riv[nom],x=>x.defenses)} ; le joueur attaque le rival ${sRiv(riv[nom],x=>x.attaquesJoueur)} fois (${sRiv(riv[nom],x=>x.reussiesJoueur)} réussies) ; chocs>5 ${sRiv(riv[nom],x=>x.chocs)}, herbe ${sRiv(riv[nom],x=>x.herbe)}`);
+t('rivalité : le rival (parti derrière le joueur) attaque plus souvent le joueur qu’un pilote sans rivalité, sur les mêmes courses',()=>v(sRiv(riv.avec,x=>x.attaquesRival)>sRiv(riv.sans,x=>x.attaquesRival),sRiv(riv.avec,x=>x.attaquesRival)+' / '+sRiv(riv.sans,x=>x.attaquesRival)));
+t('rivalité : sa défense est plus serrée (le rival parti devant le joueur) : il couvre l’intérieur quand le joueur est dans ses rétroviseurs avant un freinage (défenses > 0, aucune sans rivalité), et le joueur ne le passe pas plus souvent',()=>{
+  const da=sRiv(riv.defAvec,x=>x.defenses),ds=sRiv(riv.defSans,x=>x.defenses),ra=sRiv(riv.defAvec,x=>x.reussiesJoueur),rs=sRiv(riv.defSans,x=>x.reussiesJoueur);v(da>0&&ds===0&&ra<=rs,'défenses '+da+' / '+ds+', passé '+ra+' / '+rs);});
+t('rivalité : pas de casse : pas plus de chocs à plus de 5 m/s qu’au total sans rivalité, toutes les voitures arrivent',()=>{const ca=sRiv(riv.avec,x=>x.chocs)+sRiv(riv.defAvec,x=>x.chocs),cs=sRiv(riv.sans,x=>x.chocs)+sRiv(riv.defSans,x=>x.chocs);
+  v(ca<=cs&&riv.avec.concat(riv.defAvec).every(x=>x.e.pilotes.every(p=>p.arrivee!==null)),ca+' / '+cs);});
+t('rivalité : contre les autres IA, rien ne change : avec la rivalité mais sans voiture du joueur, la course est identique au bit près à la course sans rivalité',()=>{
+  for(let g=1;g<=2;g++){const a=courseRivalite(g,true,false),b=courseRivalite(g,false,false);v(a.empreinte===b.empreinte,'graine '+g);}});
+t('rivalité : le plafond tient : un décalage demandé au-delà de INTERVIEW_RIVALITE_PLAFOND donne exactement la course du plafond ; et l’agressivité ne bouge que contre le joueur',()=>{
+  const R_=REGLAGES,avant=R_.INTERVIEW_RIVALITE_DECALAGE;let a,b;try{R_.INTERVIEW_RIVALITE_DECALAGE=R_.INTERVIEW_RIVALITE_PLAFOND;a=courseRivalite(1,true,true);R_.INTERVIEW_RIVALITE_DECALAGE=5;b=courseRivalite(1,true,true);}finally{R_.INTERVIEW_RIVALITE_DECALAGE=avant;}
+  v(a.empreinte===b.empreinte,'plafond pas tenu');const p={caractere:{agressivite:0.5},rivalite:true};
+  v(agressivite(p,{joueur:true})===0.5+decalageRivalite()&&agressivite(p,{})===0.5&&agressivite(p)===0.5&&agressivite({caractere:{agressivite:0.5},rivalite:false},{joueur:true})===0.5&&decalageRivalite()<=R_.INTERVIEW_RIVALITE_PLAFOND,'agressivité');});
 t('aucune erreur JavaScript',()=>v(__err.length===0,__err.join(' | ')));
 ecrire();
 </script></body></html>

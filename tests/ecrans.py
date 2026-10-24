@@ -39,7 +39,8 @@ PAGES = [
     ('index.html?championnat=1&tours=1&robot=1', 1280, 720, None),   # 2 Grands Prix joués par le robot, rechargement, capture championnat.png   # une course d'un tour, jusqu'au podium et aux résultats
     ('index.html?course=1&ia=8&circuit=test', 960, 600, None),
     ('index.html?course=1&robot=1&test=sdk', 1280, 720, None),   # le faux SDK Poki (sdk.js) : l'ordre des appels sur une course d'un tour
-    ('index.html?course=0&robot=1&pneus=1&debug=1', 1280, 720, None),   # ?pneus=1 : l'usure monte sur 10 tours du robot, affichée dans ?debug=1
+    ('index.html?course=0&robot=1&pneus=1&debug=1', 1280, 720, None),
+    ('index.html?course=12&robot=1&pneus=1&circuit=test&test=stand', 1280, 720, None),   # l'arrêt au stand (étape 7) : le message, le robot entre dans la voie, s'arrête, ressort ; capture stand.png   # ?pneus=1 : l'usure monte sur 10 tours du robot, affichée dans ?debug=1
     ('index.html?championnat=1&tours=1&robot=1&gp=12', 1280, 720, None),   # la fin de saison : le 12e Grand Prix joué par le robot, champion, duel de la saison, contrats, saison 2 ; captures champion.png, duel-saison.png, contrats.png
     ('index.html?championnat=1&tours=1&robot=1&gp=12', 960, 600, None),    # les écrans de fin de saison en petit (Grand Prix 12 fabriqué), la retraite
     ('index.html?championnat=1&tours=1&robot=1&lang=en', 1280, 720, None),   # la page en anglais : championnat et podium sans un mot français, capture championnat-en.png
@@ -50,7 +51,9 @@ PAGES = [
     ('index.html?deux=1&ia=5&robot=1&circuit=technique&test=deux', 1280, 720, None),
     ('index.html?course=1&ia=9&joueur=1&robot=1&circuit=test&test=accelere', 1280, 720, None),   # « passer » finit la course en accéléré : les mêmes places et les mêmes temps qu'en regardant (deux chargements)
     ('index.html?championnat=1&tours=1&robot=1&test=accelere', 1280, 720, None),   # … en championnat : puis l'interview et la une
-    ('index.html?test=amis', 1280, 720, None),   # le mode 2 joueurs, tour 25b ordre 3 : titre → « Entre amis » → réglages → course à deux (robots) → podium → rivalité → Revanche → Menu ; captures entre-amis.png, deux-reglages.png, rivalite.png
+    ('index.html?test=amis', 1280, 720, None),
+    ('index.html?test=tournoi', 1280, 720, None),   # le tournoi chrono (tour 26b) : inscription de 3 joueurs → 3 manches (robot ; un abandon) → podium → Rejouer ; captures tournoi.png, tournoi-podium.png
+    ('index.html?test=tournoi', 960, 600, None),    # … l'inscription de 8 joueurs tient en 960×600   # le mode 2 joueurs, tour 25b ordre 3 : titre → « Entre amis » → réglages → course à deux (robots) → podium → rivalité → Revanche → Menu ; captures entre-amis.png, deux-reglages.png, rivalite.png
     ('index.html?test=amis', 960, 600, None),    # … en petit : le menu et l'écran avant la course tiennent sans défilement ni débordement   # … la mesure de la 3D dessinée deux fois sur le technique   # le premier lancement : titre → course de découverte (robot) → Bravo → paddock ; captures titre.png, decouverte.png, bravo.png
 ]
 # ECRANS_FILTRE=… (pendant le travail, sur le Mac) : seulement les pages dont l'adresse contient ce texte ; GitHub lance toujours tout
@@ -549,6 +552,37 @@ def pneus(pg, titre):
     L.append(f'  (?pneus=1, robot : après {releves[-1][0]} tours, usure {releves[-1][1]:.2f}, adhérence × {releves[-1][2]:.3f})')
     t(f'{titre} : ?debug=1 affiche l’usure des pneus', attendre(pg, '() => /pneus \\d+ %/.test(document.getElementById("ips").textContent)'), pg.evaluate('() => document.getElementById("ips").textContent'))
 
+# l'arrêt au stand (étape 7, ?pneus=1, course de 12 tours, le robot) : le message du tour conseillé au départ ; le robot va aux stands
+# (v.versStands, robot.js), s'arrête dans la zone (capture stand.png pendant l'arrêt, le message « Arrêt au stand… »), repart avec des
+# pneus neufs, « Pneus neufs ! », sans pénalité ; son tour compte
+def stand_ecran(pg, titre):
+    attendre(pg, '() => typeof JEU !== "undefined" && !!JEU.course && !!JEU.joueur.pneus', None, 30000)
+    pg.evaluate('() => { JEU.course.compte = 0.01; }')
+    attendre(pg, '() => JEU.course.etat === "course"', None, 20000)
+    conseil = attendre(pg, '() => !document.getElementById("hudStand").classList.contains("cache") && /tour 6 conseillé/.test(document.getElementById("hudStand").textContent)', None, 10000)
+    t(f'{titre} : au départ, le message « Arrêt au stand obligatoire : tour 6 conseillé »', conseil, pg.evaluate('() => document.getElementById("hudStand").textContent'))
+    pg.evaluate('() => { BOUCLE.simuler(3); JEU.joueur.pneus.usure = 0.5; JEU.joueur.versStands = true; }')
+    arrete = False
+    for _ in range(60):
+        pg.evaluate('() => BOUCLE.simuler(2)')
+        if pg.evaluate('() => !!JEU.course.arretEnCours'): arrete = True; break
+    attendre(pg, '() => /^Arrêt au stand… \\d,\\d s$/.test(document.getElementById("hudStand").textContent)', None, 3000)   # (l'affichage suit à l'image suivante)
+    texte = pg.evaluate('() => document.getElementById("hudStand").textContent')
+    t(f'{titre} : le robot entre dans la voie et s’arrête dans la zone ; le message « Arrêt au stand… x,x s » pendant l’arrêt', arrete and re.fullmatch(r'Arrêt au stand… \d,\d s', texte) is not None and pg.evaluate('() => JEU.joueur.dansStands && JEU.joueur.u === 0'), texte)
+    pg.screenshot(path=os.path.join(CAPTURES, 'stand.png'))
+    for _ in range(40):
+        pg.evaluate('() => BOUCLE.simuler(1)')
+        if pg.evaluate('() => JEU.course.arrets.length === 1'): break
+    attendre(pg, '() => /Pneus neufs/.test(document.getElementById("hudStand").textContent)', None, 2000)   # (l'affichage suit à l'image suivante)
+    neufs = pg.evaluate('() => [JEU.course.arrets.length, JEU.joueur.pneus.usure, document.getElementById("hudStand").textContent, JEU.course.penalites]')
+    t(f'{titre} : il repart avec des pneus neufs (« Pneus neufs ! »), sans pénalité', neufs[0] == 1 and neufs[1] < 0.05 and 'Pneus neufs' in neufs[2] and neufs[3] == 0, str(neufs))
+    for _ in range(20):
+        pg.evaluate('() => BOUCLE.simuler(2)')
+        if pg.evaluate('() => !JEU.joueur.versStands'): break
+    fin = pg.evaluate('() => [JEU.joueur.versStands, JEU.joueur.dansStands, JEU.course.tours.length, JEU.joueur.contactsMurStands, JEU.course.penalites]')
+    t(f'{titre} : il ressort sur la piste, sans toucher le muret, et son tour compte', fin[0] is False and fin[1] is False and fin[2] >= 1 and fin[3] == 0 and fin[4] == 0, str(fin))
+    L.append(f'  (arrêt au stand dans la page : arrêts {pg.evaluate("() => JSON.stringify(JEU.course.arrets)")}, tours {fin[2]})')
+
 # ?lang=en : la page en anglais : lang et title remplis au démarrage, puis le classement du championnat, le podium et les
 # résultats sans un mot français (les 11 textes en dur de l'audit) ; le robot joue le Grand Prix 1 (un tour)
 MOTS_FR = r'Écurie|Pilote|\bToi\b|Tu marques|Course suivante|Continuer|Pénalit|Résultat|n°|Solde|Gains'
@@ -669,8 +703,8 @@ def amis(pg, titre, l, h):
         d = pg.evaluate('() => [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth]')
         return all(x is not None and x[0] >= -1 and x[1] >= -1 and x[2] <= l + 1 and x[3] <= h + 1 and x[2] > x[0] for x in b) and pas_de_defilement(d), str([b, d])
     pg.click('#boutonAmis')
-    t(f'{titre} : « Entre amis » (titre) ouvre le petit menu : « Écran partagé (2 joueurs) », « Tournoi chrono » grisé (bientôt), « Retour »',
-      pg.evaluate('() => JEU.ecran === "amis" && !document.getElementById("amis").classList.contains("cache") && document.getElementById("boutonAmisDeux").textContent === texte("amisDeux") && document.getElementById("boutonAmisTournoi").disabled && document.getElementById("boutonAmisTournoi").textContent.includes(texte("bientot"))'),
+    t(f'{titre} : « Entre amis » (titre) ouvre le petit menu : « Écran partagé (2 joueurs) », « Tournoi chrono (2 à 8 joueurs) » (ouvert depuis le tour 26b), « Retour »',
+      pg.evaluate('() => JEU.ecran === "amis" && !document.getElementById("amis").classList.contains("cache") && document.getElementById("boutonAmisDeux").textContent === texte("amisDeux") && !document.getElementById("boutonAmisTournoi").disabled && document.getElementById("boutonAmisTournoi").textContent === texte("amisTournoi")'),
       str(pg.evaluate('() => JEU.ecran')))
     ok_, det = tient(['#amisTitre', '#boutonAmisDeux', '#boutonAmisTournoi', '#boutonAmisRetour'])
     t(f'{titre} : le menu tient en {l}×{h}', ok_, det)
@@ -802,6 +836,100 @@ def accelere(pg, titre, page):
         pg.evaluate('() => BOUCLE.simuler(2)'); pg.wait_for_timeout(20)
     b = pg.evaluate('() => JEU.ecran === "podium" ? (' + FINAL[6:] + ') : null')
     t(f'{titre} : la même course regardée jusqu’au bout donne les mêmes places, les mêmes temps et les mêmes pénalités, au bit près', b is not None and a == b, str([a, b])[:800])
+
+# le tournoi chrono entre copains (tournoi.js, CLAUDE.md « Le tournoi chrono entre copains ») : l'inscription (2 à 8, prénoms différents),
+# « À toi, Léo ! » et 3 s, le tour de qualification (le robot), le fantôme du leader du moment (absent pour le premier), un abandon
+# (pas de temps), le classement de la manche et le général, 3 manches (la page de chaque manche), l'ordre inverse du classement, le
+# podium 3D, le classement final, « Rejouer » ; Poki : commercialBreak entre deux manches et à la fin, jamais entre deux joueurs
+def tournoi(pg, titre, l, h):
+    J = '() => window.APPELS_SDK.join(",")'
+    PUBS = '() => +sessionStorage.getItem("pubs") || 0'
+    def boite(sel):
+        return pg.evaluate('s => { const e = document.querySelector(s); if (!e) return null; const r = e.getBoundingClientRect(); return [r.left, r.top, r.right, r.bottom]; }', sel)
+    pg.click('#boutonAmis')
+    t(f'{titre} : « Tournoi chrono » est ouvert dans le menu « Entre amis »', pg.evaluate('() => !document.getElementById("boutonAmisTournoi").disabled && document.getElementById("boutonAmisTournoi").textContent === texte("amisTournoi")'))
+    pg.click('#boutonAmisTournoi')
+    ins = pg.evaluate('() => ({ ecran: JEU.ecran, n: document.querySelectorAll("#tournoiListe li").length, formule: document.getElementById("tournoiInscription").dataset.formule, icones: document.querySelectorAll("#tournoiListe .tournoiIcone canvas").length, circuits: [0, 1, 2].map(m => document.getElementById("tournoiCircuit" + m).value) })')
+    t(f'{titre} : l’inscription : 3 joueurs proposés (prénom, casque et son icône), la formule 🏆 Tournoi, 3 circuits au hasard', ins == {'ecran': 'tournoiInscription', 'n': 3, 'formule': 'tournoi', 'icones': 3, 'circuits': ['', '', '']}, str(ins))
+    carriere = pg.evaluate('() => JSON.stringify([JSON.parse(localStorage.getItem(SAUVEGARDE.CLE)).championnat, JSON.parse(localStorage.getItem(SAUVEGARDE.CLE)).fantomes])')
+    if l == 960:
+        for _ in range(5): pg.click('#boutonTournoiAjouter')   # (3 proposés + 5 = 8)
+        n = pg.evaluate('() => [document.querySelectorAll("#tournoiListe li").length, document.getElementById("boutonTournoiAjouter").disabled]')
+        b = [boite(s) for s in ['#tournoiTitre', '#tournoiListe', '#tournoiFormules', '#tournoiCircuits', '#boutonTournoiPartir']]
+        d = pg.evaluate('() => [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth]')
+        t(f'{titre} : 8 joueurs au plus (le bouton + grisé), et l’inscription de 8 tient en 960×600 sans défilement', n == [8, True] and all(x[1] >= -1 and x[3] <= h + 1 and x[0] >= -1 and x[2] <= l + 1 for x in b) and pas_de_defilement(d), str([n, b, d]))
+        pg.wait_for_timeout(200); pg.screenshot(path=os.path.join(CAPTURES, 'tournoi-inscription-960.png'))
+        return
+    # jamais 1 joueur : à 2, le ✕ est grisé ; deux prénoms pareils refusés
+    pg.click('#tournoiListe li:nth-child(3) .tournoiEnlever')
+    t(f'{titre} : à 2 joueurs, on ne peut plus en enlever (jamais 1)', pg.evaluate('() => document.querySelectorAll("#tournoiListe li").length === 2 && [...document.querySelectorAll("#tournoiListe .tournoiEnlever")].every(b => b.disabled)'))
+    pg.click('#boutonTournoiAjouter')
+    pg.fill('#tournoiListe li:nth-child(1) .tournoiPrenom', 'Léo'); pg.fill('#tournoiListe li:nth-child(2) .tournoiPrenom', 'Sarah'); pg.fill('#tournoiListe li:nth-child(3) .tournoiPrenom', 'sarah')
+    pg.click('#boutonTournoiPartir')
+    t(f'{titre} : deux prénoms pareils sont refusés', pg.evaluate('() => JEU.ecran === "tournoiInscription" && document.getElementById("tournoiErreur").textContent === texte("tournoiErreurPrenom")'), pg.evaluate('() => document.getElementById("tournoiErreur").textContent'))
+    pg.fill('#tournoiListe li:nth-child(3) .tournoiPrenom', 'Tom')
+    pg.select_option('#tournoiListe li:nth-child(3) .tournoiMotif', 'eclair')
+    with pg.expect_navigation(): pg.click('#boutonTournoiPartir')
+    attendre(pg, '() => typeof JEU !== "undefined" && JEU.tournoi', None, 30000)
+    t0 = pg.evaluate('() => ({ ecran: JEU.ecran, joueurs: JEU.tournoi.joueurs.map(j => j.prenom), circuits: JEU.tournoi.circuits, circuit: NOM_CIRCUIT, ia: JEU.plateau, titre: document.getElementById("atoiTitre").textContent, motif: JEU.tournoi.joueurs[2].casque.motif, liste: SAUVEGARDE.tournoi().joueurs.map(j => j.prenom) })')
+    t(f'{titre} : « C’est parti ! » : la page de la manche 1 (son circuit, seul sur la piste), « À toi, Léo ! », la liste gardée',
+      t0['ecran'] == 'tournoiAToi' and t0['joueurs'] == ['Léo', 'Sarah', 'Tom'] and len(t0['circuits']) == 3 and t0['circuit'] == t0['circuits'][0] and t0['ia'] is None and t0['titre'] in ('À toi, Léo !', 'Your turn, Léo!') and t0['motif'] == 'eclair' and t0['liste'] == ['Léo', 'Sarah', 'Tom'], str(t0))
+    def passage(abandon=False):
+        pg.evaluate('() => { JEU.robot = true; }')
+        attendre(pg, '() => JEU.ecran === "qualif" && JEU.qualif && JEU.qualif.etat === "tour"', None, 15000)
+        etat = pg.evaluate('() => ({ j: TOURNOI.joueurActuel(JEU.tournoi), fantome: !!(JEU.fantome && JEU.fantome.rejeu), leader: TOURNOI.leader(JEU.tournoi, JEU.tournoi.manche), sdk: window.APPELS_SDK.slice(-1)[0] })')
+        if abandon:
+            pg.evaluate('() => BOUCLE.simuler(5)'); pg.wait_for_timeout(100)
+            pg.keyboard.press('Escape')
+            attendre(pg, '() => JEU.ecran === "tournoiPause"', None, 5000)
+            pg.click('#boutonTournoiAbandon')
+        else:
+            for _ in range(200):
+                if pg.evaluate('() => JEU.ecran === "tournoiManche"'): break
+                pg.evaluate('() => BOUCLE.simuler(2)'); pg.wait_for_timeout(30)
+        attendre(pg, '() => JEU.ecran === "tournoiManche"', None, 10000)
+        etat['phrase'] = pg.evaluate('() => document.getElementById("tournoiPhrase").textContent')
+        etat['lignes'] = pg.evaluate('() => [...document.querySelectorAll("#tournoiMancheListe li")].map(li => li.textContent)')
+        etat['nouveau'] = pg.evaluate('() => (document.querySelector("#tournoiMancheListe li.nouveau") || { textContent: "" }).textContent')
+        return etat
+    vus = []
+    for m in range(3):
+        if m:
+            pubs = pg.evaluate(PUBS)
+            with pg.expect_navigation(): pg.click('#boutonTournoiSuite')
+            attendre(pg, '() => typeof JEU !== "undefined" && JEU.tournoi && JEU.ecran === "tournoiAToi"', None, 30000)
+            t(f'{titre} : manche {m + 1} : une pub entre deux manches (une seule), puis la page de la manche (son circuit) ; l’ordre de passage = l’inverse du classement général',
+              pg.evaluate(PUBS) == pubs + 1 and pg.evaluate(f'() => JEU.tournoi.manche === {m} && NOM_CIRCUIT === JEU.tournoi.circuits[{m}] && TOURNOI.joueurActuel(JEU.tournoi) === TOURNOI.ordre(JEU.tournoi, {m})[0] && TOURNOI.ordre(JEU.tournoi, {m}).join() === TOURNOI.classementGeneral({{ ...JEU.tournoi, passages: JEU.tournoi.passages.slice(0, {m}) }}).map(x => x.j).reverse().join()'),
+              str([pg.evaluate(J), pg.evaluate('() => [JEU.tournoi.manche, TOURNOI.ordre(JEU.tournoi, JEU.tournoi.manche)]')]))
+        for k in range(3):
+            pubs = pg.evaluate(PUBS)
+            e = passage(abandon=(m == 0 and k == 2))
+            vus.append(e)
+            t(f'{titre} : manche {m + 1}, passage {k + 1} : le fantôme du leader du moment ({"aucun pour le premier" if k == 0 else "présent"}), gameplayStart pendant le tour, le classement s’anime (le nouveau temps marqué), aucune pub entre deux joueurs',
+              e['fantome'] == (k > 0) and (e['leader'] is None) == (k == 0) and e['sdk'] == 'gameplayStart' and e['nouveau'] != '' and pg.evaluate(PUBS) == pubs, str(e))
+            if k < 2 or m == 2:
+                if k < 2: pg.click('#boutonTournoiSuite')
+            if m == 0 and k == 2:
+                t(f'{titre} : l’abandon donne « pas de temps », dernier de la manche', 'pas de temps' in e['lignes'][-1] or 'no time' in e['lignes'][-1], str(e['lignes']))
+                gen = pg.evaluate('() => [!document.getElementById("tournoiGeneral").classList.contains("cache"), [...document.querySelectorAll("#tournoiGeneralListe li")].map(li => li.textContent)]')
+                t(f'{titre} : à la fin de la manche, le classement général avec les points', gen[0] and len(gen[1]) == 3 and all('pts' in x for x in gen[1]), str(gen))
+                pg.wait_for_timeout(700); pg.screenshot(path=os.path.join(CAPTURES, 'tournoi.png'))
+    t(f'{titre} : la phrase du premier passage : « Léo prend la tête ! »', vus[0]['phrase'] in ('Léo prend la tête !', 'Léo takes the lead!'), vus[0]['phrase'])
+    pg.click('#boutonTournoiSuite')
+    attendre(pg, '() => JEU.ecran === "podium"', None, 10000)
+    pod = pg.evaluate('() => ({ ecran: JEU.ecran, marches: [...document.querySelectorAll("#podiumMarches .marche strong")].map(s => s.textContent), visibles: JEU.tournoiPodium.filter(m => m.groupe.visible).length, attendu: TOURNOI.podium(JEU.tournoi).map(x => JEU.tournoi.joueurs[x.j].prenom) })')
+    t(f'{titre} : le podium 3D des trois premiers (leurs casques, leurs prénoms)', pod['ecran'] == 'podium' and pod['visibles'] == 3 and len(pod['marches']) == 3 and all(any(p in m for m in pod['marches']) for p in pod['attendu']), str(pod))
+    pg.wait_for_timeout(700); pg.screenshot(path=os.path.join(CAPTURES, 'tournoi-podium.png'))
+    pg.click('#boutonResultats')
+    fin = pg.evaluate('() => ({ ecran: JEU.ecran, lignes: [...document.querySelectorAll("#tournoiFinListe li")].map(li => li.textContent), attendu: TOURNOI.classementGeneral(JEU.tournoi).map(x => JEU.tournoi.joueurs[x.j].prenom) })')
+    t(f'{titre} : le classement final (les points), puis « Rejouer » et « Nouveaux joueurs »', fin['ecran'] == 'tournoiFin' and len(fin['lignes']) == 3 and all(fin['lignes'][i].strip().startswith(fin['attendu'][i]) for i in range(3)), str(fin))
+    pubs = pg.evaluate(PUBS)
+    t(f'{titre} : en tout, une pub entre chaque manche (2), aucune entre deux joueurs', pubs == 2, str(pubs))
+    apres = pg.evaluate('() => JSON.stringify([JSON.parse(localStorage.getItem(SAUVEGARDE.CLE)).championnat, JSON.parse(localStorage.getItem(SAUVEGARDE.CLE)).fantomes])')
+    t(f'{titre} : la carrière n’a pas bougé (championnat, fantômes de carrière)', apres == carriere, str([carriere[:80], apres[:80]]))
+    with pg.expect_navigation(): pg.click('#boutonTournoiRejouer')
+    attendre(pg, '() => typeof JEU !== "undefined" && JEU.tournoi && JEU.ecran === "tournoiAToi"', None, 30000)
+    t(f'{titre} : « Rejouer » : une pub, puis un nouveau tournoi avec les mêmes joueurs et la même formule (manche 1, Léo d’abord)', pg.evaluate(PUBS) == 3 and pg.evaluate('() => JEU.tournoi.manche === 0 && JEU.tournoi.passages.every(p => !p.length) && JEU.tournoi.formule === "tournoi" && JEU.tournoi.joueurs.map(j => j.prenom).join() === "Léo,Sarah,Tom" && TOURNOI.joueurActuel(JEU.tournoi) === 0'), pg.evaluate(J))
 
 def course_joueur(pg, titre):
     # le joueur conduit sa voiture au clavier, au milieu de 9 IA ; la caméra le suit, Tab ne change rien
@@ -1594,7 +1722,9 @@ with sync_playwright() as p:
             pg.on('console', lambda m: console.append(m.type + ': ' + m.text) if m.type in ('error', 'warning') and not LECTURE_PIXELS.fullmatch(m.text) else None)
             pg.on('pageerror', lambda e: console.append('PAGEERROR ' + str(e)))
             pg.on('requestfailed', lambda r: console.append('FICHIER MANQUANT ' + r.url))
-            if 'test=sdk' in page or 'test=decouverte' in page or 'test=amis' in page: pg.add_init_script(FAUX_SDK)
+            if 'test=sdk' in page or 'test=decouverte' in page or 'test=amis' in page or 'test=tournoi' in page: pg.add_init_script(FAUX_SDK)
+            # le tournoi change de page entre deux manches : les pubs sont aussi comptées dans sessionStorage (qui survit au rechargement)
+            if 'test=tournoi' in page: pg.add_init_script("const __cb = PokiSDK.commercialBreak; PokiSDK.commercialBreak = function () { sessionStorage.setItem('pubs', String((+sessionStorage.getItem('pubs') || 0) + 1)); return __cb.call(this); };")
             pg.goto('file://' + RACINE + '/' + page); pg.wait_for_timeout(1500)
             t(f'{titre} : console vide', not console, ' | '.join(console)[:500])
             defile = pg.evaluate('() => [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth]')
@@ -1631,8 +1761,12 @@ with sync_playwright() as p:
                 deux_ecran(pg, titre, l, h, page)
             if 'test=amis' in page:
                 amis(pg, titre, l, h)
-            if 'pneus=1' in page:
+            if 'test=tournoi' in page:
+                tournoi(pg, titre, l, h)
+            if 'pneus=1' in page and 'test=stand' not in page:
                 pneus(pg, titre)
+            if 'test=stand' in page:
+                stand_ecran(pg, titre)
             if re.search(r'[?&]ia=1(&|$)', page):
                 course_ia(pg, titre)
             if re.search(r'[?&]ia=10(&|$)', page):

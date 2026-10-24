@@ -13,7 +13,7 @@ function creerVoiture(circuit, s = 0, d = 0) {
     avant: { x: 0, z: 0, cap: 0 },    // l'état au début du pas, pour l'interpolation de l'affichage
     piste: null,                      // le dernier positionSurPiste
     surHerbe: false, contactsBarriere: 0,
-    dansStands: false, standsExces: false, penalitesStands: 0, contactsMurStands: 0,   // la voie des stands (étape 7, derrière PNEUS_ACTIFS) : dedans, la limite de vitesse déjà dépassée à ce passage, les secondes de pénalité, les contacts du muret
+    dansStands: false, standsExces: false, penalitesStands: 0, contactsMurStands: 0, campStands: 0,   // la voie des stands (étape 7, derrière PNEUS_ACTIFS) : dedans, la limite de vitesse déjà dépassée à ce passage, les secondes de pénalité, les contacts du muret
     contactsVoiture: 0,               // les contacts avec une autre voiture (un frottement qui dure compte pour un)
     chocMax: 0,                       // la plus forte vitesse de choc contre une voiture (m/s, vitesse relative)
     chocs: [],                        // pour chaque contact, la plus forte vitesse de rapprochement (m/s)…
@@ -208,7 +208,9 @@ function contactPiste(v, circuit) {
   v.piste = p;
   // sur la voie des stands : pas d'herbe, et la limite de vitesse (la physique y ramène la voiture, une pénalité par passage)
   const dedans = !!(st && st.dansVoie);
-  v.surHerbe = dedans ? false : Math.abs(p.d) > circuit.largeur / 2 + R.MARGE_HERBE;
+  // (les rampes d'entrée et de sortie sont goudronnées, du bord de la piste jusqu'au bord de la voie)
+  const rampe = !!(st && st.rampe && p.d * st.cote > 0 && p.d * st.cote < st.dExt + R.MARGE_HERBE);
+  v.surHerbe = dedans || rampe ? false : Math.abs(p.d) > circuit.largeur / 2 + R.MARGE_HERBE;
   if (dedans) {
     if (v.u > R.STAND_VITESSE_MAX) {
       if (!v.standsExces) { v.standsExces = true; v.penalitesStands += R.STAND_PENALITE_VITESSE; }
@@ -216,6 +218,9 @@ function contactPiste(v, circuit) {
     }
   } else v.standsExces = false;
   v.dansStands = dedans;
+  // de quel côté du muret elle est (simulation.js, voituresVues : on ne voit pas une voiture de l'autre côté) : 1 la piste, 2 la voie, 0 sans muret ici
+  v.campStands = st && !st.rampe ? (st.voie ? 2 : 1) : 0;
+  v.rampeStands = rampe && p.d * st.cote > circuit.largeur / 2;   // dans une rampe, hors de la piste : elle entre aux stands ou en sort (ia.js, estLente)
 }
 
 // L'aspiration : derrière une voiture, dans son sillage (à moins de ASPIRATION_DISTANCE devant, à moins de

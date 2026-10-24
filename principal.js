@@ -6,7 +6,7 @@ const PARAMETRES = new URLSearchParams(location.search);
 // Les paramètres ?course=, ?ia=, ?camera=, ?seul=1 (l'écran de choix d'une course seule), ?joueur=1 et ?championnat=1 restent
 // les chemins des tests et du développement. (La page de test charge ce fichier sans scène : rien n'est décidé ni sauvegardé)
 const EST_PAGE = !!document.getElementById('scene3d');
-const PAGE_NUE = !['course', 'ia', 'camera', 'seul', 'joueur', 'championnat', 'deux'].some(k => PARAMETRES.has(k));
+const PAGE_NUE = !['course', 'ia', 'camera', 'seul', 'joueur', 'championnat', 'deux', 'tournoi'].some(k => PARAMETRES.has(k));
 const DECOUVERTE_EN_COURS = EST_PAGE && PAGE_NUE && !SAUVEGARDE.decouverteFaite();
 if (DECOUVERTE_EN_COURS) REGLAGES.NIVEAU = REGLAGES.DECOUVERTE_NIVEAU;   // les IA de la découverte sont au niveau débutant
 // ?championnat=1 (ou la page nue après la découverte) : le championnat sauvegardé, ou un nouveau ; son prochain Grand Prix choisit le circuit de la page
@@ -17,6 +17,9 @@ if (CHAMPIONNAT_EN_COURS && !SAUVEGARDE.championnat() && Number(PARAMETRES.get('
 // l'adresse (&circuit, &ia, &tours, &niveau : tests et développement) passent devant
 const DEUX_SAUVE = EST_PAGE && PARAMETRES.get('deux') === '1' ? DEUX_JOUEURS.completer(SAUVEGARDE.deux()) : null;
 if (DEUX_SAUVE) for (const [k, v] of [['circuit', DEUX_SAUVE.circuit], ['ia', DEUX_SAUVE.ia], ['tours', DEUX_SAUVE.tours], ['niveau', DEUX_SAUVE.niveau]]) if (!PARAMETRES.has(k)) PARAMETRES.set(k, String(v));
+// ?tournoi=1 : le tournoi chrono en cours (tournoi.js, sauvegardé à part de la carrière) ; le circuit est celui de sa manche en cours
+const TOURNOI_SAUVE = EST_PAGE && PARAMETRES.get('tournoi') === '1' ? (s => s && s.enCours && Array.isArray(s.enCours.passages) && s.enCours.joueurs && s.enCours.joueurs.length ? s.enCours : null)(SAUVEGARDE.tournoi()) : null;
+if (TOURNOI_SAUVE && !PARAMETRES.has('circuit')) PARAMETRES.set('circuit', TOURNOI_SAUVE.circuits[TOURNOI_SAUVE.manche]);
 const NOM_CIRCUIT = DECOUVERTE_EN_COURS ? REGLAGES.DECOUVERTE_CIRCUIT
   : CHAMPIONNAT_EN_COURS && CHAMPIONNAT_EN_COURS.prochain < CHAMPIONNAT_EN_COURS.calendrier.length ? CHAMPIONNAT_EN_COURS.calendrier[CHAMPIONNAT_EN_COURS.prochain].circuit
   : Object.prototype.hasOwnProperty.call(CIRCUITS, PARAMETRES.get('circuit')) ? PARAMETRES.get('circuit') : 'test';
@@ -112,6 +115,7 @@ function lancerCourse(nbTours) {
     // ?championnat=1 : le niveau de l'écurie sur le rythme de chaque IA, avant que la carte leur donne un pilote
     JEU.plateau = creerCourseIA(CIRCUIT, JEU.ia, nbTours, Number(PARAMETRES.get('graine')) || 1, JEU.championnat ? null : JEU.carte, JEU.contre);
     if (JEU.championnat) { CHAMPIONNAT.appliquerNiveaux(JEU.championnat, JEU.plateau); if (JEU.carte) donnerCarte(JEU.plateau, JEU.carte); }
+    if (JEU.championnat) poserRivalites(JEU.plateau, JEU.championnat.pilotes.map(q => !!(q && q.rivalite)));   // les rivaux de l'interview (ia.js, Codeur 1)
     suivre(JEU.contre ? JEU.ia : 0);   // contre les IA : la caméra suit le joueur
     appliquerCaracteres();
     if (JEU.contre) armerFeux(JEU.plateau.pilotes, Number(PARAMETRES.get('graine')) || 1);   // les feux de départ
@@ -238,7 +242,188 @@ function pasTourQualif(pas) {
   pasVoiture(v, CIRCUIT, pas);
   const finiAvant = q.fini, fini = QUALIFICATION.pas(q, v, pas);
   if (q.lance && !finiAvant) noterFantome(q, v, fini);   // le fantôme : le tour lancé, jusqu'au pas de l'arrivée
+  if (fini && JEU.tournoi) { finirTourTournoi(q, false); return; }   // le tournoi chrono : son classement, jamais le fantôme de carrière
   if (fini) { JEU.qualif.fantome = finirFantome(q); finirQualif(); }
+}
+
+// --- le tournoi chrono entre copains (tournoi.js, tour 26b, CLAUDE.md « Le tournoi chrono entre copains ») : l'inscription (depuis
+// « Entre amis »), puis la page ?tournoi=1 (le circuit de la manche en cours) : « À toi, Sarah ! » et 3 s, le tour de qualification
+// (le même code : qualification.js), avec le fantôme du leader du moment (fantome.js, en mémoire seulement), le classement de la
+// manche, le général ; entre deux manches (🏆) : une pub, puis la page de la manche suivante ; à la fin : le podium 3D des trois
+// premiers casques, le classement, « Rejouer » ou « Nouveaux joueurs » (une pub avant). Jamais de pub entre deux joueurs.
+function ouvrirTournoi() {
+  if (JEU.ecran !== 'amis') return;
+  const s = SAUVEGARDE.tournoi(), R = REGLAGES;
+  const v = TOURNOI.valider(s && Array.isArray(s.joueurs) && s.joueurs.length >= R.TOURNOI_JOUEURS_MIN ? s.joueurs : [{}, {}, {}], i => '');
+  INTERFACE.remplirInscription({ joueurs: v.joueurs.slice(0, R.TOURNOI_JOUEURS_MAX).map((j, i) => ({ prenom: s && s.joueurs ? j.prenom : '', casque: j.casque })), formule: s && s.formule === 'eclair' ? 'eclair' : 'tournoi', circuits: s && Array.isArray(s.circuits) ? s.circuits : [] });
+  JEU.ecran = 'tournoiInscription';
+  INTERFACE.montrer('tournoiInscription');
+}
+
+const nomParDefaut = i => texte('joueurN').replace('{n}', i + 1);
+
+// « C'est parti ! » : la liste vérifiée (2 à 8, prénoms différents), les circuits (choisis, ou tirés au sort), le tournoi créé et
+// sauvegardé (à part de la carrière), puis la page de la première manche
+function partirTournoi() {
+  if (JEU.ecran !== 'tournoiInscription') return false;
+  const choix = INTERFACE.lireInscription(), r = TOURNOI.valider(choix.joueurs, nomParDefaut);
+  INTERFACE.montrerErreursTournoi(r.erreurs);
+  if (!r.ok) return false;
+  const nb = choix.formule === 'tournoi' ? REGLAGES.TOURNOI_MANCHES : 1, ancien = SAUVEGARDE.tournoi() || {};
+  const graine = (ancien.tournois || 0) + 1;
+  const tires = TOURNOI.tirerCircuits(Object.keys(CIRCUITS), nb, graine);
+  const circuits = choix.circuits.slice(0, nb).map((c, m) => Object.prototype.hasOwnProperty.call(CIRCUITS, c) ? c : tires[m]);
+  SAUVEGARDE.ecrireTournoi({ joueurs: r.joueurs, formule: choix.formule, circuits: choix.circuits, tournois: graine, enCours: TOURNOI.creer(r.joueurs, choix.formule, circuits) });
+  location.href = adresseAvec({ tournoi: '1' });
+  return true;
+}
+
+// la page ?tournoi=1 : au démarrage, ou après un passage : « À toi, Sarah ! » et le compte à rebours (puis le tour)
+function montrerAToi() {
+  const t = JEU.tournoi, j = TOURNOI.joueurActuel(t);
+  if (j === null) return;
+  PODIUM3D.cacher();
+  JEU.tournoiCompte = REGLAGES.TOURNOI_COMPTE;
+  // la voiture du tour attend sur la ligne de lancement, son casque est celui du joueur
+  const v = creerVoiture(CIRCUIT, 0);
+  JEU.qualif = { etat: 'atoi', q: QUALIFICATION.creer(CIRCUIT, v), v, passe: false };
+  JEU.joueur = v; JEU.course = JEU.qualif.q.course;
+  VOITURE3D.majCasque(JEU.tournoi.joueurs.length, t.joueurs[j].casque);
+  INTERFACE.remplirAToi(t.joueurs[j], t.manche, TOURNOI.nbManches(t), texte('circuit_' + NOM_CIRCUIT) || CIRCUIT.nom);
+  INTERFACE.majCompteTournoi(JEU.tournoiCompte);
+  JEU.ecran = 'tournoiAToi';
+  INTERFACE.montrer('tournoiAToi');
+}
+
+// à chaque image de « À toi » : le compte à rebours (temps réel) ; à 0, le tour commence, avec le fantôme du leader du moment
+function majAToi(dt) {
+  if (JEU.ecran !== 'tournoiAToi') return;
+  JEU.tournoiCompte -= dt;
+  INTERFACE.majCompteTournoi(JEU.tournoiCompte);
+  if (JEU.tournoiCompte <= 0) commencerTourTournoi();
+}
+
+function commencerTourTournoi() {
+  const t = JEU.tournoi, chef = TOURNOI.leader(t, t.manche);
+  JEU.qualif.etat = 'tour';
+  JEU.qualif.q.course.compte = 0;   // (le compte à rebours de « À toi » vient d'avoir lieu : pas un second 3-2-1)
+  JEU.signal = null;
+  // le fantôme du meilleur temps du moment dans la manche (pénalités comprises, même un tour coupé) ; aucun pour le premier joueur
+  JEU.fantome = { rejeu: chef === null ? null : FANTOME.charger(JEU.tournoiFantomes[chef]), tour: FANTOME.commencer(), ecart: null, visible: SAUVEGARDE.option('fantome', true), roues: 0 };
+  if (JEU.fantome.rejeu && !JEU.modeleFantome) {
+    JEU.modeleFantome = VOITURE3D.creerFantome(REGLAGES.FANTOME_COULEUR, REGLAGES.FANTOME_OPACITE);
+    SCENE3D.ajouter(JEU.modeleFantome.groupe);
+  }
+  JEU.ecran = 'qualif';
+  INTERFACE.montrer('course');   // le bandeau du tour (chrono, secteurs), comme en qualification
+}
+
+// le tour fini (ou abandonné) : le temps (le tour + ses pénalités), le fantôme gardé en mémoire pour la suite de la manche,
+// le classement de la manche
+function finirTourTournoi(q, abandon) {
+  const t = JEU.tournoi, j = TOURNOI.joueurActuel(t), f = JEU.fantome;
+  if (j === null) return;
+  const avant = TOURNOI.classementManche(t, t.manche), recordAvant = avant.length && avant[0].temps !== null ? avant[0].temps : null;
+  if (!abandon && f) JEU.tournoiFantomes[j] = FANTOME.compacter(f.tour, q.tour, q.fin);
+  TOURNOI.enregistrer(t, j, abandon ? { abandon: true } : { tour: q.tour, penalites: q.penalites });
+  JEU.fantome = null;
+  JEU.qualif = null;
+  sauverTournoi();
+  montrerMancheTournoi(j, recordAvant);
+}
+
+function sauverTournoi() {
+  const s = SAUVEGARDE.tournoi() || {};
+  s.enCours = JEU.tournoi;
+  SAUVEGARDE.ecrireTournoi(s);
+}
+
+// la phrase après un passage : « Sarah prend la tête ! », « À 0,03 s du record ! », « Sarah : 3e », « pas de temps »
+function phraseTournoi(t, j, recordAvant) {
+  const c = TOURNOI.classementManche(t, t.manche), x = c.find(y => y.j === j), p = t.joueurs[j].prenom;
+  if (x.temps === null) return texte('tournoiPhraseAbandon').replace('{prenom}', p);
+  if (x.place === 1) return texte('tournoiPhraseTete').replace('{prenom}', p);
+  if (recordAvant !== null && x.temps - c[0].temps < REGLAGES.TOURNOI_PRES) return texte('tournoiPhrasePres').replace('{s}', (x.temps - c[0].temps).toFixed(2).replace('.', texte('virgule')));
+  return texte('tournoiPhrasePlace').replace('{prenom}', p).replace('{p}', x.place);
+}
+
+const lignesTournoi = (t, liste, nouveau) => liste.map(x => ({ prenom: t.joueurs[x.j].prenom, casque: t.joueurs[x.j].casque, temps: x.temps === undefined ? x.meilleur : x.temps, penalites: x.penalites || 0, points: x.points, nouveau: x.j === nouveau }));
+
+function montrerMancheTournoi(j, recordAvant) {
+  const t = JEU.tournoi, finie = TOURNOI.mancheFinie(t, t.manche), suivant = TOURNOI.joueurActuel(t);
+  const titre = TOURNOI.nbManches(t) > 1 ? avecTexte('tournoiManche', { m: t.manche + 1, n: TOURNOI.nbManches(t) }) : texte('formuleEclair');
+  const general = finie && t.formule === 'tournoi' ? lignesTournoi(t, TOURNOI.classementGeneral(t), null) : null;
+  const bouton = !finie ? texte('tournoiSuivant').replace('{prenom}', t.joueurs[suivant].prenom) : TOURNOI.fini(t) ? texte('tournoiPodium') : texte('tournoiMancheSuivante');
+  INTERFACE.remplirMancheTournoi(titre, phraseTournoi(t, j, recordAvant), lignesTournoi(t, TOURNOI.classementManche(t, t.manche), j), general, bouton);
+  JEU.ecran = 'tournoiManche';
+  INTERFACE.montrer('tournoiManche');
+}
+
+const avecTexte = (cle, v) => texte(cle).replace(/\{(\w+)\}/g, (m, k) => v[k] !== undefined ? v[k] : m);
+
+// le bouton sous le classement : le joueur suivant (sans pub), la manche suivante (une pub, puis sa page), ou le podium
+function suiteTournoi() {
+  if (JEU.ecran !== 'tournoiManche' || SDK.pubEnCours) return;
+  const t = JEU.tournoi;
+  if (!TOURNOI.mancheFinie(t, t.manche)) { montrerAToi(); return; }
+  if (TOURNOI.fini(t)) { montrerPodiumTournoi(); return; }
+  SDK.pubEntreCourses(() => { TOURNOI.mancheSuivante(t); sauverTournoi(); location.reload(); }, couperSonPub);
+}
+
+// le podium 3D : les trois premiers casques (une voiture chacun, à la couleur de son casque) et leurs prénoms
+function montrerPodiumTournoi() {
+  const t = JEU.tournoi, trois = TOURNOI.podium(t);
+  if (JEU.modele) JEU.modele.groupe.visible = false;
+  if (JEU.modeleFantome) JEU.modeleFantome.groupe.visible = false;
+  PODIUM3D.montrer(trois.map(x => JEU.tournoiPodium[x.j]));
+  INTERFACE.remplirPodium(trois.map(x => ({ numero: '', nom: t.joueurs[x.j].prenom, couleur: t.joueurs[x.j].casque.couleurs[0], total: x.meilleur, penalites: 0, casque: t.joueurs[x.j].casque })));
+  INTERFACE.remplirPodiumDeux(null);
+  JEU.tempsPodium = 0;
+  SON.signal('arrivee');
+  JEU.ecran = 'podium';
+  INTERFACE.montrer('podium');
+}
+
+function montrerFinTournoi() {
+  if (JEU.ecran !== 'podium' || !JEU.tournoi) return;
+  const t = JEU.tournoi;
+  INTERFACE.remplirFinTournoi(lignesTournoi(t, TOURNOI.classementGeneral(t), null), t.formule === 'tournoi');
+  JEU.ecran = 'tournoiFin';
+  INTERFACE.montrer('tournoiFin');
+}
+
+// « Rejouer » : les mêmes joueurs et la même formule (les circuits au hasard retirés) ; « Nouveaux joueurs » : l'inscription
+function rejouerTournoi() {
+  if (JEU.ecran !== 'tournoiFin' || SDK.pubEnCours) return;
+  SDK.pubEntreCourses(() => {
+    const s = SAUVEGARDE.tournoi(), t = JEU.tournoi, nb = TOURNOI.nbManches(t), graine = (s.tournois || 0) + 1, tires = TOURNOI.tirerCircuits(Object.keys(CIRCUITS), nb, graine);
+    const circuits = [...Array(nb)].map((x, m) => Object.prototype.hasOwnProperty.call(CIRCUITS, (s.circuits || [])[m]) ? s.circuits[m] : tires[m]);
+    s.tournois = graine;
+    s.enCours = TOURNOI.creer(t.joueurs, t.formule, circuits);
+    SAUVEGARDE.ecrireTournoi(s);
+    location.reload();
+  }, couperSonPub);
+}
+
+function nouveauxJoueursTournoi() {
+  if (JEU.ecran !== 'tournoiFin' || SDK.pubEnCours) return;
+  SDK.pubEntreCourses(() => {
+    const s = SAUVEGARDE.tournoi();
+    s.enCours = null;
+    SAUVEGARDE.ecrireTournoi(s);
+    location.href = adresseAvec({ menu: 'tournoi' });
+  }, couperSonPub);
+}
+
+// Échap pendant un tour : la pause du tournoi (reprendre, ou abandonner : pas de temps)
+function pauseTournoi(oui) {
+  if (oui && enTourQualif() && JEU.tournoi) { JEU.ecran = 'tournoiPause'; INTERFACE.montrer('tournoiPause'); }
+  else if (!oui && JEU.ecran === 'tournoiPause') { JEU.ecran = 'qualif'; INTERFACE.montrer('course'); }
+}
+
+function abandonnerTournoi() {
+  if (JEU.ecran !== 'tournoiPause') return;
+  finirTourTournoi(JEU.qualif.q, true);
 }
 
 // le tour est fini (ou passé) : la grille avec tous les temps, dès que les IA ont le leur (la carte), puis le résultat
@@ -324,8 +509,8 @@ function jouerDecouverte() {
 // « Entre amis » (l'écran titre et le paddock) : le petit menu (l'écran partagé à deux, le tournoi chrono) ; « Retour » revient
 // là d'où on vient
 function montrerAmis() {
-  if (JEU.ecran !== 'titre' && JEU.ecran !== 'championnat' && JEU.ecran !== 'deuxReglages') return;
-  if (JEU.ecran !== 'deuxReglages') JEU.amisDepuis = JEU.ecran;
+  if (JEU.ecran !== 'titre' && JEU.ecran !== 'championnat' && JEU.ecran !== 'deuxReglages' && JEU.ecran !== 'tournoiInscription') return;
+  if (JEU.ecran !== 'deuxReglages' && JEU.ecran !== 'tournoiInscription') JEU.amisDepuis = JEU.ecran;
   PODIUM3D.cacher();
   JEU.ecran = 'amis';
   INTERFACE.montrer('amis');
@@ -906,6 +1091,7 @@ function montrerPodium() {
   INTERFACE.remplirResultats(JEU.final.map(x => ({
     place: x.place, numero: numeroDe(x.k), couleur: JEU.couleurs[x.k], total: x.total, penalites: x.penalites,
     ecart: x.ecart, grille: x.grille, moi: x.k === JEU.suivie || !!joueurDe(x.k), casque: casqueDe(x.k), nom: nomDe(x.k),
+    arrets: x.arrets,   // les tours de ses arrêts au stand (étape 7, Codeur 1)
   })));
   INTERFACE.remplirPodiumDeux(JEU.deux ? DEUX_JOUEURS.joueurs(e).map(p => { const k = P.indexOf(p); return { nom: nomDe(k), place: JEU.final.find(x => x.k === k).place }; }) : null);
   INTERFACE.remplirRivalite(JEU.deux ? noterRivaliteDeux() : null);
@@ -1016,6 +1202,7 @@ function brancherClavier() {
       if (e.code === 'Enter' && !e.repeat) passerAuPodium();
     }
     if (e.code === 'Escape' && !e.repeat) pause(JEU.ecran === 'course');
+    if (e.code === 'Escape' && !e.repeat && JEU.tournoi) pauseTournoi(enTourQualif());   // le tournoi : la pause d'un tour (reprendre, abandonner)
     if (JEU.ecran === 'une' && !e.repeat) passerUne();   // n'importe quelle touche passe la une du journal
     else if (JEU.ecran === 'album' && !e.repeat) {   // l'album : ← → feuillettent, Échap ferme
       if (e.code === 'ArrowLeft') feuilleterAlbum(-1);
@@ -1062,6 +1249,7 @@ function conduireJoueur(p, pas) {
 function pasJoueur(pas) {
   if (JEU.ecran === 'pause') return;   // la pause arrête la physique
   JEU.pas++;
+  if (JEU.tournoi) { if (enTourQualif()) pasTourQualif(pas); JEU.remettre = false; return; }   // le tournoi chrono : seule la voiture du tour roule
   // ?ia=N : toutes les IA, leurs contacts, leurs courses (la voiture suivie comprise) ; avec &joueur=1, la voiture du
   // joueur est dans la même course et il la conduit au clavier
   if (JEU.plateau) {
@@ -1109,6 +1297,7 @@ function majClassementRadar() {
   INTERFACE.majClassement(ordre ? ordre.map(x => ({
     numero: numeroDe(x.k), couleur: JEU.couleurs[x.k], ecart: x.ecart, tours: x.tours, penalites: x.penalites, moi: x.k === JEU.suivie || (!!JEU.deux && !!P[x.k].joueur), casque: casqueDe(x.k),
     arrive: P[x.k].arrivee !== null, coequipier: x.k === kc, ecartDuel: x.k === kc ? duel : null,
+    stand: x.stand,   // dans la voie des stands (étape 7, Codeur 1)
   })) : null);
   const autres = [];
   P.forEach((p, k) => { if (k !== JEU.suivie && p.arrivee === null) autres.push({ x: p.v.x, z: p.v.z, couleur: JEU.couleurs[k] }); });
@@ -1158,7 +1347,7 @@ function majTableau() {
   document.getElementById('rapport').textContent = rapportPourVitesse(v.u);
   const roule = JEU.ecran === 'course' || JEU.ecran === 'survol' || enTourQualif();
   // sur le podium et les résultats, ni vitesse ni aide des touches
-  const apres = ['podium', 'resultats', 'championnat', 'une', 'garage', 'titre', 'amis', 'bravo', 'saison', 'duelSaison', 'contrats', 'retraite', 'sponsors', 'fiche', 'interview', 'ceremonie', 'album', 'temple', 'heritier', 'deuxReglages', 'aileron', 'arbre'].includes(JEU.ecran);
+  const apres = ['podium', 'resultats', 'championnat', 'une', 'garage', 'titre', 'amis', 'bravo', 'saison', 'duelSaison', 'contrats', 'retraite', 'sponsors', 'fiche', 'interview', 'ceremonie', 'album', 'temple', 'heritier', 'deuxReglages', 'tournoiInscription', 'tournoiAToi', 'tournoiPause', 'tournoiManche', 'tournoiFin', 'aileron', 'arbre'].includes(JEU.ecran);
   document.getElementById('tableau').classList.toggle('cache', apres);
   document.getElementById('aide').classList.toggle('cache', apres);
   // après l'arrivée du joueur (en attendant les autres), il ne court plus : pas de « hors piste »
@@ -1247,6 +1436,7 @@ function demarrerJeu() {
     JEU.monde = SAUVEGARDE.championnat();
     if (JEU.monde) JEU.indices = DECOUVERTE.pilotes(JEU.monde).slice(0, JEU.deux.nbIA).map(p => p.id);
   }
+  if (TOURNOI_SAUVE) { JEU.tournoi = TOURNOI_SAUVE; JEU.tournoiFantomes = {}; JEU.tournoiPodium = []; }   // (les fantômes du tournoi : en mémoire, une manche)
   JEU.contre = (PARAMETRES.get('joueur') === '1' && Number(PARAMETRES.get('ia')) >= 1) || !!JEU.championnat || JEU.decouverte || !!JEU.deux;
   JEU.ia = JEU.deux ? JEU.deux.nbIA : JEU.championnat ? JEU.championnat.pilotes.length - 1 : JEU.decouverte ? JEU.indices.length : Math.max(0, Math.min(REGLAGES.IA_PAGE_MAX - (JEU.contre ? 1 : 0), Math.floor(Number(PARAMETRES.get('ia'))) || 0));
   // la carte des IA : lue du cache de la sauvegarde si elle y est et si sa clé est encore valable (cache-carte.js : les mêmes
@@ -1288,7 +1478,13 @@ function demarrerJeu() {
     JEU.couleurs.forEach((couleur, k) => JEU.modeles.push(VOITURE3D.creer(couleur, JEU.contre && (k === JEU.ia || (JEU.deux && k === JEU.ia + 1)), undefined, k)));   // le joueur (les deux, à deux) : détaillée
     for (const m of JEU.modeles) SCENE3D.ajouter(m.groupe);
   }
-  if (!JEU.modeles.length) {
+  if (JEU.tournoi) {   // le tournoi : les casques des joueurs dans l'atlas (une voiture chacun pour le podium), puis la case de la voiture du tour
+    const cs = JEU.tournoi.joueurs.map(j => j.casque);
+    VOITURE3D.preparerCasques(cs.concat([cs[0]]));
+    cs.forEach((c, j) => { const m = VOITURE3D.creer(c.couleurs[0], false, undefined, j); m.groupe.visible = false; SCENE3D.ajouter(m.groupe); JEU.tournoiPodium.push(m); });
+    JEU.modele = VOITURE3D.creer(REGLAGES.COULEUR_JOUEUR, true, undefined, cs.length);
+    SCENE3D.ajouter(JEU.modele.groupe);
+  } else if (!JEU.modeles.length) {
     VOITURE3D.preparerCasques([CASQUE.neutre()]);
     JEU.modele = VOITURE3D.creer(REGLAGES.COULEUR_JOUEUR, true, undefined, 0);
     SCENE3D.ajouter(JEU.modele.groupe);
@@ -1314,12 +1510,17 @@ function demarrerJeu() {
     INTERFACE.preparerFiche(montrerFiche, quitterFiche);
     INTERFACE.preparerInterview(repondreInterview, finirInterview);
   } else if (JEU.decouverte) INTERFACE.preparerResultats(montrerBravo, () => {}, () => {});   // la découverte : après le podium, « Bravo ! »
+  else if (JEU.tournoi) INTERFACE.preparerResultats(montrerFinTournoi, () => {}, () => {});   // le tournoi : du podium au classement final
   else if (JEU.deux) {   // le mode 2 joueurs : après les résultats, « Revanche » et « Menu »
     INTERFACE.preparerResultats(voirResultats, revancheDeux, menuDeux);
     document.getElementById('boutonRejouerResultats').textContent = texte('revanche');
     document.getElementById('boutonChangerResultats').textContent = texte('menuAmis');
   } else INTERFACE.preparerResultats(voirResultats, () => lancerCourse(JEU.course.nbTours), allerAuChoix);
-  INTERFACE.preparerAmis(ouvrirDeux, null, montrerAmis);
+  INTERFACE.preparerAmis(ouvrirDeux, ouvrirTournoi, montrerAmis);
+  INTERFACE.preparerInscription(partirTournoi, montrerAmis);
+  INTERFACE.preparerPauseTournoi(() => pauseTournoi(false), abandonnerTournoi);
+  INTERFACE.preparerMancheTournoi(suiteTournoi);
+  INTERFACE.preparerFinTournoi(rejouerTournoi, nouveauxJoueursTournoi);
   INTERFACE.preparerDeux(partirDeux, montrerAmis);
   INTERFACE.preparerTitre(jouerDecouverte, montrerAmis, retourTitre, commencerCarriere);
   INTERFACE.preparerPilote(validerPilote);
@@ -1343,10 +1544,13 @@ function demarrerJeu() {
   else if (JEU.championnat && PAGE_NUE && PILOTE.manque(JEU.championnat)) montrerPilote();   // le vrai jeu, une sauvegarde sans pilote : la création, une fois (pas les pages ?championnat=1 des tests)
   else if (JEU.championnat && (JEU.championnat.retraite || SAISONS.finie(JEU.championnat))) montrerFinSaison();   // la saison est finie (la page a été rechargée pendant les contrats), ou la carrière
   else if (JEU.championnat) montrerChampionnat(null);
+  else if (EST_PAGE && PARAMETRES.get('tournoi') === '1' && !JEU.tournoi) location.replace(adresseAvec({ menu: 'tournoi' }));   // pas de tournoi en cours : l'inscription
+  else if (JEU.tournoi) { if (TOURNOI.fini(JEU.tournoi)) montrerPodiumTournoi(); else montrerAToi(); }   // le tournoi : « À toi, … ! » (ou le podium s'il est fini)
   else if (JEU.deux) lancerCourse(JEU.deux.nbTours);   // le mode 2 joueurs : la course tout de suite (son menu et ses réglages : ordre 3)
   else if (demandee !== null && !isNaN(Number(demandee))) lancerCourse(Number(demandee));
   else allerAuChoix();
-  if (PARAMETRES.get('menu') === 'amis') montrerAmis();   // le retour du mode 2 joueurs : le menu « Entre amis » (sur le titre ou le paddock)
+  if (PARAMETRES.get('menu') === 'amis') montrerAmis();
+  if (PARAMETRES.get('menu') === 'tournoi') { montrerAmis(); ouvrirTournoi(); }   // « Nouveaux joueurs » : l'inscription du tournoi   // le retour du mode 2 joueurs : le menu « Entre amis » (sur le titre ou le paddock)
   brancherClavier();
   const boutonSon = document.getElementById('boutonSon');
   boutonSon.title = texte('son');
@@ -1360,8 +1564,9 @@ function demarrerJeu() {
   BOUCLE.surPhysique(pasJoueur);
   BOUCLE.surAffichage((alpha, dt) => {
     JEU.alpha = alpha;
-    JEU.dtImage = dt;   // (« passer » en accéléré : le nombre de pas de l'image suit sa durée)
-    const apres = JEU.ecran === 'podium' || JEU.ecran === 'resultats' || JEU.ecran === 'bravo' || JEU.ecran === 'ceremonie';   // le podium (et la cérémonie du champion) : les voitures n'y bougent plus
+    JEU.dtImage = dt;
+    majAToi(dt);   // le tournoi : le compte à rebours de « À toi, … ! »   // (« passer » en accéléré : le nombre de pas de l'image suit sa durée)
+    const apres = JEU.ecran === 'podium' || JEU.ecran === 'resultats' || JEU.ecran === 'bravo' || JEU.ecran === 'tournoiFin' || JEU.ecran === 'ceremonie';   // le podium (et la cérémonie du champion) : les voitures n'y bougent plus
     // ?ia=N : chaque IA à sa place ; une IA arrivée quitte la piste (elle n'est plus dessinée)
     if (JEU.plateau && !apres) JEU.plateau.pilotes.forEach((p, k) => {
       const m = JEU.modeles[k];

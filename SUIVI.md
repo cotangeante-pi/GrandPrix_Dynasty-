@@ -30,6 +30,7 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 
 ## Tour en cours
 
+**2026-10-24 ~17h15 : le propriétaire : « FINIS LE CODE À 21H » → fin à 21h** (rien de nouveau après 20h40, dernier push 20h50, comptes rendus avant 20h55 ; à 21h le Chef fige main sur le dernier commit vert et écrit rapports/fin-2026-10-24.md).
 **2026-10-24 14h15 : boucle relancée par le propriétaire (« relance les 3 codeurs », sur Opus 5.5, pas Fable ; sans heure de fin).** Codeur 1 : tour 26 (stands, arrêt, puis l'effet de la rivalité) ; Codeur 2 : tour 25b ordre 3 (écrans du mode 2 joueurs) puis le tournoi chrono ; Codeur 3 : tour 28c (cérémonie, album, bilan et temple, relève). 14h30 : voie des stands fusionnée (a126135, GitHub 40119895463 TOUT PASSE). 14h45 : cérémonie du champion ; 15h00 : album des unes ; 15h15 : bilan de carrière et temple (carriere.js) ; 15h25 : le mode 2 joueurs complet (menu Entre amis, réglages, podium à deux, rivalité, Revanche). 15h55 : la relève (tour 28c fini : cérémonie, album, bilan, temple, relève). 16h00 : « passer » finit la course en accéléré (ta demande de 14h35 : podium 2,6 s après le clic avec 9 voitures, 5,1 s avec 19 en championnat ; identique au bit près).
 
 **Boucle du 2026-10-23 figée à minuit sur main 4fefa72 (vert, 83/100).** Reprise : rapports/fin-2026-10-23.md. Le détail des tours du jour :
@@ -79,6 +80,8 @@ Note du Chef session-5b (2026-10-23) : les lignes 18 à 19b ne s'additionnaient 
 
 ## À essayer par le propriétaire
 
+- **Les pneus et l'arrêt au stand** (tour 26) : `index.html?course=12&ia=9&joueur=1&pneus=1&circuit=technique` : le message te dit quand t'arrêter ; entre dans la voie (80 km/h), arrête-toi dans la zone, pneus neufs ; les IA s'arrêtent aussi. Dire : l'usure se sent ? l'arrêt (4 s) est trop long ? Ton accord = on active les pneus par défaut.
+- **Le tournoi chrono** : « Entre amis » → « Tournoi chrono » : de 2 à 8 joueurs, chacun son tour au clavier.
 - **Passer la télé** (ta demande) : finis une course contre les IA, clique « passer » : « ⏩ En accéléré : encore N voitures », puis le podium avec tout le monde arrivé.
 - **Le mode 2 joueurs complet** : au titre ou au paddock, « Entre amis » → « Écran partagé » : vos noms, couleurs et casques, le circuit, les tours, les IA ; après la course, le score de la rivalité et « Revanche ».
 - **La relève** : après le bilan, « Continuer la dynastie » : ton héritier (prénom, lien, casque proposé depuis le tien) repart d'une petite écurie dans le même monde. Dire : « de Alex » ou « d'Alex » (l'élision n'est pas faite) ?
@@ -146,6 +149,7 @@ Note du Chef session-5b (2026-10-23) : les lignes 18 à 19b ne s'additionnaient 
 
 ## Retours du propriétaire
 
+- 2026-10-24 ~18h10 : « dans le mode 2 joueurs sépare l'écran de droite à gauche et pas de haut en bas » → **décision du propriétaire** : écran partagé gauche/droite (J1 à gauche, J2 à droite), écrite dans CLAUDE.md ; ordre au Codeur 2.
 - 2026-10-24 ~14h35 : « ce serait bien si on finit une course et qu'on skippe la tv, toute la course se met en x100 de façon à ce que le temps que tu arrives sur le podium tout le monde a fini » → **décision du propriétaire** écrite dans CLAUDE.md (« La course ») ; ordre donné au Codeur 2, avant le tournoi chrono.
 - 2026-10-23 ~18h50 : « c'est normal que si on bloque une formule 1 tout un trafic à la queue leu leu attend ? ils sont censés doubler » → **décision du propriétaire** : une voiture bloquée ou très lente se contourne, partout, sans attendre une zone d'attaque (écrit dans CLAUDE.md, « Les IA des adversaires »). Cause : la règle de la file (IA_FILE_DISTANCE 30 m, IA_FILE_COTE 6 m) et l'attaque seulement avant un virage précédé de 150 m de droite. Ordre 3 du tour 22 au Codeur 1. Ça tranche aussi la question « contournement sans attaque » : voulu.
 - 2026-10-23 ~17h05 : « c'est possible de faire plus ressemblant au vrai ? » (les 12 tracés) → **décision du propriétaire** : circuits très ressemblants (reconnaissables au premier coup d'œil), noms changés, aucun logo. CLAUDE.md mis à jour ; ordre dans rapports/circuits-ressemblants-rapport.md, pour le premier Codeur libre (branche `circuits`). Codeur 3 = session-a7 (branche codeur3), donné par le propriétaire le même jour.
