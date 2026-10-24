@@ -737,3 +737,21 @@ html, body {
 #contrats button.signer { min-width: 0; padding: 6px 14px; font-size: 14px; }
 #contrats #boutonRetraite { background: #6b2b2b; }
 #retraiteBilan { font: 700 20px/1.3 var(--police); color: #ffd666; }
+
+/* les sponsors et la fiche du rival (Codeur 3) : tiennent en 960×600 */
+#championnatSponsor { font-size: 13px; opacity: 0.9; max-width: 92vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#sponsors h1 { margin: 0; }
+#sponsorsListe { margin: 4px 0; padding: 0; list-style: none; display: grid; gap: 8px; width: min(92vw, 720px); }
+#sponsorsListe > li { display: grid; grid-template-columns: 1fr auto auto; grid-template-areas: "nom montant bouton" "objectifs objectifs bouton"; gap: 2px 14px; align-items: center; padding: 8px 14px; border-radius: 8px; background: rgba(255, 255, 255, 0.1); font: 14px/1.3 var(--police); text-align: left; }
+#sponsorsListe .nom { grid-area: nom; font-weight: 700; font-size: 16px; }
+#sponsorsListe .montant { grid-area: montant; color: #ffd666; font-weight: 700; }
+#sponsorsListe .objectifs { grid-area: objectifs; margin: 0; padding: 0 0 0 16px; font-size: 12px; opacity: 0.9; }
+#sponsorsListe button.choisir { grid-area: bouton; min-width: 0; padding: 6px 14px; font-size: 14px; }
+#championnatPilotes li.rival { cursor: pointer; }
+#championnatPilotes li.rival:hover { background: rgba(255, 255, 255, 0.14); }
+#fiche h1 { margin: 0 0 6px; font-size: 26px; }
+#fiche p { margin: 0; font: 600 14px/1.5 var(--police); }
+#ficheCarte { display: flex; gap: 20px; align-items: flex-start; padding: 14px 18px; border-radius: 12px; background: rgba(255, 255, 255, 0.1); width: min(92vw, 720px); box-sizing: border-box; text-align: left; }
+#fichePhoto { flex: 0 0 110px; height: 130px; border-radius: 10px; border: 1px dashed rgba(255, 255, 255, 0.4); background: linear-gradient(180deg, var(--ecurie, #444) 0 36px, rgba(255, 255, 255, 0.06) 36px); }   /* la photo stylisée (le casque) viendra ici */
+#ficheTexte { flex: 1; min-width: 0; }
+#ficheCaractere { color: #ffd666; }

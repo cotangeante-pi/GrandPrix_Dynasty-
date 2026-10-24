@@ -45,7 +45,7 @@ const INTERFACE = (function () {
   }
 
   function montrer(ecran) {
-    for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une', 'garage', 'saison', 'duelSaison', 'contrats', 'retraite', 'titre', 'amis', 'bravo', 'pilote']) $(id).classList.toggle('cache', id !== ecran);
+    for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une', 'garage', 'saison', 'duelSaison', 'contrats', 'retraite', 'titre', 'amis', 'bravo', 'pilote', 'sponsors', 'fiche']) $(id).classList.toggle('cache', id !== ecran);
     // le bandeau de course n'est là que pendant la course et la pause (pas sous l'écran de fin)
     const course = ecran === 'course' || ecran === 'pause';
     for (const id of ['hudCourse', 'hudPenalite', 'compte', 'feux', 'classement', 'radar', 'jauge', 'departResultat', 'aides']) if (!course) $(id).classList.add('cache');
@@ -462,18 +462,20 @@ const INTERFACE = (function () {
     $('championnatEcuriesTitre').textContent = texte('classementEcuries');
     $('boutonCourseSuivante').textContent = texte('courseSuivante');
     $('boutonCourseSuivante').classList.toggle('cache', fini);
-    const ligne = (place, couleur, nom, points, moi, casque) => {
+    const ligne = (place, couleur, nom, points, moi, k, casque) => {
       const li = document.createElement('li');
       if (moi) li.className = 'moi';
       const sp = (classe, contenu) => { const e = document.createElement('span'); e.className = classe; e.append(contenu); return e; };
       const spNom = sp('nom', nom);
       if (casque) spNom.prepend(CASQUE.icone(casque, REGLAGES.CASQUE_ICONE));   // l'icône du casque (casque.js)
       li.append(sp('place', String(place)), pastille(couleur), spNom, sp('points', points + ' ' + texte('pts')));
+      // un rival : sa fiche au clic (fiche.js, Codeur 3)
+      if (k !== undefined && !moi) { li.dataset.k = k; li.classList.add('rival'); li.addEventListener('click', () => { if (ouvertureFiche) ouvertureFiche(k); }); }
       return li;
     };
     const pilotes = $('championnatPilotes'), ecuries = $('championnatEcuries');
     pilotes.textContent = ''; ecuries.textContent = '';
-    CHAMPIONNAT.classementPilotes(ch).forEach((x, i) => { const p = ch.pilotes[x.k]; pilotes.appendChild(ligne(i + 1, ch.ecuries[p.ecurie].couleur, nomPilote(p), x.points, p.humain, p.casque)); });
+    CHAMPIONNAT.classementPilotes(ch).forEach((x, i) => { const p = ch.pilotes[x.k]; pilotes.appendChild(ligne(i + 1, ch.ecuries[p.ecurie].couleur, nomPilote(p), x.points, p.humain, x.k, p.casque)); });
     CHAMPIONNAT.classementEcuries(ch).forEach((x, i) => { const e = ch.ecuries[x.id]; ecuries.appendChild(ligne(i + 1, e.couleur, nomEcurie(e), x.points, e.id === REGLAGES.ECURIE_JOUEUR)); });
   }
 
@@ -496,6 +498,7 @@ const INTERFACE = (function () {
     if (g.placesGagnees) detail.push(avec(texte('argentPlacesGagnees'), { p: g.nbPlacesGagnees, n: F(g.placesGagnees) }));
     if (g.duel) detail.push(avec(texte('argentDuel'), { n: F(g.duel) }));
     if (g.plafonne) detail.push(avec(texte('argentPlafond'), { n: F(g.total) }));
+    if (g.sponsor) detail.push(avec(texte('argentSponsor'), { n: F(g.sponsor) }));   // les primes du sponsor (hors plafond de la course)
     p.textContent = avec(texte('argentGagne'), { n: F(g.total) }) + (detail.length ? ' (' + detail.join(' · ') + ')' : '');
   }
 
@@ -510,7 +513,8 @@ const INTERFACE = (function () {
     const R = REGLAGES, F = ARGENT.formater, g = GARAGE.completer(ch);
     $('garageTitre').textContent = texte('garageTitre');
     $('garageSolde').textContent = avec(texte('solde'), { n: F(ARGENT.solde(ch)) });
-    $('garageBonus').textContent = avec(texte('garageBonus'), { a: (GARAGE.bonus(g) * 100).toFixed(1).replace('.', texte('virgule')), b: Math.round(R.GARAGE_PLAFOND * 100) });
+    const niveau = ch.ecuries[ch.pilotes.find(p => p.humain).ecurie].niveau;   // la voiture de l'écurie (garage.js appliquer)
+    $('garageBonus').textContent = avec(texte('garageVoiture'), { n: Math.round(niveau * 100), a: (GARAGE.bonus(g) * 100).toFixed(1).replace('.', texte('virgule')), b: Math.round(R.GARAGE_PLAFOND * 100) });
     $('boutonGarageRetour').textContent = texte('garageRetour');
     const liste = $('garageListe');
     liste.textContent = '';
@@ -616,6 +620,80 @@ const INTERFACE = (function () {
   }
   const retraiteEnAttente = () => retraiteDemandee;
 
+  // --- les sponsors (Codeur 3, sponsors.js) ---
+  // les objectifs d'un sponsor en texte : « 3 podiums dans la saison · prime 20 000 € · 1 / 3 » (l'avancement si l'offre est signée)
+  function texteObjectif(o, signe) {
+    const nom = avec(texte('objectif_' + o.type), { n: o.n, circuit: o.circuit ? (texte('circuit_' + o.circuit) || (CIRCUITS[o.circuit] ? CIRCUITS[o.circuit].nom : o.circuit)) : '' });
+    const etat = !signe ? '' : o.fait ? ' · ' + texte('objectifFait') : ' · ' + avec(texte('objectifEnCours'), { p: o.progres, n: o.n });
+    return nom + ' · ' + avec(texte('objectifPrime'), { n: ARGENT.formater(o.prime) }) + etat;
+  }
+
+  // l'écran : les offres (aChoisir) avec « Choisir », ou le sponsor signé avec l'avancement de ses objectifs ; « Retour »
+  let choixSponsor = null;
+  function remplirSponsors(ch, offres) {
+    $('sponsorsTitre').textContent = avec(texte('sponsorsTitre'), { n: ch.saison });
+    $('boutonSponsorsRetour').textContent = texte('sponsorsRetour');
+    const ul = $('sponsorsListe');
+    ul.textContent = '';
+    const signe = !SPONSORS.aChoisir(ch);
+    for (const o of signe ? [ch.sponsor] : offres) {
+      const li = document.createElement('li');
+      li.dataset.sponsor = o.cle;
+      const sp = (classe, contenu) => { const e = document.createElement(classe === 'objectifs' ? 'ul' : 'span'); e.className = classe; if (typeof contenu === 'string') e.textContent = contenu; return e; };
+      const objectifs = sp('objectifs');
+      for (const ob of o.objectifs) { const x = document.createElement('li'); x.textContent = texteObjectif(ob, signe); objectifs.appendChild(x); }
+      li.append(sp('nom', texte('sponsor_' + o.cle)), sp('montant', avec(texte('sponsorMontant'), { n: ARGENT.formater(o.montant) })), objectifs);
+      if (!signe) {
+        const b = document.createElement('button');
+        b.className = 'choisir';
+        b.tabIndex = -1;
+        b.textContent = texte('sponsorsChoisir');
+        b.addEventListener('mousedown', e => e.preventDefault());
+        b.addEventListener('click', () => { if (choixSponsor) choixSponsor(o.cle); });
+        li.appendChild(b);
+      }
+      ul.appendChild(li);
+    }
+  }
+
+  // le rappel au paddock (l'écran du championnat) : « Sponsor : Brio Café · objectif 1 / 3 · … » ou « Pas encore de sponsor »
+  function remplirRappelSponsor(ch) {
+    const s = ch.sponsor && ch.sponsor.saison === ch.saison ? ch.sponsor : null;
+    $('championnatSponsor').textContent = s ? avec(texte('sponsorRappel'), { nom: texte('sponsor_' + s.cle) }) + ' · ' + s.objectifs.map(o => texteObjectif(o, true)).join(' · ') : texte('sponsorAucun');
+  }
+
+  function preparerSponsors(ouvrir, choisir, retour) {
+    choixSponsor = choisir;
+    $('boutonSponsors').textContent = texte('sponsors');
+    for (const [id, f] of [['boutonSponsors', ouvrir], ['boutonSponsorsRetour', retour]]) {
+      $(id).addEventListener('mousedown', e => e.preventDefault());
+      $(id).addEventListener('click', f);
+    }
+  }
+
+  // --- la fiche d'un rival (Codeur 3, fiche.js) : f = FICHE.fiche(ch, k) ---
+  let ouvertureFiche = null;
+  function remplirFiche(ch, f) {
+    const p = f.pilote, e = ch.ecuries[p.ecurie];
+    $('ficheNom').textContent = nomPilote(p);
+    $('ficheInfos').textContent = '';
+    $('ficheInfos').append(texte('numero').replace('{n}', p.numero) + ' · ', pastille(e.couleur), ' ' + avec(texte('ficheEcurie'), { ecurie: nomEcurie(e) }) + (typeof p.age === 'number' ? ' · ' + avec(texte('ficheAge'), { n: p.age }) : ''));
+    $('ficheCaractere').textContent = f.mots.length ? avec(texte('ficheCaractere'), { mots: f.mots.map(m => texte('caractere_' + m)).join(', ') }) : '';
+    $('ficheSaison').textContent = avec(texte('ficheSaison'), { place: f.saison.place, points: f.saison.points, v: f.saison.victoires, p: f.saison.podiums, c: f.saison.courses });
+    $('ficheHistorique').textContent = avec(texte('ficheHistorique'), { s: f.historique.saisons, t: f.historique.titres, v: f.historique.victoires, p: f.historique.podiums, q: f.historique.poles, m: f.historique.meilleur === null ? '–' : f.historique.meilleur });
+    $('ficheDuels').textContent = avec(texte('ficheDuels'), { a: f.duels.devant, b: f.duels.derriere });
+    $('ficheCoequipier').textContent = f.duels.coequipier ? avec(texte('ficheCoequipier'), { a: f.duels.coequipier[0], b: f.duels.coequipier[1] }) : '';
+    $('fichePhoto').title = texte('fichePhoto');   // la photo stylisée (le casque) viendra ; la place est gardée
+    $('fichePhoto').style.setProperty('--ecurie', couleurCss(e.couleur));
+    $('boutonFicheRetour').textContent = texte('ficheRetour');
+  }
+
+  function preparerFiche(ouvrir, retour) {
+    ouvertureFiche = ouvrir;
+    $('boutonFicheRetour').addEventListener('mousedown', e => e.preventDefault());
+    $('boutonFicheRetour').addEventListener('click', retour);
+  }
+
   function preparerGarage(acheter, retour) {
     achatGarage = acheter;
     $('boutonGarageRetour').addEventListener('mousedown', e => e.preventDefault());
@@ -660,5 +738,6 @@ const INTERFACE = (function () {
   return { formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, preparerChampionnat, remplirQualif, preparerQualif,
     remplirDuel, avec, remplirUne, preparerUne, remplirArgent, remplirSolde, remplirGarage, preparerGarage,
     remplirSaison, remplirDuelSaison, remplirContrats, remplirRetraite, preparerSaison, retraiteEnAttente,
+    remplirSponsors, remplirRappelSponsor, preparerSponsors, remplirFiche, preparerFiche,
     majEcartFantome, preparerFantome, majBoutonsFantome, majDepart, preparerTitre, remplirBravo, majAides, remplirPilote, lirePilote, montrerErreursPilote, preparerPilote, nomCircuit, remplirCasque, lireCasque, modePilote, preparerCasque };
 })();

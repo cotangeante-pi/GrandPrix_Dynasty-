@@ -183,6 +183,26 @@ const REGLAGES = {
   NIVEAU_MONTENT: 3,            // les écuries les mieux classées montent de NIVEAU_EVOLUTION, les plus mal classées baissent d'autant
   NIVEAU_EVOLUTION: 0.005,
   NIVEAU_MIN: 0.94, NIVEAU_MAX: 1.0,
+  // la voiture du joueur suit le niveau de son écurie (CLAUDE.md « La carrière du joueur » ; décision du Chef, tour 25c) : GARAGE.appliquer
+  // multiplie moteur, aéro et freins par ce niveau (le même nombre que appliquerNiveaux pour les IA) ; false pour couper (à essayer par le propriétaire)
+  NIVEAU_JOUEUR_ACTIF: true,
+  // les sponsors (sponsors.js) : au début d'une saison, entre SPONSORS_OFFRES[0] et [1] offres parmi SPONSORS (ceux dont l'exigence ≤ la
+  // note du joueur, les petits complètent) ; le joueur en choisit SPONSORS_MAX ; noms dans textes.js (sponsor_<cle>), jamais une vraie marque
+  GRAINE_SPONSORS: 9000,
+  SPONSORS_MAX: 1,
+  SPONSORS_OFFRES: [2, 4],
+  SPONSORS: [
+    { cle: 'brio', montant: 10000, exigence: 0, objectifs: [{ type: 'sansPenalite', n: 1, prime: 5000 }] },
+    { cle: 'montclair', montant: 15000, exigence: 0.1, objectifs: [{ type: 'points', n: 20, prime: 10000 }] },
+    { cle: 'zephyr', montant: 20000, exigence: 0.25, objectifs: [{ type: 'duel', n: 8, prime: 15000 }, { type: 'top5Circuit', n: 1, prime: 10000 }] },
+    { cle: 'helios', montant: 30000, exigence: 0.4, objectifs: [{ type: 'podiums', n: 3, prime: 20000 }] },
+    { cle: 'kestrel', montant: 45000, exigence: 0.6, objectifs: [{ type: 'victoire', n: 1, prime: 25000 }, { type: 'points', n: 120, prime: 20000 }] },
+    { cle: 'orbis', montant: 70000, exigence: 0.8, objectifs: [{ type: 'podiums', n: 6, prime: 40000 }, { type: 'duel', n: 10, prime: 20000 }] },
+  ],
+  SPONSOR_DOMICILE_PRIME: 20000,    // l'objectif spécial du Grand Prix à domicile (podium chez soi : « prime doublée »)…
+  SPONSOR_DOMICILE_PLAFOND: 30000,  // … et son plafond
+  // la fiche d'un rival (fiche.js) : les mots du caractère, d'après ses nombres
+  FICHE_SEUILS: { rapide: 1.01, regulier: 0.006, agressif: 0.65, fautif: 0.6 },   // rythme ≥, régularité ≤, agressivité ≥, erreurs ≥
   // les noms des 20 pilotes, deux par écurie dans l'ordre (le 20e est remplacé par le joueur) : pas encore (les noms
   // inventés, à approuver par le propriétaire, viendront ici) ; sans nom, l'écran affiche texte('pilote') avec son numéro (« Driver 7 » / « Pilote 7 »)
   NOMS_PILOTES: [],
@@ -291,6 +311,22 @@ const REGLAGES = {
   IA_DROITE_ATTAQUE: 150,       // m : une attaque ne démarre qu'avant un virage précédé d'au moins tant de ligne droite
   IA_FILE_DISTANCE: 30,         // m : hors attaque, une voiture devant lui à moins de ça…
   IA_FILE_COTE: 6,              // m : … et à moins de ça de côté, il la suit (il reste à la file)
+  // une voiture lente ou arrêtée (décision du propriétaire, tour 22) : on la contourne, n'importe où, dès qu'il y a la place
+  IA_LENTE_PART: 0.45,          // une voiture vue sous cette part de la vitesse de la carte à son endroit…
+  IA_LENTE_DUREE: 6,            // s : … depuis plus de ce temps est « lente » (une voiture en erreur qui se remet, ou le peloton groupé du départ, ne l'est pas)…
+  IA_LENTE_PLUS_RAPIDE: 2,      // m/s : … et pas plus rapide que lui de plus de ça (une voiture qui repart devant lui n'est pas un obstacle)…
+  IA_ARRET_VITESSE: 5,          // m/s : … et une voiture sous ça (arrêtée ou presque)…
+  IA_ARRET_DUREE: 1,            // s : … depuis plus de ce temps l'est aussi (un bouchon à l'épingle descend sous 5 m/s une seconde, pas plus)
+  IA_LENTE_ECART: 5,            // m : la ligne « éviter » passe à ça d'elle (plus que IA_REFLEXE_COTE : le réflexe ne le freine pas)
+  IA_LENTE_CONTACT: 4,          // m : une ligne qui passe à moins de ça d'elle compte comme un contact (moins que IA_LENTE_ECART : près du bord, la ligne est bornée)
+  IA_LENTE_NB: 2,               // il contourne les 2 voitures lentes les plus proches devant lui (une ligne « éviter » de chaque côté pour chacune)
+  IA_PENALITE_LENTE: 30,        // s ajoutées à la note d'une ligne qui touche une voiture lente ou arrêtée (on ne passe pas à travers)
+  IA_LENTE_SUR: 2.5,            // m : au pas, il ne se retient derrière elle que si sa ligne passe à moins de ça d'elle (il la frôle)
+  IA_LENTE_VITESSE_FROLE: 5,    // m/s (18 km/h) : « au pas », c'est en dessous de ça
+  IA_LENTE_PROCHE: 15,          // m : plus vite, une voiture lente à moins de ça devant lui et de côté à moins de l'écart sûr le retient
+  IA_LENTE_AVANT: 40,           // m : il se porte à côté d'elle sur cette distance avant elle…
+  IA_LENTE_TEMPS: 1,            // s : … ou ce qu'il parcourt en ce temps, si c'est plus
+  IA_LENTE_APRES: 15,           // m : il reste à côté jusque-là derrière elle, puis revient sur sa ligne
   IA_VITESSE_VIRAGE_LENT: 36,   // m/s (130 km/h) : un virage lent, la carte y passe moins vite que ça…
   IA_NEZ_DEVANT: 0.5,           // … au point de freinage, l'attaquant doit y avoir le nez devant (son centre au moins cette part de longueur devant)
   IA_REFLEXE_COTE: 4.5,         // m : il ne braque pas vers une voiture à côté de lui plus près que ça

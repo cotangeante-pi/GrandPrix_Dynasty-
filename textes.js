@@ -134,6 +134,18 @@ const TEXTES = {
     retraiteChoix: 'You chose to retire after season {n}.', retraiteAge: 'Too old to race on after {n} seasons.',
     retraiteBilan: '{s} seasons · {v} wins · {p} podiums · {t} titles',
     breveRetraite: ['{pilote}, {age}, is thinking about retirement.', 'At {age}, {pilote} may be in a final season.'],
+    // les sponsors (sponsors.js) et la fiche du rival (fiche.js) (Codeur 3)
+    sponsors: 'Sponsors', sponsorsTitre: 'Sponsors for season {n}', sponsorsChoisir: 'Choose', sponsorsRetour: 'Back', sponsorMontant: '{n} per season',
+    sponsorRappel: 'Sponsor: {nom}', sponsorAucun: 'No sponsor yet', objectifPrime: 'bonus {n}', objectifFait: 'done ✔', objectifEnCours: '{p} / {n}',
+    objectif_podiums: '{n} podiums this season', objectif_points: '{n} points this season', objectif_duel: 'Beat your teammate {n} times', objectif_top5Circuit: 'Top 5 at {circuit}',
+    objectif_sansPenalite: 'Finish a race without a penalty', objectif_victoire: 'Win a race', objectif_domicile: 'Podium at home ({circuit}): bonus doubled',
+    argentSponsor: 'sponsor bonus: {n}',
+    sponsor_brio: 'Brio Café', sponsor_montclair: 'Mont-Clair Waters', sponsor_zephyr: 'Zephyr Telecom', sponsor_helios: 'Helios Lubricants', sponsor_kestrel: 'Kestrel Aero', sponsor_orbis: 'Orbis Insurance',
+    ficheRetour: 'Back', ficheAge: '{n} years old', ficheCaractere: 'Character: {mots}', ficheEcurie: 'Team: {ecurie}',
+    ficheSaison: 'This season: P{place} · {points} pts · {v} wins · {p} podiums · {c} races', ficheHistorique: 'Career: {s} seasons · {t} titles · {v} wins · {p} podiums · {q} poles · best finish P{m}',
+    ficheDuels: 'Against you: ahead {a} times, behind {b} times', ficheCoequipier: 'As your teammate: {a}–{b}', fichePhoto: 'photo',
+    caractere_rapide: 'fast', caractere_regulier: 'consistent', caractere_agressif: 'aggressive', caractere_fautif: 'error-prone', caractere_pose: 'steady',
+    garageVoiture: 'Team car: {n} / 100 · your upgrades: +{a} % / {b} % max',
   },
   fr: {
     nomDuJeu: 'Grand Prix Dynasty',
@@ -259,6 +271,18 @@ const TEXTES = {
     retraiteChoix: 'Tu as choisi de t’arrêter après la saison {n}.', retraiteAge: 'Trop vieux pour continuer après {n} saisons.',
     retraiteBilan: '{s} saisons · {v} victoires · {p} podiums · {t} titres',
     breveRetraite: ['{pilote}, {age} ans, pense à la retraite.', 'À {age} ans, {pilote} vit peut-être une dernière saison.'],
+    // les sponsors (sponsors.js) et la fiche du rival (fiche.js) (Codeur 3)
+    sponsors: 'Sponsors', sponsorsTitre: 'Les sponsors pour la saison {n}', sponsorsChoisir: 'Choisir', sponsorsRetour: 'Retour', sponsorMontant: '{n} par saison',
+    sponsorRappel: 'Sponsor : {nom}', sponsorAucun: 'Pas encore de sponsor', objectifPrime: 'prime {n}', objectifFait: 'fait ✔', objectifEnCours: '{p} / {n}',
+    objectif_podiums: '{n} podiums dans la saison', objectif_points: '{n} points dans la saison', objectif_duel: 'Battre ton coéquipier {n} fois', objectif_top5Circuit: 'Dans les 5 premiers à {circuit}',
+    objectif_sansPenalite: 'Finir une course sans pénalité', objectif_victoire: 'Gagner une course', objectif_domicile: 'Podium à domicile ({circuit}) : prime doublée',
+    argentSponsor: 'prime sponsor : {n}',
+    sponsor_brio: 'Brio Café', sponsor_montclair: 'Eaux Mont-Clair', sponsor_zephyr: 'Zéphyr Télécom', sponsor_helios: 'Hélios Lubrifiants', sponsor_kestrel: 'Kestrel Aéro', sponsor_orbis: 'Orbis Assurances',
+    ficheRetour: 'Retour', ficheAge: '{n} ans', ficheCaractere: 'Caractère : {mots}', ficheEcurie: 'Écurie : {ecurie}',
+    ficheSaison: 'Cette saison : P{place} · {points} pts · {v} victoires · {p} podiums · {c} courses', ficheHistorique: 'Carrière : {s} saisons · {t} titres · {v} victoires · {p} podiums · {q} poles · meilleur classement P{m}',
+    ficheDuels: 'Contre toi : devant {a} fois, derrière {b} fois', ficheCoequipier: 'Comme coéquipier : {a}–{b}', fichePhoto: 'photo',
+    caractere_rapide: 'rapide', caractere_regulier: 'régulier', caractere_agressif: 'agressif', caractere_fautif: 'fautif', caractere_pose: 'posé',
+    garageVoiture: 'Voiture de l’écurie : {n} / 100 · tes améliorations : +{a} % / {b} % maxi',
   },
 };
 

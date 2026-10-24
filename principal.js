@@ -122,7 +122,7 @@ function lancerCourse(nbTours) {
   JEU.joueur.pneus = REGLAGES.PNEUS_ACTIFS && (JEU.contre || !JEU.plateau) ? creerPneus() : null;
   JEU.joueur.adherence = 1;
   if (JEU.deux) { const v2 = DEUX_JOUEURS.joueurs(JEU.plateau)[1].v; v2.pneus = JEU.joueur.pneus ? creerPneus() : null; v2.adherence = 1; }   // le joueur 2 : la même voiture
-  GARAGE.appliquer(JEU.joueur, JEU.championnat ? JEU.championnat.garage : null);   // ?championnat=1 : les améliorations du garage sur la voiture du joueur (1 = rien sans championnat)
+  GARAGE.appliquer(JEU.joueur, JEU.championnat ? JEU.championnat.garage : null, niveauEcurieJoueur());   // ?championnat=1 : les améliorations du garage × le niveau de l'écurie, sur la voiture du joueur (1 = rien sans championnat)
   JEU.enregistreur = creerEnregistrement();
   JEU.fantome = null;   // le fantôme ne vit que pendant le tour de qualification (commencerFantome)
   JEU.departRecord = false;
@@ -150,7 +150,7 @@ function commencerQualif() {
 function faireMonTour() {
   if (!JEU.qualif || JEU.qualif.etat !== 'choix') return;
   const v = creerVoiture(CIRCUIT, 0);
-  GARAGE.appliquer(v, JEU.championnat ? JEU.championnat.garage : null);   // la même voiture qu'en course (garage)
+  GARAGE.appliquer(v, JEU.championnat ? JEU.championnat.garage : null, niveauEcurieJoueur());   // la même voiture qu'en course (garage, niveau de l'écurie)
   JEU.qualif.v = v;
   JEU.qualif.q = QUALIFICATION.creer(CIRCUIT, v);
   JEU.qualif.etat = 'tour';
@@ -433,12 +433,20 @@ function numeroDe(k) {
   return ch && ch.pilotes[k] ? ch.pilotes[k].numero : P[k].numero;
 }
 
+// ?championnat=1 : le niveau de l'écurie du joueur (la qualité de sa F1, garage.js appliquer) ; 1 hors championnat (découverte, essais)
+function niveauEcurieJoueur() {
+  if (!JEU.championnat) return 1;
+  const j = JEU.championnat.pilotes.find(p => p.humain);
+  return j ? JEU.championnat.ecuries[j.ecurie].niveau : 1;
+}
+
 // ?championnat=1 : l'écran entre les courses ; gagne : les points du Grand Prix qui vient de finir (null au démarrage)
 function montrerChampionnat(gagne) {
   PODIUM3D.cacher();
   INTERFACE.remplirChampionnat(JEU.championnat, gagne, texte('circuit_' + NOM_CIRCUIT) || CIRCUIT.nom);   // les circuits d'essai ont leur texte ; les autres gardent leur nom
   INTERFACE.remplirDuel(CHAMPIONNAT.scoreDuel(JEU.championnat), JEU.championnat);
   INTERFACE.remplirSolde(JEU.championnat);
+  INTERFACE.remplirRappelSponsor(JEU.championnat);
   JEU.ecran = 'championnat';
   INTERFACE.montrer('championnat');
 }
@@ -516,8 +524,46 @@ function signerContrat(id) {
   SAUVEGARDE.ecrireChampionnat(JEU.championnat);
   JEU.gagne = null;
   JEU.grandPrixFini = true;   // « Course suivante » recharge la page sur le premier Grand Prix de la nouvelle saison (le circuit change)
-  montrerChampionnat(null);
+  montrerSponsors();   // la nouvelle saison commence par le choix du sponsor
   return true;
+}
+
+// ?championnat=1 : les sponsors (sponsors.js) : les offres à choisir au début de la saison (après les contrats, ou par le bouton
+// « Sponsors » du paddock tant qu'aucun n'est signé), sinon le sponsor signé et l'avancement de ses objectifs
+function montrerSponsors() {
+  if (JEU.ecran !== 'championnat' && JEU.ecran !== 'contrats') return;
+  const ch = JEU.championnat;
+  INTERFACE.remplirSponsors(ch, SPONSORS.aChoisir(ch) ? SPONSORS.offres(ch) : []);
+  JEU.ecran = 'sponsors';
+  INTERFACE.montrer('sponsors');
+}
+
+function choisirSponsor(cle) {
+  if (JEU.ecran !== 'sponsors') return false;
+  if (!SPONSORS.choisir(JEU.championnat, cle)) return false;
+  SAUVEGARDE.ecrireChampionnat(JEU.championnat);
+  montrerChampionnat(JEU.gagne);
+  return true;
+}
+
+function quitterSponsors() {
+  if (JEU.ecran !== 'sponsors') return;
+  montrerChampionnat(JEU.gagne);
+}
+
+// ?championnat=1 : la fiche d'un rival (fiche.js), au clic sur son nom dans le classement du paddock
+function montrerFiche(k) {
+  if (JEU.ecran !== 'championnat') return;
+  const p = JEU.championnat.pilotes[k];
+  if (!p || p.humain) return;
+  INTERFACE.remplirFiche(JEU.championnat, FICHE.fiche(JEU.championnat, k));
+  JEU.ecran = 'fiche';
+  INTERFACE.montrer('fiche');
+}
+
+function quitterFiche() {
+  if (JEU.ecran !== 'fiche') return;
+  montrerChampionnat(JEU.gagne);
 }
 
 function prendreRetraite() {
@@ -596,7 +642,7 @@ function montrerPodium() {
   // ?championnat=1 : les gains du joueur (argent.js), calculés sur le classement final de cet instant (encaissés à « Continuer »)
   if (JEU.championnat) {
     const lignes = CHAMPIONNAT.lignesDepuisCourse(e), g = ARGENT.gains(JEU.championnat, lignes), moi = lignes.find(l => l.k === JEU.ia);
-    if (g) g.placeNumero = moi.place;
+    if (g) { g.placeNumero = moi.place; g.sponsor = SPONSORS.primesPour(JEU.championnat, lignes); }   // les primes du sponsor que ce classement apporterait (sponsors.js)
     INTERFACE.remplirArgent(g);
   } else INTERFACE.remplirArgent(null);
   JEU.tempsPodium = 0;
@@ -791,7 +837,7 @@ function majTableau() {
   document.getElementById('rapport').textContent = rapportPourVitesse(v.u);
   const roule = JEU.ecran === 'course' || JEU.ecran === 'survol' || enTourQualif();
   // sur le podium et les résultats, ni vitesse ni aide des touches
-  const apres = ['podium', 'resultats', 'championnat', 'une', 'garage', 'titre', 'amis', 'bravo', 'saison', 'duelSaison', 'contrats', 'retraite'].includes(JEU.ecran);
+  const apres = ['podium', 'resultats', 'championnat', 'une', 'garage', 'titre', 'amis', 'bravo', 'saison', 'duelSaison', 'contrats', 'retraite', 'sponsors', 'fiche'].includes(JEU.ecran);
   document.getElementById('tableau').classList.toggle('cache', apres);
   document.getElementById('aide').classList.toggle('cache', apres);
   // après l'arrivée du joueur (en attendant les autres), il ne court plus : pas de « hors piste »
@@ -935,6 +981,8 @@ function demarrerJeu() {
     INTERFACE.preparerUne(passerUne);
     INTERFACE.preparerGarage(acheterAmelioration, quitterGarage);
     INTERFACE.preparerSaison(suiteClassementSaison, suiteDuelSaison, signerContrat, prendreRetraite);
+    INTERFACE.preparerSponsors(montrerSponsors, choisirSponsor, quitterSponsors);
+    INTERFACE.preparerFiche(montrerFiche, quitterFiche);
   } else if (JEU.decouverte) INTERFACE.preparerResultats(montrerBravo, () => {}, () => {});   // la découverte : après le podium, « Bravo ! »
   else INTERFACE.preparerResultats(voirResultats, () => lancerCourse(JEU.course.nbTours), allerAuChoix);
   INTERFACE.preparerTitre(jouerDecouverte, montrerAmis, retourTitre, commencerCarriere);
