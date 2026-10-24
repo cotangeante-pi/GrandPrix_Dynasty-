@@ -227,6 +227,12 @@ const CARRIERE = (function () {
     return true;
   }
 
+  // « Nouvelle dynastie » : un monde neuf (une autre graine : d'autres rivaux, d'autres caractères) ; l'ancienne carrière reste au
+  // temple (sauvegarde.js : entrerAuTemple, à la racine de la sauvegarde)
+  function nouveauMonde(ancien) {
+    return CHAMPIONNAT.creer(((ancien && ancien.graine) || 1) * 7 + 13);
+  }
+
   // la génération d'avant (son résumé), ou null pour un premier pilote
   function parent(ch) {
     completer(ch);
@@ -243,7 +249,7 @@ const CARRIERE = (function () {
   }
 
   // les clés de texte qui parlent du pilote précédent (jamais genrées : tests) et celles de l'héritier (une par lien)
-  const CLES_PARENT = ['ficheFamille', 'releveTitre', 'releveParent', 'heritierParent', 'arbreTitre', 'bilanFamille'];
+  const CLES_PARENT = ['ficheFamille', 'releveTitre', 'releveParent', 'heritierParent', 'heritierMotif', 'arbreTitre', 'bilanFamille', 'continuerDynastie', 'nouvelleDynastie', 'heritierTitre'];
   const CLES_HERITIER = l => ['uneTitre_releve_' + l, 'uneTexte_releve_' + l, 'heritierLien_' + l];
 
   // --- le temple de la renommée et les records de carrière (à la racine de la sauvegarde : t = { carrieres, records }) ---
@@ -285,5 +291,5 @@ const CARRIERE = (function () {
   }
 
   return { completer, suivre, noterReaction, duels, unePreferee, bilan, resume, templeVierge, completerTemple, classer, entrer, place, RECORDS,
-    famille, LIENS, recordsFamille, reputationDepart, attention, validerHeritier, casqueParent, continuer, parent, aCouruContreParent, CLES_PARENT, CLES_HERITIER };
+    famille, LIENS, recordsFamille, reputationDepart, attention, validerHeritier, casqueParent, continuer, nouveauMonde, parent, aCouruContreParent, CLES_PARENT, CLES_HERITIER };
 })();

@@ -61,7 +61,9 @@ const FICHE = (function () {
     const duels = { devant: d[0], derriere: d[1], coequipier: c ? [c.qualifs[0] + c.courses[0], c.qualifs[1] + c.courses[1]] : null };
     // la rivalité posée par l'interview (interview.js) : la dernière phrase dite sur lui, où et quand, les courses qui restent
     const rv = p.rivalite ? { courses: p.rivalite.courses, cle: p.rivalite.cle, variante: p.rivalite.variante, params: p.rivalite.params, circuit: p.rivalite.circuit, saison: p.rivalite.saison } : null;
-    return { pilote: p, mots: mots(p), saison, historique, duels, rivalite: rv };
+    // la relève : un rival qui a couru contre la génération d'avant le dit (l'indice de cette génération, ou null)
+    const famille = typeof CARRIERE !== 'undefined' && CARRIERE.aCouruContreParent(ch, k) ? ch.dynastie.generations.length - 1 : null;
+    return { pilote: p, mots: mots(p), saison, historique, duels, rivalite: rv, famille };
   }
 
   return { completer, suivre, mots, fiche };

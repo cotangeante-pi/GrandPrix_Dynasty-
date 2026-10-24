@@ -1093,7 +1093,7 @@ CEREMONIE_ETAT = '''() => { const ch = JEU.championnat, $ = id => document.getEl
 # un championnat fabriqué cohérent où le joueur (19) est champion : n Grands Prix joués d'avance avec de vraies places (il gagne un
 # Grand Prix sur deux, il est 2e sinon, derrière le pilote 0 puis le 1) ; les points, victoires, album et argent en découlent ; il
 # remplace le championnat de la page (le même objet) et il est sauvegardé
-FABRIQUER_CHAMPION = '''n => { const ch = CHAMPIONNAT.creer(JEU.championnat.graine); ch.pilotes[19].casque = JEU.championnat.pilotes[19].casque; CASQUE.completer(ch);
+FABRIQUER_CHAMPION = '''n => { const ch = CHAMPIONNAT.creer(JEU.championnat.graine); ch.pilotes[19].casque = JEU.championnat.pilotes[19].casque; ch.pilotes[19].nom = 'Marco Rossi'; ch.pilotes[19].pays = 'it'; ch.pilotes[19].coeur = 'monzo'; CASQUE.completer(ch); CARRIERE.completer(ch);
   for (let g = 0; g < n; g++) { const tete = g % 2 ? [19, 0] : [g % 4 ? 1 : 0, 19], o = tete.concat([...Array(20).keys()].filter(k => !tete.includes(k)));
     const lignes = o.map((k, i) => ({ k, place: i + 1, grille: i + 1, ligne: i + 1, penalites: 0, meilleurTour: 60 + i, classe: true }));
     CHAMPIONNAT.enregistrerCourse(ch, lignes); JOURNAL.ranger(ch, JOURNAL.composer(ch, lignes)); ARGENT.encaisser(ch, lignes); }
@@ -1140,6 +1140,42 @@ def bilan_temple(pg, titre):
     pg.reload()
     t(f'{titre} : (rechargement) le bilan, le temple toujours à 1 carrière', attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "retraite" && SAUVEGARDE.temple().carrieres.length === 1', None, 60000), str(pg.evaluate('() => typeof JEU !== "undefined" && [JEU.ecran, SAUVEGARDE.temple().carrieres.length]')))
 
+# la relève (tour 28c) : depuis le bilan, « Continuer la dynastie » : l'écran de l'héritier (le parent nommé, le nom de famille gardé,
+# les quatre liens, le motif aux couleurs du parent, l'arbre) ; Léa, « fille », n° libre → le paddock de la saison 2, le même monde ;
+# le premier Grand Prix (joué d'avance) : la une « La fille de Marco Rossi débarque »
+def releve(pg, titre):
+    t(f'{titre} : le bilan propose « 👪 Continuer la dynastie » et « ✨ Nouvelle dynastie » ; les records de famille', pg.evaluate('() => document.getElementById("boutonContinuerDynastie").textContent === "👪 Continuer la dynastie" && document.getElementById("boutonNouvelleDynastie").textContent === "✨ Nouvelle dynastie" && document.getElementById("bilanFamille").textContent.startsWith("Records de famille : 1 génération")'), pg.evaluate('() => document.getElementById("bilanFamille").textContent'))
+    avant = pg.evaluate('() => ({ ecuries: JEU.championnat.ecuries.map(e => e.couleur), rivaux: JEU.championnat.pilotes.filter(p => !p.humain).map(p => p.id + ":" + p.numero), saison: JEU.championnat.saison, casque: JSON.stringify(JEU.championnat.pilotes[19].casque) })')
+    pg.click('#boutonContinuerDynastie')
+    h = pg.evaluate('''() => ({ ecran: JEU.ecran, parent: document.getElementById("heritierParent").textContent, famille: document.getElementById("heritierFamille").textContent,
+      liens: [...document.querySelectorAll("#heritierLien option")].map(o => o.textContent), motif: document.getElementById("heritierMotif").value, attenduMotif: JEU.championnat.pilotes[19].casque.motif,
+      pays: document.getElementById("heritierPays").value, arbre: document.querySelectorAll("#arbreListe li").length,
+      dans: [...document.querySelectorAll("#heritier > *")].every(e => { const r = e.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight && r.right <= innerWidth; }),
+      defile: [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth] })''')
+    t(f'{titre} : l’écran de l’héritier : « Prendre la suite de Marco Rossi », le nom de famille Rossi, les 4 liens accordés, le motif et le pays du parent, l’arbre, tout dans l’écran',
+      h['ecran'] == 'heritier' and h['parent'] == 'Prendre la suite de Marco Rossi' and h['famille'] == 'Nom de famille : Rossi' and h['liens'] == ['fils de Marco Rossi', 'fille de Marco Rossi', 'protégé de Marco Rossi', 'protégée de Marco Rossi']
+      and h['motif'] == h['attenduMotif'] and h['pays'] == 'it' and h['arbre'] == 1 and h['dans'] and pas_de_defilement(h['defile']), str(h))
+    pg.click('#boutonHeritierValider')
+    t(f'{titre} : sans prénom, l’héritier est refusé (message)', pg.evaluate('() => JEU.ecran === "heritier" && document.getElementById("heritierErreur").textContent !== ""'))
+    pg.fill('#heritierPrenom', 'Léa'); pg.select_option('#heritierLien', 'fille')
+    pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'releve.png'))
+    pg.click('#boutonHeritierValider')
+    s = pg.evaluate('''() => { const ch = JEU.championnat, j = ch.pilotes[19], faible = ch.ecuries.slice().sort((a, b) => a.niveau - b.niveau || b.id - a.id)[0].id;
+      return { ecran: JEU.ecran, saison: ch.saison, prochain: ch.prochain, nom: j.nom, ecurie: j.ecurie, faible, garage: Object.values(ch.garage).every(x => x === 0), solde: ch.argent.solde, stats: j.stats.courses + j.stats.victoires,
+        gens: ch.dynastie.generations.length, lien: ch.dynastie.lien, couleurs: JSON.stringify(j.casque.couleurs), sauve: SAUVEGARDE.championnat().saison, retraite: ch.retraite,
+        ecuries: ch.ecuries.map(e => e.couleur), titre: document.getElementById("championnatTitre").textContent }; }''')
+    t(f'{titre} : « C’est parti ! » : Léa Rossi, la fille, au paddock de la saison {avant["saison"] + 1} (Grand Prix 1), le même monde (les mêmes écuries), dans la plus petite écurie, sans garage ni argent, sauvegardé',
+      s['ecran'] == 'championnat' and s['saison'] == avant['saison'] + 1 and s['prochain'] == 0 and s['nom'] == 'Léa Rossi' and s['ecurie'] == s['faible'] and s['garage'] and s['solde'] == 0 and s['stats'] == 0
+      and s['gens'] == 1 and s['lien'] == 'fille' and s['couleurs'] == json_couleurs(avant['casque']) and s['sauve'] == s['saison'] and s['retraite'] is None and s['ecuries'] == avant['ecuries'] and s['titre'].startswith('Grand Prix 1 / 12'), str(s))
+    pg.evaluate('() => { SAISONS.avancer(JEU.championnat, 1); montrerUne(JEU.championnat.album[JEU.championnat.album.length - 1]); }')
+    u = pg.evaluate('() => ({ f: JEU.championnat.album[JEU.championnat.album.length - 1].f, titre: document.getElementById("uneTitre").textContent })')
+    t(f'{titre} : le premier Grand Prix de l’héritière : la une de la relève (« {u["titre"]} »), accordée au lien, le parent nommé', u['f'] == 'releve_fille' and 'Marco Rossi' in u['titre'] and ('fille' in u['titre']), str(u))
+    pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'releve-une.png'))
+
+def json_couleurs(casque):
+    import json
+    return json.dumps(json.loads(casque)['couleurs'], separators=(',', ':'))
+
 def fin_saison(pg, titre, l):
     t(f'{titre} : ?gp=12 : un championnat neuf arrive au Grand Prix 12 / 12, les 11 premiers joués d’avance (résultats, album, argent)',
       pg.evaluate('() => JEU.ecran === "championnat" && JEU.championnat.prochain === 11 && JEU.championnat.resultats.length === 11 && JEU.championnat.album.length === 11 && JEU.championnat.argent.solde > 0 && document.getElementById("championnatTitre").textContent.startsWith("Grand Prix 12 / 12")'),
@@ -1174,6 +1210,7 @@ def fin_saison(pg, titre, l):
         t(f'{titre} : le second clic : « Carrière terminée », le bilan (1 saison), sauvegardé', r['ecran'] == 'retraite' and r['retraite'] and r['retraite']['raison'] == 'choix' and r['sauve'] == 'choix' and r['bilan'].startswith('1 saison') and r['raison'] != '' and pas_de_defilement(r['defile']), str(r))
         pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'retraite-960.png'))
         bilan_temple(pg, titre)
+        releve(pg, titre)
         return
     # le joueur champion : les 11 premiers Grands Prix refaits avec de vraies places (il en gagne 5 et finit 2e des 6 autres : 233 points,
     # le titre est à lui avant le 12e) ; puis la une spéciale « CHAMPION ! » et la cérémonie, avec ses vrais points et ses vraies victoires
