@@ -476,6 +476,23 @@ const REGLAGES = {
   LONGUEUR_BANDE_VIBREUR: 3,    // une bande rouge, une bande blanche
   SEUIL_COURBURE_VIBREUR: 1 / 150,   // des vibreurs là où le rayon du virage est sous 150 m
   DISTANCE_BARRIERE: 14,        // du bord de la piste à la barrière
+  // la voie des stands (étape 7, circuits.js : circuit.stands, calculée depuis les morceaux ; la physique ne s'en sert que
+  // derrière PNEUS_ACTIFS) : une voie parallèle à la ligne droite de départ, du côté opposé à la trajectoire (le côté du
+  // premier virage), entre le bord de la piste et la barrière, séparée de la piste par un muret sauf à l'entrée et à la sortie
+  STAND_MUR: 1.5,               // m au-delà du bord de la piste : le muret entre la piste et la voie
+  STAND_LARGEUR: 7,             // m : la largeur de la voie, au-delà du muret
+  STAND_RAMPE: 60,              // m : l'entrée et la sortie, où la voie est ouverte sur la piste (pas de muret)
+  STAND_ENTREE_MAX: 300,        // m avant la ligne, au plus, où la voie commence (dans la dernière ligne droite)…
+  STAND_SORTIE_MAX: 250,        // m après la ligne, au plus, où elle rejoint la piste (dans la première ligne droite)
+  STAND_MARGE_DROITE: 60,       // m : la voie s'arrête au moins à ça de la fin d'une ligne droite
+  STAND_APRES_LIGNE: 20,        // m : si la dernière droite est trop courte (ou un virage ramène sur la ligne), la voie commence là, après la ligne
+  STAND_LONGUEUR_MIN: 150,      // m : en dessous, pas de voie des stands sur ce circuit (test)
+  STAND_ARRET_DEMI: 20,         // m : la zone d'arrêt, de part et d'autre de circuit.stands.arret (la ligne si la voie la traverse, sinon le milieu de la voie)
+  STAND_VITESSE_MAX: 80 / 3.6,  // m/s : la limite dans la voie ; la physique y ramène la voiture qui la dépasse…
+  STAND_PENALITE_VITESSE: 5,    // s : … et ça coûte ça, une fois par passage
+  COULEUR_STANDS: 0x5a5a5a,     // la voie en 3D
+  COULEUR_MUR_STANDS: 0xdddddd, // le muret
+  HAUTEUR_MUR_STANDS: 0.8,
   HAUTEUR_BARRIERE: 1.1,
   TAILLE_SOL: 4000,             // le carré d'herbe sous le circuit
   CASES_DAMIER: 12,             // cases de la ligne d'arrivée, en travers de la piste

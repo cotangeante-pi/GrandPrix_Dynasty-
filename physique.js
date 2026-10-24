@@ -13,6 +13,7 @@ function creerVoiture(circuit, s = 0, d = 0) {
     avant: { x: 0, z: 0, cap: 0 },    // l'état au début du pas, pour l'interpolation de l'affichage
     piste: null,                      // le dernier positionSurPiste
     surHerbe: false, contactsBarriere: 0,
+    dansStands: false, standsExces: false, penalitesStands: 0, contactsMurStands: 0,   // la voie des stands (étape 7, derrière PNEUS_ACTIFS) : dedans, la limite de vitesse déjà dépassée à ce passage, les secondes de pénalité, les contacts du muret
     contactsVoiture: 0,               // les contacts avec une autre voiture (un frottement qui dure compte pour un)
     chocMax: 0,                       // la plus forte vitesse de choc contre une voiture (m/s, vitesse relative)
     chocs: [],                        // pour chaque contact, la plus forte vitesse de rapprochement (m/s)…
@@ -171,10 +172,19 @@ function contactPiste(v, circuit) {
   const R = REGLAGES;
   let p = positionSurPiste(circuit, v.x, v.z, v.piste ? v.piste.indice : null);
   const limite = circuit.largeur / 2 + R.DISTANCE_BARRIERE - R.DEMI_LARGEUR_VOITURE;
-  if (Math.abs(p.d) > limite) {
-    const cote = Math.sign(p.d);
-    // on ramène la voiture contre la barrière
-    const recul = cote * limite - p.d;
+  // la voie des stands (étape 7, derrière PNEUS_ACTIFS) : hors des rampes, un muret sépare la piste de la voie : une voiture
+  // sur la voie ne redescend pas sur la piste, une voiture sur la piste n'y monte pas ; sans PNEUS_ACTIFS, rien ne change
+  let dMin = -limite, dMax = limite, mur = false;
+  const st = R.PNEUS_ACTIFS && circuit.stands ? zoneStands(circuit, p.s, p.d) : null;
+  if (st && !st.rampe) {
+    const bord = st.voie ? st.dMur + R.DEMI_LARGEUR_VOITURE : st.dMur - R.DEMI_LARGEUR_VOITURE;
+    if (st.voie === (st.cote > 0)) dMin = Math.max(dMin, st.cote > 0 ? bord : -bord); else dMax = Math.min(dMax, st.cote > 0 ? bord : -bord);
+    mur = st.voie ? (st.cote > 0 ? p.d < dMin : p.d > dMax) : (st.cote > 0 ? p.d > dMax : p.d < dMin);
+  }
+  if (p.d > dMax || p.d < dMin) {
+    const cote = p.d > dMax ? 1 : -1;
+    // on ramène la voiture contre la barrière (ou le muret)
+    const recul = (cote > 0 ? dMax : dMin) - p.d;
     v.x += p.nx * recul;
     v.z += p.nz * recul;
     // la vitesse dans le monde, séparée en « vers la barrière » et « le long »
@@ -192,11 +202,20 @@ function contactPiste(v, circuit) {
     v.u = c * wx + s * wz;
     v.v = -s * wx + c * wz;
     v.r *= 0.5;
-    v.contactsBarriere++;
+    if (mur) v.contactsMurStands++; else v.contactsBarriere++;
     p = positionSurPiste(circuit, v.x, v.z, p.indice);
   }
   v.piste = p;
-  v.surHerbe = Math.abs(p.d) > circuit.largeur / 2 + R.MARGE_HERBE;
+  // sur la voie des stands : pas d'herbe, et la limite de vitesse (la physique y ramène la voiture, une pénalité par passage)
+  const dedans = !!(st && st.dansVoie);
+  v.surHerbe = dedans ? false : Math.abs(p.d) > circuit.largeur / 2 + R.MARGE_HERBE;
+  if (dedans) {
+    if (v.u > R.STAND_VITESSE_MAX) {
+      if (!v.standsExces) { v.standsExces = true; v.penalitesStands += R.STAND_PENALITE_VITESSE; }
+      v.u = R.STAND_VITESSE_MAX;
+    }
+  } else v.standsExces = false;
+  v.dansStands = dedans;
 }
 
 // L'aspiration : derrière une voiture, dans son sillage (à moins de ASPIRATION_DISTANCE devant, à moins de
