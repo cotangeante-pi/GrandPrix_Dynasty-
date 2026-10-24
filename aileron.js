@@ -72,7 +72,9 @@ const AILERON = (function () {
       + ((c.regularite === undefined ? 0.5 : c.regularite) - 0.5) * R.AILERON_IA_REGULARITE
       - ((c.agressivite === undefined ? 0.5 : c.agressivite) - 0.5) * R.AILERON_IA_AGRESSIVITE
       + (hasard() - 0.5) * R.AILERON_IA_HASARD;
-    return borner(x);
+    // (au plus AILERON_IA_ECART crans du milieu : les IA ont toutes la même vitesse de pointe de base, un écart trop grand en ligne
+    // droite change trop les courses entre elles ; mesuré avec courses.html?ailerons=1)
+    return borner(Math.max(milieu() - R.AILERON_IA_ECART, Math.min(milieu() + R.AILERON_IA_ECART, x)));
   }
 
   // les crans des IA d'un Grand Prix du championnat (la graine du championnat, la saison et le Grand Prix) : [k] = cran (le

@@ -169,8 +169,8 @@ const REGLAGES = {
   GARAGE_PLAFOND: 0.07,         // +7 % au plus (moteur + aero + freins), quelle que soit la combinaison
   // le réglage de l'aileron (aileron.js, Codeur 3) : un échange, jamais un bonus, hors du plafond du garage ; le cran du milieu = rien
   AILERON_CRANS: 5,
-  AILERON_ADHERENCE_PAR_CRAN: 0.012,  // l'adhérence en virage : × (1 + écart au milieu × ce nombre), lue par physique.js (v.aileronAdherence)
-  AILERON_TRAINEE_PAR_CRAN: 0.036,    // la traînée : × (1 + écart au milieu × ce nombre), lue par physique.js (v.aileronTrainee)
+  AILERON_ADHERENCE_PAR_CRAN: 0.01,   // l'adhérence en virage : × (1 + écart au milieu × ce nombre), lue par physique.js (v.aileronAdherence)
+  AILERON_TRAINEE_PAR_CRAN: 0.03,     // la traînée : × (1 + écart au milieu × ce nombre), lue par physique.js (v.aileronTrainee)
   AILERON_MARGE: 0.01,          // test : sur le circuit test, aucun cran n'est plus rapide que le cran du milieu de plus de cette part du tour
   AILERON_VIRAGE_LENT: 0.5,     // un virage est « lent » quand sa vitesse limite est sous cette part de la vitesse de pointe (le profil du circuit, pour les IA)
   AILERON_IA_REFERENCE: -0.35,  // le choix des IA : un circuit mixte (le test : −0,33 ; le technique : −0,40, en part du temps) donne le cran du milieu…
@@ -178,6 +178,7 @@ const REGLAGES = {
   AILERON_IA_REGULARITE: 1.2,   // … par point de régularité au-dessus de 0,5 (régulier → plus haut)…
   AILERON_IA_AGRESSIVITE: 1.2,  // … et en moins par point d'agressivité au-dessus de 0,5 (pour doubler en ligne droite)…
   AILERON_IA_HASARD: 1.5,       // … et une part de hasard (en crans, de part et d'autre)
+  AILERON_IA_ECART: 1,          // une IA choisit au plus à ce nombre de crans du milieu
   GRAINE_AILERON: 12000,        // les crans des IA sont tirés avec la graine du championnat + ce nombre + la saison et le Grand Prix
   // les saisons (étape 9, saisons.js, Codeur 3)
   SAISONS_MAX: 15,              // la retraite par l'âge : la carrière s'arrête après ce nombre de saisons

@@ -1027,7 +1027,7 @@ t('aileron : les IA choisissent un cran plus haut sur un circuit de virages lent
     v(a[19]===null&&b[19]===null,'le joueur n’a pas de cran tiré');
     for(let k=0;k<19;k++){st+=a[k];sq+=b[k];n++;vus.add(a[k]);vus.add(b[k]);v(a[k]>=0&&a[k]<REGLAGES.AILERON_CRANS,'cran '+a[k]);}
     v(JSON.stringify(AILERON.cransIA(ch,C_))===JSON.stringify(a),'la même graine, les mêmes crans');}
-  v(pq.lents>pt.lents&&pt.droites>pq.droites,'profils : '+JSON.stringify([pt,pq]));v(sq/n>st/n&&vus.size>=3,'moyennes test '+(st/n).toFixed(2)+' technique '+(sq/n).toFixed(2)+', crans vus '+[...vus].join());
+  v(pq.lents>pt.lents&&pt.droites>pq.droites,'profils : '+JSON.stringify([pt,pq]));v(sq/n>st/n&&vus.size>=2&&[...vus].every(c=>Math.abs(c-2)<=REGLAGES.AILERON_IA_ECART),'moyennes test '+(st/n).toFixed(2)+' technique '+(sq/n).toFixed(2)+', crans vus '+[...vus].join());
   L.push('  (aileron des IA : moyenne '+(st/n).toFixed(2)+' sur les lignes droites, '+(sq/n).toFixed(2)+' sur les virages lents ; profils '+JSON.stringify(pt)+' / '+JSON.stringify(pq)+')');});
 t('aileron : le cran du joueur est gardé par circuit dans la sauvegarde ; une ancienne sauvegarde sans aileron se charge au cran du milieu ; les IA d’un Grand Prix du championnat ont leur cran (appliquerNiveaux), le joueur non', ()=>{
   localStorage.removeItem(SAUVEGARDE.CLE);const ch=CHAMPIONNAT.creer(1);v(AILERON.cranDe(ch,'test')===2&&AILERON.cranDe(ch,'technique')===2,'au départ');
