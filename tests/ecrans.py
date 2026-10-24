@@ -564,7 +564,7 @@ def stand_ecran(pg, titre):
     for _ in range(60):
         pg.evaluate('() => BOUCLE.simuler(2)')
         if pg.evaluate('() => !!JEU.course.arretEnCours'): arrete = True; break
-    pg.wait_for_timeout(500)
+    attendre(pg, '() => /^Arrêt au stand… \\d,\\d s$/.test(document.getElementById("hudStand").textContent)', None, 3000)   # (l'affichage suit à l'image suivante)
     texte = pg.evaluate('() => document.getElementById("hudStand").textContent')
     t(f'{titre} : le robot entre dans la voie et s’arrête dans la zone ; le message « Arrêt au stand… x,x s » pendant l’arrêt', arrete and re.fullmatch(r'Arrêt au stand… \d,\d s', texte) is not None and pg.evaluate('() => JEU.joueur.dansStands && JEU.joueur.u === 0'), texte)
     pg.screenshot(path=os.path.join(CAPTURES, 'stand.png'))
