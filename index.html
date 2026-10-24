@@ -99,11 +99,34 @@
   <p id="championnatGagne"></p>
   <p id="championnatDuel"></p>
   <p id="championnatArgent"></p>
+  <p id="championnatSponsor"></p>
   <div id="championnatTableaux">
     <div><h2 id="championnatPilotesTitre"></h2><ol id="championnatPilotes"></ol></div>
     <div><h2 id="championnatEcuriesTitre"></h2><ol id="championnatEcuries"></ol></div>
   </div>
-  <div class="boutons"><button id="boutonCourseSuivante" tabindex="-1"></button><button id="boutonGarage" tabindex="-1"></button><button id="boutonMonCasque" class="petit" tabindex="-1"></button></div>
+  <div class="boutons"><button id="boutonCourseSuivante" tabindex="-1"></button><button id="boutonGarage" tabindex="-1"></button><button id="boutonMonCasque" class="petit" tabindex="-1"></button><button id="boutonSponsors" tabindex="-1"></button></div>
+</section>
+
+<!-- ?championnat=1 : les sponsors (sponsors.js) : les offres au début de la saison, puis le rappel ; la fiche d'un rival (fiche.js) (Codeur 3) -->
+<section id="sponsors" class="ecran cache">
+  <h1 id="sponsorsTitre"></h1>
+  <ul id="sponsorsListe"></ul>
+  <div class="boutons"><button id="boutonSponsorsRetour" tabindex="-1"></button></div>
+</section>
+<section id="fiche" class="ecran cache">
+  <div id="ficheCarte">
+    <div id="fichePhoto"></div>
+    <div id="ficheTexte">
+      <h1 id="ficheNom"></h1>
+      <p id="ficheInfos"></p>
+      <p id="ficheCaractere"></p>
+      <p id="ficheSaison"></p>
+      <p id="ficheHistorique"></p>
+      <p id="ficheDuels"></p>
+      <p id="ficheCoequipier"></p>
+    </div>
+  </div>
+  <div class="boutons"><button id="boutonFicheRetour" tabindex="-1"></button></div>
 </section>
 
 <!-- ?championnat=1 : la fin de saison (saisons.js, Codeur 3) : le classement final et le champion, le duel de la saison, les contrats, la retraite -->
@@ -213,6 +236,8 @@
 <script src="argent.js"></script>
 <script src="garage.js"></script>
 <script src="saisons.js"></script>
+<script src="sponsors.js"></script>
+<script src="fiche.js"></script>
 <script src="sdk.js"></script>
 <script src="pneus-donnees.js"></script>
 <script src="pneus.js"></script>

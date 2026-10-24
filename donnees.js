@@ -183,6 +183,26 @@ const REGLAGES = {
   NIVEAU_MONTENT: 3,            // les écuries les mieux classées montent de NIVEAU_EVOLUTION, les plus mal classées baissent d'autant
   NIVEAU_EVOLUTION: 0.005,
   NIVEAU_MIN: 0.94, NIVEAU_MAX: 1.0,
+  // la voiture du joueur suit le niveau de son écurie (CLAUDE.md « La carrière du joueur » ; décision du Chef, tour 25c) : GARAGE.appliquer
+  // multiplie moteur, aéro et freins par ce niveau (le même nombre que appliquerNiveaux pour les IA) ; false pour couper (à essayer par le propriétaire)
+  NIVEAU_JOUEUR_ACTIF: true,
+  // les sponsors (sponsors.js) : au début d'une saison, entre SPONSORS_OFFRES[0] et [1] offres parmi SPONSORS (ceux dont l'exigence ≤ la
+  // note du joueur, les petits complètent) ; le joueur en choisit SPONSORS_MAX ; noms dans textes.js (sponsor_<cle>), jamais une vraie marque
+  GRAINE_SPONSORS: 9000,
+  SPONSORS_MAX: 1,
+  SPONSORS_OFFRES: [2, 4],
+  SPONSORS: [
+    { cle: 'brio', montant: 10000, exigence: 0, objectifs: [{ type: 'sansPenalite', n: 1, prime: 5000 }] },
+    { cle: 'montclair', montant: 15000, exigence: 0.1, objectifs: [{ type: 'points', n: 20, prime: 10000 }] },
+    { cle: 'zephyr', montant: 20000, exigence: 0.25, objectifs: [{ type: 'duel', n: 8, prime: 15000 }, { type: 'top5Circuit', n: 1, prime: 10000 }] },
+    { cle: 'helios', montant: 30000, exigence: 0.4, objectifs: [{ type: 'podiums', n: 3, prime: 20000 }] },
+    { cle: 'kestrel', montant: 45000, exigence: 0.6, objectifs: [{ type: 'victoire', n: 1, prime: 25000 }, { type: 'points', n: 120, prime: 20000 }] },
+    { cle: 'orbis', montant: 70000, exigence: 0.8, objectifs: [{ type: 'podiums', n: 6, prime: 40000 }, { type: 'duel', n: 10, prime: 20000 }] },
+  ],
+  SPONSOR_DOMICILE_PRIME: 20000,    // l'objectif spécial du Grand Prix à domicile (podium chez soi : « prime doublée »)…
+  SPONSOR_DOMICILE_PLAFOND: 30000,  // … et son plafond
+  // la fiche d'un rival (fiche.js) : les mots du caractère, d'après ses nombres
+  FICHE_SEUILS: { rapide: 1.01, regulier: 0.006, agressif: 0.65, fautif: 0.6 },   // rythme ≥, régularité ≤, agressivité ≥, erreurs ≥
   // les noms des 20 pilotes, deux par écurie dans l'ordre (le 20e est remplacé par le joueur) : pas encore (les noms
   // inventés, à approuver par le propriétaire, viendront ici) ; sans nom, l'écran affiche texte('pilote') avec son numéro (« Driver 7 » / « Pilote 7 »)
   NOMS_PILOTES: [],

@@ -45,7 +45,7 @@ const SAISONS = (function () {
     ch.ecuries[b.championEcurie].titres++;
     for (const p of ch.pilotes) p.stats.saisons = (p.stats.saisons || 0) + 1;
     ch.saisons.push({
-      saison: ch.saison, champion: b.champion, championEcurie: b.championEcurie, joueur: b.joueurPlace, ecurie: joueur(ch).ecurie,
+      saison: ch.saison, champion: b.champion, championEcurie: b.championEcurie, joueur: b.joueurPlace, ecurie: joueur(ch).ecurie, note: Math.round(note(ch) * 1000) / 1000,   // la note du joueur (les sponsors de la saison suivante la lisent)
       classement: b.pilotes.map(x => [x.k, x.points]), ecuries: b.ecuries.map(x => [x.id, x.points]),
       duel: b.duel ? [b.duel.k, b.duel.qualifs[0], b.duel.qualifs[1], b.duel.courses[0], b.duel.courses[1]] : null,
     });
@@ -197,6 +197,7 @@ const SAISONS = (function () {
       CHAMPIONNAT.enregistrerCourse(ch, lignes);
       if (typeof JOURNAL !== 'undefined') JOURNAL.ranger(ch, JOURNAL.composer(ch, lignes));
       if (typeof ARGENT !== 'undefined') ARGENT.encaisser(ch, lignes);
+      if (typeof SPONSORS !== 'undefined') SPONSORS.suivre(ch, lignes);
     }
     return ch;
   }

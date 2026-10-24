@@ -1,7 +1,7 @@
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><title>tests</title></head><body>
 <pre id="res"></pre>
 <script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));window.addEventListener('unhandledrejection',e=>__err.push('promesse : '+(e.reason&&e.reason.message||e.reason)));</script>
-<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../son.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../decouverte.js"></script><script src="../pilote.js"></script><script src="../casque.js"></script><script src="../cache-carte.js"></script><script src="../journal.js"></script><script src="../argent.js"></script><script src="../garage.js"></script><script src="../saisons.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../fantome.js"></script><script src="../principal.js"></script>
+<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../son.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../decouverte.js"></script><script src="../pilote.js"></script><script src="../casque.js"></script><script src="../cache-carte.js"></script><script src="../journal.js"></script><script src="../argent.js"></script><script src="../garage.js"></script><script src="../saisons.js"></script><script src="../sponsors.js"></script><script src="../fiche.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../fantome.js"></script><script src="../principal.js"></script>
 <script>
 const L=[];let ok=0,ko=0;
 function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
@@ -1311,6 +1311,74 @@ t('cache de la carte : la clé invalide le cache quand un réglage IA_* change, 
   localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:3,records:{},championnat:null}));v(SAUVEGARDE.carte('test')===null&&JSON.stringify(SAUVEGARDE.lire().cartes)==='{}','ancienne sauvegarde sans cartes');
   localStorage.removeItem(SAUVEGARDE.CLE);});
 
+// --- la voiture du joueur suit son écurie (tour 25c, garage.js appliquer × niveau)
+t('garage : appliquer(v, g, niveau) multiplie moteur, aéro et freins par le niveau de l’écurie (0,96 × les améliorations, exact) ; NIVEAU_JOUEUR_ACTIF false → 1 ; sans niveau (hors championnat, découverte) → 1 ; changer d’écurie change la voiture dès la course suivante', ()=>{
+  const R_=REGLAGES;v(R_.NIVEAU_JOUEUR_ACTIF===true,'actif par défaut');
+  const g={roues:0,moteur:2,aero:0,freins:5},F=GARAGE.facteurs(g),v_=creerVoiture(C);
+  let r=GARAGE.appliquer(v_,g,0.96);v(v_.moteur===F.moteur*0.96&&v_.aero===F.aero*0.96&&v_.freins===F.freins*0.96&&r.niveau===0.96,'0,96 : '+JSON.stringify(r));
+  r=GARAGE.appliquer(v_,null,0.96);v(v_.moteur===0.96&&v_.aero===0.96&&v_.freins===0.96,'sans garage : le niveau seul');
+  r=GARAGE.appliquer(v_,g,undefined);v(v_.moteur===F.moteur&&v_.aero===F.aero&&v_.freins===F.freins&&r.niveau===1,'sans niveau : 1');
+  R_.NIVEAU_JOUEUR_ACTIF=false;try{r=GARAGE.appliquer(v_,g,0.96);v(v_.moteur===F.moteur&&r.niveau===1,'coupé : 1');}finally{R_.NIVEAU_JOUEUR_ACTIF=true;}
+  GARAGE.appliquer(v_,null,null);v(v_.moteur===1&&v_.aero===1&&v_.freins===1,'1 partout');
+  // changer d'écurie : le niveau de la nouvelle écurie (saisons.js signer) dès la course suivante
+  const ch=CHAMPIONNAT.creer(40),j=ch.pilotes.find(p=>p.humain),avant=ch.ecuries[j.ecurie].niveau;saisonJouee(ch,()=>ordreAvec([19,18]));SAISONS.terminerSaison(ch);SAISONS.signer(ch,0);
+  const apres=ch.ecuries[j.ecurie].niveau;v(j.ecurie===0&&apres>avant,'niveaux '+avant+' → '+apres);GARAGE.appliquer(v_,ch.garage,apres);v(v_.moteur===apres,'la nouvelle voiture');});
+// --- les sponsors (sponsors.js, calcul pur)
+t('sponsors : entre 2 et 4 offres selon la note (le champion avec le duel gagné voit les gros sponsors, le dernier seulement les petits ; les petits complètent) ; toujours triées par montant ; la même graine redonne les mêmes offres ; sans course de cœur, pas d’objectif à domicile', ()=>{
+  const R_=REGLAGES;v(R_.SPONSORS.length>=4&&R_.SPONSORS_MAX===1&&R_.SPONSORS_OFFRES[0]===2&&R_.SPONSORS_OFFRES[1]===4,'réglages');
+  let ch=CHAMPIONNAT.creer(41);saisonJouee(ch,()=>ordreAvec([19,18]));SAISONS.terminerSaison(ch);SAISONS.signer(ch,9);
+  let o=SPONSORS.offres(ch);v(o.length>=2&&o.length<=4&&o.some(x=>x.exigence>=0.6)&&o.every((x,i)=>i===0||x.montant<=o[i-1].montant),'champion : '+JSON.stringify(o.map(x=>[x.cle,x.exigence])));
+  v(JSON.stringify(SPONSORS.offres(ch))===JSON.stringify(o),'pas les mêmes offres');v(o.every(x=>!x.objectifs.some(ob=>ob.type==='domicile')),'pas de domicile sans course de cœur');
+  ch=CHAMPIONNAT.creer(42);saisonJouee(ch,()=>ordreAvec([...Array(18).keys()].concat([18,19])));SAISONS.terminerSaison(ch);SAISONS.signer(ch,SAISONS.offres(ch)[0].ecurie);
+  o=SPONSORS.offres(ch);v(o.length===2&&o.every(x=>x.exigence<=0.1),'dernier : '+JSON.stringify(o.map(x=>[x.cle,x.exigence])));
+  const neuf=CHAMPIONNAT.creer(43);v(SPONSORS.aChoisir(neuf)&&SPONSORS.offres(neuf).length>=2,'un championnat neuf a des offres (les petits)');});
+t('sponsors : choisir : un seul par saison (le second refusé), le montant crédité tout de suite avec sa raison, une offre inconnue refusée ; à la saison suivante il faut rechoisir ; sauvegarde → rechargement identique ; une ancienne sauvegarde sans sponsor se charge (null)', ()=>{
+  const ch=CHAMPIONNAT.creer(44),o=SPONSORS.offres(ch),solde=ch.argent.solde;
+  v(SPONSORS.choisir(ch,'inconnu')===false&&ch.sponsor===null,'inconnu');
+  v(SPONSORS.choisir(ch,o[0].cle)===true&&ch.sponsor.cle===o[0].cle&&ch.sponsor.saison===1&&ch.argent.solde===solde+o[0].montant&&ch.argent.historique.slice(-1)[0][2]==='sponsor:'+o[0].cle,'choisi');
+  v(SPONSORS.choisir(ch,o[1]?o[1].cle:o[0].cle)===false&&ch.sponsor.cle===o[0].cle&&!SPONSORS.aChoisir(ch),'un seul');
+  saisonJouee(ch,()=>devant(7,[19,18]));SAISONS.terminerSaison(ch);SAISONS.signer(ch,9);v(SPONSORS.aChoisir(ch)&&ch.sponsor.saison===1,'saison 2 : à rechoisir');
+  SAUVEGARDE.ecrireChampionnat(ch);v(JSON.stringify(SAUVEGARDE.championnat().sponsor)===JSON.stringify(ch.sponsor),'rechargement');
+  const vieux=JSON.parse(JSON.stringify(ch));delete vieux.sponsor;localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:3,records:{},championnat:vieux}));
+  v(SAUVEGARDE.lire().championnat.sponsor===null,'sans sponsor');localStorage.removeItem(SAUVEGARDE.CLE);});
+t('sponsors : chaque objectif est détecté sur une saison simulée et sa prime créditée une seule fois (podiums, points, duel, victoire, sans pénalité, top 5 à un circuit) ; l’objectif à domicile (course de cœur = test) seulement sur ce circuit et seulement avec un podium, prime plafonnée ; primesPour (résultats) prévoit la même prime sans rien créditer', ()=>{
+  const R_=REGLAGES,ch=CHAMPIONNAT.creer(45),j=ch.pilotes.find(p=>p.humain);j.coeur='test';   // le calendrier alterne test / technique : le domicile revient 6 fois
+  // un sponsor fabriqué avec tous les types (le choix passe par offres : on pose le sponsor à la main, avec les mêmes champs)
+  ch.sponsor={cle:'orbis',saison:1,montant:0,objectifs:[{type:'podiums',n:2,prime:1000},{type:'points',n:30,prime:2000},{type:'duel',n:2,prime:3000},{type:'victoire',n:1,prime:4000},{type:'sansPenalite',n:1,prime:5000},{type:'top5Circuit',n:1,prime:6000,circuit:'technique'},{type:'domicile',n:1,prime:Math.min(R_.SPONSOR_DOMICILE_PRIME,R_.SPONSOR_DOMICILE_PLAFOND),circuit:'test'}].map(o=>Object.assign(o,{progres:0,fait:false}))};
+  const credits=()=>ch.argent.historique.filter(h=>h[0]===0&&String(h[2]).startsWith('objectif:')).map(h=>h[2]);
+  // GP 1 (test, domicile) : le joueur 8e avec une pénalité, derrière le coéquipier : rien, sauf… rien
+  let l=lignesUne(devant(7,[18,19]),{19:{penalites:5}});v(SPONSORS.primesPour(ch,l)===0,'rien à prévoir');CHAMPIONNAT.finirGrandPrix(ch,l);v(credits().length===0,'GP 1 : aucune prime : '+credits());
+  // GP 2 (technique) : 3e sans pénalité, devant le coéquipier : sans pénalité (5000) et top 5 au technique (6000) ; pas de domicile (pas le bon circuit)
+  l=lignesUne(devant(2,[19,18]));const prevu=SPONSORS.primesPour(ch,l);CHAMPIONNAT.finirGrandPrix(ch,l);
+  v(prevu===11000&&credits().join()==='objectif:sansPenalite,objectif:top5Circuit','GP 2 : '+prevu+' / '+credits());
+  // GP 3 (test, domicile) : 2e → podiums 2/2 (1000), duel 2/2 (3000), domicile (20000 plafonné à 30000 → 20000), points 15+18=33 ≥ 30 (2000)
+  l=lignesUne(devant(1,[19,18]));CHAMPIONNAT.finirGrandPrix(ch,l);
+  v(credits().slice(2).sort().join()==='objectif:domicile,objectif:duel,objectif:podiums,objectif:points','GP 3 : '+credits());
+  const solde3=ch.argent.solde;
+  // GP 4 : victoire (4000) ; les objectifs déjà faits ne sont plus crédités
+  l=lignesUne(ordreAvec([19,18]));CHAMPIONNAT.finirGrandPrix(ch,l);v(credits().slice(-1)[0]==='objectif:victoire'&&credits().length===7,'GP 4 : '+credits());
+  l=lignesUne(ordreAvec([19,18]));CHAMPIONNAT.finirGrandPrix(ch,l);v(credits().length===7&&ch.sponsor.objectifs.every(o=>o.fait),'plus rien après : tout fait');
+  v(ch.sponsor.objectifs.find(o=>o.type==='domicile').prime<=R_.SPONSOR_DOMICILE_PLAFOND,'plafond');
+  // le domicile ne compte pas sur un autre circuit : un sponsor neuf, podium au technique seulement
+  const ch2=CHAMPIONNAT.creer(46);ch2.pilotes[19].coeur='technique';ch2.sponsor={cle:'brio',saison:1,montant:0,objectifs:[{type:'domicile',n:1,prime:1000,circuit:'technique',progres:0,fait:false}]};
+  CHAMPIONNAT.finirGrandPrix(ch2,lignesUne(devant(1,[19,18])));v(ch2.sponsor.objectifs[0].fait===false,'podium au test : pas à domicile');
+  CHAMPIONNAT.finirGrandPrix(ch2,lignesUne(devant(1,[19,18])));v(ch2.sponsor.objectifs[0].fait===true,'podium au technique : à domicile');
+  v(SPONSORS.offres(ch2).every(o=>o.objectifs.some(ob=>ob.type==='domicile'&&ob.circuit==='technique')),'les offres portent l’objectif à domicile');
+  localStorage.removeItem(SAUVEGARDE.CLE);});
+// --- la fiche d'un rival (fiche.js, calcul pur)
+t('fiche : les mots du caractère aux seuils FICHE_SEUILS (rapide, régulier, agressif, fautif ; sinon posé ; le joueur : aucun) ; la fiche : saison, historique (meilleur classement dans ch.saisons), duels contre le joueur comptés sur une saison, le score comme coéquipier', ()=>{
+  const S_=REGLAGES.FICHE_SEUILS,p=(r,c)=>({humain:false,rythme:r,caractere:c});
+  v(FICHE.mots(p(S_.rapide,{regularite:S_.regulier,agressivite:S_.agressif,erreurs:S_.fautif})).join()==='rapide,regulier,agressif,fautif','tous aux seuils');
+  v(FICHE.mots(p(S_.rapide-0.0001,{regularite:S_.regulier+0.0001,agressivite:S_.agressif-0.01,erreurs:S_.fautif-0.01})).join()==='pose','juste sous : posé');
+  v(FICHE.mots({humain:true}).length===0,'le joueur');
+  const ch=CHAMPIONNAT.creer(47);saisonJouee(ch,g=>devant(7,g%3?[19,18]:[18,19]));   // le joueur 8e, le pilote 0 gagne tout, le 18 devant 4 fois sur 12
+  let f=FICHE.fiche(ch,0);v(f.saison.place===1&&f.saison.victoires===12&&f.saison.podiums===12&&f.saison.courses===12&&f.saison.points===300,'saison du 0 : '+JSON.stringify(f.saison));
+  v(f.duels.devant===12&&f.duels.derriere===0&&f.duels.coequipier===null,'duels du 0 : '+JSON.stringify(f.duels));
+  f=FICHE.fiche(ch,18);v(f.duels.devant===4&&f.duels.derriere===8&&f.duels.coequipier&&f.duels.coequipier.join()==='16,8','duels du 18 : '+JSON.stringify(f.duels));
+  v(f.historique.saisons===1&&f.historique.titres===0&&f.historique.meilleur===f.saison.place&&f.mots.length>=1,'historique : '+JSON.stringify(f.historique));
+  SAISONS.terminerSaison(ch);SAISONS.signer(ch,9);f=FICHE.fiche(ch,0);v(f.historique.titres===1&&f.historique.meilleur===1&&f.historique.saisons===1&&f.saison.courses===0&&f.duels.devant===12,'après la saison : '+JSON.stringify([f.historique,f.duels]));
+  // une ancienne sauvegarde sans rivaux : recomptée sur les résultats de la saison
+  const ch2=CHAMPIONNAT.creer(48);saisonJouee(ch2,()=>devant(3,[19,18]));delete ch2.rivaux;FICHE.completer(ch2);v(ch2.rivaux[0][0]===12&&ch2.rivaux[18][1]===12,'recompté : '+JSON.stringify(ch2.rivaux));});
 // --- le casque du pilote (tour 24b, casque.js) : calcul pur + dessin canvas
 t('casque : completer donne un casque à chacun des 20 pilotes d’un championnat neuf (19 rivaux tirés avec la graine, tous différents ; le joueur : le neutre), le même pour la même graine, un autre pour une autre graine ; les motifs ont tous leur texte', ()=>{
   const R_=REGLAGES,ch=CHAMPIONNAT.creer(1),n=CASQUE.completer(ch);v(n===20,'donnés '+n);

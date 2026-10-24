@@ -62,11 +62,14 @@ const GARAGE = (function () {
     return { moteur: 1 + p.moteur, aero: 1 + p.aero, freins: 1 + p.freins };
   }
 
-  // pose les facteurs sur une voiture (physique.js) ; sans garage (null) : 1 partout
-  function appliquer(v, g) {
+  // pose les facteurs sur une voiture (physique.js) : les améliorations × le niveau de l'écurie du joueur (la qualité de la F1
+  // appartient à l'écurie ; le même nombre que appliquerNiveaux pour les IA ; coupé par NIVEAU_JOUEUR_ACTIF) ; sans garage
+  // (null) et sans niveau (hors championnat, course de découverte) : 1 partout
+  function appliquer(v, g, niveau) {
     const f = g ? facteurs(g) : { moteur: 1, aero: 1, freins: 1 };
-    v.moteur = f.moteur; v.aero = f.aero; v.freins = f.freins;
-    return f;
+    const n = R.NIVEAU_JOUEUR_ACTIF && typeof niveau === 'number' && niveau > 0 ? niveau : 1;
+    v.moteur = f.moteur * n; v.aero = f.aero * n; v.freins = f.freins * n;
+    return { moteur: v.moteur, aero: v.aero, freins: v.freins, niveau: n };
   }
 
   return { NOMS, QUALITE, completer, prix, refus, acheter, parts, bonus, facteurs, appliquer };
