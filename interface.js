@@ -46,6 +46,9 @@ const INTERFACE = (function () {
 
   function montrer(ecran) {
     for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une', 'garage', 'saison', 'duelSaison', 'contrats', 'retraite', 'titre', 'amis', 'bravo', 'pilote', 'sponsors', 'fiche', 'interview', 'ceremonie']) $(id).classList.toggle('cache', id !== ecran);
+    // l'album des unes (Codeur 3) : la page de la une, avec la barre pour feuilleter
+    if (ecran === 'album') $('une').classList.remove('cache');
+    $('une').classList.toggle('album', ecran === 'album');
     // le bandeau de course n'est là que pendant la course et la pause (pas sous l'écran de fin)
     const course = ecran === 'course' || ecran === 'pause';
     for (const id of ['hudCourse', 'hudPenalite', 'compte', 'feux', 'classement', 'radar', 'jauge', 'departResultat', 'aides', 'feux2', 'jauge2', 'departResultat2', 'deuxHaut', 'deuxBas', 'deuxSeparation']) if (!course) $(id).classList.add('cache');
@@ -176,6 +179,34 @@ const INTERFACE = (function () {
       ol.appendChild(li);
     }
     $('unePasser').textContent = texte('unePasser');
+  }
+
+  // l'album : où on en est (« Saison 2 · Grand Prix 5 · 17 / 36 ») ; les boutons de saison grisés au bout de l'album
+  function remplirAlbum(ch, i) {
+    const u = ch.album[i], S = JOURNAL.saisonsAlbum(ch), k = S.findIndex(x => x.saison === u.s);
+    $('albumPage').textContent = avec(texte('albumPage'), { s: u.s, g: u.g, i: i + 1, n: ch.album.length });
+    $('boutonAlbumAvant').disabled = i === 0;
+    $('boutonAlbumApres').disabled = i === ch.album.length - 1;
+    $('boutonAlbumSaisonAvant').disabled = k <= 0 && i === 0;
+    $('boutonAlbumSaisonApres').disabled = k === S.length - 1;
+    $('boutonAlbumFermer').textContent = texte('albumFermer');
+  }
+
+  // ouvrir (le bouton du paddock) ; feuilleter(±1) ; saison(±1) ; fermer. Un clic sur la barre ne compte pas comme un clic sur la page
+  function preparerAlbum(ouvrir, feuilleter, saison, fermer) {
+    $('boutonAlbum').textContent = texte('album');
+    $('boutonAlbum').title = texte('albumAide');
+    const brancher = (id, f) => {
+      $(id).addEventListener('mousedown', e => e.preventDefault());
+      $(id).addEventListener('click', e => { e.stopPropagation(); f(); });
+    };
+    brancher('boutonAlbum', ouvrir);
+    brancher('boutonAlbumAvant', () => feuilleter(-1));
+    brancher('boutonAlbumApres', () => feuilleter(1));
+    brancher('boutonAlbumSaisonAvant', () => saison(-1));
+    brancher('boutonAlbumSaisonApres', () => saison(1));
+    brancher('boutonAlbumFermer', fermer);
+    $('albumBarre').addEventListener('click', e => e.stopPropagation());
   }
 
   // un clic n'importe où sur la une la passe (les touches : principal.js)
@@ -835,7 +866,7 @@ const INTERFACE = (function () {
 
   return { formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, preparerChampionnat, remplirQualif, preparerQualif,
     remplirDuel, avec, remplirUne, preparerUne, remplirArgent, remplirSolde, remplirGarage, preparerGarage,
-    remplirSaison, remplirDuelSaison, remplirContrats, remplirRetraite, preparerSaison, retraiteEnAttente, remplirCeremonie, preparerCeremonie,
+    remplirSaison, remplirDuelSaison, remplirContrats, remplirRetraite, preparerSaison, retraiteEnAttente, remplirCeremonie, preparerCeremonie, remplirAlbum, preparerAlbum,
     remplirSponsors, remplirRappelSponsor, preparerSponsors, remplirFiche, preparerFiche, remplirInterview, montrerEffetInterview, preparerInterview, remplirReputation,
     majEcartFantome, preparerFantome, majBoutonsFantome, majDepart, majDeux, preparerTitre, remplirBravo, majAides, remplirPilote, lirePilote, montrerErreursPilote, preparerPilote, nomCircuit, remplirCasque, lireCasque, modePilote, preparerCasque };
 })();

@@ -816,3 +816,11 @@ body.deux #departResultat { bottom: auto; top: calc(50% - 60px); }
 /* la une spéciale du champion : le titre en or, plus grand */
 #unePage.speciale h1#uneTitre { font-size: clamp(28px, 4.2vw, 46px); color: #8a6a00; letter-spacing: 1px; }
 #unePage.speciale #uneEntete { border-bottom-color: #b8901c; }
+
+/* l'album des unes (Codeur 3) : la une du journal, un peu plus petite, et la barre pour feuilleter (seulement en mode album) */
+#albumBarre { display: none; align-items: center; gap: 8px; }
+#une.album #albumBarre { display: flex; }
+#une.album #unePasser { display: none; }
+#une.album #unePage { height: min(80vh, 600px); }
+#albumBarre button { min-width: 0; padding: 6px 12px; }
+#albumPage { min-width: 230px; font: 700 14px/1.2 var(--police); }
