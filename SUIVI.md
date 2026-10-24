@@ -80,6 +80,8 @@ Note du Chef session-5b (2026-10-23) : les lignes 18 à 19b ne s'additionnaient 
 
 ## À essayer par le propriétaire
 
+- **L'aileron** (tour 29c) : au championnat, « Garage » → « Aileron » : la carte de la prochaine course et le curseur (bas = vitesse de pointe, haut = virages), aucun conseil. Dire : ça se sent ? (les IA n'ont pas encore l'effet).
+- **L'arbre de la dynastie** : au paddock, après une relève.
 - **Les pneus et l'arrêt au stand** (tour 26) : `index.html?course=12&ia=9&joueur=1&pneus=1&circuit=technique` : le message te dit quand t'arrêter ; entre dans la voie (80 km/h), arrête-toi dans la zone, pneus neufs ; les IA s'arrêtent aussi. Dire : l'usure se sent ? l'arrêt (4 s) est trop long ? Ton accord = on active les pneus par défaut.
 - **Le tournoi chrono** : « Entre amis » → « Tournoi chrono » : de 2 à 8 joueurs, chacun son tour au clavier.
 - **Passer la télé** (ta demande) : finis une course contre les IA, clique « passer » : « ⏩ En accéléré : encore N voitures », puis le podium avec tout le monde arrivé.
