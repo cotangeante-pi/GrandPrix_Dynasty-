@@ -106,6 +106,32 @@
   <div class="boutons"><button id="boutonCourseSuivante" tabindex="-1"></button><button id="boutonGarage" tabindex="-1"></button><button id="boutonMonCasque" class="petit" tabindex="-1"></button></div>
 </section>
 
+<!-- ?championnat=1 : la fin de saison (saisons.js, Codeur 3) : le classement final et le champion, le duel de la saison, les contrats, la retraite -->
+<section id="saison" class="ecran cache">
+  <h1 id="saisonTitre"></h1>
+  <p id="saisonChampion"></p>
+  <p id="saisonEcurie"></p>
+  <div id="saisonTableaux"><div><h2 id="saisonPilotesTitre"></h2><ol id="saisonPilotes"></ol></div></div>
+  <div class="boutons"><button id="boutonSaisonSuite" tabindex="-1"></button></div>
+</section>
+<section id="duelSaison" class="ecran cache">
+  <h1 id="duelSaisonTitre"></h1>
+  <p id="duelSaisonScore"></p>
+  <p id="duelSaisonDetail"></p>
+  <div class="boutons"><button id="boutonDuelSaisonSuite" tabindex="-1"></button></div>
+</section>
+<section id="contrats" class="ecran cache">
+  <h1 id="contratsTitre"></h1>
+  <p id="contratsNote"></p>
+  <ul id="contratsListe"></ul>
+  <div class="boutons"><button id="boutonRetraite" tabindex="-1"></button></div>
+</section>
+<section id="retraite" class="ecran cache">
+  <h1 id="retraiteTitre"></h1>
+  <p id="retraiteRaison"></p>
+  <p id="retraiteBilan"></p>
+</section>
+
 <!-- ?championnat=1 : le garage (garage.js, argent.js) : 4 améliorations, depuis l'écran du championnat (Codeur 3) -->
 <section id="garage" class="ecran cache">
   <h1 id="garageTitre"></h1>
@@ -186,6 +212,7 @@
 <script src="journal.js"></script>
 <script src="argent.js"></script>
 <script src="garage.js"></script>
+<script src="saisons.js"></script>
 <script src="sdk.js"></script>
 <script src="pneus-donnees.js"></script>
 <script src="pneus.js"></script>

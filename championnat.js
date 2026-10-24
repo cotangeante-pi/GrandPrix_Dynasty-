@@ -5,7 +5,7 @@ const CHAMPIONNAT = (function () {
   const R = REGLAGES;
 
   function statsVierges() {
-    return { courses: 0, victoires: 0, podiums: 0, poles: 0, meilleursTours: 0, points: 0 };
+    return { courses: 0, victoires: 0, podiums: 0, poles: 0, meilleursTours: 0, points: 0, titres: 0, saisons: 0 };
   }
 
   // un nouveau championnat : chaque écurie aligne deux pilotes (le joueur est le 2e de l'écurie ECURIE_JOUEUR) ; chaque
@@ -24,6 +24,9 @@ const CHAMPIONNAT = (function () {
           caractere: c && { regularite: c.regularite, agressivite: c.agressivite, erreurs: c.erreurs },
           places: [],   // sa place à chaque Grand Prix (pour départager les égalités)
           stats: statsVierges(),
+          // les saisons (saisons.js) : l'âge et le facteur de rythme du pilote (1 = la base), qui évoluent entre deux saisons
+          age: humain ? null : R.AGE_DEPART[0] + Math.floor(hasard() * (R.AGE_DEPART[1] - R.AGE_DEPART[0] + 1)),
+          rythme: 1,
         });
       }
     }
@@ -153,6 +156,13 @@ const CHAMPIONNAT = (function () {
     if (!ch.album) ch.album = [];   // l'album des unes du journal (journal.js) : vide dans une sauvegarde d'avant
     if (typeof ARGENT !== 'undefined') ARGENT.completer(ch);   // le solde et les gains (argent.js) : 0 dans une sauvegarde d'avant
     if (typeof GARAGE !== 'undefined') GARAGE.completer(ch);   // les niveaux du garage (garage.js) : 0 dans une sauvegarde d'avant
+    // les saisons (saisons.js) : âge, rythme, titres et saisons des pilotes d'une sauvegarde d'avant (âge : d'après son indice, pas de hasard)
+    for (const p of ch.pilotes || []) {
+      if (p.age === undefined) p.age = p.humain ? null : R.AGE_DEPART[0] + (p.id * 7) % (R.AGE_DEPART[1] - R.AGE_DEPART[0] + 1);
+      if (typeof p.rythme !== 'number') p.rythme = 1;
+      if (p.stats) { if (typeof p.stats.titres !== 'number') p.stats.titres = 0; if (typeof p.stats.saisons !== 'number') p.stats.saisons = 0; }
+    }
+    if (typeof SAISONS !== 'undefined') SAISONS.completer(ch);
     return ch;
   }
 
@@ -180,14 +190,15 @@ const CHAMPIONNAT = (function () {
       .map(id => ({ id, points: ch.ecuries[id].points }));
   }
 
-  // le niveau de l'écurie agit sur le rythme de chaque IA de la course e (la voiture k = le pilote k) : rythme × niveau.
+  // le niveau de l'écurie et le facteur de rythme du pilote agissent sur le rythme de chaque IA de la course e (la voiture k = le
+  // pilote k) : rythme × niveau × rythme du pilote.
   // À faire AVANT donnerCarte (le pilote et la qualification lisent le rythme). Le joueur garde sa voiture (FACTEUR_VOITURE_JOUEUR)
   function appliquerNiveaux(ch, e) {
     e.pilotes.forEach((p, k) => {
       const pilote = ch.pilotes[k];
       if (!pilote || p.humain || p.rythmeBase !== undefined) return;
       p.rythmeBase = p.rythme;
-      p.rythme = p.rythme * ch.ecuries[pilote.ecurie].niveau;
+      p.rythme = p.rythme * ch.ecuries[pilote.ecurie].niveau * (pilote.rythme || 1);   // × le facteur de rythme du pilote (saisons.js ; 1 = rien)
     });
     return e;
   }

@@ -45,7 +45,7 @@ const INTERFACE = (function () {
   }
 
   function montrer(ecran) {
-    for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une', 'garage', 'titre', 'amis', 'bravo', 'pilote']) $(id).classList.toggle('cache', id !== ecran);
+    for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une', 'garage', 'saison', 'duelSaison', 'contrats', 'retraite', 'titre', 'amis', 'bravo', 'pilote']) $(id).classList.toggle('cache', id !== ecran);
     // le bandeau de course n'est là que pendant la course et la pause (pas sous l'écran de fin)
     const course = ecran === 'course' || ecran === 'pause';
     for (const id of ['hudCourse', 'hudPenalite', 'compte', 'feux', 'classement', 'radar', 'jauge', 'departResultat', 'aides']) if (!course) $(id).classList.add('cache');
@@ -532,6 +532,89 @@ const INTERFACE = (function () {
     }
   }
 
+  // --- la fin de saison (Codeur 3, saisons.js) ---
+  // le classement final de la saison et le champion (b = SAISONS.bilan ou terminerSaison)
+  function remplirSaison(ch, b) {
+    $('saisonTitre').textContent = avec(texte('saisonTitre'), { n: b.saison });
+    const champion = ch.pilotes[b.champion];
+    $('saisonChampion').textContent = champion.humain ? texte('saisonChampionToi') : avec(texte('saisonChampion'), { pilote: nomPilote(champion) });
+    $('saisonChampion').classList.toggle('toi', !!champion.humain);
+    $('saisonEcurie').textContent = avec(texte('saisonChampionEcurie'), { ecurie: nomEcurie(ch.ecuries[b.championEcurie]) });
+    $('saisonPilotesTitre').textContent = texte('saisonClassement');
+    $('boutonSaisonSuite').textContent = texte('suite');
+    const ol = $('saisonPilotes');
+    ol.textContent = '';
+    b.pilotes.forEach((x, i) => {
+      const p = ch.pilotes[x.k], li = document.createElement('li');
+      if (p.humain) li.className = 'moi';
+      if (i === 0) li.classList.add('champion');
+      const sp = (classe, contenu) => { const e = document.createElement('span'); e.className = classe; e.append(contenu); return e; };
+      li.append(sp('place', String(i + 1)), pastille(ch.ecuries[p.ecurie].couleur), sp('nom', nomPilote(p)), sp('points', x.points + ' ' + texte('pts')));
+      ol.appendChild(li);
+    });
+  }
+
+  // le duel de la saison : « Tu as battu X 9 à 3 » (s = CHAMPIONNAT.scoreDuel), avec le détail et le total de carrière
+  function remplirDuelSaison(ch, s) {
+    $('duelSaisonTitre').textContent = texte('duelSaisonTitre');
+    $('boutonDuelSaisonSuite').textContent = texte('suite');
+    if (!s) { $('duelSaisonScore').textContent = ''; $('duelSaisonDetail').textContent = ''; return; }
+    const nom = nomPilote(ch.pilotes[s.k]), a = s.total[0], b = s.total[1];
+    $('duelSaisonScore').textContent = avec(texte(a > b ? 'duelSaisonGagne' : a < b ? 'duelSaisonPerdu' : 'duelSaisonEgal'), { nom, a, b });
+    $('duelSaisonDetail').textContent = avec(texte('duelSaisonDetail'), { nom, qa: s.qualifs[0], qb: s.qualifs[1], ca: s.courses[0], cb: s.courses[1],
+      ta: s.carriere.qualifs[0] + s.carriere.courses[0], tb: s.carriere.qualifs[1] + s.carriere.courses[1] });
+  }
+
+  // les contrats : la note, une ligne par offre (écurie, voiture, coéquipier, un mot, « Signer »), « Prendre ma retraite »
+  let signatureContrat = null, retraiteDemandee = false;
+  function remplirContrats(ch, offres, note) {
+    $('contratsTitre').textContent = avec(texte('contratsTitre'), { n: ch.saison + 1 });
+    $('contratsNote').textContent = avec(texte('contratsNote'), { n: Math.round(note * 100) });
+    $('boutonRetraite').textContent = texte(retraiteDemandee ? 'retraiteConfirmer' : 'retraite');
+    const ul = $('contratsListe'), n = ch.ecuries.length;
+    ul.textContent = '';
+    for (const o of offres) {
+      const e = ch.ecuries[o.ecurie], li = document.createElement('li'), rang = SAISONS.rangEcurie(ch, o.ecurie);
+      li.dataset.ecurie = o.ecurie;
+      if (o.actuelle) li.classList.add('actuelle');
+      const sp = (classe, contenu) => { const el = document.createElement('span'); el.className = classe; el.append(contenu); return el; };
+      li.append(pastille(e.couleur), sp('nom', nomEcurie(e)), sp('mot', texte(rang < n / 3 ? 'contratMot_fort' : rang < 2 * n / 3 ? 'contratMot_moyen' : 'contratMot_faible') + (o.actuelle ? ' · ' + texte('contratActuelle') : '')),
+        sp('niveau', avec(texte('contratNiveau'), { n: Math.round(e.niveau * 100) })),
+        sp('coequipier', avec(texte('contratCoequipier'), { nom: o.coequipier === null ? '—' : nomPilote(ch.pilotes[o.coequipier]) })));
+      const b = document.createElement('button');
+      b.className = 'signer';
+      b.tabIndex = -1;
+      b.textContent = texte('contratSigner');
+      b.addEventListener('mousedown', ev => ev.preventDefault());
+      b.addEventListener('click', () => { if (signatureContrat) signatureContrat(o.ecurie); });
+      li.appendChild(b);
+      ul.appendChild(li);
+    }
+  }
+
+  // la retraite : « Carrière terminée », la raison, le bilan simple (le vrai bilan est l'étape 14)
+  function remplirRetraite(r) {
+    $('retraiteTitre').textContent = texte('retraiteTitre');
+    $('retraiteRaison').textContent = avec(texte(r.raison === 'age' ? 'retraiteAge' : 'retraiteChoix'), { n: r.saison });
+    $('retraiteBilan').textContent = avec(texte('retraiteBilan'), { s: r.saisons, v: r.victoires, p: r.podiums, t: r.titres });
+  }
+
+  // suite : après le classement, puis après le duel ; signer(ecurie) ; retraite() : le premier clic demande une confirmation
+  function preparerSaison(suiteClassement, suiteDuel, signer, retraite) {
+    signatureContrat = signer;
+    for (const [id, f] of [['boutonSaisonSuite', suiteClassement], ['boutonDuelSaisonSuite', suiteDuel]]) {
+      $(id).addEventListener('mousedown', e => e.preventDefault());
+      $(id).addEventListener('click', f);
+    }
+    $('boutonRetraite').addEventListener('mousedown', e => e.preventDefault());
+    $('boutonRetraite').addEventListener('click', () => {
+      if (!retraiteDemandee) { retraiteDemandee = true; $('boutonRetraite').textContent = texte('retraiteConfirmer'); return; }
+      retraiteDemandee = false;
+      retraite();
+    });
+  }
+  const retraiteEnAttente = () => retraiteDemandee;
+
   function preparerGarage(acheter, retour) {
     achatGarage = acheter;
     $('boutonGarageRetour').addEventListener('mousedown', e => e.preventDefault());
@@ -575,5 +658,6 @@ const INTERFACE = (function () {
 
   return { formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, preparerChampionnat, remplirQualif, preparerQualif,
     remplirDuel, avec, remplirUne, preparerUne, remplirArgent, remplirSolde, remplirGarage, preparerGarage,
+    remplirSaison, remplirDuelSaison, remplirContrats, remplirRetraite, preparerSaison, retraiteEnAttente,
     majEcartFantome, preparerFantome, majBoutonsFantome, majDepart, preparerTitre, remplirBravo, majAides, remplirPilote, lirePilote, montrerErreursPilote, preparerPilote, nomCircuit, remplirCasque, lireCasque, modePilote, preparerCasque };
 })();
