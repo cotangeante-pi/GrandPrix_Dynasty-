@@ -86,5 +86,75 @@ const DEUX_JOUEURS = (function () {
     return [1, 2].map(j => e.pilotes.find(p => p.joueur === j));
   }
 
-  return { cibles, remise, nbIAValide, nbToursValide, creer, placerGrille, finie, joueurs };
+  // --- les réglages du mode (l'écran avant la course, tour 25b ordre 3), gardés dans la sauvegarde unique à part de la carrière
+  // (SAUVEGARDE.deux) : { joueurs: [{ nom, couleur, casque }, …] (joueur 1, joueur 2), circuit, tours, ia, niveau, courses (le
+  // nombre de courses lancées : la graine de la suivante), rivalite: { noms: [a, b], score: [x, y] } ou null }
+  const couleurValide = c => R.DEUX_COULEURS_CHOIX.includes(c);
+  const casqueValide = c => !!c && typeof c === 'object' && R.CASQUE_MOTIFS.includes(c.motif) && Array.isArray(c.couleurs) && c.couleurs.length === 3 && c.couleurs.every(x => Number.isInteger(x) && x >= 0 && x <= 0xffffff);
+  const nomPropre = n => typeof n === 'string' ? n.trim().slice(0, R.NOM_LONGUEUR_MAX) : '';
+
+  // des réglages complets à partir de ce qui est sauvegardé (null, abîmé ou d'une ancienne version : chaque champ manquant
+  // ou faux prend sa valeur par défaut) ; ne change pas l'objet donné
+  function completer(r) {
+    const d = r && typeof r === 'object' ? r : {};
+    const js = Array.isArray(d.joueurs) ? d.joueurs : [];
+    const joueurs = [0, 1].map(i => {
+      const j = js[i] && typeof js[i] === 'object' ? js[i] : {};
+      return { nom: nomPropre(j.nom), couleur: couleurValide(j.couleur) ? j.couleur : R.DEUX_COULEURS[i], casque: casqueValide(j.casque) ? { motif: j.casque.motif, couleurs: j.casque.couleurs.slice() } : { motif: R.DEUX_CASQUES[i].motif, couleurs: R.DEUX_CASQUES[i].couleurs.slice() } };
+    });
+    if (joueurs[0].couleur === joueurs[1].couleur) joueurs[1].couleur = R.DEUX_COULEURS_CHOIX.find(c => c !== joueurs[0].couleur);
+    const riv = d.rivalite && Array.isArray(d.rivalite.noms) && d.rivalite.noms.length === 2 && Array.isArray(d.rivalite.score) && d.rivalite.score.length === 2 && d.rivalite.score.every(x => Number.isInteger(x) && x >= 0)
+      ? { noms: d.rivalite.noms.map(String), score: d.rivalite.score.slice() } : null;
+    return {
+      joueurs,
+      circuit: Object.prototype.hasOwnProperty.call(CIRCUITS, d.circuit) ? d.circuit : 'test',
+      tours: R.DEUX_TOURS_CHOIX.includes(d.tours) ? d.tours : R.DEUX_TOURS_CHOIX[0],
+      ia: R.DEUX_IA_CHOIX.includes(d.ia) ? nbIAValide(d.ia) : nbIAValide(R.DEUX_IA_DEFAUT),
+      niveau: Object.prototype.hasOwnProperty.call(R.NIVEAUX, d.niveau) ? d.niveau : R.DEUX_NIVEAU,
+      courses: Number.isInteger(d.courses) && d.courses >= 0 ? d.courses : 0,
+      rivalite: riv,
+    };
+  }
+
+  // les choix de l'écran vérifiés : un nom vide prend le nom par défaut (defauts : [« Joueur 1 », « Joueur 2 »] de textes.js) ;
+  // deux noms pareils (sans compter majuscules et espaces) ou deux couleurs pareilles sont refusés ; le reste est complété
+  // → { ok, erreurs: ['nom', 'couleur'], reglages }
+  function valider(choix, defauts) {
+    const r = completer(choix);
+    r.joueurs.forEach((j, i) => { if (!j.nom) j.nom = nomPropre(defauts[i]); });
+    const erreurs = [];
+    if (r.joueurs[0].nom.toLowerCase() === r.joueurs[1].nom.toLowerCase()) erreurs.push('nom');
+    const c = choix && Array.isArray(choix.joueurs) ? choix.joueurs.map(j => j && j.couleur) : [];
+    if (c.length === 2 && c[0] === c[1]) erreurs.push('couleur');
+    return { ok: erreurs.length === 0, erreurs, reglages: r };
+  }
+
+  // le score de la rivalité pour ces deux noms (dans l'ordre joueur 1, joueur 2) : [0, 0] si les noms ont changé (le score
+  // suit les deux noms, même si les joueurs ont échangé leur place)
+  function scoreRivalite(riv, noms) {
+    if (!riv) return [0, 0];
+    if (riv.noms[0] === noms[0] && riv.noms[1] === noms[1]) return riv.score.slice();
+    if (riv.noms[0] === noms[1] && riv.noms[1] === noms[0]) return [riv.score[1], riv.score[0]];
+    return [0, 0];
+  }
+
+  // la rivalité après une course : gagnant = 0 (le joueur 1 a fini devant), 1 (le joueur 2), null (personne) ; remise à 0 si un
+  // nom a changé ; un nouvel objet { noms, score }
+  function ajouterRivalite(riv, noms, gagnant) {
+    const score = scoreRivalite(riv, noms);
+    if (gagnant === 0 || gagnant === 1) score[gagnant]++;
+    return { noms: noms.slice(), score };
+  }
+
+  // qui a fini devant au classement final (classementFinal, pénalités comprises) : 0 (joueur 1), 1 (joueur 2), null si aucun
+  function gagnant(e, final) {
+    const [p1, p2] = joueurs(e), k1 = e.pilotes.indexOf(p1), k2 = e.pilotes.indexOf(p2);
+    const a = final.find(x => x.k === k1), b = final.find(x => x.k === k2);
+    if (!a && !b) return null;
+    if (!b) return 0;
+    if (!a) return 1;
+    return a.place < b.place ? 0 : 1;
+  }
+
+  return { cibles, remise, nbIAValide, nbToursValide, creer, placerGrille, finie, joueurs, completer, valider, scoreRivalite, ajouterRivalite, gagnant };
 })();

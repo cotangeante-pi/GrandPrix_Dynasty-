@@ -47,7 +47,9 @@ PAGES = [
     ('index.html?robot=1&test=decouverte&tours=1', 1280, 720, None),
     ('index.html?deux=1&ia=5&robot=1&circuit=test&test=deux', 1280, 720, None),   # le mode 2 joueurs (deux-joueurs.js) : l'écran partagé, deux robots + 5 IA, jusqu'au podium ; capture deux-joueurs.png
     ('index.html?deux=1&ia=5&robot=1&circuit=test&test=deux', 960, 600, None),    # … en petit : rien ne déborde ; capture deux-joueurs-960.png
-    ('index.html?deux=1&ia=5&robot=1&circuit=technique&test=deux', 1280, 720, None),   # … la mesure de la 3D dessinée deux fois sur le technique   # le premier lancement : titre → course de découverte (robot) → Bravo → paddock ; captures titre.png, decouverte.png, bravo.png
+    ('index.html?deux=1&ia=5&robot=1&circuit=technique&test=deux', 1280, 720, None),
+    ('index.html?test=amis', 1280, 720, None),   # le mode 2 joueurs, tour 25b ordre 3 : titre → « Entre amis » → réglages → course à deux (robots) → podium → rivalité → Revanche → Menu ; captures entre-amis.png, deux-reglages.png, rivalite.png
+    ('index.html?test=amis', 960, 600, None),    # … en petit : le menu et l'écran avant la course tiennent sans défilement ni débordement   # … la mesure de la 3D dessinée deux fois sur le technique   # le premier lancement : titre → course de découverte (robot) → Bravo → paddock ; captures titre.png, decouverte.png, bravo.png
 ]
 # ECRANS_FILTRE=… (pendant le travail, sur le Mac) : seulement les pages dont l'adresse contient ce texte ; GitHub lance toujours tout
 if os.environ.get('ECRANS_FILTRE'): PAGES = [x for x in PAGES if os.environ['ECRANS_FILTRE'] in f'{x[0]} {x[1]}']   # (« adresse largeur » : « robot=1 960 »)
@@ -400,7 +402,7 @@ def decouverte(pg, titre):
         && window.APPELS_SDK.join(",") === "init,gameLoadingFinished"'''), str(pg.evaluate('() => [JEU.ecran, JEU.decouverte, window.APPELS_SDK]')))
     pg.screenshot(path=os.path.join(CAPTURES, 'titre.png'))
     pg.click('#boutonAmis')
-    t(f'{titre} : « Entre amis » ouvre « bientôt », « Retour » revient au titre', pg.evaluate('() => JEU.ecran === "amis" && document.getElementById("amisTexte").textContent === texte("amisBientot")')
+    t(f'{titre} : « Entre amis » ouvre son petit menu (écran partagé, tournoi), « Retour » revient au titre', pg.evaluate('() => JEU.ecran === "amis" && document.getElementById("boutonAmisDeux").textContent === texte("amisDeux")')
       and (pg.click('#boutonAmisRetour') or True) and pg.evaluate('() => JEU.ecran === "titre"'))
     chargement = pg.evaluate('() => performance.timing.domContentLoadedEventEnd - performance.timing.navigationStart')
     pg.click('#boutonJouer')
@@ -649,6 +651,99 @@ def deux_ecran(pg, titre, l, h, page):
         sauve = pg.evaluate('() => { const d = JSON.parse(localStorage.getItem(SAUVEGARDE.CLE) || "{}"); return { championnat: d.championnat || null, records: Object.keys(d.records || {}).length, reaction: d.reaction === undefined ? null : d.reaction }; }')
         t(f'{titre} : la sauvegarde de la carrière n’a pas bougé (ni championnat, ni record, ni temps de réaction)', sauve['championnat'] is None and sauve['records'] == 0 and sauve['reaction'] is None, str(sauve))
         pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'deux-podium.png'))
+
+# le mode 2 joueurs, les écrans autour (tour 25b, ordre 3) : « Entre amis » ouvre le petit menu (l'écran partagé ; le tournoi « bientôt »),
+# l'écran avant la course (nom, couleur, casque de chaque joueur ; circuit, tours, IA, niveau), refuse deux noms ou deux couleurs pareils,
+# écrit les réglages à part de la carrière et ouvre la course à deux ; les robots la finissent ; le podium met les deux joueurs en valeur ;
+# la rivalité (« Léo 1 – 0 Sarah ») ; « Revanche » : un commercialBreak (faux SDK) puis la même course, grille retirée ; « Menu » : un
+# commercialBreak puis le menu ; jamais de commercialBreak pendant une course ; la carrière n'a pas bougé
+def amis(pg, titre, l, h):
+    J = '() => window.APPELS_SDK.join(",")'
+    def boite(sel):
+        return pg.evaluate('s => { const e = document.querySelector(s); if (!e) return null; const r = e.getBoundingClientRect(); return [r.left, r.top, r.right, r.bottom]; }', sel)
+    def tient(ids):   # chaque élément est dans l'image, sans défilement
+        b = [boite(s) for s in ids]
+        d = pg.evaluate('() => [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth]')
+        return all(x is not None and x[0] >= -1 and x[1] >= -1 and x[2] <= l + 1 and x[3] <= h + 1 and x[2] > x[0] for x in b) and pas_de_defilement(d), str([b, d])
+    pg.click('#boutonAmis')
+    t(f'{titre} : « Entre amis » (titre) ouvre le petit menu : « Écran partagé (2 joueurs) », « Tournoi chrono » grisé (bientôt), « Retour »',
+      pg.evaluate('() => JEU.ecran === "amis" && !document.getElementById("amis").classList.contains("cache") && document.getElementById("boutonAmisDeux").textContent === texte("amisDeux") && document.getElementById("boutonAmisTournoi").disabled && document.getElementById("boutonAmisTournoi").textContent.includes(texte("bientot"))'),
+      str(pg.evaluate('() => JEU.ecran')))
+    ok_, det = tient(['#amisTitre', '#boutonAmisDeux', '#boutonAmisTournoi', '#boutonAmisRetour'])
+    t(f'{titre} : le menu tient en {l}×{h}', ok_, det)
+    if l == 1280: pg.wait_for_timeout(200); pg.screenshot(path=os.path.join(CAPTURES, 'entre-amis.png'))
+    pg.click('#boutonAmisDeux')
+    reg = pg.evaluate('() => ({ ecran: JEU.ecran, n1: document.getElementById("deuxNom1").value, p1: document.getElementById("deuxNom1").placeholder, c: [1, 2].map(i => Number(document.getElementById("deuxCouleurs" + i).dataset.couleur)), pastilles: document.querySelectorAll("#deuxCouleurs1 button").length, circuits: [...document.getElementById("deuxCircuit").options].map(o => o.value), tours: [...document.getElementById("deuxTours").options].map(o => o.value), ia: [...document.getElementById("deuxIA").options].map(o => o.value), niveaux: document.getElementById("deuxNiveau").options.length, motifs: document.getElementById("deuxMotif1").options.length, icones: document.querySelectorAll(".deuxIcone canvas").length })')
+    t(f'{titre} : l’écran avant la course : nom (vide, « Joueur 1 » en attente), couleur (le bleu et le rouge d’abord), casque (tous les motifs, son icône) de chaque joueur ; circuits, 3/5 tours, 0/3/5 IA, 4 niveaux',
+      reg['ecran'] == 'deuxReglages' and reg['n1'] == '' and reg['p1'] in ('Joueur 1', 'Player 1') and reg['c'] == [0x1f6fe0, 0xd8262e] and reg['pastilles'] == 8 and reg['circuits'] == ['test', 'technique'] and reg['tours'] == ['3', '5'] and reg['ia'] == ['0', '3', '5'] and reg['niveaux'] == 4 and reg['motifs'] == 6 and reg['icones'] == 2, str(reg))
+    ok_, det = tient(['#deuxTitre', '#deuxJoueur1', '#deuxJoueur2', '#deuxCourse', '#boutonDeuxPartir', '#boutonDeuxRetour'])
+    t(f'{titre} : l’écran avant la course tient en {l}×{h} (les deux joueurs côte à côte, rien ne déborde)', ok_, det)
+    if l == 960:
+        pg.wait_for_timeout(200); pg.screenshot(path=os.path.join(CAPTURES, 'deux-reglages-960.png'))
+        pg.click('#boutonDeuxRetour'); pg.click('#boutonAmisRetour')
+        t(f'{titre} : « Retour » revient au menu, puis au titre', pg.evaluate('() => JEU.ecran === "titre"'), str(pg.evaluate('() => JEU.ecran')))
+        return
+    # deux noms pareils, puis deux couleurs pareilles : refusés, la page reste
+    pg.fill('#deuxNom1', 'Léo'); pg.fill('#deuxNom2', ' léo ')
+    pg.click('#boutonDeuxPartir')
+    t(f'{titre} : deux noms pareils (majuscules et espaces comptés pareil) sont refusés', pg.evaluate('() => JEU.ecran === "deuxReglages" && document.getElementById("deuxErreur").textContent === texte("deuxErreurNom") && SAUVEGARDE.deux() === null'), str(pg.evaluate('() => [JEU.ecran, document.getElementById("deuxErreur").textContent]')))
+    pg.fill('#deuxNom2', 'Sarah'); pg.click('#deuxCouleurs2 button:nth-child(1)')
+    pg.click('#boutonDeuxPartir')
+    t(f'{titre} : deux couleurs pareilles sont refusées', pg.evaluate('() => JEU.ecran === "deuxReglages" && document.getElementById("deuxErreur").textContent === texte("deuxErreurCouleur") && SAUVEGARDE.deux() === null'), str(pg.evaluate('() => [JEU.ecran, document.getElementById("deuxErreur").textContent]')))
+    pg.click('#deuxCouleurs2 button:nth-child(4)')   # le vert
+    pg.select_option('#deuxMotif2', 'damier'); pg.select_option('#deuxIA', '3'); pg.select_option('#deuxTours', '3'); pg.select_option('#deuxNiveau', 'debutant'); pg.select_option('#deuxCircuit', 'test')
+    t(f'{titre} : deux couleurs différentes : le message d’erreur disparaît dès le nouveau choix', pg.evaluate('() => document.getElementById("deuxErreur").textContent === ""'), pg.evaluate('() => document.getElementById("deuxErreur").textContent'))
+    rb = pg.evaluate('() => { const b = document.getElementById("boutonDeuxRetour").getBoundingClientRect(), p = document.getElementById("boutonDeuxPartir").getBoundingClientRect(); return [b.top + b.height / 2, p.top + p.height / 2, b.height, p.height]; }')
+    t(f'{titre} : le petit bouton « Retour » est centré sur la ligne de « C’est parti ! », pas étiré', abs(rb[0] - rb[1]) < 2 and rb[2] < rb[3], str(rb))
+    pg.wait_for_timeout(200); pg.screenshot(path=os.path.join(CAPTURES, 'deux-reglages.png'))
+    carriere = pg.evaluate('() => localStorage.getItem(SAUVEGARDE.CLE) && JSON.stringify(JSON.parse(localStorage.getItem(SAUVEGARDE.CLE)).championnat)')
+    with pg.expect_navigation(): pg.click('#boutonDeuxPartir')
+    t(f'{titre} : « C’est parti ! » écrit les réglages (à part de la carrière) et ouvre la course à deux : les noms, les couleurs, les casques, 3 IA, 3 tours, débutant',
+      attendre(pg, '''() => typeof JEU !== "undefined" && JEU.deux && JEU.plateau && JEU.ecran === "course" && JEU.plateau.pilotes.length === 5 && JEU.course.nbTours === 3 && REGLAGES.NIVEAU === "debutant" && NOM_CIRCUIT === "test"
+        && JEU.deux.reglages.joueurs.map(j => j.nom).join() === "Léo,Sarah" && JEU.couleurs[3] === 0x1f6fe0 && JEU.couleurs[4] === 0x2fa84f && casqueDe(4).motif === "damier" && SAUVEGARDE.deux().joueurs[1].couleur === 0x2fa84f''', None, 30000),
+      str(pg.evaluate('() => typeof JEU === "undefined" ? null : [JEU.ecran, JEU.deux && JEU.deux.reglages, JEU.couleurs, REGLAGES.NIVEAU]')))
+    t(f'{titre} : la carte arrive, la grille est tirée', attendre(pg, '() => JEU.plateau.carte !== null && JEU.plateau.grille', None, 120000))
+    pg.evaluate('() => { JEU.robot = true; }')
+    def finir():
+        pg.evaluate('() => { BOUCLE.arreter(); BOUCLE.simuler(260); BOUCLE.demarrer(); }')
+        return attendre(pg, '() => JEU.ecran === "podium" && JEU.final && JEU.final.length === 5', None, 60000)
+    sous_course = pg.evaluate('() => { BOUCLE.arreter(); BOUCLE.simuler(20); BOUCLE.demarrer(); return [JEU.ecran, window.APPELS_SDK.join(",")]; }')
+    pg.wait_for_timeout(300)
+    hud = pg.evaluate('() => [...document.querySelectorAll(".deuxNom")].map(s => s.textContent)')
+    t(f'{titre} : chaque moitié affiche le nom de son joueur', hud == ['🔵 Léo', '🔴 Sarah'], str(hud))
+    t(f'{titre} : la course finit, le podium vient', finir(), str(pg.evaluate('() => [JEU.ecran, JEU.final && JEU.final.length]')))
+    pod = pg.evaluate('''() => { const [a, b] = DEUX_JOUEURS.joueurs(JEU.plateau), P = JEU.plateau.pilotes, pl = p => JEU.final.find(x => x.k === P.indexOf(p)).place;
+      return { places: [pl(a), pl(b)], texte: document.getElementById("podiumDeux").textContent, cache: document.getElementById("podiumDeux").classList.contains("cache"),
+        marches: [...document.querySelectorAll("#podiumMarches .marche")].map(m => m.className + " " + m.querySelector("strong").textContent), riv: SAUVEGARDE.deux().rivalite }; }''')
+    marques = [m for m in pod['marches'] if 'joueur' in m]
+    attendues = sum(1 for p in pod['places'] if p <= 3)
+    t(f'{titre} : le podium met les deux joueurs en valeur : leur place à tous les deux (même hors du podium), et sur les marches leur nom et leur couleur',
+      not pod['cache'] and 'Léo' in pod['texte'] and 'Sarah' in pod['texte'] and f'P{pod["places"][0]}' in pod['texte'] and f'P{pod["places"][1]}' in pod['texte'] and len(marques) == attendues and all(('Léo' in m) if 'joueur1' in m else ('Sarah' in m) for m in marques), str(pod))
+    g = 0 if pod['places'][0] < pod['places'][1] else 1
+    t(f'{titre} : la rivalité est comptée une fois et sauvegardée : 1 point à celui qui a fini devant', pod['riv'] == {'noms': ['Léo', 'Sarah'], 'score': [1 - g, g]}, str(pod))
+    pg.click('#boutonResultats')
+    res = pg.evaluate('() => ({ ecran: JEU.ecran, riv: document.getElementById("resultatsRivalite").textContent, cache: document.getElementById("resultatsRivalite").classList.contains("cache"), moi: [...document.querySelectorAll("#resultatsLignes tr.moi")].map(tr => tr.children[1].textContent.trim()), boutons: [document.getElementById("boutonRejouerResultats").textContent, document.getElementById("boutonChangerResultats").textContent] })')
+    t(f'{titre} : les résultats : les deux joueurs marqués par leur nom, le score de la rivalité (« Léo {1 - g} – {g} Sarah »), « Revanche » et « Menu »',
+      res['ecran'] == 'resultats' and not res['cache'] and res['riv'].endswith(f'Léo {1 - g} – {g} Sarah') and sorted(res['moi']) == ['Léo', 'Sarah'] and res['boutons'] == [pg.evaluate('() => texte("revanche")'), pg.evaluate('() => texte("menuAmis")')], str(res))
+    pg.wait_for_timeout(200); pg.screenshot(path=os.path.join(CAPTURES, 'rivalite.png'))
+    appels = pg.evaluate(J)
+    t(f'{titre} : Poki : gameplayStart à la course, gameplayStop au podium, aucun commercialBreak avant le clic', 'commercialBreak' not in appels and appels.endswith('gameplayStart,gameplayStop') and ',gameplayStart,gameplayStart' not in appels and ',gameplayStop,gameplayStop' not in appels, appels)
+    grille1 = pg.evaluate('() => [JEU.plateau.graine, JEU.plateau.grille.map(x => x.numero).join()]')
+    pg.click('#boutonRejouerResultats')
+    t(f'{titre} : « Revanche » : un commercialBreak (le jeu arrêté avant), puis la même course (mêmes joueurs, 3 IA, 3 tours) avec une autre graine de grille',
+      attendre(pg, '() => JEU.ecran === "course" && JEU.course.etat === "compte" && JEU.final === null', None, 10000) and pg.evaluate(J) == appels + ',commercialBreak'
+      and pg.evaluate(f'() => JEU.plateau.pilotes.length === 5 && JEU.course.nbTours === 3 && JEU.plateau.graine !== {grille1[0]} && JEU.deux.revanche === 1'), str([grille1, pg.evaluate('() => [JEU.ecran, JEU.plateau.graine, JEU.plateau.grille && JEU.plateau.grille.map(x => x.numero).join()]'), pg.evaluate(J)]))
+    pg.evaluate('() => { BOUCLE.arreter(); BOUCLE.simuler(20); BOUCLE.demarrer(); }')
+    t(f'{titre} : pendant la revanche, pas de pub : gameplayStart aux feux éteints', attendre(pg, '() => JEU.ecran === "course" && window.APPELS_SDK.slice(-1)[0] === "gameplayStart"', None, 10000) and pg.evaluate(J).count('commercialBreak') == 1, pg.evaluate(J))
+    t(f'{titre} : la revanche finit, la rivalité s’additionne (2 courses comptées)', finir() and sum(pg.evaluate('() => SAUVEGARDE.deux().rivalite.score')) == 2, str(pg.evaluate('() => SAUVEGARDE.deux()')))
+    pg.click('#boutonResultats')
+    with pg.expect_navigation(): pg.click('#boutonChangerResultats')
+    t(f'{titre} : « Menu » : un commercialBreak, puis le menu « Entre amis » (la page nue, ?menu=amis)', attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "amis"', None, 30000), str(pg.evaluate('() => typeof JEU === "undefined" ? null : JEU.ecran')))
+    pg.click('#boutonAmisDeux')
+    gardes = pg.evaluate('() => [document.getElementById("deuxNom1").value, document.getElementById("deuxNom2").value, document.getElementById("deuxCouleurs2").dataset.couleur, document.getElementById("deuxMotif2").value, document.getElementById("deuxIA").value, document.getElementById("deuxNiveau").value, SAUVEGARDE.deux().rivalite.score.reduce((a, b) => a + b)]')
+    t(f'{titre} : les derniers choix sont gardés pour la fois suivante (noms, couleur, casque, IA, niveau) avec la rivalité', gardes == ['Léo', 'Sarah', str(0x2fa84f), 'damier', '3', 'debutant', 2], str(gardes))
+    apres = pg.evaluate('() => localStorage.getItem(SAUVEGARDE.CLE) && JSON.stringify(JSON.parse(localStorage.getItem(SAUVEGARDE.CLE)).championnat)')
+    t(f'{titre} : la carrière n’a pas bougé (le monde du championnat créé au premier lancement est le même)', carriere is not None and apres == carriere, str([carriere and carriere[:80], apres and apres[:80]]))
 
 def course_joueur(pg, titre):
     # le joueur conduit sa voiture au clavier, au milieu de 9 IA ; la caméra le suit, Tab ne change rien
@@ -1346,6 +1441,8 @@ def INTERFACE_TEMPS(t, virgule='.'):
     m = int(t // 60); s = t - m * 60
     return f'{m}:{s:06.3f}'.replace('.', virgule)
 
+# PAGES_FILTRE=<expression> (variable d'environnement, développement) : seulement les pages dont l'adresse y correspond
+if os.environ.get('PAGES_FILTRE'): PAGES = [x for x in PAGES if re.search(os.environ['PAGES_FILTRE'], x[0])]
 mesures = None
 mesures_voiture = []
 os.makedirs(CAPTURES, exist_ok=True)
@@ -1363,7 +1460,7 @@ with sync_playwright() as p:
             pg.on('console', lambda m: console.append(m.type + ': ' + m.text) if m.type in ('error', 'warning') and not LECTURE_PIXELS.fullmatch(m.text) else None)
             pg.on('pageerror', lambda e: console.append('PAGEERROR ' + str(e)))
             pg.on('requestfailed', lambda r: console.append('FICHIER MANQUANT ' + r.url))
-            if 'test=sdk' in page or 'test=decouverte' in page: pg.add_init_script(FAUX_SDK)
+            if 'test=sdk' in page or 'test=decouverte' in page or 'test=amis' in page: pg.add_init_script(FAUX_SDK)
             pg.goto('file://' + RACINE + '/' + page); pg.wait_for_timeout(1500)
             t(f'{titre} : console vide', not console, ' | '.join(console)[:500])
             defile = pg.evaluate('() => [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth]')
@@ -1398,6 +1495,8 @@ with sync_playwright() as p:
                 sdk(pg, titre)
             if 'test=deux' in page:
                 deux_ecran(pg, titre, l, h, page)
+            if 'test=amis' in page:
+                amis(pg, titre, l, h)
             if 'pneus=1' in page:
                 pneus(pg, titre)
             if re.search(r'[?&]ia=1(&|$)', page):

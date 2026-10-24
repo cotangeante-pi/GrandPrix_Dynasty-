@@ -45,7 +45,7 @@ const INTERFACE = (function () {
   }
 
   function montrer(ecran) {
-    for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une', 'garage', 'saison', 'duelSaison', 'contrats', 'retraite', 'titre', 'amis', 'bravo', 'pilote', 'sponsors', 'fiche', 'interview', 'ceremonie', 'temple']) $(id).classList.toggle('cache', id !== ecran);
+    for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une', 'garage', 'saison', 'duelSaison', 'contrats', 'retraite', 'titre', 'amis', 'bravo', 'pilote', 'sponsors', 'fiche', 'interview', 'ceremonie', 'temple', 'deuxReglages']) $(id).classList.toggle('cache', id !== ecran);
     // l'album des unes (Codeur 3) : la page de la une, avec la barre pour feuilleter
     if (ecran === 'album') $('une').classList.remove('cache');
     $('une').classList.toggle('album', ecran === 'album');
@@ -243,11 +243,11 @@ const INTERFACE = (function () {
       const x = trois[place - 1];
       if (!x) continue;
       const carte = document.createElement('div');
-      carte.className = 'marche marche' + place;
+      carte.className = 'marche marche' + place + (x.joueur ? ' joueur' + x.joueur : '');   // (le mode 2 joueurs : les joueurs mis en valeur)
       const titre = document.createElement('strong');
       titre.append(String(place) + ' ', pastille(x.couleur), ' ');
       if (x.casque) titre.append(CASQUE.icone(x.casque, REGLAGES.CASQUE_ICONE + 4));
-      titre.append(texte('numero').replace('{n}', x.numero));
+      titre.append(x.nom ? x.nom : texte('numero').replace('{n}', x.numero));
       const temps = document.createElement('span');
       temps.textContent = formatTemps(x.total) + (x.penalites > 0 ? ' (' + penalite(x.penalites) + ')' : '');
       carte.append(titre, temps);
@@ -265,7 +265,7 @@ const INTERFACE = (function () {
       const numero = document.createElement('span');
       numero.append(pastille(l.couleur), ' ');
       if (l.casque) numero.append(CASQUE.icone(l.casque, REGLAGES.CASQUE_ICONE));
-      numero.append(String(l.numero));
+      numero.append(l.nom ? l.nom : String(l.numero));   // (le mode 2 joueurs : le nom de chaque joueur)
       const ecart = l.ecart === null || l.place === 1 ? '' : '+' + secondes(l.ecart.toFixed(3));
       // sa place sur la grille, et les places gagnées (▲) ou perdues (▼) depuis
       const gagne = l.grille - l.place, grille = l.grille + ' ' + (gagne > 0 ? '▲' + gagne : gagne < 0 ? '▼' + -gagne : '=');
@@ -292,7 +292,7 @@ const INTERFACE = (function () {
     $('titreNom').textContent = texte('nomDuJeu');
     $('boutonJouer').textContent = texte('titreJouer');
     $('boutonAmis').textContent = texte('titreAmis');
-    $('amisTexte').textContent = texte('amisBientot');
+    $('amisTitre').textContent = texte('amisTitre');
     $('boutonAmisRetour').textContent = texte('retour');
     $('bravoTitre').textContent = texte('bravoTitre');
     $('bravoQuestion').textContent = texte('bravoQuestion');
@@ -436,7 +436,7 @@ const INTERFACE = (function () {
     f2.querySelectorAll('span').forEach((f, i) => f.classList.toggle('allume', allumes[i].classList.contains('allume')));
     ['deuxHaut', 'deuxBas'].forEach((id, i) => {
       const el = $(id), x = j[i];
-      el.querySelector('.deuxNom').textContent = (i ? '🔴 ' : '🔵 ') + texte(i ? 'joueur2' : 'joueur1');
+      el.querySelector('.deuxNom').textContent = (i ? '🔴 ' : '🔵 ') + (x.nom || texte(i ? 'joueur2' : 'joueur1'));
       el.querySelector('.deuxPlace').textContent = x.place ? 'P' + x.place : '';
       el.querySelector('.deuxTour').textContent = texte('tour') + ' ' + x.tour + ' / ' + x.nbTours;
       el.querySelector('.deuxVitesse').textContent = Math.round(x.vitesse * 3.6) + ' ' + texte('kmh');
@@ -918,7 +918,115 @@ const INTERFACE = (function () {
     });
   }
 
-  return { formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, preparerChampionnat, remplirQualif, preparerQualif,
+  // --- le mode 2 joueurs (deux-joueurs.js, tour 25b ordre 3) : le menu « Entre amis », l'écran avant la course, le podium à deux,
+  // la rivalité. preparerAmis(deux, tournoi, paddock) : les boutons du menu (tournoi = null : « bientôt », grisé) et « Entre amis » au paddock
+  function preparerAmis(deux, tournoi, paddock) {
+    $('boutonAmisDeux').textContent = texte('amisDeux');
+    $('boutonAmisTournoi').textContent = texte('amisTournoi') + (tournoi ? '' : ' — ' + texte('bientot'));
+    $('boutonAmisTournoi').disabled = !tournoi;
+    $('boutonAmisRetour').textContent = texte('retour');
+    $('boutonAmisPaddock').textContent = texte('titreAmis');
+    for (const [id, f] of [['boutonAmisDeux', deux], ['boutonAmisTournoi', tournoi]]) {
+      if (!f) continue;
+      $(id).addEventListener('mousedown', e => e.preventDefault());
+      $(id).addEventListener('click', f);
+    }
+    $('boutonAmisPaddock').addEventListener('mousedown', e => e.preventDefault());
+    $('boutonAmisPaddock').addEventListener('click', paddock);
+  }
+
+  // l'écran avant la course : r = les réglages (DEUX_JOUEURS.completer) ; les listes, puis les valeurs
+  const hex = c => '#' + c.toString(16).padStart(6, '0');
+  function majIconeDeux(i) {
+    const el = $('deuxIcone' + i);
+    el.textContent = '';
+    el.append(CASQUE.icone(lireCasqueDeux(i), REGLAGES.CASQUE_ICONE + 8));
+  }
+  function lireCasqueDeux(i) {
+    return CASQUE.creer($('deuxMotif' + i).value, ['a', 'b', 'c'].map(x => parseInt($('deuxCasque' + i + x).value.slice(1), 16)));
+  }
+  function choisirCouleurDeux(i, c) {
+    $('deuxErreur').textContent = '';   // un choix changé : l'ancien message d'erreur part (il revient au prochain « C'est parti ! » s'il le faut)
+    $('deuxCouleurs' + i).dataset.couleur = String(c);
+    for (const b of $('deuxCouleurs' + i).children) b.classList.toggle('choisie', Number(b.dataset.couleur) === c);
+  }
+  function remplirDeux(r) {
+    const R = REGLAGES;
+    $('deuxTitre').textContent = texte('deuxTitre');
+    for (const cl of ['deuxNomTexte', 'deuxCouleurTexte', 'deuxCasqueTexte']) for (const e of document.getElementsByClassName(cl)) e.textContent = texte(cl.replace('Texte', ''));
+    for (const [id, cle] of [['deuxCircuitTexte', 'deuxCircuit'], ['deuxToursTexte', 'deuxTours'], ['deuxIATexte', 'deuxIA'], ['deuxNiveauTexte', 'deuxNiveau']]) $(id).textContent = texte(cle);
+    $('boutonDeuxPartir').textContent = texte('deuxPartir');
+    $('boutonDeuxRetour').textContent = texte('retour');
+    $('deuxErreur').textContent = '';
+    const options = (id, liste, nom) => { const s = $(id); s.textContent = ''; for (const v of liste) { const o = document.createElement('option'); o.value = String(v); o.textContent = nom(v); s.appendChild(o); } };
+    options('deuxCircuit', Object.keys(CIRCUITS), c => nomCircuit(c));
+    options('deuxTours', R.DEUX_TOURS_CHOIX, n => n + ' ' + texte('tours'));
+    options('deuxIA', R.DEUX_IA_CHOIX.filter(n => n <= R.DEUX_VOITURES_MAX - 2), n => String(n));
+    options('deuxNiveau', Object.keys(R.NIVEAUX), n => texte('niveau_' + n));
+    $('deuxCircuit').value = r.circuit; $('deuxTours').value = String(r.tours); $('deuxIA').value = String(r.ia); $('deuxNiveau').value = r.niveau;
+    [1, 2].forEach(i => {
+      const j = r.joueurs[i - 1], bloc = $('deuxJoueur' + i);
+      bloc.querySelector('h2').textContent = (i === 1 ? '🔵 ' : '🔴 ') + texte('joueur' + i);
+      bloc.querySelector('.deuxTouches').textContent = texte('deuxTouches' + i);
+      const nom = $('deuxNom' + i);
+      nom.maxLength = R.NOM_LONGUEUR_MAX; nom.placeholder = texte('joueur' + i); nom.value = j.nom;
+      const couleurs = $('deuxCouleurs' + i);
+      couleurs.textContent = '';
+      for (const c of R.DEUX_COULEURS_CHOIX) {
+        const b = document.createElement('button');
+        b.tabIndex = -1; b.className = 'deuxPastille'; b.dataset.couleur = String(c); b.style.background = hex(c);
+        b.addEventListener('mousedown', e => e.preventDefault());
+        b.addEventListener('click', () => choisirCouleurDeux(i, c));
+        couleurs.appendChild(b);
+      }
+      choisirCouleurDeux(i, j.couleur);
+      options('deuxMotif' + i, R.CASQUE_MOTIFS, m => texte('motif_' + m));
+      $('deuxMotif' + i).value = j.casque.motif;
+      ['a', 'b', 'c'].forEach((x, k) => { $('deuxCasque' + i + x).value = hex(j.casque.couleurs[k]); });
+      majIconeDeux(i);
+    });
+  }
+
+  // les choix tapés : { joueurs: [{ nom, couleur, casque }, …], circuit, tours, ia, niveau }
+  function lireDeux() {
+    return {
+      joueurs: [1, 2].map(i => ({ nom: $('deuxNom' + i).value, couleur: Number($('deuxCouleurs' + i).dataset.couleur), casque: lireCasqueDeux(i) })),
+      circuit: $('deuxCircuit').value, tours: Number($('deuxTours').value), ia: Number($('deuxIA').value), niveau: $('deuxNiveau').value,
+    };
+  }
+
+  function montrerErreursDeux(erreurs) {
+    $('deuxErreur').textContent = erreurs.includes('nom') ? texte('deuxErreurNom') : erreurs.includes('couleur') ? texte('deuxErreurCouleur') : '';
+  }
+
+  function preparerDeux(partir, retour) {
+    for (const [id, f] of [['boutonDeuxPartir', partir], ['boutonDeuxRetour', retour]]) {
+      $(id).addEventListener('mousedown', e => e.preventDefault());
+      $(id).addEventListener('click', f);
+    }
+    for (const i of [1, 2]) {
+      $('deuxNom' + i).addEventListener('keydown', e => e.stopPropagation());   // taper son nom ne conduit pas la voiture
+      $('deuxNom' + i).addEventListener('input', () => { $('deuxErreur').textContent = ''; });
+      for (const id of ['deuxMotif' + i, 'deuxCasque' + i + 'a', 'deuxCasque' + i + 'b', 'deuxCasque' + i + 'c']) $(id).addEventListener('input', () => majIconeDeux(i));
+      $('deuxMotif' + i).addEventListener('change', () => majIconeDeux(i));
+    }
+  }
+
+  // le podium à deux : la place de chaque joueur, même hors du podium ; j = [{ nom, place, couleur }, …] ou null (caché)
+  function remplirPodiumDeux(j) {
+    $('podiumDeux').classList.toggle('cache', !j);
+    if (!j) return;
+    $('podiumDeux').textContent = j.map((x, i) => (i ? '🔴 ' : '🔵 ') + avec(texte('deuxPlace'), { nom: x.nom, p: x.place })).join('   ');
+  }
+
+  // le score de la rivalité : r = { noms: [a, b], score: [x, y] } ou null (caché) ; « Léo 3 – 2 Sarah »
+  function remplirRivalite(r) {
+    $('resultatsRivalite').classList.toggle('cache', !r);
+    if (!r) return;
+    $('resultatsRivalite').textContent = texte('rivaliteTitre') + ' : ' + avec(texte('rivalite'), { a: r.noms[0], x: r.score[0], y: r.score[1], b: r.noms[1] });
+  }
+
+  return { preparerAmis, remplirDeux, lireDeux, montrerErreursDeux, preparerDeux, remplirPodiumDeux, remplirRivalite, formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, preparerChampionnat, remplirQualif, preparerQualif,
     remplirDuel, avec, remplirUne, preparerUne, remplirArgent, remplirSolde, remplirGarage, preparerGarage,
     remplirSaison, remplirDuelSaison, remplirContrats, remplirRetraite, preparerSaison, retraiteEnAttente, remplirCeremonie, preparerCeremonie, remplirAlbum, preparerAlbum, remplirBilan, remplirTemple, preparerTemple,
     remplirSponsors, remplirRappelSponsor, preparerSponsors, remplirFiche, preparerFiche, remplirInterview, montrerEffetInterview, preparerInterview, remplirReputation,
