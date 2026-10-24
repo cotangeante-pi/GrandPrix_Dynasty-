@@ -1,7 +1,7 @@
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><title>tests</title></head><body>
 <pre id="res"></pre>
 <script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));window.addEventListener('unhandledrejection',e=>__err.push('promesse : '+(e.reason&&e.reason.message||e.reason)));</script>
-<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../son.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../decouverte.js"></script><script src="../pilote.js"></script><script src="../journal.js"></script><script src="../argent.js"></script><script src="../garage.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../fantome.js"></script><script src="../principal.js"></script>
+<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../son.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../decouverte.js"></script><script src="../pilote.js"></script><script src="../cache-carte.js"></script><script src="../journal.js"></script><script src="../argent.js"></script><script src="../garage.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../fantome.js"></script><script src="../principal.js"></script>
 <script>
 const L=[];let ok=0,ko=0;
 function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
@@ -1157,6 +1157,28 @@ t('garage : les améliorations aident un peu (la règle d’or) : le robot avec 
   v(cs[0].etat==='finie'&&cs[1].etat==='finie','3 tours');const t0=cs[0].meilleurTour,t1=cs[1].meilleurTour,gain=1-t1/t0;
   L.push('  (garage +7 % : meilleur tour du robot '+t1.toFixed(3)+' s contre '+t0.toFixed(3)+' s, soit '+(gain*100).toFixed(2)+' % de gagné)');
   v(gain>=0.01&&gain<=0.04,(gain*100).toFixed(2)+' %');});
+
+// --- la carte des IA en cache (tour 24b, cache-carte.js) : calcul pur
+t('cache de la carte : la trajectoire encodée (ecart et vitesse en Float64 base64) puis décodée redonne les 7 tableaux au bit près (test et technique), et carteDepuis les mêmes virages ; la taille reste sous CACHE_CARTE_TAILLE_MAX', ()=>{
+  const R_=REGLAGES;const circuits={test:[C,CIRCUITS.test],technique:[TQ,CIRCUITS.technique]};const tailles=[];
+  for(const nom of ['test','technique']){const [circ,def]=circuits[nom],T=TRAJ[nom],cache=CACHE_CARTE.encoder(nom,def,T),T2=CACHE_CARTE.decoder(cache,nom,def,circ);
+    v(T2!==null,'cache refusé');for(const k of ['ecart','x','z','courbure','ds','vitesse','vitesseLimite']){v(T2[k].length===T[k].length,k+' longueur');for(let i=0;i<T[k].length;i++) if(T2[k][i]!==T[k][i]) throw new Error(nom+' '+k+'['+i+'] : '+T2[k][i]+' ≠ '+T[k][i]);}
+    const c1=carteDepuis(circ,T),c2=carteDepuis(circ,T2);v(JSON.stringify(c1.virages)===JSON.stringify(c2.virages)&&c1.pointe===c2.pointe,'virages différents');
+    const taille=CACHE_CARTE.taille(cache);tailles.push(nom+' '+taille+' octets ('+T.ecart.length+' échantillons)');v(taille<R_.CACHE_CARTE_TAILLE_MAX,'taille '+taille);}
+  L.push('  (cache de la carte : '+tailles.join(', ')+')');});
+t('cache de la carte : la clé invalide le cache quand un réglage IA_* change, quand la physique de la vitesse change, quand le tracé change ; un cache abîmé ou d’un autre circuit est refusé ; la sauvegarde le garde par circuit', ()=>{
+  const R_=REGLAGES,T=TRAJ.test,cache=CACHE_CARTE.encoder('test',CIRCUITS.test,T);
+  v(CACHE_CARTE.decoder(cache,'test',CIRCUITS.test,C)!==null,'valide');
+  const marge=R_.IA_MARGE_BORD;R_.IA_MARGE_BORD=marge+0.1;v(CACHE_CARTE.decoder(cache,'test',CIRCUITS.test,C)===null,'réglage IA changé');R_.IA_MARGE_BORD=marge;
+  const adh=R_.ADHERENCE;R_.ADHERENCE=adh+0.01;v(CACHE_CARTE.decoder(cache,'test',CIRCUITS.test,C)===null,'physique changée');R_.ADHERENCE=adh;
+  const def2=JSON.parse(JSON.stringify(CIRCUITS.test));def2.morceaux[0][1]+=1;v(CACHE_CARTE.decoder(cache,'test',def2,C)===null,'tracé changé');
+  v(CACHE_CARTE.decoder(cache,'technique',CIRCUITS.technique,TQ)===null,'autre circuit');v(CACHE_CARTE.decoder(Object.assign({},cache,{ecart:'abc'}),'test',CIRCUITS.test,C)===null,'abîmé');
+  v(CACHE_CARTE.decoder(null,'test',CIRCUITS.test,C)===null&&CACHE_CARTE.decoder({},'test',CIRCUITS.test,C)===null,'absent');
+  localStorage.removeItem(SAUVEGARDE.CLE);v(SAUVEGARDE.carte('test')===null,'vierge');SAUVEGARDE.ecrireCarte('test',cache);
+  const relu=SAUVEGARDE.carte('test');v(relu&&relu.cle===cache.cle&&SAUVEGARDE.carte('technique')===null,'sauvegardé');
+  const T3=CACHE_CARTE.decoder(relu,'test',CIRCUITS.test,C);v(T3&&T3.vitesse[300]===T.vitesse[300]&&T3.ecart[100]===T.ecart[100],'relu depuis la sauvegarde');
+  localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:3,records:{},championnat:null}));v(SAUVEGARDE.carte('test')===null&&JSON.stringify(SAUVEGARDE.lire().cartes)==='{}','ancienne sauvegarde sans cartes');
+  localStorage.removeItem(SAUVEGARDE.CLE);});
 
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 ecrire();

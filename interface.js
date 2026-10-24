@@ -268,7 +268,7 @@ const INTERFACE = (function () {
   // « Bravo ! » : la place du joueur (place, nb) et sa prime
   function remplirBravo(place, nb, prime) {
     $('bravoPlace').textContent = texte('bravoPlace').replace('{p}', place).replace('{n}', nb);
-    $('bravoArgent').textContent = texte('bravoArgent').replace('{n}', prime);
+    $('bravoArgent').textContent = texte('bravoArgent').replace('{n}', typeof ARGENT !== 'undefined' ? ARGENT.formater(prime) : String(prime));   // la seule monnaie du jeu (argent.js)
   }
 
   // les aides en surimpression de la découverte : a = { gaz, direction, frein (vrais quand la touche a servi), clignote } ou null (cachées)

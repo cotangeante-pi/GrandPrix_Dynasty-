@@ -186,6 +186,7 @@ const REGLAGES = {
   DECOUVERTE_ARGENT: [1000, 800, 600, 400, 300, 200, 100],   // la prime d'argent de départ selon la place (1er, 2e, …)
   DECOUVERTE_ARGENT_MAX: 1000,  // … et son plafond
   AIDE_CLIGNOTE_APRES: 3,       // s : sur la grille, sans aucune touche pendant ce temps, l'aide « ↑ » clignote
+  CACHE_CARTE_TAILLE_MAX: 150000,   // octets : la carte des IA d'un circuit en cache dans la sauvegarde (cache-carte.js) ne doit pas peser plus (test)
 
   // la création du pilote (pilote.js, étape 6) : le nom, le numéro, le pays, la course de cœur
   NOM_LONGUEUR_MAX: 12,         // caractères du nom du pilote
