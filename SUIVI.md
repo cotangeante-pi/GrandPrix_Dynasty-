@@ -19,6 +19,7 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 
 ## Horaires
 
+- 2026-10-23 22h10 : le propriétaire : « finit à 24h » → **fin à minuit** : rien de nouveau après 23h40, dernier push 23h50, comptes rendus avant 23h55 ; à minuit le Chef fige main sur le dernier commit vert, écrit rapports/fin-2026-10-23.md et arrête le blocage de la veille.
 - 2026-10-23 18h45 : le propriétaire : « jusqu'à nouvel ordre » → **plus d'heure de fin** ; les 3 Codeurs continuent leurs ordres, le Chef redonne un ordre à chacun dès qu'il finit, jusqu'à ce que le propriétaire dise stop. Le Mac est gardé éveillé sans limite (`caffeinate -i -s`, lancé par le Chef ; à arrêter à la fin). Avant : boucle jusqu'à 21h (20h40 / 20h50 / 20h55).
 
 - 2026-10-21 : boucle relancée à 17h (« recommence la boucle »), fin à 21h comme la veille. Mac gardé éveillé jusqu'à 21h10.
