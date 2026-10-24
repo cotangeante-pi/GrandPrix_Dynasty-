@@ -118,6 +118,7 @@ function majCourse(c, v, dt) {
     c.etat = 'course';
   }
   if (c.etat !== 'course') return;
+  if (pasArretStand(c, v, dt)) return;   // l'arrêt au stand (étape 7) : la voiture est tenue sur place, le chrono tourne
 
   c.temps += dt;
   const s = v.piste.s;
@@ -154,6 +155,52 @@ function majCourse(c, v, dt) {
     else if (c.etape === 3) finirTour(c);
     // passer la ligne sans avoir fait le tour (ou après avoir reculé) ne compte pas
   }
+  if (c.etat === 'finie') penaliserSansArret(c, v);
+}
+
+// --- l'arrêt au stand (étape 7, tour 26 ; Codeur 1) : seulement une voiture qui a des pneus (PNEUS_ACTIFS) ---
+// Dans la zone d'arrêt de la voie des stands (circuits.js, zoneStands), sous STAND_VITESSE_ARRET, la voiture s'arrête : elle
+// est tenue sur place pendant dureeArret(niveau de ses changeurs de roues, v.changeurs ; pneus.js), puis elle repart avec des
+// pneus neufs (arretAuStand). Un seul arrêt par passage dans la voie. Le chrono tourne pendant l'arrêt. c.arrets : [{ tour,
+// duree }] (le tour pendant lequel elle s'est arrêtée, 1 = le premier) ; c.arretEnCours : { reste, duree, tour } pendant l'arrêt ;
+// c.arretConseille : le tour conseillé au joueur (STAND_TOUR_CONSEILLE), null si l'arrêt n'est pas obligatoire.
+// Rend vrai pendant l'arrêt (majCourse n'avance pas la course).
+function pasArretStand(c, v, dt) {
+  const R = REGLAGES;
+  if (!R.PNEUS_ACTIFS || !v.pneus || !c.circuit.stands) return false;
+  if (!c.arrets) { c.arrets = []; c.arretEnCours = null; c.arretPassage = false; c.arretConseille = arretObligatoire(c.nbTours) ? Math.max(1, Math.round(c.nbTours * R.STAND_TOUR_CONSEILLE)) : null; }
+  const a = c.arretEnCours;
+  if (a) {
+    // tenue sur place (après la physique du pas : rien ne la fait bouger, ni le moteur ni une poussée)
+    v.x = a.x; v.z = a.z; v.cap = a.cap; v.u = v.v = v.r = 0;
+    c.temps += dt;
+    a.reste -= dt;
+    if (a.reste <= 0) {
+      arretAuStand(v.pneus, v.changeurs || 0);
+      v.adherence = facteurAdherence(v.pneus.usure);
+      c.arrets.push({ tour: a.tour, duree: a.duree });
+      c.arretEnCours = null;
+      c.arretFin = c.temps;
+    }
+    c.xAvant = v.x; c.zAvant = v.z;
+    return true;
+  }
+  if (!v.dansStands) { c.arretPassage = false; return false; }
+  if (c.arretPassage || v.u >= R.STAND_VITESSE_ARRET) return false;
+  const z = zoneStands(c.circuit, v.piste.s, v.piste.d);
+  if (!z || !z.arret) return false;
+  const duree = dureeArret(v.changeurs || 0);
+  c.arretPassage = true;
+  c.arretEnCours = { reste: duree, duree, tour: c.tours.length + 1, x: v.x, z: v.z, cap: v.cap };
+  v.u = v.v = v.r = 0;
+  return false;
+}
+
+// à l'arrivée : sans arrêt alors qu'il était obligatoire (12 et 18 tours), PENALITE_SANS_ARRET (pneus.js), une seule fois
+function penaliserSansArret(c, v) {
+  if (!REGLAGES.PNEUS_ACTIFS || !v.pneus || c.penaliteSansArret !== undefined) return;
+  c.penaliteSansArret = penaliteSansArret(v.pneus, c.nbTours);
+  c.penalites += c.penaliteSansArret;
 }
 
 function finirTour(c) {

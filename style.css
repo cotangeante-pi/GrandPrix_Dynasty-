@@ -221,6 +221,22 @@ html, body {
   pointer-events: none;
 }
 
+/* l'arrêt au stand (étape 7) : le message de course, sous l'avis de pénalité */
+#hudStand {
+  position: fixed;
+  top: 190px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 14px;
+  border-radius: 4px;
+  background: rgba(31, 111, 224, 0.9);
+  font: 700 15px/1.4 var(--police);
+  white-space: nowrap;
+  pointer-events: none;
+}
+body.deux #hudStand { display: none; }
+#classementListe li .penalite.stand { color: #7fb6ff; font-weight: 700; }
+
 /* ?championnat=1 : l'écran entre les courses, deux classements côte à côte (tient en 960×600) */
 #championnat h1 { margin: 0; }
 #championnat p { margin: 0; font-weight: 700; }

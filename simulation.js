@@ -23,6 +23,8 @@ function voituresVues(v, voitures) {
   const R = REGLAGES, c = Math.cos(v.cap), s = Math.sin(v.cap), tanAngle = Math.tan(R.IA_VISION_ANGLE), vues = [];
   for (const w of voitures) {
     if (w === v || !w.piste) continue;
+    // (la voie des stands, étape 7 : une voiture de l'autre côté du muret n'est pas sur sa route ; 0 sans PNEUS_ACTIFS : rien ne change)
+    if (v.campStands && w.campStands && v.campStands !== w.campStands) continue;
     const dx = w.x - v.x, dz = w.z - v.z;
     if (dx * dx + dz * dz > R.IA_VISION_DISTANCE * R.IA_VISION_DISTANCE) continue;   // trop loin pour être vue
     const avant = c * dx + s * dz, cote = Math.abs(-s * dx + c * dz);
@@ -48,7 +50,8 @@ function creerCourseIA(circuit, nb, nbTours, graine, carte = carteDe(circuit), a
   const pilotes = placesGrille(circuit, nb + (avecJoueur ? 1 : 0)).map((place, k) => {
     const v = creerVoiture(circuit, place.s, place.d);
     const humain = k === nb;
-    if (R.PNEUS_ACTIFS && !humain) v.pneus = creerPneus();   // les pneus des IA (étape 7) ; ceux du joueur, c'est la page (principal.js)
+    if (humain) v.joueur = true;   // la voiture du joueur (ce que tout pilote sait : qui est qui) ; le rival de l'interview la vise (ia.js)
+    if (R.PNEUS_ACTIFS && !humain) { v.pneus = creerPneus(); v.changeurs = R.STAND_CHANGEURS_IA; }   // les pneus des IA (étape 7) ; ceux du joueur, c'est la page (principal.js)
     return {
       numero: k + 1, v, course: creerCourse(circuit, nbTours), humain,
       depart: place.s - circuit.longueur,   // m : sa place sur la grille, derrière la ligne (pour savoir qui est devant)
@@ -75,6 +78,7 @@ function donnerCarte(e, carte) {
     if (p.humain) return;
     p.pilote = creerPilote(carte, p.rythme, tirerStyle(carte, e.nbTours + 2), R.IA_PERIODE_DECISION * k / e.pilotes.length);
     p.pilote.grille = p.v.piste.d;   // il part dans sa file
+    p.pilote.rivalite = !!(e.rivalites && e.rivalites[k]);   // le rival du joueur (l'interview d'après course)
   });
   // le caractère de chaque IA, avec sa propre graine (les styles ne changent pas)
   ALEATOIRE.semer(e.graine + R.GRAINE_CARACTERE);
@@ -86,6 +90,59 @@ function donnerCarte(e, carte) {
   ALEATOIRE.semer(e.graine + R.GRAINE_PNEUS);
   for (const p of e.pilotes) if (!p.humain) p.pilote.caractere.gestionPneus = Math.max(0, Math.min(1, tirerGestionPneus() + (niveau().gestionPneus || 0)));
   ALEATOIRE.semer();
+  strategieStands(e);
+}
+
+// les rivaux du joueur (l'interview d'après course, CLAUDE.md « Les rivaux se souviennent ») : rivalites[k] vrai si le pilote k de la
+// course a une rivalité en cours (ch.pilotes[k].rivalite) ; son pilote IA la reçoit (pilote.rivalite, ia.js : un peu plus agressif
+// contre le joueur seulement). À appeler avant ou après la carte.
+function poserRivalites(e, rivalites) {
+  e.rivalites = rivalites ? rivalites.slice() : null;
+  e.pilotes.forEach((p, k) => { if (p.pilote) p.pilote.rivalite = !!(e.rivalites && e.rivalites[k]); });
+  return e;
+}
+
+// l'arrêt au stand des IA (étape 7) : en course de 12 et 18 tours (arretObligatoire), chaque IA choisit le tour de son arrêt,
+// avec sa propre graine (GRAINE_STANDS) : la moitié de la course, plus tard pour qui ménage ses pneus (gestionPneus), un peu de
+// hasard ; entre STAND_TOUR_MIN et nbTours − 2 (jamais au dernier tour) ; deux pilotes de la même écurie (deux par écurie, dans
+// l'ordre de la course) pas au même tour. pilote.standTour, null sans arrêt.
+function strategieStands(e) {
+  const R = REGLAGES;
+  if (!R.PNEUS_ACTIFS || !e.circuit.stands || !arretObligatoire(e.nbTours)) return;
+  const max = e.nbTours - 2;
+  ALEATOIRE.semer(e.graine + R.GRAINE_STANDS);
+  e.pilotes.forEach((p, k) => {
+    if (p.humain || !p.pilote) return;
+    const part = R.STAND_PART + R.STAND_PART_GESTION * (p.pilote.caractere.gestionPneus - 0.5) + R.STAND_PART_HASARD * (2 * hasard() - 1);
+    let tour = Math.max(R.STAND_TOUR_MIN, Math.min(max, Math.round(e.nbTours * part)));
+    const equipier = k % 2 === 1 ? e.pilotes[k - 1] : null;
+    if (equipier && equipier.pilote && equipier.pilote.standTour === tour) tour = tour < max ? tour + 1 : tour - 1;
+    p.pilote.standTour = tour;
+  });
+  ALEATOIRE.semer();
+}
+
+// à chaque pas, pour une IA qui doit s'arrêter : à son tour (et jamais au dernier), à STAND_APPROCHE m de l'entrée de la voie,
+// elle passe en mode « stands » (pilote.stand : ia.js suit la voie, s'arrête dans la zone, ressort) ; le mode finit
+// STAND_REJOINDRE m après la sortie. Sans arrêt fait (elle a manqué la zone), elle réessaie au tour suivant.
+function majStandsIA(p, e) {
+  const R = REGLAGES, pi = p.pilote, v = p.v, c = e.circuit, st = c.stands;
+  if (!pi || !pi.standTour || !v.pneus || !v.piste) return;
+  const depuis = ecartLeLong(c, v.piste.s - st.entree);
+  if (pi.stand) {
+    pi.stand.arrete = v.pneus.arrets > 0;
+    if (depuis >= 0 && depuis <= st.longueur) pi.stand.dedans = true;
+    if (pi.stand.dedans && depuis > st.longueur + R.STAND_REJOINDRE) pi.stand = null;
+    // elle ralentit pour entrer, ou rejoint la piste au ralenti : les autres la voient faire (ia.js, estLente : on la contourne)
+    v.manoeuvreStands = !!pi.stand && ((depuis > -R.STAND_RANGER[0] && depuis < R.STAND_RAMPE) || (pi.stand.arrete && depuis > st.longueur - R.STAND_RAMPE));
+    return;
+  }
+  if (v.pneus.arrets > 0 || p.course.etat !== 'course') return;
+  const tour = p.course.tours.length + 1;
+  if (tour < pi.standTour || tour >= p.course.nbTours) return;
+  if (depuis < -R.STAND_APPROCHE || depuis > 0) return;
+  pi.stand = { arrete: false, dedans: false };
+  if (pi.attaque) finirAttaque(pi, false, 'stands');
 }
 
 const COMMANDES_AUCUNE = { gaz: 0, frein: 0, direction: 0 };
@@ -112,8 +169,10 @@ function qualifier(e) {
 // quiconque bouge : l'ordre des voitures ne change rien. Une voiture arrivée quitte la piste.
 // conduireJoueur(p, dt) (facultatif) : met les commandes de la voiture du joueur (sinon, elle ne bouge pas)
 function pasCourseIA(e, dt, conduireJoueur) {
+  const R = REGLAGES;
   const enCourse = e.pilotes.filter(p => p.arrivee === null);
   const voitures = enCourse.map(p => p.v);
+  if (R.PNEUS_ACTIFS && e.circuit.stands) for (const p of enCourse) if (!p.humain) majStandsIA(p, e);   // l'arrêt au stand des IA (étape 7)
   const commandes = enCourse.map(p => !p.humain && courseAutorise(p.course) && p.pilote
     ? piloterIA(p.pilote, p.v, voituresVues(p.v, voitures), dt) : COMMANDES_AUCUNE);
   aspirationVoitures(voitures);
@@ -205,13 +264,14 @@ function classementCourse(e) {
   });
   return ordre.map((k, i) => {
     const p = P[k];
-    if (i === 0) return { k, place: 1, ecart: null, tours: 0, penalites: p.course.penalites };
+    const stand = !!((p.v && p.v.dansStands) || p.course.arretEnCours);   // dans la voie des stands (étape 7) : « STAND » dans la tour
+    if (i === 0) return { k, place: 1, ecart: null, tours: 0, penalites: p.course.penalites, stand };
     const q = P[ordre[i - 1]];
     const passe = p.arrivee !== null || (e.go !== null && distanceCourse(p) > 0);   // il a passé la ligne au moins une fois
     let ecart = null;
     if (passe) ecart = p.arrivee !== null ? p.arrivee - q.arrivee : e.temps - Math.max(e.go, passageA(e, q, distanceCourse(p)));
     const tours = Math.max(0, Math.floor((distanceCourse(q) - distanceCourse(p)) / e.circuit.longueur));
-    return { k, place: i + 1, ecart: ecart === null ? null : Math.max(0, ecart), tours, penalites: p.course.penalites };
+    return { k, place: i + 1, ecart: ecart === null ? null : Math.max(0, ecart), tours, penalites: p.course.penalites, stand };
   });
 }
 
@@ -234,6 +294,7 @@ function classementFinal(e) {
     return {
       k, place: i + 1, ligne: arrive ? p.place : null, temps: arrive ? p.arrivee - go : null, total: arrive ? total(p) : null,
       penalites: p.course.penalites, ecart: arrive ? total(p) - premier : null, grille: grille.indexOf(k) + 1,
+      arrets: (p.course.arrets || []).map(a => a.tour),   // les tours de ses arrêts au stand (étape 7), [] sans arrêt
     };
   });
 }
@@ -288,16 +349,23 @@ function simulerCourse(circuit, nbVoitures, nbTours, graine) {
     dureeMs: performance.now() - t0,
     depassements: e.depassements,
     grille: e.grille,
+    final: classementFinal(e).map(x => e.pilotes[x.k].numero),   // les numéros dans l'ordre du classement final (pénalités comprises)
     voitures: e.pilotes.map(p => ({
       numero: p.numero, rythme: p.rythme, place: p.place, fini: p.arrivee !== null,
       temps: p.arrivee !== null ? tempsTotal(p.course) : null, meilleurTour: p.course.meilleurTour,
       contactsVoiture: p.v.contactsVoiture, chocMax: p.v.chocMax, chocs: p.v.chocs.slice(), lieuxChocs: p.v.lieuxChocs.slice(),
-      contactsBarriere: p.v.contactsBarriere, herbe: p.herbe, coupes: Math.round(p.course.penalites / REGLAGES.PENALITE_COUPE),
+      contactsBarriere: p.v.contactsBarriere, herbe: p.herbe, coupes: Math.round((p.course.penalites - (p.course.penaliteSansArret || 0) - (p.course.penalitesStands || 0)) / REGLAGES.PENALITE_COUPE),
       attaques: p.pilote ? p.pilote.attaques : 0, attaquesReussies: p.pilote ? p.pilote.reussies : 0,
+      parCible: p.pilote ? [...p.pilote.parCible].map(([id, x]) => ({ numero: (e.pilotes.find(q => q.v === id) || {}).numero, attaques: x.attaques, reussies: x.reussies })) : [],
+      defenses: p.pilote ? p.pilote.defenses : 0, rivalite: !!(p.pilote && p.pilote.rivalite),
       erreurs: p.pilote ? p.pilote.erreursFaites.slice() : [], erreursEvitees: p.pilote && p.pilote.erreurs ? p.pilote.erreurs.filter(x => x.evitee).length : 0,
       herbeErreur: p.herbeErreur, chocsErreur: p.v.chocs.filter((c, i) => p.chocsErreur.has(i)),
       caractere: p.pilote && p.pilote.caractere ? { regularite: p.pilote.caractere.regularite, agressivite: p.pilote.caractere.agressivite, erreurs: p.pilote.caractere.erreurs, gestionPneus: p.pilote.caractere.gestionPneus } : null,
       usure: p.v.pneus ? p.v.pneus.usure : null, arrets: p.v.pneus ? p.v.pneus.arrets : 0,
+      // l'arrêt au stand (étape 7) : les tours des arrêts, le tour prévu, la pénalité sans arrêt, celle de vitesse dans la voie, le muret
+      toursArrets: (p.course.arrets || []).map(a => a.tour), standTour: p.pilote ? p.pilote.standTour || null : null,
+      penaliteSansArret: p.course.penaliteSansArret || 0, penalitesStands: p.course.penalitesStands || 0, contactsMurStands: p.v.contactsMurStands,
+      total: p.arrivee !== null ? p.arrivee - (e.go || 0) + p.course.penalites : null,
     })),
   };
 }

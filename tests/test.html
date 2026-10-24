@@ -518,7 +518,7 @@ t('pneus IA : la gestion des pneus est un trait du caractère (IA_CARACTERE.gest
   const sauve=REGLAGES.NIVEAU;REGLAGES.NIVEAU='legende';const gl=creerCourseIA(TQ,6,3,5,CARTES_T.technique).pilotes.map(p_=>p_.pilote.caractere.gestionPneus);REGLAGES.NIVEAU=sauve;
   v(gl.every((x,i)=>x>=g[i]),'légende : gestion pas meilleure');});
 t('pneus IA : seule sur le technique, 12 tours avec les pneus actifs : son usure monte à chaque tour, ses tours ralentissent avec l’usure (les 3 derniers plus lents que les tours 2 à 4), sans barrière ni herbe', ()=>{
-  const r=avecPneus(()=>{const e=creerCourseIA(TQ,1,12,1,CARTES_T.technique),p_=e.pilotes[0],usures=[];p_.course.compte=0;
+  const r=avecPneus(()=>{const e=creerCourseIA(TQ,1,12,1,CARTES_T.technique),p_=e.pilotes[0],usures=[];p_.course.compte=0;p_.pilote.standTour=null;   // (l'usure seule : sans son arrêt au stand, testé plus bas)
     for(let k=0;k<900*120&&e.arrives<1;k++){pasCourseIA(e,DT);if(p_.course.tours.length>usures.length) usures.push(p_.v.pneus.usure);}
     return {p_,usures,tours:p_.course.tours.map(t_=>t_.temps)};});
   const moy=a=>a.reduce((x,y)=>x+y,0)/a.length,debut=moy(r.tours.slice(1,4)),fin=moy(r.tours.slice(-3));
@@ -568,6 +568,57 @@ t('stands (pneus actifs) : hors des rampes, le muret sépare la piste et la voie
   v(a.extreme>=st.dMur+R_.DEMI_LARGEUR_VOITURE-0.05&&a.v_.contactsMurStands>0&&a.v_.contactsBarriere===0,'traverse le muret depuis la voie : '+a.extreme);
   v(b.extreme<=st.dMur-R_.DEMI_LARGEUR_VOITURE+0.05&&b.v_.contactsMurStands>0&&b.v_.contactsBarriere===0,'traverse le muret depuis la piste : '+b.extreme);
   v(c_.extreme>st.dMur&&c_.herbe>0&&c_.v_.penalitesStands===0&&c_.v_.contactsMurStands===0,'sans pneus actifs : '+c_.extreme+' / '+c_.herbe);});
+// --- l'arrêt au stand (étape 7, tour 26 ordre 3 ; course.js pasArretStand, simulation.js strategieStands, ia.js cibleStands)
+// (« l'arrêt change vraiment le classement », sur 30 courses de 12 tours : tests/stands.html)
+function voitureAuStand(circ,changeurs,usure){const st=circ.stands,v_=creerVoiture(circ);v_.pneus=creerPneus();v_.pneus.usure=usure;v_.adherence=facteurAdherence(usure);v_.changeurs=changeurs;
+  placerSurPiste(v_,circ,(st.arret-8+circ.longueur)%circ.longueur,st.cote*(st.dMur+REGLAGES.STAND_LARGEUR/2));v_.u=2;v_.piste=positionSurPiste(circ,v_.x,v_.z);contactPiste(v_,circ);
+  const c=creerCourse(circ,12);c.etat='course';c.etape=0;c.sAvant=v_.piste.s;c.xAvant=v_.x;c.zAvant=v_.z;return {v_,c};}
+t('arrêt au stand (pneus actifs) : une voiture qui arrive au pas dans la zone d’arrêt s’arrête, elle est tenue sur place (même en accélérant) pendant dureeArret (4 s ; 3 s avec les changeurs de roues au niveau 5, −25 %), puis repart avec des pneus neufs (usure 0, adhérence × 1) ; le chrono tourne pendant l’arrêt ; un seul arrêt par passage', ()=>{avecPneus(()=>{
+  const res=[];for(const n of [0,5]){const {v_,c}=voitureAuStand(C,n,0.6),x0=[v_.x,v_.z];let tenu=0,bouge=0,t0=null;
+    for(let k=0;k<12*120;k++){appliquerCommandes(v_,{gaz:c.arretEnCours?1:0.4,frein:0,direction:0});pasVoiture(v_,C,DT);majCourse(c,v_,DT);
+      if(c.arretEnCours){if(t0===null){t0=c.temps;x0[0]=v_.x;x0[1]=v_.z;}tenu++;bouge=Math.max(bouge,Math.hypot(v_.x-x0[0],v_.z-x0[1]));}}
+    res.push({n,tenu:tenu*DT,bouge,arrets:c.arrets.slice(),usure:v_.pneus.usure,adh:v_.adherence,nb:v_.pneus.arrets,temps:c.temps});}
+  L.push('  (arrêt au stand : '+res.map(r=>'changeurs '+r.n+' → tenue '+r.tenu.toFixed(3)+' s (dureeArret '+dureeArret(r.n)+' s), bougé '+r.bouge.toExponential(1)+' m, arrêts '+r.nb+', usure après '+r.usure+', chrono '+r.temps.toFixed(2)+' s').join(' ; ')+')');
+  for(const r of res){v(Math.abs(r.tenu-dureeArret(r.n))<=DT+1e-9,'tenue '+r.tenu+' / '+dureeArret(r.n));v(r.bouge<1e-9,'bougé '+r.bouge);v(r.nb===1&&r.arrets.length===1&&r.arrets[0].duree===dureeArret(r.n)&&r.arrets[0].tour===1,'arrêts '+JSON.stringify(r.arrets));
+    v(r.usure===0&&r.adh===1,'pneus '+r.usure);v(Math.abs(r.temps-12)<1e-6,'chrono '+r.temps);}
+  v(dureeArret(0)===4&&Math.abs(dureeArret(5)-3)<1e-12,'durées');});});
+t('arrêt au stand : sans arrêt, une course de 12 ou 18 tours prend PENALITE_SANS_ARRET (30 s) à l’arrivée, une seule fois ; aucune en 5 tours ni avec un arrêt fait ; rien sans PNEUS_ACTIFS', ()=>{
+  const finir=(nb,arrets,actifs)=>{const f=()=>{const v_=creerVoiture(C);v_.pneus=creerPneus();v_.pneus.arrets=arrets;const c=creerCourse(C,nb);placerSurPiste(v_,C,C.longueur-15,0);v_.u=30;v_.piste=positionSurPiste(C,v_.x,v_.z);
+    c.etat='course';c.etape=3;for(let i=0;i<nb-1;i++)c.tours.push({temps:60,secteurs:[20,20,20],coupe:false});c.sAvant=v_.piste.s;c.xAvant=v_.x;c.zAvant=v_.z;
+    for(let k=0;k<3*120&&c.etat!=='finie';k++){appliquerCommandes(v_,{gaz:0.5,frein:0,direction:0});pasVoiture(v_,C,DT);majCourse(c,v_,DT);}
+    for(let k=0;k<120;k++){pasVoiture(v_,C,DT);majCourse(c,v_,DT);}
+    return c.etat==='finie'?c.penalites:'pas finie';};return actifs?avecPneus(f):f();};
+  const r={c5:finir(5,0,true),c12:finir(12,0,true),c18:finir(18,0,true),c12arret:finir(12,1,true),c18arret:finir(18,1,true),c12sans:finir(12,0,false)};
+  L.push('  (pénalité sans arrêt : '+JSON.stringify(r)+')');
+  v(r.c5===0&&r.c12===30&&r.c18===30&&r.c12arret===0&&r.c18arret===0&&r.c12sans===0,JSON.stringify(r));});
+t('arrêt au stand : la stratégie des IA (graine à part) : en 12 et 18 tours, chacune choisit un tour entre STAND_TOUR_MIN et l’avant-dernier moins un, deux pilotes de la même écurie jamais au même tour, des tours variés ; aucun arrêt prévu en 5 tours ni sans PNEUS_ACTIFS ; les autres tirages (caractères, styles) ne bougent pas', ()=>{
+  const R_=REGLAGES,tours=e=>e.pilotes.map(p_=>p_.pilote.standTour);
+  const e12=avecPneus(()=>creerCourseIA(C,20,12,3,CARTES_T.test)),e18=avecPneus(()=>creerCourseIA(C,20,18,3,CARTES_T.test)),e5=avecPneus(()=>creerCourseIA(C,20,5,3,CARTES_T.test)),sans=creerCourseIA(C,20,12,3,CARTES_T.test);
+  L.push('  (stratégie, 20 IA, graine 3 : 12 tours '+tours(e12).join(',')+' ; 18 tours '+tours(e18).join(',')+')');
+  for(const [e,n] of [[e12,12],[e18,18]]){const t_=tours(e);v(t_.every(x=>x>=R_.STAND_TOUR_MIN&&x<=n-2),n+' : '+t_);v(new Set(t_).size>=3,'pas variés '+t_);
+    for(let k=1;k<t_.length;k+=2)v(t_[k]!==t_[k-1],'même écurie '+k);}
+  v(tours(e5).every(x=>!x)&&tours(sans).every(x=>!x),'arrêt prévu en 5 tours ou sans pneus');
+  v(e12.pilotes.every((p_,k)=>p_.pilote.caractere.agressivite===sans.pilotes[k].pilote.caractere.agressivite&&p_.pilote.style.apex===sans.pilotes[k].pilote.style.apex),'tirages décalés');});
+t('arrêt au stand : une IA seule, 12 tours sur le technique : elle va aux stands à son tour, s’y arrête une fois (pneus neufs), sans dépasser la limite, sans toucher le muret ni la barrière, sans herbe ; son tour d’arrêt coûte le temps de la voie et de l’arrêt', ()=>{
+  const r=avecPneus(()=>{const e=creerCourseIA(TQ,1,12,1,CARTES_T.technique),p_=e.pilotes[0];p_.course.compte=0;let usureAvant=null,stand=false;
+    for(let k=0;k<900*120&&e.arrives<1;k++){pasCourseIA(e,DT);if(p_.course.arretEnCours&&usureAvant===null)usureAvant=p_.v.pneus.usure;if(classementCourse(e)[0].stand)stand=true;}
+    return {p_,usureAvant,stand,final:classementFinal(e)[0]};});
+  const p_=r.p_,c=p_.course,tA=c.arrets.length?c.arrets[0].tour:null,tours=c.tours.map(x=>x.temps),autres=tours.filter((x,i)=>i>0&&i!==tA-1&&i!==tA);
+  const moy=autres.reduce((a_,b)=>a_+b,0)/autres.length,perte=tA?tours[tA-1]+(tours[tA]||0)-2*moy:null;
+  L.push('  (IA seule aux stands : tour prévu '+p_.pilote.standTour+', arrêts aux tours '+c.arrets.map(a_=>a_.tour).join(',')+' ('+c.arrets.map(a_=>a_.duree+' s').join(',')+'), usure avant l’arrêt '+(r.usureAvant||0).toFixed(2)+', finale '+p_.v.pneus.usure.toFixed(2)+' ; tours '+tours.map(x=>x.toFixed(2)).join(' ')+' ; perte de l’arrêt ≈ '+(perte===null?'—':perte.toFixed(1))+' s ; muret '+p_.v.contactsMurStands+', barrière '+p_.v.contactsBarriere+', herbe '+p_.herbe+', pénalités '+c.penalites+' s)');
+  v(c.tours.length===12,'pas finie');v(c.arrets.length===1&&tA>=p_.pilote.standTour&&tA<=p_.pilote.standTour+1&&tA<12,'arrêts '+JSON.stringify(c.arrets));
+  v(c.penalites===0&&p_.v.penalitesStands===0,'pénalités '+c.penalites);v(p_.v.contactsMurStands===0&&p_.v.contactsBarriere===0&&p_.herbe===0,'contacts '+p_.v.contactsMurStands+'/'+p_.v.contactsBarriere+'/'+p_.herbe);
+  v(r.stand,'jamais « STAND » dans la tour');v(JSON.stringify(r.final.arrets)===JSON.stringify([tA]),'résultats '+JSON.stringify(r.final.arrets));v(perte>10&&perte<60,'perte '+perte);});
+t('arrêt au stand : le joueur entre lui-même (ici le robot, v.versStands) : avec des IA, sa voiture s’arrête dans la zone, repart avec des pneus neufs, « STAND » dans la tour pendant qu’il est dans la voie, et les IA ne le voient pas derrière le muret', ()=>{
+  const r=avecPneus(()=>{const e=creerCourseIA(C,3,12,2,CARTES_T.test,true),j=e.pilotes[3];j.v.pneus=creerPneus();j.course.compte=0;for(const p_ of e.pilotes)p_.course.compte=0;
+    const robot=(p_,dt)=>appliquerCommandes(p_.v,courseAutorise(p_.course)?piloteRobot(p_.v,C):COMMANDES_AUCUNE);let stand=false,vu=false,fini=false;
+    for(let k=0;k<400*120&&!fini;k++){if(j.course.tours.length===1&&!j.v.pneus.arrets&&!j.v.versStands)j.v.versStands=true;pasCourseIA(e,DT,robot);
+      const cl=classementCourse(e).find(x=>x.k===3);if(cl.stand)stand=true;
+      if(j.v.campStands===2)for(const p_ of e.pilotes)if(!p_.humain&&p_.v.campStands===1&&voituresVues(p_.v,e.pilotes.map(q=>q.v)).some(w=>w.id===j.v))vu=true;
+      fini=j.v.pneus.arrets>0&&!j.v.versStands;}
+    return {j,stand,vu,fini};});
+  L.push('  (joueur aux stands : arrêts '+JSON.stringify(r.j.course.arrets)+', usure '+r.j.v.pneus.usure.toFixed(3)+', muret '+r.j.v.contactsMurStands+', pénalités '+r.j.course.penalites+' s)');
+  v(r.fini&&r.j.course.arrets.length===1&&r.j.course.arrets[0].tour>=2&&r.j.course.arrets[0].tour<=3,'pas d’arrêt '+JSON.stringify(r.j.course.arrets));v(r.stand,'pas de STAND');v(!r.vu,'vu derrière le muret');v(r.j.v.contactsMurStands===0&&r.j.course.penalites===0,'muret / pénalités');});
 // les courses entre IA (le critère de l'étape 4 : 30 courses, et la course de 20 voitures) sont dans tests/courses.html
 
 // --- la grille qualifiée (tour 12)

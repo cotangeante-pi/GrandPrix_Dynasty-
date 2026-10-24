@@ -311,6 +311,7 @@ function majErreur(pilote, v, vues, dt) {
   if (pilote.erreur && pilote.horloge > pilote.erreur.fin) pilote.erreur = null;
   pilote.enErreur = pilote.erreur !== null || pilote.horloge < pilote.finSuiteErreur;
   if (pilote.erreur || !pilote.erreurs) return;
+  if (pilote.stand) return;   // en route vers les stands (étape 7) : pas d'erreur prévue (elles sont aux virages)
   for (const x of pilote.erreurs) {
     if (x.faite || x.tour !== pilote.tour) continue;
     const vir = carte.virages[x.virage], ou = x.type === 'large' ? vir.s - R.IA_ERREUR_AVANT_SOMMET : vir.freinage;
@@ -361,9 +362,12 @@ function creerPilote(carte, rythme = 1, style = styleNeutre(), decalage = 0) {
     lentesVues: new Map(),   // voiture vue devant lui → { lente, arret } : depuis combien de secondes elle roule sous IA_LENTE_PART de la carte, sous IA_ARRET_VITESSE (estLente)
     repos: 0,        // s avant de pouvoir réattaquer après une attaque abandonnée
     attaques: 0, reussies: 0,
+    parCible: new Map(),   // voiture → { attaques, reussies } (compterCible)
+    rivalite: false,       // le rival du joueur (l'interview d'après course, simulation.js poserRivalites) : plus agressif contre lui seulement
+    defenses: 0, defenseVirage: null,   // ses défenses contre le joueur (defendreContreJoueur)
     ligne: null,   // { s0, e, v } : l'écart et la vitesse visée tous les IA_LIGNE_PAS m à partir de s0
     // les tableaux de travail (pas d'objets créés à chaque décision)
-    tampons: { rapide: new Float64Array(N + 1), cible: new Float64Array(N + 1), e: new Float64Array(N), x: new Float64Array(N), z: new Float64Array(N), k: new Float64Array(N), vb: new Float64Array(N), meilleurE: new Float64Array(N), meilleurV: new Float64Array(N) },
+    tampons: { plafond: new Float64Array(N), rapide: new Float64Array(N + 1), cible: new Float64Array(N + 1), e: new Float64Array(N), x: new Float64Array(N), z: new Float64Array(N), k: new Float64Array(N), vb: new Float64Array(N), meilleurE: new Float64Array(N), meilleurV: new Float64Array(N) },
   };
 }
 
@@ -413,6 +417,8 @@ function estLente(pilote, v, w) {
   const R = REGLAGES;
   // (pas pendant le lancement du départ : tout le monde est lent, personne n'est à contourner)
   if (pilote.parcouru < R.IA_DEPART_LANCEMENT) return false;
+  // (une voiture qui entre aux stands ou en sort, étape 7 : elle ralentit ou rejoint la piste au ralenti, ça se voit ; on la contourne tout de suite)
+  if (w.id && (w.id.manoeuvreStands || w.id.rampeStands) && w.vitesse < v.u) return true;
   const vue = pilote.lentesVues.get(w.id);
   if (!vue) return false;
   // (des durées : le peloton du départ roule groupé sous la vitesse de la carte pendant ~3 s, un bouchon à l'épingle descend
@@ -462,9 +468,10 @@ function noterLigne(pilote, v, voisines, s0, t, type) {
   let penalite = 0, danger = false;   // danger : la ligne passe trop près du bord, dans l'herbe ou sur une voiture
   for (let i = 0; i < N; i++) {
     // (ses pneus usés : il connaît son adhérence réelle, v.adherence ; × 1 sans pneus, le même nombre au bit près)
-    const mu = R.ADHERENCE * (v.adherence || 1) * (Math.abs(e[i]) > dehors ? R.ADHERENCE_HERBE : 1);
+    const mu = R.ADHERENCE * (v.adherence || 1) * (Math.abs(e[i]) > dehors && type !== 'stands' ? R.ADHERENCE_HERBE : 1);   // (la voie des stands n'est pas de l'herbe)
     // le rythme (le talent) joue dans les virages ; la vitesse de pointe est celle de la voiture
     vb[i] = Math.min(pointe, rythme * Math.min(vitesseVirage(k[i], mu) * R.IA_MARGE_VIRAGE, vitesseBraquage(k[i])));
+    if (type === 'stands') { vb[i] = Math.min(vb[i], t.plafond[i]); continue; }   // (la limite de la voie et l'arrêt ; ni bord ni herbe)
     if (Math.abs(e[i]) > bord) { penalite += R.IA_PENALITE_BORD * (Math.abs(e[i]) - bord) * pas; danger = true; }
     // pendant un dépassement (il attaque, ou une voiture est à côté de lui), passer dans l'herbe coûte très cher
     if (pilote.depassement && Math.abs(e[i]) > dehors) { penalite += R.IA_PENALITE_HERBE; danger = true; }
@@ -554,7 +561,11 @@ function deciderLigne(pilote, v, vues) {
   // en attaque (décalé ou en train de plonger) : une seule ligne, à côté de la voiture attaquée, jusqu'après le
   // sommet du virage ; sinon, ses lignes habituelles
   const a = pilote.attaque, enAttaque = a && a.etat !== 'preparer';
-  const essais = enAttaque ? [['attaque', a.cote]] : [['rapide', 0], ['continuer', 0]];
+  // (en route vers les stands, étape 7 : une seule ligne, celle de la voie : cibleStands)
+  const stand = pilote.stand || null;
+  const essais = stand ? [['stands', 0]] : enAttaque ? [['attaque', a.cote]] : [['rapide', 0], ['continuer', 0]];
+  if (pilote.rivalite && !stand && !enAttaque) defendreContreJoueur(pilote, v, vues, s0);
+  if (stand) stand.ceder = cederSortieStands(pilote, v, vues, s0);   // à la sortie des stands, il laisse passer ceux qui arrivent   // le rival du joueur couvre l'intérieur (interview)
   pilote.depassement = !!enAttaque;
   // les voitures lentes ou arrêtées qu'il voit (estLente), et les plus proches devant lui (IA_LENTE_NB) : il les contourne
   const lentes = [];
@@ -568,9 +579,9 @@ function deciderLigne(pilote, v, vues) {
   if (entoure && !enAttaque) essais.length = 1;
   // (seul, sans aucune voiture en vue, il n'en a pas besoin : sur 200 m, elles semblent parfois meilleures et lui
   // coûtent jusqu'à 0,8 s au tour)
-  if (!enAttaque && !entoure && sens && vues.length) essais.push(['interieur', sens], ['exterieur', -sens]);
+  if (!stand && !enAttaque && !entoure && sens && vues.length) essais.push(['interieur', sens], ['exterieur', -sens]);
   // une voiture lente devant : les deux lignes qui la contournent, d'un côté ou de l'autre, à IA_LENTE_ECART d'elle
-  if (!enAttaque) for (const l of lentes) essais.push(['eviter', 1, l], ['eviter', -1, l]);
+  if (!stand && !enAttaque) for (const l of lentes) essais.push(['eviter', 1, l], ['eviter', -1, l]);
   const finAttaque = enAttaque ? ((carte.virages[a.virage].s + R.IA_ATTAQUE_APRES_SOMMET - s0) % L + L) % L : 0;
   // la priorité, avec les voitures à côté de lui ou dans ses rétroviseurs à moins d'une longueur, jusqu'à la sortie
   // du prochain virage : il ne se décale pas vers elles (au mieux jusqu'à l'écart sûr) ; et si l'une est à hauteur
@@ -581,7 +592,9 @@ function deciderLigne(pilote, v, vues) {
     const g = ecartLeLong(c, w.s - s0);
     if (g < -R.LONGUEUR_VOITURE || g > R.LONGUEUR_VOITURE * (1 - R.IA_HAUTEUR_LAISSER)) continue;
     const cote = Math.sign(w.d - e0) || 1, aHauteur = g >= -R.LONGUEUR_VOITURE * (1 - R.IA_HAUTEUR_LAISSER);
-    const laisse = w.d - cote * Math.max(aHauteur ? R.LARGEUR_VOITURE + R.IA_ESPACE_LAISSE : sur, ecartCoteACote(carte, s0));
+    // (le rival du joueur, à côté de lui : moins de place, IA_ESPACE_LAISSE × (1 − décalage) ; jamais moins que l'écart sûr)
+    const espace = pilote.rivalite && w.id && w.id.joueur ? R.IA_ESPACE_LAISSE * (1 - decalageRivalite()) : R.IA_ESPACE_LAISSE;
+    const laisse = w.d - cote * Math.max(aHauteur ? R.LARGEUR_VOITURE + espace : sur, ecartCoteACote(carte, s0));
     // la borne : sa place actuelle s'il est déjà plus près que ça (il ne s'approche pas), sinon l'écart voulu
     const borne = aHauteur ? laisse : (cote > 0 ? Math.max(e0, laisse) : Math.min(e0, laisse));
     places.push({ cote, borne, jusque: prochain + R.IA_VIRAGE_LARGEUR });
@@ -631,6 +644,7 @@ function deciderLigne(pilote, v, vues) {
         // pas la place de rester à l'écart sûr d'elle (le bord) : il renonce à cette attaque
         if (m === 1 && Math.abs(val) > limite) a.impossible = true;
       }
+      if (type === 'stands') { cible[i] = cibleStands(pilote, s0 + s, r, t.plafond, i); continue; }   // (la voie est hors de la piste : ni borne ni priorité)
       for (const q of places) if (s <= q.jusque) val = q.cote > 0 ? Math.min(val, q.borne) : Math.max(val, q.borne);
       cible[i] = Math.max(-limite, Math.min(limite, val));
     }
@@ -655,6 +669,41 @@ function deciderLigne(pilote, v, vues) {
   pilote.decisions++;
 }
 
+// la ligne vers les stands (étape 7) au point s de la piste (r : sa ligne rapide là) : avant l'entrée, il se range à STAND_BORD m
+// du bord, côté voie (entre STAND_RANGER[0] et [1] m avant) ; dans la rampe d'entrée, il passe au milieu de la voie, au-delà du
+// muret ; dans la rampe de sortie, il revient au bord de la piste, puis il rejoint sa ligne avant la fin de STAND_REJOINDRE.
+// plafond[i] : la vitesse permise là : freiner jusqu'à STAND_VITESSE_VISEE avant l'entrée (STAND_DECEL), la garder dans la voie,
+// et, tant que l'arrêt n'est pas fait, ralentir jusqu'à STAND_VITESSE_APPROCHE à la place d'arrêt (STAND_DECEL_ARRET)
+function cibleStands(pilote, s, r, plafond, i) {
+  const R = REGLAGES, c = pilote.carte.circuit, st = c.stands, depuis = ecartLeLong(c, s - st.entree);
+  const bord = st.cote * (c.largeur / 2 - R.STAND_BORD), voie = st.cote * (st.dMur + R.STAND_LARGEUR / 2);
+  const lisse = (x, a, b) => { const m = Math.max(0, Math.min(1, (x - a) / (b - a))); return m * m * (3 - 2 * m); };
+  let e;
+  if (depuis < 0) e = r + (bord - r) * lisse(depuis, -R.STAND_RANGER[0], -R.STAND_RANGER[1]);
+  else if (depuis <= st.longueur) e = bord + (voie - bord) * lisse(depuis, 0, R.STAND_RAMPE - 10) * (pilote.stand.ceder ? 1 : 1 - lisse(depuis, st.longueur - R.STAND_RAMPE + 5, st.longueur));
+  else e = bord + (r - bord) * lisse(depuis, st.longueur + R.STAND_REJOINDRE / 4, st.longueur + R.STAND_REJOINDRE);
+  if (i < plafond.length) {
+    const vs = R.STAND_VITESSE_VISEE;
+    let vmax = depuis < 0 ? Math.sqrt(vs * vs - 2 * R.STAND_DECEL * depuis) : depuis <= st.longueur ? vs : Infinity;
+    if (!pilote.stand.arrete && depuis <= st.longueur) {
+      const devant = ecartLeLong(c, st.arret - s), va = R.STAND_VITESSE_APPROCHE;   // > 0 : sa place d'arrêt est devant
+      if (devant > -R.STAND_ARRET_DEMI) vmax = Math.min(vmax, Math.sqrt(va * va + 2 * R.STAND_DECEL_ARRET * Math.max(0, devant)));
+    }
+    plafond[i] = vmax;
+  }
+  return e;
+}
+
+// à la sortie des stands (son arrêt fait, dans la rampe de sortie ou juste avant) : une voiture de la piste arrive derrière lui, plus
+// vite, du côté de la voie (à moins de STAND_CEDER_COTE m du bord où il rejoindrait) : il reste dans la voie et attend qu'elle passe
+// (comme la ligne blanche de la sortie des stands)
+function cederSortieStands(pilote, v, vues, s0) {
+  const R = REGLAGES, c = pilote.carte.circuit, st = c.stands, depuis = ecartLeLong(c, s0 - st.entree);
+  if (!pilote.stand.arrete || depuis < st.longueur - R.STAND_RAMPE - R.STAND_CEDER_AVANT || depuis > st.longueur) return false;
+  const bord = st.cote * (c.largeur / 2 - R.STAND_BORD);
+  return vues.some(w => { const g = ecartLeLong(c, w.s - s0); return g > -R.STAND_CEDER_DISTANCE && g < R.LONGUEUR_VOITURE && w.vitesse > v.u + R.STAND_CEDER_VITESSE && Math.abs(w.d - bord) < R.STAND_CEDER_COTE && w.id && w.id.campStands !== 2; });
+}
+
 // le prochain point de freinage devant s : { j (le virage), distance } ou null
 function prochainFreinage(carte, s) {
   const L = carte.circuit.longueur;
@@ -663,13 +712,50 @@ function prochainFreinage(carte, s) {
   return mieux;
 }
 
-// son agressivité (0 à 1 ; 0,5 sans caractère)
-function agressivite(pilote) {
-  return pilote.caractere ? pilote.caractere.agressivite : 0.5;
+// son agressivité (0 à 1 ; 0,5 sans caractère) ; contre (facultatif) : la voiture visée. Contre le joueur (v.joueur), un rival de
+// l'interview (pilote.rivalite) est plus agressif de decalageRivalite() ; contre les autres, rien ne change
+function agressivite(pilote, contre) {
+  const base = pilote.caractere ? pilote.caractere.agressivite : 0.5;
+  return pilote.rivalite && contre && contre.joueur ? Math.min(1, base + decalageRivalite()) : base;
+}
+
+// le décalage de ses réglages quand il est le rival du joueur (l'interview d'après course) : INTERVIEW_RIVALITE_DECALAGE, plafonné
+function decalageRivalite() {
+  return Math.max(0, Math.min(REGLAGES.INTERVIEW_RIVALITE_DECALAGE, REGLAGES.INTERVIEW_RIVALITE_PLAFOND));
+}
+
+// ses attaques et ses réussites contre chaque voiture (pilote.parCible : voiture → { attaques, reussies }), pour les mesures
+function compterCible(pilote, id, champ) {
+  if (!id) return;
+  const x = pilote.parCible.get(id) || { attaques: 0, reussies: 0 };
+  x[champ]++;
+  pilote.parCible.set(id, x);
+}
+
+// la défense du rival (l'interview) contre le joueur : le joueur est dans ses rétroviseurs (à moins de INTERVIEW_RIVALITE_DISTANCE m
+// derrière, ou à côté sans être encore devant) avant le freinage d'un virage : sa ligne rapide se décale vers l'intérieur de ce virage
+// (INTERVIEW_RIVALITE_DEFENSE × le décalage), jusqu'au sommet, puis revient. Rien sans rivalité, ni sans le joueur derrière lui.
+function defendreContreJoueur(pilote, v, vues, s0) {
+  const R = REGLAGES, carte = pilote.carte, c = carte.circuit, L = c.longueur, pas = R.IA_LIGNE_PAS, t = pilote.tampons;
+  const joueur = vues.find(w => w.id && w.id.joueur);
+  if (!joueur) return;
+  // (derrière lui ou en train de se décaler à côté, pas encore devant)
+  const g = ecartLeLong(c, joueur.s - s0);
+  if (g > R.LONGUEUR_VOITURE / 2 || g < -R.INTERVIEW_RIVALITE_DISTANCE) return;
+  const f = prochainFreinage(carte, s0);
+  if (!f || f.distance > R.IA_HORIZON) return;
+  const vir = carte.virages[f.j];
+  const decalage = R.INTERVIEW_RIVALITE_DEFENSE * decalageRivalite(), sommet = ((vir.s - s0) % L + L) % L;
+  for (let i = 0; i < t.rapide.length; i++) {
+    const s = i * pas, m = s <= sommet ? Math.min(1, s / R.INTERVIEW_RIVALITE_RAMPE) : Math.max(0, 1 - (s - sommet) / R.IA_DEPASSEMENT_RAMPE);
+    t.rapide[i] += vir.sens * decalage * m;
+  }
+  if (pilote.defenseVirage !== f.j) { pilote.defenseVirage = f.j; pilote.defenses++; }
 }
 
 function finirAttaque(pilote, reussie, pourquoi) {
   if (pilote.journal) pilote.journal.push(pourquoi);
+  if (reussie && pilote.attaque) compterCible(pilote, pilote.attaque.id, 'reussies');
   if (reussie) pilote.reussies++;
   else pilote.repos = REGLAGES.IA_ATTAQUE_REPOS;
   pilote.attaque = null;
@@ -682,11 +768,13 @@ function finirAttaque(pilote, reussie, pourquoi) {
 function majAttaque(pilote, v, vues, dt) {
   const R = REGLAGES, carte = pilote.carte, c = carte.circuit, p = v.piste, a = pilote.attaque;
   pilote.repos = Math.max(0, pilote.repos - dt);
+  if (pilote.stand) return;   // en route vers les stands (étape 7) : il n'attaque pas
   if (!a) {
     // plus agressif : il attaque plus tôt (après moins de temps retenu)
-    if (R.IA_DEPASSEMENT && pilote.repos <= 0 && pilote.retenue >= R.IA_ATTENTE_ATTAQUE * (1.5 - agressivite(pilote)) && pilote.retenuePar !== null) {
+    if (R.IA_DEPASSEMENT && pilote.repos <= 0 && pilote.retenue >= R.IA_ATTENTE_ATTAQUE * (1.5 - agressivite(pilote, pilote.retenuePar)) && pilote.retenuePar !== null) {
       pilote.attaque = { id: pilote.retenuePar, etat: 'preparer', virage: null, cote: 0, vue: null, duree: 0, impossible: false };
       pilote.attaques++;
+      compterCible(pilote, pilote.retenuePar, 'attaques');
     }
     return;
   }
@@ -709,7 +797,7 @@ function majAttaque(pilote, v, vues, dt) {
       // côté intérieur du virage, s'il y a la place ; sinon l'extérieur ; sinon il attend le virage suivant
       // seulement dans une zone de freinage après une vraie ligne droite, jamais dans un enchaînement
       // (plus agressif : une droite un peu plus courte lui suffit)
-      if (carte.virages[f.j].droite < R.IA_DROITE_ATTAQUE * (1 - R.IA_AGRESSIVITE_DROITE * agressivite(pilote))) return;
+      if (carte.virages[f.j].droite < R.IA_DROITE_ATTAQUE * (1 - R.IA_AGRESSIVITE_DROITE * agressivite(pilote, a.id))) return;
       const sens = carte.virages[f.j].sens;
       const cote = Math.abs(w.d + sens * ecart) <= limite ? sens : Math.abs(w.d - sens * ecart) <= limite ? -sens : 0;
       if (cote) { a.etat = 'decaler'; a.virage = f.j; a.cote = cote; }
@@ -817,7 +905,7 @@ function piloterIA(pilote, v, vues, dt) {
   }
   // retenu : il voudrait aller nettement plus vite que la voiture devant ne le laisse
   // (plus agressif : il se sent retenu avec moins d'avance de vitesse)
-  if (retenuPar !== null && libre - cible > R.IA_RETENUE_ECART * (1.5 - agressivite(pilote))) { pilote.retenue += dt; pilote.retenuePar = retenuPar; }
+  if (retenuPar !== null && libre - cible > R.IA_RETENUE_ECART * (1.5 - agressivite(pilote, retenuPar))) { pilote.retenue += dt; pilote.retenuePar = retenuPar; }
   else pilote.retenue = Math.max(0, pilote.retenue - dt);
   // le réflexe : il ne braque pas vers une voiture qui est à côté de lui, trop près ; s'il est un peu en retrait, il lui cède
   let dir = direction;

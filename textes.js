@@ -15,6 +15,9 @@ const TEXTES = {
     go: 'GO',
     penalite: '+{s} s ✂ corner cut',
     fauxDepart: '+{s} s false start',
+    // the pit stop (step 7, ?pneus=1)
+    standConseille: 'Mandatory pit stop: lap {t} recommended (+{s} s without it)', standEnCours: 'Pit stop… {s} s', standFait: 'New tyres! Stop {s} s',
+    standTour: 'PIT', resultatArret: 'pit L{t}',
     attenteArrivee: 'Finished — waiting for the other drivers',
     passerPodium: 'Skip to the podium (Enter)',
     pause: 'Pause', reprendre: 'Resume', recommencer: 'Restart',
@@ -191,6 +194,9 @@ const TEXTES = {
     go: 'GO',
     penalite: '+{s} s ✂ virage coupé',
     fauxDepart: '+{s} s faux départ',
+    // l'arrêt au stand (étape 7, ?pneus=1)
+    standConseille: 'Arrêt au stand obligatoire : tour {t} conseillé (+{s} s sans arrêt)', standEnCours: 'Arrêt au stand… {s} s', standFait: 'Pneus neufs ! Arrêt {s} s',
+    standTour: 'STAND', resultatArret: 'stand T{t}',
     attenteArrivee: 'Arrivée — en attendant les autres pilotes',
     passerPodium: 'Passer au podium (Entrée)',
     pause: 'Pause', reprendre: 'Reprendre', recommencer: 'Recommencer',
