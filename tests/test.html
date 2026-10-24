@@ -1747,6 +1747,25 @@ t('2 joueurs : les réglages et la rivalité passent par la sauvegarde unique, �
   localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:3,records:{},championnat:null,deux:'abîmé'}));v(SAUVEGARDE.deux()===null,'abîmé');
   localStorage.removeItem(SAUVEGARDE.CLE);});
 
+// --- « passer » la vue télé : la fin de course en accéléré (décision du propriétaire, 2026-10-24, CLAUDE.md « La course »)
+t('passer en accéléré : une course de 8 IA (2 tours) finie en regardant (2 pas par image) et la même finie en accéléré (ARRIVEE.accelerer, jusqu’à ×100 par image, coupée par le temps) dès la première arrivée donnent les mêmes places, les mêmes temps et les mêmes pénalités, au bit près ; accelerer s’arrête dès que tout le monde est arrivé', ()=>{
+  const R=REGLAGES,jouer=accel=>{const e=creerCourseIA(C,8,2,11,CARTES_T.test);let arrivee=null,images=0,pasAccel=0,horloge=0;
+    for(let k=0;k<400*120&&!ARRIVEE.podiumPret(e,arrivee===null?0:e.temps-arrivee);){
+      if(arrivee===null){pasCourseIA(e,DT);k++;const a=e.pilotes.find(p=>p.arrivee!==null);if(a)arrivee=a.arrivee;continue;}
+      images++;
+      if(accel){const r=ARRIVEE.accelerer(e,()=>{pasCourseIA(e,DT);k++;},R.ARRIVEE_ACCELERE*2,R.ARRIVEE_TRANCHE_MS,arrivee,()=>(horloge+=1));pasAccel+=r.pas;v(r.pas<=R.ARRIVEE_ACCELERE*2,'trop de pas');}
+      else for(let i=0;i<2;i++){pasCourseIA(e,DT);k++;}}
+    return {e,final:classementFinal(e),images,pasAccel,temps:e.temps};};
+  const a=jouer(false),b=jouer(true);
+  v(a.e.pilotes.every(p=>p.arrivee!==null)&&b.e.pilotes.every(p=>p.arrivee!==null),'pas toutes arrivées');
+  v(JSON.stringify(a.final)===JSON.stringify(b.final),'classement différent');
+  v(a.e.pilotes.every((p,k)=>p.arrivee===b.e.pilotes[k].arrivee&&p.course.penalites===b.e.pilotes[k].course.penalites),'temps ou pénalités différents');
+  v(b.images<a.images/20,'pas assez accéléré : '+b.images+' images contre '+a.images);
+  // la limite de temps : une horloge qui avance de 1 ms à chaque lecture coupe l'image après ARRIVEE_TRANCHE_MS lectures (tous les ARRIVEE_PAS_CONTROLE pas)
+  const e=creerCourseIA(C,4,1,3,CARTES_T.test);let h=0;for(let k=0;k<30*120;k++)pasCourseIA(e,DT);
+  const r=ARRIVEE.accelerer(e,()=>pasCourseIA(e,DT),1e6,5,0,()=>(h+=1));v(r.pas===5*R.ARRIVEE_PAS_CONTROLE&&!r.pret,'coupe : '+JSON.stringify(r));
+  L.push('  (8 IA, 2 tours : fin en regardant '+a.images+' images de 2 pas, en accéléré '+b.images+' images ('+b.pasAccel+' pas) ; classement identique au bit près)');});
+
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 ecrire();
 </script></body></html>

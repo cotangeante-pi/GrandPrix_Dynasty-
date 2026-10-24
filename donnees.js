@@ -118,6 +118,9 @@ const REGLAGES = {
   PENALITE_FAUX_DEPART: 5,      // s ajoutées au temps total (comme le virage coupé)
   // après l'arrivée du joueur (arrivee.js) : la vue télé sur les autres, puis le podium
   ARRIVEE_ATTENTE_MAX: 90,      // s : le podium vient au plus tard là ; les voitures pas arrivées sont classées dans l'ordre de course
+  ARRIVEE_ACCELERE: 100,        // « passer » la vue télé : le reste de la course joué 100 fois plus vite (les mêmes pas de physique, sans les dessiner)…
+  ARRIVEE_TRANCHE_MS: 40,       // … au plus ce temps de calcul par image (la page n'est jamais bloquée), l'horloge relue tous les…
+  ARRIVEE_PAS_CONTROLE: 12,     // … ce nombre de pas
   ARRIVEE_BAGARRE: 15,          // m : deux voitures plus proches que ça se bagarrent (la caméra télé les préfère)
   ARRET_APRES_ARRIVEE: 0.3,     // m/s : après l'arrivée, la voiture freine seule jusque-là, puis roule jusqu'à l'arrêt
 

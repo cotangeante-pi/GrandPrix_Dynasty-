@@ -48,6 +48,8 @@ PAGES = [
     ('index.html?deux=1&ia=5&robot=1&circuit=test&test=deux', 1280, 720, None),   # le mode 2 joueurs (deux-joueurs.js) : l'écran partagé, deux robots + 5 IA, jusqu'au podium ; capture deux-joueurs.png
     ('index.html?deux=1&ia=5&robot=1&circuit=test&test=deux', 960, 600, None),    # … en petit : rien ne déborde ; capture deux-joueurs-960.png
     ('index.html?deux=1&ia=5&robot=1&circuit=technique&test=deux', 1280, 720, None),
+    ('index.html?course=1&ia=9&joueur=1&robot=1&circuit=test&test=accelere', 1280, 720, None),   # « passer » finit la course en accéléré : les mêmes places et les mêmes temps qu'en regardant (deux chargements)
+    ('index.html?championnat=1&tours=1&robot=1&test=accelere', 1280, 720, None),   # … en championnat : puis l'interview et la une
     ('index.html?test=amis', 1280, 720, None),   # le mode 2 joueurs, tour 25b ordre 3 : titre → « Entre amis » → réglages → course à deux (robots) → podium → rivalité → Revanche → Menu ; captures entre-amis.png, deux-reglages.png, rivalite.png
     ('index.html?test=amis', 960, 600, None),    # … en petit : le menu et l'écran avant la course tiennent sans défilement ni débordement   # … la mesure de la 3D dessinée deux fois sur le technique   # le premier lancement : titre → course de découverte (robot) → Bravo → paddock ; captures titre.png, decouverte.png, bravo.png
 ]
@@ -657,6 +659,7 @@ def deux_ecran(pg, titre, l, h, page):
 # écrit les réglages à part de la carrière et ouvre la course à deux ; les robots la finissent ; le podium met les deux joueurs en valeur ;
 # la rivalité (« Léo 1 – 0 Sarah ») ; « Revanche » : un commercialBreak (faux SDK) puis la même course, grille retirée ; « Menu » : un
 # commercialBreak puis le menu ; jamais de commercialBreak pendant une course ; la carrière n'a pas bougé
+def JEU_PODIUM(pg): return attendre(pg, '() => JEU.ecran === "podium" && JEU.final && JEU.final.length === 5', None, 60000)
 def amis(pg, titre, l, h):
     J = '() => window.APPELS_SDK.join(",")'
     def boite(sel):
@@ -735,7 +738,14 @@ def amis(pg, titre, l, h):
       and pg.evaluate(f'() => JEU.plateau.pilotes.length === 5 && JEU.course.nbTours === 3 && JEU.plateau.graine !== {grille1[0]} && JEU.deux.revanche === 1'), str([grille1, pg.evaluate('() => [JEU.ecran, JEU.plateau.graine, JEU.plateau.grille && JEU.plateau.grille.map(x => x.numero).join()]'), pg.evaluate(J)]))
     pg.evaluate('() => { BOUCLE.arreter(); BOUCLE.simuler(20); BOUCLE.demarrer(); }')
     t(f'{titre} : pendant la revanche, pas de pub : gameplayStart aux feux éteints', attendre(pg, '() => JEU.ecran === "course" && window.APPELS_SDK.slice(-1)[0] === "gameplayStart"', None, 10000) and pg.evaluate(J).count('commercialBreak') == 1, pg.evaluate(J))
-    t(f'{titre} : la revanche finit, la rivalité s’additionne (2 courses comptées)', finir() and sum(pg.evaluate('() => SAUVEGARDE.deux().rivalite.score')) == 2, str(pg.evaluate('() => SAUVEGARDE.deux()')))
+    # la revanche : les deux joueurs finissent, puis « passer » : le reste de la course en accéléré (les deux ont fini : c'est permis)
+    for _ in range(200):
+        if pg.evaluate('() => !!JEU.attente || JEU.ecran === "podium"'): break
+        pg.evaluate('() => BOUCLE.simuler(2)')
+    attente = pg.evaluate('() => [!!JEU.attente, DEUX_JOUEURS.finie(JEU.plateau), ARRIVEE.restantes(JEU.plateau)]')
+    if attente[0] and pg.evaluate('() => JEU.ecran === "course"'): pg.click('#boutonPasser')
+    t(f'{titre} : à deux, l’attente vient quand les deux joueurs ont fini, et « passer » mène au podium avec toutes les voitures arrivées', attente[0] and attente[1] and attendre(pg, '() => JEU.ecran === "podium" && JEU.plateau.pilotes.every(p => p.arrivee !== null)', None, 120000), str(attente))
+    t(f'{titre} : la revanche finit, la rivalité s’additionne (2 courses comptées)', JEU_PODIUM(pg) and sum(pg.evaluate('() => SAUVEGARDE.deux().rivalite.score')) == 2, str(pg.evaluate('() => SAUVEGARDE.deux()')))
     pg.click('#boutonResultats')
     with pg.expect_navigation(): pg.click('#boutonChangerResultats')
     t(f'{titre} : « Menu » : un commercialBreak, puis le menu « Entre amis » (la page nue, ?menu=amis)', attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "amis"', None, 30000), str(pg.evaluate('() => typeof JEU === "undefined" ? null : JEU.ecran')))
@@ -744,6 +754,47 @@ def amis(pg, titre, l, h):
     t(f'{titre} : les derniers choix sont gardés pour la fois suivante (noms, couleur, casque, IA, niveau) avec la rivalité', gardes == ['Léo', 'Sarah', str(0x2fa84f), 'damier', '3', 'debutant', 2], str(gardes))
     apres = pg.evaluate('() => localStorage.getItem(SAUVEGARDE.CLE) && JSON.stringify(JSON.parse(localStorage.getItem(SAUVEGARDE.CLE)).championnat)')
     t(f'{titre} : la carrière n’a pas bougé (le monde du championnat créé au premier lancement est le même)', carriere is not None and apres == carriere, str([carriere and carriere[:80], apres and apres[:80]]))
+
+# « passer » la vue télé finit la course en accéléré (décision du propriétaire, 2026-10-24, CLAUDE.md « La course ») : le reste de la course
+# est vraiment joué (×ARRIVEE_ACCELERE, les mêmes pas de physique), le podium vient avec toutes les voitures arrivées ; la même course
+# regardée jusqu'au bout (après un rechargement, même graine) donne les mêmes places, les mêmes temps et les mêmes pénalités, au bit près.
+# En championnat : l'interview et la une suivent normalement
+def accelere(pg, titre, page):
+    champ = 'championnat=1' in page
+    FINAL = '() => JEU.final.map(x => [x.k, x.place, x.total, x.penalites, JEU.plateau.pilotes[x.k].arrivee])'
+    def jusqua_arrivee():
+        if champ: pg.click('#boutonCourseSuivante')
+        passer_qualif(pg, titre)
+        attendre(pg, '() => JEU.plateau.carte !== null', None, 180000)
+        for _ in range(200):
+            if pg.evaluate('() => !!JEU.attente || JEU.ecran === "podium"'): break
+            pg.evaluate('() => BOUCLE.simuler(2)')
+        return pg.evaluate('() => !!JEU.attente && JEU.ecran === "course" && JEU.plateau.pilotes.some(p => p.arrivee === null)')
+    t(f'{titre} : le joueur (robot) a fini, des voitures sont encore en course, le bandeau d’attente', jusqua_arrivee(), str(pg.evaluate('() => [JEU.ecran, !!JEU.attente, JEU.plateau && JEU.plateau.pilotes.map(p => p.arrivee)]')))
+    restantes = pg.evaluate('() => ARRIVEE.restantes(JEU.plateau)')
+    t0 = time.monotonic()
+    pg.click('#boutonPasser')
+    vu = attendre(pg, '() => JEU.ecran === "podium" || /⏩/.test(document.getElementById("attenteTexte").textContent)', None, 10000)
+    texte_ = pg.evaluate('() => [document.getElementById("attenteTexte").textContent, document.getElementById("boutonPasser").classList.contains("cache")]')
+    fini = attendre(pg, '() => JEU.ecran === "podium"', None, 180000)
+    duree = time.monotonic() - t0
+    etat = pg.evaluate('() => ({ arrivees: JEU.plateau.pilotes.every(p => p.arrivee !== null), nb: JEU.final && JEU.final.length, n: JEU.plateau.pilotes.length, temps: JEU.plateau.temps })')
+    t(f'{titre} : « passer » : « ⏩ » et les voitures restantes à l’écran, puis le podium avec TOUTES les voitures arrivées (classées par leur vraie arrivée)', vu and fini and etat['arrivees'] and etat['nb'] == etat['n'], str([texte_, etat]))
+    L.append(f"  (« passer » en accéléré : {restantes} voitures encore en course, podium {duree:.1f} s réelles après le clic ; course finie à {etat['temps']:.1f} s de course)")
+    a = pg.evaluate(FINAL)
+    if champ:
+        pg.click('#boutonResultats'); attendre(pg, '() => JEU.ecran === "resultats"')
+        pg.click('#boutonChangerResultats')
+        t(f'{titre} : en championnat, après « passer » : les résultats, puis l’interview et la une du journal, comme d’habitude', attendre(pg, '() => JEU.ecran === "interview"', None, 10000) and (pg.click('#boutonPasCommentaire') or True) and attendre(pg, '() => JEU.ecran === "une"', None, 10000) and pg.evaluate('() => JEU.championnat.prochain === 1'), str(pg.evaluate('() => [JEU.ecran, JEU.championnat.prochain]')))
+        return
+    # la même course, regardée jusqu'au bout (sans passer) : rechargée, même graine
+    pg.reload(); pg.wait_for_timeout(1500)
+    jusqua_arrivee()
+    for _ in range(400):
+        if pg.evaluate('() => JEU.ecran === "podium"'): break
+        pg.evaluate('() => BOUCLE.simuler(2)'); pg.wait_for_timeout(20)
+    b = pg.evaluate('() => JEU.ecran === "podium" ? (' + FINAL[6:] + ') : null')
+    t(f'{titre} : la même course regardée jusqu’au bout donne les mêmes places, les mêmes temps et les mêmes pénalités, au bit près', b is not None and a == b, str([a, b])[:800])
 
 def course_joueur(pg, titre):
     # le joueur conduit sa voiture au clavier, au milieu de 9 IA ; la caméra le suit, Tab ne change rien
@@ -825,7 +876,7 @@ def course_joueur(pg, titre):
     pg.screenshot(path=os.path.join(CAPTURES, 'apres-arrivee.png'))
     pg.click('#boutonPasser')
     t(f'{titre} : le bouton « passer » mène au podium (la caméra d’avant revient, le bandeau part)',
-      attendre(pg, '() => JEU.ecran === "podium" && CAMERA.mode !== "tele" && document.getElementById("attenteArrivee").classList.contains("cache")'),
+      attendre(pg, '() => JEU.ecran === "podium" && CAMERA.mode !== "tele" && document.getElementById("attenteArrivee").classList.contains("cache")', None, 180000),   # (depuis le 2026-10-24, « passer » joue la fin de la course en accéléré : plus de temps réel)
       str(pg.evaluate('() => [JEU.ecran, CAMERA.mode]')))
     # le patinage, joué par le test sur une nouvelle course (podium → résultats → « Rejouer » → qualification passée) : la touche
     # tenue à travers l'extinction ne lance pas la voiture (le régime monte au bout), lâcher puis réappuyer = patinage
@@ -1439,9 +1490,12 @@ with sync_playwright() as p:
                 fin_saison(pg, titre, l)
             elif 'championnat=1' in page and 'lang=en' in page:
                 championnat_en(pg, titre)
+            elif 'test=accelere' in page:
+                accelere(pg, titre, page)
             elif 'championnat=1' in page:
                 championnat(pg, titre, l)
-            if 'test=qualif' in page:
+            if 'test=accelere' in page: pass
+            elif 'test=qualif' in page:
                 qualif(pg, titre)
             elif 'test=fantome' in page:
                 fantome(pg, titre)
