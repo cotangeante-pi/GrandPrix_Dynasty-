@@ -1,0 +1,47 @@
+TOUR 23c — étape 8 (calcul pur) — compte rendu du Codeur 3 (2026-10-23, 19h16 → 20h05 ; Chef : session-5b)
+Commits (branche codeur3, poussés) : ecbd862 (ordre 1b), 4b15f07 (ordres 1a, 2, 3), 42ca913 (textes.html), e1b008b = fusion d'origin/main a163eb4 (tour 23b du Codeur 2 ; conflits : aucun, donnees.js et ecrans.py fusionnés seuls).
+Passage GitHub du commit e1b008b : 40042696042, « completed success », TOUT PASSE : test.html 178/178, courses 38/38, ecrans.py 361/361, sdk 19/19, pneus 28/28, enregistreur 28/28, circuits-a 50/50, circuits-b 45/45, textes 204/204.
+Mac (sous le verrou) : moteur 178/178 (49 s), ecrans 356/357 puis le test corrigé (voir ordre 2), annexes tout vert ; 0 Chrome --headless à moi.
+
+Ordres : 1 fait (a et b) / 2 fait / 3 fait.
+
+1. Finitions :
+   (a) ecrans.py : avant duel-tour.png, un test attend ORDRE_TOUR (chaque ligne posée à sa place) et vérifie que les 20 rangs lus de haut en bas sont 1, 2, …, 20 ; la capture vient après.
+   (b) circuits-a.html : nouveau test « le plus long des 6 est Spaa et le plus court Monoco, comme les vrais (vraieLongueur) » ; circuits-b.html : le test « Yas Marino le plus long » devient « le plus long est celui dont le vrai circuit est le plus long (Bahrayn), le plus court aussi (Montréol) », vérifié sur les vraies longueurs ET sur les tracés. Bahrayn rallongé pour dire le vrai : 5,451 km (vrai 5,412, +0,7 %), tests/circuits-b.svg redessiné. Rien retiré.
+
+2. L'argent (argent.js, calcul pur, ni Three.js ni DOM) :
+   - ARGENT.gains(ch, lignes) → { place, meilleurTour, placesGagnees, duel, brut, total, plafonne, nbPlacesGagnees } : la place (ARGENT_PLACE[20], 50 000 → 1 000), le meilleur tour (ARGENT_MEILLEUR_TOUR 5 000), les places gagnées entre la grille et l'arrivée (ARGENT_PLACE_GAGNEE 1 000 par place, jamais négatif), le bonus du duel (DUEL_BONUS 5 000 : devant le coéquipier au classement final, la règle du duel : non classé = perdu) ; total = brut plafonné à ARGENT_PLAFOND_COURSE (70 000) ; null si le joueur n'est pas dans les lignes ;
+   - encaisser(ch, lignes) (appelé par CHAMPIONNAT.finirGrandPrix, avant la sauvegarde) : solde += total, historique compact [grandPrix, total, place, meilleurTour, placesGagnees, duel] ; crediter(ch, montant, raison) : pour l'argent de départ de la course de découverte (Codeur 2) ou un sponsor, entrée [0, montant, raison] ; debiter(ch, montant) : refusé s'il manque de l'argent, jamais de dette ; solde(ch) ; formater(n) : « 12 500 € » / « €12,500 » (texte('milliers'), texte('montant')) ;
+   - dans la sauvegarde unique : ch.argent = { solde, historique } dans le championnat (comme l'album) ; CHAMPIONNAT.completer l'ajoute à 0 à une ancienne sauvegarde (pas de changement de version) ;
+   - l'écran des résultats : « Gains : +47 000 € (P4 : 26 000 € · 16 places gagnées : 16 000 € · coéquipier battu : 5 000 €) » (#resultatsArgent, remplirArgent), calculé sur le classement final à l'instant du podium ; l'encaissement se fait à « Continuer » sur les lignes de cet instant-là (les mêmes sauf si une voiture encore en course finit entre les deux : alors ce qui est encaissé suit le classement final, comme les points) ; l'écran du championnat : « Solde : 255 000 € » (#championnatArgent, remplirSolde). Textes en + fr ;
+   - tests moteur (5) : les gains pour chacune des 20 places (coéquipier juste devant, sauf la victoire) ; meilleur tour, places gagnées (12 → 8 = 4 000, 5 → 10 = 0), bonus seulement devant (non classé = rien), sans le joueur = null ; le plafond (P1 depuis la 20e place + meilleur tour + duel = 79 000 → 70 000, plafonne) ; le solde après 3 GP = la somme, l'historique, crediter/debiter, sauvegarde → rechargement identique, ancienne sauvegarde sans argent → 0 ; formater dans les deux langues ;
+   - ecrans.py : la ligne des gains aux résultats (texte attendu, sans déborder), capture argent.png ; le solde au championnat = gains + crédits − achats du garage, sauvegardé, avec le bon nombre de Grands Prix dans l'historique (mon premier test oubliait le crédit et l'achat du test du garage : corrigé) ; MOTS_FR + « Solde », « Gains » pour la page anglaise.
+
+3. Le garage (garage.js, calcul pur) — LISTE À APPROUVER PAR LE PROPRIÉTAIRE (telle quelle dans donnees.js GARAGE) :
+   | amélioration | effet par niveau | au niveau 5 | prix des 5 niveaux |
+   | changeurs de roues | aucun pour l'instant (l'arrêt au stand, étape 7 ; le niveau est gardé) | — | 20 000, 40 000, 70 000, 110 000, 160 000 |
+   | moteur (vitesse de pointe : la force du moteur) | +0,5 % | +2,5 % | 25 000, 50 000, 85 000, 130 000, 190 000 |
+   | aéro (adhérence) | +0,5 % | +2,5 % | 25 000, 50 000, 85 000, 130 000, 190 000 |
+   | freins (freinage) | +0,4 % | +2,0 % | 20 000, 40 000, 70 000, 110 000, 160 000 |
+   Total au maximum : exactement GARAGE_PLAFOND = 7 % ; tout acheter coûte 1 400 000 (une saison rapporte de l'ordre de 100 000 à 300 000 selon les résultats : le garage complet, c'est 5 à 10 saisons).
+   - GARAGE.prix / refus ('max' | 'argent' | null) / acheter(ch, nom) → { ok, raison, prix, niveau } (débit par ARGENT.debiter : jamais de dette) ; parts/bonus/facteurs : les parts sont ramenées au plafond si donnees.js le dépassait un jour ; appliquer(v, g) pose v.moteur, v.aero, v.freins (1 = rien) ;
+   - les niveaux SUIVENT LE JOUEUR : ch.garage dans le championnat (pas dans l'écurie) ; completer l'ajoute à 0 à une ancienne sauvegarde ;
+   - physique.js (3 lignes, dit comme demandé) : mu × (v.aero || 1), force du moteur × (v.moteur || 1), force de freinage × (v.freins || 1) ; creerVoiture : moteur/aero/freins = 1 ; × 1 = le même nombre au bit près (test : le robot fait la même course au bit près au niveau 0) ; FACTEUR_VOITURE_JOUEUR n'était appliqué nulle part (déclaré « 1 pour l'instant ») : je n'y ai pas touché ;
+   - robot.js (2 lignes) : le robot d'essai sent l'aéro (vitesseVirage avec ADHERENCE × v.aero) et les freins (ROBOT_DECELERATION × v.freins), × 1 = pareil ; sinon le test de la règle d'or ne mesurerait que le moteur ;
+   - principal.js : GARAGE.appliquer sur la voiture du joueur à chaque course (lancerCourse) et sur sa voiture du tour de qualification (faireMonTour) ; hors championnat : 1 partout ;
+   - l'écran « Garage » (bouton sur l'écran du championnat ; #garage ; remplirGarage/preparerGarage) : solde, « Voiture : +0,5 % / 7 % maxi », les 4 lignes (nom, effet, niveau n / 5, prix du prochain ou « Maxi », « Acheter » grisé si impossible avec l'explication en infobulle), « Retour » ; un achat est sauvegardé tout de suite. Tient en 960×600 (capture garage-960.png) et 1280×720 (garage.png) ;
+   - tests moteur (4) : prix croissants, prix() null au maximum, refus sans argent (à 1 près) et au maximum, les niveaux montent et le solde baisse du prix, jamais de dette ; le plafond pour les 6×6×6×2 combinaisons, facteurs exacts, bonus(max) = 0,07, un effet trop grand dans donnees.js est ramené au plafond ; appliquer, niveau 0 = physique identique au bit près, les niveaux suivent le joueur quand son écurie change, sauvegarde → rechargement, ancienne sauvegarde sans garage → 0 partout ; LA RÈGLE D'OR : le robot avec +7 % sur le circuit test gagne 1,38 % au tour (61,183 s contre 62,042 s), dans la fourchette 1–4 % ;
+   - ecrans.py : « Garage » ouvre l'écran (4 lignes au niveau 0, prix, solde, bonus, sans défilement) ; avec de l'argent (crédité par le test), acheter le moteur : solde − 25 000, niveau 1 / 5, prix suivant, bonus +0,5 %, sauvegardé ; « Retour » ramène au championnat avec le solde à jour ; en 960×600 (solde 0) : tous les boutons grisés.
+
+Mesures : règle d'or : +7 % → −1,38 % au tour (robot, circuit test, 3 tours) ; test.html 49 s sur le Mac ; les gains du robot au GP 1 du test : 47 000 € (P4 depuis la 20e place : 26 000 + 16 000 + duel 5 000).
+
+Pour CLAUDE.md (à ajouter par le Chef) :
+- liste des fichiers : « argent.js : l'argent en calcul pur (gains d'un Grand Prix : place, meilleur tour, places gagnées, bonus du duel, plafond par course ; solde et historique compact dans le championnat ; crediter/debiter/formater) ; garage.js : le garage en calcul pur (4 améliorations × 5 niveaux, +7 % au plus, les niveaux suivent le joueur, facteurs moteur/aero/freins lus par physique.js, × 1 = rien) » ;
+- physique.js : « … et trois facteurs du garage sur la voiture (moteur, aero, freins), 1 = rien » ; robot.js : « il sent l'aéro et les freins du garage » ;
+- championnat.js : « finirGrandPrix range la une et encaisse les gains ; completer ajoute duel, album, argent et garage » ;
+- interface.js / principal.js : « la ligne des gains sous les résultats, le solde au championnat, l'écran du garage (bouton « Garage ») » ;
+- « L'argent et les améliorations » : la liste proposée ci-dessus (à approuver par le propriétaire), DUEL_BONUS, ARGENT_* et GARAGE dans donnees.js ;
+- tests : « captures argent.png, garage.png, garage-960.png ; textes.html admet une chaîne d'un seul caractère (le séparateur des milliers) ».
+
+Ce que je n'ai pas pu vérifier : la sensation des +7 % en conduite (le propriétaire) ; l'équilibre des montants (gains, prix) : à régler après quelques saisons jouées ; les objectifs de sponsors (étape 9) ; l'effet des changeurs de roues (étape 7). Remarque : l'écran des résultats calcule les gains sur le classement final de l'instant du podium ; l'encaissement à « Continuer » prend les lignes de ce moment-là (comme les points aujourd'hui) : identiques dans tous les cas vus, différents seulement si une voiture encore en course finit entre les deux.
+Réévalue.
