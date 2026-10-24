@@ -745,9 +745,9 @@ def amis(pg, titre, l, h):
     attendre(pg, '() => !!JEU.attente', None, 20000)
     attente = pg.evaluate('() => [!!JEU.attente, DEUX_JOUEURS.finie(JEU.plateau), ARRIVEE.restantes(JEU.plateau)]')
     if attente[0] and pg.evaluate('() => JEU.ecran === "course"'): pg.click('#boutonPasser')
-    # (3 tours d'IA restent : le filet ARRIVEE_ATTENTE_MAX, 90 s de course après l'arrivée des joueurs, arrive avant elles ; le podium vient en accéléré)
-    t(f'{titre} : à deux, l’attente vient quand les deux joueurs ont fini, et « passer » joue la suite en accéléré jusqu’au podium (ici le filet ARRIVEE_ATTENTE_MAX)', attente[0] and attente[1] and attente[2] > 0 and attendre(pg, '() => JEU.ecran === "podium" && JEU.final && JEU.final.length === 5', None, 120000)
-      and pg.evaluate('() => { const [a, b] = DEUX_JOUEURS.joueurs(JEU.plateau); return JEU.plateau.temps - Math.max(a.arrivee, b.arrivee) >= REGLAGES.ARRIVEE_ATTENTE_MAX - 0.1; }'), str([attente, pg.evaluate('() => [JEU.ecran, JEU.plateau.temps, JEU.plateau.pilotes.map(p => p.arrivee)]')]))
+    # (3 tours d'IA restent, bien plus que les 90 s d'ARRIVEE_ATTENTE_MAX : en accéléré, le podium attend qu'elles aient toutes vraiment fini)
+    t(f'{titre} : à deux, l’attente vient quand les deux joueurs ont fini, et « passer » joue la suite en accéléré : au podium, toutes les IA sont vraiment arrivées (même au-delà des 90 s)', attente[0] and attente[1] and attente[2] > 0 and attendre(pg, '() => JEU.ecran === "podium" && JEU.final && JEU.final.length === 5 && JEU.plateau.pilotes.every(p => p.arrivee !== null)', None, 120000),
+      str([attente, pg.evaluate('() => [JEU.ecran, JEU.plateau.temps, JEU.plateau.pilotes.map(p => p.arrivee)]')]))
     t(f'{titre} : la revanche finit, la rivalité s’additionne (2 courses comptées)', JEU_PODIUM(pg) and sum(pg.evaluate('() => SAUVEGARDE.deux().rivalite.score')) == 2, str(pg.evaluate('() => SAUVEGARDE.deux()')))
     pg.click('#boutonResultats')
     with pg.expect_navigation(): pg.click('#boutonChangerResultats')

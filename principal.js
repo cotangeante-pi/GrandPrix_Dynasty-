@@ -937,13 +937,16 @@ function attendreLesAutres() {
   // « passer » (CLAUDE.md « La course ») : le reste de la course est vraiment joué, en accéléré (×ARRIVEE_ACCELERE) : à chaque image,
   // les mêmes pas de physique que la boucle (BOUCLE.simuler d'un pas), sans les dessiner, au plus ARRIVEE_TRANCHE_MS ; les places et
   // les temps sont ceux qu'on aurait eus en regardant ; ARRIVEE_ATTENTE_MAX reste le filet (une voiture bloquée)
-  if (JEU.attente.passer && !ARRIVEE.podiumPret(e, e.temps - arrivee)) {
+  if (JEU.attente.passer && !(JEU.attente.suivi && ARRIVEE.podiumPretAccelere(e, JEU.attente.suivi))) {
     const R = REGLAGES, nb = Math.max(1, Math.round(R.ARRIVEE_ACCELERE * Math.min(JEU.dtImage || 0, R.PAS_MAX_PAR_IMAGE * R.PAS_PHYSIQUE) / R.PAS_PHYSIQUE));
-    const r = ARRIVEE.accelerer(e, () => BOUCLE.simuler(R.PAS_PHYSIQUE), nb, R.ARRIVEE_TRANCHE_MS, arrivee, () => performance.now());
+    if (!JEU.attente.suivi) { JEU.attente.suivi = ARRIVEE.creerSuivi(e); JEU.attente.debutReel = performance.now(); }
+    const r = ARRIVEE.accelerer(e, () => BOUCLE.simuler(R.PAS_PHYSIQUE), nb, R.ARRIVEE_TRANCHE_MS, arrivee, () => performance.now(), JEU.attente.suivi);
     JEU.attente.accelere = (JEU.attente.accelere || 0) + r.pas;
   }
   majAttente();
-  if (ARRIVEE.podiumPret(e, e.temps - arrivee)) {
+  // en accéléré : tout le monde a fini (sauf une voiture bloquée), ou le plafond de temps réel ; en regardant : podiumPret (ARRIVEE_ATTENTE_MAX)
+  const a = JEU.attente, pret = a.suivi ? ARRIVEE.podiumPretAccelere(e, a.suivi) || performance.now() - a.debutReel >= REGLAGES.ARRIVEE_ACCELERE_MAX_REEL * 1000 : ARRIVEE.podiumPret(e, e.temps - arrivee);
+  if (pret) {
     finirAttente();
     montrerPodium();
   }
