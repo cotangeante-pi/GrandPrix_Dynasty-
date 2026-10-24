@@ -179,10 +179,10 @@ const REGLAGES = {
   AILERON_IA_AGRESSIVITE: 1.2,  // … et en moins par point d'agressivité au-dessus de 0,5 (pour doubler en ligne droite)…
   AILERON_IA_HASARD: 1.5,       // … et une part de hasard (en crans, de part et d'autre)
   AILERON_IA_ECART: 1,          // une IA choisit au plus à ce nombre de crans du milieu
-  // l'effet de l'aileron sur les voitures des IA (même code que le joueur : physique.js, ia.js le sait). COUPÉ en attendant que ia.js
-  // gère les écarts de vitesse de pointe entre IA : avec les crans tirés, tests/courses.html?ailerons=1 dépasse les garde-fous (chocs,
-  // herbe ; tour 29c, 4 réglages essayés). Les IA choisissent et gardent leur cran ; vrai = elles le portent
-  AILERON_IA_ACTIF: false,
+  // l'effet de l'aileron sur les voitures des IA (même code que le joueur : physique.js, ia.js le sait). Coupé au tour 29c (avec les crans
+  // tirés, tests/courses.html?ailerons=1 dépassait les garde-fous) ; remis quand les IA ont prévu le freinage d'une voiture qui n'a pas le
+  // même aileron (ia.js, freinsVus, IA_FREIN_PREVU ; Codeur 1). Les IA choisissent et gardent leur cran ; vrai = elles le portent
+  AILERON_IA_ACTIF: true,
   GRAINE_AILERON: 12000,        // les crans des IA sont tirés avec la graine du championnat + ce nombre + la saison et le Grand Prix
   // les saisons (étape 9, saisons.js, Codeur 3)
   SAISONS_MAX: 15,              // la retraite par l'âge : la carrière s'arrête après ce nombre de saisons
@@ -523,6 +523,7 @@ const REGLAGES = {
   COULEURS_IA: [0x1f6fe0, 0xd8262e, 0xf2c230, 0x2fa84f, 0xf07d1a, 0x8e44ad, 0x1abc9c, 0xecf0f1, 0x34495e, 0xe84393],
   // derrière une voiture plus lente (sans la dépasser, étape 4a) ; distances d'un centre de voiture à l'autre
   IA_DISTANCE_MIN: 8,           // m : jamais plus près
+  IA_FREIN_PREVU: 0.6,          // s : derrière une voiture qui freine, il prévoit sa vitesse dans ce temps (sa décélération vue × ça)
   IA_DISTANCE_SUIVI: 14,        // m : la distance où elle se cale derrière
   IA_DEPART_LANCEMENT: 100,     // m : au départ, sur cette distance, elle suit à IA_DISTANCE_MIN (tout le monde part ensemble)
   IA_GAIN_DISTANCE: 1,          // m/s de vitesse en plus par m d'écart en trop, près d'elle…
