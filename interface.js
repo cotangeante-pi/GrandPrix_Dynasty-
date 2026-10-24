@@ -113,7 +113,8 @@ const INTERFACE = (function () {
         }
         li.children[1].style.background = '#' + l.couleur.toString(16).padStart(6, '0');
         li.children[2].textContent = l.numero;
-        if (l.casque) li.children[2].prepend(CASQUE.icone(l.casque, REGLAGES.CASQUE_ICONE));   // l'icône du casque (casque.js)
+        // l'icône du casque (casque.js) : sa propre colonne, ajoutée en dernier (les indices 0 à 4 ne bougent pas) et placée avant le numéro par CSS (order)
+        if (l.casque) { const c = document.createElement('span'); c.className = 'casque'; c.appendChild(CASQUE.icone(l.casque, REGLAGES.CASQUE_ICONE)); li.appendChild(c); }
         liste.appendChild(li);
         lignesClassement.set(l.numero, li);
       }

@@ -712,6 +712,10 @@ def hud(pg, titre, l):
     # à leur place, et les places affichées doivent aller de 1 à N, de haut en bas
     t(f'{titre} : les places de la tour vont de 1 à 10, de haut en bas, chaque ligne à sa place', attendre(pg, ORDRE_TOUR, None, 10000),
       pg.evaluate('() => [...document.querySelectorAll("#classementListe li")].map(li => [li.children[0].textContent, Math.round(li.getBoundingClientRect().top)])'))
+    # l'icône du casque a sa colonne : sur la ligne du joueur, sa boîte et celle du numéro ne se recouvrent pas, le numéro est lisible en entier
+    boite = pg.evaluate('''() => { const li = document.querySelector("#classementListe li.moi"), c = li.querySelector(".casque canvas"), n = li.querySelector(".numero");
+      const a = c.getBoundingClientRect(), b = n.getBoundingClientRect(); return { casque: [a.left, a.right, a.top, a.bottom], numero: [b.left, b.right, b.top, b.bottom], texte: n.textContent, deborde: n.scrollWidth > n.clientWidth + 1, ordre: a.right <= b.left }; }''')
+    t(f'{titre} : dans la tour, l’icône du casque est dans sa colonne, avant le numéro, sans recouvrir le numéro (lisible en entier)', boite['ordre'] and not boite['deborde'] and boite['casque'][1] <= boite['numero'][0], str(boite))
     pg.screenshot(path=os.path.join(CAPTURES, f'hud-{l}.png'))
     # le faux départ par la touche (tour 23b, en 960×600) : la carte prête, les feux retenus, ↑ pressée DEPART_ANTICIPATION / 2
     # avant l'extinction (la boucle arrêtée, la physique par BOUCLE.simuler) : faux départ, la voiture part, « +5 s faux départ »
