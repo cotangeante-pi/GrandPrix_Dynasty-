@@ -138,13 +138,14 @@ const JOURNAL = (function () {
     const avant = ch.album && ch.album.length ? ch.album[ch.album.length - 1] : null;
     ALEATOIRE.semer(ch.graine + R.JOURNAL_GRAINE + n * 7919);
     const une = {
-      g: n + 1, f: fait, p: F[fait],
+      s: ch.saison, g: n + 1, f: fait, p: F[fait],
       t: variante('uneTitre_' + fait, avant && avant.f === fait ? avant.t : null),
       c: variante('uneTexte_' + fait, avant && avant.f === fait ? avant.c : null),
       b: breves(ch, lignes).slice(0, R.JOURNAL_BREVES_MAX).map(([cle, p]) => [cle, variante(cle), p]),
       h: CHAMPIONNAT.classementPilotes(ch).map((x, i) => [x.k, x.points, i + 1]).filter(([k, , place]) => place <= R.JOURNAL_CLASSEMENT || ch.pilotes[k].humain),
     };
     ALEATOIRE.semer();
+    if (fait === 'titreChampion') une.t = 0;   // la une spéciale du champion : toujours « CHAMPION ! … » (la variante est tirée quand même : le reste du tirage ne bouge pas)
     return une;
   }
 
@@ -185,7 +186,7 @@ const JOURNAL = (function () {
     const phrase = (cle, v, p) => remplir(texte(cle)[v], p, ch, noms);
     const gp = ch.calendrier[une.g - 1];
     return {
-      nom: texte('journalNom'), grandPrix: une.g, circuit: nomCircuit(gp ? gp.circuit : 'test'),
+      nom: texte('journalNom'), grandPrix: une.g, saison: une.s, fait: une.f, speciale: une.f === 'titreChampion', circuit: nomCircuit(gp ? gp.circuit : 'test'),
       titre: phrase('uneTitre_' + une.f, une.t, une.p), texte: phrase('uneTexte_' + une.f, une.c, une.p),
       breves: une.b.map(([cle, v, p]) => phrase(cle, v, p)),
       classement: une.h.map(([k, points, place]) => ({ place, k, nom: noms.pilote(ch.pilotes[k]), points, moi: ch.pilotes[k].humain })),
