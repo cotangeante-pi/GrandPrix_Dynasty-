@@ -2,6 +2,9 @@
 const SCENE3D = (function () {
   const R = REGLAGES;
   let rendu = null, scene = null, camera = null, conteneur = null;
+  // le mode 2 joueurs (écran partagé, CLAUDE.md) : la même scène dessinée deux fois par image, en haut avec camera (joueur 1),
+  // en bas avec camera2 (joueur 2), par setViewport / setScissor ; partage : le mode est actif
+  let camera2 = null, partage = false;
   let infoCircuit = null;   // { triangles, msConstruction }
   let trianglesDessines = 0, appelsDessin = 0;
 
@@ -21,6 +24,8 @@ const SCENE3D = (function () {
     scene.fog = new THREE.Fog(R.COULEUR_CIEL, R.BROUILLARD[0], R.BROUILLARD[1]);
 
     camera = new THREE.PerspectiveCamera(55, 1, 0.5, R.CAMERA_LOIN);
+    camera2 = new THREE.PerspectiveCamera(55, 1, 0.5, R.CAMERA_LOIN);
+    rendu.info.autoReset = false;   // les compteurs (triangles, appels) couvrent l'image entière, même dessinée en deux moitiés
 
     scene.add(new THREE.HemisphereLight(0xffffff, R.COULEUR_SOL, 0.6));
     const soleil = new THREE.DirectionalLight(0xffffff, 0.9);
@@ -96,7 +101,9 @@ const SCENE3D = (function () {
     // l'herbe, centrée sur le circuit
     let xmin = Infinity, xmax = -Infinity, zmin = Infinity, zmax = -Infinity;
     for (let i = 0; i < c.nb; i++) { xmin = Math.min(xmin, c.x[i]); xmax = Math.max(xmax, c.x[i]); zmin = Math.min(zmin, c.z[i]); zmax = Math.max(zmax, c.z[i]); }
-    const sol = maillage(new THREE.PlaneGeometry(R.TAILLE_SOL, R.TAILLE_SOL), R.COULEUR_SOL);
+    // l'herbe est repoussée dans le tampon de profondeur (polygonOffset) : à 2 cm sous la route, elle gagnait parfois le combat de
+    // profondeur et la route disparaissait sous les voitures (vu au tour 25b, selon la taille de l'image et la caméra)
+    const sol = maillage(new THREE.PlaneGeometry(R.TAILLE_SOL, R.TAILLE_SOL), R.COULEUR_SOL, { polygonOffset: true, polygonOffsetFactor: R.SOL_RECUL_PROFONDEUR, polygonOffsetUnits: R.SOL_RECUL_PROFONDEUR });
     sol.rotation.x = -Math.PI / 2;
     sol.position.set((xmin + xmax) / 2, 0, (zmin + zmax) / 2);
     groupe.add(sol);
@@ -154,14 +161,31 @@ const SCENE3D = (function () {
     if (!rendu) return;
     const l = conteneur.clientWidth || 1, h = conteneur.clientHeight || 1;
     rendu.setSize(l, h, false);
-    camera.aspect = l / h;
+    camera.aspect = l / (partage ? h / 2 : h);   // l'écran partagé : chaque moitié a sa propre proportion
     camera.updateProjectionMatrix();
+    camera2.aspect = camera.aspect;
+    camera2.updateProjectionMatrix();
+  }
+
+  // l'écran partagé (haut / bas) : allumé ou éteint
+  function partager(oui) {
+    partage = !!oui;
+    if (rendu) { rendu.setScissorTest(partage); if (!partage) { const l = conteneur.clientWidth || 1, h = conteneur.clientHeight || 1; rendu.setViewport(0, 0, l, h); rendu.setScissor(0, 0, l, h); } }
+    redimensionner();
   }
 
   // renvoie le nombre de triangles dessinés
   function dessiner() {
     if (!rendu) return 0;
-    rendu.render(scene, camera);
+    rendu.info.reset();
+    if (partage) {
+      // UN rendu, UNE scène, deux zones : le joueur 1 en haut, le joueur 2 en bas (la zone est en pixels CSS, Three.js applique le pixel ratio)
+      const l = conteneur.clientWidth || 1, h = conteneur.clientHeight || 1, demi = Math.floor(h / 2);
+      rendu.setViewport(0, h - demi, l, demi); rendu.setScissor(0, h - demi, l, demi);
+      rendu.render(scene, camera);
+      rendu.setViewport(0, 0, l, demi); rendu.setScissor(0, 0, l, demi);
+      rendu.render(scene, camera2);
+    } else rendu.render(scene, camera);
     trianglesDessines = rendu.info.render.triangles;
     appelsDessin = rendu.info.render.calls;
     return trianglesDessines;
@@ -173,9 +197,12 @@ const SCENE3D = (function () {
   }
 
   return {
-    init, dessiner, ajouter,
+    init, dessiner, ajouter, partager,
     get actif() { return rendu !== null; },
     get camera() { return camera; },
+    get camera2() { return camera2; },
+    get canvas() { return rendu ? rendu.domElement : null; },   // (tests : lire les pixels juste après dessiner)
+    get partage() { return partage; },
     get infoCircuit() { return infoCircuit; },
     get trianglesDessines() { return trianglesDessines; },
     get appelsDessin() { return appelsDessin; },

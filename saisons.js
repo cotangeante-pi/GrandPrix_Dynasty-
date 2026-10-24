@@ -21,6 +21,7 @@ const SAISONS = (function () {
     if (typeof ch.enFinDeSaison !== 'boolean') ch.enFinDeSaison = false;
     if (ch.retraite === undefined) ch.retraite = null;
     if (typeof ch.confiance !== 'number') ch.confiance = R.CONFIANCE_DEPART;   // la confiance de l'écurie (les consignes d'équipe viendront)
+    if (ch.pilotes && (!ch.transferts || ch.transferts.saison !== ch.saison)) ch.transferts = intentions(ch);   // une sauvegarde d'avant : les intentions de la saison en cours
     for (const e of ch.ecuries || []) if (typeof e.titres !== 'number') e.titres = 0;
     return ch;
   }
@@ -123,9 +124,25 @@ const SAISONS = (function () {
   }
 
   // --- les rivaux qui évoluent, entre deux saisons (avec la graine) ---
+  // les intentions de transfert de la saison, décidées en début de saison avec la graine : TRANSFERTS_PAR_SAISON échanges de
+  // places entre deux pilotes IA d'écuries différentes (jamais le joueur) ; { saison, liste: [[a, b]] } (des indices de pilotes).
+  // Le journal en tire ses rumeurs (journal.js) ; evoluer les applique à la fin de la saison
+  function intentions(ch) {
+    ALEATOIRE.semer(ch.graine + R.GRAINE_SAISONS + 11 + ch.saison * 101);
+    const ia = ch.pilotes.filter(p => !p.humain), liste = [];
+    for (let t = 0; t < R.TRANSFERTS_PAR_SAISON && ia.length >= 2; t++) {
+      const a = ia[Math.floor(hasard() * ia.length)];
+      let b = ia[Math.floor(hasard() * ia.length)];
+      for (let essai = 0; essai < 20 && (b.ecurie === a.ecurie || liste.some(x => x.includes(a.id) || x.includes(b.id))); essai++) b = ia[Math.floor(hasard() * ia.length)];
+      if (b.ecurie !== a.ecurie && !liste.some(x => x.includes(a.id) || x.includes(b.id))) liste.push([a.id, b.id]);
+    }
+    ALEATOIRE.semer();
+    return { saison: ch.saison, liste };
+  }
+
   function evoluer(ch) {
     ALEATOIRE.semer(ch.graine + R.GRAINE_SAISONS + ch.saison * 101);
-    const j = joueur(ch), numerosPris = new Set(ch.pilotes.map(p => p.numero));
+    const j = joueur(ch), numerosPris = new Set(ch.pilotes.map(p => p.numero)), partis = new Set();   // les retraités de cette fin de saison
     // l'âge, le rythme (les jeunes progressent, les anciens baissent), la retraite
     for (const p of ch.pilotes) {
       if (p.humain) continue;
@@ -136,8 +153,8 @@ const SAISONS = (function () {
       const part = p.age >= R.AGE_RETRAITE_MAX || (p.age >= R.AGE_RETRAITE && hasard() < R.RETRAITE_PROBABILITE);
       if (!part) continue;
       // le retraité garde un résumé compact ; un nouveau pilote prend sa place (même écurie, même case), jeune, sans nom
-      ch.retraites.push({ nom: p.nom, numero: p.numero, age: p.age, saison: ch.saison, courses: p.stats.courses, victoires: p.stats.victoires, podiums: p.stats.podiums, titres: p.stats.titres || 0, duel: ch.duel && ch.duel.carriere[p.id] ? ch.duel.carriere[p.id] : null });
-      numerosPris.delete(p.numero);
+      ch.retraites.push({ id: p.id, nom: p.nom, numero: p.numero, age: p.age, saison: ch.saison, courses: p.stats.courses, victoires: p.stats.victoires, podiums: p.stats.podiums, titres: p.stats.titres || 0, duel: ch.duel && ch.duel.carriere[p.id] ? ch.duel.carriere[p.id] : null });
+      numerosPris.delete(p.numero); partis.add(p.id);
       let numero = 2 + Math.floor(hasard() * 97);
       while (numerosPris.has(numero)) numero = numero % 99 + 1;
       numerosPris.add(numero);
@@ -149,11 +166,12 @@ const SAISONS = (function () {
       p.places = [];
       if (ch.duel && ch.duel.carriere[p.id]) delete ch.duel.carriere[p.id];   // le nouveau n'a pas de passé contre le joueur
     }
-    // quelques transferts : deux pilotes IA d'écuries différentes échangent leur place (jamais le joueur)
-    const ia = ch.pilotes.filter(p => !p.humain);
-    for (let t = 0; t < R.TRANSFERTS_PAR_SAISON; t++) {
-      const a = ia[Math.floor(hasard() * ia.length)], b = ia[Math.floor(hasard() * ia.length)];
-      if (a.ecurie === b.ecurie) continue;
+    // les transferts annoncés en début de saison (intentions) : deux pilotes IA d'écuries différentes échangent leur place
+    // (jamais le joueur) ; un transfert tombe si l'un des deux vient de prendre sa retraite ou si leurs écuries sont les mêmes
+    const T = ch.transferts && ch.transferts.saison === ch.saison ? ch.transferts : intentions(ch);
+    for (const [ka, kb] of T.liste) {
+      const a = ch.pilotes[ka], b = ch.pilotes[kb];
+      if (!a || !b || a.humain || b.humain || partis.has(ka) || partis.has(kb) || a.ecurie === b.ecurie) continue;
       [a.ecurie, b.ecurie] = [b.ecurie, a.ecurie];
     }
     // les écuries montent ou baissent selon leur classement : les NIVEAU_MONTENT premières +, les dernières −, dans les bornes
@@ -180,6 +198,7 @@ const SAISONS = (function () {
     ch.calendrier = [];
     for (let i = 0; i < R.NB_GRANDS_PRIX; i++) ch.calendrier.push({ numero: i + 1, circuit: R.CALENDRIER_CIRCUITS[i % R.CALENDRIER_CIRCUITS.length] });
     ch.enFinDeSaison = false;
+    ch.transferts = intentions(ch);   // les transferts de la nouvelle saison, décidés d'avance (les rumeurs du journal)
     CHAMPIONNAT.completer(ch);   // le duel repart de 0 pour la nouvelle saison (et le nouveau coéquipier)
     return ch;
   }
@@ -202,5 +221,5 @@ const SAISONS = (function () {
     return ch;
   }
 
-  return { finie, completer, bilan, terminerSaison, note, exigences, offres, rangEcurie, coequipierDans, signer, prendreRetraite, evoluer, nouvelleSaison, avancer };
+  return { finie, completer, bilan, terminerSaison, note, exigences, offres, rangEcurie, coequipierDans, signer, prendreRetraite, intentions, evoluer, nouvelleSaison, avancer };
 })();

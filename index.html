@@ -36,6 +36,14 @@
 <!-- le départ parfait (depart.js) : la jauge du régime de départ avec sa zone verte, au centre bas, puis le résultat -->
 <div id="jauge" class="cache"><div id="jaugeBarre"><div id="jaugeVert"></div><div id="jaugeAiguille"></div></div><div id="jaugeAide"></div></div>
 <div id="departResultat" class="cache"></div>
+<!-- le mode 2 joueurs (deux-joueurs.js, écran partagé haut / bas) : l'affichage de chaque moitié (place, tour, vitesse, écart avec l'autre),
+     les feux, la jauge et le résultat du départ du joueur 2 dans sa moitié (ceux du joueur 1 sont les éléments ci-dessus, déplacés par CSS) -->
+<div id="deuxSeparation" class="cache"></div>
+<div id="deuxHaut" class="deuxHud cache"><span class="deuxNom"></span><span class="deuxPlace"></span><span class="deuxTour"></span><span class="deuxVitesse"></span><span class="deuxEcart"></span></div>
+<div id="deuxBas" class="deuxHud cache"><span class="deuxNom"></span><span class="deuxPlace"></span><span class="deuxTour"></span><span class="deuxVitesse"></span><span class="deuxEcart"></span></div>
+<div id="feux2" class="cache"><span></span><span></span><span></span><span></span><span></span></div>
+<div id="jauge2" class="cache"><div id="jaugeBarre2"><div id="jaugeVert2"></div><div id="jaugeAiguille2"></div></div><div id="jaugeAide2"></div></div>
+<div id="departResultat2" class="cache"></div>
 
 <!-- le premier lancement (decouverte.js) : l'écran titre, « Entre amis » (bientôt), les aides de la découverte, « Prêt pour ta carrière ? » -->
 <section id="titre" class="ecran cache">
