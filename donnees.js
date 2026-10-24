@@ -211,6 +211,15 @@ const REGLAGES = {
   DECOUVERTE_ARGENT: [1000, 800, 600, 400, 300, 200, 100],   // la prime d'argent de départ selon la place (1er, 2e, …)
   DECOUVERTE_ARGENT_MAX: 1000,  // … et son plafond
   AIDE_CLIGNOTE_APRES: 3,       // s : sur la grille, sans aucune touche pendant ce temps, l'aide « ↑ » clignote
+  // le casque du pilote (casque.js) : un motif et trois couleurs ; les rivaux tirent le leur avec la graine du championnat
+  CASQUE_MOTIFS: ['uni', 'bandes', 'etoile', 'flammes', 'damier', 'eclair'],
+  CASQUE_PALETTE: [0xd8262e, 0xf2c230, 0x2fa84f, 0xf07d1a, 0x8e44ad, 0x1abc9c, 0xecf0f1, 0x34495e, 0xe84393, 0x1f6fe0, 0x111111, 0xffffff],
+  CASQUE_NEUTRE: { motif: 'uni', couleurs: [0xdfe3ea, 0xdfe3ea, 0x34495e] },   // « Toi » avant la création, les voitures sans pilote
+  CASQUE_ESSAIS_MAX: 200,       // tirages pour trouver un casque que personne n'a
+  GRAINE_CASQUES: 6000,         // les casques des rivaux sont tirés avec la graine du championnat + ce nombre
+  CASQUE_ATLAS_CASE: 64,        // pixels : la case de chaque casque dans l'atlas (une petite texture partagée, un seul matériau)
+  CASQUE_ICONE: 14,             // pixels : l'icône du casque dans la tour, les résultats, le championnat
+  CASQUE_APERCU_VITESSE: 1.2,   // rad/s : le casque tourne dans l'éditeur
   CACHE_CARTE_TAILLE_MAX: 150000,   // octets : la carte des IA d'un circuit en cache dans la sauvegarde (cache-carte.js) ne doit pas peser plus (test)
 
   // la création du pilote (pilote.js, étape 6) : le nom, le numéro, le pays, la course de cœur

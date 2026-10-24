@@ -32,7 +32,10 @@ function pasPneus(etat, voiture, dt, gestionPneus) {
 function facteurAdherence(usure) {
   const P = REGLAGES_PNEUS;
   const u = Math.max(0, Math.min(1, usure));
-  return 1 - P.PERTE_ADHERENCE_MAX * Math.pow(u, P.EXPOSANT_ADHERENCE);
+  // usure ^ EXPOSANT_ADHERENCE par des multiplications (exposant entier, sans la fonction puissance du navigateur : CLAUDE.md, déterminisme Mac / Linux)
+  let puissance = 1;
+  for (let k = 0; k < P.EXPOSANT_ADHERENCE; k++) puissance *= u;
+  return 1 - P.PERTE_ADHERENCE_MAX * puissance;
 }
 
 // la durée de l'arrêt (s, voiture immobile) selon le niveau des changeurs de roues, avec le gain plafonné

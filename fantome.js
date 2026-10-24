@@ -34,7 +34,7 @@ const FANTOME = (function () {
   // temps au millième de seconde)
   function compacter(tour, temps, fin) {
     const enr = tour.enr, n = enr.nbImages;
-    let d = 1;   // 10 ^ FANTOME_DECIMALES, par multiplications (pas de Math.pow : CLAUDE.md, déterminisme Mac / Linux)
+    let d = 1;   // 10 ^ FANTOME_DECIMALES, par multiplications (sans la fonction puissance du navigateur : CLAUDE.md, déterminisme Mac / Linux)
     for (let i = 0; i < R.FANTOME_DECIMALES; i++) d *= 10;
     const arrondi = x => Math.round(x * d) / d, milli = x => Math.round(x * 1000) / 1000;
     const f = { temps: milli(temps), fin: arrondi(fin), pas: R.FANTOME_PAS, x: [], z: [], cap: [], s: [] };
