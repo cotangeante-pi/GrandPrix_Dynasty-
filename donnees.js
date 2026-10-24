@@ -236,6 +236,14 @@ const REGLAGES = {
   JOURNAL_RUMEUR_DES_GP: 7,     // brève « rumeur de transfert » à partir de ce Grand Prix de la saison (les intentions de saisons.js)
   JOURNAL_RUMEUR_FAUSSE: 0.35,  // la part des rumeurs fausses (un pilote et une écurie tirés au hasard) ; la première rumeur de la saison est toujours vraie
   JOURNAL_GRAINE: 6000,         // les variantes des titres sont tirées avec la graine du championnat + ce nombre + le Grand Prix
+  // la cérémonie du champion à la fin de la saison (podium3d.js, principal.js, Codeur 3) : le champion seul sur la plus haute marche
+  // et des confettis faits par le code (UN objet THREE.Points : un seul appel de dessin, quel que soit leur nombre)
+  CEREMONIE_CONFETTIS: 700,     // le nombre de confettis
+  CEREMONIE_CONFETTI_TAILLE: 0.32,   // m : la taille d'un confetti
+  CEREMONIE_CONFETTI_ZONE: [24, 14, 16],   // m : la largeur, la hauteur et la profondeur de la zone où ils tombent, autour du podium
+  CEREMONIE_CONFETTI_VITESSE: [1.1, 2.6],   // m/s : leur vitesse de chute (tirée entre ces bornes)
+  CEREMONIE_CONFETTI_BALANCE: 0.6,   // m : ils se balancent de part et d'autre en tombant
+  CEREMONIE_COULEURS: [0xffd23f, 0xff5a5f, 0x3ddc97, 0x2f80ed, 0xffffff],
 
   // la course de découverte du premier lancement (decouverte.js, CLAUDE.md « En piste en 10 secondes »)
   DECOUVERTE_TOURS: 3,          // une longueur à part, seulement pour elle
@@ -474,6 +482,23 @@ const REGLAGES = {
   LONGUEUR_BANDE_VIBREUR: 3,    // une bande rouge, une bande blanche
   SEUIL_COURBURE_VIBREUR: 1 / 150,   // des vibreurs là où le rayon du virage est sous 150 m
   DISTANCE_BARRIERE: 14,        // du bord de la piste à la barrière
+  // la voie des stands (étape 7, circuits.js : circuit.stands, calculée depuis les morceaux ; la physique ne s'en sert que
+  // derrière PNEUS_ACTIFS) : une voie parallèle à la ligne droite de départ, du côté opposé à la trajectoire (le côté du
+  // premier virage), entre le bord de la piste et la barrière, séparée de la piste par un muret sauf à l'entrée et à la sortie
+  STAND_MUR: 1.5,               // m au-delà du bord de la piste : le muret entre la piste et la voie
+  STAND_LARGEUR: 7,             // m : la largeur de la voie, au-delà du muret
+  STAND_RAMPE: 60,              // m : l'entrée et la sortie, où la voie est ouverte sur la piste (pas de muret)
+  STAND_ENTREE_MAX: 300,        // m avant la ligne, au plus, où la voie commence (dans la dernière ligne droite)…
+  STAND_SORTIE_MAX: 250,        // m après la ligne, au plus, où elle rejoint la piste (dans la première ligne droite)
+  STAND_MARGE_DROITE: 60,       // m : la voie s'arrête au moins à ça de la fin d'une ligne droite
+  STAND_APRES_LIGNE: 20,        // m : si la dernière droite est trop courte (ou un virage ramène sur la ligne), la voie commence là, après la ligne
+  STAND_LONGUEUR_MIN: 150,      // m : en dessous, pas de voie des stands sur ce circuit (test)
+  STAND_ARRET_DEMI: 20,         // m : la zone d'arrêt, de part et d'autre de circuit.stands.arret (la ligne si la voie la traverse, sinon le milieu de la voie)
+  STAND_VITESSE_MAX: 80 / 3.6,  // m/s : la limite dans la voie ; la physique y ramène la voiture qui la dépasse…
+  STAND_PENALITE_VITESSE: 5,    // s : … et ça coûte ça, une fois par passage
+  COULEUR_STANDS: 0x5a5a5a,     // la voie en 3D
+  COULEUR_MUR_STANDS: 0xdddddd, // le muret
+  HAUTEUR_MUR_STANDS: 0.8,
   HAUTEUR_BARRIERE: 1.1,
   TAILLE_SOL: 4000,             // le carré d'herbe sous le circuit
   CASES_DAMIER: 12,             // cases de la ligne d'arrivée, en travers de la piste

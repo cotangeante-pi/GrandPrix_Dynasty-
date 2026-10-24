@@ -600,11 +600,34 @@ function montrerFinSaison() {
   const ch = JEU.championnat;
   if (ch.retraite) { montrerRetraite(); return; }
   const b = SAISONS.terminerSaison(ch);
+  // la cérémonie du champion (une fois par saison, avant le classement final) : le joueur champion → le podium, « CHAMPION DU
+  // MONDE » et les confettis ; un rival → un écran plus court ; gardée dans l'historique de la saison (pas deux fois au rechargement)
+  const close = ch.saisons[ch.saisons.length - 1];
+  if (close && close.saison === ch.saison && !close.ceremonie) { close.ceremonie = 1; SAUVEGARDE.ecrireChampionnat(ch); montrerCeremonie(b); return; }
   SAUVEGARDE.ecrireChampionnat(ch);
   PODIUM3D.cacher();
   INTERFACE.remplirSaison(ch, b);
   JEU.ecran = 'saison';
   INTERFACE.montrer('saison');
+}
+
+// ?championnat=1 : la cérémonie du champion (Codeur 3) : le podium 3D avec le champion seul en haut ; le joueur champion a
+// « CHAMPION DU MONDE » et les confettis (podium3d.js : un seul appel de dessin), un rival un écran plus court ; Poki : un menu
+// (gameplayStop, comme tout ce qui n'est pas la course) ; « Suite » → le classement final de la saison
+function montrerCeremonie(b) {
+  const ch = JEU.championnat, k = b.champion, toi = !!ch.pilotes[k].humain;
+  for (const m of JEU.modeles) m.groupe.visible = false;
+  if (JEU.modeles[k]) { if (toi) PODIUM3D.ceremonie(JEU.modeles[k]); else PODIUM3D.montrer([JEU.modeles[k]]); }
+  INTERFACE.remplirCeremonie(ch, b);
+  JEU.tempsPodium = 0;
+  JEU.ecran = 'ceremonie';
+  INTERFACE.montrer('ceremonie');
+}
+
+function suiteCeremonie() {
+  if (JEU.ecran !== 'ceremonie') return;
+  PODIUM3D.cacher();
+  montrerFinSaison();
 }
 
 function suiteClassementSaison() {
@@ -973,7 +996,7 @@ function majTableau() {
   document.getElementById('rapport').textContent = rapportPourVitesse(v.u);
   const roule = JEU.ecran === 'course' || JEU.ecran === 'survol' || enTourQualif();
   // sur le podium et les résultats, ni vitesse ni aide des touches
-  const apres = ['podium', 'resultats', 'championnat', 'une', 'garage', 'titre', 'amis', 'bravo', 'saison', 'duelSaison', 'contrats', 'retraite', 'sponsors', 'fiche', 'interview', 'deuxReglages'].includes(JEU.ecran);
+  const apres = ['podium', 'resultats', 'championnat', 'une', 'garage', 'titre', 'amis', 'bravo', 'saison', 'duelSaison', 'contrats', 'retraite', 'sponsors', 'fiche', 'interview', 'deuxReglages', 'ceremonie'].includes(JEU.ecran);
   document.getElementById('tableau').classList.toggle('cache', apres);
   document.getElementById('aide').classList.toggle('cache', apres);
   // après l'arrivée du joueur (en attendant les autres), il ne court plus : pas de « hors piste »
@@ -1117,6 +1140,7 @@ function demarrerJeu() {
     document.getElementById('boutonChangerResultats').textContent = texte('continuer');
     INTERFACE.preparerChampionnat(courseSuivante, montrerGarage);
     INTERFACE.preparerUne(passerUne);
+    INTERFACE.preparerCeremonie(suiteCeremonie);
     INTERFACE.preparerGarage(acheterAmelioration, quitterGarage);
     INTERFACE.preparerSaison(suiteClassementSaison, suiteDuelSaison, signerContrat, prendreRetraite);
     INTERFACE.preparerSponsors(montrerSponsors, choisirSponsor, quitterSponsors);
@@ -1169,7 +1193,7 @@ function demarrerJeu() {
   BOUCLE.surPhysique(pasJoueur);
   BOUCLE.surAffichage((alpha, dt) => {
     JEU.alpha = alpha;
-    const apres = JEU.ecran === 'podium' || JEU.ecran === 'resultats' || JEU.ecran === 'bravo';   // le podium : les voitures n'y bougent plus
+    const apres = JEU.ecran === 'podium' || JEU.ecran === 'resultats' || JEU.ecran === 'bravo' || JEU.ecran === 'ceremonie';   // le podium (et la cérémonie du champion) : les voitures n'y bougent plus
     // ?ia=N : chaque IA à sa place ; une IA arrivée quitte la piste (elle n'est plus dessinée)
     if (JEU.plateau && !apres) JEU.plateau.pilotes.forEach((p, k) => {
       const m = JEU.modeles[k];
@@ -1180,6 +1204,7 @@ function demarrerJeu() {
     if (apres) {
       JEU.tempsPodium += dt;
       PODIUM3D.camera(SCENE3D.camera, JEU.tempsPodium);
+      PODIUM3D.majConfettis(dt);   // la cérémonie du champion : les confettis tombent (rien sinon)
     } else {
       VOITURE3D.placer(JEU.modele, etat, JEU.joueur);
       JEU.modele.tete.visible = CAMERA.mode !== 'cockpit';   // en vue cockpit, l'œil est dans le casque

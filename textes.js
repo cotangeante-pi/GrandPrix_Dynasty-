@@ -137,6 +137,9 @@ const TEXTES = {
     retraite: 'Retire', retraiteConfirmer: 'Confirm: retire now', retraiteTitre: 'Career over',
     retraiteChoix: 'You chose to retire after season {n}.', retraiteAge: 'Too old to race on after {n} seasons.',
     retraiteBilan: '{s} seasons · {v} wins · {p} podiums · {t} titles',
+    // la cérémonie du champion (Codeur 3)
+    ceremonieSaison: 'Season {n}', ceremonieTitre: 'WORLD CHAMPION', ceremonieDetail: '{points} points · {v} wins this season · {ecurie}',
+    ceremonieRival: '{pilote} is world champion', ceremonieRivalDetail: '{points} points for {ecurie} · you finish P{place}',
     breveRetraite: ['{pilote}, {age}, is thinking about retirement.', 'At {age}, {pilote} may be in a final season.'],
     // les sponsors (sponsors.js) et la fiche du rival (fiche.js) (Codeur 3)
     sponsors: 'Sponsors', sponsorsTitre: 'Sponsors for season {n}', sponsorsChoisir: 'Choose', sponsorsRetour: 'Back', sponsorMontant: '{n} per season',
@@ -310,6 +313,9 @@ const TEXTES = {
     retraite: 'Prendre ma retraite', retraiteConfirmer: 'Confirmer : arrêter maintenant', retraiteTitre: 'Carrière terminée',
     retraiteChoix: 'Tu as choisi de t’arrêter après la saison {n}.', retraiteAge: 'Trop vieux pour continuer après {n} saisons.',
     retraiteBilan: '{s} saisons · {v} victoires · {p} podiums · {t} titres',
+    // la cérémonie du champion (Codeur 3)
+    ceremonieSaison: 'Saison {n}', ceremonieTitre: 'CHAMPION DU MONDE', ceremonieDetail: '{points} points · {v} victoires cette saison · {ecurie}',
+    ceremonieRival: '{pilote} est champion du monde', ceremonieRivalDetail: '{points} points pour {ecurie} · tu finis P{place}',
     breveRetraite: ['{pilote}, {age} ans, pense à la retraite.', 'À {age} ans, {pilote} vit peut-être une dernière saison.'],
     // les sponsors (sponsors.js) et la fiche du rival (fiche.js) (Codeur 3)
     sponsors: 'Sponsors', sponsorsTitre: 'Les sponsors pour la saison {n}', sponsorsChoisir: 'Choisir', sponsorsRetour: 'Retour', sponsorMontant: '{n} par saison',

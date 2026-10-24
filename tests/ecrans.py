@@ -28,6 +28,7 @@ PAGES = [
     ('index.html?reglages=1&course=0', 1280, 720, 'reglages.png'),
     ('index.html?course=5&robot=1', 1280, 720, None),
     ('index.html?camera=dessus&circuit=technique', 1280, 720, 'technique.png'),
+    ('index.html?camera=dessus&circuit=test', 1280, 720, 'stands.png'),   # la voie des stands (étape 7) : la bande et le muret le long de la ligne droite, côté gauche
     ('index.html?course=5&ia=1&circuit=technique', 1280, 720, 'ia.png'),
     ('index.html?course=5&ia=10&circuit=technique&debug=1', 1280, 720, 'ia10.png'),
     ('index.html?course=5&ia=9&joueur=1&circuit=technique', 1280, 720, None),   # capture joueur-ia.png prise en roulant
@@ -50,6 +51,8 @@ PAGES = [
     ('index.html?test=amis', 1280, 720, None),   # le mode 2 joueurs, tour 25b ordre 3 : titre → « Entre amis » → réglages → course à deux (robots) → podium → rivalité → Revanche → Menu ; captures entre-amis.png, deux-reglages.png, rivalite.png
     ('index.html?test=amis', 960, 600, None),    # … en petit : le menu et l'écran avant la course tiennent sans défilement ni débordement   # … la mesure de la 3D dessinée deux fois sur le technique   # le premier lancement : titre → course de découverte (robot) → Bravo → paddock ; captures titre.png, decouverte.png, bravo.png
 ]
+# ECRANS_FILTRE=… (pendant le travail, sur le Mac) : seulement les pages dont l'adresse contient ce texte ; GitHub lance toujours tout
+if os.environ.get('ECRANS_FILTRE'): PAGES = [x for x in PAGES if os.environ['ECRANS_FILTRE'] in x[0]]
 # le faux SDK Poki (comme dans tests/sdk.html), posé avant le chargement de la page ?test=sdk : il note chaque appel dans APPELS_SDK (pas « JOURNAL » : c'est le module de la une du journal, journal.js)
 FAUX_SDK = """window.APPELS_SDK = []; window.PokiSDK = { init() { APPELS_SDK.push('init'); return Promise.resolve(); }, gameLoadingFinished() { APPELS_SDK.push('gameLoadingFinished'); },
   gameplayStart() { APPELS_SDK.push('gameplayStart'); }, gameplayStop() { APPELS_SDK.push('gameplayStop'); },
@@ -1143,6 +1146,29 @@ SAISON2_ETAT = '''() => { const ch = JEU.championnat, j = ch.pilotes[19]; return
   garage: JSON.stringify(ch.garage), solde: ch.argent.solde, coequipier: CHAMPIONNAT.coequipierDe(ch).id, duel: CHAMPIONNAT.scoreDuel(ch).total, deux: ch.ecuries.every(e => ch.pilotes.filter(p => p.ecurie === e.id).length === 2),
   sauve: SAUVEGARDE.championnat().saison, contrats: ch.contrats, gagne: document.getElementById("championnatGagne").textContent, pilotesLi: document.querySelectorAll("#championnatPilotes li").length, zero: ch.pilotes.every(p => p.stats.points === 0) }; }'''
 def pas_de_defilement(d): return d[0] <= d[1] + 2 and d[2] <= d[3] + 2
+# la cérémonie du champion (tour 28c) : l'écran, le podium 3D (le champion seul en haut), les confettis (un seul appel de dessin), Poki arrêté
+CEREMONIE_ETAT = '''() => { const ch = JEU.championnat, $ = id => document.getElementById(id), b = SAISONS.bilan(ch), c = PODIUM3D.confettis;
+  SCENE3D.dessiner(); const avec = SCENE3D.appelsDessin, vus = c && c.visible;
+  if (c) { c.visible = false; SCENE3D.dessiner(); c.visible = vus; }
+  const sans = SCENE3D.appelsDessin; SCENE3D.dessiner();
+  return { ecran: JEU.ecran, titre: $("ceremonieTitre").textContent, nom: $("ceremonieNom").textContent, detail: $("ceremonieDetail").textContent, court: $("ceremonie").classList.contains("court"),
+    champion: INTERFACE.nomPilote(ch.pilotes[b.champion]), humain: !!ch.pilotes[b.champion].humain, visibles: JEU.modeles.filter(m => m.groupe.visible).length, championVisible: !!(JEU.modeles[b.champion] && JEU.modeles[b.champion].groupe.visible),
+    hauteur: JEU.modeles[b.champion] ? JEU.modeles[b.champion].groupe.position.y : null, marche: REGLAGES.PODIUM_HAUTEURS[0], confettis: !!vus, n: c ? c.geometry.attributes.position.count : 0, appels: [avec, sans],
+    y0: c ? c.geometry.attributes.position.array[1] : null, enJeu: SDK.enJeu, vue: ch.saisons[ch.saisons.length - 1].ceremonie, defile: [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth] }; }'''
+def ceremonie_ecran(pg, titre, toi, capture):
+    e = pg.evaluate(CEREMONIE_ETAT)
+    t(f'{titre} : la cérémonie de fin de saison, avant le classement final : le champion seul sur la plus haute marche du podium 3D, Poki arrêté (gameplayStop), sans défilement',
+      e['ecran'] == 'ceremonie' and e['humain'] == toi and e['visibles'] == 1 and e['championVisible'] and abs(e['hauteur'] - e['marche']) < 1e-6 and not e['enJeu'] and e['vue'] == 1 and pas_de_defilement(e['defile']), str(e))
+    if toi:
+        t(f'{titre} : le joueur champion : « CHAMPION DU MONDE », son nom, ses points ; {e["n"]} confettis faits par le code en UN seul appel de dessin ({e["appels"][0]} appels avec, {e["appels"][1]} sans)',
+          e['titre'] == 'CHAMPION DU MONDE' and e['nom'] == e['champion'] and 'points' in e['detail'] and not e['court'] and e['confettis'] and e['n'] == pg.evaluate('() => REGLAGES.CEREMONIE_CONFETTIS') and e['appels'][0] - e['appels'][1] == 1, str(e))
+        pg.wait_for_timeout(400)
+        t(f'{titre} : les confettis tombent', pg.evaluate('() => PODIUM3D.confettis.geometry.attributes.position.array[1]') != e['y0'])
+    else:
+        t(f'{titre} : un rival champion : l’écran court « {e["champion"]} est champion du monde », sans confettis, la place du joueur', e['court'] and e['titre'] == e['champion'] + ' est champion du monde' and e['nom'] == '' and not e['confettis'] and 'tu finis P' in e['detail'] and e['appels'][0] == e['appels'][1], str(e))
+    pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, capture))
+    pg.click('#boutonCeremonieSuite')
+
 def fin_saison(pg, titre, l):
     t(f'{titre} : ?gp=12 : un championnat neuf arrive au Grand Prix 12 / 12, les 11 premiers joués d’avance (résultats, album, argent)',
       pg.evaluate('() => JEU.ecran === "championnat" && JEU.championnat.prochain === 11 && JEU.championnat.resultats.length === 11 && JEU.championnat.album.length === 11 && JEU.championnat.argent.solde > 0 && document.getElementById("championnatTitre").textContent.startsWith("Grand Prix 12 / 12")'),
@@ -1150,6 +1176,16 @@ def fin_saison(pg, titre, l):
     if l != 1280:
         # en petit : le 12e Grand Prix fabriqué en mémoire, puis les écrans ; à la fin, la retraite anticipée
         pg.evaluate('() => { SAISONS.avancer(JEU.championnat, 1); montrerFinSaison(); }')
+        # la cérémonie : d'abord l'écran court d'un rival champion (le robot n'a pas joué : un rival a le titre) ...
+        rival = pg.evaluate('() => !JEU.championnat.pilotes[SAISONS.bilan(JEU.championnat).champion].humain')
+        t(f'{titre} : le 12e fabriqué : un rival est champion', rival)
+        ceremonie_ecran(pg, titre, False, 'ceremonie-rival-960.png')
+        # ... puis la vraie cérémonie, le joueur fabriqué champion (une copie du bilan : le championnat ne change pas)
+        pg.evaluate('() => { const b = SAISONS.bilan(JEU.championnat); b.champion = 19; b.pilotes = [{ k: 19, points: 300 }].concat(b.pilotes.filter(x => x.k !== 19)); montrerCeremonie(b); }')
+        e = pg.evaluate(CEREMONIE_ETAT)
+        t(f'{titre} : la cérémonie du joueur champion tient en 960×600 : « CHAMPION DU MONDE », son nom, les confettis (un appel de dessin)', e['ecran'] == 'ceremonie' and e['titre'] == 'CHAMPION DU MONDE' and e['nom'] == pg.evaluate('() => INTERFACE.nomPilote(JEU.championnat.pilotes[19])') and e['confettis'] and e['appels'][0] - e['appels'][1] == 1 and pas_de_defilement(e['defile']), str(e))
+        pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'ceremonie-960.png'))
+        pg.click('#boutonCeremonieSuite')
         e = pg.evaluate(SAISON_ETAT)
         t(f'{titre} : le classement final de la saison tient en 960×600 (20 lignes, le champion en tête, le joueur marqué)', e['ecran'] == 'saison' and e['lignes'] == 20 and e['moi'] == 1 and e['premier'] == e['attenduChampion'] and pas_de_defilement(e['defile']), str(e))
         pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'champion-960.png'))
@@ -1167,6 +1203,8 @@ def fin_saison(pg, titre, l):
         t(f'{titre} : le second clic : « Carrière terminée », le bilan (1 saison), sauvegardé', r['ecran'] == 'retraite' and r['retraite'] and r['retraite']['raison'] == 'choix' and r['sauve'] == 'choix' and r['bilan'].startswith('1 saison') and r['raison'] != '' and pas_de_defilement(r['defile']), str(r))
         pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'retraite-960.png'))
         return
+    # le joueur champion (fabriqué : 400 points de plus avant le 12e) : la une spéciale « CHAMPION ! » puis la cérémonie
+    pg.evaluate('() => { JEU.championnat.pilotes[19].stats.points += 400; }')
     pg.click('#boutonCourseSuivante')
     passer_qualif(pg, titre)
     t(f'{titre} : le 12e Grand Prix part (circuit du calendrier, 20 voitures)', attendre(pg, '() => JEU.ecran === "course" && JEU.plateau && JEU.plateau.pilotes.length === 20', None, 10000))
@@ -1185,7 +1223,10 @@ def fin_saison(pg, titre, l):
       return { cle: u.b[0][0], vraie: u.b[0][2].vraie, texte: li ? li.textContent : null, attendu: r.breves[0], intentions: JEU.championnat.transferts.liste.length }; }''')
     t(f'{titre} : la une du 12e porte une rumeur de transfert en première brève ({"vraie" if ru["vraie"] else "fausse"}), avec un pilote et une écurie nommés', ru['cle'] == 'breveRumeur' and ru['texte'] == ru['attendu'] and '{' not in (ru['texte'] or '{') and ru['intentions'] >= 1, str(ru))
     pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'une-rumeur.png'))
+    sp = pg.evaluate('() => ({ classe: document.getElementById("unePage").classList.contains("speciale"), titre: document.getElementById("uneTitre").textContent, f: JEU.championnat.album[JEU.championnat.album.length - 1].f })')
+    t(f'{titre} : le joueur champion : la une du 12e est la une spéciale « CHAMPION ! »', sp['classe'] and sp['f'] == 'titreChampion' and sp['titre'].startswith('CHAMPION !'), str(sp))
     pg.click('#uneTitre')
+    ceremonie_ecran(pg, titre, True, 'ceremonie.png')
     e = pg.evaluate(SAISON_ETAT)
     t(f'{titre} : après la une, le classement final de la saison : « La saison 1 est finie », le champion (« CHAMPION ! » si c’est le joueur), l’écurie championne, 20 lignes, la saison close et sauvegardée, sans défilement',
       e['ecran'] == 'saison' and e['titre'] == 'La saison 1 est finie' and (e['champion'] == 'CHAMPION !' if e['humain'] else e['champion'] == 'Champion : ' + e['attenduChampion']) and e['ecurie'].startswith('Écurie championne : ')
@@ -1203,7 +1244,7 @@ def fin_saison(pg, titre, l):
     pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'contrats.png'))
     # signer : une autre écurie si on en propose une, sinon la sienne
     choix = next((x for x in c['offres'] if x != c['actuelle']), c['actuelle'])
-    avant = pg.evaluate('() => ({ garage: JSON.stringify(JEU.championnat.garage), solde: JEU.championnat.argent.solde, coequipier: CHAMPIONNAT.coequipierDe(JEU.championnat).id })')
+    avant = pg.evaluate('() => ({ garage: JSON.stringify(JEU.championnat.garage), solde: JEU.championnat.argent.solde, coequipier: CHAMPIONNAT.coequipierDe(JEU.championnat).id, transferts: JEU.championnat.transferts.liste })')
     pg.click(f'#contratsListe li[data-ecurie="{choix}"] button')
     t(f'{titre} : « Signer » mène d’abord au choix du sponsor de la saison 2 (2 à 4 offres)', attendre(pg, '() => JEU.ecran === "sponsors" && JEU.championnat.saison === 2 && document.querySelectorAll("#sponsorsListe > li").length >= 2 && SPONSORS.aChoisir(JEU.championnat)'), str(pg.evaluate('() => [JEU.ecran, JEU.championnat.saison]')))
     montant = pg.evaluate('() => SPONSORS.offres(JEU.championnat)[0].montant')
@@ -1214,7 +1255,8 @@ def fin_saison(pg, titre, l):
       s2['ecran'] == 'championnat' and s2['saison'] == 2 and s2['prochain'] == 0 and s2['ecurie'] == choix and s2['titre'].startswith('Grand Prix 1 / 12') and s2['garage'] == avant['garage'] and s2['solde'] == avant['solde']
       and s2['deux'] and s2['duel'] == [0, 0] and s2['sauve'] == 2 and s2['contrats'] == [[2, choix]] and s2['gagne'] == '' and s2['pilotesLi'] == 20 and s2['zero'], str(s2))
     if choix != c['actuelle']:
-        t(f'{titre} : le coéquipier a changé avec l’écurie', s2['coequipier'] != avant['coequipier'] and pg.evaluate(f'() => JEU.championnat.pilotes[CHAMPIONNAT.coequipierDe(JEU.championnat).id].ecurie === {choix}'), str([avant['coequipier'], s2['coequipier']]))
+        # (sauf si l'ancien coéquipier avait lui-même un transfert annoncé vers cette écurie : saisons.js, les intentions de la saison)
+        t(f'{titre} : le coéquipier a changé avec l’écurie (ou l’ancien l’y a suivi par un transfert annoncé)', (s2['coequipier'] != avant['coequipier'] or any(avant['coequipier'] in x for x in avant['transferts'])) and pg.evaluate(f'() => JEU.championnat.pilotes[CHAMPIONNAT.coequipierDe(JEU.championnat).id].ecurie === {choix}'), str([avant['coequipier'], s2['coequipier']]))
     with pg.expect_navigation(): pg.click('#boutonCourseSuivante')
     t(f'{titre} : « Course suivante » recharge la page sur le Grand Prix 1 de la saison 2', attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat" && JEU.championnat.saison === 2 && JEU.championnat.prochain === 0', None, 60000), str(pg.evaluate('() => [JEU.ecran, JEU.championnat && JEU.championnat.saison]')))
 

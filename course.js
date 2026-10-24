@@ -97,6 +97,8 @@ function tempsTotal(c) {
 // à chaque pas de physique, après pasVoiture
 function majCourse(c, v, dt) {
   const R = REGLAGES, L = c.circuit.longueur;
+  // la voie des stands (étape 7, physique.js) : la pénalité de vitesse compte comme les autres pénalités de temps
+  if (v.penalitesStands > (c.penalitesStands || 0)) { c.penalites += v.penalitesStands - (c.penalitesStands || 0); c.penalitesStands = v.penalitesStands; }
   if (c.etat === 'compte') {
     // le faux départ : rouler avant l'extinction des feux, une seule pénalité
     if (c.surveille && !c.fauxDepart && c.compte > 0 && Math.abs(v.u) > R.FAUX_DEPART_VITESSE) {

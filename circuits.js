@@ -110,14 +110,63 @@ function construireCircuit(def, pas = REGLAGES.PAS_ECHANTILLON) {
     courbure[i] = angle / ds;
   }
 
-  return {
+  const morceaux = decrit ? decrit.morceaux.map(m => Object.assign({}, m, { debut: m.debut * longueur / decrit.longueur, fin: m.fin * longueur / decrit.longueur })) : [];
+  const circuit = {
     nom: def.nom, largeur: def.largeur, nb, x, z, s, tx, tz, nx, nz, courbure, longueur,
     pas: longueur / nb,
     secteurs: def.secteurs.map(f => f * longueur),   // en mètres depuis la ligne
     // les morceaux, ramenés à la longueur de la spline ; fermeture : l'écart de la description par morceaux (m)
-    morceaux: decrit ? decrit.morceaux.map(m => Object.assign({}, m, { debut: m.debut * longueur / decrit.longueur, fin: m.fin * longueur / decrit.longueur })) : [],
-    fermeture: decrit ? decrit.fermeture : 0,
+    morceaux, fermeture: decrit ? decrit.fermeture : 0,
+    stands: null,
   };
+  circuit.stands = def.stands === null ? null : standsDepuisMorceaux(circuit, def.stands);
+  return circuit;
+}
+
+// la voie des stands (étape 7) : { entree, sortie, cote, dMur, dExt, arret, longueur } en mètres le long de la piste, ou null.
+// Parallèle à la ligne droite de départ, du côté du premier virage (la trajectoire est de l'autre côté) : elle commence dans
+// la dernière ligne droite (STAND_ENTREE_MAX m avant la ligne au plus) ou, si cette droite est trop courte, STAND_APRES_LIGNE m
+// après la ligne ; elle rejoint la piste dans la première ligne droite (STAND_SORTIE_MAX m après la ligne au plus), en
+// gardant STAND_MARGE_DROITE m avant la fin de la droite. donnees : { entree, sortie, cote } pour imposer les siens.
+function standsDepuisMorceaux(circuit, donnees) {
+  const R = REGLAGES, L = circuit.longueur, m = circuit.morceaux;
+  if (!m.length && !donnees) return null;
+  // la première ligne droite (les droites qui se suivent au début) et la dernière (celles de la fin)
+  let premiere = 0, i = 0;
+  while (i < m.length && m[i].type === 'droite') { premiere = m[i].fin; i++; }
+  let derniere = 0, j = m.length - 1;
+  while (j >= 0 && m[j].type === 'droite') { derniere += m[j].fin - m[j].debut; j--; }
+  const virage = m.find(x => x.type !== 'droite');
+  const cote = donnees && donnees.cote ? donnees.cote : virage ? virage.angles[0] || 1 : 1;
+  const entree = donnees && donnees.entree !== undefined ? donnees.entree
+    : derniere - R.STAND_MARGE_DROITE >= R.STAND_LONGUEUR_MIN / 2 ? L - Math.min(R.STAND_ENTREE_MAX, derniere - R.STAND_MARGE_DROITE) : R.STAND_APRES_LIGNE;
+  const sortie = donnees && donnees.sortie !== undefined ? donnees.sortie : Math.min(R.STAND_SORTIE_MAX, premiere - R.STAND_MARGE_DROITE);
+  const longueur = ((sortie - entree) % L + L) % L;
+  if (longueur < R.STAND_LONGUEUR_MIN || sortie <= 0) return null;
+  const dMur = circuit.largeur / 2 + R.STAND_MUR, dExt = dMur + R.STAND_LARGEUR;
+  // la zone d'arrêt : autour de la ligne si la voie la traverse, sinon au milieu de la voie
+  const traverse = entree > sortie, arret = traverse ? 0 : ((entree + longueur / 2) % L + L) % L;
+  return { entree, sortie, cote, dMur, dExt, arret, longueur, traverse };
+}
+
+// où est (s, d) par rapport à la voie des stands : null hors de sa longueur ; sinon { cote, dMur, dExt, rampe (l'entrée ou
+// la sortie, ouvertes sur la piste), voie (du côté de la voie, au-delà du muret), dansVoie (sur la voie, pas dans l'herbe
+// derrière), arret (dans la zone d'arrêt) }
+function zoneStands(circuit, s, d) {
+  const st = circuit.stands;
+  if (!st) return null;
+  const R = REGLAGES, L = circuit.longueur, depuis = ((s - st.entree) % L + L) % L;
+  if (depuis > st.longueur) return null;
+  const rampe = depuis < R.STAND_RAMPE || depuis > st.longueur - R.STAND_RAMPE;
+  const dc = d * st.cote, voie = dc > st.dMur, dansVoie = voie && dc < st.dExt + R.MARGE_HERBE;
+  const ecartArret = ecartLeLongCircuit(circuit, s - st.arret);
+  return { cote: st.cote, dMur: st.dMur, dExt: st.dExt, rampe, voie, dansVoie, arret: dansVoie && Math.abs(ecartArret) <= R.STAND_ARRET_DEMI, depuis };
+}
+
+// un écart le long de la piste, ramené entre −L/2 et L/2 (la même chose que ecartLeLong d'ia.js, ici pour ne pas dépendre de lui)
+function ecartLeLongCircuit(circuit, ds) {
+  const L = circuit.longueur;
+  return ((ds + L / 2) % L + L) % L - L / 2;
 }
 
 function secteurDe(circuit, s) {
@@ -172,7 +221,9 @@ function positionSurPiste(circuit, px, pz, indiceDepart) {
     }
   }
   const s = sMeilleur % circuit.longueur;
-  return { s, d: dMeilleur, surPiste: Math.abs(dMeilleur) <= circuit.largeur / 2, secteur: secteurDe(circuit, s), indice: i, nx: nxM, nz: nzM };
+  // stands : sur la voie des stands (étape 7), au-delà du muret, dans sa longueur
+  const zs = circuit.stands ? zoneStands(circuit, s, dMeilleur) : null;
+  return { s, d: dMeilleur, surPiste: Math.abs(dMeilleur) <= circuit.largeur / 2, secteur: secteurDe(circuit, s), indice: i, nx: nxM, nz: nzM, stands: !!(zs && zs.dansVoie) };
 }
 
 const CIRCUIT_TEST = construireCircuit(CIRCUITS.test);
