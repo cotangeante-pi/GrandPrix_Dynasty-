@@ -97,6 +97,11 @@ try:
                 pg.click('#boutonJouer')
                 t(f'{titre} : « ▶ Jouer » lance la course de découverte (depuis le zip)', bool(pg.wait_for_function('() => JEU.ecran === "course" && JEU.decouverte && JEU.course', timeout=120000)))
                 t(f'{titre} : le premier geste crée le son', pg.evaluate('() => SON.actif'))
+                # l'onglet caché : le son est coupé (l'AudioContext suspendu), puis il revient
+                pg.evaluate('() => { Object.defineProperty(document, "hidden", { configurable: true, get: () => true }); document.dispatchEvent(new Event("visibilitychange")); }')
+                coupe = pg.wait_for_function('() => SON.etatContexte === "suspended"', timeout=5000)
+                pg.evaluate('() => { Object.defineProperty(document, "hidden", { configurable: true, get: () => false }); document.dispatchEvent(new Event("visibilitychange")); }')
+                t(f'{titre} : l’onglet caché coupe le son (AudioContext suspendu), revenu il le rend', bool(coupe) and bool(pg.wait_for_function('() => SON.etatContexte === "running"', timeout=5000)), pg.evaluate('() => SON.etatContexte'))
                 pg.wait_for_function('() => JEU.course.feux && JEU.course.etat !== "compte"', timeout=180000)
                 pg.wait_for_timeout(500)
                 appels = pg.evaluate('() => APPELS_SDK.slice()')
@@ -107,6 +112,49 @@ try:
                 t(f'{titre} : la course ne fait rien défiler', pas_de_defilement(pg.evaluate(DEFILE)), str(pg.evaluate(DEFILE)))
                 t(f'{titre} : console toujours vide après le départ', not console, ' | '.join(console)[:400])
                 ctx.close()
+            # un parcours de championnat depuis le zip (1280×720, le robot, 1 tour) : la course → le podium → les résultats → l'interview →
+            # la une → le paddock → « Course suivante » : la pause pub vient là, ENTRE deux Grands Prix (le faux commercialBreak ne finit
+            # jamais : on regarde l'état pendant la pub) ; jamais deux gameplayStart ou deux gameplayStop de suite
+            titre = 'paquet championnat 1280×720'
+            ctx = b.new_context(viewport={'width': 1280, 'height': 720})
+            pg = ctx.new_page(); console = []
+            pg.add_init_script(FAUX_SDK.replace("commercialBreak() { APPELS_SDK.push('commercialBreak'); return Promise.resolve(); }", "commercialBreak() { APPELS_SDK.push('commercialBreak'); return new Promise(() => {}); }"))
+            pg.on('console', lambda m: console.append(m.type + ': ' + m.text) if m.type in ('error', 'warning') and not LECTURE_PIXELS.fullmatch(m.text) else None)
+            pg.on('pageerror', lambda e: console.append('PAGEERROR ' + str(e)))
+            pg.goto('file://' + dossier + '/index.html?championnat=1&tours=1&robot=1')
+            pg.wait_for_function('() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', timeout=60000)
+            pg.click('#boutonCourseSuivante')
+            pg.wait_for_function('() => JEU.ecran === "qualif" && JEU.qualif && JEU.qualif.etat === "choix"', timeout=10000)
+            pg.click('#boutonQualifPasser')
+            pg.wait_for_function('() => JEU.qualif && JEU.qualif.etat === "resultat"', timeout=240000)
+            pg.click('#boutonQualifCourse')
+            pg.wait_for_function('() => JEU.ecran === "course" && JEU.plateau.carte !== null', timeout=60000)
+            pendant = None
+            for _ in range(120):
+                pg.evaluate('() => BOUCLE.simuler(5)')
+                if pendant is None and pg.evaluate('() => JEU.ecran === "course" && JEU.course.etat === "course"'): pendant = pg.evaluate('() => APPELS_SDK.includes("commercialBreak")')
+                if pg.evaluate('() => JEU.ecran') == 'podium': break
+                pg.wait_for_timeout(30)
+            t(f'{titre} : la course va jusqu’au podium, sans pause pub pendant la course', pg.evaluate('() => JEU.ecran === "podium"') and pendant is False, str(pg.evaluate('() => [JEU.ecran, APPELS_SDK]')))
+            t(f'{titre} : le podium ne fait rien défiler', pas_de_defilement(pg.evaluate(DEFILE)), str(pg.evaluate(DEFILE)))
+            pg.click('#boutonResultats'); pg.wait_for_function('() => JEU.ecran === "resultats"', timeout=5000)
+            t(f'{titre} : les résultats ne font rien défiler', pas_de_defilement(pg.evaluate(DEFILE)), str(pg.evaluate(DEFILE)))
+            pg.click('#boutonChangerResultats'); pg.wait_for_function('() => JEU.ecran === "interview"', timeout=10000)
+            t(f'{titre} : l’interview ne fait rien défiler', pas_de_defilement(pg.evaluate(DEFILE)), str(pg.evaluate(DEFILE)))
+            pg.click('#boutonPasCommentaire'); pg.wait_for_function('() => JEU.ecran === "une"', timeout=10000)
+            t(f'{titre} : la une ne fait rien défiler', pas_de_defilement(pg.evaluate(DEFILE)), str(pg.evaluate(DEFILE)))
+            avant = pg.evaluate('() => APPELS_SDK.slice()')
+            t(f'{titre} : jusqu’à la une, aucune pause pub', 'commercialBreak' not in avant, str(avant))
+            pg.click('#uneTitre'); pg.wait_for_function('() => JEU.ecran === "championnat"', timeout=10000)
+            pg.click('#boutonCourseSuivante')
+            pg.wait_for_function('() => APPELS_SDK.includes("commercialBreak")', timeout=10000)
+            appels = pg.evaluate('() => APPELS_SDK.slice()')
+            jeu = [a for a in appels if a in ('gameplayStart', 'gameplayStop')]
+            double = [i for i in range(1, len(jeu)) if jeu[i] == jeu[i - 1]]
+            t(f'{titre} : « Course suivante » après la une : la pause pub entre deux Grands Prix (commercialBreak une fois), gameplayStop avant, le son coupé pendant la pub, jamais deux fois de suite le même ({" → ".join(appels)})',
+              appels.count('commercialBreak') == 1 and appels.count('gameLoadingFinished') == 1 and 'gameplayStart' in jeu and jeu[-1] == 'gameplayStop' and not double and pg.evaluate('() => SDK.pubEnCours && SON.muet'), str(appels))
+            t(f'{titre} : console vide sur tout le parcours', not console, ' | '.join(console)[:400])
+            ctx.close()
         finally:
             b.close()
 finally:

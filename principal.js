@@ -726,8 +726,10 @@ function montrerChampionnat(gagne) {
 
 // « Course suivante » : la course de ce Grand Prix ; s'il est déjà joué, la page se recharge sur le suivant
 function courseSuivante() {
-  if (JEU.ecran !== 'championnat') return;
-  if (JEU.grandPrixFini) { location.reload(); return; }
+  if (JEU.ecran !== 'championnat' || SDK.pubEnCours) return;
+  // le Grand Prix d'avant est fini (après l'interview et la une) : la pause pub Poki vient ici, ENTRE deux Grands Prix (commercialBreak,
+  // jamais pendant une course), puis la page se recharge sur le suivant (Codeur 3, étape 15)
+  if (JEU.grandPrixFini) { SDK.pubEntreCourses(() => location.reload(), couperSonPub); return; }
   lancerCourse(Number(PARAMETRES.get('tours')) || REGLAGES.CHAMPIONNAT_TOURS);
 }
 
