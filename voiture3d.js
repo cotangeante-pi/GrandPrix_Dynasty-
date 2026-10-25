@@ -275,5 +275,58 @@ const VOITURE3D = (function () {
     }
   }
 
-  return { creer, creerFantome, placer, majHalo, triangles, appels, preparerCasques, majCasque, apercuCasque, tournerApercu, get atlas() { return atlas; } };
+  // le volant en vue cockpit (CLAUDE.md « Le casque du pilote ») : une jante, un moyeu, un petit écran (rapport et vitesse, dessinés
+  // dans un canvas) et les deux gants aux couleurs et au motif du casque du joueur ; matériaux sans lumière, dessinés par-dessus tout
+  // (le volant est accroché à la caméra, devant l'œil : il ne rentre jamais dans la carrosserie) ; 5 appels de dessin
+  function creerVolant(casque) {
+    const R = REGLAGES, r = R.VOLANT_RAYON, groupe = new THREE.Group(), volant = new THREE.Group();
+    const sur = m => { m.depthTest = false; m.depthWrite = false; return m; };
+    const mesh = (g, m) => { const o = new THREE.Mesh(g, m); o.renderOrder = 20; o.frustumCulled = false; return o; };
+    const noir = sur(new THREE.MeshBasicMaterial({ color: R.VOLANT_COULEUR }));
+    const jante = mesh(new THREE.TorusGeometry(r, r * 0.11, 8, 32), noir);
+    const moyeu = mesh(new THREE.BoxGeometry(r * 1.5, r * 0.62, r * 0.12), noir);
+    // le petit écran : le rapport et la vitesse (boite.js), redessinés quand ils changent
+    const toile = document.createElement('canvas'); toile.width = 128; toile.height = 64;
+    const texte2d = toile.getContext('2d'), tex = new THREE.CanvasTexture(toile);
+    if (THREE.SRGBColorSpace !== undefined) tex.colorSpace = THREE.SRGBColorSpace;
+    const ecran = mesh(new THREE.PlaneGeometry(r * 1.2, r * 0.5), sur(new THREE.MeshBasicMaterial({ map: tex })));
+    ecran.position.z = r * 0.07;
+    // les gants : deux blocs sur la jante, à 3 h et 9 h, une seule géométrie, la texture du casque (son motif et ses couleurs)
+    const tg = document.createElement('canvas'); tg.width = tg.height = 64;
+    CASQUE.dessiner(tg.getContext('2d'), 0, 0, 64, casque);
+    const texGant = new THREE.CanvasTexture(tg);
+    if (THREE.SRGBColorSpace !== undefined) texGant.colorSpace = THREE.SRGBColorSpace;
+    const gGant = new THREE.BoxGeometry(r * 0.42, r * 0.62, r * 0.3), mGant = sur(new THREE.MeshBasicMaterial({ map: texGant }));
+    const gauche = mesh(gGant, mGant), droit = mesh(gGant, mGant);
+    gauche.position.set(-r, -r * 0.08, r * 0.05); droit.position.set(r, -r * 0.08, r * 0.05);
+    volant.add(jante, moyeu, ecran, gauche, droit);
+    groupe.add(volant);
+    let dernier = '';
+    function majEcran(rapport, kmh) {
+      const k = rapport + ':' + kmh;
+      if (k === dernier) return;
+      dernier = k;
+      texte2d.fillStyle = '#' + R.VOLANT_ECRAN.toString(16).padStart(6, '0'); texte2d.fillRect(0, 0, 128, 64);
+      texte2d.fillStyle = '#7dff9a'; texte2d.textBaseline = 'middle';
+      texte2d.font = 'bold 40px monospace'; texte2d.textAlign = 'left'; texte2d.fillText(String(rapport), 10, 34);
+      texte2d.font = 'bold 30px monospace'; texte2d.textAlign = 'right'; texte2d.fillText(String(kmh), 120, 34);
+      tex.needsUpdate = true;
+    }
+    function majGants(c) {
+      const ctx = tg.getContext('2d'); ctx.clearRect(0, 0, 64, 64); CASQUE.dessiner(ctx, 0, 0, 64, c); texGant.needsUpdate = true;
+    }
+    return { groupe, volant, majEcran, majGants, get texte() { return dernier; } };
+  }
+
+  // la pose du volant devant la caméra (champ vertical fov, degrés) et son angle ; calcul pur : { y, z, angle, haut } (haut : le plus
+  // haut point du volant, en part de la demi-hauteur de l'image, < 0 = sous le milieu) ; braquage > 0 (à droite) → angle < 0 (sens horaire)
+  function poseVolant(fov, braquage) {
+    const R = REGLAGES, d = R.VOLANT_DISTANCE, r = R.VOLANT_RAYON, bas = d * Math.tan(fov * Math.PI / 360);
+    let y = -bas + r * R.VOLANT_DEPASSE;
+    const plafond = -bas * R.VOLANT_MARGE_HAUT - r * 1.2;   // (la jante tourne : son plus haut point est à r au plus, les gants un peu plus)
+    if (y > plafond) y = plafond;
+    return { y, z: -d, angle: -braquage * R.VOLANT_FACTEUR, haut: (y + r * 1.2) / bas };
+  }
+
+  return { creerVolant, poseVolant, creer, creerFantome, placer, majHalo, triangles, appels, preparerCasques, majCasque, apercuCasque, tournerApercu, get atlas() { return atlas; } };
 })();
