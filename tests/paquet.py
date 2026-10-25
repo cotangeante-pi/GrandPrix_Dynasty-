@@ -27,12 +27,21 @@ def fichiers_du_jeu():
     externes = [r for r in refs if re.match(r'^(https?:|//)', r)]
     return ['index.html'] + sorted(set(locaux)), externes
 
+# le script du SDK Poki (CLAUDE.md « Règles Poki ») : ajouté SEULEMENT dans l'index.html du zip, juste avant sdk.js ; le dépôt reste
+# sans réseau (les tests ouvrent la page en file://). Sans réseau, le script échoue et sdk.js fait comme si Poki n'était pas là
+SDK_POKI = '<script src="https://game-cdn.poki.com/scripts/v2/poki-sdk.js"></script>'
+def index_du_zip():
+    page = open(os.path.join(RACINE, 'index.html'), encoding='utf-8').read()
+    assert page.count('<script src="sdk.js"></script>') == 1 and 'poki-sdk.js' not in page
+    return page.replace('<script src="sdk.js"></script>', SDK_POKI + '\n<script src="sdk.js"></script>')
+
 def fabriquer():
     liste, externes = fichiers_du_jeu()
     os.makedirs(DIST, exist_ok=True)
     if os.path.exists(ZIP): os.remove(ZIP)
     with zipfile.ZipFile(ZIP, 'w', zipfile.ZIP_DEFLATED) as z:
-        for f in liste: z.write(os.path.join(RACINE, f), f)
+        z.writestr('index.html', index_du_zip())
+        for f in liste[1:]: z.write(os.path.join(RACINE, f), f)
     return liste, externes
 
 liste, externes = fabriquer()
@@ -41,7 +50,9 @@ t(f'le paquet : {len(liste)} fichiers, {total / 1024:.0f} Ko non compressés, zi
 t('index.html est à la racine du zip, et chaque fichier chargé par la page existe', zipfile.ZipFile(ZIP).namelist()[0] == 'index.html' and all(os.path.isfile(os.path.join(RACINE, f)) for f in liste))
 interdits = [f for f in liste if f.startswith(('tests/', 'rapports/', '.github', 'dist/')) or f.endswith('.md') or '/captures/' in f]
 t('aucun test, rapport, .md, .github ni capture dans le paquet', not interdits, interdits)
-t('aucun fichier externe chargé par la page (le SDK Poki excepté, s’il y est)', all('poki' in e for e in externes), externes)
+t('aucun fichier externe chargé par la page du dépôt', not externes, externes)
+iz = zipfile.ZipFile(ZIP).read('index.html').decode('utf-8')
+t('l’index.html du zip a le script du SDK Poki, une seule fois, juste avant sdk.js (Règles Poki)', iz.count('poki-sdk.js') == 1 and iz.index(SDK_POKI) < iz.index('<script src="sdk.js">') and iz.index('<script src="sdk.js">') - iz.index(SDK_POKI) <= len(SDK_POKI) + 2, iz.count('poki-sdk.js'))
 L.append('  (fichiers : ' + ', '.join(f'{f} {os.path.getsize(os.path.join(RACINE, f)) / 1024:.0f} Ko' for f in liste) + ')')
 if '--zip' in sys.argv:
     print(f'RESULTAT {ok}/{ok + ko}'); print('\n'.join(L)); sys.exit(0 if ko == 0 else 1)
@@ -68,11 +79,12 @@ try:
                 ctx = b.new_context(viewport={'width': l, 'height': h})
                 pg = ctx.new_page(); console = []
                 pg.add_init_script(FAUX_SDK)
+                pg.route('**/poki-sdk.js', lambda r: r.fulfill(status=200, content_type='text/javascript', body=''))   # (le vrai SDK ne vient pas : le faux SDK reste)
                 pg.on('console', lambda m: console.append(m.type + ': ' + m.text) if m.type in ('error', 'warning') and not LECTURE_PIXELS.fullmatch(m.text) else None)
                 pg.on('pageerror', lambda e: console.append('PAGEERROR ' + str(e)))
                 pg.on('requestfailed', lambda r: console.append('FICHIER MANQUANT ' + r.url))
                 demandes = []
-                pg.on('request', lambda r: demandes.append(r.url))
+                pg.on('request', lambda r: demandes.append(r.url) if 'poki-sdk.js' not in r.url else None)
                 pg.goto('file://' + dossier + '/index.html')
                 pg.wait_for_function('() => typeof JEU !== "undefined" && JEU.ecran === "titre"', timeout=60000)
                 pg.wait_for_timeout(800)
@@ -118,6 +130,7 @@ try:
             titre = 'paquet championnat 1280×720'
             ctx = b.new_context(viewport={'width': 1280, 'height': 720})
             pg = ctx.new_page(); console = []
+            pg.route('**/poki-sdk.js', lambda r: r.fulfill(status=200, content_type='text/javascript', body=''))
             pg.add_init_script(FAUX_SDK.replace("commercialBreak() { APPELS_SDK.push('commercialBreak'); return Promise.resolve(); }", "commercialBreak() { APPELS_SDK.push('commercialBreak'); return new Promise(() => {}); }"))
             pg.on('console', lambda m: console.append(m.type + ': ' + m.text) if m.type in ('error', 'warning') and not LECTURE_PIXELS.fullmatch(m.text) else None)
             pg.on('pageerror', lambda e: console.append('PAGEERROR ' + str(e)))
@@ -154,6 +167,23 @@ try:
             t(f'{titre} : « Course suivante » après la une : la pause pub entre deux Grands Prix (commercialBreak une fois), gameplayStop avant, le son coupé pendant la pub, jamais deux fois de suite le même ({" → ".join(appels)})',
               appels.count('commercialBreak') == 1 and appels.count('gameLoadingFinished') == 1 and 'gameplayStart' in jeu and jeu[-1] == 'gameplayStop' and not double and pg.evaluate('() => SDK.pubEnCours && SON.muet'), str(appels))
             t(f'{titre} : console vide sur tout le parcours', not console, ' | '.join(console)[:400])
+            ctx.close()
+            # SANS réseau : le script du SDK Poki échoue (requête refusée) ; le jeu reste jouable, sans SDK (sdk.js le tolère) ; la seule
+            # trace est l'échec de ce script
+            titre = 'paquet sans réseau 960×600'
+            ctx = b.new_context(viewport={'width': 960, 'height': 600})
+            pg = ctx.new_page(); console = []; echecs = []
+            pg.route('**/poki-sdk.js', lambda r: r.abort())
+            pg.on('console', lambda m: console.append(m.type + ': ' + m.text) if m.type in ('error', 'warning') and not LECTURE_PIXELS.fullmatch(m.text) else None)
+            pg.on('pageerror', lambda e: console.append('PAGEERROR ' + str(e)))
+            pg.on('requestfailed', lambda r: echecs.append(r.url))
+            pg.goto('file://' + dossier + '/index.html')
+            pg.wait_for_function('() => typeof JEU !== "undefined" && JEU.ecran === "titre"', timeout=60000)
+            pg.click('#boutonJouer')
+            jouable = pg.wait_for_function('() => JEU.ecran === "course" && JEU.decouverte && JEU.course', timeout=120000)
+            autres = [c for c in console if 'poki-sdk' not in c and 'ERR_FAILED' not in c and 'Failed to load resource' not in c]
+            t(f'{titre} : le script du SDK Poki échoue, le jeu marche quand même (titre, « Jouer », la découverte), sans SDK, aucune autre erreur',
+              bool(jouable) and pg.evaluate('() => !SDK.present && JEU.sdkPret') and all('poki-sdk.js' in u for u in echecs) and not autres, str([echecs, console]))
             ctx.close()
         finally:
             b.close()

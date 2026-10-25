@@ -44,3 +44,10 @@ Ordres : (1) fait / (2) fait / (3) fait, sauf les points listés dans « Pas fai
 - Le test sur inspector.poki.dev : il reste à faire par le propriétaire, avec le zip `dist/grand-prix-dynasty.zip` (fabriqué par `python3 tests/paquet.py --zip`).
 
 Réévalue.
+
+## Suite : le script du SDK Poki dans le zip (décision du Chef)
+- `paquet.py` ajoute `<script src="https://game-cdn.poki.com/scripts/v2/poki-sdk.js"></script>` dans l'index.html DU ZIP, juste avant `sdk.js`. Le dépôt reste sans réseau.
+- Test : une seule balise, juste avant sdk.js.
+- Dans les tests du zip, le script Poki est servi vide : le faux SDK reste et la console est vide.
+- Une page « sans réseau » où le script échoue : le jeu reste jouable sans SDK (titre, « Jouer », la découverte, `SDK.present` faux), et la seule trace est l'échec de ce script.
+- Commit et passage : voir le message au Chef. Sur le Mac : paquet 42/42.
