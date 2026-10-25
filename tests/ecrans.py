@@ -52,6 +52,8 @@ PAGES = [
     ('index.html?course=1&ia=9&joueur=1&robot=1&circuit=test&test=accelere', 1280, 720, None),   # « passer » finit la course en accéléré : les mêmes places et les mêmes temps qu'en regardant (deux chargements)
     ('index.html?championnat=1&tours=1&robot=1&test=accelere', 1280, 720, None),   # … en championnat : puis l'interview et la une
     ('index.html?test=amis', 1280, 720, None),
+    ('index.html?course=0&camera=cockpit&test=volant', 1280, 720, None),   # le volant en vue cockpit (tour 27b) : jamais dans la moitié haute, il tourne dans le bon sens et revient ; capture cockpit.png
+    ('index.html?course=0&camera=cockpit&test=volant', 960, 600, None),    # … en petit ; capture cockpit-960.png
     ('index.html?test=tournoi', 1280, 720, None),   # le tournoi chrono (tour 26b) : inscription de 3 joueurs → 3 manches (robot ; un abandon) → podium → Rejouer ; captures tournoi.png, tournoi-podium.png
     ('index.html?test=tournoi', 960, 600, None),    # … l'inscription de 8 joueurs tient en 960×600   # le mode 2 joueurs, tour 25b ordre 3 : titre → « Entre amis » → réglages → course à deux (robots) → podium → rivalité → Revanche → Menu ; captures entre-amis.png, deux-reglages.png, rivalite.png
     ('index.html?test=amis', 960, 600, None),    # … en petit : le menu et l'écran avant la course tiennent sans défilement ni débordement   # … la mesure de la 3D dessinée deux fois sur le technique   # le premier lancement : titre → course de découverte (robot) → Bravo → paddock ; captures titre.png, decouverte.png, bravo.png
@@ -933,6 +935,40 @@ def tournoi(pg, titre, l, h):
     attendre(pg, '() => typeof JEU !== "undefined" && JEU.tournoi && JEU.ecran === "tournoiAToi"', None, 30000)
     t(f'{titre} : « Rejouer » : une pub, puis un nouveau tournoi avec les mêmes joueurs et la même formule (manche 1, Léo d’abord)', pg.evaluate(PUBS) == 3 and pg.evaluate('() => JEU.tournoi.manche === 0 && JEU.tournoi.passages.every(p => !p.length) && JEU.tournoi.formule === "tournoi" && JEU.tournoi.joueurs.map(j => j.prenom).join() === "Léo,Sarah,Tom" && TOURNOI.joueurActuel(JEU.tournoi) === 0'), pg.evaluate(J))
 
+# le volant en vue cockpit (CLAUDE.md « Le casque du pilote ») : il est là en vue cockpit (et seulement là), le rapport et la vitesse
+# quittent l'interface HTML pour son écran ; en pixels, la moitié haute de l'image est exactement la même avec ou sans volant, la
+# moitié basse change ; il tourne avec les roues avant (à droite : sens horaire) et revient au centre ; ses appels de dessin mesurés
+def volant(pg, titre, l, h):
+    t(f'{titre} : en vue cockpit, le volant est là, le rapport et la vitesse ne sont plus dans l’interface HTML (une seule fois : sur le volant)',
+      attendre(pg, '() => CAMERA.mode === "cockpit" && JEU.volant && JEU.volant.groupe.visible && document.getElementById("tableau").classList.contains("cache") && JEU.volant.texte === rapportPourVitesse(JEU.joueur.u) + ":" + Math.round(Math.abs(JEU.joueur.u) * 3.6)', None, 20000),
+      str(pg.evaluate('() => [CAMERA.mode, !!JEU.volant, JEU.volant && JEU.volant.texte, document.getElementById("tableau").className]')))
+    attendre(pg, '() => JEU.course && (JEU.course.etat === "attente" || JEU.course.etat === "course")', None, 20000)
+    # en pixels : la même image dessinée avec et sans volant (la boucle arrêtée) ; on compte les pixels qui changent, en haut et en bas
+    PIX = '''(braq) => { BOUCLE.arreter(); JEU.joueur.braquage = braq; majVolant(); const c = SCENE3D.canvas, L = c.width, H = c.height, k = document.createElement('canvas'); k.width = L; k.height = H; const ctx = k.getContext('2d');
+      const lire = () => { SCENE3D.dessiner(); ctx.clearRect(0, 0, L, H); ctx.drawImage(c, 0, 0); return ctx.getImageData(0, 0, L, H).data; };
+      JEU.volant.groupe.visible = true; const a = lire(), appelsAvec = SCENE3D.appelsDessin; JEU.volant.groupe.visible = false; const b = lire(), appelsSans = SCENE3D.appelsDessin; JEU.volant.groupe.visible = true;
+      let haut = 0, bas = 0, plusHaut = H; for (let y = 0; y < H; y++) for (let x = 0; x < L; x++) { const i = (y * L + x) * 4; if (Math.abs(a[i] - b[i]) + Math.abs(a[i + 1] - b[i + 1]) + Math.abs(a[i + 2] - b[i + 2]) > 6) { if (y < H / 2) haut++; else bas++; if (y < plusHaut) plusHaut = y; } }
+      BOUCLE.demarrer(); return { haut, bas, plusHaut, H, appelsAvec, appelsSans }; }'''
+    for braq in (0, 1):
+        px = pg.evaluate(PIX, braq * 0.12)   # (volant au centre, puis tourné : il ne monte pas plus haut)
+        t(f'{titre} : volant {"tourné" if braq else "au centre"} : aucun pixel du volant dans la moitié haute de l’image ({l}×{h}), la moitié basse le montre', px['haut'] == 0 and px['bas'] > 500 and px['plusHaut'] >= px['H'] / 2, str(px))
+    L.append(f"  (le volant en vue cockpit, {l}×{h} : {px['appelsAvec'] - px['appelsSans']} appels de dessin en plus ; son plus haut pixel à {100 * px['plusHaut'] / px['H']:.0f} % de la hauteur)")
+    t(f'{titre} : le volant coûte au plus 5 appels de dessin', 0 < px['appelsAvec'] - px['appelsSans'] <= 5, str(px))
+    if l == 1280:
+        # le sens : à droite (→), les roues braquent à droite et le volant tourne dans le sens horaire (angle < 0) ; lâché, il revient au centre
+        pg.keyboard.down('ArrowUp'); pg.keyboard.down('ArrowRight')
+        droite = attendre(pg, '() => JEU.joueur.braquage > 0.01 && Math.abs(JEU.volant.volant.rotation.z + JEU.joueur.braquage * REGLAGES.VOLANT_FACTEUR) < 1e-9', None, 10000)
+        r1 = pg.evaluate('() => [JEU.joueur.braquage, JEU.volant.volant.rotation.z]')
+        pg.keyboard.up('ArrowRight'); pg.keyboard.down('ArrowLeft')
+        gauche = attendre(pg, '() => JEU.joueur.braquage < -0.01 && JEU.volant.volant.rotation.z > 0', None, 10000)
+        pg.keyboard.up('ArrowLeft')
+        centre = attendre(pg, '() => JEU.joueur.braquage === 0 && JEU.volant.volant.rotation.z === 0', None, 10000)
+        pg.keyboard.up('ArrowUp')
+        t(f'{titre} : le volant tourne dans le bon sens (à droite : sens horaire, à gauche : l’inverse, l’angle des roues × VOLANT_FACTEUR) et revient au centre', droite and r1[1] < 0 and gauche and centre, str([r1, pg.evaluate('() => [JEU.joueur.braquage, JEU.volant.volant.rotation.z]')]))
+    pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'cockpit.png' if l == 1280 else 'cockpit-960.png'))
+    pg.keyboard.press('KeyC')
+    t(f'{titre} : dans une autre vue (C), plus de volant, le rapport et la vitesse reviennent dans l’interface', attendre(pg, '() => CAMERA.mode !== "cockpit" && !JEU.volant.groupe.visible && !document.getElementById("tableau").classList.contains("cache")', None, 5000), str(pg.evaluate('() => [CAMERA.mode, JEU.volant.groupe.visible]')))
+
 def course_joueur(pg, titre):
     # le joueur conduit sa voiture au clavier, au milieu de 9 IA ; la caméra le suit, Tab ne change rien
     t(f'{titre} : 9 IA et la voiture du joueur, en dernière place de la grille ; la caméra suit le joueur',
@@ -1765,6 +1801,8 @@ with sync_playwright() as p:
                 amis(pg, titre, l, h)
             if 'test=tournoi' in page:
                 tournoi(pg, titre, l, h)
+            if 'test=volant' in page:
+                volant(pg, titre, l, h)
             if 'pneus=1' in page and 'test=stand' not in page:
                 pneus(pg, titre)
             if 'test=stand' in page:
