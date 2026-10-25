@@ -61,7 +61,18 @@ def annexes():
     return all([serie(p, delai=300 if 'courses' in p else 120, options=['--virtual-time-budget=5000'] if p.endswith('sdk.html') else []) for p in ANNEXES])
 
 # les parties de la suite, dans l'ordre : moteur (test.html), courses (courses.html, 30 courses entre IA), ecrans (ecrans.py), annexes
-PARTIES = {'moteur': lambda: serie('tests/test.html'), 'courses': lambda: all([serie('tests/courses.html'), serie('tests/courses.html?ailerons=1'), serie('tests/stands.html', delai=1200)]), 'ecrans': lambda: ecrans(), 'annexes': annexes}
+# le paquet Poki (tests/paquet.py, Codeur 3) : le zip fabriqué, puis le jeu ouvert depuis le zip décompressé (vérifications Poki)
+def paquet(delai=600):
+    t0 = time.monotonic()
+    p = subprocess.Popen([sys.executable, os.path.join(RACINE, 'tests', 'paquet.py')], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True)
+    try: out, err = p.communicate(timeout=delai)
+    except subprocess.TimeoutExpired:
+        os.killpg(p.pid, signal.SIGKILL); out, err = p.communicate(); out += f'\n✘ paquet.py : plus de {delai} s, arrêté'
+    if 'RESULTAT' not in out: out += '\n✘ paquet.py s’est arrêté sans résultat :\n' + (err or '').strip()[-2000:]
+    print(out.strip()); print(f'⏱ tests/paquet.py : {time.monotonic() - t0:.0f} s')
+    return p.returncode == 0
+
+PARTIES = {'moteur': lambda: serie('tests/test.html'), 'courses': lambda: all([serie('tests/courses.html'), serie('tests/courses.html?ailerons=1'), serie('tests/stands.html', delai=1200)]), 'ecrans': lambda: ecrans(), 'annexes': annexes, 'paquet': paquet}
 
 def tests(parties=tuple(PARTIES)):
     # une liste : tout tourne même si le premier échoue ; courses.html = le critère de l'étape 4 (30 courses entre IA)
