@@ -209,6 +209,8 @@ const SCENE3D = (function () {
   }
 
   return {
+    // un objet accroché à la caméra (le volant en vue cockpit) : la caméra entre dans la scène pour que ses enfants soient dessinés
+    accrocher(objet) { camera.add(objet); if (!camera.parent) scene.add(camera); },
     init, dessiner, ajouter, partager,
     get actif() { return rendu !== null; },
     get camera() { return camera; },

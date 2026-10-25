@@ -1342,6 +1342,23 @@ function ecartCoequipier(ordre, kc) {
   return ij < ic ? s : -s;
 }
 
+// le volant en vue cockpit (voiture3d.js creerVolant) : visible seulement en vue cockpit, quand on conduit (course, pause, tour de
+// qualification, survol), jamais à deux ; il tourne avec les roues avant, ses gants ont le casque du joueur, son écran le rapport et la vitesse
+function volantVisible() {
+  return CAMERA.mode === 'cockpit' && !JEU.deux && !JEU.attente && (JEU.ecran === 'course' || JEU.ecran === 'pause' || JEU.ecran === 'survol' || enTourQualif());
+}
+
+function majVolant() {
+  const oui = volantVisible();
+  if (!JEU.volant) { if (!oui) return; JEU.volant = VOITURE3D.creerVolant(casqueDe(indiceJoueur())); SCENE3D.accrocher(JEU.volant.groupe); }
+  JEU.volant.groupe.visible = oui;
+  if (!oui) return;
+  const v = JEU.joueur, p = VOITURE3D.poseVolant(SCENE3D.camera.fov, v.braquage);
+  JEU.volant.groupe.position.set(0, p.y, p.z);
+  JEU.volant.volant.rotation.z = p.angle;
+  JEU.volant.majEcran(rapportPourVitesse(v.u), Math.round(Math.abs(v.u) * 3.6));
+}
+
 // l'affichage provisoire : la vitesse et « hors piste »
 function majTableau() {
   const v = JEU.joueur;
@@ -1350,7 +1367,7 @@ function majTableau() {
   const roule = JEU.ecran === 'course' || JEU.ecran === 'survol' || enTourQualif();
   // sur le podium et les résultats, ni vitesse ni aide des touches
   const apres = ['podium', 'resultats', 'championnat', 'une', 'garage', 'titre', 'amis', 'bravo', 'saison', 'duelSaison', 'contrats', 'retraite', 'sponsors', 'fiche', 'interview', 'ceremonie', 'album', 'temple', 'heritier', 'deuxReglages', 'tournoiInscription', 'tournoiAToi', 'tournoiPause', 'tournoiManche', 'tournoiFin', 'aileron', 'arbre'].includes(JEU.ecran);
-  document.getElementById('tableau').classList.toggle('cache', apres);
+  document.getElementById('tableau').classList.toggle('cache', apres || volantVisible());   // (en vue cockpit, rapport et vitesse sont sur le volant)
   document.getElementById('aide').classList.toggle('cache', apres);
   // après l'arrivée du joueur (en attendant les autres), il ne court plus : pas de « hors piste »
   document.getElementById('horsPiste').classList.toggle('cache', !(v.surHerbe && roule) || !!JEU.attente);
@@ -1590,6 +1607,7 @@ function demarrerJeu() {
       if (JEU.deux) { const j2 = DEUX_JOUEURS.joueurs(JEU.plateau)[1]; CAMERA.majSeconde(dt, SCENE3D.camera2, etatAffiche(j2.v, alpha), j2.v); }
     }
     if (JEU.deux && SCENE3D.partage === apres) SCENE3D.partager(!apres);   // le podium : une seule vue
+    majVolant();   // le volant en vue cockpit (après la caméra : il suit son champ de vision)
     majTableau();
     INTERFACE.majCourse(JEU.course, enTourQualif() ? 'course' : JEU.ecran);   // le chrono du tour de qualification
     majFantome(dt);

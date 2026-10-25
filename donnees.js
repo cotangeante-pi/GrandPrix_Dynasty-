@@ -645,6 +645,15 @@ const REGLAGES = {
   CAMERA_COCKPIT: [0.75, 1.02], // caméra embarquée, devant le halo et au-dessus du pilote : avant, hauteur (m) ; on voit le nez et les roues avant
   CAMERA_COCKPIT_VISEE: 0.45,   // m : la caméra vise à 30 m devant, plus bas d'autant (le nez reste dans l'image)
   CAMERA_COCKPIT_CHAMP: 72,
+  // le volant en vue cockpit (voiture3d.js creerVolant, CLAUDE.md « Le casque du pilote ») : fait par le code, accroché à la caméra,
+  // en bas de l'image ; il tourne avec les roues avant × VOLANT_FACTEUR ; jamais dans la moitié haute de l'image (VOLANT_MARGE_HAUT :
+  // son plus haut point reste au moins à cette part de la demi-hauteur sous le milieu)
+  VOLANT_FACTEUR: 4,            // l'angle du volant = l'angle des roues avant × ce nombre
+  VOLANT_DISTANCE: 0.5,         // m devant l'œil
+  VOLANT_RAYON: 0.13,           // m
+  VOLANT_DEPASSE: 0.62,         // la part du rayon au-dessus du bas de l'image (le reste est coupé par le bord)
+  VOLANT_MARGE_HAUT: 0.25,
+  VOLANT_COULEUR: 0x1b1d22, VOLANT_ECRAN: 0x0b1a10,
   TELE_ESPACEMENT: 250,         // une caméra télé tous les 250 m le long de la piste
   TELE_RECUL: 8,                // à cette distance derrière la barrière (m)
   TELE_HAUTEUR: 7,
