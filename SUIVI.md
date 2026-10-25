@@ -30,6 +30,7 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 
 ## Tour en cours
 
+**Reprise du soir figée à 21h40 sur main vert (86/100) : consignes d'équipe, volant, déblocages, paquet Poki. Voir rapports/fin-2026-10-24.md.**
 **2026-10-24 ~19h40 : le propriétaire : « finit à 21h59 » → reprise jusqu'à 21h59** (rien de nouveau après 21h39, push 21h49, comptes rendus avant 21h54) : Codeur 1 les consignes d'équipe, Codeur 2 le volant en vue cockpit et les déblocages de motifs, Codeur 3 le paquet Poki (étape 15).
 **Journée du 2026-10-24 finie à 19h35 sur main 461ef97 (vert, 84/100). Reprise : rapports/fin-2026-10-24.md.**
 **2026-10-24 ~17h15 : le propriétaire : « FINIS LE CODE À 21H » → fin à 21h** (rien de nouveau après 20h40, dernier push 20h50, comptes rendus avant 20h55 ; à 21h le Chef fige main sur le dernier commit vert et écrit rapports/fin-2026-10-24.md).
@@ -77,7 +78,8 @@ Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤
 | 25c | fusion codeur3 1ab073d | 84 | 12 | 19 | 14 | 16 | 10 | 10 | 3 |
 | 25b-1 + 26-1 + 26c | fusion codeur3 9d01a81 | 85 | 12 | 19 | 14 | 17 | 10 | 10 | 3 |
 | 25b-2 + 27c | fusion codeur2 194f592 | 83 | 12 | 19 | 14 | 15 | 10 | 10 | 3 |
-| 2026-10-24 | 461ef97 | 84 | 12 | 19 | 15 | 15 | 10 | 10 | 3 |   (corrigé à minuit : l'interface plafonne à 15, le Chef avait dépassé le barème)
+| 2026-10-24 | 461ef97 | 84 | 12 | 19 | 15 | 15 | 10 | 10 | 3 |
+| 2026-10-24 soir | 55c99c1 | 86 | 12 | 19 | 15 | 15 | 10 | 10 | 5 |   (corrigé à minuit : l'interface plafonne à 15, le Chef avait dépassé le barème)
 
 Note du Chef session-5b (2026-10-23) : les lignes 18 à 19b ne s'additionnaient pas (19 + 19b : 12 + 16 + 6 + 12 + 9 + 10 + 2 = 67, noté 62 ; 18 : 63 noté 60). Les axes sont justes, c'est le total qui était faux ; depuis la ligne 21b, le total est la somme des axes. Le saut de 62 à 68 vient de cette correction, pas d'un progrès.
 
