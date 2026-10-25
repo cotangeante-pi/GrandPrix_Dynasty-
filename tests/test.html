@@ -1876,7 +1876,7 @@ t('casque : completer donne un casque à chacun des 20 pilotes d’un championna
   const ch2=CHAMPIONNAT.creer(1);CASQUE.completer(ch2);v(ch2.pilotes.every((p,i)=>CASQUE.cle(p.casque)===CASQUE.cle(ch.pilotes[i].casque)),'pas les mêmes avec la même graine');
   const ch3=CHAMPIONNAT.creer(2);CASQUE.completer(ch3);v(ch3.pilotes.some((p,i)=>!p.humain&&CASQUE.cle(p.casque)!==CASQUE.cle(ch.pilotes[i].casque)),'identiques avec une autre graine');
   v(CASQUE.completer(ch)===0,'rien à redonner');
-  for(const m of R_.CASQUE_MOTIFS) v(TEXTES.en['motif_'+m]&&TEXTES.fr['motif_'+m],'motif sans texte : '+m);
+  for(const m of CASQUE.tousLesMotifs()) v(TEXTES.en['motif_'+m]&&TEXTES.fr['motif_'+m],'motif sans texte : '+m);
   v(!CASQUE.valide({motif:'inconnu',couleurs:[1,2,3]})&&!CASQUE.valide({motif:'uni',couleurs:[1,2]})&&CASQUE.valide(CASQUE.neutre()),'valide');
   L.push('  (casques : '+ch.pilotes.slice(0,4).map(p=>CASQUE.cle(p.casque)).join(' · ')+' …)');});
 t('casque : la sauvegarde garde les casques (le joueur et les rivaux) après rechargement ; une ancienne sauvegarde sans casques en reçoit un pour chacun au chargement ; le casque choisi par le joueur est gardé', ()=>{
@@ -1890,8 +1890,8 @@ t('casque : la sauvegarde garde les casques (le joueur et les rivaux) après rec
   localStorage.removeItem(SAUVEGARDE.CLE);});
 t('casque : le dessin (canvas 2D) : chaque motif donne une icône qui n’est pas unie (au moins 2 couleurs), et deux motifs différents donnent des pixels différents ; les mêmes couleurs avec le même motif, la même image', ()=>{
   const couleurs=[0xd8262e,0xf2c230,0x111111],pixels=m=>{const c=CASQUE.icone(CASQUE.creer(m,couleurs),32);return Array.from(c.getContext('2d').getImageData(0,0,32,32).data);};
-  const images={};for(const m of REGLAGES.CASQUE_MOTIFS){const d=pixels(m);images[m]=d.join();const teintes=new Set();for(let i=0;i<d.length;i+=4) if(d[i+3]>0) teintes.add(d[i]+','+d[i+1]+','+d[i+2]);v(teintes.size>=2,m+' : uni');}
-  const ms=REGLAGES.CASQUE_MOTIFS;for(let a=0;a<ms.length;a++) for(let b=a+1;b<ms.length;b++) v(images[ms[a]]!==images[ms[b]],ms[a]+' = '+ms[b]);
+  const images={};for(const m of CASQUE.tousLesMotifs()){const d=pixels(m);images[m]=d.join();const teintes=new Set();for(let i=0;i<d.length;i+=4) if(d[i+3]>0) teintes.add(d[i]+','+d[i+1]+','+d[i+2]);v(teintes.size>=2,m+' : uni');}
+  const ms=CASQUE.tousLesMotifs();for(let a=0;a<ms.length;a++) for(let b=a+1;b<ms.length;b++) v(images[ms[a]]!==images[ms[b]],ms[a]+' = '+ms[b]);
   v(pixels('bandes').join()===images.bandes,'pas reproductible');});
 
 // --- le mode 2 joueurs (tour 25b, deux-joueurs.js + principal.js) : calcul pur, les touches par e.code
@@ -2145,6 +2145,31 @@ t('tournoi : la liste des joueurs passe par la sauvegarde unique, à part : la c
   v(JSON.stringify(re.joueurs)===JSON.stringify(js)&&JSON.stringify(re.enCours)===JSON.stringify(t_)&&TOURNOI.joueurActuel(re.enCours)===1,'rechargé');
   const apres=SAUVEGARDE.lire();delete apres.tournoi;v(JSON.stringify(apres)===emp,'la carrière a changé');
   localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:3,records:{},championnat:null}));v(SAUVEGARDE.tournoi()===null,'ancienne');
+  localStorage.removeItem(SAUVEGARDE.CLE);});
+
+// --- les déblocages de motifs (casque.js, tour 27b) : un motif se gagne exactement à sa condition ; il reste dans une nouvelle carrière
+t('casque : chaque motif à débloquer se gagne exactement à sa condition (une victoire, un titre, 10 podiums, une saison gagnée contre son coéquipier, gagner à domicile), pas avant ; jamais un motif de départ ; aucun effet sur la physique', ()=>{
+  const R=REGLAGES,ch=CHAMPIONNAT.creer(5);CARRIERE.completer(ch);const j=ch.pilotes.find(p=>p.humain),gagnes=()=>CASQUE.conditionsRemplies(ch).join();
+  v(gagnes()==='','rien au départ : '+gagnes());
+  j.stats.victoires=1;v(gagnes()==='chevrons','victoire : '+gagnes());
+  j.stats.podiums=R.CASQUE_PODIUMS_DEBLOCAGE-1;v(!gagnes().includes('zigzag'),'9 podiums');j.stats.podiums=R.CASQUE_PODIUMS_DEBLOCAGE;v(gagnes().includes('zigzag'),'10 podiums');
+  v(!gagnes().includes('couronne'),'titre trop tôt');j.stats.titres=1;v(gagnes().includes('couronne'),'titre');
+  ch.carriere.domicile=2;v(!gagnes().includes('coeur'),'2e à domicile');ch.carriere.domicile=1;v(gagnes().includes('coeur'),'gagné à domicile');
+  ch.saisons=[{duel:[3,4,6,5,7]}];v(!gagnes().includes('diagonale'),'duel perdu (9 – 13)');ch.saisons.push({duel:[3,7,5,6,4]});v(gagnes().includes('diagonale'),'duel gagné (13 – 9)');
+  v(gagnes()==='chevrons,couronne,zigzag,diagonale,coeur','tout : '+gagnes());
+  v(CASQUE.tousLesMotifs().length===R.CASQUE_MOTIFS.length+Object.keys(R.CASQUE_DEBLOCAGES).length&&Object.keys(R.CASQUE_DEBLOCAGES).every(m=>!R.CASQUE_MOTIFS.includes(m)),'listes');
+  v(R.CASQUE_MOTIFS.every(m=>CASQUE.permis(m,[]))&&!CASQUE.permis('couronne',[])&&CASQUE.permis('couronne',['couronne']),'permis');
+  v(CASQUE.valide({motif:'couronne',couleurs:[1,2,3]}),'un motif débloqué est un casque valide');
+  // jamais de la vitesse : la même voiture roule pareil, quel que soit le casque (le casque n'est pas dans l'état de la voiture)
+  const a=creerVoiture(C,0),b=creerVoiture(C,0);b.casque={motif:'couronne',couleurs:[1,2,3]};for(let i=0;i<600;i++){appliquerCommandes(a,{gaz:1,frein:0,direction:0});appliquerCommandes(b,{gaz:1,frein:0,direction:0});pasVoiture(a,C,DT);pasVoiture(b,C,DT);}
+  v(a.x===b.x&&a.z===b.z&&a.u===b.u,'vitesse');});
+t('casque : les motifs débloqués sont gardés à la racine de la sauvegarde : rechargés, jamais en double, et ils restent quand une nouvelle carrière commence (nouveau championnat, nouvelle dynastie) ; une ancienne sauvegarde sans eux se charge (aucun)', ()=>{
+  localStorage.removeItem(SAUVEGARDE.CLE);
+  v(SAUVEGARDE.motifs().length===0,'vierge');
+  v(SAUVEGARDE.debloquerMotifs(['chevrons']).join()==='chevrons'&&SAUVEGARDE.debloquerMotifs(['chevrons','couronne']).join()==='couronne'&&SAUVEGARDE.motifs().join()==='chevrons,couronne','gagnés');
+  SAUVEGARDE.ecrireChampionnat(CHAMPIONNAT.creer(9));v(SAUVEGARDE.motifs().join()==='chevrons,couronne','nouvelle carrière');
+  const d=SAUVEGARDE.lire();d.championnat=null;SAUVEGARDE.ecrire(d);v(SAUVEGARDE.motifs().join()==='chevrons,couronne','sans championnat');
+  localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:3,records:{},championnat:null}));v(SAUVEGARDE.motifs().length===0,'ancienne');
   localStorage.removeItem(SAUVEGARDE.CLE);});
 
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});

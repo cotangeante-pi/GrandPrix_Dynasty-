@@ -21,7 +21,7 @@
 //   TOURNOI.podium(t)                       → les trois premiers du classement final
 const TOURNOI = (function () {
   const R = REGLAGES;
-  const casqueValide = c => !!c && typeof c === 'object' && R.CASQUE_MOTIFS.includes(c.motif) && Array.isArray(c.couleurs) && c.couleurs.length === 3 && c.couleurs.every(x => Number.isInteger(x) && x >= 0 && x <= 0xffffff);
+  const casqueValide = c => !!c && typeof c === 'object' && (typeof CASQUE !== 'undefined' ? CASQUE.tousLesMotifs() : R.CASQUE_MOTIFS).includes(c.motif) && Array.isArray(c.couleurs) && c.couleurs.length === 3 && c.couleurs.every(x => Number.isInteger(x) && x >= 0 && x <= 0xffffff);
   const prenomPropre = n => typeof n === 'string' ? n.trim().slice(0, R.NOM_LONGUEUR_MAX) : '';
 
   // le casque par défaut du joueur i (TOURNOI_CASQUES, en boucle)
