@@ -420,6 +420,8 @@ function estLente(pilote, v, w) {
   if (pilote.parcouru < R.IA_DEPART_LANCEMENT) return false;
   // (une voiture qui entre aux stands ou en sort, étape 7 : elle ralentit ou rejoint la piste au ralenti, ça se voit ; on la contourne tout de suite)
   if (w.id && (w.id.manoeuvreStands || w.id.rampeStands) && w.vitesse < v.u) return true;
+  // (une consigne d'équipe : son coéquipier devant lui le laisse passer ; il le passe comme une voiture lente, sans attendre l'attaque)
+  if (pilote.passer && w.id === pilote.passer.id && w.vitesse < v.u + R.IA_LENTE_PLUS_RAPIDE) return true;
   const vue = pilote.lentesVues.get(w.id);
   if (!vue) return false;
   // (des durées : le peloton du départ roule groupé sous la vitesse de la carte pendant ~3 s, un bouchon à l'épingle descend
@@ -772,6 +774,7 @@ function majAttaque(pilote, v, vues, dt) {
   const R = REGLAGES, carte = pilote.carte, c = carte.circuit, p = v.piste, a = pilote.attaque;
   pilote.repos = Math.max(0, pilote.repos - dt);
   if (pilote.stand) return;   // en route vers les stands (étape 7) : il n'attaque pas
+  if (pilote.passer) { if (pilote.attaque) finirAttaque(pilote, false, 'consigne'); return; }   // une consigne d'équipe : on le laisse passer, il n'attaque pas
   if (!a) {
     // plus agressif : il attaque plus tôt (après moins de temps retenu)
     if (R.IA_DEPASSEMENT && pilote.repos <= 0 && pilote.retenue >= R.IA_ATTENTE_ATTAQUE * (1.5 - agressivite(pilote, pilote.retenuePar)) && pilote.retenuePar !== null) {
@@ -940,6 +943,14 @@ function piloterIA(pilote, v, vues, dt) {
     // (devant lui, une voiture lente que sa ligne contourne ne le freine pas : sinon il s'arrêterait à côté d'une voiture arrêtée)
     if (g > 0 && estLente(pilote, v, w) && Math.abs(valeurLigne(ligne.e, r + g) - w.d) >= R.IA_LENTE_SUR) continue;
     if (g > 0) cible = Math.min(cible, w.vitesse - (pilote.cede && pilote.cede.id === w.id ? R.IA_CEDER_FORT : R.IA_CEDER));
+  }
+  // une consigne d'équipe (simulation.js, majConsignes) : il laisse passer son coéquipier, dans une ligne droite seulement, en restant
+  // sur sa ligne : il roule CONSIGNE_RALENTI m/s sous la vitesse de l'autre tant que l'autre est derrière lui, à moins de CONSIGNE_DISTANCE m
+  if (pilote.laisser && Math.abs(valeurEn(c, c.courbure, p.s)) < R.IA_DROITE_COURBURE) {
+    const w = vues.find(x => x.id === pilote.laisser.id), g = w ? ecartLeLong(c, w.s - p.s) : 0;
+    if (w && g < 0 && g > -R.CONSIGNE_DISTANCE) cible = Math.min(cible, Math.max(0, w.vitesse - R.CONSIGNE_RALENTI));
+    // (pas encore dans ses rétroviseurs : l'écurie le lui a dit par radio, il lève le pied dans la droite pour qu'il revienne)
+    else if (!w) cible = Math.min(cible, Math.max(0, libre - R.CONSIGNE_RALENTI));
   }
   // une erreur en cours : de mauvaises commandes, rien d'autre (même physique)
   const er = pilote.erreur ? pilote.erreur.type : null;
