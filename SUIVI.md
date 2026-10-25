@@ -83,6 +83,7 @@ Note du Chef session-5b (2026-10-23) : les lignes 18 à 19b ne s'additionnaient 
 
 ## À essayer par le propriétaire
 
+- **Les consignes d'équipe** : en course moyenne ou longue, si ton coéquipier est juste derrière toi et plus rapide, un message te demande de le laisser passer : le suivre fait monter la confiance de ton écurie (et les contrats), l'ignorer la fait baisser.
 - **Le zip pour Poki** (tour 30c) : `python3 tests/paquet.py` fabrique `dist/grand-prix-dynasty.zip` (400 Ko) ; à envoyer sur **inspector.poki.dev** pour le vrai test (le Chef ne peut pas le faire).
 - **Le volant en vue cockpit** : en course, touche C jusqu'au cockpit.
 - **L'aileron** (tour 29c) : au championnat, « Garage » → « Aileron » : la carte de la prochaine course et le curseur (bas = vitesse de pointe, haut = virages), aucun conseil. Dire : ça se sent ? (les IA règlent aussi leur aileron, avec les mêmes effets).
