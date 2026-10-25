@@ -91,6 +91,12 @@ const INTERFACE = (function () {
   // l'arrêt au stand (étape 7, course.js : c.arrets, c.arretEnCours, c.arretConseille) : pendant l'arrêt, le temps qui reste ;
   // juste après, « pneus neufs » ; avant son arrêt obligatoire, le tour conseillé (au départ, puis à partir du tour d'avant)
   function messageStand(c) {
+    // la consigne d'équipe (simulation.js, majConsignes) qui vise le joueur, devant son coéquipier : la demande, puis le résultat 3 s
+    const k = c.consigne;
+    if (k && k.joueur && c.etat === 'course') {
+      if (!k.resultat) return texte('consigneJoueur').replace('{n}', k.numero);
+      if (c.temps - k.finCourse < 3) return texte(k.resultat === 'suivie' ? 'consigneSuivie' : 'consigneIgnoree');
+    }
     if (!c.arrets || c.etat !== 'course') return null;
     const v = n => secondes(n.toFixed(1));
     if (c.arretEnCours) return texte('standEnCours').replace('{s}', v(Math.max(0, c.arretEnCours.reste)));

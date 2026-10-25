@@ -486,6 +486,7 @@ const REGLAGES = {
     regularite: [0.002, 0.015], // d'un tour à l'autre, son rythme varie de ± cette part autour de sa moyenne, sans jamais dépasser le sien
     agressivite: [0, 1],        // 0 : prudent ; 1 : attaque plus tôt
     erreurs: [0.1, 1],          // erreurs par course de 5 tours
+    consigneRefus: [0, 1],      // les consignes d'équipe : au-dessus de CONSIGNE_REFUS_SEUIL, il refuse de laisser passer le joueur (tiré à part, GRAINE_CONSIGNES)
     gestionPneus: [0, 1],       // la gestion des pneus (pneus.js : 1 = use 30 % moins vite) ; tirée avec sa propre graine (GRAINE_PNEUS), le niveau la décale
   },
   IA_VISION_ANGLE: 0.6,         // rad : elle voit les voitures devant elle à ±0,6 rad (±34°) de son axe…
@@ -529,6 +530,21 @@ const REGLAGES = {
   COULEURS_IA: [0x1f6fe0, 0xd8262e, 0xf2c230, 0x2fa84f, 0xf07d1a, 0x8e44ad, 0x1abc9c, 0xecf0f1, 0x34495e, 0xe84393],
   // derrière une voiture plus lente (sans la dépasser, étape 4a) ; distances d'un centre de voiture à l'autre
   IA_DISTANCE_MIN: 8,           // m : jamais plus près
+  // les consignes d'équipe (CLAUDE.md « Le duel contre le coéquipier », simulation.js majConsignes, Codeur 1) : au plus une par course ;
+  // les deux pilotes d'une écurie à moins de CONSIGNE_DISTANCE m l'un de l'autre, celui de derrière plus rapide d'au moins CONSIGNE_RYTHME s
+  // au tour (moyenne des CONSIGNE_TOURS derniers tours), personne entre eux ni à moins de CONSIGNE_DERRIERE m derrière (ça ne coûte rien),
+  // pas au dernier tour ; celui de devant ralentit dans une droite (CONSIGNE_RALENTI m/s sous la vitesse de l'autre) ; CONSIGNE_DELAI s pour le faire
+  CONSIGNES_ACTIVES: true,
+  CONSIGNE_DISTANCE: 40,
+  CONSIGNE_RYTHME: 0.4,
+  CONSIGNE_TOURS: 2,
+  CONSIGNE_DERRIERE: 150,
+  CONSIGNE_RALENTI: 10,
+  CONSIGNE_DELAI: 40,
+  CONSIGNE_REFUS_SEUIL: 0.8,    // le coéquipier du joueur refuse si son trait consigneRefus est au moins à ça
+  CONSIGNE_CONFIANCE: 5,        // le joueur suit la consigne : la confiance de l'écurie (la jauge « écurie ») monte de ça ; il l'ignore : elle baisse de ça
+  CONSIGNE_PERIODE: 0.5,        // s : l'écurie regarde la course à ce rythme
+  GRAINE_CONSIGNES: 13000,
   IA_FREIN_PREVU: 0.6,          // s : derrière une voiture qui freine, il prévoit sa vitesse dans ce temps (sa décélération vue × ça)
   IA_DISTANCE_SUIVI: 14,        // m : la distance où elle se cale derrière
   IA_DEPART_LANCEMENT: 100,     // m : au départ, sur cette distance, elle suit à IA_DISTANCE_MIN (tout le monde part ensemble)

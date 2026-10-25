@@ -81,3 +81,14 @@ APRÈS LE TOUR 26 (2026-10-24, 18h05 → 19h20) — Codeur 1 : la fusion avec le
   - courses.html : 41 / 4 / 2450 inchangé ; courses.html?ailerons=1 : 38 dépassements, 5 chocs, herbe 2876, 0 coupe, 20 voitures 0 choc (avant : 49 / 12 / 4059 / 2 coupes ; avec 0,3 s : 8 chocs).
   - AILERON_IA_ACTIF = true ; courses.html?ailerons=1 dans la partie « courses » de lancer.py (sans la rivalité, mesurée dans la page normale).
 - Pas vérifié : la sensation contre des IA aux ailerons différents (à essayer par le propriétaire) ; origin/codeur3 a avancé depuis b52b9b0 (5aac920) : la fusion des deux branches est à faire par le Chef.
+
+---
+
+REPRISE (2026-10-24, 20h28 → 21h10) — Codeur 1 : les consignes d'équipe
+
+Commit : pneus **7a9e117** (bc74a4d + origin/main), GitHub **40148576912 : TOUT PASSE** (265/265, 43/43, ailerons 38/38, stands 9/9, ecrans 708/708, textes 578).
+- simulation.js : `majConsignes` (toutes les 0,5 s, au plus une par course) : deux pilotes d'une écurie (`e.ecuries`, posé par principal.js depuis le championnat ; sinon 2 par écurie dans l'ordre) à moins de CONSIGNE_DISTANCE (40 m), celui de derrière plus rapide d'au moins CONSIGNE_RYTHME (0,4 s : son meilleur tour contre la moyenne des 2 derniers tours de l'autre, puisque bloqué derrière, ses derniers tours sont ceux de l'autre), personne entre eux ni à moins de 150 m derrière, pas au dernier tour, pas pendant un arrêt, une erreur ou une attaque. Entre deux IA : celle de devant laisse passer. Le coéquipier du joueur (le joueur derrière) obéit sauf si son trait `consigneRefus` (IA_CARACTERE, tiré avec GRAINE_CONSIGNES) ≥ CONSIGNE_REFUS_SEUIL (0,8). Le joueur devant : sa course porte la consigne (le message). `suivreConsigne` : suivie (celui de derrière est passé), ignorée (CONSIGNE_DELAI 40 s) ou refusée. `appliquerConsigne(ch, consigne)` : ± CONSIGNE_CONFIANCE (5) sur ch.reputation.ecurie = ch.confiance, seulement si la consigne visait le joueur ; appelé par principal.js avant finirGrandPrix. Un point du duel n'est jamais rendu (le duel lit le classement final).
+- ia.js : `pilote.laisser` : dans une droite, il roule CONSIGNE_RALENTI (10 m/s) sous l'autre (ou sous sa ligne s'il ne le voit pas encore) ; `pilote.passer` : il passe son coéquipier comme une voiture lente et n'attaque pas.
+- interface.js / textes.js : « Consigne de l'écurie : laisse passer ton coéquipier n°7 (plus rapide). L'ignorer fait baisser la confiance de l'écurie. », puis « Merci ! La confiance… monte » ou « Consigne ignorée : … baisse » (3 s).
+- Mesures : entre IA (le technique, celle de devant moteur × 0,85) : suivie en 33 s, une seule consigne ; coéquipier du joueur : refus 0 → il lève le pied, refus 1 → refusée ; courses.html inchangé (41 / 4 / 2450) ; stands.html (12 tours) : chocs 11 (16 sans pneus), herbe 6630.
+- Pas vérifié : le joueur devant, dans la page (message, détection) ; la sensation (à essayer par le propriétaire, ?championnat=1) ; en 12 tours, combien de courses ont une consigne.

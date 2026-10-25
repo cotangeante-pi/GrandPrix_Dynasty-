@@ -619,6 +619,39 @@ t('arrêt au stand : le joueur entre lui-même (ici le robot, v.versStands) : av
     return {j,stand,vu,fini};});
   L.push('  (joueur aux stands : arrêts '+JSON.stringify(r.j.course.arrets)+', usure '+r.j.v.pneus.usure.toFixed(3)+', muret '+r.j.v.contactsMurStands+', pénalités '+r.j.course.penalites+' s)');
   v(r.fini&&r.j.course.arrets.length===1&&r.j.course.arrets[0].tour>=2&&r.j.course.arrets[0].tour<=3,'pas d’arrêt '+JSON.stringify(r.j.course.arrets));v(r.stand,'pas de STAND');v(!r.vu,'vu derrière le muret');v(r.j.v.contactsMurStands===0&&r.j.course.penalites===0,'muret / pénalités');});
+// --- les consignes d'équipe (CLAUDE.md « Le duel contre le coéquipier », simulation.js majConsignes, Codeur 1)
+// une course sur le technique : l'IA k = 0 et la voiture k = 1 sont de la même écurie ; celle qui part devant est rendue nettement plus lente
+function courseConsigne(avecJoueur,refus,tours){const e=creerCourseIA(TQ,avecJoueur?1:2,tours||6,1,CARTES_T.technique,avecJoueur),P=e.pilotes,ia=P[0];
+  const jp=avecJoueur?creerPilote(CARTES_T.technique,1,styleNeutre()):null;
+  // (la voiture de devant a moins de moteur : elle est plus lente en ligne droite, mais celle de derrière, à la file, ne la passe pas seule)
+  if(avecJoueur){ia.v.moteur=0.85;ia.pilote.rythme=0.9;ia.pilote.caractere.consigneRefus=refus;}else{const dev=P[0].depart>P[1].depart?P[0]:P[1],der=dev===P[0]?P[1]:P[0];dev.v.moteur=0.85;dev.pilote.rythme=0.9;der.pilote.rythme=1;}
+  const robot=(p_,dt)=>appliquerCommandes(p_.v,courseAutorise(p_.course)?piloterIA(jp,p_.v,voituresVues(p_.v,P.map(q=>q.v)),dt):COMMANDES_AUCUNE);
+  let premiere=null,changements=0,laisse=false;for(const p_ of P)p_.course.compte=0;
+  for(let k=0;k<700*120&&P.some(p_=>p_.arrivee===null);k++){pasCourseIA(e,DT,robot);if(e.consigne&&e.consigne!==premiere){premiere=e.consigne;changements++;if(jp)jp.passer={id:P[e.consigne.devant].v};}if(ia.pilote&&ia.pilote.laisser)laisse=true;}   // (le « joueur » du test passe quand on le laisse passer)
+  return {e,c:e.consigne,changements,laisse};}
+t('consignes : entre deux IA de la même écurie, celle de devant nettement plus lente reçoit une consigne et laisse passer l’autre dans une droite ; au plus une consigne par course', ()=>{
+  const r=courseConsigne(false,0),c=r.c,P=r.e.pilotes;
+  L.push('  (tours : '+P.map(p_=>'n°'+p_.numero+' grille '+p_.depart.toFixed(0)+' '+p_.course.tours.map(x=>x.temps.toFixed(1)).join('/')).join(' ; ')+')');
+  L.push('  (consigne entre IA : '+(c?'tour '+(P[c.devant].course.tours.length)+', n°'+P[c.devant].numero+' laisse passer n°'+c.numero+' → '+c.resultat+' en '+(c.fin-c.debut).toFixed(1)+' s':'aucune')+' ; consignes '+r.changements+' ; arrivée '+P.map(p_=>'n°'+p_.numero+' P'+p_.place).join(' ')+')');
+  v(c&&c.resultat==='suivie'&&!c.joueur&&!c.refus,'consigne '+JSON.stringify(c));v(r.changements===1,'consignes '+r.changements);
+  v(P.find(p_=>p_.numero===c.numero).place<P[c.devant].place,'pas passée');v(!P[c.devant].pilote.laisser,'consigne pas finie');});
+t('consignes : le coéquipier du joueur (le joueur derrière et plus rapide) obéit (il lève le pied dans les droites), sauf si son caractère le fait refuser (consigneRefus ≥ CONSIGNE_REFUS_SEUIL) ; le trait est tiré avec sa propre graine', ()=>{
+  const a=courseConsigne(true,0),b=courseConsigne(true,1);
+  L.push('  (joueur, tours : '+a.e.pilotes.map(p_=>'n°'+p_.numero+(p_.humain?' joueur':'')+' grille '+p_.depart.toFixed(0)+' '+p_.course.tours.map(x=>x.temps.toFixed(1)).join('/')).join(' ; ')+')');
+  L.push('  (coéquipier du joueur : refus 0 → '+(a.c?a.c.resultat:'aucune')+(a.laisse?', il lève le pied':'')+', refus 1 → '+(b.c?b.c.resultat:'aucune')+(b.laisse?', il lève le pied':'')+')');
+  // (obéir, c'est lever le pied dans les droites ; que le joueur passe ensuite, c'est sa conduite : ici un pilote d'essai)
+  v(a.c&&!a.c.refus&&!a.c.joueur&&a.laisse,'obéit : '+JSON.stringify(a.c));v(b.c&&b.c.resultat==='refusee'&&b.c.refus&&!b.laisse,'refuse : '+JSON.stringify(b.c));
+  const e=creerCourseIA(TQ,10,5,3,CARTES_T.technique);v(e.pilotes.every(p_=>p_.pilote.caractere.consigneRefus>=0&&p_.pilote.caractere.consigneRefus<=1)&&new Set(e.pilotes.map(p_=>p_.pilote.caractere.consigneRefus)).size===10,'traits');});
+t('consignes : suivie par le joueur, la confiance de l’écurie (la jauge « écurie ») monte de CONSIGNE_CONFIANCE ; ignorée, elle baisse ; entre 0 et 100 ; rien si la consigne ne visait pas le joueur', ()=>{
+  const R_=REGLAGES,ch={reputation:{public:50,ecurie:50,sponsors:50},confiance:50};
+  const a=appliquerConsigne(ch,{joueur:true,resultat:'suivie'}),apres1=ch.confiance,b=appliquerConsigne(ch,{joueur:true,resultat:'ignoree'}),c=appliquerConsigne(ch,{joueur:false,resultat:'suivie'}),d=appliquerConsigne(ch,null);
+  ch.reputation.ecurie=98;appliquerConsigne(ch,{joueur:true,resultat:'suivie'});const haut=ch.confiance;
+  v(a===R_.CONSIGNE_CONFIANCE&&apres1===55&&b===-R_.CONSIGNE_CONFIANCE&&c===0&&d===0&&haut===100&&ch.reputation.ecurie===ch.confiance,[a,apres1,b,c,d,haut].join(','));});
+t('consignes : sans consigne, la course est identique au bit près à la même course sans les consignes (CONSIGNES_ACTIVES)', ()=>{
+  const R_=REGLAGES,empreinte=r=>JSON.stringify(r.voitures.map(x=>[x.place,x.temps,x.contactsVoiture]));let essais=0,egales=0;
+  for(const g of [1,2,3]){const a=simulerCourse(TQ,10,4,g);let b;R_.CONSIGNES_ACTIVES=false;try{b=simulerCourse(TQ,10,4,g);}finally{R_.CONSIGNES_ACTIVES=true;}
+    if(a.consigne)continue;essais++;if(empreinte(a)===empreinte(b))egales++;}
+  L.push('  (consignes : '+essais+' courses sans consigne, '+egales+' identiques)');v(essais>0&&egales===essais,egales+' / '+essais);});
 // les courses entre IA (le critère de l'étape 4 : 30 courses, et la course de 20 voitures) sont dans tests/courses.html
 
 // --- la grille qualifiée (tour 12)

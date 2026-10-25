@@ -90,7 +90,81 @@ function donnerCarte(e, carte) {
   ALEATOIRE.semer(e.graine + R.GRAINE_PNEUS);
   for (const p of e.pilotes) if (!p.humain) p.pilote.caractere.gestionPneus = Math.max(0, Math.min(1, tirerGestionPneus() + (niveau().gestionPneus || 0)));
   ALEATOIRE.semer();
+  // les consignes d'équipe : son refus éventuel de laisser passer le joueur, avec sa propre graine
+  ALEATOIRE.semer(e.graine + R.GRAINE_CONSIGNES);
+  for (const p of e.pilotes) if (!p.humain) { const [a, b] = R.IA_CARACTERE.consigneRefus; p.pilote.caractere.consigneRefus = a + hasard() * (b - a); }
+  ALEATOIRE.semer();
   strategieStands(e);
+}
+
+// --- les consignes d'équipe (CLAUDE.md « Le duel contre le coéquipier », Codeur 1) ---
+// e.ecuries[k] : l'écurie du pilote k (la page la pose depuis le championnat) ; sans elle, deux par écurie dans l'ordre (0-1, 2-3…)
+function ecurieDe(e, k) {
+  return e.ecuries ? e.ecuries[k] : Math.floor(k / 2);
+}
+
+// son rythme récent : la moyenne de ses CONSIGNE_TOURS derniers tours (s), null s'il n'en a pas assez fait (celui de devant) ; celui de
+// derrière est comparé par son meilleur tour, une fois qu'il en a fait autant
+function rythmeRecent(p) {
+  const t = p.course.tours, n = REGLAGES.CONSIGNE_TOURS;
+  if (t.length < n) return null;
+  let s = 0;
+  for (let i = t.length - n; i < t.length; i++) s += t[i].temps;
+  return s / n;
+}
+
+// toutes les CONSIGNE_PERIODE s : une consigne au plus par course (e.consigne : { devant, derriere (indices), numero (celui qui doit
+// passer), debut, joueur (le joueur est devant), refus, resultat : null | 'suivie' | 'ignoree' | 'refusee' }). Entre deux IA, celle de
+// devant laisse passer (pilote.laisser, ia.js) ; le coéquipier du joueur (le joueur derrière) laisse passer sauf si son caractère le fait
+// refuser ; si le joueur est devant, sa course porte la consigne (le message, interface.js) et c'est à lui de laisser passer.
+function majConsignes(e) {
+  const R = REGLAGES, P = e.pilotes;
+  if (e.consigne) { suivreConsigne(e, e.consigne); return; }
+  if (e.go === null) return;
+  if (e.consigneVue !== undefined && e.temps - e.consigneVue < R.CONSIGNE_PERIODE) return;
+  e.consigneVue = e.temps;
+  for (let a = 0; a < P.length; a++) for (let b = 0; b < P.length; b++) {
+    const dev = P[a], der = P[b];
+    if (a === b || ecurieDe(e, a) !== ecurieDe(e, b) || dev.arrivee !== null || der.arrivee !== null || (dev.humain && der.humain)) continue;
+    // (pas pendant un arrêt au stand, une erreur ou une attaque : la consigne attend un moment calme)
+    if ([dev, der].some(q => q.v.dansStands || (q.pilote && (q.pilote.stand || q.pilote.enErreur || q.pilote.attaque)))) continue;
+    const ecart = distanceCourse(dev) - distanceCourse(der);
+    if (ecart <= 0 || ecart > R.CONSIGNE_DISTANCE || dev.course.tours.length + 1 >= dev.course.nbTours) continue;
+    // (celui de derrière : son meilleur tour de la course ; bloqué derrière l'autre, ses derniers tours sont ceux de l'autre)
+    const rd = rythmeRecent(dev), rr = rythmeRecent(der) === null ? null : der.course.meilleurTour;
+    if (rd === null || rr === null || rd - rr < R.CONSIGNE_RYTHME) continue;
+    const db = distanceCourse(der);
+    if (P.some(q => q !== dev && q !== der && q.arrivee === null && distanceCourse(q) > db - R.CONSIGNE_DERRIERE && distanceCourse(q) < db + ecart)) continue;
+    const refus = !dev.humain && der.humain && !!(dev.pilote && dev.pilote.caractere && dev.pilote.caractere.consigneRefus >= R.CONSIGNE_REFUS_SEUIL);
+    e.consigne = { devant: a, derriere: b, numero: der.numero, debut: e.temps, joueur: !!dev.humain, refus, resultat: null };
+    if (!dev.humain && !refus && dev.pilote) dev.pilote.laisser = { id: der.v };
+    if (!der.humain && der.pilote) der.pilote.passer = { id: dev.v };   // (il sait qu'on le laisse passer : il passe comme une voiture lente)
+    if (dev.humain) dev.course.consigne = e.consigne;
+    if (der.humain) der.course.consigne = e.consigne;
+    return;
+  }
+}
+
+// la consigne en cours : passée (celui de derrière est devant) → suivie ; sinon, au bout de CONSIGNE_DELAI s → ignorée (ou refusée)
+function suivreConsigne(e, c) {
+  if (c.resultat) return;
+  const dev = e.pilotes[c.devant], der = e.pilotes[c.derriere];
+  if (c.refus) c.resultat = 'refusee';   // le coéquipier du joueur refuse : c'est dit tout de suite
+  else if (distanceCourse(der) > distanceCourse(dev) + REGLAGES.LONGUEUR_VOITURE) c.resultat = 'suivie';
+  else if (e.temps - c.debut > REGLAGES.CONSIGNE_DELAI || dev.arrivee !== null || der.arrivee !== null) c.resultat = c.refus ? 'refusee' : 'ignoree';
+  if (c.resultat) { c.fin = e.temps; c.finCourse = dev.course.temps; if (dev.pilote) dev.pilote.laisser = null; if (der.pilote) der.pilote.passer = null; }
+}
+
+// après la course, si la consigne visait le joueur (le joueur devant) : la suivre fait monter la confiance de l'écurie (la jauge
+// « écurie » de l'interview, ch.reputation.ecurie = ch.confiance), l'ignorer la fait baisser, de CONSIGNE_CONFIANCE, entre 0 et 100.
+// Un point du duel n'est jamais rendu (le duel lit le classement final, rien d'autre). Rend le pas appliqué.
+function appliquerConsigne(ch, consigne) {
+  if (!ch || !consigne || !consigne.joueur || !consigne.resultat) return 0;
+  const pas = consigne.resultat === 'suivie' ? REGLAGES.CONSIGNE_CONFIANCE : -REGLAGES.CONSIGNE_CONFIANCE;
+  if (!ch.reputation) ch.reputation = { public: 50, ecurie: typeof ch.confiance === 'number' ? ch.confiance : 50, sponsors: 50 };
+  ch.reputation.ecurie = Math.max(0, Math.min(100, ch.reputation.ecurie + pas));
+  ch.confiance = ch.reputation.ecurie;
+  return pas;
 }
 
 // les rivaux du joueur (l'interview d'après course, CLAUDE.md « Les rivaux se souviennent ») : rivalites[k] vrai si le pilote k de la
@@ -202,6 +276,7 @@ function pasCourseIA(e, dt, conduireJoueur) {
     if (p.course.etat === 'finie') { p.arrivee = e.temps; arrives.push(p); }
   }
   compterDepassements(e, enCourse);
+  if (R.CONSIGNES_ACTIVES) majConsignes(e);   // les consignes d'équipe (au plus une par course)
   // arrivés au même pas : le plus avancé d'abord
   arrives.sort((a, b) => b.course.progression - a.course.progression);
   for (const p of arrives) p.place = ++e.arrives;
@@ -351,7 +426,8 @@ function simulerCourse(circuit, nbVoitures, nbTours, graine) {
     dureeMs: performance.now() - t0,
     depassements: e.depassements,
     grille: e.grille,
-    final: classementFinal(e).map(x => e.pilotes[x.k].numero),   // les numéros dans l'ordre du classement final (pénalités comprises)
+    final: classementFinal(e).map(x => e.pilotes[x.k].numero),
+    consigne: e.consigne || null,   // la consigne d'équipe de la course (majConsignes), null sans consigne   // les numéros dans l'ordre du classement final (pénalités comprises)
     voitures: e.pilotes.map(p => ({
       numero: p.numero, rythme: p.rythme, place: p.place, fini: p.arrivee !== null,
       temps: p.arrivee !== null ? tempsTotal(p.course) : null, meilleurTour: p.course.meilleurTour,

@@ -116,6 +116,7 @@ function lancerCourse(nbTours) {
     JEU.plateau = creerCourseIA(CIRCUIT, JEU.ia, nbTours, Number(PARAMETRES.get('graine')) || 1, JEU.championnat ? null : JEU.carte, JEU.contre);
     if (JEU.championnat) { CHAMPIONNAT.appliquerNiveaux(JEU.championnat, JEU.plateau); if (JEU.carte) donnerCarte(JEU.plateau, JEU.carte); }
     if (JEU.championnat) poserRivalites(JEU.plateau, JEU.championnat.pilotes.map(q => !!(q && q.rivalite)));   // les rivaux de l'interview (ia.js, Codeur 1)
+    if (JEU.championnat) JEU.plateau.ecuries = JEU.championnat.pilotes.map(q => q ? q.ecurie : null);   // les écuries, pour les consignes d'équipe (simulation.js, Codeur 1)
     suivre(JEU.contre ? JEU.ia : 0);   // contre les IA : la caméra suit le joueur
     appliquerCaracteres();
     if (JEU.contre) armerFeux(JEU.plateau.pilotes, Number(PARAMETRES.get('graine')) || 1);   // les feux de départ
@@ -761,6 +762,7 @@ function repondreInterview(ton) {
 function finirInterview() {
   if (JEU.ecran !== 'interview' || !JEU.lignesGP) return;
   const lignes = JEU.lignesGP, moi = lignes.find(l => l.k === JEU.ia);
+  if (JEU.plateau) appliquerConsigne(JEU.championnat, JEU.plateau.consigne);   // la consigne d'équipe suivie ou ignorée : la confiance de l'écurie (Codeur 1)
   CHAMPIONNAT.finirGrandPrix(JEU.championnat, lignes);
   JEU.grandPrixFini = true;
   JEU.interview = null;
