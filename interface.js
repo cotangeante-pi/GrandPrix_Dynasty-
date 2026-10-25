@@ -377,13 +377,26 @@ const INTERFACE = (function () {
     $('casqueCouleursTexte').textContent = texte('casqueCouleurs');
     const motif = $('casqueMotif');
     motif.textContent = '';
-    for (const m of REGLAGES.CASQUE_MOTIFS) { const o = document.createElement('option'); o.value = m; o.textContent = texte('motif_' + m); motif.appendChild(o); }
+    optionsMotifs(motif);
     motif.value = c.motif;
     for (let i = 0; i < 3; i++) $('casqueC' + (i + 1)).value = '#' + c.couleurs[i].toString(16).padStart(6, '0');
   }
 
   function lireCasque() {
     return CASQUE.creer($('casqueMotif').value, [1, 2, 3].map(i => parseInt($('casqueC' + i).value.slice(1), 16)));
+  }
+
+  // la liste des motifs d'un éditeur de casque : ceux de départ, puis ceux à débloquer (casque.js) ; un motif pas encore débloqué est
+  // grisé, avec sa condition (« Couronne — 🔒 un titre »)
+  function optionsMotifs(select) {
+    const debloques = SAUVEGARDE.motifs();
+    select.textContent = '';
+    for (const m of CASQUE.tousLesMotifs()) {
+      const o = document.createElement('option'), ok = CASQUE.permis(m, debloques);
+      o.value = m; o.disabled = !ok;
+      o.textContent = texte('motif_' + m) + (ok ? '' : ' — 🔒 ' + texte('deblocage_' + REGLAGES.CASQUE_DEBLOCAGES[m]).replace('{n}', REGLAGES.CASQUE_PODIUMS_DEBLOCAGE));
+      select.appendChild(o);
+    }
   }
 
   // casqueSeul : l'écran ne montre que le casque (« Mon casque » depuis le paddock)
@@ -1152,7 +1165,7 @@ const INTERFACE = (function () {
         couleurs.appendChild(b);
       }
       choisirCouleurDeux(i, j.couleur);
-      options('deuxMotif' + i, R.CASQUE_MOTIFS, m => texte('motif_' + m));
+      optionsMotifs($('deuxMotif' + i));
       $('deuxMotif' + i).value = j.casque.motif;
       ['a', 'b', 'c'].forEach((x, k) => { $('deuxCasque' + i + x).value = hex(j.casque.couleurs[k]); });
       majIconeDeux(i);
@@ -1210,7 +1223,7 @@ const INTERFACE = (function () {
     nom.addEventListener('input', () => { $('tournoiErreur').textContent = ''; });
     const icone = document.createElement('span'); icone.className = 'tournoiIcone';
     const motif = document.createElement('select'); motif.className = 'tournoiMotif';
-    for (const m of REGLAGES.CASQUE_MOTIFS) { const o = document.createElement('option'); o.value = m; o.textContent = texte('motif_' + m); motif.appendChild(o); }
+    optionsMotifs(motif);
     motif.value = j.casque.motif;
     const couleurs = [0, 1, 2].map(k => { const c = document.createElement('input'); c.type = 'color'; c.className = 'tournoiCouleur'; c.value = hex(j.casque.couleurs[k]); return c; });
     const maj = () => { icone.textContent = ''; icone.append(CASQUE.icone(casqueLigne(li), REGLAGES.CASQUE_ICONE + 6)); };

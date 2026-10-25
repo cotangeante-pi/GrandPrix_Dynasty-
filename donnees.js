@@ -331,6 +331,12 @@ const REGLAGES = {
   AIDE_CLIGNOTE_APRES: 3,       // s : sur la grille, sans aucune touche pendant ce temps, l'aide « ↑ » clignote
   // le casque du pilote (casque.js) : un motif et trois couleurs ; les rivaux tirent le leur avec la graine du championnat
   CASQUE_MOTIFS: ['uni', 'bandes', 'etoile', 'flammes', 'damier', 'eclair'],
+  // les motifs à débloquer par des exploits de carrière (casque.js : conditions) ; jamais de la vitesse, seulement un dessin ; gardés à
+  // la racine de la sauvegarde (SAUVEGARDE.motifs) : ils survivent à une nouvelle carrière. Le motif → sa condition :
+  // victoire (une victoire), titre (un titre), podiums (CASQUE_PODIUMS_DEBLOCAGE podiums), duel (une saison gagnée contre son coéquipier),
+  // domicile (gagner son Grand Prix à domicile ou sa course de cœur)
+  CASQUE_DEBLOCAGES: { chevrons: 'victoire', couronne: 'titre', zigzag: 'podiums', diagonale: 'duel', coeur: 'domicile' },
+  CASQUE_PODIUMS_DEBLOCAGE: 10,
   CASQUE_PALETTE: [0xd8262e, 0xf2c230, 0x2fa84f, 0xf07d1a, 0x8e44ad, 0x1abc9c, 0xecf0f1, 0x34495e, 0xe84393, 0x1f6fe0, 0x111111, 0xffffff],
   CASQUE_NEUTRE: { motif: 'uni', couleurs: [0xdfe3ea, 0xdfe3ea, 0x34495e] },   // « Toi » avant la création, les voitures sans pilote
   CASQUE_ESSAIS_MAX: 200,       // tirages pour trouver un casque que personne n'a

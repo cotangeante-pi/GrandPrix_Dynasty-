@@ -760,6 +760,7 @@ function finirInterview() {
   if (JEU.ecran !== 'interview' || !JEU.lignesGP) return;
   const lignes = JEU.lignesGP, moi = lignes.find(l => l.k === JEU.ia);
   CHAMPIONNAT.finirGrandPrix(JEU.championnat, lignes);
+  SAUVEGARDE.debloquerMotifs(CASQUE.conditionsRemplies(JEU.championnat));   // les motifs de casque gagnés (victoire, podiums, domicile), à la racine de la sauvegarde
   JEU.grandPrixFini = true;
   JEU.interview = null;
   JEU.lignesGP = null;
@@ -828,6 +829,7 @@ function montrerFinSaison() {
   const ch = JEU.championnat;
   if (ch.retraite) { montrerRetraite(); return; }
   const b = SAISONS.terminerSaison(ch);
+  SAUVEGARDE.debloquerMotifs(CASQUE.conditionsRemplies(ch));   // les motifs de casque gagnés en fin de saison (titre, duel)
   // la cérémonie du champion (une fois par saison, avant le classement final) : le joueur champion → le podium, « CHAMPION DU
   // MONDE » et les confettis ; un rival → un écran plus court ; gardée dans l'historique de la saison (pas deux fois au rechargement)
   const close = ch.saisons[ch.saisons.length - 1];

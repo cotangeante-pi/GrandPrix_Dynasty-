@@ -90,7 +90,7 @@ const DEUX_JOUEURS = (function () {
   // (SAUVEGARDE.deux) : { joueurs: [{ nom, couleur, casque }, …] (joueur 1, joueur 2), circuit, tours, ia, niveau, courses (le
   // nombre de courses lancées : la graine de la suivante), rivalite: { noms: [a, b], score: [x, y] } ou null }
   const couleurValide = c => R.DEUX_COULEURS_CHOIX.includes(c);
-  const casqueValide = c => !!c && typeof c === 'object' && R.CASQUE_MOTIFS.includes(c.motif) && Array.isArray(c.couleurs) && c.couleurs.length === 3 && c.couleurs.every(x => Number.isInteger(x) && x >= 0 && x <= 0xffffff);
+  const casqueValide = c => !!c && typeof c === 'object' && (typeof CASQUE !== 'undefined' ? CASQUE.tousLesMotifs() : R.CASQUE_MOTIFS).includes(c.motif) && Array.isArray(c.couleurs) && c.couleurs.length === 3 && c.couleurs.every(x => Number.isInteger(x) && x >= 0 && x <= 0xffffff);
   const nomPropre = n => typeof n === 'string' ? n.trim().slice(0, R.NOM_LONGUEUR_MAX) : '';
 
   // des réglages complets à partir de ce qui est sauvegardé (null, abîmé ou d'une ancienne version : chaque champ manquant

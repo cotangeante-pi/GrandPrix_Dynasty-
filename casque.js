@@ -7,6 +7,32 @@
 const CASQUE = (function () {
   const R = REGLAGES;
 
+  // tous les motifs : ceux de départ (CASQUE_MOTIFS, les seuls tirés pour les rivaux) puis ceux à débloquer (CASQUE_DEBLOCAGES)
+  function tousLesMotifs() {
+    return R.CASQUE_MOTIFS.concat(Object.keys(R.CASQUE_DEBLOCAGES));
+  }
+
+  // --- les déblocages (CLAUDE.md « Le casque du pilote ») : les conditions remplies par la carrière en cours (ch : le championnat) ;
+  // renvoie les motifs gagnés. Jamais de la vitesse : un motif n'est qu'un dessin
+  function conditionsRemplies(ch) {
+    const j = ch && Array.isArray(ch.pilotes) ? ch.pilotes.find(p => p.humain) : null;
+    if (!j) return [];
+    const s = j.stats || {}, faits = {
+      victoire: (s.victoires || 0) >= 1,
+      titre: (s.titres || 0) >= 1,
+      podiums: (s.podiums || 0) >= R.CASQUE_PODIUMS_DEBLOCAGE,
+      // une saison gagnée contre son coéquipier : l'historique compact (saisons.js) garde [k, qualifs joueur, qualifs coéquipier, courses joueur, courses coéquipier]
+      duel: (ch.saisons || []).some(x => Array.isArray(x.duel) && x.duel[1] + x.duel[3] > x.duel[2] + x.duel[4]),
+      domicile: !!(ch.carriere && ch.carriere.domicile === 1),
+    };
+    return Object.keys(R.CASQUE_DEBLOCAGES).filter(m => faits[R.CASQUE_DEBLOCAGES[m]]);
+  }
+
+  // le motif m est-il permis ? ceux de départ toujours ; les autres s'ils sont dans la liste des débloqués
+  function permis(m, debloques) {
+    return R.CASQUE_MOTIFS.includes(m) || (debloques || []).includes(m);
+  }
+
   function creer(motif, couleurs) {
     return { motif, couleurs: couleurs.slice(0, 3) };
   }
@@ -23,7 +49,7 @@ const CASQUE = (function () {
 
   // un casque valide ? (motif connu, trois couleurs entières)
   function valide(c) {
-    return !!c && typeof c === 'object' && R.CASQUE_MOTIFS.includes(c.motif) && Array.isArray(c.couleurs) && c.couleurs.length === 3 && c.couleurs.every(x => Number.isInteger(x) && x >= 0 && x <= 0xffffff);
+    return !!c && typeof c === 'object' && tousLesMotifs().includes(c.motif) && Array.isArray(c.couleurs) && c.couleurs.length === 3 && c.couleurs.every(x => Number.isInteger(x) && x >= 0 && x <= 0xffffff);
   }
 
   // un casque tiré avec hasard() (l'appelant choisit la graine), jamais une des clés déjà prises ; la première couleur
@@ -101,6 +127,28 @@ const CASQUE = (function () {
       ctx.lineTo(x + t, y + t * 0.48); for (let i = 6; i >= 0; i--) ctx.lineTo(x + t * i / 6, y + t * (i % 2 ? 0.73 : 0.48));
       ctx.closePath(); ctx.fill();
       ctx.fillStyle = c3; ctx.fillRect(x, y + t * 0.88, t, t * 0.12);
+    } else if (m === 'chevrons') {   // (débloqué : une victoire)
+      for (const dy of [0.22, 0.5]) { ctx.beginPath(); ctx.moveTo(x, y + t * dy); ctx.lineTo(x + t / 2, y + t * (dy + 0.2)); ctx.lineTo(x + t, y + t * dy); ctx.lineTo(x + t, y + t * (dy + 0.12)); ctx.lineTo(x + t / 2, y + t * (dy + 0.32)); ctx.lineTo(x, y + t * (dy + 0.12)); ctx.closePath(); ctx.fill(); }
+      ctx.fillStyle = c3; ctx.fillRect(x, y + t * 0.88, t, t * 0.12);
+    } else if (m === 'couronne') {   // (débloqué : un titre)
+      ctx.beginPath(); ctx.moveTo(x + t * 0.15, y + t * 0.7); ctx.lineTo(x + t * 0.15, y + t * 0.3); ctx.lineTo(x + t * 0.33, y + t * 0.5); ctx.lineTo(x + t * 0.5, y + t * 0.22);
+      ctx.lineTo(x + t * 0.67, y + t * 0.5); ctx.lineTo(x + t * 0.85, y + t * 0.3); ctx.lineTo(x + t * 0.85, y + t * 0.7); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = c3; ctx.fillRect(x + t * 0.15, y + t * 0.62, t * 0.7, t * 0.08);
+    } else if (m === 'zigzag') {   // (débloqué : des podiums)
+      ctx.beginPath(); ctx.moveTo(x, y + t * 0.4);
+      for (let i = 0; i <= 10; i++) ctx.lineTo(x + t * i / 10, y + t * (i % 2 ? 0.28 : 0.4));
+      for (let i = 10; i >= 0; i--) ctx.lineTo(x + t * i / 10, y + t * (i % 2 ? 0.48 : 0.6));
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = c3; ctx.fillRect(x, y + t * 0.7, t, t * 0.08);
+    } else if (m === 'diagonale') {   // (débloqué : une saison gagnée contre son coéquipier)
+      ctx.beginPath(); ctx.moveTo(x, y + t); ctx.lineTo(x + t, y); ctx.lineTo(x + t, y + t); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = c3; ctx.lineWidth = t * 0.08; ctx.beginPath(); ctx.moveTo(x, y + t); ctx.lineTo(x + t, y); ctx.stroke();
+    } else if (m === 'coeur') {   // (débloqué : gagner à domicile)
+      const cx = x + t / 2, cy = y + t * 0.5, k = t * 0.2;
+      ctx.beginPath(); ctx.moveTo(cx, cy + k * 1.2);
+      ctx.bezierCurveTo(cx - k * 2, cy - k * 0.2, cx - k * 0.9, cy - k * 1.6, cx, cy - k * 0.5);
+      ctx.bezierCurveTo(cx + k * 0.9, cy - k * 1.6, cx + k * 2, cy - k * 0.2, cx, cy + k * 1.2); ctx.fill();
+      ctx.fillStyle = c3; ctx.fillRect(x, y + t * 0.88, t, t * 0.12);
     } else {   // uni : le fond, un simple liseré de la troisième couleur
       ctx.fillStyle = c3; ctx.fillRect(x, y + t * 0.9, t, t * 0.1);
     }
@@ -126,5 +174,5 @@ const CASQUE = (function () {
     return c;
   }
 
-  return { creer, neutre, cle, valide, tirer, completer, doublons, dessiner, icone };
+  return { tousLesMotifs, conditionsRemplies, permis, creer, neutre, cle, valide, tirer, completer, doublons, dessiner, icone };
 })();
