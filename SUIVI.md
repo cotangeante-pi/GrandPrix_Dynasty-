@@ -83,6 +83,8 @@ Note du Chef session-5b (2026-10-23) : les lignes 18 à 19b ne s'additionnaient 
 
 ## À essayer par le propriétaire
 
+- **Le zip pour Poki** (tour 30c) : `python3 tests/paquet.py` fabrique `dist/grand-prix-dynasty.zip` (400 Ko) ; à envoyer sur **inspector.poki.dev** pour le vrai test (le Chef ne peut pas le faire).
+- **Le volant en vue cockpit** : en course, touche C jusqu'au cockpit.
 - **L'aileron** (tour 29c) : au championnat, « Garage » → « Aileron » : la carte de la prochaine course et le curseur (bas = vitesse de pointe, haut = virages), aucun conseil. Dire : ça se sent ? (les IA règlent aussi leur aileron, avec les mêmes effets).
 - **L'arbre de la dynastie** : au paddock, après une relève.
 - **Les pneus et l'arrêt au stand** (tour 26) : `index.html?course=12&ia=9&joueur=1&pneus=1&circuit=technique` : le message te dit quand t'arrêter ; entre dans la voie (80 km/h), arrête-toi dans la zone, pneus neufs ; les IA s'arrêtent aussi. Dire : l'usure se sent ? l'arrêt (4 s) est trop long ? Ton accord = on active les pneus par défaut.
