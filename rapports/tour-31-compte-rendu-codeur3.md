@@ -80,3 +80,22 @@ Réévalue.
 - **Résultat : aucun texte français trouvé dans ces écrans.** Aucun texte n'a eu besoin d'aller dans `textes.js`.
 - **Textes en dur hors de `textes.js`**, dans les fichiers des Codeurs 1 et 2 (pas corrigés, comme demandé) : `principal.js:1505`, la ligne du compteur `?debug=1` (« i/s · triangles · appels », puis `mesuresConduite()` avec « dérive », « voiture … appels »). C'est un affichage de mise au point, hors du jeu. Rien d'autre trouvé (recherche des `textContent`, `title`, `placeholder`, `fillText` écrits en dur).
 - Ce que je n'ai pas audité : la vue « télé » et le menu pause d'une course ordinaire. Ils utilisent les mêmes textes que les écrans vérifiés.
+
+## Fin du tour 31 : le public à domicile et les décors des 12 tracés (calcul pur, rien de 3D) — commit `COMMIT`, passage PASSAGE
+1. **Le public à domicile** (`decor-public.js`, `DECOR_PUBLIC`) :
+   - `DECOR_PUBLIC.tirer({ graine, circuit, joueur }, nombre)` donne une couleur par spectateur (`couleurs`, à lire par instance), et `supporters` (true = aux couleurs du joueur) ;
+   - à son Grand Prix à domicile (sa course de cœur), exactement `PUBLIC_DOMICILE_PART` (0,4) des spectateurs portent les couleurs de son pays, mélangés dans le public ; les autres, et tout le public ailleurs, portent les couleurs des 10 écuries ;
+   - `PUBLIC_BANDEROLES` (6) banderoles à domicile, une sur deux « ALLEZ 27 ! » / « GO 27! », l'autre « ALLEZ ALEX ! » / « GO ALEX! », aux couleurs du pays (textes `banderoleNumero` et `banderoleNom` dans `textes.js`) ; aucune ailleurs ;
+   - `DECOR_PUBLIC.pourGrandPrix(ch, circuit, nombre)` fait la même chose pour un championnat (le joueur est le pilote humain) ;
+   - dans `donnees.js`, à côté de `PAYS` : `PAYS_COULEURS` (les couleurs du drapeau des 31 pays), `PUBLIC_DOMICILE_PART`, `PUBLIC_BANDEROLES`, `GRAINE_PUBLIC` ;
+   - la même graine donne le même public. Le tirage a sa propre suite (`ALEATOIRE.suite(graine)`, ajoutée à `aleatoire.js`) : construire le public pendant une course semée ne change pas son hasard (testé).
+   - 6 tests moteur.
+2. **Les décors des 12 tracés** (`decors-officiels.js`, `DECORS_OFFICIELS`, des données seulement, rien de branché) :
+   - pour chaque tracé : le lieu en une phrase, l'horizon, le ciel (heure, couleurs, nuages), la lumière (soleil, hauteur, ambiance, projecteurs), le brouillard, le sol ;
+   - la tribune principale face aux stands, sur la ligne ; le bâtiment des stands derrière la voie des stands ;
+   - une tribune à chaque virage célèbre des `reperes` (côté extérieur du virage quand c'est possible) ; sauf le tunnel de Monoco ;
+   - du public debout en face ; les zones de paysage : immeubles, arbres, sapins, champs, collines, dunes, port, lac, eau, grande roue, hôtel ;
+   - Singapura de nuit sous les projecteurs, Monoco avec son port, Spaa dans les sapins et la brume, Monzo dans le parc, Bahrayn au crépuscule dans le désert, Yas Marino au couchant avec la marina et l'hôtel, Melbourn Park autour de son lac, Montréol avec le bassin, Suzuko avec la grande roue ;
+   - `DECOR_PUBLIC.placer(circuit, decor)` donne la place de chaque objet : `s` (son milieu, le long de la piste), `longueur`, `d0` et `d1` (signés, en travers) ;
+   - les positions ont été cherchées par un outil (scratchpad), puis écrites telles quelles dans le fichier.
+   - **Le test** (`tests/decors.html`, ajouté aux annexes) : sur chaque circuit, chaque objet est découpé en points (tous les 4 m le long, tous les 3 m en travers). Aucun point n'est sur la piste ni dans la voie des stands, et chacun est au-delà de la barrière (`DISTANCE_BARRIERE`) par rapport à TOUT le tracé, pas seulement à son virage. Le bâtiment des stands reste à `DECOR_MARGE_STANDS` derrière la voie, sur sa longueur.

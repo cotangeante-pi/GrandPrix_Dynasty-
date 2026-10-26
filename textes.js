@@ -87,6 +87,8 @@ const TEXTES = {
     pays_nl: 'Netherlands', pays_at: 'Austria', pays_pt: 'Portugal', pays_mc: 'Monaco', pays_se: 'Sweden', pays_fi: 'Finland', pays_dk: 'Denmark', pays_no: 'Norway',
     pays_pl: 'Poland', pays_us: 'United States', pays_mx: 'Mexico', pays_br: 'Brazil', pays_ar: 'Argentina', pays_jp: 'Japan', pays_cn: 'China', pays_au: 'Australia',
     pays_nz: 'New Zealand', pays_sg: 'Singapore', pays_ae: 'United Arab Emirates', pays_bh: 'Bahrain', pays_za: 'South Africa', pays_in: 'India', pays_ma: 'Morocco',
+    // les banderoles du public au Grand Prix à domicile (decor-public.js)
+    banderoleNumero: 'GO {numero}!', banderoleNom: 'GO {nom}!',
     // le duel contre le coéquipier (Codeur 3)
     duelTitre: 'Teammate duel', duelScore: 'You {a} – {b} {nom}', duelDetail: '(qualifying {qa}–{qb}, races {ca}–{cb})',
     duelTour: 'Your teammate: ▲ ahead of you, ▼ behind you',
@@ -332,6 +334,8 @@ const TEXTES = {
     pays_nl: 'Pays-Bas', pays_at: 'Autriche', pays_pt: 'Portugal', pays_mc: 'Monaco', pays_se: 'Suède', pays_fi: 'Finlande', pays_dk: 'Danemark', pays_no: 'Norvège',
     pays_pl: 'Pologne', pays_us: 'États-Unis', pays_mx: 'Mexique', pays_br: 'Brésil', pays_ar: 'Argentine', pays_jp: 'Japon', pays_cn: 'Chine', pays_au: 'Australie',
     pays_nz: 'Nouvelle-Zélande', pays_sg: 'Singapour', pays_ae: 'Émirats arabes unis', pays_bh: 'Bahreïn', pays_za: 'Afrique du Sud', pays_in: 'Inde', pays_ma: 'Maroc',
+    // les banderoles du public au Grand Prix à domicile (decor-public.js)
+    banderoleNumero: 'ALLEZ {numero} !', banderoleNom: 'ALLEZ {nom} !',
     // le duel contre le coéquipier (Codeur 3)
     duelTitre: 'Duel contre ton coéquipier', duelScore: 'Toi {a} – {b} {nom}', duelDetail: '(qualifs {qa}–{qb}, courses {ca}–{cb})',
     duelTour: 'Ton coéquipier : ▲ devant toi, ▼ derrière toi',

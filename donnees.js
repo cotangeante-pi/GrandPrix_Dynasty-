@@ -357,6 +357,25 @@ const REGLAGES = {
   // le pays de chaque circuit (celui du vrai circuit dont il s'inspire, CLAUDE.md « Le Grand Prix à domicile ») : si le joueur
   // vient d'un de ces pays, ce circuit est son Grand Prix à domicile ; sinon il choisit sa course de cœur parmi les 12
   CIRCUITS_PAYS: { monoco: 'mc', silverstoun: 'gb', monzo: 'it', spaa: 'be', suzuko: 'jp', interlagas: 'br', montreol: 'ca', melbourn: 'au', barcelana: 'es', bahrayn: 'bh', singapura: 'sg', yasmarino: 'ae' },
+  // les couleurs du drapeau de chaque pays de PAYS (decor-public.js, étape 10) : le public à domicile les porte
+  PAYS_COULEURS: {
+    fr: [0x0055a4, 0xffffff, 0xef4135], be: [0x111111, 0xfdda24, 0xef3340], ch: [0xda291c, 0xffffff], ca: [0xd80621, 0xffffff],
+    gb: [0x012169, 0xffffff, 0xc8102e], it: [0x009246, 0xffffff, 0xce2b37], es: [0xaa151b, 0xf1bf00], de: [0x111111, 0xdd0000, 0xffce00],
+    nl: [0xae1c28, 0xffffff, 0x21468b], at: [0xc8102e, 0xffffff], pt: [0x046a38, 0xda291c, 0xffe900], mc: [0xce1126, 0xffffff],
+    se: [0x006aa7, 0xfecc00], fi: [0xffffff, 0x002f6c], dk: [0xc8102e, 0xffffff], no: [0xba0c2f, 0xffffff, 0x00205b],
+    pl: [0xffffff, 0xdc143c], us: [0xb22234, 0xffffff, 0x3c3b6e], mx: [0x006847, 0xffffff, 0xce1126], br: [0x009c3b, 0xffdf00, 0x002776],
+    ar: [0x74acdf, 0xffffff, 0xf6b40e], jp: [0xffffff, 0xbc002d], cn: [0xde2910, 0xffde00], au: [0x00008b, 0xffffff, 0xff0000],
+    nz: [0x00247d, 0xffffff, 0xcc142b], sg: [0xef3340, 0xffffff], ae: [0x00732f, 0xffffff, 0x111111, 0xff0000], bh: [0xce1126, 0xffffff],
+    za: [0x007749, 0xffb612, 0xde3831, 0x001489], in: [0xff9933, 0xffffff, 0x138808], ma: [0xc1272d, 0x006233],
+  },
+  // le public des tribunes (decor-public.js, CLAUDE.md « Le Grand Prix à domicile ») : au Grand Prix à domicile du joueur (sa course
+  // de cœur), cette part des spectateurs porte les couleurs de son pays ; les autres, et tout le public ailleurs, celles des écuries
+  PUBLIC_DOMICILE_PART: 0.4,
+  PUBLIC_BANDEROLES: 6,         // les banderoles à domicile (« ALLEZ 27 ! » et le nom du joueur, une sur deux)
+  GRAINE_PUBLIC: 14000,         // le public est tiré avec la graine du championnat + ce nombre + le numéro du circuit (une suite à part)
+  // les décors des 12 circuits (decors-officiels.js) : rien à moins de cette distance du bord de la voie des stands (m), sauf le bâtiment
+  // des stands lui-même, qui reste derrière la voie ; le reste du décor est au-delà de la barrière (DISTANCE_BARRIERE)
+  DECOR_MARGE_STANDS: 2,
 
   // le robot d'essai (préparation des IA)
   ROBOT_VISEE_MIN: 12,          // m : il vise un point au moins à cette distance devant lui
