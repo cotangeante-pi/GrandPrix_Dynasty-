@@ -35,3 +35,12 @@ Commit 77dece2 (le travail + fusion de main), passage GitHub 40412043977 : les 1
 Tests : moteur (la file : meilleur tour, tour plus lent ignoré, pénalité, stands, pas deux fois le même fait, un à la fois, la durée, la file bornée, les textes) ; écrans (?course=3&ia=5&joueur=1&robot=1&pneus=1&test=hudcourse, 1280 et 960 : chaque point de la minicarte à moins de 2 m de sa voiture ; la jauge de pneus qui baisse en roulant ; un meilleur tour qui apparaît en bandeau puis s'en va ; rien ne se recouvre : minicarte, chrono, tour, compteur, pneus, radar, message). Captures minicarte.png, pneus-hud.png, messages.png, hud-course-960.png. Appels de dessin inchangés : ce sont des canvas 2D et du HTML, rien dans la 3D.
 À voir : la minicarte du circuit test est très allongée (le tracé est long et étroit) : petite à l'écran ; elle sera plus lisible sur les 12 vrais circuits.
 Réévalue.
+
+## Retouches (demandées par le Chef après la fusion 77dece2)
+
+Commit : bf990ef (branche codeur2) — GitHub 40413289703 : 10 travaux verts.
+
+1. **« adhérence −0,0 % »** : la ligne de perte d'adhérence n'est écrite (et visible) qu'à partir de `PNEUS_PERTE_AFFICHEE` (0,001 = 0,1 %, dans `donnees.js`) ; en dessous elle est vide et cachée. Le test `hud_course` le vérifie (texte vide sous le seuil, un chiffre non nul au-dessus, marge d'une image autour du seuil puisque le texte et l'adhérence sont lus ensemble).
+2. **messages.png** : le test ne fabrique plus de meilleur tour. Il remet les messages à zéro (`JEU.messages = null`) ; le premier message est alors le vrai meilleur tour de la course, et le test vérifie qu'il contient `INTERFACE.formatTemps` du plus petit `meilleurTour` des voitures. Capture : « n°5 : meilleur tour 1:01,650 », le meilleur tour de la course (le chrono montre celui du joueur, 1:07,467).
+
+Sur le Mac (sous le verrou) : `PAGES_FILTRE='test=hudcourse'` — PARTIE OK : ecrans, aux deux tailles.

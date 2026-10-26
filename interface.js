@@ -1428,7 +1428,10 @@ const INTERFACE = (function () {
     $('pneusTexte').textContent = texte('pneus') + ' ' + Math.round(p.reste * 100) + ' %';
     $('pneusPlein').style.width = Math.round(Math.max(0, Math.min(1, p.reste)) * 100) + '%';
     $('pneusPlein').className = p.reste < 0.3 ? 'use' : p.reste < 0.6 ? 'moyen' : '';
-    $('pneusAdherence').textContent = texte('pneusAdherence').replace('{p}', (p.perte * 100).toFixed(1).replace('.', texte('virgule')));
+    // la perte d'adhérence, seulement quand elle se voit (à partir de PNEUS_PERTE_AFFICHEE : jamais « −0,0 % »)
+    const visible = p.perte >= REGLAGES.PNEUS_PERTE_AFFICHEE;
+    $('pneusAdherence').classList.toggle('cache', !visible);
+    $('pneusAdherence').textContent = visible ? texte('pneusAdherence').replace('{p}', (p.perte * 100).toFixed(1).replace('.', texte('virgule'))) : '';
   }
   // le message de course du moment (ou null : caché)
   function majMessage(t) {

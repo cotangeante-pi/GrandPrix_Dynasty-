@@ -1103,11 +1103,14 @@ def hud_course(pg, titre, l, h):
     u1 = pg.evaluate('() => [JEU.joueur.pneus.usure, document.getElementById("pneusTexte").textContent, document.getElementById("pneusHud").classList.contains("cache")]')
     pg.evaluate('() => { BOUCLE.arreter(); BOUCLE.simuler(60); BOUCLE.demarrer(); }')
     attendre(pg, '() => document.getElementById("pneusTexte").textContent.endsWith(" " + Math.round((1 - JEU.joueur.pneus.usure) * 100) + " %")', None, 5000)
-    u2 = pg.evaluate('() => [JEU.joueur.pneus.usure, document.getElementById("pneusTexte").textContent, document.getElementById("pneusPlein").style.width, document.getElementById("pneusAdherence").textContent]')
-    t(f'{titre} : avec ?pneus=1, l’état des pneus à l’écran : la jauge baisse en roulant, et l’adhérence perdue est dite', not u1[2] and u2[0] > u1[0] and u1[1] != u2[1] and re.search(r'\d', u2[3]) is not None, str([u1, u2]))
-    # un meilleur tour fabriqué (plus rapide que tous) : son message apparaît, puis s'en va après MESSAGES_DUREE s de course
-    pg.evaluate('() => { const P = JEU.plateau.pilotes; P[0].course.meilleurTour = 40; JEU.messages.m.file = []; JEU.messages.m.actuel = null; }')
-    vu = attendre(pg, '() => !document.getElementById("messageCourse").classList.contains("cache") && /40/.test(document.getElementById("messageCourse").textContent)', None, 5000)
+    u2 = pg.evaluate('() => [JEU.joueur.pneus.usure, document.getElementById("pneusTexte").textContent, document.getElementById("pneusPlein").style.width, document.getElementById("pneusAdherence").textContent, 1 - JEU.joueur.adherence]')
+    perte = u2[4]  # lue avec le texte ; une image de retard possible, d'où la marge (0,05 % de part et d'autre du seuil)
+    t(f'{titre} : avec ?pneus=1, l’état des pneus à l’écran : la jauge baisse en roulant ; l’adhérence perdue n’est écrite qu’à partir de 0,1 % (jamais « −0,0 % »)', not u1[2] and u2[0] > u1[0] and u1[1] != u2[1] and (u2[3] == '' or re.search(r'[1-9]', u2[3]) is not None) and (perte < 0.0015 or u2[3] != '') and (perte >= 0.0005 or u2[3] == ''), str([u1, u2, perte]))
+    # le vrai meilleur tour de la course (les voitures ont déjà bouclé des tours) : les messages repartent de zéro, et le premier
+    # dit ce meilleur tour, le même temps que celui de la course ; puis il s'en va après MESSAGES_DUREE s de course
+    pg.evaluate('() => { JEU.messages = null; }')
+    meilleur = pg.evaluate('() => { const P = JEU.plateau.pilotes; let b = null; for (const p of P) if (p.course.meilleurTour !== null && (b === null || p.course.meilleurTour < b)) b = p.course.meilleurTour; return b === null ? null : INTERFACE.formatTemps(b); }')
+    vu = meilleur is not None and attendre(pg, 't => !document.getElementById("messageCourse").classList.contains("cache") && document.getElementById("messageCourse").textContent.includes(t)', meilleur, 5000)
     texte_msg = pg.evaluate('() => document.getElementById("messageCourse").textContent')
     bm, bh, bc, bt, bp, br = [pg.evaluate('s => { const e = document.querySelector(s); if (!e || e.classList.contains("cache") || getComputedStyle(e).display === "none") return null; const r = e.getBoundingClientRect(); return [r.left, r.top, r.right, r.bottom]; }', s) for s in ['#minicarte', '#hudCourse', '#classement', '#tableau', '#pneusHud', '#radar']]
     croise = lambda a, b: a is not None and b is not None and a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]
@@ -1122,7 +1125,7 @@ def hud_course(pg, titre, l, h):
     else:
         pg.screenshot(path=os.path.join(CAPTURES, 'hud-course-960.png'))
     pg.evaluate('() => { BOUCLE.arreter(); BOUCLE.simuler(REGLAGES.MESSAGES_DUREE * 3 + 1); BOUCLE.demarrer(); }')
-    t(f'{titre} : le message s’en va après MESSAGES_DUREE s', attendre(pg, '() => !/40/.test(document.getElementById("messageCourse").textContent) || document.getElementById("messageCourse").classList.contains("cache")', None, 5000), pg.evaluate('() => document.getElementById("messageCourse").textContent'))
+    t(f'{titre} : le message s’en va après MESSAGES_DUREE s', attendre(pg, 't => !document.getElementById("messageCourse").textContent.includes(t) || document.getElementById("messageCourse").classList.contains("cache")', meilleur, 5000), pg.evaluate('() => document.getElementById("messageCourse").textContent'))
 
 def course_joueur(pg, titre):
     # le joueur conduit sa voiture au clavier, au milieu de 9 IA ; la caméra le suit, Tab ne change rien
