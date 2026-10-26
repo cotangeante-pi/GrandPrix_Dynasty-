@@ -141,7 +141,7 @@ function lancerCourse(nbTours) {
   finirAttente();
   PODIUM3D.cacher();
   // la découverte : pas de qualification, le joueur au milieu de la grille (dès que la carte des IA a donné leurs temps)
-  if (JEU.decouverte) { JEU.aides = { gaz: false, direction: false, frein: false, clignote: false }; placerDecouverte(); JEU.ecran = 'course'; INTERFACE.montrer('course'); return; }
+  if (JEU.decouverte) { JEU.aides = { gaz: false, direction: false, frein: false, clignote: false }; placerDecouverte(); entrerGrille(); return; }
   // le mode 2 joueurs : pas de qualification (la grille est tirée au sort), les feux tout de suite
   if (JEU.deux) { JEU.ecran = 'course'; INTERFACE.montrer('course'); return; }
   // contre les IA : d'abord la qualification du joueur (un tour, ou passer) ; la course attend
@@ -444,6 +444,31 @@ function partirEnCourse() {
   if (!JEU.qualif || JEU.qualif.etat !== 'resultat') return;
   JEU.qualif = null;
   JEU.fantome = null;   // jamais de fantôme en course
+  entrerGrille();
+}
+
+// --- la grille vue d'en haut, avant les feux (CLAUDE.md « L'interface » : « le départ : les feux, et la grille vue d'en haut »)
+// : GRILLE_DUREE s de survol, puis la course (les feux) ; une touche ou un clic la passe ; jamais à deux ni au tournoi ; pendant le
+// survol, la physique attend (JEU.ecran n'est pas « course » : les feux ne sont pas encore allumés)
+function entrerGrille() {
+  const oui = JEU.plateau && JEU.contre && !JEU.deux && !JEU.tournoi && (!JEU.decouverte || REGLAGES.GRILLE_DECOUVERTE);
+  if (!oui) { JEU.ecran = 'course'; INTERFACE.montrer('course'); return; }
+  JEU.grille = { t: 0 };
+  JEU.ecran = 'grille';
+  INTERFACE.montrer('grille');
+}
+
+function majGrille(dt) {
+  if (JEU.ecran !== 'grille' || !JEU.grille) return;
+  JEU.grille.t += dt;
+  CAMERA.grille(JEU.plateau.pilotes.map(p => p.v), JEU.grille.t / REGLAGES.GRILLE_DUREE);
+  if (JEU.grille.t >= REGLAGES.GRILLE_DUREE) finirGrille();
+}
+
+function finirGrille() {
+  if (JEU.ecran !== 'grille') return;
+  JEU.grille = null;
+  CAMERA.forcer(CAMERA.mode);   // la caméra de course repart de derrière la voiture
   JEU.ecran = 'course';
   INTERFACE.montrer('course');
 }
@@ -454,7 +479,7 @@ function partirEnCourse() {
 function creerEnregistrement() {
   const voitures = JEU.plateau ? JEU.plateau.pilotes.map(p => p.v) : [JEU.joueur];
   const joueur = JEU.plateau ? (JEU.contre ? JEU.ia : null) : 0;
-  return { enr: creerEnregistreur(voitures.length, { joueur }), voitures, parti: false, arrivees: new Set(), pas: 0, ms: 0 };
+  return { enr: creerEnregistreur(voitures.length, { joueur }), voitures, parti: false, arrivees: new Set(), arrets: [], pas: 0, ms: 0 };
 }
 
 // après chaque pas de physique de la course : l'instant du GO (depart), l'image, les arrivées ; ms : le temps passé (?debug=1, tests)
@@ -465,6 +490,8 @@ function enregistrerPas() {
   if (!r.parti && courseAutorise(c)) { r.parti = true; r.enr.depart(temps); }
   r.enr.enregistrer(temps, r.voitures, e && r.pas % REGLAGES_ENREGISTREUR.CLASSEMENT_PAS === 0 ? classementCourse(e) : null);
   if (e) e.pilotes.forEach((p, k) => { if (p.arrivee !== null && !r.arrivees.has(k)) { r.arrivees.add(k); r.enr.arrivee(p.arrivee, k); } });
+  // les arrêts au stand (avec les pneus, course.js : c.arrets) : chaque arrêt fini devient un moment du résumé (lu, jamais écrit)
+  if (e) e.pilotes.forEach((p, k) => { const a = p.course.arrets; if (a && a.length > (r.arrets[k] || 0)) { for (let i = r.arrets[k] || 0; i < a.length; i++) r.enr.arret(temps, k, a[i].duree); r.arrets[k] = a.length; } });
   r.pas++;
   r.ms += performance.now() - t0;
 }
@@ -1219,7 +1246,7 @@ function majResume(dt) {
   const s = pos[RESUME.suivie(z.r, enr)] || pos[0];
   CAMERA.maj(dt, s, { u: s.vitesse });
   const b = RESUME.bandeau(RESUME.moment(z.r));
-  INTERFACE.majResume(b ? texte(b.cle).replace('{qui}', etiquetteVoiture(b.valeurs.qui)).replace('{sur}', etiquetteVoiture(b.valeurs.sur)) : '');
+  INTERFACE.majResume(b ? texte(b.cle).replace('{qui}', etiquetteVoiture(b.valeurs.qui)).replace('{sur}', etiquetteVoiture(b.valeurs.sur)).replace('{duree}', typeof b.valeurs.duree === 'number' ? b.valeurs.duree.toFixed(1).replace('.', texte('virgule')) : '') : '');
 }
 
 function quitterResume() {
@@ -1271,7 +1298,8 @@ function brancherClavier() {
       if (e.code === 'Space' && !e.repeat) JEU.remettre = true;
       if (e.code === 'Enter' && !e.repeat) passerAuPodium();
     }
-    if (e.code === 'Escape' && !e.repeat && JEU.ecran === 'resume') { quitterResume(); return; }   // le résumé vidéo : Échap ramène aux résultats
+    if (e.code === 'Escape' && !e.repeat && JEU.ecran === 'resume') { quitterResume(); return; }
+    if (JEU.ecran === 'grille' && !e.repeat) { finirGrille(); }   // la grille vue d'en haut : une touche la passe   // le résumé vidéo : Échap ramène aux résultats
     if (e.code === 'Escape' && !e.repeat) pause(JEU.ecran === 'course');
     if (e.code === 'Escape' && !e.repeat && JEU.tournoi) pauseTournoi(enTourQualif());   // le tournoi : la pause d'un tour (reprendre, abandonner)
     if (JEU.ecran === 'une' && !e.repeat) passerUne();   // n'importe quelle touche passe la une du journal
@@ -1605,6 +1633,7 @@ function demarrerJeu() {
     document.getElementById('boutonChangerResultats').textContent = texte('menuAmis');
   } else INTERFACE.preparerResultats(voirResultats, () => lancerCourse(JEU.course.nbTours), allerAuChoix);
   INTERFACE.preparerResume(montrerResume, quitterResume);
+  INTERFACE.preparerGrille(finirGrille);
   INTERFACE.preparerAmis(ouvrirDeux, ouvrirTournoi, montrerAmis);
   INTERFACE.preparerInscription(partirTournoi, montrerAmis);
   INTERFACE.preparerPauseTournoi(() => pauseTournoi(false), abandonnerTournoi);
@@ -1678,6 +1707,7 @@ function demarrerJeu() {
       if (JEU.deux) { const j2 = DEUX_JOUEURS.joueurs(JEU.plateau)[1]; CAMERA.majSeconde(dt, SCENE3D.camera2, etatAffiche(j2.v, alpha), j2.v); }
     }
     if (JEU.deux && SCENE3D.partage === apres) SCENE3D.partager(!apres);   // le podium : une seule vue
+    majGrille(dt);   // avant les feux : la grille vue d'en haut (après la caméra de course, qu'elle remplace)
     majVolant();   // le volant en vue cockpit (après la caméra : il suit son champ de vision)
     majTableau();
     INTERFACE.majCourse(JEU.course, enTourQualif() ? 'course' : JEU.ecran);   // le chrono du tour de qualification
