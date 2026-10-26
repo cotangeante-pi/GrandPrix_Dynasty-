@@ -185,7 +185,7 @@ const SAISONS = (function () {
       const part = p.age >= R.AGE_RETRAITE_MAX || (p.age >= R.AGE_RETRAITE && hasard() < R.RETRAITE_PROBABILITE);
       if (!part) continue;
       // le retraité garde un résumé compact ; un nouveau pilote prend sa place (même écurie, même case), jeune, sans nom
-      ch.retraites.push({ id: p.id, nom: p.nom, numero: p.numero, age: p.age, saison: ch.saison, courses: p.stats.courses, victoires: p.stats.victoires, podiums: p.stats.podiums, titres: p.stats.titres || 0, duel: ch.duel && ch.duel.carriere[p.id] ? ch.duel.carriere[p.id] : null });
+      ch.retraites.push({ id: p.id, nom: p.nom, numero: p.numero, casque: p.casque || null, age: p.age, saison: ch.saison, courses: p.stats.courses, victoires: p.stats.victoires, podiums: p.stats.podiums, titres: p.stats.titres || 0, duel: ch.duel && ch.duel.carriere[p.id] ? ch.duel.carriere[p.id] : null });
       numerosPris.delete(p.numero); partis.add(p.id);
       let numero = 2 + Math.floor(hasard() * 97);
       while (numerosPris.has(numero)) numero = numero % 99 + 1;

@@ -982,3 +982,8 @@ body.deux.cote #boutonSon { top: auto; bottom: 12px; right: 12px; }   /* (côte 
 #annonceMotif { position: fixed; top: 64px; left: 50%; transform: translateX(-50%); z-index: 6; display: grid; gap: 6px; padding: 12px 20px; border-radius: 10px; background: rgba(11, 15, 23, 0.92); box-shadow: 0 0 0 2px #f2c230; font: 800 20px/1.3 var(--police); color: #f2c230; cursor: pointer; }
 #annonceMotif div { display: flex; align-items: center; gap: 10px; }
 #annonceMotif .casqueIcone { width: 40px; height: 40px; }
+
+/* la photo de la une (Codeur 3, photo.js) : le canvas remplit la place de la photo, sans la déformer */
+#unePhoto { position: relative; overflow: hidden; background: none; }
+#unePhoto canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+#bilanCasque { vertical-align: -6px; margin-right: 6px; border-radius: 50%; }

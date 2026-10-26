@@ -149,6 +149,8 @@ const JOURNAL = (function () {
       c: variante('uneTexte_' + fait, avant && avant.f === fait ? avant.c : null),
       b: breves(ch, lignes).slice(0, R.JOURNAL_BREVES_MAX).map(([cle, p]) => [cle, variante(cle), p]),
       h: CHAMPIONNAT.classementPilotes(ch).map((x, i) => [x.k, x.points, i + 1]).filter(([k, , place]) => place <= R.JOURNAL_CLASSEMENT || ch.pilotes[k].humain),
+      // de quoi redessiner la photo (jamais une image) : les trois premiers (indices de pilotes), leurs écuries ce jour-là, celle du joueur
+      ph: ch.resultats[n].ordre.slice(0, 3), pe: ch.resultats[n].ordre.slice(0, 3).map(k => ch.pilotes[k].ecurie), je: ch.pilotes.find(p => p.humain).ecurie,
     };
     ALEATOIRE.semer();
     if (fait === 'titreChampion') une.t = 0;   // la une spéciale du champion : toujours « CHAMPION ! … » (la variante est tirée quand même : le reste du tirage ne bouge pas)
@@ -197,7 +199,7 @@ const JOURNAL = (function () {
     const phrase = (cle, v, p) => remplir(texte(cle)[v], p, ch, noms);
     const gp = ch.calendrier[une.g - 1];
     return {
-      nom: texte('journalNom'), grandPrix: une.g, saison: une.s, fait: une.f, speciale: une.f === 'titreChampion', circuit: nomCircuit(gp ? gp.circuit : 'test'),
+      nom: texte('journalNom'), grandPrix: une.g, saison: une.s, fait: une.f, speciale: une.f === 'titreChampion', photo: photo(une, ch), circuit: nomCircuit(gp ? gp.circuit : 'test'),
       titre: phrase('uneTitre_' + une.f, une.t, une.p), texte: phrase('uneTexte_' + une.f, une.c, une.p),
       breves: une.b.map(([cle, v, p]) => phrase(cle, v, p)),
       classement: une.h.map(([k, points, place]) => ({ place, k, nom: noms.pilote(ch.pilotes[k]), points, moi: ch.pilotes[k].humain })),
@@ -235,6 +237,27 @@ const JOURNAL = (function () {
     return { pilote: p => { const a = ancien(p); return noms.pilote(a ? Object.assign({}, p, a) : p); }, ecurie: noms.ecurie };
   }
 
+  // --- la photo de la une (tour 31) : ce que la photo montre, en calcul pur (photo.js la dessine) : le podium du Grand Prix (les trois
+  // voitures aux couleurs de leur écurie de ce jour-là, leurs casques de cette saison) ou, pour un fait du joueur, sa voiture seule.
+  // Rien d'image dans la sauvegarde : seulement les indices rangés dans la une (ph, pe, je)
+  const FAITS_VOITURE = ['record', 'duelGagne', 'duelPerdu', 'interview', 'penalite', 'serie', 'releve_fils', 'releve_fille', 'releve_protege', 'releve_protegee'];
+  function casqueAu(ch, s, k) {
+    const p = ch.pilotes[k];
+    if (!p) return null;
+    if (p.humain) {
+      const g = ch.dynastie && (ch.dynastie.generations || []).find(x => typeof x.fin === 'number' && s <= x.fin && s >= (x.debut || 1));
+      return (g && g.casque) || p.casque || null;
+    }
+    const r = (ch.retraites || []).find(x => x.id === k && typeof x.saison === 'number' && x.saison >= s);
+    return r ? (r.casque || null) : (p.casque || null);
+  }
+  function photo(une, ch) {
+    const s = typeof une.s === 'number' ? une.s : ch.saison, j = ch.pilotes.find(p => p.humain);
+    const voiture = (k, e, place) => ({ k, place, couleur: (ch.ecuries[e] || ch.ecuries[0]).couleur, casque: casqueAu(ch, s, k) });
+    if (!Array.isArray(une.ph) || FAITS_VOITURE.includes(une.f)) return { type: 'voiture', voitures: [voiture(j.id, typeof une.je === 'number' ? une.je : j.ecurie, null)] };
+    return { type: 'podium', voitures: une.ph.map((k, i) => voiture(k, une.pe[i], i + 1)) };
+  }
+
   // la une n° i de l'album, en phrases, avec les noms de sa saison (= la une du jour même)
   function rendreAlbum(ch, i, noms) {
     const u = ch.album[i];
@@ -258,5 +281,5 @@ const JOURNAL = (function () {
     return ['journalNom'].concat(R.JOURNAL_PRIORITES.flatMap(f => ['uneTitre_' + f, 'uneTexte_' + f]), BREVES);
   }
 
-  return { faits, breves, composer, ranger, rendre, remplir, cles, nbVariantes, completer, nomsAu, rendreAlbum, saisonsAlbum };
+  return { faits, breves, composer, ranger, rendre, remplir, cles, nbVariantes, completer, nomsAu, rendreAlbum, saisonsAlbum, photo };
 })();
