@@ -657,6 +657,7 @@ const REGLAGES = {
   MINICARTE_MARGE: 10, MINICARTE_TRAIT: 4, MINICARTE_POINT: 3,
   // les messages de course (messages.js) : chacun reste MESSAGES_DUREE s ; la file en garde au plus MESSAGES_FILE_MAX
   MESSAGES_DUREE: 3, MESSAGES_FILE_MAX: 4,
+  PNEUS_PERTE_AFFICHEE: 0.001, // ?pneus=1 : la perte d'adhérence n'est écrite qu'à partir de 0,1 %
   // avant les feux : la grille vue d'en haut (camera.js poseGrille ; principal.js), quelques secondes, passable d'une touche ou d'un
   // clic ; jamais à deux ni au tournoi ; GRILLE_DECOUVERTE : aussi à la course de découverte (le clic aux feux : au plus +3 s)
   GRILLE_DUREE: 2.5,            // s
