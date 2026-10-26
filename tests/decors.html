@@ -1,0 +1,71 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>tests décors des circuits officiels</title></head><body>
+<pre id="res"></pre>
+<script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));</script>
+<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../circuits.js"></script>
+<script src="../circuits-officiels-a.js"></script><script src="../circuits-officiels-b.js"></script><script src="../decors-officiels.js"></script><script src="../decor-public.js"></script>
+<script>
+// Les décors des 12 circuits officiels (decors-officiels.js, Codeur 3, étape 10), placés par DECOR_PUBLIC.placer : complets, aux
+// virages célèbres, et rien sur la piste ni dans la voie des stands (tout au-delà de la barrière, le bâtiment des stands derrière la voie)
+const L=[];let ok=0,ko=0;
+function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
+const v=(c,m)=>{if(!c)throw new Error(m||'faux');};
+function ecrire(etape){document.getElementById('res').textContent=`${etape?'EN COURS ('+etape+') ':''}RESULTAT ${ok}/${ok+ko}\n`+L.join('\n');}
+const R=REGLAGES,TRACES=Object.assign({},CIRCUITS_OFFICIELS_A,CIRCUITS_OFFICIELS_B);
+const HEURES=['jour','nuageux','brume','crepuscule','couchant','nuit'],TYPES=['immeubles','arbres','sapins','champs','collines','dunes','port','lac','eau','grandeRoue','hotel'];
+const couleur=c=>Number.isInteger(c)&&c>=0&&c<=0xffffff;
+
+// les points d'un objet placé (tous les 4 m le long, tous les 3 m en travers) : [s, d, x, z]
+function points(c,o){const res=[],nL=Math.max(1,Math.ceil(o.longueur/4)),nD=Math.max(1,Math.ceil(Math.abs(o.d1-o.d0)/3));
+  for(let a=0;a<=nL;a++){const s=((o.s-o.longueur/2+o.longueur*a/nL)%c.longueur+c.longueur)%c.longueur,i=Math.round(s/c.pas)%c.nb;
+    for(let b=0;b<=nD;b++){const d=o.d0+(o.d1-o.d0)*b/nD;res.push([s,d,c.x[i]+c.nx[i]*d,c.z[i]+c.nz[i]*d]);}}
+  return res;}
+// le plus petit écart d'un objet à l'axe de TOUTE la piste (pas seulement à son morceau : un objet ne doit pas tomber sur une autre
+// partie du tracé), par une grille des échantillons (cases de 32 m) ; et si un point est sur la piste ou dans la voie des stands
+function grille(c){const T=32,cases=new Map();for(let i=0;i<c.nb;i++){const k=Math.floor(c.x[i]/T)+','+Math.floor(c.z[i]/T);if(!cases.has(k))cases.set(k,[]);cases.get(k).push(i);}return {T,cases};}
+function examiner(c,g,o){let pire=Infinity,ou=null,surPiste=false,voie=false,n=0;
+  for(const [s,d,x,z] of points(c,o)){n++;const cx=Math.floor(x/g.T),cz=Math.floor(z/g.T);let ici=g.T*g.T;
+    for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++)for(const i of g.cases.get((cx+a)+','+(cz+b))||[]){const dx=c.x[i]-x,dz=c.z[i]-z,d2=dx*dx+dz*dz;if(d2<ici)ici=d2;}
+    if(ici<pire){pire=ici;ou=[s,d];}
+    const p=positionSurPiste(c,x,z);if(p.surPiste)surPiste=true;if(p.stands)voie=true;
+    const zs=zoneStands(c,p.s,p.d);if(zs&&o.genre!=='stands'&&p.d*zs.cote>0&&Math.abs(p.d)<zs.dExt+R.DECOR_MARGE_STANDS)voie=true;}
+  return {ecart:Math.sqrt(pire),ou,surPiste,voie,n};}
+
+t('DECORS_OFFICIELS : un décor pour chacun des 12 tracés, et rien d’autre', ()=>{v(Object.keys(DECORS_OFFICIELS).sort().join()===Object.keys(TRACES).sort().join(),Object.keys(DECORS_OFFICIELS).join());});
+for(const [cle,def] of Object.entries(TRACES)){
+  const dec=DECORS_OFFICIELS[cle];if(!dec) continue;
+  t(def.nom+' : le ciel, la lumière, le brouillard et le sol du lieu', ()=>{v(typeof dec.lieu==='string'&&dec.lieu.length>10,'lieu');v(HEURES.includes(dec.ciel.heure),dec.ciel.heure);
+    v(couleur(dec.ciel.haut)&&couleur(dec.ciel.horizon)&&dec.ciel.nuages>=0&&dec.ciel.nuages<=1,'ciel');
+    v(couleur(dec.lumiere.soleil)&&couleur(dec.lumiere.ambiance)&&dec.lumiere.intensite>0&&dec.lumiere.hauteur>0&&dec.lumiere.hauteur<=90&&typeof dec.lumiere.projecteurs==='boolean','lumière');
+    v(couleur(dec.brouillard.couleur)&&dec.brouillard.debut>0&&dec.brouillard.fin>dec.brouillard.debut,'brouillard');v(couleur(dec.sol),'sol');
+    v(dec.horizon===null||['colline','ville','gratteCiel'].includes(dec.horizon),'horizon');
+    // la nuit (ou le soleil bas) : les projecteurs éclairent la piste
+    if(['nuit','crepuscule','couchant'].includes(dec.ciel.heure)) v(dec.lumiere.projecteurs,'pas de projecteurs la nuit');});
+  t(def.nom+' : une tribune à chaque virage célèbre (reperes), du public, des zones de paysage aux types connus', ()=>{
+    const noms=new Map(def.reperes.map(([i,n])=>[i,n]));
+    v(dec.tribunes.length>=def.reperes.length-1,dec.tribunes.length+' tribunes pour '+def.reperes.length+' virages célèbres');
+    for(const o of dec.tribunes){v(noms.get(o.morceau)===o.nom,'tribune « '+o.nom+' » hors des reperes');v(o.cote===1||o.cote===-1,'côté');v(o.ecart>0&&o.longueur>0&&o.profondeur>0,o.nom);}
+    v(dec.public.length>0,'pas de public');for(const o of dec.public){v(noms.has(o.morceau),'public au morceau '+o.morceau);v(o.cote===1||o.cote===-1);}
+    v(dec.zones.length>0,'pas de zone');for(const z of dec.zones){v(TYPES.includes(z.type),z.type);v(z.de>=0&&z.a<def.morceaux.length&&z.de<=z.a,'morceaux '+z.de+'–'+z.a);v(z.cote===1||z.cote===-1);v(z.densite>0&&z.densite<=1);}
+    v(dec.principale&&dec.principale.longueur>0,'tribune principale');v(dec.stands&&dec.stands.hauteur>0,'stands');});
+  const c=construireCircuit(def),g=grille(c),place=DECOR_PUBLIC.placer(c,dec);
+  const tous=[place.principale,place.stands].concat(place.tribunes,place.public,place.zones).filter(Boolean);
+  let total=0,pire=Infinity;
+  t(def.nom+' : rien sur la piste ni dans la voie des stands ('+tous.length+' objets ; tout au-delà de la barrière, le bâtiment des stands derrière la voie)', ()=>{
+    v(!!place.principale&&!!place.stands,'tribune principale ou stands non placés');const fautes=[];
+    for(const o of tous){const e=examiner(c,g,o),seuil=o.genre==='stands'?c.stands.dExt+R.DECOR_MARGE_STANDS:c.largeur/2+R.DISTANCE_BARRIERE;total+=e.n;
+      if(o.genre!=='stands')pire=Math.min(pire,e.ecart-c.largeur/2);
+      if(e.surPiste||e.voie||e.ecart<seuil) fautes.push(o.genre+' '+(o.nom||o.type||'')+' ('+(e.surPiste?'sur la piste':e.voie?'dans la voie des stands':e.ecart.toFixed(1)+' m de l’axe < '+seuil)+', s = '+e.ou[0].toFixed(0)+', d = '+e.ou[1].toFixed(1)+')');}
+    v(!fautes.length,fautes.join(' ; '));});
+  L.push('  ('+def.nom+' : '+total+' points vérifiés, le plus près à '+pire.toFixed(1)+' m du bord de la piste, la barrière à '+R.DISTANCE_BARRIERE+' m)');
+  t(def.nom+' : la tribune principale face aux stands, sur la ligne ; le bâtiment des stands le long de la voie, de son côté', ()=>{const st=c.stands,p=place.principale,b=place.stands;
+    v(p.cote===-st.cote&&p.s===0,'principale');v(b.cote===st.cote&&Math.abs(b.d0)>st.dExt,'stands');
+    v(ecartLeLongCircuit(c,b.s-b.longueur/2-st.entree)>=0&&ecartLeLongCircuit(c,st.sortie-(b.s+b.longueur/2))>=0,'le bâtiment dépasse la voie');});
+  ecrire(def.nom);
+}
+// ce que demande l'ordre : Singapura de nuit, Monoco avec le port, Spaa en forêt
+t('Singapura de nuit (projecteurs), Monoco avec son port, Spaa en forêt (sapins), Bahrayn et Yas Marino dans le désert', ()=>{const D=DECORS_OFFICIELS;
+  v(D.singapura.ciel.heure==='nuit'&&D.singapura.lumiere.projecteurs,'Singapura');v(D.monoco.zones.some(z=>z.type==='port'),'Monoco');
+  v(D.spaa.zones.filter(z=>z.type==='sapins').length>=2,'Spaa');v(D.bahrayn.zones.some(z=>z.type==='dunes')&&D.yasmarino.zones.some(z=>z.type==='dunes'),'désert');});
+t('la console reste vide', ()=>{v(__err.length===0,__err.join(' | '));});
+ecrire();
+</script></body></html>
