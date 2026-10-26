@@ -2240,6 +2240,21 @@ t('résumé : sur une course simulée (12 IA, 3 tours, enregistrée comme dans l
   v(RESUME.creer(creerEnregistreur(3))===null,'enregistrement vide');
   L.push('  (résumé : '+r.plages.length+' plages, '+r.duree.toFixed(1)+' s, '+types.filter(x=>x==='depassement').length+' dépassements ; positions à '+(pire*1000).toFixed(2)+' mm près sur '+compares+' images)');});
 
+t('résumé : avec les pneus (?pneus=1), une course de 12 tours : chaque arrêt au stand est un moment fort (« Arrêt au stand : n°X, 4,2 s »), de l’entrée dans la zone au départ ; celui du joueur entre dans le résumé ; sans pneus, aucun', ()=>{
+  const R=REGLAGES,avant=R.PNEUS_ACTIFS;R.PNEUS_ACTIFS=true;
+  try{const e=creerCourseIA(C,4,12,3,CARTES_T.test),N=e.pilotes.length,voitures=e.pilotes.map(p=>p.v),enr=creerEnregistreur(N,{joueur:0}),vus=[];let pas=0;const nb=new Array(N).fill(0);
+    for(let k=0;k<1200*120&&!e.pilotes.every(p=>p.arrivee!==null);k++){pasCourseIA(e,DT);if(pas===0)enr.depart(e.temps);
+      enr.enregistrer(e.temps,voitures,pas%REGLAGES_ENREGISTREUR.CLASSEMENT_PAS===0?classementCourse(e):null);pas++;
+      e.pilotes.forEach((p,i)=>{const a=p.course.arrets;if(a&&a.length>nb[i]){for(let j=nb[i];j<a.length;j++){enr.arret(e.temps,i,a[j].duree);vus.push({k:i,t:e.temps,d:a[j].duree});}nb[i]=a.length;}});}
+    const arrets=enr.momentsForts().filter(m=>m.type==='arret');
+    v(vus.length>=N&&arrets.length===vus.length,'arrêts : '+vus.length+' vus, '+arrets.length+' moments');
+    v(arrets.every((m,i)=>{const x=vus.find(y=>y.k===m.qui&&Math.abs(y.t-y.d-m.temps)<1e-9);return x&&m.duree===x.d&&m.debut<m.temps&&m.fin>m.temps+m.duree;}),'les moments couvrent l’arrêt');
+    const r=RESUME.creer(enr),dans=r.plages.flatMap(p=>p.moments).filter(m=>m.type==='arret');
+    v(dans.some(m=>m.qui===0),'l’arrêt du joueur dans le résumé');
+    const b=RESUME.bandeau(dans[0]);v(b.cle==='resume_arret'&&b.valeurs.duree>0&&TEXTES.fr.resume_arret.includes('{duree}')&&TEXTES.en.resume_arret.includes('{duree}'),'bandeau');
+    L.push('  (résumé avec les pneus, 12 tours : '+vus.length+' arrêts, de '+Math.min(...vus.map(x=>x.d)).toFixed(1)+' à '+Math.max(...vus.map(x=>x.d)).toFixed(1)+' s ; '+dans.length+' dans le résumé)');
+  }finally{R.PNEUS_ACTIFS=avant;}});
+
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 ecrire();
 </script></body></html>

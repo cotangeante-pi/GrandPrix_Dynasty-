@@ -5,6 +5,7 @@
 //   enr.depart(t);                                              // facultatif : l'instant du GO (sinon le début)
 //   enr.enregistrer(t, voitures, classement);                   // à CHAQUE pas de physique, toujours le même tableau
 //   enr.arrivee(t, k);                                          // facultatif : la voiture k passe la ligne d'arrivée
+//   enr.arret(t, k, duree);                                     // facultatif : la voiture k repart de son arrêt au stand à t, après duree s
 //   enr.lire(t)                  → [{ x, z, cap, vitesse, place, horsPiste }] pour chaque voiture, interpolé
 //   enr.momentsForts()           → [{ type, temps, debut, fin, importance, qui, sur, ... }] triés par début
 //   enr.resume(dureeMax)         → [{ debut, fin, moments }] : les plages à rejouer, triées, au total ≤ dureeMax
@@ -35,6 +36,7 @@ function creerEnregistreur(nbVoitures, options = {}) {
   // --- ce qu'on suit d'un pas à l'autre
   let tDebut = null, tGo = null, prochaine = 0, nImagesPrevues = 0;
   const arrivees = [];                        // { temps, k } dans l'ordre de passage
+  const arrets = [];                          // les arrêts au stand : { temps (le départ du stand), k, duree }
   const placeAvant = new Int16Array(N).fill(-1);
   let classementVu = false;
   const enAttente = [];                       // les dépassements pas encore confirmés : { qui, sur, temps, placeQui }
@@ -256,6 +258,12 @@ function creerEnregistreur(nbVoitures, options = {}) {
       L.push(borner({ type: 'sortie', temps: s.temps, debut: d, fin: Math.min(s.finSortie + R.SORTIE_APRES, d + R.SORTIE_DUREE_MAX),
         importance: imp, qui: s.k, perte: s.perte }));
     }
+    // les arrêts au stand : de l'arrivée dans la zone d'arrêt (temps − duree) au départ du stand
+    for (const a of arrets) {
+      let imp = R.IMPORTANCE_ARRET;
+      if (joueur !== null && a.k === joueur) imp += R.IMPORTANCE_JOUEUR;
+      L.push(borner({ type: 'arret', temps: a.temps - a.duree, debut: a.temps - a.duree - R.ARRET_AVANT, fin: a.temps + R.ARRET_APRES, importance: imp, qui: a.k, duree: a.duree }));
+    }
     // l'arrivée du vainqueur (sinon la fin de l'enregistrement)
     const a = arrivees.length ? arrivees[0] : { temps: fin, k: null };
     L.push(borner({ type: 'arrivee', temps: a.temps, debut: a.temps - R.ARRIVEE_AVANT, fin: a.temps + R.ARRIVEE_APRES,
@@ -296,6 +304,7 @@ function creerEnregistreur(nbVoitures, options = {}) {
     enregistrer, lire, momentsForts, resume, octets, dureePlages,
     depart(t) { tGo = t; },
     arrivee(t, k) { if (!arrivees.some(a => a.k === k)) arrivees.push({ temps: t, k }); },
+    arret(t, k, duree) { arrets.push({ temps: t, k, duree }); },
     temps(i) { return tempsImage(i); },
     get nbImages() { return nbImages; },
     get debut() { return nbImages ? tempsImage(0) : null; },

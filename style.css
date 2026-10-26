@@ -986,6 +986,11 @@ body.deux.cote #boutonSon { top: auto; bottom: 12px; right: 12px; }   /* (côte 
 /* la photo de la une (Codeur 3, photo.js) : le canvas remplit la place de la photo, sans la déformer */
 #unePhoto { position: relative; overflow: hidden; background: none; }
 #unePhoto canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+#bilanCasque { vertical-align: -6px; margin-right: 6px; border-radius: 50%; }
+/* avant les feux : la grille vue d'en haut (un clic ou une touche la passe) */
+#grille { position: fixed; inset: 0; cursor: pointer; z-index: 5; }
+#grilleAide { position: absolute; left: 50%; bottom: 24px; transform: translateX(-50%); margin: 0; padding: 8px 14px; border-radius: 8px; background: rgba(11, 15, 23, 0.75); font: 700 15px/1.2 var(--police); white-space: nowrap; }
+
 #bilanCasque { width: 34px !important; height: 34px !important; vertical-align: -4px; margin-right: 8px; border-radius: 50%; }
 
 /* le calendrier de la saison (Codeur 3) : 12 lignes sur deux colonnes, le prochain mis en valeur, une petite maison en CSS pour le domicile */
