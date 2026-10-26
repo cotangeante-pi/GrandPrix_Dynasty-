@@ -21,6 +21,8 @@ const TEXTES = {
     // team orders
     consigneJoueur: 'Team order: let your team-mate no. {n} through (faster). Ignoring it lowers the team\'s trust.', consigneSuivie: 'Thank you! The team\'s trust goes up.', consigneIgnoree: 'Order ignored: the team\'s trust goes down.',
     attenteArrivee: 'Finished — waiting for the other drivers',
+    resume: '▶ Highlights', resumeTitre: 'Highlights', resumeSortir: 'Click or Esc to leave',   // le résumé vidéo (resume.js)
+    resume_depart: 'The start', resume_depassement: 'Overtake: {qui} passes {sur}', resume_sortie: 'Off track: {qui}', resume_arrivee: 'The finish: {qui} wins',
     attenteAccelere: '⏩ Fast-forward: {n} cars still racing', attenteAccelere1: '⏩ Fast-forward: 1 car still racing',
     passerPodium: 'Skip to the podium (Enter)',
     pause: 'Pause', reprendre: 'Resume', recommencer: 'Restart',
@@ -259,6 +261,8 @@ const TEXTES = {
     // les consignes d'équipe
     consigneJoueur: 'Consigne de l\'écurie : laisse passer ton coéquipier n°{n} (plus rapide). L\'ignorer fait baisser la confiance de l\'écurie.', consigneSuivie: 'Merci ! La confiance de l\'écurie monte.', consigneIgnoree: 'Consigne ignorée : la confiance de l\'écurie baisse.',
     attenteArrivee: 'Arrivée — en attendant les autres pilotes',
+    resume: '▶ Résumé', resumeTitre: 'Résumé de la course', resumeSortir: 'Clic ou Échap pour sortir',   // le résumé vidéo (resume.js)
+    resume_depart: 'Le départ', resume_depassement: 'Dépassement : {qui} sur {sur}', resume_sortie: 'Sortie de piste : {qui}', resume_arrivee: 'L’arrivée : {qui} gagne',
     attenteAccelere: '⏩ En accéléré : encore {n} voitures en course', attenteAccelere1: '⏩ En accéléré : encore 1 voiture en course',
     passerPodium: 'Passer au podium (Entrée)',
     pause: 'Pause', reprendre: 'Reprendre', recommencer: 'Recommencer',

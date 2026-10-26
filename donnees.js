@@ -651,6 +651,9 @@ const REGLAGES = {
   CAMERA_COCKPIT: [0.75, 1.02], // caméra embarquée, devant le halo et au-dessus du pilote : avant, hauteur (m) ; on voit le nez et les roues avant
   CAMERA_COCKPIT_VISEE: 0.45,   // m : la caméra vise à 30 m devant, plus bas d'autant (le nez reste dans l'image)
   CAMERA_COCKPIT_CHAMP: 72,
+  // le résumé vidéo de la course (resume.js, étape 13) : la durée totale des moments forts rejoués, et la vitesse du rejeu
+  RESUME_DUREE_MAX: 45,         // s de course au plus
+  RESUME_VITESSE: 1,            // le rejeu à la vitesse de la course
   // le volant en vue cockpit (voiture3d.js creerVolant, CLAUDE.md « Le casque du pilote ») : fait par le code, accroché à la caméra,
   // en bas de l'image ; il tourne avec les roues avant × VOLANT_FACTEUR ; jamais dans la moitié haute de l'image (VOLANT_MARGE_HAUT :
   // son plus haut point reste au moins à cette part de la demi-hauteur sous le milieu)

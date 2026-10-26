@@ -220,5 +220,6 @@ const SCENE3D = (function () {
     get infoCircuit() { return infoCircuit; },
     get trianglesDessines() { return trianglesDessines; },
     get appelsDessin() { return appelsDessin; },
+    get nbObjets() { let n = 0; if (scene) scene.traverse(o => { if (o.isMesh || o.isInstancedMesh || o.isPoints || o.isLine) n++; }); return n; },   // (tests : le résumé n'ajoute rien à la scène)
   };
 })();

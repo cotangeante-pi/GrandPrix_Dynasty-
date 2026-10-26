@@ -971,3 +971,10 @@ body.deux.cote #boutonSon { top: auto; bottom: 12px; right: 12px; }   /* (côte 
 #arbreGenerations .nom { font-weight: 700; overflow: hidden; text-overflow: ellipsis; }
 #arbreGenerations .chiffres { font-size: 13px; opacity: 0.92; }
 #arbreFamille, #arbreCircuits { font-size: 14px !important; max-width: 92vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* le résumé vidéo de la course (resume.js, étape 13) : la 3D en plein écran, un bandeau façon télé en bas à gauche, un clic pour sortir */
+#resume { position: fixed; inset: 0; cursor: pointer; z-index: 5; }
+#resumeBandeau { position: absolute; left: 24px; bottom: 40px; display: flex; flex-direction: column; gap: 2px; padding: 10px 16px; border-left: 5px solid #e10600; border-radius: 6px; background: rgba(11, 15, 23, 0.82); max-width: calc(100% - 48px); box-sizing: border-box; }
+#resumeTitre { font: 700 13px/1.2 var(--police); text-transform: uppercase; letter-spacing: 1px; opacity: 0.8; }
+#resumeMoment { font: 800 22px/1.25 var(--police); }
+#resumeSortir { position: absolute; right: 16px; bottom: 12px; margin: 0; font: 600 13px/1.2 var(--police); opacity: 0.75; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8); }

@@ -1168,6 +1168,67 @@ function voirResultats() {
   if (JEU.ecran !== 'podium') return;
   JEU.ecran = 'resultats';
   INTERFACE.montrer('resultats');
+  INTERFACE.montrerBoutonResume(resumeDisponible());   // « ▶ Résumé » : seulement après une course à plusieurs enregistrée
+}
+
+// --- le résumé vidéo de la course (resume.js, étape 13) : depuis les résultats, la 3D rejoue les moments forts de
+// l'enregistrement (enregistreur.js) avec la caméra télé ; les voitures viennent de l'enregistrement, pas de la physique (elle
+// est arrêtée : JEU.ecran n'est pas « course ») ; un bandeau dit le moment ; Échap, un clic ou la fin du résumé ramènent aux résultats
+function resumeDisponible() {
+  return !!(JEU.plateau && JEU.enregistreur && JEU.enregistreur.enr.nbImages > 1);
+}
+
+// le nom d'une voiture dans le bandeau : le joueur (son nom à deux), le pilote du championnat, sinon son numéro
+function etiquetteVoiture(k) {
+  if (typeof k !== 'number') return '';
+  const P = JEU.plateau.pilotes;
+  if (JEU.deux && P[k] && P[k].joueur) return JEU.deux.reglages.joueurs[P[k].joueur - 1].nom;
+  if (JEU.championnat && piloteDe(k)) return INTERFACE.nomPilote(piloteDe(k));
+  if (JEU.contre && k === JEU.suivie) return texte('nomJoueur');
+  return texte('numero').replace('{n}', numeroDe(k));
+}
+
+function montrerResume() {
+  if (JEU.ecran !== 'resultats' || !resumeDisponible()) return;
+  const r = RESUME.creer(JEU.enregistreur.enr);
+  if (!r) return;
+  JEU.resume = { r, camera: CAMERA.mode, roues: JEU.modeles.map(() => 0) };
+  PODIUM3D.cacher();
+  CAMERA.forcer('tele');
+  JEU.ecran = 'resume';
+  INTERFACE.montrer('resume');
+  majResume(0);
+}
+
+function majResume(dt) {
+  const z = JEU.resume, enr = JEU.enregistreur.enr;
+  RESUME.avancer(z.r, dt);
+  if (z.r.fini) { quitterResume(); return; }
+  const pos = RESUME.positions(z.r, enr);
+  pos.forEach((p, k) => {
+    const m = JEU.modeles[k];
+    if (!m) return;
+    m.groupe.visible = true;
+    z.roues[k] = (z.roues[k] + p.vitesse * dt / REGLAGES.RAYON_ROUE) % (2 * Math.PI);
+    VOITURE3D.placer(m, p, { braquage: 0, rotationRoues: z.roues[k] });
+    m.tete.visible = true;
+  });
+  const s = pos[RESUME.suivie(z.r, enr)] || pos[0];
+  CAMERA.maj(dt, s, { u: s.vitesse });
+  const b = RESUME.bandeau(RESUME.moment(z.r));
+  INTERFACE.majResume(b ? texte(b.cle).replace('{qui}', etiquetteVoiture(b.valeurs.qui)).replace('{sur}', etiquetteVoiture(b.valeurs.sur)) : '');
+}
+
+function quitterResume() {
+  if (JEU.ecran !== 'resume' || !JEU.resume) return;
+  const z = JEU.resume;
+  JEU.resume = null;
+  CAMERA.forcer(z.camera);
+  for (const m of JEU.modeles) m.groupe.visible = false;
+  PODIUM3D.montrer(JEU.final.slice(0, 3).map(x => JEU.modeles[x.k]));   // le podium revient derrière les résultats
+  JEU.tempsPodium = 0;
+  JEU.ecran = 'resultats';
+  INTERFACE.montrer('resultats');
 }
 
 // la course est finie : le record, puis l'écran de fin
@@ -1207,6 +1268,7 @@ function brancherClavier() {
       if (e.code === 'Space' && !e.repeat) JEU.remettre = true;
       if (e.code === 'Enter' && !e.repeat) passerAuPodium();
     }
+    if (e.code === 'Escape' && !e.repeat && JEU.ecran === 'resume') { quitterResume(); return; }   // le résumé vidéo : Échap ramène aux résultats
     if (e.code === 'Escape' && !e.repeat) pause(JEU.ecran === 'course');
     if (e.code === 'Escape' && !e.repeat && JEU.tournoi) pauseTournoi(enTourQualif());   // le tournoi : la pause d'un tour (reprendre, abandonner)
     if (JEU.ecran === 'une' && !e.repeat) passerUne();   // n'importe quelle touche passe la une du journal
@@ -1539,6 +1601,7 @@ function demarrerJeu() {
     document.getElementById('boutonRejouerResultats').textContent = texte('revanche');
     document.getElementById('boutonChangerResultats').textContent = texte('menuAmis');
   } else INTERFACE.preparerResultats(voirResultats, () => lancerCourse(JEU.course.nbTours), allerAuChoix);
+  INTERFACE.preparerResume(montrerResume, quitterResume);
   INTERFACE.preparerAmis(ouvrirDeux, ouvrirTournoi, montrerAmis);
   INTERFACE.preparerInscription(partirTournoi, montrerAmis);
   INTERFACE.preparerPauseTournoi(() => pauseTournoi(false), abandonnerTournoi);
@@ -1588,6 +1651,7 @@ function demarrerJeu() {
   BOUCLE.surAffichage((alpha, dt) => {
     JEU.alpha = alpha;
     JEU.dtImage = dt;
+    if (JEU.ecran === 'resume') { majResume(dt); if (JEU.sdkPret) SDK.jeuArrete(); if (JEU.ecran === 'resume') { SCENE3D.dessiner(); return; } }   // le résumé vidéo : la 3D rejoue l'enregistrement (Poki : gameplayStop)
     majAToi(dt);   // le tournoi : le compte à rebours de « À toi, … ! »   // (« passer » en accéléré : le nombre de pas de l'image suit sa durée)
     const apres = JEU.ecran === 'podium' || JEU.ecran === 'resultats' || JEU.ecran === 'bravo' || JEU.ecran === 'tournoiFin' || JEU.ecran === 'ceremonie';   // le podium (et la cérémonie du champion) : les voitures n'y bougent plus
     // ?ia=N : chaque IA à sa place ; une IA arrivée quitte la piste (elle n'est plus dessinée)
