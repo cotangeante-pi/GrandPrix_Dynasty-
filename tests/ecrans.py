@@ -45,7 +45,8 @@ PAGES = [
     ('index.html?championnat=1&tours=2&robot=1&test=consigne-ignoree', 1280, 720, None),   # … il l'ignore, confiance −5   # l'arrêt au stand (étape 7) : le message, le robot entre dans la voie, s'arrête, ressort ; capture stand.png   # ?pneus=1 : l'usure monte sur 10 tours du robot, affichée dans ?debug=1
     ('index.html?championnat=1&tours=1&robot=1&gp=12', 1280, 720, None),   # la fin de saison : le 12e Grand Prix joué par le robot, champion, duel de la saison, contrats, saison 2 ; captures champion.png, duel-saison.png, contrats.png
     ('index.html?championnat=1&tours=1&robot=1&gp=12', 960, 600, None),    # les écrans de fin de saison en petit (Grand Prix 12 fabriqué), la retraite
-    ('index.html?championnat=1&tours=1&robot=1&lang=en', 1280, 720, None),   # la page en anglais : championnat et podium sans un mot français, capture championnat-en.png
+    ('index.html?championnat=1&tours=1&robot=1&lang=en', 1280, 720, None),
+    ('index.html?championnat=1&tours=1&robot=1&gp=12&lang=en', 960, 600, None),   # l'audit anglais (tour 31, Codeur 3) : chaque écran du championnat et de la fin de carrière, sans un mot français, rien hors de l'écran en 960×600   # la page en anglais : championnat et podium sans un mot français, capture championnat-en.png
     ('index.html?course=1&ia=5&joueur=1&robot=1&circuit=test&test=fantome', 1280, 720, None),   # le fantôme du meilleur tour : deux qualifications de suite, la 2e contre le fantôme, capture fantome.png
     ('index.html?robot=1&test=decouverte&tours=1', 1280, 720, None),
     ('index.html?deux=1&ia=5&robot=1&circuit=test&test=deux', 1280, 720, None),   # le mode 2 joueurs (deux-joueurs.js) : l'écran partagé, deux robots + 5 IA, jusqu'au podium ; capture deux-joueurs.png
@@ -678,7 +679,7 @@ def championnat_en(pg, titre):
     t(f'{titre} : après les résultats, la une du journal en anglais, pas un mot français', attendre(pg, '() => JEU.ecran === "une"') and not re.search(MOTS_FR, pg.evaluate('() => document.getElementById("une").innerText')),
       pg.evaluate('() => document.getElementById("une").innerText')[:300])
     une_ecran(pg, titre, 'une-en.png')
-    t(f'{titre} : après le Grand Prix, « You scored n points » et le classement en anglais', attendre(pg, '() => JEU.ecran === "championnat" && /^You scored \\d+ points$/.test(document.getElementById("championnatGagne").textContent)')
+    t(f'{titre} : après le Grand Prix, « You scored n points » et le classement en anglais', attendre(pg, '() => JEU.ecran === "championnat" && /^You scored \\d+ points?$/.test(document.getElementById("championnatGagne").textContent)')
       and not re.search(MOTS_FR, pg.evaluate('() => document.getElementById("championnat").innerText')), pg.evaluate('() => document.getElementById("championnatGagne").textContent'))
     pg.wait_for_timeout(300)
     pg.screenshot(path=os.path.join(CAPTURES, 'championnat-en.png'))
@@ -1426,6 +1427,44 @@ def calendrier_ecran(pg, titre, capture):
     pg.evaluate('() => { JEU.championnat.pilotes[19].coeur = JEU.coeurAvant; }')
     t(f'{titre} : « Retour » : le paddock', attendre(pg, '() => JEU.ecran === "championnat"'), str(pg.evaluate('() => JEU.ecran')))
 
+# l'audit anglais (tour 31) : chaque écran ouvert en anglais (?lang=en) ; aucun mot français témoin dans son texte, aucun texte hors de
+# l'écran en 960×600, pas de défilement ; une capture *-en.png par écran
+FRANCAIS = r"(^|[^A-Za-zÀ-ÿ])(le|la|les|des|du|une|et|est|pour|avec|sans|saison|écurie|retour|victoire|victoires|vainqueur|classement|prochain|arbre|toi|ton|ta|tes|tu|cette|carrière|pilote|écuries|courses|titres|saisons|aucune?|suite|continuer)(?![A-Za-zÀ-ÿ])|[éèêàçù]"
+AUDIT_ETAT = '''re => { const id = JEU.ecran === "album" ? "une" : JEU.ecran, el = document.getElementById(id); if (!el) return { id, absent: true };
+  let texte = el.innerText.replace(/protégée?/g, "");
+  for (const [k, v] of Object.entries(TEXTES.en)) if (/^(circuit_|sponsor_)/.test(k) && typeof v === "string") texte = texte.split(v).join("");   // (les noms propres inventés : circuits, sponsors)
+  const m = texte.match(new RegExp(re, "i"));
+  const hors = [...el.querySelectorAll("*")].filter(e => e.childElementCount === 0 && e.textContent.trim() && getComputedStyle(e).display !== "none" && e.getClientRects().length)
+    .filter(e => { const r = e.getBoundingClientRect(); return r.right > innerWidth + 1 || r.bottom > innerHeight + 1 || r.left < -1 || r.top < -1; }).map(e => e.textContent.trim().slice(0, 40));
+  return { id, francais: m ? texte.slice(Math.max(0, m.index - 30), m.index + 40) : null, hors, defile: [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth] }; }'''
+def audit_en(pg, titre, l):
+    def verifier(nom, js=None):
+        if js: pg.evaluate(js)
+        pg.wait_for_timeout(150)
+        a = pg.evaluate(AUDIT_ETAT, FRANCAIS)
+        t(f'{titre} : en anglais, l’écran « {nom} » ({a.get("id")}) : aucun mot français, rien hors de l’écran, sans défilement', not a.get('absent') and not a['francais'] and not a['hors'] and pas_de_defilement(a['defile']), str(a))
+        pg.screenshot(path=os.path.join(CAPTURES, nom + '-en.png'))
+    verifier('paddock')
+    verifier('amis', '() => montrerAmis()'); pg.evaluate('() => montrerChampionnat(null)')
+    verifier('garage', '() => montrerGarage()'); verifier('aileron', '() => montrerAileron()'); pg.evaluate('() => { quitterAileron(); quitterGarage(); }')
+    verifier('sponsors', '() => montrerSponsors()'); pg.evaluate('() => quitterSponsors()')
+    verifier('fiche', '() => montrerFiche(3)'); pg.evaluate('() => quitterFiche()')
+    verifier('album', '() => montrerAlbum()'); pg.evaluate('() => quitterAlbum()')
+    verifier('calendrier', '() => montrerCalendrier()'); pg.evaluate('() => quitterCalendrier()')
+    verifier('arbre', '() => montrerArbre()'); pg.evaluate('() => quitterArbre()')
+    verifier('interview', '''() => { const ch = JEU.championnat, o = [0, 1, 2, 3, 19].concat([...Array(20).keys()].filter(k => k > 3 && k < 19));
+      const lignes = o.map((k, i) => ({ k, place: i + 1, grille: i + 1, ligne: i + 1, penalites: 0, meilleurTour: 60 + i, classe: true, chocMax: 0 })); JEU.lignesGP = lignes; montrerInterview(INTERVIEW.question(ch, lignes)); }''')
+    verifier('une', '() => montrerUne(JEU.championnat.album[JEU.championnat.album.length - 1])')
+    pg.evaluate('() => { JEU.lignesGP = null; SAISONS.avancer(JEU.championnat, 1); montrerFinSaison(); }')
+    verifier('ceremonie'); pg.evaluate('() => suiteCeremonie()')
+    verifier('saison'); pg.evaluate('() => suiteClassementSaison()')
+    verifier('duel-saison'); pg.evaluate('() => suiteDuelSaison()')
+    verifier('contrats')
+    verifier('bilan', '() => prendreRetraite()')
+    verifier('temple', '() => montrerTemple()'); pg.evaluate('() => quitterTemple()')
+    verifier('arbre-bilan', '() => montrerArbre()'); pg.evaluate('() => quitterArbre()')
+    verifier('releve', '() => montrerHeritier()')
+
 def une_ecran(pg, titre, capture, touche=False):
     ph = pg.evaluate(PHOTO_ETAT, None)
     t(f'{titre} : la photo de la une est dessinée par le code ({ph and ph["type"]}), visible, pas d’une seule couleur, la même que celle de la une compacte', bool(ph) and ph['couleurs'] > 8 and ph['pareil'] and ph['visible'], str(ph))
@@ -1478,7 +1517,7 @@ def sponsors_ecran(pg, titre, capture):
     t(f'{titre} : « Retour » ramène au paddock', attendre(pg, '() => JEU.ecran === "championnat"'))
 
 FICHE_ETAT = '''k => { const ch = JEU.championnat, f = FICHE.fiche(ch, k), p = ch.pilotes[k], $ = id => document.getElementById(id).textContent; return { ecran: JEU.ecran, nom: $("ficheNom"), attenduNom: INTERFACE.nomPilote(p),
-  infos: $("ficheInfos"), numero: p.numero, age: p.age, caractere: $("ficheCaractere"), mots: f.mots.map(m => texte("caractere_" + m)), saison: $("ficheSaison"), place: f.saison.place, points: f.saison.points,
+  infos: $("ficheInfos"), numero: p.numero, age: p.age, caractere: $("ficheCaractere"), mots: f.mots.map(m => texte("caractere_" + m)), saison: $("ficheSaison"), place: f.saison.place, points: f.saison.points, courses: f.saison.courses,
   historique: $("ficheHistorique"), duels: $("ficheDuels"), rivalite: $("ficheRivalite"), devant: f.duels.devant, derriere: f.duels.derriere, photo: document.getElementById("fichePhoto").getBoundingClientRect().width,
   defile: [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth] }; }'''
 def fiche_ecran(pg, titre, capture):
@@ -1486,7 +1525,7 @@ def fiche_ecran(pg, titre, capture):
     f = pg.evaluate(FICHE_ETAT, 3)
     t(f'{titre} : un clic sur un rival ouvre sa fiche : nom, numéro, écurie, âge, caractère en mots, saison (place, points), historique, duels contre le joueur, la place de la photo, sans défilement',
       f['ecran'] == 'fiche' and f['nom'] == f['attenduNom'] and f['nom'] != '' and str(f['numero']) in f['infos'] and (str(f['age']) + ' ans') in f['infos'] and f['caractere'] == 'Caractère : ' + ', '.join(f['mots'])
-      and f['saison'].startswith(f'Cette saison : P{f["place"]} · {f["points"]} pts') and f['historique'].startswith('Carrière : ') and f['duels'] == f'Contre toi : devant {f["devant"]} fois, derrière {f["derriere"]} fois' and f['photo'] > 50 and f['rivalite'] == '' and pas_de_defilement(f['defile']), str(f))
+      and (f['saison'].startswith(f'Cette saison : P{f["place"]} · {f["points"]} pts') if f['courses'] else f['saison'] == 'Cette saison : pas encore de course, pas encore de classement') and f['historique'].startswith('Carrière : ') and f['duels'] == f'Contre toi : devant {f["devant"]} fois, derrière {f["derriere"]} fois' and f['photo'] > 50 and f['rivalite'] == '' and pas_de_defilement(f['defile']), str(f))
     pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, capture))
     fp = pg.evaluate('''() => { const cv = document.querySelector("#fichePhoto canvas"); if (!cv) return null; const px = cv.getContext("2d").getImageData(0, 0, cv.width, cv.height).data, c = new Set();
       for (let k = 0; k < px.length; k += 4 * 31) c.add(px[k] + "," + px[k + 1] + "," + px[k + 2]); const r = cv.getBoundingClientRect(); return { couleurs: c.size, visible: r.width > 40 && r.height > 40 }; }''')
@@ -1851,7 +1890,7 @@ def championnat(pg, titre, l):
             && JEU.championnat.album.length === {gp} && JEU.championnat.album[{gp - 1}].g === {gp}'''), str(pg.evaluate(ECRAN)) + ' ' + str(pg.evaluate('() => JEU.championnat.album.length')))
         une_ecran(pg, titre, 'une.png' if gp == 1 else 'une-2.png')
         t(f'{titre} : GP {gp} : après la une, l’écran du championnat avec les points gagnés',
-          attendre(pg, f'''() => JEU.ecran === "championnat" && /^Tu marques \d+ points$/.test(document.getElementById("championnatGagne").textContent)
+          attendre(pg, f'''() => JEU.ecran === "championnat" && /^Tu marques \d+ points?$/.test(document.getElementById("championnatGagne").textContent)
             && document.getElementById("championnatTitre").textContent.startsWith("Grand Prix {gp + 1} / 12")'''), str(pg.evaluate(ECRAN)) + ' ' + pg.evaluate('() => document.getElementById("championnatGagne").textContent'))
         points = pg.evaluate('() => JEU.championnat.pilotes.map(p => p.stats.points)')
         # la réputation après la réponse provocante du GP 1 (public +4, écurie −3, sponsors −3 : INTERVIEW_EFFETS), gardée au GP 2 (pas de commentaire, page rechargée entre les deux)
@@ -1958,7 +1997,9 @@ with sync_playwright() as p:
                 course_ia10(pg, titre)
             if 'course=1&ia=8' in page:
                 course_podium(pg, titre, l)
-            if 'gp=12' in page:
+            if 'gp=12' in page and 'lang=en' in page:
+                audit_en(pg, titre, l)
+            elif 'gp=12' in page:
                 fin_saison(pg, titre, l)
             elif 'championnat=1' in page and 'lang=en' in page:
                 championnat_en(pg, titre)
