@@ -191,6 +191,11 @@ const INTERFACE = (function () {
     $('uneNom').textContent = r.nom;
     $('uneEdition').textContent = avec(texte('uneEdition'), { n: r.grandPrix, circuit: r.circuit });
     $('uneTitre').textContent = r.titre;
+    // la photo (photo.js) : dessinée par le code depuis la une compacte (JOURNAL.photo), jamais une image enregistrée
+    let cv = $('unePhoto').querySelector('canvas');
+    if (!cv) { cv = document.createElement('canvas'); cv.width = 640; cv.height = 300; cv.getContext('2d', { willReadFrequently: true }); $('unePhoto').appendChild(cv); }   // (dessiné par le processeur : la même image partout, même une fois affiché)
+    PHOTO.dessiner(cv.getContext('2d'), cv.width, cv.height, r.photo);
+    cv.dataset.desc = JSON.stringify(r.photo);   // (ce que la photo montre : les tests le comparent à la une compacte)
     $('uneTexte').textContent = r.texte;
     $('uneBrevesTitre').textContent = texte('uneBreves');
     const ul = $('uneBreves');
@@ -816,7 +821,7 @@ const INTERFACE = (function () {
     options('heritierLien', CARRIERE.LIENS, l => avec(texte('heritierLien_' + l), { parent }));
     options('heritierPays', R.PAYS.slice().sort((a, b) => texte('pays_' + a).localeCompare(texte('pays_' + b), LANGUE)), c => texte('pays_' + c));
     options('heritierCoeur', Object.keys(R.CIRCUITS_PAYS), nomCircuit);
-    options('heritierMotif', R.CASQUE_MOTIFS, m => texte('motif_' + m));
+    optionsMotifs($('heritierMotif'));   // tous les motifs : ceux de départ et ceux débloqués (SAUVEGARDE.motifs) ; les autres grisés, avec leur condition
     $('heritierPays').value = j.pays || R.PAYS[0];
     $('heritierCoeur').value = j.coeur || Object.keys(R.CIRCUITS_PAYS)[0];
     majDomicileHeritier();
@@ -838,7 +843,7 @@ const INTERFACE = (function () {
   function lireHeritier(ch) {
     const c = CARRIERE.casqueParent(ch);
     return { prenom: $('heritierPrenom').value, numero: $('heritierNumero').value, lien: $('heritierLien').value, pays: $('heritierPays').value, coeur: $('heritierCoeur').value,
-      casque: CASQUE.creer($('heritierMotif').value, c.couleurs) };
+      casque: CASQUE.creer($('heritierMotif').value, c.couleurs), debloques: SAUVEGARDE.motifs() };
   }
 
   function montrerErreurHeritier(oui) {

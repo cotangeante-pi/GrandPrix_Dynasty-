@@ -177,7 +177,10 @@ const CARRIERE = (function () {
     for (const e of v.erreurs) if (!(e === 'coeur' && v.choix.coeur)) erreurs.push(e);
     const fam = ch.dynastie.generations.length ? ch.dynastie.famille : famille(j.nom);   // (le premier pilote a pu se nommer après le chargement)
     const nom = prenom ? (fam ? prenom + ' ' + fam : prenom) : null;
-    const casque = CASQUE.valide(choix.casque) ? CASQUE.creer(choix.casque.motif, choix.casque.couleurs) : (CASQUE.valide(j.casque) ? CASQUE.creer(j.casque.motif, j.casque.couleurs) : CASQUE.neutre());
+    // le casque : celui choisi, si son motif est permis (ceux de départ et les motifs débloqués, debloques = SAUVEGARDE.motifs()) ;
+    // sinon celui du parent
+    const debloques = choix.debloques || [], permis = c => CASQUE.valide(c) && (typeof CASQUE.permis !== 'function' || CASQUE.permis(c.motif, debloques) || (j.casque && c.motif === j.casque.motif));
+    const casque = permis(choix.casque) ? CASQUE.creer(choix.casque.motif, choix.casque.couleurs) : (CASQUE.valide(j.casque) ? CASQUE.creer(j.casque.motif, j.casque.couleurs) : CASQUE.neutre());
     return { ok: erreurs.length === 0, erreurs, choix: { nom, prenom, numero: v.choix.numero, lien: choix.lien, casque, pays: v.choix.pays, coeur: v.choix.coeur } };
   }
 
