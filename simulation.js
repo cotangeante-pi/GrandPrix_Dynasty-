@@ -214,9 +214,11 @@ function majStandsIA(p, e) {
     return;
   }
   if (v.pneus.arrets > 0 || p.course.etat !== 'course') return;
-  const tour = p.course.tours.length + 1;
-  if (tour < pi.standTour || tour >= p.course.nbTours) return;
   if (depuis < -R.STAND_APPROCHE || depuis > 0) return;
+  // (le tour où il arrivera à l'entrée : si l'entrée est juste après la ligne, il passera la ligne avant elle, c'est le tour suivant ;
+  // sinon, il commencerait à freiner après la ligne, trop tard : tracés officiels, entrée à 20 m de la ligne)
+  const tour = p.course.tours.length + 1 + (v.piste.s > st.entree && p.course.etape === 3 ? 1 : 0);
+  if (tour < pi.standTour || tour >= p.course.nbTours) return;
   pi.stand = { arrete: false, dedans: false };
   if (pi.attaque) finirAttaque(pi, false, 'stands');
 }
