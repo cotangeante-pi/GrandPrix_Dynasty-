@@ -1420,6 +1420,20 @@ const INTERFACE = (function () {
     $('resume').addEventListener('mousedown', e => e.preventDefault());
     $('resume').addEventListener('click', sortir);
   }
+  // ?pneus=1 : p = { reste (0–1), perte (0–1) } ou null (caché)
+  function majPneus(p) {
+    $('pneusHud').classList.toggle('cache', !p);
+    if (!p) return;
+    $('pneusTexte').textContent = texte('pneus') + ' ' + Math.round(p.reste * 100) + ' %';
+    $('pneusPlein').style.width = Math.round(Math.max(0, Math.min(1, p.reste)) * 100) + '%';
+    $('pneusPlein').className = p.reste < 0.3 ? 'use' : p.reste < 0.6 ? 'moyen' : '';
+    $('pneusAdherence').textContent = texte('pneusAdherence').replace('{p}', (p.perte * 100).toFixed(1).replace('.', texte('virgule')));
+  }
+  // le message de course du moment (ou null : caché)
+  function majMessage(t) {
+    $('messageCourse').classList.toggle('cache', !t);
+    if (t && $('messageCourse').textContent !== t) $('messageCourse').textContent = t;
+  }
   function preparerGrille(passer) {
     $('grilleAide').textContent = texte('grillePasser');
     $('grille').addEventListener('mousedown', e => e.preventDefault());
@@ -1446,7 +1460,7 @@ const INTERFACE = (function () {
     minuterieAnnonce = setTimeout(() => el.classList.add('cache'), REGLAGES.ANNONCE_MOTIF_DUREE * 1000);
   }
 
-  return { preparerGrille, annoncerMotifs, preparerResume, montrerBoutonResume, majResume, remplirInscription, lireInscription, montrerErreursTournoi, preparerInscription, remplirAToi, majCompteTournoi, preparerPauseTournoi, remplirMancheTournoi, preparerMancheTournoi, remplirFinTournoi, preparerFinTournoi, preparerAmis, remplirDeux, lireDeux, montrerErreursDeux, preparerDeux, remplirPodiumDeux, remplirRivalite, formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, preparerChampionnat, remplirQualif, preparerQualif,
+  return { majPneus, majMessage, preparerGrille, annoncerMotifs, preparerResume, montrerBoutonResume, majResume, remplirInscription, lireInscription, montrerErreursTournoi, preparerInscription, remplirAToi, majCompteTournoi, preparerPauseTournoi, remplirMancheTournoi, preparerMancheTournoi, remplirFinTournoi, preparerFinTournoi, preparerAmis, remplirDeux, lireDeux, montrerErreursDeux, preparerDeux, remplirPodiumDeux, remplirRivalite, formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, preparerChampionnat, remplirQualif, preparerQualif,
     remplirDuel, avec, remplirUne, preparerUne, remplirArgent, remplirSolde, remplirGarage, preparerGarage,
     remplirSaison, remplirDuelSaison, remplirContrats, remplirRetraite, preparerSaison, retraiteEnAttente, remplirCeremonie, preparerCeremonie, remplirAlbum, preparerAlbum, remplirBilan, remplirTemple, preparerTemple, preparerReleve, remplirHeritier, lireHeritier, montrerErreurHeritier, remplirAileron, majAileron, preparerAileron, remplirArbre, preparerArbre, remplirCalendrier, preparerCalendrier,
     remplirSponsors, remplirRappelSponsor, preparerSponsors, remplirFiche, preparerFiche, remplirInterview, montrerEffetInterview, preparerInterview, remplirReputation,
