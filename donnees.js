@@ -386,6 +386,7 @@ const REGLAGES = {
   IA_PERIODE_DECISION: 0.15,    // s : il choisit sa ligne à ce rythme
   IA_HORIZON: 200,              // m : la longueur des lignes qu'il compare
   IA_LIGNE_PAS: 4,              // m entre deux points d'une ligne
+  IA_RAYON_SERRE: 20,           // m : sous ce rayon (une épingle), la vitesse d'une ligne ne compte jamais moins que la courbure de la piste
   IA_LIGNE_DEMI_BASE: 2,        // la courbure d'une ligne est mesurée sur ±2 points (±8 m)
   IA_TRANSITION_MIN: 20,        // m : de là où il est jusqu'à la ligne voulue, au moins cette distance…
   IA_TRANSITION_TEMPS: 0.7,     // s : … ou la distance parcourue en ce temps

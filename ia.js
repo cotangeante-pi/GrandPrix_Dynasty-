@@ -475,7 +475,12 @@ function noterLigne(pilote, v, voisines, s0, t, type) {
     // (aileron, Codeur 3 : il connaît aussi l'adhérence de son aileron, v.aileronAdherence ; × 1 au cran du milieu)
     const mu = R.ADHERENCE * (v.adherence || 1) * (v.aileronAdherence || 1) * (Math.abs(e[i]) > dehors && type !== 'stands' ? R.ADHERENCE_HERBE : 1);   // (la voie des stands n'est pas de l'herbe)
     // le rythme (le talent) joue dans les virages ; la vitesse de pointe est celle de la voiture
-    vb[i] = Math.min(pointe, rythme * Math.min(vitesseVirage(k[i], mu) * R.IA_MARGE_VIRAGE, vitesseBraquage(k[i])));
+    // (virage serré, sous IA_RAYON_SERRE m de rayon : la courbure d'une ligne mesurée sur ±IA_LIGNE_DEMI_BASE points (±8 m) passe
+    // à travers l'épingle et la sous-estime ; il ne compte jamais moins que la courbure de la piste elle-même : sinon il y arrivait
+    // trop vite et sortait large, dans l'herbe, surtout en peloton (tracés officiels : Monoco, Suzuko, Montréol, Yas Marino))
+    const kt = valeurEn(c, c.courbure, s0 + i * pas), kl = Math.abs(kt) > 1 / R.IA_RAYON_SERRE ? Math.abs(kt) : 0;
+    const kv = Math.max(Math.abs(k[i]), kl);
+    vb[i] = Math.min(pointe, rythme * Math.min(vitesseVirage(kv, mu) * R.IA_MARGE_VIRAGE, vitesseBraquage(kv)));
     if (type === 'stands') { vb[i] = Math.min(vb[i], t.plafond[i]); continue; }   // (la limite de la voie et l'arrêt ; ni bord ni herbe)
     if (Math.abs(e[i]) > bord) { penalite += R.IA_PENALITE_BORD * (Math.abs(e[i]) - bord) * pas; danger = true; }
     // pendant un dépassement (il attaque, ou une voiture est à côté de lui), passer dans l'herbe coûte très cher
@@ -977,7 +982,9 @@ function piloterIA(pilote, v, vues, dt) {
     const g = ecartLeLong(c, w.s - p.s), cote = w.d - p.d;
     const portee = R.LONGUEUR_VOITURE + R.IA_MARGE_LONG + (g > 0 ? Math.max(0, v.u - w.vitesse) * R.IA_REFLEXE_TEMPS : 0);
     if (g > portee || g < -(R.LONGUEUR_VOITURE + R.IA_MARGE_LONG) || Math.abs(cote) > R.IA_REFLEXE_COTE) continue;
-    if (Math.sign(dir) === Math.sign(cote)) dir = 0;
+    // (pas pour une voiture nettement devant lui, dans un virage serré qu'elle prend à l'intérieur : il ne braquait plus, et sortait
+    // large dans l'herbe derrière elle ; tracés officiels, Montréol, Suzuko. Pour elle, c'est la vitesse qui le retient, juste après)
+    if (Math.sign(dir) === Math.sign(cote) && g < R.LONGUEUR_VOITURE + R.IA_MARGE_LONG) dir = 0;
     // (devant lui, une voiture lente que sa ligne contourne ne le freine pas : sinon il s'arrêterait à côté d'une voiture arrêtée)
     if (g > 0 && estLente(pilote, v, w) && Math.abs(valeurLigne(ligne.e, r + g) - w.d) >= R.IA_LENTE_SUR) continue;
     if (g > 0) cible = Math.min(cible, w.vitesse - (pilote.cede && pilote.cede.id === w.id ? R.IA_CEDER_FORT : R.IA_CEDER));
