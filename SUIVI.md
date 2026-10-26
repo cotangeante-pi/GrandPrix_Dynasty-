@@ -30,6 +30,7 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 
 ## Tour en cours
 
+**2026-10-26 16h50 : le propriétaire : « relance les 3 codeurs jusqu'à 24h »** : tour 31 (rapports/tour-31-rapport.md) : Codeur 1 la suite GitHub en parallèle puis les IA sur les 12 tracés en simulation ; Codeur 2 le résumé vidéo (étape 13) ; Codeur 3 la photo de la une. Fin à minuit (23h40 / 23h50 / 23h55).
 **Reprise du soir figée à 21h40 sur main vert (86/100) : consignes d'équipe, volant, déblocages, paquet Poki. Voir rapports/fin-2026-10-24.md.**
 **2026-10-24 ~19h40 : le propriétaire : « finit à 21h59 » → reprise jusqu'à 21h59** (rien de nouveau après 21h39, push 21h49, comptes rendus avant 21h54) : Codeur 1 les consignes d'équipe, Codeur 2 le volant en vue cockpit et les déblocages de motifs, Codeur 3 le paquet Poki (étape 15).
 **Journée du 2026-10-24 finie à 19h35 sur main 461ef97 (vert, 84/100). Reprise : rapports/fin-2026-10-24.md.**
