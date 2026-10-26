@@ -415,6 +415,7 @@ def decouverte(pg, titre):
       and (pg.click('#boutonAmisRetour') or True) and pg.evaluate('() => JEU.ecran === "titre"'))
     chargement = pg.evaluate('() => performance.timing.domContentLoadedEventEnd - performance.timing.navigationStart')
     pg.click('#boutonJouer')
+    t(f'{titre} : la course de découverte n’a pas de survol de la grille (GRILLE_DECOUVERTE faux : en piste en 10 secondes)', pg.evaluate('() => JEU.ecran !== "grille" && !REGLAGES.GRILLE_DECOUVERTE'), str(pg.evaluate('() => JEU.ecran')))
     t(f'{titre} : « ▶ Jouer » mène directement à la grille (écran course, pas de qualification), {R["tours"]} tours, {R["ia"]} IA au niveau {R["niveau"]} sur le circuit {R["circuit"]}, le joueur nommé « Toi » par défaut',
       attendre(pg, '() => JEU.ecran === "course" && JEU.plateau && JEU.qualif === null', None, 10000)
       and pg.evaluate(f'() => JEU.course.nbTours === {R["tours"]} && JEU.plateau.pilotes.length === {R["ia"]} + 1 && JEU.plateau.pilotes[{R["ia"]}].humain && REGLAGES.NIVEAU === "{R["niveau"]}" && NOM_CIRCUIT === "{R["circuit"]}" && JEU.course.feux && !!JEU.course.depart'),
