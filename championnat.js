@@ -185,6 +185,17 @@ const CHAMPIONNAT = (function () {
     return ch;
   }
 
+  // le calendrier de la saison (l'écran « Calendrier » du paddock, Codeur 3) : pour chaque Grand Prix, son numéro, son circuit, s'il est
+  // fait (son vainqueur, la place du joueur), si c'est le prochain, et si c'est le Grand Prix à domicile du joueur (sa course de cœur)
+  function calendrierSaison(ch) {
+    const j = joueurDe(ch);
+    return ch.calendrier.map((gp, i) => {
+      const r = ch.resultats[i], fait = !!r;
+      return { numero: gp.numero || i + 1, circuit: gp.circuit, fait, prochain: i === ch.prochain, domicile: !!(j && j.coeur && gp.circuit === j.coeur),
+        vainqueur: fait ? r.ordre[0] : null, place: fait && j ? r.ordre.indexOf(j.id) + 1 : null };
+    });
+  }
+
   // le classement des pilotes : [{ k, points }] du premier au dernier
   function classementPilotes(ch) {
     return ch.pilotes.map(p => p.id)
@@ -246,6 +257,6 @@ const CHAMPIONNAT = (function () {
     return ordre.map((v, i) => ({ k: k(v), place: i + 1, grille: grille.indexOf(v.numero) + 1, meilleurTour: v.meilleurTour, classe: !!v.fini }));
   }
 
-  return { creer, pointsPour, enregistrerCourse, finirGrandPrix, classementPilotes, classementEcuries, lignesDepuisCourse, lignesDepuisSimulation, appliquerNiveaux, simulerGrandPrix,
+  return { calendrierSaison, creer, pointsPour, enregistrerCourse, finirGrandPrix, classementPilotes, classementEcuries, lignesDepuisCourse, lignesDepuisSimulation, appliquerNiveaux, simulerGrandPrix,
     coequipierDe, gagnantDuel, scoreDuel, completer };
 })();
