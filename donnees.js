@@ -686,7 +686,6 @@ const REGLAGES = {
   DECOR_ACTIF: true,
   DECOR_GRAINE: 4242,           // le hasard du décor, à part (il ne tire jamais dans hasard() : la course ne change pas)
   DECOR_MARGE: 8,               // m au-delà du bord de la piste : aucun objet du décor plus près, sur tout le tracé (test)
-  DECOR_MARGE_STANDS: 3,
   DECOR_CASE: 40,               // m : la grille qui range les échantillons de la piste pour vérifier une place (plus grand que demi-largeur + marge + l'objet le plus large)        // m au-delà de la voie des stands
   DECOR_MARGE_TELE: 10,         // m autour d'un poste de caméra télé (rien ne cache ce qu'il filme)
   DECOR_PODIUM_RAYON: 16,       // m : la place du podium (podium3d.js), en face de la ligne, reste libre

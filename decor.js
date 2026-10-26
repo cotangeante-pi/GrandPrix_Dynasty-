@@ -75,7 +75,8 @@ const DECOR = (function () {
 
   // le placement : { tribune, public, batiment, garage, arbreA, arbreB, panneau, pneus } (listes d'objets { x, y, z, ax, az, bx, bz, e,
   // couleur, cx, cz, rayon }), et ce qui a été refusé (une place qui n'était pas libre)
-  function placer(c, description, graine) {
+  // couleursDe(n) (facultatif) : les couleurs des n spectateurs (decor-public.js : le public à domicile), à la place des siennes
+  function placer(c, description, graine, couleursDe) {
     const objets = { tribune: [], public: [], batiment: [], garage: [], arbreA: [], arbreB: [], panneau: [], pneus: [] };
     const libre = verificateur(c), rnd = tirage(graine === undefined ? R.DECOR_GRAINE : graine);
     const couleurPublic = couleursPublic(rnd);
@@ -144,6 +145,10 @@ const DECOR = (function () {
           ranger(objets.pneus, r, 0, 0, R.PNEUS_PILE_RAYON, 0, R.PNEUS_PILE_RAYON, R.PNEUS_PILE_RAYON, { couleur: n++ % R.PNEUS_PILE_REPERE ? R.DECOR_COULEUR_PNEU : R.DECOR_COULEUR_PNEU_REPERE });
         });
       } else inconnus++;
+    }
+    if (couleursDe) {
+      const tir = couleursDe(objets.public.length);
+      if (tir && tir.couleurs && tir.couleurs.length === objets.public.length) objets.public.forEach((o, k) => { o.couleur = tir.couleurs[k]; });
     }
     return { objets, refus, inconnus };
   }
@@ -256,9 +261,12 @@ const DECOR = (function () {
     return { tous, proches, loin, mats, cols, couleurs: !!couleurs, dernier: null, nbProches: 0, nbLoin: 0 };
   }
 
-  function construire(c, description) {
+  // gp (facultatif) : { championnat, circuit } du Grand Prix, pour le public de decor-public.js (DECOR_PUBLIC.pourGrandPrix : les
+  // couleurs des écuries, et au Grand Prix à domicile celles du pays du joueur) ; sans decor-public.js, les couleurs de placer
+  function construire(c, description, gp) {
     const t0 = typeof performance !== 'undefined' ? performance.now() : 0;
-    const { objets, refus } = placer(c, description);
+    const couleursDe = typeof DECOR_PUBLIC !== 'undefined' ? n => DECOR_PUBLIC.pourGrandPrix(gp ? gp.championnat : null, gp ? gp.circuit : null, n) : null;
+    const { objets, refus } = placer(c, description, undefined, couleursDe);
     const F = formes(), groupe = new THREE.Group();
     groupe.name = 'decor';
     const rangs = R.TRIBUNE_RANGS;

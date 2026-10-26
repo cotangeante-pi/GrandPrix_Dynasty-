@@ -9,7 +9,8 @@ const SCENE3D = (function () {
   let trianglesDessines = 0, appelsDessin = 0;
   let decor = null;   // le décor du circuit (étape 10, decor.js), ou null
 
-  function init(element, circuit) {
+  // gp (facultatif) : { championnat, circuit } du Grand Prix (le public du décor, decor-public.js)
+  function init(element, circuit, gp) {
     conteneur = element;
     try {
       rendu = new THREE.WebGLRenderer({ antialias: true });
@@ -41,7 +42,7 @@ const SCENE3D = (function () {
     // le décor (étape 10, decor.js) : DECORS[le circuit], s'il existe (tribunes, public, stands, arbres, panneaux, pneus)
     const cle = typeof CIRCUITS !== 'undefined' ? Object.keys(CIRCUITS).find(k => CIRCUITS[k].nom === circuit.nom) : undefined;
     if (R.DECOR_ACTIF && typeof DECOR !== 'undefined' && typeof DECORS !== 'undefined' && cle && DECORS[cle]) {
-      decor = DECOR.construire(circuit, DECORS[cle]);
+      decor = DECOR.construire(circuit, DECORS[cle], gp || { championnat: null, circuit: cle });
       scene.add(decor.groupe);
     }
 

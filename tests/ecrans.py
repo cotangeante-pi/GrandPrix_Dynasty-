@@ -388,9 +388,15 @@ def fantome(pg, titre):
     pg.reload()
     attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "qualif" && JEU.qualif.etat === "choix"', None, 60000)
     pg.evaluate('() => { SAUVEGARDE.ecrireOption("fantome", true); INTERFACE.majBoutonsFantome(true); REGLAGES.FORCE_MOTEUR_MAX *= 0.7; REGLAGES.PUISSANCE *= 0.7; }')
-    mon_tour()
-    pg.evaluate('() => { BOUCLE.arreter(); while (QUALIFICATION.chrono(JEU.qualif.q) < 1) BOUCLE.simuler(1 / 120); }')
-    image()
+    # (la boucle arrêtée dès le clic : le tour est joué pas à pas jusqu'à 0,5 s après la ligne, quel que soit le temps d'une image ;
+    # avec le décor, sous swiftshader, attendre le tour en temps réel laissait passer plusieurs secondes de chrono, et à 1 s pile
+    # le fantôme est déjà à 12-20 m, à moitié au-dessus du milieu de l'image)
+    attendre(pg, '() => JEU.ecran === "qualif" && JEU.qualif && JEU.qualif.etat === "choix"', None, 60000)
+    attendre(pg, '() => JEU.plateau.carte !== null', None, 180000)
+    pg.click('#boutonQualifTour')
+    pg.evaluate('() => { BOUCLE.arreter(); JEU.course.compte = 0.01; }')
+    pg.evaluate('t => { const tour = eval(t); let n = 0; while (!tour() && n++ < 120 * 60) BOUCLE.simuler(1 / 120); while (QUALIFICATION.chrono(JEU.qualif.q) < 0.5 && n++ < 120 * 120) BOUCLE.simuler(1 / 120); BOUCLE.demarrer(); }', TOUR)
+    image()   # (deux images : la première sans physique, la seconde 0,1 s au plus)
     pg.evaluate('() => BOUCLE.arreter()')
     pos = pg.evaluate('''() => { const p = FANTOME.position(JEU.fantome.rejeu, QUALIFICATION.chrono(JEU.qualif.q)), v = JEU.joueur, c = Math.cos(v.cap), s = Math.sin(v.cap);
       return { chrono: QUALIFICATION.chrono(JEU.qualif.q), devant: c * (p.x - v.x) + s * (p.z - v.z), cote: -s * (p.x - v.x) + c * (p.z - v.z), visible: JEU.modeleFantome.groupe.visible, ecart: JEU.fantome.ecart }; }''')

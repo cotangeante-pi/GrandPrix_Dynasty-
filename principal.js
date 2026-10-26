@@ -1568,7 +1568,7 @@ function demarrerJeu() {
   RADAR.init(document.getElementById('radar'));
   MINICARTE.init(document.getElementById('minicarte'));   // la minicarte (son tracé est préparé une fois, quand le circuit est construit)
 
-  if (!SCENE3D.init(document.getElementById('scene3d'), CIRCUIT)) return;
+  if (!SCENE3D.init(document.getElementById('scene3d'), CIRCUIT, { championnat: CHAMPIONNAT_EN_COURS, circuit: NOM_CIRCUIT })) return;   // (le public du décor : decor-public.js)
   CAMERA.init(SCENE3D.camera, CIRCUIT, PARAMETRES.get('camera'));
   if (DEUX_EN_COURS) { document.body.classList.add('deux'); if (REGLAGES.DEUX_PARTAGE !== 'haut') { document.body.classList.add('cote'); CAMERA.reglerChampBase(REGLAGES.DEUX_FOV_COTE); } SCENE3D.partager(true); }   // (côte à côte : le joueur 1 à gauche, un champ de vision plus ouvert)   // le mode 2 joueurs : l'écran partagé haut / bas (scene3d.js), le CSS du mode
   JEU.joueur = creerVoiture(CIRCUIT, 0);
