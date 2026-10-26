@@ -40,7 +40,9 @@ PAGES = [
     ('index.html?course=1&ia=8&circuit=test', 960, 600, None),
     ('index.html?course=1&robot=1&test=sdk', 1280, 720, None),   # le faux SDK Poki (sdk.js) : l'ordre des appels sur une course d'un tour
     ('index.html?course=0&robot=1&pneus=1&debug=1', 1280, 720, None),
-    ('index.html?course=12&robot=1&pneus=1&circuit=test&test=stand', 1280, 720, None),   # l'arrêt au stand (étape 7) : le message, le robot entre dans la voie, s'arrête, ressort ; capture stand.png   # ?pneus=1 : l'usure monte sur 10 tours du robot, affichée dans ?debug=1
+    ('index.html?course=12&robot=1&pneus=1&circuit=test&test=stand', 1280, 720, None),
+    ('index.html?championnat=1&tours=2&robot=1&test=consigne-suivie', 1280, 720, None),    # la consigne d'équipe vise le joueur : il la suit (capture consigne.png), confiance +5
+    ('index.html?championnat=1&tours=2&robot=1&test=consigne-ignoree', 1280, 720, None),   # … il l'ignore, confiance −5   # l'arrêt au stand (étape 7) : le message, le robot entre dans la voie, s'arrête, ressort ; capture stand.png   # ?pneus=1 : l'usure monte sur 10 tours du robot, affichée dans ?debug=1
     ('index.html?championnat=1&tours=1&robot=1&gp=12', 1280, 720, None),   # la fin de saison : le 12e Grand Prix joué par le robot, champion, duel de la saison, contrats, saison 2 ; captures champion.png, duel-saison.png, contrats.png
     ('index.html?championnat=1&tours=1&robot=1&gp=12', 960, 600, None),    # les écrans de fin de saison en petit (Grand Prix 12 fabriqué), la retraite
     ('index.html?championnat=1&tours=1&robot=1&lang=en', 1280, 720, None),   # la page en anglais : championnat et podium sans un mot français, capture championnat-en.png
@@ -586,6 +588,53 @@ def stand_ecran(pg, titre):
     fin = pg.evaluate('() => [JEU.joueur.versStands, JEU.joueur.dansStands, JEU.course.tours.length, JEU.joueur.contactsMurStands, JEU.course.penalites]')
     t(f'{titre} : il ressort sur la piste, sans toucher le muret, et son tour compte', fin[0] is False and fin[1] is False and fin[2] >= 1 and fin[3] == 0 and fin[4] == 0, str(fin))
     L.append(f'  (arrêt au stand dans la page : arrêts {pg.evaluate("() => JSON.stringify(JEU.course.arrets)")}, tours {fin[2]})')
+
+# les consignes d'équipe (simulation.js majConsignes) quand elles visent le JOUEUR, devant son coéquipier : en championnat, Grand Prix 1,
+# le robot et son coéquipier échangent leurs places sur la grille (le joueur devant), puis l'écurie lui donne la consigne (fabriquée : le
+# déclenchement lui-même est testé en simulation, test.html et consignes.html) ; le message s'affiche (capture consigne.png) ; « suivie » :
+# le robot lève le pied, le coéquipier passe, « Merci ! » ; « ignorée » : il ne lève pas le pied et le délai est court (3 s) ; à la fin du
+# Grand Prix (« Pas de commentaire » à l'interview), la confiance de l'écurie a bougé de ±CONSIGNE_CONFIANCE, et c'est sauvegardé
+def consigne_ecran(pg, titre, suivre):
+    attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', None, 60000)
+    avant = pg.evaluate('() => JEU.championnat.reputation ? JEU.championnat.reputation.ecurie : 50')
+    pg.click('#boutonCourseSuivante')
+    passer_qualif(pg, titre)
+    attendre(pg, '() => JEU.plateau.carte !== null && JEU.course.etat === "compte"', None, 180000)
+    # le joueur et son coéquipier échangent leurs places sur la grille (le joueur devant lui)
+    info = pg.evaluate('''() => { const e = JEU.plateau, P = e.pilotes, j = P.findIndex(p => p.humain), kc = CHAMPIONNAT.coequipierDe(JEU.championnat).id;
+      const a = P[j], b = P[kc], pa = { s: a.v.piste.s, d: a.v.piste.d, depart: a.depart }, pb = { s: b.v.piste.s, d: b.v.piste.d, depart: b.depart };
+      if (pa.depart < pb.depart) { placerSurPiste(a.v, CIRCUIT, pb.s, pb.d); placerSurPiste(b.v, CIRCUIT, pa.s, pa.d); a.depart = pb.depart; b.depart = pa.depart; e.origine = Math.min(...P.map(p => p.depart)); }
+      return [j, kc, P[kc].numero]; }''')
+    if not suivre: pg.evaluate('() => { REGLAGES.CONSIGNE_DELAI = 3; }')
+    attendre(pg, '() => JEU.course.etat === "course" && JEU.course.temps > 1', None, 30000)
+    pg.evaluate(f'''() => {{ const e = JEU.plateau, P = e.pilotes, j = {info[0]}, kc = {info[1]};
+      const c = {{ devant: j, derriere: kc, numero: P[kc].numero, debut: e.temps, joueur: true, refus: false, resultat: null }};
+      e.consigne = c; P[j].course.consigne = c; P[kc].course.consigne = c; if (P[kc].pilote) P[kc].pilote.passer = {{ id: P[j].v }}; }}''')
+    message = attendre(pg, f'() => document.getElementById("hudStand").textContent.startsWith("Consigne de l’écurie : laisse passer ton coéquipier n°{info[2]}".replace("’", "\'")) && !document.getElementById("hudStand").classList.contains("cache")', None, 5000)
+    texte = pg.evaluate('() => document.getElementById("hudStand").textContent')
+    t(f'{titre} : la consigne vise le joueur, devant son coéquipier plus rapide : le message dit ce qui est demandé et ce qu’on risque', message and 'confiance' in texte, texte)
+    if suivre: pg.screenshot(path=os.path.join(CAPTURES, 'consigne.png')); pg.evaluate('() => { JEU.joueur.leverLePied = 12; }')   # (il lève le pied après le message)
+    for _ in range(60):
+        pg.evaluate('() => BOUCLE.simuler(1)')
+        if pg.evaluate('() => !!JEU.plateau.consigne.resultat'): break
+    res = pg.evaluate('() => JEU.plateau.consigne.resultat')
+    pg.evaluate('() => { JEU.joueur.leverLePied = 0; }')
+    attendre(pg, '() => /La confiance|Consigne ignorée|Merci/.test(document.getElementById("hudStand").textContent)', None, 3000)
+    apres = pg.evaluate('() => document.getElementById("hudStand").textContent')
+    if suivre: t(f'{titre} : le robot lève le pied, son coéquipier passe : « suivie », « Merci ! La confiance de l’écurie monte. »', res == 'suivie' and apres.startswith('Merci'), f'{res} / {apres}')
+    else: t(f'{titre} : le robot ne laisse pas passer dans le délai : « ignorée », « Consigne ignorée : la confiance de l’écurie baisse. »', res == 'ignoree' and apres.startswith('Consigne ignorée'), f'{res} / {apres}')
+    for _ in range(120):
+        pg.evaluate('() => BOUCLE.simuler(5)')
+        if pg.evaluate('() => JEU.ecran') == 'podium': break
+        pg.wait_for_timeout(30)
+    pg.click('#boutonResultats')
+    attendre(pg, '() => JEU.ecran === "resultats"')
+    pg.click('#boutonChangerResultats')
+    passer_interview(pg)
+    attendu = max(0, min(100, avant + (1 if suivre else -1) * pg.evaluate('() => REGLAGES.CONSIGNE_CONFIANCE')))
+    fin = attendre(pg, f'() => JEU.championnat.reputation.ecurie === {attendu} && JEU.championnat.confiance === {attendu} && SAUVEGARDE.championnat().reputation.ecurie === {attendu}', None, 10000)
+    t(f'{titre} : à la fin du Grand Prix, la confiance de l’écurie {"monte" if suivre else "baisse"} de CONSIGNE_CONFIANCE ({avant} → {attendu}), sauvegardée', fin,
+      str(pg.evaluate('() => [JEU.ecran, JEU.championnat.reputation, JEU.championnat.confiance]')))
 
 # ?lang=en : la page en anglais : lang et title remplis au démarrage, puis le classement du championnat, le podium et les
 # résultats sans un mot français (les 11 textes en dur de l'audit) ; le robot joue le Grand Prix 1 (un tour)
@@ -1881,6 +1930,8 @@ with sync_playwright() as p:
                 fin_saison(pg, titre, l)
             elif 'championnat=1' in page and 'lang=en' in page:
                 championnat_en(pg, titre)
+            elif 'test=consigne' in page:
+                consigne_ecran(pg, titre, 'suivie' in page)
             elif 'test=accelere' in page:
                 accelere(pg, titre, page)
             elif 'championnat=1' in page:

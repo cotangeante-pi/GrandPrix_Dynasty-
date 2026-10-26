@@ -34,6 +34,7 @@ function piloteRobot(v, circuit, vitesseCible) {
     }
   }
   if (st) cible = Math.min(cible, st.vitesse);
+  if (v.leverLePied) cible = Math.min(cible, v.leverLePied);   // (tests : il lève le pied, pour laisser passer son coéquipier : une consigne d'équipe)
   const ecart = cible - v.u;
   return {
     gaz: ecart > 0 ? Math.min(1, ecart / 2) : 0,
