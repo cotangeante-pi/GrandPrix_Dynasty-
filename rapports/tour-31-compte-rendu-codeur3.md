@@ -35,3 +35,18 @@ Ordres : 1 fait / 2 fait / 3 fait.
 - La beauté de la photo, à juger par le propriétaire (captures `une-photo.png` et `album-photo.png`).
 
 Réévalue.
+
+## Dernier ordre du tour 31 (le calendrier, le Grand Prix à domicile, la photo du rival) — commit `422a7c3`, passage 40407159271 : les 9 travaux sont verts
+1. **« 📅 Calendrier » au paddock** (`CHAMPIONNAT.calendrierSaison`) :
+   - les 12 Grands Prix, avec leur numéro et leur circuit ;
+   - ceux qui sont faits : « vainqueur X · toi PN », ou « ta victoire ! » quand le joueur a gagné (jamais son nom comme vainqueur, testé) ;
+   - le prochain mis en valeur ;
+   - le Grand Prix à domicile marqué d'une petite maison dessinée en CSS.
+   - Les tests utilisent un calendrier fabriqué (moteur) et une course de cœur passée en mémoire sur un circuit du calendrier (ecrans). Captures `calendrier.png` et `calendrier-960.png`.
+2. **Le Grand Prix à domicile dans l'interview et la une** :
+   - deux faits, `domicileFete` (jusqu'à `DOMICILE_FETE_PLACE` = 3) et `domicileDecu`, en tête de `INTERVIEW_PRIORITES`, et juste après le titre de champion et la relève dans `JOURNAL_PRIORITES` ;
+   - leurs titres, textes, questions et réponses, en + fr, sans genre sur le pilote ;
+   - la photo : le podium pour la fête, la voiture du joueur pour la déception.
+   - Tests moteur : une victoire à domicile donne la fête, une P12 la déception, ailleurs la victoire ordinaire revient ; le titre de champion passe devant ; aucun mot genré.
+3. **La photo stylisée de la fiche du rival** (`PHOTO.portrait`) : son casque en grand sur un fond à la couleur de son écurie, et sa voiture dessous. Tests moteur (deux dessins identiques, plusieurs couleurs) et ecrans.
+- Fusion de main (la grille vue d'en haut et le résumé du Codeur 2) : un conflit dans la liste des écrans d'`interface.js`, réglé en gardant les deux côtés.
