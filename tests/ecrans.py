@@ -59,6 +59,8 @@ PAGES = [
     ('index.html?course=0&camera=cockpit&test=volant', 960, 600, None),    # … en petit ; capture cockpit-960.png
     ('index.html?course=1&ia=5&joueur=1&robot=1&circuit=test&test=resume', 1280, 720, None),   # le résumé vidéo (étape 13) : après une course, « ▶ Résumé », le rejeu, Échap / clic ; capture resume.png
     ('index.html?course=1&ia=5&joueur=1&robot=1&circuit=test&test=resume', 960, 600, None),    # … en petit ; capture resume-960.png
+    ('index.html?course=3&ia=5&joueur=1&robot=1&pneus=1&circuit=test&test=hudcourse', 1280, 720, None),   # la minicarte, les pneus, les messages de course (suite du tour 31) ; captures minicarte.png, pneus-hud.png, messages.png
+    ('index.html?course=3&ia=5&joueur=1&robot=1&pneus=1&circuit=test&test=hudcourse', 960, 600, None),    # … en petit, sans recouvrement
     ('index.html?test=tournoi', 1280, 720, None),   # le tournoi chrono (tour 26b) : inscription de 3 joueurs → 3 manches (robot ; un abandon) → podium → Rejouer ; captures tournoi.png, tournoi-podium.png
     ('index.html?test=tournoi', 960, 600, None),    # … l'inscription de 8 joueurs tient en 960×600   # le mode 2 joueurs, tour 25b ordre 3 : titre → « Entre amis » → réglages → course à deux (robots) → podium → rivalité → Revanche → Menu ; captures entre-amis.png, deux-reglages.png, rivalite.png
     ('index.html?test=amis', 960, 600, None),    # … en petit : le menu et l'écran avant la course tiennent sans défilement ni débordement   # … la mesure de la 3D dessinée deux fois sur le technique   # le premier lancement : titre → course de découverte (robot) → Bravo → paddock ; captures titre.png, decouverte.png, bravo.png
@@ -1075,6 +1077,44 @@ def resume_ecran(pg, titre, l, h):
     pg.mouse.click(l / 2, h / 3)
     t(f'{titre} : un clic sort aussi du résumé', attendre(pg, '() => JEU.ecran === "resultats"', None, 5000), str(pg.evaluate('() => JEU.ecran')))
 
+# l'interface en course (suite du tour 31) : la minicarte (le circuit entier, chaque voiture au bon endroit à 2 m près, le joueur
+# mis en valeur), l'état des pneus avec ?pneus=1 (la jauge baisse en roulant), un message de course (meilleur tour) qui apparaît
+# puis disparaît ; rien ne se recouvre en 960×600 et 1280×720 ; aucun appel de dessin en plus (ce sont des canvas 2D et du HTML)
+def hud_course(pg, titre, l, h):
+    passer_qualif(pg, titre)
+    attendre(pg, '() => JEU.plateau.carte !== null', None, 180000)
+    if pg.evaluate('() => JEU.ecran === "grille"'): pg.evaluate('() => finirGrille()')
+    pg.evaluate('() => { BOUCLE.arreter(); BOUCLE.simuler(25); BOUCLE.demarrer(); }')
+    attendre(pg, '() => JEU.ecran === "course" && !document.getElementById("minicarte").classList.contains("cache")', None, 10000)
+    pg.wait_for_timeout(300)
+    mc = pg.evaluate('''() => { const P = JEU.plateau.pilotes, pts = MINICARTE.points; let pire = 0;
+      for (const p of pts) { const [x, z] = MINICARTE.versMonde(p.x, p.y), v = P[p.k].v; pire = Math.max(pire, Math.hypot(x - v.x, z - v.z)); }
+      return { n: pts.length, voitures: P.length, pire, pret: MINICARTE.pret }; }''')
+    t(f'{titre} : la minicarte : le circuit entier, toutes les voitures (chacune au bon endroit à 2 m près)', mc['pret'] and mc['n'] == mc['voitures'] and mc['pire'] < 2, str(mc))
+    u1 = pg.evaluate('() => [JEU.joueur.pneus.usure, document.getElementById("pneusTexte").textContent, document.getElementById("pneusHud").classList.contains("cache")]')
+    pg.evaluate('() => { BOUCLE.arreter(); BOUCLE.simuler(60); BOUCLE.demarrer(); }')
+    attendre(pg, '() => document.getElementById("pneusTexte").textContent.endsWith(" " + Math.round((1 - JEU.joueur.pneus.usure) * 100) + " %")', None, 5000)
+    u2 = pg.evaluate('() => [JEU.joueur.pneus.usure, document.getElementById("pneusTexte").textContent, document.getElementById("pneusPlein").style.width, document.getElementById("pneusAdherence").textContent]')
+    t(f'{titre} : avec ?pneus=1, l’état des pneus à l’écran : la jauge baisse en roulant, et l’adhérence perdue est dite', not u1[2] and u2[0] > u1[0] and u1[1] != u2[1] and re.search(r'\d', u2[3]) is not None, str([u1, u2]))
+    # un meilleur tour fabriqué (plus rapide que tous) : son message apparaît, puis s'en va après MESSAGES_DUREE s de course
+    pg.evaluate('() => { const P = JEU.plateau.pilotes; P[0].course.meilleurTour = 40; JEU.messages.m.file = []; JEU.messages.m.actuel = null; }')
+    vu = attendre(pg, '() => !document.getElementById("messageCourse").classList.contains("cache") && /40/.test(document.getElementById("messageCourse").textContent)', None, 5000)
+    texte_msg = pg.evaluate('() => document.getElementById("messageCourse").textContent')
+    bm, bh, bc, bt, bp, br = [pg.evaluate('s => { const e = document.querySelector(s); if (!e || e.classList.contains("cache") || getComputedStyle(e).display === "none") return null; const r = e.getBoundingClientRect(); return [r.left, r.top, r.right, r.bottom]; }', s) for s in ['#minicarte', '#hudCourse', '#classement', '#tableau', '#pneusHud', '#radar']]
+    croise = lambda a, b: a is not None and b is not None and a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]
+    bmsg = pg.evaluate('() => { const r = document.getElementById("messageCourse").getBoundingClientRect(); return [r.left, r.top, r.right, r.bottom]; }')
+    boites = {'minicarte': bm, 'chrono': bh, 'tour': bc, 'compteur': bt, 'pneus': bp, 'radar': br, 'message': bmsg}
+    chevauche = [(a, b) for a in boites for b in boites if a < b and croise(boites[a], boites[b])]
+    t(f'{titre} : un message de course (meilleur tour) apparaît en bandeau ; rien ne se recouvre en {l}×{h} (minicarte, chrono, tour, compteur, pneus, radar, message)', vu and texte_msg != '' and not chevauche and all(b is None or (b[0] >= -1 and b[2] <= l + 1 and b[3] <= h + 1) for b in boites.values()), str([texte_msg, chevauche, boites]))
+    if l == 1280:
+        pg.screenshot(path=os.path.join(CAPTURES, 'messages.png'))
+        pg.locator('#minicarte').screenshot(path=os.path.join(CAPTURES, 'minicarte.png'))
+        pg.locator('#pneusHud').screenshot(path=os.path.join(CAPTURES, 'pneus-hud.png'))
+    else:
+        pg.screenshot(path=os.path.join(CAPTURES, 'hud-course-960.png'))
+    pg.evaluate('() => { BOUCLE.arreter(); BOUCLE.simuler(REGLAGES.MESSAGES_DUREE * 3 + 1); BOUCLE.demarrer(); }')
+    t(f'{titre} : le message s’en va après MESSAGES_DUREE s', attendre(pg, '() => !/40/.test(document.getElementById("messageCourse").textContent) || document.getElementById("messageCourse").classList.contains("cache")', None, 5000), pg.evaluate('() => document.getElementById("messageCourse").textContent'))
+
 def course_joueur(pg, titre):
     # le joueur conduit sa voiture au clavier, au milieu de 9 IA ; la caméra le suit, Tab ne change rien
     t(f'{titre} : 9 IA et la voiture du joueur, en dernière place de la grille ; la caméra suit le joueur',
@@ -1987,7 +2027,7 @@ with sync_playwright() as p:
                 tournoi(pg, titre, l, h)
             if 'test=volant' in page:
                 volant(pg, titre, l, h)
-            if 'pneus=1' in page and 'test=stand' not in page:
+            if 'pneus=1' in page and 'test=stand' not in page and 'test=hudcourse' not in page:
                 pneus(pg, titre)
             if 'test=stand' in page:
                 stand_ecran(pg, titre)
@@ -2010,6 +2050,8 @@ with sync_playwright() as p:
             elif 'championnat=1' in page:
                 championnat(pg, titre, l)
             if 'test=accelere' in page: pass
+            elif 'test=hudcourse' in page:
+                hud_course(pg, titre, l, h)
             elif 'test=resume' in page:
                 resume_ecran(pg, titre, l, h)
             elif 'test=qualif' in page:

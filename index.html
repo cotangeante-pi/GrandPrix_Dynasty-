@@ -29,6 +29,9 @@
 <!-- la tour de classement (en haut à droite) et le radar (en bas à gauche), pendant une course à plusieurs -->
 <div id="classement" class="cache"><div id="classementPlace"></div><ol id="classementListe"></ol></div>
 <canvas id="radar" class="cache" width="170" height="170"></canvas>
+<canvas id="minicarte" class="cache" width="180" height="130"></canvas>   <!-- la minicarte : le circuit entier et toutes les voitures (minicarte.js) -->
+<div id="pneusHud" class="cache"><span id="pneusTexte"></span><span id="pneusBarre"><i id="pneusPlein"></i></span><span id="pneusAdherence"></span></div>   <!-- ?pneus=1 : l'usure et l'adhérence perdue -->
+<div id="messageCourse" class="cache"></div>   <!-- les messages de course (messages.js), un à la fois -->
 <div id="hudPenalite" class="cache"></div>
 <div id="hudStand" class="cache"></div>   <!-- l'arrêt au stand (étape 7) : le tour conseillé, l'arrêt en cours, les pneus neufs -->
 <div id="compte" class="cache"></div>
@@ -424,6 +427,8 @@
 <script src="camera.js"></script>
 <script src="reglages.js"></script>
 <script src="radar.js"></script>
+<script src="minicarte.js"></script>
+<script src="messages.js"></script>
 <script src="podium3d.js"></script>
 <script src="interface.js"></script>
 <script src="principal.js"></script>
