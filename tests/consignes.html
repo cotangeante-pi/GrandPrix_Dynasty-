@@ -1,0 +1,37 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>les consignes d'équipe</title></head><body>
+<pre id="res"></pre>
+<script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));</script>
+<script src="../donnees.js"></script><script src="../aleatoire.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../course.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script>
+<script>
+// Les consignes d'équipe en course (simulation.js majConsignes, Codeur 1) : 30 courses de 12 tours entre 10 IA (15 graines par circuit, test
+// et technique), avec les consignes (le jeu) puis les mêmes sans (CONSIGNES_ACTIVES faux). Combien de courses ont une consigne, son
+// résultat, et les chocs > 5 m/s pendant une consigne (de son début à 5 s après sa fin) où l'une des deux voitures de l'écurie est
+// touchée : EXIGÉ 0. Au plus une consigne par course ; toutes les voitures arrivent. ?graines=15, ?tours=12.
+const Q=new URLSearchParams(location.search),GRAINES=+(Q.get('graines')||15),TOURS=+(Q.get('tours')||12);
+const L=[];let ok=0,ko=0;
+function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
+const v=(c,m)=>{if(!c)throw new Error(m||'faux');};
+const ecrire=etape=>{document.getElementById('res').textContent=`${etape?'EN COURS ('+etape+') ':''}RESULTAT ${ok}/${ok+ko}\n`+L.join('\n');};
+const circuits={test:CIRCUIT_TEST,technique:construireCircuit(CIRCUITS.technique)},DT=REGLAGES.PAS_PHYSIQUE;
+// une course, pas à pas : chaque choc > 5 m/s avec son temps ; les consignes vues (pour compter : au plus une)
+function course(circ,g){const e=creerCourseIA(circ,10,TOURS,g),P=e.pilotes,chocs=[],consignes=new Set(),vus=P.map(()=>0);
+  const pasMax=Math.round(TOURS*REGLAGES.SIMULATION_TEMPS_MAX/DT);
+  for(let k=0;k<pasMax&&e.arrives<10;k++){pasCourseIA(e,DT);if(e.consigne)consignes.add(e.consigne);
+    P.forEach((p,i)=>{while(vus[i]<p.v.chocs.length){if(p.v.chocs[vus[i]]>5)chocs.push({k:i,temps:e.temps});vus[i]++;}});}
+  return {e,chocs,consignes:consignes.size,fini:P.every(p=>p.arrivee!==null)};}
+const res=[],t0=performance.now();
+for(const nom of ['test','technique']) for(let g=1;g<=GRAINES;g++){
+  const a=course(circuits[nom],g);REGLAGES.CONSIGNES_ACTIVES=false;let b;try{b=course(circuits[nom],g);}finally{REGLAGES.CONSIGNES_ACTIVES=true;}
+  const c=a.e.consigne,pendant=c?a.chocs.filter(x=>(x.k===c.devant||x.k===c.derriere)&&x.temps>=c.debut&&x.temps<=(c.fin===undefined?Infinity:c.fin+5)).length/1:0;
+  res.push({nom,g,a,b,c,pendant});
+  L.push(`  ${nom} graine ${String(g).padStart(2)} : ${c?`consigne au ${a.e.pilotes[c.devant].course.tours.length>0?'':''}temps ${c.debut.toFixed(0)} s, n°${a.e.pilotes[c.devant].numero} laisse passer n°${c.numero} → ${c.resultat} en ${c.fin===undefined?'—':(c.fin-c.debut).toFixed(1)+' s'}`:'pas de consigne'} | chocs>5 ${a.chocs.length/2} (sans consignes ${b.chocs.length/2}) | pendant la consigne ${pendant}`);
+  ecrire(nom+' '+g);}
+const N=res.length,avec=res.filter(r=>r.c),suivies=avec.filter(r=>r.c.resultat==='suivie').length,tot=f=>res.reduce((s,r)=>s+f(r),0);
+L.push(`  TOTAL sur ${N} courses de ${TOURS} tours : ${avec.length} avec une consigne (${suivies} suivies, ${avec.length-suivies} ignorées) ; chocs > 5 m/s ${tot(r=>r.a.chocs.length/2)} avec les consignes, ${tot(r=>r.b.chocs.length/2)} sans ; pendant une consigne (les deux voitures de l'écurie) ${tot(r=>r.pendant)} ; calcul ${((performance.now()-t0)/1000).toFixed(1)} s`);
+t('toutes les voitures arrivent, avec et sans consignes',()=>v(res.every(r=>r.a.fini&&r.b.fini)));
+t('au plus une consigne par course',()=>v(res.every(r=>r.a.consignes<=1),res.map(r=>r.a.consignes).join(',')));
+t('sans consigne dans la course, elle est identique au bit près à la même course sans les consignes',()=>{const ids=r=>r.e.pilotes.map(p=>p.arrivee+':'+p.v.x).join('|');v(res.filter(r=>!r.c).every(r=>ids(r.a)===ids(r.b)));});
+t('aucun choc à plus de 5 m/s pendant une consigne pour les deux voitures de l’écurie',()=>v(tot(r=>r.pendant)===0,tot(r=>r.pendant)));
+t('aucune erreur JavaScript',()=>v(__err.length===0,__err.join(' | ')));
+ecrire();
+</script></body></html>
