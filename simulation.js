@@ -131,8 +131,10 @@ function majConsignes(e) {
     const ecart = distanceCourse(dev) - distanceCourse(der);
     if (ecart <= 0 || ecart > R.CONSIGNE_DISTANCE || dev.course.tours.length + 1 >= dev.course.nbTours) continue;
     // (celui de derrière : son meilleur tour de la course ; bloqué derrière l'autre, ses derniers tours sont ceux de l'autre)
-    const rd = rythmeRecent(dev), rr = rythmeRecent(der) === null ? null : der.course.meilleurTour;
-    if (rd === null || rr === null || rd - rr < R.CONSIGNE_RYTHME) continue;
+    // (et ses derniers tours pas plus lents que ceux de l'autre, à CONSIGNE_RECENT près : un meilleur tour ancien ne suffit pas, il doit
+    // être vraiment collé à lui maintenant)
+    const rd = rythmeRecent(dev), recent = rythmeRecent(der), rr = recent === null ? null : der.course.meilleurTour;
+    if (rd === null || rr === null || rd - rr < R.CONSIGNE_RYTHME || recent > rd + R.CONSIGNE_RECENT) continue;
     const db = distanceCourse(der);
     if (P.some(q => q !== dev && q !== der && q.arrivee === null && distanceCourse(q) > db - R.CONSIGNE_DERRIERE && distanceCourse(q) < db + ecart)) continue;
     const refus = !dev.humain && der.humain && !!(dev.pilote && dev.pilote.caractere && dev.pilote.caractere.consigneRefus >= R.CONSIGNE_REFUS_SEUIL);
@@ -151,7 +153,7 @@ function suivreConsigne(e, c) {
   const dev = e.pilotes[c.devant], der = e.pilotes[c.derriere];
   if (c.refus) c.resultat = 'refusee';   // le coéquipier du joueur refuse : c'est dit tout de suite
   else if (distanceCourse(der) > distanceCourse(dev) + REGLAGES.LONGUEUR_VOITURE) c.resultat = 'suivie';
-  else if (e.temps - c.debut > REGLAGES.CONSIGNE_DELAI || dev.arrivee !== null || der.arrivee !== null) c.resultat = c.refus ? 'refusee' : 'ignoree';
+  else if (e.temps - c.debut > (dev.humain ? REGLAGES.CONSIGNE_DELAI : REGLAGES.CONSIGNE_DELAI_IA) || dev.arrivee !== null || der.arrivee !== null) c.resultat = c.refus ? 'refusee' : 'ignoree';
   if (c.resultat) { c.fin = e.temps; c.finCourse = dev.course.temps; if (dev.pilote) dev.pilote.laisser = null; if (der.pilote) der.pilote.passer = null; }
 }
 

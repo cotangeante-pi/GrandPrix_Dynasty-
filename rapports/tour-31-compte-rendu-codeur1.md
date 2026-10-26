@@ -70,3 +70,12 @@ Commit : pneus **4e4ddc0** (avec origin/main), GitHub **40407338777 : vert**, 10
    - chocs > 5 m/s : 16 avec les consignes, 16 sans ; **0 choc pendant une consigne** pour les deux voitures de l'écurie (EXIGÉ) ;
    - les 22 courses sans consigne sont identiques au bit près à leur version sans consignes.
    - Point faible : entre deux IA, 6 consignes sur 8 « ignorées » : celle de derrière n'arrive pas à passer en 40 s, malgré le pied levé de celle de devant dans les droites. Pas exigé ; la règle (« celle de devant laisse passer ») demanderait qu'elle s'écarte aussi de la ligne : à décider par le Chef.
+
+---
+
+## Les consignes entre IA : celle de devant laisse vraiment passer (18h00 → 19h00)
+Commit : pneus **651858b** (avec origin/main), GitHub **40415743685 : vert**, 10 travaux en 4 min 26 s.
+- ia.js : `coteLaisser` / la ligne « s'écarter » : dans une ligne droite (CONSIGNE_DROITE 150 m droits devant), celle de devant s'écarte à CONSIGNE_BORD (2 m) du bord, du côté opposé à son coéquipier (ou du sien), sur CONSIGNE_RAMPE (60 m), seule ligne essayée, bornée et prioritaire comme les autres ; elle lève le pied à (1 − CONSIGNE_LEVER) = 0,7 de sa vitesse hors des virages (`horsVirage`) tant qu'elle ne le voit pas, puis à sa vitesse − 10 m/s quand il est dans ses rétroviseurs.
+- simulation.js : la consigne n'est donnée que si les derniers tours de celui de derrière ne sont pas plus lents de plus de CONSIGNE_RECENT (0,3 s) (un meilleur tour ancien ne suffisait pas : vu sur le technique, graine 4, il n'était pas plus rapide) ; entre deux IA, CONSIGNE_DELAI_IA = 75 s (un tour) ; le joueur garde 40 s.
+- consignes.html exige maintenant au moins 7 suivies sur 8 (en proportion) : 8 consignes sur 30 courses de 12 tours, **7 suivies, 1 ignorée** ; chocs > 5 m/s 16 avec, 16 sans ; **0 pendant une consigne** ; les courses sans consigne au bit près. moteur 274/274 ; stands.html : chocs 7 (16 sans pneus).
+- **Pas tenu, à trancher par le Chef :** courses.html n'est plus 41 / 4 / 2450 mais **46 dépassements, 5 chocs, 2558 pas d'herbe** (garde-fous tenus : chocs ≤ 6, herbe ≤ 4000) ; ?ailerons=1 : 41 / 5 / 2876. Cause : 5 des 30 courses de 5 tours ont une consigne (aux tours 3–4) et, maintenant, elles sont suivies. Choix proposés : (a) garder ; (b) pas de consigne en très courte (CONSIGNE_TOURS_MIN = 12 : courses.html redevient 41 / 4 / 2450) — une règle de jeu.
