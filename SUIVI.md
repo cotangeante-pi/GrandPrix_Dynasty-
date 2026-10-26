@@ -86,6 +86,7 @@ Note du Chef session-5b (2026-10-23) : les lignes 18 à 19b ne s'additionnaient 
 
 ## À essayer par le propriétaire
 
+- **Le calendrier** (tour 31) : au paddock, « Calendrier » ; la fiche d'un rival a maintenant sa photo (son casque, sa voiture).
 - **Le résumé de la course** (tour 31) : après une course, sur les résultats, « ▶ Résumé » : le départ, les dépassements, l'arrivée, en vue télé (45 s au plus). Dire : les bons moments sont choisis ? trop long ?
 - **Les consignes d'équipe** : en course moyenne ou longue, si ton coéquipier est juste derrière toi et plus rapide, un message te demande de le laisser passer : le suivre fait monter la confiance de ton écurie (et les contrats), l'ignorer la fait baisser.
 - **Le zip pour Poki** (tour 30c) : `python3 tests/paquet.py` fabrique `dist/grand-prix-dynasty.zip` (400 Ko) ; à envoyer sur **inspector.poki.dev** pour le vrai test (le Chef ne peut pas le faire).
