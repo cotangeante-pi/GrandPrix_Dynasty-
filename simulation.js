@@ -210,7 +210,7 @@ function majStandsIA(p, e) {
     if (depuis >= 0 && depuis <= st.longueur) pi.stand.dedans = true;
     if (pi.stand.dedans && depuis > st.longueur + R.STAND_REJOINDRE) pi.stand = null;
     // elle ralentit pour entrer, ou rejoint la piste au ralenti : les autres la voient faire (ia.js, estLente : on la contourne)
-    v.manoeuvreStands = !!pi.stand && ((depuis > -R.STAND_RANGER[0] && depuis < R.STAND_RAMPE) || (pi.stand.arrete && depuis > st.longueur - R.STAND_RAMPE));
+    v.manoeuvreStands = !!pi.stand && ((depuis > -Math.min(R.STAND_RANGER[0], droiteAvantStands(c)) && depuis < R.STAND_RAMPE) || (pi.stand.arrete && depuis > st.longueur - R.STAND_RAMPE));
     return;
   }
   if (v.pneus.arrets > 0 || p.course.etat !== 'course') return;
