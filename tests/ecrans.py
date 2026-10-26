@@ -54,6 +54,8 @@ PAGES = [
     ('index.html?test=amis', 1280, 720, None),
     ('index.html?course=0&camera=cockpit&test=volant', 1280, 720, None),   # le volant en vue cockpit (tour 27b) : jamais dans la moitié haute, il tourne dans le bon sens et revient ; capture cockpit.png
     ('index.html?course=0&camera=cockpit&test=volant', 960, 600, None),    # … en petit ; capture cockpit-960.png
+    ('index.html?course=1&ia=5&joueur=1&robot=1&circuit=test&test=resume', 1280, 720, None),   # le résumé vidéo (étape 13) : après une course, « ▶ Résumé », le rejeu, Échap / clic ; capture resume.png
+    ('index.html?course=1&ia=5&joueur=1&robot=1&circuit=test&test=resume', 960, 600, None),    # … en petit ; capture resume-960.png
     ('index.html?test=tournoi', 1280, 720, None),   # le tournoi chrono (tour 26b) : inscription de 3 joueurs → 3 manches (robot ; un abandon) → podium → Rejouer ; captures tournoi.png, tournoi-podium.png
     ('index.html?test=tournoi', 960, 600, None),    # … l'inscription de 8 joueurs tient en 960×600   # le mode 2 joueurs, tour 25b ordre 3 : titre → « Entre amis » → réglages → course à deux (robots) → podium → rivalité → Revanche → Menu ; captures entre-amis.png, deux-reglages.png, rivalite.png
     ('index.html?test=amis', 960, 600, None),    # … en petit : le menu et l'écran avant la course tiennent sans défilement ni débordement   # … la mesure de la 3D dessinée deux fois sur le technique   # le premier lancement : titre → course de découverte (robot) → Bravo → paddock ; captures titre.png, decouverte.png, bravo.png
@@ -831,6 +833,17 @@ def accelere(pg, titre, page):
         pg.click('#boutonResultats'); attendre(pg, '() => JEU.ecran === "resultats"')
         pg.click('#boutonChangerResultats')
         t(f'{titre} : en championnat, après « passer » : les résultats, puis l’interview et la une du journal, comme d’habitude', attendre(pg, '() => JEU.ecran === "interview"', None, 10000) and (pg.click('#boutonPasCommentaire') or True) and attendre(pg, '() => JEU.ecran === "une"', None, 10000) and pg.evaluate('() => JEU.championnat.prochain === 1'), str(pg.evaluate('() => [JEU.ecran, JEU.championnat.prochain]')))
+        # l'annonce d'un motif de casque gagné (tour 31) : au paddock, une seule fois
+        pg.evaluate('() => { SAUVEGARDE.prendreAnnonceMotifs(); SAUVEGARDE.debloquerMotifs(["couronne"]); }')
+        pg.evaluate('() => passerUne()')
+        a1 = pg.evaluate('() => [JEU.ecran, document.getElementById("annonceMotif").classList.contains("cache"), document.getElementById("annonceMotif").textContent, document.querySelectorAll("#annonceMotif canvas").length]')
+        pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'motif-gagne.png'))
+        pg.click('#annonceMotif')
+        ferme = pg.evaluate('() => document.getElementById("annonceMotif").classList.contains("cache")')
+        pg.evaluate('() => montrerChampionnat(null)')
+        a2 = pg.evaluate('() => document.getElementById("annonceMotif").classList.contains("cache")')
+        t(f'{titre} : un motif gagné est annoncé au paddock (« Nouveau motif de casque : Couronne ! », son dessin), un clic la ferme, et la fois suivante plus rien (une seule fois)',
+          a1[0] == 'championnat' and not a1[1] and 'Couronne' in a1[2] and a1[3] == 1 and ferme and a2, str([a1, ferme, a2]))
         return
     # la même course, regardée jusqu'au bout (sans passer) : rechargée, même graine
     pg.reload(); pg.wait_for_timeout(1500)
@@ -968,6 +981,40 @@ def volant(pg, titre, l, h):
     pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'cockpit.png' if l == 1280 else 'cockpit-960.png'))
     pg.keyboard.press('KeyC')
     t(f'{titre} : dans une autre vue (C), plus de volant, le rapport et la vitesse reviennent dans l’interface', attendre(pg, '() => CAMERA.mode !== "cockpit" && !JEU.volant.groupe.visible && !document.getElementById("tableau").classList.contains("cache")', None, 5000), str(pg.evaluate('() => [CAMERA.mode, JEU.volant.groupe.visible]')))
+
+# le résumé vidéo de la course (resume.js, étape 13) : après une course (le robot), les résultats proposent « ▶ Résumé » ; la 3D
+# rejoue les moments forts de l'enregistrement avec la caméra télé (les voitures aux positions de l'enregistrement, pas de la
+# physique, qui ne bouge plus), un bandeau dit le moment ; rien n'est ajouté à la scène ; Échap ou un clic ramènent aux résultats
+def resume_ecran(pg, titre, l, h):
+    passer_qualif(pg, titre)
+    attendre(pg, '() => JEU.plateau.carte !== null', None, 180000)
+    for _ in range(300):
+        if pg.evaluate('() => JEU.ecran === "podium"'): break
+        if pg.evaluate('() => !!JEU.attente && !JEU.attente.passer && JEU.ecran === "course"'): pg.evaluate('() => passerAuPodium()')   # (le joueur a fini : la fin en accéléré)
+        pg.evaluate('() => BOUCLE.simuler(2)'); pg.wait_for_timeout(30)
+    t(f'{titre} : la course va jusqu’au podium', attendre(pg, '() => JEU.ecran === "podium"', None, 60000), str(pg.evaluate('() => JEU.ecran')))
+    pg.click('#boutonResultats')
+    objets = pg.evaluate('() => SCENE3D.nbObjets')
+    t(f'{titre} : les résultats proposent « ▶ Résumé »', attendre(pg, '() => JEU.ecran === "resultats" && !document.getElementById("boutonResume").classList.contains("cache") && document.getElementById("boutonResume").textContent === texte("resume")', None, 5000))
+    pg.click('#boutonResume')
+    etat = pg.evaluate('''() => { BOUCLE.arreter(); majResume(1 / 30); const r = JEU.resume.r, pos = RESUME.positions(r, JEU.enregistreur.enr);
+      const ecart = Math.max(...pos.map((p, k) => Math.hypot(JEU.modeles[k].groupe.position.x - p.x, JEU.modeles[k].groupe.position.z - p.z)));
+      const pas = JEU.pas; BOUCLE.demarrer(); return { ecran: JEU.ecran, camera: CAMERA.mode, bandeau: document.getElementById("resumeMoment").textContent, ecart, visibles: JEU.modeles.filter(m => m.groupe.visible).length, n: JEU.modeles.length,
+        plages: r.plages.length, duree: r.duree, max: REGLAGES.RESUME_DUREE_MAX, jeu: SDK.enJeu, pas, objets: SCENE3D.nbObjets }; }''')
+    t(f'{titre} : le résumé : la caméra télé, un bandeau qui dit le moment, chaque voiture à sa position de l’enregistrement, la durée bornée, gameplayStop, rien d’ajouté à la scène',
+      etat['ecran'] == 'resume' and etat['camera'] == 'tele' and etat['bandeau'] != '' and etat['ecart'] < 1e-6 and etat['visibles'] == etat['n'] and 0 < etat['duree'] <= etat['max'] and not etat['jeu'] and etat['objets'] == objets, str([etat, objets]))
+    pg.wait_for_timeout(200)
+    PHYS = '() => JEU.plateau.pilotes.map(p => [p.v.x, p.v.z, p.v.u].join()).join(";")'
+    phys = pg.evaluate(PHYS); joue = pg.evaluate('() => JEU.resume.r.joue'); pg.wait_for_timeout(500)
+    t(f'{titre} : pendant le résumé, les voitures de la physique ne bougent pas, le rejeu avance', pg.evaluate(PHYS) == phys and pg.evaluate('() => JEU.resume && JEU.resume.r.joue') > joue, str(pg.evaluate('() => JEU.resume && JEU.resume.r.joue')))
+    pg.screenshot(path=os.path.join(CAPTURES, 'resume.png' if l == 1280 else 'resume-960.png'))
+    b = pg.evaluate('() => { const e = document.getElementById("resumeBandeau").getBoundingClientRect(); return [e.left, e.top, e.right, e.bottom]; }')
+    t(f'{titre} : le bandeau tient dans l’image ({l}×{h})', b[0] >= 0 and b[2] <= l and b[3] <= h and b[1] >= h / 2, str(b))
+    pg.keyboard.press('Escape')
+    t(f'{titre} : Échap ramène aux résultats, le podium revient derrière', attendre(pg, '() => JEU.ecran === "resultats" && !JEU.resume && CAMERA.mode !== "tele" && document.getElementById("resume").classList.contains("cache")', None, 5000), str(pg.evaluate('() => [JEU.ecran, CAMERA.mode]')))
+    pg.click('#boutonResume'); attendre(pg, '() => JEU.ecran === "resume"', None, 5000)
+    pg.mouse.click(l / 2, h / 3)
+    t(f'{titre} : un clic sort aussi du résumé', attendre(pg, '() => JEU.ecran === "resultats"', None, 5000), str(pg.evaluate('() => JEU.ecran')))
 
 def course_joueur(pg, titre):
     # le joueur conduit sa voiture au clavier, au milieu de 9 IA ; la caméra le suit, Tab ne change rien
@@ -1839,6 +1886,8 @@ with sync_playwright() as p:
             elif 'championnat=1' in page:
                 championnat(pg, titre, l)
             if 'test=accelere' in page: pass
+            elif 'test=resume' in page:
+                resume_ecran(pg, titre, l, h)
             elif 'test=qualif' in page:
                 qualif(pg, titre)
             elif 'test=fantome' in page:

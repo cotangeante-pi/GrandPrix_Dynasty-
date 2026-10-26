@@ -338,6 +338,9 @@
   <div id="albumBarre" class="boutons"><button id="boutonAlbumSaisonAvant" class="petit" tabindex="-1">⏮</button><button id="boutonAlbumAvant" class="petit" tabindex="-1">◀</button><span id="albumPage"></span><button id="boutonAlbumApres" class="petit" tabindex="-1">▶</button><button id="boutonAlbumSaisonApres" class="petit" tabindex="-1">⏭</button><button id="boutonAlbumFermer" class="petit" tabindex="-1"></button></div>
 </section>
 
+<!-- le résumé vidéo de la course (resume.js, étape 13) : la 3D rejoue les moments forts ; un bandeau dit le moment ; un clic ou Échap pour sortir -->
+<div id="annonceMotif" class="cache"></div>   <!-- « Nouveau motif : Couronne ! » (casque.js), au paddock, une fois -->
+<section id="resume" class="cache"><div id="resumeBandeau"><span id="resumeTitre"></span><span id="resumeMoment"></span></div><p id="resumeSortir"></p></section>
 <section id="pause" class="ecran cache">
   <h1 id="pauseTitre"></h1>
   <div class="boutons"><button id="boutonReprendre" tabindex="-1"></button><button id="boutonRecommencer" tabindex="-1"></button></div>
@@ -357,7 +360,7 @@
   <table id="resultatsTable"><thead><tr id="resultatsEntete"></tr></thead><tbody id="resultatsLignes"></tbody></table>
   <p id="resultatsArgent"></p>
   <p id="resultatsRivalite" class="cache"></p>   <!-- le mode 2 joueurs : le score de la rivalité (« Léo 3 – 2 Sarah ») -->
-  <div class="boutons"><button id="boutonRejouerResultats" tabindex="-1"></button><button id="boutonChangerResultats" tabindex="-1"></button></div>
+  <div class="boutons"><button id="boutonResume" class="cache" tabindex="-1"></button><button id="boutonRejouerResultats" tabindex="-1"></button><button id="boutonChangerResultats" tabindex="-1"></button></div>
 </section>
 
 <section id="fin" class="ecran cache">
@@ -405,6 +408,7 @@
 <script src="pneus.js"></script>
 <script src="enregistreur-donnees.js"></script>
 <script src="enregistreur.js"></script>
+<script src="resume.js"></script>
 <script src="fantome.js"></script>
 <script src="boite.js"></script>
 <script src="son.js"></script>
