@@ -1,5 +1,5 @@
 TOUR 31 — Codeur 2 : le résumé vidéo de la course (étape 13) et l'annonce d'un motif gagné — compte rendu, 2026-10-26 (Chef session-5b)
-Branche : codeur2. Commits : 6932821 (le résumé ; son passage avait un échec dans ecrans-1 : mon test recliquait « passer » déjà caché), 76d0260 (l'annonce du motif + le test corrigé), main fusionné. Passage GitHub de 76d0260 : 40402059979, les 9 travaux verts (moteur 268/268, écrans 202 + 199 + 157 + 179, courses, stands, annexes, paquet).
+Branche : codeur2 ; dernier commit testé 3174d35 (fusion de main avec la photo de la une), passage 40402797368 : les 9 travaux verts. Commits : 6932821 (le résumé ; son passage avait un échec dans ecrans-1 : mon test recliquait « passer » déjà caché), 76d0260 (l'annonce du motif + le test corrigé), main fusionné. Passage GitHub de 76d0260 : 40402059979, les 9 travaux verts (moteur 268/268, écrans 202 + 199 + 157 + 179, courses, stands, annexes, paquet).
 Ordres : 1 fait / 2 fait.
 
 1. Le résumé vidéo (resume.js, nouveau ; principal.js, interface.js, index.html, style.css, textes.js, donnees.js, scene3d.js)
