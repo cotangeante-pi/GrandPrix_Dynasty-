@@ -41,6 +41,8 @@ const JOURNAL = (function () {
     // la relève : le premier Grand Prix de l'héritier (« Le fils de Rossi débarque ») ; parent = l'indice de la génération d'avant
     const D = ch.dynastie, G = D && D.generations ? D.generations.length : 0;
     if (G && D.lien && n === 0 && ch.carriere && ch.saison === ch.carriere.debut) f['releve_' + D.lien] = Object.assign({ parent: G - 1 }, base);
+    // le Grand Prix à domicile : ses titres à lui, prioritaires sur les faits ordinaires, jamais sur le titre de champion (JOURNAL_PRIORITES)
+    if (j.coeur && circuit === j.coeur) f[place <= R.DOMICILE_FETE_PLACE ? 'domicileFete' : 'domicileDecu'] = base;
     const s = j.stats, avantPlaces = j.places.slice(0, -1);
     if (place === 1) f[s.victoires === 1 ? 'premiereVictoire' : 'victoire'] = Object.assign({ n: s.victoires }, base);
     else if (place <= 3) f[s.podiums === 1 ? 'premierPodium' : 'podium'] = base;
@@ -240,7 +242,7 @@ const JOURNAL = (function () {
   // --- la photo de la une (tour 31) : ce que la photo montre, en calcul pur (photo.js la dessine) : le podium du Grand Prix (les trois
   // voitures aux couleurs de leur écurie de ce jour-là, leurs casques de cette saison) ou, pour un fait du joueur, sa voiture seule.
   // Rien d'image dans la sauvegarde : seulement les indices rangés dans la une (ph, pe, je)
-  const FAITS_VOITURE = ['record', 'duelGagne', 'duelPerdu', 'interview', 'penalite', 'serie', 'releve_fils', 'releve_fille', 'releve_protege', 'releve_protegee'];
+  const FAITS_VOITURE = ['domicileDecu', 'record', 'duelGagne', 'duelPerdu', 'interview', 'penalite', 'serie', 'releve_fils', 'releve_fille', 'releve_protege', 'releve_protegee'];
   function casqueAu(ch, s, k) {
     const p = ch.pilotes[k];
     if (!p) return null;

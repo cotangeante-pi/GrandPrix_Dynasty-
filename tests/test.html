@@ -1129,6 +1129,24 @@ t('aileron : la carte de la prochaine course se dessine pour chaque circuit (tra
     v(n===circ.nb&&clairs>300&&jaunes>10,nom+' : '+clairs+' clairs, '+jaunes+' jaunes');}
   L.push('  (aileron : la carte dessinée pour '+noms.length+' circuits : '+noms.join(', ')+')');});
 
+// --- le calendrier et le Grand Prix à domicile (tour 31, Codeur 3) : un calendrier fabriqué qui contient la course de cœur du joueur
+t('calendrier : les 12 Grands Prix, faits (vainqueur, place du joueur) ou à venir, le prochain, et le Grand Prix à domicile marqué (un calendrier fabriqué avec la course de cœur du joueur)', ()=>{
+  const ch=CHAMPIONNAT.creer(53);ch.pilotes[19].coeur='monzo';ch.calendrier[4].circuit='monzo';
+  CHAMPIONNAT.enregistrerCourse(ch,lignesUne(ordreAvec([3,19])));CHAMPIONNAT.enregistrerCourse(ch,lignesUne(ordreAvec([19])));
+  const c=CHAMPIONNAT.calendrierSaison(ch);
+  v(c.length===12&&c[0].fait&&c[0].vainqueur===3&&c[0].place===2&&c[1].vainqueur===19&&c[1].place===1&&!c[2].fait&&c[2].prochain&&c.filter(x=>x.prochain).length===1,'faits : '+JSON.stringify(c.slice(0,3)));
+  v(c.filter(x=>x.domicile).length===1&&c[4].domicile&&c[4].circuit==='monzo','domicile : '+JSON.stringify(c.map(x=>x.domicile)));});
+t('Grand Prix à domicile : l’interview et la une ont leurs propres faits (fête jusqu’à DOMICILE_FETE_PLACE, déception au-delà), prioritaires sur les faits ordinaires (même une victoire), jamais sur le titre de champion ; seulement sur ce circuit ; textes en + fr, sans genre sur le pilote', ()=>{
+  const fab=()=>{const ch=CHAMPIONNAT.creer(54);ch.pilotes[19].coeur='monzo';ch.calendrier[0].circuit='monzo';ch.calendrier[11].circuit='monzo';return ch;};
+  let ch=fab(),l=lignesUne(ordreAvec([19]));let q=INTERVIEW.question(ch,l);v(q.fait==='domicileFete','victoire à domicile : '+q.fait);
+  ch=fab();l=lignesUne(devant(11,[19,18]));q=INTERVIEW.question(ch,l);v(q.fait==='domicileDecu'&&q.params.place===12,'P12 à domicile : '+q.fait);
+  ch=fab();CHAMPIONNAT.enregistrerCourse(ch,lignesUne(ordreAvec([19])));l=lignesUne(ordreAvec([19]));v(INTERVIEW.question(ch,l).fait==='victoire','ailleurs : la victoire');
+  ch=fab();let u=(()=>{const x=lignesUne(ordreAvec([0,1,19]));CHAMPIONNAT.enregistrerCourse(ch,x);return JOURNAL.composer(ch,x);})();v(u.f==='domicileFete'&&JOURNAL.photo(u,ch).type==='podium','une : '+u.f);
+  ch=fab();u=(()=>{const x=lignesUne(devant(11,[19,18]));CHAMPIONNAT.enregistrerCourse(ch,x);return JOURNAL.composer(ch,x);})();v(u.f==='domicileDecu'&&JOURNAL.photo(u,ch).type==='voiture'&&JOURNAL.rendre(u,ch).titre.length>5,'une déçue : '+u.f);
+  ch=fab();for(let g=0;g<12;g++){const x=lignesUne(ordreAvec([19]));CHAMPIONNAT.enregistrerCourse(ch,x);u=JOURNAL.composer(ch,x);JOURNAL.ranger(ch,u);}v(u.f==='titreChampion'&&ch.album[0].f==='domicileFete','le titre de champion passe devant : '+u.f+' / '+ch.album[0].f);
+  const GENRE={en:/\b(he|she|him|his|her)\b/i,fr:/(^|[^\wàâçéèêëîïôûùüÿœ])(il|elle|lui|déçu|déçue)(?![\wàâçéèêëîïôûùüÿœ])/i};
+  for(const l_ of ['en','fr']) for(const cle of Object.keys(TEXTES[l_]).filter(k=>/domicile(Fete|Decu)/.test(k))) for(const s_ of [].concat(TEXTES[l_][cle])) v(!GENRE[l_].test(s_),l_+' '+cle+' genré : '+s_);});
+
 // --- la photo de la une (tour 31, journal.js : photo, photo.js : PHOTO.dessiner)
 t('photo de la une : elle se dessine (des pixels, pas d’une seule couleur), la même une redessinée deux fois donne exactement la même image, le podium pour une victoire et la voiture du joueur pour un record, et rien d’image dans la sauvegarde', ()=>{
   const ch=CHAMPIONNAT.creer(52);CASQUE.completer(ch);for(let g=0;g<4;g++) SAISONS.avancer(ch,1);
@@ -1141,6 +1159,11 @@ t('photo de la une : elle se dessine (des pixels, pas d’une seule couleur), la
   const vieux=JOURNAL.photo({f:'victoire',s:1},ch);v(vieux.type==='voiture','une ancienne une sans photo : la voiture du joueur');
   const json=JSON.stringify(ch);v(!/data:image|base64/.test(json)&&Array.isArray(u.ph)&&u.ph.every(Number.isInteger),'sauvegarde : '+JSON.stringify(u).slice(0,200));
   L.push('  (photo : '+coul.size+' couleurs échantillonnées, une '+JSON.stringify(u).length+' octets avec ph/pe/je)');});
+
+t('photo stylisée du rival (PHOTO.portrait) : son casque et sa voiture aux couleurs de son écurie, des pixels de plusieurs couleurs, deux dessins identiques', ()=>{
+  const ch=CHAMPIONNAT.creer(55);CASQUE.completer(ch);const p=ch.pilotes[3],e=ch.ecuries[p.ecurie];
+  const d=()=>{const c=document.createElement('canvas');c.width=220;c.height=260;PHOTO.portrait(c.getContext('2d',{willReadFrequently:true}),220,260,{couleur:e.couleur,casque:p.casque});return c;};
+  const a=d(),b=d();v(a.toDataURL()===b.toDataURL(),'deux dessins différents');const px=a.getContext('2d').getImageData(0,0,220,260).data,c=new Set();for(let i=0;i<px.length;i+=4*29) c.add(px[i]+','+px[i+1]+','+px[i+2]);v(c.size>8,c.size+' couleurs');});
 
 // --- l'élision du français (tour 29c) : « d’Alex », « de Léo »
 t('textes : l’élision du français (elider) : « de Alex » → « d’Alex », « que Emma » → « qu’Emma », « de Léo » et « de Hugo » ne changent pas ; la une de la relève dit « La fille d’Alex Rossi » ; aucun texte fixe n’a « de » devant une voyelle', ()=>{

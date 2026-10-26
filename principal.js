@@ -1019,6 +1019,19 @@ function nouvelleDynastie() {
   location.reload();
 }
 
+// le calendrier de la saison, depuis le paddock (Codeur 3) ; « Retour » : le paddock
+function montrerCalendrier() {
+  if (JEU.ecran !== 'championnat') return;
+  INTERFACE.remplirCalendrier(JEU.championnat, CHAMPIONNAT.calendrierSaison(JEU.championnat));
+  JEU.ecran = 'calendrier';
+  INTERFACE.montrer('calendrier');
+}
+
+function quitterCalendrier() {
+  if (JEU.ecran !== 'calendrier') return;
+  montrerChampionnat(JEU.gagne);
+}
+
 // l'arbre de la dynastie (carriere.js), depuis le paddock ou le bilan ; « Retour » ramène là d'où on vient
 function montrerArbre() {
   if (JEU.ecran !== 'championnat' && JEU.ecran !== 'retraite') return;
@@ -1463,7 +1476,7 @@ function majTableau() {
   document.getElementById('rapport').textContent = rapportPourVitesse(v.u);
   const roule = JEU.ecran === 'course' || JEU.ecran === 'survol' || enTourQualif();
   // sur le podium et les résultats, ni vitesse ni aide des touches
-  const apres = ['podium', 'resultats', 'championnat', 'une', 'garage', 'titre', 'amis', 'bravo', 'saison', 'duelSaison', 'contrats', 'retraite', 'sponsors', 'fiche', 'interview', 'ceremonie', 'album', 'temple', 'heritier', 'deuxReglages', 'tournoiInscription', 'tournoiAToi', 'tournoiPause', 'tournoiManche', 'tournoiFin', 'aileron', 'arbre'].includes(JEU.ecran);
+  const apres = ['podium', 'resultats', 'championnat', 'une', 'garage', 'titre', 'amis', 'bravo', 'saison', 'duelSaison', 'contrats', 'retraite', 'sponsors', 'fiche', 'interview', 'ceremonie', 'album', 'temple', 'heritier', 'calendrier', 'deuxReglages', 'tournoiInscription', 'tournoiAToi', 'tournoiPause', 'tournoiManche', 'tournoiFin', 'aileron', 'arbre'].includes(JEU.ecran);
   document.getElementById('tableau').classList.toggle('cache', apres || volantVisible());   // (en vue cockpit, rapport et vitesse sont sur le volant)
   document.getElementById('aide').classList.toggle('cache', apres);
   // après l'arrivée du joueur (en attendant les autres), il ne court plus : pas de « hors piste »
@@ -1619,6 +1632,7 @@ function demarrerJeu() {
     INTERFACE.preparerTemple(montrerTemple, quitterTemple);
     INTERFACE.preparerAileron(montrerAileron, changerAileron, quitterAileron);
     INTERFACE.preparerArbre(montrerArbre, quitterArbre);
+    INTERFACE.preparerCalendrier(montrerCalendrier, quitterCalendrier);
     INTERFACE.preparerReleve(montrerHeritier, nouvelleDynastie, validerHeritier);
     INTERFACE.preparerGarage(acheterAmelioration, quitterGarage);
     INTERFACE.preparerSaison(suiteClassementSaison, suiteDuelSaison, signerContrat, prendreRetraite);

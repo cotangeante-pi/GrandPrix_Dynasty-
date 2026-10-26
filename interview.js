@@ -32,6 +32,9 @@ const INTERVIEW = (function () {
     const circuit = ch.calendrier[ch.prochain] ? ch.calendrier[ch.prochain].circuit : 'test';
     if (!lj) return { moyen: { pilote: j.id, place: 0, circuit } };
     const f = {}, place = lj.place, base = { pilote: j.id, place, circuit };
+    // le Grand Prix à domicile (CLAUDE.md « Le Grand Prix à domicile ») : la course de cœur du joueur (pilote.js : j.coeur) ; ses propres
+    // questions, prioritaires sur les faits ordinaires (INTERVIEW_PRIORITES)
+    if (j.coeur && circuit === j.coeur) f[place <= R.DOMICILE_FETE_PLACE ? 'domicileFete' : 'domicileDecu'] = base;
     if (place === 1) f.victoire = base;
     else if (place <= 3) f.podium = base;
     if ((lj.chocMax || 0) >= R.INTERVIEW_CHOC) {

@@ -45,7 +45,7 @@ const INTERFACE = (function () {
   }
 
   function montrer(ecran) {
-    for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une', 'garage', 'saison', 'duelSaison', 'contrats', 'retraite', 'titre', 'amis', 'bravo', 'pilote', 'sponsors', 'fiche', 'interview', 'ceremonie', 'temple', 'heritier', 'deuxReglages', 'resume', 'grille', 'tournoiInscription', 'tournoiAToi', 'tournoiPause', 'tournoiManche', 'tournoiFin', 'aileron', 'arbre']) $(id).classList.toggle('cache', id !== ecran);
+    for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une', 'garage', 'saison', 'duelSaison', 'contrats', 'retraite', 'titre', 'amis', 'bravo', 'pilote', 'sponsors', 'fiche', 'interview', 'ceremonie', 'temple', 'heritier', 'calendrier', 'deuxReglages', 'resume', 'grille', 'tournoiInscription', 'tournoiAToi', 'tournoiPause', 'tournoiManche', 'tournoiFin', 'aileron', 'arbre']) $(id).classList.toggle('cache', id !== ecran);
     // l'album des unes (Codeur 3) : la page de la une, avec la barre pour feuilleter
     if (ecran === 'album') $('une').classList.remove('cache');
     $('une').classList.toggle('album', ecran === 'album');
@@ -753,6 +753,34 @@ const INTERFACE = (function () {
   }
   let nouvelleDemandee = false;
 
+  // le calendrier de la saison (CHAMPIONNAT.calendrierSaison) : chaque Grand Prix, son circuit, fait (vainqueur, ta place) ou à venir,
+  // le prochain mis en valeur, le Grand Prix à domicile marqué d'une petite maison dessinée en CSS
+  function remplirCalendrier(ch, liste) {
+    $('calendrierTitre').textContent = avec(texte('calendrierTitre'), { n: ch.saison });
+    $('boutonCalendrierRetour').textContent = texte('calendrierRetour');
+    const ol = $('calendrierListe'), sp = (classe, contenu) => { const e = document.createElement('span'); e.className = classe; e.append(contenu); return e; };
+    ol.textContent = '';
+    for (const g of liste) {
+      const li = document.createElement('li');
+      if (g.fait) li.classList.add('fait');
+      if (g.prochain) li.classList.add('prochain');
+      if (g.domicile) li.classList.add('domicile');
+      const nom = sp('circuit', nomCircuit(g.circuit));
+      if (g.domicile) { const m = document.createElement('i'); m.className = 'maison'; m.title = texte('calendrierDomicile'); nom.prepend(m); }
+      const etat = g.fait ? (g.place === 1 ? texte('calendrierVictoire') : avec(texte('calendrierFait'), { vainqueur: nomPilote(ch.pilotes[g.vainqueur]), place: g.place })) : texte(g.prochain ? 'calendrierProchain' : 'calendrierAVenir');   // (le joueur a gagné : « ta victoire », jamais son nom comme vainqueur)
+      li.append(sp('numero', String(g.numero)), nom, sp('etat', etat + (g.domicile ? ' · ' + texte('calendrierDomicile') : '')));
+      ol.appendChild(li);
+    }
+  }
+
+  function preparerCalendrier(ouvrir, retour) {
+    $('boutonCalendrier').textContent = texte('calendrier');
+    for (const [id, f] of [['boutonCalendrier', ouvrir], ['boutonCalendrierRetour', retour]]) {
+      $(id).addEventListener('mousedown', e => e.preventDefault());
+      $(id).addEventListener('click', f);
+    }
+  }
+
   // l'arbre de la dynastie : chaque génération (son casque, son nom, saisons, titres, victoires, podiums, meilleur résultat à
   // domicile), la génération d'aujourd'hui marquée (en piste, ou qui vient de s'arrêter), puis les records de famille
   function remplirArbre(ch) {
@@ -972,8 +1000,12 @@ const INTERFACE = (function () {
     const rv = f.rivalite;
     $('ficheRivalite').textContent = rv ? avec(texte('ficheRivalite'), { phrase: INTERVIEW.phrase(rv.cle, rv.variante, rv.params, ch, { pilote: nomPilote }),
       circuit: rv.circuit ? (texte('circuit_' + rv.circuit) || (CIRCUITS[rv.circuit] ? CIRCUITS[rv.circuit].nom : rv.circuit)) : '–', saison: rv.saison, n: rv.courses }) : '';
-    $('fichePhoto').title = texte('fichePhoto');   // la photo stylisée (le casque) viendra ; la place est gardée
+    $('fichePhoto').title = texte('fichePhoto');
     $('fichePhoto').style.setProperty('--ecurie', couleurCss(e.couleur));
+    // la photo stylisée (photo.js) : son casque en grand, sa voiture aux couleurs de son écurie
+    let pc = $('fichePhoto').querySelector('canvas');
+    if (!pc) { pc = document.createElement('canvas'); pc.width = 220; pc.height = 260; pc.getContext('2d', { willReadFrequently: true }); $('fichePhoto').appendChild(pc); }
+    PHOTO.portrait(pc.getContext('2d'), pc.width, pc.height, { couleur: e.couleur, casque: p.casque });
     $('boutonFicheRetour').textContent = texte('ficheRetour');
   }
 
@@ -1416,7 +1448,7 @@ const INTERFACE = (function () {
 
   return { preparerGrille, annoncerMotifs, preparerResume, montrerBoutonResume, majResume, remplirInscription, lireInscription, montrerErreursTournoi, preparerInscription, remplirAToi, majCompteTournoi, preparerPauseTournoi, remplirMancheTournoi, preparerMancheTournoi, remplirFinTournoi, preparerFinTournoi, preparerAmis, remplirDeux, lireDeux, montrerErreursDeux, preparerDeux, remplirPodiumDeux, remplirRivalite, formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, preparerChampionnat, remplirQualif, preparerQualif,
     remplirDuel, avec, remplirUne, preparerUne, remplirArgent, remplirSolde, remplirGarage, preparerGarage,
-    remplirSaison, remplirDuelSaison, remplirContrats, remplirRetraite, preparerSaison, retraiteEnAttente, remplirCeremonie, preparerCeremonie, remplirAlbum, preparerAlbum, remplirBilan, remplirTemple, preparerTemple, preparerReleve, remplirHeritier, lireHeritier, montrerErreurHeritier, remplirAileron, majAileron, preparerAileron, remplirArbre, preparerArbre,
+    remplirSaison, remplirDuelSaison, remplirContrats, remplirRetraite, preparerSaison, retraiteEnAttente, remplirCeremonie, preparerCeremonie, remplirAlbum, preparerAlbum, remplirBilan, remplirTemple, preparerTemple, preparerReleve, remplirHeritier, lireHeritier, montrerErreurHeritier, remplirAileron, majAileron, preparerAileron, remplirArbre, preparerArbre, remplirCalendrier, preparerCalendrier,
     remplirSponsors, remplirRappelSponsor, preparerSponsors, remplirFiche, preparerFiche, remplirInterview, montrerEffetInterview, preparerInterview, remplirReputation,
     majEcartFantome, preparerFantome, majBoutonsFantome, majDepart, majDeux, preparerTitre, remplirBravo, majAides, remplirPilote, lirePilote, montrerErreursPilote, preparerPilote, nomCircuit, remplirCasque, lireCasque, modePilote, preparerCasque };
 })();

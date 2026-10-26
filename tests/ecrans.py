@@ -1359,6 +1359,24 @@ PHOTO_ETAT = '''i => { const cv = document.querySelector("#unePhoto canvas"); if
   const px = cv.getContext("2d").getImageData(0, 0, cv.width, cv.height).data, c = new Set(); for (let k = 0; k < px.length; k += 4 * 53) c.add(px[k] + "," + px[k + 1] + "," + px[k + 2]);
   const q = t.getContext("2d").getImageData(0, 0, t.width, t.height).data; let diff = 0; for (let k = 0; k < px.length; k++) if (px[k] !== q[k]) diff++;
   const r = cv.getBoundingClientRect(); return { couleurs: c.size, pareil: t.toDataURL() === cv.toDataURL(), diff, desc: JSON.stringify(JOURNAL.photo(u, ch)).slice(0, 300), affiche: cv.dataset.desc ? cv.dataset.desc.slice(0, 300) : null, type: JOURNAL.photo(u, ch).type, visible: r.width > 50 && r.height > 30 }; }'''
+# le calendrier de la saison (tour 31) : depuis le paddock ; le joueur a pour course de cœur un circuit du calendrier (en mémoire, le
+# temps de l'écran : les 12 tracés ne sont pas encore au calendrier) ; les faits, le prochain, la maison du domicile ; capture
+def calendrier_ecran(pg, titre, capture):
+    pg.evaluate('() => { JEU.coeurAvant = JEU.championnat.pilotes[19].coeur; JEU.championnat.pilotes[19].coeur = "technique"; }')
+    pg.click('#boutonCalendrier')
+    c = pg.evaluate('''() => { const ch = JEU.championnat, lis = [...document.querySelectorAll("#calendrierListe li")];
+      return { ecran: JEU.ecran, n: lis.length, faits: lis.filter(li => li.classList.contains("fait")).length, prochain: lis.findIndex(li => li.classList.contains("prochain")), attendu: ch.prochain,
+        maisons: document.querySelectorAll("#calendrierListe li.domicile .maison").length, attenduMaisons: ch.calendrier.filter(g => g.circuit === "technique").length, resultats: ch.resultats.length,
+        texte: lis.map(li => li.textContent).slice(0, 2), gagnes: ch.resultats.map((r, i) => r.ordre[0] === 19 ? lis[i].textContent : null).filter(x => x), nomJoueur: INTERFACE.nomPilote(ch.pilotes[19]), dans: [...document.querySelectorAll("#calendrier > *")].every(e => { const r = e.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight && r.right <= innerWidth; }),
+        defile: [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth] }; }''')
+    t(f'{titre} : « 📅 Calendrier » : les 12 Grands Prix, {c["faits"]} faits (vainqueur et ta place), le prochain mis en valeur, le Grand Prix à domicile marqué d’une maison, tout dans l’écran',
+      c['ecran'] == 'calendrier' and c['n'] == 12 and c['faits'] == c['resultats'] and c['prochain'] == c['attendu'] and c['maisons'] == c['attenduMaisons'] and c['maisons'] > 0
+      and (c['faits'] == 0 or 'vainqueur' in c['texte'][0] or 'ta victoire' in c['texte'][0]) and all('ta victoire' in x and 'vainqueur' not in x and c['nomJoueur'] not in x for x in c['gagnes']) and c['dans'] and pas_de_defilement(c['defile']), str(c))
+    pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, capture))
+    pg.click('#boutonCalendrierRetour')
+    pg.evaluate('() => { JEU.championnat.pilotes[19].coeur = JEU.coeurAvant; }')
+    t(f'{titre} : « Retour » : le paddock', attendre(pg, '() => JEU.ecran === "championnat"'), str(pg.evaluate('() => JEU.ecran')))
+
 def une_ecran(pg, titre, capture, touche=False):
     ph = pg.evaluate(PHOTO_ETAT, None)
     t(f'{titre} : la photo de la une est dessinée par le code ({ph and ph["type"]}), visible, pas d’une seule couleur, la même que celle de la une compacte', bool(ph) and ph['couleurs'] > 8 and ph['pareil'] and ph['visible'], str(ph))
@@ -1421,6 +1439,9 @@ def fiche_ecran(pg, titre, capture):
       f['ecran'] == 'fiche' and f['nom'] == f['attenduNom'] and f['nom'] != '' and str(f['numero']) in f['infos'] and (str(f['age']) + ' ans') in f['infos'] and f['caractere'] == 'Caractère : ' + ', '.join(f['mots'])
       and f['saison'].startswith(f'Cette saison : P{f["place"]} · {f["points"]} pts') and f['historique'].startswith('Carrière : ') and f['duels'] == f'Contre toi : devant {f["devant"]} fois, derrière {f["derriere"]} fois' and f['photo'] > 50 and f['rivalite'] == '' and pas_de_defilement(f['defile']), str(f))
     pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, capture))
+    fp = pg.evaluate('''() => { const cv = document.querySelector("#fichePhoto canvas"); if (!cv) return null; const px = cv.getContext("2d").getImageData(0, 0, cv.width, cv.height).data, c = new Set();
+      for (let k = 0; k < px.length; k += 4 * 31) c.add(px[k] + "," + px[k + 1] + "," + px[k + 2]); const r = cv.getBoundingClientRect(); return { couleurs: c.size, visible: r.width > 40 && r.height > 40 }; }''')
+    t(f'{titre} : la fiche du rival a sa photo stylisée (son casque, sa voiture aux couleurs de son écurie), dessinée par le code', bool(fp) and fp['couleurs'] > 8 and fp['visible'], str(fp))
     pg.click('#boutonFicheRetour')
     t(f'{titre} : « Retour » ramène au paddock ; un clic sur le joueur n’ouvre rien', attendre(pg, '() => JEU.ecran === "championnat"') and pg.evaluate('() => { const moi = document.querySelector("#championnatPilotes li.moi"); moi.click(); return JEU.ecran === "championnat" && !moi.dataset.k; }'))
 
@@ -1638,6 +1659,7 @@ def fin_saison(pg, titre, l):
     # le joueur champion : les 11 premiers Grands Prix refaits avec de vraies places (il en gagne 5 et finit 2e des 6 autres : 233 points,
     # le titre est à lui avant le 12e) ; puis la une spéciale « CHAMPION ! » et la cérémonie, avec ses vrais points et ses vraies victoires
     pg.evaluate(f'() => {{ ({FABRIQUER_CHAMPION})(11); montrerChampionnat(null); }}')
+    calendrier_ecran(pg, titre, 'calendrier.png')   # (11 Grands Prix faits, le 12e est le prochain)
     pg.click('#boutonCourseSuivante')
     passer_qualif(pg, titre)
     t(f'{titre} : le 12e Grand Prix part (circuit du calendrier, 20 voitures)', attendre(pg, '() => JEU.ecran === "course" && JEU.plateau && JEU.plateau.pilotes.length === 20', None, 10000))
@@ -1729,6 +1751,7 @@ def championnat(pg, titre, l):
         u2 = une_ecran(pg, titre, 'une-960.png', touche=True)
         t(f'{titre} : la une du joueur 2e est « premier podium »', u2['fait'] == 'premierPodium', u2['fait'])
         album_ecran(pg, titre, [u['titre'], u2['titre']])
+        calendrier_ecran(pg, titre, 'calendrier-960.png')
         return
     points = None
     for gp in (1, 2):

@@ -81,5 +81,24 @@ const PHOTO = (function () {
     }
   }
 
-  return { dessiner };
+  // la « photo stylisée » d'un pilote (la fiche du rival) : son casque en grand, sa voiture aux couleurs de son écurie dessous ;
+  // v = { couleur, casque }
+  function portrait(ctx, l, h, v) {
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+    const fond = ctx.createLinearGradient(0, 0, 0, h);
+    fond.addColorStop(0, css(v.couleur)); fond.addColorStop(0.55, '#20242c'); fond.addColorStop(1, '#16181d');
+    ctx.fillStyle = fond; ctx.fillRect(0, 0, l, h);
+    const r = l * 0.3, cx = l / 2, cy = h * 0.34;
+    ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, r, 0, 2 * Math.PI); ctx.clip();
+    if (v.casque && typeof CASQUE !== 'undefined' && CASQUE.valide(v.casque)) CASQUE.dessiner(ctx, cx - r, cy - r, 2 * r, v.casque);
+    else { ctx.fillStyle = '#d9dce3'; ctx.fillRect(cx - r, cy - r, 2 * r, 2 * r); }
+    ctx.fillStyle = 'rgba(20, 22, 28, 0.85)'; ctx.fillRect(cx - r * 0.75, cy - r * 0.25, r * 1.5, r * 0.42);   // la visière
+    ctx.restore();
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, r, 0, 2 * Math.PI); ctx.stroke();
+    voiture(ctx, l * 0.06, h * 0.93, l * 0.88, v.couleur, v.casque);
+    ctx.restore();
+  }
+
+  return { dessiner, portrait };
 })();
