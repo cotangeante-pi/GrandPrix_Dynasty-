@@ -1372,6 +1372,7 @@ const INTERFACE = (function () {
 
   // --- le résumé vidéo de la course (resume.js) : le bouton « ▶ Résumé » des résultats, le bandeau du moment, la sortie (clic)
   function preparerResume(ouvrir, sortir) {
+    $('annonceMotif').addEventListener('click', () => $('annonceMotif').classList.add('cache'));   // (l'annonce d'un motif se ferme d'un clic)
     $('boutonResume').textContent = texte('resume');
     $('resumeTitre').textContent = texte('resumeTitre');
     $('resumeSortir').textContent = texte('resumeSortir');
@@ -1383,7 +1384,25 @@ const INTERFACE = (function () {
   function montrerBoutonResume(oui) { $('boutonResume').classList.toggle('cache', !oui); }
   function majResume(moment) { $('resumeMoment').textContent = moment || ''; }
 
-  return { preparerResume, montrerBoutonResume, majResume, remplirInscription, lireInscription, montrerErreursTournoi, preparerInscription, remplirAToi, majCompteTournoi, preparerPauseTournoi, remplirMancheTournoi, preparerMancheTournoi, remplirFinTournoi, preparerFinTournoi, preparerAmis, remplirDeux, lireDeux, montrerErreursDeux, preparerDeux, remplirPodiumDeux, remplirRivalite, formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, preparerChampionnat, remplirQualif, preparerQualif,
+  // l'annonce d'un motif de casque gagné (au paddock, une fois) : le motif sur les couleurs du casque du joueur ; un clic ou
+  // ANNONCE_MOTIF_DUREE la ferment
+  let minuterieAnnonce = null;
+  function annoncerMotifs(motifs, casque) {
+    const el = $('annonceMotif');
+    clearTimeout(minuterieAnnonce);
+    el.classList.toggle('cache', !motifs.length);
+    if (!motifs.length) return;
+    el.textContent = '';
+    for (const m of motifs) {
+      const ligne = document.createElement('div');
+      const c = casque.couleurs, couleurs = [c[0], c[1] === c[0] ? REGLAGES.CASQUE_PALETTE[1] : c[1], c[2]];   // (le casque neutre : deux fois la même couleur, le motif ne se verrait pas)
+      ligne.append(CASQUE.icone({ motif: m, couleurs }, 40), ' ' + texte('motifGagne').replace('{motif}', texte('motif_' + m)));
+      el.appendChild(ligne);
+    }
+    minuterieAnnonce = setTimeout(() => el.classList.add('cache'), REGLAGES.ANNONCE_MOTIF_DUREE * 1000);
+  }
+
+  return { annoncerMotifs, preparerResume, montrerBoutonResume, majResume, remplirInscription, lireInscription, montrerErreursTournoi, preparerInscription, remplirAToi, majCompteTournoi, preparerPauseTournoi, remplirMancheTournoi, preparerMancheTournoi, remplirFinTournoi, preparerFinTournoi, preparerAmis, remplirDeux, lireDeux, montrerErreursDeux, preparerDeux, remplirPodiumDeux, remplirRivalite, formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, preparerChampionnat, remplirQualif, preparerQualif,
     remplirDuel, avec, remplirUne, preparerUne, remplirArgent, remplirSolde, remplirGarage, preparerGarage,
     remplirSaison, remplirDuelSaison, remplirContrats, remplirRetraite, preparerSaison, retraiteEnAttente, remplirCeremonie, preparerCeremonie, remplirAlbum, preparerAlbum, remplirBilan, remplirTemple, preparerTemple, preparerReleve, remplirHeritier, lireHeritier, montrerErreurHeritier, remplirAileron, majAileron, preparerAileron, remplirArbre, preparerArbre,
     remplirSponsors, remplirRappelSponsor, preparerSponsors, remplirFiche, preparerFiche, remplirInterview, montrerEffetInterview, preparerInterview, remplirReputation,

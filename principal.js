@@ -723,6 +723,9 @@ function montrerChampionnat(gagne) {
   document.getElementById('boutonAlbum').disabled = !JEU.championnat.album.length;   // l'album des unes (Codeur 3) : rien avant la première une
   JEU.ecran = 'championnat';
   INTERFACE.montrer('championnat');
+  // un motif de casque gagné depuis la dernière fois : « Nouveau motif : Couronne ! », une seule fois (casque.js, sauvegarde.js)
+  const pilote = PILOTE.joueur(JEU.championnat);
+  INTERFACE.annoncerMotifs(SAUVEGARDE.prendreAnnonceMotifs(), pilote && CASQUE.valide(pilote.casque) ? pilote.casque : CASQUE.neutre());
 }
 
 // « Course suivante » : la course de ce Grand Prix ; s'il est déjà joué, la page se recharge sur le suivant

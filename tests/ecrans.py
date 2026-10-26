@@ -833,6 +833,17 @@ def accelere(pg, titre, page):
         pg.click('#boutonResultats'); attendre(pg, '() => JEU.ecran === "resultats"')
         pg.click('#boutonChangerResultats')
         t(f'{titre} : en championnat, après « passer » : les résultats, puis l’interview et la une du journal, comme d’habitude', attendre(pg, '() => JEU.ecran === "interview"', None, 10000) and (pg.click('#boutonPasCommentaire') or True) and attendre(pg, '() => JEU.ecran === "une"', None, 10000) and pg.evaluate('() => JEU.championnat.prochain === 1'), str(pg.evaluate('() => [JEU.ecran, JEU.championnat.prochain]')))
+        # l'annonce d'un motif de casque gagné (tour 31) : au paddock, une seule fois
+        pg.evaluate('() => { SAUVEGARDE.prendreAnnonceMotifs(); SAUVEGARDE.debloquerMotifs(["couronne"]); }')
+        pg.evaluate('() => passerUne()')
+        a1 = pg.evaluate('() => [JEU.ecran, document.getElementById("annonceMotif").classList.contains("cache"), document.getElementById("annonceMotif").textContent, document.querySelectorAll("#annonceMotif canvas").length]')
+        pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'motif-gagne.png'))
+        pg.click('#annonceMotif')
+        ferme = pg.evaluate('() => document.getElementById("annonceMotif").classList.contains("cache")')
+        pg.evaluate('() => montrerChampionnat(null)')
+        a2 = pg.evaluate('() => document.getElementById("annonceMotif").classList.contains("cache")')
+        t(f'{titre} : un motif gagné est annoncé au paddock (« Nouveau motif de casque : Couronne ! », son dessin), un clic la ferme, et la fois suivante plus rien (une seule fois)',
+          a1[0] == 'championnat' and not a1[1] and 'Couronne' in a1[2] and a1[3] == 1 and ferme and a2, str([a1, ferme, a2]))
         return
     # la même course, regardée jusqu'au bout (sans passer) : rechargée, même graine
     pg.reload(); pg.wait_for_timeout(1500)
@@ -979,7 +990,7 @@ def resume_ecran(pg, titre, l, h):
     attendre(pg, '() => JEU.plateau.carte !== null', None, 180000)
     for _ in range(300):
         if pg.evaluate('() => JEU.ecran === "podium"'): break
-        if pg.evaluate('() => !!JEU.attente && JEU.ecran === "course"'): pg.click('#boutonPasser')   # (le joueur a fini : la fin en accéléré)
+        if pg.evaluate('() => !!JEU.attente && !JEU.attente.passer && JEU.ecran === "course"'): pg.evaluate('() => passerAuPodium()')   # (le joueur a fini : la fin en accéléré)
         pg.evaluate('() => BOUCLE.simuler(2)'); pg.wait_for_timeout(30)
     t(f'{titre} : la course va jusqu’au podium', attendre(pg, '() => JEU.ecran === "podium"', None, 60000), str(pg.evaluate('() => JEU.ecran')))
     pg.click('#boutonResultats')

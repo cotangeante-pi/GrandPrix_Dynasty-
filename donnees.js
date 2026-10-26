@@ -337,6 +337,7 @@ const REGLAGES = {
   // domicile (gagner son Grand Prix à domicile ou sa course de cœur)
   CASQUE_DEBLOCAGES: { chevrons: 'victoire', couronne: 'titre', zigzag: 'podiums', diagonale: 'duel', coeur: 'domicile' },
   CASQUE_PODIUMS_DEBLOCAGE: 10,
+  ANNONCE_MOTIF_DUREE: 6,       // s : l'annonce d'un motif gagné reste à l'écran (ou un clic la ferme)
   CASQUE_PALETTE: [0xd8262e, 0xf2c230, 0x2fa84f, 0xf07d1a, 0x8e44ad, 0x1abc9c, 0xecf0f1, 0x34495e, 0xe84393, 0x1f6fe0, 0x111111, 0xffffff],
   CASQUE_NEUTRE: { motif: 'uni', couleurs: [0xdfe3ea, 0xdfe3ea, 0x34495e] },   // « Toi » avant la création, les voitures sans pilote
   CASQUE_ESSAIS_MAX: 200,       // tirages pour trouver un casque que personne n'a

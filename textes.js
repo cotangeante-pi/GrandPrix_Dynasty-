@@ -74,6 +74,7 @@ const TEXTES = {
     // le casque du pilote (casque.js)
     casqueTitre: 'Your helmet', casqueMotif: 'Pattern', casqueCouleurs: 'Colours', monCasque: 'My helmet', casqueValider: 'Keep this helmet',
     motif_uni: 'Plain', motif_bandes: 'Stripes', motif_etoile: 'Star', motif_flammes: 'Flames', motif_damier: 'Chequered', motif_eclair: 'Lightning',
+    motifGagne: 'New helmet design: {motif}!',
     motif_chevrons: 'Chevrons', motif_couronne: 'Crown', motif_zigzag: 'Zigzag', motif_diagonale: 'Diagonal', motif_coeur: 'Heart',   // les motifs à débloquer (tour 27b)
     deblocage_victoire: 'win a race', deblocage_titre: 'win a title', deblocage_podiums: '{n} podiums', deblocage_duel: 'beat your teammate over a season', deblocage_domicile: 'win your home Grand Prix',
     // les 12 circuits (clé : circuit_ + son nom dans CIRCUITS_PAYS), le même nom dans les deux langues
@@ -308,6 +309,7 @@ const TEXTES = {
     piloteValider: 'C’est parti !',
     casqueTitre: 'Ton casque', casqueMotif: 'Motif', casqueCouleurs: 'Couleurs', monCasque: 'Mon casque', casqueValider: 'Garder ce casque',
     motif_uni: 'Uni', motif_bandes: 'Bandes', motif_etoile: 'Étoile', motif_flammes: 'Flammes', motif_damier: 'Damier', motif_eclair: 'Éclair',
+    motifGagne: 'Nouveau motif de casque : {motif} !',
     motif_chevrons: 'Chevrons', motif_couronne: 'Couronne', motif_zigzag: 'Zigzag', motif_diagonale: 'Diagonale', motif_coeur: 'Cœur',   // les motifs à débloquer (tour 27b)
     deblocage_victoire: 'gagner une course', deblocage_titre: 'gagner un titre', deblocage_podiums: '{n} podiums', deblocage_duel: 'battre son coéquipier sur une saison', deblocage_domicile: 'gagner son Grand Prix à domicile',
     circuit_monoco: 'Monoco', circuit_silverstoun: 'Silverstoun', circuit_monzo: 'Monzo', circuit_spaa: 'Spaa', circuit_suzuko: 'Suzuko', circuit_interlagas: 'Interlagas',
