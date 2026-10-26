@@ -1,7 +1,7 @@
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><title>tests</title></head><body>
 <pre id="res"></pre>
 <script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));window.addEventListener('unhandledrejection',e=>__err.push('promesse : '+(e.reason&&e.reason.message||e.reason)));</script>
-<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../son.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../decouverte.js"></script><script src="../pilote.js"></script><script src="../deux-joueurs.js"></script><script src="../tournoi.js"></script><script src="../casque.js"></script><script src="../photo.js"></script><script src="../cache-carte.js"></script><script src="../journal.js"></script><script src="../argent.js"></script><script src="../garage.js"></script><script src="../aileron.js"></script><script src="../carte2d.js"></script><script src="../saisons.js"></script><script src="../sponsors.js"></script><script src="../fiche.js"></script><script src="../interview.js"></script><script src="../carriere.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../resume.js"></script><script src="../fantome.js"></script><script src="../principal.js"></script>
+<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../son.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../decouverte.js"></script><script src="../pilote.js"></script><script src="../deux-joueurs.js"></script><script src="../tournoi.js"></script><script src="../casque.js"></script><script src="../photo.js"></script><script src="../cache-carte.js"></script><script src="../journal.js"></script><script src="../argent.js"></script><script src="../garage.js"></script><script src="../aileron.js"></script><script src="../carte2d.js"></script><script src="../saisons.js"></script><script src="../sponsors.js"></script><script src="../fiche.js"></script><script src="../interview.js"></script><script src="../carriere.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../resume.js"></script><script src="../messages.js"></script><script src="../fantome.js"></script><script src="../principal.js"></script>
 <script>
 const L=[];let ok=0,ko=0;
 function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
@@ -1165,6 +1165,11 @@ t('photo stylisée du rival (PHOTO.portrait) : son casque et sa voiture aux coul
   const d=()=>{const c=document.createElement('canvas');c.width=220;c.height=260;PHOTO.portrait(c.getContext('2d',{willReadFrequently:true}),220,260,{couleur:e.couleur,casque:p.casque});return c;};
   const a=d(),b=d();v(a.toDataURL()===b.toDataURL(),'deux dessins différents');const px=a.getContext('2d').getImageData(0,0,220,260).data,c=new Set();for(let i=0;i<px.length;i+=4*29) c.add(px[i]+','+px[i+1]+','+px[i+2]);v(c.size>8,c.size+' couleurs');});
 
+t('textes : accorder() met le singulier devant 0 et 1 en français, devant 1 seulement en anglais, sans toucher 10, 1,5 ni 21 ; elider() l’applique', ()=>{
+  const fr=accorder('0 victoires · 1 podiums · 10 points · 1,5 secondes · 21 courses · 1 Grands Prix · 1 places gagnées','fr'),en=accorder('0 wins · 1 podiums · 10 points · 1 seasons · 1 places gained','en');
+  v(fr==='0 victoire · 1 podium · 10 points · 1,5 secondes · 21 courses · 1 Grand Prix · 1 place gagnée',fr);v(en==='0 wins · 1 podium · 10 points · 1 season · 1 place gained',en);
+  if(LANGUE==='fr') v(elider('Tu marques 1 points')==='Tu marques 1 point'&&elider('0 victoires')==='0 victoire',elider('Tu marques 1 points'));});
+
 // --- l'élision du français (tour 29c) : « d’Alex », « de Léo »
 t('textes : l’élision du français (elider) : « de Alex » → « d’Alex », « que Emma » → « qu’Emma », « de Léo » et « de Hugo » ne changent pas ; la une de la relève dit « La fille d’Alex Rossi » ; aucun texte fixe n’a « de » devant une voyelle', ()=>{
   if(LANGUE==='fr'){v(elider('La fille de Alex Rossi')==='La fille d’Alex Rossi'&&elider('plus vite que Emma')==='plus vite qu’Emma'&&elider('le fils de Léo')==='le fils de Léo'&&elider('de Hugo')==='de Hugo'&&elider('De Ines')==='D’Ines'&&elider('sans de Écurie')==='sans d’Écurie','elider : '+elider('La fille de Alex Rossi'));
@@ -2254,6 +2259,20 @@ t('résumé : avec les pneus (?pneus=1), une course de 12 tours : chaque arrêt 
     const b=RESUME.bandeau(dans[0]);v(b.cle==='resume_arret'&&b.valeurs.duree>0&&TEXTES.fr.resume_arret.includes('{duree}')&&TEXTES.en.resume_arret.includes('{duree}'),'bandeau');
     L.push('  (résumé avec les pneus, 12 tours : '+vus.length+' arrêts, de '+Math.min(...vus.map(x=>x.d)).toFixed(1)+' à '+Math.max(...vus.map(x=>x.d)).toFixed(1)+' s ; '+dans.length+' dans le résumé)');
   }finally{R.PNEUS_ACTIFS=avant;}});
+
+// --- les messages de course (messages.js)
+t('messages de course : un nouveau meilleur tour, une pénalité, un passage aux stands entrent dans la file ; un seul message à la fois, MESSAGES_DUREE s chacun ; la file garde au plus MESSAGES_FILE_MAX messages ; rien de nouveau, rien', ()=>{
+  const R=REGLAGES,m=MESSAGES.creer(),V=(a)=>a.map((x,k)=>({k,meilleurTour:x[0],penalites:x[1],auxStands:x[2]}));
+  MESSAGES.observer(m,V([[null,0,false],[null,0,false]]));v(m.file.length===0,'rien au départ');
+  MESSAGES.observer(m,V([[62,0,false],[null,0,false]]));v(m.file.length===1&&m.file[0].type==='meilleurTour'&&m.file[0].k===0&&m.file[0].temps===62,'1er meilleur tour');
+  MESSAGES.observer(m,V([[62,0,false],[63,0,false]]));v(m.file.length===1,'un tour plus lent n’est pas un meilleur tour');
+  MESSAGES.observer(m,V([[62,0,false],[61.5,5,true]]));v(m.file.map(x=>x.type).join()==='meilleurTour,meilleurTour,penalite,stands'&&m.file[2].s===5&&m.file[3].k===1,'file : '+JSON.stringify(m.file));
+  MESSAGES.observer(m,V([[62,0,false],[61.5,5,true]]));v(m.file.length===4,'pas deux fois le même fait');
+  const a=MESSAGES.afficher(m,10);v(a.type==='meilleurTour'&&a.k===0,'le premier');v(MESSAGES.afficher(m,10+R.MESSAGES_DUREE-0.01)===a,'reste MESSAGES_DUREE s');
+  const b=MESSAGES.afficher(m,10+R.MESSAGES_DUREE);v(b!==a&&b.k===1,'puis le suivant');
+  MESSAGES.afficher(m,20);MESSAGES.afficher(m,30);v(MESSAGES.afficher(m,40)===null,'la file vidée : plus rien');
+  for(let i=1;i<=10;i++)MESSAGES.observer(m,V([[null,i,false],[null,0,false]]));v(m.file.length===R.MESSAGES_FILE_MAX&&m.file[m.file.length-1].s===1,'file bornée : '+m.file.length);
+  v(['msg_meilleurTour','msg_penalite','msg_stands','pneus','pneusAdherence'].every(c=>TEXTES.fr[c]&&TEXTES.en[c]),'textes');});
 
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 ecrire();

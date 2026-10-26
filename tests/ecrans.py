@@ -45,7 +45,17 @@ PAGES = [
     ('index.html?championnat=1&tours=2&robot=1&test=consigne-ignoree', 1280, 720, None),   # … il l'ignore, confiance −5   # l'arrêt au stand (étape 7) : le message, le robot entre dans la voie, s'arrête, ressort ; capture stand.png   # ?pneus=1 : l'usure monte sur 10 tours du robot, affichée dans ?debug=1
     ('index.html?championnat=1&tours=1&robot=1&gp=12', 1280, 720, None),   # la fin de saison : le 12e Grand Prix joué par le robot, champion, duel de la saison, contrats, saison 2 ; captures champion.png, duel-saison.png, contrats.png
     ('index.html?championnat=1&tours=1&robot=1&gp=12', 960, 600, None),    # les écrans de fin de saison en petit (Grand Prix 12 fabriqué), la retraite
-    ('index.html?championnat=1&tours=1&robot=1&lang=en', 1280, 720, None),   # la page en anglais : championnat et podium sans un mot français, capture championnat-en.png
+    ('index.html?championnat=1&tours=1&robot=1&lang=en', 1280, 720, None),
+    ('index.html?championnat=1&tours=1&robot=1&gp=12&lang=en', 960, 600, None),
+    # l'audit anglais, suite (tour 31) : la découverte et ses aides, Entre amis, l'écran partagé et ses réglages, la création du pilote ; le
+    # tournoi ; la course à deux ; le résumé vidéo ; les stands ; la consigne d'équipe ; le volant (?lang=en, 960×600, mots témoins, rien hors de l'écran)
+    ('index.html?robot=1&tours=1&lang=en&test=audit-decouverte', 960, 600, None),
+    ('index.html?lang=en&test=audit-tournoi', 960, 600, None),
+    ('index.html?deux=1&ia=3&robot=1&circuit=test&lang=en&test=audit-deux', 960, 600, None),
+    ('index.html?course=1&ia=5&joueur=1&robot=1&circuit=test&lang=en&test=audit-resume', 960, 600, None),
+    ('index.html?course=12&robot=1&pneus=1&circuit=test&lang=en&test=audit-stand', 960, 600, None),
+    ('index.html?championnat=1&tours=2&robot=1&lang=en&test=audit-consigne', 960, 600, None),
+    ('index.html?course=0&camera=cockpit&lang=en&test=audit-volant', 960, 600, None),   # l'audit anglais (tour 31, Codeur 3) : chaque écran du championnat et de la fin de carrière, sans un mot français, rien hors de l'écran en 960×600   # la page en anglais : championnat et podium sans un mot français, capture championnat-en.png
     ('index.html?course=1&ia=5&joueur=1&robot=1&circuit=test&test=fantome', 1280, 720, None),   # le fantôme du meilleur tour : deux qualifications de suite, la 2e contre le fantôme, capture fantome.png
     ('index.html?robot=1&test=decouverte&tours=1', 1280, 720, None),
     ('index.html?deux=1&ia=5&robot=1&circuit=test&test=deux', 1280, 720, None),   # le mode 2 joueurs (deux-joueurs.js) : l'écran partagé, deux robots + 5 IA, jusqu'au podium ; capture deux-joueurs.png
@@ -58,6 +68,8 @@ PAGES = [
     ('index.html?course=0&camera=cockpit&test=volant', 960, 600, None),    # … en petit ; capture cockpit-960.png
     ('index.html?course=1&ia=5&joueur=1&robot=1&circuit=test&test=resume', 1280, 720, None),   # le résumé vidéo (étape 13) : après une course, « ▶ Résumé », le rejeu, Échap / clic ; capture resume.png
     ('index.html?course=1&ia=5&joueur=1&robot=1&circuit=test&test=resume', 960, 600, None),    # … en petit ; capture resume-960.png
+    ('index.html?course=3&ia=5&joueur=1&robot=1&pneus=1&circuit=test&test=hudcourse', 1280, 720, None),   # la minicarte, les pneus, les messages de course (suite du tour 31) ; captures minicarte.png, pneus-hud.png, messages.png
+    ('index.html?course=3&ia=5&joueur=1&robot=1&pneus=1&circuit=test&test=hudcourse', 960, 600, None),    # … en petit, sans recouvrement
     ('index.html?test=tournoi', 1280, 720, None),   # le tournoi chrono (tour 26b) : inscription de 3 joueurs → 3 manches (robot ; un abandon) → podium → Rejouer ; captures tournoi.png, tournoi-podium.png
     ('index.html?test=tournoi', 960, 600, None),    # … l'inscription de 8 joueurs tient en 960×600   # le mode 2 joueurs, tour 25b ordre 3 : titre → « Entre amis » → réglages → course à deux (robots) → podium → rivalité → Revanche → Menu ; captures entre-amis.png, deux-reglages.png, rivalite.png
     ('index.html?test=amis', 960, 600, None),    # … en petit : le menu et l'écran avant la course tiennent sans défilement ni débordement   # … la mesure de la 3D dessinée deux fois sur le technique   # le premier lancement : titre → course de découverte (robot) → Bravo → paddock ; captures titre.png, decouverte.png, bravo.png
@@ -678,7 +690,7 @@ def championnat_en(pg, titre):
     t(f'{titre} : après les résultats, la une du journal en anglais, pas un mot français', attendre(pg, '() => JEU.ecran === "une"') and not re.search(MOTS_FR, pg.evaluate('() => document.getElementById("une").innerText')),
       pg.evaluate('() => document.getElementById("une").innerText')[:300])
     une_ecran(pg, titre, 'une-en.png')
-    t(f'{titre} : après le Grand Prix, « You scored n points » et le classement en anglais', attendre(pg, '() => JEU.ecran === "championnat" && /^You scored \\d+ points$/.test(document.getElementById("championnatGagne").textContent)')
+    t(f'{titre} : après le Grand Prix, « You scored n points » et le classement en anglais', attendre(pg, '() => JEU.ecran === "championnat" && /^You scored \\d+ points?$/.test(document.getElementById("championnatGagne").textContent)')
       and not re.search(MOTS_FR, pg.evaluate('() => document.getElementById("championnat").innerText')), pg.evaluate('() => document.getElementById("championnatGagne").textContent'))
     pg.wait_for_timeout(300)
     pg.screenshot(path=os.path.join(CAPTURES, 'championnat-en.png'))
@@ -1074,6 +1086,47 @@ def resume_ecran(pg, titre, l, h):
     pg.mouse.click(l / 2, h / 3)
     t(f'{titre} : un clic sort aussi du résumé', attendre(pg, '() => JEU.ecran === "resultats"', None, 5000), str(pg.evaluate('() => JEU.ecran')))
 
+# l'interface en course (suite du tour 31) : la minicarte (le circuit entier, chaque voiture au bon endroit à 2 m près, le joueur
+# mis en valeur), l'état des pneus avec ?pneus=1 (la jauge baisse en roulant), un message de course (meilleur tour) qui apparaît
+# puis disparaît ; rien ne se recouvre en 960×600 et 1280×720 ; aucun appel de dessin en plus (ce sont des canvas 2D et du HTML)
+def hud_course(pg, titre, l, h):
+    passer_qualif(pg, titre)
+    attendre(pg, '() => JEU.plateau.carte !== null', None, 180000)
+    if pg.evaluate('() => JEU.ecran === "grille"'): pg.evaluate('() => finirGrille()')
+    pg.evaluate('() => { BOUCLE.arreter(); BOUCLE.simuler(25); BOUCLE.demarrer(); }')
+    attendre(pg, '() => JEU.ecran === "course" && !document.getElementById("minicarte").classList.contains("cache")', None, 10000)
+    pg.wait_for_timeout(300)
+    mc = pg.evaluate('''() => { const P = JEU.plateau.pilotes, pts = MINICARTE.points; let pire = 0;
+      for (const p of pts) { const [x, z] = MINICARTE.versMonde(p.x, p.y), v = P[p.k].v; pire = Math.max(pire, Math.hypot(x - v.x, z - v.z)); }
+      return { n: pts.length, voitures: P.length, pire, pret: MINICARTE.pret }; }''')
+    t(f'{titre} : la minicarte : le circuit entier, toutes les voitures (chacune au bon endroit à 2 m près)', mc['pret'] and mc['n'] == mc['voitures'] and mc['pire'] < 2, str(mc))
+    u1 = pg.evaluate('() => [JEU.joueur.pneus.usure, document.getElementById("pneusTexte").textContent, document.getElementById("pneusHud").classList.contains("cache")]')
+    pg.evaluate('() => { BOUCLE.arreter(); BOUCLE.simuler(60); BOUCLE.demarrer(); }')
+    attendre(pg, '() => document.getElementById("pneusTexte").textContent.endsWith(" " + Math.round((1 - JEU.joueur.pneus.usure) * 100) + " %")', None, 5000)
+    u2 = pg.evaluate('() => [JEU.joueur.pneus.usure, document.getElementById("pneusTexte").textContent, document.getElementById("pneusPlein").style.width, document.getElementById("pneusAdherence").textContent, 1 - JEU.joueur.adherence]')
+    perte = u2[4]  # lue avec le texte ; une image de retard possible, d'où la marge (0,05 % de part et d'autre du seuil)
+    t(f'{titre} : avec ?pneus=1, l’état des pneus à l’écran : la jauge baisse en roulant ; l’adhérence perdue n’est écrite qu’à partir de 0,1 % (jamais « −0,0 % »)', not u1[2] and u2[0] > u1[0] and u1[1] != u2[1] and (u2[3] == '' or re.search(r'[1-9]', u2[3]) is not None) and (perte < 0.0015 or u2[3] != '') and (perte >= 0.0005 or u2[3] == ''), str([u1, u2, perte]))
+    # le vrai meilleur tour de la course (les voitures ont déjà bouclé des tours) : les messages repartent de zéro, et le premier
+    # dit ce meilleur tour, le même temps que celui de la course ; puis il s'en va après MESSAGES_DUREE s de course
+    pg.evaluate('() => { JEU.messages = null; }')
+    meilleur = pg.evaluate('() => { const P = JEU.plateau.pilotes; let b = null; for (const p of P) if (p.course.meilleurTour !== null && (b === null || p.course.meilleurTour < b)) b = p.course.meilleurTour; return b === null ? null : INTERFACE.formatTemps(b); }')
+    vu = meilleur is not None and attendre(pg, 't => !document.getElementById("messageCourse").classList.contains("cache") && document.getElementById("messageCourse").textContent.includes(t)', meilleur, 5000)
+    texte_msg = pg.evaluate('() => document.getElementById("messageCourse").textContent')
+    bm, bh, bc, bt, bp, br = [pg.evaluate('s => { const e = document.querySelector(s); if (!e || e.classList.contains("cache") || getComputedStyle(e).display === "none") return null; const r = e.getBoundingClientRect(); return [r.left, r.top, r.right, r.bottom]; }', s) for s in ['#minicarte', '#hudCourse', '#classement', '#tableau', '#pneusHud', '#radar']]
+    croise = lambda a, b: a is not None and b is not None and a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]
+    bmsg = pg.evaluate('() => { const r = document.getElementById("messageCourse").getBoundingClientRect(); return [r.left, r.top, r.right, r.bottom]; }')
+    boites = {'minicarte': bm, 'chrono': bh, 'tour': bc, 'compteur': bt, 'pneus': bp, 'radar': br, 'message': bmsg}
+    chevauche = [(a, b) for a in boites for b in boites if a < b and croise(boites[a], boites[b])]
+    t(f'{titre} : un message de course (meilleur tour) apparaît en bandeau ; rien ne se recouvre en {l}×{h} (minicarte, chrono, tour, compteur, pneus, radar, message)', vu and texte_msg != '' and not chevauche and all(b is None or (b[0] >= -1 and b[2] <= l + 1 and b[3] <= h + 1) for b in boites.values()), str([texte_msg, chevauche, boites]))
+    if l == 1280:
+        pg.screenshot(path=os.path.join(CAPTURES, 'messages.png'))
+        pg.locator('#minicarte').screenshot(path=os.path.join(CAPTURES, 'minicarte.png'))
+        pg.locator('#pneusHud').screenshot(path=os.path.join(CAPTURES, 'pneus-hud.png'))
+    else:
+        pg.screenshot(path=os.path.join(CAPTURES, 'hud-course-960.png'))
+    pg.evaluate('() => { BOUCLE.arreter(); BOUCLE.simuler(REGLAGES.MESSAGES_DUREE * 3 + 1); BOUCLE.demarrer(); }')
+    t(f'{titre} : le message s’en va après MESSAGES_DUREE s', attendre(pg, 't => !document.getElementById("messageCourse").textContent.includes(t) || document.getElementById("messageCourse").classList.contains("cache")', meilleur, 5000), pg.evaluate('() => document.getElementById("messageCourse").textContent'))
+
 def course_joueur(pg, titre):
     # le joueur conduit sa voiture au clavier, au milieu de 9 IA ; la caméra le suit, Tab ne change rien
     t(f'{titre} : 9 IA et la voiture du joueur, en dernière place de la grille ; la caméra suit le joueur',
@@ -1426,6 +1479,115 @@ def calendrier_ecran(pg, titre, capture):
     pg.evaluate('() => { JEU.championnat.pilotes[19].coeur = JEU.coeurAvant; }')
     t(f'{titre} : « Retour » : le paddock', attendre(pg, '() => JEU.ecran === "championnat"'), str(pg.evaluate('() => JEU.ecran')))
 
+# l'audit anglais (tour 31) : chaque écran ouvert en anglais (?lang=en) ; aucun mot français témoin dans son texte, aucun texte hors de
+# l'écran en 960×600, pas de défilement ; une capture *-en.png par écran
+FRANCAIS = r"(^|[^A-Za-zÀ-ÿ])(le|la|les|des|du|une|et|est|pour|avec|sans|saison|écurie|retour|victoire|victoires|vainqueur|classement|prochain|arbre|toi|ton|ta|tes|tu|cette|carrière|pilote|écuries|courses|titres|saisons|aucune?|suite|continuer)(?![A-Za-zÀ-ÿ])|[éèêàçù]"
+AUDIT_ETAT = '''re => { const id = JEU.ecran === "album" ? "une" : JEU.ecran, el = document.getElementById(id); if (!el) return { id, absent: true };
+  let texte = el.innerText.replace(/protégée?/g, "");
+  for (const [k, v] of Object.entries(TEXTES.en)) if (/^(circuit_|sponsor_)/.test(k) && typeof v === "string") texte = texte.split(v).join("");   // (les noms propres inventés : circuits, sponsors)
+  const m = texte.match(new RegExp(re, "i"));
+  const hors = [...el.querySelectorAll("*")].filter(e => e.childElementCount === 0 && e.textContent.trim() && getComputedStyle(e).display !== "none" && e.getClientRects().length)
+    .filter(e => { const r = e.getBoundingClientRect(); return r.right > innerWidth + 1 || r.bottom > innerHeight + 1 || r.left < -1 || r.top < -1; }).map(e => e.textContent.trim().slice(0, 40));
+  return { id, francais: m ? texte.slice(Math.max(0, m.index - 30), m.index + 40) : null, hors, defile: [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth] }; }'''
+def audit_en(pg, titre, l):
+    def verifier(nom, js=None):
+        if js: pg.evaluate(js)
+        pg.wait_for_timeout(150)
+        a = pg.evaluate(AUDIT_ETAT, FRANCAIS)
+        t(f'{titre} : en anglais, l’écran « {nom} » ({a.get("id")}) : aucun mot français, rien hors de l’écran, sans défilement', not a.get('absent') and not a['francais'] and not a['hors'] and pas_de_defilement(a['defile']), str(a))
+        pg.screenshot(path=os.path.join(CAPTURES, nom + '-en.png'))
+    verifier('paddock')
+    verifier('amis', '() => montrerAmis()'); pg.evaluate('() => montrerChampionnat(null)')
+    verifier('garage', '() => montrerGarage()'); verifier('aileron', '() => montrerAileron()'); pg.evaluate('() => { quitterAileron(); quitterGarage(); }')
+    verifier('sponsors', '() => montrerSponsors()'); pg.evaluate('() => quitterSponsors()')
+    verifier('fiche', '() => montrerFiche(3)'); pg.evaluate('() => quitterFiche()')
+    verifier('album', '() => montrerAlbum()'); pg.evaluate('() => quitterAlbum()')
+    verifier('calendrier', '() => montrerCalendrier()'); pg.evaluate('() => quitterCalendrier()')
+    verifier('arbre', '() => montrerArbre()'); pg.evaluate('() => quitterArbre()')
+    verifier('interview', '''() => { const ch = JEU.championnat, o = [0, 1, 2, 3, 19].concat([...Array(20).keys()].filter(k => k > 3 && k < 19));
+      const lignes = o.map((k, i) => ({ k, place: i + 1, grille: i + 1, ligne: i + 1, penalites: 0, meilleurTour: 60 + i, classe: true, chocMax: 0 })); JEU.lignesGP = lignes; montrerInterview(INTERVIEW.question(ch, lignes)); }''')
+    verifier('une', '() => montrerUne(JEU.championnat.album[JEU.championnat.album.length - 1])')
+    pg.evaluate('() => { JEU.lignesGP = null; SAISONS.avancer(JEU.championnat, 1); montrerFinSaison(); }')
+    verifier('ceremonie'); pg.evaluate('() => suiteCeremonie()')
+    verifier('saison'); pg.evaluate('() => suiteClassementSaison()')
+    verifier('duel-saison'); pg.evaluate('() => suiteDuelSaison()')
+    verifier('contrats')
+    verifier('bilan', '() => prendreRetraite()')
+    verifier('temple', '() => montrerTemple()'); pg.evaluate('() => quitterTemple()')
+    verifier('arbre-bilan', '() => montrerArbre()'); pg.evaluate('() => quitterArbre()')
+    verifier('releve', '() => montrerHeritier()')
+
+# l'audit anglais, suite (tour 31) : le texte VISIBLE de toute la page (body.innerText : les écrans cachés n'y sont pas), mêmes mots témoins,
+# rien hors de l'écran, pas de défilement ; une capture <nom>-en.png
+AUDIT_PAGE = AUDIT_ETAT.replace('const id = JEU.ecran === "album" ? "une" : JEU.ecran, el = document.getElementById(id); if (!el) return { id, absent: true };', 'const id = JEU.ecran, el = document.body;')
+def audit_autres(pg, titre, page, l, h):
+    def verifier(nom, js=None, attente=None):
+        if js: pg.evaluate(js)
+        if attente: attendre(pg, attente, None, 60000)
+        pg.wait_for_timeout(200)
+        a = pg.evaluate(AUDIT_PAGE, FRANCAIS)
+        t(f'{titre} : en anglais, « {nom} » ({a.get("id")}) : aucun mot français visible, rien hors de l’écran, sans défilement', not a['francais'] and not a['hors'] and pas_de_defilement(a['defile']), str(a))
+        pg.screenshot(path=os.path.join(CAPTURES, nom + '-en.png'))
+    def jusqu_au_podium():
+        for _ in range(150):
+            pg.evaluate('() => { if (JEU.attente && !JEU.attente.passer) passerAuPodium(); BOUCLE.simuler(5); }')
+            if pg.evaluate('() => JEU.ecran') == 'podium': return True
+            pg.wait_for_timeout(30)
+        return False
+    if 'audit-decouverte' in page:
+        verifier('titre')
+        pg.click('#boutonAmis'); verifier('amis')
+        pg.click('#boutonAmisDeux'); verifier('deux-reglages')
+        pg.click('#boutonDeuxRetour'); pg.click('#boutonAmisRetour')
+        pg.click('#boutonJouer')
+        verifier('decouverte-aides', None, '() => JEU.ecran === "course" && JEU.plateau && JEU.plateau.carte !== null && JEU.course.etat === "course"')
+        t(f'{titre} : la course de découverte va jusqu’au podium', jusqu_au_podium())
+        verifier('podium')
+        pg.click('#boutonResultats'); verifier('bravo', None, '() => JEU.ecran === "bravo"')
+        pg.click('#boutonCarriere'); verifier('pilote', None, '() => JEU.ecran === "pilote"')
+    elif 'audit-tournoi' in page:
+        pg.click('#boutonAmis'); pg.click('#boutonAmisTournoi'); verifier('tournoi-inscription', None, '() => JEU.ecran === "tournoiInscription"')
+        with pg.expect_navigation(): pg.click('#boutonTournoiPartir')
+        verifier('tournoi-a-toi', None, '() => typeof JEU !== "undefined" && JEU.ecran === "tournoiAToi"')
+        pg.evaluate('() => { JEU.robot = true; }')
+        attendre(pg, '() => JEU.ecran === "qualif" && JEU.qualif && JEU.qualif.etat === "tour"', None, 20000)
+        pg.evaluate('() => BOUCLE.simuler(3)'); verifier('tournoi-tour')
+        pg.keyboard.press('Escape'); verifier('tournoi-pause', None, '() => JEU.ecran === "tournoiPause"')
+        pg.click('#boutonTournoiAbandon'); verifier('tournoi-manche', None, '() => JEU.ecran === "tournoiManche"')
+        # les autres passages, joués d'avance (des temps fabriqués), jusqu'au podium puis au classement final
+        verifier('tournoi-podium', '''() => { const t = JEU.tournoi; for (let k = 0; k < 40 && !TOURNOI.fini(t); k++) { const j = TOURNOI.joueurActuel(t);
+          if (j === null) TOURNOI.mancheSuivante(t); else TOURNOI.enregistrer(t, j, { tour: 60 + j + k * 0.1, penalites: 0 }); } montrerPodiumTournoi(); }''')
+        verifier('tournoi-fin', '() => montrerFinTournoi()')
+    elif 'audit-deux' in page:
+        verifier('deux-course', None, '() => JEU.ecran === "course" && JEU.plateau && JEU.plateau.carte !== null && JEU.course.etat === "course"')
+    elif 'audit-resume' in page:
+        pg.click('#boutonQualifPasser') if pg.evaluate('() => JEU.ecran === "qualif"') else None
+        attendre(pg, '() => JEU.qualif && JEU.qualif.etat === "resultat"', None, 180000); verifier('qualif-resultat')
+        pg.click('#boutonQualifCourse')
+        verifier('course', None, '() => JEU.ecran === "course" && JEU.plateau.carte !== null && JEU.course.etat === "course"')
+        t(f'{titre} : la course va jusqu’au podium', jusqu_au_podium())
+        pg.click('#boutonResultats'); verifier('resultats', None, '() => JEU.ecran === "resultats"')
+        pg.click('#boutonResume'); verifier('resume', None, '() => JEU.ecran === "resume"')
+    elif 'audit-stand' in page:
+        attendre(pg, '() => JEU.ecran === "course" && JEU.course', None, 30000)
+        pg.evaluate('() => { JEU.course.compte = 0.01; }'); pg.wait_for_timeout(300)
+        verifier('stand-course', '() => { BOUCLE.simuler(3); JEU.joueur.pneus.usure = 0.5; JEU.joueur.versStands = true; BOUCLE.simuler(2); }')
+        for _ in range(40):
+            if pg.evaluate('() => !!JEU.course.arretEnCours'): break
+            pg.evaluate('() => BOUCLE.simuler(1)')
+        verifier('stand-arret')
+    elif 'audit-consigne' in page:
+        pg.click('#boutonCourseSuivante')
+        attendre(pg, '() => JEU.ecran === "qualif" && JEU.qualif && JEU.qualif.etat === "choix"', None, 10000); verifier('qualif')
+        pg.click('#boutonQualifPasser'); attendre(pg, '() => JEU.qualif && JEU.qualif.etat === "resultat"', None, 180000)
+        pg.click('#boutonQualifCourse')
+        attendre(pg, '() => JEU.plateau.carte !== null && JEU.course.etat === "course" && JEU.course.temps > 1', None, 180000)
+        verifier('consigne', '''() => { const e = JEU.plateau, P = e.pilotes, j = P.findIndex(p => p.humain), kc = CHAMPIONNAT.coequipierDe(JEU.championnat).id;
+          const c = { devant: j, derriere: kc, numero: P[kc].numero, debut: e.temps, joueur: true, refus: false, resultat: null };
+          e.consigne = c; P[j].course.consigne = c; P[kc].course.consigne = c; }''', '() => document.getElementById("hudStand").textContent.length > 10')
+    elif 'audit-volant' in page:
+        verifier('cockpit', None, '() => JEU.ecran === "course"')
+
 def une_ecran(pg, titre, capture, touche=False):
     ph = pg.evaluate(PHOTO_ETAT, None)
     t(f'{titre} : la photo de la une est dessinée par le code ({ph and ph["type"]}), visible, pas d’une seule couleur, la même que celle de la une compacte', bool(ph) and ph['couleurs'] > 8 and ph['pareil'] and ph['visible'], str(ph))
@@ -1478,7 +1640,7 @@ def sponsors_ecran(pg, titre, capture):
     t(f'{titre} : « Retour » ramène au paddock', attendre(pg, '() => JEU.ecran === "championnat"'))
 
 FICHE_ETAT = '''k => { const ch = JEU.championnat, f = FICHE.fiche(ch, k), p = ch.pilotes[k], $ = id => document.getElementById(id).textContent; return { ecran: JEU.ecran, nom: $("ficheNom"), attenduNom: INTERFACE.nomPilote(p),
-  infos: $("ficheInfos"), numero: p.numero, age: p.age, caractere: $("ficheCaractere"), mots: f.mots.map(m => texte("caractere_" + m)), saison: $("ficheSaison"), place: f.saison.place, points: f.saison.points,
+  infos: $("ficheInfos"), numero: p.numero, age: p.age, caractere: $("ficheCaractere"), mots: f.mots.map(m => texte("caractere_" + m)), saison: $("ficheSaison"), place: f.saison.place, points: f.saison.points, courses: f.saison.courses,
   historique: $("ficheHistorique"), duels: $("ficheDuels"), rivalite: $("ficheRivalite"), devant: f.duels.devant, derriere: f.duels.derriere, photo: document.getElementById("fichePhoto").getBoundingClientRect().width,
   defile: [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth] }; }'''
 def fiche_ecran(pg, titre, capture):
@@ -1486,7 +1648,7 @@ def fiche_ecran(pg, titre, capture):
     f = pg.evaluate(FICHE_ETAT, 3)
     t(f'{titre} : un clic sur un rival ouvre sa fiche : nom, numéro, écurie, âge, caractère en mots, saison (place, points), historique, duels contre le joueur, la place de la photo, sans défilement',
       f['ecran'] == 'fiche' and f['nom'] == f['attenduNom'] and f['nom'] != '' and str(f['numero']) in f['infos'] and (str(f['age']) + ' ans') in f['infos'] and f['caractere'] == 'Caractère : ' + ', '.join(f['mots'])
-      and f['saison'].startswith(f'Cette saison : P{f["place"]} · {f["points"]} pts') and f['historique'].startswith('Carrière : ') and f['duels'] == f'Contre toi : devant {f["devant"]} fois, derrière {f["derriere"]} fois' and f['photo'] > 50 and f['rivalite'] == '' and pas_de_defilement(f['defile']), str(f))
+      and (f['saison'].startswith(f'Cette saison : P{f["place"]} · {f["points"]} pts') if f['courses'] else f['saison'] == 'Cette saison : pas encore de course, pas encore de classement') and f['historique'].startswith('Carrière : ') and f['duels'] == f'Contre toi : devant {f["devant"]} fois, derrière {f["derriere"]} fois' and f['photo'] > 50 and f['rivalite'] == '' and pas_de_defilement(f['defile']), str(f))
     pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, capture))
     fp = pg.evaluate('''() => { const cv = document.querySelector("#fichePhoto canvas"); if (!cv) return null; const px = cv.getContext("2d").getImageData(0, 0, cv.width, cv.height).data, c = new Set();
       for (let k = 0; k < px.length; k += 4 * 31) c.add(px[k] + "," + px[k + 1] + "," + px[k + 2]); const r = cv.getBoundingClientRect(); return { couleurs: c.size, visible: r.width > 40 && r.height > 40 }; }''')
@@ -1851,7 +2013,7 @@ def championnat(pg, titre, l):
             && JEU.championnat.album.length === {gp} && JEU.championnat.album[{gp - 1}].g === {gp}'''), str(pg.evaluate(ECRAN)) + ' ' + str(pg.evaluate('() => JEU.championnat.album.length')))
         une_ecran(pg, titre, 'une.png' if gp == 1 else 'une-2.png')
         t(f'{titre} : GP {gp} : après la une, l’écran du championnat avec les points gagnés',
-          attendre(pg, f'''() => JEU.ecran === "championnat" && /^Tu marques \d+ points$/.test(document.getElementById("championnatGagne").textContent)
+          attendre(pg, f'''() => JEU.ecran === "championnat" && /^Tu marques \d+ points?$/.test(document.getElementById("championnatGagne").textContent)
             && document.getElementById("championnatTitre").textContent.startsWith("Grand Prix {gp + 1} / 12")'''), str(pg.evaluate(ECRAN)) + ' ' + pg.evaluate('() => document.getElementById("championnatGagne").textContent'))
         points = pg.evaluate('() => JEU.championnat.pilotes.map(p => p.stats.points)')
         # la réputation après la réponse provocante du GP 1 (public +4, écurie −3, sponsors −3 : INTERVIEW_EFFETS), gardée au GP 2 (pas de commentaire, page rechargée entre les deux)
@@ -1936,7 +2098,7 @@ with sync_playwright() as p:
                 decouverte(pg, titre)
             if 'reglages=1' in page:
                 reglages(pg, titre)
-            if 'robot=1' in page and 'championnat=1' not in page and 'joueur=1' not in page and 'test=sdk' not in page and 'pneus=1' not in page and 'test=decouverte' not in page and 'test=deux' not in page:   # (avec ?championnat=1 ou &joueur=1, le robot joue dans championnat() ou qualif() ; sdk() et pneus() ont leur page)
+            if 'test=audit' not in page and 'robot=1' in page and 'championnat=1' not in page and 'joueur=1' not in page and 'test=sdk' not in page and 'pneus=1' not in page and 'test=decouverte' not in page and 'test=deux' not in page:   # (avec ?championnat=1 ou &joueur=1, le robot joue dans championnat() ou qualif() ; sdk() et pneus() ont leur page)
                 course_robot(pg, titre, page)
             if 'test=sdk' in page:
                 sdk(pg, titre)
@@ -1948,7 +2110,7 @@ with sync_playwright() as p:
                 tournoi(pg, titre, l, h)
             if 'test=volant' in page:
                 volant(pg, titre, l, h)
-            if 'pneus=1' in page and 'test=stand' not in page:
+            if 'pneus=1' in page and 'test=stand' not in page and 'test=hudcourse' not in page and 'test=audit' not in page:
                 pneus(pg, titre)
             if 'test=stand' in page:
                 stand_ecran(pg, titre)
@@ -1958,7 +2120,11 @@ with sync_playwright() as p:
                 course_ia10(pg, titre)
             if 'course=1&ia=8' in page:
                 course_podium(pg, titre, l)
-            if 'gp=12' in page:
+            if 'test=audit' in page:
+                audit_autres(pg, titre, page, l, h)
+            elif 'gp=12' in page and 'lang=en' in page:
+                audit_en(pg, titre, l)
+            elif 'gp=12' in page:
                 fin_saison(pg, titre, l)
             elif 'championnat=1' in page and 'lang=en' in page:
                 championnat_en(pg, titre)
@@ -1968,7 +2134,9 @@ with sync_playwright() as p:
                 accelere(pg, titre, page)
             elif 'championnat=1' in page:
                 championnat(pg, titre, l)
-            if 'test=accelere' in page: pass
+            if 'test=accelere' in page or 'test=audit' in page: pass
+            elif 'test=hudcourse' in page:
+                hud_course(pg, titre, l, h)
             elif 'test=resume' in page:
                 resume_ecran(pg, titre, l, h)
             elif 'test=qualif' in page:

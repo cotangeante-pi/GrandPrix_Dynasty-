@@ -22,6 +22,7 @@ const TEXTES = {
     consigneJoueur: 'Team order: let your team-mate no. {n} through (faster). Ignoring it lowers the team\'s trust.', consigneSuivie: 'Thank you! The team\'s trust goes up.', consigneIgnoree: 'Order ignored: the team\'s trust goes down.',
     attenteArrivee: 'Finished — waiting for the other drivers',
     grillePasser: 'The grid — press a key to skip',
+    pneus: 'Tyres', pneusAdherence: 'grip −{p} %', msg_meilleurTour: '{qui}: fastest lap {temps}', msg_penalite: '{s} s penalty for {qui}', msg_stands: '{qui} pits',
     resume: '▶ Highlights', resumeTitre: 'Highlights', resumeSortir: 'Click or Esc to leave',   // le résumé vidéo (resume.js)
     resume_depart: 'The start', resume_depassement: 'Overtake: {qui} passes {sur}', resume_sortie: 'Off track: {qui}', resume_arrivee: 'The finish: {qui} wins', resume_arret: 'Pit stop: {qui}, {duree} s',
     attenteAccelere: '⏩ Fast-forward: {n} cars still racing', attenteAccelere1: '⏩ Fast-forward: 1 car still racing',
@@ -207,7 +208,7 @@ const TEXTES = {
     argentSponsor: 'sponsor bonus: {n}',
     sponsor_brio: 'Brio Café', sponsor_montclair: 'Mont-Clair Waters', sponsor_zephyr: 'Zephyr Telecom', sponsor_helios: 'Helios Lubricants', sponsor_kestrel: 'Kestrel Aero', sponsor_orbis: 'Orbis Insurance',
     ficheRetour: 'Back', ficheAge: '{n} years old', ficheCaractere: 'Character: {mots}', ficheEcurie: 'Team: {ecurie}',
-    ficheSaison: 'This season: P{place} · {points} pts · {v} wins · {p} podiums · {c} races', ficheHistorique: 'Career: {s} seasons · {t} titles · {v} wins · {p} podiums · {q} poles · best finish P{m}',
+    ficheSaisonAucune: 'This season: no race yet, no ranking', ficheSaison: 'This season: P{place} · {points} pts · {v} wins · {p} podiums · {c} races', ficheHistorique: 'Career: {s} seasons · {t} titles · {v} wins · {p} podiums · {q} poles · best finish P{m}',
     ficheDuels: 'Against you: ahead {a} times, behind {b} times', ficheCoequipier: 'As your teammate: {a}–{b}', fichePhoto: 'photo',
     caractere_rapide: 'fast', caractere_regulier: 'consistent', caractere_agressif: 'aggressive', caractere_fautif: 'error-prone', caractere_pose: 'steady',
     garageVoiture: 'Team car: {n} / 100 · your upgrades: +{a} % / {b} % max',
@@ -274,6 +275,7 @@ const TEXTES = {
     consigneJoueur: 'Consigne de l\'écurie : laisse passer ton coéquipier n°{n} (plus rapide). L\'ignorer fait baisser la confiance de l\'écurie.', consigneSuivie: 'Merci ! La confiance de l\'écurie monte.', consigneIgnoree: 'Consigne ignorée : la confiance de l\'écurie baisse.',
     attenteArrivee: 'Arrivée — en attendant les autres pilotes',
     grillePasser: 'La grille — une touche pour passer',
+    pneus: 'Pneus', pneusAdherence: 'adhérence −{p} %', msg_meilleurTour: '{qui} : meilleur tour {temps}', msg_penalite: 'Pénalité de {s} s pour {qui}', msg_stands: '{qui} aux stands',
     resume: '▶ Résumé', resumeTitre: 'Résumé de la course', resumeSortir: 'Clic ou Échap pour sortir',   // le résumé vidéo (resume.js)
     resume_depart: 'Le départ', resume_depassement: 'Dépassement : {qui} sur {sur}', resume_sortie: 'Sortie de piste : {qui}', resume_arrivee: 'L’arrivée : {qui} gagne', resume_arret: 'Arrêt au stand : {qui}, {duree} s',
     attenteAccelere: '⏩ En accéléré : encore {n} voitures en course', attenteAccelere1: '⏩ En accéléré : encore 1 voiture en course',
@@ -449,7 +451,7 @@ const TEXTES = {
     argentSponsor: 'prime sponsor : {n}',
     sponsor_brio: 'Brio Café', sponsor_montclair: 'Eaux Mont-Clair', sponsor_zephyr: 'Zéphyr Télécom', sponsor_helios: 'Hélios Lubrifiants', sponsor_kestrel: 'Kestrel Aéro', sponsor_orbis: 'Orbis Assurances',
     ficheRetour: 'Retour', ficheAge: '{n} ans', ficheCaractere: 'Caractère : {mots}', ficheEcurie: 'Écurie : {ecurie}',
-    ficheSaison: 'Cette saison : P{place} · {points} pts · {v} victoires · {p} podiums · {c} courses', ficheHistorique: 'Carrière : {s} saisons · {t} titres · {v} victoires · {p} podiums · {q} poles · meilleur classement P{m}',
+    ficheSaisonAucune: 'Cette saison : pas encore de course, pas encore de classement', ficheSaison: 'Cette saison : P{place} · {points} pts · {v} victoires · {p} podiums · {c} courses', ficheHistorique: 'Carrière : {s} saisons · {t} titres · {v} victoires · {p} podiums · {q} poles · meilleur classement P{m}',
     ficheDuels: 'Contre toi : devant {a} fois, derrière {b} fois', ficheCoequipier: 'Comme coéquipier : {a}–{b}', fichePhoto: 'photo',
     caractere_rapide: 'rapide', caractere_regulier: 'régulier', caractere_agressif: 'agressif', caractere_fautif: 'fautif', caractere_pose: 'posé',
     garageVoiture: 'Voiture de l’écurie : {n} / 100 · tes améliorations : +{a} % / {b} % maxi',
@@ -515,7 +517,25 @@ function nombre(n, cle) {
 // l'élision du français (Codeur 3) : « de Alex » → « d’Alex », « que Alex » → « qu’Alex », devant un mot qui commence par une voyelle
 // (pas devant un h : « de Hugo » reste, le h aspiré est fréquent dans les noms) ; appliquée aux phrases où l'on met un nom
 // (interface.js : avec, journal.js : remplir, interview.js : phrase) ; en anglais, rien ne change
+// l'accord d'un nombre écrit devant un mot (tour 31) : en français, le singulier à 0 et 1 (« 0 victoire », « 1 podium ») ; en
+// anglais, le singulier à 1 seulement (« 1 win », « 0 wins ») ; appliqué avec elider() à toutes les phrases où l'on met des valeurs
+const ACCORDS = {
+  fr: [['victoires', 'victoire'], ['podiums', 'podium'], ['points', 'point'], ['titres', 'titre'], ['saisons', 'saison'], ['courses', 'course'], ['poles', 'pole'],
+    ['générations', 'génération'], ['secondes', 'seconde'], ['tours', 'tour'], ['Grands Prix', 'Grand Prix'], ['places gagnées', 'place gagnée'], ['places', 'place'], ['ans', 'an']],
+  en: [['wins', 'win'], ['podiums', 'podium'], ['points', 'point'], ['titles', 'title'], ['seasons', 'season'], ['races', 'race'], ['poles', 'pole'],
+    ['generations', 'generation'], ['seconds', 'second'], ['laps', 'lap'], ['Grands Prix', 'Grand Prix'], ['places gained', 'place gained'], ['places', 'place'], ['years', 'year']],
+};
+function accorder(t, langue) {
+  langue = langue || LANGUE;
+  if (typeof t !== 'string') return t;
+  const un = langue === 'fr' ? '[01]' : '1';
+  for (const [pluriel, singulier] of ACCORDS[langue] || []) t = t.replace(new RegExp('(^|[^\\d,.\\u00a0])(' + un + ')([ \\u00a0])' + pluriel + '(?![\\wàâçéèêëîïôûù])', 'g'), (m, a, n, e) => a + n + e + singulier);
+  return t;
+}
+
 function elider(t) {
-  if (LANGUE !== 'fr' || typeof t !== 'string') return t;
+  if (typeof t !== 'string') return t;
+  t = accorder(t);
+  if (LANGUE !== 'fr') return t;
   return t.replace(/(^|[\s(«“'’])([Dd]e|[Qq]ue) (?=[AEIOUYÀÂÄÆÉÈÊËÎÏÔÖŒÙÛÜaeiouyàâäæéèêëîïôöœùûü])/g, (m, avant, mot) => avant + mot.slice(0, -1) + '’');
 }

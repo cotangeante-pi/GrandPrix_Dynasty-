@@ -1400,7 +1400,7 @@ function majClassementRadar() {
   const enCourse = JEU.course && (JEU.ecran === 'course' || JEU.ecran === 'pause');
   const radar = document.getElementById('radar');
   radar.classList.toggle('cache', !enCourse);
-  if (!enCourse) { INTERFACE.majClassement(null); return; }
+  if (!enCourse) { INTERFACE.majClassement(null); document.getElementById('minicarte').classList.add('cache'); return; }
   const P = JEU.plateau ? JEU.plateau.pilotes : [];
   const ordre = JEU.plateau ? classementCourse(JEU.plateau) : null;
   // ?championnat=1 : le coéquipier du joueur (la voiture k = le pilote k du championnat), et l'écart entre eux
@@ -1414,6 +1414,14 @@ function majClassementRadar() {
   const autres = [];
   P.forEach((p, k) => { if (k !== JEU.suivie && p.arrivee === null) autres.push({ x: p.v.x, z: p.v.z, couleur: JEU.couleurs[k] }); });
   if (!JEU.deux) RADAR.dessiner(CIRCUIT, JEU.joueur, autres);   // (pas de radar à deux : trop chargé en demi-écran)
+  // la minicarte : le circuit entier, toutes les voitures, le joueur mis en valeur ; jamais à deux
+  const mc = !JEU.deux;
+  document.getElementById('minicarte').classList.toggle('cache', !mc);
+  if (mc) {
+    MINICARTE.preparer(CIRCUIT);
+    const voitures = JEU.plateau ? P.map((p, k) => ({ x: p.v.x, z: p.v.z, couleur: JEU.couleurs[k] })) : [{ x: JEU.joueur.x, z: JEU.joueur.z, couleur: REGLAGES.COULEUR_JOUEUR }];
+    MINICARTE.dessiner(voitures, JEU.plateau ? (JEU.contre ? JEU.suivie : null) : 0);
+  }
 }
 
 // le mode 2 joueurs : l'affichage de chaque moitié (place, tour, vitesse, écart avec l'autre joueur), pendant la course et la pause
@@ -1467,6 +1475,23 @@ function majVolant() {
   JEU.volant.groupe.position.set(0, p.y, p.z);
   JEU.volant.volant.rotation.z = p.angle;
   JEU.volant.majEcran(rapportPourVitesse(v.u), Math.round(Math.abs(v.u) * 3.6));
+}
+
+// ?pneus=1 : l'état des pneus du joueur (pneus.js), pendant qu'il roule : l'usure en jauge et ce que l'adhérence a perdu
+function majPneusHud() {
+  const v = JEU.joueur, oui = !!(v && v.pneus) && (JEU.ecran === 'course' || JEU.ecran === 'pause' || enTourQualif()) && !JEU.deux;
+  INTERFACE.majPneus(oui ? { reste: 1 - v.pneus.usure, perte: 1 - (v.adherence === undefined ? 1 : v.adherence) } : null);
+}
+
+// les messages de course (messages.js) : les faits du moteur (meilleur tour, pénalités, stands), lus seulement ; un à la fois
+function majMessages() {
+  const e = JEU.plateau, oui = !!e && (JEU.ecran === 'course' || JEU.ecran === 'pause') && !JEU.deux;
+  if (!oui) { INTERFACE.majMessage(null); return; }
+  if (!JEU.messages || JEU.messages.plateau !== e) JEU.messages = { plateau: e, m: MESSAGES.creer() };
+  const m = JEU.messages.m;
+  MESSAGES.observer(m, e.pilotes.map((p, k) => ({ k, meilleurTour: p.course.meilleurTour, penalites: p.course.penalites, auxStands: !!p.course.arretEnCours })));
+  const msg = MESSAGES.afficher(m, e.temps);
+  INTERFACE.majMessage(msg ? texte('msg_' + msg.type).replace('{qui}', etiquetteVoiture(msg.k)).replace('{temps}', msg.temps === undefined ? '' : INTERFACE.formatTemps(msg.temps)).replace('{s}', msg.s === undefined ? '' : String(msg.s).replace('.', texte('virgule'))) : null);
 }
 
 // l'affichage provisoire : la vitesse et « hors piste »
@@ -1541,6 +1566,7 @@ function demarrerJeu() {
   document.getElementById('horsPiste').textContent = texte('horsPiste');
   document.getElementById('aide').textContent = texte('aideConduite');
   RADAR.init(document.getElementById('radar'));
+  MINICARTE.init(document.getElementById('minicarte'));   // la minicarte (son tracé est préparé une fois, quand le circuit est construit)
 
   if (!SCENE3D.init(document.getElementById('scene3d'), CIRCUIT)) return;
   CAMERA.init(SCENE3D.camera, CIRCUIT, PARAMETRES.get('camera'));
@@ -1721,6 +1747,8 @@ function demarrerJeu() {
       if (JEU.deux) { const j2 = DEUX_JOUEURS.joueurs(JEU.plateau)[1]; CAMERA.majSeconde(dt, SCENE3D.camera2, etatAffiche(j2.v, alpha), j2.v); }
     }
     if (JEU.deux && SCENE3D.partage === apres) SCENE3D.partager(!apres);   // le podium : une seule vue
+    majPneusHud();   // ?pneus=1 : l'usure des pneus du joueur
+    majMessages();   // les messages de course, un à la fois
     majGrille(dt);   // avant les feux : la grille vue d'en haut (après la caméra de course, qu'elle remplace)
     majVolant();   // le volant en vue cockpit (après la caméra : il suit son champ de vision)
     majTableau();

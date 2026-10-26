@@ -26,3 +26,21 @@ Commits : 220c421 (l'arrêt au stand dans le résumé), 05fbd47 (la grille vue d
 Décision du Chef (2026-10-26) : GRILLE_DECOUVERTE = false — fait
 Commit 5a905ee, passage GitHub 40406686394 : les 9 travaux verts. Au premier lancement, la course de découverte n'a plus de survol (test : après « ▶ Jouer », jamais l'écran « grille ») ; le survol reste pour toutes les autres courses contre les IA (testé au lancement suivant). Mesure du clic aux feux de la découverte (GitHub) : clic → premier feu 0,1 s, clic → feux éteints 7,7 s (contre 2,6 s et 10,2 s avec le survol, 0,2 s et 9,9 s avant le survol : le passage d'aujourd'hui est même un peu plus rapide, la mesure varie sous swiftshader).
 Réévalue.
+
+SUITE DU TOUR 31 (minicarte, pneus, messages de course) — faits
+Commit 77dece2 (le travail + fusion de main), passage GitHub 40412043977 : les 10 travaux verts.
+1. La minicarte (minicarte.js, nouveau) : en haut à gauche (180 × 130), le tracé entier vu de dessus, dessiné une fois dans un canvas à part (chaque image ne pose que les points), toutes les voitures en points de leur couleur, le joueur plus gros et cerclé de blanc, la ligne de départ, la voie des stands en jaune avec ?pneus=1 ; aussi en course seule (le joueur seul) ; jamais à deux, ni au tournoi, ni hors course. Proposition de place : en haut à gauche, à côté du chrono, plutôt qu'à côté du radar (en bas, le radar, l'aide des touches et la jauge du départ prennent déjà la place) ; à trancher sur la capture.
+2. L'état des pneus (?pneus=1) : au-dessus du compteur, « Pneus 94 % », une jauge qui passe du vert au jaune (< 60 %) puis au rouge (< 30 %), et « adhérence −x,x % » (1 − v.adherence) ; rien sans ?pneus.
+3. Les messages de course (messages.js, nouveau, calcul pur) : les faits lus dans le moteur (le meilleur tour de la course, une pénalité de plus, une voiture qui s'arrête au stand), une file de MESSAGES_FILE_MAX = 4, un message à la fois pendant MESSAGES_DUREE = 3 s de course, en bandeau télé sous le chrono (« n°1 : meilleur tour 0:40,000 », « Pénalité de 5 s pour Pilote 3 », « n°12 aux stands ») ; textes en + fr.
+Tests : moteur (la file : meilleur tour, tour plus lent ignoré, pénalité, stands, pas deux fois le même fait, un à la fois, la durée, la file bornée, les textes) ; écrans (?course=3&ia=5&joueur=1&robot=1&pneus=1&test=hudcourse, 1280 et 960 : chaque point de la minicarte à moins de 2 m de sa voiture ; la jauge de pneus qui baisse en roulant ; un meilleur tour qui apparaît en bandeau puis s'en va ; rien ne se recouvre : minicarte, chrono, tour, compteur, pneus, radar, message). Captures minicarte.png, pneus-hud.png, messages.png, hud-course-960.png. Appels de dessin inchangés : ce sont des canvas 2D et du HTML, rien dans la 3D.
+À voir : la minicarte du circuit test est très allongée (le tracé est long et étroit) : petite à l'écran ; elle sera plus lisible sur les 12 vrais circuits.
+Réévalue.
+
+## Retouches (demandées par le Chef après la fusion 77dece2)
+
+Commit : bf990ef (branche codeur2) — GitHub 40413289703 : 10 travaux verts.
+
+1. **« adhérence −0,0 % »** : la ligne de perte d'adhérence n'est écrite (et visible) qu'à partir de `PNEUS_PERTE_AFFICHEE` (0,001 = 0,1 %, dans `donnees.js`) ; en dessous elle est vide et cachée. Le test `hud_course` le vérifie (texte vide sous le seuil, un chiffre non nul au-dessus, marge d'une image autour du seuil puisque le texte et l'adhérence sont lus ensemble).
+2. **messages.png** : le test ne fabrique plus de meilleur tour. Il remet les messages à zéro (`JEU.messages = null`) ; le premier message est alors le vrai meilleur tour de la course, et le test vérifie qu'il contient `INTERFACE.formatTemps` du plus petit `meilleurTour` des voitures. Capture : « n°5 : meilleur tour 1:01,650 », le meilleur tour de la course (le chrono montre celui du joueur, 1:07,467).
+
+Sur le Mac (sous le verrou) : `PAGES_FILTRE='test=hudcourse'` — PARTIE OK : ecrans, aux deux tailles.

@@ -50,3 +50,33 @@ Réévalue.
    - Tests moteur : une victoire à domicile donne la fête, une P12 la déception, ailleurs la victoire ordinaire revient ; le titre de champion passe devant ; aucun mot genré.
 3. **La photo stylisée de la fiche du rival** (`PHOTO.portrait`) : son casque en grand sur un fond à la couleur de son écurie, et sa voiture dessous. Tests moteur (deux dessins identiques, plusieurs couleurs) et ecrans.
 - Fusion de main (la grille vue d'en haut et le résumé du Codeur 2) : un conflit dans la liste des écrans d'`interface.js`, réglé en gardant les deux côtés.
+
+## Suite du tour 31 (les textes) — commit `3ac4bf9`, passage 40410013834 : les 10 travaux sont verts
+1. **Le singulier devant 0 et 1** : `accorder(t)` dans `textes.js`, appliqué avec `elider()`, donc partout où l'on remplit une phrase (`avec`, `JOURNAL.remplir`, `INTERVIEW.phrase`, « Tu marques n points »).
+   - En français, le singulier est à 0 et à 1 : « 0 victoire », « 1 point », « 1 place gagnée ». En anglais, seulement à 1 : « 1 win », « 0 wins ».
+   - Une liste de mots par langue : victoires, podiums, points, titres, saisons, courses, poles, générations, secondes, tours, Grands Prix, places (gagnées), ans.
+   - Jamais 10, 21 ni 1,5.
+   - Test moteur dans les deux langues. Les tests « Tu marques / You scored n points? » acceptent le singulier.
+2. **Pas de place avant la première course** :
+   - la fiche du rival dit « Cette saison : pas encore de course, pas encore de classement » ;
+   - au classement du paddock, chaque place affiche « – » tant qu'aucune course n'est courue.
+   - Tests ecrans mis à jour.
+3. **L'audit anglais** : une page `?championnat=1&gp=12&lang=en` en 960×600 ouvre 19 écrans.
+   - Les écrans : paddock, Entre amis, garage, aileron, sponsors, fiche, album, calendrier, arbre, interview, une, cérémonie, fin de saison, duel de la saison, contrats, bilan, temple, arbre au bilan, relève.
+   - Pour chacun, le test vérifie : aucun mot français témoin (une liste de mots, et les accents ; les noms propres inventés des circuits et des sponsors sont écartés), aucun texte hors de l'écran, pas de défilement. Une capture `<écran>-en.png` par écran.
+   - **Résultat : aucun texte français oublié.** Les deux seules alertes venaient de noms propres inventés (« Brio Café », « Montréol »).
+   - Aucun texte en dur trouvé hors de `textes.js` dans mes fichiers (recherche des `textContent`, `title` et `placeholder` écrits en dur).
+   - Pas audités ici : le tournoi, le résumé et les consignes. Ce ne sont pas des écrans du championnat, et ils ont leurs propres pages et tests chez les Codeurs 1 et 2.
+
+## L'audit anglais, suite (le dernier ordre) — commit `d5357cd`, passage 40411945744 : les 10 travaux sont verts
+- **Sept pages de test en anglais, en 960×600** (`test=audit-…` dans `tests/ecrans.py`). Pour chaque page, le texte VISIBLE (`body.innerText`) est vérifié : aucun mot français témoin, rien hors de l'écran, pas de défilement. Une capture `<nom>-en.png` par écran.
+  - **Découverte** : l'écran titre, Entre amis, les réglages de l'écran partagé, la course de découverte avec ses aides, le podium, Bravo, la création du pilote.
+  - **Tournoi** : l'inscription, « Your turn », le tour, la pause, le classement de la manche, puis le podium et le classement final (les autres passages joués d'avance avec des temps fabriqués).
+  - **Écran partagé** : la course à deux.
+  - **Résumé vidéo** : les résultats de qualification, la course, les résultats, le résumé.
+  - **Stands** (`?pneus=1`) : la course, puis l'arrêt.
+  - **Consigne d'équipe** : la qualification, et le message de la consigne en course.
+  - **Volant** : la vue cockpit.
+- **Résultat : aucun texte français trouvé dans ces écrans.** Aucun texte n'a eu besoin d'aller dans `textes.js`.
+- **Textes en dur hors de `textes.js`**, dans les fichiers des Codeurs 1 et 2 (pas corrigés, comme demandé) : `principal.js:1505`, la ligne du compteur `?debug=1` (« i/s · triangles · appels », puis `mesuresConduite()` avec « dérive », « voiture … appels »). C'est un affichage de mise au point, hors du jeu. Rien d'autre trouvé (recherche des `textContent`, `title`, `placeholder`, `fillText` écrits en dur).
+- Ce que je n'ai pas audité : la vue « télé » et le menu pause d'une course ordinaire. Ils utilisent les mêmes textes que les écrans vérifiés.
