@@ -193,7 +193,7 @@ const INTERFACE = (function () {
     $('uneTitre').textContent = r.titre;
     // la photo (photo.js) : dessinée par le code depuis la une compacte (JOURNAL.photo), jamais une image enregistrée
     let cv = $('unePhoto').querySelector('canvas');
-    if (!cv) { cv = document.createElement('canvas'); cv.width = 640; cv.height = 300; cv.getContext('2d', { willReadFrequently: true }); $('unePhoto').appendChild(cv); }   // (dessiné par le processeur : la même image partout, même une fois affiché)
+    if (!cv) { cv = document.createElement('canvas'); cv.width = 600; cv.height = 330; cv.getContext('2d', { willReadFrequently: true }); $('unePhoto').appendChild(cv); }   // (dessiné par le processeur : la même image partout, même une fois affiché)
     PHOTO.dessiner(cv.getContext('2d'), cv.width, cv.height, r.photo);
     cv.dataset.desc = JSON.stringify(r.photo);   // (ce que la photo montre : les tests le comparent à la une compacte)
     $('uneTexte').textContent = r.texte;
@@ -727,6 +727,8 @@ const INTERFACE = (function () {
   // --- le bilan de carrière et le temple de la renommée (Codeur 3, carriere.js) ---
   // b = CARRIERE.bilan ; une = la une préférée rendue (JOURNAL.rendreAlbum) ou null ; place, n : sa place au temple et sa taille
   function remplirBilan(ch, b, une, place, n) {
+    // le casque du pilote qui s'arrête, devant le titre (son motif, débloqué ou non, tel qu'il l'a porté)
+    if (CASQUE.valide(b.casque)) { const c = CASQUE.icone(b.casque, 34); c.id = 'bilanCasque'; $('retraiteTitre').prepend(c, ' '); }
     const E = texte('bilanEtiquettes'), tiret = '—';
     const valeurs = [b.saisons, b.titres, b.victoires, b.podiums, b.poles, b.meilleursTours, b.meilleurePlace ? 'P' + b.meilleurePlace : tiret,
       b.domicile ? 'P' + b.domicile : tiret, b.reaction ? secondes(Math.round(b.reaction * 1000) / 1000) : tiret];

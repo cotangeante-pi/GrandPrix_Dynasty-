@@ -18,7 +18,7 @@ const PHOTO = (function () {
     ctx.fillStyle = '#16181d';
     for (const rx of [0.2, 0.82]) { ctx.beginPath(); ctx.arc(x + t * rx, y - h * 0.45, h * 0.62, 0, 2 * Math.PI); ctx.fill(); }
     // le casque : le dessin de casque.js dans un rond, avec la visière
-    const r = h * 0.62, cx = x + t * 0.53, cy = y - h * 2.25;
+    const r = h * 0.5, cx = x + t * 0.53, cy = y - h * 2.15;
     ctx.save();
     ctx.beginPath(); ctx.arc(cx, cy, r, 0, 2 * Math.PI); ctx.clip();
     if (casque && typeof CASQUE !== 'undefined' && CASQUE.valide(casque)) CASQUE.dessiner(ctx, cx - r, cy - r, 2 * r, casque);
@@ -60,7 +60,7 @@ const PHOTO = (function () {
       });
     } else {
       const v = d.voitures[0];
-      voiture(ctx, l * 0.14, h * 0.86, l * 0.72, v.couleur, v.casque);
+      voiture(ctx, l * 0.2, h * 0.86, l * 0.6, v.couleur, v.casque);
     }
   }
 

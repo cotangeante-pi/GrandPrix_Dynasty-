@@ -1478,7 +1478,7 @@ def bilan_temple(pg, titre):
     t(f'{titre} : le bilan de carrière : 9 cases (saisons, titres, victoires, podiums…) justes, les duels contre les coéquipiers, la une préférée (redessinée), la place au temple, tout dans l’écran',
       e['ecran'] == 'retraite' and len(e['cases']) == 9 and vals.get('Saisons') == str(e['b']['saisons']) and vals.get('Titres') == str(e['b']['titres']) and vals.get('Victoires') == str(e['b']['victoires'])
       and vals.get('Podiums') == str(e['b']['podiums']) and e['duels'].startswith('Duels contre les coéquipiers : ') and (e['attenduUne'] is None or e['attenduUne'] in e['une'])
-      and e['temple'] == 'Temple de la renommée : 1 sur 1' and e['sauve'] == 1 and e['bouton'] == '🏛 Temple de la renommée' and e['dans'] and pas_de_defilement(e['defile']), str(e))
+      and pg.evaluate('() => !!document.querySelector("#retraiteTitre canvas#bilanCasque")') and e['temple'] == 'Temple de la renommée : 1 sur 1' and e['sauve'] == 1 and e['bouton'] == '🏛 Temple de la renommée' and e['dans'] and pas_de_defilement(e['defile']), str(e))
     pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'bilan.png'))
     pg.click('#boutonTemple')
     tp = pg.evaluate('''() => ({ ecran: JEU.ecran, lignes: [...document.querySelectorAll("#templeListe li")].map(li => li.textContent), moi: document.querySelectorAll("#templeListe li.moi").length,
