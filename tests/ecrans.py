@@ -1290,13 +1290,23 @@ def album_ecran(pg, titre, titres):
     pg.click('#uneTitre')
     a = pg.evaluate(ALBUM_ETAT)
     t(f'{titre} : un clic sur la page : la une suivante, à l’identique', a['ecran'] == 'album' and a['i'] == 1 and a['titre'] == titres[1] and a['page'] == 'Saison 1 · Grand Prix 2 · 2 / 3', str(a))
-    pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'album.png'))
+    ph = pg.evaluate(PHOTO_ETAT, 1)
+    t(f'{titre} : dans l’album, la photo est redessinée à l’identique depuis la une compacte', bool(ph) and ph['pareil'] and ph['couleurs'] > 8, str(ph))
+    pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'album.png')); pg.screenshot(path=os.path.join(CAPTURES, 'album-photo.png'))
     pg.click('#boutonAlbumApres')
     t(f'{titre} : ▶ : la une suivante ; un clic sur la barre ne tourne pas la page en plus', pg.evaluate('() => JEU.album') == 2)
     pg.keyboard.press('Escape')
     t(f'{titre} : Échap ferme l’album : le paddock', attendre(pg, '() => JEU.ecran === "championnat" && document.getElementById("une").classList.contains("cache") && !document.getElementById("une").classList.contains("album")'), str(pg.evaluate('() => JEU.ecran')))
 
+PHOTO_ETAT = '''i => { const cv = document.querySelector("#unePhoto canvas"); if (!cv) return null; const ch = JEU.championnat, u = ch.album[i === null ? ch.album.length - 1 : i];
+  const t = document.createElement("canvas"); t.width = cv.width; t.height = cv.height; PHOTO.dessiner(t.getContext("2d", { willReadFrequently: true }), t.width, t.height, JOURNAL.photo(u, ch));
+  const px = cv.getContext("2d").getImageData(0, 0, cv.width, cv.height).data, c = new Set(); for (let k = 0; k < px.length; k += 4 * 53) c.add(px[k] + "," + px[k + 1] + "," + px[k + 2]);
+  const q = t.getContext("2d").getImageData(0, 0, t.width, t.height).data; let diff = 0; for (let k = 0; k < px.length; k++) if (px[k] !== q[k]) diff++;
+  const r = cv.getBoundingClientRect(); return { couleurs: c.size, pareil: t.toDataURL() === cv.toDataURL(), diff, desc: JSON.stringify(JOURNAL.photo(u, ch)).slice(0, 300), affiche: cv.dataset.desc ? cv.dataset.desc.slice(0, 300) : null, type: JOURNAL.photo(u, ch).type, visible: r.width > 50 && r.height > 30 }; }'''
 def une_ecran(pg, titre, capture, touche=False):
+    ph = pg.evaluate(PHOTO_ETAT, None)
+    t(f'{titre} : la photo de la une est dessinée par le code ({ph and ph["type"]}), visible, pas d’une seule couleur, la même que celle de la une compacte', bool(ph) and ph['couleurs'] > 8 and ph['pareil'] and ph['visible'], str(ph))
+    if capture == 'une.png': pg.wait_for_timeout(200); pg.screenshot(path=os.path.join(CAPTURES, 'une-photo.png'))
     u = pg.evaluate(UNE)
     t(f'{titre} : la une du journal : le nom du journal, le grand titre et le petit texte de la dernière une de l’album (fait « {u["fait"]} »), rendus avec les noms de l’affichage',
       u['ecran'] == 'une' and u['visible'] and u['nom'] == u['attenduNom'] and u['nom'] != '' and u['titre'] == u['attenduTitre'] and len(u['titre']) > 5 and u['texte'] == u['attenduTexte'] and len(u['texte']) > 10, str(u)[:600])
@@ -1468,7 +1478,7 @@ def bilan_temple(pg, titre):
     t(f'{titre} : le bilan de carrière : 9 cases (saisons, titres, victoires, podiums…) justes, les duels contre les coéquipiers, la une préférée (redessinée), la place au temple, tout dans l’écran',
       e['ecran'] == 'retraite' and len(e['cases']) == 9 and vals.get('Saisons') == str(e['b']['saisons']) and vals.get('Titres') == str(e['b']['titres']) and vals.get('Victoires') == str(e['b']['victoires'])
       and vals.get('Podiums') == str(e['b']['podiums']) and e['duels'].startswith('Duels contre les coéquipiers : ') and (e['attenduUne'] is None or e['attenduUne'] in e['une'])
-      and e['temple'] == 'Temple de la renommée : 1 sur 1' and e['sauve'] == 1 and e['bouton'] == '🏛 Temple de la renommée' and e['dans'] and pas_de_defilement(e['defile']), str(e))
+      and pg.evaluate('() => !!document.querySelector("#retraiteTitre canvas#bilanCasque")') and e['temple'] == 'Temple de la renommée : 1 sur 1' and e['sauve'] == 1 and e['bouton'] == '🏛 Temple de la renommée' and e['dans'] and pas_de_defilement(e['defile']), str(e))
     pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'bilan.png'))
     pg.click('#boutonTemple')
     tp = pg.evaluate('''() => ({ ecran: JEU.ecran, lignes: [...document.querySelectorAll("#templeListe li")].map(li => li.textContent), moi: document.querySelectorAll("#templeListe li.moi").length,
@@ -1497,6 +1507,8 @@ def releve(pg, titre):
     t(f'{titre} : l’écran de l’héritier : « Prendre la suite de Marco Rossi », le nom de famille Rossi, les 4 liens accordés, le motif et le pays du parent, l’arbre, tout dans l’écran',
       h['ecran'] == 'heritier' and h['parent'] == 'Prendre la suite de Marco Rossi' and h['famille'] == 'Nom de famille : Rossi' and h['liens'] == ['fils de Marco Rossi', 'fille de Marco Rossi', 'protégé de Marco Rossi', 'protégée de Marco Rossi']
       and h['motif'] == h['attenduMotif'] and h['pays'] == 'it' and h['arbre'] == 1 and h['dans'] and pas_de_defilement(h['defile']), str(h))
+    mo = pg.evaluate('() => ({ options: [...document.querySelectorAll("#heritierMotif option")].map(o => [o.value, o.disabled]), tous: CASQUE.tousLesMotifs(), debloques: SAUVEGARDE.motifs() })')
+    t(f'{titre} : l’éditeur de l’héritier propose tous les motifs, les débloqués permis, les autres grisés avec leur condition', [o[0] for o in mo['options']] == mo['tous'] and all(o[1] == (o[0] not in pg.evaluate('() => REGLAGES.CASQUE_MOTIFS') and o[0] not in mo['debloques']) for o in mo['options']), str(mo))
     pg.click('#boutonHeritierValider')
     t(f'{titre} : sans prénom, l’héritier est refusé (message)', pg.evaluate('() => JEU.ecran === "heritier" && document.getElementById("heritierErreur").textContent !== ""'))
     pg.fill('#heritierPrenom', 'Léa'); pg.select_option('#heritierLien', 'fille')

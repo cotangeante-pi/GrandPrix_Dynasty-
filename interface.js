@@ -191,6 +191,11 @@ const INTERFACE = (function () {
     $('uneNom').textContent = r.nom;
     $('uneEdition').textContent = avec(texte('uneEdition'), { n: r.grandPrix, circuit: r.circuit });
     $('uneTitre').textContent = r.titre;
+    // la photo (photo.js) : dessinée par le code depuis la une compacte (JOURNAL.photo), jamais une image enregistrée
+    let cv = $('unePhoto').querySelector('canvas');
+    if (!cv) { cv = document.createElement('canvas'); cv.width = 600; cv.height = 330; cv.getContext('2d', { willReadFrequently: true }); $('unePhoto').appendChild(cv); }   // (dessiné par le processeur : la même image partout, même une fois affiché)
+    PHOTO.dessiner(cv.getContext('2d'), cv.width, cv.height, r.photo);
+    cv.dataset.desc = JSON.stringify(r.photo);   // (ce que la photo montre : les tests le comparent à la une compacte)
     $('uneTexte').textContent = r.texte;
     $('uneBrevesTitre').textContent = texte('uneBreves');
     const ul = $('uneBreves');
@@ -722,6 +727,8 @@ const INTERFACE = (function () {
   // --- le bilan de carrière et le temple de la renommée (Codeur 3, carriere.js) ---
   // b = CARRIERE.bilan ; une = la une préférée rendue (JOURNAL.rendreAlbum) ou null ; place, n : sa place au temple et sa taille
   function remplirBilan(ch, b, une, place, n) {
+    // le casque du pilote qui s'arrête, devant le titre (son motif, débloqué ou non, tel qu'il l'a porté)
+    if (CASQUE.valide(b.casque)) { const c = CASQUE.icone(b.casque, 34); c.id = 'bilanCasque'; $('retraiteTitre').prepend(c, ' '); }
     const E = texte('bilanEtiquettes'), tiret = '—';
     const valeurs = [b.saisons, b.titres, b.victoires, b.podiums, b.poles, b.meilleursTours, b.meilleurePlace ? 'P' + b.meilleurePlace : tiret,
       b.domicile ? 'P' + b.domicile : tiret, b.reaction ? secondes(Math.round(b.reaction * 1000) / 1000) : tiret];
@@ -816,7 +823,7 @@ const INTERFACE = (function () {
     options('heritierLien', CARRIERE.LIENS, l => avec(texte('heritierLien_' + l), { parent }));
     options('heritierPays', R.PAYS.slice().sort((a, b) => texte('pays_' + a).localeCompare(texte('pays_' + b), LANGUE)), c => texte('pays_' + c));
     options('heritierCoeur', Object.keys(R.CIRCUITS_PAYS), nomCircuit);
-    options('heritierMotif', R.CASQUE_MOTIFS, m => texte('motif_' + m));
+    optionsMotifs($('heritierMotif'));   // tous les motifs : ceux de départ et ceux débloqués (SAUVEGARDE.motifs) ; les autres grisés, avec leur condition
     $('heritierPays').value = j.pays || R.PAYS[0];
     $('heritierCoeur').value = j.coeur || Object.keys(R.CIRCUITS_PAYS)[0];
     majDomicileHeritier();
@@ -838,7 +845,7 @@ const INTERFACE = (function () {
   function lireHeritier(ch) {
     const c = CARRIERE.casqueParent(ch);
     return { prenom: $('heritierPrenom').value, numero: $('heritierNumero').value, lien: $('heritierLien').value, pays: $('heritierPays').value, coeur: $('heritierCoeur').value,
-      casque: CASQUE.creer($('heritierMotif').value, c.couleurs) };
+      casque: CASQUE.creer($('heritierMotif').value, c.couleurs), debloques: SAUVEGARDE.motifs() };
   }
 
   function montrerErreurHeritier(oui) {
