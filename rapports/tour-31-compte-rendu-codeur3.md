@@ -81,7 +81,7 @@ Réévalue.
 - **Textes en dur hors de `textes.js`**, dans les fichiers des Codeurs 1 et 2 (pas corrigés, comme demandé) : `principal.js:1505`, la ligne du compteur `?debug=1` (« i/s · triangles · appels », puis `mesuresConduite()` avec « dérive », « voiture … appels »). C'est un affichage de mise au point, hors du jeu. Rien d'autre trouvé (recherche des `textContent`, `title`, `placeholder`, `fillText` écrits en dur).
 - Ce que je n'ai pas audité : la vue « télé » et le menu pause d'une course ordinaire. Ils utilisent les mêmes textes que les écrans vérifiés.
 
-## Fin du tour 31 : le public à domicile et les décors des 12 tracés (calcul pur, rien de 3D) — commit `COMMIT`, passage PASSAGE
+## Fin du tour 31 : le public à domicile et les décors des 12 tracés (calcul pur, rien de 3D) — commit `44fc53e`, passage 40419752505 : les 10 travaux sont verts (moteur 282/282, decors.html 51/51, textes 632/632)
 1. **Le public à domicile** (`decor-public.js`, `DECOR_PUBLIC`) :
    - `DECOR_PUBLIC.tirer({ graine, circuit, joueur }, nombre)` donne une couleur par spectateur (`couleurs`, à lire par instance), et `supporters` (true = aux couleurs du joueur) ;
    - à son Grand Prix à domicile (sa course de cœur), exactement `PUBLIC_DOMICILE_PART` (0,4) des spectateurs portent les couleurs de son pays, mélangés dans le public ; les autres, et tout le public ailleurs, portent les couleurs des 10 écuries ;
@@ -99,3 +99,5 @@ Réévalue.
    - `DECOR_PUBLIC.placer(circuit, decor)` donne la place de chaque objet : `s` (son milieu, le long de la piste), `longueur`, `d0` et `d1` (signés, en travers) ;
    - les positions ont été cherchées par un outil (scratchpad), puis écrites telles quelles dans le fichier.
    - **Le test** (`tests/decors.html`, ajouté aux annexes) : sur chaque circuit, chaque objet est découpé en points (tous les 4 m le long, tous les 3 m en travers). Aucun point n'est sur la piste ni dans la voie des stands, et chacun est au-delà de la barrière (`DISTANCE_BARRIERE`) par rapport à TOUT le tracé, pas seulement à son virage. Le bâtiment des stands reste à `DECOR_MARGE_STANDS` derrière la voie, sur sa longueur.
+   - Le plus près du bord de la piste : 14,0 m (Bahrayn), pour une barrière à 14 m. Le test prend environ 6 s sur GitHub.
+3. **Pour le Codeur 2** : lire `DECOR_PUBLIC.tirer(...).couleurs[i]` par instance de spectateur, et `DECOR_PUBLIC.placer(circuit, DECORS_OFFICIELS[cle])` pour poser les tribunes, les stands et les zones. `decor-public.js` et `decors-officiels.js` ne sont pas encore chargés par index.html.
