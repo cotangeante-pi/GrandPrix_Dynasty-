@@ -454,7 +454,7 @@ function partirEnCourse() {
 function creerEnregistrement() {
   const voitures = JEU.plateau ? JEU.plateau.pilotes.map(p => p.v) : [JEU.joueur];
   const joueur = JEU.plateau ? (JEU.contre ? JEU.ia : null) : 0;
-  return { enr: creerEnregistreur(voitures.length, { joueur }), voitures, parti: false, arrivees: new Set(), pas: 0, ms: 0 };
+  return { enr: creerEnregistreur(voitures.length, { joueur }), voitures, parti: false, arrivees: new Set(), arrets: [], pas: 0, ms: 0 };
 }
 
 // après chaque pas de physique de la course : l'instant du GO (depart), l'image, les arrivées ; ms : le temps passé (?debug=1, tests)
@@ -465,6 +465,8 @@ function enregistrerPas() {
   if (!r.parti && courseAutorise(c)) { r.parti = true; r.enr.depart(temps); }
   r.enr.enregistrer(temps, r.voitures, e && r.pas % REGLAGES_ENREGISTREUR.CLASSEMENT_PAS === 0 ? classementCourse(e) : null);
   if (e) e.pilotes.forEach((p, k) => { if (p.arrivee !== null && !r.arrivees.has(k)) { r.arrivees.add(k); r.enr.arrivee(p.arrivee, k); } });
+  // les arrêts au stand (avec les pneus, course.js : c.arrets) : chaque arrêt fini devient un moment du résumé (lu, jamais écrit)
+  if (e) e.pilotes.forEach((p, k) => { const a = p.course.arrets; if (a && a.length > (r.arrets[k] || 0)) { for (let i = r.arrets[k] || 0; i < a.length; i++) r.enr.arret(temps, k, a[i].duree); r.arrets[k] = a.length; } });
   r.pas++;
   r.ms += performance.now() - t0;
 }
@@ -1219,7 +1221,7 @@ function majResume(dt) {
   const s = pos[RESUME.suivie(z.r, enr)] || pos[0];
   CAMERA.maj(dt, s, { u: s.vitesse });
   const b = RESUME.bandeau(RESUME.moment(z.r));
-  INTERFACE.majResume(b ? texte(b.cle).replace('{qui}', etiquetteVoiture(b.valeurs.qui)).replace('{sur}', etiquetteVoiture(b.valeurs.sur)) : '');
+  INTERFACE.majResume(b ? texte(b.cle).replace('{qui}', etiquetteVoiture(b.valeurs.qui)).replace('{sur}', etiquetteVoiture(b.valeurs.sur)).replace('{duree}', typeof b.valeurs.duree === 'number' ? b.valeurs.duree.toFixed(1).replace('.', texte('virgule')) : '') : '');
 }
 
 function quitterResume() {
