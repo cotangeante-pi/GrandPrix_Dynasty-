@@ -986,4 +986,4 @@ body.deux.cote #boutonSon { top: auto; bottom: 12px; right: 12px; }   /* (côte 
 /* la photo de la une (Codeur 3, photo.js) : le canvas remplit la place de la photo, sans la déformer */
 #unePhoto { position: relative; overflow: hidden; background: none; }
 #unePhoto canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
-#bilanCasque { vertical-align: -6px; margin-right: 6px; border-radius: 50%; }
+#bilanCasque { width: 34px !important; height: 34px !important; vertical-align: -4px; margin-right: 8px; border-radius: 50%; }
