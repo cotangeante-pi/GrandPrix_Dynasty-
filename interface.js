@@ -767,7 +767,7 @@ const INTERFACE = (function () {
       if (g.domicile) li.classList.add('domicile');
       const nom = sp('circuit', nomCircuit(g.circuit));
       if (g.domicile) { const m = document.createElement('i'); m.className = 'maison'; m.title = texte('calendrierDomicile'); nom.prepend(m); }
-      const etat = g.fait ? avec(texte('calendrierFait'), { vainqueur: nomPilote(ch.pilotes[g.vainqueur]), place: g.place }) : texte(g.prochain ? 'calendrierProchain' : 'calendrierAVenir');
+      const etat = g.fait ? (g.place === 1 ? texte('calendrierVictoire') : avec(texte('calendrierFait'), { vainqueur: nomPilote(ch.pilotes[g.vainqueur]), place: g.place })) : texte(g.prochain ? 'calendrierProchain' : 'calendrierAVenir');   // (le joueur a gagné : « ta victoire », jamais son nom comme vainqueur)
       li.append(sp('numero', String(g.numero)), nom, sp('etat', etat + (g.domicile ? ' · ' + texte('calendrierDomicile') : '')));
       ol.appendChild(li);
     }
@@ -1000,8 +1000,12 @@ const INTERFACE = (function () {
     const rv = f.rivalite;
     $('ficheRivalite').textContent = rv ? avec(texte('ficheRivalite'), { phrase: INTERVIEW.phrase(rv.cle, rv.variante, rv.params, ch, { pilote: nomPilote }),
       circuit: rv.circuit ? (texte('circuit_' + rv.circuit) || (CIRCUITS[rv.circuit] ? CIRCUITS[rv.circuit].nom : rv.circuit)) : '–', saison: rv.saison, n: rv.courses }) : '';
-    $('fichePhoto').title = texte('fichePhoto');   // la photo stylisée (le casque) viendra ; la place est gardée
+    $('fichePhoto').title = texte('fichePhoto');
     $('fichePhoto').style.setProperty('--ecurie', couleurCss(e.couleur));
+    // la photo stylisée (photo.js) : son casque en grand, sa voiture aux couleurs de son écurie
+    let pc = $('fichePhoto').querySelector('canvas');
+    if (!pc) { pc = document.createElement('canvas'); pc.width = 220; pc.height = 260; pc.getContext('2d', { willReadFrequently: true }); $('fichePhoto').appendChild(pc); }
+    PHOTO.portrait(pc.getContext('2d'), pc.width, pc.height, { couleur: e.couleur, casque: p.casque });
     $('boutonFicheRetour').textContent = texte('ficheRetour');
   }
 

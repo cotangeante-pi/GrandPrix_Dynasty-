@@ -1358,11 +1358,11 @@ def calendrier_ecran(pg, titre, capture):
     c = pg.evaluate('''() => { const ch = JEU.championnat, lis = [...document.querySelectorAll("#calendrierListe li")];
       return { ecran: JEU.ecran, n: lis.length, faits: lis.filter(li => li.classList.contains("fait")).length, prochain: lis.findIndex(li => li.classList.contains("prochain")), attendu: ch.prochain,
         maisons: document.querySelectorAll("#calendrierListe li.domicile .maison").length, attenduMaisons: ch.calendrier.filter(g => g.circuit === "technique").length, resultats: ch.resultats.length,
-        texte: lis.map(li => li.textContent).slice(0, 2), dans: [...document.querySelectorAll("#calendrier > *")].every(e => { const r = e.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight && r.right <= innerWidth; }),
+        texte: lis.map(li => li.textContent).slice(0, 2), gagnes: ch.resultats.map((r, i) => r.ordre[0] === 19 ? lis[i].textContent : null).filter(x => x), nomJoueur: INTERFACE.nomPilote(ch.pilotes[19]), dans: [...document.querySelectorAll("#calendrier > *")].every(e => { const r = e.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight && r.right <= innerWidth; }),
         defile: [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth] }; }''')
     t(f'{titre} : « 📅 Calendrier » : les 12 Grands Prix, {c["faits"]} faits (vainqueur et ta place), le prochain mis en valeur, le Grand Prix à domicile marqué d’une maison, tout dans l’écran',
       c['ecran'] == 'calendrier' and c['n'] == 12 and c['faits'] == c['resultats'] and c['prochain'] == c['attendu'] and c['maisons'] == c['attenduMaisons'] and c['maisons'] > 0
-      and (c['faits'] == 0 or 'vainqueur' in c['texte'][0]) and c['dans'] and pas_de_defilement(c['defile']), str(c))
+      and (c['faits'] == 0 or 'vainqueur' in c['texte'][0] or 'ta victoire' in c['texte'][0]) and all('ta victoire' in x and 'vainqueur' not in x and c['nomJoueur'] not in x for x in c['gagnes']) and c['dans'] and pas_de_defilement(c['defile']), str(c))
     pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, capture))
     pg.click('#boutonCalendrierRetour')
     pg.evaluate('() => { JEU.championnat.pilotes[19].coeur = JEU.coeurAvant; }')
@@ -1430,6 +1430,9 @@ def fiche_ecran(pg, titre, capture):
       f['ecran'] == 'fiche' and f['nom'] == f['attenduNom'] and f['nom'] != '' and str(f['numero']) in f['infos'] and (str(f['age']) + ' ans') in f['infos'] and f['caractere'] == 'Caractère : ' + ', '.join(f['mots'])
       and f['saison'].startswith(f'Cette saison : P{f["place"]} · {f["points"]} pts') and f['historique'].startswith('Carrière : ') and f['duels'] == f'Contre toi : devant {f["devant"]} fois, derrière {f["derriere"]} fois' and f['photo'] > 50 and f['rivalite'] == '' and pas_de_defilement(f['defile']), str(f))
     pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, capture))
+    fp = pg.evaluate('''() => { const cv = document.querySelector("#fichePhoto canvas"); if (!cv) return null; const px = cv.getContext("2d").getImageData(0, 0, cv.width, cv.height).data, c = new Set();
+      for (let k = 0; k < px.length; k += 4 * 31) c.add(px[k] + "," + px[k + 1] + "," + px[k + 2]); const r = cv.getBoundingClientRect(); return { couleurs: c.size, visible: r.width > 40 && r.height > 40 }; }''')
+    t(f'{titre} : la fiche du rival a sa photo stylisée (son casque, sa voiture aux couleurs de son écurie), dessinée par le code', bool(fp) and fp['couleurs'] > 8 and fp['visible'], str(fp))
     pg.click('#boutonFicheRetour')
     t(f'{titre} : « Retour » ramène au paddock ; un clic sur le joueur n’ouvre rien', attendre(pg, '() => JEU.ecran === "championnat"') and pg.evaluate('() => { const moi = document.querySelector("#championnatPilotes li.moi"); moi.click(); return JEU.ecran === "championnat" && !moi.dataset.k; }'))
 
