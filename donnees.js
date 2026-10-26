@@ -657,6 +657,39 @@ const REGLAGES = {
   MINICARTE_MARGE: 10, MINICARTE_TRAIT: 4, MINICARTE_POINT: 3,
   // les messages de course (messages.js) : chacun reste MESSAGES_DUREE s ; la file en garde au plus MESSAGES_FILE_MAX
   MESSAGES_DUREE: 3, MESSAGES_FILE_MAX: 4,
+  // le décor (étape 10, decor.js) : les briques, faites par le code, un InstancedMesh par type ; leur placement vient de DECORS (plus bas)
+  DECOR_ACTIF: true,
+  DECOR_GRAINE: 4242,           // le hasard du décor, à part (il ne tire jamais dans hasard() : la course ne change pas)
+  DECOR_MARGE: 8,               // m au-delà du bord de la piste : aucun objet du décor plus près, sur tout le tracé (test)
+  DECOR_MARGE_STANDS: 3,
+  DECOR_CASE: 40,               // m : la grille qui range les échantillons de la piste pour vérifier une place (plus grand que demi-largeur + marge + l'objet le plus large)        // m au-delà de la voie des stands
+  DECOR_MARGE_TELE: 10,         // m autour d'un poste de caméra télé (rien ne cache ce qu'il filme)
+  DECOR_PODIUM_RAYON: 16,       // m : la place du podium (podium3d.js), en face de la ligne, reste libre
+  DECOR_DETAIL_LOIN: 250,       // m : au-delà, le public et les arbres passent à leur forme simple…
+  DECOR_RIEN_LOIN: 1600,        // m : … et au-delà, ils ne sont plus dessinés
+  DECOR_MAJ_DEPLACEMENT: 10,    // m : le tri proche / loin est refait quand une caméra a bougé de ça
+  DECOR_APPELS_MAX: 12,
+  DECOR_APPELS_TOTAL_MAX: 80,   // appels de dessin de toute l'image au plus, avec 20 voitures et le décor (tests/ecrans.py ; mesure du tour 31 dans SUIVI.md)         // appels de dessin du décor au plus (tests/ecrans.py : un par type et par niveau de détail)
+  DECOR_PUBLIC_REMPLI: 0.85,    // la part des places occupées dans les tribunes
+  TRIBUNE_MODULE: 12,           // m : une tribune est faite de modules de cette longueur, qui suivent la piste
+  TRIBUNE_RANGS: 6,
+  TRIBUNE_MARCHE: [0.9, 0.55],  // m : la profondeur et la hauteur d'une marche
+  TRIBUNE_TOIT: 3,              // m au-dessus de la dernière marche
+  PUBLIC_PAS: 1.2,               // m entre deux spectateurs
+  PUBLIC_RANGS: 3,              // le public debout : ses rangs…
+  PUBLIC_RANG: 0.9,             // … à ça l'un de l'autre
+  STANDS_MODULE: 14, STANDS_PROFONDEUR: 16, STANDS_HAUTEUR: 7,   // m : le bâtiment des stands
+  STANDS_GARAGE: 8, STANDS_GARAGE_HAUTEUR: 4.2,                 // m : la porte du garage de chaque écurie, à ses couleurs
+  ARBRE_TAILLE: [0.8, 1.4],     // l'échelle d'un arbre, tirée entre ces deux nombres
+  ARBRE_RAYON: 3,               // m : l'emprise d'un arbre à l'échelle 1
+  PANNEAU_PAS: 10, PANNEAU_LONGUEUR: 8, PANNEAU_HAUTEUR: 1.2,  // m : les panneaux le long de la barrière (des couleurs, aucun logo)
+  PNEUS_PILE_PAS: 0.7, PNEUS_PILE_RAYON: 0.33, PNEUS_PILE_HAUTEUR: 0.26, PNEUS_PILE_NOMBRE: 3,   // les piles de pneus
+  PNEUS_PILE_REPERE: 5,         // une pile sur 5 a la couleur repère
+  DECOR_COULEUR_PNEU: 0x1c1c1f, DECOR_COULEUR_PNEU_REPERE: 0xd8262e,
+  DECOR_COULEURS_PANNEAUX: [0xf2f2f2, 0x1f4fa0, 0xf2c230, 0xd8262e, 0x2fa84f],
+  DECOR_COULEURS_PUBLIC: [0xffffff, 0x222222, 0x3b6fd8, 0xe0e0e0, 0x8a5a3a],
+  DECOR_COULEURS: { gradinA: 0xb9bec7, gradinB: 0x9aa1ad, mur: 0x6d7480, toit: 0xf2f2f2, tete: 0xe8c4a0, batiment: 0xdfe3ea, vitres: 0x3a5a7a,
+    tronc: 0x6b4a2b, sapin: 0x2e5e2a, feuillu: 0x3f7a2e },
   PNEUS_PERTE_AFFICHEE: 0.001, // ?pneus=1 : la perte d'adhérence n'est écrite qu'à partir de 0,1 %
   // avant les feux : la grille vue d'en haut (camera.js poseGrille ; principal.js), quelques secondes, passable d'une touche ou d'un
   // clic ; jamais à deux ni au tournoi ; GRILLE_DECOUVERTE : aussi à la course de découverte (le clic aux feux : au plus +3 s)
@@ -733,4 +766,30 @@ const CIRCUITS = {
       ['virage', 40, 90],                   // retour sur la ligne
     ],
   },
+};
+
+// Le décor de chaque circuit (decor.js) : une liste de { type, s, longueur, cote, distance, … } le long de la piste.
+// type : tribune (avec son public ; rangs), public (debout ; rangs), stands (le bâtiment et un garage par écurie), arbres (nombre,
+// profondeur : la bande où ils sont tirés), panneaux, pneus. s, longueur : en mètres depuis la ligne (s < 0 : avant la ligne) ;
+// cote : 1 à droite du pilote, -1 à gauche ; distance : du centre de la piste au bord de l'objet côté piste (m). Une place qui n'est
+// pas libre (piste, voie des stands, podium, poste télé) est laissée vide : decor.js le vérifie pour chaque objet.
+const DECORS = {
+  test: [
+    { type: 'tribune', s: -150, longueur: 300, cote: 1, distance: 23 },     // la grande tribune, en face des stands
+    { type: 'stands', s: -160, longueur: 140, cote: -1, distance: 22, ecuries: [0, 5] },     // les stands, de part et d'autre du podium
+    { type: 'stands', s: 20, longueur: 140, cote: -1, distance: 22, ecuries: [5, 10] },
+    { type: 'panneaux', s: -400, longueur: 230, cote: 1, distance: 21 },
+    { type: 'panneaux', s: 170, longueur: 260, cote: 1, distance: 21 },
+    { type: 'pneus', s: 440, longueur: 90, cote: 1, distance: 21 },          // la première chicane
+    { type: 'pneus', s: 440, longueur: 90, cote: -1, distance: 21 },
+    { type: 'tribune', s: 760, longueur: 300, cote: -1, distance: 24 },     // à l'extérieur du grand virage
+    { type: 'public', s: 700, longueur: 420, cote: 1, distance: 24 },
+    { type: 'panneaux', s: 1250, longueur: 550, cote: -1, distance: 21 },
+    { type: 'pneus', s: 2290, longueur: 100, cote: -1, distance: 21 },      // les deux virages serrés
+    { type: 'tribune', s: 2240, longueur: 144, cote: -1, distance: 24 },
+    { type: 'pneus', s: 2600, longueur: 100, cote: -1, distance: 21 },
+    { type: 'public', s: 2560, longueur: 160, cote: -1, distance: 24 },
+    { type: 'arbres', s: 0, longueur: 4000, cote: -1, distance: 45, profondeur: 140, nombre: 380 },
+    { type: 'arbres', s: 0, longueur: 4000, cote: 1, distance: 45, profondeur: 90, nombre: 260 },
+  ],
 };

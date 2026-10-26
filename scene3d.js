@@ -7,6 +7,7 @@ const SCENE3D = (function () {
   let camera2 = null, partage = false;
   let infoCircuit = null;   // { triangles, msConstruction }
   let trianglesDessines = 0, appelsDessin = 0;
+  let decor = null;   // le décor du circuit (étape 10, decor.js), ou null
 
   function init(element, circuit) {
     conteneur = element;
@@ -36,6 +37,13 @@ const SCENE3D = (function () {
     const groupe = construireCircuit3D(circuit);
     scene.add(groupe);
     infoCircuit = { triangles: compterTriangles(groupe), msConstruction: performance.now() - t0 };
+
+    // le décor (étape 10, decor.js) : DECORS[le circuit], s'il existe (tribunes, public, stands, arbres, panneaux, pneus)
+    const cle = typeof CIRCUITS !== 'undefined' ? Object.keys(CIRCUITS).find(k => CIRCUITS[k].nom === circuit.nom) : undefined;
+    if (R.DECOR_ACTIF && typeof DECOR !== 'undefined' && typeof DECORS !== 'undefined' && cle && DECORS[cle]) {
+      decor = DECOR.construire(circuit, DECORS[cle]);
+      scene.add(decor.groupe);
+    }
 
     redimensionner();
     window.addEventListener('resize', redimensionner);
@@ -181,6 +189,7 @@ const SCENE3D = (function () {
   function dessiner() {
     if (!rendu) return 0;
     rendu.info.reset();
+    if (decor) DECOR.majDetail(decor, partage ? [camera.position, camera2.position] : [camera.position]);   // le public et les arbres : proches, loin ou rien
     if (partage) {
       // UN rendu, UNE scène, deux zones : le joueur 1 en haut, le joueur 2 en bas (la zone est en pixels CSS, Three.js applique le pixel ratio)
       const l = conteneur.clientWidth || 1, h = conteneur.clientHeight || 1;
@@ -218,6 +227,7 @@ const SCENE3D = (function () {
     get canvas() { return rendu ? rendu.domElement : null; },   // (tests : lire les pixels juste après dessiner)
     get partage() { return partage; },
     get infoCircuit() { return infoCircuit; },
+    get decor() { return decor; },   // (tests : le décor placé, ses maillages, ses niveaux de détail)
     get trianglesDessines() { return trianglesDessines; },
     get appelsDessin() { return appelsDessin; },
     get nbObjets() { let n = 0; if (scene) scene.traverse(o => { if (o.isMesh || o.isInstancedMesh || o.isPoints || o.isLine) n++; }); return n; },   // (tests : le résumé n'ajoute rien à la scène)
