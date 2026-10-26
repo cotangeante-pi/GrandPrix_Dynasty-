@@ -557,7 +557,7 @@ const INTERFACE = (function () {
   function remplirChampionnat(ch, gagne, nomCircuit) {
     const fini = ch.prochain >= ch.calendrier.length;
     $('championnatTitre').textContent = fini ? texte('finChampionnat') : texte('titreGrandPrix').replace('{i}', ch.prochain + 1).replace('{n}', ch.calendrier.length).replace('{circuit}', nomCircuit);
-    $('championnatGagne').textContent = gagne === null ? '' : texte('pointsGagnes').replace('{n}', gagne);
+    $('championnatGagne').textContent = gagne === null ? '' : elider(texte('pointsGagnes').replace('{n}', gagne));   // (« 1 point » : accorder)
     $('championnatPilotesTitre').textContent = texte('classementPilotes');
     $('championnatEcuriesTitre').textContent = texte('classementEcuries');
     $('boutonCourseSuivante').textContent = texte('courseSuivante');
@@ -568,7 +568,7 @@ const INTERFACE = (function () {
       const sp = (classe, contenu) => { const e = document.createElement('span'); e.className = classe; e.append(contenu); return e; };
       const spNom = sp('nom', nom);
       if (casque) spNom.prepend(CASQUE.icone(casque, REGLAGES.CASQUE_ICONE));   // l'icône du casque (casque.js)
-      li.append(sp('place', String(place)), pastille(couleur), spNom, sp('points', points + ' ' + texte('pts')));
+      li.append(sp('place', ch.resultats.length ? String(place) : '–'), pastille(couleur), spNom, sp('points', points + ' ' + texte('pts')));   // (avant la première course : pas de place)
       // un rival : sa fiche au clic (fiche.js, Codeur 3)
       if (k !== undefined && !moi) { li.dataset.k = k; li.classList.add('rival'); li.addEventListener('click', () => { if (ouvertureFiche) ouvertureFiche(k); }); }
       return li;
@@ -992,7 +992,8 @@ const INTERFACE = (function () {
     $('ficheInfos').textContent = '';
     $('ficheInfos').append(texte('numero').replace('{n}', p.numero) + ' · ', pastille(e.couleur), ' ' + avec(texte('ficheEcurie'), { ecurie: nomEcurie(e) }) + (typeof p.age === 'number' ? ' · ' + avec(texte('ficheAge'), { n: p.age }) : ''));
     $('ficheCaractere').textContent = f.mots.length ? avec(texte('ficheCaractere'), { mots: f.mots.map(m => texte('caractere_' + m)).join(', ') }) : '';
-    $('ficheSaison').textContent = avec(texte('ficheSaison'), { place: f.saison.place, points: f.saison.points, v: f.saison.victoires, p: f.saison.podiums, c: f.saison.courses });
+    // avant sa première course de la saison : pas de place (« pas encore de classement »)
+    $('ficheSaison').textContent = f.saison.courses ? avec(texte('ficheSaison'), { place: f.saison.place, points: f.saison.points, v: f.saison.victoires, p: f.saison.podiums, c: f.saison.courses }) : texte('ficheSaisonAucune');
     $('ficheHistorique').textContent = avec(texte('ficheHistorique'), { s: f.historique.saisons, t: f.historique.titres, v: f.historique.victoires, p: f.historique.podiums, q: f.historique.poles, m: f.historique.meilleur === null ? '–' : f.historique.meilleur });
     $('ficheDuels').textContent = avec(texte('ficheDuels'), { a: f.duels.devant, b: f.duels.derriere });
     $('ficheCoequipier').textContent = f.duels.coequipier ? avec(texte('ficheCoequipier'), { a: f.duels.coequipier[0], b: f.duels.coequipier[1] }) : '';
