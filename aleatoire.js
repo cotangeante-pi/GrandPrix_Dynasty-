@@ -23,7 +23,13 @@ const ALEATOIRE = (function () {
     return generateur();
   }
 
-  return { semer, hasard };
+  // suite(n) : une suite fixe à part, qui ne touche pas à celle de semer/hasard (le public des tribunes, decor-public.js : on le
+  // tire pendant la construction de la scène sans déranger le hasard d'une course semée)
+  function suite(graine) {
+    return mulberry32(graine);
+  }
+
+  return { semer, hasard, suite };
 })();
 
 const hasard = ALEATOIRE.hasard;
