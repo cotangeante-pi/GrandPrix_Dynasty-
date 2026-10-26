@@ -46,7 +46,16 @@ PAGES = [
     ('index.html?championnat=1&tours=1&robot=1&gp=12', 1280, 720, None),   # la fin de saison : le 12e Grand Prix joué par le robot, champion, duel de la saison, contrats, saison 2 ; captures champion.png, duel-saison.png, contrats.png
     ('index.html?championnat=1&tours=1&robot=1&gp=12', 960, 600, None),    # les écrans de fin de saison en petit (Grand Prix 12 fabriqué), la retraite
     ('index.html?championnat=1&tours=1&robot=1&lang=en', 1280, 720, None),
-    ('index.html?championnat=1&tours=1&robot=1&gp=12&lang=en', 960, 600, None),   # l'audit anglais (tour 31, Codeur 3) : chaque écran du championnat et de la fin de carrière, sans un mot français, rien hors de l'écran en 960×600   # la page en anglais : championnat et podium sans un mot français, capture championnat-en.png
+    ('index.html?championnat=1&tours=1&robot=1&gp=12&lang=en', 960, 600, None),
+    # l'audit anglais, suite (tour 31) : la découverte et ses aides, Entre amis, l'écran partagé et ses réglages, la création du pilote ; le
+    # tournoi ; la course à deux ; le résumé vidéo ; les stands ; la consigne d'équipe ; le volant (?lang=en, 960×600, mots témoins, rien hors de l'écran)
+    ('index.html?robot=1&tours=1&lang=en&test=audit-decouverte', 960, 600, None),
+    ('index.html?lang=en&test=audit-tournoi', 960, 600, None),
+    ('index.html?deux=1&ia=3&robot=1&circuit=test&lang=en&test=audit-deux', 960, 600, None),
+    ('index.html?course=1&ia=5&joueur=1&robot=1&circuit=test&lang=en&test=audit-resume', 960, 600, None),
+    ('index.html?course=12&robot=1&pneus=1&circuit=test&lang=en&test=audit-stand', 960, 600, None),
+    ('index.html?championnat=1&tours=2&robot=1&lang=en&test=audit-consigne', 960, 600, None),
+    ('index.html?course=0&camera=cockpit&lang=en&test=audit-volant', 960, 600, None),   # l'audit anglais (tour 31, Codeur 3) : chaque écran du championnat et de la fin de carrière, sans un mot français, rien hors de l'écran en 960×600   # la page en anglais : championnat et podium sans un mot français, capture championnat-en.png
     ('index.html?course=1&ia=5&joueur=1&robot=1&circuit=test&test=fantome', 1280, 720, None),   # le fantôme du meilleur tour : deux qualifications de suite, la 2e contre le fantôme, capture fantome.png
     ('index.html?robot=1&test=decouverte&tours=1', 1280, 720, None),
     ('index.html?deux=1&ia=5&robot=1&circuit=test&test=deux', 1280, 720, None),   # le mode 2 joueurs (deux-joueurs.js) : l'écran partagé, deux robots + 5 IA, jusqu'au podium ; capture deux-joueurs.png
@@ -1505,6 +1514,77 @@ def audit_en(pg, titre, l):
     verifier('arbre-bilan', '() => montrerArbre()'); pg.evaluate('() => quitterArbre()')
     verifier('releve', '() => montrerHeritier()')
 
+# l'audit anglais, suite (tour 31) : le texte VISIBLE de toute la page (body.innerText : les écrans cachés n'y sont pas), mêmes mots témoins,
+# rien hors de l'écran, pas de défilement ; une capture <nom>-en.png
+AUDIT_PAGE = AUDIT_ETAT.replace('const id = JEU.ecran === "album" ? "une" : JEU.ecran, el = document.getElementById(id); if (!el) return { id, absent: true };', 'const id = JEU.ecran, el = document.body;')
+def audit_autres(pg, titre, page, l, h):
+    def verifier(nom, js=None, attente=None):
+        if js: pg.evaluate(js)
+        if attente: attendre(pg, attente, None, 60000)
+        pg.wait_for_timeout(200)
+        a = pg.evaluate(AUDIT_PAGE, FRANCAIS)
+        t(f'{titre} : en anglais, « {nom} » ({a.get("id")}) : aucun mot français visible, rien hors de l’écran, sans défilement', not a['francais'] and not a['hors'] and pas_de_defilement(a['defile']), str(a))
+        pg.screenshot(path=os.path.join(CAPTURES, nom + '-en.png'))
+    def jusqu_au_podium():
+        for _ in range(150):
+            pg.evaluate('() => { if (JEU.attente && !JEU.attente.passer) passerAuPodium(); BOUCLE.simuler(5); }')
+            if pg.evaluate('() => JEU.ecran') == 'podium': return True
+            pg.wait_for_timeout(30)
+        return False
+    if 'audit-decouverte' in page:
+        verifier('titre')
+        pg.click('#boutonAmis'); verifier('amis')
+        pg.click('#boutonAmisDeux'); verifier('deux-reglages')
+        pg.click('#boutonDeuxRetour'); pg.click('#boutonAmisRetour')
+        pg.click('#boutonJouer')
+        verifier('decouverte-aides', None, '() => JEU.ecran === "course" && JEU.plateau && JEU.plateau.carte !== null && JEU.course.etat === "course"')
+        t(f'{titre} : la course de découverte va jusqu’au podium', jusqu_au_podium())
+        verifier('podium')
+        pg.click('#boutonResultats'); verifier('bravo', None, '() => JEU.ecran === "bravo"')
+        pg.click('#boutonCarriere'); verifier('pilote', None, '() => JEU.ecran === "pilote"')
+    elif 'audit-tournoi' in page:
+        pg.click('#boutonAmis'); pg.click('#boutonAmisTournoi'); verifier('tournoi-inscription', None, '() => JEU.ecran === "tournoiInscription"')
+        with pg.expect_navigation(): pg.click('#boutonTournoiPartir')
+        verifier('tournoi-a-toi', None, '() => typeof JEU !== "undefined" && JEU.ecran === "tournoiAToi"')
+        pg.evaluate('() => { JEU.robot = true; }')
+        attendre(pg, '() => JEU.ecran === "qualif" && JEU.qualif && JEU.qualif.etat === "tour"', None, 20000)
+        pg.evaluate('() => BOUCLE.simuler(3)'); verifier('tournoi-tour')
+        pg.keyboard.press('Escape'); verifier('tournoi-pause', None, '() => JEU.ecran === "tournoiPause"')
+        pg.click('#boutonTournoiAbandon'); verifier('tournoi-manche', None, '() => JEU.ecran === "tournoiManche"')
+        # les autres passages, joués d'avance (des temps fabriqués), jusqu'au podium puis au classement final
+        verifier('tournoi-podium', '''() => { const t = JEU.tournoi; for (let k = 0; k < 40 && !TOURNOI.fini(t); k++) { const j = TOURNOI.joueurActuel(t);
+          if (j === null) TOURNOI.mancheSuivante(t); else TOURNOI.enregistrer(t, j, { tour: 60 + j + k * 0.1, penalites: 0 }); } montrerPodiumTournoi(); }''')
+        verifier('tournoi-fin', '() => montrerFinTournoi()')
+    elif 'audit-deux' in page:
+        verifier('deux-course', None, '() => JEU.ecran === "course" && JEU.plateau && JEU.plateau.carte !== null && JEU.course.etat === "course"')
+    elif 'audit-resume' in page:
+        pg.click('#boutonQualifPasser') if pg.evaluate('() => JEU.ecran === "qualif"') else None
+        attendre(pg, '() => JEU.qualif && JEU.qualif.etat === "resultat"', None, 180000); verifier('qualif-resultat')
+        pg.click('#boutonQualifCourse')
+        verifier('course', None, '() => JEU.ecran === "course" && JEU.plateau.carte !== null && JEU.course.etat === "course"')
+        t(f'{titre} : la course va jusqu’au podium', jusqu_au_podium())
+        pg.click('#boutonResultats'); verifier('resultats', None, '() => JEU.ecran === "resultats"')
+        pg.click('#boutonResume'); verifier('resume', None, '() => JEU.ecran === "resume"')
+    elif 'audit-stand' in page:
+        attendre(pg, '() => JEU.ecran === "course" && JEU.course', None, 30000)
+        pg.evaluate('() => { JEU.course.compte = 0.01; }'); pg.wait_for_timeout(300)
+        verifier('stand-course', '() => { BOUCLE.simuler(3); JEU.joueur.pneus.usure = 0.5; JEU.joueur.versStands = true; BOUCLE.simuler(2); }')
+        for _ in range(40):
+            if pg.evaluate('() => !!JEU.course.arretEnCours'): break
+            pg.evaluate('() => BOUCLE.simuler(1)')
+        verifier('stand-arret')
+    elif 'audit-consigne' in page:
+        pg.click('#boutonCourseSuivante')
+        attendre(pg, '() => JEU.ecran === "qualif" && JEU.qualif && JEU.qualif.etat === "choix"', None, 10000); verifier('qualif')
+        pg.click('#boutonQualifPasser'); attendre(pg, '() => JEU.qualif && JEU.qualif.etat === "resultat"', None, 180000)
+        pg.click('#boutonQualifCourse')
+        attendre(pg, '() => JEU.plateau.carte !== null && JEU.course.etat === "course" && JEU.course.temps > 1', None, 180000)
+        verifier('consigne', '''() => { const e = JEU.plateau, P = e.pilotes, j = P.findIndex(p => p.humain), kc = CHAMPIONNAT.coequipierDe(JEU.championnat).id;
+          const c = { devant: j, derriere: kc, numero: P[kc].numero, debut: e.temps, joueur: true, refus: false, resultat: null };
+          e.consigne = c; P[j].course.consigne = c; P[kc].course.consigne = c; }''', '() => document.getElementById("hudStand").textContent.length > 10')
+    elif 'audit-volant' in page:
+        verifier('cockpit', None, '() => JEU.ecran === "course"')
+
 def une_ecran(pg, titre, capture, touche=False):
     ph = pg.evaluate(PHOTO_ETAT, None)
     t(f'{titre} : la photo de la une est dessinée par le code ({ph and ph["type"]}), visible, pas d’une seule couleur, la même que celle de la une compacte', bool(ph) and ph['couleurs'] > 8 and ph['pareil'] and ph['visible'], str(ph))
@@ -2015,7 +2095,7 @@ with sync_playwright() as p:
                 decouverte(pg, titre)
             if 'reglages=1' in page:
                 reglages(pg, titre)
-            if 'robot=1' in page and 'championnat=1' not in page and 'joueur=1' not in page and 'test=sdk' not in page and 'pneus=1' not in page and 'test=decouverte' not in page and 'test=deux' not in page:   # (avec ?championnat=1 ou &joueur=1, le robot joue dans championnat() ou qualif() ; sdk() et pneus() ont leur page)
+            if 'test=audit' not in page and 'robot=1' in page and 'championnat=1' not in page and 'joueur=1' not in page and 'test=sdk' not in page and 'pneus=1' not in page and 'test=decouverte' not in page and 'test=deux' not in page:   # (avec ?championnat=1 ou &joueur=1, le robot joue dans championnat() ou qualif() ; sdk() et pneus() ont leur page)
                 course_robot(pg, titre, page)
             if 'test=sdk' in page:
                 sdk(pg, titre)
@@ -2027,7 +2107,7 @@ with sync_playwright() as p:
                 tournoi(pg, titre, l, h)
             if 'test=volant' in page:
                 volant(pg, titre, l, h)
-            if 'pneus=1' in page and 'test=stand' not in page and 'test=hudcourse' not in page:
+            if 'pneus=1' in page and 'test=stand' not in page and 'test=hudcourse' not in page and 'test=audit' not in page:
                 pneus(pg, titre)
             if 'test=stand' in page:
                 stand_ecran(pg, titre)
@@ -2037,7 +2117,9 @@ with sync_playwright() as p:
                 course_ia10(pg, titre)
             if 'course=1&ia=8' in page:
                 course_podium(pg, titre, l)
-            if 'gp=12' in page and 'lang=en' in page:
+            if 'test=audit' in page:
+                audit_autres(pg, titre, page, l, h)
+            elif 'gp=12' in page and 'lang=en' in page:
                 audit_en(pg, titre, l)
             elif 'gp=12' in page:
                 fin_saison(pg, titre, l)
@@ -2049,7 +2131,7 @@ with sync_playwright() as p:
                 accelere(pg, titre, page)
             elif 'championnat=1' in page:
                 championnat(pg, titre, l)
-            if 'test=accelere' in page: pass
+            if 'test=accelere' in page or 'test=audit' in page: pass
             elif 'test=hudcourse' in page:
                 hud_course(pg, titre, l, h)
             elif 'test=resume' in page:
