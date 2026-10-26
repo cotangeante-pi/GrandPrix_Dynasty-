@@ -67,3 +67,16 @@ Réévalue.
    - **Résultat : aucun texte français oublié.** Les deux seules alertes venaient de noms propres inventés (« Brio Café », « Montréol »).
    - Aucun texte en dur trouvé hors de `textes.js` dans mes fichiers (recherche des `textContent`, `title` et `placeholder` écrits en dur).
    - Pas audités ici : le tournoi, le résumé et les consignes. Ce ne sont pas des écrans du championnat, et ils ont leurs propres pages et tests chez les Codeurs 1 et 2.
+
+## L'audit anglais, suite (le dernier ordre) — commit `d5357cd`, passage 40411945744 : les 10 travaux sont verts
+- **Sept pages de test en anglais, en 960×600** (`test=audit-…` dans `tests/ecrans.py`). Pour chaque page, le texte VISIBLE (`body.innerText`) est vérifié : aucun mot français témoin, rien hors de l'écran, pas de défilement. Une capture `<nom>-en.png` par écran.
+  - **Découverte** : l'écran titre, Entre amis, les réglages de l'écran partagé, la course de découverte avec ses aides, le podium, Bravo, la création du pilote.
+  - **Tournoi** : l'inscription, « Your turn », le tour, la pause, le classement de la manche, puis le podium et le classement final (les autres passages joués d'avance avec des temps fabriqués).
+  - **Écran partagé** : la course à deux.
+  - **Résumé vidéo** : les résultats de qualification, la course, les résultats, le résumé.
+  - **Stands** (`?pneus=1`) : la course, puis l'arrêt.
+  - **Consigne d'équipe** : la qualification, et le message de la consigne en course.
+  - **Volant** : la vue cockpit.
+- **Résultat : aucun texte français trouvé dans ces écrans.** Aucun texte n'a eu besoin d'aller dans `textes.js`.
+- **Textes en dur hors de `textes.js`**, dans les fichiers des Codeurs 1 et 2 (pas corrigés, comme demandé) : `principal.js:1505`, la ligne du compteur `?debug=1` (« i/s · triangles · appels », puis `mesuresConduite()` avec « dérive », « voiture … appels »). C'est un affichage de mise au point, hors du jeu. Rien d'autre trouvé (recherche des `textContent`, `title`, `placeholder`, `fillText` écrits en dur).
+- Ce que je n'ai pas audité : la vue « télé » et le menu pause d'une course ordinaire. Ils utilisent les mêmes textes que les écrans vérifiés.
