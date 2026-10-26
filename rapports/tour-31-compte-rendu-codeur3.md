@@ -50,3 +50,20 @@ Réévalue.
    - Tests moteur : une victoire à domicile donne la fête, une P12 la déception, ailleurs la victoire ordinaire revient ; le titre de champion passe devant ; aucun mot genré.
 3. **La photo stylisée de la fiche du rival** (`PHOTO.portrait`) : son casque en grand sur un fond à la couleur de son écurie, et sa voiture dessous. Tests moteur (deux dessins identiques, plusieurs couleurs) et ecrans.
 - Fusion de main (la grille vue d'en haut et le résumé du Codeur 2) : un conflit dans la liste des écrans d'`interface.js`, réglé en gardant les deux côtés.
+
+## Suite du tour 31 (les textes) — commit `3ac4bf9`, passage 40410013834 : les 10 travaux sont verts
+1. **Le singulier devant 0 et 1** : `accorder(t)` dans `textes.js`, appliqué avec `elider()`, donc partout où l'on remplit une phrase (`avec`, `JOURNAL.remplir`, `INTERVIEW.phrase`, « Tu marques n points »).
+   - En français, le singulier est à 0 et à 1 : « 0 victoire », « 1 point », « 1 place gagnée ». En anglais, seulement à 1 : « 1 win », « 0 wins ».
+   - Une liste de mots par langue : victoires, podiums, points, titres, saisons, courses, poles, générations, secondes, tours, Grands Prix, places (gagnées), ans.
+   - Jamais 10, 21 ni 1,5.
+   - Test moteur dans les deux langues. Les tests « Tu marques / You scored n points? » acceptent le singulier.
+2. **Pas de place avant la première course** :
+   - la fiche du rival dit « Cette saison : pas encore de course, pas encore de classement » ;
+   - au classement du paddock, chaque place affiche « – » tant qu'aucune course n'est courue.
+   - Tests ecrans mis à jour.
+3. **L'audit anglais** : une page `?championnat=1&gp=12&lang=en` en 960×600 ouvre 19 écrans.
+   - Les écrans : paddock, Entre amis, garage, aileron, sponsors, fiche, album, calendrier, arbre, interview, une, cérémonie, fin de saison, duel de la saison, contrats, bilan, temple, arbre au bilan, relève.
+   - Pour chacun, le test vérifie : aucun mot français témoin (une liste de mots, et les accents ; les noms propres inventés des circuits et des sponsors sont écartés), aucun texte hors de l'écran, pas de défilement. Une capture `<écran>-en.png` par écran.
+   - **Résultat : aucun texte français oublié.** Les deux seules alertes venaient de noms propres inventés (« Brio Café », « Montréol »).
+   - Aucun texte en dur trouvé hors de `textes.js` dans mes fichiers (recherche des `textContent`, `title` et `placeholder` écrits en dur).
+   - Pas audités ici : le tournoi, le résumé et les consignes. Ce ne sont pas des écrans du championnat, et ils ont leurs propres pages et tests chez les Codeurs 1 et 2.
