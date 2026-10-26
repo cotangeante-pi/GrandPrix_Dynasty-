@@ -31,6 +31,7 @@ L.push(`  TOTAL sur ${N} courses de ${TOURS} tours : ${avec.length} avec une con
 t('toutes les voitures arrivent, avec et sans consignes',()=>v(res.every(r=>r.a.fini&&r.b.fini)));
 t('au plus une consigne par course',()=>v(res.every(r=>r.a.consignes<=1),res.map(r=>r.a.consignes).join(',')));
 t('sans consigne dans la course, elle est identique au bit près à la même course sans les consignes',()=>{const ids=r=>r.e.pilotes.map(p=>p.arrivee+':'+p.v.x).join('|');v(res.filter(r=>!r.c).every(r=>ids(r.a)===ids(r.b)));});
+t('celle de devant laisse passer : au moins 7 consignes suivies sur 8 (en proportion de celles qu’il y a)',()=>v(avec.length>0&&suivies>=Math.ceil(avec.length*7/8),suivies+' / '+avec.length));
 t('aucun choc à plus de 5 m/s pendant une consigne pour les deux voitures de l’écurie',()=>v(tot(r=>r.pendant)===0,tot(r=>r.pendant)));
 t('aucune erreur JavaScript',()=>v(__err.length===0,__err.join(' | ')));
 ecrire();

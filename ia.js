@@ -569,6 +569,10 @@ function deciderLigne(pilote, v, vues) {
   // (en route vers les stands, étape 7 : une seule ligne, celle de la voie : cibleStands)
   const stand = pilote.stand || null;
   const essais = stand ? [['stands', 0]] : enAttaque ? [['attaque', a.cote]] : [['rapide', 0], ['continuer', 0]];
+  // une consigne d'équipe (simulation.js, majConsignes) : dans une ligne droite, il s'écarte de la ligne, du côté opposé à son
+  // coéquipier (ou du côté où il est déjà), à CONSIGNE_BORD m du bord : une seule ligne, « s'écarter » (bornée et prioritaire comme les autres)
+  const laisserCote = !stand && !enAttaque && pilote.laisser ? coteLaisser(pilote, v, vues, s0) : 0;
+  if (laisserCote) essais.splice(0, essais.length, ['ecarter', laisserCote]);
   if (pilote.rivalite && !stand && !enAttaque) defendreContreJoueur(pilote, v, vues, s0);
   if (stand) stand.ceder = cederSortieStands(pilote, v, vues, s0);   // à la sortie des stands, il laisse passer ceux qui arrivent   // le rival du joueur couvre l'intérieur (interview)
   pilote.depassement = !!enAttaque;
@@ -584,9 +588,9 @@ function deciderLigne(pilote, v, vues) {
   if (entoure && !enAttaque) essais.length = 1;
   // (seul, sans aucune voiture en vue, il n'en a pas besoin : sur 200 m, elles semblent parfois meilleures et lui
   // coûtent jusqu'à 0,8 s au tour)
-  if (!stand && !enAttaque && !entoure && sens && vues.length) essais.push(['interieur', sens], ['exterieur', -sens]);
+  if (!stand && !laisserCote && !enAttaque && !entoure && sens && vues.length) essais.push(['interieur', sens], ['exterieur', -sens]);
   // une voiture lente devant : les deux lignes qui la contournent, d'un côté ou de l'autre, à IA_LENTE_ECART d'elle
-  if (!stand && !enAttaque) for (const l of lentes) essais.push(['eviter', 1, l], ['eviter', -1, l]);
+  if (!stand && !laisserCote && !enAttaque) for (const l of lentes) essais.push(['eviter', 1, l], ['eviter', -1, l]);
   const finAttaque = enAttaque ? ((carte.virages[a.virage].s + R.IA_ATTAQUE_APRES_SOMMET - s0) % L + L) % L : 0;
   // la priorité, avec les voitures à côté de lui ou dans ses rétroviseurs à moins d'une longueur, jusqu'à la sortie
   // du prochain virage : il ne se décale pas vers elles (au mieux jusqu'à l'écart sûr) ; et si l'une est à hauteur
@@ -625,6 +629,7 @@ function deciderLigne(pilote, v, vues) {
       let val = r;
       if (type === 'continuer') { const m = Math.max(0, Math.min(1, (s - R.IA_CONTINUER[0]) / (R.IA_CONTINUER[1] - R.IA_CONTINUER[0]))); val = e0 * (1 - m) + r * m; }
       else if (type === 'interieur' || type === 'exterieur') val = r + cote * R.IA_DECALAGE_CANDIDAT;
+      else if (type === 'ecarter') { const m = Math.min(1, s / R.CONSIGNE_RAMPE); val = r * (1 - m) + cote * (c.largeur / 2 - R.CONSIGNE_BORD) * m; }
       else if (type === 'eviter') {
         // à IA_LENTE_ECART de la voiture lente, côté cote : il s'y porte sur IA_LENTE_AVANT m (plus, vite : ce qu'il fait en
         // IA_LENTE_TEMPS), reste à côté jusqu'à IA_LENTE_APRES m derrière elle, puis revient sur sa ligne (IA_DEPASSEMENT_RAMPE)
@@ -699,6 +704,25 @@ function cibleStands(pilote, s, r, plafond, i) {
     plafond[i] = vmax;
   }
   return e;
+}
+
+// hors de tout virage de la carte : ni entre son point de freinage et son sommet, ni dans sa sortie (IA_VIRAGE_LARGEUR après le sommet)
+function horsVirage(carte, s) {
+  const c = carte.circuit;
+  for (const x of carte.virages) {
+    if (ecartLeLong(c, s - x.freinage) >= -REGLAGES.IA_VIRAGE_LARGEUR && ecartLeLong(c, s - x.s) <= REGLAGES.IA_VIRAGE_LARGEUR) return false;
+  }
+  return true;
+}
+
+// une consigne d'équipe : de quel côté s'écarter (1 à droite, -1 à gauche), ou 0 si la piste n'est pas droite sur CONSIGNE_DROITE m devant lui
+// (il ne s'écarte que dans une ligne droite) ; le côté opposé à son coéquipier s'il le voit, sinon celui où il est déjà
+function coteLaisser(pilote, v, vues, s0) {
+  const R = REGLAGES, c = pilote.carte.circuit;
+  for (let x = 0; x <= R.CONSIGNE_DROITE; x += 10) if (Math.abs(valeurEn(c, c.courbure, s0 + x)) >= R.IA_DROITE_COURBURE) return 0;
+  const w = vues.find(x => x.id === pilote.laisser.id);
+  const d = v.piste.d, ref = w ? w.d : 0;
+  return d - ref >= 0 ? 1 : -1;
 }
 
 // la longueur de ligne droite juste avant l'entrée de la voie des stands (m), calculée une fois par circuit (gardée dans circuit.stands)
@@ -960,11 +984,11 @@ function piloterIA(pilote, v, vues, dt) {
   }
   // une consigne d'équipe (simulation.js, majConsignes) : il laisse passer son coéquipier, dans une ligne droite seulement, en restant
   // sur sa ligne : il roule CONSIGNE_RALENTI m/s sous la vitesse de l'autre tant que l'autre est derrière lui, à moins de CONSIGNE_DISTANCE m
-  if (pilote.laisser && Math.abs(valeurEn(c, c.courbure, p.s)) < R.IA_DROITE_COURBURE) {
+  if (pilote.laisser && (Math.abs(valeurEn(c, c.courbure, p.s)) < R.IA_DROITE_COURBURE || horsVirage(pilote.carte, p.s))) {   // (dans une droite, ou une courbe rapide hors des zones de freinage)
     const w = vues.find(x => x.id === pilote.laisser.id), g = w ? ecartLeLong(c, w.s - p.s) : 0;
     if (w && g < 0 && g > -R.CONSIGNE_DISTANCE) cible = Math.min(cible, Math.max(0, w.vitesse - R.CONSIGNE_RALENTI));
     // (pas encore dans ses rétroviseurs : l'écurie le lui a dit par radio, il lève le pied dans la droite pour qu'il revienne)
-    else if (!w) cible = Math.min(cible, Math.max(0, libre - R.CONSIGNE_RALENTI));
+    else if (!w) cible = Math.min(cible, Math.max(0, libre * (1 - R.CONSIGNE_LEVER)));   // (franchement : derrière, l'autre ne va pas toujours plus vite que lui en ligne droite)
   }
   // une erreur en cours : de mauvaises commandes, rien d'autre (même physique)
   const er = pilote.erreur ? pilote.erreur.type : null;
