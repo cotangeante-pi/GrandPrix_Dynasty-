@@ -13,9 +13,26 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # chaque partie de tests/lancer.py dans un travail à elle, en parallèle (une « matrix ») : le passage dure le temps du plus long
+  # travail, pas la somme ; ecrans.py est coupé en tranches (ECRANS_TRANCHE=k/n : une page sur n). Le passage n'est vert que si
+  # tous les travaux le sont (fail-fast: false : un travail rouge n'arrête pas les autres, on voit tout ce qui casse).
   tests:
+    name: ${{ matrix.nom }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { nom: moteur, partie: moteur }
+          - { nom: courses, partie: courses }
+          - { nom: stands, partie: stands }
+          - { nom: ecrans-1, partie: ecrans, tranche: 1/4 }
+          - { nom: ecrans-2, partie: ecrans, tranche: 2/4 }
+          - { nom: ecrans-3, partie: ecrans, tranche: 3/4 }
+          - { nom: ecrans-4, partie: ecrans, tranche: 4/4 }
+          - { nom: annexes, partie: annexes }
+          - { nom: paquet, partie: paquet }
     steps:
       - uses: actions/checkout@v4
 
@@ -32,19 +49,20 @@ jobs:
 
       # le Mac du propriétaire est en français et les tests attendent les textes français : même langue ici
       # (sinon navigator.language = en-US et le jeu s'affiche en anglais)
-      - name: Toute la suite (moteur, courses, ecrans, annexes)
+      - name: La partie ${{ matrix.nom }}
         env:
           LANG: fr_FR.UTF-8
           LANGUAGE: fr
+          ECRANS_TRANCHE: ${{ matrix.tranche }}
         run: |
           google-chrome --version
-          python3 tests/lancer.py
+          python3 tests/lancer.py ${{ matrix.partie }}
 
-      # les captures de tests/ecrans.py, à télécharger depuis la page du passage, même en cas d'échec
+      # les captures de tests/ecrans.py (et des autres parties), à télécharger depuis la page du passage, même en cas d'échec
       - name: Captures
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: captures
+          name: captures-${{ matrix.nom }}
           path: tests/captures/
           if-no-files-found: ignore
