@@ -1,6 +1,6 @@
 # TOUR 31 — compte rendu du Codeur 3 (la photo de la une, l'éditeur de l'héritier, les casques)
 
-Commit : COMMIT sur `codeur3` (main fusionné). Passage GitHub PASSAGE : les 9 travaux sont verts.
+Commit : `841289c` sur `codeur3` (main fusionné). Passage GitHub 40404214792 : les 9 travaux sont verts.
 
 Ordres : 1 fait / 2 fait / 3 fait.
 
