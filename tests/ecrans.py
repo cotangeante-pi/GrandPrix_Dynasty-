@@ -1779,6 +1779,11 @@ def INTERFACE_TEMPS(t, virgule='.'):
 
 # PAGES_FILTRE=<expression> (variable d'environnement, développement) : seulement les pages dont l'adresse y correspond
 if os.environ.get('PAGES_FILTRE'): PAGES = [x for x in PAGES if re.search(os.environ['PAGES_FILTRE'], x[0])]
+# ECRANS_TRANCHE=k/n (GitHub, les travaux en parallèle) : seulement la k-ième tranche des pages sur n (une page sur n, à partir de la k-ième) ;
+# chaque page a son propre contexte de navigateur, les tranches sont indépendantes
+if os.environ.get('ECRANS_TRANCHE'):
+    k_, n_ = (int(x) for x in os.environ['ECRANS_TRANCHE'].split('/'))
+    PAGES = [x for i, x in enumerate(PAGES) if i % n_ == k_ - 1]
 mesures = None
 mesures_voiture = []
 os.makedirs(CAPTURES, exist_ok=True)

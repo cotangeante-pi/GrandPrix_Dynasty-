@@ -72,7 +72,9 @@ def paquet(delai=600):
     print(out.strip()); print(f'⏱ tests/paquet.py : {time.monotonic() - t0:.0f} s')
     return p.returncode == 0
 
-PARTIES = {'moteur': lambda: serie('tests/test.html'), 'courses': lambda: all([serie('tests/courses.html'), serie('tests/courses.html?ailerons=1'), serie('tests/stands.html', delai=1200)]), 'ecrans': lambda: ecrans(), 'annexes': annexes, 'paquet': paquet}
+# (stands.html, 30 courses de 12 tours, est une partie à lui : sur GitHub, chaque partie tourne dans son propre travail, en parallèle ;
+# ecrans y est découpé en tranches par ECRANS_TRANCHE=k/n, voir .github/workflows/tests.yml)
+PARTIES = {'moteur': lambda: serie('tests/test.html'), 'courses': lambda: all([serie('tests/courses.html'), serie('tests/courses.html?ailerons=1')]), 'stands': lambda: serie('tests/stands.html', delai=1200), 'ecrans': lambda: ecrans(), 'annexes': annexes, 'paquet': paquet}
 
 def tests(parties=tuple(PARTIES)):
     # une liste : tout tourne même si le premier échoue ; courses.html = le critère de l'étape 4 (30 courses entre IA)

@@ -548,7 +548,13 @@ Ajouté le 2026-10-22, à la demande du propriétaire (« le travail avance lent
   J=$(curl -s -H "Authorization: Bearer $T" "$A/actions/runs/RUN/jobs" | python3 -c "import sys,json;print(json.loads(sys.stdin.read(),strict=False)['jobs'][0]['id'])")
   curl -sL -H "Authorization: Bearer $T" "$A/actions/jobs/$J/logs" | grep -E "✘|RESULTAT|⏱|ÉCHECS|TOUT PASSE"
   ```
-  `completed success` = vert ; `completed failure` = rouge ; `in_progress` = pas fini (une suite complète prend **environ 3 minutes** sur GitHub, contre plus de 4 sur le Mac). Pièges vécus : `json.loads(..., strict=False)` (les messages de commit ont des retours à la ligne) ; **toujours le jeton** (sans lui, GitHub coupe après 60 demandes par heure, et les journaux demandent d'être propriétaire) ; attendre en vérifiant toutes les 30 s au plus, pas plus souvent.
+  Depuis le 2026-10-26, **la suite tourne en 9 travaux parallèles** (une « matrix » dans tests.yml : moteur, courses, stands, ecrans en 4 tranches `ECRANS_TRANCHE=k/n`, annexes, paquet ; environ **5 minutes** au total). L'état du passage reste le même appel ; le détail de chaque travail :
+  ```
+  curl -s -H "Authorization: Bearer $T" "$A/actions/runs/RUN/jobs?per_page=50" | python3 -c "import sys,json;[print(j['id'],j['name'],j['conclusion']) for j in json.loads(sys.stdin.read(),strict=False)['jobs']]"
+  curl -sL -H "Authorization: Bearer $T" "$A/actions/jobs/ID/logs" | grep -E "✘|RESULTAT|PARTIE OK|ÉCHECS"
+  ```
+  Chaque travail finit par « PARTIE OK : x » ou « ÉCHECS » ; le passage est vert seulement si les 9 le sont. Les captures : un artefact par travail.
+  `completed success` = vert ; `completed failure` = rouge ; `in_progress` = pas fini. Pièges vécus : `json.loads(..., strict=False)` (les messages de commit ont des retours à la ligne) ; **toujours le jeton** (sans lui, GitHub coupe après 60 demandes par heure, et les journaux demandent d'être propriétaire) ; attendre en vérifiant toutes les 30 s au plus, pas plus souvent.
 - **La nouvelle façon de travailler** :
   - **Le Codeur, pendant le travail** : seulement la partie concernée, sur le Mac, sous le verrou (`tests/lancer.py moteur|courses|ecrans|annexes`). **Il ne lance plus la suite complète sur le Mac** : il pousse sa branche et attend le vert de GitHub. Son compte rendu donne le lien du passage et son résultat.
   - **Le Chef** fusionne sur main **seulement si le passage GitHub de ce commit est vert**. Il relit la sortie du passage (il ne croit pas le compte rendu sur parole, comme toujours) et regarde les captures si c'est un tour qui se voit. Il relance lui-même une partie sur le Mac seulement s'il a un doute.
