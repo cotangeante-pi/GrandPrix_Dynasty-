@@ -652,6 +652,11 @@ const REGLAGES = {
   CAMERA_COCKPIT: [0.75, 1.02], // caméra embarquée, devant le halo et au-dessus du pilote : avant, hauteur (m) ; on voit le nez et les roues avant
   CAMERA_COCKPIT_VISEE: 0.45,   // m : la caméra vise à 30 m devant, plus bas d'autant (le nez reste dans l'image)
   CAMERA_COCKPIT_CHAMP: 72,
+  // avant les feux : la grille vue d'en haut (camera.js poseGrille ; principal.js), quelques secondes, passable d'une touche ou d'un
+  // clic ; jamais à deux ni au tournoi ; GRILLE_DECOUVERTE : aussi à la course de découverte (le clic aux feux : au plus +3 s)
+  GRILLE_DUREE: 2.5,            // s
+  GRILLE_HAUTEUR: 38, GRILLE_RECUL: 18, GRILLE_VISEE: 10, GRILLE_CHAMP: 55,   // m, m, m, degrés
+  GRILLE_DECOUVERTE: true,
   // le résumé vidéo de la course (resume.js, étape 13) : la durée totale des moments forts rejoués, et la vitesse du rejeu
   RESUME_DUREE_MAX: 45,         // s de course au plus
   RESUME_VITESSE: 1,            // le rejeu à la vitesse de la course

@@ -497,8 +497,16 @@ def decouverte(pg, titre):
     attendre(pg, '() => JEU.ecran === "qualif" && JEU.qualif && JEU.qualif.etat === "choix"', None, 10000)
     pg.click('#boutonQualifPasser')
     attendre(pg, '() => JEU.qualif && JEU.qualif.etat === "resultat"', None, 10000)
-    t0 = time.monotonic()
     pg.click('#boutonQualifCourse')
+    # avant les feux, la grille vue d'en haut (CLAUDE.md « L'interface ») : la caméra au-dessus de la grille, les feux pas encore
+    # allumés (la physique attend), une touche la passe ; jamais à deux ni au tournoi (vérifié dans leurs pages : pas d'écran « grille »)
+    attendre(pg, '() => JEU.ecran !== "grille" || Math.abs(SCENE3D.camera.position.y - REGLAGES.GRILLE_HAUTEUR) < 1', None, 3000)
+    g = pg.evaluate('() => ({ ecran: JEU.ecran, y: SCENE3D.camera.position.y, h: REGLAGES.GRILLE_HAUTEUR, compte: JEU.course.compte, total: JEU.course.feux.total, aide: document.getElementById("grilleAide").textContent })')
+    t(f'{titre} : avant les feux, la grille vue d’en haut (la caméra à GRILLE_HAUTEUR m, aucun feu allumé, « une touche pour passer »)', g['ecran'] == 'grille' and abs(g['y'] - g['h']) < 1 and g['compte'] >= g['total'] and g['aide'] != '', str(g))
+    pg.wait_for_timeout(400); pg.screenshot(path=os.path.join(CAPTURES, 'grille.png'))
+    pg.keyboard.press('KeyX')
+    t(f'{titre} : une touche passe la grille : la course (les feux) tout de suite, la caméra de course revient', attendre(pg, '() => JEU.ecran === "course" && SCENE3D.camera.position.y < 10', None, 3000), str(pg.evaluate('() => [JEU.ecran, SCENE3D.camera.position.y]')))
+    t0 = time.monotonic()
     premier2 = attendre(pg, '() => JEU.ecran === "course" && JEU.course.feux && (JEU.course.etat !== "compte" || JEU.course.compte < JEU.course.feux.total)', None, 60000)
     attente2 = time.monotonic() - t0
     feux2 = attendre(pg, '() => JEU.course.etat !== "compte"', None, 90000)

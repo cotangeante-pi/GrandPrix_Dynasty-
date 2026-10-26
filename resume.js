@@ -56,7 +56,7 @@ const RESUME = (function () {
 
   function bandeau(m) {
     if (!m) return null;
-    return { cle: 'resume_' + m.type, valeurs: { qui: m.qui, sur: m.sur, place: m.place } };
+    return { cle: 'resume_' + m.type, valeurs: { qui: m.qui, sur: m.sur, place: m.place, duree: m.duree } };
   }
 
   return { creer, avancer, moment, positions, suivie, bandeau };
