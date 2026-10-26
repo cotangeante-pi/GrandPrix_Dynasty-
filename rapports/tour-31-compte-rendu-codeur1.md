@@ -55,3 +55,18 @@ Ce qui ressort :
 - Les tracés officiels dans le jeu (pas branchés) ; 12 et 18 tours sur eux (seulement 3 et 4 tours ici) ; le pont de Suzuko (rien en 3D : la simulation passe le croisement sans le voir).
 
 Réévalue.
+
+---
+
+## Dernier ordre — les consignes d'équipe vérifiées (17h40 → 17h55)
+Commit : pneus **4e4ddc0** (avec origin/main), GitHub **40407338777 : vert**, 10 travaux en 4 min 58 s (le nouveau travail « consignes » 255 s).
+
+1. **ecrans.py, la consigne qui vise le joueur** (`?championnat=1&tours=2&robot=1&test=consigne-suivie|ignoree`) : GP 1, le robot et son coéquipier échangent leurs places sur la grille (le joueur devant), puis la consigne est donnée (fabriquée : le déclenchement lui-même est testé en simulation, test.html et consignes.html).
+   - le message « Consigne de l'écurie : laisse passer ton coéquipier n°X (plus rapide). L'ignorer fait baisser la confiance de l'écurie. » s'affiche (capture consigne.png) ;
+   - suivie : le robot lève le pied (robot.js `v.leverLePied`, tests seulement), le coéquipier passe, « Merci ! La confiance de l'écurie monte. », et à la fin du GP (interview passée) la confiance 50 → 55, sauvegardée ;
+   - ignorée (délai réduit à 3 s, le robot ne lève pas le pied) : « Consigne ignorée : … baisse », 50 → 45, sauvegardée.
+2. **tests/consignes.html** (partie « consignes » de lancer.py, un travail GitHub à elle) : 30 courses de 12 tours, 10 IA, avec puis sans les consignes :
+   - 8 courses sur 30 ont une consigne (au plus une par course) : 2 suivies, 6 ignorées ;
+   - chocs > 5 m/s : 16 avec les consignes, 16 sans ; **0 choc pendant une consigne** pour les deux voitures de l'écurie (EXIGÉ) ;
+   - les 22 courses sans consigne sont identiques au bit près à leur version sans consignes.
+   - Point faible : entre deux IA, 6 consignes sur 8 « ignorées » : celle de derrière n'arrive pas à passer en 40 s, malgré le pied levé de celle de devant dans les droites. Pas exigé ; la règle (« celle de devant laisse passer ») demanderait qu'elle s'écarte aussi de la ligne : à décider par le Chef.
