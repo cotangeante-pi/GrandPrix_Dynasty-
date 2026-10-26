@@ -653,6 +653,10 @@ const REGLAGES = {
   CAMERA_COCKPIT: [0.75, 1.02], // caméra embarquée, devant le halo et au-dessus du pilote : avant, hauteur (m) ; on voit le nez et les roues avant
   CAMERA_COCKPIT_VISEE: 0.45,   // m : la caméra vise à 30 m devant, plus bas d'autant (le nez reste dans l'image)
   CAMERA_COCKPIT_CHAMP: 72,
+  // la minicarte (minicarte.js) : la marge et le trait du tracé, la taille des points (pixels)
+  MINICARTE_MARGE: 10, MINICARTE_TRAIT: 4, MINICARTE_POINT: 3,
+  // les messages de course (messages.js) : chacun reste MESSAGES_DUREE s ; la file en garde au plus MESSAGES_FILE_MAX
+  MESSAGES_DUREE: 3, MESSAGES_FILE_MAX: 4,
   // avant les feux : la grille vue d'en haut (camera.js poseGrille ; principal.js), quelques secondes, passable d'une touche ou d'un
   // clic ; jamais à deux ni au tournoi ; GRILLE_DECOUVERTE : aussi à la course de découverte (le clic aux feux : au plus +3 s)
   GRILLE_DUREE: 2.5,            // s
