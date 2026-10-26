@@ -210,13 +210,15 @@ function majStandsIA(p, e) {
     if (depuis >= 0 && depuis <= st.longueur) pi.stand.dedans = true;
     if (pi.stand.dedans && depuis > st.longueur + R.STAND_REJOINDRE) pi.stand = null;
     // elle ralentit pour entrer, ou rejoint la piste au ralenti : les autres la voient faire (ia.js, estLente : on la contourne)
-    v.manoeuvreStands = !!pi.stand && ((depuis > -R.STAND_RANGER[0] && depuis < R.STAND_RAMPE) || (pi.stand.arrete && depuis > st.longueur - R.STAND_RAMPE));
+    v.manoeuvreStands = !!pi.stand && ((depuis > -Math.min(R.STAND_RANGER[0], droiteAvantStands(c)) && depuis < R.STAND_RAMPE) || (pi.stand.arrete && depuis > st.longueur - R.STAND_RAMPE));
     return;
   }
   if (v.pneus.arrets > 0 || p.course.etat !== 'course') return;
-  const tour = p.course.tours.length + 1;
-  if (tour < pi.standTour || tour >= p.course.nbTours) return;
   if (depuis < -R.STAND_APPROCHE || depuis > 0) return;
+  // (le tour où il arrivera à l'entrée : si l'entrée est juste après la ligne, il passera la ligne avant elle, c'est le tour suivant ;
+  // sinon, il commencerait à freiner après la ligne, trop tard : tracés officiels, entrée à 20 m de la ligne)
+  const tour = p.course.tours.length + 1 + (v.piste.s > st.entree && p.course.etape === 3 ? 1 : 0);
+  if (tour < pi.standTour || tour >= p.course.nbTours) return;
   pi.stand = { arrete: false, dedans: false };
   if (pi.attaque) finirAttaque(pi, false, 'stands');
 }

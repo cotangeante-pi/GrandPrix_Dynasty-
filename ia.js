@@ -684,7 +684,9 @@ function cibleStands(pilote, s, r, plafond, i) {
   const bord = st.cote * (c.largeur / 2 - R.STAND_BORD), voie = st.cote * (st.dMur + R.STAND_LARGEUR / 2);
   const lisse = (x, a, b) => { const m = Math.max(0, Math.min(1, (x - a) / (b - a))); return m * m * (3 - 2 * m); };
   let e;
-  if (depuis < 0) e = r + (bord - r) * lisse(depuis, -R.STAND_RANGER[0], -R.STAND_RANGER[1]);
+  // (il ne se range que dans la ligne droite avant l'entrée : jamais dans le virage d'avant, quand l'entrée suit de près la ligne)
+  const droite = droiteAvantStands(c);
+  if (depuis < 0) e = r + (bord - r) * lisse(depuis, -Math.min(R.STAND_RANGER[0], droite), -Math.min(R.STAND_RANGER[1], droite / 4));
   else if (depuis <= st.longueur) e = bord + (voie - bord) * lisse(depuis, 0, R.STAND_RAMPE - 10) * (pilote.stand.ceder ? 1 : 1 - lisse(depuis, st.longueur - R.STAND_RAMPE + 5, st.longueur));
   else e = bord + (r - bord) * lisse(depuis, st.longueur + R.STAND_REJOINDRE / 4, st.longueur + R.STAND_REJOINDRE);
   if (i < plafond.length) {
@@ -697,6 +699,17 @@ function cibleStands(pilote, s, r, plafond, i) {
     plafond[i] = vmax;
   }
   return e;
+}
+
+// la longueur de ligne droite juste avant l'entrée de la voie des stands (m), calculée une fois par circuit (gardée dans circuit.stands)
+function droiteAvantStands(c) {
+  const st = c.stands;
+  if (st.droiteAvant === undefined) {
+    let i = Math.round(st.entree / c.pas) % c.nb, l = 0;
+    while (l < c.longueur && Math.abs(c.courbure[(i - 1 + c.nb) % c.nb]) < REGLAGES.IA_DROITE_COURBURE) { i = (i - 1 + c.nb) % c.nb; l += c.pas; }
+    st.droiteAvant = l;
+  }
+  return st.droiteAvant;
 }
 
 // à la sortie des stands (son arrêt fait, dans la rampe de sortie ou juste avant) : une voiture de la piste arrive derrière lui, plus
@@ -829,7 +842,8 @@ function majAttaque(pilote, v, vues, dt) {
 
 // la voiture vue w n'a pas le même réglage d'aileron que la sienne (aileron.js : v.aileronAdherence, v.aileronTrainee ; 1 = le milieu)
 function autreAileron(v, w) {
-  return !!w && ((w.aileronAdherence || 1) !== (v.aileronAdherence || 1) || (w.aileronTrainee || 1) !== (v.aileronTrainee || 1));
+  // (et des pneus plus ou moins usés, étape 7 : elle n'a pas la même adhérence, elle ne freine pas pareil)
+  return !!w && ((w.aileronAdherence || 1) !== (v.aileronAdherence || 1) || (w.aileronTrainee || 1) !== (v.aileronTrainee || 1) || (w.adherence || 1) !== (v.adherence || 1));
 }
 
 // la décélération (m/s²) d'une voiture vue devant lui, d'un pas à l'autre (pilote.vitessesVues : voiture → sa vitesse au pas d'avant) ;
