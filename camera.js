@@ -56,6 +56,30 @@ const CAMERA = (function () {
     if (cam.fov !== champ || cam.near !== pres) { cam.fov = champ; cam.near = pres; cam.updateProjectionMatrix(); }
   }
 
+  // la grille vue d'en haut, avant les feux (CLAUDE.md « L'interface ») : voitures = [{ x, z, cap }] ; a de 0 à 1 (le temps du survol) ;
+  // la caméra passe au-dessus de la grille, de la tête à la queue, en regardant vers le bas, les voitures pointées vers le haut de
+  // l'image ; calcul pur : { x, y, z, vise, haut } (haut : la direction du haut de l'image)
+  function poseGrille(voitures, a) {
+    const n = voitures.length, fx = Math.cos(voitures[0].cap), fz = Math.sin(voitures[0].cap);
+    let cx = 0, cz = 0;
+    for (const v of voitures) { cx += v.x / n; cz += v.z / n; }
+    let avant = 0, arriere = 0;
+    for (const v of voitures) { const s = (v.x - cx) * fx + (v.z - cz) * fz; avant = Math.max(avant, s); arriere = Math.min(arriere, s); }
+    const s = avant + (arriere - avant) * Math.max(0, Math.min(1, a));
+    const x = cx + fx * s, z = cz + fz * s;
+    return { x: x - fx * R.GRILLE_RECUL, y: R.GRILLE_HAUTEUR, z: z - fz * R.GRILLE_RECUL, vise: { x: x + fx * R.GRILLE_VISEE, y: 0, z: z + fz * R.GRILLE_VISEE }, haut: { x: fx, z: fz } };
+  }
+
+  // applique la pose de la grille à la caméra de course
+  function grille(voitures, a) {
+    const p = poseGrille(voitures, a);
+    regler(R.GRILLE_CHAMP, 0.5);
+    cam.up.set(p.haut.x, 0, p.haut.z);
+    cam.position.set(p.x, p.y, p.z);
+    cam.lookAt(p.vise.x, p.vise.y, p.vise.z);
+    cam.up.set(0, 1, 0);
+  }
+
   // tout le circuit dans l'image, vu d'en haut (le nord, -z, en haut de l'écran)
   function placerDessus() {
     const demiFov = THREE.MathUtils.degToRad(cam.fov / 2);
@@ -196,7 +220,7 @@ const CAMERA = (function () {
   }
 
   return {
-    init, maj, majSeconde, suivante, forcer, poseDerriere, poseCockpit, reglerChampBase,
+    init, maj, majSeconde, suivante, forcer, poseDerriere, poseCockpit, reglerChampBase, poseGrille, grille,
     get mode() { return mode; },
     get conduite() { return mode !== 'libre'; },   // en caméra libre, les flèches déplacent la caméra, pas la voiture
     get position() { return cam ? { x: cam.position.x, y: cam.position.y, z: cam.position.z } : null; },
