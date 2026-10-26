@@ -21,6 +21,8 @@ const TEXTES = {
     // team orders
     consigneJoueur: 'Team order: let your team-mate no. {n} through (faster). Ignoring it lowers the team\'s trust.', consigneSuivie: 'Thank you! The team\'s trust goes up.', consigneIgnoree: 'Order ignored: the team\'s trust goes down.',
     attenteArrivee: 'Finished — waiting for the other drivers',
+    resume: '▶ Highlights', resumeTitre: 'Highlights', resumeSortir: 'Click or Esc to leave',   // le résumé vidéo (resume.js)
+    resume_depart: 'The start', resume_depassement: 'Overtake: {qui} passes {sur}', resume_sortie: 'Off track: {qui}', resume_arrivee: 'The finish: {qui} wins',
     attenteAccelere: '⏩ Fast-forward: {n} cars still racing', attenteAccelere1: '⏩ Fast-forward: 1 car still racing',
     passerPodium: 'Skip to the podium (Enter)',
     pause: 'Pause', reprendre: 'Resume', recommencer: 'Restart',
@@ -72,6 +74,7 @@ const TEXTES = {
     // le casque du pilote (casque.js)
     casqueTitre: 'Your helmet', casqueMotif: 'Pattern', casqueCouleurs: 'Colours', monCasque: 'My helmet', casqueValider: 'Keep this helmet',
     motif_uni: 'Plain', motif_bandes: 'Stripes', motif_etoile: 'Star', motif_flammes: 'Flames', motif_damier: 'Chequered', motif_eclair: 'Lightning',
+    motifGagne: 'New helmet design: {motif}!',
     motif_chevrons: 'Chevrons', motif_couronne: 'Crown', motif_zigzag: 'Zigzag', motif_diagonale: 'Diagonal', motif_coeur: 'Heart',   // les motifs à débloquer (tour 27b)
     deblocage_victoire: 'win a race', deblocage_titre: 'win a title', deblocage_podiums: '{n} podiums', deblocage_duel: 'beat your teammate over a season', deblocage_domicile: 'win your home Grand Prix',
     // les 12 circuits (clé : circuit_ + son nom dans CIRCUITS_PAYS), le même nom dans les deux langues
@@ -259,6 +262,8 @@ const TEXTES = {
     // les consignes d'équipe
     consigneJoueur: 'Consigne de l\'écurie : laisse passer ton coéquipier n°{n} (plus rapide). L\'ignorer fait baisser la confiance de l\'écurie.', consigneSuivie: 'Merci ! La confiance de l\'écurie monte.', consigneIgnoree: 'Consigne ignorée : la confiance de l\'écurie baisse.',
     attenteArrivee: 'Arrivée — en attendant les autres pilotes',
+    resume: '▶ Résumé', resumeTitre: 'Résumé de la course', resumeSortir: 'Clic ou Échap pour sortir',   // le résumé vidéo (resume.js)
+    resume_depart: 'Le départ', resume_depassement: 'Dépassement : {qui} sur {sur}', resume_sortie: 'Sortie de piste : {qui}', resume_arrivee: 'L’arrivée : {qui} gagne',
     attenteAccelere: '⏩ En accéléré : encore {n} voitures en course', attenteAccelere1: '⏩ En accéléré : encore 1 voiture en course',
     passerPodium: 'Passer au podium (Entrée)',
     pause: 'Pause', reprendre: 'Reprendre', recommencer: 'Recommencer',
@@ -304,6 +309,7 @@ const TEXTES = {
     piloteValider: 'C’est parti !',
     casqueTitre: 'Ton casque', casqueMotif: 'Motif', casqueCouleurs: 'Couleurs', monCasque: 'Mon casque', casqueValider: 'Garder ce casque',
     motif_uni: 'Uni', motif_bandes: 'Bandes', motif_etoile: 'Étoile', motif_flammes: 'Flammes', motif_damier: 'Damier', motif_eclair: 'Éclair',
+    motifGagne: 'Nouveau motif de casque : {motif} !',
     motif_chevrons: 'Chevrons', motif_couronne: 'Couronne', motif_zigzag: 'Zigzag', motif_diagonale: 'Diagonale', motif_coeur: 'Cœur',   // les motifs à débloquer (tour 27b)
     deblocage_victoire: 'gagner une course', deblocage_titre: 'gagner un titre', deblocage_podiums: '{n} podiums', deblocage_duel: 'battre son coéquipier sur une saison', deblocage_domicile: 'gagner son Grand Prix à domicile',
     circuit_monoco: 'Monoco', circuit_silverstoun: 'Silverstoun', circuit_monzo: 'Monzo', circuit_spaa: 'Spaa', circuit_suzuko: 'Suzuko', circuit_interlagas: 'Interlagas',

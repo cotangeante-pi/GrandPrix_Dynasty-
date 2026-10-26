@@ -1,7 +1,7 @@
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><title>tests</title></head><body>
 <pre id="res"></pre>
 <script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));window.addEventListener('unhandledrejection',e=>__err.push('promesse : '+(e.reason&&e.reason.message||e.reason)));</script>
-<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../son.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../decouverte.js"></script><script src="../pilote.js"></script><script src="../deux-joueurs.js"></script><script src="../tournoi.js"></script><script src="../casque.js"></script><script src="../cache-carte.js"></script><script src="../journal.js"></script><script src="../argent.js"></script><script src="../garage.js"></script><script src="../aileron.js"></script><script src="../carte2d.js"></script><script src="../saisons.js"></script><script src="../sponsors.js"></script><script src="../fiche.js"></script><script src="../interview.js"></script><script src="../carriere.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../fantome.js"></script><script src="../principal.js"></script>
+<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../son.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../decouverte.js"></script><script src="../pilote.js"></script><script src="../deux-joueurs.js"></script><script src="../tournoi.js"></script><script src="../casque.js"></script><script src="../photo.js"></script><script src="../cache-carte.js"></script><script src="../journal.js"></script><script src="../argent.js"></script><script src="../garage.js"></script><script src="../aileron.js"></script><script src="../carte2d.js"></script><script src="../saisons.js"></script><script src="../sponsors.js"></script><script src="../fiche.js"></script><script src="../interview.js"></script><script src="../carriere.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../resume.js"></script><script src="../fantome.js"></script><script src="../principal.js"></script>
 <script>
 const L=[];let ok=0,ko=0;
 function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
@@ -1129,6 +1129,19 @@ t('aileron : la carte de la prochaine course se dessine pour chaque circuit (tra
     v(n===circ.nb&&clairs>300&&jaunes>10,nom+' : '+clairs+' clairs, '+jaunes+' jaunes');}
   L.push('  (aileron : la carte dessinée pour '+noms.length+' circuits : '+noms.join(', ')+')');});
 
+// --- la photo de la une (tour 31, journal.js : photo, photo.js : PHOTO.dessiner)
+t('photo de la une : elle se dessine (des pixels, pas d’une seule couleur), la même une redessinée deux fois donne exactement la même image, le podium pour une victoire et la voiture du joueur pour un record, et rien d’image dans la sauvegarde', ()=>{
+  const ch=CHAMPIONNAT.creer(52);CASQUE.completer(ch);for(let g=0;g<4;g++) SAISONS.avancer(ch,1);
+  const l=lignesUne(ordreAvec([19,3,5]));CHAMPIONNAT.enregistrerCourse(ch,l);const u=JOURNAL.ranger(ch,JOURNAL.composer(ch,l));
+  const d=JOURNAL.photo(u,ch);v(d.type==='podium'&&d.voitures.length===3&&d.voitures[0].k===19&&d.voitures[1].k===3&&d.voitures.every(x=>typeof x.couleur==='number'&&CASQUE.valide(x.casque)),'podium : '+JSON.stringify(d));
+  const image=desc=>{const c=document.createElement('canvas');c.width=320;c.height=150;PHOTO.dessiner(c.getContext('2d'),320,150,desc);return c;};
+  const a=image(d),b=image(JOURNAL.photo(u,JSON.parse(JSON.stringify(ch))));v(a.toDataURL()===b.toDataURL(),'deux dessins différents');
+  const px=a.getContext('2d').getImageData(0,0,320,150).data,coul=new Set();for(let i=0;i<px.length;i+=4*37) coul.add(px[i]+','+px[i+1]+','+px[i+2]);v(coul.size>8,coul.size+' couleurs');
+  const r={f:'record',ph:u.ph,pe:u.pe,je:u.je,s:u.s};const dv=JOURNAL.photo(r,ch);v(dv.type==='voiture'&&dv.voitures[0].k===19,'voiture : '+JSON.stringify(dv));
+  const vieux=JOURNAL.photo({f:'victoire',s:1},ch);v(vieux.type==='voiture','une ancienne une sans photo : la voiture du joueur');
+  const json=JSON.stringify(ch);v(!/data:image|base64/.test(json)&&Array.isArray(u.ph)&&u.ph.every(Number.isInteger),'sauvegarde : '+JSON.stringify(u).slice(0,200));
+  L.push('  (photo : '+coul.size+' couleurs échantillonnées, une '+JSON.stringify(u).length+' octets avec ph/pe/je)');});
+
 // --- l'élision du français (tour 29c) : « d’Alex », « de Léo »
 t('textes : l’élision du français (elider) : « de Alex » → « d’Alex », « que Emma » → « qu’Emma », « de Léo » et « de Hugo » ne changent pas ; la une de la relève dit « La fille d’Alex Rossi » ; aucun texte fixe n’a « de » devant une voyelle', ()=>{
   if(LANGUE==='fr'){v(elider('La fille de Alex Rossi')==='La fille d’Alex Rossi'&&elider('plus vite que Emma')==='plus vite qu’Emma'&&elider('le fils de Léo')==='le fils de Léo'&&elider('de Hugo')==='de Hugo'&&elider('De Ines')==='D’Ines'&&elider('sans de Écurie')==='sans d’Écurie','elider : '+elider('La fille de Alex Rossi'));
@@ -1200,6 +1213,11 @@ t('relève : les anciens rivaux du parent deviennent patrons ou consultants, seu
   const vieux=JSON.parse(JSON.stringify(ch));for(const r of vieux.retraites){delete r.role;delete r.ecurieDirigee;}SAISONS.completer(vieux);
   v(JSON.stringify(vieux.retraites.map(r=>[r.role,r.ecurieDirigee]))===JSON.stringify(ch.retraites.map(r=>[r.role,r.ecurieDirigee]))&&JSON.stringify(ch.retraites.slice(0,JSON.parse(roles).length).map(r=>[r.role,r.ecurieDirigee]))===roles,'ancienne sauvegarde : les mêmes rôles');
   L.push('  (relève : '+P.length+' anciens rivaux du parent patrons, '+Cs.length+' consultants)');});
+t('relève : l’éditeur de l’héritier propose les motifs débloqués : un motif débloqué est accepté, un motif encore bloqué ne l’est pas (le casque du parent reste), les motifs de départ toujours', ()=>{
+  const {ch}=carriere15(51),bloque=Object.keys(REGLAGES.CASQUE_DEBLOCAGES)[0],couleurs=[0x112233,0x445566,0x778899];ch.pilotes[19].casque=CASQUE.creer('bandes',[1,2,3]);
+  let v_=CARRIERE.validerHeritier(ch,{prenom:'Léa',lien:'fille',numero:77,casque:CASQUE.creer(bloque,couleurs),debloques:[]});v(v_.choix.casque.motif==='bandes','bloqué : '+JSON.stringify(v_.choix.casque));
+  v_=CARRIERE.validerHeritier(ch,{prenom:'Léa',lien:'fille',numero:77,casque:CASQUE.creer(bloque,couleurs),debloques:[bloque]});v(v_.choix.casque.motif===bloque&&v_.choix.casque.couleurs[0]===0x112233,'débloqué : '+JSON.stringify(v_.choix.casque));
+  v_=CARRIERE.validerHeritier(ch,{prenom:'Léa',lien:'fille',numero:77,casque:CASQUE.creer(REGLAGES.CASQUE_MOTIFS[2],couleurs)});v(v_.choix.casque.motif===REGLAGES.CASQUE_MOTIFS[2],'motif de départ');});
 t('relève : les records de famille s’additionnent sur 3 générations de 15 saisons ; les retraités gardent un résumé compact ; une ancienne sauvegarde (v3, sans dynastie) devient une dynastie d’une génération ; la taille après 3 générations est mesurée', ()=>{
   const {ch}=carriere15(47),gens=[];
   for(let g=0;g<2;g++){gens.push(CARRIERE.resume(ch));heritier(ch,['Léa','Tom'][g],['fille','fils'][g]);
@@ -1208,7 +1226,7 @@ t('relève : les records de famille s’additionnent sur 3 générations de 15 s
   const f=CARRIERE.recordsFamille(ch),som=k=>gens.reduce((a,x)=>a+x[k],0);
   v(ch.dynastie.generations.length===2&&ch.saison===45&&ch.retraite&&f.generations===3&&f.titres===som('titres')&&f.victoires===som('victoires')&&f.podiums===som('podiums')&&f.championnes===gens.filter(x=>x.titres>0).length,'famille : '+JSON.stringify(f)+' / '+JSON.stringify(gens.map(x=>[x.titres,x.victoires])));
   const vc=Object.values(f.circuits).reduce((a,b)=>a+b,0);v(vc===f.victoires,'victoires par circuit '+vc+' / '+f.victoires);
-  v(ch.retraites.every(r=>!r.places&&!r.stats&&Object.keys(r).length<=12)&&ch.dynastie.generations.every(x=>!x.places&&Object.keys(x).length<=22),'résumés compacts');
+  v(ch.retraites.every(r=>!r.places&&!r.stats&&Object.keys(r).length<=14)&&ch.dynastie.generations.every(x=>!x.places&&Object.keys(x).length<=22),'résumés compacts');
   const taille=JSON.stringify(ch).length;
   const vieux=JSON.parse(JSON.stringify(carriere15(48).ch));delete vieux.dynastie;delete vieux.carriere;localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:3,records:{},championnat:vieux}));
   const d=SAUVEGARDE.lire();v(d.version===4&&d.championnat.dynastie.generations.length===0&&d.championnat.dynastie.famille==='Rossi'&&CARRIERE.recordsFamille(d.championnat).generations===1,'ancienne : '+JSON.stringify(d.championnat.dynastie));
@@ -2167,10 +2185,37 @@ t('casque : les motifs débloqués sont gardés à la racine de la sauvegarde : 
   localStorage.removeItem(SAUVEGARDE.CLE);
   v(SAUVEGARDE.motifs().length===0,'vierge');
   v(SAUVEGARDE.debloquerMotifs(['chevrons']).join()==='chevrons'&&SAUVEGARDE.debloquerMotifs(['chevrons','couronne']).join()==='couronne'&&SAUVEGARDE.motifs().join()==='chevrons,couronne','gagnés');
+  v(SAUVEGARDE.prendreAnnonceMotifs().join()==='chevrons,couronne'&&SAUVEGARDE.prendreAnnonceMotifs().length===0&&SAUVEGARDE.debloquerMotifs(['chevrons']).length===0&&SAUVEGARDE.prendreAnnonceMotifs().length===0,'l’annonce : une seule fois, et pas pour un motif déjà gagné');
   SAUVEGARDE.ecrireChampionnat(CHAMPIONNAT.creer(9));v(SAUVEGARDE.motifs().join()==='chevrons,couronne','nouvelle carrière');
   const d=SAUVEGARDE.lire();d.championnat=null;SAUVEGARDE.ecrire(d);v(SAUVEGARDE.motifs().join()==='chevrons,couronne','sans championnat');
   localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:3,records:{},championnat:null}));v(SAUVEGARDE.motifs().length===0,'ancienne');
   localStorage.removeItem(SAUVEGARDE.CLE);});
+
+// --- le résumé vidéo de la course (resume.js, étape 13)
+t('résumé : sur une course simulée (12 IA, 3 tours, enregistrée comme dans la page), les moments forts : le départ, au moins un dépassement, l’arrivée ; la durée totale bornée (RESUME_DUREE_MAX) ; le rejeu ne passe que par ces plages et redonne les positions de l’enregistrement à 1 cm près', ()=>{
+  const R=REGLAGES,e=creerCourseIA(C,12,3,5,CARTES_T.test),N=e.pilotes.length,voitures=e.pilotes.map(p=>p.v),enr=creerEnregistreur(N,{joueur:11});
+  const vraies=[];let parti=false,pas=0;const arrivees=new Set();
+  for(let k=0;k<400*120&&!e.pilotes.every(p=>p.arrivee!==null);k++){pasCourseIA(e,DT);
+    if(!parti&&courseAutorise(e.pilotes[0].course)){parti=true;enr.depart(e.temps);}
+    const n0=enr.nbImages;enr.enregistrer(e.temps,voitures,pas%REGLAGES_ENREGISTREUR.CLASSEMENT_PAS===0?classementCourse(e):null);pas++;
+    if(enr.nbImages>n0)vraies.push({t:enr.temps(enr.nbImages-1),p:voitures.map(v=>[v.x,v.z])});
+    e.pilotes.forEach((p,i)=>{if(p.arrivee!==null&&!arrivees.has(i)){arrivees.add(i);enr.arrivee(p.arrivee,i);}});}
+  const r=RESUME.creer(enr),types=r.plages.flatMap(p=>p.moments.map(m=>m.type));
+  v(types.includes('depart')&&types.includes('arrivee')&&types.filter(x=>x==='depassement').length>=1,'moments : '+types.join());
+  v(r.duree<=R.RESUME_DUREE_MAX+1e-9&&r.duree>0,'durée '+r.duree);
+  // le rejeu : à 30 images par seconde, toujours dans une plage, jusqu'au bout ; puis fini
+  let vus=0,dehors=0,dernier=-Infinity,recule=0;
+  for(let i=0;i<100000&&!r.fini;i++){RESUME.avancer(r,1/30);if(r.fini)break;const p=r.plages[r.i];if(r.t<p.debut-1e-9||r.t>p.fin+1e-9)dehors++;if(r.t<dernier&&r.i===0)recule++;dernier=r.t;vus++;
+    const m=RESUME.moment(r);v(m&&p.moments.includes(m),'moment');v(RESUME.suivie(r,enr)>=0&&RESUME.suivie(r,enr)<N,'suivie');}
+  v(r.fini&&dehors===0&&recule===0&&Math.abs(r.joue-r.duree)<0.1,'rejeu : '+JSON.stringify({vus,dehors,recule,joue:r.joue,duree:r.duree}));
+  // les positions : aux instants des images enregistrées qui tombent dans le résumé, celles de la course à 1 cm près
+  const r2=RESUME.creer(enr);let compares=0,pire=0;
+  for(const x of vraies){if(!r2.plages.some(p=>x.t>=p.debut&&x.t<=p.fin))continue;r2.t=x.t;const pos=RESUME.positions(r2,enr);
+    for(let k=0;k<N;k++)pire=Math.max(pire,Math.hypot(pos[k].x-x.p[k][0],pos[k].z-x.p[k][1]));compares++;}
+  v(compares>50&&pire<0.01,'positions : '+compares+' images, écart max '+pire.toFixed(4)+' m');
+  const b=RESUME.bandeau(r2.plages.flatMap(p=>p.moments).find(m=>m.type==='depassement'));v(b.cle==='resume_depassement'&&typeof b.valeurs.qui==='number'&&typeof b.valeurs.sur==='number'&&TEXTES.fr[b.cle]&&TEXTES.en[b.cle],'bandeau');
+  v(RESUME.creer(creerEnregistreur(3))===null,'enregistrement vide');
+  L.push('  (résumé : '+r.plages.length+' plages, '+r.duree.toFixed(1)+' s, '+types.filter(x=>x==='depassement').length+' dépassements ; positions à '+(pire*1000).toFixed(2)+' mm près sur '+compares+' images)');});
 
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 ecrire();

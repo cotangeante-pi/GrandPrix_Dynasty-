@@ -971,3 +971,19 @@ body.deux.cote #boutonSon { top: auto; bottom: 12px; right: 12px; }   /* (côte 
 #arbreGenerations .nom { font-weight: 700; overflow: hidden; text-overflow: ellipsis; }
 #arbreGenerations .chiffres { font-size: 13px; opacity: 0.92; }
 #arbreFamille, #arbreCircuits { font-size: 14px !important; max-width: 92vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* le résumé vidéo de la course (resume.js, étape 13) : la 3D en plein écran, un bandeau façon télé en bas à gauche, un clic pour sortir */
+#resume { position: fixed; inset: 0; cursor: pointer; z-index: 5; }
+#resumeBandeau { position: absolute; left: 24px; bottom: 40px; display: flex; flex-direction: column; gap: 2px; padding: 10px 16px; border-left: 5px solid #e10600; border-radius: 6px; background: rgba(11, 15, 23, 0.82); max-width: calc(100% - 48px); box-sizing: border-box; }
+#resumeTitre { font: 700 13px/1.2 var(--police); text-transform: uppercase; letter-spacing: 1px; opacity: 0.8; }
+#resumeMoment { font: 800 22px/1.25 var(--police); }
+#resumeSortir { position: absolute; right: 16px; bottom: 12px; margin: 0; font: 600 13px/1.2 var(--police); opacity: 0.75; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8); }
+/* l'annonce d'un motif de casque gagné (au paddock, une fois) */
+#annonceMotif { position: fixed; top: 64px; left: 50%; transform: translateX(-50%); z-index: 6; display: grid; gap: 6px; padding: 12px 20px; border-radius: 10px; background: rgba(11, 15, 23, 0.92); box-shadow: 0 0 0 2px #f2c230; font: 800 20px/1.3 var(--police); color: #f2c230; cursor: pointer; }
+#annonceMotif div { display: flex; align-items: center; gap: 10px; }
+#annonceMotif .casqueIcone { width: 40px; height: 40px; }
+
+/* la photo de la une (Codeur 3, photo.js) : le canvas remplit la place de la photo, sans la déformer */
+#unePhoto { position: relative; overflow: hidden; background: none; }
+#unePhoto canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+#bilanCasque { vertical-align: -6px; margin-right: 6px; border-radius: 50%; }

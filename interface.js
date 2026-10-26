@@ -45,7 +45,7 @@ const INTERFACE = (function () {
   }
 
   function montrer(ecran) {
-    for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une', 'garage', 'saison', 'duelSaison', 'contrats', 'retraite', 'titre', 'amis', 'bravo', 'pilote', 'sponsors', 'fiche', 'interview', 'ceremonie', 'temple', 'heritier', 'deuxReglages', 'tournoiInscription', 'tournoiAToi', 'tournoiPause', 'tournoiManche', 'tournoiFin', 'aileron', 'arbre']) $(id).classList.toggle('cache', id !== ecran);
+    for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une', 'garage', 'saison', 'duelSaison', 'contrats', 'retraite', 'titre', 'amis', 'bravo', 'pilote', 'sponsors', 'fiche', 'interview', 'ceremonie', 'temple', 'heritier', 'deuxReglages', 'resume', 'tournoiInscription', 'tournoiAToi', 'tournoiPause', 'tournoiManche', 'tournoiFin', 'aileron', 'arbre']) $(id).classList.toggle('cache', id !== ecran);
     // l'album des unes (Codeur 3) : la page de la une, avec la barre pour feuilleter
     if (ecran === 'album') $('une').classList.remove('cache');
     $('une').classList.toggle('album', ecran === 'album');
@@ -191,6 +191,11 @@ const INTERFACE = (function () {
     $('uneNom').textContent = r.nom;
     $('uneEdition').textContent = avec(texte('uneEdition'), { n: r.grandPrix, circuit: r.circuit });
     $('uneTitre').textContent = r.titre;
+    // la photo (photo.js) : dessinée par le code depuis la une compacte (JOURNAL.photo), jamais une image enregistrée
+    let cv = $('unePhoto').querySelector('canvas');
+    if (!cv) { cv = document.createElement('canvas'); cv.width = 600; cv.height = 330; cv.getContext('2d', { willReadFrequently: true }); $('unePhoto').appendChild(cv); }   // (dessiné par le processeur : la même image partout, même une fois affiché)
+    PHOTO.dessiner(cv.getContext('2d'), cv.width, cv.height, r.photo);
+    cv.dataset.desc = JSON.stringify(r.photo);   // (ce que la photo montre : les tests le comparent à la une compacte)
     $('uneTexte').textContent = r.texte;
     $('uneBrevesTitre').textContent = texte('uneBreves');
     const ul = $('uneBreves');
@@ -722,6 +727,8 @@ const INTERFACE = (function () {
   // --- le bilan de carrière et le temple de la renommée (Codeur 3, carriere.js) ---
   // b = CARRIERE.bilan ; une = la une préférée rendue (JOURNAL.rendreAlbum) ou null ; place, n : sa place au temple et sa taille
   function remplirBilan(ch, b, une, place, n) {
+    // le casque du pilote qui s'arrête, devant le titre (son motif, débloqué ou non, tel qu'il l'a porté)
+    if (CASQUE.valide(b.casque)) { const c = CASQUE.icone(b.casque, 34); c.id = 'bilanCasque'; $('retraiteTitre').prepend(c, ' '); }
     const E = texte('bilanEtiquettes'), tiret = '—';
     const valeurs = [b.saisons, b.titres, b.victoires, b.podiums, b.poles, b.meilleursTours, b.meilleurePlace ? 'P' + b.meilleurePlace : tiret,
       b.domicile ? 'P' + b.domicile : tiret, b.reaction ? secondes(Math.round(b.reaction * 1000) / 1000) : tiret];
@@ -816,7 +823,7 @@ const INTERFACE = (function () {
     options('heritierLien', CARRIERE.LIENS, l => avec(texte('heritierLien_' + l), { parent }));
     options('heritierPays', R.PAYS.slice().sort((a, b) => texte('pays_' + a).localeCompare(texte('pays_' + b), LANGUE)), c => texte('pays_' + c));
     options('heritierCoeur', Object.keys(R.CIRCUITS_PAYS), nomCircuit);
-    options('heritierMotif', R.CASQUE_MOTIFS, m => texte('motif_' + m));
+    optionsMotifs($('heritierMotif'));   // tous les motifs : ceux de départ et ceux débloqués (SAUVEGARDE.motifs) ; les autres grisés, avec leur condition
     $('heritierPays').value = j.pays || R.PAYS[0];
     $('heritierCoeur').value = j.coeur || Object.keys(R.CIRCUITS_PAYS)[0];
     majDomicileHeritier();
@@ -838,7 +845,7 @@ const INTERFACE = (function () {
   function lireHeritier(ch) {
     const c = CARRIERE.casqueParent(ch);
     return { prenom: $('heritierPrenom').value, numero: $('heritierNumero').value, lien: $('heritierLien').value, pays: $('heritierPays').value, coeur: $('heritierCoeur').value,
-      casque: CASQUE.creer($('heritierMotif').value, c.couleurs) };
+      casque: CASQUE.creer($('heritierMotif').value, c.couleurs), debloques: SAUVEGARDE.motifs() };
   }
 
   function montrerErreurHeritier(oui) {
@@ -1370,7 +1377,39 @@ const INTERFACE = (function () {
     }
   }
 
-  return { remplirInscription, lireInscription, montrerErreursTournoi, preparerInscription, remplirAToi, majCompteTournoi, preparerPauseTournoi, remplirMancheTournoi, preparerMancheTournoi, remplirFinTournoi, preparerFinTournoi, preparerAmis, remplirDeux, lireDeux, montrerErreursDeux, preparerDeux, remplirPodiumDeux, remplirRivalite, formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, preparerChampionnat, remplirQualif, preparerQualif,
+  // --- le résumé vidéo de la course (resume.js) : le bouton « ▶ Résumé » des résultats, le bandeau du moment, la sortie (clic)
+  function preparerResume(ouvrir, sortir) {
+    $('annonceMotif').addEventListener('click', () => $('annonceMotif').classList.add('cache'));   // (l'annonce d'un motif se ferme d'un clic)
+    $('boutonResume').textContent = texte('resume');
+    $('resumeTitre').textContent = texte('resumeTitre');
+    $('resumeSortir').textContent = texte('resumeSortir');
+    $('boutonResume').addEventListener('mousedown', e => e.preventDefault());
+    $('boutonResume').addEventListener('click', ouvrir);
+    $('resume').addEventListener('mousedown', e => e.preventDefault());
+    $('resume').addEventListener('click', sortir);
+  }
+  function montrerBoutonResume(oui) { $('boutonResume').classList.toggle('cache', !oui); }
+  function majResume(moment) { $('resumeMoment').textContent = moment || ''; }
+
+  // l'annonce d'un motif de casque gagné (au paddock, une fois) : le motif sur les couleurs du casque du joueur ; un clic ou
+  // ANNONCE_MOTIF_DUREE la ferment
+  let minuterieAnnonce = null;
+  function annoncerMotifs(motifs, casque) {
+    const el = $('annonceMotif');
+    clearTimeout(minuterieAnnonce);
+    el.classList.toggle('cache', !motifs.length);
+    if (!motifs.length) return;
+    el.textContent = '';
+    for (const m of motifs) {
+      const ligne = document.createElement('div');
+      const c = casque.couleurs, couleurs = [c[0], c[1] === c[0] ? REGLAGES.CASQUE_PALETTE[1] : c[1], c[2]];   // (le casque neutre : deux fois la même couleur, le motif ne se verrait pas)
+      ligne.append(CASQUE.icone({ motif: m, couleurs }, 40), ' ' + texte('motifGagne').replace('{motif}', texte('motif_' + m)));
+      el.appendChild(ligne);
+    }
+    minuterieAnnonce = setTimeout(() => el.classList.add('cache'), REGLAGES.ANNONCE_MOTIF_DUREE * 1000);
+  }
+
+  return { annoncerMotifs, preparerResume, montrerBoutonResume, majResume, remplirInscription, lireInscription, montrerErreursTournoi, preparerInscription, remplirAToi, majCompteTournoi, preparerPauseTournoi, remplirMancheTournoi, preparerMancheTournoi, remplirFinTournoi, preparerFinTournoi, preparerAmis, remplirDeux, lireDeux, montrerErreursDeux, preparerDeux, remplirPodiumDeux, remplirRivalite, formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, preparerChampionnat, remplirQualif, preparerQualif,
     remplirDuel, avec, remplirUne, preparerUne, remplirArgent, remplirSolde, remplirGarage, preparerGarage,
     remplirSaison, remplirDuelSaison, remplirContrats, remplirRetraite, preparerSaison, retraiteEnAttente, remplirCeremonie, preparerCeremonie, remplirAlbum, preparerAlbum, remplirBilan, remplirTemple, preparerTemple, preparerReleve, remplirHeritier, lireHeritier, montrerErreurHeritier, remplirAileron, majAileron, preparerAileron, remplirArbre, preparerArbre,
     remplirSponsors, remplirRappelSponsor, preparerSponsors, remplirFiche, preparerFiche, remplirInterview, montrerEffetInterview, preparerInterview, remplirReputation,
