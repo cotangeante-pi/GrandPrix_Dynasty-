@@ -1,0 +1,46 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>les IA sur les 12 tracés officiels</title></head><body>
+<pre id="res"></pre>
+<script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));</script>
+<script src="../donnees.js"></script><script src="../aleatoire.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../course.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../circuits-officiels-a.js"></script><script src="../circuits-officiels-b.js"></script>
+<script>
+// Les IA sur les 12 tracés officiels (tour 31, Codeur 1), EN SIMULATION SEULEMENT : rien n'est branché dans le jeu (les tracés
+// attendent l'accord du propriétaire). Pour chaque tracé : la carte des IA se calcule (temps) ; une IA seule fait 2 tours (temps au tour,
+// barrières, herbe, coupes) ; 10 IA font 3 tours sans pneus (chocs > 5 m/s, herbe, barrières, coupes, dépassements, toutes arrivées) ;
+// avec les pneus, 4 tours et un arrêt de chacune au tour 2 ou 3, une sur deux (la voie des stands : arrêts faits, muret, pénalités de vitesse).
+// EXIGÉ : chaque carte se calcule ; chaque IA seule fait ses 2 tours sans barrière ni herbe. Le reste est mesuré et affiché.
+// ?circuits=monoco,spaa pour n'en lancer que quelques-uns.
+const Q=new URLSearchParams(location.search),FILTRE=Q.get('circuits');
+const L=[];let ok=0,ko=0;
+function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
+const v=(c,m)=>{if(!c)throw new Error(m||'faux');};
+const ecrire=etape=>{document.getElementById('res').textContent=`${etape?'EN COURS ('+etape+') ':''}RESULTAT ${ok}/${ok+ko}\n`+L.join('\n');};
+const DT=REGLAGES.PAS_PHYSIQUE,chocs=V=>V.flatMap(x=>x.v.chocs).filter(c=>c>5).length/2,somme=(V,f)=>V.reduce((a,x)=>a+f(x),0);
+const TOUS=Object.assign({},CIRCUITS_OFFICIELS_A,CIRCUITS_OFFICIELS_B),tableau=[];
+function rouler(e,nb){const pasMax=Math.round(nb*REGLAGES.SIMULATION_TEMPS_MAX/DT);for(let k=0;k<pasMax&&e.arrives<e.pilotes.length;k++)pasCourseIA(e,DT);return e;}
+for(const [cle,def] of Object.entries(TOUS)){
+  if(FILTRE&&!FILTRE.split(',').includes(cle))continue;
+  const r={cle,nom:def.nom};tableau.push(r);
+  t(def.nom+' : la carte des IA se calcule',()=>{const t0=performance.now();r.c=construireCircuit(def);r.carte=carteDepuis(r.c,calculerTrajectoire(r.c));r.msCarte=performance.now()-t0;
+    CARTES.set(r.c,r.carte);v(r.carte.virages.length>0&&r.carte.trajectoire.vitesse.every(x=>x>0&&isFinite(x)),'carte');r.longueur=r.c.longueur;r.virages=r.carte.virages.length;});
+  if(!r.carte){ecrire(cle);continue;}
+  t(def.nom+' : une IA seule fait 2 tours, sans barrière ni herbe',()=>{const e=creerCourseIA(r.c,1,2,1,r.carte),p=e.pilotes[0];p.course.compte=0;rouler(e,2);
+    r.seule={fini:p.arrivee!==null,tours:p.course.tours.map(x=>x.temps),barr:p.v.contactsBarriere,herbe:p.herbe,coupes:Math.round(p.course.penalites/REGLAGES.PENALITE_COUPE)};
+    v(r.seule.fini,'pas arrivée');v(r.seule.barr===0&&r.seule.herbe===0,'barrières '+r.seule.barr+', herbe '+r.seule.herbe);});
+  // 10 IA, 3 tours sans pneus ; puis 4 tours avec les pneus et un arrêt au tour 2 ou 3 (mesuré, pas exigé)
+  for(const pneus of [false,true]){
+    const avant=REGLAGES.PNEUS_ACTIFS;REGLAGES.PNEUS_ACTIFS=pneus;
+    try{const e=creerCourseIA(r.c,10,pneus?4:3,1,r.carte);if(pneus&&r.c.stands)e.pilotes.forEach((p,k)=>{p.pilote.standTour=2+k%2;});rouler(e,pneus?4:3);const V=e.pilotes;
+      r[pneus?'avec':'sans']={fini:V.every(x=>x.arrivee!==null),chocs:chocs(V),herbe:somme(V,x=>x.herbe),barr:somme(V,x=>x.v.contactsBarriere),
+        coupes:somme(V,x=>Math.round((x.course.penalites-(x.course.penaliteSansArret||0)-(x.course.penalitesStands||0))/REGLAGES.PENALITE_COUPE)),dep:e.depassements.length,
+        arrets:somme(V,x=>(x.course.arrets||[]).length),muret:somme(V,x=>x.v.contactsMurStands),vitesse:somme(V,x=>x.course.penalitesStands||0)};
+    }catch(err){r[pneus?'avec':'sans']={erreur:err.message};}finally{REGLAGES.PNEUS_ACTIFS=avant;}
+  }
+  const f=x=>x.erreur?'erreur '+x.erreur:`${x.fini?'toutes arrivées':'PAS TOUTES ARRIVÉES'}, chocs>5 ${x.chocs}, herbe ${x.herbe}, barrières ${x.barr}, coupes ${x.coupes}, dépassements ${x.dep}`;
+  L.push(`  ${def.nom} (${(r.longueur/1000).toFixed(3)} km, ${r.virages} virages) : carte ${(r.msCarte/1000).toFixed(1)} s | seule : ${r.seule?(r.seule.tours.map(x=>x.toFixed(2)).join(' / ')+' s, barrières '+r.seule.barr+', herbe '+r.seule.herbe+', coupes '+r.seule.coupes):'—'}`);
+  L.push(`      10 IA, 3 tours, sans pneus : ${f(r.sans)}`);
+  L.push(`      10 IA, 4 tours, pneus + arrêt au tour 2 ou 3 : ${f(r.avec)}${r.avec.erreur?'':', arrêts '+r.avec.arrets+'/10, muret '+r.avec.muret+', pénalités de vitesse '+r.avec.vitesse+' s'}${r.c.stands?'':' (pas de voie des stands)'}`);
+  ecrire(cle);
+}
+t('aucune erreur JavaScript',()=>v(__err.length===0,__err.join(' | ')));
+ecrire();
+</script></body></html>
