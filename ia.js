@@ -475,11 +475,11 @@ function noterLigne(pilote, v, voisines, s0, t, type) {
     // (aileron, Codeur 3 : il connaît aussi l'adhérence de son aileron, v.aileronAdherence ; × 1 au cran du milieu)
     const mu = R.ADHERENCE * (v.adherence || 1) * (v.aileronAdherence || 1) * (Math.abs(e[i]) > dehors && type !== 'stands' ? R.ADHERENCE_HERBE : 1);   // (la voie des stands n'est pas de l'herbe)
     // le rythme (le talent) joue dans les virages ; la vitesse de pointe est celle de la voiture
-    // (virage serré, sous IA_RAYON_SERRE m de rayon : la courbure d'une ligne mesurée sur ±IA_LIGNE_DEMI_BASE points (±8 m) passe
-    // à travers l'épingle et la sous-estime ; il ne compte jamais moins que la courbure de la piste elle-même : sinon il y arrivait
-    // trop vite et sortait large, dans l'herbe, surtout en peloton (tracés officiels : Monoco, Suzuko, Montréol, Yas Marino))
-    const kt = valeurEn(c, c.courbure, s0 + i * pas), kl = Math.abs(kt) > 1 / R.IA_RAYON_SERRE ? Math.abs(kt) : 0;
-    const kv = Math.max(Math.abs(k[i]), kl);
+    // (virage serré, sous IA_RAYON_SERRE m de rayon de piste : la courbure mesurée sur ±IA_LIGNE_DEMI_BASE points (±8 m) lisse le coin
+    // d'une épingle et la sous-estime ; il prend aussi celle des points voisins (±IA_LIGNE_PAS m), la plus forte des deux : sinon il y
+    // arrivait trop vite et sortait large, dans l'herbe ; tracés officiels : Monoco, Suzuko, Montréol, Yas Marino)
+    let kv = Math.abs(k[i]);
+    if (i > 0 && i < N - 1 && Math.abs(valeurEn(c, c.courbure, s0 + i * pas)) > 1 / R.IA_RAYON_SERRE) kv = Math.max(kv, Math.abs(courbureTroisPoints(x[i - 1], z[i - 1], x[i], z[i], x[i + 1], z[i + 1])));
     vb[i] = Math.min(pointe, rythme * Math.min(vitesseVirage(kv, mu) * R.IA_MARGE_VIRAGE, vitesseBraquage(kv)));
     if (type === 'stands') { vb[i] = Math.min(vb[i], t.plafond[i]); continue; }   // (la limite de la voie et l'arrêt ; ni bord ni herbe)
     if (Math.abs(e[i]) > bord) { penalite += R.IA_PENALITE_BORD * (Math.abs(e[i]) - bord) * pas; danger = true; }
