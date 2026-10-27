@@ -2487,8 +2487,10 @@ def tuto_lecon(pg, titre, l, h, page):
     attendre(pg, '() => typeof TUTORIEL_ECRAN !== "undefined" && TUTORIEL_ECRAN.lecon() !== null', None, 10000)
     if id == 'visite':
         # une vraie carrière dans la sauvegarde (graine 7), puis la page de la leçon : la visite ne doit rien y laisser (l'aileron, les pneus du départ…)
+        # (posée depuis une page qui n'est pas une leçon : recharger la leçon remettrait la sauvegarde d'avant, c'est voulu)
+        pg.goto('file://' + RACINE + '/index.html?championnat=1'); attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', None, 30000)
         pg.evaluate('() => { const d = SAUVEGARDE.lire(); d.championnat = CHAMPIONNAT.creer(7); d.championnat.marqueTest = 7; SAUVEGARDE.ecrire(d); }')
-        pg.reload(); attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', None, 30000)
+        pg.goto('file://' + RACINE + '/' + page); attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', None, 30000)
         avant = pg.evaluate('() => TUTORIEL_ECRAN.avantVisite()')
         t(f'{titre} : la visite garde la carrière de la sauvegarde telle quelle avant de commencer', avant is not None and '"marqueTest":7' in avant, str(avant)[:200])
         def changer_carriere():
@@ -2503,6 +2505,7 @@ def tuto_lecon(pg, titre, l, h, page):
             pg.goto('file://' + RACINE + '/tests/textes.html'); pg.wait_for_timeout(300)
             apres = pg.evaluate('() => { const d = JSON.parse(localStorage.getItem("grand-prix-dynasty")); return { ch: JSON.stringify(d.championnat), tuto: d.tutoriel || [] }; }')
             t(f'{titre} : la visite quittée en cours de route (l’aileron changé) : la carrière de la sauvegarde revient exactement comme avant, sans étoile', change and apres['ch'] == avant and 'visite' not in apres['tuto'], str([change, apres['ch'] == avant, apres['tuto']]))
+            pg.goto('file://' + RACINE + '/index.html?championnat=1'); attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', None, 30000)   # (de retour sur une page du jeu, pour les vérifications de fin de page)
             return
         t(f'{titre} : la visite : au paddock, la consigne en haut à gauche (« Clique sur Garage »), pas de bulle d’aide', attendre(pg, '() => JEU.ecran === "championnat" && !document.getElementById("tutoConsigne").classList.contains("cache") && document.getElementById("tutoConsigneTexte").textContent === texte("tuto_visite_paddock") && document.getElementById("bulleAide").classList.contains("cache")', None, 20000), pg.evaluate('() => [JEU.ecran, document.getElementById("tutoConsigneTexte").textContent]'))
         etapes = []
