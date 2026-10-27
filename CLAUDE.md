@@ -371,7 +371,7 @@ Le but : une interface qui a l'air d'une **vraie retransmission de F1**, claire 
   - la **fiche de chaque rival** (photo stylisée, caractère, saison, historique, duels contre le joueur) ;
   - le garage pour les améliorations ;
   - les sponsors, et les contrats en fin de saison.
-- L'interface est en HTML et CSS, par-dessus la 3D. Elle a son propre style (police, couleurs, animations), défini une seule fois dans des variables CSS.
+- L'interface est en HTML et CSS, par-dessus la 3D. Elle a son propre style (police, couleurs, animations), défini une seule fois dans des variables CSS. Depuis le 2026-10-27 (tour 32, étape 11 commencée) : le thème télé `--tv-*` à la fin de `style.css`, appliqué à tous les écrans `.ecran` (voile en dégradé, titres en capitales italiques avec un bandeau rouge, boutons en plaques), des transitions de 180 à 230 ms (opacité et titre seulement, rien ne bouge sous un clic), les résultats animés, tout coupé par `prefers-reduced-motion` ; le paddock est un écran d'accueil (le prochain Grand Prix avec sa carte, ta situation, les classements, les boutons en 4 groupes).
 
 ## Le monde 3D
 
