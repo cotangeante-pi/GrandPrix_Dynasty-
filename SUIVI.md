@@ -90,6 +90,8 @@ Note du Chef session-5b (2026-10-23) : les lignes 18 à 19b ne s'additionnaient 
 
 ## À essayer par le propriétaire
 
+**Pour jouer sans rien installer** : https://cotangeante-pi.github.io/Grand-Prix-Dynasty/ (GitHub Pages, activé par le propriétaire le 2026-10-27 ; la page suit `main` à chaque push, une minute après).
+
 - **Parler aux pilotes** (tour 33) : au paddock, « 💬 Discuter » sur la fiche d'un rival, « 💬 Coéquipier » et « ✉ Courrier » dans ta carte. Écris ce que tu veux, en français ou en anglais, même en langage SMS, ou clique une intention. Ils se souviennent de tes promesses et de tes menaces. Dire : les réponses ont l'air vivantes ? Elles changent bien selon ce qui s'est passé en course ?
 - **Les caméras de fin et le ciel** (tour 34) : à l'arrivée, le drone tourne 5 s autour de ta voiture en montant. À ton Grand Prix à domicile, la caméra longe ta tribune de supporters avant la grille. Les nuages sont blancs, gris sous la pluie, sombres la nuit (plus verts). Sous la pluie, la trajectoire sèche se voit sur la route. Dire : le drone est beau ?
 - **Le tutoriel et les aides** (tour 33d) : « Apprendre à piloter » sur le titre, en pause et au paddock (coin en bas à gauche) : 7 leçons, une étoile chacune. Les aides apparaissent une seule fois, la première fois qu'on rencontre un système, et « Revoir les aides » les remet. Dire : la bulle se lit bien et vient au bon moment ? Les 9 s de la leçon 2 sont justes ? La voiture lente de la leçon 4 est trop lente ? Attention : la leçon 7 change l'aileron de ta carrière.
