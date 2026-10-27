@@ -118,6 +118,7 @@ function construireCircuit(def, pas = REGLAGES.PAS_ECHANTILLON) {
     // les morceaux, ramenés à la longueur de la spline ; fermeture : l'écart de la description par morceaux (m)
     morceaux, fermeture: decrit ? decrit.fermeture : 0,
     stands: null,
+    croisement: def.croisement || null,   // le pont de Suzuko : [s1, s2], les deux passages au même endroit (s1 dessus, s2 dessous) ; null ailleurs
   };
   circuit.stands = def.stands === null ? null : standsDepuisMorceaux(circuit, def.stands);
   return circuit;
@@ -189,6 +190,17 @@ function plusProche(circuit, px, pz, debut, fin) {
   return meilleur;
 }
 
+// le croisement (le pont de Suzuko, circuit.croisement = [s1, s2]) : sa et sb sont sur ses deux passages, l'un à moins de CROISEMENT_ZONE m
+// de s1, l'autre de s2. Deux voitures ainsi ne se touchent pas, ne se voient pas, ne s'aspirent pas (l'une passe sur le pont, l'autre
+// dessous ; la physique est plate, au même x, z). Faux sur tout circuit sans croisement : rien ne change ailleurs
+function branchesOpposees(circuit, sa, sb) {
+  const c = circuit && circuit.croisement;
+  if (!c) return false;
+  const L = circuit.longueur, Z = REGLAGES.CROISEMENT_ZONE;
+  const pres = (s, t) => { const d = ((s - t) % L + L) % L; return d < Z || L - d < Z; };
+  return (pres(sa, c[0]) && pres(sb, c[1])) || (pres(sa, c[1]) && pres(sb, c[0]));
+}
+
 // où est (px, pz) sur la piste : { s, d, surPiste, secteur, indice, nx, nz } (nx, nz : la normale du morceau, vers la droite)
 // indiceDepart (facultatif) : l'indice rendu au pas d'avant, pour ne chercher qu'autour
 function positionSurPiste(circuit, px, pz, indiceDepart) {
@@ -201,7 +213,12 @@ function positionSurPiste(circuit, px, pz, indiceDepart) {
     const rayon = circuit.largeur * REGLAGES.ECART_RECHERCHE_COMPLETE, loin = plusProche.d2 > rayon * rayon;   // un carré par multiplication
     if (ecartIndice >= F || loin) i = -1;   // au bord de la fenêtre ou loin de la piste : on n'est pas sûr
   }
-  if (i < 0) i = plusProche(circuit, px, pz, 0, nb);
+  if (i < 0) {
+    i = plusProche(circuit, px, pz, 0, nb);
+    // (le pont de Suzuko : la recherche complète ne saute jamais sur l'autre passage du croisement, au même x, z)
+    if (indiceDepart !== undefined && indiceDepart !== null && branchesOpposees(circuit, circuit.s[(indiceDepart % nb + nb) % nb], circuit.s[i]))
+      { const k = Math.round(REGLAGES.CROISEMENT_ZONE / circuit.pas); i = plusProche(circuit, px, pz, indiceDepart - k, indiceDepart + k + 1); }   // (sa branche : autour de l'indice connu)
+  }
 
   // on projette sur le morceau de courbe d'avant ou d'après l'échantillon, et on garde le plus proche des deux
   const x = circuit.x, z = circuit.z;
