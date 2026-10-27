@@ -120,16 +120,17 @@ const DECOR = (function () {
       entree++;
       const cote = e.cote < 0 ? -1 : 1, d = cote * e.distance;
       if (e.type === 'tribune') {
-        const rangs = e.rangs || R.TRIBUNE_RANGS, prof = rangs * R.TRIBUNE_MARCHE[0];
+        // (echelle : la tribune plus haute et plus profonde, ou moins, selon le lieu ; les marches et le public suivent, pas les gens)
+        const rangs = e.rangs || R.TRIBUNE_RANGS, f = e.echelle || 1, prof = rangs * R.TRIBUNE_MARCHE[0] * f;
         modules(e, R.TRIBUNE_MODULE, s => {
           const r = repere(c, s, d, cote);
-          if (!ranger(objets.tribune, r, 0, 0, 0, 0, prof / 2, Math.hypot(R.TRIBUNE_MODULE / 2, prof / 2), undefined, true)) return;
+          if (!ranger(objets.tribune, r, 0, 0, 0, 0, prof / 2, Math.hypot(R.TRIBUNE_MODULE / 2, prof / 2), f === 1 ? undefined : { ex: 1, ey: f, ez: f }, true)) return;
           // son public, assis sur les marches (une place sur DECOR_PUBLIC_REMPLI occupée)
           const n = Math.round(R.TRIBUNE_MODULE / R.PUBLIC_PAS);
           for (let g = 0; g < rangs; g++)
             for (let k = 0; k < n; k++) {
               if (rnd() > R.DECOR_PUBLIC_REMPLI) continue;
-              objets.public.push(poser(r, -R.TRIBUNE_MODULE / 2 + (k + 0.5) * R.TRIBUNE_MODULE / n, (g + 1) * R.TRIBUNE_MARCHE[1], (g + 0.5) * R.TRIBUNE_MARCHE[0], { couleur: couleurPublic(), e: taille(R.PUBLIC_HAUTEUR_ASSIS) }));
+              objets.public.push(poser(r, -R.TRIBUNE_MODULE / 2 + (k + 0.5) * R.TRIBUNE_MODULE / n, (g + 1) * R.TRIBUNE_MARCHE[1] * f, (g + 0.5) * R.TRIBUNE_MARCHE[0] * f, { couleur: couleurPublic(), e: taille(R.PUBLIC_HAUTEUR_ASSIS) }));
             }
         });
       } else if (e.type === 'public') {
@@ -205,8 +206,10 @@ const DECOR = (function () {
         }
       } else if (e.type === 'grandeRoue' || e.type === 'hotel') {
         // un seul grand objet, au milieu de la zone (s'il y a la place)
-        const roue = e.type === 'grandeRoue', rayon = roue ? R.GRANDE_ROUE_EMPRISE : R.HOTEL_EMPRISE, p = Math.min((e.profondeur || 0) / 2, rayon + R.DECOR_MARGE);
-        ranger(roue ? objets.grandeRoue : objets.hotel, repere(c, e.s + e.longueur / 2, d, cote), 0, 0, p, 0, p, rayon, undefined, true);
+        // (l'hôtel est long et étroit, posé le long de la piste : sa demi-largeur en travers, HOTEL_TRAVERS, compte pour la piste)
+        const roue = e.type === 'grandeRoue', rayon = roue ? R.GRANDE_ROUE_EMPRISE : R.HOTEL_EMPRISE, travers = roue ? rayon : R.HOTEL_TRAVERS;
+        const p = roue ? Math.min((e.profondeur || 0) / 2, rayon + R.DECOR_MARGE) : R.DECOR_MARGE_HOTEL, pc = roue ? p : p + travers;
+        ranger(roue ? objets.grandeRoue : objets.hotel, repere(c, e.s + e.longueur / 2, d, cote), 0, 0, p, 0, pc, rayon, { travers }, true);
       } else if (e.type === 'projecteurs') {
         // les mâts d'éclairage de la course de nuit, des deux côtés, derrière la barrière
         modules(e, R.PROJECTEUR_PAS, (s, l, k) => {
@@ -248,8 +251,12 @@ const DECOR = (function () {
     const P = DECOR_PUBLIC.placer(c, d), liste = [], debut = o => o.s - o.longueur / 2, loin = o => Math.abs(o.d0), prof = o => Math.abs(o.d1) - Math.abs(o.d0);
     const barriere = c.largeur / 2 + R.DISTANCE_BARRIERE;
     const pneusDevant = o => ({ type: 'pneus', s: debut(o), longueur: Math.min(o.longueur, R.PNEUS_VIRAGE_LONGUEUR), cote: o.cote, distance: barriere - R.PNEUS_PILE_RAYON * 2 - 0.05 });
-    if (P.principale) liste.push({ type: 'tribune', s: debut(P.principale), longueur: P.principale.longueur, cote: P.principale.cote, distance: loin(P.principale) });
-    for (const o of P.tribunes) { liste.push({ type: 'tribune', s: debut(o), longueur: o.longueur, cote: o.cote, distance: loin(o) }); liste.push(pneusDevant(o)); }
+    // la hauteur des tribunes : leur profondeur dans decors-officiels.js (par rapport à TRIBUNE_PROFONDEUR_REF) × celle du lieu
+    const echelle = o => Math.max(R.TRIBUNE_ECHELLE[0], Math.min(R.TRIBUNE_ECHELLE[1], prof(o) / R.TRIBUNE_PROFONDEUR_REF * (R.TRIBUNE_ECHELLE_LIEU[nom] || 1)));
+    if (P.principale) liste.push({ type: 'tribune', s: debut(P.principale), longueur: P.principale.longueur, cote: P.principale.cote, distance: loin(P.principale), echelle: echelle(P.principale) });
+    for (const o of P.tribunes) { liste.push({ type: 'tribune', s: debut(o), longueur: o.longueur, cote: o.cote, distance: loin(o), echelle: echelle(o) }); liste.push(pneusDevant(o)); }
+    // une voie des stands courte (Montréol) : le bâtiment longe toute la voie, rampes comprises, pas seulement entre elles
+    if (P.stands && c.stands && P.stands.longueur < R.STANDS_LONGUEUR_MIN) { P.stands.longueur = c.stands.longueur; P.stands.s = (c.stands.entree + c.stands.longueur / 2) % c.longueur; }
     for (const o of P.public) liste.push({ type: 'public', s: debut(o), longueur: o.longueur, cote: o.cote, distance: loin(o), rangs: Math.max(1, Math.min(R.PUBLIC_RANGS_MAX, Math.floor(prof(o) / R.PUBLIC_RANG))) });
     if (P.stands) liste.push({ type: 'stands', s: debut(P.stands), longueur: P.stands.longueur, cote: P.stands.cote, distance: loin(P.stands), profondeur: prof(P.stands), hauteur: P.stands.hauteur });
     for (const cote of [1, -1]) liste.push({ type: 'panneaux', s: -R.PANNEAUX_LIGNE, longueur: 2 * R.PANNEAUX_LIGNE, cote, distance: barriere + 0.3 });
@@ -536,7 +543,10 @@ const DECOR = (function () {
         const a = rnd() * 2 * Math.PI, r = rnd() * R.NUAGES_ETENDUE, l = 120 + rnd() * 260;
         nuages.push({ x: cx + Math.cos(a) * r, y: R.NUAGES_HAUTEUR[0] + rnd() * (R.NUAGES_HAUTEUR[1] - R.NUAGES_HAUTEUR[0]), z: cz + Math.sin(a) * r, ax: 1, az: 0, bx: 0, bz: 1, e: 1, ex: l, ey: l * 0.18, ez: l * 0.55 });
       }
-      const m = instances(new THREE.IcosahedronGeometry(1, 1), nuages, 'nuages', { vertexColors: false, color: lieu.ciel.heure === 'nuageux' || lieu.ciel.heure === 'brume' ? C_NUAGE_GRIS : 0xffffff, fog: false, transparent: true, opacity: R.NUAGES_OPACITE });
+      // (sans lumière : ni le sol ni le ciel ne les teintent ; blancs, gris par temps couvert, sombres la nuit et plus chauds au couchant)
+      const h = lieu.ciel.heure, couleur = new THREE.Color(h === 'nuageux' || h === 'brume' ? C_NUAGE_GRIS : 0xffffff).multiplyScalar(1 - (1 - R.NUAGES_NUIT) * nuitDe(lieu));
+      const m = instances(new THREE.IcosahedronGeometry(1, 1), nuages, 'nuages', { vertexColors: false, fog: false, transparent: true, opacity: R.NUAGES_OPACITE });
+      m.material = new THREE.MeshBasicMaterial({ color: couleur, fog: false, transparent: true, opacity: R.NUAGES_OPACITE });
       res.push(m);
     }
     return res;

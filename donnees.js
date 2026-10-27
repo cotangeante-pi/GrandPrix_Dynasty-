@@ -779,6 +779,10 @@ const REGLAGES = {
   COLLINE_SURFACE: 9000, DUNE_SURFACE: 2500, COLLINES_ZONE_MAX: 120,   // m² par colline (ou dune) à densité 1, et au plus par zone
   COLLINE_RAYON: [30, 70], COLLINE_PENTE: [0.25, 0.5], DUNE_RAYON: [12, 32], DUNE_PENTE: [0.15, 0.3],
   GRANDE_ROUE_RAYON: 28, GRANDE_ROUE_EMPRISE: 32, HOTEL_LONGUEUR: 110, HOTEL_EMPRISE: 57,   // m
+  HOTEL_TRAVERS: 14, DECOR_MARGE_HOTEL: 4,   // m : la demi-largeur de l'hôtel en travers de la piste ; son recul dans sa zone
+  STANDS_LONGUEUR_MIN: 100,     // m : un bâtiment des stands plus court longe toute la voie (rampes comprises)
+  TRIBUNE_PROFONDEUR_REF: 12, TRIBUNE_ECHELLE: [0.7, 1.6],   // m : une tribune de 12 m de profondeur garde ses marches ; l'échelle bornée
+  TRIBUNE_ECHELLE_LIEU: { monoco: 0.75, silverstoun: 1.2, monzo: 1.1, spaa: 0.9, suzuko: 1.05, interlagas: 1.15, montreol: 0.95, melbourn: 1, barcelana: 1.1, bahrayn: 1.3, singapura: 0.9, yasmarino: 1.25 },
   PROJECTEUR_PAS: 70, PROJECTEUR_HAUTEUR: 22, PROJECTEUR_RECUL: 3,   // m : les mâts d'éclairage la nuit (des deux côtés en alternance)
   BANDEROLE_PAS: 22, BANDEROLE_LONGUEUR: 12, BANDEROLE_HAUTEUR: 1.2, BANDEROLE_HAUTEUR_PLAQUE: 1.5,   // m : les banderoles du domicile, sur la barrière
   PNEUS_VIRAGE_LONGUEUR: 70,    // m de piles de pneus devant la barrière, au virage de chaque tribune
@@ -787,7 +791,7 @@ const REGLAGES = {
   HORIZON_RECUL: 600, HORIZON_PROFONDEUR: 500, HORIZON_NOMBRE: 70,   // le paysage au loin : un anneau d'objets au-delà du circuit
   HORIZON_COLLINE_RAYON: [180, 380], HORIZON_VILLE: [20, 60], HORIZON_TOURS: [80, 260],
   CIEL_RAYON: 6500,             // m : la coupole du ciel (dans CAMERA_LOIN)
-  NUAGES_MAX: 40, NUAGES_ETENDUE: 3500, NUAGES_HAUTEUR: [450, 800], NUAGES_OPACITE: 0.85,
+  NUAGES_MAX: 40, NUAGES_ETENDUE: 3500, NUAGES_HAUTEUR: [450, 800], NUAGES_OPACITE: 0.85, NUAGES_NUIT: 0.25,   // (la nuit, leur clarté × ça)
   // la lumière d'un lieu (scene3d.js, avec decors-officiels.js) : l'ambiance (hémisphère) et, la nuit, la lumière des projecteurs
   LIEU_AMBIANCE: 0.65, LIEU_PROJECTEURS: 0.9,
   // la nuit (Singapura) ; le soir (Bahrayn au crépuscule, Yas Marino au couchant) en prend la part NUIT_SOIR
@@ -811,6 +815,7 @@ const REGLAGES = {
   // clic ; jamais à deux ni au tournoi ; GRILLE_DECOUVERTE : aussi à la course de découverte (le clic aux feux : au plus +3 s)
   GRILLE_DUREE: 2.5,            // s
   GRILLE_HAUTEUR: 38, GRILLE_RECUL: 18, GRILLE_VISEE: 10, GRILLE_CHAMP: 55,   // m, m, m, degrés
+  GRILLE_TRIBUNE_DUREE: 3, GRILLE_TRIBUNE_RECUL: 14, GRILLE_TRIBUNE_HAUTEUR: 4, GRILLE_TRIBUNE_VISEE: 3, GRILLE_TRIBUNE_VISEE_Y: 3,   // au Grand Prix à domicile : d'abord la tribune des supporters (s, m)
   GRILLE_DECOUVERTE: false,    // (décision du Chef, 2026-10-26 : « En piste en 10 secondes » passe avant ; au premier lancement, on roule tout de suite)
   // le résumé vidéo de la course (resume.js, étape 13) : la durée totale des moments forts rejoués, et la vitesse du rejeu
   RESUME_DUREE_MAX: 45,         // s de course au plus
@@ -840,7 +845,9 @@ const REGLAGES = {
   TELE_CHAMP: [4, 50],          // degrés : le zoom le plus serré et le plus large
   TELE_CASE: 60,                // m : la grille des obstacles (les plus grands que la moitié sont à part)
   TELE_HELICO_HAUTEUR: [80, 150], TELE_HELICO_RECUL: 120, TELE_HELICO_COTE: 60, TELE_HELICO_DOUCEUR: 0.8, TELE_HELICO_CADRAGE: 40,
-  TELE_HELICO_DROITE: 700,      // m : sur une ligne droite plus longue, l'hélicoptère              // la voiture et ce qui l'entoure, en mètres, remplissent l'image
+  TELE_HELICO_DROITE: 700,
+  // le drone : la grille vue d'en haut au départ (GRILLE_*), et à l'arrivée il tourne autour de la voiture en montant
+  DRONE_ARRIVEE_DUREE: 5, DRONE_RAYON: 22, DRONE_HAUTEUR: [6, 26], DRONE_VITESSE: 0.35, DRONE_CHAMP: 50,      // m : sur une ligne droite plus longue, l'hélicoptère              // la voiture et ce qui l'entoure, en mètres, remplissent l'image
 
   PIXEL_RATIO_MAX: 1.5,         // au plus 1,5 pixel dessiné par pixel CSS (un écran Retina en demande 2)
 

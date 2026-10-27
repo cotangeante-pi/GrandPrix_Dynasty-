@@ -11,6 +11,7 @@ const CAMERA = (function () {
   const suiviSecond = { cap: null, hauteur: 0 };   // l'écran partagé : le suivi « derrière » de la seconde caméra (joueur 2)
   let postesTele = [];
   let regie = null, tempsTele = 0, planTele = null;   // la régie télé (regie.js) et son dernier plan
+  let drone = null;   // le drone de l'arrivée : { reste (s), angle } ; il tourne autour de la voiture en montant
   const touches = new Set();
 
   function init(camera, c, modeDemande) {
@@ -83,6 +84,20 @@ const CAMERA = (function () {
     cam.position.set(p.x, p.y, p.z);
     cam.lookAt(p.vise.x, p.vise.y, p.vise.z);
     cam.up.set(0, 1, 0);
+  }
+
+  // le Grand Prix à domicile (CLAUDE.md) : avant la grille, la caméra longe la tribune des supporters du joueur ; tr = { a, b } (le
+  // premier et le dernier module : x, z, bx, bz = vers le loin de la piste) ; a de 0 à 1 ; calcul pur, testé
+  function poseTribune(tr, a) {
+    const t = Math.max(0, Math.min(1, a)), x = tr.a.x + (tr.b.x - tr.a.x) * t, z = tr.a.z + (tr.b.z - tr.a.z) * t, bx = tr.a.bx, bz = tr.a.bz;
+    return { x: x - bx * R.GRILLE_TRIBUNE_RECUL, y: R.GRILLE_TRIBUNE_HAUTEUR, z: z - bz * R.GRILLE_TRIBUNE_RECUL, vise: { x: x + bx * R.GRILLE_TRIBUNE_VISEE, y: R.GRILLE_TRIBUNE_VISEE_Y, z: z + bz * R.GRILLE_TRIBUNE_VISEE } };
+  }
+  function tribune(tr, a) {
+    const p = poseTribune(tr, a);
+    regler(R.GRILLE_CHAMP, 0.5);
+    cam.up.set(0, 1, 0);
+    cam.position.set(p.x, p.y, p.z);
+    cam.lookAt(p.vise.x, p.vise.y, p.vise.z);
   }
 
   // tout le circuit dans l'image, vu d'en haut (le nord, -z, en haut de l'écran)
@@ -200,6 +215,15 @@ const CAMERA = (function () {
       cam.up.set(0, 1, 0);
       cam.position.set(p.x, p.y, p.z);
       cam.lookAt(p.vise.x, p.vise.y, p.vise.z);
+    } else if (mode === 'tele' && drone && drone.reste > 0) {
+      // le drone de l'arrivée : il tourne lentement autour de la voiture suivie en montant, puis la régie reprend
+      drone.reste -= dt; drone.angle += R.DRONE_VITESSE * dt;
+      const t = 1 - Math.max(0, drone.reste) / R.DRONE_ARRIVEE_DUREE, h = hauteurRoute(v);
+      cam.fov = R.DRONE_CHAMP; cam.updateProjectionMatrix(); cam.up.set(0, 1, 0);
+      cam.position.set(etat.x + Math.cos(drone.angle) * R.DRONE_RAYON, h + R.DRONE_HAUTEUR[0] + (R.DRONE_HAUTEUR[1] - R.DRONE_HAUTEUR[0]) * t, etat.z + Math.sin(drone.angle) * R.DRONE_RAYON);
+      cam.lookAt(etat.x, R.TELE_VISEE + h, etat.z);
+      planTele = { genre: 'drone', x: cam.position.x, y: cam.position.y, z: cam.position.z };
+      if (drone.reste <= 0) drone = null;
     } else if (mode === 'tele' && regie) {
       // la régie : la caméra qui voit la voiture (un poste fixe qui tourne et zoome, ou l'hélicoptère), coupée franchement
       tempsTele += dt;
@@ -243,8 +267,10 @@ const CAMERA = (function () {
   }
 
   return {
-    init, maj, majSeconde, suivante, forcer, poseDerriere, poseCockpit, reglerChampBase, poseGrille, grille,
+    init, maj, majSeconde, suivante, forcer, poseDerriere, poseCockpit, reglerChampBase, poseGrille, grille, poseTribune, tribune,
     get mode() { return mode; },
+    // le drone de l'arrivée (principal.js, quand la course du joueur est finie) : DRONE_ARRIVEE_DUREE s autour de la voiture suivie
+    drone(cap) { drone = { reste: R.DRONE_ARRIVEE_DUREE, angle: (cap || 0) + Math.PI / 2 }; },
     get regie() { return regie; },   // (tests : les postes, le plan)
     get planTele() { return planTele; },
     get conduite() { return mode !== 'libre'; },   // en caméra libre, les flèches déplacent la caméra, pas la voiture

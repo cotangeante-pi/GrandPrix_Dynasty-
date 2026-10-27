@@ -456,7 +456,7 @@ function partirEnCourse() {
 function entrerGrille() {
   const oui = JEU.plateau && JEU.contre && !JEU.deux && !JEU.tournoi && (!JEU.decouverte || REGLAGES.GRILLE_DECOUVERTE);
   if (!oui) { JEU.ecran = 'course'; INTERFACE.montrer('course'); return; }
-  JEU.grille = { t: 0 };
+  JEU.grille = { t: 0, tribune: tribuneSupporters() };   // (au Grand Prix à domicile : d'abord la tribune des supporters)
   JEU.ecran = 'grille';
   INTERFACE.montrer('grille');
 }
@@ -464,8 +464,26 @@ function entrerGrille() {
 function majGrille(dt) {
   if (JEU.ecran !== 'grille' || !JEU.grille) return;
   JEU.grille.t += dt;
-  CAMERA.grille(JEU.plateau.pilotes.map(p => p.v), JEU.grille.t / REGLAGES.GRILLE_DUREE);
-  if (JEU.grille.t >= REGLAGES.GRILLE_DUREE) finirGrille();
+  const avant = JEU.grille.tribune ? REGLAGES.GRILLE_TRIBUNE_DUREE : 0;
+  if (JEU.grille.t < avant) CAMERA.tribune(JEU.grille.tribune, JEU.grille.t / avant);
+  else CAMERA.grille(JEU.plateau.pilotes.map(p => p.v), (JEU.grille.t - avant) / REGLAGES.GRILLE_DUREE);
+  if (JEU.grille.t >= avant + REGLAGES.GRILLE_DUREE) finirGrille();
+}
+
+// le Grand Prix à domicile du joueur (sa course de cœur, decor-public.js) : la tribune principale du décor, là où sont ses supporters
+// (ses premiers et derniers modules) ; null ailleurs
+function tribuneSupporters() {
+  const ch = championnatDecor(), joueur = ch && ch.pilotes ? ch.pilotes.find(p => p && p.humain) : null;
+  if (!joueur || typeof DECOR_PUBLIC === 'undefined' || !DECOR_PUBLIC.domicile(joueur, NOM_CIRCUIT) || !SCENE3D.decor) return null;
+  const mods = SCENE3D.decor.objets.tribune.filter(o => o.entree === 1);
+  return mods.length >= 2 ? { a: mods[0], b: mods[mods.length - 1] } : null;
+}
+
+// le championnat que voit le décor (le public, les banderoles) : celui de la carrière ; ?domicile=1 (tests) : un joueur fictif à domicile
+function championnatDecor() {
+  if (CHAMPIONNAT_EN_COURS) return CHAMPIONNAT_EN_COURS;
+  if (PARAMETRES.get('domicile') !== '1') return null;
+  return { graine: 1, pilotes: [{ humain: true, nom: texte('nomJoueur'), numero: 27, pays: REGLAGES.CIRCUITS_PAYS[NOM_CIRCUIT], coeur: NOM_CIRCUIT }] };
 }
 
 function finirGrille() {
@@ -1194,6 +1212,7 @@ function attendreLesAutres() {
   if (!JEU.attente) {
     JEU.attente = { tele: null, camera: CAMERA.mode, passer: false };
     CAMERA.forcer('tele');
+    if (!JEU.deux) CAMERA.drone(moi.v.cap);   // l'arrivée vue du drone (CLAUDE.md « La réalisation télé »), puis la régie
   }
   JEU.attente.tele = ARRIVEE.voitureTele(e, JEU.attente.tele);
   // « passer » (CLAUDE.md « La course ») : le reste de la course est vraiment joué, en accéléré (×ARRIVEE_ACCELERE) : à chaque image,
@@ -1596,7 +1615,7 @@ function demarrerJeu() {
   RADAR.init(document.getElementById('radar'));
   MINICARTE.init(document.getElementById('minicarte'));   // la minicarte (son tracé est préparé une fois, quand le circuit est construit)
 
-  if (!SCENE3D.init(document.getElementById('scene3d'), CIRCUIT, { championnat: CHAMPIONNAT_EN_COURS, circuit: NOM_CIRCUIT })) return;   // (le public du décor : decor-public.js)
+  if (!SCENE3D.init(document.getElementById('scene3d'), CIRCUIT, { championnat: championnatDecor(), circuit: NOM_CIRCUIT })) return;   // (le public du décor : decor-public.js)
   CAMERA.init(SCENE3D.camera, CIRCUIT, PARAMETRES.get('camera'));
   if (DEUX_EN_COURS) { document.body.classList.add('deux'); if (REGLAGES.DEUX_PARTAGE !== 'haut') { document.body.classList.add('cote'); CAMERA.reglerChampBase(REGLAGES.DEUX_FOV_COTE); } SCENE3D.partager(true); }   // (côte à côte : le joueur 1 à gauche, un champ de vision plus ouvert)   // le mode 2 joueurs : l'écran partagé haut / bas (scene3d.js), le CSS du mode
   JEU.joueur = creerVoiture(CIRCUIT, 0);
