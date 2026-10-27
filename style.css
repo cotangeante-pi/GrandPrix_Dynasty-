@@ -1154,6 +1154,7 @@ body.deux.cote #boutonSon { top: auto; bottom: 12px; right: 12px; }   /* (côte 
 /* le bouton du son, lisible sur la 3D comme sur le voile sombre des écrans */
 #boutonSon { background: var(--tv-bouton); border: 1px solid rgba(255, 255, 255, 0.45); box-shadow: inset 3px 0 0 var(--tv-rouge), 0 2px 10px rgba(0, 0, 0, 0.5); color: var(--tv-texte); }
 #boutonSon:hover { box-shadow: inset 3px 0 0 var(--tv-rouge), var(--tv-halo); }
+#boutonSon { z-index: 20; }   /* au-dessus du voile des écrans (il était dessous, donc gris sur gris) */
 
 /* le chrono, le tour et les secteurs : le panneau du haut, avec le liseré rouge de la chaîne */
 #hudCourse { background: var(--tv-hud); border: var(--tv-hud-bord); border-top: 3px solid var(--tv-rouge); border-radius: var(--tv-coin); box-shadow: var(--tv-hud-ombre); font-family: var(--tv-police); }

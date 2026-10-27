@@ -63,7 +63,7 @@ Ordres : 1 fait / 2 fait.
 Réévalue.
 
 ## Suite : le thème télé en course, le podium et les résultats — commit 096e53d, passage GitHub 40585896401 : les 11 travaux verts
-- **Le bouton 🔊** : une plaque avec un bord clair et le liseré rouge. Il est lisible sur la 3D comme sur le voile des écrans.
+- **Le bouton 🔊** : une plaque avec un bord clair et le liseré rouge, passée au-dessus du voile des écrans (`z-index`). Il était dessous, d'où le gris sur gris. Il est maintenant lisible partout.
 - **En course**, un bloc CSS à moi, à la fin de `style.css`, sur les mêmes variables `--tv-*` :
   - le chrono et les secteurs, la tour de classement, les pneus, les messages, la pénalité et les stands, les feux, la jauge et le résultat du départ : tous sur le même panneau sombre, avec le liseré rouge en haut du chrono, de la tour et des feux ;
   - les temps en chiffres de largeur fixe ;
