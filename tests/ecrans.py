@@ -41,6 +41,9 @@ PAGES = [
     ('index.html?course=1&robot=1&test=sdk', 1280, 720, None),   # le faux SDK Poki (sdk.js) : l'ordre des appels sur une course d'un tour
     ('index.html?course=0&robot=1&pneus=1&debug=1', 1280, 720, None),
     ('index.html?course=12&robot=1&pneus=1&circuit=test&test=stand', 1280, 720, None),
+    ('index.html?course=1&ia=5&circuit=monoco&test=officiel', 1280, 720, None),      # les tracés officiels dans le jeu (tour 32) : capture circuit-monoco.png
+    ('index.html?course=1&ia=5&circuit=spaa&test=officiel', 1280, 720, None),        # … circuit-spaa.png
+    ('index.html?course=1&ia=5&circuit=singapura&test=officiel', 1280, 720, None),   # … circuit-singapura.png
     ('index.html?championnat=1&tours=2&robot=1&test=consigne-suivie', 1280, 720, None),    # la consigne d'équipe vise le joueur : il la suit (capture consigne.png), confiance +5
     ('index.html?championnat=1&tours=2&robot=1&test=consigne-ignoree', 1280, 720, None),   # … il l'ignore, confiance −5   # l'arrêt au stand (étape 7) : le message, le robot entre dans la voie, s'arrête, ressort ; capture stand.png   # ?pneus=1 : l'usure monte sur 10 tours du robot, affichée dans ?debug=1
     ('index.html?championnat=1&tours=1&robot=1&gp=12', 1280, 720, None),   # la fin de saison : le 12e Grand Prix joué par le robot, champion, duel de la saison, contrats, saison 2 ; captures champion.png, duel-saison.png, contrats.png
@@ -528,11 +531,15 @@ def decouverte(pg, titre):
         && j.casque.motif === "flammes" && j.casque.couleurs[0] === 0xd8262e && document.querySelectorAll("#championnatPilotes li .nom canvas.casqueIcone").length === 20; }}'''),
       str(pg.evaluate('() => [JEU.ecran, PILOTE.joueur(JEU.championnat)]')))
     # un Grand Prix d'un tour : le numéro 27 dans la tour de classement, le nom sur la une du journal
-    t(f'{titre} : au lancement suivant, la carte des IA vient du cache de la sauvegarde (pas de calcul en fond, les IA ont déjà leur pilote)', pg.evaluate('() => JEU.carteDuCache === true && JEU.carte !== null && JEU.calculTrajectoire === null'), str(pg.evaluate('() => [JEU.carteDuCache, JEU.carte !== null]')))
+    # (depuis le tour 32, le 1er Grand Prix est Bahrayn, pas le circuit de la découverte : sa carte n'est pas encore dans le cache, elle se
+    # calcule en fond ; celle de la découverte, elle, y est gardée)
+    t(f'{titre} : au lancement suivant, la carte de la découverte est gardée dans le cache de la sauvegarde ; celle du 1er Grand Prix (un autre circuit) vient du cache ou se calcule en fond',
+      pg.evaluate('() => SAUVEGARDE.carte(REGLAGES.DECOUVERTE_CIRCUIT) !== null && NOM_CIRCUIT === JEU.championnat.calendrier[0].circuit && (JEU.carteDuCache === true || JEU.calculTrajectoire !== null || JEU.carte !== null)'),
+      str(pg.evaluate('() => [NOM_CIRCUIT, SAUVEGARDE.carte(REGLAGES.DECOUVERTE_CIRCUIT) !== null, JEU.carteDuCache, JEU.carte !== null]')))
     pg.click('#boutonCourseSuivante')
     attendre(pg, '() => JEU.ecran === "qualif" && JEU.qualif && JEU.qualif.etat === "choix"', None, 10000)
     pg.click('#boutonQualifPasser')
-    attendre(pg, '() => JEU.qualif && JEU.qualif.etat === "resultat"', None, 10000)
+    attendre(pg, '() => JEU.qualif && JEU.qualif.etat === "resultat"', None, 180000)   # (la carte des IA d'abord, s'il le faut)
     pg.click('#boutonQualifCourse')
     # avant les feux, la grille vue d'en haut (CLAUDE.md « L'interface ») : la caméra au-dessus de la grille, les feux pas encore
     # allumés (la physique attend), une touche la passe ; jamais à deux ni au tournoi (vérifié dans leurs pages : pas d'écran « grille »)
@@ -633,6 +640,18 @@ def stand_ecran(pg, titre):
     t(f'{titre} : il ressort sur la piste, sans toucher le muret, et son tour compte', fin[0] is False and fin[1] is False and fin[2] >= 1 and fin[3] == 0 and fin[4] == 0, str(fin))
     L.append(f'  (arrêt au stand dans la page : arrêts {pg.evaluate("() => JSON.stringify(JEU.course.arrets)")}, tours {fin[2]})')
 
+# un tracé officiel dans le jeu (tour 32 : CALENDRIER_CIRCUITS, ?circuit=<nom>) : 5 IA en course ; la page construit le bon tracé, la carte
+# des IA se calcule (en fond), puis elles roulent sur la piste (la voiture suivie a avancé, elle est sur la piste) ; capture circuit-<nom>.png
+def officiel_ecran(pg, titre, nom):
+    t(f'{titre} : la page construit le tracé officiel « {nom} »', attendre(pg, f'() => typeof JEU !== "undefined" && NOM_CIRCUIT === "{nom}" && CIRCUIT.nom === CIRCUITS["{nom}"].nom', None, 30000), str(pg.evaluate('() => typeof NOM_CIRCUIT !== "undefined" ? NOM_CIRCUIT : null')))
+    t(f'{titre} : la carte des IA se calcule (en fond)', attendre(pg, '() => !!JEU.plateau && JEU.plateau.carte !== null', None, 240000), str(pg.evaluate('() => [!!JEU.plateau, JEU.plateau && JEU.plateau.carte !== null]')))
+    for _ in range(12):
+        pg.evaluate('() => BOUCLE.simuler(5)')
+        if pg.evaluate('() => JEU.plateau.pilotes[JEU.suivie].course.progression > 400'): break
+    etat = pg.evaluate('() => { const p = JEU.plateau.pilotes[JEU.suivie]; return { avance: p.course.progression, surPiste: p.v.piste.surPiste, d: p.v.piste.d, barr: JEU.plateau.pilotes.reduce((a, q) => a + q.v.contactsBarriere, 0) }; }')
+    t(f'{titre} : les IA roulent sur la piste (la voiture suivie a fait plus de 400 m, elle est sur la piste, aucune barrière)', etat['avance'] > 400 and etat['surPiste'] and etat['barr'] == 0, str(etat))
+    pg.wait_for_timeout(500); pg.screenshot(path=os.path.join(CAPTURES, f'circuit-{nom}.png'))
+
 # les consignes d'équipe (simulation.js majConsignes) quand elles visent le JOUEUR, devant son coéquipier : en championnat, Grand Prix 1,
 # le robot et son coéquipier échangent leurs places sur la grille (le joueur devant), puis l'écurie lui donne la consigne (fabriquée : le
 # déclenchement lui-même est testé en simulation, test.html et consignes.html) ; le message s'affiche (capture consigne.png) ; « suivie » :
@@ -688,8 +707,8 @@ def championnat_en(pg, titre):
     ecran = pg.evaluate('''() => ({ titre: document.getElementById("championnatTitre").textContent, h2: [...document.querySelectorAll("#championnatTableaux h2")].map(e => e.textContent),
       pilotes: [...document.querySelectorAll("#championnatPilotes li .nom")].map(e => e.textContent), ecuries: [...document.querySelectorAll("#championnatEcuries li .nom")].map(e => e.textContent),
       bouton: document.getElementById("boutonCourseSuivante").textContent, tout: document.getElementById("championnat").innerText })''')
-    t(f'{titre} : l’écran du championnat en anglais : « Grand Prix 1 / 12 — Test track », Drivers / Teams, « You » et « Driver n », « Team n », « Next race », pas un mot français',
-      ecran['titre'] == 'Grand Prix 1 / 12 — Test track' and ecran['h2'] == ['Drivers', 'Teams'] and all(re.fullmatch(r'Driver \d+|You', n) for n in ecran['pilotes']) and ecran['pilotes'].count('You') == 1
+    t(f'{titre} : l’écran du championnat en anglais : « Grand Prix 1 / 12 — Bahrayn », Drivers / Teams, « You » et « Driver n », « Team n », « Next race », pas un mot français',
+      ecran['titre'] == 'Grand Prix 1 / 12 — Bahrayn' and ecran['h2'] == ['Drivers', 'Teams'] and all(re.fullmatch(r'Driver \d+|You', n) for n in ecran['pilotes']) and ecran['pilotes'].count('You') == 1
       and all(re.fullmatch(r'Team \d+', n) for n in ecran['ecuries']) and ecran['bouton'] == 'Next race' and not re.search(MOTS_FR, ecran['tout']), str(ecran)[:400])
     pg.click('#boutonCourseSuivante')
     passer_qualif(pg, titre)
@@ -811,7 +830,7 @@ def amis(pg, titre, l, h):
     pg.click('#boutonAmisDeux')
     reg = pg.evaluate('() => ({ ecran: JEU.ecran, n1: document.getElementById("deuxNom1").value, p1: document.getElementById("deuxNom1").placeholder, c: [1, 2].map(i => Number(document.getElementById("deuxCouleurs" + i).dataset.couleur)), pastilles: document.querySelectorAll("#deuxCouleurs1 button").length, circuits: [...document.getElementById("deuxCircuit").options].map(o => o.value), tours: [...document.getElementById("deuxTours").options].map(o => o.value), ia: [...document.getElementById("deuxIA").options].map(o => o.value), niveaux: document.getElementById("deuxNiveau").options.length, motifs: document.getElementById("deuxMotif1").options.length, bloques: document.querySelectorAll("#deuxMotif1 option:disabled").length, icones: document.querySelectorAll(".deuxIcone canvas").length })')
     t(f'{titre} : l’écran avant la course : nom (vide, « Joueur 1 » en attente), couleur (le bleu et le rouge d’abord), casque (tous les motifs, son icône) de chaque joueur ; circuits, 3/5 tours, 0/3/5 IA, 4 niveaux',
-      reg['ecran'] == 'deuxReglages' and reg['n1'] == '' and reg['p1'] in ('Joueur 1', 'Player 1') and reg['c'] == [0x1f6fe0, 0xd8262e] and reg['pastilles'] == 8 and reg['circuits'] == ['test', 'technique'] and reg['tours'] == ['3', '5'] and reg['ia'] == ['0', '3', '5'] and reg['niveaux'] == 4 and reg['motifs'] == 11 and reg['bloques'] == 5 and reg['icones'] == 2, str(reg))
+      reg['ecran'] == 'deuxReglages' and reg['n1'] == '' and reg['p1'] in ('Joueur 1', 'Player 1') and reg['c'] == [0x1f6fe0, 0xd8262e] and reg['pastilles'] == 8 and reg['circuits'] == pg.evaluate('() => Object.keys(CIRCUITS)') and len(reg['circuits']) == 14 and reg['tours'] == ['3', '5'] and reg['ia'] == ['0', '3', '5'] and reg['niveaux'] == 4 and reg['motifs'] == 11 and reg['bloques'] == 5 and reg['icones'] == 2, str(reg))
     ok_, det = tient(['#deuxTitre', '#deuxJoueur1', '#deuxJoueur2', '#deuxCourse', '#boutonDeuxPartir', '#boutonDeuxRetour'])
     t(f'{titre} : l’écran avant la course tient en {l}×{h} (les deux joueurs côte à côte, rien ne déborde)', ok_, det)
     if l == 960:
@@ -1544,14 +1563,14 @@ PHOTO_ETAT = '''i => { const cv = document.querySelector("#unePhoto canvas"); if
   const px = cv.getContext("2d").getImageData(0, 0, cv.width, cv.height).data, c = new Set(); for (let k = 0; k < px.length; k += 4 * 53) c.add(px[k] + "," + px[k + 1] + "," + px[k + 2]);
   const q = t.getContext("2d").getImageData(0, 0, t.width, t.height).data; let diff = 0; for (let k = 0; k < px.length; k++) if (px[k] !== q[k]) diff++;
   const r = cv.getBoundingClientRect(); return { couleurs: c.size, pareil: t.toDataURL() === cv.toDataURL(), diff, desc: JSON.stringify(JOURNAL.photo(u, ch)).slice(0, 300), affiche: cv.dataset.desc ? cv.dataset.desc.slice(0, 300) : null, type: JOURNAL.photo(u, ch).type, visible: r.width > 50 && r.height > 30 }; }'''
-# le calendrier de la saison (tour 31) : depuis le paddock ; le joueur a pour course de cœur un circuit du calendrier (en mémoire, le
-# temps de l'écran : les 12 tracés ne sont pas encore au calendrier) ; les faits, le prochain, la maison du domicile ; capture
+# le calendrier de la saison (tour 31) : depuis le paddock ; le joueur a pour course de cœur Suzuko (en mémoire, le temps de l'écran ;
+# depuis le tour 32, les 12 tracés sont au calendrier) ; les faits, le prochain, la maison du domicile ; capture
 def calendrier_ecran(pg, titre, capture):
-    pg.evaluate('() => { JEU.coeurAvant = JEU.championnat.pilotes[19].coeur; JEU.championnat.pilotes[19].coeur = "technique"; }')
+    pg.evaluate('() => { JEU.coeurAvant = JEU.championnat.pilotes[19].coeur; JEU.championnat.pilotes[19].coeur = "suzuko"; }')
     pg.click('#boutonCalendrier')
     c = pg.evaluate('''() => { const ch = JEU.championnat, lis = [...document.querySelectorAll("#calendrierListe li")];
       return { ecran: JEU.ecran, n: lis.length, faits: lis.filter(li => li.classList.contains("fait")).length, prochain: lis.findIndex(li => li.classList.contains("prochain")), attendu: ch.prochain,
-        maisons: document.querySelectorAll("#calendrierListe li.domicile .maison").length, attenduMaisons: ch.calendrier.filter(g => g.circuit === "technique").length, resultats: ch.resultats.length,
+        maisons: document.querySelectorAll("#calendrierListe li.domicile .maison").length, attenduMaisons: ch.calendrier.filter(g => g.circuit === "suzuko").length, resultats: ch.resultats.length,
         texte: lis.map(li => li.textContent).slice(0, 2), gagnes: ch.resultats.map((r, i) => r.ordre[0] === 19 ? lis[i].textContent : null).filter(x => x), nomJoueur: INTERFACE.nomPilote(ch.pilotes[19]), dans: [...document.querySelectorAll("#calendrier > *")].every(e => { const r = e.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight && r.right <= innerWidth; }),
         defile: [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth] }; }''')
     t(f'{titre} : « 📅 Calendrier » : les 12 Grands Prix, {c["faits"]} faits (vainqueur et ta place), le prochain mis en valeur, le Grand Prix à domicile marqué d’une maison, tout dans l’écran',
@@ -2197,6 +2216,8 @@ with sync_playwright() as p:
                 pneus(pg, titre)
             if 'test=stand' in page:
                 stand_ecran(pg, titre)
+            if 'test=officiel' in page:
+                officiel_ecran(pg, titre, re.search(r'circuit=(\w+)', page).group(1))
             if re.search(r'[?&]ia=1(&|$)', page):
                 course_ia(pg, titre)
             if re.search(r'[?&]ia=10(&|$)', page):

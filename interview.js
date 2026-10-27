@@ -44,7 +44,7 @@ const INTERVIEW = (function () {
     const gagnees = (lj.grille || place) - place;
     if (gagnees >= R.INTERVIEW_DEPASSEMENT_PLACES) {
       const derriere = lignes.find(l => l.place === place + 1 && !ch.pilotes[l.k].humain);
-      if (derriere) f.depassement = { pilote: j.id, rival: derriere.k, n: gagnees, circuit };
+      if (derriere) f.depassement = { pilote: j.id, rival: derriere.k, n: gagnees, place, circuit };   // (place : « … pour la P{place} », la question l'utilise)
     }
     if (lj.penalites > 0) f.penalite = Object.assign({ secondes: lj.penalites }, base);
     const c = CHAMPIONNAT.coequipierDe(ch), lc = c ? lignes.find(l => l.k === c.id) : null;
