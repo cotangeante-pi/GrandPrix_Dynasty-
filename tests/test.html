@@ -11,6 +11,9 @@ function ecrire(etape){document.getElementById('res').textContent=`${etape?'EN C
 // le calendrier du jeu (les 12 tracés, tour 32) est gardé à part et testé plus bas ; les tests du championnat, écrits avec les deux
 // circuits d'essai en alternance (course de cœur « technique », GP 2 sur le technique…), gardent ce calendrier d'essai
 const CALENDRIER_JEU=REGLAGES.CALENDRIER_CIRCUITS;REGLAGES.CALENDRIER_CIRCUITS=['test','technique'];
+// de même, les tests du moteur sont écrits sans les pneus (PNEUS_ACTIFS, vrai dans le jeu depuis le tour 32) : ceux qui les veulent les
+// allument (avecPneus) ; les courses avec les pneus sont mesurées dans courses.html, stands.html, consignes.html et officiels.html
+REGLAGES.PNEUS_ACTIFS=false;
 
 // --- les réglages
 t('la physique avance par pas de 1/120 s', ()=>{v(REGLAGES.PAS_PHYSIQUE===1/120);});

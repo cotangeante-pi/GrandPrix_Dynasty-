@@ -255,7 +255,7 @@ const REGLAGES = {
   NOMS_PILOTES: [],
   // les pneus (étape 7, pneus.js) : branchés dans la page mais désactivés tant que le propriétaire n'a pas jugé la sensation ;
   // ?pneus=1 les active (l'usure de la voiture du joueur baisse son adhérence) ; sans ça, la course est identique au bit près
-  PNEUS_ACTIFS: false,
+  PNEUS_ACTIFS: true,   // tour 32 (décision du Chef, le propriétaire : on avance sans attendre ses essais) : les pneus et l'arrêt au stand par défaut ; ?pneus=0 les coupe
 
   // la une du journal après chaque Grand Prix (journal.js, Codeur 3) ; les titres et les brèves sont dans textes.js (uneTitre_…, uneTexte_…, breve…)
   JOURNAL_PRIORITES: ['titreChampion', 'releve_fils', 'releve_fille', 'releve_protege', 'releve_protegee', 'domicileFete', 'domicileDecu', 'premiereVictoire', 'victoire', 'premierPodium', 'podium', 'record', 'duelGagne', 'duelPerdu', 'interview',

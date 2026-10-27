@@ -178,7 +178,7 @@ function pasArretStand(c, v, dt) {
     if (a.reste <= 0) {
       arretAuStand(v.pneus, v.changeurs || 0);
       v.adherence = facteurAdherence(v.pneus.usure);
-      c.arrets.push({ tour: a.tour, duree: a.duree });
+      c.arrets.push({ tour: a.tour, duree: a.duree, usure: a.usure });
       c.arretEnCours = null;
       c.arretFin = c.temps;
     }
@@ -191,7 +191,7 @@ function pasArretStand(c, v, dt) {
   if (!z || !z.arret) return false;
   const duree = dureeArret(v.changeurs || 0);
   c.arretPassage = true;
-  c.arretEnCours = { reste: duree, duree, tour: c.tours.length + 1, x: v.x, z: v.z, cap: v.cap };
+  c.arretEnCours = { reste: duree, duree, tour: c.tours.length + 1, x: v.x, z: v.z, cap: v.cap, usure: v.pneus.usure };   // (usure : celle des pneus enlevés)
   v.u = v.v = v.r = 0;
   return false;
 }
