@@ -644,6 +644,78 @@ const TEXTES = {
   },
 };
 
+// --- les aides au premier usage (aides.js, interface.js AIDES_ECRAN ; étape 11b, Codeur 4) : une bulle d'une ou deux lignes, avec la
+// touche ou le bouton à utiliser ; jamais genrées sur le joueur ({v} : la vitesse permise dans la voie des stands, en km/h)
+Object.assign(TEXTES.en, {
+  aide_depart: 'Start: hold ↑ in the green. Lights out: release, then press ↑ again, fast!',
+  aide_qualif: 'Qualifying: one timed lap sets your grid slot. “Skip” = start last.',
+  aide_fantome: 'The see-through car is your best lap: the gap under the timer shows where you lose time.',
+  aide_stand: 'Mandatory stop: at the end of the lap, take the pit lane, {v} km/h at most.',
+  aide_pluie: 'The track is wet: switch to rain tyres at your next pit stop?',
+  aide_consigne: 'Team order: lift off (↓) to let your team-mate through, or keep your place.',
+  aide_garage: 'Garage: each upgrade helps a little (+{p} % at most). Wheel changers: shorter stops.',
+  aide_aileron: 'High wing: grip in corners. Low wing: top speed. Read the track map.',
+  aide_duel: 'Your team-mate has the same car: beat them for a bonus and better contracts.',
+  aide_contrats: 'Contracts: teams look at your points and your duel with your team-mate.',
+  aide_interview: 'Pick a tone: 😤 provocative, 🤝 calm, 😏 cheeky. Your reputation depends on it.',
+  aideFermer: 'Click to close', revoirAides: '↺ Show the tips again', aidesRevues: 'The tips will show again',
+});
+Object.assign(TEXTES.fr, {
+  aide_depart: 'Départ : tiens ↑ dans le vert. Feux éteints : lâche, puis réappuie vite sur ↑ !',
+  aide_qualif: 'Qualification : un tour chronométré donne ta place. « Passer » = partir dernier.',
+  aide_fantome: 'La voiture transparente : ton meilleur tour. L’écart sous le chrono dit où tu perds du temps.',
+  aide_stand: 'Arrêt obligatoire : à la fin du tour, prends la voie des stands, {v} km/h au plus.',
+  aide_pluie: 'La piste est mouillée : passer aux pneus pluie à ton prochain arrêt au stand ?',
+  aide_consigne: 'Consigne : lève le pied (↓) pour laisser passer ton coéquipier, ou garde ta place.',
+  aide_garage: 'Garage : chaque amélioration aide un peu (+{p} % au plus). Changeurs de roues : arrêt plus court.',
+  aide_aileron: 'Aileron haut : adhérence en virage. Bas : vitesse de pointe. Lis la carte.',
+  aide_duel: 'Ton coéquipier a la même voiture : le battre rapporte un bonus et de meilleurs contrats.',
+  aide_contrats: 'Contrats : les écuries regardent tes points et ton duel contre ton coéquipier.',
+  aide_interview: 'Choisis un ton : 😤 provocant, 🤝 calme, 😏 malin. Ta réputation en dépend.',
+  aideFermer: 'Clic pour fermer', revoirAides: '↺ Revoir les aides', aidesRevues: 'Les aides vont revenir',
+});
+
+// --- le tutoriel guidé (tutoriel.js, interface.js TUTORIEL_ECRAN ; étape 11d, Codeur 4) : les 7 leçons, leurs consignes et leurs
+// résultats ; jamais genrés sur le joueur ({o} : l'objectif, {t} : le temps, {n} : l'essai, {max} : le nombre d'essais)
+Object.assign(TEXTES.en, {
+  tutoBouton: '🎓 Learn to drive', tutoTitre: 'Learn to drive', tutoIntro: 'Short lessons on the test track. A star for each one you pass.',
+  tutoCommencer: 'Start', tutoRetour: 'Back', tutoPasser: 'Skip ⏭', tutoRecommencer: '↻ Try again', tutoSuivante: 'Next lesson ▶', tutoListe: 'All lessons', tutoQuitter: 'Leave',
+  tutoReussie: 'Lesson passed! ★', tutoRatee: 'Not quite…', tutoFini: 'All lessons done!', tutoBravo: 'Learn first',
+  tuto_conduite: 'Accelerate, steer, brake', tuto_conduite_but: 'Finish a lap without leaving the track.', tuto_conduite_consigne: '↑ accelerate · ← → steer · ↓ brake — one lap, stay on the tarmac.',
+  tuto_freinage: 'Racing line and braking point', tuto_freinage_but: 'Through the corner between the cones in under {o} s.', tuto_freinage_consigne: 'Brake at the cones, turn in late, hit the apex: the zone in under {o} s ({n} / {max}).',
+  tuto_depart: 'The perfect start', tuto_depart_but: 'Keep the needle in the green, react to the lights.', tuto_depart_consigne: 'Hold ↑ to keep the needle in the green. Lights out: release, then press ↑ again!',
+  tuto_depassement: 'Slipstream and overtaking', tuto_depassement_but: 'Pass the slow car and stay ahead.', tuto_depassement_consigne: 'Tuck in behind the car ahead (slipstream), then pull out on the straight and pass it.',
+  tuto_stand: 'The pit stop', tuto_stand_but: 'Take the pit lane at {v} km/h at most and stop in your box.', tuto_stand_consigne: 'Before the line, take the pit lane: {v} km/h at most; in the box, the stop is automatic.',
+  tuto_pluie: 'Rain and tyres', tuto_pluie_but: 'When the shower comes, pit for wet-weather tyres.', tuto_pluie_consigne: 'A shower is coming: when the track gets wet, pit for rain tyres.',
+  tuto_visite: 'Garage, rear wing and paddock', tuto_visite_but: 'A guided tour of the screens, no racing.', tuto_visite_paddock: 'This is the paddock: your next race, your standings. Click “Garage”.',
+  tuto_visite_garage: 'The garage: upgrades bought with your winnings. Now click “Rear wing”.', tuto_visite_aileron: 'The rear wing: grip or top speed, read the map. Click “Back”.',
+  tuto_visite_retour: 'Back to the garage: click “Back” to return to the paddock.', tuto_visite_fin: 'That is the tour!',
+  tuto_raison_sortie: 'You left the track: one lap on the tarmac.', tuto_raison_temps: 'Time is up.', tuto_raison_attente: 'You did not start: press ↑ again when the lights go out.',
+  tuto_raison_patinage: 'Wheelspin: the needle was too high.', tuto_raison_cale: 'Stalled: the needle was too low.', tuto_raison_faux: 'False start: wait for the lights to go out.',
+  tuto_raison_essais: 'Best clean run: {t} s (target {o} s).', tuto_raison_pasDevant: 'The race ended before you got past.', tuto_raison_vitesse: 'Speeding in the pit lane: {v} km/h at most.',
+  tuto_raison_pasArret: 'The race ended without a pit stop.', tuto_raison_pneus: 'Still on slicks: pit when the track is wet.', tuto_essai: 'Run {n}: {t} s',
+  tuto_reussie_freinage: '{t} s (target {o} s)', tuto_reussie_depart: 'Reaction: {t} s',
+});
+Object.assign(TEXTES.fr, {
+  tutoBouton: '🎓 Apprendre à piloter', tutoTitre: 'Apprendre à piloter', tutoIntro: 'Des leçons courtes sur le circuit d’essai. Une étoile par leçon réussie.',
+  tutoCommencer: 'Commencer', tutoRetour: 'Retour', tutoPasser: 'Passer ⏭', tutoRecommencer: '↻ Recommencer', tutoSuivante: 'Leçon suivante ▶', tutoListe: 'Toutes les leçons', tutoQuitter: 'Quitter',
+  tutoReussie: 'Leçon réussie ! ★', tutoRatee: 'Pas encore…', tutoFini: 'Toutes les leçons sont faites !', tutoBravo: 'D’abord apprendre',
+  tuto_conduite: 'Accélérer, tourner, freiner', tuto_conduite_but: 'Finir un tour sans sortir de la piste.', tuto_conduite_consigne: '↑ accélérer · ← → tourner · ↓ freiner — un tour, sans quitter le goudron.',
+  tuto_freinage: 'La trajectoire et le point de freinage', tuto_freinage_but: 'Passer le virage entre les plots en moins de {o} s.', tuto_freinage_consigne: 'Freine aux plots, tourne tard, vise la corde : la zone en moins de {o} s ({n} / {max}).',
+  tuto_depart: 'Le départ parfait', tuto_depart_but: 'Garder l’aiguille dans le vert, réagir aux feux.', tuto_depart_consigne: 'Tiens ↑ pour garder l’aiguille dans le vert. Feux éteints : lâche, puis réappuie sur ↑ !',
+  tuto_depassement: 'L’aspiration et le dépassement', tuto_depassement_but: 'Passer la voiture lente et rester devant.', tuto_depassement_consigne: 'Colle-toi derrière la voiture de devant (l’aspiration), puis déboîte dans la ligne droite et passe.',
+  tuto_stand: 'L’arrêt au stand', tuto_stand_but: 'Prendre la voie des stands à {v} km/h au plus et s’arrêter dans sa zone.', tuto_stand_consigne: 'Avant la ligne, prends la voie des stands : {v} km/h au plus ; dans la zone, l’arrêt est automatique.',
+  tuto_pluie: 'La pluie et les pneus', tuto_pluie_but: 'Quand l’averse arrive, passer au stand pour des pneus pluie.', tuto_pluie_consigne: 'Une averse arrive : quand la piste est mouillée, passe au stand pour des pneus pluie.',
+  tuto_visite: 'Le garage, l’aileron et le paddock', tuto_visite_but: 'Une visite guidée des écrans, sans course.', tuto_visite_paddock: 'Voici le paddock : ta prochaine course, ton classement. Clique sur « Garage ».',
+  tuto_visite_garage: 'Le garage : les améliorations, payées avec tes gains. Clique maintenant sur « Aileron ».', tuto_visite_aileron: 'L’aileron : adhérence ou vitesse de pointe, lis la carte. Clique sur « Retour ».',
+  tuto_visite_retour: 'De retour au garage : « Retour » ramène au paddock.', tuto_visite_fin: 'La visite est finie !',
+  tuto_raison_sortie: 'Sortie de piste : un tour sur le goudron.', tuto_raison_temps: 'Le temps est écoulé.', tuto_raison_attente: 'Pas de départ : réappuie sur ↑ quand les feux s’éteignent.',
+  tuto_raison_patinage: 'Patinage : l’aiguille était trop haute.', tuto_raison_cale: 'Calé : l’aiguille était trop basse.', tuto_raison_faux: 'Faux départ : attends que les feux s’éteignent.',
+  tuto_raison_essais: 'Meilleur passage sans sortie : {t} s (objectif {o} s).', tuto_raison_pasDevant: 'La course est finie avant le dépassement.', tuto_raison_vitesse: 'Excès de vitesse dans la voie des stands : {v} km/h au plus.',
+  tuto_raison_pasArret: 'La course est finie sans arrêt au stand.', tuto_raison_pneus: 'Toujours en slicks : passe au stand quand la piste est mouillée.', tuto_essai: 'Passage {n} : {t} s',
+  tuto_reussie_freinage: '{t} s (objectif {o} s)', tuto_reussie_depart: 'Réaction : {t} s',
+});
+
 // ?lang=en ou ?lang=fr force la langue (tests)
 const LANGUE = (function () {
   const demandee = new URLSearchParams(location.search).get('lang');
