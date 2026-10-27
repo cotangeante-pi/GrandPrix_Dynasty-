@@ -88,7 +88,13 @@ PAGES = [
     ('tests/lieu.html?circuit=bahrayn', 1280, 720, None),
     ('tests/lieu.html?circuit=singapura', 1280, 720, None),
     ('tests/lieu.html?circuit=yasmarino', 1280, 720, None),
-    ('index.html?course=3&ia=20&circuit=singapura&test=jeudecor', 1280, 720, None),   # le décor dans le vrai jeu : la course de nuit à Singapura, 20 voitures, vue télé ; capture jeu-singapura.png
+    ('index.html?course=3&ia=20&circuit=singapura&test=jeudecor', 1280, 720, None),
+    ('index.html?course=3&ia=20&circuit=monzo&test=jeudecor', 1280, 720, None),
+    # la météo dessinée (meteo3d.js, avec une fausse météo de test) : la pluie, les gerbes, la piste mouillée, le ciel couvert, les gouttes,
+    # l'icône ; au sec, pas un pixel de changé ; la prévision au paddock ; captures pluie.png, pluie-960.png, prevision.png
+    ('index.html?course=3&ia=20&circuit=monzo&meteo=pluie&test=pluie', 1280, 720, None),
+    ('index.html?course=3&ia=20&circuit=monzo&meteo=pluie&test=pluie', 960, 600, None),
+    ('index.html?championnat=1&meteo=risque&test=prevision', 1280, 720, None),   # … et Monzo de jour : la luminosité de l'image, pour la comparer à la nuit   # le décor dans le vrai jeu : la course de nuit à Singapura, 20 voitures, vue télé ; capture jeu-singapura.png
     ('tests/lieu.html?circuit=monoco&vue=port', 1280, 720, None),   # Monoco en détail : le port, les bateaux, les façades ; capture monoco.png
     ('tests/lieu.html?circuit=monoco&domicile=1', 1280, 720, None),   # le Grand Prix à domicile : le public aux couleurs du pays, les banderoles ; capture banderoles.png
    # le décor du circuit test (étape 10) avec 20 voitures : appels de dessin, triangles, niveaux de détail ; captures decor-test.png, decor-dessus.png
@@ -1151,6 +1157,49 @@ def decor_jeu(pg, titre, page):
     t(f'{titre} : dans le jeu, le décor de {nom} (decors-officiels.js) et son lieu : ciel, tribunes, public{", mâts d’éclairage" if m["nuit"] else ""} ; sous LIEU_APPELS_MAX appels de dessin avec 20 voitures',
       pret and m['lieu'] is not None and m['ciel'] and m['n']['tribune'] > 10 and m['n']['public'] > 1000 and (not m['nuit'] or m['n']['projecteur'] > 20) and m['appels'] < m['max'], str(m))
     pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, f'jeu-{nom}.png'))
+    # la nuit (ou le jour) se voit : derrière la voiture, la luminosité moyenne du haut de l'image (le ciel) et de toute l'image,
+    # lues dans l'image 3D seule (sans l'interface), juste après un dessin
+    pg.evaluate('() => CAMERA.forcer("derriere")'); pg.wait_for_timeout(1500)
+    lum = pg.evaluate('''async () => { SCENE3D.dessiner(); const url = SCENE3D.canvas.toDataURL(); const img = new Image(); img.src = url; await img.decode();
+      const W = 64, H = 36, c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d'); x.drawImage(img, 0, 0, W, H); const d = x.getImageData(0, 0, W, H).data;
+      const moy = (y0, y1) => { let s = 0, n = 0; for (let y = y0; y < y1; y++) for (let i = 0; i < W; i++) { const k = (y * W + i) * 4; s += 0.299 * d[k] + 0.587 * d[k + 1] + 0.114 * d[k + 2]; n++; } return s / n; };
+      return { ciel: moy(0, Math.round(H * 0.15)), image: moy(0, H), nuit: DECOR.nuitDe(SCENE3D.decor.lieu), R: { ciel: REGLAGES.NUIT_CIEL_MAX, nuitImage: REGLAGES.NUIT_IMAGE_MAX, jourImage: REGLAGES.JOUR_IMAGE_MIN } }; }''')
+    L.append(f"  (dans le jeu, {nom}, derrière la voiture : luminosité du ciel {lum['ciel']:.0f}, de l'image {lum['image']:.0f} sur 255)")
+    if lum['nuit'] >= 1:
+        t(f'{titre} : la nuit à {nom} : le ciel est sombre (sous NUIT_CIEL_MAX) et toute l’image aussi (sous NUIT_IMAGE_MAX)', lum['ciel'] < lum['R']['ciel'] and lum['image'] < lum['R']['nuitImage'], str(lum))
+    elif lum['nuit'] == 0:
+        t(f'{titre} : le jour à {nom} : l’image est claire (au-dessus de JOUR_IMAGE_MIN), nettement plus que la nuit', lum['image'] > lum['R']['jourImage'], str(lum))
+    pg.screenshot(path=os.path.join(CAPTURES, f'jeu-{nom}-derriere.png'))
+
+# la météo dessinée (meteo3d.js) avec la fausse météo de test (pluie 0,85, eau 0,75, ciel 0,9) : la pluie tombe (un appel), les gerbes
+# derrière les voitures qui roulent, la route mouillée (un matériau à reflets), le ciel plus gris, l'icône et l'eau ; les gouttes en vue
+# cockpit ; avec 20 voitures sous la pluie, sous LIEU_APPELS_MAX appels ; au sec (une météo à 0, ou pas de météo), la même image au pixel près
+def pluie_ecran(pg, titre, l, h):
+    pret = attendre(pg, '() => METEO3D.actif && JEU.plateau && JEU.plateau.pilotes.length === 20 && JEU.plateau.pilotes.filter(p => Math.abs(p.v.u) > 15).length >= 5', None, 90000)
+    pg.wait_for_timeout(800)
+    m = pg.evaluate("""() => { SCENE3D.dessiner();
+      return { appels: SCENE3D.appelsDessin, pluie: METEO3D.pluie.visible, gouttes: METEO3D.pluie.geometry.drawRange.count, gerbes: METEO3D.gerbes.count, hudCache: document.getElementById('meteoHud').classList.contains('cache'), eau: document.getElementById('meteoEau').textContent, icone: document.getElementById('meteoIcone').textContent, max: REGLAGES.LIEU_APPELS_MAX }; }""")
+    route = pg.evaluate("() => METEO3D.routeMateriau")
+    L.append(f"  (pluie, 20 voitures, {l}×{h}, derrière la voiture : {m['appels']} appels de dessin, {m['gouttes'] // 2} gouttes, {m['gerbes']} gerbes)")
+    t(f'{titre} : sous la pluie : la pluie tombe (un trait par goutte, en un appel), des gerbes derrière les voitures qui roulent, la route mouillée (à reflets), l’icône et l’eau sur la piste ; sous LIEU_APPELS_MAX appels avec 20 voitures',
+      pret and m['pluie'] and m['gouttes'] > 1000 and m['gerbes'] >= 3 and route == 'MeshPhongMaterial' and not m['hudCache'] and '75' in m['eau'] and m['icone'] == '🌧' and m['appels'] < m['max'], str([m, route]))
+    pg.screenshot(path=os.path.join(CAPTURES, 'pluie.png' if l == 1280 else 'pluie-960.png'))
+    if l != 1280: return
+    pg.evaluate('() => CAMERA.forcer("cockpit")'); pg.wait_for_timeout(800)
+    t(f'{titre} : en vue cockpit sous la pluie, des gouttes sur la visière', pg.evaluate('() => !document.getElementById("gouttes").classList.contains("cache")'))
+    pg.screenshot(path=os.path.join(CAPTURES, 'pluie-cockpit.png'))
+    # au sec : avec une météo à 0 (après la pluie : tout est remis) et sans météo, la même image au pixel près
+    egal = pg.evaluate("""() => { BOUCLE.arreter(); CAMERA.forcer("derriere"); const image = () => { METEO3D.maj(METEO3D.etat(JEU.plateau), SCENE3D.camera, JEU.plateau.pilotes.map(p => p.v), 0, false); SCENE3D.dessiner(); return SCENE3D.canvas.toDataURL(); };
+      const pluie = window.METEO_TEST; window.METEO_TEST = { etat: () => ({ pluie: 0, eau: 0, ciel: 0 }) }; const zero = image(); window.METEO_TEST = undefined; const sans = image(); window.METEO_TEST = pluie; const mouille = image(); BOUCLE.demarrer();
+      return { zeroEgalSans: zero === sans, pluieDifferente: mouille !== sans }; }""")
+    t(f'{titre} : au sec, pas un pixel ne change : une météo à 0 (après la pluie) donne la même image que pas de météo ; sous la pluie, l’image change', egal['zeroEgalSans'] and egal['pluieDifferente'], str(egal))
+
+# la prévision au paddock (meteo3d.js, la fausse météo de test : risque de pluie 40 %) ; capture prevision.png
+def prevision_ecran(pg, titre):
+    vu = attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat" && !document.getElementById("prevision").classList.contains("cache")', None, 30000)
+    txt = pg.evaluate('() => document.getElementById("prevision").textContent')
+    t(f'{titre} : la météo prévue au paddock (« Météo prévue : risque de pluie (40 %) »)', vu and '40' in txt and re.search(r'(pluie|rain)', txt, re.I) is not None, txt)
+    pg.screenshot(path=os.path.join(CAPTURES, 'prevision.png'))
 
 def lieu_ecran(pg, titre, page):
     nom = re.search(r'circuit=([a-z]+)', page).group(1)
@@ -2243,6 +2292,9 @@ with sync_playwright() as p:
             pg.on('pageerror', lambda e: console.append('PAGEERROR ' + str(e)))
             pg.on('requestfailed', lambda r: console.append('FICHIER MANQUANT ' + r.url))
             if 'test=sdk' in page or 'test=decouverte' in page or 'test=amis' in page or 'test=tournoi' in page: pg.add_init_script(FAUX_SDK)
+            # la météo dessinée (meteo3d.js) : une fausse météo de test (window.METEO_TEST, jamais dans le jeu), ?meteo=pluie ou ?meteo=risque
+            if 'meteo=pluie' in page: pg.add_init_script('window.METEO_TEST = { etat: () => ({ pluie: 0.85, eau: 0.75, ciel: 0.9 }), prevision: () => ({ type: "pluie", risque: 90 }) };')
+            if 'meteo=risque' in page: pg.add_init_script('window.METEO_TEST = { etat: () => ({ pluie: 0, eau: 0, ciel: 0 }), prevision: () => ({ type: "risque", risque: 40 }) };')
             # le tournoi change de page entre deux manches : les pubs sont aussi comptées dans sessionStorage (qui survit au rechargement)
             if 'test=tournoi' in page: pg.add_init_script("const __cb = PokiSDK.commercialBreak; PokiSDK.commercialBreak = function () { sessionStorage.setItem('pubs', String((+sessionStorage.getItem('pubs') || 0) + 1)); return __cb.call(this); };")
             pg.goto('file://' + RACINE + '/' + page); pg.wait_for_timeout(1500)
@@ -2297,7 +2349,11 @@ with sync_playwright() as p:
                 course_ia10(pg, titre)
             if 'course=1&ia=8' in page:
                 course_podium(pg, titre, l)
-            if 'test=audit' in page:
+            if 'test=pluie' in page:
+                pluie_ecran(pg, titre, l, h)
+            if 'test=prevision' in page:
+                prevision_ecran(pg, titre)
+            elif 'test=audit' in page:
                 audit_autres(pg, titre, page, l, h)
             elif 'gp=12' in page and 'lang=en' in page:
                 audit_en(pg, titre, l)

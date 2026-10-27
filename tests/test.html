@@ -2423,6 +2423,13 @@ t('le public d’un Grand Prix du championnat : le joueur est le pilote humain, 
   v(JSON.stringify(DECOR_PUBLIC.pourGrandPrix(ch,'suzuko',300))===JSON.stringify(p),'même championnat, même public');
   v(DECOR_PUBLIC.domicile(j,'suzuko')&&!DECOR_PUBLIC.domicile(j,'monzo')&&!DECOR_PUBLIC.domicile(null,'suzuko'),'domicile()');});
 
+t('messages de course, la météo : « La pluie arrive » quand la pluie passe MESSAGES_PLUIE_SEUIL (une fois par averse), « La piste sèche » quand l’eau d’une piste mouillée redescend sous MESSAGES_SECHE_SEUIL ; sans météo, rien', ()=>{
+  const R=REGLAGES,m=MESSAGES.creer(),types=()=>m.file.map(x=>x.type).join();
+  MESSAGES.observerMeteo(m,null);MESSAGES.observerMeteo(m,{pluie:0,eau:0});v(m.file.length===0,'rien au sec');
+  MESSAGES.observerMeteo(m,{pluie:R.MESSAGES_PLUIE_SEUIL+0.1,eau:0.1});MESSAGES.observerMeteo(m,{pluie:0.6,eau:0.5});v(types()==='pluieArrive','la pluie arrive, une fois : '+types());
+  MESSAGES.observerMeteo(m,{pluie:0,eau:0.4});MESSAGES.observerMeteo(m,{pluie:0,eau:R.MESSAGES_SECHE_SEUIL-0.01});MESSAGES.observerMeteo(m,{pluie:0,eau:0});v(types()==='pluieArrive,pisteSeche','la piste sèche, une fois : '+types());
+  v(['msg_pluieArrive','msg_pisteSeche','meteoEau','meteoPrevue','meteo_sec','meteo_nuageux','meteo_risque','meteo_pluie'].every(c=>TEXTES.fr[c]&&TEXTES.en[c]),'textes');});
+
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 ecrire();
 </script></body></html>

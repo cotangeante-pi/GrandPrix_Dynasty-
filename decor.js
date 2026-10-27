@@ -324,7 +324,22 @@ const DECOR = (function () {
     g.computeVertexNormals();
     return g;
   }
-  const fabriquer = f => { const pos = [], col = []; f(pos, col); return geometrie(pos, col); };
+  const fabriquer = (f, apres) => { const pos = [], col = []; f(pos, col); const g = geometrie(pos, col); if (apres) apres(g); return g; };
+
+  // les fenêtres allumées (la nuit, et plus doucement au crépuscule et au couchant) : une couleur émissive sur les sommets marqués
+  // lumiere = 1, par le matériau lui-même (pas une lumière par fenêtre, pas d'appel de dessin en plus)
+  function allumerFenetres(materiau, couleur, force) {
+    if (!force) return;
+    const f = new THREE.Color(couleur).multiplyScalar(force);
+    materiau.onBeforeCompile = sh => {
+      sh.uniforms.fenetres = { value: f };
+      sh.vertexShader = 'attribute float lumiere;\nvarying float vLumiere;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  vLumiere = lumiere;');
+      sh.fragmentShader = 'uniform vec3 fenetres;\nvarying float vLumiere;\n' + sh.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n  totalEmissiveRadiance += vLumiere * fenetres;');
+    };
+    materiau.customProgramCacheKey = () => 'fenetres';
+  }
+  // la force de la nuit d'un lieu : 1 la nuit, NUIT_SOIR au crépuscule et au couchant, 0 le jour
+  const nuitDe = lieu => !lieu ? 0 : lieu.ciel.heure === 'nuit' ? 1 : lieu.ciel.heure === 'crepuscule' || lieu.ciel.heure === 'couchant' ? R.NUIT_SOIR : 0;
 
   // les formes de chaque brique (dans leur repère local)
   function formes() {
@@ -358,6 +373,10 @@ const DECOR = (function () {
         boite(p, c, -0.5, 0.5, 0, 1, 0, 1, 0xffffff);
         for (let k = 0; k < R.IMMEUBLE_BANDES; k++) { const y = (k + 0.6) / (R.IMMEUBLE_BANDES + 0.4); boite(p, c, -0.46, 0.46, y, y + 0.35 / (R.IMMEUBLE_BANDES + 0.4), -0.01, 1.01, C.fenetres); }
         boite(p, c, -0.5, 0.5, 1, 1.02, 0, 1, C.toitImmeuble);
+      }, g => {   // (l'attribut lumiere : 1 sur les fenêtres, allumées la nuit par le matériau)
+        const n = g.attributes.position.count, l = new Float32Array(n);
+        for (let k = 36; k < 36 + 36 * R.IMMEUBLE_BANDES; k++) l[k] = 1;
+        g.setAttribute('lumiere', new THREE.BufferAttribute(l, 1));
       }),
       // une dalle d'eau (1 m de côté, de 0 à 1 au loin), un champ, pareil
       dalle: fabriquer((p, c) => { const C2 = new THREE.Color(0xffffff); for (const q of [[-0.5, 0], [-0.5, 1], [0.5, 1], [-0.5, 0], [0.5, 1], [0.5, 0]]) { p.push(q[0], 0, q[1]); c.push(C2.r, C2.g, C2.b); } }),
@@ -459,8 +478,10 @@ const DECOR = (function () {
     const arbres = groupeDetail([objets.arbreA, objets.arbreB], [F.arbreA, F.arbreB], F.arbreLoin, 'arbres', false);
     const pneus = groupeDetail([objets.pneus], [F.pneus], null, 'pneus', true);   // les piles de pneus : de près seulement (de loin, on ne les voit pas)
     const C = R.DECOR_COULEURS;
+    const immeubles = instances(F.immeuble, objets.immeuble, 'immeuble');
+    allumerFenetres(immeubles.material, R.FENETRES_NUIT, nuitDe(lieu));
     fixes.push(
-      instances(F.immeuble, objets.immeuble, 'immeuble'),
+      immeubles,
       instances(F.dalle, objets.eau, 'eau', { vertexColors: false, color: lieu && lieu.eau ? lieu.eau : C.eau }),
       instances(F.bateau, objets.bateau, 'bateau'),
       instances(F.dalle, objets.champ, 'champ'),
@@ -549,6 +570,19 @@ const DECOR = (function () {
     return { description: descriptionOfficielle(c, d, nom, pub.banderoles), lieu: d };
   }
 
+  // le relief du pont (Suzuko, le seul croisement : croisement = [s1, s2] dans circuits-officiels-a.js) : la hauteur de la route à
+  // chaque échantillon, PONT_HAUTEUR m sur PONT_PLAT m de part et d'autre de s1 (le passage du dessus), puis une rampe en cosinus sur
+  // PONT_RAMPE m ; 0 ailleurs (le second passage, s2, passe dessous) ; null sans croisement. Seulement l'affichage : la physique reste plate
+  function relief(c, croisement) {
+    if (!croisement) return null;
+    const r = new Float32Array(c.nb), L = c.longueur, s1 = croisement[0];
+    for (let i = 0; i < c.nb; i++) {
+      const ds = Math.abs(((c.s[i] - s1) % L + L * 1.5) % L - L / 2);
+      r[i] = ds <= R.PONT_PLAT ? R.PONT_HAUTEUR : ds < R.PONT_PLAT + R.PONT_RAMPE ? R.PONT_HAUTEUR * (0.5 + 0.5 * Math.cos(Math.PI * (ds - R.PONT_PLAT) / R.PONT_RAMPE)) : 0;
+    }
+    return r;
+  }
+
   // range chaque objet à niveaux de détail : proche (< DECOR_DETAIL_LOIN de la caméra la plus proche), loin (< DECOR_RIEN_LOIN), ou rien ;
   // refait seulement quand une caméra a bougé de DECOR_MAJ_DEPLACEMENT m
   function majDetail(decor, cameras) {
@@ -580,5 +614,5 @@ const DECOR = (function () {
     }
   }
 
-  return { TYPES, placer, construire, majDetail, postesTele, zonePodium, verificateur, tirage, pour, descriptionOfficielle };
+  return { nuitDe, TYPES, placer, construire, majDetail, postesTele, zonePodium, verificateur, tirage, pour, descriptionOfficielle, relief };
 })();

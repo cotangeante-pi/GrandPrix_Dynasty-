@@ -334,7 +334,7 @@ Décidée par le propriétaire le 2026-10-27 (« oui fais la météo »). **But*
 
 ## Les discussions avec les pilotes et les écuries
 
-Décidées par le propriétaire le 2026-10-27 (« fais qu'on puisse discuter avec eux, des discussions comme dans gestion de pays »). **But** : que les 19 rivaux, ton coéquipier et les patrons d'écurie soient des gens à qui l'on parle, pas seulement des noms. **Le modèle est celui du jeu de gestion de pays** (`../../gestion de pays`, `diplomatie.js`, `ia-oral.js`, `composeur.js`, `courrier.js`) : on **écrit librement** (avec le langage parlé : « slt », « t nul », « stp »), ou on **compose au clic** (une intention, ses paramètres, en une phrase française qui repart dans le même moteur) ; l'interlocuteur **répond depuis son raisonnement réel** (son caractère, sa mémoire, ses intérêts), pas depuis une liste ; et il **écrit de lui-même** quand quelque chose change.
+Décidées par le propriétaire le 2026-10-27 (« fais qu'on puisse discuter avec eux, des discussions comme dans gestion de pays »). **But** : que les 19 rivaux, ton coéquipier et les patrons d'écurie soient des gens à qui l'on parle, pas seulement des noms. **Le modèle est celui du jeu de gestion de pays** (`../../../gestion de pays`, `diplomatie.js`, `ia-oral.js`, `composeur.js`, `courrier.js`) : on **écrit librement** (avec le langage parlé : « slt », « t nul », « stp »), ou on **compose au clic** (une intention, ses paramètres, en une phrase française qui repart dans le même moteur) ; l'interlocuteur **répond depuis son raisonnement réel** (son caractère, sa mémoire, ses intérêts), pas depuis une liste ; et il **écrit de lui-même** quand quelque chose change.
 
 - **Qui** : chaque rival (sa fiche a un bouton « Discuter »), ton coéquipier, le patron de ton écurie et des autres écuries (à la période des contrats), plus tard les sponsors.
 - **Quand** : au paddock, entre deux Grands Prix ; jamais pendant une course (Poki : c'est un menu, `gameplayStop`). Une course ne s'arrête pas pour une discussion.
@@ -344,6 +344,25 @@ Décidées par le propriétaire le 2026-10-27 (« fais qu'on puisse discuter ave
 - **La mémoire** : chaque pilote se souvient de ce qu'on lui a dit et de ce qu'on a fait (une promesse tenue ou non, une menace sans suite = crédit perdu, et il le dira) ; résumé compact dans la sauvegarde unique.
 - **Code** : la compréhension (lexique, langage parlé, intentions) et le raisonnement en calcul pur dans des fichiers à eux (`discussion.js`, `parle.js`, `courrier-pilotes.js`), testés sans écran avec un **banc** de phrases (comme `tests/banc-ia.html` du jeu de pays) ; l'écran dans `interface.js` ; tous les textes en anglais et en français dans `textes.js` (les réponses sont composées depuis le raisonnement, avec des variantes tirées par `hasard()`), jamais genrées sur un pilote dont on ne connaît pas le genre.
 - **Tests** : le banc de phrases (chaque intention reconnue en saisie libre et au clic, dans les deux langues, langage parlé compris) ; chaque réponse justifiée par le vrai calcul ; les plafonds tiennent ; une promesse non tenue est rappelée ; aucune discussion pendant une course ; une ancienne sauvegarde se charge ; la course sans discussion est identique au bit près.
+
+## Les aides au premier usage (le tutoriel)
+
+Idée du propriétaire, 2026-10-27 (« tutoriel »), écrite par le Chef sous cette forme : **pas de tutoriel au début** (ça irait contre « En piste en 10 secondes » et contre des règles « simples, pour ne pas avoir besoin d'un long tutoriel »), mais **une aide courte la première fois qu'on rencontre chaque système**, au moment où il sert. Le jeu en a beaucoup maintenant (départ parfait, qualification et fantôme, arrêt au stand, pneus et pluie, aileron, consignes d'équipe, duel, garage, contrats, interview, discussions).
+
+- **Quand** : juste avant ou pendant la première fois (les premiers feux : la jauge du départ, déjà là ; le premier arrêt obligatoire : « Entre dans la voie des stands, à 80 km/h au plus » ; le premier garage : à quoi sert chaque amélioration ; la première consigne ; la première pluie : « Passe aux pneus pluie au prochain arrêt ? »), **une seule fois par système**, jamais pendant un freinage ou un virage (en course, seulement dans une ligne droite ou à l'arrêt).
+- **La forme** : une bulle courte (une ou deux lignes), avec la touche ou le bouton à utiliser, qui se ferme d'un clic ou quand l'action est faite ; elle ne cache jamais la piste devant la voiture ; un bouton « Revoir les aides » au paddock (menu pause aussi) remet le compteur à zéro ; un réglage pour les couper toutes.
+- **Code** : la liste des aides et leurs conditions en calcul pur (`aides.js`), ce qui a été vu dans la sauvegarde unique (à la racine : ça survit à une nouvelle carrière) ; l'affichage dans `interface.js` ; tous les textes dans `textes.js`, en anglais et en français.
+- **Tests** : chaque aide apparaît une fois, au bon moment, puis plus jamais ; jamais pendant un virage ; « Revoir les aides » les remet ; le réglage les coupe ; aucune aide ne recouvre la piste devant la voiture (le test en pixels existant) ; une ancienne sauvegarde se charge (aucune aide vue).
+
+## Le commentateur
+
+Idée du propriétaire, 2026-10-27 (« commentateur »). **But** : la « vraie retransmission de F1 » de « L'interface », avec une voix qui raconte la course. **En texte**, dans le bandeau télé des messages de course (`messages.js`), pas en voix enregistrée (aucun fichier de son) ni en synthèse vocale (elle change trop d'un ordinateur à l'autre).
+
+- **Ce qu'il dit** : les faits que le moteur connaît déjà (départ, dépassements, attaques côte à côte, erreurs, contacts, pénalités, arrêts au stand, meilleur tour, pluie qui arrive, dernier tour, arrivée), avec les noms, les écuries et les places (« Rossi plonge à l'intérieur de Moreau ! », « Toi, 3e, à 1,2 s du podium », « Dernier tour à Monoco ! ») ; plus de phrases quand le joueur est concerné ; un ton de télé, enthousiaste, jamais moqueur envers le joueur.
+- **La mesure** : au plus une phrase toutes les quelques secondes (`COMMENTAIRE_INTERVALLE`), une file avec des priorités (un dépassement pour la tête passe devant un meilleur tour), jamais la même phrase deux fois de suite (plusieurs variantes par fait, tirées par `hasard()`), rien pendant les premières secondes d'un virage serré ; un réglage pour le couper ou le réduire aux faits du joueur.
+- **Le nom** : un commentateur inventé (nom dans `textes.js`, jamais une vraie personne), le même que la chaîne de La Gazette du Paddock si ça aide.
+- **Code** : le choix des phrases en calcul pur (`commentaire.js`, il lit seulement le moteur), l'affichage dans le bandeau existant ; en anglais et en français, jamais genré sur un pilote dont on ne connaît pas le genre.
+- **Tests** : chaque fait donne sa phrase ; la priorité et l'intervalle tiennent ; pas deux fois la même de suite ; rien quand c'est coupé ; la course est identique au bit près avec ou sans commentaire ; toutes les clés dans les deux langues.
 
 ## L'argent et les améliorations
 
@@ -410,13 +429,13 @@ Pour que ce soit beau **et** léger :
 
 ## La technique
 
-- **JavaScript pur + Three.js** (`lib/three.min.js` en local, **version fixée : r152, build UMD**, copiée de `../jeu poki/lib/`, avec l'avertissement de dépréciation déjà retiré pour garder la console vide), comme `../jeu poki`. Pas de build, pas de framework. Ouvrir `index.html` suffit pour jouer.
+- **JavaScript pur + Three.js** (`lib/three.min.js` en local, **version fixée : r152, build UMD**, copiée de `../../jeu poki/lib/`, avec l'avertissement de dépréciation déjà retiré pour garder la console vide), comme `../../jeu poki`. Pas de build, pas de framework. Ouvrir `index.html` suffit pour jouer.
 - La physique et les IA sont faites par nous. Pas de moteur physique externe.
 - **Unité : 1 = 1 mètre**, les angles en radians. Le sol est le plan x, z ; y monte. Sur la piste, `d > 0` veut dire à droite du pilote.
 - **Le moteur ne touche pas à l'écran.** Les règles, la physique, les IA, le championnat et l'argent marchent sans 3D, pour être testés seuls.
 - Le hasard passe par une seule fonction qui peut prendre une graine, pour rejouer exactement une course pendant les tests.
 - La sauvegarde (saison, rivaux, argent, améliorations, réglages) passe par **un seul module**. Elle a un numéro de version, pour pouvoir transformer les anciennes sauvegardes quand le jeu change. On sauvegarde **après chaque course**.
-- Il y aura plus de fichiers que dans `../jeu poki`. La liste est notée ici au fur et à mesure :
+- Il y aura plus de fichiers que dans `../../jeu poki`. La liste est notée ici au fur et à mesure :
   - `index.html`, `style.css` : la page (plein cadre, sans défilement) ;
   - `donnees.js` : tous les réglages (`REGLAGES`) ;
   - `aleatoire.js` : le seul hasard, `hasard()`, avec une graine par `ALEATOIRE.semer(n)` ;
@@ -601,10 +620,10 @@ Ajouté le 2026-10-22, à la demande du propriétaire (« le travail avance lent
 
 **3. Des tours plus gros pour ce qui se vérifie avec des chiffres** (règles, points, sauvegarde, classements, journal, interview, tournoi) : jusqu'à 6 ordres par tour, puisque la vérification est automatique. Les tours qui demandent de jouer (conduite, sensation, beauté) restent petits et attendent le propriétaire.
 
-### Pièges connus (déjà vécus sur `../jeu poki`)
+### Pièges connus (déjà vécus sur `../../jeu poki`)
 
 - **Le Mac doit rester éveillé**, branché, capot ouvert. Sinon, les tests « ne finissent jamais » à cause de la veille.
-- **Tuer tous les processus de Chrome** après chaque test (le groupe entier, comme `../jeu poki/tests/lancer.py`). Des processus GPU orphelins ralentissent tout et remplissent la mémoire.
+- **Tuer tous les processus de Chrome** après chaque test (le groupe entier, comme `../../jeu poki/tests/lancer.py`). Des processus GPU orphelins ralentissent tout et remplissent la mémoire.
 - **Ne jamais insérer un commentaire `//` au milieu d'une ligne de JS**, parce qu'il commente tout le reste de la ligne. Vérifier la syntaxe après chaque modification.
 - **Les modules ES ne se chargent pas depuis `file://`** : utiliser des scripts classiques.
 - **Les animations de bouton** se font avec des halos (box-shadow), pas avec `scale`. Sinon, l'outil de test juge le bouton instable et le clic échoue.
@@ -619,7 +638,7 @@ Ajouté le 2026-10-22, à la demande du propriétaire (« le travail avance lent
 **Il faut les retours du propriétaire** (prévoir plusieurs allers-retours et ne pas promettre que la première version sera la bonne) :
 - **La sensation de conduite (étape 2).** Personne ne peut jouer à part le propriétaire. Le Chef lui demande ce qu'il ressent (« ça tourne trop ? le freinage est mou ? »), puis il donne au Codeur des ordres de réglage dans `donnees.js`.
 - **Les IA (étape 4).** C'est le plus dur du projet. Les premières versions taperont les murs, se bloqueront ou rouleront à la file. On avance par petits morceaux (4a à 4d), et le Chef juge avec les simulations de 50 courses : des chiffres, pas des impressions.
-- **La beauté : circuits détaillés et interface (étapes 10 et 11).** Les Claude ne voient le jeu qu'en captures d'écran. Le Chef prend des captures à chaque tour (comme `../jeu poki/tests/ecrans.py`), les montre à le propriétaire et lui demande des retours précis (« plus de public », « couleurs ternes »).
+- **La beauté : circuits détaillés et interface (étapes 10 et 11).** Les Claude ne voient le jeu qu'en captures d'écran. Le Chef prend des captures à chaque tour (comme `../../jeu poki/tests/ecrans.py`), les montre à le propriétaire et lui demande des retours précis (« plus de public », « couleurs ternes »).
 
 ### Si on demande « fais le jeu »
 
@@ -638,7 +657,7 @@ Avant tout ça, ne jamais écrire « fini ». Pour une grosse étape (2, 4, 10, 
 
 | # | Étape | Finie quand… |
 |---|---|---|
-| 0 | **Fondations** : dossier, `git init`, `index.html`, Three.js en local, boucle avec la physique à rythme fixe (120 fois par seconde, séparée de l'affichage), tests lancés par Python dans Chrome sans fenêtre (comme `../jeu poki/tests/lancer.py`) | la page s'ouvre sans aucune erreur dans la console et `python3 tests/lancer.py` passe |
+| 0 | **Fondations** : dossier, `git init`, `index.html`, Three.js en local, boucle avec la physique à rythme fixe (120 fois par seconde, séparée de l'affichage), tests lancés par Python dans Chrome sans fenêtre (comme `../../jeu poki/tests/lancer.py`) | la page s'ouvre sans aucune erreur dans la console et `python3 tests/lancer.py` passe |
 | 1 | **Un circuit simple, fait à partir de sa courbe** (des points au milieu de la piste) : route, vibreurs, murs, ligne d'arrivée, secteurs. Le même code servira aux 12 circuits | on survole le circuit avec une caméra libre |
 | 2 | **La voiture** : sa forme, sa physique (accélération, freinage, adhérence, dérapage, aspiration), 3 caméras (derrière, cockpit, télé), un son de moteur, Espace pour revenir sur la piste | **Le propriétaire l'a conduite** et elle lui plaît |
 | 3 | **Une course seule** : tours, chrono, temps de secteur, meilleur tour, choix 5/12/18 tours, pénalité pour virage coupé, écran de fin | on finit une course chronométrée de chaque longueur |
@@ -654,6 +673,7 @@ Avant tout ça, ne jamais écrire « fini ». Pour une grosse étape (2, 4, 10, 
 | 11 | **La grande passe sur l'interface** : style retransmission télé, animations, transitions, paddock, garage | Le propriétaire trouve que ça a l'air pro |
 | 12 | **La météo** (décidée par le propriétaire le 2026-10-27, voir « La météo ») : prévision, pluie qui change en course, piste mouillée, pneus slicks / intermédiaires / pluie, choix au stand, les IA avec la même information | la pluie change la stratégie |
 | 12b | **Les discussions** (décidées par le propriétaire le 2026-10-27, voir « Les discussions avec les pilotes et les écuries ») : parler aux rivaux, au coéquipier et aux patrons, en saisie libre ou au clic, des réponses depuis leur raisonnement, des messages qu'ils écrivent d'eux-mêmes | on discute avec un rival et sa réponse change ce qui suit |
+| 11b | **Les aides au premier usage et le commentateur** (idées du propriétaire du 2026-10-27, voir les deux sections) | chaque système a son aide la première fois, et une course est commentée sans jamais gêner le pilotage |
 | 13 | **Le résumé vidéo de la course** : les positions de toutes les voitures sont enregistrées pendant la course (même code que le fantôme du meilleur tour) ; on rejoue les moments forts (départ, dépassements, sorties de piste, arrivée) avec les caméras télé | après une course, on regarde son résumé |
 | 14 | **La fin de carrière et les records** : retraite anticipée ou par l'âge (15 saisons), palmarès, records, temple de la renommée (avec les statistiques de l'étape 6), l'album des unes du journal, la relève (héritier, arbre de la dynastie, records de famille : voir « La relève : une vraie dynastie ») ou nouvelle dynastie | une carrière terminée affiche son bilan |
 | 15 | **Poki** : SDK, pubs, traduction anglais/français complète, paquet zip, test sur inspector.poki.dev, temps du clic aux feux revérifié (voir « En piste en 10 secondes ») | le jeu passe l'inspecteur sans erreur, et un nouveau joueur est en piste en 10 secondes au plus |

@@ -763,6 +763,8 @@ function montrerChampionnat(gagne) {
   INTERFACE.remplirRappelSponsor(JEU.championnat);
   INTERFACE.remplirReputation(JEU.championnat);   // les trois jauges de l'interview (interview.js)
   INTERFACE.remplirPaddock(JEU.championnat, circuitPaddock(), texte('circuit_' + circuitProchain()) || (CIRCUITS[circuitProchain()] || CIRCUIT).nom);   // le paddock en écran d'accueil (tour 32) : la carte du prochain Grand Prix
+  // la météo prévue pour le prochain Grand Prix (meteo.js ; meteo3d.js l'écrit), rien sans prévision
+  if (typeof METEO3D !== 'undefined') { const t = METEO3D.textePrevision(METEO3D.prevision(JEU.championnat, JEU.championnat.prochain)), el = document.getElementById('prevision'); el.textContent = t || ''; el.classList.toggle('cache', !t); }
   document.getElementById('boutonAlbum').disabled = !JEU.championnat.album.length;   // l'album des unes (Codeur 3) : rien avant la première une
   JEU.ecran = 'championnat';
   INTERFACE.montrer('championnat');
@@ -1515,6 +1517,7 @@ function majMessages() {
   if (!JEU.messages || JEU.messages.plateau !== e) JEU.messages = { plateau: e, m: MESSAGES.creer() };
   const m = JEU.messages.m;
   MESSAGES.observer(m, e.pilotes.map((p, k) => ({ k, meilleurTour: p.course.meilleurTour, penalites: p.course.penalites, auxStands: !!p.course.arretEnCours })));
+  if (typeof METEO3D !== 'undefined') MESSAGES.observerMeteo(m, METEO3D.etat(e));   // « La pluie arrive », « La piste sèche »
   const msg = MESSAGES.afficher(m, e.temps);
   INTERFACE.majMessage(msg ? texte('msg_' + msg.type).replace('{qui}', etiquetteVoiture(msg.k)).replace('{temps}', msg.temps === undefined ? '' : INTERFACE.formatTemps(msg.temps)).replace('{s}', msg.s === undefined ? '' : String(msg.s).replace('.', texte('virgule'))) : null);
 }
@@ -1806,6 +1809,8 @@ function demarrerJeu() {
     }
     document.getElementById('attenteArrivee').classList.toggle('cache', !(JEU.attente && JEU.ecran === 'course'));
     SON.maj(JEU.joueur);
+    // la météo dessinée (meteo3d.js, l'état de meteo.js) : la pluie, les gerbes, la piste mouillée, le ciel couvert ; rien au sec
+    if (typeof METEO3D !== 'undefined') METEO3D.maj(METEO3D.etat(JEU.plateau || JEU.course), SCENE3D.camera, JEU.plateau ? JEU.plateau.pilotes.map(p => p.v) : [JEU.joueur], dt, CAMERA.mode === 'cockpit' && JEU.ecran === 'course');
     SCENE3D.dessiner();
   });
   if (PARAMETRES.get('debug') === '1') brancherDebug();

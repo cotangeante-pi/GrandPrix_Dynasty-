@@ -8,6 +8,8 @@ const SCENE3D = (function () {
   let infoCircuit = null;   // { triangles, msConstruction }
   let trianglesDessines = 0, appelsDessin = 0;
   let decor = null;   // le décor du circuit (étape 10, decor.js), ou null
+  let relief = null;  // la hauteur de la route à chaque échantillon (le pont de Suzuko, decor.js), ou null : tout est à plat
+  const haut = i => relief ? relief[i] : 0;
   // les voitures lointaines (étape 10) : au-delà de VOITURE_LOIN m de la caméra (à champ égal), une voiture est dessinée en forme simple,
   // toutes ensemble en un seul InstancedMesh ; { maillage, voitures } (les groupes des voitures ajoutées), créé à la première voiture
   let flotte = null, nbLointaines = 0;
@@ -47,14 +49,21 @@ const SCENE3D = (function () {
       // la lumière du lieu : l'ambiance (ciel au-dessus, sol en dessous), le soleil (sa couleur, sa force, sa hauteur en degrés) ;
       // la nuit, les projecteurs éclairent la piste (une lumière blanche de plus, LIEU_PROJECTEURS) ; le brouillard et le fond
       const L = lieu.lumiere, h = (L.hauteur || 45) * Math.PI / 180;
-      ambiance.color.set(L.ambiance); ambiance.groundColor.set(lieu.sol); ambiance.intensity = R.LIEU_AMBIANCE;
+      // la nuit (et plus doucement le soir, DECOR.nuitDe) : l'ambiance baisse, les projecteurs éclairent moins fort que le jour, et un
+      // brouillard sombre et court (NUIT_BROUILLARD) fait que seuls la piste et ses abords sont clairs ; les mâts restent allumés
+      const nuit = DECOR.nuitDe(lieu);
+      ambiance.color.set(L.ambiance); ambiance.groundColor.set(lieu.sol);
+      ambiance.intensity = R.LIEU_AMBIANCE + (R.NUIT_AMBIANCE - R.LIEU_AMBIANCE) * nuit;
       soleil.color.set(L.soleil); soleil.intensity = L.intensite;
       soleil.position.set(Math.cos(h) * 700, Math.sin(h) * 700, Math.cos(h) * 300);
-      if (L.projecteurs) scene.add(new THREE.HemisphereLight(0xfff4e0, lieu.sol, R.LIEU_PROJECTEURS));
+      if (L.projecteurs) scene.add(new THREE.HemisphereLight(0xfff4e0, lieu.sol, R.LIEU_PROJECTEURS + (R.NUIT_PROJECTEURS - R.LIEU_PROJECTEURS) * nuit));
       scene.background = new THREE.Color(lieu.ciel.horizon);
-      scene.fog = new THREE.Fog(lieu.brouillard.couleur, lieu.brouillard.debut, lieu.brouillard.fin);
+      const b = lieu.brouillard, debut = b.debut + (R.NUIT_BROUILLARD[0] - b.debut) * nuit, fin = b.fin + (R.NUIT_BROUILLARD[1] - b.fin) * nuit;
+      scene.fog = new THREE.Fog(b.couleur, debut, fin);
     }
 
+    // le pont : le relief du croisement (CIRCUITS[nom].croisement), avant la géométrie de la route
+    relief = R.PONT_ACTIF && typeof DECOR !== 'undefined' && cle && typeof CIRCUITS !== 'undefined' && CIRCUITS[cle] && CIRCUITS[cle].croisement ? DECOR.relief(circuit, CIRCUITS[cle].croisement) : null;
     const t0 = performance.now();
     const groupe = construireCircuit3D(circuit, lieu ? lieu.sol : R.COULEUR_SOL);
     scene.add(groupe);
@@ -63,6 +72,13 @@ const SCENE3D = (function () {
     if (choix) {
       decor = DECOR.construire(circuit, choix.description, gp || { championnat: null, circuit: cle }, lieu);
       scene.add(decor.groupe);
+    }
+
+    // la météo (meteo3d.js) : ce qu'elle assombrit sous la pluie (la route, la coupole du ciel du lieu, les deux lumières)
+    if (typeof METEO3D !== 'undefined') {
+      let route = null, coupole = null;
+      scene.traverse(o => { if (o.name === 'route') route = o; if (o.name === 'decor-ciel') coupole = o; });
+      METEO3D.init(scene, { route, coupole, ambiance, soleil });
     }
 
     redimensionner();
@@ -76,7 +92,7 @@ const SCENE3D = (function () {
   // couleur(i) : la couleur du morceau i → i+1 (facultatif)
   function ruban(c, d1, d2, y, garder, couleur) {
     const pos = [], col = [];
-    const coin = (i, d) => [c.x[i] + c.nx[i] * d, y, c.z[i] + c.nz[i] * d];
+    const coin = (i, d) => [c.x[i] + c.nx[i] * d, y + haut(i), c.z[i] + c.nz[i] * d];
     for (let i = 0; i < c.nb; i++) {
       if (garder && !garder(i)) continue;
       const k = (i + 1) % c.nb;
@@ -95,14 +111,15 @@ const SCENE3D = (function () {
       if (garder && !garder(i)) continue;
       const k = (i + 1) % c.nb;
       const ax = c.x[i] + c.nx[i] * d, az = c.z[i] + c.nz[i] * d, bx = c.x[k] + c.nx[k] * d, bz = c.z[k] + c.nz[k] * d;
-      pos.push(ax, 0, az, ax, hauteur, az, bx, 0, bz, bx, 0, bz, ax, hauteur, az, bx, hauteur, bz);
+      const ha = haut(i), hb = haut(k);
+      pos.push(ax, ha, az, ax, ha + hauteur, az, bx, hb, bz, bx, hb, bz, ax, ha + hauteur, az, bx, hb + hauteur, bz);
     }
     return geometrie(pos);
   }
 
   // un rectangle en travers de la piste à l'échantillon i : de d1 à d2, de -avant à +apres le long de la piste
   function travers(c, i, d1, d2, avant, apres, y, pos, col, couleur) {
-    const p = (d, l) => [c.x[i] + c.nx[i] * d + c.tx[i] * l, y, c.z[i] + c.nz[i] * d + c.tz[i] * l];
+    const p = (d, l) => [c.x[i] + c.nx[i] * d + c.tx[i] * l, y + haut(i), c.z[i] + c.nz[i] * d + c.tz[i] * l];
     const a1 = p(d1, -avant), a2 = p(d2, -avant), b1 = p(d1, apres), b2 = p(d2, apres);
     pos.push(...a1, ...a2, ...b1, ...b1, ...a2, ...b2);
     const cc = new THREE.Color(couleur);
@@ -139,7 +156,9 @@ const SCENE3D = (function () {
     groupe.add(sol);
 
     // la route et ses bords (de petites hauteurs différentes : pas de clignotement entre deux surfaces)
-    groupe.add(maillage(ruban(c, -demi, demi, 0.02), R.COULEUR_ROUTE));
+    const route = maillage(ruban(c, -demi, demi, 0.02), R.COULEUR_ROUTE);
+    route.name = 'route';   // (meteo3d.js la mouille : plus sombre et brillante)
+    groupe.add(route);
     groupe.add(maillage(ruban(c, -demi, -demi + R.LARGEUR_BORD, 0.03), R.COULEUR_BORD));
     groupe.add(maillage(ruban(c, demi - R.LARGEUR_BORD, demi, 0.03), R.COULEUR_BORD));
 
@@ -175,7 +194,34 @@ const SCENE3D = (function () {
       travers(c, i, -demi, demi, R.LARGEUR_REPERE_SECTEUR / 2, R.LARGEUR_REPERE_SECTEUR / 2, 0.05, pos, col, R.COULEURS_SECTEURS[n - 1]);
     }
     groupe.add(maillage(geometrie(pos, col), null));
+    if (relief) groupe.add(construirePont(c));
     return groupe;
+  }
+
+  // le pont (étape 10) : là où la route monte, le terre-plein jusqu'aux barrières (à la hauteur de la route), ses flancs jusqu'au sol,
+  // et au-dessus du second passage (PONT_OUVERTURE m de part et d'autre de s1) le tablier : sa face du dessous, ses flancs, et les deux
+  // culées en travers ; une seule géométrie, des deux côtés
+  function construirePont(c) {
+    const pos = [], col = [], dB = c.largeur / 2 + R.DISTANCE_BARRIERE, L = c.longueur;
+    const s1 = CIRCUITS[Object.keys(CIRCUITS).find(k => CIRCUITS[k].croisement && CIRCUITS[k].nom === c.nom)].croisement[0];
+    const ouvert = i => Math.abs(((c.s[i] - s1) % L + L * 1.5) % L - L / 2) <= R.PONT_OUVERTURE;
+    const pt = (i, d, y) => [c.x[i] + c.nx[i] * d, y, c.z[i] + c.nz[i] * d];
+    const quad = (a, b, cc, d, couleur) => { pos.push(...a, ...b, ...cc, ...a, ...cc, ...d); const C = new THREE.Color(couleur); for (let v = 0; v < 6; v++) col.push(C.r, C.g, C.b); };
+    for (let i = 0; i < c.nb; i++) {
+      const k = (i + 1) % c.nb, hi = haut(i), hk = haut(k);
+      if (hi <= 0.01 && hk <= 0.01) continue;
+      // le terre-plein (un peu sous la route), de barrière à barrière
+      quad(pt(i, -dB, hi - 0.01), pt(i, dB, hi - 0.01), pt(k, dB, hk - 0.01), pt(k, -dB, hk - 0.01), R.COULEUR_TERRE_PLEIN);
+      for (const d of [-dB, dB]) {
+        if (ouvert(i)) quad(pt(i, d, hi - R.PONT_EPAISSEUR), pt(i, d, hi), pt(k, d, hk), pt(k, d, hk - R.PONT_EPAISSEUR), R.COULEUR_PONT);   // le flanc du tablier
+        else quad(pt(i, d, 0), pt(i, d, hi), pt(k, d, hk), pt(k, d, 0), R.COULEUR_TALUS);                                                   // le flanc du talus
+      }
+      if (ouvert(i)) quad(pt(i, -dB, hi - R.PONT_EPAISSEUR), pt(k, -dB, hk - R.PONT_EPAISSEUR), pt(k, dB, hk - R.PONT_EPAISSEUR), pt(i, dB, hi - R.PONT_EPAISSEUR), R.COULEUR_PONT);   // le dessous
+      if (ouvert(i) !== ouvert(k)) { const j = ouvert(i) ? k : i, h = haut(j); quad(pt(j, -dB, 0), pt(j, -dB, h), pt(j, dB, h), pt(j, dB, 0), R.COULEUR_PONT); }   // une culée
+    }
+    const m = maillage(geometrie(pos, col), null, { side: THREE.DoubleSide });
+    m.name = 'pont';
+    return m;
   }
 
   function compterTriangles(groupe) {
@@ -259,11 +305,18 @@ const SCENE3D = (function () {
     if (!flotte) return cachees;
     const cams = partage ? [camera, camera2] : [camera], seuil = R.VOITURE_LOIN * R.VOITURE_LOIN_CHAMP / camera.fov, s2 = seuil * seuil, m = flotte.maillage;
     let n = 0;
+    // (au plus VOITURES_DETAILLEES_MAX voitures détaillées, les plus proches : sur la grille vue de la télé, toutes sont « proches »)
+    const vues = [];
     for (const g of flotte.voitures) {
-      if (!g.visible || !g.parent || n >= R.VOITURES_LOINTAINES_MAX) continue;
+      if (!g.visible || !g.parent) continue;
       let d2 = Infinity;
       for (const c of cams) { const dx = g.position.x - c.position.x, dy = g.position.y - c.position.y, dz = g.position.z - c.position.z; d2 = Math.min(d2, dx * dx + dy * dy + dz * dz); }
-      if (d2 < s2) continue;
+      vues.push({ g, d2 });
+    }
+    vues.sort((a, b) => a.d2 - b.d2);
+    for (let k = 0; k < vues.length; k++) {
+      const { g, d2 } = vues[k];
+      if ((d2 < s2 && k < R.VOITURES_DETAILLEES_MAX) || n >= R.VOITURES_LOINTAINES_MAX) continue;
       g.updateMatrix();
       g.matrix.toArray(m.instanceMatrix.array, n * 16);
       m.setColorAt(n, g.userData.lointaine.couleur);
@@ -287,6 +340,7 @@ const SCENE3D = (function () {
     get partage() { return partage; },
     get infoCircuit() { return infoCircuit; },
     get decor() { return decor; },
+    get relief() { return relief; },   // (la hauteur de la route à chaque échantillon, ou null : voiture3d.js et camera.js la suivent)
     get nbLointaines() { return nbLointaines; },   // (tests : les voitures dessinées en forme simple à la dernière image)   // (tests : le décor placé, ses maillages, ses niveaux de détail)
     get trianglesDessines() { return trianglesDessines; },
     get appelsDessin() { return appelsDessin; },

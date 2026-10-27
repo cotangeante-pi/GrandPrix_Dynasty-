@@ -158,8 +158,15 @@ const CAMERA = (function () {
     };
   }
 
+  // la hauteur de la route sous la voiture (le pont de Suzuko : SCENE3D.relief ; 0 ailleurs) : la caméra monte avec elle
+  function hauteurRoute(v) {
+    const rel = typeof SCENE3D !== 'undefined' ? SCENE3D.relief : null;
+    return rel && v && v.piste ? rel[v.piste.indice] : 0;
+  }
+
   function suivreDerriere(etat, v, dt) {
-    const p = poseDerriere(etat, v.u, suiviDerriere, dt);
+    const p = poseDerriere(etat, v.u, suiviDerriere, dt), h = hauteurRoute(v);
+    p.y += h; p.vise.y += h;
     regler(p.champ, 0.5);
     cam.up.set(0, 1, 0);
     cam.position.set(p.x, p.y, p.z);
@@ -169,7 +176,8 @@ const CAMERA = (function () {
   // l'écran partagé (mode 2 joueurs) : la seconde caméra c, toujours derrière sa voiture (etat, v), avec son propre suivi
   function majSeconde(dt, c, etat, v) {
     dt = Math.min(dt, 0.1);
-    const p = poseDerriere(etat, v.u, suiviSecond, dt);
+    const p = poseDerriere(etat, v.u, suiviSecond, dt), h = hauteurRoute(v);
+    p.y += h; p.vise.y += h;
     if (c.fov !== p.champ || c.near !== 0.5) { c.fov = p.champ; c.near = 0.5; c.updateProjectionMatrix(); }
     c.up.set(0, 1, 0);
     c.position.set(p.x, p.y, p.z);
@@ -181,7 +189,8 @@ const CAMERA = (function () {
     dt = Math.min(dt, 0.1);
     if (mode === 'derriere') suivreDerriere(etat, v, dt);
     else if (mode === 'cockpit') {
-      const p = poseCockpit(etat);
+      const p = poseCockpit(etat), h = hauteurRoute(v);
+      p.y += h; p.vise.y += h;
       regler(R.CAMERA_COCKPIT_CHAMP, 0.05);
       cam.up.set(0, 1, 0);
       cam.position.set(p.x, p.y, p.z);
@@ -194,7 +203,7 @@ const CAMERA = (function () {
       regler(Math.max(6, Math.min(50, 2 * Math.atan(R.TELE_CADRAGE / 2 / distance) * 180 / Math.PI)), 0.5);
       cam.up.set(0, 1, 0);
       cam.position.set(p.x, R.TELE_HAUTEUR, p.z);
-      cam.lookAt(etat.x, 0.6, etat.z);
+      cam.lookAt(etat.x, 0.6 + hauteurRoute(v), etat.z);
     } else if (mode === 'vitrine') {
       // trois quarts avant, de près
       const f = { x: Math.cos(etat.cap), z: Math.sin(etat.cap) }, d = { x: -f.z, z: f.x };

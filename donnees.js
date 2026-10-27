@@ -715,6 +715,14 @@ const REGLAGES = {
   MINICARTE_MARGE: 10, MINICARTE_TRAIT: 4, MINICARTE_POINT: 3,
   // les messages de course (messages.js) : chacun reste MESSAGES_DUREE s ; la file en garde au plus MESSAGES_FILE_MAX
   MESSAGES_DUREE: 3, MESSAGES_FILE_MAX: 4,
+  MESSAGES_PLUIE_SEUIL: 0.15, MESSAGES_SECHE_SEUIL: 0.15,   // la météo : « La pluie arrive » au-dessus de ce qui tombe, « La piste sèche » sous cette eau
+  // le dessin de la météo (meteo3d.js ; l'état vient de meteo.js) : la pluie autour de la caméra, les gerbes, la piste mouillée, le ciel couvert
+  PLUIE_GOUTTES: 2400, PLUIE_BOITE: [45, 30], PLUIE_VITESSE: 22, PLUIE_LONGUEUR: 0.9, PLUIE_VENT: 0.12,   // m, m/s
+  PLUIE_COULEUR: 0xc8d4e4, PLUIE_OPACITE: 0.55,
+  GERBE_COULEUR: 0xe6ecf2, GERBE_OPACITE: 0.26, GERBE_CAMERA_MIN: 12, GERBE_VITESSE_MIN: 8, GERBE_VITESSE_PLEINE: 70, GERBE_RECUL: 3.4, GERBE_HAUTEUR: 0.7, GERBE_TAILLE: [3.2, 1.1, 1.3],
+  COULEUR_ROUTE_MOUILLEE: 0x24262b, ROUTE_MOUILLEE_REFLET: 0.35, ROUTE_MOUILLEE_BRILLANCE: 40,
+  CIEL_COUVERT: 0x9aa2ab, CIEL_COUVERT_COUPOLE: 0x8e959d, CIEL_COUVERT_PART: 0.85, CIEL_COUVERT_CLARTE: 1.4, CIEL_COUVERT_AMBIANCE: 0.25, CIEL_COUVERT_SOLEIL: 0.6,
+  METEO_ICONE_PLUIE: 0.1, METEO_ICONE_NUAGES: 0.3, GOUTTES_OPACITE: 1.2,
   // le décor (étape 10, decor.js) : les briques, faites par le code, un InstancedMesh par type ; leur placement vient de DECORS (plus bas)
   DECOR_ACTIF: true,
   DECOR_GRAINE: 4242,           // le hasard du décor, à part (il ne tire jamais dans hasard() : la course ne change pas)
@@ -782,9 +790,20 @@ const REGLAGES = {
   NUAGES_MAX: 40, NUAGES_ETENDUE: 3500, NUAGES_HAUTEUR: [450, 800], NUAGES_OPACITE: 0.85,
   // la lumière d'un lieu (scene3d.js, avec decors-officiels.js) : l'ambiance (hémisphère) et, la nuit, la lumière des projecteurs
   LIEU_AMBIANCE: 0.65, LIEU_PROJECTEURS: 0.9,
+  // la nuit (Singapura) ; le soir (Bahrayn au crépuscule, Yas Marino au couchant) en prend la part NUIT_SOIR
+  NUIT_AMBIANCE: 0.22, NUIT_PROJECTEURS: 0.42, NUIT_BROUILLARD: [140, 950], NUIT_SOIR: 0.45,
+  FENETRES_NUIT: 0xffc870,       // les fenêtres allumées des immeubles (couleur émissive)
+  NUIT_CIEL_MAX: 60,             // tests/ecrans.py : la nuit, la luminosité moyenne (0–255) du haut de l'image (le ciel) reste en dessous…
+  NUIT_IMAGE_MAX: 70,            // … et celle de toute l'image aussi ; le jour (Monzo), toute l'image est au-dessus de JOUR_IMAGE_MIN
+  JOUR_IMAGE_MIN: 100,
   VOITURE_LOIN: 45,             // m : au-delà (pour un champ de vision de VOITURE_LOIN_CHAMP degrés ; plus loin quand la caméra zoome),
   VOITURE_LOIN_CHAMP: 55,       //     une voiture est dessinée en forme simple, toutes en un seul appel de dessin (scene3d.js)
   VOITURES_LOINTAINES_MAX: 32,
+  VOITURES_DETAILLEES_MAX: 8,   // … et au plus ces voitures détaillées (les plus proches), les autres en forme simple
+  // le pont de Suzuko (le seul croisement, scene3d.js et decor.js ; l'affichage seulement, la physique reste plate)
+  PONT_ACTIF: false,            // pas encore fini ni essayé (tour 32 : la route, le talus, le tablier, la voiture et la caméra qui montent) : coupé
+  PONT_HAUTEUR: 7.5, PONT_PLAT: 40, PONT_RAMPE: 200, PONT_OUVERTURE: 34, PONT_EPAISSEUR: 1.2,   // m
+  COULEUR_PONT: 0xb8bcc2, COULEUR_TALUS: 0x5d7a45, COULEUR_TERRE_PLEIN: 0x5f8a42,
   LIEU_CHAMP: 50,               // tests/lieu.html : le champ de vision de la vue d'un décor (degrés)
   LIEU_APPELS_MAX: 90,          // appels de dessin au plus sur un circuit officiel décoré avec 20 voitures (tests/ecrans.py)
   PNEUS_PERTE_AFFICHEE: 0.001, // ?pneus=1 : la perte d'adhérence n'est écrite qu'à partir de 0,1 %
