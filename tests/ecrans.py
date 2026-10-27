@@ -70,6 +70,7 @@ PAGES = [
     ('index.html?course=1&ia=5&joueur=1&robot=1&circuit=test&test=resume', 960, 600, None),    # … en petit ; capture resume-960.png
     ('index.html?course=3&ia=5&joueur=1&robot=1&pneus=1&circuit=test&test=hudcourse', 1280, 720, None),   # la minicarte, les pneus, les messages de course (suite du tour 31) ; captures minicarte.png, pneus-hud.png, messages.png
     ('index.html?course=3&ia=5&joueur=1&robot=1&pneus=1&circuit=test&test=hudcourse', 960, 600, None),    # … en petit, sans recouvrement
+    ('index.html?course=3&ia=20&circuit=test&test=decor', 1280, 720, None),   # le décor du circuit test (étape 10) avec 20 voitures : appels de dessin, triangles, niveaux de détail ; captures decor-test.png, decor-dessus.png
     ('index.html?test=tournoi', 1280, 720, None),   # le tournoi chrono (tour 26b) : inscription de 3 joueurs → 3 manches (robot ; un abandon) → podium → Rejouer ; captures tournoi.png, tournoi-podium.png
     ('index.html?test=tournoi', 960, 600, None),    # … l'inscription de 8 joueurs tient en 960×600   # le mode 2 joueurs, tour 25b ordre 3 : titre → « Entre amis » → réglages → course à deux (robots) → podium → rivalité → Revanche → Menu ; captures entre-amis.png, deux-reglages.png, rivalite.png
     ('index.html?test=amis', 960, 600, None),    # … en petit : le menu et l'écran avant la course tiennent sans défilement ni débordement   # … la mesure de la 3D dessinée deux fois sur le technique   # le premier lancement : titre → course de découverte (robot) → Bravo → paddock ; captures titre.png, decouverte.png, bravo.png
@@ -387,9 +388,15 @@ def fantome(pg, titre):
     pg.reload()
     attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "qualif" && JEU.qualif.etat === "choix"', None, 60000)
     pg.evaluate('() => { SAUVEGARDE.ecrireOption("fantome", true); INTERFACE.majBoutonsFantome(true); REGLAGES.FORCE_MOTEUR_MAX *= 0.7; REGLAGES.PUISSANCE *= 0.7; }')
-    mon_tour()
-    pg.evaluate('() => { BOUCLE.arreter(); while (QUALIFICATION.chrono(JEU.qualif.q) < 1) BOUCLE.simuler(1 / 120); }')
-    image()
+    # (la boucle arrêtée dès le clic : le tour est joué pas à pas jusqu'à 0,5 s après la ligne, quel que soit le temps d'une image ;
+    # avec le décor, sous swiftshader, attendre le tour en temps réel laissait passer plusieurs secondes de chrono, et à 1 s pile
+    # le fantôme est déjà à 12-20 m, à moitié au-dessus du milieu de l'image)
+    attendre(pg, '() => JEU.ecran === "qualif" && JEU.qualif && JEU.qualif.etat === "choix"', None, 60000)
+    attendre(pg, '() => JEU.plateau.carte !== null', None, 180000)
+    pg.click('#boutonQualifTour')
+    pg.evaluate('() => { BOUCLE.arreter(); JEU.course.compte = 0.01; }')
+    pg.evaluate('t => { const tour = eval(t); let n = 0; while (!tour() && n++ < 120 * 60) BOUCLE.simuler(1 / 120); while (QUALIFICATION.chrono(JEU.qualif.q) < 0.5 && n++ < 120 * 120) BOUCLE.simuler(1 / 120); BOUCLE.demarrer(); }', TOUR)
+    image()   # (deux images : la première sans physique, la seconde 0,1 s au plus)
     pg.evaluate('() => BOUCLE.arreter()')
     pos = pg.evaluate('''() => { const p = FANTOME.position(JEU.fantome.rejeu, QUALIFICATION.chrono(JEU.qualif.q)), v = JEU.joueur, c = Math.cos(v.cap), s = Math.sin(v.cap);
       return { chrono: QUALIFICATION.chrono(JEU.qualif.q), devant: c * (p.x - v.x) + s * (p.z - v.z), cote: -s * (p.x - v.x) + c * (p.z - v.z), visible: JEU.modeleFantome.groupe.visible, ecart: JEU.fantome.ecart }; }''')
@@ -1089,6 +1096,36 @@ def resume_ecran(pg, titre, l, h):
 # l'interface en course (suite du tour 31) : la minicarte (le circuit entier, chaque voiture au bon endroit à 2 m près, le joueur
 # mis en valeur), l'état des pneus avec ?pneus=1 (la jauge baisse en roulant), un message de course (meilleur tour) qui apparaît
 # puis disparaît ; rien ne se recouvre en 960×600 et 1280×720 ; aucun appel de dessin en plus (ce sont des canvas 2D et du HTML)
+# le décor (étape 10, decor.js) sur le circuit test, avec 20 voitures : chaque brique est là, en InstancedMesh (un appel de dessin par
+# type et par niveau de détail), le décor coûte au plus DECOR_APPELS_MAX appels ; le public et les arbres passent en forme simple
+# loin de la caméra ; la mesure (appels, triangles, avec et sans décor) va dans le journal ; captures decor-test.png, decor-dessus.png
+def decor_ecran(pg, titre, l, h):
+    pret = attendre(pg, '() => !!SCENE3D.decor && JEU.plateau && JEU.plateau.pilotes.length === 20', None, 30000)
+    info = pg.evaluate('''() => { const d = SCENE3D.decor, o = d.objets, n = {}; for (const k in o) n[k] = o[k].length;
+      const maillages = []; d.groupe.traverse(m => { if (m.isInstancedMesh) maillages.push(m.name); });
+      return { n, refus: d.refus, maillages, triangles: d.triangles, ms: Math.round(d.ms) }; }''')
+    n = info['n']
+    t(f'{titre} : le décor du circuit test : tribunes avec leur public, public debout, stands (bâtiment, un garage par écurie), deux formes d’arbres, panneaux, piles de pneus ; tout en InstancedMesh',
+      pret and n['tribune'] >= 30 and n['public'] >= 1000 and n['batiment'] >= 10 and n['garage'] == pg.evaluate('() => REGLAGES.ECURIES.length') and n['arbreA'] >= 50 and n['arbreB'] >= 50 and n['panneau'] >= 20 and n['pneus'] >= 50
+      and len(info['maillages']) <= pg.evaluate('() => REGLAGES.DECOR_APPELS_MAX'), str(info))
+    # la vue télé, au départ (la grille, la grande tribune en face des stands)
+    pg.evaluate('() => CAMERA.forcer("tele")'); pg.wait_for_timeout(1500)
+    mesure = pg.evaluate('''() => { SCENE3D.dessiner(); const avec = [SCENE3D.appelsDessin, SCENE3D.trianglesDessines];
+      SCENE3D.decor.groupe.visible = false; SCENE3D.dessiner(); const sans = [SCENE3D.appelsDessin, SCENE3D.trianglesDessines];
+      SCENE3D.decor.groupe.visible = true; SCENE3D.dessiner();
+      const g = SCENE3D.decor.detail; return { avec, sans, proches: g.map(x => x.nbProches), loin: g.map(x => x.nbLoin), total: g.map(x => x.tous.length), voitures: JEU.plateau.pilotes.length }; }''')
+    L.append(f"  (décor du circuit test, {mesure['voitures']} voitures, vue télé {l}×{h}, swiftshader : {mesure['avec'][0]} appels de dessin et {mesure['avec'][1]} triangles avec le décor, {mesure['sans'][0]} et {mesure['sans'][1]} sans ; {info['ms']} ms de construction ; objets {n} ; places refusées {info['refus']})")
+    t(f'{titre} : le décor coûte au plus DECOR_APPELS_MAX appels de dessin (avec 20 voitures : {mesure["avec"][0]} appels en tout, {mesure["sans"][0]} sans le décor), et le total reste sous DECOR_APPELS_TOTAL_MAX',
+      0 < mesure['avec'][0] - mesure['sans'][0] <= pg.evaluate('() => REGLAGES.DECOR_APPELS_MAX') and mesure['avec'][0] < pg.evaluate('() => REGLAGES.DECOR_APPELS_TOTAL_MAX') and mesure['avec'][1] > mesure['sans'][1], str(mesure))
+    t(f'{titre} : niveaux de détail : près de la caméra télé, du public et des arbres détaillés, les autres en forme simple ou pas dessinés (jamais deux fois)',
+      all(p + q <= tt for p, q, tt in zip(mesure['proches'], mesure['loin'], mesure['total'])) and mesure['proches'][0] > 0 and mesure['loin'][0] > 0 and mesure['loin'][1] > 0, str(mesure))
+    pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'decor-test.png'))
+    # vu d'en haut : toute la caméra est loin, plus rien de détaillé
+    pg.evaluate('() => { const c = SCENE3D.camera; c.fov = 55; c.updateProjectionMatrix(); CAMERA.init(c, CIRCUIT, "dessus"); }')   # (le champ de la télé, très serré, mettrait la caméra au-delà du brouillard); pg.wait_for_timeout(1500)
+    haut = pg.evaluate('() => { SCENE3D.dessiner(); return { proches: SCENE3D.decor.detail.map(x => x.nbProches), loin: SCENE3D.decor.detail.map(x => x.nbLoin), y: SCENE3D.camera.position.y }; }')
+    t(f'{titre} : vu d’en haut (à {round(haut["y"])} m), le public et les arbres sont tous en forme simple', haut['proches'] == [0, 0, 0] and haut['loin'][1] > 0, str(haut))
+    pg.screenshot(path=os.path.join(CAPTURES, 'decor-dessus.png'))
+
 def hud_course(pg, titre, l, h):
     passer_qualif(pg, titre)
     attendre(pg, '() => JEU.plateau.carte !== null', None, 180000)
@@ -2137,6 +2174,8 @@ with sync_playwright() as p:
             if 'test=accelere' in page or 'test=audit' in page: pass
             elif 'test=hudcourse' in page:
                 hud_course(pg, titre, l, h)
+            elif 'test=decor' in page:
+                decor_ecran(pg, titre, l, h)
             elif 'test=resume' in page:
                 resume_ecran(pg, titre, l, h)
             elif 'test=qualif' in page:
