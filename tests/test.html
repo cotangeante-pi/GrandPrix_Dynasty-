@@ -696,6 +696,14 @@ t('météo : un slick sous la pluie va moins vite qu’un pneu pluie, et l’inv
   const ss=tourMeteo(SEC,'slick'),sp=tourMeteo(SEC,'pluie'),ms=tourMeteo(MOUILLE,'slick'),mp=tourMeteo(MOUILLE,'pluie');
   L.push('  (météo, meilleur tour seul sur le technique : au sec slick '+ss.t.toFixed(2)+' s, pluie '+sp.t.toFixed(2)+' s ; mouillé slick '+ms.t.toFixed(2)+' s, pluie '+mp.t.toFixed(2)+' s ; barrières '+[ss,sp,ms,mp].map(x=>x.barr).join('/')+', herbe '+[ss,sp,ms,mp].map(x=>x.herbe).join('/')+')');
   v(ss.t<sp.t,'au sec : '+ss.t+' / '+sp.t);v(mp.t<ms.t,'mouillé : '+mp.t+' / '+ms.t);v([ss,sp,ms,mp].every(x=>x.barr===0),'barrières');});
+t('météo, le contrat avec le dessin : METEO.etat(course) = { pluie, eau, ciel } entre 0 et 1 (tout à 0 sans météo) ; METEO.prevision(ch, gp) = { type, risque } et la même graine que la course de la page', ()=>{
+  const e=creerCourseIA(TQ,1,1,1,CARTES_T.technique),z=METEO.etat(e);v(z.pluie===0&&z.eau===0&&z.ciel===0,'sans météo');
+  poserMeteo(e,MOUILLE);const m=METEO.etat(e);v(m.pluie===0.9&&m.eau===REGLAGES.METEO_EAU_DEPART&&m.ciel>0.8&&m.ciel<=1,'mouillé '+JSON.stringify(m));
+  const avant=REGLAGES.CALENDRIER_CIRCUITS;REGLAGES.CALENDRIER_CIRCUITS=CALENDRIER_JEU;
+  try{const ch=CHAMPIONNAT.creer(5);for(let g=0;g<12;g++){const p=METEO.prevision(ch,g);v(['sec','nuageux','risque','pluie'].includes(p.type)&&p.risque>=0&&p.risque<=100,'prévision '+JSON.stringify(p));
+      const q=METEO.plan(ch.calendrier[g].circuit,METEO.graineGP(ch,g),999).prevision;v(p.type===q.type&&p.risque===q.pourcent,'même graine que la course');}
+    L.push('  (prévisions de la saison 1, graine 5 : '+[...Array(12).keys()].map(g=>ch.calendrier[g].circuit+' '+METEO.prevision(ch,g).type+' '+METEO.prevision(ch,g).risque+' %').join(', ')+')');}
+  finally{REGLAGES.CALENDRIER_CIRCUITS=avant;}});
 t('météo : au sec, la course est identique au bit près à la course sans météo (10 IA, 3 tours)', ()=>{
   const course=avec=>{const e=creerCourseIA(TQ,10,3,2,CARTES_T.technique);if(avec)poserMeteo(e,SEC);for(let k=0;k<300*120&&e.arrives<10;k++)pasCourseIA(e,DT);return e.pilotes.map(p_=>p_.arrivee+':'+p_.v.x+':'+p_.v.contactsVoiture).join('|');};
   v(course(true)===course(false));});

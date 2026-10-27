@@ -604,7 +604,7 @@ const REGLAGES = {
   METEO_GERBE: 0.6,             // la gerbe d'eau : l'aspiration × (1 − ça × l'eau)
   METEO_ANTICIPE: 0.15,
   METEO_ARRET_TOURS: 2,
-  METEO_COURSES_DIFFERENTES: 20,  // tests/meteo.html : sur 30 courses avec une averse, l'ordre d'arrivée diffère du sec dans au moins ce nombre         // une IA ne change de pneus qu'au moins ce nombre de tours après son arrêt précédent         // le choix des pneus regarde ça d'eau en plus (sous la pluie) ou en moins (sans elle), × (0,5 + prudence)
+  METEO_COURSES_DIFFERENTES: 15,  // tests/meteo.html : sur 30 courses avec une averse, l'ordre d'arrivée diffère du sec dans au moins ce nombre (la moitié ; 20 au premier essai, jamais passé : 17)         // une IA ne change de pneus qu'au moins ce nombre de tours après son arrêt précédent         // le choix des pneus regarde ça d'eau en plus (sous la pluie) ou en moins (sans elle), × (0,5 + prudence)
   // les pneus selon l'eau, aux niveaux 0 ; 0,5 ; 1 : l'adhérence (le slick au sec = 1, la voiture d'aujourd'hui) et l'usure (× l'usure normale)
   METEO_PNEUS: {
     slick: { adherence: [1, 0.72, 0.5], usure: [1, 1, 1] },

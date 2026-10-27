@@ -25,7 +25,7 @@ const METEO = (function () {
     const debut = pleut ? intensite : 0;
     const change = bascule ? { t: duree * (R.METEO_CHANGE_PART[0] + h4 * (R.METEO_CHANGE_PART[1] - R.METEO_CHANGE_PART[0])), pluie: pleut ? 0 : intensite } : null;
     // la prévision : ce qu'on sait avant (la chance qu'il pleuve à un moment de la course), jamais le moment exact
-    const risque = Math.round(100 * Math.min(1, lieu.pluie + (1 - lieu.pluie) * lieu.change));
+    const risque = pleut ? 100 : Math.round(100 * Math.min(1, lieu.pluie + (1 - lieu.pluie) * lieu.change));   // (il pleut déjà : 100 %)
     const type = pleut ? 'pluie' : risque >= R.METEO_RISQUE ? 'risque' : risque > 0 ? 'nuageux' : 'sec';
     return { prevision: { type, pourcent: risque }, debut, change };
   }
@@ -85,5 +85,29 @@ const METEO = (function () {
     return meilleurPneu(attendue);
   }
 
-  return { TYPES, plan, creer, pas, eauEn, adherence, usure, meilleurPneu, choisir };
+  // --- le contrat avec le dessin (Codeur 2) ---
+  // l'état du ciel d'une course (e, le plateau de simulation.js, ou son e.meteo) : { pluie (0 à 1, ce qui tombe), eau (0 à 1, la piste),
+  // ciel (0 à 1, la couverture nuageuse : la pluie, sinon ce que la prévision annonçait) } ; sans météo : tout à 0
+  const CIEL = { sec: 0.1, nuageux: 0.45, risque: 0.65, pluie: 0.9 };
+  function etat(course) {
+    const m = course && course.meteo !== undefined ? course.meteo : course;
+    if (!m || !m.plan) return { pluie: 0, eau: 0, ciel: 0 };
+    const base = CIEL[m.plan.prevision.type] || 0;
+    return { pluie: m.pluie, eau: m.eau, ciel: m.pluie > 0 ? Math.max(base, 0.8 + 0.2 * m.pluie) : base };
+  }
+
+  // la graine météo du Grand Prix gp (0 = le premier) d'un championnat : la même pour la prévision au paddock et pour la course
+  function graineGP(ch, gp) {
+    return (ch.graine || 1) * 1000 + (ch.saison || 1) * 100 + gp;
+  }
+
+  // la prévision du Grand Prix gp (0 = le premier) d'un championnat : { type: 'sec' | 'nuageux' | 'risque' | 'pluie', risque: 0 à 100 }
+  function prevision(ch, gp) {
+    const g = ch && ch.calendrier && ch.calendrier[gp];
+    if (!g) return { type: 'sec', risque: 0 };
+    const p = plan(g.circuit, graineGP(ch, gp), 1).prevision;
+    return { type: p.type, risque: p.pourcent };
+  }
+
+  return { TYPES, plan, creer, pas, eauEn, adherence, usure, meilleurPneu, choisir, etat, graineGP, prevision };
 })();

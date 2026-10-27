@@ -743,7 +743,7 @@ function planMeteo(nbTours) {
   if (force === 'pluie') return { prevision: { type: 'pluie', pourcent: 100 }, debut: 0.8, change: null };
   if (force === 'averse') return { prevision: { type: 'risque', pourcent: 100 }, debut: 0, change: { t: duree / 3, pluie: 0.8 } };
   if (force === 'eclaircie') return { prevision: { type: 'pluie', pourcent: 100 }, debut: 0.8, change: { t: duree / 3, pluie: 0 } };
-  const ch = JEU.championnat, graine = ch ? (ch.graine || 1) * 1000 + (ch.saison || 1) * 100 + ch.prochain : Number(PARAMETRES.get('graine')) || 1;
+  const ch = JEU.championnat, graine = ch ? METEO.graineGP(ch, ch.prochain) : Number(PARAMETRES.get('graine')) || 1;
   return METEO.plan(NOM_CIRCUIT, graine, duree);
 }
 
