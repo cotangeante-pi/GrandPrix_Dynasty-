@@ -2376,7 +2376,7 @@ def aides_course(pg, titre, l, h):
                 co = pg.evaluate(AIDE_COULOIR)
                 t(f'{titre} : en roulant dans la ligne droite, l’aide de l’arrêt obligatoire est affichée et aucun point de la piste devant la voiture n’est sous la bulle (les points sont bien sur la route : gris)', co['n'] >= 20 and co['dessous'] == 0 and co['gris'] >= 60 and pg.evaluate('() => document.getElementById("bulleAideTexte").textContent.includes(String(Math.round(REGLAGES.STAND_VITESSE_MAX * 3.6)))'), str(co))
                 L.append(f"  (aides, l’arrêt obligatoire en roulant {l}×{h} : {co['n']} points du couloir, {co['gris']} % gris de route, {co['dessous']} sous la bulle {co['bulle']})")
-                pg.screenshot(path=os.path.join(CAPTURES, 'aide-stand.png' if l == 1280 else 'aide-stand-960.png'))   # (la dernière image dessinée, la boucle arrêtée)
+                pg.wait_for_timeout(400); pg.screenshot(path=os.path.join(CAPTURES, 'aide-stand.png' if l == 1280 else 'aide-stand-960.png'))   # (la dernière image dessinée, la boucle arrêtée ; la bulle a fini d'apparaître)
         elif r['attend']: cache_virage += 1
         if r['vue']: break
     t(f'{titre} : l’aide de l’arrêt s’affiche en ligne droite ({vu} images), se cache dans les virages et les freinages ({cache_virage} images) et jamais elle n’est affichée dans un virage, un freinage ou volant tourné', vu > 0 and cache_virage > 0 and not faux and capture, str(faux[:3]))
@@ -2455,7 +2455,7 @@ def tuto_lecon(pg, titre, l, h, page):
         # ne rien faire : la voiture reste sur la ligne ; après TUTO_TEMPS_MAX s, la leçon est ratée
         r = pg.evaluate('() => { BOUCLE.arreter(); BOUCLE.simuler(5); TUTORIEL_ECRAN.maj(REGLAGES.TUTO_TEMPS_MAX + 1); return { resultat: TUTORIEL_ECRAN.resultat(), raison: TUTORIEL_ECRAN.suivi().raison, u: JEU.joueur.u, etoiles: SAUVEGARDE.tutoriel() }; }')
         t(f'{titre} : sans rien faire, la leçon « {id} » est ratée après TUTO_TEMPS_MAX s (« Pas encore… », le temps est écoulé), sans étoile', r['resultat'] == 'ratee' and r['raison'] == 'temps' and r['u'] == 0 and not r['etoiles'] and pg.evaluate('() => document.getElementById("tutoResultatTitre").textContent === texte("tutoRatee") && !document.getElementById("tutoResultat").classList.contains("cache")'), str(r))
-        if l == 960: pg.screenshot(path=os.path.join(CAPTURES, 'tuto-rate-960.png'))
+        if l == 960: pg.wait_for_timeout(400); pg.screenshot(path=os.path.join(CAPTURES, 'tuto-rate-960.png'))
         with pg.expect_navigation(): pg.click('#boutonTutoSuivante')
         t(f'{titre} : « Leçon suivante » mène à la leçon 2', attendre(pg, '() => typeof TUTORIEL_ECRAN !== "undefined" && TUTORIEL_ECRAN.lecon() === "freinage"', None, 20000), pg.url)
         return
@@ -2469,7 +2469,7 @@ def tuto_lecon(pg, titre, l, h, page):
     if id == 'freinage': L.append(f"  (leçon du freinage : le robot d’essai passe la zone en {r['meilleur']} s (dernier passage {r['dernier']}), objectif {pg.evaluate('() => REGLAGES.TUTO_ZONE_OBJECTIF')} s)")
     if id == 'depart': L.append(f"  (leçon du départ : robot, {pg.evaluate('() => [JEU.course.depart.resultat, JEU.course.depart.reaction]')})")
     vis = tuto_resultat(pg, titre, l, h, id, r)
-    if l == 960 or id == 'stand': pg.screenshot(path=os.path.join(CAPTURES, f'tuto-reussie-{id}{"-960" if l == 960 else ""}.png'))
+    if l == 960 or id == 'stand': pg.wait_for_timeout(400); pg.screenshot(path=os.path.join(CAPTURES, f'tuto-reussie-{id}{"-960" if l == 960 else ""}.png'))
 
 def tuto_menu(pg, titre, l, h):
     t(f'{titre} : le premier lancement : l’écran titre a le petit « Apprendre à piloter » sous « Entre amis » ; la liste des leçons est cachée (aucun écran de plus)',
@@ -2480,7 +2480,7 @@ def tuto_menu(pg, titre, l, h):
         defile: [document.documentElement.scrollHeight, innerHeight] }; }''')
     t(f'{titre} : « Apprendre à piloter » : la liste des 7 leçons (numéro, nom, but, « Commencer »), aucune étoile encore, tout dans l’écran sans défilement',
       m['vu'] and m['n'] == 7 and m['etoiles'] == '☆' * 7 and m['noms'][0].startswith('1. ') and m['dedans'] and m['defile'][0] <= m['defile'][1] + 2, str(m))
-    pg.screenshot(path=os.path.join(CAPTURES, 'tuto-menu.png' if l == 1280 else 'tuto-menu-960.png'))
+    pg.wait_for_timeout(400); pg.screenshot(path=os.path.join(CAPTURES, 'tuto-menu.png' if l == 1280 else 'tuto-menu-960.png'))
     pg.click('#boutonTutoRetour')
     t(f'{titre} : « Retour » referme la liste : l’écran titre est toujours là, « ▶ Jouer » mène toujours à la grille d’un clic', pg.evaluate('() => document.getElementById("tutoMenu").classList.contains("cache") && JEU.ecran === "titre"'))
     pg.evaluate('() => { SAUVEGARDE.reussirLecon("depart"); }')

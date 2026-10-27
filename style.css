@@ -1217,7 +1217,7 @@ body.deux.cote #boutonSon { top: auto; bottom: 12px; right: 12px; }   /* (côte 
 /* les aides au premier usage (aides.js, interface.js AIDES_ECRAN, Codeur 4) : une bulle de la chaîne télé, une ou deux lignes ;
    en course à gauche sous la minicarte (jamais sur la piste devant la voiture), sur les écrans entre les courses en haut à gauche */
 #bulleAide { position: fixed; z-index: 21; display: flex; align-items: flex-start; gap: 10px; padding: 8px 12px; border-left: 4px solid var(--tv-rouge); border-radius: var(--tv-coin); background: var(--tv-hud); box-shadow: var(--tv-hud-ombre); color: var(--tv-texte); font: 700 13px/1.35 var(--tv-police); text-align: left; cursor: pointer; }
-#bulleAide.bulleCourse { left: 16px; top: 36%; max-width: 290px; }
+#bulleAide.bulleCourse { left: 16px; top: 41%; max-width: 290px; }   /* (sous le bandeau des stands et des messages, au-dessus du radar) */
 #bulleAide.bulleMenu { left: 16px; top: 8px; max-width: min(520px, 38vw); font-size: 12px; }   /* (à gauche du titre centré de l’écran) */
 #bulleAideFermer { color: var(--tv-texte-doux); font-weight: 800; }
 #bulleAide:not(.cache) { animation: tv-message var(--tv-duree-message) ease-out; }
@@ -1228,7 +1228,7 @@ body.deux.cote #boutonSon { top: auto; bottom: 12px; right: 12px; }   /* (côte 
 
 /* le tutoriel guidé (tutoriel.js, interface.js TUTORIEL_ECRAN, Codeur 4) : la liste des leçons et le résultat par-dessus l'écran du
    moment (le thème télé), la consigne d'une leçon à gauche en course (jamais sur la piste devant la voiture), en haut à gauche ailleurs */
-#tutoMenu, #tutoResultat { z-index: 22; }
+#tutoMenu, #tutoResultat { z-index: 22; background: linear-gradient(180deg, rgba(7, 9, 15, 0.97), rgba(12, 16, 27, 0.95)); }   /* (par-dessus l'écran du moment : presque opaque) */
 #tutoListe { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; width: min(720px, 92vw); }
 #tutoListe li { display: grid; grid-template-columns: 26px 1fr auto; grid-template-rows: auto auto; column-gap: 10px; align-items: center; padding: 6px 12px; border-radius: var(--tv-coin); background: var(--tv-panneau); border: 1px solid var(--tv-bord); text-align: left; }
 #tutoListe .tutoEtoile { grid-row: 1 / 3; font-size: 22px; color: var(--tv-texte-doux); }
@@ -1237,7 +1237,7 @@ body.deux.cote #boutonSon { top: auto; bottom: 12px; right: 12px; }   /* (côte 
 #tutoListe .tutoBut { grid-column: 2; font-size: 12px; color: var(--tv-texte-doux); }
 #tutoListe button { grid-column: 3; grid-row: 1 / 3; }
 #tutoMenuIntro, #tutoResultatTexte { margin: 0; max-width: 620px; font-weight: 700; }
-#tutoConsigne { position: fixed; z-index: 21; left: 16px; top: 36%; max-width: 300px; display: grid; gap: 4px; padding: 8px 12px; border-left: 4px solid var(--tv-or); border-radius: var(--tv-coin); background: var(--tv-hud); box-shadow: var(--tv-hud-ombre); color: var(--tv-texte); font: 700 13px/1.35 var(--tv-police); text-align: left; }
+#tutoConsigne { position: fixed; z-index: 21; left: 16px; top: 41%; max-width: 300px; display: grid; gap: 4px; padding: 8px 12px; border-left: 4px solid var(--tv-or); border-radius: var(--tv-coin); background: var(--tv-hud); box-shadow: var(--tv-hud-ombre); color: var(--tv-texte); font: 700 13px/1.35 var(--tv-police); text-align: left; }
 #tutoConsigne.tutoMenuConsigne { top: 8px; max-width: min(560px, 56vw); }
 #tutoConsigneTitre { font-weight: 800; color: var(--tv-or); }
 #boutonTutoPasser { justify-self: start; padding: 3px 10px; border: 0; border-radius: var(--tv-coin); background: var(--tv-bouton); color: var(--tv-texte); font: 700 12px/1.3 var(--tv-police); cursor: pointer; }
