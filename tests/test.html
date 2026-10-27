@@ -1,13 +1,16 @@
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><title>tests</title></head><body>
 <pre id="res"></pre>
 <script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));window.addEventListener('unhandledrejection',e=>__err.push('promesse : '+(e.reason&&e.reason.message||e.reason)));</script>
-<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../son.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../decouverte.js"></script><script src="../pilote.js"></script><script src="../deux-joueurs.js"></script><script src="../tournoi.js"></script><script src="../casque.js"></script><script src="../decor-public.js"></script><script src="../photo.js"></script><script src="../cache-carte.js"></script><script src="../journal.js"></script><script src="../argent.js"></script><script src="../garage.js"></script><script src="../aileron.js"></script><script src="../carte2d.js"></script><script src="../saisons.js"></script><script src="../sponsors.js"></script><script src="../fiche.js"></script><script src="../interview.js"></script><script src="../carriere.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../resume.js"></script><script src="../messages.js"></script><script src="../decor.js"></script><script src="../fantome.js"></script><script src="../principal.js"></script>
+<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits-officiels-a.js"></script><script src="../circuits-officiels-b.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../son.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../decouverte.js"></script><script src="../pilote.js"></script><script src="../deux-joueurs.js"></script><script src="../tournoi.js"></script><script src="../casque.js"></script><script src="../decor-public.js"></script><script src="../photo.js"></script><script src="../cache-carte.js"></script><script src="../journal.js"></script><script src="../argent.js"></script><script src="../garage.js"></script><script src="../aileron.js"></script><script src="../carte2d.js"></script><script src="../saisons.js"></script><script src="../sponsors.js"></script><script src="../fiche.js"></script><script src="../interview.js"></script><script src="../carriere.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../resume.js"></script><script src="../messages.js"></script><script src="../decor.js"></script><script src="../fantome.js"></script><script src="../principal.js"></script>
 <script>
 const L=[];let ok=0,ko=0;
 function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
 const v=(c,m)=>{if(!c)throw new Error(m||'faux');};
 // le résultat s'écrit au fil de l'eau : si la page est coupée, #res montre jusqu'où elle est allée
 function ecrire(etape){document.getElementById('res').textContent=`${etape?'EN COURS ('+etape+') ':''}RESULTAT ${ok}/${ok+ko}\n`+L.join('\n');}
+// le calendrier du jeu (les 12 tracés, tour 32) est gardé à part et testé plus bas ; les tests du championnat, écrits avec les deux
+// circuits d'essai en alternance (course de cœur « technique », GP 2 sur le technique…), gardent ce calendrier d'essai
+const CALENDRIER_JEU=REGLAGES.CALENDRIER_CIRCUITS;REGLAGES.CALENDRIER_CIRCUITS=['test','technique'];
 
 // --- les réglages
 t('la physique avance par pas de 1/120 s', ()=>{v(REGLAGES.PAS_PHYSIQUE===1/120);});
@@ -652,6 +655,20 @@ t('consignes : sans consigne, la course est identique au bit près à la même c
   for(const g of [1,2,3]){const a=simulerCourse(TQ,10,4,g);let b;R_.CONSIGNES_ACTIVES=false;try{b=simulerCourse(TQ,10,4,g);}finally{R_.CONSIGNES_ACTIVES=true;}
     if(a.consigne)continue;essais++;if(empreinte(a)===empreinte(b))egales++;}
   L.push('  (consignes : '+essais+' courses sans consigne, '+egales+' identiques)');v(essais>0&&egales===essais,egales+' / '+essais);});
+// --- les 12 tracés dans le jeu (tour 32, Codeur 1)
+t('les 12 tracés au calendrier : CALENDRIER_CIRCUITS = les 12 dans l’ordre de la saison, chacun dans CIRCUITS (donc ?circuit=<nom>) ; un championnat simulé de 12 Grands Prix (19 IA et le robot, 1 tour) passe sur les 12 sans erreur ; le Grand Prix à domicile (Japon → Suzuko) marqué au calendrier', ()=>{
+  const R_=REGLAGES,attendu='bahrayn,melbourn,suzuko,montreol,monoco,barcelana,silverstoun,spaa,monzo,singapura,interlagas,yasmarino';
+  v(CALENDRIER_JEU.join()===attendu,CALENDRIER_JEU.join());v(CALENDRIER_JEU.every(n=>CIRCUITS[n]&&(CIRCUITS_OFFICIELS_A[n]||CIRCUITS_OFFICIELS_B[n])),'pas dans CIRCUITS');
+  v(Object.keys(R_.CIRCUITS_PAYS).every(n=>CALENDRIER_JEU.includes(n)),'un circuit à domicile hors du calendrier');
+  const avant=R_.CALENDRIER_CIRCUITS,t0=performance.now(),fait=[];R_.CALENDRIER_CIRCUITS=CALENDRIER_JEU;
+  try{const ch=CHAMPIONNAT.creer(77);v(ch.calendrier.map(g=>g.circuit).join()===attendu,'calendrier '+ch.calendrier.map(g=>g.circuit).join());
+    for(let g=0;g<12;g++){const gp=ch.calendrier[ch.prochain],c=construireCircuit(CIRCUITS[gp.circuit]),e=CHAMPIONNAT.simulerGrandPrix(ch,c,1,300+g);
+      const lignes=CHAMPIONNAT.lignesDepuisCourse(e);CHAMPIONNAT.finirGrandPrix(ch,lignes);fait.push(gp.circuit+' '+e.pilotes.filter(p=>p.arrivee!==null).length+'/20');}
+    L.push('  (12 tracés, championnat simulé : '+fait.join(', ')+' ; '+((performance.now()-t0)/1000).toFixed(1)+' s)');
+    v(ch.resultats.length===12&&ch.prochain===12,'résultats '+ch.resultats.length);
+    v(PILOTE.domicile('jp')==='suzuko','domicile jp');ch.pilotes[19].coeur='suzuko';const cal=CHAMPIONNAT.calendrierSaison(ch),dom=cal.filter(x=>x.domicile);
+    v(dom.length===1&&dom[0].circuit==='suzuko'&&dom[0].numero===3,'domicile '+JSON.stringify(dom));
+  }finally{R_.CALENDRIER_CIRCUITS=avant;}});
 // les courses entre IA (le critère de l'étape 4 : 30 courses, et la course de 20 voitures) sont dans tests/courses.html
 
 // --- la grille qualifiée (tour 12)
