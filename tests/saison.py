@@ -36,7 +36,10 @@ INSPECTER = r'''() => { const P = [], W = innerWidth, H = innerHeight;
   }
   for (const e of document.querySelectorAll('button, h1')) if (vu(e) && !e.textContent.trim()) P.push(['vide', nom(e), '']);
   for (const b of document.querySelectorAll('button')) {
-    if (!vu(b)) continue; const r = b.getBoundingClientRect();
+    if (!vu(b)) continue; let r = b.getBoundingClientRect();
+    // dans une liste qui défile (overflow auto) : c'est la liste qui doit tenir dans l'écran, pas chacun de ses boutons
+    let a = b.parentElement; while (a && a !== document.body && !/(auto|scroll)/.test(getComputedStyle(a).overflowY)) a = a.parentElement;
+    if (a && a !== document.body) r = a.getBoundingClientRect();
     if (r.width > 0 && (r.left < -1 || r.top < -1 || r.right > W + 1 || r.bottom > H + 1)) P.push(['bouton hors de l’écran', nom(b), b.textContent.trim().slice(0, 40) + ' ' + [r.left, r.top, r.right, r.bottom].map(Math.round)]);
     else if (b.scrollWidth > b.clientWidth + 2) P.push(['texte qui déborde du bouton', nom(b), b.textContent.trim().slice(0, 40)]);
   }
@@ -47,7 +50,7 @@ class Carriere:
     def __init__(self, pg, langue, adresse):
         self.pg, self.langue, self.adresse = pg, langue, adresse
         self.problemes = {}   # (genre, élément) → { écran, détail, page }
-        self.console, self.ecrans, self.bloque = [], set(), None
+        self.console, self.ecrans, self.bloque, self.captures = [], set(), None, []
         pg.on('console', lambda m: self.console.append((self.ecran_courant(), m.type + ': ' + m.text)) if m.type in ('error', 'warning') and not LECTURE_PIXELS.fullmatch(m.text) else None)
         pg.on('pageerror', lambda e: self.console.append((self.ecran_courant(), 'PAGEERROR ' + str(e))))
         self.dernier = '?'
@@ -59,9 +62,13 @@ class Carriere:
         try: self.pg.wait_for_function('() => typeof JEU !== "undefined" && typeof texte === "function" && !!JEU.ecran', timeout=delai)
         except Exception: return False
         self.ev(PATCH_TEXTE); return True
+    def capture(self, quoi):
+        n = len(self.captures)
+        if n < 8: nom = f'saison-{self.langue}-{n + 1}-{quoi}.png'; self.pg.screenshot(path=os.path.join(CAPTURES, nom)); self.captures.append(nom)
     def inspecter(self, quoi):
         for genre, el, detail in self.ev(INSPECTER) or []:
             cle = (genre, el)
+            if cle not in self.problemes and not any(k[0] == genre for k in self.problemes): self.capture(re.sub(r'\W+', '-', genre)[:20])
             if cle not in self.problemes: self.problemes[cle] = { 'ecran': quoi, 'detail': detail, 'page': self.pg.url.split('/')[-1] }
     def clic(self, sel, navigation=False):
         try:
@@ -71,14 +78,16 @@ class Carriere:
             else: self.pg.click(sel, timeout=8000)
             return True
         except Exception as e:
-            self.problemes.setdefault(('clic impossible', sel), { 'ecran': self.dernier, 'detail': str(e).split('\n')[0][:160], 'page': self.pg.url.split('/')[-1] }); return False
+            m = str(e); cause = re.search(r'[^\n]*(intercepts pointer events|outside of the viewport|not visible|not stable)[^\n]*', m)
+            if ('clic impossible', sel) not in self.problemes: self.capture('clic')
+            self.problemes.setdefault(('clic impossible', sel), { 'ecran': self.dernier, 'detail': (cause.group(0).strip() if cause else m.split('\n')[0])[:220], 'page': self.pg.url.split('/')[-1] }); return False
     def manquantes(self): return self.ev('() => window.__clesManquantes || []') or []
 
     # le paddock : le garage, le courrier, une discussion avec le coéquipier, puis la course suivante
     def paddock(self, faits):
         pg = self.pg
         if self.ev('() => !document.getElementById("annonceMotif").classList.contains("cache")'): self.clic('#annonceMotif')
-        if self.ev('() => !document.getElementById("bulleAide").classList.contains("cache")'): self.clic('#bulleAide')
+        if self.ev('() => !document.getElementById("bulleAide").classList.contains("cache")') and not self.clic('#bulleAide'): self.ev('() => AIDES_ECRAN.fermer()')
         gp = self.ev('() => JEU.championnat.saison + "-" + JEU.championnat.prochain')
         if gp not in faits:
             faits.add(gp)
@@ -95,11 +104,19 @@ class Carriere:
                 except Exception: pass
                 self.clic('#boutonDiscussionEnvoyer')
                 r = self.ev('() => [...document.querySelectorAll("#discussionFil li")].map(li => li.textContent)') or []
-                if len(r) < n + 2 or not r[-1].strip(): self.problemes.setdefault(('discussion sans réponse', gp), { 'ecran': 'discussion', 'detail': str(r[-3:]), 'page': pg.url.split('/')[-1] })
+                moi = 'salut, belle course' if self.langue == 'fr' else 'hi, nice race'
+                if len(r) < 2 or moi not in r[-2] or not r[-1].strip() or r[-1].strip() == moi: self.problemes.setdefault(('discussion sans réponse', gp), { 'ecran': 'discussion', 'detail': str(r[-3:]), 'page': pg.url.split('/')[-1] })
                 self.inspecter('discussion'); self.clic('#boutonDiscussionRetour')
             self.ev('() => { if (JEU.ecran !== "championnat") montrerChampionnat(JEU.gagne); }')
         fini = self.ev('() => !!JEU.grandPrixFini')
-        self.clic('#boutonCourseSuivante', navigation=bool(fini))
+        if not self.clic('#boutonCourseSuivante', navigation=bool(fini)):
+            # (le bouton ne se clique pas : noté ; on continue la carrière par la fonction du bouton, pour chercher les autres bugs)
+            if fini:
+                try:
+                    with pg.expect_navigation(timeout=60000): self.ev('() => courseSuivante()')
+                except Exception: pass
+                self.pret()
+            else: self.ev('() => courseSuivante()')
 
     # un pas : ce que ferait un joueur sur l'écran du moment
     def pas(self, faits):
@@ -115,7 +132,10 @@ class Carriere:
             elif e[1] == 'resultat': self.clic('#boutonQualifCourse')
             else: pg.wait_for_timeout(500)
         elif ecran == 'course':
-            if e[2]: self.inspecter('attente'); self.clic('#boutonPasser'); pg.wait_for_timeout(300)
+            if e[2]:
+                self.inspecter('attente')
+                if not self.clic('#boutonPasser'): self.ev('() => passerAuPodium()')
+                pg.wait_for_timeout(300)
             elif not e[4] and self.ev('() => !!JEU.plateau'): pg.wait_for_timeout(500)   # la carte des IA se calcule
             else:
                 if e[3] == 'compte': self.ev('() => { for (const p of (JEU.plateau ? JEU.plateau.pilotes : [])) if (p.course.compte > 0.05) p.course.compte = 0.05; }')
@@ -154,6 +174,7 @@ class Carriere:
             sig = str(e) + str(self.ev('() => JEU.course && Math.round(JEU.course.temps)'))
             meme = meme + 1 if sig == avant else 0; avant = sig
             if meme >= 40:
+                self.capture('bloque')
                 self.bloque = { 'ecran': e[0] if isinstance(e, list) else e, 'etat': e, 'page': self.pg.url.split('/')[-1], 'quoi': quoi }
                 return False
         self.bloque = { 'ecran': self.dernier, 'etat': 'pas_max', 'page': self.pg.url.split('/')[-1], 'quoi': quoi }
@@ -167,7 +188,7 @@ def rapport(c, titre):
     m = c.manquantes()
     t(f'{titre} : aucune clé de textes.js ne manque en {"anglais" if c.langue == "en" else "français"} (clés demandées pendant la carrière)', not m, ', '.join(m[:30]))
     t(f'{titre} : jamais bloqué sur un écran', c.bloque is None, str(c.bloque))
-    L.append(f"  ({titre} : écrans vus : {', '.join(sorted(c.ecrans))})")
+    L.append(f"  ({titre} : écrans vus : {', '.join(sorted(c.ecrans))} ; captures : {', '.join(c.captures)})")
 
 t0 = time.monotonic()
 os.makedirs(CAPTURES, exist_ok=True)
