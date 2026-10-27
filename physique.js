@@ -106,7 +106,7 @@ function pasVoiture(v, circuit, dt) {
   memoriserAvant(v);
 
   const herbe = v.surHerbe;
-  const mu = R.ADHERENCE * (v.adherence || 1) * (v.aero || 1) * (v.aileronAdherence || 1) * (herbe ? R.ADHERENCE_HERBE : 1);   // × 1 sans pneus ni garage ni aileron (aileron, Codeur 3) : le même nombre au bit près
+  const mu = R.ADHERENCE * (v.adhMeteo || 1) * (v.adherence || 1) * (v.aero || 1) * (v.aileronAdherence || 1) * (herbe ? R.ADHERENCE_HERBE : 1);   // × 1 sans pneus ni garage ni aileron (aileron, Codeur 3) : le même nombre au bit près
   const fz = charge(v.u);
   const fzAvant = fz * b / R.EMPATTEMENT, fzArriere = fz * a / R.EMPATTEMENT;
   const delta = v.direction * braquageMax(v.u);
@@ -118,8 +118,8 @@ function pasVoiture(v, circuit, dt) {
   if (v.gaz > 0) fx += v.gaz * Math.min(R.FORCE_MOTEUR_MAX, R.PUISSANCE / Math.max(v.u, 1)) * (herbe ? R.GAZ_HERBE : 1) * (v.facteurDepart || 1) * (v.moteur || 1);   // × 1 sans départ ni garage : le même nombre au bit près
   // le frein à l'arrêt devient la marche arrière (si on n'accélère pas)
   if (v.frein > 0 && v.u <= 0.5 && v.gaz === 0 && v.u > -R.MARCHE_ARRIERE_MAX) fx -= v.frein * R.FORCE_MARCHE_ARRIERE;
-  const resistance = R.TRAINEE * (v.aileronTrainee || 1) * (1 - R.ASPIRATION_MAX * v.aspiration) * v.u * v.u + R.ROULEMENT + (herbe ? R.FROTTEMENT_HERBE * Math.abs(v.u) + R.FROTTEMENT_HERBE_CARRE * v.u * v.u : 0)
-    + (avance ? v.frein * R.ADHERENCE_FREIN * (v.freins || 1) * (herbe ? R.ADHERENCE_HERBE : 1) * fz : 0);   // × 1 sans garage
+  const resistance = R.TRAINEE * (v.aileronTrainee || 1) * (1 - R.ASPIRATION_MAX * v.aspiration * (v.eau ? 1 - R.METEO_GERBE * v.eau : 1)) * v.u * v.u + R.ROULEMENT + (herbe ? R.FROTTEMENT_HERBE * Math.abs(v.u) + R.FROTTEMENT_HERBE_CARRE * v.u * v.u : 0)
+    + (avance ? v.frein * R.ADHERENCE_FREIN * (v.adhMeteo || 1) * (v.freins || 1) * (herbe ? R.ADHERENCE_HERBE : 1) * fz : 0);   // × 1 sans garage
 
   if (Math.abs(v.u) < R.VITESSE_CINEMATIQUE) {
     // presque à l'arrêt : la voiture roule sans glisser
