@@ -92,6 +92,8 @@ const INTERFACE = (function () {
   // juste après, « pneus neufs » ; avant son arrêt obligatoire, le tour conseillé (au départ, puis à partir du tour d'avant)
   function messageStand(c) {
     // la consigne d'équipe (simulation.js, majConsignes) qui vise le joueur, devant son coéquipier : la demande, puis le résultat 3 s
+    // la météo (meteo.js) : « La pluie arrive », « La piste sèche », 5 s
+    if (c.meteoMessage && c.etat === 'course' && c.temps - c.meteoMessage.temps < 5) return texte('meteo_' + c.meteoMessage.cle);
     const k = c.consigne;
     if (k && k.joueur && c.etat === 'course') {
       if (!k.resultat) return texte('consigneJoueur').replace('{n}', k.numero);

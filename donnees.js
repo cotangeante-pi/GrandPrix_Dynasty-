@@ -590,6 +590,37 @@ const REGLAGES = {
   CONSIGNE_CONFIANCE: 5,        // le joueur suit la consigne : la confiance de l'écurie (la jauge « écurie ») monte de ça ; il l'ignore : elle baisse de ça
   CONSIGNE_PERIODE: 0.5,        // s : l'écurie regarde la course à ce rythme
   GRAINE_CONSIGNES: 13000,
+  // la météo (étape 12, meteo.js ; tour 33) : par lieu, la chance qu'il pleuve au départ (pluie), celle d'un changement pendant la course
+  // (change : une averse, ou la pluie qui s'arrête), l'intensité de la pluie ; un lieu absent (les circuits d'essai) : toujours sec
+  METEO_LIEUX: {
+    bahrayn: { pluie: 0.02, change: 0.03, intensite: [0.3, 0.6] }, melbourn: { pluie: 0.15, change: 0.2, intensite: [0.4, 0.8] },
+    suzuko: { pluie: 0.25, change: 0.25, intensite: [0.4, 0.9] }, montreol: { pluie: 0.2, change: 0.25, intensite: [0.4, 0.9] },
+    monoco: { pluie: 0.15, change: 0.2, intensite: [0.4, 0.8] }, barcelana: { pluie: 0.1, change: 0.15, intensite: [0.3, 0.7] },
+    silverstoun: { pluie: 0.3, change: 0.3, intensite: [0.4, 0.9] }, spaa: { pluie: 0.4, change: 0.35, intensite: [0.5, 1] },
+    monzo: { pluie: 0.15, change: 0.2, intensite: [0.4, 0.8] }, singapura: { pluie: 0.25, change: 0.35, intensite: [0.6, 1] },
+    interlagas: { pluie: 0.35, change: 0.35, intensite: [0.5, 1] }, yasmarino: { pluie: 0.02, change: 0.03, intensite: [0.3, 0.6] },
+  },
+  METEO_ACTIVE: true,           // la météo dans les courses de la page (principal.js) ; faux : toujours sec
+  METEO_VITESSE_MOYENNE: 50,    // m/s : pour estimer la durée d'une course (le moment d'un changement de temps)
+  GRAINE_METEO: 14000,          // la météo d'une course : la graine du Grand Prix + ce nombre
+  METEO_CHANGE_PART: [0.25, 0.7],   // un changement arrive entre ces parts de la durée estimée de la course
+  METEO_RISQUE: 30,             // % : à partir de ça, la prévision dit « risque de pluie » (en dessous, « nuageux » ; 0 : « sec »)
+  METEO_EAU_DEPART: 0.7,        // l'eau sur la piste quand il pleut déjà au départ
+  METEO_MONTEE: 0.02,           // par seconde, sous une pluie d'intensité 1 (50 s pour une piste détrempée)
+  METEO_BAISSE: 0.006,          // par seconde, sans pluie (près de 3 minutes pour sécher)
+  METEO_SECHE_LIGNE: 0.01,      // par seconde sans pluie : la trajectoire sèche plus vite (jusqu'à 1)…
+  METEO_LIGNE_SECHE: 0.6,       // … jusqu'à ça d'eau en moins sur elle…
+  METEO_LIGNE: 2.5,             // m : … à moins de ça de la ligne idéale de la carte
+  METEO_GERBE: 0.6,             // la gerbe d'eau : l'aspiration × (1 − ça × l'eau)
+  METEO_ANTICIPE: 0.15,
+  METEO_ARRET_TOURS: 2,
+  METEO_COURSES_DIFFERENTES: 15,  // tests/meteo.html : sur 30 courses avec une averse, l'ordre d'arrivée diffère du sec dans au moins ce nombre (la moitié ; 20 au premier essai, jamais passé : 17)         // une IA ne change de pneus qu'au moins ce nombre de tours après son arrêt précédent         // le choix des pneus regarde ça d'eau en plus (sous la pluie) ou en moins (sans elle), × (0,5 + prudence)
+  // les pneus selon l'eau, aux niveaux 0 ; 0,5 ; 1 : l'adhérence (le slick au sec = 1, la voiture d'aujourd'hui) et l'usure (× l'usure normale)
+  METEO_PNEUS: {
+    slick: { adherence: [1, 0.72, 0.5], usure: [1, 1, 1] },
+    inter: { adherence: [0.95, 0.88, 0.7], usure: [2.5, 1, 1] },
+    pluie: { adherence: [0.9, 0.84, 0.8], usure: [4, 1.5, 1] },
+  },
   IA_FREIN_PREVU: 0.6,          // s : derrière une voiture qui freine, il prévoit sa vitesse dans ce temps (sa décélération vue × ça)
   IA_DISTANCE_SUIVI: 14,        // m : la distance où elle se cale derrière
   IA_DEPART_LANCEMENT: 100,     // m : au départ, sur cette distance, elle suit à IA_DISTANCE_MIN (tout le monde part ensemble)
