@@ -61,3 +61,20 @@ Ordres : 1 fait / 2 fait.
 - La beauté : à juger par le propriétaire sur les captures.
 
 Réévalue.
+
+## Suite : le thème télé en course, le podium et les résultats — commit 096e53d, passage GitHub 40585896401 : les 11 travaux verts
+- **Le bouton 🔊** : une plaque avec un bord clair et le liseré rouge. Il est lisible sur la 3D comme sur le voile des écrans.
+- **En course**, un bloc CSS à moi, à la fin de `style.css`, sur les mêmes variables `--tv-*` :
+  - le chrono et les secteurs, la tour de classement, les pneus, les messages, la pénalité et les stands, les feux, la jauge et le résultat du départ : tous sur le même panneau sombre, avec le liseré rouge en haut du chrono, de la tour et des feux ;
+  - les temps en chiffres de largeur fixe ;
+  - le rapport sur une plaque rouge ;
+  - le radar et la minicarte : un bord et une ombre.
+- **Les règles tenues** :
+  - aucune taille ni place n'a changé : rien de plus devant la piste ;
+  - aucune animation en course, sauf l'arrivée d'un message (fondu de 220 ms, coupé par reduced-motion).
+- **Le podium** : le titre dans la police des titres avec le bandeau rouge, les marches sur le même panneau avec leur bandeau or, argent et bronze. Les résultats : les noms dans la police du texte, les temps en chiffres fixes.
+- **Aucune ligne de JS changée** pour cette suite.
+- **Captures** : `course-avant.jpg` / `course-apres.png` (et `-960`), `depart-`, `podium-`, `resultats-` (avant et après), dans `rapports/captures-tour32/`.
+- **Tests** :
+  - sur GitHub, tous les tests d'écran existants sont verts, dont le test en pixels de la piste devant la voiture et les tests de chevauchement du HUD, en 960 et en 1280 ;
+  - sur le Mac, `test=hudcourse` en 960 a eu 2 échecs une fois (la minicarte et les pneus, des mesures prises pendant que le Mac était chargé), puis 11/11 au second passage.
