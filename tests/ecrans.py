@@ -1955,6 +1955,13 @@ def garage_ecran(pg, titre, achat=True, capture='garage.png'):
     t(f'{titre} : « Garage » ouvre le garage : 4 améliorations (roues, moteur, aero, freins) au niveau 0, leur prix, le solde, le bonus de la voiture, sans défilement',
       e['ecran'] == 'garage' and e['visible'] and e['noms'] == ['roues', 'moteur', 'aero', 'freins'] and all('0 / 5' in n for n in e['niveaux']) and e['soldeTexte'] == 'Solde : ' + pg.evaluate('() => ARGENT.formater(JEU.championnat.argent.solde)')
       and e['bonus'] == 'Voiture de l’écurie : ' + str(pg.evaluate('() => Math.round(JEU.championnat.ecuries[JEU.championnat.pilotes[19].ecurie].niveau * 100)')) + ' / 100 · tes améliorations : +0,0 % / 7 % maxi' and e['defile'][0] <= e['defile'][1] + 2 and e['defile'][2] <= e['defile'][3] + 2, str(e))
+    # les pneus du départ (la météo, Codeur 1) : quatre choix sous les améliorations, « Au choix de l’équipe » d'abord ; un clic choisit et sauvegarde
+    pn = pg.evaluate('() => { const b = [...document.querySelectorAll("#garagePneus button")]; return { n: b.length, choisi: b.filter(x => x.classList.contains("choisi")).map(x => x.dataset.pneu), titre: (document.querySelector("#garagePneus .titre") || {}).textContent || "" }; }')
+    pg.click('#garagePneus button[data-pneu="pluie"]')
+    apres = pg.evaluate('() => [JEU.championnat.pneusDepart, SAUVEGARDE.championnat().pneusDepart, [...document.querySelectorAll("#garagePneus button.choisi")].map(x => x.dataset.pneu)]')
+    pg.click('#garagePneus button[data-pneu="equipe"]')
+    retour = pg.evaluate('() => JEU.championnat.pneusDepart')
+    t(f'{titre} : au garage, les pneus du départ : « Au choix de l’équipe » par défaut, slicks, intermédiaires, pluie ; « Pluie » choisi et sauvegardé, puis de nouveau l’équipe', pn['n'] == 4 and pn['choisi'] == ['equipe'] and pn['titre'].startswith('Pneus au départ') and apres == ['pluie', 'pluie', ['pluie']] and retour is None, str([pn, apres, retour]))
     if not achat:
         t(f'{titre} : sans argent, tous les boutons « Acheter » sont grisés', not any(e['actifs']), str(e['actifs']))
     else:

@@ -1213,3 +1213,8 @@ body.deux.cote #boutonSon { top: auto; bottom: 12px; right: 12px; }   /* (côte 
 #resultatsTable td:nth-child(2) { font-family: var(--tv-police); }
 
 @media (prefers-reduced-motion: reduce) { #messageCourse:not(.cache) { animation: none; } }
+
+/* les pneus du départ, au garage (la météo, Codeur 1) */
+#garagePneus { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 8px 0; font-size: 14px; }
+#garagePneus .titre { width: 100%; opacity: 0.9; }
+#garagePneus button.choisi { box-shadow: 0 0 0 2px #ffd54a; }
