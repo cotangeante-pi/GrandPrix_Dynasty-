@@ -7,7 +7,7 @@
 // attendent l'accord du propriétaire). Pour chaque tracé : la carte des IA se calcule (temps) ; une IA seule fait 2 tours (temps au tour,
 // barrières, herbe, coupes) ; 10 IA font 3 tours sans pneus (chocs > 5 m/s, herbe, barrières, coupes, dépassements, toutes arrivées) ;
 // avec les pneus, 4 tours et un arrêt de chacune au tour 2 ou 3, une sur deux (la voie des stands : arrêts faits, muret, pénalités de vitesse).
-// EXIGÉ : chaque carte se calcule ; chaque IA seule fait ses 2 tours sans barrière ni herbe. Le reste est mesuré et affiché.
+// EXIGÉ : chaque carte se calcule ; chaque IA seule fait ses 2 tours sans barrière ni herbe ; l'usure (5, 12, 18 tours, plus bas). Le reste est mesuré et affiché.
 // ?circuits=monoco,spaa pour n'en lancer que quelques-uns.
 const Q=new URLSearchParams(location.search),FILTRE=Q.get('circuits'),GRAINES=+(Q.get('graines')||1),AVEC_PNEUS=Q.get('pneus')!=='0';
 const L=[];let ok=0,ko=0;
@@ -38,17 +38,24 @@ for(const [cle,def] of Object.entries(TOUS)){
       r[pneus?'avec':'sans']=tot;
     }catch(err){r[pneus?'avec':'sans']={erreur:err.message};}finally{REGLAGES.PNEUS_ACTIFS=avant;}
   }
-  // 12 tours avec les pneus et la vraie stratégie (un arrêt obligatoire chacune, au tour qu'elle choisit) : mesuré, pas exigé
-  if(Q.get('douze')!=='0'){const avant=REGLAGES.PNEUS_ACTIFS;REGLAGES.PNEUS_ACTIFS=true;
-    try{const e=rouler(creerCourseIA(r.c,10,12,1,r.carte),12),V=e.pilotes;r.douze={fini:V.every(x=>x.arrivee!==null),chocs:chocs(V),herbe:somme(V,x=>x.herbe),barr:somme(V,x=>x.v.contactsBarriere),
-      coupes:somme(V,x=>Math.round((x.course.penalites-(x.course.penaliteSansArret||0)-(x.course.penalitesStands||0))/REGLAGES.PENALITE_COUPE)),dep:e.depassements.length,
-      arrets:somme(V,x=>(x.course.arrets||[]).length),muret:somme(V,x=>x.v.contactsMurStands),vitesse:somme(V,x=>x.course.penalitesStands||0),sans:V.filter(x=>x.course.penaliteSansArret>0).length,usure:Math.max(...V.map(x=>x.v.pneus.usure))};}
-    catch(err){r.douze={erreur:err.message};}finally{REGLAGES.PNEUS_ACTIFS=avant;}}
+  // 5, 12 et 18 tours avec les pneus et la vraie stratégie (un arrêt obligatoire en 12 et 18, au tour que chacune choisit ; aucun en 5) :
+  // EXIGÉ (tour 32, l'usure au mètre) : en 5 tours, personne ne finit avec des pneus morts ; en 12 et 18, chacune s'arrête une fois, et ni
+  // les pneus enlevés à l'arrêt ni ceux de l'arrivée ne sont morts (un arrêt suffit)
+  r.longues={};
+  if(Q.get('douze')!=='0')for(const n of [5,12,18]){const avant=REGLAGES.PNEUS_ACTIFS;REGLAGES.PNEUS_ACTIFS=true;
+    try{const e=rouler(creerCourseIA(r.c,10,n,1,r.carte),n),V=e.pilotes,usures=V.flatMap(x=>(x.course.arrets||[]).map(a=>a.usure).concat([x.v.pneus.usure]));
+      r.longues[n]={fini:V.every(x=>x.arrivee!==null),chocs:chocs(V),herbe:somme(V,x=>x.herbe),barr:somme(V,x=>x.v.contactsBarriere),
+        coupes:somme(V,x=>Math.round((x.course.penalites-(x.course.penaliteSansArret||0)-(x.course.penalitesStands||0))/REGLAGES.PENALITE_COUPE)),dep:e.depassements.length,
+        arrets:somme(V,x=>(x.course.arrets||[]).length),unArret:V.every(x=>(x.course.arrets||[]).length===(n>=12?1:0)),muret:somme(V,x=>x.v.contactsMurStands),vitesse:somme(V,x=>x.course.penalitesStands||0),
+        sans:V.filter(x=>x.course.penaliteSansArret>0).length,usure:Math.max(...usures)};}
+    catch(err){r.longues[n]={erreur:err.message};}finally{REGLAGES.PNEUS_ACTIFS=avant;}
+    const x=r.longues[n];
+    t(`${def.nom} : ${n} tours avec les pneus : ${n>=12?'un arrêt chacune suffit (pneus jamais morts, ni à l’arrêt ni à l’arrivée)':'on finit sans arrêt, pneus jamais morts'}`,()=>v(!x.erreur&&x.fini&&x.unArret&&x.usure<REGLAGES_PNEUS.USURE_MAX,x.erreur||('usure maximale '+x.usure.toFixed(3)+', arrêts '+x.arrets+', toutes arrivées '+x.fini)));}
   const f=x=>x.erreur?'erreur '+x.erreur:`${x.fini?'toutes arrivées':'PAS TOUTES ARRIVÉES'}, chocs>5 ${x.chocs}, herbe ${x.herbe}, barrières ${x.barr}, coupes ${x.coupes}, dépassements ${x.dep}`;
   L.push(`  ${def.nom} (${(r.longueur/1000).toFixed(3)} km, ${r.virages} virages) : carte ${(r.msCarte/1000).toFixed(1)} s | seule : ${r.seule?(r.seule.tours.map(x=>x.toFixed(2)).join(' / ')+' s, barrières '+r.seule.barr+', herbe '+r.seule.herbe+', coupes '+r.seule.coupes):'—'}`);
   L.push(`      10 IA, 3 tours, sans pneus${GRAINES>1?' ('+GRAINES+' graines, totaux)':''} : ${f(r.sans)}`);
   if(r.avec)L.push(`      10 IA, 4 tours, pneus + arrêt au tour 2 ou 3 : ${f(r.avec)}${r.avec.erreur?'':', arrêts '+r.avec.arrets+'/10, muret '+r.avec.muret+', pénalités de vitesse '+r.avec.vitesse+' s'}${r.c.stands?'':' (pas de voie des stands)'}`);
-  if(r.douze)L.push(`      10 IA, 12 tours, pneus et stratégie (un arrêt) : ${f(r.douze)}${r.douze.erreur?'':', arrêts '+r.douze.arrets+'/10, sans arrêt '+r.douze.sans+', muret '+r.douze.muret+', pénalités de vitesse '+r.douze.vitesse+' s, usure maximale '+r.douze.usure.toFixed(2)}`);
+  for(const n of Object.keys(r.longues)){const x=r.longues[n];L.push(`      10 IA, ${n} tours, pneus et stratégie : ${f(x)}${x.erreur?'':', arrêts '+x.arrets+'/10, sans arrêt '+x.sans+', muret '+x.muret+', pénalités de vitesse '+x.vitesse+' s, usure maximale '+x.usure.toFixed(2)}`);}
   ecrire(cle);
 }
 t('aucune erreur JavaScript',()=>v(__err.length===0,__err.join(' | ')));

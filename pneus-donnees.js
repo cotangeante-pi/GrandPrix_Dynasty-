@@ -15,6 +15,11 @@ const REGLAGES_PNEUS = {
   SEUIL_FREIN_FORT: 0.5,            // un freinage compte comme fort au-delà de cette part de frein (0 à 1)
   USURE_PAR_M_HERBE: 0.0002,        // … chaque mètre roulé dans l'herbe (100 m d'herbe ≈ un quart de tour d'usure)
   USURE_MAX: 1,                     // la jauge s'arrête là (pneus morts)
+  // tour 32 : l'usure est comptée au mètre (distance, glissade, freinage, herbe), donc un long tracé use plus par tour ; réglée sur le
+  // plus long (Spaa, 6,9 km) pour qu'un seul arrêt suffise : en 18 tours, un relais va jusqu'à ~13 tours (la stratégie des IA), soit
+  // ~93 km, sous USURE_MAX même pour le pire gestionnaire ; en 5 tours, on finit sans arrêt. Le calibrage ci-dessus (circuits d'essai)
+  // est × ce facteur. Vérifié par tests/officiels.html (les 12 tracés, 5, 12 et 18 tours)
+  USURE_ECHELLE: 0.4,
   GESTION_EFFET_MAX: 0.3,           // gestionPneus = 1 : l'usure avance 30 % moins vite ; 0 : pas de réduction
   GESTION_MOYENNE: 0.5,             // la gestion d'un pilote moyen (et celle du joueur, sans amélioration)
 
