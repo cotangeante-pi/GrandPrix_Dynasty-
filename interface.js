@@ -1601,6 +1601,17 @@ const TUTORIEL_ECRAN = (function () {
   const $ = id => document.getElementById(id);
   const P = new URLSearchParams(location.search), LECON = TUTORIEL.PAR_ID[P.get('tutoriel')] ? P.get('tutoriel') : null;
   let suivi = null, prete = false, resultat = null, plots = null;
+  // la visite (leçon 7) ne laisse rien dans la carrière : le championnat de la sauvegarde est gardé tel quel avant que la page ne
+  // démarre (ce fichier est chargé avant principal.js), et remis à la fin de la leçon (réussie) et quand on quitte la page (passée,
+  // quittée, rechargée) : l'aileron, les pneus du départ, les achats du garage, le casque… tout revient comme avant
+  const avantVisite = LECON === 'visite' ? JSON.stringify(SAUVEGARDE.lire().championnat) : null;
+  function restaurerCarriere() {
+    if (avantVisite === null) return;
+    const d = SAUVEGARDE.lire(), ch = JSON.parse(avantVisite);
+    d.championnat = ch;
+    SAUVEGARDE.ecrire(d);
+    if (ch && typeof JEU !== 'undefined' && JEU.championnat) { for (const k of Object.keys(JEU.championnat)) delete JEU.championnat[k]; Object.assign(JEU.championnat, JSON.parse(avantVisite)); }
+  }
 
   // l'adresse d'une leçon (la langue forcée des tests est gardée), et celle du jeu
   const langue = () => P.get('lang') ? '&lang=' + P.get('lang') : '';
@@ -1689,6 +1700,7 @@ const TUTORIEL_ECRAN = (function () {
       const r = TUTORIEL.pas(suivi, TUTORIEL.situation(JEU, CIRCUIT, ordre), dt || 0);
       if (r !== 'encours') {
         resultat = r;
+        if (LECON === 'visite') restaurerCarriere();   // (avant l'étoile : elle est à la racine, à côté du championnat)
         if (r === 'reussie') SAUVEGARDE.reussirLecon(LECON);
         montrerResultat();
         if (LECON !== 'visite') { BOUCLE.arreter(); if (typeof SDK !== 'undefined' && JEU.sdkPret) SDK.jeuArrete(); }   // (la course s'arrête derrière le résultat : un menu, gameplayStop)
@@ -1712,7 +1724,10 @@ const TUTORIEL_ECRAN = (function () {
     bouton('boutonTutoQuitter', 'tutoQuitter', () => aller('index.html' + (langue() ? '?' + langue().slice(1) : '')));
   }
 
-  if ($('tutoMenu') && typeof BOUCLE !== 'undefined') { init(); BOUCLE.surAffichage((alpha, dt) => maj(dt)); }
+  if ($('tutoMenu') && typeof BOUCLE !== 'undefined') {
+    init(); BOUCLE.surAffichage((alpha, dt) => maj(dt));
+    if (avantVisite !== null) window.addEventListener('pagehide', restaurerCarriere);   // la visite passée, quittée ou rechargée
+  }
 
-  return { lecon: () => LECON, maj, ouvrirMenu, suivi: () => suivi, resultat: () => resultat, adresse };
+  return { lecon: () => LECON, maj, restaurerCarriere, avantVisite: () => avantVisite, ouvrirMenu, suivi: () => suivi, resultat: () => resultat, adresse };
 })();
