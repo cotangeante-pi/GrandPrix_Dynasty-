@@ -1504,8 +1504,24 @@ function majMessages() {
   const m = JEU.messages.m;
   MESSAGES.observer(m, e.pilotes.map((p, k) => ({ k, meilleurTour: p.course.meilleurTour, penalites: p.course.penalites, auxStands: !!p.course.arretEnCours })));
   if (typeof METEO3D !== 'undefined') MESSAGES.observerMeteo(m, METEO3D.etat(e));   // « La pluie arrive », « La piste sèche »
+  majCommentaire(e, m);
   const msg = MESSAGES.afficher(m, e.temps);
-  INTERFACE.majMessage(msg ? texte('msg_' + msg.type).replace('{qui}', etiquetteVoiture(msg.k)).replace('{temps}', msg.temps === undefined ? '' : INTERFACE.formatTemps(msg.temps)).replace('{s}', msg.s === undefined ? '' : String(msg.s).replace('.', texte('virgule'))) : null);
+  INTERFACE.majMessage(msg && msg.texte ? msg.texte : msg ? texte('msg_' + msg.type).replace('{qui}', etiquetteVoiture(msg.k)).replace('{temps}', msg.temps === undefined ? '' : INTERFACE.formatTemps(msg.temps)).replace('{s}', msg.s === undefined ? '' : String(msg.s).replace('.', texte('virgule'))) : null);
+}
+
+// le commentateur (commentaire.js) : il lit la course, et sa phrase du moment passe dans le bandeau (« 🎙 Gaston Virage : … ») ;
+// il se tait pendant les premières secondes d'un virage serré du joueur
+function majCommentaire(e, m) {
+  if (typeof COMMENTAIRE === 'undefined' || REGLAGES.COMMENTAIRE_MODE === 'non') return;
+  if (!JEU.commentaire || JEU.commentaire.plateau !== e) JEU.commentaire = { plateau: e, c: COMMENTAIRE.creer(e.graine || 0), virage: null };
+  const j = JEU.contre ? JEU.ia : -1, c = JEU.commentaire.c, v = j >= 0 ? e.pilotes[j].v : null;
+  const serre = !!(v && v.piste && Math.abs(CIRCUIT.courbure[v.piste.indice]) > REGLAGES.COMMENTAIRE_VIRAGE_COURBURE);
+  if (!serre) JEU.commentaire.virage = null; else if (JEU.commentaire.virage === null) JEU.commentaire.virage = e.temps;
+  const attendre = serre && e.temps - JEU.commentaire.virage < REGLAGES.COMMENTAIRE_VIRAGE_ATTENTE;
+  const etatMeteo = typeof METEO3D !== 'undefined' ? METEO3D.etat(e) : null;
+  COMMENTAIRE.observer(c, e, { joueur: j, pluie: etatMeteo ? etatMeteo.pluie : 0, circuit: texte('circuit_' + NOM_CIRCUIT) || CIRCUIT.nom });
+  const it = COMMENTAIRE.afficher(c, e.temps, attendre);
+  if (it) MESSAGES.pousserTexte(m, { type: 'commentaire', texte: '🎙 ' + texte('commentateur') + ' : ' + COMMENTAIRE.phrase(it, etiquetteVoiture, INTERFACE.formatTemps) });
 }
 
 // l'affichage provisoire : la vitesse et « hors piste »

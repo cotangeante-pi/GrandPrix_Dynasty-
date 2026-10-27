@@ -94,7 +94,8 @@ PAGES = [
     # l'icône ; au sec, pas un pixel de changé ; la prévision au paddock ; captures pluie.png, pluie-960.png, prevision.png
     ('index.html?course=3&ia=20&circuit=monzo&meteo=pluie&test=pluie', 1280, 720, None),
     ('index.html?course=3&ia=20&circuit=monzo&meteo=pluie&test=pluie', 960, 600, None),
-    ('index.html?championnat=1&meteo=risque&test=prevision', 1280, 720, None),   # … et Monzo de jour : la luminosité de l'image, pour la comparer à la nuit   # le décor dans le vrai jeu : la course de nuit à Singapura, 20 voitures, vue télé ; capture jeu-singapura.png
+    ('index.html?championnat=1&meteo=risque&test=prevision', 1280, 720, None),
+    ('index.html?course=3&ia=20&circuit=test&test=commentaire', 1280, 720, None),   # le commentateur (commentaire.js) dans le bandeau télé ; capture commentaire.png   # … et Monzo de jour : la luminosité de l'image, pour la comparer à la nuit   # le décor dans le vrai jeu : la course de nuit à Singapura, 20 voitures, vue télé ; capture jeu-singapura.png
     ('tests/lieu.html?circuit=monoco&vue=port', 1280, 720, None),   # Monoco en détail : le port, les bateaux, les façades ; capture monoco.png
     ('tests/lieu.html?circuit=monoco&domicile=1', 1280, 720, None),   # le Grand Prix à domicile : le public aux couleurs du pays, les banderoles ; capture banderoles.png
    # le décor du circuit test (étape 10) avec 20 voitures : appels de dessin, triangles, niveaux de détail ; captures decor-test.png, decor-dessus.png
@@ -1200,6 +1201,14 @@ def prevision_ecran(pg, titre):
     txt = pg.evaluate('() => document.getElementById("prevision").textContent')
     t(f'{titre} : la météo prévue au paddock (« Météo prévue : risque de pluie (40 %) »)', vu and '40' in txt and re.search(r'(pluie|rain)', txt, re.I) is not None, txt)
     pg.screenshot(path=os.path.join(CAPTURES, 'prevision.png'))
+
+# le commentateur (commentaire.js) : pendant une course de 20 IA, ses phrases passent dans le bandeau télé (« 🎙 Gaston Virage : … »),
+# au plus une toutes les COMMENTAIRE_INTERVALLE s ; capture commentaire.png
+def commentaire_ecran(pg, titre):
+    vu = attendre(pg, '() => /🎙/.test(document.getElementById("messageCourse").textContent) && !document.getElementById("messageCourse").classList.contains("cache")', None, 90000)
+    txt = pg.evaluate('() => document.getElementById("messageCourse").textContent')
+    t(f'{titre} : le commentateur parle dans le bandeau télé, avec son nom (« 🎙 {txt[:40]}… »)', vu and pg.evaluate('() => texte("commentateur")') in txt, txt)
+    pg.wait_for_timeout(200); pg.screenshot(path=os.path.join(CAPTURES, 'commentaire.png'))
 
 def lieu_ecran(pg, titre, page):
     nom = re.search(r'circuit=([a-z]+)', page).group(1)
@@ -2349,6 +2358,8 @@ with sync_playwright() as p:
                 course_ia10(pg, titre)
             if 'course=1&ia=8' in page:
                 course_podium(pg, titre, l)
+            if 'test=commentaire' in page:
+                commentaire_ecran(pg, titre)
             if 'test=pluie' in page:
                 pluie_ecran(pg, titre, l, h)
             if 'test=prevision' in page:

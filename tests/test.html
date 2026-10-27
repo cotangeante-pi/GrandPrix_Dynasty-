@@ -1,7 +1,7 @@
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><title>tests</title></head><body>
 <pre id="res"></pre>
 <script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));window.addEventListener('unhandledrejection',e=>__err.push('promesse : '+(e.reason&&e.reason.message||e.reason)));</script>
-<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits-officiels-a.js"></script><script src="../circuits-officiels-b.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../son.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../decouverte.js"></script><script src="../pilote.js"></script><script src="../deux-joueurs.js"></script><script src="../tournoi.js"></script><script src="../casque.js"></script><script src="../decors-officiels.js"></script><script src="../decor-public.js"></script><script src="../photo.js"></script><script src="../cache-carte.js"></script><script src="../journal.js"></script><script src="../argent.js"></script><script src="../garage.js"></script><script src="../aileron.js"></script><script src="../carte2d.js"></script><script src="../saisons.js"></script><script src="../sponsors.js"></script><script src="../fiche.js"></script><script src="../interview.js"></script><script src="../carriere.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../resume.js"></script><script src="../messages.js"></script><script src="../decor.js"></script><script src="../fantome.js"></script><script src="../principal.js"></script>
+<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits-officiels-a.js"></script><script src="../circuits-officiels-b.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../son.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../decouverte.js"></script><script src="../pilote.js"></script><script src="../deux-joueurs.js"></script><script src="../tournoi.js"></script><script src="../casque.js"></script><script src="../decors-officiels.js"></script><script src="../decor-public.js"></script><script src="../photo.js"></script><script src="../cache-carte.js"></script><script src="../journal.js"></script><script src="../argent.js"></script><script src="../garage.js"></script><script src="../aileron.js"></script><script src="../carte2d.js"></script><script src="../saisons.js"></script><script src="../sponsors.js"></script><script src="../fiche.js"></script><script src="../interview.js"></script><script src="../carriere.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../resume.js"></script><script src="../messages.js"></script><script src="../commentaire.js"></script><script src="../decor.js"></script><script src="../fantome.js"></script><script src="../principal.js"></script>
 <script>
 const L=[];let ok=0,ko=0;
 function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
@@ -2393,6 +2393,35 @@ t('messages de course, la météo : « La pluie arrive » quand la pluie passe M
   MESSAGES.observerMeteo(m,{pluie:R.MESSAGES_PLUIE_SEUIL+0.1,eau:0.1});MESSAGES.observerMeteo(m,{pluie:0.6,eau:0.5});v(types()==='pluieArrive','la pluie arrive, une fois : '+types());
   MESSAGES.observerMeteo(m,{pluie:0,eau:0.4});MESSAGES.observerMeteo(m,{pluie:0,eau:R.MESSAGES_SECHE_SEUIL-0.01});MESSAGES.observerMeteo(m,{pluie:0,eau:0});v(types()==='pluieArrive,pisteSeche','la piste sèche, une fois : '+types());
   v(['msg_pluieArrive','msg_pisteSeche','meteoEau','meteoPrevue','meteo_sec','meteo_nuageux','meteo_risque','meteo_pluie'].every(c=>TEXTES.fr[c]&&TEXTES.en[c]),'textes');});
+
+// --- le commentateur (commentaire.js)
+t('commentateur : la course est la même au bit près avec ou sans lui ; des faits vus (le départ, des dépassements) ; ses phrases dans les deux langues', ()=>{
+  const carte=CARTES_T.technique,course=(avec)=>{const e=creerCourseIA(TQ,8,1,5,carte);for(const p_ of e.pilotes) p_.course.compte=0;const c=avec?COMMENTAIRE.creer(5):null,dits=[];
+    for(let k=0;k<120*40;k++){pasCourseIA(e,DT);if(c&&k%6===0){COMMENTAIRE.observer(c,e,{joueur:-1,circuit:'X'});const it=COMMENTAIRE.afficher(c,e.temps,false);if(it)dits.push(it);}}
+    return{e,dits};};
+  const a=course(false),b=course(true);
+  v(a.e.pilotes.every((p,k)=>p.v.x===b.e.pilotes[k].v.x&&p.v.z===b.e.pilotes[k].v.z&&p.v.u===b.e.pilotes[k].v.u),'au bit près');
+  v(b.dits.length>=3&&b.dits[0].type==='depart','des phrases : '+b.dits.map(x=>x.type).join());
+  v(b.dits.every(x=>{const f=COMMENTAIRE.phrase(x,k=>'n°'+(k+1),y=>String(y));return f.length>5&&!/\{/.test(f);}),'chaque phrase remplie');
+  const types=Object.keys(REGLAGES.COMMENTAIRE_PRIORITES);
+  v(types.every(ty=>Array.isArray(TEXTES.fr['com_'+ty])&&Array.isArray(TEXTES.en['com_'+ty])&&TEXTES.fr['com_'+ty].length===TEXTES.en['com_'+ty].length&&TEXTES.fr['com_'+ty].length>=2)&&TEXTES.fr.commentateur&&TEXTES.en.commentateur,'les variantes de chaque fait, en + fr');
+  v(types.every(ty=>TEXTES.fr['com_'+ty].every((f,i)=>JSON.stringify((f.match(/\{\w+\}/g)||[]).sort())===JSON.stringify((TEXTES.en['com_'+ty][i].match(/\{\w+\}/g)||[]).sort()))),'les mêmes trous en + fr');
+  v(types.every(ty=>TEXTES.fr['com_'+ty].every(f=>!/\b(il|elle)\b/i.test(f))),'jamais « il » ni « elle » sur un pilote');});
+t('commentateur : la priorité (un dépassement pour la tête avant un meilleur tour, un fait du joueur devant), l’intervalle, l’attente au virage, les faits trop vieux oubliés, jamais deux fois la même phrase de suite, rien quand il est coupé, seulement le joueur en mode « joueur »', ()=>{
+  const R=REGLAGES,c=COMMENTAIRE.creer(1);
+  COMMENTAIRE.pousser(c,0,'meilleurTour',{qui:0},false);COMMENTAIRE.pousser(c,0,'depassementTete',{qui:1,sur:0},false);
+  v(COMMENTAIRE.afficher(c,0,false).type==='depassementTete','la tête passe devant');
+  v(COMMENTAIRE.afficher(c,R.COMMENTAIRE_INTERVALLE-0.01,false)===null,'l’intervalle');
+  v(COMMENTAIRE.afficher(c,R.COMMENTAIRE_INTERVALLE,true)===null,'l’attente au virage');
+  v(COMMENTAIRE.afficher(c,R.COMMENTAIRE_INTERVALLE,false).type==='meilleurTour','puis le meilleur tour');
+  COMMENTAIRE.pousser(c,10,'depassement',{qui:2,sur:3},false);COMMENTAIRE.pousser(c,10,'stands',{qui:4},true);
+  v(COMMENTAIRE.afficher(c,20,false).type==='stands','un fait du joueur passe devant');
+  COMMENTAIRE.pousser(c,20,'erreur',{qui:5},false);v(COMMENTAIRE.afficher(c,20+R.COMMENTAIRE_PEREMPTION+R.COMMENTAIRE_INTERVALLE+0.5,false)===null,'un fait trop vieux est oublié');
+  let t0=100,avant=null,deuxFois=false;for(let i=0;i<30;i++){COMMENTAIRE.pousser(c,t0,'stands',{qui:i%5},false);const it=COMMENTAIRE.afficher(c,t0,false);const cle=it.type+':'+it.variante;if(cle===avant)deuxFois=true;avant=cle;t0+=R.COMMENTAIRE_INTERVALLE;}
+  v(!deuxFois,'jamais la même phrase deux fois de suite');
+  const mode=R.COMMENTAIRE_MODE;try{R.COMMENTAIRE_MODE='non';const d=COMMENTAIRE.creer(2);COMMENTAIRE.pousser(d,0,'arrivee',{qui:0},false);v(d.file.length===0&&COMMENTAIRE.afficher(d,0,false)===null,'coupé : rien');
+    R.COMMENTAIRE_MODE='joueur';const f=COMMENTAIRE.creer(3);COMMENTAIRE.pousser(f,0,'depassement',{qui:1,sur:2},false);COMMENTAIRE.pousser(f,0,'penalite',{qui:0,s:5},true);COMMENTAIRE.pousser(f,0,'arrivee',{qui:3},false);
+    v(f.file.map(x=>x.type).sort().join()==='arrivee,penalite','mode joueur : '+f.file.map(x=>x.type).join());}finally{R.COMMENTAIRE_MODE=mode;}});
 
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 ecrire();
