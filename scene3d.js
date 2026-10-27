@@ -8,6 +8,9 @@ const SCENE3D = (function () {
   let infoCircuit = null;   // { triangles, msConstruction }
   let trianglesDessines = 0, appelsDessin = 0;
   let decor = null;   // le décor du circuit (étape 10, decor.js), ou null
+  // les voitures lointaines (étape 10) : au-delà de VOITURE_LOIN m de la caméra (à champ égal), une voiture est dessinée en forme simple,
+  // toutes ensemble en un seul InstancedMesh ; { maillage, voitures } (les groupes des voitures ajoutées), créé à la première voiture
+  let flotte = null, nbLointaines = 0;
 
   // gp (facultatif) : { championnat, circuit } du Grand Prix (le public du décor, decor-public.js)
   function init(element, circuit, gp) {
@@ -29,20 +32,36 @@ const SCENE3D = (function () {
     camera2 = new THREE.PerspectiveCamera(55, 1, 0.5, R.CAMERA_LOIN);
     rendu.info.autoReset = false;   // les compteurs (triangles, appels) couvrent l'image entière, même dessinée en deux moitiés
 
-    scene.add(new THREE.HemisphereLight(0xffffff, R.COULEUR_SOL, 0.6));
+    const ambiance = new THREE.HemisphereLight(0xffffff, R.COULEUR_SOL, 0.6);
+    scene.add(ambiance);
     const soleil = new THREE.DirectionalLight(0xffffff, 0.9);
     soleil.position.set(300, 600, 200);
     scene.add(soleil);
 
+    // le décor (étape 10, decor.js) : DECORS.test, ou celui du circuit officiel (decors-officiels.js) avec son lieu (ciel, lumière,
+    // brouillard, sol) ; gp.circuit : le nom du circuit (sinon, retrouvé dans CIRCUITS par son nom affiché)
+    const cle = gp && gp.circuit ? gp.circuit : typeof CIRCUITS !== 'undefined' ? Object.keys(CIRCUITS).find(k => CIRCUITS[k].nom === circuit.nom) : undefined;
+    const choix = R.DECOR_ACTIF && typeof DECOR !== 'undefined' && cle ? DECOR.pour(circuit, cle, gp) : null;
+    const lieu = choix ? choix.lieu : null;
+    if (lieu) {
+      // la lumière du lieu : l'ambiance (ciel au-dessus, sol en dessous), le soleil (sa couleur, sa force, sa hauteur en degrés) ;
+      // la nuit, les projecteurs éclairent la piste (une lumière blanche de plus, LIEU_PROJECTEURS) ; le brouillard et le fond
+      const L = lieu.lumiere, h = (L.hauteur || 45) * Math.PI / 180;
+      ambiance.color.set(L.ambiance); ambiance.groundColor.set(lieu.sol); ambiance.intensity = R.LIEU_AMBIANCE;
+      soleil.color.set(L.soleil); soleil.intensity = L.intensite;
+      soleil.position.set(Math.cos(h) * 700, Math.sin(h) * 700, Math.cos(h) * 300);
+      if (L.projecteurs) scene.add(new THREE.HemisphereLight(0xfff4e0, lieu.sol, R.LIEU_PROJECTEURS));
+      scene.background = new THREE.Color(lieu.ciel.horizon);
+      scene.fog = new THREE.Fog(lieu.brouillard.couleur, lieu.brouillard.debut, lieu.brouillard.fin);
+    }
+
     const t0 = performance.now();
-    const groupe = construireCircuit3D(circuit);
+    const groupe = construireCircuit3D(circuit, lieu ? lieu.sol : R.COULEUR_SOL);
     scene.add(groupe);
     infoCircuit = { triangles: compterTriangles(groupe), msConstruction: performance.now() - t0 };
 
-    // le décor (étape 10, decor.js) : DECORS[le circuit], s'il existe (tribunes, public, stands, arbres, panneaux, pneus)
-    const cle = typeof CIRCUITS !== 'undefined' ? Object.keys(CIRCUITS).find(k => CIRCUITS[k].nom === circuit.nom) : undefined;
-    if (R.DECOR_ACTIF && typeof DECOR !== 'undefined' && typeof DECORS !== 'undefined' && cle && DECORS[cle]) {
-      decor = DECOR.construire(circuit, DECORS[cle], gp || { championnat: null, circuit: cle });
+    if (choix) {
+      decor = DECOR.construire(circuit, choix.description, gp || { championnat: null, circuit: cle }, lieu);
       scene.add(decor.groupe);
     }
 
@@ -103,7 +122,7 @@ const SCENE3D = (function () {
     return new THREE.Mesh(g, m);
   }
 
-  function construireCircuit3D(c) {
+  function construireCircuit3D(c, couleurSol) {
     const groupe = new THREE.Group();
     const demi = c.largeur / 2;
 
@@ -112,7 +131,9 @@ const SCENE3D = (function () {
     for (let i = 0; i < c.nb; i++) { xmin = Math.min(xmin, c.x[i]); xmax = Math.max(xmax, c.x[i]); zmin = Math.min(zmin, c.z[i]); zmax = Math.max(zmax, c.z[i]); }
     // l'herbe est repoussée dans le tampon de profondeur (polygonOffset) : à 2 cm sous la route, elle gagnait parfois le combat de
     // profondeur et la route disparaissait sous les voitures (vu au tour 25b, selon la taille de l'image et la caméra)
-    const sol = maillage(new THREE.PlaneGeometry(R.TAILLE_SOL, R.TAILLE_SOL), R.COULEUR_SOL, { polygonOffset: true, polygonOffsetFactor: R.SOL_RECUL_PROFONDEUR, polygonOffsetUnits: R.SOL_RECUL_PROFONDEUR });
+    // (assez grand pour le circuit et son paysage au loin : decor.js pose l'horizon jusqu'à HORIZON_RECUL + HORIZON_PROFONDEUR au-delà)
+    const taille = Math.max(R.TAILLE_SOL, Math.hypot(xmax - xmin, zmax - zmin) + 2 * (R.HORIZON_RECUL + R.HORIZON_PROFONDEUR + 200));
+    const sol = maillage(new THREE.PlaneGeometry(taille, taille), couleurSol === undefined ? R.COULEUR_SOL : couleurSol, { polygonOffset: true, polygonOffsetFactor: R.SOL_RECUL_PROFONDEUR, polygonOffsetUnits: R.SOL_RECUL_PROFONDEUR });
     sol.rotation.x = -Math.PI / 2;
     sol.position.set((xmin + xmax) / 2, 0, (zmin + zmax) / 2);
     groupe.add(sol);
@@ -191,6 +212,7 @@ const SCENE3D = (function () {
     if (!rendu) return 0;
     rendu.info.reset();
     if (decor) DECOR.majDetail(decor, partage ? [camera.position, camera2.position] : [camera.position]);   // le public et les arbres : proches, loin ou rien
+    const cachees = lointaines();
     if (partage) {
       // UN rendu, UNE scène, deux zones : le joueur 1 en haut, le joueur 2 en bas (la zone est en pixels CSS, Three.js applique le pixel ratio)
       const l = conteneur.clientWidth || 1, h = conteneur.clientHeight || 1;
@@ -208,6 +230,7 @@ const SCENE3D = (function () {
         rendu.render(scene, camera2);
       }
     } else rendu.render(scene, camera);
+    for (const g of cachees) g.visible = true;   // (les voitures lointaines retrouvent leur état : le jeu ne voit pas la différence)
     trianglesDessines = rendu.info.render.triangles;
     appelsDessin = rendu.info.render.calls;
     return trianglesDessines;
@@ -215,7 +238,42 @@ const SCENE3D = (function () {
 
   // un objet de plus dans la scène (une voiture)
   function ajouter(objet) {
-    if (scene) scene.add(objet);
+    if (!scene) return;
+    scene.add(objet);
+    if (objet.userData && objet.userData.lointaine && typeof VOITURE3D !== 'undefined') {
+      if (!flotte) {
+        const m = new THREE.InstancedMesh(VOITURE3D.formeLointaine(), new THREE.MeshLambertMaterial({ vertexColors: true }), R.VOITURES_LOINTAINES_MAX);
+        m.name = 'voitures-lointaines'; m.frustumCulled = false; m.count = 0; m.visible = false;
+        m.setColorAt(0, new THREE.Color(0xffffff));
+        scene.add(m);
+        flotte = { maillage: m, voitures: [] };
+      }
+      flotte.voitures.push(objet);
+    }
+  }
+
+  // avant de dessiner : les voitures loin de toutes les caméras passent dans le maillage des voitures lointaines (et leur groupe est caché
+  // le temps du dessin) ; renvoie les groupes cachés
+  function lointaines() {
+    const cachees = [];
+    if (!flotte) return cachees;
+    const cams = partage ? [camera, camera2] : [camera], seuil = R.VOITURE_LOIN * R.VOITURE_LOIN_CHAMP / camera.fov, s2 = seuil * seuil, m = flotte.maillage;
+    let n = 0;
+    for (const g of flotte.voitures) {
+      if (!g.visible || !g.parent || n >= R.VOITURES_LOINTAINES_MAX) continue;
+      let d2 = Infinity;
+      for (const c of cams) { const dx = g.position.x - c.position.x, dy = g.position.y - c.position.y, dz = g.position.z - c.position.z; d2 = Math.min(d2, dx * dx + dy * dy + dz * dz); }
+      if (d2 < s2) continue;
+      g.updateMatrix();
+      g.matrix.toArray(m.instanceMatrix.array, n * 16);
+      m.setColorAt(n, g.userData.lointaine.couleur);
+      g.visible = false;
+      cachees.push(g);
+      n++;
+    }
+    m.count = n; m.visible = n > 0; m.instanceMatrix.needsUpdate = true; m.instanceColor.needsUpdate = true;
+    nbLointaines = n;
+    return cachees;
   }
 
   return {
@@ -228,7 +286,8 @@ const SCENE3D = (function () {
     get canvas() { return rendu ? rendu.domElement : null; },   // (tests : lire les pixels juste après dessiner)
     get partage() { return partage; },
     get infoCircuit() { return infoCircuit; },
-    get decor() { return decor; },   // (tests : le décor placé, ses maillages, ses niveaux de détail)
+    get decor() { return decor; },
+    get nbLointaines() { return nbLointaines; },   // (tests : les voitures dessinées en forme simple à la dernière image)   // (tests : le décor placé, ses maillages, ses niveaux de détail)
     get trianglesDessines() { return trianglesDessines; },
     get appelsDessin() { return appelsDessin; },
     get nbObjets() { let n = 0; if (scene) scene.traverse(o => { if (o.isMesh || o.isInstancedMesh || o.isPoints || o.isLine) n++; }); return n; },   // (tests : le résumé n'ajoute rien à la scène)
