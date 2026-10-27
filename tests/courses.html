@@ -76,7 +76,9 @@ for(const nom of ['test','technique']) t(`${nom}, 20 voitures, graine 1 : toutes
 // rôle du joueur (v.joueur) et celle qui part juste derrière elle (l'attaque) ou juste devant (la défense) est son rival (pilote.rivalite) ;
 // mêmes courses avec et sans rivalité
 const RIV_GRAINES=Q.get('ailerons')==='1'?0:+(Q.get('rivalite')||8);
-function courseRivalite(g,rival,marquerJoueur,rivalDevant){const e=creerCourseIA(circuits.technique,10,TOURS,g),ordre=e.grille.map(x=>x.numero),jn=ordre[rivalDevant?5:4],rn=ordre[rivalDevant?4:5];
+// (sans les pneus, vrais par défaut depuis le tour 32 : la rivalité se mesure seule, sur les mêmes courses qu'avant)
+function courseRivalite(g,rival,marquerJoueur,rivalDevant){const pneus=REGLAGES.PNEUS_ACTIFS;REGLAGES.PNEUS_ACTIFS=false;try{return courseRivaliteSansPneus(g,rival,marquerJoueur,rivalDevant);}finally{REGLAGES.PNEUS_ACTIFS=pneus;}}
+function courseRivaliteSansPneus(g,rival,marquerJoueur,rivalDevant){const e=creerCourseIA(circuits.technique,10,TOURS,g),ordre=e.grille.map(x=>x.numero),jn=ordre[rivalDevant?5:4],rn=ordre[rivalDevant?4:5];
   const J=e.pilotes.find(p=>p.numero===jn),Rv=e.pilotes.find(p=>p.numero===rn);if(marquerJoueur)J.v.joueur=true;
   poserRivalites(e,e.pilotes.map(p=>rival&&p===Rv));
   const pasMax=Math.round(TOURS*REGLAGES.SIMULATION_TEMPS_MAX/REGLAGES.PAS_PHYSIQUE);for(let k=0;k<pasMax&&e.arrives<10;k++)pasCourseIA(e,REGLAGES.PAS_PHYSIQUE);

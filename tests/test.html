@@ -517,6 +517,9 @@ t('une voiture (le robot) à 40 % de la vitesse de la carte, partie en pole d’
   v(e.arrives>=10&&lent.course.etat!=='finie','pas dernière');v(pires.every(x=>x<=20),'derrière elle '+pires.map(x=>x.toFixed(1)).join(' / '));});
 // --- les pneus chez les IA (étape 7, tour 26) : derrière PNEUS_ACTIFS ; chaque IA use ses pneus selon sa gestion des pneus (caractère)
 function avecPneus(f){const avant=REGLAGES.PNEUS_ACTIFS;REGLAGES.PNEUS_ACTIFS=true;try{return f();}finally{REGLAGES.PNEUS_ACTIFS=avant;}}
+// (le mécanisme de l'usure, mesuré au calibrage des circuits d'essai : USURE_ECHELLE = 1 ; depuis le tour 32, le jeu use 0,4 fois moins, réglé
+// sur les vrais tracés, et sur le technique l'effet devient trop petit pour se voir en 12 tours : tests/officiels.html vérifie le réglage)
+function avecPneusCalibrage(f){const avant=REGLAGES_PNEUS.USURE_ECHELLE;REGLAGES_PNEUS.USURE_ECHELLE=1;try{return avecPneus(f);}finally{REGLAGES_PNEUS.USURE_ECHELLE=avant;}}
 t('pneus IA : la gestion des pneus est un trait du caractère (IA_CARACTERE.gestionPneus, tirée à part avec GRAINE_PNEUS, décalée par le niveau), différente d’une IA à l’autre, et sans pneus actifs les IA n’ont pas de pneus', ()=>{
   const e=creerCourseIA(TQ,6,3,5,CARTES_T.technique),g=e.pilotes.map(p_=>p_.pilote.caractere.gestionPneus);
   L.push('  (gestion des pneus des 6 IA, graine 5 : '+g.map(x=>x.toFixed(2)).join(', ')+')');
@@ -524,7 +527,7 @@ t('pneus IA : la gestion des pneus est un trait du caractère (IA_CARACTERE.gest
   const sauve=REGLAGES.NIVEAU;REGLAGES.NIVEAU='legende';const gl=creerCourseIA(TQ,6,3,5,CARTES_T.technique).pilotes.map(p_=>p_.pilote.caractere.gestionPneus);REGLAGES.NIVEAU=sauve;
   v(gl.every((x,i)=>x>=g[i]),'légende : gestion pas meilleure');});
 t('pneus IA : seule sur le technique, 12 tours avec les pneus actifs : son usure monte à chaque tour, ses tours ralentissent avec l’usure (les 3 derniers plus lents que les tours 2 à 4), sans barrière ni herbe', ()=>{
-  const r=avecPneus(()=>{const e=creerCourseIA(TQ,1,12,1,CARTES_T.technique),p_=e.pilotes[0],usures=[];p_.course.compte=0;p_.pilote.standTour=null;   // (l'usure seule : sans son arrêt au stand, testé plus bas)
+  const r=avecPneusCalibrage(()=>{const e=creerCourseIA(TQ,1,12,1,CARTES_T.technique),p_=e.pilotes[0],usures=[];p_.course.compte=0;p_.pilote.standTour=null;   // (l'usure seule : sans son arrêt au stand, testé plus bas)
     for(let k=0;k<900*120&&e.arrives<1;k++){pasCourseIA(e,DT);if(p_.course.tours.length>usures.length) usures.push(p_.v.pneus.usure);}
     return {p_,usures,tours:p_.course.tours.map(t_=>t_.temps)};});
   const moy=a=>a.reduce((x,y)=>x+y,0)/a.length,debut=moy(r.tours.slice(1,4)),fin=moy(r.tours.slice(-3));
@@ -532,7 +535,7 @@ t('pneus IA : seule sur le technique, 12 tours avec les pneus actifs : son usure
   v(r.tours.length===12,'pas 12 tours');v(r.usures.every((u,i)=>i===0||u>r.usures[i-1]),'usure qui ne monte pas');v(fin>debut,'pas plus lente usée : '+fin+' / '+debut);
   v(r.p_.v.contactsBarriere===0,r.p_.v.contactsBarriere+' barrières');v(r.p_.herbe===0,r.p_.herbe+' pas dans l’herbe');});
 t('pneus IA : 10 IA, 12 tours sur le technique (graine 1) : avec les pneus actifs, toutes arrivent, chacune a usé ses pneus, et pas un choc > 5 m/s de plus que sans pneus', ()=>{
-  const sans=simulerCourse(TQ,10,12,1),avec=avecPneus(()=>simulerCourse(TQ,10,12,1));
+  const sans=simulerCourse(TQ,10,12,1),avec=avecPneusCalibrage(()=>simulerCourse(TQ,10,12,1));
   const chocs=r=>r.voitures.flatMap(x=>x.chocs).filter(c_=>c_>5).length/2,herbe=r=>r.voitures.reduce((a_,x)=>a_+x.herbe,0);
   L.push('  (10 IA, 12 tours : sans pneus '+chocs(sans)+' chocs, herbe '+herbe(sans)+', '+sans.depassements.length+' dépassements ; avec pneus '+chocs(avec)+' chocs, herbe '+herbe(avec)+', '+avec.depassements.length+' dépassements ; usures finales '+avec.voitures.map(x=>x.usure.toFixed(2)).join(' ')+')');
   v(avec.voitures.every(x=>x.fini),'pas toutes arrivées');v(avec.voitures.every(x=>x.usure>0.3),'pneus peu usés');v(sans.voitures.every(x=>x.usure===null),'des pneus sans PNEUS_ACTIFS');
