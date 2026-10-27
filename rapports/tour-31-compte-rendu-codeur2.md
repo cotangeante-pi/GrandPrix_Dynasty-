@@ -57,3 +57,12 @@ Commits : b994a59 (le décor), 2e commit (public de decor-public.js, test du fan
 **Un test changé** : `test=fantome`, « 3e tour, ~1 s après la ligne » : avec le décor, sous swiftshader, l'attente du tour en temps réel laissait passer 6 à 8 s de chrono (le fantôme à 500 m). Le tour est maintenant joué pas à pas, boucle arrêtée dès le clic, jusqu'à 0,5 s après la ligne (à 1 s pile, le fantôme est à 12–20 m, à moitié au-dessus du milieu de l'image, et le contrôle en pixels de la moitié basse tombait sous 400). Aucun seuil changé.
 
 Pas vérifié : les images par seconde sur une vraie carte graphique ; l'allure du décor en jeu (à juger par le propriétaire).
+
+## L'échelle du décor (retouche demandée par le Chef)
+
+Commit : 5c987ab (branche codeur2) — GitHub 40424383780 : 10 travaux verts.
+
+- Avant : un spectateur faisait 1,04 m (une forme fixe), une marche 0,9 × 0,55 m, la grande tribune à 23 m du centre (2,5 m derrière la barrière).
+- Maintenant, en vrais mètres : la forme d'une personne fait 1 m, et son échelle est sa taille : assis `PUBLIC_HAUTEUR_ASSIS` 1,25 m, debout `PUBLIC_HAUTEUR_DEBOUT` 1,7 m, ± `PUBLIC_HAUTEUR_ECART` 0,1 m tiré pour chacun (de 1,15 à 1,8 m). Un rang de gradin fait 0,8 m de profondeur et 0,45 m de hauteur (`TRIBUNE_MARCHE`). Les tribunes sont à 28 m du centre (7,5 m derrière la barrière), le public debout à 25 m.
+- Tests : dans `tests/test.html`, chaque spectateur placé fait entre 1,1 et 1,9 m. Dans `tests/ecrans.py`, la hauteur réellement dessinée de chaque spectateur proche (la boîte de la forme × l'échelle de son instance) est entre 1,1 et 1,9 m, et une voiture fait entre 0,7 et 1,5 m de haut.
+- Sur decor-test.png, les spectateurs semblent encore grands parce que la caméra télé zoome (champ de 6 à 50°) : l'écrasement de la profondeur rapproche la tribune de la voiture. Les tailles sont maintenant justes.
