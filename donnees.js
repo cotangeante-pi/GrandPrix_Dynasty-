@@ -751,9 +751,19 @@ const REGLAGES = {
   NUAGES_MAX: 40, NUAGES_ETENDUE: 3500, NUAGES_HAUTEUR: [450, 800], NUAGES_OPACITE: 0.85,
   // la lumière d'un lieu (scene3d.js, avec decors-officiels.js) : l'ambiance (hémisphère) et, la nuit, la lumière des projecteurs
   LIEU_AMBIANCE: 0.65, LIEU_PROJECTEURS: 0.9,
+  // la nuit (Singapura) ; le soir (Bahrayn au crépuscule, Yas Marino au couchant) en prend la part NUIT_SOIR
+  NUIT_AMBIANCE: 0.22, NUIT_PROJECTEURS: 0.42, NUIT_BROUILLARD: [140, 950], NUIT_SOIR: 0.45,
+  FENETRES_NUIT: 0xffc870,       // les fenêtres allumées des immeubles (couleur émissive)
+  NUIT_CIEL_MAX: 60,             // tests/ecrans.py : la nuit, la luminosité moyenne (0–255) du haut de l'image (le ciel) reste en dessous…
+  NUIT_IMAGE_MAX: 70,            // … et celle de toute l'image aussi ; le jour (Monzo), toute l'image est au-dessus de JOUR_IMAGE_MIN
+  JOUR_IMAGE_MIN: 100,
   VOITURE_LOIN: 45,             // m : au-delà (pour un champ de vision de VOITURE_LOIN_CHAMP degrés ; plus loin quand la caméra zoome),
   VOITURE_LOIN_CHAMP: 55,       //     une voiture est dessinée en forme simple, toutes en un seul appel de dessin (scene3d.js)
   VOITURES_LOINTAINES_MAX: 32,
+  // le pont de Suzuko (le seul croisement, scene3d.js et decor.js ; l'affichage seulement, la physique reste plate)
+  PONT_ACTIF: false,            // pas encore fini ni essayé (tour 32 : la route, le talus, le tablier, la voiture et la caméra qui montent) : coupé
+  PONT_HAUTEUR: 7.5, PONT_PLAT: 40, PONT_RAMPE: 200, PONT_OUVERTURE: 34, PONT_EPAISSEUR: 1.2,   // m
+  COULEUR_PONT: 0xb8bcc2, COULEUR_TALUS: 0x5d7a45, COULEUR_TERRE_PLEIN: 0x5f8a42,
   LIEU_CHAMP: 50,               // tests/lieu.html : le champ de vision de la vue d'un décor (degrés)
   LIEU_APPELS_MAX: 90,          // appels de dessin au plus sur un circuit officiel décoré avec 20 voitures (tests/ecrans.py)
   PNEUS_PERTE_AFFICHEE: 0.001, // ?pneus=1 : la perte d'adhérence n'est écrite qu'à partir de 0,1 %
