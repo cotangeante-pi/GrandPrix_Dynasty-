@@ -12,6 +12,7 @@ const REGLAGES = {
   FENETRE_RECHERCHE: 8,         // positionSurPiste cherche à ±8 échantillons (±16 m) de l'indice connu ; une voiture fait < 1 m par pas
   // positionSurPiste repart d'une recherche complète si le point est à plus de ce nombre de largeurs de piste du centre
   ECART_RECHERCHE_COMPLETE: 1.5,
+  CROISEMENT_ZONE: 200,         // m : le croisement (le pont de Suzuko, circuit.croisement) : à moins de ça de ses deux passages, deux voitures sont l'une sur le pont, l'autre dessous
 
   // la voiture (une F1 ; le joueur et les IA ont exactement les mêmes chiffres)
   MASSE: 800,                   // kg, pilote compris
