@@ -8,8 +8,7 @@
      avec et sans le décor) est dans window.__lieu, pour tests/ecrans.py. -->
 <div id="scene3d"></div><div id="ips" class="cache"></div>   <!-- (tests/ecrans.py : pas de compteur sans ?debug=1) -->
 <script src="../lib/three.min.js"></script>
-<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../circuits.js"></script>
-<script src="../circuits-officiels-a.js"></script><script src="../circuits-officiels-b.js"></script>
+<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../circuits-officiels-a.js"></script><script src="../circuits-officiels-b.js"></script><script src="../circuits.js"></script>
 <script src="../casque.js"></script><script src="../voiture3d.js"></script>
 <script src="../decors-officiels.js"></script><script src="../decor-public.js"></script><script src="../decor.js"></script><script src="../scene3d.js"></script>
 <script>
@@ -35,6 +34,16 @@
     if (b.length) { const m = b[Math.floor(b.length / 2)], a = auPoint(-45, 0); pos = { x: a.x, y: 3, z: a.z }; vise = { x: m.x, y: 1.5, z: m.z }; }
   }
   if (pos) {}
+  else if (P.get('vue') === 'pont') {
+    // le pont de Suzuko : une voiture dessus (au passage s1), une dessous (s2), vus depuis le passage du dessous
+    const [s1, s2] = DEFS[NOM].croisement, indice = s => Math.round((((s % L) + L) % L) / c.pas) % c.nb;
+    for (const [s, d, k] of [[s1, 0, 0], [s2, 0, 1]]) {
+      const m = VOITURE3D.creer(R.ECURIES[k + 3].couleur, false, undefined, k), v = { braquage: 0, rotationRoues: 0, piste: { indice: indice(s) } };
+      VOITURE3D.placer(m, auPoint(s, d), v); SCENE3D.ajouter(m.groupe); m.groupe.name = k ? 'voiture-dessous' : 'voiture-dessus';
+    }
+    const a = auPoint(s2 - 55, 2), b = auPoint(s2, 0);
+    pos = { x: a.x, y: 3, z: a.z }; vise = { x: b.x, y: 4, z: b.z };
+  }
   else if (P.get('vue') === 'port') {
     const zone = DECOR_PUBLIC.placer(c, DECORS_OFFICIELS[NOM]).zones.find(z => z.type === 'port');
     const a = auPoint(zone.s - zone.longueur * 0.25, zone.d0 * 0.3), b = auPoint(zone.s, zone.d0 + (zone.d1 - zone.d0) * 0.3);
@@ -43,6 +52,7 @@
     const p = DECOR.postesTele(c)[0], g = auPoint(-40, 0);
     pos = { x: p.x, y: 12, z: p.z }; vise = { x: g.x, y: 1, z: g.z };
   }
+  window.DEFS_LIEU = () => ({ circuit: c, croisement: DEFS[NOM].croisement });   // (tests/ecrans.py : le pont)
   cam.fov = R.LIEU_CHAMP; cam.position.set(pos.x, pos.y, pos.z); cam.lookAt(vise.x, vise.y, vise.z); cam.updateProjectionMatrix();
   function mesurer() {
     SCENE3D.dessiner(); const avec = [SCENE3D.appelsDessin, SCENE3D.trianglesDessines];
