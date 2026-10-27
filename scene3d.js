@@ -296,11 +296,18 @@ const SCENE3D = (function () {
     if (!flotte) return cachees;
     const cams = partage ? [camera, camera2] : [camera], seuil = R.VOITURE_LOIN * R.VOITURE_LOIN_CHAMP / camera.fov, s2 = seuil * seuil, m = flotte.maillage;
     let n = 0;
+    // (au plus VOITURES_DETAILLEES_MAX voitures détaillées, les plus proches : sur la grille vue de la télé, toutes sont « proches »)
+    const vues = [];
     for (const g of flotte.voitures) {
-      if (!g.visible || !g.parent || n >= R.VOITURES_LOINTAINES_MAX) continue;
+      if (!g.visible || !g.parent) continue;
       let d2 = Infinity;
       for (const c of cams) { const dx = g.position.x - c.position.x, dy = g.position.y - c.position.y, dz = g.position.z - c.position.z; d2 = Math.min(d2, dx * dx + dy * dy + dz * dz); }
-      if (d2 < s2) continue;
+      vues.push({ g, d2 });
+    }
+    vues.sort((a, b) => a.d2 - b.d2);
+    for (let k = 0; k < vues.length; k++) {
+      const { g, d2 } = vues[k];
+      if ((d2 < s2 && k < R.VOITURES_DETAILLEES_MAX) || n >= R.VOITURES_LOINTAINES_MAX) continue;
       g.updateMatrix();
       g.matrix.toArray(m.instanceMatrix.array, n * 16);
       m.setColorAt(n, g.userData.lointaine.couleur);

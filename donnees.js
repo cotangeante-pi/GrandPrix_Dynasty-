@@ -760,6 +760,7 @@ const REGLAGES = {
   VOITURE_LOIN: 45,             // m : au-delà (pour un champ de vision de VOITURE_LOIN_CHAMP degrés ; plus loin quand la caméra zoome),
   VOITURE_LOIN_CHAMP: 55,       //     une voiture est dessinée en forme simple, toutes en un seul appel de dessin (scene3d.js)
   VOITURES_LOINTAINES_MAX: 32,
+  VOITURES_DETAILLEES_MAX: 8,   // … et au plus ces voitures détaillées (les plus proches), les autres en forme simple
   // le pont de Suzuko (le seul croisement, scene3d.js et decor.js ; l'affichage seulement, la physique reste plate)
   PONT_ACTIF: false,            // pas encore fini ni essayé (tour 32 : la route, le talus, le tablier, la voiture et la caméra qui montent) : coupé
   PONT_HAUTEUR: 7.5, PONT_PLAT: 40, PONT_RAMPE: 200, PONT_OUVERTURE: 34, PONT_EPAISSEUR: 1.2,   // m
