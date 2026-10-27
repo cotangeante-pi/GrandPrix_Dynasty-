@@ -1190,9 +1190,9 @@ def pluie_ecran(pg, titre, l, h):
     pg.evaluate('() => CAMERA.forcer("cockpit")'); pg.wait_for_timeout(800)
     t(f'{titre} : en vue cockpit sous la pluie, des gouttes sur la visière', pg.evaluate('() => !document.getElementById("gouttes").classList.contains("cache")'))
     pg.screenshot(path=os.path.join(CAPTURES, 'pluie-cockpit.png'))
-    # au sec : avec une météo à 0 (après la pluie : tout est remis) et sans météo, la même image au pixel près
+    # au sec : avec une météo à 0 (après la pluie : tout est remis) et sans météo (la course sans e.meteo, depuis que meteo.js donne le vrai temps : Codeur 1), la même image au pixel près
     egal = pg.evaluate("""() => { BOUCLE.arreter(); CAMERA.forcer("derriere"); const image = () => { METEO3D.maj(METEO3D.etat(JEU.plateau), SCENE3D.camera, JEU.plateau.pilotes.map(p => p.v), 0, false); SCENE3D.dessiner(); return SCENE3D.canvas.toDataURL(); };
-      const pluie = window.METEO_TEST; window.METEO_TEST = { etat: () => ({ pluie: 0, eau: 0, ciel: 0 }) }; const zero = image(); window.METEO_TEST = undefined; const sans = image(); window.METEO_TEST = pluie; const mouille = image(); BOUCLE.demarrer();
+      const pluie = window.METEO_TEST; window.METEO_TEST = { etat: () => ({ pluie: 0, eau: 0, ciel: 0 }) }; const zero = image(); window.METEO_TEST = undefined; const em = JEU.plateau.meteo; JEU.plateau.meteo = undefined; const sans = image(); JEU.plateau.meteo = em; window.METEO_TEST = pluie; const mouille = image(); BOUCLE.demarrer();
       return { zeroEgalSans: zero === sans, pluieDifferente: mouille !== sans }; }""")
     t(f'{titre} : au sec, pas un pixel ne change : une météo à 0 (après la pluie) donne la même image que pas de météo ; sous la pluie, l’image change', egal['zeroEgalSans'] and egal['pluieDifferente'], str(egal))
 

@@ -29,6 +29,7 @@ jobs:
           - { nom: stands, partie: stands }
           - { nom: consignes, partie: consignes }
           - { nom: officiels, partie: officiels }
+          - { nom: meteo, partie: meteo }
           - { nom: ecrans-1, partie: ecrans, tranche: 1/4 }
           - { nom: ecrans-2, partie: ecrans, tranche: 2/4 }
           - { nom: ecrans-3, partie: ecrans, tranche: 3/4 }

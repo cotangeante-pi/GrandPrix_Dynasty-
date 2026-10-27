@@ -74,7 +74,7 @@ def paquet(delai=600):
 
 # (stands.html, 30 courses de 12 tours, est une partie à lui : sur GitHub, chaque partie tourne dans son propre travail, en parallèle ;
 # ecrans y est découpé en tranches par ECRANS_TRANCHE=k/n, voir .github/workflows/tests.yml)
-PARTIES = {'moteur': lambda: serie('tests/test.html'), 'courses': lambda: all([serie('tests/courses.html'), serie('tests/courses.html?ailerons=1')]), 'stands': lambda: serie('tests/stands.html', delai=1200), 'consignes': lambda: serie('tests/consignes.html', delai=1200), 'officiels': lambda: serie('tests/officiels.html', delai=1500), 'ecrans': lambda: ecrans(), 'annexes': annexes, 'paquet': paquet}
+PARTIES = {'moteur': lambda: serie('tests/test.html'), 'courses': lambda: all([serie('tests/courses.html'), serie('tests/courses.html?ailerons=1')]), 'stands': lambda: serie('tests/stands.html', delai=1200), 'consignes': lambda: serie('tests/consignes.html', delai=1200), 'officiels': lambda: serie('tests/officiels.html', delai=1500), 'meteo': lambda: serie('tests/meteo.html', delai=1500), 'ecrans': lambda: ecrans(), 'annexes': annexes, 'paquet': paquet}
 
 def tests(parties=tuple(PARTIES)):
     # une liste : tout tourne même si le premier échoue ; courses.html = le critère de l'étape 4 (30 courses entre IA)

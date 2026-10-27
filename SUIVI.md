@@ -90,6 +90,7 @@ Note du Chef session-5b (2026-10-23) : les lignes 18 à 19b ne s'additionnaient 
 
 ## À essayer par le propriétaire
 
+- **La pluie** (tour 33) : elle tombe selon le lieu (Spaa souvent, Bahrayn presque jamais) ; pour la forcer : `index.html?course=5&ia=9&joueur=1&circuit=spaa&meteo=averse` (ou pluie, eclaircie, sec). Les IA passent aux pneus de pluie quand la piste se mouille.
 - **Les décors des 12 circuits** (tour 32) : chaque circuit a son lieu (Monoco : port, bateaux, façades ; Spaa : sapins et brume ; Singapura : de nuit). **Mesure les images par seconde** sur deux ou trois circuits (`?debug=1&course=3&ia=20&circuit=monoco`) : c'est le critère de l'étape 10 (60 avec 20 voitures).
 - **La nouvelle interface** (tour 32, étape 11 commencée) : le style télé sur tous les écrans, le paddock en écran d'accueil. Captures avant / après dans rapports/captures-tour32/. Dire : ça a l'air pro ? (c'est le critère de l'étape 11).
 - **Les 12 vrais circuits** (tour 32, branchés sans attendre ton accord : dis-moi s'il faut en revoir un) : en championnat, la saison passe par les 12 ; ou directement `index.html?course=5&ia=9&joueur=1&circuit=monoco` (ou spaa, suzuko, monzo…). Ton Grand Prix à domicile est marqué au calendrier.
@@ -173,6 +174,7 @@ Note du Chef session-5b (2026-10-23) : les lignes 18 à 19b ne s'additionnaient 
 
 ## Retours du propriétaire
 
+- 2026-10-27 ~18h25 : « fais le tutoriel avec un claude qui aura fini » → **décision du propriétaire** écrite dans CLAUDE.md (« Le tutoriel guidé », étape 11d) : 7 leçons courtes, proposées au titre, au paddock, en pause et après la découverte, jamais imposées. Au premier Codeur libre.
 - 2026-10-27 ~18h05 : « pour la tv, ce ne doit pas être un calcul d'angles pour la f1 mais réellement une caméra dans les aires » → **décision du propriétaire** écrite dans CLAUDE.md (« La réalisation télé », étape 11c) : de vraies caméras dans le décor (mâts, grues, tribunes), un hélicoptère et un drone, une régie qui ne choisit qu'une caméra qui voit la voiture. Ordre au Codeur 2, avant ses finitions.
 - 2026-10-27 ~17h50 : « idées à mettre dans claude.md (si tu en trouves une nulle ou inutile ne la mets pas) 1) tutoriel 2) commentateur » → les deux gardées, écrites dans CLAUDE.md (étape 11b) : le tutoriel sous la forme d'**aides au premier usage** (pas de tutoriel au début : « En piste en 10 secondes ») ; le **commentateur en texte** dans le bandeau télé (pas de voix : pas de fichiers son, synthèse vocale trop inégale). Ordre de travail : après la météo et les discussions.
 - 2026-10-27 17h41 : le propriétaire range les quatre dossiers dans « jeux poki/Grand prix dynasty/ » (« j'ai mis tous les dossiers de gpdynasty en un ») → le Chef a réparé les copies de travail git (`git worktree repair`) et corrigé les chemins relatifs de CLAUDE.md (`../../jeu poki`, `../../../gestion de pays`). Le projet : …/jeux poki/Grand prix dynasty/Grand Prix Dynasty ; les Codeurs : …/Grand prix dynasty/Grand Prix Dynasty - codeur N.
