@@ -94,8 +94,10 @@ PAGES = [
     # l'icône ; au sec, pas un pixel de changé ; la prévision au paddock ; captures pluie.png, pluie-960.png, prevision.png
     ('index.html?course=3&ia=20&circuit=monzo&meteo=pluie&test=pluie', 1280, 720, None),
     ('index.html?course=3&ia=20&circuit=monzo&meteo=pluie&test=pluie', 960, 600, None),
-    ('index.html?championnat=1&meteo=risque&test=prevision', 1280, 720, None),   # … et Monzo de jour : la luminosité de l'image, pour la comparer à la nuit   # le décor dans le vrai jeu : la course de nuit à Singapura, 20 voitures, vue télé ; capture jeu-singapura.png
-    ('tests/lieu.html?circuit=monoco&vue=port', 1280, 720, None),   # Monoco en détail : le port, les bateaux, les façades ; capture monoco.png
+    ('index.html?championnat=1&meteo=risque&test=prevision', 1280, 720, None),
+    ('index.html?course=3&ia=20&circuit=monoco&test=tele', 1280, 720, None),   # la réalisation télé (regie.js) : de vraies caméras, l'hélicoptère ; captures tele-monoco.png, tele-helico.png   # … et Monzo de jour : la luminosité de l'image, pour la comparer à la nuit   # le décor dans le vrai jeu : la course de nuit à Singapura, 20 voitures, vue télé ; capture jeu-singapura.png
+    ('tests/lieu.html?circuit=monoco&vue=port', 1280, 720, None),
+    ('tests/lieu.html?circuit=suzuko&vue=pont', 1280, 720, None),   # le pont de Suzuko (PONT_ACTIF) : une voiture dessus, une dessous ; capture pont-suzuko.png   # Monoco en détail : le port, les bateaux, les façades ; capture monoco.png
     ('tests/lieu.html?circuit=monoco&domicile=1', 1280, 720, None),   # le Grand Prix à domicile : le public aux couleurs du pays, les banderoles ; capture banderoles.png
    # le décor du circuit test (étape 10) avec 20 voitures : appels de dessin, triangles, niveaux de détail ; captures decor-test.png, decor-dessus.png
     ('index.html?test=tournoi', 1280, 720, None),   # le tournoi chrono (tour 26b) : inscription de 3 joueurs → 3 manches (robot ; un abandon) → podium → Rejouer ; captures tournoi.png, tournoi-podium.png
@@ -1201,6 +1203,27 @@ def prevision_ecran(pg, titre):
     t(f'{titre} : la météo prévue au paddock (« Météo prévue : risque de pluie (40 %) »)', vu and '40' in txt and re.search(r'(pluie|rain)', txt, re.I) is not None, txt)
     pg.screenshot(path=os.path.join(CAPTURES, 'prevision.png'))
 
+# la réalisation télé (regie.js) dans le vrai jeu, à Monoco : en vue télé, la caméra est un vrai poste du décor (sa place ne bouge
+# pas, elle voit la voiture), puis l'hélicoptère (dans ses hauteurs) ; les mâts des caméras coûtent un appel de dessin au plus
+def tele_ecran(pg, titre):
+    pret = attendre(pg, '() => JEU.plateau && JEU.plateau.pilotes.filter(p => Math.abs(p.v.u) > 15).length >= 5 && CAMERA.regie', None, 90000)
+    pg.evaluate('() => CAMERA.forcer("tele")')
+    vus = []
+    for _ in range(6):
+        pg.wait_for_timeout(700)
+        vus.append(pg.evaluate("""() => { const p = CAMERA.planTele, c = SCENE3D.camera.position, v = JEU.joueur, r = CAMERA.regie;
+          const poste = p && p.genre === 'poste' ? r.postes[p.poste] : null;
+          return { genre: p ? p.genre : null, fixe: poste ? Math.hypot(c.x - poste.x, c.y - poste.y, c.z - poste.z) < 1e-6 : null, voit: p ? REGIE.voit(r, c, { x: v.x, y: REGLAGES.TELE_VISEE, z: v.z }) : false }; }"""))
+    t(f'{titre} : en vue télé, la caméra est un vrai poste du décor (à sa place, sans bouger) ou l’hélicoptère, et elle voit la voiture', pret and all(x['genre'] in ('poste', 'helico') and x['voit'] and (x['genre'] != 'poste' or x['fixe']) for x in vus) and any(x['genre'] == 'poste' for x in vus), str(vus))
+    appels = pg.evaluate("""() => { let m = null; SCENE3D.decor.groupe.traverse(o => { if (o.name === 'decor-cameras-tele') m = o; }); SCENE3D.dessiner(); const avec = SCENE3D.appelsDessin; m.visible = false; SCENE3D.dessiner(); const sans = SCENE3D.appelsDessin; m.visible = true; SCENE3D.dessiner(); return { avec, sans, postes: m.count }; }""")
+    t(f'{titre} : les mâts des caméras de télé ({appels["postes"]}) coûtent un appel de dessin au plus', appels['postes'] >= 8 and appels['avec'] - appels['sans'] <= 1, str(appels))
+    pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'tele-monoco.png'))
+    pg.evaluate('() => { const r = CAMERA.regie; r.actuel = "helico"; r.depuis = r.t; r.helico = null; }')
+    pg.wait_for_timeout(1500)
+    h = pg.evaluate('() => ({ genre: CAMERA.planTele.genre, y: SCENE3D.camera.position.y, borne: REGLAGES.TELE_HELICO_HAUTEUR })')
+    t(f'{titre} : l’hélicoptère, dans ses hauteurs ({round(h["y"])} m)', h['genre'] == 'helico' and h['borne'][0] <= h['y'] <= h['borne'][1], str(h))
+    pg.screenshot(path=os.path.join(CAPTURES, 'tele-helico.png'))
+
 def lieu_ecran(pg, titre, page):
     nom = re.search(r'circuit=([a-z]+)', page).group(1)
     pret = attendre(pg, '() => !!window.__lieu', None, 60000)
@@ -1216,11 +1239,19 @@ def lieu_ecran(pg, titre, page):
         t(f'{titre} : la nuit (ou le crépuscule) : des mâts d’éclairage le long de la piste', n['projecteur'] >= 20, str(n))
     if 'vue=port' in page:
         t(f'{titre} : Monoco : le port (de l’eau), des bateaux, des façades et des immeubles', n['eau'] > 50 and n['bateau'] >= 20 and n['immeuble'] > 200, str(n))
+    if 'vue=pont' in page:
+        p = pg.evaluate('''() => { const r = SCENE3D.relief, c = DEFS_LIEU(), L = c.circuit.longueur, i = s => Math.round((((s % L) + L) % L) / c.circuit.pas) % c.circuit.nb;
+          let pont = null, dessus = null, dessous = null; SCENE3D.camera.parent; const scene = (() => { let o = SCENE3D.decor.groupe; while (o.parent) o = o.parent; return o; })();
+          scene.traverse(o => { if (o.name === 'pont') pont = o; if (o.name === 'voiture-dessus') dessus = o.position.y; if (o.name === 'voiture-dessous') dessous = o.position.y; });
+          let max = 0; for (const h of r) max = Math.max(max, h);
+          return { max, h1: r[i(c.croisement[0])], h2: r[i(c.croisement[1])], pont: !!pont, dessus, dessous, H: REGLAGES.PONT_HAUTEUR, actif: REGLAGES.PONT_ACTIF }; }''')
+        t(f'{titre} : le pont de Suzuko : la route du premier passage monte à PONT_HAUTEUR au croisement, le second passe dessous à plat ; le tablier et ses talus ; la voiture du dessus est en haut, celle du dessous en bas',
+          p['actif'] and p['pont'] and abs(p['max'] - p['H']) < 1e-6 and abs(p['h1'] - p['H']) < 1e-6 and p['h2'] == 0 and abs(p['dessus'] - p['H']) < 1e-6 and p['dessous'] == 0, str(p))
     if 'domicile=1' in page:
         b = pg.evaluate('() => { const d = SCENE3D.decor; let m = null; d.groupe.traverse(o => { if (o.name === "decor-banderoles") m = o; }); const pays = REGLAGES.PAYS_COULEURS[REGLAGES.CIRCUITS_PAYS[__lieu.nom]] || []; const sup = d.objets.public.filter(p => pays.includes(p.couleur)).length; return { banderoles: d.objets.banderole.length, maillage: !!m, textes: d.objets.banderole.map(x => x.texte), part: sup / d.objets.public.length, attendu: REGLAGES.PUBLIC_DOMICILE_PART }; }')
         t(f'{titre} : le Grand Prix à domicile : des banderoles (« ALLEZ 27 ! », le nom) sur la barrière, et une part du public aux couleurs du pays', b['banderoles'] >= 2 and b['maillage'] and any('27' in x for x in b['textes']) and b['part'] >= b['attendu'] * 0.8, str(b))
     pg.wait_for_timeout(500)
-    capture = 'monoco.png' if 'vue=port' in page else 'banderoles.png' if 'domicile=1' in page else f'lieu-{nom}.png'
+    capture = 'monoco.png' if 'vue=port' in page else 'pont-suzuko.png' if 'vue=pont' in page else 'banderoles.png' if 'domicile=1' in page else f'lieu-{nom}.png'
     pg.screenshot(path=os.path.join(CAPTURES, capture))
 
 def decor_ecran(pg, titre, l, h):
@@ -2356,6 +2387,8 @@ with sync_playwright() as p:
                 course_ia10(pg, titre)
             if 'course=1&ia=8' in page:
                 course_podium(pg, titre, l)
+            if 'test=tele' in page:
+                tele_ecran(pg, titre)
             if 'test=pluie' in page:
                 pluie_ecran(pg, titre, l, h)
             if 'test=prevision' in page:

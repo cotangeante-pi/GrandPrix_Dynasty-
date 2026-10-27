@@ -1,7 +1,7 @@
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><title>tests</title></head><body>
 <pre id="res"></pre>
 <script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));window.addEventListener('unhandledrejection',e=>__err.push('promesse : '+(e.reason&&e.reason.message||e.reason)));</script>
-<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits-officiels-a.js"></script><script src="../circuits-officiels-b.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../son.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../decouverte.js"></script><script src="../pilote.js"></script><script src="../deux-joueurs.js"></script><script src="../tournoi.js"></script><script src="../casque.js"></script><script src="../decors-officiels.js"></script><script src="../decor-public.js"></script><script src="../photo.js"></script><script src="../cache-carte.js"></script><script src="../journal.js"></script><script src="../argent.js"></script><script src="../garage.js"></script><script src="../aileron.js"></script><script src="../carte2d.js"></script><script src="../saisons.js"></script><script src="../sponsors.js"></script><script src="../fiche.js"></script><script src="../interview.js"></script><script src="../carriere.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../meteo.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../resume.js"></script><script src="../messages.js"></script><script src="../decor.js"></script><script src="../fantome.js"></script><script src="../principal.js"></script>
+<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits-officiels-a.js"></script><script src="../circuits-officiels-b.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../son.js"></script><script src="../regie.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../decouverte.js"></script><script src="../pilote.js"></script><script src="../deux-joueurs.js"></script><script src="../tournoi.js"></script><script src="../casque.js"></script><script src="../decors-officiels.js"></script><script src="../decor-public.js"></script><script src="../photo.js"></script><script src="../cache-carte.js"></script><script src="../journal.js"></script><script src="../argent.js"></script><script src="../garage.js"></script><script src="../aileron.js"></script><script src="../carte2d.js"></script><script src="../saisons.js"></script><script src="../sponsors.js"></script><script src="../fiche.js"></script><script src="../interview.js"></script><script src="../carriere.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../meteo.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../resume.js"></script><script src="../messages.js"></script><script src="../decor.js"></script><script src="../fantome.js"></script><script src="../principal.js"></script>
 <script>
 const L=[];let ok=0,ko=0;
 function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
@@ -2363,7 +2363,7 @@ t('décor : DECORS.test placé le long de la piste : chaque brique est là (trib
   v(DECOR.placer(c,[{type:'tribune',s:300,longueur:24,cote:1,distance:2}]).objets.tribune.length===0,'pas de tribune sur la piste');
   v(DECOR.placer(c,[{type:'arbres',s:-30,longueur:60,cote:c.stands.cote,distance:c.stands.dMur+2,profondeur:3,nombre:20}]).objets.arbreA.length+DECOR.placer(c,[{type:'arbres',s:-30,longueur:60,cote:c.stands.cote,distance:c.stands.dMur+2,profondeur:3,nombre:20}]).objets.arbreB.length===0,'pas d’arbre dans la voie des stands');
   const poste=DECOR.postesTele(c)[1],pp=proche(poste.x,poste.z);
-  v(DECOR.placer(c,[{type:'panneaux',s:c.s[pp.i]-5,longueur:10,cote:1,distance:p0(c,pp,poste)}]).objets.panneau.length===0,'rien sur un poste de caméra télé');
+  v(DECOR.placer(c,[{type:'panneaux',s:c.s[pp.i]-5,longueur:10,cote:poste.cote||1,distance:p0(c,pp,poste)}]).objets.panneau.length===0,'rien sur un poste de caméra télé');   // (le côté du poste : regie.js le donne)
   function p0(c,pp,q){return Math.abs((q.x-c.x[pp.i])*c.nx[pp.i]+(q.z-c.z[pp.i])*c.nz[pp.i]);}
 });
 t('décors des 12 tracés (decors-officiels.js → decor.js) : chacun a ses tribunes, son public, ses stands, son ciel ; aucun objet (hors public assis et paysage au loin) à moins de largeur/2 + DECOR_MARGE du tracé, ni dans la voie des stands ; types connus ; la nuit, des mâts', ()=>{
@@ -2432,6 +2432,31 @@ t('messages de course, la météo : « La pluie arrive » quand la pluie passe M
   MESSAGES.observerMeteo(m,{pluie:R.MESSAGES_PLUIE_SEUIL+0.1,eau:0.1});MESSAGES.observerMeteo(m,{pluie:0.6,eau:0.5});v(types()==='pluieArrive','la pluie arrive, une fois : '+types());
   MESSAGES.observerMeteo(m,{pluie:0,eau:0.4});MESSAGES.observerMeteo(m,{pluie:0,eau:R.MESSAGES_SECHE_SEUIL-0.01});MESSAGES.observerMeteo(m,{pluie:0,eau:0});v(types()==='pluieArrive,pisteSeche','la piste sèche, une fois : '+types());
   v(['msg_pluieArrive','msg_pisteSeche','meteoEau','meteoPrevue','meteo_sec','meteo_nuageux','meteo_risque','meteo_pluie'].every(c=>TEXTES.fr[c]&&TEXTES.en[c]),'textes');});
+
+// --- la réalisation télé (regie.js)
+function tourRegie(nom){const R=REGLAGES,c=construireCircuit(CIRCUITS[nom]),choix=DECOR.pour(c,nom,null),obst=REGIE.obstacles(DECOR.placer(c,choix.description).objets),postes=REGIE.postes(c),r=REGIE.creer(c,postes,obst),copie=JSON.stringify(postes);
+  const plans=[];let cache=0,n=0,helico=[999,-999],bouge=false,t=0;
+  for(let s=0;s<c.longueur;s+=6){t+=0.1;const i=Math.round(s/c.pas)%c.nb,cible={x:c.x[i],z:c.z[i],cap:Math.atan2(c.tz[i],c.tx[i]),u:60,s,d:0},p=REGIE.choisir(r,t,cible);n++;
+    if(!plans.length||plans[plans.length-1].poste!==p.poste)plans.push({poste:p.poste,t});
+    if(!REGIE.voit(r,p,{x:cible.x,y:R.TELE_VISEE,z:cible.z}))cache++;
+    if(p.genre==='helico'){helico[0]=Math.min(helico[0],p.y);helico[1]=Math.max(helico[1],p.y);}
+    else if(p.x!==postes[p.poste].x||p.y!==postes[p.poste].y||p.z!==postes[p.poste].z)bouge=true;}
+  const courts=plans.slice(0,-1).filter((q,k)=>plans[k+1].t-q.t<R.TELE_PLAN_MIN-1e-9).length;
+  return{n,cache,courts,plans:plans.length,helico,bouge,postes:postes.length,fixes:JSON.stringify(postes)===copie,obstacles:obst.length};}
+t('réalisation télé : sur un tour du circuit test et de Monoco, la caméra choisie voit toujours la voiture (aucun objet du décor sur la ligne de visée), un plan dure au moins TELE_PLAN_MIN, un poste ne bouge jamais, l’hélicoptère reste dans ses hauteurs', ()=>{
+  const R=REGLAGES;
+  for(const nom of ['test','monoco']){const m=tourRegie(nom);
+    v(m.cache===0,nom+' : voiture cachée '+m.cache+' fois sur '+m.n);
+    v(m.courts===0,nom+' : plans trop courts '+m.courts+' sur '+m.plans);
+    v(!m.bouge&&m.fixes,nom+' : un poste a bougé');
+    v(m.helico[0]===999||(m.helico[0]>=R.TELE_HELICO_HAUTEUR[0]&&m.helico[1]<=R.TELE_HELICO_HAUTEUR[1]),nom+' : hélicoptère à '+m.helico);
+    v(m.postes>=8&&m.plans>=4&&m.obstacles>50,nom+' : '+JSON.stringify(m));}});
+t('réalisation télé : la visée est coupée par un immeuble entre la caméra et la voiture, pas par un immeuble à côté ni par celui où la caméra est posée (son toit)', ()=>{
+  const c=construireCircuit(CIRCUITS.test),r=REGIE.creer(c,[],[{cx:50,cz:0,rayon:10,h:30},{cx:0,cz:40,rayon:10,h:30}]),a={x:0,y:12,z:0},b={x:100,y:0.6,z:0};
+  v(!REGIE.voit(r,a,b),'coupée par l’immeuble entre les deux');
+  v(REGIE.voit(r,a,{x:0,y:0.6,z:-60}),'pas par un immeuble à côté');
+  v(REGIE.voit(r,{x:0,y:40,z:40},{x:0,y:0.6,z:100}),'pas par le toit où elle est posée');
+  v(REGIE.voit(r,{x:0,y:200,z:-200},b),'de très haut, par-dessus');});
 
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 ecrire();
