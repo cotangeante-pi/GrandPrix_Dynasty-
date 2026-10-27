@@ -87,6 +87,7 @@ PAGES = [
     ('tests/lieu.html?circuit=bahrayn', 1280, 720, None),
     ('tests/lieu.html?circuit=singapura', 1280, 720, None),
     ('tests/lieu.html?circuit=yasmarino', 1280, 720, None),
+    ('index.html?course=3&ia=20&circuit=singapura&test=jeudecor', 1280, 720, None),   # le décor dans le vrai jeu : la course de nuit à Singapura, 20 voitures, vue télé ; capture jeu-singapura.png
     ('tests/lieu.html?circuit=monoco&vue=port', 1280, 720, None),   # Monoco en détail : le port, les bateaux, les façades ; capture monoco.png
     ('tests/lieu.html?circuit=monoco&domicile=1', 1280, 720, None),   # le Grand Prix à domicile : le public aux couleurs du pays, les banderoles ; capture banderoles.png
    # le décor du circuit test (étape 10) avec 20 voitures : appels de dessin, triangles, niveaux de détail ; captures decor-test.png, decor-dessus.png
@@ -1137,6 +1138,19 @@ def resume_ecran(pg, titre, l, h):
 # les décors des 12 tracés (tests/lieu.html) : le décor du circuit et son lieu, 20 voitures, vus d'un poste télé ; la mesure (appels
 # de dessin et triangles, avec et sans le décor) ; au plus LIEU_APPELS_MAX appels en tout et DECOR_APPELS_MAX pour le décor ; le ciel
 # (la coupole), la nuit avec ses mâts ; Monoco : le port, les bateaux, les façades ; le domicile : les banderoles et le public aux couleurs
+# le décor dans le vrai jeu (index.html, un circuit officiel) : le décor et son lieu sont construits pour le circuit de la course, et
+# l'image reste sous LIEU_APPELS_MAX appels de dessin avec 20 voitures, en vue télé ; capture jeu-<nom>.png
+def decor_jeu(pg, titre, page):
+    nom = re.search(r'circuit=([a-z]+)', page).group(1)
+    pret = attendre(pg, '() => !!SCENE3D.decor && JEU.plateau && JEU.plateau.pilotes.length === 20', None, 60000)
+    pg.evaluate('() => CAMERA.forcer("tele")'); pg.wait_for_timeout(1500)
+    m = pg.evaluate("""() => { SCENE3D.dessiner(); const d = SCENE3D.decor, n = {}; for (const k in d.objets) n[k] = d.objets[k].length; const noms = []; d.groupe.traverse(o => { if (o.isMesh) noms.push(o.name); });
+      return { appels: SCENE3D.appelsDessin, triangles: SCENE3D.trianglesDessines, lieu: d.lieu ? d.lieu.lieu : null, nuit: !!(d.lieu && d.lieu.lumiere.projecteurs), n, ciel: noms.includes('decor-ciel'), max: REGLAGES.LIEU_APPELS_MAX, lointaines: SCENE3D.nbLointaines }; }""")
+    L.append(f"  (dans le jeu, {nom}, 20 voitures, vue télé : {m['appels']} appels de dessin, {m['triangles']} triangles, {m['lointaines']} voitures lointaines)")
+    t(f'{titre} : dans le jeu, le décor de {nom} (decors-officiels.js) et son lieu : ciel, tribunes, public{", mâts d’éclairage" if m["nuit"] else ""} ; sous LIEU_APPELS_MAX appels de dessin avec 20 voitures',
+      pret and m['lieu'] is not None and m['ciel'] and m['n']['tribune'] > 10 and m['n']['public'] > 1000 and (not m['nuit'] or m['n']['projecteur'] > 20) and m['appels'] < m['max'], str(m))
+    pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, f'jeu-{nom}.png'))
+
 def lieu_ecran(pg, titre, page):
     nom = re.search(r'circuit=([a-z]+)', page).group(1)
     pret = attendre(pg, '() => !!window.__lieu', None, 60000)
@@ -2243,6 +2257,8 @@ with sync_playwright() as p:
                 hud_course(pg, titre, l, h)
             elif 'test=decor' in page:
                 decor_ecran(pg, titre, l, h)
+            elif 'test=jeudecor' in page:
+                decor_jeu(pg, titre, page)
             elif 'tests/lieu.html' in page:
                 lieu_ecran(pg, titre, page)
             elif 'test=resume' in page:
