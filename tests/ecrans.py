@@ -515,11 +515,15 @@ def decouverte(pg, titre):
         && j.casque.motif === "flammes" && j.casque.couleurs[0] === 0xd8262e && document.querySelectorAll("#championnatPilotes li .nom canvas.casqueIcone").length === 20; }}'''),
       str(pg.evaluate('() => [JEU.ecran, PILOTE.joueur(JEU.championnat)]')))
     # un Grand Prix d'un tour : le numéro 27 dans la tour de classement, le nom sur la une du journal
-    t(f'{titre} : au lancement suivant, la carte des IA vient du cache de la sauvegarde (pas de calcul en fond, les IA ont déjà leur pilote)', pg.evaluate('() => JEU.carteDuCache === true && JEU.carte !== null && JEU.calculTrajectoire === null'), str(pg.evaluate('() => [JEU.carteDuCache, JEU.carte !== null]')))
+    # (depuis le tour 32, le 1er Grand Prix est Bahrayn, pas le circuit de la découverte : sa carte n'est pas encore dans le cache, elle se
+    # calcule en fond ; celle de la découverte, elle, y est gardée)
+    t(f'{titre} : au lancement suivant, la carte de la découverte est gardée dans le cache de la sauvegarde ; celle du 1er Grand Prix (un autre circuit) vient du cache ou se calcule en fond',
+      pg.evaluate('() => SAUVEGARDE.carte(REGLAGES.DECOUVERTE_CIRCUIT) !== null && NOM_CIRCUIT === JEU.championnat.calendrier[0].circuit && (JEU.carteDuCache === true || JEU.calculTrajectoire !== null || JEU.carte !== null)'),
+      str(pg.evaluate('() => [NOM_CIRCUIT, SAUVEGARDE.carte(REGLAGES.DECOUVERTE_CIRCUIT) !== null, JEU.carteDuCache, JEU.carte !== null]')))
     pg.click('#boutonCourseSuivante')
     attendre(pg, '() => JEU.ecran === "qualif" && JEU.qualif && JEU.qualif.etat === "choix"', None, 10000)
     pg.click('#boutonQualifPasser')
-    attendre(pg, '() => JEU.qualif && JEU.qualif.etat === "resultat"', None, 10000)
+    attendre(pg, '() => JEU.qualif && JEU.qualif.etat === "resultat"', None, 180000)   # (la carte des IA d'abord, s'il le faut)
     pg.click('#boutonQualifCourse')
     # avant les feux, la grille vue d'en haut (CLAUDE.md « L'interface ») : la caméra au-dessus de la grille, les feux pas encore
     # allumés (la physique attend), une touche la passe ; jamais à deux ni au tournoi (vérifié dans leurs pages : pas d'écran « grille »)
@@ -810,7 +814,7 @@ def amis(pg, titre, l, h):
     pg.click('#boutonAmisDeux')
     reg = pg.evaluate('() => ({ ecran: JEU.ecran, n1: document.getElementById("deuxNom1").value, p1: document.getElementById("deuxNom1").placeholder, c: [1, 2].map(i => Number(document.getElementById("deuxCouleurs" + i).dataset.couleur)), pastilles: document.querySelectorAll("#deuxCouleurs1 button").length, circuits: [...document.getElementById("deuxCircuit").options].map(o => o.value), tours: [...document.getElementById("deuxTours").options].map(o => o.value), ia: [...document.getElementById("deuxIA").options].map(o => o.value), niveaux: document.getElementById("deuxNiveau").options.length, motifs: document.getElementById("deuxMotif1").options.length, bloques: document.querySelectorAll("#deuxMotif1 option:disabled").length, icones: document.querySelectorAll(".deuxIcone canvas").length })')
     t(f'{titre} : l’écran avant la course : nom (vide, « Joueur 1 » en attente), couleur (le bleu et le rouge d’abord), casque (tous les motifs, son icône) de chaque joueur ; circuits, 3/5 tours, 0/3/5 IA, 4 niveaux',
-      reg['ecran'] == 'deuxReglages' and reg['n1'] == '' and reg['p1'] in ('Joueur 1', 'Player 1') and reg['c'] == [0x1f6fe0, 0xd8262e] and reg['pastilles'] == 8 and reg['circuits'] == ['test', 'technique'] and reg['tours'] == ['3', '5'] and reg['ia'] == ['0', '3', '5'] and reg['niveaux'] == 4 and reg['motifs'] == 11 and reg['bloques'] == 5 and reg['icones'] == 2, str(reg))
+      reg['ecran'] == 'deuxReglages' and reg['n1'] == '' and reg['p1'] in ('Joueur 1', 'Player 1') and reg['c'] == [0x1f6fe0, 0xd8262e] and reg['pastilles'] == 8 and reg['circuits'] == pg.evaluate('() => Object.keys(CIRCUITS)') and len(reg['circuits']) == 14 and reg['tours'] == ['3', '5'] and reg['ia'] == ['0', '3', '5'] and reg['niveaux'] == 4 and reg['motifs'] == 11 and reg['bloques'] == 5 and reg['icones'] == 2, str(reg))
     ok_, det = tient(['#deuxTitre', '#deuxJoueur1', '#deuxJoueur2', '#deuxCourse', '#boutonDeuxPartir', '#boutonDeuxRetour'])
     t(f'{titre} : l’écran avant la course tient en {l}×{h} (les deux joueurs côte à côte, rien ne déborde)', ok_, det)
     if l == 960:
