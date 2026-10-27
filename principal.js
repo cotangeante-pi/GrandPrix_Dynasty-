@@ -986,11 +986,11 @@ function quitterFiche() {
 
 // --- les discussions (Codeur 3, étape 12b, discussion.js) : depuis la fiche d'un rival (« Discuter ») ou le paddock (le coéquipier) ;
 // jamais pendant une course (DISCUSSION.peutDiscuter). Chaque message est sauvegardé (sa mémoire est dans le championnat)
-function montrerDiscussion(k, depuis) {
+function montrerDiscussion(k, depuis, premier) {
   if (!DISCUSSION.peutDiscuter(JEU.ecran)) return;
   const p = JEU.championnat.pilotes[k];
   if (!p || p.humain) return;
-  JEU.discussion = { k, depuis: depuis || JEU.ecran, fil: [] };
+  JEU.discussion = { k, depuis: depuis || JEU.ecran, fil: premier ? [{ de: 'lui', texte: premier }] : [] };   // (depuis le courrier : son message ouvre le fil)
   JEU.ecran = 'discussion';
   remplirDiscussion();
   INTERFACE.montrer('discussion');
@@ -1020,6 +1020,30 @@ function quitterDiscussion() {
   JEU.discussion = null;
   montrerChampionnat(JEU.gagne);
   if (d && d.depuis === 'fiche') montrerFiche(d.k);
+  if (d && d.depuis === 'courrier') montrerCourrier();
+}
+
+// --- le courrier des pilotes (Codeur 3, courrier-pilotes.js) : depuis le paddock ; « Répondre » ouvre la discussion avec son message
+function messagesCourrier() {
+  const ch = JEU.championnat, c = COURRIER_PILOTES.completer(ch);
+  return c.messages.map((m, i) => ({ i, k: m.k, lu: m.lu, texte: COURRIER_PILOTES.texteDe(ch, m, { pilote: INTERFACE.nomPilote }) })).reverse();
+}
+function montrerCourrier() {
+  if (JEU.ecran !== 'championnat') return;
+  INTERFACE.remplirCourrier(JEU.championnat, messagesCourrier());
+  JEU.ecran = 'courrier';
+  INTERFACE.montrer('courrier');
+}
+function repondreCourrier(i) {
+  if (JEU.ecran !== 'courrier') return;
+  const ch = JEU.championnat, m = COURRIER_PILOTES.lire(ch, i);
+  if (!m) return;
+  SAUVEGARDE.ecrireChampionnat(ch);
+  montrerDiscussion(m.k, 'courrier', COURRIER_PILOTES.texteDe(ch, m, { pilote: INTERFACE.nomPilote }));
+}
+function quitterCourrier() {
+  if (JEU.ecran !== 'courrier') return;
+  montrerChampionnat(JEU.gagne);
 }
 
 function prendreRetraite() {
@@ -1757,6 +1781,7 @@ function demarrerJeu() {
     INTERFACE.preparerFiche(montrerFiche, quitterFiche);
     // les discussions (Codeur 3) : « Discuter » sur la fiche d'un rival, « 💬 Coéquipier » au paddock
     INTERFACE.preparerDiscussion(envoyerDiscussion, composerDiscussion, quitterDiscussion);
+    INTERFACE.preparerCourrier(montrerCourrier, repondreCourrier, quitterCourrier);
     document.getElementById('boutonFicheDiscuter').addEventListener('click', () => { if (JEU.ecran === 'fiche') montrerDiscussion(JEU.ficheK, 'fiche'); });
     document.getElementById('boutonParlerCoequipier').addEventListener('click', () => { const c = CHAMPIONNAT.coequipierDe(JEU.championnat); if (JEU.ecran === 'championnat' && c) montrerDiscussion(c.id, 'championnat'); });
     INTERFACE.preparerInterview(repondreInterview, finirInterview);

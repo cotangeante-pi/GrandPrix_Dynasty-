@@ -390,6 +390,13 @@ const REGLAGES = {
   DISCUSSION_MENACE_COURSES: 2,     // une menace sans suite pendant ce nombre de courses : du crédit perdu (il te le dira)…
   DISCUSSION_CREDIT_MAX: 3,         // … au plus ce nombre de fois
   GRAINE_DISCUSSION: 15000,         // les variantes des réponses : la graine du championnat + ce nombre (une suite à part, ALEATOIRE.suite)
+  // le courrier des pilotes (courrier-pilotes.js) : ils écrivent d'eux-mêmes après les faits
+  COURRIER_PAR_GP: 3,               // au plus 3 messages par Grand Prix (les plus urgents)
+  COURRIER_OUBLI: 4,                // un même sujet ne revient pas chez le même pilote avant 4 Grands Prix
+  COURRIER_MAX: 20,                 // la boîte garde les 20 derniers messages
+  COURRIER_DUEL_NET: 3,             // ton coéquipier t'écrit quand le duel de la saison penche d'au moins ça
+  COURRIER_LEADER_DES: 3,           // le leader du championnat te nargue à partir du 3e Grand Prix
+  COURRIER_AGE_VIEUX: 36,           // un pilote de cet âge (AGE_RETRAITE) qui t'aime bien t'écrit un mot, une fois
   // les décors des 12 circuits (decors-officiels.js) : rien à moins de cette distance du bord de la voie des stands (m), sauf le bâtiment
   // des stands lui-même, qui reste derrière la voie ; le reste du décor est au-delà de la barrière (DISTANCE_BARRIERE)
   DECOR_MARGE_STANDS: 2,

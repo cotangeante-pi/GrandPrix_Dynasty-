@@ -1692,7 +1692,7 @@ def discussion_ecran(pg, titre, l, h, page):
     t(f'{titre} : le composeur au clic (« S’excuser ») : la phrase et la réponse s’ajoutent au fil, lues comme une excuse', len(d['fil']) == 4 and r == 'EXCUSE', str(d['fil']) + ' ' + str(r))
     t(f'{titre} : la mémoire du pilote est sauvegardée (2 messages)', pg.evaluate(f'() => {{ const c = SAUVEGARDE.championnat(); return !!c && c.pilotes[{k}].memoire && c.pilotes[{k}].memoire.dits.length === 2; }}'))
     t(f'{titre} : la discussion tient dans l’écran ({l}×{h}), sans défilement, le duel absent avec un rival', d['dedans'] and not d['hors'] and pas_de_defilement(d['defile']) and 'duel' not in d['intentions'] and len(d['intentions']) >= 12, str(d))
-    pg.wait_for_timeout(250); pg.screenshot(path=os.path.join(CAPTURES, 'discussion' + ('-en' if en else '') + ('' if l == 1280 else '-' + str(l)) + '.png'))
+    pg.wait_for_timeout(800); pg.screenshot(path=os.path.join(CAPTURES, 'discussion' + ('-en' if en else '') + ('' if l == 1280 else '-' + str(l)) + '.png'))
     pg.click('#boutonDiscussionRetour')
     t(f'{titre} : « Retour » ramène à la fiche, puis au paddock', attendre(pg, '() => JEU.ecran === "fiche"', None, 3000) and (pg.click('#boutonFicheRetour') or True) and attendre(pg, '() => JEU.ecran === "championnat"', None, 3000))
     # le coéquipier, depuis le paddock : le duel est proposé
@@ -1703,6 +1703,24 @@ def discussion_ecran(pg, titre, l, h, page):
     t(f'{titre} : il répond sur votre duel', pg.evaluate('() => JEU.derniereReponse.reaction.startsWith("duel_")'), pg.evaluate('() => JEU.derniereReponse.reaction'))
     pg.click('#boutonDiscussionRetour')
     t(f'{titre} : retour au paddock', attendre(pg, '() => JEU.ecran === "championnat"', None, 3000))
+    # le courrier : un message du pilote touché à la dernière course ; « ✉ Courrier (1) » au paddock, l'écran, « Répondre » ouvre la discussion
+    avant = pg.evaluate('() => COURRIER_PILOTES.nonLus(JEU.championnat)')   # (les Grands Prix fabriqués par ?gp=3 ont déjà fait écrire des pilotes)
+    pg.evaluate(f'''() => {{ const ch = JEU.championnat, c = COURRIER_PILOTES.completer(ch); c.messages.push({{ k: {k}, sujet: 'contact', cle: 'courrier_contact_calme', saison: ch.saison, gp: ch.resultats.length, lu: false }}); montrerChampionnat(null); }}''')
+    b = pg.evaluate('() => document.getElementById("boutonCourrier").textContent')
+    t(f'{titre} : au paddock, « ✉ Courrier ({avant + 1}) » annonce les messages non lus', b.endswith(f'({avant + 1})') and pg.evaluate('() => document.getElementById("boutonCourrier").classList.contains("nouveau")'), b)
+    pg.click('#boutonCourrier')
+    c = pg.evaluate('''() => { const li = [...document.querySelectorAll("#courrierListe li")]; const el = document.getElementById("courrier");
+      const hors = [...el.querySelectorAll("*")].filter(e => e.childElementCount === 0 && e.textContent.trim() && getComputedStyle(e).display !== "none" && e.getClientRects().length)
+        .filter(e => { const r = e.getBoundingClientRect(); return r.right > innerWidth + 1 || r.bottom > innerHeight + 1 || r.left < -1 || r.top < -1; }).map(e => e.textContent.trim().slice(0, 30));
+      return { ecran: JEU.ecran, n: li.length, nouveau: li.filter(x => x.classList.contains("nouveau")).length, texte: li[0] && li[0].querySelector(".texte").textContent, hors }; }''')
+    t(f'{titre} : l’écran du courrier : le plus récent en haut, marqué nouveau, rien hors de l’écran', c['ecran'] == 'courrier' and c['n'] >= 1 and c['nouveau'] == avant + 1 and c['texte'] and not c['hors'], str(c))
+    pg.wait_for_timeout(800); pg.screenshot(path=os.path.join(CAPTURES, 'courrier' + ('-en' if en else '') + ('' if l == 1280 else '-' + str(l)) + '.png'))
+    pg.click('#courrierListe li button')
+    d = pg.evaluate(DISCUSSION_ETAT)
+    t(f'{titre} : « Répondre » ouvre la discussion avec son auteur, son message en tête du fil ; il est lu', d['ecran'] == 'discussion' and d['k'] == k and d['fil'][0] == ['lui', c['texte']]
+      and pg.evaluate('() => COURRIER_PILOTES.nonLus(JEU.championnat)') == avant, str(d['fil']))
+    pg.click('#boutonDiscussionRetour')
+    t(f'{titre} : « Retour » ramène au courrier, puis au paddock', attendre(pg, '() => JEU.ecran === "courrier"', None, 3000) and (pg.click('#boutonCourrierRetour') or True) and attendre(pg, '() => JEU.ecran === "championnat"', None, 3000))
 
 # le thème télé (tour 32, Codeur 3, style.css) : l'écran affiché a le voile en dégradé, son titre la police des titres (sauf la une,
 # qui a sa police de journal), et son arrivée (une animation CSS) dure moins de 250 ms ; la cérémonie, sans voile, laisse voir le podium 3D
@@ -1740,7 +1758,7 @@ SANS_MOUVEMENT = """() => { montrerChampionnat(25); const r = [getComputedStyle(
 def paddock_ecran(pg, titre):
     pg.wait_for_timeout(300)
     p = pg.evaluate(PADDOCK_ETAT)
-    G = [['boutonCourseSuivante'], ['boutonGarage', 'boutonSponsors', 'boutonMonCasque', 'boutonParlerCoequipier'], ['boutonCalendrier', 'boutonAlbum', 'boutonArbre'], ['boutonAmisPaddock']]
+    G = [['boutonCourseSuivante'], ['boutonGarage', 'boutonSponsors', 'boutonMonCasque'], ['boutonCalendrier', 'boutonAlbum', 'boutonArbre'], ['boutonAmisPaddock']]
     t(f'{titre} : le paddock en écran d’accueil : « Next Grand Prix », le titre du Grand Prix, la carte du circuit dessinée, ta place et l’écart au leader, quatre groupes de boutons rangés par usage',
       p['ecran'] == 'championnat' and p['surtitre'] == 'Next Grand Prix' and p['titre'].startswith('Grand Prix ') and p['carte'] and p['dessine'] > 500
       and p['place'].startswith(p['attendu'] + ' · ') and [g[1] for g in p['groupes']] == G and [g[0] for g in p['groupes']] == ['Race', 'Team', 'Season', 'Play together'], str(p)[:900])

@@ -181,6 +181,7 @@
       <p id="championnatGagne"></p>
     </div>
     <div id="paddockMoi" class="tvCarte">
+      <div id="paddockMessages"><button id="boutonCourrier" class="petit" tabindex="-1"></button><button id="boutonParlerCoequipier" class="petit" tabindex="-1"></button></div>
       <p id="paddockPlace"></p>
       <p id="championnatDuel"></p>
       <p id="championnatArgent"></p>
@@ -194,7 +195,7 @@
   </div>
   <div class="boutons" id="paddockBoutons">
     <div class="paddockGroupe"><span class="paddockGroupeNom" id="paddockGroupeCourse"></span><div><button id="boutonCourseSuivante" tabindex="-1"></button></div></div>
-    <div class="paddockGroupe"><span class="paddockGroupeNom" id="paddockGroupeEquipe"></span><div><button id="boutonGarage" tabindex="-1"></button><button id="boutonSponsors" tabindex="-1"></button><button id="boutonMonCasque" class="petit" tabindex="-1"></button><button id="boutonParlerCoequipier" class="petit" tabindex="-1"></button></div></div>
+    <div class="paddockGroupe"><span class="paddockGroupeNom" id="paddockGroupeEquipe"></span><div><button id="boutonGarage" tabindex="-1"></button><button id="boutonSponsors" tabindex="-1"></button><button id="boutonMonCasque" class="petit" tabindex="-1"></button></div></div>
     <div class="paddockGroupe"><span class="paddockGroupeNom" id="paddockGroupeSaison"></span><div><button id="boutonCalendrier" class="petit" tabindex="-1"></button><button id="boutonAlbum" class="petit" tabindex="-1"></button><button id="boutonArbre" class="petit" tabindex="-1"></button></div></div>
     <div class="paddockGroupe"><span class="paddockGroupeNom" id="paddockGroupeAmis"></span><div><button id="boutonAmisPaddock" class="petit" tabindex="-1"></button></div></div>
   </div>
@@ -236,6 +237,12 @@
     </div>
   </div>
   <div class="boutons"><button id="boutonFicheDiscuter" tabindex="-1"></button><button id="boutonFicheRetour" tabindex="-1"></button></div>
+</section>
+<!-- le courrier des pilotes (courrier-pilotes.js, Codeur 3, étape 12b) : leurs messages, du plus récent au plus ancien ; « Répondre » ouvre la discussion -->
+<section id="courrier" class="ecran cache">
+  <h1 id="courrierTitre"></h1>
+  <ol id="courrierListe"></ol>
+  <div class="boutons"><button id="boutonCourrierRetour" tabindex="-1"></button></div>
 </section>
 <!-- les discussions (discussion.js, parle.js, Codeur 3, étape 12b) : écrire librement ou composer au clic ; il répond depuis son raisonnement -->
 <section id="discussion" class="ecran cache">
@@ -444,7 +451,7 @@
 <script src="saisons.js"></script>
 <script src="sponsors.js"></script>
 <script src="fiche.js"></script>
-<script src="interview.js"></script><script src="parle.js"></script><script src="discussion.js"></script><script src="carriere.js"></script>
+<script src="interview.js"></script><script src="parle.js"></script><script src="discussion.js"></script><script src="courrier-pilotes.js"></script><script src="carriere.js"></script>
 <script src="sdk.js"></script>
 <script src="pneus-donnees.js"></script>
 <script src="pneus.js"></script>

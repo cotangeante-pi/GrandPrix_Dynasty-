@@ -1241,3 +1241,19 @@ body.deux.cote #boutonSon { top: auto; bottom: 12px; right: 12px; }   /* (côte 
 #garagePneus { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 8px 0; font-size: 14px; }
 #garagePneus .titre { width: 100%; opacity: 0.9; }
 #garagePneus button.choisi { box-shadow: 0 0 0 2px #ffd54a; }
+
+/* le courrier des pilotes (Codeur 3, étape 12b) : le bouton au paddock (dans ta carte), l'écran des messages */
+#paddockMessages { display: flex; gap: 6px; justify-content: center; }
+#paddockMoi #paddockMessages button { min-width: 0; padding: 4px 12px; font-size: 12px; }
+#paddockMoi #boutonCourrier.nouveau { background: var(--tv-bouton-principal); box-shadow: 0 2px 10px rgba(227, 36, 43, 0.35); }
+#courrierListe { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; width: min(92vw, 720px); max-height: 66vh; overflow-y: auto; }
+#courrierListe li { display: grid; grid-template-columns: 1fr auto; grid-template-areas: "de bouton" "texte bouton"; gap: 3px 12px; align-items: center; padding: 8px 12px;
+  background: var(--tv-panneau); border: 1px solid var(--tv-bord); border-radius: var(--tv-coin); text-align: left; font: 500 14px/1.35 var(--tv-police); }
+#courrierListe li.nouveau { box-shadow: inset 3px 0 0 var(--tv-rouge); }
+#courrierListe li.lu { opacity: 0.75; }
+#courrierListe li.vide { display: block; text-align: center; opacity: 0.8; }
+#courrierListe strong { grid-area: de; display: flex; align-items: center; gap: 4px; }
+#courrierListe strong em { font-style: normal; font-size: 11px; color: var(--tv-rouge); text-transform: uppercase; letter-spacing: 0.08em; }
+#courrierListe span.texte { grid-area: texte; }
+#courrierListe button { grid-area: bouton; min-width: 0; padding: 6px 12px; }
+#courrierListe .pastille { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }

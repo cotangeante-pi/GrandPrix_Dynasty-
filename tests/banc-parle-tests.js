@@ -180,5 +180,49 @@ t('une ancienne sauvegarde (aucune mémoire de discussion) se charge et discute 
   const ch2 = nouveau(), k2 = rival(ch2, 0.5), a = JSON.stringify(ch2); PARLE.comprendre('t nul', DISCUSSION.noms(ch2)); DISCUSSION.raisonner(ch2, k2, PARLE.comprendre('t nul', []));
   v(JSON.stringify(ch2) === a, 'comprendre et raisonner ne changent rien (seul dire applique)');
 });
+// --- 4. le courrier des pilotes (courrier-pilotes.js)
+function gpCouru(ch, ordre) { ch.resultats.push({ grandPrix: ch.resultats.length + 1, ordre: ordre || ch.pilotes.map(p => p.id), duel: null }); }
+t('le courrier : après un contact, le pilote touché t’écrit (furieux s’il est fougueux, sinon pour en parler) ; COURRIER_PAR_GP messages au plus, les plus urgents d’abord', () => {
+  const ch = nouveau(), k = rival(ch, 0.9); gpCouru(ch); contactAvec(ch, k);
+  const sujets = COURRIER_PILOTES.apresGrandPrix(ch), m = ch.courrier.messages;
+  v(sujets[0] === 'contact' && m[0].k === k && m[0].cle === 'courrier_contact_colere' && !m[0].lu, JSON.stringify(m));
+  const ch2 = nouveau(), k2 = rival(ch2, 0.1); gpCouru(ch2); contactAvec(ch2, k2); COURRIER_PILOTES.apresGrandPrix(ch2);
+  v(ch2.courrier.messages[0].cle === 'courrier_contact_calme', 'calme');
+  // beaucoup de sujets à la fois : seulement les plus urgents
+  const ch3 = nouveau(); gpCouru(ch3); contactAvec(ch3, 2);
+  for (const p of ch3.pilotes) if (!p.humain && p.id !== 2) p.rivalite = { courses: 2, gp: 1, saison: 1 };
+  const s3 = COURRIER_PILOTES.apresGrandPrix(ch3);
+  v(s3.length === R.COURRIER_PAR_GP && s3[0] === 'contact' && s3.slice(1).every(x => x === 'rivalite'), JSON.stringify(s3));
+  v(COURRIER_PILOTES.nonLus(ch3) === R.COURRIER_PAR_GP, 'non lus');
+  L.push('  (« ' + COURRIER_PILOTES.texteDe(ch, m[0], { pilote: p => p.nom || texte('pilote').replace('{n}', p.numero) }) + ' »)');
+});
+t('le courrier sans redite : le même sujet ne revient pas chez le même pilote avant COURRIER_OUBLI Grands Prix ; la boîte garde COURRIER_MAX messages', () => {
+  const ch = nouveau(), k = rival(ch, 0.5), compte = () => ch.courrier.messages.filter(m => m.k === k && m.sujet === 'contact').length;
+  for (let i = 0; i < R.COURRIER_OUBLI; i++) { gpCouru(ch); contactAvec(ch, k); COURRIER_PILOTES.apresGrandPrix(ch); }
+  v(compte() === 1, 'redite : ' + compte());
+  gpCouru(ch); contactAvec(ch, k); COURRIER_PILOTES.apresGrandPrix(ch);
+  v(compte() === 2, 'après l’oubli : ' + compte());
+  for (let i = 0; i < 40; i++) { gpCouru(ch); for (const p of ch.pilotes) if (!p.humain) p.rivalite = { courses: 2, gp: ch.resultats.length, saison: 1 }; COURRIER_PILOTES.apresGrandPrix(ch); }
+  v(ch.courrier.messages.length <= R.COURRIER_MAX, 'boîte : ' + ch.courrier.messages.length);
+});
+t('le courrier et la promesse : il te demande la pareille promise (la discussion attend ton oui ou ton non) ; une menace sans suite, il s’en moque une fois', () => {
+  const ch = nouveau(), co = CHAMPIONNAT.coequipierDe(ch); co.caractere = { regularite: 0.008, agressivite: 0.2, erreurs: 0.5 };
+  gpCouru(ch); DISCUSSION.dire(ch, co.id, 'je te rendrai la pareille'); gpCouru(ch);
+  const s = COURRIER_PILOTES.apresGrandPrix(ch);
+  v(s.includes('promesse') && co.memoire.demande && co.memoire.demande.type === 'tenir', JSON.stringify(s) + ' ' + JSON.stringify(co.memoire));
+  v(DISCUSSION.intentions(ch, co.id).includes('oui'), 'oui proposé');
+  v(DISCUSSION.dire(ch, co.id, 'nan').reaction === 'promesse_trahie', 'trahie');
+  const ch2 = nouveau(), k = rival(ch2, 0.3); gpCouru(ch2); DISCUSSION.dire(ch2, k, 'fais gaffe');
+  for (let i = 0; i < R.DISCUSSION_MENACE_COURSES; i++) { gpCouru(ch2); DISCUSSION.apresGrandPrix(ch2); }
+  const s2 = COURRIER_PILOTES.apresGrandPrix(ch2); gpCouru(ch2); const s3 = COURRIER_PILOTES.apresGrandPrix(ch2);
+  v(s2.includes('menaceVide') && !s3.includes('menaceVide'), JSON.stringify([s2, s3]));
+});
+t('le courrier : chaque sujet a ses textes en français et en anglais ; une ancienne sauvegarde sans courrier se charge', () => {
+  const cles = ['contact_colere', 'contact_calme', 'promesse', 'rivalite', 'duelPerdu', 'duelGagne', 'depasse_colere', 'depasse_calme', 'menaceVide', 'bravo', 'domicile', 'courage', 'jaloux', 'leader', 'vieux', 'bienvenue'];
+  const manque = cles.filter(c => !TEXTES.fr['courrier_' + c] || !TEXTES.en['courrier_' + c]);
+  v(!manque.length && COURRIER_PILOTES.SUJETS.length >= 14, 'manquent : ' + manque.join(', ') + ' / ' + COURRIER_PILOTES.SUJETS.length + ' sujets');
+  const ch = nouveau(); delete ch.courrier; v(COURRIER_PILOTES.nonLus(ch) === 0, 'non lus');
+  gpCouru(ch); COURRIER_PILOTES.apresGrandPrix(ch); v(Array.isArray(ch.courrier.messages), 'complété');
+});
 t('la console reste vide', () => { v(typeof __err === 'undefined' || !__err.length, typeof __err !== 'undefined' ? __err.join(' | ') : ''); });
 ecrire();

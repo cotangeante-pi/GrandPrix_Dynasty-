@@ -45,7 +45,7 @@ const INTERFACE = (function () {
   }
 
   function montrer(ecran) {
-    for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une', 'garage', 'saison', 'duelSaison', 'contrats', 'retraite', 'titre', 'amis', 'bravo', 'pilote', 'sponsors', 'fiche', 'interview', 'ceremonie', 'temple', 'heritier', 'calendrier', 'deuxReglages', 'resume', 'grille', 'tournoiInscription', 'tournoiAToi', 'tournoiPause', 'tournoiManche', 'tournoiFin', 'aileron', 'arbre', 'discussion']) $(id).classList.toggle('cache', id !== ecran);
+    for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une', 'garage', 'saison', 'duelSaison', 'contrats', 'retraite', 'titre', 'amis', 'bravo', 'pilote', 'sponsors', 'fiche', 'interview', 'ceremonie', 'temple', 'heritier', 'calendrier', 'deuxReglages', 'resume', 'grille', 'tournoiInscription', 'tournoiAToi', 'tournoiPause', 'tournoiManche', 'tournoiFin', 'aileron', 'arbre', 'discussion', 'courrier']) $(id).classList.toggle('cache', id !== ecran);
     // l'album des unes (Codeur 3) : la page de la une, avec la barre pour feuilleter
     if (ecran === 'album') $('une').classList.remove('cache');
     $('une').classList.toggle('album', ecran === 'album');
@@ -1513,6 +1513,10 @@ const INTERFACE = (function () {
     $('paddockPlace').textContent = !ch.resultats.length || !moi ? texte('paddockPasClasse')
       : avec(texte('paddockPlace'), { p: i + 1, n: moi.points }) + ' · ' + (i === 0 ? texte('paddockLeader') : elider(avec(texte('paddockEcart'), { n: ecart })));
     for (const g of ['Course', 'Equipe', 'Saison', 'Amis']) $('paddockGroupe' + g).textContent = texte('paddockGroupe' + g);
+    // le courrier des pilotes (courrier-pilotes.js) : « ✉ Courrier (2) » s'il y a des messages non lus
+    const nonLus = typeof COURRIER_PILOTES !== 'undefined' ? COURRIER_PILOTES.nonLus(ch) : 0;
+    $('boutonCourrier').textContent = texte('courrier') + (nonLus ? ' (' + nonLus + ')' : '');
+    $('boutonCourrier').classList.toggle('nouveau', nonLus > 0);
   }
 
   // --- les discussions (Codeur 3, étape 12b, discussion.js) : l'en-tête (son portrait, son nom, l'humeur de sa relation avec toi),
@@ -1564,7 +1568,37 @@ const INTERFACE = (function () {
     $('boutonParlerCoequipier').textContent = texte('parlerCoequipier');
   }
 
-  return { majPneus, majMessage, preparerGrille, annoncerMotifs, preparerResume, montrerBoutonResume, majResume, remplirInscription, lireInscription, montrerErreursTournoi, preparerInscription, remplirAToi, majCompteTournoi, preparerPauseTournoi, remplirMancheTournoi, preparerMancheTournoi, remplirFinTournoi, preparerFinTournoi, preparerAmis, remplirDeux, lireDeux, montrerErreursDeux, preparerDeux, remplirPodiumDeux, remplirRivalite, formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, remplirPaddock, remplirDiscussion, preparerDiscussion, preparerChampionnat, remplirQualif, preparerQualif,
+  // --- le courrier des pilotes (Codeur 3) : messages = [{ i, k, texte, lu }] du plus récent au plus ancien ; repondre(i) ouvre la discussion
+  let reponseCourrier = null;
+  function remplirCourrier(ch, messages) {
+    $('courrierTitre').textContent = texte('courrierTitre');
+    $('boutonCourrierRetour').textContent = texte('courrierRetour');
+    const ol = $('courrierListe');
+    ol.textContent = '';
+    if (!messages.length) { const li = document.createElement('li'); li.className = 'vide'; li.textContent = texte('courrierVide'); ol.appendChild(li); return; }
+    for (const m of messages) {
+      const p = ch.pilotes[m.k], li = document.createElement('li');
+      li.className = m.lu ? 'lu' : 'nouveau';
+      const de = document.createElement('strong'); de.append(pastille(ch.ecuries[p.ecurie].couleur), ' ');
+      if (p.casque) de.append(CASQUE.icone(p.casque, REGLAGES.CASQUE_ICONE));
+      de.append(nomPilote(p));
+      if (!m.lu) { const n = document.createElement('em'); n.textContent = texte('courrierNouveau'); de.append(' ', n); }
+      const t = document.createElement('span'); t.className = 'texte'; t.textContent = m.texte;
+      const b = document.createElement('button'); b.className = 'petit'; b.tabIndex = -1; b.textContent = texte('courrierRepondre'); b.dataset.i = m.i;
+      b.addEventListener('mousedown', e => e.preventDefault());
+      b.addEventListener('click', () => { if (reponseCourrier) reponseCourrier(m.i); });
+      li.append(de, t, b); ol.appendChild(li);
+    }
+  }
+  function preparerCourrier(ouvrir, repondre, retour) {
+    reponseCourrier = repondre;
+    $('boutonCourrier').addEventListener('mousedown', e => e.preventDefault());
+    $('boutonCourrier').addEventListener('click', ouvrir);
+    $('boutonCourrierRetour').addEventListener('mousedown', e => e.preventDefault());
+    $('boutonCourrierRetour').addEventListener('click', retour);
+  }
+
+  return { majPneus, majMessage, preparerGrille, annoncerMotifs, preparerResume, montrerBoutonResume, majResume, remplirInscription, lireInscription, montrerErreursTournoi, preparerInscription, remplirAToi, majCompteTournoi, preparerPauseTournoi, remplirMancheTournoi, preparerMancheTournoi, remplirFinTournoi, preparerFinTournoi, preparerAmis, remplirDeux, lireDeux, montrerErreursDeux, preparerDeux, remplirPodiumDeux, remplirRivalite, formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, remplirPaddock, remplirDiscussion, preparerDiscussion, remplirCourrier, preparerCourrier, preparerChampionnat, remplirQualif, preparerQualif,
     remplirDuel, avec, remplirUne, preparerUne, remplirArgent, remplirSolde, remplirGarage, preparerGarage,
     remplirSaison, remplirDuelSaison, remplirContrats, remplirRetraite, preparerSaison, retraiteEnAttente, remplirCeremonie, preparerCeremonie, remplirAlbum, preparerAlbum, remplirBilan, remplirTemple, preparerTemple, preparerReleve, remplirHeritier, lireHeritier, montrerErreurHeritier, remplirAileron, majAileron, preparerAileron, preparerPneusGarage, remplirArbre, preparerArbre, remplirCalendrier, preparerCalendrier,
     remplirSponsors, remplirRappelSponsor, preparerSponsors, remplirFiche, preparerFiche, remplirInterview, montrerEffetInterview, preparerInterview, remplirReputation,
