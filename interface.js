@@ -45,7 +45,7 @@ const INTERFACE = (function () {
   }
 
   function montrer(ecran) {
-    for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une', 'garage', 'saison', 'duelSaison', 'contrats', 'retraite', 'titre', 'amis', 'bravo', 'pilote', 'sponsors', 'fiche', 'interview', 'ceremonie', 'temple', 'heritier', 'calendrier', 'deuxReglages', 'resume', 'grille', 'tournoiInscription', 'tournoiAToi', 'tournoiPause', 'tournoiManche', 'tournoiFin', 'aileron', 'arbre']) $(id).classList.toggle('cache', id !== ecran);
+    for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une', 'garage', 'saison', 'duelSaison', 'contrats', 'retraite', 'titre', 'amis', 'bravo', 'pilote', 'sponsors', 'fiche', 'interview', 'ceremonie', 'temple', 'heritier', 'calendrier', 'deuxReglages', 'resume', 'grille', 'tournoiInscription', 'tournoiAToi', 'tournoiPause', 'tournoiManche', 'tournoiFin', 'aileron', 'arbre', 'discussion']) $(id).classList.toggle('cache', id !== ecran);
     // l'album des unes (Codeur 3) : la page de la une, avec la barre pour feuilleter
     if (ecran === 'album') $('une').classList.remove('cache');
     $('une').classList.toggle('album', ecran === 'album');
@@ -1490,7 +1490,56 @@ const INTERFACE = (function () {
     for (const g of ['Course', 'Equipe', 'Saison', 'Amis']) $('paddockGroupe' + g).textContent = texte('paddockGroupe' + g);
   }
 
-  return { majPneus, majMessage, preparerGrille, annoncerMotifs, preparerResume, montrerBoutonResume, majResume, remplirInscription, lireInscription, montrerErreursTournoi, preparerInscription, remplirAToi, majCompteTournoi, preparerPauseTournoi, remplirMancheTournoi, preparerMancheTournoi, remplirFinTournoi, preparerFinTournoi, preparerAmis, remplirDeux, lireDeux, montrerErreursDeux, preparerDeux, remplirPodiumDeux, remplirRivalite, formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, remplirPaddock, preparerChampionnat, remplirQualif, preparerQualif,
+  // --- les discussions (Codeur 3, étape 12b, discussion.js) : l'en-tête (son portrait, son nom, l'humeur de sa relation avec toi),
+  // le fil de la conversation (fil = [{ de: 'moi' | 'lui', texte }]), le composeur (une intention par bouton ; « bloquer » prend le
+  // pilote choisi dans la liste) et la saisie libre
+  let envoiDiscussion = null, compositionDiscussion = null;
+  function remplirDiscussion(ch, k, fil, intentions) {
+    const p = ch.pilotes[k], e = ch.ecuries[p.ecurie], m = p.memoire || { relation: 0 };
+    const co = CHAMPIONNAT.coequipierDe(ch);
+    $('discussionSurtitre').textContent = texte(co && co.id === k ? 'discussionCoequipier' : 'discussionRival');
+    $('discussionNom').textContent = nomPilote(p);
+    const humeur = m.relation >= REGLAGES.DISCUSSION_AMI ? 'bonne' : m.relation <= -REGLAGES.DISCUSSION_ENNEMI ? 'tendue' : 'neutre';
+    $('discussionHumeur').textContent = texte('discussionHumeur_' + humeur) + (p.rivalite ? ' · ' + texte('discussionRivalite') : '');
+    $('discussionHumeur').className = humeur;
+    let pc = $('discussionPortrait').querySelector('canvas');
+    if (!pc) { pc = document.createElement('canvas'); pc.width = 110; pc.height = 130; $('discussionPortrait').appendChild(pc); }
+    PHOTO.portrait(pc.getContext('2d'), pc.width, pc.height, { couleur: e.couleur, casque: p.casque });
+    const ol = $('discussionFil');
+    ol.textContent = '';
+    if (!fil.length) { const li = document.createElement('li'); li.className = 'aide'; li.textContent = texte('discussionAide'); ol.appendChild(li); }
+    for (const l of fil) { const li = document.createElement('li'); li.className = l.de; li.textContent = l.texte; ol.appendChild(li); }
+    ol.scrollTop = ol.scrollHeight;
+    // le composeur : les intentions proposées pour ce pilote, et la liste des pilotes pour « bloquer »
+    const zone = $('discussionComposeur'), cible = $('discussionCible');
+    for (const b of [...zone.querySelectorAll('button')]) b.remove();
+    for (const i of intentions) {
+      const b = document.createElement('button'); b.className = 'intention' + (['provoquer', 'menacer'].includes(i) ? ' danger' : ''); b.dataset.intention = i; b.tabIndex = -1;
+      b.textContent = texte('intention_' + i);
+      b.addEventListener('mousedown', ev => ev.preventDefault());
+      b.addEventListener('click', () => { if (compositionDiscussion) compositionDiscussion(i, Number(cible.value)); });
+      zone.insertBefore(b, cible);
+    }
+    cible.textContent = '';
+    for (const x of ch.pilotes) if (!x.humain && x.id !== k) { const o = document.createElement('option'); o.value = x.id; o.textContent = nomPilote(x); cible.appendChild(o); }
+    cible.title = texte('discussionCibleAide');
+    $('discussionTexte').placeholder = texte('discussionPlaceholder');
+    $('boutonDiscussionEnvoyer').textContent = texte('discussionEnvoyer');
+    $('boutonDiscussionRetour').textContent = texte('discussionRetour');
+  }
+  function preparerDiscussion(envoyer, composer, retour) {
+    envoiDiscussion = envoyer; compositionDiscussion = composer;
+    const envoi = () => { const t = $('discussionTexte').value; $('discussionTexte').value = ''; if (envoiDiscussion) envoiDiscussion(t); };
+    $('boutonDiscussionEnvoyer').addEventListener('mousedown', e => e.preventDefault());
+    $('boutonDiscussionEnvoyer').addEventListener('click', envoi);
+    $('discussionTexte').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); envoi(); } });
+    $('boutonDiscussionRetour').addEventListener('mousedown', e => e.preventDefault());
+    $('boutonDiscussionRetour').addEventListener('click', retour);
+    $('boutonFicheDiscuter').textContent = texte('ficheDiscuter');
+    $('boutonParlerCoequipier').textContent = texte('parlerCoequipier');
+  }
+
+  return { majPneus, majMessage, preparerGrille, annoncerMotifs, preparerResume, montrerBoutonResume, majResume, remplirInscription, lireInscription, montrerErreursTournoi, preparerInscription, remplirAToi, majCompteTournoi, preparerPauseTournoi, remplirMancheTournoi, preparerMancheTournoi, remplirFinTournoi, preparerFinTournoi, preparerAmis, remplirDeux, lireDeux, montrerErreursDeux, preparerDeux, remplirPodiumDeux, remplirRivalite, formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, remplirPaddock, remplirDiscussion, preparerDiscussion, preparerChampionnat, remplirQualif, preparerQualif,
     remplirDuel, avec, remplirUne, preparerUne, remplirArgent, remplirSolde, remplirGarage, preparerGarage,
     remplirSaison, remplirDuelSaison, remplirContrats, remplirRetraite, preparerSaison, retraiteEnAttente, remplirCeremonie, preparerCeremonie, remplirAlbum, preparerAlbum, remplirBilan, remplirTemple, preparerTemple, preparerReleve, remplirHeritier, lireHeritier, montrerErreurHeritier, remplirAileron, majAileron, preparerAileron, remplirArbre, preparerArbre, remplirCalendrier, preparerCalendrier,
     remplirSponsors, remplirRappelSponsor, preparerSponsors, remplirFiche, preparerFiche, remplirInterview, montrerEffetInterview, preparerInterview, remplirReputation,

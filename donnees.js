@@ -374,6 +374,22 @@ const REGLAGES = {
   PUBLIC_DOMICILE_PART: 0.4,
   PUBLIC_BANDEROLES: 6,         // les banderoles à domicile (« ALLEZ 27 ! » et le nom du joueur, une sur deux)
   GRAINE_PUBLIC: 14000,         // le public est tiré avec la graine du championnat + ce nombre + le numéro du circuit (une suite à part)
+  // les discussions avec les pilotes (discussion.js, parle.js, étape 12b) : de petits effets, tous plafonnés, jamais de triche
+  DISCUSSION_RELATION_MAX: 50,      // la relation d'un pilote avec le joueur va de −50 à +50 (0 au départ)…
+  DISCUSSION_PAS: 8,                // … et ne bouge jamais de plus de ça en un message
+  DISCUSSION_AMI: 20,               // au-dessus : il te parle comme à un ami ; …
+  DISCUSSION_ENNEMI: 15,            // … sous −15 : comme à quelqu'un qu'il n'aime pas
+  DISCUSSION_FOUGUEUX: 0.6,         // une agressivité (0 à 1) d'au moins ça : il riposte aux insultes et aux menaces (une rivalité)
+  DISCUSSION_RANCUNE: 0.8,          // une agressivité d'au moins ça : il refuse les excuses tout de suite après un contact
+  DISCUSSION_RIVALITE_COURSES: 2,   // une rivalité née d'une discussion dure ce nombre de courses (comme l'interview : INTERVIEW_RIVALITE_COURSES)
+  DISCUSSION_CONFIANCE: 2,          // insulter son coéquipier : la confiance de l'écurie baisse de ça au plus
+  DISCUSSION_SEUIL_PASSER: 0.6,     // « laisse-moi passer » : accepté si sa note (relation, prudence, coéquipier, promesse) atteint ça
+  DISCUSSION_POIDS_PROMESSE: 0.4,   // … et « je te rendrai la pareille » ajoute ça à la note
+  DISCUSSION_PAR_GP: 8,             // au plus ce nombre de messages à un même pilote par Grand Prix (ensuite il est occupé)
+  DISCUSSION_MEMOIRE: 12,           // il se souvient des 12 derniers messages (compact : l'acte, la saison, le Grand Prix)
+  DISCUSSION_MENACE_COURSES: 2,     // une menace sans suite pendant ce nombre de courses : du crédit perdu (il te le dira)…
+  DISCUSSION_CREDIT_MAX: 3,         // … au plus ce nombre de fois
+  GRAINE_DISCUSSION: 15000,         // les variantes des réponses : la graine du championnat + ce nombre (une suite à part, ALEATOIRE.suite)
   // les décors des 12 circuits (decors-officiels.js) : rien à moins de cette distance du bord de la voie des stands (m), sauf le bâtiment
   // des stands lui-même, qui reste derrière la voie ; le reste du décor est au-delà de la barrière (DISTANCE_BARRIERE)
   DECOR_MARGE_STANDS: 2,

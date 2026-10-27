@@ -191,7 +191,7 @@
   </div>
   <div class="boutons" id="paddockBoutons">
     <div class="paddockGroupe"><span class="paddockGroupeNom" id="paddockGroupeCourse"></span><div><button id="boutonCourseSuivante" tabindex="-1"></button></div></div>
-    <div class="paddockGroupe"><span class="paddockGroupeNom" id="paddockGroupeEquipe"></span><div><button id="boutonGarage" tabindex="-1"></button><button id="boutonSponsors" tabindex="-1"></button><button id="boutonMonCasque" class="petit" tabindex="-1"></button></div></div>
+    <div class="paddockGroupe"><span class="paddockGroupeNom" id="paddockGroupeEquipe"></span><div><button id="boutonGarage" tabindex="-1"></button><button id="boutonSponsors" tabindex="-1"></button><button id="boutonMonCasque" class="petit" tabindex="-1"></button><button id="boutonParlerCoequipier" class="petit" tabindex="-1"></button></div></div>
     <div class="paddockGroupe"><span class="paddockGroupeNom" id="paddockGroupeSaison"></span><div><button id="boutonCalendrier" class="petit" tabindex="-1"></button><button id="boutonAlbum" class="petit" tabindex="-1"></button><button id="boutonArbre" class="petit" tabindex="-1"></button></div></div>
     <div class="paddockGroupe"><span class="paddockGroupeNom" id="paddockGroupeAmis"></span><div><button id="boutonAmisPaddock" class="petit" tabindex="-1"></button></div></div>
   </div>
@@ -232,7 +232,17 @@
       <p id="ficheFamille"></p>
     </div>
   </div>
-  <div class="boutons"><button id="boutonFicheRetour" tabindex="-1"></button></div>
+  <div class="boutons"><button id="boutonFicheDiscuter" tabindex="-1"></button><button id="boutonFicheRetour" tabindex="-1"></button></div>
+</section>
+<!-- les discussions (discussion.js, parle.js, Codeur 3, étape 12b) : écrire librement ou composer au clic ; il répond depuis son raisonnement -->
+<section id="discussion" class="ecran cache">
+  <div id="discussionCarte" class="tvCarte">
+    <div id="discussionEntete"><div id="discussionPortrait"></div><div><p id="discussionSurtitre" class="tvSurtitre"></p><h1 id="discussionNom"></h1><p id="discussionHumeur"></p></div></div>
+    <ol id="discussionFil"></ol>
+    <div id="discussionComposeur"><select id="discussionCible" tabindex="-1"></select></div>
+    <div id="discussionSaisie"><input id="discussionTexte" type="text" maxlength="140" autocomplete="off" spellcheck="false"><button id="boutonDiscussionEnvoyer" tabindex="-1"></button></div>
+  </div>
+  <div class="boutons"><button id="boutonDiscussionRetour" tabindex="-1"></button></div>
 </section>
 
 <!-- ?championnat=1 : la fin de saison (saisons.js, Codeur 3) : le classement final et le champion, le duel de la saison, les contrats, la retraite -->
@@ -431,7 +441,7 @@
 <script src="saisons.js"></script>
 <script src="sponsors.js"></script>
 <script src="fiche.js"></script>
-<script src="interview.js"></script><script src="carriere.js"></script>
+<script src="interview.js"></script><script src="parle.js"></script><script src="discussion.js"></script><script src="carriere.js"></script>
 <script src="sdk.js"></script>
 <script src="pneus-donnees.js"></script>
 <script src="pneus.js"></script>

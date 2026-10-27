@@ -957,12 +957,51 @@ function montrerFiche(k) {
   if (!p || p.humain) return;
   INTERFACE.remplirFiche(JEU.championnat, FICHE.fiche(JEU.championnat, k));
   JEU.ecran = 'fiche';
+  JEU.ficheK = k;   // (le bouton « Discuter » de la fiche)
   INTERFACE.montrer('fiche');
 }
 
 function quitterFiche() {
   if (JEU.ecran !== 'fiche') return;
   montrerChampionnat(JEU.gagne);
+}
+
+// --- les discussions (Codeur 3, étape 12b, discussion.js) : depuis la fiche d'un rival (« Discuter ») ou le paddock (le coéquipier) ;
+// jamais pendant une course (DISCUSSION.peutDiscuter). Chaque message est sauvegardé (sa mémoire est dans le championnat)
+function montrerDiscussion(k, depuis) {
+  if (!DISCUSSION.peutDiscuter(JEU.ecran)) return;
+  const p = JEU.championnat.pilotes[k];
+  if (!p || p.humain) return;
+  JEU.discussion = { k, depuis: depuis || JEU.ecran, fil: [] };
+  JEU.ecran = 'discussion';
+  remplirDiscussion();
+  INTERFACE.montrer('discussion');
+  setTimeout(() => { const t = document.getElementById('discussionTexte'); if (t && JEU.ecran === 'discussion') t.focus(); }, 0);
+}
+function remplirDiscussion() {
+  const d = JEU.discussion;
+  INTERFACE.remplirDiscussion(JEU.championnat, d.k, d.fil, DISCUSSION.intentions(JEU.championnat, d.k));
+}
+function envoyerDiscussion(txt) {
+  const d = JEU.discussion;
+  if (JEU.ecran !== 'discussion' || !d || !String(txt || '').trim()) return;
+  const r = DISCUSSION.dire(JEU.championnat, d.k, String(txt).slice(0, 140), 'discussion');
+  if (!r) return;
+  d.fil.push({ de: 'moi', texte: String(txt).slice(0, 140) }, { de: 'lui', texte: r.texte });
+  JEU.derniereReponse = r;   // (les tests lisent le raisonnement de la dernière réponse)
+  SAUVEGARDE.ecrireChampionnat(JEU.championnat);
+  remplirDiscussion();
+}
+function composerDiscussion(intention, cible) {
+  if (JEU.ecran !== 'discussion' || !JEU.discussion) return;
+  envoyerDiscussion(DISCUSSION.composer(JEU.championnat, intention, { cible }));
+}
+function quitterDiscussion() {
+  if (JEU.ecran !== 'discussion') return;
+  const d = JEU.discussion;
+  JEU.discussion = null;
+  montrerChampionnat(JEU.gagne);
+  if (d && d.depuis === 'fiche') montrerFiche(d.k);
 }
 
 function prendreRetraite() {
@@ -1568,6 +1607,7 @@ function demarrerJeu() {
   document.addEventListener('contextmenu', e => e.preventDefault());
   document.addEventListener('wheel', e => e.preventDefault(), { passive: false });
   window.addEventListener('keydown', e => {
+    if (e.target && e.target.tagName === 'INPUT' && e.target.type === 'text') return;   // (la discussion : on tape des espaces et on déplace le curseur)
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'PageUp', 'PageDown', 'Home', 'End'].includes(e.key)) e.preventDefault();
   });
   // la langue de la page et son titre viennent de textes.js (le <title> de index.html est le même texte, pour le chargement)
@@ -1675,6 +1715,10 @@ function demarrerJeu() {
     INTERFACE.preparerSaison(suiteClassementSaison, suiteDuelSaison, signerContrat, prendreRetraite);
     INTERFACE.preparerSponsors(montrerSponsors, choisirSponsor, quitterSponsors);
     INTERFACE.preparerFiche(montrerFiche, quitterFiche);
+    // les discussions (Codeur 3) : « Discuter » sur la fiche d'un rival, « 💬 Coéquipier » au paddock
+    INTERFACE.preparerDiscussion(envoyerDiscussion, composerDiscussion, quitterDiscussion);
+    document.getElementById('boutonFicheDiscuter').addEventListener('click', () => { if (JEU.ecran === 'fiche') montrerDiscussion(JEU.ficheK, 'fiche'); });
+    document.getElementById('boutonParlerCoequipier').addEventListener('click', () => { const c = CHAMPIONNAT.coequipierDe(JEU.championnat); if (JEU.ecran === 'championnat' && c) montrerDiscussion(c.id, 'championnat'); });
     INTERFACE.preparerInterview(repondreInterview, finirInterview);
   } else if (JEU.decouverte) INTERFACE.preparerResultats(montrerBravo, () => {}, () => {});   // la découverte : après le podium, « Bravo ! »
   else if (JEU.tournoi) INTERFACE.preparerResultats(montrerFinTournoi, () => {}, () => {});   // le tournoi : du podium au classement final
@@ -1727,7 +1771,7 @@ function demarrerJeu() {
   // pas de focus sur le bouton : Espace ne doit pas le cliquer
   boutonSon.addEventListener('mousedown', e => e.preventDefault());
   boutonSon.addEventListener('click', () => { SON.basculer(); majBoutonSon(); });
-  window.addEventListener('keydown', e => { if (e.code === 'KeyM' && !e.repeat) { SON.basculer(); majBoutonSon(); } });
+  window.addEventListener('keydown', e => { if (e.code === 'KeyM' && !e.repeat && !(e.target && e.target.tagName === 'INPUT' && e.target.type === 'text')) { SON.basculer(); majBoutonSon(); } });
   if (PARAMETRES.get('reglages') === '1') PANNEAU_REGLAGES.creer(cle => { if (cle === 'HALO_EPAISSEUR') VOITURE3D.majHalo(JEU.modele); });
 
   BOUCLE.surPhysique(pasJoueur);

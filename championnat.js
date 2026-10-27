@@ -69,6 +69,7 @@ const CHAMPIONNAT = (function () {
     if (typeof FICHE !== 'undefined') FICHE.suivre(ch, lignes);   // les duels de chaque rival contre le joueur (fiche.js)
     ch.resultats.push({ grandPrix: ch.prochain + 1, ordre: lignes.map(l => l.k), duel });
     if (typeof CARRIERE !== 'undefined') CARRIERE.suivre(ch, lignes);   // la carrière (carriere.js) : le meilleur résultat à domicile
+    if (typeof DISCUSSION !== 'undefined') DISCUSSION.apresGrandPrix(ch);   // les discussions (discussion.js) : les menaces sans suite, les dispositions passées
     ch.prochain++;
     return ch;
   }
