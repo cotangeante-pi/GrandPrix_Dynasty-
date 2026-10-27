@@ -89,6 +89,8 @@ Note du Chef session-5b (2026-10-23) : les lignes 18 à 19b ne s'additionnaient 
 
 ## À essayer par le propriétaire
 
+- **Les décors des 12 circuits** (tour 32) : chaque circuit a son lieu (Monoco : port, bateaux, façades ; Spaa : sapins et brume ; Singapura : de nuit). **Mesure les images par seconde** sur deux ou trois circuits (`?debug=1&course=3&ia=20&circuit=monoco`) : c'est le critère de l'étape 10 (60 avec 20 voitures).
+- **La nouvelle interface** (tour 32, étape 11 commencée) : le style télé sur tous les écrans, le paddock en écran d'accueil. Captures avant / après dans rapports/captures-tour32/. Dire : ça a l'air pro ? (c'est le critère de l'étape 11).
 - **Les 12 vrais circuits** (tour 32, branchés sans attendre ton accord : dis-moi s'il faut en revoir un) : en championnat, la saison passe par les 12 ; ou directement `index.html?course=5&ia=9&joueur=1&circuit=monoco` (ou spaa, suzuko, monzo…). Ton Grand Prix à domicile est marqué au calendrier.
 - **Le premier décor** (circuit d'essai, tour 31) : `index.html?debug=1&course=3&ia=20&circuit=test` : tribunes, public, stands, arbres, panneaux. **Mesure les images par seconde** (c'est le critère de l'étape 10 : 60 avec 20 voitures) et dis si le style te plaît (formes simples faites par le code).
 - **L'affichage de course** (tour 31) : la minicarte en haut à gauche, les messages de course sous le chrono, l'état des pneus avec ?pneus=1. Dire : la minicarte est bien placée ? trop petite ?
@@ -170,6 +172,7 @@ Note du Chef session-5b (2026-10-23) : les lignes 18 à 19b ne s'additionnaient 
 
 ## Retours du propriétaire
 
+- 2026-10-27 ~16h45 : « oui fais la météo quand un aura fini sa part ; si tout est fini améliore les voitures ia et fais qu'on puisse discuter avec eux, des discussions comme dans gestion de pays (à mettre dans claude.md) ; ps je ne pourrais pas faire de tests avant longtemps » → **décisions du propriétaire** écrites dans CLAUDE.md (« La météo », « Les discussions avec les pilotes et les écuries », étapes 12 et 12b). Ordre de travail : la météo au premier Codeur libre ; puis, quand tout le reste est fini, les IA améliorées (Chef : leur rythme rapproché de celui du propriétaire, 45 s sur le test contre 49 s, et le duel) et les discussions. Le propriétaire ne fera pas d'essais avant longtemps : on avance sans lui (règle du 2026-10-27).
 - 2026-10-24 ~18h10 : « dans le mode 2 joueurs sépare l'écran de droite à gauche et pas de haut en bas » → **décision du propriétaire** : écran partagé gauche/droite (J1 à gauche, J2 à droite), écrite dans CLAUDE.md ; ordre au Codeur 2.
 - 2026-10-24 ~14h35 : « ce serait bien si on finit une course et qu'on skippe la tv, toute la course se met en x100 de façon à ce que le temps que tu arrives sur le podium tout le monde a fini » → **décision du propriétaire** écrite dans CLAUDE.md (« La course ») ; ordre donné au Codeur 2, avant le tournoi chrono.
 - 2026-10-23 ~18h50 : « c'est normal que si on bloque une formule 1 tout un trafic à la queue leu leu attend ? ils sont censés doubler » → **décision du propriétaire** : une voiture bloquée ou très lente se contourne, partout, sans attendre une zone d'attaque (écrit dans CLAUDE.md, « Les IA des adversaires »). Cause : la règle de la file (IA_FILE_DISTANCE 30 m, IA_FILE_COTE 6 m) et l'attaque seulement avant un virage précédé de 150 m de droite. Ordre 3 du tour 22 au Codeur 1. Ça tranche aussi la question « contournement sans attaque » : voulu.
@@ -203,7 +206,6 @@ Note du Chef session-5b (2026-10-23) : les lignes 18 à 19b ne s'additionnaient 
 
 - La liste des 12 circuits.
 - La liste exacte des améliorations du garage.
-- La météo à l'étape 12 : oui ou non.
 
 ## Journal des sessions
 
