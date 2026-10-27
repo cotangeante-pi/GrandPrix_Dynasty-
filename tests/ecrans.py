@@ -50,7 +50,11 @@ PAGES = [
     ('index.html?championnat=1&tours=1&robot=1&gp=12', 960, 600, None),    # les écrans de fin de saison en petit (Grand Prix 12 fabriqué), la retraite
     ('index.html?championnat=1&tours=1&robot=1&lang=en', 1280, 720, None),
     ('index.html?championnat=1&tours=1&robot=1&gp=12&lang=en', 960, 600, None),
-    ('index.html?championnat=1&tours=1&robot=1&gp=12&lang=en', 1280, 720, None),   # … en 1280×720 (le thème télé, tour 32) : aucun débordement aux deux tailles
+    ('index.html?championnat=1&tours=1&robot=1&gp=12&lang=en', 1280, 720, None),
+    ('index.html?championnat=1&tours=1&robot=1&gp=3&test=discussion', 1280, 720, None),   # les discussions (tour 33, Codeur 3) : fiche → Discuter, saisie, composeur, coéquipier ; capture discussion.png
+    ('index.html?championnat=1&tours=1&robot=1&gp=3&test=discussion', 960, 600, None),
+    ('index.html?championnat=1&tours=1&robot=1&gp=3&lang=en&test=discussion', 960, 600, None),
+    ('index.html?championnat=1&tours=1&robot=1&gp=3&lang=en&test=discussion', 1280, 720, None),   # … en 1280×720 (le thème télé, tour 32) : aucun débordement aux deux tailles
     # l'audit anglais, suite (tour 31) : la découverte et ses aides, Entre amis, l'écran partagé et ses réglages, la création du pilote ; le
     # tournoi ; la course à deux ; le résumé vidéo ; les stands ; la consigne d'équipe ; le volant (?lang=en, 960×600, mots témoins, rien hors de l'écran)
     ('index.html?robot=1&tours=1&lang=en&test=audit-decouverte', 960, 600, None),
@@ -1721,6 +1725,70 @@ AUDIT_ETAT = '''re => { const id = JEU.ecran === "album" ? "une" : JEU.ecran, el
   const hors = [...el.querySelectorAll("*")].filter(e => e.childElementCount === 0 && e.textContent.trim() && getComputedStyle(e).display !== "none" && e.getClientRects().length)
     .filter(e => { const r = e.getBoundingClientRect(); return r.right > innerWidth + 1 || r.bottom > innerHeight + 1 || r.left < -1 || r.top < -1; }).map(e => e.textContent.trim().slice(0, 40));
   return { id, francais: m ? texte.slice(Math.max(0, m.index - 30), m.index + 40) : null, hors, defile: [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth] }; }'''
+# les discussions (tour 33, Codeur 3, discussion.js) : depuis la fiche d'un rival (« Discuter ») et depuis le paddock (le coéquipier) ;
+# la saisie libre (les espaces se tapent, Entrée envoie), le composeur au clic, la réponse du pilote dans le fil, la mémoire sauvegardée ;
+# rien hors de l'écran ; captures discussion.png (et -960, -en)
+DISCUSSION_ETAT = """() => { const el = document.getElementById("discussion"), fil = [...document.querySelectorAll("#discussionFil li")].map(l => [l.className, l.textContent]);
+  const hors = [...el.querySelectorAll("*")].filter(e => e.childElementCount === 0 && e.textContent.trim() && getComputedStyle(e).display !== "none" && e.getClientRects().length && !e.closest("#discussionFil"))
+    .filter(e => { const r = e.getBoundingClientRect(); return r.right > innerWidth + 1 || r.bottom > innerHeight + 1 || r.left < -1 || r.top < -1; }).map(e => e.textContent.trim().slice(0, 30));
+  const carte = document.getElementById("discussionCarte").getBoundingClientRect(), retour = document.getElementById("boutonDiscussionRetour").getBoundingClientRect();
+  return { ecran: JEU.ecran, k: JEU.discussion && JEU.discussion.k, fil, intentions: [...document.querySelectorAll("#discussionComposeur button.intention")].map(b => b.dataset.intention),
+    nom: document.getElementById("discussionNom").textContent, hors, dedans: carte.top >= 0 && retour.bottom <= innerHeight + 1 && carte.right <= innerWidth + 1,
+    focus: document.activeElement && document.activeElement.id, defile: [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth] }; }"""
+def discussion_ecran(pg, titre, l, h, page):
+    en = 'lang=en' in page
+    t(f'{titre} : le paddock', attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', None, 60000))
+    pg.wait_for_timeout(300)
+    k = pg.evaluate('() => { const co = CHAMPIONNAT.coequipierDe(JEU.championnat); return JEU.championnat.pilotes.find(p => !p.humain && p.id !== co.id).id; }')
+    pg.click(f'#championnatPilotes li[data-k="{k}"] .nom')
+    attendre(pg, '() => JEU.ecran === "fiche"', None, 5000)
+    pg.click('#boutonFicheDiscuter')
+    t(f'{titre} : « Discuter » sur la fiche d’un rival ouvre la discussion, la saisie prête à écrire', attendre(pg, f'() => JEU.ecran === "discussion" && JEU.discussion.k === {k} && document.activeElement && document.activeElement.id === "discussionTexte"', None, 5000),
+      str(pg.evaluate(DISCUSSION_ETAT)))
+    # la saisie libre au clavier : les espaces se tapent (le jeu ne les prend plus), Entrée envoie
+    pg.click('#discussionTexte'); pg.keyboard.type('slt, t es trop nul' if not en else 'hey, you are so slow')
+    v = pg.evaluate('() => document.getElementById("discussionTexte").value')
+    t(f'{titre} : on tape un message avec des espaces (« {v} »)', ' ' in v and len(v) > 10, v)
+    pg.keyboard.press('Enter'); pg.wait_for_timeout(200)
+    d = pg.evaluate(DISCUSSION_ETAT); r = pg.evaluate('() => JEU.derniereReponse && { acte: JEU.derniereReponse.analyse.acte, texte: JEU.derniereReponse.texte, reaction: JEU.derniereReponse.reaction }')
+    t(f'{titre} : Entrée envoie ; le pilote répond depuis son raisonnement (l’insulte lue, sa réaction dans le fil)', r and r['acte'] == 'INSULTE' and len(d['fil']) == 2 and d['fil'][0][0] == 'moi' and d['fil'][1] == ['lui', r['texte']]
+      and pg.evaluate('() => document.getElementById("discussionTexte").value') == '', str(d['fil']) + ' ' + str(r))
+    # le composeur au clic : « S'excuser » repart dans la même lecture
+    pg.click('#discussionComposeur button[data-intention="excuser"]'); pg.wait_for_timeout(200)
+    d = pg.evaluate(DISCUSSION_ETAT); r = pg.evaluate('() => JEU.derniereReponse.analyse.acte')
+    t(f'{titre} : le composeur au clic (« S’excuser ») : la phrase et la réponse s’ajoutent au fil, lues comme une excuse', len(d['fil']) == 4 and r == 'EXCUSE', str(d['fil']) + ' ' + str(r))
+    t(f'{titre} : la mémoire du pilote est sauvegardée (2 messages)', pg.evaluate(f'() => {{ const c = SAUVEGARDE.championnat(); return !!c && c.pilotes[{k}].memoire && c.pilotes[{k}].memoire.dits.length === 2; }}'))
+    t(f'{titre} : la discussion tient dans l’écran ({l}×{h}), sans défilement, le duel absent avec un rival', d['dedans'] and not d['hors'] and pas_de_defilement(d['defile']) and 'duel' not in d['intentions'] and len(d['intentions']) >= 12, str(d))
+    pg.wait_for_timeout(800); pg.screenshot(path=os.path.join(CAPTURES, 'discussion' + ('-en' if en else '') + ('' if l == 1280 else '-' + str(l)) + '.png'))
+    pg.click('#boutonDiscussionRetour')
+    t(f'{titre} : « Retour » ramène à la fiche, puis au paddock', attendre(pg, '() => JEU.ecran === "fiche"', None, 3000) and (pg.click('#boutonFicheRetour') or True) and attendre(pg, '() => JEU.ecran === "championnat"', None, 3000))
+    # le coéquipier, depuis le paddock : le duel est proposé
+    pg.click('#boutonParlerCoequipier')
+    d = pg.evaluate(DISCUSSION_ETAT)
+    t(f'{titre} : « 💬 Coéquipier » au paddock ouvre la discussion avec ton coéquipier, le duel proposé', d['ecran'] == 'discussion' and d['k'] == pg.evaluate('() => CHAMPIONNAT.coequipierDe(JEU.championnat).id') and 'duel' in d['intentions'], str(d))
+    pg.click('#discussionComposeur button[data-intention="duel"]'); pg.wait_for_timeout(200)
+    t(f'{titre} : il répond sur votre duel', pg.evaluate('() => JEU.derniereReponse.reaction.startsWith("duel_")'), pg.evaluate('() => JEU.derniereReponse.reaction'))
+    pg.click('#boutonDiscussionRetour')
+    t(f'{titre} : retour au paddock', attendre(pg, '() => JEU.ecran === "championnat"', None, 3000))
+    # le courrier : un message du pilote touché à la dernière course ; « ✉ Courrier (1) » au paddock, l'écran, « Répondre » ouvre la discussion
+    avant = pg.evaluate('() => COURRIER_PILOTES.nonLus(JEU.championnat)')   # (les Grands Prix fabriqués par ?gp=3 ont déjà fait écrire des pilotes)
+    pg.evaluate(f'''() => {{ const ch = JEU.championnat, c = COURRIER_PILOTES.completer(ch); c.messages.push({{ k: {k}, sujet: 'contact', cle: 'courrier_contact_calme', saison: ch.saison, gp: ch.resultats.length, lu: false }}); montrerChampionnat(null); }}''')
+    b = pg.evaluate('() => document.getElementById("boutonCourrier").textContent')
+    t(f'{titre} : au paddock, « ✉ Courrier ({avant + 1}) » annonce les messages non lus', b.endswith(f'({avant + 1})') and pg.evaluate('() => document.getElementById("boutonCourrier").classList.contains("nouveau")'), b)
+    pg.click('#boutonCourrier')
+    c = pg.evaluate('''() => { const li = [...document.querySelectorAll("#courrierListe li")]; const el = document.getElementById("courrier");
+      const hors = [...el.querySelectorAll("*")].filter(e => e.childElementCount === 0 && e.textContent.trim() && getComputedStyle(e).display !== "none" && e.getClientRects().length)
+        .filter(e => { const r = e.getBoundingClientRect(); return r.right > innerWidth + 1 || r.bottom > innerHeight + 1 || r.left < -1 || r.top < -1; }).map(e => e.textContent.trim().slice(0, 30));
+      return { ecran: JEU.ecran, n: li.length, nouveau: li.filter(x => x.classList.contains("nouveau")).length, texte: li[0] && li[0].querySelector(".texte").textContent, hors }; }''')
+    t(f'{titre} : l’écran du courrier : le plus récent en haut, marqué nouveau, rien hors de l’écran', c['ecran'] == 'courrier' and c['n'] >= 1 and c['nouveau'] == avant + 1 and c['texte'] and not c['hors'], str(c))
+    pg.wait_for_timeout(800); pg.screenshot(path=os.path.join(CAPTURES, 'courrier' + ('-en' if en else '') + ('' if l == 1280 else '-' + str(l)) + '.png'))
+    pg.click('#courrierListe li button')
+    d = pg.evaluate(DISCUSSION_ETAT)
+    t(f'{titre} : « Répondre » ouvre la discussion avec son auteur, son message en tête du fil ; il est lu', d['ecran'] == 'discussion' and d['k'] == k and d['fil'][0] == ['lui', c['texte']]
+      and pg.evaluate('() => COURRIER_PILOTES.nonLus(JEU.championnat)') == avant, str(d['fil']))
+    pg.click('#boutonDiscussionRetour')
+    t(f'{titre} : « Retour » ramène au courrier, puis au paddock', attendre(pg, '() => JEU.ecran === "courrier"', None, 3000) and (pg.click('#boutonCourrierRetour') or True) and attendre(pg, '() => JEU.ecran === "championnat"', None, 3000))
+
 # le thème télé (tour 32, Codeur 3, style.css) : l'écran affiché a le voile en dégradé, son titre la police des titres (sauf la une,
 # qui a sa police de journal), et son arrivée (une animation CSS) dure moins de 250 ms ; la cérémonie, sans voile, laisse voir le podium 3D
 THEME_ETAT = """() => { const id = JEU.ecran === "album" ? "une" : JEU.ecran, el = document.getElementById(id); if (!el) return { id, ok: false };
@@ -2626,6 +2694,8 @@ with sync_playwright() as p:
                 tuto_lecon(pg, titre, l, h, page)
             elif 'test=audit' in page:
                 audit_autres(pg, titre, page, l, h)
+            elif 'test=discussion' in page:
+                discussion_ecran(pg, titre, l, h, page)
             elif 'gp=12' in page and 'lang=en' in page:
                 audit_en(pg, titre, l)
             elif 'gp=12' in page:
