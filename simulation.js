@@ -41,6 +41,13 @@ function voituresVues(v, voitures, circuit) {
   return vues;
 }
 
+// la précision du niveau (NIVEAUX[…].precision, tour 33) : ce qui manque à x pour arriver à 1 (le rythme, le freinage du style) est
+// multiplié par elle ; l'ordre entre pilotes est gardé. Sans précision (le niveau normal), x tel quel, au bit près
+function precis(x) {
+  const p = niveau().precision;
+  return p === undefined ? x : 1 - (1 - x) * p;
+}
+
 // une course entre nb IA : chacune a sa voiture, sa course (course.js), son rythme et son pilote (sa façon de
 // piloter), tirés avec la graine. carte : celle du circuit ; la page la passe à null tant qu'elle se calcule en
 // fond (les IA attendent sur la grille), puis appelle donnerCarte.
@@ -57,7 +64,7 @@ function creerCourseIA(circuit, nb, nbTours, graine, carte = carteDe(circuit), a
     return {
       numero: k + 1, v, course: creerCourse(circuit, nbTours), humain,
       depart: place.s - circuit.longueur,   // m : sa place sur la grille, derrière la ligne (pour savoir qui est devant)
-      rythme: humain ? null : Math.min(1, R.IA_RYTHME[0] + hasard() * (R.IA_RYTHME[1] - R.IA_RYTHME[0]) + niveau().rythme),
+      rythme: humain ? null : Math.min(1, precis(R.IA_RYTHME[0] + hasard() * (R.IA_RYTHME[1] - R.IA_RYTHME[0])) + niveau().rythme),
       pilote: null, herbe: 0, herbeErreur: 0, chocsVus: 0, chocsErreur: new Set(), arrivee: null, place: null,
       passages: [],   // le temps de course (e.temps) où il a passé chaque CLASSEMENT_PAS m depuis la grille (classementCourse)
     };
@@ -78,7 +85,20 @@ function donnerCarte(e, carte) {
   ALEATOIRE.semer(e.graine + R.GRAINE_STYLES);
   e.pilotes.forEach((p, k) => {
     if (p.humain) return;
-    p.pilote = creerPilote(carte, p.rythme, tirerStyle(carte, e.nbTours + 2), R.IA_PERIODE_DECISION * k / e.pilotes.length);
+    const style = tirerStyle(carte, e.nbTours + 2), n = niveau();
+    // le niveau de difficulté change aussi sa façon de piloter (tour 33, ordre B : la voiture et la physique restent les mêmes) ; au niveau
+    // normal, rien (× 1, + 0, les réglages globaux) : les courses d'avant au bit près. Un pilote de haut niveau utilise plus la largeur de
+    // la piste (corde × n.corde, marge au bord + n.marge, jamais plus près que IA_MARGE_BORD_MIN), va plus près de la limite d'adhérence
+    // (n.limite, noterLigne) et ne se laisse pas piéger au freinage par la ligne qui reste à l'extérieur (n.penaliteFrein)
+    if (n.corde !== undefined) style.corde *= n.corde;
+    if (n.precision !== undefined) {   // … et plus précis : son freinage plus près du sien, son point de corde et ses variations d'un tour à l'autre plus petits
+      style.frein = precis(style.frein); style.apex *= n.precision;
+      for (let i = 0; i < style.variations.length; i++) style.variations[i] *= n.precision;
+    }
+    if (n.marge !== undefined) style.margeBord = Math.max(R.IA_MARGE_BORD_MIN, style.margeBord + n.marge);
+    p.pilote = creerPilote(carte, p.rythme, style, R.IA_PERIODE_DECISION * k / e.pilotes.length);
+    if (n.limite !== undefined) p.pilote.limite = n.limite;
+    if (n.penaliteFrein !== undefined) p.pilote.penaliteFrein = n.penaliteFrein;
     p.pilote.grille = p.v.piste.d;   // il part dans sa file
     p.pilote.rivalite = !!(e.rivalites && e.rivalites[k]);   // le rival du joueur (l'interview d'après course)
   });

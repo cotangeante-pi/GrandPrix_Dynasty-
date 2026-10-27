@@ -469,6 +469,9 @@ function noterLigne(pilote, v, voisines, s0, t, type) {
   for (let i = 0; i < h; i++) { k[i] = k[h]; k[N - 1 - i] = k[N - 1 - h]; }
   // (aileron, Codeur 3 : sa vitesse de pointe avec la traînée de son aileron ; ÷ 1 au cran du milieu)
   const pointe = pilote.carte.pointe / racineCubique(v.aileronTrainee || 1), rythme = rythmeDuTour(pilote), dehors = c.largeur / 2 + R.MARGE_HERBE, bord = c.largeur / 2 - R.IA_MARGE_BORD_MIN;
+  // (la limite qu'il ose, pilote.limite : le niveau de difficulté, NIVEAUX[…].limite ; la voiture accroche un peu plus que vitesseVirage
+  // ne le dit, l'arrière accroche plus que l'avant : un pilote de haut niveau va la chercher ; × 1 au niveau normal, au bit près)
+  const lim = pilote.limite || 1;
   let penalite = 0, danger = false;   // danger : la ligne passe trop près du bord, dans l'herbe ou sur une voiture
   for (let i = 0; i < N; i++) {
     // (ses pneus usés : il connaît son adhérence réelle, v.adherence ; × 1 sans pneus, le même nombre au bit près)
@@ -480,7 +483,7 @@ function noterLigne(pilote, v, voisines, s0, t, type) {
     // arrivait trop vite et sortait large, dans l'herbe ; tracés officiels : Monoco, Suzuko, Montréol, Yas Marino)
     let kv = Math.abs(k[i]);
     if (i > 0 && i < N - 1 && Math.abs(valeurEn(c, c.courbure, s0 + i * pas)) > 1 / R.IA_RAYON_SERRE) kv = Math.max(kv, Math.abs(courbureTroisPoints(x[i - 1], z[i - 1], x[i], z[i], x[i + 1], z[i + 1])));
-    vb[i] = Math.min(pointe, rythme * Math.min(vitesseVirage(kv, mu) * R.IA_MARGE_VIRAGE, vitesseBraquage(kv)));
+    vb[i] = Math.min(pointe, rythme * Math.min(vitesseVirage(kv, mu) * R.IA_MARGE_VIRAGE * lim, vitesseBraquage(kv)));
     if (type === 'stands') { vb[i] = Math.min(vb[i], t.plafond[i]); continue; }   // (la limite de la voie et l'arrêt ; ni bord ni herbe)
     if (Math.abs(e[i]) > bord) { penalite += R.IA_PENALITE_BORD * (Math.abs(e[i]) - bord) * pas; danger = true; }
     // pendant un dépassement (il attaque, ou une voiture est à côté de lui), passer dans l'herbe coûte très cher
@@ -489,7 +492,7 @@ function noterLigne(pilote, v, voisines, s0, t, type) {
   // au bout de la ligne, la carte dit à quelle vitesse il faut arriver (les virages d'après)
   // (la carte suppose des pneus neufs : avec moins d'adhérence, la vitesse des virages d'après baisse comme √adhérence ; √1 = 1 au bit près)
   const fin = valeurEn(c, pilote.carte.trajectoire.vitesse, s0 + (N - 1) * pas) * Math.sqrt(v.adherence || 1) * Math.sqrt(v.aileronAdherence || 1) * Math.sqrt(v.adhMeteo || 1);   // (météo : √1 = 1 au sec)   // (aileron, Codeur 3 : √1 = 1)
-  vb[N - 1] = Math.min(vb[N - 1], fin < pointe * 0.999 ? rythme * fin : fin);
+  vb[N - 1] = Math.min(vb[N - 1], fin < pointe * 0.999 ? Math.min(pointe, rythme * fin * lim) : fin);
   // son freinage : la marge habituelle, son style et son rythme (un pilote plus rapide freine plus près de la limite) ;
   // en attaque, il ose le freinage complet. Son rythme moyen, pas celui du tour : un freinage qui change d'un tour à
   // l'autre surprend celui qui le suit (tour 16 : 9 chocs au lieu de 6 sur les 30 courses)
@@ -499,7 +502,7 @@ function noterLigne(pilote, v, voisines, s0, t, type) {
     vb[i] = Math.min(vb[i], Math.sqrt(vb[i + 1] * vb[i + 1] + 2 * frein * freinagePossible(vb[i + 1]) * ds));
   }
   const u = Math.max(0, v.u);
-  if (u > vb[0]) penalite += R.IA_PENALITE_FREIN * (u - vb[0]);
+  if (u > vb[0]) penalite += R.IA_PENALITE_FREIN * (pilote.penaliteFrein === undefined ? 1 : pilote.penaliteFrein) * (u - vb[0]);   // (le niveau : pilote.penaliteFrein)
   // le temps, en partant de sa vitesse : il accélère au plus comme le moteur, freine au plus comme les freins
   let temps = 0, vitesse = u;
   const touchees = new Set();
