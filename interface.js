@@ -101,7 +101,7 @@ const INTERFACE = (function () {
     }
     if (!c.arrets || c.etat !== 'course') return null;
     const v = n => secondes(n.toFixed(1));
-    if (c.arretEnCours) return texte('standEnCours').replace('{s}', v(Math.max(0, c.arretEnCours.reste)));
+    if (c.arretEnCours) return texte('standEnCours').replace('{s}', v(Math.max(0, c.arretEnCours.reste))) + (c.pneusProchain ? ' · ' + texte('standPneus').replace('{p}', texte('pneu_' + c.pneusProchain)) : '');
     const dernier = c.arrets[c.arrets.length - 1];
     if (dernier && c.temps - c.arretFin < 3) return texte('standFait').replace('{s}', v(dernier.duree));
     if (c.arretConseille && !c.arrets.length && (c.temps < 6 || c.tours.length + 2 >= c.arretConseille))
@@ -641,6 +641,7 @@ const INTERFACE = (function () {
       li.appendChild(b);
       liste.appendChild(li);
     }
+    remplirPneusGarage(ch);
   }
 
   // --- la fin de saison (Codeur 3, saisons.js) ---
@@ -1114,6 +1115,28 @@ const INTERFACE = (function () {
     $('aileronCurseur').addEventListener('input', () => changer(Number($('aileronCurseur').value)));
   }
 
+  // --- les pneus du départ, au garage (la météo, Codeur 1) : la prévision du prochain Grand Prix (meteo3d.js, Codeur 2) et quatre choix :
+  // « l'équipe choisit » (METEO.choisir au départ, par défaut), slicks, intermédiaires, pluie ; ch.pneusDepart (null = l'équipe)
+  let choixPneusGarage = null;
+  function remplirPneusGarage(ch) {
+    if (typeof METEO === 'undefined') return;
+    let bloc = $('garagePneus');
+    if (!bloc) { bloc = document.createElement('div'); bloc.id = 'garagePneus'; $('garageListe').after(bloc); }
+    bloc.textContent = '';
+    const p = typeof METEO3D !== 'undefined' ? METEO3D.textePrevision(METEO3D.prevision(ch, ch.prochain)) : null;
+    const t = document.createElement('span'); t.className = 'titre'; t.textContent = texte('garagePneus') + (p ? ' — ' + p : ''); bloc.appendChild(t);
+    for (const type of [null].concat(METEO.TYPES)) {
+      const b = document.createElement('button');
+      b.tabIndex = -1; b.dataset.pneu = type || 'equipe';
+      b.textContent = type ? texte('pneu_' + type) : texte('garagePneusEquipe');
+      b.classList.toggle('choisi', (ch.pneusDepart || null) === type);
+      b.addEventListener('mousedown', e => e.preventDefault());
+      b.addEventListener('click', () => { if (choixPneusGarage) choixPneusGarage(type); });
+      bloc.appendChild(b);
+    }
+  }
+  function preparerPneusGarage(f) { choixPneusGarage = f; }
+
   function preparerGarage(acheter, retour) {
     achatGarage = acheter;
     $('boutonGarageRetour').addEventListener('mousedown', e => e.preventDefault());
@@ -1494,7 +1517,7 @@ const INTERFACE = (function () {
 
   return { majPneus, majMessage, preparerGrille, annoncerMotifs, preparerResume, montrerBoutonResume, majResume, remplirInscription, lireInscription, montrerErreursTournoi, preparerInscription, remplirAToi, majCompteTournoi, preparerPauseTournoi, remplirMancheTournoi, preparerMancheTournoi, remplirFinTournoi, preparerFinTournoi, preparerAmis, remplirDeux, lireDeux, montrerErreursDeux, preparerDeux, remplirPodiumDeux, remplirRivalite, formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, remplirPaddock, preparerChampionnat, remplirQualif, preparerQualif,
     remplirDuel, avec, remplirUne, preparerUne, remplirArgent, remplirSolde, remplirGarage, preparerGarage,
-    remplirSaison, remplirDuelSaison, remplirContrats, remplirRetraite, preparerSaison, retraiteEnAttente, remplirCeremonie, preparerCeremonie, remplirAlbum, preparerAlbum, remplirBilan, remplirTemple, preparerTemple, preparerReleve, remplirHeritier, lireHeritier, montrerErreurHeritier, remplirAileron, majAileron, preparerAileron, remplirArbre, preparerArbre, remplirCalendrier, preparerCalendrier,
+    remplirSaison, remplirDuelSaison, remplirContrats, remplirRetraite, preparerSaison, retraiteEnAttente, remplirCeremonie, preparerCeremonie, remplirAlbum, preparerAlbum, remplirBilan, remplirTemple, preparerTemple, preparerReleve, remplirHeritier, lireHeritier, montrerErreurHeritier, remplirAileron, majAileron, preparerAileron, preparerPneusGarage, remplirArbre, preparerArbre, remplirCalendrier, preparerCalendrier,
     remplirSponsors, remplirRappelSponsor, preparerSponsors, remplirFiche, preparerFiche, remplirInterview, montrerEffetInterview, preparerInterview, remplirReputation,
     majEcartFantome, preparerFantome, majBoutonsFantome, majDepart, majDeux, preparerTitre, remplirBravo, majAides, remplirPilote, lirePilote, montrerErreursPilote, preparerPilote, nomCircuit, remplirCasque, lireCasque, modePilote, preparerCasque };
 })();

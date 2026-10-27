@@ -93,7 +93,7 @@ const METEO = (function () {
     const m = course && course.meteo !== undefined ? course.meteo : course;
     if (!m || !m.plan) return { pluie: 0, eau: 0, ciel: 0 };
     const base = CIEL[m.plan.prevision.type] || 0;
-    return { pluie: m.pluie, eau: m.eau, ciel: m.pluie > 0 ? Math.max(base, 0.8 + 0.2 * m.pluie) : base };
+    return { pluie: m.pluie, eau: m.eau, eauTrajectoire: eauEn(m, true), ciel: m.pluie > 0 ? Math.max(base, 0.8 + 0.2 * m.pluie) : base };   // (eauTrajectoire : l'eau sur la ligne idéale, plus sèche après la pluie)
   }
 
   // la graine météo du Grand Prix gp (0 = le premier) d'un championnat : la même pour la prévision au paddock et pour la course

@@ -704,6 +704,9 @@ t('météo, le contrat avec le dessin : METEO.etat(course) = { pluie, eau, ciel 
       const q=METEO.plan(ch.calendrier[g].circuit,METEO.graineGP(ch,g),999).prevision;v(p.type===q.type&&p.risque===q.pourcent,'même graine que la course');}
     L.push('  (prévisions de la saison 1, graine 5 : '+[...Array(12).keys()].map(g=>ch.calendrier[g].circuit+' '+METEO.prevision(ch,g).type+' '+METEO.prevision(ch,g).risque+' %').join(', ')+')');}
   finally{REGLAGES.CALENDRIER_CIRCUITS=avant;}});
+t('météo : pendant son arrêt, le joueur choisit ses pneus avec ← → (un appui = un cran, tenir ne défile pas), et son choix remplace celui de l’équipe jusqu’à l’arrêt', ()=>{
+  const v_={typePneus:'slick'},suite=[];for(const d of [1,1,0,1,0,-1,0,-1,0,-1])  {choisirPneusArret(v_,d);suite.push(v_.pneusProchain);}
+  v(suite.join()==='inter,inter,inter,pluie,pluie,inter,inter,slick,slick,pluie'&&v_.choixPneus===true,suite.join());});
 t('météo : au sec, la course est identique au bit près à la course sans météo (10 IA, 3 tours)', ()=>{
   const course=avec=>{const e=creerCourseIA(TQ,10,3,2,CARTES_T.technique);if(avec)poserMeteo(e,SEC);for(let k=0;k<300*120&&e.arrives<10;k++)pasCourseIA(e,DT);return e.pilotes.map(p_=>p_.arrivee+':'+p_.v.x+':'+p_.v.contactsVoiture).join('|');};
   v(course(true)===course(false));});
