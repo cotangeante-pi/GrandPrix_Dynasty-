@@ -30,6 +30,7 @@ const DECOR = (function () {
 
   // les postes des caméras télé : la même règle que camera.js (TELE_ESPACEMENT, de part et d'autre, TELE_RECUL derrière la barrière)
   function postesTele(c) {
+    if (typeof REGIE !== 'undefined') return REGIE.postes(c);   // (la réalisation télé : les vraies caméras)
     const n = Math.max(1, Math.round(c.longueur / R.TELE_ESPACEMENT)), postes = [];
     for (let k = 0; k < n; k++) {
       const i = Math.round(k * c.nb / n) % c.nb, d = (k % 2 ? 1 : -1) * (c.largeur / 2 + R.DISTANCE_BARRIERE + R.TELE_RECUL);
@@ -407,6 +408,12 @@ const DECOR = (function () {
       // un mât d'éclairage (la nuit) : le mât, la rampe ; la tête allumée est un autre maillage (sans ombre ni lumière, toujours claire)
       mat: fabriquer((p, c) => { boite(p, c, -0.25, 0.25, 0, R.PROJECTEUR_HAUTEUR, -0.25, 0.25, C.mur); boite(p, c, -2.2, 2.2, R.PROJECTEUR_HAUTEUR - 0.2, R.PROJECTEUR_HAUTEUR + 0.2, -0.6, 0.2, C.mur); }),
       lampe: fabriquer((p, c) => { boite(p, c, -2, 2, R.PROJECTEUR_HAUTEUR + 0.2, R.PROJECTEUR_HAUTEUR + 1.1, -0.9, -0.5, 0xffffff); }),
+      // un poste de caméra de télé, 1 m de haut (mis à la hauteur du poste par son instance) : le mât, la plateforme, la caméra
+      camera: fabriquer((p, c) => {
+        boite(p, c, -0.12, 0.12, 0, 0.96, -0.12, 0.12, C.mur);
+        boite(p, c, -0.6, 0.6, 0.96, 0.975, -0.6, 0.6, C.mur);
+        boite(p, c, -0.25, 0.25, 0.975, 1.03, -0.4, 0.4, 0x1c1f24);
+      }),
       pneus: fabriquer((p, c) => {
         const r = R.PNEUS_PILE_RAYON, h = R.PNEUS_PILE_HAUTEUR;
         for (let k = 0; k < R.PNEUS_PILE_NOMBRE; k++) prisme(p, c, 6, r, r, k * h, (k + 1) * h, k % 2 ? 0xffffff : 0xdddddd, k === R.PNEUS_PILE_NOMBRE - 1);
@@ -493,6 +500,11 @@ const DECOR = (function () {
     const lampes = instances(F.lampe, objets.projecteur, 'lampe');
     lampes.material = new THREE.MeshBasicMaterial({ color: C.lampe, fog: false });
     fixes.push(lampes);
+    // les caméras de la télé (regie.js) : un mât et sa caméra à chaque poste, tous en un appel de dessin
+    if (typeof REGIE !== 'undefined') {
+      const cams = REGIE.postes(c).map(q => ({ x: q.x, y: 0, z: q.z, ax: 1, az: 0, bx: 0, bz: 1, e: 1, ey: q.y }));
+      fixes.push(instances(F.camera, cams, 'cameras-tele'));
+    }
     const banderoles = construireBanderoles(objets.banderole);
     if (banderoles) fixes.push(banderoles);
     if (lieu) for (const m of ciel(c, lieu)) fixes.push(m);

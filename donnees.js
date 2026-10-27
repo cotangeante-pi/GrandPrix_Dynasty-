@@ -822,7 +822,7 @@ const REGLAGES = {
   VOITURES_LOINTAINES_MAX: 32,
   VOITURES_DETAILLEES_MAX: 8,   // … et au plus ces voitures détaillées (les plus proches), les autres en forme simple
   // le pont de Suzuko (le seul croisement, scene3d.js et decor.js ; l'affichage seulement, la physique reste plate)
-  PONT_ACTIF: false,            // pas encore fini ni essayé (tour 32 : la route, le talus, le tablier, la voiture et la caméra qui montent) : coupé
+  PONT_ACTIF: true,             // le pont de Suzuko (tour 34) : la route, le talus, le tablier, la voiture et la caméra qui montent ; faux : tout à plat
   PONT_HAUTEUR: 7.5, PONT_PLAT: 40, PONT_RAMPE: 200, PONT_OUVERTURE: 34, PONT_EPAISSEUR: 1.2,   // m
   COULEUR_PONT: 0xb8bcc2, COULEUR_TALUS: 0x5d7a45, COULEUR_TERRE_PLEIN: 0x5f8a42,
   LIEU_CHAMP: 50,               // tests/lieu.html : le champ de vision de la vue d'un décor (degrés)
@@ -848,7 +848,20 @@ const REGLAGES = {
   TELE_ESPACEMENT: 250,         // une caméra télé tous les 250 m le long de la piste
   TELE_RECUL: 8,                // à cette distance derrière la barrière (m)
   TELE_HAUTEUR: 7,
-  TELE_CADRAGE: 9,              // la voiture et ce qui l'entoure, en mètres, remplissent l'image
+  TELE_CADRAGE: 9,
+  // la réalisation télé (regie.js, CLAUDE.md « La réalisation télé ») : de vrais postes au bord de la piste, la régie, l'hélicoptère
+  TELE_POSTE_HAUTEUR: 12, TELE_POSTE_RECUL: 6,   // m : la caméra sur son mât, derrière la barrière
+  TELE_POSTE_ECART_MIN: 70,     // m : deux postes au moins à ça l'un de l'autre
+  TELE_SORTIE_STANDS: 40,       // m après la sortie des stands
+  TELE_DROITE_MIN: 300, TELE_DROITE_PAS: 260,   // m : des postes le long des lignes droites plus longues que ça, tous les tant
+  TELE_PORTEE: 330, TELE_PORTEE_BONNE: 240,     // m : un poste ne filme pas plus loin ; au-delà de la seconde, on change de plan
+  TELE_PLAN_MIN: 2.5,           // s : un plan dure au moins ça
+  TELE_PREVISION_PAS: 0.5,      // s : la régie vérifie que le poste voit la voiture tout au long du plan, à ce pas
+  TELE_VISEE: 0.6,              // m : la hauteur visée (la voiture)
+  TELE_CHAMP: [4, 50],          // degrés : le zoom le plus serré et le plus large
+  TELE_CASE: 60,                // m : la grille des obstacles (les plus grands que la moitié sont à part)
+  TELE_HELICO_HAUTEUR: [80, 150], TELE_HELICO_RECUL: 120, TELE_HELICO_COTE: 60, TELE_HELICO_DOUCEUR: 0.8, TELE_HELICO_CADRAGE: 40,
+  TELE_HELICO_DROITE: 700,      // m : sur une ligne droite plus longue, l'hélicoptère              // la voiture et ce qui l'entoure, en mètres, remplissent l'image
 
   PIXEL_RATIO_MAX: 1.5,         // au plus 1,5 pixel dessiné par pixel CSS (un écran Retina en demande 2)
 
