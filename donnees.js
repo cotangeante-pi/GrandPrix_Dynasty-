@@ -133,7 +133,8 @@ const REGLAGES = {
   // le championnat (étape 6, championnat.js) : la partie calcul seulement, les écrans viendront après
   POINTS: [25, 18, 15, 12, 10, 8, 6, 4, 2, 1],   // les points des 10 premiers d'un Grand Prix
   NB_GRANDS_PRIX: 12,
-  CALENDRIER_CIRCUITS: ['test', 'technique'],   // en alternance, en attendant les 12 vrais circuits (étape 10)
+  // les 12 Grands Prix d'une saison, dans l'ordre (les tracés de circuits-officiels-a.js et -b.js ; tour 32)
+  CALENDRIER_CIRCUITS: ['bahrayn', 'melbourn', 'suzuko', 'montreol', 'monoco', 'barcelana', 'silverstoun', 'spaa', 'monzo', 'singapura', 'interlagas', 'yasmarino'],
   GRAINE_CHAMPIONNAT: 5000,     // les caractères des 19 pilotes IA sont tirés avec la graine du championnat + ce nombre
   ECURIE_JOUEUR: 9,             // le joueur est le 2e pilote de cette écurie (une des plus faibles)
   NOM_JOUEUR: null,             // null : le nom par défaut, texte('nomJoueur') (« You » / « Toi ») ; la création du pilote (étape 6) le remplira

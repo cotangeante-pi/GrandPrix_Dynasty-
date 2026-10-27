@@ -226,4 +226,8 @@ function positionSurPiste(circuit, px, pz, indiceDepart) {
   return { s, d: dMeilleur, surPiste: Math.abs(dMeilleur) <= circuit.largeur / 2, secteur: secteurDe(circuit, s), indice: i, nx: nxM, nz: nzM, stands: !!(zs && zs.dansVoie) };
 }
 
+// les 12 tracés officiels (circuits-officiels-a.js et -b.js, s'ils sont chargés avant ce fichier) rejoignent les circuits d'essai
+// dans CIRCUITS : le calendrier (CALENDRIER_CIRCUITS), ?circuit=<nom> et le cache des cartes les trouvent par leur nom
+if (typeof CIRCUITS_OFFICIELS_A !== 'undefined') Object.assign(CIRCUITS, CIRCUITS_OFFICIELS_A);
+if (typeof CIRCUITS_OFFICIELS_B !== 'undefined') Object.assign(CIRCUITS, CIRCUITS_OFFICIELS_B);
 const CIRCUIT_TEST = construireCircuit(CIRCUITS.test);
