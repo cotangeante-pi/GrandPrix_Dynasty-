@@ -354,6 +354,24 @@ Idée du propriétaire, 2026-10-27 (« tutoriel »), écrite par le Chef sous ce
 - **Code** : la liste des aides et leurs conditions en calcul pur (`aides.js`), ce qui a été vu dans la sauvegarde unique (à la racine : ça survit à une nouvelle carrière) ; l'affichage dans `interface.js` ; tous les textes dans `textes.js`, en anglais et en français.
 - **Tests** : chaque aide apparaît une fois, au bon moment, puis plus jamais ; jamais pendant un virage ; « Revoir les aides » les remet ; le réglage les coupe ; aucune aide ne recouvre la piste devant la voiture (le test en pixels existant) ; une ancienne sauvegarde se charge (aucune aide vue).
 
+## Le tutoriel guidé
+
+Décidé par le propriétaire le 2026-10-27 (« fais le tutoriel »), en plus des aides au premier usage. **Proposé, jamais imposé** : le premier lancement reste « en piste en 10 secondes ».
+
+- **Où on le lance** : un bouton « Apprendre à piloter » sur l'écran titre (petit, à côté de « Entre amis »), au paddock (rangée Course) et dans le menu pause ; après la course de découverte, l'écran « Bravo ! » le propose aussi (« Prêt pour ta carrière ? » / « D'abord apprendre »).
+- **Ce que c'est** : une suite de **leçons courtes**, sur le circuit d'essai, seul en piste ou avec quelques IA lentes, chacune avec un but clair, une consigne à l'écran et une réussite mesurée par le moteur :
+  1. accélérer, tourner, freiner (finir un tour sans sortir) ;
+  2. la trajectoire et le point de freinage (un virage marqué par des plots : passer sous un temps donné) ;
+  3. le départ parfait (garder l'aiguille dans le vert, réagir aux feux) ;
+  4. l'aspiration et le dépassement (passer une IA lente) ;
+  5. l'arrêt au stand (entrer à 80 km/h, s'arrêter dans la zone) ;
+  6. la pluie et les pneus (une averse, changer de pneus) ;
+  7. le garage, l'aileron et le paddock (une visite guidée des écrans, sans course).
+  Chaque leçon peut se recommencer et se passer ; une étoile par leçon réussie ; la liste des leçons et leur réussite sont gardées à la racine de la sauvegarde (elles survivent à une nouvelle carrière).
+- **La règle d'or tient** : la même physique et les mêmes IA que le jeu ; une leçon ne rend rien plus facile en course.
+- **Code** : les leçons (but, mise en place, réussite) en calcul pur (`tutoriel.js`), qui ne font qu'utiliser le moteur existant ; l'affichage (consignes, plots, réussite) dans `interface.js` et la 3D existante ; tous les textes dans `textes.js`, en anglais et en français.
+- **Tests** : chaque leçon se réussit avec le robot d'essai (ou un pilote scripté) et échoue si l'on ne fait rien ; on peut la passer ; la réussite est gardée ; le premier lancement mène toujours à la grille de la découverte en un clic (le tutoriel n'ajoute aucun écran) ; console vide ; 960 et 1280 sans défilement.
+
 ## Le commentateur
 
 Idée du propriétaire, 2026-10-27 (« commentateur »). **À faire en tout dernier**, après tout le reste de ce fichier (le propriétaire : « sauf commentateur qui sera fait à la fin fin fin »). **But** : la « vraie retransmission de F1 » de « L'interface », avec une voix qui raconte la course. **En texte**, dans le bandeau télé des messages de course (`messages.js`), pas en voix enregistrée (aucun fichier de son) ni en synthèse vocale (elle change trop d'un ordinateur à l'autre).
@@ -683,6 +701,7 @@ Avant tout ça, ne jamais écrire « fini ». Pour une grosse étape (2, 4, 10, 
 | 11 | **La grande passe sur l'interface** : style retransmission télé, animations, transitions, paddock, garage | Le propriétaire trouve que ça a l'air pro |
 | 12 | **La météo** (décidée par le propriétaire le 2026-10-27, voir « La météo ») : prévision, pluie qui change en course, piste mouillée, pneus slicks / intermédiaires / pluie, choix au stand, les IA avec la même information | la pluie change la stratégie |
 | 12b | **Les discussions** (décidées par le propriétaire le 2026-10-27, voir « Les discussions avec les pilotes et les écuries ») : parler aux rivaux, au coéquipier et aux patrons, en saisie libre ou au clic, des réponses depuis leur raisonnement, des messages qu'ils écrivent d'eux-mêmes | on discute avec un rival et sa réponse change ce qui suit |
+| 11d | **Le tutoriel guidé** (le propriétaire, 2026-10-27, voir « Le tutoriel guidé ») : 7 leçons courtes, proposées et jamais imposées | un nouveau joueur apprend chaque système par une leçon qu'il réussit, et le premier lancement reste à 10 secondes |
 | 11c | **La réalisation télé** (le propriétaire, 2026-10-27, voir « La réalisation télé ») : de vraies caméras dans le décor, l'hélicoptère, une régie qui ne coupe que sur une caméra qui voit la voiture | sur chaque circuit, la vue télé ne montre jamais un mur ni un immeuble à la place de la voiture |
 | 11b | **Les aides au premier usage et le commentateur** (idées du propriétaire du 2026-10-27, voir les deux sections) | chaque système a son aide la première fois, et une course est commentée sans jamais gêner le pilotage |
 | 13 | **Le résumé vidéo de la course** : les positions de toutes les voitures sont enregistrées pendant la course (même code que le fantôme du meilleur tour) ; on rejoue les moments forts (départ, dépassements, sorties de piste, arrivée) avec les caméras télé | après une course, on regarde son résumé |
