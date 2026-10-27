@@ -89,6 +89,10 @@ const TEXTES = {
     pays_nz: 'New Zealand', pays_sg: 'Singapore', pays_ae: 'United Arab Emirates', pays_bh: 'Bahrain', pays_za: 'South Africa', pays_in: 'India', pays_ma: 'Morocco',
     // les banderoles du public au Grand Prix à domicile (decor-public.js)
     banderoleNumero: 'GO {numero}!', banderoleNom: 'GO {nom}!',
+    // le paddock, l'écran d'accueil (tour 32)
+    paddockProchain: 'Next Grand Prix', paddockFini: 'Season over', paddockDomicile: 'Your home Grand Prix', paddockPasClasse: 'Championship: no race yet',
+    paddockPlace: 'Championship: P{p} · {n} pts', paddockLeader: 'leading', paddockEcart: '{n} pts behind the leader',
+    paddockGroupeCourse: 'Race', paddockGroupeEquipe: 'Team', paddockGroupeSaison: 'Season', paddockGroupeAmis: 'Play together',
     // le duel contre le coéquipier (Codeur 3)
     duelTitre: 'Teammate duel', duelScore: 'You {a} – {b} {nom}', duelDetail: '(qualifying {qa}–{qb}, races {ca}–{cb})',
     duelTour: 'Your teammate: ▲ ahead of you, ▼ behind you',
@@ -336,6 +340,10 @@ const TEXTES = {
     pays_nz: 'Nouvelle-Zélande', pays_sg: 'Singapour', pays_ae: 'Émirats arabes unis', pays_bh: 'Bahreïn', pays_za: 'Afrique du Sud', pays_in: 'Inde', pays_ma: 'Maroc',
     // les banderoles du public au Grand Prix à domicile (decor-public.js)
     banderoleNumero: 'ALLEZ {numero} !', banderoleNom: 'ALLEZ {nom} !',
+    // le paddock, l'écran d'accueil (tour 32)
+    paddockProchain: 'Prochain Grand Prix', paddockFini: 'Saison terminée', paddockDomicile: 'Ton Grand Prix à domicile', paddockPasClasse: 'Championnat : pas encore de course',
+    paddockPlace: 'Championnat : P{p} · {n} pts', paddockLeader: 'en tête', paddockEcart: 'à {n} pts du leader',
+    paddockGroupeCourse: 'Course', paddockGroupeEquipe: 'Équipe', paddockGroupeSaison: 'Saison', paddockGroupeAmis: 'À plusieurs',
     // le duel contre le coéquipier (Codeur 3)
     duelTitre: 'Duel contre ton coéquipier', duelScore: 'Toi {a} – {b} {nom}', duelDetail: '(qualifs {qa}–{qb}, courses {ca}–{cb})',
     duelTour: 'Ton coéquipier : ▲ devant toi, ▼ derrière toi',

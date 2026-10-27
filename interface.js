@@ -294,6 +294,7 @@ const INTERFACE = (function () {
     for (const l of lignes) {
       const tr = document.createElement('tr');
       if (l.moi) tr.className = 'moi';
+      tr.style.setProperty('--i', corps.children.length);   // (le thème télé : les lignes arrivent une à une, style.css)
       const numero = document.createElement('span');
       numero.append(pastille(l.couleur), ' ');
       if (l.casque) numero.append(CASQUE.icone(l.casque, REGLAGES.CASQUE_ICONE));
@@ -569,12 +570,15 @@ const INTERFACE = (function () {
       const spNom = sp('nom', nom);
       if (casque) spNom.prepend(CASQUE.icone(casque, REGLAGES.CASQUE_ICONE));   // l'icône du casque (casque.js)
       li.append(sp('place', ch.resultats.length ? String(place) : '–'), pastille(couleur), spNom, sp('points', points + ' ' + texte('pts')));   // (avant la première course : pas de place)
+      // (le thème télé : après une course, la ligne arrive à son rang et ses points montent jusqu'à --tv-fin, style.css ; le texte ne change pas)
+      li.style.setProperty('--i', place - 1); li.lastChild.style.setProperty('--tv-fin', points); li.lastChild.dataset.suffixe = ' ' + texte('pts');
       // un rival : sa fiche au clic (fiche.js, Codeur 3)
       if (k !== undefined && !moi) { li.dataset.k = k; li.classList.add('rival'); li.addEventListener('click', () => { if (ouvertureFiche) ouvertureFiche(k); }); }
       return li;
     };
     const pilotes = $('championnatPilotes'), ecuries = $('championnatEcuries');
     pilotes.textContent = ''; ecuries.textContent = '';
+    $('championnatTableaux').classList.toggle('tvMonte', gagne !== null);   // les points qui montent, seulement au retour d'une course
     CHAMPIONNAT.classementPilotes(ch).forEach((x, i) => { const p = ch.pilotes[x.k]; pilotes.appendChild(ligne(i + 1, ch.ecuries[p.ecurie].couleur, nomPilote(p), x.points, p.humain, x.k, p.casque)); });
     CHAMPIONNAT.classementEcuries(ch).forEach((x, i) => { const e = ch.ecuries[x.id]; ecuries.appendChild(ligne(i + 1, e.couleur, nomEcurie(e), x.points, e.id === REGLAGES.ECURIE_JOUEUR)); });
   }
@@ -1464,7 +1468,29 @@ const INTERFACE = (function () {
     minuterieAnnonce = setTimeout(() => el.classList.add('cache'), REGLAGES.ANNONCE_MOTIF_DUREE * 1000);
   }
 
-  return { majPneus, majMessage, preparerGrille, annoncerMotifs, preparerResume, montrerBoutonResume, majResume, remplirInscription, lireInscription, montrerErreursTournoi, preparerInscription, remplirAToi, majCompteTournoi, preparerPauseTournoi, remplirMancheTournoi, preparerMancheTournoi, remplirFinTournoi, preparerFinTournoi, preparerAmis, remplirDeux, lireDeux, montrerErreursDeux, preparerDeux, remplirPodiumDeux, remplirRivalite, formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, preparerChampionnat, remplirQualif, preparerQualif,
+  // --- le paddock, l'écran d'accueil (tour 32, Codeur 3) : le prochain Grand Prix en grand (surtitre, carte 2D du circuit,
+  // domicile), ta place au championnat et l'écart au leader, les noms des groupes de boutons. circuit : le circuit construit
+  // du prochain Grand Prix (null : pas de carte) ; nom : son nom affiché (remplirChampionnat garde le titre et les classements)
+  function remplirPaddock(ch, circuit, nom) {
+    const fini = ch.prochain >= ch.calendrier.length, cal = CHAMPIONNAT.calendrierSaison(ch), gp = fini ? null : cal[ch.prochain];
+    $('paddockSurtitre').textContent = texte(fini ? 'paddockFini' : 'paddockProchain');
+    $('paddockDomicile').classList.toggle('cache', !(gp && gp.domicile));
+    $('paddockDomicileTexte').textContent = texte('paddockDomicile');
+    const cv = $('paddockCarte');
+    cv.classList.toggle('cache', !circuit || fini);
+    if (circuit && !fini) {
+      const km = (Math.round(circuit.longueur / 10) / 100).toFixed(2).replace('.', texte('virgule'));
+      CARTE2D.dessiner(cv.getContext('2d'), circuit, cv.width, cv.height, nom, avec(texte('aileronLongueur'), { km }));
+    }
+    // ta place : « P7 · 74 pts · à 109 pts du leader » (« en tête » si tu l'es) ; avant la première course, rien de classé
+    const cl = CHAMPIONNAT.classementPilotes(ch), j = ch.pilotes.findIndex(p => p.humain), i = cl.findIndex(x => x.k === j);
+    const moi = cl[i], ecart = moi ? cl[0].points - moi.points : 0;
+    $('paddockPlace').textContent = !ch.resultats.length || !moi ? texte('paddockPasClasse')
+      : avec(texte('paddockPlace'), { p: i + 1, n: moi.points }) + ' · ' + (i === 0 ? texte('paddockLeader') : elider(avec(texte('paddockEcart'), { n: ecart })));
+    for (const g of ['Course', 'Equipe', 'Saison', 'Amis']) $('paddockGroupe' + g).textContent = texte('paddockGroupe' + g);
+  }
+
+  return { majPneus, majMessage, preparerGrille, annoncerMotifs, preparerResume, montrerBoutonResume, majResume, remplirInscription, lireInscription, montrerErreursTournoi, preparerInscription, remplirAToi, majCompteTournoi, preparerPauseTournoi, remplirMancheTournoi, preparerMancheTournoi, remplirFinTournoi, preparerFinTournoi, preparerAmis, remplirDeux, lireDeux, montrerErreursDeux, preparerDeux, remplirPodiumDeux, remplirRivalite, formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, remplirPaddock, preparerChampionnat, remplirQualif, preparerQualif,
     remplirDuel, avec, remplirUne, preparerUne, remplirArgent, remplirSolde, remplirGarage, preparerGarage,
     remplirSaison, remplirDuelSaison, remplirContrats, remplirRetraite, preparerSaison, retraiteEnAttente, remplirCeremonie, preparerCeremonie, remplirAlbum, preparerAlbum, remplirBilan, remplirTemple, preparerTemple, preparerReleve, remplirHeritier, lireHeritier, montrerErreurHeritier, remplirAileron, majAileron, preparerAileron, remplirArbre, preparerArbre, remplirCalendrier, preparerCalendrier,
     remplirSponsors, remplirRappelSponsor, preparerSponsors, remplirFiche, preparerFiche, remplirInterview, montrerEffetInterview, preparerInterview, remplirReputation,

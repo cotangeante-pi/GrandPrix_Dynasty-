@@ -50,6 +50,7 @@ PAGES = [
     ('index.html?championnat=1&tours=1&robot=1&gp=12', 960, 600, None),    # les écrans de fin de saison en petit (Grand Prix 12 fabriqué), la retraite
     ('index.html?championnat=1&tours=1&robot=1&lang=en', 1280, 720, None),
     ('index.html?championnat=1&tours=1&robot=1&gp=12&lang=en', 960, 600, None),
+    ('index.html?championnat=1&tours=1&robot=1&gp=12&lang=en', 1280, 720, None),   # … en 1280×720 (le thème télé, tour 32) : aucun débordement aux deux tailles
     # l'audit anglais, suite (tour 31) : la découverte et ses aides, Entre amis, l'écran partagé et ses réglages, la création du pilote ; le
     # tournoi ; la course à deux ; le résumé vidéo ; les stands ; la consigne d'équipe ; le volant (?lang=en, 960×600, mots témoins, rien hors de l'écran)
     ('index.html?robot=1&tours=1&lang=en&test=audit-decouverte', 960, 600, None),
@@ -685,7 +686,7 @@ def consigne_ecran(pg, titre, suivre):
 
 # ?lang=en : la page en anglais : lang et title remplis au démarrage, puis le classement du championnat, le podium et les
 # résultats sans un mot français (les 11 textes en dur de l'audit) ; le robot joue le Grand Prix 1 (un tour)
-MOTS_FR = r'Écurie|Pilote|\bToi\b|Tu marques|Course suivante|Continuer|Pénalit|Résultat|n°|Solde|Gains'
+MOTS_FR = r'(?i)Écurie|Pilote|\bToi\b|Tu marques|Course suivante|Continuer|Pénalit|Résultat|n°|Solde|Gains'   # (sans tenir compte des capitales : les titres du thème télé sont en capitales à l'écran, innerText les rend ainsi)
 def championnat_en(pg, titre):
     t(f'{titre} : <html lang> et le titre de la page viennent de textes.js (en)', pg.evaluate('() => document.documentElement.lang === "en" && LANGUE === "en" && document.title === texte("nomDuJeu")'))
     ecran = pg.evaluate('''() => ({ titre: document.getElementById("championnatTitre").textContent, h2: [...document.querySelectorAll("#championnatTableaux h2")].map(e => e.textContent),
@@ -711,7 +712,7 @@ def championnat_en(pg, titre):
     pg.click('#boutonChangerResultats')
     attendre(pg, '() => JEU.ecran === "interview"', None, 10000)
     t(f'{titre} : après les résultats, l’interview en anglais (« Post-race interview », « No comment »), pas un mot français', not re.search(MOTS_FR, pg.evaluate('() => document.getElementById("interview").innerText'))
-      and 'Post-race interview' in pg.evaluate('() => document.getElementById("interview").innerText') and 'No comment' in pg.evaluate('() => document.getElementById("interview").innerText'), pg.evaluate('() => document.getElementById("interview").innerText')[:300])
+      and 'post-race interview' in pg.evaluate('() => document.getElementById("interview").innerText').lower() and 'no comment' in pg.evaluate('() => document.getElementById("interview").innerText').lower(), pg.evaluate('() => document.getElementById("interview").innerText')[:300])
     interview_ecran(pg, titre, 'calme', gp='en anglais : ')
     t(f'{titre} : après les résultats, la une du journal en anglais, pas un mot français', attendre(pg, '() => JEU.ecran === "une"') and not re.search(MOTS_FR, pg.evaluate('() => document.getElementById("une").innerText')),
       pg.evaluate('() => document.getElementById("une").innerText')[:300])
@@ -1550,13 +1551,71 @@ AUDIT_ETAT = '''re => { const id = JEU.ecran === "album" ? "une" : JEU.ecran, el
   const hors = [...el.querySelectorAll("*")].filter(e => e.childElementCount === 0 && e.textContent.trim() && getComputedStyle(e).display !== "none" && e.getClientRects().length)
     .filter(e => { const r = e.getBoundingClientRect(); return r.right > innerWidth + 1 || r.bottom > innerHeight + 1 || r.left < -1 || r.top < -1; }).map(e => e.textContent.trim().slice(0, 40));
   return { id, francais: m ? texte.slice(Math.max(0, m.index - 30), m.index + 40) : null, hors, defile: [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth] }; }'''
+# le thème télé (tour 32, Codeur 3, style.css) : l'écran affiché a le voile en dégradé, son titre la police des titres (sauf la une,
+# qui a sa police de journal), et son arrivée (une animation CSS) dure moins de 250 ms ; la cérémonie, sans voile, laisse voir le podium 3D
+THEME_ETAT = """() => { const id = JEU.ecran === "album" ? "une" : JEU.ecran, el = document.getElementById(id); if (!el) return { id, ok: false };
+  const st = getComputedStyle(el), h1 = el.querySelector("h1"), racine = getComputedStyle(document.documentElement);
+  const titre = racine.getPropertyValue("--tv-police-titre").trim(), duree = parseFloat(st.animationDuration) * (st.animationDuration.endsWith("ms") ? 0.001 : 1);
+  const police = !h1 || id === "une" || getComputedStyle(h1).fontFamily.replace(/\\s/g, "") === titre.replace(/\\s/g, "");
+  const voile = id === "ceremonie" || st.backgroundImage.startsWith("linear-gradient");   // (la cérémonie laisse voir le podium 3D : pas de voile)
+  return { id, voile, police, animation: st.animationName, duree, ok: voile && police && st.animationName === "tv-entree" && duree > 0 && duree < 0.25 }; }"""
+# le paddock en écran d'accueil (tour 32, Codeur 3) : le prochain Grand Prix en grand (surtitre, titre, carte 2D dessinée, domicile
+# seulement chez soi), ta place et l'écart au leader, les quatre groupes de boutons ; les points qui montent après une course (le
+# texte ne change pas) ; les lignes des résultats qui arrivent une à une ; rien de tout ça avec prefers-reduced-motion
+PADDOCK_ETAT = """() => { const $ = id => document.getElementById(id), ch = JEU.championnat, cv = $("paddockCarte"), d = cv.getContext("2d").getImageData(0, 0, cv.width, cv.height).data;
+  let dessine = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 0) dessine++;
+  const groupes = [...document.querySelectorAll("#paddockBoutons .paddockGroupe")].map(g => [g.querySelector(".paddockGroupeNom").textContent, [...g.querySelectorAll("button")].map(b => b.id)]);
+  const cl = CHAMPIONNAT.classementPilotes(ch), k = ch.pilotes.findIndex(p => p.humain), i = cl.findIndex(x => x.k === k);
+  const boites = ["paddockProchain", "paddockMoi", "championnatTableaux", "paddockBoutons"].map(id => { const r = $(id).getBoundingClientRect(); return [id, r.left, r.top, r.right, r.bottom]; });
+  const cal = CHAMPIONNAT.calendrierSaison(ch)[ch.prochain];
+  return { ecran: JEU.ecran, surtitre: $("paddockSurtitre").textContent, titre: $("championnatTitre").textContent, dessine, carte: !cv.classList.contains("cache"),
+    domicile: !$("paddockDomicile").classList.contains("cache"), domicileAttendu: !!(cal && cal.domicile), place: $("paddockPlace").textContent,
+    attendu: TEXTES[LANGUE].paddockPlace.replace("{p}", i + 1).replace("{n}", cl[i].points), groupes, boites, l: innerWidth, h: innerHeight,
+    defile: [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth] }; }"""
+PADDOCK_DOMICILE = """() => { const j = JEU.championnat.pilotes.find(p => p.humain), avant = j.coeur, ici = circuitProchain(); j.coeur = ici; montrerChampionnat(null);
+  const oui = !document.getElementById("paddockDomicile").classList.contains("cache"), texte = document.getElementById("paddockDomicileTexte").textContent;
+  j.coeur = ici === "monoco" ? "monzo" : "monoco"; montrerChampionnat(null); const non = document.getElementById("paddockDomicile").classList.contains("cache"); j.coeur = avant; montrerChampionnat(null);
+  return { oui, non, texte }; }"""
+PADDOCK_POINTS = """() => { montrerChampionnat(25); const tb = document.getElementById("championnatTableaux"), pts = [...document.querySelectorAll("#championnatPilotes .points")];
+  const cl = CHAMPIONNAT.classementPilotes(JEU.championnat), ok = pts.every((p, i) => p.textContent === cl[i].points + " " + texte("pts") && p.style.getPropertyValue("--tv-fin") === String(cl[i].points));
+  const anime = tb.classList.contains("tvMonte"), nom = getComputedStyle(pts[0], "::after").animationName, li = getComputedStyle(tb.querySelector("li")).animationName;
+  montrerChampionnat(null); return { ok, anime, nom, li, sans: !tb.classList.contains("tvMonte") }; }"""
+RESULTATS_ANIMES = """() => { INTERFACE.remplirResultats([1, 2, 3].map(i => ({ place: i, numero: i, couleur: 0xd8262e, total: 60 + i, penalites: 0, ecart: i - 1, grille: i, moi: i === 2 })));
+  return [...document.querySelectorAll("#resultatsLignes tr")].map(x => [x.style.getPropertyValue("--i"), getComputedStyle(x).animationName, getComputedStyle(x).animationDelay]); }"""
+SANS_MOUVEMENT = """() => { montrerChampionnat(25); const r = [getComputedStyle(document.getElementById("championnat")).animationName, getComputedStyle(document.querySelector("#championnatPilotes li")).animationName,
+  getComputedStyle(document.querySelector("#championnatPilotes .points"), "::after").animationName, getComputedStyle(document.querySelector("#resultatsLignes tr")).animationName]; montrerChampionnat(null); return r; }"""
+def paddock_ecran(pg, titre):
+    pg.wait_for_timeout(300)
+    p = pg.evaluate(PADDOCK_ETAT)
+    G = [['boutonCourseSuivante'], ['boutonGarage', 'boutonSponsors', 'boutonMonCasque'], ['boutonCalendrier', 'boutonAlbum', 'boutonArbre'], ['boutonAmisPaddock']]
+    t(f'{titre} : le paddock en écran d’accueil : « Next Grand Prix », le titre du Grand Prix, la carte du circuit dessinée, ta place et l’écart au leader, quatre groupes de boutons rangés par usage',
+      p['ecran'] == 'championnat' and p['surtitre'] == 'Next Grand Prix' and p['titre'].startswith('Grand Prix ') and p['carte'] and p['dessine'] > 500
+      and p['place'].startswith(p['attendu'] + ' · ') and [g[1] for g in p['groupes']] == G and [g[0] for g in p['groupes']] == ['Race', 'Team', 'Season', 'Play together'], str(p)[:900])
+    dedans = all(b[1] >= 0 and b[2] >= 0 and b[3] <= p['l'] + 1 and b[4] <= p['h'] + 1 for b in p['boites'])
+    t(f'{titre} : le paddock tient dans l’écran ({p["l"]}×{p["h"]}), sans défilement : le prochain Grand Prix, toi, les classements, les boutons', dedans and pas_de_defilement(p['defile']), str(p['boites']))
+    t(f'{titre} : la maison du Grand Prix à domicile seulement si le prochain est chez toi', p['domicile'] == p['domicileAttendu'], str(p))
+    d = pg.evaluate(PADDOCK_DOMICILE)
+    t(f'{titre} : le prochain Grand Prix chez toi : « Your home Grand Prix » avec la maison ; ailleurs, rien', d['oui'] and d['non'] and d['texte'] == 'Your home Grand Prix', str(d))
+    m = pg.evaluate(PADDOCK_POINTS)
+    t(f'{titre} : après une course, les lignes du classement arrivent une à une et les points montent (animation CSS), le texte des points ne change pas ; sinon rien ne bouge',
+      m['ok'] and m['anime'] and m['nom'] == 'tv-points' and m['li'] == 'tv-ligne' and m['sans'], str(m))
+    r = pg.evaluate(RESULTATS_ANIMES)
+    t(f'{titre} : les résultats animés : les lignes arrivent une à une (rang, délai croissant)', [x[0] for x in r] == ['0', '1', '2'] and all(x[1] == 'tv-ligne' for x in r) and r[0][2] != r[2][2], str(r))
+    pg.emulate_media(reduced_motion='reduce')
+    a = pg.evaluate(SANS_MOUVEMENT)
+    pg.emulate_media(reduced_motion='no-preference')
+    t(f'{titre} : avec prefers-reduced-motion, aucune animation (ni l’arrivée des écrans, ni les lignes, ni les points)', a == ['none'] * 4, str(a))
+
 def audit_en(pg, titre, l):
     def verifier(nom, js=None):
         if js: pg.evaluate(js)
-        pg.wait_for_timeout(150)
+        pg.wait_for_timeout(300)   # (la fin de l'arrivée de l'écran, thème télé : < 250 ms)
         a = pg.evaluate(AUDIT_ETAT, FRANCAIS)
         t(f'{titre} : en anglais, l’écran « {nom} » ({a.get("id")}) : aucun mot français, rien hors de l’écran, sans défilement', not a.get('absent') and not a['francais'] and not a['hors'] and pas_de_defilement(a['defile']), str(a))
-        pg.screenshot(path=os.path.join(CAPTURES, nom + '-en.png'))
+        th = pg.evaluate(THEME_ETAT)
+        t(f'{titre} : l’écran « {nom} » ({th.get("id")}) a le thème télé (le voile, la police des titres, une arrivée de moins de 250 ms)', th.get('ok'), str(th))
+        pg.screenshot(path=os.path.join(CAPTURES, nom + '-en' + ('' if l == 960 else '-' + str(l)) + '.png'))
+    paddock_ecran(pg, titre)
     verifier('paddock')
     verifier('amis', '() => montrerAmis()'); pg.evaluate('() => montrerChampionnat(null)')
     verifier('garage', '() => montrerGarage()'); verifier('aileron', '() => montrerAileron()'); pg.evaluate('() => { quitterAileron(); quitterGarage(); }')
