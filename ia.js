@@ -473,7 +473,7 @@ function noterLigne(pilote, v, voisines, s0, t, type) {
   for (let i = 0; i < N; i++) {
     // (ses pneus usés : il connaît son adhérence réelle, v.adherence ; × 1 sans pneus, le même nombre au bit près)
     // (aileron, Codeur 3 : il connaît aussi l'adhérence de son aileron, v.aileronAdherence ; × 1 au cran du milieu)
-    const mu = R.ADHERENCE * (v.adherence || 1) * (v.aileronAdherence || 1) * (Math.abs(e[i]) > dehors && type !== 'stands' ? R.ADHERENCE_HERBE : 1);   // (la voie des stands n'est pas de l'herbe)
+    const mu = R.ADHERENCE * (v.adhMeteo || 1) * (v.adherence || 1) * (v.aileronAdherence || 1) * (Math.abs(e[i]) > dehors && type !== 'stands' ? R.ADHERENCE_HERBE : 1);   // (la voie des stands n'est pas de l'herbe)
     // le rythme (le talent) joue dans les virages ; la vitesse de pointe est celle de la voiture
     // (virage serré, sous IA_RAYON_SERRE m de rayon de piste : la courbure mesurée sur ±IA_LIGNE_DEMI_BASE points (±8 m) lisse le coin
     // d'une épingle et la sous-estime ; il prend aussi celle des points voisins (±IA_LIGNE_PAS m), la plus forte des deux : sinon il y
@@ -488,12 +488,12 @@ function noterLigne(pilote, v, voisines, s0, t, type) {
   }
   // au bout de la ligne, la carte dit à quelle vitesse il faut arriver (les virages d'après)
   // (la carte suppose des pneus neufs : avec moins d'adhérence, la vitesse des virages d'après baisse comme √adhérence ; √1 = 1 au bit près)
-  const fin = valeurEn(c, pilote.carte.trajectoire.vitesse, s0 + (N - 1) * pas) * Math.sqrt(v.adherence || 1) * Math.sqrt(v.aileronAdherence || 1);   // (aileron, Codeur 3 : √1 = 1)
+  const fin = valeurEn(c, pilote.carte.trajectoire.vitesse, s0 + (N - 1) * pas) * Math.sqrt(v.adherence || 1) * Math.sqrt(v.aileronAdherence || 1) * Math.sqrt(v.adhMeteo || 1);   // (météo : √1 = 1 au sec)   // (aileron, Codeur 3 : √1 = 1)
   vb[N - 1] = Math.min(vb[N - 1], fin < pointe * 0.999 ? rythme * fin : fin);
   // son freinage : la marge habituelle, son style et son rythme (un pilote plus rapide freine plus près de la limite) ;
   // en attaque, il ose le freinage complet. Son rythme moyen, pas celui du tour : un freinage qui change d'un tour à
   // l'autre surprend celui qui le suit (tour 16 : 9 chocs au lieu de 6 sur les 30 courses)
-  const frein = R.IA_MARGE_FREIN * pilote.rythme * (pilote.attaque && pilote.attaque.etat !== 'preparer' ? R.IA_ATTAQUE_FREIN : pilote.style.frein);
+  const frein = R.IA_MARGE_FREIN * pilote.rythme * (pilote.attaque && pilote.attaque.etat !== 'preparer' ? R.IA_ATTAQUE_FREIN : pilote.style.frein) * (v.adhMeteo || 1);   // (sur le mouillé, il freine plus tôt : × l'adhérence de la météo, 1 au sec)
   for (let i = N - 2; i >= 0; i--) {
     const ds = Math.hypot(x[i + 1] - x[i], z[i + 1] - z[i]);
     vb[i] = Math.min(vb[i], Math.sqrt(vb[i + 1] * vb[i + 1] + 2 * frein * freinagePossible(vb[i + 1]) * ds));

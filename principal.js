@@ -118,6 +118,8 @@ function lancerCourse(nbTours) {
     if (JEU.championnat) { CHAMPIONNAT.appliquerNiveaux(JEU.championnat, JEU.plateau); if (JEU.carte) donnerCarte(JEU.plateau, JEU.carte); }
     if (JEU.championnat) poserRivalites(JEU.plateau, JEU.championnat.pilotes.map(q => !!(q && q.rivalite)));   // les rivaux de l'interview (ia.js, Codeur 1)
     if (JEU.championnat) JEU.plateau.ecuries = JEU.championnat.pilotes.map(q => q ? q.ecurie : null);   // les écuries, pour les consignes d'équipe (simulation.js, Codeur 1)
+    // la météo (meteo.js, étape 12, Codeur 1) : tirée avec la graine du Grand Prix selon le lieu ; ?meteo=sec|pluie|averse|eclaircie la force (tests)
+    if (REGLAGES.METEO_ACTIVE) poserMeteo(JEU.plateau, planMeteo(nbTours));
     suivre(JEU.contre ? JEU.ia : 0);   // contre les IA : la caméra suit le joueur
     appliquerCaracteres();
     if (JEU.contre) armerFeux(JEU.plateau.pilotes, Number(PARAMETRES.get('graine')) || 1);   // les feux de départ
@@ -731,6 +733,18 @@ function casqueDe(k) {
 function numeroDe(k) {
   const ch = JEU.championnat, P = JEU.plateau.pilotes;
   return ch && ch.pilotes[k] ? ch.pilotes[k].numero : P[k].numero;
+}
+
+// la météo de la course (meteo.js) : le plan tiré avec la graine du Grand Prix (en championnat : celle du championnat, la saison et le
+// numéro du Grand Prix), ou forcé par ?meteo= (sec, pluie, averse : la pluie arrive au tiers, eclaircie : elle s'arrête au tiers)
+function planMeteo(nbTours) {
+  const duree = Math.max(1, nbTours) * CIRCUIT.longueur / REGLAGES.METEO_VITESSE_MOYENNE, force = PARAMETRES.get('meteo');
+  if (force === 'sec') return { prevision: { type: 'sec', pourcent: 0 }, debut: 0, change: null };
+  if (force === 'pluie') return { prevision: { type: 'pluie', pourcent: 100 }, debut: 0.8, change: null };
+  if (force === 'averse') return { prevision: { type: 'risque', pourcent: 100 }, debut: 0, change: { t: duree / 3, pluie: 0.8 } };
+  if (force === 'eclaircie') return { prevision: { type: 'pluie', pourcent: 100 }, debut: 0.8, change: { t: duree / 3, pluie: 0 } };
+  const ch = JEU.championnat, graine = ch ? (ch.graine || 1) * 1000 + (ch.saison || 1) * 100 + ch.prochain : Number(PARAMETRES.get('graine')) || 1;
+  return METEO.plan(NOM_CIRCUIT, graine, duree);
 }
 
 // ?championnat=1 : le niveau de l'écurie du joueur (la qualité de sa F1, garage.js appliquer) ; 1 hors championnat (découverte, essais)
