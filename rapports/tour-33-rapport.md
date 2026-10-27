@@ -14,7 +14,7 @@ B. LES IA AMÉLIORÉES (quand A est pris et qu'un Codeur est libre ; en priorit�
    Fini quand : le tableau des tours seuls par niveau sur test et sur 3 tracés ; courses.html dans ses garde-fous ; GitHub vert.
 
 C. LES DISCUSSIONS (quand le reste est fini ; en priorité le Codeur 3, qui a fait l'interview, le journal et la fiche)
-1. Le moteur en calcul pur (discussion.js, parle.js) : le lexique et le langage parlé (s'inspirer de ../../gestion de pays/ia-oral.js et diplomatie.js : lis-les, ne les copie pas tels quels : un autre jeu, d'autres intentions), les intentions de CLAUDE.md, le raisonnement de chaque interlocuteur (caractère, rivalité, mémoire, intérêts), les réponses composées depuis ce raisonnement en + fr ; un banc de phrases tests/banc-parle.html (saisie libre et langage parlé, dans les deux langues).
+1. Le moteur en calcul pur (discussion.js, parle.js) : le lexique et le langage parlé (s'inspirer de ../../../gestion de pays/ia-oral.js et diplomatie.js : lis-les, ne les copie pas tels quels : un autre jeu, d'autres intentions), les intentions de CLAUDE.md, le raisonnement de chaque interlocuteur (caractère, rivalité, mémoire, intérêts), les réponses composées depuis ce raisonnement en + fr ; un banc de phrases tests/banc-parle.html (saisie libre et langage parlé, dans les deux langues).
 2. L'écran : « Discuter » sur la fiche d'un rival, au paddock avec le coéquipier et le patron ; la saisie libre et le composeur au clic ; l'historique de la conversation.
 3. Le courrier des pilotes (courrier-pilotes.js) : ils écrivent d'eux-mêmes après les faits, une boîte de messages au paddock.
    Fini quand : les tests de CLAUDE.md « Les discussions » ; captures discussion.png, courrier.png, en + fr, 960 et 1280 ; GitHub vert.
