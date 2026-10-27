@@ -480,7 +480,7 @@ Le jeu est fait par **deux sessions Claude** qui travaillent ensemble, sous la d
 2. **Le Chef envoie un rapport et des ordres** au Codeur (format ci-dessous).
 3. **Le Codeur exécute**, fait passer les tests, commite (`Tour N : …`) et envoie son **compte rendu**.
 4. **Le Chef vérifie lui-même** : il ne croit pas le compte rendu sur parole, il relance les tests et regarde. Ensuite, il revient à 1.
-5. **Quand le critère de l'étape semble atteint**, le Chef **s'arrête et prévient le propriétaire** : ce qu'il faut essayer et comment. Rien ne passe à l'étape suivante sans l'accord du propriétaire.
+5. **Quand le critère de l'étape semble atteint**, le Chef **s'arrête et prévient le propriétaire** : ce qu'il faut essayer et comment. Rien ne passe à l'étape suivante sans l'accord du propriétaire. **Exception décidée par le propriétaire le 2026-10-27** (« n'attends pas les tests pour pouvoir passer à une autre étape ») : le Chef peut passer à l'étape suivante sans attendre ses essais ni ses accords, avec des choix réversibles (un réglage dans `donnees.js` pour revenir en arrière) ; tout ce qui attend son essai reste listé dans `SUIVI.md`, et ses retours priment dès qu'ils arrivent. Le passage GitHub vert avant chaque fusion reste obligatoire.
 
 Les messages passent d'une session à l'autre avec `SendMessage` (`ListAgents` pour trouver le nom de l'autre session). **Chaque rapport et chaque compte rendu est aussi écrit dans un fichier** de `rapports/` (`tour-07-rapport.md`, `tour-07-compte-rendu.md`), pour qu'on puisse reprendre si une session est fermée.
 

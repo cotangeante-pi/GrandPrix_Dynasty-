@@ -30,6 +30,7 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 
 ## Tour en cours
 
+**2026-10-27 15h55 : le propriétaire : « travaille sur le projet jusqu'à minuit, on est à 11 % … n'attends pas les tests pour pouvoir passer à une autre étape »** → tour 32 (rapports/tour-32-rapport.md) : les 12 tracés branchés, l'usure réglée et les pneus par défaut, le duel côte à côte (Codeur 1) ; les décors des 12 tracés, Monoco en détail (Codeur 2) ; la grande passe interface et le paddock (Codeur 3). Fin à minuit.
 **Journée du 2026-10-26 finie à 20h30 sur main vert (88/100). Reprise : rapports/fin-2026-10-26.md.**
 **2026-10-26 16h50 : le propriétaire : « relance les 3 codeurs jusqu'à 24h »** : tour 31 (rapports/tour-31-rapport.md) : Codeur 1 la suite GitHub en parallèle puis les IA sur les 12 tracés en simulation ; Codeur 2 le résumé vidéo (étape 13) ; Codeur 3 la photo de la une. Fin à minuit (23h40 / 23h50 / 23h55).
 **Reprise du soir figée à 21h40 sur main vert (86/100) : consignes d'équipe, volant, déblocages, paquet Poki. Voir rapports/fin-2026-10-24.md.**
