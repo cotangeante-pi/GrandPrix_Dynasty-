@@ -16,7 +16,7 @@ const pendant=(s,secondes,dt=1/30)=>Array.from({length:Math.round(secondes/dt)},
 
 t('les 7 leçons de CLAUDE.md, dans l’ordre, numérotées, chacune avec son adresse (les modes du jeu : course seule, contre une IA, championnat)', ()=>{
   v(JSON.stringify(TUTORIEL.LECONS.map(l=>l.id))===JSON.stringify(IDS));v(TUTORIEL.LECONS.every((l,i)=>l.numero===i+1&&/^(course|championnat)=/.test(l.adresse)));
-  v(/meteo=averse/.test(TUTORIEL.PAR_ID.pluie.adresse)&&/ia=1&joueur=1/.test(TUTORIEL.PAR_ID.depassement.adresse)&&/pneus=1/.test(TUTORIEL.PAR_ID.stand.adresse));});
+  v(/meteo=averse/.test(TUTORIEL.PAR_ID.pluie.adresse)&&/ia=1&joueur=1/.test(TUTORIEL.PAR_ID.depassement.adresse));});
 t('chaque leçon a son nom, son but et sa consigne en anglais et en français, différents, avec les mêmes {repères} ; les raisons d’échec aussi', ()=>{
   const cles=['tutoBouton','tutoTitre','tutoIntro','tutoCommencer','tutoRetour','tutoPasser','tutoRecommencer','tutoSuivante','tutoListe','tutoQuitter','tutoReussie','tutoRatee','tutoBravo'];
   for(const id of IDS){cles.push('tuto_'+id,'tuto_'+id+'_but');if(id!=='visite') cles.push('tuto_'+id+'_consigne');}

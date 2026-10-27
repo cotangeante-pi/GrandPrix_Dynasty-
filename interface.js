@@ -1681,11 +1681,7 @@ const TUTORIEL_ECRAN = (function () {
     bouton('boutonTutoRetour', 'tutoRetour', fermerMenu);
     for (const id of ['boutonTutorielTitre', 'boutonTutorielPause']) bouton(id, 'tutoBouton', ouvrirMenu);
     bouton('boutonTutorielBravo', 'tutoBravo', ouvrirMenu);
-    // au paddock, dans la rangée « Course », à côté de « Course suivante »
-    const p = document.createElement('button');
-    p.id = 'boutonTutorielPaddock'; p.className = 'petit'; p.tabIndex = -1;
-    $('boutonCourseSuivante').parentNode.appendChild(p);
-    bouton('boutonTutorielPaddock', 'tutoBouton', ouvrirMenu);
+    bouton('boutonTutorielPaddock', 'tutoBouton', ouvrirMenu);   // (au paddock, dans le coin en bas à gauche : les quatre rangées de boutons sont fixées par les tests du paddock)
     bouton('boutonTutoPasser', 'tutoPasser', () => { const s = TUTORIEL.suivante(LECON); aller(s ? adresse(s) : 'index.html' + (langue() ? '?' + langue().slice(1) : '')); });
     bouton('boutonTutoRecommencer', 'tutoRecommencer', () => location.reload());
     bouton('boutonTutoSuivante', 'tutoSuivante', () => { const s = TUTORIEL.suivante(LECON); if (s) aller(adresse(s)); });

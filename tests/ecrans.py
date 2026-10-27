@@ -107,6 +107,17 @@ PAGES = [
     ('index.html?course=12&ia=3&joueur=1&robot=1&circuit=test&test=aides-course', 960, 600, None),
     ('index.html?championnat=1&test=aides-menus', 1280, 720, None),
     ('index.html?championnat=1&test=aides-menus', 960, 600, None),
+    # le tutoriel guidé (tutoriel.js, étape 11d, Codeur 4) : la liste (titre, pause, paddock), « Passer », chaque leçon réussie par le robot, l'échec sans rien faire
+    ('index.html?test=tuto-menu', 1280, 720, None),
+    ('index.html?test=tuto-menu', 960, 600, None),
+    ('index.html?tutoriel=conduite&course=1&test=tuto', 1280, 720, None),
+    ('index.html?tutoriel=conduite&course=1&test=tuto-rien', 960, 600, None),
+    ('index.html?tutoriel=freinage&course=0&test=tuto', 1280, 720, None),
+    ('index.html?tutoriel=depart&course=1&ia=1&joueur=1&niveau=debutant&test=tuto', 1280, 720, None),
+    ('index.html?tutoriel=depassement&course=3&ia=1&joueur=1&niveau=debutant&test=tuto', 1280, 720, None),
+    ('index.html?tutoriel=stand&course=2&test=tuto', 960, 600, None),
+    ('index.html?tutoriel=pluie&course=3&ia=1&joueur=1&niveau=debutant&meteo=averse&test=tuto', 1280, 720, None),
+    ('index.html?tutoriel=visite&championnat=1&test=tuto', 1280, 720, None),
 ]
 # ECRANS_FILTRE=… (pendant le travail, sur le Mac) : seulement les pages dont l'adresse contient ce texte ; GitHub lance toujours tout
 if os.environ.get('ECRANS_FILTRE'): PAGES = [x for x in PAGES if os.environ['ECRANS_FILTRE'] in f'{x[0]} {x[1]}']   # (« adresse largeur » : « robot=1 960 »)
@@ -2373,6 +2384,81 @@ def aides_menus(pg, titre, l, h):
     pg.reload()
     t(f'{titre} : une ancienne sauvegarde (sans le champ des aides) se charge au paddock, sans erreur, avec aucune aide vue (l’aide du duel s’affiche)', attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat" && JEU.championnat.pilotes.length === 20 && SAUVEGARDE.aides().length === 0 && document.getElementById("bulleAide").dataset.aide === "duel"', None, 30000), str(pg.evaluate('() => [JEU.ecran, SAUVEGARDE.aides()]')))
 
+# --- le tutoriel guidé (tutoriel.js, interface.js TUTORIEL_ECRAN ; étape 11d, Codeur 4) : la liste des leçons (titre, paddock, pause,
+# « Bravo ! »), chaque leçon réussie par le robot d'essai (ou un pilote scripté), le résultat et l'étoile gardée, « Passer », l'échec sans rien faire
+TUTO_JOUER = '''(n) => { for (let i = 0; i < n; i++) { if (TUTORIEL_ECRAN.resultat()) break; BOUCLE.simuler(0.05); TUTORIEL_ECRAN.maj(0.05); }
+  const su = TUTORIEL_ECRAN.suivi(); return { resultat: TUTORIEL_ECRAN.resultat(), raison: su && su.raison, t: su && su.t, essais: su && su.essais, meilleur: su && su.meilleur, dernier: su && su.dernier }; }'''
+def tuto_resultat(pg, titre, l, h, id, r):
+    vis = pg.evaluate('''() => { const e = document.getElementById("tutoResultat"), b = [...e.querySelectorAll("button")].filter(x => !x.classList.contains("cache")).map(x => x.getBoundingClientRect());
+      return { vu: !e.classList.contains("cache"), titre: document.getElementById("tutoResultatTitre").textContent, texte: document.getElementById("tutoResultatTexte").textContent, dedans: b.every(x => x.left >= 0 && x.top >= 0 && x.right <= innerWidth && x.bottom <= innerHeight), consigne: !document.getElementById("tutoConsigne").classList.contains("cache"), etoile: SAUVEGARDE.tutoriel(), boucle: BOUCLE.tourne }; }''')
+    t(f'{titre} : leçon « {id} » réussie ({r}) : l’écran du résultat (« Leçon réussie ! ★ »), ses boutons dans l’écran, la consigne cachée, l’étoile gardée à la racine de la sauvegarde, la course arrêtée derrière',
+      r['resultat'] == 'reussie' and vis['vu'] and vis['titre'] == pg.evaluate('() => texte("tutoReussie")') and vis['dedans'] and not vis['consigne'] and id in vis['etoile'] and (id == 'visite' or not vis['boucle']), str([r, vis]))
+    return vis
+
+def tuto_lecon(pg, titre, l, h, page):
+    id = re.search(r'tutoriel=(\w+)', page).group(1)
+    attendre(pg, '() => typeof TUTORIEL_ECRAN !== "undefined" && TUTORIEL_ECRAN.lecon() !== null', None, 10000)
+    if id == 'visite':
+        t(f'{titre} : la visite : au paddock, la consigne en haut à gauche (« Clique sur Garage »), pas de bulle d’aide', attendre(pg, '() => JEU.ecran === "championnat" && !document.getElementById("tutoConsigne").classList.contains("cache") && document.getElementById("tutoConsigneTexte").textContent === texte("tuto_visite_paddock") && document.getElementById("bulleAide").classList.contains("cache")', None, 20000), pg.evaluate('() => [JEU.ecran, document.getElementById("tutoConsigneTexte").textContent]'))
+        etapes = []
+        for clic, attendu in [('#boutonGarage', 'garage'), ('#boutonAileron', 'aileron'), ('#boutonAileronRetour', 'retour'), ('#boutonGarageRetour', None)]:
+            pg.click(clic); pg.wait_for_timeout(400)
+            if attendu: etapes.append(attendre(pg, f'() => document.getElementById("tutoConsigneTexte").textContent === texte("tuto_visite_{attendu}")', None, 10000))
+        attendre(pg, '() => TUTORIEL_ECRAN.resultat() !== null', None, 10000)
+        t(f'{titre} : la visite guidée : garage → aileron → retour, chaque écran a sa consigne', all(etapes), str(etapes))
+        tuto_resultat(pg, titre, l, h, id, { 'resultat': pg.evaluate('() => TUTORIEL_ECRAN.resultat()') })
+        if l == 1280: pg.screenshot(path=os.path.join(CAPTURES, 'tuto-visite.png'))
+        return
+    if 'ia=1' in page: attendre(pg, '() => JEU.plateau && JEU.plateau.carte !== null', None, 240000)
+    t(f'{titre} : leçon « {id} » : pas de qualification, la course tout de suite ; la consigne à gauche (son titre, son texte, « Passer »), aucune bulle d’aide',
+      attendre(pg, '() => JEU.ecran === "course" && !document.getElementById("tutoConsigne").classList.contains("cache") && document.getElementById("bulleAide").classList.contains("cache")', None, 20000) and pg.evaluate(f'() => JEU.qualif === null && document.getElementById("tutoConsigneTitre").textContent.startsWith(TUTORIEL.PAR_ID["{id}"].numero + ". ") && document.getElementById("boutonTutoPasser").textContent === texte("tutoPasser")'),
+      str(pg.evaluate('() => [JEU.ecran, JEU.qualif, document.getElementById("tutoConsigne").className, document.getElementById("tutoConsigneTexte").textContent]')))
+    if 'rien' in page:
+        # ne rien faire : la voiture reste sur la ligne ; après TUTO_TEMPS_MAX s, la leçon est ratée
+        r = pg.evaluate('() => { BOUCLE.arreter(); BOUCLE.simuler(5); TUTORIEL_ECRAN.maj(REGLAGES.TUTO_TEMPS_MAX + 1); return { resultat: TUTORIEL_ECRAN.resultat(), raison: TUTORIEL_ECRAN.suivi().raison, u: JEU.joueur.u, etoiles: SAUVEGARDE.tutoriel() }; }')
+        t(f'{titre} : sans rien faire, la leçon « {id} » est ratée après TUTO_TEMPS_MAX s (« Pas encore… », le temps est écoulé), sans étoile', r['resultat'] == 'ratee' and r['raison'] == 'temps' and r['u'] == 0 and not r['etoiles'] and pg.evaluate('() => document.getElementById("tutoResultatTitre").textContent === texte("tutoRatee") && !document.getElementById("tutoResultat").classList.contains("cache")'), str(r))
+        if l == 960: pg.screenshot(path=os.path.join(CAPTURES, 'tuto-rate-960.png'))
+        with pg.expect_navigation(): pg.click('#boutonTutoSuivante')
+        t(f'{titre} : « Leçon suivante » mène à la leçon 2', attendre(pg, '() => typeof TUTORIEL_ECRAN !== "undefined" && TUTORIEL_ECRAN.lecon() === "freinage"', None, 20000), pg.url)
+        return
+    if l == 1280: pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, f'tuto-{id}.png'))
+    pg.evaluate('() => { BOUCLE.arreter(); JEU.robot = true; }')   # (le robot d'essai conduit, comme ?robot=1 : il fait aussi le départ parfait)
+    if id == 'stand': pg.evaluate('() => { BOUCLE.simuler(4); JEU.joueur.versStands = true; }')   # (le robot prend la voie des stands, comme dans stand_ecran)
+    if id == 'pluie':
+        eau = pg.evaluate('() => { for (let i = 0; i < 4000 && !(JEU.plateau.meteo && JEU.plateau.meteo.eau >= REGLAGES.TUTO_PLUIE_EAU); i++) { BOUCLE.simuler(0.05); TUTORIEL_ECRAN.maj(0.05); } JEU.joueur.versStands = true; return JEU.plateau.meteo ? JEU.plateau.meteo.eau : null; }')
+        L.append(f'  (leçon pluie : la piste mouillée à {eau}, le robot va au stand)')
+    r = pg.evaluate(TUTO_JOUER, 6000)
+    if id == 'freinage': L.append(f"  (leçon du freinage : le robot d’essai passe la zone en {r['meilleur']} s (dernier passage {r['dernier']}), objectif {pg.evaluate('() => REGLAGES.TUTO_ZONE_OBJECTIF')} s)")
+    if id == 'depart': L.append(f"  (leçon du départ : robot, {pg.evaluate('() => [JEU.course.depart.resultat, JEU.course.depart.reaction]')})")
+    vis = tuto_resultat(pg, titre, l, h, id, r)
+    if l == 960 or id == 'stand': pg.screenshot(path=os.path.join(CAPTURES, f'tuto-reussie-{id}{"-960" if l == 960 else ""}.png'))
+
+def tuto_menu(pg, titre, l, h):
+    t(f'{titre} : le premier lancement : l’écran titre a le petit « Apprendre à piloter » sous « Entre amis » ; la liste des leçons est cachée (aucun écran de plus)',
+      pg.evaluate('() => JEU.ecran === "titre" && document.getElementById("boutonTutorielTitre").textContent === texte("tutoBouton") && document.getElementById("boutonTutorielTitre").getBoundingClientRect().top > document.getElementById("boutonAmis").getBoundingClientRect().top && document.getElementById("tutoMenu").classList.contains("cache")'))
+    pg.click('#boutonTutorielTitre')
+    m = pg.evaluate('''() => { const e = document.getElementById("tutoMenu"), li = [...e.querySelectorAll("#tutoListe li")], b = [...e.querySelectorAll("button")].map(x => x.getBoundingClientRect());
+      return { vu: !e.classList.contains("cache"), n: li.length, etoiles: li.map(x => x.querySelector(".tutoEtoile").textContent).join(""), noms: li.map(x => x.querySelector(".tutoNom").textContent), dedans: b.every(x => x.left >= 0 && x.top >= 0 && x.right <= innerWidth && x.bottom <= innerHeight),
+        defile: [document.documentElement.scrollHeight, innerHeight] }; }''')
+    t(f'{titre} : « Apprendre à piloter » : la liste des 7 leçons (numéro, nom, but, « Commencer »), aucune étoile encore, tout dans l’écran sans défilement',
+      m['vu'] and m['n'] == 7 and m['etoiles'] == '☆' * 7 and m['noms'][0].startswith('1. ') and m['dedans'] and m['defile'][0] <= m['defile'][1] + 2, str(m))
+    pg.screenshot(path=os.path.join(CAPTURES, 'tuto-menu.png' if l == 1280 else 'tuto-menu-960.png'))
+    pg.click('#boutonTutoRetour')
+    t(f'{titre} : « Retour » referme la liste : l’écran titre est toujours là, « ▶ Jouer » mène toujours à la grille d’un clic', pg.evaluate('() => document.getElementById("tutoMenu").classList.contains("cache") && JEU.ecran === "titre"'))
+    pg.evaluate('() => { SAUVEGARDE.reussirLecon("depart"); }')
+    pg.click('#boutonTutorielTitre')
+    t(f'{titre} : une leçon réussie a son étoile dans la liste', pg.evaluate('() => [...document.querySelectorAll("#tutoListe .tutoEtoile")].map(x => x.textContent).join("") === "☆☆★☆☆☆☆"'), pg.evaluate('() => [...document.querySelectorAll("#tutoListe .tutoEtoile")].map(x => x.textContent).join("")'))
+    with pg.expect_navigation(): pg.click('#tutoListe li:first-child button')
+    t(f'{titre} : « Commencer » ouvre la leçon 1 (course seule, un tour)', attendre(pg, '() => typeof TUTORIEL_ECRAN !== "undefined" && TUTORIEL_ECRAN.lecon() === "conduite" && JEU.course && JEU.course.nbTours === 1 && !JEU.plateau', None, 20000), pg.url)
+    with pg.expect_navigation(): pg.click('#boutonTutoPasser')
+    t(f'{titre} : « Passer » mène à la leçon suivante, sans étoile pour celle passée', attendre(pg, '() => typeof TUTORIEL_ECRAN !== "undefined" && TUTORIEL_ECRAN.lecon() === "freinage" && !SAUVEGARDE.tutoriel().includes("conduite")', None, 20000), pg.url)
+    # la pause d'une leçon et le paddock ont aussi le bouton
+    attendre(pg, '() => JEU.ecran === "course"', None, 10000); pg.keyboard.press('Escape')
+    t(f'{titre} : le menu pause a « Apprendre à piloter », qui ouvre la liste', attendre(pg, '() => JEU.ecran === "pause"') and (pg.click('#boutonTutorielPause') or True) and pg.evaluate('() => !document.getElementById("tutoMenu").classList.contains("cache")'))
+    pg.goto('file://' + RACINE + '/index.html?championnat=1'); attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', None, 30000)
+    b = pg.evaluate('() => { const b = document.getElementById("boutonTutorielPaddock"), r = b.getBoundingClientRect(), autres = [...document.querySelectorAll("#paddockBoutons button, #boutonRevoirAides")].map(e => e.getBoundingClientRect()); return { texte: b.textContent, libre: autres.every(o => o.right <= r.left || o.left >= r.right || o.bottom <= r.top || o.top >= r.bottom), dedans: r.left >= 0 && r.right <= innerWidth && r.bottom <= innerHeight && r.width > 0 }; }')
+    t(f'{titre} : au paddock, « Apprendre à piloter » est dans le coin en bas à gauche, dans l’écran, sur aucun autre bouton', b['texte'] == pg.evaluate('() => texte("tutoBouton")') and b['libre'] and b['dedans'], str(b))
+
 def INTERFACE_TEMPS(t, virgule='.'):
     m = int(t // 60); s = t - m * 60
     return f'{m}:{s:06.3f}'.replace('.', virgule)
@@ -2453,7 +2539,7 @@ with sync_playwright() as p:
                 stand_ecran(pg, titre)
             if 'test=officiel' in page:
                 officiel_ecran(pg, titre, re.search(r'circuit=(\w+)', page).group(1))
-            if re.search(r'[?&]ia=1(&|$)', page):
+            if re.search(r'[?&]ia=1(&|$)', page) and 'tutoriel=' not in page:   # (une leçon du tutoriel avec une IA : tuto_lecon)
                 course_ia(pg, titre)
             if re.search(r'[?&]ia=10(&|$)', page):
                 course_ia10(pg, titre)
@@ -2467,6 +2553,10 @@ with sync_playwright() as p:
                 aides_course(pg, titre, l, h)
             elif 'test=aides-menus' in page:
                 aides_menus(pg, titre, l, h)
+            elif 'test=tuto-menu' in page:
+                tuto_menu(pg, titre, l, h)
+            elif 'test=tuto' in page:
+                tuto_lecon(pg, titre, l, h, page)
             elif 'test=audit' in page:
                 audit_autres(pg, titre, page, l, h)
             elif 'gp=12' in page and 'lang=en' in page:
@@ -2482,7 +2572,7 @@ with sync_playwright() as p:
             elif 'championnat=1' in page:
                 championnat(pg, titre, l)
             if 'test=accelere' in page or 'test=audit' in page: pass
-            elif 'test=aides' in page: pass   # (les aides : leur page à elles, plus haut)
+            elif 'test=aides' in page or 'test=tuto' in page: pass   # (les aides et le tutoriel : leurs pages à eux, plus haut)
             elif 'test=hudcourse' in page:
                 hud_course(pg, titre, l, h)
             elif 'test=decor' in page:

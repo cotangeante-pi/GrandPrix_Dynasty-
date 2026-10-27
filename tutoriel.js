@@ -12,8 +12,8 @@ const TUTORIEL = (function () {
     { id: 'freinage', adresse: 'course=0' },                                                  // essai libre : le virage entre les plots
     { id: 'depart', adresse: 'course=1&ia=1&joueur=1&niveau=debutant' },                      // les feux, une IA à côté
     { id: 'depassement', adresse: 'course=3&ia=1&joueur=1&niveau=debutant' },                 // une IA lente devant
-    { id: 'stand', adresse: 'course=2&pneus=1' },                                             // seul : l'arrêt, sans excès de vitesse
-    { id: 'pluie', adresse: 'course=3&ia=1&joueur=1&niveau=debutant&pneus=1&meteo=averse' },  // l'averse arrive : changer de pneus
+    { id: 'stand', adresse: 'course=2' },                                                     // seul : l'arrêt, sans excès de vitesse
+    { id: 'pluie', adresse: 'course=3&ia=1&joueur=1&niveau=debutant&meteo=averse' },    // l'averse arrive : changer de pneus
     { id: 'visite', adresse: 'championnat=1' },                                               // le paddock, le garage, l'aileron
   ];
   const PAR_ID = {};

@@ -1221,7 +1221,9 @@ body.deux.cote #boutonSon { top: auto; bottom: 12px; right: 12px; }   /* (côte 
 #bulleAide.bulleMenu { left: 16px; top: 8px; max-width: min(560px, 56vw); }
 #bulleAideFermer { color: var(--tv-texte-doux); font-weight: 800; }
 #bulleAide:not(.cache) { animation: tv-message var(--tv-duree-message) ease-out; }
-#boutonRevoirAides { position: fixed; right: 16px; bottom: 10px; }
+#boutonRevoirAides { position: fixed; right: 16px; bottom: 6px; }
+#boutonTutorielPaddock { position: fixed; left: 16px; bottom: 6px; }
+.ecran button.coinPaddock { min-width: 0; padding: 4px 12px; font-size: 12px; }
 @media (prefers-reduced-motion: reduce) { #bulleAide:not(.cache) { animation: none; } }
 
 /* le tutoriel guidé (tutoriel.js, interface.js TUTORIEL_ECRAN, Codeur 4) : la liste des leçons et le résultat par-dessus l'écran du
