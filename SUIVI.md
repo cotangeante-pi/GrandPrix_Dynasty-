@@ -90,6 +90,7 @@ Note du Chef session-5b (2026-10-23) : les lignes 18 à 19b ne s'additionnaient 
 
 ## À essayer par le propriétaire
 
+- **La pluie** (tour 33) : elle tombe selon le lieu (Spaa souvent, Bahrayn presque jamais) ; pour la forcer : `index.html?course=5&ia=9&joueur=1&circuit=spaa&meteo=averse` (ou pluie, eclaircie, sec). Les IA passent aux pneus de pluie quand la piste se mouille.
 - **Les décors des 12 circuits** (tour 32) : chaque circuit a son lieu (Monoco : port, bateaux, façades ; Spaa : sapins et brume ; Singapura : de nuit). **Mesure les images par seconde** sur deux ou trois circuits (`?debug=1&course=3&ia=20&circuit=monoco`) : c'est le critère de l'étape 10 (60 avec 20 voitures).
 - **La nouvelle interface** (tour 32, étape 11 commencée) : le style télé sur tous les écrans, le paddock en écran d'accueil. Captures avant / après dans rapports/captures-tour32/. Dire : ça a l'air pro ? (c'est le critère de l'étape 11).
 - **Les 12 vrais circuits** (tour 32, branchés sans attendre ton accord : dis-moi s'il faut en revoir un) : en championnat, la saison passe par les 12 ; ou directement `index.html?course=5&ia=9&joueur=1&circuit=monoco` (ou spaa, suzuko, monzo…). Ton Grand Prix à domicile est marqué au calendrier.
