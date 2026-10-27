@@ -1121,7 +1121,7 @@ body.deux.cote #boutonSon { top: auto; bottom: 12px; right: 12px; }   /* (côte 
 #paddockDomicile .maison { margin-top: 7px; }
 #paddockMoi { grid-column: 1; grid-row: 2; display: flex; flex-direction: column; justify-content: center; gap: 6px; padding: 10px 12px; }
 #paddockMoi p { font-size: 13px; }
-#paddockPlace { font: 800 16px/1.25 var(--tv-police) !important; }
+#paddockPlace { font: 800 15px/1.25 var(--tv-police) !important; }
 #championnat #championnatDuel { font-size: 13px; line-height: 1.35; }
 #championnat #championnatSponsor { max-width: 100%; }
 #championnat #championnatReputation { flex-wrap: wrap; gap: 6px 12px; }
