@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><title>Lieu</title>
+<style>html, body { margin: 0; height: 100%; overflow: hidden; background: #000; } #scene3d { position: fixed; inset: 0; } #scene3d canvas { width: 100%; height: 100%; display: block; } .cache { display: none; }</style>
+</head><body>
+<!-- Le décor d'un circuit officiel (étape 10, decor.js + decors-officiels.js), sans course : le circuit, son décor, son lieu (ciel,
+     lumière, brouillard) et 20 voitures sur la grille, vus d'un poste télé ; ?circuit=<nom> ; ?domicile=1 : le Grand Prix à domicile
+     d'un joueur (le public à ses couleurs, les banderoles) ; ?vue=port : Monoco vu du port. La mesure (appels de dessin, triangles,
+     avec et sans le décor) est dans window.__lieu, pour tests/ecrans.py. -->
+<div id="scene3d"></div><div id="ips" class="cache"></div>   <!-- (tests/ecrans.py : pas de compteur sans ?debug=1) -->
+<script src="../lib/three.min.js"></script>
+<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../circuits.js"></script>
+<script src="../circuits-officiels-a.js"></script><script src="../circuits-officiels-b.js"></script>
+<script src="../casque.js"></script><script src="../voiture3d.js"></script>
+<script src="../decors-officiels.js"></script><script src="../decor-public.js"></script><script src="../decor.js"></script><script src="../scene3d.js"></script>
+<script>
+(function () {
+  const R = REGLAGES, P = new URLSearchParams(location.search), NOM = P.get('circuit') || 'monoco';
+  const DEFS = Object.assign({}, CIRCUITS, CIRCUITS_OFFICIELS_A, CIRCUITS_OFFICIELS_B);
+  const c = construireCircuit(DEFS[NOM]);
+  const ch = P.get('domicile') === '1' ? { graine: 1, pilotes: [{ humain: true, nom: 'le propriétaire', numero: 27, pays: R.CIRCUITS_PAYS[NOM], coeur: NOM }] } : null;
+  if (!SCENE3D.init(document.getElementById('scene3d'), c, { championnat: ch, circuit: NOM })) return;
+  // 20 voitures sur la grille, en deux files derrière la ligne
+  VOITURE3D.preparerCasques(Array.from({ length: 20 }, (_, k) => CASQUE.neutre()));
+  const L = c.longueur, auPoint = (s, d) => { const i = Math.round((((s % L) + L) % L) / c.pas) % c.nb; return { x: c.x[i] + c.nx[i] * d, z: c.z[i] + c.nz[i] * d, cap: Math.atan2(c.tz[i], c.tx[i]) }; };
+  for (let k = 0; k < 20; k++) {
+    const m = VOITURE3D.creer(R.ECURIES[k >> 1].couleur, k === 0, undefined, k);
+    VOITURE3D.placer(m, auPoint(-8 - (k >> 1) * 8 - (k % 2) * 4, k % 2 ? 2.5 : -2.5), { braquage: 0, rotationRoues: 0 });
+    SCENE3D.ajouter(m.groupe);
+  }
+  // la vue : un poste télé au bord de la grille (ou, ?vue=port, le port de Monoco vu de la chicane), plus haut et plus ouvert que la télé de course
+  const cam = SCENE3D.camera;
+  let pos, vise;
+  if (ch) {   // le domicile : depuis la piste, les banderoles sur la barrière, devant la tribune principale
+    const b = SCENE3D.decor.objets.banderole;
+    if (b.length) { const m = b[Math.floor(b.length / 2)], a = auPoint(-45, 0); pos = { x: a.x, y: 3, z: a.z }; vise = { x: m.x, y: 1.5, z: m.z }; }
+  }
+  if (pos) {}
+  else if (P.get('vue') === 'port') {
+    const zone = DECOR_PUBLIC.placer(c, DECORS_OFFICIELS[NOM]).zones.find(z => z.type === 'port');
+    const a = auPoint(zone.s - zone.longueur * 0.25, zone.d0 * 0.3), b = auPoint(zone.s, zone.d0 + (zone.d1 - zone.d0) * 0.3);
+    pos = { x: a.x, y: 14, z: a.z }; vise = { x: b.x, y: 0, z: b.z };
+  } else {
+    const p = DECOR.postesTele(c)[0], g = auPoint(-40, 0);
+    pos = { x: p.x, y: 12, z: p.z }; vise = { x: g.x, y: 1, z: g.z };
+  }
+  cam.fov = R.LIEU_CHAMP; cam.position.set(pos.x, pos.y, pos.z); cam.lookAt(vise.x, vise.y, vise.z); cam.updateProjectionMatrix();
+  function mesurer() {
+    SCENE3D.dessiner(); const avec = [SCENE3D.appelsDessin, SCENE3D.trianglesDessines];
+    const d = SCENE3D.decor; d.groupe.visible = false; SCENE3D.dessiner(); const sans = [SCENE3D.appelsDessin, SCENE3D.trianglesDessines]; d.groupe.visible = true; SCENE3D.dessiner();
+    const n = {}; for (const k in d.objets) n[k] = d.objets[k].length;
+    const maillages = []; d.groupe.traverse(o => { if (o.isMesh) maillages.push(o.name); });
+    window.__lieu = { nom: NOM, avec, sans, n, refus: d.refus, maillages, ms: Math.round(d.ms), nuit: !!(d.lieu && d.lieu.lumiere.projecteurs), heure: d.lieu ? d.lieu.ciel.heure : null };
+  }
+  const tour = () => { if (window.__lieu) { SCENE3D.dessiner(); requestAnimationFrame(tour); return; } mesurer(); requestAnimationFrame(tour); };
+  requestAnimationFrame(tour);
+  window.addEventListener('resize', () => { cam.fov = R.LIEU_CHAMP; cam.updateProjectionMatrix(); });
+})();
+</script>
+</body></html>
