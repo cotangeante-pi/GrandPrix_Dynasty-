@@ -517,12 +517,12 @@ const TEXTES = {
 // --- les aides au premier usage (aides.js, interface.js AIDES_ECRAN ; étape 11b, Codeur 4) : une bulle d'une ou deux lignes, avec la
 // touche ou le bouton à utiliser ; jamais genrées sur le joueur ({v} : la vitesse permise dans la voie des stands, en km/h)
 Object.assign(TEXTES.en, {
-  aide_depart: 'Start: hold ↑ to keep the needle in the green. Lights out: release, then press ↑ again as fast as you can!',
+  aide_depart: 'Start: hold ↑ in the green. Lights out: release, then press ↑ again, fast!',
   aide_qualif: 'Qualifying: one timed lap sets your grid slot. “Skip” = start last.',
-  aide_fantome: 'The see-through car is your best lap here: the gap under the timer shows where you gain or lose time.',
-  aide_stand: 'Mandatory pit stop: at the end of this lap, take the pit lane (before the line), {v} km/h at most.',
+  aide_fantome: 'The see-through car is your best lap: the gap under the timer shows where you lose time.',
+  aide_stand: 'Mandatory stop: at the end of the lap, take the pit lane, {v} km/h at most.',
   aide_pluie: 'The track is wet: switch to rain tyres at your next pit stop?',
-  aide_consigne: 'Team order: lift off (↓) to let your team-mate through, or keep your place. Your call.',
+  aide_consigne: 'Team order: lift off (↓) to let your team-mate through, or keep your place.',
   aide_garage: 'Garage: each upgrade helps a little (+{p} % at most). Wheel changers: shorter stops.',
   aide_aileron: 'High wing: grip in corners. Low wing: top speed. Read the track map.',
   aide_duel: 'Your team-mate has the same car: beat them for a bonus and better contracts.',
@@ -531,12 +531,12 @@ Object.assign(TEXTES.en, {
   aideFermer: 'Click to close', revoirAides: '↺ Show the tips again', aidesRevues: 'The tips will show again',
 });
 Object.assign(TEXTES.fr, {
-  aide_depart: 'Départ : tiens ↑ pour garder l’aiguille dans le vert. Feux éteints : lâche, puis réappuie sur ↑ au plus vite !',
+  aide_depart: 'Départ : tiens ↑ dans le vert. Feux éteints : lâche, puis réappuie vite sur ↑ !',
   aide_qualif: 'Qualification : un tour chronométré donne ta place. « Passer » = partir dernier.',
-  aide_fantome: 'La voiture transparente, c’est ton meilleur tour ici : l’écart sous le chrono montre où tu gagnes ou perds du temps.',
-  aide_stand: 'Arrêt obligatoire : à la fin de ce tour, prends la voie des stands (avant la ligne), {v} km/h au plus.',
+  aide_fantome: 'La voiture transparente : ton meilleur tour. L’écart sous le chrono dit où tu perds du temps.',
+  aide_stand: 'Arrêt obligatoire : à la fin du tour, prends la voie des stands, {v} km/h au plus.',
   aide_pluie: 'La piste est mouillée : passer aux pneus pluie à ton prochain arrêt au stand ?',
-  aide_consigne: 'Consigne d’équipe : lève le pied (↓) pour laisser passer ton coéquipier, ou garde ta place. À toi de choisir.',
+  aide_consigne: 'Consigne : lève le pied (↓) pour laisser passer ton coéquipier, ou garde ta place.',
   aide_garage: 'Garage : chaque amélioration aide un peu (+{p} % au plus). Changeurs de roues : arrêt plus court.',
   aide_aileron: 'Aileron haut : adhérence en virage. Bas : vitesse de pointe. Lis la carte.',
   aide_duel: 'Ton coéquipier a la même voiture : le battre rapporte un bonus et de meilleurs contrats.',

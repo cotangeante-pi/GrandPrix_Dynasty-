@@ -2465,6 +2465,12 @@ def tuto_lecon(pg, titre, l, h, page):
     if id == 'pluie':
         eau = pg.evaluate('() => { for (let i = 0; i < 4000 && !(JEU.plateau.meteo && JEU.plateau.meteo.eau >= REGLAGES.TUTO_PLUIE_EAU); i++) { BOUCLE.simuler(0.05); TUTORIEL_ECRAN.maj(0.05); } JEU.joueur.versStands = true; return JEU.plateau.meteo ? JEU.plateau.meteo.eau : null; }')
         L.append(f'  (leçon pluie : la piste mouillée à {eau}, le robot va au stand)')
+    if id == 'freinage':
+        # les plots du point de freinage, vus en arrivant : 60 m avant eux, une image dessinée, capture tuto-plots.png
+        pl = pg.evaluate('''() => { const z = TUTORIEL_ECRAN.suivi().zone, L = CIRCUIT.longueur; for (let i = 0; i < 3000; i++) { const a = ((z.debut - JEU.joueur.piste.s) % L + L) % L; if (a < 60 && a > 30) break; BOUCLE.simuler(0.05); TUTORIEL_ECRAN.maj(0.05); }
+          let n = 0; JEU.modele && JEU.modele.groupe.parent && JEU.modele.groupe.parent.traverse(o => { if (o.name === "tutoriel-plots") n = o.count; }); return n; }''')
+        t(f'{titre} : les plots orange du point de freinage et de la sortie de la zone sont posés dans la 3D (6, en un seul appel de dessin)', pl == 6, str(pl))
+        pg.evaluate('() => BOUCLE.demarrer()'); pg.wait_for_timeout(500); pg.screenshot(path=os.path.join(CAPTURES, 'tuto-plots.png')); pg.evaluate('() => BOUCLE.arreter()')
     r = pg.evaluate(TUTO_JOUER, 6000)
     if id == 'freinage': L.append(f"  (leçon du freinage : le robot d’essai passe la zone en {r['meilleur']} s (dernier passage {r['dernier']}), objectif {pg.evaluate('() => REGLAGES.TUTO_ZONE_OBJECTIF')} s)")
     if id == 'depart': L.append(f"  (leçon du départ : robot, {pg.evaluate('() => [JEU.course.depart.resultat, JEU.course.depart.reaction]')})")
@@ -2474,6 +2480,7 @@ def tuto_lecon(pg, titre, l, h, page):
 def tuto_menu(pg, titre, l, h):
     t(f'{titre} : le premier lancement : l’écran titre a le petit « Apprendre à piloter » sous « Entre amis » ; la liste des leçons est cachée (aucun écran de plus)',
       pg.evaluate('() => JEU.ecran === "titre" && document.getElementById("boutonTutorielTitre").textContent === texte("tutoBouton") && document.getElementById("boutonTutorielTitre").getBoundingClientRect().top > document.getElementById("boutonAmis").getBoundingClientRect().top && document.getElementById("tutoMenu").classList.contains("cache")'))
+    t(f'{titre} : « Bravo ! » (après la découverte) a aussi « D’abord apprendre »', pg.evaluate('() => document.getElementById("boutonTutorielBravo").textContent === texte("tutoBravo") && document.getElementById("boutonTutorielBravo").closest("#bravo") !== null'))
     pg.click('#boutonTutorielTitre')
     m = pg.evaluate('''() => { const e = document.getElementById("tutoMenu"), li = [...e.querySelectorAll("#tutoListe li")], b = [...e.querySelectorAll("button")].map(x => x.getBoundingClientRect());
       return { vu: !e.classList.contains("cache"), n: li.length, etoiles: li.map(x => x.querySelector(".tutoEtoile").textContent).join(""), noms: li.map(x => x.querySelector(".tutoNom").textContent), dedans: b.every(x => x.left >= 0 && x.top >= 0 && x.right <= innerWidth && x.bottom <= innerHeight),
