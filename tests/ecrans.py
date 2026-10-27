@@ -95,7 +95,8 @@ PAGES = [
     ('index.html?course=3&ia=20&circuit=monzo&meteo=pluie&test=pluie', 1280, 720, None),
     ('index.html?course=3&ia=20&circuit=monzo&meteo=pluie&test=pluie', 960, 600, None),
     ('index.html?championnat=1&meteo=risque&test=prevision', 1280, 720, None),
-    ('index.html?course=3&ia=20&circuit=monoco&test=tele', 1280, 720, None),   # la réalisation télé (regie.js) : de vraies caméras, l'hélicoptère ; captures tele-monoco.png, tele-helico.png   # … et Monzo de jour : la luminosité de l'image, pour la comparer à la nuit   # le décor dans le vrai jeu : la course de nuit à Singapura, 20 voitures, vue télé ; capture jeu-singapura.png
+    ('index.html?course=3&ia=20&circuit=monoco&test=tele', 1280, 720, None),
+    ('index.html?course=3&ia=19&joueur=1&circuit=monzo&domicile=1&test=supporters', 1280, 720, None),   # le Grand Prix à domicile : la caméra de la grille longe d'abord la tribune des supporters ; capture supporters.png   # la réalisation télé (regie.js) : de vraies caméras, l'hélicoptère ; captures tele-monoco.png, tele-helico.png   # … et Monzo de jour : la luminosité de l'image, pour la comparer à la nuit   # le décor dans le vrai jeu : la course de nuit à Singapura, 20 voitures, vue télé ; capture jeu-singapura.png
     ('tests/lieu.html?circuit=monoco&vue=port', 1280, 720, None),
     ('tests/lieu.html?circuit=suzuko&vue=pont', 1280, 720, None),   # le pont de Suzuko (PONT_ACTIF) : une voiture dessus, une dessous ; capture pont-suzuko.png   # Monoco en détail : le port, les bateaux, les façades ; capture monoco.png
     ('tests/lieu.html?circuit=monoco&domicile=1', 1280, 720, None),   # le Grand Prix à domicile : le public aux couleurs du pays, les banderoles ; capture banderoles.png
@@ -1200,8 +1201,8 @@ def pluie_ecran(pg, titre, l, h):
       return { appels: SCENE3D.appelsDessin, pluie: METEO3D.pluie.visible, gouttes: METEO3D.pluie.geometry.drawRange.count, gerbes: METEO3D.gerbes.count, hudCache: document.getElementById('meteoHud').classList.contains('cache'), eau: document.getElementById('meteoEau').textContent, icone: document.getElementById('meteoIcone').textContent, max: REGLAGES.LIEU_APPELS_MAX }; }""")
     route = pg.evaluate("() => METEO3D.routeMateriau")
     L.append(f"  (pluie, 20 voitures, {l}×{h}, derrière la voiture : {m['appels']} appels de dessin, {m['gouttes'] // 2} gouttes, {m['gerbes']} gerbes)")
-    t(f'{titre} : sous la pluie : la pluie tombe (un trait par goutte, en un appel), des gerbes derrière les voitures qui roulent, la route mouillée (à reflets), l’icône et l’eau sur la piste ; sous LIEU_APPELS_MAX appels avec 20 voitures',
-      pret and m['pluie'] and m['gouttes'] > 1000 and m['gerbes'] >= 3 and route == 'MeshPhongMaterial' and not m['hudCache'] and '75' in m['eau'] and m['icone'] == '🌧' and m['appels'] < m['max'], str([m, route]))
+    t(f'{titre} : sous la pluie : la pluie tombe (un trait par goutte, en un appel), des gerbes derrière les voitures qui roulent, la route mouillée (à reflets) et sa trajectoire plus sèche, l’icône et l’eau sur la piste ; sous LIEU_APPELS_MAX appels avec 20 voitures',
+      pret and m['pluie'] and m['gouttes'] > 1000 and m['gerbes'] >= 3 and route == 'MeshPhongMaterial' and not m['hudCache'] and '75' in m['eau'] and m['icone'] == '🌧' and m['appels'] < m['max'] and pg.evaluate('() => !!(METEO3D.ligne && METEO3D.ligne.visible)'), str([m, route]))
     pg.screenshot(path=os.path.join(CAPTURES, 'pluie.png' if l == 1280 else 'pluie-960.png'))
     if l != 1280: return
     pg.evaluate('() => CAMERA.forcer("cockpit")'); pg.wait_for_timeout(800)
@@ -1222,6 +1223,23 @@ def prevision_ecran(pg, titre):
 
 # la réalisation télé (regie.js) dans le vrai jeu, à Monoco : en vue télé, la caméra est un vrai poste du décor (sa place ne bouge
 # pas, elle voit la voiture), puis l'hélicoptère (dans ses hauteurs) ; les mâts des caméras coûtent un appel de dessin au plus
+# le Grand Prix à domicile (?domicile=1 : un joueur fictif chez lui à Monzo) : avant les feux, la caméra longe la tribune des supporters
+# (la tribune principale du décor, à moins de 30 m d'elle), puis la grille vue d'en haut ; capture supporters.png
+def supporters_ecran(pg, titre):
+    pg.evaluate('() => { REGLAGES.GRILLE_TRIBUNE_DUREE = 6; }')   # (plus long : swiftshader est lent, la capture doit tomber dedans)
+    attendre(pg, '() => JEU.ecran === "qualif" && JEU.qualif && JEU.qualif.etat === "choix"', None, 60000)
+    attendre(pg, '() => JEU.plateau.carte !== null', None, 180000)
+    pg.evaluate('() => document.getElementById("boutonQualifPasser").click()')   # (un clic par la page : swiftshader rame, le bouton « bouge »)
+    attendre(pg, '() => JEU.qualif && JEU.qualif.etat === "resultat"', None, 180000)
+    pg.evaluate('() => document.getElementById("boutonQualifCourse").click()')
+    vu = attendre(pg, '() => JEU.ecran === "grille" && JEU.grille && JEU.grille.tribune && JEU.grille.t > 0.3', None, 30000)
+    if not vu: t(f'{titre} : la caméra de la grille au Grand Prix à domicile', False, str(pg.evaluate('() => [JEU.ecran, !!JEU.grille]'))); return
+    m = pg.evaluate("""() => { const tr = JEU.grille.tribune, c = SCENE3D.camera.position, d = Math.min(Math.hypot(c.x - tr.a.x, c.z - tr.a.z), Math.hypot(c.x - tr.b.x, c.z - tr.b.z));
+      let ban = 0; SCENE3D.decor.groupe.traverse(o => { if (o.name === 'decor-banderoles') ban++; }); return { t: JEU.grille.t, d, proche: (() => { let m = Infinity; for (const o of SCENE3D.decor.objets.tribune) if (o.entree === 1) m = Math.min(m, Math.hypot(c.x - o.x, c.z - o.z)); return m; })(), ban }; }""")
+    t(f'{titre} : au Grand Prix à domicile, avant la grille, la caméra longe la tribune des supporters (à {round(m["proche"])} m), avec les banderoles', vu and m['proche'] < 30 and m['ban'] == 1, str(m))
+    pg.screenshot(path=os.path.join(CAPTURES, 'supporters.png'))
+    t(f'{titre} : puis la grille vue d’en haut, et la course', attendre(pg, '() => JEU.ecran === "course"', None, 60000), pg.evaluate('() => JEU.ecran'))
+
 def tele_ecran(pg, titre):
     pret = attendre(pg, '() => JEU.plateau && JEU.plateau.pilotes.filter(p => Math.abs(p.v.u) > 15).length >= 5 && CAMERA.regie', None, 90000)
     pg.evaluate('() => CAMERA.forcer("tele")')
@@ -2534,7 +2552,7 @@ with sync_playwright() as p:
             pg.on('requestfailed', lambda r: console.append('FICHIER MANQUANT ' + r.url))
             if 'test=sdk' in page or 'test=decouverte' in page or 'test=amis' in page or 'test=tournoi' in page: pg.add_init_script(FAUX_SDK)
             # la météo dessinée (meteo3d.js) : une fausse météo de test (window.METEO_TEST, jamais dans le jeu), ?meteo=pluie ou ?meteo=risque
-            if 'meteo=pluie' in page: pg.add_init_script('window.METEO_TEST = { etat: () => ({ pluie: 0.85, eau: 0.75, ciel: 0.9 }), prevision: () => ({ type: "pluie", risque: 90 }) };')
+            if 'meteo=pluie' in page: pg.add_init_script('window.METEO_TEST = { etat: () => ({ pluie: 0.85, eau: 0.75, eauTrajectoire: 0.35, ciel: 0.9 }), prevision: () => ({ type: "pluie", risque: 90 }) };')
             if 'meteo=risque' in page: pg.add_init_script('window.METEO_TEST = { etat: () => ({ pluie: 0, eau: 0, ciel: 0 }), prevision: () => ({ type: "risque", risque: 40 }) };')
             # le tournoi change de page entre deux manches : les pubs sont aussi comptées dans sessionStorage (qui survit au rechargement)
             if 'test=tournoi' in page: pg.add_init_script("const __cb = PokiSDK.commercialBreak; PokiSDK.commercialBreak = function () { sessionStorage.setItem('pubs', String((+sessionStorage.getItem('pubs') || 0) + 1)); return __cb.call(this); };")
@@ -2590,6 +2608,8 @@ with sync_playwright() as p:
                 course_ia10(pg, titre)
             if 'course=1&ia=8' in page:
                 course_podium(pg, titre, l)
+            if 'test=supporters' in page:
+                supporters_ecran(pg, titre)
             if 'test=tele' in page:
                 tele_ecran(pg, titre)
             if 'test=pluie' in page:
@@ -2634,7 +2654,7 @@ with sync_playwright() as p:
                 qualif(pg, titre)
             elif 'test=fantome' in page:
                 fantome(pg, titre)
-            elif 'joueur=1' in page:
+            elif 'joueur=1' in page and 'test=supporters' not in page:   # (la page des supporters a son propre parcours)
                 hud(pg, titre, l)
                 if l == 1280: course_joueur(pg, titre)
             if 'camera=auto' in page:
