@@ -2285,6 +2285,7 @@ t('décor : DECORS.test placé le long de la piste : chaque brique est là (trib
   const n={};for(const k in o)n[k]=o[k].length;
   v(n.tribune>=30&&n.public>=1000&&n.batiment>=10&&n.garage===R.ECURIES.length&&n.arbreA>=50&&n.arbreB>=50&&n.panneau>=20&&n.pneus>=50,'nombres : '+JSON.stringify(n));
   v(o.garage.every((g,k)=>g.couleur===R.ECURIES[k].couleur),'un garage par écurie, à ses couleurs');
+  const tailles=o.public.map(p=>p.e);v(Math.min(...tailles)>=1.1&&Math.max(...tailles)<=1.9,'la taille des spectateurs, en mètres : '+Math.min(...tailles).toFixed(2)+' à '+Math.max(...tailles).toFixed(2));
   // la vérification, sans la grille de decor.js : l'échantillon le plus proche parmi tous
   const proche=(x,z)=>{let dm=Infinity,im=0;for(let i=0;i<c.nb;i++){const q=(x-c.x[i])*(x-c.x[i])+(z-c.z[i])*(z-c.z[i]);if(q<dm){dm=q;im=i;}}return{d:Math.sqrt(dm),i:im};};
   let mauvais=[],pire=Infinity;

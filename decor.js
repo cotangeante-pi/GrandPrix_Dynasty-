@@ -80,6 +80,8 @@ const DECOR = (function () {
     const objets = { tribune: [], public: [], batiment: [], garage: [], arbreA: [], arbreB: [], panneau: [], pneus: [] };
     const libre = verificateur(c), rnd = tirage(graine === undefined ? R.DECOR_GRAINE : graine);
     const couleurPublic = couleursPublic(rnd);
+    // la taille d'un spectateur, en vrais mètres (la forme fait 1 m de haut : l'échelle de l'objet est sa hauteur)
+    const taille = h => h + (2 * rnd() - 1) * R.PUBLIC_HAUTEUR_ECART;
     let refus = 0, inconnus = 0;
     // range un objet si sa place est libre (le centre de son emprise : (lc, pc) dans son repère, son rayon)
     const ranger = (liste, r, l, h, p, lc, pc, rayon, extra) => {
@@ -105,7 +107,7 @@ const DECOR = (function () {
           for (let g = 0; g < rangs; g++)
             for (let k = 0; k < n; k++) {
               if (rnd() > R.DECOR_PUBLIC_REMPLI) continue;
-              objets.public.push(poser(r, -R.TRIBUNE_MODULE / 2 + (k + 0.5) * R.TRIBUNE_MODULE / n, (g + 1) * R.TRIBUNE_MARCHE[1], (g + 0.5) * R.TRIBUNE_MARCHE[0], { couleur: couleurPublic() }));
+              objets.public.push(poser(r, -R.TRIBUNE_MODULE / 2 + (k + 0.5) * R.TRIBUNE_MODULE / n, (g + 1) * R.TRIBUNE_MARCHE[1], (g + 0.5) * R.TRIBUNE_MARCHE[0], { couleur: couleurPublic(), e: taille(R.PUBLIC_HAUTEUR_ASSIS) }));
             }
         });
       } else if (e.type === 'public') {
@@ -114,7 +116,7 @@ const DECOR = (function () {
         modules(e, R.PUBLIC_PAS, s => {
           const r = repere(c, s, d, cote);
           for (let g = 0; g < rangs; g++)
-            ranger(objets.public, r, (rnd() - 0.5) * R.PUBLIC_PAS * 0.6, 0, g * R.PUBLIC_RANG + rnd() * 0.3, 0, g * R.PUBLIC_RANG, 0.5, { couleur: couleurPublic() });
+            ranger(objets.public, r, (rnd() - 0.5) * R.PUBLIC_PAS * 0.6, 0, g * R.PUBLIC_RANG + rnd() * 0.3, 0, g * R.PUBLIC_RANG, 0.5, { couleur: couleurPublic(), e: taille(R.PUBLIC_HAUTEUR_DEBOUT) });
         });
       } else if (e.type === 'stands') {
         // le bâtiment, en modules qui suivent la piste ; les garages sur sa façade, un par écurie, à ses couleurs, répartis sur la longueur
@@ -199,10 +201,11 @@ const DECOR = (function () {
         boite(p, c, -M / 2, M / 2, 0, haut, prof, prof + 0.3, C.mur);                                // le mur du fond
         boite(p, c, -M / 2, M / 2, haut, haut + 0.3, -1, prof + 0.3, C.toit);                         // le toit, un peu en avant
       }),
-      personne: fabriquer((p, c) => { boite(p, c, -0.22, 0.22, 0, 0.75, -0.14, 0.14, 0xffffff); boite(p, c, -0.13, 0.13, 0.78, 1.04, -0.13, 0.13, C.tete); }),
+      // une personne de 1 m de haut (l'objet est mis à la taille du spectateur par son échelle) : le corps, puis la tête
+      personne: fabriquer((p, c) => { boite(p, c, -0.13, 0.13, 0, 0.8, -0.08, 0.08, 0xffffff); boite(p, c, -0.07, 0.07, 0.83, 1, -0.07, 0.07, C.tete); }),
       personneLoin: fabriquer((p, c) => {   // une simple plaque (2 triangles, des deux côtés), tournée vers la piste
         const C2 = new THREE.Color(0xffffff);
-        for (const q of [[-0.25, 0], [0.25, 0], [0.25, 1], [-0.25, 0], [0.25, 1], [-0.25, 1]]) { p.push(q[0], q[1], 0); c.push(C2.r, C2.g, C2.b); }
+        for (const q of [[-0.14, 0], [0.14, 0], [0.14, 1], [-0.14, 0], [0.14, 1], [-0.14, 1]]) { p.push(q[0], q[1], 0); c.push(C2.r, C2.g, C2.b); }
       }),
       batiment: fabriquer((p, c) => {
         const L = R.STANDS_MODULE, P = R.STANDS_PROFONDEUR, H = R.STANDS_HAUTEUR;

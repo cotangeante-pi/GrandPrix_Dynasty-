@@ -697,8 +697,11 @@ const REGLAGES = {
   DECOR_PUBLIC_REMPLI: 0.85,    // la part des places occupées dans les tribunes
   TRIBUNE_MODULE: 12,           // m : une tribune est faite de modules de cette longueur, qui suivent la piste
   TRIBUNE_RANGS: 6,
-  TRIBUNE_MARCHE: [0.9, 0.55],  // m : la profondeur et la hauteur d'une marche
+  TRIBUNE_MARCHE: [0.8, 0.45],  // m : la profondeur d'un rang de gradin et sa hauteur (en vrai : ~0,8 m et ~0,4 m)
   TRIBUNE_TOIT: 3,              // m au-dessus de la dernière marche
+  PUBLIC_HAUTEUR_ASSIS: 1.25,   // m : un spectateur assis dans une tribune…
+  PUBLIC_HAUTEUR_DEBOUT: 1.7,   // m : … et debout (une F1 fait ~1 m de haut et 5,5 m de long)
+  PUBLIC_HAUTEUR_ECART: 0.1,    // m : de plus ou de moins, tiré pour chacun
   PUBLIC_PAS: 1.2,               // m entre deux spectateurs
   PUBLIC_RANGS: 3,              // le public debout : ses rangs…
   PUBLIC_RANG: 0.9,             // … à ça l'un de l'autre
@@ -799,20 +802,20 @@ const CIRCUITS = {
 // pas libre (piste, voie des stands, podium, poste télé) est laissée vide : decor.js le vérifie pour chaque objet.
 const DECORS = {
   test: [
-    { type: 'tribune', s: -150, longueur: 300, cote: 1, distance: 23 },     // la grande tribune, en face des stands
+    { type: 'tribune', s: -150, longueur: 300, cote: 1, distance: 28 },     // la grande tribune, en face des stands (7,5 m derrière la barrière)
     { type: 'stands', s: -160, longueur: 140, cote: -1, distance: 22, ecuries: [0, 5] },     // les stands, de part et d'autre du podium
     { type: 'stands', s: 20, longueur: 140, cote: -1, distance: 22, ecuries: [5, 10] },
     { type: 'panneaux', s: -400, longueur: 230, cote: 1, distance: 21 },
     { type: 'panneaux', s: 170, longueur: 260, cote: 1, distance: 21 },
     { type: 'pneus', s: 440, longueur: 90, cote: 1, distance: 21 },          // la première chicane
     { type: 'pneus', s: 440, longueur: 90, cote: -1, distance: 21 },
-    { type: 'tribune', s: 760, longueur: 300, cote: -1, distance: 24 },     // à l'extérieur du grand virage
-    { type: 'public', s: 700, longueur: 420, cote: 1, distance: 24 },
+    { type: 'tribune', s: 760, longueur: 300, cote: -1, distance: 28 },     // à l'extérieur du grand virage
+    { type: 'public', s: 700, longueur: 420, cote: 1, distance: 25 },
     { type: 'panneaux', s: 1250, longueur: 550, cote: -1, distance: 21 },
     { type: 'pneus', s: 2290, longueur: 100, cote: -1, distance: 21 },      // les deux virages serrés
-    { type: 'tribune', s: 2240, longueur: 144, cote: -1, distance: 24 },
+    { type: 'tribune', s: 2240, longueur: 144, cote: -1, distance: 28 },
     { type: 'pneus', s: 2600, longueur: 100, cote: -1, distance: 21 },
-    { type: 'public', s: 2560, longueur: 160, cote: -1, distance: 24 },
+    { type: 'public', s: 2560, longueur: 160, cote: -1, distance: 25 },
     { type: 'arbres', s: 0, longueur: 4000, cote: -1, distance: 45, profondeur: 140, nombre: 380 },
     { type: 'arbres', s: 0, longueur: 4000, cote: 1, distance: 45, profondeur: 90, nombre: 260 },
   ],
