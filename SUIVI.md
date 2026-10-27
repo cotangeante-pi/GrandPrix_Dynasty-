@@ -86,6 +86,7 @@ Note du Chef session-5b (2026-10-23) : les lignes 18 à 19b ne s'additionnaient 
 
 ## À essayer par le propriétaire
 
+- **Le premier décor** (circuit d'essai, tour 31) : `index.html?debug=1&course=3&ia=20&circuit=test` : tribunes, public, stands, arbres, panneaux. **Mesure les images par seconde** (c'est le critère de l'étape 10 : 60 avec 20 voitures) et dis si le style te plaît (formes simples faites par le code).
 - **L'affichage de course** (tour 31) : la minicarte en haut à gauche, les messages de course sous le chrono, l'état des pneus avec ?pneus=1. Dire : la minicarte est bien placée ? trop petite ?
 - **Le calendrier** (tour 31) : au paddock, « Calendrier » ; la fiche d'un rival a maintenant sa photo (son casque, sa voiture).
 - **Le résumé de la course** (tour 31) : après une course, sur les résultats, « ▶ Résumé » : le départ, les dépassements, l'arrivée, en vue télé (45 s au plus). Dire : les bons moments sont choisis ? trop long ?

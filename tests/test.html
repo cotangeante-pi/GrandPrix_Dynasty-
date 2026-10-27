@@ -1,7 +1,7 @@
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><title>tests</title></head><body>
 <pre id="res"></pre>
 <script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));window.addEventListener('unhandledrejection',e=>__err.push('promesse : '+(e.reason&&e.reason.message||e.reason)));</script>
-<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../son.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../decouverte.js"></script><script src="../pilote.js"></script><script src="../deux-joueurs.js"></script><script src="../tournoi.js"></script><script src="../casque.js"></script><script src="../decor-public.js"></script><script src="../photo.js"></script><script src="../cache-carte.js"></script><script src="../journal.js"></script><script src="../argent.js"></script><script src="../garage.js"></script><script src="../aileron.js"></script><script src="../carte2d.js"></script><script src="../saisons.js"></script><script src="../sponsors.js"></script><script src="../fiche.js"></script><script src="../interview.js"></script><script src="../carriere.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../resume.js"></script><script src="../messages.js"></script><script src="../fantome.js"></script><script src="../principal.js"></script>
+<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../son.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../decouverte.js"></script><script src="../pilote.js"></script><script src="../deux-joueurs.js"></script><script src="../tournoi.js"></script><script src="../casque.js"></script><script src="../decor-public.js"></script><script src="../photo.js"></script><script src="../cache-carte.js"></script><script src="../journal.js"></script><script src="../argent.js"></script><script src="../garage.js"></script><script src="../aileron.js"></script><script src="../carte2d.js"></script><script src="../saisons.js"></script><script src="../sponsors.js"></script><script src="../fiche.js"></script><script src="../interview.js"></script><script src="../carriere.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../resume.js"></script><script src="../messages.js"></script><script src="../decor.js"></script><script src="../fantome.js"></script><script src="../principal.js"></script>
 <script>
 const L=[];let ok=0,ko=0;
 function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
@@ -2274,6 +2274,36 @@ t('messages de course : un nouveau meilleur tour, une pénalité, un passage aux
   for(let i=1;i<=10;i++)MESSAGES.observer(m,V([[null,i,false],[null,0,false]]));v(m.file.length===R.MESSAGES_FILE_MAX&&m.file[m.file.length-1].s===1,'file bornée : '+m.file.length);
   v(['msg_meilleurTour','msg_penalite','msg_stands','pneus','pneusAdherence'].every(c=>TEXTES.fr[c]&&TEXTES.en[c]),'textes');});
 
+// --- le décor (decor.js, étape 10) : le placement, en calcul pur
+t('décor : DECORS.test placé le long de la piste : chaque brique est là (tribunes et leur public, public debout, stands avec un garage par écurie, deux formes d’arbres, panneaux, pneus) ; aucun objet à moins de largeur/2 + DECOR_MARGE du centre (sur tout le tracé), ni dans la voie des stands ; une tribune à la ligne ; la même chose à chaque fois, sans toucher à hasard()', ()=>{
+  const R=REGLAGES,c=construireCircuit(CIRCUITS.test),demi=c.largeur/2;
+  v(Object.keys(DECORS).every(k=>CIRCUITS[k]),'chaque décor a son circuit');
+  ALEATOIRE.semer(7);const h0=hasard();ALEATOIRE.semer(7);
+  const P=DECOR.placer(c,DECORS.test),o=P.objets;v(hasard()===h0,'le décor ne tire pas dans hasard()');
+  v(JSON.stringify(DECOR.placer(c,DECORS.test))===JSON.stringify(P),'la même graine, le même décor');
+  v(P.inconnus===0&&DECORS.test.every(e=>DECOR.TYPES.includes(e.type)),'types connus');
+  const n={};for(const k in o)n[k]=o[k].length;
+  v(n.tribune>=30&&n.public>=1000&&n.batiment>=10&&n.garage===R.ECURIES.length&&n.arbreA>=50&&n.arbreB>=50&&n.panneau>=20&&n.pneus>=50,'nombres : '+JSON.stringify(n));
+  v(o.garage.every((g,k)=>g.couleur===R.ECURIES[k].couleur),'un garage par écurie, à ses couleurs');
+  const tailles=o.public.map(p=>p.e);v(Math.min(...tailles)>=1.1&&Math.max(...tailles)<=1.9,'la taille des spectateurs, en mètres : '+Math.min(...tailles).toFixed(2)+' à '+Math.max(...tailles).toFixed(2));
+  // la vérification, sans la grille de decor.js : l'échantillon le plus proche parmi tous
+  const proche=(x,z)=>{let dm=Infinity,im=0;for(let i=0;i<c.nb;i++){const q=(x-c.x[i])*(x-c.x[i])+(z-c.z[i])*(z-c.z[i]);if(q<dm){dm=q;im=i;}}return{d:Math.sqrt(dm),i:im};};
+  let mauvais=[],pire=Infinity;
+  for(const k in o)for(const ob of o[k]){
+    const x=ob.cx===undefined?ob.x:ob.cx,z=ob.cx===undefined?ob.z:ob.cz,r=ob.rayon===undefined?0.3:ob.rayon,p=proche(x,z),marge=p.d-r-demi;
+    pire=Math.min(pire,marge);
+    const d=(x-c.x[p.i])*c.nx[p.i]+(z-c.z[p.i])*c.nz[p.i],zs=zoneStands(c,c.s[p.i],d);
+    if(marge<R.DECOR_MARGE||(zs&&d*zs.cote>0&&d*zs.cote-r<zs.dExt))mauvais.push(k);}
+  v(mauvais.length===0,'trop près de la piste ou dans la voie des stands : '+mauvais.slice(0,5).join()+' ('+mauvais.length+')');
+  v(pire>=R.DECOR_MARGE,'au plus près : '+pire.toFixed(2)+' m du bord');
+  v(o.tribune.some(t=>{const s=c.s[proche(t.x,t.z).i];return s<60||s>c.longueur-60;}),'une tribune à la ligne');
+  // une place qui n'est pas libre est laissée vide : sur la piste, dans la voie des stands, sur un poste télé
+  v(DECOR.placer(c,[{type:'tribune',s:300,longueur:24,cote:1,distance:2}]).objets.tribune.length===0,'pas de tribune sur la piste');
+  v(DECOR.placer(c,[{type:'arbres',s:-30,longueur:60,cote:c.stands.cote,distance:c.stands.dMur+2,profondeur:3,nombre:20}]).objets.arbreA.length+DECOR.placer(c,[{type:'arbres',s:-30,longueur:60,cote:c.stands.cote,distance:c.stands.dMur+2,profondeur:3,nombre:20}]).objets.arbreB.length===0,'pas d’arbre dans la voie des stands');
+  const poste=DECOR.postesTele(c)[1],pp=proche(poste.x,poste.z);
+  v(DECOR.placer(c,[{type:'panneaux',s:c.s[pp.i]-5,longueur:10,cote:1,distance:p0(c,pp,poste)}]).objets.panneau.length===0,'rien sur un poste de caméra télé');
+  function p0(c,pp,q){return Math.abs((q.x-c.x[pp.i])*c.nx[pp.i]+(q.z-c.z[pp.i])*c.nz[pp.i]);}
+});
 // --- le public des tribunes (decor-public.js, Codeur 3, étape 10, CLAUDE.md « Le Grand Prix à domicile ») : calcul pur
 t('le public : la même graine donne le même public ; une autre graine ou un autre circuit, un autre', ()=>{
   const j={nom:'Alex',numero:27,pays:'be',coeur:'spaa'},P=(g,c)=>DECOR_PUBLIC.tirer({graine:g,circuit:c,joueur:j},800);
