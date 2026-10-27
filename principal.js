@@ -148,7 +148,7 @@ function lancerCourse(nbTours) {
   // le mode 2 joueurs : pas de qualification (la grille est tirée au sort), les feux tout de suite
   if (JEU.deux) { JEU.ecran = 'course'; INTERFACE.montrer('course'); return; }
   // contre les IA : d'abord la qualification du joueur (un tour, ou passer) ; la course attend
-  if (JEU.contre) { commencerQualif(); return; }
+  if (JEU.contre && !(typeof TUTORIEL_ECRAN !== 'undefined' && TUTORIEL_ECRAN.lecon())) { commencerQualif(); return; }   // (une leçon du tutoriel : pas de qualification, tutoriel.js)
   JEU.ecran = 'course';
   INTERFACE.montrer('course');
 }

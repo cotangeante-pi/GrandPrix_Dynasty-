@@ -12,7 +12,7 @@ const SAUVEGARDE = (function () {
     // réglages du joueur (fantome : le fantôme affiché, vrai par défaut) ; reaction : le meilleur temps de réaction au départ (s)
     // decouverteFaite : la course de découverte du premier lancement est jouée ; argent : l'argent du joueur (la prime de la découverte, pas encore dépensable)
     // temple : le temple de la renommée et les records de carrière (carriere.js), à côté du championnat : ils survivent à une nouvelle carrière
-    return { version: VERSION, records: {}, championnat: null, fantomes: {}, options: {}, reaction: null, decouverteFaite: false, argent: 0, cartes: {}, temple: { carrieres: [], records: {} }, deux: null, tournoi: null, motifs: [], motifsAnnonce: [], aides: [] };   // aides : les aides au premier usage déjà vues (aides.js), à la racine
+    return { version: VERSION, records: {}, championnat: null, fantomes: {}, options: {}, reaction: null, decouverteFaite: false, argent: 0, cartes: {}, temple: { carrieres: [], records: {} }, deux: null, tournoi: null, motifs: [], motifsAnnonce: [], aides: [], tutoriel: [] };   // tutoriel : les leçons réussies (tutoriel.js)   // aides : les aides au premier usage déjà vues (aides.js), à la racine
   }
 
   // une sauvegarde d'une ancienne version est transformée ici, sans rien perdre :
@@ -41,6 +41,7 @@ const SAUVEGARDE = (function () {
     if (!d.tournoi || typeof d.tournoi !== 'object') d.tournoi = null;
     if (!Array.isArray(d.motifs)) d.motifs = [];
     if (!Array.isArray(d.motifsAnnonce)) d.motifsAnnonce = [];   // les motifs gagnés pas encore annoncés à l'écran (une fois, au paddock)   // les motifs de casque débloqués (casque.js, tour 27b) : à la racine, ils survivent à une nouvelle carrière   // la dernière liste de joueurs du tournoi chrono et le tournoi en cours (tournoi.js, tour 26b), à part de la carrière   // les réglages et la rivalité du mode 2 joueurs (deux-joueurs.js, tour 25b), à part de la carrière
+    if (!Array.isArray(d.tutoriel)) d.tutoriel = [];   // les leçons du tutoriel réussies (tutoriel.js, Codeur 4) : aucune dans une sauvegarde d'avant
     if (!Array.isArray(d.aides)) d.aides = [];   // les aides au premier usage déjà vues (aides.js, Codeur 4) : aucune dans une sauvegarde d'avant
     if (typeof CARRIERE !== 'undefined') d.temple = CARRIERE.completerTemple(d.temple);   // le temple de la renommée (tour 28c) : vide dans une sauvegarde d'avant
     if (d.championnat && typeof CHAMPIONNAT !== 'undefined') CHAMPIONNAT.completer(d.championnat);
@@ -242,5 +243,17 @@ const SAUVEGARDE = (function () {
     return ecrire(d);
   }
 
-  return { aides, ecrireAides, motifs, debloquerMotifs, prendreAnnonceMotifs, tournoi, ecrireTournoi, deux, ecrireDeux, temple, entrerAuTemple, lire, ecrire, record, proposerRecord, championnat, ecrireChampionnat, fantome, proposerFantome, option, ecrireOption, reaction, proposerReaction, decouverteFaite, argent, finirDecouverte, carte, ecrireCarte, VERSION, CLE };
+  // --- le tutoriel guidé (tutoriel.js) : les leçons réussies, à la racine (une étoile chacune, elles survivent à une nouvelle carrière)
+  function tutoriel() {
+    return lire().tutoriel.slice();
+  }
+
+  function reussirLecon(id) {
+    const d = lire();
+    if (d.tutoriel.includes(id)) return false;
+    d.tutoriel.push(id);
+    return ecrire(d);
+  }
+
+  return { tutoriel, reussirLecon, aides, ecrireAides, motifs, debloquerMotifs, prendreAnnonceMotifs, tournoi, ecrireTournoi, deux, ecrireDeux, temple, entrerAuTemple, lire, ecrire, record, proposerRecord, championnat, ecrireChampionnat, fantome, proposerFantome, option, ecrireOption, reaction, proposerReaction, decouverteFaite, argent, finirDecouverte, carte, ecrireCarte, VERSION, CLE };
 })();
