@@ -405,6 +405,7 @@ const REGLAGES = {
   IA_PERIODE_DECISION: 0.15,    // s : il choisit sa ligne à ce rythme
   IA_HORIZON: 200,              // m : la longueur des lignes qu'il compare
   IA_LIGNE_PAS: 4,              // m entre deux points d'une ligne
+  IA_RAYON_SERRE: 20,           // m : sous ce rayon de piste (une épingle), la courbure d'une ligne est aussi mesurée sur ses points voisins
   IA_LIGNE_DEMI_BASE: 2,        // la courbure d'une ligne est mesurée sur ±2 points (±8 m)
   IA_TRANSITION_MIN: 20,        // m : de là où il est jusqu'à la ligne voulue, au moins cette distance…
   IA_TRANSITION_TEMPS: 0.7,     // s : … ou la distance parcourue en ce temps
@@ -570,7 +571,7 @@ const REGLAGES = {
   CONSIGNE_DELAI: 40,
   CONSIGNE_DELAI_IA: 75,        // s : entre deux IA (ou le coéquipier du joueur devant lui), le temps d'un tour au moins : il laisse passer dès qu'il le peut
   CONSIGNE_RECENT: 0.3,         // s : … et ses derniers tours pas plus lents que ceux de celui de devant de plus de ça
-  CONSIGNE_LEVER: 0.3,          // celui de devant, tant qu'il ne voit pas l'autre dans ses rétroviseurs : dans les droites, il roule à (1 − ça) de sa vitesse
+  CONSIGNE_LEVER: 0.4,          // celui de devant, tant qu'il ne voit pas l'autre dans ses rétroviseurs : dans les droites, il roule à (1 − ça) de sa vitesse
   CONSIGNE_DROITE: 150,         // m : celui de devant ne s'écarte que si la piste est droite sur ça devant lui…
   CONSIGNE_BORD: 2,             // m : … jusqu'à ça du bord, côté opposé à son coéquipier…
   CONSIGNE_RAMPE: 60,           // m : … en s'y décalant sur cette distance

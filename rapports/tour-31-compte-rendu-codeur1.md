@@ -79,3 +79,45 @@ Commit : pneus **651858b** (avec origin/main), GitHub **40415743685 : vert**, 10
 - simulation.js : la consigne n'est donnée que si les derniers tours de celui de derrière ne sont pas plus lents de plus de CONSIGNE_RECENT (0,3 s) (un meilleur tour ancien ne suffisait pas : vu sur le technique, graine 4, il n'était pas plus rapide) ; entre deux IA, CONSIGNE_DELAI_IA = 75 s (un tour) ; le joueur garde 40 s.
 - consignes.html exige maintenant au moins 7 suivies sur 8 (en proportion) : 8 consignes sur 30 courses de 12 tours, **7 suivies, 1 ignorée** ; chocs > 5 m/s 16 avec, 16 sans ; **0 pendant une consigne** ; les courses sans consigne au bit près. moteur 274/274 ; stands.html : chocs 7 (16 sans pneus).
 - **Pas tenu, à trancher par le Chef :** courses.html n'est plus 41 / 4 / 2450 mais **46 dépassements, 5 chocs, 2558 pas d'herbe** (garde-fous tenus : chocs ≤ 6, herbe ≤ 4000) ; ?ailerons=1 : 41 / 5 / 2876. Cause : 5 des 30 courses de 5 tours ont une consigne (aux tours 3–4) et, maintenant, elles sont suivies. Choix proposés : (a) garder ; (b) pas de consigne en très courte (CONSIGNE_TOURS_MIN = 12 : courses.html redevient 41 / 4 / 2450) — une règle de jeu.
+
+---
+
+## L'herbe en peloton sur les vrais tracés (19h00 → 20h25)
+Commit : pneus **83cc0af** (avec origin/main), GitHub **40425065296 : vert** (10 travaux, 7 min 19 s).
+
+**Cause** (traces, page de diagnostic dans scratchpad/codeur1/) : presque toute l'herbe vient des épingles et des virages serrés (à Monoco, un seul virage : l'épingle de 10 m, 108°), la voiture sortant LARGE côté extérieur, souvent seule (pas de voiture à 15 m), parfois derrière une voiture qui prend le virage à l'intérieur (Montréol, Suzuko : la voiture 10 à 14 m devant).
+1. La courbure d'une ligne est mesurée sur ±IA_LIGNE_DEMI_BASE points (±8 m) : sur une épingle, ça lisse le coin et sous-estime le virage ; la voiture y arrivait trop vite.
+2. Le réflexe (« il ne braque pas vers une voiture à côté de lui ») valait jusqu'à sa portée, devant lui : derrière une voiture qui tourne à l'intérieur, il ne braquait plus et sortait large.
+
+**Éliminé** (mesuré, 5 graines × 10 IA × 3 tours sur les quatre circuits) : la visée trop longue en virage serré (pire : Monoco 4160 → 4572…) ; la vitesse au-dessus de la carte (la plafonner ne change rien : les voitures sortent même sous la vitesse de la carte) ; les lignes « intérieur / extérieur » décalées d'un bloc (les retirer dans les virages serrés : Monoco 4572, rien) ; une borne sur la courbure de la piste elle-même (très efficace, Monoco 268, Montréol 0, mais trop lente : le technique seul 55,3 → 58,7 s, rouge sur GitHub, abandonnée).
+
+**Remède** (ia.js) : sous IA_RAYON_SERRE (20 m de rayon de piste), la courbure d'une ligne est aussi mesurée sur ses points voisins (±4 m) et la plus forte des deux compte ; le réflexe ne bloque plus la direction pour une voiture nettement devant (au-delà d'une longueur et IA_MARGE_LONG : c'est sa vitesse qui le retient, juste après).
+
+| Herbe, 5 graines × 10 IA × 3 tours (Mac) | avant | après | |
+|---|---|---|---|
+| Monoco | 4160 | 1186 | −71 % |
+| Suzuko | 1020 | 283 | −72 % |
+| Montréol | 2048 | 648 | −68 % |
+| Yas Marino | 278 | 43 | −85 % |
+
+Tours d'une IA seule : +0,3 à +1,6 s (Monoco 75,26 → 76,86 s ; technique 55,26 → 55,42 s : la référence épinglée d'ecrans.py est mise à jour, c'est voulu). Chocs > 5 m/s sur ces 20 courses : 1 / 2 / 5 / 2 (avant 1 / 2 / 2 / 2).
+
+**Garde-fous** (GitHub 40425065296) : courses.html **47 dépassements, 4 chocs, 1086 pas d'herbe** (référence 46 / 5 / 2558 : +1, −1, −58 %) ; ?ailerons=1 45 / 6 / 1577 ; stands.html chocs 7 (9 sans pneus), herbe 623 (4079 sans) ; consignes.html 5 consignes, 5 suivies, chocs 9 avec = 9 sans, 0 pendant.
+
+### officiels.html : 12 tours avec les pneus et la stratégie (un arrêt), 10 IA (GitHub)
+| Circuit | chocs > 5 | herbe | coupes | dépass. | arrêts | sans arrêt | muret | pén. vitesse | usure max |
+|---|---|---|---|---|---|---|---|---|---|
+| Monoco | 0 | 207 | 0 | 18 | 10/10 | 0 | 0 | 0 s | 0,94 |
+| Silverstoun | 0 | 0 | 0 | 35 | 10/10 | 0 | 0 | 0 s | 1,00 |
+| Monzo | 0 | 0 | 0 | 31 | 10/10 | 0 | 0 | 0 s | 1,00 |
+| Spaa | 2 | 0 | 0 | 39 | 10/10 | 0 | 0 | 0 s | 1,00 |
+| Suzuko | 0 | 81 | 0 | 41 | 10/10 | 0 | 0 | 0 s | 1,00 |
+| Interlagas | 0 | 129 | 0 | 43 | 10/10 | 0 | 0 | 0 s | 1,00 |
+| Montréol | 1 | 153 | 1 | 20 | 10/10 | 0 | 0 | 0 s | 0,99 |
+| Melbourn Park | 0 | 0 | 0 | 46 | 10/10 | 0 | 0 | 0 s | 1,00 |
+| Barcelana | 0 | 0 | 0 | 40 | 10/10 | 0 | 0 | 0 s | 1,00 |
+| Bahrayn | 0 | 179 | 0 | 33 | 10/10 | 0 | 0 | 0 s | 1,00 |
+| Singapura | 1 | 136 | 0 | 36 | 10/10 | 0 | 0 | 0 s | 1,00 |
+| Yas Marino | 1 | 0 | 0 | 42 | 10/10 | 0 | 0 | 0 s | 1,00 |
+
+(Les dépassements comptent les échanges de places aux arrêts.) À noter pour le propriétaire et le Codeur 3 : sur ces longs tracés, l'usure arrive à 1 (pneus morts) avant la fin des 12 tours avec un seul arrêt : le réglage de l'usure a été fait sur les circuits d'essai (~3,2 km) ; à revoir quand les tracés seront branchés (pneus-donnees.js, USURE_*).
