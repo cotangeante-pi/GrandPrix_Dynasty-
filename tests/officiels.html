@@ -58,6 +58,49 @@ for(const [cle,def] of Object.entries(TOUS)){
   for(const n of Object.keys(r.longues)){const x=r.longues[n];L.push(`      10 IA, ${n} tours, pneus et stratégie : ${f(x)}${x.erreur?'':', arrêts '+x.arrets+'/10, sans arrêt '+x.sans+', muret '+x.muret+', pénalités de vitesse '+x.vitesse+' s, usure maximale '+x.usure.toFixed(2)}`);}
   ecrire(cle);
 }
+// le pont de Suzuko (tour 34, Chef) : la physique est plate, les deux passages du croisement ont les mêmes x, z. EXIGÉ : deux voitures
+// de part et d'autre du croisement (branchesOpposees) ne se touchent pas, ne se voient pas, ne s'aspirent pas ; positionSurPiste garde
+// sa branche (jamais de saut de s). 20 IA, 3 tours à Suzuko ; puis deux voitures posées l'une sur l'autre au croisement. ?pont=0 : sauté
+if(Q.get('pont')!=='0'&&(!FILTRE||FILTRE.split(',').includes('suzuko'))){
+  const SZ=construireCircuit(CIRCUITS_OFFICIELS_A.suzuko),CR=SZ.croisement;
+  t('Suzuko : le croisement est dans le circuit, ses deux passages au même endroit (à moins de 3 m)',()=>{v(CR&&CR.length===2,'croisement '+CR);
+    const i=Math.round(CR[0]/SZ.pas),j=Math.round(CR[1]/SZ.pas);let m=Infinity;
+    for(let a=i-25;a<=i+25;a++)for(let b=j-25;b<=j+25;b++){const A=(a+SZ.nb)%SZ.nb,B=(b+SZ.nb)%SZ.nb;m=Math.min(m,Math.hypot(SZ.x[A]-SZ.x[B],SZ.z[A]-SZ.z[B]));}
+    L.push('  (croisement '+CR.join(' / ')+' m : les deux passages à '+m.toFixed(2)+' m l’un de l’autre)');v(m<3,'écart '+m.toFixed(2)+' m');});
+  t('Suzuko, 20 IA, 3 tours : aucun contact, aucune voiture vue, aucune aspiration entre les deux passages du croisement ; aucun saut de branche',()=>{
+    const carte=carteDepuis(SZ,calculerTrajectoire(SZ)),e=creerCourseIA(SZ,20,3,1,carte),V=e.pilotes;
+    let contacts=0,vues=0,aspi=0,sauts=0,rencontres=0;const avant=V.map(p_=>p_.v.piste.s);
+    const pasMax=Math.round(3*REGLAGES.SIMULATION_TEMPS_MAX/DT);
+    for(let k=0;k<pasMax&&e.arrives<V.length;k++){
+      const enCourse=V.filter(p_=>p_.arrivee===null),voit=enCourse.map(p_=>p_.v);
+      for(const p_ of enCourse)for(const w of voituresVues(p_.v,voit,SZ))if(branchesOpposees(SZ,p_.v.piste.s,w.s))vues++;
+      pasCourseIA(e,DT);
+      for(const p_ of enCourse){const a=p_.v;
+        for(const w of a.touche||[])if(w.piste&&branchesOpposees(SZ,a.piste.s,w.piste.s))contacts++;
+        for(const w of voit)if(w!==a&&branchesOpposees(SZ,a.piste.s,w.piste.s)&&Math.hypot(w.x-a.x,w.z-a.z)<8)rencontres++;
+        if(a.aspiration>0)for(const w of voit){if(w===a||!branchesOpposees(SZ,a.piste.s,w.piste.s))continue;const c_=Math.cos(a.cap),s_=Math.sin(a.cap),dx=w.x-a.x,dz=w.z-a.z,av=c_*dx+s_*dz;
+          if(av>REGLAGES.LONGUEUR_VOITURE&&av<REGLAGES.ASPIRATION_DISTANCE&&Math.abs(-s_*dx+c_*dz)<REGLAGES.ASPIRATION_LARGEUR)aspi++;}}
+      V.forEach((p_,q)=>{if(!p_.v.piste)return;const d=Math.abs(ecartLeLong(SZ,p_.v.piste.s-avant[q]));if(d>20)sauts++;avant[q]=p_.v.piste.s;});}
+    L.push('  (Suzuko, 20 IA, 3 tours : '+rencontres+' pas où deux voitures des deux passages étaient à moins de 8 m ; contacts '+contacts+', vues '+vues+', aspirations '+aspi+', sauts '+sauts+', arrivées '+e.arrives+'/20)');
+    v(contacts===0&&vues===0&&aspi===0&&sauts===0,'contacts '+contacts+', vues '+vues+', aspirations '+aspi+', sauts '+sauts);v(e.arrives===20,'arrivées '+e.arrives);});
+  t('Suzuko : deux voitures posées l’une sur l’autre au croisement (même x, z) ne se touchent pas, ne se voient pas, ne s’aspirent pas, et chacune garde sa branche (sans le croisement, elles se toucheraient)',()=>{
+    const i=Math.round(CR[0]/SZ.pas),j0=Math.round(CR[1]/SZ.pas);let j=j0,m=Infinity;
+    for(let b=j0-25;b<=j0+25;b++){const B=(b+SZ.nb)%SZ.nb,d_=Math.hypot(SZ.x[i]-SZ.x[B],SZ.z[i]-SZ.z[B]);if(d_<m){m=d_;j=B;}}
+    const poser=circ=>{const a=creerVoiture(circ),b=creerVoiture(circ);placerSurPiste(a,circ,SZ.s[i],0);placerSurPiste(b,circ,SZ.s[j],0);
+      b.x=a.x;b.z=a.z;b.piste=positionSurPiste(circ,b.x,b.z,b.piste.indice);a.u=b.u=40;return [a,b];};
+    const [a,b]=poser(SZ),sa=a.piste.s,sb=b.piste.s;
+    contactsVoitures([a,b],SZ);aspirationVoitures([a,b],SZ);
+    const vuesAB=voituresVues(a,[a,b],SZ).length+voituresVues(b,[a,b],SZ).length;
+    for(let k=0;k<60;k++){pasVoiture(a,SZ,DT);pasVoiture(b,SZ,DT);contactsVoitures([a,b],SZ);}
+    v(a.contactsVoiture===0&&b.contactsVoiture===0,'contacts '+a.contactsVoiture+'/'+b.contactsVoiture);v(vuesAB===0,'vues '+vuesAB);v(a.aspiration===0&&b.aspiration===0,'aspiration');
+    v(Math.abs(ecartLeLong(SZ,a.piste.s-sa))<30&&Math.abs(ecartLeLong(SZ,b.piste.s-sb))<30,'saut de branche : '+sa.toFixed(0)+' → '+a.piste.s.toFixed(0)+', '+sb.toFixed(0)+' → '+b.piste.s.toFixed(0));
+    // la recherche complète (sans indice) au même point donne une des branches ; avec l'indice de l'autre, elle garde celle de l'indice
+    const p2=positionSurPiste(SZ,b.x,b.z,(b.piste.indice+REGLAGES.FENETRE_RECHERCHE+3)%SZ.nb);v(Math.abs(ecartLeLong(SZ,p2.s-b.piste.s))<60,'recherche complète : '+b.piste.s.toFixed(0)+' → '+p2.s.toFixed(0));
+    // le témoin : le même circuit sans croisement, elles se touchent
+    const plat=Object.assign({},SZ,{croisement:null}),[a2,b2]=poser(plat);contactsVoitures([a2,b2],plat);v(a2.contactsVoiture===1,'le témoin sans croisement ne se touche pas : '+a2.contactsVoiture);
+    L.push('  (posées au croisement : '+sa.toFixed(0)+' m et '+sb.toFixed(0)+' m, à '+m.toFixed(2)+' m ; 0 contact, 0 vue ; témoin sans croisement : '+a2.contactsVoiture+' contact)');});
+  ecrire();
+}
 t('aucune erreur JavaScript',()=>v(__err.length===0,__err.join(' | ')));
 ecrire();
 </script></body></html>

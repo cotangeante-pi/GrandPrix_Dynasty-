@@ -14,3 +14,17 @@ Commit : d77a2a0 (branche codeur2, main fusionnée avec meteo.js) — GitHub 405
 - Test (tests/lieu.html?circuit=suzuko&vue=pont) : la route à 7,5 m au croisement s1, à 0 en s2, le tablier là, la voiture du dessus en haut et celle du dessous en bas. Capture **pont-suzuko.png**.
 
 Pas encore fait (ordre précédent, après la télé) : la caméra de la grille qui passe devant la tribune des supporters, l'hôtel de Yas Marino, les stands de Montréol, les hauteurs de tribunes selon le lieu ; la trajectoire plus sèche (`eauTrajectoire`, maintenant sur main).
+
+## Finitions (après la télé) et remarques du Chef
+
+Commit : fce4060 (branche codeur2, main 700eab9 fusionnée : aides et tutoriel) — GitHub 40601322759 : 12 travaux verts.
+(Le passage rouge 40600108763, sur 7c4a0dc, venait de la page des supporters : le test générique « hud » des pages `joueur=1` y passait avant le mien et attendait un écran qui n'était plus là. La page des supporters a son propre parcours, sans le « hud » ; aucun test retiré.)
+
+- **Le drone** : le survol de la grille au départ ; à l'arrivée du joueur, `CAMERA.drone` tourne `DRONE_ARRIVEE_DUREE` s (5) autour de la voiture suivie en montant de 6 à 26 m, puis la régie reprend.
+- **Les nuages** n'étaient pas éclairés de vert par le sol pour rien : ils sont maintenant sans lumière (MeshBasic), blancs, gris par temps couvert ou brumeux, et sombres la nuit (`NUAGES_NUIT`) ; lieu-spaa.png les montre gris clair.
+- **Le Grand Prix à domicile en 3D** : avant la grille, la caméra longe d'abord la tribune principale (celle des supporters et des banderoles) pendant `GRILLE_TRIBUNE_DUREE` s, puis la grille vue d'en haut. Test `?domicile=1` (un joueur fictif chez lui, pour les tests ; en carrière, c'est le vrai championnat) : la caméra à moins de 30 m de la tribune, les banderoles là, puis la course. Capture supporters.png.
+- **Les tribunes** ont leur hauteur selon leur profondeur dans decors-officiels.js et le lieu (`TRIBUNE_ECHELLE_LIEU` : Monoco plus basses, Bahrayn et Yas Marino plus hautes), les marches et le public suivent (pas la taille des gens).
+- **L'hôtel de Yas Marino** est posé, le long de la piste (sa demi-largeur en travers compte pour la piste, pas son grand rayon).
+- **Montréol** : une voie des stands courte, le bâtiment longe maintenant toute la voie, rampes comprises (10 modules au lieu de 2).
+- **La trajectoire plus sèche** (`eauTrajectoire`, sur main) : une bande sur la ligne idéale (la carte des IA), moins mouillée que le reste de la route, un appel de dessin, seulement sur piste mouillée ; testée avec la fausse météo.
+- **Au sec** : `METEO.etat` donne un ciel de 0,1 même par temps sec ; un ciel sous `CIEL_VOILE` (0,15) sans pluie ni eau compte comme sec : rien n'est dessiné.

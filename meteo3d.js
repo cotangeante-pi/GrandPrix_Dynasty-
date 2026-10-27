@@ -23,13 +23,33 @@ const METEO3D = (function () {
     const M = source();
     if (!M || !course) return null;
     const e = M.etat(course);
-    return e ? { pluie: borne(e.pluie), eau: borne(e.eau), ciel: borne(e.ciel) } : null;
+    if (!e) return null;
+    const eau = borne(e.eau);
+    return { pluie: borne(e.pluie), eau, eauTrajectoire: e.eauTrajectoire === undefined ? eau : Math.min(eau, borne(e.eauTrajectoire)), ciel: borne(e.ciel) };
   }
   function prevision(ch, gp) {
     const M = source();
     return M && typeof M.prevision === 'function' ? M.prevision(ch, gp) : null;
   }
-  const sec = e => !e || (e.pluie <= 0 && e.eau <= 0 && e.ciel <= 0);
+  // (un ciel à peine voilé, sous CIEL_VOILE, sans pluie ni eau : c'est le sec, rien ne change)
+  const sec = e => !e || (e.pluie <= 0 && e.eau <= 0 && e.ciel <= R.CIEL_VOILE);
+
+  // la trajectoire plus sèche (eauTrajectoire < eau) : une bande sur la ligne idéale (la carte des IA : trajectoire.ecart), faite à la
+  // première pluie, moins mouillée que le reste de la route ; un appel de dessin, seulement sur piste mouillée
+  function faireLigne(c, traj) {
+    const pos = [], L = R.LIGNE_SECHE_LARGEUR / 2, y = R.LIGNE_SECHE_HAUTEUR;
+    for (let i = 0; i < c.nb; i++) {
+      const k = (i + 1) % c.nb, a = traj.ecart[i], b = traj.ecart[k];
+      const p = (j, d) => [c.x[j] + c.nx[j] * d, y, c.z[j] + c.nz[j] * d];
+      pos.push(...p(i, a - L), ...p(i, a + L), ...p(k, b - L), ...p(k, b - L), ...p(i, a + L), ...p(k, b + L));
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.computeVertexNormals();
+    const ligne = new THREE.Mesh(g, new THREE.MeshPhongMaterial({ color: R.COULEUR_ROUTE, specular: 0x000000, shininess: R.ROUTE_MOUILLEE_BRILLANCE, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }));
+    ligne.name = 'meteo-ligne'; ligne.visible = false;
+    return ligne;
+  }
 
   // monde : ce que scene3d.js a construit et que la météo assombrit (la route, la coupole du ciel, les deux lumières)
   function init(scene, monde) {
@@ -54,7 +74,8 @@ const METEO3D = (function () {
   }
 
   // une image : e (etat ou null), camera (la caméra principale), voitures [{ x, z, cap, u }], dt (s), cockpit (vue cockpit)
-  function maj(e, camera, voitures, dt, cockpit) {
+  // circuit, trajectoire (facultatifs) : pour la ligne plus sèche
+  function maj(e, camera, voitures, dt, cockpit, circuit, trajectoire) {
     if (!m) return;
     const rien = sec(e);
     if (rien && dernier === 'sec') { interfaceMeteo(e, false); return; }
@@ -77,6 +98,13 @@ const METEO3D = (function () {
         m.routeMouillee.specular.setScalar(R.ROUTE_MOUILLEE_REFLET * e.eau);
         m.route.material = m.routeMouillee;
       } else m.route.material = m.routeSec;
+    }
+    // la trajectoire plus sèche que le reste de la route
+    const ecartLigne = e.eau - e.eauTrajectoire;
+    if (ecartLigne > R.LIGNE_SECHE_ECART && circuit && trajectoire && !m.ligne) { m.ligne = faireLigne(circuit, trajectoire); m.scene.add(m.ligne); }
+    if (m.ligne) {
+      m.ligne.visible = ecartLigne > R.LIGNE_SECHE_ECART;
+      if (m.ligne.visible) { m.ligne.material.color.set(R.COULEUR_ROUTE).lerp(new THREE.Color(R.COULEUR_ROUTE_MOUILLEE), e.eauTrajectoire); m.ligne.material.specular.setScalar(R.ROUTE_MOUILLEE_REFLET * e.eauTrajectoire); }
     }
     // la pluie qui tombe autour de la caméra
     const n = Math.round(R.PLUIE_GOUTTES * e.pluie);
@@ -119,6 +147,7 @@ const METEO3D = (function () {
     if (m.monde.soleil) m.monde.soleil.intensity = m.base.soleil;
     if (m.route) m.route.material = m.routeSec;
     m.pluie.visible = false; m.gerbes.visible = false; m.gerbes.count = 0;
+    if (m.ligne) m.ligne.visible = false;
   }
 
   // l'interface : l'icône et le niveau d'eau (près des pneus), les gouttes en vue cockpit ; cachées au sec
@@ -145,5 +174,5 @@ const METEO3D = (function () {
     return texte('meteoPrevue').replace('{temps}', p.type === 'risque' ? t.replace('{p}', Math.round(p.risque || 0)) : t);
   }
 
-  return { etat, prevision, init, maj, textePrevision, get actif() { return !!m; }, get pluie() { return m ? m.pluie : null; }, get gerbes() { return m ? m.gerbes : null; }, get routeMateriau() { return m && m.route ? m.route.material.type : null; } };
+  return { etat, prevision, init, maj, textePrevision, get actif() { return !!m; }, get pluie() { return m ? m.pluie : null; }, get gerbes() { return m ? m.gerbes : null; }, get routeMateriau() { return m && m.route ? m.route.material.type : null; }, get ligne() { return m ? m.ligne || null : null; } };
 })();

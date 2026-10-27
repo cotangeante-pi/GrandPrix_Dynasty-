@@ -19,12 +19,14 @@ function placesGrille(circuit, nb) {
 // ce que le pilote de v voit : les voitures dans son cône de vision devant (IA_VISION_ANGLE, IA_VISION_DISTANCE),
 // juste devant dans son couloir (IA_VISION_COULOIR), et à côté de lui (IA_VISION_COTE, ses rétroviseurs).
 // Pour chacune : où elle est sur la piste (s, d) et sa vitesse le long de la piste. Rien de ce qu'il ne verrait pas.
-function voituresVues(v, voitures) {
+// circuit (facultatif) : au croisement (le pont de Suzuko, branchesOpposees), une voiture sur l'autre passage n'est pas vue
+function voituresVues(v, voitures, circuit) {
   const R = REGLAGES, c = Math.cos(v.cap), s = Math.sin(v.cap), tanAngle = Math.tan(R.IA_VISION_ANGLE), vues = [];
   for (const w of voitures) {
     if (w === v || !w.piste) continue;
     // (la voie des stands, étape 7 : une voiture de l'autre côté du muret n'est pas sur sa route ; 0 sans PNEUS_ACTIFS : rien ne change)
     if (v.campStands && w.campStands && v.campStands !== w.campStands) continue;
+    if (circuit && circuit.croisement && v.piste && branchesOpposees(circuit, v.piste.s, w.piste.s)) continue;
     const dx = w.x - v.x, dz = w.z - v.z;
     if (dx * dx + dz * dz > R.IA_VISION_DISTANCE * R.IA_VISION_DISTANCE) continue;   // trop loin pour être vue
     const avant = c * dx + s * dz, cote = Math.abs(-s * dx + c * dz);
@@ -290,8 +292,8 @@ function pasCourseIA(e, dt, conduireJoueur) {
   if (e.meteo) pasMeteo(e, enCourse, dt);   // la météo (étape 12) ; sans e.meteo (le sec d'avant) : rien ne change
   if (R.PNEUS_ACTIFS && e.circuit.stands) for (const p of enCourse) if (!p.humain) majStandsIA(p, e);   // l'arrêt au stand des IA (étape 7)
   const commandes = enCourse.map(p => !p.humain && courseAutorise(p.course) && p.pilote
-    ? piloterIA(p.pilote, p.v, voituresVues(p.v, voitures), dt) : COMMANDES_AUCUNE);
-  aspirationVoitures(voitures);
+    ? piloterIA(p.pilote, p.v, voituresVues(p.v, voitures, e.circuit), dt) : COMMANDES_AUCUNE);
+  aspirationVoitures(voitures, e.circuit);
   enCourse.forEach((p, k) => {
     if (p.humain && conduireJoueur) conduireJoueur(p, dt);
     else appliquerCommandes(p.v, commandes[k]);
