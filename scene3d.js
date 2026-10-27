@@ -74,6 +74,13 @@ const SCENE3D = (function () {
       scene.add(decor.groupe);
     }
 
+    // la météo (meteo3d.js) : ce qu'elle assombrit sous la pluie (la route, la coupole du ciel du lieu, les deux lumières)
+    if (typeof METEO3D !== 'undefined') {
+      let route = null, coupole = null;
+      scene.traverse(o => { if (o.name === 'route') route = o; if (o.name === 'decor-ciel') coupole = o; });
+      METEO3D.init(scene, { route, coupole, ambiance, soleil });
+    }
+
     redimensionner();
     window.addEventListener('resize', redimensionner);
     return true;
@@ -149,7 +156,9 @@ const SCENE3D = (function () {
     groupe.add(sol);
 
     // la route et ses bords (de petites hauteurs différentes : pas de clignotement entre deux surfaces)
-    groupe.add(maillage(ruban(c, -demi, demi, 0.02), R.COULEUR_ROUTE));
+    const route = maillage(ruban(c, -demi, demi, 0.02), R.COULEUR_ROUTE);
+    route.name = 'route';   // (meteo3d.js la mouille : plus sombre et brillante)
+    groupe.add(route);
     groupe.add(maillage(ruban(c, -demi, -demi + R.LARGEUR_BORD, 0.03), R.COULEUR_BORD));
     groupe.add(maillage(ruban(c, demi - R.LARGEUR_BORD, demi, 0.03), R.COULEUR_BORD));
 

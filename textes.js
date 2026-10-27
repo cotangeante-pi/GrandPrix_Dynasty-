@@ -22,7 +22,7 @@ const TEXTES = {
     consigneJoueur: 'Team order: let your team-mate no. {n} through (faster). Ignoring it lowers the team\'s trust.', consigneSuivie: 'Thank you! The team\'s trust goes up.', consigneIgnoree: 'Order ignored: the team\'s trust goes down.',
     attenteArrivee: 'Finished — waiting for the other drivers',
     grillePasser: 'The grid — press a key to skip',
-    pneus: 'Tyres', pneusAdherence: 'grip −{p} %', msg_meilleurTour: '{qui}: fastest lap {temps}', msg_penalite: '{s} s penalty for {qui}', msg_stands: '{qui} pits',
+    pneus: 'Tyres', pneusAdherence: 'grip −{p} %', msg_pluieArrive: 'Rain is coming', msg_pisteSeche: 'The track is drying', meteoEau: 'water {p} %', meteoPrevue: 'Forecast: {temps}', meteo_sec: 'dry', meteo_nuageux: 'cloudy', meteo_risque: 'chance of rain ({p} %)', meteo_pluie: 'rain', msg_meilleurTour: '{qui}: fastest lap {temps}', msg_penalite: '{s} s penalty for {qui}', msg_stands: '{qui} pits',
     resume: '▶ Highlights', resumeTitre: 'Highlights', resumeSortir: 'Click or Esc to leave',   // le résumé vidéo (resume.js)
     resume_depart: 'The start', resume_depassement: 'Overtake: {qui} passes {sur}', resume_sortie: 'Off track: {qui}', resume_arrivee: 'The finish: {qui} wins', resume_arret: 'Pit stop: {qui}, {duree} s',
     attenteAccelere: '⏩ Fast-forward: {n} cars still racing', attenteAccelere1: '⏩ Fast-forward: 1 car still racing',
@@ -281,7 +281,7 @@ const TEXTES = {
     consigneJoueur: 'Consigne de l\'écurie : laisse passer ton coéquipier n°{n} (plus rapide). L\'ignorer fait baisser la confiance de l\'écurie.', consigneSuivie: 'Merci ! La confiance de l\'écurie monte.', consigneIgnoree: 'Consigne ignorée : la confiance de l\'écurie baisse.',
     attenteArrivee: 'Arrivée — en attendant les autres pilotes',
     grillePasser: 'La grille — une touche pour passer',
-    pneus: 'Pneus', pneusAdherence: 'adhérence −{p} %', msg_meilleurTour: '{qui} : meilleur tour {temps}', msg_penalite: 'Pénalité de {s} s pour {qui}', msg_stands: '{qui} aux stands',
+    pneus: 'Pneus', pneusAdherence: 'adhérence −{p} %', msg_pluieArrive: 'La pluie arrive', msg_pisteSeche: 'La piste sèche', meteoEau: 'eau {p} %', meteoPrevue: 'Météo prévue : {temps}', meteo_sec: 'sec', meteo_nuageux: 'nuageux', meteo_risque: 'risque de pluie ({p} %)', meteo_pluie: 'pluie', msg_meilleurTour: '{qui} : meilleur tour {temps}', msg_penalite: 'Pénalité de {s} s pour {qui}', msg_stands: '{qui} aux stands',
     resume: '▶ Résumé', resumeTitre: 'Résumé de la course', resumeSortir: 'Clic ou Échap pour sortir',   // le résumé vidéo (resume.js)
     resume_depart: 'Le départ', resume_depassement: 'Dépassement : {qui} sur {sur}', resume_sortie: 'Sortie de piste : {qui}', resume_arrivee: 'L’arrivée : {qui} gagne', resume_arret: 'Arrêt au stand : {qui}, {duree} s',
     attenteAccelere: '⏩ En accéléré : encore {n} voitures en course', attenteAccelere1: '⏩ En accéléré : encore 1 voiture en course',

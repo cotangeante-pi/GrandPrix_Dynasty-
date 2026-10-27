@@ -35,6 +35,19 @@ const MESSAGES = (function () {
     return m;
   }
 
+  // la météo (meteo3d.js, l'état de meteo.js) : « La pluie arrive » quand la pluie passe MESSAGES_PLUIE_SEUIL, « La piste sèche » quand
+  // l'eau d'une piste mouillée redescend sous MESSAGES_SECHE_SEUIL ; e : { pluie, eau } ou null (rien)
+  function observerMeteo(m, e) {
+    if (!e) return m;
+    const vu = m.vu.meteo || (m.vu.meteo = { pluie: false, mouillee: false });
+    const pleut = e.pluie > R.MESSAGES_PLUIE_SEUIL;
+    if (pleut && !vu.pluie) pousser(m, { type: 'pluieArrive' });
+    vu.pluie = pleut;
+    if (e.eau >= R.MESSAGES_SECHE_SEUIL * 2) vu.mouillee = true;
+    if (vu.mouillee && e.eau < R.MESSAGES_SECHE_SEUIL && !pleut) { pousser(m, { type: 'pisteSeche' }); vu.mouillee = false; }
+    return m;
+  }
+
   function afficher(m, t) {
     if (m.actuel && t - m.debut < R.MESSAGES_DUREE) return m.actuel;
     m.actuel = m.file.length ? m.file.shift() : null;
@@ -42,5 +55,5 @@ const MESSAGES = (function () {
     return m.actuel;
   }
 
-  return { creer, observer, afficher };
+  return { creer, observer, observerMeteo, afficher };
 })();

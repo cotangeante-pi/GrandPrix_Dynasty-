@@ -684,6 +684,14 @@ const REGLAGES = {
   MINICARTE_MARGE: 10, MINICARTE_TRAIT: 4, MINICARTE_POINT: 3,
   // les messages de course (messages.js) : chacun reste MESSAGES_DUREE s ; la file en garde au plus MESSAGES_FILE_MAX
   MESSAGES_DUREE: 3, MESSAGES_FILE_MAX: 4,
+  MESSAGES_PLUIE_SEUIL: 0.15, MESSAGES_SECHE_SEUIL: 0.15,   // la météo : « La pluie arrive » au-dessus de ce qui tombe, « La piste sèche » sous cette eau
+  // le dessin de la météo (meteo3d.js ; l'état vient de meteo.js) : la pluie autour de la caméra, les gerbes, la piste mouillée, le ciel couvert
+  PLUIE_GOUTTES: 2400, PLUIE_BOITE: [45, 30], PLUIE_VITESSE: 22, PLUIE_LONGUEUR: 0.9, PLUIE_VENT: 0.12,   // m, m/s
+  PLUIE_COULEUR: 0xc8d4e4, PLUIE_OPACITE: 0.55,
+  GERBE_COULEUR: 0xe6ecf2, GERBE_OPACITE: 0.26, GERBE_CAMERA_MIN: 12, GERBE_VITESSE_MIN: 8, GERBE_VITESSE_PLEINE: 70, GERBE_RECUL: 3.4, GERBE_HAUTEUR: 0.7, GERBE_TAILLE: [3.2, 1.1, 1.3],
+  COULEUR_ROUTE_MOUILLEE: 0x24262b, ROUTE_MOUILLEE_REFLET: 0.35, ROUTE_MOUILLEE_BRILLANCE: 40,
+  CIEL_COUVERT: 0x9aa2ab, CIEL_COUVERT_COUPOLE: 0x8e959d, CIEL_COUVERT_PART: 0.85, CIEL_COUVERT_CLARTE: 1.4, CIEL_COUVERT_AMBIANCE: 0.25, CIEL_COUVERT_SOLEIL: 0.6,
+  METEO_ICONE_PLUIE: 0.1, METEO_ICONE_NUAGES: 0.3, GOUTTES_OPACITE: 1.2,
   // le décor (étape 10, decor.js) : les briques, faites par le code, un InstancedMesh par type ; leur placement vient de DECORS (plus bas)
   DECOR_ACTIF: true,
   DECOR_GRAINE: 4242,           // le hasard du décor, à part (il ne tire jamais dans hasard() : la course ne change pas)

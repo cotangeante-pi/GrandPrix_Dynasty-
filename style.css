@@ -1014,6 +1014,18 @@ body.deux.cote #boutonSon { top: auto; bottom: 12px; right: 12px; }   /* (côte 
 #pneusPlein.moyen { background: #f2c230; }
 #pneusPlein.use { background: #ff6a5c; }
 #pneusAdherence { grid-column: 1 / 3; font-weight: 600; opacity: 0.85; }
+/* la météo (meteo3d.js) : l'icône et l'eau sur la piste, au-dessus de l'état des pneus ; les gouttes sur la visière en vue cockpit */
+#meteoHud { position: fixed; right: 16px; bottom: 112px; display: grid; grid-template-columns: auto auto 70px; gap: 2px 8px; align-items: center; padding: 5px 10px; border-radius: 8px; background: rgba(11, 15, 23, 0.6); font: 700 13px/1.2 var(--police); pointer-events: none; }
+#meteoIcone { font-size: 18px; }
+#meteoBarre { display: block; height: 7px; border-radius: 4px; background: rgba(255, 255, 255, 0.18); overflow: hidden; }
+#meteoPlein { display: block; height: 100%; width: 0; background: #4fa3ff; }
+#gouttes { position: fixed; inset: 0; pointer-events: none; opacity: 0.6;
+  background: radial-gradient(circle at 12% 18%, rgba(220, 235, 255, 0.35) 0 6px, transparent 8px), radial-gradient(circle at 27% 62%, rgba(220, 235, 255, 0.3) 0 4px, transparent 6px),
+    radial-gradient(circle at 44% 12%, rgba(220, 235, 255, 0.3) 0 5px, transparent 7px), radial-gradient(circle at 63% 41%, rgba(220, 235, 255, 0.28) 0 7px, transparent 9px),
+    radial-gradient(circle at 78% 22%, rgba(220, 235, 255, 0.32) 0 4px, transparent 6px), radial-gradient(circle at 88% 67%, rgba(220, 235, 255, 0.3) 0 6px, transparent 8px),
+    radial-gradient(circle at 8% 78%, rgba(220, 235, 255, 0.28) 0 5px, transparent 7px), radial-gradient(circle at 55% 82%, rgba(220, 235, 255, 0.25) 0 4px, transparent 6px),
+    radial-gradient(circle at 35% 35%, rgba(220, 235, 255, 0.22) 0 3px, transparent 5px), radial-gradient(circle at 71% 9%, rgba(220, 235, 255, 0.26) 0 3px, transparent 5px); }
+#prevision { margin: 2px 0 6px; font-weight: 700; opacity: 0.9; }
 #messageCourse { position: fixed; top: 176px; left: 50%; transform: translateX(-50%); padding: 6px 14px; border-left: 4px solid #e10600; border-radius: 6px; background: rgba(11, 15, 23, 0.82); font: 800 16px/1.3 var(--police); white-space: nowrap; pointer-events: none; }
 
 /* ======================================================================================================================
