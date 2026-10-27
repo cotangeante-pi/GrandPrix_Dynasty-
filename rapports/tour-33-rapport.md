@@ -10,7 +10,7 @@ A. LA MÉTÉO (au premier Codeur qui finit sa part du tour 32)
 
 B. LES IA AMÉLIORÉES (quand A est pris et qu'un Codeur est libre ; en priorité le Codeur 1)
 1. Leur rythme : seules sur le circuit test, en légende, elles font 49,4 s quand le propriétaire fait 45 s : rapproche le rythme du meilleur niveau du sien (le pilote IA le plus fort en légende vers 45–46 s, les niveaux plus bas plus lents, les écarts entre pilotes gardés), sans toucher la physique ni la voiture (la même pour tous) : c'est la façon de piloter (marges, freinage) qui change. Mesure sur les 12 tracés aussi.
-2. Le duel (étape 4, s'il n'est pas tenu au tour 32).
+2. Le duel (étape 4) : pas tenu au tour 32. Le duel arrangé se gagne (entrée côte à côte), mais le poleman est presque toujours le plus rapide en course, parce que la qualification suit le rythme à ±0,5 %. Le remède est dans CLAUDE.md (« Les IA des adversaires » : « le niveau en qualifications » est un trait du caractère de chaque pilote) : ajoute ce trait (IA_CARACTERE.qualif, tiré avec sa propre graine pour ne pas décaler les autres tirages, gardé au niveau de difficulté), que la qualification lise ; puis reprends l'entrée côte à côte (scratchpad/codeur1/duel-essais.diff). Critère : vainqueur ≠ poleman ≥ 3/30, chocs ≤ 6, coupes ≤ 6, herbe ≤ 4000, 4b vert.
    Fini quand : le tableau des tours seuls par niveau sur test et sur 3 tracés ; courses.html dans ses garde-fous ; GitHub vert.
 
 C. LES DISCUSSIONS (quand le reste est fini ; en priorité le Codeur 3, qui a fait l'interview, le journal et la fiche)
