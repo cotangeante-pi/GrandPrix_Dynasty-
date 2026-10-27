@@ -747,6 +747,7 @@ function montrerChampionnat(gagne) {
   INTERFACE.remplirSolde(JEU.championnat);
   INTERFACE.remplirRappelSponsor(JEU.championnat);
   INTERFACE.remplirReputation(JEU.championnat);   // les trois jauges de l'interview (interview.js)
+  INTERFACE.remplirPaddock(JEU.championnat, circuitPaddock(), texte('circuit_' + circuitProchain()) || (CIRCUITS[circuitProchain()] || CIRCUIT).nom);   // le paddock en écran d'accueil (tour 32) : la carte du prochain Grand Prix
   document.getElementById('boutonAlbum').disabled = !JEU.championnat.album.length;   // l'album des unes (Codeur 3) : rien avant la première une
   JEU.ecran = 'championnat';
   INTERFACE.montrer('championnat');
@@ -1069,6 +1070,15 @@ function acheterAmelioration(nom) {
 
 // ?championnat=1 : l'aileron (aileron.js), depuis le garage, avant le Grand Prix : la carte de la prochaine course ; le cran est
 // gardé par circuit et sauvegardé à chaque changement ; il s'applique aux qualifications et à la course (lancerCourse, faireMonTour)
+// le circuit construit du prochain Grand Prix, pour la carte du paddock (tour 32, Codeur 3) : comme montrerAileron, gardé une fois construit
+const CIRCUITS_PADDOCK = {};
+function circuitPaddock() {
+  const nom = circuitProchain();
+  if (nom === NOM_CIRCUIT) return CIRCUIT;
+  if (!CIRCUITS[nom]) return null;
+  return CIRCUITS_PADDOCK[nom] || (CIRCUITS_PADDOCK[nom] = construireCircuit(CIRCUITS[nom]));
+}
+
 function circuitProchain() {
   const ch = JEU.championnat, gp = ch.calendrier[Math.min(ch.prochain, ch.calendrier.length - 1)];
   return gp ? gp.circuit : NOM_CIRCUIT;

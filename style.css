@@ -1015,3 +1015,124 @@ body.deux.cote #boutonSon { top: auto; bottom: 12px; right: 12px; }   /* (côte 
 #pneusPlein.use { background: #ff6a5c; }
 #pneusAdherence { grid-column: 1 / 3; font-weight: 600; opacity: 0.85; }
 #messageCourse { position: fixed; top: 176px; left: 50%; transform: translateX(-50%); padding: 6px 14px; border-left: 4px solid #e10600; border-radius: 6px; background: rgba(11, 15, 23, 0.82); font: 800 16px/1.3 var(--police); white-space: nowrap; pointer-events: none; }
+
+/* ======================================================================================================================
+   Le thème télé (étape 11, tour 32, Codeur 3) : le style de tous les écrans entre les courses, défini une seule fois ici,
+   en variables CSS (CLAUDE.md « L'interface » : « une vraie retransmission de F1, claire et animée, jamais encombrée »).
+   Polices, couleurs, bandeaux, coins, ombres et durées ; les écrans plus haut gardent leur mise en page, ce bloc leur
+   donne l'habillage. Les animations : des transitions courtes (< 250 ms), coupées si prefers-reduced-motion.
+   ====================================================================================================================== */
+:root {
+  --tv-police: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;   /* le texte (system-ui d’abord : les symboles des boutons) */
+  --tv-police-titre: "Arial Narrow", "Roboto Condensed", "Helvetica Neue", "DejaVu Sans Condensed", system-ui, sans-serif;   /* les titres, serrés */
+  --tv-rouge: #e3242b;            /* l'accent de la chaîne : bandeaux, bouton principal */
+  --tv-rouge-fonce: #9e1419;
+  --tv-or: #ffd666;               /* l'argent, les champions */
+  --tv-bleu: #1f6fe0;             /* le joueur */
+  --tv-vert: #3ccf7a;
+  --tv-texte: #f2f4f8;
+  --tv-texte-doux: rgba(242, 244, 248, 0.72);
+  --tv-voile: linear-gradient(180deg, rgba(7, 9, 15, 0.86) 0%, rgba(12, 16, 27, 0.78) 45%, rgba(7, 9, 15, 0.9) 100%);   /* le fond des écrans, sur la 3D */
+  --tv-panneau: linear-gradient(180deg, rgba(36, 42, 61, 0.94), rgba(21, 25, 38, 0.94));   /* une carte, une ligne de liste */
+  --tv-panneau-clair: rgba(255, 255, 255, 0.07);
+  --tv-bord: rgba(255, 255, 255, 0.1);
+  --tv-bouton: linear-gradient(180deg, #2d3550, #1d2335);
+  --tv-bouton-principal: linear-gradient(180deg, #ef3a40, #b9161c);
+  --tv-ligne-moi: linear-gradient(90deg, var(--tv-bleu) 0 4px, rgba(31, 111, 224, 0.6) 4px);   /* la ligne du joueur dans une liste */
+  --tv-coin: 6px;
+  --tv-coin-grand: 10px;
+  --tv-ombre: 0 10px 28px rgba(0, 0, 0, 0.45);
+  --tv-halo: 0 0 0 3px rgba(255, 255, 255, 0.45);   /* le survol d'un bouton : un halo, jamais un agrandissement (CLAUDE.md, pièges) */
+  --tv-duree: 180ms;              /* l'arrivée d'un écran */
+  --tv-duree-titre: 230ms;        /* le glissement du titre */
+  --tv-duree-ligne: 240ms;        /* l'arrivée d'une ligne de résultats */
+  --tv-pas-ligne: 35ms;           /* l'écart entre deux lignes qui arrivent */
+  --tv-duree-points: 900ms;       /* les points qui montent */
+}
+
+/* les écrans : le voile, la police, et une arrivée en fondu */
+.ecran { background: var(--tv-voile); font-family: var(--tv-police); color: var(--tv-texte); }
+.ecran:not(.cache) { animation: tv-entree var(--tv-duree) ease-out; }
+@keyframes tv-entree { from { opacity: 0; } to { opacity: 1; } }
+
+/* les titres : serrés, en capitales, en italique, avec le bandeau rouge de la chaîne dessous ; ils glissent en arrivant */
+.ecran:not(#une) h1 { font-family: var(--tv-police-titre); font-style: italic; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; }
+.ecran:not(#une) h1::after { content: ""; display: block; width: 56px; height: 4px; margin: 6px auto 0; border-radius: 2px; background: var(--tv-rouge); }
+.ecran:not(.cache) h1 { animation: tv-glisse var(--tv-duree-titre) ease-out; }
+@keyframes tv-glisse { from { opacity: 0.2; transform: translateX(-14px); } to { opacity: 1; transform: none; } }
+.ecran h2 { font-family: var(--tv-police-titre); text-transform: uppercase; letter-spacing: 0.06em; }
+
+/* les boutons : des plaques sombres avec un liseré rouge ; le bouton principal en rouge plein */
+.ecran button { background: var(--tv-bouton); border-radius: var(--tv-coin); box-shadow: inset 3px 0 0 var(--tv-rouge), 0 2px 8px rgba(0, 0, 0, 0.35); font-family: var(--tv-police); }
+.ecran button:hover { box-shadow: inset 3px 0 0 var(--tv-rouge), var(--tv-halo); }
+.ecran button:disabled { opacity: 0.45; cursor: default; }
+#boutonCourseSuivante, #boutonJouer, #boutonCarriere, #boutonQualifTour, #boutonQualifCourse, #boutonResultats, #boutonPiloteValider,
+#boutonTournoiPartir, #boutonDeuxPartir { background: var(--tv-bouton-principal); box-shadow: 0 2px 10px rgba(227, 36, 43, 0.35); }
+#boutonCourseSuivante:hover, #boutonJouer:hover, #boutonCarriere:hover, #boutonQualifTour:hover, #boutonQualifCourse:hover, #boutonResultats:hover, #boutonPiloteValider:hover { box-shadow: var(--tv-halo); }
+#contrats #boutonRetraite { background: linear-gradient(180deg, #7a3030, #561f1f); }
+
+/* les cartes et les lignes de liste des écrans : le même panneau partout */
+#garageListe li, #contratsListe li, #sponsorsListe > li, #ficheCarte, #interviewCarte, .deuxJoueur, #calendrierListe li, #arbreGenerations li {
+  background: var(--tv-panneau); border: 1px solid var(--tv-bord); border-radius: var(--tv-coin); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+#garageListe .prix, #contratsListe .niveau, #sponsorsListe .montant, #championnatArgent, #resultatsArgent, #retraiteBilan { color: var(--tv-or); }
+#championnatTableaux li.moi, #saisonPilotes li.moi { background: var(--tv-ligne-moi); }
+#saisonTableaux { padding: 8px 14px; background: var(--tv-panneau); border: 1px solid var(--tv-bord); border-radius: var(--tv-coin-grand); }
+#ficheCarte h1::after, #interviewCarte h1::after { margin-left: 0; }
+/* la cérémonie du champion garde le podium 3D visible (pas de voile) ; son titre prend la police des titres */
+#ceremonie h1#ceremonieTitre { font-family: var(--tv-police-titre); }
+#championnatTableaux ol, #saisonPilotes { font-family: var(--tv-police); }
+
+/* les résultats animés : les lignes arrivent une à une (--i : leur rang, posé par interface.js) */
+#resultatsTable { border-collapse: separate; border-spacing: 0 2px; }
+#resultatsTable th { font-family: var(--tv-police-titre); text-transform: uppercase; letter-spacing: 0.05em; font-size: 12px; opacity: 0.8; }
+#resultatsLignes tr { animation: tv-ligne var(--tv-duree-ligne) ease-out backwards; animation-delay: calc(var(--i, 0) * var(--tv-pas-ligne)); }
+#resultatsLignes tr td { background: var(--tv-panneau-clair); }
+#resultatsLignes tr.moi td { background: rgba(31, 111, 224, 0.6); }
+#resultatsLignes tr td:first-child { border-radius: var(--tv-coin) 0 0 var(--tv-coin); box-shadow: inset 3px 0 0 var(--tv-rouge); }
+#resultatsLignes tr td:last-child { border-radius: 0 var(--tv-coin) var(--tv-coin) 0; }
+@keyframes tv-ligne { from { opacity: 0; transform: translateX(-16px); } to { opacity: 1; transform: none; } }
+/* … et au paddock, après une course, les lignes du classement aussi, et les points qui montent de 0 à leur valeur : le vrai
+   nombre reste dans la page (transparent pendant l'animation), un compteur CSS par-dessus compte jusqu'à lui (--tv-fin) */
+@property --tv-n { syntax: '<integer>'; inherits: false; initial-value: 0; }
+#championnatTableaux.tvMonte li { animation: tv-ligne var(--tv-duree-ligne) ease-out backwards; animation-delay: calc(var(--i, 0) * var(--tv-pas-ligne)); }
+#championnatTableaux.tvMonte .points { position: relative; animation: tv-transparent var(--tv-duree-points) linear; }
+#championnatTableaux.tvMonte .points::after { content: counter(tvPoints) attr(data-suffixe); counter-reset: tvPoints var(--tv-n); position: absolute; right: 0; top: 0;
+  color: var(--tv-texte); opacity: 0; animation: tv-points var(--tv-duree-points) ease-out; white-space: nowrap; }
+@keyframes tv-transparent { from, to { color: transparent; } }
+@keyframes tv-points { from { --tv-n: 0; opacity: 1; } to { --tv-n: var(--tv-fin); opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .ecran:not(.cache), .ecran:not(.cache) h1, #resultatsLignes tr, #championnatTableaux.tvMonte li, #championnatTableaux.tvMonte .points, #championnatTableaux.tvMonte .points::after { animation: none; }
+}
+
+/* le paddock, l'écran d'accueil (tour 32, Codeur 3) : à gauche le prochain Grand Prix en grand et toi, à droite les classements,
+   en bas les boutons rangés par usage ; il tient en 960×600 sans défilement */
+.tvCarte { background: var(--tv-panneau); border: 1px solid var(--tv-bord); border-radius: var(--tv-coin-grand); box-shadow: var(--tv-ombre); box-sizing: border-box; }
+.tvSurtitre { margin: 0; font: 700 12px/1.2 var(--tv-police-titre) !important; text-transform: uppercase; letter-spacing: 0.14em; color: var(--tv-rouge); }
+#championnat { justify-content: center; gap: 12px; padding: 12px 16px; box-sizing: border-box; }
+#paddock { display: grid; grid-template-columns: minmax(0, 360px) auto; grid-template-rows: auto 1fr; gap: 12px; align-items: stretch; max-width: 100%; }
+#paddockProchain { grid-column: 1; grid-row: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 12px; }
+#paddockProchain h1 { font-size: 20px; line-height: 1.15; }
+#paddockProchain h1::after { width: 40px; height: 3px; margin-top: 4px; }
+#paddockCarte { width: 100%; max-width: 330px; height: min(150px, 22vh); border-radius: var(--tv-coin); background: rgba(0, 0, 0, 0.25); }
+#paddockDomicile { display: flex; align-items: center; gap: 6px; color: var(--tv-or); font-size: 14px; }
+#paddockDomicile.cache { display: none; }
+#paddockDomicile .maison { margin-top: 7px; }
+#paddockMoi { grid-column: 1; grid-row: 2; display: flex; flex-direction: column; justify-content: center; gap: 6px; padding: 10px 12px; }
+#paddockMoi p { font-size: 13px; }
+#paddockPlace { font: 800 16px/1.25 var(--tv-police) !important; }
+#championnat #championnatDuel { font-size: 13px; line-height: 1.35; }
+#championnat #championnatSponsor { max-width: 100%; }
+#championnat #championnatReputation { flex-wrap: wrap; gap: 6px 12px; }
+#championnat #championnatReputation .barre { width: 52px; }
+#championnatTableaux { grid-column: 2; grid-row: 1 / 3; padding: 12px 16px; align-items: center; gap: 22px; }
+#championnat #championnatTableaux ol { font-size: 13px; line-height: 1.55; }
+#championnat #championnatTableaux li { padding: 0 7px; }
+#paddockBoutons { align-items: flex-end; flex-wrap: nowrap; gap: 14px; }
+.paddockGroupe { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.paddockGroupe > div { display: flex; gap: 6px; }
+.paddockGroupeNom { font: 700 11px/1 var(--tv-police-titre); text-transform: uppercase; letter-spacing: 0.12em; color: var(--tv-texte-doux); padding-left: 2px; }
+#paddockBoutons button { min-width: 0; padding: 9px 11px; font-size: 13px; white-space: nowrap; }
+#paddockBoutons button.petit { font-size: 13px; padding: 9px 11px; opacity: 1; }
+#paddockBoutons #boutonCourseSuivante { padding: 10px 20px; font: 800 16px/1.2 var(--tv-police-titre); text-transform: uppercase; letter-spacing: 0.04em; }

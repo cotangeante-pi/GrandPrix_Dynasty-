@@ -167,17 +167,34 @@
 
 <!-- ?championnat=1 : l'écran entre les courses -->
 <section id="championnat" class="ecran cache">
-  <h1 id="championnatTitre"></h1>
-  <p id="championnatGagne"></p>
-  <p id="championnatDuel"></p>
-  <p id="championnatArgent"></p>
-  <p id="championnatSponsor"></p>
-  <div id="championnatReputation"></div>
-  <div id="championnatTableaux">
-    <div><h2 id="championnatPilotesTitre"></h2><ol id="championnatPilotes"></ol></div>
-    <div><h2 id="championnatEcuriesTitre"></h2><ol id="championnatEcuries"></ol></div>
+  <!-- le paddock, l'écran d'accueil de la carrière (tour 32, Codeur 3) : le prochain Grand Prix en grand, toi (classement, duel,
+       argent, sponsor, réputation), les classements, et les boutons rangés par usage -->
+  <div id="paddock">
+    <div id="paddockProchain" class="tvCarte">
+      <p id="paddockSurtitre" class="tvSurtitre"></p>
+      <h1 id="championnatTitre"></h1>
+      <p id="paddockDomicile" class="cache"><span class="maison"></span> <span id="paddockDomicileTexte"></span></p>
+      <canvas id="paddockCarte" width="330" height="170"></canvas>
+      <p id="championnatGagne"></p>
+    </div>
+    <div id="paddockMoi" class="tvCarte">
+      <p id="paddockPlace"></p>
+      <p id="championnatDuel"></p>
+      <p id="championnatArgent"></p>
+      <p id="championnatSponsor"></p>
+      <div id="championnatReputation"></div>
+    </div>
+    <div id="championnatTableaux" class="tvCarte">
+      <div><h2 id="championnatPilotesTitre"></h2><ol id="championnatPilotes"></ol></div>
+      <div><h2 id="championnatEcuriesTitre"></h2><ol id="championnatEcuries"></ol></div>
+    </div>
   </div>
-  <div class="boutons"><button id="boutonCourseSuivante" tabindex="-1"></button><button id="boutonGarage" tabindex="-1"></button><button id="boutonMonCasque" class="petit" tabindex="-1"></button><button id="boutonSponsors" tabindex="-1"></button><button id="boutonAlbum" class="petit" tabindex="-1"></button><button id="boutonAmisPaddock" class="petit" tabindex="-1"></button><button id="boutonArbre" class="petit" tabindex="-1"></button><button id="boutonCalendrier" class="petit" tabindex="-1"></button></div>
+  <div class="boutons" id="paddockBoutons">
+    <div class="paddockGroupe"><span class="paddockGroupeNom" id="paddockGroupeCourse"></span><div><button id="boutonCourseSuivante" tabindex="-1"></button></div></div>
+    <div class="paddockGroupe"><span class="paddockGroupeNom" id="paddockGroupeEquipe"></span><div><button id="boutonGarage" tabindex="-1"></button><button id="boutonSponsors" tabindex="-1"></button><button id="boutonMonCasque" class="petit" tabindex="-1"></button></div></div>
+    <div class="paddockGroupe"><span class="paddockGroupeNom" id="paddockGroupeSaison"></span><div><button id="boutonCalendrier" class="petit" tabindex="-1"></button><button id="boutonAlbum" class="petit" tabindex="-1"></button><button id="boutonArbre" class="petit" tabindex="-1"></button></div></div>
+    <div class="paddockGroupe"><span class="paddockGroupeNom" id="paddockGroupeAmis"></span><div><button id="boutonAmisPaddock" class="petit" tabindex="-1"></button></div></div>
+  </div>
 </section>
 <!-- le calendrier de la saison (Codeur 3) : les 12 Grands Prix, faits ou à venir, le prochain mis en valeur, le Grand Prix à domicile marqué -->
 <section id="calendrier" class="ecran cache">
