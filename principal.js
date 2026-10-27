@@ -119,6 +119,8 @@ function lancerCourse(nbTours) {
     if (JEU.championnat) poserRivalites(JEU.plateau, JEU.championnat.pilotes.map(q => !!(q && q.rivalite)));   // les rivaux de l'interview (ia.js, Codeur 1)
     if (JEU.championnat) JEU.plateau.ecuries = JEU.championnat.pilotes.map(q => q ? q.ecurie : null);   // les écuries, pour les consignes d'équipe (simulation.js, Codeur 1)
     // la météo (meteo.js, étape 12, Codeur 1) : tirée avec la graine du Grand Prix selon le lieu ; ?meteo=sec|pluie|averse|eclaircie la force (tests)
+    // (les pneus du départ choisis au garage, une fois : ensuite l'équipe choisit de nouveau)
+    if (JEU.championnat && JEU.championnat.pneusDepart) { const h = JEU.plateau.pilotes.find(q => q.humain); if (h) h.v.typePneus = JEU.championnat.pneusDepart; JEU.championnat.pneusDepart = null; }
     if (REGLAGES.METEO_ACTIVE) poserMeteo(JEU.plateau, planMeteo(nbTours));
     suivre(JEU.contre ? JEU.ia : 0);   // contre les IA : la caméra suit le joueur
     appliquerCaracteres();
@@ -1077,6 +1079,14 @@ function montrerGarage() {
   INTERFACE.montrer('garage');
 }
 
+// les pneus du départ (la météo, Codeur 1), choisis au garage : gardés dans le championnat jusqu'au départ du prochain Grand Prix
+function choisirPneusDepart(type) {
+  if (JEU.ecran !== 'garage') return;
+  JEU.championnat.pneusDepart = type || null;
+  SAUVEGARDE.ecrireChampionnat(JEU.championnat);
+  INTERFACE.remplirGarage(JEU.championnat);
+}
+
 function acheterAmelioration(nom) {
   if (JEU.ecran !== 'garage') return null;
   const r = GARAGE.acheter(JEU.championnat, nom);
@@ -1361,9 +1371,21 @@ function brancherClavier() {
 const AUCUNE = { gaz: 0, frein: 0, direction: 0 }, FREIN_SEUL = { gaz: 0, frein: 1, direction: 0 };
 
 // ?ia=N&joueur=1 : les commandes du joueur pour sa voiture dans la course entre IA (comme seul : rampes, Espace)
+// ← ou → pendant l'arrêt : le pneu suivant ou précédent (un appui = un cran) ; le choix du joueur remplace celui de l'équipe
+function choisirPneusArret(v, direction) {
+  const sens = direction > 0.5 ? 1 : direction < -0.5 ? -1 : 0;
+  if (sens && sens !== v.pneusSens) {
+    const T = METEO.TYPES, i = T.indexOf(v.pneusProchain || v.typePneus || 'slick');
+    v.pneusProchain = T[(i + sens + T.length) % T.length]; v.choixPneus = true;
+  }
+  v.pneusSens = sens;
+}
+
 function conduireJoueur(p, pas) {
   // le mode 2 joueurs : chaque joueur (p.joueur = 1, 2) a ses commandes, lues de ses touches à lui ; sinon celles de la course seule
   const cmd = JEU.deux && p.joueur ? JEU.deuxCommandes[p.joueur] : JEU;
+  // la météo (Codeur 1) : pendant son arrêt au stand (la voiture est tenue), ← → choisissent les pneus qu'on lui met (slick, inter, pluie)
+  if (p.course.arretEnCours && cmd.cibles) choisirPneusArret(p.v, cmd.cibles.direction);
   if (cmd.remettre && courseAutorise(p.course)) remettreSurPiste(p.v, CIRCUIT);
   cmd.remettre = false;
   // après l'arrivée, sa voiture freine seule jusqu'à l'arrêt (les autres finissent leur course)
@@ -1689,6 +1711,7 @@ function demarrerJeu() {
     INTERFACE.preparerCalendrier(montrerCalendrier, quitterCalendrier);
     INTERFACE.preparerReleve(montrerHeritier, nouvelleDynastie, validerHeritier);
     INTERFACE.preparerGarage(acheterAmelioration, quitterGarage);
+    INTERFACE.preparerPneusGarage(choisirPneusDepart);   // les pneus du départ (la météo, Codeur 1)
     INTERFACE.preparerSaison(suiteClassementSaison, suiteDuelSaison, signerContrat, prendreRetraite);
     INTERFACE.preparerSponsors(montrerSponsors, choisirSponsor, quitterSponsors);
     INTERFACE.preparerFiche(montrerFiche, quitterFiche);

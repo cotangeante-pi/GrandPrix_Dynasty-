@@ -201,6 +201,7 @@ function pasMeteo(e, enCourse, dt) {
     v.adhMeteo = METEO.adherence(v.typePneus, v.eau);
     v.usureMeteo = METEO.usure(v.typePneus, v.eau);
     if (p.humain && !v.choixPneus) v.pneusProchain = METEO.choisir(m.eau, m.pluie, 0.5);
+    if (p.humain) p.course.pneusProchain = v.pneusProchain;   // (affiché pendant l'arrêt : interface.js)
     if (p.humain && m.message && p.course.meteoMessage === undefined) p.course.meteoMessage = { cle: m.message, temps: p.course.temps };   // « La pluie arrive » (interface.js)
   }
 }
