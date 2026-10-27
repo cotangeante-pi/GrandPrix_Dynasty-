@@ -1148,3 +1148,68 @@ body.deux.cote #boutonSon { top: auto; bottom: 12px; right: 12px; }   /* (côte 
 #paddockBoutons button { min-width: 0; padding: 9px 11px; font-size: 13px; white-space: nowrap; }
 #paddockBoutons button.petit { font-size: 13px; padding: 9px 11px; opacity: 1; }
 #paddockBoutons #boutonCourseSuivante { padding: 10px 20px; font: 800 16px/1.2 var(--tv-police-titre); text-transform: uppercase; letter-spacing: 0.04em; }
+
+/* ======================================================================================================================
+   Le thème télé EN COURSE (tour 32, suite, Codeur 3) : le même habillage que les écrans (variables --tv-*), sur l'affichage
+   de course : le chrono et les secteurs, la tour de classement, le compteur, le radar, la minicarte, les pneus, les messages,
+   les feux et la jauge de départ ; puis le podium. Seulement des couleurs, des polices, des bords et des ombres : aucune taille
+   ni place ne change (rien de plus devant la piste), et rien ne s'anime pendant qu'on pilote, sauf l'arrivée d'un message.
+   ====================================================================================================================== */
+:root {
+  --tv-hud: linear-gradient(180deg, rgba(20, 24, 37, 0.86), rgba(10, 13, 22, 0.86));   /* un panneau de course */
+  --tv-hud-bord: 1px solid rgba(255, 255, 255, 0.1);
+  --tv-hud-ombre: 0 4px 14px rgba(0, 0, 0, 0.35);
+  --tv-chiffres: ui-monospace, "SF Mono", Menlo, "DejaVu Sans Mono", monospace;   /* les temps : chiffres de largeur fixe, rien ne bouge */
+  --tv-duree-message: 220ms;
+}
+
+/* le bouton du son, lisible sur la 3D comme sur le voile sombre des écrans */
+#boutonSon { background: var(--tv-bouton); border: 1px solid rgba(255, 255, 255, 0.45); box-shadow: inset 3px 0 0 var(--tv-rouge), 0 2px 10px rgba(0, 0, 0, 0.5); color: var(--tv-texte); }
+#boutonSon:hover { box-shadow: inset 3px 0 0 var(--tv-rouge), var(--tv-halo); }
+#boutonSon { z-index: 20; }   /* au-dessus du voile des écrans (il était dessous, donc gris sur gris) */
+
+/* le chrono, le tour et les secteurs : le panneau du haut, avec le liseré rouge de la chaîne */
+#hudCourse { background: var(--tv-hud); border: var(--tv-hud-bord); border-top: 3px solid var(--tv-rouge); border-radius: var(--tv-coin); box-shadow: var(--tv-hud-ombre); font-family: var(--tv-police); }
+#hudChrono, #hudEcart { font-family: var(--tv-chiffres); }
+#hudTour { font-family: var(--tv-police-titre); font-style: italic; text-transform: uppercase; letter-spacing: 0.06em; }
+.secteur { font-family: var(--tv-chiffres); border-radius: 3px; }
+
+/* la tour de classement */
+#classement { background: var(--tv-hud); border: var(--tv-hud-bord); border-top: 3px solid var(--tv-rouge); border-radius: var(--tv-coin); box-shadow: var(--tv-hud-ombre); font-family: var(--tv-police); }
+#classementPlace { font-family: var(--tv-police-titre); font-style: italic; }
+#classementListe li.moi { background: var(--tv-ligne-moi); }
+#classementListe .ecart { font-family: var(--tv-chiffres); }
+
+/* le compteur : le rapport sur une plaque rouge, la vitesse en chiffres serrés */
+#tableau { font-family: var(--tv-police-titre); font-style: italic; }
+#rapport { background: var(--tv-bouton-principal); font-style: normal; box-shadow: var(--tv-hud-ombre); }
+
+/* le radar et la minicarte (des canvas : un bord et une ombre seulement) */
+#radar { border-radius: 50%; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12), var(--tv-hud-ombre); }
+#minicarte { border-radius: var(--tv-coin-grand); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), var(--tv-hud-ombre); }
+
+/* les pneus, les messages de course, la pénalité et les stands */
+#pneusHud { background: var(--tv-hud); border: var(--tv-hud-bord); border-radius: var(--tv-coin); box-shadow: var(--tv-hud-ombre); font-family: var(--tv-police); }
+#messageCourse { background: var(--tv-hud); border-left-color: var(--tv-rouge); border-radius: var(--tv-coin); box-shadow: var(--tv-hud-ombre); font-family: var(--tv-police); }
+#messageCourse:not(.cache) { animation: tv-message var(--tv-duree-message) ease-out; }   /* la seule animation en course : l'arrivée d'un message */
+@keyframes tv-message { from { opacity: 0; } to { opacity: 1; } }
+#hudPenalite { background: linear-gradient(180deg, #ef3a40, #b9161c); border-radius: var(--tv-coin); box-shadow: var(--tv-hud-ombre); font-family: var(--tv-police); }
+#hudStand { background: linear-gradient(180deg, #2f7ff0, #1a56b8); border-radius: var(--tv-coin); box-shadow: var(--tv-hud-ombre); font-family: var(--tv-police); }
+#horsPiste { background: linear-gradient(180deg, #ef3a40, #b9161c); border-radius: var(--tv-coin); font-family: var(--tv-police-titre); font-style: italic; }
+
+/* les feux et la jauge de départ */
+#feux, #feux2 { background: linear-gradient(180deg, rgba(18, 20, 28, 0.94), rgba(6, 7, 11, 0.94)); border: var(--tv-hud-bord); border-top: 3px solid var(--tv-rouge); border-radius: var(--tv-coin-grand); box-shadow: var(--tv-hud-ombre); }
+#jauge, #jauge2, #departResultat, #departResultat2 { background: var(--tv-hud); border: var(--tv-hud-bord); border-radius: var(--tv-coin-grand); box-shadow: var(--tv-hud-ombre); font-family: var(--tv-police); }
+#departResultat, #departResultat2 { font-family: var(--tv-police-titre); font-style: italic; }
+#jaugeBarre, #jaugeBarre2 { border-radius: var(--tv-coin); }
+
+/* le podium : le titre de la chaîne, les marches sur le même panneau, l'or, l'argent et le bronze en bandeau */
+#podium h1 { font-family: var(--tv-police-titre); font-style: italic; letter-spacing: 0.02em; }
+#podium h1::after { content: ""; display: block; width: 56px; height: 4px; margin: 6px auto 0; border-radius: 2px; background: var(--tv-rouge); }
+.marche { background: var(--tv-hud); border: var(--tv-hud-bord); border-radius: var(--tv-coin); box-shadow: var(--tv-ombre); font-family: var(--tv-police); }
+.marche span { font-family: var(--tv-chiffres); }
+.marche1 { border-bottom: 4px solid #d4af37; } .marche2 { border-bottom: 4px solid #c0c4cc; } .marche3 { border-bottom: 4px solid #cd7f32; }
+#resultatsTable { font-family: var(--tv-chiffres); }
+#resultatsTable td:nth-child(2) { font-family: var(--tv-police); }
+
+@media (prefers-reduced-motion: reduce) { #messageCourse:not(.cache) { animation: none; } }
