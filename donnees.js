@@ -688,13 +688,13 @@ const REGLAGES = {
   DECOR_ACTIF: true,
   DECOR_GRAINE: 4242,           // le hasard du décor, à part (il ne tire jamais dans hasard() : la course ne change pas)
   DECOR_MARGE: 8,               // m au-delà du bord de la piste : aucun objet du décor plus près, sur tout le tracé (test)
-  DECOR_CASE: 40,               // m : la grille qui range les échantillons de la piste pour vérifier une place (plus grand que demi-largeur + marge + l'objet le plus large)        // m au-delà de la voie des stands
+  DECOR_CASE: 100,               // m : la grille qui range les échantillons de la piste pour vérifier une place (plus grand que demi-largeur + marge + l'objet le plus large)        // m au-delà de la voie des stands
   DECOR_MARGE_TELE: 10,         // m autour d'un poste de caméra télé (rien ne cache ce qu'il filme)
   DECOR_PODIUM_RAYON: 16,       // m : la place du podium (podium3d.js), en face de la ligne, reste libre
   DECOR_DETAIL_LOIN: 250,       // m : au-delà, le public et les arbres passent à leur forme simple…
   DECOR_RIEN_LOIN: 1600,        // m : … et au-delà, ils ne sont plus dessinés
   DECOR_MAJ_DEPLACEMENT: 10,    // m : le tri proche / loin est refait quand une caméra a bougé de ça
-  DECOR_APPELS_MAX: 12,
+  DECOR_APPELS_MAX: 26,
   DECOR_APPELS_TOTAL_MAX: 80,   // appels de dessin de toute l'image au plus, avec 20 voitures et le décor (tests/ecrans.py ; mesure du tour 31 dans SUIVI.md)         // appels de dessin du décor au plus (tests/ecrans.py : un par type et par niveau de détail)
   DECOR_PUBLIC_REMPLI: 0.85,    // la part des places occupées dans les tribunes
   TRIBUNE_MODULE: 12,           // m : une tribune est faite de modules de cette longueur, qui suivent la piste
@@ -718,7 +718,44 @@ const REGLAGES = {
   DECOR_COULEURS_PANNEAUX: [0xf2f2f2, 0x1f4fa0, 0xf2c230, 0xd8262e, 0x2fa84f],
   DECOR_COULEURS_PUBLIC: [0xffffff, 0x222222, 0x3b6fd8, 0xe0e0e0, 0x8a5a3a],
   DECOR_COULEURS: { gradinA: 0xb9bec7, gradinB: 0x9aa1ad, mur: 0x6d7480, toit: 0xf2f2f2, tete: 0xe8c4a0, batiment: 0xdfe3ea, vitres: 0x3a5a7a,
-    tronc: 0x6b4a2b, sapin: 0x2e5e2a, feuillu: 0x3f7a2e },
+    tronc: 0x6b4a2b, sapin: 0x2e5e2a, feuillu: 0x3f7a2e, fenetres: 0x5a6a7c, toitImmeuble: 0x8a8d92, pont: 0xc9b48a, cabine: 0xf4f6f8,
+    roue: 0xe8eaee, cabineRoue: 0x3a7bd5, resille: 0xd8dde5, lampe: 0xfff6d8, eau: 0x2f6f9a, dune: 0xd8b27a, colline: 0x6f8f55 },
+  // les briques des 12 décors (decors-officiels.js, Codeur 3 ; decor.js les place et les dessine)
+  DECOR_EMPRISE_MAX: 80,        // m : l'emprise du plus grand objet (la grille des places prises regarde jusque-là)
+  ARBRE_SURFACE: 260,           // m² par arbre dans une zone d'arbres de densité 1…
+  ARBRES_ZONE_MAX: 450,         // … et au plus ça d'arbres par zone
+  IMMEUBLE_HAUTEUR: [12, 34], IMMEUBLE_LARGEUR: [12, 22], IMMEUBLE_PROFONDEUR: [12, 20], IMMEUBLE_RANG: 24, IMMEUBLE_JOINT: 0.94,   // m
+  IMMEUBLE_BANDES: 4,           // les bandes de fenêtres d'un immeuble
+  IMMEUBLE_PENTE_COLLINE: 0.25, // m de plus par m au loin : la ville en gradins sur la colline (Monoco)
+  IMMEUBLE_COULEURS: [0xe9e4da, 0xd9d2c4, 0xc8cdd3, 0xf0ead8, 0xbfc4c9, 0xe2d6c0],
+  DECOR_FACADES: { monoco: true }, // les façades le long des rues, tout contre les rails
+  FACADE_RETRAIT: 2, FACADE_HAUTEUR: [12, 24], FACADE_LARGEUR: [9, 15], FACADE_PROFONDEUR: [10, 14],   // m
+  FACADE_COULEURS: [0xe8c9a0, 0xf0d9b5, 0xe3b79a, 0xf2e6cf, 0xd99f7e, 0xf3e1a6, 0xe7cfc5],   // les couleurs de la Riviera
+  EAU_CASE: 20, EAU_HAUTEUR: 0.05,   // m : une dalle d'eau, à peine au-dessus du sol
+  PORT_BANDE: 60,               // m : les bateaux sont amarrés dans les premiers mètres du port…
+  PORT_DENSITE: 0.55,           // … sur cette part des dalles
+  BATEAU_LONGUEUR: [10, 38], BATEAU_TRAVERS: 0.6,   // m ; la part des bateaux amarrés de travers (la poupe au quai)
+  BATEAU_COULEURS: [0xffffff, 0xf4f4f0, 0xeef2f6, 0x1f2a44, 0xd8d0c0],
+  CHAMP_CASE: 40, CHAMP_HAUTEUR: 0.03, CHAMP_COULEURS: [0x7fa04a, 0x9cab4e, 0xb8ad5c, 0x6f9a45, 0x8fb35a],
+  COLLINE_SURFACE: 9000, DUNE_SURFACE: 2500, COLLINES_ZONE_MAX: 120,   // m² par colline (ou dune) à densité 1, et au plus par zone
+  COLLINE_RAYON: [30, 70], COLLINE_PENTE: [0.25, 0.5], DUNE_RAYON: [12, 32], DUNE_PENTE: [0.15, 0.3],
+  GRANDE_ROUE_RAYON: 28, GRANDE_ROUE_EMPRISE: 32, HOTEL_LONGUEUR: 110, HOTEL_EMPRISE: 57,   // m
+  PROJECTEUR_PAS: 70, PROJECTEUR_HAUTEUR: 22, PROJECTEUR_RECUL: 3,   // m : les mâts d'éclairage la nuit (des deux côtés en alternance)
+  BANDEROLE_PAS: 22, BANDEROLE_LONGUEUR: 12, BANDEROLE_HAUTEUR: 1.2, BANDEROLE_HAUTEUR_PLAQUE: 1.5,   // m : les banderoles du domicile, sur la barrière
+  PNEUS_VIRAGE_LONGUEUR: 70,    // m de piles de pneus devant la barrière, au virage de chaque tribune
+  PUBLIC_RANGS_MAX: 5,          // le public debout : au plus ces rangs
+  PANNEAUX_LIGNE: 220,          // m : des panneaux le long de la ligne droite des stands, de part et d'autre de la ligne
+  HORIZON_RECUL: 600, HORIZON_PROFONDEUR: 500, HORIZON_NOMBRE: 70,   // le paysage au loin : un anneau d'objets au-delà du circuit
+  HORIZON_COLLINE_RAYON: [180, 380], HORIZON_VILLE: [20, 60], HORIZON_TOURS: [80, 260],
+  CIEL_RAYON: 6500,             // m : la coupole du ciel (dans CAMERA_LOIN)
+  NUAGES_MAX: 40, NUAGES_ETENDUE: 3500, NUAGES_HAUTEUR: [450, 800], NUAGES_OPACITE: 0.85,
+  // la lumière d'un lieu (scene3d.js, avec decors-officiels.js) : l'ambiance (hémisphère) et, la nuit, la lumière des projecteurs
+  LIEU_AMBIANCE: 0.65, LIEU_PROJECTEURS: 0.9,
+  VOITURE_LOIN: 45,             // m : au-delà (pour un champ de vision de VOITURE_LOIN_CHAMP degrés ; plus loin quand la caméra zoome),
+  VOITURE_LOIN_CHAMP: 55,       //     une voiture est dessinée en forme simple, toutes en un seul appel de dessin (scene3d.js)
+  VOITURES_LOINTAINES_MAX: 32,
+  LIEU_CHAMP: 50,               // tests/lieu.html : le champ de vision de la vue d'un décor (degrés)
+  LIEU_APPELS_MAX: 90,          // appels de dessin au plus sur un circuit officiel décoré avec 20 voitures (tests/ecrans.py)
   PNEUS_PERTE_AFFICHEE: 0.001, // ?pneus=1 : la perte d'adhérence n'est écrite qu'à partir de 0,1 %
   // avant les feux : la grille vue d'en haut (camera.js poseGrille ; principal.js), quelques secondes, passable d'une touche ou d'un
   // clic ; jamais à deux ni au tournoi ; GRILLE_DECOUVERTE : aussi à la course de découverte (le clic aux feux : au plus +3 s)
@@ -809,14 +846,14 @@ const DECORS = {
     { type: 'stands', s: 20, longueur: 140, cote: -1, distance: 22, ecuries: [5, 10] },
     { type: 'panneaux', s: -400, longueur: 230, cote: 1, distance: 21 },
     { type: 'panneaux', s: 170, longueur: 260, cote: 1, distance: 21 },
-    { type: 'pneus', s: 440, longueur: 90, cote: 1, distance: 21 },          // la première chicane
-    { type: 'pneus', s: 440, longueur: 90, cote: -1, distance: 21 },
+    { type: 'pneus', s: 440, longueur: 90, cote: 1, distance: 19.8 },          // la première chicane
+    { type: 'pneus', s: 440, longueur: 90, cote: -1, distance: 19.8 },
     { type: 'tribune', s: 760, longueur: 300, cote: -1, distance: 28 },     // à l'extérieur du grand virage
     { type: 'public', s: 700, longueur: 420, cote: 1, distance: 25 },
     { type: 'panneaux', s: 1250, longueur: 550, cote: -1, distance: 21 },
-    { type: 'pneus', s: 2290, longueur: 100, cote: -1, distance: 21 },      // les deux virages serrés
+    { type: 'pneus', s: 2290, longueur: 100, cote: -1, distance: 19.8 },      // les deux virages serrés
     { type: 'tribune', s: 2240, longueur: 144, cote: -1, distance: 28 },
-    { type: 'pneus', s: 2600, longueur: 100, cote: -1, distance: 21 },
+    { type: 'pneus', s: 2600, longueur: 100, cote: -1, distance: 19.8 },
     { type: 'public', s: 2560, longueur: 160, cote: -1, distance: 25 },
     { type: 'arbres', s: 0, longueur: 4000, cote: -1, distance: 45, profondeur: 140, nombre: 380 },
     { type: 'arbres', s: 0, longueur: 4000, cote: 1, distance: 45, profondeur: 90, nombre: 260 },

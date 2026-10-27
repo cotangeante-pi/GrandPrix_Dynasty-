@@ -188,6 +188,17 @@ const VOITURE3D = (function () {
     return geometrie(p);
   }
 
+  // la voiture vue de loin (scene3d.js) : la coque, les pontons, les ailerons et quatre roues en boîtes, d'une seule pièce ; la
+  // coque est blanche, la couleur de l'écurie vient de l'instance (toutes les voitures lointaines en un seul appel de dessin)
+  function formeLointaine() {
+    const p = paquet(), B = 0xffffff, xa = R.CG_AVANT, xr = R.CG_AVANT - R.EMPATTEMENT;
+    boite(p, 2.6, 0.5, 0.8, B, 0.1, 0.45, 0); boite(p, 1.7, 0.26, 0.36, B, 2.2, 0.33, 0); boite(p, 1.8, 0.42, 0.55, B, -1.3, 0.62, 0);
+    boite(p, 1.7, 0.4, 0.45, B, -0.4, 0.38, 0.62); boite(p, 1.7, 0.4, 0.45, B, -0.4, 0.38, -0.62);
+    boite(p, 0.5, 0.05, 1.95, CARBONE, 3.0, 0.14, 0); boite(p, 0.45, 0.06, 1.0, CARBONE, -2.45, 0.98, 0); boite(p, 0.12, 0.45, 0.06, CARBONE, -2.3, 0.62, 0);
+    for (const [x, z, r] of [[xa, 0.85, 0.33], [xa, -0.85, 0.33], [xr, 0.8, 0.35], [xr, -0.8, 0.35]]) boite(p, 2 * r, 2 * r, 0.38, NOIR, x, r, z);
+    return geometrie(p);
+  }
+
   // une roue : le pneu et un rayon de jante clair (on voit la roue tourner), fusionnés
   function geometrieRoue(rayon, largeur) {
     const p = paquet();
@@ -230,6 +241,8 @@ const VOITURE3D = (function () {
       roue(0.35, 0.42, xr, 0.8, false, matCorps), roue(0.35, 0.42, xr, -0.8, false, matCorps),
     ];
     for (const r of roues) groupe.add(r.pivot);
+    // une vraie voiture (pas le fantôme) peut être dessinée de loin en forme simple (scene3d.js : formeLointaine, toutes en un appel)
+    if (!materiaux) groupe.userData.lointaine = { couleur: new THREE.Color(couleur) };
     return { groupe, roues, tete, corps, couleur, detaille: !!detaille };
   }
 
@@ -328,5 +341,5 @@ const VOITURE3D = (function () {
     return { y, z: -d, angle: -braquage * R.VOLANT_FACTEUR, haut: (y + r * 1.2) / bas };
   }
 
-  return { creerVolant, poseVolant, creer, creerFantome, placer, majHalo, triangles, appels, preparerCasques, majCasque, apercuCasque, tournerApercu, get atlas() { return atlas; } };
+  return { creerVolant, poseVolant, creer, creerFantome, formeLointaine, placer, majHalo, triangles, appels, preparerCasques, majCasque, apercuCasque, tournerApercu, get atlas() { return atlas; } };
 })();
