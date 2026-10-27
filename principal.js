@@ -31,6 +31,7 @@ if (Object.prototype.hasOwnProperty.call(REGLAGES.NIVEAUX, PARAMETRES.get('nivea
 const DEUX_EN_COURS = EST_PAGE && PARAMETRES.get('deux') === '1';
 // ?pneus=1 : les pneus du joueur (pneus.js), désactivés par défaut (PNEUS_ACTIFS) tant que le propriétaire n'a pas jugé la sensation
 if (PARAMETRES.get('pneus') === '1') REGLAGES.PNEUS_ACTIFS = true;
+if (PARAMETRES.get('pneus') === '0') REGLAGES.PNEUS_ACTIFS = false;   // (tour 32 : les pneus sont là par défaut ; ?pneus=0 les coupe)
 
 // l'état du jeu, lisible par les tests
 const JEU = {
