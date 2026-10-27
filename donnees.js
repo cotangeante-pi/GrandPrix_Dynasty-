@@ -723,6 +723,8 @@ const REGLAGES = {
   COULEUR_ROUTE_MOUILLEE: 0x24262b, ROUTE_MOUILLEE_REFLET: 0.35, ROUTE_MOUILLEE_BRILLANCE: 40,
   CIEL_COUVERT: 0x9aa2ab, CIEL_COUVERT_COUPOLE: 0x8e959d, CIEL_COUVERT_PART: 0.85, CIEL_COUVERT_CLARTE: 1.4, CIEL_COUVERT_AMBIANCE: 0.25, CIEL_COUVERT_SOLEIL: 0.6,
   METEO_ICONE_PLUIE: 0.1, METEO_ICONE_NUAGES: 0.3, GOUTTES_OPACITE: 1.2,
+  CIEL_VOILE: 0.15,             // un ciel voilé jusque-là, sans pluie ni eau : c'est le sec (rien n'est dessiné)
+  LIGNE_SECHE_LARGEUR: 3, LIGNE_SECHE_HAUTEUR: 0.025, LIGNE_SECHE_ECART: 0.05,   // la trajectoire plus sèche : sa largeur (m), quand on la montre
   // le décor (étape 10, decor.js) : les briques, faites par le code, un InstancedMesh par type ; leur placement vient de DECORS (plus bas)
   DECOR_ACTIF: true,
   DECOR_GRAINE: 4242,           // le hasard du décor, à part (il ne tire jamais dans hasard() : la course ne change pas)
