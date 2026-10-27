@@ -1,0 +1,37 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>la météo en course</title></head><body>
+<pre id="res"></pre>
+<script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));</script>
+<script src="../donnees.js"></script><script src="../aleatoire.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../course.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../meteo.js"></script>
+<script>
+// La météo en course (étape 12, CLAUDE.md « La météo », Codeur 1) : 30 courses de 8 tours entre 10 IA (15 graines par circuit, test et
+// technique), avec les pneus, une averse qui arrive au tiers de la course (intensité 0,8), puis les mêmes au sec. EXIGÉ : toutes
+// arrivent ; les IA passent aux pneus de pluie (au moins 8 sur 10 en moyenne s'arrêtent pour changer) ; l'arrêt pour changer de pneus
+// change le classement (l'ordre d'arrivée diffère de la course au sec dans au moins METEO_COURSES_DIFFERENTES courses) ; les
+// garde-fous de courses.html à l'échelle de 8 tours (× 8/5 : chocs, barrières + coupes, herbe hors erreurs). ?graines=15, ?tours=8.
+const Q=new URLSearchParams(location.search),GRAINES=+(Q.get('graines')||15),TOURS=+(Q.get('tours')||8);
+const L=[];let ok=0,ko=0;
+function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
+const v=(c,m)=>{if(!c)throw new Error(m||'faux');};
+const ecrire=etape=>{document.getElementById('res').textContent=`${etape?'EN COURS ('+etape+') ':''}RESULTAT ${ok}/${ok+ko}\n`+L.join('\n');};
+REGLAGES.PNEUS_ACTIFS=true;
+const circuits={test:CIRCUIT_TEST,technique:construireCircuit(CIRCUITS.technique)},DT=REGLAGES.PAS_PHYSIQUE;
+function course(circ,g,pluie){const e=creerCourseIA(circ,10,TOURS,g),duree=TOURS*circ.longueur/REGLAGES.METEO_VITESSE_MOYENNE;
+  if(pluie)poserMeteo(e,{prevision:{type:'risque',pourcent:100},debut:0,change:{t:duree/3,pluie:0.8}});
+  const pasMax=Math.round(TOURS*REGLAGES.SIMULATION_TEMPS_MAX/DT);for(let k=0;k<pasMax&&e.arrives<10;k++)pasCourseIA(e,DT);
+  const V=e.pilotes;return {e,fini:V.every(p=>p.arrivee!==null),final:classementFinal(e).map(x=>V[x.k].numero).join(','),chocs:V.flatMap(p=>p.v.chocs).filter(c=>c>5).length/2,
+    herbe:V.reduce((a,p)=>a+p.herbe,0),barr:V.reduce((a,p)=>a+p.v.contactsBarriere+Math.round((p.course.penalites-(p.course.penaliteSansArret||0)-(p.course.penalitesStands||0))/REGLAGES.PENALITE_COUPE),0),
+    changes:V.filter(p=>(p.course.arrets||[]).length>0&&p.v.typePneus!=='slick').length,pneus:V.map(p=>p.v.typePneus||'slick'),eau:e.meteo?e.meteo.eau:0};}
+const res=[],t0=performance.now();
+for(const nom of ['test','technique']) for(let g=1;g<=GRAINES;g++){const a=course(circuits[nom],g,true),b=course(circuits[nom],g,false);res.push({nom,g,a,b,differe:a.final!==b.final});
+  L.push(`  ${nom} graine ${String(g).padStart(2)} : sous l'averse ${a.final} (au sec ${b.final})${a.final!==b.final?' ≠':' ='} | ${a.changes}/10 passées aux pneus de pluie (${a.pneus.join(' ')}) | eau finale ${a.eau.toFixed(2)} | chocs>5 ${a.chocs} (sec ${b.chocs}) | herbe ${a.herbe} (sec ${b.herbe}) | barrières+coupes ${a.barr}`);ecrire(nom+' '+g);}
+const N=res.length,k=N/30*TOURS/5,tot=f=>res.reduce((s,r)=>s+f(r),0),diff=tot(r=>r.differe),chang=tot(r=>r.a.changes);
+L.push(`  TOTAL sur ${N} courses de ${TOURS} tours avec une averse : ordre différent du sec dans ${diff} ; ${chang} IA sur ${N*10} passées aux pneus de pluie ; chocs>5 ${tot(r=>r.a.chocs)} (au sec ${tot(r=>r.b.chocs)}) ; herbe ${tot(r=>r.a.herbe)} (au sec ${tot(r=>r.b.herbe)}) ; barrières + coupes ${tot(r=>r.a.barr)} ; calcul ${((performance.now()-t0)/1000).toFixed(1)} s`);
+t('toutes les voitures arrivent, sous l’averse et au sec',()=>v(res.every(r=>r.a.fini&&r.b.fini)));
+t('les IA passent aux pneus de pluie (au moins 8 sur 10 en moyenne)',()=>v(chang>=8*N,chang+' / '+N*10));
+t(`l’arrêt pour changer de pneus change le classement : l’ordre d’arrivée diffère du sec dans au moins ${Math.ceil(REGLAGES.METEO_COURSES_DIFFERENTES*N/30)} courses`,()=>v(diff>=REGLAGES.METEO_COURSES_DIFFERENTES*N/30,diff));
+t(`garde-fou : au plus ${Math.floor(6*k)} chocs à plus de 5 m/s sous l’averse`,()=>v(tot(r=>r.a.chocs)<=6*k,tot(r=>r.a.chocs)));
+t(`garde-fou : au plus ${Math.floor(6*k)} barrières + coupes sous l’averse`,()=>v(tot(r=>r.a.barr)<=6*k,tot(r=>r.a.barr)));
+t(`garde-fou : au plus ${Math.floor(4000*k)} pas dans l’herbe sous l’averse`,()=>v(tot(r=>r.a.herbe)<=4000*k,tot(r=>r.a.herbe)));
+t('aucune erreur JavaScript',()=>v(__err.length===0,__err.join(' | ')));
+ecrire();
+</script></body></html>

@@ -345,6 +345,53 @@ Décidées par le propriétaire le 2026-10-27 (« fais qu'on puisse discuter ave
 - **Code** : la compréhension (lexique, langage parlé, intentions) et le raisonnement en calcul pur dans des fichiers à eux (`discussion.js`, `parle.js`, `courrier-pilotes.js`), testés sans écran avec un **banc** de phrases (comme `tests/banc-ia.html` du jeu de pays) ; l'écran dans `interface.js` ; tous les textes en anglais et en français dans `textes.js` (les réponses sont composées depuis le raisonnement, avec des variantes tirées par `hasard()`), jamais genrées sur un pilote dont on ne connaît pas le genre.
 - **Tests** : le banc de phrases (chaque intention reconnue en saisie libre et au clic, dans les deux langues, langage parlé compris) ; chaque réponse justifiée par le vrai calcul ; les plafonds tiennent ; une promesse non tenue est rappelée ; aucune discussion pendant une course ; une ancienne sauvegarde se charge ; la course sans discussion est identique au bit près.
 
+## Les aides au premier usage (le tutoriel)
+
+Idée du propriétaire, 2026-10-27 (« tutoriel »), écrite par le Chef sous cette forme : **pas de tutoriel au début** (ça irait contre « En piste en 10 secondes » et contre des règles « simples, pour ne pas avoir besoin d'un long tutoriel »), mais **une aide courte la première fois qu'on rencontre chaque système**, au moment où il sert. Le jeu en a beaucoup maintenant (départ parfait, qualification et fantôme, arrêt au stand, pneus et pluie, aileron, consignes d'équipe, duel, garage, contrats, interview, discussions).
+
+- **Quand** : juste avant ou pendant la première fois (les premiers feux : la jauge du départ, déjà là ; le premier arrêt obligatoire : « Entre dans la voie des stands, à 80 km/h au plus » ; le premier garage : à quoi sert chaque amélioration ; la première consigne ; la première pluie : « Passe aux pneus pluie au prochain arrêt ? »), **une seule fois par système**, jamais pendant un freinage ou un virage (en course, seulement dans une ligne droite ou à l'arrêt).
+- **La forme** : une bulle courte (une ou deux lignes), avec la touche ou le bouton à utiliser, qui se ferme d'un clic ou quand l'action est faite ; elle ne cache jamais la piste devant la voiture ; un bouton « Revoir les aides » au paddock (menu pause aussi) remet le compteur à zéro ; un réglage pour les couper toutes.
+- **Code** : la liste des aides et leurs conditions en calcul pur (`aides.js`), ce qui a été vu dans la sauvegarde unique (à la racine : ça survit à une nouvelle carrière) ; l'affichage dans `interface.js` ; tous les textes dans `textes.js`, en anglais et en français.
+- **Tests** : chaque aide apparaît une fois, au bon moment, puis plus jamais ; jamais pendant un virage ; « Revoir les aides » les remet ; le réglage les coupe ; aucune aide ne recouvre la piste devant la voiture (le test en pixels existant) ; une ancienne sauvegarde se charge (aucune aide vue).
+
+## Le tutoriel guidé
+
+Décidé par le propriétaire le 2026-10-27 (« fais le tutoriel »), en plus des aides au premier usage. **Proposé, jamais imposé** : le premier lancement reste « en piste en 10 secondes ».
+
+- **Où on le lance** : un bouton « Apprendre à piloter » sur l'écran titre (petit, à côté de « Entre amis »), au paddock (rangée Course) et dans le menu pause ; après la course de découverte, l'écran « Bravo ! » le propose aussi (« Prêt pour ta carrière ? » / « D'abord apprendre »).
+- **Ce que c'est** : une suite de **leçons courtes**, sur le circuit d'essai, seul en piste ou avec quelques IA lentes, chacune avec un but clair, une consigne à l'écran et une réussite mesurée par le moteur :
+  1. accélérer, tourner, freiner (finir un tour sans sortir) ;
+  2. la trajectoire et le point de freinage (un virage marqué par des plots : passer sous un temps donné) ;
+  3. le départ parfait (garder l'aiguille dans le vert, réagir aux feux) ;
+  4. l'aspiration et le dépassement (passer une IA lente) ;
+  5. l'arrêt au stand (entrer à 80 km/h, s'arrêter dans la zone) ;
+  6. la pluie et les pneus (une averse, changer de pneus) ;
+  7. le garage, l'aileron et le paddock (une visite guidée des écrans, sans course).
+  Chaque leçon peut se recommencer et se passer ; une étoile par leçon réussie ; la liste des leçons et leur réussite sont gardées à la racine de la sauvegarde (elles survivent à une nouvelle carrière).
+- **La règle d'or tient** : la même physique et les mêmes IA que le jeu ; une leçon ne rend rien plus facile en course.
+- **Code** : les leçons (but, mise en place, réussite) en calcul pur (`tutoriel.js`), qui ne font qu'utiliser le moteur existant ; l'affichage (consignes, plots, réussite) dans `interface.js` et la 3D existante ; tous les textes dans `textes.js`, en anglais et en français.
+- **Tests** : chaque leçon se réussit avec le robot d'essai (ou un pilote scripté) et échoue si l'on ne fait rien ; on peut la passer ; la réussite est gardée ; le premier lancement mène toujours à la grille de la découverte en un clic (le tutoriel n'ajoute aucun écran) ; console vide ; 960 et 1280 sans défilement.
+
+## Le commentateur
+
+Idée du propriétaire, 2026-10-27 (« commentateur »). **À faire en tout dernier**, après tout le reste de ce fichier (le propriétaire : « sauf commentateur qui sera fait à la fin fin fin »). **But** : la « vraie retransmission de F1 » de « L'interface », avec une voix qui raconte la course. **En texte**, dans le bandeau télé des messages de course (`messages.js`), pas en voix enregistrée (aucun fichier de son) ni en synthèse vocale (elle change trop d'un ordinateur à l'autre).
+
+- **Ce qu'il dit** : les faits que le moteur connaît déjà (départ, dépassements, attaques côte à côte, erreurs, contacts, pénalités, arrêts au stand, meilleur tour, pluie qui arrive, dernier tour, arrivée), avec les noms, les écuries et les places (« Rossi plonge à l'intérieur de Moreau ! », « Toi, 3e, à 1,2 s du podium », « Dernier tour à Monoco ! ») ; plus de phrases quand le joueur est concerné ; un ton de télé, enthousiaste, jamais moqueur envers le joueur.
+- **La mesure** : au plus une phrase toutes les quelques secondes (`COMMENTAIRE_INTERVALLE`), une file avec des priorités (un dépassement pour la tête passe devant un meilleur tour), jamais la même phrase deux fois de suite (plusieurs variantes par fait, tirées par `hasard()`), rien pendant les premières secondes d'un virage serré ; un réglage pour le couper ou le réduire aux faits du joueur.
+- **Le nom** : un commentateur inventé (nom dans `textes.js`, jamais une vraie personne), le même que la chaîne de La Gazette du Paddock si ça aide.
+- **Code** : le choix des phrases en calcul pur (`commentaire.js`, il lit seulement le moteur), l'affichage dans le bandeau existant ; en anglais et en français, jamais genré sur un pilote dont on ne connaît pas le genre.
+- **Tests** : chaque fait donne sa phrase ; la priorité et l'intervalle tiennent ; pas deux fois la même de suite ; rien quand c'est coupé ; la course est identique au bit près avec ou sans commentaire ; toutes les clés dans les deux langues.
+
+## La réalisation télé (de vraies caméras)
+
+Décidée par le propriétaire le 2026-10-27 (« pour la télé, ce ne doit pas être un calcul d'angles pour la F1 mais réellement une caméra dans les airs »). Aujourd'hui, la vue télé prend un point invisible au bord de la piste, tous les `TELE_ESPACEMENT` mètres, et calcule l'angle et le zoom vers la voiture. **À la place : de vraies caméras, placées dans le monde comme sur un vrai circuit, et une régie qui passe de l'une à l'autre.**
+
+- **Les caméras** sont des objets du décor, visibles (une petite caméra sur un mât, une grue, le toit d'une tribune, un pont), en hauteur, aux endroits où la télé les met : à la sortie des stands et à la ligne, à chaque virage célèbre (les `reperes` des tracés), le long des grandes lignes droites ; décrites par circuit dans `decors-officiels.js` (et `DECORS.test`), avec leur hauteur et leur zoom maximal. Plus **l'hélicoptère** (une caméra dans les airs, 80 à 150 m, qui suit la tête de course de loin, en douceur) et un **drone** au départ et à l'arrivée.
+- **La régie** choisit la caméra qui **voit vraiment** la voiture suivie (aucun immeuble, tribune ou relief entre les deux : un test de visée contre les boîtes du décor), garde un plan au moins `TELE_PLAN_MIN` secondes, coupe franchement d'un plan à l'autre (pas de travelling d'un poste à l'autre), et passe à l'hélicoptère sur les longues lignes droites ou quand aucune caméra ne voit la voiture. Une caméra reste à sa place : elle **tourne et zoome** pour suivre, comme un caméraman.
+- **Où** : la vue télé de course (touche C), la vue après l'arrivée, le résumé vidéo, la grille vue d'en haut (le drone) ; le mode 2 joueurs garde ses caméras derrière.
+- **Code** : la régie (le choix du plan, la visée, la durée) en calcul pur dans `camera.js` ou un fichier à elle (`regie.js`), testée sans écran ; les caméras dessinées par `decor.js` (en `InstancedMesh`, un appel de dessin pour toutes) ; leurs places en données.
+- **Tests** : sur un tour du circuit test et de Monoco, la voiture suivie est toujours visible depuis la caméra choisie (aucun objet du décor sur la ligne de visée) ; un plan dure au moins `TELE_PLAN_MIN` ; une caméra ne se déplace jamais (seuls l'angle et le zoom changent), sauf l'hélicoptère et le drone ; l'hélicoptère reste dans ses hauteurs ; les appels de dessin n'augmentent pas de plus de 1.
+
 ## L'argent et les améliorations
 
 - Chaque course rapporte de l'argent : selon la place, le meilleur tour, les objectifs de sponsors et les places gagnées.
@@ -654,6 +701,9 @@ Avant tout ça, ne jamais écrire « fini ». Pour une grosse étape (2, 4, 10, 
 | 11 | **La grande passe sur l'interface** : style retransmission télé, animations, transitions, paddock, garage | Le propriétaire trouve que ça a l'air pro |
 | 12 | **La météo** (décidée par le propriétaire le 2026-10-27, voir « La météo ») : prévision, pluie qui change en course, piste mouillée, pneus slicks / intermédiaires / pluie, choix au stand, les IA avec la même information | la pluie change la stratégie |
 | 12b | **Les discussions** (décidées par le propriétaire le 2026-10-27, voir « Les discussions avec les pilotes et les écuries ») : parler aux rivaux, au coéquipier et aux patrons, en saisie libre ou au clic, des réponses depuis leur raisonnement, des messages qu'ils écrivent d'eux-mêmes | on discute avec un rival et sa réponse change ce qui suit |
+| 11d | **Le tutoriel guidé** (le propriétaire, 2026-10-27, voir « Le tutoriel guidé ») : 7 leçons courtes, proposées et jamais imposées | un nouveau joueur apprend chaque système par une leçon qu'il réussit, et le premier lancement reste à 10 secondes |
+| 11c | **La réalisation télé** (le propriétaire, 2026-10-27, voir « La réalisation télé ») : de vraies caméras dans le décor, l'hélicoptère, une régie qui ne coupe que sur une caméra qui voit la voiture | sur chaque circuit, la vue télé ne montre jamais un mur ni un immeuble à la place de la voiture |
+| 11b | **Les aides au premier usage et le commentateur** (idées du propriétaire du 2026-10-27, voir les deux sections) | chaque système a son aide la première fois, et une course est commentée sans jamais gêner le pilotage |
 | 13 | **Le résumé vidéo de la course** : les positions de toutes les voitures sont enregistrées pendant la course (même code que le fantôme du meilleur tour) ; on rejoue les moments forts (départ, dépassements, sorties de piste, arrivée) avec les caméras télé | après une course, on regarde son résumé |
 | 14 | **La fin de carrière et les records** : retraite anticipée ou par l'âge (15 saisons), palmarès, records, temple de la renommée (avec les statistiques de l'étape 6), l'album des unes du journal, la relève (héritier, arbre de la dynastie, records de famille : voir « La relève : une vraie dynastie ») ou nouvelle dynastie | une carrière terminée affiche son bilan |
 | 15 | **Poki** : SDK, pubs, traduction anglais/français complète, paquet zip, test sur inspector.poki.dev, temps du clic aux feux revérifié (voir « En piste en 10 secondes ») | le jeu passe l'inspecteur sans erreur, et un nouveau joueur est en piste en 10 secondes au plus |

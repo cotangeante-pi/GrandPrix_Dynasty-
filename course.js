@@ -177,6 +177,8 @@ function pasArretStand(c, v, dt) {
     a.reste -= dt;
     if (a.reste <= 0) {
       arretAuStand(v.pneus, v.changeurs || 0);
+      if (v.pneusProchain) v.typePneus = v.pneusProchain;
+      v.choixPneus = false;   // (le prochain arrêt : l'équipe propose de nouveau)   // la météo (meteo.js) : les pneus choisis pour cet arrêt (slick, intermédiaire, pluie)
       v.adherence = facteurAdherence(v.pneus.usure);
       c.arrets.push({ tour: a.tour, duree: a.duree, usure: a.usure });
       c.arretEnCours = null;

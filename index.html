@@ -30,6 +30,8 @@
 <div id="classement" class="cache"><div id="classementPlace"></div><ol id="classementListe"></ol></div>
 <canvas id="radar" class="cache" width="170" height="170"></canvas>
 <canvas id="minicarte" class="cache" width="180" height="130"></canvas>   <!-- la minicarte : le circuit entier et toutes les voitures (minicarte.js) -->
+<div id="meteoHud" class="cache"><span id="meteoIcone"></span><span id="meteoEau"></span><span id="meteoBarre"><i id="meteoPlein"></i></span></div>   <!-- la météo (meteo3d.js) : l'icône et l'eau sur la piste ; cachée au sec -->
+<div id="gouttes" class="cache"></div>   <!-- les gouttes sur la visière, en vue cockpit sous la pluie -->
 <div id="pneusHud" class="cache"><span id="pneusTexte"></span><span id="pneusBarre"><i id="pneusPlein"></i></span><span id="pneusAdherence"></span></div>   <!-- ?pneus=1 : l'usure et l'adhérence perdue -->
 <div id="messageCourse" class="cache"></div>   <!-- les messages de course (messages.js), un à la fois -->
 <div id="hudPenalite" class="cache"></div>
@@ -173,6 +175,7 @@
     <div id="paddockProchain" class="tvCarte">
       <p id="paddockSurtitre" class="tvSurtitre"></p>
       <h1 id="championnatTitre"></h1>
+      <p id="prevision" class="cache"></p>   <!-- la météo prévue (meteo3d.js) -->
       <p id="paddockDomicile" class="cache"><span class="maison"></span> <span id="paddockDomicileTexte"></span></p>
       <canvas id="paddockCarte" width="330" height="170"></canvas>
       <p id="championnatGagne"></p>
@@ -445,6 +448,7 @@
 <script src="sdk.js"></script>
 <script src="pneus-donnees.js"></script>
 <script src="pneus.js"></script>
+<script src="meteo.js"></script>
 <script src="enregistreur-donnees.js"></script>
 <script src="enregistreur.js"></script>
 <script src="resume.js"></script>
@@ -454,6 +458,7 @@
 <script src="decors-officiels.js"></script>
 <script src="decor-public.js"></script>
 <script src="decor.js"></script>
+<script src="meteo3d.js"></script>
 <script src="scene3d.js"></script>
 <script src="voiture3d.js"></script>
 <script src="camera.js"></script>
