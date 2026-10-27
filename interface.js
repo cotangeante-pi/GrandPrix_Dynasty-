@@ -1496,3 +1496,74 @@ const INTERFACE = (function () {
     remplirSponsors, remplirRappelSponsor, preparerSponsors, remplirFiche, preparerFiche, remplirInterview, montrerEffetInterview, preparerInterview, remplirReputation,
     majEcartFantome, preparerFantome, majBoutonsFantome, majDepart, majDeux, preparerTitre, remplirBravo, majAides, remplirPilote, lirePilote, montrerErreursPilote, preparerPilote, nomCircuit, remplirCasque, lireCasque, modePilote, preparerCasque };
 })();
+
+// --- les aides au premier usage (aides.js, étape 11b, Codeur 4) : la bulle, « Revoir les aides » au paddock et dans le menu pause.
+// À chaque image, la situation est lue dans l'état du jeu (JEU, CIRCUIT de principal.js : rien n'y est changé), AIDES.pas choisit
+// l'aide à montrer ; une aide vue est écrite tout de suite à la racine de la sauvegarde. En course, la bulle est à gauche, sous la
+// minicarte (jamais sur la piste devant la voiture, test en pixels dans ecrans.py) ; sur les écrans entre les courses, en haut à gauche.
+const AIDES_ECRAN = (function () {
+  const $ = id => document.getElementById(id);
+  let etat = null, affichee = null;
+
+  function sauver() { SAUVEGARDE.ecrireAides(Array.from(etat.vues)); }
+
+  function phrase(id) {
+    return texte('aide_' + id).replace('{v}', Math.round(REGLAGES.STAND_VITESSE_MAX * 3.6)).replace('{p}', String(Math.round(REGLAGES.GARAGE_PLAFOND * 1000) / 10).replace('.', texte('virgule')));
+  }
+
+  function montrer(id) {
+    if (id === affichee) return;
+    affichee = id;
+    const b = $('bulleAide');
+    b.classList.toggle('cache', !id);
+    if (!id) return;
+    $('bulleAideTexte').textContent = phrase(id);
+    b.title = texte('aideFermer');
+    b.dataset.aide = id;
+    const course = AIDES.PAR_ID[id].genre === 'course';
+    b.classList.toggle('bulleCourse', course);
+    b.classList.toggle('bulleMenu', !course);
+  }
+
+  // « Revoir les aides » : plus aucune n'est vue (la sauvegarde aussi)
+  function revoir() {
+    if (!etat) return;
+    AIDES.revoir(etat);
+    sauver();
+    montrer(null);
+  }
+
+  // un clic sur la bulle : l'aide est vue
+  function fermer() {
+    if (!etat) return;
+    if (AIDES.fermer(etat)) sauver();
+    montrer(null);
+  }
+
+  function init() {
+    etat = AIDES.creer(SAUVEGARDE.aides());
+    const b = $('bulleAide');
+    b.addEventListener('mousedown', e => e.preventDefault());
+    b.addEventListener('click', fermer);
+    for (const id of ['boutonRevoirAides', 'boutonRevoirAidesPause']) {
+      $(id).textContent = texte('revoirAides');
+      $(id).addEventListener('mousedown', e => e.preventDefault());
+      $(id).addEventListener('click', revoir);
+    }
+  }
+
+  // une image (dt en s) ; renvoie l'aide affichée (ou null)
+  function maj(dt) {
+    if (!etat || typeof JEU === 'undefined' || typeof CIRCUIT === 'undefined') return null;
+    const meteo = typeof METEO3D !== 'undefined' ? METEO3D.etat(JEU.plateau || JEU.course) : null;
+    const r = AIDES.pas(etat, AIDES.situation(JEU, CIRCUIT, meteo), dt || 0);
+    if (r.vue) sauver();
+    montrer(r.aide);
+    return r.aide;
+  }
+
+  // la page du jeu seulement (les pages de test du moteur n'ont pas la bulle) : branchée sur l'affichage de la boucle
+  if ($('bulleAide') && typeof BOUCLE !== 'undefined') { init(); BOUCLE.surAffichage((alpha, dt) => maj(dt)); }
+
+  return { maj, revoir, fermer, etat: () => etat, affichee: () => affichee };
+})();

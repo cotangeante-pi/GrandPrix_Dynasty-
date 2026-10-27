@@ -331,6 +331,16 @@ const REGLAGES = {
   ],
   PISTE_GRIS_ECART_MAX: 16,     // tests d'écran : un pixel de piste est gris (ses trois composantes à moins de cet écart), l'herbe est verte
   AIDE_CLIGNOTE_APRES: 3,       // s : sur la grille, sans aucune touche pendant ce temps, l'aide « ↑ » clignote
+  // --- les aides au premier usage (aides.js, étape 11b, Codeur 4) : une bulle courte la première fois qu'on rencontre chaque système
+  AIDES_ACTIVES: true,          // faux : aucune aide ne s'affiche (le réglage pour les couper toutes)
+  AIDES_DUREE_COURSE: 7,        // s : en course, une aide se ferme d'elle-même après ce temps affiché (elle compte alors comme vue)
+  AIDES_VUE_APRES: 0.6,         // s : une aide dont le moment passe (on quitte l'écran, la consigne se termine) n'est vue que si elle a été affichée au moins ce temps
+  AIDES_ARRET_VITESSE: 1,       // m/s : en dessous, la voiture est à l'arrêt (une aide de course peut s'afficher même dans un virage)
+  AIDES_DROITE_DEVANT: 140,     // m : en course, une aide ne s'affiche que si la piste reste droite sur cette distance devant la voiture…
+  AIDES_COURBURE_MAX: 1 / 600,  // … c'est-à-dire si sa courbure n'y dépasse jamais ça (1/m : un rayon de 600 m au moins)
+  AIDES_FREIN_MAX: 0.05,        // et jamais pendant un freinage (frein de la voiture au-dessus de ça)…
+  AIDES_DIRECTION_MAX: 0.3,     // … ni volant tourné (|direction| au-dessus de ça)
+  AIDES_PLUIE_EAU: 0.2,         // l'aide de la pluie : dès que la piste a au moins ce niveau d'eau (ou qu'il pleut autant)
   // le casque du pilote (casque.js) : un motif et trois couleurs ; les rivaux tirent le leur avec la graine du championnat
   CASQUE_MOTIFS: ['uni', 'bandes', 'etoile', 'flammes', 'damier', 'eclair'],
   // les motifs à débloquer par des exploits de carrière (casque.js : conditions) ; jamais de la vitesse, seulement un dessin ; gardés à

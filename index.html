@@ -198,6 +198,7 @@
     <div class="paddockGroupe"><span class="paddockGroupeNom" id="paddockGroupeSaison"></span><div><button id="boutonCalendrier" class="petit" tabindex="-1"></button><button id="boutonAlbum" class="petit" tabindex="-1"></button><button id="boutonArbre" class="petit" tabindex="-1"></button></div></div>
     <div class="paddockGroupe"><span class="paddockGroupeNom" id="paddockGroupeAmis"></span><div><button id="boutonAmisPaddock" class="petit" tabindex="-1"></button></div></div>
   </div>
+  <button id="boutonRevoirAides" class="petit" tabindex="-1"></button>   <!-- « Revoir les aides » (aides.js, Codeur 4) : dans un coin du paddock -->
 </section>
 <!-- le calendrier de la saison (Codeur 3) : les 12 Grands Prix, faits ou à venir, le prochain mis en valeur, le Grand Prix à domicile marqué -->
 <section id="calendrier" class="ecran cache">
@@ -369,12 +370,15 @@
 
 <!-- le résumé vidéo de la course (resume.js, étape 13) : la 3D rejoue les moments forts ; un bandeau dit le moment ; un clic ou Échap pour sortir -->
 <div id="annonceMotif" class="cache"></div>   <!-- « Nouveau motif : Couronne ! » (casque.js), au paddock, une fois -->
+<!-- les aides au premier usage (aides.js ; l'affichage : AIDES_ECRAN dans interface.js, Codeur 4) : la bulle d'une ou deux lignes, un clic la ferme -->
+<div id="bulleAide" class="cache" role="status"><span id="bulleAideTexte"></span><span id="bulleAideFermer" aria-hidden="true">✕</span></div>
 <section id="grille" class="cache"><p id="grilleAide"></p></section>   <!-- avant les feux : la grille vue d'en haut, passable -->
 <section id="resume" class="cache"><div id="resumeBandeau"><span id="resumeTitre"></span><span id="resumeMoment"></span></div><p id="resumeSortir"></p></section>
 <section id="pause" class="ecran cache">
   <h1 id="pauseTitre"></h1>
   <div class="boutons"><button id="boutonReprendre" tabindex="-1"></button><button id="boutonRecommencer" tabindex="-1"></button></div>
   <div class="boutons"><button id="boutonFantomePause" class="boutonFantome" tabindex="-1"></button></div>   <!-- le fantôme affiché ou masqué (sauvegardé) -->
+  <div class="boutons"><button id="boutonRevoirAidesPause" class="petit" tabindex="-1"></button></div>   <!-- « Revoir les aides » (aides.js, Codeur 4) -->
 </section>
 
 <!-- après une course à plusieurs : le podium (sur la 3D), puis les résultats -->
@@ -456,6 +460,7 @@
 <script src="minicarte.js"></script>
 <script src="messages.js"></script>
 <script src="podium3d.js"></script>
+<script src="aides.js"></script>
 <script src="interface.js"></script>
 <script src="principal.js"></script>
 </body>

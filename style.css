@@ -1213,3 +1213,13 @@ body.deux.cote #boutonSon { top: auto; bottom: 12px; right: 12px; }   /* (côte 
 #resultatsTable td:nth-child(2) { font-family: var(--tv-police); }
 
 @media (prefers-reduced-motion: reduce) { #messageCourse:not(.cache) { animation: none; } }
+
+/* les aides au premier usage (aides.js, interface.js AIDES_ECRAN, Codeur 4) : une bulle de la chaîne télé, une ou deux lignes ;
+   en course à gauche sous la minicarte (jamais sur la piste devant la voiture), sur les écrans entre les courses en haut à gauche */
+#bulleAide { position: fixed; z-index: 21; display: flex; align-items: flex-start; gap: 10px; padding: 8px 12px; border-left: 4px solid var(--tv-rouge); border-radius: var(--tv-coin); background: var(--tv-hud); box-shadow: var(--tv-hud-ombre); color: var(--tv-texte); font: 700 13px/1.35 var(--tv-police); text-align: left; cursor: pointer; }
+#bulleAide.bulleCourse { left: 16px; top: 36%; max-width: 290px; }
+#bulleAide.bulleMenu { left: 16px; top: 8px; max-width: min(560px, 56vw); }
+#bulleAideFermer { color: var(--tv-texte-doux); font-weight: 800; }
+#bulleAide:not(.cache) { animation: tv-message var(--tv-duree-message) ease-out; }
+#boutonRevoirAides { position: fixed; right: 16px; bottom: 10px; }
+@media (prefers-reduced-motion: reduce) { #bulleAide:not(.cache) { animation: none; } }

@@ -508,6 +508,37 @@ const TEXTES = {
   },
 };
 
+// --- les aides au premier usage (aides.js, interface.js AIDES_ECRAN ; étape 11b, Codeur 4) : une bulle d'une ou deux lignes, avec la
+// touche ou le bouton à utiliser ; jamais genrées sur le joueur ({v} : la vitesse permise dans la voie des stands, en km/h)
+Object.assign(TEXTES.en, {
+  aide_depart: 'Start: hold ↑ to keep the needle in the green. Lights out: release, then press ↑ again as fast as you can!',
+  aide_qualif: 'Qualifying: one timed lap alone on track sets your grid slot. “Skip” means starting last.',
+  aide_fantome: 'The see-through car is your best lap here: the gap under the timer shows where you gain or lose time.',
+  aide_stand: 'Mandatory pit stop: at the end of this lap, take the pit lane (before the line), {v} km/h at most.',
+  aide_pluie: 'The track is wet: switch to rain tyres at your next pit stop?',
+  aide_consigne: 'Team order: lift off (↓) to let your team-mate through, or keep your place. Your call.',
+  aide_garage: 'Garage: each upgrade helps a little (+{p} % at most in total). Wheel changers shorten your pit stop.',
+  aide_aileron: 'High wing: more grip in corners, less top speed on the straights. Low wing: the opposite. Read the track map.',
+  aide_duel: 'Your team-mate has the same car: finishing ahead (qualifying and race) earns a bonus and counts for contracts.',
+  aide_contrats: 'Contracts: teams look at your points and your duel against your team-mate. Sign an offer, or stay put.',
+  aide_interview: 'Pick the tone of your answer: 😤 provocative, 🤝 calm, 😏 cheeky. Your reputation and rivalries depend on it.',
+  aideFermer: 'Click to close', revoirAides: '↺ Show the tips again', aidesRevues: 'The tips will show again',
+});
+Object.assign(TEXTES.fr, {
+  aide_depart: 'Départ : tiens ↑ pour garder l’aiguille dans le vert. Feux éteints : lâche, puis réappuie sur ↑ au plus vite !',
+  aide_qualif: 'Qualification : un tour chronométré, sans personne d’autre en piste, donne ta place sur la grille. « Passer » = partir dernier.',
+  aide_fantome: 'La voiture transparente, c’est ton meilleur tour ici : l’écart sous le chrono montre où tu gagnes ou perds du temps.',
+  aide_stand: 'Arrêt obligatoire : à la fin de ce tour, prends la voie des stands (avant la ligne), {v} km/h au plus.',
+  aide_pluie: 'La piste est mouillée : passer aux pneus pluie à ton prochain arrêt au stand ?',
+  aide_consigne: 'Consigne d’équipe : lève le pied (↓) pour laisser passer ton coéquipier, ou garde ta place. À toi de choisir.',
+  aide_garage: 'Garage : chaque amélioration aide un peu (+{p} % au plus en tout). Les changeurs de roues raccourcissent l’arrêt au stand.',
+  aide_aileron: 'Aileron haut : plus d’adhérence en virage, moins de vitesse en ligne droite. Bas : l’inverse. Lis la carte du circuit.',
+  aide_duel: 'Ton coéquipier a la même voiture : finir devant lui (qualif et course) rapporte un bonus et compte pour les contrats.',
+  aide_contrats: 'Contrats : les écuries regardent tes points et ton duel contre ton coéquipier. Signe une offre, ou reste.',
+  aide_interview: 'Choisis le ton de ta réponse : 😤 provocant, 🤝 calme, 😏 malin. Ta réputation et tes rivalités en dépendent.',
+  aideFermer: 'Clic pour fermer', revoirAides: '↺ Revoir les aides', aidesRevues: 'Les aides vont revenir',
+});
+
 // ?lang=en ou ?lang=fr force la langue (tests)
 const LANGUE = (function () {
   const demandee = new URLSearchParams(location.search).get('lang');

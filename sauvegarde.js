@@ -12,7 +12,7 @@ const SAUVEGARDE = (function () {
     // réglages du joueur (fantome : le fantôme affiché, vrai par défaut) ; reaction : le meilleur temps de réaction au départ (s)
     // decouverteFaite : la course de découverte du premier lancement est jouée ; argent : l'argent du joueur (la prime de la découverte, pas encore dépensable)
     // temple : le temple de la renommée et les records de carrière (carriere.js), à côté du championnat : ils survivent à une nouvelle carrière
-    return { version: VERSION, records: {}, championnat: null, fantomes: {}, options: {}, reaction: null, decouverteFaite: false, argent: 0, cartes: {}, temple: { carrieres: [], records: {} }, deux: null, tournoi: null, motifs: [], motifsAnnonce: [] };
+    return { version: VERSION, records: {}, championnat: null, fantomes: {}, options: {}, reaction: null, decouverteFaite: false, argent: 0, cartes: {}, temple: { carrieres: [], records: {} }, deux: null, tournoi: null, motifs: [], motifsAnnonce: [], aides: [] };   // aides : les aides au premier usage déjà vues (aides.js), à la racine
   }
 
   // une sauvegarde d'une ancienne version est transformée ici, sans rien perdre :
@@ -41,6 +41,7 @@ const SAUVEGARDE = (function () {
     if (!d.tournoi || typeof d.tournoi !== 'object') d.tournoi = null;
     if (!Array.isArray(d.motifs)) d.motifs = [];
     if (!Array.isArray(d.motifsAnnonce)) d.motifsAnnonce = [];   // les motifs gagnés pas encore annoncés à l'écran (une fois, au paddock)   // les motifs de casque débloqués (casque.js, tour 27b) : à la racine, ils survivent à une nouvelle carrière   // la dernière liste de joueurs du tournoi chrono et le tournoi en cours (tournoi.js, tour 26b), à part de la carrière   // les réglages et la rivalité du mode 2 joueurs (deux-joueurs.js, tour 25b), à part de la carrière
+    if (!Array.isArray(d.aides)) d.aides = [];   // les aides au premier usage déjà vues (aides.js, Codeur 4) : aucune dans une sauvegarde d'avant
     if (typeof CARRIERE !== 'undefined') d.temple = CARRIERE.completerTemple(d.temple);   // le temple de la renommée (tour 28c) : vide dans une sauvegarde d'avant
     if (d.championnat && typeof CHAMPIONNAT !== 'undefined') CHAMPIONNAT.completer(d.championnat);
     d.version = VERSION;
@@ -230,5 +231,16 @@ const SAUVEGARDE = (function () {
     return l;
   }
 
-  return { motifs, debloquerMotifs, prendreAnnonceMotifs, tournoi, ecrireTournoi, deux, ecrireDeux, temple, entrerAuTemple, lire, ecrire, record, proposerRecord, championnat, ecrireChampionnat, fantome, proposerFantome, option, ecrireOption, reaction, proposerReaction, decouverteFaite, argent, finirDecouverte, carte, ecrireCarte, VERSION, CLE };
+  // --- les aides au premier usage (aides.js) : la liste des aides déjà vues, à la racine (elle survit à une nouvelle carrière)
+  function aides() {
+    return lire().aides.slice();
+  }
+
+  function ecrireAides(liste) {
+    const d = lire();
+    d.aides = Array.from(liste || []);
+    return ecrire(d);
+  }
+
+  return { aides, ecrireAides, motifs, debloquerMotifs, prendreAnnonceMotifs, tournoi, ecrireTournoi, deux, ecrireDeux, temple, entrerAuTemple, lire, ecrire, record, proposerRecord, championnat, ecrireChampionnat, fantome, proposerFantome, option, ecrireOption, reaction, proposerReaction, decouverteFaite, argent, finirDecouverte, carte, ecrireCarte, VERSION, CLE };
 })();

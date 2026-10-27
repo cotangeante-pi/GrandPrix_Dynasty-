@@ -101,6 +101,12 @@ PAGES = [
     ('index.html?test=tournoi', 1280, 720, None),   # le tournoi chrono (tour 26b) : inscription de 3 joueurs → 3 manches (robot ; un abandon) → podium → Rejouer ; captures tournoi.png, tournoi-podium.png
     ('index.html?test=tournoi', 960, 600, None),    # … l'inscription de 8 joueurs tient en 960×600   # le mode 2 joueurs, tour 25b ordre 3 : titre → « Entre amis » → réglages → course à deux (robots) → podium → rivalité → Revanche → Menu ; captures entre-amis.png, deux-reglages.png, rivalite.png
     ('index.html?test=amis', 960, 600, None),    # … en petit : le menu et l'écran avant la course tiennent sans défilement ni débordement   # … la mesure de la 3D dessinée deux fois sur le technique   # le premier lancement : titre → course de découverte (robot) → Bravo → paddock ; captures titre.png, decouverte.png, bravo.png
+    # les aides au premier usage (aides.js, étape 11b, Codeur 4) : en course (qualification, feux, arrêt obligatoire en ligne droite, pause) et au paddock
+    # (duel, garage, aileron, « Revoir », ancienne sauvegarde) ; captures aide-stand.png, aide-garage.png (et -960)
+    ('index.html?course=12&ia=3&joueur=1&robot=1&circuit=test&test=aides-course', 1280, 720, None),
+    ('index.html?course=12&ia=3&joueur=1&robot=1&circuit=test&test=aides-course', 960, 600, None),
+    ('index.html?championnat=1&test=aides-menus', 1280, 720, None),
+    ('index.html?championnat=1&test=aides-menus', 960, 600, None),
 ]
 # ECRANS_FILTRE=… (pendant le travail, sur le Mac) : seulement les pages dont l'adresse contient ce texte ; GitHub lance toujours tout
 if os.environ.get('ECRANS_FILTRE'): PAGES = [x for x in PAGES if os.environ['ECRANS_FILTRE'] in f'{x[0]} {x[1]}']   # (« adresse largeur » : « robot=1 960 »)
@@ -2263,6 +2269,108 @@ def championnat(pg, titre, l):
     t(f'{titre} : la page rechargée retrouve le Grand Prix 3 et les mêmes points', attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat" && JEU.championnat.prochain === 2', None, 60000)
       and pg.evaluate('() => JEU.championnat.pilotes.map(p => p.stats.points)') == points and pg.evaluate('() => document.getElementById("championnatTitre").textContent').startswith('Grand Prix 3 / 12'), str(pg.evaluate(ECRAN)))
 
+# --- les aides au premier usage (aides.js, interface.js AIDES_ECRAN ; étape 11b, Codeur 4) : la bulle au bon moment, une fois ; jamais en
+# virage ni pendant un freinage ; jamais sur la piste devant la voiture (en pixels, la méthode de la piste sous les voitures : la boucle
+# arrêtée, l'image lue juste après SCENE3D.dessiner ; les points du couloir de la voiture, AIDES_DROITE_DEVANT m devant elle, projetés
+# à l'écran par la caméra, sont gris de route et aucun n'est sous la bulle) ; « Revoir les aides » ; AIDES_ACTIVES ; une ancienne sauvegarde
+AIDE_BULLE = '() => { const b = document.getElementById("bulleAide"); if (b.classList.contains("cache")) return null; const r = b.getBoundingClientRect(); return { aide: b.dataset.aide, x1: r.left, y1: r.top, x2: r.right, y2: r.bottom, course: b.classList.contains("bulleCourse"), texte: document.getElementById("bulleAideTexte").textContent }; }'
+AIDE_COULOIR = '''() => { BOUCLE.arreter(); const c = SCENE3D.canvas, W = c.clientWidth, H = c.clientHeight, k = document.createElement('canvas'); k.width = c.width; k.height = c.height; const ctx = k.getContext('2d');
+  SCENE3D.dessiner(); ctx.drawImage(c, 0, 0); const d = ctx.getImageData(0, 0, c.width, c.height).data, sx = c.width / W, sy = c.height / H;
+  const b = document.getElementById("bulleAide"), r = b.classList.contains("cache") ? null : b.getBoundingClientRect();
+  const C = CIRCUIT, v = JEU.qualif && JEU.qualif.etat === 'tour' ? JEU.qualif.v : JEU.joueur, i0 = v.piste.indice, cam = SCENE3D.camera; let n = 0, gris = 0, dessous = 0;
+  for (let m = 6; m <= REGLAGES.AIDES_DROITE_DEVANT; m += 3) for (const cote of [-2, 0, 2]) {
+    const i = (i0 + Math.round(m / C.pas)) % C.nb, p = new THREE.Vector3(C.x[i] + C.nx[i] * cote, 0.02, C.z[i] + C.nz[i] * cote).project(cam);
+    if (p.z < -1 || p.z > 1) continue; const x = (p.x + 1) / 2 * W, y = (1 - p.y) / 2 * H; if (x < 0 || x >= W || y < 0 || y >= H) continue;
+    n++; if (r && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) dessous++;
+    const o = 4 * (Math.floor(y * sy) * c.width + Math.floor(x * sx)), e = Math.max(d[o], d[o + 1], d[o + 2]) - Math.min(d[o], d[o + 1], d[o + 2]); if (e <= REGLAGES.PISTE_GRIS_ECART_MAX) gris++; }
+  BOUCLE.demarrer(); return { n, gris: n ? Math.round(100 * gris / n) : 0, dessous, bulle: r ? [r.left, r.top, r.right, r.bottom].map(Math.round) : null }; }'''
+def aide_recouvre(pg, bulle, selecteur):
+    # les boutons et champs visibles qui touchent la bulle (aucun ne doit : elle ne cache rien qu'on doive cliquer)
+    return pg.evaluate('''([b, sel]) => [...document.querySelectorAll(sel)].filter(e => e.offsetParent !== null || getComputedStyle(e).position === "fixed").map(e => [e.id || e.tagName, e.getBoundingClientRect()])
+      .filter(([id, r]) => r.width > 0 && r.height > 0 && !(r.right <= b.x1 || r.left >= b.x2 || r.bottom <= b.y1 || r.top >= b.y2)).map(([id]) => id)''', [bulle, selecteur])
+
+def aides_course(pg, titre, l, h):
+    t(f'{titre} : sauvegarde neuve, aucune aide vue ; l’écran de qualification montre l’aide « qualification » en haut à gauche (une bulle de deux lignes au plus, dans l’écran, sur aucun bouton)',
+      attendre(pg, '() => JEU.ecran === "qualif" && document.getElementById("bulleAide").dataset.aide === "qualif" && !document.getElementById("bulleAide").classList.contains("cache")', None, 10000), str(pg.evaluate(AIDE_BULLE)))
+    b = pg.evaluate(AIDE_BULLE)
+    t(f'{titre} : la bulle de la qualification : son texte (textes.js), en haut à gauche, au plus deux lignes, rien qu’on clique dessous', b and b['texte'] == pg.evaluate('() => texte("aide_qualif")') and not b['course'] and b['x1'] >= 0 and b['y1'] >= 0 and b['x2'] <= l and b['y2'] < h * 0.2 and b['y2'] - b['y1'] <= 60 and not aide_recouvre(pg, b, '#qualif button'), str([b, b and aide_recouvre(pg, b, '#qualif button')]))
+    pg.wait_for_timeout(800)
+    pg.click('#boutonQualifPasser')
+    attendre(pg, '() => JEU.qualif && JEU.qualif.etat === "resultat"', None, 240000)
+    t(f'{titre} : on quitte l’écran du choix : la bulle s’en va et l’aide est vue (sauvegardée)', attendre(pg, '() => SAUVEGARDE.aides().includes("qualif") && document.getElementById("bulleAide").dataset.aide !== "qualif" || document.getElementById("bulleAide").classList.contains("cache") && SAUVEGARDE.aides().includes("qualif")'), str(pg.evaluate('() => SAUVEGARDE.aides()')))
+    pg.click('#boutonQualifCourse')
+    attendre(pg, '() => JEU.ecran === "grille" || JEU.ecran === "course"', None, 10000)
+    pg.evaluate('() => { if (JEU.ecran === "grille") finirGrille(); }')
+    # les feux retenus allumés : l'aide du départ, la voiture tenue sur place sur la grille
+    attendre(pg, '() => JEU.course.feux && JEU.course.etat === "compte"', None, 30000)
+    pg.evaluate('() => { for (const p of JEU.plateau.pilotes) { p.course.feux.delai = 30; p.course.feux.total = 35; p.course.compte = 30; } }')
+    t(f'{titre} : les premiers feux : l’aide du départ (↑ dans le vert, puis lâcher et réappuyer), à gauche, la voiture à l’arrêt', attendre(pg, '() => document.getElementById("bulleAide").dataset.aide === "depart" && !document.getElementById("bulleAide").classList.contains("cache") && document.getElementById("bulleAide").classList.contains("bulleCourse")', None, 15000), str(pg.evaluate(AIDE_BULLE)))
+    b = pg.evaluate(AIDE_BULLE)
+    t(f'{titre} : la bulle du départ ne touche ni les feux, ni la jauge, ni la minicarte, ni le radar, ni la tour', b is not None and not aide_recouvre(pg, b, '#feux, #jauge, #minicarte, #radar, #classement, #hudCourse, #tableau'), str([b, b and aide_recouvre(pg, b, '#feux, #jauge, #minicarte, #radar, #classement, #hudCourse, #tableau')]))
+    co = pg.evaluate(AIDE_COULOIR)
+    t(f'{titre} : sur la grille, aucun point de la piste devant la voiture (son couloir sur AIDES_DROITE_DEVANT m) sous la bulle', co['n'] >= 20 and co['dessous'] == 0, str(co))
+    L.append(f"  (aides, sur la grille {l}×{h} : {co['n']} points du couloir devant la voiture à l’écran, {co['gris']} % gris de route (les voitures devant en cachent), {co['dessous']} sous la bulle {co['bulle']})")
+    pg.evaluate('() => { for (const p of JEU.plateau.pilotes) p.course.compte = 0.01; }')
+    t(f'{titre} : feux éteints (l’action est faite) : la bulle se ferme, l’aide du départ est vue', attendre(pg, '() => JEU.course.etat !== "compte" && document.getElementById("bulleAide").classList.contains("cache") && SAUVEGARDE.aides().includes("depart")', None, 15000), str([pg.evaluate(AIDE_BULLE), pg.evaluate('() => SAUVEGARDE.aides()')]))
+    # l'arrêt obligatoire conseillé dès ce tour : la bulle ne vient qu'en ligne droite ; on suit le robot sur plus d'un tour, image par image
+    pg.evaluate('() => BOUCLE.simuler(1)')
+    pg.evaluate('() => { JEU.course.arretConseille = 1; BOUCLE.arreter(); }')
+    vu, cache_virage, faux, capture = 0, 0, [], False
+    for i in range(320):
+        r = pg.evaluate('''() => { BOUCLE.simuler(0.25); const aide = AIDES_ECRAN.maj(0.02), s = AIDES.situation(JEU, CIRCUIT, null), e = AIDES_ECRAN.etat(), dom = !document.getElementById("bulleAide").classList.contains("cache");
+          return { aide, dom, attend: e.actuelle === "stand" && !aide, courbure: s.courbure, frein: s.frein, direction: s.direction, vitesse: s.vitesse, s: JEU.joueur.piste.s, vue: e.vues.has("stand") }; }''')
+        if r['aide'] == 'stand':
+            vu += 1
+            if not (r['vitesse'] <= 1 or (r['courbure'] <= pg.evaluate('() => REGLAGES.AIDES_COURBURE_MAX') and r['frein'] <= 0.05 and abs(r['direction']) <= 0.3)) or not r['dom']: faux.append(r)
+            if not capture and r['vitesse'] > 20:
+                capture = True
+                co = pg.evaluate(AIDE_COULOIR)
+                t(f'{titre} : en roulant dans la ligne droite, l’aide de l’arrêt obligatoire est affichée et aucun point de la piste devant la voiture n’est sous la bulle (les points sont bien sur la route : gris)', co['n'] >= 20 and co['dessous'] == 0 and co['gris'] >= 60 and pg.evaluate('() => document.getElementById("bulleAideTexte").textContent.includes(String(Math.round(REGLAGES.STAND_VITESSE_MAX * 3.6)))'), str(co))
+                L.append(f"  (aides, l’arrêt obligatoire en roulant {l}×{h} : {co['n']} points du couloir, {co['gris']} % gris de route, {co['dessous']} sous la bulle {co['bulle']})")
+                pg.screenshot(path=os.path.join(CAPTURES, 'aide-stand.png' if l == 1280 else 'aide-stand-960.png'))   # (la dernière image dessinée, la boucle arrêtée)
+        elif r['attend']: cache_virage += 1
+        if r['vue']: break
+    t(f'{titre} : l’aide de l’arrêt s’affiche en ligne droite ({vu} images), se cache dans les virages et les freinages ({cache_virage} images) et jamais elle n’est affichée dans un virage, un freinage ou volant tourné', vu > 0 and cache_virage > 0 and not faux and capture, str(faux[:3]))
+    pg.evaluate('() => BOUCLE.demarrer()')
+    # « Revoir les aides » dans le menu pause
+    pg.keyboard.press('Escape')
+    t(f'{titre} : le menu pause a « Revoir les aides » : il remet toutes les aides (la sauvegarde aussi)', attendre(pg, '() => JEU.ecran === "pause" && document.getElementById("boutonRevoirAidesPause").textContent === texte("revoirAides")') and (pg.click('#boutonRevoirAidesPause') or True) and pg.evaluate('() => SAUVEGARDE.aides().length === 0 && AIDES_ECRAN.etat().vues.size === 0'), str(pg.evaluate('() => [JEU.ecran, SAUVEGARDE.aides()]')))
+    pg.keyboard.press('Escape'); attendre(pg, '() => JEU.ecran === "course"')
+    # AIDES_ACTIVES = false : plus rien, même avec toutes les aides à revoir et l'arrêt à faire
+    n = pg.evaluate('() => { REGLAGES.AIDES_ACTIVES = false; BOUCLE.arreter(); let n = 0; for (let i = 0; i < 120; i++) { BOUCLE.simuler(0.25); if (AIDES_ECRAN.maj(0.02) || !document.getElementById("bulleAide").classList.contains("cache")) n++; } REGLAGES.AIDES_ACTIVES = true; BOUCLE.demarrer(); return n; }')
+    t(f'{titre} : AIDES_ACTIVES = false : aucune bulle pendant 30 s de course, même avec les aides remises', n == 0, str(n))
+
+def aides_menus(pg, titre, l, h):
+    vis = '() => !document.getElementById("bulleAide").classList.contains("cache") && document.getElementById("bulleAide").dataset.aide'
+    t(f'{titre} : au paddock, sauvegarde neuve : l’aide du duel contre le coéquipier', attendre(pg, '() => JEU.ecran === "championnat" && !document.getElementById("bulleAide").classList.contains("cache") && document.getElementById("bulleAide").dataset.aide === "duel"', None, 20000), str(pg.evaluate(AIDE_BULLE)))
+    b = pg.evaluate(AIDE_BULLE)
+    t(f'{titre} : la bulle du paddock et « Revoir les aides » (dans un coin) tiennent dans l’écran, ne touchent aucun bouton ; au plus deux lignes', b and b['x1'] >= 0 and b['y1'] >= 0 and b['x2'] <= l and b['y2'] - b['y1'] <= 60 and not aide_recouvre(pg, b, '#championnat button, #boutonSon')
+      and pg.evaluate(f'() => {{ const r = document.getElementById("boutonRevoirAides").getBoundingClientRect(), autres = [...document.querySelectorAll("#paddockBoutons button")].map(e => e.getBoundingClientRect()); return r.width > 0 && r.right <= {l} && r.bottom <= {h} && document.getElementById("boutonRevoirAides").textContent === texte("revoirAides") && autres.every(o => o.right <= r.left || o.left >= r.right || o.bottom <= r.top || o.top >= r.bottom); }}'),
+      str([b, b and aide_recouvre(pg, b, '#championnat button, #boutonSon')]))
+    pg.click('#bulleAide')
+    t(f'{titre} : un clic ferme la bulle ; l’aide est vue (sauvegardée)', pg.evaluate('() => document.getElementById("bulleAide").classList.contains("cache") && SAUVEGARDE.aides().includes("duel")'), str(pg.evaluate('() => SAUVEGARDE.aides()')))
+    pg.click('#boutonGarage')
+    t(f'{titre} : le premier garage : l’aide du garage (à quoi servent les améliorations, le plafond), sur aucun bouton', attendre(pg, '() => JEU.ecran === "garage" && document.getElementById("bulleAide").dataset.aide === "garage" && !document.getElementById("bulleAide").classList.contains("cache")'), str(pg.evaluate(AIDE_BULLE)))
+    b = pg.evaluate(AIDE_BULLE)
+    t(f'{titre} : la bulle du garage dit le plafond de GARAGE_PLAFOND et ne touche aucun bouton ni aucune ligne du garage', b and pg.evaluate('() => document.getElementById("bulleAideTexte").textContent.includes(String(Math.round(REGLAGES.GARAGE_PLAFOND * 100)))') and not aide_recouvre(pg, b, '#garage button, #garageListe li, #garage h1'), str([b, b and aide_recouvre(pg, b, '#garage button, #garageListe li, #garage h1')]))
+    pg.wait_for_timeout(500); pg.screenshot(path=os.path.join(CAPTURES, 'aide-garage.png' if l == 1280 else 'aide-garage-960.png'))
+    pg.wait_for_timeout(400)
+    pg.click('#boutonAileron')
+    t(f'{titre} : on quitte le garage : son aide est vue ; le premier aileron : son aide', attendre(pg, '() => JEU.ecran === "aileron" && document.getElementById("bulleAide").dataset.aide === "aileron" && !document.getElementById("bulleAide").classList.contains("cache") && SAUVEGARDE.aides().includes("garage")'), str([pg.evaluate(AIDE_BULLE), pg.evaluate('() => SAUVEGARDE.aides()')]))
+    b = pg.evaluate(AIDE_BULLE)
+    t(f'{titre} : la bulle de l’aileron ne touche ni le curseur ni la carte ni les boutons', b and not aide_recouvre(pg, b, '#aileron button, #aileronCurseur, #aileronCarte, #aileron h1'), str([b, b and aide_recouvre(pg, b, '#aileron button, #aileronCurseur, #aileronCarte, #aileron h1')]))
+    pg.wait_for_timeout(700)
+    pg.click('#boutonAileronRetour'); pg.wait_for_timeout(300)
+    t(f'{titre} : revenu au garage : plus d’aide (vue une fois) ; au paddock non plus', pg.evaluate(vis) is False and (pg.click('#boutonGarageRetour') or True) and (pg.wait_for_timeout(300) or True) and pg.evaluate(vis) is False and pg.evaluate('() => JEU.ecran === "championnat"'), str([pg.evaluate('() => JEU.ecran'), pg.evaluate(AIDE_BULLE)]))
+    pg.reload(); attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', None, 30000); pg.wait_for_timeout(500)
+    t(f'{titre} : après un rechargement, les aides vues ne reviennent pas (duel, garage, aileron gardés à la racine de la sauvegarde)', pg.evaluate(vis) is False and pg.evaluate('() => ["duel", "garage", "aileron"].every(a => SAUVEGARDE.aides().includes(a))'), str(pg.evaluate('() => SAUVEGARDE.aides()')))
+    pg.click('#boutonRevoirAides')
+    t(f'{titre} : « Revoir les aides » au paddock : la liste est vidée, l’aide du duel revient tout de suite', attendre(pg, '() => SAUVEGARDE.aides().length === 0 && document.getElementById("bulleAide").dataset.aide === "duel" && !document.getElementById("bulleAide").classList.contains("cache")'), str([pg.evaluate('() => SAUVEGARDE.aides()'), pg.evaluate(AIDE_BULLE)]))
+    # une ancienne sauvegarde : la même, sans le champ « aides » (comme avant ce tour) : elle se charge, et aucune aide n'est vue
+    pg.evaluate('() => { const d = JSON.parse(localStorage.getItem(SAUVEGARDE.CLE)); d.aides = ["duel"]; localStorage.setItem(SAUVEGARDE.CLE, JSON.stringify(d)); delete d.aides; localStorage.setItem(SAUVEGARDE.CLE, JSON.stringify(d)); }')
+    pg.reload()
+    t(f'{titre} : une ancienne sauvegarde (sans le champ des aides) se charge au paddock, sans erreur, avec aucune aide vue (l’aide du duel s’affiche)', attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat" && JEU.championnat.pilotes.length === 20 && SAUVEGARDE.aides().length === 0 && document.getElementById("bulleAide").dataset.aide === "duel"', None, 30000), str(pg.evaluate('() => [JEU.ecran, SAUVEGARDE.aides()]')))
+
 def INTERFACE_TEMPS(t, virgule='.'):
     m = int(t // 60); s = t - m * 60
     return f'{m}:{s:06.3f}'.replace('.', virgule)
@@ -2353,6 +2461,10 @@ with sync_playwright() as p:
                 pluie_ecran(pg, titre, l, h)
             if 'test=prevision' in page:
                 prevision_ecran(pg, titre)
+            elif 'test=aides-course' in page:
+                aides_course(pg, titre, l, h)
+            elif 'test=aides-menus' in page:
+                aides_menus(pg, titre, l, h)
             elif 'test=audit' in page:
                 audit_autres(pg, titre, page, l, h)
             elif 'gp=12' in page and 'lang=en' in page:
@@ -2368,6 +2480,7 @@ with sync_playwright() as p:
             elif 'championnat=1' in page:
                 championnat(pg, titre, l)
             if 'test=accelere' in page or 'test=audit' in page: pass
+            elif 'test=aides' in page: pass   # (les aides : leur page à elles, plus haut)
             elif 'test=hudcourse' in page:
                 hud_course(pg, titre, l, h)
             elif 'test=decor' in page:
