@@ -4,6 +4,7 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 
 ## Sessions
 
+- 2026-10-27 18h : **Codeur 4** lancé par le Chef (le propriétaire : « il est possible de lancer un autre codeur ? » ; CLAUDE.md permet 4 au plus) : dossier « Grand prix dynasty/Grand Prix Dynasty - codeur 4 », branche codeur4 : les aides au premier usage (étape 11b).
 - 2026-10-23 17h35 : **Chef = session-5b** (le propriétaire : « tu vas être un chef de codeurs » ; les sessions session-76, dd, 9e et a7 étaient fermées). À 17h55, le propriétaire : « fais 3 codeurs avec des tâches précises et différentes » → le Chef lance lui-même les 3 Codeurs (sessions filles de session-5b, sur le Mac) : Codeur 1 dans « Grand Prix Dynasty - codeur 1 » (worktree neuf, branche determinisme) pour le tour 22 ; Codeur 2 dans « - codeur 2 » (codeur2) pour le tour 22b ; Codeur 3 dans « - codeur 3 » (remis sur codeur3) pour les ordres 2–4 du tour 21c puis les circuits. Fichiers disjoints : IA/physique/simulation au 1 ; fantôme/départ/course/qualification/3D au 2 ; journal/championnat au 3 ; dans les fichiers partagés (interface, textes, donnees, principal, index, style, tests), chacun ajoute ses blocs sans reformater. Les ordres des tours 21c (Codeur 3) et 22b (Codeur 2) restent valables ; le Codeur 1 reçoit le tour 22 (rapports/tour-22-rapport.md : la cause du non-déterminisme, trouvée par le Chef, puis le duel).
 - 2026-10-18 : Chef session-2d, Codeur session-0e
 - 2026-10-19 : Chef **session-76**, Codeur **session-dd** (donné par le propriétaire)
