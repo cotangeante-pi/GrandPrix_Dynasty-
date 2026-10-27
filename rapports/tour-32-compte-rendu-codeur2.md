@@ -34,3 +34,13 @@ Dans le vrai jeu (`index.html?course=3&ia=20&circuit=singapura`, vue télé) : 3
 **Tests** : `tests/test.html` : les 12 décors placés (tribunes, public, stands, ciel, mâts la nuit, aucun objet trop près du tracé ni dans la voie, types connus) ; `tests/ecrans.py` : les 12 pages `tests/lieu.html` (plafond `LIEU_APPELS_MAX` 90, décor ≤ `DECOR_APPELS_MAX` 26, coupole du ciel, mâts la nuit), Monoco vu du port (eau, bateaux, façades), le domicile (banderoles, part du public aux couleurs du pays), le vrai jeu à Singapura. Captures `lieu-<nom>.png` (12), `monoco.png`, `banderoles.png`, `jeu-singapura.png`.
 
 **Pas fait / à revoir** : l'hôtel de Yas Marino n'a pas de place libre ; Montréol n'a que 2 modules de stands (voie courte) ; les tribunes ont toutes 6 rangs (la profondeur de decors-officiels.js n'est pas suivie) ; le pont de Suzuko (ordre 3) pas encore.
+
+## La nuit (défaut vu par le Chef) — et la grille vue de la télé
+
+Commit : 8bec5e1 (branche codeur2) — GitHub 40586129886 : 11 travaux verts.
+
+- La vraie nuit : à Singapura, l'ambiance baisse (`NUIT_AMBIANCE` 0,22), les projecteurs éclairent moins fort (`NUIT_PROJECTEURS` 0,42), et un brouillard sombre et court (`NUIT_BROUILLARD` 140–950 m) laisse clairs seulement la piste et ses abords ; les mâts restent allumés. Les fenêtres des immeubles sont allumées par une couleur émissive (`FENETRES_NUIT`) posée par le matériau des immeubles (un attribut `lumiere` sur les fenêtres) : aucun appel de dessin en plus. Bahrayn au crépuscule et Yas Marino au couchant en prennent la part `NUIT_SOIR` (0,45).
+- Test (le vrai jeu, derrière la voiture, l'image 3D seule) : la nuit à Singapura, ciel 50 et image 60 sur 255 (plafonds `NUIT_CIEL_MAX` 60, `NUIT_IMAGE_MAX` 70) ; le jour à Monzo, ciel 180 et image 135 (`JOUR_IMAGE_MIN` 100). Captures jeu-singapura.png, jeu-singapura-derriere.png, jeu-monzo*.png, lieu-singapura.png.
+- Sur GitHub, la grille de Monzo vue de la télé atteignait 90 appels (la télé zoome : toutes les voitures y étaient « proches »). Maintenant, au plus `VOITURES_DETAILLEES_MAX` (8) voitures détaillées, les plus proches, et les autres en forme simple : 46 appels à Monzo, 43 à Singapura (vue télé, 20 voitures).
+- Le pont de Suzuko est commencé (la route qui monte, le terre-plein, les flancs, le tablier, les culées ; la voiture et la caméra suivent la hauteur de la route) mais il n'est ni fini ni essayé : il est coupé (`PONT_ACTIF` faux).
+- Un échec de hasard vu une fois sur le Mac (le fantôme du 2e tour pas encore visible au bout de 10 s, la machine chargée) : la même page relancée seule passe (20/20), et GitHub est vert.

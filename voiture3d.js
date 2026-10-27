@@ -280,7 +280,9 @@ const VOITURE3D = (function () {
 
   // place le modèle à l'état affiché (x, z, cap) ; v : la voiture de physique.js (braquage et roues)
   function placer(modele, etat, v) {
-    modele.groupe.position.set(etat.x, 0, etat.z);
+    // (le pont de Suzuko : la voiture suit la hauteur de la route de son échantillon, SCENE3D.relief ; ailleurs, 0)
+    const rel = typeof SCENE3D !== 'undefined' ? SCENE3D.relief : null;
+    modele.groupe.position.set(etat.x, rel && v && v.piste ? rel[v.piste.indice] : 0, etat.z);
     modele.groupe.rotation.y = -etat.cap;   // rotation.y > 0 tourne +x vers -z ; notre cap > 0 tourne vers +z
     for (const r of modele.roues) {
       if (r.avant) r.pivot.rotation.y = -v.braquage;
