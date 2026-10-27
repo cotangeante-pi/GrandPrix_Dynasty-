@@ -1119,6 +1119,11 @@ def decor_ecran(pg, titre, l, h):
       0 < mesure['avec'][0] - mesure['sans'][0] <= pg.evaluate('() => REGLAGES.DECOR_APPELS_MAX') and mesure['avec'][0] < pg.evaluate('() => REGLAGES.DECOR_APPELS_TOTAL_MAX') and mesure['avec'][1] > mesure['sans'][1], str(mesure))
     t(f'{titre} : niveaux de détail : près de la caméra télé, du public et des arbres détaillés, les autres en forme simple ou pas dessinés (jamais deux fois)',
       all(p + q <= tt for p, q, tt in zip(mesure['proches'], mesure['loin'], mesure['total'])) and mesure['proches'][0] > 0 and mesure['loin'][0] > 0 and mesure['loin'][1] > 0, str(mesure))
+    # l'échelle en vrais mètres : la hauteur de chaque spectateur dessiné de près (la forme × l'échelle de son instance), d'une voiture
+    tailles = pg.evaluate('''() => { const m = SCENE3D.decor.detail[0].proches[0], g = m.geometry; g.computeBoundingBox();
+      const a = m.instanceMatrix.array, h = []; for (let k = 0; k < m.count; k++) h.push((g.boundingBox.max.y - g.boundingBox.min.y) * Math.hypot(a[k * 16 + 4], a[k * 16 + 5], a[k * 16 + 6]));
+      const b = new THREE.Box3().setFromObject(JEU.modeles[0].groupe || JEU.modeles[0]); return { n: h.length, min: Math.min(...h), max: Math.max(...h), voiture: b.max.y - b.min.y }; }''')
+    t(f'{titre} : à l’échelle : un spectateur fait entre 1,1 et 1,9 m (assis ou debout), une voiture environ 1 m', tailles['n'] > 0 and 1.1 <= tailles['min'] and tailles['max'] <= 1.9 and 0.7 < tailles['voiture'] < 1.5, str(tailles))
     pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'decor-test.png'))
     # vu d'en haut : toute la caméra est loin, plus rien de détaillé
     pg.evaluate('() => { const c = SCENE3D.camera; c.fov = 55; c.updateProjectionMatrix(); CAMERA.init(c, CIRCUIT, "dessus"); }')   # (le champ de la télé, très serré, mettrait la caméra au-delà du brouillard); pg.wait_for_timeout(1500)
