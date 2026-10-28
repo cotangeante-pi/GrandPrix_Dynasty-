@@ -603,8 +603,8 @@ const REGLAGES = {
   // multiplié, agressivite ajoutée (bornée entre 0 et 1), regularite multipliée
   NIVEAU: 'normal',             // le niveau en cours (?niveau=…, principal.js) ; normal = les réglages tels quels
   NIVEAUX: {
-    debutant: { rythme: -0.05, erreurs: 2, agressivite: -0.3, regularite: 1.5, gestionPneus: -0.2, technique: 0.2 },
-    normal: { rythme: 0, erreurs: 1, agressivite: 0, regularite: 1, gestionPneus: 0, technique: 0.5 },
+    debutant: { rythme: -0.05, erreurs: 2, agressivite: -0.3, regularite: 1.5, gestionPneus: -0.2, technique: 0 },
+    normal: { rythme: 0, erreurs: 1, agressivite: 0, regularite: 1, gestionPneus: 0, technique: 0 },
     expert: { rythme: 0, erreurs: 0.5, agressivite: 0.2, regularite: 0.7, gestionPneus: 0.1, corde: 0.5, marge: -0.7, limite: 1.01, penaliteFrein: 0.5, precision: 0.6, bordMin: 0.8, margeCarte: 1.1, technique: 0.7 },
     legende: { rythme: 0, erreurs: 0.25, agressivite: 0.4, regularite: 0.5, gestionPneus: 0.2, corde: 0, marge: -1.4, limite: 1.02, penaliteFrein: 0, precision: 0.3, bordMin: 0.5, margeCarte: 0.7, technique: 1 },
   },
