@@ -14,7 +14,7 @@ t('36d : deux idées dans une phrase : l’idée forte (après « mais ») et la
   v(!r.length, r.join(' ; '));
   const ch = nouveau(), k = rival(ch, 0.3); gpCouru(ch);
   const rep = DISCUSSION.dire(ch, k, 'gg mais pk tu m’as bloqué');
-  v(rep.reactions.length === 2 && rep.reactions[0].startsWith('flatte') && rep.reactions[1].startsWith('reclamation'), JSON.stringify(rep.reactions));
+  v(rep.reactions.length === 2 && rep.reactions[0].startsWith('reclamation') && rep.reactions[1].startsWith('flatte'), JSON.stringify(rep.reactions));
   L.push('  (« gg mais pk tu m’as bloqué » → « ' + rep.texte + ' »)');
 });
 t('36d : une phrase incomprise reçoit une réponse naturelle qui demande de reformuler, jamais un faux sens', () => {
@@ -117,11 +117,17 @@ t('36d : le sujet de course et le tour nommés dans la phrase (départ, stands, 
   const r = BANC_SUJETS.map(([p, s, n]) => { const c = PARLE.comprendre(p, NOMS); return (s === null || c.sujet === s) && c.tour === n ? null : p + ' → ' + c.sujet + ' / ' + c.tour; }).filter(x => x);
   v(!r.length, r.join(' ; '));
   v(PARLE.comprendre('slt', NOMS).sujet === null && PARLE.comprendre('slt', NOMS).tour === null, 'rien sans sujet');
+  v(PARLE.comprendre('t’as fini combien ?', NOMS).demandePlace && PARLE.comprendre('what place did you get', NOMS).demandePlace && !PARLE.comprendre('ça va ?', NOMS).demandePlace, 'la place demandée');
 });
 t('36d : les lettres répétées (« merciii », « nuuul »), les émojis (👍 🙏 🔥 😡) et « pas mal » sont compris, sans changer les autres lectures', () => {
   const c = p => PARLE.comprendre(p, NOMS).acte;
   v(c('merciii') === 'MERCI' && c('t nuuul') === 'INSULTE' && c('👍') === 'ACCORD' && c('🙏') === 'MERCI' && c('🔥') === 'COMPLIMENT' && c('😡') === 'INSULTE', [c('merciii'), c('t nuuul'), c('👍'), c('🙏'), c('🔥'), c('😡')].join());
   v(c('pas mal') === 'COMPLIMENT' && c('t es pas fort') === 'INSULTE' && c('lol t nul') === 'INSULTE', [c('pas mal'), c('t es pas fort')].join());
+});
+t('36d : l’anglais parlé des pilotes (dis_* et courrier_*) est contracté : ni « Do not », « I am », « It is », « will not »… ni « (you first) »', () => {
+  const lourd = /(^|[^\w’'])(I am|I will|You are|We are|It is|That is|There is|Do not|do not|does not|is not|are not|will not|cannot|I’ll not)(?![\w])|\(you first\)/;
+  const mal = Object.keys(TEXTES.en).filter(k => /^(dis_|courrier_)/.test(k) && k !== 'courrier_patronDecu_consigne').flatMap(k => [].concat(TEXTES.en[k]).filter(x => typeof x === 'string' && lourd.test(x)).map(x => k + ' : ' + x));
+  v(!mal.length, mal.slice(0, 8).join(' ; '));
 });
 // --- deux conversations complètes de 10 échanges, imprimées telles quelles dans la sortie du banc (demande du Chef, tour 36d) : en
 // français avec un rival fougueux juste après un contact ; en anglais avec un coéquipier calme (la page est en français : pendant cette

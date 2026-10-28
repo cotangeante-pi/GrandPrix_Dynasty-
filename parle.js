@@ -249,7 +249,9 @@ BUDGET: { budget: 1 }, CONSIGNE: { consigne: 1, question: 0.2 },
     const sujet = (SUJETS.find(([, re]) => re.test(plat)) || [null])[0];
     const nt = plat.match(/\b(?:tour|lap|au tour|on lap)\s+(\d{1,2})\b/), tourNomme = nt ? Number(nt[1]) : null;
     const nb = plat.match(/\b\d{1,7}\b/);
-    return { sujet, tour: tourNomme, acte, score: Math.round(choix.score * 1000) / 1000, actes: scores.slice(0, 3).map(s => s.acte), negation, question, ironie, cible,
+    // (tour 36d) la place demandée (« t'as fini combien ? », « what place did you get ») : discussion.js répond par la place
+    const demandePlace = /\b(fini combien|t as fait combien|fini ou|finis ou|quelle place|a quelle place|ta place|what place|which place|where did (you|u) finish|finished where|your position|ta position)\b/.test(plat);
+    return { demandePlace, sujet, tour: tourNomme, acte, score: Math.round(choix.score * 1000) / 1000, actes: scores.slice(0, 3).map(s => s.acte), negation, question, ironie, cible,
       montant: nb ? Number(nb[0]) : null, jetons: mots };
   }
 

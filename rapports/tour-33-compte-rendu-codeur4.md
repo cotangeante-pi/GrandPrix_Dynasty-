@@ -190,3 +190,111 @@ Mesures : 291 phrases au banc. Sur un pilote, 36 messages donnent au moins 15 r�
 Ce que je n'ai pas pu vérifier :
 - Le ressenti d'un vrai joueur.
 - Les réponses en anglais sont testées dans une page en français, donc les réponses y sortent en français ; les textes anglais ne sont vérifiés que par leurs clés et leurs repères.
+
+Les deux conversations demandées par le Chef. Elles sont copiées telles quelles depuis la sortie du banc (tests/banc-parle.html, osascript, avec le codeur3 eeef707 fusionné). Le passage GitHub les imprime aussi dans le travail annexes. Entre crochets : l acte lu → la réaction.
+
+```
+  CONVERSATION en français, rival fougueux, après un contact :
+    — slt
+      → Hé ! Ça faisait longtemps.   [SALUT → salut]
+    — pk tu m’as percuté au départ ?
+      → Tu étais sur ma ligne. Point. Pas après ce qui s’est passé à Bahrayn. J’ai fini P1, toi P20. Au départ, tout le monde se bat pour le même trou.   [CONTACT → contact_assume]
+    — c’était quoi ce contact sérieux
+      → On a déjà parlé de ce contact.   [CONTACT → deja_contact]
+    — dsl quand même
+      → Trop facile. Des excuses ne suffiront pas. Je ne laisse jamais passer ça.   [EXCUSE → excuse_refusee]
+    — t’as fini combien ?
+      → P1 pour moi, P20 pour toi, à Bahrayn. On a exactement les mêmes points au championnat.   [ETAT → etat_place]
+    — tu penses quoi de moi frérot
+      → Pas mal. Mais pas encore à mon niveau.   [AVIS → avis_neutre]
+    — gg mais tu m’as fermé la porte au virage
+      → Ça, c’est sympa. Merci. C’est la course. Je ne vais pas t’ouvrir la porte. Dans ce virage, il y avait la place pour une voiture.   [RECLAMATION + COMPLIMENT → flatte + reclamation_assume]
+    — laisse moi passer la prochaine fois stp
+      → Tu rêves un peu, là.   [PASSER → passer_rit]
+    — t’es chaud quand même
+      → Venant de toi, ça compte. Je suis dans le coup en ce moment.   [COMPLIMENT → flatte]
+    — a+
+      → À plus. Bonne discussion.   [ADIEU → adieu]
+  CONVERSATION en anglais, coéquipier calme :
+    — hey mate
+      → Hey.   [SALUT → salut]
+    — how was your race?
+      → Do not ask. We have exactly the same points in the championship.   [ETAT → etat_mal]
+    — what about our duel?
+      → All square between us. Every race counts. Our duel is at 0 – 0 this season (you first).   [DUEL → duel_egal]
+    — you were faster today, well played
+      → Thanks, that’s kind. At Bahrayn, I finished P19, you P20.   [COMPLIMENT → flatte]
+    — what do you think of me?
+      → Still watching you. Nothing decided yet.   [AVIS → avis_neutre]
+    — let me pass next time if I’m faster pls
+      → If you’re faster, I’ll let you by. For the team.   [PASSER → passer_accepte]
+    — i owe you one
+      → Noted. A promise is a promise.   [PROMESSE → promesse_notee]
+    — nice pit stop btw
+      → Thanks, that means something.   [COMPLIMENT → flatte]
+    — why did you block me in turn 1
+      → It was tight, but I stayed on my line. At the start, everyone is fighting for the same gap.   [RECLAMATION → reclamation_explique]
+    — see ya
+      → Right, take care. Good talk.   [ADIEU → adieu]
+```
+
+Ce qui sent encore le robot, à mon avis :
+- les points au championnat sont égaux à 0 dans ces bancs, car le Grand Prix est fabriqué sans points : « On a exactement les mêmes points » arrive donc souvent ;
+- « Ça, c est sympa. Merci. » ouvre deux réponses de suite au même compliment (avant la correction des ouvertures du Codeur 3, eeef707) ; dans la version imprimée ci-dessus, la 2e réponse ouvre bien sur une autre tournure ;
+- le coéquipier calme ne parle pas encore de la consigne ni du duel de lui-même : il ne fait que répondre.
+
+Ajouts de fin de soirée (tour 36d) :
+- **L'anglais parlé est contracté** (demande du Chef, 22h30) : dans les en.dis_* d'origine, dans mon bloc et dans les en.courrier_* des pilotes, « I am », « Do not », « It is », « will not »… deviennent « I’m », « Don’t », « It’s », « won’t ». Les cinq « I’ll not » produits par la règle sont devenus « I won’t ». « (you first) » est reformulé en « you X, me Y », et en français « toi X, moi Y ». Un test du banc le vérifie. Il n'exclut qu'une clé, l'insistance d'un patron : « That cannot happen again. ». Le Codeur 3 contracte lui-même les clés de son bloc.
+- **La place demandée** : `demandePlace` dans parle.js (« t'as fini combien », « what place did you get »). Le Codeur 3 y répond par la place (etat_place).
+- Une correction à ma note sur les conversations plus haut : les deux réponses « flatte » qui ouvraient pareil étaient aux échanges 7 et 9, pas à la suite. Avec eeef707 (les 3 dernières ouvertures évitées), l'échange 9 ouvre sur « Venant de toi, ça compte. ».
+
+Les deux conversations, version finale (avec dcc0908 du Codeur 3 : les 4 défauts du Chef corrigés). Copiées telles quelles depuis la sortie du banc (osascript, 61/61) :
+
+```
+  CONVERSATION en français, rival fougueux, après un contact :
+    — slt
+      → Hé ! Qu’est-ce qui t’amène ?   [SALUT → salut]
+    — pk tu m’as percuté au départ ?
+      → Tu étais sur ma ligne. Point. À Bahrayn, je finis devant toi : P1 contre P20. Au départ, tout le monde se bat pour le même trou.   [CONTACT → contact_assume]
+    — c’était quoi ce contact sérieux
+      → On a déjà parlé de ce contact.   [CONTACT → deja_contact]
+    — dsl quand même
+      → Trop facile. Des excuses ne suffiront pas. Pas après ce qui s’est passé à Bahrayn. Je ne laisse jamais passer ça.   [EXCUSE → excuse_refusee]
+    — t’as fini combien ?
+      → P1 pour moi, P20 pour toi, à Bahrayn.   [ETAT → etat_place]
+    — tu penses quoi de moi frérot
+      → Pas mal. Mais pas encore à mon niveau.   [AVIS → avis_neutre]
+    — gg mais tu m’as fermé la porte au virage
+      → C’est la course. Je ne vais pas t’ouvrir la porte. Dans ce virage, il y avait la place pour une voiture. Ça, c’est sympa. Merci.   [RECLAMATION + COMPLIMENT → reclamation_assume + flatte]
+    — laisse moi passer la prochaine fois stp
+      → Tu rêves un peu, là.   [PASSER → passer_rit]
+    — t’es chaud quand même
+      → Ça, c’est sympa. Merci. Je suis dans le coup en ce moment.   [COMPLIMENT → flatte]
+    — a+
+      → Salut. Pas ma conversation préférée.   [ADIEU → adieu_froid]
+  CONVERSATION en anglais, coéquipier calme :
+    — hey mate
+      → Hey.   [SALUT → salut]
+    — how was your race?
+      → Don’t ask. We have exactly the same points in the championship.   [ETAT → etat_mal]
+    — what about our duel?
+      → All square between us. Every race counts. Our duel this season: you 0, me 0.   [DUEL → duel_egal]
+    — you were faster today, well played
+      → Thanks, that’s kind. At Bahrayn, I finished P19, you P20.   [COMPLIMENT → flatte]
+    — what do you think of me?
+      → Still watching you. Nothing decided yet.   [AVIS → avis_neutre]
+    — let me pass next time if I’m faster pls
+      → If you’re faster, I’ll let you by. For the team.   [PASSER → passer_accepte]
+    — i owe you one
+      → Noted. A promise is a promise.   [PROMESSE → promesse_notee]
+    — nice pit stop btw
+      → Thanks, that means something.   [COMPLIMENT → flatte]
+    — why did you block me in turn 1
+      → It was tight, but I stayed on my line. At the start, everyone is fighting for the same gap.   [RECLAMATION → reclamation_explique]
+    — see ya
+      → Right, take care. Good talk.   [ADIEU → adieu]
+```
+
+Il reste un défaut : « Ça, c’est sympa. Merci. » revient aux échanges 7 (en seconde partie de réponse) et 9. L’évitement des ouvertures ne regarde que le début des réponses.
+
+Dernier commit vert du tour 36d : d0a1303, passage 40622371590 : 13 travaux sur 13 verts. Il contient codeur3 dcc0908.
