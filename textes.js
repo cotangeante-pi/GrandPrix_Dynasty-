@@ -836,6 +836,7 @@ Object.assign(TEXTES.fr, {
     dis_raison_souvenir_menace: ['Et tes menaces à {souvenir_circuit}, je m’en souviens.'],
     dis_raison_souvenir_gentil: ['Pourtant, à {souvenir_circuit}, tu étais plus sympa.', 'Ça ne te ressemble pas, après ce que tu m’as dit à {souvenir_circuit}.'],
     dis_avant: 'la dernière fois', dis_encore: 'Je te l’ai déjà dit.',
+    dis_raison_fait_course_devant_court: ['J’ai fini P{a}, toi P{b}.', 'Je finis devant toi : P{a} contre P{b}.'], dis_raison_fait_course_derriere_court: ['Tu as fini P{b}, moi P{a}. Bien joué pour ça.', 'P{b} pour toi, P{a} pour moi.'],
     // (encore des tournures pour les réactions qui reviennent le plus dans une longue conversation)
     dis_flatte: ['Ça, c’est sympa. Merci.', 'Venant de toi, ça compte.'], dis_passer_refuse: ['Si tu veux la place, prends-la en piste.', 'Non. Chacun sa course.'],
     dis_passer_rit: ['Mdr, non.', 'Tu rêves un peu, là.'], dis_promesse_notee: ['Marché conclu. Ne l’oublie pas.', 'Je retiens. Une promesse, ça se tient.'],
@@ -885,6 +886,7 @@ Object.assign(TEXTES.fr, {
     dis_raison_souvenir_menace: ['And I remember your threats at {souvenir_circuit}.'],
     dis_raison_souvenir_gentil: ['Yet at {souvenir_circuit} you were nicer.', 'That’s not like you, after what you said at {souvenir_circuit}.'],
     dis_avant: 'last time', dis_encore: 'I told you already.',
+    dis_raison_fait_course_devant_court: ['I finished P{a}, you P{b}.', 'I beat you: P{a} to P{b}.'], dis_raison_fait_course_derriere_court: ['You finished P{b} and me P{a}. Well done for that.', 'P{b} for you, P{a} for me.'],
     dis_flatte: ['That’s nice of you. Thanks.', 'Coming from you, that counts.'], dis_passer_refuse: ['If you want the place, take it on track.', 'No. Everyone races their own race.'],
     dis_passer_rit: ['Lol, no.', 'Dream on.'], dis_promesse_notee: ['Deal. Don’t forget it.', 'Noted. A promise is a promise.'],
     dis_etat_bien: ['Going well! Good moment for me.', 'Pretty good. The results are coming.'], dis_etat_moyen: ['Could be better. Could be worse.'], dis_etat_mal: ['Not great. The car isn’t there.'],
