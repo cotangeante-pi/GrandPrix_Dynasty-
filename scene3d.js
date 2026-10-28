@@ -80,6 +80,8 @@ const SCENE3D = (function () {
       scene.traverse(o => { if (o.name === 'route') route = o; if (o.name === 'decor-ciel') coupole = o; });
       METEO3D.init(scene, { route, coupole, ambiance, soleil });
     }
+    // les effets de conduite (effets3d.js, tour 37) : la fumée et les étincelles, un appel de dessin chacun (aucun s'ils sont vides)
+    if (typeof EFFETS3D !== 'undefined') EFFETS3D.init(scene);
 
     redimensionner();
     window.addEventListener('resize', redimensionner);
