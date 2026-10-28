@@ -626,7 +626,7 @@ Ajouté le 2026-10-22, à la demande du propriétaire (« le travail avance lent
   J=$(curl -s -H "Authorization: Bearer $T" "$A/actions/runs/RUN/jobs" | python3 -c "import sys,json;print(json.loads(sys.stdin.read(),strict=False)['jobs'][0]['id'])")
   curl -sL -H "Authorization: Bearer $T" "$A/actions/jobs/$J/logs" | grep -E "✘|RESULTAT|⏱|ÉCHECS|TOUT PASSE"
   ```
-  Depuis le 2026-10-26, **la suite tourne en 9 travaux parallèles** (une « matrix » dans tests.yml : moteur, courses, stands, ecrans en 4 tranches `ECRANS_TRANCHE=k/n`, annexes, paquet ; environ **5 minutes** au total). L'état du passage reste le même appel ; le détail de chaque travail :
+  Depuis le 2026-10-27, **la suite tourne en 13 travaux parallèles** (une « matrix » dans tests.yml : moteur, courses, stands, consignes, meteo, officiels, ecrans en 4 tranches `ECRANS_TRANCHE=k/n`, annexes, paquet, et **saison** : `tests/saison.py` joue la carrière entière par le robot en 960×600, en + fr, et relève console, textes cassés, clés manquantes, boutons qui débordent ou se recouvrent, écrans bloqués ; environ **7 minutes** au total). L'état du passage reste le même appel ; le détail de chaque travail :
   ```
   curl -s -H "Authorization: Bearer $T" "$A/actions/runs/RUN/jobs?per_page=50" | python3 -c "import sys,json;[print(j['id'],j['name'],j['conclusion']) for j in json.loads(sys.stdin.read(),strict=False)['jobs']]"
   curl -sL -H "Authorization: Bearer $T" "$A/actions/jobs/ID/logs" | grep -E "✘|RESULTAT|PARTIE OK|ÉCHECS"
