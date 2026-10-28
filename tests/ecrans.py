@@ -821,6 +821,8 @@ def deux_ecran(pg, titre, l, h, page):
     hud = pg.evaluate(LIRE_HUD)
     t(f'{titre} : l’affichage de chaque moitié : « Joueur 1 », place, Tour 1 / 3, vitesse en km/h ; pareil pour le joueur 2', len(hud['haut']) == 5 and re.fullmatch(r'🔵 (Joueur|Player) 1', hud['haut'][0]) and re.fullmatch(r'P[1-7]', hud['haut'][1]) and re.fullmatch(r'(Tour|Lap) 1 / 3', hud['haut'][2]) and re.fullmatch(r'\d+ km/h', hud['haut'][3])
       and re.fullmatch(r'🔴 (Joueur|Player) 2', hud['bas'][0]) and re.fullmatch(r'P[1-7]', hud['bas'][1]) and re.fullmatch(r'\d+ km/h', hud['bas'][3]) and hud['haut'][1] != hud['bas'][1], str(hud))
+    # le commentateur à deux : le bandeau des messages gênerait une moitié (le haut du milieu est à la tour partagée) : il est coupé à deux
+    t(f'{titre} : à deux, le commentateur est coupé (aucun bandeau de messages par-dessus une moitié)', pg.evaluate('() => document.getElementById("messageCourse").classList.contains("cache") && !JEU.commentaire'), pg.evaluate('() => document.getElementById("messageCourse").textContent'))
     t(f'{titre} : UNE tour de classement partagée (7 lignes, les deux joueurs marqués), ni radar, ni bandeau de la course seule, ni compteur', hud['tour'] == 7 and not hud['classementCache'] and hud['moi'] == 2 and hud['radar'] == 'none' and hud['bandeau'] == 'none' and hud['tableau'] == 'none', str(hud))
     bh, bb, bc, sep, son = boite('#deuxHaut'), boite('#deuxBas'), boite('#classement'), boite('#deuxSeparation'), boite('#boutonSon')
     croise = lambda a, b: a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]
@@ -1161,6 +1163,9 @@ def resume_ecran(pg, titre, l, h):
     PHYS = '() => JEU.plateau.pilotes.map(p => [p.v.x, p.v.z, p.v.u].join()).join(";")'
     phys = pg.evaluate(PHYS); joue = pg.evaluate('() => JEU.resume.r.joue'); pg.wait_for_timeout(500)
     t(f'{titre} : pendant le résumé, les voitures de la physique ne bougent pas, le rejeu avance', pg.evaluate(PHYS) == phys and pg.evaluate('() => JEU.resume && JEU.resume.r.joue') > joue, str(pg.evaluate('() => JEU.resume && JEU.resume.r.joue')))
+    # le commentateur du résumé : une phrase pour le moment montré, dans l'image, sous le nom du commentateur
+    com = pg.evaluate('() => { const el = document.getElementById("resumeCommentaire"), r = el.getBoundingClientRect(); return { cache: el.classList.contains("cache"), texte: el.textContent, boite: [r.left, r.top, r.right, r.bottom], moment: RESUME.moment(JEU.resume.r) ? RESUME.moment(JEU.resume.r).type : null }; }')
+    t(f'{titre} : le résumé est commenté : une phrase du commentateur pour le moment montré ({com["moment"]}), dans l’image', not com['cache'] and com['texte'].startswith('🎙') and com['boite'][0] >= 0 and com['boite'][2] <= l and com['boite'][1] >= 0, str(com))
     pg.screenshot(path=os.path.join(CAPTURES, 'resume.png' if l == 1280 else 'resume-960.png'))
     b = pg.evaluate('() => { const e = document.getElementById("resumeBandeau").getBoundingClientRect(); return [e.left, e.top, e.right, e.bottom]; }')
     t(f'{titre} : le bandeau tient dans l’image ({l}×{h})', b[0] >= 0 and b[2] <= l and b[3] <= h and b[1] >= h / 2, str(b))
