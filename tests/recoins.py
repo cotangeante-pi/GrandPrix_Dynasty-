@@ -90,10 +90,11 @@ def deux(c, titre, court=False):
     c.attendre('() => JEU.plateau && JEU.plateau.carte !== null', 240000)
     # les deux claviers en même temps : W (joueur 1) et ↑ (joueur 2) tenus ensemble, après l'extinction des feux
     c.ev('() => { BOUCLE.arreter(); for (const p of JEU.plateau.pilotes) if (p.course && p.course.compte > 0.05) p.course.compte = 0.05; let n = 0; while (JEU.course.etat === "compte" && n++ < 2400) BOUCLE.simuler(REGLAGES.PAS_PHYSIQUE); BOUCLE.demarrer(); }')
-    pg.keyboard.down('KeyW'); pg.keyboard.down('ArrowUp'); pg.wait_for_timeout(1500)
-    v = c.ev('() => DEUX_JOUEURS.joueurs(JEU.plateau).map(p => p.v.u)')
-    pg.keyboard.up('KeyW'); pg.keyboard.up('ArrowUp')
-    t(f'{titre} : les deux claviers en même temps (W et ↑ tenus ensemble) : les deux voitures accélèrent', bool(v) and all(x > 1 for x in v), str(v))
+    # (les touches tenues pendant 1 s de jeu, la boucle arrêtée : pas 1,5 s réelles, qui ne font que 0,9 m/s quand la machine est lente)
+    pg.keyboard.down('KeyW'); pg.keyboard.down('ArrowUp'); pg.wait_for_timeout(100)
+    v = c.ev('() => { BOUCLE.arreter(); const u0 = DEUX_JOUEURS.joueurs(JEU.plateau).map(p => p.v.u); BOUCLE.simuler(1); const u1 = DEUX_JOUEURS.joueurs(JEU.plateau).map(p => p.v.u); return [u0, u1]; }')
+    pg.keyboard.up('KeyW'); pg.keyboard.up('ArrowUp'); c.ev('() => BOUCLE.demarrer()')
+    t(f'{titre} : les deux claviers en même temps (W et ↑ tenus ensemble, 1 s de jeu) : les deux voitures accélèrent', bool(v) and all(v[1][k] > v[0][k] + 2 for k in range(2)), str(v))
     c.inspecter('course à deux')
     for manche in ((1,) if court else (1, 2)):
         if not c.rouler(f'course à deux {manche}'): return
