@@ -117,6 +117,7 @@ t('36d : le sujet de course et le tour nommés dans la phrase (départ, stands, 
   const r = BANC_SUJETS.map(([p, s, n]) => { const c = PARLE.comprendre(p, NOMS); return (s === null || c.sujet === s) && c.tour === n ? null : p + ' → ' + c.sujet + ' / ' + c.tour; }).filter(x => x);
   v(!r.length, r.join(' ; '));
   v(PARLE.comprendre('slt', NOMS).sujet === null && PARLE.comprendre('slt', NOMS).tour === null, 'rien sans sujet');
+  v(PARLE.comprendre('t’as fini combien ?', NOMS).demandePlace && PARLE.comprendre('what place did you get', NOMS).demandePlace && !PARLE.comprendre('ça va ?', NOMS).demandePlace, 'la place demandée');
 });
 t('36d : les lettres répétées (« merciii », « nuuul »), les émojis (👍 🙏 🔥 😡) et « pas mal » sont compris, sans changer les autres lectures', () => {
   const c = p => PARLE.comprendre(p, NOMS).acte;
