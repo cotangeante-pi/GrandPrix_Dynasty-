@@ -124,6 +124,11 @@ t('36d : les lettres répétées (« merciii », « nuuul »), les émojis (👍
   v(c('merciii') === 'MERCI' && c('t nuuul') === 'INSULTE' && c('👍') === 'ACCORD' && c('🙏') === 'MERCI' && c('🔥') === 'COMPLIMENT' && c('😡') === 'INSULTE', [c('merciii'), c('t nuuul'), c('👍'), c('🙏'), c('🔥'), c('😡')].join());
   v(c('pas mal') === 'COMPLIMENT' && c('t es pas fort') === 'INSULTE' && c('lol t nul') === 'INSULTE', [c('pas mal'), c('t es pas fort')].join());
 });
+t('36d : l’anglais parlé des pilotes (dis_* et courrier_*) est contracté : ni « Do not », « I am », « It is », « will not »… ni « (you first) »', () => {
+  const lourd = /(^|[^\w’'])(I am|I will|You are|We are|It is|That is|There is|Do not|do not|does not|is not|are not|will not|cannot|I’ll not)(?![\w])|\(you first\)/;
+  const mal = Object.keys(TEXTES.en).filter(k => /^(dis_|courrier_)/.test(k) && k !== 'courrier_patronDecu_consigne').flatMap(k => [].concat(TEXTES.en[k]).filter(x => typeof x === 'string' && lourd.test(x)).map(x => k + ' : ' + x));
+  v(!mal.length, mal.slice(0, 8).join(' ; '));
+});
 // --- deux conversations complètes de 10 échanges, imprimées telles quelles dans la sortie du banc (demande du Chef, tour 36d) : en
 // français avec un rival fougueux juste après un contact ; en anglais avec un coéquipier calme (la page est en français : pendant cette
 // conversation, les textes français pointent sur les textes anglais, puis tout est remis)
