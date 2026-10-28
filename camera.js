@@ -184,10 +184,24 @@ const CAMERA = (function () {
     return rel && v && v.piste ? rel[v.piste.indice] : 0;
   }
 
+  // les sensations de conduite (tour 37, sensations.js) : la caméra tremble un peu sur les vibreurs et aux chocs, et le
+  // champ s'ouvre un peu à très haute vitesse ; « Effets de conduite » coupé : rien ne change. La secousse déplace la
+  // caméra, pas le point visé (une petite rotation de l'image) ; p : la pose (x, y, z, cap de la voiture), modifiée.
+  const secousses = new WeakMap();
+  function secouer(p, v, cap, dt) {
+    if (typeof SENSATIONS === 'undefined' || !v) return;
+    let e = secousses.get(v);
+    if (!e) { e = { temps: 0, phase: 0, choc: 0 }; secousses.set(v, e); }
+    const d = SENSATIONS.secousse(e, SENSATIONS.de(v), dt);
+    p.x += -Math.sin(cap) * d.x; p.z += Math.cos(cap) * d.x; p.y += d.y;
+  }
+  const champEnPlus = u => typeof SENSATIONS === 'undefined' ? 0 : SENSATIONS.champ(u);
+
   function suivreDerriere(etat, v, dt) {
     const p = poseDerriere(etat, v.u, suiviDerriere, dt), h = hauteurRoute(v);
     p.y += h; p.vise.y += h;
-    regler(p.champ, 0.5);
+    secouer(p, v, etat.cap, dt);
+    regler(p.champ + champEnPlus(v.u), 0.5);
     cam.up.set(0, 1, 0);
     cam.position.set(p.x, p.y, p.z);
     cam.lookAt(p.vise.x, p.vise.y, p.vise.z);
@@ -198,6 +212,8 @@ const CAMERA = (function () {
     dt = Math.min(dt, 0.1);
     const p = poseDerriere(etat, v.u, suiviSecond, dt), h = hauteurRoute(v);
     p.y += h; p.vise.y += h;
+    secouer(p, v, etat.cap, dt);
+    p.champ += champEnPlus(v.u);
     if (c.fov !== p.champ || c.near !== 0.5) { c.fov = p.champ; c.near = 0.5; c.updateProjectionMatrix(); }
     c.up.set(0, 1, 0);
     c.position.set(p.x, p.y, p.z);
@@ -211,6 +227,7 @@ const CAMERA = (function () {
     else if (mode === 'cockpit') {
       const p = poseCockpit(etat), h = hauteurRoute(v);
       p.y += h; p.vise.y += h;
+      secouer(p, v, etat.cap, dt);
       regler(R.CAMERA_COCKPIT_CHAMP, 0.05);
       cam.up.set(0, 1, 0);
       cam.position.set(p.x, p.y, p.z);

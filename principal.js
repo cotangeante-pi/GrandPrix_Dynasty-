@@ -1885,6 +1885,15 @@ function demarrerJeu() {
     b.addEventListener('mousedown', e => e.preventDefault());
     b.addEventListener('click', () => { REGLAGES.COMMENTAIRE_MODE = MODES[(MODES.indexOf(REGLAGES.COMMENTAIRE_MODE) + 1) % MODES.length]; SAUVEGARDE.ecrireOption('commentaire', REGLAGES.COMMENTAIRE_MODE); if (JEU.commentaire) JEU.commentaire.c.file = []; if (REGLAGES.COMMENTAIRE_MODE === 'non' && JEU.messages) { const m = JEU.messages.m; m.file = m.file.filter(x => x.type !== 'commentaire'); if (m.actuel && m.actuel.type === 'commentaire') m.actuel = null; } ecrire(); });   // (coupé : ce qui attendait dans le bandeau s'en va aussi)
   }
+  // les effets de conduite (tour 37 : les sons et les effets dessinés de sensations.js) : oui ou non dans le menu pause, sauvegardé
+  {
+    const b = document.getElementById('boutonEffetsPause');
+    SENSATIONS.regler(SAUVEGARDE.option('effets', true) !== false);
+    const ecrire = () => { b.textContent = texte(SENSATIONS.actif ? 'effets_oui' : 'effets_non'); };
+    ecrire();
+    b.addEventListener('mousedown', e => e.preventDefault());
+    b.addEventListener('click', () => { SENSATIONS.regler(!SENSATIONS.actif); SAUVEGARDE.ecrireOption('effets', SENSATIONS.actif); ecrire(); });
+  }
   INTERFACE.majBoutonsFantome(SAUVEGARDE.option('fantome', true));
   PODIUM3D.init(CIRCUIT);
   // ?course=5, 12, 18 ou 0 (essai libre) lance directement une course (tests, développement)
@@ -1918,7 +1927,7 @@ function demarrerJeu() {
   BOUCLE.surAffichage((alpha, dt) => {
     JEU.alpha = alpha;
     JEU.dtImage = dt;
-    if (JEU.ecran === 'resume') { majResume(dt); if (JEU.sdkPret) SDK.jeuArrete(); if (JEU.ecran === 'resume') { SCENE3D.dessiner(); return; } }   // le résumé vidéo : la 3D rejoue l'enregistrement (Poki : gameplayStop)
+    if (JEU.ecran === 'resume') { majResume(dt); if (JEU.sdkPret) SDK.jeuArrete(); if (JEU.ecran === 'resume') { if (typeof EFFETS3D !== 'undefined') { SENSATIONS.observer([], CIRCUIT); EFFETS3D.maj([], null, dt); } SCENE3D.dessiner(); return; } }   // le résumé vidéo : la 3D rejoue l'enregistrement (Poki : gameplayStop)
     majAToi(dt);   // le tournoi : le compte à rebours de « À toi, … ! »   // (« passer » en accéléré : le nombre de pas de l'image suit sa durée)
     const apres = JEU.ecran === 'podium' || JEU.ecran === 'resultats' || JEU.ecran === 'bravo' || JEU.ecran === 'tournoiFin' || JEU.ecran === 'ceremonie';   // le podium (et la cérémonie du champion) : les voitures n'y bougent plus
     // ?ia=N : chaque IA à sa place ; une IA arrivée quitte la piste (elle n'est plus dessinée)
@@ -1928,6 +1937,10 @@ function demarrerJeu() {
       if (m !== JEU.modele) { VOITURE3D.placer(m, etatAffiche(p.v, alpha), p.v); m.tete.visible = true; }
     });
     const etat = etatAffiche(JEU.joueur, alpha);
+    // les sensations de conduite (sensations.js, tour 37) : ce que vit chaque voiture, lu une fois par image pour le son,
+    // la caméra et les effets (rien n'est écrit dans les voitures)
+    const voituresSens = JEU.plateau ? JEU.plateau.pilotes.filter(p => p.arrivee === null || p.v === JEU.joueur).map(p => p.v) : [JEU.joueur];
+    if (typeof SENSATIONS !== 'undefined') SENSATIONS.observer(apres ? [] : voituresSens, CIRCUIT);
     if (apres) {
       JEU.tempsPodium += dt;
       PODIUM3D.camera(SCENE3D.camera, JEU.tempsPodium);
@@ -1975,7 +1988,9 @@ function demarrerJeu() {
       else if (podiumConnu(JEU.plateau)) montrerPodium();
     }
     document.getElementById('attenteArrivee').classList.toggle('cache', !(JEU.attente && JEU.ecran === 'course'));
-    SON.maj(JEU.joueur);
+    // (le son : la voiture la plus proche, la pluie sur la carrosserie ; au podium, plus rien de la course)
+    SON.maj(JEU.joueur, apres ? null : { voisins: voituresSens, pluie: typeof METEO3D !== 'undefined' ? (METEO3D.etat(JEU.plateau || JEU.course) || { pluie: 0 }).pluie : 0 });
+    if (typeof EFFETS3D !== 'undefined') EFFETS3D.maj(apres ? [] : voituresSens.map(w => ({ v: w, pos: w === JEU.joueur ? etat : etatAffiche(w, alpha) })), CAMERA.position, dt);
     // la météo dessinée (meteo3d.js, l'état de meteo.js) : la pluie, les gerbes, la piste mouillée, le ciel couvert ; rien au sec
     if (typeof METEO3D !== 'undefined') METEO3D.maj(METEO3D.etat(JEU.plateau || JEU.course), SCENE3D.camera, JEU.plateau ? JEU.plateau.pilotes.map(p => p.v) : [JEU.joueur], dt, CAMERA.mode === 'cockpit' && JEU.ecran === 'course', CIRCUIT, JEU.carte ? JEU.carte.trajectoire : null);
     SCENE3D.dessiner();
