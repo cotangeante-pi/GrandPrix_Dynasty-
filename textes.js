@@ -841,7 +841,7 @@ Object.assign(TEXTES.fr, {
     dis_flatte: ['Ça, c’est sympa. Merci.', 'Venant de toi, ça compte.'], dis_passer_refuse: ['Si tu veux la place, prends-la en piste.', 'Non. Chacun sa course.'],
     dis_passer_rit: ['Mdr, non.', 'Tu rêves un peu, là.'], dis_promesse_notee: ['Marché conclu. Ne l’oublie pas.', 'Je retiens. Une promesse, ça se tient.'],
     dis_etat_bien: ['Ça roule ! Je suis dans un bon moment.', 'Plutôt bien. Les résultats suivent.'], dis_etat_moyen: ['Ça pourrait être mieux. Ça pourrait être pire.'], dis_etat_mal: ['Pas génial. La voiture ne suit pas.'],
-    dis_avis_neutre: ['Je t’observe encore. Rien n’est décidé.'], dis_avis_bon: ['Ta conduite est propre, ça se respecte.'], dis_salut: ['Hé ! Ça faisait longtemps.', 'Oui ?'],
+    dis_avis_neutre: ['Je t’observe encore. Rien n’est décidé.'], dis_avis_bon: ['Ta conduite est propre, ça se respecte.'], dis_salut: ['Hé ! Qu’est-ce qui t’amène ?', 'Oui ?'],
     dis_adieu: ['Allez, bonne suite.', 'Salut, et bon week-end de course.'], dis_merci: ['Pas de quoi.'], dis_question: ['Euh… pose-moi plutôt une question sur la course.'],
   });
   plus('en', {
@@ -890,7 +890,7 @@ Object.assign(TEXTES.fr, {
     dis_flatte: ['That’s nice of you. Thanks.', 'Coming from you, that counts.'], dis_passer_refuse: ['If you want the place, take it on track.', 'No. Everyone races their own race.'],
     dis_passer_rit: ['Lol, no.', 'Dream on.'], dis_promesse_notee: ['Deal. Don’t forget it.', 'Noted. A promise is a promise.'],
     dis_etat_bien: ['Going well! Good moment for me.', 'Pretty good. The results are coming.'], dis_etat_moyen: ['Could be better. Could be worse.'], dis_etat_mal: ['Not great. The car isn’t there.'],
-    dis_avis_neutre: ['Still watching you. Nothing decided yet.'], dis_avis_bon: ['Your driving is clean, I respect that.'], dis_salut: ['Hey! Long time.', 'Yes?'],
+    dis_avis_neutre: ['Still watching you. Nothing decided yet.'], dis_avis_bon: ['Your driving is clean, I respect that.'], dis_salut: ['Hey! What brings you here?', 'Yes?'],
     dis_adieu: ['Right, take care.', 'Bye, and have a good race weekend.'], dis_merci: ['No worries.'], dis_question: ['Uh… ask me something about the race instead.'],
   });
 })();
