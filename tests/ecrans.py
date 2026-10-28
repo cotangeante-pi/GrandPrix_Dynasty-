@@ -106,6 +106,8 @@ PAGES = [
     ('index.html?course=3&ia=20&circuit=test&test=commentaire', 1280, 720, None),   # le commentateur (commentaire.js) dans le bandeau télé ; capture commentaire.png
     ('index.html?course=3&ia=20&circuit=monoco&test=tele', 1280, 720, None),
     ('index.html?course=3&ia=9&joueur=1&robot=1&circuit=test&test=sensations', 1280, 720, None),
+    ('index.html?course=3&ia=5&joueur=1&robot=1&circuit=test&niveau=debutant&test=conseil', 1280, 720, None),   # la trajectoire conseillée (tour 39) : en débutant, d'office ; capture conseil.png
+    ('index.html?course=3&ia=5&joueur=1&robot=1&circuit=test&niveau=normal&test=conseil', 960, 600, None),     # … en normal, aucune
     ('index.html?course=3&circuit=test&test=manette', 1280, 720, None),   # la manette (tour 38) : une fausse manette conduit un tour, la pause, le menu au stick et à la croix
     ('index.html?deux=1&ia=0&circuit=test&test=manette-deux', 1280, 720, None),   # … deux manettes, une par joueur   # les sensations de conduite (tour 37) : son au premier geste, fumée, étincelles, réglage ; capture sensations.png
     ('index.html?course=3&ia=19&joueur=1&circuit=monzo&domicile=1&test=supporters', 1280, 720, None),   # le Grand Prix à domicile : la caméra de la grille longe d'abord la tribune des supporters ; capture supporters.png   # la réalisation télé (regie.js) : de vraies caméras, l'hélicoptère ; captures tele-monoco.png, tele-helico.png   # … et Monzo de jour : la luminosité de l'image, pour la comparer à la nuit   # le décor dans le vrai jeu : la course de nuit à Singapura, 20 voitures, vue télé ; capture jeu-singapura.png
@@ -1331,6 +1333,33 @@ def manette_deux(pg, titre):
     b = pg.evaluate('() => { const [j1, j2] = DEUX_JOUEURS.joueurs(JEU.plateau); return { u1: j1.v.u, u2: j2.v.u, g2: JEU.deuxCommandes[2].cibles.gaz }; }')
     t(f'{titre} : deux joueurs, une manette chacun : la gâchette de la 1re ne fait rouler que le joueur 1, celle de la 2e le joueur 2',
       pret and a['g1'] == 1 and a['g2'] == 0 and a['u1'] > 1 and a['u2'] == 0 and b['g2'] == 1 and b['u2'] > 1, str([a, b]))
+# la trajectoire conseillée (conseil.js, tour 39) dans le vrai jeu : en débutant (aucun réglage choisi), la ligne est devant
+# le joueur pendant la course, en un appel de dessin ; en normal, aucune ligne ; capture conseil.png
+def conseil_ecran(pg, titre, page):
+    attendre(pg, '() => JEU.ecran === "qualif" && JEU.qualif && JEU.qualif.etat === "choix"', None, 60000)
+    pg.evaluate('() => document.getElementById("boutonQualifPasser").click()')
+    attendre(pg, '() => JEU.qualif && JEU.qualif.etat === "resultat"', None, 180000)
+    pg.evaluate('() => document.getElementById("boutonQualifCourse").click()')
+    attendre(pg, '() => JEU.ecran === "course" || JEU.ecran === "grille"', None, 10000)
+    attendre(pg, '() => JEU.plateau.carte !== null', None, 180000)
+    if pg.evaluate('() => JEU.ecran === "grille"'): pg.evaluate('() => finirGrille()')
+    pg.evaluate('() => { BOUCLE.arreter(); BOUCLE.simuler(12); BOUCLE.demarrer(); }')
+    roule = attendre(pg, '() => JEU.ecran === "course" && JEU.course && JEU.course.etat === "course" && JEU.joueur.u > 15', None, 60000)
+    pg.wait_for_timeout(1500)
+    if 'niveau=debutant' in page:
+        m = pg.evaluate('''() => { BOUCLE.arreter(); SCENE3D.dessiner(); const avec = SCENE3D.appelsDessin, vu = CONSEIL.ligne.visible; CONSEIL.ligne.visible = false; SCENE3D.dessiner(); const sans = SCENE3D.appelsDessin;
+          CONSEIL.ligne.visible = vu; SCENE3D.dessiner(); return { vu, avec, sans, niveau: REGLAGES.NIVEAU, reglage: JEU.reglageTrajectoire, bouton: document.getElementById("boutonTrajectoirePause").textContent }; }''')
+        pg.wait_for_timeout(200); pg.screenshot(path=os.path.join(CAPTURES, 'conseil.png'))
+        pg.evaluate('() => BOUCLE.demarrer()')
+        L.append(f"  (la trajectoire conseillée : {m['sans']} → {m['avec']} appels de dessin)")
+        t(f'{titre} : en débutant, la trajectoire conseillée est allumée d’office devant le joueur, en un appel de dessin de plus au plus ; le bouton du menu pause dit « oui »',
+          roule and m['vu'] and 0 < m['avec'] - m['sans'] <= 1 and m['reglage'] is None and m['bouton'] == pg.evaluate('() => texte("trajectoire_oui")'), str(m))
+        # le réglage : oui → freinages seulement → non (sauvegardé), puis la ligne disparaît
+        r = pg.evaluate('''() => { const b = document.getElementById("boutonTrajectoirePause"); b.click(); const un = SAUVEGARDE.option("trajectoire", "?"); b.click(); return [un, SAUVEGARDE.option("trajectoire", "?")]; }''')
+        pg.wait_for_timeout(600)
+        t(f'{titre} : le menu pause la règle (oui → freinages seulement → non, sauvegardé) ; à « non », plus de ligne', r == ['freinages', 'non'] and not pg.evaluate('() => CONSEIL.ligne.visible'), str(r))
+    else:
+        t(f'{titre} : en normal, aucune trajectoire conseillée (sans réglage choisi)', roule and not pg.evaluate('() => CONSEIL.ligne.visible') and pg.evaluate('() => REGLAGES.NIVEAU') == 'normal', pg.evaluate('() => [CONSEIL.ligne.visible, REGLAGES.NIVEAU]'))
 def commentaire_ecran(pg, titre):
     vu = attendre(pg, '() => /🎙/.test(document.getElementById("messageCourse").textContent) && !document.getElementById("messageCourse").classList.contains("cache")', None, 90000)
     txt = pg.evaluate('() => document.getElementById("messageCourse").textContent')
@@ -2919,6 +2948,8 @@ with sync_playwright() as p:
                 supporters_ecran(pg, titre)
             if 'test=sensations' in page:
                 sensations_ecran(pg, titre)
+            if 'test=conseil' in page:
+                conseil_ecran(pg, titre, page)
             if 'test=manette-deux' in page:
                 manette_deux(pg, titre)
             elif 'test=manette' in page:
@@ -2973,7 +3004,7 @@ with sync_playwright() as p:
                 qualif(pg, titre)
             elif 'test=fantome' in page:
                 fantome(pg, titre)
-            elif 'joueur=1' in page and 'test=supporters' not in page and 'test=sensations' not in page:   # (la page des supporters a son propre parcours)
+            elif 'joueur=1' in page and 'test=supporters' not in page and 'test=sensations' not in page and 'test=conseil' not in page:   # (la page des supporters a son propre parcours)
                 hud(pg, titre, l)
                 if l == 1280: course_joueur(pg, titre)
             if 'camera=auto' in page:

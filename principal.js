@@ -1842,7 +1842,11 @@ function demarrerJeu() {
       if (JEU.qualif && JEU.qualif.etat === 'attente') finirQualif();   // le joueur a fini son tour avant la carte
     } else JEU.pilote = creerPilote(JEU.carte);
   };
-  if (JEU.ia || JEU.deux) {   // (à deux sans IA aussi : la course attend la carte, comme les autres)
+  // la trajectoire conseillée (conseil.js) a besoin de la carte : seul en piste aussi, quand elle peut se montrer (le réglage
+  // du joueur, son niveau, ou la leçon du freinage du tutoriel, qui l'allume pendant la leçon) ; jamais au tournoi ni à deux
+  JEU.conseilForce = PARAMETRES.get('tutoriel') === 'freinage' ? 'oui' : null;
+  const carteConseil = !JEU.tournoi && !JEU.deux && (JEU.conseilForce !== null || CONSEIL.reglageVu(SAUVEGARDE.option('trajectoire', null), REGLAGES.NIVEAU) !== 'non');
+  if (JEU.ia || JEU.deux || carteConseil) {   // (à deux sans IA aussi : la course attend la carte, comme les autres)
     const enCache = CACHE_CARTE.decoder(SAUVEGARDE.carte(NOM_CIRCUIT), NOM_CIRCUIT, CIRCUITS[NOM_CIRCUIT], CIRCUIT);
     if (enCache) { JEU.carteDuCache = true; carteFinie(enCache); }
     else JEU.calculTrajectoire = calculerEnFond(etapesTrajectoire(CIRCUIT), t => { SAUVEGARDE.ecrireCarte(NOM_CIRCUIT, CACHE_CARTE.encoder(NOM_CIRCUIT, CIRCUITS[NOM_CIRCUIT], t)); carteFinie(t); });
@@ -1955,6 +1959,17 @@ function demarrerJeu() {
     b.addEventListener('mousedown', e => e.preventDefault());
     b.addEventListener('click', () => { SENSATIONS.regler(!SENSATIONS.actif); SAUVEGARDE.ecrireOption('effets', SENSATIONS.actif); ecrire(); });
   }
+  // la trajectoire conseillée (conseil.js, tour 39) : oui, non ou freinages seulement dans le menu pause, sauvegardé ; tant
+  // qu'on n'a rien choisi, allumée en débutant seulement
+  {
+    const b = document.getElementById('boutonTrajectoirePause'), SUITE = ['oui', 'freinages', 'non'];
+    JEU.reglageTrajectoire = SAUVEGARDE.option('trajectoire', null);   // (gardé en mémoire : la boucle d'affichage le lit à chaque image)
+    const vu = () => CONSEIL.reglageVu(JEU.reglageTrajectoire, REGLAGES.NIVEAU);
+    const ecrire = () => { b.textContent = texte('trajectoire_' + vu()); };
+    ecrire();
+    b.addEventListener('mousedown', e => e.preventDefault());
+    b.addEventListener('click', () => { JEU.reglageTrajectoire = SUITE[(SUITE.indexOf(vu()) + 1) % SUITE.length]; SAUVEGARDE.ecrireOption('trajectoire', JEU.reglageTrajectoire); ecrire(); });
+  }
   INTERFACE.majBoutonsFantome(SAUVEGARDE.option('fantome', true));
   PODIUM3D.init(CIRCUIT);
   // ?course=5, 12, 18 ou 0 (essai libre) lance directement une course (tests, développement)
@@ -2053,6 +2068,10 @@ function demarrerJeu() {
     // (le son : la voiture la plus proche, la pluie sur la carrosserie ; au podium, plus rien de la course)
     SON.maj(JEU.joueur, apres ? null : { voisins: voituresSens, pluie: typeof METEO3D !== 'undefined' ? (METEO3D.etat(JEU.plateau || JEU.course) || { pluie: 0 }).pluie : 0 });
     if (typeof EFFETS3D !== 'undefined') EFFETS3D.maj(apres ? [] : voituresSens.map(w => ({ v: w, pos: w === JEU.joueur ? etat : etatAffiche(w, alpha) })), CAMERA.position, dt);
+    // la trajectoire conseillée (conseil.js) : devant le joueur, selon le réglage du menu pause (en débutant par défaut) ;
+    // jamais en qualification classée, en tournoi chrono, à deux, ni pour une course entre IA qu'on regarde
+    if (typeof CONSEIL !== 'undefined') CONSEIL.maj(JEU.joueur, JEU.carte, CONSEIL.mode({ reglage: JEU.reglageTrajectoire, niveau: REGLAGES.NIVEAU, ecran: JEU.ecran, qualifClassee: enTourQualif() && !!JEU.plateau,
+      tournoi: !!JEU.tournoi, deux: !!JEU.deux, spectateur: !!JEU.plateau && !JEU.contre, carte: JEU.carte, force: JEU.conseilForce }), SCENE3D.relief);
     // la météo dessinée (meteo3d.js, l'état de meteo.js) : la pluie, les gerbes, la piste mouillée, le ciel couvert ; rien au sec
     if (typeof METEO3D !== 'undefined') METEO3D.maj(METEO3D.etat(JEU.plateau || JEU.course), SCENE3D.camera, JEU.plateau ? JEU.plateau.pilotes.map(p => p.v) : [JEU.joueur], dt, CAMERA.mode === 'cockpit' && JEU.ecran === 'course', CIRCUIT, JEU.carte ? JEU.carte.trajectoire : null);
     SCENE3D.dessiner();
