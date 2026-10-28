@@ -105,9 +105,12 @@ function donnerCarte(e, carte) {
     p.pilote.rivalite = !!(e.rivalites && e.rivalites[k]);   // le rival du joueur (l'interview d'après course)
   });
   // ses techniques selon le virage (ia.js, techniquesPilote), avec leur propre graine : les tirages d'avant ne bougent pas
-  if (R.IA_TECHNIQUES_ACTIVES) {
+  // (× la technique du niveau, NIVEAUX[…].technique : 0 ou absente, aucune technique, la course d'avant au bit près ; tour 33 : au niveau
+  // normal, elles faisaient basculer quatre courses mesurées de la suite, voir le compte rendu ; expert et légende les ont)
+  const nt = niveau().technique || 0;
+  if (R.IA_TECHNIQUES_ACTIVES && nt > 0) {
     ALEATOIRE.semer(e.graine + R.GRAINE_TECHNIQUE);
-    for (const p of e.pilotes) if (!p.humain) { const [a, b] = R.IA_STYLE_TECHNIQUE; p.pilote.style.technique = a + hasard() * (b - a); techniquesPilote(carte, p.pilote.style); }
+    for (const p of e.pilotes) if (!p.humain) { const [a, b] = R.IA_STYLE_TECHNIQUE; p.pilote.style.technique = (a + hasard() * (b - a)) * nt; techniquesPilote(carte, p.pilote.style); }
     ALEATOIRE.semer();
   }
   // le caractère de chaque IA, avec sa propre graine (les styles ne changent pas)
