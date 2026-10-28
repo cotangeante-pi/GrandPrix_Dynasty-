@@ -494,7 +494,8 @@ Pour que ce soit beau **et** léger :
   - `radar.js` : le radar en bas à gauche (canvas 2D, pas Three.js) : la piste proche et les voitures autour du joueur, tourné avec lui ;
   - `podium3d.js` : le podium 3D fait par le code (2e, 1er, 3e), à côté de la ligne, avec sa caméra qui se balance ; après une course à plusieurs, `interface.js` montre le podium puis les résultats (place, temps, pénalités, écart, grille) ;
   - `boite.js` : les 8 rapports et le régime, tirés de la vitesse, pour l'affichage et le son seulement (la physique ne les lit pas) ;
-  - `son.js` : le son synthétisé en Web Audio (moteur, pneus, chocs), rien avant le premier geste, M et 🔊 pour couper ;
+  - `son.js` : le son synthétisé en Web Audio (moteur, pneus, chocs), rien avant le premier geste, M et 🔊 pour couper ; Depuis le 2026-10-28 (tour 37, Codeur 2) : coupure de 60 ms au passage de rapport, vibreurs, herbe, crissement au blocage, souffle de l'aspiration, voiture proche avec effet Doppler, pluie sur la carrosserie.
+  - `sensations.js` + `effets3d.js` : les sensations de conduite (tour 37) : secousse de caméra (≤ 2 cm sur le vibreur, ~8 cm au choc), champ +3° au plus entre 270 et 324 km/h, fumée au blocage et poussière dans l'herbe, étincelles au contact (un InstancedMesh chacun, +2 appels). **Aucune physique touchée** : un test compare au bit près une course avec et sans. Menu pause : « Effets de conduite : oui / non ».
   - `reglages.js` : `?reglages=1`, le panneau de curseurs du pilote d'essai, avec « copier » pour `donnees.js` ;
   - `voiture3d.js` : la F1 en 3D, faite par le code, avec la couleur de son écurie ;
   - `textes.js` : tous les textes, en anglais et en français (`texte(cle)`), y compris les noms par défaut (`nomJoueur`, `pilote`, `ecurie`), `numero`, `placeCourse`, `secondes`, `titreGrandPrix`, `circuit_<nom>` ; les temps utilisent aussi `texte('virgule')` ;
