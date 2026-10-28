@@ -101,6 +101,44 @@ if(Q.get('pont')!=='0'&&(!FILTRE||FILTRE.split(',').includes('suzuko'))){
     L.push('  (posées au croisement : '+sa.toFixed(0)+' m et '+sb.toFixed(0)+' m, à '+m.toFixed(2)+' m ; 0 contact, 0 vue ; témoin sans croisement : '+a2.contactsVoiture+' contact)');});
   ecrire();
 }
+// les techniques de pilote selon le virage (tour 33, CLAUDE.md « Des techniques de pilote selon le virage ») : sur le circuit test, Monoco et
+// Spaa, le type de chaque virage (typerVirages) ; pour chaque type, la place d'un pilote avec sa technique et d'un pilote neutre (sans
+// technique) à l'entrée (sommet − 30 m), à la corde (le sommet) et à la sortie (+ 30 m), vers l'intérieur. EXIGÉ : la technique déplace la
+// ligne comme son type le dit (vers l'intérieur, corde plus tard) ; deux goûts différents donnent deux lignes différentes ; en légende sur le
+// circuit test, le meilleur tour moyen (4 graines, une IA seule) est plus rapide qu'avant le tour 33 (49,4 s) ; avec et sans les techniques
+// (l'écart entre les deux est de l'ordre du bruit d'une IA seule : ±1 s selon la machine, V8 ou JavaScriptCore). ?techniques=0 : sauté
+if(Q.get('techniques')!=='0'&&(!FILTRE||FILTRE.split(',').some(x=>['monoco','spaa','test'].includes(x)))){
+  const T=REGLAGES.IA_TECHNIQUES.types,versInt=(pil,x,d)=>ligneRapide(pil,((x.s+d)%pil.carte.circuit.longueur+pil.carte.circuit.longueur)%pil.carte.circuit.longueur)*x.sens;
+  for(const [nom,C] of [['test',CIRCUIT_TEST],['monoco',construireCircuit(TOUS.monoco)],['spaa',construireCircuit(TOUS.spaa)]]){
+    t(nom+' : chaque type de virage pris avec sa technique (position vers l’intérieur à l’entrée, à la corde, à la sortie ; la corde plus tard)',()=>{
+      const carte=carteDepuis(C,calculerTrajectoire(C)),avec=creerPilote(carte,1,techniquesPilote(carte,Object.assign(styleNeutre(),{technique:1}))),sans=creerPilote(carte,1,styleNeutre());
+      const parType={};
+      for(const x of carte.virages){const q=parType[x.type]||(parType[x.type]={n:0,e:[0,0,0],s:[0,0,0],corde:0});q.n++;
+        [-30,0,30].forEach((d,i)=>{q.e[i]+=versInt(avec,x,d);q.s[i]+=versInt(sans,x,d);});
+        // le point de corde : là où la ligne est le plus à l'intérieur, à ±40 m du sommet
+        const corde=pil=>{let m=-Infinity,o=0;for(let d=-40;d<=40;d++){const e=versInt(pil,x,d);if(e>m){m=e;o=d;}}return o;};q.corde+=corde(avec)-corde(sans);}
+      const lignes=[];
+      for(const [type,q] of Object.entries(parType)){const f=a=>a.map(x=>(x/q.n).toFixed(2)).join(' / ');
+        lignes.push(type+' ×'+q.n+' : avec '+f(q.e)+' m, sans '+f(q.s)+' m, corde '+(q.corde/q.n>=0?'+':'')+(q.corde/q.n).toFixed(1)+' m');
+        const tq=T[type];if(!tq)continue;
+        if(tq.interieur) v(Math.sign((q.e[1]-q.s[1])/q.n)===Math.sign(tq.interieur)&&Math.abs((q.e[1]-q.s[1])/q.n)>0.2*Math.abs(tq.interieur),nom+' '+type+' : à la corde '+((q.e[1]-q.s[1])/q.n).toFixed(2)+' m vers l’intérieur');
+        if(tq.apex>0) v(q.corde/q.n>0,nom+' '+type+' : corde '+(q.corde/q.n).toFixed(1)+' m (pas plus tard)');}
+      L.push('  (techniques, '+nom+' : '+lignes.join(' ; ')+')');
+      v(Object.keys(parType).length>=3,nom+' : types '+Object.keys(parType).join());});
+  }
+  t('techniques : deux goûts différents (0,5 et 1,5) donnent deux lignes différentes ; sans technique, la ligne du pilote neutre est celle d’avant',()=>{
+    const carte=carteDepuis(CIRCUIT_TEST,calculerTrajectoire(CIRCUIT_TEST)),a=creerPilote(carte,1,techniquesPilote(carte,Object.assign(styleNeutre(),{technique:0.5}))),b=creerPilote(carte,1,techniquesPilote(carte,Object.assign(styleNeutre(),{technique:1.5}))),z=creerPilote(carte,1,techniquesPilote(carte,Object.assign(styleNeutre(),{technique:0}))),n=creerPilote(carte,1,styleNeutre());
+    let diff=0,egal=0;for(let s_=0;s_<CIRCUIT_TEST.longueur;s_+=5){if(Math.abs(ligneRapide(a,s_)-ligneRapide(b,s_))>0.05)diff++;if(ligneRapide(z,s_)===ligneRapide(n,s_))egal++;}
+    L.push('  (techniques : lignes différentes en '+diff+' points sur '+Math.floor(CIRCUIT_TEST.longueur/5)+' ; goût 0 = neutre en '+egal+' points)');
+    v(diff>=10,'lignes différentes en '+diff+' points');v(egal===Math.ceil(CIRCUIT_TEST.longueur/5),'goût 0 ≠ neutre');});
+  t('techniques : en légende, sur le circuit test, une IA seule (4 graines) a un meilleur tour moyen plus rapide qu’avant le tour 33 (49,4 s, rapport du Chef) ; avec et sans ses techniques affichés',()=>{
+    const R=REGLAGES,avant=[R.NIVEAU,R.IA_TECHNIQUES_ACTIVES,R.PNEUS_ACTIFS];R.NIVEAU='legende';R.PNEUS_ACTIFS=false;const m={};
+    try{for(const act of [false,true]){R.IA_TECHNIQUES_ACTIVES=act;let s_=0;for(let g=1;g<=4;g++)s_+=simulerCourse(CIRCUIT_TEST,1,3,g).voitures[0].meilleurTour;m[act]=s_/4;}}
+    finally{[R.NIVEAU,R.IA_TECHNIQUES_ACTIVES,R.PNEUS_ACTIFS]=avant;}
+    L.push('  (techniques, légende, circuit test, meilleur tour moyen : sans '+m[false].toFixed(2)+' s, avec '+m[true].toFixed(2)+' s ; le propriétaire ≈ 45 s)');
+    v(m[true]<49.4,'avec '+m[true].toFixed(2)+' s, sans '+m[false].toFixed(2)+' s');});
+  ecrire();
+}
 t('aucune erreur JavaScript',()=>v(__err.length===0,__err.join(' | ')));
 ecrire();
 </script></body></html>

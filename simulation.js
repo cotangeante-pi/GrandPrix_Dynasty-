@@ -5,7 +5,8 @@
 // la carte de chaque circuit (ia.js), calculée une seule fois
 const CARTES = new WeakMap();
 function carteDe(circuit) {
-  if (!CARTES.has(circuit)) CARTES.set(circuit, carteDepuis(circuit, calculerTrajectoire(circuit)));
+  // (une carte par marge : le niveau de difficulté peut avoir la sienne, margeCarte ; au niveau normal, une seule, comme avant)
+  if (!CARTES.has(circuit) || CARTES.get(circuit).margeCarte !== margeCarte()) CARTES.set(circuit, carteDepuis(circuit, calculerTrajectoire(circuit)));
   return CARTES.get(circuit);
 }
 
@@ -41,6 +42,13 @@ function voituresVues(v, voitures, circuit) {
   return vues;
 }
 
+// la précision du niveau (NIVEAUX[…].precision, tour 33) : ce qui manque à x pour arriver à 1 (le rythme, le freinage du style) est
+// multiplié par elle ; l'ordre entre pilotes est gardé. Sans précision (le niveau normal), x tel quel, au bit près
+function precis(x) {
+  const p = niveau().precision;
+  return p === undefined ? x : 1 - (1 - x) * p;
+}
+
 // une course entre nb IA : chacune a sa voiture, sa course (course.js), son rythme et son pilote (sa façon de
 // piloter), tirés avec la graine. carte : celle du circuit ; la page la passe à null tant qu'elle se calcule en
 // fond (les IA attendent sur la grille), puis appelle donnerCarte.
@@ -57,7 +65,7 @@ function creerCourseIA(circuit, nb, nbTours, graine, carte = carteDe(circuit), a
     return {
       numero: k + 1, v, course: creerCourse(circuit, nbTours), humain,
       depart: place.s - circuit.longueur,   // m : sa place sur la grille, derrière la ligne (pour savoir qui est devant)
-      rythme: humain ? null : Math.min(1, R.IA_RYTHME[0] + hasard() * (R.IA_RYTHME[1] - R.IA_RYTHME[0]) + niveau().rythme),
+      rythme: humain ? null : Math.min(1, precis(R.IA_RYTHME[0] + hasard() * (R.IA_RYTHME[1] - R.IA_RYTHME[0])) + niveau().rythme),
       pilote: null, herbe: 0, herbeErreur: 0, chocsVus: 0, chocsErreur: new Set(), arrivee: null, place: null,
       passages: [],   // le temps de course (e.temps) où il a passé chaque CLASSEMENT_PAS m depuis la grille (classementCourse)
     };
@@ -78,10 +86,38 @@ function donnerCarte(e, carte) {
   ALEATOIRE.semer(e.graine + R.GRAINE_STYLES);
   e.pilotes.forEach((p, k) => {
     if (p.humain) return;
-    p.pilote = creerPilote(carte, p.rythme, tirerStyle(carte, e.nbTours + 2), R.IA_PERIODE_DECISION * k / e.pilotes.length);
+    const style = tirerStyle(carte, e.nbTours + 2), n = niveau();
+    // le niveau de difficulté change aussi sa façon de piloter (tour 33, ordre B : la voiture et la physique restent les mêmes) ; au niveau
+    // normal, rien (× 1, + 0, les réglages globaux) : les courses d'avant au bit près. Un pilote de haut niveau utilise plus la largeur de
+    // la piste (corde × n.corde, marge au bord + n.marge, jamais plus près que n.bordMin, la carte reste la même pour tous), va plus près de la limite d'adhérence
+    // (n.limite, noterLigne) et ne se laisse pas piéger au freinage par la ligne qui reste à l'extérieur (n.penaliteFrein)
+    if (n.corde !== undefined) style.corde *= n.corde;
+    if (n.precision !== undefined) {   // … et plus précis : son freinage plus près du sien, son point de corde et ses variations d'un tour à l'autre plus petits
+      style.frein = precis(style.frein); style.apex *= n.precision;
+      for (let i = 0; i < style.variations.length; i++) style.variations[i] *= n.precision;
+    }
+    if (n.marge !== undefined) style.margeBord = Math.max(n.bordMin === undefined ? R.IA_MARGE_BORD_MIN : n.bordMin, style.margeBord + n.marge);
+    p.pilote = creerPilote(carte, p.rythme, style, R.IA_PERIODE_DECISION * k / e.pilotes.length);
+    if (n.limite !== undefined) p.pilote.limite = n.limite;
+    if (n.bordMin !== undefined) p.pilote.bordMin = n.bordMin;
+    if (n.penaliteFrein !== undefined) p.pilote.penaliteFrein = n.penaliteFrein;
     p.pilote.grille = p.v.piste.d;   // il part dans sa file
     p.pilote.rivalite = !!(e.rivalites && e.rivalites[k]);   // le rival du joueur (l'interview d'après course)
+    // la disposition promise en discussion (discussion.js, Codeur 3 ; e.dispositions, championnat.js) : laisser passer le joueur, ou bloquer
+    // un pilote ; pour ce Grand Prix seulement. id : la voiture visée (ia.js : cederDisposition, defendreDisposition). Sans elle, rien
+    const d = e.dispositions && e.dispositions[k], vise = d ? (d.type === 'laisser' ? e.pilotes.find(q => q.humain) : e.pilotes[d.cible]) : null;
+    if (d && vise && vise !== p) p.pilote.disposition = { type: d.type, id: vise.v };
   });
+  // ses techniques selon le virage (ia.js, techniquesPilote), avec leur propre graine : les tirages d'avant ne bougent pas
+  // (× la technique du niveau, NIVEAUX[…].technique : expert 0,7, légende 1 ; 0 ou absente : aucune technique, la course d'avant au bit
+  // près. Tour 33 : en normal (0,5 ; 0,3 ; la corde tardive seule) et en débutant (0,2), les garde-fous de la suite ne tenaient plus sur
+  // GitHub : chocs > 5 m/s 9 à 10 sur 30 courses (au plus 6), une coupe en 4b, la leçon « dépassement » du tutoriel ratée ; voir le compte rendu)
+  const nt = niveau().technique || 0;
+  if (R.IA_TECHNIQUES_ACTIVES && nt > 0) {
+    ALEATOIRE.semer(e.graine + R.GRAINE_TECHNIQUE);
+    for (const p of e.pilotes) if (!p.humain) { const [a, b] = R.IA_STYLE_TECHNIQUE; p.pilote.style.technique = (a + hasard() * (b - a)) * nt; techniquesPilote(carte, p.pilote.style); }
+    ALEATOIRE.semer();
+  }
   // le caractère de chaque IA, avec sa propre graine (les styles ne changent pas)
   ALEATOIRE.semer(e.graine + R.GRAINE_CARACTERE);
   for (const p of e.pilotes) if (!p.humain) {
@@ -269,8 +305,13 @@ const COMMANDES_AUCUNE = { gaz: 0, frein: 0, direction: 0 };
 // reste dernier. e.grille : [{ numero, qualif }] dans l'ordre de la grille.
 function qualifier(e) {
   const R = REGLAGES, c = e.circuit;
+  // son niveau en qualifications (CLAUDE.md « Les IA des adversaires », tour 33) : un trait de son caractère, tiré avec sa propre graine
+  // (les autres tirages ne bougent pas), le même à tous les niveaux de difficulté : > 0, il se qualifie moins bien que son rythme de course
+  ALEATOIRE.semer(e.graine + R.GRAINE_QUALIF_TRAIT);
+  const [qa, qb] = R.IA_CARACTERE.qualif;
+  for (const p of e.pilotes) p.qualifTrait = p.humain ? null : qa + hasard() * (qb - qa);
   ALEATOIRE.semer(e.graine + R.GRAINE_QUALIF);
-  for (const p of e.pilotes) p.qualif = p.humain ? null : tourEstime(e.carte, p.rythme) * (1 + R.IA_QUALIF_HASARD * (2 * hasard() - 1));
+  for (const p of e.pilotes) p.qualif = p.humain ? null : tourEstime(e.carte, p.rythme) * (1 + p.qualifTrait) * (1 + R.IA_QUALIF_HASARD * (2 * hasard() - 1));
   ALEATOIRE.semer();
   const ordre = e.pilotes.filter(p => !p.humain).sort((a, b) => a.qualif - b.qualif).concat(e.pilotes.filter(p => p.humain));
   const places = placesGrille(c, ordre.length);
@@ -314,6 +355,7 @@ function pasCourseIA(e, dt, conduireJoueur) {
     // l'herbe et les chocs pendant une erreur (et juste après) sont comptés à part
     const enErreur = p.pilote && p.pilote.enErreur;
     if (p.v.surHerbe) { if (enErreur) p.herbeErreur++; else p.herbe++; }
+    p.v.enErreur = !!enErreur;   // (ce que les autres voient : elle fait une erreur ; ia.js, estLente)
     while (p.chocsVus < p.v.chocs.length) { if (enErreur) p.chocsErreur.add(p.chocsVus); p.chocsVus++; }
     if (p.course.etat === 'finie') { p.arrivee = e.temps; arrives.push(p); }
   }
@@ -462,6 +504,7 @@ function compterDepassements(e, enCourse) {
 function simulerCourse(circuit, nbVoitures, nbTours, graine) {
   const t0 = performance.now();
   const e = creerCourseIA(circuit, nbVoitures, nbTours, graine);
+  if (REGLAGES.SIMULATION_FEUX) armerFeux(e.pilotes, graine);   // (les feux et le départ de chacun, comme dans la page : un départ raté se paie)
   const pasMax = Math.round(nbTours * REGLAGES.SIMULATION_TEMPS_MAX / REGLAGES.PAS_PHYSIQUE);
   for (let k = 0; k < pasMax && e.arrives < nbVoitures; k++) pasCourseIA(e, REGLAGES.PAS_PHYSIQUE);
   return {

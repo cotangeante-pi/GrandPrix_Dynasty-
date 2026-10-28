@@ -11,3 +11,12 @@ Commit 1a04612 — GitHub 40616933706 : 13 travaux verts.
 - Tests : `tests/test.html` (la course au bit près avec ou sans, des faits vus, les phrases remplies, les variantes et leurs trous en + fr, pas de « il / elle », la longueur, la priorité, l'intervalle, l'attente au virage, l'oubli des vieux faits, jamais deux fois de suite, coupé, mode « tes faits ») ; `tests/ecrans.py` (`?test=commentaire` : il parle dans le bandeau avec son nom, le réglage tout → tes faits → coupé, coupé il se tait ; capture commentaire.png).
 
 Pas vérifié sur le Mac (plus de Chrome après 21h00) : la capture commentaire.png est dans l'artefact GitHub du passage 40616933706.
+
+## 3. Le commentateur poli (branche codeur2, main 6f62a01 fusionnée)
+Commit 755991b — GitHub 40618351758 : 13 travaux verts.
+- **Le lieu juste** : chaque circuit a sa forme « lieu » dans textes.js (`lieu_<nom>` : « à Monoco », « à Melbourn Park », « sur le circuit d’essai », « sur le circuit technique » ; « at Monoco », « at the test track »), utilisée partout où le commentateur cite le circuit (`{lieu}`). Test : aucune phrase ne donne « à Circuit » ni « at Test », pour chaque circuit et chaque langue ; chaque circuit a son lieu.
+- **L’apostrophe** : toujours ’ dans ses phrases (testé).
+- **Plus de variété** : 6 phrases pour un dépassement, 5 pour le côte à côte, 4 pour le départ, la tête, le dépassement du joueur, le contact (testé : au moins 5 pour les deux faits fréquents).
+- **Le podium** : « Le podium : {1er}, {2e} et {3e} ! », dit quand il est sûr (`podiumConnu`, pénalités comprises, d’après `classementFinal`).
+- **L’arrêt en piste** (pas d’abandon dans le moteur : on dit ce qui est vrai) : une voiture sous `COMMENTAIRE_ARRET_VITESSE` pendant `COMMENTAIRE_ARRET_DUREE` s, hors des stands, pas arrivée : « {qui} s’arrête en piste ! », une fois par arrêt.
+- Toujours testés : les trous des phrases les mêmes en + fr, 60 caractères au plus, jamais « il » ni « elle ».

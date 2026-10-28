@@ -802,6 +802,30 @@ t('niveaux : à chaque niveau, les 10 IA d’une course gardent le même ordre d
   v(moyens.debutant>moyens.legende+0.5,'débutant '+moyens.debutant.toFixed(2)+' s, légende '+moyens.legende.toFixed(2)+' s');
   L.push('  (meilleur tour moyen des 10 IA sur le circuit test, course de 3 tours : '+noms.map(n=>n+' '+moyens[n].toFixed(2)+' s').join(', ')+' ; seul, au rythme moyen du niveau : '+noms.map(n=>n+' '+seuls[n].toFixed(2)+' s').join(', ')+' ; le propriétaire ≈ 45 s)');});
 
+t('niveaux (tour 33) : au niveau normal, la carte d’avant (IA_MARGE_BORD), ni limite ni précision, ni technique (les garde-fous, tour 33) ; en expert et en légende, la carte du niveau (margeCarte), la corde et la marge du style, la limite, la technique ; le niveau en qualifications à 0 ne change pas la grille', ()=>{
+  const R_=REGLAGES,avant=R_.NIVEAU;
+  try{R_.NIVEAU='normal';v(margeCarte()===R_.IA_MARGE_BORD,'normal : margeCarte '+margeCarte());
+    const e=creerCourseIA(TQ,4,3,2,CARTES_T.technique);for(const p_ of e.pilotes){v(p_.pilote.limite===undefined&&p_.pilote.bordMin===undefined&&p_.pilote.penaliteFrein===undefined&&!p_.pilote.style.techApex,'normal : n°'+p_.numero);v(p_.qualifTrait===0,'trait '+p_.qualifTrait);}
+    for(const n of ['expert','legende']){R_.NIVEAU=n;const N_=R_.NIVEAUX[n];v(margeCarte()===N_.margeCarte,n+' : margeCarte');
+      const e2=creerCourseIA(TQ,4,3,2,CARTES_T.technique);for(const p_ of e2.pilotes){v(p_.pilote.limite===N_.limite&&p_.pilote.bordMin===N_.bordMin&&p_.pilote.style.techApex&&p_.pilote.style.margeBord>=N_.bordMin,n+' : n°'+p_.numero);}}
+  }finally{R_.NIVEAU=avant;}});
+t('disposition (discussion.js → ia.js) : promise pour le Grand Prix suivant, elle arrive au pilote (laisser : la voiture du joueur ; bloquer X : la voiture de X), pas une passée ; « bloquer » fait défendre contre X, avec un effet plafonné ; sans disposition, rien', ()=>{
+  const R_=REGLAGES;v(R_.DISPOSITION_LAISSER<=R_.DISPOSITION_PLAFOND&&R_.DISPOSITION_DEFENSE<=R_.DISPOSITION_PLAFOND*R_.INTERVIEW_RIVALITE_DEFENSE,'réglages au-delà du plafond');
+  const ch=CHAMPIONNAT.creer(3),nb=ch.pilotes.length-1,suivant=ch.resultats.length+1;
+  ch.pilotes[0].disposition={type:'laisser',saison:ch.saison,gp:suivant,cible:null};ch.pilotes[1].disposition={type:'bloquer',saison:ch.saison,gp:suivant,cible:4};
+  ch.pilotes[2].disposition={type:'bloquer',saison:ch.saison,gp:suivant-1,cible:4};   // passée : rien
+  const e=creerCourseIA(TQ,nb,3,5,null,true);CHAMPIONNAT.appliquerNiveaux(ch,e);donnerCarte(e,CARTES_T.technique);
+  v(e.pilotes[0].pilote.disposition&&e.pilotes[0].pilote.disposition.id===e.pilotes[nb].v&&e.pilotes[0].pilote.disposition.type==='laisser','laisser : la voiture du joueur');
+  v(e.pilotes[1].pilote.disposition&&e.pilotes[1].pilote.disposition.id===e.pilotes[4].v,'bloquer : la voiture de X');
+  v(!e.pilotes[2].pilote.disposition&&e.pilotes.slice(3,nb).every(p_=>!p_.pilote.disposition),'une disposition passée ou absente ne compte pas');
+  // bloquer : 10 IA, 3 tours, 3 graines ; A (4e sur la grille) a la disposition de bloquer X (5e, juste derrière) ; il défend contre X
+  const course1=(avec,g)=>{const e2=creerCourseIA(TQ,10,3,g,CARTES_T.technique),o=e2.grille.map(x=>x.numero),A=e2.pilotes[o[3]-1],X=e2.pilotes[o[4]-1];
+    if(avec)A.pilote.disposition={type:'bloquer',id:X.v};
+    for(let k=0;k<3*R_.SIMULATION_TEMPS_MAX/R_.PAS_PHYSIQUE&&e2.arrives<10;k++)pasCourseIA(e2,R_.PAS_PHYSIQUE);return {def:A.pilote.defenses,dep:e2.depassements.length};};
+  const course=avec=>{const r={def:0,dep:0};for(let g=1;g<=3;g++){const x=course1(avec,g);r.def+=x.def;r.dep+=x.dep;}return r;};
+  const sans=course(false),avec=course(true);
+  L.push('  (disposition « bloquer » : défenses '+avec.def+' (sans : '+sans.def+'), dépassements '+avec.dep+' (sans : '+sans.dep+'))');
+  v(sans.def===0&&avec.def>0,'défenses '+sans.def+' / '+avec.def);});
 t('classement : les arrivés d’abord (dans l’ordre d’arrivée), puis les plus avancés ; les tours de retard comptés', ()=>{
   const e=creerCourseIA(TQ,3,5,1,CARTES_T.technique),P=e.pilotes;
   P[2].place=1;P[2].arrivee=10;P[0].course.progression=500;P[1].course.progression=550+TQ.longueur;
@@ -2448,7 +2472,14 @@ t('commentateur : la course est la même au bit près avec ou sans lui ; des fai
   v(types.every(ty=>TEXTES.fr['com_'+ty].every((f,i)=>JSON.stringify((f.match(/\{\w+\}/g)||[]).sort())===JSON.stringify((TEXTES.en['com_'+ty][i].match(/\{\w+\}/g)||[]).sort()))),'les mêmes trous en + fr');
   v(types.every(ty=>TEXTES.fr['com_'+ty].every(f=>!/\b(il|elle)\b/i.test(f))),'jamais « il » ni « elle » sur un pilote');
   v(types.every(ty=>['fr','en'].every(l=>TEXTES[l]['com_'+ty].every(f=>f.replace(/\{\w+\}/g,'Xxxxxxx').length<=REGLAGES.COMMENTAIRE_LONGUEUR_MAX))),'des phrases courtes (COMMENTAIRE_LONGUEUR_MAX)');
-  v(['tout','joueur','non'].every(m=>TEXTES.fr['commentaire_'+m]&&TEXTES.en['commentaire_'+m]),'le réglage dans les deux langues');});
+  v(['tout','joueur','non'].every(m=>TEXTES.fr['commentaire_'+m]&&TEXTES.en['commentaire_'+m]),'le réglage dans les deux langues');
+  // le lieu : « à Monoco », « sur le circuit d’essai », « at the test track » ; jamais « à Circuit » ni « at Test » ; l’apostrophe typographique
+  const lieux=Object.keys(CIRCUITS);
+  v(lieux.every(k=>TEXTES.fr['lieu_'+k]&&TEXTES.en['lieu_'+k]),'chaque circuit a son lieu : '+lieux.filter(k=>!TEXTES.fr['lieu_'+k]).join());
+  const toutes=[];for(const l of ['fr','en']){const sv=LANGUE;for(const ty of types)for(let i=0;i<TEXTES[l]['com_'+ty].length;i++)for(const k of lieux)toutes.push(TEXTES[l]['com_'+ty][i].replace('{lieu}',TEXTES[l]['lieu_'+k]||'').replace('{circuit}',TEXTES[l]['circuit_'+k]||''));}
+  v(toutes.every(f=>!/à Circuit|at Test/.test(f)),'jamais « à Circuit » ni « at Test » : '+toutes.find(f=>/à Circuit|at Test/.test(f)));
+  v(types.every(ty=>['fr','en'].every(l=>TEXTES[l]['com_'+ty].every(f=>!/'/.test(f)))),'l’apostrophe typographique (’), jamais \'');
+  v(TEXTES.fr.com_depassement.length>=5&&TEXTES.fr.com_coteACote.length>=5,'de la variété sur les faits fréquents');});
 t('commentateur : la priorité (un dépassement pour la tête avant un meilleur tour, un fait du joueur devant), l’intervalle, l’attente au virage, les faits trop vieux oubliés, jamais deux fois la même phrase de suite, rien quand il est coupé, seulement le joueur en mode « joueur »', ()=>{
   const R=REGLAGES,c=COMMENTAIRE.creer(1);
   COMMENTAIRE.pousser(c,0,'meilleurTour',{qui:0},false);COMMENTAIRE.pousser(c,0,'depassementTete',{qui:1,sur:0},false);

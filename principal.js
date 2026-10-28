@@ -1653,7 +1653,7 @@ function majCommentaire(e, m) {
   if (!serre) JEU.commentaire.virage = null; else if (JEU.commentaire.virage === null) JEU.commentaire.virage = e.temps;
   const attendre = serre && e.temps - JEU.commentaire.virage < REGLAGES.COMMENTAIRE_VIRAGE_ATTENTE;
   const etatMeteo = typeof METEO3D !== 'undefined' ? METEO3D.etat(e) : null;
-  COMMENTAIRE.observer(c, e, { joueur: j, pluie: etatMeteo ? etatMeteo.pluie : 0, circuit: texte('circuit_' + NOM_CIRCUIT) || CIRCUIT.nom });
+  COMMENTAIRE.observer(c, e, { joueur: j, pluie: etatMeteo ? etatMeteo.pluie : 0, circuit: texte('circuit_' + NOM_CIRCUIT) || CIRCUIT.nom, lieu: texte('lieu_' + NOM_CIRCUIT) || texte('circuit_' + NOM_CIRCUIT) || CIRCUIT.nom });
   const it = COMMENTAIRE.afficher(c, e.temps, attendre);
   if (it) MESSAGES.pousserTexte(m, { type: 'commentaire', texte: '🎙 ' + texte('commentateur') + ' : ' + COMMENTAIRE.phrase(it, etiquetteVoiture, INTERFACE.formatTemps) });
 }
