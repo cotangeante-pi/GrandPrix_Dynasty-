@@ -113,7 +113,7 @@ t('« t’as fini combien ? » : il donne sa place et la tienne à la dernière 
   if (a.acte === 'ETAT') v(r.reaction === 'etat_place' && f && r.texte.includes('P' + f.a) && r.texte.includes('P' + f.b), JSON.stringify([r.reaction, r.texte]));
   const ch2 = nouveau(), k2 = rival(ch2, 0.5); gpCouru(ch2); const dits = [];
   for (const ph of ['gg', 'bien joué', 'bravo', 'belle course', 'well done', 'nice race']) dits.push(DISCUSSION.dire(ch2, k2, ph).texte);
-  for (let i = 1; i < dits.length; i++) for (let j = Math.max(0, i - REGLAGES.DISCUSSION_OUVERTURES); j < i; j++) v(dits[i].slice(0, 14) !== dits[j].slice(0, 14) || dits[i].includes(texte('dis_encore')), 'même ouverture : ' + dits[j] + ' / ' + dits[i]);
+  for (let i = 1; i < dits.length; i++) for (let j = Math.max(0, i - REGLAGES.DISCUSSION_OUVERTURES); j < i; j++) v(!dits[j].includes(dits[i].slice(0, 14)) || dits[i].includes(texte('dis_encore')), 'même tournure : ' + dits[j] + ' / ' + dits[i]);
 });
 t('les défauts relus par le Chef : une raison s’accroche à la question, jamais un fait faux sur les points, l’idée forte après « mais » d’abord, un au revoir qui suit toute la conversation', () => {
   // 1. le reproche du contact : la réponse parle du contact, sans « pas après ce qui s'est passé » en plus
