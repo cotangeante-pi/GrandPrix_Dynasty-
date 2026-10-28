@@ -19,12 +19,14 @@ function placesGrille(circuit, nb) {
 // ce que le pilote de v voit : les voitures dans son cône de vision devant (IA_VISION_ANGLE, IA_VISION_DISTANCE),
 // juste devant dans son couloir (IA_VISION_COULOIR), et à côté de lui (IA_VISION_COTE, ses rétroviseurs).
 // Pour chacune : où elle est sur la piste (s, d) et sa vitesse le long de la piste. Rien de ce qu'il ne verrait pas.
-function voituresVues(v, voitures) {
+// circuit (facultatif) : au croisement (le pont de Suzuko, branchesOpposees), une voiture sur l'autre passage n'est pas vue
+function voituresVues(v, voitures, circuit) {
   const R = REGLAGES, c = Math.cos(v.cap), s = Math.sin(v.cap), tanAngle = Math.tan(R.IA_VISION_ANGLE), vues = [];
   for (const w of voitures) {
     if (w === v || !w.piste) continue;
     // (la voie des stands, étape 7 : une voiture de l'autre côté du muret n'est pas sur sa route ; 0 sans PNEUS_ACTIFS : rien ne change)
     if (v.campStands && w.campStands && v.campStands !== w.campStands) continue;
+    if (circuit && circuit.croisement && v.piste && branchesOpposees(circuit, v.piste.s, w.piste.s)) continue;
     const dx = w.x - v.x, dz = w.z - v.z;
     if (dx * dx + dz * dz > R.IA_VISION_DISTANCE * R.IA_VISION_DISTANCE) continue;   // trop loin pour être vue
     const avant = c * dx + s * dz, cote = Math.abs(-s * dx + c * dz);
@@ -178,6 +180,34 @@ function poserRivalites(e, rivalites) {
   return e;
 }
 
+// la météo d'une course (meteo.js, étape 12) : le plan tiré avant (METEO.plan) ; chaque voiture part avec le pneu que la piste demande
+// (les IA selon leur prudence ; le joueur : le sien s'il l'a choisi, v.typePneus, sinon le meilleur pour la piste du départ)
+function poserMeteo(e, plan) {
+  e.meteo = METEO.creer(plan);
+  for (const p of e.pilotes) {
+    if (p.humain) { p.v.typePneus = p.v.typePneus || METEO.meilleurPneu(e.meteo.eau); continue; }
+    p.v.typePneus = METEO.choisir(e.meteo.eau, e.meteo.pluie, 1 - (p.pilote && p.pilote.caractere ? p.pilote.caractere.agressivite : 0.5));
+  }
+  return e;
+}
+
+// à chaque pas, avec la météo : la pluie et l'eau avancent (le même ciel pour tous) ; sous chaque voiture, l'eau (moins sur la
+// trajectoire quand elle sèche), le facteur d'adhérence de ses pneus et leur usure ; le joueur prend à son arrêt les pneus qu'il a
+// choisis, ou ceux que la piste demande
+function pasMeteo(e, enCourse, dt) {
+  const R = REGLAGES, m = METEO.pas(e.meteo, dt), carte = e.carte;
+  for (const p of enCourse) {
+    const v = p.v, s = v.piste ? v.piste.s : 0;
+    const surLigne = !!(carte && v.piste && Math.abs(v.piste.d - valeurEn(e.circuit, carte.trajectoire.ecart, s)) < R.METEO_LIGNE);
+    v.eau = METEO.eauEn(m, surLigne);
+    v.adhMeteo = METEO.adherence(v.typePneus, v.eau);
+    v.usureMeteo = METEO.usure(v.typePneus, v.eau);
+    if (p.humain && !v.choixPneus) v.pneusProchain = METEO.choisir(m.eau, m.pluie, 0.5);
+    if (p.humain) p.course.pneusProchain = v.pneusProchain;   // (affiché pendant l'arrêt : interface.js)
+    if (p.humain && m.message && p.course.meteoMessage === undefined) p.course.meteoMessage = { cle: m.message, temps: p.course.temps };   // « La pluie arrive » (interface.js)
+  }
+}
+
 // l'arrêt au stand des IA (étape 7) : en course de 12 et 18 tours (arretObligatoire), chaque IA choisit le tour de son arrêt,
 // avec sa propre graine (GRAINE_STANDS) : la moitié de la course, plus tard pour qui ménage ses pneus (gestionPneus), un peu de
 // hasard ; entre STAND_TOUR_MIN et nbTours − 2 (jamais au dernier tour) ; deux pilotes de la même écurie (deux par écurie, dans
@@ -205,23 +235,30 @@ function strategieStands(e) {
 // STAND_REJOINDRE m après la sortie. Sans arrêt fait (elle a manqué la zone), elle réessaie au tour suivant.
 function majStandsIA(p, e) {
   const R = REGLAGES, pi = p.pilote, v = p.v, c = e.circuit, st = c.stands;
-  if (!pi || !pi.standTour || !v.pneus || !v.piste) return;
+  if (!pi || !v.pneus || !v.piste) return;
+  // la météo (meteo.js) : le pneu qu'il veut pour ce qu'il voit de la piste (l'eau, la pluie qui tombe ; jamais l'avenir), selon sa prudence
+  const veut = e.meteo ? METEO.choisir(e.meteo.eau, e.meteo.pluie, 1 - (pi.caractere ? pi.caractere.agressivite : 0.5)) : null;
+  const changer = !!veut && veut !== (v.typePneus || 'slick');
+  if (!pi.standTour && !changer && !pi.stand) return;
   const depuis = ecartLeLong(c, v.piste.s - st.entree);
   if (pi.stand) {
-    pi.stand.arrete = v.pneus.arrets > 0;
+    pi.stand.arrete = v.pneus.arrets > pi.stand.arretsAvant;
     if (depuis >= 0 && depuis <= st.longueur) pi.stand.dedans = true;
     if (pi.stand.dedans && depuis > st.longueur + R.STAND_REJOINDRE) pi.stand = null;
     // elle ralentit pour entrer, ou rejoint la piste au ralenti : les autres la voient faire (ia.js, estLente : on la contourne)
     v.manoeuvreStands = !!pi.stand && ((depuis > -Math.min(R.STAND_RANGER[0], droiteAvantStands(c)) && depuis < R.STAND_RAMPE) || (pi.stand.arrete && depuis > st.longueur - R.STAND_RAMPE));
     return;
   }
-  if (v.pneus.arrets > 0 || p.course.etat !== 'course') return;
+  if ((v.pneus.arrets > 0 && !changer) || p.course.etat !== 'course') return;
   if (depuis < -R.STAND_APPROCHE || depuis > 0) return;
   // (le tour où il arrivera à l'entrée : si l'entrée est juste après la ligne, il passera la ligne avant elle, c'est le tour suivant ;
   // sinon, il commencerait à freiner après la ligne, trop tard : tracés officiels, entrée à 20 m de la ligne)
   const tour = p.course.tours.length + 1 + (v.piste.s > st.entree && p.course.etape === 3 ? 1 : 0);
-  if (tour < pi.standTour || tour >= p.course.nbTours) return;
-  pi.stand = { arrete: false, dedans: false };
+  if ((!changer && tour < pi.standTour) || tour >= p.course.nbTours) return;
+  // (pour changer de pneus, pas deux arrêts de suite : au moins METEO_ARRET_TOURS tours après le précédent)
+  if (changer && v.pneus.arrets > 0 && tour - (p.course.arrets && p.course.arrets.length ? p.course.arrets[p.course.arrets.length - 1].tour : 0) < R.METEO_ARRET_TOURS) return;
+  pi.stand = { arrete: false, dedans: false, arretsAvant: v.pneus.arrets };
+  if (veut) v.pneusProchain = veut;   // (les pneus qu'il prendra à l'arrêt : course.js, pasArretStand)
   if (pi.attaque) finirAttaque(pi, false, 'stands');
 }
 
@@ -252,10 +289,11 @@ function pasCourseIA(e, dt, conduireJoueur) {
   const R = REGLAGES;
   const enCourse = e.pilotes.filter(p => p.arrivee === null);
   const voitures = enCourse.map(p => p.v);
+  if (e.meteo) pasMeteo(e, enCourse, dt);   // la météo (étape 12) ; sans e.meteo (le sec d'avant) : rien ne change
   if (R.PNEUS_ACTIFS && e.circuit.stands) for (const p of enCourse) if (!p.humain) majStandsIA(p, e);   // l'arrêt au stand des IA (étape 7)
   const commandes = enCourse.map(p => !p.humain && courseAutorise(p.course) && p.pilote
-    ? piloterIA(p.pilote, p.v, voituresVues(p.v, voitures), dt) : COMMANDES_AUCUNE);
-  aspirationVoitures(voitures);
+    ? piloterIA(p.pilote, p.v, voituresVues(p.v, voitures, e.circuit), dt) : COMMANDES_AUCUNE);
+  aspirationVoitures(voitures, e.circuit);
   enCourse.forEach((p, k) => {
     if (p.humain && conduireJoueur) conduireJoueur(p, dt);
     else appliquerCommandes(p.v, commandes[k]);

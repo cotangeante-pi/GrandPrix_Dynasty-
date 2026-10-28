@@ -19,7 +19,7 @@ function tauxUsure(voiture, gestionPneus = REGLAGES_PNEUS.GESTION_MOYENNE) {
     + freinFort * vitesse * P.USURE_PAR_M_FREIN_FORT
     + (voiture.surHerbe ? vitesse * P.USURE_PAR_M_HERBE : 0);
   const gestion = Math.max(0, Math.min(1, gestionPneus));
-  return brut * (1 - P.GESTION_EFFET_MAX * gestion) * (P.USURE_ECHELLE || 1);
+  return brut * (1 - P.GESTION_EFFET_MAX * gestion) * (P.USURE_ECHELLE || 1) * (voiture.usureMeteo || 1);   // (usureMeteo : un pneu de pluie sur le sec, meteo.js ; 1 au sec)
 }
 
 // un pas de dt secondes : l'usure avance, sans dépasser USURE_MAX. Renvoie l'usure.

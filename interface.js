@@ -45,7 +45,7 @@ const INTERFACE = (function () {
   }
 
   function montrer(ecran) {
-    for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une', 'garage', 'saison', 'duelSaison', 'contrats', 'retraite', 'titre', 'amis', 'bravo', 'pilote', 'sponsors', 'fiche', 'interview', 'ceremonie', 'temple', 'heritier', 'calendrier', 'deuxReglages', 'resume', 'grille', 'tournoiInscription', 'tournoiAToi', 'tournoiPause', 'tournoiManche', 'tournoiFin', 'aileron', 'arbre']) $(id).classList.toggle('cache', id !== ecran);
+    for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une', 'garage', 'saison', 'duelSaison', 'contrats', 'retraite', 'titre', 'amis', 'bravo', 'pilote', 'sponsors', 'fiche', 'interview', 'ceremonie', 'temple', 'heritier', 'calendrier', 'deuxReglages', 'resume', 'grille', 'tournoiInscription', 'tournoiAToi', 'tournoiPause', 'tournoiManche', 'tournoiFin', 'aileron', 'arbre', 'discussion', 'courrier']) $(id).classList.toggle('cache', id !== ecran);
     // l'album des unes (Codeur 3) : la page de la une, avec la barre pour feuilleter
     if (ecran === 'album') $('une').classList.remove('cache');
     $('une').classList.toggle('album', ecran === 'album');
@@ -92,6 +92,8 @@ const INTERFACE = (function () {
   // juste après, « pneus neufs » ; avant son arrêt obligatoire, le tour conseillé (au départ, puis à partir du tour d'avant)
   function messageStand(c) {
     // la consigne d'équipe (simulation.js, majConsignes) qui vise le joueur, devant son coéquipier : la demande, puis le résultat 3 s
+    // la météo (meteo.js) : « La pluie arrive », « La piste sèche », 5 s
+    if (c.meteoMessage && c.etat === 'course' && c.temps - c.meteoMessage.temps < 5) return texte('meteo_' + c.meteoMessage.cle);
     const k = c.consigne;
     if (k && k.joueur && c.etat === 'course') {
       if (!k.resultat) return texte('consigneJoueur').replace('{n}', k.numero);
@@ -99,7 +101,7 @@ const INTERFACE = (function () {
     }
     if (!c.arrets || c.etat !== 'course') return null;
     const v = n => secondes(n.toFixed(1));
-    if (c.arretEnCours) return texte('standEnCours').replace('{s}', v(Math.max(0, c.arretEnCours.reste)));
+    if (c.arretEnCours) return texte('standEnCours').replace('{s}', v(Math.max(0, c.arretEnCours.reste))) + (c.pneusProchain ? ' · ' + texte('standPneus').replace('{p}', texte('pneu_' + c.pneusProchain)) : '');
     const dernier = c.arrets[c.arrets.length - 1];
     if (dernier && c.temps - c.arretFin < 3) return texte('standFait').replace('{s}', v(dernier.duree));
     if (c.arretConseille && !c.arrets.length && (c.temps < 6 || c.tours.length + 2 >= c.arretConseille))
@@ -639,6 +641,7 @@ const INTERFACE = (function () {
       li.appendChild(b);
       liste.appendChild(li);
     }
+    remplirPneusGarage(ch);
   }
 
   // --- la fin de saison (Codeur 3, saisons.js) ---
@@ -1112,6 +1115,28 @@ const INTERFACE = (function () {
     $('aileronCurseur').addEventListener('input', () => changer(Number($('aileronCurseur').value)));
   }
 
+  // --- les pneus du départ, au garage (la météo, Codeur 1) : la prévision du prochain Grand Prix (meteo3d.js, Codeur 2) et quatre choix :
+  // « l'équipe choisit » (METEO.choisir au départ, par défaut), slicks, intermédiaires, pluie ; ch.pneusDepart (null = l'équipe)
+  let choixPneusGarage = null;
+  function remplirPneusGarage(ch) {
+    if (typeof METEO === 'undefined') return;
+    let bloc = $('garagePneus');
+    if (!bloc) { bloc = document.createElement('div'); bloc.id = 'garagePneus'; $('garageListe').after(bloc); }
+    bloc.textContent = '';
+    const p = typeof METEO3D !== 'undefined' ? METEO3D.textePrevision(METEO3D.prevision(ch, ch.prochain)) : null;
+    const t = document.createElement('span'); t.className = 'titre'; t.textContent = texte('garagePneus') + (p ? ' — ' + p : ''); bloc.appendChild(t);
+    for (const type of [null].concat(METEO.TYPES)) {
+      const b = document.createElement('button');
+      b.tabIndex = -1; b.dataset.pneu = type || 'equipe';
+      b.textContent = type ? texte('pneu_' + type) : texte('garagePneusEquipe');
+      b.classList.toggle('choisi', (ch.pneusDepart || null) === type);
+      b.addEventListener('mousedown', e => e.preventDefault());
+      b.addEventListener('click', () => { if (choixPneusGarage) choixPneusGarage(type); });
+      bloc.appendChild(b);
+    }
+  }
+  function preparerPneusGarage(f) { choixPneusGarage = f; }
+
   function preparerGarage(acheter, retour) {
     achatGarage = acheter;
     $('boutonGarageRetour').addEventListener('mousedown', e => e.preventDefault());
@@ -1488,11 +1513,304 @@ const INTERFACE = (function () {
     $('paddockPlace').textContent = !ch.resultats.length || !moi ? texte('paddockPasClasse')
       : avec(texte('paddockPlace'), { p: i + 1, n: moi.points }) + ' · ' + (i === 0 ? texte('paddockLeader') : elider(avec(texte('paddockEcart'), { n: ecart })));
     for (const g of ['Course', 'Equipe', 'Saison', 'Amis']) $('paddockGroupe' + g).textContent = texte('paddockGroupe' + g);
+    // le courrier des pilotes (courrier-pilotes.js) : « ✉ Courrier (2) » s'il y a des messages non lus
+    const nonLus = typeof COURRIER_PILOTES !== 'undefined' ? COURRIER_PILOTES.nonLus(ch) : 0;
+    $('boutonCourrier').textContent = texte('courrier') + (nonLus ? ' (' + nonLus + ')' : '');
+    $('boutonCourrier').classList.toggle('nouveau', nonLus > 0);
   }
 
-  return { majPneus, majMessage, preparerGrille, annoncerMotifs, preparerResume, montrerBoutonResume, majResume, remplirInscription, lireInscription, montrerErreursTournoi, preparerInscription, remplirAToi, majCompteTournoi, preparerPauseTournoi, remplirMancheTournoi, preparerMancheTournoi, remplirFinTournoi, preparerFinTournoi, preparerAmis, remplirDeux, lireDeux, montrerErreursDeux, preparerDeux, remplirPodiumDeux, remplirRivalite, formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, remplirPaddock, preparerChampionnat, remplirQualif, preparerQualif,
+  // --- les discussions (Codeur 3, étape 12b, discussion.js) : l'en-tête (son portrait, son nom, l'humeur de sa relation avec toi),
+  // le fil de la conversation (fil = [{ de: 'moi' | 'lui', texte }]), le composeur (une intention par bouton ; « bloquer » prend le
+  // pilote choisi dans la liste) et la saisie libre
+  let envoiDiscussion = null, compositionDiscussion = null;
+  function remplirDiscussion(ch, k, fil, intentions) {
+    const p = ch.pilotes[k], e = ch.ecuries[p.ecurie], m = p.memoire || { relation: 0 };
+    const co = CHAMPIONNAT.coequipierDe(ch);
+    $('discussionSurtitre').textContent = texte(co && co.id === k ? 'discussionCoequipier' : 'discussionRival');
+    $('discussionNom').textContent = nomPilote(p);
+    const humeur = m.relation >= REGLAGES.DISCUSSION_AMI ? 'bonne' : m.relation <= -REGLAGES.DISCUSSION_ENNEMI ? 'tendue' : 'neutre';
+    $('discussionHumeur').textContent = texte('discussionHumeur_' + humeur) + (p.rivalite ? ' · ' + texte('discussionRivalite') : '');
+    $('discussionHumeur').className = humeur;
+    let pc = $('discussionPortrait').querySelector('canvas');
+    if (!pc) { pc = document.createElement('canvas'); pc.width = 110; pc.height = 130; $('discussionPortrait').appendChild(pc); }
+    PHOTO.portrait(pc.getContext('2d'), pc.width, pc.height, { couleur: e.couleur, casque: p.casque });
+    const ol = $('discussionFil');
+    ol.textContent = '';
+    if (!fil.length) { const li = document.createElement('li'); li.className = 'aide'; li.textContent = texte('discussionAide'); ol.appendChild(li); }
+    for (const l of fil) { const li = document.createElement('li'); li.className = l.de; li.textContent = l.texte; ol.appendChild(li); }
+    ol.scrollTop = ol.scrollHeight;
+    // le composeur : les intentions proposées pour ce pilote, et la liste des pilotes pour « bloquer »
+    const zone = $('discussionComposeur'), cible = $('discussionCible');
+    for (const b of [...zone.querySelectorAll('button')]) b.remove();
+    for (const i of intentions) {
+      const b = document.createElement('button'); b.className = 'intention' + (['provoquer', 'menacer'].includes(i) ? ' danger' : ''); b.dataset.intention = i; b.tabIndex = -1;
+      b.textContent = texte('intention_' + i);
+      b.addEventListener('mousedown', ev => ev.preventDefault());
+      b.addEventListener('click', () => { if (compositionDiscussion) compositionDiscussion(i, Number(cible.value)); });
+      zone.insertBefore(b, cible);
+    }
+    cible.textContent = '';
+    for (const x of ch.pilotes) if (!x.humain && x.id !== k) { const o = document.createElement('option'); o.value = x.id; o.textContent = nomPilote(x); cible.appendChild(o); }
+    cible.title = texte('discussionCibleAide');
+    $('discussionTexte').placeholder = texte('discussionPlaceholder');
+    $('boutonDiscussionEnvoyer').textContent = texte('discussionEnvoyer');
+    $('boutonDiscussionRetour').textContent = texte('discussionRetour');
+  }
+  function preparerDiscussion(envoyer, composer, retour) {
+    envoiDiscussion = envoyer; compositionDiscussion = composer;
+    const envoi = () => { const t = $('discussionTexte').value; $('discussionTexte').value = ''; if (envoiDiscussion) envoiDiscussion(t); };
+    $('boutonDiscussionEnvoyer').addEventListener('mousedown', e => e.preventDefault());
+    $('boutonDiscussionEnvoyer').addEventListener('click', envoi);
+    $('discussionTexte').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); envoi(); } });
+    $('boutonDiscussionRetour').addEventListener('mousedown', e => e.preventDefault());
+    $('boutonDiscussionRetour').addEventListener('click', retour);
+    $('boutonFicheDiscuter').textContent = texte('ficheDiscuter');
+    $('boutonParlerCoequipier').textContent = texte('parlerCoequipier');
+  }
+
+  // --- le courrier des pilotes (Codeur 3) : messages = [{ i, k, texte, lu }] du plus récent au plus ancien ; repondre(i) ouvre la discussion
+  let reponseCourrier = null;
+  function remplirCourrier(ch, messages) {
+    $('courrierTitre').textContent = texte('courrierTitre');
+    $('boutonCourrierRetour').textContent = texte('courrierRetour');
+    const ol = $('courrierListe');
+    ol.textContent = '';
+    if (!messages.length) { const li = document.createElement('li'); li.className = 'vide'; li.textContent = texte('courrierVide'); ol.appendChild(li); return; }
+    for (const m of messages) {
+      const p = ch.pilotes[m.k], li = document.createElement('li');
+      li.className = m.lu ? 'lu' : 'nouveau';
+      const de = document.createElement('strong'); de.append(pastille(ch.ecuries[p.ecurie].couleur), ' ');
+      if (p.casque) de.append(CASQUE.icone(p.casque, REGLAGES.CASQUE_ICONE));
+      de.append(nomPilote(p));
+      if (!m.lu) { const n = document.createElement('em'); n.textContent = texte('courrierNouveau'); de.append(' ', n); }
+      const t = document.createElement('span'); t.className = 'texte'; t.textContent = m.texte;
+      const b = document.createElement('button'); b.className = 'petit'; b.tabIndex = -1; b.textContent = texte('courrierRepondre'); b.dataset.i = m.i;
+      b.addEventListener('mousedown', e => e.preventDefault());
+      b.addEventListener('click', () => { if (reponseCourrier) reponseCourrier(m.i); });
+      li.append(de, t, b); ol.appendChild(li);
+    }
+  }
+  function preparerCourrier(ouvrir, repondre, retour) {
+    reponseCourrier = repondre;
+    $('boutonCourrier').addEventListener('mousedown', e => e.preventDefault());
+    $('boutonCourrier').addEventListener('click', ouvrir);
+    $('boutonCourrierRetour').addEventListener('mousedown', e => e.preventDefault());
+    $('boutonCourrierRetour').addEventListener('click', retour);
+  }
+
+  return { majPneus, majMessage, preparerGrille, annoncerMotifs, preparerResume, montrerBoutonResume, majResume, remplirInscription, lireInscription, montrerErreursTournoi, preparerInscription, remplirAToi, majCompteTournoi, preparerPauseTournoi, remplirMancheTournoi, preparerMancheTournoi, remplirFinTournoi, preparerFinTournoi, preparerAmis, remplirDeux, lireDeux, montrerErreursDeux, preparerDeux, remplirPodiumDeux, remplirRivalite, formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, remplirPaddock, remplirDiscussion, preparerDiscussion, remplirCourrier, preparerCourrier, preparerChampionnat, remplirQualif, preparerQualif,
     remplirDuel, avec, remplirUne, preparerUne, remplirArgent, remplirSolde, remplirGarage, preparerGarage,
-    remplirSaison, remplirDuelSaison, remplirContrats, remplirRetraite, preparerSaison, retraiteEnAttente, remplirCeremonie, preparerCeremonie, remplirAlbum, preparerAlbum, remplirBilan, remplirTemple, preparerTemple, preparerReleve, remplirHeritier, lireHeritier, montrerErreurHeritier, remplirAileron, majAileron, preparerAileron, remplirArbre, preparerArbre, remplirCalendrier, preparerCalendrier,
+    remplirSaison, remplirDuelSaison, remplirContrats, remplirRetraite, preparerSaison, retraiteEnAttente, remplirCeremonie, preparerCeremonie, remplirAlbum, preparerAlbum, remplirBilan, remplirTemple, preparerTemple, preparerReleve, remplirHeritier, lireHeritier, montrerErreurHeritier, remplirAileron, majAileron, preparerAileron, preparerPneusGarage, remplirArbre, preparerArbre, remplirCalendrier, preparerCalendrier,
     remplirSponsors, remplirRappelSponsor, preparerSponsors, remplirFiche, preparerFiche, remplirInterview, montrerEffetInterview, preparerInterview, remplirReputation,
     majEcartFantome, preparerFantome, majBoutonsFantome, majDepart, majDeux, preparerTitre, remplirBravo, majAides, remplirPilote, lirePilote, montrerErreursPilote, preparerPilote, nomCircuit, remplirCasque, lireCasque, modePilote, preparerCasque };
+})();
+
+// --- les aides au premier usage (aides.js, étape 11b, Codeur 4) : la bulle, « Revoir les aides » au paddock et dans le menu pause.
+// À chaque image, la situation est lue dans l'état du jeu (JEU, CIRCUIT de principal.js : rien n'y est changé), AIDES.pas choisit
+// l'aide à montrer ; une aide vue est écrite tout de suite à la racine de la sauvegarde. En course, la bulle est à gauche, sous la
+// minicarte (jamais sur la piste devant la voiture, test en pixels dans ecrans.py) ; sur les écrans entre les courses, en haut à gauche.
+const AIDES_ECRAN = (function () {
+  const $ = id => document.getElementById(id);
+  let etat = null, affichee = null;
+
+  function sauver() { SAUVEGARDE.ecrireAides(Array.from(etat.vues)); }
+
+  function phrase(id) {
+    return texte('aide_' + id).replace('{v}', Math.round(REGLAGES.STAND_VITESSE_MAX * 3.6)).replace('{p}', String(Math.round(REGLAGES.GARAGE_PLAFOND * 1000) / 10).replace('.', texte('virgule')));
+  }
+
+  function montrer(id) {
+    if (id === affichee) return;
+    affichee = id;
+    const b = $('bulleAide');
+    b.classList.toggle('cache', !id);
+    if (!id) return;
+    $('bulleAideTexte').textContent = phrase(id);
+    b.title = texte('aideFermer');
+    b.dataset.aide = id;
+    const course = AIDES.PAR_ID[id].genre === 'course';
+    b.classList.toggle('bulleCourse', course);
+    b.classList.toggle('bulleMenu', !course);
+  }
+
+  // « Revoir les aides » : plus aucune n'est vue (la sauvegarde aussi)
+  function revoir() {
+    if (!etat) return;
+    AIDES.revoir(etat);
+    sauver();
+    montrer(null);
+  }
+
+  // un clic sur la bulle : l'aide est vue
+  function fermer() {
+    if (!etat) return;
+    if (AIDES.fermer(etat)) sauver();
+    montrer(null);
+  }
+
+  function init() {
+    etat = AIDES.creer(SAUVEGARDE.aides());
+    const b = $('bulleAide');
+    b.addEventListener('mousedown', e => e.preventDefault());
+    b.addEventListener('click', fermer);
+    for (const id of ['boutonRevoirAides', 'boutonRevoirAidesPause']) {
+      $(id).textContent = texte('revoirAides');
+      $(id).addEventListener('mousedown', e => e.preventDefault());
+      $(id).addEventListener('click', revoir);
+    }
+  }
+
+  // une image (dt en s) ; renvoie l'aide affichée (ou null)
+  function maj(dt) {
+    if (!etat || typeof JEU === 'undefined' || typeof CIRCUIT === 'undefined') return null;
+    if (typeof TUTORIEL_ECRAN !== 'undefined' && TUTORIEL_ECRAN.lecon()) { montrer(null); return null; }   // (pendant une leçon du tutoriel : ses consignes seulement)
+    const meteo = typeof METEO3D !== 'undefined' ? METEO3D.etat(JEU.plateau || JEU.course) : null;
+    const r = AIDES.pas(etat, AIDES.situation(JEU, CIRCUIT, meteo), dt || 0);
+    if (r.vue) sauver();
+    montrer(r.aide);
+    return r.aide;
+  }
+
+  // la page du jeu seulement (les pages de test du moteur n'ont pas la bulle) : branchée sur l'affichage de la boucle
+  if ($('bulleAide') && typeof BOUCLE !== 'undefined') { init(); BOUCLE.surAffichage((alpha, dt) => maj(dt)); }
+
+  return { maj, revoir, fermer, etat: () => etat, affichee: () => affichee };
+})();
+
+// --- le tutoriel guidé (tutoriel.js, étape 11d, Codeur 4) : la liste des leçons (depuis le titre, le paddock, la pause, « Bravo ! »),
+// la consigne pendant une leçon, le résultat. Une leçon est une page à elle (index.html?tutoriel=<id>&… : les mêmes modes que le jeu,
+// TUTORIEL.LECONS) ; sa réussite est mesurée à chaque image sur l'état du jeu (JEU) et gardée à la racine de la sauvegarde.
+const TUTORIEL_ECRAN = (function () {
+  const $ = id => document.getElementById(id);
+  const P = new URLSearchParams(location.search), LECON = TUTORIEL.PAR_ID[P.get('tutoriel')] ? P.get('tutoriel') : null;
+  let suivi = null, prete = false, resultat = null, plots = null;
+  // la visite (leçon 7) ne laisse rien dans la carrière : le championnat de la sauvegarde est gardé tel quel avant que la page ne
+  // démarre (ce fichier est chargé avant principal.js), et remis à la fin de la leçon (réussie) et quand on quitte la page (passée,
+  // quittée, rechargée) : l'aileron, les pneus du départ, les achats du garage, le casque… tout revient comme avant
+  const avantVisite = LECON === 'visite' ? JSON.stringify(SAUVEGARDE.lire().championnat) : null;
+  function restaurerCarriere() {
+    if (avantVisite === null) return;
+    const d = SAUVEGARDE.lire(), ch = JSON.parse(avantVisite);
+    d.championnat = ch;
+    SAUVEGARDE.ecrire(d);
+    if (ch && typeof JEU !== 'undefined' && JEU.championnat) { for (const k of Object.keys(JEU.championnat)) delete JEU.championnat[k]; Object.assign(JEU.championnat, JSON.parse(avantVisite)); }
+  }
+
+  // l'adresse d'une leçon (la langue forcée des tests est gardée), et celle du jeu
+  const langue = () => P.get('lang') ? '&lang=' + P.get('lang') : '';
+  const adresse = id => 'index.html?tutoriel=' + id + '&' + TUTORIEL.PAR_ID[id].adresse + langue();
+  const aller = url => { location.href = url; };
+  const kmh = () => Math.round(REGLAGES.STAND_VITESSE_MAX * 3.6);
+  const virgule = x => x.toFixed(2).replace('.', texte('virgule'));
+  const remplir = (t, v) => t.replace('{v}', kmh()).replace('{o}', virgule(REGLAGES.TUTO_ZONE_OBJECTIF)).replace('{max}', REGLAGES.TUTO_ZONE_ESSAIS)
+    .replace('{n}', v && v.n !== undefined ? v.n : '').replace('{t}', v && v.t !== undefined ? v.t : '');
+
+  function bouton(id, cle, f) {
+    const b = $(id);
+    b.textContent = texte(cle);
+    b.addEventListener('mousedown', e => e.preventDefault());
+    b.addEventListener('click', f);
+  }
+
+  // la liste des leçons, avec une étoile par leçon réussie
+  function ouvrirMenu() {
+    const faites = SAUVEGARDE.tutoriel(), liste = $('tutoListe');
+    liste.textContent = '';
+    for (const l of TUTORIEL.LECONS) {
+      const li = document.createElement('li'), etoile = document.createElement('span'), nom = document.createElement('span'), but = document.createElement('span'), b = document.createElement('button');
+      etoile.className = 'tutoEtoile' + (faites.includes(l.id) ? ' faite' : ''); etoile.textContent = faites.includes(l.id) ? '★' : '☆';
+      nom.className = 'tutoNom'; nom.textContent = l.numero + '. ' + texte('tuto_' + l.id);
+      but.className = 'tutoBut'; but.textContent = remplir(texte('tuto_' + l.id + '_but'));
+      b.textContent = texte('tutoCommencer'); b.tabIndex = -1; b.dataset.lecon = l.id; b.className = 'petit';
+      b.addEventListener('mousedown', e => e.preventDefault());
+      b.addEventListener('click', () => aller(adresse(l.id)));
+      li.append(etoile, nom, but, b);
+      liste.appendChild(li);
+    }
+    $('tutoResultat').classList.add('cache');
+    $('tutoMenu').classList.remove('cache');
+  }
+  const fermerMenu = () => $('tutoMenu').classList.add('cache');
+
+  // les plots de la leçon du freinage : orange, de chaque côté de la piste, au point de freinage et à la sortie de la zone
+  function poserPlots() {
+    if (plots || typeof THREE === 'undefined' || typeof SCENE3D === 'undefined' || !SCENE3D.actif || !suivi.zone) return;
+    const C = CIRCUIT, g = new THREE.ConeGeometry(0.35, 0.9, 10), m = new THREE.MeshLambertMaterial({ color: REGLAGES.TUTO_PLOTS_COULEUR });
+    plots = new THREE.InstancedMesh(g, m, 6); plots.name = 'tutoriel-plots';
+    const o = new THREE.Object3D(); let n = 0;
+    for (const [s, d] of [[suivi.zone.debut, 1], [suivi.zone.debut, -1], [suivi.zone.debut - 6, 1], [suivi.zone.debut - 6, -1], [suivi.zone.fin, 1], [suivi.zone.fin, -1]]) {
+      const i = ((Math.round(s / C.pas) % C.nb) + C.nb) % C.nb, e = d * (C.largeur / 2 + 0.8);
+      o.position.set(C.x[i] + C.nx[i] * e, 0.45, C.z[i] + C.nz[i] * e); o.updateMatrix(); plots.setMatrixAt(n++, o.matrix);
+    }
+    SCENE3D.ajouter(plots);
+  }
+
+  function montrerConsigne() {
+    const visite = LECON === 'visite', ecran = JEU.ecran;
+    const oui = !resultat && (visite ? ['championnat', 'garage', 'aileron'].includes(ecran) : ecran === 'course');
+    $('tutoConsigne').classList.toggle('cache', !oui);
+    if (!oui) return;
+    $('tutoConsigne').classList.toggle('tutoMenuConsigne', visite);
+    $('tutoConsigneTitre').textContent = TUTORIEL.PAR_ID[LECON].numero + '. ' + texte('tuto_' + LECON);
+    let t = visite ? texte('tuto_visite_' + TUTORIEL.etapeVisite(suivi, ecran)) : remplir(texte('tuto_' + LECON + '_consigne'), { n: Math.min(suivi.essais + 1, REGLAGES.TUTO_ZONE_ESSAIS) });
+    if (LECON === 'freinage' && suivi.dernier) t += ' · ' + remplir(texte('tuto_essai'), { n: suivi.essais, t: virgule(suivi.dernier.temps) });
+    $('tutoConsigneTexte').textContent = t;
+  }
+
+  function montrerResultat() {
+    const ok = resultat === 'reussie', suite = TUTORIEL.suivante(LECON);
+    $('tutoResultatTitre').textContent = texte(ok ? 'tutoReussie' : 'tutoRatee');
+    let detail = '';
+    if (ok && LECON === 'freinage') detail = remplir(texte('tuto_reussie_freinage'), { t: virgule(suivi.meilleur) });
+    else if (ok && LECON === 'depart' && JEU.course && JEU.course.depart) detail = remplir(texte('tuto_reussie_depart'), { t: virgule(JEU.course.depart.reaction) });
+    else if (ok) detail = texte('tuto_' + LECON + '_but').replace('{v}', kmh());
+    else detail = remplir(texte('tuto_raison_' + suivi.raison), { t: suivi.meilleur === null ? '–' : virgule(suivi.meilleur) });
+    if (ok && TUTORIEL.LECONS.every(l => SAUVEGARDE.tutoriel().includes(l.id))) detail += ' ' + texte('tutoFini');
+    $('tutoResultatTexte').textContent = detail;
+    $('boutonTutoSuivante').classList.toggle('cache', !suite);
+    $('tutoResultat').classList.remove('cache');
+    $('tutoConsigne').classList.add('cache');
+  }
+
+  // une image (dt en s) : la mise en place, la réussite, la consigne ; renvoie l'état de la leçon (ou null hors leçon)
+  function maj(dt) {
+    if (!LECON || typeof JEU === 'undefined' || typeof CIRCUIT === 'undefined') return null;
+    if (!suivi) suivi = TUTORIEL.creerSuivi(LECON, CIRCUIT);
+    if (!prete) prete = TUTORIEL.preparer(LECON, JEU);
+    if (LECON === 'freinage') poserPlots();
+    if (!resultat && JEU.ecran !== 'pause') {
+      const ordre = LECON === 'depassement' && JEU.plateau ? classementCourse(JEU.plateau) : null;
+      const r = TUTORIEL.pas(suivi, TUTORIEL.situation(JEU, CIRCUIT, ordre), dt || 0);
+      if (r !== 'encours') {
+        resultat = r;
+        if (LECON === 'visite') restaurerCarriere();   // (avant l'étoile : elle est à la racine, à côté du championnat)
+        if (r === 'reussie') SAUVEGARDE.reussirLecon(LECON);
+        montrerResultat();
+        if (LECON !== 'visite') { BOUCLE.arreter(); if (typeof SDK !== 'undefined' && JEU.sdkPret) SDK.jeuArrete(); }   // (la course s'arrête derrière le résultat : un menu, gameplayStop)
+      }
+    }
+    montrerConsigne();
+    return resultat || 'encours';
+  }
+
+  function init() {
+    $('tutoMenuTitre').textContent = texte('tutoTitre');
+    $('tutoMenuIntro').textContent = texte('tutoIntro');
+    bouton('boutonTutoRetour', 'tutoRetour', fermerMenu);
+    for (const id of ['boutonTutorielTitre', 'boutonTutorielPause']) bouton(id, 'tutoBouton', ouvrirMenu);
+    bouton('boutonTutorielBravo', 'tutoBravo', ouvrirMenu);
+    bouton('boutonTutorielPaddock', 'tutoBouton', ouvrirMenu);   // (au paddock, dans le coin en bas à gauche : les quatre rangées de boutons sont fixées par les tests du paddock)
+    bouton('boutonTutoPasser', 'tutoPasser', () => { const s = TUTORIEL.suivante(LECON); aller(s ? adresse(s) : 'index.html' + (langue() ? '?' + langue().slice(1) : '')); });
+    bouton('boutonTutoRecommencer', 'tutoRecommencer', () => location.reload());
+    bouton('boutonTutoSuivante', 'tutoSuivante', () => { const s = TUTORIEL.suivante(LECON); if (s) aller(adresse(s)); });
+    bouton('boutonTutoListe', 'tutoListe', ouvrirMenu);
+    bouton('boutonTutoQuitter', 'tutoQuitter', () => aller('index.html' + (langue() ? '?' + langue().slice(1) : '')));
+  }
+
+  if ($('tutoMenu') && typeof BOUCLE !== 'undefined') {
+    init(); BOUCLE.surAffichage((alpha, dt) => maj(dt));
+    if (avantVisite !== null) window.addEventListener('pagehide', restaurerCarriere);   // la visite passée, quittée ou rechargée
+  }
+
+  return { lecon: () => LECON, maj, restaurerCarriere, avantVisite: () => avantVisite, ouvrirMenu, suivi: () => suivi, resultat: () => resultat, adresse };
 })();

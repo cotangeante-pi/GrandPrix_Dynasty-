@@ -29,12 +29,14 @@ jobs:
           - { nom: stands, partie: stands }
           - { nom: consignes, partie: consignes }
           - { nom: officiels, partie: officiels }
+          - { nom: meteo, partie: meteo }
           - { nom: ecrans-1, partie: ecrans, tranche: 1/4 }
           - { nom: ecrans-2, partie: ecrans, tranche: 2/4 }
           - { nom: ecrans-3, partie: ecrans, tranche: 3/4 }
           - { nom: ecrans-4, partie: ecrans, tranche: 4/4 }
           - { nom: annexes, partie: annexes }
           - { nom: paquet, partie: paquet }
+          - { nom: saison, partie: saison }   # la carrière entière jouée par le robot (tests/saison.py, Codeur 4)
     steps:
       - uses: actions/checkout@v4
 

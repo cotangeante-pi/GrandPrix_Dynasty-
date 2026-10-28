@@ -12,6 +12,7 @@ const REGLAGES = {
   FENETRE_RECHERCHE: 8,         // positionSurPiste cherche à ±8 échantillons (±16 m) de l'indice connu ; une voiture fait < 1 m par pas
   // positionSurPiste repart d'une recherche complète si le point est à plus de ce nombre de largeurs de piste du centre
   ECART_RECHERCHE_COMPLETE: 1.5,
+  CROISEMENT_ZONE: 200,         // m : le croisement (le pont de Suzuko, circuit.croisement) : à moins de ça de ses deux passages, deux voitures sont l'une sur le pont, l'autre dessous
 
   // la voiture (une F1 ; le joueur et les IA ont exactement les mêmes chiffres)
   MASSE: 800,                   // kg, pilote compris
@@ -331,6 +332,27 @@ const REGLAGES = {
   ],
   PISTE_GRIS_ECART_MAX: 16,     // tests d'écran : un pixel de piste est gris (ses trois composantes à moins de cet écart), l'herbe est verte
   AIDE_CLIGNOTE_APRES: 3,       // s : sur la grille, sans aucune touche pendant ce temps, l'aide « ↑ » clignote
+  // --- les aides au premier usage (aides.js, étape 11b, Codeur 4) : une bulle courte la première fois qu'on rencontre chaque système
+  AIDES_ACTIVES: true,          // faux : aucune aide ne s'affiche (le réglage pour les couper toutes)
+  AIDES_DUREE_COURSE: 7,        // s : en course, une aide se ferme d'elle-même après ce temps affiché (elle compte alors comme vue)
+  AIDES_VUE_APRES: 0.6,         // s : une aide dont le moment passe (on quitte l'écran, la consigne se termine) n'est vue que si elle a été affichée au moins ce temps
+  AIDES_ARRET_VITESSE: 1,       // m/s : en dessous, la voiture est à l'arrêt (une aide de course peut s'afficher même dans un virage)
+  AIDES_DROITE_DEVANT: 140,     // m : en course, une aide ne s'affiche que si la piste reste droite sur cette distance devant la voiture…
+  AIDES_COURBURE_MAX: 1 / 600,  // … c'est-à-dire si sa courbure n'y dépasse jamais ça (1/m : un rayon de 600 m au moins)
+  AIDES_FREIN_MAX: 0.05,        // et jamais pendant un freinage (frein de la voiture au-dessus de ça)…
+  AIDES_DIRECTION_MAX: 0.3,     // … ni volant tourné (|direction| au-dessus de ça)
+  AIDES_PLUIE_EAU: 0.2,         // l'aide de la pluie : dès que la piste a au moins ce niveau d'eau (ou qu'il pleut autant)
+  // --- le tutoriel guidé (tutoriel.js, étape 11d, Codeur 4) : 7 leçons courtes sur le circuit d'essai, proposées, jamais imposées
+  TUTO_TEMPS_MAX: 240,          // s : une leçon de course pas réussie dans ce temps est ratée (« échoue si l'on ne fait rien »)
+  TUTO_ZONE_AVANT: 90,          // m : la leçon du freinage : les plots du point de freinage, avant le virage le plus serré…
+  TUTO_ZONE_APRES: 30,          // … et la fin de la zone chronométrée, après sa sortie
+  TUTO_ZONE_OBJECTIF: 9,        // s : le temps à battre dans la zone (sans sortir) ; mesuré avec le robot d'essai (tests/ecrans.py)
+  TUTO_ZONE_ESSAIS: 3,          // passages dans la zone avant que la leçon soit ratée
+  TUTO_DEPART_ATTENTE: 3,       // s : la leçon du départ est ratée si on n'est pas parti ce temps après l'extinction des feux
+  TUTO_DEVANT_DUREE: 2,         // s : la leçon du dépassement est réussie quand on est devant l'IA depuis ce temps
+  TUTO_IA_RYTHME: 0.8,          // le rythme de l'IA lente de la leçon du dépassement (part de la vitesse que sa carte permet)
+  TUTO_PLOTS_COULEUR: 0xff7a1a, // les plots de la leçon du freinage
+  TUTO_PLUIE_EAU: 0.2,          // la leçon de la pluie : la piste compte comme mouillée à partir de ce niveau d'eau
   // le casque du pilote (casque.js) : un motif et trois couleurs ; les rivaux tirent le leur avec la graine du championnat
   CASQUE_MOTIFS: ['uni', 'bandes', 'etoile', 'flammes', 'damier', 'eclair'],
   // les motifs à débloquer par des exploits de carrière (casque.js : conditions) ; jamais de la vitesse, seulement un dessin ; gardés à
@@ -374,6 +396,29 @@ const REGLAGES = {
   PUBLIC_DOMICILE_PART: 0.4,
   PUBLIC_BANDEROLES: 6,         // les banderoles à domicile (« ALLEZ 27 ! » et le nom du joueur, une sur deux)
   GRAINE_PUBLIC: 14000,         // le public est tiré avec la graine du championnat + ce nombre + le numéro du circuit (une suite à part)
+  // les discussions avec les pilotes (discussion.js, parle.js, étape 12b) : de petits effets, tous plafonnés, jamais de triche
+  DISCUSSION_RELATION_MAX: 50,      // la relation d'un pilote avec le joueur va de −50 à +50 (0 au départ)…
+  DISCUSSION_PAS: 8,                // … et ne bouge jamais de plus de ça en un message
+  DISCUSSION_AMI: 20,               // au-dessus : il te parle comme à un ami ; …
+  DISCUSSION_ENNEMI: 15,            // … sous −15 : comme à quelqu'un qu'il n'aime pas
+  DISCUSSION_FOUGUEUX: 0.6,         // une agressivité (0 à 1) d'au moins ça : il riposte aux insultes et aux menaces (une rivalité)
+  DISCUSSION_RANCUNE: 0.8,          // une agressivité d'au moins ça : il refuse les excuses tout de suite après un contact
+  DISCUSSION_RIVALITE_COURSES: 2,   // une rivalité née d'une discussion dure ce nombre de courses (comme l'interview : INTERVIEW_RIVALITE_COURSES)
+  DISCUSSION_CONFIANCE: 2,          // insulter son coéquipier : la confiance de l'écurie baisse de ça au plus
+  DISCUSSION_SEUIL_PASSER: 0.6,     // « laisse-moi passer » : accepté si sa note (relation, prudence, coéquipier, promesse) atteint ça
+  DISCUSSION_POIDS_PROMESSE: 0.4,   // … et « je te rendrai la pareille » ajoute ça à la note
+  DISCUSSION_PAR_GP: 8,             // au plus ce nombre de messages à un même pilote par Grand Prix (ensuite il est occupé)
+  DISCUSSION_MEMOIRE: 12,           // il se souvient des 12 derniers messages (compact : l'acte, la saison, le Grand Prix)
+  DISCUSSION_MENACE_COURSES: 2,     // une menace sans suite pendant ce nombre de courses : du crédit perdu (il te le dira)…
+  DISCUSSION_CREDIT_MAX: 3,         // … au plus ce nombre de fois
+  GRAINE_DISCUSSION: 15000,         // les variantes des réponses : la graine du championnat + ce nombre (une suite à part, ALEATOIRE.suite)
+  // le courrier des pilotes (courrier-pilotes.js) : ils écrivent d'eux-mêmes après les faits
+  COURRIER_PAR_GP: 3,               // au plus 3 messages par Grand Prix (les plus urgents)
+  COURRIER_OUBLI: 4,                // un même sujet ne revient pas chez le même pilote avant 4 Grands Prix
+  COURRIER_MAX: 20,                 // la boîte garde les 20 derniers messages
+  COURRIER_DUEL_NET: 3,             // ton coéquipier t'écrit quand le duel de la saison penche d'au moins ça
+  COURRIER_LEADER_DES: 3,           // le leader du championnat te nargue à partir du 3e Grand Prix
+  COURRIER_AGE_VIEUX: 36,           // un pilote de cet âge (AGE_RETRAITE) qui t'aime bien t'écrit un mot, une fois
   // les décors des 12 circuits (decors-officiels.js) : rien à moins de cette distance du bord de la voie des stands (m), sauf le bâtiment
   // des stands lui-même, qui reste derrière la voie ; le reste du décor est au-delà de la barrière (DISTANCE_BARRIERE)
   DECOR_MARGE_STANDS: 2,
@@ -580,6 +625,37 @@ const REGLAGES = {
   CONSIGNE_CONFIANCE: 5,        // le joueur suit la consigne : la confiance de l'écurie (la jauge « écurie ») monte de ça ; il l'ignore : elle baisse de ça
   CONSIGNE_PERIODE: 0.5,        // s : l'écurie regarde la course à ce rythme
   GRAINE_CONSIGNES: 13000,
+  // la météo (étape 12, meteo.js ; tour 33) : par lieu, la chance qu'il pleuve au départ (pluie), celle d'un changement pendant la course
+  // (change : une averse, ou la pluie qui s'arrête), l'intensité de la pluie ; un lieu absent (les circuits d'essai) : toujours sec
+  METEO_LIEUX: {
+    bahrayn: { pluie: 0.02, change: 0.03, intensite: [0.3, 0.6] }, melbourn: { pluie: 0.15, change: 0.2, intensite: [0.4, 0.8] },
+    suzuko: { pluie: 0.25, change: 0.25, intensite: [0.4, 0.9] }, montreol: { pluie: 0.2, change: 0.25, intensite: [0.4, 0.9] },
+    monoco: { pluie: 0.15, change: 0.2, intensite: [0.4, 0.8] }, barcelana: { pluie: 0.1, change: 0.15, intensite: [0.3, 0.7] },
+    silverstoun: { pluie: 0.3, change: 0.3, intensite: [0.4, 0.9] }, spaa: { pluie: 0.4, change: 0.35, intensite: [0.5, 1] },
+    monzo: { pluie: 0.15, change: 0.2, intensite: [0.4, 0.8] }, singapura: { pluie: 0.25, change: 0.35, intensite: [0.6, 1] },
+    interlagas: { pluie: 0.35, change: 0.35, intensite: [0.5, 1] }, yasmarino: { pluie: 0.02, change: 0.03, intensite: [0.3, 0.6] },
+  },
+  METEO_ACTIVE: true,           // la météo dans les courses de la page (principal.js) ; faux : toujours sec
+  METEO_VITESSE_MOYENNE: 50,    // m/s : pour estimer la durée d'une course (le moment d'un changement de temps)
+  GRAINE_METEO: 14000,          // la météo d'une course : la graine du Grand Prix + ce nombre
+  METEO_CHANGE_PART: [0.25, 0.7],   // un changement arrive entre ces parts de la durée estimée de la course
+  METEO_RISQUE: 30,             // % : à partir de ça, la prévision dit « risque de pluie » (en dessous, « nuageux » ; 0 : « sec »)
+  METEO_EAU_DEPART: 0.7,        // l'eau sur la piste quand il pleut déjà au départ
+  METEO_MONTEE: 0.02,           // par seconde, sous une pluie d'intensité 1 (50 s pour une piste détrempée)
+  METEO_BAISSE: 0.006,          // par seconde, sans pluie (près de 3 minutes pour sécher)
+  METEO_SECHE_LIGNE: 0.01,      // par seconde sans pluie : la trajectoire sèche plus vite (jusqu'à 1)…
+  METEO_LIGNE_SECHE: 0.6,       // … jusqu'à ça d'eau en moins sur elle…
+  METEO_LIGNE: 2.5,             // m : … à moins de ça de la ligne idéale de la carte
+  METEO_GERBE: 0.6,             // la gerbe d'eau : l'aspiration × (1 − ça × l'eau)
+  METEO_ANTICIPE: 0.15,
+  METEO_ARRET_TOURS: 2,
+  METEO_COURSES_DIFFERENTES: 15,  // tests/meteo.html : sur 30 courses avec une averse, l'ordre d'arrivée diffère du sec dans au moins ce nombre (la moitié ; 20 au premier essai, jamais passé : 17)         // une IA ne change de pneus qu'au moins ce nombre de tours après son arrêt précédent         // le choix des pneus regarde ça d'eau en plus (sous la pluie) ou en moins (sans elle), × (0,5 + prudence)
+  // les pneus selon l'eau, aux niveaux 0 ; 0,5 ; 1 : l'adhérence (le slick au sec = 1, la voiture d'aujourd'hui) et l'usure (× l'usure normale)
+  METEO_PNEUS: {
+    slick: { adherence: [1, 0.72, 0.5], usure: [1, 1, 1] },
+    inter: { adherence: [0.95, 0.88, 0.7], usure: [2.5, 1, 1] },
+    pluie: { adherence: [0.9, 0.84, 0.8], usure: [4, 1.5, 1] },
+  },
   IA_FREIN_PREVU: 0.6,          // s : derrière une voiture qui freine, il prévoit sa vitesse dans ce temps (sa décélération vue × ça)
   IA_DISTANCE_SUIVI: 14,        // m : la distance où elle se cale derrière
   IA_DEPART_LANCEMENT: 100,     // m : au départ, sur cette distance, elle suit à IA_DISTANCE_MIN (tout le monde part ensemble)
@@ -707,6 +783,8 @@ const REGLAGES = {
   COULEUR_ROUTE_MOUILLEE: 0x24262b, ROUTE_MOUILLEE_REFLET: 0.35, ROUTE_MOUILLEE_BRILLANCE: 40,
   CIEL_COUVERT: 0x9aa2ab, CIEL_COUVERT_COUPOLE: 0x8e959d, CIEL_COUVERT_PART: 0.85, CIEL_COUVERT_CLARTE: 1.4, CIEL_COUVERT_AMBIANCE: 0.25, CIEL_COUVERT_SOLEIL: 0.6,
   METEO_ICONE_PLUIE: 0.1, METEO_ICONE_NUAGES: 0.3, GOUTTES_OPACITE: 1.2,
+  CIEL_VOILE: 0.15,             // un ciel voilé jusque-là, sans pluie ni eau : c'est le sec (rien n'est dessiné)
+  LIGNE_SECHE_LARGEUR: 3, LIGNE_SECHE_HAUTEUR: 0.025, LIGNE_SECHE_ECART: 0.05,   // la trajectoire plus sèche : sa largeur (m), quand on la montre
   // le décor (étape 10, decor.js) : les briques, faites par le code, un InstancedMesh par type ; leur placement vient de DECORS (plus bas)
   DECOR_ACTIF: true,
   DECOR_GRAINE: 4242,           // le hasard du décor, à part (il ne tire jamais dans hasard() : la course ne change pas)
@@ -763,6 +841,10 @@ const REGLAGES = {
   COLLINE_SURFACE: 9000, DUNE_SURFACE: 2500, COLLINES_ZONE_MAX: 120,   // m² par colline (ou dune) à densité 1, et au plus par zone
   COLLINE_RAYON: [30, 70], COLLINE_PENTE: [0.25, 0.5], DUNE_RAYON: [12, 32], DUNE_PENTE: [0.15, 0.3],
   GRANDE_ROUE_RAYON: 28, GRANDE_ROUE_EMPRISE: 32, HOTEL_LONGUEUR: 110, HOTEL_EMPRISE: 57,   // m
+  HOTEL_TRAVERS: 14, DECOR_MARGE_HOTEL: 4,   // m : la demi-largeur de l'hôtel en travers de la piste ; son recul dans sa zone
+  STANDS_LONGUEUR_MIN: 100,     // m : un bâtiment des stands plus court longe toute la voie (rampes comprises)
+  TRIBUNE_PROFONDEUR_REF: 12, TRIBUNE_ECHELLE: [0.7, 1.6],   // m : une tribune de 12 m de profondeur garde ses marches ; l'échelle bornée
+  TRIBUNE_ECHELLE_LIEU: { monoco: 0.75, silverstoun: 1.2, monzo: 1.1, spaa: 0.9, suzuko: 1.05, interlagas: 1.15, montreol: 0.95, melbourn: 1, barcelana: 1.1, bahrayn: 1.3, singapura: 0.9, yasmarino: 1.25 },
   PROJECTEUR_PAS: 70, PROJECTEUR_HAUTEUR: 22, PROJECTEUR_RECUL: 3,   // m : les mâts d'éclairage la nuit (des deux côtés en alternance)
   BANDEROLE_PAS: 22, BANDEROLE_LONGUEUR: 12, BANDEROLE_HAUTEUR: 1.2, BANDEROLE_HAUTEUR_PLAQUE: 1.5,   // m : les banderoles du domicile, sur la barrière
   PNEUS_VIRAGE_LONGUEUR: 70,    // m de piles de pneus devant la barrière, au virage de chaque tribune
@@ -771,7 +853,7 @@ const REGLAGES = {
   HORIZON_RECUL: 600, HORIZON_PROFONDEUR: 500, HORIZON_NOMBRE: 70,   // le paysage au loin : un anneau d'objets au-delà du circuit
   HORIZON_COLLINE_RAYON: [180, 380], HORIZON_VILLE: [20, 60], HORIZON_TOURS: [80, 260],
   CIEL_RAYON: 6500,             // m : la coupole du ciel (dans CAMERA_LOIN)
-  NUAGES_MAX: 40, NUAGES_ETENDUE: 3500, NUAGES_HAUTEUR: [450, 800], NUAGES_OPACITE: 0.85,
+  NUAGES_MAX: 40, NUAGES_ETENDUE: 3500, NUAGES_HAUTEUR: [450, 800], NUAGES_OPACITE: 0.85, NUAGES_NUIT: 0.25,   // (la nuit, leur clarté × ça)
   // la lumière d'un lieu (scene3d.js, avec decors-officiels.js) : l'ambiance (hémisphère) et, la nuit, la lumière des projecteurs
   LIEU_AMBIANCE: 0.65, LIEU_PROJECTEURS: 0.9,
   // la nuit (Singapura) ; le soir (Bahrayn au crépuscule, Yas Marino au couchant) en prend la part NUIT_SOIR
@@ -785,7 +867,7 @@ const REGLAGES = {
   VOITURES_LOINTAINES_MAX: 32,
   VOITURES_DETAILLEES_MAX: 8,   // … et au plus ces voitures détaillées (les plus proches), les autres en forme simple
   // le pont de Suzuko (le seul croisement, scene3d.js et decor.js ; l'affichage seulement, la physique reste plate)
-  PONT_ACTIF: false,            // pas encore fini ni essayé (tour 32 : la route, le talus, le tablier, la voiture et la caméra qui montent) : coupé
+  PONT_ACTIF: true,             // le pont de Suzuko (tour 34) : la route, le talus, le tablier, la voiture et la caméra qui montent ; faux : tout à plat
   PONT_HAUTEUR: 7.5, PONT_PLAT: 40, PONT_RAMPE: 200, PONT_OUVERTURE: 34, PONT_EPAISSEUR: 1.2,   // m
   COULEUR_PONT: 0xb8bcc2, COULEUR_TALUS: 0x5d7a45, COULEUR_TERRE_PLEIN: 0x5f8a42,
   LIEU_CHAMP: 50,               // tests/lieu.html : le champ de vision de la vue d'un décor (degrés)
@@ -795,6 +877,7 @@ const REGLAGES = {
   // clic ; jamais à deux ni au tournoi ; GRILLE_DECOUVERTE : aussi à la course de découverte (le clic aux feux : au plus +3 s)
   GRILLE_DUREE: 2.5,            // s
   GRILLE_HAUTEUR: 38, GRILLE_RECUL: 18, GRILLE_VISEE: 10, GRILLE_CHAMP: 55,   // m, m, m, degrés
+  GRILLE_TRIBUNE_DUREE: 3, GRILLE_TRIBUNE_RECUL: 14, GRILLE_TRIBUNE_HAUTEUR: 4, GRILLE_TRIBUNE_VISEE: 3, GRILLE_TRIBUNE_VISEE_Y: 3,   // au Grand Prix à domicile : d'abord la tribune des supporters (s, m)
   GRILLE_DECOUVERTE: false,    // (décision du Chef, 2026-10-26 : « En piste en 10 secondes » passe avant ; au premier lancement, on roule tout de suite)
   // le résumé vidéo de la course (resume.js, étape 13) : la durée totale des moments forts rejoués, et la vitesse du rejeu
   RESUME_DUREE_MAX: 45,         // s de course au plus
@@ -811,7 +894,22 @@ const REGLAGES = {
   TELE_ESPACEMENT: 250,         // une caméra télé tous les 250 m le long de la piste
   TELE_RECUL: 8,                // à cette distance derrière la barrière (m)
   TELE_HAUTEUR: 7,
-  TELE_CADRAGE: 9,              // la voiture et ce qui l'entoure, en mètres, remplissent l'image
+  TELE_CADRAGE: 9,
+  // la réalisation télé (regie.js, CLAUDE.md « La réalisation télé ») : de vrais postes au bord de la piste, la régie, l'hélicoptère
+  TELE_POSTE_HAUTEUR: 12, TELE_POSTE_RECUL: 6,   // m : la caméra sur son mât, derrière la barrière
+  TELE_POSTE_ECART_MIN: 70,     // m : deux postes au moins à ça l'un de l'autre
+  TELE_SORTIE_STANDS: 40,       // m après la sortie des stands
+  TELE_DROITE_MIN: 300, TELE_DROITE_PAS: 260,   // m : des postes le long des lignes droites plus longues que ça, tous les tant
+  TELE_PORTEE: 330, TELE_PORTEE_BONNE: 240,     // m : un poste ne filme pas plus loin ; au-delà de la seconde, on change de plan
+  TELE_PLAN_MIN: 2.5,           // s : un plan dure au moins ça
+  TELE_PREVISION_PAS: 0.5,      // s : la régie vérifie que le poste voit la voiture tout au long du plan, à ce pas
+  TELE_VISEE: 0.6,              // m : la hauteur visée (la voiture)
+  TELE_CHAMP: [4, 50],          // degrés : le zoom le plus serré et le plus large
+  TELE_CASE: 60,                // m : la grille des obstacles (les plus grands que la moitié sont à part)
+  TELE_HELICO_HAUTEUR: [80, 150], TELE_HELICO_RECUL: 120, TELE_HELICO_COTE: 60, TELE_HELICO_DOUCEUR: 0.8, TELE_HELICO_CADRAGE: 40,
+  TELE_HELICO_DROITE: 700,
+  // le drone : la grille vue d'en haut au départ (GRILLE_*), et à l'arrivée il tourne autour de la voiture en montant
+  DRONE_ARRIVEE_DUREE: 5, DRONE_RAYON: 22, DRONE_HAUTEUR: [6, 26], DRONE_VITESSE: 0.35, DRONE_CHAMP: 50,      // m : sur une ligne droite plus longue, l'hélicoptère              // la voiture et ce qui l'entoure, en mètres, remplissent l'image
 
   PIXEL_RATIO_MAX: 1.5,         // au plus 1,5 pixel dessiné par pixel CSS (un écran Retina en demande 2)
 

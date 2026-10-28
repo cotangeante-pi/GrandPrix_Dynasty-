@@ -56,6 +56,7 @@
   <h1 id="titreNom"></h1>
   <div class="boutons"><button id="boutonJouer" tabindex="-1"></button></div>
   <div class="boutons"><button id="boutonAmis" class="petit" tabindex="-1"></button></div>
+  <div class="boutons"><button id="boutonTutorielTitre" class="petit" tabindex="-1"></button></div>   <!-- « Apprendre à piloter » (tutoriel.js, Codeur 4) : proposé, jamais imposé -->
 </section>
 <!-- « Entre amis » (titre et paddock) : le petit menu, puis l'écran avant la course à deux (deux-joueurs.js, tour 25b) -->
 <section id="amis" class="ecran cache">
@@ -128,6 +129,7 @@
   <p id="bravoArgent"></p>
   <h2 id="bravoQuestion"></h2>
   <div class="boutons"><button id="boutonCarriere" tabindex="-1"></button></div>
+  <div class="boutons"><button id="boutonTutorielBravo" class="petit" tabindex="-1"></button></div>   <!-- « D’abord apprendre » (tutoriel.js, Codeur 4) -->
 </section>
 
 <!-- la création du pilote (pilote.js) : après « Prêt pour ta carrière ? », ou au chargement d'une sauvegarde sans pilote -->
@@ -181,6 +183,7 @@
       <p id="championnatGagne"></p>
     </div>
     <div id="paddockMoi" class="tvCarte">
+      <div id="paddockMessages"><button id="boutonCourrier" class="petit" tabindex="-1"></button><button id="boutonParlerCoequipier" class="petit" tabindex="-1"></button></div>
       <p id="paddockPlace"></p>
       <p id="championnatDuel"></p>
       <p id="championnatArgent"></p>
@@ -198,6 +201,8 @@
     <div class="paddockGroupe"><span class="paddockGroupeNom" id="paddockGroupeSaison"></span><div><button id="boutonCalendrier" class="petit" tabindex="-1"></button><button id="boutonAlbum" class="petit" tabindex="-1"></button><button id="boutonArbre" class="petit" tabindex="-1"></button></div></div>
     <div class="paddockGroupe"><span class="paddockGroupeNom" id="paddockGroupeAmis"></span><div><button id="boutonAmisPaddock" class="petit" tabindex="-1"></button></div></div>
   </div>
+  <button id="boutonTutorielPaddock" class="petit coinPaddock" tabindex="-1"></button>   <!-- « Apprendre à piloter » (tutoriel.js, Codeur 4) : dans le coin en bas à gauche -->
+  <button id="boutonRevoirAides" class="petit coinPaddock" tabindex="-1"></button>   <!-- « Revoir les aides » (aides.js, Codeur 4) : dans un coin du paddock -->
 </section>
 <!-- le calendrier de la saison (Codeur 3) : les 12 Grands Prix, faits ou à venir, le prochain mis en valeur, le Grand Prix à domicile marqué -->
 <section id="calendrier" class="ecran cache">
@@ -235,7 +240,23 @@
       <p id="ficheFamille"></p>
     </div>
   </div>
-  <div class="boutons"><button id="boutonFicheRetour" tabindex="-1"></button></div>
+  <div class="boutons"><button id="boutonFicheDiscuter" tabindex="-1"></button><button id="boutonFicheRetour" tabindex="-1"></button></div>
+</section>
+<!-- le courrier des pilotes (courrier-pilotes.js, Codeur 3, étape 12b) : leurs messages, du plus récent au plus ancien ; « Répondre » ouvre la discussion -->
+<section id="courrier" class="ecran cache">
+  <h1 id="courrierTitre"></h1>
+  <ol id="courrierListe"></ol>
+  <div class="boutons"><button id="boutonCourrierRetour" tabindex="-1"></button></div>
+</section>
+<!-- les discussions (discussion.js, parle.js, Codeur 3, étape 12b) : écrire librement ou composer au clic ; il répond depuis son raisonnement -->
+<section id="discussion" class="ecran cache">
+  <div id="discussionCarte" class="tvCarte">
+    <div id="discussionEntete"><div id="discussionPortrait"></div><div><p id="discussionSurtitre" class="tvSurtitre"></p><h1 id="discussionNom"></h1><p id="discussionHumeur"></p></div></div>
+    <ol id="discussionFil"></ol>
+    <div id="discussionComposeur"><select id="discussionCible" tabindex="-1"></select></div>
+    <div id="discussionSaisie"><input id="discussionTexte" type="text" maxlength="140" autocomplete="off" spellcheck="false"><button id="boutonDiscussionEnvoyer" tabindex="-1"></button></div>
+  </div>
+  <div class="boutons"><button id="boutonDiscussionRetour" tabindex="-1"></button></div>
 </section>
 
 <!-- ?championnat=1 : la fin de saison (saisons.js, Codeur 3) : le classement final et le champion, le duel de la saison, les contrats, la retraite -->
@@ -369,12 +390,20 @@
 
 <!-- le résumé vidéo de la course (resume.js, étape 13) : la 3D rejoue les moments forts ; un bandeau dit le moment ; un clic ou Échap pour sortir -->
 <div id="annonceMotif" class="cache"></div>   <!-- « Nouveau motif : Couronne ! » (casque.js), au paddock, une fois -->
+<!-- les aides au premier usage (aides.js ; l'affichage : AIDES_ECRAN dans interface.js, Codeur 4) : la bulle d'une ou deux lignes, un clic la ferme -->
+<div id="bulleAide" class="cache" role="status"><span id="bulleAideTexte"></span><span id="bulleAideFermer" aria-hidden="true">✕</span></div>
+<!-- le tutoriel guidé (tutoriel.js ; l'affichage : TUTORIEL_ECRAN dans interface.js, Codeur 4) : la liste des leçons, la consigne pendant une leçon, le résultat -->
+<section id="tutoMenu" class="ecran cache"><h1 id="tutoMenuTitre"></h1><p id="tutoMenuIntro"></p><ol id="tutoListe"></ol><div class="boutons"><button id="boutonTutoRetour" tabindex="-1"></button></div></section>
+<div id="tutoConsigne" class="cache"><span id="tutoConsigneTitre"></span><span id="tutoConsigneTexte"></span><button id="boutonTutoPasser" class="petit" tabindex="-1"></button></div>
+<section id="tutoResultat" class="ecran cache"><h1 id="tutoResultatTitre"></h1><p id="tutoResultatTexte"></p><div class="boutons"><button id="boutonTutoRecommencer" tabindex="-1"></button><button id="boutonTutoSuivante" tabindex="-1"></button></div><div class="boutons"><button id="boutonTutoListe" class="petit" tabindex="-1"></button><button id="boutonTutoQuitter" class="petit" tabindex="-1"></button></div></section>
 <section id="grille" class="cache"><p id="grilleAide"></p></section>   <!-- avant les feux : la grille vue d'en haut, passable -->
 <section id="resume" class="cache"><div id="resumeBandeau"><span id="resumeTitre"></span><span id="resumeMoment"></span></div><p id="resumeSortir"></p></section>
 <section id="pause" class="ecran cache">
   <h1 id="pauseTitre"></h1>
   <div class="boutons"><button id="boutonReprendre" tabindex="-1"></button><button id="boutonRecommencer" tabindex="-1"></button></div>
   <div class="boutons"><button id="boutonFantomePause" class="boutonFantome" tabindex="-1"></button></div>   <!-- le fantôme affiché ou masqué (sauvegardé) -->
+  <div class="boutons"><button id="boutonRevoirAidesPause" class="petit" tabindex="-1"></button></div>   <!-- « Revoir les aides » (aides.js, Codeur 4) -->
+  <div class="boutons"><button id="boutonTutorielPause" class="petit" tabindex="-1"></button></div>   <!-- « Apprendre à piloter » (tutoriel.js, Codeur 4) -->
 </section>
 
 <!-- après une course à plusieurs : le podium (sur la 3D), puis les résultats -->
@@ -434,10 +463,11 @@
 <script src="saisons.js"></script>
 <script src="sponsors.js"></script>
 <script src="fiche.js"></script>
-<script src="interview.js"></script><script src="carriere.js"></script>
+<script src="interview.js"></script><script src="parle.js"></script><script src="discussion.js"></script><script src="courrier-pilotes.js"></script><script src="carriere.js"></script>
 <script src="sdk.js"></script>
 <script src="pneus-donnees.js"></script>
 <script src="pneus.js"></script>
+<script src="meteo.js"></script>
 <script src="enregistreur-donnees.js"></script>
 <script src="enregistreur.js"></script>
 <script src="resume.js"></script>
@@ -450,6 +480,7 @@
 <script src="meteo3d.js"></script>
 <script src="scene3d.js"></script>
 <script src="voiture3d.js"></script>
+<script src="regie.js"></script>
 <script src="camera.js"></script>
 <script src="reglages.js"></script>
 <script src="radar.js"></script>
@@ -457,6 +488,8 @@
 <script src="messages.js"></script>
 <script src="commentaire.js"></script>
 <script src="podium3d.js"></script>
+<script src="aides.js"></script>
+<script src="tutoriel.js"></script>
 <script src="interface.js"></script>
 <script src="principal.js"></script>
 </body>

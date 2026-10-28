@@ -1213,3 +1213,96 @@ body.deux.cote #boutonSon { top: auto; bottom: 12px; right: 12px; }   /* (côte 
 #resultatsTable td:nth-child(2) { font-family: var(--tv-police); }
 
 @media (prefers-reduced-motion: reduce) { #messageCourse:not(.cache) { animation: none; } }
+
+/* les discussions (Codeur 3, étape 12b) : une carte, son en-tête (portrait, nom, humeur), le fil en bulles, le composeur, la saisie */
+#discussionCarte { display: flex; flex-direction: column; gap: 8px; width: min(92vw, 760px); max-height: calc(100vh - 110px); padding: 12px 16px; text-align: left; }
+#discussionEntete { display: flex; gap: 14px; align-items: center; }
+#discussionPortrait canvas { display: block; width: 66px; height: 78px; border-radius: var(--tv-coin); }
+#discussion h1 { margin: 0; font-size: 22px; text-align: left; }
+#discussion h1::after { margin-left: 0; width: 40px; height: 3px; }
+#discussionHumeur { font-size: 13px; }
+#discussionHumeur.bonne { color: var(--tv-vert); } #discussionHumeur.tendue { color: #ff8a80; }
+#discussionFil { flex: 1; min-height: 90px; max-height: 38vh; overflow-y: auto; margin: 0; padding: 8px; list-style: none; display: flex; flex-direction: column; gap: 6px;
+  background: rgba(0, 0, 0, 0.25); border-radius: var(--tv-coin); }
+#discussionFil li { max-width: 78%; padding: 6px 10px; border-radius: 10px; font: 500 14px/1.35 var(--tv-police); }
+#discussionFil li.moi { align-self: flex-end; background: var(--tv-bleu); border-bottom-right-radius: 3px; }
+#discussionFil li.lui { align-self: flex-start; background: var(--tv-panneau-clair); border: 1px solid var(--tv-bord); border-bottom-left-radius: 3px; }
+#discussionFil li.aide { align-self: center; max-width: 100%; opacity: 0.7; font-style: italic; }
+#discussionComposeur { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+#discussionComposeur button.intention { min-width: 0; padding: 5px 9px; font-size: 12px; }
+#discussionComposeur button.intention.danger { box-shadow: inset 3px 0 0 #ff8a80, 0 2px 8px rgba(0, 0, 0, 0.35); }
+#discussionCible { padding: 4px 6px; border-radius: var(--tv-coin); border: 1px solid var(--tv-bord); background: #1d2335; color: var(--tv-texte); font: 500 12px/1.2 var(--tv-police); }
+#discussionSaisie { display: flex; gap: 8px; }
+#discussionTexte { flex: 1; min-width: 0; padding: 8px 10px; border-radius: var(--tv-coin); border: 1px solid rgba(255, 255, 255, 0.3); background: rgba(255, 255, 255, 0.08); color: var(--tv-texte);
+  font: 500 15px/1.3 var(--tv-police); user-select: text; -webkit-user-select: text; }
+#discussionSaisie button { min-width: 0; padding: 8px 16px; background: var(--tv-bouton-principal); box-shadow: none; }
+
+/* les aides au premier usage (aides.js, interface.js AIDES_ECRAN, Codeur 4) : une bulle de la chaîne télé, une ou deux lignes ;
+   en course à gauche sous la minicarte (jamais sur la piste devant la voiture), sur les écrans entre les courses en haut à gauche */
+#bulleAide { position: fixed; z-index: 21; display: flex; align-items: flex-start; gap: 10px; padding: 8px 12px; border-left: 4px solid var(--tv-rouge); border-radius: var(--tv-coin); background: var(--tv-hud); box-shadow: var(--tv-hud-ombre); color: var(--tv-texte); font: 700 13px/1.35 var(--tv-police); text-align: left; cursor: pointer; }
+#bulleAide.bulleCourse { left: 16px; top: max(36%, 226px); max-width: 290px; }   /* (sous le bandeau des stands, au-dessus du radar ; trois lignes au plus) */
+#bulleAide.bulleMenu { left: 16px; top: 8px; max-width: min(520px, 38vw); font-size: 12px; }   /* (à gauche du titre centré de l’écran) */
+#bulleAideFermer { color: var(--tv-texte-doux); font-weight: 800; }
+#bulleAide:not(.cache) { animation: tv-message var(--tv-duree-message) ease-out; }
+#boutonRevoirAides { position: fixed; right: 16px; bottom: 6px; }
+#boutonTutorielPaddock { position: fixed; left: 16px; bottom: 6px; }
+.ecran button.coinPaddock { min-width: 0; padding: 4px 12px; font-size: 12px; }
+@media (prefers-reduced-motion: reduce) { #bulleAide:not(.cache) { animation: none; } }
+
+/* le tutoriel guidé (tutoriel.js, interface.js TUTORIEL_ECRAN, Codeur 4) : la liste des leçons et le résultat par-dessus l'écran du
+   moment (le thème télé), la consigne d'une leçon à gauche en course (jamais sur la piste devant la voiture), en haut à gauche ailleurs */
+#tutoMenu, #tutoResultat { z-index: 22; background: linear-gradient(180deg, rgba(7, 9, 15, 0.97), rgba(12, 16, 27, 0.95)); }   /* (par-dessus l'écran du moment : presque opaque) */
+#tutoListe { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; width: min(720px, 92vw); }
+#tutoListe li { display: grid; grid-template-columns: 26px 1fr auto; grid-template-rows: auto auto; column-gap: 10px; align-items: center; padding: 6px 12px; border-radius: var(--tv-coin); background: var(--tv-panneau); border: 1px solid var(--tv-bord); text-align: left; }
+#tutoListe .tutoEtoile { grid-row: 1 / 3; font-size: 22px; color: var(--tv-texte-doux); }
+#tutoListe .tutoEtoile.faite { color: var(--tv-or); }
+#tutoListe .tutoNom { font-weight: 800; font-size: 14px; }
+#tutoListe .tutoBut { grid-column: 2; font-size: 12px; color: var(--tv-texte-doux); }
+#tutoListe button { grid-column: 3; grid-row: 1 / 3; }
+#tutoMenuIntro, #tutoResultatTexte { margin: 0; max-width: 620px; font-weight: 700; }
+#tutoConsigne { position: fixed; z-index: 21; left: 16px; top: max(36%, 226px); max-width: 300px; display: grid; gap: 4px; padding: 8px 12px; border-left: 4px solid var(--tv-or); border-radius: var(--tv-coin); background: var(--tv-hud); box-shadow: var(--tv-hud-ombre); color: var(--tv-texte); font: 700 13px/1.35 var(--tv-police); text-align: left; }
+#tutoConsigne.tutoMenuConsigne { top: 8px; max-width: min(560px, 56vw); }
+#tutoConsigneTitre { font-weight: 800; color: var(--tv-or); }
+#boutonTutoPasser { justify-self: start; padding: 3px 10px; border: 0; border-radius: var(--tv-coin); background: var(--tv-bouton); color: var(--tv-texte); font: 700 12px/1.3 var(--tv-police); cursor: pointer; }
+#boutonTutoPasser:hover { box-shadow: var(--tv-halo); }
+/* les pneus du départ, au garage (la météo, Codeur 1) */
+#garagePneus { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 8px 0; font-size: 14px; }
+#garagePneus .titre { width: 100%; opacity: 0.9; }
+#garagePneus button.choisi { box-shadow: 0 0 0 2px #ffd54a; }
+
+/* le courrier des pilotes (Codeur 3, étape 12b) : le bouton au paddock (dans ta carte), l'écran des messages */
+#paddockMessages { display: flex; gap: 6px; justify-content: center; }
+#paddockMoi #paddockMessages button { min-width: 0; padding: 4px 12px; font-size: 12px; }
+#paddockMoi #boutonCourrier.nouveau { background: var(--tv-bouton-principal); box-shadow: 0 2px 10px rgba(227, 36, 43, 0.35); }
+#courrierListe { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; width: min(92vw, 720px); max-height: 66vh; overflow-y: auto; }
+#courrierListe li { display: grid; grid-template-columns: 1fr auto; grid-template-areas: "de bouton" "texte bouton"; gap: 3px 12px; align-items: center; padding: 8px 12px;
+  background: var(--tv-panneau); border: 1px solid var(--tv-bord); border-radius: var(--tv-coin); text-align: left; font: 500 14px/1.35 var(--tv-police); }
+#courrierListe li.nouveau { box-shadow: inset 3px 0 0 var(--tv-rouge); }
+#courrierListe li.lu { opacity: 0.75; }
+#courrierListe li.vide { display: block; text-align: center; opacity: 0.8; }
+#courrierListe strong { grid-area: de; display: flex; align-items: center; gap: 4px; }
+#courrierListe strong em { font-style: normal; font-size: 11px; color: var(--tv-rouge); text-transform: uppercase; letter-spacing: 0.08em; }
+#courrierListe span.texte { grid-area: texte; }
+#courrierListe button { grid-area: bouton; min-width: 0; padding: 6px 12px; }
+#courrierListe .pastille { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
+
+/* le paddock en 960×600 (tour 35d, Codeur 4, vu par tests/saison.py) : en français la rangée des boutons débordait des deux côtés
+   (« Course suivante », « Arbre de la dynastie »), et après un Grand Prix (la prévision sur deux lignes, les points gagnés, le courrier)
+   le paddock dépassait en haut et en bas, les boutons du coin passaient sur « Course suivante » ; on serre, rien ne change en 1280×720 */
+@media (max-width: 1100px) {
+  #paddockBoutons { gap: 8px; }
+  #paddockBoutons button, #paddockBoutons button.petit { padding: 8px 8px; font-size: 12px; }
+  #paddockBoutons #boutonCourseSuivante { padding: 9px 12px; font-size: 14px; }
+  .paddockGroupe > div { gap: 4px; }
+}
+@media (max-height: 680px) {
+  #championnat { gap: 6px; padding: 6px 16px 30px; }
+  #paddock { gap: 8px; }
+  #paddockProchain { gap: 2px; padding: 6px 10px; }
+  #paddockProchain h1 { font-size: 18px; }
+  #prevision { margin: 0 0 2px; font-size: 14px; }
+  #paddockCarte { height: min(150px, 17vh); }
+  #paddockMoi { gap: 3px; padding: 6px 10px; }
+  #paddockMoi p { font-size: 12px; }
+  #championnat .coinPaddock { bottom: 4px; padding: 3px 10px; font-size: 11px; }
+}
