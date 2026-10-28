@@ -90,4 +90,20 @@ t('le moment nommé : « au départ » (sujet), « au tour 3 » (il ne connaît 
   const manque = cles.filter(c => !TEXTES.fr[c] || !TEXTES.en[c]);
   v(!manque.length, manque.join(', '));
 });
+t('une mémoire de course d’un Grand Prix à l’autre : un deuxième contact avec le même pilote, il rappelle le premier (son circuit) ; un dépassement d’avant aussi', () => {
+  const ch = nouveau(), k = rival(ch, 0.5);
+  gpCouru(ch); contactAvec(ch, k); DISCUSSION.apresGrandPrix(ch);
+  const premier = texte('circuit_' + ch.calendrier[0].circuit);
+  gpCouru(ch); contactAvec(ch, k); DISCUSSION.apresGrandPrix(ch);
+  const r = DISCUSSION.dire(ch, k, 'pourquoi tu m’as percuté ?');
+  v(r.raisons.includes('recidive_contact') && r.texte.includes(premier), JSON.stringify(r.raisons) + ' ' + r.texte);
+  // un dépassement à un Grand Prix d'avant : son avis s'en souvient
+  const ch2 = nouveau(), k2 = rival(ch2, 0.5);
+  gpCouru(ch2); ch2.interview.derniere = { gp: 1, saison: ch2.saison, fait: 'depassement', ton: null, rival: k2, faitsGP: { contact: null, depasse: k2 } }; DISCUSSION.apresGrandPrix(ch2);
+  gpCouru(ch2);
+  const r2 = DISCUSSION.dire(ch2, k2, 'que penses tu de moi ?');
+  v(r2.raisons.includes('souvenir_depasse') && r2.texte.includes(texte('circuit_' + ch2.calendrier[0].circuit)), JSON.stringify(r2.raisons) + ' ' + r2.texte);
+  v(ch2.pilotes[k2].memoire.courses.length === 1 && ch2.pilotes[k2].memoire.courses.length <= REGLAGES.DISCUSSION_COURSES, 'mémoire de course');
+  L.push('  (« ' + r.texte + ' »)');
+});
 ecrire();

@@ -940,6 +940,8 @@ Object.assign(TEXTES.en, {
   dis_raison_sujet_depart: ['At the start, everyone is fighting for the same gap.'], dis_raison_sujet_stands: ['In the pit lane, everyone wants to get out first.'],
   dis_raison_sujet_pluie: ['In the rain, nobody sees anything.'], dis_raison_sujet_qualif: ['In qualifying, it is everyone for themselves.'],
   dis_raison_sujet_virage: ['In that corner, there was room for one car.'], dis_raison_sujet_aspiration: ['In the slipstream, you were close. Very close.'],
+  dis_raison_recidive_contact: ['And it is not the first time: {circuit_recidive} already.', 'Again? We already touched at {circuit_recidive}.'], dis_raison_souvenir_contact: ['I have not forgotten {circuit_recidive}.'],
+  dis_raison_souvenir_depasse: ['You got me at {circuit_depasse}. I remember.'],
   dis_raison_conversation_bonne: ['Good talk.'], dis_raison_conversation_mauvaise: ['Not my favourite conversation.'], dis_raison_conversation_neutre: ['We will see on track.'],
 });
 Object.assign(TEXTES.fr, {
@@ -954,5 +956,7 @@ Object.assign(TEXTES.fr, {
   dis_raison_sujet_depart: ['Au départ, tout le monde se bat pour le même trou.'], dis_raison_sujet_stands: ['Dans la voie des stands, chacun veut sortir le premier.'],
   dis_raison_sujet_pluie: ['Sous la pluie, personne ne voit rien.'], dis_raison_sujet_qualif: ['En qualifications, c’est chacun pour soi.'],
   dis_raison_sujet_virage: ['Dans ce virage, il y avait la place pour une voiture.'], dis_raison_sujet_aspiration: ['Dans l’aspiration, tu étais près. Très près.'],
+  dis_raison_recidive_contact: ['Et ce n’est pas la première fois : déjà à {circuit_recidive}.', 'Encore ? On avait déjà eu un accrochage à {circuit_recidive}.'], dis_raison_souvenir_contact: ['Je n’ai pas oublié {circuit_recidive}.'],
+  dis_raison_souvenir_depasse: ['Ton dépassement à {circuit_depasse}, je m’en souviens.'],
   dis_raison_conversation_bonne: ['Bonne discussion.'], dis_raison_conversation_mauvaise: ['Pas ma conversation préférée.'], dis_raison_conversation_neutre: ['On verra sur la piste.'],
 });

@@ -264,6 +264,13 @@ const DISCUSSION = (function () {
       const vieux = ['SALUT', 'COMPLIMENT', 'PASSER', 'AVIS', 'ETAT', 'PAIX'].includes(a.acte) ? souvenir(ch, m, 'mauvais') : ['INSULTE', 'MENACE'].includes(a.acte) ? souvenir(ch, m, 'bon') : null;
       if (vieux) { garde(vieux.acte === 'MENACE' ? 'souvenir_menace' : vieux.acte === 'INSULTE' ? 'souvenir_insulte' : 'souvenir_gentil'); effets.souvenir = vieux; }
     }
+    // (tour 36, Codeur 3) ses souvenirs de course avec toi, d'un Grand Prix d'avant : un autre contact (« ce n'est pas la première
+    // fois »), un dépassement ; jamais le Grand Prix d'aujourd'hui (celui-là, c'est la raison contact)
+    const vieux = (m.courses || []).filter(x => !(x[1] === g.saison && x[2] === g.gp));
+    const vieuxContact = vieux.filter(x => x[0] === 'contact').pop(), vieuxDepasse = vieux.filter(x => x[0] === 'depasse').pop();
+    if (vieuxContact && dc.contact && ['CONTACT', 'RECLAMATION', 'EXCUSE', 'INSULTE', 'AVIS'].includes(a.acte)) { garde('recidive_contact'); effets.recidive = vieuxContact; }
+    else if (vieuxContact && !dc.contact && ['AVIS', 'PASSER'].includes(a.acte)) { garde('souvenir_contact'); effets.recidive = vieuxContact; }
+    if (vieuxDepasse && ['AVIS', 'COMPLIMENT', 'BLOQUER'].includes(a.acte)) { garde('souvenir_depasse'); effets.depasseAvant = vieuxDepasse; }
     return suiteConversation(ch, m, a, { reaction, raisons, effets, faits: f });
   }
 
@@ -325,6 +332,7 @@ const DISCUSSION = (function () {
       duel_moi: f.duel ? f.duel.moi : '', duel_lui: f.duel ? f.duel.lui : '', souvenir_circuit: svGp ? nomCircuit(svGp.circuit) : texte('dis_avant'),
       cible: r.effets.cible !== undefined && ch.pilotes[r.effets.cible] ? nomDe(ch.pilotes[r.effets.cible]) : '',
       // (tour 36, Codeur 3) le circuit de votre dernière conversation, le tour nommé dans la phrase
+      circuit_recidive: r.effets.recidive ? nomCircuit(r.effets.recidive[3]) : '', circuit_depasse: r.effets.depasseAvant ? nomCircuit(r.effets.depasseAvant[3]) : '',
       circuit_avant: (() => { const pc = conversation(ch, m).precedente; return pc && pc.circuit ? nomCircuit(pc.circuit) : texte('dis_avant'); })(), tour: r.tour !== undefined && r.tour !== null ? r.tour : '' };
     const anonyme = !joueur(ch).nom;
     const remplir = t => (anonyme ? sansNom(t) : t).replace(/\{(\w+)\}/g, (x, c) => vals[c] !== undefined ? vals[c] : x);
@@ -386,6 +394,17 @@ const DISCUSSION = (function () {
   // DISCUSSION_MENACE_COURSES courses fait perdre du crédit (il le dira) ; une disposition passée est oubliée
   function apresGrandPrix(ch) {
     const g = gpActuel(ch);
+    // (tour 36, Codeur 3) ce qui s'est passé en piste entre vous à ce Grand Prix (l'interview l'a relevé) : il s'en souviendra
+    const d = ch.interview && ch.interview.derniere, fg = d && d.saison === g.saison && d.gp === g.gp ? d.faitsGP : null;
+    const circuit = ch.calendrier[g.gp - 1] ? ch.calendrier[g.gp - 1].circuit : null;
+    if (fg) for (const [type, k] of [['contact', fg.contact], ['depasse', fg.depasse]]) {
+      const p = typeof k === 'number' ? ch.pilotes[k] : null;
+      if (!p || p.humain) continue;
+      const m = memoire(p);
+      if (!Array.isArray(m.courses)) m.courses = [];
+      m.courses.push([type, g.saison, g.gp, circuit]);
+      if (m.courses.length > R.DISCUSSION_COURSES) m.courses.splice(0, m.courses.length - R.DISCUSSION_COURSES);
+    }
     for (const p of ch.pilotes) {
       if (p.disposition && (p.disposition.saison !== g.saison || p.disposition.gp <= g.gp)) delete p.disposition;
       const m = p.memoire;
