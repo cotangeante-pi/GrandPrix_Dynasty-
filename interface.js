@@ -1244,9 +1244,10 @@ const INTERFACE = (function () {
       nom.maxLength = R.NOM_LONGUEUR_MAX; nom.placeholder = texte('joueur' + i); nom.value = j.nom;
       const couleurs = $('deuxCouleurs' + i);
       couleurs.textContent = '';
-      for (const c of R.DEUX_COULEURS_CHOIX) {
+      for (const [k, c] of R.DEUX_COULEURS_CHOIX.entries()) {
         const b = document.createElement('button');
         b.tabIndex = -1; b.className = 'deuxPastille'; b.dataset.couleur = String(c); b.style.background = hex(c);
+        b.setAttribute('aria-label', texte('deuxCouleur') + ' ' + (k + 1));   // (une pastille de couleur n'a pas de texte : son nom pour les lecteurs d'écran)
         b.addEventListener('mousedown', e => e.preventDefault());
         b.addEventListener('click', () => choisirCouleurDeux(i, c));
         couleurs.appendChild(b);

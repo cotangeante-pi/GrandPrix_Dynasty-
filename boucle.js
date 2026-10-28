@@ -13,6 +13,12 @@ const BOUCLE = (function () {
   let idImage = null;
   let derniereImage = null;
 
+  // (tour 37d, Codeur 4) le plafond de pas par image peut dépendre du moment : le jeu donne une fonction (relue à chaque pas) qui
+  // dit combien de pas une image peut rattraper. Pendant les feux, les voitures sont tenues sur place : rien n'empêche de rattraper le
+  // temps réel, et les feux durent alors leurs vraies secondes même si l'ordinateur dessine lentement (voir principal.js)
+  let plafond = null;
+  function reglerPlafond(f) { plafond = typeof f === 'function' ? f : null; }
+  const plafondDuPas = () => { const p = plafond ? plafond() : REGLAGES.PAS_MAX_PAR_IMAGE; return typeof p === 'number' && p > 0 ? p : REGLAGES.PAS_MAX_PAR_IMAGE; };
   function surPhysique(f) { physiques.push(f); }
   function surAffichage(f) { affichages.push(f); }
 
@@ -25,7 +31,7 @@ const BOUCLE = (function () {
   function avancer(dt) {
     accumulateur += dt;
     let n = 0;
-    while (accumulateur >= PAS - EPSILON && n < REGLAGES.PAS_MAX_PAR_IMAGE) {
+    while (accumulateur >= PAS - EPSILON && n < plafondDuPas()) {
       unPas();
       accumulateur -= PAS;
       n++;
@@ -78,7 +84,7 @@ const BOUCLE = (function () {
   document.addEventListener('visibilitychange', () => changerVisibilite(document.hidden));
 
   return {
-    surPhysique, surAffichage, avancer, simuler, demarrer, arreter, changerVisibilite,
+    surPhysique, surAffichage, avancer, simuler, demarrer, arreter, changerVisibilite, reglerPlafond,
     get nbPas() { return nbPas; },
     get tourne() { return idImage !== null; },
   };

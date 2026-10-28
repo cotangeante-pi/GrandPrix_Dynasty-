@@ -105,6 +105,7 @@ PAGES = [
     ('index.html?championnat=1&meteo=risque&test=prevision', 1280, 720, None),
     ('index.html?course=3&ia=20&circuit=test&test=commentaire', 1280, 720, None),   # le commentateur (commentaire.js) dans le bandeau télé ; capture commentaire.png
     ('index.html?course=3&ia=20&circuit=monoco&test=tele', 1280, 720, None),
+    ('index.html?course=3&ia=9&joueur=1&robot=1&circuit=test&test=sensations', 1280, 720, None),   # les sensations de conduite (tour 37) : son au premier geste, fumée, étincelles, réglage ; capture sensations.png
     ('index.html?course=3&ia=19&joueur=1&circuit=monzo&domicile=1&test=supporters', 1280, 720, None),   # le Grand Prix à domicile : la caméra de la grille longe d'abord la tribune des supporters ; capture supporters.png   # la réalisation télé (regie.js) : de vraies caméras, l'hélicoptère ; captures tele-monoco.png, tele-helico.png   # … et Monzo de jour : la luminosité de l'image, pour la comparer à la nuit   # le décor dans le vrai jeu : la course de nuit à Singapura, 20 voitures, vue télé ; capture jeu-singapura.png
     ('tests/lieu.html?circuit=monoco&vue=port', 1280, 720, None),
     ('tests/lieu.html?circuit=suzuko&vue=pont', 1280, 720, None),   # le pont de Suzuko (PONT_ACTIF) : une voiture dessus, une dessous ; capture pont-suzuko.png   # Monoco en détail : le port, les bateaux, les façades ; capture monoco.png
@@ -1240,6 +1241,44 @@ def prevision_ecran(pg, titre):
     t(f'{titre} : la météo prévue au paddock (« Météo prévue : risque de pluie (40 %) »)', vu and '40' in txt and re.search(r'(pluie|rain)', txt, re.I) is not None, txt)
     pg.screenshot(path=os.path.join(CAPTURES, 'prevision.png'))
 
+# les sensations de conduite (tour 37 : sensations.js, son.js, effets3d.js, camera.js) dans le vrai jeu : aucun son avant un
+# geste (une course entière de robot sans AudioContext), puis le son démarre au premier geste ; la fumée et les étincelles
+# coûtent un appel de dessin chacune (au plus 3 de plus en tout), aucun quand elles sont vides ; « Effets de conduite » dans le
+# menu pause (oui / non, sauvegardé) ; capture sensations.png
+def sensations_ecran(pg, titre):
+    # (les boutons par le DOM, sans geste : pg.click enverrait un pointerdown, le premier geste)
+    attendre(pg, '() => JEU.ecran === "qualif" && JEU.qualif && JEU.qualif.etat === "choix"', None, 60000)
+    pg.evaluate('() => document.getElementById("boutonQualifPasser").click()')
+    attendre(pg, '() => JEU.qualif && JEU.qualif.etat === "resultat"', None, 180000)
+    pg.evaluate('() => document.getElementById("boutonQualifCourse").click()')
+    attendre(pg, '() => JEU.ecran === "course" || JEU.ecran === "grille"', None, 10000)
+    attendre(pg, '() => JEU.plateau.carte !== null', None, 180000)
+    if pg.evaluate('() => JEU.ecran === "grille"'): pg.evaluate('() => finirGrille()')
+    pg.evaluate('() => { BOUCLE.arreter(); BOUCLE.simuler(25); BOUCLE.demarrer(); }')
+    roule = attendre(pg, '() => JEU.ecran === "course" && JEU.course && JEU.course.etat === "course" && JEU.joueur.u > 25', None, 60000)
+    pg.wait_for_timeout(1500)
+    t(f'{titre} : aucun son avant un geste du joueur : la course roule (robot), pas d’AudioContext', roule and pg.evaluate('() => !SON.actif && SON.etatContexte === "aucun"'), pg.evaluate('() => SON.etatContexte'))
+    m = pg.evaluate('''() => { BOUCLE.arreter(); const E = EFFETS3D, e = E.etat, j = JEU.joueur, F = { vibreur: 0, herbe: 1, glisse: 0, blocage: 1, contact: 1, choc: 0, vitesse: 40 };
+      const sansRien = () => { e.fumee.length = 0; e.etincelle.length = 0; E.maj([], null, 0); SCENE3D.dessiner(); return SCENE3D.appelsDessin; };
+      const vide = sansRien(); SENSATIONS.regler(false); const coupe = sansRien(); SENSATIONS.regler(true);
+      const devant = { x: j.x + Math.cos(j.cap) * 9, z: j.z + Math.sin(j.cap) * 9, cap: j.cap };   // (devant la voiture : la capture les montre)
+      E.emettre(e, j, devant, F, 0.4); E.maj([], null, 0); SCENE3D.dessiner();
+      return { vide, coupe, plein: SCENE3D.appelsDessin, fumees: E.fumees.count, etincelles: E.etincelles.count, visibles: [E.fumees.visible, E.etincelles.visible] }; }''')
+    pg.wait_for_timeout(200); pg.screenshot(path=os.path.join(CAPTURES, 'sensations.png'))
+    L.append(f"  (les effets de conduite : {m['vide']} appels de dessin sans effet, {m['plein']} avec {m['fumees']} bouffées de fumée et {m['etincelles']} étincelles)")
+    t(f'{titre} : la fumée et les étincelles : un appel de dessin chacune, au plus 3 de plus en tout ; aucun quand elles sont vides (effets coupés : la même image)',
+      m['fumees'] > 0 and m['etincelles'] > 0 and m['visibles'] == [True, True] and 0 < m['plein'] - m['vide'] <= 3 and m['coupe'] == m['vide'], str(m))
+    pg.evaluate('() => { EFFETS3D.etat.fumee.length = 0; EFFETS3D.etat.etincelle.length = 0; BOUCLE.demarrer(); }')
+    # le réglage du menu pause : oui → non (sauvegardé) → oui
+    r = pg.evaluate('''() => { const b = document.getElementById("boutonEffetsPause"), vu = [b.textContent, SENSATIONS.actif]; b.click(); vu.push(b.textContent, SENSATIONS.actif, SAUVEGARDE.option("effets", "?")); b.click(); vu.push(SENSATIONS.actif, SAUVEGARDE.option("effets", "?"));
+      return vu; }''')
+    t(f'{titre} : « Effets de conduite » se règle dans le menu pause (oui, non ; sauvegardé)', r[1] is True and r[3] is False and r[4] is False and r[5] is True and r[6] is True and r[0] != r[2], str(r))
+    # le premier geste (une touche sans rôle) : le son démarre, la course continue sans erreur
+    pg.evaluate('() => { window.__errSens = []; window.addEventListener("error", e => __errSens.push(e.message)); }')
+    t0 = pg.evaluate('() => JEU.course.temps')
+    pg.keyboard.press('KeyJ'); pg.wait_for_timeout(1500)
+    s = pg.evaluate('() => ({ actif: SON.actif, etat: SON.etatContexte, erreurs: __errSens, avance: JEU.course.temps })')
+    t(f'{titre} : au premier geste, le son démarre (moteur, pneus, vibreurs, herbe, aspiration, voisin, pluie) et la course continue sans erreur', s['actif'] and s['etat'] != 'aucun' and not s['erreurs'] and s['avance'] > t0, str(s))
 def commentaire_ecran(pg, titre):
     vu = attendre(pg, '() => /🎙/.test(document.getElementById("messageCourse").textContent) && !document.getElementById("messageCourse").classList.contains("cache")', None, 90000)
     txt = pg.evaluate('() => document.getElementById("messageCourse").textContent')
@@ -2825,6 +2864,8 @@ with sync_playwright() as p:
                 commentaire_ecran(pg, titre)
             if 'test=supporters' in page:
                 supporters_ecran(pg, titre)
+            if 'test=sensations' in page:
+                sensations_ecran(pg, titre)
             if 'test=tele' in page:
                 tele_ecran(pg, titre)
             if 'test=pluie' in page:
@@ -2875,7 +2916,7 @@ with sync_playwright() as p:
                 qualif(pg, titre)
             elif 'test=fantome' in page:
                 fantome(pg, titre)
-            elif 'joueur=1' in page and 'test=supporters' not in page:   # (la page des supporters a son propre parcours)
+            elif 'joueur=1' in page and 'test=supporters' not in page and 'test=sensations' not in page:   # (la page des supporters a son propre parcours)
                 hud(pg, titre, l)
                 if l == 1280: course_joueur(pg, titre)
             if 'camera=auto' in page:
