@@ -359,7 +359,7 @@ const DISCUSSION = (function () {
     const ouverture = cle => {
       const v = liste(cle); if (!v.length) return '';
       const i0 = Math.floor(alea() * v.length);
-      for (let n = 0; n < v.length; n++) { const t = remplir(v[(i0 + n) % v.length]); if (!recentes.some(x => x.startsWith(t.slice(0, 14)))) return t; }
+      for (let n = 0; n < v.length; n++) { const t = remplir(v[(i0 + n) % v.length]); if (!recentes.some(x => x.includes(t.slice(0, 14)))) return t; }   // (nulle part dans ses dernières réponses, pas seulement au début)
       return remplir(v[i0]);
     };
     const morceaux = [ouverture('dis_' + r.reaction)];
