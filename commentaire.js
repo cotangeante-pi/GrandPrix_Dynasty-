@@ -44,7 +44,7 @@ const COMMENTAIRE = (function () {
     const prm = (k, x) => Object.assign({ qui: k, place: n.place.get(k) ? n.place.get(k).place : null, circuit: o.circuit || '', lieu: o.lieu || '' }, x);
     if (!v) { c.vu = Object.assign(n, { depart: false, meilleur: null, dernierTour: false, vainqueur: false, pluie: false, joueurArrive: false, podium: false, arrets: [] }); return c; }
     // le départ
-    if (!v.depart && e.go !== null) { v.depart = true; pousser(c, t, 'depart', prm(n.ordre[0].k), false); }
+    if (!v.depart && e.go !== null) { v.depart = true; pousser(c, e.go, 'depart', prm(n.ordre[0].k), false); }
     // les dépassements (enregistrés par la course : qui, sur, numéros = indice + 1)
     for (let i = v.depassements; i < n.depassements; i++) {
       const d = e.depassements[i], qui = d.qui - 1, sur = d.sur - 1, pl = n.place.get(qui) ? n.place.get(qui).place : null;

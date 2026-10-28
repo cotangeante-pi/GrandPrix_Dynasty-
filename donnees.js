@@ -123,6 +123,13 @@ const REGLAGES = {
   ETINCELLE_VIE: 0.35,             // s
   COULEUR_ETINCELLE: 0xffc04a,
 
+  // la manette (manette.js, tour 38) : les mêmes cibles que le clavier, la physique ne change pas
+  MANETTE_ZONE_STICK: 0.15,        // la zone morte du stick (0 à 1)…
+  MANETTE_ZONE_GACHETTE: 0.05,     // … et des gâchettes
+  MANETTE_SEUIL_BOUTON: 0.5,       // un bouton compte comme enfoncé au-delà
+  MANETTE_SEUIL_MENU: 0.6,         // le stick au-delà de ça choisit le bouton voisin dans les menus…
+  MANETTE_REPETITION: [0.4, 0.15], // … et, tenu, il répète après 0,4 s, puis toutes les 0,15 s
+
   // la course seule (étape 3)
   LONGUEURS_COURSE: { tresCourte: 5, moyenne: 12, longue: 18 },   // nombre de tours ; 0 = essai libre
   COMPTE_A_REBOURS: 3,          // s : 3, 2, 1, GO (les vrais feux viendront à l'étape 5)

@@ -105,7 +105,9 @@ PAGES = [
     ('index.html?championnat=1&meteo=risque&test=prevision', 1280, 720, None),
     ('index.html?course=3&ia=20&circuit=test&test=commentaire', 1280, 720, None),   # le commentateur (commentaire.js) dans le bandeau télé ; capture commentaire.png
     ('index.html?course=3&ia=20&circuit=monoco&test=tele', 1280, 720, None),
-    ('index.html?course=3&ia=9&joueur=1&robot=1&circuit=test&test=sensations', 1280, 720, None),   # les sensations de conduite (tour 37) : son au premier geste, fumée, étincelles, réglage ; capture sensations.png
+    ('index.html?course=3&ia=9&joueur=1&robot=1&circuit=test&test=sensations', 1280, 720, None),
+    ('index.html?course=3&circuit=test&test=manette', 1280, 720, None),   # la manette (tour 38) : une fausse manette conduit un tour, la pause, le menu au stick et à la croix
+    ('index.html?deux=1&ia=0&circuit=test&test=manette-deux', 1280, 720, None),   # … deux manettes, une par joueur   # les sensations de conduite (tour 37) : son au premier geste, fumée, étincelles, réglage ; capture sensations.png
     ('index.html?course=3&ia=19&joueur=1&circuit=monzo&domicile=1&test=supporters', 1280, 720, None),   # le Grand Prix à domicile : la caméra de la grille longe d'abord la tribune des supporters ; capture supporters.png   # la réalisation télé (regie.js) : de vraies caméras, l'hélicoptère ; captures tele-monoco.png, tele-helico.png   # … et Monzo de jour : la luminosité de l'image, pour la comparer à la nuit   # le décor dans le vrai jeu : la course de nuit à Singapura, 20 voitures, vue télé ; capture jeu-singapura.png
     ('tests/lieu.html?circuit=monoco&vue=port', 1280, 720, None),
     ('tests/lieu.html?circuit=suzuko&vue=pont', 1280, 720, None),   # le pont de Suzuko (PONT_ACTIF) : une voiture dessus, une dessous ; capture pont-suzuko.png   # Monoco en détail : le port, les bateaux, les façades ; capture monoco.png
@@ -1279,6 +1281,56 @@ def sensations_ecran(pg, titre):
     pg.keyboard.press('KeyJ'); pg.wait_for_timeout(1500)
     s = pg.evaluate('() => ({ actif: SON.actif, etat: SON.etatContexte, erreurs: __errSens, avance: JEU.course.temps })')
     t(f'{titre} : au premier geste, le son démarre (moteur, pneus, vibreurs, herbe, aspiration, voisin, pluie) et la course continue sans erreur', s['actif'] and s['etat'] != 'aucun' and not s['erreurs'] and s['avance'] > t0, str(s))
+# la manette (manette.js, tour 38) : de fausses manettes (navigator.getGamepads remplacé avant le chargement, ?test=manette…) ;
+# window.__pads : la liste ; __padFixer(k, nom, valeur) appuie (1) ou relâche (0) un bouton, ou pose un axe ('axe0')
+FAUSSES_MANETTES = """(() => { const pad = i => ({ index: i, id: 'fausse manette ' + i, connected: true, mapping: 'standard', axes: [0, 0, 0, 0], buttons: Array.from({ length: 17 }, () => ({ value: 0, pressed: false })) });
+  window.__pads = [pad(0)]; if (/test=manette-deux/.test(location.search)) window.__pads.push(pad(1));
+  navigator.getGamepads = () => window.__pads;
+  window.__padFixer = (k, nom, x) => { const p = window.__pads[k]; if (nom.startsWith('axe')) p.axes[+nom.slice(3)] = x; else p.buttons[MANETTE.BOUTONS[nom]] = { value: x, pressed: x > 0.5 }; }; })();"""
+def manette_appui(pg, k, nom):
+    # un appui franc : enfoncé pendant quelques images, puis relâché (la manette est lue à chaque image)
+    pg.evaluate('([k, n]) => __padFixer(k, n, 1)', [k, nom]); pg.wait_for_timeout(350)
+    pg.evaluate('([k, n]) => __padFixer(k, n, 0)', [k, nom]); pg.wait_for_timeout(350)
+# une course seule : la fausse manette conduit un tour entier (gâchettes et stick posés chaque image d'après le robot d'essai,
+# en analogique, la zone morte compensée) ; Start ouvre la pause, la croix choisit un bouton (un halo), A le valide, B reprend
+def manette_ecran(pg, titre):
+    pg.evaluate('''() => { const Z = REGLAGES.MANETTE_ZONE_STICK, ZG = REGLAGES.MANETTE_ZONE_GACHETTE, avant = z => x => x <= 0 ? 0 : z + x * (1 - z);
+      BOUCLE.surAffichage(() => { if (!window.__conduire) return; const c = piloteRobot(JEU.joueur, CIRCUIT), d = c.direction;
+        __padFixer(0, 'gachetteD', avant(ZG)(c.gaz)); __padFixer(0, 'gachetteG', avant(ZG)(c.frein)); __padFixer(0, 'axe0', Math.sign(d) * avant(Z)(Math.abs(d))); });
+      window.__conduire = true; }''')
+    fini = attendre(pg, '() => JEU.course && JEU.course.tours.length >= 1', None, 240000)
+    r = pg.evaluate('() => ({ tours: JEU.course.tours.map(x => x.temps), coupes: JEU.course.tours.filter(x => x.coupe).length, robot: !!JEU.robot })')
+    L.append(f"  (la fausse manette : un tour en {r['tours'][0] if r['tours'] else '—'} s)")
+    t(f'{titre} : une fausse manette conduit un tour entier (gâchettes et stick en analogique), sans robot ni clavier', fini and not r['robot'], str(r))
+    pg.evaluate('() => { window.__conduire = false; for (const n of ["gachetteD", "gachetteG", "axe0"]) __padFixer(0, n, 0); }'); pg.wait_for_timeout(300)
+    manette_appui(pg, 0, 'start')
+    t(f'{titre} : Start ouvre la pause', pg.evaluate('() => JEU.ecran') == 'pause', pg.evaluate('() => JEU.ecran'))
+    # la croix choisit les boutons du menu pause, jusqu'à « Effets de conduite » ; A le change ; B reprend la course
+    vus = []
+    for _ in range(12):
+        ch = pg.evaluate('() => { const b = document.querySelector("button.manette-choix"); return b ? b.id : null; }')
+        vus.append(ch)
+        if ch == 'boutonEffetsPause': break
+        manette_appui(pg, 0, 'droite' if ch == 'boutonCommentairePause' else 'bas')
+    avant = pg.evaluate('() => SENSATIONS.actif')
+    manette_appui(pg, 0, 'a')
+    apres = pg.evaluate('() => [SENSATIONS.actif, document.querySelectorAll("button.manette-choix").length]')
+    t(f'{titre} : dans le menu pause, la croix choisit un bouton (un halo, un seul à la fois) et A le valide (« Effets de conduite » changé)', 'boutonEffetsPause' in vus and apres[0] == (not avant) and apres[1] == 1, str([vus, avant, apres]))
+    manette_appui(pg, 0, 'a'); manette_appui(pg, 0, 'b')
+    t(f'{titre} : B quitte la pause, la course reprend ; le halo disparaît en conduite', pg.evaluate('() => JEU.ecran === "course" && SENSATIONS.actif && !document.querySelector("button.manette-choix")'), pg.evaluate('() => [JEU.ecran, SENSATIONS.actif]'))
+    # Y change la caméra, A remet sur la piste
+    c0 = pg.evaluate('() => CAMERA.mode'); manette_appui(pg, 0, 'y')
+    t(f'{titre} : Y change la caméra', pg.evaluate('() => CAMERA.mode') != c0, c0)
+# le mode 2 joueurs : deux fausses manettes, une par joueur ; la gâchette de l'une ne fait rouler que sa voiture
+def manette_deux(pg, titre):
+    pret = attendre(pg, '() => JEU.deux && JEU.plateau && JEU.plateau.carte !== null && DEUX_JOUEURS.joueurs(JEU.plateau).every(p => p.course.depart && p.course.depart.extinction !== null)', None, 240000)
+    # (sans gaz tenu pendant les feux, le départ est « calé » : la voiture part lentement)
+    pg.evaluate('() => __padFixer(0, "gachetteD", 1)'); pg.wait_for_timeout(3000)
+    a = pg.evaluate('() => { const [j1, j2] = DEUX_JOUEURS.joueurs(JEU.plateau); return { u1: j1.v.u, u2: j2.v.u, g1: JEU.deuxCommandes[1].cibles.gaz, g2: JEU.deuxCommandes[2].cibles.gaz }; }')
+    pg.evaluate('() => __padFixer(1, "gachetteD", 1)'); pg.wait_for_timeout(3000)
+    b = pg.evaluate('() => { const [j1, j2] = DEUX_JOUEURS.joueurs(JEU.plateau); return { u1: j1.v.u, u2: j2.v.u, g2: JEU.deuxCommandes[2].cibles.gaz }; }')
+    t(f'{titre} : deux joueurs, une manette chacun : la gâchette de la 1re ne fait rouler que le joueur 1, celle de la 2e le joueur 2',
+      pret and a['g1'] == 1 and a['g2'] == 0 and a['u1'] > 1 and a['u2'] == 0 and b['g2'] == 1 and b['u2'] > 1, str([a, b]))
 def commentaire_ecran(pg, titre):
     vu = attendre(pg, '() => /🎙/.test(document.getElementById("messageCourse").textContent) && !document.getElementById("messageCourse").classList.contains("cache")', None, 90000)
     txt = pg.evaluate('() => document.getElementById("messageCourse").textContent')
@@ -2804,6 +2856,7 @@ with sync_playwright() as p:
             pg.on('requestfailed', lambda r: console.append('FICHIER MANQUANT ' + r.url))
             if 'test=sdk' in page or 'test=decouverte' in page or 'test=amis' in page or 'test=tournoi' in page: pg.add_init_script(FAUX_SDK)
             # la météo dessinée (meteo3d.js) : une fausse météo de test (window.METEO_TEST, jamais dans le jeu), ?meteo=pluie ou ?meteo=risque
+            if 'test=manette' in page: pg.add_init_script(FAUSSES_MANETTES)   # la manette (tour 38) : de fausses manettes
             if 'meteo=pluie' in page: pg.add_init_script('window.METEO_TEST = { etat: () => ({ pluie: 0.85, eau: 0.75, eauTrajectoire: 0.35, ciel: 0.9 }), prevision: () => ({ type: "pluie", risque: 90 }) };')
             if 'meteo=risque' in page: pg.add_init_script('window.METEO_TEST = { etat: () => ({ pluie: 0, eau: 0, ciel: 0 }), prevision: () => ({ type: "risque", risque: 40 }) };')
             # le tournoi change de page entre deux manches : les pubs sont aussi comptées dans sessionStorage (qui survit au rechargement)
@@ -2866,6 +2919,10 @@ with sync_playwright() as p:
                 supporters_ecran(pg, titre)
             if 'test=sensations' in page:
                 sensations_ecran(pg, titre)
+            if 'test=manette-deux' in page:
+                manette_deux(pg, titre)
+            elif 'test=manette' in page:
+                manette_ecran(pg, titre)
             if 'test=tele' in page:
                 tele_ecran(pg, titre)
             if 'test=pluie' in page:
