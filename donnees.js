@@ -432,7 +432,7 @@ const REGLAGES = {
 
   // l'IA (étape 4) : la trajectoire idéale et la vitesse conseillée sont calculées une fois par circuit (ia.js)
   CALCUL_TRANCHE_MS: 20,        // ms : dans la page, le calcul de la trajectoire est découpé en tranches de cette durée
-  IA_MARGE_BORD: 0.5,           // m : la trajectoire reste à cette distance du bord de la piste (tour 33 : 1,5 avant ; la carte passe au plus près, le style de chaque pilote l'éloigne du bord, IA_STYLE_MARGE_BORD)
+  IA_MARGE_BORD: 1.5,           // m : la trajectoire reste à cette distance du bord de la piste
   IA_LISSAGE_PASSES: [[24, 60], [12, 60], [6, 60], [3, 60], [1, 60]],   // [écart entre voisins (échantillons), nombre de passes]
   IA_LISSAGE_FORCE: 0.5,        // à chaque passe, un point fait cette part du chemin vers la courbure moyenne de ses voisins
   IA_PLATEAU_PASSES: [[24, 40], [12, 40], [6, 40], [3, 40], [1, 40]],   // puis l'aplatissement du pic de chaque virage : [voisins à ±k, passes]
@@ -456,7 +456,7 @@ const REGLAGES = {
   IA_TRANSITION_MIN: 20,        // m : de là où il est jusqu'à la ligne voulue, au moins cette distance…
   IA_TRANSITION_TEMPS: 0.7,     // s : … ou la distance parcourue en ce temps
   IA_ECART_REPLANIF: 1.5,       // m : une nouvelle ligne part de l'ancienne (là où il en est), sauf s'il en est plus loin que ça
-  IA_MARGE_BORD_MIN: 0.2,       // m : aucune ligne ne passe plus près du bord (tour 33 : 1 avant)
+  IA_MARGE_BORD_MIN: 1,         // m : aucune ligne ne passe plus près du bord (le niveau peut l'abaisser pour ses pilotes : NIVEAUX[…].bordMin)
   IA_DECALAGE_CANDIDAT: 2,      // m : les lignes « intérieur » et « extérieur » sont décalées d'autant
   IA_CONTINUER: [60, 140],      // m : la ligne « continuer » garde sa place jusque-là, puis rejoint sa ligne rapide
   IA_VIRAGE_COURBURE: 1 / 300,  // la carte : un virage a un sommet plus serré que ça…
@@ -541,6 +541,28 @@ const REGLAGES = {
   IA_STYLE_CORDE: [0, 2.5],     // m de largeur de piste qu'il n'utilise pas près des virages (0 = il va d'un bord à l'autre)
   IA_STYLE_MARGE_BORD: [1.1, 2],// m : marge au bord (petite = prend des risques)
   IA_STYLE_FREIN: [0.92, 1],    // part du freinage qu'il ose
+  // ses techniques selon le virage (tour 33, ia.js typerVirages et techniquesPilote) : le type de chaque virage, puis pour chaque type le
+  // point de corde (apex, m : > 0 = plus tard) et la place (interieur, m : > 0 = vers l'intérieur), × son goût pour la technique
+  IA_TECHNIQUES_ACTIVES: true,
+  IA_TECHNIQUES: {
+    courbure: 1 / 150,          // la partie d'un virage qui tourne : plus serré que ça autour du sommet…
+    portee: 150,                // m : … cherchée à ± ça au plus
+    enchainement: 90,           // m : le virage suivant, de l'autre côté, à moins de ça : un enchaînement (S, chicane)
+    droite: 300,                // m de ligne droite après lui : « avant une longue ligne droite »
+    rayonRapide: 100,           // m : plus large que ça : un virage rapide (pas de technique, la carte telle quelle)
+    rayonEpingle: 30,           // m : plus serré que ça : une épingle (court)
+    longueurCourt: 50,          // m : plus court que ça : un virage court
+    longueurLong: 120,          // m : plus long que ça : un long virage
+    types: {                    // pour chaque type : { apex (m), interieur (m) }
+      court: { apex: 2, interieur: 0 },          // entrer par l'extérieur, couper à la corde tard, ressortir large
+      long: { apex: 0, interieur: 0.5 },         // rester près de l'intérieur
+      enchainement: { apex: 0, interieur: 0.5 }, // le premier virage d'un S : le sacrifier (< 0, vers l'extérieur) coûtait du temps (tour 33 : test +0,3 s en légende) ; un peu plus à la corde, il en gagne
+      avantDroite: { apex: 1, interieur: 0 },    // soigner la sortie : corde tardive
+      moyen: { apex: 0, interieur: 0 },
+      rapide: { apex: 0, interieur: 0 },
+    },
+  },
+  IA_STYLE_TECHNIQUE: [0.5, 1.5], // son goût pour la technique (× les décalages ci-dessus), tiré avec GRAINE_TECHNIQUE
   IA_VARIATION_APEX: 2,         // m : d'un tour à l'autre, le point de corde varie de ±2 m…
   IA_VARIATION_COTE: 0.4,       // m : … et sa place sur la piste de ±0,4 m
   IA_RYTHME: [0.94, 1],         // le rythme de chaque IA (part de la vitesse conseillée), tiré entre ces deux nombres
@@ -552,8 +574,8 @@ const REGLAGES = {
   NIVEAUX: {
     debutant: { rythme: -0.05, erreurs: 2, agressivite: -0.3, regularite: 1.5, gestionPneus: -0.2 },
     normal: { rythme: 0, erreurs: 1, agressivite: 0, regularite: 1, gestionPneus: 0 },
-    expert: { rythme: 0, erreurs: 0.5, agressivite: 0.2, regularite: 0.7, gestionPneus: 0.1, corde: 0.5, marge: -0.7, limite: 1.01, penaliteFrein: 0.5, precision: 0.6 },
-    legende: { rythme: 0, erreurs: 0.25, agressivite: 0.4, regularite: 0.5, gestionPneus: 0.2, corde: 0, marge: -1.4, limite: 1.02, penaliteFrein: 0, precision: 0.3 },
+    expert: { rythme: 0, erreurs: 0.5, agressivite: 0.2, regularite: 0.7, gestionPneus: 0.1, corde: 0.5, marge: -0.7, limite: 1.01, penaliteFrein: 0.5, precision: 0.6, bordMin: 0.8, margeCarte: 1.1 },
+    legende: { rythme: 0, erreurs: 0.25, agressivite: 0.4, regularite: 0.5, gestionPneus: 0.2, corde: 0, marge: -1.4, limite: 1.02, penaliteFrein: 0, precision: 0.3, bordMin: 0.5, margeCarte: 0.7 },
   },
   // le caractère de chaque IA (étape 4d), tiré avec la graine entre ces bornes :
   IA_CARACTERE: {
@@ -561,6 +583,7 @@ const REGLAGES = {
     agressivite: [0, 1],        // 0 : prudent ; 1 : attaque plus tôt
     erreurs: [0.1, 1],          // erreurs par course de 5 tours
     consigneRefus: [0, 1],      // les consignes d'équipe : au-dessus de CONSIGNE_REFUS_SEUIL, il refuse de laisser passer le joueur (tiré à part, GRAINE_CONSIGNES)
+    qualif: [0, 0],              // le niveau en qualifications (simulation.js, qualifier) : son temps de qualification × (1 + ça) ; tiré à part (GRAINE_QUALIF_TRAIT), le niveau n'y touche pas
     gestionPneus: [0, 1],       // la gestion des pneus (pneus.js : 1 = use 30 % moins vite) ; tirée avec sa propre graine (GRAINE_PNEUS), le niveau la décale
   },
   IA_VISION_ANGLE: 0.6,         // rad : elle voit les voitures devant elle à ±0,6 rad (±34°) de son axe…
@@ -596,6 +619,8 @@ const REGLAGES = {
   GRAINE_STYLES: 1000,          // les façons de piloter sont tirées avec la graine de la course + ce nombre
   GRAINE_CARACTERE: 3000,       // … et le caractère des pilotes avec la graine + ce nombre
   GRAINE_QUALIF: 2000,          // … et la qualification avec la graine + ce nombre
+  GRAINE_TECHNIQUE: 16000,      // … et son goût pour les techniques selon le virage (IA_STYLE_TECHNIQUE) avec la graine + ce nombre
+  GRAINE_QUALIF_TRAIT: 15000,   // … et le niveau en qualifications de chaque IA (IA_CARACTERE.qualif) avec la graine + ce nombre
   GRAINE_PNEUS: 8000,           // … et la gestion des pneus de chaque IA avec la graine + ce nombre (à part : les autres tirages ne bougent pas)
   GRAINE_FEUX: 4000,            // … et le délai des feux et les réactions des IA avec la graine + ce nombre
   IA_QUALIF_HASARD: 0.005,      // le temps de qualification d'une IA varie de ±0,5 % autour de son meilleur tour estimé
@@ -656,6 +681,9 @@ const REGLAGES = {
     inter: { adherence: [0.95, 0.88, 0.7], usure: [2.5, 1, 1] },
     pluie: { adherence: [0.9, 0.84, 0.8], usure: [4, 1.5, 1] },
   },
+  IA_LENT_COTE_A_COTE: 0,       // le duel (tour 32) : 1 = dans un virage lent aussi, l'attaque se joue à l'entrée (à moitié à hauteur, IA_ATTAQUE_HAUTEUR), plus le nez devant au freinage
+  SIMULATION_FEUX: 0,           // 1 : simulerCourse part avec les feux et le départ de chaque IA (depart.js), comme la page
+  IA_PROFITER_ERREUR: false,    // une IA profite de l'erreur de la voiture devant elle (elle la passe comme une voiture lente)
   IA_FREIN_PREVU: 0.6,          // s : derrière une voiture qui freine, il prévoit sa vitesse dans ce temps (sa décélération vue × ça)
   IA_DISTANCE_SUIVI: 14,        // m : la distance où elle se cale derrière
   IA_DEPART_LANCEMENT: 100,     // m : au départ, sur cette distance, elle suit à IA_DISTANCE_MIN (tout le monde part ensemble)
