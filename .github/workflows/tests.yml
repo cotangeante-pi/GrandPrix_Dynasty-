@@ -38,8 +38,8 @@ jobs:
           - { nom: paquet, partie: paquet }
           - { nom: saison, partie: saison }   # la carrière entière jouée par le robot (tests/saison.py, Codeur 4)
           - { nom: premier, partie: premier }   # le premier lancement : clic → feux, médiane de 3 essais (tests/premier.py, Codeur 4)
-          - { nom: recoins-1, partie: recoins, recoins: 'deux,tournoi' }   # les recoins que saison.py ne visite pas (tests/recoins.py, Codeur 4)
-          - { nom: recoins-2, partie: recoins, recoins: 'fin,ecrans,tuto' }
+          - { nom: recoins-1, partie: recoins, recoins: 'deux,tournoi,tailles-jeux' }   # les recoins que saison.py ne visite pas (tests/recoins.py, Codeur 4)
+          - { nom: recoins-2, partie: recoins, recoins: 'fin,ecrans,tuto,tailles-carriere' }
     steps:
       - uses: actions/checkout@v4
 
