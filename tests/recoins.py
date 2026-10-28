@@ -55,7 +55,14 @@ class Recoin(Carriere):
             if e is None: self.pg.wait_for_timeout(300); continue
             if e[0] == 'podium': return True
             if e[1]:
-                if not self.si('#boutonPasser'): self.ev('() => passerAuPodium()')
+                # l'attente des autres : « passer » doit être là. La boucle est arrêtée le temps de le vérifier et de cliquer : sinon les
+                # dernières voitures arrivent pendant que Playwright attend, le podium vient et cache le bouton (le test était instable
+                # sur GitHub, tour 39d). Le bandeau est déjà affiché à l'image qui a créé l'attente.
+                self.ev('() => BOUCLE.arreter()')
+                vu = self.ev('() => { const b = document.getElementById("boutonPasser"); return b.getClientRects().length > 0 && !b.closest(".cache"); }')
+                if not vu: self.problemes.setdefault(('« passer » absent', quoi), { 'ecran': 'course', 'detail': str(self.ev('() => [!!JEU.attente, JEU.ecran, document.getElementById("attenteArrivee").className]')), 'page': self.pg.url.split('/')[-1] })
+                if not (vu and self.clic('#boutonPasser')): self.ev('() => passerAuPodium()')
+                self.ev('() => BOUCLE.demarrer()')
                 self.pg.wait_for_timeout(300); continue
             if e[2] == 'compte': self.ev('() => { for (const p of (JEU.plateau ? JEU.plateau.pilotes : [])) if (p.course && p.course.compte > 0.05) p.course.compte = 0.05; }')
             self.ev('() => BOUCLE.simuler(5)'); self.pg.wait_for_timeout(40)
@@ -83,10 +90,11 @@ def deux(c, titre, court=False):
     c.attendre('() => JEU.plateau && JEU.plateau.carte !== null', 240000)
     # les deux claviers en même temps : W (joueur 1) et ↑ (joueur 2) tenus ensemble, après l'extinction des feux
     c.ev('() => { BOUCLE.arreter(); for (const p of JEU.plateau.pilotes) if (p.course && p.course.compte > 0.05) p.course.compte = 0.05; let n = 0; while (JEU.course.etat === "compte" && n++ < 2400) BOUCLE.simuler(REGLAGES.PAS_PHYSIQUE); BOUCLE.demarrer(); }')
-    pg.keyboard.down('KeyW'); pg.keyboard.down('ArrowUp'); pg.wait_for_timeout(1500)
-    v = c.ev('() => DEUX_JOUEURS.joueurs(JEU.plateau).map(p => p.v.u)')
-    pg.keyboard.up('KeyW'); pg.keyboard.up('ArrowUp')
-    t(f'{titre} : les deux claviers en même temps (W et ↑ tenus ensemble) : les deux voitures accélèrent', bool(v) and all(x > 1 for x in v), str(v))
+    # (les touches tenues pendant 1 s de jeu, la boucle arrêtée : pas 1,5 s réelles, qui ne font que 0,9 m/s quand la machine est lente)
+    pg.keyboard.down('KeyW'); pg.keyboard.down('ArrowUp'); pg.wait_for_timeout(100)
+    v = c.ev('() => { BOUCLE.arreter(); const u0 = DEUX_JOUEURS.joueurs(JEU.plateau).map(p => p.v.u); BOUCLE.simuler(1); const u1 = DEUX_JOUEURS.joueurs(JEU.plateau).map(p => p.v.u); return [u0, u1]; }')
+    pg.keyboard.up('KeyW'); pg.keyboard.up('ArrowUp'); c.ev('() => BOUCLE.demarrer()')
+    t(f'{titre} : les deux claviers en même temps (W et ↑ tenus ensemble, 1 s de jeu) : les deux voitures accélèrent', bool(v) and all(v[1][k] > v[0][k] + 2 for k in range(2)), str(v))
     c.inspecter('course à deux')
     for manche in ((1,) if court else (1, 2)):
         if not c.rouler(f'course à deux {manche}'): return

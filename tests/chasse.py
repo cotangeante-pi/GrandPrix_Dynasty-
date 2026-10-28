@@ -140,8 +140,12 @@ class Carriere:
             else: pg.wait_for_timeout(500)
         elif ecran == 'course':
             if e[2]:
+                # (la boucle arrêtée pendant le clic : sinon les dernières voitures peuvent arriver pendant que Playwright attend le bouton,
+                # le podium vient et le bouton se cache sous ses yeux ; le bandeau, lui, est déjà affiché à l'image qui a créé l'attente)
+                self.ev('() => BOUCLE.arreter()')
                 self.inspecter('attente')
                 if not self.clic('#boutonPasser'): self.ev('() => passerAuPodium()')
+                self.ev('() => BOUCLE.demarrer()')
                 pg.wait_for_timeout(300)
             elif not e[4] and self.ev('() => !!JEU.plateau'): pg.wait_for_timeout(500)   # la carte des IA se calcule
             else:
@@ -190,7 +194,7 @@ class Carriere:
 
 def rapport(c, titre):
     t(f'{titre} : aucune erreur ni avertissement dans la console', not c.console, ' | '.join(f'[{a}] {b}' for a, b in c.console[:8]))
-    for genre in ('texte cassé', 'vide', 'bouton hors de l’écran', 'boutons qui se recouvrent', 'texte qui déborde du bouton', 'défilement', 'clic impossible', 'discussion sans réponse'):
+    for genre in ('texte cassé', 'vide', 'bouton hors de l’écran', 'boutons qui se recouvrent', 'texte qui déborde du bouton', 'défilement', 'clic impossible', 'discussion sans réponse', '« passer » absent'):
         l = [(k[1], v) for k, v in c.problemes.items() if k[0] == genre]
         t(f'{titre} : {genre} : aucun', not l, ' | '.join(f"{el} sur « {v['ecran']} » ({v['detail']}) — {v['page']}" for el, v in l[:12]))
     m = c.manquantes()

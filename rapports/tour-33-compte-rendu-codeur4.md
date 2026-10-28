@@ -420,3 +420,16 @@ Ordres : 1 fait / 2 fait (rien à corriger) / 3 fait
    (`partie: premier recoins`, 113 s). Le plus long travail du passage est saison (450 s). Tous restent sous 8 minutes.
 Ce que je n'ai pas vérifié : la carrière entière aux grandes tailles (pas demandé) ; la fin de carrière en 1280 et 1920.
 Réévalue.
+
+TOUR 39d, suite — l'instabilité de recoins-1 (« deux en 960×600 : #boutonPasser pas visible »)
+Commits : 40d9488 et 6d0459e, fusionnés sur main (passage GitHub 40777441893 vert)
+La cause : une course entre le test et le jeu, pas un bug du jeu. Le bandeau d'attente et « passer » s'affichent à l'image même qui crée
+l'attente, mais la boucle continuait en temps réel pendant que Playwright cherchait le bouton ; à deux avec 3 IA, les dernières IA arrivaient
+juste derrière les joueurs, le podium venait (finirAttente cache le bandeau) et le clic tombait sur un bouton caché. saison.py
+(chasse.py, Carriere.pas) cliquait de la même façon.
+La correction (recoins.py, rouler ; chasse.py, Carriere.pas) : la boucle est arrêtée le temps de vérifier et de cliquer, puis elle repart.
+« passer » doit toujours être visible : sinon, c'est un défaut noté (« « passer » absent ») et le test échoue. Le saut silencieux au podium
+(passerAuPodium quand le bouton manquait) ne cache donc plus un vrai défaut.
+Un second test fragile, trouvé en lançant 3 fois « deux » sur le Mac : « les deux claviers en même temps » (2 sur 3 en échec : W et ↑ tenus
+1,5 s réelles ne donnaient que 0,88 m/s à 3 images/s). Les touches sont maintenant tenues pendant 1 s de jeu, la boucle arrêtée ; chaque
+voiture doit gagner plus de 2 m/s. Le test ne dépend plus de la vitesse de la machine.
