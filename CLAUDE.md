@@ -382,6 +382,7 @@ Idée du propriétaire, 2026-10-27 (« commentateur »). **À faire en tout dern
 - **Le nom** : un commentateur inventé (nom dans `textes.js`, jamais une vraie personne), le même que la chaîne de La Gazette du Paddock si ça aide.
 - **Code** : le choix des phrases en calcul pur (`commentaire.js`, il lit seulement le moteur), l'affichage dans le bandeau existant ; en anglais et en français, jamais genré sur un pilote dont on ne connaît pas le genre.
 - **Tests** : chaque fait donne sa phrase ; la priorité et l'intervalle tiennent ; pas deux fois la même de suite ; rien quand c'est coupé ; la course est identique au bit près avec ou sans commentaire ; toutes les clés dans les deux langues.
+- **Fait le 2026-10-27** (tour 35, Codeur 2) : `commentaire.js` en calcul pur, avec son propre hasard (la course reste identique au bit près) ; au plus une phrase toutes les 5 s, les faits du joueur d'abord, les vieux faits oubliés ; il se tait au début d'un virage serré du joueur ; 60 caractères au plus, jamais « il » ni « elle » sur un pilote ; bandeau télé « 🎙 Gaston Virage » (nom inventé, le propriétaire peut le changer) ; menu pause « Commentateur : tout / tes faits / coupé », sauvegardé.
 
 ## La réalisation télé (de vraies caméras)
 
