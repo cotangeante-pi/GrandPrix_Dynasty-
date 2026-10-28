@@ -329,7 +329,13 @@ const DISCUSSION = (function () {
     const anonyme = !joueur(ch).nom;
     const remplir = t => (anonyme ? sansNom(t) : t).replace(/\{(\w+)\}/g, (x, c) => vals[c] !== undefined ? vals[c] : x);
     const morceaux = [remplir(choisirAutre('dis_' + r.reaction, m.derniere ? m.derniere.split(' ¦ ')[0] : null))];
-    for (const raison of r.raisons) { const t = choisir('dis_raison_' + raison); if (t) morceaux.push(remplir(t)); }
+    for (const raison of r.raisons) {
+      let t = remplir(choisir('dis_raison_' + raison));
+      // (tour 36) un circuit déjà nommé dans la réponse n'est pas répété : la variante courte de la raison (sans circuit), s'il y en a une
+      const deja = [vals.circuit, vals.circuit_course].filter(x => x && morceaux.some(mo => mo.includes(x)));
+      if (t && deja.some(x => t.includes(x)) && existe('dis_raison_' + raison + '_court')) t = remplir(choisir('dis_raison_' + raison + '_court'));
+      if (t) morceaux.push(t);
+    }
     let phrase = morceaux.join(' ');
     phrase = typeof elider === 'function' ? elider(phrase) : phrase;
     return phrase;
