@@ -27,6 +27,8 @@ for (const L_ of ['fr', 'en']) for (const [genre, ag] of [['calme', 0.3], ['foug
     v(textes.every(x => x && x.trim().length > 3) && new Set(textes).size === textes.length, 'répétée : ' + textes.join(' | '));
     const memes = echanges.filter((e, i) => i && e.reaction === echanges[i - 1].reaction).map(e => e.reaction);
     v(!memes.length, 'deux fois de suite : ' + memes.join(', '));
+    // un circuit n'est jamais nommé deux fois dans la même réponse (les variantes courtes des raisons, quand elles existent)
+    if (TEXTES[LANGUE].dis_raison_fait_course_devant_court) for (const e of echanges) for (const c of ['bahrayn', 'melbourn']) { const n = texte('circuit_' + c); if (n) v(e.texte.split(n).length <= 2, 'circuit deux fois : ' + e.texte); }
     L.push('  (' + L_ + ', ' + genre + ' : ' + echanges.map(e => '« ' + e.ph + ' » → ' + e.texte).join(' / ') + ')');
   });
   t('conversation de 10 échanges (' + L_ + ', pilote ' + genre + ') : au moins un fait de la course et un souvenir de la conversation cités ; jamais de contradiction avec ce qui a été dit', () => {
