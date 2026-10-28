@@ -25,7 +25,7 @@ const TEXTES = {
     consigneJoueur: 'Team order: let your team-mate no. {n} through (faster). Ignoring it lowers the team\'s trust.', consigneSuivie: 'Thank you! The team\'s trust goes up.', consigneIgnoree: 'Order ignored: the team\'s trust goes down.',
     attenteArrivee: 'Finished — waiting for the other drivers',
     grillePasser: 'The grid — press a key to skip',
-    pneus: 'Tyres', pneusAdherence: 'grip −{p} %', msg_pluieArrive: 'Rain is coming', msg_pisteSeche: 'The track is drying', meteoEau: 'water {p} %', meteoPrevue: 'Forecast: {temps}', meteo_sec: 'dry', meteo_nuageux: 'cloudy', meteo_risque: 'chance of rain ({p} %)', meteo_pluie: 'rain', msg_meilleurTour: '{qui}: fastest lap {temps}', msg_penalite: '{s} s penalty for {qui}', msg_stands: '{qui} pits',
+    pneus: 'Tyres', pneusAdherence: 'grip −{p} %', commentateur: "Gaston Virage", commentaire_tout: 'Commentator: on', commentaire_joueur: 'Commentator: your moves only', commentaire_non: 'Commentator: off', com_depart: ["Lights out at {circuit}, and away they go!", "And they're off at {circuit}!", "Lights out, the race is on!"], com_depassementTete: ["{qui} takes the lead!", "{qui} gets past {sur}: new leader!", "Change at the front: {qui} goes ahead!"], com_depassementJoueur: ["{qui} gets past {sur}, P{place}!", "A move by {qui} on {sur}, now P{place}.", "{qui} and {sur} swap places, {qui} P{place}!"], com_depassement: ["{qui} dives down the inside of {sur}!", "{qui} passes {sur}, P{place}.", "Great move by {qui} on {sur}!"], com_contact: ["Contact between {qui} and {sur}!", "{qui} and {sur} touch!", "They rub wheels, {qui} and {sur}!"], com_coteACote: ["{qui} and {sur}, side by side!", "Wheel to wheel: {qui} alongside {sur}!", "{qui} pulls alongside {sur}!"], com_erreur: ["A moment for {qui}!", "{qui} runs wide!", "Off the line for {qui}, that costs time."], com_penalite: ["A {s} s penalty for {qui}.", "{qui} picks up {s} s of penalty.", "The stewards hand {qui} {s} s."], com_stands: ["{qui} heads into the pits.", "Pit stop for {qui}.", "{qui} takes the pit lane."], com_meilleurTour: ["Fastest lap for {qui}: {temps}!", "{qui} sets the quickest lap, {temps}.", "A flying lap from {qui}: {temps}."], com_pluie: ["Rain is falling at {circuit}!", "Here come the first drops...", "It's starting to rain!"], com_dernierTour: ["Last lap at {circuit}!", "One lap to go!", "The final lap, {qui} leads!"], com_arrivee: ["{qui} wins at {circuit}!", "Victory for {qui}!", "Chequered flag: {qui} takes it!"], com_joueurArrivee: ["{qui} crosses the line, P{place}!", "Finish for {qui}: P{place}.", "{qui} brings it home in P{place}."], com_joueurTete: ["{qui} leads, {ecart} s ahead!", "{qui} out in front by {ecart} s.", "{qui} controls the race, {ecart} s clear."], com_joueurPlace: ["{qui}, P{place}, {ecart} s behind the car ahead.", "{qui} holds P{place}, {ecart} s back.", "{qui} in P{place}, the gap ahead: {ecart} s."], msg_pluieArrive: 'Rain is coming', msg_pisteSeche: 'The track is drying', meteoEau: 'water {p} %', meteoPrevue: 'Forecast: {temps}', meteo_sec: 'dry', meteo_nuageux: 'cloudy', meteo_risque: 'chance of rain ({p} %)', meteo_pluie: 'rain', msg_meilleurTour: '{qui}: fastest lap {temps}', msg_penalite: '{s} s penalty for {qui}', msg_stands: '{qui} pits',
     resume: '▶ Highlights', resumeTitre: 'Highlights', resumeSortir: 'Click or Esc to leave',   // le résumé vidéo (resume.js)
     resume_depart: 'The start', resume_depassement: 'Overtake: {qui} passes {sur}', resume_sortie: 'Off track: {qui}', resume_arrivee: 'The finish: {qui} wins', resume_arret: 'Pit stop: {qui}, {duree} s',
     attenteAccelere: '⏩ Fast-forward: {n} cars still racing', attenteAccelere1: '⏩ Fast-forward: 1 car still racing',
@@ -386,7 +386,7 @@ const TEXTES = {
     consigneJoueur: 'Consigne de l\'écurie : laisse passer ton coéquipier n°{n} (plus rapide). L\'ignorer fait baisser la confiance de l\'écurie.', consigneSuivie: 'Merci ! La confiance de l\'écurie monte.', consigneIgnoree: 'Consigne ignorée : la confiance de l\'écurie baisse.',
     attenteArrivee: 'Arrivée — en attendant les autres pilotes',
     grillePasser: 'La grille — une touche pour passer',
-    pneus: 'Pneus', pneusAdherence: 'adhérence −{p} %', msg_pluieArrive: 'La pluie arrive', msg_pisteSeche: 'La piste sèche', meteoEau: 'eau {p} %', meteoPrevue: 'Météo prévue : {temps}', meteo_sec: 'sec', meteo_nuageux: 'nuageux', meteo_risque: 'risque de pluie ({p} %)', meteo_pluie: 'pluie', msg_meilleurTour: '{qui} : meilleur tour {temps}', msg_penalite: 'Pénalité de {s} s pour {qui}', msg_stands: '{qui} aux stands',
+    pneus: 'Pneus', pneusAdherence: 'adhérence −{p} %', commentateur: "Gaston Virage", commentaire_tout: 'Commentateur : tout', commentaire_joueur: 'Commentateur : tes faits', commentaire_non: 'Commentateur : coupé', com_depart: ["Les feux s'éteignent à {circuit}, c'est parti !", "Et c'est parti à {circuit} !", "Feux éteints, la course est lancée !"], com_depassementTete: ["{qui} prend la tête !", "{qui} passe {sur} : nouveau leader !", "Changement en tête : {qui} passe devant !"], com_depassementJoueur: ["{qui} passe {sur}, P{place} !", "Dépassement de {qui} sur {sur}, désormais P{place}.", "{qui} et {sur} échangent : {qui} P{place} !"], com_depassement: ["{qui} plonge à l'intérieur de {sur} !", "{qui} double {sur}, P{place}.", "Belle attaque de {qui} sur {sur} !"], com_contact: ["Contact entre {qui} et {sur} !", "Ça frotte entre {qui} et {sur} !", "Accrochage entre {qui} et {sur} !"], com_coteACote: ["{qui} et {sur}, côte à côte !", "Roue contre roue : {qui} à hauteur de {sur} !", "{qui} se porte à hauteur de {sur} !"], com_erreur: ["Une frayeur pour {qui} !", "{qui} élargit la trajectoire !", "Sortie de trajectoire pour {qui}, du temps de perdu."], com_penalite: ["Pénalité de {s} s pour {qui}.", "{s} s de pénalité pour {qui}.", "Les commissaires infligent {s} s à {qui}."], com_stands: ["{qui} rentre aux stands.", "Arrêt au stand pour {qui}.", "{qui} prend la voie des stands."], com_meilleurTour: ["Meilleur tour pour {qui} : {temps} !", "{qui} signe le tour le plus rapide, {temps}.", "Un tour canon de {qui} : {temps}."], com_pluie: ["La pluie arrive à {circuit} !", "Voilà les premières gouttes…", "Attention, la pluie commence !"], com_dernierTour: ["Dernier tour à {circuit} !", "Plus qu'un tour !", "Dernier tour, {qui} mène !"], com_arrivee: ["{qui} gagne à {circuit} !", "Victoire de {qui} !", "Drapeau à damier : {qui} l'emporte !"], com_joueurArrivee: ["{qui} passe la ligne, P{place} !", "Arrivée pour {qui} : P{place}.", "{qui} termine P{place}."], com_joueurTete: ["{qui} mène, {ecart} s d'avance !", "{qui} en tête avec {ecart} s d'avance.", "{qui} contrôle la course, {ecart} s devant."], com_joueurPlace: ["{qui}, P{place}, à {ecart} s de la voiture devant.", "{qui} tient la P{place}, {ecart} s derrière.", "{qui} roule P{place}, l'écart devant : {ecart} s."], msg_pluieArrive: 'La pluie arrive', msg_pisteSeche: 'La piste sèche', meteoEau: 'eau {p} %', meteoPrevue: 'Météo prévue : {temps}', meteo_sec: 'sec', meteo_nuageux: 'nuageux', meteo_risque: 'risque de pluie ({p} %)', meteo_pluie: 'pluie', msg_meilleurTour: '{qui} : meilleur tour {temps}', msg_penalite: 'Pénalité de {s} s pour {qui}', msg_stands: '{qui} aux stands',
     resume: '▶ Résumé', resumeTitre: 'Résumé de la course', resumeSortir: 'Clic ou Échap pour sortir',   // le résumé vidéo (resume.js)
     resume_depart: 'Le départ', resume_depassement: 'Dépassement : {qui} sur {sur}', resume_sortie: 'Sortie de piste : {qui}', resume_arrivee: 'L’arrivée : {qui} gagne', resume_arret: 'Arrêt au stand : {qui}, {duree} s',
     attenteAccelere: '⏩ En accéléré : encore {n} voitures en course', attenteAccelere1: '⏩ En accéléré : encore 1 voiture en course',
@@ -836,6 +836,12 @@ Object.assign(TEXTES.fr, {
     dis_raison_souvenir_menace: ['Et tes menaces à {souvenir_circuit}, je m’en souviens.'],
     dis_raison_souvenir_gentil: ['Pourtant, à {souvenir_circuit}, tu étais plus sympa.', 'Ça ne te ressemble pas, après ce que tu m’as dit à {souvenir_circuit}.'],
     dis_avant: 'la dernière fois', dis_encore: 'Je te l’ai déjà dit.',
+    // (encore des tournures pour les réactions qui reviennent le plus dans une longue conversation)
+    dis_flatte: ['Ça, c’est sympa. Merci.', 'Venant de toi, ça compte.'], dis_passer_refuse: ['Si tu veux la place, prends-la en piste.', 'Non. Chacun sa course.'],
+    dis_passer_rit: ['Mdr, non.', 'Tu rêves un peu, là.'], dis_promesse_notee: ['Marché conclu. Ne l’oublie pas.', 'Je retiens. Une promesse, ça se tient.'],
+    dis_etat_bien: ['Ça roule ! Je suis dans un bon moment.', 'Plutôt bien. Les résultats suivent.'], dis_etat_moyen: ['Ça pourrait être mieux. Ça pourrait être pire.'], dis_etat_mal: ['Pas génial. La voiture ne suit pas.'],
+    dis_avis_neutre: ['Je t’observe encore. Rien n’est décidé.'], dis_avis_bon: ['Ta conduite est propre, ça se respecte.'], dis_salut: ['Hé ! Ça faisait longtemps.', 'Oui ?'],
+    dis_adieu: ['Allez, bonne suite.', 'Salut, et bon week-end de course.'], dis_merci: ['Pas de quoi.'], dis_question: ['Euh… pose-moi plutôt une question sur la course.'],
   });
   plus('en', {
     dis_salut: ['Hey. What’s up?', 'Ah, {nom}. Go on.'], dis_salut_chaud: ['{nom}! Great to hear from you.'], dis_salut_froid: ['You again? Go on then.'],
@@ -879,6 +885,11 @@ Object.assign(TEXTES.fr, {
     dis_raison_souvenir_menace: ['And I remember your threats at {souvenir_circuit}.'],
     dis_raison_souvenir_gentil: ['Yet at {souvenir_circuit} you were nicer.', 'That’s not like you, after what you said at {souvenir_circuit}.'],
     dis_avant: 'last time', dis_encore: 'I told you already.',
+    dis_flatte: ['That’s nice of you. Thanks.', 'Coming from you, that counts.'], dis_passer_refuse: ['If you want the place, take it on track.', 'No. Everyone races their own race.'],
+    dis_passer_rit: ['Lol, no.', 'Dream on.'], dis_promesse_notee: ['Deal. Don’t forget it.', 'Noted. A promise is a promise.'],
+    dis_etat_bien: ['Going well! Good moment for me.', 'Pretty good. The results are coming.'], dis_etat_moyen: ['Could be better. Could be worse.'], dis_etat_mal: ['Not great. The car isn’t there.'],
+    dis_avis_neutre: ['Still watching you. Nothing decided yet.'], dis_avis_bon: ['Your driving is clean, I respect that.'], dis_salut: ['Hey! Long time.', 'Yes?'],
+    dis_adieu: ['Right, take care.', 'Bye, and have a good race weekend.'], dis_merci: ['No worries.'], dis_question: ['Uh… ask me something about the race instead.'],
   });
 })();
 
@@ -925,3 +936,34 @@ function elider(t) {
   if (LANGUE !== 'fr') return t;
   return t.replace(/(^|[\s(«“'’])([Dd]e|[Qq]ue) (?=[AEIOUYÀÂÄÆÉÈÊËÎÏÔÖŒÙÛÜaeiouyàâäæéèêëîïôöœùûü])/g, (m, avant, mot) => avant + mot.slice(0, -1) + '’');
 }
+
+// (tour 36, Codeur 3) la conversation : ce qu'il dit quand on repose une question, quand on se contredit, quand on reparle d'un moment
+// de la course, et le souvenir de votre dernière conversation ; jamais genré
+Object.assign(TEXTES.en, {
+  dis_deja_salut: ['We already said hello.', 'Hello again, I suppose.', 'Still here?'], dis_deja_avis: ['My opinion has not changed since a minute ago.', 'I already told you what I think.'],
+  dis_deja_etat: ['Same as I said: nothing new since.', 'You already asked. Still the same.'], dis_deja_duel: ['We just talked about our duel.', 'Nothing has changed in our duel since.'],
+  dis_deja_contact: ['We have been over that contact already.', 'I said what I had to say about it.'],
+  dis_incompris_encore: ['I still do not get it. Talk to me about the race, our duel, or my season.', 'Try differently: the last race, your place, our battle?'],
+  dis_raison_contradiction_gentil: ['A minute ago you were all nice. Make up your mind.', 'Funny, after what you just said.'],
+  dis_raison_contradiction_mechant: ['After what you said earlier?', 'That is not what you were saying a minute ago.'],
+  dis_raison_excuse_recue: ['Your apology helped, I will admit it.'], dis_raison_contact_regle: ['About {circuit}, let us leave it there.', 'What happened at {circuit} is behind us.'], dis_raison_derniere_fois_bon: ['Last time, at {circuit_avant}, we left on good terms.'],
+  dis_raison_derniere_fois_mauvais: ['Last time, at {circuit_avant}, it did not end well between us.'], dis_raison_tour_inconnu: ['Lap {tour}? I do not remember the exact lap.'],
+  dis_raison_sujet_depart: ['At the start, everyone is fighting for the same gap.'], dis_raison_sujet_stands: ['In the pit lane, everyone wants to get out first.'],
+  dis_raison_sujet_pluie: ['In the rain, nobody sees anything.'], dis_raison_sujet_qualif: ['In qualifying, it is everyone for themselves.'],
+  dis_raison_sujet_virage: ['In that corner, there was room for one car.'], dis_raison_sujet_aspiration: ['In the slipstream, you were close. Very close.'],
+  dis_raison_conversation_bonne: ['Good talk.'], dis_raison_conversation_mauvaise: ['Not my favourite conversation.'], dis_raison_conversation_neutre: ['We will see on track.'],
+});
+Object.assign(TEXTES.fr, {
+  dis_deja_salut: ['On s’est déjà dit bonjour.', 'Re-bonjour, alors.', 'Toujours là ?'], dis_deja_avis: ['Mon avis n’a pas changé depuis tout à l’heure.', 'Je t’ai déjà dit ce que j’en pense.'],
+  dis_deja_etat: ['Comme je disais : rien de neuf depuis.', 'Tu me l’as déjà demandé. Toujours pareil.'], dis_deja_duel: ['On vient de parler de notre duel.', 'Rien n’a changé dans notre duel depuis.'],
+  dis_deja_contact: ['On a déjà parlé de ce contact.', 'J’ai dit ce que j’avais à dire là-dessus.'],
+  dis_incompris_encore: ['Je ne comprends toujours pas. Parle-moi de la course, de notre duel ou de ma saison.', 'Essaie autrement : la dernière course, ta place, notre bagarre ?'],
+  dis_raison_contradiction_gentil: ['Tout à l’heure, tu n’avais que des gentillesses. Faudrait savoir.', 'Drôle, après ce que tu viens de dire.'],
+  dis_raison_contradiction_mechant: ['Après ce que tu as dit tout à l’heure ?', 'Ce n’est pas ce que tu disais il y a une minute.'],
+  dis_raison_excuse_recue: ['Tes excuses, ça a compté, je l’admets.'], dis_raison_contact_regle: ['Pour {circuit}, on n’en parle plus.', 'Ce qui s’est passé à {circuit}, c’est derrière nous.'], dis_raison_derniere_fois_bon: ['Notre dernière discussion, à {circuit_avant}, s’était bien finie.'],
+  dis_raison_derniere_fois_mauvais: ['Notre dernière discussion, à {circuit_avant}, s’était mal finie.'], dis_raison_tour_inconnu: ['Le tour {tour} ? Je ne me souviens pas du tour exact.'],
+  dis_raison_sujet_depart: ['Au départ, tout le monde se bat pour le même trou.'], dis_raison_sujet_stands: ['Dans la voie des stands, chacun veut sortir le premier.'],
+  dis_raison_sujet_pluie: ['Sous la pluie, personne ne voit rien.'], dis_raison_sujet_qualif: ['En qualifications, c’est chacun pour soi.'],
+  dis_raison_sujet_virage: ['Dans ce virage, il y avait la place pour une voiture.'], dis_raison_sujet_aspiration: ['Dans l’aspiration, tu étais près. Très près.'],
+  dis_raison_conversation_bonne: ['Bonne discussion.'], dis_raison_conversation_mauvaise: ['Pas ma conversation préférée.'], dis_raison_conversation_neutre: ['On verra sur la piste.'],
+});

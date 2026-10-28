@@ -79,6 +79,67 @@ const DISCUSSION = (function () {
     return null;
   }
 
+  // --- (tour 36, Codeur 3) la conversation en cours : ce qui s'est dit à ce Grand Prix ([acte, reaction, raisons]), et le bilan de la
+  // conversation du Grand Prix d'avant (somme : ce que la relation y a gagné ou perdu ; circuit ; la dernière réaction). Lecture seule
+  const cleGP = ch => ch.saison * 100 + ch.resultats.length;
+  function conversation(ch, m) {
+    const cle = cleGP(ch), ici = m.convCle === cle && Array.isArray(m.conv) ? m.conv : [];
+    const precedente = m.convCle !== undefined && m.convCle !== cle && Array.isArray(m.conv) && m.conv.length ? bilanConv(m) : (m.precedente || null);
+    return { ici, precedente, somme: m.gpRel && m.gpRel[0] === cle ? m.gpRel[1] : 0 };
+  }
+  function bilanConv(m) {
+    return { cle: m.convCle, somme: m.gpRel && m.gpRel[0] === m.convCle ? m.gpRel[1] : 0, fin: m.conv.length ? m.conv[m.conv.length - 1][1] : null, circuit: m.convCircuit || null };
+  }
+  // les actes qu'on ne pose pas deux fois dans la même conversation sans qu'il le remarque, et sa réaction la deuxième fois
+  const DEJA = { SALUT: 'deja_salut', AVIS: 'deja_avis', ETAT: 'deja_etat', DUEL: 'deja_duel', CONTACT: 'deja_contact', RECLAMATION: 'deja_contact', INCONNU: 'incompris_encore', QUESTION: 'incompris_encore' };
+  const GENTILS = ['EXCUSE', 'PAIX', 'COMPLIMENT', 'MERCI'], MECHANTS = ['INSULTE', 'MENACE'];
+  const SUJETS = ['depart', 'stands', 'pluie', 'qualif', 'virage', 'aspiration'];
+
+  // ce que la conversation change au raisonnement de base : il remarque une question déjà posée, il relève une contradiction (une
+  // insulte après des excuses, un compliment après une insulte), il ne répète pas une raison déjà dite, il se souvient du ton de votre
+  // dernière conversation (un autre Grand Prix), il parle du moment nommé (le départ, les stands…) et dit franchement s'il ne sait pas
+  // (un tour précis), et il conclut une longue conversation selon son ton
+  function suiteConversation(ch, m, a, r) {
+    const cv = conversation(ch, m), ici = cv.ici, actes = ici.map(x => x[0]), dits = new Set([].concat(...ici.map(x => x[2] || [])));
+    let { reaction, raisons } = r;
+    const effets = Object.assign({}, r.effets);
+    if (reaction === 'occupe') return r;
+    // une question déjà posée (pas la menace, l'insulte ou l'excuse : celles-là ont leur propre réaction)
+    // (seulement si sa réponse de base serait la même que la première fois : si la situation a changé, il répond à nouveau)
+    if (DEJA[a.acte] && ici.some(x => x[0] === a.acte && (x[3] || x[1]) === r.reaction) && !(a.acte === 'SALUT' && ici.length > 6)) {
+      reaction = DEJA[a.acte]; raisons = [];
+      for (const x of ['relation', 'rivalite', 'disposition', 'promesse', 'menace', 'demande', 'souvenir']) delete effets[x];
+    }
+    // les contradictions de la conversation
+    if (MECHANTS.includes(a.acte) && actes.some(x => GENTILS.includes(x))) raisons = ['contradiction_gentil'].concat(raisons);
+    if (GENTILS.includes(a.acte) && actes.some(x => MECHANTS.includes(x))) {
+      raisons = ['contradiction_mechant'].concat(raisons);
+      if (reaction === 'flatte') reaction = 'flatte_mefiant';
+    }
+    // une réaction conciliante ne s'accompagne pas d'un reproche sur le contact : il le dit réglé
+    if (['contact_regrette', 'excuse_acceptee', 'reclamation_ami', 'reclamation_explique', 'paix_acceptee'].includes(reaction)) raisons = raisons.map(x => x === 'contact' ? 'contact_regle' : x);
+    // des excuses déjà acceptées dans cette conversation : le contact est réglé, il ne le ressort plus
+    if (ici.some(x => x[1] === 'excuse_acceptee' || x[1] === 'paix_acceptee')) {
+      raisons = raisons.filter(x => x !== 'contact' && x !== 'contact_regle' && x !== 'rivalite');
+      if (['AVIS', 'ADIEU'].includes(a.acte)) raisons.push('excuse_recue');
+    }
+    // une raison n'est dite qu'une fois par conversation (sauf la promesse trahie : il y tient)
+    raisons = raisons.filter(x => x === 'promesse_trahie' || x.startsWith('contradiction_') || !dits.has(x));
+    // le premier message de cette conversation : le ton de la dernière (un autre Grand Prix)
+    if (!ici.length && cv.precedente && ['SALUT', 'AVIS', 'ETAT', 'QUESTION'].includes(a.acte)) {
+      if (cv.precedente.somme <= -R.DISCUSSION_BILAN) raisons.push('derniere_fois_mauvais');
+      else if (cv.precedente.somme >= R.DISCUSSION_BILAN) raisons.push('derniere_fois_bon');
+    }
+    // le moment nommé dans la phrase (parle.js : a.sujet, a.tour) ; il ne connaît pas le tour exact d'un contact (le moteur ne le garde pas)
+    if (['CONTACT', 'RECLAMATION'].includes(a.acte) && reaction !== DEJA[a.acte]) {
+      if (a.tour) raisons.push('tour_inconnu');
+      else if (a.sujet && SUJETS.includes(a.sujet)) raisons.push('sujet_' + a.sujet);
+    }
+    // conclure une longue conversation
+    if (a.acte === 'ADIEU' && ici.length >= R.DISCUSSION_CONV_LONGUE) raisons.push(cv.somme >= R.DISCUSSION_BILAN ? 'conversation_bonne' : cv.somme <= -R.DISCUSSION_BILAN ? 'conversation_mauvaise' : 'conversation_neutre');
+    return Object.assign({}, r, { reaction, raisons, effets, base: r.reaction });
+  }
+
   // --- le raisonnement : { reaction, raisons: [cles], effets: { relation, rivalite ('nouvelle' | 'apaisee'), confiance,
   // disposition ('laisser' | 'bloquer'), promesse, menace, demande } }. Aucun effet n'est appliqué ici (appliquer le fait).
   function raisonner(ch, k, a) {
@@ -91,7 +152,7 @@ const DISCUSSION = (function () {
     if (m.credit < 0) garde('menace_vide');
     let reaction;
     // trop de messages pour ce Grand Prix : il ne répond plus (la mémoire compte ses derniers actes)
-    const ici = m.dits.filter(d => d[1] === ch.saison && d[2] === ch.resultats.length).length;
+    const ici = conversation(ch, m).ici.length;   // (tour 36 : la conversation de ce Grand Prix, gardée en entier jusqu'à DISCUSSION_CONV_MAX)
     if (ici >= R.DISCUSSION_PAR_GP) return { reaction: 'occupe', raisons: [], effets: {} };
     switch (a.acte) {
       case 'SALUT':
@@ -203,7 +264,7 @@ const DISCUSSION = (function () {
       const vieux = ['SALUT', 'COMPLIMENT', 'PASSER', 'AVIS', 'ETAT', 'PAIX'].includes(a.acte) ? souvenir(ch, m, 'mauvais') : ['INSULTE', 'MENACE'].includes(a.acte) ? souvenir(ch, m, 'bon') : null;
       if (vieux) { garde(vieux.acte === 'MENACE' ? 'souvenir_menace' : vieux.acte === 'INSULTE' ? 'souvenir_insulte' : 'souvenir_gentil'); effets.souvenir = vieux; }
     }
-    return { reaction, raisons, effets, faits: f };
+    return suiteConversation(ch, m, a, { reaction, raisons, effets, faits: f });
   }
 
   // applique les effets d'un raisonnement, chacun avec son plafond : la relation entre ±DISCUSSION_RELATION_MAX (jamais plus de
@@ -234,6 +295,14 @@ const DISCUSSION = (function () {
     else if (e.demande === null) m.demande = null;
     m.dits.push([acte, g.saison, g.gp]);
     if (m.dits.length > R.DISCUSSION_MEMOIRE) m.dits.splice(0, m.dits.length - R.DISCUSSION_MEMOIRE);
+    // (tour 36, Codeur 3) la conversation de ce Grand Prix ; au premier message d'un nouveau Grand Prix, celle d'avant devient son bilan
+    const cle = cleGP(ch);
+    if (m.convCle !== cle) {
+      if (m.convCle !== undefined && Array.isArray(m.conv) && m.conv.length) m.precedente = bilanConv(m);
+      m.conv = []; m.convCle = cle; m.convCircuit = derniereCourse(ch, k).circuit;
+    }
+    m.conv.push([acte, r.reaction || null, (r.raisons || []).slice(), r.base || r.reaction || null]);
+    if (m.conv.length > R.DISCUSSION_CONV_MAX) m.conv.splice(0, m.conv.length - R.DISCUSSION_CONV_MAX);
   }
 
   // la phrase de la réponse : la réaction (une variante tirée), puis ses raisons, avec les noms et le circuit
@@ -254,7 +323,9 @@ const DISCUSSION = (function () {
     const vals = { nom: nomDe(joueur(ch)), lui: nomDe(p), circuit, promesse,
       p_lui: f.p_lui, p_joueur: f.p_joueur, ecart: f.ecart, a: f.course ? f.course.a : '', b: f.course ? f.course.b : '', circuit_course: f.course ? nomCircuit(f.course.circuit) : '',
       duel_moi: f.duel ? f.duel.moi : '', duel_lui: f.duel ? f.duel.lui : '', souvenir_circuit: svGp ? nomCircuit(svGp.circuit) : texte('dis_avant'),
-      cible: r.effets.cible !== undefined && ch.pilotes[r.effets.cible] ? nomDe(ch.pilotes[r.effets.cible]) : '' };
+      cible: r.effets.cible !== undefined && ch.pilotes[r.effets.cible] ? nomDe(ch.pilotes[r.effets.cible]) : '',
+      // (tour 36, Codeur 3) le circuit de votre dernière conversation, le tour nommé dans la phrase
+      circuit_avant: (() => { const pc = conversation(ch, m).precedente; return pc && pc.circuit ? nomCircuit(pc.circuit) : texte('dis_avant'); })(), tour: r.tour !== undefined && r.tour !== null ? r.tour : '' };
     const anonyme = !joueur(ch).nom;
     const remplir = t => (anonyme ? sansNom(t) : t).replace(/\{(\w+)\}/g, (x, c) => vals[c] !== undefined ? vals[c] : x);
     const morceaux = [remplir(choisirAutre('dis_' + r.reaction, m.derniere ? m.derniere.split(' ¦ ')[0] : null))];
@@ -270,6 +341,7 @@ const DISCUSSION = (function () {
     const p = ch.pilotes[k];
     if (!p || p.humain) return null;
     const analyse = PARLE.comprendre(txt, noms(ch)), r = raisonner(ch, k, analyse);
+    if (analyse.tour !== undefined && analyse.tour !== null) r.tour = analyse.tour;
     appliquer(ch, k, r, analyse.acte);
     let rep = composerReponse(ch, k, r), reactions = [r.reaction];
     // (tour 36d) deux idées dans la phrase : il répond aussi à la seconde (une phrase de plus, sans ses raisons) ; ses effets passent
@@ -324,5 +396,5 @@ const DISCUSSION = (function () {
     return true;
   }
 
-  return { sansNom, dire, raisonner, appliquer, composerReponse, composer, intentions, apresGrandPrix, demanderPromesse, peutDiscuter, memoire, noms, INTENTIONS };
+  return { conversation, sansNom, dire, raisonner, appliquer, composerReponse, composer, intentions, apresGrandPrix, demanderPromesse, peutDiscuter, memoire, noms, INTENTIONS };
 })();
