@@ -296,3 +296,5 @@ Les deux conversations, version finale (avec dcc0908 du Codeur 3 : les 4 défaut
 ```
 
 Il reste un défaut : « Ça, c’est sympa. Merci. » revient aux échanges 7 (en seconde partie de réponse) et 9. L’évitement des ouvertures ne regarde que le début des réponses.
+
+Dernier commit vert du tour 36d : d0a1303, passage 40622371590 : 13 travaux sur 13 verts. Il contient codeur3 dcc0908.
