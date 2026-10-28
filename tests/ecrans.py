@@ -118,6 +118,8 @@ PAGES = [
     ('index.html?course=12&ia=3&joueur=1&robot=1&circuit=test&test=aides-course', 960, 600, None),
     ('index.html?championnat=1&test=aides-menus', 1280, 720, None),
     ('index.html?championnat=1&test=aides-menus', 960, 600, None),
+    ('index.html?championnat=1&tours=2&robot=1&test=aides-consigne', 1280, 720, None),   # les aides des contrats et de la consigne d'équipe, dans la page
+    ('index.html?championnat=1&tours=2&robot=1&test=aides-consigne', 960, 600, None),
     # le tutoriel guidé (tutoriel.js, étape 11d, Codeur 4) : la liste (titre, pause, paddock), « Passer », chaque leçon réussie par le robot, l'échec sans rien faire
     ('index.html?test=tuto-menu', 1280, 720, None),
     ('index.html?test=tuto-menu', 960, 600, None),
@@ -129,6 +131,7 @@ PAGES = [
     ('index.html?tutoriel=stand&course=2&test=tuto', 960, 600, None),
     ('index.html?tutoriel=pluie&course=3&ia=1&joueur=1&niveau=debutant&meteo=averse&test=tuto', 1280, 720, None),
     ('index.html?tutoriel=visite&championnat=1&test=tuto', 1280, 720, None),
+    ('index.html?tutoriel=visite&championnat=1&test=tuto-quitter', 960, 600, None),   # … passée en cours de route : rien ne reste dans la carrière
 ]
 # ECRANS_FILTRE=… (pendant le travail, sur le Mac) : seulement les pages dont l'adresse contient ce texte ; GitHub lance toujours tout
 if os.environ.get('ECRANS_FILTRE'): PAGES = [x for x in PAGES if os.environ['ECRANS_FILTRE'] in f'{x[0]} {x[1]}']   # (« adresse largeur » : « robot=1 960 »)
@@ -2564,6 +2567,52 @@ def aides_menus(pg, titre, l, h):
 # « Bravo ! »), chaque leçon réussie par le robot d'essai (ou un pilote scripté), le résultat et l'étoile gardée, « Passer », l'échec sans rien faire
 TUTO_JOUER = '''(n) => { for (let i = 0; i < n; i++) { if (TUTORIEL_ECRAN.resultat()) break; BOUCLE.simuler(0.05); TUTORIEL_ECRAN.maj(0.05); }
   const su = TUTORIEL_ECRAN.suivi(); return { resultat: TUTORIEL_ECRAN.resultat(), raison: su && su.raison, t: su && su.t, essais: su && su.essais, meilleur: su && su.meilleur, dernier: su && su.dernier }; }'''
+def aides_consigne(pg, titre, l, h):
+    # les contrats : l'écran de fin de saison ouvert tout de suite (montrerContrats, les offres de la note du joueur) : l'aide des contrats, sur
+    # aucun bouton ni aucune offre ; un clic la ferme ; revenu au paddock, elle ne revient plus
+    attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', None, 60000)
+    pg.evaluate('() => { AIDES_ECRAN.fermer(); montrerContrats(); }')
+    t(f'{titre} : l’écran des contrats (ouvert par montrerContrats) : l’aide des contrats (les écuries regardent tes points et ton duel)', attendre(pg, '() => JEU.ecran === "contrats" && !document.getElementById("bulleAide").classList.contains("cache") && document.getElementById("bulleAide").dataset.aide === "contrats"', None, 10000), str(pg.evaluate(AIDE_BULLE)))
+    b = pg.evaluate(AIDE_BULLE)
+    t(f'{titre} : la bulle des contrats : son texte, en haut à gauche, deux lignes au plus, sur aucun bouton ni aucune offre ni le titre', b and b['texte'] == pg.evaluate('() => texte("aide_contrats")') and not b['course'] and b['x1'] >= 0 and b['x2'] <= l and b['y2'] - b['y1'] <= 60 and not aide_recouvre(pg, b, '#contrats button, #contratsListe li, #contrats h1, #contratsNote'), str([b, b and aide_recouvre(pg, b, '#contrats button, #contratsListe li, #contrats h1, #contratsNote')]))
+    if l == 1280: pg.wait_for_timeout(400); pg.screenshot(path=os.path.join(CAPTURES, 'aide-contrats.png'))
+    pg.click('#bulleAide')
+    t(f'{titre} : un clic la ferme, l’aide des contrats est vue ; rouvert, l’écran n’a plus de bulle', pg.evaluate('() => document.getElementById("bulleAide").classList.contains("cache") && SAUVEGARDE.aides().includes("contrats")') and (pg.evaluate('() => { montrerChampionnat(null); montrerContrats(); }') or True) and (pg.wait_for_timeout(600) or True) and pg.evaluate('() => document.getElementById("bulleAide").classList.contains("cache")'), str(pg.evaluate('() => [JEU.ecran, SAUVEGARDE.aides()]')))
+    pg.evaluate('() => montrerChampionnat(null)')
+    # la consigne d'équipe : une vraie course du championnat ; la consigne posée comme dans consigne_ecran (le joueur devant son coéquipier) ;
+    # l'aide ne vient qu'en ligne droite, ne recouvre pas la piste devant la voiture, et se ferme quand la consigne a sa réponse
+    pg.click('#boutonCourseSuivante')
+    passer_qualif(pg, titre)
+    attendre(pg, '() => JEU.plateau.carte !== null && JEU.course.etat === "compte"', None, 180000)
+    # (comme consigne_ecran : le joueur et son coéquipier échangent leurs places sur la grille, le joueur devant lui)
+    pg.evaluate('''() => { const e = JEU.plateau, P = e.pilotes, j = P.findIndex(p => p.humain), kc = CHAMPIONNAT.coequipierDe(JEU.championnat).id;
+      const a = P[j], b = P[kc], pa = { s: a.v.piste.s, d: a.v.piste.d, depart: a.depart }, pb = { s: b.v.piste.s, d: b.v.piste.d, depart: b.depart };
+      if (pa.depart < pb.depart) { placerSurPiste(a.v, CIRCUIT, pb.s, pb.d); placerSurPiste(b.v, CIRCUIT, pa.s, pa.d); a.depart = pb.depart; b.depart = pa.depart; e.origine = Math.min(...P.map(p => p.depart)); }
+      for (const p of P) p.course.compte = 0.01; }''')
+    attendre(pg, '() => JEU.course.etat === "course" && JEU.course.temps > 1', None, 30000)
+    pg.evaluate('''() => { BOUCLE.arreter(); const e = JEU.plateau, P = e.pilotes, j = P.findIndex(p => p.humain), kc = CHAMPIONNAT.coequipierDe(JEU.championnat).id;
+      const c = { devant: j, derriere: kc, numero: P[kc].numero, debut: e.temps, joueur: true, refus: false, resultat: null }; REGLAGES.CONSIGNE_DELAI = 1e9;
+      e.consigne = c; P[j].course.consigne = c; P[kc].course.consigne = c; }''')
+    vu, cache, faux, couloir = 0, 0, [], None
+    for i in range(240):
+        r = pg.evaluate('''() => { BOUCLE.simuler(0.25); const aide = AIDES_ECRAN.maj(0.02), s = AIDES.situation(JEU, CIRCUIT, null), e = AIDES_ECRAN.etat();
+          return { aide, dom: !document.getElementById("bulleAide").classList.contains("cache"), attend: e.actuelle === "consigne" && !aide, libre: AIDES.libre(s), texte: document.getElementById("bulleAideTexte").textContent }; }''')
+        if r['aide'] == 'consigne':
+            vu += 1
+            if not r['libre'] or not r['dom']: faux.append(r)
+            if couloir is None:
+                couloir = pg.evaluate(AIDE_COULOIR)
+                t(f'{titre} : la consigne d’équipe vise le joueur : son aide (lever le pied ↓ ou garder sa place), en ligne droite, sans recouvrir la piste devant la voiture', r['texte'] == pg.evaluate('() => texte("aide_consigne")') and couloir['n'] >= 20 and couloir['dessous'] == 0, str([r, couloir]))
+                L.append(f"  (aides, la consigne d’équipe {l}×{h} : {couloir['n']} points du couloir, {couloir['gris']} % gris de route, {couloir['dessous']} sous la bulle {couloir['bulle']})")
+                pg.wait_for_timeout(400); pg.screenshot(path=os.path.join(CAPTURES, 'aide-consigne.png' if l == 1280 else 'aide-consigne-960.png'))
+        elif r['attend']: cache += 1
+        if vu >= 8 and cache >= 1: break
+    t(f'{titre} : l’aide de la consigne s’affiche en ligne droite ({vu} images), attend dans les virages ({cache} images), jamais affichée hors d’une ligne droite', vu > 0 and not faux and couloir is not None, str([vu, cache, faux[:2]]))
+    # la consigne répondue (suivie) : l'action est faite, la bulle se ferme, l'aide est vue
+    r = pg.evaluate('() => { JEU.plateau.consigne.resultat = "suivie"; JEU.plateau.consigne.finCourse = JEU.course.temps; const a = AIDES_ECRAN.maj(0.02); return { a, cache: document.getElementById("bulleAide").classList.contains("cache"), vues: SAUVEGARDE.aides() }; }')
+    t(f'{titre} : la consigne répondue : la bulle se ferme, l’aide de la consigne est vue (sauvegardée)', r['a'] is None and r['cache'] and 'consigne' in r['vues'], str(r))
+    pg.evaluate('() => BOUCLE.demarrer()')
+
 def tuto_resultat(pg, titre, l, h, id, r):
     vis = pg.evaluate('''() => { const e = document.getElementById("tutoResultat"), b = [...e.querySelectorAll("button")].filter(x => !x.classList.contains("cache")).map(x => x.getBoundingClientRect());
       return { vu: !e.classList.contains("cache"), titre: document.getElementById("tutoResultatTitre").textContent, texte: document.getElementById("tutoResultatTexte").textContent, dedans: b.every(x => x.left >= 0 && x.top >= 0 && x.right <= innerWidth && x.bottom <= innerHeight), consigne: !document.getElementById("tutoConsigne").classList.contains("cache"), etoile: SAUVEGARDE.tutoriel(), boucle: BOUCLE.tourne }; }''')
@@ -2575,12 +2624,37 @@ def tuto_lecon(pg, titre, l, h, page):
     id = re.search(r'tutoriel=(\w+)', page).group(1)
     attendre(pg, '() => typeof TUTORIEL_ECRAN !== "undefined" && TUTORIEL_ECRAN.lecon() !== null', None, 10000)
     if id == 'visite':
+        # une vraie carrière dans la sauvegarde (graine 7), puis la page de la leçon : la visite ne doit rien y laisser (l'aileron, les pneus du départ…)
+        # (posée depuis une page qui n'est pas une leçon : recharger la leçon remettrait la sauvegarde d'avant, c'est voulu)
+        pg.goto('file://' + RACINE + '/index.html?championnat=1'); attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', None, 30000)
+        pg.evaluate('() => { const d = SAUVEGARDE.lire(); d.championnat = CHAMPIONNAT.creer(7); d.championnat.marqueTest = 7; SAUVEGARDE.ecrire(d); }')
+        pg.goto('file://' + RACINE + '/' + page); attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', None, 30000)
+        avant = pg.evaluate('() => TUTORIEL_ECRAN.avantVisite()')
+        t(f'{titre} : la visite garde la carrière de la sauvegarde telle quelle avant de commencer', avant is not None and '"marqueTest":7' in avant, str(avant)[:200])
+        def changer_carriere():
+            # au garage : les pneus du départ (le dernier bouton) ; à l'aileron : un autre cran ; la sauvegarde change bien
+            pg.evaluate('() => { const c = document.getElementById("aileronCurseur"); c.value = String((Number(c.value) + 2) % REGLAGES.AILERON_CRANS); c.dispatchEvent(new Event("input")); }')
+            return pg.evaluate('(a) => JSON.stringify(SAUVEGARDE.lire().championnat) !== a', avant)
+        if 'quitter' in page:
+            pg.click('#boutonGarage'); attendre(pg, '() => JEU.ecran === "garage"')
+            pg.click('#boutonAileron'); attendre(pg, '() => JEU.ecran === "aileron"')
+            change = changer_carriere()
+            # on quitte la page (une autre page du jeu, qui ne touche pas à la sauvegarde) : la carrière est remise en partant
+            pg.goto('file://' + RACINE + '/tests/textes.html'); pg.wait_for_timeout(300)
+            apres = pg.evaluate('() => { const d = JSON.parse(localStorage.getItem("grand-prix-dynasty")); return { ch: JSON.stringify(d.championnat), tuto: d.tutoriel || [] }; }')
+            t(f'{titre} : la visite quittée en cours de route (l’aileron changé) : la carrière de la sauvegarde revient exactement comme avant, sans étoile', change and apres['ch'] == avant and 'visite' not in apres['tuto'], str([change, apres['ch'] == avant, apres['tuto']]))
+            pg.goto('file://' + RACINE + '/index.html?championnat=1'); attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', None, 30000)   # (de retour sur une page du jeu, pour les vérifications de fin de page)
+            return
         t(f'{titre} : la visite : au paddock, la consigne en haut à gauche (« Clique sur Garage »), pas de bulle d’aide', attendre(pg, '() => JEU.ecran === "championnat" && !document.getElementById("tutoConsigne").classList.contains("cache") && document.getElementById("tutoConsigneTexte").textContent === texte("tuto_visite_paddock") && document.getElementById("bulleAide").classList.contains("cache")', None, 20000), pg.evaluate('() => [JEU.ecran, document.getElementById("tutoConsigneTexte").textContent]'))
         etapes = []
-        for clic, attendu in [('#boutonGarage', 'garage'), ('#boutonAileron', 'aileron'), ('#boutonAileronRetour', 'retour'), ('#boutonGarageRetour', None)]:
+        change = False
+        for clic, attendu in [('#boutonGarage', 'garage'), ('#garagePneus button:last-of-type', None), ('#boutonAileron', 'aileron'), (None, None), ('#boutonAileronRetour', 'retour'), ('#boutonGarageRetour', None)]:
+            if clic is None: change = changer_carriere(); continue
             pg.click(clic); pg.wait_for_timeout(400)
             if attendu: etapes.append(attendre(pg, f'() => document.getElementById("tutoConsigneTexte").textContent === texte("tuto_visite_{attendu}")', None, 10000))
         attendre(pg, '() => TUTORIEL_ECRAN.resultat() !== null', None, 10000)
+        apres = pg.evaluate('(a) => ({ sauvee: JSON.stringify(SAUVEGARDE.lire().championnat) === a, memoire: JSON.stringify(JEU.championnat) === a })', avant)
+        t(f'{titre} : la visite réussie, après avoir changé les pneus du départ et l’aileron : la carrière revient exactement comme avant (sauvegarde et mémoire)', change and apres['sauvee'] and apres['memoire'], str([change, apres]))
         t(f'{titre} : la visite guidée : garage → aileron → retour, chaque écran a sa consigne', all(etapes), str(etapes))
         tuto_resultat(pg, titre, l, h, id, { 'resultat': pg.evaluate('() => TUTORIEL_ECRAN.resultat()') })
         if l == 1280: pg.screenshot(path=os.path.join(CAPTURES, 'tuto-visite.png'))
@@ -2740,6 +2814,8 @@ with sync_playwright() as p:
                 aides_course(pg, titre, l, h)
             elif 'test=aides-menus' in page:
                 aides_menus(pg, titre, l, h)
+            elif 'test=aides-consigne' in page:
+                aides_consigne(pg, titre, l, h)
             elif 'test=tuto-menu' in page:
                 tuto_menu(pg, titre, l, h)
             elif 'test=tuto' in page:

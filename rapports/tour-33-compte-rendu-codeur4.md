@@ -72,3 +72,26 @@ Ce que je n'ai pas pu vérifier :
 - La leçon 7 utilise le championnat de la sauvegarde. Si on y touche l'aileron, le cran est gardé dans la carrière.
 
 Réévalue.
+
+---
+
+TOUR 33e — le petit ordre du Chef (branche codeur4, partie de main 700eab9)
+
+Commit : ce5d278. Passage GitHub 40602729981 : les 12 travaux sont verts (ecrans 375/375, 326/326, 314/314, 357/357).
+
+Ordres :
+1. La visite (leçon 7) ne laisse rien dans la carrière : fait.
+   - TUTORIEL_ECRAN copie le championnat de la sauvegarde avant que la page ne démarre : interface.js se charge avant principal.js, la copie est donc prise avant toute écriture.
+   - Elle le remet à la fin de la leçon réussie, avant l'étoile (qui est à la racine, à côté du championnat), et au `pagehide` : leçon passée, quittée ou rechargée. Elle le remet aussi en mémoire (JEU.championnat).
+   - Une sauvegarde sans carrière reste sans carrière.
+   - Tests (?tutoriel=visite) : on pose une carrière (graine 7), on change les pneus du départ et l'aileron, puis :
+     - leçon réussie (1280) : la sauvegarde et la mémoire sont exactement comme avant ;
+     - page quittée en cours de route (960) : la sauvegarde est exactement comme avant, sans étoile.
+2. Les aides de la consigne d'équipe et des contrats testées dans la page : fait, avec ?test=aides-consigne en 960 et 1280.
+   - Contrats : l'écran est ouvert par montrerContrats. La bulle a son texte, tient en 2 lignes et ne touche ni les boutons, ni les offres, ni le titre. Un clic la ferme, l'aide est vue, et elle ne revient pas.
+   - Consigne : une vraie course du championnat, avec la consigne posée comme dans consigne_ecran. Le robot a été suivi image par image : la bulle s'affiche en ligne droite (42 images), attend dans les virages et n'est jamais affichée hors d'une ligne droite.
+   - Aucun point du couloir devant la voiture n'est sous la bulle : 0 sur 135 (93 % des points gris de route en 960, 96 % en 1280).
+   - Quand la consigne a sa réponse, la bulle se ferme et l'aide est vue.
+   - Captures : aide-contrats.png, aide-consigne.png, aide-consigne-960.png.
+
+Aucun test retiré. Rien n'a changé hors de mes blocs.
