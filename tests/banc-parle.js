@@ -27,6 +27,11 @@ const BANC_PHRASES = [
   ['et notre duel ?', 'DUEL'], ['on en est où dans notre duel ?', 'DUEL'], ['what about our duel?', 'DUEL'],
   // les contrats (le patron, pas le pilote)
   ['je veux une augmentation', 'SALAIRE'], ['i want a pay rise', 'SALAIRE'], ['je veux être premier pilote', 'STATUT'], ['make me number one driver', 'STATUT'],
+  // avec les patrons (tour 35) : le budget, les consignes, le statut, le salaire, la confiance
+  ['il me faut plus de budget pour la voiture', 'BUDGET'], ['je veux un nouvel aileron', 'BUDGET'], ['i need more budget', 'BUDGET'], ['can we upgrade the car?', 'BUDGET'],
+  ['parlons des consignes d’équipe', 'CONSIGNE'], ['pourquoi cette consigne ?', 'CONSIGNE'], ['what about team orders?', 'CONSIGNE'], ['no more team orders please', 'CONSIGNE'],
+  ['je veux être premier pilote', 'STATUT'], ['i want to be the lead driver', 'STATUT'], ['je veux un meilleur salaire', 'SALAIRE'], ['i want more money', 'SALAIRE'], ['je veux 80000', 'SALAIRE'],
+  ['tu me fais confiance ?', 'AVIS'], ['does the team trust me?', 'AVIS'],
   // oui, non
   ['ok', 'ACCORD'], ['ouais vas y', 'ACCORD'], ['d’accord', 'ACCORD'], ['deal', 'ACCORD'], ['yes', 'ACCORD'],
   ['nan', 'REFUS'], ['pas question', 'REFUS'], ['no way', 'REFUS'], ['jamais de la vie', 'REFUS'], ['no', 'REFUS'],

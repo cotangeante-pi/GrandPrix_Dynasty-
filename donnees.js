@@ -194,6 +194,25 @@ const REGLAGES = {
   CONTRAT_POIDS_DUEL: 0.3,
   CONTRAT_POIDS_CONFIANCE: 0.1,
   CONTRAT_EXIGENCE_MAX: 0.85,
+  // les salaires et la négociation des contrats avec les patrons (patrons.js, tour 35) ; CONTRAT_SALAIRES_ACTIFS faux : aucun salaire
+  CONTRAT_SALAIRES_ACTIFS: true,
+  CONTRAT_SALAIRE_MIN: 20000,       // le salaire d'une saison (versé à la signature) dans la plus faible écurie…
+  CONTRAT_SALAIRE_MAX: 150000,      // … et dans la meilleure (entre les deux : selon le rang de l'écurie)
+  CONTRAT_NEGO_FACTEUR: 0.6,        // le bonus de salaire qu'un patron peut accepter = ce facteur × son envie de t'avoir (ta note − son exigence…)…
+  CONTRAT_NEGO_MAX: 0.25,           // … jamais plus de +25 % du salaire de base
+  CONTRAT_NEGO_EXCES: 2,            // une demande de plus de 2 fois ce qu'il peut : refusée net (sinon, une contre-offre)
+  CONTRAT_NEGO_REFUS_MAX: 3,        // au 3e refus, il ferme la négociation (l'offre reste, au salaire de base)
+  PATRON_POIDS_REPUTATION: 0.2,     // ta réputation auprès des sponsors pèse ça dans son envie (−0,1 à +0,1)…
+  PATRON_POIDS_RELATION: 0.1,       // … et votre relation, ça
+  PATRON_ENVIE_FORTE: 0.2,          // au-dessus : il te veut vraiment (il le dit)
+  PATRON_ECART_RESULTATS: 2,        // ton patron : tu es « au-dessus » de ce qu'on attend si tu es 2 places mieux que le rang de l'écurie (ou en dessous)
+  PATRON_CONFIANCE_HAUTE: 65,       // la confiance de l'écurie (0 à 100) : haute au-dessus…
+  PATRON_CONFIANCE_BASSE: 35,       // … basse en dessous
+  PATRON_CONFIANCE_INSULTE: 3,      // insulter ton patron : la confiance baisse de ça
+  PATRON_STATUT_ECART: 3,           // premier pilote : il faut mener le duel contre ton coéquipier d'au moins 3 points…
+  PATRON_STATUT_CONFIANCE: 55,      // … et une confiance d'au moins ça
+  PATRON_BUDGET_CONFIANCE: 55,      // un coup de pouce pour la voiture, une fois par saison, si tu fais mieux que prévu et avec cette confiance…
+  PATRON_BUDGET_MONTANT: 25000,     // … de ce montant (crédité au solde : à dépenser au garage)
   CONFIANCE_DEPART: 50,         // la confiance de l'écurie (0 à 100), fixe tant que les consignes d'équipe n'existent pas
   // les rivaux qui évoluent, entre deux saisons
   AGE_DEPART: [21, 36],         // l'âge des 19 pilotes à la création (tiré)
@@ -407,6 +426,10 @@ const REGLAGES = {
   DISCUSSION_CONFIANCE: 2,          // insulter son coéquipier : la confiance de l'écurie baisse de ça au plus
   DISCUSSION_SEUIL_PASSER: 0.6,     // « laisse-moi passer » : accepté si sa note (relation, prudence, coéquipier, promesse) atteint ça
   DISCUSSION_POIDS_PROMESSE: 0.4,   // … et « je te rendrai la pareille » ajoute ça à la note
+  DISCUSSION_PAS_GP: 12,            // (tour 36d) … et ne bouge pas de plus de ça sur un même Grand Prix, tous messages compris (la relation change lentement)
+  DISCUSSION_SOUVENIRS: 6,          // (tour 36d) il garde ses 6 derniers moments marquants (insulte, menace, compliment, excuse, paix), sur plusieurs Grands Prix
+  PARLE_FLOU: 0.8,                  // (tour 36d) parle.js : un mot inconnu n'est lu comme un mot du lexique que s'il lui ressemble à ce point (avant : 0,66 ; « monkey » devenait « money », un salaire)
+  DISCUSSION_DOUX: 0.35,            // (tour 36d) une agressivité d'au plus ça : il parle doux (les variantes _doux) ; au moins DISCUSSION_FOUGUEUX : sec (_vif)
   DISCUSSION_PAR_GP: 8,             // au plus ce nombre de messages à un même pilote par Grand Prix (ensuite il est occupé)
   DISCUSSION_MEMOIRE: 12,           // il se souvient des 12 derniers messages (compact : l'acte, la saison, le Grand Prix)
   DISCUSSION_MENACE_COURSES: 2,     // une menace sans suite pendant ce nombre de courses : du crédit perdu (il te le dira)…
@@ -415,10 +438,14 @@ const REGLAGES = {
   // le courrier des pilotes (courrier-pilotes.js) : ils écrivent d'eux-mêmes après les faits
   COURRIER_PAR_GP: 3,               // au plus 3 messages par Grand Prix (les plus urgents)
   COURRIER_OUBLI: 4,                // un même sujet ne revient pas chez le même pilote avant 4 Grands Prix
+  COURRIER_AGE_MAX: 3,              // (tour 36d) un message de plus de 3 Grands Prix s'efface (les messages lus s'effacent au Grand Prix suivant)
+  COURRIER_NON_LUS_MAX: 6,          // (tour 36d) jamais plus de 6 messages non lus dans la boîte (les plus récents restent)
   COURRIER_MAX: 20,                 // la boîte garde les 20 derniers messages
   COURRIER_DUEL_NET: 3,             // ton coéquipier t'écrit quand le duel de la saison penche d'au moins ça
   COURRIER_LEADER_DES: 3,           // le leader du championnat te nargue à partir du 3e Grand Prix
   COURRIER_AGE_VIEUX: 36,           // un pilote de cet âge (AGE_RETRAITE) qui t'aime bien t'écrit un mot, une fois
+  COURRIER_PATRON_DES: 6,           // les patrons t'écrivent à partir du 6e Grand Prix de la saison (une meilleure écurie qui te veut ; ton patron déçu)…
+  COURRIER_PATRON_MARGE: 0.05,      // … une meilleure écurie t'écrit si ta note est à moins de ça de son exigence
   // les décors des 12 circuits (decors-officiels.js) : rien à moins de cette distance du bord de la voie des stands (m), sauf le bâtiment
   // des stands lui-même, qui reste derrière la voie ; le reste du décor est au-delà de la barrière (DISTANCE_BARRIERE)
   DECOR_MARGE_STANDS: 2,
