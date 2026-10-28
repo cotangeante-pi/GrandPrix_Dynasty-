@@ -32,6 +32,8 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 ## Tour en cours
 
 **2026-10-27 15h55 : le propriétaire : « travaille sur le projet jusqu'à minuit, on est à 11 % … n'attends pas les tests pour pouvoir passer à une autre étape »** → tour 32 (rapports/tour-32-rapport.md) : les 12 tracés branchés, l'usure réglée et les pneus par défaut, le duel côte à côte (Codeur 1) ; les décors des 12 tracés, Monoco en détail (Codeur 2) ; la grande passe interface et le paddock (Codeur 3). Fin à minuit.
+**Journée du 2026-10-27 figée à minuit sur main vert (code de 6afc311, GitHub 40624145285, 91/100). Reprise : rapports/fin-2026-10-27.md.**
+
 **Journée du 2026-10-26 finie à 20h30 sur main vert (88/100). Reprise : rapports/fin-2026-10-26.md.**
 **2026-10-26 16h50 : le propriétaire : « relance les 3 codeurs jusqu'à 24h »** : tour 31 (rapports/tour-31-rapport.md) : Codeur 1 la suite GitHub en parallèle puis les IA sur les 12 tracés en simulation ; Codeur 2 le résumé vidéo (étape 13) ; Codeur 3 la photo de la une. Fin à minuit (23h40 / 23h50 / 23h55).
 **Reprise du soir figée à 21h40 sur main vert (86/100) : consignes d'équipe, volant, déblocages, paquet Poki. Voir rapports/fin-2026-10-24.md.**
@@ -85,6 +87,7 @@ Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤
 | 2026-10-24 | 461ef97 | 84 | 12 | 19 | 15 | 15 | 10 | 10 | 3 |
 | 2026-10-24 soir | 55c99c1 | 86 | 12 | 19 | 15 | 15 | 10 | 10 | 5 |
 | 2026-10-26 | 97f1fdb | 88 | 12 | 19 | 15 | 15 | 12 | 10 | 5 |   (corrigé à minuit : l'interface plafonne à 15, le Chef avait dépassé le barème)
+| 2026-10-27 | 6afc311 | 91 | 13 | 19 | 15 | 15 | 14 | 10 | 5 |   (conduite +1 : la pluie et le choix des pneus ; 3D et perf +2 : décors des 12 tracés, nuit, pluie dessinée, vraies caméras, drone, pont ; course et IA reste à 19 : le duel n'est pas tenu ; 3D et perf pas à 15 : 60 images par seconde pas encore mesurées au calme)
 
 Note du Chef session-5b (2026-10-23) : les lignes 18 à 19b ne s'additionnaient pas (19 + 19b : 12 + 16 + 6 + 12 + 9 + 10 + 2 = 67, noté 62 ; 18 : 63 noté 60). Les axes sont justes, c'est le total qui était faux ; depuis la ligne 21b, le total est la somme des axes. Le saut de 62 à 68 vient de cette correction, pas d'un progrès.
 
