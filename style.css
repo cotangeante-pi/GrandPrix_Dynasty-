@@ -1285,3 +1285,24 @@ body.deux.cote #boutonSon { top: auto; bottom: 12px; right: 12px; }   /* (côte 
 #courrierListe span.texte { grid-area: texte; }
 #courrierListe button { grid-area: bouton; min-width: 0; padding: 6px 12px; }
 #courrierListe .pastille { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
+
+/* le paddock en 960×600 (tour 35d, Codeur 4, vu par tests/saison.py) : en français la rangée des boutons débordait des deux côtés
+   (« Course suivante », « Arbre de la dynastie »), et après un Grand Prix (la prévision sur deux lignes, les points gagnés, le courrier)
+   le paddock dépassait en haut et en bas, les boutons du coin passaient sur « Course suivante » ; on serre, rien ne change en 1280×720 */
+@media (max-width: 1100px) {
+  #paddockBoutons { gap: 8px; }
+  #paddockBoutons button, #paddockBoutons button.petit { padding: 8px 8px; font-size: 12px; }
+  #paddockBoutons #boutonCourseSuivante { padding: 9px 12px; font-size: 14px; }
+  .paddockGroupe > div { gap: 4px; }
+}
+@media (max-height: 680px) {
+  #championnat { gap: 6px; padding: 6px 16px 30px; }
+  #paddock { gap: 8px; }
+  #paddockProchain { gap: 2px; padding: 6px 10px; }
+  #paddockProchain h1 { font-size: 18px; }
+  #prevision { margin: 0 0 2px; font-size: 14px; }
+  #paddockCarte { height: min(150px, 17vh); }
+  #paddockMoi { gap: 3px; padding: 6px 10px; }
+  #paddockMoi p { font-size: 12px; }
+  #championnat .coinPaddock { bottom: 4px; padding: 3px 10px; font-size: 11px; }
+}

@@ -777,7 +777,7 @@ function niveauEcurieJoueur() {
 // ?championnat=1 : l'écran entre les courses ; gagne : les points du Grand Prix qui vient de finir (null au démarrage)
 function montrerChampionnat(gagne) {
   PODIUM3D.cacher();
-  INTERFACE.remplirChampionnat(JEU.championnat, gagne, texte('circuit_' + NOM_CIRCUIT) || CIRCUIT.nom);   // les circuits d'essai ont leur texte ; les autres gardent leur nom
+  INTERFACE.remplirChampionnat(JEU.championnat, gagne, texte('circuit_' + circuitProchain()) || (CIRCUITS[circuitProchain()] || CIRCUIT).nom);   // le prochain Grand Prix (tour 35d : après une course, le titre gardait le circuit qu'on venait de courir) ; les circuits d'essai ont leur texte
   INTERFACE.remplirDuel(CHAMPIONNAT.scoreDuel(JEU.championnat), JEU.championnat);
   INTERFACE.remplirSolde(JEU.championnat);
   INTERFACE.remplirRappelSponsor(JEU.championnat);
