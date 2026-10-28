@@ -1911,6 +1911,9 @@ function demarrerJeu() {
   window.addEventListener('keydown', e => { if (e.code === 'KeyM' && !e.repeat && !(e.target && e.target.tagName === 'INPUT' && e.target.type === 'text')) { SON.basculer(); majBoutonSon(); } });
   if (PARAMETRES.get('reglages') === '1') PANNEAU_REGLAGES.creer(cle => { if (cle === 'HALO_EPAISSEUR') VOITURE3D.majHalo(JEU.modele); });
 
+  // (tour 37d, Codeur 4 : en piste en 10 secondes) pendant les feux, la boucle rattrape le temps réel (PAS_MAX_FEUX) : un ordinateur
+  // lent ne fait plus durer les feux 20 s au lieu de 7 ; relu à chaque pas, le plafond normal revient au pas même de l'extinction
+  BOUCLE.reglerPlafond(() => (JEU.ecran === 'course' && JEU.course && JEU.course.feux && JEU.course.etat === 'compte' && (!JEU.plateau || JEU.plateau.carte)) ? REGLAGES.PAS_MAX_FEUX : REGLAGES.PAS_MAX_PAR_IMAGE);
   BOUCLE.surPhysique(pasJoueur);
   BOUCLE.surAffichage((alpha, dt) => {
     JEU.alpha = alpha;

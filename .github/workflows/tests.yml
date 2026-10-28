@@ -37,6 +37,7 @@ jobs:
           - { nom: annexes, partie: annexes }
           - { nom: paquet, partie: paquet }
           - { nom: saison, partie: saison }   # la carrière entière jouée par le robot (tests/saison.py, Codeur 4)
+          - { nom: premier, partie: premier }   # le premier lancement : clic → feux, médiane de 3 essais (tests/premier.py, Codeur 4)
     steps:
       - uses: actions/checkout@v4
 
