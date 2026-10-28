@@ -14,7 +14,7 @@ t('36d : deux idées dans une phrase : l’idée forte (après « mais ») et la
   v(!r.length, r.join(' ; '));
   const ch = nouveau(), k = rival(ch, 0.3); gpCouru(ch);
   const rep = DISCUSSION.dire(ch, k, 'gg mais pk tu m’as bloqué');
-  v(rep.reactions.length === 2 && rep.reactions[0].startsWith('flatte') && rep.reactions[1].startsWith('reclamation'), JSON.stringify(rep.reactions));
+  v(rep.reactions.length === 2 && rep.reactions[0].startsWith('reclamation') && rep.reactions[1].startsWith('flatte'), JSON.stringify(rep.reactions));
   L.push('  (« gg mais pk tu m’as bloqué » → « ' + rep.texte + ' »)');
 });
 t('36d : une phrase incomprise reçoit une réponse naturelle qui demande de reformuler, jamais un faux sens', () => {
