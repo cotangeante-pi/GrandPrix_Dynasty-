@@ -1245,7 +1245,7 @@ def commentaire_ecran(pg, titre):
       return vu; }''')
     t(f'{titre} : le commentateur se règle dans le menu pause (tout, tes faits, coupé ; sauvegardé)', r[2] == 'joueur' and r[4] == 'non' and len(set([r[0], r[1], r[3]])) == 3, str(r))
     pg.wait_for_timeout(9000)
-    coupe = pg.evaluate('() => !/🎙/.test(document.getElementById("messageCourse").textContent)')
+    coupe = pg.evaluate('() => { const el = document.getElementById("messageCourse"); return el.classList.contains("cache") || !/🎙/.test(el.textContent); }')   # (le bandeau caché garde son dernier texte)
     t(f'{titre} : coupé, le commentateur ne dit plus rien', coupe, pg.evaluate('() => document.getElementById("messageCourse").textContent'))
 # la réalisation télé (regie.js) dans le vrai jeu, à Monoco : en vue télé, la caméra est un vrai poste du décor (sa place ne bouge
 # pas, elle voit la voiture), puis l'hélicoptère (dans ses hauteurs) ; les mâts des caméras coûtent un appel de dessin au plus
