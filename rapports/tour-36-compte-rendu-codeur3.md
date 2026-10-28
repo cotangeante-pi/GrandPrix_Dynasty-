@@ -49,3 +49,12 @@ Commits :
 - Le tour exact d'un contact n'est pas gardé par le moteur. Il le dit honnêtement.
 
 Réévalue.
+
+## Suite : les 4 défauts relus par le Chef — commit dcc0908 (40622256363), puis 50e3eb0 (40623126053). Les deux sont verts, et le second contient tout codeur4.
+1. **Une raison s'accroche à la question** : une réponse à un reproche de contact (CONTACT, RECLAMATION) n'ajoute plus « Pas après ce qui s'est passé à … ».
+2. **Jamais un fait faux sur les points** : si la dernière course a donné des points différents mais que les points du championnat sont égaux (des points pas encore comptés, comme dans le banc), il ne parle pas des points. Le test vérifie : jamais « mêmes points » dans ce cas, et avec de vrais points différents, « devant » et pas « égalité ».
+3. **L'idée forte après « mais » d'abord** : « gg mais tu m'as fermé la porte » donne la réclamation, puis le merci. Le test 36d du Codeur 4 a été adapté à ce nouvel ordre, avec son accord.
+4. **L'au revoir suit toute la conversation** : on compte les réactions bonnes et mauvaises. Le fougueux qui a refusé tes excuses et ri de ta demande finit par un au revoir froid, « Pas ma conversation préférée ». Le calme finit bien. C'est testé.
+- **Les contractions anglaises** de mon bloc : don't, that's, I'll, hasn't, haven't, we've, didn't, we'll, it's.
+- **Une même tournure** n'apparaît plus nulle part dans les 3 dernières réponses, plus seulement au début. C'était le « Ça, c'est sympa. Merci. » des échanges 7 et 9.
+- **Le banc** : 61 sur 61 avec osascript, avec les tests du Codeur 4. Aucun test retiré.
