@@ -82,6 +82,8 @@ const SCENE3D = (function () {
     }
     // les effets de conduite (effets3d.js, tour 37) : la fumée et les étincelles, un appel de dessin chacun (aucun s'ils sont vides)
     if (typeof EFFETS3D !== 'undefined') EFFETS3D.init(scene);
+    // la trajectoire conseillée (conseil.js, tour 39) : un ruban sur la piste devant le joueur, un appel de dessin
+    if (typeof CONSEIL !== 'undefined') CONSEIL.init(scene);
 
     redimensionner();
     window.addEventListener('resize', redimensionner);
