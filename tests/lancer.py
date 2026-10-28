@@ -96,7 +96,7 @@ def premier(delai=900):
     return p.returncode == 0
 
 # les recoins que saison.py ne visite pas (tests/recoins.py, tour 38d, Codeur 4) : 2 joueurs, tournoi, fin de carrière, écrans, tutoriel
-# (sur GitHub, en deux tranches : RECOINS=deux,tournoi et RECOINS=fin,ecrans,tuto, voir tests.yml)
+# (sur GitHub, en trois tranches de 8 min au plus : RECOINS=deux,tournoi,tailles-jeux ; fin,tailles-carriere ; ecrans,tuto avec premier, voir tests.yml)
 def recoins(delai=2400):
     t0 = time.monotonic()
     p = subprocess.Popen([sys.executable, os.path.join(RACINE, 'tests', 'recoins.py')], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True)

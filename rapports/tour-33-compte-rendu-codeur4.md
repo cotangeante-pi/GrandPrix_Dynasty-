@@ -401,3 +401,35 @@ Ce que la chasse a trouvé :
 autres (le bilan compte les saisons vraiment jouées).
 Ce que je n'ai pas vérifié : 1280×720 (seulement 960×600, comme saison.py).
 Réévalue.
+
+TOUR 39d — compte rendu du Codeur 4 (les grandes tailles, 1280×720 et 1920×1080 ; branche codeur4 partie de main 7739942)
+Commit : 067ff06 — passage GitHub 40774317298 vert, 16 travaux sur 16 (aucun travail de plus)
+Ordres : 1 fait / 2 fait (rien à corriger) / 3 fait
+
+1. tests/recoins.py a deux parties de plus, jouées en 1280×720 et en 1920×1080, en fr et en en (la machinerie de saison.py, Carriere.jouer) :
+   - tailles-carriere : le premier lancement (titre → découverte → Bravo → création), le Grand Prix 1 joué par le robot (qualification,
+     course, podium, résultats, interview, une ; au paddock garage, courrier, discussion) jusqu'au départ du Grand Prix 2, puis le paddock
+     et tous ses écrans (calendrier, album, fiche → discussion, arbre, Mon casque, sponsors, courrier) et le menu pause avec ses réglages ;
+   - tailles-jeux : une course à deux (réglages, deux claviers, podium, rivalité, Menu) et un tournoi ⚡ Éclair (inscription, 3 passages,
+     podium, classement final, égalité départagée).
+2. Le relevé (console, textes cassés, clés manquantes, boutons vides / hors de l'écran / qui débordent / qui se recouvrent, défilement,
+   clics impossibles, blocages) : rien en 1280×720 ni en 1920×1080, en fr comme en en. Aucune correction de l'interface ni du CSS n'a été
+   nécessaire.
+3. Les durées (avant : recoins-2 à 546 s avec les grandes tailles) : découpé en trois tranches dans les 16 travaux. recoins-1 = deux,
+   tournoi, tailles-jeux (409 s) ; recoins-2 = fin, tailles-carriere (431 s) ; le travail « premier » fait aussi ecrans et tuto
+   (`partie: premier recoins`, 113 s). Le plus long travail du passage est saison (450 s). Tous restent sous 8 minutes.
+Ce que je n'ai pas vérifié : la carrière entière aux grandes tailles (pas demandé) ; la fin de carrière en 1280 et 1920.
+Réévalue.
+
+TOUR 39d, suite — l'instabilité de recoins-1 (« deux en 960×600 : #boutonPasser pas visible »)
+Commits : 40d9488 et 6d0459e, fusionnés sur main (passage GitHub 40777441893 vert)
+La cause : une course entre le test et le jeu, pas un bug du jeu. Le bandeau d'attente et « passer » s'affichent à l'image même qui crée
+l'attente, mais la boucle continuait en temps réel pendant que Playwright cherchait le bouton ; à deux avec 3 IA, les dernières IA arrivaient
+juste derrière les joueurs, le podium venait (finirAttente cache le bandeau) et le clic tombait sur un bouton caché. saison.py
+(chasse.py, Carriere.pas) cliquait de la même façon.
+La correction (recoins.py, rouler ; chasse.py, Carriere.pas) : la boucle est arrêtée le temps de vérifier et de cliquer, puis elle repart.
+« passer » doit toujours être visible : sinon, c'est un défaut noté (« « passer » absent ») et le test échoue. Le saut silencieux au podium
+(passerAuPodium quand le bouton manquait) ne cache donc plus un vrai défaut.
+Un second test fragile, trouvé en lançant 3 fois « deux » sur le Mac : « les deux claviers en même temps » (2 sur 3 en échec : W et ↑ tenus
+1,5 s réelles ne donnaient que 0,88 m/s à 3 images/s). Les touches sont maintenant tenues pendant 1 s de jeu, la boucle arrêtée ; chaque
+voiture doit gagner plus de 2 m/s. Le test ne dépend plus de la vitesse de la machine.
