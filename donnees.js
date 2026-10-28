@@ -84,6 +84,42 @@ const REGLAGES = {
   },
   SON_VOLUME_SIGNAL: 0.25,
   SON_LISSAGE: 0.03,            // s : le son rejoint sa nouvelle valeur en ce temps (pas de clics)
+  // les sensations de conduite (tour 37, sensations.js, son.js, effets3d.js, camera.js) : le son et l'image seulement,
+  // rien ne change dans la physique ; tout se coupe dans le menu pause (« Effets de conduite », sauvegardé)
+  SENSATIONS_VITESSE_MIN: 3,       // m/s : en dessous, ni vibreur ni herbe (la voiture roule au pas)
+  SENSATIONS_DEMI_VOIE: 0.8,       // m : du milieu de la voiture à ses roues (une roue sur le vibreur suffit)
+  SENSATIONS_VIBREUR_PLEIN: 0.3,   // m de roue sur le vibreur pour la pleine vibration
+  SENSATIONS_GLISSE: [0.08, 0.2],  // rad : la dérive où la glisse commence et celle où elle est pleine
+  SENSATIONS_BLOCAGE_FREIN: 0.85,  // le frein au-delà duquel les roues avant sont au bord du blocage…
+  SENSATIONS_BLOCAGE_VITESSE: 14,  // … au-dessus de cette vitesse (m/s)
+  SENSATIONS_BLOCAGE_DROIT: 0.35,  // … à moitié en ligne droite (0 à 1), plein en braquant de…
+  SENSATIONS_BLOCAGE_BRAQUAGE: 0.5,   // … cette part du volant
+  SON_PASSAGE_DUREE: 0.06,         // s : la coupure du passage d'un rapport (puis la note tombe d'elle-même : boite.js)
+  SON_PASSAGE_CHUTE: 0.25,         // le volume du moteur pendant la coupure (1 = rien ne change)
+  SON_VOLUME_VIBREUR: 0.35,        // le grondement des vibreurs…
+  SON_VIBREUR_FREQUENCE: [35, 140],   // … Hz : ses bornes (il suit les bandes qui passent sous les roues)
+  SON_VOLUME_HERBE: 0.18,          // le grondement sourd de l'herbe
+  SON_VOLUME_BLOCAGE: 0.3,         // le crissement d'un freinage au blocage
+  SON_BLOCAGE_FREQUENCE: 1700,     // Hz : plus grave que la dérive
+  SON_VOLUME_ASPIRATION: 0.22,     // le souffle de l'aspiration, derrière une voiture
+  SON_VOISIN_DISTANCE: 60,         // m : on entend la voiture la plus proche à moins de ça…
+  SON_VOLUME_VOISIN: 0.3,          // … à ce volume tout près
+  SON_VITESSE_SON: 343,            // m/s : l'effet Doppler (la note monte quand elle approche, descend quand elle part)
+  SON_VOLUME_PLUIE: 0.12,          // la pluie sur la carrosserie, pluie pleine
+  SECOUSSE_VIBREUR: 0.02,          // m : la secousse de la caméra sur le vibreur (très légère)…
+  SECOUSSE_CHOC: 0.09,             // … et au choc…
+  SECOUSSE_CHOC_DUREE: 0.18,       // … qui s'éteint en ce temps (s)
+  CHAMP_HAUTE_VITESSE: [75, 90, 3],   // le champ de vision s'ouvre de 0° à 75 m/s (270 km/h) jusqu'à 3° de plus à 90 m/s (324 km/h)
+  FUMEE_MAX: 160,                  // les fumées (blocage, herbe) : au plus tant de bouffées à la fois (un seul appel de dessin)
+  FUMEE_PAR_SECONDE: 45,           // bouffées par seconde et par voiture, effet plein
+  FUMEE_VIE: [0.7, 1.4],           // s : la vie d'une bouffée (blocage, herbe)
+  FUMEE_DISTANCE: 150,             // m : pas de fumée pour une voiture plus loin de la caméra
+  COULEUR_FUMEE: 0xd9d9d9,
+  COULEUR_POUSSIERE: 0x9a8a5c,     // l'herbe et la terre soulevées
+  ETINCELLES_MAX: 120,             // les étincelles des contacts (un seul appel de dessin)
+  ETINCELLES_PAR_CONTACT: 18,
+  ETINCELLE_VIE: 0.35,             // s
+  COULEUR_ETINCELLE: 0xffc04a,
 
   // la course seule (étape 3)
   LONGUEURS_COURSE: { tresCourte: 5, moyenne: 12, longue: 18 },   // nombre de tours ; 0 = essai libre
