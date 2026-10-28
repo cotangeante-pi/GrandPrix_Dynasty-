@@ -242,3 +242,8 @@ Ce qui sent encore le robot, à mon avis :
 - les points au championnat sont égaux à 0 dans ces bancs, car le Grand Prix est fabriqué sans points : « On a exactement les mêmes points » arrive donc souvent ;
 - « Ça, c est sympa. Merci. » ouvre deux réponses de suite au même compliment (avant la correction des ouvertures du Codeur 3, eeef707) ; dans la version imprimée ci-dessus, la 2e réponse ouvre bien sur une autre tournure ;
 - le coéquipier calme ne parle pas encore de la consigne ni du duel de lui-même : il ne fait que répondre.
+
+Ajouts de fin de soirée (tour 36d) :
+- **L'anglais parlé est contracté** (demande du Chef, 22h30) : dans les en.dis_* d'origine, dans mon bloc et dans les en.courrier_* des pilotes, « I am », « Do not », « It is », « will not »… deviennent « I’m », « Don’t », « It’s », « won’t ». Les cinq « I’ll not » produits par la règle sont devenus « I won’t ». « (you first) » est reformulé en « you X, me Y », et en français « toi X, moi Y ». Un test du banc le vérifie. Il n'exclut qu'une clé, l'insistance d'un patron : « That cannot happen again. ». Le Codeur 3 contracte lui-même les clés de son bloc.
+- **La place demandée** : `demandePlace` dans parle.js (« t'as fini combien », « what place did you get »). Le Codeur 3 y répond par la place (etat_place).
+- Une correction à ma note sur les conversations plus haut : les deux réponses « flatte » qui ouvraient pareil étaient aux échanges 7 et 9, pas à la suite. Avec eeef707 (les 3 dernières ouvertures évitées), l'échange 9 ouvre sur « Venant de toi, ça compte. ».
