@@ -221,6 +221,9 @@ const CHAMPIONNAT = (function () {
     const crans = typeof AILERON !== 'undefined' && e.circuit ? AILERON.cransIA(ch, e.circuit) : null;
     // (l'effet sur les voitures des IA attend AILERON_IA_ACTIF : voir donnees.js ; le cran est choisi et gardé quand même)
     if (crans) e.pilotes.forEach((p, k) => { if (ch.pilotes[k] && !p.humain && crans[k] !== null) { if (REGLAGES.AILERON_IA_ACTIF) AILERON.appliquer(p.v, crans[k]); p.aileron = crans[k]; } });
+    // la disposition promise en discussion (discussion.js, p.disposition { type, saison, gp, cible }) : pour ce Grand Prix seulement
+    // (le prochain : ch.resultats.length + 1) ; une disposition passée ne compte plus (simulation.js, donnerCarte ; ia.js)
+    e.dispositions = ch.pilotes.map(p => { const d = p.disposition; return d && d.saison === ch.saison && d.gp === ch.resultats.length + 1 && (d.type === 'laisser' || d.type === 'bloquer') ? { type: d.type, cible: d.cible } : null; });
     e.pilotes.forEach((p, k) => {
       const pilote = ch.pilotes[k];
       if (!pilote || p.humain || p.rythmeBase !== undefined) return;
