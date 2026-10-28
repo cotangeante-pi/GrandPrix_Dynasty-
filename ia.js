@@ -549,7 +549,7 @@ function noterLigne(pilote, v, voisines, s0, t, type) {
   // son freinage : la marge habituelle, son style et son rythme (un pilote plus rapide freine plus près de la limite) ;
   // en attaque, il ose le freinage complet. Son rythme moyen, pas celui du tour : un freinage qui change d'un tour à
   // l'autre surprend celui qui le suit (tour 16 : 9 chocs au lieu de 6 sur les 30 courses)
-  const frein = R.IA_MARGE_FREIN * pilote.rythme * (pilote.attaque && pilote.attaque.etat !== 'preparer' ? R.IA_ATTAQUE_FREIN : pilote.style.frein) * (v.adhMeteo || 1);   // (sur le mouillé, il freine plus tôt : × l'adhérence de la météo, 1 au sec)
+  const frein = R.IA_MARGE_FREIN * pilote.rythme * (pilote.attaque && (pilote.attaque.etat !== 'preparer' || pilote.attaque.proche) ? R.IA_ATTAQUE_FREIN : pilote.style.frein) * (v.adhMeteo || 1);   // (sur le mouillé, il freine plus tôt : × l'adhérence de la météo, 1 au sec)
   for (let i = N - 2; i >= 0; i--) {
     const ds = Math.hypot(x[i + 1] - x[i], z[i + 1] - z[i]);
     vb[i] = Math.min(vb[i], Math.sqrt(vb[i + 1] * vb[i + 1] + 2 * frein * freinagePossible(vb[i + 1]) * ds));
@@ -914,6 +914,7 @@ function majAttaque(pilote, v, vues, dt) {
   if (a.etat === 'preparer') {
     if (g > R.IA_ATTAQUE_ECART_TEMPS * Math.max(v.u, R.IA_VISEE_MIN)) return finirAttaque(pilote, false, 'échappée g ' + g.toFixed(1) + ' u ' + v.u.toFixed(0));   // elle s'est échappée
     const f = prochainFreinage(carte, p.s);
+    a.proche = !!R.IA_PREPARER_FREINE_TARD && g < R.IA_DECALAGE_ECART && pilote.parcouru > R.IA_PREPARER_APRES;   // (duel-2 : tout près d'elle, il ose déjà le freinage de l'attaque, noterLigne)
     // tout près, ou en train de fondre sur elle au freinage (il voudrait aller nettement plus vite qu'elle)
     const ligne = pilote.ligne, r = ligne ? ((p.s - ligne.s0) % c.longueur + c.longueur) % c.longueur : 0;
     const fond = ligne && valeurLigne(ligne.v, r) - w.vitesse > R.IA_RAPPROCHEMENT;
@@ -1043,7 +1044,7 @@ function piloterIA(pilote, v, vues, dt) {
     // (duel-2, IA_PREPARER_LIBRE : en préparant son attaque, il n'est plus retenu à IA_DISTANCE_ATTAQUE derrière la voiture visée, seulement à
     // IA_DISTANCE_MIN ; et tant qu'elle ne freine pas, il freine sur sa propre ligne : tour 33, l'attaquant décrochait, 52 % du temps en virage
     // sans plein gaz, et freinait 22 m derrière elle avant elle)
-    const libreAttaque = R.IA_PREPARER_LIBRE && a && a.etat === 'preparer' && w.id === a.id;
+    const libreAttaque = R.IA_PREPARER_LIBRE && a && a.etat === 'preparer' && w.id === a.id && pilote.parcouru > R.IA_PREPARER_APRES;   // (pas dans le premier virage : tout le monde y est serré)
     const suivi = libreAttaque ? R.IA_DISTANCE_MIN : sillage ? R.IA_DISTANCE_ATTAQUE : pilote.parcouru < R.IA_DEPART_LANCEMENT ? R.IA_DISTANCE_MIN : R.IA_DISTANCE_SUIVI;
     // (aileron, Codeur 1 : derrière une voiture qui n'a pas le même aileron que lui — ça se voit —, elle ne freine pas aux mêmes
     // endroits ni pareil : quand elle freine (sa vitesse qui baisse, ses feux), il prévoit qu'elle ralentira encore pendant IA_FREIN_PREVU s ;
