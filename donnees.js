@@ -407,6 +407,9 @@ const REGLAGES = {
   DISCUSSION_CONFIANCE: 2,          // insulter son coéquipier : la confiance de l'écurie baisse de ça au plus
   DISCUSSION_SEUIL_PASSER: 0.6,     // « laisse-moi passer » : accepté si sa note (relation, prudence, coéquipier, promesse) atteint ça
   DISCUSSION_POIDS_PROMESSE: 0.4,   // … et « je te rendrai la pareille » ajoute ça à la note
+  DISCUSSION_PAS_GP: 12,            // (tour 36d) … et ne bouge pas de plus de ça sur un même Grand Prix, tous messages compris (la relation change lentement)
+  DISCUSSION_SOUVENIRS: 6,          // (tour 36d) il garde ses 6 derniers moments marquants (insulte, menace, compliment, excuse, paix), sur plusieurs Grands Prix
+  DISCUSSION_DOUX: 0.35,            // (tour 36d) une agressivité d'au plus ça : il parle doux (les variantes _doux) ; au moins DISCUSSION_FOUGUEUX : sec (_vif)
   DISCUSSION_PAR_GP: 8,             // au plus ce nombre de messages à un même pilote par Grand Prix (ensuite il est occupé)
   DISCUSSION_MEMOIRE: 12,           // il se souvient des 12 derniers messages (compact : l'acte, la saison, le Grand Prix)
   DISCUSSION_MENACE_COURSES: 2,     // une menace sans suite pendant ce nombre de courses : du crédit perdu (il te le dira)…
