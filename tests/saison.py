@@ -43,6 +43,11 @@ INSPECTER = r'''() => { const P = [], W = innerWidth, H = innerHeight;
     if (r.width > 0 && (r.left < -1 || r.top < -1 || r.right > W + 1 || r.bottom > H + 1)) P.push(['bouton hors de l’écran', nom(b), b.textContent.trim().slice(0, 40) + ' ' + [r.left, r.top, r.right, r.bottom].map(Math.round)]);
     else if (b.scrollWidth > b.clientWidth + 2) P.push(['texte qui déborde du bouton', nom(b), b.textContent.trim().slice(0, 40)]);
   }
+  // deux boutons visibles qui se recouvrent (l'un cache l'autre au clic)
+  const bs = [...document.querySelectorAll('button')].filter(b => vu(b)).map(b => [b, b.getBoundingClientRect()]).filter(([b, r]) => r.width > 0 && r.height > 0);
+  for (let i = 0; i < bs.length; i++) for (let j = i + 1; j < bs.length; j++) { const [a, ra] = bs[i], [b, rb] = bs[j];
+    if (a.contains(b) || b.contains(a)) continue;
+    if (Math.min(ra.right, rb.right) - Math.max(ra.left, rb.left) > 2 && Math.min(ra.bottom, rb.bottom) - Math.max(ra.top, rb.top) > 2) P.push(['boutons qui se recouvrent', nom(a) + ' / ' + nom(b), a.textContent.trim().slice(0, 25) + ' / ' + b.textContent.trim().slice(0, 25)]); }
   const d = document.documentElement; if (d.scrollHeight > H + 2 || d.scrollWidth > W + 2) P.push(['défilement', JEU.ecran, d.scrollWidth + '×' + d.scrollHeight]);
   return P; }'''
 
@@ -71,6 +76,8 @@ class Carriere:
             if cle not in self.problemes and not any(k[0] == genre for k in self.problemes): self.capture(re.sub(r'\W+', '-', genre)[:20])
             if cle not in self.problemes: self.problemes[cle] = { 'ecran': quoi, 'detail': detail, 'page': self.pg.url.split('/')[-1] }
     def clic(self, sel, navigation=False):
+        try: self.pg.wait_for_selector(sel, state='visible', timeout=3000)
+        except Exception: pass
         try:
             if navigation:
                 with self.pg.expect_navigation(timeout=60000): self.pg.click(sel, timeout=8000)
@@ -182,7 +189,7 @@ class Carriere:
 
 def rapport(c, titre):
     t(f'{titre} : aucune erreur ni avertissement dans la console', not c.console, ' | '.join(f'[{a}] {b}' for a, b in c.console[:8]))
-    for genre in ('texte cassé', 'vide', 'bouton hors de l’écran', 'texte qui déborde du bouton', 'défilement', 'clic impossible', 'discussion sans réponse'):
+    for genre in ('texte cassé', 'vide', 'bouton hors de l’écran', 'boutons qui se recouvrent', 'texte qui déborde du bouton', 'défilement', 'clic impossible', 'discussion sans réponse'):
         l = [(k[1], v) for k, v in c.problemes.items() if k[0] == genre]
         t(f'{titre} : {genre} : aucun', not l, ' | '.join(f"{el} sur « {v['ecran']} » ({v['detail']}) — {v['page']}" for el, v in l[:12]))
     m = c.manquantes()
@@ -215,13 +222,13 @@ with sync_playwright() as p:
             if langue == 'fr':
                 # les 12 Grands Prix, la fin de saison, la saison 2
                 for gp in range(1, 13):
-                    fait = c.jouer(lambda e, gp=gp: e[0] == 'championnat' and e[5] == 1 and e[6] == gp, 900, f'Grand Prix {gp}') if c.bloque is None else False
+                    fin = (lambda e: e[0] == 'championnat' and e[5] == 2) if gp == 12 else (lambda e, gp=gp: e[0] == 'championnat' and e[5] == 1 and e[6] == gp)
+                    fait = c.jouer(fin, 900, f'Grand Prix {gp}' + (' et la fin de saison' if gp == 12 else '')) if c.bloque is None else False
                     t(f'{titre} : Grand Prix {gp} joué jusqu’au paddock suivant', fait, str(c.bloque))
                     if not fait: break
                     L.append(f'  (Grand Prix {gp} : {time.monotonic() - t0:.0f} s depuis le début)')
                 if c.bloque is None:
-                    s2 = c.jouer(lambda e: e[0] == 'championnat' and e[5] == 2, 400, 'fin de saison')
-                    t(f'{titre} : la fin de saison (cérémonie, classement, duel, contrats, sponsors) mène au paddock de la saison 2', s2, str(c.bloque))
+                    t(f'{titre} : la fin de saison (cérémonie, classement, duel, contrats, sponsors) mène au paddock de la saison 2', c.ev('() => JEU.ecran === "championnat" && JEU.championnat.saison === 2 && JEU.championnat.prochain === 0'), str(c.ev('() => [JEU.ecran, JEU.championnat.saison, JEU.championnat.prochain]')))
                     pg.screenshot(path=os.path.join(CAPTURES, 'saison-2.png'))
             else:
                 g1 = c.jouer(lambda e: e[0] == 'championnat' and e[6] == 1, 900, 'Grand Prix 1') if c.bloque is None else False
