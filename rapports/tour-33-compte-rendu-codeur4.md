@@ -298,3 +298,71 @@ Les deux conversations, version finale (avec dcc0908 du Codeur 3 : les 4 défaut
 Il reste un défaut : « Ça, c’est sympa. Merci. » revient aux échanges 7 (en seconde partie de réponse) et 9. L’évitement des ouvertures ne regarde que le début des réponses.
 
 Dernier commit vert du tour 36d : d0a1303, passage 40622371590 : 13 travaux sur 13 verts. Il contient codeur3 dcc0908.
+
+TOUR 37d — compte rendu du Codeur 4 (en piste en 10 secondes, étape 15 ; branche codeur4 partie de main fd4d07e)
+Commit : 88bf1f5 — passage GitHub 40765229091 vert, 14 travaux sur 14 (le nouveau : « premier »)
+Ordres : 1 fait (mesures ci-dessous) / 2 fait autrement (la vraie cause n'était pas le chargement) / 3 fait (tests/premier.py)
+
+1. La mesure, avant (main fd4d07e)
+  - Sur le Mac (swiftshader, clic tout de suite) : page prête en 1586 ms ; clic → premier feu 0,19 s ; clic → feux éteints 20,8 s pour
+    7,55 s de feux en temps de jeu. 3,5 images/s, image médiane 254 ms, la plus longue 1276 ms. La carte des IA finit 1,1 s après le clic.
+    Même mesure avec la carte déjà finie avant le clic : 20,6 s. La carte n'est donc pas la cause.
+  - La cause : la boucle avance au plus 12 pas par image (PAS_MAX_PAR_IMAGE, 0,1 s de jeu). À 3,5 images/s, 7,55 s de feux prennent
+    donc environ 21 s réelles, et sur GitHub (environ 6 images/s) de 9 à 18 s.
+  - Les scripts (analyse + exécution, entre deux évènements « load ») :
+    principal.js 460–486 ms (le démarrage du jeu compris), three.min.js 210–250 ms, interface.js environ 47 ms, textes.js et circuits.js
+    environ 20 ms, tous les autres au plus 16 ms. Les scripts qui ne servent pas à la première course coûtent tous ensemble environ
+    15 ms : discussion.js 2 ms, parle.js 1,4 ms, et patrons, courrier, tournoi, deux-joueurs, journal chacun sous 2 ms.
+  - Le code jamais exécuté avant les feux : 720 Ko sur 1824 Ko.
+    | fichier | jamais exécuté / taille |
+    |---|---|
+    | three.min.js | 328 / 618 Ko |
+    | interface.js | 76 / 117 |
+    | principal.js | 50 / 120 |
+    | ia.js | 48 / 76 |
+    | discussion.js | 29 / 36 |
+    | journal.js | 14 / 20 |
+    | patrons.js | 12 / 16 |
+    | carriere.js | 11 / 18 |
+    | saisons.js | 11 / 17 |
+    | decor.js | 10 / 48 |
+    | courrier-pilotes.js | 8 / 12 |
+    | parle.js | 7 / 31 |
+    | interview.js | 7 / 11 |
+    | tutoriel.js | 6 / 9 |
+    | deux-joueurs.js | 5 / 9 |
+  - Le paquet : 69 fichiers, 1927 Ko, zip 574 Ko (three.min.js 618 Ko, textes.js 139, principal.js 119, interface.js 117,
+    donnees.js 99).
+
+2. Le remède : les feux durent leurs vraies secondes
+  - boucle.js : `BOUCLE.reglerPlafond(f)`. Le plafond de pas par image peut dépendre du moment ; il est relu à chaque pas.
+  - donnees.js : `PAS_MAX_FEUX: 120`.
+  - principal.js : pendant les feux d'une course (état « compte », la carte prête), la boucle rattrape le temps réel, jusqu'à 1 s par
+    image. Dès l'extinction, le plafond revient à 12 pas par image. Pendant les feux les voitures sont tenues, donc ces pas coûtent
+    peu. La course, la physique et les tests au pas près (BOUCLE.simuler) ne changent pas.
+  - Le chargement différé n'est pas fait, et la mesure le justifie : il ferait gagner environ 15 ms sur 7,6 s. Il ferait aussi courir
+    deux risques : un script chargé par JS manque au zip de paquet.py, et ces modules sont appelés dès le paddock, un « Continuer »
+    pouvant y mener au démarrage. La carte était déjà calculée en fond, et un clic → premier feu de 0,2 s n'attend rien.
+
+3. Le test : tests/premier.py (partie « premier » de lancer.py, travail « premier » de tests.yml)
+  - 3 premiers lancements dans des contextes neufs, 960×600, swiftshader, puis la médiane.
+  - Il vérifie :
+    - la console vide ;
+    - clic → premier feu < 1 s ;
+    - clic → feux éteints sous la référence d'avant, 16,95 s (la médiane de 10 passages de main sur GitHub) ;
+    - la durée des feux à 1,5 s près de leur temps de jeu ;
+    - clic → feux éteints ≤ 10 s.
+  - Il imprime aussi le tableau des scripts, la couverture et la taille du paquet.
+
+Après (88bf1f5) :
+  | | clic → premier feu | clic → feux éteints | images/s |
+  |---|---|---|---|
+  | Mac, avant | 0,19 s | 20,8 s | 3,5 |
+  | Mac, après (médiane de 3) | 0,34 s | 7,71 s (8,02 / 7,71 / 7,68) | 2,7–3,5 |
+  | GitHub, avant (10 passages) | 0,1–0,6 s | 8,8–17,9 s, médiane 16,95 | — |
+  | GitHub, après (médiane de 3) | 0,05 s | 7,57 s (7,57 / 7,55 / 7,63) | 10–11 |
+  ecrans.py sur GitHub : 7,7 s au premier lancement, 7,4 s au deuxième (carte en cache). Les feux tirent un délai de 0,8 à 2,6 s : le
+  clic → feux éteints va donc de 5,8 à 7,6 s plus le clic → premier feu. Paquet et saison (fr et en) restent verts.
+Ce que je n'ai pas pu vérifier : une vraie carte graphique (il faut l'essai du propriétaire) ; la sensation du départ quand une image dure
+0,3 s (la réaction est mesurée en temps de jeu, comme avant).
+Réévalue.
