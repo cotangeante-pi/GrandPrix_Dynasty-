@@ -123,6 +123,13 @@ const REGLAGES = {
   ETINCELLE_VIE: 0.35,             // s
   COULEUR_ETINCELLE: 0xffc04a,
 
+  // la manette (manette.js, tour 38) : les mêmes cibles que le clavier, la physique ne change pas
+  MANETTE_ZONE_STICK: 0.15,        // la zone morte du stick (0 à 1)…
+  MANETTE_ZONE_GACHETTE: 0.05,     // … et des gâchettes
+  MANETTE_SEUIL_BOUTON: 0.5,       // un bouton compte comme enfoncé au-delà
+  MANETTE_SEUIL_MENU: 0.6,         // le stick au-delà de ça choisit le bouton voisin dans les menus…
+  MANETTE_REPETITION: [0.4, 0.15], // … et, tenu, il répète après 0,4 s, puis toutes les 0,15 s
+
   // la course seule (étape 3)
   LONGUEURS_COURSE: { tresCourte: 5, moyenne: 12, longue: 18 },   // nombre de tours ; 0 = essai libre
   COMPTE_A_REBOURS: 3,          // s : 3, 2, 1, GO (les vrais feux viendront à l'étape 5)
@@ -595,6 +602,11 @@ const REGLAGES = {
   IA_ATTENTE_ATTAQUE: 1.5,      // s : retenue depuis ce temps par la voiture devant, elle l'attaque
   IA_RETENUE_ECART: 1,          // m/s : retenue = elle voudrait aller au moins ça plus vite
   IA_ATTAQUE_ECART_TEMPS: 1,    // s : la voiture attaquée s'échappe à plus de ça devant : l'attaque s'arrête
+  IA_PREPARER_LIBRE: 1,         // duel-2 : 1 = en préparant son attaque, retenu seulement à IA_DISTANCE_MIN de la voiture visée, et seulement quand elle freine (ia.js)
+  IA_PREPARER_FREIN: 1,         // … et quand elle freine : la distance de l'attaque (IA_DISTANCE_ATTAQUE), sa décélération vue prévue
+  IA_PREPARER_FREINE_TARD: 1,   // duel-2 : 1 = en préparant son attaque, à moins de IA_DECALAGE_ECART d'elle, il freine déjà comme en attaque (IA_ATTAQUE_FREIN)
+  IA_PREPARER_APRES: 1000,      // m depuis le départ : avant, ni l'un ni l'autre (le premier tour reste celui d'avant)
+  IA_FREIN_VU: 0.5,              // m/s² : une voiture qui ralentit plus que ça freine (IA_PREPARER_LIBRE)
   IA_DISTANCE_ATTAQUE: 7,       // m : en préparant son attaque, elle se cale à ça derrière (dans le sillage)
   IA_DECALAGE_ECART: 20,        // m : elle ne se décale que si elle est à moins de ça derrière
   IA_DECALAGE_DISTANCE: 60,     // m avant le point de freinage, au moins, elle se décale à côté…

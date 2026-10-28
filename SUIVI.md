@@ -95,6 +95,7 @@ Note du Chef session-5b (2026-10-23) : les lignes 18 à 19b ne s'additionnaient 
 
 ## À essayer par le propriétaire
 
+- **La manette** (tour 38) : branche une manette (Xbox ou PlayStation) : gâchette droite = gaz, gauche = frein, stick = direction ; A = retour en piste, Y = caméra, Start = pause ; dans les menus, la croix et A / B. Dire : les gâchettes se dosent bien ? Le départ parfait se fait à la gâchette ?
 - **Les sensations de conduite** (tour 37) : **écoute avec le son** (personne ne l'a entendu : le Chrome des tests n'a pas de sortie audio) : le moteur et les rapports, les vibreurs, le crissement, l'aspiration, une voiture qui passe, la pluie. Et regarde : la petite secousse sur les vibreurs, la fumée au blocage, les étincelles au contact. Menu pause : « Effets de conduite : oui / non ». Dire : trop fort ? trop faible ? gênant ?
 - **Le départ plus rapide** (tour 37d) : du clic sur « Jouer » aux feux éteints, combien de secondes sur ton Mac ? (but : 10 s au plus).
 - **Le commentateur** (tour 35) : pendant la course, « 🎙 Gaston Virage » commente dans le bandeau télé (le départ, les dépassements, les contacts, les stands, la pluie, le dernier tour). Menu pause : « Commentateur : tout / tes faits / coupé ». Dire : il gêne ? Il parle trop ou pas assez ? Le nom te va (tu peux le changer) ?
