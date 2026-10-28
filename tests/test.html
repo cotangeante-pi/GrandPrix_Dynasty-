@@ -2445,7 +2445,9 @@ t('commentateur : la course est la même au bit près avec ou sans lui ; des fai
   const types=Object.keys(REGLAGES.COMMENTAIRE_PRIORITES);
   v(types.every(ty=>Array.isArray(TEXTES.fr['com_'+ty])&&Array.isArray(TEXTES.en['com_'+ty])&&TEXTES.fr['com_'+ty].length===TEXTES.en['com_'+ty].length&&TEXTES.fr['com_'+ty].length>=2)&&TEXTES.fr.commentateur&&TEXTES.en.commentateur,'les variantes de chaque fait, en + fr');
   v(types.every(ty=>TEXTES.fr['com_'+ty].every((f,i)=>JSON.stringify((f.match(/\{\w+\}/g)||[]).sort())===JSON.stringify((TEXTES.en['com_'+ty][i].match(/\{\w+\}/g)||[]).sort()))),'les mêmes trous en + fr');
-  v(types.every(ty=>TEXTES.fr['com_'+ty].every(f=>!/\b(il|elle)\b/i.test(f))),'jamais « il » ni « elle » sur un pilote');});
+  v(types.every(ty=>TEXTES.fr['com_'+ty].every(f=>!/\b(il|elle)\b/i.test(f))),'jamais « il » ni « elle » sur un pilote');
+  v(types.every(ty=>['fr','en'].every(l=>TEXTES[l]['com_'+ty].every(f=>f.replace(/\{\w+\}/g,'Xxxxxxx').length<=REGLAGES.COMMENTAIRE_LONGUEUR_MAX))),'des phrases courtes (COMMENTAIRE_LONGUEUR_MAX)');
+  v(['tout','joueur','non'].every(m=>TEXTES.fr['commentaire_'+m]&&TEXTES.en['commentaire_'+m]),'le réglage dans les deux langues');});
 t('commentateur : la priorité (un dépassement pour la tête avant un meilleur tour, un fait du joueur devant), l’intervalle, l’attente au virage, les faits trop vieux oubliés, jamais deux fois la même phrase de suite, rien quand il est coupé, seulement le joueur en mode « joueur »', ()=>{
   const R=REGLAGES,c=COMMENTAIRE.creer(1);
   COMMENTAIRE.pousser(c,0,'meilleurTour',{qui:0},false);COMMENTAIRE.pousser(c,0,'depassementTete',{qui:1,sur:0},false);

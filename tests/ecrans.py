@@ -1234,6 +1234,13 @@ def commentaire_ecran(pg, titre):
     txt = pg.evaluate('() => document.getElementById("messageCourse").textContent')
     t(f'{titre} : le commentateur parle dans le bandeau télé, avec son nom (« 🎙 {txt[:40]}… »)', vu and pg.evaluate('() => texte("commentateur")') in txt, txt)
     pg.wait_for_timeout(200); pg.screenshot(path=os.path.join(CAPTURES, 'commentaire.png'))
+    # le réglage du menu pause : tout → tes faits → coupé (sauvegardé) ; coupé, plus aucune phrase du commentateur
+    r = pg.evaluate('''() => { const b = document.getElementById("boutonCommentairePause"), vu = [b.textContent]; b.click(); vu.push(b.textContent, SAUVEGARDE.option("commentaire", "?")); b.click(); vu.push(b.textContent, REGLAGES.COMMENTAIRE_MODE);
+      return vu; }''')
+    t(f'{titre} : le commentateur se règle dans le menu pause (tout, tes faits, coupé ; sauvegardé)', r[2] == 'joueur' and r[4] == 'non' and len(set([r[0], r[1], r[3]])) == 3, str(r))
+    pg.wait_for_timeout(9000)
+    coupe = pg.evaluate('() => !/🎙/.test(document.getElementById("messageCourse").textContent)')
+    t(f'{titre} : coupé, le commentateur ne dit plus rien', coupe, pg.evaluate('() => document.getElementById("messageCourse").textContent'))
 # la réalisation télé (regie.js) dans le vrai jeu, à Monoco : en vue télé, la caméra est un vrai poste du décor (sa place ne bouge
 # pas, elle voit la voiture), puis l'hélicoptère (dans ses hauteurs) ; les mâts des caméras coûtent un appel de dessin au plus
 # le Grand Prix à domicile (?domicile=1 : un joueur fictif chez lui à Monzo) : avant les feux, la caméra longe la tribune des supporters

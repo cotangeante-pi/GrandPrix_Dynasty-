@@ -1848,6 +1848,15 @@ function demarrerJeu() {
   boutonPasser.addEventListener('click', passerAuPodium);
   INTERFACE.preparerQualif(faireMonTour, passerQualif, partirEnCourse);
   INTERFACE.preparerFantome(basculerFantome);
+  // le commentateur se règle dans le menu pause : tout, seulement tes faits, ou coupé (sauvegardé, commentaire.js lit COMMENTAIRE_MODE)
+  {
+    const MODES = ['tout', 'joueur', 'non'], b = document.getElementById('boutonCommentairePause');
+    REGLAGES.COMMENTAIRE_MODE = MODES.includes(SAUVEGARDE.option('commentaire', REGLAGES.COMMENTAIRE_MODE)) ? SAUVEGARDE.option('commentaire', REGLAGES.COMMENTAIRE_MODE) : REGLAGES.COMMENTAIRE_MODE;
+    const ecrire = () => { b.textContent = texte('commentaire_' + REGLAGES.COMMENTAIRE_MODE); };
+    ecrire();
+    b.addEventListener('mousedown', e => e.preventDefault());
+    b.addEventListener('click', () => { REGLAGES.COMMENTAIRE_MODE = MODES[(MODES.indexOf(REGLAGES.COMMENTAIRE_MODE) + 1) % MODES.length]; SAUVEGARDE.ecrireOption('commentaire', REGLAGES.COMMENTAIRE_MODE); if (JEU.commentaire) JEU.commentaire.c.file = []; ecrire(); });
+  }
   INTERFACE.majBoutonsFantome(SAUVEGARDE.option('fantome', true));
   PODIUM3D.init(CIRCUIT);
   // ?course=5, 12, 18 ou 0 (essai libre) lance directement une course (tests, développement)
