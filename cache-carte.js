@@ -26,6 +26,7 @@ const CACHE_CARTE = (function () {
   function cle(nom, definition) {
     const R = REGLAGES, parts = [String(VERSION), nom, JSON.stringify(definition)];
     for (const k of Object.keys(R).sort()) if (/^IA_/.test(k) || AUTRES_REGLAGES.includes(k)) parts.push(k + '=' + JSON.stringify(R[k]));
+    if (margeCarte() !== R.IA_MARGE_BORD) parts.push('MARGE_CARTE=' + margeCarte());   // (le niveau de difficulté a sa carte, ia.js ; au niveau normal, la clé d'avant)
     return empreinte(parts.join('|'));
   }
 

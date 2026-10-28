@@ -94,6 +94,9 @@ const DISCUSSION = (function () {
   const DEJA = { SALUT: 'deja_salut', AVIS: 'deja_avis', ETAT: 'deja_etat', DUEL: 'deja_duel', CONTACT: 'deja_contact', RECLAMATION: 'deja_contact', INCONNU: 'incompris_encore', QUESTION: 'incompris_encore' };
   const GENTILS = ['EXCUSE', 'PAIX', 'COMPLIMENT', 'MERCI'], MECHANTS = ['INSULTE', 'MENACE'];
   const SUJETS = ['depart', 'stands', 'pluie', 'qualif', 'virage', 'aspiration'];
+  // les réactions qui font une bonne ou une mauvaise conversation (le bilan de l'au revoir)
+  const BONNES = ['excuse_acceptee', 'paix_acceptee', 'paix_deja', 'flatte', 'avis_bon', 'passer_accepte', 'passer_accepte_rival', 'promesse_notee', 'promesse_tenue', 'contact_regrette', 'reclamation_ami', 'merci', 'salut_chaud', 'bloquer_accepte'];
+  const MAUVAISES = ['excuse_refusee', 'paix_refusee', 'passer_rit', 'passer_refuse', 'riposte', 'defi', 'mefiant', 'menace_moquee', 'salut_froid', 'avis_mauvais', 'contact_assume', 'reclamation_assume', 'promesse_refusee', 'promesse_trahie', 'flatte_mefiant', 'bloquer_refuse', 'ignore', 'rit'];
 
   // ce que la conversation change au raisonnement de base : il remarque une question déjà posée, il relève une contradiction (une
   // insulte après des excuses, un compliment après une insulte), il ne répète pas une raison déjà dite, il se souvient du ton de votre
@@ -116,6 +119,9 @@ const DISCUSSION = (function () {
       raisons = ['contradiction_mechant'].concat(raisons);
       if (reaction === 'flatte') reaction = 'flatte_mefiant';
     }
+    // une réponse au reproche du contact parle déjà du contact : pas de « pas après ce qui s'est passé » en plus (une raison s'accroche
+    // toujours à la question posée)
+    if (['CONTACT', 'RECLAMATION'].includes(a.acte)) raisons = raisons.filter(x => x !== 'contact' && x !== 'contact_regle');
     // une réaction conciliante ne s'accompagne pas d'un reproche sur le contact : il le dit réglé
     if (['contact_regrette', 'excuse_acceptee', 'reclamation_ami', 'reclamation_explique', 'paix_acceptee'].includes(reaction)) raisons = raisons.map(x => x === 'contact' ? 'contact_regle' : x);
     // des excuses déjà acceptées dans cette conversation : le contact est réglé, il ne le ressort plus
@@ -136,7 +142,12 @@ const DISCUSSION = (function () {
       else if (a.sujet && SUJETS.includes(a.sujet)) raisons.push('sujet_' + a.sujet);
     }
     // conclure une longue conversation
-    if (a.acte === 'ADIEU' && ici.length >= R.DISCUSSION_CONV_LONGUE) raisons.push(cv.somme >= R.DISCUSSION_BILAN ? 'conversation_bonne' : cv.somme <= -R.DISCUSSION_BILAN ? 'conversation_mauvaise' : 'conversation_neutre');
+    // (le bilan de toute la conversation : ses réactions bonnes et mauvaises, pas seulement la relation ni le dernier message)
+    if (a.acte === 'ADIEU' && ici.length >= R.DISCUSSION_CONV_LONGUE) {
+      const b = ici.reduce((n, x) => n + (BONNES.includes(x[1]) ? 1 : MAUVAISES.includes(x[1]) ? -1 : 0), 0);
+      raisons.push(b >= 2 ? 'conversation_bonne' : b <= -1 ? 'conversation_mauvaise' : 'conversation_neutre');
+      if (b <= -1 && reaction === 'adieu') reaction = 'adieu_froid';
+    }
     return Object.assign({}, r, { reaction, raisons, effets, base: r.reaction });
   }
 
@@ -256,9 +267,12 @@ const DISCUSSION = (function () {
     }
     // (tour 36d) ce qu'il ajoute, tiré des faits vrais : sa place et la tienne, les points d'écart, la dernière course, le duel
     const f = faits(ch, k), dejaCourse = ch.resultats.length > 0;
-    if (dejaCourse && ['ETAT'].includes(a.acte)) garde(f.devant > 0 ? 'fait_devant' : f.devant < 0 ? 'fait_derriere' : 'fait_egalite');
+    // (tour 36, Codeur 3) les points ne sont dits que s'ils sont vrais : si la dernière course a donné des points différents à vous deux
+    // et que vos points du championnat sont pourtant égaux (des points pas encore comptés), la phrase se tait
+    const pointsSurs = !(f.devant === 0 && f.course && CHAMPIONNAT.pointsPour(f.course.a) !== CHAMPIONNAT.pointsPour(f.course.b));
+    if (dejaCourse && pointsSurs && ['ETAT'].includes(a.acte)) garde(f.devant > 0 ? 'fait_devant' : f.devant < 0 ? 'fait_derriere' : 'fait_egalite');
     if (dejaCourse && f.course && ['AVIS', 'CONTACT', 'RECLAMATION', 'COMPLIMENT'].includes(a.acte)) garde(f.course.a < f.course.b ? 'fait_course_devant' : 'fait_course_derriere');
-    if (dejaCourse && a.acte === 'INSULTE' && f.devant > 0 && !a.ironie) garde('fait_devant');
+    if (dejaCourse && pointsSurs && a.acte === 'INSULTE' && f.devant > 0 && !a.ironie) garde('fait_devant');
     if (f.duel && a.acte === 'DUEL') garde('fait_duel');
     // (tour 36d) la mémoire sur plusieurs Grands Prix : il rappelle une insulte ancienne quand on revient le voir gentiment, ou un
     // compliment ancien quand on l'insulte ; une fois par Grand Prix au plus
@@ -379,8 +393,9 @@ const DISCUSSION = (function () {
       const r2 = raisonner(ch, k, Object.assign({}, analyse, { acte: analyse.second, second: null }));
       if (r2.reaction !== r.reaction && r2.reaction !== 'occupe') {
         appliquer(ch, k, { effets: { relation: r2.effets.relation || 0 } }, analyse.second);
-        rep = composerReponse(ch, k, Object.assign({}, r2, { raisons: [] })) + ' ' + rep;
-        reactions.unshift(r2.reaction);
+        // (tour 36, Codeur 3) l'idée forte (après « mais ») d'abord, puis la seconde
+        rep = rep + ' ' + composerReponse(ch, k, Object.assign({}, r2, { raisons: [] }));
+        reactions.push(r2.reaction);
       }
     }
     const m = memoire(p);

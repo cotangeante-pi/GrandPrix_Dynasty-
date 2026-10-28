@@ -115,4 +115,26 @@ t('« t’as fini combien ? » : il donne sa place et la tienne à la dernière 
   for (const ph of ['gg', 'bien joué', 'bravo', 'belle course', 'well done', 'nice race']) dits.push(DISCUSSION.dire(ch2, k2, ph).texte);
   for (let i = 1; i < dits.length; i++) for (let j = Math.max(0, i - REGLAGES.DISCUSSION_OUVERTURES); j < i; j++) v(dits[i].slice(0, 14) !== dits[j].slice(0, 14) || dits[i].includes(texte('dis_encore')), 'même ouverture : ' + dits[j] + ' / ' + dits[i]);
 });
+t('les défauts relus par le Chef : une raison s’accroche à la question, jamais un fait faux sur les points, l’idée forte après « mais » d’abord, un au revoir qui suit toute la conversation', () => {
+  // 1. le reproche du contact : la réponse parle du contact, sans « pas après ce qui s'est passé » en plus
+  const ch = nouveau(), k = rival(ch, 0.9); gpCouru(ch); contactAvec(ch, k);
+  const r1 = DISCUSSION.dire(ch, k, 'pk tu m’as percuté au départ ?');
+  v(!r1.raisons.includes('contact') && !r1.raisons.includes('contact_regle'), JSON.stringify(r1.raisons) + ' ' + r1.texte);
+  // 2. P1 contre P20 mais des points pas encore comptés (égaux) : il ne dit jamais « mêmes points » ; avec de vrais points différents non plus
+  const ch2 = nouveau(), k2 = rival(ch2, 0.5); gpCouru(ch2);
+  const f2 = DISCUSSION.dire(ch2, k2, 'et ta saison ?');
+  v(!f2.raisons.includes('fait_egalite'), 'égalité fausse : ' + f2.texte);
+  const ch3 = nouveau(), k3 = rival(ch3, 0.5); gpCouru(ch3); ch3.pilotes[k3].stats.points = 25; ch3.pilotes.find(p => p.humain).stats.points = 0;
+  const f3 = DISCUSSION.dire(ch3, k3, 'how is your season?');
+  v(!f3.raisons.includes('fait_egalite') && f3.raisons.includes('fait_devant'), JSON.stringify(f3.raisons));
+  // 3. « gg mais tu m'as fermé la porte au virage » : la réclamation d'abord, le merci ensuite
+  const ch4 = nouveau(), k4 = rival(ch4, 0.3); gpCouru(ch4);
+  const r4 = DISCUSSION.dire(ch4, k4, 'gg mais tu m’as fermé la porte au virage');
+  if (r4.analyse.second) v(r4.reactions.length === 2 && !/^flatte|^merci/.test(r4.reactions[0]) && /^flatte|^merci/.test(r4.reactions[1]), JSON.stringify(r4.reactions) + ' ' + r4.texte);
+  // 4. le fougueux qui a refusé tes excuses et ri de ta demande : un au revoir froid, « pas ma conversation préférée »
+  const { echanges } = converser(0.9, 'fr'), fin = echanges[9];
+  v(fin.raisons.includes('conversation_mauvaise') && fin.reaction === 'adieu_froid', JSON.stringify([fin.reaction, fin.raisons, fin.texte]));
+  const { echanges: e2 } = converser(0.3, 'fr');
+  v(!e2[9].raisons.includes('conversation_mauvaise'), JSON.stringify(e2[9].raisons));
+});
 ecrire();
