@@ -123,4 +123,26 @@ t('36d : les lettres répétées (« merciii », « nuuul »), les émojis (👍
   v(c('merciii') === 'MERCI' && c('t nuuul') === 'INSULTE' && c('👍') === 'ACCORD' && c('🙏') === 'MERCI' && c('🔥') === 'COMPLIMENT' && c('😡') === 'INSULTE', [c('merciii'), c('t nuuul'), c('👍'), c('🙏'), c('🔥'), c('😡')].join());
   v(c('pas mal') === 'COMPLIMENT' && c('t es pas fort') === 'INSULTE' && c('lol t nul') === 'INSULTE', [c('pas mal'), c('t es pas fort')].join());
 });
+// --- deux conversations complètes de 10 échanges, imprimées telles quelles dans la sortie du banc (demande du Chef, tour 36d) : en
+// français avec un rival fougueux juste après un contact ; en anglais avec un coéquipier calme (la page est en français : pendant cette
+// conversation, les textes français pointent sur les textes anglais, puis tout est remis)
+const CONVERSATIONS_CHEF = {
+  fr: ['slt', 'pk tu m’as percuté au départ ?', 'c’était quoi ce contact sérieux', 'dsl quand même', 't’as fini combien ?', 'tu penses quoi de moi frérot', 'gg mais tu m’as fermé la porte au virage', 'laisse moi passer la prochaine fois stp', 't’es chaud quand même', 'a+'],
+  en: ['hey mate', 'how was your race?', 'what about our duel?', 'you were faster today, well played', 'what do you think of me?', 'let me pass next time if I’m faster pls', 'i owe you one', 'nice pit stop btw', 'why did you block me in turn 1', 'see ya'],
+};
+function conversationChef(L_) {
+  const ch = nouveau(), co = CHAMPIONNAT.coequipierDe(ch).id, k = L_ === 'fr' ? rival(ch, 0.9) : co;
+  if (L_ === 'en') ch.pilotes[co].caractere = { regularite: 0.008, agressivite: 0.2, erreurs: 0.5 };
+  gpCouru(ch); if (L_ === 'fr') contactAvec(ch, k);
+  const fr = TEXTES.fr; if (L_ === 'en') TEXTES.fr = TEXTES.en;
+  try { return CONVERSATIONS_CHEF[L_].map(ph => ({ ph, r: DISCUSSION.dire(ch, k, ph) })); } finally { TEXTES.fr = fr; }
+}
+t('36d : les deux conversations pour le Chef (10 échanges chacune, imprimées ci-dessous) : chaque phrase reçoit une réponse, aucune réponse répétée', () => {
+  for (const L_ of ['fr', 'en']) {
+    const c = conversationChef(L_), textes = c.map(x => x.r && x.r.texte);
+    v(textes.every(x => x && x.trim().length > 3) && new Set(textes).size === textes.length, L_ + ' : ' + textes.join(' | '));
+    L.push('  CONVERSATION ' + (L_ === 'fr' ? 'en français, rival fougueux, après un contact' : 'en anglais, coéquipier calme') + ' :');
+    for (const x of c) L.push('    — ' + x.ph + '\n      → ' + x.r.texte + '   [' + x.r.analyse.acte + (x.r.analyse.second ? ' + ' + x.r.analyse.second : '') + ' → ' + (x.r.reactions || [x.r.reaction]).join(' + ') + ']');
+  }
+});
 ecrire();
