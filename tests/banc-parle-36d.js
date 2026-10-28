@@ -33,7 +33,22 @@ const BANC_36D = [
   ['tu fais quoi ce week end ?', 'QUESTION'], ['what do you do after the race?', 'QUESTION'],
   // les phrases à deux idées (l'acte le plus fort : voir aussi BANC_DEUX)
   ['gg mais pk tu m’as bloqué', 'RECLAMATION'], ['sorry for the crash but you blocked me first', 'RECLAMATION'], ['t’es chaud mais tu m’as fermé la porte', 'RECLAMATION'],
+  // (deuxième série) « pas mal », « t'es pas nul », les émojis, les lettres répétées, encore du langage parlé
+  ['pas mal ta course', 'COMPLIMENT'], ['pas mal du tout', 'COMPLIMENT'], ['t’es pas nul en fait', 'COMPLIMENT'], ['not bad mate', 'COMPLIMENT'], ['👍', 'ACCORD'], ['🙏', 'MERCI'],
+  ['🔥🔥🔥', 'COMPLIMENT'], ['❤️', 'COMPLIMENT'], ['😡', 'INSULTE'], ['merciiii', 'MERCI'], ['t nuuuul', 'INSULTE'], ['slttt', 'SALUT'], ['gggggg', 'COMPLIMENT'], ['dsllll', 'EXCUSE'],
+  ['nooooo', 'REFUS'], ['okkk', 'ACCORD'], ['pk tu m’as bloquééé', 'RECLAMATION'], ['why did you block me in turn 1', 'RECLAMATION'], ['tu m as bloqué au départ', 'RECLAMATION'],
+  ['you crashed me at the start', 'CONTACT'], ['tu m as touché au premier virage', 'CONTACT'], ['t’es trop fort sous la pluie', 'COMPLIMENT'], ['nice pit stop', 'COMPLIMENT'], ['belle qualif', 'COMPLIMENT'],
+  ['t’as fait comment en qualif ?', 'ETAT'], ['how was quali?', 'ETAT'], ['t’es chaud sous la pluie', 'COMPLIMENT'], ['t’as géré la pluie', 'COMPLIMENT'], ['big respect pour ton dépassement', 'COMPLIMENT'],
+  ['va te faire voir', 'INSULTE'], ['t’es un danger public', 'INSULTE'], ['you drive like my grandma', 'INSULTE'], ['ur so bad at this', 'INSULTE'], ['get off the track noob', 'INSULTE'],
+  ['la prochaine fois je te sors', 'MENACE'], ['tu vas prendre cher', 'MENACE'], ['i’m coming for you', 'MENACE'], ['watch out next race', 'MENACE'],
+  ['on oublie ?', 'PAIX'], ['c’est bon on est quittes', 'PAIX'], ['truce?', 'PAIX'], ['dsl pour le crash', 'EXCUSE'], ['sorry for the contact bro', 'EXCUSE'], ['pardon pour le virage', 'EXCUSE'],
+  ['laisse moi passer au prochain tour stp', 'PASSER'], ['let me through next lap pls', 'PASSER'], ['bloque Rossi stp', 'BLOQUER'], ['block rossi pls', 'BLOQUER'],
+  ['tu me trouves comment en piste ?', 'AVIS'], ['what do you think of my driving?', 'AVIS'], ['ça va toi ?', 'ETAT'], ['how u doing', 'ETAT'], ['wesh ça dit quoi', 'ETAT'],
+  ['ouais grave', 'ACCORD'], ['carrément', 'ACCORD'], ['bet', 'ACCORD'], ['nan jamais', 'REFUS'], ['hell no', 'REFUS'], ['a+', 'ADIEU'], ['cya', 'ADIEU'], ['bonne course', 'ADIEU'],
 ];
+// [phrase, sujet, tour] : le sujet de course et le tour nommés dans la phrase (parle.js : sujet, tour)
+const BANC_SUJETS = [['pk tu m as bloqué au départ', 'depart', null], ['why did you crash me at the start', 'depart', null], ['tu m as touché au tour 3', null, 3], ['nice pit stop', 'stands', null],
+  ['t es fort sous la pluie', 'pluie', null], ['belle qualif', 'qualif', null], ['you cut me off in the hairpin', 'virage', null], ['you blocked me on lap 7', null, 7], ['merci pour l aspi', 'aspiration', null]];
 // [phrase, acte, second] : deux idées, deux réponses
 const BANC_DEUX = [
   ['gg mais pk tu m’as bloqué', 'RECLAMATION', 'COMPLIMENT'], ['sorry for the crash but you blocked me first', 'RECLAMATION', 'EXCUSE'], ['t’es chaud mais tu m’as fermé la porte', 'RECLAMATION', 'COMPLIMENT'],

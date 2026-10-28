@@ -14,6 +14,16 @@ const PARLE = (function () {
   // la coupe des finales (radical) ne les touche pas. L'ordre compte : les tournures longues d'abord.
   const EXPRESSIONS = [
     // --- tour 36d (Codeur 4) : les vraies phrases des joueurs de 10 à 16 ans, d'abord (les tournures longues avant les mots seuls)
+    // les compliments sur un moment de course : « nice pit stop », « belle qualif », « bon départ »
+    [/\b(nice|great|good|sick|clean|insane) (pit ?stop|stop|quali|qualifying|start|launch|save|defen[cs]e|lap|pole)\b/g, ' bravo9 '],
+    [/\b(belle|beau|bon|bonne|super|joli|jolie) (qualif|qualification|pole|remontee|defense|attaque|depart|arret|tour|sauvetage)\b/g, ' bravo9 '],
+    // les nouvelles : « t'as fait comment en qualif », « how was quali », « how u doing »
+    [/\b(t as fait comment|tu as fait comment|ca s est passe comment)\b/g, ' etat9 '], [/\b(how was (quali|qualifying|the start|the race|it)|how (u|you) doing|how ya doing)\b/g, ' etat9 '],
+    // « you drive like my grandma », « bet » (d'accord), « hell no », « bonne course » (au revoir)
+    [/\b(you|u) (drive|race) like (my|your|a|an) \w+\b/g, ' insulte9 '], [/^\s*bet\s*[!.]*\s*$/g, ' accord9 '], [/\b(hell no|no chance|fat chance)\b/g, ' refus9 '],
+    [/\b(bonne course|bonne chance|good luck|gl hf|glhf|gl)\s*[!.]*\s*$/g, ' adieu9 '],
+    // « pas mal », « t'es pas nul », « not bad » : des compliments (la négation n'en fait pas des insultes)
+    [/\b(pas mal|pas trop mal|pas si mal|t es pas nul|t es pas si nul|t es pas mauvais|tu es pas nul|tu n es pas nul|t es pas (si )?mauvais|not bad|not too bad|you re not bad|ur not bad)\b/g, ' bravo9 '],
     // les plaintes de course : « pk tu m'as bloqué », « tu m'as coupé la route », « why did you block me », « you brake checked me »
     [/\b(pourquoi |pk |pq |prk )?(tu m as|t m as|tu m a|t ma|tu ma|vous m avez) (bloque|bloquee|ferme la porte|coupe la route|coupe la trajectoire|tasse|serre|sere|enferme|gene|bouche|ralenti|freine dessus|pas laisse passer|empeche de passer)\b/g, ' plainte9 '],
     [/\b(t as|tu as|ta) (freine|freinee) (trop tot|comme un \w+|devant moi|n importe comment)\b/g, ' plainte9 '], [/\b(t as|tu as|ta) (zigzague|change de ligne|change de trajectoire|fait des zigzags|bouge au freinage)\b/g, ' plainte9 '],
@@ -194,8 +204,10 @@ BUDGET: { budget: 1 }, CONSIGNE: { consigne: 1, question: 0.2 },
   const SECONDAIRES = ['SALUT', 'MERCI', 'QUESTION', 'ACCORD'];
   const SEUIL = 0.3;
 
+  // (tour 36d) les émojis deviennent des mots avant la mise à plat (qui les enlèverait) ; 😂 🤣 🙄 😏 restent lus par l'ironie
+  function remplacerEmojis(t) { return String(t).replace(/👍|👌/g, ' ok ').replace(/🙏/g, ' merci ').replace(/❤️?|😍|🔥|💪|🐐/g, ' bravo ').replace(/😡|🤬|🖕|💩/g, ' nul '); }
   // la phrase mise à plat : minuscules, sans accents, les apostrophes et la ponctuation en espaces (sauf ? et !)
-  function aplatir(txt) { return ' ' + sansAccents(txt).replace(/[’'`]/g, ' ').replace(/[^a-z0-9?!+]+/g, ' ').replace(/([?!])/g, ' $1 ').replace(/\s+/g, ' ') + ' '; }
+  function aplatir(txt) { return ' ' + sansAccents(remplacerEmojis(txt)).replace(/g{3,}/g, 'gg').replace(/([a-z])\1{2,}/g, '$1').replace(/[’'`]/g, ' ').replace(/[^a-z0-9?!+]+/g, ' ').replace(/([?!])/g, ' $1 ').replace(/\s+/g, ' ') + ' '; }
   function reecrire(p) { for (const [ex, rem] of EXPRESSIONS) p = p.replace(ex, rem); return p.replace(/\s+/g, ' '); }
 
   // comprendre(txt, noms) : noms = [{ k, nom }] (les pilotes qu'on peut nommer). Renvoie { acte, score, actes (les 3 premiers),
@@ -230,8 +242,14 @@ BUDGET: { budget: 1 }, CONSIGNE: { consigne: 1, question: 0.2 },
       const famille = nom.split(' ').pop();
       if (famille && famille.length >= 4 && plat.includes(' ' + famille + ' ')) { cible = n.k; break; }
     }
+    // (tour 36d) le sujet de course dont on parle, s'il est dit (pour que la réponse en parle : discussion.js le lit), et un tour nommé
+    const SUJETS = [['depart', /\b(depart|start|feux|lights|launch|premier virage|first corner|turn 1|t1)\b/], ['stands', /\b(stand|stands|pit|pits|pitstop|pit stop|arret au stand|box|voie des stands)\b/],
+      ['pluie', /\b(pluie|rain|wet|mouillee?|pneus pluie|inters?|intermediaires?|averse|shower)\b/], ['qualif', /\b(qualifs?|qualification|qualifying|quali|pole)\b/],
+      ['virage', /\b(virage|corner|epingle|hairpin|chicane|courbe|turn \d+)\b/], ['aspiration', /\b(aspi|aspiration|slipstream|tow|drs)\b/]];
+    const sujet = (SUJETS.find(([, re]) => re.test(plat)) || [null])[0];
+    const nt = plat.match(/\b(?:tour|lap|au tour|on lap)\s+(\d{1,2})\b/), tourNomme = nt ? Number(nt[1]) : null;
     const nb = plat.match(/\b\d{1,7}\b/);
-    return { acte, score: Math.round(choix.score * 1000) / 1000, actes: scores.slice(0, 3).map(s => s.acte), negation, question, ironie, cible,
+    return { sujet, tour: tourNomme, acte, score: Math.round(choix.score * 1000) / 1000, actes: scores.slice(0, 3).map(s => s.acte), negation, question, ironie, cible,
       montant: nb ? Number(nb[0]) : null, jetons: mots };
   }
 

@@ -113,4 +113,14 @@ t('36d : le courrier rangé : jamais plus de COURRIER_NON_LUS_MAX non lus, les m
   ch2.courrier.messages = Array.from({ length: 20 }, (_, i) => ({ k: 1 + i % 18, sujet: 'bravo', cle: 'courrier_bravo', saison: 1, gp: 1, lu: false }));
   v(COURRIER_PILOTES.nonLus(ch2) === R.COURRIER_NON_LUS_MAX, 'ancienne boîte : ' + COURRIER_PILOTES.nonLus(ch2));
 });
+t('36d : le sujet de course et le tour nommés dans la phrase (départ, stands, pluie, qualif, virage, aspiration ; « au tour 3 », « on lap 7 »)', () => {
+  const r = BANC_SUJETS.map(([p, s, n]) => { const c = PARLE.comprendre(p, NOMS); return (s === null || c.sujet === s) && c.tour === n ? null : p + ' → ' + c.sujet + ' / ' + c.tour; }).filter(x => x);
+  v(!r.length, r.join(' ; '));
+  v(PARLE.comprendre('slt', NOMS).sujet === null && PARLE.comprendre('slt', NOMS).tour === null, 'rien sans sujet');
+});
+t('36d : les lettres répétées (« merciii », « nuuul »), les émojis (👍 🙏 🔥 😡) et « pas mal » sont compris, sans changer les autres lectures', () => {
+  const c = p => PARLE.comprendre(p, NOMS).acte;
+  v(c('merciii') === 'MERCI' && c('t nuuul') === 'INSULTE' && c('👍') === 'ACCORD' && c('🙏') === 'MERCI' && c('🔥') === 'COMPLIMENT' && c('😡') === 'INSULTE', [c('merciii'), c('t nuuul'), c('👍'), c('🙏'), c('🔥'), c('😡')].join());
+  v(c('pas mal') === 'COMPLIMENT' && c('t es pas fort') === 'INSULTE' && c('lol t nul') === 'INSULTE', [c('pas mal'), c('t es pas fort')].join());
+});
 ecrire();
