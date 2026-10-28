@@ -194,6 +194,25 @@ const REGLAGES = {
   CONTRAT_POIDS_DUEL: 0.3,
   CONTRAT_POIDS_CONFIANCE: 0.1,
   CONTRAT_EXIGENCE_MAX: 0.85,
+  // les salaires et la négociation des contrats avec les patrons (patrons.js, tour 35) ; CONTRAT_SALAIRES_ACTIFS faux : aucun salaire
+  CONTRAT_SALAIRES_ACTIFS: true,
+  CONTRAT_SALAIRE_MIN: 20000,       // le salaire d'une saison (versé à la signature) dans la plus faible écurie…
+  CONTRAT_SALAIRE_MAX: 150000,      // … et dans la meilleure (entre les deux : selon le rang de l'écurie)
+  CONTRAT_NEGO_FACTEUR: 0.6,        // le bonus de salaire qu'un patron peut accepter = ce facteur × son envie de t'avoir (ta note − son exigence…)…
+  CONTRAT_NEGO_MAX: 0.25,           // … jamais plus de +25 % du salaire de base
+  CONTRAT_NEGO_EXCES: 2,            // une demande de plus de 2 fois ce qu'il peut : refusée net (sinon, une contre-offre)
+  CONTRAT_NEGO_REFUS_MAX: 3,        // au 3e refus, il ferme la négociation (l'offre reste, au salaire de base)
+  PATRON_POIDS_REPUTATION: 0.2,     // ta réputation auprès des sponsors pèse ça dans son envie (−0,1 à +0,1)…
+  PATRON_POIDS_RELATION: 0.1,       // … et votre relation, ça
+  PATRON_ENVIE_FORTE: 0.2,          // au-dessus : il te veut vraiment (il le dit)
+  PATRON_ECART_RESULTATS: 2,        // ton patron : tu es « au-dessus » de ce qu'on attend si tu es 2 places mieux que le rang de l'écurie (ou en dessous)
+  PATRON_CONFIANCE_HAUTE: 65,       // la confiance de l'écurie (0 à 100) : haute au-dessus…
+  PATRON_CONFIANCE_BASSE: 35,       // … basse en dessous
+  PATRON_CONFIANCE_INSULTE: 3,      // insulter ton patron : la confiance baisse de ça
+  PATRON_STATUT_ECART: 3,           // premier pilote : il faut mener le duel contre ton coéquipier d'au moins 3 points…
+  PATRON_STATUT_CONFIANCE: 55,      // … et une confiance d'au moins ça
+  PATRON_BUDGET_CONFIANCE: 55,      // un coup de pouce pour la voiture, une fois par saison, si tu fais mieux que prévu et avec cette confiance…
+  PATRON_BUDGET_MONTANT: 25000,     // … de ce montant (crédité au solde : à dépenser au garage)
   CONFIANCE_DEPART: 50,         // la confiance de l'écurie (0 à 100), fixe tant que les consignes d'équipe n'existent pas
   // les rivaux qui évoluent, entre deux saisons
   AGE_DEPART: [21, 36],         // l'âge des 19 pilotes à la création (tiré)
@@ -419,6 +438,8 @@ const REGLAGES = {
   COURRIER_DUEL_NET: 3,             // ton coéquipier t'écrit quand le duel de la saison penche d'au moins ça
   COURRIER_LEADER_DES: 3,           // le leader du championnat te nargue à partir du 3e Grand Prix
   COURRIER_AGE_VIEUX: 36,           // un pilote de cet âge (AGE_RETRAITE) qui t'aime bien t'écrit un mot, une fois
+  COURRIER_PATRON_DES: 6,           // les patrons t'écrivent à partir du 6e Grand Prix de la saison (une meilleure écurie qui te veut ; ton patron déçu)…
+  COURRIER_PATRON_MARGE: 0.05,      // … une meilleure écurie t'écrit si ta note est à moins de ça de son exigence
   // les décors des 12 circuits (decors-officiels.js) : rien à moins de cette distance du bord de la voie des stands (m), sauf le bâtiment
   // des stands lui-même, qui reste derrière la voie ; le reste du décor est au-delà de la barrière (DISTANCE_BARRIERE)
   DECOR_MARGE_STANDS: 2,

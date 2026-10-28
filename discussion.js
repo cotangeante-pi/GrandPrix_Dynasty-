@@ -11,7 +11,7 @@ const DISCUSSION = (function () {
   const R = REGLAGES;
   const borne = (x, a, b) => Math.max(a, Math.min(b, x));
   // où l'on peut discuter : entre deux Grands Prix (le paddock et ses écrans), jamais pendant une course
-  const ECRANS_PERMIS = ['championnat', 'fiche', 'discussion', 'courrier'];
+  const ECRANS_PERMIS = ['championnat', 'fiche', 'discussion', 'courrier', 'contrats'];
   const peutDiscuter = ecran => ECRANS_PERMIS.includes(ecran);
 
   const joueur = ch => ch.pilotes.find(p => p.humain);
@@ -47,6 +47,12 @@ const DISCUSSION = (function () {
     return { lui: cl.findIndex(x => x.k === k) + 1, joueur: cl.findIndex(x => x.k === j.id) + 1, n: cl.length };
   }
   const caractere = p => p.caractere || { agressivite: 0.5, regularite: 0.5, erreurs: 0.5 };
+  // le joueur sans nom (« Toi » / « You ») n'est pas appelé comme un prénom : « Salut {nom}. » devient « Salut. » (et la phrase
+  // garde sa majuscule)
+  function sansNom(t) {
+    const r = t.replace(/,\s*\{nom\}/g, '').replace(/\s+\{nom\}/g, '').replace(/\{nom\},\s*/g, '').replace(/\{nom\}/g, '');
+    return r.charAt(0).toUpperCase() + r.slice(1);
+  }
 
   // --- le raisonnement : { reaction, raisons: [cles], effets: { relation, rivalite ('nouvelle' | 'apaisee'), confiance,
   // disposition ('laisser' | 'bloquer'), promesse, menace, demande } }. Aucun effet n'est appliqué ici (appliquer le fait).
@@ -182,7 +188,8 @@ const DISCUSSION = (function () {
     const promesse = m.promesse && m.promesse.gp ? (ch.calendrier[m.promesse.gp - 1] ? texte('circuit_' + ch.calendrier[m.promesse.gp - 1].circuit) || '' : '') : '';
     const vals = { nom: nomDe(joueur(ch)), lui: nomDe(p), circuit, promesse,
       cible: r.effets.cible !== undefined && ch.pilotes[r.effets.cible] ? nomDe(ch.pilotes[r.effets.cible]) : '' };
-    const remplir = t => t.replace(/\{(\w+)\}/g, (x, c) => vals[c] !== undefined ? vals[c] : x);
+    const anonyme = !joueur(ch).nom;
+    const remplir = t => (anonyme ? sansNom(t) : t).replace(/\{(\w+)\}/g, (x, c) => vals[c] !== undefined ? vals[c] : x);
     const morceaux = [remplir(choisir('dis_' + r.reaction))];
     for (const raison of r.raisons) { const t = choisir('dis_raison_' + raison); if (t) morceaux.push(remplir(t)); }
     return typeof elider === 'function' ? elider(morceaux.join(' ')) : morceaux.join(' ');
@@ -234,5 +241,5 @@ const DISCUSSION = (function () {
     return true;
   }
 
-  return { dire, raisonner, appliquer, composerReponse, composer, intentions, apresGrandPrix, demanderPromesse, peutDiscuter, memoire, noms, INTENTIONS };
+  return { sansNom, dire, raisonner, appliquer, composerReponse, composer, intentions, apresGrandPrix, demanderPromesse, peutDiscuter, memoire, noms, INTENTIONS };
 })();

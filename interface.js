@@ -694,6 +694,14 @@ const INTERFACE = (function () {
           + (SAISONS.signataire(ch, o.ecurie) ? ' · ' + avec(texte('contratSigne'), { nom: nomPilote(Object.assign({ humain: false }, SAISONS.signataire(ch, o.ecurie))) }) : '')),   // la relève : l'offre signée d'un ancien rival du parent
         sp('niveau', avec(texte('contratNiveau'), { n: Math.round(e.niveau * 100) })),
         sp('coequipier', avec(texte('contratCoequipier'), { nom: o.coequipier === null ? '—' : nomPilote(ch.pilotes[o.coequipier]) })));
+      // le salaire et le statut de l'offre (patrons.js), et « Négocier » avec son patron
+      if (o.salaire) li.append(sp('salaire', avec(texte('contratSalaire'), { n: ARGENT.formater(o.salaire) }) + (o.statut === 'premier' ? ' · ' + texte('contratPremier') : '')));
+      if (negociationContrat) {
+        const n2 = document.createElement('button'); n2.className = 'negocier petit'; n2.tabIndex = -1; n2.textContent = texte('contratNegocier');
+        n2.addEventListener('mousedown', ev => ev.preventDefault());
+        n2.addEventListener('click', () => negociationContrat(o.ecurie));
+        li.appendChild(n2);
+      }
       const b = document.createElement('button');
       b.className = 'signer';
       b.tabIndex = -1;
@@ -704,6 +712,9 @@ const INTERFACE = (function () {
       ul.appendChild(li);
     }
   }
+
+  let negociationContrat = null;
+  function preparerNegociation(f) { negociationContrat = f; }
 
   // la retraite : « Carrière terminée », la raison, le bilan simple (le vrai bilan est l'étape 14)
   function remplirRetraite(r) {
@@ -1552,9 +1563,23 @@ const INTERFACE = (function () {
     cible.textContent = '';
     for (const x of ch.pilotes) if (!x.humain && x.id !== k) { const o = document.createElement('option'); o.value = x.id; o.textContent = nomPilote(x); cible.appendChild(o); }
     cible.title = texte('discussionCibleAide');
+    cible.classList.toggle('cache', !intentions.includes('bloquer'));   // (la liste ne sert qu'à « Bloquer… »)
     $('discussionTexte').placeholder = texte('discussionPlaceholder');
     $('boutonDiscussionEnvoyer').textContent = texte('discussionEnvoyer');
     $('boutonDiscussionRetour').textContent = texte('discussionRetour');
+  }
+  // un patron (patrons.js, tour 35) : le même écran ; l'en-tête dit son écurie (son nom : un ancien rival devenu patron, ou « la direction
+  // de … »), l'humeur de la confiance de l'écurie (la tienne) ou de son envie de t'avoir (les autres, aux contrats)
+  function remplirDiscussionPatron(ch, e, fil, intentions, nom) {
+    remplirDiscussion(ch, ch.pilotes.find(p => !p.humain && p.ecurie === e).id, fil, intentions);
+    const eq = ch.ecuries[e], mien = e === ch.pilotes.find(p => p.humain).ecurie, conf = typeof ch.confiance === 'number' ? ch.confiance : REGLAGES.CONFIANCE_DEPART;
+    $('discussionSurtitre').textContent = texte('discussionPatron') + ' · ' + nomEcurie(eq);
+    $('discussionNom').textContent = nom;
+    const humeur = mien ? (conf >= REGLAGES.PATRON_CONFIANCE_HAUTE ? 'bonne' : conf <= REGLAGES.PATRON_CONFIANCE_BASSE ? 'tendue' : 'neutre') : (PATRONS.envie(ch, e) >= REGLAGES.PATRON_ENVIE_FORTE ? 'bonne' : PATRONS.envie(ch, e) < 0 ? 'tendue' : 'neutre');
+    $('discussionHumeur').textContent = texte('discussionHumeur_' + humeur);
+    $('discussionHumeur').className = humeur;
+    const s = SAISONS.signataire(ch, e), pc = $('discussionPortrait').querySelector('canvas');
+    PHOTO.portrait(pc.getContext('2d'), pc.width, pc.height, { couleur: eq.couleur, casque: s && s.casque ? s.casque : REGLAGES.CASQUE_NEUTRE });
   }
   function preparerDiscussion(envoyer, composer, retour) {
     envoiDiscussion = envoyer; compositionDiscussion = composer;
@@ -1566,6 +1591,7 @@ const INTERFACE = (function () {
     $('boutonDiscussionRetour').addEventListener('click', retour);
     $('boutonFicheDiscuter').textContent = texte('ficheDiscuter');
     $('boutonParlerCoequipier').textContent = texte('parlerCoequipier');
+    $('boutonParlerPatron').textContent = texte('parlerPatron');
   }
 
   // --- le courrier des pilotes (Codeur 3) : messages = [{ i, k, texte, lu }] du plus récent au plus ancien ; repondre(i) ouvre la discussion
@@ -1577,11 +1603,11 @@ const INTERFACE = (function () {
     ol.textContent = '';
     if (!messages.length) { const li = document.createElement('li'); li.className = 'vide'; li.textContent = texte('courrierVide'); ol.appendChild(li); return; }
     for (const m of messages) {
-      const p = ch.pilotes[m.k], li = document.createElement('li');
+      const p = m.patron !== undefined ? null : ch.pilotes[m.k], li = document.createElement('li');
       li.className = m.lu ? 'lu' : 'nouveau';
-      const de = document.createElement('strong'); de.append(pastille(ch.ecuries[p.ecurie].couleur), ' ');
-      if (p.casque) de.append(CASQUE.icone(p.casque, REGLAGES.CASQUE_ICONE));
-      de.append(nomPilote(p));
+      const de = document.createElement('strong'); de.append(pastille(ch.ecuries[p ? p.ecurie : m.patron].couleur), ' ');
+      if (p && p.casque) de.append(CASQUE.icone(p.casque, REGLAGES.CASQUE_ICONE));
+      de.append(p ? nomPilote(p) : m.nom);
       if (!m.lu) { const n = document.createElement('em'); n.textContent = texte('courrierNouveau'); de.append(' ', n); }
       const t = document.createElement('span'); t.className = 'texte'; t.textContent = m.texte;
       const b = document.createElement('button'); b.className = 'petit'; b.tabIndex = -1; b.textContent = texte('courrierRepondre'); b.dataset.i = m.i;
@@ -1598,7 +1624,7 @@ const INTERFACE = (function () {
     $('boutonCourrierRetour').addEventListener('click', retour);
   }
 
-  return { majPneus, majMessage, preparerGrille, annoncerMotifs, preparerResume, montrerBoutonResume, majResume, remplirInscription, lireInscription, montrerErreursTournoi, preparerInscription, remplirAToi, majCompteTournoi, preparerPauseTournoi, remplirMancheTournoi, preparerMancheTournoi, remplirFinTournoi, preparerFinTournoi, preparerAmis, remplirDeux, lireDeux, montrerErreursDeux, preparerDeux, remplirPodiumDeux, remplirRivalite, formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, remplirPaddock, remplirDiscussion, preparerDiscussion, remplirCourrier, preparerCourrier, preparerChampionnat, remplirQualif, preparerQualif,
+  return { majPneus, majMessage, preparerGrille, annoncerMotifs, preparerResume, montrerBoutonResume, majResume, remplirInscription, lireInscription, montrerErreursTournoi, preparerInscription, remplirAToi, majCompteTournoi, preparerPauseTournoi, remplirMancheTournoi, preparerMancheTournoi, remplirFinTournoi, preparerFinTournoi, preparerAmis, remplirDeux, lireDeux, montrerErreursDeux, preparerDeux, remplirPodiumDeux, remplirRivalite, formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, remplirPaddock, remplirDiscussion, remplirDiscussionPatron, preparerNegociation, preparerDiscussion, remplirCourrier, preparerCourrier, preparerChampionnat, remplirQualif, preparerQualif,
     remplirDuel, avec, remplirUne, preparerUne, remplirArgent, remplirSolde, remplirGarage, preparerGarage,
     remplirSaison, remplirDuelSaison, remplirContrats, remplirRetraite, preparerSaison, retraiteEnAttente, remplirCeremonie, preparerCeremonie, remplirAlbum, preparerAlbum, remplirBilan, remplirTemple, preparerTemple, preparerReleve, remplirHeritier, lireHeritier, montrerErreurHeritier, remplirAileron, majAileron, preparerAileron, preparerPneusGarage, remplirArbre, preparerArbre, remplirCalendrier, preparerCalendrier,
     remplirSponsors, remplirRappelSponsor, preparerSponsors, remplirFiche, preparerFiche, remplirInterview, montrerEffetInterview, preparerInterview, remplirReputation,

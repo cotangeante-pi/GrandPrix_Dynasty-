@@ -1285,3 +1285,9 @@ body.deux.cote #boutonSon { top: auto; bottom: 12px; right: 12px; }   /* (côte 
 #courrierListe span.texte { grid-area: texte; }
 #courrierListe button { grid-area: bouton; min-width: 0; padding: 6px 12px; }
 #courrierListe .pastille { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
+
+/* les contrats avec les patrons (patrons.js, tour 35) : le salaire et le statut de chaque offre, « Négocier » */
+#contratsListe li { grid-template-columns: auto minmax(0, 1fr) minmax(0, 1.3fr) auto auto auto auto auto; }
+#contratsListe .salaire { color: var(--tv-or); font-weight: 700; font-size: 13px; }
+#contrats button.negocier { min-width: 0; padding: 6px 10px; font-size: 13px; }
+#contratsListe .mot { overflow: hidden; text-overflow: ellipsis; }
