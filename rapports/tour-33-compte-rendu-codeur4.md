@@ -137,3 +137,56 @@ Mesures : la carrière entière dure 413 s sur GitHub (Grand Prix 1 joué après
 Ce que je n'ai pas pu vérifier :
 - En 960×600 anglais, la fin de saison part d'un Grand Prix 12 fabriqué, pas d'une saison anglaise jouée en entier.
 - La fiche des rivaux, le calendrier, l'album et l'arbre ne sont pas visités par le script : ils ne sont pas dans l'ordre. Ils restent vérifiés par ecrans.py.
+
+---
+
+TOUR 36d — compte rendu du Codeur 4 (améliorer l'IA de discussion, avec le Codeur 3 ; branche codeur4 partie de main f44378c)
+
+Commits : 15f153f (passage 40613922417, vert, fusionné sur main 9bf380e), puis 79ce6e9 (passage 40616340804 : 13 travaux sur 13 verts).
+
+Le partage avec le Codeur 3 (validé par le Chef) :
+- à moi : parle.js, les bancs de phrases, les variantes dis_* et le rangement du courrier ;
+- à lui : discussion.js (la conversation, la mémoire, les faits), à partir de 15f153f. Avant, j'y avais mis la base : RECLAMATION, faits(), les souvenirs, le plafond par Grand Prix, le ton, la variété, les deux idées.
+- Il a fusionné mes commits, j'ai fusionné les siens (24e82f2, les patrons ; 4394a98, la conversation). On s'est prévenus avant chaque push.
+
+Ordres :
+1. **Comprendre plus** (parle.js) : fait.
+   - 175 phrases de joueurs de 10 à 16 ans ajoutées au banc (291 en tout), en anglais et en français, dans tests/banc-parle-36d.js :
+     - les plaintes de course (un nouvel acte RECLAMATION : « pk tu m'as bloqué », « tu m'as fermé la porte », « you brake checked me ») ;
+     - les contacts (« why did you crash me », « tu m'as fumé ») ;
+     - les moqueries de jeu (« ez », « cheh », « skill issue », « t'es éclaté ») ;
+     - les compliments d'ados (« t'es chaud », « masterclass », « you're cracked ») ;
+     - les nouvelles de la course (« t'as fini combien ») ;
+     - « tkt », « pk », « jsp », « pas mal », « t'es pas nul » ;
+     - les lettres répétées (« merciii ») et les émojis (👍 🙏 🔥 😡).
+   - Deux idées dans une phrase : l'analyse donne `second`. L'idée forte est celle après « mais », et l'autre reçoit aussi sa réponse.
+   - L'analyse donne aussi `sujet` (départ, stands, pluie, qualif, virage, aspiration) et `tour` (le tour nommé), que lit discussion.js.
+   - Une phrase incomprise reçoit une demande de reformuler. Contre les faux sens, PARLE_FLOU passe de 0,66 à 0,8 : avant, « monkey » était lu comme « money », donc un salaire.
+2. **Répondre de façon plus variée** : fait.
+   - Au moins deux tournures par réaction, dans les deux langues (c'est testé).
+   - Des variantes _vif pour les pilotes fougueux et _doux pour les calmes : chacun garde son ton, et ne prend jamais celui de l'autre.
+   - Les choix sont faits avec une graine fixe. Jamais deux fois la même réponse d'affilée sur 36 messages, avec au moins 15 réponses différentes.
+3. **Plus lié à la course** : fait.
+   - Les raisons fait_* citent seulement des faits vrais : places au championnat, points d'écart, places à la dernière course et son circuit, duel.
+   - Le test vérifie que chaque nombre d'une réponse existe vraiment dans le championnat.
+   - Les variantes _court (sans le circuit) servent quand le circuit est déjà cité dans la réponse.
+4. **Une mémoire plus forte** : fait.
+   - Les souvenirs (insulte, menace, compliment, excuse, paix) sont gardés sur plusieurs Grands Prix et rappelés avec leur circuit, une fois par Grand Prix.
+   - La relation ne bouge pas de plus de DISCUSSION_PAS_GP = 12 par Grand Prix.
+   - Le Codeur 3 a ensuite ajouté la conversation : une question reposée, les contradictions, la dernière conversation d'un Grand Prix à l'autre, l'au revoir.
+5. **Le courrier** : fait, avec l'accord du Codeur 3.
+   - ranger(ch, finGP) : les messages lus s'effacent au Grand Prix suivant ; les messages de plus de COURRIER_AGE_MAX = 3 Grands Prix s'effacent ; il reste au plus COURRIER_NON_LUS_MAX = 6 non lus.
+   - Une ancienne sauvegarde à 20 messages est rangée dès qu'on l'ouvre.
+
+Autres corrections, vues par la carrière entière (saison.py) :
+- les trois boutons de la carte du paddock (Courrier, Coéquipier, Direction) débordaient en 960 ;
+- une variante de ton manquante était lue comme une clé absente ;
+- le script cliquait « Négocier » au lieu de « Signer » (c'était le script, pas le jeu).
+
+Sortie des tests : passage 40616340804, 13 travaux verts. Le banc de phrases fait 56/56 avec osascript sur le Mac (pas de Chrome sur le Mac après 21 h). Aucun test retiré. Un test du Codeur 3, « le courrier sans redite », compte maintenant les messages écrits et non ceux qui restent dans la boîte, avec son accord.
+
+Mesures : 291 phrases au banc. Sur un pilote, 36 messages donnent au moins 15 réponses différentes, et deux réponses de suite ne sont jamais les mêmes. Les 4 conversations de 10 échanges (fr / en, calme / fougueux) sont lues sans erreur.
+
+Ce que je n'ai pas pu vérifier :
+- Le ressenti d'un vrai joueur.
+- Les réponses en anglais sont testées dans une page en français, donc les réponses y sortent en français ; les textes anglais ne sont vérifiés que par leurs clés et leurs repères.
