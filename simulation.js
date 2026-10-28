@@ -109,9 +109,8 @@ function donnerCarte(e, carte) {
     if (d && vise && vise !== p) p.pilote.disposition = { type: d.type, id: vise.v };
   });
   // ses techniques selon le virage (ia.js, techniquesPilote), avec leur propre graine : les tirages d'avant ne bougent pas
-  // (× la technique du niveau, NIVEAUX[…].technique : expert 0,7, légende 1 ; 0 ou absente : aucune technique, la course d'avant au bit
-  // près. Tour 33 : en normal (0,5 ; 0,3 ; la corde tardive seule) et en débutant (0,2), les garde-fous de la suite ne tenaient plus sur
-  // GitHub : chocs > 5 m/s 9 à 10 sur 30 courses (au plus 6), une coupe en 4b, la leçon « dépassement » du tutoriel ratée ; voir le compte rendu)
+  // (× la technique du niveau, NIVEAUX[…].technique : débutant 0,2, normal 0,5, expert 0,7, légende 1 ; 0 ou absente : aucune technique, la
+  // course d'avant au bit près. Tour 37 : en normal, sur 90 courses, chocs > 5 m/s 10 sans, 11 avec ; herbe 2815 sans, 3129 avec : du bruit)
   const nt = niveau().technique || 0;
   if (R.IA_TECHNIQUES_ACTIVES && nt > 0) {
     ALEATOIRE.semer(e.graine + R.GRAINE_TECHNIQUE);

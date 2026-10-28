@@ -895,10 +895,10 @@ t('niveaux : à chaque niveau, les 10 IA d’une course gardent le même ordre d
   v(moyens.debutant>moyens.legende+0.5,'débutant '+moyens.debutant.toFixed(2)+' s, légende '+moyens.legende.toFixed(2)+' s');
   L.push('  (meilleur tour moyen des 10 IA sur le circuit test, course de 3 tours : '+noms.map(n=>n+' '+moyens[n].toFixed(2)+' s').join(', ')+' ; seul, au rythme moyen du niveau : '+noms.map(n=>n+' '+seuls[n].toFixed(2)+' s').join(', ')+' ; le propriétaire ≈ 45 s)');});
 
-t('niveaux (tour 33) : au niveau normal, la carte d’avant (IA_MARGE_BORD), ni limite ni précision, ni technique (les garde-fous, tour 33) ; en expert et en légende, la carte du niveau (margeCarte), la corde et la marge du style, la limite, la technique ; le niveau en qualifications à 0 ne change pas la grille', ()=>{
+t('niveaux (tour 33) : au niveau normal, la carte d’avant (IA_MARGE_BORD), ni limite ni précision, des techniques douces (× NIVEAUX.normal.technique) ; en expert et en légende, la carte du niveau (margeCarte), la corde et la marge du style, la limite, la technique ; le niveau en qualifications à 0 ne change pas la grille', ()=>{
   const R_=REGLAGES,avant=R_.NIVEAU;
   try{R_.NIVEAU='normal';v(margeCarte()===R_.IA_MARGE_BORD,'normal : margeCarte '+margeCarte());
-    const e=creerCourseIA(TQ,4,3,2,CARTES_T.technique);for(const p_ of e.pilotes){v(p_.pilote.limite===undefined&&p_.pilote.bordMin===undefined&&p_.pilote.penaliteFrein===undefined&&!p_.pilote.style.techApex,'normal : n°'+p_.numero);v(p_.qualifTrait===0,'trait '+p_.qualifTrait);}
+    const e=creerCourseIA(TQ,4,3,2,CARTES_T.technique);for(const p_ of e.pilotes){v(p_.pilote.limite===undefined&&p_.pilote.bordMin===undefined&&p_.pilote.penaliteFrein===undefined&&p_.pilote.style.techApex&&p_.pilote.style.technique<=R_.NIVEAUX.normal.technique*R_.IA_STYLE_TECHNIQUE[1],'normal : n°'+p_.numero);v(p_.qualifTrait===0,'trait '+p_.qualifTrait);}
     for(const n of ['expert','legende']){R_.NIVEAU=n;const N_=R_.NIVEAUX[n];v(margeCarte()===N_.margeCarte,n+' : margeCarte');
       const e2=creerCourseIA(TQ,4,3,2,CARTES_T.technique);for(const p_ of e2.pilotes){v(p_.pilote.limite===N_.limite&&p_.pilote.bordMin===N_.bordMin&&p_.pilote.style.techApex&&p_.pilote.style.margeBord>=N_.bordMin,n+' : n°'+p_.numero);}}
   }finally{R_.NIVEAU=avant;}});
