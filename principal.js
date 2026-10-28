@@ -830,7 +830,8 @@ function repondreInterview(ton) {
 function finirInterview() {
   if (JEU.ecran !== 'interview' || !JEU.lignesGP) return;
   const lignes = JEU.lignesGP, moi = lignes.find(l => l.k === JEU.ia);
-  if (JEU.plateau) appliquerConsigne(JEU.championnat, JEU.plateau.consigne);   // la consigne d'équipe suivie ou ignorée : la confiance de l'écurie (Codeur 1)
+  if (JEU.plateau) appliquerConsigne(JEU.championnat, JEU.plateau.consigne);
+  if (JEU.plateau && typeof PATRONS !== 'undefined') PATRONS.noterConsigne(JEU.championnat, JEU.plateau.consigne);   // (le patron s'en souvient : patrons.js, Codeur 3)   // la consigne d'équipe suivie ou ignorée : la confiance de l'écurie (Codeur 1)
   CHAMPIONNAT.finirGrandPrix(JEU.championnat, lignes);
   SAUVEGARDE.debloquerMotifs(CASQUE.conditionsRemplies(JEU.championnat));   // les motifs de casque gagnés (victoire, podiums, domicile), à la racine de la sauvegarde
   JEU.grandPrixFini = true;
@@ -1015,13 +1016,24 @@ function montrerDiscussion(k, depuis, premier) {
   setTimeout(() => { const t = document.getElementById('discussionTexte'); if (t && JEU.ecran === 'discussion') t.focus(); }, 0);
 }
 function remplirDiscussion() {
-  const d = JEU.discussion;
-  INTERFACE.remplirDiscussion(JEU.championnat, d.k, d.fil, DISCUSSION.intentions(JEU.championnat, d.k));
+  const d = JEU.discussion, ch = JEU.championnat;
+  if (d.patron !== undefined) INTERFACE.remplirDiscussionPatron(ch, d.patron, d.fil, PATRONS.intentions(ch, d.patron), PATRONS.nom(ch, d.patron, { pilote: INTERFACE.nomPilote, ecurie: INTERFACE.nomEcurie }));
+  else INTERFACE.remplirDiscussion(ch, d.k, d.fil, DISCUSSION.intentions(ch, d.k));
+}
+// un patron (patrons.js, tour 35) : le tien depuis le paddock, toute l'année ; les autres depuis l'écran des contrats (« Négocier »)
+function montrerDiscussionPatron(e, depuis, premier) {
+  if (!PATRONS.peutParler(JEU.championnat, e, JEU.ecran)) return;
+  JEU.discussion = { patron: e, depuis: depuis || JEU.ecran, fil: premier ? [{ de: 'lui', texte: premier }] : [] };
+  JEU.ecran = 'discussion';
+  remplirDiscussion();
+  INTERFACE.montrer('discussion');
+  setTimeout(() => { const t = document.getElementById('discussionTexte'); if (t && JEU.ecran === 'discussion') t.focus(); }, 0);
 }
 function envoyerDiscussion(txt) {
   const d = JEU.discussion;
   if (JEU.ecran !== 'discussion' || !d || !String(txt || '').trim()) return;
-  const r = DISCUSSION.dire(JEU.championnat, d.k, String(txt).slice(0, 140), 'discussion');
+  const r = d.patron !== undefined ? PATRONS.dire(JEU.championnat, d.patron, String(txt).slice(0, 140), 'discussion', { pilote: INTERFACE.nomPilote, ecurie: INTERFACE.nomEcurie })
+    : DISCUSSION.dire(JEU.championnat, d.k, String(txt).slice(0, 140), 'discussion');
   if (!r) return;
   d.fil.push({ de: 'moi', texte: String(txt).slice(0, 140) }, { de: 'lui', texte: r.texte });
   JEU.derniereReponse = r;   // (les tests lisent le raisonnement de la dernière réponse)
@@ -1036,6 +1048,7 @@ function quitterDiscussion() {
   if (JEU.ecran !== 'discussion') return;
   const d = JEU.discussion;
   JEU.discussion = null;
+  if (d && d.depuis === 'contrats') { montrerContrats(); return; }   // (les offres redessinées : le salaire et le statut négociés)
   montrerChampionnat(JEU.gagne);
   if (d && d.depuis === 'fiche') montrerFiche(d.k);
   if (d && d.depuis === 'courrier') montrerCourrier();
@@ -1044,7 +1057,8 @@ function quitterDiscussion() {
 // --- le courrier des pilotes (Codeur 3, courrier-pilotes.js) : depuis le paddock ; « Répondre » ouvre la discussion avec son message
 function messagesCourrier() {
   const ch = JEU.championnat, c = COURRIER_PILOTES.completer(ch);
-  return c.messages.map((m, i) => ({ i, k: m.k, lu: m.lu, texte: COURRIER_PILOTES.texteDe(ch, m, { pilote: INTERFACE.nomPilote }) })).reverse();
+  const noms = { pilote: INTERFACE.nomPilote, ecurie: INTERFACE.nomEcurie };
+  return c.messages.map((m, i) => ({ i, k: m.k, patron: m.patron, nom: m.patron !== undefined ? PATRONS.nom(ch, m.patron, noms) : null, lu: m.lu, texte: COURRIER_PILOTES.texteDe(ch, m, noms) })).reverse();
 }
 function montrerCourrier() {
   if (JEU.ecran !== 'championnat') return;
@@ -1057,7 +1071,9 @@ function repondreCourrier(i) {
   const ch = JEU.championnat, m = COURRIER_PILOTES.lire(ch, i);
   if (!m) return;
   SAUVEGARDE.ecrireChampionnat(ch);
-  montrerDiscussion(m.k, 'courrier', COURRIER_PILOTES.texteDe(ch, m, { pilote: INTERFACE.nomPilote }));
+  const t = COURRIER_PILOTES.texteDe(ch, m, { pilote: INTERFACE.nomPilote, ecurie: INTERFACE.nomEcurie });
+  if (m.patron !== undefined) { JEU.ecran = 'championnat'; montrerDiscussionPatron(m.patron, 'courrier', t); if (JEU.ecran !== 'discussion') montrerCourrier(); }   // (un patron des autres écuries ne parle qu'aux contrats)
+  else montrerDiscussion(m.k, 'courrier', t);
 }
 function quitterCourrier() {
   if (JEU.ecran !== 'courrier') return;
@@ -1817,6 +1833,8 @@ function demarrerJeu() {
     // les discussions (Codeur 3) : « Discuter » sur la fiche d'un rival, « 💬 Coéquipier » au paddock
     INTERFACE.preparerDiscussion(envoyerDiscussion, composerDiscussion, quitterDiscussion);
     INTERFACE.preparerCourrier(montrerCourrier, repondreCourrier, quitterCourrier);
+    INTERFACE.preparerNegociation(e => { if (JEU.ecran === 'contrats') montrerDiscussionPatron(e, 'contrats'); });
+    document.getElementById('boutonParlerPatron').addEventListener('click', () => { if (JEU.ecran === 'championnat') montrerDiscussionPatron(PILOTE.joueur(JEU.championnat).ecurie, 'championnat'); });
     document.getElementById('boutonFicheDiscuter').addEventListener('click', () => { if (JEU.ecran === 'fiche') montrerDiscussion(JEU.ficheK, 'fiche'); });
     document.getElementById('boutonParlerCoequipier').addEventListener('click', () => { const c = CHAMPIONNAT.coequipierDe(JEU.championnat); if (JEU.ecran === 'championnat' && c) montrerDiscussion(c.id, 'championnat'); });
     INTERFACE.preparerInterview(repondreInterview, finirInterview);

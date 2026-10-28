@@ -11,7 +11,7 @@ const DISCUSSION = (function () {
   const R = REGLAGES;
   const borne = (x, a, b) => Math.max(a, Math.min(b, x));
   // où l'on peut discuter : entre deux Grands Prix (le paddock et ses écrans), jamais pendant une course
-  const ECRANS_PERMIS = ['championnat', 'fiche', 'discussion', 'courrier'];
+  const ECRANS_PERMIS = ['championnat', 'fiche', 'discussion', 'courrier', 'contrats'];
   const peutDiscuter = ecran => ECRANS_PERMIS.includes(ecran);
 
   const joueur = ch => ch.pilotes.find(p => p.humain);
@@ -30,6 +30,7 @@ const DISCUSSION = (function () {
     if (m.menace === undefined) m.menace = null;
     if (m.demande === undefined) m.demande = null;
     if (typeof m.credit !== 'number') m.credit = 0;
+    if (!Array.isArray(m.souvenirs)) m.souvenirs = [];   // (tour 36d) les moments marquants, gardés plus longtemps : [acte, saison, gp]
     return m;
   }
   const gpActuel = ch => ({ saison: ch.saison, gp: ch.resultats.length });   // le dernier Grand Prix couru (0 : aucun)
@@ -47,6 +48,36 @@ const DISCUSSION = (function () {
     return { lui: cl.findIndex(x => x.k === k) + 1, joueur: cl.findIndex(x => x.k === j.id) + 1, n: cl.length };
   }
   const caractere = p => p.caractere || { agressivite: 0.5, regularite: 0.5, erreurs: 0.5 };
+  // le joueur sans nom (« Toi » / « You ») n'est pas appelé comme un prénom : « Salut {nom}. » devient « Salut. » (et la phrase
+  // garde sa majuscule)
+  function sansNom(t) {
+    const r = t.replace(/,\s*\{nom\}/g, '').replace(/\s+\{nom\}/g, '').replace(/\{nom\},\s*/g, '').replace(/\{nom\}/g, '');
+    return r.charAt(0).toUpperCase() + r.slice(1);
+  }
+
+  // --- tour 36d (Codeur 4) : ce qu'il sait vraiment, pour le dire (jamais un fait inventé) : sa place et la tienne au championnat,
+  // les points d'écart, vos places à la dernière course et son circuit, le duel s'il est ton coéquipier
+  function faits(ch, k) {
+    const j = joueur(ch), pl = places(ch, k), lui = ch.pilotes[k];
+    const f = { p_lui: pl.lui, p_joueur: pl.joueur, ecart: Math.abs((lui.stats ? lui.stats.points : 0) - (j.stats ? j.stats.points : 0)),
+      devant: (lui.stats ? lui.stats.points : 0) - (j.stats ? j.stats.points : 0), course: null, duel: null };
+    const r = ch.resultats[ch.resultats.length - 1], gp = ch.calendrier[ch.resultats.length - 1];
+    if (r && Array.isArray(r.ordre) && r.ordre.includes(k) && r.ordre.includes(j.id)) f.course = { a: r.ordre.indexOf(k) + 1, b: r.ordre.indexOf(j.id) + 1, circuit: gp ? gp.circuit : null };
+    const co = CHAMPIONNAT.coequipierDe(ch), sd = co && co.id === k ? CHAMPIONNAT.scoreDuel(ch) : null;
+    if (sd) f.duel = { moi: sd.total[0], lui: sd.total[1] };
+    return f;
+  }
+  // un souvenir marquant d'un Grand Prix d'avant (pas celui-ci) : la dernière insulte ou menace, le dernier compliment ou excuse
+  function souvenir(ch, m, genre) {
+    const actes = genre === 'mauvais' ? ['INSULTE', 'MENACE'] : ['COMPLIMENT', 'EXCUSE', 'PAIX', 'MERCI'];
+    const g = gpActuel(ch);
+    for (let i = m.souvenirs.length - 1; i >= 0; i--) {
+      const [a, s, gp] = m.souvenirs[i];
+      if (s === g.saison && gp === g.gp) continue;
+      if (actes.includes(a)) return { acte: a, saison: s, gp };
+    }
+    return null;
+  }
 
   // --- le raisonnement : { reaction, raisons: [cles], effets: { relation, rivalite ('nouvelle' | 'apaisee'), confiance,
   // disposition ('laisser' | 'bloquer'), promesse, menace, demande } }. Aucun effet n'est appliqué ici (appliquer le fait).
@@ -104,6 +135,14 @@ const DISCUSSION = (function () {
         garde('contact');
         if (fougueux) { reaction = 'contact_assume'; effets.relation = -Math.round(P / 2); } else { reaction = 'contact_regrette'; effets.relation = 1; }
         break;
+      case 'RECLAMATION': {
+        // (tour 36d) « pk tu m'as bloqué » : le fougueux assume (il défendait sa place), le calme s'explique, un ami s'excuse à moitié
+        if (dc.contact) garde('contact');
+        if (rel >= AMI) { reaction = 'reclamation_ami'; effets.relation = 1; }
+        else if (fougueux || riv) { reaction = 'reclamation_assume'; effets.relation = -1; if (riv) garde('rivalite'); }
+        else { reaction = 'reclamation_explique'; }
+        break;
+      }
       case 'PASSER': {
         // laisser passer le joueur à la prochaine course : le coéquipier l'envisage (même écurie), un rival seulement s'il l'aime bien
         const promet = a.jetons.includes('rendre9');
@@ -151,7 +190,20 @@ const DISCUSSION = (function () {
       case 'QUESTION': reaction = 'question'; break;
       default: reaction = 'incompris';
     }
-    return { reaction, raisons, effets };
+    // (tour 36d) ce qu'il ajoute, tiré des faits vrais : sa place et la tienne, les points d'écart, la dernière course, le duel
+    const f = faits(ch, k), dejaCourse = ch.resultats.length > 0;
+    if (dejaCourse && ['ETAT'].includes(a.acte)) garde(f.devant > 0 ? 'fait_devant' : f.devant < 0 ? 'fait_derriere' : 'fait_egalite');
+    if (dejaCourse && f.course && ['AVIS', 'CONTACT', 'RECLAMATION', 'COMPLIMENT'].includes(a.acte)) garde(f.course.a < f.course.b ? 'fait_course_devant' : 'fait_course_derriere');
+    if (dejaCourse && a.acte === 'INSULTE' && f.devant > 0 && !a.ironie) garde('fait_devant');
+    if (f.duel && a.acte === 'DUEL') garde('fait_duel');
+    // (tour 36d) la mémoire sur plusieurs Grands Prix : il rappelle une insulte ancienne quand on revient le voir gentiment, ou un
+    // compliment ancien quand on l'insulte ; une fois par Grand Prix au plus
+    const g = gpActuel(ch), cleGp = g.saison * 100 + g.gp;
+    if (m.rappel !== cleGp) {
+      const vieux = ['SALUT', 'COMPLIMENT', 'PASSER', 'AVIS', 'ETAT', 'PAIX'].includes(a.acte) ? souvenir(ch, m, 'mauvais') : ['INSULTE', 'MENACE'].includes(a.acte) ? souvenir(ch, m, 'bon') : null;
+      if (vieux) { garde(vieux.acte === 'MENACE' ? 'souvenir_menace' : vieux.acte === 'INSULTE' ? 'souvenir_insulte' : 'souvenir_gentil'); effets.souvenir = vieux; }
+    }
+    return { reaction, raisons, effets, faits: f };
   }
 
   // applique les effets d'un raisonnement, chacun avec son plafond : la relation entre ±DISCUSSION_RELATION_MAX (jamais plus de
@@ -159,7 +211,18 @@ const DISCUSSION = (function () {
   // (la jauge « écurie » de l'interview, ±DISCUSSION_CONFIANCE), la disposition pour la prochaine course, la promesse, la menace
   function appliquer(ch, k, r, acte) {
     const p = ch.pilotes[k], m = memoire(p), e = r.effets, g = gpActuel(ch);
-    if (e.relation) m.relation = borne(m.relation + borne(e.relation, -R.DISCUSSION_PAS, R.DISCUSSION_PAS), -R.DISCUSSION_RELATION_MAX, R.DISCUSSION_RELATION_MAX);
+    // (tour 36d) la relation bouge lentement : jamais plus de DISCUSSION_PAS par message, ni plus de DISCUSSION_PAS_GP sur un même
+    // Grand Prix (dix compliments d'affilée ne font pas un ami)
+    if (e.relation) {
+      const cle = g.saison * 100 + g.gp;
+      if (!m.gpRel || m.gpRel[0] !== cle) m.gpRel = [cle, 0];
+      const voulu = borne(e.relation, -R.DISCUSSION_PAS, R.DISCUSSION_PAS), dispo = R.DISCUSSION_PAS_GP - Math.abs(m.gpRel[1] + voulu) >= 0 ? voulu
+        : borne(voulu, -R.DISCUSSION_PAS_GP - m.gpRel[1], R.DISCUSSION_PAS_GP - m.gpRel[1]);
+      m.gpRel[1] += dispo;
+      m.relation = borne(m.relation + dispo, -R.DISCUSSION_RELATION_MAX, R.DISCUSSION_RELATION_MAX);
+    }
+    if (['INSULTE', 'MENACE', 'COMPLIMENT', 'EXCUSE', 'PAIX'].includes(acte)) { m.souvenirs.push([acte, g.saison, g.gp]); if (m.souvenirs.length > R.DISCUSSION_SOUVENIRS) m.souvenirs.splice(0, m.souvenirs.length - R.DISCUSSION_SOUVENIRS); }
+    if (e.souvenir) m.rappel = g.saison * 100 + g.gp;
     if (e.rivalite === 'nouvelle') p.rivalite = { courses: R.DISCUSSION_RIVALITE_COURSES, gp: g.gp, saison: g.saison, cle: 'discussion_' + r.reaction, params: {}, circuit: derniereCourse(ch, k).circuit };
     if (e.rivalite === 'apaisee') delete p.rivalite;
     if (e.confiance && ch.reputation) { const c = borne(e.confiance, -R.DISCUSSION_CONFIANCE, R.DISCUSSION_CONFIANCE); ch.reputation.ecurie = borne(ch.reputation.ecurie + c, 0, 100); ch.confiance = ch.reputation.ecurie; }
@@ -177,15 +240,28 @@ const DISCUSSION = (function () {
   function composerReponse(ch, k, r) {
     const p = ch.pilotes[k], m = memoire(p), dc = derniereCourse(ch, k);
     const alea = ALEATOIRE.suite((ch.graine || 0) + R.GRAINE_DISCUSSION + k * 101 + m.dits.length * 7 + ch.resultats.length * 1009);
-    const choisir = cle => { const v = texte(cle); return Array.isArray(v) ? v[Math.floor(alea() * v.length)] : v || ''; };
+    // (tour 36d) le ton suit le caractère : une variante « vive » pour le fougueux, « douce » pour le calme, s'il y en a ; jamais deux
+    // fois de suite la même réponse au même pilote (m.derniere : la dernière réponse, gardée)
+    const ag = caractere(p).agressivite, ton = ag >= R.DISCUSSION_FOUGUEUX ? '_vif' : ag <= R.DISCUSSION_DOUX ? '_doux' : '';
+    const existe = cle => TEXTES[LANGUE][cle] !== undefined || TEXTES.en[cle] !== undefined;   // (sans appeler texte() pour une clé de ton absente)
+    const liste = cle => { const v = texte(cle), w = ton && existe(cle + ton) ? texte(cle + ton) : null; const a = Array.isArray(v) ? v : v ? [v] : []; return Array.isArray(w) ? a.concat(w, w) : a; };
+    const choisir = cle => { const v = liste(cle); return v.length ? v[Math.floor(alea() * v.length)] : ''; };
+    const choisirAutre = (cle, eviter) => { const v = liste(cle); if (!v.length) return ''; let i = Math.floor(alea() * v.length); for (let n = 0; n < v.length && eviter && eviter.startsWith(v[i]); n++) i = (i + 1) % v.length; return v[i]; };
     const circuit = dc.circuit ? (texte('circuit_' + dc.circuit) || dc.circuit) : '';
     const promesse = m.promesse && m.promesse.gp ? (ch.calendrier[m.promesse.gp - 1] ? texte('circuit_' + ch.calendrier[m.promesse.gp - 1].circuit) || '' : '') : '';
+    const f = r.faits || {}, nomCircuit = c => c ? texte('circuit_' + c) || c : '';
+    const sv = r.effets.souvenir, svGp = sv ? (sv.saison === ch.saison ? ch.calendrier[sv.gp - 1] : null) : null;
     const vals = { nom: nomDe(joueur(ch)), lui: nomDe(p), circuit, promesse,
+      p_lui: f.p_lui, p_joueur: f.p_joueur, ecart: f.ecart, a: f.course ? f.course.a : '', b: f.course ? f.course.b : '', circuit_course: f.course ? nomCircuit(f.course.circuit) : '',
+      duel_moi: f.duel ? f.duel.moi : '', duel_lui: f.duel ? f.duel.lui : '', souvenir_circuit: svGp ? nomCircuit(svGp.circuit) : texte('dis_avant'),
       cible: r.effets.cible !== undefined && ch.pilotes[r.effets.cible] ? nomDe(ch.pilotes[r.effets.cible]) : '' };
-    const remplir = t => t.replace(/\{(\w+)\}/g, (x, c) => vals[c] !== undefined ? vals[c] : x);
-    const morceaux = [remplir(choisir('dis_' + r.reaction))];
+    const anonyme = !joueur(ch).nom;
+    const remplir = t => (anonyme ? sansNom(t) : t).replace(/\{(\w+)\}/g, (x, c) => vals[c] !== undefined ? vals[c] : x);
+    const morceaux = [remplir(choisirAutre('dis_' + r.reaction, m.derniere ? m.derniere.split(' ¦ ')[0] : null))];
     for (const raison of r.raisons) { const t = choisir('dis_raison_' + raison); if (t) morceaux.push(remplir(t)); }
-    return typeof elider === 'function' ? elider(morceaux.join(' ')) : morceaux.join(' ');
+    let phrase = morceaux.join(' ');
+    phrase = typeof elider === 'function' ? elider(phrase) : phrase;
+    return phrase;
   }
 
   // dire(ch, k, txt) : le joueur écrit à un pilote ; renvoie { analyse, reaction, raisons, effets, texte } et applique les effets
@@ -195,7 +271,21 @@ const DISCUSSION = (function () {
     if (!p || p.humain) return null;
     const analyse = PARLE.comprendre(txt, noms(ch)), r = raisonner(ch, k, analyse);
     appliquer(ch, k, r, analyse.acte);
-    return { analyse, reaction: r.reaction, raisons: r.raisons, effets: r.effets, texte: composerReponse(ch, k, r) };
+    let rep = composerReponse(ch, k, r), reactions = [r.reaction];
+    // (tour 36d) deux idées dans la phrase : il répond aussi à la seconde (une phrase de plus, sans ses raisons) ; ses effets passent
+    // par les mêmes plafonds (la relation ne bouge pas plus vite pour autant)
+    if (analyse.second && !['occupe'].includes(r.reaction)) {
+      const r2 = raisonner(ch, k, Object.assign({}, analyse, { acte: analyse.second, second: null }));
+      if (r2.reaction !== r.reaction && r2.reaction !== 'occupe') {
+        appliquer(ch, k, { effets: { relation: r2.effets.relation || 0 } }, analyse.second);
+        rep = composerReponse(ch, k, Object.assign({}, r2, { raisons: [] })) + ' ' + rep;
+        reactions.unshift(r2.reaction);
+      }
+    }
+    const m = memoire(p);
+    if (m.derniere && m.derniere === rep) rep = rep + ' ' + texte('dis_encore');   // (jamais tout à fait la même réponse deux fois de suite)
+    m.derniere = rep;
+    return { analyse, reaction: r.reaction, reactions, raisons: r.raisons, effets: r.effets, faits: r.faits, texte: rep };
   }
 
   // --- le composeur au clic : une intention et ses paramètres (la cible, la promesse), en une phrase de la langue du jeu ---
@@ -234,5 +324,5 @@ const DISCUSSION = (function () {
     return true;
   }
 
-  return { dire, raisonner, appliquer, composerReponse, composer, intentions, apresGrandPrix, demanderPromesse, peutDiscuter, memoire, noms, INTENTIONS };
+  return { sansNom, dire, raisonner, appliquer, composerReponse, composer, intentions, apresGrandPrix, demanderPromesse, peutDiscuter, memoire, noms, INTENTIONS };
 })();

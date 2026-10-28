@@ -12,6 +12,7 @@ const COURRIER_PILOTES = (function () {
     if (!ch.courrier || typeof ch.courrier !== 'object') ch.courrier = { messages: [], vus: {} };
     if (!Array.isArray(ch.courrier.messages)) ch.courrier.messages = [];
     if (!ch.courrier.vus || typeof ch.courrier.vus !== 'object') ch.courrier.vus = {};
+    ranger(ch, false);   // (tour 36d) les trop vieux et le trop-plein de non lus
     return ch.courrier;
   }
   const indice = ch => (ch.saison - 1) * R.NB_GRANDS_PRIX + ch.resultats.length;   // un compteur de Grands Prix sur toute la carrière
@@ -72,8 +73,27 @@ const COURRIER_PILOTES = (function () {
         nouveaux.push({ k, sujet: s.cle, urgence: s.urgence });
       }
     }
+    // les patrons (patrons.js, tour 35) : un patron qui te veut (une meilleure écurie dont tu atteins presque l'exigence), ton patron déçu
+    // (une consigne ignorée à ce Grand Prix, ou des résultats nettement sous ce qu'on attend) ; une fois par saison au plus chacun
+    if (typeof PATRONS !== 'undefined' && typeof SAISONS !== 'undefined') {
+      const j = joueur(ch), ex = SAISONS.exigences(ch), note = SAISONS.note(ch), rangJ = SAISONS.rangEcurie(ch, j.ecurie);
+      const saisonDe = x => Math.floor((x - 1) / R.NB_GRANDS_PRIX), deja = (cle, e) => { const x = c.vus[cle + ':e' + e]; return x !== undefined && saisonDe(x) === saisonDe(n); };
+      if (ch.resultats.length >= R.COURRIER_PATRON_DES) {
+        const veut = ch.ecuries.filter(e => SAISONS.rangEcurie(ch, e.id) < rangJ && ex[e.id] <= note + R.COURRIER_PATRON_MARGE).sort((a, b) => SAISONS.rangEcurie(ch, a.id) - SAISONS.rangEcurie(ch, b.id))[0];
+        if (veut && !deja('patronVeut', veut.id)) nouveaux.push({ patron: veut.id, sujet: 'patronVeut', urgence: 8 });
+      }
+      const cs = ch.consignesJoueur, at = PATRONS.attente(ch);
+      const ignoree = cs && cs.saison === ch.saison && cs.derniere && cs.derniere.gp === ch.resultats.length && cs.derniere.resultat !== 'suivie';
+      if ((ignoree || (ch.resultats.length >= R.COURRIER_PATRON_DES && at.ecart <= -2 * R.PATRON_ECART_RESULTATS)) && !deja('patronDecu', j.ecurie))
+        nouveaux.push({ patron: j.ecurie, sujet: 'patronDecu', urgence: 7, ton: ignoree ? '_consigne' : '' });
+    }
     nouveaux.sort((a, b) => b.urgence - a.urgence);
     for (const m of nouveaux.slice(0, R.COURRIER_PAR_GP)) {
+      if (m.patron !== undefined) {   // un patron : le message est au nom de son écurie
+        c.messages.push({ patron: m.patron, sujet: m.sujet, cle: 'courrier_' + m.sujet + (m.ton || ''), saison: ch.saison, gp: ch.resultats.length, lu: false });
+        c.vus[m.sujet + ':e' + m.patron] = n;
+        continue;
+      }
       const p = ch.pilotes[m.k], fougueux = (p.caractere ? p.caractere.agressivite : 0.5) >= R.DISCUSSION_FOUGUEUX;
       const ton = ['contact', 'depasse'].includes(m.sujet) ? (fougueux ? '_colere' : '_calme') : '';
       c.messages.push({ k: m.k, sujet: m.sujet, cle: 'courrier_' + m.sujet + ton, saison: ch.saison, gp: ch.resultats.length, lu: false });
@@ -82,19 +102,36 @@ const COURRIER_PILOTES = (function () {
       if (m.sujet === 'menaceVide' && p.memoire) p.memoire.creditVu = p.memoire.credit;
     }
     if (c.messages.length > R.COURRIER_MAX) c.messages.splice(0, c.messages.length - R.COURRIER_MAX);
+    ranger(ch, true);
     return nouveaux.slice(0, R.COURRIER_PAR_GP).map(m => m.sujet);
   }
 
-  const nonLus = ch => (ch.courrier && Array.isArray(ch.courrier.messages) ? ch.courrier.messages.filter(m => !m.lu).length : 0);
+  // --- (tour 36d, Codeur 4, avec l'accord du Codeur 3) la boîte rangée : après chaque Grand Prix (finGP), les messages déjà lus
+  // s'effacent ; à tout moment, un message de plus de COURRIER_AGE_MAX Grands Prix s'efface, et il ne reste jamais plus de
+  // COURRIER_NON_LUS_MAX messages non lus (les plus récents). Une ancienne sauvegarde à 20 messages est rangée dès son ouverture.
+  function ranger(ch, finGP) {
+    const c = ch.courrier;
+    if (!c || !Array.isArray(c.messages)) return 0;
+    const n = indice(ch), age = m => n - ((m.saison - 1) * R.NB_GRANDS_PRIX + (m.gp || 0));
+    const avant = c.messages.length;
+    c.messages = c.messages.filter(m => !(finGP && m.lu) && age(m) <= R.COURRIER_AGE_MAX);
+    const nl = c.messages.filter(m => !m.lu);
+    if (nl.length > R.COURRIER_NON_LUS_MAX) { const trop = new Set(nl.slice(0, nl.length - R.COURRIER_NON_LUS_MAX)); c.messages = c.messages.filter(m => !trop.has(m)); }
+    return avant - c.messages.length;
+  }
+  const nonLus = ch => { if (ch.courrier) ranger(ch, false); return ch.courrier && Array.isArray(ch.courrier.messages) ? ch.courrier.messages.filter(m => !m.lu).length : 0; };
   // le texte d'un message : sa clé (courrier_<sujet>[_ton]) avec le nom du joueur, de l'auteur et le circuit du Grand Prix
   function texteDe(ch, m, noms) {
-    const p = ch.pilotes[m.k], gp = ch.calendrier[m.gp - 1], prochain = ch.calendrier[m.gp];
-    const v = { nom: noms.pilote(joueur(ch)), lui: noms.pilote(p), circuit: gp ? texte('circuit_' + gp.circuit) || gp.circuit : '', prochain: prochain ? texte('circuit_' + prochain.circuit) || prochain.circuit : '' };
+    const p = m.patron !== undefined ? null : ch.pilotes[m.k], gp = ch.calendrier[m.gp - 1], prochain = ch.calendrier[m.gp];
+    const lui = p ? noms.pilote(p) : (typeof PATRONS !== 'undefined' && noms.ecurie ? PATRONS.nom(ch, m.patron, noms) : '');
+    const v = { nom: noms.pilote(joueur(ch)), lui, ecurie: m.patron !== undefined && noms.ecurie ? noms.ecurie(ch.ecuries[m.patron]) : '', circuit: gp ? texte('circuit_' + gp.circuit) || gp.circuit : '', prochain: prochain ? texte('circuit_' + prochain.circuit) || prochain.circuit : '' };
     const t = texte(m.cle);
-    const phrase = (Array.isArray(t) ? t[(m.k + m.gp) % t.length] : t || '').replace(/\{(\w+)\}/g, (x, c) => v[c] !== undefined ? v[c] : x);
+    let brut = Array.isArray(t) ? t[((m.k || 0) + m.gp) % t.length] : t || '';
+    if (!joueur(ch).nom && typeof DISCUSSION !== 'undefined') brut = DISCUSSION.sansNom(brut);   // (sans nom : « Salut, on partage… », jamais « Salut Toi »)
+    const phrase = brut.replace(/\{(\w+)\}/g, (x, c) => v[c] !== undefined ? v[c] : x);
     return typeof elider === 'function' ? elider(phrase) : phrase;
   }
   function lire(ch, i) { const m = ch.courrier && ch.courrier.messages[i]; if (m) m.lu = true; return m || null; }
 
-  return { completer, apresGrandPrix, nonLus, texteDe, lire, faitsDu, SUJETS: SUJETS.map(s => s.cle) };
+  return { ranger, completer, apresGrandPrix, nonLus, texteDe, lire, faitsDu, SUJETS: SUJETS.map(s => s.cle) };
 })();
