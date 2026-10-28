@@ -11,7 +11,7 @@ const DISCUSSION = (function () {
   const R = REGLAGES;
   const borne = (x, a, b) => Math.max(a, Math.min(b, x));
   // où l'on peut discuter : entre deux Grands Prix (le paddock et ses écrans), jamais pendant une course
-  const ECRANS_PERMIS = ['championnat', 'fiche', 'discussion', 'courrier'];
+  const ECRANS_PERMIS = ['championnat', 'fiche', 'discussion', 'courrier', 'contrats'];
   const peutDiscuter = ecran => ECRANS_PERMIS.includes(ecran);
 
   const joueur = ch => ch.pilotes.find(p => p.humain);
@@ -48,6 +48,12 @@ const DISCUSSION = (function () {
     return { lui: cl.findIndex(x => x.k === k) + 1, joueur: cl.findIndex(x => x.k === j.id) + 1, n: cl.length };
   }
   const caractere = p => p.caractere || { agressivite: 0.5, regularite: 0.5, erreurs: 0.5 };
+  // le joueur sans nom (« Toi » / « You ») n'est pas appelé comme un prénom : « Salut {nom}. » devient « Salut. » (et la phrase
+  // garde sa majuscule)
+  function sansNom(t) {
+    const r = t.replace(/,\s*\{nom\}/g, '').replace(/\s+\{nom\}/g, '').replace(/\{nom\},\s*/g, '').replace(/\{nom\}/g, '');
+    return r.charAt(0).toUpperCase() + r.slice(1);
+  }
 
   // --- tour 36d (Codeur 4) : ce qu'il sait vraiment, pour le dire (jamais un fait inventé) : sa place et la tienne au championnat,
   // les points d'écart, vos places à la dernière course et son circuit, le duel s'il est ton coéquipier
@@ -248,7 +254,8 @@ const DISCUSSION = (function () {
       p_lui: f.p_lui, p_joueur: f.p_joueur, ecart: f.ecart, a: f.course ? f.course.a : '', b: f.course ? f.course.b : '', circuit_course: f.course ? nomCircuit(f.course.circuit) : '',
       duel_moi: f.duel ? f.duel.moi : '', duel_lui: f.duel ? f.duel.lui : '', souvenir_circuit: svGp ? nomCircuit(svGp.circuit) : texte('dis_avant'),
       cible: r.effets.cible !== undefined && ch.pilotes[r.effets.cible] ? nomDe(ch.pilotes[r.effets.cible]) : '' };
-    const remplir = t => t.replace(/\{(\w+)\}/g, (x, c) => vals[c] !== undefined ? vals[c] : x);
+    const anonyme = !joueur(ch).nom;
+    const remplir = t => (anonyme ? sansNom(t) : t).replace(/\{(\w+)\}/g, (x, c) => vals[c] !== undefined ? vals[c] : x);
     const morceaux = [remplir(choisirAutre('dis_' + r.reaction, m.derniere ? m.derniere.split(' ¦ ')[0] : null))];
     for (const raison of r.raisons) { const t = choisir('dis_raison_' + raison); if (t) morceaux.push(remplir(t)); }
     let phrase = morceaux.join(' ');
@@ -316,5 +323,5 @@ const DISCUSSION = (function () {
     return true;
   }
 
-  return { dire, raisonner, appliquer, composerReponse, composer, intentions, apresGrandPrix, demanderPromesse, peutDiscuter, memoire, noms, INTENTIONS };
+  return { sansNom, dire, raisonner, appliquer, composerReponse, composer, intentions, apresGrandPrix, demanderPromesse, peutDiscuter, memoire, noms, INTENTIONS };
 })();

@@ -122,7 +122,12 @@ const SAISONS = (function () {
     const bonus = id => typeof CARRIERE !== 'undefined' ? CARRIERE.attention(ch, rangEcurie(ch, id), ch.ecuries.length) : 0;   // la relève : un peu d'attention pour l'héritier (jamais d'une grande écurie)
     return ch.ecuries.filter(e => ex[e.id] <= n + bonus(e.id) + 1e-12)
       .sort((a, b) => b.niveau - a.niveau || a.id - b.id)
-      .map(e => ({ ecurie: e.id, niveau: e.niveau, coequipier: coequipierDans(ch, e.id) ? coequipierDans(ch, e.id).id : null, actuelle: e.id === j.ecurie, exigence: ex[e.id] }));
+      .map(e => {
+        const o = { ecurie: e.id, niveau: e.niveau, coequipier: coequipierDans(ch, e.id) ? coequipierDans(ch, e.id).id : null, actuelle: e.id === j.ecurie, exigence: ex[e.id] };
+        // le salaire et le statut (patrons.js) : ceux de la négociation avec son patron, sinon le salaire de base et « second pilote »
+        if (R.CONTRAT_SALAIRES_ACTIFS && typeof PATRONS !== 'undefined') { const c = PATRONS.conditions(ch, e.id); o.salaire = c.salaire; o.statut = c.statut; }
+        return o;
+      });
   }
 
   // le rang d'une écurie par son niveau (0 = la meilleure), pour un mot sur elle (textes : fort, moyen, faible)
@@ -143,7 +148,13 @@ const SAISONS = (function () {
       j.ecurie = id;
     }
     ch.contrats.push([ch.saison + 1, id]);
+    // le salaire de la saison, versé à la signature, et le statut négocié (patrons.js) ; posé après la nouvelle saison
+    const conditions = R.CONTRAT_SALAIRES_ACTIFS && typeof PATRONS !== 'undefined' ? PATRONS.conditions(ch, id) : null;
     nouvelleSaison(ch);
+    if (conditions) {
+      if (typeof ARGENT !== 'undefined') ARGENT.crediter(ch, conditions.salaire, 'salaire');
+      ch.statut = { saison: ch.saison, valeur: conditions.statut };
+    }
     return true;
   }
 

@@ -58,6 +58,9 @@ const PARLE = (function () {
     [/\b(what do you (think|make) of me|how do you see me|your opinion of me|what s your opinion)\b/g, ' avis9 '],
     [/\b(comment (ca va|tu vas|vas tu|va ta saison|se passe ta saison)|ca va bien|ta saison|tu te sens comment|la forme)\b/g, ' etat9 '],
     [/\b(how are (you|u)|how s (it going|your season|life)|how do you feel|how r u|hows it going|you ok)\b/g, ' etat9 '],
+    // avec le patron : le budget de la voiture (l'aileron, les améliorations) et les consignes d'équipe
+    [/\b(plus de budget|du budget|un budget|le budget|budget de developpement|argent pour (la voiture|le garage|l aileron)|ameliorer la voiture|ameliorations?|nouvel aileron|un meilleur aileron|developpement de la voiture|more budget|development budget|upgrade the car|car upgrades?|new (rear )?wing|better wing)\b/g, ' budget9 '],
+    [/\b(consignes? d equipe|les consignes|ta consigne|cette consigne|une consigne|ordres? d equipe|ordre de l equipe|team orders?|that order|the order)\b/g, ' consigne9 '],
     [/\b(premier pilote|pilote numero un|numero 1 de l ecurie|statut de leader|first driver|number one driver|lead driver|team leader)\b/g, ' statut9 '],
     [/\b(augmentation|plus d argent|meilleur salaire|mieux paye|payer plus|un meilleur contrat|pay rise|raise|more money|better pay|better contract|higher salary)\b/g, ' salaire9 '],
     [/\b(notre duel|le duel|entre nous deux dans l equipe|our duel|our battle|between us in the team)\b/g, ' duel9 '],
@@ -99,7 +102,7 @@ const PARLE = (function () {
     excuse9: { excuse: 1 }, accord9: { accord: 1 }, refus9: { refus: 1 }, insulte9: { insulte: 1 }, bravo9: { compliment: 1, politesse: 0.3 },
     menace9: { menace: 1 }, paix9: { paix: 1 }, contact9: { contact: 1 }, passer9: { passage: 1 }, rendre9: { rendre: 1 },
     bloquer9: { bloquer: 1 }, avis9: { avis: 1, question: 0.3 }, etat9: { etat: 1, question: 0.3 }, statut9: { statut: 1, contrat: 0.5 },
-    salaire9: { argent: 1, contrat: 0.6 }, duel9: { duel: 1 }, rire9: { ironie: 1 }, plainte9: { plainte: 1 },
+    salaire9: { argent: 1, contrat: 0.6 }, budget9: { budget: 1 }, consigne9: { consigne: 1 }, duel9: { duel: 1 }, rire9: { ironie: 1 }, plainte9: { plainte: 1 },
     // français
     excus: { excuse: 1 }, pardon: { excuse: 1 }, desol: { excuse: 1 },
     paix: { paix: 0.9 }, rancun: { paix: 0.5, contact: 0.3 }, calm: { paix: 0.6 }, reconcili: { paix: 0.9 }, oubli: { paix: 0.5 },
@@ -108,10 +111,11 @@ const PARLE = (function () {
     passer: { passage: 0.8 }, doubl: { passage: 0.7, course: 0.3 }, depass: { passage: 0.6, course: 0.3 }, place: { passage: 0.3 }, consign: { passage: 0.7, duel: 0.3 },
     bloqu: { bloquer: 0.9 }, retien: { bloquer: 0.7 }, defend: { bloquer: 0.5 }, gen: { bloquer: 0.4 }, aide: { bloquer: 0.4, rendre: 0.3 }, allie: { bloquer: 0.6 }, ensembl: { bloquer: 0.3 },
     promet: { rendre: 0.8 }, promess: { rendre: 0.8 }, rendr: { rendre: 0.7 }, servic: { rendre: 0.6 }, pareill: { rendre: 0.6 },
-    avis: { avis: 1, question: 0.3 }, pens: { avis: 0.6 }, trouv: { avis: 0.3 },
+    avis: { avis: 1, question: 0.3 }, pens: { avis: 0.6 }, confian: { avis: 0.8 }, trust: { avis: 0.8 }, trouv: { avis: 0.3 },
     saison: { etat: 0.5, course: 0.3 }, form: { etat: 0.5 }, moral: { etat: 0.7 }, va: { etat: 0.3 },
     cours: { course: 0.8 }, grand: { course: 0.2 }, prix: { course: 0.3 }, circuit: { course: 0.5 }, tour: { course: 0.3 }, qualif: { course: 0.5, duel: 0.3 }, podium: { course: 0.6, compliment: 0.2 },
     duel: { duel: 1 }, coequipi: { duel: 0.8 }, equip: { duel: 0.4, contrat: 0.3 },
+    budget: { budget: 1 }, aileron: { budget: 0.6, contact: 0.2 }, consign: { consigne: 1 },
     contrat: { contrat: 1 }, salair: { argent: 1, contrat: 0.6 }, argent: { argent: 1 }, prim: { argent: 0.8 }, pay: { argent: 0.6 }, euro: { argent: 0.8 }, signer: { contrat: 0.7, accord: 0.3 }, sign: { contrat: 0.6 },
     statut: { statut: 1 }, chef: { statut: 0.6 }, leader: { statut: 0.8 }, numero: { statut: 0.3 },
     salu: { salutation: 1 }, bonjour: { salutation: 1 }, merci: { gratitude: 1 }, bravo: { compliment: 1 }, felicit: { compliment: 1 }, champion: { compliment: 0.6 }, rapid: { compliment: 0.4 },
@@ -181,7 +185,8 @@ const PARLE = (function () {
     INSULTE: { insulte: 1 }, MENACE: { menace: 1 }, EXCUSE: { excuse: 1 }, PAIX: { paix: 1, excuse: 0.2 }, COMPLIMENT: { compliment: 1, politesse: 0.2 },
     CONTACT: { contact: 1, question: 0.2 }, RECLAMATION: { plainte: 1, question: 0.2 }, PASSER: { passage: 1, politesse: 0.2 }, PROMESSE: { rendre: 1 }, BLOQUER: { bloquer: 1 },
     AVIS: { avis: 1, question: 0.3 }, ETAT: { etat: 1, question: 0.3 }, DUEL: { duel: 1 }, SALAIRE: { argent: 1, contrat: 0.5 }, STATUT: { statut: 1, contrat: 0.4 },
-    MERCI: { gratitude: 1 }, SALUT: { salutation: 1 }, ADIEU: { adieu: 1 }, ACCORD: { accord: 1 }, REFUS: { refus: 1 }, QUESTION: { question: 1 },
+BUDGET: { budget: 1 }, CONSIGNE: { consigne: 1, question: 0.2 },
+        MERCI: { gratitude: 1 }, SALUT: { salutation: 1 }, ADIEU: { adieu: 1 }, ACCORD: { accord: 1 }, REFUS: { refus: 1 }, QUESTION: { question: 1 },
   };
   // un acte « fort » l'emporte sur la politesse ou le salut qui l'accompagnent (« slt, laisse moi passer stp » est une demande)
   const SECONDAIRES = ['SALUT', 'MERCI', 'QUESTION', 'ACCORD'];
@@ -206,6 +211,9 @@ const PARLE = (function () {
     // la négation : « pas », « jamais », « don't » — mais « pas de souci », « ne t'inquiète pas » ne nient rien (ils sont déjà des jetons)
     const negation = /\b(pas|jamais|aucun|aucune|rien|plus jamais|dont|don t|won t|not|never)\b/.test(propre.replace(/\b(pas de souci|pas de probleme)\b/g, ''));
     let acte = choix.score >= SEUIL ? choix.acte : (question ? 'QUESTION' : 'INCONNU');
+    // « je veux 80000 », « i want 90000 » : un montant seul est une demande de salaire
+    const nb0 = plat.match(/\b\d{4,7}\b/);
+    if ((acte === 'INCONNU' || acte === 'QUESTION') && nb0) acte = 'SALAIRE';
     // « je ne te laisserai pas passer » refuse ; « je ne m'excuse pas » n'est pas une excuse
     if (negation && ['EXCUSE', 'PAIX', 'COMPLIMENT', 'ACCORD'].includes(acte) && !/\b(pas de souci|pas de probleme)\b/.test(plat)) acte = acte === 'COMPLIMENT' ? 'INSULTE' : 'REFUS';
     if (negation && acte === 'PASSER' && !question && /\b(je|i)\b/.test(plat)) acte = 'REFUS';
