@@ -1855,7 +1855,7 @@ function demarrerJeu() {
     const ecrire = () => { b.textContent = texte('commentaire_' + REGLAGES.COMMENTAIRE_MODE); };
     ecrire();
     b.addEventListener('mousedown', e => e.preventDefault());
-    b.addEventListener('click', () => { REGLAGES.COMMENTAIRE_MODE = MODES[(MODES.indexOf(REGLAGES.COMMENTAIRE_MODE) + 1) % MODES.length]; SAUVEGARDE.ecrireOption('commentaire', REGLAGES.COMMENTAIRE_MODE); if (JEU.commentaire) JEU.commentaire.c.file = []; ecrire(); });
+    b.addEventListener('click', () => { REGLAGES.COMMENTAIRE_MODE = MODES[(MODES.indexOf(REGLAGES.COMMENTAIRE_MODE) + 1) % MODES.length]; SAUVEGARDE.ecrireOption('commentaire', REGLAGES.COMMENTAIRE_MODE); if (JEU.commentaire) JEU.commentaire.c.file = []; if (REGLAGES.COMMENTAIRE_MODE === 'non' && JEU.messages) { const m = JEU.messages.m; m.file = m.file.filter(x => x.type !== 'commentaire'); if (m.actuel && m.actuel.type === 'commentaire') m.actuel = null; } ecrire(); });   // (coupé : ce qui attendait dans le bandeau s'en va aussi)
   }
   INTERFACE.majBoutonsFantome(SAUVEGARDE.option('fantome', true));
   PODIUM3D.init(CIRCUIT);
