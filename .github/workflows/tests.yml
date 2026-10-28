@@ -36,6 +36,7 @@ jobs:
           - { nom: ecrans-4, partie: ecrans, tranche: 4/4 }
           - { nom: annexes, partie: annexes }
           - { nom: paquet, partie: paquet }
+          - { nom: saison, partie: saison }   # la carrière entière jouée par le robot (tests/saison.py, Codeur 4)
     steps:
       - uses: actions/checkout@v4
 

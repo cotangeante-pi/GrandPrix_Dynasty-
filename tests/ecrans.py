@@ -50,7 +50,11 @@ PAGES = [
     ('index.html?championnat=1&tours=1&robot=1&gp=12', 960, 600, None),    # les écrans de fin de saison en petit (Grand Prix 12 fabriqué), la retraite
     ('index.html?championnat=1&tours=1&robot=1&lang=en', 1280, 720, None),
     ('index.html?championnat=1&tours=1&robot=1&gp=12&lang=en', 960, 600, None),
-    ('index.html?championnat=1&tours=1&robot=1&gp=12&lang=en', 1280, 720, None),   # … en 1280×720 (le thème télé, tour 32) : aucun débordement aux deux tailles
+    ('index.html?championnat=1&tours=1&robot=1&gp=12&lang=en', 1280, 720, None),
+    ('index.html?championnat=1&tours=1&robot=1&gp=3&test=discussion', 1280, 720, None),   # les discussions (tour 33, Codeur 3) : fiche → Discuter, saisie, composeur, coéquipier ; capture discussion.png
+    ('index.html?championnat=1&tours=1&robot=1&gp=3&test=discussion', 960, 600, None),
+    ('index.html?championnat=1&tours=1&robot=1&gp=3&lang=en&test=discussion', 960, 600, None),
+    ('index.html?championnat=1&tours=1&robot=1&gp=3&lang=en&test=discussion', 1280, 720, None),   # … en 1280×720 (le thème télé, tour 32) : aucun débordement aux deux tailles
     # l'audit anglais, suite (tour 31) : la découverte et ses aides, Entre amis, l'écran partagé et ses réglages, la création du pilote ; le
     # tournoi ; la course à deux ; le résumé vidéo ; les stands ; la consigne d'équipe ; le volant (?lang=en, 960×600, mots témoins, rien hors de l'écran)
     ('index.html?robot=1&tours=1&lang=en&test=audit-decouverte', 960, 600, None),
@@ -95,7 +99,8 @@ PAGES = [
     ('index.html?course=3&ia=20&circuit=monzo&meteo=pluie&test=pluie', 1280, 720, None),
     ('index.html?course=3&ia=20&circuit=monzo&meteo=pluie&test=pluie', 960, 600, None),
     ('index.html?championnat=1&meteo=risque&test=prevision', 1280, 720, None),
-    ('index.html?course=3&ia=20&circuit=monoco&test=tele', 1280, 720, None),   # la réalisation télé (regie.js) : de vraies caméras, l'hélicoptère ; captures tele-monoco.png, tele-helico.png   # … et Monzo de jour : la luminosité de l'image, pour la comparer à la nuit   # le décor dans le vrai jeu : la course de nuit à Singapura, 20 voitures, vue télé ; capture jeu-singapura.png
+    ('index.html?course=3&ia=20&circuit=monoco&test=tele', 1280, 720, None),
+    ('index.html?course=3&ia=19&joueur=1&circuit=monzo&domicile=1&test=supporters', 1280, 720, None),   # le Grand Prix à domicile : la caméra de la grille longe d'abord la tribune des supporters ; capture supporters.png   # la réalisation télé (regie.js) : de vraies caméras, l'hélicoptère ; captures tele-monoco.png, tele-helico.png   # … et Monzo de jour : la luminosité de l'image, pour la comparer à la nuit   # le décor dans le vrai jeu : la course de nuit à Singapura, 20 voitures, vue télé ; capture jeu-singapura.png
     ('tests/lieu.html?circuit=monoco&vue=port', 1280, 720, None),
     ('tests/lieu.html?circuit=suzuko&vue=pont', 1280, 720, None),   # le pont de Suzuko (PONT_ACTIF) : une voiture dessus, une dessous ; capture pont-suzuko.png   # Monoco en détail : le port, les bateaux, les façades ; capture monoco.png
     ('tests/lieu.html?circuit=monoco&domicile=1', 1280, 720, None),   # le Grand Prix à domicile : le public aux couleurs du pays, les banderoles ; capture banderoles.png
@@ -109,6 +114,8 @@ PAGES = [
     ('index.html?course=12&ia=3&joueur=1&robot=1&circuit=test&test=aides-course', 960, 600, None),
     ('index.html?championnat=1&test=aides-menus', 1280, 720, None),
     ('index.html?championnat=1&test=aides-menus', 960, 600, None),
+    ('index.html?championnat=1&tours=2&robot=1&test=aides-consigne', 1280, 720, None),   # les aides des contrats et de la consigne d'équipe, dans la page
+    ('index.html?championnat=1&tours=2&robot=1&test=aides-consigne', 960, 600, None),
     # le tutoriel guidé (tutoriel.js, étape 11d, Codeur 4) : la liste (titre, pause, paddock), « Passer », chaque leçon réussie par le robot, l'échec sans rien faire
     ('index.html?test=tuto-menu', 1280, 720, None),
     ('index.html?test=tuto-menu', 960, 600, None),
@@ -120,6 +127,7 @@ PAGES = [
     ('index.html?tutoriel=stand&course=2&test=tuto', 960, 600, None),
     ('index.html?tutoriel=pluie&course=3&ia=1&joueur=1&niveau=debutant&meteo=averse&test=tuto', 1280, 720, None),
     ('index.html?tutoriel=visite&championnat=1&test=tuto', 1280, 720, None),
+    ('index.html?tutoriel=visite&championnat=1&test=tuto-quitter', 960, 600, None),   # … passée en cours de route : rien ne reste dans la carrière
 ]
 # ECRANS_FILTRE=… (pendant le travail, sur le Mac) : seulement les pages dont l'adresse contient ce texte ; GitHub lance toujours tout
 if os.environ.get('ECRANS_FILTRE'): PAGES = [x for x in PAGES if os.environ['ECRANS_FILTRE'] in f'{x[0]} {x[1]}']   # (« adresse largeur » : « robot=1 960 »)
@@ -1200,8 +1208,8 @@ def pluie_ecran(pg, titre, l, h):
       return { appels: SCENE3D.appelsDessin, pluie: METEO3D.pluie.visible, gouttes: METEO3D.pluie.geometry.drawRange.count, gerbes: METEO3D.gerbes.count, hudCache: document.getElementById('meteoHud').classList.contains('cache'), eau: document.getElementById('meteoEau').textContent, icone: document.getElementById('meteoIcone').textContent, max: REGLAGES.LIEU_APPELS_MAX }; }""")
     route = pg.evaluate("() => METEO3D.routeMateriau")
     L.append(f"  (pluie, 20 voitures, {l}×{h}, derrière la voiture : {m['appels']} appels de dessin, {m['gouttes'] // 2} gouttes, {m['gerbes']} gerbes)")
-    t(f'{titre} : sous la pluie : la pluie tombe (un trait par goutte, en un appel), des gerbes derrière les voitures qui roulent, la route mouillée (à reflets), l’icône et l’eau sur la piste ; sous LIEU_APPELS_MAX appels avec 20 voitures',
-      pret and m['pluie'] and m['gouttes'] > 1000 and m['gerbes'] >= 3 and route == 'MeshPhongMaterial' and not m['hudCache'] and '75' in m['eau'] and m['icone'] == '🌧' and m['appels'] < m['max'], str([m, route]))
+    t(f'{titre} : sous la pluie : la pluie tombe (un trait par goutte, en un appel), des gerbes derrière les voitures qui roulent, la route mouillée (à reflets) et sa trajectoire plus sèche, l’icône et l’eau sur la piste ; sous LIEU_APPELS_MAX appels avec 20 voitures',
+      pret and m['pluie'] and m['gouttes'] > 1000 and m['gerbes'] >= 3 and route == 'MeshPhongMaterial' and not m['hudCache'] and '75' in m['eau'] and m['icone'] == '🌧' and m['appels'] < m['max'] and pg.evaluate('() => !!(METEO3D.ligne && METEO3D.ligne.visible)'), str([m, route]))
     pg.screenshot(path=os.path.join(CAPTURES, 'pluie.png' if l == 1280 else 'pluie-960.png'))
     if l != 1280: return
     pg.evaluate('() => CAMERA.forcer("cockpit")'); pg.wait_for_timeout(800)
@@ -1222,6 +1230,23 @@ def prevision_ecran(pg, titre):
 
 # la réalisation télé (regie.js) dans le vrai jeu, à Monoco : en vue télé, la caméra est un vrai poste du décor (sa place ne bouge
 # pas, elle voit la voiture), puis l'hélicoptère (dans ses hauteurs) ; les mâts des caméras coûtent un appel de dessin au plus
+# le Grand Prix à domicile (?domicile=1 : un joueur fictif chez lui à Monzo) : avant les feux, la caméra longe la tribune des supporters
+# (la tribune principale du décor, à moins de 30 m d'elle), puis la grille vue d'en haut ; capture supporters.png
+def supporters_ecran(pg, titre):
+    pg.evaluate('() => { REGLAGES.GRILLE_TRIBUNE_DUREE = 6; }')   # (plus long : swiftshader est lent, la capture doit tomber dedans)
+    attendre(pg, '() => JEU.ecran === "qualif" && JEU.qualif && JEU.qualif.etat === "choix"', None, 60000)
+    attendre(pg, '() => JEU.plateau.carte !== null', None, 180000)
+    pg.evaluate('() => document.getElementById("boutonQualifPasser").click()')   # (un clic par la page : swiftshader rame, le bouton « bouge »)
+    attendre(pg, '() => JEU.qualif && JEU.qualif.etat === "resultat"', None, 180000)
+    pg.evaluate('() => document.getElementById("boutonQualifCourse").click()')
+    vu = attendre(pg, '() => JEU.ecran === "grille" && JEU.grille && JEU.grille.tribune && JEU.grille.t > 0.3', None, 30000)
+    if not vu: t(f'{titre} : la caméra de la grille au Grand Prix à domicile', False, str(pg.evaluate('() => [JEU.ecran, !!JEU.grille]'))); return
+    m = pg.evaluate("""() => { const tr = JEU.grille.tribune, c = SCENE3D.camera.position, d = Math.min(Math.hypot(c.x - tr.a.x, c.z - tr.a.z), Math.hypot(c.x - tr.b.x, c.z - tr.b.z));
+      let ban = 0; SCENE3D.decor.groupe.traverse(o => { if (o.name === 'decor-banderoles') ban++; }); return { t: JEU.grille.t, d, proche: (() => { let m = Infinity; for (const o of SCENE3D.decor.objets.tribune) if (o.entree === 1) m = Math.min(m, Math.hypot(c.x - o.x, c.z - o.z)); return m; })(), ban }; }""")
+    t(f'{titre} : au Grand Prix à domicile, avant la grille, la caméra longe la tribune des supporters (à {round(m["proche"])} m), avec les banderoles', vu and m['proche'] < 30 and m['ban'] == 1, str(m))
+    pg.screenshot(path=os.path.join(CAPTURES, 'supporters.png'))
+    t(f'{titre} : puis la grille vue d’en haut, et la course', attendre(pg, '() => JEU.ecran === "course"', None, 60000), pg.evaluate('() => JEU.ecran'))
+
 def tele_ecran(pg, titre):
     pret = attendre(pg, '() => JEU.plateau && JEU.plateau.pilotes.filter(p => Math.abs(p.v.u) > 15).length >= 5 && CAMERA.regie', None, 90000)
     pg.evaluate('() => CAMERA.forcer("tele")')
@@ -1703,6 +1728,70 @@ AUDIT_ETAT = '''re => { const id = JEU.ecran === "album" ? "une" : JEU.ecran, el
   const hors = [...el.querySelectorAll("*")].filter(e => e.childElementCount === 0 && e.textContent.trim() && getComputedStyle(e).display !== "none" && e.getClientRects().length)
     .filter(e => { const r = e.getBoundingClientRect(); return r.right > innerWidth + 1 || r.bottom > innerHeight + 1 || r.left < -1 || r.top < -1; }).map(e => e.textContent.trim().slice(0, 40));
   return { id, francais: m ? texte.slice(Math.max(0, m.index - 30), m.index + 40) : null, hors, defile: [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth] }; }'''
+# les discussions (tour 33, Codeur 3, discussion.js) : depuis la fiche d'un rival (« Discuter ») et depuis le paddock (le coéquipier) ;
+# la saisie libre (les espaces se tapent, Entrée envoie), le composeur au clic, la réponse du pilote dans le fil, la mémoire sauvegardée ;
+# rien hors de l'écran ; captures discussion.png (et -960, -en)
+DISCUSSION_ETAT = """() => { const el = document.getElementById("discussion"), fil = [...document.querySelectorAll("#discussionFil li")].map(l => [l.className, l.textContent]);
+  const hors = [...el.querySelectorAll("*")].filter(e => e.childElementCount === 0 && e.textContent.trim() && getComputedStyle(e).display !== "none" && e.getClientRects().length && !e.closest("#discussionFil"))
+    .filter(e => { const r = e.getBoundingClientRect(); return r.right > innerWidth + 1 || r.bottom > innerHeight + 1 || r.left < -1 || r.top < -1; }).map(e => e.textContent.trim().slice(0, 30));
+  const carte = document.getElementById("discussionCarte").getBoundingClientRect(), retour = document.getElementById("boutonDiscussionRetour").getBoundingClientRect();
+  return { ecran: JEU.ecran, k: JEU.discussion && JEU.discussion.k, fil, intentions: [...document.querySelectorAll("#discussionComposeur button.intention")].map(b => b.dataset.intention),
+    nom: document.getElementById("discussionNom").textContent, hors, dedans: carte.top >= 0 && retour.bottom <= innerHeight + 1 && carte.right <= innerWidth + 1,
+    focus: document.activeElement && document.activeElement.id, defile: [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth] }; }"""
+def discussion_ecran(pg, titre, l, h, page):
+    en = 'lang=en' in page
+    t(f'{titre} : le paddock', attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', None, 60000))
+    pg.wait_for_timeout(300)
+    k = pg.evaluate('() => { const co = CHAMPIONNAT.coequipierDe(JEU.championnat); return JEU.championnat.pilotes.find(p => !p.humain && p.id !== co.id).id; }')
+    pg.click(f'#championnatPilotes li[data-k="{k}"] .nom')
+    attendre(pg, '() => JEU.ecran === "fiche"', None, 5000)
+    pg.click('#boutonFicheDiscuter')
+    t(f'{titre} : « Discuter » sur la fiche d’un rival ouvre la discussion, la saisie prête à écrire', attendre(pg, f'() => JEU.ecran === "discussion" && JEU.discussion.k === {k} && document.activeElement && document.activeElement.id === "discussionTexte"', None, 5000),
+      str(pg.evaluate(DISCUSSION_ETAT)))
+    # la saisie libre au clavier : les espaces se tapent (le jeu ne les prend plus), Entrée envoie
+    pg.click('#discussionTexte'); pg.keyboard.type('slt, t es trop nul' if not en else 'hey, you are so slow')
+    v = pg.evaluate('() => document.getElementById("discussionTexte").value')
+    t(f'{titre} : on tape un message avec des espaces (« {v} »)', ' ' in v and len(v) > 10, v)
+    pg.keyboard.press('Enter'); pg.wait_for_timeout(200)
+    d = pg.evaluate(DISCUSSION_ETAT); r = pg.evaluate('() => JEU.derniereReponse && { acte: JEU.derniereReponse.analyse.acte, texte: JEU.derniereReponse.texte, reaction: JEU.derniereReponse.reaction }')
+    t(f'{titre} : Entrée envoie ; le pilote répond depuis son raisonnement (l’insulte lue, sa réaction dans le fil)', r and r['acte'] == 'INSULTE' and len(d['fil']) == 2 and d['fil'][0][0] == 'moi' and d['fil'][1] == ['lui', r['texte']]
+      and pg.evaluate('() => document.getElementById("discussionTexte").value') == '', str(d['fil']) + ' ' + str(r))
+    # le composeur au clic : « S'excuser » repart dans la même lecture
+    pg.click('#discussionComposeur button[data-intention="excuser"]'); pg.wait_for_timeout(200)
+    d = pg.evaluate(DISCUSSION_ETAT); r = pg.evaluate('() => JEU.derniereReponse.analyse.acte')
+    t(f'{titre} : le composeur au clic (« S’excuser ») : la phrase et la réponse s’ajoutent au fil, lues comme une excuse', len(d['fil']) == 4 and r == 'EXCUSE', str(d['fil']) + ' ' + str(r))
+    t(f'{titre} : la mémoire du pilote est sauvegardée (2 messages)', pg.evaluate(f'() => {{ const c = SAUVEGARDE.championnat(); return !!c && c.pilotes[{k}].memoire && c.pilotes[{k}].memoire.dits.length === 2; }}'))
+    t(f'{titre} : la discussion tient dans l’écran ({l}×{h}), sans défilement, le duel absent avec un rival', d['dedans'] and not d['hors'] and pas_de_defilement(d['defile']) and 'duel' not in d['intentions'] and len(d['intentions']) >= 12, str(d))
+    pg.wait_for_timeout(800); pg.screenshot(path=os.path.join(CAPTURES, 'discussion' + ('-en' if en else '') + ('' if l == 1280 else '-' + str(l)) + '.png'))
+    pg.click('#boutonDiscussionRetour')
+    t(f'{titre} : « Retour » ramène à la fiche, puis au paddock', attendre(pg, '() => JEU.ecran === "fiche"', None, 3000) and (pg.click('#boutonFicheRetour') or True) and attendre(pg, '() => JEU.ecran === "championnat"', None, 3000))
+    # le coéquipier, depuis le paddock : le duel est proposé
+    pg.click('#boutonParlerCoequipier')
+    d = pg.evaluate(DISCUSSION_ETAT)
+    t(f'{titre} : « 💬 Coéquipier » au paddock ouvre la discussion avec ton coéquipier, le duel proposé', d['ecran'] == 'discussion' and d['k'] == pg.evaluate('() => CHAMPIONNAT.coequipierDe(JEU.championnat).id') and 'duel' in d['intentions'], str(d))
+    pg.click('#discussionComposeur button[data-intention="duel"]'); pg.wait_for_timeout(200)
+    t(f'{titre} : il répond sur votre duel', pg.evaluate('() => JEU.derniereReponse.reaction.startsWith("duel_")'), pg.evaluate('() => JEU.derniereReponse.reaction'))
+    pg.click('#boutonDiscussionRetour')
+    t(f'{titre} : retour au paddock', attendre(pg, '() => JEU.ecran === "championnat"', None, 3000))
+    # le courrier : un message du pilote touché à la dernière course ; « ✉ Courrier (1) » au paddock, l'écran, « Répondre » ouvre la discussion
+    avant = pg.evaluate('() => COURRIER_PILOTES.nonLus(JEU.championnat)')   # (les Grands Prix fabriqués par ?gp=3 ont déjà fait écrire des pilotes)
+    pg.evaluate(f'''() => {{ const ch = JEU.championnat, c = COURRIER_PILOTES.completer(ch); c.messages.push({{ k: {k}, sujet: 'contact', cle: 'courrier_contact_calme', saison: ch.saison, gp: ch.resultats.length, lu: false }}); montrerChampionnat(null); }}''')
+    b = pg.evaluate('() => document.getElementById("boutonCourrier").textContent')
+    t(f'{titre} : au paddock, « ✉ Courrier ({avant + 1}) » annonce les messages non lus', b.endswith(f'({avant + 1})') and pg.evaluate('() => document.getElementById("boutonCourrier").classList.contains("nouveau")'), b)
+    pg.click('#boutonCourrier')
+    c = pg.evaluate('''() => { const li = [...document.querySelectorAll("#courrierListe li")]; const el = document.getElementById("courrier");
+      const hors = [...el.querySelectorAll("*")].filter(e => e.childElementCount === 0 && e.textContent.trim() && getComputedStyle(e).display !== "none" && e.getClientRects().length)
+        .filter(e => { const r = e.getBoundingClientRect(); return r.right > innerWidth + 1 || r.bottom > innerHeight + 1 || r.left < -1 || r.top < -1; }).map(e => e.textContent.trim().slice(0, 30));
+      return { ecran: JEU.ecran, n: li.length, nouveau: li.filter(x => x.classList.contains("nouveau")).length, texte: li[0] && li[0].querySelector(".texte").textContent, hors }; }''')
+    t(f'{titre} : l’écran du courrier : le plus récent en haut, marqué nouveau, rien hors de l’écran', c['ecran'] == 'courrier' and c['n'] >= 1 and c['nouveau'] == avant + 1 and c['texte'] and not c['hors'], str(c))
+    pg.wait_for_timeout(800); pg.screenshot(path=os.path.join(CAPTURES, 'courrier' + ('-en' if en else '') + ('' if l == 1280 else '-' + str(l)) + '.png'))
+    pg.click('#courrierListe li button')
+    d = pg.evaluate(DISCUSSION_ETAT)
+    t(f'{titre} : « Répondre » ouvre la discussion avec son auteur, son message en tête du fil ; il est lu', d['ecran'] == 'discussion' and d['k'] == k and d['fil'][0] == ['lui', c['texte']]
+      and pg.evaluate('() => COURRIER_PILOTES.nonLus(JEU.championnat)') == avant, str(d['fil']))
+    pg.click('#boutonDiscussionRetour')
+    t(f'{titre} : « Retour » ramène au courrier, puis au paddock', attendre(pg, '() => JEU.ecran === "courrier"', None, 3000) and (pg.click('#boutonCourrierRetour') or True) and attendre(pg, '() => JEU.ecran === "championnat"', None, 3000))
+
 # le thème télé (tour 32, Codeur 3, style.css) : l'écran affiché a le voile en dégradé, son titre la police des titres (sauf la une,
 # qui a sa police de journal), et son arrivée (une animation CSS) dure moins de 250 ms ; la cérémonie, sans voile, laisse voir le podium 3D
 THEME_ETAT = """() => { const id = JEU.ecran === "album" ? "une" : JEU.ecran, el = document.getElementById(id); if (!el) return { id, ok: false };
@@ -2426,6 +2515,52 @@ def aides_menus(pg, titre, l, h):
 # « Bravo ! »), chaque leçon réussie par le robot d'essai (ou un pilote scripté), le résultat et l'étoile gardée, « Passer », l'échec sans rien faire
 TUTO_JOUER = '''(n) => { for (let i = 0; i < n; i++) { if (TUTORIEL_ECRAN.resultat()) break; BOUCLE.simuler(0.05); TUTORIEL_ECRAN.maj(0.05); }
   const su = TUTORIEL_ECRAN.suivi(); return { resultat: TUTORIEL_ECRAN.resultat(), raison: su && su.raison, t: su && su.t, essais: su && su.essais, meilleur: su && su.meilleur, dernier: su && su.dernier }; }'''
+def aides_consigne(pg, titre, l, h):
+    # les contrats : l'écran de fin de saison ouvert tout de suite (montrerContrats, les offres de la note du joueur) : l'aide des contrats, sur
+    # aucun bouton ni aucune offre ; un clic la ferme ; revenu au paddock, elle ne revient plus
+    attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', None, 60000)
+    pg.evaluate('() => { AIDES_ECRAN.fermer(); montrerContrats(); }')
+    t(f'{titre} : l’écran des contrats (ouvert par montrerContrats) : l’aide des contrats (les écuries regardent tes points et ton duel)', attendre(pg, '() => JEU.ecran === "contrats" && !document.getElementById("bulleAide").classList.contains("cache") && document.getElementById("bulleAide").dataset.aide === "contrats"', None, 10000), str(pg.evaluate(AIDE_BULLE)))
+    b = pg.evaluate(AIDE_BULLE)
+    t(f'{titre} : la bulle des contrats : son texte, en haut à gauche, deux lignes au plus, sur aucun bouton ni aucune offre ni le titre', b and b['texte'] == pg.evaluate('() => texte("aide_contrats")') and not b['course'] and b['x1'] >= 0 and b['x2'] <= l and b['y2'] - b['y1'] <= 60 and not aide_recouvre(pg, b, '#contrats button, #contratsListe li, #contrats h1, #contratsNote'), str([b, b and aide_recouvre(pg, b, '#contrats button, #contratsListe li, #contrats h1, #contratsNote')]))
+    if l == 1280: pg.wait_for_timeout(400); pg.screenshot(path=os.path.join(CAPTURES, 'aide-contrats.png'))
+    pg.click('#bulleAide')
+    t(f'{titre} : un clic la ferme, l’aide des contrats est vue ; rouvert, l’écran n’a plus de bulle', pg.evaluate('() => document.getElementById("bulleAide").classList.contains("cache") && SAUVEGARDE.aides().includes("contrats")') and (pg.evaluate('() => { montrerChampionnat(null); montrerContrats(); }') or True) and (pg.wait_for_timeout(600) or True) and pg.evaluate('() => document.getElementById("bulleAide").classList.contains("cache")'), str(pg.evaluate('() => [JEU.ecran, SAUVEGARDE.aides()]')))
+    pg.evaluate('() => montrerChampionnat(null)')
+    # la consigne d'équipe : une vraie course du championnat ; la consigne posée comme dans consigne_ecran (le joueur devant son coéquipier) ;
+    # l'aide ne vient qu'en ligne droite, ne recouvre pas la piste devant la voiture, et se ferme quand la consigne a sa réponse
+    pg.click('#boutonCourseSuivante')
+    passer_qualif(pg, titre)
+    attendre(pg, '() => JEU.plateau.carte !== null && JEU.course.etat === "compte"', None, 180000)
+    # (comme consigne_ecran : le joueur et son coéquipier échangent leurs places sur la grille, le joueur devant lui)
+    pg.evaluate('''() => { const e = JEU.plateau, P = e.pilotes, j = P.findIndex(p => p.humain), kc = CHAMPIONNAT.coequipierDe(JEU.championnat).id;
+      const a = P[j], b = P[kc], pa = { s: a.v.piste.s, d: a.v.piste.d, depart: a.depart }, pb = { s: b.v.piste.s, d: b.v.piste.d, depart: b.depart };
+      if (pa.depart < pb.depart) { placerSurPiste(a.v, CIRCUIT, pb.s, pb.d); placerSurPiste(b.v, CIRCUIT, pa.s, pa.d); a.depart = pb.depart; b.depart = pa.depart; e.origine = Math.min(...P.map(p => p.depart)); }
+      for (const p of P) p.course.compte = 0.01; }''')
+    attendre(pg, '() => JEU.course.etat === "course" && JEU.course.temps > 1', None, 30000)
+    pg.evaluate('''() => { BOUCLE.arreter(); const e = JEU.plateau, P = e.pilotes, j = P.findIndex(p => p.humain), kc = CHAMPIONNAT.coequipierDe(JEU.championnat).id;
+      const c = { devant: j, derriere: kc, numero: P[kc].numero, debut: e.temps, joueur: true, refus: false, resultat: null }; REGLAGES.CONSIGNE_DELAI = 1e9;
+      e.consigne = c; P[j].course.consigne = c; P[kc].course.consigne = c; }''')
+    vu, cache, faux, couloir = 0, 0, [], None
+    for i in range(240):
+        r = pg.evaluate('''() => { BOUCLE.simuler(0.25); const aide = AIDES_ECRAN.maj(0.02), s = AIDES.situation(JEU, CIRCUIT, null), e = AIDES_ECRAN.etat();
+          return { aide, dom: !document.getElementById("bulleAide").classList.contains("cache"), attend: e.actuelle === "consigne" && !aide, libre: AIDES.libre(s), texte: document.getElementById("bulleAideTexte").textContent }; }''')
+        if r['aide'] == 'consigne':
+            vu += 1
+            if not r['libre'] or not r['dom']: faux.append(r)
+            if couloir is None:
+                couloir = pg.evaluate(AIDE_COULOIR)
+                t(f'{titre} : la consigne d’équipe vise le joueur : son aide (lever le pied ↓ ou garder sa place), en ligne droite, sans recouvrir la piste devant la voiture', r['texte'] == pg.evaluate('() => texte("aide_consigne")') and couloir['n'] >= 20 and couloir['dessous'] == 0, str([r, couloir]))
+                L.append(f"  (aides, la consigne d’équipe {l}×{h} : {couloir['n']} points du couloir, {couloir['gris']} % gris de route, {couloir['dessous']} sous la bulle {couloir['bulle']})")
+                pg.wait_for_timeout(400); pg.screenshot(path=os.path.join(CAPTURES, 'aide-consigne.png' if l == 1280 else 'aide-consigne-960.png'))
+        elif r['attend']: cache += 1
+        if vu >= 8 and cache >= 1: break
+    t(f'{titre} : l’aide de la consigne s’affiche en ligne droite ({vu} images), attend dans les virages ({cache} images), jamais affichée hors d’une ligne droite', vu > 0 and not faux and couloir is not None, str([vu, cache, faux[:2]]))
+    # la consigne répondue (suivie) : l'action est faite, la bulle se ferme, l'aide est vue
+    r = pg.evaluate('() => { JEU.plateau.consigne.resultat = "suivie"; JEU.plateau.consigne.finCourse = JEU.course.temps; const a = AIDES_ECRAN.maj(0.02); return { a, cache: document.getElementById("bulleAide").classList.contains("cache"), vues: SAUVEGARDE.aides() }; }')
+    t(f'{titre} : la consigne répondue : la bulle se ferme, l’aide de la consigne est vue (sauvegardée)', r['a'] is None and r['cache'] and 'consigne' in r['vues'], str(r))
+    pg.evaluate('() => BOUCLE.demarrer()')
+
 def tuto_resultat(pg, titre, l, h, id, r):
     vis = pg.evaluate('''() => { const e = document.getElementById("tutoResultat"), b = [...e.querySelectorAll("button")].filter(x => !x.classList.contains("cache")).map(x => x.getBoundingClientRect());
       return { vu: !e.classList.contains("cache"), titre: document.getElementById("tutoResultatTitre").textContent, texte: document.getElementById("tutoResultatTexte").textContent, dedans: b.every(x => x.left >= 0 && x.top >= 0 && x.right <= innerWidth && x.bottom <= innerHeight), consigne: !document.getElementById("tutoConsigne").classList.contains("cache"), etoile: SAUVEGARDE.tutoriel(), boucle: BOUCLE.tourne }; }''')
@@ -2437,12 +2572,37 @@ def tuto_lecon(pg, titre, l, h, page):
     id = re.search(r'tutoriel=(\w+)', page).group(1)
     attendre(pg, '() => typeof TUTORIEL_ECRAN !== "undefined" && TUTORIEL_ECRAN.lecon() !== null', None, 10000)
     if id == 'visite':
+        # une vraie carrière dans la sauvegarde (graine 7), puis la page de la leçon : la visite ne doit rien y laisser (l'aileron, les pneus du départ…)
+        # (posée depuis une page qui n'est pas une leçon : recharger la leçon remettrait la sauvegarde d'avant, c'est voulu)
+        pg.goto('file://' + RACINE + '/index.html?championnat=1'); attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', None, 30000)
+        pg.evaluate('() => { const d = SAUVEGARDE.lire(); d.championnat = CHAMPIONNAT.creer(7); d.championnat.marqueTest = 7; SAUVEGARDE.ecrire(d); }')
+        pg.goto('file://' + RACINE + '/' + page); attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', None, 30000)
+        avant = pg.evaluate('() => TUTORIEL_ECRAN.avantVisite()')
+        t(f'{titre} : la visite garde la carrière de la sauvegarde telle quelle avant de commencer', avant is not None and '"marqueTest":7' in avant, str(avant)[:200])
+        def changer_carriere():
+            # au garage : les pneus du départ (le dernier bouton) ; à l'aileron : un autre cran ; la sauvegarde change bien
+            pg.evaluate('() => { const c = document.getElementById("aileronCurseur"); c.value = String((Number(c.value) + 2) % REGLAGES.AILERON_CRANS); c.dispatchEvent(new Event("input")); }')
+            return pg.evaluate('(a) => JSON.stringify(SAUVEGARDE.lire().championnat) !== a', avant)
+        if 'quitter' in page:
+            pg.click('#boutonGarage'); attendre(pg, '() => JEU.ecran === "garage"')
+            pg.click('#boutonAileron'); attendre(pg, '() => JEU.ecran === "aileron"')
+            change = changer_carriere()
+            # on quitte la page (une autre page du jeu, qui ne touche pas à la sauvegarde) : la carrière est remise en partant
+            pg.goto('file://' + RACINE + '/tests/textes.html'); pg.wait_for_timeout(300)
+            apres = pg.evaluate('() => { const d = JSON.parse(localStorage.getItem("grand-prix-dynasty")); return { ch: JSON.stringify(d.championnat), tuto: d.tutoriel || [] }; }')
+            t(f'{titre} : la visite quittée en cours de route (l’aileron changé) : la carrière de la sauvegarde revient exactement comme avant, sans étoile', change and apres['ch'] == avant and 'visite' not in apres['tuto'], str([change, apres['ch'] == avant, apres['tuto']]))
+            pg.goto('file://' + RACINE + '/index.html?championnat=1'); attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', None, 30000)   # (de retour sur une page du jeu, pour les vérifications de fin de page)
+            return
         t(f'{titre} : la visite : au paddock, la consigne en haut à gauche (« Clique sur Garage »), pas de bulle d’aide', attendre(pg, '() => JEU.ecran === "championnat" && !document.getElementById("tutoConsigne").classList.contains("cache") && document.getElementById("tutoConsigneTexte").textContent === texte("tuto_visite_paddock") && document.getElementById("bulleAide").classList.contains("cache")', None, 20000), pg.evaluate('() => [JEU.ecran, document.getElementById("tutoConsigneTexte").textContent]'))
         etapes = []
-        for clic, attendu in [('#boutonGarage', 'garage'), ('#boutonAileron', 'aileron'), ('#boutonAileronRetour', 'retour'), ('#boutonGarageRetour', None)]:
+        change = False
+        for clic, attendu in [('#boutonGarage', 'garage'), ('#garagePneus button:last-of-type', None), ('#boutonAileron', 'aileron'), (None, None), ('#boutonAileronRetour', 'retour'), ('#boutonGarageRetour', None)]:
+            if clic is None: change = changer_carriere(); continue
             pg.click(clic); pg.wait_for_timeout(400)
             if attendu: etapes.append(attendre(pg, f'() => document.getElementById("tutoConsigneTexte").textContent === texte("tuto_visite_{attendu}")', None, 10000))
         attendre(pg, '() => TUTORIEL_ECRAN.resultat() !== null', None, 10000)
+        apres = pg.evaluate('(a) => ({ sauvee: JSON.stringify(SAUVEGARDE.lire().championnat) === a, memoire: JSON.stringify(JEU.championnat) === a })', avant)
+        t(f'{titre} : la visite réussie, après avoir changé les pneus du départ et l’aileron : la carrière revient exactement comme avant (sauvegarde et mémoire)', change and apres['sauvee'] and apres['memoire'], str([change, apres]))
         t(f'{titre} : la visite guidée : garage → aileron → retour, chaque écran a sa consigne', all(etapes), str(etapes))
         tuto_resultat(pg, titre, l, h, id, { 'resultat': pg.evaluate('() => TUTORIEL_ECRAN.resultat()') })
         if l == 1280: pg.screenshot(path=os.path.join(CAPTURES, 'tuto-visite.png'))
@@ -2534,7 +2694,7 @@ with sync_playwright() as p:
             pg.on('requestfailed', lambda r: console.append('FICHIER MANQUANT ' + r.url))
             if 'test=sdk' in page or 'test=decouverte' in page or 'test=amis' in page or 'test=tournoi' in page: pg.add_init_script(FAUX_SDK)
             # la météo dessinée (meteo3d.js) : une fausse météo de test (window.METEO_TEST, jamais dans le jeu), ?meteo=pluie ou ?meteo=risque
-            if 'meteo=pluie' in page: pg.add_init_script('window.METEO_TEST = { etat: () => ({ pluie: 0.85, eau: 0.75, ciel: 0.9 }), prevision: () => ({ type: "pluie", risque: 90 }) };')
+            if 'meteo=pluie' in page: pg.add_init_script('window.METEO_TEST = { etat: () => ({ pluie: 0.85, eau: 0.75, eauTrajectoire: 0.35, ciel: 0.9 }), prevision: () => ({ type: "pluie", risque: 90 }) };')
             if 'meteo=risque' in page: pg.add_init_script('window.METEO_TEST = { etat: () => ({ pluie: 0, eau: 0, ciel: 0 }), prevision: () => ({ type: "risque", risque: 40 }) };')
             # le tournoi change de page entre deux manches : les pubs sont aussi comptées dans sessionStorage (qui survit au rechargement)
             if 'test=tournoi' in page: pg.add_init_script("const __cb = PokiSDK.commercialBreak; PokiSDK.commercialBreak = function () { sessionStorage.setItem('pubs', String((+sessionStorage.getItem('pubs') || 0) + 1)); return __cb.call(this); };")
@@ -2590,6 +2750,8 @@ with sync_playwright() as p:
                 course_ia10(pg, titre)
             if 'course=1&ia=8' in page:
                 course_podium(pg, titre, l)
+            if 'test=supporters' in page:
+                supporters_ecran(pg, titre)
             if 'test=tele' in page:
                 tele_ecran(pg, titre)
             if 'test=pluie' in page:
@@ -2600,12 +2762,16 @@ with sync_playwright() as p:
                 aides_course(pg, titre, l, h)
             elif 'test=aides-menus' in page:
                 aides_menus(pg, titre, l, h)
+            elif 'test=aides-consigne' in page:
+                aides_consigne(pg, titre, l, h)
             elif 'test=tuto-menu' in page:
                 tuto_menu(pg, titre, l, h)
             elif 'test=tuto' in page:
                 tuto_lecon(pg, titre, l, h, page)
             elif 'test=audit' in page:
                 audit_autres(pg, titre, page, l, h)
+            elif 'test=discussion' in page:
+                discussion_ecran(pg, titre, l, h, page)
             elif 'gp=12' in page and 'lang=en' in page:
                 audit_en(pg, titre, l)
             elif 'gp=12' in page:
@@ -2634,7 +2800,7 @@ with sync_playwright() as p:
                 qualif(pg, titre)
             elif 'test=fantome' in page:
                 fantome(pg, titre)
-            elif 'joueur=1' in page:
+            elif 'joueur=1' in page and 'test=supporters' not in page:   # (la page des supporters a son propre parcours)
                 hud(pg, titre, l)
                 if l == 1280: course_joueur(pg, titre)
             if 'camera=auto' in page:

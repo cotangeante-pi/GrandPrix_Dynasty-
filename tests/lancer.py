@@ -56,7 +56,7 @@ def ecrans(delai=600):
 
 # les annexes : les pages de test des modules écrits d'avance, pas encore branchés dans le jeu (ni index.html) ; sdk.html attend
 # des rappels (promesses, minuteurs) : --virtual-time-budget fait avancer l'horloge de la page avant de rendre le DOM
-ANNEXES = ['tests/sdk.html', 'tests/pneus.html', 'tests/enregistreur.html', 'tests/circuits-a.html', 'tests/circuits-b.html', 'tests/textes.html', 'tests/decors.html']   # (decors : les décors des 12 tracés, Codeur 3 ; officiels.html, les IA sur les 12 tracés : une partie à elle)
+ANNEXES = ['tests/sdk.html', 'tests/pneus.html', 'tests/enregistreur.html', 'tests/circuits-a.html', 'tests/circuits-b.html', 'tests/textes.html', 'tests/decors.html', 'tests/banc-parle.html']   # (decors : les décors des 12 tracés, Codeur 3 ; banc-parle : les discussions, Codeur 3 ; officiels.html, les IA sur les 12 tracés : une partie à elle)
 ANNEXES.extend(['tests/aides.html', 'tests/tutoriel.html'])   # les aides au premier usage (aides.js, étape 11b) et le tutoriel guidé (tutoriel.js, étape 11d), Codeur 4
 def annexes():
     return all([serie(p, delai=300 if 'courses' in p else 600 if 'officiels' in p else 120, options=['--virtual-time-budget=5000'] if p.endswith('sdk.html') else []) for p in ANNEXES])
@@ -73,9 +73,20 @@ def paquet(delai=600):
     print(out.strip()); print(f'⏱ tests/paquet.py : {time.monotonic() - t0:.0f} s')
     return p.returncode == 0
 
+# la carrière entière jouée par le robot (tests/saison.py, tour 35d, Codeur 4) : la chasse aux bugs d'interface, une partie à elle (longue)
+def saison(delai=1700):
+    t0 = time.monotonic()
+    p = subprocess.Popen([sys.executable, os.path.join(RACINE, 'tests', 'saison.py')], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True)
+    try: out, err = p.communicate(timeout=delai)
+    except subprocess.TimeoutExpired:
+        os.killpg(p.pid, signal.SIGKILL); out, err = p.communicate(); out += f'\n✘ saison.py : plus de {delai} s, arrêté'
+    if 'RESULTAT' not in out: out += '\n✘ saison.py s’est arrêté sans résultat :\n' + (err or '').strip()[-2000:]
+    print(out.strip()); print(f'⏱ tests/saison.py : {time.monotonic() - t0:.0f} s')
+    return p.returncode == 0
+
 # (stands.html, 30 courses de 12 tours, est une partie à lui : sur GitHub, chaque partie tourne dans son propre travail, en parallèle ;
 # ecrans y est découpé en tranches par ECRANS_TRANCHE=k/n, voir .github/workflows/tests.yml)
-PARTIES = {'moteur': lambda: serie('tests/test.html'), 'courses': lambda: all([serie('tests/courses.html'), serie('tests/courses.html?ailerons=1')]), 'stands': lambda: serie('tests/stands.html', delai=1200), 'consignes': lambda: serie('tests/consignes.html', delai=1200), 'officiels': lambda: serie('tests/officiels.html', delai=1500), 'meteo': lambda: serie('tests/meteo.html', delai=1500), 'ecrans': lambda: ecrans(), 'annexes': annexes, 'paquet': paquet}
+PARTIES = {'moteur': lambda: serie('tests/test.html'), 'courses': lambda: all([serie('tests/courses.html'), serie('tests/courses.html?ailerons=1')]), 'stands': lambda: serie('tests/stands.html', delai=1200), 'consignes': lambda: serie('tests/consignes.html', delai=1200), 'officiels': lambda: serie('tests/officiels.html', delai=1500), 'meteo': lambda: serie('tests/meteo.html', delai=1500), 'ecrans': lambda: ecrans(), 'annexes': annexes, 'paquet': paquet, 'saison': lambda: saison()}
 
 def tests(parties=tuple(PARTIES)):
     # une liste : tout tourne même si le premier échoue ; courses.html = le critère de l'étape 4 (30 courses entre IA)
