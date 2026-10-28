@@ -106,4 +106,13 @@ t('une mémoire de course d’un Grand Prix à l’autre : un deuxième contact 
   v(ch2.pilotes[k2].memoire.courses.length === 1 && ch2.pilotes[k2].memoire.courses.length <= REGLAGES.DISCUSSION_COURSES, 'mémoire de course');
   L.push('  (« ' + r.texte + ' »)');
 });
+t('« t’as fini combien ? » : il donne sa place et la tienne à la dernière course ; ses réponses ne commencent jamais comme ses 3 dernières', () => {
+  const ch = nouveau(), k = rival(ch, 0.5); gpCouru(ch);
+  const a = PARLE.comprendre('t’as fini combien ?', []);
+  const r = DISCUSSION.dire(ch, k, 't’as fini combien ?'), f = r.faits && r.faits.course;
+  if (a.acte === 'ETAT') v(r.reaction === 'etat_place' && f && r.texte.includes('P' + f.a) && r.texte.includes('P' + f.b), JSON.stringify([r.reaction, r.texte]));
+  const ch2 = nouveau(), k2 = rival(ch2, 0.5); gpCouru(ch2); const dits = [];
+  for (const ph of ['gg', 'bien joué', 'bravo', 'belle course', 'well done', 'nice race']) dits.push(DISCUSSION.dire(ch2, k2, ph).texte);
+  for (let i = 1; i < dits.length; i++) for (let j = Math.max(0, i - REGLAGES.DISCUSSION_OUVERTURES); j < i; j++) v(dits[i].slice(0, 14) !== dits[j].slice(0, 14) || dits[i].includes(texte('dis_encore')), 'même ouverture : ' + dits[j] + ' / ' + dits[i]);
+});
 ecrire();

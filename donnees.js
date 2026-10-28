@@ -435,6 +435,7 @@ const REGLAGES = {
   DISCUSSION_CONV_LONGUE: 4,        // … après 4 messages, son « au revoir » dit comment s'est passée la conversation…
   DISCUSSION_BILAN: 4,              // … bonne si la relation y a gagné au moins 4, mauvaise si elle en a perdu 4 (et il s'en souvient au Grand Prix suivant)
   DISCUSSION_COURSES: 6,            // (tour 36, Codeur 3) il se souvient des 6 derniers faits de course avec toi (un contact, un dépassement), d'un Grand Prix à l'autre
+  DISCUSSION_OUVERTURES: 3,         // (tour 36, Codeur 3) une réponse ne commence comme aucune de ses 3 dernières
   DISCUSSION_MEMOIRE: 12,           // il se souvient des 12 derniers messages (compact : l'acte, la saison, le Grand Prix)
   DISCUSSION_MENACE_COURSES: 2,     // une menace sans suite pendant ce nombre de courses : du crédit perdu (il te le dira)…
   DISCUSSION_CREDIT_MAX: 3,         // … au plus ce nombre de fois

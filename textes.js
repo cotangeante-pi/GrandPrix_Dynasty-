@@ -942,6 +942,7 @@ function elider(t) {
 // (tour 36, Codeur 3) la conversation : ce qu'il dit quand on repose une question, quand on se contredit, quand on reparle d'un moment
 // de la course, et le souvenir de votre dernière conversation ; jamais genré
 Object.assign(TEXTES.en, {
+  dis_etat_place: ['P{a} for me, P{b} for you, at {circuit_course}.', 'I finished P{a} at {circuit_course}. You, P{b}.'],
   dis_deja_salut: ['We already said hello.', 'Hello again, I suppose.', 'Still here?'], dis_deja_avis: ['My opinion has not changed since a minute ago.', 'I already told you what I think.'],
   dis_deja_etat: ['Same as I said: nothing new since.', 'You already asked. Still the same.'], dis_deja_duel: ['We just talked about our duel.', 'Nothing has changed in our duel since.'],
   dis_deja_contact: ['We have been over that contact already.', 'I said what I had to say about it.'],
@@ -958,6 +959,7 @@ Object.assign(TEXTES.en, {
   dis_raison_conversation_bonne: ['Good talk.'], dis_raison_conversation_mauvaise: ['Not my favourite conversation.'], dis_raison_conversation_neutre: ['We will see on track.'],
 });
 Object.assign(TEXTES.fr, {
+  dis_etat_place: ['P{a} pour moi, P{b} pour toi, à {circuit_course}.', 'J’ai fini P{a} à {circuit_course}. Toi, P{b}.'],
   dis_deja_salut: ['On s’est déjà dit bonjour.', 'Re-bonjour, alors.', 'Toujours là ?'], dis_deja_avis: ['Mon avis n’a pas changé depuis tout à l’heure.', 'Je t’ai déjà dit ce que j’en pense.'],
   dis_deja_etat: ['Comme je disais : rien de neuf depuis.', 'Tu me l’as déjà demandé. Toujours pareil.'], dis_deja_duel: ['On vient de parler de notre duel.', 'Rien n’a changé dans notre duel depuis.'],
   dis_deja_contact: ['On a déjà parlé de ce contact.', 'J’ai dit ce que j’avais à dire là-dessus.'],
