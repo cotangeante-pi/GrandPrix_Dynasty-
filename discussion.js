@@ -243,7 +243,8 @@ const DISCUSSION = (function () {
     // (tour 36d) le ton suit le caractère : une variante « vive » pour le fougueux, « douce » pour le calme, s'il y en a ; jamais deux
     // fois de suite la même réponse au même pilote (m.derniere : la dernière réponse, gardée)
     const ag = caractere(p).agressivite, ton = ag >= R.DISCUSSION_FOUGUEUX ? '_vif' : ag <= R.DISCUSSION_DOUX ? '_doux' : '';
-    const liste = cle => { const v = texte(cle), w = ton ? texte(cle + ton) : null; const a = Array.isArray(v) ? v : v ? [v] : []; return Array.isArray(w) ? a.concat(w, w) : a; };
+    const existe = cle => TEXTES[LANGUE][cle] !== undefined || TEXTES.en[cle] !== undefined;   // (sans appeler texte() pour une clé de ton absente)
+    const liste = cle => { const v = texte(cle), w = ton && existe(cle + ton) ? texte(cle + ton) : null; const a = Array.isArray(v) ? v : v ? [v] : []; return Array.isArray(w) ? a.concat(w, w) : a; };
     const choisir = cle => { const v = liste(cle); return v.length ? v[Math.floor(alea() * v.length)] : ''; };
     const choisirAutre = (cle, eviter) => { const v = liste(cle); if (!v.length) return ''; let i = Math.floor(alea() * v.length); for (let n = 0; n < v.length && eviter && eviter.startsWith(v[i]); n++) i = (i + 1) % v.length; return v[i]; };
     const circuit = dc.circuit ? (texte('circuit_' + dc.circuit) || dc.circuit) : '';

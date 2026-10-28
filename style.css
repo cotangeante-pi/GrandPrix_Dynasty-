@@ -1295,6 +1295,9 @@ body.deux.cote #boutonSon { top: auto; bottom: 12px; right: 12px; }   /* (côte 
   #paddockBoutons button, #paddockBoutons button.petit { padding: 8px 8px; font-size: 12px; }
   #paddockBoutons #boutonCourseSuivante { padding: 9px 12px; font-size: 14px; }
   .paddockGroupe > div { gap: 4px; }
+  /* (tour 36d) les trois boutons de ta carte (courrier, coéquipier, direction) tiennent sur une ligne */
+  #paddockMessages { gap: 4px; }
+  #paddockMoi #paddockMessages button { padding: 4px 7px; font-size: 11px; white-space: nowrap; }
 }
 @media (max-height: 680px) {
   #championnat { gap: 6px; padding: 6px 16px 30px; }
