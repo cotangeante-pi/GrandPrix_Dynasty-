@@ -90,6 +90,8 @@ Note du Chef session-5b (2026-10-23) : les lignes 18 à 19b ne s'additionnaient 
 
 ## À essayer par le propriétaire
 
+- **La mesure de l'étape 10** (tour 35) : Mac au calme (rien d'autre ouvert, Spotlight fini), écran ouvert, dans le dossier du jeu : `python3 tests/perf.py --fois 3`. Ça dit si chaque circuit tient 60 images par seconde avec 20 voitures.
+
 **Pour jouer sans rien installer** : https://cotangeante-pi.github.io/Grand-Prix-Dynasty/ (GitHub Pages, activé par le propriétaire le 2026-10-27 ; la page suit `main` à chaque push, une minute après).
 
 - **Parler aux pilotes** (tour 33) : au paddock, « 💬 Discuter » sur la fiche d'un rival, « 💬 Coéquipier » et « ✉ Courrier » dans ta carte. Écris ce que tu veux, en français ou en anglais, même en langage SMS, ou clique une intention. Ils se souviennent de tes promesses et de tes menaces. Dire : les réponses ont l'air vivantes ? Elles changent bien selon ce qui s'est passé en course ?
@@ -173,6 +175,7 @@ Note du Chef session-5b (2026-10-23) : les lignes 18 à 19b ne s'additionnaient 
 
 | Date | Étape | Images par seconde | Poids du jeu | Notes |
 |---|---|---|---|---|
+| 2026-10-27 19h30–20h59 | 10 | 20 voitures, vrai GPU (Intel Iris), Chrome avec fenêtre, **Mac chargé** (Spotlight, le propriétaire dessus) : monoco 66,7 · silverstoun 40,3 · monzo 69,0 · spaa 28,5 · suzuko 62,3 · interlagas 35,0 · montreol 56,2 · melbourn 39,5 · barcelana 42,1 · bahrayn 36,3 · singapura 29,1 · yasmarino 33,7 ; au calme : monzo 95,5, spaa 83,9, suzuko 84,3 | — | tests/perf.py (Codeur 2, tour 35). Un même circuit va de 29 à 69 selon la charge : ce sont des minimums. Une image coûte 1,5 ms (physique + 20 IA) + 1,35 ms (dessin côté processeur). **À refaire par le propriétaire, Mac au calme et écran ouvert** : `python3 tests/perf.py --fois 3` |
 | 2026-10-18 | 0 | **100 i/s** sur le Mac du propriétaire (Chrome, index.html?debug=1) | three.min.js 633 Ko + < 25 Ko | scène du cube ; Chrome sans fenêtre = rendu logiciel, sans valeur |
 | 2026-10-18 | 1 (en cours) | **100 i/s** (le propriétaire) | — | circuit de test, version pas encore finie |
 | 2026-10-18 | 2 (tour 3) | **70 i/s** (le propriétaire) | — | 1 voiture ; charge du Mac 12–13 à ce moment ; pixelRatio 2 + beaucoup d'appels de dessin par voiture → tour 4, ordre 7 |
