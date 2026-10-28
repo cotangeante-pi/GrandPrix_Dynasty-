@@ -635,6 +635,7 @@ function deciderLigne(pilote, v, vues) {
   const laisserCote = !stand && !enAttaque && pilote.laisser ? coteLaisser(pilote, v, vues, s0) : 0;
   if (laisserCote) essais.splice(0, essais.length, ['ecarter', laisserCote]);
   if (pilote.rivalite && !stand && !enAttaque) defendreContreJoueur(pilote, v, vues, s0);
+  if (pilote.disposition && pilote.disposition.type === 'bloquer' && !stand && !enAttaque) defendreDisposition(pilote, v, vues, s0);   // (la disposition « bloquer X »)
   if (stand) stand.ceder = cederSortieStands(pilote, v, vues, s0);   // à la sortie des stands, il laisse passer ceux qui arrivent   // le rival du joueur couvre l'intérieur (interview)
   pilote.depassement = !!enAttaque;
   // les voitures lentes ou arrêtées qu'il voit (estLente), et les plus proches devant lui (IA_LENTE_NB) : il les contourne
@@ -661,7 +662,9 @@ function deciderLigne(pilote, v, vues) {
   for (const w of vues) {
     const g = ecartLeLong(c, w.s - s0);
     if (g < -R.LONGUEUR_VOITURE || g > R.LONGUEUR_VOITURE * (1 - R.IA_HAUTEUR_LAISSER)) continue;
-    const cote = Math.sign(w.d - e0) || 1, aHauteur = g >= -R.LONGUEUR_VOITURE * (1 - R.IA_HAUTEUR_LAISSER);
+    // (la disposition « laisser » : il laisse la place au joueur dès un plus petit chevauchement, IA_HAUTEUR_LAISSER × (1 − DISPOSITION_LAISSER))
+    const hauteur = pilote.disposition && pilote.disposition.type === 'laisser' && w.id === pilote.disposition.id ? R.IA_HAUTEUR_LAISSER * (1 - Math.min(R.DISPOSITION_LAISSER, R.DISPOSITION_PLAFOND)) : R.IA_HAUTEUR_LAISSER;
+    const cote = Math.sign(w.d - e0) || 1, aHauteur = g >= -R.LONGUEUR_VOITURE * (1 - hauteur);
     // (le rival du joueur, à côté de lui : moins de place, IA_ESPACE_LAISSE × (1 − décalage) ; jamais moins que l'écart sûr)
     const espace = pilote.rivalite && w.id && w.id.joueur ? R.IA_ESPACE_LAISSE * (1 - decalageRivalite()) : R.IA_ESPACE_LAISSE;
     const laisse = w.d - cote * Math.max(aHauteur ? R.LARGEUR_VOITURE + espace : sur, ecartCoteACote(carte, s0));
@@ -849,6 +852,24 @@ function defendreContreJoueur(pilote, v, vues, s0) {
   if (!f || f.distance > R.IA_HORIZON) return;
   const vir = carte.virages[f.j];
   const decalage = R.INTERVIEW_RIVALITE_DEFENSE * decalageRivalite(), sommet = ((vir.s - s0) % L + L) % L;
+  for (let i = 0; i < t.rapide.length; i++) {
+    const s = i * pas, m = s <= sommet ? Math.min(1, s / R.INTERVIEW_RIVALITE_RAMPE) : Math.max(0, 1 - (s - sommet) / R.IA_DEPASSEMENT_RAMPE);
+    t.rapide[i] += vir.sens * decalage * m;
+  }
+  if (pilote.defenseVirage !== f.j) { pilote.defenseVirage = f.j; pilote.defenses++; }
+}
+
+// la disposition « bloquer X » (discussion.js) : comme le rival du joueur (defendreContreJoueur), il couvre l'intérieur du prochain virage
+// quand X le suit de près, de DISPOSITION_DEFENSE m (jamais plus que DISPOSITION_PLAFOND × INTERVIEW_RIVALITE_DEFENSE) ; sa ligne seulement
+function defendreDisposition(pilote, v, vues, s0) {
+  const R = REGLAGES, carte = pilote.carte, c = carte.circuit, L = c.longueur, pas = R.IA_LIGNE_PAS, t = pilote.tampons;
+  const x = vues.find(w => w.id === pilote.disposition.id);
+  if (!x) return;
+  const g = ecartLeLong(c, x.s - s0);
+  if (g > R.LONGUEUR_VOITURE / 2 || g < -R.INTERVIEW_RIVALITE_DISTANCE) return;
+  const f = prochainFreinage(carte, s0);
+  if (!f || f.distance > R.IA_HORIZON) return;
+  const vir = carte.virages[f.j], decalage = Math.min(R.DISPOSITION_DEFENSE, R.DISPOSITION_PLAFOND * R.INTERVIEW_RIVALITE_DEFENSE), sommet = ((vir.s - s0) % L + L) % L;
   for (let i = 0; i < t.rapide.length; i++) {
     const s = i * pas, m = s <= sommet ? Math.min(1, s / R.INTERVIEW_RIVALITE_RAMPE) : Math.max(0, 1 - (s - sommet) / R.IA_DEPASSEMENT_RAMPE);
     t.rapide[i] += vir.sens * decalage * m;

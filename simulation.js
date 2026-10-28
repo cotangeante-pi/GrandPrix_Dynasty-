@@ -103,10 +103,14 @@ function donnerCarte(e, carte) {
     if (n.penaliteFrein !== undefined) p.pilote.penaliteFrein = n.penaliteFrein;
     p.pilote.grille = p.v.piste.d;   // il part dans sa file
     p.pilote.rivalite = !!(e.rivalites && e.rivalites[k]);   // le rival du joueur (l'interview d'après course)
+    // la disposition promise en discussion (discussion.js, Codeur 3 ; e.dispositions, championnat.js) : laisser passer le joueur, ou bloquer
+    // un pilote ; pour ce Grand Prix seulement. id : la voiture visée (ia.js : cederDisposition, defendreDisposition). Sans elle, rien
+    const d = e.dispositions && e.dispositions[k], vise = d ? (d.type === 'laisser' ? e.pilotes.find(q => q.humain) : e.pilotes[d.cible]) : null;
+    if (d && vise && vise !== p) p.pilote.disposition = { type: d.type, id: vise.v };
   });
   // ses techniques selon le virage (ia.js, techniquesPilote), avec leur propre graine : les tirages d'avant ne bougent pas
-  // (× la technique du niveau, NIVEAUX[…].technique : 0 ou absente, aucune technique, la course d'avant au bit près ; tour 33 : au niveau
-  // normal, elles faisaient basculer quatre courses mesurées de la suite, voir le compte rendu ; expert et légende les ont)
+  // (× la technique du niveau, NIVEAUX[…].technique : débutant 0,2, normal 0,5, expert 0,7, légende 1 ; 0 ou absente : aucune technique,
+  // la course d'avant au bit près)
   const nt = niveau().technique || 0;
   if (R.IA_TECHNIQUES_ACTIVES && nt > 0) {
     ALEATOIRE.semer(e.graine + R.GRAINE_TECHNIQUE);

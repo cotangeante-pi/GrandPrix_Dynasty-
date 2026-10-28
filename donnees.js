@@ -266,6 +266,10 @@ const REGLAGES = {
   INTERVIEW_RIVALITE_DECALAGE: 0.3, // ajouté à son agressivité (0 à 1) quand il attaque le joueur…
   INTERVIEW_RIVALITE_PLAFOND: 0.3,  // … jamais plus que ça (le décalage de ses réglages, au plus)
   INTERVIEW_RIVALITE_DEFENSE: 5,    // m par point de décalage : le joueur le suit de près avant un freinage, il couvre l'intérieur du virage (0,3 → 1,5 m)…
+  // la disposition promise en discussion (discussion.js, Codeur 3 ; ia.js) : pour le Grand Prix suivant seulement, un effet petit et plafonné
+  DISPOSITION_LAISSER: 0.5,     // « laisser passer » : il laisse la place au joueur à côté de lui dès IA_HAUTEUR_LAISSER × (1 − ça) de chevauchement
+  DISPOSITION_DEFENSE: 1,       // m : « bloquer X » : il couvre l'intérieur du prochain virage de ça quand X le suit de près
+  DISPOSITION_PLAFOND: 0.5,     // jamais plus : DISPOSITION_LAISSER ≤ ça, DISPOSITION_DEFENSE ≤ ça × INTERVIEW_RIVALITE_DEFENSE (2,5 m)
   INTERVIEW_RIVALITE_DISTANCE: 8,   // m : … le joueur derrière lui à moins de ça (dans ses rétroviseurs : pas plus que IA_VISION_COTE[0])…
   INTERVIEW_RIVALITE_RAMPE: 40,     // m : … il s'y décale sur cette distance ; et, à côté du joueur, il lui laisse moins de place (IA_ESPACE_LAISSE × (1 − décalage))
   INTERVIEW_EFFET_SPONSORS: 0.1,    // le plafond (±) de ce que la jauge des sponsors ajoute à la note et aux montants des sponsors
@@ -599,8 +603,8 @@ const REGLAGES = {
   // multiplié, agressivite ajoutée (bornée entre 0 et 1), regularite multipliée
   NIVEAU: 'normal',             // le niveau en cours (?niveau=…, principal.js) ; normal = les réglages tels quels
   NIVEAUX: {
-    debutant: { rythme: -0.05, erreurs: 2, agressivite: -0.3, regularite: 1.5, gestionPneus: -0.2 },
-    normal: { rythme: 0, erreurs: 1, agressivite: 0, regularite: 1, gestionPneus: 0 },
+    debutant: { rythme: -0.05, erreurs: 2, agressivite: -0.3, regularite: 1.5, gestionPneus: -0.2, technique: 0.2 },
+    normal: { rythme: 0, erreurs: 1, agressivite: 0, regularite: 1, gestionPneus: 0, technique: 0.5 },
     expert: { rythme: 0, erreurs: 0.5, agressivite: 0.2, regularite: 0.7, gestionPneus: 0.1, corde: 0.5, marge: -0.7, limite: 1.01, penaliteFrein: 0.5, precision: 0.6, bordMin: 0.8, margeCarte: 1.1, technique: 0.7 },
     legende: { rythme: 0, erreurs: 0.25, agressivite: 0.4, regularite: 0.5, gestionPneus: 0.2, corde: 0, marge: -1.4, limite: 1.02, penaliteFrein: 0, precision: 0.3, bordMin: 0.5, margeCarte: 0.7, technique: 1 },
   },
