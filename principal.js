@@ -1476,6 +1476,67 @@ function brancherClavier() {
   document.addEventListener('visibilitychange', () => { enfoncees.clear(); majCibles(); });
 }
 
+// la manette (manette.js, tour 38) : lue à chaque image (une manette n'envoie pas d'évènement) ; ses commandes rejoignent
+// les cibles du clavier (le plus fort des deux), la 1re manette pour le joueur 1, la 2e pour le joueur 2 ; sans manette,
+// rien ne change. En conduite : A = retour en piste, Y = caméra, Start = pause (comme Échap). Dans les menus : le stick
+// ou la croix choisit un bouton (un halo), A le valide, B revient (Échap, ou le bouton « retour » de l'écran).
+const MANETTES = { avant: [], menus: [{ sens: null, tenu: 0 }, { sens: null, tenu: 0 }], choix: null, ecran: null };
+function toucheVirtuelle(code) {
+  window.dispatchEvent(new KeyboardEvent('keydown', { code, key: code }));
+  window.dispatchEvent(new KeyboardEvent('keyup', { code, key: code }));
+}
+function boutonsVisibles() {
+  return [...document.querySelectorAll('button')].filter(b => {
+    if (b.disabled || b.offsetParent === null) return false;
+    const r = b.getBoundingClientRect();
+    return r.width > 0 && r.height > 0 && getComputedStyle(b).visibility !== 'hidden';
+  });
+}
+function choisirBouton(b) {
+  if (MANETTES.choix) MANETTES.choix.classList.remove('manette-choix');
+  MANETTES.choix = b;
+  if (b) b.classList.add('manette-choix');
+}
+function majManettes(dt) {
+  const pads = MANETTE.lireManettes(), avant = MANETTES.avant;
+  if (!pads.length && !avant.length) return;
+  // la conduite : les cibles du clavier, puis la manette par-dessus (majCibles remet celles du clavier seules)
+  majCibles();
+  if (JEU.deux) for (const j of [1, 2]) JEU.deuxCommandes[j].cibles = MANETTE.fusionner(JEU.deuxCommandes[j].cibles, pads[j - 1]);
+  else if (pads[0]) {
+    Object.assign(JEU.cibles, MANETTE.fusionner(Object.assign({}, JEU.cibles), pads[0]));
+    if (JEU.aides) { if (JEU.cibles.gaz) JEU.aides.gaz = true; if (JEU.cibles.direction) JEU.aides.direction = true; if (JEU.cibles.frein) JEU.aides.frein = true; }
+  }
+  // les boutons (un appui = une fois)
+  const conduite = JEU.ecran === 'course' || JEU.ecran === 'survol' || enTourQualif();
+  if (JEU.ecran !== MANETTES.ecran) { MANETTES.ecran = JEU.ecran; choisirBouton(null); }
+  if (MANETTES.choix && (conduite || MANETTES.choix.offsetParent === null)) choisirBouton(null);
+  pads.forEach((m, k) => {
+    const f = MANETTE.fronts(avant[k] && avant[k].boutons, m.boutons);
+    if (conduite) {
+      if (f.includes('a')) { if (JEU.deux) { if (JEU.deuxCommandes[k + 1]) JEU.deuxCommandes[k + 1].remettre = true; } else if (k === 0) JEU.remettre = true; }
+      if (f.includes('y') && !JEU.deux && k === 0) CAMERA.suivante();
+      if (f.includes('start')) toucheVirtuelle('Escape');
+      return;
+    }
+    if (JEU.ecran === 'grille' && f.includes('a')) { finirGrille(); return; }
+    // les menus : un bouton choisi au stick ou à la croix
+    const sens = MANETTE.sensMenu(MANETTES.menus[k] || (MANETTES.menus[k] = { sens: null, tenu: 0 }), m, dt);
+    if (sens) {
+      const bs = boutonsVisibles(), i = bs.indexOf(MANETTES.choix);
+      const j = MANETTE.voisin(bs.map(b => { const r = b.getBoundingClientRect(); return { x: r.left, y: r.top, l: r.width, h: r.height }; }), i, sens);
+      if (j >= 0) choisirBouton(bs[j]);
+    }
+    if (f.includes('a')) { if (MANETTES.choix) MANETTES.choix.click(); else choisirBouton(boutonsVisibles()[0] || null); }
+    if (f.includes('b') || f.includes('start')) {
+      const ecran = JEU.ecran;
+      toucheVirtuelle('Escape');
+      if (JEU.ecran === ecran && f.includes('b')) { const retour = boutonsVisibles().find(b => /Retour|Fermer|Quitter/.test(b.id)); if (retour) retour.click(); }
+    }
+  });
+  MANETTES.avant = pads;
+}
+
 const AUCUNE = { gaz: 0, frein: 0, direction: 0 }, FREIN_SEUL = { gaz: 0, frein: 1, direction: 0 };
 
 // ?ia=N&joueur=1 : les commandes du joueur pour sa voiture dans la course entre IA (comme seul : rampes, Espace)
@@ -1927,6 +1988,7 @@ function demarrerJeu() {
   BOUCLE.surAffichage((alpha, dt) => {
     JEU.alpha = alpha;
     JEU.dtImage = dt;
+    majManettes(dt);   // la manette (manette.js) : lue à chaque image
     if (JEU.ecran === 'resume') { majResume(dt); if (JEU.sdkPret) SDK.jeuArrete(); if (JEU.ecran === 'resume') { if (typeof EFFETS3D !== 'undefined') { SENSATIONS.observer([], CIRCUIT); EFFETS3D.maj([], null, dt); } SCENE3D.dessiner(); return; } }   // le résumé vidéo : la 3D rejoue l'enregistrement (Poki : gameplayStop)
     majAToi(dt);   // le tournoi : le compte à rebours de « À toi, … ! »   // (« passer » en accéléré : le nombre de pas de l'image suit sa durée)
     const apres = JEU.ecran === 'podium' || JEU.ecran === 'resultats' || JEU.ecran === 'bravo' || JEU.ecran === 'tournoiFin' || JEU.ecran === 'ceremonie';   // le podium (et la cérémonie du champion) : les voitures n'y bougent plus
