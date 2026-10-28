@@ -70,7 +70,9 @@ const INTERVIEW = (function () {
     let variante = Math.floor(hasard() * nb);
     if (eviter !== undefined && variante === eviter && nb > 1) variante = (variante + 1) % nb;
     ALEATOIRE.semer();
-    return { gp: ch.prochain + 1, saison: ch.saison, fait, variante, params, rival: params.rival !== undefined ? params.rival : null,
+    // (les discussions, discussion.js : qui t'a touché et qui tu as dépassé à cette course, gardés avec la réponse)
+    const faitsGP = { contact: F.contact ? F.contact.rival : null, depasse: F.depassement ? F.depassement.rival : null };
+    return { gp: ch.prochain + 1, saison: ch.saison, fait, variante, params, rival: params.rival !== undefined ? params.rival : null, faitsGP,
       reponses: TONS.map(ton => ({ ton, cle: 'interview_' + fait + '_' + ton })) };
   }
 
@@ -110,7 +112,7 @@ const INTERVIEW = (function () {
         } else if (ton === 'calme' && ch.pilotes[k].rivalite) { delete ch.pilotes[k].rivalite; rivalite = 'apaisee'; }
       }
     } else ton = null;
-    ch.interview.derniere = { gp: q.gp, saison: q.saison, fait: q.fait, ton, rival: q.rival, variante: q.variante, params: q.params };
+    ch.interview.derniere = { gp: q.gp, saison: q.saison, fait: q.fait, ton, rival: q.rival, variante: q.variante, params: q.params, faitsGP: q.faitsGP || null };
     ch.interview.variantes[q.fait] = q.variante;
     return { effets, rivalite, ligne: ligneEffet(q, ton) };
   }
