@@ -411,7 +411,9 @@ def fantome(pg, titre):
       return { cache: el.classList.contains("cache"), texte: el.textContent, classe: el.className, ecart: JEU.fantome.ecart, appels: SCENE3D.appelsDessin, distance: Math.hypot(g.x - p.x, g.z - p.z), loin: Math.hypot(g.x - JEU.joueur.x, g.z - JEU.joueur.z) }; }''')
     t(f'{titre} : 2e tour, après 15 s : l’écart en direct sous le chrono, positif et en rouge (« +1,23 »), le fantôme dessiné à sa position du rejeu, devant la voiture',
       not e['cache'] and re.fullmatch(r'\+\d+' + SEP + r'\d\d', e['texte']) is not None and e['classe'] == 'rouge' and e['ecart'] > 0 and e['distance'] < 1 and e['loin'] > 5, str(e))
-    t(f'{titre} : le fantôme coûte 6 appels de dessin de plus', e['appels'] == appels1 + 6, f"{appels1} → {e['appels']}")
+    # (la même image, avec et sans le fantôme : d'un endroit du circuit à l'autre, le décor et les voitures lointaines n'ont pas les mêmes appels)
+    cout = pg.evaluate('() => { const g = JEU.modeleFantome.groupe; SCENE3D.dessiner(); const avec = SCENE3D.appelsDessin; g.visible = false; SCENE3D.dessiner(); const sans = SCENE3D.appelsDessin; g.visible = true; SCENE3D.dessiner(); return [sans, avec]; }')
+    t(f'{titre} : le fantôme coûte 6 appels de dessin de plus', cout[1] == cout[0] + 6, f"{cout[0]} → {cout[1]} (le tour d’avant, sans fantôme : {appels1})")
     L.append(f"  (appels de dessin pendant le tour de qualification : {appels1} sans le fantôme, {e['appels']} avec)")
     pg.screenshot(path=os.path.join(CAPTURES, 'fantome.png'))
     # les classes de l'écart : vert devant, rouge derrière, neutre à 0
