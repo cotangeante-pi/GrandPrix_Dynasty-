@@ -231,7 +231,10 @@ const DISCUSSION = (function () {
         reaction = rel >= AMI ? 'avis_bon' : rel <= ENNEMI || riv ? 'avis_mauvais' : 'avis_neutre';
         if (dc.contact) garde('contact'); if (riv) garde('rivalite'); if (dc.depasse) garde('depasse');
         break;
-      case 'ETAT': reaction = !ch.resultats.length ? 'etat_debut' : pl.lui <= 5 ? 'etat_bien' : pl.lui <= 12 ? 'etat_moyen' : 'etat_mal'; break;
+      case 'ETAT':
+        // (tour 36, Codeur 3) « t'as fini combien ? » : la question porte sur sa place à la dernière course ; il la donne (le fait vrai)
+        if (ch.resultats.length && a.demandePlace && faits(ch, k).course) { reaction = 'etat_place'; break; }
+        reaction = !ch.resultats.length ? 'etat_debut' : pl.lui <= 5 ? 'etat_bien' : pl.lui <= 12 ? 'etat_moyen' : 'etat_mal'; break;
       case 'DUEL': {
         if (!coequipier) { reaction = 'duel_pas_coequipier'; break; }
         const sd = CHAMPIONNAT.scoreDuel(ch), t = sd ? sd.total : [0, 0];
@@ -264,6 +267,13 @@ const DISCUSSION = (function () {
       const vieux = ['SALUT', 'COMPLIMENT', 'PASSER', 'AVIS', 'ETAT', 'PAIX'].includes(a.acte) ? souvenir(ch, m, 'mauvais') : ['INSULTE', 'MENACE'].includes(a.acte) ? souvenir(ch, m, 'bon') : null;
       if (vieux) { garde(vieux.acte === 'MENACE' ? 'souvenir_menace' : vieux.acte === 'INSULTE' ? 'souvenir_insulte' : 'souvenir_gentil'); effets.souvenir = vieux; }
     }
+    // (tour 36, Codeur 3) ses souvenirs de course avec toi, d'un Grand Prix d'avant : un autre contact (« ce n'est pas la première
+    // fois »), un dépassement ; jamais le Grand Prix d'aujourd'hui (celui-là, c'est la raison contact)
+    const vieux = (m.courses || []).filter(x => !(x[1] === g.saison && x[2] === g.gp));
+    const vieuxContact = vieux.filter(x => x[0] === 'contact').pop(), vieuxDepasse = vieux.filter(x => x[0] === 'depasse').pop();
+    if (vieuxContact && dc.contact && ['CONTACT', 'RECLAMATION', 'EXCUSE', 'INSULTE', 'AVIS'].includes(a.acte)) { garde('recidive_contact'); effets.recidive = vieuxContact; }
+    else if (vieuxContact && !dc.contact && ['AVIS', 'PASSER'].includes(a.acte)) { garde('souvenir_contact'); effets.recidive = vieuxContact; }
+    if (vieuxDepasse && ['AVIS', 'COMPLIMENT', 'BLOQUER'].includes(a.acte)) { garde('souvenir_depasse'); effets.depasseAvant = vieuxDepasse; }
     return suiteConversation(ch, m, a, { reaction, raisons, effets, faits: f });
   }
 
@@ -325,11 +335,27 @@ const DISCUSSION = (function () {
       duel_moi: f.duel ? f.duel.moi : '', duel_lui: f.duel ? f.duel.lui : '', souvenir_circuit: svGp ? nomCircuit(svGp.circuit) : texte('dis_avant'),
       cible: r.effets.cible !== undefined && ch.pilotes[r.effets.cible] ? nomDe(ch.pilotes[r.effets.cible]) : '',
       // (tour 36, Codeur 3) le circuit de votre dernière conversation, le tour nommé dans la phrase
+      circuit_recidive: r.effets.recidive ? nomCircuit(r.effets.recidive[3]) : '', circuit_depasse: r.effets.depasseAvant ? nomCircuit(r.effets.depasseAvant[3]) : '',
       circuit_avant: (() => { const pc = conversation(ch, m).precedente; return pc && pc.circuit ? nomCircuit(pc.circuit) : texte('dis_avant'); })(), tour: r.tour !== undefined && r.tour !== null ? r.tour : '' };
     const anonyme = !joueur(ch).nom;
     const remplir = t => (anonyme ? sansNom(t) : t).replace(/\{(\w+)\}/g, (x, c) => vals[c] !== undefined ? vals[c] : x);
-    const morceaux = [remplir(choisirAutre('dis_' + r.reaction, m.derniere ? m.derniere.split(' ¦ ')[0] : null))];
-    for (const raison of r.raisons) { const t = choisir('dis_raison_' + raison); if (t) morceaux.push(remplir(t)); }
+    // (tour 36, Codeur 3) l'ouverture : une tournure qui ne commence aucune de ses DISCUSSION_OUVERTURES dernières réponses (pas seulement
+    // la dernière) ; s'il n'y en a pas, la moins récente
+    const recentes = (Array.isArray(m.dernieres) ? m.dernieres : m.derniere ? [m.derniere] : []).slice(-R.DISCUSSION_OUVERTURES);
+    const ouverture = cle => {
+      const v = liste(cle); if (!v.length) return '';
+      const i0 = Math.floor(alea() * v.length);
+      for (let n = 0; n < v.length; n++) { const t = remplir(v[(i0 + n) % v.length]); if (!recentes.some(x => x.startsWith(t.slice(0, 14)))) return t; }
+      return remplir(v[i0]);
+    };
+    const morceaux = [ouverture('dis_' + r.reaction)];
+    for (const raison of r.raisons) {
+      let t = remplir(choisir('dis_raison_' + raison));
+      // (tour 36) un circuit déjà nommé dans la réponse n'est pas répété : la variante courte de la raison (sans circuit), s'il y en a une
+      const deja = [vals.circuit, vals.circuit_course].filter(x => x && morceaux.some(mo => mo.includes(x)));
+      if (t && deja.some(x => t.includes(x)) && existe('dis_raison_' + raison + '_court')) t = remplir(choisir('dis_raison_' + raison + '_court'));
+      if (t) morceaux.push(t);
+    }
     let phrase = morceaux.join(' ');
     phrase = typeof elider === 'function' ? elider(phrase) : phrase;
     return phrase;
@@ -340,7 +366,10 @@ const DISCUSSION = (function () {
     if (ecran !== undefined && !peutDiscuter(ecran)) return null;   // jamais pendant une course
     const p = ch.pilotes[k];
     if (!p || p.humain) return null;
-    const analyse = PARLE.comprendre(txt, noms(ch)), r = raisonner(ch, k, analyse);
+    const analyse = PARLE.comprendre(txt, noms(ch));
+    // (tour 36) la place demandée (« t'as fini combien ? », « where did you finish ? ») : lue sur la phrase mise à plat
+    if (analyse.demandePlace === undefined) analyse.demandePlace = /\b(combien|fini|finis|finit|place|position|classe|classee|finish|finished|where did you)\b/.test(PARLE.aplatir(txt));
+    const r = raisonner(ch, k, analyse);
     if (analyse.tour !== undefined && analyse.tour !== null) r.tour = analyse.tour;
     appliquer(ch, k, r, analyse.acte);
     let rep = composerReponse(ch, k, r), reactions = [r.reaction];
@@ -357,6 +386,7 @@ const DISCUSSION = (function () {
     const m = memoire(p);
     if (m.derniere && m.derniere === rep) rep = rep + ' ' + texte('dis_encore');   // (jamais tout à fait la même réponse deux fois de suite)
     m.derniere = rep;
+    m.dernieres = (Array.isArray(m.dernieres) ? m.dernieres : []).concat([rep]).slice(-R.DISCUSSION_OUVERTURES);   // (tour 36 : ses dernières réponses, pour varier les ouvertures)
     return { analyse, reaction: r.reaction, reactions, raisons: r.raisons, effets: r.effets, faits: r.faits, texte: rep };
   }
 
@@ -380,6 +410,17 @@ const DISCUSSION = (function () {
   // DISCUSSION_MENACE_COURSES courses fait perdre du crédit (il le dira) ; une disposition passée est oubliée
   function apresGrandPrix(ch) {
     const g = gpActuel(ch);
+    // (tour 36, Codeur 3) ce qui s'est passé en piste entre vous à ce Grand Prix (l'interview l'a relevé) : il s'en souviendra
+    const d = ch.interview && ch.interview.derniere, fg = d && d.saison === g.saison && d.gp === g.gp ? d.faitsGP : null;
+    const circuit = ch.calendrier[g.gp - 1] ? ch.calendrier[g.gp - 1].circuit : null;
+    if (fg) for (const [type, k] of [['contact', fg.contact], ['depasse', fg.depasse]]) {
+      const p = typeof k === 'number' ? ch.pilotes[k] : null;
+      if (!p || p.humain) continue;
+      const m = memoire(p);
+      if (!Array.isArray(m.courses)) m.courses = [];
+      m.courses.push([type, g.saison, g.gp, circuit]);
+      if (m.courses.length > R.DISCUSSION_COURSES) m.courses.splice(0, m.courses.length - R.DISCUSSION_COURSES);
+    }
     for (const p of ch.pilotes) {
       if (p.disposition && (p.disposition.saison !== g.saison || p.disposition.gp <= g.gp)) delete p.disposition;
       const m = p.memoire;

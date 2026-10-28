@@ -27,6 +27,8 @@ for (const L_ of ['fr', 'en']) for (const [genre, ag] of [['calme', 0.3], ['foug
     v(textes.every(x => x && x.trim().length > 3) && new Set(textes).size === textes.length, 'répétée : ' + textes.join(' | '));
     const memes = echanges.filter((e, i) => i && e.reaction === echanges[i - 1].reaction).map(e => e.reaction);
     v(!memes.length, 'deux fois de suite : ' + memes.join(', '));
+    // un circuit n'est jamais nommé deux fois dans la même réponse (les variantes courtes des raisons, quand elles existent)
+    if (TEXTES[LANGUE].dis_raison_fait_course_devant_court) for (const e of echanges) for (const c of ['bahrayn', 'melbourn']) { const n = texte('circuit_' + c); if (n) v(e.texte.split(n).length <= 2, 'circuit deux fois : ' + e.texte); }
     L.push('  (' + L_ + ', ' + genre + ' : ' + echanges.map(e => '« ' + e.ph + ' » → ' + e.texte).join(' / ') + ')');
   });
   t('conversation de 10 échanges (' + L_ + ', pilote ' + genre + ') : au moins un fait de la course et un souvenir de la conversation cités ; jamais de contradiction avec ce qui a été dit', () => {
@@ -87,5 +89,30 @@ t('le moment nommé : « au départ » (sujet), « au tour 3 » (il ne connaît 
     'raison_conversation_bonne', 'raison_conversation_mauvaise', 'raison_conversation_neutre', 'raison_contact_regle'].map(c => 'dis_' + c);
   const manque = cles.filter(c => !TEXTES.fr[c] || !TEXTES.en[c]);
   v(!manque.length, manque.join(', '));
+});
+t('une mémoire de course d’un Grand Prix à l’autre : un deuxième contact avec le même pilote, il rappelle le premier (son circuit) ; un dépassement d’avant aussi', () => {
+  const ch = nouveau(), k = rival(ch, 0.5);
+  gpCouru(ch); contactAvec(ch, k); DISCUSSION.apresGrandPrix(ch);
+  const premier = texte('circuit_' + ch.calendrier[0].circuit);
+  gpCouru(ch); contactAvec(ch, k); DISCUSSION.apresGrandPrix(ch);
+  const r = DISCUSSION.dire(ch, k, 'pourquoi tu m’as percuté ?');
+  v(r.raisons.includes('recidive_contact') && r.texte.includes(premier), JSON.stringify(r.raisons) + ' ' + r.texte);
+  // un dépassement à un Grand Prix d'avant : son avis s'en souvient
+  const ch2 = nouveau(), k2 = rival(ch2, 0.5);
+  gpCouru(ch2); ch2.interview.derniere = { gp: 1, saison: ch2.saison, fait: 'depassement', ton: null, rival: k2, faitsGP: { contact: null, depasse: k2 } }; DISCUSSION.apresGrandPrix(ch2);
+  gpCouru(ch2);
+  const r2 = DISCUSSION.dire(ch2, k2, 'que penses tu de moi ?');
+  v(r2.raisons.includes('souvenir_depasse') && r2.texte.includes(texte('circuit_' + ch2.calendrier[0].circuit)), JSON.stringify(r2.raisons) + ' ' + r2.texte);
+  v(ch2.pilotes[k2].memoire.courses.length === 1 && ch2.pilotes[k2].memoire.courses.length <= REGLAGES.DISCUSSION_COURSES, 'mémoire de course');
+  L.push('  (« ' + r.texte + ' »)');
+});
+t('« t’as fini combien ? » : il donne sa place et la tienne à la dernière course ; ses réponses ne commencent jamais comme ses 3 dernières', () => {
+  const ch = nouveau(), k = rival(ch, 0.5); gpCouru(ch);
+  const a = PARLE.comprendre('t’as fini combien ?', []);
+  const r = DISCUSSION.dire(ch, k, 't’as fini combien ?'), f = r.faits && r.faits.course;
+  if (a.acte === 'ETAT') v(r.reaction === 'etat_place' && f && r.texte.includes('P' + f.a) && r.texte.includes('P' + f.b), JSON.stringify([r.reaction, r.texte]));
+  const ch2 = nouveau(), k2 = rival(ch2, 0.5); gpCouru(ch2); const dits = [];
+  for (const ph of ['gg', 'bien joué', 'bravo', 'belle course', 'well done', 'nice race']) dits.push(DISCUSSION.dire(ch2, k2, ph).texte);
+  for (let i = 1; i < dits.length; i++) for (let j = Math.max(0, i - REGLAGES.DISCUSSION_OUVERTURES); j < i; j++) v(dits[i].slice(0, 14) !== dits[j].slice(0, 14) || dits[i].includes(texte('dis_encore')), 'même ouverture : ' + dits[j] + ' / ' + dits[i]);
 });
 ecrire();
