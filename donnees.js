@@ -430,7 +430,10 @@ const REGLAGES = {
   DISCUSSION_SOUVENIRS: 6,          // (tour 36d) il garde ses 6 derniers moments marquants (insulte, menace, compliment, excuse, paix), sur plusieurs Grands Prix
   PARLE_FLOU: 0.8,                  // (tour 36d) parle.js : un mot inconnu n'est lu comme un mot du lexique que s'il lui ressemble à ce point (avant : 0,66 ; « monkey » devenait « money », un salaire)
   DISCUSSION_DOUX: 0.35,            // (tour 36d) une agressivité d'au plus ça : il parle doux (les variantes _doux) ; au moins DISCUSSION_FOUGUEUX : sec (_vif)
-  DISCUSSION_PAR_GP: 8,             // au plus ce nombre de messages à un même pilote par Grand Prix (ensuite il est occupé)
+  DISCUSSION_PAR_GP: 14,             // au plus ce nombre de messages à un même pilote par Grand Prix (ensuite il est occupé)
+  DISCUSSION_CONV_MAX: 16,          // (tour 36, Codeur 3) la conversation d'un Grand Prix gardée : ses 16 derniers messages (acte, réaction, raisons)…
+  DISCUSSION_CONV_LONGUE: 4,        // … après 4 messages, son « au revoir » dit comment s'est passée la conversation…
+  DISCUSSION_BILAN: 4,              // … bonne si la relation y a gagné au moins 4, mauvaise si elle en a perdu 4 (et il s'en souvient au Grand Prix suivant)
   DISCUSSION_MEMOIRE: 12,           // il se souvient des 12 derniers messages (compact : l'acte, la saison, le Grand Prix)
   DISCUSSION_MENACE_COURSES: 2,     // une menace sans suite pendant ce nombre de courses : du crédit perdu (il te le dira)…
   DISCUSSION_CREDIT_MAX: 3,         // … au plus ce nombre de fois
