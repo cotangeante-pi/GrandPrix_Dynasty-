@@ -58,3 +58,4 @@ Réévalue.
 - **Les contractions anglaises** de mon bloc : don't, that's, I'll, hasn't, haven't, we've, didn't, we'll, it's.
 - **Une même tournure** n'apparaît plus nulle part dans les 3 dernières réponses, plus seulement au début. C'était le « Ça, c'est sympa. Merci. » des échanges 7 et 9.
 - **Le banc** : 61 sur 61 avec osascript, avec les tests du Codeur 4. Aucun test retiré.
+- 21dd261 : la tournure évitée partout dans les 3 dernières réponses (pas seulement au début), avec son test plus strict ; vert dans 50e3eb0 (40623126053).
