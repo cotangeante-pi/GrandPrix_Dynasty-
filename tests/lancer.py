@@ -95,9 +95,21 @@ def premier(delai=900):
     print(out.strip()); print(f'⏱ tests/premier.py : {time.monotonic() - t0:.0f} s')
     return p.returncode == 0
 
+# les recoins que saison.py ne visite pas (tests/recoins.py, tour 38d, Codeur 4) : 2 joueurs, tournoi, fin de carrière, écrans, tutoriel
+# (sur GitHub, en deux tranches : RECOINS=deux,tournoi et RECOINS=fin,ecrans,tuto, voir tests.yml)
+def recoins(delai=2400):
+    t0 = time.monotonic()
+    p = subprocess.Popen([sys.executable, os.path.join(RACINE, 'tests', 'recoins.py')], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True)
+    try: out, err = p.communicate(timeout=delai)
+    except subprocess.TimeoutExpired:
+        os.killpg(p.pid, signal.SIGKILL); out, err = p.communicate(); out += f'\n✘ recoins.py : plus de {delai} s, arrêté'
+    if 'RESULTAT' not in out: out += '\n✘ recoins.py s’est arrêté sans résultat :\n' + (err or '').strip()[-2000:]
+    print(out.strip()); print(f'⏱ tests/recoins.py : {time.monotonic() - t0:.0f} s')
+    return p.returncode == 0
+
 # (stands.html, 30 courses de 12 tours, est une partie à lui : sur GitHub, chaque partie tourne dans son propre travail, en parallèle ;
 # ecrans y est découpé en tranches par ECRANS_TRANCHE=k/n, voir .github/workflows/tests.yml)
-PARTIES = {'moteur': lambda: serie('tests/test.html'), 'courses': lambda: all([serie('tests/courses.html'), serie('tests/courses.html?ailerons=1')]), 'stands': lambda: serie('tests/stands.html', delai=1200), 'consignes': lambda: serie('tests/consignes.html', delai=1200), 'officiels': lambda: serie('tests/officiels.html', delai=1500), 'meteo': lambda: serie('tests/meteo.html', delai=1500), 'ecrans': lambda: ecrans(), 'annexes': annexes, 'paquet': paquet, 'saison': lambda: saison(), 'premier': lambda: premier()}
+PARTIES = {'moteur': lambda: serie('tests/test.html'), 'courses': lambda: all([serie('tests/courses.html'), serie('tests/courses.html?ailerons=1')]), 'stands': lambda: serie('tests/stands.html', delai=1200), 'consignes': lambda: serie('tests/consignes.html', delai=1200), 'officiels': lambda: serie('tests/officiels.html', delai=1500), 'meteo': lambda: serie('tests/meteo.html', delai=1500), 'ecrans': lambda: ecrans(), 'annexes': annexes, 'paquet': paquet, 'saison': lambda: saison(), 'premier': lambda: premier(), 'recoins': lambda: recoins()}
 
 def tests(parties=tuple(PARTIES)):
     # une liste : tout tourne même si le premier échoue ; courses.html = le critère de l'étape 4 (30 courses entre IA)
