@@ -4,6 +4,8 @@ const REGLAGES = {
   // la boucle
   PAS_PHYSIQUE: 1 / 120,        // la physique avance toujours de 1/120 s
   PAS_MAX_PAR_IMAGE: 12,        // au plus 0,1 s de physique par image : si l'onglet rame, on ralentit au lieu de s'emballer
+  PAS_MAX_FEUX: 120,            // (tour 37d) pendant les feux (voitures tenues sur place) : jusqu'à 1 s rattrapée par image, les feux durent leurs vraies secondes
+                                //   même sur un ordinateur lent ; dès l'extinction, on revient à PAS_MAX_PAR_IMAGE (le plafond est relu à chaque pas)
 
   // la courbe des circuits
   PAS_ECHANTILLON: 2,           // un échantillon de piste tous les 2 m
