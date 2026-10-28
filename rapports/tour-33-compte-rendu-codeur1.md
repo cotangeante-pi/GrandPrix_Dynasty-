@@ -101,3 +101,5 @@ Ce que je ferais en premier : mesurer les garde-fous sur 90 courses (3 × plus) 
 - Le duel.
 
 Réévalue.
+
+**Duel-2 (23h00–23h30, branche duel-2, 0e265b8, pas fusionnée)** : étape 1 du diagnostic (IA_PREPARER_LIBRE : en préparation d'attaque, retenue seulement à IA_DISTANCE_MIN, et seulement quand la voiture visée freine, IA_FREIN_VU 2 m/s²). Calcul pur (JavaScriptCore, 30 courses) : vainqueur ≠ poleman 0 → 0, dépassements 43 → 54, chocs > 5 m/s 8 → 5, herbe 2410 → 3040, 300/300 arrivées. GitHub 40626339493 ROUGE : 35 dépassements (32 sans rivalité), vainqueur ≠ poleman 1, chocs 3 ; tombent : technique 20 voitures graine 1 (2 chocs pour 1), pneus IA 12 tours (+1 choc), rivalité (le rival attaque le joueur 96 fois contre 108 pour un pilote sans rivalité). Pour demain.
