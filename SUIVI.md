@@ -90,6 +90,7 @@ Note du Chef session-5b (2026-10-23) : les lignes 18 à 19b ne s'additionnaient 
 
 ## À essayer par le propriétaire
 
+- **Le commentateur** (tour 35) : pendant la course, « 🎙 Gaston Virage » commente dans le bandeau télé (le départ, les dépassements, les contacts, les stands, la pluie, le dernier tour). Menu pause : « Commentateur : tout / tes faits / coupé ». Dire : il gêne ? Il parle trop ou pas assez ? Le nom te va (tu peux le changer) ?
 - **Les patrons d'écurie** (tour 35) : « 💼 Direction » dans ta carte du paddock (demande le statut de premier pilote ou du budget) ; aux contrats, « 💬 Négocier » sur une offre (« je veux 80000 »). Dire : la négociation est amusante ? Les salaires sont justes ?
 - **La mesure de l'étape 10** (tour 35) : Mac au calme (rien d'autre ouvert, Spotlight fini), écran ouvert, dans le dossier du jeu : `python3 tests/perf.py --fois 3`. Ça dit si chaque circuit tient 60 images par seconde avec 20 voitures.
 
