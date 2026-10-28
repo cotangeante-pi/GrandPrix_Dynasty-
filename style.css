@@ -1122,12 +1122,12 @@ body.deux.cote #boutonSon { top: auto; bottom: 12px; right: 12px; }   /* (côte 
    en bas les boutons rangés par usage ; il tient en 960×600 sans défilement */
 .tvCarte { background: var(--tv-panneau); border: 1px solid var(--tv-bord); border-radius: var(--tv-coin-grand); box-shadow: var(--tv-ombre); box-sizing: border-box; }
 .tvSurtitre { margin: 0; font: 700 12px/1.2 var(--tv-police-titre) !important; text-transform: uppercase; letter-spacing: 0.14em; color: var(--tv-rouge); }
-#championnat { justify-content: flex-start; gap: 8px; padding: 30px 16px 8px; box-sizing: border-box; }   /* (en haut : le bas de l’écran garde la place des boutons de coin, aides et tutoriel) */
+#championnat { justify-content: center; gap: 12px; padding: 12px 16px; box-sizing: border-box; }
 #paddock { display: grid; grid-template-columns: minmax(0, 360px) auto; grid-template-rows: auto 1fr; gap: 12px; align-items: stretch; max-width: 100%; }
 #paddockProchain { grid-column: 1; grid-row: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 12px; }
 #paddockProchain h1 { font-size: 20px; line-height: 1.15; }
 #paddockProchain h1::after { width: 40px; height: 3px; margin-top: 4px; }
-#paddockCarte { width: 100%; max-width: 330px; height: min(140px, 18vh); border-radius: var(--tv-coin); background: rgba(0, 0, 0, 0.25); }
+#paddockCarte { width: 100%; max-width: 330px; height: min(150px, 22vh); border-radius: var(--tv-coin); background: rgba(0, 0, 0, 0.25); }
 #paddockDomicile { display: flex; align-items: center; gap: 6px; color: var(--tv-or); font-size: 14px; }
 #paddockDomicile.cache { display: none; }
 #paddockDomicile .maison { margin-top: 7px; }
@@ -1292,3 +1292,23 @@ body.deux.cote #boutonSon { top: auto; bottom: 12px; right: 12px; }   /* (côte 
 #contratsListe .salaire { color: var(--tv-or); font-weight: 700; font-size: 13px; }
 #contrats button.negocier { min-width: 0; padding: 6px 10px; font-size: 13px; }
 #contratsListe .mot { overflow: hidden; text-overflow: ellipsis; }
+/* le paddock en 960×600 (tour 35d, Codeur 4, vu par tests/saison.py) : en français la rangée des boutons débordait des deux côtés
+   (« Course suivante », « Arbre de la dynastie »), et après un Grand Prix (la prévision sur deux lignes, les points gagnés, le courrier)
+   le paddock dépassait en haut et en bas, les boutons du coin passaient sur « Course suivante » ; on serre, rien ne change en 1280×720 */
+@media (max-width: 1100px) {
+  #paddockBoutons { gap: 8px; }
+  #paddockBoutons button, #paddockBoutons button.petit { padding: 8px 8px; font-size: 12px; }
+  #paddockBoutons #boutonCourseSuivante { padding: 9px 12px; font-size: 14px; }
+  .paddockGroupe > div { gap: 4px; }
+}
+@media (max-height: 680px) {
+  #championnat { gap: 6px; padding: 6px 16px 30px; }
+  #paddock { gap: 8px; }
+  #paddockProchain { gap: 2px; padding: 6px 10px; }
+  #paddockProchain h1 { font-size: 18px; }
+  #prevision { margin: 0 0 2px; font-size: 14px; }
+  #paddockCarte { height: min(150px, 17vh); }
+  #paddockMoi { gap: 3px; padding: 6px 10px; }
+  #paddockMoi p { font-size: 12px; }
+  #championnat .coinPaddock { bottom: 4px; padding: 3px 10px; font-size: 11px; }
+}

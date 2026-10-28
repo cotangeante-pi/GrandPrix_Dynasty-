@@ -408,6 +408,14 @@ Décidée par le propriétaire le 2026-10-27 (« pour la télé, ce ne doit pas 
 
 - Elles conduisent **avec la même physique et les mêmes règles que le joueur**. Elles freinent, dépassent, défendent leur place et s'arrêtent au stand.
 - **Ce sont des pilotes qui décident, pas des voitures sur un rail** (décision du propriétaire, 2026-10-19). Aucune trajectoire calculée d'avance que toutes les IA suivent. Chaque IA regarde la piste devant elle et les voitures autour, comme un pilote, et **choisit sa ligne en roulant**, à chaque virage : la ligne idéale quand elle est seule, l'intérieur pour attaquer, une ligne pour défendre ou pour éviter, et parfois une erreur. Deux IA ne passent jamais exactement au même endroit. Ce qu'une IA sait du circuit (où sont les virages, à quelle vitesse on peut les prendre) peut être calculé d'avance, comme un pilote qui connaît la piste ; la ligne qu'elle suit, non.
+- **Des techniques de pilote selon le virage** (demande du propriétaire, 2026-10-27 : « prendre le virage par l'intérieur quand c'est un long virage et le prendre par l'extérieur puis l'intérieur quand il est court etc. »). Chaque IA reconnaît le type du virage devant elle (sa longueur, son angle, ce qui suit) et choisit sa façon de le prendre. Ce sont des choix de pilote, pas un rail :
+  - **virage court ou épingle** : entrer par l'extérieur, freiner tard en ligne droite, couper à la corde (l'intérieur) assez tard, ressortir large ;
+  - **long virage** (grand angle, rayon presque constant) : rester près de l'intérieur tout du long, ou prendre deux cordes s'il se resserre ;
+  - **enchaînement** (chicane, S) : sacrifier le premier virage pour bien sortir du second, presque en ligne droite à travers les vibreurs permis ;
+  - **avant une longue ligne droite** : soigner la sortie (corde tardive) plutôt que l'entrée ;
+  - **en bataille** : l'attaquant plonge à l'intérieur au freinage, le défenseur ferme l'intérieur avant le virage, et celui qui s'est fait plonger peut croiser la trajectoire (ressortir plus vite par l'extérieur puis repasser) ;
+  - **sous la pluie** : quitter la trajectoire habituelle, plus mouillée, pour chercher l'adhérence (`eauTrajectoire` de la météo).
+  Le caractère change la façon de faire : le rapide prend plus de risques à la corde, le régulier refait la même ligne à chaque tour, et l'agressif plonge plus souvent. **Tests** : sur le circuit test et deux circuits officiels, chaque type de virage est pris avec sa technique (mesurée par la position latérale à l'entrée, à la corde et à la sortie), les tours sont plus rapides qu'avant, et deux IA de caractères différents n'ont pas la même ligne.
 - **Chaque pilote a son caractère**, avec des réglages chiffrés dans le fichier de données :
   - le rythme (sa vitesse pure) ;
   - la régularité ;
@@ -626,7 +634,7 @@ Ajouté le 2026-10-22, à la demande du propriétaire (« le travail avance lent
   J=$(curl -s -H "Authorization: Bearer $T" "$A/actions/runs/RUN/jobs" | python3 -c "import sys,json;print(json.loads(sys.stdin.read(),strict=False)['jobs'][0]['id'])")
   curl -sL -H "Authorization: Bearer $T" "$A/actions/jobs/$J/logs" | grep -E "✘|RESULTAT|⏱|ÉCHECS|TOUT PASSE"
   ```
-  Depuis le 2026-10-26, **la suite tourne en 9 travaux parallèles** (une « matrix » dans tests.yml : moteur, courses, stands, ecrans en 4 tranches `ECRANS_TRANCHE=k/n`, annexes, paquet ; environ **5 minutes** au total). L'état du passage reste le même appel ; le détail de chaque travail :
+  Depuis le 2026-10-27, **la suite tourne en 13 travaux parallèles** (une « matrix » dans tests.yml : moteur, courses, stands, consignes, meteo, officiels, ecrans en 4 tranches `ECRANS_TRANCHE=k/n`, annexes, paquet, et **saison** : `tests/saison.py` joue la carrière entière par le robot en 960×600, en + fr, et relève console, textes cassés, clés manquantes, boutons qui débordent ou se recouvrent, écrans bloqués ; environ **7 minutes** au total). L'état du passage reste le même appel ; le détail de chaque travail :
   ```
   curl -s -H "Authorization: Bearer $T" "$A/actions/runs/RUN/jobs?per_page=50" | python3 -c "import sys,json;[print(j['id'],j['name'],j['conclusion']) for j in json.loads(sys.stdin.read(),strict=False)['jobs']]"
   curl -sL -H "Authorization: Bearer $T" "$A/actions/jobs/ID/logs" | grep -E "✘|RESULTAT|PARTIE OK|ÉCHECS"
