@@ -2472,7 +2472,14 @@ t('commentateur : la course est la même au bit près avec ou sans lui ; des fai
   v(types.every(ty=>TEXTES.fr['com_'+ty].every((f,i)=>JSON.stringify((f.match(/\{\w+\}/g)||[]).sort())===JSON.stringify((TEXTES.en['com_'+ty][i].match(/\{\w+\}/g)||[]).sort()))),'les mêmes trous en + fr');
   v(types.every(ty=>TEXTES.fr['com_'+ty].every(f=>!/\b(il|elle)\b/i.test(f))),'jamais « il » ni « elle » sur un pilote');
   v(types.every(ty=>['fr','en'].every(l=>TEXTES[l]['com_'+ty].every(f=>f.replace(/\{\w+\}/g,'Xxxxxxx').length<=REGLAGES.COMMENTAIRE_LONGUEUR_MAX))),'des phrases courtes (COMMENTAIRE_LONGUEUR_MAX)');
-  v(['tout','joueur','non'].every(m=>TEXTES.fr['commentaire_'+m]&&TEXTES.en['commentaire_'+m]),'le réglage dans les deux langues');});
+  v(['tout','joueur','non'].every(m=>TEXTES.fr['commentaire_'+m]&&TEXTES.en['commentaire_'+m]),'le réglage dans les deux langues');
+  // le lieu : « à Monoco », « sur le circuit d’essai », « at the test track » ; jamais « à Circuit » ni « at Test » ; l’apostrophe typographique
+  const lieux=Object.keys(CIRCUITS);
+  v(lieux.every(k=>TEXTES.fr['lieu_'+k]&&TEXTES.en['lieu_'+k]),'chaque circuit a son lieu : '+lieux.filter(k=>!TEXTES.fr['lieu_'+k]).join());
+  const toutes=[];for(const l of ['fr','en']){const sv=LANGUE;for(const ty of types)for(let i=0;i<TEXTES[l]['com_'+ty].length;i++)for(const k of lieux)toutes.push(TEXTES[l]['com_'+ty][i].replace('{lieu}',TEXTES[l]['lieu_'+k]||'').replace('{circuit}',TEXTES[l]['circuit_'+k]||''));}
+  v(toutes.every(f=>!/à Circuit|at Test/.test(f)),'jamais « à Circuit » ni « at Test » : '+toutes.find(f=>/à Circuit|at Test/.test(f)));
+  v(types.every(ty=>['fr','en'].every(l=>TEXTES[l]['com_'+ty].every(f=>!/'/.test(f)))),'l’apostrophe typographique (’), jamais \'');
+  v(TEXTES.fr.com_depassement.length>=5&&TEXTES.fr.com_coteACote.length>=5,'de la variété sur les faits fréquents');});
 t('commentateur : la priorité (un dépassement pour la tête avant un meilleur tour, un fait du joueur devant), l’intervalle, l’attente au virage, les faits trop vieux oubliés, jamais deux fois la même phrase de suite, rien quand il est coupé, seulement le joueur en mode « joueur »', ()=>{
   const R=REGLAGES,c=COMMENTAIRE.creer(1);
   COMMENTAIRE.pousser(c,0,'meilleurTour',{qui:0},false);COMMENTAIRE.pousser(c,0,'depassementTete',{qui:1,sur:0},false);
@@ -2512,6 +2519,15 @@ t('réalisation télé : la visée est coupée par un immeuble entre la caméra 
   v(REGIE.voit(r,a,{x:0,y:0.6,z:-60}),'pas par un immeuble à côté');
   v(REGIE.voit(r,{x:0,y:40,z:40},{x:0,y:0.6,z:100}),'pas par le toit où elle est posée');
   v(REGIE.voit(r,{x:0,y:200,z:-200},b),'de très haut, par-dessus');});
+
+t('commentateur du résumé vidéo : une phrase par moment fort (départ, dépassement, sortie, arrêt au stand, arrivée), celle du joueur pour son dépassement, le même réglage (coupé : rien ; tes faits : seulement les siens et l’arrivée), jamais deux fois la même de suite', ()=>{
+  const R=REGLAGES,c=COMMENTAIRE.creer(3),types=['depart','depassement','sortie','arret','arrivee'].map(ty=>{const it=COMMENTAIRE.momentResume(c,{type:ty,qui:1,sur:2,place:3},0,'à Monoco');return it&&it.type;});
+  v(types.join()==='depart,depassement,erreur,stands,arrivee',types.join());
+  v(COMMENTAIRE.momentResume(c,{type:'depassement',qui:0,sur:2,place:3},0,'').type==='depassementJoueur','le dépassement du joueur');
+  v(COMMENTAIRE.phrase(COMMENTAIRE.momentResume(c,{type:'depart',qui:1},0,'à Monoco'),k=>'n°'+(k+1),x=>x).indexOf('{')<0,'phrase remplie');
+  let avant=null,deux=false;for(let i=0;i<20;i++){const it=COMMENTAIRE.momentResume(c,{type:'depassement',qui:1,sur:2,place:3},0,'');const k=it.type+':'+it.variante;if(k===avant)deux=true;avant=k;}v(!deux,'jamais deux fois de suite');
+  const mode=R.COMMENTAIRE_MODE;try{R.COMMENTAIRE_MODE='non';v(COMMENTAIRE.momentResume(c,{type:'depart',qui:1},0,'')===null,'coupé');
+    R.COMMENTAIRE_MODE='joueur';v(COMMENTAIRE.momentResume(c,{type:'depassement',qui:1,sur:2},0,'')===null&&COMMENTAIRE.momentResume(c,{type:'sortie',qui:0},0,'')!==null&&COMMENTAIRE.momentResume(c,{type:'arrivee',qui:4},0,'')!==null,'tes faits');}finally{R.COMMENTAIRE_MODE=mode;}});
 
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 ecrire();

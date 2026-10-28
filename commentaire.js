@@ -41,8 +41,8 @@ const COMMENTAIRE = (function () {
     if (R.COMMENTAIRE_MODE === 'non' || !e) return c;
     const o = options || {}, j = o.joueur === undefined ? -1 : o.joueur, t = e.temps, n = lire(e), v = c.vu;
     const estJ = k => k === j, haut = k => { const q = n.place.get(k); return q && q.place <= R.COMMENTAIRE_PLACE_MAX; };
-    const prm = (k, x) => Object.assign({ qui: k, place: n.place.get(k) ? n.place.get(k).place : null, circuit: o.circuit || '' }, x);
-    if (!v) { c.vu = Object.assign(n, { depart: false, meilleur: null, dernierTour: false, vainqueur: false, pluie: false, joueurArrive: false }); return c; }
+    const prm = (k, x) => Object.assign({ qui: k, place: n.place.get(k) ? n.place.get(k).place : null, circuit: o.circuit || '', lieu: o.lieu || '' }, x);
+    if (!v) { c.vu = Object.assign(n, { depart: false, meilleur: null, dernierTour: false, vainqueur: false, pluie: false, joueurArrive: false, podium: false, arrets: [] }); return c; }
     // le départ
     if (!v.depart && e.go !== null) { v.depart = true; pousser(c, t, 'depart', prm(n.ordre[0].k), false); }
     // les dépassements (enregistrés par la course : qui, sur, numéros = indice + 1)
@@ -58,6 +58,14 @@ const COMMENTAIRE = (function () {
       if (p.erreur && !a.erreur && (haut(k) || estJ(k)) && p.arrivee === null) pousser(c, t, 'erreur', prm(k), estJ(k));
       if (p.penalites > a.penalites) pousser(c, t, 'penalite', prm(k, { s: p.penalites - a.penalites }), estJ(k));
       if (p.stand && !a.stand) pousser(c, t, 'stands', prm(k), estJ(k));
+    });
+    // une voiture arrêtée en piste (sous COMMENTAIRE_ARRET_VITESSE pendant COMMENTAIRE_ARRET_DUREE s, hors des stands, pas arrivée) :
+    // une fois par arrêt
+    if (e.go !== null) e.pilotes.forEach((p, k) => {
+      const lente = p.arrivee === null && Math.abs(p.v.u) < R.COMMENTAIRE_ARRET_VITESSE && !p.v.dansStands && !p.course.arretEnCours && t - e.go > R.COMMENTAIRE_ARRET_DUREE;
+      if (!lente) { v.arrets[k] = null; return; }
+      if (v.arrets[k] === undefined || v.arrets[k] === null) v.arrets[k] = t;
+      else if (v.arrets[k] !== true && t - v.arrets[k] >= R.COMMENTAIRE_ARRET_DUREE) { v.arrets[k] = true; if (haut(k) || estJ(k)) pousser(c, t, 'arret', prm(k), estJ(k)); }
     });
     // les contacts : deux voitures qui se touchent au même pas, les plus proches l'une de l'autre ; une fois par paire et par
     // COMMENTAIRE_REPETITION s
@@ -94,6 +102,12 @@ const COMMENTAIRE = (function () {
     const tete = n.ordre[0].k;
     if (!v.dernierTour && e.nbTours > 1 && n.pilotes[tete].tour === e.nbTours && n.pilotes[tete].arrivee === null) { v.dernierTour = true; pousser(c, t, 'dernierTour', prm(tete), estJ(tete)); }
     if (!v.vainqueur && n.pilotes[tete].arrivee !== null) { v.vainqueur = true; pousser(c, t, 'arrivee', prm(tete), estJ(tete)); }
+    // le podium, quand il est sûr (podiumConnu : pénalités comprises, aucune voiture encore en course ne peut y entrer)
+    if (!v.podium && typeof podiumConnu === 'function' && podiumConnu(e) && typeof classementFinal === 'function') {
+      v.podium = true;
+      const f = classementFinal(e);
+      if (f.length >= 3) pousser(c, t, 'podium', prm(f[0].k, { sur: f[1].k, trois: f[2].k }), estJ(f[0].k) || estJ(f[1].k) || estJ(f[2].k));
+    }
     if (j >= 0 && !v.joueurArrive && n.pilotes[j] && n.pilotes[j].arrivee !== null && !estJ(tete)) { v.joueurArrive = true; pousser(c, t, 'joueurArrivee', prm(j), true); }
     // la place du joueur, de temps en temps (COMMENTAIRE_JOUEUR_PERIODE) : l'écart avec la voiture devant, ou son avance en tête
     if (j >= 0 && e.go !== null && n.pilotes[j] && n.pilotes[j].arrivee === null && t - c.joueurVu >= R.COMMENTAIRE_JOUEUR_PERIODE && n.place.get(j)) {
@@ -132,10 +146,27 @@ const COMMENTAIRE = (function () {
     const variantes = texte('com_' + item.type), p = item.params;
     let s = Array.isArray(variantes) ? variantes[item.variante || 0] : variantes;
     const nombre = x => (Math.round(x * 10) / 10).toFixed(1).replace('.', texte('virgule'));
-    return s.replace('{qui}', nom(p.qui)).replace('{sur}', p.sur === undefined ? '' : nom(p.sur)).replace('{place}', p.place === null || p.place === undefined ? '' : String(p.place))
+    return s.replace('{qui}', nom(p.qui)).replace('{sur}', p.sur === undefined ? '' : nom(p.sur)).replace('{trois}', p.trois === undefined ? '' : nom(p.trois)).replace('{lieu}', p.lieu || '').replace('{place}', p.place === null || p.place === undefined ? '' : String(p.place))
       .replace('{circuit}', p.circuit || '').replace('{ecart}', p.ecart === undefined ? '' : nombre(p.ecart)).replace('{s}', p.s === undefined ? '' : String(p.s).replace('.', texte('virgule')))
       .replace('{temps}', p.temps === undefined ? '' : formatTemps ? formatTemps(p.temps) : String(p.temps));
   }
 
-  return { creer, observer, afficher, phrase, pousser };
+  // le résumé vidéo (resume.js) : une phrase pour un moment fort de l'enregistrement (m : { type, qui, sur, place }), au moment où on le
+  // voit ; les mêmes phrases que pendant la course, le même réglage (COMMENTAIRE_MODE) ; joueur : son indice, ou −1 ; null si rien à dire
+  const DU_RESUME = { depart: 'depart', arrivee: 'arrivee', sortie: 'erreur', arret: 'stands', depassement: 'depassement' };
+  function momentResume(c, m, joueur, lieu) {
+    if (!m || R.COMMENTAIRE_MODE === 'non') return null;
+    const j = joueur === undefined ? -1 : joueur, concerne = m.qui === j || m.sur === j;
+    let type = DU_RESUME[m.type];
+    if (!type) return null;
+    if (type === 'depassement' && concerne) type = 'depassementJoueur';
+    if (R.COMMENTAIRE_MODE === 'joueur' && !concerne && type !== 'arrivee') return null;
+    const variantes = texte('com_' + type), nb = Array.isArray(variantes) ? variantes.length : 1;
+    let v = Math.floor(c.rnd() * nb);
+    if (nb > 1 && c.derniereCle === type + ':' + v) v = (v + 1) % nb;
+    c.derniereCle = type + ':' + v;
+    return { type, variante: v, params: { qui: m.qui, sur: m.sur, place: m.place, lieu: lieu || '' } };
+  }
+
+  return { creer, observer, afficher, phrase, pousser, momentResume };
 })();

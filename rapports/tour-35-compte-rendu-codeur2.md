@@ -11,3 +11,17 @@ Commit 1a04612 — GitHub 40616933706 : 13 travaux verts.
 - Tests : `tests/test.html` (la course au bit près avec ou sans, des faits vus, les phrases remplies, les variantes et leurs trous en + fr, pas de « il / elle », la longueur, la priorité, l'intervalle, l'attente au virage, l'oubli des vieux faits, jamais deux fois de suite, coupé, mode « tes faits ») ; `tests/ecrans.py` (`?test=commentaire` : il parle dans le bandeau avec son nom, le réglage tout → tes faits → coupé, coupé il se tait ; capture commentaire.png).
 
 Pas vérifié sur le Mac (plus de Chrome après 21h00) : la capture commentaire.png est dans l'artefact GitHub du passage 40616933706.
+
+## 3. Le commentateur poli (branche codeur2, main 6f62a01 fusionnée)
+Commit 755991b — GitHub 40618351758 : 13 travaux verts.
+- **Le lieu juste** : chaque circuit a sa forme « lieu » dans textes.js (`lieu_<nom>` : « à Monoco », « à Melbourn Park », « sur le circuit d’essai », « sur le circuit technique » ; « at Monoco », « at the test track »), utilisée partout où le commentateur cite le circuit (`{lieu}`). Test : aucune phrase ne donne « à Circuit » ni « at Test », pour chaque circuit et chaque langue ; chaque circuit a son lieu.
+- **L’apostrophe** : toujours ’ dans ses phrases (testé).
+- **Plus de variété** : 6 phrases pour un dépassement, 5 pour le côte à côte, 4 pour le départ, la tête, le dépassement du joueur, le contact (testé : au moins 5 pour les deux faits fréquents).
+- **Le podium** : « Le podium : {1er}, {2e} et {3e} ! », dit quand il est sûr (`podiumConnu`, pénalités comprises, d’après `classementFinal`).
+- **L’arrêt en piste** (pas d’abandon dans le moteur : on dit ce qui est vrai) : une voiture sous `COMMENTAIRE_ARRET_VITESSE` pendant `COMMENTAIRE_ARRET_DUREE` s, hors des stands, pas arrivée : « {qui} s’arrête en piste ! », une fois par arrêt.
+- Toujours testés : les trous des phrases les mêmes en + fr, 60 caractères au plus, jamais « il » ni « elle ».
+
+## 4. Le résumé vidéo commenté, et le mode 2 joueurs
+Commit fae46e9 (branche codeur2, main ae9e778 fusionnée) — GitHub vert (13 travaux).
+- **Le résumé** : quand un moment fort commence (départ, dépassement, sortie, arrêt au stand, arrivée : les faits de l'enregistreur), une phrase du commentateur apparaît sous son nom (« 🎙 Gaston Virage : … »), une ligne en haut de l'image (`#resumeCommentaire`), avec les mêmes phrases que la course (`COMMENTAIRE.momentResume`) : le dépassement du joueur a les siennes, le même réglage (coupé : rien ; tes faits : seulement les tiens et l'arrivée), jamais deux fois la même de suite, son propre hasard. Tests : `tests/test.html` (chaque type, le joueur, le réglage, pas deux fois de suite) ; `tests/ecrans.py` (le résumé de `?test=resume` est commenté, la ligne dans l'image).
+- **À deux** : le bandeau des messages n'existe pas en mode 2 joueurs (le haut du milieu est à la tour partagée ; il se poserait sur une moitié) : le commentateur y est donc **coupé par défaut**, ce qui est maintenant testé dans la page à deux (aucun bandeau, aucun commentaire créé). Le commenter à deux demanderait une place à lui (par exemple sous la tour partagée) : à décider.

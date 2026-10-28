@@ -438,6 +438,8 @@ const REGLAGES = {
   DISCUSSION_CONV_MAX: 16,          // (tour 36, Codeur 3) la conversation d'un Grand Prix gardée : ses 16 derniers messages (acte, réaction, raisons)…
   DISCUSSION_CONV_LONGUE: 4,        // … après 4 messages, son « au revoir » dit comment s'est passée la conversation…
   DISCUSSION_BILAN: 4,              // … bonne si la relation y a gagné au moins 4, mauvaise si elle en a perdu 4 (et il s'en souvient au Grand Prix suivant)
+  DISCUSSION_COURSES: 6,            // (tour 36, Codeur 3) il se souvient des 6 derniers faits de course avec toi (un contact, un dépassement), d'un Grand Prix à l'autre
+  DISCUSSION_OUVERTURES: 3,         // (tour 36, Codeur 3) une réponse ne commence comme aucune de ses 3 dernières
   DISCUSSION_MEMOIRE: 12,           // il se souvient des 12 derniers messages (compact : l'acte, la saison, le Grand Prix)
   DISCUSSION_MENACE_COURSES: 2,     // une menace sans suite pendant ce nombre de courses : du crédit perdu (il te le dira)…
   DISCUSSION_CREDIT_MAX: 3,         // … au plus ce nombre de fois
@@ -828,13 +830,14 @@ const REGLAGES = {
   COMMENTAIRE_LONGUEUR_MAX: 60,   // caractères d'une phrase au plus (les noms comptés à 7 lettres) : court, pour ne pas lire en pilotant
   COMMENTAIRE_PEREMPTION: 8,      // s : un fait plus vieux n'est plus dit
   COMMENTAIRE_FILE_MAX: 6,
-  COMMENTAIRE_PRIORITES: { arrivee: 10, depart: 9, depassementTete: 9, dernierTour: 8, joueurArrivee: 8, contact: 7, depassementJoueur: 6, pluie: 6, coteACote: 5, erreur: 5, penalite: 5, depassement: 4, stands: 3, meilleurTour: 3, joueurTete: 2, joueurPlace: 2 },
+  COMMENTAIRE_PRIORITES: { arrivee: 10, podium: 9, arret: 6, depart: 9, depassementTete: 9, dernierTour: 8, joueurArrivee: 8, contact: 7, depassementJoueur: 6, pluie: 6, coteACote: 5, erreur: 5, penalite: 5, depassement: 4, stands: 3, meilleurTour: 3, joueurTete: 2, joueurPlace: 2 },
   COMMENTAIRE_BONUS_JOUEUR: 2,    // un fait du joueur passe devant (plus de phrases quand le joueur est concerné)
   COMMENTAIRE_PLACE_MAX: 10,      // les dépassements, erreurs et côte à côte des voitures plus loin ne sont pas commentés (sauf le joueur)
   COMMENTAIRE_REPETITION: 15,     // s : un contact ou un côte à côte entre les deux mêmes voitures n'est redit qu'après ça
   COMMENTAIRE_CONTACT_DISTANCE: 8, // m
   COMMENTAIRE_COTE: [4, 1.6, 0.8], // m le long, m en travers, s : deux voitures côte à côte
   COMMENTAIRE_JOUEUR_PERIODE: 25, // s : la place du joueur, de temps en temps
+  COMMENTAIRE_ARRET_VITESSE: 2, COMMENTAIRE_ARRET_DUREE: 4,   // m/s, s : une voiture arrêtée en piste
   COMMENTAIRE_VIRAGE_COURBURE: 1 / 60,  // le joueur dans un virage plus serré (rayon < 60 m) : le commentateur attend…
   COMMENTAIRE_VIRAGE_ATTENTE: 1.5,      // … les premières secondes du virage
   GRAINE_COMMENTAIRE: 15000,      // sa suite de hasard à lui (ALEATOIRE.suite) : la course ne change pas
