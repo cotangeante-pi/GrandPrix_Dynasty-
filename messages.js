@@ -55,5 +55,8 @@ const MESSAGES = (function () {
     return m.actuel;
   }
 
-  return { creer, observer, observerMeteo, afficher };
+  // une phrase déjà écrite (le commentateur, commentaire.js) : { type: 'commentaire', texte }
+  function pousserTexte(m, msg) { pousser(m, msg); return m; }
+
+  return { creer, observer, observerMeteo, pousserTexte, afficher };
 })();
