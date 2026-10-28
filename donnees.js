@@ -792,6 +792,22 @@ const REGLAGES = {
   MINICARTE_MARGE: 10, MINICARTE_TRAIT: 4, MINICARTE_POINT: 3,
   // les messages de course (messages.js) : chacun reste MESSAGES_DUREE s ; la file en garde au plus MESSAGES_FILE_MAX
   MESSAGES_DUREE: 3, MESSAGES_FILE_MAX: 4,
+  // le commentateur (commentaire.js, CLAUDE.md « Le commentateur ») : ses phrases passent dans le bandeau des messages de course
+  COMMENTAIRE_MODE: 'tout',       // 'tout', 'joueur' (seulement les faits du joueur, et l'arrivée) ou 'non' (coupé)
+  COMMENTAIRE_INTERVALLE: 5,      // s : au plus une phrase tous les tant
+  COMMENTAIRE_LONGUEUR_MAX: 60,   // caractères d'une phrase au plus (les noms comptés à 7 lettres) : court, pour ne pas lire en pilotant
+  COMMENTAIRE_PEREMPTION: 8,      // s : un fait plus vieux n'est plus dit
+  COMMENTAIRE_FILE_MAX: 6,
+  COMMENTAIRE_PRIORITES: { arrivee: 10, depart: 9, depassementTete: 9, dernierTour: 8, joueurArrivee: 8, contact: 7, depassementJoueur: 6, pluie: 6, coteACote: 5, erreur: 5, penalite: 5, depassement: 4, stands: 3, meilleurTour: 3, joueurTete: 2, joueurPlace: 2 },
+  COMMENTAIRE_BONUS_JOUEUR: 2,    // un fait du joueur passe devant (plus de phrases quand le joueur est concerné)
+  COMMENTAIRE_PLACE_MAX: 10,      // les dépassements, erreurs et côte à côte des voitures plus loin ne sont pas commentés (sauf le joueur)
+  COMMENTAIRE_REPETITION: 15,     // s : un contact ou un côte à côte entre les deux mêmes voitures n'est redit qu'après ça
+  COMMENTAIRE_CONTACT_DISTANCE: 8, // m
+  COMMENTAIRE_COTE: [4, 1.6, 0.8], // m le long, m en travers, s : deux voitures côte à côte
+  COMMENTAIRE_JOUEUR_PERIODE: 25, // s : la place du joueur, de temps en temps
+  COMMENTAIRE_VIRAGE_COURBURE: 1 / 60,  // le joueur dans un virage plus serré (rayon < 60 m) : le commentateur attend…
+  COMMENTAIRE_VIRAGE_ATTENTE: 1.5,      // … les premières secondes du virage
+  GRAINE_COMMENTAIRE: 15000,      // sa suite de hasard à lui (ALEATOIRE.suite) : la course ne change pas
   MESSAGES_PLUIE_SEUIL: 0.15, MESSAGES_SECHE_SEUIL: 0.15,   // la météo : « La pluie arrive » au-dessus de ce qui tombe, « La piste sèche » sous cette eau
   // le dessin de la météo (meteo3d.js ; l'état vient de meteo.js) : la pluie autour de la caméra, les gerbes, la piste mouillée, le ciel couvert
   PLUIE_GOUTTES: 2400, PLUIE_BOITE: [45, 30], PLUIE_VITESSE: 22, PLUIE_LONGUEUR: 0.9, PLUIE_VENT: 0.12,   // m, m/s

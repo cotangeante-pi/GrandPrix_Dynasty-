@@ -103,6 +103,7 @@ PAGES = [
     ('index.html?course=3&ia=20&circuit=monzo&meteo=pluie&test=pluie', 1280, 720, None),
     ('index.html?course=3&ia=20&circuit=monzo&meteo=pluie&test=pluie', 960, 600, None),
     ('index.html?championnat=1&meteo=risque&test=prevision', 1280, 720, None),
+    ('index.html?course=3&ia=20&circuit=test&test=commentaire', 1280, 720, None),   # le commentateur (commentaire.js) dans le bandeau télé ; capture commentaire.png
     ('index.html?course=3&ia=20&circuit=monoco&test=tele', 1280, 720, None),
     ('index.html?course=3&ia=19&joueur=1&circuit=monzo&domicile=1&test=supporters', 1280, 720, None),   # le Grand Prix à domicile : la caméra de la grille longe d'abord la tribune des supporters ; capture supporters.png   # la réalisation télé (regie.js) : de vraies caméras, l'hélicoptère ; captures tele-monoco.png, tele-helico.png   # … et Monzo de jour : la luminosité de l'image, pour la comparer à la nuit   # le décor dans le vrai jeu : la course de nuit à Singapura, 20 voitures, vue télé ; capture jeu-singapura.png
     ('tests/lieu.html?circuit=monoco&vue=port', 1280, 720, None),
@@ -1234,6 +1235,18 @@ def prevision_ecran(pg, titre):
     t(f'{titre} : la météo prévue au paddock (« Météo prévue : risque de pluie (40 %) »)', vu and '40' in txt and re.search(r'(pluie|rain)', txt, re.I) is not None, txt)
     pg.screenshot(path=os.path.join(CAPTURES, 'prevision.png'))
 
+def commentaire_ecran(pg, titre):
+    vu = attendre(pg, '() => /🎙/.test(document.getElementById("messageCourse").textContent) && !document.getElementById("messageCourse").classList.contains("cache")', None, 90000)
+    txt = pg.evaluate('() => document.getElementById("messageCourse").textContent')
+    t(f'{titre} : le commentateur parle dans le bandeau télé, avec son nom (« 🎙 {txt[:40]}… »)', vu and pg.evaluate('() => texte("commentateur")') in txt, txt)
+    pg.wait_for_timeout(200); pg.screenshot(path=os.path.join(CAPTURES, 'commentaire.png'))
+    # le réglage du menu pause : tout → tes faits → coupé (sauvegardé) ; coupé, plus aucune phrase du commentateur
+    r = pg.evaluate('''() => { const b = document.getElementById("boutonCommentairePause"), vu = [b.textContent]; b.click(); vu.push(b.textContent, SAUVEGARDE.option("commentaire", "?")); b.click(); vu.push(b.textContent, REGLAGES.COMMENTAIRE_MODE);
+      return vu; }''')
+    t(f'{titre} : le commentateur se règle dans le menu pause (tout, tes faits, coupé ; sauvegardé)', r[2] == 'joueur' and r[4] == 'non' and len(set([r[0], r[1], r[3]])) == 3, str(r))
+    pg.wait_for_timeout(9000)
+    coupe = pg.evaluate('() => { const el = document.getElementById("messageCourse"); return el.classList.contains("cache") || !/🎙/.test(el.textContent); }')   # (le bandeau caché garde son dernier texte)
+    t(f'{titre} : coupé, le commentateur ne dit plus rien', coupe, pg.evaluate('() => document.getElementById("messageCourse").textContent'))
 # la réalisation télé (regie.js) dans le vrai jeu, à Monoco : en vue télé, la caméra est un vrai poste du décor (sa place ne bouge
 # pas, elle voit la voiture), puis l'hélicoptère (dans ses hauteurs) ; les mâts des caméras coûtent un appel de dessin au plus
 # le Grand Prix à domicile (?domicile=1 : un joueur fictif chez lui à Monzo) : avant les feux, la caméra longe la tribune des supporters
@@ -1252,7 +1265,6 @@ def supporters_ecran(pg, titre):
     t(f'{titre} : au Grand Prix à domicile, avant la grille, la caméra longe la tribune des supporters (à {round(m["proche"])} m), avec les banderoles', vu and m['proche'] < 30 and m['ban'] == 1, str(m))
     pg.screenshot(path=os.path.join(CAPTURES, 'supporters.png'))
     t(f'{titre} : puis la grille vue d’en haut, et la course', attendre(pg, '() => JEU.ecran === "course"', None, 60000), pg.evaluate('() => JEU.ecran'))
-
 def tele_ecran(pg, titre):
     pret = attendre(pg, '() => JEU.plateau && JEU.plateau.pilotes.filter(p => Math.abs(p.v.u) > 15).length >= 5 && CAMERA.regie', None, 90000)
     pg.evaluate('() => CAMERA.forcer("tele")')
@@ -2804,6 +2816,8 @@ with sync_playwright() as p:
                 course_ia10(pg, titre)
             if 'course=1&ia=8' in page:
                 course_podium(pg, titre, l)
+            if 'test=commentaire' in page:
+                commentaire_ecran(pg, titre)
             if 'test=supporters' in page:
                 supporters_ecran(pg, titre)
             if 'test=tele' in page:
