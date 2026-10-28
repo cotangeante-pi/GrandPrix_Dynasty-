@@ -13,6 +13,34 @@ const PARLE = (function () {
   // --- 2. le langage parlé et les expressions (français et anglais), ramenés à des jetons. Les jetons finissent par un chiffre :
   // la coupe des finales (radical) ne les touche pas. L'ordre compte : les tournures longues d'abord.
   const EXPRESSIONS = [
+    // --- tour 36d (Codeur 4) : les vraies phrases des joueurs de 10 à 16 ans, d'abord (les tournures longues avant les mots seuls)
+    // les plaintes de course : « pk tu m'as bloqué », « tu m'as coupé la route », « why did you block me », « you brake checked me »
+    [/\b(pourquoi |pk |pq |prk )?(tu m as|t m as|tu m a|t ma|tu ma|vous m avez) (bloque|bloquee|ferme la porte|coupe la route|coupe la trajectoire|tasse|serre|sere|enferme|gene|bouche|ralenti|freine dessus|pas laisse passer|empeche de passer)\b/g, ' plainte9 '],
+    [/\b(t as|tu as|ta) (freine|freinee) (trop tot|comme un \w+|devant moi|n importe comment)\b/g, ' plainte9 '], [/\b(t as|tu as|ta) (zigzague|change de ligne|change de trajectoire|fait des zigzags|bouge au freinage)\b/g, ' plainte9 '],
+    [/\b(arrete de me bloquer|arrete de me gener|tu bouchais|tu me bouchais|tu me bloquais|tu m as mis dans l herbe|tu m as pousse dans l herbe|tu m as envoye dans l herbe)\b/g, ' plainte9 '],
+    [/\b(why did (you|u) (block|blocked|cut|squeeze|chop|brake check) me|why (u|you) (block|blocking) me|(you|u) (blocked|cut|chopped|squeezed|boxed|brake checked|brake ?tested) me( off| in)?|(you|u) closed the door( on me)?|stop blocking( me)?|(you|u) (moved|swerved|weaved) under braking|(you|u) kept weaving|(you|u) pushed me (onto|into) the grass)\b/g, ' plainte9 '],
+    // les contacts dits par un joueur : « why did you crash me », « tu m'as fumé », « t'as tapé ma roue »
+    [/\b(why did (you|u) (crash|hit|ram|wreck|bump|smash) (me|into me)|(you|u) (wrecked|smashed|clipped|tapped|punted) me|(you|u) (crash|crashed) me)\b/g, ' contact9 '],
+    [/\b(pourquoi |pk |pq |prk )?(tu m as|t m as|tu m a|t ma|tu ma) (fume|defonce|explose|tape|tamponne|fonce dessus|rentre dedans|accroche|percute|touche|pousse|sorti|crashe|crash)\b/g, ' contact9 '],
+    [/\b(t as|tu as|ta) (tape|touche|accroche|cogne) (ma|mon) (roue|aileron|voiture|caisse)\b/g, ' contact9 '],
+    // les moqueries de jeu vidéo : « ez », « cheh », « dans tes dents », « get rekt », « skill issue » (des provocations)
+    [/^\s*(ez|easy|ez win|trop facile|cheh|dans tes dents|dans ta face|get rekt|rekt|skill issue|git gud|get good|cope|cry about it|mdr t es mort|t es mort)\s*[!.]*\s*$/g, ' insulte9 '],
+    [/\b(trop facile contre toi|t es eclate( au sol)?|t es claque( au sol)?|t es une tanche|t es mauvais|t es trop mauvais|t es pas bon|bouffon|boloss|tete de noeud|t es un bot|t es une brele|t es un noob|t es nul a chier|t es catastrophique|t es pas au niveau)\b/g, ' insulte9 '],
+    [/\b((you|u) suck|ur trash|you re trash|youre trash|you re bad|ur bad|(you|u) (are|r) (a )?bot|bot driver|so bad|trash driver|worst driver|you re a joke|ur a joke|clown driver|what a noob|absolute noob|get off the track)\b/g, ' insulte9 '],
+    // les compliments d'ados : « t'es chaud », « t'es une machine », « masterclass », « le goat », « you're cracked », « sick move »
+    [/\b(t es|tu es|t etais|tu etais) (trop |vraiment |grave |super )?(chaud|chaude|un monstre|une machine|un boss|une boss|un crack|un genie|une legende|le goat|la goat|un goat|incroyable|ouf|trop chaud|en feu|une bete|un tueur|une tueuse)\b/g, ' bravo9 '],
+    [/\b(masterclass|le goat|goat|goated|t as gere|tu geres|t as assure|tu assures|big up|bien vu|joli coup|joli depassement|belle manoeuvre|belle remontee|quelle course|c etait (trop )?(beau|fou|ouf|propre|incroyable)|respect a toi|trop bien pilote|gg a toi|ggwp|ggs|gg wp)\b/g, ' bravo9 '],
+    [/\b((you|u) (are|r)|you re|youre|ur) (so |really |actually )?(cracked|insane|cold|a beast|a monster|a machine|goated|the goat|on fire|unreal|nuts|clutch)\b/g, ' bravo9 '],
+    [/\b(sick (move|pass|race|overtake)|insane (move|pass|race|overtake)|clean (move|pass|race|overtake)|what a (move|pass|race|drive|save)|well played|wp|nice one|big respect|props to you|that was (sick|insane|amazing|clean|epic))\b/g, ' bravo9 '],
+    // les nouvelles de la course : « t'as fini combien », « c'était comment », « how did you do », « what place did you get »
+    [/\b(t as fini (combien|ou|a quelle place)|tu as fini (combien|ou|a quelle place)|t as fait combien|c etait comment (la course|ta course)?|ta course c etait comment|t en es ou|tu en es ou|la forme|bien ou quoi|ca dit quoi|quoi de neuf|ca roule)\b/g, ' etat9 '],
+    [/\b(how did (you|u) do|what place did (you|u) (get|finish)|where did (you|u) finish|how was (your|ur) race|what s up|whats up|wyd|you good|u good)\b/g, ' etat9 '],
+    // tranquille, pas grave : la paix (« tkt », « c'est rien », « pas grave », « no worries », « all good »)
+    [/\b(tkt|t inquiete|t inquiete pas|c est rien|c est pas grave|pas grave|c est oublie|on s en fiche|no worries|all good|it s fine|its fine|no biggie|water under the bridge)\b/g, ' paix9 '],
+    // les amis (« frérot », « bro », « mon reuf ») et les jurons sans cible (« ptn », « wtf ») : pas des actes
+    [/\b(frerot|frere|mon reuf|reuf|bro|bruh|mec|poto|mon pote|dude|mate|ptn|putain|wtf|omg|bordel)\b/g, ' '],
+    // « pk », « pq », « prk » : pourquoi ; « pcq », « psk » : parce que ; « jsp » : je sais pas
+    [/\b(pk|pq|prk|pourkoi|pourquoa)\b/g, ' pourquoi '], [/\b(pcq|psk|pck|paske)\b/g, ' parce que '], [/\b(jsp|chepa|chais pas)\b/g, ' je sais pas '],
     // la course : laisser passer, rendre la pareille, bloquer un autre, le contact, la paix
     [/\b(laisse|laisses|laissez|laisser) (moi|nous) (passer|doubler|filer)\b/g, ' passer9 '],
     [/\b(tu (peux|pourrais|veux bien|voudrais bien) )?(me |m )?laisser passer\b/g, ' passer9 '],
@@ -45,7 +73,7 @@ const PARLE = (function () {
     [/^\s*no\s*[!.]*\s*$/g, ' refus9 '],
     // saluer, quitter
     [/\b(a plus( tard)?|a\+|a la prochaine|a bientot|au revoir|bye( bye)?|ciao|tchao|see (you|ya)|later|good ?bye|cya)\s*[!.]*\s*$/g, ' adieu9 '],
-    [/\b(slt|salut|salu|wesh|coucou|cc|bonjour|bjr|bonsoir|yo|hey|hello|hi|hiya|sup|wassup|good (morning|evening|afternoon))\b/g, ' salut9 '],
+    [/\b(slt|salut|salu|wesh|wsh|wech|coucou|cc|bonjour|bjr|bonsoir|yo|hey|hello|hi|hiya|sup|wassup|good (morning|evening|afternoon))\b/g, ' salut9 '],
     // insultes et compliments : « t nul », « t es nul », « u r slow » ; « bien joue », « gg »
     [/\b(t|t es|tu es|t etais|tu etais|vous etes) (vraiment |trop |tellement |qu )?(un |une )?(nul|nulle|nuls|bete|con|conne|debile|idiot|idiote|stupide|naze|nase|nulos|nullos|tocard|guignol|clown|minable|pathetique|lent|lente|escargot|danger public|chauffard|boulet|amateur)\b/g, ' insulte9 '],
     [/\b(espece de|sale|gros|grosse) (nul|nulle|con|conne|tocard|chauffard|amateur|idiot|idiote|clown|naze|boulet)\b/g, ' insulte9 '],
@@ -74,7 +102,7 @@ const PARLE = (function () {
     excuse9: { excuse: 1 }, accord9: { accord: 1 }, refus9: { refus: 1 }, insulte9: { insulte: 1 }, bravo9: { compliment: 1, politesse: 0.3 },
     menace9: { menace: 1 }, paix9: { paix: 1 }, contact9: { contact: 1 }, passer9: { passage: 1 }, rendre9: { rendre: 1 },
     bloquer9: { bloquer: 1 }, avis9: { avis: 1, question: 0.3 }, etat9: { etat: 1, question: 0.3 }, statut9: { statut: 1, contrat: 0.5 },
-    salaire9: { argent: 1, contrat: 0.6 }, budget9: { budget: 1 }, consigne9: { consigne: 1 }, duel9: { duel: 1 }, rire9: { ironie: 1 },
+    salaire9: { argent: 1, contrat: 0.6 }, budget9: { budget: 1 }, consigne9: { consigne: 1 }, duel9: { duel: 1 }, rire9: { ironie: 1 }, plainte9: { plainte: 1 },
     // français
     excus: { excuse: 1 }, pardon: { excuse: 1 }, desol: { excuse: 1 },
     paix: { paix: 0.9 }, rancun: { paix: 0.5, contact: 0.3 }, calm: { paix: 0.6 }, reconcili: { paix: 0.9 }, oubli: { paix: 0.5 },
@@ -92,6 +120,7 @@ const PARLE = (function () {
     statut: { statut: 1 }, chef: { statut: 0.6 }, leader: { statut: 0.8 }, numero: { statut: 0.3 },
     salu: { salutation: 1 }, bonjour: { salutation: 1 }, merci: { gratitude: 1 }, bravo: { compliment: 1 }, felicit: { compliment: 1 }, champion: { compliment: 0.6 }, rapid: { compliment: 0.4 },
     nul: { insulte: 0.9 }, idiot: { insulte: 1 }, chauffard: { insulte: 1 }, tocard: { insulte: 1 }, lent: { insulte: 0.5 }, menac: { menace: 0.9 }, venge: { menace: 0.8 }, regrett: { menace: 0.5 },
+    contr: {}, contre: {}, against: {},   // (« contre le mur » : pas un contrat)
     pourquoi: { question: 0.7 }, comment: { question: 0.5 }, quoi: { question: 0.4 }, quel: { question: 0.5 },
     // anglais
     peace: { paix: 0.9 }, sorry: { excuse: 1 }, apolog: { excuse: 1 }, crash: { contact: 1 }, hit: { contact: 0.8 }, collision: { contact: 1 }, rammed: { contact: 1 }, bump: { contact: 0.7 },
@@ -122,6 +151,8 @@ const PARLE = (function () {
   function ressemblance(a, b) { const A = bigrammes(a), B = new Set(bigrammes(b)); let c = 0; for (const g of A) if (B.has(g)) c++; return 2 * c / (A.length + B.size); }
 
   // le lexique d'un mot : sa racine connue, sinon un préfixe connu (« percute » → percut), sinon la forme la plus proche
+  // (tour 36d) la ressemblance minimale d'un mot inconnu avec un mot du lexique (fautes de frappe) : plus haut, moins de faux sens
+  const R_FLOU = typeof REGLAGES !== 'undefined' && REGLAGES.PARLE_FLOU ? REGLAGES.PARLE_FLOU : 0.66;
   function conceptsDe(brut) {
     const m = radical(brut);
     if (LEXIQUE[m]) return LEXIQUE[m];
@@ -137,7 +168,7 @@ const PARLE = (function () {
       const r = ressemblance(m, c);
       if (r > s) { s = r; meilleur = c; }
     }
-    return s > 0.66 ? Object.fromEntries(Object.entries(LEXIQUE[meilleur]).map(([k, x]) => [k, x * s])) : null;
+    return s > R_FLOU ? Object.fromEntries(Object.entries(LEXIQUE[meilleur]).map(([k, x]) => [k, x * s])) : null;
   }
   function vectoriser(mots) {
     const v = {};
@@ -154,7 +185,7 @@ const PARLE = (function () {
   // --- 4. les actes de langage (prototypes de concepts). L'ordre départage les égalités.
   const ACTES = {
     INSULTE: { insulte: 1 }, MENACE: { menace: 1 }, EXCUSE: { excuse: 1 }, PAIX: { paix: 1, excuse: 0.2 }, COMPLIMENT: { compliment: 1, politesse: 0.2 },
-    CONTACT: { contact: 1, question: 0.2 }, PASSER: { passage: 1, politesse: 0.2 }, PROMESSE: { rendre: 1 }, BLOQUER: { bloquer: 1 },
+    CONTACT: { contact: 1, question: 0.2 }, RECLAMATION: { plainte: 1, question: 0.2 }, PASSER: { passage: 1, politesse: 0.2 }, PROMESSE: { rendre: 1 }, BLOQUER: { bloquer: 1 },
     AVIS: { avis: 1, question: 0.3 }, ETAT: { etat: 1, question: 0.3 }, DUEL: { duel: 1 }, SALAIRE: { argent: 1, contrat: 0.5 }, STATUT: { statut: 1, contrat: 0.4 },
 BUDGET: { budget: 1 }, CONSIGNE: { consigne: 1, question: 0.2 },
         MERCI: { gratitude: 1 }, SALUT: { salutation: 1 }, ADIEU: { adieu: 1 }, ACCORD: { accord: 1 }, REFUS: { refus: 1 }, QUESTION: { question: 1 },
@@ -169,7 +200,7 @@ BUDGET: { budget: 1 }, CONSIGNE: { consigne: 1, question: 0.2 },
 
   // comprendre(txt, noms) : noms = [{ k, nom }] (les pilotes qu'on peut nommer). Renvoie { acte, score, actes (les 3 premiers),
   // negation, question, ironie, cible (k du pilote nommé, ou null), montant (un nombre écrit, ou null), jetons }
-  function comprendre(txt, noms) {
+  function lire(txt, noms) {
     const plat = aplatir(txt), propre = reecrire(plat);
     const mots = propre.trim().split(' ').filter(m => m && m !== '?' && m !== '!');
     const v = vectoriser(mots);
@@ -202,6 +233,25 @@ BUDGET: { budget: 1 }, CONSIGNE: { consigne: 1, question: 0.2 },
     const nb = plat.match(/\b\d{1,7}\b/);
     return { acte, score: Math.round(choix.score * 1000) / 1000, actes: scores.slice(0, 3).map(s => s.acte), negation, question, ironie, cible,
       montant: nb ? Number(nb[0]) : null, jetons: mots };
+  }
+
+  // deux idées dans une phrase (« gg mais pk tu m'as bloqué », « sorry for the crash but you blocked me first ») : chaque morceau
+  // (coupé aux « mais », « but », virgules, « et » qui ouvre une nouvelle phrase…) est lu à part. L'idée qui compte est la dernière
+  // idée forte (après « mais », c'est elle qu'on veut dire) ; « second » est une autre idée forte d'un autre morceau (ou null)
+  const COUPURE = /\s(?:mais|but|par contre|cependant|however|sinon|apres|puis|et puis|and also|en plus|btw|au fait)\s|[,;.]|\s(?:et|and)\s(?=(?:t |tu |toi |you |u |je |i |la prochaine |next ))/;
+  function comprendre(txt, noms) {
+    const tout = lire(txt, noms);
+    const morceaux = aplatir(txt).split(COUPURE).map(x => x.trim()).filter(x => x.length > 1);
+    tout.second = null;
+    if (morceaux.length < 2) return tout;
+    const forts = morceaux.map(m => lire(m, noms)).filter(a => !SECONDAIRES.includes(a.acte) && a.acte !== 'INCONNU' && a.score >= SEUIL);
+    if (!forts.length) return tout;
+    let principal = forts[forts.length - 1].acte;
+    if (principal === 'PROMESSE' && forts.some(a => a.acte === 'PASSER')) principal = 'PASSER';   // « laisse-moi passer et je te rendrai la pareille »
+    const autre = forts.slice().reverse().find(a => a.acte !== principal && !(principal === 'PASSER' && a.acte === 'PROMESSE'));
+    if (!SECONDAIRES.includes(tout.acte) || forts.length > 1) tout.acte = principal;
+    tout.second = autre ? autre.acte : null;
+    return tout;
   }
 
   return { comprendre, aplatir, reecrire, radical, ressemblance, ACTES: Object.keys(ACTES) };

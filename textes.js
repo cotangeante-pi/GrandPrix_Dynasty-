@@ -784,6 +784,104 @@ Object.assign(TEXTES.fr, {
   tuto_reussie_freinage: '{t} s (objectif {o} s)', tuto_reussie_depart: 'Réaction : {t} s',
 });
 
+// --- les discussions, suite (discussion.js, tour 36d, Codeur 4) : plus de tournures par réaction (ajoutées aux listes existantes),
+// des variantes selon le caractère (_vif : le fougueux, _doux : le calme), les plaintes de course (reclamation_*), les faits vrais
+// (fait_* : {p_lui}, {p_joueur}, {ecart}, {a}, {b}, {circuit_course}, {duel_moi}, {duel_lui}) et les souvenirs ({souvenir_circuit}).
+// Jamais genrées : ni sur le joueur, ni sur le pilote qui parle (dont on ne connaît pas le genre).
+(function () {
+  const plus = (L, o) => { for (const [k, v] of Object.entries(o)) { const a = TEXTES[L][k]; TEXTES[L][k] = Array.isArray(v) ? (Array.isArray(a) ? a.concat(v) : a ? [a].concat(v) : v) : v; } };
+  plus('fr', {
+    dis_salut: ['Salut. Quoi de neuf ?', 'Ah, {nom}. Je t’écoute.'], dis_salut_chaud: ['{nom} ! Ça fait plaisir.'], dis_salut_froid: ['Encore toi ? Vas-y, je t’écoute.'],
+    dis_adieu: ['À la prochaine, sur la piste.'], dis_adieu_froid: ['C’est ça.'], dis_merci: ['Avec plaisir.', 'De rien, vraiment.'], dis_rit: ['Mdr. Bien tenté.', 'Je vais faire comme si c’était drôle.'],
+    dis_riposte: ['Répète ça au prochain départ.'], dis_ignore: ['Je ne vais même pas répondre à ça.', 'Si ça te fait du bien de le dire…'], dis_defi: ['Viens, on règle ça sur la piste.'],
+    dis_mefiant: ['Des menaces ? On verra bien.', 'Je garde ça en tête.'], dis_menace_moquee: ['Encore des mots. La dernière fois, rien ne s’est passé.'],
+    dis_excuse_acceptee: ['D’accord, on oublie.'], dis_excuse_refusee: ['Trop facile. Des excuses ne suffiront pas.'], dis_excuse_sans_objet: ['T’excuser ? Pour quoi ? Tout va bien.'],
+    dis_paix_refusee: ['La paix ? Pas tout de suite.'], dis_paix_acceptee: ['Ça marche, on repart à zéro.'], dis_paix_deja: ['Mais on n’était pas fâchés, si ?'],
+    dis_flatte: ['Ça fait plaisir, merci.', 'Merci ! Toi aussi, tu as du rythme.'], dis_flatte_mefiant: ['Un compliment de ta part ? Tu veux quelque chose ?'],
+    dis_contact_inconnu: ['Un contact ? Je n’ai rien senti, moi.'], dis_contact_assume: ['C’est la course. Je ne recule pas.'], dis_contact_regrette: ['Je n’ai pas fait exprès, vraiment.'],
+    dis_passer_accepte: ['Si tu es plus rapide, je te laisse passer. Pour l’équipe.'], dis_passer_accepte_rival: ['D’accord, pour cette fois.'], dis_passer_refuse: ['Te laisser passer ? Il faudra le mériter.'], dis_passer_rit: ['Bien essayé.'],
+    dis_promesse_notee: ['C’est noté. Je m’en souviendrai.'], dis_promesse_refusee: ['Donc tu ne me dois rien ? Retenu.'], dis_promesse_tenue: ['Parole tenue. Respect.'], dis_promesse_trahie: ['Une promesse, c’est une promesse. Tant pis pour toi.'],
+    dis_bloquer_qui: ['Bloquer qui, exactement ?'], dis_bloquer_absurde: ['Me bloquer moi-même ? Sérieux ?'], dis_bloquer_accepte: ['Ça m’arrange aussi : {cible} ne passera pas facilement.'], dis_bloquer_refuse: ['Ce n’est pas mon combat.'],
+    dis_avis_bon: ['Franchement ? Tu me plais bien, en piste.'], dis_avis_neutre: ['Un pilote parmi d’autres, pour l’instant.'], dis_avis_mauvais: ['Tu veux vraiment savoir ? Pas grand bien.'],
+    dis_etat_debut: ['La saison n’a pas encore commencé. On verra au premier départ.', 'Rien à dire avant la première course.'], dis_etat_bien: ['Tout roule pour moi en ce moment.'], dis_etat_moyen: ['Ni bien ni mal. Je travaille.'], dis_etat_mal: ['Pas terrible, mais ça va revenir.'],
+    dis_duel_pas_coequipier: ['Notre duel ? On n’est même pas dans la même écurie.', 'Le duel, c’est avec ton coéquipier, pas avec moi.'], dis_duel_devant: ['Pour l’instant, c’est moi qui mène.'], dis_duel_derriere: ['Tu mènes, mais ce n’est pas fini.'], dis_duel_egal: ['À égalité. Tout reste à faire.', 'Personne devant. Ça va se jouer en piste.'],
+    dis_contrat_pas_moi: ['Les contrats, c’est avec les patrons, pas avec moi.', 'Parle de ça à ton écurie.'], dis_accord_vague: ['D’accord… mais pour quoi, au juste ?', 'Ok. Et donc ?'], dis_refus_vague: ['Non à quoi, exactement ?', 'Pas de problème, je ne t’ai rien demandé.'],
+    dis_question: ['Bonne question, mais je ne sais pas trop quoi te répondre.'],
+    dis_incompris: ['Je n’ai pas compris. Tu peux le dire autrement ?', 'Hein ? Redis-moi ça plus simplement.', 'Je ne vois pas ce que tu veux dire. Tu parles de la course ?'],
+    dis_occupe: ['On a déjà beaucoup parlé. La suite au prochain Grand Prix.', 'Je dois y aller, l’équipe m’attend.'],
+    dis_raison_promesse_trahie: ['Et je n’ai pas oublié ta promesse non tenue.'], dis_raison_menace_vide: ['Et tes menaces de la dernière fois, c’était du vent.'], dis_raison_rivalite: ['Entre nous, c’est tendu en ce moment.'],
+    dis_raison_fougueux: ['Je ne laisse jamais passer ça.'], dis_raison_equipe: ['On est dans la même équipe, je te rappelle.'], dis_raison_relation_mauvaise: ['Il faudra du temps pour que je te fasse confiance.'],
+    dis_raison_en_forme: ['Je suis dans le coup en ce moment.'], dis_raison_devant_toi: ['Et je suis devant toi au classement.'], dis_raison_interet: ['Ça m’aide aussi au classement.'], dis_raison_pas_interet: ['Ça ne m’apporte rien.'], dis_raison_depasse: ['Et ton dépassement, je l’ai encore en travers.'],
+    // les plaintes de course (« pk tu m'as bloqué »)
+    dis_reclamation_explique: ['Je défendais ma place, c’est tout. Rien de personnel.', 'C’était serré, mais je n’ai pas quitté ma ligne.', 'Tu étais plus rapide, mais il fallait trouver l’ouverture.'],
+    dis_reclamation_assume: ['Bloqué ? Je défendais. Si tu veux passer, passe.', 'C’est la course. Je ne vais pas t’ouvrir la porte.', 'Trouve l’ouverture au lieu de te plaindre.'],
+    dis_reclamation_ami: ['Pardon si c’était limite. Je ferai attention.', 'Oups, c’était serré. La prochaine fois, je te laisse plus de place.'],
+    dis_reclamation_explique_vif: ['Je défendais. Je ne vais pas m’excuser de faire la course.'], dis_reclamation_explique_doux: ['Pardon pour la gêne. Je défendais juste ma place.'],
+    // le caractère : le fougueux parle sec, le calme parle doux
+    dis_salut_vif: ['Ouais ? Fais vite.', 'Quoi ?'], dis_salut_doux: ['Bonjour, {nom}. Ça va ?', 'Salut, ça fait plaisir de te lire.'],
+    dis_ignore_doux: ['Je préfère ne pas répondre.', 'Chacun pense ce qu’il veut.'], dis_flatte_vif: ['Je sais. Merci quand même.'], dis_flatte_doux: ['Merci, c’est gentil.', 'Merci, ça me touche.'],
+    dis_contact_assume_vif: ['Tu étais sur ma ligne. Point.'], dis_contact_regrette_doux: ['Pardon pour ça, vraiment. Je m’en veux.'],
+    dis_etat_bien_vif: ['Ça va très bien, merci. Et ça va continuer.'], dis_etat_mal_doux: ['Ce n’est pas facile, mais je garde le moral.'],
+    dis_avis_neutre_vif: ['Pas mal. Mais pas encore à mon niveau.'], dis_avis_neutre_doux: ['Tu progresses, je le vois bien.'],
+    dis_incompris_vif: ['Hein ? Parle clairement.'], dis_incompris_doux: ['Je n’ai pas bien compris, tu peux reformuler ?'],
+    // les faits vrais
+    dis_raison_fait_devant: ['Au championnat, je suis P{p_lui} et toi P{p_joueur} : {ecart} points d’avance pour moi.', 'Je te rappelle que j’ai {ecart} points de plus que toi.'],
+    dis_raison_fait_derriere: ['Au championnat, tu es P{p_joueur} et moi P{p_lui} : tu as {ecart} points d’avance.', 'Tu as {ecart} points de plus que moi, mais je vais revenir.'],
+    dis_raison_fait_egalite: ['On a exactement les mêmes points au championnat.', 'Au championnat, on est à égalité de points.'],
+    dis_raison_fait_course_devant: ['À {circuit_course}, j’ai fini P{a}, toi P{b}.', 'À {circuit_course}, je finis devant toi : P{a} contre P{b}.'],
+    dis_raison_fait_course_derriere: ['À {circuit_course}, tu as fini P{b} et moi P{a}. Bien joué pour ça.', 'À {circuit_course}, P{b} pour toi, P{a} pour moi.'],
+    dis_raison_fait_duel: ['Le duel en est à {duel_moi} – {duel_lui} pour cette saison (toi d’abord).', 'Score de notre duel : toi {duel_moi}, moi {duel_lui}.'],
+    // les souvenirs sur plusieurs Grands Prix
+    dis_raison_souvenir_insulte: ['Mais je n’ai pas oublié ce que tu m’as dit à {souvenir_circuit}.', 'Après ce que tu m’as balancé à {souvenir_circuit}, je me méfie.'],
+    dis_raison_souvenir_menace: ['Et tes menaces à {souvenir_circuit}, je m’en souviens.'],
+    dis_raison_souvenir_gentil: ['Pourtant, à {souvenir_circuit}, tu étais plus sympa.', 'Ça ne te ressemble pas, après ce que tu m’as dit à {souvenir_circuit}.'],
+    dis_avant: 'la dernière fois', dis_encore: 'Je te l’ai déjà dit.',
+  });
+  plus('en', {
+    dis_salut: ['Hey. What’s up?', 'Ah, {nom}. Go on.'], dis_salut_chaud: ['{nom}! Great to hear from you.'], dis_salut_froid: ['You again? Go on then.'],
+    dis_adieu: ['See you next race.'], dis_adieu_froid: ['Sure.'], dis_merci: ['My pleasure.', 'Anytime, really.'], dis_rit: ['Lol. Nice try.', 'I’ll pretend that was funny.'],
+    dis_riposte: ['Say that again at the next start.'], dis_ignore: ['Not even going to answer that.', 'If saying it makes you feel better…'], dis_defi: ['Come on, let’s settle it on track.'],
+    dis_mefiant: ['Threats? We’ll see.', 'I’ll keep that in mind.'], dis_menace_moquee: ['More words. Last time nothing happened.'],
+    dis_excuse_acceptee: ['Fine, let’s forget it.'], dis_excuse_refusee: ['Too easy. It takes more than sorry.'], dis_excuse_sans_objet: ['Sorry? For what? All good.'],
+    dis_paix_refusee: ['Peace? Not yet.'], dis_paix_acceptee: ['Deal, clean slate.'], dis_paix_deja: ['We weren’t fighting, were we?'],
+    dis_flatte: ['Thanks, that’s nice to hear.', 'Thanks! You’ve got pace too.'], dis_flatte_mefiant: ['A compliment from you? What do you want?'],
+    dis_contact_inconnu: ['A contact? I didn’t feel anything.'], dis_contact_assume: ['That’s racing. I don’t back off.'], dis_contact_regrette: ['I didn’t mean it, honestly.'],
+    dis_passer_accepte: ['If you’re faster, I’ll let you by. For the team.'], dis_passer_accepte_rival: ['Fine, just this once.'], dis_passer_refuse: ['Let you by? You’ll have to earn it.'], dis_passer_rit: ['Nice try.'],
+    dis_promesse_notee: ['Noted. I’ll remember.'], dis_promesse_refusee: ['So you owe me nothing? Got it.'], dis_promesse_tenue: ['Promise kept. Respect.'], dis_promesse_trahie: ['A promise is a promise. Your loss.'],
+    dis_bloquer_qui: ['Block who, exactly?'], dis_bloquer_absurde: ['Block myself? Seriously?'], dis_bloquer_accepte: ['Suits me too: {cible} won’t get past easily.'], dis_bloquer_refuse: ['Not my fight.'],
+    dis_avis_bon: ['Honestly? I like the way you race.'], dis_avis_neutre: ['Just another driver, for now.'], dis_avis_mauvais: ['You really want to know? Not much.'],
+    dis_etat_debut: ['The season hasn’t started yet. Ask me after the first race.', 'Nothing to say before the first race.'], dis_etat_bien: ['Everything’s going my way right now.'], dis_etat_moyen: ['Not great, not bad. Working on it.'], dis_etat_mal: ['Not great, but it’ll come back.'],
+    dis_duel_pas_coequipier: ['Our duel? We’re not even in the same team.', 'The duel is with your team-mate, not me.'], dis_duel_devant: ['For now, I’m ahead.'], dis_duel_derriere: ['You lead, but it’s not over.'], dis_duel_egal: ['All square. Everything to play for.', 'Nobody ahead. It’ll be decided on track.'],
+    dis_contrat_pas_moi: ['Contracts are for the bosses, not me.', 'Talk to your team about that.'], dis_accord_vague: ['Okay… but okay to what?', 'Sure. And?'], dis_refus_vague: ['No to what, exactly?', 'No problem, I didn’t ask you anything.'],
+    dis_question: ['Good question, but I don’t really know what to tell you.'],
+    dis_incompris: ['I didn’t get that. Can you say it another way?', 'Huh? Say it more simply.', 'Not sure what you mean. Is this about the race?'],
+    dis_occupe: ['We’ve talked a lot already. More next Grand Prix.', 'Got to go, the team is waiting.'],
+    dis_raison_promesse_trahie: ['And I haven’t forgotten your broken promise.'], dis_raison_menace_vide: ['And your threats last time were just hot air.'], dis_raison_rivalite: ['Things are tense between us right now.'],
+    dis_raison_fougueux: ['I never let that slide.'], dis_raison_equipe: ['We’re on the same team, remember.'], dis_raison_relation_mauvaise: ['It’ll take time before I trust you.'],
+    dis_raison_en_forme: ['I’m on form right now.'], dis_raison_devant_toi: ['And I’m ahead of you in the standings.'], dis_raison_interet: ['It helps me in the standings too.'], dis_raison_pas_interet: ['There’s nothing in it for me.'], dis_raison_depasse: ['And that overtake still stings.'],
+    dis_reclamation_explique: ['I was defending my place, that’s all. Nothing personal.', 'It was tight, but I stayed on my line.', 'You were faster, but you had to find a gap.'],
+    dis_reclamation_assume: ['Blocked? I was defending. If you want past, go past.', 'That’s racing. I’m not opening the door for you.', 'Find a gap instead of complaining.'],
+    dis_reclamation_ami: ['Sorry if that was on the limit. I’ll be careful.', 'Oops, that was tight. Next time I’ll leave you more room.'],
+    dis_reclamation_explique_vif: ['I was defending. Not apologising for racing.'], dis_reclamation_explique_doux: ['Sorry if it got in your way. I was just defending.'],
+    dis_salut_vif: ['Yeah? Make it quick.', 'What?'], dis_salut_doux: ['Hello, {nom}. How are you?', 'Hi, nice to hear from you.'],
+    dis_ignore_doux: ['I’d rather not answer.', 'Everyone thinks what they want.'], dis_flatte_vif: ['I know. Thanks anyway.'], dis_flatte_doux: ['Thanks, that’s kind.', 'Thanks, that means a lot.'],
+    dis_contact_assume_vif: ['You were on my line. Period.'], dis_contact_regrette_doux: ['Sorry about that, really. My fault.'],
+    dis_etat_bien_vif: ['Very good, thanks. And it’ll stay that way.'], dis_etat_mal_doux: ['It’s not easy, but I’m keeping my head up.'],
+    dis_avis_neutre_vif: ['Not bad. Not my level yet, though.'], dis_avis_neutre_doux: ['You’re improving, I can see it.'],
+    dis_incompris_vif: ['Huh? Speak clearly.'], dis_incompris_doux: ['I didn’t quite get that, could you rephrase?'],
+    dis_raison_fait_devant: ['In the championship I’m P{p_lui} and you’re P{p_joueur}: {ecart} points ahead of you.', 'Remember, I have {ecart} points more than you.'],
+    dis_raison_fait_derriere: ['In the championship you’re P{p_joueur} and I’m P{p_lui}: you’re {ecart} points ahead.', 'You have {ecart} points more than me, but I’ll be back.'],
+    dis_raison_fait_egalite: ['We have exactly the same points in the championship.', 'In the championship, we’re level on points.'],
+    dis_raison_fait_course_devant: ['At {circuit_course}, I finished P{a}, you P{b}.', 'At {circuit_course}, I beat you: P{a} to P{b}.'],
+    dis_raison_fait_course_derriere: ['At {circuit_course}, you finished P{b} and me P{a}. Well done for that.', 'At {circuit_course}, P{b} for you, P{a} for me.'],
+    dis_raison_fait_duel: ['Our duel is at {duel_moi} – {duel_lui} this season (you first).', 'Duel score: you {duel_moi}, me {duel_lui}.'],
+    dis_raison_souvenir_insulte: ['But I haven’t forgotten what you said at {souvenir_circuit}.', 'After what you threw at me at {souvenir_circuit}, I’m careful.'],
+    dis_raison_souvenir_menace: ['And I remember your threats at {souvenir_circuit}.'],
+    dis_raison_souvenir_gentil: ['Yet at {souvenir_circuit} you were nicer.', 'That’s not like you, after what you said at {souvenir_circuit}.'],
+    dis_avant: 'last time', dis_encore: 'I told you already.',
+  });
+})();
+
 // ?lang=en ou ?lang=fr force la langue (tests)
 const LANGUE = (function () {
   const demandee = new URLSearchParams(location.search).get('lang');

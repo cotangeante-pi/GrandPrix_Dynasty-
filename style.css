@@ -1287,11 +1287,6 @@ body.deux.cote #boutonSon { top: auto; bottom: 12px; right: 12px; }   /* (côte 
 #courrierListe button { grid-area: bouton; min-width: 0; padding: 6px 12px; }
 #courrierListe .pastille { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
 
-/* les contrats avec les patrons (patrons.js, tour 35) : le salaire et le statut de chaque offre, « Négocier » */
-#contratsListe li { grid-template-columns: auto minmax(0, 1fr) minmax(0, 1.3fr) auto auto auto auto auto; }
-#contratsListe .salaire { color: var(--tv-or); font-weight: 700; font-size: 13px; }
-#contrats button.negocier { min-width: 0; padding: 6px 10px; font-size: 13px; }
-#contratsListe .mot { overflow: hidden; text-overflow: ellipsis; }
 /* le paddock en 960×600 (tour 35d, Codeur 4, vu par tests/saison.py) : en français la rangée des boutons débordait des deux côtés
    (« Course suivante », « Arbre de la dynastie »), et après un Grand Prix (la prévision sur deux lignes, les points gagnés, le courrier)
    le paddock dépassait en haut et en bas, les boutons du coin passaient sur « Course suivante » ; on serre, rien ne change en 1280×720 */
@@ -1300,6 +1295,9 @@ body.deux.cote #boutonSon { top: auto; bottom: 12px; right: 12px; }   /* (côte 
   #paddockBoutons button, #paddockBoutons button.petit { padding: 8px 8px; font-size: 12px; }
   #paddockBoutons #boutonCourseSuivante { padding: 9px 12px; font-size: 14px; }
   .paddockGroupe > div { gap: 4px; }
+  /* (tour 36d) les trois boutons de ta carte (courrier, coéquipier, direction) tiennent sur une ligne */
+  #paddockMessages { gap: 4px; }
+  #paddockMoi #paddockMessages button { padding: 4px 7px; font-size: 11px; white-space: nowrap; }
 }
 @media (max-height: 680px) {
   #championnat { gap: 6px; padding: 6px 16px 30px; }
@@ -1312,3 +1310,8 @@ body.deux.cote #boutonSon { top: auto; bottom: 12px; right: 12px; }   /* (côte 
   #paddockMoi p { font-size: 12px; }
   #championnat .coinPaddock { bottom: 4px; padding: 3px 10px; font-size: 11px; }
 }
+/* les contrats avec les patrons (patrons.js, tour 35) : le salaire et le statut de chaque offre, « Négocier » */
+#contratsListe li { grid-template-columns: auto minmax(0, 1fr) minmax(0, 1.3fr) auto auto auto auto auto; }
+#contratsListe .salaire { color: var(--tv-or); font-weight: 700; font-size: 13px; }
+#contrats button.negocier { min-width: 0; padding: 6px 10px; font-size: 13px; }
+#contratsListe .mot { overflow: hidden; text-overflow: ellipsis; }
