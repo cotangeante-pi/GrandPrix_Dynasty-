@@ -94,7 +94,9 @@ class Carriere:
     def paddock(self, faits):
         pg = self.pg
         if self.ev('() => !document.getElementById("annonceMotif").classList.contains("cache")'): self.clic('#annonceMotif')
-        if self.ev('() => !document.getElementById("bulleAide").classList.contains("cache")') and not self.clic('#bulleAide'): self.ev('() => AIDES_ECRAN.fermer()')
+        # la bulle d'aide du paddock : fermée d'un clic si elle est là (elle peut s'être fermée seule entre-temps : rien à noter)
+        try: pg.wait_for_selector('#bulleAide', state='visible', timeout=1000); pg.click('#bulleAide', timeout=3000)
+        except Exception: self.ev('() => AIDES_ECRAN.fermer()')
         gp = self.ev('() => JEU.championnat.saison + "-" + JEU.championnat.prochain')
         if gp not in faits:
             faits.add(gp)
@@ -128,7 +130,7 @@ class Carriere:
     # un pas : ce que ferait un joueur sur l'écran du moment
     def pas(self, faits):
         pg = self.pg
-        e = self.ev('() => [JEU.ecran, JEU.qualif && JEU.qualif.etat, !!JEU.attente, JEU.course && JEU.course.etat, !!(JEU.plateau && JEU.plateau.carte), JEU.championnat ? JEU.championnat.saison : null, JEU.championnat ? JEU.championnat.prochain : null]')
+        e = self.ev('() => [JEU.ecran, JEU.qualif && JEU.qualif.etat, !!(JEU.attente && !JEU.attente.passer), JEU.course && JEU.course.etat, !!(JEU.plateau && JEU.plateau.carte), JEU.championnat ? JEU.championnat.saison : null, JEU.championnat ? JEU.championnat.prochain : null]')
         if e is None: pg.wait_for_timeout(300); self.pret(); return 'rechargé'
         ecran = e[0]; self.dernier = ecran
         if ecran not in self.ecrans: self.ecrans.add(ecran); self.inspecter(ecran)
