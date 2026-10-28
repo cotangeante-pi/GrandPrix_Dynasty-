@@ -1272,7 +1272,7 @@ body.deux.cote #boutonSon { top: auto; bottom: 12px; right: 12px; }   /* (côte 
 
 /* le courrier des pilotes (Codeur 3, étape 12b) : le bouton au paddock (dans ta carte), l'écran des messages */
 #paddockMessages { display: flex; gap: 6px; justify-content: center; }
-#paddockMoi #paddockMessages button { min-width: 0; padding: 3px 8px; font-size: 11px; white-space: nowrap; }
+#paddockMoi #paddockMessages button { min-width: max-content; padding: 3px 6px; font-size: 11px; white-space: nowrap; flex: 0 0 auto; }
 #paddockMessages { flex-wrap: nowrap; }
 #paddockMoi #boutonCourrier.nouveau { background: var(--tv-bouton-principal); box-shadow: 0 2px 10px rgba(227, 36, 43, 0.35); }
 #courrierListe { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; width: min(92vw, 720px); max-height: 66vh; overflow-y: auto; }
