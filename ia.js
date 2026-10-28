@@ -1040,11 +1040,20 @@ function piloterIA(pilote, v, vues, dt) {
     // s'en tenir à IA_DISTANCE_SUIVI, il attendrait qu'elle parte, et les rangées partiraient l'une après l'autre (le
     // joueur, derrière, leur rentrait dedans) : tout le monde part en même temps, et pendant le lancement (ses
     // IA_DEPART_LANCEMENT premiers mètres), il la suit à IA_DISTANCE_MIN ; ensuite, la distance habituelle revient
-    const suivi = sillage ? R.IA_DISTANCE_ATTAQUE : pilote.parcouru < R.IA_DEPART_LANCEMENT ? R.IA_DISTANCE_MIN : R.IA_DISTANCE_SUIVI;
+    // (duel-2, IA_PREPARER_LIBRE : en préparant son attaque, il n'est plus retenu à IA_DISTANCE_ATTAQUE derrière la voiture visée, seulement à
+    // IA_DISTANCE_MIN ; et tant qu'elle ne freine pas, il freine sur sa propre ligne : tour 33, l'attaquant décrochait, 52 % du temps en virage
+    // sans plein gaz, et freinait 22 m derrière elle avant elle)
+    const libreAttaque = R.IA_PREPARER_LIBRE && a && a.etat === 'preparer' && w.id === a.id;
+    const suivi = libreAttaque ? R.IA_DISTANCE_MIN : sillage ? R.IA_DISTANCE_ATTAQUE : pilote.parcouru < R.IA_DEPART_LANCEMENT ? R.IA_DISTANCE_MIN : R.IA_DISTANCE_SUIVI;
     // (aileron, Codeur 1 : derrière une voiture qui n'a pas le même aileron que lui — ça se voit —, elle ne freine pas aux mêmes
     // endroits ni pareil : quand elle freine (sa vitesse qui baisse, ses feux), il prévoit qu'elle ralentira encore pendant IA_FREIN_PREVU s ;
     // sinon il freinait trop tard. Même aileron (et sans aileron) : rien ne change, au bit près)
     const ralentit = w.freine || 0;
+    // (elle ne freine pas : sur sa propre ligne, il n'est retenu que s'il arrive à IA_DISTANCE_MIN d'elle)
+    // (qu'elle freine, il le voit : sa vitesse baisse d'un pas à l'autre ; a.vueAvant, sa vitesse au pas d'avant)
+    const freineVue = libreAttaque && a.vueAvant !== undefined && w.vitesse < a.vueAvant - R.IA_FREIN_VU * dt;
+    if (libreAttaque) a.vueAvant = w.vitesse;
+    if (libreAttaque && !freineVue && !(ralentit > 0) && g > R.IA_DISTANCE_MIN + R.LONGUEUR_VOITURE) continue;
     const derriere = vitesseDerriere({ distance: g, vitesse: ralentit > 0 ? Math.max(0, w.vitesse - ralentit * R.IA_FREIN_PREVU) : w.vitesse }, suivi);
     if (derriere < cible) { cible = derriere; retenuPar = w.id; }
   }

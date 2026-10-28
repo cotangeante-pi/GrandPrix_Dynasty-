@@ -557,6 +557,8 @@ const REGLAGES = {
   IA_ATTENTE_ATTAQUE: 1.5,      // s : retenue depuis ce temps par la voiture devant, elle l'attaque
   IA_RETENUE_ECART: 1,          // m/s : retenue = elle voudrait aller au moins ça plus vite
   IA_ATTAQUE_ECART_TEMPS: 1,    // s : la voiture attaquée s'échappe à plus de ça devant : l'attaque s'arrête
+  IA_PREPARER_LIBRE: 1,         // duel-2 : 1 = en préparant son attaque, retenu seulement à IA_DISTANCE_MIN de la voiture visée, et seulement quand elle freine (ia.js)
+  IA_FREIN_VU: 2,               // m/s² : une voiture qui ralentit plus que ça freine (IA_PREPARER_LIBRE)
   IA_DISTANCE_ATTAQUE: 7,       // m : en préparant son attaque, elle se cale à ça derrière (dans le sillage)
   IA_DECALAGE_ECART: 20,        // m : elle ne se décale que si elle est à moins de ça derrière
   IA_DECALAGE_DISTANCE: 60,     // m avant le point de freinage, au moins, elle se décale à côté…
