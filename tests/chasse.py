@@ -27,7 +27,8 @@ INSPECTER = r'''() => { const P = [], W = innerWidth, H = innerHeight;
     const propre = [...e.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent).join('');
     if (/undefined|NaN|\bnull\b|\[object|\{[a-zA-Z]+\}/.test(propre)) P.push(['texte cassé', nom(e), propre.trim().slice(0, 90)]);
   }
-  for (const e of document.querySelectorAll('button, h1')) if (vu(e) && !e.textContent.trim()) P.push(['vide', nom(e), '']);
+  // (un bouton sans texte mais nommé par aria-label, comme une pastille de couleur, n'est pas vide)
+  for (const e of document.querySelectorAll('button, h1')) if (vu(e) && !e.textContent.trim() && !(e.getAttribute('aria-label') || '').trim()) P.push(['vide', nom(e), '']);
   for (const b of document.querySelectorAll('button')) {
     if (!vu(b)) continue; let r = b.getBoundingClientRect();
     // dans une liste qui défile (overflow auto) : c'est la liste qui doit tenir dans l'écran, pas chacun de ses boutons
@@ -37,7 +38,10 @@ INSPECTER = r'''() => { const P = [], W = innerWidth, H = innerHeight;
     else if (b.scrollWidth > b.clientWidth + 2) P.push(['texte qui déborde du bouton', nom(b), b.textContent.trim().slice(0, 40)]);
   }
   // deux boutons visibles qui se recouvrent (l'un cache l'autre au clic)
-  const bs = [...document.querySelectorAll('button')].filter(b => vu(b)).map(b => [b, b.getBoundingClientRect()]).filter(([b, r]) => r.width > 0 && r.height > 0);
+  // (un bouton caché sous un écran posé par-dessus, comme la liste des leçons sur le paddock, ne compte pas : en son milieu, on touche
+  // l'écran du dessus et pas un autre bouton ; deux boutons qui se chevauchent vraiment restent signalés)
+  const recouvert = (b, r) => { const x = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return !!x && !b.contains(x) && !x.closest('button'); };
+  const bs = [...document.querySelectorAll('button')].filter(b => vu(b)).map(b => [b, b.getBoundingClientRect()]).filter(([b, r]) => r.width > 0 && r.height > 0 && !recouvert(b, r));
   for (let i = 0; i < bs.length; i++) for (let j = i + 1; j < bs.length; j++) { const [a, ra] = bs[i], [b, rb] = bs[j];
     if (a.contains(b) || b.contains(a)) continue;
     if (Math.min(ra.right, rb.right) - Math.max(ra.left, rb.left) > 2 && Math.min(ra.bottom, rb.bottom) - Math.max(ra.top, rb.top) > 2) P.push(['boutons qui se recouvrent', nom(a) + ' / ' + nom(b), a.textContent.trim().slice(0, 25) + ' / ' + b.textContent.trim().slice(0, 25)]); }

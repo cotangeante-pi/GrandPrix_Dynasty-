@@ -191,6 +191,7 @@ def fin(c, titre):
     r = c.ev('() => [JEU.championnat.retraite && JEU.championnat.retraite.raison, document.getElementById("retraiteRaison").textContent]')
     t(f'{titre} : la retraite par l’âge ({r and r[1]})', bool(r) and r[0] == 'age' and r[1].strip() != '', str(r))
     c.cliquer('#boutonTemple'); c.ecran('temple', 'temple (2 carrières)'); c.cliquer('#boutonTempleRetour')
+    c.cliquer('#boutonNouvelleDynastie'); c.inspecter('nouvelle dynastie : la confirmation')   # (deux clics : le premier demande de confirmer)
     c.cliquer('#boutonNouvelleDynastie', navigation=True)
     c.ecran('championnat', 'nouvelle dynastie : le paddock d’un monde neuf', 60000)
     n = c.ev('() => [SAUVEGARDE.temple().carrieres.length, JEU.championnat.saison, !!JEU.championnat.retraite]')
@@ -222,6 +223,8 @@ def ecrans(c, titre):
     if c.ecran('courrier', 'courrier'): c.cliquer('#boutonCourrierRetour'); c.ecran('championnat', 'retour du courrier')
     # le menu pause d'une course, avec tous ses réglages
     c.aller(f'index.html?course=1&ia=3&joueur=1&robot=1&circuit=test&lang={c.langue}')
+    if c.ecran('qualif', 'qualification', 60000):
+        c.cliquer('#boutonQualifPasser'); c.attendre('() => JEU.qualif && JEU.qualif.etat === "resultat"', 240000); c.inspecter('qualification : le résultat'); c.cliquer('#boutonQualifCourse')
     if not c.ecran('course', 'course seule', 60000): return
     c.attendre('() => JEU.plateau && JEU.plateau.carte !== null', 240000)
     c.ev('() => BOUCLE.simuler(2)')
