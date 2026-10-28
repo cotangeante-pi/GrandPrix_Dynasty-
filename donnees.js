@@ -428,6 +428,7 @@ const REGLAGES = {
   DISCUSSION_POIDS_PROMESSE: 0.4,   // … et « je te rendrai la pareille » ajoute ça à la note
   DISCUSSION_PAS_GP: 12,            // (tour 36d) … et ne bouge pas de plus de ça sur un même Grand Prix, tous messages compris (la relation change lentement)
   DISCUSSION_SOUVENIRS: 6,          // (tour 36d) il garde ses 6 derniers moments marquants (insulte, menace, compliment, excuse, paix), sur plusieurs Grands Prix
+  PARLE_FLOU: 0.8,                  // (tour 36d) parle.js : un mot inconnu n'est lu comme un mot du lexique que s'il lui ressemble à ce point (avant : 0,66 ; « monkey » devenait « money », un salaire)
   DISCUSSION_DOUX: 0.35,            // (tour 36d) une agressivité d'au plus ça : il parle doux (les variantes _doux) ; au moins DISCUSSION_FOUGUEUX : sec (_vif)
   DISCUSSION_PAR_GP: 8,             // au plus ce nombre de messages à un même pilote par Grand Prix (ensuite il est occupé)
   DISCUSSION_MEMOIRE: 12,           // il se souvient des 12 derniers messages (compact : l'acte, la saison, le Grand Prix)
@@ -437,6 +438,8 @@ const REGLAGES = {
   // le courrier des pilotes (courrier-pilotes.js) : ils écrivent d'eux-mêmes après les faits
   COURRIER_PAR_GP: 3,               // au plus 3 messages par Grand Prix (les plus urgents)
   COURRIER_OUBLI: 4,                // un même sujet ne revient pas chez le même pilote avant 4 Grands Prix
+  COURRIER_AGE_MAX: 3,              // (tour 36d) un message de plus de 3 Grands Prix s'efface (les messages lus s'effacent au Grand Prix suivant)
+  COURRIER_NON_LUS_MAX: 6,          // (tour 36d) jamais plus de 6 messages non lus dans la boîte (les plus récents restent)
   COURRIER_MAX: 20,                 // la boîte garde les 20 derniers messages
   COURRIER_DUEL_NET: 3,             // ton coéquipier t'écrit quand le duel de la saison penche d'au moins ça
   COURRIER_LEADER_DES: 3,           // le leader du championnat te nargue à partir du 3e Grand Prix

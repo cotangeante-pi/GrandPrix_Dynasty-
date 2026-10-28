@@ -197,10 +197,12 @@ t('le courrier : après un contact, le pilote touché t’écrit (furieux s’il
   L.push('  (« ' + COURRIER_PILOTES.texteDe(ch, m[0], { pilote: p => p.nom || texte('pilote').replace('{n}', p.numero) }) + ' »)');
 });
 t('le courrier sans redite : le même sujet ne revient pas chez le même pilote avant COURRIER_OUBLI Grands Prix ; la boîte garde COURRIER_MAX messages', () => {
-  const ch = nouveau(), k = rival(ch, 0.5), compte = () => ch.courrier.messages.filter(m => m.k === k && m.sujet === 'contact').length;
-  for (let i = 0; i < R.COURRIER_OUBLI; i++) { gpCouru(ch); contactAvec(ch, k); COURRIER_PILOTES.apresGrandPrix(ch); }
+  // (tour 36d : la boîte efface les messages de plus de COURRIER_AGE_MAX Grands Prix ; on compte donc les messages écrits, pas ceux qui restent)
+  const ch = nouveau(), k = rival(ch, 0.5); let ecrits = 0; const compte = () => ecrits;
+  const gp = () => { const avant = ch.courrier ? ch.courrier.messages.filter(m => m.k === k && m.sujet === 'contact') : []; COURRIER_PILOTES.apresGrandPrix(ch); ecrits += ch.courrier.messages.filter(m => m.k === k && m.sujet === 'contact' && !avant.includes(m)).length; };
+  for (let i = 0; i < R.COURRIER_OUBLI; i++) { gpCouru(ch); contactAvec(ch, k); gp(); }
   v(compte() === 1, 'redite : ' + compte());
-  gpCouru(ch); contactAvec(ch, k); COURRIER_PILOTES.apresGrandPrix(ch);
+  gpCouru(ch); contactAvec(ch, k); gp();
   v(compte() === 2, 'après l’oubli : ' + compte());
   for (let i = 0; i < 40; i++) { gpCouru(ch); for (const p of ch.pilotes) if (!p.humain) p.rivalite = { courses: 2, gp: ch.resultats.length, saison: 1 }; COURRIER_PILOTES.apresGrandPrix(ch); }
   v(ch.courrier.messages.length <= R.COURRIER_MAX, 'boîte : ' + ch.courrier.messages.length);

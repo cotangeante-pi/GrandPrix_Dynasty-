@@ -12,6 +12,7 @@ const COURRIER_PILOTES = (function () {
     if (!ch.courrier || typeof ch.courrier !== 'object') ch.courrier = { messages: [], vus: {} };
     if (!Array.isArray(ch.courrier.messages)) ch.courrier.messages = [];
     if (!ch.courrier.vus || typeof ch.courrier.vus !== 'object') ch.courrier.vus = {};
+    ranger(ch, false);   // (tour 36d) les trop vieux et le trop-plein de non lus
     return ch.courrier;
   }
   const indice = ch => (ch.saison - 1) * R.NB_GRANDS_PRIX + ch.resultats.length;   // un compteur de Grands Prix sur toute la carrière
@@ -101,10 +102,24 @@ const COURRIER_PILOTES = (function () {
       if (m.sujet === 'menaceVide' && p.memoire) p.memoire.creditVu = p.memoire.credit;
     }
     if (c.messages.length > R.COURRIER_MAX) c.messages.splice(0, c.messages.length - R.COURRIER_MAX);
+    ranger(ch, true);
     return nouveaux.slice(0, R.COURRIER_PAR_GP).map(m => m.sujet);
   }
 
-  const nonLus = ch => (ch.courrier && Array.isArray(ch.courrier.messages) ? ch.courrier.messages.filter(m => !m.lu).length : 0);
+  // --- (tour 36d, Codeur 4, avec l'accord du Codeur 3) la boîte rangée : après chaque Grand Prix (finGP), les messages déjà lus
+  // s'effacent ; à tout moment, un message de plus de COURRIER_AGE_MAX Grands Prix s'efface, et il ne reste jamais plus de
+  // COURRIER_NON_LUS_MAX messages non lus (les plus récents). Une ancienne sauvegarde à 20 messages est rangée dès son ouverture.
+  function ranger(ch, finGP) {
+    const c = ch.courrier;
+    if (!c || !Array.isArray(c.messages)) return 0;
+    const n = indice(ch), age = m => n - ((m.saison - 1) * R.NB_GRANDS_PRIX + (m.gp || 0));
+    const avant = c.messages.length;
+    c.messages = c.messages.filter(m => !(finGP && m.lu) && age(m) <= R.COURRIER_AGE_MAX);
+    const nl = c.messages.filter(m => !m.lu);
+    if (nl.length > R.COURRIER_NON_LUS_MAX) { const trop = new Set(nl.slice(0, nl.length - R.COURRIER_NON_LUS_MAX)); c.messages = c.messages.filter(m => !trop.has(m)); }
+    return avant - c.messages.length;
+  }
+  const nonLus = ch => { if (ch.courrier) ranger(ch, false); return ch.courrier && Array.isArray(ch.courrier.messages) ? ch.courrier.messages.filter(m => !m.lu).length : 0; };
   // le texte d'un message : sa clé (courrier_<sujet>[_ton]) avec le nom du joueur, de l'auteur et le circuit du Grand Prix
   function texteDe(ch, m, noms) {
     const p = m.patron !== undefined ? null : ch.pilotes[m.k], gp = ch.calendrier[m.gp - 1], prochain = ch.calendrier[m.gp];
@@ -118,5 +133,5 @@ const COURRIER_PILOTES = (function () {
   }
   function lire(ch, i) { const m = ch.courrier && ch.courrier.messages[i]; if (m) m.lu = true; return m || null; }
 
-  return { completer, apresGrandPrix, nonLus, texteDe, lire, faitsDu, SUJETS: SUJETS.map(s => s.cle) };
+  return { ranger, completer, apresGrandPrix, nonLus, texteDe, lire, faitsDu, SUJETS: SUJETS.map(s => s.cle) };
 })();

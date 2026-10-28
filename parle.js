@@ -151,6 +151,8 @@ const PARLE = (function () {
   function ressemblance(a, b) { const A = bigrammes(a), B = new Set(bigrammes(b)); let c = 0; for (const g of A) if (B.has(g)) c++; return 2 * c / (A.length + B.size); }
 
   // le lexique d'un mot : sa racine connue, sinon un préfixe connu (« percute » → percut), sinon la forme la plus proche
+  // (tour 36d) la ressemblance minimale d'un mot inconnu avec un mot du lexique (fautes de frappe) : plus haut, moins de faux sens
+  const R_FLOU = typeof REGLAGES !== 'undefined' && REGLAGES.PARLE_FLOU ? REGLAGES.PARLE_FLOU : 0.66;
   function conceptsDe(brut) {
     const m = radical(brut);
     if (LEXIQUE[m]) return LEXIQUE[m];
@@ -166,7 +168,7 @@ const PARLE = (function () {
       const r = ressemblance(m, c);
       if (r > s) { s = r; meilleur = c; }
     }
-    return s > 0.66 ? Object.fromEntries(Object.entries(LEXIQUE[meilleur]).map(([k, x]) => [k, x * s])) : null;
+    return s > R_FLOU ? Object.fromEntries(Object.entries(LEXIQUE[meilleur]).map(([k, x]) => [k, x * s])) : null;
   }
   function vectoriser(mots) {
     const v = {};
