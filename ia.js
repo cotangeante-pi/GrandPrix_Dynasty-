@@ -1052,9 +1052,12 @@ function piloterIA(pilote, v, vues, dt) {
     // (elle ne freine pas : sur sa propre ligne, il n'est retenu que s'il arrive à IA_DISTANCE_MIN d'elle)
     // (qu'elle freine, il le voit : sa vitesse baisse d'un pas à l'autre ; a.vueAvant, sa vitesse au pas d'avant)
     const freineVue = libreAttaque && a.vueAvant !== undefined && w.vitesse < a.vueAvant - R.IA_FREIN_VU * dt;
+    const decelVue = freineVue ? (a.vueAvant - w.vitesse) / dt : 0;
     if (libreAttaque) a.vueAvant = w.vitesse;
     if (libreAttaque && !freineVue && !(ralentit > 0) && g > R.IA_DISTANCE_MIN + R.LONGUEUR_VOITURE) continue;
-    const derriere = vitesseDerriere({ distance: g, vitesse: ralentit > 0 ? Math.max(0, w.vitesse - ralentit * R.IA_FREIN_PREVU) : w.vitesse }, suivi);
+    // (elle freine : il reprend la distance de l'attaque et prévoit sa décélération vue, comme derrière un autre aileron)
+    const freinPrevu = Math.max(ralentit, decelVue), suiviEff = freineVue && R.IA_PREPARER_FREIN ? R.IA_DISTANCE_ATTAQUE : suivi;
+    const derriere = vitesseDerriere({ distance: g, vitesse: freinPrevu > 0 ? Math.max(0, w.vitesse - freinPrevu * R.IA_FREIN_PREVU) : w.vitesse }, suiviEff);
     if (derriere < cible) { cible = derriere; retenuPar = w.id; }
   }
   // retenu : il voudrait aller nettement plus vite que la voiture devant ne le laisse
