@@ -8,7 +8,9 @@ La vraie page, en 960×600, en français puis en anglais, jouée par le robot d'
   l'âge (SAISONS_MAX), et une nouvelle dynastie ;
 - ecrans : le calendrier, l'album des unes (feuilleté), la fiche d'un rival, l'arbre, « Mon casque », les sponsors, et le menu pause d'une
   course avec tous ses réglages (fantôme, commentateur, revoir les aides, tutoriel) ;
-- tuto : le tutoriel guidé complet, les 7 leçons à la suite (« Leçon suivante »).
+- tuto : le tutoriel guidé complet, les 7 leçons à la suite (« Leçon suivante ») ;
+- tailles-carriere, tailles-jeux (tour 39d) : en 1280×720 et en 1920×1080, un passage court : le premier lancement, un Grand Prix, le
+  paddock et ses écrans, le menu pause ; une course à deux, un tournoi Éclair.
 Relevé comme saison.py (tests/chasse.py) : la console, les textes cassés, les clés de textes.js qui manquent dans la langue, les boutons
 vides, hors de l'écran, qui débordent ou se recouvrent, le défilement, les clics impossibles, les écrans où l'on reste bloqué.
 Les parties : RECOINS=deux,tournoi (variable d'environnement) ou en arguments ; sans rien, toutes."""
@@ -64,7 +66,7 @@ def bilan(c, titre):
     t(f'{titre} : aucun endroit où l’on reste bloqué', not c.blocages, str(c.blocages[:6]))
 
 # --- le mode 2 joueurs ---
-def deux(c, titre):
+def deux(c, titre, court=False):
     pg = c.pg
     c.aller(f'index.html?lang={c.langue}')
     if not c.ecran('titre', 'titre'): return
@@ -86,14 +88,14 @@ def deux(c, titre):
     pg.keyboard.up('KeyW'); pg.keyboard.up('ArrowUp')
     t(f'{titre} : les deux claviers en même temps (W et ↑ tenus ensemble) : les deux voitures accélèrent', bool(v) and all(x > 1 for x in v), str(v))
     c.inspecter('course à deux')
-    for manche in (1, 2):
+    for manche in ((1,) if court else (1, 2)):
         if not c.rouler(f'course à deux {manche}'): return
         c.ecran('podium', f'podium à deux {manche}')
         c.cliquer('#boutonResultats')
         if not c.ecran('resultats', f'résultats à deux {manche}'): return
         riv = c.ev('() => [document.getElementById("resultatsRivalite").textContent, SAUVEGARDE.deux().rivalite]')
         t(f'{titre} : course {manche} : le score de la rivalité affiché (Léo – Sarah), {manche} course(s) comptée(s)', bool(riv) and 'Léo' in riv[0] and 'Sarah' in riv[0] and sum(riv[1]['score']) == manche, str(riv))
-        if manche == 1:
+        if manche == 1 and not court:
             c.cliquer('#boutonRejouerResultats')   # « Revanche »
             if not c.ecran('course', 'revanche', 30000): return
     c.cliquer('#boutonChangerResultats', navigation=True)   # « Menu »
@@ -107,13 +109,13 @@ TOURNOI_EGALITE = '''(eclair) => { const t = JEU.tournoi;
     [{ j: 0, abandon: false, tour: 60.2, penalites: 0 }, { j: 1, abandon: false, tour: 61.2, penalites: 0 }, { j: 2, abandon: false, tour: 59, penalites: 0 }]];
   JEU.ecran = "podium"; montrerFinTournoi();
   return [...document.querySelectorAll("#tournoiFinListe li")].map(li => li.textContent); }'''
-def tournoi(c, titre):
+def tournoi(c, titre, court=False):
     pg = c.pg
     c.aller(f'index.html?lang={c.langue}')
     if not c.ecran('titre', 'titre'): return
     c.cliquer('#boutonAmis'); c.cliquer('#boutonAmisTournoi')
     if not c.ecran('tournoiInscription', 'inscription du tournoi'): return
-    for formule in ('eclair', 'tournoi'):
+    for formule in (('eclair',) if court else ('eclair', 'tournoi')):
         try:
             while (c.ev('() => document.querySelectorAll("#tournoiListe li").length') or 0) < 3: pg.click('#boutonTournoiAjouter', timeout=3000)
             for i, nom in enumerate(['Léo', 'Sarah', 'Tom']): pg.fill(f'#tournoiListe li:nth-child({i + 1}) .tournoiPrenom', nom, timeout=3000)
@@ -147,7 +149,7 @@ def tournoi(c, titre):
         attendu = ['Sarah', 'Tom', 'Léo'] if formule == 'eclair' else ['Tom', 'Sarah', 'Léo']
         t(f'{titre} : {formule} : l’égalité est départagée ({" > ".join(attendu)})', len(eg) == 3 and all(attendu[i] in eg[i] for i in range(3)), str(eg))
         c.inspecter(f'{formule} : classement final avec égalité')
-        if formule == 'eclair':
+        if formule == 'eclair' and not court:
             c.cliquer('#boutonTournoiNouveaux', navigation=True)
             if not c.ecran('tournoiInscription', 'nouveaux joueurs', 60000): return
 
@@ -273,7 +275,24 @@ def tuto(c, titre):
     t(f'{titre} : le tutoriel complet : les 7 leçons à la suite, réussies par le robot', len(faites) == 7 and all(r == 'reussie' for _, r in faites), str(faites))
     c.si('#boutonTutoListe'); c.inspecter('tutoriel : la liste des leçons (7 étoiles)')
 
-PARTIES = { 'deux': deux, 'tournoi': tournoi, 'fin': fin, 'ecrans': ecrans, 'tuto': tuto }
+# --- les grandes tailles (tour 39d) : un passage court en 1280×720 et en 1920×1080, en plus du 960×600 des autres parties ---
+# la carrière : le premier lancement (titre → découverte → Bravo → création), le premier Grand Prix joué par le robot comme dans saison.py
+# (au paddock : garage, courrier, discussion), puis le paddock et tous ses écrans et le menu pause (la partie ecrans)
+def tailles_carriere(c, titre):
+    c.aller(f'index.html?robot=1&tours=1&lang={c.langue}')
+    arrive = c.jouer(lambda e: e[0] == 'championnat', 400, 'premier lancement')
+    t(f'{titre} : le premier lancement mène au paddock (titre → découverte → Bravo → création du pilote)', arrive, str(c.bloque))
+    if arrive:
+        g1 = c.jouer(lambda e: e[0] in ('qualif', 'course') and e[6] == 1, 900, 'Grand Prix 1')
+        t(f'{titre} : le Grand Prix 1 joué jusqu’au paddock suivant (et la course d’après lancée)', g1, str(c.bloque))
+    ecrans(c, titre)
+# les jeux entre amis : une course à deux (sans la revanche) et un tournoi ⚡ Éclair
+def tailles_jeux(c, titre):
+    deux(c, titre, court=True)
+    tournoi(c, titre, court=True)
+
+PARTIES = { 'deux': deux, 'tournoi': tournoi, 'fin': fin, 'ecrans': ecrans, 'tuto': tuto, 'tailles-carriere': tailles_carriere, 'tailles-jeux': tailles_jeux }
+TAILLES = { 'tailles-carriere': [(1280, 720), (1920, 1080)], 'tailles-jeux': [(1280, 720), (1920, 1080)] }
 demandees = [x for x in (sys.argv[1:] or os.environ.get('RECOINS', '').replace(',', ' ').split()) if x] or list(PARTIES)
 inconnues = [x for x in demandees if x not in PARTIES]
 if inconnues: sys.exit(f'partie inconnue : {" ".join(inconnues)} (au choix : {" ".join(PARTIES)})')
@@ -283,10 +302,10 @@ with sync_playwright() as p:
     b = p.chromium.launch(channel='chrome', args=['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--allow-file-access-from-files', '--disable-audio-output'])
     try:
         for nom in demandees:
-            for langue in ('fr', 'en'):
-                ctx = b.new_context(viewport={'width': 960, 'height': 600}); pg = ctx.new_page()
-                c = Recoin(pg, langue, ''); c.prefixe = 'recoins-' + nom
-                titre = f'{nom} {langue} 960×600'
+            for langue, (l, h) in [(lg, tl) for tl in TAILLES.get(nom, [(960, 600)]) for lg in ('fr', 'en')]:
+                ctx = b.new_context(viewport={'width': l, 'height': h}); pg = ctx.new_page()
+                c = Recoin(pg, langue, ''); c.prefixe = f'recoins-{nom}-{l}'
+                titre = f'{nom} {langue} {l}×{h}'
                 try: PARTIES[nom](c, titre)
                 except Exception as e: c.blocages.append({ 'quoi': 'exception du script', 'detail': str(e).split('\n')[0][:300], 'ecran': c.dernier, 'page': pg.url.split('/')[-1] })
                 bilan(c, titre)

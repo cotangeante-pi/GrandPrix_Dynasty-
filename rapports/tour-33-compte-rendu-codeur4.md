@@ -401,3 +401,22 @@ Ce que la chasse a trouvé :
 autres (le bilan compte les saisons vraiment jouées).
 Ce que je n'ai pas vérifié : 1280×720 (seulement 960×600, comme saison.py).
 Réévalue.
+
+TOUR 39d — compte rendu du Codeur 4 (les grandes tailles, 1280×720 et 1920×1080 ; branche codeur4 partie de main 7739942)
+Commit : 067ff06 — passage GitHub 40774317298 vert, 16 travaux sur 16 (aucun travail de plus)
+Ordres : 1 fait / 2 fait (rien à corriger) / 3 fait
+
+1. tests/recoins.py a deux parties de plus, jouées en 1280×720 et en 1920×1080, en fr et en en (la machinerie de saison.py, Carriere.jouer) :
+   - tailles-carriere : le premier lancement (titre → découverte → Bravo → création), le Grand Prix 1 joué par le robot (qualification,
+     course, podium, résultats, interview, une ; au paddock garage, courrier, discussion) jusqu'au départ du Grand Prix 2, puis le paddock
+     et tous ses écrans (calendrier, album, fiche → discussion, arbre, Mon casque, sponsors, courrier) et le menu pause avec ses réglages ;
+   - tailles-jeux : une course à deux (réglages, deux claviers, podium, rivalité, Menu) et un tournoi ⚡ Éclair (inscription, 3 passages,
+     podium, classement final, égalité départagée).
+2. Le relevé (console, textes cassés, clés manquantes, boutons vides / hors de l'écran / qui débordent / qui se recouvrent, défilement,
+   clics impossibles, blocages) : rien en 1280×720 ni en 1920×1080, en fr comme en en. Aucune correction de l'interface ni du CSS n'a été
+   nécessaire.
+3. Les durées (avant : recoins-2 à 546 s avec les grandes tailles) : découpé en trois tranches dans les 16 travaux. recoins-1 = deux,
+   tournoi, tailles-jeux (409 s) ; recoins-2 = fin, tailles-carriere (431 s) ; le travail « premier » fait aussi ecrans et tuto
+   (`partie: premier recoins`, 113 s). Le plus long travail du passage est saison (450 s). Tous restent sous 8 minutes.
+Ce que je n'ai pas vérifié : la carrière entière aux grandes tailles (pas demandé) ; la fin de carrière en 1280 et 1920.
+Réévalue.
