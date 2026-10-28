@@ -38,9 +38,10 @@ INSPECTER = r'''() => { const P = [], W = innerWidth, H = innerHeight;
     else if (b.scrollWidth > b.clientWidth + 2) P.push(['texte qui déborde du bouton', nom(b), b.textContent.trim().slice(0, 40)]);
   }
   // deux boutons visibles qui se recouvrent (l'un cache l'autre au clic)
-  // (un bouton caché sous un écran posé par-dessus, comme la liste des leçons sur le paddock, ne compte pas : en son milieu, on touche
-  // l'écran du dessus et pas un autre bouton ; deux boutons qui se chevauchent vraiment restent signalés)
-  const recouvert = (b, r) => { const x = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return !!x && !b.contains(x) && !x.closest('button'); };
+  // (un bouton caché sous un autre écran posé par-dessus, comme la liste des leçons sur le paddock, ne compte pas : en son milieu, on
+  // touche un élément d'un autre bloc de la page (un autre enfant de body) ; deux boutons d'un même écran qui se chevauchent restent signalés)
+  const racine = e => { while (e.parentElement && e.parentElement !== document.body) e = e.parentElement; return e; };
+  const recouvert = (b, r) => { const x = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return !!x && !b.contains(x) && racine(x) !== racine(b); };
   const bs = [...document.querySelectorAll('button')].filter(b => vu(b)).map(b => [b, b.getBoundingClientRect()]).filter(([b, r]) => r.width > 0 && r.height > 0 && !recouvert(b, r));
   for (let i = 0; i < bs.length; i++) for (let j = i + 1; j < bs.length; j++) { const [a, ra] = bs[i], [b, rb] = bs[j];
     if (a.contains(b) || b.contains(a)) continue;

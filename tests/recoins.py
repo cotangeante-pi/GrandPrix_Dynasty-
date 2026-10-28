@@ -160,6 +160,7 @@ def fin(c, titre):
     def jusqua_retraite(quoi, anticipee):
         for _ in range(12):
             e = c.ev('() => JEU.ecran'); c.dernier = e or '?'
+            if e: c.ecrans.add(e)
             if e == 'retraite': c.ecran('retraite', f'{quoi} : bilan de carrière'); return True
             if e == 'ceremonie': c.inspecter(f'{quoi} : cérémonie'); c.cliquer('#boutonCeremonieSuite')
             elif e == 'saison': c.inspecter(f'{quoi} : classement final'); c.cliquer('#boutonSaisonSuite')
