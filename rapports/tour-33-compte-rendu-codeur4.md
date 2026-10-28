@@ -95,3 +95,45 @@ Ordres :
    - Captures : aide-contrats.png, aide-consigne.png, aide-consigne-960.png.
 
 Aucun test retiré. Rien n'a changé hors de mes blocs.
+
+---
+
+TOUR 35d — compte rendu du Codeur 4 (la chasse aux bugs sur une carrière entière, branche codeur4 partie de main 0d36ac6)
+
+Commit : 9548446. Passage GitHub 40610040146 : vert, 13 travaux sur 13. Le nouveau travail « saison » fait 52/52 en 413 s.
+
+Ordres :
+1. Une carrière entière jouée de bout en bout : fait.
+   - Le script est tests/saison.py. C'est une partie de lancer.py et un travail à lui dans tests.yml (« saison »), hors des tranches d'ecrans.
+   - En français, 960×600, depuis la page nue sans sauvegarde : titre → découverte → Bravo → création du pilote → les 12 Grands Prix → cérémonie, classement, duel de la saison, contrats, sponsors → paddock de la saison 2.
+     - Chaque Grand Prix : qualification passée, course d'un tour jouée par le robot, « passer », podium, résultats, interview, une.
+     - Avant chaque Grand Prix, au paddock : le garage, le courrier, et une phrase écrite au coéquipier (sa réponse est vérifiée).
+   - En anglais, 960×600 : le premier lancement et le Grand Prix 1, puis une fin de saison à partir d'un Grand Prix 12 fabriqué (?gp=12) jusqu'à la saison 2.
+2. Ce que le script relève à chaque écran : fait.
+   - Les erreurs et avertissements de la console.
+   - Les textes « undefined », « NaN », « null », « [object », ou un {repère} non remplacé.
+   - Les boutons et titres vides.
+   - Les boutons hors de l'écran ou dont le texte déborde. Dans une liste qui défile, on regarde la liste.
+   - Les boutons qui se recouvrent, et le défilement de la page.
+   - Les clés de textes.js qui manquent : entre fr et en, et parmi les clés demandées à texte() pendant la carrière.
+   - Les clics refusés, avec leur cause.
+   - Les écrans où l'on reste bloqué (40 pas sans progrès).
+   - Une capture de chaque nouveau problème.
+3. Bugs trouvés et corrigés (petits et sûrs, interface seulement) :
+   - **Le paddock ne tenait pas en 960×600.** En français, la rangée des boutons débordait des deux côtés (−41 → 1001 px). Après un Grand Prix, en anglais, le paddock dépassait en haut et en bas : la rangée des boutons allait jusqu'à 604 px. Les boutons du coin passaient alors sur « Next race » et « Play together » : la carrière restait bloquée au Grand Prix 2, car le clic sur « Course suivante » était pris par « Apprendre à piloter ». Remède dans style.css : un bloc @media qui serre les boutons (max-width 1100 px) et la hauteur (max-height 680 px). Rien ne change en 1280×720. Les 4 tranches d'ecrans restent vertes.
+   - **Le titre du paddock gardait le circuit qu'on venait de courir.** Après le Grand Prix 1, il disait « Grand Prix 2 / 12 — Bahrayn » avec la carte de Melbourn Park. Remède, une ligne dans principal.js (montrerChampionnat) : le titre prend le prochain circuit, comme la carte.
+   - Le reste ne venait pas du jeu, mais de mon script. « Passer » est caché pendant l'accéléré, c'est voulu. Le bandeau et la bulle ne s'affichent qu'à l'image dessinée suivante. Le script attend maintenant que l'élément soit visible.
+4. Rien d'autre trouvé.
+   - Console vide, aucun texte cassé, aucune clé manquante dans les deux langues, aucun écran bloqué.
+   - Rien à signaler dans physique.js, ia.js, meteo.js, regie.js ni discussion.js : je n'y ai pas touché. Les réponses du coéquipier arrivent à chaque fois, par exemple « Merci, ça compte. » et « Kind of you. You drive well too. ».
+   - À noter, mais je l'ai laissé tel quel :
+     - Au début de la saison 2, le courrier montre « Courrier (20) », soit 20 messages non lus pour une saison. C'est dans la règle (3 au plus par Grand Prix), mais c'est beaucoup à lire.
+     - Avec la réponse « provocante » à chaque interview, les jauges Écurie et Sponsors finissent à 14 : c'est l'effet voulu.
+
+Sortie des tests : passage 40610040146 vert (moteur, courses, stands, consignes, officiels, meteo, ecrans 1 à 4, annexes, paquet, saison). Aucun test retiré.
+
+Mesures : la carrière entière dure 413 s sur GitHub (Grand Prix 1 joué après 67 s, puis 35 à 40 s par Grand Prix). Capture du paddock de la saison 2 en 960×600 : saison-2.png, dans l'artefact « captures-saison ».
+
+Ce que je n'ai pas pu vérifier :
+- En 960×600 anglais, la fin de saison part d'un Grand Prix 12 fabriqué, pas d'une saison anglaise jouée en entier.
+- La fiche des rivaux, le calendrier, l'album et l'arbre ne sont pas visités par le script : ils ne sont pas dans l'ordre. Ils restent vérifiés par ecrans.py.
