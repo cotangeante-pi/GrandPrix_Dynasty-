@@ -630,8 +630,11 @@ const DECOR = (function () {
           ca[j * 3] = g.cols[k * 3]; ca[j * 3 + 1] = g.cols[k * 3 + 1]; ca[j * 3 + 2] = g.cols[k * 3 + 2];
         }
       }
-      g.proches.forEach((m, f) => { m.count = n[f]; m.visible = n[f] > 0; m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; });
-      if (g.loin) { g.loin.count = nl; g.loin.visible = nl > 0; g.loin.instanceMatrix.needsUpdate = true; if (g.loin.instanceColor) g.loin.instanceColor.needsUpdate = true; }
+      // (seulement ce qui sert est envoyé à la carte graphique : updateRange, pas tout le tableau à chaque tri)
+      const envoyer = (m, k) => { m.count = k; m.visible = k > 0; m.instanceMatrix.updateRange.offset = 0; m.instanceMatrix.updateRange.count = k * 16; m.instanceMatrix.needsUpdate = true;
+        if (m.instanceColor) { m.instanceColor.updateRange.offset = 0; m.instanceColor.updateRange.count = k * 3; m.instanceColor.needsUpdate = true; } };
+      g.proches.forEach((m, f) => envoyer(m, n[f]));
+      if (g.loin) envoyer(g.loin, nl);
       g.nbProches = n.reduce((a, b) => a + b, 0); g.nbLoin = nl;
     }
   }

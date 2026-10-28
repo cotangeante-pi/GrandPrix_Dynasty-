@@ -805,9 +805,9 @@ const REGLAGES = {
   DECOR_CASE: 100,               // m : la grille qui range les échantillons de la piste pour vérifier une place (plus grand que demi-largeur + marge + l'objet le plus large)        // m au-delà de la voie des stands
   DECOR_MARGE_TELE: 10,         // m autour d'un poste de caméra télé (rien ne cache ce qu'il filme)
   DECOR_PODIUM_RAYON: 16,       // m : la place du podium (podium3d.js), en face de la ligne, reste libre
-  DECOR_DETAIL_LOIN: 250,       // m : au-delà, le public et les arbres passent à leur forme simple…
+  DECOR_DETAIL_LOIN: 180,       // m : au-delà, le public et les arbres passent à leur forme simple… (tour 35 : 250 → 180, la mesure des images par seconde)
   DECOR_RIEN_LOIN: 1600,        // m : … et au-delà, ils ne sont plus dessinés
-  DECOR_MAJ_DEPLACEMENT: 10,    // m : le tri proche / loin est refait quand une caméra a bougé de ça
+  DECOR_MAJ_DEPLACEMENT: 20,    // m : le tri proche / loin est refait quand une caméra a bougé de ça (tour 35 : 10 → 20)
   DECOR_APPELS_MAX: 26,
   DECOR_APPELS_TOTAL_MAX: 80,   // appels de dessin de toute l'image au plus, avec 20 voitures et le décor (tests/ecrans.py ; mesure du tour 31 dans SUIVI.md)         // appels de dessin du décor au plus (tests/ecrans.py : un par type et par niveau de détail)
   DECOR_PUBLIC_REMPLI: 0.85,    // la part des places occupées dans les tribunes
