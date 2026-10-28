@@ -1393,7 +1393,17 @@ function majResume(dt) {
   });
   const s = pos[RESUME.suivie(z.r, enr)] || pos[0];
   CAMERA.maj(dt, s, { u: s.vitesse });
-  const b = RESUME.bandeau(RESUME.moment(z.r));
+  // le commentateur du résumé (commentaire.js) : une phrase par moment fort, quand il commence
+  const mom = RESUME.moment(z.r);
+  if (mom !== z.momentDit && typeof COMMENTAIRE !== 'undefined') {
+    z.momentDit = mom;
+    if (!z.commentaire) z.commentaire = COMMENTAIRE.creer((JEU.plateau && JEU.plateau.graine) || 0);
+    const it = COMMENTAIRE.momentResume(z.commentaire, mom, JEU.contre ? JEU.ia : -1, texte('lieu_' + NOM_CIRCUIT) || texte('circuit_' + NOM_CIRCUIT) || CIRCUIT.nom);
+    const el = document.getElementById('resumeCommentaire');
+    el.textContent = it ? '🎙 ' + texte('commentateur') + ' : ' + COMMENTAIRE.phrase(it, etiquetteVoiture, INTERFACE.formatTemps) : '';
+    el.classList.toggle('cache', !it);
+  }
+  const b = RESUME.bandeau(mom);
   INTERFACE.majResume(b ? texte(b.cle).replace('{qui}', etiquetteVoiture(b.valeurs.qui)).replace('{sur}', etiquetteVoiture(b.valeurs.sur)).replace('{duree}', typeof b.valeurs.duree === 'number' ? b.valeurs.duree.toFixed(1).replace('.', texte('virgule')) : '') : '');
 }
 

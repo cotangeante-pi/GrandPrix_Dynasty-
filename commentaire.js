@@ -151,5 +151,22 @@ const COMMENTAIRE = (function () {
       .replace('{temps}', p.temps === undefined ? '' : formatTemps ? formatTemps(p.temps) : String(p.temps));
   }
 
-  return { creer, observer, afficher, phrase, pousser };
+  // le résumé vidéo (resume.js) : une phrase pour un moment fort de l'enregistrement (m : { type, qui, sur, place }), au moment où on le
+  // voit ; les mêmes phrases que pendant la course, le même réglage (COMMENTAIRE_MODE) ; joueur : son indice, ou −1 ; null si rien à dire
+  const DU_RESUME = { depart: 'depart', arrivee: 'arrivee', sortie: 'erreur', arret: 'stands', depassement: 'depassement' };
+  function momentResume(c, m, joueur, lieu) {
+    if (!m || R.COMMENTAIRE_MODE === 'non') return null;
+    const j = joueur === undefined ? -1 : joueur, concerne = m.qui === j || m.sur === j;
+    let type = DU_RESUME[m.type];
+    if (!type) return null;
+    if (type === 'depassement' && concerne) type = 'depassementJoueur';
+    if (R.COMMENTAIRE_MODE === 'joueur' && !concerne && type !== 'arrivee') return null;
+    const variantes = texte('com_' + type), nb = Array.isArray(variantes) ? variantes.length : 1;
+    let v = Math.floor(c.rnd() * nb);
+    if (nb > 1 && c.derniereCle === type + ':' + v) v = (v + 1) % nb;
+    c.derniereCle = type + ':' + v;
+    return { type, variante: v, params: { qui: m.qui, sur: m.sur, place: m.place, lieu: lieu || '' } };
+  }
+
+  return { creer, observer, afficher, phrase, pousser, momentResume };
 })();

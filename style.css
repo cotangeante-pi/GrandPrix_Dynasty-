@@ -1315,3 +1315,6 @@ body.deux.cote #boutonSon { top: auto; bottom: 12px; right: 12px; }   /* (côte 
 #contratsListe .salaire { color: var(--tv-or); font-weight: 700; font-size: 13px; }
 #contrats button.negocier { min-width: 0; padding: 6px 10px; font-size: 13px; }
 #contratsListe .mot { overflow: hidden; text-overflow: ellipsis; }
+
+/* le commentateur du résumé vidéo (commentaire.js) : une ligne sous le bandeau du moment */
+#resumeCommentaire { position: fixed; left: 50%; top: 64px; transform: translateX(-50%); max-width: 70%; margin: 0; padding: 6px 14px; border-radius: 6px; background: rgba(11, 15, 23, 0.72); color: #fff; font: 700 15px/1.3 var(--police); text-align: center; pointer-events: none; }

@@ -2496,6 +2496,15 @@ t('réalisation télé : la visée est coupée par un immeuble entre la caméra 
   v(REGIE.voit(r,{x:0,y:40,z:40},{x:0,y:0.6,z:100}),'pas par le toit où elle est posée');
   v(REGIE.voit(r,{x:0,y:200,z:-200},b),'de très haut, par-dessus');});
 
+t('commentateur du résumé vidéo : une phrase par moment fort (départ, dépassement, sortie, arrêt au stand, arrivée), celle du joueur pour son dépassement, le même réglage (coupé : rien ; tes faits : seulement les siens et l’arrivée), jamais deux fois la même de suite', ()=>{
+  const R=REGLAGES,c=COMMENTAIRE.creer(3),types=['depart','depassement','sortie','arret','arrivee'].map(ty=>{const it=COMMENTAIRE.momentResume(c,{type:ty,qui:1,sur:2,place:3},0,'à Monoco');return it&&it.type;});
+  v(types.join()==='depart,depassement,erreur,stands,arrivee',types.join());
+  v(COMMENTAIRE.momentResume(c,{type:'depassement',qui:0,sur:2,place:3},0,'').type==='depassementJoueur','le dépassement du joueur');
+  v(COMMENTAIRE.phrase(COMMENTAIRE.momentResume(c,{type:'depart',qui:1},0,'à Monoco'),k=>'n°'+(k+1),x=>x).indexOf('{')<0,'phrase remplie');
+  let avant=null,deux=false;for(let i=0;i<20;i++){const it=COMMENTAIRE.momentResume(c,{type:'depassement',qui:1,sur:2,place:3},0,'');const k=it.type+':'+it.variante;if(k===avant)deux=true;avant=k;}v(!deux,'jamais deux fois de suite');
+  const mode=R.COMMENTAIRE_MODE;try{R.COMMENTAIRE_MODE='non';v(COMMENTAIRE.momentResume(c,{type:'depart',qui:1},0,'')===null,'coupé');
+    R.COMMENTAIRE_MODE='joueur';v(COMMENTAIRE.momentResume(c,{type:'depassement',qui:1,sur:2},0,'')===null&&COMMENTAIRE.momentResume(c,{type:'sortie',qui:0},0,'')!==null&&COMMENTAIRE.momentResume(c,{type:'arrivee',qui:4},0,'')!==null,'tes faits');}finally{R.COMMENTAIRE_MODE=mode;}});
+
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 ecrire();
 </script></body></html>
