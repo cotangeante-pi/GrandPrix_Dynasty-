@@ -1677,11 +1677,12 @@ t('saisons : à égalité de points, le champion est celui de la règle de dépa
 t('saisons : signer dans son écurie → la saison suivante : saison 2, Grand Prix 1, points et places à 0, écuries à 0, résultats vidés, calendrier de 12, le score du duel repart de 0 et le total de carrière reste, le contrat noté ; l’album, l’argent, le garage et les statistiques restent', ()=>{
   const ch=CHAMPIONNAT.creer(23);saisonJouee(ch,g=>devant(7,g%3?[19,18]:[18,19]));SAISONS.terminerSaison(ch);
   const s1=CHAMPIONNAT.scoreDuel(ch),album=ch.album.length,solde=ch.argent.solde,garage=JSON.stringify(ch.garage);v(s1.total[0]+s1.total[1]===24,'24 points de duel');
+  const sal=(SAISONS.offres(ch).find(x=>x.ecurie===9)||{}).salaire||0;   // (le salaire de la saison, versé à la signature : patrons.js, tour 35)
   v(SAISONS.signer(ch,9)===true,'signer chez soi');
   v(ch.saison===2&&ch.prochain===0&&ch.resultats.length===0&&ch.calendrier.length===12&&!ch.enFinDeSaison,'saison 2');
   v(ch.pilotes.every(p=>p.stats.points===0&&p.places.length===0)&&ch.ecuries.every(e=>e.points===0),'à 0');
   const s2=CHAMPIONNAT.scoreDuel(ch);v(s2.total.join()==='0,0'&&s2.carriere.qualifs.join()===s1.carriere.qualifs.join()&&s2.carriere.courses.join()===s1.carriere.courses.join(),'duel : '+JSON.stringify(s2));
-  v(ch.contrats.length===1&&ch.contrats[0][0]===2&&ch.contrats[0][1]===9&&ch.album.length===album&&ch.argent.solde===solde&&JSON.stringify(ch.garage)===garage,'contrat, album, argent, garage');
+  v(ch.contrats.length===1&&ch.contrats[0][0]===2&&ch.contrats[0][1]===9&&ch.album.length===album&&ch.argent.solde===solde+sal&&JSON.stringify(ch.garage)===garage,'contrat, album, argent (+ le salaire), garage');
   v(ch.pilotes[0].stats.titres===1&&ch.pilotes[0].stats.courses===12,'les statistiques de carrière restent');});
 t('saisons : la retraite anticipée (choix) donne le bilan ; la retraite par l’âge arrive à la fin de la saison SAISONS_MAX (15), pas avant ; plus de contrat ensuite', ()=>{
   const R_=REGLAGES;v(R_.SAISONS_MAX===15,'SAISONS_MAX');
@@ -1723,7 +1724,7 @@ t('contrats : signer ailleurs : l’écurie du joueur change (couleur et niveau 
   const partant=ch.pilotes.filter(p=>p.ecurie===2).sort((a,b)=>a.stats.points-b.stats.points)[0].id;
   v(SAISONS.signer(ch,2)===true&&ch.pilotes[19].ecurie===2&&ch.pilotes[partant].ecurie===9&&CHAMPIONNAT.coequipierDe(ch).id===o.coequipier,'échange');
   v(ch.ecuries.every(e=>ch.pilotes.filter(p=>p.ecurie===e.id).length===2)&&ch.pilotes.length===20,'10 × 2');
-  v(JSON.stringify(ch.garage)===garage&&ch.argent.solde===solde&&ch.saison===2&&ch.contrats[0][1]===2,'le garage et l’argent suivent, saison 2');
+  v(JSON.stringify(ch.garage)===garage&&ch.argent.solde===solde+(o.salaire||0)&&ch.saison===2&&ch.contrats[0][1]===2,'le garage et l’argent suivent (+ le salaire de la signature), saison 2');
   const s=CHAMPIONNAT.scoreDuel(ch);v(s.k===o.coequipier&&s.total.join()==='0,0','le duel repart avec le nouveau coéquipier');});
 t('rivaux : appliquerNiveaux multiplie le rythme de course par le niveau de l’écurie ET le facteur de rythme du pilote (1 = rien)', ()=>{
   const ch=CHAMPIONNAT.creer(31),e=creerCourseIA(C,19,1,5,null,true),base=e.pilotes.map(p=>p.rythme);

@@ -166,7 +166,8 @@ class Carriere:
         elif ecran == 'ceremonie': self.inspecter('cérémonie'); self.clic('#boutonCeremonieSuite')
         elif ecran == 'saison': self.inspecter('saison'); self.clic('#boutonSaisonSuite')
         elif ecran == 'duelSaison': self.inspecter('duel de la saison'); self.clic('#boutonDuelSaisonSuite')
-        elif ecran == 'contrats': self.inspecter('contrats'); self.clic('#contratsListe button')
+        elif ecran == 'contrats': self.inspecter('contrats'); self.clic('#contratsListe button.signer')
+        elif ecran == 'discussion': self.inspecter('discussion'); self.clic('#boutonDiscussionRetour')
         elif ecran == 'sponsors':
             self.inspecter('sponsors')
             if not (self.ev('() => document.querySelectorAll("#sponsorsListe button").length') and self.clic('#sponsorsListe button')): self.clic('#boutonSponsorsRetour')

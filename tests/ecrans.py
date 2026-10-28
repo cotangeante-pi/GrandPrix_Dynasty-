@@ -54,7 +54,11 @@ PAGES = [
     ('index.html?championnat=1&tours=1&robot=1&gp=3&test=discussion', 1280, 720, None),   # les discussions (tour 33, Codeur 3) : fiche → Discuter, saisie, composeur, coéquipier ; capture discussion.png
     ('index.html?championnat=1&tours=1&robot=1&gp=3&test=discussion', 960, 600, None),
     ('index.html?championnat=1&tours=1&robot=1&gp=3&lang=en&test=discussion', 960, 600, None),
-    ('index.html?championnat=1&tours=1&robot=1&gp=3&lang=en&test=discussion', 1280, 720, None),   # … en 1280×720 (le thème télé, tour 32) : aucun débordement aux deux tailles
+    ('index.html?championnat=1&tours=1&robot=1&gp=3&lang=en&test=discussion', 1280, 720, None),
+    ('index.html?championnat=1&tours=1&robot=1&gp=12&test=patron', 1280, 720, None),   # les patrons (tour 35, Codeur 3) : ton patron, puis la négociation aux contrats ; captures patron.png, contrats-patron.png
+    ('index.html?championnat=1&tours=1&robot=1&gp=12&test=patron', 960, 600, None),
+    ('index.html?championnat=1&tours=1&robot=1&gp=12&lang=en&test=patron', 960, 600, None),
+    ('index.html?championnat=1&tours=1&robot=1&gp=12&lang=en&test=patron', 1280, 720, None),   # … en 1280×720 (le thème télé, tour 32) : aucun débordement aux deux tailles
     # l'audit anglais, suite (tour 31) : la découverte et ses aides, Entre amis, l'écran partagé et ses réglages, la création du pilote ; le
     # tournoi ; la course à deux ; le résumé vidéo ; les stands ; la consigne d'équipe ; le volant (?lang=en, 960×600, mots témoins, rien hors de l'écran)
     ('index.html?robot=1&tours=1&lang=en&test=audit-decouverte', 960, 600, None),
@@ -1794,6 +1798,53 @@ def discussion_ecran(pg, titre, l, h, page):
     pg.click('#boutonDiscussionRetour')
     t(f'{titre} : « Retour » ramène au courrier, puis au paddock', attendre(pg, '() => JEU.ecran === "courrier"', None, 3000) and (pg.click('#boutonCourrierRetour') or True) and attendre(pg, '() => JEU.ecran === "championnat"', None, 3000))
 
+# les patrons d'écurie (tour 35, Codeur 3, patrons.js) : ton patron depuis le paddock (« 💼 Direction ») ; aux contrats, « 💬 Négocier »
+# avec le patron d'une offre, puis l'offre redessinée avec son salaire ; rien hors de l'écran ; captures patron.png, contrats-patron.png
+CONTRATS_PATRON = """() => { const el = document.getElementById("contrats"), li = [...document.querySelectorAll("#contratsListe li")];
+  const hors = [...el.querySelectorAll("*")].filter(e => e.childElementCount === 0 && e.textContent.trim() && getComputedStyle(e).display !== "none" && e.getClientRects().length)
+    .filter(e => { const r = e.getBoundingClientRect(); return r.right > innerWidth + 1 || r.bottom > innerHeight + 1 || r.left < -1 || r.top < -1; }).map(e => e.textContent.trim().slice(0, 30));
+  return { ecran: JEU.ecran, n: li.length, salaires: li.map(x => x.querySelector(".salaire") && x.querySelector(".salaire").textContent), negocier: li.map(x => !!x.querySelector("button.negocier")), hors,
+    defile: [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth] }; }"""
+def patron_ecran(pg, titre, l, h, page):
+    en = 'lang=en' in page
+    t(f'{titre} : le paddock', attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', None, 60000))
+    pg.wait_for_timeout(300)
+    pg.click('#boutonParlerPatron')
+    d = pg.evaluate(DISCUSSION_ETAT)
+    t(f'{titre} : « 💼 Direction » ouvre la discussion avec le patron de ton écurie (confiance, statut, budget, consignes)', d['ecran'] == 'discussion' and pg.evaluate('() => JEU.discussion.patron === PILOTE.joueur(JEU.championnat).ecurie')
+      and all(i in d['intentions'] for i in ['confiance', 'statut', 'budget', 'consigne']), str(d))
+    pg.click('#discussionTexte'); pg.keyboard.type('does the team trust me?' if en else 'tu me fais confiance ?'); pg.keyboard.press('Enter'); pg.wait_for_timeout(200)
+    r = pg.evaluate('() => JEU.derniereReponse && { reaction: JEU.derniereReponse.reaction, texte: JEU.derniereReponse.texte }')
+    d = pg.evaluate(DISCUSSION_ETAT)
+    t(f'{titre} : il répond sur la confiance de l’écurie, depuis la vraie jauge', r and r['reaction'].startswith('confiance_') and d['fil'][-1] == ['lui', r['texte']], str(r))
+    pg.click('#discussionComposeur button[data-intention="statut"]'); pg.wait_for_timeout(200)
+    t(f'{titre} : « Premier pilote » au clic : accordé ou refusé, avec sa raison', pg.evaluate('() => /^statut_/.test(JEU.derniereReponse.reaction) && JEU.derniereReponse.raisons.length > 0'), pg.evaluate('() => JEU.derniereReponse.reaction'))
+    t(f'{titre} : la discussion avec le patron tient dans l’écran ({l}×{h})', d['dedans'] and not d['hors'] and pas_de_defilement(d['defile']), str(d))
+    pg.wait_for_timeout(800); pg.screenshot(path=os.path.join(CAPTURES, 'patron' + ('-en' if en else '') + ('' if l == 1280 else '-' + str(l)) + '.png'))
+    pg.click('#boutonDiscussionRetour')
+    t(f'{titre} : retour au paddock', attendre(pg, '() => JEU.ecran === "championnat"', None, 3000))
+    # les contrats : la fin de la saison fabriquée, puis « Négocier » avec le patron de la meilleure offre
+    pg.evaluate('() => { JEU.lignesGP = null; SAISONS.avancer(JEU.championnat, 1); montrerFinSaison(); }'); pg.wait_for_timeout(200)
+    pg.evaluate('() => { suiteCeremonie(); suiteClassementSaison(); suiteDuelSaison(); }')
+    t(f'{titre} : les contrats', attendre(pg, '() => JEU.ecran === "contrats"', None, 5000), pg.evaluate('() => JEU.ecran'))
+    c = pg.evaluate(CONTRATS_PATRON)
+    t(f'{titre} : aux contrats, chaque offre montre son salaire et « 💬 Négocier », rien hors de l’écran', c['n'] >= 1 and all(c['salaires']) and all(c['negocier']) and not c['hors'] and pas_de_defilement(c['defile']), str(c))
+    pg.wait_for_timeout(800); pg.screenshot(path=os.path.join(CAPTURES, 'contrats-patron' + ('-en' if en else '') + ('' if l == 1280 else '-' + str(l)) + '.png'))
+    e = pg.evaluate('() => Number(document.querySelector("#contratsListe li").dataset.ecurie)')
+    pg.click('#contratsListe li:first-child button.negocier')
+    t(f'{titre} : « Négocier » ouvre la discussion avec le patron de cette écurie (le salaire proposé)', attendre(pg, f'() => JEU.ecran === "discussion" && JEU.discussion.patron === {e}', None, 3000)
+      and 'salaire' in pg.evaluate(DISCUSSION_ETAT)['intentions'], str(pg.evaluate(DISCUSSION_ETAT)))
+    pg.click('#discussionComposeur button[data-intention="salaire"]'); pg.wait_for_timeout(200)
+    r = pg.evaluate('() => JEU.derniereReponse.reaction')
+    t(f'{titre} : « Salaire » : il accepte, refuse ou fait une contre-offre, depuis son envie de t’avoir', r in ('contre_offre', 'salaire_refuse', 'salaire_accepte'), r)
+    if r == 'contre_offre':
+        pg.click('#discussionComposeur button[data-intention="oui"]'); pg.wait_for_timeout(200)
+        t(f'{titre} : « Oui » à la contre-offre : marché conclu', pg.evaluate('() => JEU.derniereReponse.reaction') == 'marche_conclu', pg.evaluate('() => JEU.derniereReponse.reaction'))
+    attendu = pg.evaluate(f'() => ARGENT.formater(PATRONS.conditions(JEU.championnat, {e}).salaire)')
+    pg.click('#boutonDiscussionRetour')
+    c = pg.evaluate(CONTRATS_PATRON)
+    t(f'{titre} : « Retour » ramène aux contrats, l’offre redessinée avec le salaire négocié ({attendu})', c['ecran'] == 'contrats' and attendu in (c['salaires'][0] or ''), str(c['salaires']))
+
 # le thème télé (tour 32, Codeur 3, style.css) : l'écran affiché a le voile en dégradé, son titre la police des titres (sauf la une,
 # qui a sa police de journal), et son arrivée (une animation CSS) dure moins de 250 ms ; la cérémonie, sans voile, laisse voir le podium 3D
 THEME_ETAT = """() => { const id = JEU.ecran === "album" ? "une" : JEU.ecran, el = document.getElementById(id); if (!el) return { id, ok: false };
@@ -2285,7 +2336,8 @@ def fin_saison(pg, titre, l):
     # signer : une autre écurie si on en propose une, sinon la sienne
     choix = next((x for x in c['offres'] if x != c['actuelle']), c['actuelle'])
     avant = pg.evaluate('() => ({ garage: JSON.stringify(JEU.championnat.garage), solde: JEU.championnat.argent.solde, coequipier: CHAMPIONNAT.coequipierDe(JEU.championnat).id, transferts: JEU.championnat.transferts.liste })')
-    pg.click(f'#contratsListe li[data-ecurie="{choix}"] button')
+    avant['solde'] += pg.evaluate(f'() => SAISONS.offres(JEU.championnat).find(o => o.ecurie === {choix}).salaire || 0')   # (le salaire de la saison, versé à la signature : patrons.js, tour 35)
+    pg.click(f'#contratsListe li[data-ecurie="{choix}"] button.signer')
     t(f'{titre} : « Signer » mène d’abord au choix du sponsor de la saison 2 (2 à 4 offres)', attendre(pg, '() => JEU.ecran === "sponsors" && JEU.championnat.saison === 2 && document.querySelectorAll("#sponsorsListe > li").length >= 2 && SPONSORS.aChoisir(JEU.championnat)'), str(pg.evaluate('() => [JEU.ecran, JEU.championnat.saison]')))
     montant = pg.evaluate('() => SPONSORS.offres(JEU.championnat)[0].montant')
     pg.click('#sponsorsListe > li:first-child button.choisir')
@@ -2772,6 +2824,8 @@ with sync_playwright() as p:
                 tuto_lecon(pg, titre, l, h, page)
             elif 'test=audit' in page:
                 audit_autres(pg, titre, page, l, h)
+            elif 'test=patron' in page:
+                patron_ecran(pg, titre, l, h, page)
             elif 'test=discussion' in page:
                 discussion_ecran(pg, titre, l, h, page)
             elif 'gp=12' in page and 'lang=en' in page:
