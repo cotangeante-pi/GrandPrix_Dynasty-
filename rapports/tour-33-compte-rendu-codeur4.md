@@ -366,3 +366,38 @@ Après (88bf1f5) :
 Ce que je n'ai pas pu vérifier : une vraie carte graphique (il faut l'essai du propriétaire) ; la sensation du départ quand une image dure
 0,3 s (la réaction est mesurée en temps de jeu, comme avant).
 Réévalue.
+
+TOUR 38d — compte rendu du Codeur 4 (la chasse aux bugs dans les recoins ; branche codeur4 partie de main caca6d2)
+Commit : 97f978a — passage GitHub 40771012637 vert, 16 travaux sur 16 (2 nouveaux : recoins-1 et recoins-2)
+Ordres : 1 à 5 faits
+
+tests/recoins.py (en 960×600, en français puis en anglais, joué par le robot ; outils communs avec saison.py dans tests/chasse.py, saison.py
+inchangé dans ce qu'il vérifie) :
+  - deux : titre → Entre amis → réglages (noms, 3 IA, 3 tours) → course à deux ; W et ↑ tenus ensemble : les deux voitures accélèrent ;
+    la course jusqu'au podium, les résultats et le score de la rivalité (1 puis 2 courses), « Revanche », « Menu » → Entre amis ;
+  - tournoi : 3 joueurs, ⚡ Éclair (1 manche) → podium → classement final → « Nouveaux joueurs », puis 🏆 Tournoi (3 manches, la page de
+    chaque manche) → podium → classement final. Les égalités sont fabriquées sur l'écran final : en Éclair, deux temps égaux → le premier à
+    l'avoir fait devant (Sarah > Tom > Léo) ; en Tournoi, 58 points chacun → le meilleur temps d'une manche (Tom > Sarah > Léo) ;
+  - fin : Grand Prix 12 → cérémonie, classement, duel, contrats → retraite anticipée (deux clics) → bilan, temple, arbre → relève
+    (sans prénom : le message ; Léa, fille) → paddock de l'héritière, arbre à 2 générations → sa 15e saison jouée d'avance → retraite par
+    l'âge → temple (2 carrières) → « Nouvelle dynastie » (deux clics) → paddock d'un monde neuf ;
+  - ecrans : calendrier, album feuilleté (boutons permis seulement), fiche d'un rival → Discuter, arbre, Mon casque, sponsors, courrier ;
+    une course seule : qualification passée, Échap → menu pause, chaque réglage (fantôme ×2, commentateur ×3, revoir les aides), liste des
+    leçons, Reprendre ;
+  - tuto : les 7 leçons à la suite par « Leçon suivante » (le robot, la voie des stands, l'averse, la visite garage → aileron → retour),
+    toutes réussies, puis la liste des leçons.
+  Relevé à chaque écran : console, textes cassés, clés manquantes (gardées avant chaque navigation, ce que saison.py ne faisait pas),
+  boutons vides / hors de l'écran / qui débordent / qui se recouvrent, défilement, clics impossibles, endroits où l'on reste bloqué.
+  Sur GitHub : recoins-1 (deux, tournoi) 62/62 en 3,5 min, recoins-2 (fin, ecrans, tuto) 82/82 en 2 min.
+
+Ce que la chasse a trouvé :
+  - les pastilles de couleur des réglages à deux étaient des boutons sans aucun nom : corrigé, chacune a un aria-label (« Voiture 1 »…,
+    texte('deuxCouleur')) ; l'inspection accepte un bouton nommé par aria-label ;
+  - un faux positif de l'outil : les boutons du paddock sous la liste des leçons (posée par-dessus, presque opaque) comptaient comme
+    « recouverts ». L'inspection ignore maintenant un bouton dont le milieu touche un autre bloc de la page ; deux boutons d'un même écran
+    qui se chevauchent restent signalés ;
+  - rien d'autre : aucune erreur de console, aucun texte cassé, aucune clé manquante, aucun débordement ni blocage, en fr comme en en.
+À noter (pas un bug du jeu) : la retraite par l'âge fabriquée dit « après 1 saison », parce que le test saute à la 15e saison sans jouer les
+autres (le bilan compte les saisons vraiment jouées).
+Ce que je n'ai pas vérifié : 1280×720 (seulement 960×600, comme saison.py).
+Réévalue.
