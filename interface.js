@@ -696,12 +696,6 @@ const INTERFACE = (function () {
         sp('coequipier', avec(texte('contratCoequipier'), { nom: o.coequipier === null ? '—' : nomPilote(ch.pilotes[o.coequipier]) })));
       // le salaire et le statut de l'offre (patrons.js), et « Négocier » avec son patron
       if (o.salaire) li.append(sp('salaire', avec(texte('contratSalaire'), { n: ARGENT.formater(o.salaire) }) + (o.statut === 'premier' ? ' · ' + texte('contratPremier') : '')));
-      if (negociationContrat) {
-        const n2 = document.createElement('button'); n2.className = 'negocier petit'; n2.tabIndex = -1; n2.textContent = texte('contratNegocier');
-        n2.addEventListener('mousedown', ev => ev.preventDefault());
-        n2.addEventListener('click', () => negociationContrat(o.ecurie));
-        li.appendChild(n2);
-      }
       const b = document.createElement('button');
       b.className = 'signer';
       b.tabIndex = -1;
@@ -709,6 +703,13 @@ const INTERFACE = (function () {
       b.addEventListener('mousedown', ev => ev.preventDefault());
       b.addEventListener('click', () => { if (signatureContrat) signatureContrat(o.ecurie); });
       li.appendChild(b);
+      if (negociationContrat) {   // (après « Signer » : « Signer » reste le premier bouton de chaque offre)
+        const n2 = document.createElement('button'); n2.className = 'negocier petit'; n2.tabIndex = -1; n2.textContent = texte('contratNegocier');
+        n2.addEventListener('mousedown', ev => ev.preventDefault());
+        n2.addEventListener('click', () => negociationContrat(o.ecurie));
+        li.appendChild(n2);
+      }
+
       ul.appendChild(li);
     }
   }

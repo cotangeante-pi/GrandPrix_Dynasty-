@@ -925,3 +925,34 @@ function elider(t) {
   if (LANGUE !== 'fr') return t;
   return t.replace(/(^|[\s(«“'’])([Dd]e|[Qq]ue) (?=[AEIOUYÀÂÄÆÉÈÊËÎÏÔÖŒÙÛÜaeiouyàâäæéèêëîïôöœùûü])/g, (m, avant, mot) => avant + mot.slice(0, -1) + '’');
 }
+
+// (tour 36, Codeur 3) la conversation : ce qu'il dit quand on repose une question, quand on se contredit, quand on reparle d'un moment
+// de la course, et le souvenir de votre dernière conversation ; jamais genré
+Object.assign(TEXTES.en, {
+  dis_deja_salut: ['We already said hello.', 'Hello again, I suppose.', 'Still here?'], dis_deja_avis: ['My opinion has not changed since a minute ago.', 'I already told you what I think.'],
+  dis_deja_etat: ['Same as I said: nothing new since.', 'You already asked. Still the same.'], dis_deja_duel: ['We just talked about our duel.', 'Nothing has changed in our duel since.'],
+  dis_deja_contact: ['We have been over that contact already.', 'I said what I had to say about it.'],
+  dis_incompris_encore: ['I still do not get it. Talk to me about the race, our duel, or my season.', 'Try differently: the last race, your place, our battle?'],
+  dis_raison_contradiction_gentil: ['A minute ago you were all nice. Make up your mind.', 'Funny, after what you just said.'],
+  dis_raison_contradiction_mechant: ['After what you said earlier?', 'That is not what you were saying a minute ago.'],
+  dis_raison_excuse_recue: ['Your apology helped, I will admit it.'], dis_raison_contact_regle: ['About {circuit}, let us leave it there.', 'What happened at {circuit} is behind us.'], dis_raison_derniere_fois_bon: ['Last time, at {circuit_avant}, we left on good terms.'],
+  dis_raison_derniere_fois_mauvais: ['Last time, at {circuit_avant}, it did not end well between us.'], dis_raison_tour_inconnu: ['Lap {tour}? I do not remember the exact lap.'],
+  dis_raison_sujet_depart: ['At the start, everyone is fighting for the same gap.'], dis_raison_sujet_stands: ['In the pit lane, everyone wants to get out first.'],
+  dis_raison_sujet_pluie: ['In the rain, nobody sees anything.'], dis_raison_sujet_qualif: ['In qualifying, it is everyone for themselves.'],
+  dis_raison_sujet_virage: ['In that corner, there was room for one car.'], dis_raison_sujet_aspiration: ['In the slipstream, you were close. Very close.'],
+  dis_raison_conversation_bonne: ['Good talk.'], dis_raison_conversation_mauvaise: ['Not my favourite conversation.'], dis_raison_conversation_neutre: ['We will see on track.'],
+});
+Object.assign(TEXTES.fr, {
+  dis_deja_salut: ['On s’est déjà dit bonjour.', 'Re-bonjour, alors.', 'Toujours là ?'], dis_deja_avis: ['Mon avis n’a pas changé depuis tout à l’heure.', 'Je t’ai déjà dit ce que j’en pense.'],
+  dis_deja_etat: ['Comme je disais : rien de neuf depuis.', 'Tu me l’as déjà demandé. Toujours pareil.'], dis_deja_duel: ['On vient de parler de notre duel.', 'Rien n’a changé dans notre duel depuis.'],
+  dis_deja_contact: ['On a déjà parlé de ce contact.', 'J’ai dit ce que j’avais à dire là-dessus.'],
+  dis_incompris_encore: ['Je ne comprends toujours pas. Parle-moi de la course, de notre duel ou de ma saison.', 'Essaie autrement : la dernière course, ta place, notre bagarre ?'],
+  dis_raison_contradiction_gentil: ['Tout à l’heure, tu n’avais que des gentillesses. Faudrait savoir.', 'Drôle, après ce que tu viens de dire.'],
+  dis_raison_contradiction_mechant: ['Après ce que tu as dit tout à l’heure ?', 'Ce n’est pas ce que tu disais il y a une minute.'],
+  dis_raison_excuse_recue: ['Tes excuses, ça a compté, je l’admets.'], dis_raison_contact_regle: ['Pour {circuit}, on n’en parle plus.', 'Ce qui s’est passé à {circuit}, c’est derrière nous.'], dis_raison_derniere_fois_bon: ['Notre dernière discussion, à {circuit_avant}, s’était bien finie.'],
+  dis_raison_derniere_fois_mauvais: ['Notre dernière discussion, à {circuit_avant}, s’était mal finie.'], dis_raison_tour_inconnu: ['Le tour {tour} ? Je ne me souviens pas du tour exact.'],
+  dis_raison_sujet_depart: ['Au départ, tout le monde se bat pour le même trou.'], dis_raison_sujet_stands: ['Dans la voie des stands, chacun veut sortir le premier.'],
+  dis_raison_sujet_pluie: ['Sous la pluie, personne ne voit rien.'], dis_raison_sujet_qualif: ['En qualifications, c’est chacun pour soi.'],
+  dis_raison_sujet_virage: ['Dans ce virage, il y avait la place pour une voiture.'], dis_raison_sujet_aspiration: ['Dans l’aspiration, tu étais près. Très près.'],
+  dis_raison_conversation_bonne: ['Bonne discussion.'], dis_raison_conversation_mauvaise: ['Pas ma conversation préférée.'], dis_raison_conversation_neutre: ['On verra sur la piste.'],
+});

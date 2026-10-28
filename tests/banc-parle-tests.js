@@ -73,7 +73,7 @@ t('une insulte : le pilote fougueux riposte (une rivalité, pour DISCUSSION_RIVA
 t('des excuses après un contact : acceptées par un pilote qui ne t’en veut pas trop (la rivalité s’apaise), refusées par un pilote rancunier ; sans contact, « des excuses pour quoi ? »', () => {
   const ch = nouveau(), k = rival(ch, 0.3); contactAvec(ch, k); ch.pilotes[k].rivalite = { courses: 2, gp: 0, saison: 1 };
   const r = DISCUSSION.dire(ch, k, 'dsl pour le contact');
-  v(r.reaction === 'excuse_acceptee' && r.raisons.includes('contact') && !ch.pilotes[k].rivalite, JSON.stringify(r));
+  v(r.reaction === 'excuse_acceptee' && r.raisons.includes('contact_regle') && !ch.pilotes[k].rivalite, JSON.stringify(r));   // (tour 36 : excuses acceptées, le contact est « réglé », plus un reproche)
   const ch2 = nouveau(), k2 = rival(ch2, 0.95); contactAvec(ch2, k2);
   v(DISCUSSION.dire(ch2, k2, 'sorry about the crash').reaction === 'excuse_refusee', 'rancunier');
   const ch3 = nouveau(), k3 = rival(ch3, 0.3);
