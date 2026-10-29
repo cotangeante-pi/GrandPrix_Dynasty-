@@ -101,6 +101,12 @@ t('les listes de variantes ont des variantes dans les deux langues (aucune liste
   for (const k of en) if (phrases(TEXTES.en[k]).length && !phrases(TEXTES.fr[k]).length || !phrases(TEXTES.en[k]).length && phrases(TEXTES.fr[k]).length) m.push(k);
   v(!m.length,m.join(', '));});
 
+// --- la ponctuation par langue (tour 37c) : en anglais, pas d'espace avant « : ; ! ? » ; en français, une espace ; les deux-points collés par le code passent par « deuxPoints »
+t('la ponctuation : « deuxPoints » vaut « : » collé en anglais et « : » espacé en français ; aucun texte anglais n’a d’espace avant « : ; ! ? »', ()=>{
+  v(TEXTES.en.deuxPoints===': '&&TEXTES.fr.deuxPoints===' : ',JSON.stringify([TEXTES.en.deuxPoints,TEXTES.fr.deuxPoints]));
+  const m=[];for (const k of en) for (const s of phrases(TEXTES.en[k])) if (/\S [:;!?](\s|$)/.test(s.replace(/\{\w+\}/g,'X'))) m.push(k+' = '+s);
+  v(!m.length,m.join(' ; '));});
+
 // --- le français ne genre jamais le joueur (tour 37, suite) : quelques accords relevés puis rendus neutres ; aucun ne doit revenir
 const GENRES = [
   [/\bfâchée?s?\b/i, 'fâché(e)'], [/\bprête?\s+pour\b/i, 'prêt(e) pour'], [/\bt’a\s+battue?\b/i, 't’a battu(e)'], [/\bm’a\s+poussée?\b/i, 'm’a poussé(e)'],

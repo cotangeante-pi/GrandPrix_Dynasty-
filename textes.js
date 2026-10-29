@@ -196,7 +196,7 @@ const TEXTES = {
     courrier_patronDecu: ['Your results are below what we expect from this car. We need better.'], courrier_patronDecu_consigne: ['You ignored a team order at {circuit}. That cannot happen again.'],
     courrier: '✉ Mail', courrierTitre: 'Mail', courrierVide: 'No message yet.', courrierRepondre: 'Reply', courrierRetour: 'Back', courrierNouveau: 'new',
     // le duel contre le coéquipier (Codeur 3)
-    duelTitre: 'Teammate duel', duelScore: 'You {a} – {b} {nom}', duelDetail: '(qualifying {qa}–{qb}, races {ca}–{cb})',
+    deuxPoints: ': ', duelTitre: 'Teammate duel', duelScore: 'You {a} – {b} {nom}', duelDetail: '(qualifying {qa}–{qb}, races {ca}–{cb})',
     duelTour: 'Your teammate: ▲ ahead of you, ▼ behind you',
     // la une du journal (journal.js, Codeur 3) : le nom du journal (inventé), l'écran, puis une liste de variantes par
     // fait (uneTitre_<fait>, uneTexte_<fait>) et par brève (breve<Quoi>) ; {pilote}, {coequipier}, {ecurie}, {circuit} sont
@@ -549,7 +549,7 @@ const TEXTES = {
     courrier_patronDecu: ['Tes résultats sont en dessous de ce qu’on attend de cette voiture. Il faut mieux.'], courrier_patronDecu_consigne: ['Tu as ignoré une consigne à {circuit}. Ça ne doit plus arriver.'],
     courrier: '✉ Courrier', courrierTitre: 'Courrier', courrierVide: 'Aucun message pour l’instant.', courrierRepondre: 'Répondre', courrierRetour: 'Retour', courrierNouveau: 'nouveau',
     // le duel contre le coéquipier (Codeur 3)
-    duelTitre: 'Duel contre ton coéquipier', duelScore: 'Toi {a} – {b} {nom}', duelDetail: '(qualifs {qa}–{qb}, courses {ca}–{cb})',
+    deuxPoints: ' : ', duelTitre: 'Duel contre ton coéquipier', duelScore: 'Toi {a} – {b} {nom}', duelDetail: '(qualifs {qa}–{qb}, courses {ca}–{cb})',
     duelTour: 'Ton coéquipier : ▲ devant toi, ▼ derrière toi',
     // la une du journal (journal.js, Codeur 3)
     journalNom: 'La Gazette du Paddock',
