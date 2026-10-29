@@ -420,6 +420,8 @@ const REGLAGES = {
   AIDES_FREIN_MAX: 0.05,        // et jamais pendant un freinage (frein de la voiture au-dessus de ça)…
   AIDES_DIRECTION_MAX: 0.3,     // … ni volant tourné (|direction| au-dessus de ça)
   AIDES_PLUIE_EAU: 0.2,         // l'aide de la pluie : dès que la piste a au moins ce niveau d'eau (ou qu'il pleut autant)
+  // --- la sauvegarde abîmée ou impossible (tour 41d, Codeur 4) : le bandeau qui le dit, en haut de l'écran
+  AVIS_SAUVEGARDE_DUREE: 9,     // s : le bandeau reste ce temps (il ne prend jamais un clic : rien en dessous n'est bloqué)
   // --- le tutoriel guidé (tutoriel.js, étape 11d, Codeur 4) : 7 leçons courtes sur le circuit d'essai, proposées, jamais imposées
   TUTO_TEMPS_MAX: 240,          // s : une leçon de course pas réussie dans ce temps est ratée (« échoue si l'on ne fait rien »)
   TUTO_ZONE_AVANT: 90,          // m : la leçon du freinage : les plots du point de freinage, avant le virage le plus serré…

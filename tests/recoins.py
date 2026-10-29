@@ -416,6 +416,7 @@ def sauvegarde(c, titre):
     # une vraie carrière (Grand Prix 4) dans la sauvegarde, la référence
     c.aller(f'index.html?championnat=1&tours=1&robot=1&gp=4&lang={c.langue}')
     c.ecran('championnat', 'paddock de référence', 60000)
+    c.ev('() => SAUVEGARDE.ecrireChampionnat(JEU.championnat)')   # (?championnat=1 n'écrit pas tout seul : la carrière écrite comme après une course)
     bonne = lire_sauvegarde(c)
     d = json.loads(bonne)
     cas = []
@@ -457,6 +458,9 @@ def stockage(c, titre):
         c.bloque = None
         arrive = c.jouer(lambda e: e[0] == 'championnat', 400, f'premier lancement, localStorage {nom}')
         t(f'{titre} : localStorage {nom} : le premier lancement va jusqu’au paddock (découverte, création du pilote), sans erreur', arrive and not c.console, str([c.bloque, c.console[:3]]))
+        if arrive:
+            av = c.ev('() => { SAUVEGARDE.ecrire(SAUVEGARDE.lire()); const e = document.getElementById("sauvegardePerdue"); return [SAUVEGARDE.impossible(), !e.classList.contains("cache"), e.dataset.avis, e.textContent === texte("sauvegardeImpossible"), !!JEU.championnat]; }')
+            t(f'{titre} : localStorage {nom} : la carrière tient tant que l’onglet reste ouvert, et le jeu le dit (« ta carrière s’arrêtera à la fermeture de l’onglet »)', av == [True, True, 'impossible', True, True], str(av))
 # --- une dynastie longue : deux générations de 15 saisons (les Grands Prix joués d'avance par SAISONS.avancer, les écrans de fin de
 # saison cliqués comme un joueur) ; la taille de la sauvegarde et le temps de chargement du paddock
 def fin_de_saison(c, quoi):
@@ -498,7 +502,7 @@ def dynastie(c, titre):
             c.cliquer('#boutonHeritierValider')
             if not c.ecran('championnat', 'paddock de la 2e génération'): return
     duree = time.monotonic() - t0
-    c.cliquer('#boutonArbre'); c.ecran('arbre', 'arbre de 2 générations')
+    c.cliquer('#boutonArbreBilan'); c.ecran('arbre', 'arbre de 2 générations (depuis le bilan)')
     g = c.ev('() => document.querySelectorAll("#arbreGenerations li").length')
     t(f'{titre} : l’arbre de la dynastie montre les 2 générations', g == 2, str(g))
     taille = c.ev('() => localStorage.getItem("grand-prix-dynasty").length')
@@ -515,6 +519,7 @@ CACHER = """(oui) => { if (!window.__cacheFaux) { window.__cacheFaux = true; Obj
   window.__cache = oui; document.dispatchEvent(new Event('visibilitychange')); return [BOUCLE.nbPas, JEU.course ? JEU.course.temps : null]; }"""
 def conduite(c, titre, quoi, pause_ecran):
     pg = c.pg
+    c.ev('() => { JEU.robot = true; }')   # (le robot conduit : la voiture bouge, on voit si elle s'arrête)
     c.inspecter(f'{quoi} : en conduite')
     # l'onglet caché 2 s : rien n'avance ; revenu : pas de bond (au plus 0,5 s de jeu sur 0,5 s réelle, plus une image)
     a = c.ev(CACHER, True); pg.wait_for_timeout(2000); b = c.ev('() => [BOUCLE.nbPas, JEU.course ? JEU.course.temps : null]')
@@ -523,11 +528,11 @@ def conduite(c, titre, quoi, pause_ecran):
     # la pause et la reprise : le temps de course s'arrête, puis repart
     if pause_ecran:
         pg.keyboard.press('Escape'); pg.wait_for_timeout(300)
-        e1 = c.ev('() => [JEU.ecran, JEU.course && JEU.course.temps]'); pg.wait_for_timeout(1000); e2 = c.ev('() => [JEU.ecran, JEU.course && JEU.course.temps]')
+        e1 = c.ev('() => [JEU.ecran, JEU.joueur ? JEU.joueur.x.toFixed(3) + "," + JEU.joueur.z.toFixed(3) : null]'); pg.wait_for_timeout(1000); e2 = c.ev('() => [JEU.ecran, JEU.joueur ? JEU.joueur.x.toFixed(3) + "," + JEU.joueur.z.toFixed(3) : null]')
         if e1 and e1[0] == pause_ecran: c.inspecter(f'{quoi} : la pause')
         pg.keyboard.press('Escape'); pg.wait_for_timeout(800)
-        e3 = c.ev('() => [JEU.ecran, JEU.course && JEU.course.temps]')
-        t(f'{titre} : {quoi} : Échap met la pause ({pause_ecran}), le temps de course s’arrête, Échap repart', bool(e1 and e2 and e3) and e1[0] == pause_ecran and e2[1] == e1[1] and e3[0] != pause_ecran and e3[1] > e2[1], str([e1, e2, e3]))
+        e3 = c.ev('() => [JEU.ecran, JEU.joueur ? JEU.joueur.x.toFixed(3) + "," + JEU.joueur.z.toFixed(3) : null]')
+        t(f'{titre} : {quoi} : Échap met la pause ({pause_ecran}), la physique du joueur s’arrête (la voiture ne bouge plus), Échap repart', bool(e1 and e2 and e3) and e1[0] == pause_ecran and e2[1] == e1[1] and e3[0] != pause_ecran and e3[1] != e2[1], str([e1, e2, e3]))
     # la fenêtre redimensionnée en pleine conduite : rien ne déborde, la course continue
     for l, h in ((1280, 720), (960, 600)):
         pg.set_viewport_size({'width': l, 'height': h}); pg.wait_for_timeout(400); c.inspecter(f'{quoi} : redimensionné en {l}×{h}')

@@ -60,20 +60,49 @@ const SAUVEGARDE = (function () {
     return ecrire(d);
   }
 
+  // (tour 41d, Codeur 4) le secours quand localStorage refuse (plein, interdit en navigation privée ou dans une iframe) : la sauvegarde
+  // du jeu, et rien d'autre, dans window.name, qui survit aux rechargements du même onglet (la création du pilote, « Course suivante »
+  // rechargent la page : sans lui, la carrière repartait au premier lancement, en boucle) ; vidé dès que localStorage remarche.
+  // perdue : une sauvegarde illisible a été remplacée par une vierge ; impossible : localStorage a refusé (le jeu le dit à l'écran)
+  const SECOURS = 'grand-prix-dynasty:';
+  let perdue = false, impossible = false, avis = null;
+  const signales = {};
+  function signaler(type) { if (signales[type]) return; signales[type] = true; if (avis) avis(type); }
+  // l'écran s'abonne (principal.js) : f('perdue') ou f('impossible'), une fois chacun ; ce qui est arrivé avant l'abonnement est rejoué
+  function surAvis(f) { avis = f; for (const type of ['perdue', 'impossible']) if (signales[type]) f(type); }
+  function secours() {
+    try { return typeof window !== 'undefined' && typeof window.name === 'string' && window.name.startsWith(SECOURS) ? window.name.slice(SECOURS.length) : null; } catch (e) { return null; }
+  }
+  function viderSecours() {
+    try { if (secours() !== null) window.name = ''; } catch (e) { /* rien */ }
+  }
+
   function lire() {
+    let texte = null;
+    try { texte = localStorage.getItem(CLE); } catch (e) { impossible = true; signaler('impossible'); }
+    const s = secours();
+    if (s !== null) texte = s;   // (le secours n'est écrit que quand localStorage a refusé : il est plus récent)
+    if (!texte) return vierge();
     try {
-      const texte = localStorage.getItem(CLE);
-      return texte ? migrer(JSON.parse(texte)) : vierge();
+      const d = JSON.parse(texte), ok = d && typeof d === 'object' && typeof d.version === 'number' && d.version <= VERSION;
+      const m = migrer(d);
+      if (!ok) { perdue = true; signaler('perdue'); }
+      return m;
     } catch (e) {
+      perdue = true; signaler('perdue');
       return vierge();
     }
   }
 
   function ecrire(d) {
+    const json = JSON.stringify(d);
     try {
-      localStorage.setItem(CLE, JSON.stringify(d));
+      localStorage.setItem(CLE, json);
+      viderSecours();
       return true;
     } catch (e) {
+      impossible = true; signaler('impossible');
+      try { window.name = SECOURS + json; } catch (e2) { /* rien */ }
       return false;
     }
   }
@@ -255,5 +284,5 @@ const SAUVEGARDE = (function () {
     return ecrire(d);
   }
 
-  return { tutoriel, reussirLecon, aides, ecrireAides, motifs, debloquerMotifs, prendreAnnonceMotifs, tournoi, ecrireTournoi, deux, ecrireDeux, temple, entrerAuTemple, lire, ecrire, record, proposerRecord, championnat, ecrireChampionnat, fantome, proposerFantome, option, ecrireOption, reaction, proposerReaction, decouverteFaite, argent, finirDecouverte, carte, ecrireCarte, VERSION, CLE };
+  return { perdue: () => perdue, impossible: () => impossible, surAvis, tutoriel, reussirLecon, aides, ecrireAides, motifs, debloquerMotifs, prendreAnnonceMotifs, tournoi, ecrireTournoi, deux, ecrireDeux, temple, entrerAuTemple, lire, ecrire, record, proposerRecord, championnat, ecrireChampionnat, fantome, proposerFantome, option, ecrireOption, reaction, proposerReaction, decouverteFaite, argent, finirDecouverte, carte, ecrireCarte, VERSION, CLE };
 })();
