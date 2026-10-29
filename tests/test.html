@@ -456,6 +456,12 @@ t('trajectoire conseillée : avant l’épingle du technique (à la vitesse cons
   v(a[kF+2]===C_.ROUGE&&a[kF-10]!==C_.ROUGE,'point de freinage '+mot(a.slice(kF-10,kF+5)));
   v(a.slice(kA,kA+25).includes(C_.VERT)&&a.slice(kA+10,kA+30).every(c=>c===C_.VERT),'sortie '+mot(a.slice(kA,kA+30)));
   v(vite[0]===C_.ROUGE&&a[0]!==C_.ROUGE,'plus vite');const premier=x=>x.indexOf(C_.ROUGE);v(premier(lent)>premier(a)&&lent[0]===C_.VERT,'plus lent '+premier(lent)+' / '+premier(a));});
+// (tour 40d, Codeur 4) sous la pluie ou avec des pneus usés, la même adhérence que lit ia.js : le rouge commence plus tôt ; à adh = 1, exactement les couleurs d'avant
+t('trajectoire conseillée : à adhérence 1, les mêmes couleurs au point près ; sous la pluie (× 0,6), devant l’épingle du technique, le rouge commence plus tôt', ()=>{
+  const carte=CARTES_T.technique,T=carte.trajectoire,P=TQ.pas,V=carte.virages.reduce((a,b)=>T.vitesse[Math.round(a.s/P)%TQ.nb]<T.vitesse[Math.round(b.s/P)%TQ.nb]?a:b);
+  const i0=Math.round((V.freinage-150)/P),u=T.vitesse[i0],n=200,C_=CONSEIL,premier=x=>x.indexOf(C_.ROUGE);
+  const sec=C_.couleurs(carte,i0,u,n),un=C_.couleurs(carte,i0,u,n,1),pluie=C_.couleurs(carte,i0,u,n,0.6);
+  v(sec.join()===un.join(),'adh 1 : pareil');v(premier(pluie)>=0&&premier(pluie)<premier(sec),'pluie '+premier(pluie)+' / sec '+premier(sec));});
 t('trajectoire conseillée : allumée par défaut en débutant seulement ; oui, non, freinages seulement ; jamais en qualification classée, en tournoi chrono, à deux ni sans joueur', ()=>{const C_=CONSEIL,o=x=>Object.assign({reglage:null,niveau:'debutant',ecran:'course',qualifClassee:false,tournoi:false,deux:false,spectateur:false,carte:{}},x);
   v(C_.mode(o({}))==='tout'&&C_.mode(o({niveau:'normal'}))===null&&C_.mode(o({niveau:'expert'}))===null,'par défaut');
   v(C_.mode(o({reglage:'non'}))===null&&C_.mode(o({niveau:'normal',reglage:'oui'}))==='tout'&&C_.mode(o({reglage:'freinages'}))==='freinages','réglage');

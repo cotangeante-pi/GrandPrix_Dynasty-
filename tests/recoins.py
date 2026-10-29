@@ -177,6 +177,14 @@ def fin(c, titre):
             elif e == 'duelSaison': c.inspecter(f'{quoi} : duel de la saison'); c.cliquer('#boutonDuelSaisonSuite')
             elif e == 'contrats':
                 c.inspecter(f'{quoi} : contrats')
+                # l'aide des contrats, la première fois, dans la page : sa bulle, sur aucun bouton, aucune offre, ni le titre
+                if anticipee:
+                    c.attendre('() => !document.getElementById("bulleAide").classList.contains("cache")', 5000)
+                    b = c.ev('''() => { const b = document.getElementById("bulleAide"); if (b.classList.contains("cache")) return null; const r = b.getBoundingClientRect();
+                      const sur = [...document.querySelectorAll("#contrats button, #contratsListe li, #contrats h1, #contratsNote")].filter(e => e.getClientRects().length).filter(e => { const q = e.getBoundingClientRect(); return Math.min(r.right, q.right) - Math.max(r.left, q.left) > 1 && Math.min(r.bottom, q.bottom) - Math.max(r.top, q.top) > 1; }).map(e => e.id || e.tagName);
+                      return { aide: b.dataset.aide, texte: document.getElementById("bulleAideTexte").textContent, attendu: texte("aide_contrats"), sur }; }''')
+                    t(f'{titre} : aux contrats, l’aide des contrats s’affiche (la première fois), sur aucun bouton, aucune offre ni le titre', bool(b) and b['aide'] == 'contrats' and b['texte'] == b['attendu'] and not b['sur'], str(b))
+                    c.si('#bulleAide')
                 if not anticipee: break
                 c.cliquer('#boutonRetraite'); c.inspecter(f'{quoi} : confirmation de la retraite'); c.cliquer('#boutonRetraite')
             elif e == 'sponsors': c.inspecter(f'{quoi} : sponsors'); c.cliquer('#boutonSponsorsRetour')
@@ -262,11 +270,25 @@ def tuto(c, titre):
             c.blocages.append({ 'quoi': f'leçon {n + 1}', 'attendu': 'une leçon', 'ecran': c.ev('() => JEU.ecran'), 'page': pg.url.split('/')[-1] }); break
         id = c.ev('() => TUTORIEL_ECRAN.lecon()')
         if id == 'visite':
+            # (une vraie carrière dans la sauvegarde d'abord, posée depuis une page qui n'est pas une leçon, comme tests/ecrans.py ; puis la leçon)
+            lecon = pg.url.split('/')[-1]
+            c.aller(f'index.html?championnat=1&lang={c.langue}'); c.ecran('championnat', 'paddock avant la visite')
+            c.ev('() => { const d = SAUVEGARDE.lire(); d.championnat = CHAMPIONNAT.creer(7); d.championnat.marqueTest = 7; SAUVEGARDE.ecrire(d); }')
+            c.aller(lecon)
+            c.attendre('() => typeof TUTORIEL_ECRAN !== "undefined" && TUTORIEL_ECRAN.lecon() === "visite"', 30000)
             c.ecran('championnat', 'leçon visite : le paddock')
-            for b, e in (('#boutonGarage', 'garage'), ('#boutonAileron', 'aileron'), ('#boutonAileronRetour', 'garage'), ('#boutonGarageRetour', None)):
+            # la leçon 7 dans la page : on change le cran d'aileron pendant la visite ; la carrière (sauvegarde et mémoire) doit revenir telle quelle
+            avant = c.ev('() => JSON.stringify(SAUVEGARDE.lire().championnat)')
+            change = False
+            for b, e in (('#boutonGarage', 'garage'), ('#boutonAileron', 'aileron'), (None, None), ('#boutonAileronRetour', 'garage'), ('#boutonGarageRetour', None)):
+                if b is None:
+                    change = c.ev('''(a) => { const k = document.getElementById("aileronCurseur"); k.value = String((Number(k.value) + 2) % REGLAGES.AILERON_CRANS); k.dispatchEvent(new Event("input")); k.dispatchEvent(new Event("change")); return JSON.stringify(SAUVEGARDE.lire().championnat) !== a || JSON.stringify(JEU.championnat) !== a; }''', avant)
+                    continue
                 c.cliquer(b)
                 if e: c.ecran(e, f'leçon visite : {e}')
             c.attendre('() => TUTORIEL_ECRAN.resultat() !== null', 10000)
+            apres = c.ev('(a) => [JSON.stringify(SAUVEGARDE.lire().championnat) === a, JSON.stringify(JEU.championnat) === a]', avant)
+            t(f'{titre} : leçon 7 (la visite), dans la page : le cran d’aileron changé pendant la leçon ne reste pas dans la carrière (sauvegarde et mémoire)', change and apres == [True, True], str([change, apres]))
         else:
             if not c.ecran('course', f'leçon {id}', 60000): break
             c.attendre('() => !JEU.plateau || JEU.plateau.carte !== null', 240000)
@@ -282,6 +304,103 @@ def tuto(c, titre):
             c.pret(60000)
     t(f'{titre} : le tutoriel complet : les 7 leçons à la suite, réussies par le robot', len(faites) == 7 and all(r == 'reussie' for _, r in faites), str(faites))
     c.si('#boutonTutoListe'); c.inspecter('tutoriel : la liste des leçons (7 étoiles)')
+
+# --- la manette et la trajectoire conseillée (tour 40d) : de fausses manettes (comme tests/ecrans.py), mêlées au clavier ---
+FAUSSES_MANETTES = """(() => { const pad = i => ({ index: i, id: 'fausse manette ' + i, connected: true, mapping: 'standard', axes: [0, 0, 0, 0], buttons: Array.from({ length: 17 }, () => ({ value: 0, pressed: false })) });
+  window.__pads = [pad(0)];
+  navigator.getGamepads = () => window.__pads;
+  window.__padFixer = (k, nom, x) => { const p = window.__pads[k]; if (nom.startsWith('axe')) p.axes[+nom.slice(3)] = x; else p.buttons[MANETTE.BOUTONS[nom]] = { value: x, pressed: x > 0.5 }; };
+  window.__padDebrancher = () => { const p = window.__pads.pop(); if (p) { p.connected = false; window.dispatchEvent(Object.assign(new Event('gamepaddisconnected'), { gamepad: p })); } }; })();"""
+# les feux passés d'un coup (la boucle arrêtée le temps de les finir), puis la boucle repart
+FEUX_PASSES = '() => { BOUCLE.arreter(); const P = JEU.plateau ? JEU.plateau.pilotes : []; for (const p of P) if (p.course && p.course.compte > 0.05) p.course.compte = 0.05; if (JEU.course && JEU.course.compte > 0.05) JEU.course.compte = 0.05; let n = 0; while (JEU.course.etat === "compte" && n++ < 2400) BOUCLE.simuler(REGLAGES.PAS_PHYSIQUE); BOUCLE.simuler(0.5); BOUCLE.demarrer(); return JEU.course.etat; }'
+# la trajectoire conseillée devant le grand freinage du circuit (le point le plus lent de la carte, 150 m avant), dessinée par CONSEIL.maj
+# pour une voiture à la vitesse conseillée : le premier point rouge, au sec puis sous la pluie (adhMeteo, l'adhérence que la météo laisse
+# aux pneus : la même que lit ia.js) ; sous la pluie, on freine plus tôt
+CONSEIL_PLUIE = """(adh) => { const C = JEU.carte, T = C.trajectoire, nb = C.circuit.nb; let m = 0; for (let i = 0; i < nb; i++) if (T.vitesse[i] < T.vitesse[m]) m = i;
+  const k = (m - Math.round(150 / C.circuit.pas) + nb) % nb, v = { piste: { indice: k }, u: T.vitesse[(k + 1) % nb], adhMeteo: adh, adherence: 1, aileronAdherence: 1 };
+  CONSEIL.maj(v, C, 'tout', null); const col = CONSEIL.ligne.geometry.attributes.color.array, r = new THREE.Color(REGLAGES.COULEUR_CONSEIL_ROUGE);
+  for (let q = 0; q < col.length / 6; q++) if (Math.abs(col[6 * q] - r.r) < 1e-6 && Math.abs(col[6 * q + 1] - r.g) < 1e-6 && Math.abs(col[6 * q + 2] - r.b) < 1e-6) return q;
+  return -1; }"""
+def manette(c, titre):
+    pg = c.pg
+    pg.add_init_script(FAUSSES_MANETTES)
+    # 1. seul : la manette conduit, puis on la débranche en pleine course : la pause
+    c.aller(f'index.html?course=3&circuit=test&lang={c.langue}')
+    if not c.ecran('course', 'course à la manette', 60000): return
+    c.attendre('() => JEU.course && (!JEU.plateau || JEU.plateau.carte !== null)', 240000)
+    c.ev(FEUX_PASSES)
+    c.ev('() => __padFixer(0, "gachetteD", 1)'); pg.wait_for_timeout(1200)
+    roule = c.ev('() => [JEU.cibles.gaz, JEU.joueur.u]')
+    t(f'{titre} : seul, la gâchette droite de la manette accélère', bool(roule) and roule[0] == 1 and roule[1] > 0.3, str(roule))
+    c.ev('() => __padDebrancher()'); pg.wait_for_timeout(800)
+    e = c.ev('() => [JEU.ecran, JEU.cibles.gaz]')
+    t(f'{titre} : la manette débranchée en pleine course : le jeu se met en pause, et la gâchette ne reste pas enfoncée', bool(e) and e[0] == 'pause' and e[1] == 0, str(e))
+    if e and e[0] == 'pause': c.inspecter('pause : manette débranchée')
+    # 2. à deux : le joueur 1 à la manette, le joueur 2 au clavier (les flèches), en même temps ; la trajectoire conseillée jamais à deux
+    c.aller(f'index.html?deux=1&ia=0&tours=3&circuit=test&niveau=debutant&lang={c.langue}')
+    if not c.ecran('course', 'course à deux, manette et clavier', 60000): return
+    c.attendre('() => JEU.plateau && JEU.plateau.carte !== null', 240000)
+    c.ev('() => { SAUVEGARDE.ecrireOption("trajectoire", "oui"); JEU.reglageTrajectoire = "oui"; }')
+    c.ev(FEUX_PASSES)
+    c.ev('() => __padFixer(0, "gachetteD", 1)'); pg.keyboard.down('ArrowUp'); pg.wait_for_timeout(800)
+    a = c.ev('() => [JEU.deuxCommandes[1].cibles.gaz, JEU.deuxCommandes[2].cibles.gaz]')
+    c.ev('() => __padFixer(0, "gachetteD", 0)'); pg.wait_for_timeout(500)
+    b = c.ev('() => [JEU.deuxCommandes[1].cibles.gaz, JEU.deuxCommandes[2].cibles.gaz]')
+    pg.keyboard.up('ArrowUp'); c.ev('() => __padFixer(0, "gachetteD", 1)'); pg.wait_for_timeout(500)
+    d = c.ev('() => [JEU.deuxCommandes[1].cibles.gaz, JEU.deuxCommandes[2].cibles.gaz]')
+    t(f'{titre} : à deux, manette (joueur 1) et flèches (joueur 2) en même temps : chacun ses gaz, rien ne passe à l’autre', a == [1, 1] and b == [0, 1] and d == [1, 0], str([a, b, d]))
+    conseil = c.ev('() => [REGLAGES.NIVEAU, !!(CONSEIL.ligne && CONSEIL.ligne.visible)]')
+    t(f'{titre} : à deux (en débutant, la trajectoire conseillée réglée sur oui) : aucune trajectoire conseillée', bool(conseil) and conseil[0] == 'debutant' and not conseil[1], str(conseil))
+    c.ev('() => __padDebrancher()'); pg.wait_for_timeout(800)
+    e = c.ev('() => [JEU.ecran, JEU.deuxCommandes[1].cibles.gaz]')
+    t(f'{titre} : à deux, la manette du joueur 1 débranchée en pleine course : la pause, et ses gaz relâchés', bool(e) and e[0] == 'pause' and e[1] == 0, str(e))
+    # 3. la trajectoire conseillée sous la pluie : le rouge doit commencer plus tôt qu'au sec (moins d'adhérence, freinage plus long)
+    c.aller(f'index.html?course=1&circuit=technique&niveau=debutant&lang={c.langue}')
+    if not c.ecran('course', 'course seule, la trajectoire conseillée', 60000): return
+    c.attendre('() => JEU.carte && typeof CONSEIL !== "undefined" && CONSEIL.ligne', 240000)
+    sec, pluie = c.ev(CONSEIL_PLUIE, 1), c.ev(CONSEIL_PLUIE, 0.6)
+    t(f'{titre} : la trajectoire conseillée sous la pluie (adhérence × 0,6) : le rouge commence plus tôt qu’au sec (premier point rouge : sec {sec}, pluie {pluie})', isinstance(sec, int) and isinstance(pluie, int) and 0 <= pluie < sec, str([sec, pluie]))
+
+# --- une saison anglaise jouée en entier (tour 40d), puis, avec les vraies données de la saison, les écrans du paddock un par un :
+# le calendrier, l'album feuilleté de bout en bout, la fiche de chacun des 19 rivaux, l'arbre de la dynastie
+def paddock_complet(c, titre):
+    pg = c.pg
+    c.ev('() => { if (window.AIDES_ECRAN) AIDES_ECRAN.fermer(); }')
+    c.cliquer('#boutonCalendrier'); c.ecran('calendrier', 'calendrier (saison jouée)')
+    n = c.ev('() => document.querySelectorAll("#calendrierListe li, #calendrier li").length')
+    t(f'{titre} : le calendrier montre les 12 Grands Prix', n == 12, str(n))
+    c.cliquer('#boutonCalendrierRetour'); c.ecran('championnat', 'retour du calendrier')
+    c.cliquer('#boutonAlbum')
+    if c.ecran('album', 'album (saison jouée)'):
+        pages = 0
+        for _ in range(30):
+            if not c.si('#boutonAlbumAvant'): break
+            pages += 1; c.inspecter('album feuilleté (saison jouée)')
+        for _ in range(3):
+            if c.si('#boutonAlbumSaisonAvant'): c.inspecter('album : saison d’avant')
+            if c.si('#boutonAlbumSaisonApres'): c.inspecter('album : saison d’après')
+        t(f'{titre} : l’album se feuillette de bout en bout ({pages + 1} unes vues)', pages >= 11, str(pages))
+        c.cliquer('#boutonAlbumFermer'); c.ecran('championnat', 'retour de l’album')
+    rivaux = c.ev('() => JEU.championnat.pilotes.filter(p => !p.humain).map(p => JEU.championnat.pilotes.indexOf(p))') or []
+    vues = 0
+    for k in rivaux:
+        c.ev(f'() => montrerFiche({k})')
+        if c.ecran('fiche', 'fiche de chaque rival'): vues += 1
+        c.ev('() => quitterFiche()')
+    t(f'{titre} : la fiche de chacun des {len(rivaux)} rivaux s’ouvre et se ferme', vues == len(rivaux) == 19, str([vues, len(rivaux)]))
+    c.cliquer('#boutonArbre'); c.ecran('arbre', 'arbre (saison jouée)'); c.cliquer('#boutonArbreRetour'); c.ecran('championnat', 'retour de l’arbre')
+
+def saison_en(c, titre):
+    c.aller('index.html?robot=1&tours=1&lang=en')
+    arrive = c.jouer(lambda e: e[0] == 'championnat', 400, 'premier lancement')
+    t(f'{titre} : le premier lancement mène au paddock', arrive, str(c.bloque))
+    for gp in range(1, 13):
+        if c.bloque is not None: break
+        fin_ = (lambda e: e[0] == 'championnat' and e[5] == 2) if gp == 12 else (lambda e, gp=gp: e[0] in ('qualif', 'course') and e[5] == 1 and e[6] == gp)
+        fait = c.jouer(fin_, 900, f'Grand Prix {gp}' + (' et la fin de saison' if gp == 12 else ''))
+        t(f'{titre} : Grand Prix {gp} joué' + (' jusqu’au paddock de la saison 2' if gp == 12 else ''), fait, str(c.bloque))
+        if not fait: break
+    if c.bloque is None and c.ev('() => JEU.ecran === "championnat" && JEU.championnat.saison === 2'): paddock_complet(c, titre)
 
 # --- les grandes tailles (tour 39d) : un passage court en 1280×720 et en 1920×1080, en plus du 960×600 des autres parties ---
 # la carrière : le premier lancement (titre → découverte → Bravo → création), le premier Grand Prix joué par le robot comme dans saison.py
@@ -299,7 +418,8 @@ def tailles_jeux(c, titre):
     deux(c, titre, court=True)
     tournoi(c, titre, court=True)
 
-PARTIES = { 'deux': deux, 'tournoi': tournoi, 'fin': fin, 'ecrans': ecrans, 'tuto': tuto, 'tailles-carriere': tailles_carriere, 'tailles-jeux': tailles_jeux }
+PARTIES = { 'saison-en': saison_en, 'manette': manette, 'deux': deux, 'tournoi': tournoi, 'fin': fin, 'ecrans': ecrans, 'tuto': tuto, 'tailles-carriere': tailles_carriere, 'tailles-jeux': tailles_jeux }
+LANGUES = { 'saison-en': ('en',) }   # (la saison entière en français, c'est saison.py)
 TAILLES = { 'tailles-carriere': [(1280, 720), (1920, 1080)], 'tailles-jeux': [(1280, 720), (1920, 1080)] }
 demandees = [x for x in (sys.argv[1:] or os.environ.get('RECOINS', '').replace(',', ' ').split()) if x] or list(PARTIES)
 inconnues = [x for x in demandees if x not in PARTIES]
@@ -310,7 +430,7 @@ with sync_playwright() as p:
     b = p.chromium.launch(channel='chrome', args=['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--allow-file-access-from-files', '--disable-audio-output'])
     try:
         for nom in demandees:
-            for langue, (l, h) in [(lg, tl) for tl in TAILLES.get(nom, [(960, 600)]) for lg in ('fr', 'en')]:
+            for langue, (l, h) in [(lg, tl) for tl in TAILLES.get(nom, [(960, 600)]) for lg in LANGUES.get(nom, ('fr', 'en'))]:
                 ctx = b.new_context(viewport={'width': l, 'height': h}); pg = ctx.new_page()
                 c = Recoin(pg, langue, ''); c.prefixe = f'recoins-{nom}-{l}'
                 titre = f'{nom} {langue} {l}×{h}'

@@ -1509,6 +1509,9 @@ function majManettes(dt) {
   }
   // les boutons (un appui = une fois)
   const conduite = JEU.ecran === 'course' || JEU.ecran === 'survol' || enTourQualif();
+  // une manette débranchée pendant qu'on conduit (tour 40d) : la pause, comme Start (le joueur n'a plus de commandes) ;
+  // ses gaz sont déjà relâchés (majCibles ci-dessus ne garde que le clavier et les manettes encore là)
+  if (conduite && pads.length < avant.length) toucheVirtuelle('Escape');
   if (JEU.ecran !== MANETTES.ecran) { MANETTES.ecran = JEU.ecran; choisirBouton(null); }
   if (MANETTES.choix && (conduite || MANETTES.choix.offsetParent === null)) choisirBouton(null);
   pads.forEach((m, k) => {
