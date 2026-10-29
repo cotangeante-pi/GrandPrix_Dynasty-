@@ -109,9 +109,8 @@ function donnerCarte(e, carte) {
     if (d && vise && vise !== p) p.pilote.disposition = { type: d.type, id: vise.v };
   });
   // ses techniques selon le virage (ia.js, techniquesPilote), avec leur propre graine : les tirages d'avant ne bougent pas
-  // (× la technique du niveau, NIVEAUX[…].technique : expert 0,7, légende 1 ; 0 ou absente : aucune technique, la course d'avant au bit
-  // près. Tour 33 : en normal (0,5 ; 0,3 ; la corde tardive seule) et en débutant (0,2), les garde-fous de la suite ne tenaient plus sur
-  // GitHub : chocs > 5 m/s 9 à 10 sur 30 courses (au plus 6), une coupe en 4b, la leçon « dépassement » du tutoriel ratée ; voir le compte rendu)
+  // (× la technique du niveau, NIVEAUX[…].technique : débutant 0,1, normal 0,28, expert 0,7, légende 1 ; 0 ou absente : aucune technique, la
+  // course d'avant au bit près. Tour 37 : en normal, sur 90 courses, chocs > 5 m/s 10 sans, 11 avec ; herbe 2815 sans, 3129 avec : du bruit)
   const nt = niveau().technique || 0;
   if (R.IA_TECHNIQUES_ACTIVES && nt > 0) {
     ALEATOIRE.semer(e.graine + R.GRAINE_TECHNIQUE);
@@ -493,7 +492,9 @@ function compterDepassements(e, enCourse) {
     if (maintenant === 0) continue;
     if (avant !== undefined && avant !== maintenant) {
       const qui = maintenant > 0 ? a : b, sur = maintenant > 0 ? b : a;
-      e.depassements.push({ temps: e.temps, tour: qui.course.tours.length + 1, s: qui.v.piste.s, endroit: endroitSur(e.carte, qui.v.piste.s), qui: qui.numero, sur: sur.numero });
+      // (stand : l'une des deux est dans la voie des stands ou en route vers elle : un dépassement du cycle des arrêts, pas en piste)
+      const auStand = [qui, sur].some(p => (p.pilote && p.pilote.stand) || (p.v.piste && p.v.piste.stands) || p.v.campStands);
+      e.depassements.push({ temps: e.temps, tour: qui.course.tours.length + 1, s: qui.v.piste.s, endroit: endroitSur(e.carte, qui.v.piste.s), qui: qui.numero, sur: sur.numero, stand: auStand });
     }
     e.devant.set(cle, maintenant);
   }
