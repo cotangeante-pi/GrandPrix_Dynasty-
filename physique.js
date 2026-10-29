@@ -131,6 +131,9 @@ function pasVoiture(v, circuit, dt) {
     if (v.u < -R.MARCHE_ARRIERE_MAX) v.u = -R.MARCHE_ARRIERE_MAX;
     v.v = 0;
     v.r = v.u * Math.tan(delta) / R.EMPATTEMENT;
+  } else if (voitureVivante() > 0) {
+    // la voiture vivante (expert et légende, VOITURE_VIVANTE > 0) : un autre pas, à part ; à 0, le pas d'aujourd'hui au bit près
+    pasPneusVivant(v, mu, fz, fzAvant, fzArriere, delta, fx, resistance, dt, voitureVivante());
   } else {
     // les pneus : la force latérale suit l'angle de glissement, plafonnée par l'adhérence
     const alphaAvant = Math.atan2(v.v + a * v.r, Math.abs(v.u)) - delta;
@@ -165,6 +168,61 @@ function pasVoiture(v, circuit, dt) {
   v.rotationRoues = (v.rotationRoues + v.u * dt / R.RAYON_ROUE) % (2 * Math.PI);
 
   if (circuit) contactPiste(v, circuit);
+}
+
+// la voiture vivante (CLAUDE.md « La voiture vivante (expert et légende) ») : VOITURE_VIVANTE (le curseur, 0 à 1) × la part du niveau
+// (NIVEAUX[…].vivante : expert et légende 1, absente en débutant et normal) ; 0 = la voiture d'aujourd'hui, au bit près
+function voitureVivante() {
+  const R = REGLAGES, n = R.NIVEAUX && R.NIVEAUX[R.NIVEAU];
+  return R.VOITURE_VIVANTE && n && n.vivante ? R.VOITURE_VIVANTE * n.vivante : 0;
+}
+
+// le pas des pneus de la voiture vivante (k : sa part, 0 à 1). Les mêmes forces qu'aujourd'hui, et :
+// 1. le transfert de charge : l'accélération du pas d'avant (v.axVivant) fait passer le poids sur l'avant au freinage, sur l'arrière à
+//    l'accélération (VIVANTE_HAUTEUR_CG) ; l'arrière n'accroche plus autant de plus que l'avant (VIVANTE_ADHERENCE_ARRIERE) ;
+// 2. le lever de pied en découle : la traînée seule freine, le poids passe sur l'avant, la voiture se referme, et l'arrière peut partir ;
+// 3. le freinage en virage : chaque essieu partage son adhérence entre freiner et tourner (VIVANTE_CERCLE, le frein réparti
+//    VIVANTE_REPARTITION_FREIN devant) : beaucoup de frein et de braquage, l'avant glisse ; un peu de frein, l'avant chargé tourne mieux ;
+// 4. le patinage : la poussée du moteur passe par l'arrière ; au-delà de son adhérence, l'arrière patine (le surplus est perdu) et ne tient
+//    plus de côté. Les aides arcade sont réduites (VIVANTE_AIDES) : un contre-braquage rattrape la voiture.
+function pasPneusVivant(v, mu, fz, fzAvant0, fzArriere0, delta, fx, resistance, dt, k) {
+  const R = REGLAGES, m = R.MASSE, a = R.CG_AVANT, b = R.EMPATTEMENT - R.CG_AVANT;
+  const transfert = k * m * (v.axVivant || 0) * R.VIVANTE_HAUTEUR_CG / R.EMPATTEMENT;   // > 0 à l'accélération : vers l'arrière
+  const fzAvant = Math.max(R.VIVANTE_CHARGE_MIN * fz, fzAvant0 - transfert), fzArriere = Math.max(R.VIVANTE_CHARGE_MIN * fz, fzArriere0 + transfert);
+  const arr = R.ADHERENCE_ARRIERE + k * (R.VIVANTE_ADHERENCE_ARRIERE - R.ADHERENCE_ARRIERE);
+  // le frein (la part de « resistance » qui vient des freins), réparti entre les deux essieux
+  const freinage = v.u > 0.01 ? v.frein * R.ADHERENCE_FREIN * (v.adhMeteo || 1) * (v.freins || 1) * (v.surHerbe ? R.ADHERENCE_HERBE : 1) * fz : 0;
+  const freinAvant = freinage * R.VIVANTE_REPARTITION_FREIN, freinArriere = freinage - freinAvant;
+  // le moteur pousse par l'arrière : au-delà de son adhérence, il patine (le surplus est perdu, × k)
+  const capArriere = mu * arr * fzArriere, moteur = Math.max(0, fx);
+  const surplus = Math.max(0, moteur - capArriere), fxEff = fx - k * surplus;
+  // la part de l'adhérence de chaque essieu prise en long (0 à 1), puis ce qui reste pour tourner
+  const usageAvant = Math.min(1, freinAvant / Math.max(1, R.ADHERENCE_FREIN * fzAvant));
+  const usageArriere = Math.min(1, Math.max(moteur, freinArriere) / Math.max(1, capArriere));
+  const resteAvant = Math.sqrt(Math.max(0, 1 - R.VIVANTE_CERCLE * k * usageAvant * usageAvant));
+  const resteArriere = Math.sqrt(Math.max(0, 1 - R.VIVANTE_CERCLE_ARRIERE * k * usageArriere * usageArriere));
+  const alphaAvant = Math.atan2(v.v + a * v.r, Math.abs(v.u)) - delta;
+  const alphaArriere = Math.atan2(v.v - b * v.r, Math.abs(v.u));
+  const plafond = (f, max) => Math.max(-max, Math.min(max, f));
+  const fyAvant = plafond(-R.RIGIDITE_PNEU * fzAvant * alphaAvant, mu * fzAvant * resteAvant);
+  const fyArriere = plafond(-R.RIGIDITE_PNEU * fzArriere * alphaArriere, mu * arr * fzArriere * resteArriere);
+  const sensU = Math.sign(v.u);
+  const du = (fxEff - sensU * resistance - fyAvant * Math.sin(delta)) / m + v.v * v.r;
+  const dv = (fyAvant * Math.cos(delta) + fyArriere) / m - v.u * v.r;
+  const dr = (a * fyAvant * Math.cos(delta) - b * fyArriere) / R.INERTIE_LACET;
+  const uAvant = v.u;
+  v.u += du * dt;
+  if (uAvant > 0 && v.u < 0) v.u = 0;
+  v.v += dv * dt;
+  v.r += dr * dt;
+  v.axVivant = du;
+  v.chargeAvant = fzAvant; v.chargeArriere = fzArriere;   // (les tests : l'adhérence de chaque essieu)
+  // les aides arcade, réduites : la rotation rejoint moins vite celle du volant, la glissade s'amortit moins
+  const aides = 1 - k * R.VIVANTE_AIDES;
+  const rMax = mu * fz / (m * Math.abs(v.u));
+  const rVoulue = Math.max(-rMax, Math.min(rMax, v.u * Math.tan(delta) / R.EMPATTEMENT));
+  v.r += (rVoulue - v.r) * (1 - Math.exp(-R.STABILITE_LACET * aides * dt));
+  v.v *= Math.exp(-R.ANTI_DERIVE * aides * dt);
 }
 
 // où est la voiture sur la piste : l'herbe, et les barrières qu'on ne traverse jamais
