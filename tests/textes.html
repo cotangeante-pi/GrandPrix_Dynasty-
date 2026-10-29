@@ -79,6 +79,28 @@ t('le joueur s’appelle « You » / « Toi » tant qu’il n’a pas de nom ; p
   v(remplie(TEXTES.en.circuit_test)&&remplie(TEXTES.fr.circuit_test)&&remplie(TEXTES.en.circuit_technique)&&remplie(TEXTES.fr.circuit_technique),'circuits');
   v(TEXTES.en.virgule==='.'&&TEXTES.fr.virgule===',','virgule');});
 
+// --- la traduction (tour 37, étape 15 : préparer Poki) : aucune phrase française dans l'anglais, aucune anglaise dans le français,
+// dans tous les textes (écrans, commentateur, discussions, aides, tutoriel, manette, trajectoire conseillée, courrier, patrons…).
+// On ôte d'abord les noms propres (circuits, sponsors, lieux, pays, journal), les trous {…} et les mots gardés tels quels.
+const LANGUE_FR = /[éèêëàâçùûôîïœ]|(^|[^A-Za-zÀ-ÿ'’])(le|la|les|des|une|est|pour|avec|sans|pas|toi|ton|ta|tes|tu|je|mon|ma|mes|vous|nous|et|dans|du|au|aux|ce|cette|qui|que|mais|ou|très|plus|voiture|saison|course|écurie)(?![A-Za-zÀ-ÿ])/i;
+const LANGUE_EN = /(^|[^A-Za-zÀ-ÿ'’])(the|and|you|your|with|without|is|are|of|to|this|that|my|it|was|be|have|has|not|for|in|at|race|season|team|car|driver)(?![A-Za-zÀ-ÿ])/i;
+const NOMS_PROPRES = /^(circuit_|sponsor_|lieu_|pays_|nomDuJeu$|journal|une_nom|uneNom)/;
+const sansNoms = x => x.replace(/\{\w+\}/g, ' ').replace(/protégée?s?/gi, ' ').replace(/Montréol|Brio Café|Melbourn Park|Yas Marino/g, ' ');
+const phrases = x => Array.isArray(x) ? x.flatMap(phrases) : (x && typeof x === 'object') ? Object.values(x).flatMap(phrases) : typeof x === 'string' ? [x] : [];
+t('aucun mot français dans les textes anglais', ()=>{const m=[];
+  for (const k of en) if (!NOMS_PROPRES.test(k)) for (const s of phrases(TEXTES.en[k])) if (LANGUE_FR.test(sansNoms(s))) m.push('en.'+k+' = '+s);
+  v(!m.length,m.length+' : '+m.slice(0,8).join(' ; '));});
+t('aucun mot anglais dans les textes français', ()=>{const m=[];
+  for (const k of fr) if (!NOMS_PROPRES.test(k)) for (const s of phrases(TEXTES.fr[k])) if (LANGUE_EN.test(sansNoms(s))) m.push('fr.'+k+' = '+s);
+  v(!m.length,m.length+' : '+m.slice(0,8).join(' ; '));});
+t('aucune phrase laissée telle quelle : un texte de 3 mots ou plus n’est jamais le même en anglais et en français', ()=>{const m=[];
+  for (const k of en) if (!NOMS_PROPRES.test(k)) { const f=new Set(phrases(TEXTES.fr[k]));
+    for (const s of phrases(TEXTES.en[k])) if (f.has(s) && (sansNoms(s).match(/[A-Za-zÀ-ÿ]{2,}/g)||[]).length>=3) m.push(k+' = '+s); }
+  v(!m.length,m.join(' ; '));});
+t('les listes de variantes ont des variantes dans les deux langues (aucune liste vide d’un côté)', ()=>{const m=[];
+  for (const k of en) if (phrases(TEXTES.en[k]).length && !phrases(TEXTES.fr[k]).length || !phrases(TEXTES.en[k]).length && phrases(TEXTES.fr[k]).length) m.push(k);
+  v(!m.length,m.join(', '));});
+
 // --- texte() dans cette page : la langue du navigateur de test
 t('LANGUE vaut « en » ou « fr »', ()=>{v(LANGUE==='en'||LANGUE==='fr',LANGUE);});
 t('texte() renvoie la valeur de la langue choisie', ()=>{for (const k of en) v(JSON.stringify(texte(k))===JSON.stringify(TEXTES[LANGUE][k]),k);});

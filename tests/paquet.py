@@ -13,6 +13,7 @@ import os, re, sys, shutil, tempfile, zipfile
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DIST = os.path.join(RACINE, 'dist')
 ZIP = os.path.join(DIST, 'grand-prix-dynasty.zip')
+PAQUET_MAX_MO = 8   # le plafond du zip (Poki conseille un jeu léger : on reste sous 8 Mo)
 L, ok, ko = [], 0, 0
 def t(nom, cond, detail=''):
     global ok, ko
@@ -47,6 +48,7 @@ def fabriquer():
 liste, externes = fabriquer()
 total = sum(os.path.getsize(os.path.join(RACINE, f)) for f in liste)
 t(f'le paquet : {len(liste)} fichiers, {total / 1024:.0f} Ko non compressés, zip {os.path.getsize(ZIP) / 1024:.0f} Ko', len(liste) > 10)
+t(f'le zip pèse {os.path.getsize(ZIP) / 1048576:.2f} Mo, sous PAQUET_MAX_MO = {PAQUET_MAX_MO} Mo (Poki : un premier chargement léger)', os.path.getsize(ZIP) <= PAQUET_MAX_MO * 1048576, os.path.getsize(ZIP))
 t('index.html est à la racine du zip, et chaque fichier chargé par la page existe', zipfile.ZipFile(ZIP).namelist()[0] == 'index.html' and all(os.path.isfile(os.path.join(RACINE, f)) for f in liste))
 interdits = [f for f in liste if f.startswith(('tests/', 'rapports/', '.github', 'dist/')) or f.endswith('.md') or '/captures/' in f]
 t('aucun test, rapport, .md, .github ni capture dans le paquet', not interdits, interdits)
@@ -62,9 +64,28 @@ try:
     from playwright.sync_api import sync_playwright
 except ImportError:
     print('RESULTAT 0/1 (Playwright absent)'); sys.exit(1)
-FAUX_SDK = """window.APPELS_SDK = []; window.PokiSDK = { init() { APPELS_SDK.push('init'); return Promise.resolve(); }, gameLoadingFinished() { APPELS_SDK.push('gameLoadingFinished'); },
-  gameplayStart() { APPELS_SDK.push('gameplayStart'); }, gameplayStop() { APPELS_SDK.push('gameplayStop'); },
-  commercialBreak() { APPELS_SDK.push('commercialBreak'); return Promise.resolve(); }, rewardedBreak() { APPELS_SDK.push('rewardedBreak'); return Promise.resolve(true); } };"""
+# le faux SDK note chaque appel (APPELS_SDK) et, pour l'étape 15, l'état du jeu à ce moment (JOURNAL_SDK : l'écran, l'état de la course,
+# les feux allumés, le tour de qualification) : verifier_sdk y lit les règles Poki
+FAUX_SDK = """window.APPELS_SDK = []; window.JOURNAL_SDK = [];
+  const noter = q => { APPELS_SDK.push(q); let e = { q }; try { if (typeof JEU !== 'undefined') e = { q, ecran: JEU.ecran, etat: JEU.course ? JEU.course.etat : null,
+    feux: !!(JEU.course && JEU.course.feux && JEU.course.etat === 'compte'), tour: typeof enTourQualif === 'function' && enTourQualif() }; } catch (x) {} JOURNAL_SDK.push(e); };
+  window.PokiSDK = { init() { noter('init'); return Promise.resolve(); }, gameLoadingFinished() { noter('gameLoadingFinished'); },
+  gameplayStart() { noter('gameplayStart'); }, gameplayStop() { noter('gameplayStop'); },
+  commercialBreak() { noter('commercialBreak'); return Promise.resolve(); }, rewardedBreak() { noter('rewardedBreak'); return Promise.resolve(true); } };"""
+# les règles Poki sur un journal : gameplayStart seulement quand la voiture peut rouler (la course, feux éteints, ou le tour de
+# qualification), jamais deux gameplayStart ni deux gameplayStop de suite, gameLoadingFinished une fois, et les pubs seulement entre deux
+# écrans : jamais en course, ni pendant les feux, ni en pause, ni pendant le tour de qualification
+def verifier_sdk(journal):
+    fautes, dernier = [], None
+    for i, e in enumerate(journal):
+        q = e.get('q')
+        if q in ('gameplayStart', 'gameplayStop'):
+            if q == dernier: fautes.append(f'{i} : deux {q} de suite')
+            dernier = q
+        if q == 'gameplayStart' and not ((e.get('ecran') == 'course' and not e.get('feux')) or e.get('tour')): fautes.append(f'{i} : gameplayStart sur {e}')
+        if q in ('commercialBreak', 'rewardedBreak') and (e.get('ecran') in ('course', 'pause', 'grille') or e.get('tour') or e.get('feux')): fautes.append(f'{i} : {q} sur {e}')
+    if [e.get('q') for e in journal].count('gameLoadingFinished') > 1: fautes.append('gameLoadingFinished plus d’une fois')
+    return fautes
 LECTURE_PIXELS = re.compile(r'\[\.WebGL-0x[0-9a-f]+\]GL Driver Message \(OpenGL, Performance, GL_CLOSE_PATH_NV, High\): GPU stall due to ReadPixels')
 DEFILE = '() => [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth, scrollX, scrollY]'
 def pas_de_defilement(d): return d[0] <= d[1] + 2 and d[2] <= d[3] + 2 and d[4] == 0 and d[5] == 0
@@ -121,6 +142,8 @@ try:
                 double = [i for i in range(1, len(jeu)) if jeu[i] == jeu[i - 1]]
                 t(f'{titre} : SDK : init puis gameLoadingFinished une seule fois, gameplayStart quand la voiture roule, jamais deux fois de suite le même, aucun commercialBreak ({" → ".join(appels)})',
                   appels[:2] == ['init', 'gameLoadingFinished'] and appels.count('gameLoadingFinished') == 1 and 'gameplayStart' in jeu and not double and 'commercialBreak' not in appels, str(appels))
+                f = verifier_sdk(pg.evaluate('() => JOURNAL_SDK.slice()'))
+                t(f'{titre} : les règles du SDK sur le journal (gameplayStart seulement voiture lancée, feux éteints ; aucune pub pendant les feux ni en course)', not f, f)
                 t(f'{titre} : la course ne fait rien défiler', pas_de_defilement(pg.evaluate(DEFILE)), str(pg.evaluate(DEFILE)))
                 t(f'{titre} : console toujours vide après le départ', not console, ' | '.join(console)[:400])
                 ctx.close()
@@ -131,17 +154,35 @@ try:
             ctx = b.new_context(viewport={'width': 1280, 'height': 720})
             pg = ctx.new_page(); console = []
             pg.route('**/poki-sdk.js', lambda r: r.fulfill(status=200, content_type='text/javascript', body=''))
-            pg.add_init_script(FAUX_SDK.replace("commercialBreak() { APPELS_SDK.push('commercialBreak'); return Promise.resolve(); }", "commercialBreak() { APPELS_SDK.push('commercialBreak'); return new Promise(() => {}); }"))
+            pg.add_init_script(FAUX_SDK.replace("commercialBreak() { noter('commercialBreak'); return Promise.resolve(); }", "commercialBreak() { noter('commercialBreak'); return new Promise(() => {}); }"))
             pg.on('console', lambda m: console.append(m.type + ': ' + m.text) if m.type in ('error', 'warning') and not LECTURE_PIXELS.fullmatch(m.text) else None)
             pg.on('pageerror', lambda e: console.append('PAGEERROR ' + str(e)))
             pg.goto('file://' + dossier + '/index.html?championnat=1&tours=1&robot=1')
             pg.wait_for_function('() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', timeout=60000)
             pg.click('#boutonCourseSuivante')
             pg.wait_for_function('() => JEU.ecran === "qualif" && JEU.qualif && JEU.qualif.etat === "choix"', timeout=10000)
-            pg.click('#boutonQualifPasser')
+            # le tour de qualification (le robot le pilote) : gameplayStart pendant le tour, gameplayStop au résultat
+            pg.wait_for_function('() => JEU.plateau && JEU.plateau.carte !== null', timeout=240000)
+            pg.click('#boutonQualifTour')
+            for _ in range(200):
+                if pg.evaluate('() => JEU.qualif && JEU.qualif.etat === "resultat"'): break
+                pg.evaluate('() => { if (JEU.qualif && JEU.qualif.etat === "tour") BOUCLE.simuler(5); }'); pg.wait_for_timeout(30)
             pg.wait_for_function('() => JEU.qualif && JEU.qualif.etat === "resultat"', timeout=240000)
+            arret = False
+            try: arret = bool(pg.wait_for_function('() => APPELS_SDK.filter(a => /^gameplay/.test(a)).slice(-1)[0] === "gameplayStop"', timeout=10000))   # (à l'image suivante)
+            except Exception: pass
+            j = pg.evaluate('() => JOURNAL_SDK.slice()')
+            t(f'{titre} : le tour de qualification : gameplayStart pendant le tour, gameplayStop au résultat', any(e.get('q') == 'gameplayStart' and e.get('tour') for e in j) and arret, str(j[-4:]))
             pg.click('#boutonQualifCourse')
             pg.wait_for_function('() => JEU.ecran === "course" && JEU.plateau.carte !== null', timeout=60000)
+            # la pause en course : gameplayStop ; « Reprendre » : gameplayStart
+            pg.evaluate('() => { JEU.course.compte = 0.01; }')
+            pg.wait_for_function('() => JEU.course.etat === "course"', timeout=60000); pg.wait_for_timeout(300)
+            pg.keyboard.press('Escape')
+            pause = pg.wait_for_function('() => JEU.ecran === "pause" && APPELS_SDK.slice(-1)[0] === "gameplayStop"', timeout=5000)
+            pg.click('#boutonReprendre')
+            reprise = pg.wait_for_function('() => JEU.ecran === "course" && APPELS_SDK.slice(-1)[0] === "gameplayStart"', timeout=5000)
+            t(f'{titre} : la pause en course envoie gameplayStop, « Reprendre » gameplayStart', bool(pause) and bool(reprise), pg.evaluate('() => APPELS_SDK.slice(-4)'))
             pendant = None
             for _ in range(120):
                 pg.evaluate('() => BOUCLE.simuler(5)')
@@ -152,6 +193,13 @@ try:
             t(f'{titre} : le podium ne fait rien défiler', pas_de_defilement(pg.evaluate(DEFILE)), str(pg.evaluate(DEFILE)))
             pg.click('#boutonResultats'); pg.wait_for_function('() => JEU.ecran === "resultats"', timeout=5000)
             t(f'{titre} : les résultats ne font rien défiler', pas_de_defilement(pg.evaluate(DEFILE)), str(pg.evaluate(DEFILE)))
+            # le résumé vidéo (s'il y en a un) : gameplayStop pendant le rejeu ; Échap ramène aux résultats
+            if pg.evaluate('() => !document.getElementById("boutonResume").classList.contains("cache")'):
+                pg.click('#boutonResume')
+                resume = pg.wait_for_function('() => JEU.ecran === "resume"', timeout=10000); pg.wait_for_timeout(500)
+                arret = pg.evaluate('() => APPELS_SDK.filter(a => /^gameplay/.test(a)).slice(-1)[0] === "gameplayStop"')
+                pg.keyboard.press('Escape'); pg.wait_for_function('() => JEU.ecran === "resultats"', timeout=10000)
+                t(f'{titre} : le résumé vidéo : gameplayStop pendant le rejeu, puis retour aux résultats', bool(resume) and arret, pg.evaluate('() => APPELS_SDK.slice(-3)'))
             pg.click('#boutonChangerResultats'); pg.wait_for_function('() => JEU.ecran === "interview"', timeout=10000)
             t(f'{titre} : l’interview ne fait rien défiler', pas_de_defilement(pg.evaluate(DEFILE)), str(pg.evaluate(DEFILE)))
             pg.click('#boutonPasCommentaire'); pg.wait_for_function('() => JEU.ecran === "une"', timeout=10000)
@@ -166,8 +214,44 @@ try:
             double = [i for i in range(1, len(jeu)) if jeu[i] == jeu[i - 1]]
             t(f'{titre} : « Course suivante » après la une : la pause pub entre deux Grands Prix (commercialBreak une fois), gameplayStop avant, le son coupé pendant la pub, jamais deux fois de suite le même ({" → ".join(appels)})',
               appels.count('commercialBreak') == 1 and appels.count('gameLoadingFinished') == 1 and 'gameplayStart' in jeu and jeu[-1] == 'gameplayStop' and not double and pg.evaluate('() => SDK.pubEnCours && SON.muet'), str(appels))
+            f = verifier_sdk(pg.evaluate('() => JOURNAL_SDK.slice()'))
+            t(f'{titre} : les règles du SDK sur tout le parcours (qualification, course, pause, résumé, interview, une, pub entre deux Grands Prix)', not f, f)
             t(f'{titre} : console vide sur tout le parcours', not console, ' | '.join(console)[:400])
             ctx.close()
+            # le mode 2 joueurs et le tutoriel, depuis le zip : les mêmes règles ; la pub de « Revanche » tombe sur les résultats
+            for titre, adresse in (('paquet 2 joueurs 1280×720', 'index.html?deux=1&ia=3&robot=1&circuit=test'), ('paquet tutoriel 1280×720', 'index.html?tutoriel=conduite&course=1')):
+                ctx = b.new_context(viewport={'width': 1280, 'height': 720})
+                pg = ctx.new_page(); console = []
+                pg.route('**/poki-sdk.js', lambda r: r.fulfill(status=200, content_type='text/javascript', body=''))
+                pg.add_init_script(FAUX_SDK)
+                pg.on('pageerror', lambda e: console.append('PAGEERROR ' + str(e)))
+                pg.goto('file://' + dossier + '/' + adresse)
+                # (la grille vue d'en haut se passe ; le compte à rebours est écourté, les feux restent)
+                pret = False
+                if 'tutoriel=' in adresse:   # (la leçon attend le pilote : le robot d'essai conduit, comme dans les tests du tutoriel)
+                    pg.wait_for_function('() => typeof JEU !== "undefined" && JEU.ecran === "course"', timeout=30000); pg.evaluate('() => { JEU.robot = true; }'); pg.keyboard.down('ArrowUp')
+                for _ in range(600):
+                    pret = pg.evaluate('() => { if (typeof JEU === "undefined") return false; if (JEU.ecran === "grille" && typeof finirGrille === "function") finirGrille(); if (JEU.course && JEU.course.etat === "attente" && JEU.plateau && JEU.plateau.carte === null) return false; return JEU.ecran === "course" && !!JEU.course && JEU.course.etat === "course"; }')
+                    if pret: break
+                    pg.wait_for_timeout(300)
+                t(f'{titre} : la course démarre depuis le zip', pret, str(pg.evaluate('() => typeof JEU === "undefined" ? null : [JEU.ecran, JEU.course && JEU.course.etat, JEU.course && JEU.course.compte, !!(JEU.plateau && JEU.plateau.carte)]')))
+                if not pret: ctx.close(); continue
+                pg.wait_for_timeout(500)
+                pg.keyboard.press('Escape')
+                pause = pg.wait_for_function('() => JEU.ecran === "pause" && APPELS_SDK.slice(-1)[0] === "gameplayStop"', timeout=5000)
+                t(f'{titre} : la voiture roule (gameplayStart après les feux), la pause envoie gameplayStop', 'gameplayStart' in pg.evaluate('() => APPELS_SDK') and bool(pause), pg.evaluate('() => APPELS_SDK.slice()'))
+                if 'deux=1' in adresse:
+                    pg.click('#boutonReprendre')
+                    for _ in range(200):
+                        if pg.evaluate('() => JEU.ecran') == 'podium': break
+                        pg.evaluate('() => { if (JEU.attente && !JEU.attente.passer) passerAuPodium(); BOUCLE.simuler(5); }'); pg.wait_for_timeout(30)
+                    pg.click('#boutonResultats'); pg.wait_for_function('() => JEU.ecran === "resultats"', timeout=10000)
+                    pg.click('#boutonRejouerResultats')
+                    pub = pg.wait_for_function('() => APPELS_SDK.includes("commercialBreak")', timeout=10000)
+                    t(f'{titre} : « Revanche » : la pub tombe entre deux courses, sur les résultats', bool(pub) and any(e.get('q') == 'commercialBreak' and e.get('ecran') in ('resultats', 'podium') for e in pg.evaluate('() => JOURNAL_SDK')), str(pg.evaluate('() => JOURNAL_SDK.slice(-3)')))
+                f = verifier_sdk(pg.evaluate('() => JOURNAL_SDK.slice()'))
+                t(f'{titre} : les règles du SDK sur le journal', not f and not console, [f, console])
+                ctx.close()
             # SANS réseau : le script du SDK Poki échoue (requête refusée) ; le jeu reste jouable, sans SDK (sdk.js le tolère) ; la seule
             # trace est l'échec de ce script
             titre = 'paquet sans réseau 960×600'
