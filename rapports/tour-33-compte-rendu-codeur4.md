@@ -433,3 +433,29 @@ La correction (recoins.py, rouler ; chasse.py, Carriere.pas) : la boucle est arr
 Un second test fragile, trouvé en lançant 3 fois « deux » sur le Mac : « les deux claviers en même temps » (2 sur 3 en échec : W et ↑ tenus
 1,5 s réelles ne donnaient que 0,88 m/s à 3 images/s). Les touches sont maintenant tenues pendant 1 s de jeu, la boucle arrêtée ; chaque
 voiture doit gagner plus de 2 m/s. Le test ne dépend plus de la vitesse de la machine.
+
+TOUR 40d — compte rendu du Codeur 4 (la chasse aux bugs, suite ; branche codeur4 partie de main 91eaac2)
+Commit : 40179fa — passage GitHub 40953289242 vert, 16 travaux sur 16 (le plus long : recoins-2, 463 s)
+Les tests d'abord, rouges : 5c5898e, passage 40951751717 (recoins-2 : 6 échecs, les 3 bugs en fr et en en). Puis la correction.
+Ordres : 1 fait / 2 fait / 3 fait (2 bugs trouvés et corrigés)
+
+1. Nouvelle partie saison-en de recoins.py (dans le travail « premier », 313 s en tout) : la saison anglaise entière jouée par le robot
+   (12 Grands Prix, la fin de saison, le paddock de la saison 2), puis avec ses vraies données : le calendrier (12 Grands Prix),
+   l'album feuilleté de bout en bout (12 unes et plus), la fiche de chacun des 19 rivaux, l'arbre. 87/87 avec ecrans et tuto.
+2. Dans la page : l'aide des contrats (partie fin : la bulle la première fois, sur aucun bouton, aucune offre ni le titre) ; la leçon 7
+   (partie tuto : une vraie carrière posée d'abord, le cran d'aileron changé pendant la visite : la carrière revient telle quelle, en
+   sauvegarde et en mémoire ; rien à corriger). L'aide de la consigne d'équipe est déjà vérifiée dans la vraie page par tests/ecrans.py
+   (test=aides-consigne, 960 et 1280), pas seulement en calcul.
+3. Nouvelle partie manette (dans recoins-2), de fausses manettes mêlées au clavier :
+   - seul, la gâchette accélère ; à deux, manette (joueur 1) et flèches (joueur 2) en même temps : chacun ses gaz ; à deux, en débutant
+     et le réglage sur oui, aucune trajectoire conseillée : pas de bug ;
+   - BUG 1, la manette débranchée en pleine course ne mettait pas la pause (ni seul ni à deux ; les gaz, eux, revenaient bien à 0).
+     Corrigé dans principal.js (majManettes) : une manette de moins pendant qu'on conduit = Échap, comme Start ;
+   - BUG 2, la trajectoire conseillée ignorait la pluie : au sec et sous la pluie (adhérence × 0,6), le premier point rouge devant le
+     grand freinage du technique était le même (4 et 4). Corrigé dans conseil.js, CONSEIL.couleurs seulement (accord du Chef) : la même
+     adhérence que lit ia.js (v.adhMeteo × v.adherence × v.aileronAdherence) ; la vitesse conseillée × √adh, l'accélération et le
+     freinage possibles × adh ; la ligne droite à fond se lit sur la carte (la pointe vient de la traînée). Après : sec 4, pluie 0.
+     À adh = 1, les couleurs sont les mêmes au point près (×1, √1 = 1) : un test le vérifie dans tests/test.html, et le test d'hier
+     (rouge au point de freinage de la carte devant l'épingle) passe toujours. Rien dans le dessin.
+Ce que je n'ai pas vérifié : une vraie manette (seulement de fausses) ; la sensation de la ligne sous la pluie (à essayer par le propriétaire).
+Réévalue.
