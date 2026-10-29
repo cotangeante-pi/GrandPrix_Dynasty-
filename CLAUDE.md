@@ -118,6 +118,39 @@ Décidé par le propriétaire le 2026-10-21. **But** : donner une voix au joueur
 - **Tests** : la bonne question est choisie pour chaque fait (et la priorité est respectée quand il y en a plusieurs) ; chaque réponse a l'effet prévu ; les jauges restent entre 0 et 100 ; les plafonds tiennent ; une rivalité s'arrête après le bon nombre de courses ; « pas de commentaire » ne change rien ; toutes les clés existent dans les deux langues ; une ancienne sauvegarde sans réputation se charge sans erreur (jauges à 50).
 - **Quand** : un tour à part **après l'étape 6** (il faut les rivaux fixes, leurs fiches et la sauvegarde) ; les effets sur l'argent et les sponsors arrivent avec **l'étape 8** et **l'étape 9**.
 
+## La voiture vivante (expert et légende)
+
+Demande du propriétaire, 2026-10-29.
+
+**Le constat.** Aujourd'hui l'arrière accroche toujours plus que l'avant (`ADHERENCE_ARRIERE` 1,25) : c'est toujours l'avant qui glisse, jamais de tête-à-queue. La voiture est sûre mais plate : elle fait la même chose au freinage, en plein virage et en sortie.
+
+**Ce qu'on veut.**
+1. **Le transfert de charge** : au freinage, le poids passe sur l'avant (l'avant mord mieux, l'arrière se libère) ; à l'accélération, il passe sur l'arrière (l'avant tourne moins en sortie si on remet les gaz trop tôt).
+2. **Le lever de pied** : lâcher les gaz en plein virage rapide referme la trajectoire, et trop fort fait glisser l'arrière. Un contre-braquage rattrape la voiture.
+3. **Le freinage en virage** : freiner fort en braquant fait glisser l'avant (sous-virage), un peu de frein en entrée aide à tourner (trail braking).
+4. **Le patinage** : plein gaz à basse vitesse en sortie d'épingle fait patiner l'arrière (sans anti-patinage).
+
+Tout doit rester rattrapable au clavier : un joueur qui glisse doit pouvoir s'en sortir avec la rampe de direction actuelle.
+
+**Les niveaux.**
+- Débutant et normal : rien ne change (le propriétaire a accepté la conduite au tour 4 : « oui la conduite me va »), au bit près.
+- Expert et légende : la voiture vivante.
+- Un curseur dans `&reglages=1` (`VOITURE_VIVANTE`, 0 = la voiture d'aujourd'hui, 1 = la nouvelle) pour régler entre les deux.
+
+**La physique est la même pour le joueur et les IA.**
+- Si les IA expert et légende roulent aussi avec la voiture vivante, elles doivent apprendre à la piloter (freiner un peu plus tôt, remettre les gaz progressivement) sans perdre leur rythme : mesure des tours seuls par niveau sur le circuit test et 3 tracés, avant et après.
+- courses.html et stands.html : nouvelle référence, dans leurs garde-fous (chocs, herbe, dépassements, vainqueur ≠ poleman). Le Chef l'écrit dans « Décidé » de SUIVI.md.
+- Si les IA n'y arrivent pas : la voiture vivante pour le joueur seul en expert / légende, et le Chef l'écrit dans « Décidé ». Si même ça casse quelque chose, on abandonne et on le dit.
+- Les empreintes épinglées en débutant et normal ne bougent pas.
+
+**Fini quand.**
+- Des tests en calcul pur : au freinage fort en ligne droite, l'adhérence de l'avant monte et celle de l'arrière baisse ; un lever de pied à 250 km/h dans un virage rapide fait tourner la voiture plus que le gaz maintenu ; avec `VOITURE_VIVANTE` = 0, tout est identique au bit près.
+- Le robot pilote neutre fait ses tours sans tête-à-queue en légende ; un robot « brutal » (plein gaz en sortie, frein + braquage à fond) part en glissade et se rattrape au contre-braquage.
+- Le tableau des tours seuls par niveau, avant / après ; courses.html et stands.html dans leurs garde-fous ; GitHub vert.
+- Dans « À essayer par le propriétaire » de SUIVI.md : une course en légende, puis `&reglages=1` pour jouer avec `VOITURE_VIVANTE` ; la question : « l'arrière qui glisse, c'est fun ou énervant ? ». On n'attend pas sa réponse pour avancer, mais l'axe conduite ne passe pas 18/20 sans son avis.
+
+**Règles.** Un seul Codeur (plafond d'usage de 60 %) ; le moteur ne touche pas à l'écran ; tests sur GitHub, sur le Mac seulement la partie concernée sous `/tmp/gpd-tests.lock` ; textes en fr et en en ; compte rendu au format de CLAUDE.md. Note du Chef avant / après, sur les mêmes axes.
+
 ## Le réglage de l'aileron
 
 Décidé par le propriétaire le 2026-10-21. **But** : que chaque circuit se pilote différemment, pas seulement qu'il soit différent à regarder. Une seule décision avant chaque Grand Prix, sans tutoriel.
