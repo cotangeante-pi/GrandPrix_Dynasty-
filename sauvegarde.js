@@ -44,9 +44,19 @@ const SAUVEGARDE = (function () {
     if (!Array.isArray(d.tutoriel)) d.tutoriel = [];   // les leçons du tutoriel réussies (tutoriel.js, Codeur 4) : aucune dans une sauvegarde d'avant
     if (!Array.isArray(d.aides)) d.aides = [];   // les aides au premier usage déjà vues (aides.js, Codeur 4) : aucune dans une sauvegarde d'avant
     if (typeof CARRIERE !== 'undefined') d.temple = CARRIERE.completerTemple(d.temple);   // le temple de la renommée (tour 28c) : vide dans une sauvegarde d'avant
-    if (d.championnat && typeof CHAMPIONNAT !== 'undefined') CHAMPIONNAT.completer(d.championnat);
+    // (tour 41d) un championnat abîmé (sans pilotes, sans écuries, une écurie qui n'existe pas) ne se charge pas : il ferait planter la
+    // page ; il est enlevé, le reste de la sauvegarde (records, temple, motifs) est gardé, et le jeu dit qu'une nouvelle carrière commence
+    if (d.championnat && !championnatLisible(d.championnat)) { d.championnat = null; perdue = true; signaler('perdue'); }
+    if (d.championnat && typeof CHAMPIONNAT !== 'undefined') {
+      try { CHAMPIONNAT.completer(d.championnat); } catch (e) { d.championnat = null; perdue = true; signaler('perdue'); }
+    }
     d.version = VERSION;
     return d;
+  }
+
+  function championnatLisible(ch) {
+    if (!ch || typeof ch !== 'object' || !Array.isArray(ch.pilotes) || !Array.isArray(ch.ecuries) || ch.pilotes.length < 2 || !ch.ecuries.length) return false;
+    return ch.pilotes.every(p => p && typeof p === 'object' && Number.isInteger(p.ecurie) && p.ecurie >= 0 && p.ecurie < ch.ecuries.length) && ch.ecuries.every(e => e && typeof e === 'object');
   }
 
   // le championnat en cours (null s'il n'y en a pas), et son écriture après chaque course

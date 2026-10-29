@@ -417,14 +417,13 @@ def sauvegarde(c, titre):
     c.aller(f'index.html?championnat=1&tours=1&robot=1&gp=4&lang={c.langue}')
     c.ecran('championnat', 'paddock de référence', 60000)
     c.ev('() => SAUVEGARDE.ecrireChampionnat(JEU.championnat)')   # (?championnat=1 n'écrit pas tout seul : la carrière écrite comme après une course)
-    bonne = lire_sauvegarde(c)
-    d = json.loads(bonne)
+    bonne = json.loads(lire_sauvegarde(c)); bonne['decouverteFaite'] = True; bonne = json.dumps(bonne)   # (une carrière après la découverte, comme un vrai joueur)
     cas = []
     cas.append(('JSON coupé au milieu', bonne[:len(bonne) // 2], True))
     x = json.loads(bonne); del x['championnat']['pilotes']; cas.append(('championnat sans ses pilotes', json.dumps(x), True))
     x = json.loads(bonne); del x['championnat']['ecuries']; del x['options']; cas.append(('championnat sans ses écuries, sans options', json.dumps(x), True))
     x = json.loads(bonne); x['version'] = 3; x['championnat'].pop('dynastie', None); x['championnat'].pop('carriere', None); x.pop('temple', None); cas.append(('une sauvegarde v3 (sans dynastie ni temple)', json.dumps(x), False))
-    x = json.loads(bonne); x['version'] = 1; x.pop('championnat', None); cas.append(('une sauvegarde v1 (avant le championnat)', json.dumps(x), False))
+    x = json.loads(bonne); x['version'] = 1; x.pop('championnat', None); cas.append(('une sauvegarde v1 (avant le championnat : rien à perdre)', json.dumps(x), None))
     x = json.loads(bonne); x['version'] = 99; cas.append(('une sauvegarde d’une version future (99)', json.dumps(x), True))
     cas.append(('pas un objet (« 42 »)', '42', True))
     for nom, valeur, perdue in cas:
@@ -437,6 +436,8 @@ def sauvegarde(c, titre):
         t(f'{titre} : {nom} : le jeu repart sur un écran visible ({e[0]}), sans erreur', vu and not erreurs, str([e, erreurs[:3]]))
         if perdue:
             t(f'{titre} : {nom} : la carrière perdue, le jeu le dit (un message à l’écran)', bool(e[3]), str(e))
+        elif perdue is None:
+            t(f'{titre} : {nom} : pas de carrière à perdre, pas de message', not e[3], str(e))
         else:
             t(f'{titre} : {nom} : la carrière est gardée (paddock)', e[0] == 'championnat' and e[1], str(e))
         c.inspecter(f'sauvegarde : {nom}')
@@ -505,6 +506,7 @@ def dynastie(c, titre):
     c.cliquer('#boutonArbreBilan'); c.ecran('arbre', 'arbre de 2 générations (depuis le bilan)')
     g = c.ev('() => document.querySelectorAll("#arbreGenerations li").length')
     t(f'{titre} : l’arbre de la dynastie montre les 2 générations', g == 2, str(g))
+    c.ev('() => { SAUVEGARDE.ecrireChampionnat(JEU.championnat); const d = SAUVEGARDE.lire(); d.decouverteFaite = true; SAUVEGARDE.ecrire(d); }')   # (comme un vrai joueur : la découverte faite, la carrière écrite)
     taille = c.ev('() => localStorage.getItem("grand-prix-dynasty").length')
     # le chargement : la page nue rechargée jusqu'au paddock ; puis le paddock seul (montrerChampionnat), et une lecture de la sauvegarde
     c.aller(f'index.html?lang={c.langue}')
