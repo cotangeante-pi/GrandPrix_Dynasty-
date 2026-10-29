@@ -650,7 +650,10 @@ function deciderLigne(pilote, v, vues) {
   if (entoure && !enAttaque) essais.length = 1;
   // (seul, sans aucune voiture en vue, il n'en a pas besoin : sur 200 m, elles semblent parfois meilleures et lui
   // coûtent jusqu'à 0,8 s au tour)
-  if (!stand && !laisserCote && !enAttaque && !entoure && sens && vues.length) essais.push(['interieur', sens], ['exterieur', -sens]);
+  // (IA_RECHANGE_DISTANCE, duel-court : seulement si une voiture est à moins de ça de lui le long de la piste ; une voiture vue à 100 m ne
+  // demande pas de ligne de rechange, et ces lignes lui coûtaient du temps à suivre de loin ; 0 : dès qu'il en voit une, comme avant)
+  const rechange = R.IA_RECHANGE_DISTANCE ? vues.some(w => Math.abs(ecartLeLong(c, w.s - s0)) < R.IA_RECHANGE_DISTANCE) : vues.length;
+  if (!stand && !laisserCote && !enAttaque && !entoure && sens && rechange) essais.push(['interieur', sens], ['exterieur', -sens]);
   // une voiture lente devant : les deux lignes qui la contournent, d'un côté ou de l'autre, à IA_LENTE_ECART d'elle
   if (!stand && !laisserCote && !enAttaque) for (const l of lentes) essais.push(['eviter', 1, l], ['eviter', -1, l]);
   const finAttaque = enAttaque ? ((carte.virages[a.virage].s + R.IA_ATTAQUE_APRES_SOMMET - s0) % L + L) % L : 0;
@@ -714,7 +717,11 @@ function deciderLigne(pilote, v, vues) {
         // à côté de la voiture attaquée, côté a.cote, jusqu'après le sommet du virage, puis retour à sa ligne
         const m = s <= finAttaque ? 1 : Math.max(0, 1 - (s - finAttaque) / R.IA_DEPASSEMENT_RAMPE);
         // elle est tout près : elle garde sa place (et la laisse dès qu'il sera à hauteur)
-        val = r * (1 - m) + (a.vue.d + a.cote * sur) * m;
+        // (IA_ATTAQUE_LIGNE_PREVUE, duel-court : à côté de là où elle SERA, sa place prévue le long du virage, dPrevu ; 0 : à côté de sa
+        // place d'aujourd'hui, la même tout le virage : une ligne droite à travers l'épingle, qui le faisait freiner jusqu'à 25 m/s)
+        const versStands = a.vue.id && (a.vue.id.manoeuvreStands || a.vue.id.rampeStands);   // (elle va aux stands : elle quitte la ligne de la carte, ça se voit)
+        const dVue = R.IA_ATTAQUE_LIGNE_PREVUE && !versStands ? dPrevu(carte, a.vue, s0 + s, s0) : a.vue.d;
+        val = r * (1 - m) + (dVue + a.cote * sur) * m;
         // pas la place de rester à l'écart sûr d'elle (le bord) : il renonce à cette attaque
         if (m === 1 && Math.abs(val) > limite) a.impossible = true;
       }
@@ -1058,7 +1065,12 @@ function piloterIA(pilote, v, vues, dt) {
     if (libreAttaque && !freineVue && !(ralentit > 0) && g > R.IA_DISTANCE_MIN + R.LONGUEUR_VOITURE) continue;
     // (elle freine : il reprend la distance de l'attaque et prévoit sa décélération vue, comme derrière un autre aileron)
     const freinPrevu = Math.max(ralentit, decelVue), suiviEff = freineVue && R.IA_PREPARER_FREIN ? R.IA_DISTANCE_ATTAQUE : suivi;
-    const derriere = vitesseDerriere({ distance: g, vitesse: freinPrevu > 0 ? Math.max(0, w.vitesse - freinPrevu * R.IA_FREIN_PREVU) : w.vitesse }, suiviEff);
+    // (IA_SUIVI_CARTE, duel-court : une voiture qui roule au moins à la vitesse de la carte là où elle est (elle prend son virage normalement,
+    // sous IA_SUIVI_CARTE × la carte) ne le retient pas plus que ce virage ne le retiendra lui-même : il la suit comme si elle allait à la vitesse
+    // de la carte en ce point ; sans ça, il freinait sur sa vitesse d'aujourd'hui, 60 m avant d'y être, et perdait 0,4 s au tour sur le technique)
+    let vVue = freinPrevu > 0 ? Math.max(0, w.vitesse - freinPrevu * R.IA_FREIN_PREVU) : w.vitesse;
+    if (R.IA_SUIVI_CARTE && g > R.IA_SUIVI_CARTE_LOIN) { const vc = valeurEn(c, pilote.carte.trajectoire.vitesse, w.s) * rythmeDuTour(pilote); if (w.vitesse >= R.IA_SUIVI_CARTE * vc) vVue = Math.max(vVue, vc); }
+    const derriere = vitesseDerriere({ distance: g, vitesse: vVue }, suiviEff);
     if (derriere < cible) { cible = derriere; retenuPar = w.id; }
   }
   // retenu : il voudrait aller nettement plus vite que la voiture devant ne le laisse

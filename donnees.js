@@ -623,6 +623,10 @@ const REGLAGES = {
   IA_DECALAGE_DISTANCE: 60,     // m avant le point de freinage, au moins, elle se décale à côté…
   IA_DECALAGE_TEMPS: 1.2,       // s : … ou la distance parcourue en ce temps
   IA_RAPPROCHEMENT: 5,          // m/s : … ou s'il arrive au moins ça plus vite qu'elle (au freinage)
+  IA_ATTAQUE_LIGNE_PREVUE: 0,   // duel-court : 1 = la ligne d'attaque suit la place prévue de la voiture attaquée le long du virage (dPrevu) ; 0 = la course d'avant
+  IA_RECHANGE_DISTANCE: 0,      // duel-court : > 0 = les lignes de rechange (intérieur, extérieur) seulement avec une voiture à moins de ça (m) ; 0 = dès qu'il en voit une
+  IA_SUIVI_CARTE: 0,            // duel-court : > 0 = une voiture vue devant qui roule au moins à cette part de la vitesse de la carte en son point est suivie comme si elle y allait à la vitesse de la carte (ia.js) ; 0 = la course d'avant
+  IA_SUIVI_CARTE_LOIN: 20,      // m : … seulement plus loin que ça devant lui (plus près, sa vitesse vue)
   IA_ATTAQUE_CONTROLE: 40,      // m avant le sommet du virage : l'entrée, où elle doit être à hauteur…
   IA_ATTAQUE_HAUTEUR: 0.5,      // … à moins de cette part de longueur derrière : elle plonge ; sinon elle abandonne
   IA_ATTAQUE_FREIN: 1.05,       // en attaque, elle ose cette part du freinage de la marge habituelle (son style : 0,92 à 1)
