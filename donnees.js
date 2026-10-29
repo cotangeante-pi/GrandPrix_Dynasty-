@@ -130,6 +130,16 @@ const REGLAGES = {
   MANETTE_SEUIL_MENU: 0.6,         // le stick au-delà de ça choisit le bouton voisin dans les menus…
   MANETTE_REPETITION: [0.4, 0.15], // … et, tenu, il répète après 0,4 s, puis toutes les 0,15 s
 
+  // la trajectoire conseillée (conseil.js, tour 39) : dessin seulement, la physique et les IA ne la voient pas
+  CONSEIL_LONGUEUR: 300,           // m devant la voiture
+  CONSEIL_LARGEUR: 0.7,            // m
+  CONSEIL_HAUTEUR: 0.05,           // m au-dessus du sol (au-dessus de la route et des vibreurs)
+  CONSEIL_OPACITE: 0.75,
+  CONSEIL_TOLERANCE: 0.5,          // m/s : sous la vitesse conseillée moins ça, on peut accélérer (vert)
+  CONSEIL_BAISSE: 0.15,            // m/s sur CONSEIL_REGARD points (2 m chacun) : la vitesse conseillée baisse, il faut freiner (rouge)
+  CONSEIL_REGARD: 3,
+  COULEUR_CONSEIL_VERT: 0x2ecc40, COULEUR_CONSEIL_JAUNE: 0xffd400, COULEUR_CONSEIL_ROUGE: 0xff2a2a,
+
   // la course seule (étape 3)
   LONGUEURS_COURSE: { tresCourte: 5, moyenne: 12, longue: 18 },   // nombre de tours ; 0 = essai libre
   COMPTE_A_REBOURS: 3,          // s : 3, 2, 1, GO (les vrais feux viendront à l'étape 5)
