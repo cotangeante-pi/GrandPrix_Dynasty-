@@ -110,8 +110,6 @@ PAGES = [
     ('index.html?course=3&ia=5&joueur=1&robot=1&circuit=test&niveau=normal&test=conseil', 960, 600, None),     # … en normal, aucune
     ('index.html?course=3&ia=9&joueur=1&robot=1&circuit=test&qualite=auto&test=qualite', 1280, 720, None),   # la qualité automatique (tour 40) : jusqu'à « basse » sous swiftshader, jamais pendant les feux ; capture qualite-basse.png
     ('index.html?course=3&ia=5&circuit=test&test=qualite', 960, 600, None),   # … sans ?qualite, sous un automate, rien ne bouge
-    ('index.html?course=3&circuit=test&niveau=debutant&test=assistance', 1280, 720, None),   # les aides au pilotage (tour 41) : d'office en débutant, le freinage assisté freine avant le virage
-    ('index.html?course=3&circuit=test&test=assistance', 960, 600, None),                    # … coupées en normal
     ('index.html?course=3&circuit=test&test=manette', 1280, 720, None),   # la manette (tour 38) : une fausse manette conduit un tour, la pause, le menu au stick et à la croix
     ('index.html?deux=1&ia=0&circuit=test&test=manette-deux', 1280, 720, None),   # … deux manettes, une par joueur   # les sensations de conduite (tour 37) : son au premier geste, fumée, étincelles, réglage ; capture sensations.png
     ('index.html?course=3&ia=19&joueur=1&circuit=monzo&domicile=1&test=supporters', 1280, 720, None),   # le Grand Prix à domicile : la caméra de la grille longe d'abord la tribune des supporters ; capture supporters.png   # la réalisation télé (regie.js) : de vraies caméras, l'hélicoptère ; captures tele-monoco.png, tele-helico.png   # … et Monzo de jour : la luminosité de l'image, pour la comparer à la nuit   # le décor dans le vrai jeu : la course de nuit à Singapura, 20 voitures, vue télé ; capture jeu-singapura.png
@@ -141,6 +139,8 @@ PAGES = [
     ('index.html?tutoriel=stand&course=2&test=tuto', 960, 600, None),
     ('index.html?tutoriel=pluie&course=3&ia=1&joueur=1&niveau=debutant&meteo=averse&test=tuto', 1280, 720, None),
     ('index.html?tutoriel=visite&championnat=1&test=tuto', 1280, 720, None),
+    ('index.html?course=3&circuit=test&niveau=debutant&test=assistance', 1280, 720, None),   # les aides au pilotage (tour 41) : d'office en débutant, le freinage assisté freine avant le virage (placées ici : les tranches de GitHub restent équilibrées)
+    ('index.html?course=3&circuit=test&test=assistance', 960, 600, None),                    # … coupées en normal
     ('index.html?tutoriel=visite&championnat=1&test=tuto-quitter', 960, 600, None),   # … passée en cours de route : rien ne reste dans la carrière
 ]
 # ECRANS_FILTRE=… (pendant le travail, sur le Mac) : seulement les pages dont l'adresse contient ce texte ; GitHub lance toujours tout

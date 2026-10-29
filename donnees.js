@@ -1049,7 +1049,7 @@ const REGLAGES = {
   // le drone : la grille vue d'en haut au départ (GRILLE_*), et à l'arrivée il tourne autour de la voiture en montant
   DRONE_ARRIVEE_DUREE: 5, DRONE_RAYON: 22, DRONE_HAUTEUR: [6, 26], DRONE_VITESSE: 0.35, DRONE_CHAMP: 50,      // m : sur une ligne droite plus longue, l'hélicoptère              // la voiture et ce qui l'entoure, en mètres, remplissent l'image
 
-  COUTS_POINTS: 24,             // la mesure des coûts par circuit (tests/lieu.html, tour 40) : la caméra de course en tant d'endroits du tour
+  COUTS_POINTS: 12,             // la mesure des coûts par circuit (tests/lieu.html, tour 40) : la caméra de course en tant d'endroits du tour (12 : un sur deux des 24 de la mesure du tour 40, plus court sur GitHub)
   PIXEL_RATIO_MAX: 1.5,         // au plus 1,5 pixel dessiné par pixel CSS (un écran Retina en demande 2)
   // la qualité de l'image (qualite.js, tour 40) : le dessin seulement ; le cran 0 = l'image d'avant (PIXEL_RATIO_MAX, DECOR_DETAIL_LOIN, DECOR_RIEN_LOIN)
   QUALITE_IPS_MIN: 55,          // images par seconde : en dessous en moyenne…
