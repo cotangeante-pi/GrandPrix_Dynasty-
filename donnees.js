@@ -602,6 +602,7 @@ const REGLAGES = {
   IA_ATTENTE_ATTAQUE: 1.5,      // s : retenue depuis ce temps par la voiture devant, elle l'attaque
   IA_RETENUE_ECART: 1,          // m/s : retenue = elle voudrait aller au moins ça plus vite
   IA_ATTAQUE_ECART_TEMPS: 1,    // s : la voiture attaquée s'échappe à plus de ça devant : l'attaque s'arrête
+  DUEL_CHOCS_MAX: 11,           // stands.html (le critère du duel, 50 courses de 12 tours avec un arrêt) : chocs > 5 m/s au plus (mesuré au tour 37)
   IA_PREPARER_LIBRE: 1,         // duel-2 : 1 = en préparant son attaque, retenu seulement à IA_DISTANCE_MIN de la voiture visée, et seulement quand elle freine (ia.js)
   IA_PREPARER_FREIN: 1,         // … et quand elle freine : la distance de l'attaque (IA_DISTANCE_ATTAQUE), sa décélération vue prévue
   IA_PREPARER_FREINE_TARD: 1,   // duel-2 : 1 = en préparant son attaque, à moins de IA_DECALAGE_ECART d'elle, il freine déjà comme en attaque (IA_ATTAQUE_FREIN)
@@ -659,7 +660,7 @@ const REGLAGES = {
   NIVEAU: 'normal',             // le niveau en cours (?niveau=…, principal.js) ; normal = les réglages tels quels
   NIVEAUX: {
     debutant: { rythme: -0.05, erreurs: 2, agressivite: -0.3, regularite: 1.5, gestionPneus: -0.2, technique: 0.1 },
-    normal: { rythme: 0, erreurs: 1, agressivite: 0, regularite: 1, gestionPneus: 0, technique: 0.3 },
+    normal: { rythme: 0, erreurs: 1, agressivite: 0, regularite: 1, gestionPneus: 0, technique: 0.28 },
     expert: { rythme: 0, erreurs: 0.5, agressivite: 0.2, regularite: 0.7, gestionPneus: 0.1, corde: 0.5, marge: -0.7, limite: 1.01, penaliteFrein: 0.5, precision: 0.6, bordMin: 0.8, margeCarte: 1.1, technique: 0.7 },
     legende: { rythme: 0, erreurs: 0.25, agressivite: 0.4, regularite: 0.5, gestionPneus: 0.2, corde: 0, marge: -1.4, limite: 1.02, penaliteFrein: 0, precision: 0.3, bordMin: 0.5, margeCarte: 0.7, technique: 1 },
   },

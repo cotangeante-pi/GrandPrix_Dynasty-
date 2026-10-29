@@ -47,6 +47,19 @@ L.push(`  (chocs > 5 m/s : ${chocs} avec les arrêts, ${chocsSans} sans pneus ; 
 t('garde-fou : pas plus de chocs à plus de 5 m/s avec les arrêts que dans les mêmes courses sans pneus',()=>v(chocs<=chocsSans,chocs+' / '+chocsSans));
 t(`garde-fou : au plus ${Math.floor(4000*k)} pas dans l’herbe au total`,()=>v(herbe<=4000*k,herbe));
 t(`garde-fou : au plus ${Math.floor(6*k)} barrières + coupes au total`,()=>v(barr<=6*k,barr));
+// le critère du duel (étape 4, décision du Chef au tour 37 : mesuré sur des courses avec arrêt) : 50 courses de 12 tours, 10 IA, avec les
+// pneus et un arrêt (les 30 ci-dessus et DUEL_EN_PLUS de plus par circuit) ; vainqueur ≠ poleman entre 20 et 60 % ; le pilote au meilleur
+// rythme gagne plus souvent que la moyenne (1 sur 10) ; toutes arrivent ; chocs > 5 m/s au plus DUEL_CHOCS_MAX (mesuré au tour 37).
+// Les dépassements : ceux du cycle des arrêts (l'une des deux voitures dans la voie des stands ou en route vers elle) à part des vrais, en piste.
+const DUEL_EN_PLUS=+(Q.get('duel')||10),duel=paires.map(p=>p.a);
+for(const nom of ['test','technique']) for(let g=GRAINES+1;g<=GRAINES+DUEL_EN_PLUS;g++){REGLAGES.PNEUS_ACTIFS=true;duel.push(simulerCourse(circuits[nom],NB,TOURS,g));REGLAGES.PNEUS_ACTIFS=false;ecrire('duel '+nom+' '+g);}
+{const nd=duel.length,pasPole=duel.filter(r=>r.final[0]!==r.grille[0].numero).length,meilleur=duel.filter(r=>r.final[0]===[...r.voitures].sort((x,y)=>y.rythme-x.rythme)[0].numero).length;
+  const auStand=duel.reduce((s,r)=>s+r.depassements.filter(d=>d.stand).length,0),enPiste=duel.reduce((s,r)=>s+r.depassements.filter(d=>!d.stand).length,0),chocsD=duel.reduce((s,r)=>s+chocsForts(r),0);
+  L.push(`  DUEL sur ${nd} courses de ${TOURS} tours avec un arrêt : vainqueur ≠ poleman ${pasPole} (${Math.round(100*pasPole/nd)} %) ; le meilleur rythme gagne ${meilleur} fois (${Math.round(100*meilleur/nd)} %) ; dépassements en piste ${enPiste}, au stand (le cycle des arrêts) ${auStand} ; chocs > 5 m/s ${chocsD}`);
+  t(`duel : vainqueur ≠ poleman dans 20 à 60 % des ${nd} courses avec un arrêt`,()=>v(pasPole>=0.2*nd&&pasPole<=0.6*nd,pasPole+' / '+nd));
+  t('duel : le pilote au meilleur rythme gagne plus souvent que la moyenne (1 sur 10)',()=>v(meilleur>nd/NB,meilleur+' / '+nd));
+  t('duel : toutes les voitures arrivent',()=>v(duel.every(r=>r.voitures.every(x=>x.fini))));
+  t(`duel : au plus ${REGLAGES.DUEL_CHOCS_MAX} chocs à plus de 5 m/s sur les ${nd} courses (mesuré au tour 37)`,()=>v(chocsD<=REGLAGES.DUEL_CHOCS_MAX,chocsD));}
 t('aucune erreur JavaScript',()=>v(__err.length===0,__err.join(' | ')));
 ecrire();
 </script></body></html>
