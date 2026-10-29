@@ -99,7 +99,7 @@ Note du Chef session-5b (2026-10-23) : les lignes 18 à 19b ne s'additionnaient 
 
 ## À essayer par le propriétaire
 
-- **La trajectoire conseillée** (tour 39) : en niveau débutant, ou menu pause « Trajectoire conseillée » : une ligne verte / jaune / rouge sur la piste. Dire : elle se lit bien (largeur, transparence) ? Le jaune dans la grande courbe rapide du circuit d'essai a du sens ?
+- **La trajectoire conseillée** (tour 39) : en niveau débutant, ou menu pause « Trajectoire conseillée » : une ligne verte / jaune / rouge sur la piste. Dire : elle se lit bien (largeur, transparence) ? Le jaune dans la grande courbe rapide du circuit d'essai a du sens ? Sous la pluie (depuis le tour 40d), le rouge arrive plus tôt : ça colle à ce que tu sens ? Avec une vraie manette : la débrancher en course doit mettre la pause.
 - **La manette** (tour 38) : branche une manette (Xbox ou PlayStation) : gâchette droite = gaz, gauche = frein, stick = direction ; A = retour en piste, Y = caméra, Start = pause ; dans les menus, la croix et A / B. Dire : les gâchettes se dosent bien ? Le départ parfait se fait à la gâchette ?
 - **Les sensations de conduite** (tour 37) : **écoute avec le son** (personne ne l'a entendu : le Chrome des tests n'a pas de sortie audio) : le moteur et les rapports, les vibreurs, le crissement, l'aspiration, une voiture qui passe, la pluie. Et regarde : la petite secousse sur les vibreurs, la fumée au blocage, les étincelles au contact. Menu pause : « Effets de conduite : oui / non ». Dire : trop fort ? trop faible ? gênant ?
 - **Le départ plus rapide** (tour 37d) : du clic sur « Jouer » aux feux éteints, combien de secondes sur ton Mac ? (but : 10 s au plus).
