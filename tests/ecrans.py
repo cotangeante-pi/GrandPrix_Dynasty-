@@ -2521,7 +2521,7 @@ def fin_saison(pg, titre, l):
     pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'champion.png'))
     pg.click('#boutonSaisonSuite')
     d = pg.evaluate(DUEL_SAISON_ETAT)
-    attendu = (f"Tu as battu {d['nom']} {d['a']} à {d['b']}" if d['a'] > d['b'] else f"{d['nom']} t’a battu {d['b']} à {d['a']}" if d['a'] < d['b'] else f"Égalité avec {d['nom']} : {d['a']} à {d['b']}")
+    attendu = (f"Tu as battu {d['nom']} {d['a']} à {d['b']}" if d['a'] > d['b'] else f"{d['nom']} a fini devant toi, {d['b']} à {d['a']}" if d['a'] < d['b'] else f"Égalité avec {d['nom']} : {d['a']} à {d['b']}")
     t(f'{titre} : le duel de la saison : « {attendu} », le détail (qualifs, courses, carrière)', d['ecran'] == 'duelSaison' and d['score'] == attendu and 'qualifs' in d['detail'] and 'carrière' in d['detail'] and pas_de_defilement(d['defile']), str(d))
     pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'duel-saison.png'))
     pg.click('#boutonDuelSaisonSuite')
