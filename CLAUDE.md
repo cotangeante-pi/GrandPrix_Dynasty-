@@ -118,9 +118,9 @@ Décidé par le propriétaire le 2026-10-21. **But** : donner une voix au joueur
 - **Tests** : la bonne question est choisie pour chaque fait (et la priorité est respectée quand il y en a plusieurs) ; chaque réponse a l'effet prévu ; les jauges restent entre 0 et 100 ; les plafonds tiennent ; une rivalité s'arrête après le bon nombre de courses ; « pas de commentaire » ne change rien ; toutes les clés existent dans les deux langues ; une ancienne sauvegarde sans réputation se charge sans erreur (jauges à 50).
 - **Quand** : un tour à part **après l'étape 6** (il faut les rivaux fixes, leurs fiches et la sauvegarde) ; les effets sur l'argent et les sponsors arrivent avec **l'étape 8** et **l'étape 9**.
 
-## La voiture vivante (expert et légende)
+## La voiture vivante (les pneus adhérant / drift)
 
-Demande du propriétaire, 2026-10-29.
+Demande du propriétaire, 2026-10-29. Puis, le même jour : « on pourrait faire des pneus adhérant ou drift, on change au changement de roue ou avant la course » → la voiture vivante n'est plus liée au niveau : elle vient d'un **pneu drift** que le joueur choisit (voir « Les pneus adhérant / drift » plus bas).
 
 **Le constat.** Aujourd'hui l'arrière accroche toujours plus que l'avant (`ADHERENCE_ARRIERE` 1,25) : c'est toujours l'avant qui glisse, jamais de tête-à-queue. La voiture est sûre mais plate : elle fait la même chose au freinage, en plein virage et en sortie.
 
@@ -132,22 +132,25 @@ Demande du propriétaire, 2026-10-29.
 
 Tout doit rester rattrapable au clavier : un joueur qui glisse doit pouvoir s'en sortir avec la rampe de direction actuelle.
 
-**Les niveaux.**
-- Débutant et normal : rien ne change (le propriétaire a accepté la conduite au tour 4 : « oui la conduite me va »), au bit près.
-- Expert et légende : la voiture vivante.
-- Un curseur dans `&reglages=1` (`VOITURE_VIVANTE`, 0 = la voiture d'aujourd'hui, 1 = la nouvelle) pour régler entre les deux.
+**Les pneus adhérant / drift** (à la place des niveaux).
+- Deux pneus secs : **Adhérant** = la voiture d'aujourd'hui, au bit près (le choix par défaut ; le propriétaire a accepté cette conduite au tour 4 : « oui la conduite me va ») ; **Drift** = la voiture vivante (`VOITURE_VIVANTE` = 1). Sous la pluie : intermédiaires et pluie comme aujourd'hui, pas de drift (voir « La météo »).
+- Le choix se fait **au garage avant les qualifications** et **à chaque arrêt au stand**, dans la même liste que slick / intermédiaire / pluie (`pneus.js`, `meteo.js`). Un arrêt pour changer de pneus compte comme l'arrêt obligatoire.
+- **Le compromis** : le drift tourne mieux dans les virages lents, il est moins stable dans les rapides et il s'use plus vite (les pneus fument). Aucun pneu n'est le plus rapide partout : le drift gagne sur au moins 3 tracés sinueux (Monoco…), l'adhérant sur au moins 3 tracés rapides (Spaa…), et l'écart reste sous 1 % par tour, mesuré avec le robot pilote neutre sur les 12 tracés.
+- Un curseur dans `&reglages=1` (`VOITURE_VIVANTE`, 0 = la voiture d'aujourd'hui, 1 = le drift) pour régler le pneu drift.
+- À l'écran : l'icône du pneu près de la jauge d'usure ; les deux pneus expliqués au premier choix (voir « Les aides au premier usage ») ; textes en fr et en en.
 
 **La physique est la même pour le joueur et les IA.**
-- Si les IA expert et légende roulent aussi avec la voiture vivante, elles doivent apprendre à la piloter (freiner un peu plus tôt, remettre les gaz progressivement) sans perdre leur rythme : mesure des tours seuls par niveau sur le circuit test et 3 tracés, avant et après.
+- **Les IA choisissent** leur pneu selon leur caractère (les agressives prennent plus souvent le drift) et le circuit, jamais l'avenir, avec un tirage à sa propre graine (pour ne pas décaler les autres tirages). En drift, elles doivent savoir le piloter (freiner un peu plus tôt, remettre les gaz progressivement) sans perdre leur rythme : mesure des tours seuls par niveau et par pneu sur le circuit test et 3 tracés, avant et après.
 - courses.html et stands.html : nouvelle référence, dans leurs garde-fous (chocs, herbe, dépassements, vainqueur ≠ poleman). Le Chef l'écrit dans « Décidé » de SUIVI.md.
-- Si les IA n'y arrivent pas : la voiture vivante pour le joueur seul en expert / légende, et le Chef l'écrit dans « Décidé ». Si même ça casse quelque chose, on abandonne et on le dit.
-- Les empreintes épinglées en débutant et normal ne bougent pas.
+- Si les IA n'y arrivent pas : le drift pour le joueur seul (les IA gardent l'adhérant), et le Chef l'écrit dans « Décidé ». Si même ça casse quelque chose, on abandonne et on le dit.
+- Toutes les courses où tout le monde a l'adhérant restent identiques au bit près, empreintes épinglées comprises ; une ancienne sauvegarde se charge (adhérant).
 
 **Fini quand.**
 - Des tests en calcul pur : au freinage fort en ligne droite, l'adhérence de l'avant monte et celle de l'arrière baisse ; un lever de pied à 250 km/h dans un virage rapide fait tourner la voiture plus que le gaz maintenu ; avec `VOITURE_VIVANTE` = 0, tout est identique au bit près.
-- Le robot pilote neutre fait ses tours sans tête-à-queue en légende ; un robot « brutal » (plein gaz en sortie, frein + braquage à fond) part en glissade et se rattrape au contre-braquage.
+- Le robot pilote neutre fait ses tours en drift sans tête-à-queue ; un robot « brutal » (plein gaz en sortie, frein + braquage à fond) part en glissade et se rattrape au contre-braquage.
 - Le tableau des tours seuls par niveau, avant / après ; courses.html et stands.html dans leurs garde-fous ; GitHub vert.
-- Dans « À essayer par le propriétaire » de SUIVI.md : une course en légende, puis `&reglages=1` pour jouer avec `VOITURE_VIVANTE` ; la question : « l'arrière qui glisse, c'est fun ou énervant ? ». On n'attend pas sa réponse pour avancer, mais l'axe conduite ne passe pas 18/20 sans son avis.
+- Le tableau des temps par pneu sur les 12 tracés (le drift devant sur 3 au moins, l'adhérant sur 3 au moins) ; le choix du pneu au garage et à l'arrêt marche pour le joueur et les IA (capture pneus-drift.png, en fr et en en).
+- Dans « À essayer par le propriétaire » de SUIVI.md : une course en pneus drift, puis `&reglages=1` pour jouer avec `VOITURE_VIVANTE` ; la question : « l'arrière qui glisse, c'est fun ou énervant ? ». On n'attend pas sa réponse pour avancer, mais l'axe conduite ne passe pas 18/20 sans son avis.
 
 **Règles.** Un seul Codeur (plafond d'usage de 60 %) ; le moteur ne touche pas à l'écran ; tests sur GitHub, sur le Mac seulement la partie concernée sous `/tmp/gpd-tests.lock` ; textes en fr et en en ; compte rendu au format de CLAUDE.md. Note du Chef avant / après, sur les mêmes axes.
 
@@ -363,7 +366,7 @@ Décidée par le propriétaire le 2026-10-27 (« oui fais la météo »). **But*
 
 - **La prévision** : avant chaque Grand Prix, le paddock montre le temps prévu (sec, nuageux, risque de pluie avec un pourcentage, pluie). La météo de la course est tirée avec la graine du Grand Prix, selon le lieu (`METEO_LIEUX` dans `donnees.js` : Spaa pluvieux, Bahrayn presque jamais ; Singapura orageux de nuit) ; elle peut changer pendant la course (une averse qui arrive, une piste qui sèche), à un moment tiré d'avance.
 - **La piste mouillée** : un niveau d'eau de 0 à 1, qui monte sous la pluie et baisse quand elle s'arrête, plus vite sur la trajectoire (là où les voitures passent). L'adhérence baisse avec l'eau (`METEO_*`), l'aspiration aussi (la gerbe d'eau) ; rien d'autre ne change dans la physique.
-- **Les pneus** : trois sortes, **slicks**, **intermédiaires**, **pluie**, chacun avec son adhérence selon le niveau d'eau (le slick est le meilleur au sec et le pire sous la pluie ; le pneu pluie l'inverse ; l'intermédiaire entre les deux) et son usure (un pneu pluie sur piste sèche s'use très vite). On choisit ses pneus au départ (au garage, avant les qualifications) et à chaque arrêt au stand ; un arrêt pour changer de pneus compte comme l'arrêt obligatoire.
+- **Les pneus** : trois sortes, **slicks**, **intermédiaires**, **pluie**, chacun avec son adhérence selon le niveau d'eau (le slick est le meilleur au sec et le pire sous la pluie ; le pneu pluie l'inverse ; l'intermédiaire entre les deux) et son usure (un pneu pluie sur piste sèche s'use très vite). On choisit ses pneus au départ (au garage, avant les qualifications) et à chaque arrêt au stand ; un arrêt pour changer de pneus compte comme l'arrêt obligatoire. Au sec, le slick existe en deux versions, **adhérant** et **drift** (voir « La voiture vivante »).
 - **Les IA** choisissent leurs pneus et le moment de s'arrêter avec la même information que le joueur (ce qu'elles voient de la piste et la prévision, jamais l'avenir exact), selon leur caractère (un prudent passe aux intermédiaires plus tôt) ; elles freinent plus tôt sur piste mouillée, comme leur carte le leur dit.
 - **À l'écran** : la pluie qui tombe (particules en un seul appel de dessin), les gerbes derrière les voitures, la piste plus sombre et brillante là où elle est mouillée, le ciel couvert ; une icône météo et le niveau d'eau près des pneus ; un message de course (« La pluie arrive », « La piste sèche ») ; dans la vue cockpit, des gouttes. Tout est fait par le code. Les performances sont mesurées avec 20 voitures sous la pluie.
 - **Code** : la météo en calcul pur (`meteo.js` : prévision, niveau d'eau, adhérence des pneus) ; `physique.js` lit un facteur d'adhérence (1 = sec, au bit près) ; le dessin dans `decor.js` / `scene3d.js`. Tous les textes dans `textes.js`.
