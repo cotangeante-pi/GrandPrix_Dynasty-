@@ -13,6 +13,14 @@ const SCENE3D = (function () {
   // les voitures lointaines (étape 10) : au-delà de VOITURE_LOIN m de la caméra (à champ égal), une voiture est dessinée en forme simple,
   // toutes ensemble en un seul InstancedMesh ; { maillage, voitures } (les groupes des voitures ajoutées), créé à la première voiture
   let flotte = null, nbLointaines = 0;
+  // la qualité de l'image (qualite.js, tour 40) : null = les réglages d'avant ; sinon { pixelRatio, detail, rien } d'un cran
+  let qualite = null;
+  function reglerQualite(q) {
+    qualite = q || null;
+    if (!rendu) return;
+    rendu.setPixelRatio(Math.min(window.devicePixelRatio || 1, qualite ? qualite.pixelRatio : R.PIXEL_RATIO_MAX));
+    redimensionner();
+  }
 
   // gp (facultatif) : { championnat, circuit } du Grand Prix (le public du décor, decor-public.js)
   function init(element, circuit, gp) {
@@ -261,7 +269,7 @@ const SCENE3D = (function () {
   function dessiner() {
     if (!rendu) return 0;
     rendu.info.reset();
-    if (decor) DECOR.majDetail(decor, partage ? [camera.position, camera2.position] : [camera.position]);   // le public et les arbres : proches, loin ou rien
+    if (decor) DECOR.majDetail(decor, partage ? [camera.position, camera2.position] : [camera.position], qualite);   // le public et les arbres : proches, loin ou rien
     const cachees = lointaines();
     if (partage) {
       // UN rendu, UNE scène, deux zones : le joueur 1 en haut, le joueur 2 en bas (la zone est en pixels CSS, Three.js applique le pixel ratio)
@@ -348,6 +356,9 @@ const SCENE3D = (function () {
     get nbLointaines() { return nbLointaines; },   // (tests : les voitures dessinées en forme simple à la dernière image)   // (tests : le décor placé, ses maillages, ses niveaux de détail)
     get trianglesDessines() { return trianglesDessines; },
     get appelsDessin() { return appelsDessin; },
+    reglerQualite, get qualite() { return qualite; }, get pixelRatio() { return rendu ? rendu.getPixelRatio() : 0; },
+    get programmes() { return rendu && rendu.info.programs ? rendu.info.programs.length : 0; },   // (la mesure des coûts, tour 40 : les shaders compilés)
+    get ombres() { return !!(rendu && rendu.shadowMap.enabled); },
     get nbObjets() { let n = 0; if (scene) scene.traverse(o => { if (o.isMesh || o.isInstancedMesh || o.isPoints || o.isLine) n++; }); return n; },   // (tests : le résumé n'ajoute rien à la scène)
   };
 })();

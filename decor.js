@@ -607,13 +607,17 @@ const DECOR = (function () {
 
   // range chaque objet à niveaux de détail : proche (< DECOR_DETAIL_LOIN de la caméra la plus proche), loin (< DECOR_RIEN_LOIN), ou rien ;
   // refait seulement quand une caméra a bougé de DECOR_MAJ_DEPLACEMENT m
-  function majDetail(decor, cameras) {
+  // distances (facultatif) : { detail, rien } en m, la qualité de l'image (qualite.js) ; sans : DECOR_DETAIL_LOIN, DECOR_RIEN_LOIN
+  function majDetail(decor, cameras, distances) {
     if (!decor) return;
+    const dDetail = distances ? distances.detail : R.DECOR_DETAIL_LOIN, dRien = distances ? distances.rien : R.DECOR_RIEN_LOIN;
+    const change = decor.distances !== dDetail + '/' + dRien;   // (une autre qualité : tout est refait, même sans bouger)
+    decor.distances = dDetail + '/' + dRien;
     for (const g of decor.detail) {
-      const bouge = !g.dernier || g.dernier.length !== cameras.length || cameras.some((p, k) => Math.hypot(p.x - g.dernier[k].x, p.y - g.dernier[k].y, p.z - g.dernier[k].z) > R.DECOR_MAJ_DEPLACEMENT);
+      const bouge = change || !g.dernier || g.dernier.length !== cameras.length || cameras.some((p, k) => Math.hypot(p.x - g.dernier[k].x, p.y - g.dernier[k].y, p.z - g.dernier[k].z) > R.DECOR_MAJ_DEPLACEMENT);
       if (!bouge) continue;
       g.dernier = cameras.map(p => ({ x: p.x, y: p.y, z: p.z }));
-      const proche2 = R.DECOR_DETAIL_LOIN * R.DECOR_DETAIL_LOIN, rien2 = R.DECOR_RIEN_LOIN * R.DECOR_RIEN_LOIN;
+      const proche2 = dDetail * dDetail, rien2 = dRien * dRien;
       const n = g.proches.map(() => 0);
       let nl = 0;
       const ma = g.proches.map(m => m.instanceMatrix.array), la = g.loin ? g.loin.instanceMatrix.array : null;

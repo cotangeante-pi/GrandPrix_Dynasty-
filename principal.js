@@ -1973,6 +1973,19 @@ function demarrerJeu() {
     b.addEventListener('mousedown', e => e.preventDefault());
     b.addEventListener('click', () => { JEU.reglageTrajectoire = SUITE[(SUITE.indexOf(vu()) + 1) % SUITE.length]; SAUVEGARDE.ecrireOption('trajectoire', JEU.reglageTrajectoire); ecrire(); });
   }
+  // la qualité de l'image (qualite.js, tour 40) : auto (par défaut), haute ou basse dans le menu pause, sauvegardé ; ?qualite=…
+  // la force. Sous un automate (navigator.webdriver : les tests), « auto » ne baisse pas seul sans ?qualite=auto, pour que les
+  // mesures d'images restent comparables d'un passage à l'autre
+  {
+    const b = document.getElementById('boutonQualitePause'), demandee = PARAMETRES.get('qualite');
+    JEU.qualite = QUALITE.creer(QUALITE.REGLES.includes(demandee) ? demandee : SAUVEGARDE.option('qualite', 'auto'));
+    JEU.qualiteAuto = !(navigator.webdriver && !QUALITE.REGLES.includes(demandee));
+    const appliquer = () => SCENE3D.reglerQualite(JEU.qualite.cran ? QUALITE.cran(JEU.qualite.cran) : null);
+    const ecrire = () => { b.textContent = texte('qualite_' + JEU.qualite.regle); };
+    appliquer(); ecrire();
+    b.addEventListener('mousedown', e => e.preventDefault());
+    b.addEventListener('click', () => { QUALITE.regler(JEU.qualite, QUALITE.suivante(JEU.qualite.regle)); SAUVEGARDE.ecrireOption('qualite', JEU.qualite.regle); appliquer(); ecrire(); });
+  }
   INTERFACE.majBoutonsFantome(SAUVEGARDE.option('fantome', true));
   PODIUM3D.init(CIRCUIT);
   // ?course=5, 12, 18 ou 0 (essai libre) lance directement une course (tests, développement)
@@ -2078,6 +2091,8 @@ function demarrerJeu() {
     // la météo dessinée (meteo3d.js, l'état de meteo.js) : la pluie, les gerbes, la piste mouillée, le ciel couvert ; rien au sec
     if (typeof METEO3D !== 'undefined') METEO3D.maj(METEO3D.etat(JEU.plateau || JEU.course), SCENE3D.camera, JEU.plateau ? JEU.plateau.pilotes.map(p => p.v) : [JEU.joueur], dt, CAMERA.mode === 'cockpit' && JEU.ecran === 'course', CIRCUIT, JEU.carte ? JEU.carte.trajectoire : null);
     SCENE3D.dessiner();
+    // la qualité automatique : sous QUALITE_IPS_MIN images par seconde pendant QUALITE_FENETRE s, un cran plus bas ; jamais pendant les feux
+    if (JEU.qualite && JEU.qualiteAuto) { const n = QUALITE.observer(JEU.qualite, dt, !!(JEU.course && JEU.course.etat === 'compte')); if (n !== null) SCENE3D.reglerQualite(QUALITE.cran(n)); }
   });
   if (PARAMETRES.get('debug') === '1') brancherDebug();
   // Poki (sdk.js, le seul passage vers le SDK) : init, puis « chargement fini » une seule fois ; hors Poki, le rappel vient tout de suite
