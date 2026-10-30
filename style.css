@@ -1028,8 +1028,7 @@ body.deux.cote #boutonSon { top: auto; bottom: 12px; right: 12px; }   /* (côte 
 #prevision { margin: 2px 0 6px; font-weight: 700; opacity: 0.9; }
 #messageCourse { position: fixed; top: 176px; left: 50%; transform: translateX(-50%); padding: 6px 14px; border-left: 4px solid #e10600; border-radius: 6px; background: rgba(11, 15, 23, 0.82); font: 800 16px/1.3 var(--police); white-space: nowrap; pointer-events: none; }
 
-/* ======================================================================================================================
-   Le thème télé (étape 11, tour 32, Codeur 3) : le style de tous les écrans entre les courses, défini une seule fois ici,
+/* ===============================================================================================================   Le thème télé (étape 11, tour 32, Codeur 3) : le style de tous les écrans entre les courses, défini une seule fois ici,
    en variables CSS (CLAUDE.md « L'interface » : « une vraie retransmission de F1, claire et animée, jamais encombrée »).
    Polices, couleurs, bandeaux, coins, ombres et durées ; les écrans plus haut gardent leur mise en page, ce bloc leur
    donne l'habillage. Les animations : des transitions courtes (< 250 ms), coupées si prefers-reduced-motion.
@@ -1339,3 +1338,8 @@ button.manette-choix { box-shadow: 0 0 0 3px #ffd23f, 0 0 14px 2px rgba(255, 210
 #pause button.aideFigee { cursor: default; opacity: 0.7; box-shadow: none; }
 #boutonAidesPaddock { position: fixed; left: 50%; bottom: 6px; transform: translateX(-50%); }
 .marqueAides { margin-left: 4px; font-size: 0.85em; opacity: 0.9; }
+=======
+/* la sauvegarde abîmée ou impossible (tour 41d, Codeur 4) : un bandeau en haut, au milieu, qui ne prend aucun clic */
+#sauvegardePerdue { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 40; max-width: min(620px, 80vw); padding: 8px 14px;
+  background: rgba(150, 20, 24, 0.92); color: #fff; font-weight: 700; font-size: 15px; text-align: center; border-radius: 6px; pointer-events: none; }
+#sauvegardePerdue.cache { display: none; }

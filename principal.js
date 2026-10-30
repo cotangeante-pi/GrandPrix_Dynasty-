@@ -1808,6 +1808,18 @@ function calculerEnFond(etapes, fini) {
   return suivi;
 }
 
+// la sauvegarde abîmée (une nouvelle carrière) ou impossible (le navigateur ne garde rien) : un bandeau en haut, quelques secondes
+// (tour 41d, Codeur 4 ; sauvegarde.js le signale, une fois chacun)
+function avisSauvegarde(type) {
+  const e = document.getElementById('sauvegardePerdue');
+  if (!e) return;
+  e.textContent = texte(type === 'perdue' ? 'sauvegardePerdue' : 'sauvegardeImpossible');
+  e.dataset.avis = type;
+  e.classList.remove('cache');
+  clearTimeout(avisSauvegarde.minuterie);
+  avisSauvegarde.minuterie = setTimeout(() => e.classList.add('cache'), REGLAGES.AVIS_SAUVEGARDE_DUREE * 1000);
+}
+
 function demarrerJeu() {
   // un jeu, pas une page : ni menu contextuel, ni défilement par les touches ou la molette
   document.addEventListener('contextmenu', e => e.preventDefault());
@@ -2125,6 +2137,7 @@ function demarrerJeu() {
   });
   if (PARAMETRES.get('debug') === '1') brancherDebug();
   // Poki (sdk.js, le seul passage vers le SDK) : init, puis « chargement fini » une seule fois ; hors Poki, le rappel vient tout de suite
+  SAUVEGARDE.surAvis(avisSauvegarde);
   SDK.init(() => { JEU.sdkPret = true; SDK.chargementFini(); });
   BOUCLE.demarrer();
 }

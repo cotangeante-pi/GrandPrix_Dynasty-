@@ -993,3 +993,12 @@ Object.assign(TEXTES.fr, {
   aidesFigees: 'Les aides au pilotage se choisissent avant la course.', aidesValider: 'Valider', argentSansAide: 'bonus pilotage sans aide : +{n}',
   aidesJoueur_oui: '🛞 Aides : oui', aidesJoueur_non: '🛞 Aides : non', aidesMarque: '🛞',
 });
+// --- tour 41d, Codeur 4 : la sauvegarde abîmée (une nouvelle carrière commence) ou impossible (le navigateur ne garde rien) ---
+Object.assign(TEXTES.en, {
+  sauvegardePerdue: 'Your save was damaged: a new career begins.',
+  sauvegardeImpossible: 'This browser can’t keep your save: your career ends when you close the tab.',
+});
+Object.assign(TEXTES.fr, {
+  sauvegardePerdue: 'Ta sauvegarde était abîmée : une nouvelle carrière commence.',
+  sauvegardeImpossible: 'Ce navigateur ne garde pas la sauvegarde : ta carrière s’arrêtera à la fermeture de l’onglet.',
+});
