@@ -116,6 +116,19 @@ t('les accords : « 1 pt », « 1 lap », « 1 race »… en anglais ; « 0 pt �
     if (r!==n+' '+att) m.push(l+' : '+n+' '+pl+' → '+r);}
   v(!m.length,m.join(' ; '));});
 
+// --- le balayage des pluriels (tour 37f) : chaque texte qui met un nombre devant un mot au pluriel (« {n} points », « {v} victoires »…),
+// rempli avec 0, 1 et 2 comme le font les écrans (avec / elider / remplir du journal, de l'interview, des discussions : tous par accorder),
+// ne dit jamais « 1 points » (ni « 0 points » en français) ; 2 reste au pluriel
+t('les pluriels de tous les textes : chaque « {n} mot » rempli avec 0, 1 et 2 s’accorde (jamais « 1 points », « 1 tours », « 0 victoires » en français)', ()=>{
+  const UNITES={en:'wins|podiums|points|pts|titles|seasons|races|poles|generations|seconds|laps|places gained|places|years|Grands Prix',fr:'victoires|podiums|points|pts|titres|saisons|courses|poles|générations|secondes|tours|places gagnées|places|ans|Grands Prix'};
+  const m=[];let vus=0;
+  for (const l of ['en','fr']) {const re=new RegExp('\\{(\\w+)\\}[ \\u00a0]('+UNITES[l]+')(?![\\wàâçéèêëîïôûù])'),un=l==='fr'?[0,1]:[1];
+    for (const k of Object.keys(TEXTES[l])) for (const s of phrases(TEXTES[l][k])) { if (!re.test(s)) continue; vus++;
+      for (const n of [0,1,2]) { const r=accorder(s.replace(/\{\w+\}/g,String(n)),l), faute=new RegExp('(^|[^\\d,.])'+(un.includes(n)?String(n):'#')+'[ \\u00a0]('+UNITES[l]+')(?![\\wàâçéèêëîïôûù])');
+        if (faute.test(r)) m.push(l+'.'+k+' ('+n+') = '+r);
+        if (n===2&&!new RegExp('2[ \\u00a0]('+UNITES[l]+')').test(r)) m.push(l+'.'+k+' (2, plus de pluriel) = '+r);}}}
+  v(vus>40&&!m.length,vus+' textes ; '+m.slice(0,6).join(' ; '));});
+
 // --- le français ne genre jamais le joueur (tour 37, suite) : quelques accords relevés puis rendus neutres ; aucun ne doit revenir
 const GENRES = [
   [/\bfâchée?s?\b/i, 'fâché(e)'], [/\bprête?\s+pour\b/i, 'prêt(e) pour'], [/\bt’a\s+battue?\b/i, 't’a battu(e)'], [/\bm’a\s+poussée?\b/i, 'm’a poussé(e)'],

@@ -1,0 +1,7 @@
+# Tour 37f — compte rendu du Codeur 3 (2026-10-30) : le balayage des pluriels
+
+Branche codeur3, partie de bf5953d. Le passage GitHub de ce commit est donné dans le message au Chef.
+
+- **Tous les textes** (tests/textes.html, calcul pur) : chaque texte qui met un nombre devant un mot au pluriel (90 textes, en anglais et en français, dont « {n} points », « {v} victoires », « {n} tours », « {p} places gagnées ») est rempli avec 0, 1 et 2. Il passe ensuite par `accorder`, comme le font les écrans : interface, journal, interview, discussions, courrier, patrons, sponsors, bilan. Aucun « 1 points », aucun « 0 victoires » en français, et 2 reste au pluriel. Si on retire un mot d'`accorder`, le test échoue bien. Résultat : 1261/1261.
+- **Les écrans** (tests/paquet.py, depuis le zip, en anglais et en français) : en plus du paddock, du calendrier, d'une fiche, de l'album et de l'arbre, le test remplit avec 0, 1 et 2 le classement du tournoi (points), les gains (places gagnées) et le bilan de carrière (saisons, victoires, podiums, titres). Il échoue sur « 1 pts », « 1 tours »… Les gains à deux n'ont pas de nom au pluriel. La fin de saison, les contrats, les sponsors et le temple passent par `avec`, `nombre` ou `accorder` ; le test des textes les couvre. Résultat : paquet.py 67/67 sur le Mac.
+- **Aucune faute restante trouvée** : tous les nombres déjà collés à la main passaient par `accorder` depuis le tour 37d (pts, tours). Aucun code du jeu n'a changé dans ce tour, seulement des tests.
