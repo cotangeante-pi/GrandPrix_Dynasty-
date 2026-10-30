@@ -100,6 +100,8 @@ Note du Chef session-5b (2026-10-23) : les lignes 18 à 19b ne s'additionnaient 
 
 ## À essayer par le propriétaire
 
+- **Les aides au pilotage, choisies avant la course** (ta règle du 2026-10-30, faite par le Codeur 3) : bouton « 🛞 Aides au pilotage » au titre, au paddock, avant une course rapide ou une leçon : direction, freinage, anti-blocage, antipatinage, une par une ; le bonus annoncé ; pendant la course, le menu pause les montre sans les changer ; sur l'écran des gains, « bonus pilotage sans aide ». Dire : l'enfant s'y retrouve ? Le bonus donne envie de couper une aide ?
+
 - **La voiture vivante** (tour 41) : une course en légende, puis `&reglages=1` pour jouer avec VOITURE_VIVANTE (0 = la voiture d'avant, 1 = la vivante). Au freinage le poids passe sur l'avant, un lever de pied en courbe rapide fait tourner, plein gaz en sortie d'épingle fait patiner. Dire : **l'arrière qui glisse, c'est fun ou énervant ?** (l'axe conduite ne passe pas 18/20 sans ton avis)
 
 - **La trajectoire conseillée** (tour 39) : en niveau débutant, ou menu pause « Trajectoire conseillée » : une ligne verte / jaune / rouge sur la piste. Dire : elle se lit bien (largeur, transparence) ? Le jaune dans la grande courbe rapide du circuit d'essai a du sens ? Sous la pluie (depuis le tour 40d), le rouge arrive plus tôt : ça colle à ce que tu sens ? Avec une vraie manette : la débrancher en course doit mettre la pause.
