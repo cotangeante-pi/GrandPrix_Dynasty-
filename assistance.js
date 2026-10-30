@@ -25,6 +25,8 @@ const ASSISTANCE = (function () {
   // le bonus d'argent sans aide (ASSIST_BONUS) : la somme des parts des aides coupées ; r null = aucun bonus (pas de choix connu)
   const bonus = r => r ? AIDES.reduce((s, a) => s + (r[a] ? 0 : R.ASSIST_BONUS[a] || 0), 0) : 0;
   const aucune = r => !r || AIDES.every(a => !r[a]);
+  // la voiture vivante (physique.js) : les aides la pilotent un peu autrement ; 0 = la voiture d'avant, les aides d'avant au bit près
+  const vivante = () => typeof voitureVivante === 'function' && voitureVivante() > 0;
 
   // l'adhérence de la voiture, comme la physique la lit (× 1 sans météo, pneus, garage ni aileron)
   const adherence = v => (v.adhMeteo || 1) * (v.adherence || 1) * (v.aero || 1) * (v.aileronAdherence || 1) * (v.surHerbe ? R.ADHERENCE_HERBE : 1);
@@ -35,7 +37,7 @@ const ASSISTANCE = (function () {
   // ASSIST_FREIN_PART près
   function vitesseSure(v, circuit, carte) {
     const p = v.piste, nb = circuit.nb, n = Math.ceil(R.ASSIST_REGARD / circuit.pas), mu = adherence(v);
-    const a = R.ASSIST_FREIN_PART * freinagePossible(Math.max(0, v.u)) * (v.adhMeteo || 1) * (v.freins || 1);
+    const a = R.ASSIST_FREIN_PART * freinagePossible(Math.max(0, v.u)) * (v.adhMeteo || 1) * (v.freins || 1) * (vivante() ? R.ASSIST_VIVANTE_FREIN : 1);
     const kt = carte && carte.trajectoire ? carte.trajectoire.courbure : null, kc = circuit.courbure;
     let sure = Infinity;
     for (let j = 1; j <= n; j++) {
@@ -57,7 +59,11 @@ const ASSISTANCE = (function () {
     if (r.antiblocage) {
       // l'anti-blocage : en braquant, la pression au frein reste sous le seuil du blocage (SENSATIONS_BLOCAGE_FREIN : ni fumée ni
       // crissement) ; la marge du freinage assisté (ASSIST_FREIN_PART) compte déjà avec ce frein plus doux
-      if (frein >= R.SENSATIONS_BLOCAGE_FREIN && Math.abs(direction) > R.ASSIST_ABS_BRAQUAGE && v.u > R.SENSATIONS_BLOCAGE_VITESSE) frein = R.SENSATIONS_BLOCAGE_FREIN * R.ASSIST_ABS_PART;
+      if (frein >= R.SENSATIONS_BLOCAGE_FREIN && Math.abs(direction) > R.ASSIST_ABS_BRAQUAGE && v.u > R.SENSATIONS_BLOCAGE_VITESSE) {
+        // (la voiture vivante, tour 42d : l'arrière délesté part si l'on braque en freinant fort ; on freine droit, puis on tourne)
+        if (vivante()) direction = Math.sign(direction) * Math.min(Math.abs(direction), R.ASSIST_VIVANTE_ABS_BRAQUAGE);
+        else frein = R.SENSATIONS_BLOCAGE_FREIN * R.ASSIST_ABS_PART;
+      }
     }
     if (r.antipatinage && gaz > 0) {
       const limite = R.ADHERENCE * adherence(v) * charge(v.u) / R.MASSE, lat = Math.abs(v.u * v.r);

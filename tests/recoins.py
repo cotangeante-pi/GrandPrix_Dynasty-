@@ -574,6 +574,55 @@ def pendant(c, titre):
             if c.ecran('tournoiAToi', 'à toi', 60000) and c.attendre('() => JEU.qualif && JEU.qualif.etat === "tour"', 30000):
                 pg.wait_for_timeout(1500); conduite(c, titre, 'un tour du tournoi', 'tournoiPause')
 
+# --- les aides au pilotage choisies avant la course (tour 42d) : l'écran, le bonus, gardées d'un Grand Prix à l'autre, figées pendant la
+# course ; le curseur VOITURE_VIVANTE de ?reglages=1 à 0 : la voiture d'avant au bit près, même en légende
+POSITION = '() => [JEU.joueur.x, JEU.joueur.z, JEU.joueur.cap, JEU.joueur.u]'
+def tour_robot(c, adresse, avant_js=None):
+    # une course seule, le robot, 20 s de jeu après les feux, la boucle arrêtée (au pas près) ; avant_js : posé avant les feux
+    c.aller(adresse)
+    if not c.ecran('course', 'course seule (robot)', 60000): return None
+    c.attendre('() => JEU.course', 30000)
+    if avant_js: c.ev(avant_js)
+    return c.ev('() => { BOUCLE.arreter(); JEU.robot = true; let n = 0; while (JEU.course.etat === "compte" && n++ < 120 * 30) BOUCLE.simuler(REGLAGES.PAS_PHYSIQUE); BOUCLE.simuler(20); return [JEU.joueur.x, JEU.joueur.z, JEU.joueur.cap, JEU.joueur.u, REGLAGES.NIVEAU, REGLAGES.VOITURE_VIVANTE]; }')
+def aides_pilotage(c, titre):
+    pg = c.pg
+    c.aller(f'index.html?championnat=1&tours=1&robot=1&lang={c.langue}')
+    if not c.ecran('championnat', 'paddock', 60000): return
+    c.ev('() => { if (window.AIDES_ECRAN) AIDES_ECRAN.fermer(); SAUVEGARDE.ecrireChampionnat(JEU.championnat); const d = SAUVEGARDE.lire(); d.decouverteFaite = true; SAUVEGARDE.ecrire(d); }')
+    c.cliquer('#boutonAidesPaddock')
+    vu = c.attendre('() => !document.getElementById("choixAides").classList.contains("cache")', 5000)
+    t(f'{titre} : « Aides au pilotage » s’ouvre depuis le paddock', vu)
+    c.inspecter('aides au pilotage (paddock)')
+    avant = c.ev('() => JSON.stringify(JEU.assistance)')
+    for a in ('freinage', 'antiblocage'):
+        c.cliquer(f'#choixAidesListe button[data-aide="{a}"]')
+    choisi = c.ev('() => [JSON.stringify(JEU.assistance), JSON.stringify(SAUVEGARDE.option("aides_pilotage", null)), ASSISTANCE.bonus(JEU.assistance), document.getElementById("choixAidesBonus").textContent]')
+    t(f'{titre} : deux aides changées : le choix est sauvegardé, le bonus affiché suit', bool(choisi) and choisi[0] != avant and choisi[0] == choisi[1] and choisi[3].strip() != '', str([avant, choisi]))
+    c.inspecter('aides au pilotage (deux aides changées)')
+    c.cliquer('#boutonAidesValider')
+    # le Grand Prix suivant (la page se recharge) : le même choix ; et les gains du Grand Prix joué portent le bonus de ces aides
+    c.bloque = None
+    g = c.jouer(lambda e: e[0] in ('qualif', 'course') and e[6] == 1, 900, 'Grand Prix 1 avec les aides choisies')
+    apres = c.ev('() => [JSON.stringify(JEU.assistance), JSON.stringify((JEU.championnat.argent.historique || []).slice(-1)[0])]')
+    t(f'{titre} : au Grand Prix suivant (page rechargée), le même choix d’aides', g and bool(apres) and apres[0] == choisi[0], str([g, c.bloque, apres, choisi[0]]))
+    # pendant la course : le menu pause montre les aides, figées
+    c.attendre('() => JEU.ecran === "course" || (JEU.qualif && JEU.qualif.etat === "choix")', 60000)
+    if c.ev('() => JEU.ecran') == 'qualif':
+        c.cliquer('#boutonQualifPasser'); c.attendre('() => JEU.qualif && JEU.qualif.etat === "resultat"', 240000); c.cliquer('#boutonQualifCourse')
+    if c.ecran('course', 'course du Grand Prix 2', 60000):
+        c.attendre('() => JEU.plateau && JEU.plateau.carte !== null', 240000)
+        pg.keyboard.press('Escape')
+        if c.ecran('pause', 'pause (aides figées)'):
+            for a in ('Direction', 'Freinage', 'Antiblocage', 'Antipatinage'): c.si(f'#bouton{a}Pause')
+            fige = c.ev('() => [JSON.stringify(JEU.assistance), JSON.stringify(SAUVEGARDE.option("aides_pilotage", null))]')
+            t(f'{titre} : pendant la course, les aides du menu pause sont figées (un clic sur chacune ne change rien)', fige == [choisi[0], choisi[0]], str([fige, choisi[0]]))
+            pg.keyboard.press('Escape')
+    # le curseur VOITURE_VIVANTE (?reglages=1) à 0 en légende : le même tour que la voiture d'avant (en normal), au bit près
+    ref = tour_robot(c, f'index.html?course=1&circuit=test&niveau=normal&lang={c.langue}')
+    leg0 = tour_robot(c, f'index.html?course=1&circuit=test&niveau=legende&reglages=1&lang={c.langue}', '() => { const k = document.querySelector("input[data-cle=VOITURE_VIVANTE]"); k.value = "0"; k.dispatchEvent(new Event("input")); }')
+    leg1 = tour_robot(c, f'index.html?course=1&circuit=test&niveau=legende&lang={c.langue}')
+    t(f'{titre} : ?reglages=1, VOITURE_VIVANTE à 0 en légende : 20 s du robot au bit près comme la voiture d’avant (et à 1, une autre voiture)', bool(ref and leg0 and leg1) and ref[:4] == leg0[:4] and leg0[5] == 0 and leg1[:4] != ref[:4], str([ref, leg0, leg1]))
+
 # --- les grandes tailles (tour 39d) : un passage court en 1280×720 et en 1920×1080, en plus du 960×600 des autres parties ---
 # la carrière : le premier lancement (titre → découverte → Bravo → création), le premier Grand Prix joué par le robot comme dans saison.py
 # (au paddock : garage, courrier, discussion), puis le paddock et tous ses écrans et le menu pause (la partie ecrans)
@@ -590,7 +639,7 @@ def tailles_jeux(c, titre):
     deux(c, titre, court=True)
     tournoi(c, titre, court=True)
 
-PARTIES = { 'dynastie': dynastie, 'pendant': pendant, 'sauvegarde': sauvegarde, 'stockage': stockage, 'saison-en': saison_en, 'manette': manette, 'deux': deux, 'tournoi': tournoi, 'fin': fin, 'ecrans': ecrans, 'tuto': tuto, 'tailles-carriere': tailles_carriere, 'tailles-jeux': tailles_jeux }
+PARTIES = { 'aides-pilotage': aides_pilotage, 'dynastie': dynastie, 'pendant': pendant, 'sauvegarde': sauvegarde, 'stockage': stockage, 'saison-en': saison_en, 'manette': manette, 'deux': deux, 'tournoi': tournoi, 'fin': fin, 'ecrans': ecrans, 'tuto': tuto, 'tailles-carriere': tailles_carriere, 'tailles-jeux': tailles_jeux }
 LANGUES = { 'saison-en': ('en',), 'dynastie': ('fr',) }   # (la saison entière en français, c'est saison.py)
 TAILLES = { 'tailles-carriere': [(1280, 720), (1920, 1080)], 'tailles-jeux': [(1280, 720), (1920, 1080)] }
 demandees = [x for x in (sys.argv[1:] or os.environ.get('RECOINS', '').replace(',', ' ').split()) if x] or list(PARTIES)

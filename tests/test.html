@@ -1016,15 +1016,16 @@ t('disposition (discussion.js → ia.js) : promise pour le Grand Prix suivant, e
   L.push('  (disposition « bloquer » : défenses '+avec.def+' (sans : '+sans.def+'), dépassements '+avec.dep+' (sans : '+sans.dep+'))');
   v(sans.def===0&&avec.def>0,'défenses '+sans.def+' / '+avec.def);});
 // --- la voiture vivante (CLAUDE.md « La voiture vivante (expert et légende) », Codeur 1) : en calcul pur
-function tourVivant(circ,niveau,vv,brutal){const R_=REGLAGES,av=[R_.NIVEAU,R_.VOITURE_VIVANTE];R_.NIVEAU=niveau;R_.VOITURE_VIVANTE=vv;
-  try{const c=creerCourse(circ,3),v_=creerVoiture(circ);placerAuDepart(v_,circ);c.compte=0;let glisse=0,teteAQueue=0;
+function tourVivant(circ,niveau,vv,brutal,aides,carte){const R_=REGLAGES,av=[R_.NIVEAU,R_.VOITURE_VIVANTE];R_.NIVEAU=niveau;R_.VOITURE_VIVANTE=vv;
+  try{const c=creerCourse(circ,3),v_=creerVoiture(circ);placerAuDepart(v_,circ);c.compte=0;let glisse=0,teteAQueue=0,glissades=0,glisse0=0;
     for(let k=0;k<400*120&&c.etat!=='finie';k++){let cmd=piloteRobot(v_,circ);
       // le robot « brutal » : plein gaz dès qu'il veut accélérer, et au freinage frein à fond et braquage à fond
       if(brutal)cmd={gaz:cmd.gaz>0?1:0,frein:cmd.frein>0?1:0,direction:cmd.frein>0?Math.sign(cmd.direction||1):cmd.direction};
+      if(aides)cmd=ASSISTANCE.appliquer(cmd,v_,{circuit:circ,carte},aides);   // (tour 42d : les aides au pilotage du joueur, comme dans la page)
       appliquerCommandes(v_,cmd);pasVoiture(v_,circ,DT);majCourse(c,v_,DT);
-      glisse=Math.max(glisse,Math.abs(Math.atan2(v_.v,Math.max(1,Math.abs(v_.u)))));
+      const g_=Math.abs(Math.atan2(v_.v,Math.max(1,Math.abs(v_.u))));if(g_>0.15&&glisse0<=0.15)glissades++;glisse0=g_;glisse=Math.max(glisse,g_);
       if(v_.piste){let d=v_.cap-Math.atan2(circ.tz[v_.piste.indice],circ.tx[v_.piste.indice]);if(Math.abs(Math.atan2(Math.sin(d),Math.cos(d)))>Math.PI/2)teteAQueue++;}}
-    return {fini:c.etat==='finie',tours:c.tours.map(t_=>t_.temps),glisse,teteAQueue,barr:v_.contactsBarriere,x:v_.x,z:v_.z,cap:v_.cap};}
+    return {fini:c.etat==='finie',tours:c.tours.map(t_=>t_.temps),glisse,glissades,teteAQueue,barr:v_.contactsBarriere,x:v_.x,z:v_.z,cap:v_.cap};}
   finally{[R_.NIVEAU,R_.VOITURE_VIVANTE]=av;}}
 t('voiture vivante : VOITURE_VIVANTE à 0 en légende, et à 1 en normal ou en débutant : la voiture d’aujourd’hui au bit près (le tour du robot)',()=>{
   const ref=tourVivant(TQ,'normal',0);for(const [n,vv] of [['legende',0],['expert',0],['normal',1],['debutant',1]]){const r=tourVivant(TQ,n,vv);v(r.x===ref.x&&r.z===ref.z&&r.cap===ref.cap,n+' '+vv);}});
@@ -1044,6 +1045,13 @@ t('voiture vivante : en légende, le robot neutre fait ses tours sans tête-à-q
     L.push('  (voiture vivante, '+nom+', robot neutre : meilleur tour '+m(n0).toFixed(2)+' → '+m(n1).toFixed(2)+' s, dérive max '+n0.glisse.toFixed(3)+' → '+n1.glisse.toFixed(3)+' rad ; robot brutal : '+m(b0).toFixed(2)+' → '+m(b1).toFixed(2)+' s, dérive '+b0.glisse.toFixed(3)+' → '+b1.glisse.toFixed(3)+' rad)');
     v(n1.fini&&n1.teteAQueue===0&&n1.barr===0&&m(n1)<=m(n0)*1.01,nom+' neutre : fini '+n1.fini+', tête-à-queue '+n1.teteAQueue+', barrières '+n1.barr+', '+m(n1).toFixed(2)+' / '+m(n0).toFixed(2));
     if(nom==='technique')v(b1.glisse>=1.5*b0.glisse&&b1.fini&&b1.teteAQueue===0&&b1.barr===0,nom+' brutal : dérive '+b1.glisse.toFixed(3)+' / '+b0.glisse.toFixed(3)+', fini '+b1.fini+', tête-à-queue '+b1.teteAQueue+', barrières '+b1.barr);}});
+// (tour 42d, Codeur 4) les aides au pilotage avec la voiture vivante : le freinage assisté et l'anti-blocage étaient faits pour la
+// voiture d'avant ; avec elle, le brutal aidé glissait plus que sans aide (dérive 0,094 → 0,201 rad au technique)
+t('voiture vivante et aides au pilotage : en légende, au technique, avec toutes les aides, le robot brutal ne glisse pas plus que sans aide (dérive max, glissades), sans tête-à-queue ; le neutre aidé n’est pas plus rapide que le neutre sans aide',()=>{
+  const T_={direction:true,freinage:true,antiblocage:true,antipatinage:true},k=CARTES_T.technique,b=tourVivant(TQ,'legende',1,true),ba=tourVivant(TQ,'legende',1,true,T_,k),n=tourVivant(TQ,'legende',1,false),na=tourVivant(TQ,'legende',1,false,T_,k),m=r=>Math.min(...r.tours.slice(1));
+  L.push('  (voiture vivante et aides, technique, légende : brutal sans aide dérive '+b.glisse.toFixed(3)+' rad, '+b.glissades+' glissades, '+m(b).toFixed(2)+' s ; aidé '+ba.glisse.toFixed(3)+' rad, '+ba.glissades+' glissades, '+m(ba).toFixed(2)+' s ; neutre '+m(n).toFixed(2)+' s, aidé '+m(na).toFixed(2)+' s)');
+  v(ba.fini&&ba.teteAQueue===0&&ba.glisse<=b.glisse+0.01&&ba.glissades<=b.glissades,'brutal aidé : dérive '+ba.glisse.toFixed(3)+' / '+b.glisse.toFixed(3)+', glissades '+ba.glissades+' / '+b.glissades);
+  v(m(na)>=m(n)-0.05,'neutre aidé '+m(na).toFixed(2)+' / '+m(n).toFixed(2));});
 t('classement : les arrivés d’abord (dans l’ordre d’arrivée), puis les plus avancés ; les tours de retard comptés', ()=>{
   const e=creerCourseIA(TQ,3,5,1,CARTES_T.technique),P=e.pilotes;
   P[2].place=1;P[2].arrivee=10;P[0].course.progression=500;P[1].course.progression=550+TQ.longueur;
