@@ -108,6 +108,8 @@ PAGES = [
     ('index.html?course=3&ia=9&joueur=1&robot=1&circuit=test&test=sensations', 1280, 720, None),
     ('index.html?course=3&ia=5&joueur=1&robot=1&circuit=test&niveau=debutant&test=conseil', 1280, 720, None),   # la trajectoire conseillée (tour 39) : en débutant, d'office ; capture conseil.png
     ('index.html?course=3&ia=5&joueur=1&robot=1&circuit=test&niveau=normal&test=conseil', 960, 600, None),     # … en normal, aucune
+    ('index.html?course=3&ia=9&joueur=1&robot=1&circuit=test&qualite=auto&test=qualite', 1280, 720, None),   # la qualité automatique (tour 40) : jusqu'à « basse » sous swiftshader, jamais pendant les feux ; capture qualite-basse.png
+    ('index.html?course=3&ia=5&circuit=test&test=qualite', 960, 600, None),   # … sans ?qualite, sous un automate, rien ne bouge
     ('index.html?course=3&circuit=test&test=manette', 1280, 720, None),   # la manette (tour 38) : une fausse manette conduit un tour, la pause, le menu au stick et à la croix
     ('index.html?deux=1&ia=0&circuit=test&test=manette-deux', 1280, 720, None),   # … deux manettes, une par joueur   # les sensations de conduite (tour 37) : son au premier geste, fumée, étincelles, réglage ; capture sensations.png
     ('index.html?course=3&ia=19&joueur=1&circuit=monzo&domicile=1&test=supporters', 1280, 720, None),   # le Grand Prix à domicile : la caméra de la grille longe d'abord la tribune des supporters ; capture supporters.png   # la réalisation télé (regie.js) : de vraies caméras, l'hélicoptère ; captures tele-monoco.png, tele-helico.png   # … et Monzo de jour : la luminosité de l'image, pour la comparer à la nuit   # le décor dans le vrai jeu : la course de nuit à Singapura, 20 voitures, vue télé ; capture jeu-singapura.png
@@ -1237,6 +1239,10 @@ def pluie_ecran(pg, titre, l, h):
       const pluie = window.METEO_TEST; window.METEO_TEST = { etat: () => ({ pluie: 0, eau: 0, ciel: 0 }) }; const zero = image(); window.METEO_TEST = undefined; const em = JEU.plateau.meteo; JEU.plateau.meteo = undefined; const sans = image(); JEU.plateau.meteo = em; window.METEO_TEST = pluie; const mouille = image(); BOUCLE.demarrer();
       return { zeroEgalSans: zero === sans, pluieDifferente: mouille !== sans }; }""")
     t(f'{titre} : au sec, pas un pixel ne change : une météo à 0 (après la pluie) donne la même image que pas de météo ; sous la pluie, l’image change', egal['zeroEgalSans'] and egal['pluieDifferente'], str(egal))
+    # le coût de la pluie (tour 40, le tableau des coûts) : la même image au sec et sous la pluie, derrière la voiture
+    cp = pg.evaluate('''() => { BOUCLE.arreter(); const appels = () => { METEO3D.maj(METEO3D.etat(JEU.plateau), SCENE3D.camera, JEU.plateau.pilotes.map(p => p.v), 0, false); SCENE3D.dessiner(); return [SCENE3D.appelsDessin, SCENE3D.trianglesDessines]; };
+      const pluie = window.METEO_TEST, mouille = appels(); window.METEO_TEST = { etat: () => ({ pluie: 0, eau: 0, ciel: 0 }) }; const sec = appels(); window.METEO_TEST = pluie; appels(); BOUCLE.demarrer(); return { mouille, sec }; }''')
+    L.append(f"  (le coût de la pluie à {l}×{h}, 20 voitures : {cp['mouille'][0] - cp['sec'][0]} appels de dessin, {cp['mouille'][1] - cp['sec'][1]} triangles de plus)")
 
 # la prévision au paddock (meteo3d.js, la fausse météo de test : risque de pluie 40 %) ; capture prevision.png
 def prevision_ecran(pg, titre):
@@ -1360,6 +1366,35 @@ def conseil_ecran(pg, titre, page):
         t(f'{titre} : le menu pause la règle (oui → freinages seulement → non, sauvegardé) ; à « non », plus de ligne', r == ['freinages', 'non'] and not pg.evaluate('() => CONSEIL.ligne.visible'), str(r))
     else:
         t(f'{titre} : en normal, aucune trajectoire conseillée (sans réglage choisi)', roule and not pg.evaluate('() => CONSEIL.ligne.visible') and pg.evaluate('() => REGLAGES.NIVEAU') == 'normal', pg.evaluate('() => [CONSEIL.ligne.visible, REGLAGES.NIVEAU]'))
+# la qualité automatique (qualite.js, tour 40) dans le vrai jeu, ?qualite=auto (sous un automate, « auto » ne bouge pas seul sans ce
+# paramètre) : swiftshader est sous 55 images par seconde, donc la qualité baisse d'un cran toutes les 3 s jusqu'à « basse », jamais
+# pendant les feux ; le menu pause la règle (auto → haute → basse, sauvegardé) ; sans ?qualite, rien ne bouge
+def qualite_ecran(pg, titre, page):
+    if 'qualite=auto' not in page:
+        pg.wait_for_timeout(4000)
+        t(f'{titre} : sous un automate, sans ?qualite, la qualité ne bouge pas seule (les mesures restent comparables)', pg.evaluate('() => JEU.qualite.cran === 0 && SCENE3D.qualite === null'), pg.evaluate('() => [JEU.qualite.cran, JEU.qualiteAuto]'))
+        return
+    pg.evaluate('() => { window.__qFeux = 0; BOUCLE.surAffichage(() => { if (JEU.course && JEU.course.etat === "compte" && window.__qAvant !== undefined) window.__qFeux = Math.max(window.__qFeux, JEU.qualite.cran - window.__qAvant); }); }')
+    attendre(pg, '() => JEU.ecran === "qualif" && JEU.qualif && JEU.qualif.etat === "choix"', None, 60000)
+    pg.evaluate('() => document.getElementById("boutonQualifPasser").click()')
+    attendre(pg, '() => JEU.qualif && JEU.qualif.etat === "resultat"', None, 180000)
+    pg.evaluate('() => document.getElementById("boutonQualifCourse").click()')
+    attendre(pg, '() => JEU.plateau.carte !== null', None, 180000)
+    if pg.evaluate('() => JEU.ecran === "grille"'): pg.evaluate('() => finirGrille()')
+    # (les menus d'avant, sous swiftshader, ont déjà fait baisser la qualité : on repart d'« auto » au cran haut, juste avant les feux)
+    # les feux : on les retient 8 s (bien plus que la fenêtre de 3 s) ; la qualité ne doit pas bouger pendant ce temps
+    pg.evaluate('() => { QUALITE.regler(JEU.qualite, "auto"); SCENE3D.reglerQualite(null); window.__qAvant = JEU.qualite.cran; window.__qFeux = 0; for (const p of JEU.plateau.pilotes) if (p.course.feux) { p.course.feux.delai = 8; p.course.feux.total = 13; p.course.compte = 8; } }')
+    attendre(pg, '() => JEU.course && JEU.course.etat !== "compte"', None, 60000)
+    feux = pg.evaluate('() => window.__qFeux')
+    basse = attendre(pg, '() => JEU.qualite.cran === 2', None, 30000)
+    q = pg.evaluate('() => ({ cran: JEU.qualite.cran, qualite: SCENE3D.qualite, ratio: SCENE3D.pixelRatio, feux: window.__qFeux })')
+    t(f'{titre} : qualité « auto » sous 55 images par seconde : un cran plus bas toutes les 3 s jusqu’à « basse » (moins de pixels, le décor moins loin), jamais pendant les feux',
+      feux == 0 and basse and q['qualite'] and q['qualite']['detail'] < pg.evaluate('() => REGLAGES.DECOR_DETAIL_LOIN') and q['ratio'] <= 0.75 + 1e-9, str([feux, q]))
+    pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'qualite-basse.png'))
+    r = pg.evaluate('''() => { const b = document.getElementById("boutonQualitePause"), vu = [b.textContent, JEU.qualite.regle]; b.click(); vu.push(JEU.qualite.regle, JEU.qualite.cran, SCENE3D.qualite, SAUVEGARDE.option("qualite", "?"));
+      b.click(); vu.push(JEU.qualite.regle, JEU.qualite.cran, SCENE3D.qualite && SCENE3D.qualite.pixelRatio); b.click(); vu.push(JEU.qualite.regle, b.textContent); return vu; }''')
+    t(f'{titre} : le menu pause règle la qualité (auto → haute → basse → auto, sauvegardé) ; « haute » remet l’image d’avant',
+      r[1] == 'auto' and r[2] == 'haute' and r[3] == 0 and r[4] is None and r[5] == 'haute' and r[6] == 'basse' and r[7] == 2 and r[8] == 0.75 and r[9] == 'auto' and r[0] == r[10], str(r))
 def commentaire_ecran(pg, titre):
     vu = attendre(pg, '() => /🎙/.test(document.getElementById("messageCourse").textContent) && !document.getElementById("messageCourse").classList.contains("cache")', None, 90000)
     txt = pg.evaluate('() => document.getElementById("messageCourse").textContent')
@@ -1409,6 +1444,24 @@ def tele_ecran(pg, titre):
     t(f'{titre} : l’hélicoptère, dans ses hauteurs ({round(h["y"])} m)', h['genre'] == 'helico' and h['borne'][0] <= h['y'] <= h['borne'][1], str(h))
     pg.screenshot(path=os.path.join(CAPTURES, 'tele-helico.png'))
 
+# les garde-fous des coûts par circuit (étape 10, tour 40) : la caméra de course derrière la voiture de tête, en COUTS_POINTS endroits du
+# tour, les 19 autres voitures en file devant elle (tests/lieu.html, window.__couts) ; le pire des appels de dessin et des triangles
+# reste sous ces plafonds (la mesure du 2026-10-29, + 4 appels et + 10 % de triangles). Un plafond qui tombe : on regarde ce qui a
+# grossi avant de le relever
+PLAFONDS_IMAGE = {
+    'monoco': (47, 169000),
+    'silverstoun': (44, 134000),
+    'monzo': (46, 89000),
+    'spaa': (45, 118000),
+    'suzuko': (48, 143000),
+    'interlagas': (45, 151000),
+    'montreol': (51, 117000),
+    'melbourn': (48, 99000),
+    'barcelana': (44, 108000),
+    'bahrayn': (45, 94000),
+    'singapura': (46, 172000),
+    'yasmarino': (48, 97000),
+}
 def lieu_ecran(pg, titre, page):
     nom = re.search(r'circuit=([a-z]+)', page).group(1)
     pret = attendre(pg, '() => !!window.__lieu', None, 60000)
@@ -1422,6 +1475,12 @@ def lieu_ecran(pg, titre, page):
       n['tribune'] > 10 and n['public'] > 1000 and 'decor-ciel' in m['maillages'] and m['avec'][0] < R['total'] and 0 < m['avec'][0] - m['sans'][0] <= R['decor'] and m['avec'][1] > m['sans'][1], str(m))
     if m['nuit']:
         t(f'{titre} : la nuit (ou le crépuscule) : des mâts d’éclairage le long de la piste', n['projecteur'] >= 20, str(n))
+    if re.fullmatch(r'tests/lieu\.html\?circuit=[a-z]+', page) and nom in PLAFONDS_IMAGE:
+        c = pg.evaluate('() => window.__couts()')
+        pa, pt = PLAFONDS_IMAGE[nom]
+        L.append(f"  (coûts de {nom}, caméra de course, 20 voitures, {c['points']} endroits du tour : appels {c['appelsMoy']} en moyenne, {c['appelsMax']} au pire ; triangles {c['trianglesMoy']} et {c['trianglesMax']} ; {c['materiaux']} matériaux, {c['programmes']} programmes, ombres {'oui' if c['ombres'] else 'non'} ; effets : fumée et étincelles +{c['sensations']}, trajectoire conseillée +{c['conseil']})")
+        t(f'{titre} : les coûts de {nom} à la caméra de course, avec 20 voitures : au pire {c["appelsMax"]} appels de dessin (plafond {pa}) et {c["trianglesMax"]} triangles (plafond {pt}) ; les effets coûtent au plus 3 appels',
+          c['appelsMax'] <= pa and c['trianglesMax'] <= pt and c['sensations'] + c['conseil'] <= 3 and not c['ombres'], str(c))
     if 'vue=port' in page:
         t(f'{titre} : Monoco : le port (de l’eau), des bateaux, des façades et des immeubles', n['eau'] > 50 and n['bateau'] >= 20 and n['immeuble'] > 200, str(n))
     if 'vue=pont' in page:
@@ -2462,7 +2521,7 @@ def fin_saison(pg, titre, l):
     pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'champion.png'))
     pg.click('#boutonSaisonSuite')
     d = pg.evaluate(DUEL_SAISON_ETAT)
-    attendu = (f"Tu as battu {d['nom']} {d['a']} à {d['b']}" if d['a'] > d['b'] else f"{d['nom']} t’a battu {d['b']} à {d['a']}" if d['a'] < d['b'] else f"Égalité avec {d['nom']} : {d['a']} à {d['b']}")
+    attendu = (f"Tu as battu {d['nom']} {d['a']} à {d['b']}" if d['a'] > d['b'] else f"{d['nom']} a fini devant toi, {d['b']} à {d['a']}" if d['a'] < d['b'] else f"Égalité avec {d['nom']} : {d['a']} à {d['b']}")
     t(f'{titre} : le duel de la saison : « {attendu} », le détail (qualifs, courses, carrière)', d['ecran'] == 'duelSaison' and d['score'] == attendu and 'qualifs' in d['detail'] and 'carrière' in d['detail'] and pas_de_defilement(d['defile']), str(d))
     pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'duel-saison.png'))
     pg.click('#boutonDuelSaisonSuite')
@@ -2950,6 +3009,8 @@ with sync_playwright() as p:
                 sensations_ecran(pg, titre)
             if 'test=conseil' in page:
                 conseil_ecran(pg, titre, page)
+            if 'test=qualite' in page:
+                qualite_ecran(pg, titre, page)
             if 'test=manette-deux' in page:
                 manette_deux(pg, titre)
             elif 'test=manette' in page:
@@ -3004,7 +3065,7 @@ with sync_playwright() as p:
                 qualif(pg, titre)
             elif 'test=fantome' in page:
                 fantome(pg, titre)
-            elif 'joueur=1' in page and 'test=supporters' not in page and 'test=sensations' not in page and 'test=conseil' not in page:   # (la page des supporters a son propre parcours)
+            elif 'joueur=1' in page and 'test=supporters' not in page and 'test=sensations' not in page and 'test=conseil' not in page and 'test=qualite' not in page:   # (la page des supporters a son propre parcours)
                 hud(pg, titre, l)
                 if l == 1280: course_joueur(pg, titre)
             if 'camera=auto' in page:

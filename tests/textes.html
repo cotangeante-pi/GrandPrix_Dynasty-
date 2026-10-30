@@ -101,6 +101,24 @@ t('les listes de variantes ont des variantes dans les deux langues (aucune liste
   for (const k of en) if (phrases(TEXTES.en[k]).length && !phrases(TEXTES.fr[k]).length || !phrases(TEXTES.en[k]).length && phrases(TEXTES.fr[k]).length) m.push(k);
   v(!m.length,m.join(', '));});
 
+// --- le français ne genre jamais le joueur (tour 37, suite) : quelques accords relevés puis rendus neutres ; aucun ne doit revenir
+const GENRES = [
+  [/\bfâchée?s?\b/i, 'fâché(e)'], [/\bprête?\s+pour\b/i, 'prêt(e) pour'], [/\bt’a\s+battue?\b/i, 't’a battu(e)'], [/\bm’a\s+poussée?\b/i, 'm’a poussé(e)'],
+  [/\b(tu\s+es|tu\s+seras|t’es)\s+(déjà\s+)?(notre\s+|le\s+|la\s+)?(premier|première)\s+pilote\b/i, 'tu es notre premier pilote'],
+  [/\btu\s+es\s+le\s+numéro\s+un\b/i, 'tu es le numéro un'], [/\bvous\s+êtes\s+touchée?s\b/i, 'vous êtes touché(e)s'],
+  [/\bInquiète?\s*\?/, 'Inquiet ?'], [/\bpas\s+l’air\s+contente?\b/i, 'pas l’air content(e)'],
+  [/\btu\s+es\s+(si\s+|très\s+|trop\s+)?(content|contente|déçu|déçue|fier|fière|heureux|heureuse|prêt|prête|seul|seule|motivé|motivée|désolé|désolée)\b/i, 'tu es + adjectif accordé'],
+  [/\b(je\s+suis|j’étais)\s+(si\s+|très\s+|trop\s+)?(content|contente|déçu|déçue|fier|fière|heureux|heureuse|prêt|prête|seul|seule|motivé|motivée|désolé|désolée)\b/i, 'je suis + adjectif accordé'],
+];
+t('le français ne genre pas le joueur : ni « fâchés », ni « Prêt pour… », ni « t’a battu », ni « tu es notre premier pilote », ni « Inquiet ? »…', ()=>{const m=[];
+  for (const k of fr) if (!NOMS_PROPRES.test(k)) for (const s of phrases(TEXTES.fr[k])) for (const [r, nom] of GENRES) if (r.test(s)) m.push(nom+' : fr.'+k+' = '+s);
+  v(!m.length,m.join(' ; '));});
+t('les accords corrigés ont gardé leur sens : la paix, la carrière, le statut, le duel perdu', ()=>{
+  v(phrases(TEXTES.fr.dis_paix_deja).some(s=>/dispute/.test(s)),'dis_paix_deja');
+  v(/carrière/.test(TEXTES.fr.bravoQuestion),'bravoQuestion');
+  v(phrases(TEXTES.fr.pat_statut_accepte).length===phrases(TEXTES.en.pat_statut_accepte).length,'pat_statut_accepte');
+  v(/devant toi/.test(TEXTES.fr.duelSaisonPerdu)&&TEXTES.fr.duelSaisonPerdu.includes('{nom}'),'duelSaisonPerdu');});
+
 // --- texte() dans cette page : la langue du navigateur de test
 t('LANGUE vaut « en » ou « fr »', ()=>{v(LANGUE==='en'||LANGUE==='fr',LANGUE);});
 t('texte() renvoie la valeur de la langue choisie', ()=>{for (const k of en) v(JSON.stringify(texte(k))===JSON.stringify(TEXTES[LANGUE][k]),k);});
