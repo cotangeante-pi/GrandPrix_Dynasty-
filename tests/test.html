@@ -498,10 +498,12 @@ const tourAssiste=(circ,carte,pilote,r,adh)=>{const v=creerVoiture(circ,0,0);v.a
     if(tours===1){if(v.surHerbe)herbe+=DT;if(SENSATIONS.faits(v,circ,m).blocage>0.5)blocages+=DT;}}
   return {temps:tours>=2?+(t-t1).toFixed(2):null,herbe:+herbe.toFixed(1),chocs:v.contactsBarriere-(chocs0||0),blocages:+blocages.toFixed(1)};};
 const BON=(v,c)=>piloteRobot(v,c),PRESSE=(v,c)=>{const r=piloteRobot(v,c);return {gaz:r.frein>0.3?0:1,frein:r.frein>0.3?Math.min(1,r.frein):0,direction:r.direction};},FOU=(v,c)=>piloteRobot(v,c,75);
-const SANS={freinage:false,antipatinage:false,direction:false};
-t('aides au pilotage : toutes en débutant, aucune en normal, expert et légende ; le choix sauvegardé l’emporte ; la direction assistée seulement en débutant ; toutes coupées, les cibles du joueur telles quelles', ()=>{const A_=ASSISTANCE;
+const SANS={freinage:false,antiblocage:false,antipatinage:false,direction:false};
+t('aides au pilotage : toutes en débutant, aucune en normal, expert et légende ; le choix sauvegardé l’emporte, à tous les niveaux (le propriétaire, 2026-10-30 : la direction assistée aussi) ; toutes coupées, les cibles du joueur telles quelles', ()=>{const A_=ASSISTANCE;
   const d=A_.reglees(null,'debutant'),n=A_.reglees(null,'normal');v(d.freinage&&d.antipatinage&&d.direction,'débutant');for(const niv of ['normal','expert','legende']){const r=A_.reglees(null,niv);v(!r.freinage&&!r.antipatinage&&!r.direction,niv);}
-  v(A_.reglees({freinage:false,antipatinage:true,direction:true},'debutant').freinage===false&&A_.reglees({freinage:true,antipatinage:false,direction:true},'normal').direction===false&&A_.reglees({freinage:true},'normal').freinage,'choix');
+  v(A_.reglees({freinage:false,antipatinage:true,direction:true},'debutant').freinage===false&&A_.reglees({freinage:true,antipatinage:false,direction:true},'normal').direction===true&&A_.reglees({freinage:true},'normal').freinage,'choix');
+  // (tour 37e) l'anti-blocage, une aide à part : une sauvegarde du tour 41 (sans lui) le prend de son freinage assisté
+  v(A_.reglees({freinage:false,antipatinage:true,direction:true},'debutant').antiblocage===false&&A_.reglees({freinage:true,antipatinage:false,direction:false},'normal').antiblocage===true&&A_.reglees(null,'debutant').antiblocage&&!A_.reglees(null,'expert').antiblocage,'anti-blocage');
   const vo=creerVoiture(C,0,0);placerSurPiste(vo,C,100,0);vo.u=80;const c={gaz:1,frein:0,direction:0.2};v(A_.appliquer(c,vo,{circuit:C,carte:CARTES_T.test},SANS)===c&&A_.appliquer(c,vo,{circuit:C,carte:CARTES_T.test},n)===c&&A_.appliquer(c,vo,{circuit:C},null)===c,'coupées');
   // l'antipatinage : au bout de l'adhérence latérale, les gaz baissent ; loin du bout, rien ; la direction assistée ramène vers la trajectoire
   const TC={freinage:false,antipatinage:true,direction:false},w=creerVoiture(C,0,0);placerSurPiste(w,C,100,0);w.u=40;const lim=REGLAGES.ADHERENCE*charge(40)/REGLAGES.MASSE;
@@ -510,6 +512,21 @@ t('aides au pilotage : toutes en débutant, aucune en normal, expert et légende
   const DA={freinage:false,antipatinage:false,direction:true},T=CARTES_T.test.trajectoire,i=Math.round(100/C.pas)+Math.round(REGLAGES.ASSIST_DIRECTION_VISEE/C.pas);placerSurPiste(w,C,100,T.ecart[i]+3);w.u=30;
   const dg=A_.appliquer({gaz:0,frein:0,direction:0},w,{circuit:C,carte:CARTES_T.test},DA).direction;placerSurPiste(w,C,100,T.ecart[i]-3);w.u=30;const dd=A_.appliquer({gaz:0,frein:0,direction:0},w,{circuit:C,carte:CARTES_T.test},DA).direction;
   v(dg<0&&dd>0&&Math.abs(dg)<=REGLAGES.ASSIST_DIRECTION[1]+1e-12,'direction '+[dg,dd]);});
+// --- le bonus sans aide (tour 37e, le propriétaire 2026-10-30) : une part des gains par aide coupée (ASSIST_BONUS), dans le plafond par course ;
+// toutes les aides allumées (ou aucune aide connue) = les gains d'avant au bit près ; chaque combinaison des 4 aides, le bonus exact
+t('bonus sans aide : direction +15 %, freinage +10 %, anti-blocage +3 %, antipatinage 0 %, +28 % au plus ; exact pour les 16 combinaisons ; toutes allumées = les gains d’avant ; dans le plafond', ()=>{
+  const B=REGLAGES.ASSIST_BONUS;v(B.direction===0.15&&B.freinage===0.10&&B.antiblocage===0.03&&B.antipatinage===0,JSON.stringify(B));
+  const ch=CHAMPIONNAT.creer(7),j=ch.pilotes.find(p=>p.humain),lignes=ch.pilotes.map((p,i)=>({k:p.id,place:p===j?2:(i<1?1:i+2),grille:p===j?6:i+1,meilleurTour:p===j?50:60,classe:true}));
+  const avant=ARGENT.gains(ch,lignes),base=avant.place+avant.meilleurTour+avant.placesGagnees+avant.duel,A=ASSISTANCE.AIDES;let pire=0;
+  v(JSON.stringify(ARGENT.gains(ch,lignes,ASSISTANCE.reglees(null,'debutant')))===JSON.stringify(avant)&&avant.sansAide===0,'toutes allumées');
+  for(let m=0;m<16;m++){const r={};A.forEach((a,i)=>r[a]=!(m>>i&1));const part=A.reduce((s_,a)=>s_+(r[a]?0:B[a]),0),g=ARGENT.gains(ch,lignes,r);
+    const att=Math.round(base*part/REGLAGES.ASSIST_BONUS_ARRONDI)*REGLAGES.ASSIST_BONUS_ARRONDI;pire=Math.max(pire,part);
+    v(g.sansAide===att&&g.total===Math.min(base+att,REGLAGES.ARGENT_PLAFOND_COURSE)&&Math.abs(g.partSansAide-part)<1e-12,m+' : '+JSON.stringify(r)+' '+g.sansAide+' ≠ '+att);}
+  v(Math.abs(pire-0.28)<1e-12,'au plus '+pire);
+  // le plafond : avec un gros gain, le bonus ne dépasse jamais ARGENT_PLAFOND_COURSE
+  const R_=REGLAGES,sauve=R_.ARGENT_PLAFOND_COURSE;R_.ARGENT_PLAFOND_COURSE=base+1;const gp=ARGENT.gains(ch,lignes,{direction:false,freinage:false,antiblocage:false,antipatinage:false});R_.ARGENT_PLAFOND_COURSE=sauve;
+  v(gp.total===base+1&&gp.plafonne,'plafond '+JSON.stringify(gp));
+  L.push('  (bonus sans aide : base '+base+', aucune aide +'+Math.round(base*0.28/100)*100+')');});
 t('aides au pilotage : toutes coupées, la course est celle d’avant au bit près (la voiture du joueur conduite par le robot à travers les aides coupées) ; les IA ne passent jamais par les aides', ()=>{
   const course=avec=>{const e=creerCourseIA(TQ,4,1,13,CARTES_T.technique,true);for(const p_ of e.pilotes) p_.course.compte=0;const j=e.pilotes.find(p_=>p_.joueur)||e.pilotes[e.pilotes.length-1];
     for(let k=0;k<120*20;k++) pasCourseIA(e,DT,(p_,dt)=>{const c=piloteRobot(p_.v,TQ);lisserCommandes(p_.v,avec?ASSISTANCE.appliquer(c,p_.v,{circuit:TQ,carte:CARTES_T.technique},SANS):c,dt);});

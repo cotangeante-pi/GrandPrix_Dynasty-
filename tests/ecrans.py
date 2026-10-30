@@ -918,7 +918,7 @@ def amis(pg, titre, l, h):
     sous_course = pg.evaluate('() => { BOUCLE.arreter(); BOUCLE.simuler(20); BOUCLE.demarrer(); return [JEU.ecran, window.APPELS_SDK.join(",")]; }')
     pg.wait_for_timeout(300)
     hud = pg.evaluate('() => [...document.querySelectorAll(".deuxNom")].map(s => s.textContent)')
-    t(f'{titre} : chaque moitié affiche le nom de son joueur', hud == ['🔵 Léo', '🔴 Sarah'], str(hud))
+    t(f'{titre} : chaque moitié affiche le nom de son joueur', [h.replace(' 🛞', '') for h in hud] == ['🔵 Léo', '🔴 Sarah'], str(hud))
     t(f'{titre} : la course finit, le podium vient', finir(), str(pg.evaluate('() => [JEU.ecran, JEU.final && JEU.final.length]')))
     pod = pg.evaluate('''() => { const [a, b] = DEUX_JOUEURS.joueurs(JEU.plateau), P = JEU.plateau.pilotes, pl = p => JEU.final.find(x => x.k === P.indexOf(p)).place;
       return { places: [pl(a), pl(b)], texte: document.getElementById("podiumDeux").textContent, cache: document.getElementById("podiumDeux").classList.contains("cache"),
@@ -1055,7 +1055,7 @@ def tournoi(pg, titre, l, h):
     attendre(pg, '() => typeof JEU !== "undefined" && JEU.tournoi', None, 30000)
     t0 = pg.evaluate('() => ({ ecran: JEU.ecran, joueurs: JEU.tournoi.joueurs.map(j => j.prenom), circuits: JEU.tournoi.circuits, circuit: NOM_CIRCUIT, ia: JEU.plateau, titre: document.getElementById("atoiTitre").textContent, motif: JEU.tournoi.joueurs[2].casque.motif, liste: SAUVEGARDE.tournoi().joueurs.map(j => j.prenom) })')
     t(f'{titre} : « C’est parti ! » : la page de la manche 1 (son circuit, seul sur la piste), « À toi, Léo ! », la liste gardée',
-      t0['ecran'] == 'tournoiAToi' and t0['joueurs'] == ['Léo', 'Sarah', 'Tom'] and len(t0['circuits']) == 3 and t0['circuit'] == t0['circuits'][0] and t0['ia'] is None and t0['titre'] in ('À toi, Léo !', 'Your turn, Léo!') and t0['motif'] == 'eclair' and t0['liste'] == ['Léo', 'Sarah', 'Tom'], str(t0))
+      t0['ecran'] == 'tournoiAToi' and t0['joueurs'] == ['Léo', 'Sarah', 'Tom'] and len(t0['circuits']) == 3 and t0['circuit'] == t0['circuits'][0] and t0['ia'] is None and t0['titre'].replace(' 🛞', '') in ('À toi, Léo !', 'Your turn, Léo!') and t0['motif'] == 'eclair' and t0['liste'] == ['Léo', 'Sarah', 'Tom'], str(t0))
     def passage(abandon=False):
         pg.evaluate('() => { JEU.robot = true; }')
         attendre(pg, '() => JEU.ecran === "qualif" && JEU.qualif && JEU.qualif.etat === "tour"', None, 15000)
@@ -1094,7 +1094,7 @@ def tournoi(pg, titre, l, h):
             if m == 0 and k == 2:
                 t(f'{titre} : l’abandon donne « pas de temps », dernier de la manche', 'pas de temps' in e['lignes'][-1] or 'no time' in e['lignes'][-1], str(e['lignes']))
                 gen = pg.evaluate('() => [!document.getElementById("tournoiGeneral").classList.contains("cache"), [...document.querySelectorAll("#tournoiGeneralListe li")].map(li => li.textContent)]')
-                t(f'{titre} : à la fin de la manche, le classement général avec les points', gen[0] and len(gen[1]) == 3 and all('pts' in x for x in gen[1]), str(gen))
+                t(f'{titre} : à la fin de la manche, le classement général avec les points', gen[0] and len(gen[1]) == 3 and all(re.search(r'\bpts?\b', x) for x in gen[1]), str(gen))
                 pg.wait_for_timeout(700); pg.screenshot(path=os.path.join(CAPTURES, 'tournoi.png'))
     t(f'{titre} : la phrase du premier passage : « Léo prend la tête ! »', vus[0]['phrase'] in ('Léo prend la tête !', 'Léo takes the lead!'), vus[0]['phrase'])
     pg.click('#boutonTournoiSuite')
@@ -1402,12 +1402,13 @@ def qualite_ecran(pg, titre, page):
 # voiture monte sans que le joueur freine) et la voiture reste sur la piste ; en normal, elles sont coupées et ce joueur sort
 def assistance_ecran(pg, titre, page):
     debutant = 'niveau=debutant' in page
-    b = pg.evaluate('() => ["boutonFreinagePause", "boutonAntipatinagePause", "boutonDirectionPause"].map(id => { const e = document.getElementById(id); return [e.textContent, e.classList.contains("cache")]; })')
-    oui = [pg.evaluate(f'() => texte("assist_{a}_oui")') for a in ('freinage', 'antipatinage', 'direction')]
+    # (tour 37e, le propriétaire 2026-10-30) quatre aides, choisies avant la course à tous les niveaux : le menu pause les montre, figées
+    b = pg.evaluate('() => ["boutonFreinagePause", "boutonAntipatinagePause", "boutonDirectionPause", "boutonAntiblocagePause"].map(id => { const e = document.getElementById(id); return [e.textContent, e.classList.contains("cache")]; })')
+    oui = [pg.evaluate(f'() => texte("assist_{a}_oui")') for a in ('freinage', 'antipatinage', 'direction', 'antiblocage')]
     if debutant:
-        t(f'{titre} : en débutant, les trois aides au pilotage sont allumées d’office dans le menu pause (freinage, antipatinage, direction)', [x[0] for x in b] == oui and not b[2][1], str(b))
+        t(f'{titre} : en débutant, les quatre aides au pilotage sont allumées d’office et montrées dans le menu pause (freinage, antipatinage, direction, anti-blocage)', [x[0] for x in b] == oui and not any(x[1] for x in b), str(b))
     else:
-        t(f'{titre} : en normal, les aides au pilotage sont coupées d’office, et la direction assistée n’est pas proposée', all(x[0] != o for x, o in zip(b, oui)) and b[2][1], str(b))
+        t(f'{titre} : en normal, les aides au pilotage sont coupées d’office (toutes montrées, la direction assistée aussi : on la choisit avant la course)', all(x[0] != o for x, o in zip(b, oui)) and not any(x[1] for x in b), str(b))
     attendre(pg, '() => JEU.ecran === "course" && JEU.course && JEU.course.etat !== "compte" && (REGLAGES.NIVEAU !== "debutant" || !!JEU.carte)', None, 120000)
     # un joueur qui ne freine jamais : à chaque pas, les commandes du robot d'essai à 75 m/s partout (il tourne, il ne freine pas),
     # posées comme celles du clavier (JEU.cibles) ; le temps passé dans l'herbe et le frein que la voiture prend d'elle-même
@@ -1418,9 +1419,9 @@ def assistance_ecran(pg, titre, page):
     L.append(f"  (aides au pilotage, {'débutant' if debutant else 'normal'}, un joueur qui ne freine jamais, 40 s : frein pris par la voiture jusqu'à {r['frein']:.2f}, {r['herbe']:.1f} s dans l'herbe, {r['barriere']} contacts barrière)")
     if debutant:
         t(f'{titre} : un joueur qui ne freine jamais : le freinage assisté freine pour lui avant les virages, il reste sur la piste', r['frein'] > 0.3 and r['carte'] and r['herbe'] < 2 and r['barriere'] == 0, str(r))
-        # le réglage : un clic coupe le freinage assisté, sauvegardé
-        s = pg.evaluate('() => { document.getElementById("boutonFreinagePause").click(); return [JEU.assistance.freinage, SAUVEGARDE.option("aides_pilotage", null)]; }')
-        t(f'{titre} : le menu pause coupe une aide (sauvegardé)', s[0] is False and s[1] and s[1]['freinage'] is False and s[1]['antipatinage'] is True, str(s))
+        # (tour 37e) pendant la course, les aides sont figées : un clic dans le menu pause, ou le choix des aides lui-même, ne change rien
+        s = pg.evaluate('() => { const avant = JSON.stringify(JEU.assistance); document.getElementById("boutonFreinagePause").click(); INTERFACE.ouvrirAides(); document.querySelector("#choixAidesListe button[data-aide=freinage]").click(); INTERFACE.fermerAides(); return [avant, JSON.stringify(JEU.assistance), SAUVEGARDE.option("aides_pilotage", null), document.getElementById("boutonFreinagePause").textContent]; }')
+        t(f'{titre} : pendant la course, les aides sont figées : ni le menu pause ni le choix des aides ne les changent', s[0] == s[1] and s[2] is None and s[3] == oui[0], str(s))
     else:
         t(f'{titre} : sans aide, la voiture ne freine jamais d’elle-même, et ce joueur-là sort de la piste', r['frein'] == 0 and (r['herbe'] > 0.2 or r['barriere'] > 0), str(r))
 def commentaire_ecran(pg, titre):
@@ -2095,7 +2096,7 @@ PADDOCK_DOMICILE = """() => { const j = JEU.championnat.pilotes.find(p => p.huma
   j.coeur = ici === "monoco" ? "monzo" : "monoco"; montrerChampionnat(null); const non = document.getElementById("paddockDomicile").classList.contains("cache"); j.coeur = avant; montrerChampionnat(null);
   return { oui, non, texte }; }"""
 PADDOCK_POINTS = """() => { montrerChampionnat(25); const tb = document.getElementById("championnatTableaux"), pts = [...document.querySelectorAll("#championnatPilotes .points")];
-  const cl = CHAMPIONNAT.classementPilotes(JEU.championnat), ok = pts.every((p, i) => p.textContent === cl[i].points + " " + texte("pts") && p.style.getPropertyValue("--tv-fin") === String(cl[i].points));
+  const cl = CHAMPIONNAT.classementPilotes(JEU.championnat), ok = pts.every((p, i) => p.textContent === accorder(cl[i].points + " " + texte("pts")) && p.style.getPropertyValue("--tv-fin") === String(cl[i].points));
   const anime = tb.classList.contains("tvMonte"), nom = getComputedStyle(pts[0], "::after").animationName, li = getComputedStyle(tb.querySelector("li")).animationName;
   montrerChampionnat(null); return { ok, anime, nom, li, sans: !tb.classList.contains("tvMonte") }; }"""
 RESULTATS_ANIMES = """() => { INTERFACE.remplirResultats([1, 2, 3].map(i => ({ place: i, numero: i, couleur: 0xd8262e, total: 60 + i, penalites: 0, ecart: i - 1, grille: i, moi: i === 2 })));
@@ -2646,7 +2647,7 @@ def championnat(pg, titre, l):
         attendre(pg, '() => JEU.ecran === "resultats"')
         t(f'{titre} : GP {gp} : un seul bouton, « Continuer »', pg.evaluate('() => document.getElementById("boutonRejouerResultats").classList.contains("cache") && document.getElementById("boutonChangerResultats").textContent === "Continuer"'))
         # l'argent (argent.js) : la ligne des gains sous les résultats, calculée sur le classement final de cet instant
-        arg = pg.evaluate('''() => { const g = ARGENT.gains(JEU.championnat, CHAMPIONNAT.lignesDepuisCourse(JEU.plateau)), p = document.getElementById("resultatsArgent");
+        arg = pg.evaluate('''() => { const g = ARGENT.gains(JEU.championnat, CHAMPIONNAT.lignesDepuisCourse(JEU.plateau), JEU.assistance), p = document.getElementById("resultatsArgent");
           return { texte: p.textContent, total: g.total, attendu: ARGENT.formater(g.total), deborde: p.getBoundingClientRect().right > innerWidth || p.getBoundingClientRect().bottom > innerHeight, g }; }''')
         t(f'{titre} : GP {gp} : les résultats montrent l’argent gagné (« Gains : +n € » avec le détail), sans déborder', arg['texte'].startswith('Gains : +' + arg['attendu']) and '(' in arg['texte'] and not arg['deborde'] and arg['total'] > 0, str(arg))
         if gp == 1:

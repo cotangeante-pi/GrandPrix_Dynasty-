@@ -920,9 +920,9 @@ function nombre(n, cle) {
 // anglais, le singulier à 1 seulement (« 1 win », « 0 wins ») ; appliqué avec elider() à toutes les phrases où l'on met des valeurs
 const ACCORDS = {
   fr: [['victoires', 'victoire'], ['podiums', 'podium'], ['points', 'point'], ['titres', 'titre'], ['saisons', 'saison'], ['courses', 'course'], ['poles', 'pole'],
-    ['générations', 'génération'], ['secondes', 'seconde'], ['tours', 'tour'], ['Grands Prix', 'Grand Prix'], ['places gagnées', 'place gagnée'], ['places', 'place'], ['ans', 'an']],
+    ['générations', 'génération'], ['secondes', 'seconde'], ['tours', 'tour'], ['Grands Prix', 'Grand Prix'], ['places gagnées', 'place gagnée'], ['places', 'place'], ['ans', 'an'], ['pts', 'pt']],
   en: [['wins', 'win'], ['podiums', 'podium'], ['points', 'point'], ['titles', 'title'], ['seasons', 'season'], ['races', 'race'], ['poles', 'pole'],
-    ['generations', 'generation'], ['seconds', 'second'], ['laps', 'lap'], ['Grands Prix', 'Grand Prix'], ['places gained', 'place gained'], ['places', 'place'], ['years', 'year']],
+    ['generations', 'generation'], ['seconds', 'second'], ['laps', 'lap'], ['Grands Prix', 'Grand Prix'], ['places gained', 'place gained'], ['places', 'place'], ['years', 'year'], ['pts', 'pt']],
 };
 function accorder(t, langue) {
   langue = langue || LANGUE;
@@ -976,6 +976,23 @@ Object.assign(TEXTES.fr, {
   dis_raison_conversation_bonne: ['Bonne discussion.'], dis_raison_conversation_mauvaise: ['Pas ma conversation préférée.'], dis_raison_conversation_neutre: ['On verra sur la piste.'],
 });
 
+// (tour 37e, Codeur 3) le choix des aides au pilotage avant la course, et le bonus sans aide (le propriétaire, 2026-10-30)
+Object.assign(TEXTES.en, {
+  assist_antiblocage_oui: 'Anti-lock brakes: on', assist_antiblocage_non: 'Anti-lock brakes: off',
+  aidesBouton: '🛞 Driving aids', aidesTitre: 'Driving aids', aidesIntro: 'Choose them before the race: they stay the same until the finish.',
+  aidesPart: '(off: +{p} %)', aidesBonus: 'With these aids off: +{p} % prize money.', aidesBonusZero: 'All aids on: the usual prize money.',
+  aidesSansArgent: 'No prize money in this mode: your aids are shown next to your name.',
+  aidesFigees: 'Driving aids are chosen before the race.', aidesValider: 'OK', argentSansAide: 'no-assist bonus: +{n}',
+  aidesJoueur_oui: '🛞 Aids: on', aidesJoueur_non: '🛞 Aids: off', aidesJoueur_oui_court: '🛞 ✓', aidesJoueur_non_court: '🛞 ✗', aidesMarque: '🛞',
+});
+Object.assign(TEXTES.fr, {
+  assist_antiblocage_oui: 'Anti-blocage : oui', assist_antiblocage_non: 'Anti-blocage : non',
+  aidesBouton: '🛞 Aides au pilotage', aidesTitre: 'Aides au pilotage', aidesIntro: 'Choisis-les avant la course : elles ne changent plus jusqu’à l’arrivée.',
+  aidesPart: '(sans : +{p} %)', aidesBonus: 'Avec ces aides coupées : +{p} % de gains.', aidesBonusZero: 'Toutes les aides : les gains habituels.',
+  aidesSansArgent: 'Pas d’argent dans ce mode : tes aides sont affichées à côté de ton nom.',
+  aidesFigees: 'Les aides au pilotage se choisissent avant la course.', aidesValider: 'Valider', argentSansAide: 'bonus pilotage sans aide : +{n}',
+  aidesJoueur_oui: '🛞 Aides : oui', aidesJoueur_non: '🛞 Aides : non', aidesJoueur_oui_court: '🛞 ✓', aidesJoueur_non_court: '🛞 ✗', aidesMarque: '🛞',
+});
 // --- tour 41d, Codeur 4 : la sauvegarde abîmée (une nouvelle carrière commence) ou impossible (le navigateur ne garde rien) ---
 Object.assign(TEXTES.en, {
   sauvegardePerdue: 'Your save was damaged: a new career begins.',

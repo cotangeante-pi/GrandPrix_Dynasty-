@@ -18,8 +18,11 @@ const ARGENT = (function () {
 
   // les gains du joueur pour un Grand Prix fini : lignes = le classement final (championnat.js, lignesDepuisCourse :
   // { k, place, grille, meilleurTour, classe }). Renvoie { place, meilleurTour, placesGagnees, duel, brut, total, plafonne,
-  // nbPlacesGagnees } (des montants ; total = brut plafonné à ARGENT_PLAFOND_COURSE), ou null si le joueur n'est pas classé
-  function gains(ch, lignes) {
+  // nbPlacesGagnees, sansAide, partSansAide } (des montants ; total = brut plafonné à ARGENT_PLAFOND_COURSE), ou null si le joueur
+  // n'est pas classé. aides : les aides au pilotage du joueur pour ce Grand Prix (ASSISTANCE.reglees, fixées avant la course) : le bonus
+  // sans aide (le propriétaire, 2026-10-30) = la part ASSISTANCE.bonus(aides) des gains de la course, arrondie, dans le plafond ; toutes
+  // allumées, ou aides absentes : aucun bonus, les gains d'avant au bit près
+  function gains(ch, lignes, aides) {
     const j = ch.pilotes.find(p => p.humain), lj = lignes.find(l => l.k === j.id);
     if (!lj) return null;
     const place = R.ARGENT_PLACE[lj.place - 1] || 0;
@@ -31,17 +34,20 @@ const ARGENT = (function () {
     // le bonus du duel : le joueur finit devant son coéquipier (la règle du duel : classement final, non classé = perdu)
     const c = CHAMPIONNAT.coequipierDe(ch), lc = c ? lignes.find(l => l.k === c.id) : null;
     const duel = lc && CHAMPIONNAT.gagnantDuel(lj, lc).course === 0 ? R.DUEL_BONUS : 0;
-    const brut = place + meilleurTour + placesGagnees + duel;
+    const base = place + meilleurTour + placesGagnees + duel;
+    const partSansAide = aides && typeof ASSISTANCE !== 'undefined' ? ASSISTANCE.bonus(aides) : 0, A = R.ASSIST_BONUS_ARRONDI;
+    const sansAide = partSansAide > 0 ? Math.round(base * partSansAide / A) * A : 0;
+    const brut = base + sansAide;
     const total = Math.min(brut, R.ARGENT_PLAFOND_COURSE);
-    return { place, meilleurTour, placesGagnees, duel, brut, total, plafonne: brut > total, nbPlacesGagnees };
+    return { place, meilleurTour, placesGagnees, duel, sansAide, partSansAide, brut, total, plafonne: brut > total, nbPlacesGagnees };
   }
 
   // le Grand Prix qui vient d'être enregistré (CHAMPIONNAT.enregistrerCourse, ch.resultats) rapporte ses gains au solde
-  function encaisser(ch, lignes) {
-    const a = completer(ch), g = gains(ch, lignes);
+  function encaisser(ch, lignes, aides) {
+    const a = completer(ch), g = gains(ch, lignes, aides);
     if (!g) return null;
     a.solde += g.total;
-    a.historique.push([ch.resultats.length, g.total, g.place, g.meilleurTour, g.placesGagnees, g.duel]);
+    a.historique.push(g.sansAide ? [ch.resultats.length, g.total, g.place, g.meilleurTour, g.placesGagnees, g.duel, g.sansAide] : [ch.resultats.length, g.total, g.place, g.meilleurTour, g.placesGagnees, g.duel]);
     return g;
   }
 
