@@ -182,7 +182,7 @@ const INTERFACE = (function () {
   // pour son nom), ou rien (null)
   function remplirDuel(s, ch) {
     const p = $('championnatDuel');
-    p.textContent = s ? '⚔ ' + texte('duelTitre') + ' : ' + avec(texte('duelScore'), { a: s.total[0], b: s.total[1], nom: nomPilote(ch.pilotes[s.k]) }) + ' '
+    p.textContent = s ? '⚔ ' + texte('duelTitre') + texte('deuxPoints') + avec(texte('duelScore'), { a: s.total[0], b: s.total[1], nom: nomPilote(ch.pilotes[s.k]) }) + ' '
       + avec(texte('duelDetail'), { qa: s.qualifs[0], qb: s.qualifs[1], ca: s.courses[0], cb: s.courses[1] }) : '';
   }
 
@@ -1074,7 +1074,7 @@ const INTERFACE = (function () {
     for (const j of INTERVIEW.JAUGES) {
       const x = ch.reputation && typeof ch.reputation[j] === 'number' ? Math.round(ch.reputation[j]) : REGLAGES.REPUTATION_DEPART;
       const s = document.createElement('span'), nom = document.createElement('span'), barre = document.createElement('span'), plein = document.createElement('span'), val = document.createElement('span');
-      s.className = 'jauge'; s.dataset.jauge = j; s.title = texte('reputation' + majuscule(j)) + ' : ' + x + ' / 100';
+      s.className = 'jauge'; s.dataset.jauge = j; s.title = texte('reputation' + majuscule(j)) + texte('deuxPoints') + x + ' / 100';
       nom.className = 'nom'; nom.textContent = texte('reputation' + majuscule(j));
       barre.className = 'barre'; plein.className = 'plein'; plein.style.width = x + '%'; barre.appendChild(plein);
       val.className = 'valeur'; val.textContent = x;
@@ -1296,7 +1296,7 @@ const INTERFACE = (function () {
   function remplirRivalite(r) {
     $('resultatsRivalite').classList.toggle('cache', !r);
     if (!r) return;
-    $('resultatsRivalite').textContent = texte('rivaliteTitre') + ' : ' + avec(texte('rivalite'), { a: r.noms[0], x: r.score[0], y: r.score[1], b: r.noms[1] });
+    $('resultatsRivalite').textContent = texte('rivaliteTitre') + texte('deuxPoints') + avec(texte('rivalite'), { a: r.noms[0], x: r.score[0], y: r.score[1], b: r.noms[1] });
   }
 
   // --- le tournoi chrono entre copains (tournoi.js, tour 26b) : l'inscription, « À toi, Sarah ! », le classement de la manche (le
