@@ -103,5 +103,25 @@ const MANETTE = (function () {
     return r;
   }
 
-  return { lire, fusionner, fronts, sensMenu, voisin, zoneMorte, lireManettes, BOUTONS: B };
+  // la vibration (tour 42) : ce que la manette doit faire sentir des faits de la voiture (SENSATIONS.faits) ; { fort, faible } de 0 à 1
+  // (le gros moteur : l'arrière qui part, le patinage, le blocage, un choc ; le petit : les vibreurs, l'herbe), ou null s'il n'y a rien
+  function vibration(f) {
+    if (!f) return null;
+    const fort = Math.min(1, R.MANETTE_VIBRATION_GLISSE * Math.max(f.arriere || 0, f.patinage || 0, f.blocage > 0.5 ? f.blocage : 0, f.contact || 0, f.choc || 0));
+    const faible = Math.min(1, R.MANETTE_VIBRATION_VIBREUR * Math.max(f.vibreur || 0, f.herbe ? 0.6 : 0));
+    return fort < 0.05 && faible < 0.05 ? null : { fort, faible };
+  }
+  // la k-ième manette branchée vibre (si elle sait : Gamepad.vibrationActuator), dureeMs millisecondes ; rien sinon
+  function vibrer(k, v, dureeMs) {
+    const nav = typeof navigator !== 'undefined' ? navigator : null;
+    if (!v || !nav || typeof nav.getGamepads !== 'function') return false;
+    let pads;
+    try { pads = [...(nav.getGamepads() || [])].filter(p => p && p.connected !== false); } catch (e) { return false; }
+    const a = pads[k] && pads[k].vibrationActuator;
+    if (!a || typeof a.playEffect !== 'function') return false;
+    try { const r = a.playEffect('dual-rumble', { startDelay: 0, duration: dureeMs, strongMagnitude: v.fort, weakMagnitude: v.faible }); if (r && r.catch) r.catch(() => {}); } catch (e) { return false; }
+    return true;
+  }
+
+  return { lire, fusionner, fronts, sensMenu, voisin, zoneMorte, lireManettes, vibration, vibrer, BOUTONS: B };
 })();

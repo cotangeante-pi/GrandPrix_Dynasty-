@@ -403,6 +403,29 @@ t('le commentateur : le départ est dit dans la première seconde après le GO ;
     for(let k=0;k<120*20;k++){pasCourseIA(e,DT);if(sauter&&k<120*17) continue;COMMENTAIRE.observer(c,e,{joueur:-1,circuit:'X'});const it=COMMENTAIRE.afficher(c,e.temps,false);if(it&&dit===null&&it.type==='depart')dit=e.temps-e.go;}return dit;};
   const aTemps=essai(false),tard=essai(true);L.push('  (le départ dit '+(aTemps===null?'jamais':aTemps.toFixed(2)+' s après le GO')+' ; vu 17 s en retard : '+(tard===null?'oublié':'dit')+')');
   v(aTemps!==null&&aTemps<1,'à temps : '+aTemps);v(tard===null,'dit en retard : '+tard);});
+// --- sentir la voiture vivante (tour 42) : l'arrière qui part et le patinage (sensations.js), leur crissement (son.js), la fumée et les
+// traces de pneus (effets3d.js), la vibration de la manette (manette.js) ; le dessin et le son seulement : la physique au bit près
+t('voiture vivante, les faits : l’arrière qui part (l’angle de glissement de l’arrière) et le patinage (la poussée au-delà de l’adhérence de l’arrière) ; rien quand la voiture accroche', ()=>{const S_=SENSATIONS,R_=REGLAGES,b=R_.EMPATTEMENT-R_.CG_AVANT,m={voiture:0,barriere:0};
+  const vo=sensVoiture(sensDroite,0,30);v(S_.faits(vo,TQ,m).arriere===0&&S_.faits(vo,TQ,m).patinage===0,'droit');
+  vo.r=0;vo.v=-Math.tan(0.135)*30;const mi=S_.faits(vo,TQ,m).arriere;vo.v=-Math.tan(0.3)*30;const plein=S_.faits(vo,TQ,m).arriere;v(mi>0&&mi<1&&plein===1,'arrière '+[mi,plein]);
+  const p=sensVoiture(sensDroite,0,8);p.gaz=1;v(S_.faits(p,TQ,m).patinage===0,'sans charge connue');p.chargeArriere=1500;const pa=S_.faits(p,TQ,m).patinage;p.chargeArriere=1e6;const pb=S_.faits(p,TQ,m).patinage;v(pa>0&&pb===0,'patinage '+[pa,pb]);});
+t('voiture vivante, le son, la fumée, les traces, la vibration : chacun part sur son fait ; les traces vont par deux roues, s’effacent et restent dans leur anneau ; rien sans fait', ()=>{const R_=REGLAGES,F=x=>Object.assign({vibreur:0,herbe:0,glisse:0,blocage:0,contact:0,choc:0,vitesse:30,arriere:0,patinage:0},x);
+  const vo=sensVoiture(sensDroite,0,30),s1=SON.mixage(vo,F({arriere:1}),null,{rapport:null}),s0=SON.mixage(vo,F({}),null,{rapport:null});
+  v(s1.volumePneus===R_.SON_VOLUME_ARRIERE&&s1.frequencePneus===R_.SON_ARRIERE_FREQUENCE&&s0.volumePneus===0,'son '+JSON.stringify([s1.volumePneus,s0.volumePneus]));
+  const e=EFFETS3D.creer(),pos={x:vo.x,z:vo.z,cap:vo.cap};EFFETS3D.emettre(e,vo,pos,F({}),0.1);EFFETS3D.emettre(e,vo,{x:pos.x+1,z:pos.z,cap:pos.cap},F({}),0.1);v(e.trace.length===0&&e.fumee.length===0,'sans fait');
+  for(let k=0;k<5;k++) EFFETS3D.emettre(e,vo,{x:pos.x+k,z:pos.z,cap:pos.cap},F({arriere:1}),0.1);v(e.trace.length===8&&e.fumee.length>0,'traces de l’arrière '+e.trace.length+' fumée '+e.fumee.length);
+  EFFETS3D.emettre(e,vo,{x:pos.x+50,z:pos.z,cap:pos.cap},F({arriere:1}),0.1);v(e.trace.length===8,'un saut ne trace pas');
+  for(let k=0;k<2000;k++) EFFETS3D.emettre(e,vo,{x:pos.x+k*0.5,z:pos.z,cap:pos.cap},F({blocage:1,patinage:1}),0.01);v(e.trace.length===R_.TRACES_MAX,'anneau '+e.trace.length);
+  EFFETS3D.avancer(e,R_.TRACES_VIE+0.1);v(e.trace.length===0,'effacées');
+  const M_=MANETTE;v(M_.vibration(F({}))===null&&M_.vibration(F({arriere:1})).fort>0.5&&M_.vibration(F({vibreur:1})).faible>0&&M_.vibration(F({vibreur:1})).fort===0,'vibration');v(M_.vibrer(0,{fort:1,faible:1},100)===false,'pas de manette : rien');});
+t('voiture vivante (expert) : en sortie d’épingle à plein gaz, l’arrière part, la voiture patine, fume et laisse des traces ; la même course avec et sans les faits, le son et les effets, au bit près', ()=>{const R_=REGLAGES,niv=R_.NIVEAU;R_.NIVEAU='expert';try{
+  const V=CARTES_T.technique.virages.reduce((a,b)=>CARTES_T.technique.trajectoire.vitesse[Math.round(a.s/TQ.pas)%TQ.nb]<CARTES_T.technique.trajectoire.vitesse[Math.round(b.s/TQ.pas)%TQ.nb]?a:b);
+  const tour=avec=>{const vo=creerVoiture(TQ,0,0);placerSurPiste(vo,TQ,V.s-60,0);vo.u=20;const e=EFFETS3D.creer(),m={voiture:0,barriere:0};let arr=0,pat=0;
+    for(let k=0;k<120*6;k++){const c=piloteRobot(vo,TQ);lisserCommandes(vo,{gaz:c.frein>0.2?0:1,frein:c.frein>0.2?c.frein:0,direction:c.direction},DT);pasVoiture(vo,TQ,DT);
+      if(avec){const f=SENSATIONS.faits(vo,TQ,m);if(f.arriere>0.3)arr++;if(f.patinage>0)pat++;SON.mixage(vo,f,null,{rapport:null});EFFETS3D.emettre(e,vo,vo,f,DT);EFFETS3D.avancer(e,DT);}}
+    return {etat:JSON.stringify(vo),arr,pat,traces:e.trace.length,fumee:e.fumee.length};};
+  const a=tour(false),b=tour(true);L.push('  (voiture vivante, sortie d’épingle à plein gaz, 6 s : '+b.arr+' pas avec l’arrière qui part, '+b.pat+' qui patinent, '+b.traces+' bandes de traces, '+b.fumee+' bouffées)');
+  v(b.arr>0||b.pat>0,'rien senti');v(b.traces>0,'aucune trace');v(a.etat===b.etat,'la physique a changé');}finally{R_.NIVEAU=niv;}});
 // --- la manette (manette.js, tour 38) : la disposition standard, les zones mortes, le clavier et la manette ensemble,
 // les appuis comptés une fois, les menus au stick ou à la croix ; sans manette, les cibles du clavier au bit près
 const fauxPad=(o={})=>{const b=[];for(let i=0;i<17;i++) b.push({value:0,pressed:false});for(const [k,x] of Object.entries(o.boutons||{})) b[MANETTE.BOUTONS[k]]={value:x,pressed:x>0.5};return {connected:true,axes:o.axes||[0,0,0,0],buttons:b};};

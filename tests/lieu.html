@@ -88,8 +88,9 @@
     // les effets au dernier endroit : la fumée et les étincelles pleines, puis la trajectoire conseillée (une carte de test : le milieu de la piste)
     SCENE3D.dessiner(); const base = SCENE3D.appelsDessin;
     const E = EFFETS3D, F = { vibreur: 0, herbe: 1, glisse: 0, blocage: 1, contact: 1, choc: 0, vitesse: 50 };
-    E.emettre(E.etat, { u: 50 }, dernier.a, F, 1); E.maj([], null, 0); SCENE3D.dessiner(); const sensations = SCENE3D.appelsDessin - base;
-    E.etat.fumee.length = 0; E.etat.etincelle.length = 0; E.maj([], null, 0);
+    const vf = { u: 50 }, a2 = auPoint(dernier.s + 3, 0);   // (deux points : les traces de pneus, tour 42)
+    E.emettre(E.etat, vf, dernier.a, F, 1); E.emettre(E.etat, vf, a2, F, 0.05); E.maj([], null, 0); SCENE3D.dessiner(); const sensations = SCENE3D.appelsDessin - base;
+    E.etat.fumee.length = 0; E.etat.etincelle.length = 0; E.etat.trace.length = 0; E.maj([], null, 0);
     const ds = new Float64Array(c.nb).fill(c.pas), carte = { circuit: c, trajectoire: { x: c.x, z: c.z, vitesse: new Float64Array(c.nb).fill(60), ds }, pointe: 90 };
     CONSEIL.maj({ u: 70, piste: { indice: ind(dernier.s) } }, carte, 'tout', rel); SCENE3D.dessiner(); const conseil = SCENE3D.appelsDessin - base;
     CONSEIL.maj(null, null, null, null);
