@@ -1338,7 +1338,6 @@ button.manette-choix { box-shadow: 0 0 0 3px #ffd23f, 0 0 14px 2px rgba(255, 210
 #pause button.aideFigee { cursor: default; opacity: 0.7; box-shadow: none; }
 #boutonAidesPaddock { position: fixed; left: 50%; bottom: 6px; transform: translateX(-50%); }
 .marqueAides { margin-left: 4px; font-size: 0.85em; opacity: 0.9; }
-=======
 /* la sauvegarde abîmée ou impossible (tour 41d, Codeur 4) : un bandeau en haut, au milieu, qui ne prend aucun clic */
 #sauvegardePerdue { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 40; max-width: min(620px, 80vw); padding: 8px 14px;
   background: rgba(150, 20, 24, 0.92); color: #fff; font-weight: 700; font-size: 15px; text-align: center; border-radius: 6px; pointer-events: none; }
