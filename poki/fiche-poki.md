@@ -74,5 +74,6 @@ Quand ta carrière s’arrête, ton histoire continue : la relève prend le vola
 - Le jeu se joue au clavier et à la manette. Le tactile n'est pas prévu : il faut le dire à Poki (« desktop only »).
 - **Ce que montrent les captures (2026-10-29), à corriger avant l'envoi** :
   - Les rivaux et les écuries portent encore leurs noms provisoires (« Pilote 2 », « Écurie 1 » ; « Driver 2 », « Team 1 »), parce que `NOMS_PILOTES` est vide dans `donnees.js`. Sur la capture du paddock, des noms inventés feraient bien plus vrai.
-  - En anglais, le paddock affiche « Teammate duel : You… », avec une espace avant les deux-points. Cette espace est écrite en dur dans `interface.js` (ligne 185, `' : '`).
+  - (Réglé au tour 37c : l'espace avant les deux-points en anglais, et le vide en haut du panneau des classements du paddock. Les captures ont été refaites.)
+  - Les noms proposés sont dans `poki/noms-a-valider.md`.
   - Les captures gardent l'interface de course, comme dans le vrai jeu. Seule la bulle des aides est masquée.

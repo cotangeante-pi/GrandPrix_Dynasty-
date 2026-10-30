@@ -252,6 +252,32 @@ try:
                 f = verifier_sdk(pg.evaluate('() => JOURNAL_SDK.slice()'))
                 t(f'{titre} : les règles du SDK sur le journal', not f and not console, [f, console])
                 ctx.close()
+            # L'ANGLAIS (tour 37c) : la ponctuation anglaise n'a pas d'espace avant « : ; ! ? » (« Teammate duel: », jamais « Teammate duel : ») ;
+            # le texte lu sur les écrans du paddock (championnat, calendrier, fiche, garage, album), les bulles (title) et la rivalité à deux
+            titre = 'paquet anglais 1280×720'
+            ctx = b.new_context(viewport={'width': 1280, 'height': 720}, locale='en-US')
+            pg = ctx.new_page(); console = []
+            pg.add_init_script(FAUX_SDK)
+            pg.route('**/poki-sdk.js', lambda r: r.fulfill(status=200, content_type='text/javascript', body=''))
+            pg.on('pageerror', lambda e: console.append('PAGEERROR ' + str(e)))
+            pg.goto('file://' + dossier + '/index.html?championnat=1&tours=1&robot=1&gp=6&lang=en')
+            pg.wait_for_function('() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', timeout=60000)
+            LIRE = """() => [document.body.innerText, ...[...document.querySelectorAll('[title]')].map(e => e.title)].join('\\n')"""
+            lus = {'paddock': pg.evaluate(LIRE)}
+            # (tour 37c) le panneau des classements : le contenu en haut, les 20 pilotes en une colonne qui le remplissent (plus de grand vide au-dessus)
+            pan = pg.evaluate("""() => { const p = document.getElementById("championnatTableaux").getBoundingClientRect(), h = document.querySelector("#championnatTableaux h2").getBoundingClientRect(),
+              l = [...document.querySelectorAll("#championnatPilotes li")], d = l[l.length - 1].getBoundingClientRect(); return { haut: h.top - p.top, rempli: (d.bottom - p.top) / p.height, n: l.length, bas: d.bottom <= p.bottom + 1, colonne: l[0].getBoundingClientRect().left === d.left }; }""")
+            t(f'{titre} : au paddock, les classements commencent en haut du panneau ({pan["haut"]:.0f} px) et les {pan["n"]} pilotes en une colonne le remplissent à {pan["rempli"] * 100:.0f} %, sans déborder',
+              pan['haut'] < 30 and pan['rempli'] > 0.7 and pan['bas'] and pan['colonne'] and pan['n'] == 20, str(pan))
+            for nom, montrer, quitter in (('calendrier', 'montrerCalendrier()', 'quitterCalendrier()'), ('fiche', 'montrerFiche(3)', 'quitterFiche()'),
+                                          ('garage', 'montrerGarage()', 'quitterGarage()'), ('album', 'montrerAlbum()', 'quitterAlbum()')):
+                pg.evaluate(f'() => {montrer}'); pg.wait_for_timeout(300); lus[nom] = pg.evaluate(LIRE); pg.evaluate(f'() => {quitter}')
+            lus['rivalite'] = pg.evaluate('() => { INTERFACE.remplirRivalite({ noms: ["Leo", "Sam"], score: [1, 2] }); return document.getElementById("resultatsRivalite").textContent; }')
+            fautes = [f'{k} : « {m.group(0).strip()} »' for k, x in lus.items() for m in re.finditer(r'\S{1,20} [:;!?](?=\s|$)', x)]
+            t(f'{titre} : la langue est l’anglais (« {pg.evaluate("() => LANGUE")} »), le duel et la rivalité s’écrivent « Teammate duel: … », « …: Leo 1 – 2 Sam »',
+              pg.evaluate('() => LANGUE') == 'en' and 'Teammate duel: ' in lus['paddock'] and lus['rivalite'].endswith('Leo 1 – 2 Sam') and ' : ' not in lus['rivalite'], str([lus['rivalite'], lus['paddock'][:300]]))
+            t(f'{titre} : aucune espace avant « : ; ! ? » sur les écrans anglais ({", ".join(lus)})', not fautes and not console, str([fautes[:10], console]))
+            ctx.close()
             # SANS réseau : le script du SDK Poki échoue (requête refusée) ; le jeu reste jouable, sans SDK (sdk.js le tolère) ; la seule
             # trace est l'échec de ce script
             titre = 'paquet sans réseau 960×600'
