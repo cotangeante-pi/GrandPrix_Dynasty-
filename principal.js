@@ -832,7 +832,7 @@ function finirInterview() {
   const lignes = JEU.lignesGP, moi = lignes.find(l => l.k === JEU.ia);
   if (JEU.plateau) appliquerConsigne(JEU.championnat, JEU.plateau.consigne);
   if (JEU.plateau && typeof PATRONS !== 'undefined') PATRONS.noterConsigne(JEU.championnat, JEU.plateau.consigne);   // (le patron s'en souvient : patrons.js, Codeur 3)   // la consigne d'équipe suivie ou ignorée : la confiance de l'écurie (Codeur 1)
-  CHAMPIONNAT.finirGrandPrix(JEU.championnat, lignes);
+  CHAMPIONNAT.finirGrandPrix(JEU.championnat, lignes, JEU.assistance);   // (les aides choisies avant la course : le bonus sans aide)
   SAUVEGARDE.debloquerMotifs(CASQUE.conditionsRemplies(JEU.championnat));   // les motifs de casque gagnés (victoire, podiums, domicile), à la racine de la sauvegarde
   JEU.grandPrixFini = true;
   JEU.interview = null;
@@ -1280,7 +1280,7 @@ function montrerPodium() {
   INTERFACE.remplirRivalite(JEU.deux ? noterRivaliteDeux() : null);
   // ?championnat=1 : les gains du joueur (argent.js), calculés sur le classement final de cet instant (encaissés à « Continuer »)
   if (JEU.championnat) {
-    const lignes = CHAMPIONNAT.lignesDepuisCourse(e), g = ARGENT.gains(JEU.championnat, lignes), moi = lignes.find(l => l.k === JEU.ia);
+    const lignes = CHAMPIONNAT.lignesDepuisCourse(e), g = ARGENT.gains(JEU.championnat, lignes, JEU.assistance), moi = lignes.find(l => l.k === JEU.ia);
     if (g) { g.placeNumero = moi.place; g.sponsor = SPONSORS.primesPour(JEU.championnat, lignes); }   // les primes du sponsor que ce classement apporterait (sponsors.js)
     INTERFACE.remplirArgent(g);
   } else INTERFACE.remplirArgent(null);
@@ -1545,9 +1545,18 @@ const AUCUNE = { gaz: 0, frein: 0, direction: 0 }, FREIN_SEUL = { gaz: 0, frein:
 // les aides au pilotage du joueur (assistance.js, tour 41) : ses cibles corrigées avant la physique (freinage assisté,
 // antipatinage, direction assistée en débutant) ; jamais au tournoi chrono (le même tour pour tous) ; toutes coupées, les
 // cibles telles quelles
-function aiderJoueur(c, v) {
-  if (JEU.tournoi || !JEU.assistance) return c;
-  return ASSISTANCE.appliquer(c, v, { circuit: CIRCUIT, carte: JEU.carte }, JEU.assistance);
+// Entre amis (tour 37e, le propriétaire 2026-10-30) : les aides de chacun, toutes ou aucune, choisies avant (INTERFACE.aidesDeux, aidesAmi) ;
+// p : le pilote (à deux, p.joueur = 1, 2)
+const TOUTES_AIDES = { direction: true, freinage: true, antiblocage: true, antipatinage: true };
+function aidesDe(p) {
+  if (JEU.deux) return INTERFACE.aidesDeux()[(p && p.joueur ? p.joueur : 1) - 1] ? TOUTES_AIDES : null;
+  if (JEU.tournoi) { const j = TOURNOI.joueurActuel(JEU.tournoi); return j !== null && INTERFACE.aidesAmi(JEU.tournoi.joueurs[j].prenom) ? TOUTES_AIDES : null; }
+  return JEU.assistance;
+}
+function aiderJoueur(c, v, p) {
+  const r = aidesDe(p);
+  if (!r) return c;
+  return ASSISTANCE.appliquer(c, v, { circuit: CIRCUIT, carte: JEU.carte }, r);
 }
 
 // ?ia=N&joueur=1 : les commandes du joueur pour sa voiture dans la course entre IA (comme seul : rampes, Espace)
@@ -1583,7 +1592,7 @@ function conduireJoueur(p, pas) {
       if (JEU.championnat && p === JEU.plateau.pilotes[JEU.ia]) CARRIERE.noterReaction(JEU.championnat, d.reaction);   // … et celui de la carrière (carriere.js, sauvegardé avec le Grand Prix)
     }
   }
-  if (!JEU.robot) cibles = aiderJoueur(cibles, p.v);   // les aides au pilotage (assistance.js) : les cibles du joueur seulement
+  if (!JEU.robot) cibles = aiderJoueur(cibles, p.v, p);   // les aides au pilotage (assistance.js) : les cibles du joueur seulement
   lisserCommandes(p.v, commandesPermises(p.course) ? cibles : p.course.etat === 'finie' ? FREIN_SEUL : AUCUNE, pas);
   pasPneusJoueur(p.v, pas);
 }
@@ -1995,19 +2004,17 @@ function demarrerJeu() {
     b.addEventListener('mousedown', e => e.preventDefault());
     b.addEventListener('click', () => { QUALITE.regler(JEU.qualite, QUALITE.suivante(JEU.qualite.regle)); SAUVEGARDE.ecrireOption('qualite', JEU.qualite.regle); appliquer(); ecrire(); });
   }
-  // les aides au pilotage (assistance.js, tour 41) : une rangée du menu pause, une aide par bouton (oui / non), sauvegardées ;
-  // tant qu'on n'a rien choisi : toutes en débutant, aucune au-dessus ; la direction assistée seulement en débutant
-  {
-    const boutons = { freinage: document.getElementById('boutonFreinagePause'), antipatinage: document.getElementById('boutonAntipatinagePause'), direction: document.getElementById('boutonDirectionPause') };
-    JEU.assistance = ASSISTANCE.reglees(SAUVEGARDE.option('aides_pilotage', null), REGLAGES.NIVEAU);
-    const ecrire = () => { for (const a of ASSISTANCE.AIDES) boutons[a].textContent = texte('assist_' + a + (JEU.assistance[a] ? '_oui' : '_non')); };
-    boutons.direction.classList.toggle('cache', REGLAGES.NIVEAU !== 'debutant');
-    ecrire();
-    for (const a of ASSISTANCE.AIDES) {
-      boutons[a].addEventListener('mousedown', e => e.preventDefault());
-      boutons[a].addEventListener('click', () => { JEU.assistance[a] = !JEU.assistance[a]; SAUVEGARDE.ecrireOption('aides_pilotage', Object.assign({}, JEU.assistance)); JEU.assistance = ASSISTANCE.reglees(JEU.assistance, REGLAGES.NIVEAU); ecrire(); });
-    }
-  }
+  // les aides au pilotage (assistance.js, tour 41 ; le choix du joueur, le propriétaire 2026-10-30, tour 37e) : choisies AVANT la course, une
+  // par une, à tous les niveaux (le niveau ne donne que le réglage proposé : toutes en débutant, aucune au-dessus), sauvegardées ;
+  // le choix (INTERFACE.preparerAides) s'ouvre du titre, du paddock, de la course rapide et du menu des leçons ; pendant la
+  // qualification et la course, le menu pause les montre sans pouvoir les changer
+  JEU.assistance = ASSISTANCE.reglees(SAUVEGARDE.option('aides_pilotage', null), REGLAGES.NIVEAU);
+  INTERFACE.preparerAides({
+    lire: () => JEU.assistance,
+    changer: a => { if (['course', 'qualif', 'pause', 'grille'].includes(JEU.ecran)) return;   // (jamais pendant la course)
+      JEU.assistance[a] = !JEU.assistance[a]; SAUVEGARDE.ecrireOption('aides_pilotage', Object.assign({}, JEU.assistance)); JEU.assistance = ASSISTANCE.reglees(JEU.assistance, REGLAGES.NIVEAU); },
+    argent: () => !JEU.deux && !JEU.tournoi,
+  });
   INTERFACE.majBoutonsFantome(SAUVEGARDE.option('fantome', true));
   PODIUM3D.init(CIRCUIT);
   // ?course=5, 12, 18 ou 0 (essai libre) lance directement une course (tests, développement)

@@ -6,19 +6,24 @@
 //   Et l'anti-blocage : en braquant, le frein reste sous le seuil du blocage du jeu (sensations.js). La physique, elle, ne bloque
 //   jamais les roues : plafonner le frein n'évite donc aucune sortie à lui seul, c'est le freinage avant le virage qui le fait.
 // - antipatinage : en virage, au bout de l'adhérence, les gaz sont limités avant que la voiture ne glisse vers l'extérieur.
-// - direction assistée (débutant seulement) : un léger retour vers la trajectoire de la carte.
+// - direction assistée : un léger retour vers la trajectoire de la carte (quand la carte est là).
+// Le choix du propriétaire (2026-10-30) : le joueur choisit ses aides une par une, quel que soit le niveau (le niveau donne seulement le
+// réglage proposé), avant la course ; l'anti-blocage est une aide à part (ASSIST_BONUS dans donnees.js : un bonus par aide coupée).
 const ASSISTANCE = (function () {
   const R = REGLAGES;
-  const AIDES = ['freinage', 'antipatinage', 'direction'];
+  const AIDES = ['direction', 'freinage', 'antiblocage', 'antipatinage'];
 
-  // les aides de départ selon le niveau : toutes en débutant, aucune au-dessus ; reglage (sauvegardé) : { freinage, antipatinage,
-  // direction } ou null (pas encore choisi) ; la direction assistée n'existe qu'en débutant
+  // les aides de départ selon le niveau : toutes en débutant, aucune au-dessus ; reglage (sauvegardé) : { direction, freinage,
+  // antiblocage, antipatinage } ou null (pas encore choisi) ; le choix du joueur l'emporte à tous les niveaux. Une sauvegarde du
+  // tour 41 n'a pas d'anti-blocage à part : il suit son freinage assisté (il en faisait partie)
   function reglees(reglage, niveau) {
     const debutant = niveau === 'debutant', r = {};
     for (const a of AIDES) r[a] = reglage && typeof reglage[a] === 'boolean' ? reglage[a] : debutant;
-    if (!debutant) r.direction = false;
+    if (reglage && typeof reglage.antiblocage !== 'boolean' && typeof reglage.freinage === 'boolean') r.antiblocage = reglage.freinage;
     return r;
   }
+  // le bonus d'argent sans aide (ASSIST_BONUS) : la somme des parts des aides coupées ; r null = aucun bonus (pas de choix connu)
+  const bonus = r => r ? AIDES.reduce((s, a) => s + (r[a] ? 0 : R.ASSIST_BONUS[a] || 0), 0) : 0;
   const aucune = r => !r || AIDES.every(a => !r[a]);
 
   // l'adhérence de la voiture, comme la physique la lit (× 1 sans météo, pneus, garage ni aileron)
@@ -48,6 +53,8 @@ const ASSISTANCE = (function () {
     if (r.freinage) {
       const trop = v.u - vitesseSure(v, ctx.circuit, ctx.carte);
       if (trop > 0) { frein = Math.max(frein, Math.min(1, trop / R.ASSIST_FREIN_PENTE)); gaz = 0; }
+    }
+    if (r.antiblocage) {
       // l'anti-blocage : en braquant, la pression au frein reste sous le seuil du blocage (SENSATIONS_BLOCAGE_FREIN : ni fumée ni
       // crissement) ; la marge du freinage assisté (ASSIST_FREIN_PART) compte déjà avec ce frein plus doux
       if (frein >= R.SENSATIONS_BLOCAGE_FREIN && Math.abs(direction) > R.ASSIST_ABS_BRAQUAGE && v.u > R.SENSATIONS_BLOCAGE_VITESSE) frein = R.SENSATIONS_BLOCAGE_FREIN * R.ASSIST_ABS_PART;
@@ -65,5 +72,5 @@ const ASSISTANCE = (function () {
     return gaz === c.gaz && frein === c.frein && direction === c.direction ? c : { gaz, frein, direction };
   }
 
-  return { appliquer, reglees, vitesseSure, AIDES };
+  return { appliquer, reglees, vitesseSure, bonus, AIDES };
 })();

@@ -486,7 +486,7 @@ const INTERFACE = (function () {
     f2.querySelectorAll('span').forEach((f, i) => f.classList.toggle('allume', allumes[i].classList.contains('allume')));
     ['deuxHaut', 'deuxBas'].forEach((id, i) => {
       const el = $(id), x = j[i];
-      el.querySelector('.deuxNom').textContent = (i ? '🔴 ' : '🔵 ') + (x.nom || texte(i ? 'joueur2' : 'joueur1'));
+      el.querySelector('.deuxNom').textContent = (i ? '🔴 ' : '🔵 ') + (x.nom || texte(i ? 'joueur2' : 'joueur1')) + marqueAides(aidesDeux()[i]);
       el.querySelector('.deuxPlace').textContent = x.place ? 'P' + x.place : '';
       el.querySelector('.deuxTour').textContent = texte('tour') + ' ' + x.tour + ' / ' + x.nbTours;
       el.querySelector('.deuxVitesse').textContent = Math.round(x.vitesse * 3.6) + ' ' + texte('kmh');
@@ -603,6 +603,7 @@ const INTERFACE = (function () {
     if (g.meilleurTour) detail.push(avec(texte('argentMeilleurTour'), { n: F(g.meilleurTour) }));
     if (g.placesGagnees) detail.push(avec(texte('argentPlacesGagnees'), { p: g.nbPlacesGagnees, n: F(g.placesGagnees) }));
     if (g.duel) detail.push(avec(texte('argentDuel'), { n: F(g.duel) }));
+    if (g.sansAide) detail.push(avec(texte('argentSansAide'), { n: F(g.sansAide) }));   // le bonus pilotage sans aide (ASSIST_BONUS)
     if (g.plafonne) detail.push(avec(texte('argentPlafond'), { n: F(g.total) }));
     if (g.sponsor) detail.push(avec(texte('argentSponsor'), { n: F(g.sponsor) }));   // les primes du sponsor (hors plafond de la course)
     p.textContent = avec(texte('argentGagne'), { n: F(g.total) }) + (detail.length ? ' (' + detail.join(' · ') + ')' : '');
@@ -1257,6 +1258,8 @@ const INTERFACE = (function () {
       $('deuxMotif' + i).value = j.casque.motif;
       ['a', 'b', 'c'].forEach((x, k) => { $('deuxCasque' + i + x).value = hex(j.casque.couleurs[k]); });
       majIconeDeux(i);
+      const ancien = bloc.querySelector('.aidesJoueur'); if (ancien) ancien.remove();
+      bloc.insertBefore(boutonAidesJoueur(aidesDeux()[i - 1], oui => { const x = aidesDeux(); x[i - 1] = oui; ecrireOption('aides_deux', x); }), bloc.querySelector('.deuxTouches'));
     });
   }
 
@@ -1289,7 +1292,7 @@ const INTERFACE = (function () {
   function remplirPodiumDeux(j) {
     $('podiumDeux').classList.toggle('cache', !j);
     if (!j) return;
-    $('podiumDeux').textContent = j.map((x, i) => (i ? '🔴 ' : '🔵 ') + avec(texte('deuxPlace'), { nom: x.nom, p: x.place })).join('   ');
+    $('podiumDeux').textContent = j.map((x, i) => (i ? '🔴 ' : '🔵 ') + avec(texte('deuxPlace'), { nom: x.nom + marqueAides(aidesDeux()[i]), p: x.place })).join('   ');
   }
 
   // le score de la rivalité : r = { noms: [a, b], score: [x, y] } ou null (caché) ; « Léo 3 – 2 Sarah »
@@ -1321,7 +1324,9 @@ const INTERFACE = (function () {
     enlever.tabIndex = -1; enlever.className = 'tournoiEnlever'; enlever.textContent = '✕'; enlever.title = texte('tournoiEnlever');
     enlever.addEventListener('mousedown', e => e.preventDefault());
     enlever.addEventListener('click', () => { if ($('tournoiListe').children.length > REGLAGES.TOURNOI_JOUEURS_MIN) { li.remove(); majInscription(); } });
-    li.append(icone, nom, motif, ...couleurs, enlever);
+    const aides = boutonAidesJoueur(aidesAmi(j.prenom), oui => noterAidesAmi(nom.value, oui));   // (tour 37e : les aides de ce joueur, gardées par son prénom)
+    nom.addEventListener('change', () => { aides.dataset.oui = aidesAmi(nom.value) ? '1' : '0'; aides.textContent = texte(aides.dataset.oui === '1' ? 'aidesJoueur_oui' : 'aidesJoueur_non'); });
+    li.append(icone, nom, motif, ...couleurs, aides, enlever);
     maj();
     return li;
   }
@@ -1366,7 +1371,7 @@ const INTERFACE = (function () {
   function lireInscription() {
     const f = $('tournoiInscription').dataset.formule;
     return {
-      joueurs: [...$('tournoiListe').children].map(li => ({ prenom: li.querySelector('.tournoiPrenom').value, casque: casqueLigne(li) })),
+      joueurs: [...$('tournoiListe').children].map(li => { const b = li.querySelector('.aidesJoueur'), prenom = li.querySelector('.tournoiPrenom').value; if (b) noterAidesAmi(prenom, b.dataset.oui === '1'); return { prenom, casque: casqueLigne(li) }; }),
       formule: f, circuits: [...Array(REGLAGES.TOURNOI_MANCHES)].map((x, m) => $('tournoiCircuit' + m).value),
     };
   }
@@ -1388,7 +1393,7 @@ const INTERFACE = (function () {
 
   // « À toi, Sarah ! » : j = { prenom, casque }, manche (0…), nbManches, circuit (son nom affiché), reste (s du compte à rebours)
   function remplirAToi(j, manche, nbManches, circuit) {
-    $('atoiTitre').textContent = texte('aToi').replace('{prenom}', j.prenom);
+    $('atoiTitre').textContent = texte('aToi').replace('{prenom}', j.prenom + marqueAides(aidesAmi(j.prenom)));
     $('atoiIcone').textContent = '';
     $('atoiIcone').append(CASQUE.icone(j.casque, 64));
     $('atoiManche').textContent = (nbManches > 1 ? avec(texte('tournoiManche'), { m: manche + 1, n: nbManches }) + ' · ' : '') + circuit;
@@ -1416,7 +1421,7 @@ const INTERFACE = (function () {
     for (const l of lignes) {
       const li = document.createElement('li');
       if (l.nouveau) li.className = 'nouveau';
-      const nom = document.createElement('span'); nom.className = 'nom'; nom.append(CASQUE.icone(l.casque, REGLAGES.CASQUE_ICONE), ' ' + l.prenom);
+      const nom = document.createElement('span'); nom.className = 'nom'; nom.append(CASQUE.icone(l.casque, REGLAGES.CASQUE_ICONE), ' ' + l.prenom + marqueAides(aidesAmi(l.prenom)));
       const temps = document.createElement('span'); temps.className = 'temps';
       temps.textContent = l.temps === null ? texte('pasDeTemps') : formatTemps(l.temps) + (l.penalites > 0 ? ' (' + penalite(l.penalites) + ')' : '');
       li.append(nom, temps);
@@ -1626,7 +1631,68 @@ const INTERFACE = (function () {
     $('boutonCourrierRetour').addEventListener('click', retour);
   }
 
-  return { majPneus, majMessage, preparerGrille, annoncerMotifs, preparerResume, montrerBoutonResume, majResume, remplirInscription, lireInscription, montrerErreursTournoi, preparerInscription, remplirAToi, majCompteTournoi, preparerPauseTournoi, remplirMancheTournoi, preparerMancheTournoi, remplirFinTournoi, preparerFinTournoi, preparerAmis, remplirDeux, lireDeux, montrerErreursDeux, preparerDeux, remplirPodiumDeux, remplirRivalite, formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, remplirPaddock, remplirDiscussion, remplirDiscussionPatron, preparerNegociation, preparerDiscussion, remplirCourrier, preparerCourrier, preparerChampionnat, remplirQualif, preparerQualif,
+  // --- les aides de chacun, entre amis (tour 37e, Codeur 3 ; le propriétaire : « en tournoi chrono et en mode 2 joueurs, les aides de chacun
+  // sont affichées à côté de son nom ») : un bouton par joueur, toutes les aides ou aucune, choisi avant la course ; gardé dans la
+  // sauvegarde (options 'aides_deux' : [joueur 1, joueur 2] ; 'aides_amis' : { prénom en minuscules: oui / non }) ; pas d'argent ici,
+  // donc aucun bonus. Le réglage proposé : celui du niveau (toutes en débutant)
+  const aidesParDefaut = () => REGLAGES.NIVEAU === 'debutant';
+  // (lues une fois puis gardées en mémoire : aidesDe, dans principal.js, les demande à chaque pas de physique)
+  const memoire = {};
+  const lireOption = (cle, defaut) => { if (!(cle in memoire)) memoire[cle] = typeof SAUVEGARDE !== 'undefined' ? SAUVEGARDE.option(cle, null) : null; return memoire[cle] === null ? defaut : memoire[cle]; };
+  const ecrireOption = (cle, x) => { memoire[cle] = x; if (typeof SAUVEGARDE !== 'undefined') SAUVEGARDE.ecrireOption(cle, x); };
+  function aidesDeux() { const a = lireOption('aides_deux', null); return [0, 1].map(i => Array.isArray(a) && typeof a[i] === 'boolean' ? a[i] : aidesParDefaut()); }
+  function aidesAmi(prenom) { const m = lireOption('aides_amis', null), k = String(prenom || '').trim().toLowerCase(); return m && typeof m[k] === 'boolean' ? m[k] : aidesParDefaut(); }
+  function noterAidesAmi(prenom, oui) { const m = Object.assign({}, lireOption('aides_amis', null) || {}), k = String(prenom || '').trim().toLowerCase(); if (!k) return; m[k] = !!oui; ecrireOption('aides_amis', m); }
+  const marqueAides = oui => oui ? ' ' + texte('aidesMarque') : '';
+  function boutonAidesJoueur(oui, changer) {
+    const b = document.createElement('button');
+    b.tabIndex = -1; b.className = 'petit aidesJoueur';
+    const ecrire = () => { b.textContent = texte(b.dataset.oui === '1' ? 'aidesJoueur_oui' : 'aidesJoueur_non'); };
+    b.dataset.oui = oui ? '1' : '0'; ecrire();
+    b.addEventListener('mousedown', e => e.preventDefault());
+    b.addEventListener('click', () => { b.dataset.oui = b.dataset.oui === '1' ? '0' : '1'; ecrire(); changer(b.dataset.oui === '1'); });
+    return b;
+  }
+
+  // --- le choix des aides au pilotage, avant la course (tour 37e, Codeur 3 ; le propriétaire, 2026-10-30) ---
+  // f : { lire() → les aides ({ direction, freinage, antiblocage, antipatinage }), changer(aide), argent() → le bonus compte-t-il ici }
+  // L'écran s'ouvre par-dessus celui du moment (titre, paddock, course rapide, menu des leçons) ; le menu pause montre les aides
+  // figées (aucun clic ne les change pendant la course)
+  const PAUSE_AIDES = { direction: 'boutonDirectionPause', freinage: 'boutonFreinagePause', antiblocage: 'boutonAntiblocagePause', antipatinage: 'boutonAntipatinagePause' };
+  let aidesF = null;
+  const pourcent = x => String(Math.round(x * 100));
+  function ecrireAides() {
+    if (!aidesF) return;
+    const r = aidesF.lire(), liste = $('choixAidesListe');
+    liste.textContent = '';
+    for (const a of ASSISTANCE.AIDES) {
+      const b = document.createElement('button'), nom = document.createElement('span'), part = document.createElement('span');
+      b.tabIndex = -1; b.dataset.aide = a; b.className = 'petit' + (r[a] ? '' : ' coupee');
+      nom.textContent = texte('assist_' + a + (r[a] ? '_oui' : '_non'));
+      part.className = 'part'; part.textContent = REGLAGES.ASSIST_BONUS[a] > 0 ? avec(texte('aidesPart'), { p: pourcent(REGLAGES.ASSIST_BONUS[a]) }) : '';
+      b.append(nom, part);
+      b.addEventListener('mousedown', e => e.preventDefault());
+      b.addEventListener('click', () => { aidesF.changer(a); ecrireAides(); });
+      liste.appendChild(b);
+    }
+    const bonus = ASSISTANCE.bonus(r);
+    $('choixAidesBonus').textContent = !aidesF.argent() ? texte('aidesSansArgent') : bonus > 0 ? avec(texte('aidesBonus'), { p: pourcent(bonus) }) : texte('aidesBonusZero');
+    for (const a of ASSISTANCE.AIDES) { const b = $(PAUSE_AIDES[a]); b.textContent = texte('assist_' + a + (r[a] ? '_oui' : '_non')); b.title = texte('aidesFigees'); }
+  }
+  function ouvrirAides() { ecrireAides(); $('choixAides').classList.remove('cache'); }
+  function fermerAides() { $('choixAides').classList.add('cache'); }
+  function preparerAides(f) {
+    aidesF = f;
+    $('choixAidesTitre').textContent = texte('aidesTitre');
+    $('choixAidesIntro').textContent = texte('aidesIntro');
+    const brancher = (id, cle, quoi) => { const b = $(id); if (!b) return; b.textContent = texte(cle); b.addEventListener('mousedown', e => e.preventDefault()); b.addEventListener('click', quoi); };
+    for (const id of ['boutonAidesTitre', 'boutonAidesPaddock', 'boutonAidesChoix', 'boutonAidesTuto']) brancher(id, 'aidesBouton', ouvrirAides);
+    brancher('boutonAidesValider', 'aidesValider', fermerAides);
+    for (const id of Object.values(PAUSE_AIDES)) $(id).addEventListener('mousedown', e => e.preventDefault());   // (figées : aucun clic n'y fait rien)
+    ecrireAides();
+  }
+
+  return { majPneus, majMessage, preparerGrille, preparerAides, ouvrirAides, fermerAides, ecrireAides, aidesDeux, aidesAmi, noterAidesAmi, annoncerMotifs, preparerResume, montrerBoutonResume, majResume, remplirInscription, lireInscription, montrerErreursTournoi, preparerInscription, remplirAToi, majCompteTournoi, preparerPauseTournoi, remplirMancheTournoi, preparerMancheTournoi, remplirFinTournoi, preparerFinTournoi, preparerAmis, remplirDeux, lireDeux, montrerErreursDeux, preparerDeux, remplirPodiumDeux, remplirRivalite, formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, remplirPaddock, remplirDiscussion, remplirDiscussionPatron, preparerNegociation, preparerDiscussion, remplirCourrier, preparerCourrier, preparerChampionnat, remplirQualif, preparerQualif,
     remplirDuel, avec, remplirUne, preparerUne, remplirArgent, remplirSolde, remplirGarage, preparerGarage,
     remplirSaison, remplirDuelSaison, remplirContrats, remplirRetraite, preparerSaison, retraiteEnAttente, remplirCeremonie, preparerCeremonie, remplirAlbum, preparerAlbum, remplirBilan, remplirTemple, preparerTemple, preparerReleve, remplirHeritier, lireHeritier, montrerErreurHeritier, remplirAileron, majAileron, preparerAileron, preparerPneusGarage, remplirArbre, preparerArbre, remplirCalendrier, preparerCalendrier,
     remplirSponsors, remplirRappelSponsor, preparerSponsors, remplirFiche, preparerFiche, remplirInterview, montrerEffetInterview, preparerInterview, remplirReputation,

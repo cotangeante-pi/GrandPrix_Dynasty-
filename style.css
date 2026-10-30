@@ -1327,3 +1327,15 @@ body.deux.cote #boutonSon { top: auto; bottom: 12px; right: 12px; }   /* (côte 
 
 /* la manette (manette.js, tour 38) : le bouton choisi au stick ou à la croix, un halo (pas de scale : le bouton reste stable) */
 button.manette-choix { box-shadow: 0 0 0 3px #ffd23f, 0 0 14px 2px rgba(255, 210, 63, 0.8) !important; outline: none; }
+
+/* (tour 37e, Codeur 3) le choix des aides au pilotage, par-dessus l'écran du moment (comme le menu du tutoriel), et les aides figées du menu pause */
+#choixAides { z-index: 23; background: linear-gradient(180deg, rgba(7, 9, 15, 0.97), rgba(12, 16, 27, 0.95)); }
+#choixAidesListe { flex-direction: column; align-items: stretch; gap: 8px; max-width: 520px; }
+#choixAidesListe button { display: flex; justify-content: space-between; gap: 14px; }
+#choixAidesListe button.coupee { opacity: 0.75; }
+#choixAidesListe .part { opacity: 0.8; font-weight: 600; }
+#choixAidesIntro, #choixAidesBonus { margin: 0; max-width: 560px; font-weight: 700; text-align: center; }
+#choixAidesBonus { color: var(--tv-or, #f5c542); }
+#pause button.aideFigee { cursor: default; opacity: 0.7; box-shadow: none; }
+#boutonAidesPaddock { position: fixed; left: 50%; bottom: 6px; transform: translateX(-50%); }
+.marqueAides { margin-left: 4px; font-size: 0.85em; opacity: 0.9; }

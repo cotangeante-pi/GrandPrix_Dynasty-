@@ -1402,12 +1402,13 @@ def qualite_ecran(pg, titre, page):
 # voiture monte sans que le joueur freine) et la voiture reste sur la piste ; en normal, elles sont coupées et ce joueur sort
 def assistance_ecran(pg, titre, page):
     debutant = 'niveau=debutant' in page
-    b = pg.evaluate('() => ["boutonFreinagePause", "boutonAntipatinagePause", "boutonDirectionPause"].map(id => { const e = document.getElementById(id); return [e.textContent, e.classList.contains("cache")]; })')
-    oui = [pg.evaluate(f'() => texte("assist_{a}_oui")') for a in ('freinage', 'antipatinage', 'direction')]
+    # (tour 37e, le propriétaire 2026-10-30) quatre aides, choisies avant la course à tous les niveaux : le menu pause les montre, figées
+    b = pg.evaluate('() => ["boutonFreinagePause", "boutonAntipatinagePause", "boutonDirectionPause", "boutonAntiblocagePause"].map(id => { const e = document.getElementById(id); return [e.textContent, e.classList.contains("cache")]; })')
+    oui = [pg.evaluate(f'() => texte("assist_{a}_oui")') for a in ('freinage', 'antipatinage', 'direction', 'antiblocage')]
     if debutant:
-        t(f'{titre} : en débutant, les trois aides au pilotage sont allumées d’office dans le menu pause (freinage, antipatinage, direction)', [x[0] for x in b] == oui and not b[2][1], str(b))
+        t(f'{titre} : en débutant, les quatre aides au pilotage sont allumées d’office et montrées dans le menu pause (freinage, antipatinage, direction, anti-blocage)', [x[0] for x in b] == oui and not any(x[1] for x in b), str(b))
     else:
-        t(f'{titre} : en normal, les aides au pilotage sont coupées d’office, et la direction assistée n’est pas proposée', all(x[0] != o for x, o in zip(b, oui)) and b[2][1], str(b))
+        t(f'{titre} : en normal, les aides au pilotage sont coupées d’office (toutes montrées, la direction assistée aussi : on la choisit avant la course)', all(x[0] != o for x, o in zip(b, oui)) and not any(x[1] for x in b), str(b))
     attendre(pg, '() => JEU.ecran === "course" && JEU.course && JEU.course.etat !== "compte" && (REGLAGES.NIVEAU !== "debutant" || !!JEU.carte)', None, 120000)
     # un joueur qui ne freine jamais : à chaque pas, les commandes du robot d'essai à 75 m/s partout (il tourne, il ne freine pas),
     # posées comme celles du clavier (JEU.cibles) ; le temps passé dans l'herbe et le frein que la voiture prend d'elle-même
@@ -1418,9 +1419,9 @@ def assistance_ecran(pg, titre, page):
     L.append(f"  (aides au pilotage, {'débutant' if debutant else 'normal'}, un joueur qui ne freine jamais, 40 s : frein pris par la voiture jusqu'à {r['frein']:.2f}, {r['herbe']:.1f} s dans l'herbe, {r['barriere']} contacts barrière)")
     if debutant:
         t(f'{titre} : un joueur qui ne freine jamais : le freinage assisté freine pour lui avant les virages, il reste sur la piste', r['frein'] > 0.3 and r['carte'] and r['herbe'] < 2 and r['barriere'] == 0, str(r))
-        # le réglage : un clic coupe le freinage assisté, sauvegardé
-        s = pg.evaluate('() => { document.getElementById("boutonFreinagePause").click(); return [JEU.assistance.freinage, SAUVEGARDE.option("aides_pilotage", null)]; }')
-        t(f'{titre} : le menu pause coupe une aide (sauvegardé)', s[0] is False and s[1] and s[1]['freinage'] is False and s[1]['antipatinage'] is True, str(s))
+        # (tour 37e) pendant la course, les aides sont figées : un clic dans le menu pause, ou le choix des aides lui-même, ne change rien
+        s = pg.evaluate('() => { const avant = JSON.stringify(JEU.assistance); document.getElementById("boutonFreinagePause").click(); INTERFACE.ouvrirAides(); document.querySelector("#choixAidesListe button[data-aide=freinage]").click(); INTERFACE.fermerAides(); return [avant, JSON.stringify(JEU.assistance), SAUVEGARDE.option("aides_pilotage", null), document.getElementById("boutonFreinagePause").textContent]; }')
+        t(f'{titre} : pendant la course, les aides sont figées : ni le menu pause ni le choix des aides ne les changent', s[0] == s[1] and s[2] is None and s[3] == oui[0], str(s))
     else:
         t(f'{titre} : sans aide, la voiture ne freine jamais d’elle-même, et ce joueur-là sort de la piste', r['frein'] == 0 and (r['herbe'] > 0.2 or r['barriere'] > 0), str(r))
 def commentaire_ecran(pg, titre):

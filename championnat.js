@@ -177,11 +177,12 @@ const CHAMPIONNAT = (function () {
   }
 
   // la course finie, puis la sauvegarde (après chaque course)
-  function finirGrandPrix(ch, lignes) {
+  // aides : les aides au pilotage du joueur pour ce Grand Prix (le bonus sans aide, argent.js) ; absentes : aucun bonus
+  function finirGrandPrix(ch, lignes, aides) {
     enregistrerCourse(ch, lignes);
     if (typeof INTERVIEW !== 'undefined') INTERVIEW.suivre(ch);   // les rivalités de l'interview (interview.js) s'usent d'une course
     if (typeof JOURNAL !== 'undefined') JOURNAL.ranger(ch, JOURNAL.composer(ch, lignes));   // la une du journal (journal.js), dans l'album du championnat
-    if (typeof ARGENT !== 'undefined') ARGENT.encaisser(ch, lignes);   // les gains du Grand Prix (argent.js), au solde
+    if (typeof ARGENT !== 'undefined') ARGENT.encaisser(ch, lignes, aides);   // les gains du Grand Prix (argent.js), au solde
     if (typeof SPONSORS !== 'undefined') SPONSORS.suivre(ch, lignes);   // les objectifs du sponsor (sponsors.js), les primes
     SAUVEGARDE.ecrireChampionnat(ch);
     return ch;

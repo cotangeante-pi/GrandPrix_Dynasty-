@@ -151,6 +151,10 @@ const REGLAGES = {
   ASSIST_ANTIPATINAGE: [0.85, 1],  // part de l'adhérence latérale prise : les gaz baissent à partir de la 1re et sont nuls à la 2e
   ASSIST_DIRECTION: [0.08, 0.15],  // direction assistée : part du volant par m d'écart à la trajectoire, et au plus
   ASSIST_DIRECTION_VISEE: 12,      // m devant : le point de la trajectoire visé
+  // le bonus sans aide (le propriétaire, 2026-10-30) : une part des gains d'un Grand Prix par aide coupée, selon ce qu'elle fait vraiment ;
+  // seulement l'argent (ni points, ni records), dans le plafond par course (ARGENT_PLAFOND_COURSE) ; +28 % au plus
+  ASSIST_BONUS: { direction: 0.15, freinage: 0.10, antiblocage: 0.03, antipatinage: 0 },
+  ASSIST_BONUS_ARRONDI: 100,      // le bonus arrondi à cette somme
   // la trajectoire conseillée (conseil.js, tour 39) : dessin seulement, la physique et les IA ne la voient pas
   CONSEIL_LONGUEUR: 300,           // m devant la voiture
   CONSEIL_LARGEUR: 0.7,            // m

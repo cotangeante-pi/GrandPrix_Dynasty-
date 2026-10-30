@@ -242,6 +242,9 @@ try:
                 t(f'{titre} : la voiture roule (gameplayStart après les feux), la pause envoie gameplayStop', 'gameplayStart' in pg.evaluate('() => APPELS_SDK') and bool(pause), pg.evaluate('() => APPELS_SDK.slice()'))
                 if 'deux=1' in adresse:
                     pg.click('#boutonReprendre')
+                    dj = pg.evaluate('() => { INTERFACE.ouvrirAides(); const txt = document.getElementById("choixAidesBonus").textContent; INTERFACE.fermerAides(); return { txt, sans: texte("aidesSansArgent"), aides: INTERFACE.aidesDeux(), noms: [...document.querySelectorAll(".deuxNom")].map(e => e.textContent), m: texte("aidesMarque") }; }')
+                    t(f'{titre} : à deux, pas d’argent ni de bonus, et les aides de chacun à côté de son nom ({dj["noms"]})',
+                      dj['txt'] == dj['sans'] and len(dj['noms']) == 2 and all((dj['m'] in n) == a for n, a in zip(dj['noms'], dj['aides'])), str(dj))
                     for _ in range(200):
                         if pg.evaluate('() => JEU.ecran') == 'podium': break
                         pg.evaluate('() => { if (JEU.attente && !JEU.attente.passer) passerAuPodium(); BOUCLE.simuler(5); }'); pg.wait_for_timeout(30)
@@ -299,6 +302,47 @@ try:
                 t(f'{titre} : aucun « {un} » suivi d’un pluriel sur le paddock, le calendrier, une fiche, l’album et l’arbre (points vus à {", ".join(vus)})',
                   not fautes and not console and '1' in vus, str([fautes[:10], console, vus]))
                 ctx.close()
+            # LES AIDES AU PILOTAGE, CHOISIES AVANT LA COURSE (tour 37e, le propriétaire 2026-10-30) : au paddock, le choix une par une (à tous les niveaux),
+            # le bonus annoncé, gardé après rechargement (d'un Grand Prix à l'autre) ; le bonus sur l'écran des gains ; en tournoi, pas
+            # d'argent : les aides de chacun à côté de son nom ; les boutons du titre, de la course rapide et des leçons ouvrent le même choix
+            titre = 'paquet aides 1280×720'
+            ctx = b.new_context(viewport={'width': 1280, 'height': 720}); pg = ctx.new_page(); console = []
+            pg.add_init_script(FAUX_SDK)
+            pg.route('**/poki-sdk.js', lambda r: r.fulfill(status=200, content_type='text/javascript', body=''))
+            pg.on('pageerror', lambda e: console.append('PAGEERROR ' + str(e)))
+            page_ch = 'file://' + dossier + '/index.html?championnat=1&tours=1&robot=1&gp=3'
+            pg.goto(page_ch)
+            pg.wait_for_function('() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', timeout=60000)
+            avant = pg.evaluate('() => ({ niveau: REGLAGES.NIVEAU, aides: Object.assign({}, JEU.assistance), visible: !!document.getElementById("boutonAidesPaddock").offsetParent })')
+            pg.click('#boutonAidesPaddock')
+            pg.click('#choixAidesListe button[data-aide=direction]'); pg.click('#choixAidesListe button[data-aide=freinage]')
+            ch = pg.evaluate('() => ({ aides: Object.assign({}, JEU.assistance), sauve: SAUVEGARDE.option("aides_pilotage", null), bonus: document.getElementById("choixAidesBonus").textContent, ouvert: !document.getElementById("choixAides").classList.contains("cache"), attendu: ASSISTANCE.bonus(JEU.assistance) })')
+            pg.click('#boutonAidesValider')
+            ferme = pg.evaluate('() => document.getElementById("choixAides").classList.contains("cache") && JEU.ecran === "championnat"')
+            base = avant['aides']
+            t(f'{titre} : au paddock, « Aides au pilotage » ouvre le choix ; un clic par aide (direction, freinage) les change, sauvegardé ; le bonus annoncé suit (« {ch["bonus"]} »)',
+              avant['visible'] and ch['ouvert'] and ferme and ch['aides']['direction'] != base['direction'] and ch['aides']['freinage'] != base['freinage'] and ch['sauve'] == ch['aides']
+              and (str(round(ch['attendu'] * 100)) in ch['bonus'] if ch['attendu'] > 0 else True), str([avant, ch]))
+            # le bonus sur l'écran des gains (les gains d'un classement inventé, sans aucune aide, puis avec toutes)
+            g = pg.evaluate("""() => { const ch = JEU.championnat, j = ch.pilotes.find(p => p.humain), lignes = ch.pilotes.map((p, i) => ({ k: p.id, place: p === j ? 1 : i + 2, grille: p === j ? 5 : i + 1, meilleurTour: p === j ? 50 : 60, classe: true }));
+              const sans = { direction: false, freinage: false, antiblocage: false, antipatinage: false }, g = ARGENT.gains(ch, lignes, sans), toutes = ARGENT.gains(ch, lignes, ASSISTANCE.reglees(null, 'debutant'));
+              g.placeNumero = 1; INTERFACE.remplirArgent(g); const txt = document.getElementById('resultatsArgent').textContent; INTERFACE.remplirArgent(null);
+              return { txt, bonus: g.sansAide, f: ARGENT.formater(g.sansAide), cle: texte('argentSansAide').split('{n}')[0], toutes: toutes.sansAide, totalToutes: toutes.total, totalSans: g.total }; }""")
+            t(f'{titre} : l’écran des gains montre le bonus sans aide (« {g["cle"]}{g["f"]} ») ; toutes les aides allumées, aucun bonus',
+              g['bonus'] > 0 and (g['cle'] + g['f']) in g['txt'] and g['toutes'] == 0 and g['totalSans'] >= g['totalToutes'], str(g))
+            pg.goto(page_ch)
+            pg.wait_for_function('() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', timeout=60000)
+            garde = pg.evaluate('() => Object.assign({}, JEU.assistance)')
+            t(f'{titre} : le choix est gardé après rechargement (d’un Grand Prix à l’autre)', garde == ch['aides'], str([garde, ch['aides']]))
+            boutons = pg.evaluate("""() => ['boutonAidesTitre', 'boutonAidesChoix', 'boutonAidesTuto', 'boutonAidesPaddock'].map(id => { const b = document.getElementById(id); return [id, !!b, !!b && b.textContent === texte('aidesBouton')]; })""")
+            t(f'{titre} : le bouton « Aides au pilotage » est au titre, à la course rapide, au menu des leçons et au paddock', all(x[1] and x[2] for x in boutons), str(boutons))
+            amis = pg.evaluate("""() => { INTERFACE.noterAidesAmi('Léo', true); INTERFACE.noterAidesAmi('Sam', false);
+              INTERFACE.remplirAToi({ prenom: 'Léo', casque: TOURNOI.casqueDefaut(0) }, 0, 1, 'X'); const a1 = document.getElementById('atoiTitre').textContent;
+              INTERFACE.remplirAToi({ prenom: 'Sam', casque: TOURNOI.casqueDefaut(1) }, 0, 1, 'X'); const a2 = document.getElementById('atoiTitre').textContent;
+              return { a1, a2, m: texte('aidesMarque'), leo: INTERFACE.aidesAmi('léo'), sam: INTERFACE.aidesAmi('SAM') }; }""")
+            t(f'{titre} : au tournoi, les aides de chacun à côté de son nom (« {amis["a1"]} » / « {amis["a2"]} »), gardées par prénom',
+              amis['m'] in amis['a1'] and amis['m'] not in amis['a2'] and amis['leo'] is True and amis['sam'] is False and not console, str([amis, console]))
+            ctx.close()
             # SANS réseau : le script du SDK Poki échoue (requête refusée) ; le jeu reste jouable, sans SDK (sdk.js le tolère) ; la seule
             # trace est l'échec de ce script
             titre = 'paquet sans réseau 960×600'
