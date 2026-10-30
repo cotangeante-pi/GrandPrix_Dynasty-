@@ -60,7 +60,7 @@ function creerCourseIA(circuit, nb, nbTours, graine, carte = carteDe(circuit), a
   const pilotes = placesGrille(circuit, nb + (avecJoueur ? 1 : 0)).map((place, k) => {
     const v = creerVoiture(circuit, place.s, place.d);
     const humain = k === nb;
-    if (humain) v.joueur = true;   // la voiture du joueur (ce que tout pilote sait : qui est qui) ; le rival de l'interview la vise (ia.js)
+    if (humain) v.joueur = true; else v.ia = true;   // (v.ia : la voiture vivante ne la touche qu'avec VIVANTE_IA, physique.js)   // la voiture du joueur (ce que tout pilote sait : qui est qui) ; le rival de l'interview la vise (ia.js)
     if (R.PNEUS_ACTIFS && !humain) { v.pneus = creerPneus(); v.changeurs = R.STAND_CHANGEURS_IA; }   // les pneus des IA (étape 7) ; ceux du joueur, c'est la page (principal.js)
     return {
       numero: k + 1, v, course: creerCourse(circuit, nbTours), humain,

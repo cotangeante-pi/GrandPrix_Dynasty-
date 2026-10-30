@@ -131,7 +131,7 @@ function pasVoiture(v, circuit, dt) {
     if (v.u < -R.MARCHE_ARRIERE_MAX) v.u = -R.MARCHE_ARRIERE_MAX;
     v.v = 0;
     v.r = v.u * Math.tan(delta) / R.EMPATTEMENT;
-  } else if (voitureVivante() > 0) {
+  } else if (voitureVivante() > 0 && (!v.ia || REGLAGES.VIVANTE_IA)) {   // (les IA : seulement avec VIVANTE_IA, elles n'ont pas encore appris à la piloter)
     // la voiture vivante (expert et légende, VOITURE_VIVANTE > 0) : un autre pas, à part ; à 0, le pas d'aujourd'hui au bit près
     pasPneusVivant(v, mu, fz, fzAvant, fzArriere, delta, fx, resistance, dt, voitureVivante());
   } else {
