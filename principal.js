@@ -2027,6 +2027,7 @@ function demarrerJeu() {
     changer: a => { if (['course', 'qualif', 'pause', 'grille'].includes(JEU.ecran)) return;   // (jamais pendant la course)
       JEU.assistance[a] = !JEU.assistance[a]; SAUVEGARDE.ecrireOption('aides_pilotage', Object.assign({}, JEU.assistance)); JEU.assistance = ASSISTANCE.reglees(JEU.assistance, REGLAGES.NIVEAU); },
     argent: () => !JEU.deux && !JEU.tournoi,
+    ouvert: oui => { JEU.choixAides = oui; },   // (l'aide au premier usage de cet écran : aides.js, choixAides)
   });
   INTERFACE.majBoutonsFantome(SAUVEGARDE.option('fantome', true));
   PODIUM3D.init(CIRCUIT);

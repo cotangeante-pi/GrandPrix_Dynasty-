@@ -1670,7 +1670,8 @@ const INTERFACE = (function () {
       b.tabIndex = -1; b.dataset.aide = a; b.className = 'petit' + (r[a] ? '' : ' coupee');
       nom.textContent = texte('assist_' + a + (r[a] ? '_oui' : '_non'));
       part.className = 'part'; part.textContent = REGLAGES.ASSIST_BONUS[a] > 0 ? avec(texte('aidesPart'), { p: pourcent(REGLAGES.ASSIST_BONUS[a]) }) : '';
-      b.append(nom, part);
+      const quoi = document.createElement('span'); quoi.className = 'quoi'; quoi.textContent = texte('aidesQuoi_' + a);   // (tour 37g : ce qu'elle fait, en une phrase)
+      b.append(nom, part, quoi);
       b.addEventListener('mousedown', e => e.preventDefault());
       b.addEventListener('click', () => { aidesF.changer(a); ecrireAides(); });
       liste.appendChild(b);
@@ -1679,8 +1680,8 @@ const INTERFACE = (function () {
     $('choixAidesBonus').textContent = !aidesF.argent() ? texte('aidesSansArgent') : bonus > 0 ? avec(texte('aidesBonus'), { p: pourcent(bonus) }) : texte('aidesBonusZero');
     for (const a of ASSISTANCE.AIDES) { const b = $(PAUSE_AIDES[a]); b.textContent = texte('assist_' + a + (r[a] ? '_oui' : '_non')); b.title = texte('aidesFigees'); }
   }
-  function ouvrirAides() { ecrireAides(); $('choixAides').classList.remove('cache'); }
-  function fermerAides() { $('choixAides').classList.add('cache'); }
+  function ouvrirAides() { ecrireAides(); $('choixAides').classList.remove('cache'); if (aidesF && aidesF.ouvert) aidesF.ouvert(true); }
+  function fermerAides() { $('choixAides').classList.add('cache'); if (aidesF && aidesF.ouvert) aidesF.ouvert(false); }
   function preparerAides(f) {
     aidesF = f;
     $('choixAidesTitre').textContent = texte('aidesTitre');

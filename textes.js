@@ -750,7 +750,7 @@ Object.assign(TEXTES.en, {
   tutoCommencer: 'Start', tutoRetour: 'Back', tutoPasser: 'Skip ⏭', tutoRecommencer: '↻ Try again', tutoSuivante: 'Next lesson ▶', tutoListe: 'All lessons', tutoQuitter: 'Leave',
   tutoReussie: 'Lesson passed! ★', tutoRatee: 'Not quite…', tutoFini: 'All lessons done!', tutoBravo: 'Learn first',
   tuto_conduite: 'Accelerate, steer, brake', tuto_conduite_but: 'Finish a lap without leaving the track.', tuto_conduite_consigne: '↑ accelerate · ← → steer · ↓ brake — one lap, stay on the tarmac.',
-  tuto_freinage: 'Racing line and braking point', tuto_freinage_but: 'Through the corner between the cones in under {o} s.', tuto_freinage_consigne: 'Brake at the cones, turn in late, hit the apex: the zone in under {o} s ({n} / {max}).',
+  tuto_freinage: 'Racing line and braking point', tuto_freinage_but: 'Through the corner between the cones in under {o} s. Driving aids are chosen before the race (🛞).', tuto_freinage_consigne: 'Brake at the cones, turn in late, hit the apex: the zone in under {o} s ({n} / {max}).',
   tuto_depart: 'The perfect start', tuto_depart_but: 'Keep the needle in the green, react to the lights.', tuto_depart_consigne: 'Hold ↑ to keep the needle in the green. Lights out: release, then press ↑ again!',
   tuto_depassement: 'Slipstream and overtaking', tuto_depassement_but: 'Pass the slow car and stay ahead.', tuto_depassement_consigne: 'Tuck in behind the car ahead (slipstream), then pull out on the straight and pass it.',
   tuto_stand: 'The pit stop', tuto_stand_but: 'Take the pit lane at {v} km/h at most and stop in your box.', tuto_stand_consigne: 'Before the line, take the pit lane: {v} km/h at most; in the box, the stop is automatic.',
@@ -769,7 +769,7 @@ Object.assign(TEXTES.fr, {
   tutoCommencer: 'Commencer', tutoRetour: 'Retour', tutoPasser: 'Passer ⏭', tutoRecommencer: '↻ Recommencer', tutoSuivante: 'Leçon suivante ▶', tutoListe: 'Toutes les leçons', tutoQuitter: 'Quitter',
   tutoReussie: 'Leçon réussie ! ★', tutoRatee: 'Pas encore…', tutoFini: 'Toutes les leçons sont faites !', tutoBravo: 'D’abord apprendre',
   tuto_conduite: 'Accélérer, tourner, freiner', tuto_conduite_but: 'Finir un tour sans sortir de la piste.', tuto_conduite_consigne: '↑ accélérer · ← → tourner · ↓ freiner — un tour, sans quitter le goudron.',
-  tuto_freinage: 'La trajectoire et le point de freinage', tuto_freinage_but: 'Passer le virage entre les plots en moins de {o} s.', tuto_freinage_consigne: 'Freine aux plots, tourne tard, vise la corde : la zone en moins de {o} s ({n} / {max}).',
+  tuto_freinage: 'La trajectoire et le point de freinage', tuto_freinage_but: 'Passer le virage entre les plots en moins de {o} s. Les aides au pilotage se choisissent avant la course (🛞).', tuto_freinage_consigne: 'Freine aux plots, tourne tard, vise la corde : la zone en moins de {o} s ({n} / {max}).',
   tuto_depart: 'Le départ parfait', tuto_depart_but: 'Garder l’aiguille dans le vert, réagir aux feux.', tuto_depart_consigne: 'Tiens ↑ pour garder l’aiguille dans le vert. Feux éteints : lâche, puis réappuie sur ↑ !',
   tuto_depassement: 'L’aspiration et le dépassement', tuto_depassement_but: 'Passer la voiture lente et rester devant.', tuto_depassement_consigne: 'Colle-toi derrière la voiture de devant (l’aspiration), puis déboîte dans la ligne droite et passe.',
   tuto_stand: 'L’arrêt au stand', tuto_stand_but: 'Prendre la voie des stands à {v} km/h au plus et s’arrêter dans sa zone.', tuto_stand_consigne: 'Avant la ligne, prends la voie des stands : {v} km/h au plus ; dans la zone, l’arrêt est automatique.',
@@ -1001,4 +1001,19 @@ Object.assign(TEXTES.en, {
 Object.assign(TEXTES.fr, {
   sauvegardePerdue: 'Ta sauvegarde était abîmée : une nouvelle carrière commence.',
   sauvegardeImpossible: 'Ce navigateur ne garde pas la sauvegarde : ta carrière s’arrêtera à la fermeture de l’onglet.',
+});
+
+// (tour 37g, Codeur 3) les aides au premier usage du choix des aides au pilotage et de la voiture vivante (expert, légende) ; ce que fait
+// chaque aide, en une phrase qu'un enfant comprend
+Object.assign(TEXTES.en, {
+  aide_choixAides: 'Steering keeps you on track, braking slows you before corners, the others stop skids. Turn one off: bonus money!',
+  aide_vivante: 'This car is alive: brake while turning and the rear can slide. Brake in a straight line, then turn.',
+  aidesQuoi_direction: 'Turns the wheel a little to keep you on the good line.', aidesQuoi_freinage: 'Brakes for you when a corner is coming too fast.',
+  aidesQuoi_antiblocage: 'Stops the wheels locking when you brake and turn.', aidesQuoi_antipatinage: 'Eases the throttle when the car starts to slide in a corner.',
+});
+Object.assign(TEXTES.fr, {
+  aide_choixAides: 'La direction te guide, le freinage ralentit avant les virages, les autres évitent les glissades. Aide coupée : bonus !',
+  aide_vivante: 'Voiture vivante : si tu freines en tournant, l’arrière peut glisser. Freine droit, puis tourne.',
+  aidesQuoi_direction: 'Tourne un peu le volant pour te garder sur la bonne ligne.', aidesQuoi_freinage: 'Freine à ta place quand un virage arrive trop vite.',
+  aidesQuoi_antiblocage: 'Empêche les roues de bloquer quand tu freines en tournant.', aidesQuoi_antipatinage: 'Relâche l’accélérateur quand la voiture glisse dans un virage.',
 });
