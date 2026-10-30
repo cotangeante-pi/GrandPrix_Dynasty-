@@ -102,6 +102,8 @@ const REGLAGES = {
   SENSATIONS_DEMI_VOIE: 0.8,       // m : du milieu de la voiture à ses roues (une roue sur le vibreur suffit)
   SENSATIONS_VIBREUR_PLEIN: 0.3,   // m de roue sur le vibreur pour la pleine vibration
   SENSATIONS_GLISSE: [0.08, 0.2],  // rad : la dérive où la glisse commence et celle où elle est pleine
+  SENSATIONS_ARRIERE: [0.07, 0.2],   // rad : l'angle de glissement de l'arrière où il commence à partir, et où il est parti (tour 42)
+  SENSATIONS_PATINAGE: 0.5,        // le surplus de poussée (part de l'adhérence de l'arrière) pour le patinage plein
   SENSATIONS_BLOCAGE_FREIN: 0.85,  // le frein au-delà duquel les roues avant sont au bord du blocage…
   SENSATIONS_BLOCAGE_VITESSE: 14,  // … au-dessus de cette vitesse (m/s)
   SENSATIONS_BLOCAGE_DROIT: 0.35,  // … à moitié en ligne droite (0 à 1), plein en braquant de…
@@ -112,6 +114,8 @@ const REGLAGES = {
   SON_VIBREUR_FREQUENCE: [35, 140],   // … Hz : ses bornes (il suit les bandes qui passent sous les roues)
   SON_VOLUME_HERBE: 0.18,          // le grondement sourd de l'herbe
   SON_VOLUME_BLOCAGE: 0.3,         // le crissement d'un freinage au blocage
+  SON_VOLUME_ARRIERE: 0.32,        // le crissement de l'arrière qui glisse ou patine (la voiture vivante, tour 42)…
+  SON_ARRIERE_FREQUENCE: 2100,     // … Hz
   SON_BLOCAGE_FREQUENCE: 1700,     // Hz : plus grave que la dérive
   SON_VOLUME_ASPIRATION: 0.22,     // le souffle de l'aspiration, derrière une voiture
   SON_VOISIN_DISTANCE: 60,         // m : on entend la voiture la plus proche à moins de ça…
@@ -132,6 +136,16 @@ const REGLAGES = {
   ETINCELLES_PAR_CONTACT: 18,
   ETINCELLE_VIE: 0.35,             // s
   COULEUR_ETINCELLE: 0xffc04a,
+  // les traces de pneus (effets3d.js, tour 42) : un anneau de bandes sombres sur la piste, un seul appel de dessin
+  TRACES_MAX: 600,                 // bandes au plus (les plus vieilles cèdent la place)
+  TRACES_VIE: 8,                   // s : elles s'effacent en tant de temps
+  TRACES_LARGEUR: 0.32,            // m : la largeur d'un pneu
+  TRACES_HAUTEUR: 0.026,           // m au-dessus du sol (sur la route, sous les vibreurs)
+  TRACES_OPACITE: 0.55,
+  TRACES_ARRIERE: 0.3,             // l'arrière marque (et fume) au-delà de cette part de sa glissade
+  TRACES_GLISSE: 0.5,              // … ou quand la voiture dérive au-delà de cette part
+  TRACES_SAUT: 6,                  // m : au-delà, pas de bande (une remise en piste, une image sautée)
+  COULEUR_TRACES: 0x141414,
 
   // la manette (manette.js, tour 38) : les mêmes cibles que le clavier, la physique ne change pas
   MANETTE_ZONE_STICK: 0.15,        // la zone morte du stick (0 à 1)…
@@ -139,6 +153,10 @@ const REGLAGES = {
   MANETTE_SEUIL_BOUTON: 0.5,       // un bouton compte comme enfoncé au-delà
   MANETTE_SEUIL_MENU: 0.6,         // le stick au-delà de ça choisit le bouton voisin dans les menus…
   MANETTE_REPETITION: [0.4, 0.15], // … et, tenu, il répète après 0,4 s, puis toutes les 0,15 s
+  MANETTE_VIBRATION_GLISSE: 0.8,   // la vibration (tour 42) : le gros moteur à l'arrière qui part, au patinage, au blocage, au choc…
+  MANETTE_VIBRATION_VIBREUR: 0.5,  // … le petit sur les vibreurs et l'herbe
+  MANETTE_VIBRATION_PAS: 0.1,      // s entre deux impulsions…
+  MANETTE_VIBRATION_DUREE: 140,    // … ms d'une impulsion (elles se recouvrent un peu : pas de trou)
 
   // les aides au pilotage du joueur (assistance.js, tour 41) : seulement ses cibles, avant la physique ; toutes en débutant
   ASSIST_VITESSE_MIN: 5,           // m/s : en dessous, aucune aide
