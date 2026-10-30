@@ -323,6 +323,11 @@ try:
             pg.wait_for_function('() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', timeout=60000)
             avant = pg.evaluate('() => ({ niveau: REGLAGES.NIVEAU, aides: Object.assign({}, JEU.assistance), visible: document.getElementById("boutonAidesPaddock").getBoundingClientRect().width > 0 })')
             pg.click('#boutonAidesPaddock')
+            # (tour 37g) la première fois, la bulle d'aide du choix : ce que fait chaque aide, et le bonus ; chaque bouton dit ce que fait son aide
+            bulle = pg.wait_for_function('() => { const b = document.getElementById("bulleAide"); return !b.classList.contains("cache") && b.dataset.aide === "choixAides" && document.getElementById("bulleAideTexte").textContent === texte("aide_choixAides"); }', timeout=8000)
+            quoi = pg.evaluate('() => [...document.querySelectorAll("#choixAidesListe button .quoi")].map(e => e.textContent)')
+            t(f'{titre} : la première ouverture du choix des aides montre sa bulle d’aide (ce que fait chaque aide, le bonus), et chaque aide dit ce qu’elle fait',
+              bool(bulle) and len(quoi) == 4 and all(len(q) > 10 for q in quoi), str(quoi))
             pg.click('#choixAidesListe button[data-aide=direction]'); pg.click('#choixAidesListe button[data-aide=freinage]')
             ch = pg.evaluate('() => ({ aides: Object.assign({}, JEU.assistance), sauve: SAUVEGARDE.option("aides_pilotage", null), bonus: document.getElementById("choixAidesBonus").textContent, ouvert: !document.getElementById("choixAides").classList.contains("cache"), attendu: ASSISTANCE.bonus(JEU.assistance) })')
             pg.click('#boutonAidesValider')
