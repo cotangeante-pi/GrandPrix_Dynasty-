@@ -920,9 +920,9 @@ function nombre(n, cle) {
 // anglais, le singulier à 1 seulement (« 1 win », « 0 wins ») ; appliqué avec elider() à toutes les phrases où l'on met des valeurs
 const ACCORDS = {
   fr: [['victoires', 'victoire'], ['podiums', 'podium'], ['points', 'point'], ['titres', 'titre'], ['saisons', 'saison'], ['courses', 'course'], ['poles', 'pole'],
-    ['générations', 'génération'], ['secondes', 'seconde'], ['tours', 'tour'], ['Grands Prix', 'Grand Prix'], ['places gagnées', 'place gagnée'], ['places', 'place'], ['ans', 'an']],
+    ['générations', 'génération'], ['secondes', 'seconde'], ['tours', 'tour'], ['Grands Prix', 'Grand Prix'], ['places gagnées', 'place gagnée'], ['places', 'place'], ['ans', 'an'], ['pts', 'pt']],
   en: [['wins', 'win'], ['podiums', 'podium'], ['points', 'point'], ['titles', 'title'], ['seasons', 'season'], ['races', 'race'], ['poles', 'pole'],
-    ['generations', 'generation'], ['seconds', 'second'], ['laps', 'lap'], ['Grands Prix', 'Grand Prix'], ['places gained', 'place gained'], ['places', 'place'], ['years', 'year']],
+    ['generations', 'generation'], ['seconds', 'second'], ['laps', 'lap'], ['Grands Prix', 'Grand Prix'], ['places gained', 'place gained'], ['places', 'place'], ['years', 'year'], ['pts', 'pt']],
 };
 function accorder(t, langue) {
   langue = langue || LANGUE;

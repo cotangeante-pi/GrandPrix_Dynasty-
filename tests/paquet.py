@@ -278,6 +278,27 @@ try:
               pg.evaluate('() => LANGUE') == 'en' and 'Teammate duel: ' in lus['paddock'] and lus['rivalite'].endswith('Leo 1 – 2 Sam') and ' : ' not in lus['rivalite'], str([lus['rivalite'], lus['paddock'][:300]]))
             t(f'{titre} : aucune espace avant « : ; ! ? » sur les écrans anglais ({", ".join(lus)})', not fautes and not console, str([fautes[:10], console]))
             ctx.close()
+            # LES ACCORDS DE NOMBRE (tour 37d) : sur les mêmes écrans, en anglais et en français, jamais « 1 pts », « 1 tours », « 1 races »… (en
+            # français, le singulier aussi à 0 : « 0 pt », « 0 victoire ») ; le paddock du 6e Grand Prix a des pilotes à 0, 1 et plusieurs points
+            UNITES = {'en': r'pts|points|laps|races|seasons|wins|podiums|titles|poles|years|generations|seconds', 'fr': r'pts|points|tours|courses|saisons|victoires|podiums|titres|poles|ans|générations|secondes'}
+            for lg in ('en', 'fr'):
+                titre = f'paquet accords {lg} 1280×720'
+                ctx = b.new_context(viewport={'width': 1280, 'height': 720}); pg = ctx.new_page(); console = []
+                pg.add_init_script(FAUX_SDK)
+                pg.route('**/poki-sdk.js', lambda r: r.fulfill(status=200, content_type='text/javascript', body=''))
+                pg.on('pageerror', lambda e: console.append('PAGEERROR ' + str(e)))
+                pg.goto('file://' + dossier + f'/index.html?championnat=1&tours=1&robot=1&gp=6&lang={lg}')
+                pg.wait_for_function('() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', timeout=60000)
+                lus = {'paddock': pg.evaluate(LIRE)}
+                for nom, montrer, quitter in (('calendrier', 'montrerCalendrier()', 'quitterCalendrier()'), ('fiche', 'montrerFiche(3)', 'quitterFiche()'),
+                                              ('album', 'montrerAlbum()', 'quitterAlbum()'), ('arbre', 'montrerArbre()', 'quitterArbre()')):
+                    pg.evaluate(f'() => {montrer}'); pg.wait_for_timeout(300); lus[nom] = pg.evaluate(LIRE); pg.evaluate(f'() => {quitter}')
+                un = '[01]' if lg == 'fr' else '1'
+                fautes = [f'{k} : « {m.group(0).strip()} »' for k, x in lus.items() for m in re.finditer(r'(?<![\d.,\u00a0])' + un + r'[ \u00a0](' + UNITES[lg] + r')\b', x)]
+                vus = sorted({m.group(1) for x in lus.values() for m in re.finditer(r'(?<![\d.,])([012]) (pts?)\b', x)})
+                t(f'{titre} : aucun « {un} » suivi d’un pluriel sur le paddock, le calendrier, une fiche, l’album et l’arbre (points vus à {", ".join(vus)})',
+                  not fautes and not console and '1' in vus, str([fautes[:10], console, vus]))
+                ctx.close()
             # SANS réseau : le script du SDK Poki échoue (requête refusée) ; le jeu reste jouable, sans SDK (sdk.js le tolère) ; la seule
             # trace est l'échec de ce script
             titre = 'paquet sans réseau 960×600'

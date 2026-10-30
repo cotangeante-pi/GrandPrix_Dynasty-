@@ -107,6 +107,15 @@ t('la ponctuation : « deuxPoints » vaut « : » collé en anglais et « : » e
   const m=[];for (const k of en) for (const s of phrases(TEXTES.en[k])) if (/\S [:;!?](\s|$)/.test(s.replace(/\{\w+\}/g,'X'))) m.push(k+' = '+s);
   v(!m.length,m.join(' ; '));});
 
+// --- les accords de nombre (tour 37d) : accorder() met le singulier à 1 (et à 0 en français) pour chaque unité affichée ; 2 reste au pluriel
+t('les accords : « 1 pt », « 1 lap », « 1 race »… en anglais ; « 0 pt », « 1 tour », « 0 victoire »… en français ; « 2 pts » reste au pluriel', ()=>{const m=[];
+  const U={en:[['pts','pt'],['laps','lap'],['races','race'],['seasons','season'],['wins','win'],['podiums','podium'],['points','point'],['titles','title']],
+           fr:[['pts','pt'],['tours','tour'],['courses','course'],['saisons','saison'],['victoires','victoire'],['podiums','podium'],['points','point'],['titres','titre']]};
+  for (const l of ['en','fr']) for (const [pl,sg] of U[l]) for (const n of [0,1,2]) {
+    const att=(n===1||(l==='fr'&&n===0))?sg:pl, r=accorder(n+' '+pl,l);
+    if (r!==n+' '+att) m.push(l+' : '+n+' '+pl+' → '+r);}
+  v(!m.length,m.join(' ; '));});
+
 // --- le français ne genre jamais le joueur (tour 37, suite) : quelques accords relevés puis rendus neutres ; aucun ne doit revenir
 const GENRES = [
   [/\bfâchée?s?\b/i, 'fâché(e)'], [/\bprête?\s+pour\b/i, 'prêt(e) pour'], [/\bt’a\s+battue?\b/i, 't’a battu(e)'], [/\bm’a\s+poussée?\b/i, 'm’a poussé(e)'],

@@ -1400,7 +1400,7 @@ function majResume(dt) {
     if (!z.commentaire) z.commentaire = COMMENTAIRE.creer((JEU.plateau && JEU.plateau.graine) || 0);
     const it = COMMENTAIRE.momentResume(z.commentaire, mom, JEU.contre ? JEU.ia : -1, texte('lieu_' + NOM_CIRCUIT) || texte('circuit_' + NOM_CIRCUIT) || CIRCUIT.nom);
     const el = document.getElementById('resumeCommentaire');
-    el.textContent = it ? '🎙 ' + texte('commentateur') + ' : ' + COMMENTAIRE.phrase(it, etiquetteVoiture, INTERFACE.formatTemps) : '';
+    el.textContent = it ? '🎙 ' + texte('commentateur') + texte('deuxPoints') + COMMENTAIRE.phrase(it, etiquetteVoiture, INTERFACE.formatTemps) : '';
     el.classList.toggle('cache', !it);
   }
   const b = RESUME.bandeau(mom);
@@ -1729,7 +1729,7 @@ function majCommentaire(e, m) {
   const etatMeteo = typeof METEO3D !== 'undefined' ? METEO3D.etat(e) : null;
   COMMENTAIRE.observer(c, e, { joueur: j, pluie: etatMeteo ? etatMeteo.pluie : 0, circuit: texte('circuit_' + NOM_CIRCUIT) || CIRCUIT.nom, lieu: texte('lieu_' + NOM_CIRCUIT) || texte('circuit_' + NOM_CIRCUIT) || CIRCUIT.nom });
   const it = COMMENTAIRE.afficher(c, e.temps, attendre);
-  if (it) MESSAGES.pousserTexte(m, { type: 'commentaire', texte: '🎙 ' + texte('commentateur') + ' : ' + COMMENTAIRE.phrase(it, etiquetteVoiture, INTERFACE.formatTemps) });
+  if (it) MESSAGES.pousserTexte(m, { type: 'commentaire', texte: '🎙 ' + texte('commentateur') + texte('deuxPoints') + COMMENTAIRE.phrase(it, etiquetteVoiture, INTERFACE.formatTemps) });
 }
 
 // l'affichage provisoire : la vitesse et « hors piste »

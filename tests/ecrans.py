@@ -2067,7 +2067,7 @@ PADDOCK_DOMICILE = """() => { const j = JEU.championnat.pilotes.find(p => p.huma
   j.coeur = ici === "monoco" ? "monzo" : "monoco"; montrerChampionnat(null); const non = document.getElementById("paddockDomicile").classList.contains("cache"); j.coeur = avant; montrerChampionnat(null);
   return { oui, non, texte }; }"""
 PADDOCK_POINTS = """() => { montrerChampionnat(25); const tb = document.getElementById("championnatTableaux"), pts = [...document.querySelectorAll("#championnatPilotes .points")];
-  const cl = CHAMPIONNAT.classementPilotes(JEU.championnat), ok = pts.every((p, i) => p.textContent === cl[i].points + " " + texte("pts") && p.style.getPropertyValue("--tv-fin") === String(cl[i].points));
+  const cl = CHAMPIONNAT.classementPilotes(JEU.championnat), ok = pts.every((p, i) => p.textContent === accorder(cl[i].points + " " + texte("pts")) && p.style.getPropertyValue("--tv-fin") === String(cl[i].points));
   const anime = tb.classList.contains("tvMonte"), nom = getComputedStyle(pts[0], "::after").animationName, li = getComputedStyle(tb.querySelector("li")).animationName;
   montrerChampionnat(null); return { ok, anime, nom, li, sans: !tb.classList.contains("tvMonte") }; }"""
 RESULTATS_ANIMES = """() => { INTERFACE.remplirResultats([1, 2, 3].map(i => ({ place: i, numero: i, couleur: 0xd8262e, total: 60 + i, penalites: 0, ecart: i - 1, grille: i, moi: i === 2 })));

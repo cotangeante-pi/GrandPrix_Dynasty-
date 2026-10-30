@@ -32,7 +32,7 @@ const INTERFACE = (function () {
       const nom = document.createElement('strong');
       nom.textContent = texte(cle);
       const detail = document.createElement('span');
-      detail.textContent = nb ? nb + ' ' + texte('tours') : texte('toursSansFin');
+      detail.textContent = nb ? accorder(nb + ' ' + texte('tours')) : texte('toursSansFin');
       const rec = document.createElement('em');
       rec.id = 'record' + nb;
       const r = SAUVEGARDE.record(nb, circuit);
@@ -209,7 +209,7 @@ const INTERFACE = (function () {
     for (const x of r.classement) {
       const li = document.createElement('li');
       if (x.moi) li.className = 'moi';
-      li.append(sp('place', x.place), sp('nom', x.nom), sp('points', x.points + ' ' + texte('pts')));
+      li.append(sp('place', x.place), sp('nom', x.nom), sp('points', accorder(x.points + ' ' + texte('pts'))));
       ol.appendChild(li);
     }
     $('unePasser').textContent = texte('unePasser');
@@ -571,9 +571,9 @@ const INTERFACE = (function () {
       const sp = (classe, contenu) => { const e = document.createElement('span'); e.className = classe; e.append(contenu); return e; };
       const spNom = sp('nom', nom);
       if (casque) spNom.prepend(CASQUE.icone(casque, REGLAGES.CASQUE_ICONE));   // l'icône du casque (casque.js)
-      li.append(sp('place', ch.resultats.length ? String(place) : '–'), pastille(couleur), spNom, sp('points', points + ' ' + texte('pts')));   // (avant la première course : pas de place)
+      li.append(sp('place', ch.resultats.length ? String(place) : '–'), pastille(couleur), spNom, sp('points', accorder(points + ' ' + texte('pts'))));   // (avant la première course : pas de place)
       // (le thème télé : après une course, la ligne arrive à son rang et ses points montent jusqu'à --tv-fin, style.css ; le texte ne change pas)
-      li.style.setProperty('--i', place - 1); li.lastChild.style.setProperty('--tv-fin', points); li.lastChild.dataset.suffixe = ' ' + texte('pts');
+      li.style.setProperty('--i', place - 1); li.lastChild.style.setProperty('--tv-fin', points); li.lastChild.dataset.suffixe = accorder(points + ' ' + texte('pts')).slice(String(points).length);   // (« 1 pt » : le compteur animé finit sur le même mot)
       // un rival : sa fiche au clic (fiche.js, Codeur 3)
       if (k !== undefined && !moi) { li.dataset.k = k; li.classList.add('rival'); li.addEventListener('click', () => { if (ouvertureFiche) ouvertureFiche(k); }); }
       return li;
@@ -661,7 +661,7 @@ const INTERFACE = (function () {
       if (p.humain) li.className = 'moi';
       if (i === 0) li.classList.add('champion');
       const sp = (classe, contenu) => { const e = document.createElement('span'); e.className = classe; e.append(contenu); return e; };
-      li.append(sp('place', String(i + 1)), pastille(ch.ecuries[p.ecurie].couleur), sp('nom', nomPilote(p)), sp('points', x.points + ' ' + texte('pts')));
+      li.append(sp('place', String(i + 1)), pastille(ch.ecuries[p.ecurie].couleur), sp('nom', nomPilote(p)), sp('points', accorder(x.points + ' ' + texte('pts'))));
       ol.appendChild(li);
     });
   }
@@ -1232,7 +1232,7 @@ const INTERFACE = (function () {
     $('deuxErreur').textContent = '';
     const options = (id, liste, nom) => { const s = $(id); s.textContent = ''; for (const v of liste) { const o = document.createElement('option'); o.value = String(v); o.textContent = nom(v); s.appendChild(o); } };
     options('deuxCircuit', Object.keys(CIRCUITS), c => nomCircuit(c));
-    options('deuxTours', R.DEUX_TOURS_CHOIX, n => n + ' ' + texte('tours'));
+    options('deuxTours', R.DEUX_TOURS_CHOIX, n => accorder(n + ' ' + texte('tours')));
     options('deuxIA', R.DEUX_IA_CHOIX.filter(n => n <= R.DEUX_VOITURES_MAX - 2), n => String(n));
     options('deuxNiveau', Object.keys(R.NIVEAUX), n => texte('niveau_' + n));
     $('deuxCircuit').value = r.circuit; $('deuxTours').value = String(r.tours); $('deuxIA').value = String(r.ia); $('deuxNiveau').value = r.niveau;
@@ -1420,7 +1420,7 @@ const INTERFACE = (function () {
       const temps = document.createElement('span'); temps.className = 'temps';
       temps.textContent = l.temps === null ? texte('pasDeTemps') : formatTemps(l.temps) + (l.penalites > 0 ? ' (' + penalite(l.penalites) + ')' : '');
       li.append(nom, temps);
-      if (avecPoints) { const p = document.createElement('span'); p.className = 'points'; p.textContent = l.points + ' ' + texte('pts'); li.append(p); }
+      if (avecPoints) { const p = document.createElement('span'); p.className = 'points'; p.textContent = accorder(l.points + ' ' + texte('pts')); li.append(p); }
       ol.appendChild(li);
     }
   }
