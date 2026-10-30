@@ -296,11 +296,19 @@ try:
                 for nom, montrer, quitter in (('calendrier', 'montrerCalendrier()', 'quitterCalendrier()'), ('fiche', 'montrerFiche(3)', 'quitterFiche()'),
                                               ('album', 'montrerAlbum()', 'quitterAlbum()'), ('arbre', 'montrerArbre()', 'quitterArbre()')):
                     pg.evaluate(f'() => {montrer}'); pg.wait_for_timeout(300); lus[nom] = pg.evaluate(LIRE); pg.evaluate(f'() => {quitter}')
+                # (tour 37f) les écrans qui restent, remplis avec 0, 1 et 2 : le classement du tournoi (points), les gains (places gagnées),
+                # les résultats à deux, la fin de saison (le classement du championnat après un Grand Prix), le bilan de carrière
+                lus['tournoi'] = pg.evaluate('''() => { const c = TOURNOI.casqueDefaut(0); INTERFACE.remplirFinTournoi([0, 1, 2].map(n => ({ prenom: 'J' + n, casque: c, temps: 60 + n, penalites: 0, points: n })), true);
+                  return document.getElementById('tournoiFinListe').innerText; }''')
+                lus['gains'] = pg.evaluate('''() => [0, 1, 2].map(n => { INTERFACE.remplirArgent({ place: 1000, placeNumero: 3, meilleurTour: 0, placesGagnees: n * 1000, nbPlacesGagnees: n, duel: 0, sansAide: 0, total: 1000 + n * 1000, plafonne: false });
+                  return document.getElementById('resultatsArgent').textContent; }).join('\\n')''')
+                lus['bilan'] = pg.evaluate('''() => [0, 1, 2].map(n => { try { INTERFACE.remplirRetraite({ raison: 'age', saisons: n, saison: n, titres: n, victoires: n, podiums: n, poles: n, points: n, courses: n, meilleurePlace: 1 }); } catch (e) { return 'ERREUR ' + e.message; }
+                  return document.getElementById('retraite').innerText; }).join('\\n')''')
                 un = '[01]' if lg == 'fr' else '1'
                 fautes = [f'{k} : « {m.group(0).strip()} »' for k, x in lus.items() for m in re.finditer(r'(?<![\d.,\u00a0])' + un + r'[ \u00a0](' + UNITES[lg] + r')\b', x)]
                 vus = sorted({m.group(1) for x in lus.values() for m in re.finditer(r'(?<![\d.,])([012]) (pts?)\b', x)})
-                t(f'{titre} : aucun « {un} » suivi d’un pluriel sur le paddock, le calendrier, une fiche, l’album et l’arbre (points vus à {", ".join(vus)})',
-                  not fautes and not console and '1' in vus, str([fautes[:10], console, vus]))
+                t(f'{titre} : aucun « {un} » suivi d’un pluriel sur le paddock, le calendrier, une fiche, l’album, l’arbre, le tournoi, les gains et le bilan (avec 0, 1 et 2 ; points vus à {", ".join(vus)})',
+                  not fautes and not console and '1' in vus and 'ERREUR' not in lus['bilan'] and 'J1' in lus['tournoi'], str([fautes[:10], console, vus, lus['bilan'][:200]]))
                 ctx.close()
             # LES AIDES AU PILOTAGE, CHOISIES AVANT LA COURSE (tour 37e, le propriétaire 2026-10-30) : au paddock, le choix une par une (à tous les niveaux),
             # le bonus annoncé, gardé après rechargement (d'un Grand Prix à l'autre) ; le bonus sur l'écran des gains ; en tournoi, pas
