@@ -55,8 +55,10 @@ const SAUVEGARDE = (function () {
   }
 
   function championnatLisible(ch) {
-    if (!ch || typeof ch !== 'object' || !Array.isArray(ch.pilotes) || !Array.isArray(ch.ecuries) || ch.pilotes.length < 2 || !ch.ecuries.length) return false;
-    return ch.pilotes.every(p => p && typeof p === 'object' && Number.isInteger(p.ecurie) && p.ecurie >= 0 && p.ecurie < ch.ecuries.length) && ch.ecuries.every(e => e && typeof e === 'object');
+    // (ce qui ferait planter la page : pas de liste de pilotes ou d'écuries, un pilote qui n'est pas un objet, une écurie qui n'existe pas ;
+    // une très vieille sauvegarde sans le numéro d'écurie de ses pilotes reste lisible, completer le refait)
+    if (!ch || typeof ch !== 'object' || !Array.isArray(ch.pilotes) || !Array.isArray(ch.ecuries) || !ch.pilotes.length || !ch.ecuries.length) return false;
+    return ch.pilotes.every(p => p && typeof p === 'object' && (p.ecurie === undefined || (Number.isInteger(p.ecurie) && p.ecurie >= 0 && p.ecurie < ch.ecuries.length))) && ch.ecuries.every(e => e && typeof e === 'object');
   }
 
   // le championnat en cours (null s'il n'y en a pas), et son écriture après chaque course

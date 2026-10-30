@@ -407,7 +407,8 @@ def saison_en(c, titre):
 ECRAN_VU = '() => typeof JEU !== "undefined" && !!JEU.ecran && (["course", "qualif", "grille", "survol"].includes(JEU.ecran) || [...document.querySelectorAll("section.ecran")].some(e => !e.classList.contains("cache") && e.getClientRects().length > 0))'
 def ecrire_sauvegarde(c, js_valeur):
     # (depuis une page qui ne touche pas à la sauvegarde ; null : la clé enlevée)
-    c.aller('tests/textes.html')
+    # (sans attendre JEU : cette page n'a pas le jeu ; c.aller attendrait 60 s pour rien)
+    c.recolter(); c.pg.goto('file://' + RACINE + '/tests/textes.html')
     c.ev(f'(v) => {{ if (v === null) localStorage.removeItem("grand-prix-dynasty"); else localStorage.setItem("grand-prix-dynasty", v); }}', js_valeur)
 def lire_sauvegarde(c):
     return c.ev('() => localStorage.getItem("grand-prix-dynasty")')
@@ -427,11 +428,12 @@ def sauvegarde(c, titre):
     x = json.loads(bonne); x['version'] = 99; cas.append(('une sauvegarde d’une version future (99)', json.dumps(x), True))
     cas.append(('pas un objet (« 42 »)', '42', True))
     for nom, valeur, perdue in cas:
+        t_cas = time.monotonic()
         ecrire_sauvegarde(c, valeur)
         avant = len(c.console)
         c.aller(f'index.html?lang={c.langue}')
         vu = c.attendre(ECRAN_VU, 30000)
-        e = c.ev('() => [JEU.ecran, !!JEU.championnat, typeof SAUVEGARDE !== "undefined" && typeof SAUVEGARDE.perdue === "function" ? SAUVEGARDE.perdue() : null, !!document.querySelector("#sauvegardePerdue:not(.cache)")]') or [None] * 4
+        e = c.ev('() => [JEU.ecran, !!JEU.championnat, typeof SAUVEGARDE !== "undefined" && typeof SAUVEGARDE.perdue === "function" ? SAUVEGARDE.perdue() : null, document.getElementById("sauvegardePerdue").dataset.avis === "perdue" && document.getElementById("sauvegardePerdue").textContent === texte("sauvegardePerdue")]') or [None] * 4
         erreurs = [m for _, m in c.console[avant:]]
         t(f'{titre} : {nom} : le jeu repart sur un écran visible ({e[0]}), sans erreur', vu and not erreurs, str([e, erreurs[:3]]))
         if perdue:
@@ -439,8 +441,10 @@ def sauvegarde(c, titre):
         elif perdue is None:
             t(f'{titre} : {nom} : pas de carrière à perdre, pas de message', not e[3], str(e))
         else:
-            t(f'{titre} : {nom} : la carrière est gardée (paddock)', e[0] == 'championnat' and e[1], str(e))
+            # (la carrière de référence vient de ?championnat=1 : son pilote n'a pas encore de nom, la page demande donc sa création)
+            t(f'{titre} : {nom} : la carrière est gardée (paddock, ou la création du pilote qu’elle n’avait pas faite)', e[0] in ('championnat', 'pilote') and e[1] and not e[3], str(e))
         c.inspecter(f'sauvegarde : {nom}')
+        L.append(f'  ({titre} : {nom} en {time.monotonic() - t_cas:.0f} s)')
     ecrire_sauvegarde(c, bonne)
 STOCKAGE = {
   'plein': "(() => { const f = Storage.prototype.setItem; Storage.prototype.setItem = function () { throw new DOMException('plein', 'QuotaExceededError'); }; })();",
@@ -460,8 +464,9 @@ def stockage(c, titre):
         arrive = c.jouer(lambda e: e[0] == 'championnat', 400, f'premier lancement, localStorage {nom}')
         t(f'{titre} : localStorage {nom} : le premier lancement va jusqu’au paddock (découverte, création du pilote), sans erreur', arrive and not c.console, str([c.bloque, c.console[:3]]))
         if arrive:
-            av = c.ev('() => { SAUVEGARDE.ecrire(SAUVEGARDE.lire()); const e = document.getElementById("sauvegardePerdue"); return [SAUVEGARDE.impossible(), !e.classList.contains("cache"), e.dataset.avis, e.textContent === texte("sauvegardeImpossible"), !!JEU.championnat]; }')
-            t(f'{titre} : localStorage {nom} : la carrière tient tant que l’onglet reste ouvert, et le jeu le dit (« ta carrière s’arrêtera à la fermeture de l’onglet »)', av == [True, True, 'impossible', True, True], str(av))
+            # (le bandeau a été montré sur cette page : son avis et son texte restent, même une fois caché après AVIS_SAUVEGARDE_DUREE)
+            av = c.ev('() => { SAUVEGARDE.ecrire(SAUVEGARDE.lire()); const e = document.getElementById("sauvegardePerdue"); return [SAUVEGARDE.impossible(), e.dataset.avis, e.textContent === texte("sauvegardeImpossible"), !!JEU.championnat]; }')
+            t(f'{titre} : localStorage {nom} : la carrière tient tant que l’onglet reste ouvert, et le jeu le dit (« ta carrière s’arrêtera à la fermeture de l’onglet »)', av == [True, 'impossible', True, True], str(av))
 # --- une dynastie longue : deux générations de 15 saisons (les Grands Prix joués d'avance par SAISONS.avancer, les écrans de fin de
 # saison cliqués comme un joueur) ; la taille de la sauvegarde et le temps de chargement du paddock
 def fin_de_saison(c, quoi):
