@@ -38,6 +38,16 @@ const REGLAGES = {
   ADHERENCE_ARRIERE: 1.25,      // l'arrière accroche plus que l'avant : c'est l'avant qui glisse d'abord, pas de tête-à-queue
   STABILITE_LACET: 4,           // 1/s : la rotation de la voiture rejoint ce que demande le volant (aide arcade)
   ANTI_DERIVE: 2.5,             // 1/s : la glissade de côté s'amortit (aide arcade)
+  // la voiture vivante (expert et légende, physique.js pasPneusVivant) : VOITURE_VIVANTE × NIVEAUX[…].vivante (débutant et normal : 0, la voiture d'aujourd'hui au bit près)
+  VOITURE_VIVANTE: 1,           // le curseur (&reglages=1) : 1 = la voiture vivante, d'office en expert et légende (tour 41b) ; 0 = la voiture d'aujourd'hui
+  VIVANTE_IA: 0,                // 1 = les IA roulent aussi en voiture vivante ; 0 = le joueur seul (les IA ne savent pas encore la piloter : tour 41, en légende, 47 s → plus de 180 s au tour)
+  VIVANTE_HAUTEUR_CG: 0.3,      // m : la hauteur du centre de gravité (le transfert de charge : masse × accélération × hauteur / empattement)
+  VIVANTE_ADHERENCE_ARRIERE: 1.15, // l'arrière n'accroche plus que ça de plus que l'avant (au lieu d'ADHERENCE_ARRIERE)
+  VIVANTE_REPARTITION_FREIN: 0.6,  // part du freinage sur l'avant
+  VIVANTE_CERCLE_ARRIERE: 0.4,  // … et à l'arrière (le patinage, le frein arrière)
+  VIVANTE_CERCLE: 0.75,         // l'adhérence prise en long (frein, moteur) enlève ça × sa part au carré de l'adhérence de côté
+  VIVANTE_AIDES: 0.4,           // les aides arcade (STABILITE_LACET, ANTI_DERIVE) baissent de cette part
+  VIVANTE_CHARGE_MIN: 0.15,     // aucun essieu ne porte moins que cette part de la charge
   // l'herbe ne fait que ralentir, et fort : la direction et l'adhérence restent presque celles de la piste
   ADHERENCE_HERBE: 0.9,         // l'adhérence est multipliée par ce nombre sur l'herbe (au moins 0,85)
   FROTTEMENT_HERBE: 0,          // N par m/s, en plus, sur l'herbe
@@ -671,8 +681,8 @@ const REGLAGES = {
   NIVEAUX: {
     debutant: { rythme: -0.05, erreurs: 2, agressivite: -0.3, regularite: 1.5, gestionPneus: -0.2, technique: 0.1 },
     normal: { rythme: 0, erreurs: 1, agressivite: 0, regularite: 1, gestionPneus: 0, technique: 0.28 },
-    expert: { rythme: 0, erreurs: 0.5, agressivite: 0.2, regularite: 0.7, gestionPneus: 0.1, corde: 0.5, marge: -0.7, limite: 1.01, penaliteFrein: 0.5, precision: 0.6, bordMin: 0.8, margeCarte: 1.1, technique: 0.7 },
-    legende: { rythme: 0, erreurs: 0.25, agressivite: 0.4, regularite: 0.5, gestionPneus: 0.2, corde: 0, marge: -1.4, limite: 1.02, penaliteFrein: 0, precision: 0.3, bordMin: 0.5, margeCarte: 0.7, technique: 1 },
+    expert: { rythme: 0, erreurs: 0.5, agressivite: 0.2, regularite: 0.7, gestionPneus: 0.1, vivante: 1, corde: 0.5, marge: -0.7, limite: 1.01, penaliteFrein: 0.5, precision: 0.6, bordMin: 0.8, margeCarte: 1.1, technique: 0.7 },
+    legende: { rythme: 0, erreurs: 0.25, agressivite: 0.4, regularite: 0.5, gestionPneus: 0.2, vivante: 1, corde: 0, marge: -1.4, limite: 1.02, penaliteFrein: 0, precision: 0.3, bordMin: 0.5, margeCarte: 0.7, technique: 1 },
   },
   // le caractère de chaque IA (étape 4d), tiré avec la graine entre ces bornes :
   IA_CARACTERE: {

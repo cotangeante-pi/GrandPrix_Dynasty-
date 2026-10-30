@@ -962,6 +962,35 @@ t('disposition (discussion.js → ia.js) : promise pour le Grand Prix suivant, e
   const sans=course(false),avec=course(true);
   L.push('  (disposition « bloquer » : défenses '+avec.def+' (sans : '+sans.def+'), dépassements '+avec.dep+' (sans : '+sans.dep+'))');
   v(sans.def===0&&avec.def>0,'défenses '+sans.def+' / '+avec.def);});
+// --- la voiture vivante (CLAUDE.md « La voiture vivante (expert et légende) », Codeur 1) : en calcul pur
+function tourVivant(circ,niveau,vv,brutal){const R_=REGLAGES,av=[R_.NIVEAU,R_.VOITURE_VIVANTE];R_.NIVEAU=niveau;R_.VOITURE_VIVANTE=vv;
+  try{const c=creerCourse(circ,3),v_=creerVoiture(circ);placerAuDepart(v_,circ);c.compte=0;let glisse=0,teteAQueue=0;
+    for(let k=0;k<400*120&&c.etat!=='finie';k++){let cmd=piloteRobot(v_,circ);
+      // le robot « brutal » : plein gaz dès qu'il veut accélérer, et au freinage frein à fond et braquage à fond
+      if(brutal)cmd={gaz:cmd.gaz>0?1:0,frein:cmd.frein>0?1:0,direction:cmd.frein>0?Math.sign(cmd.direction||1):cmd.direction};
+      appliquerCommandes(v_,cmd);pasVoiture(v_,circ,DT);majCourse(c,v_,DT);
+      glisse=Math.max(glisse,Math.abs(Math.atan2(v_.v,Math.max(1,Math.abs(v_.u)))));
+      if(v_.piste){let d=v_.cap-Math.atan2(circ.tz[v_.piste.indice],circ.tx[v_.piste.indice]);if(Math.abs(Math.atan2(Math.sin(d),Math.cos(d)))>Math.PI/2)teteAQueue++;}}
+    return {fini:c.etat==='finie',tours:c.tours.map(t_=>t_.temps),glisse,teteAQueue,barr:v_.contactsBarriere,x:v_.x,z:v_.z,cap:v_.cap};}
+  finally{[R_.NIVEAU,R_.VOITURE_VIVANTE]=av;}}
+t('voiture vivante : VOITURE_VIVANTE à 0 en légende, et à 1 en normal ou en débutant : la voiture d’aujourd’hui au bit près (le tour du robot)',()=>{
+  const ref=tourVivant(TQ,'normal',0);for(const [n,vv] of [['legende',0],['expert',0],['normal',1],['debutant',1]]){const r=tourVivant(TQ,n,vv);v(r.x===ref.x&&r.z===ref.z&&r.cap===ref.cap,n+' '+vv);}});
+t('voiture vivante : au freinage fort en ligne droite, la charge (l’adhérence) de l’avant monte et celle de l’arrière baisse',()=>{const R_=REGLAGES,av=[R_.NIVEAU,R_.VOITURE_VIVANTE];R_.NIVEAU='legende';R_.VOITURE_VIVANTE=1;
+  try{const v_=creerVoiture(null);v_.u=70;const fz=charge(70),av0=fz*(R_.EMPATTEMENT-R_.CG_AVANT)/R_.EMPATTEMENT,ar0=fz*R_.CG_AVANT/R_.EMPATTEMENT;
+    for(let k=0;k<30;k++){v_.gaz=0;v_.frein=1;v_.direction=0;pasVoiture(v_,null,DT);}
+    L.push('  (voiture vivante, freinage à 70 m/s : charge avant '+v_.chargeAvant.toFixed(0)+' N, statique '+av0.toFixed(0)+' ; arrière '+v_.chargeArriere.toFixed(0)+' N, statique '+ar0.toFixed(0)+')');
+    v(v_.chargeAvant>av0*1.05&&v_.chargeArriere<ar0*0.95,'avant '+v_.chargeAvant.toFixed(0)+' / '+av0.toFixed(0)+', arrière '+v_.chargeArriere.toFixed(0)+' / '+ar0.toFixed(0));}finally{[R_.NIVEAU,R_.VOITURE_VIVANTE]=av;}});
+t('voiture vivante : un lever de pied à 250 km/h dans un virage rapide fait tourner la voiture plus que le gaz maintenu (et pas sans la voiture vivante)',()=>{const R_=REGLAGES,av=[R_.NIVEAU,R_.VOITURE_VIVANTE];
+  try{const tourne={};for(const vv of [0,1])for(const gaz of [1,0]){R_.NIVEAU='legende';R_.VOITURE_VIVANTE=vv;const v_=creerVoiture(null);v_.u=250/3.6;
+      for(let k=0;k<60;k++){v_.gaz=1;v_.frein=0;v_.direction=0.15;pasVoiture(v_,null,DT);}const c0=v_.cap;for(let k=0;k<120;k++){v_.gaz=gaz;v_.frein=0;v_.direction=0.15;pasVoiture(v_,null,DT);}tourne[vv+'_'+gaz]=v_.cap-c0;}
+    L.push('  (en 1 s à 250 km/h, braquage 0,15 : aujourd’hui gaz '+tourne['0_1'].toFixed(3)+' rad, pied levé '+tourne['0_0'].toFixed(3)+' ; vivante gaz '+tourne['1_1'].toFixed(3)+', pied levé '+tourne['1_0'].toFixed(3)+')');
+    v(tourne['1_0']>tourne['1_1']*1.2,'vivante : pied levé '+tourne['1_0'].toFixed(3)+', gaz '+tourne['1_1'].toFixed(3));v(tourne['0_0']<=tourne['0_1'],'aujourd’hui le lever de pied tournait déjà plus');}finally{[R_.NIVEAU,R_.VOITURE_VIVANTE]=av;}});
+t('voiture vivante : en légende, le robot neutre fait ses tours sans tête-à-queue ni barrière (circuits test et technique), au plus 1 % plus lent ; le robot brutal, à l’épingle du technique, part en glissade (dérive au moins 1,5 fois celle d’aujourd’hui) et se rattrape (il finit, ni tête-à-queue ni barrière)',()=>{
+  for(const [nom,circ] of [['test',C],['technique',TQ]]){const n0=tourVivant(circ,'legende',0),n1=tourVivant(circ,'legende',1),b0=tourVivant(circ,'legende',0,true),b1=tourVivant(circ,'legende',1,true);
+    const m=r=>Math.min(...r.tours.slice(1));
+    L.push('  (voiture vivante, '+nom+', robot neutre : meilleur tour '+m(n0).toFixed(2)+' → '+m(n1).toFixed(2)+' s, dérive max '+n0.glisse.toFixed(3)+' → '+n1.glisse.toFixed(3)+' rad ; robot brutal : '+m(b0).toFixed(2)+' → '+m(b1).toFixed(2)+' s, dérive '+b0.glisse.toFixed(3)+' → '+b1.glisse.toFixed(3)+' rad)');
+    v(n1.fini&&n1.teteAQueue===0&&n1.barr===0&&m(n1)<=m(n0)*1.01,nom+' neutre : fini '+n1.fini+', tête-à-queue '+n1.teteAQueue+', barrières '+n1.barr+', '+m(n1).toFixed(2)+' / '+m(n0).toFixed(2));
+    if(nom==='technique')v(b1.glisse>=1.5*b0.glisse&&b1.fini&&b1.teteAQueue===0&&b1.barr===0,nom+' brutal : dérive '+b1.glisse.toFixed(3)+' / '+b0.glisse.toFixed(3)+', fini '+b1.fini+', tête-à-queue '+b1.teteAQueue+', barrières '+b1.barr);}});
 t('classement : les arrivés d’abord (dans l’ordre d’arrivée), puis les plus avancés ; les tours de retard comptés', ()=>{
   const e=creerCourseIA(TQ,3,5,1,CARTES_T.technique),P=e.pilotes;
   P[2].place=1;P[2].arrivee=10;P[0].course.progression=500;P[1].course.progression=550+TQ.longueur;

@@ -94,10 +94,13 @@ Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤
 | 2026-10-26 | 97f1fdb | 88 | 12 | 19 | 15 | 15 | 12 | 10 | 5 |   (corrigé à minuit : l'interface plafonne à 15, le Chef avait dépassé le barème)
 | 2026-10-27 | 6afc311 | 91 | 13 | 19 | 15 | 15 | 14 | 10 | 5 |   (conduite +1 : la pluie et le choix des pneus ; 3D et perf +2 : décors des 12 tracés, nuit, pluie dessinée, vraies caméras, drone, pont ; course et IA reste à 19 : le duel n'est pas tenu ; 3D et perf pas à 15 : 60 images par seconde pas encore mesurées au calme)
 | 2026-10-28 | be4345c | 93 | 15 | 19 | 15 | 15 | 14 | 10 | 5 |   (conduite +2 : sensations, manette, trajectoire conseillée, en piste en 10 s ; course et IA reste à 19 : le duel tient avec un arrêt (44 %) mais pas en course courte, techniques en bataille et pluie pas faites ; 3D et perf pas à 15 : 60 images par seconde pas mesurées au calme)
+| 2026-10-29 | 1ad5d56 | 94 | 16 | 19 | 15 | 15 | 14 | 10 | 5 |   (conduite +1 : la voiture vivante en expert et légende, le joueur seul ; reste à 19 en course et IA : le duel court pas tenu ; 3D et perf : qualité automatique, mais 60 i/s pas mesurées au calme)
 
 Note du Chef session-5b (2026-10-23) : les lignes 18 à 19b ne s'additionnaient pas (19 + 19b : 12 + 16 + 6 + 12 + 9 + 10 + 2 = 67, noté 62 ; 18 : 63 noté 60). Les axes sont justes, c'est le total qui était faux ; depuis la ligne 21b, le total est la somme des axes. Le saut de 62 à 68 vient de cette correction, pas d'un progrès.
 
 ## À essayer par le propriétaire
+
+- **La voiture vivante** (tour 41) : une course en légende, puis `&reglages=1` pour jouer avec VOITURE_VIVANTE (0 = la voiture d'avant, 1 = la vivante). Au freinage le poids passe sur l'avant, un lever de pied en courbe rapide fait tourner, plein gaz en sortie d'épingle fait patiner. Dire : **l'arrière qui glisse, c'est fun ou énervant ?** (l'axe conduite ne passe pas 18/20 sans ton avis)
 
 - **La trajectoire conseillée** (tour 39) : en niveau débutant, ou menu pause « Trajectoire conseillée » : une ligne verte / jaune / rouge sur la piste. Dire : elle se lit bien (largeur, transparence) ? Le jaune dans la grande courbe rapide du circuit d'essai a du sens ? Sous la pluie (depuis le tour 40d), le rouge arrive plus tôt : ça colle à ce que tu sens ? Avec une vraie manette : la débrancher en course doit mettre la pause.
 - **La qualité automatique** (tour 40) : menu pause « Qualité : auto / haute / basse ». Dire : en auto, le jeu reste fluide sur ton Mac ? Le cran bas (plus flou) est acceptable ? Et la vraie mesure : `python3 tests/perf.py --fois 3`, Mac au calme, écran ouvert.
@@ -161,6 +164,8 @@ Note du Chef session-5b (2026-10-23) : les lignes 18 à 19b ne s'additionnaient 
 - Étapes 0, 1, 2, 3 (acceptées par le propriétaire). L'étape 4 (IA) est presque là : il manque le duel (vainqueur ≠ poleman 0/30). Des morceaux des étapes 5 (feux, qualification, podium), 6 (championnat, sauvegarde), 7 (pneus désactivés), 13 (enregistreur) et 15 (sdk.js) sont posés.
 
 ## Décidé
+
+- 2026-10-29 20h20 (Chef, repli prévu par CLAUDE.md « La voiture vivante ») : **la voiture vivante pour le joueur seul en expert et légende** (VIVANTE_IA = 0). Les IA ne savent pas encore la piloter : en légende sur le circuit test, 46,6 s → plus de 180 s au tour, de l'herbe partout. Les références de courses.html et stands.html ne bougent pas. Les IA en voiture vivante restent à faire.
 
 - 2026-10-27 20h56 (le propriétaire : « travaille automatiquement sur les trois premiers points jaunes et si c'est fini, améliore l'ia de communication à fond et si fini le commentateur travaille jusqu'à 24h automatiquement ») : **l'ordre jusqu'à minuit** : 1) les étapes 4 (techniques de virage, IA plus rapides, duel), 10 (60 images par seconde) et 12b (patrons d'écurie) ; 2) l'IA de discussion, à fond ; 3) le commentateur (branche `commentateur`, commencée par le Codeur 2). Un Codeur libre prend la première tâche de cette liste où il ne gêne pas un autre (pas deux Codeurs dans le même fichier) ; sinon la suivante.
 - 2026-10-27 20h55 (le propriétaire) : **les IA ont des techniques selon le virage** : un long virage par l'intérieur ; un virage court par l'extérieur puis l'intérieur ; etc. Écrit dans CLAUDE.md (« Les IA des adversaires »), donné au Codeur 1 avec les IA plus rapides.
