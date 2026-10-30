@@ -1549,8 +1549,9 @@ const AUCUNE = { gaz: 0, frein: 0, direction: 0 }, FREIN_SEUL = { gaz: 0, frein:
 // p : le pilote (à deux, p.joueur = 1, 2)
 const TOUTES_AIDES = { direction: true, freinage: true, antiblocage: true, antipatinage: true };
 function aidesDe(p) {
-  if (JEU.deux) return INTERFACE.aidesDeux()[(p && p.joueur ? p.joueur : 1) - 1] ? TOUTES_AIDES : null;
-  if (JEU.tournoi) { const j = TOURNOI.joueurActuel(JEU.tournoi); return j !== null && INTERFACE.aidesAmi(JEU.tournoi.joueurs[j].prenom) ? TOUTES_AIDES : null; }
+  const I = typeof INTERFACE !== 'undefined' ? INTERFACE : null;   // (les pages de test du moteur n'ont pas l'interface : aucune aide à deux ni au tournoi)
+  if (JEU.deux) return I && I.aidesDeux()[(p && p.joueur ? p.joueur : 1) - 1] ? TOUTES_AIDES : null;
+  if (JEU.tournoi) { const j = TOURNOI.joueurActuel(JEU.tournoi); return I && j !== null && I.aidesAmi(JEU.tournoi.joueurs[j].prenom) ? TOUTES_AIDES : null; }
   return JEU.assistance;
 }
 function aiderJoueur(c, v, p) {

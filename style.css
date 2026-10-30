@@ -1342,3 +1342,5 @@ button.manette-choix { box-shadow: 0 0 0 3px #ffd23f, 0 0 14px 2px rgba(255, 210
 #sauvegardePerdue { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 40; max-width: min(620px, 80vw); padding: 8px 14px;
   background: rgba(150, 20, 24, 0.92); color: #fff; font-weight: 700; font-size: 15px; text-align: center; border-radius: 6px; pointer-events: none; }
 #sauvegardePerdue.cache { display: none; }
+.ecran button.aidesJoueur.court { min-width: 0; flex: 0 0 auto; padding: 4px 8px; }   /* (le tournoi : un petit bouton par ligne, la ligne tient en 960) */
+.deuxJoueur .aidesJoueur { align-self: flex-start; }

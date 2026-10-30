@@ -1324,8 +1324,8 @@ const INTERFACE = (function () {
     enlever.tabIndex = -1; enlever.className = 'tournoiEnlever'; enlever.textContent = '✕'; enlever.title = texte('tournoiEnlever');
     enlever.addEventListener('mousedown', e => e.preventDefault());
     enlever.addEventListener('click', () => { if ($('tournoiListe').children.length > REGLAGES.TOURNOI_JOUEURS_MIN) { li.remove(); majInscription(); } });
-    const aides = boutonAidesJoueur(aidesAmi(j.prenom), oui => noterAidesAmi(nom.value, oui));   // (tour 37e : les aides de ce joueur, gardées par son prénom)
-    nom.addEventListener('change', () => { aides.dataset.oui = aidesAmi(nom.value) ? '1' : '0'; aides.textContent = texte(aides.dataset.oui === '1' ? 'aidesJoueur_oui' : 'aidesJoueur_non'); });
+    const aides = boutonAidesJoueur(aidesAmi(j.prenom), oui => noterAidesAmi(nom.value, oui), true);   // (tour 37e : les aides de ce joueur, gardées par son prénom)
+    nom.addEventListener('change', () => { aides.dataset.oui = aidesAmi(nom.value) ? '1' : '0'; aides.textContent = texte(aides.dataset.oui === '1' ? 'aidesJoueur_oui_court' : 'aidesJoueur_non_court'); });
     li.append(icone, nom, motif, ...couleurs, aides, enlever);
     maj();
     return li;
@@ -1644,10 +1644,10 @@ const INTERFACE = (function () {
   function aidesAmi(prenom) { const m = lireOption('aides_amis', null), k = String(prenom || '').trim().toLowerCase(); return m && typeof m[k] === 'boolean' ? m[k] : aidesParDefaut(); }
   function noterAidesAmi(prenom, oui) { const m = Object.assign({}, lireOption('aides_amis', null) || {}), k = String(prenom || '').trim().toLowerCase(); if (!k) return; m[k] = !!oui; ecrireOption('aides_amis', m); }
   const marqueAides = oui => oui ? ' ' + texte('aidesMarque') : '';
-  function boutonAidesJoueur(oui, changer) {
+  function boutonAidesJoueur(oui, changer, court) {
     const b = document.createElement('button');
-    b.tabIndex = -1; b.className = 'petit aidesJoueur';
-    const ecrire = () => { b.textContent = texte(b.dataset.oui === '1' ? 'aidesJoueur_oui' : 'aidesJoueur_non'); };
+    b.tabIndex = -1; b.className = 'petit aidesJoueur' + (court ? ' court' : '');
+    const ecrire = () => { const cle = b.dataset.oui === '1' ? 'aidesJoueur_oui' : 'aidesJoueur_non'; b.textContent = texte(court ? cle + '_court' : cle); b.title = texte(cle); };   // (court : la ligne du tournoi, étroite en 960)
     b.dataset.oui = oui ? '1' : '0'; ecrire();
     b.addEventListener('mousedown', e => e.preventDefault());
     b.addEventListener('click', () => { b.dataset.oui = b.dataset.oui === '1' ? '0' : '1'; ecrire(); changer(b.dataset.oui === '1'); });

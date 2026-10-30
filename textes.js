@@ -983,7 +983,7 @@ Object.assign(TEXTES.en, {
   aidesPart: '(off: +{p} %)', aidesBonus: 'With these aids off: +{p} % prize money.', aidesBonusZero: 'All aids on: the usual prize money.',
   aidesSansArgent: 'No prize money in this mode: your aids are shown next to your name.',
   aidesFigees: 'Driving aids are chosen before the race.', aidesValider: 'OK', argentSansAide: 'no-assist bonus: +{n}',
-  aidesJoueur_oui: '🛞 Aids: on', aidesJoueur_non: '🛞 Aids: off', aidesMarque: '🛞',
+  aidesJoueur_oui: '🛞 Aids: on', aidesJoueur_non: '🛞 Aids: off', aidesJoueur_oui_court: '🛞 ✓', aidesJoueur_non_court: '🛞 ✗', aidesMarque: '🛞',
 });
 Object.assign(TEXTES.fr, {
   assist_antiblocage_oui: 'Anti-blocage : oui', assist_antiblocage_non: 'Anti-blocage : non',
@@ -991,7 +991,7 @@ Object.assign(TEXTES.fr, {
   aidesPart: '(sans : +{p} %)', aidesBonus: 'Avec ces aides coupées : +{p} % de gains.', aidesBonusZero: 'Toutes les aides : les gains habituels.',
   aidesSansArgent: 'Pas d’argent dans ce mode : tes aides sont affichées à côté de ton nom.',
   aidesFigees: 'Les aides au pilotage se choisissent avant la course.', aidesValider: 'Valider', argentSansAide: 'bonus pilotage sans aide : +{n}',
-  aidesJoueur_oui: '🛞 Aides : oui', aidesJoueur_non: '🛞 Aides : non', aidesMarque: '🛞',
+  aidesJoueur_oui: '🛞 Aides : oui', aidesJoueur_non: '🛞 Aides : non', aidesJoueur_oui_court: '🛞 ✓', aidesJoueur_non_court: '🛞 ✗', aidesMarque: '🛞',
 });
 // --- tour 41d, Codeur 4 : la sauvegarde abîmée (une nouvelle carrière commence) ou impossible (le navigateur ne garde rien) ---
 Object.assign(TEXTES.en, {

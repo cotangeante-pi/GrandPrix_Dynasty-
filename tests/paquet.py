@@ -313,7 +313,7 @@ try:
             page_ch = 'file://' + dossier + '/index.html?championnat=1&tours=1&robot=1&gp=3'
             pg.goto(page_ch)
             pg.wait_for_function('() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', timeout=60000)
-            avant = pg.evaluate('() => ({ niveau: REGLAGES.NIVEAU, aides: Object.assign({}, JEU.assistance), visible: !!document.getElementById("boutonAidesPaddock").offsetParent })')
+            avant = pg.evaluate('() => ({ niveau: REGLAGES.NIVEAU, aides: Object.assign({}, JEU.assistance), visible: document.getElementById("boutonAidesPaddock").getBoundingClientRect().width > 0 })')
             pg.click('#boutonAidesPaddock')
             pg.click('#choixAidesListe button[data-aide=direction]'); pg.click('#choixAidesListe button[data-aide=freinage]')
             ch = pg.evaluate('() => ({ aides: Object.assign({}, JEU.assistance), sauve: SAUVEGARDE.option("aides_pilotage", null), bonus: document.getElementById("choixAidesBonus").textContent, ouvert: !document.getElementById("choixAides").classList.contains("cache"), attendu: ASSISTANCE.bonus(JEU.assistance) })')
