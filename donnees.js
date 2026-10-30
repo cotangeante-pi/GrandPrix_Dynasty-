@@ -38,8 +38,8 @@ const REGLAGES = {
   ADHERENCE_ARRIERE: 1.25,      // l'arrière accroche plus que l'avant : c'est l'avant qui glisse d'abord, pas de tête-à-queue
   STABILITE_LACET: 4,           // 1/s : la rotation de la voiture rejoint ce que demande le volant (aide arcade)
   ANTI_DERIVE: 2.5,             // 1/s : la glissade de côté s'amortit (aide arcade)
-  // la voiture vivante (expert et légende, physique.js pasPneusVivant) : VOITURE_VIVANTE × NIVEAUX[…].vivante ; 0 = la voiture d'aujourd'hui
-  VOITURE_VIVANTE: 0,           // le curseur (&reglages=1) : 0 = la voiture d'aujourd'hui, 1 = la voiture vivante (en expert et légende seulement)
+  // la voiture vivante (expert et légende, physique.js pasPneusVivant) : VOITURE_VIVANTE × NIVEAUX[…].vivante (débutant et normal : 0, la voiture d'aujourd'hui au bit près)
+  VOITURE_VIVANTE: 1,           // le curseur (&reglages=1) : 1 = la voiture vivante, d'office en expert et légende (tour 41b) ; 0 = la voiture d'aujourd'hui
   VIVANTE_IA: 0,                // 1 = les IA roulent aussi en voiture vivante ; 0 = le joueur seul (les IA ne savent pas encore la piloter : tour 41, en légende, 47 s → plus de 180 s au tour)
   VIVANTE_HAUTEUR_CG: 0.3,      // m : la hauteur du centre de gravité (le transfert de charge : masse × accélération × hauteur / empattement)
   VIVANTE_ADHERENCE_ARRIERE: 1.15, // l'arrière n'accroche plus que ça de plus que l'avant (au lieu d'ADHERENCE_ARRIERE)
