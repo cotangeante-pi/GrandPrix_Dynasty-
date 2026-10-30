@@ -13,24 +13,29 @@ const CONSEIL = (function () {
   // carte (déjà bornée par le freinage possible), on la suit : là où la vitesse conseillée baisse, il faut freiner (rouge),
   // là où elle tient, il faut lever (jaune) ; là où elle remonte (la sortie du virage) ou en dessous, on accélère (vert). Plus vite que la vitesse conseillée : rouge
   // tout de suite, jusqu'à la rejoindre au freinage possible (IA_MARGE_FREIN, comme la carte).
-  function couleurs(carte, i0, u, n) {
+  // adh (tour 40d, Codeur 4) : l'adhérence qui reste à la voiture, v.adhMeteo × v.adherence × v.aileronAdherence (1 au sec, pneus neufs,
+  // aileron au milieu) : comme ia.js, la vitesse conseillée est multipliée par √adh, l'accélération et le freinage possibles par adh ;
+  // à adh = 1, les couleurs sont exactement celles d'avant (×1 et √1 = 1, au bit près)
+  function couleurs(carte, i0, u, n, adh) {
     const c = carte.circuit, T = carte.trajectoire, vit = T.vitesse, nb = c.nb, res = new Array(n);
+    const a = typeof adh === 'number' && adh > 0 ? adh : 1, ka = Math.sqrt(a);
     let f = Math.max(0, u), tropVite = true;   // (trop vite : seulement tant que la voiture n'a pas rejoint la vitesse conseillée)
     for (let k = 0; k < n; k++) {
-      const i = (i0 + k) % nb, j = (i + R.CONSEIL_REGARD) % nb, cible = vit[i];   // (la baisse sur quelques points : pas de clignotement à la corde)
+      const i = (i0 + k) % nb, j = (i + R.CONSEIL_REGARD) % nb, cible = vit[i] * ka;   // (la baisse sur quelques points : pas de clignotement à la corde)
       // (à la vitesse de pointe, en ligne droite, on reste à fond : vert)
       // trop vite pour ici : freiner tout de suite (rouge), en freinant fort on rejoint la vitesse conseillée plus loin
       if (tropVite && f > cible + R.CONSEIL_TOLERANCE) {
         res[k] = ROUGE;
-        f = Math.max(cible, Math.sqrt(Math.max(0, f * f - 2 * R.IA_MARGE_FREIN * freinagePossible(f) * T.ds[i])));
+        f = Math.max(cible, Math.sqrt(Math.max(0, f * f - 2 * R.IA_MARGE_FREIN * freinagePossible(f) * a * T.ds[i])));
         continue;
       }
       tropVite = false;
-      if (f < cible - R.CONSEIL_TOLERANCE || cible >= carte.pointe - R.CONSEIL_TOLERANCE) res[k] = VERT;
-      else res[k] = vit[j] < cible - R.CONSEIL_BAISSE ? ROUGE : vit[j] > cible + R.CONSEIL_BAISSE ? VERT : JAUNE;   // (au bout, la vitesse conseillée monte : on remet les gaz)
+      // (la ligne droite à fond se lit sur la carte elle-même : la vitesse de pointe vient de la traînée, pas de l'adhérence)
+      if (f < cible - R.CONSEIL_TOLERANCE || vit[i] >= carte.pointe - R.CONSEIL_TOLERANCE) res[k] = VERT;
+      else res[k] = vit[j] * ka < cible - R.CONSEIL_BAISSE ? ROUGE : vit[j] * ka > cible + R.CONSEIL_BAISSE ? VERT : JAUNE;   // (au bout, la vitesse conseillée monte : on remet les gaz)
       // le point suivant : à fond depuis la vitesse tenue ici (au plus la vitesse conseillée : on suit le conseil)
       const tenue = Math.min(f, cible);
-      f = Math.sqrt(tenue * tenue + 2 * Math.max(0, accelerationPossible(tenue)) * T.ds[i]);
+      f = Math.sqrt(tenue * tenue + 2 * Math.max(0, accelerationPossible(tenue)) * a * T.ds[i]);
     }
     return res;
   }
@@ -75,7 +80,7 @@ const CONSEIL = (function () {
     if (!m || !v || !v.piste || !carte) { ligne.visible = false; return; }
     const c = carte.circuit, T = carte.trajectoire, nb = c.nb, i0 = (v.piste.indice + 1) % nb;
     const n = Math.min(nbPoints, Math.max(2, Math.round(R.CONSEIL_LONGUEUR / c.pas)));
-    const coul = couleurs(carte, i0, v.u, n), pos = ligne.geometry.attributes.position.array, col = ligne.geometry.attributes.color.array, L = R.CONSEIL_LARGEUR / 2;
+    const coul = couleurs(carte, i0, v.u, n, (v.adhMeteo || 1) * (v.adherence || 1) * (v.aileronAdherence || 1)), pos = ligne.geometry.attributes.position.array, col = ligne.geometry.attributes.color.array, L = R.CONSEIL_LARGEUR / 2;
     let quads = 0;
     for (let k = 0; k < n; k++) {
       const i = (i0 + k) % nb, y = R.CONSEIL_HAUTEUR + (relief ? relief[i] : 0), cache = m === 'freinages' && coul[k] !== ROUGE;

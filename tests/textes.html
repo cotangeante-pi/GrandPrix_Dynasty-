@@ -79,6 +79,74 @@ t('le joueur s’appelle « You » / « Toi » tant qu’il n’a pas de nom ; p
   v(remplie(TEXTES.en.circuit_test)&&remplie(TEXTES.fr.circuit_test)&&remplie(TEXTES.en.circuit_technique)&&remplie(TEXTES.fr.circuit_technique),'circuits');
   v(TEXTES.en.virgule==='.'&&TEXTES.fr.virgule===',','virgule');});
 
+// --- la traduction (tour 37, étape 15 : préparer Poki) : aucune phrase française dans l'anglais, aucune anglaise dans le français,
+// dans tous les textes (écrans, commentateur, discussions, aides, tutoriel, manette, trajectoire conseillée, courrier, patrons…).
+// On ôte d'abord les noms propres (circuits, sponsors, lieux, pays, journal), les trous {…} et les mots gardés tels quels.
+const LANGUE_FR = /[éèêëàâçùûôîïœ]|(^|[^A-Za-zÀ-ÿ'’])(le|la|les|des|une|est|pour|avec|sans|pas|toi|ton|ta|tes|tu|je|mon|ma|mes|vous|nous|et|dans|du|au|aux|ce|cette|qui|que|mais|ou|très|plus|voiture|saison|course|écurie)(?![A-Za-zÀ-ÿ])/i;
+const LANGUE_EN = /(^|[^A-Za-zÀ-ÿ'’])(the|and|you|your|with|without|is|are|of|to|this|that|my|it|was|be|have|has|not|for|in|at|race|season|team|car|driver)(?![A-Za-zÀ-ÿ])/i;
+const NOMS_PROPRES = /^(circuit_|sponsor_|lieu_|pays_|nomDuJeu$|journal|une_nom|uneNom)/;
+const sansNoms = x => x.replace(/\{\w+\}/g, ' ').replace(/protégée?s?/gi, ' ').replace(/Montréol|Brio Café|Melbourn Park|Yas Marino/g, ' ');
+const phrases = x => Array.isArray(x) ? x.flatMap(phrases) : (x && typeof x === 'object') ? Object.values(x).flatMap(phrases) : typeof x === 'string' ? [x] : [];
+t('aucun mot français dans les textes anglais', ()=>{const m=[];
+  for (const k of en) if (!NOMS_PROPRES.test(k)) for (const s of phrases(TEXTES.en[k])) if (LANGUE_FR.test(sansNoms(s))) m.push('en.'+k+' = '+s);
+  v(!m.length,m.length+' : '+m.slice(0,8).join(' ; '));});
+t('aucun mot anglais dans les textes français', ()=>{const m=[];
+  for (const k of fr) if (!NOMS_PROPRES.test(k)) for (const s of phrases(TEXTES.fr[k])) if (LANGUE_EN.test(sansNoms(s))) m.push('fr.'+k+' = '+s);
+  v(!m.length,m.length+' : '+m.slice(0,8).join(' ; '));});
+t('aucune phrase laissée telle quelle : un texte de 3 mots ou plus n’est jamais le même en anglais et en français', ()=>{const m=[];
+  for (const k of en) if (!NOMS_PROPRES.test(k)) { const f=new Set(phrases(TEXTES.fr[k]));
+    for (const s of phrases(TEXTES.en[k])) if (f.has(s) && (sansNoms(s).match(/[A-Za-zÀ-ÿ]{2,}/g)||[]).length>=3) m.push(k+' = '+s); }
+  v(!m.length,m.join(' ; '));});
+t('les listes de variantes ont des variantes dans les deux langues (aucune liste vide d’un côté)', ()=>{const m=[];
+  for (const k of en) if (phrases(TEXTES.en[k]).length && !phrases(TEXTES.fr[k]).length || !phrases(TEXTES.en[k]).length && phrases(TEXTES.fr[k]).length) m.push(k);
+  v(!m.length,m.join(', '));});
+
+// --- la ponctuation par langue (tour 37c) : en anglais, pas d'espace avant « : ; ! ? » ; en français, une espace ; les deux-points collés par le code passent par « deuxPoints »
+t('la ponctuation : « deuxPoints » vaut « : » collé en anglais et « : » espacé en français ; aucun texte anglais n’a d’espace avant « : ; ! ? »', ()=>{
+  v(TEXTES.en.deuxPoints===': '&&TEXTES.fr.deuxPoints===' : ',JSON.stringify([TEXTES.en.deuxPoints,TEXTES.fr.deuxPoints]));
+  const m=[];for (const k of en) for (const s of phrases(TEXTES.en[k])) if (/\S [:;!?](\s|$)/.test(s.replace(/\{\w+\}/g,'X'))) m.push(k+' = '+s);
+  v(!m.length,m.join(' ; '));});
+
+// --- les accords de nombre (tour 37d) : accorder() met le singulier à 1 (et à 0 en français) pour chaque unité affichée ; 2 reste au pluriel
+t('les accords : « 1 pt », « 1 lap », « 1 race »… en anglais ; « 0 pt », « 1 tour », « 0 victoire »… en français ; « 2 pts » reste au pluriel', ()=>{const m=[];
+  const U={en:[['pts','pt'],['laps','lap'],['races','race'],['seasons','season'],['wins','win'],['podiums','podium'],['points','point'],['titles','title']],
+           fr:[['pts','pt'],['tours','tour'],['courses','course'],['saisons','saison'],['victoires','victoire'],['podiums','podium'],['points','point'],['titres','titre']]};
+  for (const l of ['en','fr']) for (const [pl,sg] of U[l]) for (const n of [0,1,2]) {
+    const att=(n===1||(l==='fr'&&n===0))?sg:pl, r=accorder(n+' '+pl,l);
+    if (r!==n+' '+att) m.push(l+' : '+n+' '+pl+' → '+r);}
+  v(!m.length,m.join(' ; '));});
+
+// --- le balayage des pluriels (tour 37f) : chaque texte qui met un nombre devant un mot au pluriel (« {n} points », « {v} victoires »…),
+// rempli avec 0, 1 et 2 comme le font les écrans (avec / elider / remplir du journal, de l'interview, des discussions : tous par accorder),
+// ne dit jamais « 1 points » (ni « 0 points » en français) ; 2 reste au pluriel
+t('les pluriels de tous les textes : chaque « {n} mot » rempli avec 0, 1 et 2 s’accorde (jamais « 1 points », « 1 tours », « 0 victoires » en français)', ()=>{
+  const UNITES={en:'wins|podiums|points|pts|titles|seasons|races|poles|generations|seconds|laps|places gained|places|years|Grands Prix',fr:'victoires|podiums|points|pts|titres|saisons|courses|poles|générations|secondes|tours|places gagnées|places|ans|Grands Prix'};
+  const m=[];let vus=0;
+  for (const l of ['en','fr']) {const re=new RegExp('\\{(\\w+)\\}[ \\u00a0]('+UNITES[l]+')(?![\\wàâçéèêëîïôûù])'),un=l==='fr'?[0,1]:[1];
+    for (const k of Object.keys(TEXTES[l])) for (const s of phrases(TEXTES[l][k])) { if (!re.test(s)) continue; vus++;
+      for (const n of [0,1,2]) { const r=accorder(s.replace(/\{\w+\}/g,String(n)),l), faute=new RegExp('(^|[^\\d,.])'+(un.includes(n)?String(n):'#')+'[ \\u00a0]('+UNITES[l]+')(?![\\wàâçéèêëîïôûù])');
+        if (faute.test(r)) m.push(l+'.'+k+' ('+n+') = '+r);
+        if (n===2&&!new RegExp('2[ \\u00a0]('+UNITES[l]+')').test(r)) m.push(l+'.'+k+' (2, plus de pluriel) = '+r);}}}
+  v(vus>40&&!m.length,vus+' textes ; '+m.slice(0,6).join(' ; '));});
+
+// --- le français ne genre jamais le joueur (tour 37, suite) : quelques accords relevés puis rendus neutres ; aucun ne doit revenir
+const GENRES = [
+  [/\bfâchée?s?\b/i, 'fâché(e)'], [/\bprête?\s+pour\b/i, 'prêt(e) pour'], [/\bt’a\s+battue?\b/i, 't’a battu(e)'], [/\bm’a\s+poussée?\b/i, 'm’a poussé(e)'],
+  [/\b(tu\s+es|tu\s+seras|t’es)\s+(déjà\s+)?(notre\s+|le\s+|la\s+)?(premier|première)\s+pilote\b/i, 'tu es notre premier pilote'],
+  [/\btu\s+es\s+le\s+numéro\s+un\b/i, 'tu es le numéro un'], [/\bvous\s+êtes\s+touchée?s\b/i, 'vous êtes touché(e)s'],
+  [/\bInquiète?\s*\?/, 'Inquiet ?'], [/\bpas\s+l’air\s+contente?\b/i, 'pas l’air content(e)'],
+  [/\btu\s+es\s+(si\s+|très\s+|trop\s+)?(content|contente|déçu|déçue|fier|fière|heureux|heureuse|prêt|prête|seul|seule|motivé|motivée|désolé|désolée)\b/i, 'tu es + adjectif accordé'],
+  [/\b(je\s+suis|j’étais)\s+(si\s+|très\s+|trop\s+)?(content|contente|déçu|déçue|fier|fière|heureux|heureuse|prêt|prête|seul|seule|motivé|motivée|désolé|désolée)\b/i, 'je suis + adjectif accordé'],
+];
+t('le français ne genre pas le joueur : ni « fâchés », ni « Prêt pour… », ni « t’a battu », ni « tu es notre premier pilote », ni « Inquiet ? »…', ()=>{const m=[];
+  for (const k of fr) if (!NOMS_PROPRES.test(k)) for (const s of phrases(TEXTES.fr[k])) for (const [r, nom] of GENRES) if (r.test(s)) m.push(nom+' : fr.'+k+' = '+s);
+  v(!m.length,m.join(' ; '));});
+t('les accords corrigés ont gardé leur sens : la paix, la carrière, le statut, le duel perdu', ()=>{
+  v(phrases(TEXTES.fr.dis_paix_deja).some(s=>/dispute/.test(s)),'dis_paix_deja');
+  v(/carrière/.test(TEXTES.fr.bravoQuestion),'bravoQuestion');
+  v(phrases(TEXTES.fr.pat_statut_accepte).length===phrases(TEXTES.en.pat_statut_accepte).length,'pat_statut_accepte');
+  v(/devant toi/.test(TEXTES.fr.duelSaisonPerdu)&&TEXTES.fr.duelSaisonPerdu.includes('{nom}'),'duelSaisonPerdu');});
+
 // --- texte() dans cette page : la langue du navigateur de test
 t('LANGUE vaut « en » ou « fr »', ()=>{v(LANGUE==='en'||LANGUE==='fr',LANGUE);});
 t('texte() renvoie la valeur de la langue choisie', ()=>{for (const k of en) v(JSON.stringify(texte(k))===JSON.stringify(TEXTES[LANGUE][k]),k);});

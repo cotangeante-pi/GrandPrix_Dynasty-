@@ -10,7 +10,9 @@
 <script src="../lib/three.min.js"></script>
 <script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../circuits-officiels-a.js"></script><script src="../circuits-officiels-b.js"></script><script src="../circuits.js"></script>
 <script src="../casque.js"></script><script src="../voiture3d.js"></script>
-<script src="../decors-officiels.js"></script><script src="../decor-public.js"></script><script src="../decor.js"></script><script src="../scene3d.js"></script>
+<script src="../decors-officiels.js"></script><script src="../decor-public.js"></script><script src="../decor.js"></script>
+<script src="../physique.js"></script><script src="../ia.js"></script><script src="../sensations.js"></script><script src="../effets3d.js"></script><script src="../conseil.js"></script>   <!-- (la mesure des coûts : les effets de conduite et la trajectoire conseillée) -->
+<script src="../scene3d.js"></script>
 <script>
 (function () {
   const R = REGLAGES, P = new URLSearchParams(location.search), NOM = P.get('circuit') || 'monoco';
@@ -21,8 +23,10 @@
   // 20 voitures sur la grille, en deux files derrière la ligne
   VOITURE3D.preparerCasques(Array.from({ length: 20 }, (_, k) => CASQUE.neutre()));
   const L = c.longueur, auPoint = (s, d) => { const i = Math.round((((s % L) + L) % L) / c.pas) % c.nb; return { x: c.x[i] + c.nx[i] * d, z: c.z[i] + c.nz[i] * d, cap: Math.atan2(c.tz[i], c.tx[i]) }; };
+  const modeles = [];
   for (let k = 0; k < 20; k++) {
     const m = VOITURE3D.creer(R.ECURIES[k >> 1].couleur, k === 0, undefined, k);
+    modeles.push(m);
     VOITURE3D.placer(m, auPoint(-8 - (k >> 1) * 8 - (k % 2) * 4, k % 2 ? 2.5 : -2.5), { braquage: 0, rotationRoues: 0 });
     SCENE3D.ajouter(m.groupe);
   }
@@ -61,6 +65,41 @@
     const maillages = []; d.groupe.traverse(o => { if (o.isMesh) maillages.push(o.name); });
     window.__lieu = { nom: NOM, avec, sans, n, refus: d.refus, maillages, ms: Math.round(d.ms), nuit: !!(d.lieu && d.lieu.lumiere.projecteurs), heure: d.lieu ? d.lieu.ciel.heure : null };
   }
+  // la mesure des coûts (étape 10, tour 40) : la caméra de course derrière la voiture de tête (champ le plus ouvert : CAMERA_CHAMP
+  // plein + CHAMP_HAUTE_VITESSE), en COUTS_POINTS endroits du tour, les 19 autres voitures devant elle en file serrée (le pire
+  // trafic) ; le pire et la moyenne des appels de dessin et des triangles ; les matériaux et programmes, les ombres ; puis le coût
+  // des effets (la fumée et les étincelles pleines, la trajectoire conseillée) au dernier endroit. Rend aussi la caméra d'avant.
+  window.__couts = () => {
+    const P0 = cam.position.clone(), Q0 = cam.quaternion.clone(), F0 = cam.fov;
+    const [recul, hautCam] = R.CAMERA_DERRIERE, rel = SCENE3D.relief, ind = s => Math.round((((s % L) + L) % L) / c.pas) % c.nb;
+    const res = { appels: [], triangles: [] };
+    cam.fov = R.CAMERA_CHAMP[0] + R.CAMERA_CHAMP[1] + R.CHAMP_HAUTE_VITESSE[2]; cam.updateProjectionMatrix();
+    let dernier = null;
+    for (let k = 0; k < R.COUTS_POINTS; k++) {
+      const s = k * L / R.COUTS_POINTS, a = auPoint(s, 0), h = rel ? rel[ind(s)] : 0;
+      modeles.forEach((m, j) => { const q = auPoint(s + 6 + j * 9, j % 2 ? 1.8 : -1.8); VOITURE3D.placer(m, q, { braquage: 0, rotationRoues: 0, piste: { indice: ind(s + 6 + j * 9) } }); });
+      VOITURE3D.placer(modeles[0], a, { braquage: 0, rotationRoues: 0, piste: { indice: ind(s) } });
+      cam.position.set(a.x - Math.cos(a.cap) * recul, hautCam + h, a.z - Math.sin(a.cap) * recul);
+      cam.lookAt(a.x + Math.cos(a.cap) * 4, 1 + h, a.z + Math.sin(a.cap) * 4);
+      SCENE3D.dessiner(); res.appels.push(SCENE3D.appelsDessin); res.triangles.push(SCENE3D.trianglesDessines);
+      dernier = { s, a };
+    }
+    const max = t => Math.max(...t), moy = t => Math.round(t.reduce((x, y) => x + y, 0) / t.length);
+    // les effets au dernier endroit : la fumée et les étincelles pleines, puis la trajectoire conseillée (une carte de test : le milieu de la piste)
+    SCENE3D.dessiner(); const base = SCENE3D.appelsDessin;
+    const E = EFFETS3D, F = { vibreur: 0, herbe: 1, glisse: 0, blocage: 1, contact: 1, choc: 0, vitesse: 50 };
+    E.emettre(E.etat, { u: 50 }, dernier.a, F, 1); E.maj([], null, 0); SCENE3D.dessiner(); const sensations = SCENE3D.appelsDessin - base;
+    E.etat.fumee.length = 0; E.etat.etincelle.length = 0; E.maj([], null, 0);
+    const ds = new Float64Array(c.nb).fill(c.pas), carte = { circuit: c, trajectoire: { x: c.x, z: c.z, vitesse: new Float64Array(c.nb).fill(60), ds }, pointe: 90 };
+    CONSEIL.maj({ u: 70, piste: { indice: ind(dernier.s) } }, carte, 'tout', rel); SCENE3D.dessiner(); const conseil = SCENE3D.appelsDessin - base;
+    CONSEIL.maj(null, null, null, null);
+    // ce qui reste : matériaux, programmes, ombres
+    const mats = new Set(); let maillages = 0; SCENE3D.camera.parent; const sc = CONSEIL.ligne.parent;
+    sc.traverse(o => { if (o.isMesh || o.isPoints || o.isLine) { maillages++; (Array.isArray(o.material) ? o.material : [o.material]).forEach(x => mats.add(x)); } });
+    cam.position.copy(P0); cam.quaternion.copy(Q0); cam.fov = F0; cam.updateProjectionMatrix(); SCENE3D.dessiner();
+    return { nom: NOM, appelsMax: max(res.appels), appelsMoy: moy(res.appels), trianglesMax: max(res.triangles), trianglesMoy: moy(res.triangles), sensations, conseil,
+      materiaux: mats.size, maillages, programmes: SCENE3D.programmes, ombres: SCENE3D.ombres, points: res.appels.length };
+  };
   const tour = () => { if (window.__lieu) { SCENE3D.dessiner(); requestAnimationFrame(tour); return; } mesurer(); requestAnimationFrame(tour); };
   requestAnimationFrame(tour);
   window.addEventListener('resize', () => { cam.fov = R.LIEU_CHAMP; cam.updateProjectionMatrix(); });

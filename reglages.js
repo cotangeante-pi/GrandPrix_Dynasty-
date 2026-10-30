@@ -16,6 +16,7 @@ const PANNEAU_REGLAGES = (function () {
     ['ADHERENCE_ARRIERE', null, 0.8, 2, 0.05],
     ['STABILITE_LACET', null, 0, 15, 0.5],
     ['ANTI_DERIVE', null, 0, 10, 0.5],
+    ['VOITURE_VIVANTE', null, 0, 1, 0.05],   // la voiture vivante (expert et légende seulement : NIVEAUX[…].vivante)
     ['ADHERENCE_HERBE', null, 0.3, 1, 0.05],
     ['FROTTEMENT_HERBE_CARRE', null, 0, 30, 0.5],
     ['GAZ_HERBE', null, 0.1, 1, 0.05],

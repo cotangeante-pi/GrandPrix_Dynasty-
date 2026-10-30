@@ -108,6 +108,8 @@ PAGES = [
     ('index.html?course=3&ia=9&joueur=1&robot=1&circuit=test&test=sensations', 1280, 720, None),
     ('index.html?course=3&ia=5&joueur=1&robot=1&circuit=test&niveau=debutant&test=conseil', 1280, 720, None),   # la trajectoire conseillée (tour 39) : en débutant, d'office ; capture conseil.png
     ('index.html?course=3&ia=5&joueur=1&robot=1&circuit=test&niveau=normal&test=conseil', 960, 600, None),     # … en normal, aucune
+    ('index.html?course=3&ia=9&joueur=1&robot=1&circuit=test&qualite=auto&test=qualite', 1280, 720, None),   # la qualité automatique (tour 40) : jusqu'à « basse » sous swiftshader, jamais pendant les feux ; capture qualite-basse.png
+    ('index.html?course=3&ia=5&circuit=test&test=qualite', 960, 600, None),   # … sans ?qualite, sous un automate, rien ne bouge
     ('index.html?course=3&circuit=test&test=manette', 1280, 720, None),   # la manette (tour 38) : une fausse manette conduit un tour, la pause, le menu au stick et à la croix
     ('index.html?deux=1&ia=0&circuit=test&test=manette-deux', 1280, 720, None),   # … deux manettes, une par joueur   # les sensations de conduite (tour 37) : son au premier geste, fumée, étincelles, réglage ; capture sensations.png
     ('index.html?course=3&ia=19&joueur=1&circuit=monzo&domicile=1&test=supporters', 1280, 720, None),   # le Grand Prix à domicile : la caméra de la grille longe d'abord la tribune des supporters ; capture supporters.png   # la réalisation télé (regie.js) : de vraies caméras, l'hélicoptère ; captures tele-monoco.png, tele-helico.png   # … et Monzo de jour : la luminosité de l'image, pour la comparer à la nuit   # le décor dans le vrai jeu : la course de nuit à Singapura, 20 voitures, vue télé ; capture jeu-singapura.png
@@ -137,6 +139,8 @@ PAGES = [
     ('index.html?tutoriel=stand&course=2&test=tuto', 960, 600, None),
     ('index.html?tutoriel=pluie&course=3&ia=1&joueur=1&niveau=debutant&meteo=averse&test=tuto', 1280, 720, None),
     ('index.html?tutoriel=visite&championnat=1&test=tuto', 1280, 720, None),
+    ('index.html?course=3&circuit=test&niveau=debutant&test=assistance', 1280, 720, None),   # les aides au pilotage (tour 41) : d'office en débutant, le freinage assisté freine avant le virage (placées ici : les tranches de GitHub restent équilibrées)
+    ('index.html?course=3&circuit=test&test=assistance', 960, 600, None),                    # … coupées en normal
     ('index.html?tutoriel=visite&championnat=1&test=tuto-quitter', 960, 600, None),   # … passée en cours de route : rien ne reste dans la carrière
 ]
 # ECRANS_FILTRE=… (pendant le travail, sur le Mac) : seulement les pages dont l'adresse contient ce texte ; GitHub lance toujours tout
@@ -914,7 +918,7 @@ def amis(pg, titre, l, h):
     sous_course = pg.evaluate('() => { BOUCLE.arreter(); BOUCLE.simuler(20); BOUCLE.demarrer(); return [JEU.ecran, window.APPELS_SDK.join(",")]; }')
     pg.wait_for_timeout(300)
     hud = pg.evaluate('() => [...document.querySelectorAll(".deuxNom")].map(s => s.textContent)')
-    t(f'{titre} : chaque moitié affiche le nom de son joueur', hud == ['🔵 Léo', '🔴 Sarah'], str(hud))
+    t(f'{titre} : chaque moitié affiche le nom de son joueur', [h.replace(' 🛞', '') for h in hud] == ['🔵 Léo', '🔴 Sarah'], str(hud))
     t(f'{titre} : la course finit, le podium vient', finir(), str(pg.evaluate('() => [JEU.ecran, JEU.final && JEU.final.length]')))
     pod = pg.evaluate('''() => { const [a, b] = DEUX_JOUEURS.joueurs(JEU.plateau), P = JEU.plateau.pilotes, pl = p => JEU.final.find(x => x.k === P.indexOf(p)).place;
       return { places: [pl(a), pl(b)], texte: document.getElementById("podiumDeux").textContent, cache: document.getElementById("podiumDeux").classList.contains("cache"),
@@ -1051,7 +1055,7 @@ def tournoi(pg, titre, l, h):
     attendre(pg, '() => typeof JEU !== "undefined" && JEU.tournoi', None, 30000)
     t0 = pg.evaluate('() => ({ ecran: JEU.ecran, joueurs: JEU.tournoi.joueurs.map(j => j.prenom), circuits: JEU.tournoi.circuits, circuit: NOM_CIRCUIT, ia: JEU.plateau, titre: document.getElementById("atoiTitre").textContent, motif: JEU.tournoi.joueurs[2].casque.motif, liste: SAUVEGARDE.tournoi().joueurs.map(j => j.prenom) })')
     t(f'{titre} : « C’est parti ! » : la page de la manche 1 (son circuit, seul sur la piste), « À toi, Léo ! », la liste gardée',
-      t0['ecran'] == 'tournoiAToi' and t0['joueurs'] == ['Léo', 'Sarah', 'Tom'] and len(t0['circuits']) == 3 and t0['circuit'] == t0['circuits'][0] and t0['ia'] is None and t0['titre'] in ('À toi, Léo !', 'Your turn, Léo!') and t0['motif'] == 'eclair' and t0['liste'] == ['Léo', 'Sarah', 'Tom'], str(t0))
+      t0['ecran'] == 'tournoiAToi' and t0['joueurs'] == ['Léo', 'Sarah', 'Tom'] and len(t0['circuits']) == 3 and t0['circuit'] == t0['circuits'][0] and t0['ia'] is None and t0['titre'].replace(' 🛞', '') in ('À toi, Léo !', 'Your turn, Léo!') and t0['motif'] == 'eclair' and t0['liste'] == ['Léo', 'Sarah', 'Tom'], str(t0))
     def passage(abandon=False):
         pg.evaluate('() => { JEU.robot = true; }')
         attendre(pg, '() => JEU.ecran === "qualif" && JEU.qualif && JEU.qualif.etat === "tour"', None, 15000)
@@ -1090,7 +1094,7 @@ def tournoi(pg, titre, l, h):
             if m == 0 and k == 2:
                 t(f'{titre} : l’abandon donne « pas de temps », dernier de la manche', 'pas de temps' in e['lignes'][-1] or 'no time' in e['lignes'][-1], str(e['lignes']))
                 gen = pg.evaluate('() => [!document.getElementById("tournoiGeneral").classList.contains("cache"), [...document.querySelectorAll("#tournoiGeneralListe li")].map(li => li.textContent)]')
-                t(f'{titre} : à la fin de la manche, le classement général avec les points', gen[0] and len(gen[1]) == 3 and all('pts' in x for x in gen[1]), str(gen))
+                t(f'{titre} : à la fin de la manche, le classement général avec les points', gen[0] and len(gen[1]) == 3 and all(re.search(r'\bpts?\b', x) for x in gen[1]), str(gen))
                 pg.wait_for_timeout(700); pg.screenshot(path=os.path.join(CAPTURES, 'tournoi.png'))
     t(f'{titre} : la phrase du premier passage : « Léo prend la tête ! »', vus[0]['phrase'] in ('Léo prend la tête !', 'Léo takes the lead!'), vus[0]['phrase'])
     pg.click('#boutonTournoiSuite')
@@ -1237,6 +1241,10 @@ def pluie_ecran(pg, titre, l, h):
       const pluie = window.METEO_TEST; window.METEO_TEST = { etat: () => ({ pluie: 0, eau: 0, ciel: 0 }) }; const zero = image(); window.METEO_TEST = undefined; const em = JEU.plateau.meteo; JEU.plateau.meteo = undefined; const sans = image(); JEU.plateau.meteo = em; window.METEO_TEST = pluie; const mouille = image(); BOUCLE.demarrer();
       return { zeroEgalSans: zero === sans, pluieDifferente: mouille !== sans }; }""")
     t(f'{titre} : au sec, pas un pixel ne change : une météo à 0 (après la pluie) donne la même image que pas de météo ; sous la pluie, l’image change', egal['zeroEgalSans'] and egal['pluieDifferente'], str(egal))
+    # le coût de la pluie (tour 40, le tableau des coûts) : la même image au sec et sous la pluie, derrière la voiture
+    cp = pg.evaluate('''() => { BOUCLE.arreter(); const appels = () => { METEO3D.maj(METEO3D.etat(JEU.plateau), SCENE3D.camera, JEU.plateau.pilotes.map(p => p.v), 0, false); SCENE3D.dessiner(); return [SCENE3D.appelsDessin, SCENE3D.trianglesDessines]; };
+      const pluie = window.METEO_TEST, mouille = appels(); window.METEO_TEST = { etat: () => ({ pluie: 0, eau: 0, ciel: 0 }) }; const sec = appels(); window.METEO_TEST = pluie; appels(); BOUCLE.demarrer(); return { mouille, sec }; }''')
+    L.append(f"  (le coût de la pluie à {l}×{h}, 20 voitures : {cp['mouille'][0] - cp['sec'][0]} appels de dessin, {cp['mouille'][1] - cp['sec'][1]} triangles de plus)")
 
 # la prévision au paddock (meteo3d.js, la fausse météo de test : risque de pluie 40 %) ; capture prevision.png
 def prevision_ecran(pg, titre):
@@ -1360,6 +1368,62 @@ def conseil_ecran(pg, titre, page):
         t(f'{titre} : le menu pause la règle (oui → freinages seulement → non, sauvegardé) ; à « non », plus de ligne', r == ['freinages', 'non'] and not pg.evaluate('() => CONSEIL.ligne.visible'), str(r))
     else:
         t(f'{titre} : en normal, aucune trajectoire conseillée (sans réglage choisi)', roule and not pg.evaluate('() => CONSEIL.ligne.visible') and pg.evaluate('() => REGLAGES.NIVEAU') == 'normal', pg.evaluate('() => [CONSEIL.ligne.visible, REGLAGES.NIVEAU]'))
+# la qualité automatique (qualite.js, tour 40) dans le vrai jeu, ?qualite=auto (sous un automate, « auto » ne bouge pas seul sans ce
+# paramètre) : swiftshader est sous 55 images par seconde, donc la qualité baisse d'un cran toutes les 3 s jusqu'à « basse », jamais
+# pendant les feux ; le menu pause la règle (auto → haute → basse, sauvegardé) ; sans ?qualite, rien ne bouge
+def qualite_ecran(pg, titre, page):
+    if 'qualite=auto' not in page:
+        pg.wait_for_timeout(4000)
+        t(f'{titre} : sous un automate, sans ?qualite, la qualité ne bouge pas seule (les mesures restent comparables)', pg.evaluate('() => JEU.qualite.cran === 0 && SCENE3D.qualite === null'), pg.evaluate('() => [JEU.qualite.cran, JEU.qualiteAuto]'))
+        return
+    pg.evaluate('() => { window.__qFeux = 0; BOUCLE.surAffichage(() => { if (JEU.course && JEU.course.etat === "compte" && window.__qAvant !== undefined) window.__qFeux = Math.max(window.__qFeux, JEU.qualite.cran - window.__qAvant); }); }')
+    attendre(pg, '() => JEU.ecran === "qualif" && JEU.qualif && JEU.qualif.etat === "choix"', None, 60000)
+    pg.evaluate('() => document.getElementById("boutonQualifPasser").click()')
+    attendre(pg, '() => JEU.qualif && JEU.qualif.etat === "resultat"', None, 180000)
+    pg.evaluate('() => document.getElementById("boutonQualifCourse").click()')
+    attendre(pg, '() => JEU.plateau.carte !== null', None, 180000)
+    if pg.evaluate('() => JEU.ecran === "grille"'): pg.evaluate('() => finirGrille()')
+    # (les menus d'avant, sous swiftshader, ont déjà fait baisser la qualité : on repart d'« auto » au cran haut, juste avant les feux)
+    # les feux : on les retient 8 s (bien plus que la fenêtre de 3 s) ; la qualité ne doit pas bouger pendant ce temps
+    pg.evaluate('() => { QUALITE.regler(JEU.qualite, "auto"); SCENE3D.reglerQualite(null); window.__qAvant = JEU.qualite.cran; window.__qFeux = 0; for (const p of JEU.plateau.pilotes) if (p.course.feux) { p.course.feux.delai = 8; p.course.feux.total = 13; p.course.compte = 8; } }')
+    attendre(pg, '() => JEU.course && JEU.course.etat !== "compte"', None, 60000)
+    feux = pg.evaluate('() => window.__qFeux')
+    basse = attendre(pg, '() => JEU.qualite.cran === 2', None, 30000)
+    q = pg.evaluate('() => ({ cran: JEU.qualite.cran, qualite: SCENE3D.qualite, ratio: SCENE3D.pixelRatio, feux: window.__qFeux })')
+    t(f'{titre} : qualité « auto » sous 55 images par seconde : un cran plus bas toutes les 3 s jusqu’à « basse » (moins de pixels, le décor moins loin), jamais pendant les feux',
+      feux == 0 and basse and q['qualite'] and q['qualite']['detail'] < pg.evaluate('() => REGLAGES.DECOR_DETAIL_LOIN') and q['ratio'] <= 0.75 + 1e-9, str([feux, q]))
+    pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'qualite-basse.png'))
+    r = pg.evaluate('''() => { const b = document.getElementById("boutonQualitePause"), vu = [b.textContent, JEU.qualite.regle]; b.click(); vu.push(JEU.qualite.regle, JEU.qualite.cran, SCENE3D.qualite, SAUVEGARDE.option("qualite", "?"));
+      b.click(); vu.push(JEU.qualite.regle, JEU.qualite.cran, SCENE3D.qualite && SCENE3D.qualite.pixelRatio); b.click(); vu.push(JEU.qualite.regle, b.textContent); return vu; }''')
+    t(f'{titre} : le menu pause règle la qualité (auto → haute → basse → auto, sauvegardé) ; « haute » remet l’image d’avant',
+      r[1] == 'auto' and r[2] == 'haute' and r[3] == 0 and r[4] is None and r[5] == 'haute' and r[6] == 'basse' and r[7] == 2 and r[8] == 0.75 and r[9] == 'auto' and r[0] == r[10], str(r))
+# les aides au pilotage (assistance.js, tour 41) dans le vrai jeu, une course seule : en débutant, les trois aides sont allumées
+# d'office (menu pause), et pour un joueur qui ne freine jamais, le freinage assisté freine avant les virages (le frein de la
+# voiture monte sans que le joueur freine) et la voiture reste sur la piste ; en normal, elles sont coupées et ce joueur sort
+def assistance_ecran(pg, titre, page):
+    debutant = 'niveau=debutant' in page
+    # (tour 37e, le propriétaire 2026-10-30) quatre aides, choisies avant la course à tous les niveaux : le menu pause les montre, figées
+    b = pg.evaluate('() => ["boutonFreinagePause", "boutonAntipatinagePause", "boutonDirectionPause", "boutonAntiblocagePause"].map(id => { const e = document.getElementById(id); return [e.textContent, e.classList.contains("cache")]; })')
+    oui = [pg.evaluate(f'() => texte("assist_{a}_oui")') for a in ('freinage', 'antipatinage', 'direction', 'antiblocage')]
+    if debutant:
+        t(f'{titre} : en débutant, les quatre aides au pilotage sont allumées d’office et montrées dans le menu pause (freinage, antipatinage, direction, anti-blocage)', [x[0] for x in b] == oui and not any(x[1] for x in b), str(b))
+    else:
+        t(f'{titre} : en normal, les aides au pilotage sont coupées d’office (toutes montrées, la direction assistée aussi : on la choisit avant la course)', all(x[0] != o for x, o in zip(b, oui)) and not any(x[1] for x in b), str(b))
+    attendre(pg, '() => JEU.ecran === "course" && JEU.course && JEU.course.etat !== "compte" && (REGLAGES.NIVEAU !== "debutant" || !!JEU.carte)', None, 120000)
+    # un joueur qui ne freine jamais : à chaque pas, les commandes du robot d'essai à 75 m/s partout (il tourne, il ne freine pas),
+    # posées comme celles du clavier (JEU.cibles) ; le temps passé dans l'herbe et le frein que la voiture prend d'elle-même
+    pg.evaluate('''() => { window.__freinSeul = 0; window.__herbe = 0; BOUCLE.surPhysique(pas => { const c = piloteRobot(JEU.joueur, CIRCUIT, 75); JEU.cibles.gaz = c.gaz; JEU.cibles.frein = 0; JEU.cibles.direction = c.direction;
+      if (JEU.joueur.frein > window.__freinSeul) window.__freinSeul = JEU.joueur.frein; if (JEU.joueur.surHerbe) window.__herbe += pas; }); }''')
+    pg.evaluate('() => { BOUCLE.arreter(); BOUCLE.simuler(40); BOUCLE.demarrer(); }')   # (40 s de course, sans attendre les images de swiftshader)
+    r = pg.evaluate('() => ({ frein: window.__freinSeul, herbe: window.__herbe, barriere: JEU.joueur.contactsBarriere, s: JEU.course.tours.length, assistance: JEU.assistance, carte: !!JEU.carte })')
+    L.append(f"  (aides au pilotage, {'débutant' if debutant else 'normal'}, un joueur qui ne freine jamais, 40 s : frein pris par la voiture jusqu'à {r['frein']:.2f}, {r['herbe']:.1f} s dans l'herbe, {r['barriere']} contacts barrière)")
+    if debutant:
+        t(f'{titre} : un joueur qui ne freine jamais : le freinage assisté freine pour lui avant les virages, il reste sur la piste', r['frein'] > 0.3 and r['carte'] and r['herbe'] < 2 and r['barriere'] == 0, str(r))
+        # (tour 37e) pendant la course, les aides sont figées : un clic dans le menu pause, ou le choix des aides lui-même, ne change rien
+        s = pg.evaluate('() => { const avant = JSON.stringify(JEU.assistance); document.getElementById("boutonFreinagePause").click(); INTERFACE.ouvrirAides(); document.querySelector("#choixAidesListe button[data-aide=freinage]").click(); INTERFACE.fermerAides(); return [avant, JSON.stringify(JEU.assistance), SAUVEGARDE.option("aides_pilotage", null), document.getElementById("boutonFreinagePause").textContent]; }')
+        t(f'{titre} : pendant la course, les aides sont figées : ni le menu pause ni le choix des aides ne les changent', s[0] == s[1] and s[2] is None and s[3] == oui[0], str(s))
+    else:
+        t(f'{titre} : sans aide, la voiture ne freine jamais d’elle-même, et ce joueur-là sort de la piste', r['frein'] == 0 and (r['herbe'] > 0.2 or r['barriere'] > 0), str(r))
 def commentaire_ecran(pg, titre):
     vu = attendre(pg, '() => /🎙/.test(document.getElementById("messageCourse").textContent) && !document.getElementById("messageCourse").classList.contains("cache")', None, 90000)
     txt = pg.evaluate('() => document.getElementById("messageCourse").textContent')
@@ -1409,6 +1473,24 @@ def tele_ecran(pg, titre):
     t(f'{titre} : l’hélicoptère, dans ses hauteurs ({round(h["y"])} m)', h['genre'] == 'helico' and h['borne'][0] <= h['y'] <= h['borne'][1], str(h))
     pg.screenshot(path=os.path.join(CAPTURES, 'tele-helico.png'))
 
+# les garde-fous des coûts par circuit (étape 10, tour 40) : la caméra de course derrière la voiture de tête, en COUTS_POINTS endroits du
+# tour, les 19 autres voitures en file devant elle (tests/lieu.html, window.__couts) ; le pire des appels de dessin et des triangles
+# reste sous ces plafonds (la mesure du 2026-10-29, + 4 appels et + 10 % de triangles). Un plafond qui tombe : on regarde ce qui a
+# grossi avant de le relever
+PLAFONDS_IMAGE = {
+    'monoco': (47, 169000),
+    'silverstoun': (44, 134000),
+    'monzo': (46, 89000),
+    'spaa': (45, 118000),
+    'suzuko': (48, 143000),
+    'interlagas': (45, 151000),
+    'montreol': (51, 117000),
+    'melbourn': (48, 99000),
+    'barcelana': (44, 108000),
+    'bahrayn': (45, 94000),
+    'singapura': (46, 172000),
+    'yasmarino': (48, 97000),
+}
 def lieu_ecran(pg, titre, page):
     nom = re.search(r'circuit=([a-z]+)', page).group(1)
     pret = attendre(pg, '() => !!window.__lieu', None, 60000)
@@ -1422,6 +1504,12 @@ def lieu_ecran(pg, titre, page):
       n['tribune'] > 10 and n['public'] > 1000 and 'decor-ciel' in m['maillages'] and m['avec'][0] < R['total'] and 0 < m['avec'][0] - m['sans'][0] <= R['decor'] and m['avec'][1] > m['sans'][1], str(m))
     if m['nuit']:
         t(f'{titre} : la nuit (ou le crépuscule) : des mâts d’éclairage le long de la piste', n['projecteur'] >= 20, str(n))
+    if re.fullmatch(r'tests/lieu\.html\?circuit=[a-z]+', page) and nom in PLAFONDS_IMAGE:
+        c = pg.evaluate('() => window.__couts()')
+        pa, pt = PLAFONDS_IMAGE[nom]
+        L.append(f"  (coûts de {nom}, caméra de course, 20 voitures, {c['points']} endroits du tour : appels {c['appelsMoy']} en moyenne, {c['appelsMax']} au pire ; triangles {c['trianglesMoy']} et {c['trianglesMax']} ; {c['materiaux']} matériaux, {c['programmes']} programmes, ombres {'oui' if c['ombres'] else 'non'} ; effets : fumée et étincelles +{c['sensations']}, trajectoire conseillée +{c['conseil']})")
+        t(f'{titre} : les coûts de {nom} à la caméra de course, avec 20 voitures : au pire {c["appelsMax"]} appels de dessin (plafond {pa}) et {c["trianglesMax"]} triangles (plafond {pt}) ; les effets coûtent au plus 3 appels',
+          c['appelsMax'] <= pa and c['trianglesMax'] <= pt and c['sensations'] + c['conseil'] <= 3 and not c['ombres'], str(c))
     if 'vue=port' in page:
         t(f'{titre} : Monoco : le port (de l’eau), des bateaux, des façades et des immeubles', n['eau'] > 50 and n['bateau'] >= 20 and n['immeuble'] > 200, str(n))
     if 'vue=pont' in page:
@@ -2008,7 +2096,7 @@ PADDOCK_DOMICILE = """() => { const j = JEU.championnat.pilotes.find(p => p.huma
   j.coeur = ici === "monoco" ? "monzo" : "monoco"; montrerChampionnat(null); const non = document.getElementById("paddockDomicile").classList.contains("cache"); j.coeur = avant; montrerChampionnat(null);
   return { oui, non, texte }; }"""
 PADDOCK_POINTS = """() => { montrerChampionnat(25); const tb = document.getElementById("championnatTableaux"), pts = [...document.querySelectorAll("#championnatPilotes .points")];
-  const cl = CHAMPIONNAT.classementPilotes(JEU.championnat), ok = pts.every((p, i) => p.textContent === cl[i].points + " " + texte("pts") && p.style.getPropertyValue("--tv-fin") === String(cl[i].points));
+  const cl = CHAMPIONNAT.classementPilotes(JEU.championnat), ok = pts.every((p, i) => p.textContent === accorder(cl[i].points + " " + texte("pts")) && p.style.getPropertyValue("--tv-fin") === String(cl[i].points));
   const anime = tb.classList.contains("tvMonte"), nom = getComputedStyle(pts[0], "::after").animationName, li = getComputedStyle(tb.querySelector("li")).animationName;
   montrerChampionnat(null); return { ok, anime, nom, li, sans: !tb.classList.contains("tvMonte") }; }"""
 RESULTATS_ANIMES = """() => { INTERFACE.remplirResultats([1, 2, 3].map(i => ({ place: i, numero: i, couleur: 0xd8262e, total: 60 + i, penalites: 0, ecart: i - 1, grille: i, moi: i === 2 })));
@@ -2462,7 +2550,7 @@ def fin_saison(pg, titre, l):
     pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'champion.png'))
     pg.click('#boutonSaisonSuite')
     d = pg.evaluate(DUEL_SAISON_ETAT)
-    attendu = (f"Tu as battu {d['nom']} {d['a']} à {d['b']}" if d['a'] > d['b'] else f"{d['nom']} t’a battu {d['b']} à {d['a']}" if d['a'] < d['b'] else f"Égalité avec {d['nom']} : {d['a']} à {d['b']}")
+    attendu = (f"Tu as battu {d['nom']} {d['a']} à {d['b']}" if d['a'] > d['b'] else f"{d['nom']} a fini devant toi, {d['b']} à {d['a']}" if d['a'] < d['b'] else f"Égalité avec {d['nom']} : {d['a']} à {d['b']}")
     t(f'{titre} : le duel de la saison : « {attendu} », le détail (qualifs, courses, carrière)', d['ecran'] == 'duelSaison' and d['score'] == attendu and 'qualifs' in d['detail'] and 'carrière' in d['detail'] and pas_de_defilement(d['defile']), str(d))
     pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'duel-saison.png'))
     pg.click('#boutonDuelSaisonSuite')
@@ -2559,7 +2647,7 @@ def championnat(pg, titre, l):
         attendre(pg, '() => JEU.ecran === "resultats"')
         t(f'{titre} : GP {gp} : un seul bouton, « Continuer »', pg.evaluate('() => document.getElementById("boutonRejouerResultats").classList.contains("cache") && document.getElementById("boutonChangerResultats").textContent === "Continuer"'))
         # l'argent (argent.js) : la ligne des gains sous les résultats, calculée sur le classement final de cet instant
-        arg = pg.evaluate('''() => { const g = ARGENT.gains(JEU.championnat, CHAMPIONNAT.lignesDepuisCourse(JEU.plateau)), p = document.getElementById("resultatsArgent");
+        arg = pg.evaluate('''() => { const g = ARGENT.gains(JEU.championnat, CHAMPIONNAT.lignesDepuisCourse(JEU.plateau), JEU.assistance), p = document.getElementById("resultatsArgent");
           return { texte: p.textContent, total: g.total, attendu: ARGENT.formater(g.total), deborde: p.getBoundingClientRect().right > innerWidth || p.getBoundingClientRect().bottom > innerHeight, g }; }''')
         t(f'{titre} : GP {gp} : les résultats montrent l’argent gagné (« Gains : +n € » avec le détail), sans déborder', arg['texte'].startswith('Gains : +' + arg['attendu']) and '(' in arg['texte'] and not arg['deborde'] and arg['total'] > 0, str(arg))
         if gp == 1:
@@ -2950,6 +3038,10 @@ with sync_playwright() as p:
                 sensations_ecran(pg, titre)
             if 'test=conseil' in page:
                 conseil_ecran(pg, titre, page)
+            if 'test=qualite' in page:
+                qualite_ecran(pg, titre, page)
+            if 'test=assistance' in page:
+                assistance_ecran(pg, titre, page)
             if 'test=manette-deux' in page:
                 manette_deux(pg, titre)
             elif 'test=manette' in page:
@@ -3004,7 +3096,7 @@ with sync_playwright() as p:
                 qualif(pg, titre)
             elif 'test=fantome' in page:
                 fantome(pg, titre)
-            elif 'joueur=1' in page and 'test=supporters' not in page and 'test=sensations' not in page and 'test=conseil' not in page:   # (la page des supporters a son propre parcours)
+            elif 'joueur=1' in page and 'test=supporters' not in page and 'test=sensations' not in page and 'test=conseil' not in page and 'test=qualite' not in page:   # (la page des supporters a son propre parcours)
                 hud(pg, titre, l)
                 if l == 1280: course_joueur(pg, titre)
             if 'camera=auto' in page:

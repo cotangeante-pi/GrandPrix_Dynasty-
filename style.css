@@ -1028,8 +1028,7 @@ body.deux.cote #boutonSon { top: auto; bottom: 12px; right: 12px; }   /* (côte 
 #prevision { margin: 2px 0 6px; font-weight: 700; opacity: 0.9; }
 #messageCourse { position: fixed; top: 176px; left: 50%; transform: translateX(-50%); padding: 6px 14px; border-left: 4px solid #e10600; border-radius: 6px; background: rgba(11, 15, 23, 0.82); font: 800 16px/1.3 var(--police); white-space: nowrap; pointer-events: none; }
 
-/* ======================================================================================================================
-   Le thème télé (étape 11, tour 32, Codeur 3) : le style de tous les écrans entre les courses, défini une seule fois ici,
+/* ===============================================================================================================   Le thème télé (étape 11, tour 32, Codeur 3) : le style de tous les écrans entre les courses, défini une seule fois ici,
    en variables CSS (CLAUDE.md « L'interface » : « une vraie retransmission de F1, claire et animée, jamais encombrée »).
    Polices, couleurs, bandeaux, coins, ombres et durées ; les écrans plus haut gardent leur mise en page, ce bloc leur
    donne l'habillage. Les animations : des transitions courtes (< 250 ms), coupées si prefers-reduced-motion.
@@ -1141,6 +1140,10 @@ body.deux.cote #boutonSon { top: auto; bottom: 12px; right: 12px; }   /* (côte 
 #championnatTableaux { grid-column: 2; grid-row: 1 / 3; padding: 12px 16px; align-items: center; gap: 22px; }
 #championnat #championnatTableaux ol { font-size: 13px; line-height: 1.55; }
 #championnat #championnatTableaux li { padding: 0 7px; }
+/* (tour 37c) le panneau des classements prend la hauteur des deux cartes de gauche (grid-row 1 / 3) : les pilotes en deux colonnes de 10
+   n'en remplissaient que 45 %, centrés, d'où un grand vide en haut et en bas. Les 20 pilotes en une colonne, le contenu en haut. */
+#championnat #championnatTableaux { align-items: flex-start; }
+#championnat #championnatPilotes { columns: 1; }
 #paddockBoutons { align-items: flex-end; flex-wrap: nowrap; gap: 14px; }
 .paddockGroupe { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
 .paddockGroupe > div { display: flex; gap: 6px; }
@@ -1308,6 +1311,8 @@ body.deux.cote #boutonSon { top: auto; bottom: 12px; right: 12px; }   /* (côte 
   #paddockCarte { height: min(150px, 17vh); }
   #paddockMoi { gap: 3px; padding: 6px 10px; }
   #paddockMoi p { font-size: 12px; }
+  #championnat #championnatTableaux { padding: 8px 14px; }
+  #championnat #championnatTableaux ol { font-size: 12px; line-height: 1.32; }
   #championnat .coinPaddock { bottom: 4px; padding: 3px 10px; font-size: 11px; }
 }
 /* les contrats avec les patrons (patrons.js, tour 35) : le salaire et le statut de chaque offre, « Négocier » */
@@ -1321,3 +1326,21 @@ body.deux.cote #boutonSon { top: auto; bottom: 12px; right: 12px; }   /* (côte 
 
 /* la manette (manette.js, tour 38) : le bouton choisi au stick ou à la croix, un halo (pas de scale : le bouton reste stable) */
 button.manette-choix { box-shadow: 0 0 0 3px #ffd23f, 0 0 14px 2px rgba(255, 210, 63, 0.8) !important; outline: none; }
+
+/* (tour 37e, Codeur 3) le choix des aides au pilotage, par-dessus l'écran du moment (comme le menu du tutoriel), et les aides figées du menu pause */
+#choixAides { z-index: 23; background: linear-gradient(180deg, rgba(7, 9, 15, 0.97), rgba(12, 16, 27, 0.95)); }
+#choixAidesListe { flex-direction: column; align-items: stretch; gap: 8px; max-width: 520px; }
+#choixAidesListe button { display: flex; justify-content: space-between; gap: 14px; }
+#choixAidesListe button.coupee { opacity: 0.75; }
+#choixAidesListe .part { opacity: 0.8; font-weight: 600; }
+#choixAidesIntro, #choixAidesBonus { margin: 0; max-width: 560px; font-weight: 700; text-align: center; }
+#choixAidesBonus { color: var(--tv-or, #f5c542); }
+#pause button.aideFigee { cursor: default; opacity: 0.7; box-shadow: none; }
+#boutonAidesPaddock { position: fixed; left: 50%; bottom: 6px; transform: translateX(-50%); }
+.marqueAides { margin-left: 4px; font-size: 0.85em; opacity: 0.9; }
+/* la sauvegarde abîmée ou impossible (tour 41d, Codeur 4) : un bandeau en haut, au milieu, qui ne prend aucun clic */
+#sauvegardePerdue { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 40; max-width: min(620px, 80vw); padding: 8px 14px;
+  background: rgba(150, 20, 24, 0.92); color: #fff; font-weight: 700; font-size: 15px; text-align: center; border-radius: 6px; pointer-events: none; }
+#sauvegardePerdue.cache { display: none; }
+.ecran button.aidesJoueur.court { min-width: 0; flex: 0 0 auto; padding: 4px 8px; }   /* (le tournoi : un petit bouton par ligne, la ligne tient en 960) */
+.deuxJoueur .aidesJoueur { align-self: flex-start; }

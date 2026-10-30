@@ -14,6 +14,7 @@
 <!-- l'affichage provisoire de la conduite (étape 2) -->
 <div id="tableau"><span id="rapport">1</span><span id="vitesse">0</span> <span id="unite"></span></div>
 <button id="boutonSon" tabindex="-1">🔊</button>
+<div id="sauvegardePerdue" class="cache" role="status"></div>
 <div id="horsPiste" class="cache"></div>
 <div id="aide"></div>
 
@@ -56,7 +57,7 @@
   <h1 id="titreNom"></h1>
   <div class="boutons"><button id="boutonJouer" tabindex="-1"></button></div>
   <div class="boutons"><button id="boutonAmis" class="petit" tabindex="-1"></button></div>
-  <div class="boutons"><button id="boutonTutorielTitre" class="petit" tabindex="-1"></button></div>   <!-- « Apprendre à piloter » (tutoriel.js, Codeur 4) : proposé, jamais imposé -->
+  <div class="boutons"><button id="boutonTutorielTitre" class="petit" tabindex="-1"></button><button id="boutonAidesTitre" class="petit" tabindex="-1"></button></div>   <!-- « Apprendre à piloter » (tutoriel.js, Codeur 4) : proposé, jamais imposé -->
 </section>
 <!-- « Entre amis » (titre et paddock) : le petit menu, puis l'écran avant la course à deux (deux-joueurs.js, tour 25b) -->
 <section id="amis" class="ecran cache">
@@ -158,6 +159,7 @@
 <section id="choix" class="ecran cache">
   <h1 id="choixTitre"></h1>
   <div id="choixListe"></div>
+  <div class="boutons"><button id="boutonAidesChoix" class="petit" tabindex="-1"></button></div>
 </section>
 
 <!-- la qualification du joueur, avant une course contre les IA : le choix, puis le résultat -->
@@ -201,7 +203,8 @@
     <div class="paddockGroupe"><span class="paddockGroupeNom" id="paddockGroupeSaison"></span><div><button id="boutonCalendrier" class="petit" tabindex="-1"></button><button id="boutonAlbum" class="petit" tabindex="-1"></button><button id="boutonArbre" class="petit" tabindex="-1"></button></div></div>
     <div class="paddockGroupe"><span class="paddockGroupeNom" id="paddockGroupeAmis"></span><div><button id="boutonAmisPaddock" class="petit" tabindex="-1"></button></div></div>
   </div>
-  <button id="boutonTutorielPaddock" class="petit coinPaddock" tabindex="-1"></button>   <!-- « Apprendre à piloter » (tutoriel.js, Codeur 4) : dans le coin en bas à gauche -->
+  <button id="boutonTutorielPaddock" class="petit coinPaddock" tabindex="-1"></button>
+  <button id="boutonAidesPaddock" class="petit coinPaddock" tabindex="-1"></button>   <!-- « Aides au pilotage » (tour 37e, Codeur 3) : choisies avant le Grand Prix -->   <!-- « Apprendre à piloter » (tutoriel.js, Codeur 4) : dans le coin en bas à gauche -->
   <button id="boutonRevoirAides" class="petit coinPaddock" tabindex="-1"></button>   <!-- « Revoir les aides » (aides.js, Codeur 4) : dans un coin du paddock -->
 </section>
 <!-- le calendrier de la saison (Codeur 3) : les 12 Grands Prix, faits ou à venir, le prochain mis en valeur, le Grand Prix à domicile marqué -->
@@ -393,7 +396,9 @@
 <!-- les aides au premier usage (aides.js ; l'affichage : AIDES_ECRAN dans interface.js, Codeur 4) : la bulle d'une ou deux lignes, un clic la ferme -->
 <div id="bulleAide" class="cache" role="status"><span id="bulleAideTexte"></span><span id="bulleAideFermer" aria-hidden="true">✕</span></div>
 <!-- le tutoriel guidé (tutoriel.js ; l'affichage : TUTORIEL_ECRAN dans interface.js, Codeur 4) : la liste des leçons, la consigne pendant une leçon, le résultat -->
-<section id="tutoMenu" class="ecran cache"><h1 id="tutoMenuTitre"></h1><p id="tutoMenuIntro"></p><ol id="tutoListe"></ol><div class="boutons"><button id="boutonTutoRetour" tabindex="-1"></button></div></section>
+<section id="tutoMenu" class="ecran cache"><h1 id="tutoMenuTitre"></h1><p id="tutoMenuIntro"></p><ol id="tutoListe"></ol><div class="boutons"><button id="boutonTutoRetour" tabindex="-1"></button><button id="boutonAidesTuto" class="petit" tabindex="-1"></button></div></section>
+<!-- le choix des aides au pilotage, avant la course (tour 37e, Codeur 3 ; le propriétaire, 2026-10-30) : par-dessus l'écran du moment, une aide par bouton, le bonus sans aide -->
+<section id="choixAides" class="ecran cache"><h1 id="choixAidesTitre"></h1><p id="choixAidesIntro"></p><div id="choixAidesListe" class="boutons"></div><p id="choixAidesBonus"></p><div class="boutons"><button id="boutonAidesValider" tabindex="-1"></button></div></section>
 <div id="tutoConsigne" class="cache"><span id="tutoConsigneTitre"></span><span id="tutoConsigneTexte"></span><button id="boutonTutoPasser" class="petit" tabindex="-1"></button></div>
 <section id="tutoResultat" class="ecran cache"><h1 id="tutoResultatTitre"></h1><p id="tutoResultatTexte"></p><div class="boutons"><button id="boutonTutoRecommencer" tabindex="-1"></button><button id="boutonTutoSuivante" tabindex="-1"></button></div><div class="boutons"><button id="boutonTutoListe" class="petit" tabindex="-1"></button><button id="boutonTutoQuitter" class="petit" tabindex="-1"></button></div></section>
 <section id="grille" class="cache"><p id="grilleAide"></p></section>   <!-- avant les feux : la grille vue d'en haut, passable -->
@@ -403,7 +408,8 @@
   <div class="boutons"><button id="boutonReprendre" tabindex="-1"></button><button id="boutonRecommencer" tabindex="-1"></button></div>
   <div class="boutons"><button id="boutonFantomePause" class="boutonFantome" tabindex="-1"></button><button id="boutonTrajectoirePause" class="petit" tabindex="-1"></button></div>   <!-- la trajectoire conseillée : oui, freinages seulement, non (conseil.js, sauvegardé) -->
   <div class="boutons"><button id="boutonCommentairePause" class="petit" tabindex="-1"></button><button id="boutonEffetsPause" class="petit" tabindex="-1"></button></div>   <!-- les effets de conduite : oui, non (sensations.js, sauvegardé) -->   <!-- le commentateur : tout, tes faits, coupé (commentaire.js) -->   <!-- le fantôme affiché ou masqué (sauvegardé) -->
-  <div class="boutons"><button id="boutonRevoirAidesPause" class="petit" tabindex="-1"></button></div>   <!-- « Revoir les aides » (aides.js, Codeur 4) -->
+  <div class="boutons"><button id="boutonDirectionPause" class="petit aideFigee" tabindex="-1"></button><button id="boutonFreinagePause" class="petit aideFigee" tabindex="-1"></button><button id="boutonAntiblocagePause" class="petit aideFigee" tabindex="-1"></button><button id="boutonAntipatinagePause" class="petit aideFigee" tabindex="-1"></button></div>   <!-- les aides au pilotage (assistance.js) : une par bouton, oui / non, sauvegardées -->
+  <div class="boutons"><button id="boutonRevoirAidesPause" class="petit" tabindex="-1"></button><button id="boutonQualitePause" class="petit" tabindex="-1"></button></div>   <!-- la qualité de l'image : auto, haute, basse (qualite.js, sauvegardé) -->   <!-- « Revoir les aides » (aides.js, Codeur 4) -->
   <div class="boutons"><button id="boutonTutorielPause" class="petit" tabindex="-1"></button></div>   <!-- « Apprendre à piloter » (tutoriel.js, Codeur 4) -->
 </section>
 
@@ -483,6 +489,8 @@
 <script src="meteo3d.js"></script>
 <script src="effets3d.js"></script>
 <script src="conseil.js"></script>
+<script src="qualite.js"></script>
+<script src="assistance.js"></script>
 <script src="scene3d.js"></script>
 <script src="voiture3d.js"></script>
 <script src="regie.js"></script>
