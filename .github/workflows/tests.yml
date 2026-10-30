@@ -34,8 +34,8 @@ jobs:
           - { nom: ecrans-2, partie: ecrans, tranche: 2/4 }
           - { nom: ecrans-3, partie: ecrans, tranche: 3/4 }
           - { nom: ecrans-4, partie: ecrans, tranche: 4/4 }
-          - { nom: annexes, partie: annexes }
-          - { nom: paquet, partie: paquet }
+          - { nom: annexes, partie: annexes recoins, recoins: 'pendant' }   # (+ la solidité pendant la conduite, tests/recoins.py)
+          - { nom: paquet, partie: paquet recoins, recoins: 'dynastie,sauvegarde,stockage' }   # (+ la solidité de la sauvegarde et une dynastie de 2 générations, tests/recoins.py)
           - { nom: saison, partie: saison }   # la carrière entière jouée par le robot (tests/saison.py, Codeur 4)
           - { nom: premier, partie: premier recoins, recoins: 'ecrans,tuto,saison-en' }   # le premier lancement : clic → feux, médiane de 3 essais (tests/premier.py), puis des recoins courts (8 min au plus par travail, Codeur 4)
           - { nom: recoins-1, partie: recoins, recoins: 'deux,tournoi,tailles-jeux' }   # les recoins que saison.py ne visite pas (tests/recoins.py, Codeur 4)

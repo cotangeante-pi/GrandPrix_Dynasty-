@@ -975,3 +975,13 @@ Object.assign(TEXTES.fr, {
   dis_raison_souvenir_depasse: ['Ton dépassement à {circuit_depasse}, je m’en souviens.'],
   dis_raison_conversation_bonne: ['Bonne discussion.'], dis_raison_conversation_mauvaise: ['Pas ma conversation préférée.'], dis_raison_conversation_neutre: ['On verra sur la piste.'],
 });
+
+// --- tour 41d, Codeur 4 : la sauvegarde abîmée (une nouvelle carrière commence) ou impossible (le navigateur ne garde rien) ---
+Object.assign(TEXTES.en, {
+  sauvegardePerdue: 'Your save was damaged: a new career begins.',
+  sauvegardeImpossible: 'This browser can’t keep your save: your career ends when you close the tab.',
+});
+Object.assign(TEXTES.fr, {
+  sauvegardePerdue: 'Ta sauvegarde était abîmée : une nouvelle carrière commence.',
+  sauvegardeImpossible: 'Ce navigateur ne garde pas la sauvegarde : ta carrière s’arrêtera à la fermeture de l’onglet.',
+});
