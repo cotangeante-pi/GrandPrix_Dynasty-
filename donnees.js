@@ -140,6 +140,17 @@ const REGLAGES = {
   MANETTE_SEUIL_MENU: 0.6,         // le stick au-delà de ça choisit le bouton voisin dans les menus…
   MANETTE_REPETITION: [0.4, 0.15], // … et, tenu, il répète après 0,4 s, puis toutes les 0,15 s
 
+  // les aides au pilotage du joueur (assistance.js, tour 41) : seulement ses cibles, avant la physique ; toutes en débutant
+  ASSIST_VITESSE_MIN: 5,           // m/s : en dessous, aucune aide
+  ASSIST_REGARD: 250,              // m : le freinage assisté regarde jusque-là
+  ASSIST_FREIN_PART: 0.75,         // … et compte sur cette part du freinage possible (une marge : il freine un peu tôt)
+  ASSIST_MARGE: 0.9,               // … pour passer les virages à cette part de leur vitesse possible (un débutant n'est pas mené au bord)
+  ASSIST_FREIN_PENTE: 3,           // m/s de trop pour le frein à fond (moins : un frein partiel)
+  ASSIST_ABS_BRAQUAGE: 0.3,        // l'anti-blocage : à partir de cette part du volant…
+  ASSIST_ABS_PART: 0.98,           // … le frein reste à cette part du seuil du blocage
+  ASSIST_ANTIPATINAGE: [0.85, 1],  // part de l'adhérence latérale prise : les gaz baissent à partir de la 1re et sont nuls à la 2e
+  ASSIST_DIRECTION: [0.08, 0.15],  // direction assistée : part du volant par m d'écart à la trajectoire, et au plus
+  ASSIST_DIRECTION_VISEE: 12,      // m devant : le point de la trajectoire visé
   // la trajectoire conseillée (conseil.js, tour 39) : dessin seulement, la physique et les IA ne la voient pas
   CONSEIL_LONGUEUR: 300,           // m devant la voiture
   CONSEIL_LARGEUR: 0.7,            // m
@@ -1048,7 +1059,7 @@ const REGLAGES = {
   // le drone : la grille vue d'en haut au départ (GRILLE_*), et à l'arrivée il tourne autour de la voiture en montant
   DRONE_ARRIVEE_DUREE: 5, DRONE_RAYON: 22, DRONE_HAUTEUR: [6, 26], DRONE_VITESSE: 0.35, DRONE_CHAMP: 50,      // m : sur une ligne droite plus longue, l'hélicoptère              // la voiture et ce qui l'entoure, en mètres, remplissent l'image
 
-  COUTS_POINTS: 24,             // la mesure des coûts par circuit (tests/lieu.html, tour 40) : la caméra de course en tant d'endroits du tour
+  COUTS_POINTS: 12,             // la mesure des coûts par circuit (tests/lieu.html, tour 40) : la caméra de course en tant d'endroits du tour (12 : un sur deux des 24 de la mesure du tour 40, plus court sur GitHub)
   PIXEL_RATIO_MAX: 1.5,         // au plus 1,5 pixel dessiné par pixel CSS (un écran Retina en demande 2)
   // la qualité de l'image (qualite.js, tour 40) : le dessin seulement ; le cran 0 = l'image d'avant (PIXEL_RATIO_MAX, DECOR_DETAIL_LOIN, DECOR_RIEN_LOIN)
   QUALITE_IPS_MIN: 55,          // images par seconde : en dessous en moyenne…

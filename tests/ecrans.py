@@ -139,6 +139,8 @@ PAGES = [
     ('index.html?tutoriel=stand&course=2&test=tuto', 960, 600, None),
     ('index.html?tutoriel=pluie&course=3&ia=1&joueur=1&niveau=debutant&meteo=averse&test=tuto', 1280, 720, None),
     ('index.html?tutoriel=visite&championnat=1&test=tuto', 1280, 720, None),
+    ('index.html?course=3&circuit=test&niveau=debutant&test=assistance', 1280, 720, None),   # les aides au pilotage (tour 41) : d'office en débutant, le freinage assisté freine avant le virage (placées ici : les tranches de GitHub restent équilibrées)
+    ('index.html?course=3&circuit=test&test=assistance', 960, 600, None),                    # … coupées en normal
     ('index.html?tutoriel=visite&championnat=1&test=tuto-quitter', 960, 600, None),   # … passée en cours de route : rien ne reste dans la carrière
 ]
 # ECRANS_FILTRE=… (pendant le travail, sur le Mac) : seulement les pages dont l'adresse contient ce texte ; GitHub lance toujours tout
@@ -1395,6 +1397,32 @@ def qualite_ecran(pg, titre, page):
       b.click(); vu.push(JEU.qualite.regle, JEU.qualite.cran, SCENE3D.qualite && SCENE3D.qualite.pixelRatio); b.click(); vu.push(JEU.qualite.regle, b.textContent); return vu; }''')
     t(f'{titre} : le menu pause règle la qualité (auto → haute → basse → auto, sauvegardé) ; « haute » remet l’image d’avant',
       r[1] == 'auto' and r[2] == 'haute' and r[3] == 0 and r[4] is None and r[5] == 'haute' and r[6] == 'basse' and r[7] == 2 and r[8] == 0.75 and r[9] == 'auto' and r[0] == r[10], str(r))
+# les aides au pilotage (assistance.js, tour 41) dans le vrai jeu, une course seule : en débutant, les trois aides sont allumées
+# d'office (menu pause), et pour un joueur qui ne freine jamais, le freinage assisté freine avant les virages (le frein de la
+# voiture monte sans que le joueur freine) et la voiture reste sur la piste ; en normal, elles sont coupées et ce joueur sort
+def assistance_ecran(pg, titre, page):
+    debutant = 'niveau=debutant' in page
+    b = pg.evaluate('() => ["boutonFreinagePause", "boutonAntipatinagePause", "boutonDirectionPause"].map(id => { const e = document.getElementById(id); return [e.textContent, e.classList.contains("cache")]; })')
+    oui = [pg.evaluate(f'() => texte("assist_{a}_oui")') for a in ('freinage', 'antipatinage', 'direction')]
+    if debutant:
+        t(f'{titre} : en débutant, les trois aides au pilotage sont allumées d’office dans le menu pause (freinage, antipatinage, direction)', [x[0] for x in b] == oui and not b[2][1], str(b))
+    else:
+        t(f'{titre} : en normal, les aides au pilotage sont coupées d’office, et la direction assistée n’est pas proposée', all(x[0] != o for x, o in zip(b, oui)) and b[2][1], str(b))
+    attendre(pg, '() => JEU.ecran === "course" && JEU.course && JEU.course.etat !== "compte" && (REGLAGES.NIVEAU !== "debutant" || !!JEU.carte)', None, 120000)
+    # un joueur qui ne freine jamais : à chaque pas, les commandes du robot d'essai à 75 m/s partout (il tourne, il ne freine pas),
+    # posées comme celles du clavier (JEU.cibles) ; le temps passé dans l'herbe et le frein que la voiture prend d'elle-même
+    pg.evaluate('''() => { window.__freinSeul = 0; window.__herbe = 0; BOUCLE.surPhysique(pas => { const c = piloteRobot(JEU.joueur, CIRCUIT, 75); JEU.cibles.gaz = c.gaz; JEU.cibles.frein = 0; JEU.cibles.direction = c.direction;
+      if (JEU.joueur.frein > window.__freinSeul) window.__freinSeul = JEU.joueur.frein; if (JEU.joueur.surHerbe) window.__herbe += pas; }); }''')
+    pg.evaluate('() => { BOUCLE.arreter(); BOUCLE.simuler(40); BOUCLE.demarrer(); }')   # (40 s de course, sans attendre les images de swiftshader)
+    r = pg.evaluate('() => ({ frein: window.__freinSeul, herbe: window.__herbe, barriere: JEU.joueur.contactsBarriere, s: JEU.course.tours.length, assistance: JEU.assistance, carte: !!JEU.carte })')
+    L.append(f"  (aides au pilotage, {'débutant' if debutant else 'normal'}, un joueur qui ne freine jamais, 40 s : frein pris par la voiture jusqu'à {r['frein']:.2f}, {r['herbe']:.1f} s dans l'herbe, {r['barriere']} contacts barrière)")
+    if debutant:
+        t(f'{titre} : un joueur qui ne freine jamais : le freinage assisté freine pour lui avant les virages, il reste sur la piste', r['frein'] > 0.3 and r['carte'] and r['herbe'] < 2 and r['barriere'] == 0, str(r))
+        # le réglage : un clic coupe le freinage assisté, sauvegardé
+        s = pg.evaluate('() => { document.getElementById("boutonFreinagePause").click(); return [JEU.assistance.freinage, SAUVEGARDE.option("aides_pilotage", null)]; }')
+        t(f'{titre} : le menu pause coupe une aide (sauvegardé)', s[0] is False and s[1] and s[1]['freinage'] is False and s[1]['antipatinage'] is True, str(s))
+    else:
+        t(f'{titre} : sans aide, la voiture ne freine jamais d’elle-même, et ce joueur-là sort de la piste', r['frein'] == 0 and (r['herbe'] > 0.2 or r['barriere'] > 0), str(r))
 def commentaire_ecran(pg, titre):
     vu = attendre(pg, '() => /🎙/.test(document.getElementById("messageCourse").textContent) && !document.getElementById("messageCourse").classList.contains("cache")', None, 90000)
     txt = pg.evaluate('() => document.getElementById("messageCourse").textContent')
@@ -3011,6 +3039,8 @@ with sync_playwright() as p:
                 conseil_ecran(pg, titre, page)
             if 'test=qualite' in page:
                 qualite_ecran(pg, titre, page)
+            if 'test=assistance' in page:
+                assistance_ecran(pg, titre, page)
             if 'test=manette-deux' in page:
                 manette_deux(pg, titre)
             elif 'test=manette' in page:
