@@ -151,6 +151,13 @@ const PATRONS = (function () {
       default: reaction = 'incompris';
     }
     if (reaction === 'contre_offre' || reaction === 'salaire_accepte' || reaction === 'marche_conclu') garde(envie(ch, e) >= R.PATRON_ENVIE_FORTE ? 'veut_beaucoup' : 'veut_un_peu');
+    // (tour 37i, le propriétaire 2026-10-30) ton patron remarque ton dernier exploit sans aide, ou en légende (ch.exploitAides, un vrai fait de
+    // course), une seule fois (m.exploitVu), dans son ton à lui : un petit plus de confiance (PATRON_CONFIANCE_EXPLOIT). Celui qui garde
+    // ses aides n'a pas d'exploit : il ne perd rien
+    const ex = ch.exploitAides, cleEx = ex ? ex.saison * 100 + ex.gp : null;
+    if (mien && ex && m.exploitVu !== cleEx && reaction !== 'incompris' && !['INSULTE', 'MENACE', 'ADIEU'].includes(a.acte)) {
+      garde(ex.f === 'legendeVictoire' ? 'exploit_legende' : 'exploit_sansAide'); effets.exploit = ex; effets.confianceExploit = R.PATRON_CONFIANCE_EXPLOIT;
+    }
     return { reaction, raisons, effets };
   }
 
@@ -161,6 +168,8 @@ const PATRONS = (function () {
     const m = memoire(ch, e), x = r.effets;
     if (x.relation) m.relation = borne(m.relation + borne(x.relation, -R.DISCUSSION_PAS, R.DISCUSSION_PAS), -R.DISCUSSION_RELATION_MAX, R.DISCUSSION_RELATION_MAX);
     if (x.confiance && ch.reputation) { ch.reputation.ecurie = borne(ch.reputation.ecurie + borne(x.confiance, -R.PATRON_CONFIANCE_INSULTE, 0), 0, 100); ch.confiance = ch.reputation.ecurie; }
+    if (x.confianceExploit && ch.reputation) { ch.reputation.ecurie = borne(ch.reputation.ecurie + borne(x.confianceExploit, 0, R.PATRON_CONFIANCE_EXPLOIT), 0, 100); ch.confiance = ch.reputation.ecurie; }   // (tour 37i : seulement un plus)
+    if (x.exploit) m.exploitVu = x.exploit.saison * 100 + x.exploit.gp;
     if (x.statut) ch.statut = { saison: ch.saison, valeur: x.statut };
     if (x.statutOffre) m.nego.statut = x.statutOffre;
     if (x.budget) { m.budget = ch.saison; ARGENT.crediter(ch, Math.min(x.budget, R.PATRON_BUDGET_MONTANT), 'patron'); }
@@ -183,7 +192,8 @@ const PATRONS = (function () {
     const choisir = cle => { const v = texte(cle); return Array.isArray(v) ? v[Math.floor(alea() * v.length)] : v || ''; };
     const F = typeof ARGENT !== 'undefined' ? ARGENT.formater : String, cd = conditions(ch, e), at = e === joueur(ch).ecurie ? attente(ch) : null;
     const vals = { nom: noms.pilote(joueur(ch)), ecurie: noms.ecurie(ch.ecuries[e]), salaire: F(cd.salaire), contre: F(Math.round(salaireBase(ch, e) * (1 + (m.nego.contre || 0)) / 1000) * 1000),
-      budget: F(R.PATRON_BUDGET_MONTANT), place: at ? at.place : '', attendue: at ? Math.round(at.attendue) : '' };
+      budget: F(R.PATRON_BUDGET_MONTANT), place: at ? at.place : '', attendue: at ? Math.round(at.attendue) : '',
+      circuit_exploit: r.effets.exploit ? (texte('circuit_' + r.effets.exploit.circuit) || r.effets.exploit.circuit) : '', place_exploit: r.effets.exploit ? r.effets.exploit.place : '' };   // (tour 37i)
     const anonyme = !joueur(ch).nom;
     const remplir = t => (anonyme ? DISCUSSION.sansNom(t) : t).replace(/\{(\w+)\}/g, (x, c) => vals[c] !== undefined ? vals[c] : x);
     const morceaux = [remplir(choisir('pat_' + r.reaction))];

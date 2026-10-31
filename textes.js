@@ -750,7 +750,7 @@ Object.assign(TEXTES.en, {
   tutoCommencer: 'Start', tutoRetour: 'Back', tutoPasser: 'Skip ⏭', tutoRecommencer: '↻ Try again', tutoSuivante: 'Next lesson ▶', tutoListe: 'All lessons', tutoQuitter: 'Leave',
   tutoReussie: 'Lesson passed! ★', tutoRatee: 'Not quite…', tutoFini: 'All lessons done!', tutoBravo: 'Learn first',
   tuto_conduite: 'Accelerate, steer, brake', tuto_conduite_but: 'Finish a lap without leaving the track.', tuto_conduite_consigne: '↑ accelerate · ← → steer · ↓ brake — one lap, stay on the tarmac.',
-  tuto_freinage: 'Racing line and braking point', tuto_freinage_but: 'Through the corner between the cones in under {o} s. Driving aids are chosen before the race (🛞).', tuto_freinage_consigne: 'Brake at the cones, turn in late, hit the apex: the zone in under {o} s ({n} / {max}).',
+  tuto_freinage: 'Racing line and braking point', tuto_freinage_but: 'Through the corner between the cones in under {o} s. Driving aids are set before the race (🛞).', tuto_freinage_consigne: 'Brake at the cones, turn in late, hit the apex: the zone in under {o} s ({n} / {max}).',
   tuto_depart: 'The perfect start', tuto_depart_but: 'Keep the needle in the green, react to the lights.', tuto_depart_consigne: 'Hold ↑ to keep the needle in the green. Lights out: release, then press ↑ again!',
   tuto_depassement: 'Slipstream and overtaking', tuto_depassement_but: 'Pass the slow car and stay ahead.', tuto_depassement_consigne: 'Tuck in behind the car ahead (slipstream), then pull out on the straight and pass it.',
   tuto_stand: 'The pit stop', tuto_stand_but: 'Take the pit lane at {v} km/h at most and stop in your box.', tuto_stand_consigne: 'Before the line, take the pit lane: {v} km/h at most; in the box, the stop is automatic.',
@@ -979,10 +979,10 @@ Object.assign(TEXTES.fr, {
 // (tour 37e, Codeur 3) le choix des aides au pilotage avant la course, et le bonus sans aide (le propriétaire, 2026-10-30)
 Object.assign(TEXTES.en, {
   assist_antiblocage_oui: 'Anti-lock brakes: on', assist_antiblocage_non: 'Anti-lock brakes: off',
-  aidesBouton: '🛞 Driving aids', aidesTitre: 'Driving aids', aidesIntro: 'Choose them before the race: they stay the same until the finish.',
-  aidesPart: '(off: +{p} %)', aidesBonus: 'With these aids off: +{p} % prize money.', aidesBonusZero: 'All aids on: the usual prize money.',
-  aidesSansArgent: 'No prize money in this mode: your aids are shown next to your name.',
-  aidesFigees: 'Driving aids are chosen before the race.', aidesValider: 'OK', argentSansAide: 'no-assist bonus: +{n}',
+  aidesBouton: '🛞 Driving aids', aidesTitre: 'Driving aids', aidesIntro: 'Choose them before the race: they stay locked until the finish.',
+  aidesPart: '(+{p}% if off)', aidesBonus: 'With these aids off: +{p}% prize money.', aidesBonusZero: 'All aids on: standard prize money.',
+  aidesSansArgent: 'No prize money in this mode: everyone’s aids are shown next to their name.',
+  aidesFigees: 'Driving aids are set before the race.', aidesValider: 'OK', argentSansAide: 'no-aids bonus: +{n}',
   aidesJoueur_oui: '🛞 Aids: on', aidesJoueur_non: '🛞 Aids: off', aidesJoueur_oui_court: '🛞 ✓', aidesJoueur_non_court: '🛞 ✗', aidesMarque: '🛞',
 });
 Object.assign(TEXTES.fr, {
@@ -1006,10 +1006,10 @@ Object.assign(TEXTES.fr, {
 // (tour 37g, Codeur 3) les aides au premier usage du choix des aides au pilotage et de la voiture vivante (expert, légende) ; ce que fait
 // chaque aide, en une phrase qu'un enfant comprend
 Object.assign(TEXTES.en, {
-  aide_choixAides: 'Steering keeps you on track, braking slows you before corners, the others stop skids. Turn one off: bonus money!',
-  aide_vivante: 'This car is alive: brake while turning and the rear can slide. Brake in a straight line, then turn.',
-  aidesQuoi_direction: 'Turns the wheel a little to keep you on the good line.', aidesQuoi_freinage: 'Brakes for you when a corner is coming too fast.',
-  aidesQuoi_antiblocage: 'Stops the wheels locking when you brake and turn.', aidesQuoi_antipatinage: 'Eases the throttle when the car starts to slide in a corner.',
+  aide_choixAides: 'Steering assist keeps you on track, braking assist slows you for corners, the others stop skids. Switch one off: bonus cash!',
+  aide_vivante: 'This car is alive: brake while turning and the rear can step out. Brake in a straight line, then turn.',
+  aidesQuoi_direction: 'Nudges the wheel to keep you on the racing line.', aidesQuoi_freinage: 'Brakes for you when you arrive too fast for a corner.',
+  aidesQuoi_antiblocage: 'Stops the wheels locking when you brake while turning.', aidesQuoi_antipatinage: 'Eases off the throttle when the car starts sliding in a corner.',
 });
 Object.assign(TEXTES.fr, {
   aide_choixAides: 'La direction te guide, le freinage ralentit avant les virages, les autres évitent les glissades. Aide coupée : bonus !',
@@ -1021,15 +1021,15 @@ Object.assign(TEXTES.fr, {
 // (tour 37h, Codeur 3) le monde réagit au choix des aides (le propriétaire, 2026-10-30) : le journal, l'interview et les discussions ; des faits vrais
 // de la course (les aides choisies avant), jamais de moquerie pour qui garde ses aides, jamais genré
 Object.assign(TEXTES.en, {
-  uneTitre_sansAideVictoire: ['NO TRAINING WHEELS! {pilote} wins at {circuit} without a single aid', '{pilote} wins at {circuit}, every driving aid switched off', 'All by hand: {pilote} takes victory at {circuit}'],
+  uneTitre_sansAideVictoire: ['NO TRAINING WHEELS! {pilote} wins at {circuit} without a single aid', '{pilote} wins at {circuit}, every driving aid switched off', 'Bare hands: {pilote} takes victory at {circuit}'],
   uneTexte_sansAideVictoire: ['No steering help, no braking help: {pilote} won at {circuit} on pure skill. {ecurie} can be proud.', 'Every aid off, and still first across the line at {circuit}. The paddock noticed.'],
   uneTitre_sansAidePodium: ['NO TRAINING WHEELS! {pilote} on the podium at {circuit}', 'P{place} at {circuit} with every aid switched off', '{pilote} climbs the podium at {circuit}, all aids off'],
-  uneTexte_sansAidePodium: ['P{place} at {circuit} with no driving aids at all: a first for {pilote}, and a fine day for {ecurie}.', 'No steering help, no braking help, and a podium at {circuit}. {pilote} did it by hand.'],
-  uneTitre_sansAidePremiere: ['{pilote} switches off the driving aids at {circuit}', 'No aids today: {pilote} drives by hand at {circuit}', 'A new step at {circuit}: {pilote} races with every aid off'],
+  uneTexte_sansAidePodium: ['P{place} at {circuit} with no driving aids at all: a first for {pilote}, and a fine day for {ecurie}.', 'No steering help, no braking help, and a podium at {circuit}. {pilote} did it the hard way.'],
+  uneTitre_sansAidePremiere: ['{pilote} switches off the driving aids at {circuit}', 'No aids today: {pilote} goes it alone at {circuit}', 'A milestone at {circuit}: {pilote} races with every aid off'],
   uneTexte_sansAidePremiere: ['For the first time, {pilote} raced with every driving aid switched off: P{place} at {circuit}.', 'Steering, braking, traction: all off at {circuit}. {pilote} finished P{place} and learned a lot.'],
   uneTitre_legendeVictoire: ['TAMING THE BEAST! {pilote} wins at {circuit} at Legend level', '{pilote} masters the living car at {circuit}', 'Legend level, and {pilote} still wins at {circuit}'],
-  uneTexte_legendeVictoire: ['At Legend level the car is alive, and {pilote} kept it in line all the way to the flag at {circuit}.', 'The rear wanted to slide, the rivals wanted the lead: {pilote} gave neither an inch at {circuit}. {ecurie} celebrates.'],
-  interview_sansAide_q: ['No driving aids at all today, P{place} at {circuit}. Why switch them off?', 'Every aid off at {circuit}, P{place}. How did that feel?', 'P{place} at {circuit} with no help from the car. Is that the plan from now on?'],
+  uneTexte_legendeVictoire: ['At Legend level the car is alive, and {pilote} kept it in line all the way to the flag at {circuit}.', 'The rear wanted to slide, the rivals wanted the lead: {pilote} didn’t give an inch at {circuit}. {ecurie} celebrates.'],
+  interview_sansAide_q: ['No driving aids at all today, P{place} at {circuit}. Why switch them off?', 'Every aid off at {circuit}, and P{place}. How did that feel?', 'P{place} at {circuit} with no help from the car. Is that the plan from now on?'],
   interview_sansAide_provocant: 'Aids are for people who don’t trust their hands. I trust mine.', interview_sansAide_calme: 'I wanted to learn the car properly. The team helped me get there.',
   interview_sansAide_malin: 'The car didn’t help me today, so I had to help the car.',
   interview_legende_q: ['A win at Legend level, with the car sliding everywhere. How?', 'Legend level, a living car, and a win at {circuit}. What’s the secret?', 'The rear was moving all race at {circuit}, and you still won. Tell us.'],
@@ -1049,10 +1049,20 @@ Object.assign(TEXTES.fr, {
   uneTexte_legendeVictoire: ['En légende, la voiture est vivante, et {pilote} l’a tenue droite jusqu’au drapeau à {circuit}.', 'L’arrière voulait glisser, les rivaux voulaient la tête : {pilote} n’a rien lâché à {circuit}. {ecurie} fait la fête.'],
   interview_sansAide_q: ['Aucune aide au pilotage aujourd’hui, P{place} à {circuit}. Pourquoi les couper ?', 'Toutes les aides coupées à {circuit}, P{place}. Ça fait quoi ?', 'P{place} à {circuit} sans aucune aide de la voiture. C’est le plan, maintenant ?'],
   interview_sansAide_provocant: 'Les aides, c’est pour ceux qui n’ont pas confiance en leurs mains. Moi, j’ai confiance.', interview_sansAide_calme: 'Je voulais vraiment apprendre la voiture. L’écurie a tout fait pour que j’y arrive.',
-  interview_sansAide_malin: 'La voiture ne m’a pas aidé aujourd’hui, alors c’est moi qui l’ai aidée.',
+  interview_sansAide_malin: 'La voiture ne m’a fait aucun cadeau aujourd’hui, alors c’est moi qui l’ai aidée.',
   interview_legende_q: ['Une victoire en légende, avec la voiture qui glisse partout. Comment ?', 'Niveau légende, une voiture vivante, et une victoire à {circuit}. Le secret ?', 'L’arrière a bougé toute la course à {circuit}, et tu as gagné quand même. Raconte.'],
   interview_legende_provocant: 'Les autres avaient peur de leur propre voiture. Pas moi.', interview_legende_calme: 'Freiner droit, puis tourner. L’écurie a parfaitement réglé la voiture.',
   interview_legende_malin: 'Une voiture vivante ? On a bien discuté avant le départ.',
   dis_raison_exploit_sansAide: ['P{place_exploit} à {circuit_exploit} avec toutes les aides coupées. J’ai vu ça. Respect.', 'Sans aucune aide à {circuit_exploit}, et P{place_exploit}. Pas mal du tout.'],
   dis_raison_exploit_legende: ['Ta victoire à {circuit_exploit} en légende… cette voiture-là, je n’aurais pas su la tenir.', 'À {circuit_exploit}, la voiture glissait partout et tu as gagné quand même. Respect.'],
+});
+
+// (tour 37i, Codeur 3) ton patron remarque ton exploit sans aide, ou en légende, une fois, dans son ton à lui
+Object.assign(TEXTES.en, {
+  pat_raison_exploit_sansAide: ['P{place_exploit} at {circuit_exploit} with every aid switched off. That’s the kind of driver this team wants.', 'I saw {circuit_exploit}: no aids, P{place_exploit}. The whole team noticed.'],
+  pat_raison_exploit_legende: ['A win at {circuit_exploit} at Legend level. Our engineers are still talking about it.', 'Keeping a living car on the road and winning at {circuit_exploit}: that builds trust.'],
+});
+Object.assign(TEXTES.fr, {
+  pat_raison_exploit_sansAide: ['P{place_exploit} à {circuit_exploit} avec toutes les aides coupées. C’est ce genre de pilotage que l’écurie veut voir.', 'J’ai vu {circuit_exploit} : aucune aide, P{place_exploit}. Toute l’écurie l’a remarqué.'],
+  pat_raison_exploit_legende: ['Une victoire à {circuit_exploit} en légende. Nos ingénieurs en parlent encore.', 'Tenir une voiture vivante et gagner à {circuit_exploit} : ça donne confiance.'],
 });
