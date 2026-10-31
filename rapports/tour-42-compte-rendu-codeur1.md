@@ -21,7 +21,7 @@ Commit : duel-court **211cff9** — GitHub **41161931119 : vert** (annexes « pe
 - Le conflit : plus il prévoit le freinage de la voiture de devant, moins il y a de chocs dans la file (stands : de 16 à 4), mais plus il suit de loin, et la défense du rival (à moins de 8 m, les rétroviseurs) et la disposition « bloquer » ne se déclenchent plus.
 
 ## 3. La vue arrière du rival (23h, demandée par le Chef)
-- IA_RIVAL_VUE_ARRIERE = 20 m (simulation.js vuesAvecArriere) : le rival voit le joueur derrière lui jusque-là (avant : 8 m, ses rétroviseurs) et défend dès qu'il arrive plus vite, jusqu'à IA_DECALAGE_ECART (20 m ; IA_DISTANCE_ATTAQUE, 7 m, était plus court que les rétroviseurs). Avec IA_FREIN_VU_DISTANCE 35 m et IA_FREIN_PREVU 0,7 s : tout passe sur GitHub. Rivalité (8 courses) : le rival attaque le joueur 135 fois contre 86 sans rivalité ; défenses 29 (rival devant) contre 0 ; chocs avec 4 + 2, sans 3 + …, dans le garde-fou.
+- IA_RIVAL_VUE_ARRIERE = 20 m (simulation.js vuesAvecArriere) : le rival voit le joueur derrière lui jusque-là (avant : 8 m, ses rétroviseurs) et défend dès qu'il arrive plus vite, jusqu'à IA_DECALAGE_ECART (20 m ; IA_DISTANCE_ATTAQUE, 7 m, était plus court que les rétroviseurs). Avec IA_FREIN_VU_DISTANCE 35 m et IA_FREIN_PREVU 0,7 s : tout passe sur GitHub. Rivalité (8 courses) : le rival attaque le joueur 135 fois contre 86 sans rivalité ; défenses 29 (rival devant) contre 0 ; chocs > 5 m/s : pas plus qu’au total sans rivalité (le garde-fou tient).
 - Réglages finaux : IA_ATTAQUE_LIGNE_PREVUE 1, IA_FREIN_VU_TOUS 1, IA_FREIN_VU_DISTANCE 35, IA_FREIN_PREVU 0,7 (au lieu de 0,6), IA_RIVAL_VUE_ARRIERE 20. Le duel court lui-même (vainqueur ≠ poleman) n'est pas mesuré sur 90 courses ce soir.
 
 ## Pour demain
