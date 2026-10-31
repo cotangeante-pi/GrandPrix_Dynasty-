@@ -854,7 +854,10 @@ function defendreContreJoueur(pilote, v, vues, s0) {
   if (!joueur) return;
   // (derrière lui ou en train de se décaler à côté, pas encore devant)
   const g = ecartLeLong(c, joueur.s - s0);
-  if (g > R.LONGUEUR_VOITURE / 2 || g < -R.INTERVIEW_RIVALITE_DISTANCE) return;
+  // (IA_RIVAL_VUE_ARRIERE : il défend dès qu'il le voit arriver plus vite derrière lui, jusqu'à la distance d'attaque, pas seulement à 8 m)
+  const loin = R.IA_RIVAL_VUE_ARRIERE ? Math.max(R.INTERVIEW_RIVALITE_DISTANCE, Math.min(R.IA_RIVAL_VUE_ARRIERE, R.IA_DECALAGE_ECART)) : R.INTERVIEW_RIVALITE_DISTANCE;
+  if (g > R.LONGUEUR_VOITURE / 2 || g < -loin) return;
+  if (R.IA_RIVAL_VUE_ARRIERE && g < -R.INTERVIEW_RIVALITE_DISTANCE && joueur.vitesse <= v.u) return;   // (au-delà des rétroviseurs : seulement s'il arrive plus vite)
   const f = prochainFreinage(carte, s0);
   if (!f || f.distance > R.IA_HORIZON) return;
   const vir = carte.virages[f.j];
