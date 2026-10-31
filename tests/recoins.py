@@ -184,7 +184,7 @@ def fin(c, titre):
                       const sur = [...document.querySelectorAll("#contrats button, #contratsListe li, #contrats h1, #contratsNote")].filter(e => e.getClientRects().length).filter(e => { const q = e.getBoundingClientRect(); return Math.min(r.right, q.right) - Math.max(r.left, q.left) > 1 && Math.min(r.bottom, q.bottom) - Math.max(r.top, q.top) > 1; }).map(e => e.id || e.tagName);
                       return { aide: b.dataset.aide, texte: document.getElementById("bulleAideTexte").textContent, attendu: texte("aide_contrats"), sur }; }''')
                     t(f'{titre} : aux contrats, l’aide des contrats s’affiche (la première fois), sur aucun bouton, aucune offre ni le titre', bool(b) and b['aide'] == 'contrats' and b['texte'] == b['attendu'] and not b['sur'], str(b))
-                    c.si('#bulleAide')
+                    c.ev('() => { if (window.AIDES_ECRAN) AIDES_ECRAN.fermer(); }')   # (la bulle d'aide fermée par le jeu, pas d'un clic : elle peut se cacher seule au moment du clic, tour 42d)
                 if not anticipee: break
                 c.cliquer('#boutonRetraite'); c.inspecter(f'{quoi} : confirmation de la retraite'); c.cliquer('#boutonRetraite')
             elif e == 'sponsors': c.inspecter(f'{quoi} : sponsors'); c.cliquer('#boutonSponsorsRetour')
@@ -478,10 +478,10 @@ def fin_de_saison(c, quoi):
         elif e == 'saison': c.cliquer('#boutonSaisonSuite')
         elif e == 'duelSaison': c.cliquer('#boutonDuelSaisonSuite')
         elif e == 'contrats':
-            c.si('#bulleAide')
+            c.ev('() => { if (window.AIDES_ECRAN) AIDES_ECRAN.fermer(); }')   # (la bulle d'aide fermée par le jeu, pas d'un clic : elle peut se cacher seule au moment du clic, tour 42d)
             if not c.si('#contratsListe button.signer'): c.ev('() => { const b = document.querySelector("#contratsListe button"); if (b) b.click(); }')
         elif e == 'sponsors':
-            c.si('#bulleAide')
+            c.ev('() => { if (window.AIDES_ECRAN) AIDES_ECRAN.fermer(); }')   # (la bulle d'aide fermée par le jeu, pas d'un clic : elle peut se cacher seule au moment du clic, tour 42d)
             if not c.si('#sponsorsListe button'): c.cliquer('#boutonSponsorsRetour')
             if c.ev('() => JEU.ecran') == 'sponsors': c.cliquer('#boutonSponsorsRetour')
         else: c.pg.wait_for_timeout(300)
