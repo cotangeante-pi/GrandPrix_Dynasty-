@@ -484,6 +484,7 @@ const REGLAGES = {
   TUTO_IA_RYTHME: 0.8,          // le rythme de l'IA lente de la leçon du dépassement (part de la vitesse que sa carte permet)
   TUTO_PLOTS_COULEUR: 0xff7a1a, // les plots de la leçon du freinage
   TUTO_PLUIE_EAU: 0.2,          // la leçon de la pluie : la piste compte comme mouillée à partir de ce niveau d'eau
+  TUTO_VIVANTE_ARRIERE: 0.5,    // (tour 37j) la leçon de la voiture vivante : l'arrière ne doit pas glisser jusque-là (SENSATIONS.glisseArriere, 0 à 1) dans l'épingle
   // le casque du pilote (casque.js) : un motif et trois couleurs ; les rivaux tirent le leur avec la graine du championnat
   CASQUE_MOTIFS: ['uni', 'bandes', 'etoile', 'flammes', 'damier', 'eclair'],
   // les motifs à débloquer par des exploits de carrière (casque.js : conditions) ; jamais de la vitesse, seulement un dessin ; gardés à

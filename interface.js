@@ -1872,7 +1872,7 @@ const TUTORIEL_ECRAN = (function () {
     if (!LECON || typeof JEU === 'undefined' || typeof CIRCUIT === 'undefined') return null;
     if (!suivi) suivi = TUTORIEL.creerSuivi(LECON, CIRCUIT);
     if (!prete) prete = TUTORIEL.preparer(LECON, JEU);
-    if (LECON === 'freinage') poserPlots();
+    if (LECON === 'freinage' || LECON === 'vivante') poserPlots();   // (la voiture vivante : les mêmes plots, à l'épingle du technique)
     if (!resultat && JEU.ecran !== 'pause') {
       const ordre = LECON === 'depassement' && JEU.plateau ? classementCourse(JEU.plateau) : null;
       const r = TUTORIEL.pas(suivi, TUTORIEL.situation(JEU, CIRCUIT, ordre), dt || 0);

@@ -1,4 +1,4 @@
-// Le tutoriel guidé (CLAUDE.md « Le tutoriel guidé », étape 11d, Codeur 4), en calcul pur, sans écran : les 7 leçons, leur mise en
+// Le tutoriel guidé (CLAUDE.md « Le tutoriel guidé », étape 11d, Codeur 4), en calcul pur, sans écran : les 8 leçons (la 8e, la voiture vivante : tour 37j), leur mise en
 // place (l'adresse de la page : les mêmes modes que le jeu, la même physique et les mêmes IA) et leur réussite, mesurée sur l'état du
 // moteur sans rien y changer (sauf la mise en place : l'IA lente de la leçon du dépassement). Proposé, jamais imposé : aucun écran de
 // plus au premier lancement. Les leçons réussies sont gardées à la racine de la sauvegarde (sauvegarde.js : tutoriel, reussirLecon).
@@ -15,6 +15,7 @@ const TUTORIEL = (function () {
     { id: 'stand', adresse: 'course=2' },                                                     // seul : l'arrêt, sans excès de vitesse
     { id: 'pluie', adresse: 'course=3&ia=1&joueur=1&niveau=debutant&meteo=averse' },    // l'averse arrive : changer de pneus
     { id: 'visite', adresse: 'championnat=1' },                                               // le paddock, le garage, l'aileron
+    { id: 'vivante', adresse: 'course=0&circuit=technique&niveau=expert' },                  // (tour 37j) la voiture vivante, à l'épingle du technique
   ];
   const PAR_ID = {};
   LECONS.forEach((l, i) => { l.numero = i + 1; PAR_ID[l.id] = l; });
@@ -48,11 +49,13 @@ const TUTORIEL = (function () {
       pneus: v ? v.typePneus || 'slick' : 'slick', eau: J.plateau && J.plateau.meteo ? J.plateau.meteo.eau : 0,
       devant: !!(ordre && J.plateau && ordre.length > 1 && ordre[0].k === J.suivie),
       longueur: circuit ? circuit.longueur : 0,
+      // (tour 37j) l'arrière qui glisse (0 à 1, sensations.js glisseArriere : la voiture vivante), lu sans rien changer
+      arriere: v && typeof SENSATIONS !== 'undefined' && SENSATIONS.glisseArriere ? SENSATIONS.glisseArriere(v).arriere : 0,
     };
   }
 
   function creerSuivi(id, circuit) {
-    return { id, t: 0, resultat: 'encours', raison: null, zone: id === 'freinage' && circuit ? zoneFreinage(circuit) : null,
+    return { id, t: 0, resultat: 'encours', raison: null, zone: (id === 'freinage' || id === 'vivante') && circuit ? zoneFreinage(circuit) : null,
       dans: null, essais: 0, meilleur: null, dernier: null, devantDepuis: 0, visites: {}, sAvant: null, pluieVue: false };
   }
 
@@ -85,6 +88,24 @@ const TUTORIEL = (function () {
         su.sAvant = s.s;
         break;
       }
+      case 'vivante': {
+        // (tour 37j) la voiture vivante, à l'épingle (la même zone que le freinage, sur le circuit technique) : freiner droit, tourner,
+        // puis remettre les gaz doucement ; un passage est réussi sans sortir et sans que l'arrière glisse au-delà de TUTO_VIVANTE_ARRIERE
+        const z = su.zone;
+        if (!z || s.s === null || !enCourse) break;
+        const L = s.longueur, longueurZone = avance(z.debut, z.fin, L), ici = avance(z.debut, s.s, L);
+        const dedans = ici < longueurZone;
+        if (dedans && su.dans === null && su.sAvant !== null && avance(z.debut, su.sAvant, L) > longueurZone) su.dans = { t: su.t, herbe: false, arriere: 0 };
+        if (su.dans) { if (s.herbe) su.dans.herbe = true; su.dans.arriere = Math.max(su.dans.arriere, s.arriere || 0); }
+        if (su.dans && !dedans) {
+          const glisse = su.dans.arriere >= R.TUTO_VIVANTE_ARRIERE, propre = !su.dans.herbe && !glisse;
+          su.essais++; su.dernier = { arriere: su.dans.arriere, herbe: su.dans.herbe }; su.dans = null; su.sAvant = s.s;
+          if (propre) return fini(su, 'reussie');
+          if (su.essais >= R.TUTO_ZONE_ESSAIS) return fini(su, 'ratee', glisse ? 'glisse' : 'sortie');
+        }
+        su.sAvant = s.s;
+        break;
+      }
       case 'depart': {
         const d = s.depart;
         if (!d) break;
@@ -113,7 +134,7 @@ const TUTORIEL = (function () {
         if (su.visites.garage && su.visites.aileron && s.ecran === 'championnat') return fini(su, 'reussie');
         return 'encours';   // une visite n'a pas de temps limite
     }
-    if (su.t > R.TUTO_TEMPS_MAX && !(su.id === 'freinage' && su.essais > 0)) return fini(su, 'ratee', 'temps');   // (le freinage : ses essais comptent, pas le temps)
+    if (su.t > R.TUTO_TEMPS_MAX && !((su.id === 'freinage' || su.id === 'vivante') && su.essais > 0)) return fini(su, 'ratee', 'temps');   // (le freinage : ses essais comptent, pas le temps)
     return 'encours';
   }
 
