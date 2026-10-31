@@ -881,11 +881,14 @@ function defendreContreJoueur(pilote, v, vues, s0) {
 function defendreBataille(pilote, v, vues, s0) {
   const R = REGLAGES, carte = pilote.carte, c = carte.circuit, L = c.longueur, pas = R.IA_LIGNE_PAS, t = pilote.tampons;
   let x = null;
-  for (const w of vues) { const g = ecartLeLong(c, w.s - s0); if (g <= -R.LONGUEUR_VOITURE / 2 && g >= -R.INTERVIEW_RIVALITE_DISTANCE && w.vitesse > Math.max(0, v.u) && (!x || g > x.g)) x = { w, g }; }
+  for (const w of vues) { const g = ecartLeLong(c, w.s - s0); if (w.id && w.id.joueur) continue;   // (contre le joueur : seulement son rival, defendreContreJoueur)
+    if (g <= -R.LONGUEUR_VOITURE / 2 && g >= -R.INTERVIEW_RIVALITE_DISTANCE && w.vitesse > Math.max(0, v.u) && (!x || g > x.g)) x = { w, g }; }
   if (!x) return;
   const f = prochainFreinage(carte, s0);
   if (!f || f.distance > R.IA_HORIZON) return;
-  const vir = carte.virages[f.j], decalage = R.IA_BATAILLE_DEFENSE * (pilote.caractere ? 0.5 + pilote.caractere.agressivite : 1), sommet = ((vir.s - s0) % L + L) % L;
+  const n = R.NIVEAUX[R.NIVEAU], parNiveau = n && n.bataille !== undefined ? n.bataille : 1;   // (le niveau : en débutant, il ne défend pas)
+  if (!parNiveau) return;
+  const vir = carte.virages[f.j], decalage = parNiveau * R.IA_BATAILLE_DEFENSE * (pilote.caractere ? 0.5 + pilote.caractere.agressivite : 1), sommet = ((vir.s - s0) % L + L) % L;
   for (let i = 0; i < t.rapide.length; i++) {
     const s = i * pas, m = s <= sommet ? Math.min(1, s / R.INTERVIEW_RIVALITE_RAMPE) : Math.max(0, 1 - (s - sommet) / R.IA_DEPASSEMENT_RAMPE);
     t.rapide[i] += vir.sens * decalage * m;
