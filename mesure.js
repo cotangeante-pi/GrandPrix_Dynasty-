@@ -19,7 +19,7 @@ const MESURE = (function () {
   // le texte à copier : une ligne par mesure, en français ou en anglais (textes.js : mesure_*)
   function texteResultat(r) {
     const n = x => (Math.round(x * 10) / 10).toFixed(1).replace('.', texte('virgule'));
-    return texte('mesure_resultat').replace('{circuit}', r.circuit).replace('{ips}', n(r.ips)).replace('{un}', n(r.unPourcent)).replace('{pire}', n(r.pire))
+    return texte('mesure_resultat').replace('{jeu}', texte('nomDuJeu')).replace('{circuit}', r.circuit).replace('{ips}', n(r.ips)).replace('{un}', n(r.unPourcent)).replace('{pire}', n(r.pire))
       .replace('{appels}', String(r.appels)).replace('{appelsMax}', String(r.appelsMax)).replace('{triangles}', String(r.triangles)).replace('{qualite}', r.qualite)
       .replace('{taille}', r.taille).replace('{images}', String(r.images)).replace('{duree}', String(r.duree));
   }
