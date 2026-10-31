@@ -1020,6 +1020,16 @@ def accelere(pg, titre, page):
         pg.evaluate('() => BOUCLE.simuler(2)'); pg.wait_for_timeout(20)
     b = pg.evaluate('() => JEU.ecran === "podium" ? (' + FINAL[6:] + ') : null')
     t(f'{titre} : la même course regardée jusqu’au bout donne les mêmes places, les mêmes temps et les mêmes pénalités, au bit près', b is not None and a == b, str([a, b])[:800])
+    # (tour 46, l'arrivée lente) la même course, « passer » avec un plafond de temps réel réduit à 0,2 s (un ordinateur très lent) : la fin de
+    # la course est quand même jouée pour de vrai, par tranches, sans dessin ; le classement final est celui de la vraie arrivée, au bit près
+    pg.reload(); pg.wait_for_timeout(1500)
+    jusqua_arrivee()
+    pg.evaluate('() => { REGLAGES.ARRIVEE_ACCELERE_MAX_REEL = 0.2; }')
+    pg.click('#boutonPasser')
+    attendre(pg, '() => JEU.ecran === "podium"', None, 180000)
+    c = pg.evaluate('() => JEU.ecran === "podium" ? (' + FINAL[6:] + ') : null')
+    toutes = pg.evaluate('() => JEU.plateau.pilotes.every(p => p.arrivee !== null)')
+    t(f'{titre} : « passer » sur un ordinateur lent (plafond de temps réel réduit à 0,2 s) : toutes les voitures arrivent pour de vrai, et le classement est le même, au bit près', c is not None and toutes and c == a, str([toutes, a, c])[:800])
 
 # le tournoi chrono entre copains (tournoi.js, CLAUDE.md « Le tournoi chrono entre copains ») : l'inscription (2 à 8, prénoms différents),
 # « À toi, Léo ! » et 3 s, le tour de qualification (le robot), le fantôme du leader du moment (absent pour le premier), un abandon

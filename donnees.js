@@ -241,7 +241,9 @@ const REGLAGES = {
   // de temps réel protège la page
   ARRIVEE_BLOQUEE: 20,          // s de course
   ARRIVEE_BLOQUEE_DISTANCE: 5,  // m
-  ARRIVEE_ACCELERE_MAX_REEL: 30, // s réelles au plus après le clic sur « passer »
+  ARRIVEE_ACCELERE_MAX_REEL: 30, // s réelles : au-delà, la fin de la course est jouée aussi vite que possible (ARRIVEE_TRANCHE_FIN_MS par image), sans dessin, jusqu'à la vraie arrivée
+  ARRIVEE_TRANCHE_FIN_MS: 200,  // ms de calcul par image après le plafond (tour 46)
+  ARRIVEE_IMAGE_TOUS: 10,       // pendant « passer », la scène n'est dessinée qu'une image sur ça (tour 46)
   ARRIVEE_BAGARRE: 15,          // m : deux voitures plus proches que ça se bagarrent (la caméra télé les préfère)
   ARRET_APRES_ARRIVEE: 0.3,     // m/s : après l'arrivée, la voiture freine seule jusque-là, puis roule jusqu'à l'arrêt
 
