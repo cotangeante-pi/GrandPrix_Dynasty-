@@ -15,7 +15,7 @@ Commit : duel-court **62b01d3** (en cours) — GitHub 41160294983 : rouge (2 tes
 |---|---|---|---|
 | 0,6 (aujourd'hui) | ✘ 16 / 12 ; duel 20 | ✘ rivalité, casse 8 / 6 | |
 | **0,7** | **✔** | ✘ rivalité : défenses 0 ; casse 3 / 0 | ✔ tout le reste |
-| 0,8 | ✔ (Mac : 5 / 3 → seul le relatif tombait avant les derniers réglages) | ✘ rivalité : attaques 77 / 93, défenses 0 | ✘ disposition (défenses 0) |
+| 0,8 | ✔ | ✘ rivalité : attaques 77 / 93, défenses 0 | ✘ disposition (défenses 0) |
 | 1 | ✘ 4 / 2 (relatif) ; duel 4 | ✘ rivalité, résumé | ✘ disposition |
 
 - Le conflit : plus il prévoit le freinage de la voiture de devant, moins il y a de chocs dans la file (stands : de 16 à 4), mais plus il suit de loin, et la défense du rival (à moins de 8 m, les rétroviseurs) et la disposition « bloquer » ne se déclenchent plus.
