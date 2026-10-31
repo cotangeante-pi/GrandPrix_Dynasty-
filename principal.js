@@ -1309,14 +1309,19 @@ function attendreLesAutres() {
   // les mêmes pas de physique que la boucle (BOUCLE.simuler d'un pas), sans les dessiner, au plus ARRIVEE_TRANCHE_MS ; les places et
   // les temps sont ceux qu'on aurait eus en regardant ; ARRIVEE_ATTENTE_MAX reste le filet (une voiture bloquée)
   if (JEU.attente.passer && !(JEU.attente.suivi && ARRIVEE.podiumPretAccelere(e, JEU.attente.suivi))) {
-    const R = REGLAGES, nb = Math.max(1, Math.round(R.ARRIVEE_ACCELERE * Math.min(JEU.dtImage || 0, R.PAS_MAX_PAR_IMAGE * R.PAS_PHYSIQUE) / R.PAS_PHYSIQUE));
+    const R = REGLAGES;
     if (!JEU.attente.suivi) { JEU.attente.suivi = ARRIVEE.creerSuivi(e); JEU.attente.debutReel = performance.now(); }
-    const r = ARRIVEE.accelerer(e, () => BOUCLE.simuler(R.PAS_PHYSIQUE), nb, R.ARRIVEE_TRANCHE_MS, arrivee, () => performance.now(), JEU.attente.suivi);
+    // (tour 46, l'arrivée lente : au plafond de temps réel, ARRIVEE_ACCELERE_MAX_REEL, la fin de la course n'est plus classée dans l'ordre
+    // de course : elle est jouée pour de vrai, aussi vite que possible, par tranches de ARRIVEE_TRANCHE_FIN_MS, sans dessin)
+    const finRapide = performance.now() - JEU.attente.debutReel >= R.ARRIVEE_ACCELERE_MAX_REEL * 1000;
+    const nb = finRapide ? Infinity : Math.max(1, Math.round(R.ARRIVEE_ACCELERE * Math.min(JEU.dtImage || 0, R.PAS_MAX_PAR_IMAGE * R.PAS_PHYSIQUE) / R.PAS_PHYSIQUE));
+    const r = ARRIVEE.accelerer(e, () => BOUCLE.simuler(R.PAS_PHYSIQUE), nb, finRapide ? R.ARRIVEE_TRANCHE_FIN_MS : R.ARRIVEE_TRANCHE_MS, arrivee, () => performance.now(), JEU.attente.suivi);
     JEU.attente.accelere = (JEU.attente.accelere || 0) + r.pas;
   }
   majAttente();
   // en accéléré : tout le monde a fini (sauf une voiture bloquée), ou le plafond de temps réel ; en regardant : podiumPret (ARRIVEE_ATTENTE_MAX)
-  const a = JEU.attente, pret = a.suivi ? ARRIVEE.podiumPretAccelere(e, a.suivi) || performance.now() - a.debutReel >= REGLAGES.ARRIVEE_ACCELERE_MAX_REEL * 1000 : ARRIVEE.podiumPret(e, e.temps - arrivee);
+  // (tour 46 : plus de podium au plafond de temps réel : la course finit pour de vrai ; une voiture bloquée reste le seul filet, ARRIVEE_BLOQUEE)
+  const a = JEU.attente, pret = a.suivi ? ARRIVEE.podiumPretAccelere(e, a.suivi) : ARRIVEE.podiumPret(e, e.temps - arrivee);
   if (pret) {
     finirAttente();
     montrerPodium();
@@ -2166,7 +2171,8 @@ function demarrerJeu() {
       tournoi: !!JEU.tournoi, deux: !!JEU.deux, spectateur: !!JEU.plateau && !JEU.contre, carte: JEU.carte, force: JEU.conseilForce }), SCENE3D.relief);
     // la météo dessinée (meteo3d.js, l'état de meteo.js) : la pluie, les gerbes, la piste mouillée, le ciel couvert ; rien au sec
     if (typeof METEO3D !== 'undefined') METEO3D.maj(METEO3D.etat(JEU.plateau || JEU.course), SCENE3D.camera, JEU.plateau ? JEU.plateau.pilotes.map(p => p.v) : [JEU.joueur], dt, CAMERA.mode === 'cockpit' && JEU.ecran === 'course', CIRCUIT, JEU.carte ? JEU.carte.trajectoire : null);
-    SCENE3D.dessiner();
+    // (tour 46, l'arrivée lente : pendant « passer », la scène n'est redessinée qu'une image sur ARRIVEE_IMAGE_TOUS : le budget va au calcul)
+    if (!(JEU.attente && JEU.attente.passer) || ((JEU.attente.images = (JEU.attente.images || 0) + 1) % REGLAGES.ARRIVEE_IMAGE_TOUS) === 1) SCENE3D.dessiner();
     // la qualité automatique : sous QUALITE_IPS_MIN images par seconde pendant QUALITE_FENETRE s, un cran plus bas ; jamais pendant les feux
     if (JEU.qualite && JEU.qualiteAuto) { const n = QUALITE.observer(JEU.qualite, dt, !!(JEU.course && JEU.course.etat === 'compte')); if (n !== null) SCENE3D.reglerQualite(QUALITE.cran(n)); }
   });
