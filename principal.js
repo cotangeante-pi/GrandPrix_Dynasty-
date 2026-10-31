@@ -1179,6 +1179,7 @@ function montrerGarage() {
 // les pneus du départ (la météo, Codeur 1), choisis au garage : gardés dans le championnat jusqu'au départ du prochain Grand Prix
 function choisirPneusDepart(type) {
   if (JEU.ecran !== 'garage') return;
+  JEU.pneusTouches = true;   // (tour 37l : le premier choix des pneus, sa bulle d'aide : aides.js, pneus)
   JEU.championnat.pneusDepart = type || null;
   SAUVEGARDE.ecrireChampionnat(JEU.championnat);
   INTERFACE.remplirGarage(JEU.championnat);

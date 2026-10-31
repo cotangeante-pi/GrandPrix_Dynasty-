@@ -28,7 +28,7 @@ const AIDES = (function () {
     { id: 'consigne', genre: 'course', quand: s => enCourse(s) && s.consigne, faite: s => !s.consigne },
     // les écrans entre les courses : le garage, l'aileron, le duel au paddock, les contrats, l'interview
     // (tour 37l) le premier choix des pneus, quand le pneu drift existe (au garage, avant les qualifications) : adhérant ou drift
-    { id: 'pneus', genre: 'menu', quand: s => s.ecran === 'garage' && s.pneusDrift, faite: () => false },
+    { id: 'pneus', genre: 'menu', quand: s => s.ecran === 'garage' && s.pneusDrift && s.pneusTouches, faite: () => false },   // (au premier clic sur un pneu)
     { id: 'garage', genre: 'menu', quand: s => s.ecran === 'garage', faite: () => false },
     { id: 'aileron', genre: 'menu', quand: s => s.ecran === 'aileron', faite: () => false },
     { id: 'duel', genre: 'menu', quand: s => s.ecran === 'championnat' && s.coequipier && !s.choixAides, faite: () => false },   // (le choix des aides ouvert par-dessus : sa bulle à lui)
@@ -75,7 +75,7 @@ const AIDES = (function () {
       courbure: courbureDevant(circuit, v),
       // (tour 37l) le pneu drift du joueur (pneus.js : v.typePneus === 'drift')
       drift: !!(v && v.typePneus === 'drift'),
-      pneusDrift: typeof METEO !== 'undefined' && Array.isArray(METEO.TYPES) && METEO.TYPES.includes('drift'), choixAides: !!J.choixAides,
+      pneusDrift: typeof METEO !== 'undefined' && Array.isArray(METEO.TYPES) && METEO.TYPES.includes('drift'), choixAides: !!J.choixAides, pneusTouches: !!J.pneusTouches,
     };
   }
 

@@ -30,7 +30,7 @@ const MOMENT={
   contrats:avec({ecran:'contrats',vitesse:0}),
   interview:avec({ecran:'interview',vitesse:0}),
   vivante:avec({ecran:'course',etat:'course',drift:true}),
-  pneus:avec({ecran:'garage',pneusDrift:true,vitesse:0}),
+  pneus:avec({ecran:'garage',pneusDrift:true,pneusTouches:true,vitesse:0}),
   choixAides:avec({ecran:'championnat',choixAides:true,vitesse:0}),
 };
 const unPas=(e,s,dt=1/60)=>AIDES.pas(e,s,dt);
@@ -62,7 +62,7 @@ t('les bons moments seulement : pas de feux dans la découverte, pas d’arrêt 
   for(const k of ['deux','tournoi','attente','aidesDecouverte']) v(n(Object.assign(avec({ecran:'course',etat:'course',consigne:true}),{[k]:true}))===null,k);
   v(n(avec({ecran:'qualif',qualif:'tour',fantome:false}))===null,'tour sans fantôme');
   v(n(avec({ecran:'course',etat:'course',drift:false}))===null&&n(avec({ecran:'course',etat:'course',drift:true,deux:true}))===null&&n(avec({ecran:'course',etat:'compte',drift:true,vitesse:0}))===null,'pneus drift : en course, pas à deux');
-  v(n(avec({ecran:'garage',vitesse:0}))==='garage','sans pneu drift, la bulle du garage seulement');
+  v(n(avec({ecran:'garage',vitesse:0}))==='garage'&&n(avec({ecran:'garage',pneusDrift:true,vitesse:0}))==='garage','le garage sans choix de pneu : la bulle du garage seulement');
   v(n(avec({ecran:'titre',choixAides:true,vitesse:0}))==='choixAides'&&n(avec({ecran:'titre',choixAides:false,vitesse:0}))===null,'choix des aides : seulement l’écran ouvert');
   v(n(avec({ecran:'qualif',qualif:'choix',tournoi:true}))===null,'tournoi');
   v(n(avec({ecran:'championnat',coequipier:false}))===null,'paddock sans championnat');});
