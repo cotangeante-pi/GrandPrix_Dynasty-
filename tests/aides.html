@@ -10,7 +10,7 @@ const L=[];let ok=0,ko=0;
 function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
 const v=(c,m)=>{if(!c)throw new Error(m||'faux');};
 const R=REGLAGES;
-const IDS=['depart','qualif','fantome','stand','pluie','consigne','garage','aileron','duel','contrats','interview','vivante','choixAides'];   // (tour 37g : la voiture vivante, le choix des aides)
+const IDS=['depart','qualif','fantome','stand','pluie','consigne','pneus','garage','aileron','duel','contrats','interview','vivante','choixAides'];   // (tour 37g : la voiture vivante, le choix des aides ; tour 37l : le choix des pneus)
 
 // une situation de base : rien ne sert (un écran sans aide), la voiture en ligne droite
 const base=()=>({ecran:'choix',deux:false,tournoi:false,decouverte:false,attente:false,aidesDecouverte:false,feux:false,compte:false,etat:null,qualif:null,fantome:false,
@@ -29,12 +29,13 @@ const MOMENT={
   duel:avec({ecran:'championnat',coequipier:true,vitesse:0}),
   contrats:avec({ecran:'contrats',vitesse:0}),
   interview:avec({ecran:'interview',vitesse:0}),
-  vivante:avec({ecran:'course',etat:'course',niveauDur:true}),
+  vivante:avec({ecran:'course',etat:'course',drift:true}),
+  pneus:avec({ecran:'garage',pneusDrift:true,vitesse:0}),
   choixAides:avec({ecran:'championnat',choixAides:true,vitesse:0}),
 };
 const unPas=(e,s,dt=1/60)=>AIDES.pas(e,s,dt);
 
-t('la liste a les 13 aides de l’ordre (feux, qualification, fantôme, arrêt, pluie, consigne, garage, aileron, duel, contrats, interview, voiture vivante, choix des aides), chacune une fois', ()=>{
+t('la liste a les 14 aides de l’ordre (feux, qualification, fantôme, arrêt, pluie, consigne, choix des pneus, garage, aileron, duel, contrats, interview, pneus drift, choix des aides), chacune une fois', ()=>{
   v(JSON.stringify(AIDES.LISTE.map(a=>a.id))===JSON.stringify(IDS),AIDES.LISTE.map(a=>a.id).join());
   v(AIDES.LISTE.every(a=>a.genre==='course'||a.genre==='menu'));});
 t('chaque aide a son texte en anglais et en français (une ou deux lignes : moins de 130 caractères), différent d’une langue à l’autre, avec les mêmes {repères}', ()=>{
@@ -60,7 +61,8 @@ t('les bons moments seulement : pas de feux dans la découverte, pas d’arrêt 
   v(n(avec({ecran:'course',etat:'course',eau:R.AIDES_PLUIE_EAU}))==='pluie','assez d’eau');
   for(const k of ['deux','tournoi','attente','aidesDecouverte']) v(n(Object.assign(avec({ecran:'course',etat:'course',consigne:true}),{[k]:true}))===null,k);
   v(n(avec({ecran:'qualif',qualif:'tour',fantome:false}))===null,'tour sans fantôme');
-  v(n(avec({ecran:'course',etat:'course',niveauDur:false}))===null&&n(avec({ecran:'course',etat:'course',niveauDur:true,deux:true}))===null&&n(avec({ecran:'course',etat:'compte',niveauDur:true,vitesse:0}))===null,'voiture vivante : expert ou légende, en course, pas à deux');
+  v(n(avec({ecran:'course',etat:'course',drift:false}))===null&&n(avec({ecran:'course',etat:'course',drift:true,deux:true}))===null&&n(avec({ecran:'course',etat:'compte',drift:true,vitesse:0}))===null,'pneus drift : en course, pas à deux');
+  v(n(avec({ecran:'garage',vitesse:0}))==='garage','sans pneu drift, la bulle du garage seulement');
   v(n(avec({ecran:'titre',choixAides:true,vitesse:0}))==='choixAides'&&n(avec({ecran:'titre',choixAides:false,vitesse:0}))===null,'choix des aides : seulement l’écran ouvert');
   v(n(avec({ecran:'qualif',qualif:'choix',tournoi:true}))===null,'tournoi');
   v(n(avec({ecran:'championnat',coequipier:false}))===null,'paddock sans championnat');});

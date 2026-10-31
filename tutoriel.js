@@ -15,7 +15,7 @@ const TUTORIEL = (function () {
     { id: 'stand', adresse: 'course=2' },                                                     // seul : l'arrêt, sans excès de vitesse
     { id: 'pluie', adresse: 'course=3&ia=1&joueur=1&niveau=debutant&meteo=averse' },    // l'averse arrive : changer de pneus
     { id: 'visite', adresse: 'championnat=1' },                                               // le paddock, le garage, l'aileron
-    { id: 'vivante', adresse: 'course=0&circuit=technique&niveau=expert' },                  // (tour 37j) la voiture vivante, à l'épingle du technique
+    { id: 'vivante', adresse: 'course=0&circuit=technique&niveau=expert' },                  // (tours 37j, 37l) le drift, à l'épingle du technique (expert : la voiture vivante, tant que le pneu drift n'existe pas)
   ];
   const PAR_ID = {};
   LECONS.forEach((l, i) => { l.numero = i + 1; PAR_ID[l.id] = l; });
@@ -50,13 +50,13 @@ const TUTORIEL = (function () {
       devant: !!(ordre && J.plateau && ordre.length > 1 && ordre[0].k === J.suivie),
       longueur: circuit ? circuit.longueur : 0,
       // (tour 37j) l'arrière qui glisse (0 à 1, sensations.js glisseArriere : la voiture vivante), lu sans rien changer
-      arriere: v && typeof SENSATIONS !== 'undefined' && SENSATIONS.glisseArriere ? SENSATIONS.glisseArriere(v).arriere : 0,
+      ...(g => ({ arriere: g.arriere, alpha: g.alpha }))(v && typeof SENSATIONS !== 'undefined' && SENSATIONS.glisseArriere ? SENSATIONS.glisseArriere(v) : { arriere: 0, alpha: 0 }),
     };
   }
 
   function creerSuivi(id, circuit) {
     return { id, t: 0, resultat: 'encours', raison: null, zone: (id === 'freinage' || id === 'vivante') && circuit ? zoneFreinage(circuit) : null,
-      dans: null, essais: 0, meilleur: null, dernier: null, devantDepuis: 0, visites: {}, sAvant: null, pluieVue: false };
+      dans: null, essais: 0, meilleur: null, dernier: null, devantDepuis: 0, visites: {}, sAvant: null, pluieVue: false, phase: id === 'vivante' ? 'drift' : null };
   }
 
   const fini = (su, resultat, raison) => { su.resultat = resultat; su.raison = raison || null; return resultat; };
@@ -89,19 +89,29 @@ const TUTORIEL = (function () {
         break;
       }
       case 'vivante': {
-        // (tour 37j) la voiture vivante, à l'épingle (la même zone que le freinage, sur le circuit technique) : freiner droit, tourner,
-        // puis remettre les gaz doucement ; un passage est réussi sans sortir et sans que l'arrière glisse au-delà de TUTO_VIVANTE_ARRIERE
+        // (tour 37l, la règle du propriétaire du 2026-10-29) le drift, à l'épingle (la zone du freinage, sur le technique) : d'abord en pneus drift
+        // (la voiture vivante), faire glisser l'arrière (au moins TUTO_DRIFT_ARRIERE pendant TUTO_DRIFT_TENUE s), tenir la glissade et la
+        // rattraper, sans herbe ni tête-à-queue (l'angle de l'arrière sous TUTO_TETE_A_QUEUE) ; puis le même virage en pneus adhérant,
+        // proprement, pour sentir la différence (su.phase : 'drift' puis 'adherant' ; TUTORIEL.pneu dit lequel monter). L'herbe ou un
+        // tête-à-queue dans l'épingle : ratée tout de suite ; TUTO_ZONE_ESSAIS passages sans glisser assez : ratée (« pasGlisse »)
         const z = su.zone;
         if (!z || s.s === null || !enCourse) break;
         const L = s.longueur, longueurZone = avance(z.debut, z.fin, L), ici = avance(z.debut, s.s, L);
         const dedans = ici < longueurZone;
-        if (dedans && su.dans === null && su.sAvant !== null && avance(z.debut, su.sAvant, L) > longueurZone) su.dans = { t: su.t, herbe: false, arriere: 0 };
-        if (su.dans) { if (s.herbe) su.dans.herbe = true; su.dans.arriere = Math.max(su.dans.arriere, s.arriere || 0); }
+        if (dedans && su.dans === null && su.sAvant !== null && avance(z.debut, su.sAvant, L) > longueurZone) su.dans = { t: su.t, tenue: 0, arriere: 0 };
+        if (su.dans) {
+          if (s.herbe) { su.sAvant = s.s; return fini(su, 'ratee', 'sortie'); }
+          if ((s.alpha || 0) >= R.TUTO_TETE_A_QUEUE) { su.sAvant = s.s; return fini(su, 'ratee', 'teteAQueue'); }
+          su.dans.arriere = Math.max(su.dans.arriere, s.arriere || 0);
+          if ((s.arriere || 0) >= R.TUTO_DRIFT_ARRIERE) su.dans.tenue += dt;
+        }
         if (su.dans && !dedans) {
-          const glisse = su.dans.arriere >= R.TUTO_VIVANTE_ARRIERE, propre = !su.dans.herbe && !glisse;
-          su.essais++; su.dernier = { arriere: su.dans.arriere, herbe: su.dans.herbe }; su.dans = null; su.sAvant = s.s;
-          if (propre) return fini(su, 'reussie');
-          if (su.essais >= R.TUTO_ZONE_ESSAIS) return fini(su, 'ratee', glisse ? 'glisse' : 'sortie');
+          const passage = su.dans; su.dans = null; su.sAvant = s.s;
+          su.dernier = { arriere: passage.arriere, tenue: passage.tenue };
+          if (su.phase === 'adherant') return fini(su, 'reussie');   // (le même virage en adhérant, sans herbe : la différence sentie)
+          su.essais++;
+          if (passage.tenue >= R.TUTO_DRIFT_TENUE) { su.phase = 'adherant'; su.glissade = passage; break; }
+          if (su.essais >= R.TUTO_ZONE_ESSAIS) return fini(su, 'ratee', 'pasGlisse');
         }
         su.sAvant = s.s;
         break;
@@ -155,11 +165,20 @@ const TUTORIEL = (function () {
     return true;
   }
 
+  // (tour 37l) le pneu de la leçon du drift : 'drift' pendant la première phase, puis 'adherant' ; null pour les autres leçons. Tant que
+  // le pneu drift n'existe pas (pneus.js, Codeur 1), le drift, c'est la voiture vivante (VOITURE_VIVANTE) : appliquerPneu le règle
+  const pneu = su => su && su.id === 'vivante' ? (su.phase === 'adherant' ? 'adherant' : 'drift') : null;
+  function appliquerPneu(su, defaut) {
+    const p = pneu(su);
+    if (p) R.VOITURE_VIVANTE = p === 'drift' ? defaut : 0;
+    return p;
+  }
+
   // la leçon qui suit (ou null après la dernière)
   function suivante(id) {
     const l = PAR_ID[id];
     return l && l.numero < LECONS.length ? LECONS[l.numero].id : null;
   }
 
-  return { LECONS, PAR_ID, zoneFreinage, situation, creerSuivi, pas, etapeVisite, preparer, suivante };
+  return { LECONS, PAR_ID, zoneFreinage, situation, creerSuivi, pas, etapeVisite, preparer, suivante, pneu, appliquerPneu };
 })();
