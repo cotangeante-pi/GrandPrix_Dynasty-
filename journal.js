@@ -68,10 +68,39 @@ const JOURNAL = (function () {
     const itw = ch.interview && ch.interview.derniere;
     if (itw && itw.ton === 'provocant' && itw.rival !== null && itw.rival !== undefined && itw.gp === n + 1 && itw.saison === ch.saison)
       f.interview = { pilote: j.id, rival: itw.rival, circuit };
+    // (tour 37h) les aides au pilotage de cette course (championnat.js : sa = sans aucune aide, lg = en légende, la voiture vivante)
+    Object.assign(f, faitsAides(ch, n, base));
     // toujours vrai : le vainqueur de la course
     const v = ch.resultats[n].ordre[0];
     f.vainqueur = { pilote: v, ecurie: ch.pilotes[v].ecurie, circuit };
     return f;
+  }
+
+  // (tour 37h, le propriétaire 2026-10-30) le monde réagit au choix des aides : la première course sans aucune aide, le premier podium et la
+  // première victoire sans aide (« Sans les petites roues ! »), la première victoire en légende (la voiture vivante). Les faits viennent
+  // de la course (ch.resultats[n].sa, .lg, posés par championnat.js avec les aides de la course) : rien d'inventé, jamais de moquerie
+  // pour qui garde ses aides (aucun fait n'existe pour lui). n : l'indice du Grand Prix ; base : { pilote, ecurie, circuit, place }
+  function faitsAides(ch, n, base) {
+    const r = ch.resultats[n], f = {};
+    if (!r || (!r.sa && !r.lg)) return f;
+    const j = ch.pilotes.find(p => p.humain), avant = ch.resultats.slice(0, n), place = r.ordre.indexOf(j.id) + 1;
+    const placeAvant = x => x.ordre.indexOf(j.id) + 1;
+    if (r.lg && place === 1 && !avant.some(x => x.lg && placeAvant(x) === 1)) f.legendeVictoire = base;
+    if (r.sa) {
+      if (place === 1 && !avant.some(x => x.sa && placeAvant(x) === 1)) f.sansAideVictoire = base;
+      else if (place >= 1 && place <= 3 && !avant.some(x => x.sa && placeAvant(x) >= 1 && placeAvant(x) <= 3)) f.sansAidePodium = base;
+      if (!avant.some(x => x.sa)) f.sansAidePremiere = base;
+    }
+    return f;
+  }
+  // le dernier exploit du Grand Prix qui vient d'être enregistré (le plus fort, dans l'ordre de JOURNAL_PRIORITES), pour les discussions :
+  // { f, gp, saison, circuit, place } ou null
+  function exploitAides(ch) {
+    const n = ch.resultats.length - 1;
+    if (n < 0) return null;
+    const j = ch.pilotes.find(p => p.humain), r = ch.resultats[n], circuit = ch.calendrier[n] ? ch.calendrier[n].circuit : 'test';
+    const F = faitsAides(ch, n, {}), f = R.JOURNAL_PRIORITES.find(k => F[k]);
+    return f ? { f, gp: n + 1, saison: ch.saison, circuit, place: r.ordre.indexOf(j.id) + 1 } : null;
   }
 
   // les brèves possibles, sur les rivaux (jamais sur le joueur, jamais d'information cachée de course), dans cet
@@ -242,7 +271,7 @@ const JOURNAL = (function () {
   // --- la photo de la une (tour 31) : ce que la photo montre, en calcul pur (photo.js la dessine) : le podium du Grand Prix (les trois
   // voitures aux couleurs de leur écurie de ce jour-là, leurs casques de cette saison) ou, pour un fait du joueur, sa voiture seule.
   // Rien d'image dans la sauvegarde : seulement les indices rangés dans la une (ph, pe, je)
-  const FAITS_VOITURE = ['domicileDecu', 'record', 'duelGagne', 'duelPerdu', 'interview', 'penalite', 'serie', 'releve_fils', 'releve_fille', 'releve_protege', 'releve_protegee'];
+  const FAITS_VOITURE = ['sansAidePremiere', 'domicileDecu', 'record', 'duelGagne', 'duelPerdu', 'interview', 'penalite', 'serie', 'releve_fils', 'releve_fille', 'releve_protege', 'releve_protegee'];
   function casqueAu(ch, s, k) {
     const p = ch.pilotes[k];
     if (!p) return null;
@@ -283,5 +312,5 @@ const JOURNAL = (function () {
     return ['journalNom'].concat(R.JOURNAL_PRIORITES.flatMap(f => ['uneTitre_' + f, 'uneTexte_' + f]), BREVES);
   }
 
-  return { faits, breves, composer, ranger, rendre, remplir, cles, nbVariantes, completer, nomsAu, rendreAlbum, saisonsAlbum, photo };
+  return { faits, faitsAides, exploitAides, breves, composer, ranger, rendre, remplir, cles, nbVariantes, completer, nomsAu, rendreAlbum, saisonsAlbum, photo };
 })();

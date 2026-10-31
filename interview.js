@@ -27,7 +27,8 @@ const INTERVIEW = (function () {
   // les faits d'un classement final (lignes de lignesDepuisCourse, AVANT l'enregistrement du Grand Prix) : { fait: paramètres }.
   // rival : l'indice d'un pilote nommé ; le gros contact : le moteur garde la plus forte vitesse de choc de chaque voiture
   // (v.chocMax), pas la paire : le rival nommé est celui qui a le plus gros choc de la course, quand le joueur en a eu un aussi
-  function faits(ch, lignes) {
+  // aides (tour 37h) : les aides au pilotage du joueur pour cette course (fixées avant) ; absentes : aucun fait sur les aides
+  function faits(ch, lignes, aides) {
     const j = joueur(ch), lj = lignes.find(l => l.k === j.id);
     const circuit = ch.calendrier[ch.prochain] ? ch.calendrier[ch.prochain].circuit : 'test';
     if (!lj) return { moyen: { pilote: j.id, place: 0, circuit } };
@@ -37,6 +38,13 @@ const INTERVIEW = (function () {
     if (j.coeur && circuit === j.coeur) f[place <= R.DOMICILE_FETE_PLACE ? 'domicileFete' : 'domicileDecu'] = base;
     if (place === 1) f.victoire = base;
     else if (place <= 3) f.podium = base;
+    // (tour 37h) les aides : la première course sans aucune aide, le premier podium ou la première victoire sans aide ; la première
+    // victoire en légende (la voiture vivante). Les Grands Prix d'avant (ch.resultats : sa, lg) disent si c'est la première fois
+    if (aides && typeof ASSISTANCE !== 'undefined') {
+      const avant = ch.resultats || [], pl = x => x.ordre.indexOf(j.id) + 1;
+      if (R.NIVEAU === 'legende' && place === 1 && !avant.some(x => x.lg && pl(x) === 1)) f.legende = base;
+      if (ASSISTANCE.AIDES.every(a => !aides[a]) && (!avant.some(x => x.sa) || (place <= 3 && !avant.some(x => x.sa && pl(x) >= 1 && pl(x) <= 3)))) f.sansAide = base;
+    }
     if ((lj.chocMax || 0) >= R.INTERVIEW_CHOC) {
       const autre = lignes.filter(l => l.k !== j.id && (l.chocMax || 0) >= R.INTERVIEW_CHOC).sort((a, b) => b.chocMax - a.chocMax)[0];
       if (autre) f.contact = { pilote: j.id, rival: autre.k, circuit };
@@ -62,9 +70,9 @@ const INTERVIEW = (function () {
 
   // la question du Grand Prix qui vient de finir : { gp, fait, variante, params, rival, reponses: [{ ton, cle }] } ; la variante
   // (formulation) tirée avec la graine, jamais la même que la dernière fois pour ce fait
-  function question(ch, lignes) {
+  function question(ch, lignes, aides) {
     completer(ch);
-    const F = faits(ch, lignes), fait = R.INTERVIEW_PRIORITES.find(k => F[k]) || 'moyen', params = F[fait];
+    const F = faits(ch, lignes, aides), fait = R.INTERVIEW_PRIORITES.find(k => F[k]) || 'moyen', params = F[fait];
     const nb = TEXTES.en['interview_' + fait + '_q'].length, eviter = ch.interview.variantes[fait];
     ALEATOIRE.semer(ch.graine + R.GRAINE_INTERVIEW + ch.saison * 1000 + ch.prochain * 13);
     let variante = Math.floor(hasard() * nb);

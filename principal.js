@@ -806,7 +806,7 @@ function courseSuivante() {
 function apresGrandPrix() {
   if (JEU.ecran !== 'resultats' || JEU.grandPrixFini) return;
   JEU.lignesGP = CHAMPIONNAT.lignesDepuisCourse(JEU.plateau);
-  montrerInterview(INTERVIEW.question(JEU.championnat, JEU.lignesGP));
+  montrerInterview(INTERVIEW.question(JEU.championnat, JEU.lignesGP, JEU.assistance));   // (les aides de la course : la question sur les aides, tour 37h)
 }
 
 // ?championnat=1 : l'interview d'après course (interview.js), entre les résultats et la une du journal : la question se
