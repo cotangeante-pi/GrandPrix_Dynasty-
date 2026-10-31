@@ -1367,3 +1367,7 @@ button.manette-choix { box-shadow: 0 0 0 3px #ffd23f, 0 0 14px 2px rgba(255, 210
 #mesurePanneau p { margin: 0 0 4px; }
 #mesurePanneau pre { margin: 4px 0; white-space: pre-wrap; text-align: left; font-size: 12px; user-select: text; }
 
+#pneusIcone { display: inline-block; min-width: 16px; margin-right: 5px; padding: 0 3px; border-radius: 4px; text-align: center; font-size: 11px; background: #3a4150; color: #fff; }   /* (tour 37l) le pneu monté */
+#pneusIcone[data-type="drift"] { background: #d4421e; }
+#pneusIcone[data-type="inter"] { background: #2e9a4b; }
+#pneusIcone[data-type="pluie"] { background: #2f6fd6; }

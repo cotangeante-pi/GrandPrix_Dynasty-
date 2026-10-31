@@ -81,9 +81,9 @@ with sync_playwright() as p:
         pg.evaluate('''() => { const r = JEU.assistance; for (const [a, oui] of [['direction', true], ['freinage', false], ['antiblocage', true], ['antipatinage', true]]) if (r[a] !== oui) document.querySelector('#choixAidesListe button[data-aide=' + a + ']').click(); AIDES_ECRAN.fermer(); }''')
         cap(pg, '7-aides', lg)
         ctx.close()
-        # 6. (tour 37k) une glissade en légende (la voiture vivante) : l'arrière qui part à l'épingle du technique, les traces de pneus et la
+        # 6. (tours 37k, 37l) une glissade en pneus drift (la voiture vivante) : l'arrière qui part à l'épingle du technique, les traces de pneus et la
         # fumée ; le robot d'essai freine en tournant (c'est ce que la 8e leçon apprend à éviter), la caméra télé pour voir la voiture de côté
-        ctx, pg = page(b, 'index.html?course=3&ia=3&circuit=technique&joueur=1&robot=1&niveau=legende&meteo=sec', lg)
+        ctx, pg = page(b, 'index.html?course=3&ia=3&circuit=technique&joueur=1&robot=1&pneus=drift&meteo=sec', lg)
         if course_prete(pg):
             partir(pg)
             pg.evaluate('''() => { const z = TUTORIEL.zoneFreinage(CIRCUIT), L = CIRCUIT.longueur; for (let i = 0; i < 4000; i++) { const a = ((z.debut - JEU.joueur.piste.s) % L + L) % L; if (a < 120 && a > 60) break; BOUCLE.simuler(0.1); } }''')

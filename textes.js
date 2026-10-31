@@ -20,7 +20,7 @@ const TEXTES = {
     standTour: 'PIT', resultatArret: 'pit L{t}',
     // the weather (meteo.js)
     meteo_pluieArrive: 'Rain is coming!', meteo_pisteSeche: 'The track is drying', meteo_prevision_sec: 'Dry', meteo_prevision_nuageux: 'Cloudy ({p} % rain)', meteo_prevision_risque: 'Risk of rain: {p} %', meteo_prevision_pluie: 'Rain',
-    pneu_slick: 'Slicks', pneu_inter: 'Intermediates', pneu_pluie: 'Wets', pneu_drift: 'Drift',   // (tour 44, Codeur 1 : le pneu drift ; l'écran, Codeur 3)
+    pneu_slick: 'Grip', pneu_inter: 'Intermediates', pneu_pluie: 'Wets', pneu_drift: 'Drift',   // (tour 44, Codeur 1 : le pneu drift ; l'écran, Codeur 3)
     standPneus: 'tyres: {p} (← →)', garagePneus: 'Starting tyres', garagePneusEquipe: 'Team call',
     // team orders
     consigneJoueur: 'Team order: let your team-mate no. {n} through (faster). Ignoring it lowers the team\'s trust.', consigneSuivie: 'Thank you! The team\'s trust goes up.', consigneIgnoree: 'Order ignored: the team\'s trust goes down.',
@@ -382,7 +382,7 @@ const TEXTES = {
     standTour: 'STAND', resultatArret: 'stand T{t}',
     // la météo (meteo.js)
     meteo_pluieArrive: 'La pluie arrive !', meteo_pisteSeche: 'La piste sèche', meteo_prevision_sec: 'Sec', meteo_prevision_nuageux: 'Nuageux ({p} % de pluie)', meteo_prevision_risque: 'Risque de pluie : {p} %', meteo_prevision_pluie: 'Pluie',
-    pneu_slick: 'Slicks', pneu_inter: 'Intermédiaires', pneu_pluie: 'Pluie', pneu_drift: 'Drift',   // (tour 44, Codeur 1 : le pneu drift ; l'écran, Codeur 3)
+    pneu_slick: 'Adhérant', pneu_inter: 'Intermédiaires', pneu_pluie: 'Pluie', pneu_drift: 'Drift',   // (tour 44, Codeur 1 : le pneu drift ; l'écran, Codeur 3)
     standPneus: 'pneus : {p} (← →)', garagePneus: 'Pneus au départ', garagePneusEquipe: 'Au choix de l’équipe',
     // les consignes d'équipe
     consigneJoueur: 'Consigne de l\'écurie : laisse passer ton coéquipier n°{n} (plus rapide). L\'ignorer fait baisser la confiance de l\'écurie.', consigneSuivie: 'Merci ! La confiance de l\'écurie monte.', consigneIgnoree: 'Consigne ignorée : la confiance de l\'écurie baisse.',
@@ -1009,13 +1009,15 @@ Object.assign(TEXTES.fr, {
 // chaque aide, en une phrase qu'un enfant comprend
 Object.assign(TEXTES.en, {
   aide_choixAides: 'Steering assist keeps you on track, braking assist slows you for corners, the others stop skids. Switch one off: bonus cash!',
-  aide_vivante: 'This car is alive: brake while turning and the rear can step out. Brake in a straight line, then turn.',
+  aide_vivante: 'Drift tyres: the rear can step out. Brake in a straight line, then countersteer to catch the slide.',
+  aide_pneus: 'Tyres: grip sticks to the road; drift lets the rear slide, quicker in slow corners but wears faster.',
   aidesQuoi_direction: 'Nudges the wheel to keep you on the racing line.', aidesQuoi_freinage: 'Brakes for you when you arrive too fast for a corner.',
   aidesQuoi_antiblocage: 'Stops the wheels locking when you brake while turning.', aidesQuoi_antipatinage: 'Eases off the throttle when the car starts sliding in a corner.',
 });
 Object.assign(TEXTES.fr, {
   aide_choixAides: 'La direction te guide, le freinage ralentit avant les virages, les autres évitent les glissades. Aide coupée : bonus !',
-  aide_vivante: 'Voiture vivante : si tu freines en tournant, l’arrière peut glisser. Freine droit, puis tourne.',
+  aide_vivante: 'Pneus drift : l’arrière peut partir. Freine droit, puis contre-braque pour rattraper la glissade.',
+  aide_pneus: 'Pneus : l’adhérant colle à la route ; le drift fait glisser l’arrière, plus vif en virage lent mais s’use plus vite.',
   aidesQuoi_direction: 'Tourne un peu le volant pour te garder sur la bonne ligne.', aidesQuoi_freinage: 'Freine à ta place quand un virage arrive trop vite.',
   aidesQuoi_antiblocage: 'Empêche les roues de bloquer quand tu freines en tournant.', aidesQuoi_antipatinage: 'Relâche l’accélérateur quand la voiture glisse dans un virage.',
 });
@@ -1071,12 +1073,18 @@ Object.assign(TEXTES.fr, {
 
 // (tour 37j, Codeur 3) la 8e leçon du tutoriel : la voiture vivante, à l'épingle du circuit technique
 Object.assign(TEXTES.en, {
-  tuto_vivante: 'The living car', tuto_vivante_but: 'Through the hairpin without the rear sliding: brake straight, turn, then ease on the throttle.',
-  tuto_vivante_consigne: 'Brake in a straight line before the cones, turn in, then feed in the throttle gently ({n} / {max}).',
-  tuto_raison_glisse: 'The rear slid too much: brake before you turn, and go easy on the throttle.',
+  tuto_vivante: 'Drifting', tuto_vivante_but: 'On drift tyres, slide the rear through the hairpin and catch it; then the same corner on grip tyres.',
+  tuto_vivante_consigne: 'Drift tyres: lift off or floor it on the way out to slide the rear, then countersteer to hold it ({n} / {max}).',
+  tuto_vivante_consigne_adherant: 'Now on grip tyres: the same hairpin, cleanly. Feel the difference?',
+  tuto_raison_pasGlisse: 'The rear never really slid: lift off mid-corner, or floor it on the way out.', tuto_raison_teteAQueue: 'Spun out: countersteer sooner, and ease off the throttle.',
 });
 Object.assign(TEXTES.fr, {
-  tuto_vivante: 'La voiture vivante', tuto_vivante_but: 'Passer l’épingle sans que l’arrière glisse : freiner droit, tourner, puis remettre les gaz doucement.',
-  tuto_vivante_consigne: 'Freine droit avant les plots, tourne, puis remets les gaz doucement ({n} / {max}).',
-  tuto_raison_glisse: 'L’arrière a trop glissé : freine avant de tourner, et remets les gaz doucement.',
+  tuto_vivante: 'Le drift', tuto_vivante_but: 'En pneus drift, faire glisser l’arrière dans l’épingle et le rattraper ; puis le même virage en pneus adhérant.',
+  tuto_vivante_consigne: 'Pneus drift : lève le pied ou remets plein gaz en sortie pour faire glisser l’arrière, puis contre-braque pour le tenir ({n} / {max}).',
+  tuto_vivante_consigne_adherant: 'En pneus adhérant maintenant : la même épingle, proprement. Tu sens la différence ?',
+  tuto_raison_pasGlisse: 'L’arrière n’a pas vraiment glissé : lève le pied en plein virage, ou remets plein gaz en sortie.', tuto_raison_teteAQueue: 'Tête-à-queue : contre-braque plus tôt, et dose l’accélérateur.',
 });
+
+// (tour 37l, Codeur 3) l'icône du pneu monté, à côté de la jauge d'usure (une lettre, le nom en bulle)
+Object.assign(TEXTES.en, { pneuIcone_slick: 'G', pneuIcone_drift: 'D', pneuIcone_inter: 'I', pneuIcone_pluie: 'W' });
+Object.assign(TEXTES.fr, { pneuIcone_slick: 'A', pneuIcone_drift: 'D', pneuIcone_inter: 'I', pneuIcone_pluie: 'P' });

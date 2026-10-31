@@ -1179,6 +1179,7 @@ function montrerGarage() {
 // les pneus du départ (la météo, Codeur 1), choisis au garage : gardés dans le championnat jusqu'au départ du prochain Grand Prix
 function choisirPneusDepart(type) {
   if (JEU.ecran !== 'garage') return;
+  JEU.pneusTouches = true;   // (tour 37l : le premier choix des pneus, sa bulle d'aide : aides.js, pneus)
   JEU.championnat.pneusDepart = type || null;
   SAUVEGARDE.ecrireChampionnat(JEU.championnat);
   INTERFACE.remplirGarage(JEU.championnat);
@@ -1730,7 +1731,7 @@ function majVolant() {
 // ?pneus=1 : l'état des pneus du joueur (pneus.js), pendant qu'il roule : l'usure en jauge et ce que l'adhérence a perdu
 function majPneusHud() {
   const v = JEU.joueur, oui = !!(v && v.pneus) && (JEU.ecran === 'course' || JEU.ecran === 'pause' || enTourQualif()) && !JEU.deux;
-  INTERFACE.majPneus(oui ? { reste: 1 - v.pneus.usure, perte: 1 - (v.adherence === undefined ? 1 : v.adherence) } : null);
+  INTERFACE.majPneus(oui ? { reste: 1 - v.pneus.usure, perte: 1 - (v.adherence === undefined ? 1 : v.adherence), type: typeof PNEUS_CHOIX !== 'undefined' ? PNEUS_CHOIX.de(v) : (v.typePneus || 'slick') } : null);   // (tour 37l : le pneu monté, son icône)
 }
 
 // les messages de course (messages.js) : les faits du moteur (meilleur tour, pénalités, stands), lus seulement ; un à la fois

@@ -1472,7 +1472,10 @@ const INTERFACE = (function () {
   function majPneus(p) {
     $('pneusHud').classList.toggle('cache', !p);
     if (!p) return;
-    $('pneusTexte').textContent = texte('pneus') + ' ' + Math.round(p.reste * 100) + ' %';
+    $('pneusMots').textContent = texte('pneus') + ' ' + Math.round(p.reste * 100) + ' %';
+    // (tour 37l) l'icône du pneu monté, à côté de la jauge (adhérant, drift, intermédiaire, pluie), son nom en bulle (title)
+    const ic = $('pneusIcone'), type = p.type || 'slick';
+    if (ic && ic.dataset.type !== type) { ic.dataset.type = type; ic.textContent = texte('pneuIcone_' + type) || '●'; ic.title = texte('pneu_' + type) || type; }
     $('pneusPlein').style.width = Math.round(Math.max(0, Math.min(1, p.reste)) * 100) + '%';
     $('pneusPlein').className = p.reste < 0.3 ? 'use' : p.reste < 0.6 ? 'moyen' : '';
     // la perte d'adhérence, seulement quand elle se voit (à partir de PNEUS_PERTE_AFFICHEE : jamais « −0,0 % »)
@@ -1847,7 +1850,8 @@ const TUTORIEL_ECRAN = (function () {
     if (!oui) return;
     $('tutoConsigne').classList.toggle('tutoMenuConsigne', visite);
     $('tutoConsigneTitre').textContent = TUTORIEL.PAR_ID[LECON].numero + '. ' + texte('tuto_' + LECON);
-    let t = visite ? texte('tuto_visite_' + TUTORIEL.etapeVisite(suivi, ecran)) : remplir(texte('tuto_' + LECON + '_consigne'), { n: Math.min(suivi.essais + 1, REGLAGES.TUTO_ZONE_ESSAIS) });
+    const cleConsigne = 'tuto_' + LECON + '_consigne' + (LECON === 'vivante' && suivi.phase === 'adherant' ? '_adherant' : '');   // (tour 37l : la 2e phase du drift)
+    let t = visite ? texte('tuto_visite_' + TUTORIEL.etapeVisite(suivi, ecran)) : remplir(texte(cleConsigne), { n: Math.min(suivi.essais + 1, REGLAGES.TUTO_ZONE_ESSAIS) });
     if (LECON === 'freinage' && suivi.dernier) t += ' · ' + remplir(texte('tuto_essai'), { n: suivi.essais, t: virgule(suivi.dernier.temps) });
     $('tutoConsigneTexte').textContent = t;
   }
@@ -1872,7 +1876,8 @@ const TUTORIEL_ECRAN = (function () {
     if (!LECON || typeof JEU === 'undefined' || typeof CIRCUIT === 'undefined') return null;
     if (!suivi) suivi = TUTORIEL.creerSuivi(LECON, CIRCUIT);
     if (!prete) prete = TUTORIEL.preparer(LECON, JEU);
-    if (LECON === 'freinage' || LECON === 'vivante') poserPlots();   // (la voiture vivante : les mêmes plots, à l'épingle du technique)
+    if (LECON === 'freinage' || LECON === 'vivante') poserPlots();   // (le drift : les mêmes plots, à l'épingle du technique)
+    if (LECON === 'vivante' && JEU.joueur) TUTORIEL.appliquerPneu(suivi, JEU.joueur);   // (tour 37l : le pneu de la phase, drift puis adhérant)
     if (!resultat && JEU.ecran !== 'pause') {
       const ordre = LECON === 'depassement' && JEU.plateau ? classementCourse(JEU.plateau) : null;
       const r = TUTORIEL.pas(suivi, TUTORIEL.situation(JEU, CIRCUIT, ordre), dt || 0);

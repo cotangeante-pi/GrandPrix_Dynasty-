@@ -8,7 +8,8 @@ Ce sont des propositions du Codeur 3 (tour 37b, 2026-10-29 ; mises à jour au to
   - 3-pluie ;
   - 4-podium ;
   - 5-paddock ;
-  - 6-glissade (la voiture vivante en légende : l'arrière qui part, les traces de pneus, la fumée) ;
+  - 6-glissade (en pneus drift, la voiture vivante : l'arrière qui part, les traces de pneus, la fumée) ;
+  - pneus-drift (le choix des pneus au garage, et l'icône du pneu drift en course) ;
   - 7-aides (l'écran « Aides au pilotage », avec le bonus annoncé).
 - Chaque capture existe en `-fr` et en `-en`.
 
@@ -32,9 +33,9 @@ When your career ends, your story goes on: your heir takes over, and the newspap
 - Short lessons to learn the start, braking, overtaking, the pits and the rain
 - Split-screen 2-player mode and a tournament mode on the same keyboard
 - Gamepad support with rumble (you feel the kerbs, the slides and the hits), an ideal racing line for beginners, four difficulty levels (Beginner to Legend)
-- At Expert and Legend level the car comes alive: brake while turning and the rear steps out. Catch the slide, leave tyre marks… or spin
+- Grip or drift tyres, chosen in the garage and at every pit stop: on drift tyres the car comes alive, the rear steps out, you catch the slide and leave tyre marks… or spin
 - Driving aids, one by one (steering, braking, anti-lock, traction), chosen before the race: switch them off and earn a bonus of up to +28% prize money
-- Eight short lessons, the last one to tame the living car; a sound mixer for engine, ambience and commentary
+- Eight short lessons, the last one to learn to drift; a sound mixer for engine, ambience and commentary
 
 **Controls:**
 - ↑ accelerate · ↓ brake · ← → steer
@@ -64,9 +65,9 @@ Quand ta carrière s’arrête, ton histoire continue : la relève prend le vola
 - De courtes leçons pour apprendre le départ, le freinage, le dépassement, les stands et la pluie
 - Un mode 2 joueurs en écran partagé et un mode tournoi sur le même clavier
 - La manette qui vibre (on sent les vibreurs, les glissades et les chocs), une trajectoire conseillée pour débuter, quatre niveaux de difficulté (de Débutant à Légende)
-- En expert et en légende, la voiture devient vivante : si tu freines en tournant, l'arrière part. Rattrape la glissade, laisse des traces de pneus… ou fais un tête-à-queue
+- Des pneus adhérant ou drift, choisis au garage et à chaque arrêt au stand : en pneus drift, la voiture devient vivante, l'arrière part, tu rattrapes la glissade et tu laisses des traces de pneus… ou tu fais un tête-à-queue
 - Les aides au pilotage, une par une (direction, freinage, anti-blocage, motricité), choisies avant la course : coupe-les et gagne jusqu'à +28 % d'argent
-- Huit leçons courtes, la dernière pour dompter la voiture vivante ; un réglage du son pour le moteur, l'ambiance et le commentateur
+- Huit leçons courtes, la dernière pour apprendre le drift ; un réglage du son pour le moteur, l'ambiance et le commentateur
 
 **Commandes :**
 - ↑ accélérer · ↓ freiner · ← → tourner
