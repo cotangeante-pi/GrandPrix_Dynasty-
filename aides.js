@@ -73,8 +73,8 @@ const AIDES = (function () {
       coequipier: !!J.championnat,
       vitesse: v ? Math.abs(v.u) : 0, frein: v ? v.frein || 0 : 0, direction: v ? v.direction || 0 : 0,
       courbure: courbureDevant(circuit, v),
-      // (tour 37l) le pneu drift du joueur (pneus.js : v.typePneus === 'drift') ; tant qu'il n'existe pas, la voiture vivante (VOITURE_VIVANTE)
-      drift: !!(v && v.typePneus === 'drift') || (typeof voitureVivante === 'function' && voitureVivante() > 0),
+      // (tour 37l) le pneu drift du joueur (pneus.js : v.typePneus === 'drift')
+      drift: !!(v && v.typePneus === 'drift'),
       pneusDrift: typeof METEO !== 'undefined' && Array.isArray(METEO.TYPES) && METEO.TYPES.includes('drift'), choixAides: !!J.choixAides,
     };
   }

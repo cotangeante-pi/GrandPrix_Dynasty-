@@ -15,7 +15,7 @@ const TUTORIEL = (function () {
     { id: 'stand', adresse: 'course=2' },                                                     // seul : l'arrêt, sans excès de vitesse
     { id: 'pluie', adresse: 'course=3&ia=1&joueur=1&niveau=debutant&meteo=averse' },    // l'averse arrive : changer de pneus
     { id: 'visite', adresse: 'championnat=1' },                                               // le paddock, le garage, l'aileron
-    { id: 'vivante', adresse: 'course=0&circuit=technique&niveau=expert' },                  // (tours 37j, 37l) le drift, à l'épingle du technique (expert : la voiture vivante, tant que le pneu drift n'existe pas)
+    { id: 'vivante', adresse: 'course=0&circuit=technique&pneus=drift' },                    // (tours 37j, 37l, 44) le drift, à l'épingle du technique : en pneus drift (la voiture vivante), puis en adhérant
   ];
   const PAR_ID = {};
   LECONS.forEach((l, i) => { l.numero = i + 1; PAR_ID[l.id] = l; });
@@ -165,12 +165,12 @@ const TUTORIEL = (function () {
     return true;
   }
 
-  // (tour 37l) le pneu de la leçon du drift : 'drift' pendant la première phase, puis 'adherant' ; null pour les autres leçons. Tant que
-  // le pneu drift n'existe pas (pneus.js, Codeur 1), le drift, c'est la voiture vivante (VOITURE_VIVANTE) : appliquerPneu le règle
+  // (tour 37l) le pneu de la leçon du drift : 'drift' pendant la première phase, puis 'adherant' ; null pour les autres leçons.
+  // appliquerPneu le monte sur la voiture du joueur (pneus.js : 'drift' ou 'slick', l'adhérant), à chaque image de la leçon
   const pneu = su => su && su.id === 'vivante' ? (su.phase === 'adherant' ? 'adherant' : 'drift') : null;
-  function appliquerPneu(su, defaut) {
+  function appliquerPneu(su, v) {
     const p = pneu(su);
-    if (p) R.VOITURE_VIVANTE = p === 'drift' ? defaut : 0;
+    if (p && v) v.typePneus = p === 'drift' ? 'drift' : 'slick';
     return p;
   }
 

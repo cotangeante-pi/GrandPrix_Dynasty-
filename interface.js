@@ -1779,7 +1779,6 @@ const TUTORIEL_ECRAN = (function () {
   const $ = id => document.getElementById(id);
   const P = new URLSearchParams(location.search), LECON = TUTORIEL.PAR_ID[P.get('tutoriel')] ? P.get('tutoriel') : null;
   let suivi = null, prete = false, resultat = null, plots = null;
-  const vivanteDefaut = REGLAGES.VOITURE_VIVANTE || 1;   // (tour 37l : la voiture vivante du pneu drift, remise à la phase drift)
   // la visite (leçon 7) ne laisse rien dans la carrière : le championnat de la sauvegarde est gardé tel quel avant que la page ne
   // démarre (ce fichier est chargé avant principal.js), et remis à la fin de la leçon (réussie) et quand on quitte la page (passée,
   // quittée, rechargée) : l'aileron, les pneus du départ, les achats du garage, le casque… tout revient comme avant
@@ -1875,7 +1874,7 @@ const TUTORIEL_ECRAN = (function () {
     if (!suivi) suivi = TUTORIEL.creerSuivi(LECON, CIRCUIT);
     if (!prete) prete = TUTORIEL.preparer(LECON, JEU);
     if (LECON === 'freinage' || LECON === 'vivante') poserPlots();   // (le drift : les mêmes plots, à l'épingle du technique)
-    if (LECON === 'vivante') TUTORIEL.appliquerPneu(suivi, vivanteDefaut);   // (tour 37l : le pneu de la phase, drift puis adhérant)
+    if (LECON === 'vivante' && JEU.joueur) TUTORIEL.appliquerPneu(suivi, JEU.joueur);   // (tour 37l : le pneu de la phase, drift puis adhérant)
     if (!resultat && JEU.ecran !== 'pause') {
       const ordre = LECON === 'depassement' && JEU.plateau ? classementCourse(JEU.plateau) : null;
       const r = TUTORIEL.pas(suivi, TUTORIEL.situation(JEU, CIRCUIT, ordre), dt || 0);

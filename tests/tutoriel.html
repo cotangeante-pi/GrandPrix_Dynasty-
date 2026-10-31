@@ -98,7 +98,7 @@ t('7. la visite : le garage puis l’aileron, de retour au paddock : réussie ; 
 // drift n'existe pas), faire glisser l'arrière (TUTO_DRIFT_ARRIERE pendant TUTO_DRIFT_TENUE s) sans herbe ni tête-à-queue ; puis le même virage
 // en adhérant, sans herbe : réussie. L'herbe ou un tête-à-queue : ratée tout de suite ; TUTO_ZONE_ESSAIS passages sans glisser : « pasGlisse » ; rien : « temps »
 t('8. le drift : l’adresse (essai libre sur le technique, la voiture vivante) ; une glissade tenue puis le même virage en adhérant : réussie ; l’herbe, un tête-à-queue, pas de glissade, rien : ratée ; le pneu de chaque phase', ()=>{
-  v(/course=0/.test(TUTORIEL.PAR_ID.vivante.adresse)&&/circuit=technique/.test(TUTORIEL.PAR_ID.vivante.adresse)&&/niveau=expert/.test(TUTORIEL.PAR_ID.vivante.adresse)&&R.NIVEAUX.expert.vivante>0,'adresse');
+  v(/course=0/.test(TUTORIEL.PAR_ID.vivante.adresse)&&/circuit=technique/.test(TUTORIEL.PAR_ID.vivante.adresse)&&/pneus=drift/.test(TUTORIEL.PAR_ID.vivante.adresse),'adresse');
   const T=construireCircuit(CIRCUITS.technique),z=TUTORIEL.zoneFreinage(T),L=T.longueur,b=o=>Object.assign(base({longueur:L}),o),dt=0.1;
   // un passage dans l'épingle : 40 images dedans, l'arrière à a (0 à 1) et son angle al, avec l'herbe ou non
   const passage=(su,a,al,herbe)=>{let r=TUTORIEL.pas(su,b({s:((z.debut-50)%L+L)%L}),dt);const lz=((z.fin-z.debut)%L+L)%L;
@@ -110,18 +110,19 @@ t('8. le drift : l’adresse (essai libre sur le technique, la voiture vivante) 
   su=TUTORIEL.creerSuivi('vivante',T);v(passage(su,0.9,0.4,true)==='ratee'&&su.raison==='sortie','l’herbe : '+su.raison);
   su=TUTORIEL.creerSuivi('vivante',T);for(let i=0;i<R.TUTO_ZONE_ESSAIS-1;i++) v(passage(su,0.2,0.1)==='encours','essai '+i);v(passage(su,0.2,0.1)==='ratee'&&su.raison==='pasGlisse','pas de glissade : '+su.raison);
   su=TUTORIEL.creerSuivi('vivante',T);let r;for(let i=0;i<R.TUTO_TEMPS_MAX+2;i++) r=TUTORIEL.pas(su,b({s:0,vitesse:0}),1);v(r==='ratee'&&su.raison==='temps','rien : '+su.raison);
-  // appliquerPneu : la voiture vivante en drift, la voiture d'aujourd'hui en adhérant ; rien pour une autre leçon
-  const vv=R.VOITURE_VIVANTE;try{su=TUTORIEL.creerSuivi('vivante',T);TUTORIEL.appliquerPneu(su,1);v(R.VOITURE_VIVANTE===1,'drift');su.phase='adherant';TUTORIEL.appliquerPneu(su,1);v(R.VOITURE_VIVANTE===0,'adhérant');
-    R.VOITURE_VIVANTE=vv;v(TUTORIEL.appliquerPneu(TUTORIEL.creerSuivi('conduite',C),1)===null&&R.VOITURE_VIVANTE===vv,'autre leçon');}finally{R.VOITURE_VIVANTE=vv;}});
+  // appliquerPneu : le pneu drift sur la voiture du joueur pendant la glissade, l'adhérant ensuite ; rien pour une autre leçon
+  const w={typePneus:'slick'};su=TUTORIEL.creerSuivi('vivante',T);TUTORIEL.appliquerPneu(su,w);v(w.typePneus==='drift','drift');su.phase='adherant';TUTORIEL.appliquerPneu(su,w);v(w.typePneus==='slick','adhérant');
+  w.typePneus='inter';v(TUTORIEL.appliquerPneu(TUTORIEL.creerSuivi('conduite',C),w)===null&&w.typePneus==='inter','autre leçon');});
 // le drift joué par un pilote scripté (le robot d'essai) en voiture vivante sur le technique, 400 m avant l'épingle : il freine tard en tournant,
 // l'arrière part et il le rattrape (le contre-braquage de sa poursuite), sans herbe ni tête-à-queue ; puis le même virage en adhérant : réussie
 t('8. le drift joué par un pilote scripté : la glissade rattrapée en drift, puis l’épingle propre en adhérant : réussie', ()=>{
-  const R_=REGLAGES,niv=R_.NIVEAU,vv=R_.VOITURE_VIVANTE,T=construireCircuit(CIRCUITS.technique),z=TUTORIEL.zoneFreinage(T),DT=1/120;let r='encours',su,tours=0;
-  try{R_.NIVEAU='expert';v(voitureVivante()>0,'la voiture vivante en expert');
+  const T=construireCircuit(CIRCUITS.technique),z=TUTORIEL.zoneFreinage(T),DT=1/120;let r='encours',su;
+  {
     const vo=creerVoiture(T,0,0);placerSurPiste(vo,T,(z.debut-400+T.longueur)%T.longueur,0);vo.u=30;su=TUTORIEL.creerSuivi('vivante',T);
-    for(let k=0;k<120*240&&r==='encours';k++){TUTORIEL.appliquerPneu(su,vv||1);lisserCommandes(vo,piloteRobot(vo,T),DT);pasVoiture(vo,T,DT);const g=SENSATIONS.glisseArriere(vo);
+    TUTORIEL.appliquerPneu(su,vo);v(voitureVivante(vo)>0,'la voiture vivante en pneus drift');
+    for(let k=0;k<120*240&&r==='encours';k++){TUTORIEL.appliquerPneu(su,vo);lisserCommandes(vo,piloteRobot(vo,T),DT);pasVoiture(vo,T,DT);const g=SENSATIONS.glisseArriere(vo);
       r=TUTORIEL.pas(su,Object.assign(base({longueur:T.longueur}),{s:vo.piste.s,herbe:vo.surHerbe,vitesse:Math.abs(vo.u),arriere:g.arriere,alpha:g.alpha}),DT);}
-  }finally{R_.NIVEAU=niv;R_.VOITURE_VIVANTE=vv;}
+  }
   L.push('  (le drift, pilote scripté : '+JSON.stringify([r,su.raison,su.glissade&&{arriere:+su.glissade.arriere.toFixed(2),tenue:+su.glissade.tenue.toFixed(2)},su.dernier&&+su.dernier.arriere.toFixed(2)])+')');
   v(r==='reussie','pilote scripté : '+JSON.stringify([r,su.raison,su.phase]));});
 t('l’enchaînement : chaque leçon mène à la suivante, la dernière à rien', ()=>{for(let i=0;i<IDS.length;i++) v(TUTORIEL.suivante(IDS[i])===(IDS[i+1]||null),IDS[i]);});

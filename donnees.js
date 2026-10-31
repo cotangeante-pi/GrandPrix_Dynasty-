@@ -38,8 +38,11 @@ const REGLAGES = {
   ADHERENCE_ARRIERE: 1.25,      // l'arrière accroche plus que l'avant : c'est l'avant qui glisse d'abord, pas de tête-à-queue
   STABILITE_LACET: 4,           // 1/s : la rotation de la voiture rejoint ce que demande le volant (aide arcade)
   ANTI_DERIVE: 2.5,             // 1/s : la glissade de côté s'amortit (aide arcade)
-  // la voiture vivante (expert et légende, physique.js pasPneusVivant) : VOITURE_VIVANTE × NIVEAUX[…].vivante (débutant et normal : 0, la voiture d'aujourd'hui au bit près)
-  VOITURE_VIVANTE: 1,           // le curseur (&reglages=1) : 1 = la voiture vivante, d'office en expert et légende (tour 41b) ; 0 = la voiture d'aujourd'hui
+  // la voiture vivante = le pneu drift (physique.js pasPneusVivant, voitureVivante) : en adhérant (slick), la voiture d'aujourd'hui au bit près
+  VOITURE_VIVANTE: 1,           // le curseur (&reglages=1) : le pneu drift va de 0 (= l'adhérant) à 1 (la voiture vivante)
+  DRIFT_VITESSE: 40,            // m/s : le pneu drift adhère comme l'adhérant à cette vitesse…
+  DRIFT_LENT: 0.04,             // … mieux en dessous (jusqu'à + ça à l'arrêt : les virages lents)…
+  DRIFT_RAPIDE: 0.06,           // … moins au-dessus (jusqu'à − ça à 2 × DRIFT_VITESSE : les virages rapides)
   VIVANTE_IA: 0,                // 1 = les IA roulent aussi en voiture vivante ; 0 = le joueur seul (les IA ne savent pas encore la piloter : tour 41, en légende, 47 s → plus de 180 s au tour)
   VIVANTE_HAUTEUR_CG: 0.3,      // m : la hauteur du centre de gravité (le transfert de charge : masse × accélération × hauteur / empattement)
   VIVANTE_ADHERENCE_ARRIERE: 1.15, // l'arrière n'accroche plus que ça de plus que l'avant (au lieu d'ADHERENCE_ARRIERE)
@@ -740,8 +743,8 @@ const REGLAGES = {
   NIVEAUX: {
     debutant: { rythme: -0.05, erreurs: 2, agressivite: -0.3, regularite: 1.5, gestionPneus: -0.2, technique: 0.1 },
     normal: { rythme: 0, erreurs: 1, agressivite: 0, regularite: 1, gestionPneus: 0, technique: 0.28 },
-    expert: { rythme: 0, erreurs: 0.5, agressivite: 0.2, regularite: 0.7, gestionPneus: 0.1, vivante: 1, corde: 0.5, marge: -0.7, limite: 1.01, penaliteFrein: 0.5, precision: 0.6, bordMin: 0.8, margeCarte: 1.1, technique: 0.7 },
-    legende: { rythme: 0, erreurs: 0.25, agressivite: 0.4, regularite: 0.5, gestionPneus: 0.2, vivante: 1, corde: 0, marge: -1.4, limite: 1.02, penaliteFrein: 0, precision: 0.3, bordMin: 0.5, margeCarte: 0.7, technique: 1 },
+    expert: { rythme: 0, erreurs: 0.5, agressivite: 0.2, regularite: 0.7, gestionPneus: 0.1, corde: 0.5, marge: -0.7, limite: 1.01, penaliteFrein: 0.5, precision: 0.6, bordMin: 0.8, margeCarte: 1.1, technique: 0.7 },
+    legende: { rythme: 0, erreurs: 0.25, agressivite: 0.4, regularite: 0.5, gestionPneus: 0.2, corde: 0, marge: -1.4, limite: 1.02, penaliteFrein: 0, precision: 0.3, bordMin: 0.5, margeCarte: 0.7, technique: 1 },
   },
   // le caractère de chaque IA (étape 4d), tiré avec la graine entre ces bornes :
   IA_CARACTERE: {
@@ -844,6 +847,7 @@ const REGLAGES = {
   // les pneus selon l'eau, aux niveaux 0 ; 0,5 ; 1 : l'adhérence (le slick au sec = 1, la voiture d'aujourd'hui) et l'usure (× l'usure normale)
   METEO_PNEUS: {
     slick: { adherence: [1, 0.72, 0.5], usure: [1, 1, 1] },
+    drift: { adherence: [1, 0.65, 0.45], usure: [1, 1, 1] },   // le drift (sec seulement) : sur le mouillé, pire que le slick
     inter: { adherence: [0.95, 0.88, 0.7], usure: [2.5, 1, 1] },
     pluie: { adherence: [0.9, 0.84, 0.8], usure: [4, 1.5, 1] },
   },
@@ -1108,6 +1112,7 @@ const REGLAGES = {
   // le drone : la grille vue d'en haut au départ (GRILLE_*), et à l'arrivée il tourne autour de la voiture en montant
   DRONE_ARRIVEE_DUREE: 5, DRONE_RAYON: 22, DRONE_HAUTEUR: [6, 26], DRONE_VITESSE: 0.35, DRONE_CHAMP: 50,      // m : sur une ligne droite plus longue, l'hélicoptère              // la voiture et ce qui l'entoure, en mètres, remplissent l'image
 
+  MESURE_DUREE: 30,             // s : la mesure des images par seconde du propriétaire (mesure.js, ?mesure=1 : 20 voitures, la caméra de course)
   COUTS_POINTS: 12,             // la mesure des coûts par circuit (tests/lieu.html, tour 40) : la caméra de course en tant d'endroits du tour (12 : un sur deux des 24 de la mesure du tour 40, plus court sur GitHub)
   PIXEL_RATIO_MAX: 1.5,         // au plus 1,5 pixel dessiné par pixel CSS (un écran Retina en demande 2)
   // la qualité de l'image (qualite.js, tour 40) : le dessin seulement ; le cran 0 = l'image d'avant (PIXEL_RATIO_MAX, DECOR_DETAIL_LOIN, DECOR_RIEN_LOIN)

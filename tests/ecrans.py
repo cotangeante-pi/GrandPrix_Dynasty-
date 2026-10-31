@@ -105,7 +105,7 @@ PAGES = [
     ('index.html?championnat=1&meteo=risque&test=prevision', 1280, 720, None),
     ('index.html?course=3&ia=20&circuit=test&test=commentaire', 1280, 720, None),   # le commentateur (commentaire.js) dans le bandeau télé ; capture commentaire.png
     ('index.html?course=3&ia=20&circuit=monoco&test=tele', 1280, 720, None),
-    ('index.html?course=3&ia=9&joueur=1&robot=1&circuit=test&test=sensations', 1280, 720, None),
+    ('index.html?course=3&ia=9&joueur=1&robot=1&circuit=test&test=sensations&pneus=drift', 1280, 720, None),   # (tour 44 : la voiture vivante vient du pneu drift)
     ('index.html?course=3&ia=5&joueur=1&robot=1&circuit=test&niveau=debutant&test=conseil', 1280, 720, None),   # la trajectoire conseillée (tour 39) : en débutant, d'office ; capture conseil.png
     ('index.html?course=3&ia=5&joueur=1&robot=1&circuit=test&niveau=normal&test=conseil', 960, 600, None),     # … en normal, aucune
     ('index.html?course=3&ia=9&joueur=1&robot=1&circuit=test&qualite=auto&test=qualite', 1280, 720, None),   # la qualité automatique (tour 40) : jusqu'à « basse » sous swiftshader, jamais pendant les feux ; capture qualite-basse.png
@@ -143,6 +143,7 @@ PAGES = [
     ('index.html?course=3&circuit=test&test=assistance', 960, 600, None),                    # … coupées en normal
     ('index.html?tutoriel=visite&championnat=1&test=tuto-quitter', 960, 600, None),   # … passée en cours de route : rien ne reste dans la carrière
     ('index.html?course=3&circuit=test&test=son', 960, 600, None),   # le réglage du son (tour 44) : le pire mélange ne sature pas, le volume par famille, l'onglet caché et la pub coupent
+    ('index.html?ia=20&course=1&circuit=test&mesure=1&ips=1', 1280, 720, None),   # la mesure des images par seconde du propriétaire (tour 45) : 20 voitures, caméra de course, « Copier » ; capture mesure.png
 ]
 # ECRANS_FILTRE=… (pendant le travail, sur le Mac) : seulement les pages dont l'adresse contient ce texte ; GitHub lance toujours tout
 if os.environ.get('ECRANS_FILTRE'): PAGES = [x for x in PAGES if os.environ['ECRANS_FILTRE'] in f'{x[0]} {x[1]}']   # (« adresse largeur » : « robot=1 960 »)
@@ -1462,6 +1463,20 @@ def son_ecran(pg, titre):
     pg.evaluate('() => couperSonPub(false)')
     apres = attendre(pg, '() => SON.etatContexte === "running" && !SON.muet', None, 5000)
     t(f'{titre} : une pub coupe le son, puis le rend tel que le joueur l’avait (M n’est pas touché)', pub and apres, pg.evaluate('() => [SON.etatContexte, SON.muet, SON.muetJoueur]'))
+# la mesure des images par seconde (mesure.js, tour 45) : ?mesure=1&ips=1 (raccourcie à 4 s ici) : le compteur discret, puis, une fois
+# la course partie, la mesure à 20 voitures avec la caméra de course : la moyenne, le 1 % le plus lent, les appels, la qualité, « Copier » ;
+# sans ces paramètres, ni compteur ni panneau (aucun coût) ; capture mesure.png
+def mesure_ecran(pg, titre):
+    pg.evaluate('() => { REGLAGES.MESURE_DUREE = 4; }')
+    fini = attendre(pg, '() => !!window.__mesure', None, 180000)
+    m = pg.evaluate('''() => ({ m: window.__mesure, sortie: document.getElementById("mesureSortie").textContent, copier: !document.getElementById("mesureCopier").classList.contains("cache"),
+      compteur: (document.getElementById("compteurIps") || {}).textContent || "", voitures: JEU.plateau ? JEU.plateau.pilotes.length : 0, camera: CAMERA.mode })''')
+    L.append(f"  (la mesure du propriétaire, sous swiftshader, {m['voitures']} voitures : {m['sortie']})")
+    t(f'{titre} : « Mesurer » : 20 voitures, la caméra de course, puis la moyenne, le 1 % le plus lent, les appels de dessin et la qualité, prêts à copier ; le compteur discret affiche les images par seconde',
+      fini and m['m'] and m['m']['ips'] > 0 and m['m']['appels'] > 0 and m['m']['unPourcent'] > 0 and m['voitures'] == 20 and m['camera'] == 'derriere' and m['copier'] and '{' not in m['sortie'] and re.search(r'\d+ i/s', m['compteur']), str(m))
+    pg.screenshot(path=os.path.join(CAPTURES, 'mesure.png'))
+    pg.evaluate('() => document.getElementById("mesureCopier").click()'); pg.wait_for_timeout(500)
+    t(f'{titre} : « Copier » copie le résultat (ou le laisse sélectionné) et le dit', pg.evaluate('() => document.getElementById("mesureCopier").textContent === texte("mesure_copie")'), pg.evaluate('() => document.getElementById("mesureCopier").textContent'))
 def commentaire_ecran(pg, titre):
     vu = attendre(pg, '() => /🎙/.test(document.getElementById("messageCourse").textContent) && !document.getElementById("messageCourse").classList.contains("cache")', None, 90000)
     txt = pg.evaluate('() => document.getElementById("messageCourse").textContent')
@@ -2368,7 +2383,7 @@ def garage_ecran(pg, titre, achat=True, capture='garage.png'):
     apres = pg.evaluate('() => [JEU.championnat.pneusDepart, SAUVEGARDE.championnat().pneusDepart, [...document.querySelectorAll("#garagePneus button.choisi")].map(x => x.dataset.pneu)]')
     pg.click('#garagePneus button[data-pneu="equipe"]')
     retour = pg.evaluate('() => JEU.championnat.pneusDepart')
-    t(f'{titre} : au garage, les pneus du départ : « Au choix de l’équipe » par défaut, slicks, intermédiaires, pluie ; « Pluie » choisi et sauvegardé, puis de nouveau l’équipe', pn['n'] == 4 and pn['choisi'] == ['equipe'] and pn['titre'].startswith('Pneus au départ') and apres == ['pluie', 'pluie', ['pluie']] and retour is None, str([pn, apres, retour]))
+    t(f'{titre} : au garage, les pneus du départ : « Au choix de l’équipe » par défaut (l’adhérant), slicks, drift, intermédiaires, pluie ; « Pluie » choisi et sauvegardé, puis de nouveau l’équipe', pn['n'] == 5 and pn['choisi'] == ['equipe'] and pn['titre'].startswith('Pneus au départ') and apres == ['pluie', 'pluie', ['pluie']] and retour is None, str([pn, apres, retour]))
     if not achat:
         t(f'{titre} : sans argent, tous les boutons « Acheter » sont grisés', not any(e['actifs']), str(e['actifs']))
     else:
@@ -3082,6 +3097,10 @@ with sync_playwright() as p:
                 assistance_ecran(pg, titre, page)
             if 'test=son' in page:
                 son_ecran(pg, titre)
+            if 'mesure=1' in page:
+                mesure_ecran(pg, titre)
+            elif 'test=' not in page and 'mesure' not in page and l == 1280 and page.startswith('index.html?course='):
+                t(f'{titre} : sans ?ips ni ?mesure, ni compteur ni panneau de mesure (aucun coût)', pg.evaluate('() => !document.getElementById("compteurIps") && !document.getElementById("mesurePanneau")'))
             if 'test=manette-deux' in page:
                 manette_deux(pg, titre)
             elif 'test=manette' in page:

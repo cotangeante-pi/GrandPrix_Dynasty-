@@ -137,6 +137,7 @@ function lancerCourse(nbTours) {
   // ?pneus=1 : des pneus neufs à chaque course, seulement sur la voiture que le joueur conduit (jamais sur une IA suivie)
   JEU.joueur.pneus = REGLAGES.PNEUS_ACTIFS && (JEU.contre || !JEU.plateau) ? creerPneus() : null;
   JEU.joueur.adherence = 1;
+  if (PARAMETRES.get('pneus') === 'drift') JEU.joueur.typePneus = 'drift';   // (?pneus=drift : la voiture vivante, le pneu drift ; la leçon 8 du tutoriel, les tests)
   if (JEU.deux) { const v2 = DEUX_JOUEURS.joueurs(JEU.plateau)[1].v; v2.pneus = JEU.joueur.pneus ? creerPneus() : null; v2.adherence = 1; }   // le joueur 2 : la même voiture
   AILERON.appliquer(JEU.joueur, JEU.championnat ? AILERON.cranDe(JEU.championnat, NOM_CIRCUIT) : null);   // l'aileron du joueur sur ce circuit (aileron.js ; le milieu = rien)
   GARAGE.appliquer(JEU.joueur, JEU.championnat ? JEU.championnat.garage : null, niveauEcurieJoueur());   // ?championnat=1 : les améliorations du garage × le niveau de l'écurie, sur la voiture du joueur (1 = rien sans championnat)
@@ -2081,6 +2082,10 @@ function demarrerJeu() {
   boutonSon.addEventListener('click', () => { SON.basculer(); majBoutonSon(); });
   window.addEventListener('keydown', e => { if (e.code === 'KeyM' && !e.repeat && !(e.target && e.target.tagName === 'INPUT' && e.target.type === 'text')) { SON.basculer(); majBoutonSon(); } });
   if (PARAMETRES.get('reglages') === '1') PANNEAU_REGLAGES.creer(cle => { if (cle === 'HALO_EPAISSEUR') VOITURE3D.majHalo(JEU.modele); });
+  // la mesure des images par seconde (mesure.js, tour 45) : rien sans la demander ; « Mesurer » dans ?reglages=1, ?ips=1, ?mesure=1
+  if (PARAMETRES.get('reglages') === '1') MESURE.boutonReglages(NOM_CIRCUIT);
+  if (PARAMETRES.get('ips') === '1') MESURE.compteur();
+  if (PARAMETRES.get('mesure') === '1') MESURE.mesurer(NOM_CIRCUIT);
 
   // (tour 37d, Codeur 4 : en piste en 10 secondes) pendant les feux, la boucle rattrape le temps réel (PAS_MAX_FEUX) : un ordinateur
   // lent ne fait plus durer les feux 20 s au lieu de 7 ; relu à chaque pas, le plafond normal revient au pas même de l'extinction
