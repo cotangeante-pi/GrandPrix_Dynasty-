@@ -106,7 +106,9 @@ function pasVoiture(v, circuit, dt) {
   memoriserAvant(v);
 
   const herbe = v.surHerbe;
-  const mu = R.ADHERENCE * (v.adhMeteo || 1) * (v.adherence || 1) * (v.aero || 1) * (v.aileronAdherence || 1) * (herbe ? R.ADHERENCE_HERBE : 1);   // × 1 sans pneus ni garage ni aileron (aileron, Codeur 3) : le même nombre au bit près
+  // (le pneu drift : son adhérence selon la vitesse, adherenceDrift, gardée dans v.adhDrift pour qui pilote ; × 1 en adhérant, au bit près)
+  if (v.typePneus === 'drift') v.adhDrift = adherenceDrift(v.u);
+  const mu = R.ADHERENCE * (v.adhMeteo || 1) * (v.adherence || 1) * (v.aero || 1) * (v.aileronAdherence || 1) * (herbe ? R.ADHERENCE_HERBE : 1) * (v.typePneus === 'drift' ? v.adhDrift : 1);   // × 1 sans pneus ni garage ni aileron (aileron, Codeur 3) : le même nombre au bit près
   const fz = charge(v.u);
   const fzAvant = fz * b / R.EMPATTEMENT, fzArriere = fz * a / R.EMPATTEMENT;
   const delta = v.direction * braquageMax(v.u);
@@ -131,9 +133,9 @@ function pasVoiture(v, circuit, dt) {
     if (v.u < -R.MARCHE_ARRIERE_MAX) v.u = -R.MARCHE_ARRIERE_MAX;
     v.v = 0;
     v.r = v.u * Math.tan(delta) / R.EMPATTEMENT;
-  } else if (voitureVivante() > 0 && (!v.ia || REGLAGES.VIVANTE_IA)) {   // (les IA : seulement avec VIVANTE_IA, elles n'ont pas encore appris à la piloter)
-    // la voiture vivante (expert et légende, VOITURE_VIVANTE > 0) : un autre pas, à part ; à 0, le pas d'aujourd'hui au bit près
-    pasPneusVivant(v, mu, fz, fzAvant, fzArriere, delta, fx, resistance, dt, voitureVivante());
+  } else if (voitureVivante(v) > 0) {
+    // la voiture vivante (le pneu drift, VOITURE_VIVANTE > 0) : un autre pas, à part ; en adhérant, le pas d'aujourd'hui au bit près
+    pasPneusVivant(v, mu, fz, fzAvant, fzArriere, delta, fx, resistance, dt, voitureVivante(v));
   } else {
     // les pneus : la force latérale suit l'angle de glissement, plafonnée par l'adhérence
     const alphaAvant = Math.atan2(v.v + a * v.r, Math.abs(v.u)) - delta;
@@ -170,11 +172,20 @@ function pasVoiture(v, circuit, dt) {
   if (circuit) contactPiste(v, circuit);
 }
 
-// la voiture vivante (CLAUDE.md « La voiture vivante (expert et légende) ») : VOITURE_VIVANTE (le curseur, 0 à 1) × la part du niveau
-// (NIVEAUX[…].vivante : expert et légende 1, absente en débutant et normal) ; 0 = la voiture d'aujourd'hui, au bit près
-function voitureVivante() {
-  const R = REGLAGES, n = R.NIVEAUX && R.NIVEAUX[R.NIVEAU];
-  return R.VOITURE_VIVANTE && n && n.vivante ? R.VOITURE_VIVANTE * n.vivante : 0;
+// la voiture vivante (CLAUDE.md « La voiture vivante (les pneus adhérant / drift) ») : elle vient du pneu drift (v.typePneus === 'drift'),
+// pas du niveau ; VOITURE_VIVANTE (le curseur de ?reglages=1, 0 à 1) règle le drift. 0 pour tout autre pneu (l'adhérant, la voiture
+// d'aujourd'hui au bit près) ; et 0 pour une IA sans VIVANTE_IA (elles gardent l'adhérant : elles ne savent pas piloter le drift)
+function voitureVivante(v) {
+  const R = REGLAGES;
+  if (!v || v.typePneus !== 'drift' || (v.ia && !R.VIVANTE_IA)) return 0;
+  return R.VOITURE_VIVANTE || 0;
+}
+
+// le compromis du pneu drift (multiplie l'adhérence) : meilleur dans les virages lents, moins bon dans les rapides
+// (DRIFT_VITESSE : la vitesse où il vaut l'adhérant ; DRIFT_LENT de mieux à l'arrêt, DRIFT_RAPIDE de moins à 2 × DRIFT_VITESSE)
+function adherenceDrift(u) {
+  const R = REGLAGES, x = Math.abs(u) / R.DRIFT_VITESSE;
+  return x < 1 ? 1 + R.DRIFT_LENT * (1 - x) : 1 - R.DRIFT_RAPIDE * Math.min(1, x - 1);
 }
 
 // le pas des pneus de la voiture vivante (k : sa part, 0 à 1). Les mêmes forces qu'aujourd'hui, et :

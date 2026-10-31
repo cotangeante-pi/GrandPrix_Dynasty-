@@ -9,7 +9,7 @@
 // trajectoire plus sèche), message } ; chaque voiture : v.eau (l'eau sous elle), v.adhMeteo (le facteur d'adhérence, 1 au sec).
 const METEO = (function () {
   const R = REGLAGES;
-  const TYPES = ['slick', 'inter', 'pluie'];
+  const TYPES = ['slick', 'drift', 'inter', 'pluie'];   // (drift : le pneu sec de la voiture vivante, choisi par le joueur seulement)
 
   // le plan d'une course : { prevision: { type, pourcent }, debut (pluie au départ, 0 à 1), change: { t (s de course), pluie } | null }
   // tiré avec la graine du Grand Prix (+ GRAINE_METEO) ; duree : la durée estimée de la course (s). Un lieu sans réglage : toujours sec.
@@ -59,20 +59,20 @@ const METEO = (function () {
 
   // le facteur d'adhérence d'un pneu selon l'eau (1 exactement pour un slick sur le sec : la physique d'aujourd'hui au bit près)
   function adherence(type, eau) {
-    if ((type || 'slick') === 'slick' && eau <= 0) return 1;
+    if (((type || 'slick') === 'slick' || type === 'drift') && eau <= 0) return 1;   // (le drift sur le sec : son effet est dans la physique, adherenceDrift)
     return entre(R.METEO_PNEUS[type || 'slick'].adherence, eau);
   }
 
   // le facteur d'usure d'un pneu selon l'eau (1 pour un slick ; un pneu de pluie sur le sec s'use vite)
   function usure(type, eau) {
-    if ((type || 'slick') === 'slick') return 1;
+    if ((type || 'slick') === 'slick' || type === 'drift') return 1;   // (l'usure du drift : pneus.js, USURE_DRIFT)
     return entre(R.METEO_PNEUS[type].usure, eau);
   }
 
   // le meilleur pneu pour une eau donnée (celui qui adhère le plus)
   function meilleurPneu(eau) {
     let mieux = 'slick';
-    for (const t of TYPES) if (adherence(t, eau) > adherence(mieux, eau)) mieux = t;
+    for (const t of TYPES) if (t !== 'drift' && adherence(t, eau) > adherence(mieux, eau)) mieux = t;   // (le drift : jamais conseillé, le joueur le choisit)
     return mieux;
   }
 
