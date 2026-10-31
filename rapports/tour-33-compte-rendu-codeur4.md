@@ -459,3 +459,19 @@ Ordres : 1 fait / 2 fait / 3 fait (2 bugs trouvés et corrigés)
      (rouge au point de freinage de la carte devant l'épingle) passe toujours. Rien dans le dessin.
 Ce que je n'ai pas vérifié : une vraie manette (seulement de fausses) ; la sensation de la ligne sous la pluie (à essayer par le propriétaire).
 Réévalue.
+
+TOUR 42d — compte rendu du Codeur 4 (journée figée à 23h50, branche codeur4)
+Commit : 74d8c67, passage GitHub 41155928575 ROUGE : pas fusionné, cause pas encore lue. À reprendre en premier demain.
+Fait :
+  - trois tests fragiles rendus fiables (recoins, chasse) : le redimensionnement mesuré en temps de jeu ; la bulle d'aide fermée par le
+    jeu (dynastie, sponsors) ; « passer » attendu visible, boucle en marche, avant de figer la boucle ;
+  - assistance.js (voiture vivante seulement, à 0 au bit près) : le freinage assisté finit de freiner avant le virage
+    (ASSIST_VIVANTE_FREIN 0,8) ; brutal, technique, légende, freinage assisté seul : dérive 0,177 rad / 3 glissades → 0,087 rad / 0 ;
+    l'anti-blocage laissé comme avant (ASSIST_VIVANTE_ABS_PART 0,98 ; limiter le braquage ou baisser plus le frein étaient pires) ;
+  - test dans tests/test.html (freinage assisté seul, brutal pas plus glissant, neutre aidé pas plus rapide) ;
+  - recoins.py, partie aides-pilotage (travail annexes) : le choix au paddock, gardé au Grand Prix suivant, figé en pause ;
+    VOITURE_VIVANTE à 0 en légende au bit près comme en normal.
+Pas fait / ouvert : avec toutes les aides, le brutal glisse encore un peu plus que sans aide (0,151 rad, 2 glissades : la direction
+assistée ou l'antipatinage, pas mesurés à part) ; dans l'outil osascript, plusieurs courses à la suite dans le même processus finissent
+au mur (neutre, toutes les aides, circuit test) alors que la même course seule est propre : un état garde la mémoire d'une course à
+l'autre (robot.js ?), à trouver.
