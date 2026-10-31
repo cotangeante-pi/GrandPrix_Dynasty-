@@ -204,6 +204,8 @@
     <div class="paddockGroupe"><span class="paddockGroupeNom" id="paddockGroupeAmis"></span><div><button id="boutonAmisPaddock" class="petit" tabindex="-1"></button></div></div>
   </div>
   <button id="boutonTutorielPaddock" class="petit coinPaddock" tabindex="-1"></button>
+  <button id="boutonSonPaddock" class="petit coinPaddock" tabindex="-1"></button>   <!-- « 🔊 Son » (tour 44) : le volume de chaque famille de sons -->
+  <div id="sonPanneau" class="cache"><h2 id="sonTitre"></h2><div class="boutons"><button id="boutonSonEffets" class="petit" tabindex="-1"></button><button id="boutonSonAmbiance" class="petit" tabindex="-1"></button><button id="boutonSonCommentateur" class="petit" tabindex="-1"></button></div><div class="boutons"><button id="boutonSonFermer" class="petit" tabindex="-1"></button></div></div>
   <button id="boutonAidesPaddock" class="petit coinPaddock" tabindex="-1"></button>   <!-- « Aides au pilotage » (tour 37e, Codeur 3) : choisies avant le Grand Prix -->   <!-- « Apprendre à piloter » (tutoriel.js, Codeur 4) : dans le coin en bas à gauche -->
   <button id="boutonRevoirAides" class="petit coinPaddock" tabindex="-1"></button>   <!-- « Revoir les aides » (aides.js, Codeur 4) : dans un coin du paddock -->
 </section>
@@ -410,7 +412,8 @@
   <div class="boutons"><button id="boutonCommentairePause" class="petit" tabindex="-1"></button><button id="boutonEffetsPause" class="petit" tabindex="-1"></button></div>   <!-- les effets de conduite : oui, non (sensations.js, sauvegardé) -->   <!-- le commentateur : tout, tes faits, coupé (commentaire.js) -->   <!-- le fantôme affiché ou masqué (sauvegardé) -->
   <div class="boutons"><button id="boutonDirectionPause" class="petit aideFigee" tabindex="-1"></button><button id="boutonFreinagePause" class="petit aideFigee" tabindex="-1"></button><button id="boutonAntiblocagePause" class="petit aideFigee" tabindex="-1"></button><button id="boutonAntipatinagePause" class="petit aideFigee" tabindex="-1"></button></div>   <!-- les aides au pilotage (assistance.js) : une par bouton, oui / non, sauvegardées -->
   <div class="boutons"><button id="boutonRevoirAidesPause" class="petit" tabindex="-1"></button><button id="boutonQualitePause" class="petit" tabindex="-1"></button></div>   <!-- la qualité de l'image : auto, haute, basse (qualite.js, sauvegardé) -->   <!-- « Revoir les aides » (aides.js, Codeur 4) -->
-  <div class="boutons"><button id="boutonTutorielPause" class="petit" tabindex="-1"></button></div>   <!-- « Apprendre à piloter » (tutoriel.js, Codeur 4) -->
+  <div class="boutons"><button id="boutonTutorielPause" class="petit" tabindex="-1"></button></div>
+  <div class="boutons"><button id="boutonSonEffetsPause" class="petit" tabindex="-1"></button><button id="boutonSonAmbiancePause" class="petit" tabindex="-1"></button><button id="boutonSonCommentateurPause" class="petit" tabindex="-1"></button></div>   <!-- le volume de chaque famille de sons, 100 → 0 % (son.js, tour 44, sauvegardé) -->   <!-- « Apprendre à piloter » (tutoriel.js, Codeur 4) -->
 </section>
 
 <!-- après une course à plusieurs : le podium (sur la 3D), puis les résultats -->

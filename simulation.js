@@ -332,7 +332,7 @@ function pasCourseIA(e, dt, conduireJoueur) {
   if (e.meteo) pasMeteo(e, enCourse, dt);   // la météo (étape 12) ; sans e.meteo (le sec d'avant) : rien ne change
   if (R.PNEUS_ACTIFS && e.circuit.stands) for (const p of enCourse) if (!p.humain) majStandsIA(p, e);   // l'arrêt au stand des IA (étape 7)
   const commandes = enCourse.map(p => !p.humain && courseAutorise(p.course) && p.pilote
-    ? piloterIA(p.pilote, p.v, voituresVues(p.v, voitures, e.circuit), dt) : COMMANDES_AUCUNE);
+    ? piloterIA(p.pilote, p.v, vuesAvecArriere(p, voituresVues(p.v, voitures, e.circuit), enCourse, e.circuit), dt) : COMMANDES_AUCUNE);
   aspirationVoitures(voitures, e.circuit);
   enCourse.forEach((p, k) => {
     if (p.humain && conduireJoueur) conduireJoueur(p, dt);
@@ -498,6 +498,19 @@ function compterDepassements(e, enCourse) {
     }
     e.devant.set(cle, maintenant);
   }
+}
+
+// la vue arrière du rival du joueur (IA_RIVAL_VUE_ARRIERE, duel-court) : il voit aussi le joueur derrière lui jusqu'à cette distance le long de
+// la piste (pas seulement à IA_VISION_COTE[0] dans ses rétroviseurs), pour se défendre dès qu'il le voit arriver ; 0 : ce qu'il voyait avant
+function vuesAvecArriere(p, vues, enCourse, circuit) {
+  const R = REGLAGES;
+  if (!R.IA_RIVAL_VUE_ARRIERE || !p.pilote || !p.pilote.rivalite || !p.v.piste) return vues;
+  const j = enCourse.find(q => q.humain || q.v.joueur);
+  if (!j || !j.v.piste || vues.some(w => w.id === j.v)) return vues;
+  const g = ecartLeLong(circuit, j.v.piste.s - p.v.piste.s);
+  if (g >= 0 || g < -R.IA_RIVAL_VUE_ARRIERE) return vues;
+  const w = j.v, cw = Math.cos(w.cap), sw = Math.sin(w.cap), vx = cw * w.u - sw * w.v, vz = sw * w.u + cw * w.v;
+  return vues.concat([{ id: w, s: w.piste.s, d: w.piste.d, vitesse: vx * w.piste.nz - vz * w.piste.nx }]);
 }
 
 // une course entière, sans affichage. Rend pour chaque voiture (dans l'ordre de la grille) : place, temps,

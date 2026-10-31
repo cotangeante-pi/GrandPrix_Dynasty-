@@ -629,8 +629,7 @@ function noterRivaliteDeux() {
 
 // pendant une pub (sdk.js) : le son coupé, puis rendu (seulement s'il était allumé avant)
 function couperSonPub(oui) {
-  if (oui && !SON.muet) { SON.basculer(); JEU.sonCoupePub = true; }
-  else if (!oui && JEU.sonCoupePub) { SON.basculer(); JEU.sonCoupePub = false; }
+  SON.couperPub(oui);   // (tour 44 : sans toucher au choix du joueur, M ; rendu à la fin de la pub tel qu'il était)
 }
 
 // « Revanche » : une pause pub (Poki : entre deux courses à deux, jamais pendant), puis la même course, la grille retirée au sort
@@ -1758,7 +1757,7 @@ function majCommentaire(e, m) {
   const etatMeteo = typeof METEO3D !== 'undefined' ? METEO3D.etat(e) : null;
   COMMENTAIRE.observer(c, e, { joueur: j, pluie: etatMeteo ? etatMeteo.pluie : 0, circuit: texte('circuit_' + NOM_CIRCUIT) || CIRCUIT.nom, lieu: texte('lieu_' + NOM_CIRCUIT) || texte('circuit_' + NOM_CIRCUIT) || CIRCUIT.nom });
   const it = COMMENTAIRE.afficher(c, e.temps, attendre);
-  if (it) MESSAGES.pousserTexte(m, { type: 'commentaire', texte: '🎙 ' + texte('commentateur') + texte('deuxPoints') + COMMENTAIRE.phrase(it, etiquetteVoiture, INTERFACE.formatTemps) });
+  if (it) { MESSAGES.pousserTexte(m, { type: 'commentaire', texte: '🎙 ' + texte('commentateur') + texte('deuxPoints') + COMMENTAIRE.phrase(it, etiquetteVoiture, INTERFACE.formatTemps) }); SON.signal('commentaire'); }
 }
 
 // l'affichage provisoire : la vitesse et « hors piste »
@@ -2039,6 +2038,24 @@ function demarrerJeu() {
     argent: () => !JEU.deux && !JEU.tournoi,
     ouvert: oui => { JEU.choixAides = oui; },   // (l'aide au premier usage de cet écran : aides.js, choixAides)
   });
+  // le volume de chaque famille de sons (son.js, tour 44) : moteur et effets, ambiance, commentateur ; 100 → 75 → 50 → 25 → 0 %,
+  // dans le menu pause et au paddock (« 🔊 Son »), sauvegardé ; M coupe toujours tout
+  {
+    const ids = { effets: ['boutonSonEffetsPause', 'boutonSonEffets'], ambiance: ['boutonSonAmbiancePause', 'boutonSonAmbiance'], commentateur: ['boutonSonCommentateurPause', 'boutonSonCommentateur'] };
+    SON.reglerVolumes(SAUVEGARDE.option('son_volumes', null) || REGLAGES.SON_FAMILLES);
+    const ecrire = () => { const v = SON.volumes; for (const f of SON.FAMILLES) for (const id of ids[f]) document.getElementById(id).textContent = texte('son_' + f).replace('{p}', String(Math.round(v[f] * 100))); };
+    const panneau = document.getElementById('sonPanneau');
+    document.getElementById('sonTitre').textContent = texte('son_titre');
+    for (const [id, cle] of [['boutonSonPaddock', 'son_paddock'], ['boutonSonFermer', 'son_fermer']]) document.getElementById(id).textContent = texte(cle);
+    ecrire();
+    for (const f of SON.FAMILLES) for (const id of ids[f]) {
+      const b = document.getElementById(id);
+      b.addEventListener('mousedown', e => e.preventDefault());
+      b.addEventListener('click', () => { SON.reglerVolumes({ [f]: SON.suivant(SON.volumes[f]) }); SAUVEGARDE.ecrireOption('son_volumes', SON.volumes); ecrire(); });
+    }
+    document.getElementById('boutonSonPaddock').addEventListener('click', () => panneau.classList.toggle('cache'));
+    document.getElementById('boutonSonFermer').addEventListener('click', () => panneau.classList.add('cache'));
+  }
   INTERFACE.majBoutonsFantome(SAUVEGARDE.option('fantome', true));
   PODIUM3D.init(CIRCUIT);
   // ?course=5, 12, 18 ou 0 (essai libre) lance directement une course (tests, développement)

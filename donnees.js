@@ -93,7 +93,13 @@ const REGLAGES = {
     compte: [[440], 0.15],      // 3, 2, 1
     go: [[880], 0.45],
     arrivee: [[523, 659, 784, 1047], 0.16],
+    commentaire: [[784, 988], 0.06, 0.4],   // le petit signal du commentateur à chaque phrase (tour 44), à 40 % des autres
   },
+  // le mélange (son.js, tour 44) : un volume par famille (menu pause et paddock, sauvegardé), puis un compresseur et un plafond
+  SON_FAMILLES: { effets: 1, ambiance: 1, commentateur: 1 },   // de 0 à 1 : moteur et effets, ambiance (pluie, feux, arrivée), commentateur
+  SON_FAMILLES_PAS: 0.25,          // les boutons vont de 100 % à 0 par quarts
+  SON_COMPRESSEUR: [-10, 6, 12, 0.003, 0.25],   // seuil (dB), genou (dB), rapport, attaque et relâche (s) : le mélange ne sature pas
+  SON_PLAFOND: 0.8,                // le gain après le compresseur : il reprend son gain de rattrapage (le même volume qu'avant, à 1 dB près) et laisse une marge sous 1
   SON_VOLUME_SIGNAL: 0.25,
   SON_LISSAGE: 0.03,            // s : le son rejoint sa nouvelle valeur en ce temps (pas de clics)
   // les sensations de conduite (tour 37, sensations.js, son.js, effets3d.js, camera.js) : le son et l'image seulement,
@@ -487,6 +493,7 @@ const REGLAGES = {
   TUTO_IA_RYTHME: 0.8,          // le rythme de l'IA lente de la leçon du dépassement (part de la vitesse que sa carte permet)
   TUTO_PLOTS_COULEUR: 0xff7a1a, // les plots de la leçon du freinage
   TUTO_PLUIE_EAU: 0.2,          // la leçon de la pluie : la piste compte comme mouillée à partir de ce niveau d'eau
+  TUTO_VIVANTE_ARRIERE: 0.5,    // (tour 37j) la leçon de la voiture vivante : l'arrière ne doit pas glisser jusque-là (SENSATIONS.glisseArriere, 0 à 1) dans l'épingle
   // le casque du pilote (casque.js) : un motif et trois couleurs ; les rivaux tirent le leur avec la graine du championnat
   CASQUE_MOTIFS: ['uni', 'bandes', 'etoile', 'flammes', 'damier', 'eclair'],
   // les motifs à débloquer par des exploits de carrière (casque.js : conditions) ; jamais de la vitesse, seulement un dessin ; gardés à
@@ -679,6 +686,13 @@ const REGLAGES = {
   IA_DECALAGE_DISTANCE: 60,     // m avant le point de freinage, au moins, elle se décale à côté…
   IA_DECALAGE_TEMPS: 1.2,       // s : … ou la distance parcourue en ce temps
   IA_RAPPROCHEMENT: 5,          // m/s : … ou s'il arrive au moins ça plus vite qu'elle (au freinage)
+  IA_FREIN_VU_DISTANCE: 35,     // m : … à moins de ça devant lui
+  IA_RIVAL_VUE_ARRIERE: 20,     // m : duel-court : le rival du joueur le voit derrière lui jusque-là et défend dès qu'il arrive plus vite (au plus IA_DECALAGE_ECART) ; 0 = ses rétroviseurs seulement
+  IA_FREIN_VU_TOUS: 1,          // duel-court : 1 = il prévoit le freinage de toute voiture qu'il voit ralentir devant lui (IA_FREIN_PREVU), pas seulement d'un autre aileron
+  IA_ATTAQUE_LIGNE_PREVUE: 1,   // duel-court : 1 = la ligne d'attaque suit la place prévue de la voiture attaquée le long du virage (dPrevu) ; 0 = la course d'avant
+  IA_RECHANGE_DISTANCE: 0,      // duel-court : > 0 = les lignes de rechange (intérieur, extérieur) seulement avec une voiture à moins de ça (m) ; 0 = dès qu'il en voit une
+  IA_SUIVI_CARTE: 0,            // duel-court : > 0 = une voiture vue devant qui roule au moins à cette part de la vitesse de la carte en son point est suivie comme si elle y allait à la vitesse de la carte (ia.js) ; 0 = la course d'avant
+  IA_SUIVI_CARTE_LOIN: 20,      // m : … seulement plus loin que ça devant lui (plus près, sa vitesse vue)
   IA_ATTAQUE_CONTROLE: 40,      // m avant le sommet du virage : l'entrée, où elle doit être à hauteur…
   IA_ATTAQUE_HAUTEUR: 0.5,      // … à moins de cette part de longueur derrière : elle plonge ; sinon elle abandonne
   IA_ATTAQUE_FREIN: 1.05,       // en attaque, elle ose cette part du freinage de la marge habituelle (son style : 0,92 à 1)
@@ -837,7 +851,7 @@ const REGLAGES = {
   IA_LENT_COTE_A_COTE: 0,       // le duel (tour 32) : 1 = dans un virage lent aussi, l'attaque se joue à l'entrée (à moitié à hauteur, IA_ATTAQUE_HAUTEUR), plus le nez devant au freinage
   SIMULATION_FEUX: 0,           // 1 : simulerCourse part avec les feux et le départ de chaque IA (depart.js), comme la page
   IA_PROFITER_ERREUR: false,    // une IA profite de l'erreur de la voiture devant elle (elle la passe comme une voiture lente)
-  IA_FREIN_PREVU: 0.6,          // s : derrière une voiture qui freine, il prévoit sa vitesse dans ce temps (sa décélération vue × ça)
+  IA_FREIN_PREVU: 0.7,          // s : derrière une voiture qui freine, il prévoit sa vitesse dans ce temps (sa décélération vue × ça)
   IA_DISTANCE_SUIVI: 14,        // m : la distance où elle se cale derrière
   IA_DEPART_LANCEMENT: 100,     // m : au départ, sur cette distance, elle suit à IA_DISTANCE_MIN (tout le monde part ensemble)
   IA_GAIN_DISTANCE: 1,          // m/s de vitesse en plus par m d'écart en trop, près d'elle…
