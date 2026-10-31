@@ -20,7 +20,7 @@ const TEXTES = {
     standTour: 'PIT', resultatArret: 'pit L{t}',
     // the weather (meteo.js)
     meteo_pluieArrive: 'Rain is coming!', meteo_pisteSeche: 'The track is drying', meteo_prevision_sec: 'Dry', meteo_prevision_nuageux: 'Cloudy ({p} % rain)', meteo_prevision_risque: 'Risk of rain: {p} %', meteo_prevision_pluie: 'Rain',
-    pneu_slick: 'Slicks', pneu_inter: 'Intermediates', pneu_pluie: 'Wets', pneu_drift: 'Drift',   // (tour 44, Codeur 1 : le pneu drift ; l'écran, Codeur 3)
+    pneu_slick: 'Grip', pneu_inter: 'Intermediates', pneu_pluie: 'Wets', pneu_drift: 'Drift',   // (tour 44, Codeur 1 : le pneu drift ; l'écran, Codeur 3)
     standPneus: 'tyres: {p} (← →)', garagePneus: 'Starting tyres', garagePneusEquipe: 'Team call',
     // team orders
     consigneJoueur: 'Team order: let your team-mate no. {n} through (faster). Ignoring it lowers the team\'s trust.', consigneSuivie: 'Thank you! The team\'s trust goes up.', consigneIgnoree: 'Order ignored: the team\'s trust goes down.',
@@ -382,7 +382,7 @@ const TEXTES = {
     standTour: 'STAND', resultatArret: 'stand T{t}',
     // la météo (meteo.js)
     meteo_pluieArrive: 'La pluie arrive !', meteo_pisteSeche: 'La piste sèche', meteo_prevision_sec: 'Sec', meteo_prevision_nuageux: 'Nuageux ({p} % de pluie)', meteo_prevision_risque: 'Risque de pluie : {p} %', meteo_prevision_pluie: 'Pluie',
-    pneu_slick: 'Slicks', pneu_inter: 'Intermédiaires', pneu_pluie: 'Pluie', pneu_drift: 'Drift',   // (tour 44, Codeur 1 : le pneu drift ; l'écran, Codeur 3)
+    pneu_slick: 'Adhérant', pneu_inter: 'Intermédiaires', pneu_pluie: 'Pluie', pneu_drift: 'Drift',   // (tour 44, Codeur 1 : le pneu drift ; l'écran, Codeur 3)
     standPneus: 'pneus : {p} (← →)', garagePneus: 'Pneus au départ', garagePneusEquipe: 'Au choix de l’équipe',
     // les consignes d'équipe
     consigneJoueur: 'Consigne de l\'écurie : laisse passer ton coéquipier n°{n} (plus rapide). L\'ignorer fait baisser la confiance de l\'écurie.', consigneSuivie: 'Merci ! La confiance de l\'écurie monte.', consigneIgnoree: 'Consigne ignorée : la confiance de l\'écurie baisse.',
@@ -1084,3 +1084,7 @@ Object.assign(TEXTES.fr, {
   tuto_vivante_consigne_adherant: 'En pneus adhérant maintenant : la même épingle, proprement. Tu sens la différence ?',
   tuto_raison_pasGlisse: 'L’arrière n’a pas vraiment glissé : lève le pied en plein virage, ou remets plein gaz en sortie.', tuto_raison_teteAQueue: 'Tête-à-queue : contre-braque plus tôt, et dose l’accélérateur.',
 });
+
+// (tour 37l, Codeur 3) l'icône du pneu monté, à côté de la jauge d'usure (une lettre, le nom en bulle)
+Object.assign(TEXTES.en, { pneuIcone_slick: 'G', pneuIcone_drift: 'D', pneuIcone_inter: 'I', pneuIcone_pluie: 'W' });
+Object.assign(TEXTES.fr, { pneuIcone_slick: 'A', pneuIcone_drift: 'D', pneuIcone_inter: 'I', pneuIcone_pluie: 'P' });

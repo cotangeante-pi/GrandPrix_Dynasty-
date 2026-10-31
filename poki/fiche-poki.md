@@ -8,7 +8,8 @@ Ce sont des propositions du Codeur 3 (tour 37b, 2026-10-29 ; mises à jour au to
   - 3-pluie ;
   - 4-podium ;
   - 5-paddock ;
-  - 6-glissade (en pneus drift, la voiture vivante : l'arrière qui part, les traces de pneus, la fumée ; prise en légende tant que le pneu drift n'existe pas) ;
+  - 6-glissade (en pneus drift, la voiture vivante : l'arrière qui part, les traces de pneus, la fumée) ;
+  - pneus-drift (le choix des pneus au garage, et l'icône du pneu drift en course) ;
   - 7-aides (l'écran « Aides au pilotage », avec le bonus annoncé).
 - Chaque capture existe en `-fr` et en `-en`.
 

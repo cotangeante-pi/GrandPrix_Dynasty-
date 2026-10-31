@@ -1472,7 +1472,10 @@ const INTERFACE = (function () {
   function majPneus(p) {
     $('pneusHud').classList.toggle('cache', !p);
     if (!p) return;
-    $('pneusTexte').textContent = texte('pneus') + ' ' + Math.round(p.reste * 100) + ' %';
+    $('pneusMots').textContent = texte('pneus') + ' ' + Math.round(p.reste * 100) + ' %';
+    // (tour 37l) l'icône du pneu monté, à côté de la jauge (adhérant, drift, intermédiaire, pluie), son nom en bulle (title)
+    const ic = $('pneusIcone'), type = p.type || 'slick';
+    if (ic && ic.dataset.type !== type) { ic.dataset.type = type; ic.textContent = texte('pneuIcone_' + type) || '●'; ic.title = texte('pneu_' + type) || type; }
     $('pneusPlein').style.width = Math.round(Math.max(0, Math.min(1, p.reste)) * 100) + '%';
     $('pneusPlein').className = p.reste < 0.3 ? 'use' : p.reste < 0.6 ? 'moyen' : '';
     // la perte d'adhérence, seulement quand elle se voit (à partir de PNEUS_PERTE_AFFICHEE : jamais « −0,0 % »)
