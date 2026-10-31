@@ -806,7 +806,7 @@ function courseSuivante() {
 function apresGrandPrix() {
   if (JEU.ecran !== 'resultats' || JEU.grandPrixFini) return;
   JEU.lignesGP = CHAMPIONNAT.lignesDepuisCourse(JEU.plateau);
-  montrerInterview(INTERVIEW.question(JEU.championnat, JEU.lignesGP));
+  montrerInterview(INTERVIEW.question(JEU.championnat, JEU.lignesGP, JEU.assistance));   // (les aides de la course : la question sur les aides, tour 37h)
 }
 
 // ?championnat=1 : l'interview d'après course (interview.js), entre les résultats et la une du journal : la question se
@@ -1391,6 +1391,8 @@ function majResume(dt) {
     VOITURE3D.placer(m, p, { braquage: 0, rotationRoues: z.roues[k] });
     m.tete.visible = true;
   });
+  // les traces de pneus et la fumée des glissades enregistrées (effets3d.js, tour 43) ; celles de la course s'effacent
+  if (typeof EFFETS3D !== 'undefined') EFFETS3D.majRejeu(pos, dt);
   const s = pos[RESUME.suivie(z.r, enr)] || pos[0];
   CAMERA.maj(dt, s, { u: s.vitesse });
   // le commentateur du résumé (commentaire.js) : une phrase par moment fort, quand il commence
@@ -1538,6 +1540,14 @@ function majManettes(dt) {
     }
   });
   MANETTES.avant = pads;
+  // la vibration (tour 42) : en conduite, la glisse de l'arrière, le patinage, le blocage, les chocs (le gros moteur), les vibreurs
+  // et l'herbe (le petit) ; une impulsion courte toutes les MANETTE_VIBRATION_PAS s ; coupée avec les effets de conduite
+  MANETTES.vibre = (MANETTES.vibre || 0) + dt;
+  if (conduite && SENSATIONS.actif && MANETTES.vibre >= REGLAGES.MANETTE_VIBRATION_PAS) {
+    MANETTES.vibre = 0;
+    const voitures = JEU.deux ? DEUX_JOUEURS.joueurs(JEU.plateau).map(p => p.v) : [JEU.joueur];
+    pads.forEach((m, k) => { const v = voitures[k]; if (v) MANETTE.vibrer(k, MANETTE.vibration(SENSATIONS.de(v)), REGLAGES.MANETTE_VIBRATION_DUREE); });
+  }
 }
 
 const AUCUNE = { gaz: 0, frein: 0, direction: 0 }, FREIN_SEUL = { gaz: 0, frein: 1, direction: 0 };
@@ -2027,6 +2037,7 @@ function demarrerJeu() {
     changer: a => { if (['course', 'qualif', 'pause', 'grille'].includes(JEU.ecran)) return;   // (jamais pendant la course)
       JEU.assistance[a] = !JEU.assistance[a]; SAUVEGARDE.ecrireOption('aides_pilotage', Object.assign({}, JEU.assistance)); JEU.assistance = ASSISTANCE.reglees(JEU.assistance, REGLAGES.NIVEAU); },
     argent: () => !JEU.deux && !JEU.tournoi,
+    ouvert: oui => { JEU.choixAides = oui; },   // (l'aide au premier usage de cet écran : aides.js, choixAides)
   });
   INTERFACE.majBoutonsFantome(SAUVEGARDE.option('fantome', true));
   PODIUM3D.init(CIRCUIT);
@@ -2062,7 +2073,7 @@ function demarrerJeu() {
     JEU.alpha = alpha;
     JEU.dtImage = dt;
     majManettes(dt);   // la manette (manette.js) : lue à chaque image
-    if (JEU.ecran === 'resume') { majResume(dt); if (JEU.sdkPret) SDK.jeuArrete(); if (JEU.ecran === 'resume') { if (typeof EFFETS3D !== 'undefined') { SENSATIONS.observer([], CIRCUIT); EFFETS3D.maj([], null, dt); } SCENE3D.dessiner(); return; } }   // le résumé vidéo : la 3D rejoue l'enregistrement (Poki : gameplayStop)
+    if (JEU.ecran === 'resume') { majResume(dt); if (JEU.sdkPret) SDK.jeuArrete(); if (JEU.ecran === 'resume') { if (typeof EFFETS3D !== 'undefined') SENSATIONS.observer([], CIRCUIT); SCENE3D.dessiner(); return; } }   // le résumé vidéo : la 3D rejoue l'enregistrement (Poki : gameplayStop)
     majAToi(dt);   // le tournoi : le compte à rebours de « À toi, … ! »   // (« passer » en accéléré : le nombre de pas de l'image suit sa durée)
     const apres = JEU.ecran === 'podium' || JEU.ecran === 'resultats' || JEU.ecran === 'bravo' || JEU.ecran === 'tournoiFin' || JEU.ecran === 'ceremonie';   // le podium (et la cérémonie du champion) : les voitures n'y bougent plus
     // ?ia=N : chaque IA à sa place ; une IA arrivée quitte la piste (elle n'est plus dessinée)

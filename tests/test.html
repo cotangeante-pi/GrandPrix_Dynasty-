@@ -403,6 +403,60 @@ t('le commentateur : le départ est dit dans la première seconde après le GO ;
     for(let k=0;k<120*20;k++){pasCourseIA(e,DT);if(sauter&&k<120*17) continue;COMMENTAIRE.observer(c,e,{joueur:-1,circuit:'X'});const it=COMMENTAIRE.afficher(c,e.temps,false);if(it&&dit===null&&it.type==='depart')dit=e.temps-e.go;}return dit;};
   const aTemps=essai(false),tard=essai(true);L.push('  (le départ dit '+(aTemps===null?'jamais':aTemps.toFixed(2)+' s après le GO')+' ; vu 17 s en retard : '+(tard===null?'oublié':'dit')+')');
   v(aTemps!==null&&aTemps<1,'à temps : '+aTemps);v(tard===null,'dit en retard : '+tard);});
+// --- sentir la voiture vivante (tour 42) : l'arrière qui part et le patinage (sensations.js), leur crissement (son.js), la fumée et les
+// traces de pneus (effets3d.js), la vibration de la manette (manette.js) ; le dessin et le son seulement : la physique au bit près
+t('voiture vivante, les faits : l’arrière qui part (l’angle de glissement de l’arrière) et le patinage (la poussée au-delà de l’adhérence de l’arrière) ; rien quand la voiture accroche', ()=>{const S_=SENSATIONS,R_=REGLAGES,b=R_.EMPATTEMENT-R_.CG_AVANT,m={voiture:0,barriere:0};
+  const vo=sensVoiture(sensDroite,0,30);v(S_.faits(vo,TQ,m).arriere===0&&S_.faits(vo,TQ,m).patinage===0,'droit');
+  vo.r=0;vo.v=-Math.tan(0.135)*30;const mi=S_.faits(vo,TQ,m).arriere;vo.v=-Math.tan(0.3)*30;const plein=S_.faits(vo,TQ,m).arriere;v(mi>0&&mi<1&&plein===1,'arrière '+[mi,plein]);
+  const p=sensVoiture(sensDroite,0,8);p.gaz=1;v(S_.faits(p,TQ,m).patinage===0,'sans charge connue');p.chargeArriere=1500;const pa=S_.faits(p,TQ,m).patinage;p.chargeArriere=1e6;const pb=S_.faits(p,TQ,m).patinage;v(pa>0&&pb===0,'patinage '+[pa,pb]);});
+t('voiture vivante, le son, la fumée, les traces, la vibration : chacun part sur son fait ; les traces vont par deux roues, s’effacent et restent dans leur anneau ; rien sans fait', ()=>{const R_=REGLAGES,F=x=>Object.assign({vibreur:0,herbe:0,glisse:0,blocage:0,contact:0,choc:0,vitesse:30,arriere:0,patinage:0},x);
+  const vo=sensVoiture(sensDroite,0,30),s1=SON.mixage(vo,F({arriere:1}),null,{rapport:null}),s0=SON.mixage(vo,F({}),null,{rapport:null});
+  v(s1.volumePneus===R_.SON_VOLUME_ARRIERE&&s1.frequencePneus===R_.SON_ARRIERE_FREQUENCE&&s0.volumePneus===0,'son '+JSON.stringify([s1.volumePneus,s0.volumePneus]));
+  const e=EFFETS3D.creer(),pos={x:vo.x,z:vo.z,cap:vo.cap};EFFETS3D.emettre(e,vo,pos,F({}),0.1);EFFETS3D.emettre(e,vo,{x:pos.x+1,z:pos.z,cap:pos.cap},F({}),0.1);v(e.trace.length===0&&e.fumee.length===0,'sans fait');
+  for(let k=0;k<5;k++) EFFETS3D.emettre(e,vo,{x:pos.x+k,z:pos.z,cap:pos.cap},F({arriere:1}),0.1);v(e.trace.length===8&&e.fumee.length>0,'traces de l’arrière '+e.trace.length+' fumée '+e.fumee.length);
+  EFFETS3D.emettre(e,vo,{x:pos.x+50,z:pos.z,cap:pos.cap},F({arriere:1}),0.1);v(e.trace.length===8,'un saut ne trace pas');
+  for(let k=0;k<2000;k++) EFFETS3D.emettre(e,vo,{x:pos.x+k*0.5,z:pos.z,cap:pos.cap},F({blocage:1,patinage:1}),0.01);v(e.trace.length===R_.TRACES_MAX,'anneau '+e.trace.length);
+  EFFETS3D.avancer(e,R_.TRACES_VIE+0.1);v(e.trace.length===0,'effacées');
+  const M_=MANETTE;v(M_.vibration(F({}))===null&&M_.vibration(F({arriere:1})).fort>0.5&&M_.vibration(F({vibreur:1})).faible>0&&M_.vibration(F({vibreur:1})).fort===0,'vibration');v(M_.vibrer(0,{fort:1,faible:1},100)===false,'pas de manette : rien');});
+t('voiture vivante (expert) : en sortie d’épingle à plein gaz, l’arrière part, la voiture patine, fume et laisse des traces ; la même course avec et sans les faits, le son et les effets, au bit près', ()=>{const R_=REGLAGES,niv=R_.NIVEAU;R_.NIVEAU='expert';try{
+  const V=CARTES_T.technique.virages.reduce((a,b)=>CARTES_T.technique.trajectoire.vitesse[Math.round(a.s/TQ.pas)%TQ.nb]<CARTES_T.technique.trajectoire.vitesse[Math.round(b.s/TQ.pas)%TQ.nb]?a:b);
+  const tour=avec=>{const vo=creerVoiture(TQ,0,0);placerSurPiste(vo,TQ,V.s-60,0);vo.u=20;const e=EFFETS3D.creer(),m={voiture:0,barriere:0};let arr=0,pat=0;
+    for(let k=0;k<120*6;k++){const c=piloteRobot(vo,TQ);lisserCommandes(vo,{gaz:c.frein>0.2?0:1,frein:c.frein>0.2?c.frein:0,direction:c.direction},DT);pasVoiture(vo,TQ,DT);
+      if(avec){const f=SENSATIONS.faits(vo,TQ,m);if(f.arriere>0.3)arr++;if(f.patinage>0)pat++;SON.mixage(vo,f,null,{rapport:null});EFFETS3D.emettre(e,vo,vo,f,DT);EFFETS3D.avancer(e,DT);}}
+    return {etat:JSON.stringify(vo),arr,pat,traces:e.trace.length,fumee:e.fumee.length};};
+  const a=tour(false),b=tour(true);L.push('  (voiture vivante, sortie d’épingle à plein gaz, 6 s : '+b.arr+' pas avec l’arrière qui part, '+b.pat+' qui patinent, '+b.traces+' bandes de traces, '+b.fumee+' bouffées)');
+  v(b.arr>0||b.pat>0,'rien senti');v(b.traces>0,'aucune trace');v(a.etat===b.etat,'la physique a changé');}finally{R_.NIVEAU=niv;}});
+// --- la glissade rattrapée (tour 43) : le commentateur la dit (seulement quand c'est vrai), le résumé en garde une grosse, et ses
+// traces de pneus repassent au rejeu ; lu dans l'état des voitures, jamais écrit
+const glisser=(vo,alpha,u)=>{vo.u=u||30;vo.r=0;vo.v=-Math.tan(alpha)*vo.u;};
+t('glissade rattrapée : l’arrière part puis la voiture accroche de nouveau ; pas rattrapée dans l’herbe, en tête-à-queue, presque arrêtée, ni trop courte', ()=>{const S_=SENSATIONS,R_=REGLAGES;
+  const essai=(dureeGlisse,alpha,herbe,u)=>{const vo=sensVoiture(sensDroite,0,30),et={};let r=null,t_=0;
+    for(;t_<dureeGlisse;t_+=0.05){glisser(vo,alpha,u);vo.surHerbe=!!herbe;r=S_.suivreGlissade(et,vo,t_)||r;}
+    for(let k=0;k<30;k++,t_+=0.05){glisser(vo,0,u);vo.surHerbe=false;r=S_.suivreGlissade(et,vo,t_)||r;}return r;};
+  const bon=essai(0.6,0.3);v(bon&&bon.max===1&&Math.abs(bon.duree-0.6)<0.06,'rattrapée '+JSON.stringify(bon));
+  v(essai(0.6,0.3,true)===null,'herbe');v(essai(0.6,1.2)===null,'tête-à-queue');v(essai(0.1,0.3)===null,'trop courte');v(essai(0.6,0.12)===null,'sous le seuil');v(essai(0.6,0.3,false,4)===null,'presque arrêtée');});
+t('glissade rattrapée, le commentateur : « {qui} rattrape la glissade ! » pour le joueur, une fois, pas deux en moins de COMMENTAIRE_GLISSADE_INTERVALLE s ; rien sans glissade', ()=>{
+  const e=creerCourseIA(TQ,3,1,5,CARTES_T.technique,true),j=e.pilotes.findIndex(p_=>p_.humain),vo=e.pilotes[j].v,c=COMMENTAIRE.creer(3);
+  COMMENTAIRE.observer(c,e,{joueur:j,circuit:'X'});const dire=(alpha,s)=>{for(let k=0;k<s/0.05;k++){e.temps+=0.05;glisser(vo,alpha);COMMENTAIRE.observer(c,e,{joueur:j,circuit:'X'});}};
+  dire(0,2);v(!c.file.some(x=>x.type==='glissade'),'sans glissade');
+  dire(0.3,0.6);dire(0,1);const f=c.file.filter(x=>x.type==='glissade');v(f.length===1&&f[0].joueur,'dite '+f.length);
+  dire(0.3,0.6);dire(0,1);v(c.file.filter(x=>x.type==='glissade').length===1,'redite trop tôt');
+  const it={type:'glissade',variante:1,params:{qui:j}},ph=COMMENTAIRE.phrase(it,k=>'Toi',y=>String(y));v(/Toi/.test(ph)&&!/\{/.test(ph),ph);
+  v(COMMENTAIRE.momentResume(COMMENTAIRE.creer(1),{type:'glissade',qui:j},j).type==='glissade','au résumé');});
+t('glissade rattrapée, le résumé : une grosse glissade du joueur devient un moment fort (pas une petite) ; l’enregistrement garde quand l’arrière glisse, et le rejeu y laisse des traces de pneus', ()=>{
+  const enr=creerEnregistreur(2,{joueur:0}),a=sensVoiture(sensDroite,0,30),b=sensVoiture(sensDroite,5,30);let t_=0;
+  const pas=(alpha,s)=>{for(let k=0;k<s*120;k++){t_+=1/120;glisser(a,alpha);a.x+=Math.cos(a.cap)*30/120;a.z+=Math.sin(a.cap)*30/120;b.x+=Math.cos(b.cap)*30/120;b.z+=Math.sin(b.cap)*30/120;enr.enregistrer(t_,[a,b],null);}};
+  pas(0,2);pas(0.12,0.3);pas(0,1);pas(0.3,0.8);const pendant=enr.lire(t_-0.2);pas(0,2);
+  const g=enr.momentsForts().filter(m=>m.type==='glissade');v(g.length===1&&g[0].qui===0&&g[0].importance===REGLAGES_ENREGISTREUR.IMPORTANCE_GLISSADE+REGLAGES_ENREGISTREUR.IMPORTANCE_JOUEUR,'moments '+JSON.stringify(g));
+  v(pendant[0].glisse&&!pendant[1].glisse&&!enr.lire(1)[0].glisse,'l’arrière qui glisse, enregistré');
+  const fx=EFFETS3D.creer();for(let k=0;k<10;k++) EFFETS3D.rejeu(fx,[{x:k*2,z:0,cap:0,vitesse:30,glisse:true},{x:k*2,z:9,cap:0,vitesse:30,glisse:false}],0.05);
+  v(fx.trace.length===18&&fx.trace.every(p_=>p_.z0<5),'traces au rejeu '+fx.trace.length);});
+t('glissade rattrapée : la course ne bouge pas d’un bit (expert, 4 IA et le joueur conduit par le robot, 15 s) avec le commentateur et l’enregistreur qui suivent les glissades, ou pas', ()=>{const R_=REGLAGES,niv=R_.NIVEAU;R_.NIVEAU='expert';try{
+  const course=avec=>{const e=creerCourseIA(TQ,4,1,17,CARTES_T.technique,true);for(const p_ of e.pilotes) p_.course.compte=0;const j=e.pilotes.findIndex(p_=>p_.humain),c=COMMENTAIRE.creer(5),enr=creerEnregistreur(e.pilotes.length,{joueur:j});
+    for(let k=0;k<120*15;k++){pasCourseIA(e,DT,(p_,dt)=>{const r=piloteRobot(p_.v,TQ);lisserCommandes(p_.v,{gaz:r.frein>0.2?0:1,frein:r.frein>0.2?r.frein:0,direction:r.direction},dt);});
+      if(avec){enr.enregistrer(e.temps,e.pilotes.map(p_=>p_.v),null);if(k%6===0)COMMENTAIRE.observer(c,e,{joueur:j,circuit:'X'});}}
+    return JSON.stringify(e.pilotes.map(p_=>p_.v));};
+  v(course(false)===course(true),'la course a changé');}finally{R_.NIVEAU=niv;}});
 // --- la manette (manette.js, tour 38) : la disposition standard, les zones mortes, le clavier et la manette ensemble,
 // les appuis comptés une fois, les menus au stick ou à la croix ; sans manette, les cibles du clavier au bit près
 const fauxPad=(o={})=>{const b=[];for(let i=0;i<17;i++) b.push({value:0,pressed:false});for(const [k,x] of Object.entries(o.boutons||{})) b[MANETTE.BOUTONS[k]]={value:x,pressed:x>0.5};return {connected:true,axes:o.axes||[0,0,0,0],buttons:b};};
@@ -2192,6 +2246,42 @@ t('interview : le journal fait sa une de la phrase de l’interview (fait « int
   // une victoire passe devant la phrase de l'interview
   l=itwLignes(milieu(1,9),contact);q=INTERVIEW.question(ch,l);INTERVIEW.repondre(ch,q,'provocant');CHAMPIONNAT.finirGrandPrix(ch,l);v(ch.album[ch.album.length-1].f==='premiereVictoire'&&ch.album[ch.album.length-1].g===4,'victoire devant : '+ch.album[ch.album.length-1].f);
   localStorage.removeItem(SAUVEGARDE.CLE);});
+// --- (tour 37h, le propriétaire 2026-10-30) le monde réagit aux aides : la une (première course sans aide, premier podium et première victoire
+// sans aide, première victoire en légende), la question de l'interview, l'exploit gardé pour les discussions ; jamais rien pour qui
+// garde ses aides ; les aides viennent de la course (finirGrandPrix les reçoit)
+t('aides et journal : « sans les petites roues » à la première course sans aide, au premier podium, à la première victoire ; en légende, la voiture vivante ; rien avec les aides ; une seule fois chacun', ()=>{
+  const R_=REGLAGES,niv=R_.NIVEAU,SANS={direction:false,freinage:false,antiblocage:false,antipatinage:false},TOUTES={direction:true,freinage:true,antiblocage:true,antipatinage:true};
+  const ch=CHAMPIONNAT.creer(77),gp=(ordre,aides)=>{CHAMPIONNAT.finirGrandPrix(ch,lignesUne(ordre),aides);return ch.album[ch.album.length-1];};
+  const P=[...Array(19).keys()],place=n=>{const o=P.slice();o.splice(n-1,0,19);return o;},f=[];
+  try{R_.NIVEAU='normal';
+    const ch0=CHAMPIONNAT.creer(76);CHAMPIONNAT.finirGrandPrix(ch0,lignesUne(place(3)),SANS);v(!/^sansAide/.test(ch0.album[ch0.album.length-1].f),'jamais couru avec des aides : rien à fêter');
+    let u=gp(place(8),TOUTES);v(!/^sansAide|^legende/.test(u.f)&&!ch.exploitAides,'avec les aides : '+u.f);
+    u=gp(place(8),SANS);f.push(u.f);v(u.f==='sansAidePremiere'&&ch.exploitAides.f==='sansAidePremiere'&&ch.exploitAides.place===8,'première sans aide : '+JSON.stringify([u.f,ch.exploitAides]));
+    u=gp(place(9),SANS);v(!/^sansAide/.test(u.f),'deuxième sans aide, rien de neuf : '+u.f);
+    u=gp(place(3),SANS);v(u.f==='sansAidePodium'&&u.p.place===3,'premier podium sans aide : '+u.f);
+    u=gp(place(2),SANS);v(u.f!=='sansAidePodium','deuxième podium sans aide : '+u.f);
+    u=gp(place(1),SANS);v(u.f==='sansAideVictoire'&&ch.exploitAides.f==='sansAideVictoire','première victoire sans aide : '+u.f);
+    u=gp(place(1),SANS);v(u.f==='victoire','deuxième victoire sans aide : '+u.f);
+    u=gp(place(1),TOUTES);v(u.f==='victoire','victoire avec les aides : '+u.f);
+    R_.NIVEAU='legende';u=gp(place(1),TOUTES);v(u.f==='legendeVictoire'&&ch.exploitAides.f==='legendeVictoire','légende : '+u.f);
+    u=gp(place(1),TOUTES);v(u.f==='victoire','deuxième victoire en légende : '+u.f);
+  }finally{R_.NIVEAU=niv;localStorage.removeItem(SAUVEGARDE.CLE);}
+  for(const k of ['sansAideVictoire','sansAidePodium','sansAidePremiere','legendeVictoire']) for(const l of ['en','fr']) v(TEXTES[l]['uneTitre_'+k].length>=3&&TEXTES[l]['uneTexte_'+k].length>=2,l+' '+k);});
+t('aides et interview : la question sur les aides (première course sans aide, premier podium sans aide ; victoire en légende), avec les trois tons ; rien avec les aides ni sans les aides de la course', ()=>{
+  const R_=REGLAGES,niv=R_.NIVEAU,SANS={direction:false,freinage:false,antiblocage:false,antipatinage:false},TOUTES={direction:true,freinage:true,antiblocage:true,antipatinage:true};
+  const ch=CHAMPIONNAT.creer(78);
+  try{R_.NIVEAU='normal';
+    v(INTERVIEW.question(ch,itwLignes(milieu(8,9)),SANS).fait!=='sansAide','jamais couru avec des aides : rien à fêter');
+    CHAMPIONNAT.finirGrandPrix(ch,itwLignes(milieu(8,9)),TOUTES);
+    v(INTERVIEW.question(ch,itwLignes(milieu(8,9)),SANS).fait==='sansAide','première sans aide');
+    v(INTERVIEW.question(ch,itwLignes(milieu(8,9)),TOUTES).fait!=='sansAide'&&INTERVIEW.question(ch,itwLignes(milieu(8,9))).fait!=='sansAide','avec les aides');
+    CHAMPIONNAT.finirGrandPrix(ch,itwLignes(milieu(8,9)),SANS);
+    v(INTERVIEW.question(ch,itwLignes(milieu(8,9)),SANS).fait!=='sansAide','plus la première');
+    const q=INTERVIEW.question(ch,itwLignes(milieu(3,9)),SANS);v(q.fait==='sansAide'&&q.params.place===3&&q.reponses.length===3,'premier podium sans aide : '+JSON.stringify(q));
+    R_.NIVEAU='legende';v(INTERVIEW.question(ch,itwLignes(milieu(1,9)),TOUTES).fait==='legende','légende');
+  }finally{R_.NIVEAU=niv;localStorage.removeItem(SAUVEGARDE.CLE);}
+  for(const f of ['sansAide','legende']) for(const l of ['en','fr']){v(TEXTES[l]['interview_'+f+'_q'].length>=3,l+' '+f);for(const ton of ['provocant','calme','malin']) v(typeof TEXTES[l]['interview_'+f+'_'+ton]==='string',l+' '+f+' '+ton);}});
+
 // --- les rumeurs de transfert (tour 27c, saisons.js intentions + journal.js breveRumeur, Codeur 3)
 t('rumeurs : les intentions de transfert sont décidées en début de saison (graine : les mêmes pour le même championnat, dans la sauvegarde) : des paires de pilotes IA d’écuries différentes, jamais le joueur, jamais un pilote deux fois ; une ancienne sauvegarde sans intentions les reçoit au chargement', ()=>{
   const R_=REGLAGES,ch=CHAMPIONNAT.creer(80),T=ch.transferts;v(T&&T.saison===1&&T.liste.length>=1&&T.liste.length<=R_.TRANSFERTS_PAR_SAISON,'intentions : '+JSON.stringify(T));

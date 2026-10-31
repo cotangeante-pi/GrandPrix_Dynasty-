@@ -29,9 +29,14 @@ const AIDES = (function () {
     // les écrans entre les courses : le garage, l'aileron, le duel au paddock, les contrats, l'interview
     { id: 'garage', genre: 'menu', quand: s => s.ecran === 'garage', faite: () => false },
     { id: 'aileron', genre: 'menu', quand: s => s.ecran === 'aileron', faite: () => false },
-    { id: 'duel', genre: 'menu', quand: s => s.ecran === 'championnat' && s.coequipier, faite: () => false },
+    { id: 'duel', genre: 'menu', quand: s => s.ecran === 'championnat' && s.coequipier && !s.choixAides, faite: () => false },   // (le choix des aides ouvert par-dessus : sa bulle à lui)
     { id: 'contrats', genre: 'menu', quand: s => s.ecran === 'contrats', faite: () => false },
     { id: 'interview', genre: 'menu', quand: s => s.ecran === 'interview', faite: () => false },
+    // (tour 37g, Codeur 3) la voiture « vivante » des niveaux expert et légende : la première course, en ligne droite (l'arrière peut
+    // glisser si l'on freine en braquant : freiner droit, puis tourner)
+    { id: 'vivante', genre: 'course', quand: s => enCourse(s) && s.etat === 'course' && s.niveauDur, faite: () => false },
+    // (tour 37g) la première fois qu'on ouvre le choix des aides au pilotage (interface.js, ouvrirAides) : ce que fait chaque aide, le bonus
+    { id: 'choixAides', genre: 'menu', quand: s => s.choixAides, faite: () => false },
   ];
   const PAR_ID = {};
   for (const a of LISTE) PAR_ID[a.id] = a;
@@ -66,6 +71,7 @@ const AIDES = (function () {
       coequipier: !!J.championnat,
       vitesse: v ? Math.abs(v.u) : 0, frein: v ? v.frein || 0 : 0, direction: v ? v.direction || 0 : 0,
       courbure: courbureDevant(circuit, v),
+      niveauDur: R.NIVEAU === 'expert' || R.NIVEAU === 'legende', choixAides: !!J.choixAides,
     };
   }
 

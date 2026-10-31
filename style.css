@@ -1344,3 +1344,6 @@ button.manette-choix { box-shadow: 0 0 0 3px #ffd23f, 0 0 14px 2px rgba(255, 210
 #sauvegardePerdue.cache { display: none; }
 .ecran button.aidesJoueur.court { min-width: 0; flex: 0 0 auto; padding: 4px 8px; }   /* (le tournoi : un petit bouton par ligne, la ligne tient en 960) */
 .deuxJoueur .aidesJoueur { align-self: flex-start; }
+#choixAidesListe button { flex-wrap: wrap; }
+#choixAidesListe .quoi { flex-basis: 100%; text-align: left; font-size: 11px; font-weight: 600; opacity: 0.75; }   /* (tour 37g : ce que fait l'aide) */
+#bulleAide.bulleMenu { z-index: 24; }   /* (au-dessus du choix des aides, qui est par-dessus l'écran) */
