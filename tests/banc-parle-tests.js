@@ -364,5 +364,18 @@ t('discussions : un rival remarque l’exploit sans aide (circuit et place vrais
   v(r3.raisons.includes('exploit_legende') && r3.texte.includes(texte('circuit_spaa')), 'légende : ' + JSON.stringify([r3.raisons, r3.texte]));
   for (const l of ['en', 'fr']) for (const c of ['dis_raison_exploit_sansAide', 'dis_raison_exploit_legende']) v(Array.isArray(TEXTES[l][c]) && TEXTES[l][c].length >= 2, l + ' ' + c);
 });
+// (tour 37i) ton patron remarque l'exploit une fois, dans son ton, avec un petit plus de confiance (jamais un moins) ; un autre patron, non
+t('patrons : ton patron remarque l’exploit sans aide une seule fois (circuit et place vrais), la confiance monte de PATRON_CONFIANCE_EXPLOIT ; sans exploit, rien ne bouge', () => {
+  const ch = nouveau(); gpCouru(ch); const e = moi(ch).ecurie, autre = (e + 1) % ch.ecuries.length;
+  const c0 = ch.reputation.ecurie, r0 = PATRONS.dire(ch, e, 'salut', 'championnat');
+  v(!r0.raisons.some(x => x.startsWith('exploit_')) && ch.reputation.ecurie === c0, 'sans exploit : ' + JSON.stringify([r0.raisons, ch.reputation.ecurie, c0]));
+  ch.exploitAides = { f: 'sansAideVictoire', gp: 1, saison: ch.saison, circuit: 'monzo', place: 1 };
+  const c1 = ch.reputation.ecurie, r1 = PATRONS.dire(ch, e, 'salut', 'championnat'), c2 = ch.reputation.ecurie, r2 = PATRONS.dire(ch, e, 'salut', 'championnat');
+  v(r1.raisons.includes('exploit_sansAide') && r1.texte.includes(texte('circuit_monzo')) && /P1/.test(r1.texte) && c2 === Math.min(100, c1 + R.PATRON_CONFIANCE_EXPLOIT), 'la première fois : ' + JSON.stringify([r1.raisons, r1.texte, c1, c2]));
+  v(!r2.raisons.some(x => x.startsWith('exploit_')) && ch.reputation.ecurie === c2, 'une seule fois');
+  const r3 = PATRONS.peutParler(ch, autre, 'championnat') ? PATRONS.dire(ch, autre, 'salut', 'championnat') : null;
+  v(!r3 || !r3.raisons.some(x => x.startsWith('exploit_')), 'un autre patron');
+  for (const l of ['en', 'fr']) for (const c of ['pat_raison_exploit_sansAide', 'pat_raison_exploit_legende']) v(Array.isArray(TEXTES[l][c]) && TEXTES[l][c].length >= 2, l + ' ' + c);
+});
 t('la console reste vide', () => { v(typeof __err === 'undefined' || !__err.length, typeof __err !== 'undefined' ? __err.join(' | ') : ''); });
 ecrire();
