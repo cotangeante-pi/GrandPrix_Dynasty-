@@ -93,7 +93,13 @@ const REGLAGES = {
     compte: [[440], 0.15],      // 3, 2, 1
     go: [[880], 0.45],
     arrivee: [[523, 659, 784, 1047], 0.16],
+    commentaire: [[784, 988], 0.06, 0.4],   // le petit signal du commentateur à chaque phrase (tour 44), à 40 % des autres
   },
+  // le mélange (son.js, tour 44) : un volume par famille (menu pause et paddock, sauvegardé), puis un compresseur et un plafond
+  SON_FAMILLES: { effets: 1, ambiance: 1, commentateur: 1 },   // de 0 à 1 : moteur et effets, ambiance (pluie, feux, arrivée), commentateur
+  SON_FAMILLES_PAS: 0.25,          // les boutons vont de 100 % à 0 par quarts
+  SON_COMPRESSEUR: [-10, 6, 12, 0.003, 0.25],   // seuil (dB), genou (dB), rapport, attaque et relâche (s) : le mélange ne sature pas
+  SON_PLAFOND: 0.8,                // le gain après le compresseur : il reprend son gain de rattrapage (le même volume qu'avant, à 1 dB près) et laisse une marge sous 1
   SON_VOLUME_SIGNAL: 0.25,
   SON_LISSAGE: 0.03,            // s : le son rejoint sa nouvelle valeur en ce temps (pas de clics)
   // les sensations de conduite (tour 37, sensations.js, son.js, effets3d.js, camera.js) : le son et l'image seulement,

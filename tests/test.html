@@ -457,6 +457,16 @@ t('glissade rattrapée : la course ne bouge pas d’un bit (expert, 4 IA et le j
       if(avec){enr.enregistrer(e.temps,e.pilotes.map(p_=>p_.v),null);if(k%6===0)COMMENTAIRE.observer(c,e,{joueur:j,circuit:'X'});}}
     return JSON.stringify(e.pilotes.map(p_=>p_.v));};
   v(course(false)===course(true),'la course a changé');}finally{R_.NIVEAU=niv;}});
+// --- le réglage du son (son.js, tour 44) : un volume par famille, par quarts, avant le premier geste aussi ; le pas suivant d'un bouton
+t('le son, le réglage par famille : moteur et effets, ambiance, commentateur ; de 0 à 100 % par quarts, borné ; le bouton fait 100 → 75 → 50 → 25 → 0 → 100 ; rien ne joue avant un geste', ()=>{
+  const avant=SON.volumes;try{v(JSON.stringify(SON.FAMILLES)==='["effets","ambiance","commentateur"]','familles');
+    const r=SON.reglerVolumes({effets:0.6,ambiance:2,commentateur:-1});v(r.effets===0.5&&r.ambiance===1&&r.commentateur===0,'bornes et quarts '+JSON.stringify(r));
+    const pas=[1];let x=1;for(let k=0;k<5;k++){x=SON.suivant(x);pas.push(x);}v(pas.join()==='1,0.75,0.5,0.25,0,1','cycle '+pas.join());
+    SON.reglerVolumes({ambiance:0.25});v(SON.volumes.effets===0.5&&SON.volumes.ambiance===0.25,'une famille seule');
+    v(TEXTES.fr.son_effets.includes('{p}')&&TEXTES.en.son_effets.includes('{p}')&&SON.FAMILLES.every(f=>TEXTES.fr['son_'+f]&&TEXTES.en['son_'+f]),'textes');
+    const n=SON.historique.length;SON.signal('commentaire');v(SON.historique.length===n&&SON.indices>0,'le signal du commentateur n’est pas un signal de course');
+    SON.couperPub(true);v(SON.muet&&SON.coupe&&!SON.muetJoueur,'pendant une pub');SON.couperPub(false);v(!SON.coupe,'après la pub');
+    v(!SON.actif,'un AudioContext sans geste');}finally{SON.reglerVolumes(avant);}});
 // --- la manette (manette.js, tour 38) : la disposition standard, les zones mortes, le clavier et la manette ensemble,
 // les appuis comptés une fois, les menus au stick ou à la croix ; sans manette, les cibles du clavier au bit près
 const fauxPad=(o={})=>{const b=[];for(let i=0;i<17;i++) b.push({value:0,pressed:false});for(const [k,x] of Object.entries(o.boutons||{})) b[MANETTE.BOUTONS[k]]={value:x,pressed:x>0.5};return {connected:true,axes:o.axes||[0,0,0,0],buttons:b};};

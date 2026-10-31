@@ -3,11 +3,16 @@
 // Les sensations de conduite (tour 37, sensations.js) : le passage des rapports, les vibreurs et l'herbe, le blocage des
 // roues, le souffle de l'aspiration, la voiture d'à côté (Doppler), la pluie sur la carrosserie ; « Effets de conduite »
 // (menu pause) les coupe. Tout se calcule dans mixage (pur, testé sans écouter) ; maj ne fait que l'appliquer.
+// Le mélange (tour 44) : trois familles, chacune avec son volume de 0 à 100 % (menu pause et paddock, sauvegardé) : moteur et effets
+// (moteur, pneus, vibreurs, herbe, aspiration, voiture d'à côté, chocs), ambiance (pluie, feux, arrivée), commentateur (son petit
+// signal à chaque phrase) ; puis le volume général et M, un compresseur et un plafond : rien ne sature quand tout joue ensemble.
+// Coupé quand l'onglet est caché et pendant une pub (couperPub), sans toucher au choix du joueur (M).
 const SON = (function () {
   const R = REGLAGES;
   let ctx = null;              // l'AudioContext, créé au premier geste
-  let muet = false, cache = document.hidden;
-  let general = null, moteur = null, pneus = null, sens = null;
+  let muet = false, cache = document.hidden, pub = false;
+  let general = null, moteur = null, pneus = null, sens = null, familles = null;
+  const volumes = Object.assign({}, R.SON_FAMILLES);   // { effets, ambiance, commentateur } de 0 à 1
   let contactsVus = 0;
   const memo = { rapport: null };   // le rapport de l'image d'avant (le passage d'un rapport)
   let coupureJusque = -1;           // la coupure du passage en cours (temps de l'AudioContext)
@@ -18,13 +23,25 @@ const SON = (function () {
     const Contexte = window.AudioContext || window.webkitAudioContext;
     if (!Contexte) return;
     ctx = new Contexte();
-    general = ctx.createGain();
-    general.connect(ctx.destination);
+    construireMixage();
     construireMoteur();
     construirePneus();
     construireSensations();
     appliquerVolume();
   }
+
+  // le mélange : chaque famille → le volume général (et M) → un compresseur → un plafond → la sortie
+  function construireMixage() {
+    familles = {};
+    general = ctx.createGain();
+    for (const f of FAMILLES) { familles[f] = ctx.createGain(); familles[f].gain.value = volumes[f]; familles[f].connect(general); }
+    const comp = ctx.createDynamicsCompressor(), [seuil, genou, rapport, attaque, relache] = R.SON_COMPRESSEUR;
+    comp.threshold.value = seuil; comp.knee.value = genou; comp.ratio.value = rapport; comp.attack.value = attaque; comp.release.value = relache;
+    const plafond = ctx.createGain();
+    plafond.gain.value = R.SON_PLAFOND;
+    general.connect(comp).connect(plafond).connect(ctx.destination);
+  }
+  const FAMILLES = ['effets', 'ambiance', 'commentateur'];
 
   // le moteur : deux oscillateurs (la note et son octave) dans un filtre passe-bas
   function construireMoteur() {
@@ -40,7 +57,7 @@ const SON = (function () {
     gainOctave.gain.value = 0.3;
     note.connect(filtre);
     octave.connect(gainOctave).connect(filtre);
-    filtre.connect(gain).connect(general);
+    filtre.connect(gain).connect(familles.effets);
     note.start();
     octave.start();
     moteur = { note, octave, filtre, gain };
@@ -65,19 +82,19 @@ const SON = (function () {
     filtre.Q.value = 3;
     const gain = ctx.createGain();
     gain.gain.value = 0;
-    source.connect(filtre).connect(gain).connect(general);
+    source.connect(filtre).connect(gain).connect(familles.effets);
     source.start();
     pneus = { gain, filtre };
   }
 
   // une source qui tourne en boucle (bruit ou oscillateur) → un filtre → un volume à 0 ; renvoie { source, filtre, gain }
-  function voie(source, type, frequence) {
+  function voie(source, type, frequence, famille) {
     const filtre = ctx.createBiquadFilter();
     filtre.type = type;
     filtre.frequency.value = frequence;
     const gain = ctx.createGain();
     gain.gain.value = 0;
-    source.connect(filtre).connect(gain).connect(general);
+    source.connect(filtre).connect(gain).connect(familles[famille || 'effets']);
     source.start();
     return { source, filtre, gain };
   }
@@ -98,7 +115,7 @@ const SON = (function () {
       herbe: voie(bruitEnBoucle(), 'lowpass', 280),
       aspiration: voie(bruitEnBoucle(), 'lowpass', 900),
       voisin: voie(oscillateur('sawtooth'), 'lowpass', 1400),
-      pluie: voie(bruitEnBoucle(), 'highpass', 3500),
+      pluie: voie(bruitEnBoucle(), 'highpass', 3500, 'ambiance'),
     };
   }
 
@@ -113,7 +130,7 @@ const SON = (function () {
     const gain = ctx.createGain(), t = ctx.currentTime;
     gain.gain.setValueAtTime(R.SON_VOLUME_CHOC * force, t);
     gain.gain.exponentialRampToValueAtTime(0.001, t + R.SON_CHOC_DUREE);
-    source.connect(filtre).connect(gain).connect(general);
+    source.connect(filtre).connect(gain).connect(familles.effets);
     source.start(t);
     source.stop(t + R.SON_CHOC_DUREE + 0.05);
   }
@@ -121,8 +138,19 @@ const SON = (function () {
   function appliquerVolume() {
     if (!ctx) return;
     general.gain.value = muet ? 0 : R.SON_VOLUME;
-    if (muet || cache) ctx.suspend(); else ctx.resume();
+    for (const f of FAMILLES) familles[f].gain.value = volumes[f];
+    if (muet || cache || pub) ctx.suspend(); else ctx.resume();
   }
+  // le volume de chaque famille (0 à 1, par pas de SON_FAMILLES_PAS) : { effets, ambiance, commentateur }, celles qu'on donne
+  function reglerVolumes(o) {
+    for (const f of FAMILLES) if (o && typeof o[f] === 'number' && isFinite(o[f])) volumes[f] = Math.max(0, Math.min(1, Math.round(o[f] / R.SON_FAMILLES_PAS) * R.SON_FAMILLES_PAS));
+    appliquerVolume();
+    return Object.assign({}, volumes);
+  }
+  // le volume suivant d'une famille (100 → 75 → 50 → 25 → 0 → 100 %), pour un bouton
+  function suivant(x) { const n = Math.round(x / R.SON_FAMILLES_PAS) - 1; return n < 0 ? 1 : n * R.SON_FAMILLES_PAS; }
+  // pendant une pub (Poki) : tout coupé, puis rendu tel que le joueur l'avait (M n'est pas touché)
+  function couperPub(oui) { pub = !!oui; appliquerVolume(); }
 
   // ce que le son doit jouer pour une voiture (calcul pur, testé sans écouter)
   function parametres(v) {
@@ -208,18 +236,19 @@ const SON = (function () {
   // un signal de course (compte, go, arrivee) : des notes courtes. Chaque demande est notée (pour les tests),
   // mais rien ne joue avant le premier geste ni quand le son est coupé.
   const historique = [];
+  let indices = 0;
   function signal(type) {
-    historique.push(type);
+    if (type === 'commentaire') indices++; else historique.push(type);   // (le petit signal du commentateur n'est pas un signal de course)
     if (!ctx || muet) return;
-    const [notes, duree] = R.SON_SIGNAUX[type];
+    const [notes, duree, part] = R.SON_SIGNAUX[type], famille = type === 'commentaire' ? familles.commentateur : familles.ambiance;
     let t = ctx.currentTime;
     for (const f of notes) {
       const o = ctx.createOscillator(), g = ctx.createGain();
       o.type = 'square';
       o.frequency.value = f;
-      g.gain.setValueAtTime(R.SON_VOLUME_SIGNAL, t);
+      g.gain.setValueAtTime(R.SON_VOLUME_SIGNAL * (part || 1), t);
       g.gain.exponentialRampToValueAtTime(0.001, t + duree);
-      o.connect(g).connect(general);
+      o.connect(g).connect(famille);
       o.start(t);
       o.stop(t + duree + 0.02);
       t += duree;
@@ -237,10 +266,44 @@ const SON = (function () {
   window.addEventListener('pointerdown', premierGeste);
   document.addEventListener('visibilitychange', () => { cache = document.hidden; appliquerVolume(); });
 
+  // le pire cas (tests) : tout joue en même temps, au plus fort (moteur, pneus, vibreurs, herbe, aspiration, voiture d'à côté, pluie,
+  // un choc, les signaux et le commentateur), rendu hors ligne (OfflineAudioContext, sans geste ni haut-parleur) ; renvoie la crête du
+  // mélange, et celle qu'il aurait sans compresseur ni plafond. L'état du son de la page est remis comme avant.
+  async function essaiSaturation(duree) {
+    const Hors = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    if (!Hors) return null;
+    const garde = { ctx, general, moteur, pneus, sens, familles, bruitCommun, muet };
+    const rendre = async avecMixage => {
+      ctx = new Hors(1, Math.round(44100 * (duree || 1.5)), 44100);
+      bruitCommun = null; muet = false;
+      construireMixage();
+      if (!avecMixage) { general.disconnect(); general.connect(ctx.destination); }
+      general.gain.value = R.SON_VOLUME;
+      construireMoteur(); construirePneus(); construireSensations();
+      moteur.gain.gain.value = 1; moteur.note.frequency.value = R.REGIME_MAX / 60 * R.SON_EXPLOSIONS_PAR_TOUR; moteur.octave.frequency.value = moteur.note.frequency.value * 2;
+      moteur.filtre.frequency.value = R.SON_FILTRE_MOTEUR[1];
+      pneus.gain.gain.value = Math.max(R.SON_VOLUME_PNEUS, R.SON_VOLUME_BLOCAGE, R.SON_VOLUME_ARRIERE);
+      sens.vibreur.gain.gain.value = R.SON_VOLUME_VIBREUR; sens.vibreur.source.frequency.value = R.SON_VIBREUR_FREQUENCE[1];
+      sens.herbe.gain.gain.value = R.SON_VOLUME_HERBE; sens.aspiration.gain.gain.value = R.SON_VOLUME_ASPIRATION;
+      sens.voisin.gain.gain.value = R.SON_VOLUME_VOISIN; sens.voisin.source.frequency.value = 900; sens.pluie.gain.gain.value = R.SON_VOLUME_PLUIE;
+      choc(1); signal('arrivee'); signal('go'); signal('commentaire'); historique.splice(-2, 2); indices--;
+      const b = await ctx.startRendering(), d = b.getChannelData(0);
+      let crete = 0;
+      for (let i = 0; i < d.length; i++) crete = Math.max(crete, Math.abs(d[i]));
+      return crete;
+    };
+    try { const avec = await rendre(true), sans = await rendre(false); return { crete: avec, creteSans: sans }; }
+    finally { ({ ctx, general, moteur, pneus, sens, familles, bruitCommun, muet } = garde); }
+  }
+
   return {
-    maj, basculer, parametres, mixage, signal, historique,
+    maj, basculer, parametres, mixage, signal, historique, reglerVolumes, suivant, couperPub, essaiSaturation, FAMILLES,
+    get volumes() { return Object.assign({}, volumes); },
+    get coupe() { return muet || cache || pub; },
+    get indices() { return indices; },
     get actif() { return ctx !== null; },
-    get muet() { return muet; },
+    get muet() { return muet || pub; },   // (pendant une pub, le son est coupé : 🔇 ; le choix du joueur, lui, est gardé)
+    get muetJoueur() { return muet; },
     get etatContexte() { return ctx ? ctx.state : 'aucun'; },
   };
 })();

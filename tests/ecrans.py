@@ -142,6 +142,7 @@ PAGES = [
     ('index.html?course=3&circuit=test&niveau=debutant&test=assistance', 1280, 720, None),   # les aides au pilotage (tour 41) : d'office en débutant, le freinage assisté freine avant le virage (placées ici : les tranches de GitHub restent équilibrées)
     ('index.html?course=3&circuit=test&test=assistance', 960, 600, None),                    # … coupées en normal
     ('index.html?tutoriel=visite&championnat=1&test=tuto-quitter', 960, 600, None),   # … passée en cours de route : rien ne reste dans la carrière
+    ('index.html?course=3&circuit=test&test=son', 960, 600, None),   # le réglage du son (tour 44) : le pire mélange ne sature pas, le volume par famille, l'onglet caché et la pub coupent
 ]
 # ECRANS_FILTRE=… (pendant le travail, sur le Mac) : seulement les pages dont l'adresse contient ce texte ; GitHub lance toujours tout
 if os.environ.get('ECRANS_FILTRE'): PAGES = [x for x in PAGES if os.environ['ECRANS_FILTRE'] in f'{x[0]} {x[1]}']   # (« adresse largeur » : « robot=1 960 »)
@@ -1440,6 +1441,27 @@ def assistance_ecran(pg, titre, page):
         t(f'{titre} : pendant la course, les aides sont figées : ni le menu pause ni le choix des aides ne les changent', s[0] == s[1] and s[2] is None and s[3] == oui[0], str(s))
     else:
         t(f'{titre} : sans aide, la voiture ne freine jamais d’elle-même, et ce joueur-là sort de la piste', r['frein'] == 0 and (r['herbe'] > 0.2 or r['barriere'] > 0), str(r))
+# le réglage du son (son.js, tour 44) dans le vrai jeu : le pire mélange rendu hors ligne ne sature pas (compresseur et plafond) ;
+# le premier geste allume le son, le volume de chaque famille se règle au menu pause (sauvegardé), l'onglet caché et une pub le
+# coupent, puis le rendent sans toucher à M
+def son_ecran(pg, titre):
+    sat = pg.evaluate('() => SON.essaiSaturation(1.5)')
+    L.append(f"  (le son, tout au plus fort en même temps : crête {sat['crete']:.3f} avec le compresseur et le plafond, {sat['creteSans']:.3f} sans)")
+    t(f'{titre} : tout le son au plus fort en même temps (moteur, pneus, vibreurs, herbe, aspiration, voiture d’à côté, pluie, choc, signaux, commentateur) : le mélange ne sature pas (crête sous 1)', sat and sat['crete'] < 1 and sat['crete'] > 0.05, str(sat))
+    pg.keyboard.press('KeyJ'); attendre(pg, '() => SON.actif && SON.etatContexte === "running"', None, 5000)
+    v = pg.evaluate('''() => { const b = document.getElementById("boutonSonEffetsPause"), avant = b.textContent; b.click(); b.click();
+      return { avant, apres: b.textContent, vol: SON.volumes.effets, sauve: SAUVEGARDE.option("son_volumes", null), paddock: document.getElementById("boutonSonEffets").textContent }; }''')
+    t(f'{titre} : le menu pause règle le volume « moteur et effets » (100 → 75 → 50 %, sauvegardé, le même au paddock)', v['vol'] == 0.5 and v['sauve'] and v['sauve']['effets'] == 0.5 and '50' in v['apres'] and '100' in v['avant'] and v['paddock'] == v['apres'], str(v))
+    pg.evaluate('''() => { Object.defineProperty(document, "hidden", { configurable: true, get: () => true }); document.dispatchEvent(new Event("visibilitychange")); }''')
+    cache = attendre(pg, '() => SON.etatContexte === "suspended"', None, 5000)
+    pg.evaluate('''() => { Object.defineProperty(document, "hidden", { configurable: true, get: () => false }); document.dispatchEvent(new Event("visibilitychange")); }''')
+    revenu = attendre(pg, '() => SON.etatContexte === "running"', None, 5000)
+    t(f'{titre} : l’onglet caché coupe le son (suspendu), revenu il le rend', cache and revenu, pg.evaluate('() => SON.etatContexte'))
+    pg.evaluate('() => couperSonPub(true)')
+    pub = attendre(pg, '() => SON.etatContexte === "suspended" && SON.muet && !SON.muetJoueur', None, 5000)
+    pg.evaluate('() => couperSonPub(false)')
+    apres = attendre(pg, '() => SON.etatContexte === "running" && !SON.muet', None, 5000)
+    t(f'{titre} : une pub coupe le son, puis le rend tel que le joueur l’avait (M n’est pas touché)', pub and apres, pg.evaluate('() => [SON.etatContexte, SON.muet, SON.muetJoueur]'))
 def commentaire_ecran(pg, titre):
     vu = attendre(pg, '() => /🎙/.test(document.getElementById("messageCourse").textContent) && !document.getElementById("messageCourse").classList.contains("cache")', None, 90000)
     txt = pg.evaluate('() => document.getElementById("messageCourse").textContent')
@@ -3058,6 +3080,8 @@ with sync_playwright() as p:
                 qualite_ecran(pg, titre, page)
             if 'test=assistance' in page:
                 assistance_ecran(pg, titre, page)
+            if 'test=son' in page:
+                son_ecran(pg, titre)
             if 'test=manette-deux' in page:
                 manette_deux(pg, titre)
             elif 'test=manette' in page:

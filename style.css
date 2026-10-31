@@ -1347,3 +1347,10 @@ button.manette-choix { box-shadow: 0 0 0 3px #ffd23f, 0 0 14px 2px rgba(255, 210
 #choixAidesListe button { flex-wrap: wrap; }
 #choixAidesListe .quoi { flex-basis: 100%; text-align: left; font-size: 11px; font-weight: 600; opacity: 0.75; }   /* (tour 37g : ce que fait l'aide) */
 #bulleAide.bulleMenu { z-index: 24; }   /* (au-dessus du choix des aides, qui est par-dessus l'écran) */
+
+/* le réglage du son au paddock (tour 44) : « 🔊 Son » au-dessus de « Revoir les aides », et son petit panneau par-dessus le paddock */
+#boutonSonPaddock { position: fixed; right: 16px; bottom: 36px; }
+#sonPanneau { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 23; padding: 14px 18px; border-radius: var(--tv-coin); background: var(--tv-hud); box-shadow: var(--tv-hud-ombre); border-left: 4px solid var(--tv-rouge); text-align: center; }
+#sonPanneau h2 { margin: 0 0 8px; font-size: 16px; }
+@media (max-height: 640px) { #championnat #boutonSonPaddock { bottom: 30px; } }
+
