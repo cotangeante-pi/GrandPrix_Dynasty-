@@ -1005,7 +1005,12 @@ function piloterIA(pilote, v, vues, dt) {
   for (const id of pilote.lentesVues.keys()) if (!vues.some(w => w.id === id)) pilote.lentesVues.delete(id);
   for (const id of pilote.vitessesVues.keys()) if (!vues.some(w => w.id === id)) pilote.vitessesVues.delete(id);   // (freinsVus : seulement d'un pas à l'autre)
   // (IA_FREIN_VU_TOUS, duel-court : il voit freiner toute voiture devant lui, pas seulement celle qui n'a pas son aileron ; 0 : comme avant)
-  for (const w of vues) w.freine = R.IA_FREIN_VU_TOUS || autreAileron(v, w.id) ? freinsVus(pilote, w, dt) : 0;   // (aileron : sa décélération, vue à chaque pas)
+  for (const w of vues) {
+    if (!R.IA_FREIN_VU_TOUS) { w.freine = autreAileron(v, w.id) ? freinsVus(pilote, w, dt) : 0; continue; }
+    // (IA_FREIN_VU_TOUS : sa décélération vue à chaque pas, comptée pour toute voiture à moins de IA_FREIN_VU_DISTANCE devant lui)
+    const f = freinsVus(pilote, w, dt), g = ecartLeLong(c, w.s - p.s);
+    w.freine = autreAileron(v, w.id) || (g > 0 && g < R.IA_FREIN_VU_DISTANCE) ? f : 0;
+  }   // (aileron : sa décélération, vue à chaque pas)
   // (r signé : reculé de quelques centimètres, il refait sa ligne au lieu de lire le bout de l'ancienne)
   let r = pilote.ligne ? ecartLeLong(c, p.s - pilote.ligne.s0) : Infinity;
   if (!pilote.ligne || pilote.attente <= 0 || r < 0 || r > R.IA_HORIZON / 2) {

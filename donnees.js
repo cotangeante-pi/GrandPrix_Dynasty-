@@ -650,6 +650,7 @@ const REGLAGES = {
   IA_DECALAGE_DISTANCE: 60,     // m avant le point de freinage, au moins, elle se décale à côté…
   IA_DECALAGE_TEMPS: 1.2,       // s : … ou la distance parcourue en ce temps
   IA_RAPPROCHEMENT: 5,          // m/s : … ou s'il arrive au moins ça plus vite qu'elle (au freinage)
+  IA_FREIN_VU_DISTANCE: 25,     // m : … à moins de ça devant lui
   IA_FREIN_VU_TOUS: 1,          // duel-court : 1 = il prévoit le freinage de toute voiture qu'il voit ralentir devant lui (IA_FREIN_PREVU), pas seulement d'un autre aileron
   IA_ATTAQUE_LIGNE_PREVUE: 1,   // duel-court : 1 = la ligne d'attaque suit la place prévue de la voiture attaquée le long du virage (dPrevu) ; 0 = la course d'avant
   IA_RECHANGE_DISTANCE: 0,      // duel-court : > 0 = les lignes de rechange (intérieur, extérieur) seulement avec une voiture à moins de ça (m) ; 0 = dès qu'il en voit une
@@ -813,7 +814,7 @@ const REGLAGES = {
   IA_LENT_COTE_A_COTE: 0,       // le duel (tour 32) : 1 = dans un virage lent aussi, l'attaque se joue à l'entrée (à moitié à hauteur, IA_ATTAQUE_HAUTEUR), plus le nez devant au freinage
   SIMULATION_FEUX: 0,           // 1 : simulerCourse part avec les feux et le départ de chaque IA (depart.js), comme la page
   IA_PROFITER_ERREUR: false,    // une IA profite de l'erreur de la voiture devant elle (elle la passe comme une voiture lente)
-  IA_FREIN_PREVU: 1,            // s : derrière une voiture qui freine, il prévoit sa vitesse dans ce temps (sa décélération vue × ça)
+  IA_FREIN_PREVU: 0.8,          // s : derrière une voiture qui freine, il prévoit sa vitesse dans ce temps (sa décélération vue × ça)
   IA_DISTANCE_SUIVI: 14,        // m : la distance où elle se cale derrière
   IA_DEPART_LANCEMENT: 100,     // m : au départ, sur cette distance, elle suit à IA_DISTANCE_MIN (tout le monde part ensemble)
   IA_GAIN_DISTANCE: 1,          // m/s de vitesse en plus par m d'écart en trop, près d'elle…
