@@ -529,6 +529,8 @@ CACHER = """(oui) => { if (!window.__cacheFaux) { window.__cacheFaux = true; Obj
 def conduite(c, titre, quoi, pause_ecran):
     pg = c.pg
     c.ev('() => { JEU.robot = true; }')   # (le robot conduit : la voiture bouge, on voit si elle s'arrête)
+    # (la voiture conduite : celle du tour de qualification s'il y en a un, sinon celle du joueur)
+    c.ev('() => { window.__voiture = () => JEU.qualif && JEU.qualif.etat === "tour" && JEU.qualif.v ? JEU.qualif.v : JEU.joueur; }')
     c.inspecter(f'{quoi} : en conduite')
     # l'onglet caché 2 s : rien n'avance ; revenu : pas de bond (au plus 0,5 s de jeu sur 0,5 s réelle, plus une image)
     a = c.ev(CACHER, True); pg.wait_for_timeout(2000); b = c.ev('() => [BOUCLE.nbPas, JEU.course ? JEU.course.temps : null]')
@@ -537,17 +539,17 @@ def conduite(c, titre, quoi, pause_ecran):
     # la pause et la reprise : le temps de course s'arrête, puis repart
     if pause_ecran:
         pg.keyboard.press('Escape'); pg.wait_for_timeout(300)
-        e1 = c.ev('() => [JEU.ecran, JEU.joueur ? JEU.joueur.x.toFixed(3) + "," + JEU.joueur.z.toFixed(3) : null]'); pg.wait_for_timeout(1000); e2 = c.ev('() => [JEU.ecran, JEU.joueur ? JEU.joueur.x.toFixed(3) + "," + JEU.joueur.z.toFixed(3) : null]')
+        e1 = c.ev('() => [JEU.ecran, __voiture() ? __voiture().x.toFixed(3) + "," + __voiture().z.toFixed(3) : null]'); pg.wait_for_timeout(1000); e2 = c.ev('() => [JEU.ecran, __voiture() ? __voiture().x.toFixed(3) + "," + __voiture().z.toFixed(3) : null]')
         if e1 and e1[0] == pause_ecran: c.inspecter(f'{quoi} : la pause')
         pg.keyboard.press('Escape'); pg.wait_for_timeout(800)
-        e3 = c.ev('() => [JEU.ecran, JEU.joueur ? JEU.joueur.x.toFixed(3) + "," + JEU.joueur.z.toFixed(3) : null]')
+        e3 = c.ev('() => [JEU.ecran, __voiture() ? __voiture().x.toFixed(3) + "," + __voiture().z.toFixed(3) : null]')
         t(f'{titre} : {quoi} : Échap met la pause ({pause_ecran}), la physique du joueur s’arrête (la voiture ne bouge plus), Échap repart', bool(e1 and e2 and e3) and e1[0] == pause_ecran and e2[1] == e1[1] and e3[0] != pause_ecran and e3[1] != e2[1], str([e1, e2, e3]))
     # la fenêtre redimensionnée en pleine conduite : rien ne déborde, la course continue
     for l, h in ((1280, 720), (960, 600)):
         pg.set_viewport_size({'width': l, 'height': h}); pg.wait_for_timeout(400); c.inspecter(f'{quoi} : redimensionné en {l}×{h}')
     # (la course continue : mesurée en temps de jeu, la boucle arrêtée le temps de 0,5 s de physique, puis relancée ; en temps réel,
     # sous swiftshader, 400 ms pouvaient passer sans un seul pas, tour 42d)
-    r = c.ev('() => { const a = [JEU.ecran, SCENE3D.canvas.clientWidth, BOUCLE.tourne, JEU.joueur.x.toFixed(3) + "," + JEU.joueur.z.toFixed(3)]; BOUCLE.arreter(); BOUCLE.simuler(0.5); a.push(JEU.joueur.x.toFixed(3) + "," + JEU.joueur.z.toFixed(3)); BOUCLE.demarrer(); a.push(BOUCLE.tourne); return a; }')
+    r = c.ev('() => { const a = [JEU.ecran, SCENE3D.canvas.clientWidth, BOUCLE.tourne, __voiture().x.toFixed(3) + "," + __voiture().z.toFixed(3)]; BOUCLE.arreter(); BOUCLE.simuler(0.5); a.push(__voiture().x.toFixed(3) + "," + __voiture().z.toFixed(3)); BOUCLE.demarrer(); a.push(BOUCLE.tourne); return a; }')
     t(f'{titre} : {quoi} : la fenêtre redimensionnée (1280×720 puis 960×600) en pleine conduite : le dessin suit, la course continue', bool(r) and r[1] == 960 and r[2] and r[5] and r[4] != r[3], str(r))
 
 def pendant(c, titre):
@@ -612,7 +614,8 @@ def aides_pilotage(c, titre):
     # pendant la course : le menu pause montre les aides, figées
     c.attendre('() => JEU.ecran === "course" || (JEU.qualif && JEU.qualif.etat === "choix")', 60000)
     if c.ev('() => JEU.ecran') == 'qualif':
-        c.cliquer('#boutonQualifPasser'); c.attendre('() => JEU.qualif && JEU.qualif.etat === "resultat"', 240000); c.cliquer('#boutonQualifCourse')
+        # (le robot de c.jouer a peut-être déjà cliqué « Passer » : les boutons seulement s'ils sont là)
+        c.si('#boutonQualifPasser'); c.attendre('() => JEU.qualif && JEU.qualif.etat === "resultat"', 240000); c.si('#boutonQualifCourse')
     if c.ecran('course', 'course du Grand Prix 2', 60000):
         c.attendre('() => JEU.plateau && JEU.plateau.carte !== null', 240000)
         pg.keyboard.press('Escape')
