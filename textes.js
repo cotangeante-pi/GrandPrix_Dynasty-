@@ -1017,3 +1017,42 @@ Object.assign(TEXTES.fr, {
   aidesQuoi_direction: 'Tourne un peu le volant pour te garder sur la bonne ligne.', aidesQuoi_freinage: 'Freine à ta place quand un virage arrive trop vite.',
   aidesQuoi_antiblocage: 'Empêche les roues de bloquer quand tu freines en tournant.', aidesQuoi_antipatinage: 'Relâche l’accélérateur quand la voiture glisse dans un virage.',
 });
+
+// (tour 37h, Codeur 3) le monde réagit au choix des aides (le propriétaire, 2026-10-30) : le journal, l'interview et les discussions ; des faits vrais
+// de la course (les aides choisies avant), jamais de moquerie pour qui garde ses aides, jamais genré
+Object.assign(TEXTES.en, {
+  uneTitre_sansAideVictoire: ['NO TRAINING WHEELS! {pilote} wins at {circuit} without a single aid', '{pilote} wins at {circuit}, every driving aid switched off', 'All by hand: {pilote} takes victory at {circuit}'],
+  uneTexte_sansAideVictoire: ['No steering help, no braking help: {pilote} won at {circuit} on pure skill. {ecurie} can be proud.', 'Every aid off, and still first across the line at {circuit}. The paddock noticed.'],
+  uneTitre_sansAidePodium: ['NO TRAINING WHEELS! {pilote} on the podium at {circuit}', 'P{place} at {circuit} with every aid switched off', '{pilote} climbs the podium at {circuit}, all aids off'],
+  uneTexte_sansAidePodium: ['P{place} at {circuit} with no driving aids at all: a first for {pilote}, and a fine day for {ecurie}.', 'No steering help, no braking help, and a podium at {circuit}. {pilote} did it by hand.'],
+  uneTitre_sansAidePremiere: ['{pilote} switches off the driving aids at {circuit}', 'No aids today: {pilote} drives by hand at {circuit}', 'A new step at {circuit}: {pilote} races with every aid off'],
+  uneTexte_sansAidePremiere: ['For the first time, {pilote} raced with every driving aid switched off: P{place} at {circuit}.', 'Steering, braking, traction: all off at {circuit}. {pilote} finished P{place} and learned a lot.'],
+  uneTitre_legendeVictoire: ['TAMING THE BEAST! {pilote} wins at {circuit} at Legend level', '{pilote} masters the living car at {circuit}', 'Legend level, and {pilote} still wins at {circuit}'],
+  uneTexte_legendeVictoire: ['At Legend level the car is alive, and {pilote} kept it in line all the way to the flag at {circuit}.', 'The rear wanted to slide, the rivals wanted the lead: {pilote} gave neither an inch at {circuit}. {ecurie} celebrates.'],
+  interview_sansAide_q: ['No driving aids at all today, P{place} at {circuit}. Why switch them off?', 'Every aid off at {circuit}, P{place}. How did that feel?', 'P{place} at {circuit} with no help from the car. Is that the plan from now on?'],
+  interview_sansAide_provocant: 'Aids are for people who don’t trust their hands. I trust mine.', interview_sansAide_calme: 'I wanted to learn the car properly. The team helped me get there.',
+  interview_sansAide_malin: 'The car didn’t help me today, so I had to help the car.',
+  interview_legende_q: ['A win at Legend level, with the car sliding everywhere. How?', 'Legend level, a living car, and a win at {circuit}. What’s the secret?', 'The rear was moving all race at {circuit}, and you still won. Tell us.'],
+  interview_legende_provocant: 'The others were scared of their own cars. I wasn’t.', interview_legende_calme: 'Brake straight, then turn. The team set the car up perfectly.',
+  interview_legende_malin: 'A living car? We had a good talk before the start.',
+  dis_raison_exploit_sansAide: ['P{place_exploit} at {circuit_exploit} with every aid off. I saw that. Respect.', 'No aids at {circuit_exploit}, and P{place_exploit}. Not bad at all.'],
+  dis_raison_exploit_legende: ['That win at {circuit_exploit} at Legend level… I couldn’t have kept that car in line.', 'At {circuit_exploit}, the car was sliding everywhere and you still won. Respect.'],
+});
+Object.assign(TEXTES.fr, {
+  uneTitre_sansAideVictoire: ['SANS LES PETITES ROUES ! {pilote} gagne à {circuit} sans aucune aide', '{pilote} gagne à {circuit}, toutes les aides coupées', 'Tout à la main : victoire de {pilote} à {circuit}'],
+  uneTexte_sansAideVictoire: ['Ni direction assistée, ni freinage assisté : {pilote} a gagné à {circuit} au pilotage pur. {ecurie} peut être fière.', 'Toutes les aides coupées, et la ligne franchie en tête à {circuit}. Le paddock l’a remarqué.'],
+  uneTitre_sansAidePodium: ['SANS LES PETITES ROUES ! {pilote} sur le podium à {circuit}', 'P{place} à {circuit} avec toutes les aides coupées', '{pilote} monte sur le podium à {circuit}, sans aucune aide'],
+  uneTexte_sansAidePodium: ['P{place} à {circuit} sans aucune aide au pilotage : une première pour {pilote}, et une belle journée pour {ecurie}.', 'Ni direction assistée, ni freinage assisté, et un podium à {circuit}. {pilote} l’a fait à la main.'],
+  uneTitre_sansAidePremiere: ['{pilote} coupe les aides au pilotage à {circuit}', 'Pas d’aide aujourd’hui : {pilote} pilote à la main à {circuit}', 'Un cap à {circuit} : {pilote} court avec toutes les aides coupées'],
+  uneTexte_sansAidePremiere: ['Pour la première fois, {pilote} a couru avec toutes les aides coupées : P{place} à {circuit}.', 'Direction, freinage, motricité : tout coupé à {circuit}. {pilote} finit P{place} et apprend beaucoup.'],
+  uneTitre_legendeVictoire: ['LA BÊTE DOMPTÉE ! {pilote} gagne à {circuit} en légende', '{pilote} maîtrise la voiture vivante à {circuit}', 'Niveau légende, et {pilote} gagne quand même à {circuit}'],
+  uneTexte_legendeVictoire: ['En légende, la voiture est vivante, et {pilote} l’a tenue droite jusqu’au drapeau à {circuit}.', 'L’arrière voulait glisser, les rivaux voulaient la tête : {pilote} n’a rien lâché à {circuit}. {ecurie} fait la fête.'],
+  interview_sansAide_q: ['Aucune aide au pilotage aujourd’hui, P{place} à {circuit}. Pourquoi les couper ?', 'Toutes les aides coupées à {circuit}, P{place}. Ça fait quoi ?', 'P{place} à {circuit} sans aucune aide de la voiture. C’est le plan, maintenant ?'],
+  interview_sansAide_provocant: 'Les aides, c’est pour ceux qui n’ont pas confiance en leurs mains. Moi, j’ai confiance.', interview_sansAide_calme: 'Je voulais vraiment apprendre la voiture. L’écurie a tout fait pour que j’y arrive.',
+  interview_sansAide_malin: 'La voiture ne m’a pas aidé aujourd’hui, alors c’est moi qui l’ai aidée.',
+  interview_legende_q: ['Une victoire en légende, avec la voiture qui glisse partout. Comment ?', 'Niveau légende, une voiture vivante, et une victoire à {circuit}. Le secret ?', 'L’arrière a bougé toute la course à {circuit}, et tu as gagné quand même. Raconte.'],
+  interview_legende_provocant: 'Les autres avaient peur de leur propre voiture. Pas moi.', interview_legende_calme: 'Freiner droit, puis tourner. L’écurie a parfaitement réglé la voiture.',
+  interview_legende_malin: 'Une voiture vivante ? On a bien discuté avant le départ.',
+  dis_raison_exploit_sansAide: ['P{place_exploit} à {circuit_exploit} avec toutes les aides coupées. J’ai vu ça. Respect.', 'Sans aucune aide à {circuit_exploit}, et P{place_exploit}. Pas mal du tout.'],
+  dis_raison_exploit_legende: ['Ta victoire à {circuit_exploit} en légende… cette voiture-là, je n’aurais pas su la tenir.', 'À {circuit_exploit}, la voiture glissait partout et tu as gagné quand même. Respect.'],
+});

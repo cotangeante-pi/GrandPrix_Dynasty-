@@ -288,6 +288,12 @@ const DISCUSSION = (function () {
     if (vieuxContact && dc.contact && ['CONTACT', 'RECLAMATION', 'EXCUSE', 'INSULTE', 'AVIS'].includes(a.acte)) { garde('recidive_contact'); effets.recidive = vieuxContact; }
     else if (vieuxContact && !dc.contact && ['AVIS', 'PASSER'].includes(a.acte)) { garde('souvenir_contact'); effets.recidive = vieuxContact; }
     if (vieuxDepasse && ['AVIS', 'COMPLIMENT', 'BLOQUER'].includes(a.acte)) { garde('souvenir_depasse'); effets.depasseAvant = vieuxDepasse; }
+    // (tour 37h, le propriétaire 2026-10-30) ton dernier exploit sans aide, ou en légende (ch.exploitAides : un vrai fait de course, posé par
+    // championnat.js) : il le remarque, une seule fois (m.exploitVu : l'exploit dont il a parlé), à une question ordinaire
+    const ex = ch.exploitAides, cleEx = ex ? ex.saison * 100 + ex.gp : null;
+    if (ex && m.exploitVu !== cleEx && ['SALUT', 'AVIS', 'ETAT', 'COMPLIMENT', 'QUESTION', 'DUEL'].includes(a.acte)) {
+      garde(ex.f === 'legendeVictoire' ? 'exploit_legende' : 'exploit_sansAide'); effets.exploit = ex;
+    }
     return suiteConversation(ch, m, a, { reaction, raisons, effets, faits: f });
   }
 
@@ -308,6 +314,7 @@ const DISCUSSION = (function () {
     }
     if (['INSULTE', 'MENACE', 'COMPLIMENT', 'EXCUSE', 'PAIX'].includes(acte)) { m.souvenirs.push([acte, g.saison, g.gp]); if (m.souvenirs.length > R.DISCUSSION_SOUVENIRS) m.souvenirs.splice(0, m.souvenirs.length - R.DISCUSSION_SOUVENIRS); }
     if (e.souvenir) m.rappel = g.saison * 100 + g.gp;
+    if (e.exploit) m.exploitVu = e.exploit.saison * 100 + e.exploit.gp;   // (tour 37h : l'exploit sans aide, dit une fois)
     if (e.rivalite === 'nouvelle') p.rivalite = { courses: R.DISCUSSION_RIVALITE_COURSES, gp: g.gp, saison: g.saison, cle: 'discussion_' + r.reaction, params: {}, circuit: derniereCourse(ch, k).circuit };
     if (e.rivalite === 'apaisee') delete p.rivalite;
     if (e.confiance && ch.reputation) { const c = borne(e.confiance, -R.DISCUSSION_CONFIANCE, R.DISCUSSION_CONFIANCE); ch.reputation.ecurie = borne(ch.reputation.ecurie + c, 0, 100); ch.confiance = ch.reputation.ecurie; }
@@ -349,6 +356,7 @@ const DISCUSSION = (function () {
       duel_moi: f.duel ? f.duel.moi : '', duel_lui: f.duel ? f.duel.lui : '', souvenir_circuit: svGp ? nomCircuit(svGp.circuit) : texte('dis_avant'),
       cible: r.effets.cible !== undefined && ch.pilotes[r.effets.cible] ? nomDe(ch.pilotes[r.effets.cible]) : '',
       // (tour 36, Codeur 3) le circuit de votre dernière conversation, le tour nommé dans la phrase
+      circuit_exploit: r.effets.exploit ? nomCircuit(r.effets.exploit.circuit) : '', place_exploit: r.effets.exploit ? r.effets.exploit.place : '',   // (tour 37h)
       circuit_recidive: r.effets.recidive ? nomCircuit(r.effets.recidive[3]) : '', circuit_depasse: r.effets.depasseAvant ? nomCircuit(r.effets.depasseAvant[3]) : '',
       circuit_avant: (() => { const pc = conversation(ch, m).precedente; return pc && pc.circuit ? nomCircuit(pc.circuit) : texte('dis_avant'); })(), tour: r.tour !== undefined && r.tour !== null ? r.tour : '' };
     const anonyme = !joueur(ch).nom;
