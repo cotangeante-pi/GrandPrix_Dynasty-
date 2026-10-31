@@ -1,6 +1,6 @@
 # TOUR 45 — compte rendu du Codeur 2 : la mesure des 60 images par seconde, en un clic
 
-Branche `codeur2`, commit a6c966d (main b489e3b). Passage GitHub : PASSAGE
+Branche `codeur2`, commits a6c966d puis cb5b4ae (le nom du jeu dans le résultat passe par la clé `nomDuJeu` : le test des textes l’exige). Passage GitHub 41230861775 : **vert**.
 
 ## Pour le propriétaire, sur son Mac (Chrome, l'écran ouvert)
 
