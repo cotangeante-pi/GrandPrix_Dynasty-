@@ -358,7 +358,7 @@ const REGLAGES = {
   // l'interview d'après course (interview.js, Codeur 3) : la réputation (trois jauges 0 à 100 : public, écurie, sponsors)
   REPUTATION_DEPART: 50,
   // les faits, du plus marquant au moins marquant : au plus une question par Grand Prix
-  INTERVIEW_PRIORITES: ['domicileFete', 'domicileDecu', 'victoire', 'podium', 'contact', 'depassement', 'penalite', 'duelGagne', 'duelPerdu', 'serie', 'moyen'],
+  INTERVIEW_PRIORITES: ['domicileFete', 'domicileDecu', 'legende', 'sansAide', 'victoire', 'podium', 'contact', 'depassement', 'penalite', 'duelGagne', 'duelPerdu', 'serie', 'moyen'],
   INTERVIEW_EFFETS: { provocant: { public: 4, ecurie: -3, sponsors: -3 }, calme: { ecurie: 3, sponsors: 2 }, malin: { public: 2, sponsors: 3 } },   // le pas de chaque jauge, par ton
   INTERVIEW_PAS: 5,                 // le plafond d'un pas (une réponse ne bouge jamais une jauge de plus)
   INTERVIEW_CHOC: 5,                // m/s : un gros contact (v.chocMax du moteur)
@@ -387,7 +387,7 @@ const REGLAGES = {
   PNEUS_ACTIFS: true,   // tour 32 (décision du Chef, le propriétaire : on avance sans attendre ses essais) : les pneus et l'arrêt au stand par défaut ; ?pneus=0 les coupe
 
   // la une du journal après chaque Grand Prix (journal.js, Codeur 3) ; les titres et les brèves sont dans textes.js (uneTitre_…, uneTexte_…, breve…)
-  JOURNAL_PRIORITES: ['titreChampion', 'releve_fils', 'releve_fille', 'releve_protege', 'releve_protegee', 'domicileFete', 'domicileDecu', 'premiereVictoire', 'victoire', 'premierPodium', 'podium', 'record', 'duelGagne', 'duelPerdu', 'interview',
+  JOURNAL_PRIORITES: ['titreChampion', 'releve_fils', 'releve_fille', 'releve_protege', 'releve_protegee', 'domicileFete', 'domicileDecu', 'legendeVictoire', 'sansAideVictoire', 'premiereVictoire', 'victoire', 'sansAidePodium', 'premierPodium', 'podium', 'record', 'sansAidePremiere', 'duelGagne', 'duelPerdu', 'interview',
     'penalite', 'serie', 'leader', 'vainqueur'],   // le grand titre : le premier fait vrai de cette liste (« vainqueur » est toujours vrai)
   JOURNAL_DUEL_NET: 3,          // le duel contre le coéquipier fait le titre quand l'écart de la saison est d'au moins ce nombre de points
   JOURNAL_SERIE: 3,             // … une série de ce nombre de Grands Prix sans point

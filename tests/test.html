@@ -2237,6 +2237,42 @@ t('interview : le journal fait sa une de la phrase de l’interview (fait « int
   // une victoire passe devant la phrase de l'interview
   l=itwLignes(milieu(1,9),contact);q=INTERVIEW.question(ch,l);INTERVIEW.repondre(ch,q,'provocant');CHAMPIONNAT.finirGrandPrix(ch,l);v(ch.album[ch.album.length-1].f==='premiereVictoire'&&ch.album[ch.album.length-1].g===4,'victoire devant : '+ch.album[ch.album.length-1].f);
   localStorage.removeItem(SAUVEGARDE.CLE);});
+// --- (tour 37h, le propriétaire 2026-10-30) le monde réagit aux aides : la une (première course sans aide, premier podium et première victoire
+// sans aide, première victoire en légende), la question de l'interview, l'exploit gardé pour les discussions ; jamais rien pour qui
+// garde ses aides ; les aides viennent de la course (finirGrandPrix les reçoit)
+t('aides et journal : « sans les petites roues » à la première course sans aide, au premier podium, à la première victoire ; en légende, la voiture vivante ; rien avec les aides ; une seule fois chacun', ()=>{
+  const R_=REGLAGES,niv=R_.NIVEAU,SANS={direction:false,freinage:false,antiblocage:false,antipatinage:false},TOUTES={direction:true,freinage:true,antiblocage:true,antipatinage:true};
+  const ch=CHAMPIONNAT.creer(77),gp=(ordre,aides)=>{CHAMPIONNAT.finirGrandPrix(ch,lignesUne(ordre),aides);return ch.album[ch.album.length-1];};
+  const P=[...Array(19).keys()],place=n=>{const o=P.slice();o.splice(n-1,0,19);return o;},f=[];
+  try{R_.NIVEAU='normal';
+    const ch0=CHAMPIONNAT.creer(76);CHAMPIONNAT.finirGrandPrix(ch0,lignesUne(place(3)),SANS);v(!/^sansAide/.test(ch0.album[ch0.album.length-1].f),'jamais couru avec des aides : rien à fêter');
+    let u=gp(place(8),TOUTES);v(!/^sansAide|^legende/.test(u.f)&&!ch.exploitAides,'avec les aides : '+u.f);
+    u=gp(place(8),SANS);f.push(u.f);v(u.f==='sansAidePremiere'&&ch.exploitAides.f==='sansAidePremiere'&&ch.exploitAides.place===8,'première sans aide : '+JSON.stringify([u.f,ch.exploitAides]));
+    u=gp(place(9),SANS);v(!/^sansAide/.test(u.f),'deuxième sans aide, rien de neuf : '+u.f);
+    u=gp(place(3),SANS);v(u.f==='sansAidePodium'&&u.p.place===3,'premier podium sans aide : '+u.f);
+    u=gp(place(2),SANS);v(u.f!=='sansAidePodium','deuxième podium sans aide : '+u.f);
+    u=gp(place(1),SANS);v(u.f==='sansAideVictoire'&&ch.exploitAides.f==='sansAideVictoire','première victoire sans aide : '+u.f);
+    u=gp(place(1),SANS);v(u.f==='victoire','deuxième victoire sans aide : '+u.f);
+    u=gp(place(1),TOUTES);v(u.f==='victoire','victoire avec les aides : '+u.f);
+    R_.NIVEAU='legende';u=gp(place(1),TOUTES);v(u.f==='legendeVictoire'&&ch.exploitAides.f==='legendeVictoire','légende : '+u.f);
+    u=gp(place(1),TOUTES);v(u.f==='victoire','deuxième victoire en légende : '+u.f);
+  }finally{R_.NIVEAU=niv;localStorage.removeItem(SAUVEGARDE.CLE);}
+  for(const k of ['sansAideVictoire','sansAidePodium','sansAidePremiere','legendeVictoire']) for(const l of ['en','fr']) v(TEXTES[l]['uneTitre_'+k].length>=3&&TEXTES[l]['uneTexte_'+k].length>=2,l+' '+k);});
+t('aides et interview : la question sur les aides (première course sans aide, premier podium sans aide ; victoire en légende), avec les trois tons ; rien avec les aides ni sans les aides de la course', ()=>{
+  const R_=REGLAGES,niv=R_.NIVEAU,SANS={direction:false,freinage:false,antiblocage:false,antipatinage:false},TOUTES={direction:true,freinage:true,antiblocage:true,antipatinage:true};
+  const ch=CHAMPIONNAT.creer(78);
+  try{R_.NIVEAU='normal';
+    v(INTERVIEW.question(ch,itwLignes(milieu(8,9)),SANS).fait!=='sansAide','jamais couru avec des aides : rien à fêter');
+    CHAMPIONNAT.finirGrandPrix(ch,itwLignes(milieu(8,9)),TOUTES);
+    v(INTERVIEW.question(ch,itwLignes(milieu(8,9)),SANS).fait==='sansAide','première sans aide');
+    v(INTERVIEW.question(ch,itwLignes(milieu(8,9)),TOUTES).fait!=='sansAide'&&INTERVIEW.question(ch,itwLignes(milieu(8,9))).fait!=='sansAide','avec les aides');
+    CHAMPIONNAT.finirGrandPrix(ch,itwLignes(milieu(8,9)),SANS);
+    v(INTERVIEW.question(ch,itwLignes(milieu(8,9)),SANS).fait!=='sansAide','plus la première');
+    const q=INTERVIEW.question(ch,itwLignes(milieu(3,9)),SANS);v(q.fait==='sansAide'&&q.params.place===3&&q.reponses.length===3,'premier podium sans aide : '+JSON.stringify(q));
+    R_.NIVEAU='legende';v(INTERVIEW.question(ch,itwLignes(milieu(1,9)),TOUTES).fait==='legende','légende');
+  }finally{R_.NIVEAU=niv;localStorage.removeItem(SAUVEGARDE.CLE);}
+  for(const f of ['sansAide','legende']) for(const l of ['en','fr']){v(TEXTES[l]['interview_'+f+'_q'].length>=3,l+' '+f);for(const ton of ['provocant','calme','malin']) v(typeof TEXTES[l]['interview_'+f+'_'+ton]==='string',l+' '+f+' '+ton);}});
+
 // --- les rumeurs de transfert (tour 27c, saisons.js intentions + journal.js breveRumeur, Codeur 3)
 t('rumeurs : les intentions de transfert sont décidées en début de saison (graine : les mêmes pour le même championnat, dans la sauvegarde) : des paires de pilotes IA d’écuries différentes, jamais le joueur, jamais un pilote deux fois ; une ancienne sauvegarde sans intentions les reçoit au chargement', ()=>{
   const R_=REGLAGES,ch=CHAMPIONNAT.creer(80),T=ch.transferts;v(T&&T.saison===1&&T.liste.length>=1&&T.liste.length<=R_.TRANSFERTS_PAR_SAISON,'intentions : '+JSON.stringify(T));
