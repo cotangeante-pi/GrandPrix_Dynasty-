@@ -1046,10 +1046,11 @@ t('voiture vivante : en légende, le robot neutre fait ses tours sans tête-à-q
     v(n1.fini&&n1.teteAQueue===0&&n1.barr===0&&m(n1)<=m(n0)*1.01,nom+' neutre : fini '+n1.fini+', tête-à-queue '+n1.teteAQueue+', barrières '+n1.barr+', '+m(n1).toFixed(2)+' / '+m(n0).toFixed(2));
     if(nom==='technique')v(b1.glisse>=1.5*b0.glisse&&b1.fini&&b1.teteAQueue===0&&b1.barr===0,nom+' brutal : dérive '+b1.glisse.toFixed(3)+' / '+b0.glisse.toFixed(3)+', fini '+b1.fini+', tête-à-queue '+b1.teteAQueue+', barrières '+b1.barr);}});
 // (tour 42d, Codeur 4) les aides au pilotage avec la voiture vivante : le freinage assisté et l'anti-blocage étaient faits pour la
-// voiture d'avant ; avec elle, le brutal aidé glissait plus que sans aide (dérive 0,094 → 0,201 rad au technique)
-t('voiture vivante et aides au pilotage : en légende, au technique, avec toutes les aides, le robot brutal ne glisse pas plus que sans aide (dérive max, glissades), sans tête-à-queue ; le neutre aidé n’est pas plus rapide que le neutre sans aide',()=>{
-  const T_={direction:true,freinage:true,antiblocage:true,antipatinage:true},k=CARTES_T.technique,b=tourVivant(TQ,'legende',1,true),ba=tourVivant(TQ,'legende',1,true,T_,k),n=tourVivant(TQ,'legende',1,false),na=tourVivant(TQ,'legende',1,false,T_,k),m=r=>Math.min(...r.tours.slice(1));
-  L.push('  (voiture vivante et aides, technique, légende : brutal sans aide dérive '+b.glisse.toFixed(3)+' rad, '+b.glissades+' glissades, '+m(b).toFixed(2)+' s ; aidé '+ba.glisse.toFixed(3)+' rad, '+ba.glissades+' glissades, '+m(ba).toFixed(2)+' s ; neutre '+m(n).toFixed(2)+' s, aidé '+m(na).toFixed(2)+' s)');
+// voiture d'avant ; avec elle, le brutal aidé du freinage assisté glissait plus que sans aide (dérive 0,094 → 0,177 rad, 3 glissades, au technique) ;
+// avec toutes les aides, il glisse encore un peu plus que sans (0,151 rad) : à reprendre (la direction assistée et l'antipatinage, pas mesurés à part)
+t('voiture vivante et aides au pilotage : en légende, au technique, avec le freinage assisté, le robot brutal ne glisse pas plus que sans aide (dérive max, glissades), sans tête-à-queue ; le neutre aidé n’est pas plus rapide que le neutre sans aide',()=>{
+  const T_={freinage:true},k=CARTES_T.technique,b=tourVivant(TQ,'legende',1,true),ba=tourVivant(TQ,'legende',1,true,T_,k),n=tourVivant(TQ,'legende',1,false),na=tourVivant(TQ,'legende',1,false,T_,k),m=r=>Math.min(...r.tours.slice(1));
+  L.push('  (voiture vivante et freinage assisté, technique, légende : brutal sans aide dérive '+b.glisse.toFixed(3)+' rad, '+b.glissades+' glissades, '+m(b).toFixed(2)+' s ; aidé '+ba.glisse.toFixed(3)+' rad, '+ba.glissades+' glissades, '+m(ba).toFixed(2)+' s ; neutre '+m(n).toFixed(2)+' s, aidé '+m(na).toFixed(2)+' s)');
   v(ba.fini&&ba.teteAQueue===0&&ba.glisse<=b.glisse+0.01&&ba.glissades<=b.glissades,'brutal aidé : dérive '+ba.glisse.toFixed(3)+' / '+b.glisse.toFixed(3)+', glissades '+ba.glissades+' / '+b.glissades);
   v(m(na)>=m(n)-0.05,'neutre aidé '+m(na).toFixed(2)+' / '+m(n).toFixed(2));});
 t('classement : les arrivés d’abord (dans l’ordre d’arrivée), puis les plus avancés ; les tours de retard comptés', ()=>{

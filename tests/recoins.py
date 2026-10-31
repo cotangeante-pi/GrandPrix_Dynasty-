@@ -58,6 +58,8 @@ class Recoin(Carriere):
                 # l'attente des autres : « passer » doit être là. La boucle est arrêtée le temps de le vérifier et de cliquer : sinon les
                 # dernières voitures arrivent pendant que Playwright attend, le podium vient et cache le bouton (le test était instable
                 # sur GitHub, tour 39d). Le bandeau est déjà affiché à l'image qui a créé l'attente.
+                try: self.pg.wait_for_selector('#boutonPasser', state='visible', timeout=10000)   # (le bandeau d'abord, la boucle tournant, tour 42d)
+                except Exception: pass
                 self.ev('() => BOUCLE.arreter()')
                 vu = self.ev('() => { const b = document.getElementById("boutonPasser"); return b.getClientRects().length > 0 && !b.closest(".cache"); }')
                 if not vu: self.problemes.setdefault(('« passer » absent', quoi), { 'ecran': 'course', 'detail': str(self.ev('() => [!!JEU.attente, JEU.ecran, document.getElementById("attenteArrivee").className]')), 'page': self.pg.url.split('/')[-1] })

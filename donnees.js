@@ -153,7 +153,7 @@ const REGLAGES = {
   ASSIST_DIRECTION_VISEE: 12,      // m devant : le point de la trajectoire visé
   // (tour 42d, Codeur 4) avec la voiture vivante (voitureVivante() > 0 ; à 0, rien de ceci n'est lu) : l'arrière se déleste au freinage,
   ASSIST_VIVANTE_FREIN: 0.8,       // le freinage assisté compte sur cette part de plus du freinage possible (il finit de freiner avant le virage)…
-  ASSIST_VIVANTE_ABS_PART: 0.6,    // … et l'anti-blocage, en braquant, garde le frein à cette part du seuil du blocage (au lieu d'ASSIST_ABS_PART)
+  ASSIST_VIVANTE_ABS_PART: 0.98,   // … et l'anti-blocage, en braquant, garde le frein à cette part du seuil du blocage (comme ASSIST_ABS_PART : 0,6 ou 0,4 faisaient entrer trop vite, glissades et barrières ; tour 42d)
   // le bonus sans aide (le propriétaire, 2026-10-30) : une part des gains d'un Grand Prix par aide coupée, selon ce qu'elle fait vraiment ;
   // seulement l'argent (ni points, ni records), dans le plafond par course (ARGENT_PLAFOND_COURSE) ; +28 % au plus
   ASSIST_BONUS: { direction: 0.15, freinage: 0.10, antiblocage: 0.03, antipatinage: 0 },
