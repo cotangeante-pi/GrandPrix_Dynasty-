@@ -26,6 +26,11 @@ const REGLAGES_ENREGISTREUR = {
   ARRIVEE_AVANT: 5, ARRIVEE_APRES: 3,
   ARRET_AVANT: 3, ARRET_APRES: 2,   // l'arrêt au stand (avec les pneus) : un peu avant l'arrêt, un peu après le départ
   IMPORTANCE_ARRET: 25,         // un arrêt au stand (+ IMPORTANCE_JOUEUR si c'est le joueur)
+  // la grosse glissade rattrapée (tour 43, sensations.js suivreGlissade) : un moment fort si elle dure assez et va assez loin
+  GLISSADE_DUREE: 0.5,          // s au moins…
+  GLISSADE_FORCE: 0.9,          // … et l'arrière (ou le patinage) au moins à ça (0 à 1)
+  GLISSADE_AVANT: 2, GLISSADE_APRES: 2,
+  IMPORTANCE_GLISSADE: 35,      // (+ IMPORTANCE_JOUEUR si c'est le joueur)
 
   // l'importance de chaque moment (le résumé prend les plus importants d'abord)
   IMPORTANCE_DEPART: 1000,      // le départ et l'arrivée passent toujours avant le reste

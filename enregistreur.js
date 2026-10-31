@@ -31,7 +31,7 @@ function creerEnregistreur(nbVoitures, options = {}) {
     blocs.push({ temps: new Float64Array(parBloc), x: new Float32Array(n), z: new Float32Array(n),
       cap: new Int16Array(n), vitesse: new Int16Array(n), place: new Uint8Array(n), etat: new Uint8Array(n) });
   }
-  const ETAT_HORS_PISTE = 1;
+  const ETAT_HORS_PISTE = 1, ETAT_GLISSE = 2;   // (des bits : l'arrière qui glisse ou patine, tour 43 : les traces de pneus du résumé)
 
   // --- ce qu'on suit d'un pas à l'autre
   let tDebut = null, tGo = null, prochaine = 0, nImagesPrevues = 0;
@@ -42,6 +42,10 @@ function creerEnregistreur(nbVoitures, options = {}) {
   const enAttente = [];                       // les dépassements pas encore confirmés : { qui, sur, temps, placeQui }
   const depassements = [];
   const sorties = [];
+  const glissades = [];                       // les grosses glissades rattrapées (tour 43) : { k, temps, fin, max }
+  const glisseEtat = Array.from({ length: N }, () => ({}));
+  const sens = typeof SENSATIONS !== 'undefined' ? SENSATIONS : null;
+  const glisseImage = v => { if (!sens || typeof REGLAGES === 'undefined') return false; const g = sens.glisseArriere(v); return Math.max(g.arriere, g.patinage) > REGLAGES.TRACES_ARRIERE; };
   // les sorties : par voiture, l'épisode hors piste en cours, ou la fenêtre des vitesses (sans indicateur)
   const sortie = Array.from({ length: N }, () => ({ dehors: false, debut: 0, vEntree: 0, vMin: 0, tMin: 0, dernierDehors: 0, derniere: -Infinity }));
   const derniereVitesse = new Float64Array(N), dernierX = new Float64Array(N), dernierZ = new Float64Array(N);
@@ -132,7 +136,7 @@ function creerEnregistreur(nbVoitures, options = {}) {
       b.cap[o + k] = Math.round(normaliser(v.cap) / R.CAP_PAS);
       b.vitesse[o + k] = Math.max(-32767, Math.min(32767, Math.round(derniereVitesse[k] / R.VITESSE_PAS)));
       b.place[o + k] = places && places[k] > 0 ? Math.min(255, places[k]) : (placeAvant[k] > 0 ? Math.min(255, placeAvant[k]) : 0);
-      b.etat[o + k] = horsPiste(v) === 1 ? ETAT_HORS_PISTE : 0;
+      b.etat[o + k] = (horsPiste(v) === 1 ? ETAT_HORS_PISTE : 0) | (glisseImage(v) ? ETAT_GLISSE : 0);
     }
     nbImages++;
   }
@@ -143,6 +147,7 @@ function creerEnregistreur(nbVoitures, options = {}) {
     for (let k = 0; k < N; k++) {
       const v = voitures[k], vit = vitesseDe(v, k, t);
       suivreSortie(t, k, horsPiste(v), vit);
+      if (sens) { const g = sens.suivreGlissade(glisseEtat[k], v, t); if (g && g.duree >= R.GLISSADE_DUREE && g.max >= R.GLISSADE_FORCE) glissades.push({ k, temps: g.debut, fin: g.fin, max: g.max }); }
       derniereVitesse[k] = vit; dernierX[k] = v.x; dernierZ[k] = v.z;
     }
     tDernier = t;
@@ -205,7 +210,7 @@ function creerEnregistreur(nbVoitures, options = {}) {
   // en ligne droite couperait les virages de plusieurs centimètres à 10 images par seconde) ; le cap en ligne droite,
   // par le plus court chemin entre les deux angles
   function lire(t, sortieLue) {
-    const res = sortieLue || Array.from({ length: N }, () => ({ x: 0, z: 0, cap: 0, vitesse: 0, place: 0, horsPiste: false }));
+    const res = sortieLue || Array.from({ length: N }, () => ({ x: 0, z: 0, cap: 0, vitesse: 0, place: 0, horsPiste: false, glisse: false }));
     if (nbImages === 0) return res;
     const i1 = imageAvant(t), i2 = Math.min(i1 + 1, nbImages - 1);
     const t1 = tempsImage(i1), t2 = tempsImage(i2);
@@ -225,7 +230,8 @@ function creerEnregistreur(nbVoitures, options = {}) {
       r.vitesse = vitesseImage(i1, k) + (vitesseImage(i2, k) - vitesseImage(i1, k)) * a;
       const ip = a < 0.5 ? i1 : i2;
       r.place = champ('place', ip, k);
-      r.horsPiste = champ('etat', ip, k) === ETAT_HORS_PISTE;
+      r.horsPiste = (champ('etat', ip, k) & ETAT_HORS_PISTE) !== 0;
+      r.glisse = (champ('etat', ip, k) & ETAT_GLISSE) !== 0;
     }
     return res;
   }
@@ -257,6 +263,12 @@ function creerEnregistreur(nbVoitures, options = {}) {
       const d = s.temps - R.SORTIE_AVANT;
       L.push(borner({ type: 'sortie', temps: s.temps, debut: d, fin: Math.min(s.finSortie + R.SORTIE_APRES, d + R.SORTIE_DUREE_MAX),
         importance: imp, qui: s.k, perte: s.perte }));
+    }
+    // les grosses glissades rattrapées (tour 43) : un peu avant la glissade, un peu après la voiture qui accroche de nouveau
+    for (const g of glissades) {
+      let imp = R.IMPORTANCE_GLISSADE;
+      if (joueur !== null && g.k === joueur) imp += R.IMPORTANCE_JOUEUR;
+      L.push(borner({ type: 'glissade', temps: g.temps, debut: g.temps - R.GLISSADE_AVANT, fin: g.fin + R.GLISSADE_APRES, importance: imp, qui: g.k }));
     }
     // les arrêts au stand : de l'arrivée dans la zone d'arrêt (temps − duree) au départ du stand
     for (const a of arrets) {

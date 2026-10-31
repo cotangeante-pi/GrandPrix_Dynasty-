@@ -152,9 +152,28 @@ const EFFETS3D = (function () {
     remplir(etincelles, etat.etincelle, p => 1 - 0.6 * p.age / p.vie, p => cFumee.setHex(R.COULEUR_ETINCELLE));
     remplirTraces();
   }
+  // le résumé vidéo (tour 43) : les voitures rejouées (RESUME.positions : x, z, cap, vitesse, glisse) laissent leurs traces et leur
+  // fumée là où l'enregistrement dit que l'arrière glissait ; les traces de la course, elles, sont toujours là et s'effacent
+  const clesRejeu = [], GLISSE_REJEU = Object.freeze({ vibreur: 0, herbe: 0, glisse: 0, blocage: 0, contact: 0, choc: 0, vitesse: 0, arriere: 1, patinage: 0 });
+  function rejeu(e, pos, dt) {
+    pos.forEach((p, k) => {
+      const cle = clesRejeu[k] || (clesRejeu[k] = { u: 0 });
+      cle.u = p.vitesse;
+      emettre(e, cle, p, p.glisse ? GLISSE_REJEU : SENSATIONS.RIEN, dt);
+    });
+    avancer(e, dt);
+  }
+  function majRejeu(pos, dt) {
+    if (!scene) return;
+    if (SENSATIONS.actif) rejeu(etat, pos, Math.min(dt, 0.1)); else simuler(etat, [], null, Math.min(dt, 0.1));
+    remplir(fumees, etat.fumee, p => { const a = p.age / p.vie; return (0.5 + 2.2 * a) * (a < 0.75 ? 1 : (1 - a) * 4); },
+      p => cFumee.setHex(p.poussiere ? R.COULEUR_POUSSIERE : R.COULEUR_FUMEE));
+    remplir(etincelles, etat.etincelle, p => 1 - 0.6 * p.age / p.vie, p => cFumee.setHex(R.COULEUR_ETINCELLE));
+    remplirTraces();
+  }
 
   return {
-    creer, emettre, avancer, simuler, init, maj,
+    creer, emettre, avancer, simuler, init, maj, rejeu, majRejeu,
     get etat() { return etat; },
     get fumees() { return fumees; },
     get etincelles() { return etincelles; },
