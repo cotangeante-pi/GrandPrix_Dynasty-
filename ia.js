@@ -720,7 +720,7 @@ function deciderLigne(pilote, v, vues) {
         // (IA_ATTAQUE_LIGNE_PREVUE, duel-court : à côté de là où elle SERA, sa place prévue le long du virage, dPrevu ; 0 : à côté de sa
         // place d'aujourd'hui, la même tout le virage : une ligne droite à travers l'épingle, qui le faisait freiner jusqu'à 25 m/s)
         const versStands = a.vue.id && (a.vue.id.manoeuvreStands || a.vue.id.rampeStands);   // (elle va aux stands : elle quitte la ligne de la carte, ça se voit)
-        const dVue = R.IA_ATTAQUE_LIGNE_PREVUE && !versStands ? dPrevu(carte, a.vue, s0 + s, s0) : a.vue.d;
+        const dVue = R.IA_ATTAQUE_LIGNE_PREVUE && !versStands && pilote.parcouru > R.IA_PREPARER_APRES ? dPrevu(carte, a.vue, s0 + s, s0) : a.vue.d;   // (pas dans le premier virage, comme IA_PREPARER_*)
         val = r * (1 - m) + (dVue + a.cote * sur) * m;
         // pas la place de rester à l'écart sûr d'elle (le bord) : il renonce à cette attaque
         if (m === 1 && Math.abs(val) > limite) a.impossible = true;
