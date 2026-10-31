@@ -183,7 +183,7 @@ const CHAMPIONNAT = (function () {
     // (tour 37h) les aides de cette course, pour le journal, l'interview et les discussions : sa = couru sans aucune aide, lg = en légende
     // (la voiture vivante) ; seulement quand c'est vrai (compact)
     const rg = ch.resultats[ch.resultats.length - 1];
-    if (aides && typeof ASSISTANCE !== 'undefined' && ASSISTANCE.AIDES.every(a => !aides[a])) rg.sa = 1;
+    if (aides && typeof ASSISTANCE !== 'undefined') { if (ASSISTANCE.AIDES.every(a => !aides[a])) rg.sa = 1; else rg.ra = 1; }   // (ra : couru avec au moins une aide)
     if (aides && R.NIVEAU === 'legende') rg.lg = 1;
     if (typeof INTERVIEW !== 'undefined') INTERVIEW.suivre(ch);   // les rivalités de l'interview (interview.js) s'usent d'une course
     if (typeof JOURNAL !== 'undefined') JOURNAL.ranger(ch, JOURNAL.composer(ch, lignes));   // la une du journal (journal.js), dans l'album du championnat

@@ -2,7 +2,7 @@
 
 Branche codeur3, partie de 99a6c5f.
 
-**Les faits viennent de la course.** `CHAMPIONNAT.finirGrandPrix` reçoit les aides de la course, déjà passées pour le bonus. Il note dans le résultat du Grand Prix `sa: 1` (couru sans aucune aide) et `lg: 1` (couru en légende, la voiture vivante), seulement quand c'est vrai. Il garde ensuite le dernier exploit dans `ch.exploitAides` : `{ f, gp, saison, circuit, place }`. Rien n'est inventé. Pour qui garde ses aides, il n'existe aucun fait, donc aucune moquerie possible.
+**Les faits viennent de la course.** `CHAMPIONNAT.finirGrandPrix` reçoit les aides de la course, déjà passées pour le bonus. Il note dans le résultat du Grand Prix `sa: 1` (couru sans aucune aide) et `lg: 1` (couru en légende, la voiture vivante), seulement quand c'est vrai. Il note aussi `ra: 1` quand on a couru avec au moins une aide. **Les exploits sans aide ne comptent que pour qui a déjà couru avec des aides** : couper ses aides est une étape. Un joueur en normal qui n'en a jamais eu (elles sont coupées d'office) n'a pas de une « sans les petites roues » à chaque course. Le premier passage GitHub l'a montré : sa une remplaçait celle de l'interview. Il garde ensuite le dernier exploit dans `ch.exploitAides` : `{ f, gp, saison, circuit, place }`. Rien n'est inventé. Pour qui garde ses aides, il n'existe aucun fait, donc aucune moquerie possible.
 
 1. **Le journal** (journal.js, `faitsAides`) : quatre faits nouveaux dans `JOURNAL_PRIORITES`, chacun une seule fois par carrière. Chacun a trois titres et deux textes, en anglais et en français.
    - `sansAidePremiere` : la première course sans aide, avec la photo de la voiture.

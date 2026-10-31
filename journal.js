@@ -79,14 +79,16 @@ const JOURNAL = (function () {
   // (tour 37h, le propriétaire 2026-10-30) le monde réagit au choix des aides : la première course sans aucune aide, le premier podium et la
   // première victoire sans aide (« Sans les petites roues ! »), la première victoire en légende (la voiture vivante). Les faits viennent
   // de la course (ch.resultats[n].sa, .lg, posés par championnat.js avec les aides de la course) : rien d'inventé, jamais de moquerie
-  // pour qui garde ses aides (aucun fait n'existe pour lui). n : l'indice du Grand Prix ; base : { pilote, ecurie, circuit, place }
+  // pour qui garde ses aides (aucun fait n'existe pour lui), ni pour qui n'en a jamais eu. n : l'indice du Grand Prix ; base : { pilote, ecurie, circuit, place }
   function faitsAides(ch, n, base) {
     const r = ch.resultats[n], f = {};
     if (!r || (!r.sa && !r.lg)) return f;
     const j = ch.pilotes.find(p => p.humain), avant = ch.resultats.slice(0, n), place = r.ordre.indexOf(j.id) + 1;
     const placeAvant = x => x.ordre.indexOf(j.id) + 1;
     if (r.lg && place === 1 && !avant.some(x => x.lg && placeAvant(x) === 1)) f.legendeVictoire = base;
-    if (r.sa) {
+    // (sans aide : seulement pour qui a déjà couru avec des aides, ra : couper ses aides est une étape ; qui n'en a jamais eu ne « passe »
+    // rien, et une course d'avant ce tour n'est comptée ni avec ni sans)
+    if (r.sa && avant.some(x => x.ra)) {
       if (place === 1 && !avant.some(x => x.sa && placeAvant(x) === 1)) f.sansAideVictoire = base;
       else if (place >= 1 && place <= 3 && !avant.some(x => x.sa && placeAvant(x) >= 1 && placeAvant(x) <= 3)) f.sansAidePodium = base;
       if (!avant.some(x => x.sa)) f.sansAidePremiere = base;

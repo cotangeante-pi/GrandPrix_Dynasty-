@@ -43,7 +43,7 @@ const INTERVIEW = (function () {
     if (aides && typeof ASSISTANCE !== 'undefined') {
       const avant = ch.resultats || [], pl = x => x.ordre.indexOf(j.id) + 1;
       if (R.NIVEAU === 'legende' && place === 1 && !avant.some(x => x.lg && pl(x) === 1)) f.legende = base;
-      if (ASSISTANCE.AIDES.every(a => !aides[a]) && (!avant.some(x => x.sa) || (place <= 3 && !avant.some(x => x.sa && pl(x) >= 1 && pl(x) <= 3)))) f.sansAide = base;
+      if (ASSISTANCE.AIDES.every(a => !aides[a]) && avant.some(x => x.ra) && (!avant.some(x => x.sa) || (place <= 3 && !avant.some(x => x.sa && pl(x) >= 1 && pl(x) <= 3)))) f.sansAide = base;
     }
     if ((lj.chocMax || 0) >= R.INTERVIEW_CHOC) {
       const autre = lignes.filter(l => l.k !== j.id && (l.chocMax || 0) >= R.INTERVIEW_CHOC).sort((a, b) => b.chocMax - a.chocMax)[0];

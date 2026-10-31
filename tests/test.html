@@ -2214,6 +2214,7 @@ t('aides et journal : « sans les petites roues » à la première course sans a
   const ch=CHAMPIONNAT.creer(77),gp=(ordre,aides)=>{CHAMPIONNAT.finirGrandPrix(ch,lignesUne(ordre),aides);return ch.album[ch.album.length-1];};
   const P=[...Array(19).keys()],place=n=>{const o=P.slice();o.splice(n-1,0,19);return o;},f=[];
   try{R_.NIVEAU='normal';
+    const ch0=CHAMPIONNAT.creer(76);CHAMPIONNAT.finirGrandPrix(ch0,lignesUne(place(3)),SANS);v(!/^sansAide/.test(ch0.album[ch0.album.length-1].f),'jamais couru avec des aides : rien à fêter');
     let u=gp(place(8),TOUTES);v(!/^sansAide|^legende/.test(u.f)&&!ch.exploitAides,'avec les aides : '+u.f);
     u=gp(place(8),SANS);f.push(u.f);v(u.f==='sansAidePremiere'&&ch.exploitAides.f==='sansAidePremiere'&&ch.exploitAides.place===8,'première sans aide : '+JSON.stringify([u.f,ch.exploitAides]));
     u=gp(place(9),SANS);v(!/^sansAide/.test(u.f),'deuxième sans aide, rien de neuf : '+u.f);
@@ -2230,6 +2231,8 @@ t('aides et interview : la question sur les aides (première course sans aide, p
   const R_=REGLAGES,niv=R_.NIVEAU,SANS={direction:false,freinage:false,antiblocage:false,antipatinage:false},TOUTES={direction:true,freinage:true,antiblocage:true,antipatinage:true};
   const ch=CHAMPIONNAT.creer(78);
   try{R_.NIVEAU='normal';
+    v(INTERVIEW.question(ch,itwLignes(milieu(8,9)),SANS).fait!=='sansAide','jamais couru avec des aides : rien à fêter');
+    CHAMPIONNAT.finirGrandPrix(ch,itwLignes(milieu(8,9)),TOUTES);
     v(INTERVIEW.question(ch,itwLignes(milieu(8,9)),SANS).fait==='sansAide','première sans aide');
     v(INTERVIEW.question(ch,itwLignes(milieu(8,9)),TOUTES).fait!=='sansAide'&&INTERVIEW.question(ch,itwLignes(milieu(8,9))).fait!=='sansAide','avec les aides');
     CHAMPIONNAT.finirGrandPrix(ch,itwLignes(milieu(8,9)),SANS);
