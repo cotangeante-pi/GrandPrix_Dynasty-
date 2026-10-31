@@ -1,6 +1,6 @@
 TOUR 42 — compte rendu court du Codeur 1 (2026-10-30, 19h → 23h45) : le duel court
 
-Commit : duel-court **62b01d3** (en cours) — GitHub 41160294983 : rouge (2 tests de rivalité seulement).
+Commit : duel-court **211cff9** — GitHub **41161931119 : vert** (annexes « pendant en 960×600 », l'écran à deux, vert à la relance ; il était tombé aussi au passage d'avant, sans rapport avec l'IA).
 
 ## 1. Pourquoi IA_ATTAQUE_LIGNE_PREVUE = 1 cassait stands.html et la rivalité (diagnostic chiffré, Chrome, 30 courses de 12 tours avec pneus)
 - Chocs > 5 m/s : 5 sans le réglage, 16 avec. Sur les 16, 2 seulement ont lieu pendant une attaque (decaler, preparer) et 2 à la sortie des stands (camp1) ; les 12 autres sont des chocs dans la file, sans attaque : au freinage du virage court (technique 2390–2460 m, test 455–467 m) et en sortie (test 1925–1932 m), la voiture de derrière dans celle de devant, à 5–14 m/s.
@@ -19,6 +19,10 @@ Commit : duel-court **62b01d3** (en cours) — GitHub 41160294983 : rouge (2 tes
 | 1 | ✘ 4 / 2 (relatif) ; duel 4 | ✘ rivalité, résumé | ✘ disposition |
 
 - Le conflit : plus il prévoit le freinage de la voiture de devant, moins il y a de chocs dans la file (stands : de 16 à 4), mais plus il suit de loin, et la défense du rival (à moins de 8 m, les rétroviseurs) et la disposition « bloquer » ne se déclenchent plus.
+
+## 3. La vue arrière du rival (23h, demandée par le Chef)
+- IA_RIVAL_VUE_ARRIERE = 20 m (simulation.js vuesAvecArriere) : le rival voit le joueur derrière lui jusque-là (avant : 8 m, ses rétroviseurs) et défend dès qu'il arrive plus vite, jusqu'à IA_DECALAGE_ECART (20 m ; IA_DISTANCE_ATTAQUE, 7 m, était plus court que les rétroviseurs). Avec IA_FREIN_VU_DISTANCE 35 m et IA_FREIN_PREVU 0,7 s : tout passe sur GitHub. Rivalité (8 courses) : le rival attaque le joueur 135 fois contre 86 sans rivalité ; défenses 29 (rival devant) contre 0 ; chocs avec 4 + 2, sans 3 + …, dans le garde-fou.
+- Réglages finaux : IA_ATTAQUE_LIGNE_PREVUE 1, IA_FREIN_VU_TOUS 1, IA_FREIN_VU_DISTANCE 35, IA_FREIN_PREVU 0,7 (au lieu de 0,6), IA_RIVAL_VUE_ARRIERE 20. Le duel court lui-même (vainqueur ≠ poleman) n'est pas mesuré sur 90 courses ce soir.
 
 ## Pour demain
 - Faire que la défense du rival ne dépende pas d'une voiture à moins de 8 m (la vision de côté, IA_VISION_COTE[0]) : ou qu'elle voie le joueur arriver plus loin derrière (une vraie vue arrière, plus large), ou que le suiveur se colle de nouveau près dans les droites (la prévision du freinage seulement près des points de freinage).
