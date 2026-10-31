@@ -235,6 +235,7 @@ function pasMeteo(e, enCourse, dt) {
     const v = p.v, s = v.piste ? v.piste.s : 0;
     const surLigne = !!(carte && v.piste && Math.abs(v.piste.d - valeurEn(e.circuit, carte.trajectoire.ecart, s)) < R.METEO_LIGNE);
     v.eau = METEO.eauEn(m, surLigne);
+    v.eauTrajectoire = METEO.eauEn(m, true); v.eauHors = METEO.eauEn(m, false);   // (ce que voit le pilote : l'eau sur la trajectoire et hors d'elle ; ia.js, IA_PLUIE_LIGNE)
     v.adhMeteo = METEO.adherence(v.typePneus, v.eau);
     v.usureMeteo = METEO.usure(v.typePneus, v.eau);
     if (p.humain && !v.choixPneus) { v.pneusProchain = METEO.choisir(m.eau, m.pluie, 0.5); if (v.pneusProchain === 'slick' && v.typePneus === 'drift') v.pneusProchain = 'drift'; }   // (en drift sur le sec, l'équipe lui remet le drift)

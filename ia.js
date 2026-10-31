@@ -529,7 +529,10 @@ function noterLigne(pilote, v, voisines, s0, t, type) {
   for (let i = 0; i < N; i++) {
     // (ses pneus usés : il connaît son adhérence réelle, v.adherence ; × 1 sans pneus, le même nombre au bit près)
     // (aileron, Codeur 3 : il connaît aussi l'adhérence de son aileron, v.aileronAdherence ; × 1 au cran du milieu)
-    const mu = R.ADHERENCE * (v.adhMeteo || 1) * (v.adherence || 1) * (v.aileronAdherence || 1) * (Math.abs(e[i]) > dehors && type !== 'stands' ? R.ADHERENCE_HERBE : 1);   // (la voie des stands n'est pas de l'herbe)
+    // (IA_PLUIE_LIGNE : sur le mouillé, il sait que la trajectoire sèche plus vite que le reste de la piste : l'adhérence de chaque point
+    // de la ligne, sur la trajectoire ou hors d'elle, METEO.adherence ; 0 : celle de l'eau sous sa voiture, partout)
+    const adhPluie = R.IA_PLUIE_LIGNE && v.eauHors !== undefined && v.eauHors > 0 ? METEO.adherence(v.typePneus, Math.abs(e[i] - valeurEn(c, pilote.carte.trajectoire.ecart, s0 + i * pas)) < R.METEO_LIGNE ? v.eauTrajectoire : v.eauHors) : (v.adhMeteo || 1);
+    const mu = R.ADHERENCE * adhPluie * (v.adherence || 1) * (v.aileronAdherence || 1) * (Math.abs(e[i]) > dehors && type !== 'stands' ? R.ADHERENCE_HERBE : 1);   // (la voie des stands n'est pas de l'herbe)
     // le rythme (le talent) joue dans les virages ; la vitesse de pointe est celle de la voiture
     // (virage serré, sous IA_RAYON_SERRE m de rayon de piste : la courbure mesurée sur ±IA_LIGNE_DEMI_BASE points (±8 m) lisse le coin
     // d'une épingle et la sous-estime ; il prend aussi celle des points voisins (±IA_LIGNE_PAS m), la plus forte des deux : sinon il y
@@ -636,6 +639,7 @@ function deciderLigne(pilote, v, vues) {
   if (laisserCote) essais.splice(0, essais.length, ['ecarter', laisserCote]);
   if (pilote.rivalite && !stand && !enAttaque) defendreContreJoueur(pilote, v, vues, s0);
   if (pilote.disposition && pilote.disposition.type === 'bloquer' && !stand && !enAttaque) defendreDisposition(pilote, v, vues, s0);   // (la disposition « bloquer X »)
+  if (R.IA_BATAILLE_DEFENSE && !pilote.rivalite && !stand && !enAttaque) defendreBataille(pilote, v, vues, s0);   // (en bataille : fermer la corde)
   if (stand) stand.ceder = cederSortieStands(pilote, v, vues, s0);   // à la sortie des stands, il laisse passer ceux qui arrivent   // le rival du joueur couvre l'intérieur (interview)
   pilote.depassement = !!enAttaque;
   // les voitures lentes ou arrêtées qu'il voit (estLente), et les plus proches devant lui (IA_LENTE_NB) : il les contourne
@@ -871,6 +875,24 @@ function defendreContreJoueur(pilote, v, vues, s0) {
 
 // la disposition « bloquer X » (discussion.js) : comme le rival du joueur (defendreContreJoueur), il couvre l'intérieur du prochain virage
 // quand X le suit de près, de DISPOSITION_DEFENSE m (jamais plus que DISPOSITION_PLAFOND × INTERVIEW_RIVALITE_DEFENSE) ; sa ligne seulement
+// en bataille, la défense (IA_BATAILLE_DEFENSE, CLAUDE.md « Des techniques de pilote selon le virage ») : une voiture qui arrive plus vite
+// que lui dans ses rétroviseurs (à moins de INTERVIEW_RIVALITE_DISTANCE derrière) avant un freinage : il ferme la corde du prochain virage
+// (sa ligne passe de IA_BATAILLE_DEFENSE m plus à l'intérieur, × son agressivité), comme le rival du joueur ; 0 : rien
+function defendreBataille(pilote, v, vues, s0) {
+  const R = REGLAGES, carte = pilote.carte, c = carte.circuit, L = c.longueur, pas = R.IA_LIGNE_PAS, t = pilote.tampons;
+  let x = null;
+  for (const w of vues) { const g = ecartLeLong(c, w.s - s0); if (g <= -R.LONGUEUR_VOITURE / 2 && g >= -R.INTERVIEW_RIVALITE_DISTANCE && w.vitesse > Math.max(0, v.u) && (!x || g > x.g)) x = { w, g }; }
+  if (!x) return;
+  const f = prochainFreinage(carte, s0);
+  if (!f || f.distance > R.IA_HORIZON) return;
+  const vir = carte.virages[f.j], decalage = R.IA_BATAILLE_DEFENSE * (pilote.caractere ? 0.5 + pilote.caractere.agressivite : 1), sommet = ((vir.s - s0) % L + L) % L;
+  for (let i = 0; i < t.rapide.length; i++) {
+    const s = i * pas, m = s <= sommet ? Math.min(1, s / R.INTERVIEW_RIVALITE_RAMPE) : Math.max(0, 1 - (s - sommet) / R.IA_DEPASSEMENT_RAMPE);
+    t.rapide[i] += vir.sens * decalage * m;
+  }
+  if (pilote.defenseBatailleVirage !== f.j) { pilote.defenseBatailleVirage = f.j; pilote.defensesBataille = (pilote.defensesBataille || 0) + 1; }   // (compté à part de la défense du rival)
+}
+
 function defendreDisposition(pilote, v, vues, s0) {
   const R = REGLAGES, carte = pilote.carte, c = carte.circuit, L = c.longueur, pas = R.IA_LIGNE_PAS, t = pilote.tampons;
   const x = vues.find(w => w.id === pilote.disposition.id);
@@ -935,7 +957,8 @@ function majAttaque(pilote, v, vues, dt) {
       // (plus agressif : une droite un peu plus courte lui suffit)
       if (carte.virages[f.j].droite < R.IA_DROITE_ATTAQUE * (1 - R.IA_AGRESSIVITE_DROITE * agressivite(pilote, a.id))) return;
       const sens = carte.virages[f.j].sens;
-      const cote = Math.abs(w.d + sens * ecart) <= limite ? sens : Math.abs(w.d - sens * ecart) <= limite ? -sens : 0;
+      // (IA_BATAILLE_PLONGER : il plonge à l'intérieur ou n'attaque pas ce virage-là ; 0 : l'extérieur s'il n'y a pas la place à l'intérieur)
+      const cote = Math.abs(w.d + sens * ecart) <= limite ? sens : !R.IA_BATAILLE_PLONGER && Math.abs(w.d - sens * ecart) <= limite ? -sens : 0;
       if (cote) { a.etat = 'decaler'; a.virage = f.j; a.cote = cote; }
     }
   } else if (a.etat === 'decaler' && carte.virages[a.virage].lent && !R.IA_LENT_COTE_A_COTE) {   // (IA_LENT_COTE_A_COTE : comme un virage rapide, l'entrée côte à côte)
