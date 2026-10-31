@@ -160,6 +160,8 @@ Tout doit rester rattrapable au clavier : un joueur qui glisse doit pouvoir s'en
 - Le tableau des temps par pneu sur les 12 tracés (le drift devant sur 3 au moins, l'adhérant sur 3 au moins) ; le choix du pneu au garage et à l'arrêt marche pour le joueur et les IA (capture pneus-drift.png, en fr et en en).
 - Dans « À essayer par le propriétaire » de SUIVI.md : une course en pneus drift, puis `&reglages=1` pour jouer avec `VOITURE_VIVANTE` ; la question : « l'arrière qui glisse, c'est fun ou énervant ? ». On n'attend pas sa réponse pour avancer, mais l'axe conduite ne passe pas 18/20 sans son avis.
 
+**Fait le 2026-10-31** (Codeur 1, tour 44, b9d6bff ; Codeur 3, tour 37l, 1074d84) : la voiture vivante vient de `v.typePneus === 'drift'` (plus de `NIVEAUX.vivante` : expert et légende au bit près) ; drift jusqu'à +4 % d'adhérence en lent, −6 % en rapide, égal à 40 m/s, usure × 1,6, pire que le slick sur le mouillé ; robot neutre : drift devant sur 6 tracés (Montréol, Singapura, Monoco…), adhérant sur 6 (Monzo, Suzuko, Spaa…), écart ≤ 0,72 % (test dans officiels.html) ; `PNEUS_CHOIX` (pneus.js) ; au garage « Grip / Adhérant » et « Drift », ← → à l'arrêt, l'icône du pneu monté ; la 8e leçon « Le drift » ; les IA en adhérant (`VIVANTE_IA` = 0, décidé). ?pneus=drift pour essayer.
+
 **Règles.** Un seul Codeur (plafond d'usage de 60 %) ; le moteur ne touche pas à l'écran ; tests sur GitHub, sur le Mac seulement la partie concernée sous `/tmp/gpd-tests.lock` ; textes en fr et en en ; compte rendu au format de CLAUDE.md. Note du Chef avant / après, sur les mêmes axes.
 
 ## Le réglage de l'aileron
