@@ -96,8 +96,8 @@ t('7. la visite : le garage puis l’aileron, de retour au paddock : réussie ; 
   v(jouer(su,[e('championnat')])==='reussie');});
 // --- 8. (tour 37j) la voiture vivante, à l'épingle du technique : un passage sans sortie et sans que l'arrière glisse (TUTO_VIVANTE_ARRIERE) : réussie ;
 // l'arrière qui part, TUTO_ZONE_ESSAIS fois : ratée (« glisse ») ; ne rien faire : ratée (« temps »)
-t('8. la voiture vivante : l’adresse (essai libre sur le technique, en expert : la voiture vivante) ; un passage propre de l’épingle : réussie ; l’arrière qui glisse à chaque passage : ratée (« glisse ») ; rien : ratée (« temps »)', ()=>{
-  v(/course=0/.test(TUTORIEL.PAR_ID.vivante.adresse)&&/circuit=technique/.test(TUTORIEL.PAR_ID.vivante.adresse)&&/pneus=drift/.test(TUTORIEL.PAR_ID.vivante.adresse)&&R.NIVEAUX.expert.vivante>0,'adresse');
+t('8. la voiture vivante : l’adresse (essai libre sur le technique, en pneus drift : la voiture vivante) ; un passage propre de l’épingle : réussie ; l’arrière qui glisse à chaque passage : ratée (« glisse ») ; rien : ratée (« temps »)', ()=>{
+  v(/course=0/.test(TUTORIEL.PAR_ID.vivante.adresse)&&/circuit=technique/.test(TUTORIEL.PAR_ID.vivante.adresse)&&/pneus=drift/.test(TUTORIEL.PAR_ID.vivante.adresse),'adresse');
   const T=construireCircuit(CIRCUITS.technique),z=TUTORIEL.zoneFreinage(T),L=T.longueur,b=o=>Object.assign(base({longueur:L}),o);
   const passage=(su,arriere,herbe)=>{let r;for(const x of [z.debut-50,z.debut+5,(z.debut+z.fin)/2,z.fin+5]) r=TUTORIEL.pas(su,b({s:((x%L)+L)%L,arriere:x>z.debut&&x<z.fin?arriere:0,herbe:!!herbe&&x>z.debut&&x<z.fin}),1);return r;};
   let su=TUTORIEL.creerSuivi('vivante',T);v(su.zone&&su.zone.debut===z.debut,'la zone de l’épingle');v(passage(su,R.TUTO_VIVANTE_ARRIERE*0.5)==='reussie','propre');
