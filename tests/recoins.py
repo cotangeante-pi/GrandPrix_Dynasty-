@@ -543,8 +543,10 @@ def conduite(c, titre, quoi, pause_ecran):
     # la fenêtre redimensionnée en pleine conduite : rien ne déborde, la course continue
     for l, h in ((1280, 720), (960, 600)):
         pg.set_viewport_size({'width': l, 'height': h}); pg.wait_for_timeout(400); c.inspecter(f'{quoi} : redimensionné en {l}×{h}')
-    r = c.ev('() => [JEU.ecran, BOUCLE.nbPas, SCENE3D.canvas.width, SCENE3D.canvas.clientWidth]'); pg.wait_for_timeout(400); r2 = c.ev('() => BOUCLE.nbPas')
-    t(f'{titre} : {quoi} : la fenêtre redimensionnée (1280×720 puis 960×600) en pleine conduite : le dessin suit, la course continue', bool(r) and r[3] == 960 and r2 > r[1], str([r, r2]))
+    # (la course continue : mesurée en temps de jeu, la boucle arrêtée le temps de 0,5 s de physique, puis relancée ; en temps réel,
+    # sous swiftshader, 400 ms pouvaient passer sans un seul pas, tour 42d)
+    r = c.ev('() => { const a = [JEU.ecran, SCENE3D.canvas.clientWidth, BOUCLE.tourne, JEU.joueur.x.toFixed(3) + "," + JEU.joueur.z.toFixed(3)]; BOUCLE.arreter(); BOUCLE.simuler(0.5); a.push(JEU.joueur.x.toFixed(3) + "," + JEU.joueur.z.toFixed(3)); BOUCLE.demarrer(); a.push(BOUCLE.tourne); return a; }')
+    t(f'{titre} : {quoi} : la fenêtre redimensionnée (1280×720 puis 960×600) en pleine conduite : le dessin suit, la course continue', bool(r) and r[1] == 960 and r[2] and r[5] and r[4] != r[3], str(r))
 
 def pendant(c, titre):
     pg = c.pg

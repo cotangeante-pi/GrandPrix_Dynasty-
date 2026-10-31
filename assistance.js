@@ -60,9 +60,9 @@ const ASSISTANCE = (function () {
       // l'anti-blocage : en braquant, la pression au frein reste sous le seuil du blocage (SENSATIONS_BLOCAGE_FREIN : ni fumée ni
       // crissement) ; la marge du freinage assisté (ASSIST_FREIN_PART) compte déjà avec ce frein plus doux
       if (frein >= R.SENSATIONS_BLOCAGE_FREIN && Math.abs(direction) > R.ASSIST_ABS_BRAQUAGE && v.u > R.SENSATIONS_BLOCAGE_VITESSE) {
-        // (la voiture vivante, tour 42d : l'arrière délesté part si l'on braque en freinant fort ; on freine droit, puis on tourne)
-        if (vivante()) direction = Math.sign(direction) * Math.min(Math.abs(direction), R.ASSIST_VIVANTE_ABS_BRAQUAGE);
-        else frein = R.SENSATIONS_BLOCAGE_FREIN * R.ASSIST_ABS_PART;
+        // (la voiture vivante, tour 42d : l'arrière se déleste au freinage et part si l'on braque en freinant fort ; en braquant, le frein
+        // descend plus bas, ASSIST_VIVANTE_ABS_PART du seuil, pour garder du poids sur l'arrière ; le braquage du joueur n'est jamais touché)
+        frein = R.SENSATIONS_BLOCAGE_FREIN * (vivante() ? R.ASSIST_VIVANTE_ABS_PART : R.ASSIST_ABS_PART);
       }
     }
     if (r.antipatinage && gaz > 0) {
