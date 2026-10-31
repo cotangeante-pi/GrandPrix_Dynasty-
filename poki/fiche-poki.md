@@ -1,13 +1,15 @@
 # Grand Prix Dynasty — la fiche pour Poki (À VALIDER par le propriétaire)
 
-Ce sont des propositions du Codeur 3 (tour 37b, 2026-10-29). Rien ici n'entre dans le zip du jeu.
+Ce sont des propositions du Codeur 3 (tour 37b, 2026-10-29 ; mises à jour au tour 37k, 2026-10-31). Rien ici n'entre dans le zip du jeu.
 - Aucun nom de vraie marque : pas de « F1 » ni de « Formula 1 », pas de vraie écurie ni de vrai pilote. Les circuits ont des noms inventés (Monzo, Spaa, Suzuko…).
 - Les captures 16:9 (1920×1080) sont fabriquées par `python3 poki/captures.py`, dans `poki/captures/` :
   - 1-depart-feux ;
   - 2-bataille ;
   - 3-pluie ;
   - 4-podium ;
-  - 5-paddock.
+  - 5-paddock ;
+  - 6-glissade (la voiture vivante en légende : l'arrière qui part, les traces de pneus, la fumée) ;
+  - 7-aides (l'écran « Aides au pilotage », avec le bonus annoncé).
 - Chaque capture existe en `-fr` et en `-en`.
 
 ---
@@ -29,14 +31,18 @@ When your career ends, your story goes on: your heir takes over, and the newspap
 - A full championship on 12 tracks around the world, with weather, pit stops and team orders
 - Short lessons to learn the start, braking, overtaking, the pits and the rain
 - Split-screen 2-player mode and a tournament mode on the same keyboard
-- Gamepad support, an ideal racing line for beginners, four difficulty levels (Beginner to Legend)
+- Gamepad support with rumble (you feel the kerbs, the slides and the hits), an ideal racing line for beginners, four difficulty levels (Beginner to Legend)
+- At Expert and Legend level the car comes alive: brake while turning and the rear steps out. Catch the slide, leave tyre marks… or spin
+- Driving aids, one by one (steering, braking, anti-lock, traction), chosen before the race: switch them off and earn a bonus of up to +28% prize money
+- Eight short lessons, the last one to tame the living car; a sound mixer for engine, ambience and commentary
 
 **Controls:**
 - ↑ accelerate · ↓ brake · ← → steer
 - Start: hold ↑ in the green zone, release when the lights go out, then press ↑ again
 - Space: back on track · C: camera · Tab: watch another car · M: sound · Esc: pause
 - 2 players: player 1 W A S D (E back on track), player 2 the arrows (Enter back on track)
-- Gamepad: triggers to accelerate and brake, stick to steer, Start to pause
+- Gamepad: triggers to accelerate and brake, stick to steer, Start to pause (it rumbles on kerbs, slides and hits)
+- Driving aids: the 🛞 button on the title screen, in the paddock, before a quick race or a lesson
 
 ---
 
@@ -57,14 +63,18 @@ Quand ta carrière s’arrête, ton histoire continue : la relève prend le vola
 - Un championnat complet sur 12 circuits du monde, avec la météo, les arrêts au stand et les consignes d’écurie
 - De courtes leçons pour apprendre le départ, le freinage, le dépassement, les stands et la pluie
 - Un mode 2 joueurs en écran partagé et un mode tournoi sur le même clavier
-- La manette, une trajectoire conseillée pour débuter, quatre niveaux de difficulté (de Débutant à Légende)
+- La manette qui vibre (on sent les vibreurs, les glissades et les chocs), une trajectoire conseillée pour débuter, quatre niveaux de difficulté (de Débutant à Légende)
+- En expert et en légende, la voiture devient vivante : si tu freines en tournant, l'arrière part. Rattrape la glissade, laisse des traces de pneus… ou fais un tête-à-queue
+- Les aides au pilotage, une par une (direction, freinage, anti-blocage, motricité), choisies avant la course : coupe-les et gagne jusqu'à +28 % d'argent
+- Huit leçons courtes, la dernière pour dompter la voiture vivante ; un réglage du son pour le moteur, l'ambiance et le commentateur
 
 **Commandes :**
 - ↑ accélérer · ↓ freiner · ← → tourner
 - Départ : tiens ↑ dans la zone verte, lâche quand les feux s’éteignent, puis réappuie sur ↑
 - Espace : retour en piste · C : caméra · Tab : suivre une autre voiture · M : son · Échap : pause
 - 2 joueurs : joueur 1 Z Q S D (E retour en piste), joueur 2 les flèches (Entrée retour en piste)
-- Manette : gâchettes pour accélérer et freiner, stick pour tourner, Start pour la pause
+- Manette : gâchettes pour accélérer et freiner, stick pour tourner, Start pour la pause (elle vibre sur les vibreurs, les glissades et les chocs)
+- Aides au pilotage : le bouton 🛞, sur l'écran titre, au paddock, avant une course rapide ou une leçon
 
 ---
 
