@@ -426,6 +426,37 @@ t('voiture vivante (expert) : en sortie d’épingle à plein gaz, l’arrière 
     return {etat:JSON.stringify(vo),arr,pat,traces:e.trace.length,fumee:e.fumee.length};};
   const a=tour(false),b=tour(true);L.push('  (voiture vivante, sortie d’épingle à plein gaz, 6 s : '+b.arr+' pas avec l’arrière qui part, '+b.pat+' qui patinent, '+b.traces+' bandes de traces, '+b.fumee+' bouffées)');
   v(b.arr>0||b.pat>0,'rien senti');v(b.traces>0,'aucune trace');v(a.etat===b.etat,'la physique a changé');}finally{R_.NIVEAU=niv;}});
+// --- la glissade rattrapée (tour 43) : le commentateur la dit (seulement quand c'est vrai), le résumé en garde une grosse, et ses
+// traces de pneus repassent au rejeu ; lu dans l'état des voitures, jamais écrit
+const glisser=(vo,alpha,u)=>{vo.u=u||30;vo.r=0;vo.v=-Math.tan(alpha)*vo.u;};
+t('glissade rattrapée : l’arrière part puis la voiture accroche de nouveau ; pas rattrapée dans l’herbe, en tête-à-queue, presque arrêtée, ni trop courte', ()=>{const S_=SENSATIONS,R_=REGLAGES;
+  const essai=(dureeGlisse,alpha,herbe,u)=>{const vo=sensVoiture(sensDroite,0,30),et={};let r=null,t_=0;
+    for(;t_<dureeGlisse;t_+=0.05){glisser(vo,alpha,u);vo.surHerbe=!!herbe;r=S_.suivreGlissade(et,vo,t_)||r;}
+    for(let k=0;k<30;k++,t_+=0.05){glisser(vo,0,u);vo.surHerbe=false;r=S_.suivreGlissade(et,vo,t_)||r;}return r;};
+  const bon=essai(0.6,0.3);v(bon&&bon.max===1&&Math.abs(bon.duree-0.6)<0.06,'rattrapée '+JSON.stringify(bon));
+  v(essai(0.6,0.3,true)===null,'herbe');v(essai(0.6,1.2)===null,'tête-à-queue');v(essai(0.1,0.3)===null,'trop courte');v(essai(0.6,0.12)===null,'sous le seuil');v(essai(0.6,0.3,false,4)===null,'presque arrêtée');});
+t('glissade rattrapée, le commentateur : « {qui} rattrape la glissade ! » pour le joueur, une fois, pas deux en moins de COMMENTAIRE_GLISSADE_INTERVALLE s ; rien sans glissade', ()=>{
+  const e=creerCourseIA(TQ,3,1,5,CARTES_T.technique,true),j=e.pilotes.findIndex(p_=>p_.humain),vo=e.pilotes[j].v,c=COMMENTAIRE.creer(3);
+  COMMENTAIRE.observer(c,e,{joueur:j,circuit:'X'});const dire=(alpha,s)=>{for(let k=0;k<s/0.05;k++){e.temps+=0.05;glisser(vo,alpha);COMMENTAIRE.observer(c,e,{joueur:j,circuit:'X'});}};
+  dire(0,2);v(!c.file.some(x=>x.type==='glissade'),'sans glissade');
+  dire(0.3,0.6);dire(0,1);const f=c.file.filter(x=>x.type==='glissade');v(f.length===1&&f[0].joueur,'dite '+f.length);
+  dire(0.3,0.6);dire(0,1);v(c.file.filter(x=>x.type==='glissade').length===1,'redite trop tôt');
+  const it={type:'glissade',variante:1,params:{qui:j}},ph=COMMENTAIRE.phrase(it,k=>'Toi',y=>String(y));v(/Toi/.test(ph)&&!/\{/.test(ph),ph);
+  v(COMMENTAIRE.momentResume(COMMENTAIRE.creer(1),{type:'glissade',qui:j},j).type==='glissade','au résumé');});
+t('glissade rattrapée, le résumé : une grosse glissade du joueur devient un moment fort (pas une petite) ; l’enregistrement garde quand l’arrière glisse, et le rejeu y laisse des traces de pneus', ()=>{
+  const enr=creerEnregistreur(2,{joueur:0}),a=sensVoiture(sensDroite,0,30),b=sensVoiture(sensDroite,5,30);let t_=0;
+  const pas=(alpha,s)=>{for(let k=0;k<s*120;k++){t_+=1/120;glisser(a,alpha);a.x+=Math.cos(a.cap)*30/120;a.z+=Math.sin(a.cap)*30/120;b.x+=Math.cos(b.cap)*30/120;b.z+=Math.sin(b.cap)*30/120;enr.enregistrer(t_,[a,b],null);}};
+  pas(0,2);pas(0.12,0.3);pas(0,1);pas(0.3,0.8);const pendant=enr.lire(t_-0.2);pas(0,2);
+  const g=enr.momentsForts().filter(m=>m.type==='glissade');v(g.length===1&&g[0].qui===0&&g[0].importance===REGLAGES_ENREGISTREUR.IMPORTANCE_GLISSADE+REGLAGES_ENREGISTREUR.IMPORTANCE_JOUEUR,'moments '+JSON.stringify(g));
+  v(pendant[0].glisse&&!pendant[1].glisse&&!enr.lire(1)[0].glisse,'l’arrière qui glisse, enregistré');
+  const fx=EFFETS3D.creer();for(let k=0;k<10;k++) EFFETS3D.rejeu(fx,[{x:k*2,z:0,cap:0,vitesse:30,glisse:true},{x:k*2,z:9,cap:0,vitesse:30,glisse:false}],0.05);
+  v(fx.trace.length===18&&fx.trace.every(p_=>p_.z0<5),'traces au rejeu '+fx.trace.length);});
+t('glissade rattrapée : la course ne bouge pas d’un bit (expert, 4 IA et le joueur conduit par le robot, 15 s) avec le commentateur et l’enregistreur qui suivent les glissades, ou pas', ()=>{const R_=REGLAGES,niv=R_.NIVEAU;R_.NIVEAU='expert';try{
+  const course=avec=>{const e=creerCourseIA(TQ,4,1,17,CARTES_T.technique,true);for(const p_ of e.pilotes) p_.course.compte=0;const j=e.pilotes.findIndex(p_=>p_.humain),c=COMMENTAIRE.creer(5),enr=creerEnregistreur(e.pilotes.length,{joueur:j});
+    for(let k=0;k<120*15;k++){pasCourseIA(e,DT,(p_,dt)=>{const r=piloteRobot(p_.v,TQ);lisserCommandes(p_.v,{gaz:r.frein>0.2?0:1,frein:r.frein>0.2?r.frein:0,direction:r.direction},dt);});
+      if(avec){enr.enregistrer(e.temps,e.pilotes.map(p_=>p_.v),null);if(k%6===0)COMMENTAIRE.observer(c,e,{joueur:j,circuit:'X'});}}
+    return JSON.stringify(e.pilotes.map(p_=>p_.v));};
+  v(course(false)===course(true),'la course a changé');}finally{R_.NIVEAU=niv;}});
 // --- la manette (manette.js, tour 38) : la disposition standard, les zones mortes, le clavier et la manette ensemble,
 // les appuis comptés une fois, les menus au stick ou à la croix ; sans manette, les cibles du clavier au bit près
 const fauxPad=(o={})=>{const b=[];for(let i=0;i<17;i++) b.push({value:0,pressed:false});for(const [k,x] of Object.entries(o.boutons||{})) b[MANETTE.BOUTONS[k]]={value:x,pressed:x>0.5};return {connected:true,axes:o.axes||[0,0,0,0],buttons:b};};

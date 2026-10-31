@@ -1391,6 +1391,8 @@ function majResume(dt) {
     VOITURE3D.placer(m, p, { braquage: 0, rotationRoues: z.roues[k] });
     m.tete.visible = true;
   });
+  // les traces de pneus et la fumée des glissades enregistrées (effets3d.js, tour 43) ; celles de la course s'effacent
+  if (typeof EFFETS3D !== 'undefined') EFFETS3D.majRejeu(pos, dt);
   const s = pos[RESUME.suivie(z.r, enr)] || pos[0];
   CAMERA.maj(dt, s, { u: s.vitesse });
   // le commentateur du résumé (commentaire.js) : une phrase par moment fort, quand il commence
@@ -2071,7 +2073,7 @@ function demarrerJeu() {
     JEU.alpha = alpha;
     JEU.dtImage = dt;
     majManettes(dt);   // la manette (manette.js) : lue à chaque image
-    if (JEU.ecran === 'resume') { majResume(dt); if (JEU.sdkPret) SDK.jeuArrete(); if (JEU.ecran === 'resume') { if (typeof EFFETS3D !== 'undefined') { SENSATIONS.observer([], CIRCUIT); EFFETS3D.maj([], null, dt); } SCENE3D.dessiner(); return; } }   // le résumé vidéo : la 3D rejoue l'enregistrement (Poki : gameplayStop)
+    if (JEU.ecran === 'resume') { majResume(dt); if (JEU.sdkPret) SDK.jeuArrete(); if (JEU.ecran === 'resume') { if (typeof EFFETS3D !== 'undefined') SENSATIONS.observer([], CIRCUIT); SCENE3D.dessiner(); return; } }   // le résumé vidéo : la 3D rejoue l'enregistrement (Poki : gameplayStop)
     majAToi(dt);   // le tournoi : le compte à rebours de « À toi, … ! »   // (« passer » en accéléré : le nombre de pas de l'image suit sa durée)
     const apres = JEU.ecran === 'podium' || JEU.ecran === 'resultats' || JEU.ecran === 'bravo' || JEU.ecran === 'tournoiFin' || JEU.ecran === 'ceremonie';   // le podium (et la cérémonie du champion) : les voitures n'y bougent plus
     // ?ia=N : chaque IA à sa place ; une IA arrivée quitte la piste (elle n'est plus dessinée)
