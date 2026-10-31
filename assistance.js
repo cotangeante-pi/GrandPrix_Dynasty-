@@ -69,11 +69,13 @@ const ASSISTANCE = (function () {
       const limite = R.ADHERENCE * adherence(v) * charge(v.u) / R.MASSE, lat = Math.abs(v.u * v.r);
       const part = limite > 0 ? lat / limite : 0, [s0, s1] = R.ASSIST_ANTIPATINAGE;
       if (part > s0) gaz = Math.min(gaz, Math.max(0, (s1 - part) / (s1 - s0)));
+      // (la voiture vivante, tour 43d : un lever de pied brusque fait partir l'arrière ; l'antipatinage relâche les gaz en douceur)
+      if (vivante() && gaz < c.gaz) gaz = Math.min(c.gaz, Math.max(gaz, (v.gaz || 0) - R.ASSIST_VIVANTE_LEVER));
     }
     if (r.direction && ctx.carte && ctx.carte.trajectoire) {
       const T = ctx.carte.trajectoire, i = (v.piste.indice + Math.round(R.ASSIST_DIRECTION_VISEE / ctx.circuit.pas)) % ctx.circuit.nb;
-      const ecart = T.ecart[i] - v.piste.d, k = R.ASSIST_DIRECTION;
-      direction = Math.max(-1, Math.min(1, direction + Math.max(-k[1], Math.min(k[1], k[0] * ecart))));
+      const ecart = T.ecart[i] - v.piste.d, k = R.ASSIST_DIRECTION, f = vivante() ? R.ASSIST_VIVANTE_DIRECTION : 1;   // (× 1 sans la voiture vivante, au bit près)
+      direction = Math.max(-1, Math.min(1, direction + f * Math.max(-k[1], Math.min(k[1], k[0] * ecart))));
     }
     return gaz === c.gaz && frein === c.frein && direction === c.direction ? c : { gaz, frein, direction };
   }

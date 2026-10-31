@@ -539,11 +539,14 @@ def conduite(c, titre, quoi, pause_ecran):
     # la pause et la reprise : le temps de course s'arrête, puis repart
     if pause_ecran:
         pg.keyboard.press('Escape'); pg.wait_for_timeout(300)
-        e1 = c.ev('() => [JEU.ecran, __voiture() ? __voiture().x.toFixed(3) + "," + __voiture().z.toFixed(3) : null]'); pg.wait_for_timeout(1000); e2 = c.ev('() => [JEU.ecran, __voiture() ? __voiture().x.toFixed(3) + "," + __voiture().z.toFixed(3) : null]')
+        # (ce qui avance : le compteur des pas du joueur, JEU.pas, arrêté par la pause ; au tournoi, la pause du tour ne l'arrête pas : la position
+        # de la voiture du tour ; la reprise mesurée en temps de jeu, 0,5 s la boucle arrêtée, comme le redimensionnement, tour 43d)
+        c.ev('() => { window.__mesure = () => JEU.tournoi ? (__voiture() ? __voiture().x.toFixed(3) + "," + __voiture().z.toFixed(3) : null) : JEU.pas; }')
+        e1 = c.ev('() => [JEU.ecran, __mesure()]'); pg.wait_for_timeout(1000); e2 = c.ev('() => [JEU.ecran, __mesure()]')
         if e1 and e1[0] == pause_ecran: c.inspecter(f'{quoi} : la pause')
         pg.keyboard.press('Escape'); pg.wait_for_timeout(800)
-        e3 = c.ev('() => [JEU.ecran, __voiture() ? __voiture().x.toFixed(3) + "," + __voiture().z.toFixed(3) : null]')
-        t(f'{titre} : {quoi} : Échap met la pause ({pause_ecran}), la physique du joueur s’arrête (la voiture ne bouge plus), Échap repart', bool(e1 and e2 and e3) and e1[0] == pause_ecran and e2[1] == e1[1] and e3[0] != pause_ecran and e3[1] != e2[1], str([e1, e2, e3]))
+        e3 = c.ev('() => { const e = JEU.ecran; BOUCLE.arreter(); BOUCLE.simuler(0.5); const m = __mesure(); BOUCLE.demarrer(); return [e, m]; }')
+        t(f'{titre} : {quoi} : Échap met la pause ({pause_ecran}), la physique du joueur s’arrête, Échap repart', bool(e1 and e2 and e3) and e1[0] == pause_ecran and e2[1] == e1[1] and e3[0] != pause_ecran and e3[1] != e2[1], str([e1, e2, e3]))
     # la fenêtre redimensionnée en pleine conduite : rien ne déborde, la course continue
     for l, h in ((1280, 720), (960, 600)):
         pg.set_viewport_size({'width': l, 'height': h}); pg.wait_for_timeout(400); c.inspecter(f'{quoi} : redimensionné en {l}×{h}')
@@ -559,7 +562,10 @@ def pendant(c, titre):
     if c.ecran('qualif', 'qualification', 60000):
         c.attendre('() => !document.getElementById("boutonQualifTour").classList.contains("cache")', 240000)
         c.cliquer('#boutonQualifTour')
-        if c.attendre('() => JEU.qualif && JEU.qualif.etat === "tour"', 30000): pg.wait_for_timeout(1500); conduite(c, titre, 'le tour de qualification', None)
+        if c.attendre('() => JEU.qualif && JEU.qualif.etat === "tour"', 30000):
+            # (la voiture du tour ne roule qu'une fois lancée : la boucle arrêtée jusque-là, en temps de jeu)
+            c.ev('() => { BOUCLE.arreter(); JEU.robot = true; for (let i = 0; i < 120 * 30 && !courseAutorise(JEU.qualif.q.course); i++) BOUCLE.simuler(REGLAGES.PAS_PHYSIQUE); BOUCLE.simuler(1); BOUCLE.demarrer(); }')
+            conduite(c, titre, 'le tour de qualification', None)
         c.ev('() => { for (let i = 0; i < 400 && !(JEU.qualif && JEU.qualif.etat === "resultat"); i++) BOUCLE.simuler(1); }')
         c.attendre('() => JEU.qualif && JEU.qualif.etat === "resultat"', 60000); c.cliquer('#boutonQualifCourse')
     if c.ecran('course', 'course', 60000):
