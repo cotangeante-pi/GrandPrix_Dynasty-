@@ -104,6 +104,13 @@ const REGLAGES = {
   SENSATIONS_GLISSE: [0.08, 0.2],  // rad : la dérive où la glisse commence et celle où elle est pleine
   SENSATIONS_ARRIERE: [0.07, 0.2],   // rad : l'angle de glissement de l'arrière où il commence à partir, et où il est parti (tour 42)
   SENSATIONS_PATINAGE: 0.5,        // le surplus de poussée (part de l'adhérence de l'arrière) pour le patinage plein
+  // la glissade rattrapée (sensations.js suivreGlissade, tour 43 : le commentateur et le résumé)
+  GLISSADE_HAUT: 0.6,              // l'arrière (ou le patinage) au-delà : une glissade commence…
+  GLISSADE_BAS: 0.1,               // … elle est finie quand il repasse sous ça…
+  GLISSADE_CALME: 0.4,             // … depuis tant de secondes
+  GLISSADE_DUREE_MIN: 0.25,        // s : plus courte, ce n'est qu'un frisson
+  GLISSADE_SPIN: 0.9,              // rad : l'arrière au-delà, c'est un tête-à-queue, pas une glissade rattrapée
+  GLISSADE_VITESSE_MIN: 5,         // m/s : presque arrêtée, elle n'a rien rattrapé
   SENSATIONS_BLOCAGE_FREIN: 0.85,  // le frein au-delà duquel les roues avant sont au bord du blocage…
   SENSATIONS_BLOCAGE_VITESSE: 14,  // … au-dessus de cette vitesse (m/s)
   SENSATIONS_BLOCAGE_DROIT: 0.35,  // … à moitié en ligne droite (0 à 1), plein en braquant de…
@@ -936,8 +943,9 @@ const REGLAGES = {
   COMMENTAIRE_LONGUEUR_MAX: 60,   // caractères d'une phrase au plus (les noms comptés à 7 lettres) : court, pour ne pas lire en pilotant
   COMMENTAIRE_PEREMPTION: 8,      // s : un fait plus vieux n'est plus dit
   COMMENTAIRE_FILE_MAX: 6,
-  COMMENTAIRE_PRIORITES: { arrivee: 10, podium: 9, arret: 6, depart: 9, depassementTete: 9, dernierTour: 8, joueurArrivee: 8, contact: 7, depassementJoueur: 6, pluie: 6, coteACote: 5, erreur: 5, penalite: 5, depassement: 4, stands: 3, meilleurTour: 3, joueurTete: 2, joueurPlace: 2 },
+  COMMENTAIRE_PRIORITES: { arrivee: 10, podium: 9, arret: 6, depart: 9, depassementTete: 9, dernierTour: 8, joueurArrivee: 8, contact: 7, depassementJoueur: 6, pluie: 6, coteACote: 5, erreur: 5, penalite: 5, depassement: 4, stands: 3, meilleurTour: 3, joueurTete: 2, joueurPlace: 2, glissade: 6 },
   COMMENTAIRE_BONUS_JOUEUR: 2,    // un fait du joueur passe devant (plus de phrases quand le joueur est concerné)
+  COMMENTAIRE_GLISSADE_INTERVALLE: 60,   // s : une glissade rattrapée du joueur n'est redite qu'après ça (tour 43)
   COMMENTAIRE_PLACE_MAX: 10,      // les dépassements, erreurs et côte à côte des voitures plus loin ne sont pas commentés (sauf le joueur)
   COMMENTAIRE_REPETITION: 15,     // s : un contact ou un côte à côte entre les deux mêmes voitures n'est redit qu'après ça
   COMMENTAIRE_CONTACT_DISTANCE: 8, // m

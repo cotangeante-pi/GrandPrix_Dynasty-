@@ -116,6 +116,12 @@ const COMMENTAIRE = (function () {
       if (q.place === 1 && n.ordre[1] && n.ordre[1].ecart !== null) pousser(c, t, 'joueurTete', prm(j, { ecart: n.ordre[1].ecart }), true);
       else if (q.place > 1 && q.ecart !== null) pousser(c, t, 'joueurPlace', prm(j, { ecart: q.ecart }), true);
     }
+    // la glissade du joueur rattrapée (la voiture vivante, tour 43 : SENSATIONS.suivreGlissade, l'arrière ou le patinage au-delà d'un
+    // seuil puis la voiture qui accroche, sans herbe ni tête-à-queue) ; une fois toutes les COMMENTAIRE_GLISSADE_INTERVALLE s au plus
+    if (j >= 0 && typeof SENSATIONS !== 'undefined' && e.pilotes && e.pilotes[j] && e.pilotes[j].arrivee === null) {
+      const g = SENSATIONS.suivreGlissade(c.glissade || (c.glissade = {}), e.pilotes[j].v, t);
+      if (g && (c.glissadeDite === undefined || t - c.glissadeDite >= R.COMMENTAIRE_GLISSADE_INTERVALLE)) { c.glissadeDite = t; pousser(c, t, 'glissade', prm(j), true); }
+    }
     // ce qu'on garde pour la prochaine fois
     for (const k of ['ordre', 'place', 'pilotes', 'depassements']) v[k] = n[k];
     return c;
@@ -153,7 +159,7 @@ const COMMENTAIRE = (function () {
 
   // le résumé vidéo (resume.js) : une phrase pour un moment fort de l'enregistrement (m : { type, qui, sur, place }), au moment où on le
   // voit ; les mêmes phrases que pendant la course, le même réglage (COMMENTAIRE_MODE) ; joueur : son indice, ou −1 ; null si rien à dire
-  const DU_RESUME = { depart: 'depart', arrivee: 'arrivee', sortie: 'erreur', arret: 'stands', depassement: 'depassement' };
+  const DU_RESUME = { depart: 'depart', arrivee: 'arrivee', sortie: 'erreur', arret: 'stands', depassement: 'depassement', glissade: 'glissade' };
   function momentResume(c, m, joueur, lieu) {
     if (!m || R.COMMENTAIRE_MODE === 'non') return null;
     const j = joueur === undefined ? -1 : joueur, concerne = m.qui === j || m.sur === j;
