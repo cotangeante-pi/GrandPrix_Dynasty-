@@ -1,27 +1,27 @@
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><title>tests du tutoriel guidé</title></head><body>
 <pre id="res"></pre>
 <script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));</script>
-<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../circuits-officiels-a.js"></script><script src="../circuits-officiels-b.js"></script><script src="../circuits.js"></script><script src="../sauvegarde.js"></script><script src="../tutoriel.js"></script>
+<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../circuits-officiels-a.js"></script><script src="../circuits-officiels-b.js"></script><script src="../circuits.js"></script><script src="../sauvegarde.js"></script><script src="../physique.js"></script><script src="../robot.js"></script><script src="../sensations.js"></script><script src="../tutoriel.js"></script>
 <script>
 // Le tutoriel guidé (tutoriel.js, étape 11d, Codeur 4), en calcul pur : chaque leçon se réussit quand on fait ce qu'elle demande et
 // échoue si l'on ne fait rien (ou mal) ; la mise en place ; l'enchaînement ; la sauvegarde (à la racine) ; les textes.
 const L=[];let ok=0,ko=0;
 function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
 const v=(c,m)=>{if(!c)throw new Error(m||'faux');};
-const R=REGLAGES,C=CIRCUIT_TEST,IDS=['conduite','freinage','depart','depassement','stand','pluie','visite'];
+const R=REGLAGES,C=CIRCUIT_TEST,IDS=['conduite','freinage','depart','depassement','stand','pluie','visite','vivante'];   // (tour 37j : la 8e, la voiture vivante)
 const base=o=>Object.assign({ecran:'course',etat:'course',tours:0,temps:0,herbe:false,s:0,vitesse:30,depart:null,arrets:0,arretEnCours:false,penalitesStands:0,pneus:'slick',eau:0,devant:false,longueur:C.longueur},o||{});
 // joue une suite de situations, dt par image ; renvoie le résultat
 const jouer=(su,liste,dt=1/30)=>{let r='encours';for(const s of liste){r=TUTORIEL.pas(su,s,dt);if(r!=='encours')break;}return r;};
 const pendant=(s,secondes,dt=1/30)=>Array.from({length:Math.round(secondes/dt)},()=>s);
 
-t('les 7 leçons de CLAUDE.md, dans l’ordre, numérotées, chacune avec son adresse (les modes du jeu : course seule, contre une IA, championnat)', ()=>{
+t('les 8 leçons (les 7 de CLAUDE.md, puis la voiture vivante), dans l’ordre, numérotées, chacune avec son adresse (les modes du jeu : course seule, contre une IA, championnat)', ()=>{
   v(JSON.stringify(TUTORIEL.LECONS.map(l=>l.id))===JSON.stringify(IDS));v(TUTORIEL.LECONS.every((l,i)=>l.numero===i+1&&/^(course|championnat)=/.test(l.adresse)));
   v(/meteo=averse/.test(TUTORIEL.PAR_ID.pluie.adresse)&&/ia=1&joueur=1/.test(TUTORIEL.PAR_ID.depassement.adresse));});
 t('chaque leçon a son nom, son but et sa consigne en anglais et en français, différents, avec les mêmes {repères} ; les raisons d’échec aussi', ()=>{
   const cles=['tutoBouton','tutoTitre','tutoIntro','tutoCommencer','tutoRetour','tutoPasser','tutoRecommencer','tutoSuivante','tutoListe','tutoQuitter','tutoReussie','tutoRatee','tutoBravo'];
   for(const id of IDS){cles.push('tuto_'+id,'tuto_'+id+'_but');if(id!=='visite') cles.push('tuto_'+id+'_consigne');}
   for(const e of ['paddock','garage','aileron','retour','fin']) cles.push('tuto_visite_'+e);
-  for(const r of ['sortie','temps','attente','patinage','cale','faux','essais','pasDevant','vitesse','pasArret','pneus']) cles.push('tuto_raison_'+r);
+  for(const r of ['sortie','temps','attente','patinage','cale','faux','essais','pasDevant','vitesse','pasArret','pneus','glisse']) cles.push('tuto_raison_'+r);
   const rep=x=>(x.match(/\{\w+\}/g)||[]).sort().join();
   for(const k of cles){const en=TEXTES.en[k],fr=TEXTES.fr[k];v(typeof en==='string'&&typeof fr==='string'&&en&&fr&&en!==fr,k);v(rep(en)===rep(fr),k+' : repères');}});
 t('les textes du tutoriel ne sont jamais genrés sur le joueur (fr : ni prêt·e, seul·e, il, elle… ; en : ni he, she…)', ()=>{
@@ -94,6 +94,31 @@ t('7. la visite : le garage puis l’aileron, de retour au paddock : réussie ; 
   v(jouer(su,[e('aileron')])==='encours'&&TUTORIEL.etapeVisite(su,'aileron')==='aileron');
   v(jouer(su,[e('garage')])==='encours'&&TUTORIEL.etapeVisite(su,'garage')==='retour');
   v(jouer(su,[e('championnat')])==='reussie');});
+// --- 8. (tour 37j) la voiture vivante, à l'épingle du technique : un passage sans sortie et sans que l'arrière glisse (TUTO_VIVANTE_ARRIERE) : réussie ;
+// l'arrière qui part, TUTO_ZONE_ESSAIS fois : ratée (« glisse ») ; ne rien faire : ratée (« temps »)
+t('8. la voiture vivante : l’adresse (essai libre sur le technique, en expert : la voiture vivante) ; un passage propre de l’épingle : réussie ; l’arrière qui glisse à chaque passage : ratée (« glisse ») ; rien : ratée (« temps »)', ()=>{
+  v(/course=0/.test(TUTORIEL.PAR_ID.vivante.adresse)&&/circuit=technique/.test(TUTORIEL.PAR_ID.vivante.adresse)&&/niveau=expert/.test(TUTORIEL.PAR_ID.vivante.adresse)&&R.NIVEAUX.expert.vivante>0,'adresse');
+  const T=construireCircuit(CIRCUITS.technique),z=TUTORIEL.zoneFreinage(T),L=T.longueur,b=o=>Object.assign(base({longueur:L}),o);
+  const passage=(su,arriere,herbe)=>{let r;for(const x of [z.debut-50,z.debut+5,(z.debut+z.fin)/2,z.fin+5]) r=TUTORIEL.pas(su,b({s:((x%L)+L)%L,arriere:x>z.debut&&x<z.fin?arriere:0,herbe:!!herbe&&x>z.debut&&x<z.fin}),1);return r;};
+  let su=TUTORIEL.creerSuivi('vivante',T);v(su.zone&&su.zone.debut===z.debut,'la zone de l’épingle');v(passage(su,R.TUTO_VIVANTE_ARRIERE*0.5)==='reussie','propre');
+  su=TUTORIEL.creerSuivi('vivante',T);for(let i=0;i<R.TUTO_ZONE_ESSAIS-1;i++) v(passage(su,R.TUTO_VIVANTE_ARRIERE)==='encours','essai '+i);v(passage(su,1)==='ratee'&&su.raison==='glisse','glisse : '+su.raison);
+  su=TUTORIEL.creerSuivi('vivante',T);v(passage(su,0,true)==='encours','une sortie ne compte pas comme réussie');
+  su=TUTORIEL.creerSuivi('vivante',T);let r;for(let i=0;i<R.TUTO_TEMPS_MAX+2;i++) r=TUTORIEL.pas(su,b({s:0,vitesse:0}),1);v(r==='ratee'&&su.raison==='temps','rien : '+su.raison);});
+// (tour 37j) la leçon de la voiture vivante, jouée par le robot d'essai en voiture vivante (expert) sur le technique, 400 m avant l'épingle :
+// le robot qui freine droit (il prévoit un freinage plus doux, ROBOT_DECELERATION × 0,7, et vise l'épingle un peu moins vite, ROBOT_MARGE_VIRAGE
+// × 0,7 : il freine plus tôt, avant de tourner) la réussit ;
+// le robot d'origine, qui freine tard en tournant, fait glisser l'arrière (ratée, « glisse ») : c'est ce que la leçon apprend
+t('8. la voiture vivante jouée par le robot : freiner droit avant de tourner, réussie ; freiner en tournant, l’arrière glisse, ratée', ()=>{
+  const R_=REGLAGES,niv=R_.NIVEAU,dec=R_.ROBOT_DECELERATION,marge=R_.ROBOT_MARGE_VIRAGE,T=construireCircuit(CIRCUITS.technique),z=TUTORIEL.zoneFreinage(T),DT=1/120,res=[];
+  try{R_.NIVEAU='expert';v(voitureVivante()>0,'la voiture vivante en expert');
+    for(const [nom,d,m] of [['droit',0.7,0.7],['tard',1,1]]){R_.ROBOT_DECELERATION=dec*d;R_.ROBOT_MARGE_VIRAGE=marge*m;
+      const vo=creerVoiture(T,0,0);placerSurPiste(vo,T,(z.debut-400+T.longueur)%T.longueur,0);vo.u=30;const su=TUTORIEL.creerSuivi('vivante',T);let r='encours',maxA=0;
+      for(let k=0;k<120*90&&r==='encours';k++){lisserCommandes(vo,piloteRobot(vo,T),DT);pasVoiture(vo,T,DT);const a=SENSATIONS.glisseArriere(vo).arriere;maxA=Math.max(maxA,a);
+        r=TUTORIEL.pas(su,Object.assign(base({longueur:T.longueur}),{s:vo.piste.s,herbe:vo.surHerbe,vitesse:Math.abs(vo.u),arriere:a}),DT);}
+      res.push([nom,r,su.raison,su.dernier&&+su.dernier.arriere.toFixed(2)]);}
+  }finally{R_.NIVEAU=niv;R_.ROBOT_DECELERATION=dec;R_.ROBOT_MARGE_VIRAGE=marge;}
+  L.push('  (la voiture vivante, le robot : '+JSON.stringify(res)+')');
+  v(res[0][1]==='reussie','le robot qui freine droit : '+JSON.stringify(res[0]));v(res[1][1]!=='reussie','le robot qui freine en tournant : '+JSON.stringify(res[1]));});
 t('l’enchaînement : chaque leçon mène à la suivante, la dernière à rien', ()=>{for(let i=0;i<IDS.length;i++) v(TUTORIEL.suivante(IDS[i])===(IDS[i+1]||null),IDS[i]);});
 
 // --- la situation, tirée de l'état du jeu sans le changer

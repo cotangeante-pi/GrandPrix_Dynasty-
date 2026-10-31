@@ -1066,3 +1066,15 @@ Object.assign(TEXTES.fr, {
   pat_raison_exploit_sansAide: ['P{place_exploit} à {circuit_exploit} avec toutes les aides coupées. C’est ce genre de pilotage que l’écurie veut voir.', 'J’ai vu {circuit_exploit} : aucune aide, P{place_exploit}. Toute l’écurie l’a remarqué.'],
   pat_raison_exploit_legende: ['Une victoire à {circuit_exploit} en légende. Nos ingénieurs en parlent encore.', 'Tenir une voiture vivante et gagner à {circuit_exploit} : ça donne confiance.'],
 });
+
+// (tour 37j, Codeur 3) la 8e leçon du tutoriel : la voiture vivante, à l'épingle du circuit technique
+Object.assign(TEXTES.en, {
+  tuto_vivante: 'The living car', tuto_vivante_but: 'Through the hairpin without the rear sliding: brake straight, turn, then ease on the throttle.',
+  tuto_vivante_consigne: 'Brake in a straight line before the cones, turn in, then feed in the throttle gently ({n} / {max}).',
+  tuto_raison_glisse: 'The rear slid too much: brake before you turn, and go easy on the throttle.',
+});
+Object.assign(TEXTES.fr, {
+  tuto_vivante: 'La voiture vivante', tuto_vivante_but: 'Passer l’épingle sans que l’arrière glisse : freiner droit, tourner, puis remettre les gaz doucement.',
+  tuto_vivante_consigne: 'Freine droit avant les plots, tourne, puis remets les gaz doucement ({n} / {max}).',
+  tuto_raison_glisse: 'L’arrière a trop glissé : freine avant de tourner, et remets les gaz doucement.',
+});

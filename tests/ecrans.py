@@ -2940,14 +2940,14 @@ def tuto_menu(pg, titre, l, h):
     m = pg.evaluate('''() => { const e = document.getElementById("tutoMenu"), li = [...e.querySelectorAll("#tutoListe li")], b = [...e.querySelectorAll("button")].map(x => x.getBoundingClientRect());
       return { vu: !e.classList.contains("cache"), n: li.length, etoiles: li.map(x => x.querySelector(".tutoEtoile").textContent).join(""), noms: li.map(x => x.querySelector(".tutoNom").textContent), dedans: b.every(x => x.left >= 0 && x.top >= 0 && x.right <= innerWidth && x.bottom <= innerHeight),
         defile: [document.documentElement.scrollHeight, innerHeight] }; }''')
-    t(f'{titre} : « Apprendre à piloter » : la liste des 7 leçons (numéro, nom, but, « Commencer »), aucune étoile encore, tout dans l’écran sans défilement',
-      m['vu'] and m['n'] == 7 and m['etoiles'] == '☆' * 7 and m['noms'][0].startswith('1. ') and m['dedans'] and m['defile'][0] <= m['defile'][1] + 2, str(m))
+    t(f'{titre} : « Apprendre à piloter » : la liste des 8 leçons (numéro, nom, but, « Commencer » ; la 8e, la voiture vivante, tour 37j), aucune étoile encore, tout dans l’écran sans défilement',
+      m['vu'] and m['n'] == 8 and m['etoiles'] == '☆' * 8 and m['noms'][0].startswith('1. ') and m['dedans'] and m['defile'][0] <= m['defile'][1] + 2, str(m))
     pg.wait_for_timeout(400); pg.screenshot(path=os.path.join(CAPTURES, 'tuto-menu.png' if l == 1280 else 'tuto-menu-960.png'))
     pg.click('#boutonTutoRetour')
     t(f'{titre} : « Retour » referme la liste : l’écran titre est toujours là, « ▶ Jouer » mène toujours à la grille d’un clic', pg.evaluate('() => document.getElementById("tutoMenu").classList.contains("cache") && JEU.ecran === "titre"'))
     pg.evaluate('() => { SAUVEGARDE.reussirLecon("depart"); }')
     pg.click('#boutonTutorielTitre')
-    t(f'{titre} : une leçon réussie a son étoile dans la liste', pg.evaluate('() => [...document.querySelectorAll("#tutoListe .tutoEtoile")].map(x => x.textContent).join("") === "☆☆★☆☆☆☆"'), pg.evaluate('() => [...document.querySelectorAll("#tutoListe .tutoEtoile")].map(x => x.textContent).join("")'))
+    t(f'{titre} : une leçon réussie a son étoile dans la liste', pg.evaluate('() => [...document.querySelectorAll("#tutoListe .tutoEtoile")].map(x => x.textContent).join("") === "☆☆★☆☆☆☆☆"'), pg.evaluate('() => [...document.querySelectorAll("#tutoListe .tutoEtoile")].map(x => x.textContent).join("")'))
     with pg.expect_navigation(): pg.click('#tutoListe li:first-child button')
     t(f'{titre} : « Commencer » ouvre la leçon 1 (course seule, un tour)', attendre(pg, '() => typeof TUTORIEL_ECRAN !== "undefined" && TUTORIEL_ECRAN.lecon() === "conduite" && JEU.course && JEU.course.nbTours === 1 && !JEU.plateau', None, 20000), pg.url)
     with pg.expect_navigation(): pg.click('#boutonTutoPasser')
