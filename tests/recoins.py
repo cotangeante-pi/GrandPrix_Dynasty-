@@ -536,6 +536,13 @@ def conduite(c, titre, quoi, pause_ecran):
     a = c.ev(CACHER, True); pg.wait_for_timeout(2000); b = c.ev('() => [BOUCLE.nbPas, JEU.course ? JEU.course.temps : null]')
     c.ev(CACHER, False); pg.wait_for_timeout(500); d = c.ev('() => [BOUCLE.nbPas, JEU.course ? JEU.course.temps : null]')
     t(f'{titre} : {quoi} : l’onglet caché 2 s, rien n’avance ; revenu, la course repart sans bond', bool(a and b and d) and b[0] - a[0] <= 1 and 0 < d[0] - b[0] <= 0.5 * 120 + 2 * 12, str([a, b, d]))
+    # (tour 43d, à la demande du Chef) la voiture conduite avance vraiment : 1 s de jeu, la boucle arrêtée, le robot au volant ; sinon,
+    # l'état de la voiture et de la course pour trouver pourquoi (une voiture restée sur la grille serait un défaut du jeu)
+    av = c.ev('''() => { const w = __voiture(), p0 = [w.x, w.z]; BOUCLE.arreter(); BOUCLE.simuler(1); const d = Math.hypot(w.x - p0[0], w.z - p0[1]); BOUCLE.demarrer();
+      const c = JEU.qualif && JEU.qualif.etat === "tour" ? JEU.qualif.q.course : JEU.course, dep = c && c.depart;
+      return { d, u: w.u, gaz: w.gaz, frein: w.frein, ecran: JEU.ecran, etat: c && c.etat, compte: c && c.compte, robot: JEU.robot, cibles: JEU.cibles, depart: dep ? { t: dep.t, lance: dep.lance, resultat: dep.resultat, regime: dep.regime } : null,
+        facteurDepart: w.facteurDepart, piste: w.piste && [Math.round(w.piste.s), Math.round(w.piste.d * 10) / 10], herbe: w.surHerbe, aides: JSON.stringify(JEU.assistance), arrivee: w === JEU.joueur && JEU.plateau ? JEU.plateau.pilotes[JEU.plateau.pilotes.length - 1].arrivee : null }; }''')
+    t(f'{titre} : {quoi} : la voiture conduite avance (1 s de jeu, le robot au volant)', bool(av) and av['d'] > 1, str(av))
     # la pause et la reprise : le temps de course s'arrête, puis repart
     if pause_ecran:
         pg.keyboard.press('Escape'); pg.wait_for_timeout(300)
