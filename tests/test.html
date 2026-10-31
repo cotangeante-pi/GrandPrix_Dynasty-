@@ -418,9 +418,9 @@ t('voiture vivante, le son, la fumée, les traces, la vibration : chacun part su
   for(let k=0;k<2000;k++) EFFETS3D.emettre(e,vo,{x:pos.x+k*0.5,z:pos.z,cap:pos.cap},F({blocage:1,patinage:1}),0.01);v(e.trace.length===R_.TRACES_MAX,'anneau '+e.trace.length);
   EFFETS3D.avancer(e,R_.TRACES_VIE+0.1);v(e.trace.length===0,'effacées');
   const M_=MANETTE;v(M_.vibration(F({}))===null&&M_.vibration(F({arriere:1})).fort>0.5&&M_.vibration(F({vibreur:1})).faible>0&&M_.vibration(F({vibreur:1})).fort===0,'vibration');v(M_.vibrer(0,{fort:1,faible:1},100)===false,'pas de manette : rien');});
-t('voiture vivante (expert) : en sortie d’épingle à plein gaz, l’arrière part, la voiture patine, fume et laisse des traces ; la même course avec et sans les faits, le son et les effets, au bit près', ()=>{const R_=REGLAGES,niv=R_.NIVEAU;R_.NIVEAU='expert';try{
+t('voiture vivante (pneus drift) : en sortie d’épingle à plein gaz, l’arrière part, la voiture patine, fume et laisse des traces ; la même course avec et sans les faits, le son et les effets, au bit près', ()=>{const R_=REGLAGES,niv=R_.NIVEAU;R_.NIVEAU='expert';try{
   const V=CARTES_T.technique.virages.reduce((a,b)=>CARTES_T.technique.trajectoire.vitesse[Math.round(a.s/TQ.pas)%TQ.nb]<CARTES_T.technique.trajectoire.vitesse[Math.round(b.s/TQ.pas)%TQ.nb]?a:b);
-  const tour=avec=>{const vo=creerVoiture(TQ,0,0);placerSurPiste(vo,TQ,V.s-60,0);vo.u=20;const e=EFFETS3D.creer(),m={voiture:0,barriere:0};let arr=0,pat=0;
+  const tour=avec=>{const vo=creerVoiture(TQ,0,0);vo.typePneus='drift';placerSurPiste(vo,TQ,V.s-60,0);vo.u=20;const e=EFFETS3D.creer(),m={voiture:0,barriere:0};let arr=0,pat=0;
     for(let k=0;k<120*6;k++){const c=piloteRobot(vo,TQ);lisserCommandes(vo,{gaz:c.frein>0.2?0:1,frein:c.frein>0.2?c.frein:0,direction:c.direction},DT);pasVoiture(vo,TQ,DT);
       if(avec){const f=SENSATIONS.faits(vo,TQ,m);if(f.arriere>0.3)arr++;if(f.patinage>0)pat++;SON.mixage(vo,f,null,{rapport:null});EFFETS3D.emettre(e,vo,vo,f,DT);EFFETS3D.avancer(e,DT);}}
     return {etat:JSON.stringify(vo),arr,pat,traces:e.trace.length,fumee:e.fumee.length};};
@@ -969,7 +969,8 @@ t('météo, le contrat avec le dessin : METEO.etat(course) = { pluie, eau, ciel 
   finally{REGLAGES.CALENDRIER_CIRCUITS=avant;}});
 t('météo : pendant son arrêt, le joueur choisit ses pneus avec ← → (un appui = un cran, tenir ne défile pas), et son choix remplace celui de l’équipe jusqu’à l’arrêt', ()=>{
   const v_={typePneus:'slick'},suite=[];for(const d of [1,1,0,1,0,-1,0,-1,0,-1])  {choisirPneusArret(v_,d);suite.push(v_.pneusProchain);}
-  v(suite.join()==='inter,inter,inter,pluie,pluie,inter,inter,slick,slick,pluie'&&v_.choixPneus===true,suite.join());});
+  // (tour 44 : le drift entre dans la liste, après le slick : slick, drift, inter, pluie)
+  v(suite.join()==='drift,drift,drift,inter,inter,drift,drift,slick,slick,pluie'&&v_.choixPneus===true,suite.join());});
 t('météo : au sec, la course est identique au bit près à la course sans météo (10 IA, 3 tours)', ()=>{
   const course=avec=>{const e=creerCourseIA(TQ,10,3,2,CARTES_T.technique);if(avec)poserMeteo(e,SEC);for(let k=0;k<300*120&&e.arrives<10;k++)pasCourseIA(e,DT);return e.pilotes.map(p_=>p_.arrivee+':'+p_.v.x+':'+p_.v.contactsVoiture).join('|');};
   v(course(true)===course(false));});
@@ -1090,8 +1091,8 @@ t('disposition (discussion.js → ia.js) : promise pour le Grand Prix suivant, e
   L.push('  (disposition « bloquer » : défenses '+avec.def+' (sans : '+sans.def+'), dépassements '+avec.dep+' (sans : '+sans.dep+'))');
   v(sans.def===0&&avec.def>0,'défenses '+sans.def+' / '+avec.def);});
 // --- la voiture vivante (CLAUDE.md « La voiture vivante (expert et légende) », Codeur 1) : en calcul pur
-function tourVivant(circ,niveau,vv,brutal){const R_=REGLAGES,av=[R_.NIVEAU,R_.VOITURE_VIVANTE];R_.NIVEAU=niveau;R_.VOITURE_VIVANTE=vv;
-  try{const c=creerCourse(circ,3),v_=creerVoiture(circ);placerAuDepart(v_,circ);c.compte=0;let glisse=0,teteAQueue=0;
+function tourVivant(circ,niveau,vv,brutal,pneu){const R_=REGLAGES,av=[R_.NIVEAU,R_.VOITURE_VIVANTE];R_.NIVEAU=niveau;R_.VOITURE_VIVANTE=vv;
+  try{const c=creerCourse(circ,3),v_=creerVoiture(circ);if(pneu)v_.typePneus=pneu;placerAuDepart(v_,circ);c.compte=0;let glisse=0,teteAQueue=0;
     for(let k=0;k<400*120&&c.etat!=='finie';k++){let cmd=piloteRobot(v_,circ);
       // le robot « brutal » : plein gaz dès qu'il veut accélérer, et au freinage frein à fond et braquage à fond
       if(brutal)cmd={gaz:cmd.gaz>0?1:0,frein:cmd.frein>0?1:0,direction:cmd.frein>0?Math.sign(cmd.direction||1):cmd.direction};
@@ -1100,24 +1101,34 @@ function tourVivant(circ,niveau,vv,brutal){const R_=REGLAGES,av=[R_.NIVEAU,R_.VO
       if(v_.piste){let d=v_.cap-Math.atan2(circ.tz[v_.piste.indice],circ.tx[v_.piste.indice]);if(Math.abs(Math.atan2(Math.sin(d),Math.cos(d)))>Math.PI/2)teteAQueue++;}}
     return {fini:c.etat==='finie',tours:c.tours.map(t_=>t_.temps),glisse,teteAQueue,barr:v_.contactsBarriere,x:v_.x,z:v_.z,cap:v_.cap};}
   finally{[R_.NIVEAU,R_.VOITURE_VIVANTE]=av;}}
-t('voiture vivante : VOITURE_VIVANTE à 0 en légende, et à 1 en normal ou en débutant : la voiture d’aujourd’hui au bit près (le tour du robot)',()=>{
-  const ref=tourVivant(TQ,'normal',0);for(const [n,vv] of [['legende',0],['expert',0],['normal',1],['debutant',1]]){const r=tourVivant(TQ,n,vv);v(r.x===ref.x&&r.z===ref.z&&r.cap===ref.cap,n+' '+vv);}});
+t('voiture vivante : elle vient du pneu drift, pas du niveau : en pneus adhérant (slick ou sans type), à tous les niveaux et quel que soit VOITURE_VIVANTE, la voiture d’aujourd’hui au bit près ; une IA en drift sans VIVANTE_IA n’est pas vivante',()=>{
+  const ref=tourVivant(TQ,'normal',0);for(const [n,vv,pn] of [['legende',1,null],['expert',1,'slick'],['normal',1,'slick'],['debutant',0,null]]){const r=tourVivant(TQ,n,vv,false,pn);v(r.x===ref.x&&r.z===ref.z&&r.cap===ref.cap,n+' '+vv+' '+pn);}
+  const ia=creerVoiture(TQ);ia.typePneus='drift';ia.ia=true;v(voitureVivante(ia)===0,'IA vivante');const jo=creerVoiture(TQ);jo.typePneus='drift';v(voitureVivante(jo)===REGLAGES.VOITURE_VIVANTE,'joueur pas vivant');});
 t('voiture vivante : au freinage fort en ligne droite, la charge (l’adhérence) de l’avant monte et celle de l’arrière baisse',()=>{const R_=REGLAGES,av=[R_.NIVEAU,R_.VOITURE_VIVANTE];R_.NIVEAU='legende';R_.VOITURE_VIVANTE=1;
-  try{const v_=creerVoiture(null);v_.u=70;const fz=charge(70),av0=fz*(R_.EMPATTEMENT-R_.CG_AVANT)/R_.EMPATTEMENT,ar0=fz*R_.CG_AVANT/R_.EMPATTEMENT;
+  try{const v_=creerVoiture(null);v_.typePneus='drift';v_.u=70;const fz=charge(70),av0=fz*(R_.EMPATTEMENT-R_.CG_AVANT)/R_.EMPATTEMENT,ar0=fz*R_.CG_AVANT/R_.EMPATTEMENT;
     for(let k=0;k<30;k++){v_.gaz=0;v_.frein=1;v_.direction=0;pasVoiture(v_,null,DT);}
     L.push('  (voiture vivante, freinage à 70 m/s : charge avant '+v_.chargeAvant.toFixed(0)+' N, statique '+av0.toFixed(0)+' ; arrière '+v_.chargeArriere.toFixed(0)+' N, statique '+ar0.toFixed(0)+')');
     v(v_.chargeAvant>av0*1.05&&v_.chargeArriere<ar0*0.95,'avant '+v_.chargeAvant.toFixed(0)+' / '+av0.toFixed(0)+', arrière '+v_.chargeArriere.toFixed(0)+' / '+ar0.toFixed(0));}finally{[R_.NIVEAU,R_.VOITURE_VIVANTE]=av;}});
 t('voiture vivante : un lever de pied à 250 km/h dans un virage rapide fait tourner la voiture plus que le gaz maintenu (et pas sans la voiture vivante)',()=>{const R_=REGLAGES,av=[R_.NIVEAU,R_.VOITURE_VIVANTE];
-  try{const tourne={};for(const vv of [0,1])for(const gaz of [1,0]){R_.NIVEAU='legende';R_.VOITURE_VIVANTE=vv;const v_=creerVoiture(null);v_.u=250/3.6;
+  try{const tourne={};for(const vv of [0,1])for(const gaz of [1,0]){R_.NIVEAU='legende';R_.VOITURE_VIVANTE=vv;const v_=creerVoiture(null);if(vv)v_.typePneus='drift';v_.u=250/3.6;
       for(let k=0;k<60;k++){v_.gaz=1;v_.frein=0;v_.direction=0.15;pasVoiture(v_,null,DT);}const c0=v_.cap;for(let k=0;k<120;k++){v_.gaz=gaz;v_.frein=0;v_.direction=0.15;pasVoiture(v_,null,DT);}tourne[vv+'_'+gaz]=v_.cap-c0;}
     L.push('  (en 1 s à 250 km/h, braquage 0,15 : aujourd’hui gaz '+tourne['0_1'].toFixed(3)+' rad, pied levé '+tourne['0_0'].toFixed(3)+' ; vivante gaz '+tourne['1_1'].toFixed(3)+', pied levé '+tourne['1_0'].toFixed(3)+')');
     v(tourne['1_0']>tourne['1_1']*1.2,'vivante : pied levé '+tourne['1_0'].toFixed(3)+', gaz '+tourne['1_1'].toFixed(3));v(tourne['0_0']<=tourne['0_1'],'aujourd’hui le lever de pied tournait déjà plus');}finally{[R_.NIVEAU,R_.VOITURE_VIVANTE]=av;}});
-t('voiture vivante : en légende, le robot neutre fait ses tours sans tête-à-queue ni barrière (circuits test et technique), au plus 1 % plus lent ; le robot brutal, à l’épingle du technique, part en glissade (dérive au moins 1,5 fois celle d’aujourd’hui) et se rattrape (il finit, ni tête-à-queue ni barrière)',()=>{
-  for(const [nom,circ] of [['test',C],['technique',TQ]]){const n0=tourVivant(circ,'legende',0),n1=tourVivant(circ,'legende',1),b0=tourVivant(circ,'legende',0,true),b1=tourVivant(circ,'legende',1,true);
+t('voiture vivante (pneus drift) : le robot neutre fait ses tours sans tête-à-queue ni barrière (circuits test et technique), au plus 1 % plus lent ; le robot brutal, à l’épingle du technique, part en glissade (dérive au moins 1,5 fois celle d’aujourd’hui) et se rattrape (il finit, ni tête-à-queue ni barrière)',()=>{
+  for(const [nom,circ] of [['test',C],['technique',TQ]]){const n0=tourVivant(circ,'legende',1,false,'slick'),n1=tourVivant(circ,'legende',1,false,'drift'),b0=tourVivant(circ,'legende',1,true,'slick'),b1=tourVivant(circ,'legende',1,true,'drift');
     const m=r=>Math.min(...r.tours.slice(1));
     L.push('  (voiture vivante, '+nom+', robot neutre : meilleur tour '+m(n0).toFixed(2)+' → '+m(n1).toFixed(2)+' s, dérive max '+n0.glisse.toFixed(3)+' → '+n1.glisse.toFixed(3)+' rad ; robot brutal : '+m(b0).toFixed(2)+' → '+m(b1).toFixed(2)+' s, dérive '+b0.glisse.toFixed(3)+' → '+b1.glisse.toFixed(3)+' rad)');
     v(n1.fini&&n1.teteAQueue===0&&n1.barr===0&&m(n1)<=m(n0)*1.01,nom+' neutre : fini '+n1.fini+', tête-à-queue '+n1.teteAQueue+', barrières '+n1.barr+', '+m(n1).toFixed(2)+' / '+m(n0).toFixed(2));
     if(nom==='technique')v(b1.glisse>=1.5*b0.glisse&&b1.fini&&b1.teteAQueue===0&&b1.barr===0,nom+' brutal : dérive '+b1.glisse.toFixed(3)+' / '+b0.glisse.toFixed(3)+', fini '+b1.fini+', tête-à-queue '+b1.teteAQueue+', barrières '+b1.barr);}});
+t('pneus adhérant / drift (moteur) : le drift est un pneu du sec de meteo.js (jamais conseillé par l’équipe ni pris par une IA), il adhère comme le slick sur le sec (son effet est dans la physique : mieux lent, moins bien rapide), pire sur le mouillé, s’use plus vite ; l’API de l’écran (PNEUS_CHOIX) ; une voiture sans type est en adhérant',()=>{
+  const R_=REGLAGES,P_=REGLAGES_PNEUS;v(METEO.TYPES.includes('drift')&&METEO.TYPES.indexOf('drift')===1,'TYPES '+METEO.TYPES);
+  v(METEO.adherence('drift',0)===1&&METEO.adherence('drift',0.6)<METEO.adherence('slick',0.6),'adhérence du drift');v(METEO.usure('drift',0)===1,'usure météo');
+  for(const eau of [0,0.2,0.5,0.8,1])v(METEO.meilleurPneu(eau)!=='drift'&&METEO.choisir(eau,1,0.5)!=='drift','conseillé '+eau);
+  v(adherenceDrift(10)>1&&Math.abs(adherenceDrift(R_.DRIFT_VITESSE)-1)<1e-12&&adherenceDrift(75)<1,'compromis '+[adherenceDrift(10),adherenceDrift(75)]);
+  const a=creerVoiture(null),b=creerVoiture(null);a.u=b.u=50;a.v=b.v=2;b.typePneus='drift';v(Math.abs(tauxUsure(b)/tauxUsure(a)-P_.USURE_DRIFT)<1e-9,'usure '+tauxUsure(b)/tauxUsure(a));
+  v(PNEUS_CHOIX.secs().join()==='slick,drift'&&PNEUS_CHOIX.tous().join()===METEO.TYPES.join()&&PNEUS_CHOIX.estDrift('drift')&&!PNEUS_CHOIX.estDrift('slick'),'API');
+  const ch={};v(PNEUS_CHOIX.choisirDepart(ch,'drift')==='drift'&&ch.pneusDepart==='drift'&&PNEUS_CHOIX.choisirDepart(ch,'rien')==='drift','départ');
+  const vo=creerVoiture(null);v(PNEUS_CHOIX.de(vo)==='slick'&&PNEUS_CHOIX.choisirArret(vo,'drift')==='drift'&&vo.choixPneus===true,'arrêt');});
 t('classement : les arrivés d’abord (dans l’ordre d’arrivée), puis les plus avancés ; les tours de retard comptés', ()=>{
   const e=creerCourseIA(TQ,3,5,1,CARTES_T.technique),P=e.pilotes;
   P[2].place=1;P[2].arrivee=10;P[0].course.progression=500;P[1].course.progression=550+TQ.longueur;

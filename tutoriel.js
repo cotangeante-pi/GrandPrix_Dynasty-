@@ -15,7 +15,7 @@ const TUTORIEL = (function () {
     { id: 'stand', adresse: 'course=2' },                                                     // seul : l'arrêt, sans excès de vitesse
     { id: 'pluie', adresse: 'course=3&ia=1&joueur=1&niveau=debutant&meteo=averse' },    // l'averse arrive : changer de pneus
     { id: 'visite', adresse: 'championnat=1' },                                               // le paddock, le garage, l'aileron
-    { id: 'vivante', adresse: 'course=0&circuit=technique&niveau=expert' },                  // (tour 37j) la voiture vivante, à l'épingle du technique
+    { id: 'vivante', adresse: 'course=0&circuit=technique&pneus=drift' },                    // (la voiture vivante vient du pneu drift, plus du niveau : tour 44)                  // (tour 37j) la voiture vivante, à l'épingle du technique
   ];
   const PAR_ID = {};
   LECONS.forEach((l, i) => { l.numero = i + 1; PAR_ID[l.id] = l; });

@@ -19,7 +19,7 @@ function tauxUsure(voiture, gestionPneus = REGLAGES_PNEUS.GESTION_MOYENNE) {
     + freinFort * vitesse * P.USURE_PAR_M_FREIN_FORT
     + (voiture.surHerbe ? vitesse * P.USURE_PAR_M_HERBE : 0);
   const gestion = Math.max(0, Math.min(1, gestionPneus));
-  return brut * (1 - P.GESTION_EFFET_MAX * gestion) * (P.USURE_ECHELLE || 1) * (voiture.usureMeteo || 1);   // (usureMeteo : un pneu de pluie sur le sec, meteo.js ; 1 au sec)
+  return brut * (1 - P.GESTION_EFFET_MAX * gestion) * (P.USURE_ECHELLE || 1) * (voiture.usureMeteo || 1) * (voiture.typePneus === 'drift' ? P.USURE_DRIFT : 1);   // (le drift s'use plus vite ; × 1 en adhérant)   // (usureMeteo : un pneu de pluie sur le sec, meteo.js ; 1 au sec)
 }
 
 // un pas de dt secondes : l'usure avance, sans dépasser USURE_MAX. Renvoie l'usure.
@@ -61,3 +61,21 @@ function arretObligatoire(nbTours) {
 function penaliteSansArret(etat, nbTours) {
   return arretObligatoire(nbTours) && etat.arrets === 0 ? REGLAGES_PNEUS.PENALITE_SANS_ARRET : 0;
 }
+
+// --- le choix des pneus, pour l'écran (Codeur 3) : en calcul pur. Les pneus du sec : 'slick' (l'adhérant, par défaut) et 'drift' (la
+// voiture vivante) ; sous la pluie : 'inter' et 'pluie' (meteo.js). Le joueur choisit au garage (ch.pneusDepart, principal.js) et à chaque
+// arrêt (v.pneusProchain, v.choixPneus) ; changer de pneu à un arrêt compte comme l'arrêt obligatoire (course.js, pasArretStand).
+const PNEUS_CHOIX = {
+  SECS: ['slick', 'drift'],
+  // la liste des pneus du sec, dans l'ordre de l'écran
+  secs() { return PNEUS_CHOIX.SECS.slice(); },
+  // tous les pneus (sec et pluie)
+  tous() { return typeof METEO !== 'undefined' ? METEO.TYPES.slice() : PNEUS_CHOIX.SECS.slice(); },
+  estDrift(type) { return type === 'drift'; },
+  // le pneu du départ choisi au garage (le championnat le garde jusqu'à la course : principal.js le pose sur la voiture du joueur)
+  choisirDepart(ch, type) { if (ch && PNEUS_CHOIX.tous().includes(type)) ch.pneusDepart = type; return ch ? ch.pneusDepart : null; },
+  // le pneu choisi pendant l'arrêt (la voiture du joueur) : il le prend à la fin de l'arrêt
+  choisirArret(v, type) { if (v && PNEUS_CHOIX.tous().includes(type)) { v.pneusProchain = type; v.choixPneus = true; } return v ? v.pneusProchain : null; },
+  // le pneu d'une voiture (l'adhérant si rien n'est dit : une ancienne sauvegarde, une IA)
+  de(v) { return (v && v.typePneus) || 'slick'; },
+};

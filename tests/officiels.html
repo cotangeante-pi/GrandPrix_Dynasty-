@@ -1,7 +1,7 @@
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><title>les IA sur les 12 tracés officiels</title></head><body>
 <pre id="res"></pre>
 <script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));</script>
-<script src="../donnees.js"></script><script src="../aleatoire.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../course.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../circuits-officiels-a.js"></script><script src="../circuits-officiels-b.js"></script>
+<script src="../donnees.js"></script><script src="../aleatoire.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../course.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../robot.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../circuits-officiels-a.js"></script><script src="../circuits-officiels-b.js"></script>
 <script>
 // Les IA sur les 12 tracés officiels (tour 31, Codeur 1), EN SIMULATION SEULEMENT : rien n'est branché dans le jeu (les tracés
 // attendent l'accord du propriétaire). Pour chaque tracé : la carte des IA se calcule (temps) ; une IA seule fait 2 tours (temps au tour,
@@ -137,6 +137,23 @@ if(Q.get('techniques')!=='0'&&(!FILTRE||FILTRE.split(',').some(x=>['monoco','spa
     finally{[R.NIVEAU,R.IA_TECHNIQUES_ACTIVES,R.PNEUS_ACTIFS]=avant;}
     L.push('  (techniques, légende, circuit test, meilleur tour moyen : sans '+m[false].toFixed(2)+' s, avec '+m[true].toFixed(2)+' s ; le propriétaire ≈ 45 s)');
     v(m[true]<49.4,'avec '+m[true].toFixed(2)+' s, sans '+m[false].toFixed(2)+' s');});
+  ecrire();
+}
+// les pneus adhérant / drift (tour 44) : le robot neutre, 3 tours, chaque pneu, sur les 12 tracés ; EXIGÉ : le drift devant sur 3 au moins,
+// l'adhérant sur 3 au moins, l'écart sous 1 % partout, le drift sans tête-à-queue ni barrière. ?drift=0 : sauté
+if(Q.get('drift')!=='0'&&!FILTRE){
+  t('pneus : le robot neutre sur les 12 tracés en adhérant et en drift : chacun devant sur 3 au moins, l’écart sous 1 %, le drift sans tête-à-queue ni barrière',()=>{
+    const R=REGLAGES,av=R.PNEUS_ACTIFS;R.PNEUS_ACTIFS=false;let d=0,a=0,max=0;const lignes=[];
+    try{for(const [cle,def] of Object.entries(TOUS)){const C=construireCircuit(def),m={};
+      for(const t_ of ['slick','drift']){const c=creerCourse(C,3),vo=creerVoiture(C);vo.typePneus=t_;placerAuDepart(vo,C);c.compte=0;let tq=0;
+        for(let k=0;k<3*400*120&&c.etat!=='finie';k++){appliquerCommandes(vo,piloteRobot(vo,C));pasVoiture(vo,C,DT);majCourse(c,vo,DT);
+          if(vo.piste){let x=vo.cap-Math.atan2(C.tz[vo.piste.indice],C.tx[vo.piste.indice]);if(Math.abs(Math.atan2(Math.sin(x),Math.cos(x)))>Math.PI/2)tq++;}}
+        m[t_]={t:c.tours.length>1?Math.min(...c.tours.slice(1).map(x=>x.temps)):Infinity,tq,b:vo.contactsBarriere};}
+      const e=(m.drift.t-m.slick.t)/m.slick.t*100;if(e<0)d++;else a++;max=Math.max(max,Math.abs(e));
+      lignes.push(def.nom+' '+m.slick.t.toFixed(2)+' / '+m.drift.t.toFixed(2)+' ('+(e>=0?'+':'')+e.toFixed(2)+' %)');v(m.drift.tq===0&&m.drift.b===0,def.nom+' : drift tête-à-queue '+m.drift.tq+', barrières '+m.drift.b);}}
+    finally{R.PNEUS_ACTIFS=av;}
+    L.push('  (pneus, robot neutre, meilleur tour adhérant / drift : '+lignes.join(' ; ')+')');
+    v(d>=3&&a>=3&&max<1,'drift devant sur '+d+', adhérant sur '+a+', écart max '+max.toFixed(2)+' %');});
   ecrire();
 }
 t('aucune erreur JavaScript',()=>v(__err.length===0,__err.join(' | ')));

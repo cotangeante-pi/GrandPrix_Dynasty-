@@ -96,8 +96,8 @@ t('7. la visite : le garage puis l’aileron, de retour au paddock : réussie ; 
   v(jouer(su,[e('championnat')])==='reussie');});
 // --- 8. (tour 37j) la voiture vivante, à l'épingle du technique : un passage sans sortie et sans que l'arrière glisse (TUTO_VIVANTE_ARRIERE) : réussie ;
 // l'arrière qui part, TUTO_ZONE_ESSAIS fois : ratée (« glisse ») ; ne rien faire : ratée (« temps »)
-t('8. la voiture vivante : l’adresse (essai libre sur le technique, en expert : la voiture vivante) ; un passage propre de l’épingle : réussie ; l’arrière qui glisse à chaque passage : ratée (« glisse ») ; rien : ratée (« temps »)', ()=>{
-  v(/course=0/.test(TUTORIEL.PAR_ID.vivante.adresse)&&/circuit=technique/.test(TUTORIEL.PAR_ID.vivante.adresse)&&/niveau=expert/.test(TUTORIEL.PAR_ID.vivante.adresse)&&R.NIVEAUX.expert.vivante>0,'adresse');
+t('8. la voiture vivante : l’adresse (essai libre sur le technique, en pneus drift : la voiture vivante) ; un passage propre de l’épingle : réussie ; l’arrière qui glisse à chaque passage : ratée (« glisse ») ; rien : ratée (« temps »)', ()=>{
+  v(/course=0/.test(TUTORIEL.PAR_ID.vivante.adresse)&&/circuit=technique/.test(TUTORIEL.PAR_ID.vivante.adresse)&&/pneus=drift/.test(TUTORIEL.PAR_ID.vivante.adresse),'adresse');
   const T=construireCircuit(CIRCUITS.technique),z=TUTORIEL.zoneFreinage(T),L=T.longueur,b=o=>Object.assign(base({longueur:L}),o);
   const passage=(su,arriere,herbe)=>{let r;for(const x of [z.debut-50,z.debut+5,(z.debut+z.fin)/2,z.fin+5]) r=TUTORIEL.pas(su,b({s:((x%L)+L)%L,arriere:x>z.debut&&x<z.fin?arriere:0,herbe:!!herbe&&x>z.debut&&x<z.fin}),1);return r;};
   let su=TUTORIEL.creerSuivi('vivante',T);v(su.zone&&su.zone.debut===z.debut,'la zone de l’épingle');v(passage(su,R.TUTO_VIVANTE_ARRIERE*0.5)==='reussie','propre');
@@ -110,9 +110,9 @@ t('8. la voiture vivante : l’adresse (essai libre sur le technique, en expert 
 // le robot d'origine, qui freine tard en tournant, fait glisser l'arrière (ratée, « glisse ») : c'est ce que la leçon apprend
 t('8. la voiture vivante jouée par le robot : freiner droit avant de tourner, réussie ; freiner en tournant, l’arrière glisse, ratée', ()=>{
   const R_=REGLAGES,niv=R_.NIVEAU,dec=R_.ROBOT_DECELERATION,marge=R_.ROBOT_MARGE_VIRAGE,T=construireCircuit(CIRCUITS.technique),z=TUTORIEL.zoneFreinage(T),DT=1/120,res=[];
-  try{R_.NIVEAU='expert';v(voitureVivante()>0,'la voiture vivante en expert');
+  try{
     for(const [nom,d,m] of [['droit',0.7,0.7],['tard',1,1]]){R_.ROBOT_DECELERATION=dec*d;R_.ROBOT_MARGE_VIRAGE=marge*m;
-      const vo=creerVoiture(T,0,0);placerSurPiste(vo,T,(z.debut-400+T.longueur)%T.longueur,0);vo.u=30;const su=TUTORIEL.creerSuivi('vivante',T);let r='encours',maxA=0;
+      const vo=creerVoiture(T,0,0);vo.typePneus='drift';v(voitureVivante(vo)>0,'la voiture vivante en pneus drift');placerSurPiste(vo,T,(z.debut-400+T.longueur)%T.longueur,0);vo.u=30;const su=TUTORIEL.creerSuivi('vivante',T);let r='encours',maxA=0;
       for(let k=0;k<120*90&&r==='encours';k++){lisserCommandes(vo,piloteRobot(vo,T),DT);pasVoiture(vo,T,DT);const a=SENSATIONS.glisseArriere(vo).arriere;maxA=Math.max(maxA,a);
         r=TUTORIEL.pas(su,Object.assign(base({longueur:T.longueur}),{s:vo.piste.s,herbe:vo.surHerbe,vitesse:Math.abs(vo.u),arriere:a}),DT);}
       res.push([nom,r,su.raison,su.dernier&&+su.dernier.arriere.toFixed(2)]);}
