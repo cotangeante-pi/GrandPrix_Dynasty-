@@ -149,6 +149,9 @@ const SON = (function () {
     p.frequencePneus = R.SON_PNEUS_FREQUENCE;
     const blocage = oui ? f.blocage * R.SON_VOLUME_BLOCAGE : 0;
     if (blocage > p.volumePneus) { p.volumePneus = blocage; p.frequencePneus = R.SON_BLOCAGE_FREQUENCE; }
+    // la voiture vivante (tour 42) : l'arrière qui part ou les roues qui patinent crissent plus fort que la dérive seule, plus grave
+    const arriere = oui ? Math.max(f.arriere || 0, f.patinage || 0) * R.SON_VOLUME_ARRIERE : 0;
+    if (arriere > p.volumePneus) { p.volumePneus = arriere; p.frequencePneus = R.SON_ARRIERE_FREQUENCE; }
     const u = Math.abs(v.u), [f0, f1] = R.SON_VIBREUR_FREQUENCE;
     p.volumeVibreur = oui ? R.SON_VOLUME_VIBREUR * f.vibreur : 0;
     p.frequenceVibreur = Math.max(f0, Math.min(f1, 4 * u / R.LONGUEUR_BANDE_VIBREUR));

@@ -1274,13 +1274,16 @@ def sensations_ecran(pg, titre):
       const sansRien = () => { e.fumee.length = 0; e.etincelle.length = 0; E.maj([], null, 0); SCENE3D.dessiner(); return SCENE3D.appelsDessin; };
       const vide = sansRien(); SENSATIONS.regler(false); const coupe = sansRien(); SENSATIONS.regler(true);
       const devant = { x: j.x + Math.cos(j.cap) * 9, z: j.z + Math.sin(j.cap) * 9, cap: j.cap };   // (devant la voiture : la capture les montre)
-      E.emettre(e, j, devant, F, 0.4); E.maj([], null, 0); SCENE3D.dessiner();
-      return { vide, coupe, plein: SCENE3D.appelsDessin, fumees: E.fumees.count, etincelles: E.etincelles.count, visibles: [E.fumees.visible, E.etincelles.visible] }; }''')
+      E.emettre(e, j, devant, F, 0.4);
+      // (tour 42 : l'arrière qui part, sur 12 m : les traces de pneus, un appel de plus)
+      for (let k = 1; k <= 6; k++) E.emettre(e, j, { x: devant.x + Math.cos(j.cap) * 2 * k, z: devant.z + Math.sin(j.cap) * 2 * k, cap: j.cap + 0.05 * k }, Object.assign({}, F, { arriere: 1, contact: 0, herbe: 0 }), 0.02);
+      E.maj([], null, 0); SCENE3D.dessiner();
+      return { vide, coupe, plein: SCENE3D.appelsDessin, fumees: E.fumees.count, etincelles: E.etincelles.count, traces: e.trace.length, visibles: [E.fumees.visible, E.etincelles.visible, E.traces.visible] }; }''')
     pg.wait_for_timeout(200); pg.screenshot(path=os.path.join(CAPTURES, 'sensations.png'))
-    L.append(f"  (les effets de conduite : {m['vide']} appels de dessin sans effet, {m['plein']} avec {m['fumees']} bouffées de fumée et {m['etincelles']} étincelles)")
-    t(f'{titre} : la fumée et les étincelles : un appel de dessin chacune, au plus 3 de plus en tout ; aucun quand elles sont vides (effets coupés : la même image)',
-      m['fumees'] > 0 and m['etincelles'] > 0 and m['visibles'] == [True, True] and 0 < m['plein'] - m['vide'] <= 3 and m['coupe'] == m['vide'], str(m))
-    pg.evaluate('() => { EFFETS3D.etat.fumee.length = 0; EFFETS3D.etat.etincelle.length = 0; BOUCLE.demarrer(); }')
+    L.append(f"  (les effets de conduite : {m['vide']} appels de dessin sans effet, {m['plein']} avec {m['fumees']} bouffées de fumée, {m['etincelles']} étincelles et {m['traces']} bandes de traces)")
+    t(f'{titre} : la fumée, les étincelles et les traces de pneus : un appel de dessin chacune, au plus 3 de plus en tout ; aucun quand elles sont vides (effets coupés : la même image)',
+      m['fumees'] > 0 and m['etincelles'] > 0 and m['traces'] >= 10 and m['visibles'] == [True, True, True] and 0 < m['plein'] - m['vide'] <= 3 and m['coupe'] == m['vide'], str(m))
+    pg.evaluate('() => { EFFETS3D.etat.fumee.length = 0; EFFETS3D.etat.etincelle.length = 0; EFFETS3D.etat.trace.length = 0; BOUCLE.demarrer(); }')
     # le réglage du menu pause : oui → non (sauvegardé) → oui
     r = pg.evaluate('''() => { const b = document.getElementById("boutonEffetsPause"), vu = [b.textContent, SENSATIONS.actif]; b.click(); vu.push(b.textContent, SENSATIONS.actif, SAUVEGARDE.option("effets", "?")); b.click(); vu.push(SENSATIONS.actif, SAUVEGARDE.option("effets", "?"));
       return vu; }''')
@@ -1294,7 +1297,9 @@ def sensations_ecran(pg, titre):
 # la manette (manette.js, tour 38) : de fausses manettes (navigator.getGamepads remplacé avant le chargement, ?test=manette…) ;
 # window.__pads : la liste ; __padFixer(k, nom, valeur) appuie (1) ou relâche (0) un bouton, ou pose un axe ('axe0')
 FAUSSES_MANETTES = """(() => { const pad = i => ({ index: i, id: 'fausse manette ' + i, connected: true, mapping: 'standard', axes: [0, 0, 0, 0], buttons: Array.from({ length: 17 }, () => ({ value: 0, pressed: false })) });
-  window.__pads = [pad(0)]; if (/test=manette-deux/.test(location.search)) window.__pads.push(pad(1));
+  window.__vibrations = [];   // (la vibration, tour 42 : chaque impulsion demandée à la manette)
+  const vibrante = p => Object.assign(p, { vibrationActuator: { type: 'dual-rumble', playEffect: (t, o) => { window.__vibrations.push([p.index, t, o.strongMagnitude, o.weakMagnitude]); return Promise.resolve('complete'); } } });
+  window.__pads = [vibrante(pad(0))]; if (/test=manette-deux/.test(location.search)) window.__pads.push(vibrante(pad(1)));
   navigator.getGamepads = () => window.__pads;
   window.__padFixer = (k, nom, x) => { const p = window.__pads[k]; if (nom.startsWith('axe')) p.axes[+nom.slice(3)] = x; else p.buttons[MANETTE.BOUTONS[nom]] = { value: x, pressed: x > 0.5 }; }; })();"""
 def manette_appui(pg, k, nom):
@@ -1326,11 +1331,22 @@ def manette_ecran(pg, titre):
     manette_appui(pg, 0, 'a')
     apres = pg.evaluate('() => [SENSATIONS.actif, document.querySelectorAll("button.manette-choix").length]')
     t(f'{titre} : dans le menu pause, la croix choisit un bouton (un halo, un seul à la fois) et A le valide (« Effets de conduite » changé)', 'boutonEffetsPause' in vus and apres[0] == (not avant) and apres[1] == 1, str([vus, avant, apres]))
-    manette_appui(pg, 0, 'a'); manette_appui(pg, 0, 'b')
+    # (A remet « Effets de conduite », B reprend la course ; sous swiftshader chargé, une image peut manquer un appui court : on réappuie)
+    for _ in range(3):
+        manette_appui(pg, 0, 'a')
+        if pg.evaluate('() => SENSATIONS.actif') == avant: break
+    for _ in range(3):
+        manette_appui(pg, 0, 'b')
+        if pg.evaluate('() => JEU.ecran') == 'course': break
     t(f'{titre} : B quitte la pause, la course reprend ; le halo disparaît en conduite', pg.evaluate('() => JEU.ecran === "course" && SENSATIONS.actif && !document.querySelector("button.manette-choix")'), pg.evaluate('() => [JEU.ecran, SENSATIONS.actif]'))
     # Y change la caméra, A remet sur la piste
     c0 = pg.evaluate('() => CAMERA.mode'); manette_appui(pg, 0, 'y')
     t(f'{titre} : Y change la caméra', pg.evaluate('() => CAMERA.mode') != c0, c0)
+    # la vibration (tour 42) : l'arrière qui part fait vibrer le gros moteur (les faits de la voiture remplacés 1,5 s), puis plus rien
+    vb = pg.evaluate('''async () => { const de = SENSATIONS.de; window.__vibrations.length = 0; SENSATIONS.de = v => Object.assign({}, SENSATIONS.RIEN, { arriere: 1 });
+      await new Promise(r => setTimeout(r, 1500)); SENSATIONS.de = de; const glisse = window.__vibrations.slice(); window.__vibrations.length = 0;
+      await new Promise(r => setTimeout(r, 1000)); return { glisse: glisse.length, fort: glisse.length ? glisse[0][2] : 0, type: glisse.length ? glisse[0][1] : null, apres: window.__vibrations.filter(x => x[2] > 0.5).length }; }''')
+    t(f'{titre} : la manette vibre quand l’arrière part (le gros moteur, « dual-rumble »), et plus de gros moteur quand la voiture accroche', vb['glisse'] >= 2 and vb['fort'] > 0.5 and vb['type'] == 'dual-rumble' and vb['apres'] == 0, str(vb))
 # le mode 2 joueurs : deux fausses manettes, une par joueur ; la gâchette de l'une ne fait rouler que sa voiture
 def manette_deux(pg, titre):
     pret = attendre(pg, '() => JEU.deux && JEU.plateau && JEU.plateau.carte !== null && DEUX_JOUEURS.joueurs(JEU.plateau).every(p => p.course.depart && p.course.depart.extinction !== null)', None, 240000)
@@ -1507,9 +1523,9 @@ def lieu_ecran(pg, titre, page):
     if re.fullmatch(r'tests/lieu\.html\?circuit=[a-z]+', page) and nom in PLAFONDS_IMAGE:
         c = pg.evaluate('() => window.__couts()')
         pa, pt = PLAFONDS_IMAGE[nom]
-        L.append(f"  (coûts de {nom}, caméra de course, 20 voitures, {c['points']} endroits du tour : appels {c['appelsMoy']} en moyenne, {c['appelsMax']} au pire ; triangles {c['trianglesMoy']} et {c['trianglesMax']} ; {c['materiaux']} matériaux, {c['programmes']} programmes, ombres {'oui' if c['ombres'] else 'non'} ; effets : fumée et étincelles +{c['sensations']}, trajectoire conseillée +{c['conseil']})")
-        t(f'{titre} : les coûts de {nom} à la caméra de course, avec 20 voitures : au pire {c["appelsMax"]} appels de dessin (plafond {pa}) et {c["trianglesMax"]} triangles (plafond {pt}) ; les effets coûtent au plus 3 appels',
-          c['appelsMax'] <= pa and c['trianglesMax'] <= pt and c['sensations'] + c['conseil'] <= 3 and not c['ombres'], str(c))
+        L.append(f"  (coûts de {nom}, caméra de course, 20 voitures, {c['points']} endroits du tour : appels {c['appelsMoy']} en moyenne, {c['appelsMax']} au pire ; triangles {c['trianglesMoy']} et {c['trianglesMax']} ; {c['materiaux']} matériaux, {c['programmes']} programmes, ombres {'oui' if c['ombres'] else 'non'} ; effets : fumée, étincelles et traces de pneus +{c['sensations']}, trajectoire conseillée +{c['conseil']})")
+        t(f'{titre} : les coûts de {nom} à la caméra de course, avec 20 voitures : au pire {c["appelsMax"]} appels de dessin (plafond {pa}) et {c["trianglesMax"]} triangles (plafond {pt}) ; les effets coûtent au plus 4 appels (fumée, étincelles, traces de pneus, trajectoire conseillée)',
+          c['appelsMax'] <= pa and c['trianglesMax'] <= pt and c['sensations'] + c['conseil'] <= 4 and not c['ombres'], str(c))
     if 'vue=port' in page:
         t(f'{titre} : Monoco : le port (de l’eau), des bateaux, des façades et des immeubles', n['eau'] > 50 and n['bateau'] >= 20 and n['immeuble'] > 200, str(n))
     if 'vue=pont' in page:

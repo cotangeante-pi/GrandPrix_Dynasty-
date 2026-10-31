@@ -1538,6 +1538,14 @@ function majManettes(dt) {
     }
   });
   MANETTES.avant = pads;
+  // la vibration (tour 42) : en conduite, la glisse de l'arrière, le patinage, le blocage, les chocs (le gros moteur), les vibreurs
+  // et l'herbe (le petit) ; une impulsion courte toutes les MANETTE_VIBRATION_PAS s ; coupée avec les effets de conduite
+  MANETTES.vibre = (MANETTES.vibre || 0) + dt;
+  if (conduite && SENSATIONS.actif && MANETTES.vibre >= REGLAGES.MANETTE_VIBRATION_PAS) {
+    MANETTES.vibre = 0;
+    const voitures = JEU.deux ? DEUX_JOUEURS.joueurs(JEU.plateau).map(p => p.v) : [JEU.joueur];
+    pads.forEach((m, k) => { const v = voitures[k]; if (v) MANETTE.vibrer(k, MANETTE.vibration(SENSATIONS.de(v)), REGLAGES.MANETTE_VIBRATION_DUREE); });
+  }
 }
 
 const AUCUNE = { gaz: 0, frein: 0, direction: 0 }, FREIN_SEUL = { gaz: 0, frein: 1, direction: 0 };
