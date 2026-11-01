@@ -475,3 +475,28 @@ Pas fait / ouvert : avec toutes les aides, le brutal glisse encore un peu plus q
 assistée ou l'antipatinage, pas mesurés à part) ; dans l'outil osascript, plusieurs courses à la suite dans le même processus finissent
 au mur (neutre, toutes les aides, circuit test) alors que la même course seule est propre : un état garde la mémoire d'une course à
 l'autre (robot.js ?), à trouver.
+
+TOUR 43d — compte rendu du Codeur 4 (journée du 2026-10-31 figée à 21h50, branche codeur4)
+Commit : 0b3812e, passage GitHub 41231847731 VERT, mais « en cours » et parti d'un ancien main : pas fusionné.
+1. Le rouge de 74d8c67 : deux erreurs de mes tests (recoins), corrigées : la voiture regardée pendant le tour de qualification (celle de
+   la course, garée) et les boutons de qualification déjà cliqués par le robot. La pause est mesurée par JEU.pas (la position au tournoi),
+   la reprise et le redimensionnement en temps de jeu, le tour de qualification lancé (courseAutorise) avant les vérifications.
+2. Nouvelle vérification « la voiture conduite avance » (1 s de jeu, le robot au volant, l'état complet si elle reste sur place) :
+   VERTE sur GitHub sur les 5 écrans de conduite, en fr et en en.
+   À regarder demain : sur le Mac (passage lancé avant cette vérification), « la course, fr » avait la boucle arrêtée (BOUCLE.nbPas figé à
+   8988 avant, pendant et après l'onglet caché) : c'est sans doute la cause de « la voiture ne bougeait pas ». Reste à savoir si c'est le
+   test (une boucle laissée arrêtée par une de mes évaluations) ou le jeu (la boucle arrêtée après la qualification).
+3. Les aides avec la voiture vivante (assistance.js, seulement si voitureVivante() > 0) : la cause était l'antipatinage, qui coupait
+   les gaz d'un coup en courbe rapide (lever de pied → l'arrière part). Il les relâche maintenant en douceur (ASSIST_VIVANTE_LEVER 0,02
+   par pas). Mesures (une course par processus, légende, voiture vivante) :
+     | | sans aide | toutes les aides (après) |
+     |---|---|---|
+     | brutal, technique | 0,094 rad, 0 glissade | 0,107 rad, 0 glissade (avant : 0,151, 1 glissade) |
+     | brutal, test | 0,069, 0 | 0,107, 0 |
+     | neutre, technique | 0,406, 3 glissades | 0,084, 0 |
+     | neutre, test | — | 0,081, 0 |
+   (avec ASSIST_VIVANTE_DIRECTION 0,5 pour les mesures « après » ; la valeur gardée dans donnees.js est encore 1 : à fixer). Le neutre
+   aidé reste plus lent que sans aide (65,74 contre 64,18 s au technique). Le test de tests/test.html porte encore sur le freinage
+   assisté seul : à remettre sur toutes les aides.
+4. Pas fait : l'état gardé d'une course à l'autre dans mon outil (osascript), et la vérification dans le jeu (deux courses rapides de
+   suite dans la même page, en légende).
