@@ -101,9 +101,11 @@ const INTERFACE = (function () {
     }
     if (!c.arrets || c.etat !== 'course') return null;
     const v = n => secondes(n.toFixed(1));
-    if (c.arretEnCours) return texte('standEnCours').replace('{s}', v(Math.max(0, c.arretEnCours.reste))) + (c.pneusProchain ? ' · ' + texte('standPneus').replace('{p}', texte('pneu_' + c.pneusProchain)) : '');
+    // (tour 45a : le pneu choisi d'abord, en gros, puis « ← → pour changer » ; après l'arrêt, le pneu monté ; dans la voie, où s'arrêter)
+    if (c.arretEnCours) return (c.pneusProchain ? texte('standPneusChoisi').replace('{p}', texte('pneu_' + c.pneusProchain).toUpperCase()) + ' · ' : '') + texte('standEnCours').replace('{s}', v(Math.max(0, c.arretEnCours.reste)));
     const dernier = c.arrets[c.arrets.length - 1];
-    if (dernier && c.temps - c.arretFin < 3) return texte('standFait').replace('{s}', v(dernier.duree));
+    if (dernier && c.temps - c.arretFin < 3) return c.pneusMontes ? texte('standPneusMontes').replace('{p}', texte('pneu_' + c.pneusMontes)).replace('{s}', v(dernier.duree)) : texte('standFait').replace('{s}', v(dernier.duree));
+    if (c.dansVoie && !c.arretPassage) return texte('standArreteIci');
     if (c.arretConseille && !c.arrets.length && (c.temps < 6 || c.tours.length + 2 >= c.arretConseille))
       return texte('standConseille').replace('{t}', c.arretConseille).replace('{s}', REGLAGES_PNEUS.PENALITE_SANS_ARRET);
     return null;

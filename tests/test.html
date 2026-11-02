@@ -971,6 +971,18 @@ t('météo : pendant son arrêt, le joueur choisit ses pneus avec ← → (un ap
   const v_={typePneus:'slick'},suite=[];for(const d of [1,1,0,1,0,-1,0,-1,0,-1])  {choisirPneusArret(v_,d);suite.push(v_.pneusProchain);}
   // (tour 44 : le drift entre dans la liste, après le slick : slick, drift, inter, pluie)
   v(suite.join()==='drift,drift,drift,inter,inter,drift,drift,slick,slick,pluie'&&v_.choixPneus===true,suite.join());});
+t('pneus au stand sous la pluie (tour 45a, bug du propriétaire) : il entre dans sa zone en tenant encore → et s’arrête ; la direction tenue ne change pas le pneu (l’équipe a mis la pluie), il repart en pneus pluie avec plus d’adhérence ; un nouvel appui change encore le pneu', ()=>{
+  const R_=REGLAGES,av=R_.PNEUS_ACTIFS;R_.PNEUS_ACTIFS=true;
+  try{const circ=TQ.stands?TQ:C;v(!!circ.stands,'un circuit avec des stands');
+    const arret=tenu=>{const c=creerCourse(circ,12),v_=creerVoiture(circ);v_.pneus=creerPneus();v_.typePneus='slick';v_.pneusProchain='pluie';v_.eau=0.8;   // (l'équipe propose la pluie : pasMeteo)
+      pasArretStand(c,v_,DT);c.arretEnCours={reste:1,duree:1,tour:1,x:v_.x,z:v_.z,cap:v_.cap,usure:0};let k=0;
+      while(c.arretEnCours&&k++<1000){choisirPneusArret(v_,tenu(k),c.arretEnCours);pasArretStand(c,v_,DT);}
+      return {type:v_.typePneus,monte:c.pneusMontes,adh:METEO.adherence(v_.typePneus,0.8)};};
+    const a=arret(()=>1),b=arret(k=>k<20?1:k<40?0:1);   // a : il tient → tout l’arrêt ; b : il lâche puis appuie de nouveau
+    L.push('  (au stand sous la pluie, en tenant → : '+a.type+', adhérence '+a.adh.toFixed(2)+' (slick : '+METEO.adherence('slick',0.8).toFixed(2)+') ; lâché puis rappuyé : '+b.type+')');
+    v(a.type==='pluie'&&a.monte==='pluie','tenir → a changé le pneu : '+a.type);v(a.adh>METEO.adherence('slick',0.8),'adhérence '+a.adh);
+    v(b.type===METEO.TYPES[(METEO.TYPES.indexOf('pluie')+1)%METEO.TYPES.length],'un nouvel appui ne change plus : '+b.type);}
+  finally{R_.PNEUS_ACTIFS=av;}});
 t('météo : au sec, la course est identique au bit près à la course sans météo (10 IA, 3 tours)', ()=>{
   const course=avec=>{const e=creerCourseIA(TQ,10,3,2,CARTES_T.technique);if(avec)poserMeteo(e,SEC);for(let k=0;k<300*120&&e.arrives<10;k++)pasCourseIA(e,DT);return e.pilotes.map(p_=>p_.arrivee+':'+p_.v.x+':'+p_.v.contactsVoiture).join('|');};
   v(course(true)===course(false));});

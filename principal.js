@@ -1578,8 +1578,10 @@ function aiderJoueur(c, v, p) {
 
 // ?ia=N&joueur=1 : les commandes du joueur pour sa voiture dans la course entre IA (comme seul : rampes, Espace)
 // ← ou → pendant l'arrêt : le pneu suivant ou précédent (un appui = un cran) ; le choix du joueur remplace celui de l'équipe
-function choisirPneusArret(v, direction) {
+function choisirPneusArret(v, direction, arret) {
   const sens = direction > 0.5 ? 1 : direction < -0.5 ? -1 : 0;
+  // (tour 45a, bug du propriétaire : au début de l'arrêt, la direction encore tenue pour se garer ne compte pas ; seul un nouvel appui change le pneu)
+  if (arret && v.pneusArret !== arret) { v.pneusArret = arret; v.pneusSens = sens; return; }
   if (sens && sens !== v.pneusSens) {
     const T = METEO.TYPES, i = T.indexOf(v.pneusProchain || v.typePneus || 'slick');
     v.pneusProchain = T[(i + sens + T.length) % T.length]; v.choixPneus = true;
@@ -1591,7 +1593,7 @@ function conduireJoueur(p, pas) {
   // le mode 2 joueurs : chaque joueur (p.joueur = 1, 2) a ses commandes, lues de ses touches à lui ; sinon celles de la course seule
   const cmd = JEU.deux && p.joueur ? JEU.deuxCommandes[p.joueur] : JEU;
   // la météo (Codeur 1) : pendant son arrêt au stand (la voiture est tenue), ← → choisissent les pneus qu'on lui met (slick, inter, pluie)
-  if (p.course.arretEnCours && cmd.cibles) choisirPneusArret(p.v, cmd.cibles.direction);
+  if (p.course.arretEnCours && cmd.cibles) choisirPneusArret(p.v, cmd.cibles.direction, p.course.arretEnCours);
   if (cmd.remettre && courseAutorise(p.course)) remettreSurPiste(p.v, CIRCUIT);
   cmd.remettre = false;
   // après l'arrivée, sa voiture freine seule jusqu'à l'arrêt (les autres finissent leur course)
