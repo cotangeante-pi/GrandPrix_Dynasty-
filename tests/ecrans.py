@@ -73,7 +73,8 @@ PAGES = [
     ('index.html?deux=1&ia=5&robot=1&circuit=test&test=deux', 1280, 720, None),   # le mode 2 joueurs (deux-joueurs.js) : l'écran partagé, deux robots + 5 IA, jusqu'au podium ; capture deux-joueurs.png
     ('index.html?deux=1&ia=5&robot=1&circuit=test&test=deux', 960, 600, None),    # … en petit : rien ne déborde ; capture deux-joueurs-960.png
     ('index.html?deux=1&ia=5&robot=1&circuit=technique&test=deux', 1280, 720, None),
-    ('index.html?course=1&ia=9&joueur=1&robot=1&circuit=test&test=accelere', 1280, 720, None),   # « passer » finit la course en accéléré : les mêmes places et les mêmes temps qu'en regardant (deux chargements)
+    ('index.html?course=1&ia=9&joueur=1&robot=1&circuit=test&test=accelere', 1280, 720, None),
+    ('index.html?course=1&ia=5&joueur=1&robot=1&circuit=test&test=suivie', 1280, 720, None),   # suivre un pilote après l'arrivée (tour 45d) : un clic sur le classement ; capture camera-suivie.png   # « passer » finit la course en accéléré : les mêmes places et les mêmes temps qu'en regardant (deux chargements)
     ('index.html?championnat=1&tours=1&robot=1&test=accelere', 1280, 720, None),   # … en championnat : puis l'interview et la une
     ('index.html?test=amis', 1280, 720, None),
     ('index.html?course=0&camera=cockpit&test=volant', 1280, 720, None),   # le volant en vue cockpit (tour 27b) : jamais dans la moitié haute, il tourne dans le bon sens et revient ; capture cockpit.png
@@ -969,6 +970,40 @@ def amis(pg, titre, l, h):
 # est vraiment joué (×ARRIVEE_ACCELERE, les mêmes pas de physique), le podium vient avec toutes les voitures arrivées ; la même course
 # regardée jusqu'au bout (après un rechargement, même graine) donne les mêmes places, les mêmes temps et les mêmes pénalités, au bit près.
 # En championnat : l'interview et la une suivent normalement
+# suivre un pilote après l'arrivée (tour 45d, le propriétaire 2026-11-02 ; CLAUDE.md « La réalisation télé ») : dans l'attente de la vue télé, un
+# clic sur une ligne du classement met la caméra sur ce pilote (la ligne marquée, « Caméra : Nom ») ; un second clic rend la régie ;
+# le classement final est le même au bit près qu'avec la même course sans un clic (rechargée, même graine)
+SUIVIE_ETAT = '''(k) => ({ tele: JEU.attente.tele, choisi: JEU.attente.choisi, suivie: [...document.querySelectorAll("#classementListe li.suivie")].map(li => li.dataset.numero),
+  bandeau: !document.getElementById("cameraSuivie").classList.contains("cache"), texte: document.getElementById("cameraSuivie").textContent, nom: nomTele(k) })'''
+SUIVIE_FINIR = '''() => { BOUCLE.arreter(); let n = 0; while (!(JEU.course.etat === "course" && JEU.plateau.temps > 15) && n++ < 200 * 120) BOUCLE.simuler(REGLAGES.PAS_PHYSIQUE);
+  const c = JEU.course; while (c.tours.length < c.nbTours) c.tours.push({ temps: 60, secteurs: [20, 20, 20], coupe: false }); c.etat = "finie"; BOUCLE.demarrer(); }'''
+def camera_suivie(pg, titre, page):
+    FINAL = '() => JEU.final.map(x => [x.k, x.place, x.total, x.penalites, JEU.plateau.pilotes[x.k].arrivee])'
+    def jusqua_arrivee():
+        passer_qualif(pg, titre)
+        attendre(pg, '() => JEU.plateau.carte !== null', None, 180000)
+        pg.evaluate(SUIVIE_FINIR)
+        return attendre(pg, '() => !!JEU.attente && JEU.ecran === "course"', None, 20000)
+    t(f'{titre} : le joueur (robot) a fini : l’attente, la vue télé', jusqua_arrivee())
+    attendre(pg, '() => document.getElementById("classement").classList.contains("cliquable")', None, 5000)
+    k, num = pg.evaluate('() => { const P = JEU.plateau.pilotes, k = P.findIndex((p, i) => p.arrivee === null && i !== JEU.attente.tele && !p.humain); return [k, String(numeroDe(k))]; }')
+    pg.click(f'#classementListe li[data-numero="{num}"]'); pg.wait_for_timeout(300)
+    e = pg.evaluate(SUIVIE_ETAT, k)
+    t(f'{titre} : un clic sur une ligne du classement : la caméra suit ce pilote, la ligne est marquée, le bandeau « Caméra : Nom »', e['tele'] == k and e['choisi'] == k and e['suivie'] == [num] and e['bandeau'] and e['nom'] in e['texte'], str([k, num, e]))
+    pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'camera-suivie.png'))
+    pg.click(f'#classementListe li[data-numero="{num}"]'); pg.wait_for_timeout(300)
+    e2 = pg.evaluate(SUIVIE_ETAT, k)
+    t(f'{titre} : un second clic sur la même ligne : la régie reprend (plus de ligne marquée ni de bandeau)', e2['choisi'] is None and e2['suivie'] == [] and not e2['bandeau'] and e2['tele'] is not None, str(e2))
+    pg.click(f'#classementListe li[data-numero="{num}"]'); pg.wait_for_timeout(200)
+    pg.click('#boutonPasser')
+    fini = attendre(pg, '() => JEU.ecran === "podium"', None, 180000)
+    a = pg.evaluate(FINAL) if fini else None
+    t(f'{titre} : « passer » : le bandeau part, le podium vient', fini and pg.evaluate('() => document.getElementById("cameraSuivie").classList.contains("cache")'))
+    pg.reload(); pg.wait_for_timeout(1500)
+    jusqua_arrivee(); pg.click('#boutonPasser')
+    b = pg.evaluate(FINAL) if attendre(pg, '() => JEU.ecran === "podium"', None, 180000) else None
+    t(f'{titre} : la même course sans un clic donne le même classement final au bit près (places, temps, pénalités, arrivées)', a is not None and a == b, str([a, b])[:800])
+
 def accelere(pg, titre, page):
     champ = 'championnat=1' in page
     FINAL = '() => JEU.final.map(x => [x.k, x.place, x.total, x.penalites, JEU.plateau.pilotes[x.k].arrivee])'
@@ -3077,6 +3112,8 @@ with sync_playwright() as p:
                 deux_ecran(pg, titre, l, h, page)
             if 'test=amis' in page:
                 amis(pg, titre, l, h)
+            if 'test=suivie' in page:
+                camera_suivie(pg, titre, page)
             if 'test=tournoi' in page:
                 tournoi(pg, titre, l, h)
             if 'test=volant' in page:

@@ -125,6 +125,21 @@ const INTERFACE = (function () {
   // ou null pour la cacher. Une ligne par voiture, gardée d'une image à l'autre : quand l'ordre change, elle glisse
   // à sa nouvelle place (transition CSS sur --rang)
   const lignesClassement = new Map();
+  // suivre un pilote après l'arrivée (tour 45d, Codeur 4) : un clic (souris ou toucher) sur une ligne du classement ; la ligne suivie mise
+  // en valeur et un bandeau « Caméra : Nom » ; cliquable seulement pendant l'attente de la vue télé
+  let clicClassement = null, numeroSuivi = null;
+  function surClicClassement(f) {
+    clicClassement = f;
+    $('classementListe').addEventListener('click', e => { const li = e.target.closest('li'); if (li && clicClassement) clicClassement(li.dataset.numero); });
+  }
+  function marquerSuivie(numero, nom, cliquable) {
+    numeroSuivi = numero === null ? null : String(numero);
+    $('classement').classList.toggle('cliquable', !!cliquable);
+    for (const [n, li] of lignesClassement) li.classList.toggle('suivie', String(n) === numeroSuivi);
+    const b = $('cameraSuivie');
+    b.classList.toggle('cache', numeroSuivi === null);
+    if (numeroSuivi !== null) b.textContent = texte('cameraSuivie').replace('{nom}', nom);
+  }
   function majClassement(lignes) {
     $('classement').classList.toggle('cache', !lignes);
     if (!lignes) return;
@@ -150,6 +165,7 @@ const INTERFACE = (function () {
       }
       li.style.setProperty('--rang', i);
       li.classList.toggle('moi', l.moi);
+      li.classList.toggle('suivie', numeroSuivi !== null && String(l.numero) === numeroSuivi);
       li.classList.toggle('arrive', !!l.arrive);   // arrivé : 🏁 devant son écart
       li.children[0].textContent = i + 1;
       // une voiture pénalisée porte ses pénalités (« ✂ +15 s ») : elles sont déjà comptées dans sa place et son écart
@@ -1696,7 +1712,7 @@ const INTERFACE = (function () {
     ecrireAides();
   }
 
-  return { majPneus, majMessage, preparerGrille, preparerAides, ouvrirAides, fermerAides, ecrireAides, aidesDeux, aidesAmi, noterAidesAmi, annoncerMotifs, preparerResume, montrerBoutonResume, majResume, remplirInscription, lireInscription, montrerErreursTournoi, preparerInscription, remplirAToi, majCompteTournoi, preparerPauseTournoi, remplirMancheTournoi, preparerMancheTournoi, remplirFinTournoi, preparerFinTournoi, preparerAmis, remplirDeux, lireDeux, montrerErreursDeux, preparerDeux, remplirPodiumDeux, remplirRivalite, formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, remplirPaddock, remplirDiscussion, remplirDiscussionPatron, preparerNegociation, preparerDiscussion, remplirCourrier, preparerCourrier, preparerChampionnat, remplirQualif, preparerQualif,
+  return { surClicClassement, marquerSuivie, majPneus, majMessage, preparerGrille, preparerAides, ouvrirAides, fermerAides, ecrireAides, aidesDeux, aidesAmi, noterAidesAmi, annoncerMotifs, preparerResume, montrerBoutonResume, majResume, remplirInscription, lireInscription, montrerErreursTournoi, preparerInscription, remplirAToi, majCompteTournoi, preparerPauseTournoi, remplirMancheTournoi, preparerMancheTournoi, remplirFinTournoi, preparerFinTournoi, preparerAmis, remplirDeux, lireDeux, montrerErreursDeux, preparerDeux, remplirPodiumDeux, remplirRivalite, formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, remplirPaddock, remplirDiscussion, remplirDiscussionPatron, preparerNegociation, preparerDiscussion, remplirCourrier, preparerCourrier, preparerChampionnat, remplirQualif, preparerQualif,
     remplirDuel, avec, remplirUne, preparerUne, remplirArgent, remplirSolde, remplirGarage, preparerGarage,
     remplirSaison, remplirDuelSaison, remplirContrats, remplirRetraite, preparerSaison, retraiteEnAttente, remplirCeremonie, preparerCeremonie, remplirAlbum, preparerAlbum, remplirBilan, remplirTemple, preparerTemple, preparerReleve, remplirHeritier, lireHeritier, montrerErreurHeritier, remplirAileron, majAileron, preparerAileron, preparerPneusGarage, remplirArbre, preparerArbre, remplirCalendrier, preparerCalendrier,
     remplirSponsors, remplirRappelSponsor, preparerSponsors, remplirFiche, preparerFiche, remplirInterview, montrerEffetInterview, preparerInterview, remplirReputation,

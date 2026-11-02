@@ -1088,3 +1088,7 @@ Object.assign(TEXTES.fr, {
 // (tour 37l, Codeur 3) l'icône du pneu monté, à côté de la jauge d'usure (une lettre, le nom en bulle)
 Object.assign(TEXTES.en, { pneuIcone_slick: 'G', pneuIcone_drift: 'D', pneuIcone_inter: 'I', pneuIcone_pluie: 'W' });
 Object.assign(TEXTES.fr, { pneuIcone_slick: 'A', pneuIcone_drift: 'D', pneuIcone_inter: 'I', pneuIcone_pluie: 'P' });
+
+// --- tour 45d, Codeur 4 : suivre un pilote après l'arrivée (un clic sur le classement) ---
+Object.assign(TEXTES.en, { cameraSuivie: 'Camera: {nom}' });
+Object.assign(TEXTES.fr, { cameraSuivie: 'Caméra : {nom}' });
