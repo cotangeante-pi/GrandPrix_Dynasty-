@@ -3225,7 +3225,7 @@ with sync_playwright() as p:
                 accelere(pg, titre, page)
             elif 'championnat=1' in page:
                 championnat(pg, titre, l)
-            if 'test=accelere' in page or 'test=audit' in page: pass
+            if 'test=accelere' in page or 'test=audit' in page or 'test=suivie' in page: pass   # (test=suivie : sa page à lui, plus haut ; sinon hud() recommencerait la qualification après le podium)
             elif 'test=aides' in page or 'test=tuto' in page: pass   # (les aides et le tutoriel : leurs pages à eux, plus haut)
             elif 'test=hudcourse' in page:
                 hud_course(pg, titre, l, h)
