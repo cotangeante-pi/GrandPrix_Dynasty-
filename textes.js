@@ -1088,3 +1088,24 @@ Object.assign(TEXTES.fr, {
 // (tour 37l, Codeur 3) l'icône du pneu monté, à côté de la jauge d'usure (une lettre, le nom en bulle)
 Object.assign(TEXTES.en, { pneuIcone_slick: 'G', pneuIcone_drift: 'D', pneuIcone_inter: 'I', pneuIcone_pluie: 'W' });
 Object.assign(TEXTES.fr, { pneuIcone_slick: 'A', pneuIcone_drift: 'D', pneuIcone_inter: 'I', pneuIcone_pluie: 'P' });
+
+// (tour 45c, Codeur 3) le commentateur comble les silences (le propriétaire, 2026-11-02 : « presque en tout temps », à voix haute) : ce que
+// la course montre déjà ; et le réglage de la voix au menu pause
+Object.assign(TEXTES.en, {
+  com_combleTete: ['{qui} leads {sur} by {ecart} seconds.', '{ecart} seconds between {qui} and {sur} up front.', '{qui} still in front, {sur} {ecart} s back.'],
+  com_combleBagarre: ['{qui} is {ecart} s behind {sur}, for P{place}.', 'Close fight for P{place}: {qui} on {sur}.', '{qui} hunting {sur}, just {ecart} s apart.'],
+  com_combleTours: ['{n} laps to go.', 'Still {n} laps to run.', '{n} laps left for {qui} out front.'],
+  com_combleJoueur: ['P{place} for {qui}, {ecart} s behind {sur}.', '{qui} chasing {sur}: {ecart} s.', '{qui} in P{place}, {sur} just ahead.'],
+  com_combleMeteo: ['The rain is still falling.', 'A wet track: careful under braking.', 'Spray everywhere behind the cars.'],
+  com_combleSec: ['A dry track, perfect conditions.', 'The tyres are working on this dry track.', 'Clear skies over the circuit.'],
+  voix_oui: 'Commentary voice: on', voix_non: 'Commentary voice: off',
+});
+Object.assign(TEXTES.fr, {
+  com_combleTete: ['{qui} mène devant {sur}, {ecart} secondes.', '{ecart} secondes entre {qui} et {sur} en tête.', '{qui} toujours devant, {sur} à {ecart} s.'],
+  com_combleBagarre: ['{qui} à {ecart} s de {sur}, pour la P{place}.', 'Bagarre pour la P{place} : {qui} sur {sur}.', '{qui} chasse {sur}, à {ecart} s.'],
+  com_combleTours: ['Encore {n} tours.', 'Plus que {n} tours à faire.', '{n} tours à tenir pour {qui} en tête.'],
+  com_combleJoueur: ['P{place} pour {qui}, à {ecart} s de {sur}.', '{qui} chasse {sur} : {ecart} s.', '{qui} en P{place}, {sur} juste devant.'],
+  com_combleMeteo: ['La pluie tombe toujours.', 'Piste mouillée : prudence au freinage.', 'Des gerbes d’eau derrière les voitures.'],
+  com_combleSec: ['Piste sèche, des conditions parfaites.', 'Les pneus travaillent bien sur le sec.', 'Grand ciel bleu sur le circuit.'],
+  voix_oui: 'Voix du commentateur : oui', voix_non: 'Voix du commentateur : non',
+});

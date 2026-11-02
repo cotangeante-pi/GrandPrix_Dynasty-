@@ -348,6 +348,12 @@ try:
             garde = pg.evaluate('() => Object.assign({}, JEU.assistance)')
             t(f'{titre} : le choix est gardé après rechargement (d’un Grand Prix à l’autre)', garde == ch['aides'], str([garde, ch['aides']]))
             boutons = pg.evaluate("""() => ['boutonAidesTitre', 'boutonAidesChoix', 'boutonAidesTuto', 'boutonAidesPaddock'].map(id => { const b = document.getElementById(id); return [id, !!b, !!b && b.textContent === texte('aidesBouton')]; })""")
+            # (tour 45c) la voix du commentateur, sans voix dans le Chrome sans écran : rien ne casse ; le réglage du menu pause, sauvegardé
+            vx = pg.evaluate('''() => { const d = VOIX.disponible(); let r = null, err = null; try { r = VOIX.dire('Test', true); VOIX.taire(); } catch (e) { err = String(e); }
+              const b = document.getElementById('boutonVoixPause'), t0 = b.textContent; b.click(); const o1 = SAUVEGARDE.option('voix', true), t1 = b.textContent; b.click();
+              return { d, r, err, t0, t1, o1, o2: SAUVEGARDE.option('voix', true), oui: texte('voix_oui'), non: texte('voix_non') }; }''')
+            t(f'{titre} : la voix du commentateur (voix.js) : sans voix ou sans le son, rien ne casse ; le menu pause la coupe et la remet (sauvegardé)',
+              vx['err'] is None and (vx['r'] is False or vx['d']) and vx['t0'] == vx['oui'] and vx['t1'] == vx['non'] and vx['o1'] is False and vx['o2'] is True and not console, str([vx, console]))
             t(f'{titre} : le bouton « Aides au pilotage » est au titre, à la course rapide, au menu des leçons et au paddock', all(x[1] and x[2] for x in boutons), str(boutons))
             amis = pg.evaluate("""() => { INTERFACE.noterAidesAmi('Léo', true); INTERFACE.noterAidesAmi('Sam', false);
               INTERFACE.remplirAToi({ prenom: 'Léo', casque: TOURNOI.casqueDefaut(0) }, 0, 1, 'X'); const a1 = document.getElementById('atoiTitre').textContent;

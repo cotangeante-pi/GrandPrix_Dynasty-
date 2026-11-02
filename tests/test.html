@@ -2819,6 +2819,20 @@ t('commentateur : la course est la même au bit près avec ou sans lui ; des fai
   v(toutes.every(f=>!/à Circuit|at Test/.test(f)),'jamais « à Circuit » ni « at Test » : '+toutes.find(f=>/à Circuit|at Test/.test(f)));
   v(types.every(ty=>['fr','en'].every(l=>TEXTES[l]['com_'+ty].every(f=>!/'/.test(f)))),'l’apostrophe typographique (’), jamais \'');
   v(TEXTES.fr.com_depassement.length>=5&&TEXTES.fr.com_coteACote.length>=5,'de la variété sur les faits fréquents');});
+// (tour 45c, le propriétaire 2026-11-02) il parle presque tout le temps : entre deux faits, il comble avec ce que la course montre (l'écart en tête,
+// la bagarre la plus proche, les tours qui restent, la météo) ; une course de 8 IA sur 2 tours du technique : du départ à l'arrivée du leader,
+// jamais plus de COMMENTAIRE_INTERVALLE + 0,1 s (≤ 4 s) sans phrase, jamais deux fois la même phrase de suite, chaque phrase remplie
+t('commentateur : presque jamais de silence (jamais plus de 4 s sans phrase, du départ à l’arrivée), il comble avec la course, jamais deux fois la même phrase de suite', ()=>{
+  const R_=REGLAGES,e=creerCourseIA(TQ,8,2,7,CARTES_T.technique);for(const p_ of e.pilotes) p_.course.compte=0;const c=COMMENTAIRE.creer(7),dits=[];let fin=null;
+  for(let k=0;k<120*400&&fin===null;k++){pasCourseIA(e,DT);if(k%6===0){COMMENTAIRE.observer(c,e,{joueur:-1,circuit:'X'});const it=COMMENTAIRE.afficher(c,e.temps,false);if(it)dits.push([e.temps,it]);
+    if(e.pilotes.some(p_=>p_.arrivee!==null))fin=e.temps;}}
+  v(fin!==null&&dits.length>10,'la course finie, des phrases : '+dits.length);
+  const ts=dits.map(x=>x[0]).filter(t_=>t_<=fin),trous=ts.slice(1).map((t_,i)=>t_-ts[i]),pire=Math.max(...trous);
+  v(R_.COMMENTAIRE_INTERVALLE<=4&&pire<=R_.COMMENTAIRE_INTERVALLE+0.1,'le plus long silence : '+pire.toFixed(2)+' s');
+  const combles=dits.filter(x=>x[1].comble);v(combles.length>=3&&new Set(combles.map(x=>x[1].type)).size>=3,'il comble, avec plusieurs sortes de phrases : '+combles.map(x=>x[1].type).join());
+  let deux=false;for(let i=1;i<dits.length;i++){const a=dits[i-1][1],b=dits[i][1];if(a.type===b.type&&a.variante===b.variante)deux=true;}v(!deux,'jamais deux fois la même phrase de suite');
+  v(dits.every(x=>{const f=COMMENTAIRE.phrase(x[1],k=>'n°'+(k+1),y=>String(y));return f.length>5&&!/\{/.test(f);}),'chaque phrase remplie');
+  L.push('  (le commentateur sur 2 tours : '+dits.length+' phrases dont '+combles.length+' pour combler, le plus long silence '+pire.toFixed(2)+' s)');});
 t('commentateur : la priorité (un dépassement pour la tête avant un meilleur tour, un fait du joueur devant), l’intervalle, l’attente au virage, les faits trop vieux oubliés, jamais deux fois la même phrase de suite, rien quand il est coupé, seulement le joueur en mode « joueur »', ()=>{
   const R=REGLAGES,c=COMMENTAIRE.creer(1);
   COMMENTAIRE.pousser(c,0,'meilleurTour',{qui:0},false);COMMENTAIRE.pousser(c,0,'depassementTete',{qui:1,sur:0},false);
