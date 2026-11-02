@@ -171,6 +171,8 @@ Note du Chef session-5b (2026-10-23) : les lignes 18 à 19b ne s'additionnaient 
 
 ## Décidé
 
+- 2026-11-02 17h (le propriétaire, après avoir essayé) : « 2 joueurs il faudrait montrer les touches, sinon tournoi chrono et 2 joueurs (après modification) seront parfaits » → **étape 5c (tournoi chrono) acceptée par le propriétaire** ; **étape 5b (2 joueurs) acceptée une fois les touches montrées** (CLAUDE.md, « Montrer les touches »).
+
 - 2026-10-29 20h20 (Chef, repli prévu par CLAUDE.md « La voiture vivante ») : **la voiture vivante pour le joueur seul en expert et légende** (VIVANTE_IA = 0). Les IA ne savent pas encore la piloter : en légende sur le circuit test, 46,6 s → plus de 180 s au tour, de l'herbe partout. Les références de courses.html et stands.html ne bougent pas. Les IA en voiture vivante restent à faire.
 
 - 2026-10-27 20h56 (le propriétaire : « travaille automatiquement sur les trois premiers points jaunes et si c'est fini, améliore l'ia de communication à fond et si fini le commentateur travaille jusqu'à 24h automatiquement ») : **l'ordre jusqu'à minuit** : 1) les étapes 4 (techniques de virage, IA plus rapides, duel), 10 (60 images par seconde) et 12b (patrons d'écurie) ; 2) l'IA de discussion, à fond ; 3) le commentateur (branche `commentateur`, commencée par le Codeur 2). Un Codeur libre prend la première tâche de cette liste où il ne gêne pas un autre (pas deux Codeurs dans le même fichier) ; sinon la suivante.
