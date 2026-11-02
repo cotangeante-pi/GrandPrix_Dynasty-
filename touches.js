@@ -3,7 +3,7 @@
 // (navigator.keyboard.getLayoutMap : Z Q S D en AZERTY, W A S D en QWERTY), sinon les deux ; la carte d'un joueur ; et le rappel
 // pendant les feux et les premières secondes, qui s'efface quand le joueur a utilisé chaque commande, ou DEUX_RAPPEL_DUREE s après
 // l'extinction des feux. Rien ici ne touche à la physique : seulement ce qui est affiché.
-const TOUCHES = (function () {
+const TOUCHES_DEUX_ECRAN = (function () {
   const R = REGLAGES;
   const FIXES = { ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→' };
   const NOMMEES = { Enter: 'tch_entree', ShiftRight: 'tch_majDroite', Escape: 'tch_echap', Space: 'tch_espace' };

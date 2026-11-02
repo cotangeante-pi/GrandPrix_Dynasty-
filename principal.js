@@ -112,7 +112,7 @@ function lancerCourse(nbTours) {
     appliquerCaracteres();
     armerFeux(JEU.plateau.pilotes, graine);
     JEU.deux.rivaliteNotee = false;
-    JEU.rappelDeux = TOUCHES.creerRappel();   // le rappel des touches de chacun, pendant les feux et les premières secondes (touches.js)
+    JEU.rappelDeux = TOUCHES_DEUX_ECRAN.creerRappel();   // le rappel des touches de chacun, pendant les feux et les premières secondes (touches.js)
   } else if (JEU.ia >= 2 || JEU.contre) {
     // ?championnat=1 : le niveau de l'écurie sur le rythme de chaque IA, avant que la carte leur donne un pilote
     JEU.plateau = creerCourseIA(CIRCUIT, JEU.ia, nbTours, Number(PARAMETRES.get('graine')) || 1, JEU.championnat ? null : JEU.carte, JEU.contre);
@@ -1687,7 +1687,7 @@ function majClassementRadar() {
 // le mode 2 joueurs : l'affichage de chaque moitié (place, tour, vitesse, écart avec l'autre joueur), pendant la course et la pause
 function majDeuxHud(dt) {
   // le rappel des touches (touches.js) : pendant la course seulement, compté depuis l'extinction des feux ; les commandes de chacun, clavier et manette
-  if (JEU.deux && JEU.rappelDeux && JEU.ecran === 'course') TOUCHES.pasRappel(JEU.rappelDeux, { 1: JEU.deuxCommandes[1].cibles, 2: JEU.deuxCommandes[2].cibles }, !!(JEU.course && JEU.course.feux && JEU.course.etat === 'compte'), dt || 0);
+  if (JEU.deux && JEU.rappelDeux && JEU.ecran === 'course') TOUCHES_DEUX_ECRAN.pasRappel(JEU.rappelDeux, { 1: JEU.deuxCommandes[1].cibles, 2: JEU.deuxCommandes[2].cibles }, !!(JEU.course && JEU.course.feux && JEU.course.etat === 'compte'), dt || 0);
   INTERFACE.majRappelDeux(JEU.deux && JEU.ecran === 'course' ? JEU.rappelDeux : null);
   if (!JEU.deux || !JEU.plateau || !(JEU.ecran === 'course' || JEU.ecran === 'pause')) { INTERFACE.majDeux(null); return; }
   const e = JEU.plateau, ordre = classementCourse(e), [p1, p2] = DEUX_JOUEURS.joueurs(e), k1 = e.pilotes.indexOf(p1), k2 = e.pilotes.indexOf(p2);

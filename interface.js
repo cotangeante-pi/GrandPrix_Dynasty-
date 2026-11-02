@@ -1643,7 +1643,7 @@ const INTERFACE = (function () {
     try { if (navigator.keyboard && typeof navigator.keyboard.getLayoutMap === 'function') navigator.keyboard.getLayoutMap().then(m => { dispoClavier = m; if (apres) apres(); }, () => {}); } catch (e) { /* rien : les deux noms */ }
   }
   function lignesTouches(j, manette) {
-    const c = TOUCHES.carte(j, dispoClavier);
+    const c = TOUCHES_DEUX_ECRAN.carte(j, dispoClavier);
     const l = [texte('tch_gaz') + ' ' + c.gaz + ' · ' + texte('tch_frein') + ' ' + c.frein + ' · ' + texte('tch_tourner') + ' ' + c.gauche + ' ' + c.droite,
       texte('tch_remise') + ' ' + c.remise + ' · ' + texte('tch_pause') + ' ' + texte('tch_echap')];
     if (manette) l.push(texte('tch_manette'));
@@ -1654,16 +1654,16 @@ const INTERFACE = (function () {
   function remplirTouchesDeux(manettes) {
     for (const j of [1, 2]) ecrireLignes($('deuxJoueur' + j).querySelector('.deuxTouches'), lignesTouches(j, manettes >= j));
     const p = $('pauseTouches');
-    ecrireLignes(p, [1, 2].map(j => { const c = TOUCHES.carte(j, dispoClavier); return (j === 1 ? '🔵 ' : '🔴 ') + c.gaz + ' ' + c.frein + ' ' + c.gauche + ' ' + c.droite + ' · ' + texte('tch_remise') + ' ' + c.remise + (manettes >= j ? ' · 🎮' : ''); }));
+    ecrireLignes(p, [1, 2].map(j => { const c = TOUCHES_DEUX_ECRAN.carte(j, dispoClavier); return (j === 1 ? '🔵 ' : '🔴 ') + c.gaz + ' ' + c.frein + ' ' + c.gauche + ' ' + c.droite + ' · ' + texte('tch_remise') + ' ' + c.remise + (manettes >= j ? ' · 🎮' : ''); }));
   }
   function montrerTouchesPause(oui) { $('pauseTouches').classList.toggle('cache', !oui); }
-  // le rappel (r = TOUCHES.creerRappel(), ou null : rien) : chaque commande, plus pâle quand elle a servi
+  // le rappel (r = TOUCHES_DEUX_ECRAN.creerRappel(), ou null : rien) : chaque commande, plus pâle quand elle a servi
   function majRappelDeux(r) {
     for (const j of [1, 2]) {
-      const e = $('deuxRappel' + j), vu = TOUCHES.visible(r, j);
+      const e = $('deuxRappel' + j), vu = TOUCHES_DEUX_ECRAN.visible(r, j);
       e.classList.toggle('cache', !vu);
       if (!vu) continue;
-      const c = TOUCHES.carte(j, dispoClavier), cle = TOUCHES.ACTIONS.map(a => (r.vues[j][a] ? 1 : 0)).join('') + c.gaz + c.gauche;
+      const c = TOUCHES_DEUX_ECRAN.carte(j, dispoClavier), cle = TOUCHES_DEUX_ECRAN.ACTIONS.map(a => (r.vues[j][a] ? 1 : 0)).join('') + c.gaz + c.gauche;
       if (e.dataset.cle === cle) continue;   // (rien n'a changé : le DOM reste)
       e.dataset.cle = cle; e.textContent = '';
       for (const [a, signe] of [['gaz', '↑'], ['frein', '↓'], ['gauche', '←'], ['droite', '→']]) {
