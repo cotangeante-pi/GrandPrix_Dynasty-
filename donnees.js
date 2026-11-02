@@ -443,6 +443,7 @@ const REGLAGES = {
     1: { gaz: ['KeyW'], frein: ['KeyS'], gauche: ['KeyA'], droite: ['KeyD'], remise: ['KeyE'] },
     2: { gaz: ['ArrowUp'], frein: ['ArrowDown'], gauche: ['ArrowLeft'], droite: ['ArrowRight'], remise: ['Enter', 'ShiftRight'] },
   },
+  DEUX_RAPPEL_DUREE: 10,       // s : le rappel des touches de chaque joueur s'efface au plus tard ce temps après l'extinction des feux (touches.js)
   DEUX_TOURS_CHOIX: [3, 5],     // les longueurs de course permises (la première par défaut)
   DEUX_IA_CHOIX: [0, 3, 5],     // les nombres d'IA permis (la première valeur par défaut)
   DEUX_VOITURES_MAX: 7,         // jamais plus de voitures en piste (2 joueurs + 5 IA) : la 3D est dessinée deux fois

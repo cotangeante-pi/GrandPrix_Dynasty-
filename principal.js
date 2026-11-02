@@ -112,6 +112,7 @@ function lancerCourse(nbTours) {
     appliquerCaracteres();
     armerFeux(JEU.plateau.pilotes, graine);
     JEU.deux.rivaliteNotee = false;
+    JEU.rappelDeux = TOUCHES_DEUX_ECRAN.creerRappel();   // le rappel des touches de chacun, pendant les feux et les premières secondes (touches.js)
   } else if (JEU.ia >= 2 || JEU.contre) {
     // ?championnat=1 : le niveau de l'écurie sur le rythme de chaque IA, avant que la carte leur donne un pilote
     JEU.plateau = creerCourseIA(CIRCUIT, JEU.ia, nbTours, Number(PARAMETRES.get('graine')) || 1, JEU.championnat ? null : JEU.carte, JEU.contre);
@@ -579,6 +580,7 @@ function retourTitre() {
 function ouvrirDeux() {
   if (JEU.ecran !== 'amis') return;
   INTERFACE.remplirDeux(DEUX_JOUEURS.completer(SAUVEGARDE.deux()));
+  INTERFACE.remplirTouchesDeux(MANETTE.lireManettes().length);   // la carte des touches de chacun (touches.js)
   JEU.ecran = 'deuxReglages';
   INTERFACE.montrer('deuxReglages');
 }
@@ -1237,6 +1239,8 @@ function quitterGarage() {
 }
 
 function pause(oui) {
+  if (oui && JEU.ecran === 'course' && JEU.deux) INTERFACE.remplirTouchesDeux(MANETTE.lireManettes().length);   // à deux : les touches des deux dans le menu pause
+  INTERFACE.montrerTouchesPause(!!JEU.deux);
   if (oui && JEU.ecran === 'course') { JEU.ecran = 'pause'; INTERFACE.montrer('pause'); if (typeof VOIX !== 'undefined') VOIX.taire(); }   // (la voix se tait en pause, tour 45c)
   else if (!oui && JEU.ecran === 'pause') { JEU.ecran = 'course'; INTERFACE.montrer('course'); }
 }
@@ -1453,6 +1457,8 @@ function majCibles() {
   if (JEU.aides) { if (JEU.cibles.gaz) JEU.aides.gaz = true; if (JEU.cibles.direction) JEU.aides.direction = true; if (JEU.cibles.frein) JEU.aides.frein = true; }
   // le mode 2 joueurs : les commandes de chacun, de ses touches à lui (TOUCHES_DEUX, par e.code) ; l'autre n'y voit rien
   if (JEU.deux) for (const j of [1, 2]) JEU.deuxCommandes[j].cibles = DEUX_JOUEURS.cibles(enfoncees, j);
+  // (le rappel des touches, touches.js : une touche notée dès qu'elle est enfoncée, même plus brève qu'une image ; le temps ne bouge pas ici)
+  if (JEU.deux && JEU.rappelDeux) TOUCHES_DEUX_ECRAN.pasRappel(JEU.rappelDeux, { 1: JEU.deuxCommandes[1].cibles, 2: JEU.deuxCommandes[2].cibles }, true, 0);
 }
 
 function brancherClavier() {
@@ -1681,7 +1687,10 @@ function majClassementRadar() {
 }
 
 // le mode 2 joueurs : l'affichage de chaque moitié (place, tour, vitesse, écart avec l'autre joueur), pendant la course et la pause
-function majDeuxHud() {
+function majDeuxHud(dt) {
+  // le rappel des touches (touches.js) : pendant la course seulement, compté depuis l'extinction des feux ; les commandes de chacun, clavier et manette
+  if (JEU.deux && JEU.rappelDeux && JEU.ecran === 'course') TOUCHES_DEUX_ECRAN.pasRappel(JEU.rappelDeux, { 1: JEU.deuxCommandes[1].cibles, 2: JEU.deuxCommandes[2].cibles }, !!(JEU.course && JEU.course.feux && JEU.course.etat === 'compte'), dt || 0);
+  INTERFACE.majRappelDeux(JEU.deux && JEU.ecran === 'course' ? JEU.rappelDeux : null);
   if (!JEU.deux || !JEU.plateau || !(JEU.ecran === 'course' || JEU.ecran === 'pause')) { INTERFACE.majDeux(null); return; }
   const e = JEU.plateau, ordre = classementCourse(e), [p1, p2] = DEUX_JOUEURS.joueurs(e), k1 = e.pilotes.indexOf(p1), k2 = e.pilotes.indexOf(p2);
   const ecart = ecartEntre(ordre, k1, k2);   // > 0 : le joueur 2 est derrière le joueur 1
@@ -2052,6 +2061,9 @@ function demarrerJeu() {
   // le choix (INTERFACE.preparerAides) s'ouvre du titre, du paddock, de la course rapide et du menu des leçons ; pendant la
   // qualification et la course, le menu pause les montre sans pouvoir les changer
   JEU.assistance = ASSISTANCE.reglees(SAUVEGARDE.option('aides_pilotage', null), REGLAGES.NIVEAU);
+  // les touches de chaque joueur à deux (touches.js) : la disposition du clavier, si le navigateur la donne, puis les cartes
+  INTERFACE.remplirTouchesDeux(MANETTE.lireManettes().length);
+  INTERFACE.lireDispositionClavier(() => INTERFACE.remplirTouchesDeux(MANETTE.lireManettes().length));
   INTERFACE.preparerAides({
     lire: () => JEU.assistance,
     changer: a => { if (['course', 'qualif', 'pause', 'grille'].includes(JEU.ecran)) return;   // (jamais pendant la course)
@@ -2152,7 +2164,7 @@ function demarrerJeu() {
     majFantome(dt);
     INTERFACE.majDepart(JEU.course, JEU.ecran, JEU.departRecord);
     INTERFACE.majDepart(JEU.deux ? DEUX_JOUEURS.joueurs(JEU.plateau)[1].course : null, JEU.ecran, false, '2');   // la jauge et le résultat du joueur 2, dans sa moitié
-    majDeuxHud();
+    majDeuxHud(dt);
     INTERFACE.majEcartFantome(enTourQualif() && JEU.fantome && JEU.fantome.rejeu && JEU.qualif.q.lance ? JEU.fantome.ecart : null);
     INTERFACE.majPreparation(JEU.ecran === 'course' && JEU.ia > 0 && !JEU.carte);
     majAides();
