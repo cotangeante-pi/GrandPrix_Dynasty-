@@ -1089,6 +1089,19 @@ Object.assign(TEXTES.fr, {
 Object.assign(TEXTES.en, { pneuIcone_slick: 'G', pneuIcone_drift: 'D', pneuIcone_inter: 'I', pneuIcone_pluie: 'W' });
 Object.assign(TEXTES.fr, { pneuIcone_slick: 'A', pneuIcone_drift: 'D', pneuIcone_inter: 'I', pneuIcone_pluie: 'P' });
 
+// --- tour 44d, Codeur 4 : les touches de chaque joueur à deux (touches.js) ---
+Object.assign(TEXTES.en, {
+  tch_gaz: 'Accelerate', tch_frein: 'Brake', tch_tourner: 'Steer', tch_remise: 'Back on track', tch_pause: 'Pause (both)',
+  tch_entree: 'Enter', tch_majDroite: 'Right Shift', tch_echap: 'Esc', tch_espace: 'Space', tch_ou: ' or ',
+  tch_manette: 'Gamepad: right trigger accelerates, left trigger brakes, stick steers, A back on track',
+  tch_titrePause: 'Keys',
+});
+Object.assign(TEXTES.fr, {
+  tch_gaz: 'Accélérer', tch_frein: 'Freiner', tch_tourner: 'Tourner', tch_remise: 'Retour en piste', tch_pause: 'Pause (les deux)',
+  tch_entree: 'Entrée', tch_majDroite: 'Maj droite', tch_echap: 'Échap', tch_espace: 'Espace', tch_ou: ' ou ',
+  tch_manette: 'Manette : gâchette droite pour accélérer, gauche pour freiner, stick pour tourner, A pour revenir en piste',
+  tch_titrePause: 'Touches',
+});
 // --- tour 45d, Codeur 4 : suivre un pilote après l'arrivée (un clic sur le classement) ---
 Object.assign(TEXTES.en, { cameraSuivie: 'Camera: {nom}' });
 Object.assign(TEXTES.fr, { cameraSuivie: 'Caméra : {nom}' });

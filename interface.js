@@ -1237,6 +1237,7 @@ const INTERFACE = (function () {
   function choisirCouleurDeux(i, c) {
     $('deuxErreur').textContent = '';   // un choix changé : l'ancien message d'erreur part (il revient au prochain « C'est parti ! » s'il le faut)
     $('deuxCouleurs' + i).dataset.couleur = String(c);
+    $('deuxJoueur' + i).querySelector('.deuxTouches').style.borderColor = hex(c);   // (la carte des touches, dans la couleur du joueur : touches.js)
     for (const b of $('deuxCouleurs' + i).children) b.classList.toggle('choisie', Number(b.dataset.couleur) === c);
   }
   function remplirDeux(r) {
@@ -1650,6 +1651,46 @@ const INTERFACE = (function () {
     $('boutonCourrierRetour').addEventListener('click', retour);
   }
 
+  // --- les touches de chaque joueur, à deux (touches.js, tour 44d, Codeur 4 ; le propriétaire, 2026-11-02) : la carte de chacun avant la course,
+  // le rappel en bas de sa moitié pendant les feux et les premières secondes, les touches des deux dans le menu pause. La disposition du
+  // clavier (Z Q S D ou W A S D) vient de navigator.keyboard.getLayoutMap quand le navigateur la donne ; sinon, les deux noms
+  let dispoClavier = null;
+  function lireDispositionClavier(apres) {
+    try { if (navigator.keyboard && typeof navigator.keyboard.getLayoutMap === 'function') navigator.keyboard.getLayoutMap().then(m => { dispoClavier = m; if (apres) apres(); }, () => {}); } catch (e) { /* rien : les deux noms */ }
+  }
+  function lignesTouches(j, manette) {
+    const c = TOUCHES_DEUX_ECRAN.carte(j, dispoClavier);
+    const l = [texte('tch_gaz') + ' ' + c.gaz + ' · ' + texte('tch_frein') + ' ' + c.frein + ' · ' + texte('tch_tourner') + ' ' + c.gauche + ' ' + c.droite,
+      texte('tch_remise') + ' ' + c.remise + ' · ' + texte('tch_pause') + ' ' + texte('tch_echap')];
+    if (manette) l.push(texte('tch_manette'));
+    return l;
+  }
+  const ecrireLignes = (e, lignes) => { e.textContent = ''; lignes.forEach((x, k) => { if (k) e.appendChild(document.createElement('br')); e.appendChild(document.createTextNode(x)); }); };
+  // manettes : le nombre de manettes branchées (la 1re au joueur 1, la 2e au joueur 2)
+  function remplirTouchesDeux(manettes) {
+    for (const j of [1, 2]) ecrireLignes($('deuxJoueur' + j).querySelector('.deuxTouches'), lignesTouches(j, manettes >= j));
+    const p = $('pauseTouches');
+    ecrireLignes(p, [1, 2].map(j => { const c = TOUCHES_DEUX_ECRAN.carte(j, dispoClavier); return (j === 1 ? '🔵 ' : '🔴 ') + c.gaz + ' ' + c.frein + ' ' + c.gauche + ' ' + c.droite + ' · ' + texte('tch_remise') + ' ' + c.remise + (manettes >= j ? ' · 🎮' : ''); }));
+  }
+  function montrerTouchesPause(oui) { $('pauseTouches').classList.toggle('cache', !oui); }
+  // le rappel (r = TOUCHES_DEUX_ECRAN.creerRappel(), ou null : rien) : chaque commande, plus pâle quand elle a servi
+  function majRappelDeux(r) {
+    for (const j of [1, 2]) {
+      const e = $('deuxRappel' + j), vu = TOUCHES_DEUX_ECRAN.visible(r, j);
+      e.classList.toggle('cache', !vu);
+      if (!vu) continue;
+      const c = TOUCHES_DEUX_ECRAN.carte(j, dispoClavier), cle = TOUCHES_DEUX_ECRAN.ACTIONS.map(a => (r.vues[j][a] ? 1 : 0)).join('') + c.gaz + c.gauche;
+      if (e.dataset.cle === cle) continue;   // (rien n'a changé : le DOM reste)
+      e.dataset.cle = cle; e.textContent = '';
+      for (const [a, signe] of [['gaz', '↑'], ['frein', '↓'], ['gauche', '←'], ['droite', '→']]) {
+        const s = document.createElement('span');
+        s.className = 'touche' + (r.vues[j][a] ? ' faite' : '');
+        s.textContent = c[a] === signe ? signe : signe + ' ' + c[a];
+        e.appendChild(s);
+      }
+    }
+  }
+
   // --- les aides de chacun, entre amis (tour 37e, Codeur 3 ; le propriétaire : « en tournoi chrono et en mode 2 joueurs, les aides de chacun
   // sont affichées à côté de son nom ») : un bouton par joueur, toutes les aides ou aucune, choisi avant la course ; gardé dans la
   // sauvegarde (options 'aides_deux' : [joueur 1, joueur 2] ; 'aides_amis' : { prénom en minuscules: oui / non }) ; pas d'argent ici,
@@ -1712,7 +1753,7 @@ const INTERFACE = (function () {
     ecrireAides();
   }
 
-  return { surClicClassement, marquerSuivie, majPneus, majMessage, preparerGrille, preparerAides, ouvrirAides, fermerAides, ecrireAides, aidesDeux, aidesAmi, noterAidesAmi, annoncerMotifs, preparerResume, montrerBoutonResume, majResume, remplirInscription, lireInscription, montrerErreursTournoi, preparerInscription, remplirAToi, majCompteTournoi, preparerPauseTournoi, remplirMancheTournoi, preparerMancheTournoi, remplirFinTournoi, preparerFinTournoi, preparerAmis, remplirDeux, lireDeux, montrerErreursDeux, preparerDeux, remplirPodiumDeux, remplirRivalite, formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, remplirPaddock, remplirDiscussion, remplirDiscussionPatron, preparerNegociation, preparerDiscussion, remplirCourrier, preparerCourrier, preparerChampionnat, remplirQualif, preparerQualif,
+  return { surClicClassement, marquerSuivie, lireDispositionClavier, remplirTouchesDeux, montrerTouchesPause, majRappelDeux, majPneus, majMessage, preparerGrille, preparerAides, ouvrirAides, fermerAides, ecrireAides, aidesDeux, aidesAmi, noterAidesAmi, annoncerMotifs, preparerResume, montrerBoutonResume, majResume, remplirInscription, lireInscription, montrerErreursTournoi, preparerInscription, remplirAToi, majCompteTournoi, preparerPauseTournoi, remplirMancheTournoi, preparerMancheTournoi, remplirFinTournoi, preparerFinTournoi, preparerAmis, remplirDeux, lireDeux, montrerErreursDeux, preparerDeux, remplirPodiumDeux, remplirRivalite, formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, remplirPaddock, remplirDiscussion, remplirDiscussionPatron, preparerNegociation, preparerDiscussion, remplirCourrier, preparerCourrier, preparerChampionnat, remplirQualif, preparerQualif,
     remplirDuel, avec, remplirUne, preparerUne, remplirArgent, remplirSolde, remplirGarage, preparerGarage,
     remplirSaison, remplirDuelSaison, remplirContrats, remplirRetraite, preparerSaison, retraiteEnAttente, remplirCeremonie, preparerCeremonie, remplirAlbum, preparerAlbum, remplirBilan, remplirTemple, preparerTemple, preparerReleve, remplirHeritier, lireHeritier, montrerErreurHeritier, remplirAileron, majAileron, preparerAileron, preparerPneusGarage, remplirArbre, preparerArbre, remplirCalendrier, preparerCalendrier,
     remplirSponsors, remplirRappelSponsor, preparerSponsors, remplirFiche, preparerFiche, remplirInterview, montrerEffetInterview, preparerInterview, remplirReputation,

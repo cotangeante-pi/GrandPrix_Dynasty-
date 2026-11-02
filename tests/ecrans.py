@@ -120,7 +120,9 @@ PAGES = [
    # le décor du circuit test (étape 10) avec 20 voitures : appels de dessin, triangles, niveaux de détail ; captures decor-test.png, decor-dessus.png
     ('index.html?test=tournoi', 1280, 720, None),   # le tournoi chrono (tour 26b) : inscription de 3 joueurs → 3 manches (robot ; un abandon) → podium → Rejouer ; captures tournoi.png, tournoi-podium.png
     ('index.html?test=tournoi', 960, 600, None),    # … l'inscription de 8 joueurs tient en 960×600   # le mode 2 joueurs, tour 25b ordre 3 : titre → « Entre amis » → réglages → course à deux (robots) → podium → rivalité → Revanche → Menu ; captures entre-amis.png, deux-reglages.png, rivalite.png
-    ('index.html?test=amis', 960, 600, None),    # … en petit : le menu et l'écran avant la course tiennent sans défilement ni débordement   # … la mesure de la 3D dessinée deux fois sur le technique   # le premier lancement : titre → course de découverte (robot) → Bravo → paddock ; captures titre.png, decouverte.png, bravo.png
+    ('index.html?test=amis', 960, 600, None),
+    ('index.html?test=touches', 960, 600, None),   # les touches de chaque joueur à deux (touches.js, tour 44d) : la carte, le rappel, la pause ; captures touches-*.png
+    ('index.html?test=touches', 1280, 720, None),    # … en petit : le menu et l'écran avant la course tiennent sans défilement ni débordement   # … la mesure de la 3D dessinée deux fois sur le technique   # le premier lancement : titre → course de découverte (robot) → Bravo → paddock ; captures titre.png, decouverte.png, bravo.png
     # les aides au premier usage (aides.js, étape 11b, Codeur 4) : en course (qualification, feux, arrêt obligatoire en ligne droite, pause) et au paddock
     # (duel, garage, aileron, « Revoir », ancienne sauvegarde) ; captures aide-stand.png, aide-garage.png (et -960)
     ('index.html?course=12&ia=3&joueur=1&robot=1&circuit=test&test=aides-course', 1280, 720, None),
@@ -868,6 +870,41 @@ def deux_ecran(pg, titre, l, h, page):
 # la rivalité (« Léo 1 – 0 Sarah ») ; « Revanche » : un commercialBreak (faux SDK) puis la même course, grille retirée ; « Menu » : un
 # commercialBreak puis le menu ; jamais de commercialBreak pendant une course ; la carrière n'a pas bougé
 def JEU_PODIUM(pg): return attendre(pg, '() => JEU.ecran === "podium" && JEU.final && JEU.final.length === 5', None, 60000)
+# les touches de chaque joueur à deux (touches.js, le propriétaire 2026-11-02 : « 2 joueurs il faudrait montrer les touches ») : avant la course, la
+# carte de chacun dans sa couleur ; pendant les feux, le rappel en bas de chaque moitié, qui s'efface quand le joueur a utilisé ses quatre
+# commandes (et pas celui de l'autre), ou DEUX_RAPPEL_DUREE s après l'extinction ; dans le menu pause, les touches des deux ; rien ne déborde
+def touches_deux(pg, titre, l, h):
+    def dans(sel):
+        return pg.evaluate('s => [...document.querySelectorAll(s)].every(e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.left >= -1 && r.top >= -1 && r.right <= innerWidth + 1 && r.bottom <= innerHeight + 1; })', sel)
+    pg.click('#boutonAmis'); pg.click('#boutonAmisDeux')
+    c = pg.evaluate("""() => [1, 2].map(i => { const p = document.querySelector('#deuxJoueur' + i + ' .deuxTouches'); return { texte: p.innerText, lignes: p.querySelectorAll('br').length + 1, bord: getComputedStyle(p).borderLeftColor, couleur: document.getElementById('deuxCouleurs' + i).dataset.couleur }; })""")
+    hexa = lambda n: 'rgb(%d, %d, %d)' % ((int(n) >> 16) & 255, (int(n) >> 8) & 255, int(n) & 255)
+    t(f'{titre} : avant la course, la carte des touches de chaque joueur, dans sa couleur : le joueur 1 Z/W Q/A S D (le clavier inconnu : les deux) et E, le joueur 2 les flèches et Entrée, la pause',
+      len(c) == 2 and all(x['lignes'] == 2 and x['bord'] == hexa(x['couleur']) for x in c) and (('Z/W' in c[0]['texte'] and 'Q/A' in c[0]['texte']) or pg.evaluate('() => !!(navigator.keyboard && navigator.keyboard.getLayoutMap)')) and all(k in c[0]['texte'] for k in ('S', 'D', 'E')) and all(k in c[1]['texte'] for k in ('↑', '↓', '←', '→', pg.evaluate('() => texte("tch_entree")'))) and pg.evaluate('() => texte("tch_echap")') in c[0]['texte'], str(c))
+    t(f'{titre} : les cartes tiennent dans l’écran ({l}×{h})', dans('#deuxJoueur1 .deuxTouches, #deuxJoueur2 .deuxTouches, #boutonDeuxPartir'))
+    pg.wait_for_timeout(200); pg.screenshot(path=os.path.join(CAPTURES, f'touches-reglages-{l}.png'))
+    pg.select_option('#deuxIA', '0'); pg.select_option('#deuxTours', '3'); pg.select_option('#deuxCircuit', 'test')
+    with pg.expect_navigation(): pg.click('#boutonDeuxPartir')
+    attendre(pg, '() => typeof JEU !== "undefined" && JEU.deux && JEU.ecran === "course" && JEU.rappelDeux', None, 30000)
+    attendre(pg, '() => JEU.plateau && JEU.plateau.carte !== null && JEU.course.etat === "compte"', None, 240000)
+    r = pg.evaluate('() => [1, 2].map(j => { const e = document.getElementById("deuxRappel" + j); return { vu: !e.classList.contains("cache"), n: e.querySelectorAll(".touche").length, texte: e.textContent }; })')
+    t(f'{titre} : pendant les feux, le rappel des touches en bas de chaque moitié (4 commandes chacun)', all(x['vu'] and x['n'] == 4 for x in r) and dans('.deuxRappel:not(.cache)'), str(r))
+    pg.wait_for_timeout(200); pg.screenshot(path=os.path.join(CAPTURES, f'touches-feux-{l}.png'))
+    # le joueur 1 utilise ses quatre commandes (une à une) : son rappel s'efface, celui du joueur 2 reste
+    for k in ('KeyW', 'KeyS', 'KeyA', 'KeyD'):
+        pg.keyboard.down(k); pg.wait_for_timeout(250); pg.keyboard.up(k)
+    pg.wait_for_timeout(300)
+    r = pg.evaluate('() => [1, 2].map(j => !document.getElementById("deuxRappel" + j).classList.contains("cache"))')
+    t(f'{titre} : le joueur 1 a utilisé ses quatre commandes : son rappel s’efface, celui du joueur 2 reste', r == [False, True], str([r, pg.evaluate('() => JEU.rappelDeux')]))
+    # le temps passe après l'extinction : le rappel du joueur 2 s'efface aussi (au plus DEUX_RAPPEL_DUREE s)
+    pg.evaluate('() => { JEU.rappelDeux.t = REGLAGES.DEUX_RAPPEL_DUREE; }'); pg.wait_for_timeout(300)
+    t(f'{titre} : DEUX_RAPPEL_DUREE s après l’extinction des feux, plus aucun rappel', pg.evaluate('() => document.querySelectorAll(".deuxRappel:not(.cache)").length') == 0)
+    pg.keyboard.press('Escape')
+    p = pg.evaluate('() => ({ ecran: JEU.ecran, vu: !document.getElementById("pauseTouches").classList.contains("cache"), texte: document.getElementById("pauseTouches").innerText })')
+    t(f'{titre} : dans le menu pause, les touches des deux joueurs (🔵 et 🔴)', p['ecran'] == 'pause' and p['vu'] and '🔵' in p['texte'] and '🔴' in p['texte'] and '↑' in p['texte'] and dans('#pause > *'), str(p))
+    pg.wait_for_timeout(200); pg.screenshot(path=os.path.join(CAPTURES, f'touches-pause-{l}.png'))
+    pg.keyboard.press('Escape')
+
 def amis(pg, titre, l, h):
     J = '() => window.APPELS_SDK.join(",")'
     def boite(sel):
@@ -3112,6 +3149,8 @@ with sync_playwright() as p:
                 deux_ecran(pg, titre, l, h, page)
             if 'test=amis' in page:
                 amis(pg, titre, l, h)
+            if 'test=touches' in page:
+                touches_deux(pg, titre, l, h)
             if 'test=suivie' in page:
                 camera_suivie(pg, titre, page)
             if 'test=tournoi' in page:
