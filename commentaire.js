@@ -13,7 +13,7 @@ const COMMENTAIRE = (function () {
   const R = REGLAGES;
 
   function creer(graine) {
-    return { rnd: ALEATOIRE.suite(((graine | 0) + R.GRAINE_COMMENTAIRE) >>> 0), file: [], vu: null, dernier: -Infinity, derniereCle: null, joueurVu: -Infinity, cotes: new Map(), contacts: new Map() };
+    return { rnd: ALEATOIRE.suite(((graine | 0) + R.GRAINE_COMMENTAIRE) >>> 0), file: [], vu: null, dernier: -Infinity, derniereCle: null, comble: null, combleI: 0, joueurVu: -Infinity, cotes: new Map(), contacts: new Map() };
   }
 
   // un fait dans la file (selon le mode) ; joueur : le fait concerne le joueur (il passe devant les autres de COMMENTAIRE_BONUS_JOUEUR)
@@ -122,6 +122,9 @@ const COMMENTAIRE = (function () {
       const g = SENSATIONS.suivreGlissade(c.glissade || (c.glissade = {}), e.pilotes[j].v, t);
       if (g && (c.glissadeDite === undefined || t - c.glissadeDite >= R.COMMENTAIRE_GLISSADE_INTERVALLE)) { c.glissadeDite = t; pousser(c, t, 'glissade', prm(j), true); }
     }
+    // (tour 45c) ce qu'il pourra dire entre deux faits : le haut du classement et ses écarts, les tours qui restent, le joueur, la pluie
+    c.comble = { ordre: n.ordre, place: n.place, joueur: j, nbTours: e.nbTours || 0, tourTete: n.pilotes[tete].tour, pluie: (o.pluie || 0) > R.MESSAGES_PLUIE_SEUIL,
+      actif: e.go !== null && t - e.go >= R.COMMENTAIRE_COMBLE_APRES_DEPART && n.pilotes[tete].arrivee === null };
     // ce qu'on garde pour la prochaine fois
     for (const k of ['ordre', 'place', 'pilotes', 'depassements']) v[k] = n[k];
     return c;
@@ -133,7 +136,7 @@ const COMMENTAIRE = (function () {
   function afficher(c, t, attendre) {
     if (R.COMMENTAIRE_MODE === 'non' || attendre || t - c.dernier < R.COMMENTAIRE_INTERVALLE) return null;
     c.file = c.file.filter(x => t - x.t <= R.COMMENTAIRE_PEREMPTION);
-    if (!c.file.length) return null;
+    if (!c.file.length) { const it = comble(c, t); if (!it) return null; c.file.push(it); }   // (tour 45c : presque jamais de silence)
     let i = 0;
     for (let k = 1; k < c.file.length; k++) if (c.file[k].prio > c.file[i].prio || (c.file[k].prio === c.file[i].prio && c.file[k].t < c.file[i].t)) i = k;
     const item = c.file.splice(i, 1)[0];
@@ -147,6 +150,37 @@ const COMMENTAIRE = (function () {
     return item;
   }
 
+  // (tour 45c) une phrase pour combler, à tour de rôle parmi COMMENTAIRE_COMBLE, avec ce que la course montre déjà ; null si rien
+  // (avant le départ, après l'arrivée du leader) ; en mode « joueur », seulement le joueur
+  function comble(c, t) {
+    const s = c.comble;
+    if (!s || !s.actif || !s.ordre.length) return null;
+    const types = R.COMMENTAIRE_MODE === 'joueur' ? ['combleJoueur'] : R.COMMENTAIRE_COMBLE, tete = s.ordre[0].k;
+    const de = (type) => {
+      if (type === 'combleTete') return s.ordre[1] && s.ordre[1].ecart !== null && s.ordre[1].ecart !== undefined ? { qui: tete, sur: s.ordre[1].k, ecart: s.ordre[1].ecart } : null;
+      if (type === 'combleBagarre') {
+        let b = -1;
+        for (let i = 2; i < s.ordre.length && i < R.COMMENTAIRE_PLACE_MAX; i++) if (s.ordre[i].ecart !== null && s.ordre[i].ecart !== undefined && (b < 0 || s.ordre[i].ecart < s.ordre[b].ecart)) b = i;
+        return b < 0 ? null : { qui: s.ordre[b].k, sur: s.ordre[b - 1].k, ecart: s.ordre[b].ecart, place: b + 1 };
+      }
+      if (type === 'combleTours') { const n = s.nbTours - s.tourTete + 1; return s.nbTours > 1 && n >= 2 ? { qui: tete, n } : null; }
+      if (type === 'combleJoueur') {
+        const q = s.joueur >= 0 ? s.place.get(s.joueur) : null;
+        return q && q.place > 1 && q.ecart !== null && q.ecart !== undefined ? { qui: s.joueur, sur: s.ordre[q.place - 2].k, ecart: q.ecart, place: q.place } : null;
+      }
+      if (type === 'combleMeteo') return { qui: tete, meteo: s.pluie };
+      return null;
+    };
+    for (let k = 0; k < types.length; k++) {
+      const i = (c.combleI + k) % types.length, p = de(types[i]);
+      if (!p) continue;
+      c.combleI = i + 1;
+      const type = types[i] === 'combleMeteo' && !p.meteo ? 'combleSec' : types[i];
+      return { type, t, params: p, joueur: p.qui === s.joueur, prio: 0, comble: true };
+    }
+    return null;
+  }
+
   // le texte d'une phrase : nom(k) donne le nom d'une voiture (l'affichage) ; les temps et écarts avec la virgule de la langue
   function phrase(item, nom, formatTemps) {
     const variantes = texte('com_' + item.type), p = item.params;
@@ -154,7 +188,7 @@ const COMMENTAIRE = (function () {
     const nombre = x => (Math.round(x * 10) / 10).toFixed(1).replace('.', texte('virgule'));
     return s.replace('{qui}', nom(p.qui)).replace('{sur}', p.sur === undefined ? '' : nom(p.sur)).replace('{trois}', p.trois === undefined ? '' : nom(p.trois)).replace('{lieu}', p.lieu || '').replace('{place}', p.place === null || p.place === undefined ? '' : String(p.place))
       .replace('{circuit}', p.circuit || '').replace('{ecart}', p.ecart === undefined ? '' : nombre(p.ecart)).replace('{s}', p.s === undefined ? '' : String(p.s).replace('.', texte('virgule')))
-      .replace('{temps}', p.temps === undefined ? '' : formatTemps ? formatTemps(p.temps) : String(p.temps));
+      .replace('{temps}', p.temps === undefined ? '' : formatTemps ? formatTemps(p.temps) : String(p.temps)).replace('{n}', p.n === undefined ? '' : String(p.n));
   }
 
   // le résumé vidéo (resume.js) : une phrase pour un moment fort de l'enregistrement (m : { type, qui, sur, place }), au moment où on le
