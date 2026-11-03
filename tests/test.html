@@ -818,12 +818,12 @@ t('stands : les deux circuits d’essai ont leur voie des stands, calculée depu
     v(z1&&z1.dansVoie&&!z1.rampe,'milieu');v(z2&&z2.dansVoie&&z2.rampe,'rampe d’entrée');v(z3&&!z3.voie&&!z3.dansVoie,'sur la piste');v(z4===null,'au-delà de la sortie');
     const q=[0,0];pointPiste(circ,milieu,cote*(st.dMur+3),q);v(positionSurPiste(circ,q[0],q[1]).stands===true,'positionSurPiste.stands');pointPiste(circ,milieu,0,q);v(positionSurPiste(circ,q[0],q[1]).stands===false);}
   v(zoneStands(C,C.stands.arret,-(C.stands.dMur+3)).arret===true&&zoneStands(C,(C.stands.arret+REGLAGES.STAND_ARRET_DEMI+5)%C.longueur,-(C.stands.dMur+3)).arret===false,'zone d’arrêt');});
-t('stands (pneus actifs) : une voiture qui entre dans la voie à 108 km/h y est ramenée à 80 km/h avec une seule pénalité STAND_PENALITE_VITESSE (dans course.penalites), elle est « dans les stands », elle ne touche ni muret ni barrière, son tour compte en passant la ligne par les stands, et elle ressort sur la piste après la sortie', ()=>{avecPneus(()=>{
+t('stands (pneus actifs) : une voiture qui entre dans la voie à 108 km/h y est ramenée à 80 km/h (tour 45a : en douceur, par le limiteur, au plus tard à la fin de la rampe d’entrée) avec une seule pénalité STAND_PENALITE_VITESSE (0 depuis le tour 45a ; dans course.penalites), elle est « dans les stands », elle ne touche ni muret ni barrière, son tour compte en passant la ligne par les stands, et elle ressort sur la piste après la sortie', ()=>{avecPneus(()=>{
   const R_=REGLAGES,st=C.stands,cote=st.cote,v_=creerVoiture(C),c=creerCourse(C,0);placerSurPiste(v_,C,st.entree-150,cote*4);v_.u=25;v_.piste=positionSurPiste(C,v_.x,v_.z);c.etat='course';c.etape=3;c.sAvant=v_.piste.s;c.xAvant=v_.x;c.zAvant=v_.z;c.progression=0;   // (étape 3 : la ligne qui vient finit un tour)
   let dedans=0,uMax=0,sortiDeLaVoie=null,entre=null,tourDansLaVoie=false;
   for(let k=0;k<60*120;k++){const dansVoie=v_.dansStands,fini=entre!==null&&!dansVoie&&v_.piste.s>st.sortie&&v_.piste.s<st.sortie+400;
     appliquerCommandes(v_,suivreEcartSur(v_,C,fini||(entre===null&&v_.piste.s>st.sortie&&v_.piste.s<st.entree-20)?cote*4:cote*(st.dMur+R_.STAND_LARGEUR/2),fini?40:30));pasVoiture(v_,C,DT);majCourse(c,v_,DT);
-    if(v_.dansStands){dedans++;uMax=Math.max(uMax,v_.u);if(entre===null)entre=v_.piste.s;if(c.tours.length===1)tourDansLaVoie=true;}
+    if(v_.dansStands){dedans++;const dep_=((v_.piste.s-st.entree)%C.longueur+C.longueur)%C.longueur;if(dep_>R_.STAND_RAMPE)uMax=Math.max(uMax,v_.u);if(entre===null)entre=v_.piste.s;if(c.tours.length===1)tourDansLaVoie=true;}
     if(entre!==null&&!v_.dansStands&&sortiDeLaVoie===null) sortiDeLaVoie=v_.piste.s;
     if(sortiDeLaVoie!==null&&v_.piste.s>st.sortie+150) break;}
   L.push('  (stands, test : entrée à s = '+(entre===null?'—':entre.toFixed(0))+', '+(dedans*DT).toFixed(1)+' s dans la voie, vitesse max '+(uMax*3.6).toFixed(1)+' km/h, pénalités '+c.penalites+' s, sortie à s = '+(sortiDeLaVoie===null?'—':sortiDeLaVoie.toFixed(0))+', tours comptés '+c.tours.length+', muret '+v_.contactsMurStands+', barrière '+v_.contactsBarriere+', herbe '+v_.surHerbe+')');
@@ -891,6 +891,26 @@ t('arrêt au stand : le joueur entre lui-même (ici le robot, v.versStands) : av
     return {j,stand,vu,fini};});
   L.push('  (joueur aux stands : arrêts '+JSON.stringify(r.j.course.arrets)+', usure '+r.j.v.pneus.usure.toFixed(3)+', muret '+r.j.v.contactsMurStands+', pénalités '+r.j.course.penalites+' s)');
   v(r.fini&&r.j.course.arrets.length===1&&r.j.course.arrets[0].tour>=2&&r.j.course.arrets[0].tour<=3,'pas d’arrêt '+JSON.stringify(r.j.course.arrets));v(r.stand,'pas de STAND');v(!r.vu,'vu derrière le muret');v(r.j.v.contactsMurStands===0&&r.j.course.penalites===0,'muret / pénalités');});
+t('arrêt au stand en tout temps (tour 45a, le propriétaire) : dans une course de 5 tours, le joueur s’arrête deux fois (aux tours 2 et 4) ; chaque arrêt lui met des pneus neufs', ()=>{
+  const r=avecPneus(()=>{const e=creerCourseIA(C,3,5,2,CARTES_T.test,true),j=e.pilotes[3];j.v.pneus=creerPneus();j.course.compte=0;for(const p_ of e.pilotes)p_.course.compte=0;
+    const robot=(p_,dt)=>appliquerCommandes(p_.v,courseAutorise(p_.course)?piloteRobot(p_.v,C):COMMANDES_AUCUNE);const avant=[];let n=0;
+    for(let k=0;k<400*120&&j.arrivee===null;k++){const t_=j.course.tours.length;
+      // (la zone d’arrêt du circuit test est juste après la ligne : il prend la voie à la fin des tours 1 et 3, l’arrêt compte aux tours 2 et 4)
+      if((t_===0&&n===0&&j.course.temps>20||t_===2&&n===1)&&!j.v.versStands){j.v.versStands=true;j.v.arretsAvant=j.v.pneus.arrets;avant.push(j.v.pneus.usure);n++;}
+      pasCourseIA(e,DT,robot);}
+    return {j,avant};});
+  const a_=r.j.course.arrets||[];L.push('  (deux arrêts en 5 tours : '+JSON.stringify(a_.map(x=>({tour:x.tour,usure:+x.usure.toFixed(3)})))+', usure à l’arrivée '+r.j.v.pneus.usure.toFixed(3)+')');
+  v(a_.length===2&&a_[0].tour===2&&a_[1].tour===4,'arrêts '+JSON.stringify(a_.map(x=>x.tour)));v(r.j.v.pneus.arrets===2&&r.j.v.pneus.usure<0.01,'pneus neufs à chaque arrêt : '+r.j.v.pneus.arrets);v(r.j.arrivee!==null,'pas arrivé');});
+t('arrêt au stand sans pénalité (tour 45a) : le joueur entre trop vite (144 km/h dans la rampe) : le limiteur le ralentit en douceur jusqu’à 80 km/h, sans saut, et il n’a ni pénalité de vitesse ni virage coupé ; il s’arrête dès son premier passage', ()=>{
+  const r=avecPneus(()=>{const e=creerCourseIA(C,3,5,2,CARTES_T.test,true),j=e.pilotes[3];j.v.pneus=creerPneus();j.course.compte=0;for(const p_ of e.pilotes)p_.course.compte=0;
+    const robot=(p_,dt)=>appliquerCommandes(p_.v,courseAutorise(p_.course)?piloteRobot(p_.v,C):COMMANDES_AUCUNE);let pousse=false,saut=0,uAvant=null,maxVoie=0;const st=C.stands,L_=C.longueur;
+    j.v.versStands=true;j.v.arretsAvant=0;
+    for(let k=0;k<400*120&&j.arrivee===null;k++){const dep=((j.v.piste.s-st.entree)%L_+L_)%L_;
+      if(!pousse&&j.v.rampeStands&&dep<REGLAGES.STAND_RAMPE/2&&j.course.temps>20){j.v.u=40;pousse=true;}   // (dans la rampe d’entrée, d’un coup à 144 km/h)
+      pasCourseIA(e,DT,robot);if(pousse&&uAvant!==null&&(j.v.dansStands||j.v.rampeStands)){if(uAvant>REGLAGES.STAND_VITESSE_MAX+1&&j.v.u===REGLAGES.STAND_VITESSE_MAX)saut++;}uAvant=j.v.u;if(j.v.dansStands)maxVoie=Math.max(maxVoie,j.v.u);}
+    return {j,pousse,saut,maxVoie};});
+  L.push('  (entrée rapide au stand : poussé '+r.pousse+', sauts à 80 km/h '+r.saut+', pénalités '+r.j.course.penalites+' s, arrêts '+JSON.stringify((r.j.course.arrets||[]).map(x=>x.tour))+')');
+  v(r.pousse&&r.j.course.penalites===0&&(r.j.v.penalitesStands||0)===0,'pénalités '+r.j.course.penalites);v(r.saut===0,r.saut+' sauts d’un coup à 80 km/h');v((r.j.course.arrets||[]).length>=1,'pas d’arrêt');v(r.j.v.excesStands>=1,'le limiteur n’a pas agi');});
 // --- les consignes d'équipe (CLAUDE.md « Le duel contre le coéquipier », simulation.js majConsignes, Codeur 1)
 // une course sur le technique : l'IA k = 0 et la voiture k = 1 sont de la même écurie ; celle qui part devant est rendue nettement plus lente
 function courseConsigne(avecJoueur,refus,tours){const e=creerCourseIA(TQ,avecJoueur?1:2,tours||6,1,CARTES_T.technique,avecJoueur),P=e.pilotes,ia=P[0];

@@ -131,7 +131,8 @@ function majCourse(c, v, dt) {
   c.sAvant = s; c.xAvant = v.x; c.zAvant = v.z;
 
   // le virage coupé : pendant une sortie, on compare l'avance le long de la piste et la distance roulée
-  const dehors = Math.abs(v.piste.d) > c.circuit.largeur / 2 + R.MARGE_COUPE;
+  // (tour 45a : dans la voie des stands et ses rampes, jamais de virage coupé)
+  const dehors = Math.abs(v.piste.d) > c.circuit.largeur / 2 + R.MARGE_COUPE && !(c.circuit.stands && (v.dansStands || v.rampeStands));
   if (dehors) {
     if (!c.sortie) c.sortie = { progression: c.progression - ds, roule: 0 };
     c.sortie.roule += roule;

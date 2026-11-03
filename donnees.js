@@ -885,7 +885,8 @@ const REGLAGES = {
   STAND_LONGUEUR_MIN: 150,      // m : en dessous, pas de voie des stands sur ce circuit (test)
   STAND_ARRET_DEMI: 20,         // m : la zone d'arrêt, de part et d'autre de circuit.stands.arret (la ligne si la voie la traverse, sinon le milieu de la voie)
   STAND_VITESSE_MAX: 80 / 3.6,  // m/s : la limite dans la voie ; la physique y ramène la voiture qui la dépasse…
-  STAND_PENALITE_VITESSE: 5,    // s : … et ça coûte ça, une fois par passage
+  STAND_PENALITE_VITESSE: 0,    // s : … et ça coûte ça, une fois par passage (tour 45a, décision du Chef : 0, le limiteur suffit ; 5 avant)
+  STAND_LIMITEUR: 15,           // m/s² : le limiteur du joueur, dès la rampe d'entrée (ralentit en douceur jusqu'à STAND_VITESSE_MAX ; 0 : le saut d'avant)
   // l'arrêt au stand (étape 7, tour 26 ordre 3 ; derrière PNEUS_ACTIFS) : la durée de l'arrêt, le gain des changeurs de roues et la
   // pénalité sans arrêt (30 s, en course de 12 et 18 tours) sont dans REGLAGES_PNEUS (pneus-donnees.js : ARRET_DUREE_BASE, CHANGEURS_GAIN_*,
   // PENALITE_SANS_ARRET, TOURS_ARRET_OBLIGATOIRE), testés seuls par tests/pneus.html
