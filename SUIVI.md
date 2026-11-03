@@ -34,6 +34,7 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 
 ## Tour en cours
 
+**Journée du 2026-11-02 figée à minuit sur main vert (code de 8262c92, GitHub 41560630424, 95/100). Reprise : rapports/fin-2026-11-02.md.**
 **2026-10-27 15h55 : le propriétaire : « travaille sur le projet jusqu'à minuit, on est à 11 % … n'attends pas les tests pour pouvoir passer à une autre étape »** → tour 32 (rapports/tour-32-rapport.md) : les 12 tracés branchés, l'usure réglée et les pneus par défaut, le duel côte à côte (Codeur 1) ; les décors des 12 tracés, Monoco en détail (Codeur 2) ; la grande passe interface et le paddock (Codeur 3). Fin à minuit.
 **Journée du 2026-10-28 figée à 21h15 sur main vert (code de be4345c, GitHub 40797575337, 93/100). Reprise : rapports/fin-2026-10-28.md.**
 
@@ -97,6 +98,7 @@ Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤
 | 2026-10-29 | 1ad5d56 | 94 | 16 | 19 | 15 | 15 | 14 | 10 | 5 |   (conduite +1 : la voiture vivante en expert et légende, le joueur seul ; reste à 19 en course et IA : le duel court pas tenu ; 3D et perf : qualité automatique, mais 60 i/s pas mesurées au calme)
 | 2026-10-30 | 8b2cb55 | 95 | 16 | 20 | 15 | 15 | 14 | 10 | 5 |   (course et IA +1 : le rival défend enfin (29 défenses contre 0), la file voit freiner, les chocs de la file corrigés, le duel tenu avec arrêt ; conduite reste à 16 : la voiture vivante et les aides attendent l'avis du propriétaire ; 3D et perf : 60 i/s pas mesurées au calme)
 | 2026-10-31 | 5487dd1 | 95 | 16 | 20 | 15 | 15 | 14 | 10 | 5 |   (inchangée : le pneu drift fait selon la règle du propriétaire, mais la conduite attend son avis ; la mesure des i/s est prête en un clic, à faire par le propriétaire)
+| 2026-11-02 | 8262c92 | 95 | 16 | 20 | 15 | 15 | 14 | 10 | 5 |   (inchangée : voix du commentateur, caméra suivie, stand en tout temps sans pénalité, défense des IA ; tout attend l'essai du propriétaire)
 
 Note du Chef session-5b (2026-10-23) : les lignes 18 à 19b ne s'additionnaient pas (19 + 19b : 12 + 16 + 6 + 12 + 9 + 10 + 2 = 67, noté 62 ; 18 : 63 noté 60). Les axes sont justes, c'est le total qui était faux ; depuis la ligne 21b, le total est la somme des axes. Le saut de 62 à 68 vient de cette correction, pas d'un progrès.
 
@@ -162,6 +164,8 @@ Note du Chef session-5b (2026-10-23) : les lignes 18 à 19b ne s'additionnaient 
 - Étape 1 : survol `index.html?camera=libre`.
 
 ## Étape en cours
+
+**À jour au 2026-11-02 :** les étapes 4 à 15 sont faites ou presque (voir les lignes « Fini » de CLAUDE.md et les rapports de fin) ; ce qui reste attend surtout les essais du propriétaire (conduite drift, i/s, noms, Poki). Les lignes ci-dessous datent du 2026-10-18/20.
 
 **Étape 1 — Le circuit** : finie (tours 2–3). **Étape 2 — La voiture** : **finie** (tours 3–4 ; le propriétaire, 19h45 : « oui la conduite me va »). **Étape 3 — Une course seule** : **finie** (tours 5–6 ; le propriétaire : « oui tout me va, l'étape 3 est finie »).
 
