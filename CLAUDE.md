@@ -458,6 +458,40 @@ Décidée par le propriétaire le 2026-10-27 (« pour la télé, ce ne doit pas 
 - **Fait le 2026-10-27** (tour 34, Codeur 2) : `regie.js`, les postes tirés du tracé (ligne, sortie des stands, extérieur de chaque virage, grandes droites) sur des mâts de 12 m dessinés en un appel, la visée contre les boîtes du décor, un plan d'au moins 2,5 s, l'hélicoptère quand aucun poste ne voit ou sur les droites de plus de 700 m. Le drone est fait aussi (tour 34) : au départ, c'est le survol de la grille ; à l'arrivée, 5 s autour de la voiture en montant, puis la régie.
 - **Tests** : sur un tour du circuit test et de Monoco, la voiture suivie est toujours visible depuis la caméra choisie (aucun objet du décor sur la ligne de visée) ; un plan dure au moins `TELE_PLAN_MIN` ; une caméra ne se déplace jamais (seuls l'angle et le zoom changent), sauf l'hélicoptère et le drone ; l'hélicoptère reste dans ses hauteurs ; les appels de dessin n'augmentent pas de plus de 1.
 
+## Pour l'ordinateur : graphismes, rétroviseur, touches
+
+Décidé par le propriétaire le 2026-11-03 (« écris 1, 2, 3, 4 »). Trois ajouts pour la version ordinateur (le défi du fantôme, le 3, a sa section à lui juste après).
+
+- **Les réglages graphiques** : beaucoup de joueurs Poki sont sur des ordinateurs d'école lents ; un jeu qui saccade, ils le quittent en 10 secondes.
+  - Qualité **basse / moyenne / haute** et **Auto** (le choix par défaut) dans le menu des réglages (titre, paddock, pause) : en Auto, le jeu mesure les images par seconde pendant les premières secondes de course et baisse d'un cran s'il reste sous 50 (jamais de va-et-vient : un cran au plus toutes les 10 s, et il ne remonte qu'entre deux courses).
+  - Ce qui baisse : la résolution de rendu, les ombres, la densité du public, des arbres et des panneaux (l'instancing existant), la distance d'affichage du décor, les effets (fumée, étincelles, gerbes de pluie, particules). **Jamais** ce qui sert à piloter : la piste, les vibreurs, les voitures, les repères de freinage.
+  - Réglages `GRAPHISMES_*` dans `donnees.js` ; le choix est gardé à la racine de la sauvegarde.
+  - **Tests** : en basse, moins d'appels de dessin et de triangles qu'en haute (chiffres notés dans `SUIVI.md`) ; en Auto, un ordinateur lent simulé descend d'un cran puis se stabilise ; la course (places, temps) est identique au bit près quelle que soit la qualité ; captures en basse et en haute.
+- **Le rétroviseur** : en vue derrière la voiture et en vue cockpit, un petit rétroviseur en haut au milieu de l'écran montre ce qui arrive derrière (une deuxième caméra, en basse résolution, avec moins de décor). Sans lui, défendre sa place, c'est deviner.
+  - Il ne cache jamais la piste devant la voiture (le test en pixels existant) ; on peut le masquer (réglage sauvegardé) ; coupé d'office en qualité basse si l'Auto en a besoin, et en mode 2 joueurs s'il fait passer sous 60 images/s.
+  - **Tests** : une voiture placée 20 m derrière se voit dans le rétroviseur ; le coût en appels de dessin est noté ; masqué = rien ne change.
+- **Les touches au choix** : dans les réglages, chaque commande (gaz, frein, gauche, droite, retour en piste, caméra, pause, et celles du joueur 2) peut prendre une autre touche : on clique sur la commande, on appuie sur la touche voulue. Une touche déjà prise est signalée ; « Par défaut » remet tout. Les touches d'aujourd'hui (flèches, WASD / ZQSD) restent le réglage de départ ; Échap ouvre toujours la pause, quoi qu'on choisisse. Gardé à la racine de la sauvegarde.
+  - **Tests** : une touche changée conduit la voiture, l'ancienne ne fait plus rien ; en 2 joueurs, une touche de l'un ne bouge jamais la voiture de l'autre ; « Par défaut » remet tout ; une ancienne sauvegarde se charge avec les touches d'aujourd'hui.
+
+## Le défi du fantôme entre amis
+
+Décidé par le propriétaire le 2026-11-03. **But** : que les copains se lancent des défis et reviennent jouer, sans serveur.
+
+- **Ce que c'est** : après un tour chronométré (qualification, course seule, tournoi chrono), le bouton « 📋 Défier un ami » donne un **code** à copier (par exemple `GPD-SPAA-1:23.456-…`). Le copain le colle chez lui (« Relever un défi », au titre et au paddock) : il court seul sur ce circuit contre le fantôme du tour, avec l'écart en direct, comme le fantôme du meilleur tour.
+- **Le code contient tout** : le circuit, le temps, le nom et le casque du pilote, l'aileron, les aides utilisées (affichées à côté du temps), et le tour lui-même (le même enregistrement que le fantôme, compressé, en texte). Pas de serveur, pas de lien externe (règles Poki) : on copie le code et on l'envoie comme on veut.
+- **Le résultat** : « Défi relevé ! −0,312 » ou « Encore 0,450 » ; le copain peut renvoyer son propre code. La liste des défis reçus et leur meilleur résultat sont gardés dans la sauvegarde.
+- **La règle d'or tient** : la même physique ; le fantôme n'a aucun contact ; un code abîmé ou trafiqué est refusé (une somme de contrôle), et un temps impossible pour le tour enregistré aussi.
+- **Code** : `defi.js` en calcul pur (coder, décoder, vérifier), qui réutilise l'enregistrement du fantôme ; textes en fr et en en.
+- **Tests** : un tour codé puis décodé repasse aux mêmes positions ; un code abîmé d'un seul caractère est refusé ; le code tient en moins de 30 000 caractères ; un défi joué contre soi-même donne un écart de 0.
+
+## Les batailles en ligne (à la toute fin)
+
+Idée du propriétaire, 2026-11-03 (« il faudrait faire des batailles en ligne à la toute fin »). **La toute dernière étape**, après Poki (étape 15) : rien n'est commencé avant que tout le reste soit fini.
+
+- **L'idée** : courir en même temps contre de vrais joueurs, chacun sur son ordinateur ou son téléphone.
+- **Ce que ça demande** (à étudier au moment venu, pas avant) : un serveur qui relie les joueurs (le jeu n'en a aucun aujourd'hui), ce que Poki permet pour le jeu en ligne, la triche, les joueurs qui se déconnectent. Un atout : la physique est identique au bit près partout, donc on pourrait n'envoyer que les commandes de chaque joueur.
+- **Avant de coder**, le Chef écrit un rapport (comment, ce que ça coûte, ce que Poki permet) et **Le propriétaire décide**.
+
 ## L'argent et les améliorations
 
 - Chaque course rapporte de l'argent : selon la place, le meilleur tour, les objectifs de sponsors et les places gagnées.
@@ -784,6 +818,9 @@ Avant tout ça, ne jamais écrire « fini ». Pour une grosse étape (2, 4, 10, 
 | 13 | **Le résumé vidéo de la course** : les positions de toutes les voitures sont enregistrées pendant la course (même code que le fantôme du meilleur tour) ; on rejoue les moments forts (départ, dépassements, sorties de piste, arrivée) avec les caméras télé | après une course, on regarde son résumé |
 | 14 | **La fin de carrière et les records** : retraite anticipée ou par l'âge (15 saisons), palmarès, records, temple de la renommée (avec les statistiques de l'étape 6), l'album des unes du journal, la relève (héritier, arbre de la dynastie, records de famille : voir « La relève : une vraie dynastie ») ou nouvelle dynastie | une carrière terminée affiche son bilan |
 | 15 | **Poki** : SDK, pubs, traduction anglais/français complète, paquet zip, test sur inspector.poki.dev, temps du clic aux feux revérifié (voir « En piste en 10 secondes ») | le jeu passe l'inspecteur sans erreur, et un nouveau joueur est en piste en 10 secondes au plus — **préparé le 2026-10-29** (tour 37, Codeur 3, 6b84a86) : traduction complète testée (tests/textes.html, 1227/1227 : aucune clé manquante, aucun mot de la mauvaise langue), le SDK encadre chaque course et les pubs ne tombent qu'entre deux écrans (tests/paquet.py, journal des appels), zip 0,58 Mo sans tests ni rapports, hors-ligne testé ; **reste : le passage sur inspector.poki.dev, par le propriétaire** |
+| 11e | **Pour l'ordinateur** (le propriétaire, 2026-11-03, voir « Pour l'ordinateur ») : réglages graphiques avec Auto, rétroviseur, touches au choix | un ordinateur lent simulé tient 50 images/s en Auto ; une voiture derrière se voit dans le rétroviseur ; une touche changée conduit la voiture |
+| 13b | **Le défi du fantôme entre amis** (le propriétaire, 2026-11-03, voir « Le défi du fantôme entre amis ») : un code à copier, le copain court contre le fantôme | un défi copié sur un autre ordinateur se court contre le bon fantôme, et un code abîmé est refusé |
+| 16 | **Les batailles en ligne** (le propriétaire, 2026-11-03, à la toute fin, voir « Les batailles en ligne ») : courir contre de vrais joueurs | le rapport du Chef est écrit et **Le propriétaire a décidé** comment les faire |
 
 ## Façon de travailler avec le propriétaire
 
