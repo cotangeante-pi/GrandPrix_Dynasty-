@@ -1134,3 +1134,7 @@ Object.assign(TEXTES.fr, {
   com_combleChampTete: ['Tu mènes le championnat, {n} points devant {qui}.', 'En tête du championnat, {n} points devant {qui}.', '{qui} est à {n} points de toi au championnat.'],
   com_combleChampProjection: ['Si ça finit comme ça, tu prends la tête du championnat !', 'En l’état, tu passerais en tête du championnat !', 'Arrivée comme ça, et {qui} perd la tête !'],
 });
+
+// --- tour 45d, Codeur 4 : suivre un pilote après l'arrivée (un clic sur le classement) ---
+Object.assign(TEXTES.en, { cameraSuivie: 'Camera: {nom}' });
+Object.assign(TEXTES.fr, { cameraSuivie: 'Caméra : {nom}' });
