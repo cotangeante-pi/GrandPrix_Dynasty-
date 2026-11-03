@@ -684,7 +684,7 @@ Ajouté le 2026-10-22, à la demande du propriétaire (« le travail avance lent
 - **Le résultat** : dans l'onglet « Actions » du dépôt sur GitHub, ou depuis le terminal (`gh` n'est pas installé sur le Mac ; on passe par l'API de GitHub avec le jeton que git a déjà dans le trousseau, **sans jamais l'afficher**) :
   ```
   T=$(printf "protocol=https\nhost=github.com\n\n" | git credential fill | sed -n 's/^password=//p')
-  A=https://api.github.com/repos/cotangeante-pi/Grand-Prix-Dynasty
+  A=https://api.github.com/repos/cotangeante-pi/GrandPrix_Dynasty-
   # l'état du passage du commit actuel
   curl -s -H "Authorization: Bearer $T" "$A/actions/workflows/tests.yml/runs?per_page=1&head_sha=$(git rev-parse HEAD)" | python3 -c "import sys,json;r=json.loads(sys.stdin.read(),strict=False)['workflow_runs'];print(*(r[0]['status'],r[0]['conclusion'],r[0]['id']) if r else ['aucun passage'])"
   # la sortie de lancer.py (remplacer RUN par l'id ci-dessus)

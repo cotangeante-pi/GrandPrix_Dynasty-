@@ -34,6 +34,7 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 
 ## Tour en cours
 
+**2026-11-03 : nouveau dépôt GitHub GrandPrix_Dynasty- (le propriétaire). Tout l'historique y est, avec l'ancienne adresse remplacée par la noreply (commits et 3 rapports) ; les SHA ont donc changé (main d'hier 62977f7 = 1d39e08). Remote `origin` = le nouveau, `ancien` = l'ancien (laissé tel quel). Les branches des Codeurs sont sur l'ancien historique : chacun repart de origin/main.**
 **Journée du 2026-11-02 figée à minuit sur main vert (code de 8262c92, GitHub 41560630424, 95/100). Reprise : rapports/fin-2026-11-02.md.**
 **2026-10-27 15h55 : le propriétaire : « travaille sur le projet jusqu'à minuit, on est à 11 % … n'attends pas les tests pour pouvoir passer à une autre étape »** → tour 32 (rapports/tour-32-rapport.md) : les 12 tracés branchés, l'usure réglée et les pneus par défaut, le duel côte à côte (Codeur 1) ; les décors des 12 tracés, Monoco en détail (Codeur 2) ; la grande passe interface et le paddock (Codeur 3). Fin à minuit.
 **Journée du 2026-10-28 figée à 21h15 sur main vert (code de be4345c, GitHub 40797575337, 93/100). Reprise : rapports/fin-2026-10-28.md.**
@@ -119,7 +120,7 @@ Note du Chef session-5b (2026-10-23) : les lignes 18 à 19b ne s'additionnaient 
 - **Les patrons d'écurie** (tour 35) : « 💼 Direction » dans ta carte du paddock (demande le statut de premier pilote ou du budget) ; aux contrats, « 💬 Négocier » sur une offre (« je veux 80000 »). Dire : la négociation est amusante ? Les salaires sont justes ?
 - **La mesure de l'étape 10** (tour 35) : Mac au calme (rien d'autre ouvert, Spotlight fini), écran ouvert, dans le dossier du jeu : `python3 tests/perf.py --fois 3`. Ça dit si chaque circuit tient 60 images par seconde avec 20 voitures.
 
-**Pour jouer sans rien installer** : https://cotangeante-pi.github.io/Grand-Prix-Dynasty/ (GitHub Pages, activé par le propriétaire le 2026-10-27 ; la page suit `main` à chaque push, une minute après).
+**Pour jouer sans rien installer** : https://cotangeante-pi.github.io/GrandPrix_Dynasty-/ (GitHub Pages ; dépôt GrandPrix_Dynasty- depuis le 2026-11-03, l'ancien Grand-Prix-Dynasty laissé tel quel, figé au 2026-11-02 ; activé la première fois par le propriétaire le 2026-10-27 ; la page suit `main` à chaque push, une minute après).
 
 - **Parler aux pilotes** (tour 33) : au paddock, « 💬 Discuter » sur la fiche d'un rival, « 💬 Coéquipier » et « ✉ Courrier » dans ta carte. Écris ce que tu veux, en français ou en anglais, même en langage SMS, ou clique une intention. Ils se souviennent de tes promesses et de tes menaces. Dire : les réponses ont l'air vivantes ? Elles changent bien selon ce qui s'est passé en course ?
 - **Les caméras de fin et le ciel** (tour 34) : à l'arrivée, le drone tourne 5 s autour de ta voiture en montant. À ton Grand Prix à domicile, la caméra longe ta tribune de supporters avant la grille. Les nuages sont blancs, gris sous la pluie, sombres la nuit (plus verts). Sous la pluie, la trajectoire sèche se voit sur la route. Dire : le drone est beau ?
