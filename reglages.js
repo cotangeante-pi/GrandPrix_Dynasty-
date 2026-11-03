@@ -2,45 +2,52 @@
 // et un bouton « copier » qui donne les valeurs changées, prêtes à recopier dans donnees.js.
 // C'est un outil de réglage, pas une partie du jeu : sans ?reglages=1, le panneau n'existe pas.
 const PANNEAU_REGLAGES = (function () {
-  // [clé de REGLAGES, indice dans un tableau ou null, min, max, pas]
+  // [clé de REGLAGES, indice dans un tableau ou null, min, max, pas, thème]
+  // (l'ordre de cette liste est celui du texte copié : il ne change pas ; l'affichage, lui, est rangé par thème, voir THEMES)
+  // le nom lisible de chaque curseur est dans textes.js : reglage_<clé> (reglage_<clé>_<indice> pour un tableau)
   const CURSEURS = [
-    ['ADHERENCE', null, 0.8, 3, 0.05],
-    ['APPUI', null, 0, 3, 0.05],
-    ['BRAQUAGE_MAX', null, 0.1, 0.6, 0.01],
-    ['BRAQUAGE_VITESSE', null, 5, 80, 1],
-    ['DIRECTION_PALIER', null, 0.1, 1, 0.05],
-    ['RAMPE_DIRECTION_RAPIDE', null, 0.5, 10, 0.1],
-    ['RAMPE_DIRECTION_LENTE', null, 0.1, 5, 0.05],
-    ['RETOUR_DIRECTION', null, 0.5, 15, 0.1],
-    ['ADHERENCE_FREIN', null, 0.5, 3, 0.05],
-    ['ADHERENCE_ARRIERE', null, 0.8, 2, 0.05],
-    ['STABILITE_LACET', null, 0, 15, 0.5],
-    ['ANTI_DERIVE', null, 0, 10, 0.5],
-    ['VOITURE_VIVANTE', null, 0, 1, 0.05],   // le pneu drift (la voiture vivante) : 0 = comme l'adhérant, 1 = le drift
-    ['ADHERENCE_HERBE', null, 0.3, 1, 0.05],
-    ['FROTTEMENT_HERBE_CARRE', null, 0, 30, 0.5],
-    ['GAZ_HERBE', null, 0.1, 1, 0.05],
-    ['PUISSANCE', null, 300000, 1200000, 10000],
-    ['CAMERA_DERRIERE', 0, 3, 15, 0.1],
-    ['CAMERA_DERRIERE', 1, 0.8, 6, 0.1],
-    ['CAMERA_RECUL_VITESSE', null, 0, 3, 0.1],
-    ['CAMERA_SUIVI_CAP', null, 1, 20, 0.5],
-    ['CAMERA_CHAMP', 1, 0, 20, 1],
-    ['HALO_EPAISSEUR', null, 0.01, 0.08, 0.005],
+    ['ADHERENCE', null, 0.8, 3, 0.05, 'pneus'],
+    ['APPUI', null, 0, 3, 0.05, 'voiture'],
+    ['BRAQUAGE_MAX', null, 0.1, 0.6, 0.01, 'direction'],
+    ['BRAQUAGE_VITESSE', null, 5, 80, 1, 'direction'],
+    ['DIRECTION_PALIER', null, 0.1, 1, 0.05, 'direction'],
+    ['RAMPE_DIRECTION_RAPIDE', null, 0.5, 10, 0.1, 'direction'],
+    ['RAMPE_DIRECTION_LENTE', null, 0.1, 5, 0.05, 'direction'],
+    ['RETOUR_DIRECTION', null, 0.5, 15, 0.1, 'direction'],
+    ['ADHERENCE_FREIN', null, 0.5, 3, 0.05, 'pneus'],
+    ['ADHERENCE_ARRIERE', null, 0.8, 2, 0.05, 'pneus'],
+    ['STABILITE_LACET', null, 0, 15, 0.5, 'direction'],
+    ['ANTI_DERIVE', null, 0, 10, 0.5, 'direction'],
+    ['VOITURE_VIVANTE', null, 0, 1, 0.05, 'pneus'],   // le pneu drift (la voiture vivante) : 0 = comme l'adhérant, 1 = le drift
+    ['ADHERENCE_HERBE', null, 0.3, 1, 0.05, 'herbe'],
+    ['FROTTEMENT_HERBE_CARRE', null, 0, 30, 0.5, 'herbe'],
+    ['GAZ_HERBE', null, 0.1, 1, 0.05, 'herbe'],
+    ['PUISSANCE', null, 300000, 1200000, 10000, 'voiture'],
+    ['CAMERA_DERRIERE', 0, 3, 15, 0.1, 'camera'],
+    ['CAMERA_DERRIERE', 1, 0.8, 6, 0.1, 'camera'],
+    ['CAMERA_RECUL_VITESSE', null, 0, 3, 0.1, 'camera'],
+    ['CAMERA_SUIVI_CAP', null, 1, 20, 0.5, 'camera'],
+    ['CAMERA_CHAMP', 1, 0, 20, 1, 'camera'],
+    ['HALO_EPAISSEUR', null, 0.01, 0.08, 0.005, 'voiture'],
     // le départ parfait (depart.js) : la sensation à régler par le propriétaire
-    ['DEPART_MONTEE', null, 0.2, 3, 0.05],
-    ['DEPART_DESCENTE', null, 0.1, 3, 0.05],
-    ['DEPART_VERT', 0, 0.1, 0.9, 0.01],
-    ['DEPART_VERT', 1, 0.2, 1, 0.01],
-    ['DEPART_BORD', null, 0, 0.2, 0.01],
-    ['DEPART_REACTION_PARFAITE', null, 0.1, 0.8, 0.01],
-    ['DEPART_ANTICIPATION', null, 0.02, 0.3, 0.01],
-    ['DEPART_PATINAGE', 0, 0.1, 1, 0.05],
-    ['DEPART_PATINAGE', 1, 0, 4, 0.1],
-    ['DEPART_CALE', 0, 0.1, 1, 0.05],
-    ['DEPART_CALE', 1, 0, 4, 0.1],
-    ['DEPART_BON', 0, 0.1, 1, 0.05],
+    ['DEPART_MONTEE', null, 0.2, 3, 0.05, 'depart'],
+    ['DEPART_DESCENTE', null, 0.1, 3, 0.05, 'depart'],
+    ['DEPART_VERT', 0, 0.1, 0.9, 0.01, 'depart'],
+    ['DEPART_VERT', 1, 0.2, 1, 0.01, 'depart'],
+    ['DEPART_BORD', null, 0, 0.2, 0.01, 'depart'],
+    ['DEPART_REACTION_PARFAITE', null, 0.1, 0.8, 0.01, 'depart'],
+    ['DEPART_ANTICIPATION', null, 0.02, 0.3, 0.01, 'depart'],
+    ['DEPART_PATINAGE', 0, 0.1, 1, 0.05, 'depart'],
+    ['DEPART_PATINAGE', 1, 0, 4, 0.1, 'depart'],
+    ['DEPART_CALE', 0, 0.1, 1, 0.05, 'depart'],
+    ['DEPART_CALE', 1, 0, 4, 0.1, 'depart'],
+    ['DEPART_BON', 0, 0.1, 1, 0.05, 'depart'],
   ];
+  // l'ordre des thèmes à l'écran ; leur titre : textes.js, reglagesTheme_<thème>
+  const THEMES = ['voiture', 'pneus', 'direction', 'herbe', 'camera', 'depart'];
+  // la clé du texte lisible d'un curseur, et le nom du code (montré en petit, pour le propriétaire)
+  const cleTexte = (cle, i) => 'reglage_' + cle + (i === null ? '' : '_' + i);
+  const nomCode = (cle, i) => cle + (i === null ? '' : `[${i}]`);
   const depart = {};   // les valeurs de donnees.js, pour savoir ce qui a changé
   let surChangement = null;
 
@@ -86,29 +93,52 @@ const PANNEAU_REGLAGES = (function () {
     const titre = document.createElement('h2');
     titre.textContent = texte('reglagesTitre');
     panneau.appendChild(titre);
-    for (const [cle, i, min, max, pas] of CURSEURS) {
-      const ligne = document.createElement('label');
-      const nom = document.createElement('span');
-      nom.textContent = cle + (i === null ? '' : `[${i}]`);
-      const curseur = document.createElement('input');
-      Object.assign(curseur, { type: 'range', min, max, step: pas, value: lire(cle, i) });
-      curseur.dataset.cle = cle + (i === null ? '' : `.${i}`);
-      const valeur = document.createElement('output');
-      valeur.textContent = lire(cle, i);
-      curseur.addEventListener('input', () => { ecrire(cle, i, Number(curseur.value)); valeur.textContent = curseur.value; });
-      // sans le focus, les flèches reviennent à la conduite
-      curseur.addEventListener('change', () => curseur.blur());
-      ligne.append(nom, curseur, valeur);
-      panneau.appendChild(ligne);
+    const liste = document.createElement('div');
+    liste.className = 'reglagesListe';
+    for (const theme of THEMES) {
+      const groupe = document.createElement('section');
+      groupe.dataset.theme = theme;
+      const sousTitre = document.createElement('h3');
+      sousTitre.textContent = texte('reglagesTheme_' + theme);
+      groupe.appendChild(sousTitre);
+      for (const [cle, i, min, max, pas, th] of CURSEURS) {
+        if (th !== theme) continue;
+        const ligne = document.createElement('label');
+        const nom = document.createElement('span');
+        nom.className = 'reglageNom';
+        nom.textContent = texte(cleTexte(cle, i));
+        const code = document.createElement('small');
+        code.className = 'reglageCode';
+        code.textContent = nomCode(cle, i);
+        const curseur = document.createElement('input');
+        Object.assign(curseur, { type: 'range', min, max, step: pas, value: lire(cle, i) });
+        curseur.dataset.cle = cle + (i === null ? '' : `.${i}`);
+        curseur.dataset.texte = cleTexte(cle, i);
+        const valeur = document.createElement('output');
+        valeur.textContent = lire(cle, i);
+        curseur.addEventListener('input', () => { ecrire(cle, i, Number(curseur.value)); valeur.textContent = curseur.value; });
+        // sans le focus, les flèches reviennent à la conduite
+        curseur.addEventListener('change', () => curseur.blur());
+        ligne.append(nom, valeur, code, curseur);
+        groupe.appendChild(ligne);
+      }
+      liste.appendChild(groupe);
     }
+    panneau.appendChild(liste);
+    const pied = document.createElement('div');
+    pied.className = 'reglagesPied';
     const bouton = document.createElement('button');
     bouton.textContent = texte('reglagesCopier');
     bouton.tabIndex = -1;
     const sortie = document.createElement('pre');
     bouton.addEventListener('click', () => { copier(sortie); bouton.blur(); });
-    panneau.append(bouton, sortie);
+    pied.append(bouton, sortie);
+    panneau.appendChild(pied);
     document.body.appendChild(panneau);
   }
 
-  return { creer, texteCopie };
+  // (pour les tests) les curseurs, leurs thèmes et la clé de leur texte
+  const liste = () => CURSEURS.map(([cle, i, , , , theme]) => ({ cle, i, theme, texte: cleTexte(cle, i), code: nomCode(cle, i) }));
+
+  return { creer, texteCopie, liste, THEMES };
 })();

@@ -26,6 +26,8 @@ PAGES = [
     ('index.html?camera=virage', 1280, 720, 'virage.png'),
     ('index.html?camera=vitrine', 1280, 720, 'voiture.png'),
     ('index.html?reglages=1&course=0', 1280, 720, 'reglages.png'),
+    ('index.html?reglages=1&course=0', 960, 600, 'reglages-960.png'),          # le panneau en petit (tour 47c) : rien de coupé, libellés en français…
+    ('index.html?reglages=1&course=0&lang=en', 960, 600, 'reglages-960-en.png'),   # … et en anglais
     ('index.html?course=5&robot=1', 1280, 720, None),
     ('index.html?camera=dessus&circuit=technique', 1280, 720, 'technique.png'),
     ('index.html?camera=dessus&circuit=test', 1280, 720, 'stands.png'),   # la voie des stands (étape 7) : la bande et le muret le long de la ligne droite, côté gauche
@@ -232,6 +234,45 @@ def conduite(pg, titre):
     pg.click('#boutonReprendre')
     t(f'{titre} : « Reprendre » relance la physique', attendre(pg, 'n => JEU.pas > n', n2) and pg.evaluate('() => JEU.ecran') == 'course')
     t(f'{titre} : la vitesse s’affiche en km/h', bool(re.fullmatch(r'\d+', pg.evaluate('() => document.getElementById("vitesse").textContent'))))
+
+# le panneau ?reglages=1 (tour 47c) : chaque curseur a un nom lisible en français et en anglais (et le nom du code en petit),
+# rangé dans un thème ; rien n'est coupé, et le bouton « Copier » est entier et visible
+PANNEAU_MESURE = """() => {
+  const p = document.getElementById('reglages'), P = p.getBoundingClientRect(), L = p.querySelector('.reglagesListe').getBoundingClientRect();
+  const dedans = (r, c) => r.width > 0 && r.height > 0 && r.left >= c.left - 1 && r.right <= c.right + 1 && r.top >= c.top - 1 && r.bottom <= c.bottom + 1;
+  const ecran = { left: 0, top: 0, right: innerWidth, bottom: innerHeight };
+  const coupes = [];
+  const b = p.querySelector('button'), B = b.getBoundingClientRect();
+  if (!dedans(B, P) || !dedans(B, ecran)) coupes.push('bouton hors du panneau ou de l’écran');
+  if (b.scrollHeight > b.clientHeight + 1 || b.scrollWidth > b.clientWidth + 1) coupes.push('texte du bouton coupé ' + [b.scrollWidth, b.clientWidth, b.scrollHeight, b.clientHeight]);
+  if (document.elementFromPoint(B.left + B.width / 2, B.top + B.height / 2) !== b) coupes.push('bouton caché par autre chose');
+  if (!dedans(P, ecran)) coupes.push('panneau hors de l’écran');
+  if (p.scrollHeight > p.clientHeight + 1 || p.scrollWidth > p.clientWidth + 1) coupes.push('le panneau déborde');
+  for (const e of p.querySelectorAll('h2, h3, .reglageNom, .reglageCode, output'))
+    if (e.scrollWidth > e.clientWidth + 1 || e.getBoundingClientRect().right > L.right + 1) coupes.push('texte coupé : ' + e.textContent);
+  return { coupes, bouton: b.textContent, liste: p.querySelector('.reglagesListe').scrollHeight > 0 };
+}"""
+
+def reglages_panneau(pg, titre):
+    infos = pg.evaluate("""() => PANNEAU_REGLAGES.liste().map(c => {
+      const k = document.querySelector(`#reglages input[data-texte="${c.texte}"]`), l = k && k.closest('label');
+      return { ...c, en: TEXTES.en[c.texte], fr: TEXTES.fr[c.texte], affiche: l && l.querySelector('.reglageNom').textContent,
+        code_affiche: l && l.querySelector('.reglageCode').textContent, theme_affiche: k && k.closest('section').dataset.theme,
+        titre_theme: TEXTES.en['reglagesTheme_' + c.theme] && TEXTES.fr['reglagesTheme_' + c.theme] ? 'ok' : null };
+    })""")
+    langue = pg.evaluate('() => LANGUE')
+    sans = [c['texte'] for c in infos if not (isinstance(c['en'], str) and c['en'].strip() and isinstance(c['fr'], str) and c['fr'].strip()) or c['en'] == c['cle'] or c['fr'] == c['cle']]
+    t(f'{titre} : chaque curseur ({len(infos)}) a un nom lisible en français et en anglais (textes.js, reglage_…), pas le nom du code', len(infos) >= 30 and not sans, ', '.join(sans))
+    mal = [c['texte'] for c in infos if c['affiche'] != c[langue] or c['code_affiche'] != c['code'] or c['theme_affiche'] != c['theme'] or not c['titre_theme']]
+    t(f'{titre} : chaque curseur montre son nom en {langue}, le nom du code en petit, et il est dans son thème (titre fr et en)', not mal, ', '.join(mal))
+    themes = pg.evaluate('() => [...document.querySelectorAll("#reglages section")].map(s => [s.dataset.theme, s.querySelector("h3").textContent, s.querySelectorAll("input").length])')
+    t(f'{titre} : les curseurs sont rangés par thème, aucun thème vide', len(themes) >= 5 and all(n > 0 and h for _, h, n in themes), str(themes))
+    taille = pg.viewport_size
+    for l, h in ([(taille['width'], taille['height'])] + ([(1280, 720)] if taille['width'] == 960 else [])):
+        pg.set_viewport_size({'width': l, 'height': h}); pg.wait_for_timeout(200)
+        m = pg.evaluate(PANNEAU_MESURE)
+        t(f'{titre} : en {l}×{h}, rien n’est coupé dans le panneau, le bouton « {m["bouton"]} » est entier et visible', not m['coupes'], ' ; '.join(m['coupes'])[:600])
+    pg.set_viewport_size(taille); pg.wait_for_timeout(200)
 
 def reglages(pg, titre):
     # un curseur bouge : REGLAGES change tout de suite, et « copier » donne la ligne pour donnees.js
@@ -3149,6 +3190,7 @@ with sync_playwright() as p:
             if 'test=decouverte' in page:
                 decouverte(pg, titre)
             if 'reglages=1' in page:
+                reglages_panneau(pg, titre)
                 reglages(pg, titre)
             if 'test=audit' not in page and 'robot=1' in page and 'championnat=1' not in page and 'joueur=1' not in page and 'test=sdk' not in page and 'pneus=1' not in page and 'test=decouverte' not in page and 'test=deux' not in page:   # (avec ?championnat=1 ou &joueur=1, le robot joue dans championnat() ou qualif() ; sdk() et pneus() ont leur page)
                 course_robot(pg, titre, page)
