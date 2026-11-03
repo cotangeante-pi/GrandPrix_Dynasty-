@@ -879,6 +879,13 @@ const REGLAGES = {
   STAND_MUR: 1.5,               // m au-delà du bord de la piste : le muret entre la piste et la voie
   STAND_LARGEUR: 7,             // m : la largeur de la voie, au-delà du muret
   STAND_RAMPE: 60,              // m : l'entrée et la sortie, où la voie est ouverte sur la piste (pas de muret)
+  // le panneau « 80 » et la ligne de la voie des stands (scene3d.js, tour 45b2) : le dessin seulement
+  PANNEAU_STANDS_RECUL: 25,      // m avant l'entrée de la voie (avant sa rampe)…
+  PANNEAU_STANDS_ECART: 1.5,     // … à tant de m au-delà du bord extérieur de la voie
+  PANNEAU_STANDS_HAUTEUR: 2.4,   // m : le centre du panneau
+  PANNEAU_STANDS_TAILLE: 1.8,    // m : son diamètre
+  PANNEAU_STANDS_LIGNE: 4,       // m après l'entrée : la ligne peinte en travers de la voie…
+  PANNEAU_STANDS_LIGNE_LARGEUR: 0.5,   // … et sa largeur
   STAND_ENTREE_MAX: 300,        // m avant la ligne, au plus, où la voie commence (dans la dernière ligne droite)…
   STAND_SORTIE_MAX: 250,        // m après la ligne, au plus, où elle rejoint la piste (dans la première ligne droite)
   STAND_MARGE_DROITE: 60,       // m : la voie s'arrête au moins à ça de la fin d'une ligne droite

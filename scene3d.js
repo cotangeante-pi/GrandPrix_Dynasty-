@@ -98,6 +98,41 @@ const SCENE3D = (function () {
     return true;
   }
 
+  // le panneau « 80 » (tour 45b2) juste avant la rampe d'entrée de la voie des stands, côté voie, tourné vers les voitures qui
+  // arrivent, et la ligne peinte en travers de la voie à son entrée : un seul maillage, une seule texture faite par le code (le
+  // panneau rond, le gris du poteau et le blanc de la ligne côte à côte), donc un seul appel de dessin
+  function panneauStands(c) {
+    const st = c.stands, cv = document.createElement('canvas');
+    cv.width = 128; cv.height = 64;
+    const x = cv.getContext('2d');
+    x.fillStyle = '#ffffff'; x.beginPath(); x.arc(32, 32, 30, 0, 2 * Math.PI); x.fill();
+    x.strokeStyle = '#d8262e'; x.lineWidth = 7; x.beginPath(); x.arc(32, 32, 26, 0, 2 * Math.PI); x.stroke();
+    x.fillStyle = '#111111'; x.font = 'bold 26px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(String(Math.round(R.STAND_VITESSE_MAX * 3.6)), 32, 34);
+    x.fillStyle = '#8a8f96'; x.fillRect(66, 0, 28, 64);
+    x.fillStyle = '#f4f4f4'; x.fillRect(98, 0, 28, 64);
+    const tex = new THREE.CanvasTexture(cv);
+    const pos = [], uv = [];
+    const point = (s, d, y) => { const L = c.longueur, i = Math.round((((s % L) + L) % L) / c.pas) % c.nb; return [c.x[i] + c.nx[i] * d, y + haut(i), c.z[i] + c.nz[i] * d, c.tx[i], c.tz[i], c.nx[i], c.nz[i]]; };
+    const quad = (a, b, cc, dd, u0, u1) => { pos.push(...a, ...b, ...cc, ...a, ...cc, ...dd); uv.push(u0, 0, u1, 0, u1, 1, u0, 0, u1, 1, u0, 1); };
+    // le panneau : face aux voitures (perpendiculaire à la piste), sur son poteau
+    const [px, py, pz, tx, tz, nx, nz] = point(st.entree - R.PANNEAU_STANDS_RECUL, st.cote * (st.dExt + R.PANNEAU_STANDS_ECART), 0);
+    const h = R.PANNEAU_STANDS_HAUTEUR, r = R.PANNEAU_STANDS_TAILLE / 2, e = 0.08;
+    quad([px - nx * r, py + h - r, pz - nz * r], [px + nx * r, py + h - r, pz + nz * r], [px + nx * r, py + h + r, pz + nz * r], [px - nx * r, py + h + r, pz - nz * r], 0, 0.5);
+    quad([px - nx * e, py, pz - nz * e], [px + nx * e, py, pz + nz * e], [px + nx * e, py + h - r, pz + nz * e], [px - nx * e, py + h - r, pz - nz * e], 0.53, 0.72);
+    // la ligne au sol, en travers de la voie, à son entrée (un peu au-dessus de la bande de la voie)
+    const s0 = st.entree + R.PANNEAU_STANDS_LIGNE, w = R.PANNEAU_STANDS_LIGNE_LARGEUR / 2, d0 = st.cote * st.dMur, d1 = st.cote * st.dExt;
+    const A = point(s0 - w, d0, 0.035), B = point(s0 - w, d1, 0.035), C = point(s0 + w, d1, 0.035), D = point(s0 + w, d0, 0.035);
+    quad(A.slice(0, 3), B.slice(0, 3), C.slice(0, 3), D.slice(0, 3), 0.78, 0.97);
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+    geo.computeVertexNormals();
+    const m = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ map: tex, alphaTest: 0.5, side: THREE.DoubleSide }));
+    m.name = 'stands-panneau';
+    m.userData.panneau = { s: st.entree - R.PANNEAU_STANDS_RECUL, x: px, z: pz };
+    return m;
+  }
+
   // --- la géométrie du circuit, tirée des échantillons
 
   // un ruban qui suit la piste entre les écarts d1 et d2 (d > 0 = à droite), à la hauteur y ; garder(i) choisit les morceaux
@@ -193,6 +228,7 @@ const SCENE3D = (function () {
       // (de gauche à droite : sinon, côté gauche, les triangles regardent vers le bas et la bande n'est pas dessinée)
       groupe.add(maillage(ruban(c, Math.min(st.cote * st.dMur, st.cote * st.dExt), Math.max(st.cote * st.dMur, st.cote * st.dExt), 0.02, dansVoie), R.COULEUR_STANDS));
       groupe.add(maillage(mur(c, st.cote * st.dMur, R.HAUTEUR_MUR_STANDS, muret), R.COULEUR_MUR_STANDS, matBarriere));
+      groupe.add(panneauStands(c));
     }
 
     // la ligne d'arrivée en damier, et un trait de couleur au début des secteurs 2 et 3
