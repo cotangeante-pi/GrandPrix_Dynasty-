@@ -1604,6 +1604,12 @@ def lieu_ecran(pg, titre, page):
       n['tribune'] > 10 and n['public'] > 1000 and 'decor-ciel' in m['maillages'] and m['avec'][0] < R['total'] and 0 < m['avec'][0] - m['sans'][0] <= R['decor'] and m['avec'][1] > m['sans'][1], str(m))
     if m['nuit']:
         t(f'{titre} : la nuit (ou le crépuscule) : des mâts d’éclairage le long de la piste', n['projecteur'] >= 20, str(n))
+    if re.fullmatch(r'tests/lieu\.html\?circuit=[a-z]+', page):
+        # le panneau « 80 » et la ligne de la voie des stands (tour 45b2) : sur chaque tracé qui a une voie des stands, un seul maillage
+        ps = pg.evaluate('''() => { const c = DEFS_LIEU().circuit; let n = 0, m = null; SCENE3D.camera.parent; let sc = SCENE3D.decor.groupe; while (sc.parent) sc = sc.parent;
+          sc.traverse(o => { if (o.name === 'stands-panneau') { n++; m = o; } }); return { stands: !!c.stands, n, tex: !!(m && m.material.map), triangles: m ? m.geometry.attributes.position.count / 3 : 0 }; }''')
+        t(f'{titre} : le panneau « 80 » avant l’entrée de la voie des stands et la ligne peinte à son entrée, en un seul maillage, sur chaque tracé qui a des stands',
+          (not ps['stands'] and ps['n'] == 0) or (ps['stands'] and ps['n'] == 1 and ps['tex'] and ps['triangles'] == 6), str(ps))
     if re.fullmatch(r'tests/lieu\.html\?circuit=[a-z]+', page) and nom in PLAFONDS_IMAGE:
         c = pg.evaluate('() => window.__couts()')
         pa, pt = PLAFONDS_IMAGE[nom]
