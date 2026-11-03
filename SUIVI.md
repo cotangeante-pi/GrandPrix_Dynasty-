@@ -193,7 +193,6 @@ Note du Chef session-5b (2026-10-23) : les lignes 18 à 19b ne s'additionnaient 
 ## Bugs connus
 
 - **Non-déterminisme Mac / Linux (trouvé le 2026-10-23 par le Chef session-5b, correction au tour 22)** : sur le même commit (determinisme 7ad2d50), toutes les empreintes sont identiques au bit près entre le Mac et GitHub (Math sur 2000 entrées, physique, circuits, les 300 passes du lissage), sauf l'aplatissement : `Math.pow(|u|, 7)` et `Math.pow(|u|, 6)` (ia.js:117-118) donnent Σpow7 102066.19181642555 sur Mac et 102066.19181642302 sur Linux. La trajectoire diverge (Σécart test −5161 contre −4935), d'où les 6 tests rouges. Remède : des multiplications à la place de Math.pow.
-- Git n'a plus d'identité (le nom réseau du Mac a changé) : les commits utilisent `-c user.name=le propriétaire -c user.email=266356357+cotangeante-pi@users.noreply.github.com`. À régler par le propriétaire s'il veut (`git config --global`).
 - « console vide » échoue parfois sur « GPU stall due to ReadPixels » quand le Mac est chargé : causé par les captures de Playwright (le jeu ne lit jamais les pixels). Tour 17 : ignoré dans le test.
 - À surveiller en 4b : départ impossible (épingle à 60 m/s, nez vers l'extérieur) = 1288 pas (≈ 10 s) contre la barrière avant de repartir. Une IA collée au mur 10 s se verra.
 - Sous swiftshader, le premier dessin 3D bloque la page 0,3–2 s même sans IA (critère 3 du tour 8 adapté : seule la plus longue tranche du calcul de l'IA est < 300 ms, 67 ms mesurés).
