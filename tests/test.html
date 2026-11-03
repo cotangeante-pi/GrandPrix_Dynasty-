@@ -1182,6 +1182,15 @@ t('voiture vivante et aides au pilotage : en légende, au technique, en pneus dr
   L.push('  (voiture vivante et aides, technique, légende, pneus drift : brutal sans aide dérive '+b.glisse.toFixed(3)+' rad, '+b.glissades+' glissades, '+m(b).toFixed(2)+' s ; aidé '+ba.glisse.toFixed(3)+' rad, '+ba.glissades+' glissades, '+m(ba).toFixed(2)+' s ; neutre '+m(n).toFixed(2)+' s, aidé '+m(na).toFixed(2)+' s)');
   v(ba.fini&&ba.teteAQueue===0&&ba.glisse<=b.glisse+0.01&&ba.glissades<=b.glissades,'brutal aidé : dérive '+ba.glisse.toFixed(3)+' / '+b.glisse.toFixed(3)+', glissades '+ba.glissades+' / '+b.glissades);
   v(m(na)>=m(n)-0.05,'neutre aidé '+m(na).toFixed(2)+' / '+m(n).toFixed(2));});
+// (tour 46d2, Codeur 4) le repère peint de la zone d'arrêt : zoneArretStands (circuits.js) donne l'endroit exact où pasArretStand arrête la voiture
+t('repère de la zone d’arrêt : sur chaque tracé qui a une voie des stands, la zone existe (null sans stands), et une voiture arrêtée au centre du repère fait son arrêt (pasArretStand)', ()=>{
+  const av=REGLAGES.PNEUS_ACTIFS;REGLAGES.PNEUS_ACTIFS=true;
+  try{let n=0;for(const nom of Object.keys(CIRCUITS)){const circ=construireCircuit(CIRCUITS[nom]),za=zoneArretStands(circ);
+      if(!circ.stands){v(za===null,nom+' sans stands');continue;}n++;
+      const vo=creerVoiture(circ);placerSurPiste(vo,circ,za.s,(za.d1+za.d2)/2);vo.pneus=creerPneus();vo.dansStands=true;vo.u=0;
+      v(zoneStands(circ,vo.piste.s,vo.piste.d).arret,nom+' : le centre du repère est dans la zone d’arrêt');
+      const c=creerCourse(circ,12);pasArretStand(c,vo,DT);v(!!c.arretEnCours,nom+' : l’arrêt se déclenche');}
+    v(n>=12,'tracés avec une voie des stands : '+n);}finally{REGLAGES.PNEUS_ACTIFS=av;}});
 t('classement : les arrivés d’abord (dans l’ordre d’arrivée), puis les plus avancés ; les tours de retard comptés', ()=>{
   const e=creerCourseIA(TQ,3,5,1,CARTES_T.technique),P=e.pilotes;
   P[2].place=1;P[2].arrivee=10;P[0].course.progression=500;P[1].course.progression=550+TQ.longueur;

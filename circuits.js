@@ -150,6 +150,16 @@ function standsDepuisMorceaux(circuit, donnees) {
   return { entree, sortie, cote, dMur, dExt, arret, longueur, traverse };
 }
 
+// (tour 46d2, Codeur 4) la zone d'arrêt du joueur, celle où pasArretStand l'arrête (zoneStands : arret), pour le repère peint au sol :
+// null sans voie des stands ; sinon { s : le centre (circuit.stands.arret), demi : STAND_ARRET_DEMI m de part et d'autre, d1 < d2 : de la
+// voie (le muret) à son bord extérieur, du côté des stands }
+function zoneArretStands(circuit) {
+  const st = circuit && circuit.stands;
+  if (!st) return null;
+  const a = st.cote * st.dMur, b = st.cote * st.dExt;
+  return { s: st.arret, demi: REGLAGES.STAND_ARRET_DEMI, d1: Math.min(a, b), d2: Math.max(a, b) };
+}
+
 // où est (s, d) par rapport à la voie des stands : null hors de sa longueur ; sinon { cote, dMur, dExt, rampe (l'entrée ou
 // la sortie, ouvertes sur la piste), voie (du côté de la voie, au-delà du muret), dansVoie (sur la voie, pas dans l'herbe
 // derrière), arret (dans la zone d'arrêt) }
