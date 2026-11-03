@@ -477,6 +477,17 @@ t('mesure des images par seconde : moyenne, pire image et 1 % le plus lent ; le 
   const txt=M_.texteResultat(r),trous=l=>JSON.stringify((TEXTES[l].mesure_resultat.match(/\{\w+\}/g)||[]).sort());v(!/\{/.test(txt)&&/monoco/.test(txt)&&/42/.test(txt),txt);v(trous('fr')===trous('en'),'les mêmes trous en + fr');
   v(['mesure_bouton','mesure_compteur','mesure_attente','mesure_encours','mesure_fini','mesure_copier','mesure_copie','mesure_resultat'].every(k=>TEXTES.fr[k]&&TEXTES.en[k]),'textes');
   v(M_.adresse('spaa').includes('ia=20')&&M_.adresse('spaa').includes('mesure=1')&&M_.adresse('spaa').includes('circuit=spaa'),'l’adresse de la mesure');});
+// --- le résumé (tour 45b) : l'arrêt au stand du joueur passe avant celui d'une IA, même quand le résumé est court
+t('résumé vidéo : l’arrêt au stand du joueur est un moment plus important que celui d’une IA, et un résumé court le garde ; bandeau « Arrêt au stand : nom, durée » en + fr', ()=>{
+  const RE=REGLAGES_ENREGISTREUR,enr=creerEnregistreur(2,{joueur:1}),a={x:0,z:0,cap:0,u:20},b={x:0,z:9,cap:0,u:20};
+  for(let k=0;k<120*60;k++){const t_=k/120;a.x+=20/120;b.x+=20/120;enr.enregistrer(t_,[a,b],null);}
+  enr.arret(20,0,3.2);enr.arret(40,1,3.4);
+  const m=enr.momentsForts().filter(x=>x.type==='arret'),ia=m.find(x=>x.qui===0),moi=m.find(x=>x.qui===1);
+  v(ia&&moi&&moi.importance===RE.IMPORTANCE_ARRET+RE.IMPORTANCE_JOUEUR&&ia.importance===RE.IMPORTANCE_ARRET,'importances '+JSON.stringify(m));
+  const court=RESUME.creer(enr,(moi.fin-moi.debut)+(10+RE.ARRIVEE_AVANT+RE.ARRIVEE_APRES)),gardes=court.plages.flatMap(p_=>p_.moments).filter(x=>x.type==='arret');
+  v(gardes.length===1&&gardes[0].qui===1,'le résumé court garde l’arrêt du joueur : '+JSON.stringify(gardes.map(x=>x.qui)));
+  const bd=RESUME.bandeau(moi);v(bd.cle==='resume_arret'&&bd.valeurs.qui===1&&Math.abs(bd.valeurs.duree-3.4)<1e-9,'bandeau '+JSON.stringify(bd));
+  v(['fr','en'].every(l=>TEXTES[l].resume_arret.includes('{qui}')&&TEXTES[l].resume_arret.includes('{duree}')),'textes');});
 // --- la manette (manette.js, tour 38) : la disposition standard, les zones mortes, le clavier et la manette ensemble,
 // les appuis comptés une fois, les menus au stick ou à la croix ; sans manette, les cibles du clavier au bit près
 const fauxPad=(o={})=>{const b=[];for(let i=0;i<17;i++) b.push({value:0,pressed:false});for(const [k,x] of Object.entries(o.boutons||{})) b[MANETTE.BOUTONS[k]]={value:x,pressed:x>0.5};return {connected:true,axes:o.axes||[0,0,0,0],buttons:b};};
@@ -2851,6 +2862,31 @@ t('commentateur : la course est la même au bit près avec ou sans lui ; des fai
   v(toutes.every(f=>!/à Circuit|at Test/.test(f)),'jamais « à Circuit » ni « at Test » : '+toutes.find(f=>/à Circuit|at Test/.test(f)));
   v(types.every(ty=>['fr','en'].every(l=>TEXTES[l]['com_'+ty].every(f=>!/'/.test(f)))),'l’apostrophe typographique (’), jamais \'');
   v(TEXTES.fr.com_depassement.length>=5&&TEXTES.fr.com_coteACote.length>=5,'de la variété sur les faits fréquents');});
+// (tour 45c, le propriétaire 2026-11-02) il parle presque tout le temps : entre deux faits, il comble avec ce que la course montre (l'écart en tête,
+// la bagarre la plus proche, les tours qui restent, la météo) ; une course de 8 IA sur 2 tours du technique : du départ à l'arrivée du leader,
+// jamais plus de COMMENTAIRE_INTERVALLE + 0,1 s (≤ 4 s) sans phrase, jamais deux fois la même phrase de suite, chaque phrase remplie
+t('commentateur : presque jamais de silence (jamais plus de 4 s sans phrase, du départ à l’arrivée), il comble avec la course, jamais deux fois la même phrase de suite', ()=>{
+  const R_=REGLAGES,e=creerCourseIA(TQ,8,2,7,CARTES_T.technique);for(const p_ of e.pilotes) p_.course.compte=0;const c=COMMENTAIRE.creer(7),dits=[];let fin=null;
+  for(let k=0;k<120*400&&fin===null;k++){pasCourseIA(e,DT);if(k%6===0){COMMENTAIRE.observer(c,e,{joueur:-1,circuit:'X'});const it=COMMENTAIRE.afficher(c,e.temps,false);if(it)dits.push([e.temps,it]);
+    if(e.pilotes.some(p_=>p_.arrivee!==null))fin=e.temps;}}
+  v(fin!==null&&dits.length>10,'la course finie, des phrases : '+dits.length);
+  const ts=dits.map(x=>x[0]).filter(t_=>t_<=fin),trous=ts.slice(1).map((t_,i)=>t_-ts[i]),pire=Math.max(...trous);
+  v(R_.COMMENTAIRE_INTERVALLE<=4&&pire<=R_.COMMENTAIRE_INTERVALLE+0.1,'le plus long silence : '+pire.toFixed(2)+' s');
+  const combles=dits.filter(x=>x[1].comble);v(combles.length>=3&&new Set(combles.map(x=>x[1].type)).size>=3,'il comble, avec plusieurs sortes de phrases : '+combles.map(x=>x[1].type).join());
+  let deux=false;for(let i=1;i<dits.length;i++){const a=dits[i-1][1],b=dits[i][1];if(a.type===b.type&&a.variante===b.variante)deux=true;}v(!deux,'jamais deux fois la même phrase de suite');
+  v(dits.every(x=>{const f=COMMENTAIRE.phrase(x[1],k=>'n°'+(k+1),y=>String(y));return f.length>5&&!/\{/.test(f);}),'chaque phrase remplie');
+  L.push('  (le commentateur sur 2 tours : '+dits.length+' phrases dont '+combles.length+' pour combler, le plus long silence '+pire.toFixed(2)+' s)');});
+// (tour 45c2) le championnat dans ce qui comble, en carrière seulement : la place et les points du joueur, le leader, ce que donnerait l'arrivée ;
+// sans les données du championnat (course seule, à deux), jamais ; la course est la même au bit près (le hasard du commentaire seulement)
+t('commentateur : le championnat dans ce qui comble (la place du joueur, le leader, l’arrivée « si ça finit comme ça ») en carrière ; jamais sans championnat', ()=>{
+  const joue=(champ)=>{const e=creerCourseIA(TQ,8,2,7,CARTES_T.technique);for(const p_ of e.pilotes) p_.course.compte=0;const c=COMMENTAIRE.creer(7),dits=[];
+    for(let k=0;k<120*90;k++){pasCourseIA(e,DT);if(k%6===0){COMMENTAIRE.observer(c,e,{joueur:2,championnat:champ,circuit:'X'});const it=COMMENTAIRE.afficher(c,e.temps,false);if(it)dits.push(it);}}return{e,dits};};
+  const pts=[40,30,25,20,10,8,4,0],A=joue({joueur:2,points:pts,pointsPour:CHAMPIONNAT.pointsPour}),B=joue(null);
+  const ch=A.dits.filter(x=>/^combleChamp/.test(x.type));v(ch.length>=1&&!B.dits.some(x=>/^combleChamp/.test(x.type)),'en carrière : '+ch.map(x=>x.type).join()+' ; sans championnat : rien');
+  const f=ch.map(x=>COMMENTAIRE.phrase(x,k=>'n°'+(k+1),y=>String(y)));v(f.every(x=>!/\{/.test(x)),'remplies : '+f.join(' | '));
+  const c1=ch.find(x=>x.type==='combleChamp');v(!c1||(c1.params.qui===0&&c1.params.place===3&&c1.params.n===15),'P3 à 15 points du leader : '+JSON.stringify(c1&&c1.params));
+  v(A.e.pilotes.every((p,k)=>p.v.x===B.e.pilotes[k].v.x&&p.v.u===B.e.pilotes[k].v.u),'au bit près');
+  L.push('  (le championnat au commentaire : '+f.slice(0,2).join(' | ')+')');});
 t('commentateur : la priorité (un dépassement pour la tête avant un meilleur tour, un fait du joueur devant), l’intervalle, l’attente au virage, les faits trop vieux oubliés, jamais deux fois la même phrase de suite, rien quand il est coupé, seulement le joueur en mode « joueur »', ()=>{
   const R=REGLAGES,c=COMMENTAIRE.creer(1);
   COMMENTAIRE.pousser(c,0,'meilleurTour',{qui:0},false);COMMENTAIRE.pousser(c,0,'depassementTete',{qui:1,sur:0},false);

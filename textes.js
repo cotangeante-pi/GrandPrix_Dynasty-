@@ -1088,3 +1088,49 @@ Object.assign(TEXTES.fr, {
 // (tour 37l, Codeur 3) l'icône du pneu monté, à côté de la jauge d'usure (une lettre, le nom en bulle)
 Object.assign(TEXTES.en, { pneuIcone_slick: 'G', pneuIcone_drift: 'D', pneuIcone_inter: 'I', pneuIcone_pluie: 'W' });
 Object.assign(TEXTES.fr, { pneuIcone_slick: 'A', pneuIcone_drift: 'D', pneuIcone_inter: 'I', pneuIcone_pluie: 'P' });
+
+// (tour 45c, Codeur 3) le commentateur comble les silences (le propriétaire, 2026-11-02 : « presque en tout temps », à voix haute) : ce que
+// la course montre déjà ; et le réglage de la voix au menu pause
+Object.assign(TEXTES.en, {
+  com_combleTete: ['{qui} leads {sur} by {ecart} seconds.', '{ecart} seconds between {qui} and {sur} up front.', '{qui} still in front, {sur} {ecart} s back.'],
+  com_combleBagarre: ['{qui} is {ecart} s behind {sur}, for P{place}.', 'Close fight for P{place}: {qui} on {sur}.', '{qui} hunting {sur}, just {ecart} s apart.'],
+  com_combleTours: ['{n} laps to go.', 'Still {n} laps to run.', '{n} laps left for {qui} out front.'],
+  com_combleJoueur: ['P{place} for {qui}, {ecart} s behind {sur}.', '{qui} chasing {sur}: {ecart} s.', '{qui} in P{place}, {sur} just ahead.'],
+  com_combleMeteo: ['The rain is still falling.', 'A wet track: careful under braking.', 'Spray everywhere behind the cars.'],
+  com_combleSec: ['A dry track, perfect conditions.', 'The tyres are working on this dry track.', 'Clear skies over the circuit.'],
+  voix_oui: 'Commentary voice: on', voix_non: 'Commentary voice: off',
+});
+Object.assign(TEXTES.fr, {
+  com_combleTete: ['{qui} mène devant {sur}, {ecart} secondes.', '{ecart} secondes entre {qui} et {sur} en tête.', '{qui} toujours devant, {sur} à {ecart} s.'],
+  com_combleBagarre: ['{qui} à {ecart} s de {sur}, pour la P{place}.', 'Bagarre pour la P{place} : {qui} sur {sur}.', '{qui} chasse {sur}, à {ecart} s.'],
+  com_combleTours: ['Encore {n} tours.', 'Plus que {n} tours à faire.', '{n} tours à tenir pour {qui} en tête.'],
+  com_combleJoueur: ['P{place} pour {qui}, à {ecart} s de {sur}.', '{qui} chasse {sur} : {ecart} s.', '{qui} en P{place}, {sur} juste devant.'],
+  com_combleMeteo: ['La pluie tombe toujours.', 'Piste mouillée : prudence au freinage.', 'Des gerbes d’eau derrière les voitures.'],
+  com_combleSec: ['Piste sèche, des conditions parfaites.', 'Les pneus travaillent bien sur le sec.', 'Grand ciel bleu sur le circuit.'],
+  voix_oui: 'Voix du commentateur : oui', voix_non: 'Voix du commentateur : non',
+});
+// --- tour 44d, Codeur 4 : les touches de chaque joueur à deux (touches.js) ---
+Object.assign(TEXTES.en, {
+  tch_gaz: 'Accelerate', tch_frein: 'Brake', tch_tourner: 'Steer', tch_remise: 'Back on track', tch_pause: 'Pause (both)',
+  tch_entree: 'Enter', tch_majDroite: 'Right Shift', tch_echap: 'Esc', tch_espace: 'Space', tch_ou: ' or ',
+  tch_manette: 'Gamepad: right trigger accelerates, left trigger brakes, stick steers, A back on track',
+  tch_titrePause: 'Keys',
+});
+Object.assign(TEXTES.fr, {
+  tch_gaz: 'Accélérer', tch_frein: 'Freiner', tch_tourner: 'Tourner', tch_remise: 'Retour en piste', tch_pause: 'Pause (les deux)',
+  tch_entree: 'Entrée', tch_majDroite: 'Maj droite', tch_echap: 'Échap', tch_espace: 'Espace', tch_ou: ' ou ',
+  tch_manette: 'Manette : gâchette droite pour accélérer, gauche pour freiner, stick pour tourner, A pour revenir en piste',
+  tch_titrePause: 'Touches',
+});
+
+// (tour 45c2, Codeur 3) le commentateur parle du championnat, en carrière : la place du joueur, le leader, ce que donnerait l'arrivée
+Object.assign(TEXTES.en, {
+  com_combleChamp: ['Title race: you’re P{place}, {n} points off {qui}.', 'P{place} in the title race, {n} points behind {qui}.', '{qui} leads the title, {n} points ahead of you.'],
+  com_combleChampTete: ['You lead the championship by {n} points over {qui}.', 'Top of the table: {n} points clear of {qui}.', '{qui} is {n} points behind you in the title race.'],
+  com_combleChampProjection: ['If it ends like this, you take the title lead!', 'As it stands, you’d go top of the championship!', 'Finish like this and {qui} loses the lead!'],
+});
+Object.assign(TEXTES.fr, {
+  com_combleChamp: ['Au championnat, tu es P{place}, à {n} points de {qui}.', 'P{place} au championnat, à {n} points de {qui}.', '{qui} mène le championnat, {n} points devant toi.'],
+  com_combleChampTete: ['Tu mènes le championnat, {n} points devant {qui}.', 'En tête du championnat, {n} points devant {qui}.', '{qui} est à {n} points de toi au championnat.'],
+  com_combleChampProjection: ['Si ça finit comme ça, tu prends la tête du championnat !', 'En l’état, tu passerais en tête du championnat !', 'Arrivée comme ça, et {qui} perd la tête !'],
+});
