@@ -699,7 +699,7 @@ const REGLAGES = {
   IA_SUIVI_CARTE: 0,            // duel-court : > 0 = une voiture vue devant qui roule au moins à cette part de la vitesse de la carte en son point est suivie comme si elle y allait à la vitesse de la carte (ia.js) ; 0 = la course d'avant
   IA_SUIVI_CARTE_LOIN: 20,      // m : … seulement plus loin que ça devant lui (plus près, sa vitesse vue)
   // les techniques en bataille et sous la pluie (tour 45, ia.js) ; 0 = la course d'avant
-  IA_BATAILLE_DEFENSE: 0,        // m : une voiture plus rapide dans ses rétroviseurs avant un freinage : il ferme la corde de ça (× 0,5 + son agressivité)
+  IA_BATAILLE_DEFENSE: 1.5,      // m : une voiture plus rapide dans ses rétroviseurs avant un freinage : il ferme la corde de ça (× 0,5 + son agressivité)
   IA_BATAILLE_PLONGER: 0,       // 1 : l'attaque se joue à l'intérieur ou pas du tout
   IA_PLUIE_LIGNE: 1,            // 1 : sur le mouillé, il connaît l'adhérence de la trajectoire (plus sèche) et du reste de la piste
   IA_ATTAQUE_CONTROLE: 40,      // m avant le sommet du virage : l'entrée, où elle doit être à hauteur…
