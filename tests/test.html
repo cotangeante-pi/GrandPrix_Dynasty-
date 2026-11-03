@@ -2844,6 +2844,17 @@ t('commentateur : presque jamais de silence (jamais plus de 4 s sans phrase, du 
   let deux=false;for(let i=1;i<dits.length;i++){const a=dits[i-1][1],b=dits[i][1];if(a.type===b.type&&a.variante===b.variante)deux=true;}v(!deux,'jamais deux fois la même phrase de suite');
   v(dits.every(x=>{const f=COMMENTAIRE.phrase(x[1],k=>'n°'+(k+1),y=>String(y));return f.length>5&&!/\{/.test(f);}),'chaque phrase remplie');
   L.push('  (le commentateur sur 2 tours : '+dits.length+' phrases dont '+combles.length+' pour combler, le plus long silence '+pire.toFixed(2)+' s)');});
+// (tour 45c2) le championnat dans ce qui comble, en carrière seulement : la place et les points du joueur, le leader, ce que donnerait l'arrivée ;
+// sans les données du championnat (course seule, à deux), jamais ; la course est la même au bit près (le hasard du commentaire seulement)
+t('commentateur : le championnat dans ce qui comble (la place du joueur, le leader, l’arrivée « si ça finit comme ça ») en carrière ; jamais sans championnat', ()=>{
+  const joue=(champ)=>{const e=creerCourseIA(TQ,8,2,7,CARTES_T.technique);for(const p_ of e.pilotes) p_.course.compte=0;const c=COMMENTAIRE.creer(7),dits=[];
+    for(let k=0;k<120*90;k++){pasCourseIA(e,DT);if(k%6===0){COMMENTAIRE.observer(c,e,{joueur:2,championnat:champ,circuit:'X'});const it=COMMENTAIRE.afficher(c,e.temps,false);if(it)dits.push(it);}}return{e,dits};};
+  const pts=[40,30,25,20,10,8,4,0],A=joue({joueur:2,points:pts,pointsPour:CHAMPIONNAT.pointsPour}),B=joue(null);
+  const ch=A.dits.filter(x=>/^combleChamp/.test(x.type));v(ch.length>=1&&!B.dits.some(x=>/^combleChamp/.test(x.type)),'en carrière : '+ch.map(x=>x.type).join()+' ; sans championnat : rien');
+  const f=ch.map(x=>COMMENTAIRE.phrase(x,k=>'n°'+(k+1),y=>String(y)));v(f.every(x=>!/\{/.test(x)),'remplies : '+f.join(' | '));
+  const c1=ch.find(x=>x.type==='combleChamp');v(!c1||(c1.params.qui===0&&c1.params.place===3&&c1.params.n===15),'P3 à 15 points du leader : '+JSON.stringify(c1&&c1.params));
+  v(A.e.pilotes.every((p,k)=>p.v.x===B.e.pilotes[k].v.x&&p.v.u===B.e.pilotes[k].v.u),'au bit près');
+  L.push('  (le championnat au commentaire : '+f.slice(0,2).join(' | ')+')');});
 t('commentateur : la priorité (un dépassement pour la tête avant un meilleur tour, un fait du joueur devant), l’intervalle, l’attente au virage, les faits trop vieux oubliés, jamais deux fois la même phrase de suite, rien quand il est coupé, seulement le joueur en mode « joueur »', ()=>{
   const R=REGLAGES,c=COMMENTAIRE.creer(1);
   COMMENTAIRE.pousser(c,0,'meilleurTour',{qui:0},false);COMMENTAIRE.pousser(c,0,'depassementTete',{qui:1,sur:0},false);

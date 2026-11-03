@@ -124,7 +124,8 @@ const COMMENTAIRE = (function () {
     }
     // (tour 45c) ce qu'il pourra dire entre deux faits : le haut du classement et ses écarts, les tours qui restent, le joueur, la pluie
     c.comble = { ordre: n.ordre, place: n.place, joueur: j, nbTours: e.nbTours || 0, tourTete: n.pilotes[tete].tour, pluie: (o.pluie || 0) > R.MESSAGES_PLUIE_SEUIL,
-      actif: e.go !== null && t - e.go >= R.COMMENTAIRE_COMBLE_APRES_DEPART && n.pilotes[tete].arrivee === null };
+      actif: e.go !== null && t - e.go >= R.COMMENTAIRE_COMBLE_APRES_DEPART && n.pilotes[tete].arrivee === null,
+      championnat: o.championnat && o.championnat.points ? o.championnat : null };   // (tour 45c2 : en carrière seulement, { joueur, points, pointsPour })
     // ce qu'on garde pour la prochaine fois
     for (const k of ['ordre', 'place', 'pilotes', 'depassements']) v[k] = n[k];
     return c;
@@ -155,7 +156,7 @@ const COMMENTAIRE = (function () {
   function comble(c, t) {
     const s = c.comble;
     if (!s || !s.actif || !s.ordre.length) return null;
-    const types = R.COMMENTAIRE_MODE === 'joueur' ? ['combleJoueur'] : R.COMMENTAIRE_COMBLE, tete = s.ordre[0].k;
+    const types = R.COMMENTAIRE_MODE === 'joueur' ? ['combleJoueur', 'combleChampionnat'] : R.COMMENTAIRE_COMBLE, tete = s.ordre[0].k;
     const de = (type) => {
       if (type === 'combleTete') return s.ordre[1] && s.ordre[1].ecart !== null && s.ordre[1].ecart !== undefined ? { qui: tete, sur: s.ordre[1].k, ecart: s.ordre[1].ecart } : null;
       if (type === 'combleBagarre') {
@@ -169,13 +170,24 @@ const COMMENTAIRE = (function () {
         return q && q.place > 1 && q.ecart !== null && q.ecart !== undefined ? { qui: s.joueur, sur: s.ordre[q.place - 2].k, ecart: q.ecart, place: q.place } : null;
       }
       if (type === 'combleMeteo') return { qui: tete, meteo: s.pluie };
+      if (type === 'combleChampionnat') {
+        // (tour 45c2) le championnat : la place et les points du joueur, le leader ; et si la course finissait comme ça
+        const C = s.championnat, jj = C ? C.joueur : -1;
+        if (!C || jj < 0 || !C.points[jj] && C.points[jj] !== 0) return null;
+        const rang = pts => pts.map((x, k) => k).sort((a, b) => pts[b] - pts[a] || a - b);
+        const avant = rang(C.points), lead = avant[0], placeJ = avant.indexOf(jj) + 1;
+        const fin = C.points.map((x, k) => x + (C.pointsPour && s.place.get(k) ? C.pointsPour(s.place.get(k).place) : 0)), apres = rang(fin);
+        if (lead !== jj && apres[0] === jj) return { qui: lead, sousType: 'combleChampProjection' };
+        if (lead === jj) { const deux = avant[1]; return deux === undefined ? null : { qui: deux, n: C.points[jj] - C.points[deux], sousType: 'combleChampTete' }; }
+        return { qui: lead, place: placeJ, n: C.points[lead] - C.points[jj], sousType: 'combleChamp' };
+      }
       return null;
     };
     for (let k = 0; k < types.length; k++) {
       const i = (c.combleI + k) % types.length, p = de(types[i]);
       if (!p) continue;
       c.combleI = i + 1;
-      const type = types[i] === 'combleMeteo' && !p.meteo ? 'combleSec' : types[i];
+      const type = p.sousType || (types[i] === 'combleMeteo' && !p.meteo ? 'combleSec' : types[i]);
       return { type, t, params: p, joueur: p.qui === s.joueur, prio: 0, comble: true };
     }
     return null;

@@ -1771,7 +1771,9 @@ function majCommentaire(e, m) {
   if (!serre) JEU.commentaire.virage = null; else if (JEU.commentaire.virage === null) JEU.commentaire.virage = e.temps;
   const attendre = serre && e.temps - JEU.commentaire.virage < REGLAGES.COMMENTAIRE_VIRAGE_ATTENTE;
   const etatMeteo = typeof METEO3D !== 'undefined' ? METEO3D.etat(e) : null;
-  COMMENTAIRE.observer(c, e, { joueur: j, pluie: etatMeteo ? etatMeteo.pluie : 0, circuit: texte('circuit_' + NOM_CIRCUIT) || CIRCUIT.nom, lieu: texte('lieu_' + NOM_CIRCUIT) || texte('circuit_' + NOM_CIRCUIT) || CIRCUIT.nom });
+  // (tour 45c2) le championnat, en carrière seulement (jamais en course seule ni à deux) : les points d'avant la course, par pilote
+  const champ = JEU.championnat && !JEU.deux && !JEU.tournoi && j >= 0 ? { joueur: j, points: JEU.championnat.pilotes.map(p => p.stats ? p.stats.points : 0), pointsPour: CHAMPIONNAT.pointsPour } : null;
+  COMMENTAIRE.observer(c, e, { joueur: j, championnat: champ, pluie: etatMeteo ? etatMeteo.pluie : 0, circuit: texte('circuit_' + NOM_CIRCUIT) || CIRCUIT.nom, lieu: texte('lieu_' + NOM_CIRCUIT) || texte('circuit_' + NOM_CIRCUIT) || CIRCUIT.nom });
   const it = COMMENTAIRE.afficher(c, e.temps, attendre);
   if (it) {
     const dit = COMMENTAIRE.phrase(it, etiquetteVoiture, INTERFACE.formatTemps);

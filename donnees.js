@@ -979,7 +979,7 @@ const REGLAGES = {
   COMMENTAIRE_PEREMPTION: 8,      // s : un fait plus vieux n'est plus dit
   COMMENTAIRE_FILE_MAX: 6,
   COMMENTAIRE_PRIORITES: { arrivee: 10, podium: 9, arret: 6, depart: 9, depassementTete: 9, dernierTour: 8, joueurArrivee: 8, contact: 7, depassementJoueur: 6, pluie: 6, coteACote: 5, erreur: 5, penalite: 5, depassement: 4, stands: 3, meilleurTour: 3, joueurTete: 2, joueurPlace: 2, glissade: 6,
-    combleTete: 0, combleBagarre: 0, combleTours: 0, combleJoueur: 0, combleMeteo: 0, combleSec: 0 },   // (tour 45c : ce qu'il dit entre deux faits, jamais devant un fait)
+    combleTete: 0, combleBagarre: 0, combleTours: 0, combleJoueur: 0, combleMeteo: 0, combleSec: 0, combleChamp: 0, combleChampTete: 0, combleChampProjection: 0 },   // (tour 45c : ce qu'il dit entre deux faits, jamais devant un fait)
   COMMENTAIRE_BONUS_JOUEUR: 2,    // un fait du joueur passe devant (plus de phrases quand le joueur est concerné)
   COMMENTAIRE_GLISSADE_INTERVALLE: 60,   // s : une glissade rattrapée du joueur n'est redite qu'après ça (tour 43)
   COMMENTAIRE_PLACE_MAX: 10,      // les dépassements, erreurs et côte à côte des voitures plus loin ne sont pas commentés (sauf le joueur)
@@ -991,7 +991,7 @@ const REGLAGES = {
   COMMENTAIRE_VIRAGE_COURBURE: 1 / 60,  // le joueur dans un virage plus serré (rayon < 60 m) : le commentateur attend…
   COMMENTAIRE_VIRAGE_ATTENTE: 1.5,      // … les premières secondes du virage
   // (tour 45c, le propriétaire 2026-11-02) il comble les silences : entre deux faits, une phrase sur ce que la course montre déjà, à tour de rôle
-  COMMENTAIRE_COMBLE: ['combleTete', 'combleBagarre', 'combleTours', 'combleJoueur', 'combleMeteo'],
+  COMMENTAIRE_COMBLE: ['combleTete', 'combleBagarre', 'combleTours', 'combleJoueur', 'combleChampionnat', 'combleMeteo'],   // (combleChampionnat : en carrière seulement, tour 45c2)
   COMMENTAIRE_COMBLE_APRES_DEPART: 2,   // s après le départ avant de combler
   COMMENTAIRE_IMPORTANT: 7,       // la priorité à partir de laquelle une phrase passe devant les autres à la voix (dépassement du joueur, erreur, arrivée…)
   VOIX_VOLUME: 0.7,               // la voix, sous le moteur : × le volume du commentateur (son.js)
