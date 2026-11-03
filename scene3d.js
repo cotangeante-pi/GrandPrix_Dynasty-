@@ -186,6 +186,9 @@ const SCENE3D = (function () {
     return new THREE.Mesh(g, m);
   }
 
+  let repereStand = null;
+  // la couleur du repère de la zone d'arrêt (celle de l'écurie du joueur)
+  function colorerRepereStand(couleur) { if (repereStand) repereStand.material.color.set(couleur); }
   function construireCircuit3D(c, couleurSol) {
     const groupe = new THREE.Group();
     const demi = c.largeur / 2;
@@ -229,6 +232,12 @@ const SCENE3D = (function () {
       groupe.add(maillage(ruban(c, Math.min(st.cote * st.dMur, st.cote * st.dExt), Math.max(st.cote * st.dMur, st.cote * st.dExt), 0.02, dansVoie), R.COULEUR_STANDS));
       groupe.add(maillage(mur(c, st.cote * st.dMur, R.HAUTEUR_MUR_STANDS, muret), R.COULEUR_MUR_STANDS, matBarriere));
       groupe.add(panneauStands(c));
+      // (tour 46d2, Codeur 4) le repère de la zone d'arrêt du joueur : un rectangle peint, aux couleurs de son écurie (colorerRepereStand),
+      // là où pasArretStand l'arrête (zoneArretStands) ; un seul appel de dessin, un peu au-dessus de la voie (pas de scintillement)
+      const za = zoneArretStands(c);
+      repereStand = maillage(ruban(c, za.d1 + 0.3, za.d2 - 0.3, 0.035, i => Math.abs(ecartLeLongCircuit(c, c.s[i] - za.s)) <= za.demi), R.COULEUR_JOUEUR, { polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1, transparent: true, opacity: 0.55 });
+      repereStand.name = 'repere-stand';
+      groupe.add(repereStand);
     }
 
     // la ligne d'arrivée en damier, et un trait de couleur au début des secteurs 2 et 3
@@ -380,7 +389,8 @@ const SCENE3D = (function () {
   return {
     // un objet accroché à la caméra (le volant en vue cockpit) : la caméra entre dans la scène pour que ses enfants soient dessinés
     accrocher(objet) { camera.add(objet); if (!camera.parent) scene.add(camera); },
-    init, dessiner, ajouter, partager,
+    init, dessiner, ajouter, partager, colorerRepereStand,
+    get repereStand() { return repereStand; },
     get actif() { return rendu !== null; },
     get camera() { return camera; },
     get camera2() { return camera2; },

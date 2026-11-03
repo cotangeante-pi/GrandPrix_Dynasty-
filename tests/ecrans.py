@@ -673,6 +673,9 @@ def stand_ecran(pg, titre):
     pg.evaluate('() => { JEU.course.compte = 0.01; }')
     attendre(pg, '() => JEU.course.etat === "course"', None, 20000)
     conseil = attendre(pg, '() => !document.getElementById("hudStand").classList.contains("cache") && /tour 6 conseillé/.test(document.getElementById("hudStand").textContent)', None, 10000)
+    # (tour 46d2) le repère peint de la zone d'arrêt : dans la scène, un seul maillage, aux couleurs du joueur
+    rp = pg.evaluate('() => { const m = SCENE3D.repereStand; if (!m) return null; const c = JEU.contre && JEU.couleurs.length > JEU.ia ? JEU.couleurs[JEU.ia] : REGLAGES.COULEUR_JOUEUR; return { visible: m.visible, dansScene: !!m.parent, triangles: m.geometry.attributes.position.count / 3, couleur: m.material.color.getHex() === c }; }')
+    t(f'{titre} : le repère peint de la zone d’arrêt est dans la scène (un maillage, aux couleurs du joueur)', bool(rp) and rp['visible'] and rp['dansScene'] and rp['triangles'] > 0 and rp['couleur'], str(rp))
     t(f'{titre} : au départ, le message « Arrêt au stand obligatoire : tour 6 conseillé »', conseil, pg.evaluate('() => document.getElementById("hudStand").textContent'))
     pg.evaluate('() => { BOUCLE.simuler(3); JEU.joueur.pneus.usure = 0.5; JEU.joueur.versStands = true; }')
     arrete = False

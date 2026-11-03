@@ -1140,6 +1140,15 @@ t('pneus adhérant / drift (moteur) : le drift est un pneu du sec de meteo.js (j
   v(PNEUS_CHOIX.secs().join()==='slick,drift'&&PNEUS_CHOIX.tous().join()===METEO.TYPES.join()&&PNEUS_CHOIX.estDrift('drift')&&!PNEUS_CHOIX.estDrift('slick'),'API');
   const ch={};v(PNEUS_CHOIX.choisirDepart(ch,'drift')==='drift'&&ch.pneusDepart==='drift'&&PNEUS_CHOIX.choisirDepart(ch,'rien')==='drift','départ');
   const vo=creerVoiture(null);v(PNEUS_CHOIX.de(vo)==='slick'&&PNEUS_CHOIX.choisirArret(vo,'drift')==='drift'&&vo.choixPneus===true,'arrêt');});
+// (tour 46d2, Codeur 4) le repère peint de la zone d'arrêt : zoneArretStands (circuits.js) donne l'endroit exact où pasArretStand arrête la voiture
+t('repère de la zone d’arrêt : sur chaque tracé qui a une voie des stands, la zone existe (null sans stands), et une voiture arrêtée au centre du repère fait son arrêt (pasArretStand)', ()=>{
+  const av=REGLAGES.PNEUS_ACTIFS;REGLAGES.PNEUS_ACTIFS=true;
+  try{let n=0;for(const nom of Object.keys(CIRCUITS)){const circ=construireCircuit(CIRCUITS[nom]),za=zoneArretStands(circ);
+      if(!circ.stands){v(za===null,nom+' sans stands');continue;}n++;
+      const vo=creerVoiture(circ);placerSurPiste(vo,circ,za.s,(za.d1+za.d2)/2);vo.pneus=creerPneus();vo.dansStands=true;vo.u=0;
+      v(zoneStands(circ,vo.piste.s,vo.piste.d).arret,nom+' : le centre du repère est dans la zone d’arrêt');
+      const c=creerCourse(circ,12);pasArretStand(c,vo,DT);v(!!c.arretEnCours,nom+' : l’arrêt se déclenche');}
+    v(n>=12,'tracés avec une voie des stands : '+n);}finally{REGLAGES.PNEUS_ACTIFS=av;}});
 t('classement : les arrivés d’abord (dans l’ordre d’arrivée), puis les plus avancés ; les tours de retard comptés', ()=>{
   const e=creerCourseIA(TQ,3,5,1,CARTES_T.technique),P=e.pilotes;
   P[2].place=1;P[2].arrivee=10;P[0].course.progression=500;P[1].course.progression=550+TQ.longueur;
