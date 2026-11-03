@@ -1386,3 +1386,10 @@ body.deux:not(.cote) #deuxRappel1 { left: 50%; bottom: auto; top: calc(50% - 40p
 body.deux:not(.cote) #deuxRappel2 { left: 50%; }
 #pauseTouches { font: 600 13px/1.5 var(--police); opacity: 0.9; margin: 2px 0 6px; }
 #pauseTouches.cache { display: none; }
+/* suivre un pilote après l'arrivée (tour 45d, Codeur 4) : pendant l'attente, les lignes du classement se cliquent ; la ligne suivie et le bandeau */
+#classement.cliquable li { cursor: pointer; pointer-events: auto; }
+#classement.cliquable { pointer-events: auto; }
+#classementListe li.suivie { outline: 2px solid #ffd34d; outline-offset: -2px; }
+#cameraSuivie { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 8; padding: 6px 12px; border-radius: 6px;
+  background: rgba(10, 14, 24, 0.8); border-left: 4px solid #ffd34d; color: #fff; font: 700 14px/1 var(--police); pointer-events: none; }
+#cameraSuivie.cache { display: none; }

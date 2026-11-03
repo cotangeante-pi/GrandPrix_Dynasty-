@@ -1308,7 +1308,10 @@ function attendreLesAutres() {
     CAMERA.forcer('tele');
     if (!JEU.deux) CAMERA.drone(moi.v.cap);   // l'arrivée vue du drone (CLAUDE.md « La réalisation télé »), puis la régie
   }
-  JEU.attente.tele = ARRIVEE.voitureTele(e, JEU.attente.tele);
+  // (tour 45d, le propriétaire) le pilote choisi au classement : la caméra le suit jusqu'à son arrivée, un autre clic ou « passer » ; sinon la régie
+  if (JEU.attente.choisi !== undefined && JEU.attente.choisi !== null && e.pilotes[JEU.attente.choisi].arrivee !== null) { JEU.attente.choisi = null; JEU.attente.tele = null; }
+  JEU.attente.tele = JEU.attente.choisi !== undefined && JEU.attente.choisi !== null ? JEU.attente.choisi : ARRIVEE.voitureTele(e, JEU.attente.tele);
+  majCameraSuivie();
   // « passer » (CLAUDE.md « La course ») : le reste de la course est vraiment joué, en accéléré (×ARRIVEE_ACCELERE) : à chaque image,
   // les mêmes pas de physique que la boucle (BOUCLE.simuler d'un pas), sans les dessiner, au plus ARRIVEE_TRANCHE_MS ; les places et
   // les temps sont ceux qu'on aurait eus en regardant ; ARRIVEE_ATTENTE_MAX reste le filet (une voiture bloquée)
@@ -1343,13 +1346,37 @@ function majAttente() {
 function finirAttente() {
   if (JEU.attente) CAMERA.forcer(JEU.attente.camera);
   JEU.attente = null;
+  majCameraSuivie();
   document.getElementById('attenteArrivee').classList.add('cache');
   document.getElementById('attenteTexte').textContent = texte('attenteArrivee');
   document.getElementById('boutonPasser').classList.remove('cache');
 }
 
 function passerAuPodium() {
-  if (JEU.attente && JEU.ecran === 'course') JEU.attente.passer = true;
+  if (JEU.attente && JEU.ecran === 'course') { JEU.attente.passer = true; JEU.attente.choisi = null; majCameraSuivie(); }
+}
+
+// suivre un pilote après l'arrivée (tour 45d, Codeur 4 ; le propriétaire, 2026-11-02, CLAUDE.md « La réalisation télé ») : dans la vue télé de
+// l'attente, un clic (ou un toucher) sur une ligne du classement met la caméra sur ce pilote ; un second clic sur la même ligne rend la
+// régie automatique. Seule la caméra change : la course (les mêmes pas de physique) donne le même résultat au bit près
+function choisirPiloteTele(numero) {
+  const a = JEU.attente;
+  if (!a || JEU.ecran !== 'course' || a.passer || JEU.deux || !JEU.plateau) return false;
+  const P = JEU.plateau.pilotes, k = P.findIndex((p, i) => String(numeroDe(i)) === String(numero));
+  if (k < 0 || P[k].arrivee !== null) return false;
+  if (a.choisi === k) { a.choisi = null; a.tele = null; } else { a.choisi = k; a.tele = k; }
+  majCameraSuivie();
+  return true;
+}
+function nomTele(k) {
+  const ch = JEU.championnat;
+  if (ch && ch.pilotes[k]) return INTERFACE.nomPilote(ch.pilotes[k]);
+  if (JEU.monde && JEU.indices && JEU.indices[k] !== undefined && JEU.monde.pilotes[JEU.indices[k]]) return INTERFACE.nomPilote(JEU.monde.pilotes[JEU.indices[k]]);
+  return texte('numero').replace('{n}', numeroDe(k));
+}
+function majCameraSuivie() {
+  const a = JEU.attente, k = a && a.choisi !== undefined && a.choisi !== null ? a.choisi : null;
+  INTERFACE.marquerSuivie(k === null ? null : numeroDe(k), k === null ? null : nomTele(k), !!a && JEU.ecran === 'course' && !a.passer && !JEU.deux);
 }
 
 function voirResultats() {
@@ -2066,6 +2093,7 @@ function demarrerJeu() {
   // les touches de chaque joueur à deux (touches.js) : la disposition du clavier, si le navigateur la donne, puis les cartes
   INTERFACE.remplirTouchesDeux(MANETTE.lireManettes().length);
   INTERFACE.lireDispositionClavier(() => INTERFACE.remplirTouchesDeux(MANETTE.lireManettes().length));
+  INTERFACE.surClicClassement(choisirPiloteTele);   // suivre un pilote après l'arrivée (tour 45d)
   INTERFACE.preparerAides({
     lire: () => JEU.assistance,
     changer: a => { if (['course', 'qualif', 'pause', 'grille'].includes(JEU.ecran)) return;   // (jamais pendant la course)
