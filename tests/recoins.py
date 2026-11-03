@@ -22,6 +22,16 @@ class Recoin(Carriere):
     def __init__(self, pg, langue, adresse):
         super().__init__(pg, langue, adresse)
         self.cles, self.blocages = set(), []
+    # (tour 46d) une évaluation qui arrête la boucle (BOUCLE.arreter) et qui échoue en route laissait la boucle arrêtée sans rien dire :
+    # la course suivante restait figée (« la voiture ne bouge pas », vu le 2026-10-31). Maintenant l'erreur est notée, et la boucle relancée
+    def ev(self, js, arg=None):
+        try: return self.pg.evaluate(js, arg)
+        except Exception as e:
+            if 'BOUCLE.arreter' in js:
+                self.problemes.setdefault(('erreur dans une évaluation qui arrête la boucle', js[:60]), { 'ecran': self.dernier, 'detail': str(e).split('\n')[0][:200], 'page': self.pg.url.split('/')[-1] })
+                try: self.pg.evaluate('() => { if (typeof BOUCLE !== "undefined") BOUCLE.demarrer(); }')
+                except Exception: pass
+            return None
     # les clés manquantes sont gardées avant chaque action (une navigation remet la page à zéro)
     def recolter(self):
         for k in self.ev('() => window.__clesManquantes || []') or []: self.cles.add(k)
@@ -58,6 +68,8 @@ class Recoin(Carriere):
                 # l'attente des autres : « passer » doit être là. La boucle est arrêtée le temps de le vérifier et de cliquer : sinon les
                 # dernières voitures arrivent pendant que Playwright attend, le podium vient et cache le bouton (le test était instable
                 # sur GitHub, tour 39d). Le bandeau est déjà affiché à l'image qui a créé l'attente.
+                try: self.pg.wait_for_selector('#boutonPasser', state='visible', timeout=10000)   # (le bandeau d'abord, la boucle tournant, tour 42d)
+                except Exception: pass
                 self.ev('() => BOUCLE.arreter()')
                 vu = self.ev('() => { const b = document.getElementById("boutonPasser"); return b.getClientRects().length > 0 && !b.closest(".cache"); }')
                 if not vu: self.problemes.setdefault(('« passer » absent', quoi), { 'ecran': 'course', 'detail': str(self.ev('() => [!!JEU.attente, JEU.ecran, document.getElementById("attenteArrivee").className]')), 'page': self.pg.url.split('/')[-1] })
@@ -184,7 +196,7 @@ def fin(c, titre):
                       const sur = [...document.querySelectorAll("#contrats button, #contratsListe li, #contrats h1, #contratsNote")].filter(e => e.getClientRects().length).filter(e => { const q = e.getBoundingClientRect(); return Math.min(r.right, q.right) - Math.max(r.left, q.left) > 1 && Math.min(r.bottom, q.bottom) - Math.max(r.top, q.top) > 1; }).map(e => e.id || e.tagName);
                       return { aide: b.dataset.aide, texte: document.getElementById("bulleAideTexte").textContent, attendu: texte("aide_contrats"), sur }; }''')
                     t(f'{titre} : aux contrats, l’aide des contrats s’affiche (la première fois), sur aucun bouton, aucune offre ni le titre', bool(b) and b['aide'] == 'contrats' and b['texte'] == b['attendu'] and not b['sur'], str(b))
-                    c.si('#bulleAide')
+                    c.ev('() => { if (window.AIDES_ECRAN) AIDES_ECRAN.fermer(); }')   # (la bulle d'aide fermée par le jeu, pas d'un clic : elle peut se cacher seule au moment du clic, tour 42d)
                 if not anticipee: break
                 c.cliquer('#boutonRetraite'); c.inspecter(f'{quoi} : confirmation de la retraite'); c.cliquer('#boutonRetraite')
             elif e == 'sponsors': c.inspecter(f'{quoi} : sponsors'); c.cliquer('#boutonSponsorsRetour')
@@ -478,10 +490,10 @@ def fin_de_saison(c, quoi):
         elif e == 'saison': c.cliquer('#boutonSaisonSuite')
         elif e == 'duelSaison': c.cliquer('#boutonDuelSaisonSuite')
         elif e == 'contrats':
-            c.si('#bulleAide')
+            c.ev('() => { if (window.AIDES_ECRAN) AIDES_ECRAN.fermer(); }')   # (la bulle d'aide fermée par le jeu, pas d'un clic : elle peut se cacher seule au moment du clic, tour 42d)
             if not c.si('#contratsListe button.signer'): c.ev('() => { const b = document.querySelector("#contratsListe button"); if (b) b.click(); }')
         elif e == 'sponsors':
-            c.si('#bulleAide')
+            c.ev('() => { if (window.AIDES_ECRAN) AIDES_ECRAN.fermer(); }')   # (la bulle d'aide fermée par le jeu, pas d'un clic : elle peut se cacher seule au moment du clic, tour 42d)
             if not c.si('#sponsorsListe button'): c.cliquer('#boutonSponsorsRetour')
             if c.ev('() => JEU.ecran') == 'sponsors': c.cliquer('#boutonSponsorsRetour')
         else: c.pg.wait_for_timeout(300)
@@ -527,24 +539,38 @@ CACHER = """(oui) => { if (!window.__cacheFaux) { window.__cacheFaux = true; Obj
 def conduite(c, titre, quoi, pause_ecran):
     pg = c.pg
     c.ev('() => { JEU.robot = true; }')   # (le robot conduit : la voiture bouge, on voit si elle s'arrête)
+    # (la voiture conduite : celle du tour de qualification s'il y en a un, sinon celle du joueur)
+    c.ev('() => { window.__voiture = () => JEU.qualif && JEU.qualif.etat === "tour" && JEU.qualif.v ? JEU.qualif.v : JEU.joueur; }')
     c.inspecter(f'{quoi} : en conduite')
     # l'onglet caché 2 s : rien n'avance ; revenu : pas de bond (au plus 0,5 s de jeu sur 0,5 s réelle, plus une image)
     a = c.ev(CACHER, True); pg.wait_for_timeout(2000); b = c.ev('() => [BOUCLE.nbPas, JEU.course ? JEU.course.temps : null]')
     c.ev(CACHER, False); pg.wait_for_timeout(500); d = c.ev('() => [BOUCLE.nbPas, JEU.course ? JEU.course.temps : null]')
     t(f'{titre} : {quoi} : l’onglet caché 2 s, rien n’avance ; revenu, la course repart sans bond', bool(a and b and d) and b[0] - a[0] <= 1 and 0 < d[0] - b[0] <= 0.5 * 120 + 2 * 12, str([a, b, d]))
+    # (tour 43d, à la demande du Chef) la voiture conduite avance vraiment : 1 s de jeu, la boucle arrêtée, le robot au volant ; sinon,
+    # l'état de la voiture et de la course pour trouver pourquoi (une voiture restée sur la grille serait un défaut du jeu)
+    av = c.ev('''() => { const w = __voiture(), p0 = [w.x, w.z]; BOUCLE.arreter(); BOUCLE.simuler(1); const d = Math.hypot(w.x - p0[0], w.z - p0[1]); BOUCLE.demarrer();
+      const c = JEU.qualif && JEU.qualif.etat === "tour" ? JEU.qualif.q.course : JEU.course, dep = c && c.depart;
+      return { d, u: w.u, gaz: w.gaz, frein: w.frein, ecran: JEU.ecran, etat: c && c.etat, compte: c && c.compte, robot: JEU.robot, cibles: JEU.cibles, depart: dep ? { t: dep.t, lance: dep.lance, resultat: dep.resultat, regime: dep.regime } : null,
+        facteurDepart: w.facteurDepart, piste: w.piste && [Math.round(w.piste.s), Math.round(w.piste.d * 10) / 10], herbe: w.surHerbe, aides: JSON.stringify(JEU.assistance), arrivee: w === JEU.joueur && JEU.plateau ? JEU.plateau.pilotes[JEU.plateau.pilotes.length - 1].arrivee : null }; }''')
+    t(f'{titre} : {quoi} : la voiture conduite avance (1 s de jeu, le robot au volant)', bool(av) and av['d'] > 1, str(av))
     # la pause et la reprise : le temps de course s'arrête, puis repart
     if pause_ecran:
         pg.keyboard.press('Escape'); pg.wait_for_timeout(300)
-        e1 = c.ev('() => [JEU.ecran, JEU.joueur ? JEU.joueur.x.toFixed(3) + "," + JEU.joueur.z.toFixed(3) : null]'); pg.wait_for_timeout(1000); e2 = c.ev('() => [JEU.ecran, JEU.joueur ? JEU.joueur.x.toFixed(3) + "," + JEU.joueur.z.toFixed(3) : null]')
+        # (ce qui avance : le compteur des pas du joueur, JEU.pas, arrêté par la pause ; au tournoi, la pause du tour ne l'arrête pas : la position
+        # de la voiture du tour ; la reprise mesurée en temps de jeu, 0,5 s la boucle arrêtée, comme le redimensionnement, tour 43d)
+        c.ev('() => { window.__mesure = () => JEU.tournoi ? (__voiture() ? __voiture().x.toFixed(3) + "," + __voiture().z.toFixed(3) : null) : JEU.pas; }')
+        e1 = c.ev('() => [JEU.ecran, __mesure()]'); pg.wait_for_timeout(1000); e2 = c.ev('() => [JEU.ecran, __mesure()]')
         if e1 and e1[0] == pause_ecran: c.inspecter(f'{quoi} : la pause')
         pg.keyboard.press('Escape'); pg.wait_for_timeout(800)
-        e3 = c.ev('() => [JEU.ecran, JEU.joueur ? JEU.joueur.x.toFixed(3) + "," + JEU.joueur.z.toFixed(3) : null]')
-        t(f'{titre} : {quoi} : Échap met la pause ({pause_ecran}), la physique du joueur s’arrête (la voiture ne bouge plus), Échap repart', bool(e1 and e2 and e3) and e1[0] == pause_ecran and e2[1] == e1[1] and e3[0] != pause_ecran and e3[1] != e2[1], str([e1, e2, e3]))
+        e3 = c.ev('() => { const e = JEU.ecran; BOUCLE.arreter(); BOUCLE.simuler(0.5); const m = __mesure(); BOUCLE.demarrer(); return [e, m]; }')
+        t(f'{titre} : {quoi} : Échap met la pause ({pause_ecran}), la physique du joueur s’arrête, Échap repart', bool(e1 and e2 and e3) and e1[0] == pause_ecran and e2[1] == e1[1] and e3[0] != pause_ecran and e3[1] != e2[1], str([e1, e2, e3]))
     # la fenêtre redimensionnée en pleine conduite : rien ne déborde, la course continue
     for l, h in ((1280, 720), (960, 600)):
         pg.set_viewport_size({'width': l, 'height': h}); pg.wait_for_timeout(400); c.inspecter(f'{quoi} : redimensionné en {l}×{h}')
-    r = c.ev('() => [JEU.ecran, BOUCLE.nbPas, SCENE3D.canvas.width, SCENE3D.canvas.clientWidth]'); pg.wait_for_timeout(400); r2 = c.ev('() => BOUCLE.nbPas')
-    t(f'{titre} : {quoi} : la fenêtre redimensionnée (1280×720 puis 960×600) en pleine conduite : le dessin suit, la course continue', bool(r) and r[3] == 960 and r2 > r[1], str([r, r2]))
+    # (la course continue : mesurée en temps de jeu, la boucle arrêtée le temps de 0,5 s de physique, puis relancée ; en temps réel,
+    # sous swiftshader, 400 ms pouvaient passer sans un seul pas, tour 42d)
+    r = c.ev('() => { const a = [JEU.ecran, SCENE3D.canvas.clientWidth, BOUCLE.tourne, __voiture().x.toFixed(3) + "," + __voiture().z.toFixed(3)]; BOUCLE.arreter(); BOUCLE.simuler(0.5); a.push(__voiture().x.toFixed(3) + "," + __voiture().z.toFixed(3)); BOUCLE.demarrer(); a.push(BOUCLE.tourne); return a; }')
+    t(f'{titre} : {quoi} : la fenêtre redimensionnée (1280×720 puis 960×600) en pleine conduite : le dessin suit, la course continue', bool(r) and r[1] == 960 and r[2] and r[5] and r[4] != r[3], str(r))
 
 def pendant(c, titre):
     pg = c.pg
@@ -553,7 +579,10 @@ def pendant(c, titre):
     if c.ecran('qualif', 'qualification', 60000):
         c.attendre('() => !document.getElementById("boutonQualifTour").classList.contains("cache")', 240000)
         c.cliquer('#boutonQualifTour')
-        if c.attendre('() => JEU.qualif && JEU.qualif.etat === "tour"', 30000): pg.wait_for_timeout(1500); conduite(c, titre, 'le tour de qualification', None)
+        if c.attendre('() => JEU.qualif && JEU.qualif.etat === "tour"', 30000):
+            # (la voiture du tour ne roule qu'une fois lancée : la boucle arrêtée jusque-là, en temps de jeu)
+            c.ev('() => { BOUCLE.arreter(); JEU.robot = true; for (let i = 0; i < 120 * 30 && !courseAutorise(JEU.qualif.q.course); i++) BOUCLE.simuler(REGLAGES.PAS_PHYSIQUE); BOUCLE.simuler(1); BOUCLE.demarrer(); }')
+            conduite(c, titre, 'le tour de qualification', None)
         c.ev('() => { for (let i = 0; i < 400 && !(JEU.qualif && JEU.qualif.etat === "resultat"); i++) BOUCLE.simuler(1); }')
         c.attendre('() => JEU.qualif && JEU.qualif.etat === "resultat"', 60000); c.cliquer('#boutonQualifCourse')
     if c.ecran('course', 'course', 60000):
@@ -574,6 +603,59 @@ def pendant(c, titre):
             if c.ecran('tournoiAToi', 'à toi', 60000) and c.attendre('() => JEU.qualif && JEU.qualif.etat === "tour"', 30000):
                 pg.wait_for_timeout(1500); conduite(c, titre, 'un tour du tournoi', 'tournoiPause')
 
+# --- les aides au pilotage choisies avant la course (tour 42d) : l'écran, le bonus, gardées d'un Grand Prix à l'autre, figées pendant la
+# course ; le curseur VOITURE_VIVANTE de ?reglages=1 à 0 : la voiture d'avant au bit près, même en légende
+POSITION = '() => [JEU.joueur.x, JEU.joueur.z, JEU.joueur.cap, JEU.joueur.u]'
+def tour_robot(c, adresse, avant_js=None):
+    # une course seule, le robot, 20 s de jeu après les feux, la boucle arrêtée (au pas près) ; avant_js : posé avant les feux
+    c.aller(adresse)
+    if not c.ecran('course', 'course seule (robot)', 60000): return None
+    c.attendre('() => JEU.course', 30000)
+    if avant_js: c.ev(avant_js)
+    return c.ev('() => { BOUCLE.arreter(); JEU.robot = true; let n = 0; while (JEU.course.etat === "compte" && n++ < 120 * 30) BOUCLE.simuler(REGLAGES.PAS_PHYSIQUE); BOUCLE.simuler(20); return [JEU.joueur.x, JEU.joueur.z, JEU.joueur.cap, JEU.joueur.u, REGLAGES.NIVEAU, REGLAGES.VOITURE_VIVANTE]; }')
+def aides_pilotage(c, titre):
+    pg = c.pg
+    c.aller(f'index.html?championnat=1&tours=1&robot=1&lang={c.langue}')
+    if not c.ecran('championnat', 'paddock', 60000): return
+    c.ev('() => { if (window.AIDES_ECRAN) AIDES_ECRAN.fermer(); SAUVEGARDE.ecrireChampionnat(JEU.championnat); const d = SAUVEGARDE.lire(); d.decouverteFaite = true; SAUVEGARDE.ecrire(d); }')
+    c.cliquer('#boutonAidesPaddock')
+    vu = c.attendre('() => !document.getElementById("choixAides").classList.contains("cache")', 5000)
+    t(f'{titre} : « Aides au pilotage » s’ouvre depuis le paddock', vu)
+    c.inspecter('aides au pilotage (paddock)')
+    avant = c.ev('() => JSON.stringify(JEU.assistance)')
+    for a in ('freinage', 'antiblocage'):
+        c.cliquer(f'#choixAidesListe button[data-aide="{a}"]')
+    choisi = c.ev('() => [JSON.stringify(JEU.assistance), JSON.stringify(SAUVEGARDE.option("aides_pilotage", null)), ASSISTANCE.bonus(JEU.assistance), document.getElementById("choixAidesBonus").textContent]')
+    t(f'{titre} : deux aides changées : le choix est sauvegardé, le bonus affiché suit', bool(choisi) and choisi[0] != avant and choisi[0] == choisi[1] and choisi[3].strip() != '', str([avant, choisi]))
+    c.inspecter('aides au pilotage (deux aides changées)')
+    c.cliquer('#boutonAidesValider')
+    # le Grand Prix suivant (la page se recharge) : le même choix ; et les gains du Grand Prix joué portent le bonus de ces aides
+    c.bloque = None
+    g = c.jouer(lambda e: e[0] in ('qualif', 'course') and e[6] == 1, 900, 'Grand Prix 1 avec les aides choisies')
+    apres = c.ev('() => [JSON.stringify(JEU.assistance), JSON.stringify((JEU.championnat.argent.historique || []).slice(-1)[0])]')
+    t(f'{titre} : au Grand Prix suivant (page rechargée), le même choix d’aides', g and bool(apres) and apres[0] == choisi[0], str([g, c.bloque, apres, choisi[0]]))
+    # pendant la course : le menu pause montre les aides, figées
+    c.attendre('() => JEU.ecran === "course" || (JEU.qualif && JEU.qualif.etat === "choix")', 60000)
+    if c.ev('() => JEU.ecran') == 'qualif':
+        # (le robot de c.jouer a peut-être déjà cliqué « Passer » : les boutons seulement s'ils sont là)
+        c.si('#boutonQualifPasser'); c.attendre('() => JEU.qualif && JEU.qualif.etat === "resultat"', 240000); c.si('#boutonQualifCourse')
+    if c.ecran('course', 'course du Grand Prix 2', 60000):
+        c.attendre('() => JEU.plateau && JEU.plateau.carte !== null', 240000)
+        pg.keyboard.press('Escape')
+        if c.ecran('pause', 'pause (aides figées)'):
+            for a in ('Direction', 'Freinage', 'Antiblocage', 'Antipatinage'): c.si(f'#bouton{a}Pause')
+            fige = c.ev('() => [JSON.stringify(JEU.assistance), JSON.stringify(SAUVEGARDE.option("aides_pilotage", null))]')
+            t(f'{titre} : pendant la course, les aides du menu pause sont figées (un clic sur chacune ne change rien)', fige == [choisi[0], choisi[0]], str([fige, choisi[0]]))
+            pg.keyboard.press('Escape')
+    # le curseur VOITURE_VIVANTE (?reglages=1) à 0 en légende : le même tour que la voiture d'avant (en normal), au bit près
+    ref = tour_robot(c, f'index.html?course=1&circuit=test&niveau=normal&lang={c.langue}')
+    leg0 = tour_robot(c, f'index.html?course=1&circuit=test&niveau=legende&reglages=1&lang={c.langue}', '() => { const k = document.querySelector("input[data-cle=VOITURE_VIVANTE]"); k.value = "0"; k.dispatchEvent(new Event("input")); }')
+    # (depuis le tour 46 du Codeur 1, la voiture vivante vient du pneu drift, plus du niveau : en légende, en pneus adhérant, la voiture
+    # d'avant au bit près quel que soit le curseur ; en pneus drift et le curseur à 1, une autre voiture)
+    leg1 = tour_robot(c, f'index.html?course=1&circuit=test&niveau=legende&lang={c.langue}')
+    drift = tour_robot(c, f'index.html?course=1&circuit=test&niveau=legende&lang={c.langue}', '() => { JEU.joueur.typePneus = "drift"; }')
+    t(f'{titre} : en légende, en pneus adhérant : 20 s du robot au bit près comme la voiture d’avant, le curseur VOITURE_VIVANTE (?reglages=1) à 0 ou à 1 ; en pneus drift, une autre voiture', bool(ref and leg0 and leg1 and drift) and ref[:4] == leg0[:4] and leg0[5] == 0 and leg1[:4] == ref[:4] and drift[:4] != ref[:4], str([ref, leg0, leg1, drift]))
+
 # --- les grandes tailles (tour 39d) : un passage court en 1280×720 et en 1920×1080, en plus du 960×600 des autres parties ---
 # la carrière : le premier lancement (titre → découverte → Bravo → création), le premier Grand Prix joué par le robot comme dans saison.py
 # (au paddock : garage, courrier, discussion), puis le paddock et tous ses écrans et le menu pause (la partie ecrans)
@@ -590,7 +672,7 @@ def tailles_jeux(c, titre):
     deux(c, titre, court=True)
     tournoi(c, titre, court=True)
 
-PARTIES = { 'dynastie': dynastie, 'pendant': pendant, 'sauvegarde': sauvegarde, 'stockage': stockage, 'saison-en': saison_en, 'manette': manette, 'deux': deux, 'tournoi': tournoi, 'fin': fin, 'ecrans': ecrans, 'tuto': tuto, 'tailles-carriere': tailles_carriere, 'tailles-jeux': tailles_jeux }
+PARTIES = { 'aides-pilotage': aides_pilotage, 'dynastie': dynastie, 'pendant': pendant, 'sauvegarde': sauvegarde, 'stockage': stockage, 'saison-en': saison_en, 'manette': manette, 'deux': deux, 'tournoi': tournoi, 'fin': fin, 'ecrans': ecrans, 'tuto': tuto, 'tailles-carriere': tailles_carriere, 'tailles-jeux': tailles_jeux }
 LANGUES = { 'saison-en': ('en',), 'dynastie': ('fr',) }   # (la saison entière en français, c'est saison.py)
 TAILLES = { 'tailles-carriere': [(1280, 720), (1920, 1080)], 'tailles-jeux': [(1280, 720), (1920, 1080)] }
 demandees = [x for x in (sys.argv[1:] or os.environ.get('RECOINS', '').replace(',', ' ').split()) if x] or list(PARTIES)

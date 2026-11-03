@@ -25,6 +25,8 @@ const ASSISTANCE = (function () {
   // le bonus d'argent sans aide (ASSIST_BONUS) : la somme des parts des aides coupées ; r null = aucun bonus (pas de choix connu)
   const bonus = r => r ? AIDES.reduce((s, a) => s + (r[a] ? 0 : R.ASSIST_BONUS[a] || 0), 0) : 0;
   const aucune = r => !r || AIDES.every(a => !r[a]);
+  // la voiture vivante (physique.js) : les aides la pilotent un peu autrement ; 0 = la voiture d'avant, les aides d'avant au bit près
+  const vivante = v => typeof voitureVivante === 'function' && voitureVivante(v) > 0;   // (la voiture vivante vient du pneu drift de cette voiture, physique.js)
 
   // l'adhérence de la voiture, comme la physique la lit (× 1 sans météo, pneus, garage ni aileron)
   const adherence = v => (v.adhMeteo || 1) * (v.adherence || 1) * (v.aero || 1) * (v.aileronAdherence || 1) * (v.surHerbe ? R.ADHERENCE_HERBE : 1);
@@ -35,7 +37,7 @@ const ASSISTANCE = (function () {
   // ASSIST_FREIN_PART près
   function vitesseSure(v, circuit, carte) {
     const p = v.piste, nb = circuit.nb, n = Math.ceil(R.ASSIST_REGARD / circuit.pas), mu = adherence(v);
-    const a = R.ASSIST_FREIN_PART * freinagePossible(Math.max(0, v.u)) * (v.adhMeteo || 1) * (v.freins || 1);
+    const a = R.ASSIST_FREIN_PART * freinagePossible(Math.max(0, v.u)) * (v.adhMeteo || 1) * (v.freins || 1) * (vivante(v) ? R.ASSIST_VIVANTE_FREIN : 1);
     const kt = carte && carte.trajectoire ? carte.trajectoire.courbure : null, kc = circuit.courbure;
     let sure = Infinity;
     for (let j = 1; j <= n; j++) {
@@ -57,17 +59,23 @@ const ASSISTANCE = (function () {
     if (r.antiblocage) {
       // l'anti-blocage : en braquant, la pression au frein reste sous le seuil du blocage (SENSATIONS_BLOCAGE_FREIN : ni fumée ni
       // crissement) ; la marge du freinage assisté (ASSIST_FREIN_PART) compte déjà avec ce frein plus doux
-      if (frein >= R.SENSATIONS_BLOCAGE_FREIN && Math.abs(direction) > R.ASSIST_ABS_BRAQUAGE && v.u > R.SENSATIONS_BLOCAGE_VITESSE) frein = R.SENSATIONS_BLOCAGE_FREIN * R.ASSIST_ABS_PART;
+      if (frein >= R.SENSATIONS_BLOCAGE_FREIN && Math.abs(direction) > R.ASSIST_ABS_BRAQUAGE && v.u > R.SENSATIONS_BLOCAGE_VITESSE) {
+        // (la voiture vivante, tour 42d : l'arrière se déleste au freinage et part si l'on braque en freinant fort ; en braquant, le frein
+        // descend plus bas, ASSIST_VIVANTE_ABS_PART du seuil, pour garder du poids sur l'arrière ; le braquage du joueur n'est jamais touché)
+        frein = R.SENSATIONS_BLOCAGE_FREIN * (vivante(v) ? R.ASSIST_VIVANTE_ABS_PART : R.ASSIST_ABS_PART);
+      }
     }
     if (r.antipatinage && gaz > 0) {
       const limite = R.ADHERENCE * adherence(v) * charge(v.u) / R.MASSE, lat = Math.abs(v.u * v.r);
       const part = limite > 0 ? lat / limite : 0, [s0, s1] = R.ASSIST_ANTIPATINAGE;
       if (part > s0) gaz = Math.min(gaz, Math.max(0, (s1 - part) / (s1 - s0)));
+      // (la voiture vivante, tour 43d : un lever de pied brusque fait partir l'arrière ; l'antipatinage relâche les gaz en douceur)
+      if (vivante(v) && gaz < c.gaz) gaz = Math.min(c.gaz, Math.max(gaz, (v.gaz || 0) - R.ASSIST_VIVANTE_LEVER));
     }
     if (r.direction && ctx.carte && ctx.carte.trajectoire) {
       const T = ctx.carte.trajectoire, i = (v.piste.indice + Math.round(R.ASSIST_DIRECTION_VISEE / ctx.circuit.pas)) % ctx.circuit.nb;
-      const ecart = T.ecart[i] - v.piste.d, k = R.ASSIST_DIRECTION;
-      direction = Math.max(-1, Math.min(1, direction + Math.max(-k[1], Math.min(k[1], k[0] * ecart))));
+      const ecart = T.ecart[i] - v.piste.d, k = R.ASSIST_DIRECTION, f = vivante(v) ? R.ASSIST_VIVANTE_DIRECTION : 1;   // (× 1 sans la voiture vivante, au bit près)
+      direction = Math.max(-1, Math.min(1, direction + f * Math.max(-k[1], Math.min(k[1], k[0] * ecart))));
     }
     return gaz === c.gaz && frein === c.frein && direction === c.direction ? c : { gaz, frein, direction };
   }

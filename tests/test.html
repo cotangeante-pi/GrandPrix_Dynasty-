@@ -829,12 +829,12 @@ t('stands : les deux circuits d’essai ont leur voie des stands, calculée depu
     v(z1&&z1.dansVoie&&!z1.rampe,'milieu');v(z2&&z2.dansVoie&&z2.rampe,'rampe d’entrée');v(z3&&!z3.voie&&!z3.dansVoie,'sur la piste');v(z4===null,'au-delà de la sortie');
     const q=[0,0];pointPiste(circ,milieu,cote*(st.dMur+3),q);v(positionSurPiste(circ,q[0],q[1]).stands===true,'positionSurPiste.stands');pointPiste(circ,milieu,0,q);v(positionSurPiste(circ,q[0],q[1]).stands===false);}
   v(zoneStands(C,C.stands.arret,-(C.stands.dMur+3)).arret===true&&zoneStands(C,(C.stands.arret+REGLAGES.STAND_ARRET_DEMI+5)%C.longueur,-(C.stands.dMur+3)).arret===false,'zone d’arrêt');});
-t('stands (pneus actifs) : une voiture qui entre dans la voie à 108 km/h y est ramenée à 80 km/h avec une seule pénalité STAND_PENALITE_VITESSE (dans course.penalites), elle est « dans les stands », elle ne touche ni muret ni barrière, son tour compte en passant la ligne par les stands, et elle ressort sur la piste après la sortie', ()=>{avecPneus(()=>{
+t('stands (pneus actifs) : une voiture qui entre dans la voie à 108 km/h y est ramenée à 80 km/h (tour 45a : en douceur, par le limiteur, au plus tard à la fin de la rampe d’entrée) avec une seule pénalité STAND_PENALITE_VITESSE (0 depuis le tour 45a ; dans course.penalites), elle est « dans les stands », elle ne touche ni muret ni barrière, son tour compte en passant la ligne par les stands, et elle ressort sur la piste après la sortie', ()=>{avecPneus(()=>{
   const R_=REGLAGES,st=C.stands,cote=st.cote,v_=creerVoiture(C),c=creerCourse(C,0);placerSurPiste(v_,C,st.entree-150,cote*4);v_.u=25;v_.piste=positionSurPiste(C,v_.x,v_.z);c.etat='course';c.etape=3;c.sAvant=v_.piste.s;c.xAvant=v_.x;c.zAvant=v_.z;c.progression=0;   // (étape 3 : la ligne qui vient finit un tour)
   let dedans=0,uMax=0,sortiDeLaVoie=null,entre=null,tourDansLaVoie=false;
   for(let k=0;k<60*120;k++){const dansVoie=v_.dansStands,fini=entre!==null&&!dansVoie&&v_.piste.s>st.sortie&&v_.piste.s<st.sortie+400;
     appliquerCommandes(v_,suivreEcartSur(v_,C,fini||(entre===null&&v_.piste.s>st.sortie&&v_.piste.s<st.entree-20)?cote*4:cote*(st.dMur+R_.STAND_LARGEUR/2),fini?40:30));pasVoiture(v_,C,DT);majCourse(c,v_,DT);
-    if(v_.dansStands){dedans++;uMax=Math.max(uMax,v_.u);if(entre===null)entre=v_.piste.s;if(c.tours.length===1)tourDansLaVoie=true;}
+    if(v_.dansStands){dedans++;const dep_=((v_.piste.s-st.entree)%C.longueur+C.longueur)%C.longueur;if(dep_>R_.STAND_RAMPE)uMax=Math.max(uMax,v_.u);if(entre===null)entre=v_.piste.s;if(c.tours.length===1)tourDansLaVoie=true;}
     if(entre!==null&&!v_.dansStands&&sortiDeLaVoie===null) sortiDeLaVoie=v_.piste.s;
     if(sortiDeLaVoie!==null&&v_.piste.s>st.sortie+150) break;}
   L.push('  (stands, test : entrée à s = '+(entre===null?'—':entre.toFixed(0))+', '+(dedans*DT).toFixed(1)+' s dans la voie, vitesse max '+(uMax*3.6).toFixed(1)+' km/h, pénalités '+c.penalites+' s, sortie à s = '+(sortiDeLaVoie===null?'—':sortiDeLaVoie.toFixed(0))+', tours comptés '+c.tours.length+', muret '+v_.contactsMurStands+', barrière '+v_.contactsBarriere+', herbe '+v_.surHerbe+')');
@@ -902,6 +902,26 @@ t('arrêt au stand : le joueur entre lui-même (ici le robot, v.versStands) : av
     return {j,stand,vu,fini};});
   L.push('  (joueur aux stands : arrêts '+JSON.stringify(r.j.course.arrets)+', usure '+r.j.v.pneus.usure.toFixed(3)+', muret '+r.j.v.contactsMurStands+', pénalités '+r.j.course.penalites+' s)');
   v(r.fini&&r.j.course.arrets.length===1&&r.j.course.arrets[0].tour>=2&&r.j.course.arrets[0].tour<=3,'pas d’arrêt '+JSON.stringify(r.j.course.arrets));v(r.stand,'pas de STAND');v(!r.vu,'vu derrière le muret');v(r.j.v.contactsMurStands===0&&r.j.course.penalites===0,'muret / pénalités');});
+t('arrêt au stand en tout temps (tour 45a, le propriétaire) : dans une course de 5 tours, le joueur s’arrête deux fois (aux tours 2 et 4) ; chaque arrêt lui met des pneus neufs', ()=>{
+  const r=avecPneus(()=>{const e=creerCourseIA(C,3,5,2,CARTES_T.test,true),j=e.pilotes[3];j.v.pneus=creerPneus();j.course.compte=0;for(const p_ of e.pilotes)p_.course.compte=0;
+    const robot=(p_,dt)=>appliquerCommandes(p_.v,courseAutorise(p_.course)?piloteRobot(p_.v,C):COMMANDES_AUCUNE);const avant=[];let n=0;
+    for(let k=0;k<400*120&&j.arrivee===null;k++){const t_=j.course.tours.length;
+      // (la zone d’arrêt du circuit test est juste après la ligne : il prend la voie à la fin des tours 1 et 3, l’arrêt compte aux tours 2 et 4)
+      if((t_===0&&n===0&&j.course.temps>20||t_===2&&n===1)&&!j.v.versStands){j.v.versStands=true;j.v.arretsAvant=j.v.pneus.arrets;avant.push(j.v.pneus.usure);n++;}
+      pasCourseIA(e,DT,robot);}
+    return {j,avant};});
+  const a_=r.j.course.arrets||[];L.push('  (deux arrêts en 5 tours : '+JSON.stringify(a_.map(x=>({tour:x.tour,usure:+x.usure.toFixed(3)})))+', usure à l’arrivée '+r.j.v.pneus.usure.toFixed(3)+')');
+  v(a_.length===2&&a_[0].tour===2&&a_[1].tour===4,'arrêts '+JSON.stringify(a_.map(x=>x.tour)));v(r.j.v.pneus.arrets===2&&r.j.v.pneus.usure<0.01,'pneus neufs à chaque arrêt : '+r.j.v.pneus.arrets);v(r.j.arrivee!==null,'pas arrivé');});
+t('arrêt au stand sans pénalité (tour 45a) : le joueur entre trop vite (144 km/h dans la rampe) : le limiteur le ralentit en douceur jusqu’à 80 km/h, sans saut, et il n’a ni pénalité de vitesse ni virage coupé ; il s’arrête dès son premier passage', ()=>{
+  const r=avecPneus(()=>{const e=creerCourseIA(C,3,5,2,CARTES_T.test,true),j=e.pilotes[3];j.v.pneus=creerPneus();j.course.compte=0;for(const p_ of e.pilotes)p_.course.compte=0;
+    const robot=(p_,dt)=>appliquerCommandes(p_.v,courseAutorise(p_.course)?piloteRobot(p_.v,C):COMMANDES_AUCUNE);let pousse=false,saut=0,uAvant=null,maxVoie=0;const st=C.stands,L_=C.longueur;
+    j.v.versStands=true;j.v.arretsAvant=0;
+    for(let k=0;k<400*120&&j.arrivee===null;k++){const dep=((j.v.piste.s-st.entree)%L_+L_)%L_;
+      if(!pousse&&j.v.rampeStands&&dep<REGLAGES.STAND_RAMPE/2&&j.course.temps>20){j.v.u=40;pousse=true;}   // (dans la rampe d’entrée, d’un coup à 144 km/h)
+      pasCourseIA(e,DT,robot);if(pousse&&uAvant!==null&&(j.v.dansStands||j.v.rampeStands)){if(uAvant>REGLAGES.STAND_VITESSE_MAX+1&&j.v.u===REGLAGES.STAND_VITESSE_MAX)saut++;}uAvant=j.v.u;if(j.v.dansStands)maxVoie=Math.max(maxVoie,j.v.u);}
+    return {j,pousse,saut,maxVoie};});
+  L.push('  (entrée rapide au stand : poussé '+r.pousse+', sauts à 80 km/h '+r.saut+', pénalités '+r.j.course.penalites+' s, arrêts '+JSON.stringify((r.j.course.arrets||[]).map(x=>x.tour))+')');
+  v(r.pousse&&r.j.course.penalites===0&&(r.j.v.penalitesStands||0)===0,'pénalités '+r.j.course.penalites);v(r.saut===0,r.saut+' sauts d’un coup à 80 km/h');v((r.j.course.arrets||[]).length>=1,'pas d’arrêt');v(r.j.v.excesStands>=1,'le limiteur n’a pas agi');});
 // --- les consignes d'équipe (CLAUDE.md « Le duel contre le coéquipier », simulation.js majConsignes, Codeur 1)
 // une course sur le technique : l'IA k = 0 et la voiture k = 1 sont de la même écurie ; celle qui part devant est rendue nettement plus lente
 function courseConsigne(avecJoueur,refus,tours){const e=creerCourseIA(TQ,avecJoueur?1:2,tours||6,1,CARTES_T.technique,avecJoueur),P=e.pilotes,ia=P[0];
@@ -982,6 +1002,18 @@ t('météo : pendant son arrêt, le joueur choisit ses pneus avec ← → (un ap
   const v_={typePneus:'slick'},suite=[];for(const d of [1,1,0,1,0,-1,0,-1,0,-1])  {choisirPneusArret(v_,d);suite.push(v_.pneusProchain);}
   // (tour 44 : le drift entre dans la liste, après le slick : slick, drift, inter, pluie)
   v(suite.join()==='drift,drift,drift,inter,inter,drift,drift,slick,slick,pluie'&&v_.choixPneus===true,suite.join());});
+t('pneus au stand sous la pluie (tour 45a, bug du propriétaire) : il entre dans sa zone en tenant encore → et s’arrête ; la direction tenue ne change pas le pneu (l’équipe a mis la pluie), il repart en pneus pluie avec plus d’adhérence ; un nouvel appui change encore le pneu', ()=>{
+  const R_=REGLAGES,av=R_.PNEUS_ACTIFS;R_.PNEUS_ACTIFS=true;
+  try{const circ=TQ.stands?TQ:C;v(!!circ.stands,'un circuit avec des stands');
+    const arret=tenu=>{const c=creerCourse(circ,12),v_=creerVoiture(circ);v_.pneus=creerPneus();v_.typePneus='slick';v_.pneusProchain='pluie';v_.eau=0.8;   // (l'équipe propose la pluie : pasMeteo)
+      pasArretStand(c,v_,DT);c.arretEnCours={reste:1,duree:1,tour:1,x:v_.x,z:v_.z,cap:v_.cap,usure:0};let k=0;
+      while(c.arretEnCours&&k++<1000){choisirPneusArret(v_,tenu(k),c.arretEnCours);pasArretStand(c,v_,DT);}
+      return {type:v_.typePneus,monte:c.pneusMontes,adh:METEO.adherence(v_.typePneus,0.8)};};
+    const a=arret(()=>1),b=arret(k=>k<20?1:k<40?0:1);   // a : il tient → tout l’arrêt ; b : il lâche puis appuie de nouveau
+    L.push('  (au stand sous la pluie, en tenant → : '+a.type+', adhérence '+a.adh.toFixed(2)+' (slick : '+METEO.adherence('slick',0.8).toFixed(2)+') ; lâché puis rappuyé : '+b.type+')');
+    v(a.type==='pluie'&&a.monte==='pluie','tenir → a changé le pneu : '+a.type);v(a.adh>METEO.adherence('slick',0.8),'adhérence '+a.adh);
+    v(b.type===METEO.TYPES[(METEO.TYPES.indexOf('pluie')+1)%METEO.TYPES.length],'un nouvel appui ne change plus : '+b.type);}
+  finally{R_.PNEUS_ACTIFS=av;}});
 t('météo : au sec, la course est identique au bit près à la course sans météo (10 IA, 3 tours)', ()=>{
   const course=avec=>{const e=creerCourseIA(TQ,10,3,2,CARTES_T.technique);if(avec)poserMeteo(e,SEC);for(let k=0;k<300*120&&e.arrives<10;k++)pasCourseIA(e,DT);return e.pilotes.map(p_=>p_.arrivee+':'+p_.v.x+':'+p_.v.contactsVoiture).join('|');};
   v(course(true)===course(false));});
@@ -1102,15 +1134,16 @@ t('disposition (discussion.js → ia.js) : promise pour le Grand Prix suivant, e
   L.push('  (disposition « bloquer » : défenses '+avec.def+' (sans : '+sans.def+'), dépassements '+avec.dep+' (sans : '+sans.dep+'))');
   v(sans.def===0&&avec.def>0,'défenses '+sans.def+' / '+avec.def);});
 // --- la voiture vivante (CLAUDE.md « La voiture vivante (expert et légende) », Codeur 1) : en calcul pur
-function tourVivant(circ,niveau,vv,brutal,pneu){const R_=REGLAGES,av=[R_.NIVEAU,R_.VOITURE_VIVANTE];R_.NIVEAU=niveau;R_.VOITURE_VIVANTE=vv;
-  try{const c=creerCourse(circ,3),v_=creerVoiture(circ);if(pneu)v_.typePneus=pneu;placerAuDepart(v_,circ);c.compte=0;let glisse=0,teteAQueue=0;
+function tourVivant(circ,niveau,vv,brutal,pneu,aides,carte){const R_=REGLAGES,av=[R_.NIVEAU,R_.VOITURE_VIVANTE];R_.NIVEAU=niveau;R_.VOITURE_VIVANTE=vv;
+  try{const c=creerCourse(circ,3),v_=creerVoiture(circ);if(pneu)v_.typePneus=pneu;placerAuDepart(v_,circ);c.compte=0;let glisse=0,teteAQueue=0,glissades=0,glisse0=0;
     for(let k=0;k<400*120&&c.etat!=='finie';k++){let cmd=piloteRobot(v_,circ);
       // le robot « brutal » : plein gaz dès qu'il veut accélérer, et au freinage frein à fond et braquage à fond
       if(brutal)cmd={gaz:cmd.gaz>0?1:0,frein:cmd.frein>0?1:0,direction:cmd.frein>0?Math.sign(cmd.direction||1):cmd.direction};
+      if(aides)cmd=ASSISTANCE.appliquer(cmd,v_,{circuit:circ,carte},aides);   // (tour 42d : les aides au pilotage du joueur, comme dans la page)
       appliquerCommandes(v_,cmd);pasVoiture(v_,circ,DT);majCourse(c,v_,DT);
-      glisse=Math.max(glisse,Math.abs(Math.atan2(v_.v,Math.max(1,Math.abs(v_.u)))));
+      const g_=Math.abs(Math.atan2(v_.v,Math.max(1,Math.abs(v_.u))));if(g_>0.15&&glisse0<=0.15)glissades++;glisse0=g_;glisse=Math.max(glisse,g_);
       if(v_.piste){let d=v_.cap-Math.atan2(circ.tz[v_.piste.indice],circ.tx[v_.piste.indice]);if(Math.abs(Math.atan2(Math.sin(d),Math.cos(d)))>Math.PI/2)teteAQueue++;}}
-    return {fini:c.etat==='finie',tours:c.tours.map(t_=>t_.temps),glisse,teteAQueue,barr:v_.contactsBarriere,x:v_.x,z:v_.z,cap:v_.cap};}
+    return {fini:c.etat==='finie',tours:c.tours.map(t_=>t_.temps),glisse,glissades,teteAQueue,barr:v_.contactsBarriere,x:v_.x,z:v_.z,cap:v_.cap};}
   finally{[R_.NIVEAU,R_.VOITURE_VIVANTE]=av;}}
 t('voiture vivante : elle vient du pneu drift, pas du niveau : en pneus adhérant (slick ou sans type), à tous les niveaux et quel que soit VOITURE_VIVANTE, la voiture d’aujourd’hui au bit près ; une IA en drift sans VIVANTE_IA n’est pas vivante',()=>{
   const ref=tourVivant(TQ,'normal',0);for(const [n,vv,pn] of [['legende',1,null],['expert',1,'slick'],['normal',1,'slick'],['debutant',0,null]]){const r=tourVivant(TQ,n,vv,false,pn);v(r.x===ref.x&&r.z===ref.z&&r.cap===ref.cap,n+' '+vv+' '+pn);}
@@ -1140,6 +1173,15 @@ t('pneus adhérant / drift (moteur) : le drift est un pneu du sec de meteo.js (j
   v(PNEUS_CHOIX.secs().join()==='slick,drift'&&PNEUS_CHOIX.tous().join()===METEO.TYPES.join()&&PNEUS_CHOIX.estDrift('drift')&&!PNEUS_CHOIX.estDrift('slick'),'API');
   const ch={};v(PNEUS_CHOIX.choisirDepart(ch,'drift')==='drift'&&ch.pneusDepart==='drift'&&PNEUS_CHOIX.choisirDepart(ch,'rien')==='drift','départ');
   const vo=creerVoiture(null);v(PNEUS_CHOIX.de(vo)==='slick'&&PNEUS_CHOIX.choisirArret(vo,'drift')==='drift'&&vo.choixPneus===true,'arrêt');});
+// (tour 42d, Codeur 4) les aides au pilotage avec la voiture vivante : le freinage assisté et l'anti-blocage étaient faits pour la
+// voiture d'avant ; avec elle, le brutal aidé du freinage assisté glissait plus que sans aide (dérive 0,094 → 0,177 rad, 3 glissades, au technique) ;
+// (tour 43d) l'antipatinage coupait les gaz d'un coup en courbe rapide (le lever de pied fait partir l'arrière) : il les relâche en douceur ;
+// la direction assistée corrige × ASSIST_VIVANTE_DIRECTION ; en pneus drift, au technique : brutal 0,156 rad / 1 glissade sans aide, 0,101 / 0 avec toutes
+t('voiture vivante et aides au pilotage : en légende, au technique, en pneus drift, avec toutes les aides, le robot brutal ne glisse pas plus que sans aide (dérive max, glissades), sans tête-à-queue ; le neutre aidé n’est pas plus rapide que le neutre sans aide',()=>{
+  const T_={direction:true,freinage:true,antiblocage:true,antipatinage:true},k=CARTES_T.technique,b=tourVivant(TQ,'legende',1,true,'drift'),ba=tourVivant(TQ,'legende',1,true,'drift',T_,k),n=tourVivant(TQ,'legende',1,false,'drift'),na=tourVivant(TQ,'legende',1,false,'drift',T_,k),m=r=>Math.min(...r.tours.slice(1));
+  L.push('  (voiture vivante et aides, technique, légende, pneus drift : brutal sans aide dérive '+b.glisse.toFixed(3)+' rad, '+b.glissades+' glissades, '+m(b).toFixed(2)+' s ; aidé '+ba.glisse.toFixed(3)+' rad, '+ba.glissades+' glissades, '+m(ba).toFixed(2)+' s ; neutre '+m(n).toFixed(2)+' s, aidé '+m(na).toFixed(2)+' s)');
+  v(ba.fini&&ba.teteAQueue===0&&ba.glisse<=b.glisse+0.01&&ba.glissades<=b.glissades,'brutal aidé : dérive '+ba.glisse.toFixed(3)+' / '+b.glisse.toFixed(3)+', glissades '+ba.glissades+' / '+b.glissades);
+  v(m(na)>=m(n)-0.05,'neutre aidé '+m(na).toFixed(2)+' / '+m(n).toFixed(2));});
 // (tour 46d2, Codeur 4) le repère peint de la zone d'arrêt : zoneArretStands (circuits.js) donne l'endroit exact où pasArretStand arrête la voiture
 t('repère de la zone d’arrêt : sur chaque tracé qui a une voie des stands, la zone existe (null sans stands), et une voiture arrêtée au centre du repère fait son arrêt (pasArretStand)', ()=>{
   const av=REGLAGES.PNEUS_ACTIFS;REGLAGES.PNEUS_ACTIFS=true;

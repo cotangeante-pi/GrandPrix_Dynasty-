@@ -142,6 +142,9 @@ class Carriere:
             if e[2]:
                 # (la boucle arrêtée pendant le clic : sinon les dernières voitures peuvent arriver pendant que Playwright attend le bouton,
                 # le podium vient et le bouton se cache sous ses yeux ; le bandeau, lui, est déjà affiché à l'image qui a créé l'attente)
+                # (d'abord le bandeau affiché, la boucle tournant : il l'est à l'image d'après celle qui crée l'attente ; tour 42d)
+                try: self.pg.wait_for_selector('#boutonPasser', state='visible', timeout=10000)
+                except Exception: pass
                 self.ev('() => BOUCLE.arreter()')
                 self.inspecter('attente')
                 if not self.clic('#boutonPasser'): self.ev('() => passerAuPodium()')
@@ -194,7 +197,7 @@ class Carriere:
 
 def rapport(c, titre):
     t(f'{titre} : aucune erreur ni avertissement dans la console', not c.console, ' | '.join(f'[{a}] {b}' for a, b in c.console[:8]))
-    for genre in ('texte cassé', 'vide', 'bouton hors de l’écran', 'boutons qui se recouvrent', 'texte qui déborde du bouton', 'défilement', 'clic impossible', 'discussion sans réponse', '« passer » absent'):
+    for genre in ('texte cassé', 'vide', 'bouton hors de l’écran', 'boutons qui se recouvrent', 'texte qui déborde du bouton', 'défilement', 'clic impossible', 'discussion sans réponse', '« passer » absent', 'erreur dans une évaluation qui arrête la boucle'):
         l = [(k[1], v) for k, v in c.problemes.items() if k[0] == genre]
         t(f'{titre} : {genre} : aucun', not l, ' | '.join(f"{el} sur « {v['ecran']} » ({v['detail']}) — {v['page']}" for el, v in l[:12]))
     m = c.manquantes()

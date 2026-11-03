@@ -49,7 +49,8 @@ function piloteRobot(v, circuit, vitesseCible) {
 function standsRobot(v, circuit, p) {
   const R = REGLAGES, st = circuit.stands;
   if (!st) { v.versStands = false; return null; }
-  const L = circuit.longueur, depuis = ((p.s - st.entree) % L + L + L / 2) % L - L / 2, fait = !!(v.pneus && v.pneus.arrets > 0);
+  // (fait : l'arrêt demandé est fait ; v.arretsAvant, le nombre d'arrêts quand on l'a demandé : un 2e arrêt dans la même course, tour 45a)
+  const L = circuit.longueur, depuis = ((p.s - st.entree) % L + L + L / 2) % L - L / 2, fait = !!(v.pneus && v.pneus.arrets > (v.arretsAvant || 0));
   if (fait && depuis > st.longueur + R.STAND_RAMPE) { v.versStands = false; return null; }
   const bord = st.cote * (circuit.largeur / 2 - R.STAND_BORD), voie = st.cote * (st.dMur + R.STAND_LARGEUR / 2);
   const dans = depuis >= 0 && depuis <= st.longueur;
