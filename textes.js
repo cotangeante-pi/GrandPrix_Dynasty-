@@ -16,7 +16,7 @@ const TEXTES = {
     penalite: '+{s} s ✂ corner cut',
     fauxDepart: '+{s} s false start',
     // the pit stop (step 7, ?pneus=1)
-    standConseille: 'Mandatory pit stop: lap {t} recommended (+{s} s without it)', standEnCours: 'Pit stop… {s}', standFait: 'New tyres! Stop {s}',
+    standConseille: 'Mandatory pit stop: lap {t} recommended (+{s} s without it)', standEnCours: 'Pit stop… {s}', standFait: 'New tyres! Stop {s}', standPneusChoisi: 'Tyres: {p} — ← → to change', standPneusMontes: '{p} fitted! Stop {s}', standArreteIci: 'Stop in your box (brake to a halt)',
     standTour: 'PIT', resultatArret: 'pit L{t}',
     // the weather (meteo.js)
     meteo_pluieArrive: 'Rain is coming!', meteo_pisteSeche: 'The track is drying', meteo_prevision_sec: 'Dry', meteo_prevision_nuageux: 'Cloudy ({p} % rain)', meteo_prevision_risque: 'Risk of rain: {p} %', meteo_prevision_pluie: 'Rain',
@@ -378,7 +378,7 @@ const TEXTES = {
     penalite: '+{s} s ✂ virage coupé',
     fauxDepart: '+{s} s faux départ',
     // l'arrêt au stand (étape 7, ?pneus=1)
-    standConseille: 'Arrêt au stand obligatoire : tour {t} conseillé (+{s} s sans arrêt)', standEnCours: 'Arrêt au stand… {s}', standFait: 'Pneus neufs ! Arrêt {s}',
+    standConseille: 'Arrêt au stand obligatoire : tour {t} conseillé (+{s} s sans arrêt)', standEnCours: 'Arrêt au stand… {s}', standFait: 'Pneus neufs ! Arrêt {s}', standPneusChoisi: 'Pneus : {p} — ← → pour changer', standPneusMontes: 'Pneus {p} montés ! Arrêt {s}', standArreteIci: 'Arrête-toi à ton stand (freine jusqu’à l’arrêt)',
     standTour: 'STAND', resultatArret: 'stand T{t}',
     // la météo (meteo.js)
     meteo_pluieArrive: 'La pluie arrive !', meteo_pisteSeche: 'La piste sèche', meteo_prevision_sec: 'Sec', meteo_prevision_nuageux: 'Nuageux ({p} % de pluie)', meteo_prevision_risque: 'Risque de pluie : {p} %', meteo_prevision_pluie: 'Pluie',

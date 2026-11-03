@@ -280,12 +280,24 @@ function contactPiste(v, circuit) {
   // (les rampes d'entrée et de sortie sont goudronnées, du bord de la piste jusqu'au bord de la voie)
   const rampe = !!(st && st.rampe && p.d * st.cote > 0 && p.d * st.cote < st.dExt + R.MARGE_HERBE);
   v.surHerbe = dedans || rampe ? false : Math.abs(p.d) > circuit.largeur / 2 + R.MARGE_HERBE;
-  if (dedans) {
+  // (tour 45a : pour le joueur, un limiteur sans à-coup : dans la rampe d'entrée et la voie, au-dessus de la limite, la voiture ralentit de
+  // STAND_LIMITEUR m/s² ; plus de saut à 80 km/h ; la pénalité STAND_PENALITE_VITESSE vaut 0, un réglage à remettre si on veut. Les IA :
+  // comme avant, au bit près (elles visent STAND_VITESSE_VISEE, sous la limite))
+  const entree = !!(st && st.rampe && st.depuis < R.STAND_RAMPE && p.d * st.cote > circuit.largeur / 2);
+  if (!v.ia && R.STAND_LIMITEUR && (dedans || entree)) {
+    if (v.u > R.STAND_VITESSE_MAX) {
+      if (!v.standsExces) { v.standsExces = true; v.excesStands = (v.excesStands || 0) + 1; v.penalitesStands += R.STAND_PENALITE_VITESSE; }
+      // (déjà à la limite au pas d'avant : il la tient, le moteur ne la dépasse pas ; sinon il descend en douceur)
+      v.u = v.uLimiteur !== undefined && v.uLimiteur <= R.STAND_VITESSE_MAX + 1e-9 ? R.STAND_VITESSE_MAX : Math.max(R.STAND_VITESSE_MAX, v.u - R.STAND_LIMITEUR * R.PAS_PHYSIQUE);
+    }
+    v.uLimiteur = v.u;
+  } else if (dedans) {
     if (v.u > R.STAND_VITESSE_MAX) {
       if (!v.standsExces) { v.standsExces = true; v.penalitesStands += R.STAND_PENALITE_VITESSE; }
       v.u = R.STAND_VITESSE_MAX;
     }
   } else v.standsExces = false;
+  if (!dedans && !entree) v.uLimiteur = undefined;
   v.dansStands = dedans;
   // de quel côté du muret elle est (simulation.js, voituresVues : on ne voit pas une voiture de l'autre côté) : 1 la piste, 2 la voie, 0 sans muret ici
   v.campStands = st && !st.rampe ? (st.voie ? 2 : 1) : 0;

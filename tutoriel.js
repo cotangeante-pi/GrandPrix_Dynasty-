@@ -45,7 +45,7 @@ const TUTORIEL = (function () {
       ecran: J.ecran, etat: c ? c.etat : null, tours: c && c.tours ? c.tours.length : 0, temps: c ? c.temps || 0 : 0,
       herbe: !!(v && v.surHerbe), s: v && v.piste ? v.piste.s : null, vitesse: v ? Math.abs(v.u) : 0,
       depart: d ? { lance: d.lance, resultat: d.resultat || null, extinction: d.extinction, t: d.t } : null,
-      arrets: c && c.arrets ? c.arrets.length : 0, arretEnCours: !!(c && c.arretEnCours), penalitesStands: v ? v.penalitesStands || 0 : 0,
+      arrets: c && c.arrets ? c.arrets.length : 0, arretEnCours: !!(c && c.arretEnCours), penalitesStands: v ? v.penalitesStands || 0 : 0, excesStands: v ? v.excesStands || 0 : 0,   // (tour 45a : le limiteur a dû ralentir la voiture, entrée trop vite)
       pneus: v ? v.typePneus || 'slick' : 'slick', eau: J.plateau && J.plateau.meteo ? J.plateau.meteo.eau : 0,
       devant: !!(ordre && J.plateau && ordre.length > 1 && ordre[0].k === J.suivie),
       longueur: circuit ? circuit.longueur : 0,
@@ -129,13 +129,13 @@ const TUTORIEL = (function () {
         if (s.etat === 'finie') return fini(su, 'ratee', 'pasDevant');
         break;
       case 'stand':
-        if (s.penalitesStands > 0) return fini(su, 'ratee', 'vitesse');
+        if (s.penalitesStands > 0 || s.excesStands > 0) return fini(su, 'ratee', 'vitesse');   // (tour 45a : plus de pénalité de vitesse, mais le limiteur qui a dû agir rate la leçon)
         if (s.arrets >= 1 && !s.arretEnCours) return fini(su, 'reussie');
         if (s.etat === 'finie') return fini(su, 'ratee', 'pasArret');
         break;
       case 'pluie':
         if (s.eau >= R.TUTO_PLUIE_EAU) su.pluieVue = true;
-        if (s.penalitesStands > 0) return fini(su, 'ratee', 'vitesse');
+        if (s.penalitesStands > 0 || s.excesStands > 0) return fini(su, 'ratee', 'vitesse');
         if (su.pluieVue && s.arrets >= 1 && !s.arretEnCours) return s.pneus !== 'slick' ? fini(su, 'reussie') : fini(su, 'ratee', 'pneus');
         if (s.etat === 'finie') return fini(su, 'ratee', 'pasArret');
         break;

@@ -131,7 +131,8 @@ function majCourse(c, v, dt) {
   c.sAvant = s; c.xAvant = v.x; c.zAvant = v.z;
 
   // le virage coupé : pendant une sortie, on compare l'avance le long de la piste et la distance roulée
-  const dehors = Math.abs(v.piste.d) > c.circuit.largeur / 2 + R.MARGE_COUPE;
+  // (tour 45a : dans la voie des stands et ses rampes, jamais de virage coupé)
+  const dehors = Math.abs(v.piste.d) > c.circuit.largeur / 2 + R.MARGE_COUPE && !(c.circuit.stands && (v.dansStands || v.rampeStands));
   if (dehors) {
     if (!c.sortie) c.sortie = { progression: c.progression - ds, roule: 0 };
     c.sortie.roule += roule;
@@ -178,6 +179,7 @@ function pasArretStand(c, v, dt) {
     if (a.reste <= 0) {
       arretAuStand(v.pneus, v.changeurs || 0);
       if (v.pneusProchain) v.typePneus = v.pneusProchain;
+      c.pneusMontes = v.typePneus || 'slick';   // (l'écran : « Pneus pluie montés »)
       v.choixPneus = false;   // (le prochain arrêt : l'équipe propose de nouveau)   // la météo (meteo.js) : les pneus choisis pour cet arrêt (slick, intermédiaire, pluie)
       v.adherence = facteurAdherence(v.pneus.usure);
       c.arrets.push({ tour: a.tour, duree: a.duree, usure: a.usure });
@@ -187,6 +189,7 @@ function pasArretStand(c, v, dt) {
     c.xAvant = v.x; c.zAvant = v.z;
     return true;
   }
+  c.dansVoie = !!v.dansStands;   // (l'écran : « arrête-toi ici » dans la voie, interface.js)
   if (!v.dansStands) { c.arretPassage = false; return false; }
   if (c.arretPassage || v.u >= R.STAND_VITESSE_ARRET) return false;
   const z = zoneStands(c.circuit, v.piste.s, v.piste.d);

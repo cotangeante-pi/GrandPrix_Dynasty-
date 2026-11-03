@@ -686,9 +686,9 @@ def stand_ecran(pg, titre):
     for _ in range(40):
         pg.evaluate('() => BOUCLE.simuler(1)')
         if pg.evaluate('() => JEU.course.arrets.length === 1'): break
-    attendre(pg, '() => /Pneus neufs/.test(document.getElementById("hudStand").textContent)', None, 2000)   # (l'affichage suit à l'image suivante)
+    attendre(pg, '() => /Pneus neufs|montés/.test(document.getElementById("hudStand").textContent)', None, 2000)   # (l'affichage suit à l'image suivante ; tour 45a : « Pneus … montés ! »)
     neufs = pg.evaluate('() => [JEU.course.arrets.length, JEU.joueur.pneus.usure, document.getElementById("hudStand").textContent, JEU.course.penalites]')
-    t(f'{titre} : il repart avec des pneus neufs (« Pneus neufs ! »), sans pénalité', neufs[0] == 1 and neufs[1] < 0.05 and 'Pneus neufs' in neufs[2] and neufs[3] == 0, str(neufs))
+    t(f'{titre} : il repart avec des pneus neufs (« Pneus … montés ! », tour 45a), sans pénalité', neufs[0] == 1 and neufs[1] < 0.05 and 'montés' in neufs[2] and neufs[3] == 0, str(neufs))
     for _ in range(20):
         pg.evaluate('() => BOUCLE.simuler(2)')
         if pg.evaluate('() => !JEU.joueur.versStands'): break
