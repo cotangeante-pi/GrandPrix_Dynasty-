@@ -879,6 +879,13 @@ const REGLAGES = {
   STAND_MUR: 1.5,               // m au-delà du bord de la piste : le muret entre la piste et la voie
   STAND_LARGEUR: 7,             // m : la largeur de la voie, au-delà du muret
   STAND_RAMPE: 60,              // m : l'entrée et la sortie, où la voie est ouverte sur la piste (pas de muret)
+  // le panneau « 80 » et la ligne de la voie des stands (scene3d.js, tour 45b2) : le dessin seulement
+  PANNEAU_STANDS_RECUL: 25,      // m avant l'entrée de la voie (avant sa rampe)…
+  PANNEAU_STANDS_ECART: 1.5,     // … à tant de m au-delà du bord extérieur de la voie
+  PANNEAU_STANDS_HAUTEUR: 2.4,   // m : le centre du panneau
+  PANNEAU_STANDS_TAILLE: 1.8,    // m : son diamètre
+  PANNEAU_STANDS_LIGNE: 4,       // m après l'entrée : la ligne peinte en travers de la voie…
+  PANNEAU_STANDS_LIGNE_LARGEUR: 0.5,   // … et sa largeur
   STAND_ENTREE_MAX: 300,        // m avant la ligne, au plus, où la voie commence (dans la dernière ligne droite)…
   STAND_SORTIE_MAX: 250,        // m après la ligne, au plus, où elle rejoint la piste (dans la première ligne droite)
   STAND_MARGE_DROITE: 60,       // m : la voie s'arrête au moins à ça de la fin d'une ligne droite
@@ -967,11 +974,12 @@ const REGLAGES = {
   MESSAGES_DUREE: 3, MESSAGES_FILE_MAX: 4,
   // le commentateur (commentaire.js, CLAUDE.md « Le commentateur ») : ses phrases passent dans le bandeau des messages de course
   COMMENTAIRE_MODE: 'tout',       // 'tout', 'joueur' (seulement les faits du joueur, et l'arrivée) ou 'non' (coupé)
-  COMMENTAIRE_INTERVALLE: 5,      // s : au plus une phrase tous les tant
+  COMMENTAIRE_INTERVALLE: 2.5,    // s : au plus une phrase tous les tant (tour 45c, le propriétaire 2026-11-02 : « presque en tout temps » ; c'était 5)
   COMMENTAIRE_LONGUEUR_MAX: 60,   // caractères d'une phrase au plus (les noms comptés à 7 lettres) : court, pour ne pas lire en pilotant
   COMMENTAIRE_PEREMPTION: 8,      // s : un fait plus vieux n'est plus dit
   COMMENTAIRE_FILE_MAX: 6,
-  COMMENTAIRE_PRIORITES: { arrivee: 10, podium: 9, arret: 6, depart: 9, depassementTete: 9, dernierTour: 8, joueurArrivee: 8, contact: 7, depassementJoueur: 6, pluie: 6, coteACote: 5, erreur: 5, penalite: 5, depassement: 4, stands: 3, meilleurTour: 3, joueurTete: 2, joueurPlace: 2, glissade: 6 },
+  COMMENTAIRE_PRIORITES: { arrivee: 10, podium: 9, arret: 6, depart: 9, depassementTete: 9, dernierTour: 8, joueurArrivee: 8, contact: 7, depassementJoueur: 6, pluie: 6, coteACote: 5, erreur: 5, penalite: 5, depassement: 4, stands: 3, meilleurTour: 3, joueurTete: 2, joueurPlace: 2, glissade: 6,
+    combleTete: 0, combleBagarre: 0, combleTours: 0, combleJoueur: 0, combleMeteo: 0, combleSec: 0, combleChamp: 0, combleChampTete: 0, combleChampProjection: 0 },   // (tour 45c : ce qu'il dit entre deux faits, jamais devant un fait)
   COMMENTAIRE_BONUS_JOUEUR: 2,    // un fait du joueur passe devant (plus de phrases quand le joueur est concerné)
   COMMENTAIRE_GLISSADE_INTERVALLE: 60,   // s : une glissade rattrapée du joueur n'est redite qu'après ça (tour 43)
   COMMENTAIRE_PLACE_MAX: 10,      // les dépassements, erreurs et côte à côte des voitures plus loin ne sont pas commentés (sauf le joueur)
@@ -982,6 +990,12 @@ const REGLAGES = {
   COMMENTAIRE_ARRET_VITESSE: 2, COMMENTAIRE_ARRET_DUREE: 4,   // m/s, s : une voiture arrêtée en piste
   COMMENTAIRE_VIRAGE_COURBURE: 1 / 60,  // le joueur dans un virage plus serré (rayon < 60 m) : le commentateur attend…
   COMMENTAIRE_VIRAGE_ATTENTE: 1.5,      // … les premières secondes du virage
+  // (tour 45c, le propriétaire 2026-11-02) il comble les silences : entre deux faits, une phrase sur ce que la course montre déjà, à tour de rôle
+  COMMENTAIRE_COMBLE: ['combleTete', 'combleBagarre', 'combleTours', 'combleJoueur', 'combleChampionnat', 'combleMeteo'],   // (combleChampionnat : en carrière seulement, tour 45c2)
+  COMMENTAIRE_COMBLE_APRES_DEPART: 2,   // s après le départ avant de combler
+  COMMENTAIRE_IMPORTANT: 7,       // la priorité à partir de laquelle une phrase passe devant les autres à la voix (dépassement du joueur, erreur, arrivée…)
+  VOIX_VOLUME: 0.7,               // la voix, sous le moteur : × le volume du commentateur (son.js)
+  VOIX_DEBIT: 1.1,                // la vitesse de la voix
   GRAINE_COMMENTAIRE: 15000,      // sa suite de hasard à lui (ALEATOIRE.suite) : la course ne change pas
   MESSAGES_PLUIE_SEUIL: 0.15, MESSAGES_SECHE_SEUIL: 0.15,   // la météo : « La pluie arrive » au-dessus de ce qui tombe, « La piste sèche » sous cette eau
   // le dessin de la météo (meteo3d.js ; l'état vient de meteo.js) : la pluie autour de la caméra, les gerbes, la piste mouillée, le ciel couvert

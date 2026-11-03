@@ -1241,7 +1241,7 @@ function quitterGarage() {
 function pause(oui) {
   if (oui && JEU.ecran === 'course' && JEU.deux) INTERFACE.remplirTouchesDeux(MANETTE.lireManettes().length);   // à deux : les touches des deux dans le menu pause
   INTERFACE.montrerTouchesPause(!!JEU.deux);
-  if (oui && JEU.ecran === 'course') { JEU.ecran = 'pause'; INTERFACE.montrer('pause'); }
+  if (oui && JEU.ecran === 'course') { JEU.ecran = 'pause'; INTERFACE.montrer('pause'); if (typeof VOIX !== 'undefined') VOIX.taire(); }   // (la voix se tait en pause, tour 45c)
   else if (!oui && JEU.ecran === 'pause') { JEU.ecran = 'course'; INTERFACE.montrer('course'); }
 }
 
@@ -1798,9 +1798,17 @@ function majCommentaire(e, m) {
   if (!serre) JEU.commentaire.virage = null; else if (JEU.commentaire.virage === null) JEU.commentaire.virage = e.temps;
   const attendre = serre && e.temps - JEU.commentaire.virage < REGLAGES.COMMENTAIRE_VIRAGE_ATTENTE;
   const etatMeteo = typeof METEO3D !== 'undefined' ? METEO3D.etat(e) : null;
-  COMMENTAIRE.observer(c, e, { joueur: j, pluie: etatMeteo ? etatMeteo.pluie : 0, circuit: texte('circuit_' + NOM_CIRCUIT) || CIRCUIT.nom, lieu: texte('lieu_' + NOM_CIRCUIT) || texte('circuit_' + NOM_CIRCUIT) || CIRCUIT.nom });
+  // (tour 45c2) le championnat, en carrière seulement (jamais en course seule ni à deux) : les points d'avant la course, par pilote
+  const champ = JEU.championnat && !JEU.deux && !JEU.tournoi && j >= 0 ? { joueur: j, points: JEU.championnat.pilotes.map(p => p.stats ? p.stats.points : 0), pointsPour: CHAMPIONNAT.pointsPour } : null;
+  COMMENTAIRE.observer(c, e, { joueur: j, championnat: champ, pluie: etatMeteo ? etatMeteo.pluie : 0, circuit: texte('circuit_' + NOM_CIRCUIT) || CIRCUIT.nom, lieu: texte('lieu_' + NOM_CIRCUIT) || texte('circuit_' + NOM_CIRCUIT) || CIRCUIT.nom });
   const it = COMMENTAIRE.afficher(c, e.temps, attendre);
-  if (it) { MESSAGES.pousserTexte(m, { type: 'commentaire', texte: '🎙 ' + texte('commentateur') + texte('deuxPoints') + COMMENTAIRE.phrase(it, etiquetteVoiture, INTERFACE.formatTemps) }); SON.signal('commentaire'); }
+  if (it) {
+    const dit = COMMENTAIRE.phrase(it, etiquetteVoiture, INTERFACE.formatTemps);
+    MESSAGES.pousserTexte(m, { type: 'commentaire', texte: '🎙 ' + texte('commentateur') + texte('deuxPoints') + dit });
+    if (!it.comble) SON.signal('commentaire');   // (le petit signal pour les faits, pas pour ce qui comble)
+    if (typeof VOIX !== 'undefined' && JEU.ecran === 'course') VOIX.dire(dit, it.prio >= REGLAGES.COMMENTAIRE_IMPORTANT);   // (tour 45c : à voix haute)
+  }
+  if (typeof VOIX !== 'undefined' && JEU.ecran !== 'course' && (VOIX.parle || VOIX.enAttente)) VOIX.taire();   // (la pause, l'arrivée : il se tait)
 }
 
 // l'affichage provisoire : la vitesse et « hors piste »
@@ -2029,6 +2037,14 @@ function demarrerJeu() {
   INTERFACE.preparerFantome(basculerFantome);
   // le commentateur se règle dans le menu pause : tout, seulement tes faits, ou coupé (sauvegardé, commentaire.js lit COMMENTAIRE_MODE)
   {
+    // (tour 45c) la voix du commentateur : oui / non, sauvegardé (voix.js)
+    const bv = document.getElementById('boutonVoixPause');
+    if (bv && typeof VOIX !== 'undefined') {
+      const ecrireVoix = () => { bv.textContent = texte(VOIX.active ? 'voix_oui' : 'voix_non'); };
+      ecrireVoix();
+      bv.addEventListener('mousedown', e => e.preventDefault());
+      bv.addEventListener('click', () => { VOIX.regler(!VOIX.active); ecrireVoix(); });
+    }
     const MODES = ['tout', 'joueur', 'non'], b = document.getElementById('boutonCommentairePause');
     REGLAGES.COMMENTAIRE_MODE = MODES.includes(SAUVEGARDE.option('commentaire', REGLAGES.COMMENTAIRE_MODE)) ? SAUVEGARDE.option('commentaire', REGLAGES.COMMENTAIRE_MODE) : REGLAGES.COMMENTAIRE_MODE;
     const ecrire = () => { b.textContent = texte('commentaire_' + REGLAGES.COMMENTAIRE_MODE); };
