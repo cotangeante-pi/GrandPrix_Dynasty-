@@ -1122,3 +1122,15 @@ Object.assign(TEXTES.fr, {
   tch_manette: 'Manette : gâchette droite pour accélérer, gauche pour freiner, stick pour tourner, A pour revenir en piste',
   tch_titrePause: 'Touches',
 });
+
+// (tour 45c2, Codeur 3) le commentateur parle du championnat, en carrière : la place du joueur, le leader, ce que donnerait l'arrivée
+Object.assign(TEXTES.en, {
+  com_combleChamp: ['Title race: you’re P{place}, {n} points off {qui}.', 'P{place} in the title race, {n} points behind {qui}.', '{qui} leads the title, {n} points ahead of you.'],
+  com_combleChampTete: ['You lead the championship by {n} points over {qui}.', 'Top of the table: {n} points clear of {qui}.', '{qui} is {n} points behind you in the title race.'],
+  com_combleChampProjection: ['If it ends like this, you take the title lead!', 'As it stands, you’d go top of the championship!', 'Finish like this and {qui} loses the lead!'],
+});
+Object.assign(TEXTES.fr, {
+  com_combleChamp: ['Au championnat, tu es P{place}, à {n} points de {qui}.', 'P{place} au championnat, à {n} points de {qui}.', '{qui} mène le championnat, {n} points devant toi.'],
+  com_combleChampTete: ['Tu mènes le championnat, {n} points devant {qui}.', 'En tête du championnat, {n} points devant {qui}.', '{qui} est à {n} points de toi au championnat.'],
+  com_combleChampProjection: ['Si ça finit comme ça, tu prends la tête du championnat !', 'En l’état, tu passerais en tête du championnat !', 'Arrivée comme ça, et {qui} perd la tête !'],
+});
