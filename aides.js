@@ -27,14 +27,16 @@ const AIDES = (function () {
     // la première consigne d'équipe qui vise le joueur, tant qu'il n'a pas répondu
     { id: 'consigne', genre: 'course', quand: s => enCourse(s) && s.consigne, faite: s => !s.consigne },
     // les écrans entre les courses : le garage, l'aileron, le duel au paddock, les contrats, l'interview
+    // (tour 37l) le premier choix des pneus, quand le pneu drift existe (au garage, avant les qualifications) : adhérant ou drift
+    { id: 'pneus', genre: 'menu', quand: s => s.ecran === 'garage' && s.pneusDrift && s.pneusTouches, faite: () => false },   // (au premier clic sur un pneu)
     { id: 'garage', genre: 'menu', quand: s => s.ecran === 'garage', faite: () => false },
     { id: 'aileron', genre: 'menu', quand: s => s.ecran === 'aileron', faite: () => false },
     { id: 'duel', genre: 'menu', quand: s => s.ecran === 'championnat' && s.coequipier && !s.choixAides, faite: () => false },   // (le choix des aides ouvert par-dessus : sa bulle à lui)
     { id: 'contrats', genre: 'menu', quand: s => s.ecran === 'contrats', faite: () => false },
     { id: 'interview', genre: 'menu', quand: s => s.ecran === 'interview', faite: () => false },
-    // (tour 37g, Codeur 3) la voiture « vivante » des niveaux expert et légende : la première course, en ligne droite (l'arrière peut
-    // glisser si l'on freine en braquant : freiner droit, puis tourner)
-    { id: 'vivante', genre: 'course', quand: s => enCourse(s) && s.etat === 'course' && s.niveauDur, faite: () => false },
+    // (tours 37g, 37l) les pneus drift (la voiture vivante, la règle du propriétaire du 2026-10-29) : la première course avec eux, en ligne droite
+    // (l'arrière peut partir : freiner droit, contre-braquer pour rattraper)
+    { id: 'vivante', genre: 'course', quand: s => enCourse(s) && s.etat === 'course' && s.drift, faite: () => false },
     // (tour 37g) la première fois qu'on ouvre le choix des aides au pilotage (interface.js, ouvrirAides) : ce que fait chaque aide, le bonus
     { id: 'choixAides', genre: 'menu', quand: s => s.choixAides, faite: () => false },
   ];
@@ -71,7 +73,9 @@ const AIDES = (function () {
       coequipier: !!J.championnat,
       vitesse: v ? Math.abs(v.u) : 0, frein: v ? v.frein || 0 : 0, direction: v ? v.direction || 0 : 0,
       courbure: courbureDevant(circuit, v),
-      niveauDur: R.NIVEAU === 'expert' || R.NIVEAU === 'legende', choixAides: !!J.choixAides,
+      // (tour 37l) le pneu drift du joueur (pneus.js : v.typePneus === 'drift')
+      drift: !!(v && v.typePneus === 'drift'),
+      pneusDrift: typeof METEO !== 'undefined' && Array.isArray(METEO.TYPES) && METEO.TYPES.includes('drift'), choixAides: !!J.choixAides, pneusTouches: !!J.pneusTouches,
     };
   }
 

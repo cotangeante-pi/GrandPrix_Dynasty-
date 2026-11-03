@@ -112,6 +112,7 @@ function lancerCourse(nbTours) {
     appliquerCaracteres();
     armerFeux(JEU.plateau.pilotes, graine);
     JEU.deux.rivaliteNotee = false;
+    JEU.rappelDeux = TOUCHES_DEUX_ECRAN.creerRappel();   // le rappel des touches de chacun, pendant les feux et les premières secondes (touches.js)
   } else if (JEU.ia >= 2 || JEU.contre) {
     // ?championnat=1 : le niveau de l'écurie sur le rythme de chaque IA, avant que la carte leur donne un pilote
     JEU.plateau = creerCourseIA(CIRCUIT, JEU.ia, nbTours, Number(PARAMETRES.get('graine')) || 1, JEU.championnat ? null : JEU.carte, JEU.contre);
@@ -137,6 +138,7 @@ function lancerCourse(nbTours) {
   // ?pneus=1 : des pneus neufs à chaque course, seulement sur la voiture que le joueur conduit (jamais sur une IA suivie)
   JEU.joueur.pneus = REGLAGES.PNEUS_ACTIFS && (JEU.contre || !JEU.plateau) ? creerPneus() : null;
   JEU.joueur.adherence = 1;
+  if (PARAMETRES.get('pneus') === 'drift') JEU.joueur.typePneus = 'drift';   // (?pneus=drift : la voiture vivante, le pneu drift ; la leçon 8 du tutoriel, les tests)
   if (JEU.deux) { const v2 = DEUX_JOUEURS.joueurs(JEU.plateau)[1].v; v2.pneus = JEU.joueur.pneus ? creerPneus() : null; v2.adherence = 1; }   // le joueur 2 : la même voiture
   AILERON.appliquer(JEU.joueur, JEU.championnat ? AILERON.cranDe(JEU.championnat, NOM_CIRCUIT) : null);   // l'aileron du joueur sur ce circuit (aileron.js ; le milieu = rien)
   GARAGE.appliquer(JEU.joueur, JEU.championnat ? JEU.championnat.garage : null, niveauEcurieJoueur());   // ?championnat=1 : les améliorations du garage × le niveau de l'écurie, sur la voiture du joueur (1 = rien sans championnat)
@@ -578,6 +580,7 @@ function retourTitre() {
 function ouvrirDeux() {
   if (JEU.ecran !== 'amis') return;
   INTERFACE.remplirDeux(DEUX_JOUEURS.completer(SAUVEGARDE.deux()));
+  INTERFACE.remplirTouchesDeux(MANETTE.lireManettes().length);   // la carte des touches de chacun (touches.js)
   JEU.ecran = 'deuxReglages';
   INTERFACE.montrer('deuxReglages');
 }
@@ -1178,6 +1181,7 @@ function montrerGarage() {
 // les pneus du départ (la météo, Codeur 1), choisis au garage : gardés dans le championnat jusqu'au départ du prochain Grand Prix
 function choisirPneusDepart(type) {
   if (JEU.ecran !== 'garage') return;
+  JEU.pneusTouches = true;   // (tour 37l : le premier choix des pneus, sa bulle d'aide : aides.js, pneus)
   JEU.championnat.pneusDepart = type || null;
   SAUVEGARDE.ecrireChampionnat(JEU.championnat);
   INTERFACE.remplirGarage(JEU.championnat);
@@ -1235,7 +1239,9 @@ function quitterGarage() {
 }
 
 function pause(oui) {
-  if (oui && JEU.ecran === 'course') { JEU.ecran = 'pause'; INTERFACE.montrer('pause'); }
+  if (oui && JEU.ecran === 'course' && JEU.deux) INTERFACE.remplirTouchesDeux(MANETTE.lireManettes().length);   // à deux : les touches des deux dans le menu pause
+  INTERFACE.montrerTouchesPause(!!JEU.deux);
+  if (oui && JEU.ecran === 'course') { JEU.ecran = 'pause'; INTERFACE.montrer('pause'); if (typeof VOIX !== 'undefined') VOIX.taire(); }   // (la voix se tait en pause, tour 45c)
   else if (!oui && JEU.ecran === 'pause') { JEU.ecran = 'course'; INTERFACE.montrer('course'); }
 }
 
@@ -1307,14 +1313,19 @@ function attendreLesAutres() {
   // les mêmes pas de physique que la boucle (BOUCLE.simuler d'un pas), sans les dessiner, au plus ARRIVEE_TRANCHE_MS ; les places et
   // les temps sont ceux qu'on aurait eus en regardant ; ARRIVEE_ATTENTE_MAX reste le filet (une voiture bloquée)
   if (JEU.attente.passer && !(JEU.attente.suivi && ARRIVEE.podiumPretAccelere(e, JEU.attente.suivi))) {
-    const R = REGLAGES, nb = Math.max(1, Math.round(R.ARRIVEE_ACCELERE * Math.min(JEU.dtImage || 0, R.PAS_MAX_PAR_IMAGE * R.PAS_PHYSIQUE) / R.PAS_PHYSIQUE));
+    const R = REGLAGES;
     if (!JEU.attente.suivi) { JEU.attente.suivi = ARRIVEE.creerSuivi(e); JEU.attente.debutReel = performance.now(); }
-    const r = ARRIVEE.accelerer(e, () => BOUCLE.simuler(R.PAS_PHYSIQUE), nb, R.ARRIVEE_TRANCHE_MS, arrivee, () => performance.now(), JEU.attente.suivi);
+    // (tour 46, l'arrivée lente : au plafond de temps réel, ARRIVEE_ACCELERE_MAX_REEL, la fin de la course n'est plus classée dans l'ordre
+    // de course : elle est jouée pour de vrai, aussi vite que possible, par tranches de ARRIVEE_TRANCHE_FIN_MS, sans dessin)
+    const finRapide = performance.now() - JEU.attente.debutReel >= R.ARRIVEE_ACCELERE_MAX_REEL * 1000;
+    const nb = finRapide ? Infinity : Math.max(1, Math.round(R.ARRIVEE_ACCELERE * Math.min(JEU.dtImage || 0, R.PAS_MAX_PAR_IMAGE * R.PAS_PHYSIQUE) / R.PAS_PHYSIQUE));
+    const r = ARRIVEE.accelerer(e, () => BOUCLE.simuler(R.PAS_PHYSIQUE), nb, finRapide ? R.ARRIVEE_TRANCHE_FIN_MS : R.ARRIVEE_TRANCHE_MS, arrivee, () => performance.now(), JEU.attente.suivi);
     JEU.attente.accelere = (JEU.attente.accelere || 0) + r.pas;
   }
   majAttente();
   // en accéléré : tout le monde a fini (sauf une voiture bloquée), ou le plafond de temps réel ; en regardant : podiumPret (ARRIVEE_ATTENTE_MAX)
-  const a = JEU.attente, pret = a.suivi ? ARRIVEE.podiumPretAccelere(e, a.suivi) || performance.now() - a.debutReel >= REGLAGES.ARRIVEE_ACCELERE_MAX_REEL * 1000 : ARRIVEE.podiumPret(e, e.temps - arrivee);
+  // (tour 46 : plus de podium au plafond de temps réel : la course finit pour de vrai ; une voiture bloquée reste le seul filet, ARRIVEE_BLOQUEE)
+  const a = JEU.attente, pret = a.suivi ? ARRIVEE.podiumPretAccelere(e, a.suivi) : ARRIVEE.podiumPret(e, e.temps - arrivee);
   if (pret) {
     finirAttente();
     montrerPodium();
@@ -1446,6 +1457,8 @@ function majCibles() {
   if (JEU.aides) { if (JEU.cibles.gaz) JEU.aides.gaz = true; if (JEU.cibles.direction) JEU.aides.direction = true; if (JEU.cibles.frein) JEU.aides.frein = true; }
   // le mode 2 joueurs : les commandes de chacun, de ses touches à lui (TOUCHES_DEUX, par e.code) ; l'autre n'y voit rien
   if (JEU.deux) for (const j of [1, 2]) JEU.deuxCommandes[j].cibles = DEUX_JOUEURS.cibles(enfoncees, j);
+  // (le rappel des touches, touches.js : une touche notée dès qu'elle est enfoncée, même plus brève qu'une image ; le temps ne bouge pas ici)
+  if (JEU.deux && JEU.rappelDeux) TOUCHES_DEUX_ECRAN.pasRappel(JEU.rappelDeux, { 1: JEU.deuxCommandes[1].cibles, 2: JEU.deuxCommandes[2].cibles }, true, 0);
 }
 
 function brancherClavier() {
@@ -1674,7 +1687,10 @@ function majClassementRadar() {
 }
 
 // le mode 2 joueurs : l'affichage de chaque moitié (place, tour, vitesse, écart avec l'autre joueur), pendant la course et la pause
-function majDeuxHud() {
+function majDeuxHud(dt) {
+  // le rappel des touches (touches.js) : pendant la course seulement, compté depuis l'extinction des feux ; les commandes de chacun, clavier et manette
+  if (JEU.deux && JEU.rappelDeux && JEU.ecran === 'course') TOUCHES_DEUX_ECRAN.pasRappel(JEU.rappelDeux, { 1: JEU.deuxCommandes[1].cibles, 2: JEU.deuxCommandes[2].cibles }, !!(JEU.course && JEU.course.feux && JEU.course.etat === 'compte'), dt || 0);
+  INTERFACE.majRappelDeux(JEU.deux && JEU.ecran === 'course' ? JEU.rappelDeux : null);
   if (!JEU.deux || !JEU.plateau || !(JEU.ecran === 'course' || JEU.ecran === 'pause')) { INTERFACE.majDeux(null); return; }
   const e = JEU.plateau, ordre = classementCourse(e), [p1, p2] = DEUX_JOUEURS.joueurs(e), k1 = e.pilotes.indexOf(p1), k2 = e.pilotes.indexOf(p2);
   const ecart = ecartEntre(ordre, k1, k2);   // > 0 : le joueur 2 est derrière le joueur 1
@@ -1729,7 +1745,7 @@ function majVolant() {
 // ?pneus=1 : l'état des pneus du joueur (pneus.js), pendant qu'il roule : l'usure en jauge et ce que l'adhérence a perdu
 function majPneusHud() {
   const v = JEU.joueur, oui = !!(v && v.pneus) && (JEU.ecran === 'course' || JEU.ecran === 'pause' || enTourQualif()) && !JEU.deux;
-  INTERFACE.majPneus(oui ? { reste: 1 - v.pneus.usure, perte: 1 - (v.adherence === undefined ? 1 : v.adherence) } : null);
+  INTERFACE.majPneus(oui ? { reste: 1 - v.pneus.usure, perte: 1 - (v.adherence === undefined ? 1 : v.adherence), type: typeof PNEUS_CHOIX !== 'undefined' ? PNEUS_CHOIX.de(v) : (v.typePneus || 'slick') } : null);   // (tour 37l : le pneu monté, son icône)
 }
 
 // les messages de course (messages.js) : les faits du moteur (meilleur tour, pénalités, stands), lus seulement ; un à la fois
@@ -1755,9 +1771,17 @@ function majCommentaire(e, m) {
   if (!serre) JEU.commentaire.virage = null; else if (JEU.commentaire.virage === null) JEU.commentaire.virage = e.temps;
   const attendre = serre && e.temps - JEU.commentaire.virage < REGLAGES.COMMENTAIRE_VIRAGE_ATTENTE;
   const etatMeteo = typeof METEO3D !== 'undefined' ? METEO3D.etat(e) : null;
-  COMMENTAIRE.observer(c, e, { joueur: j, pluie: etatMeteo ? etatMeteo.pluie : 0, circuit: texte('circuit_' + NOM_CIRCUIT) || CIRCUIT.nom, lieu: texte('lieu_' + NOM_CIRCUIT) || texte('circuit_' + NOM_CIRCUIT) || CIRCUIT.nom });
+  // (tour 45c2) le championnat, en carrière seulement (jamais en course seule ni à deux) : les points d'avant la course, par pilote
+  const champ = JEU.championnat && !JEU.deux && !JEU.tournoi && j >= 0 ? { joueur: j, points: JEU.championnat.pilotes.map(p => p.stats ? p.stats.points : 0), pointsPour: CHAMPIONNAT.pointsPour } : null;
+  COMMENTAIRE.observer(c, e, { joueur: j, championnat: champ, pluie: etatMeteo ? etatMeteo.pluie : 0, circuit: texte('circuit_' + NOM_CIRCUIT) || CIRCUIT.nom, lieu: texte('lieu_' + NOM_CIRCUIT) || texte('circuit_' + NOM_CIRCUIT) || CIRCUIT.nom });
   const it = COMMENTAIRE.afficher(c, e.temps, attendre);
-  if (it) { MESSAGES.pousserTexte(m, { type: 'commentaire', texte: '🎙 ' + texte('commentateur') + texte('deuxPoints') + COMMENTAIRE.phrase(it, etiquetteVoiture, INTERFACE.formatTemps) }); SON.signal('commentaire'); }
+  if (it) {
+    const dit = COMMENTAIRE.phrase(it, etiquetteVoiture, INTERFACE.formatTemps);
+    MESSAGES.pousserTexte(m, { type: 'commentaire', texte: '🎙 ' + texte('commentateur') + texte('deuxPoints') + dit });
+    if (!it.comble) SON.signal('commentaire');   // (le petit signal pour les faits, pas pour ce qui comble)
+    if (typeof VOIX !== 'undefined' && JEU.ecran === 'course') VOIX.dire(dit, it.prio >= REGLAGES.COMMENTAIRE_IMPORTANT);   // (tour 45c : à voix haute)
+  }
+  if (typeof VOIX !== 'undefined' && JEU.ecran !== 'course' && (VOIX.parle || VOIX.enAttente)) VOIX.taire();   // (la pause, l'arrivée : il se tait)
 }
 
 // l'affichage provisoire : la vitesse et « hors piste »
@@ -1986,6 +2010,14 @@ function demarrerJeu() {
   INTERFACE.preparerFantome(basculerFantome);
   // le commentateur se règle dans le menu pause : tout, seulement tes faits, ou coupé (sauvegardé, commentaire.js lit COMMENTAIRE_MODE)
   {
+    // (tour 45c) la voix du commentateur : oui / non, sauvegardé (voix.js)
+    const bv = document.getElementById('boutonVoixPause');
+    if (bv && typeof VOIX !== 'undefined') {
+      const ecrireVoix = () => { bv.textContent = texte(VOIX.active ? 'voix_oui' : 'voix_non'); };
+      ecrireVoix();
+      bv.addEventListener('mousedown', e => e.preventDefault());
+      bv.addEventListener('click', () => { VOIX.regler(!VOIX.active); ecrireVoix(); });
+    }
     const MODES = ['tout', 'joueur', 'non'], b = document.getElementById('boutonCommentairePause');
     REGLAGES.COMMENTAIRE_MODE = MODES.includes(SAUVEGARDE.option('commentaire', REGLAGES.COMMENTAIRE_MODE)) ? SAUVEGARDE.option('commentaire', REGLAGES.COMMENTAIRE_MODE) : REGLAGES.COMMENTAIRE_MODE;
     const ecrire = () => { b.textContent = texte('commentaire_' + REGLAGES.COMMENTAIRE_MODE); };
@@ -2031,6 +2063,9 @@ function demarrerJeu() {
   // le choix (INTERFACE.preparerAides) s'ouvre du titre, du paddock, de la course rapide et du menu des leçons ; pendant la
   // qualification et la course, le menu pause les montre sans pouvoir les changer
   JEU.assistance = ASSISTANCE.reglees(SAUVEGARDE.option('aides_pilotage', null), REGLAGES.NIVEAU);
+  // les touches de chaque joueur à deux (touches.js) : la disposition du clavier, si le navigateur la donne, puis les cartes
+  INTERFACE.remplirTouchesDeux(MANETTE.lireManettes().length);
+  INTERFACE.lireDispositionClavier(() => INTERFACE.remplirTouchesDeux(MANETTE.lireManettes().length));
   INTERFACE.preparerAides({
     lire: () => JEU.assistance,
     changer: a => { if (['course', 'qualif', 'pause', 'grille'].includes(JEU.ecran)) return;   // (jamais pendant la course)
@@ -2081,6 +2116,10 @@ function demarrerJeu() {
   boutonSon.addEventListener('click', () => { SON.basculer(); majBoutonSon(); });
   window.addEventListener('keydown', e => { if (e.code === 'KeyM' && !e.repeat && !(e.target && e.target.tagName === 'INPUT' && e.target.type === 'text')) { SON.basculer(); majBoutonSon(); } });
   if (PARAMETRES.get('reglages') === '1') PANNEAU_REGLAGES.creer(cle => { if (cle === 'HALO_EPAISSEUR') VOITURE3D.majHalo(JEU.modele); });
+  // la mesure des images par seconde (mesure.js, tour 45) : rien sans la demander ; « Mesurer » dans ?reglages=1, ?ips=1, ?mesure=1
+  if (PARAMETRES.get('reglages') === '1') MESURE.boutonReglages(NOM_CIRCUIT);
+  if (PARAMETRES.get('ips') === '1') MESURE.compteur();
+  if (PARAMETRES.get('mesure') === '1') MESURE.mesurer(NOM_CIRCUIT);
 
   // (tour 37d, Codeur 4 : en piste en 10 secondes) pendant les feux, la boucle rattrape le temps réel (PAS_MAX_FEUX) : un ordinateur
   // lent ne fait plus durer les feux 20 s au lieu de 7 ; relu à chaque pas, le plafond normal revient au pas même de l'extinction
@@ -2127,7 +2166,7 @@ function demarrerJeu() {
     majFantome(dt);
     INTERFACE.majDepart(JEU.course, JEU.ecran, JEU.departRecord);
     INTERFACE.majDepart(JEU.deux ? DEUX_JOUEURS.joueurs(JEU.plateau)[1].course : null, JEU.ecran, false, '2');   // la jauge et le résultat du joueur 2, dans sa moitié
-    majDeuxHud();
+    majDeuxHud(dt);
     INTERFACE.majEcartFantome(enTourQualif() && JEU.fantome && JEU.fantome.rejeu && JEU.qualif.q.lance ? JEU.fantome.ecart : null);
     INTERFACE.majPreparation(JEU.ecran === 'course' && JEU.ia > 0 && !JEU.carte);
     majAides();
@@ -2160,7 +2199,8 @@ function demarrerJeu() {
       tournoi: !!JEU.tournoi, deux: !!JEU.deux, spectateur: !!JEU.plateau && !JEU.contre, carte: JEU.carte, force: JEU.conseilForce }), SCENE3D.relief);
     // la météo dessinée (meteo3d.js, l'état de meteo.js) : la pluie, les gerbes, la piste mouillée, le ciel couvert ; rien au sec
     if (typeof METEO3D !== 'undefined') METEO3D.maj(METEO3D.etat(JEU.plateau || JEU.course), SCENE3D.camera, JEU.plateau ? JEU.plateau.pilotes.map(p => p.v) : [JEU.joueur], dt, CAMERA.mode === 'cockpit' && JEU.ecran === 'course', CIRCUIT, JEU.carte ? JEU.carte.trajectoire : null);
-    SCENE3D.dessiner();
+    // (tour 46, l'arrivée lente : pendant « passer », la scène n'est redessinée qu'une image sur ARRIVEE_IMAGE_TOUS : le budget va au calcul)
+    if (!(JEU.attente && JEU.attente.passer) || ((JEU.attente.images = (JEU.attente.images || 0) + 1) % REGLAGES.ARRIVEE_IMAGE_TOUS) === 1) SCENE3D.dessiner();
     // la qualité automatique : sous QUALITE_IPS_MIN images par seconde pendant QUALITE_FENETRE s, un cran plus bas ; jamais pendant les feux
     if (JEU.qualite && JEU.qualiteAuto) { const n = QUALITE.observer(JEU.qualite, dt, !!(JEU.course && JEU.course.etat === 'compte')); if (n !== null) SCENE3D.reglerQualite(QUALITE.cran(n)); }
   });

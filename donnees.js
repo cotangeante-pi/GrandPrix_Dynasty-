@@ -38,8 +38,11 @@ const REGLAGES = {
   ADHERENCE_ARRIERE: 1.25,      // l'arrière accroche plus que l'avant : c'est l'avant qui glisse d'abord, pas de tête-à-queue
   STABILITE_LACET: 4,           // 1/s : la rotation de la voiture rejoint ce que demande le volant (aide arcade)
   ANTI_DERIVE: 2.5,             // 1/s : la glissade de côté s'amortit (aide arcade)
-  // la voiture vivante (expert et légende, physique.js pasPneusVivant) : VOITURE_VIVANTE × NIVEAUX[…].vivante (débutant et normal : 0, la voiture d'aujourd'hui au bit près)
-  VOITURE_VIVANTE: 1,           // le curseur (&reglages=1) : 1 = la voiture vivante, d'office en expert et légende (tour 41b) ; 0 = la voiture d'aujourd'hui
+  // la voiture vivante = le pneu drift (physique.js pasPneusVivant, voitureVivante) : en adhérant (slick), la voiture d'aujourd'hui au bit près
+  VOITURE_VIVANTE: 1,           // le curseur (&reglages=1) : le pneu drift va de 0 (= l'adhérant) à 1 (la voiture vivante)
+  DRIFT_VITESSE: 40,            // m/s : le pneu drift adhère comme l'adhérant à cette vitesse…
+  DRIFT_LENT: 0.04,             // … mieux en dessous (jusqu'à + ça à l'arrêt : les virages lents)…
+  DRIFT_RAPIDE: 0.06,           // … moins au-dessus (jusqu'à − ça à 2 × DRIFT_VITESSE : les virages rapides)
   VIVANTE_IA: 0,                // 1 = les IA roulent aussi en voiture vivante ; 0 = le joueur seul (les IA ne savent pas encore la piloter : tour 41, en légende, 47 s → plus de 180 s au tour)
   VIVANTE_HAUTEUR_CG: 0.3,      // m : la hauteur du centre de gravité (le transfert de charge : masse × accélération × hauteur / empattement)
   VIVANTE_ADHERENCE_ARRIERE: 1.15, // l'arrière n'accroche plus que ça de plus que l'avant (au lieu d'ADHERENCE_ARRIERE)
@@ -185,7 +188,7 @@ const REGLAGES = {
   // (tour 42d, Codeur 4) avec la voiture vivante (voitureVivante() > 0 ; à 0, rien de ceci n'est lu) : l'arrière se déleste au freinage,
   ASSIST_VIVANTE_FREIN: 0.8,       // le freinage assisté compte sur cette part de plus du freinage possible (il finit de freiner avant le virage)…
   ASSIST_VIVANTE_LEVER: 0.02,      // … l'antipatinage ne lève le pied que de ça par pas de physique au plus (un lever brusque fait partir l'arrière)…
-  ASSIST_VIVANTE_DIRECTION: 1,     // … la direction assistée corrige × ça
+  ASSIST_VIVANTE_DIRECTION: 0.5,   // … la direction assistée corrige × ça (à 1, elle envoyait le brutal dans l'herbe ; tour 43d)
   ASSIST_VIVANTE_ABS_PART: 0.98,   // … et l'anti-blocage, en braquant, garde le frein à cette part du seuil du blocage (comme ASSIST_ABS_PART : 0,6 ou 0,4 faisaient entrer trop vite, glissades et barrières ; tour 42d)
   // le bonus sans aide (le propriétaire, 2026-10-30) : une part des gains d'un Grand Prix par aide coupée, selon ce qu'elle fait vraiment ;
   // seulement l'argent (ni points, ni records), dans le plafond par course (ARGENT_PLAFOND_COURSE) ; +28 % au plus
@@ -243,7 +246,9 @@ const REGLAGES = {
   // de temps réel protège la page
   ARRIVEE_BLOQUEE: 20,          // s de course
   ARRIVEE_BLOQUEE_DISTANCE: 5,  // m
-  ARRIVEE_ACCELERE_MAX_REEL: 30, // s réelles au plus après le clic sur « passer »
+  ARRIVEE_ACCELERE_MAX_REEL: 30, // s réelles : au-delà, la fin de la course est jouée aussi vite que possible (ARRIVEE_TRANCHE_FIN_MS par image), sans dessin, jusqu'à la vraie arrivée
+  ARRIVEE_TRANCHE_FIN_MS: 200,  // ms de calcul par image après le plafond (tour 46)
+  ARRIVEE_IMAGE_TOUS: 10,       // pendant « passer », la scène n'est dessinée qu'une image sur ça (tour 46)
   ARRIVEE_BAGARRE: 15,          // m : deux voitures plus proches que ça se bagarrent (la caméra télé les préfère)
   ARRET_APRES_ARRIVEE: 0.3,     // m/s : après l'arrivée, la voiture freine seule jusque-là, puis roule jusqu'à l'arrêt
 
@@ -443,6 +448,7 @@ const REGLAGES = {
     1: { gaz: ['KeyW'], frein: ['KeyS'], gauche: ['KeyA'], droite: ['KeyD'], remise: ['KeyE'] },
     2: { gaz: ['ArrowUp'], frein: ['ArrowDown'], gauche: ['ArrowLeft'], droite: ['ArrowRight'], remise: ['Enter', 'ShiftRight'] },
   },
+  DEUX_RAPPEL_DUREE: 10,       // s : le rappel des touches de chaque joueur s'efface au plus tard ce temps après l'extinction des feux (touches.js)
   DEUX_TOURS_CHOIX: [3, 5],     // les longueurs de course permises (la première par défaut)
   DEUX_IA_CHOIX: [0, 3, 5],     // les nombres d'IA permis (la première valeur par défaut)
   DEUX_VOITURES_MAX: 7,         // jamais plus de voitures en piste (2 joueurs + 5 IA) : la 3D est dessinée deux fois
@@ -495,7 +501,9 @@ const REGLAGES = {
   TUTO_IA_RYTHME: 0.8,          // le rythme de l'IA lente de la leçon du dépassement (part de la vitesse que sa carte permet)
   TUTO_PLOTS_COULEUR: 0xff7a1a, // les plots de la leçon du freinage
   TUTO_PLUIE_EAU: 0.2,          // la leçon de la pluie : la piste compte comme mouillée à partir de ce niveau d'eau
-  TUTO_VIVANTE_ARRIERE: 0.5,    // (tour 37j) la leçon de la voiture vivante : l'arrière ne doit pas glisser jusque-là (SENSATIONS.glisseArriere, 0 à 1) dans l'épingle
+  TUTO_DRIFT_ARRIERE: 0.6,      // (tour 37l) la leçon du drift : l'arrière glisse au moins jusque-là (SENSATIONS.glisseArriere, 0 à 1)…
+  TUTO_DRIFT_TENUE: 0.3,        // … pendant ce temps (s) dans l'épingle, pour que la glissade compte
+  TUTO_TETE_A_QUEUE: 1.2,       // rad : l'angle de l'arrière au-delà duquel c'est un tête-à-queue (la leçon est ratée)
   // le casque du pilote (casque.js) : un motif et trois couleurs ; les rivaux tirent le leur avec la graine du championnat
   CASQUE_MOTIFS: ['uni', 'bandes', 'etoile', 'flammes', 'damier', 'eclair'],
   // les motifs à débloquer par des exploits de carrière (casque.js : conditions) ; jamais de la vitesse, seulement un dessin ; gardés à
@@ -695,6 +703,10 @@ const REGLAGES = {
   IA_RECHANGE_DISTANCE: 0,      // duel-court : > 0 = les lignes de rechange (intérieur, extérieur) seulement avec une voiture à moins de ça (m) ; 0 = dès qu'il en voit une
   IA_SUIVI_CARTE: 0,            // duel-court : > 0 = une voiture vue devant qui roule au moins à cette part de la vitesse de la carte en son point est suivie comme si elle y allait à la vitesse de la carte (ia.js) ; 0 = la course d'avant
   IA_SUIVI_CARTE_LOIN: 20,      // m : … seulement plus loin que ça devant lui (plus près, sa vitesse vue)
+  // les techniques en bataille et sous la pluie (tour 45, ia.js) ; 0 = la course d'avant
+  IA_BATAILLE_DEFENSE: 0,        // m : une voiture plus rapide dans ses rétroviseurs avant un freinage : il ferme la corde de ça (× 0,5 + son agressivité)
+  IA_BATAILLE_PLONGER: 0,       // 1 : l'attaque se joue à l'intérieur ou pas du tout
+  IA_PLUIE_LIGNE: 1,            // 1 : sur le mouillé, il connaît l'adhérence de la trajectoire (plus sèche) et du reste de la piste
   IA_ATTAQUE_CONTROLE: 40,      // m avant le sommet du virage : l'entrée, où elle doit être à hauteur…
   IA_ATTAQUE_HAUTEUR: 0.5,      // … à moins de cette part de longueur derrière : elle plonge ; sinon elle abandonne
   IA_ATTAQUE_FREIN: 1.05,       // en attaque, elle ose cette part du freinage de la marge habituelle (son style : 0,92 à 1)
@@ -741,10 +753,10 @@ const REGLAGES = {
   // multiplié, agressivite ajoutée (bornée entre 0 et 1), regularite multipliée
   NIVEAU: 'normal',             // le niveau en cours (?niveau=…, principal.js) ; normal = les réglages tels quels
   NIVEAUX: {
-    debutant: { rythme: -0.05, erreurs: 2, agressivite: -0.3, regularite: 1.5, gestionPneus: -0.2, technique: 0.1 },
+    debutant: { rythme: -0.05, erreurs: 2, agressivite: -0.3, regularite: 1.5, gestionPneus: -0.2, bataille: 0, technique: 0.1 },
     normal: { rythme: 0, erreurs: 1, agressivite: 0, regularite: 1, gestionPneus: 0, technique: 0.28 },
-    expert: { rythme: 0, erreurs: 0.5, agressivite: 0.2, regularite: 0.7, gestionPneus: 0.1, vivante: 1, corde: 0.5, marge: -0.7, limite: 1.01, penaliteFrein: 0.5, precision: 0.6, bordMin: 0.8, margeCarte: 1.1, technique: 0.7 },
-    legende: { rythme: 0, erreurs: 0.25, agressivite: 0.4, regularite: 0.5, gestionPneus: 0.2, vivante: 1, corde: 0, marge: -1.4, limite: 1.02, penaliteFrein: 0, precision: 0.3, bordMin: 0.5, margeCarte: 0.7, technique: 1 },
+    expert: { rythme: 0, erreurs: 0.5, agressivite: 0.2, regularite: 0.7, gestionPneus: 0.1, corde: 0.5, marge: -0.7, limite: 1.01, penaliteFrein: 0.5, precision: 0.6, bordMin: 0.8, margeCarte: 1.1, technique: 0.7 },
+    legende: { rythme: 0, erreurs: 0.25, agressivite: 0.4, regularite: 0.5, gestionPneus: 0.2, corde: 0, marge: -1.4, limite: 1.02, penaliteFrein: 0, precision: 0.3, bordMin: 0.5, margeCarte: 0.7, technique: 1 },
   },
   // le caractère de chaque IA (étape 4d), tiré avec la graine entre ces bornes :
   IA_CARACTERE: {
@@ -847,6 +859,7 @@ const REGLAGES = {
   // les pneus selon l'eau, aux niveaux 0 ; 0,5 ; 1 : l'adhérence (le slick au sec = 1, la voiture d'aujourd'hui) et l'usure (× l'usure normale)
   METEO_PNEUS: {
     slick: { adherence: [1, 0.72, 0.5], usure: [1, 1, 1] },
+    drift: { adherence: [1, 0.65, 0.45], usure: [1, 1, 1] },   // le drift (sec seulement) : sur le mouillé, pire que le slick
     inter: { adherence: [0.95, 0.88, 0.7], usure: [2.5, 1, 1] },
     pluie: { adherence: [0.9, 0.84, 0.8], usure: [4, 1.5, 1] },
   },
@@ -871,6 +884,13 @@ const REGLAGES = {
   STAND_MUR: 1.5,               // m au-delà du bord de la piste : le muret entre la piste et la voie
   STAND_LARGEUR: 7,             // m : la largeur de la voie, au-delà du muret
   STAND_RAMPE: 60,              // m : l'entrée et la sortie, où la voie est ouverte sur la piste (pas de muret)
+  // le panneau « 80 » et la ligne de la voie des stands (scene3d.js, tour 45b2) : le dessin seulement
+  PANNEAU_STANDS_RECUL: 25,      // m avant l'entrée de la voie (avant sa rampe)…
+  PANNEAU_STANDS_ECART: 1.5,     // … à tant de m au-delà du bord extérieur de la voie
+  PANNEAU_STANDS_HAUTEUR: 2.4,   // m : le centre du panneau
+  PANNEAU_STANDS_TAILLE: 1.8,    // m : son diamètre
+  PANNEAU_STANDS_LIGNE: 4,       // m après l'entrée : la ligne peinte en travers de la voie…
+  PANNEAU_STANDS_LIGNE_LARGEUR: 0.5,   // … et sa largeur
   STAND_ENTREE_MAX: 300,        // m avant la ligne, au plus, où la voie commence (dans la dernière ligne droite)…
   STAND_SORTIE_MAX: 250,        // m après la ligne, au plus, où elle rejoint la piste (dans la première ligne droite)
   STAND_MARGE_DROITE: 60,       // m : la voie s'arrête au moins à ça de la fin d'une ligne droite
@@ -959,11 +979,12 @@ const REGLAGES = {
   MESSAGES_DUREE: 3, MESSAGES_FILE_MAX: 4,
   // le commentateur (commentaire.js, CLAUDE.md « Le commentateur ») : ses phrases passent dans le bandeau des messages de course
   COMMENTAIRE_MODE: 'tout',       // 'tout', 'joueur' (seulement les faits du joueur, et l'arrivée) ou 'non' (coupé)
-  COMMENTAIRE_INTERVALLE: 5,      // s : au plus une phrase tous les tant
+  COMMENTAIRE_INTERVALLE: 2.5,    // s : au plus une phrase tous les tant (tour 45c, le propriétaire 2026-11-02 : « presque en tout temps » ; c'était 5)
   COMMENTAIRE_LONGUEUR_MAX: 60,   // caractères d'une phrase au plus (les noms comptés à 7 lettres) : court, pour ne pas lire en pilotant
   COMMENTAIRE_PEREMPTION: 8,      // s : un fait plus vieux n'est plus dit
   COMMENTAIRE_FILE_MAX: 6,
-  COMMENTAIRE_PRIORITES: { arrivee: 10, podium: 9, arret: 6, depart: 9, depassementTete: 9, dernierTour: 8, joueurArrivee: 8, contact: 7, depassementJoueur: 6, pluie: 6, coteACote: 5, erreur: 5, penalite: 5, depassement: 4, stands: 3, meilleurTour: 3, joueurTete: 2, joueurPlace: 2, glissade: 6 },
+  COMMENTAIRE_PRIORITES: { arrivee: 10, podium: 9, arret: 6, depart: 9, depassementTete: 9, dernierTour: 8, joueurArrivee: 8, contact: 7, depassementJoueur: 6, pluie: 6, coteACote: 5, erreur: 5, penalite: 5, depassement: 4, stands: 3, meilleurTour: 3, joueurTete: 2, joueurPlace: 2, glissade: 6,
+    combleTete: 0, combleBagarre: 0, combleTours: 0, combleJoueur: 0, combleMeteo: 0, combleSec: 0, combleChamp: 0, combleChampTete: 0, combleChampProjection: 0 },   // (tour 45c : ce qu'il dit entre deux faits, jamais devant un fait)
   COMMENTAIRE_BONUS_JOUEUR: 2,    // un fait du joueur passe devant (plus de phrases quand le joueur est concerné)
   COMMENTAIRE_GLISSADE_INTERVALLE: 60,   // s : une glissade rattrapée du joueur n'est redite qu'après ça (tour 43)
   COMMENTAIRE_PLACE_MAX: 10,      // les dépassements, erreurs et côte à côte des voitures plus loin ne sont pas commentés (sauf le joueur)
@@ -974,6 +995,12 @@ const REGLAGES = {
   COMMENTAIRE_ARRET_VITESSE: 2, COMMENTAIRE_ARRET_DUREE: 4,   // m/s, s : une voiture arrêtée en piste
   COMMENTAIRE_VIRAGE_COURBURE: 1 / 60,  // le joueur dans un virage plus serré (rayon < 60 m) : le commentateur attend…
   COMMENTAIRE_VIRAGE_ATTENTE: 1.5,      // … les premières secondes du virage
+  // (tour 45c, le propriétaire 2026-11-02) il comble les silences : entre deux faits, une phrase sur ce que la course montre déjà, à tour de rôle
+  COMMENTAIRE_COMBLE: ['combleTete', 'combleBagarre', 'combleTours', 'combleJoueur', 'combleChampionnat', 'combleMeteo'],   // (combleChampionnat : en carrière seulement, tour 45c2)
+  COMMENTAIRE_COMBLE_APRES_DEPART: 2,   // s après le départ avant de combler
+  COMMENTAIRE_IMPORTANT: 7,       // la priorité à partir de laquelle une phrase passe devant les autres à la voix (dépassement du joueur, erreur, arrivée…)
+  VOIX_VOLUME: 0.7,               // la voix, sous le moteur : × le volume du commentateur (son.js)
+  VOIX_DEBIT: 1.1,                // la vitesse de la voix
   GRAINE_COMMENTAIRE: 15000,      // sa suite de hasard à lui (ALEATOIRE.suite) : la course ne change pas
   MESSAGES_PLUIE_SEUIL: 0.15, MESSAGES_SECHE_SEUIL: 0.15,   // la météo : « La pluie arrive » au-dessus de ce qui tombe, « La piste sèche » sous cette eau
   // le dessin de la météo (meteo3d.js ; l'état vient de meteo.js) : la pluie autour de la caméra, les gerbes, la piste mouillée, le ciel couvert
@@ -1111,6 +1138,7 @@ const REGLAGES = {
   // le drone : la grille vue d'en haut au départ (GRILLE_*), et à l'arrivée il tourne autour de la voiture en montant
   DRONE_ARRIVEE_DUREE: 5, DRONE_RAYON: 22, DRONE_HAUTEUR: [6, 26], DRONE_VITESSE: 0.35, DRONE_CHAMP: 50,      // m : sur une ligne droite plus longue, l'hélicoptère              // la voiture et ce qui l'entoure, en mètres, remplissent l'image
 
+  MESURE_DUREE: 30,             // s : la mesure des images par seconde du propriétaire (mesure.js, ?mesure=1 : 20 voitures, la caméra de course)
   COUTS_POINTS: 12,             // la mesure des coûts par circuit (tests/lieu.html, tour 40) : la caméra de course en tant d'endroits du tour (12 : un sur deux des 24 de la mesure du tour 40, plus court sur GitHub)
   PIXEL_RATIO_MAX: 1.5,         // au plus 1,5 pixel dessiné par pixel CSS (un écran Retina en demande 2)
   // la qualité de l'image (qualite.js, tour 40) : le dessin seulement ; le cran 0 = l'image d'avant (PIXEL_RATIO_MAX, DECOR_DETAIL_LOIN, DECOR_RIEN_LOIN)

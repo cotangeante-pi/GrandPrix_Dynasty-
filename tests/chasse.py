@@ -197,7 +197,7 @@ class Carriere:
 
 def rapport(c, titre):
     t(f'{titre} : aucune erreur ni avertissement dans la console', not c.console, ' | '.join(f'[{a}] {b}' for a, b in c.console[:8]))
-    for genre in ('texte cassé', 'vide', 'bouton hors de l’écran', 'boutons qui se recouvrent', 'texte qui déborde du bouton', 'défilement', 'clic impossible', 'discussion sans réponse', '« passer » absent'):
+    for genre in ('texte cassé', 'vide', 'bouton hors de l’écran', 'boutons qui se recouvrent', 'texte qui déborde du bouton', 'défilement', 'clic impossible', 'discussion sans réponse', '« passer » absent', 'erreur dans une évaluation qui arrête la boucle'):
         l = [(k[1], v) for k, v in c.problemes.items() if k[0] == genre]
         t(f'{titre} : {genre} : aucun', not l, ' | '.join(f"{el} sur « {v['ecran']} » ({v['detail']}) — {v['page']}" for el, v in l[:12]))
     m = c.manquantes()

@@ -22,6 +22,16 @@ class Recoin(Carriere):
     def __init__(self, pg, langue, adresse):
         super().__init__(pg, langue, adresse)
         self.cles, self.blocages = set(), []
+    # (tour 46d) une évaluation qui arrête la boucle (BOUCLE.arreter) et qui échoue en route laissait la boucle arrêtée sans rien dire :
+    # la course suivante restait figée (« la voiture ne bouge pas », vu le 2026-10-31). Maintenant l'erreur est notée, et la boucle relancée
+    def ev(self, js, arg=None):
+        try: return self.pg.evaluate(js, arg)
+        except Exception as e:
+            if 'BOUCLE.arreter' in js:
+                self.problemes.setdefault(('erreur dans une évaluation qui arrête la boucle', js[:60]), { 'ecran': self.dernier, 'detail': str(e).split('\n')[0][:200], 'page': self.pg.url.split('/')[-1] })
+                try: self.pg.evaluate('() => { if (typeof BOUCLE !== "undefined") BOUCLE.demarrer(); }')
+                except Exception: pass
+            return None
     # les clés manquantes sont gardées avant chaque action (une navigation remet la page à zéro)
     def recolter(self):
         for k in self.ev('() => window.__clesManquantes || []') or []: self.cles.add(k)

@@ -1,7 +1,7 @@
 """Les captures promotionnelles pour Poki (16:9, 1920×1080), en français et en anglais : python3 poki/captures.py
 (Codeur 3, tour 37b). Propositions À VALIDER par le propriétaire. Le dossier poki/ n'entre pas dans le zip (tests/paquet.py
-n'y met que les fichiers chargés par index.html). Cinq scènes : départ sous les feux, bataille en course, pluie,
-podium, paddock ; dans poki/captures/<scène>-<fr|en>.jpg. Rien n'est sauvegardé : chaque page a son propre contexte."""
+n'y met que les fichiers chargés par index.html). Sept scènes : départ sous les feux, bataille en course, pluie,
+podium, paddock, glissade en légende, aides au pilotage ; dans poki/captures/<scène>-<fr|en>.jpg. Rien n'est sauvegardé : chaque page a son propre contexte."""
 import os, sys
 from playwright.sync_api import sync_playwright
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -75,6 +75,25 @@ with sync_playwright() as p:
         ctx, pg = page(b, 'index.html?championnat=1&tours=1&robot=1&gp=6', lg)
         pg.wait_for_function('() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', timeout=40000)
         cap(pg, '5-paddock', lg)
+        # 7. (tour 37k) l'écran « Aides au pilotage », ouvert du paddock, la direction assistée allumée et le freinage coupé (le bonus annoncé)
+        pg.evaluate('() => AIDES_ECRAN.fermer()')
+        pg.click('#boutonAidesPaddock')
+        pg.evaluate('''() => { const r = JEU.assistance; for (const [a, oui] of [['direction', true], ['freinage', false], ['antiblocage', true], ['antipatinage', true]]) if (r[a] !== oui) document.querySelector('#choixAidesListe button[data-aide=' + a + ']').click(); AIDES_ECRAN.fermer(); }''')
+        cap(pg, '7-aides', lg)
+        ctx.close()
+        # 6. (tours 37k, 37l) une glissade en pneus drift (la voiture vivante) : l'arrière qui part à l'épingle du technique, les traces de pneus et la
+        # fumée ; le robot d'essai freine en tournant (c'est ce que la 8e leçon apprend à éviter), la caméra télé pour voir la voiture de côté
+        ctx, pg = page(b, 'index.html?course=3&ia=3&circuit=technique&joueur=1&robot=1&pneus=drift&meteo=sec', lg)
+        if course_prete(pg):
+            partir(pg)
+            pg.evaluate('''() => { const z = TUTORIEL.zoneFreinage(CIRCUIT), L = CIRCUIT.longueur; for (let i = 0; i < 4000; i++) { const a = ((z.debut - JEU.joueur.piste.s) % L + L) % L; if (a < 120 && a > 60) break; BOUCLE.simuler(0.1); } }''')
+            vu = False
+            for _ in range(600):
+                if pg.evaluate('() => SENSATIONS.glisseArriere(JEU.joueur).arriere > 0.6'): vu = True; break
+                pg.wait_for_timeout(50)
+            pg.wait_for_timeout(700)
+            print('glissade', vu, pg.evaluate('() => SENSATIONS.glisseArriere(JEU.joueur).arriere'))
+            cap(pg, '6-glissade', lg)
         ctx.close()
     b.close()
 print('erreurs', erreurs)

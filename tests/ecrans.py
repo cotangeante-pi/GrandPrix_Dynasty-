@@ -105,7 +105,7 @@ PAGES = [
     ('index.html?championnat=1&meteo=risque&test=prevision', 1280, 720, None),
     ('index.html?course=3&ia=20&circuit=test&test=commentaire', 1280, 720, None),   # le commentateur (commentaire.js) dans le bandeau télé ; capture commentaire.png
     ('index.html?course=3&ia=20&circuit=monoco&test=tele', 1280, 720, None),
-    ('index.html?course=3&ia=9&joueur=1&robot=1&circuit=test&test=sensations', 1280, 720, None),
+    ('index.html?course=3&ia=9&joueur=1&robot=1&circuit=test&test=sensations&pneus=drift', 1280, 720, None),   # (tour 44 : la voiture vivante vient du pneu drift)
     ('index.html?course=3&ia=5&joueur=1&robot=1&circuit=test&niveau=debutant&test=conseil', 1280, 720, None),   # la trajectoire conseillée (tour 39) : en débutant, d'office ; capture conseil.png
     ('index.html?course=3&ia=5&joueur=1&robot=1&circuit=test&niveau=normal&test=conseil', 960, 600, None),     # … en normal, aucune
     ('index.html?course=3&ia=9&joueur=1&robot=1&circuit=test&qualite=auto&test=qualite', 1280, 720, None),   # la qualité automatique (tour 40) : jusqu'à « basse » sous swiftshader, jamais pendant les feux ; capture qualite-basse.png
@@ -119,7 +119,9 @@ PAGES = [
    # le décor du circuit test (étape 10) avec 20 voitures : appels de dessin, triangles, niveaux de détail ; captures decor-test.png, decor-dessus.png
     ('index.html?test=tournoi', 1280, 720, None),   # le tournoi chrono (tour 26b) : inscription de 3 joueurs → 3 manches (robot ; un abandon) → podium → Rejouer ; captures tournoi.png, tournoi-podium.png
     ('index.html?test=tournoi', 960, 600, None),    # … l'inscription de 8 joueurs tient en 960×600   # le mode 2 joueurs, tour 25b ordre 3 : titre → « Entre amis » → réglages → course à deux (robots) → podium → rivalité → Revanche → Menu ; captures entre-amis.png, deux-reglages.png, rivalite.png
-    ('index.html?test=amis', 960, 600, None),    # … en petit : le menu et l'écran avant la course tiennent sans défilement ni débordement   # … la mesure de la 3D dessinée deux fois sur le technique   # le premier lancement : titre → course de découverte (robot) → Bravo → paddock ; captures titre.png, decouverte.png, bravo.png
+    ('index.html?test=amis', 960, 600, None),
+    ('index.html?test=touches', 960, 600, None),   # les touches de chaque joueur à deux (touches.js, tour 44d) : la carte, le rappel, la pause ; captures touches-*.png
+    ('index.html?test=touches', 1280, 720, None),    # … en petit : le menu et l'écran avant la course tiennent sans défilement ni débordement   # … la mesure de la 3D dessinée deux fois sur le technique   # le premier lancement : titre → course de découverte (robot) → Bravo → paddock ; captures titre.png, decouverte.png, bravo.png
     # les aides au premier usage (aides.js, étape 11b, Codeur 4) : en course (qualification, feux, arrêt obligatoire en ligne droite, pause) et au paddock
     # (duel, garage, aileron, « Revoir », ancienne sauvegarde) ; captures aide-stand.png, aide-garage.png (et -960)
     ('index.html?course=12&ia=3&joueur=1&robot=1&circuit=test&test=aides-course', 1280, 720, None),
@@ -143,6 +145,7 @@ PAGES = [
     ('index.html?course=3&circuit=test&test=assistance', 960, 600, None),                    # … coupées en normal
     ('index.html?tutoriel=visite&championnat=1&test=tuto-quitter', 960, 600, None),   # … passée en cours de route : rien ne reste dans la carrière
     ('index.html?course=3&circuit=test&test=son', 960, 600, None),   # le réglage du son (tour 44) : le pire mélange ne sature pas, le volume par famille, l'onglet caché et la pub coupent
+    ('index.html?ia=20&course=1&circuit=test&mesure=1&ips=1', 1280, 720, None),   # la mesure des images par seconde du propriétaire (tour 45) : 20 voitures, caméra de course, « Copier » ; capture mesure.png
 ]
 # ECRANS_FILTRE=… (pendant le travail, sur le Mac) : seulement les pages dont l'adresse contient ce texte ; GitHub lance toujours tout
 if os.environ.get('ECRANS_FILTRE'): PAGES = [x for x in PAGES if os.environ['ECRANS_FILTRE'] in f'{x[0]} {x[1]}']   # (« adresse largeur » : « robot=1 960 »)
@@ -866,6 +869,41 @@ def deux_ecran(pg, titre, l, h, page):
 # la rivalité (« Léo 1 – 0 Sarah ») ; « Revanche » : un commercialBreak (faux SDK) puis la même course, grille retirée ; « Menu » : un
 # commercialBreak puis le menu ; jamais de commercialBreak pendant une course ; la carrière n'a pas bougé
 def JEU_PODIUM(pg): return attendre(pg, '() => JEU.ecran === "podium" && JEU.final && JEU.final.length === 5', None, 60000)
+# les touches de chaque joueur à deux (touches.js, le propriétaire 2026-11-02 : « 2 joueurs il faudrait montrer les touches ») : avant la course, la
+# carte de chacun dans sa couleur ; pendant les feux, le rappel en bas de chaque moitié, qui s'efface quand le joueur a utilisé ses quatre
+# commandes (et pas celui de l'autre), ou DEUX_RAPPEL_DUREE s après l'extinction ; dans le menu pause, les touches des deux ; rien ne déborde
+def touches_deux(pg, titre, l, h):
+    def dans(sel):
+        return pg.evaluate('s => [...document.querySelectorAll(s)].every(e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.left >= -1 && r.top >= -1 && r.right <= innerWidth + 1 && r.bottom <= innerHeight + 1; })', sel)
+    pg.click('#boutonAmis'); pg.click('#boutonAmisDeux')
+    c = pg.evaluate("""() => [1, 2].map(i => { const p = document.querySelector('#deuxJoueur' + i + ' .deuxTouches'); return { texte: p.innerText, lignes: p.querySelectorAll('br').length + 1, bord: getComputedStyle(p).borderLeftColor, couleur: document.getElementById('deuxCouleurs' + i).dataset.couleur }; })""")
+    hexa = lambda n: 'rgb(%d, %d, %d)' % ((int(n) >> 16) & 255, (int(n) >> 8) & 255, int(n) & 255)
+    t(f'{titre} : avant la course, la carte des touches de chaque joueur, dans sa couleur : le joueur 1 Z/W Q/A S D (le clavier inconnu : les deux) et E, le joueur 2 les flèches et Entrée, la pause',
+      len(c) == 2 and all(x['lignes'] == 2 and x['bord'] == hexa(x['couleur']) for x in c) and (('Z/W' in c[0]['texte'] and 'Q/A' in c[0]['texte']) or pg.evaluate('() => !!(navigator.keyboard && navigator.keyboard.getLayoutMap)')) and all(k in c[0]['texte'] for k in ('S', 'D', 'E')) and all(k in c[1]['texte'] for k in ('↑', '↓', '←', '→', pg.evaluate('() => texte("tch_entree")'))) and pg.evaluate('() => texte("tch_echap")') in c[0]['texte'], str(c))
+    t(f'{titre} : les cartes tiennent dans l’écran ({l}×{h})', dans('#deuxJoueur1 .deuxTouches, #deuxJoueur2 .deuxTouches, #boutonDeuxPartir'))
+    pg.wait_for_timeout(200); pg.screenshot(path=os.path.join(CAPTURES, f'touches-reglages-{l}.png'))
+    pg.select_option('#deuxIA', '0'); pg.select_option('#deuxTours', '3'); pg.select_option('#deuxCircuit', 'test')
+    with pg.expect_navigation(): pg.click('#boutonDeuxPartir')
+    attendre(pg, '() => typeof JEU !== "undefined" && JEU.deux && JEU.ecran === "course" && JEU.rappelDeux', None, 30000)
+    attendre(pg, '() => JEU.plateau && JEU.plateau.carte !== null && JEU.course.etat === "compte"', None, 240000)
+    r = pg.evaluate('() => [1, 2].map(j => { const e = document.getElementById("deuxRappel" + j); return { vu: !e.classList.contains("cache"), n: e.querySelectorAll(".touche").length, texte: e.textContent }; })')
+    t(f'{titre} : pendant les feux, le rappel des touches en bas de chaque moitié (4 commandes chacun)', all(x['vu'] and x['n'] == 4 for x in r) and dans('.deuxRappel:not(.cache)'), str(r))
+    pg.wait_for_timeout(200); pg.screenshot(path=os.path.join(CAPTURES, f'touches-feux-{l}.png'))
+    # le joueur 1 utilise ses quatre commandes (une à une) : son rappel s'efface, celui du joueur 2 reste
+    for k in ('KeyW', 'KeyS', 'KeyA', 'KeyD'):
+        pg.keyboard.down(k); pg.wait_for_timeout(250); pg.keyboard.up(k)
+    pg.wait_for_timeout(300)
+    r = pg.evaluate('() => [1, 2].map(j => !document.getElementById("deuxRappel" + j).classList.contains("cache"))')
+    t(f'{titre} : le joueur 1 a utilisé ses quatre commandes : son rappel s’efface, celui du joueur 2 reste', r == [False, True], str([r, pg.evaluate('() => JEU.rappelDeux')]))
+    # le temps passe après l'extinction : le rappel du joueur 2 s'efface aussi (au plus DEUX_RAPPEL_DUREE s)
+    pg.evaluate('() => { JEU.rappelDeux.t = REGLAGES.DEUX_RAPPEL_DUREE; }'); pg.wait_for_timeout(300)
+    t(f'{titre} : DEUX_RAPPEL_DUREE s après l’extinction des feux, plus aucun rappel', pg.evaluate('() => document.querySelectorAll(".deuxRappel:not(.cache)").length') == 0)
+    pg.keyboard.press('Escape')
+    p = pg.evaluate('() => ({ ecran: JEU.ecran, vu: !document.getElementById("pauseTouches").classList.contains("cache"), texte: document.getElementById("pauseTouches").innerText })')
+    t(f'{titre} : dans le menu pause, les touches des deux joueurs (🔵 et 🔴)', p['ecran'] == 'pause' and p['vu'] and '🔵' in p['texte'] and '🔴' in p['texte'] and '↑' in p['texte'] and dans('#pause > *'), str(p))
+    pg.wait_for_timeout(200); pg.screenshot(path=os.path.join(CAPTURES, f'touches-pause-{l}.png'))
+    pg.keyboard.press('Escape')
+
 def amis(pg, titre, l, h):
     J = '() => window.APPELS_SDK.join(",")'
     def boite(sel):
@@ -1019,6 +1057,16 @@ def accelere(pg, titre, page):
         pg.evaluate('() => BOUCLE.simuler(2)'); pg.wait_for_timeout(20)
     b = pg.evaluate('() => JEU.ecran === "podium" ? (' + FINAL[6:] + ') : null')
     t(f'{titre} : la même course regardée jusqu’au bout donne les mêmes places, les mêmes temps et les mêmes pénalités, au bit près', b is not None and a == b, str([a, b])[:800])
+    # (tour 46, l'arrivée lente) la même course, « passer » avec un plafond de temps réel réduit à 0,2 s (un ordinateur très lent) : la fin de
+    # la course est quand même jouée pour de vrai, par tranches, sans dessin ; le classement final est celui de la vraie arrivée, au bit près
+    pg.reload(); pg.wait_for_timeout(1500)
+    jusqua_arrivee()
+    pg.evaluate('() => { REGLAGES.ARRIVEE_ACCELERE_MAX_REEL = 0.2; }')
+    pg.click('#boutonPasser')
+    attendre(pg, '() => JEU.ecran === "podium"', None, 180000)
+    c = pg.evaluate('() => JEU.ecran === "podium" ? (' + FINAL[6:] + ') : null')
+    toutes = pg.evaluate('() => JEU.plateau.pilotes.every(p => p.arrivee !== null)')
+    t(f'{titre} : « passer » sur un ordinateur lent (plafond de temps réel réduit à 0,2 s) : toutes les voitures arrivent pour de vrai, et le classement est le même, au bit près', c is not None and toutes and c == a, str([toutes, a, c])[:800])
 
 # le tournoi chrono entre copains (tournoi.js, CLAUDE.md « Le tournoi chrono entre copains ») : l'inscription (2 à 8, prénoms différents),
 # « À toi, Léo ! » et 3 s, le tour de qualification (le robot), le fantôme du leader du moment (absent pour le premier), un abandon
@@ -1462,6 +1510,20 @@ def son_ecran(pg, titre):
     pg.evaluate('() => couperSonPub(false)')
     apres = attendre(pg, '() => SON.etatContexte === "running" && !SON.muet', None, 5000)
     t(f'{titre} : une pub coupe le son, puis le rend tel que le joueur l’avait (M n’est pas touché)', pub and apres, pg.evaluate('() => [SON.etatContexte, SON.muet, SON.muetJoueur]'))
+# la mesure des images par seconde (mesure.js, tour 45) : ?mesure=1&ips=1 (raccourcie à 4 s ici) : le compteur discret, puis, une fois
+# la course partie, la mesure à 20 voitures avec la caméra de course : la moyenne, le 1 % le plus lent, les appels, la qualité, « Copier » ;
+# sans ces paramètres, ni compteur ni panneau (aucun coût) ; capture mesure.png
+def mesure_ecran(pg, titre):
+    pg.evaluate('() => { REGLAGES.MESURE_DUREE = 4; }')
+    fini = attendre(pg, '() => !!window.__mesure', None, 180000)
+    m = pg.evaluate('''() => ({ m: window.__mesure, sortie: document.getElementById("mesureSortie").textContent, copier: !document.getElementById("mesureCopier").classList.contains("cache"),
+      compteur: (document.getElementById("compteurIps") || {}).textContent || "", voitures: JEU.plateau ? JEU.plateau.pilotes.length : 0, camera: CAMERA.mode })''')
+    L.append(f"  (la mesure du propriétaire, sous swiftshader, {m['voitures']} voitures : {m['sortie']})")
+    t(f'{titre} : « Mesurer » : 20 voitures, la caméra de course, puis la moyenne, le 1 % le plus lent, les appels de dessin et la qualité, prêts à copier ; le compteur discret affiche les images par seconde',
+      fini and m['m'] and m['m']['ips'] > 0 and m['m']['appels'] > 0 and m['m']['unPourcent'] > 0 and m['voitures'] == 20 and m['camera'] == 'derriere' and m['copier'] and '{' not in m['sortie'] and re.search(r'\d+ i/s', m['compteur']), str(m))
+    pg.screenshot(path=os.path.join(CAPTURES, 'mesure.png'))
+    pg.evaluate('() => document.getElementById("mesureCopier").click()'); pg.wait_for_timeout(500)
+    t(f'{titre} : « Copier » copie le résultat (ou le laisse sélectionné) et le dit', pg.evaluate('() => document.getElementById("mesureCopier").textContent === texte("mesure_copie")'), pg.evaluate('() => document.getElementById("mesureCopier").textContent'))
 def commentaire_ecran(pg, titre):
     vu = attendre(pg, '() => /🎙/.test(document.getElementById("messageCourse").textContent) && !document.getElementById("messageCourse").classList.contains("cache")', None, 90000)
     txt = pg.evaluate('() => document.getElementById("messageCourse").textContent')
@@ -1542,6 +1604,12 @@ def lieu_ecran(pg, titre, page):
       n['tribune'] > 10 and n['public'] > 1000 and 'decor-ciel' in m['maillages'] and m['avec'][0] < R['total'] and 0 < m['avec'][0] - m['sans'][0] <= R['decor'] and m['avec'][1] > m['sans'][1], str(m))
     if m['nuit']:
         t(f'{titre} : la nuit (ou le crépuscule) : des mâts d’éclairage le long de la piste', n['projecteur'] >= 20, str(n))
+    if re.fullmatch(r'tests/lieu\.html\?circuit=[a-z]+', page):
+        # le panneau « 80 » et la ligne de la voie des stands (tour 45b2) : sur chaque tracé qui a une voie des stands, un seul maillage
+        ps = pg.evaluate('''() => { const c = DEFS_LIEU().circuit; let n = 0, m = null; SCENE3D.camera.parent; let sc = SCENE3D.decor.groupe; while (sc.parent) sc = sc.parent;
+          sc.traverse(o => { if (o.name === 'stands-panneau') { n++; m = o; } }); return { stands: !!c.stands, n, tex: !!(m && m.material.map), triangles: m ? m.geometry.attributes.position.count / 3 : 0 }; }''')
+        t(f'{titre} : le panneau « 80 » avant l’entrée de la voie des stands et la ligne peinte à son entrée, en un seul maillage, sur chaque tracé qui a des stands',
+          (not ps['stands'] and ps['n'] == 0) or (ps['stands'] and ps['n'] == 1 and ps['tex'] and ps['triangles'] == 6), str(ps))
     if re.fullmatch(r'tests/lieu\.html\?circuit=[a-z]+', page) and nom in PLAFONDS_IMAGE:
         c = pg.evaluate('() => window.__couts()')
         pa, pt = PLAFONDS_IMAGE[nom]
@@ -2368,7 +2436,7 @@ def garage_ecran(pg, titre, achat=True, capture='garage.png'):
     apres = pg.evaluate('() => [JEU.championnat.pneusDepart, SAUVEGARDE.championnat().pneusDepart, [...document.querySelectorAll("#garagePneus button.choisi")].map(x => x.dataset.pneu)]')
     pg.click('#garagePneus button[data-pneu="equipe"]')
     retour = pg.evaluate('() => JEU.championnat.pneusDepart')
-    t(f'{titre} : au garage, les pneus du départ : « Au choix de l’équipe » par défaut, slicks, intermédiaires, pluie ; « Pluie » choisi et sauvegardé, puis de nouveau l’équipe', pn['n'] == 4 and pn['choisi'] == ['equipe'] and pn['titre'].startswith('Pneus au départ') and apres == ['pluie', 'pluie', ['pluie']] and retour is None, str([pn, apres, retour]))
+    t(f'{titre} : au garage, les pneus du départ : « Au choix de l’équipe » par défaut (l’adhérant), slicks, drift, intermédiaires, pluie ; « Pluie » choisi et sauvegardé, puis de nouveau l’équipe', pn['n'] == 5 and pn['choisi'] == ['equipe'] and pn['titre'].startswith('Pneus au départ') and apres == ['pluie', 'pluie', ['pluie']] and retour is None, str([pn, apres, retour]))
     if not achat:
         t(f'{titre} : sans argent, tous les boutons « Acheter » sont grisés', not any(e['actifs']), str(e['actifs']))
     else:
@@ -3052,6 +3120,8 @@ with sync_playwright() as p:
                 deux_ecran(pg, titre, l, h, page)
             if 'test=amis' in page:
                 amis(pg, titre, l, h)
+            if 'test=touches' in page:
+                touches_deux(pg, titre, l, h)
             if 'test=tournoi' in page:
                 tournoi(pg, titre, l, h)
             if 'test=volant' in page:
@@ -3082,6 +3152,10 @@ with sync_playwright() as p:
                 assistance_ecran(pg, titre, page)
             if 'test=son' in page:
                 son_ecran(pg, titre)
+            if 'mesure=1' in page:
+                mesure_ecran(pg, titre)
+            elif 'test=' not in page and 'mesure' not in page and l == 1280 and page.startswith('index.html?course='):
+                t(f'{titre} : sans ?ips ni ?mesure, ni compteur ni panneau de mesure (aucun coût)', pg.evaluate('() => !document.getElementById("compteurIps") && !document.getElementById("mesurePanneau")'))
             if 'test=manette-deux' in page:
                 manette_deux(pg, titre)
             elif 'test=manette' in page:

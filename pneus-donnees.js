@@ -20,6 +20,7 @@ const REGLAGES_PNEUS = {
   // ~93 km, sous USURE_MAX même pour le pire gestionnaire ; en 5 tours, on finit sans arrêt. Le calibrage ci-dessus (circuits d'essai)
   // est × ce facteur. Vérifié par tests/officiels.html (les 12 tracés, 5, 12 et 18 tours)
   USURE_ECHELLE: 0.4,
+  USURE_DRIFT: 1.6,             // le pneu drift s'use plus vite (les pneus fument) : × ça
   GESTION_EFFET_MAX: 0.3,           // gestionPneus = 1 : l'usure avance 30 % moins vite ; 0 : pas de réduction
   GESTION_MOYENNE: 0.5,             // la gestion d'un pilote moyen (et celle du joueur, sans amélioration)
 

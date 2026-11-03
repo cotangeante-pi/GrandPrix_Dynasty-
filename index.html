@@ -33,7 +33,7 @@
 <canvas id="minicarte" class="cache" width="180" height="130"></canvas>   <!-- la minicarte : le circuit entier et toutes les voitures (minicarte.js) -->
 <div id="meteoHud" class="cache"><span id="meteoIcone"></span><span id="meteoEau"></span><span id="meteoBarre"><i id="meteoPlein"></i></span></div>   <!-- la météo (meteo3d.js) : l'icône et l'eau sur la piste ; cachée au sec -->
 <div id="gouttes" class="cache"></div>   <!-- les gouttes sur la visière, en vue cockpit sous la pluie -->
-<div id="pneusHud" class="cache"><span id="pneusTexte"></span><span id="pneusBarre"><i id="pneusPlein"></i></span><span id="pneusAdherence"></span></div>   <!-- ?pneus=1 : l'usure et l'adhérence perdue -->
+<div id="pneusHud" class="cache"><span id="pneusTexte"><span id="pneusIcone"></span><span id="pneusMots"></span></span><span id="pneusBarre"><i id="pneusPlein"></i></span><span id="pneusAdherence"></span></div>   <!-- ?pneus=1 : l'usure et l'adhérence perdue -->
 <div id="messageCourse" class="cache"></div>   <!-- les messages de course (messages.js), un à la fois -->
 <div id="hudPenalite" class="cache"></div>
 <div id="hudStand" class="cache"></div>   <!-- l'arrêt au stand (étape 7) : le tour conseillé, l'arrêt en cours, les pneus neufs -->
@@ -47,6 +47,7 @@
      les feux, la jauge et le résultat du départ du joueur 2 dans sa moitié (ceux du joueur 1 sont les éléments ci-dessus, déplacés par CSS) -->
 <div id="deuxSeparation" class="cache"></div>
 <div id="deuxHaut" class="deuxHud cache"><span class="deuxNom"></span><span class="deuxPlace"></span><span class="deuxTour"></span><span class="deuxVitesse"></span><span class="deuxEcart"></span></div>
+<div id="deuxRappel1" class="deuxRappel cache"></div><div id="deuxRappel2" class="deuxRappel cache"></div>   <!-- le rappel des touches de chaque joueur (touches.js, tour 44d) -->
 <div id="deuxBas" class="deuxHud cache"><span class="deuxNom"></span><span class="deuxPlace"></span><span class="deuxTour"></span><span class="deuxVitesse"></span><span class="deuxEcart"></span></div>
 <div id="feux2" class="cache"><span></span><span></span><span></span><span></span><span></span></div>
 <div id="jauge2" class="cache"><div id="jaugeBarre2"><div id="jaugeVert2"></div><div id="jaugeAiguille2"></div></div><div id="jaugeAide2"></div></div>
@@ -407,9 +408,10 @@
 <section id="resume" class="cache"><div id="resumeBandeau"><span id="resumeTitre"></span><span id="resumeMoment"></span></div><p id="resumeCommentaire" class="cache"></p><p id="resumeSortir"></p></section>   <!-- le commentateur du résumé (commentaire.js) -->
 <section id="pause" class="ecran cache">
   <h1 id="pauseTitre"></h1>
+  <div id="pauseTouches" class="cache"></div>   <!-- à deux : les touches des deux joueurs (touches.js, tour 44d) -->
   <div class="boutons"><button id="boutonReprendre" tabindex="-1"></button><button id="boutonRecommencer" tabindex="-1"></button></div>
   <div class="boutons"><button id="boutonFantomePause" class="boutonFantome" tabindex="-1"></button><button id="boutonTrajectoirePause" class="petit" tabindex="-1"></button></div>   <!-- la trajectoire conseillée : oui, freinages seulement, non (conseil.js, sauvegardé) -->
-  <div class="boutons"><button id="boutonCommentairePause" class="petit" tabindex="-1"></button><button id="boutonEffetsPause" class="petit" tabindex="-1"></button></div>   <!-- les effets de conduite : oui, non (sensations.js, sauvegardé) -->   <!-- le commentateur : tout, tes faits, coupé (commentaire.js) -->   <!-- le fantôme affiché ou masqué (sauvegardé) -->
+  <div class="boutons"><button id="boutonCommentairePause" class="petit" tabindex="-1"></button><button id="boutonEffetsPause" class="petit" tabindex="-1"></button><button id="boutonVoixPause" class="petit" tabindex="-1"></button></div>   <!-- les effets de conduite : oui, non (sensations.js, sauvegardé) -->   <!-- le commentateur : tout, tes faits, coupé (commentaire.js) -->   <!-- le fantôme affiché ou masqué (sauvegardé) -->
   <div class="boutons"><button id="boutonDirectionPause" class="petit aideFigee" tabindex="-1"></button><button id="boutonFreinagePause" class="petit aideFigee" tabindex="-1"></button><button id="boutonAntiblocagePause" class="petit aideFigee" tabindex="-1"></button><button id="boutonAntipatinagePause" class="petit aideFigee" tabindex="-1"></button></div>   <!-- les aides au pilotage (assistance.js) : une par bouton, oui / non, sauvegardées -->
   <div class="boutons"><button id="boutonRevoirAidesPause" class="petit" tabindex="-1"></button><button id="boutonQualitePause" class="petit" tabindex="-1"></button></div>   <!-- la qualité de l'image : auto, haute, basse (qualite.js, sauvegardé) -->   <!-- « Revoir les aides » (aides.js, Codeur 4) -->
   <div class="boutons"><button id="boutonTutorielPause" class="petit" tabindex="-1"></button></div>
@@ -464,6 +466,7 @@
 <script src="decouverte.js"></script>
 <script src="pilote.js"></script>
 <script src="deux-joueurs.js"></script>
+<script src="touches.js"></script>
 <script src="tournoi.js"></script>
 <script src="casque.js"></script><script src="photo.js"></script>
 <script src="cache-carte.js"></script>
@@ -485,7 +488,7 @@
 <script src="boite.js"></script>
 <script src="sensations.js"></script>
 <script src="manette.js"></script>
-<script src="son.js"></script>
+<script src="son.js"></script><script src="voix.js"></script>
 <script src="decors-officiels.js"></script>
 <script src="decor-public.js"></script>
 <script src="decor.js"></script>
@@ -494,6 +497,7 @@
 <script src="conseil.js"></script>
 <script src="qualite.js"></script>
 <script src="assistance.js"></script>
+<script src="mesure.js"></script>
 <script src="scene3d.js"></script>
 <script src="voiture3d.js"></script>
 <script src="regie.js"></script>

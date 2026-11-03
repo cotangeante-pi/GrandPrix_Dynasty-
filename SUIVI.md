@@ -96,6 +96,7 @@ Découpage de l'étape 4 : 4a (tours 7–8 : circuit technique, une IA seule ≤
 | 2026-10-28 | be4345c | 93 | 15 | 19 | 15 | 15 | 14 | 10 | 5 |   (conduite +2 : sensations, manette, trajectoire conseillée, en piste en 10 s ; course et IA reste à 19 : le duel tient avec un arrêt (44 %) mais pas en course courte, techniques en bataille et pluie pas faites ; 3D et perf pas à 15 : 60 images par seconde pas mesurées au calme)
 | 2026-10-29 | 1ad5d56 | 94 | 16 | 19 | 15 | 15 | 14 | 10 | 5 |   (conduite +1 : la voiture vivante en expert et légende, le joueur seul ; reste à 19 en course et IA : le duel court pas tenu ; 3D et perf : qualité automatique, mais 60 i/s pas mesurées au calme)
 | 2026-10-30 | 8b2cb55 | 95 | 16 | 20 | 15 | 15 | 14 | 10 | 5 |   (course et IA +1 : le rival défend enfin (29 défenses contre 0), la file voit freiner, les chocs de la file corrigés, le duel tenu avec arrêt ; conduite reste à 16 : la voiture vivante et les aides attendent l'avis du propriétaire ; 3D et perf : 60 i/s pas mesurées au calme)
+| 2026-10-31 | 5487dd1 | 95 | 16 | 20 | 15 | 15 | 14 | 10 | 5 |   (inchangée : le pneu drift fait selon la règle du propriétaire, mais la conduite attend son avis ; la mesure des i/s est prête en un clic, à faire par le propriétaire)
 
 Note du Chef session-5b (2026-10-23) : les lignes 18 à 19b ne s'additionnaient pas (19 + 19b : 12 + 16 + 6 + 12 + 9 + 10 + 2 = 67, noté 62 ; 18 : 63 noté 60). Les axes sont justes, c'est le total qui était faux ; depuis la ligne 21b, le total est la somme des axes. Le saut de 62 à 68 vient de cette correction, pas d'un progrès.
 
@@ -103,7 +104,9 @@ Note du Chef session-5b (2026-10-23) : les lignes 18 à 19b ne s'additionnaient 
 
 - **Les aides au pilotage, choisies avant la course** (ta règle du 2026-10-30, faite par le Codeur 3) : bouton « 🛞 Aides au pilotage » au titre, au paddock, avant une course rapide ou une leçon : direction, freinage, anti-blocage, antipatinage, une par une ; le bonus annoncé ; pendant la course, le menu pause les montre sans les changer ; sur l'écran des gains, « bonus pilotage sans aide ». Dire : l'enfant s'y retrouve ? Le bonus donne envie de couper une aide ?
 
-- **La voiture vivante** (tour 41) : une course en légende, puis `&reglages=1` pour jouer avec VOITURE_VIVANTE (0 = la voiture d'avant, 1 = la vivante). Au freinage le poids passe sur l'avant, un lever de pied en courbe rapide fait tourner, plein gaz en sortie d'épingle fait patiner. Dire : **l'arrière qui glisse, c'est fun ou énervant ?** (l'axe conduite ne passe pas 18/20 sans ton avis)
+- **Mesurer les images par seconde** (tour 45, en un clic) : Mac au calme, écran ouvert : `index.html?reglages=1&qualite=haute`, puis « ⏱ Mesurer les images par seconde (30 s) », puis « Copier » et colle le résultat au Chef. `?ips=1` montre un petit compteur partout.
+- **Le pneu drift** (2026-10-31, ta règle du 29) : au garage, choisis « Drift » à la place de « Grip / Adhérant » (ou `index.html?pneus=drift`) ; la 8e leçon « Le drift ». Dire : l'arrière qui glisse, c'est fun ou énervant ? Le drift vaut-il le coup sur Monoco ?
+- **(Avant le 31 : la voiture vivante en légende ; elle vient maintenant du pneu drift.)** La voiture vivante (tour 41) : une course en légende, puis `&reglages=1` pour jouer avec VOITURE_VIVANTE (0 = la voiture d'avant, 1 = la vivante). Au freinage le poids passe sur l'avant, un lever de pied en courbe rapide fait tourner, plein gaz en sortie d'épingle fait patiner. Dire : **l'arrière qui glisse, c'est fun ou énervant ?** (l'axe conduite ne passe pas 18/20 sans ton avis)
 
 - **La trajectoire conseillée** (tour 39) : en niveau débutant, ou menu pause « Trajectoire conseillée » : une ligne verte / jaune / rouge sur la piste. Dire : elle se lit bien (largeur, transparence) ? Le jaune dans la grande courbe rapide du circuit d'essai a du sens ? Sous la pluie (depuis le tour 40d), le rouge arrive plus tôt : ça colle à ce que tu sens ? Avec une vraie manette : la débrancher en course doit mettre la pause.
 - **La qualité automatique** (tour 40) : menu pause « Qualité : auto / haute / basse ». Dire : en auto, le jeu reste fluide sur ton Mac ? Le cran bas (plus flou) est acceptable ? Et la vraie mesure : `python3 tests/perf.py --fois 3`, Mac au calme, écran ouvert.
@@ -167,6 +170,8 @@ Note du Chef session-5b (2026-10-23) : les lignes 18 à 19b ne s'additionnaient 
 - Étapes 0, 1, 2, 3 (acceptées par le propriétaire). L'étape 4 (IA) est presque là : il manque le duel (vainqueur ≠ poleman 0/30). Des morceaux des étapes 5 (feux, qualification, podium), 6 (championnat, sauvegarde), 7 (pneus désactivés), 13 (enregistreur) et 15 (sdk.js) sont posés.
 
 ## Décidé
+
+- 2026-11-02 17h (le propriétaire, après avoir essayé) : « 2 joueurs il faudrait montrer les touches, sinon tournoi chrono et 2 joueurs (après modification) seront parfaits » → **étape 5c (tournoi chrono) acceptée par le propriétaire** ; **étape 5b (2 joueurs) acceptée une fois les touches montrées** (CLAUDE.md, « Montrer les touches »).
 
 - 2026-10-29 20h20 (Chef, repli prévu par CLAUDE.md « La voiture vivante ») : **la voiture vivante pour le joueur seul en expert et légende** (VIVANTE_IA = 0). Les IA ne savent pas encore la piloter : en légende sur le circuit test, 46,6 s → plus de 180 s au tour, de l'herbe partout. Les références de courses.html et stands.html ne bougent pas. Les IA en voiture vivante restent à faire.
 
