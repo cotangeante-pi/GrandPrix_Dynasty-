@@ -596,7 +596,7 @@ Pour que ce soit beau **et** léger :
 
 ## Règles Poki
 
-- Le jeu est déclaré **ordinateur seulement**. Il doit marcher en 960×600 et en 1280×720, sans défilement.
+- Le jeu est déclaré **ordinateur et téléphone** (le propriétaire, 2026-11-03 : voir « Le téléphone : le volant » ; avant, ordinateur seulement ; sur Poki, le téléphone n'est déclaré que quand les commandes tactiles sont faites et testées). Il doit marcher en 960×600 et en 1280×720, et sur téléphone couché en 640×360, sans défilement.
 - Le script du SDK Poki est ajouté à l'`index.html` **du paquet** par `tests/paquet.py` (pas dans celui du dépôt : les tests en `file://` restent sans réseau ; décision du Chef, 2026-10-24). Tous les appels passent par `sdk.js`, et le jeu marche aussi sans le SDK. `python3 tests/paquet.py` fabrique `dist/grand-prix-dynasty.zip` (index.html à la racine, seulement les fichiers que la page charge) ; la partie « paquet » de `tests/lancer.py` ouvre le jeu depuis le zip et vérifie les règles Poki automatisables.
 - `gameLoadingFinished` est appelé une seule fois.
 - `gameplayStart` quand la voiture roule (qualifications et course). `gameplayStop` en pause, dans les menus, au podium et dans le paddock. Jamais deux fois de suite le même.
