@@ -1,6 +1,6 @@
 TOUR 26 — étape 7 — Codeur 1 : les pneus chez tout le monde, la voie des stands, l'arrêt obligatoire — rapport du Chef
 Chef : session-5b. Base : main (fdca255 ou plus récent). Note : 84/100.
-Commits vérifiés : contournement 1113916 (fusionné), 23017aa (compte rendu), duel 4b2f8fa (essais, rien à fusionner). Le tableau des options du duel est clair : aucune ne tient seule, la décision (entrées côte à côte dans les virages lents) est portée à le propriétaire dans SUIVI.md. Le duel attend sa réponse : on ne touche plus à l'attaque ce soir.
+Commits vérifiés : contournement 1113916 (fusionné), 23017aa (compte rendu), duel 4b2f8fa (essais, rien à fusionner). Le tableau des options du duel est clair : aucune ne tient seule, la décision (entrées côte à côte dans les virages lents) est portée au propriétaire dans SUIVI.md. Le duel attend sa réponse : on ne touche plus à l'attaque ce soir.
 Ce qui manque (CLAUDE.md, étape 7, « Pneus et arrêt au stand ») : pneus.js existe en calcul pur, branché pour le joueur seul et désactivé (PNEUS_ACTIFS) ; aucune IA n'use ses pneus, il n'y a pas de voie des stands, pas d'arrêt. Le fichier pneus.js passe sous ta responsabilité (le Codeur 2 est prévenu).
 
 ORDRES (tout derrière PNEUS_ACTIFS, qui reste faux par défaut : ?pneus=1 l'allume ; sans lui, la course est identique au bit près, test existant à garder)

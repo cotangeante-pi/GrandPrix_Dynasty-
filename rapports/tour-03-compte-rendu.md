@@ -194,7 +194,7 @@ Mesures :
 
 Ce que je n'ai pas pu vérifier :
   - la SENSATION de conduite : personne n'a conduit à part les tests. Les chiffres sont des premiers réglages
-    (donnees.js) : c'est à le propriétaire de dire si ça tourne trop, si le freinage est mou, etc. ;
+    (donnees.js) : c'est au propriétaire de dire si ça tourne trop, si le freinage est mou, etc. ;
   - la marche arrière et les chocs contre la barrière au clavier (testés seulement par le calcul) ;
   - le dérapage « si on entre trop vite » est vérifié seulement par le test à 125 % (la voiture sort du virage),
     pas par une mesure de l'angle de dérive ;

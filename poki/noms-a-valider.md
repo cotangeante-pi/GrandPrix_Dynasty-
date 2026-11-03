@@ -1,6 +1,6 @@
 # Les noms des pilotes et des écuries — proposition À VALIDER par le propriétaire
 
-Proposition du Codeur 3 (tour 37c, 2026-10-29). **Aucun de ces noms n'est dans le jeu** : c'est à le propriétaire de choisir, de changer ou de tout refaire. Une fois choisis, ils iront dans `NOMS_PILOTES` (donnees.js) et dans les clés d'écurie de textes.js.
+Proposition du Codeur 3 (tour 37c, 2026-10-29). **Aucun de ces noms n'est dans le jeu** : c'est au propriétaire de choisir, de changer ou de tout refaire. Une fois choisis, ils iront dans `NOMS_PILOTES` (donnees.js) et dans les clés d'écurie de textes.js.
 
 Les règles suivies :
 - Aucune vraie personne, aucun vrai pilote ni aucune vraie écurie, aucune vraie marque. J'ai cherché à éviter les ressemblances trop proches (pas de « Hamilten », pas de « Ferraro »).

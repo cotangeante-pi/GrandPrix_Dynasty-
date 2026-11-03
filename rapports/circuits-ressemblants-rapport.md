@@ -1,7 +1,7 @@
 CIRCUITS RESSEMBLANTS — ordre du Chef, pour le premier Codeur qui a fini son tour 21
 Chef : session-76. Base : main (CLAUDE.md mis à jour le 2026-10-23). Branche : `circuits` (à partir de main), à pousser sur GitHub.
 
-DÉCISION D'LE PROPRIÉTAIRE (2026-10-23) : « c'est possible de faire plus ressemblant au vrai ? » → oui. Les 12 circuits doivent se RECONNAÎTRE AU PREMIER COUP D'ŒIL, comme les vrais : proportions, virages célèbres à leur place, longueur proche du vrai. Les noms restent changés (Monoco, Silverstoun…), aucun logo, aucune marque, aucun vrai nom dans le jeu. Voir CLAUDE.md, « Le championnat et les saisons » et l'étape 10.
+DÉCISION DU PROPRIÉTAIRE (2026-10-23) : « c'est possible de faire plus ressemblant au vrai ? » → oui. Les 12 circuits doivent se RECONNAÎTRE AU PREMIER COUP D'ŒIL, comme les vrais : proportions, virages célèbres à leur place, longueur proche du vrai. Les noms restent changés (Monoco, Silverstoun…), aucun logo, aucune marque, aucun vrai nom dans le jeu. Voir CLAUDE.md, « Le championnat et les saisons » et l'étape 10.
 
 LE TRAVAIL (données seulement, rien de branché dans la page) :
 1. Refaire les 12 tracés de circuits-officiels-a.js et circuits-officiels-b.js (même format : ['droite', L], ['virage', rayon, angle], ['chicane', …]) pour qu'ils suivent la forme du vrai circuit, de mémoire et de ce que tu sais des vrais tracés. Pour chacun, les éléments qu'on doit reconnaître, au minimum :

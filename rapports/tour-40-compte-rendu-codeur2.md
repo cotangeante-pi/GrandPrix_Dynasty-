@@ -89,7 +89,7 @@ Le cran haut est exactement l'image d'avant : un test le relie à `PIXEL_RATIO_M
 
 ## Ce que je n'ai pas pu vérifier
 
-**La vraie mesure des images par seconde.** Elle se fait sur une carte graphique, et elle reste à le propriétaire.
+**La vraie mesure des images par seconde.** Elle se fait sur une carte graphique, et elle reste au propriétaire.
 
 **Le seuil de l'automate.** Sous swiftshader, l'image est toujours sous 55, donc l'automate descend toujours jusqu'à « basse ». Sur un vrai ordinateur, il faudra voir s'il se déclenche trop tôt, par exemple pendant un chargement, et ajuster `QUALITE_FENETRE` ou `QUALITE_IPS_MIN`.
 

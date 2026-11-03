@@ -50,7 +50,7 @@ Le tournoi est déjà couvert par ecrans.py test=tournoi, et la pause et le dép
 | index.html à la racine, un zip léger, sans fichiers de travail | tenu (0,58 Mo) |
 | Le jeu marche si le SDK ne charge pas (bloqueur de pub, hors ligne) | tenu |
 | L'anglais complet (le public Poki est surtout anglophone) | tenu (test de textes.html) |
-| **Le test sur inspector.poki.dev** | **reste à le propriétaire** (déposer dist/grand-prix-dynasty.zip) |
+| **Le test sur inspector.poki.dev** | **reste au propriétaire** (déposer dist/grand-prix-dynasty.zip) |
 
 ## Une remarque
 La variante du Codeur 4 dans dis_paix_deja, « on n'était pas fâchés », est genrée. Je ne l'ai pas changée : elle est à lui.

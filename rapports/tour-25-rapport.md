@@ -3,7 +3,7 @@ Chef : session-5b. Base : main (6843bc0 ou plus récent). Note : 78/100 (course 
 Commits vérifiés : determinisme 4dd5066 (fusionné) ; contournement ed08045 (passage GitHub en cours au moment du rapport ; sur 003deae : courses.html 34/38, chocs 12, herbe 4547) ; duel 722b144 (rouge, pas tenu). Compte rendu du tour 22 relu : clair et honnête, les 7 verrous levés et le bug du jeu corrigé (r signé) sont de bonnes prises.
 Ce qui manque ou ne va pas :
 - le contournement « lente = sous 45–60 % de la carte » attrape les voitures en erreur qui se remettent, et les contourner à pleine vitesse donne 12 chocs et 5143 pas d'herbe sur 30 courses (référence main : 5 et 2530). Ce n'est pas ce que le propriétaire a demandé : lui parle d'une voiture BLOQUÉE ;
-- le duel : verrou physique chiffré (11–19 m derrière au freinage, même vitesse de pointe, aspiration qui ne rend que 10 m sur 680 m). Il faut une décision de jeu : elle est à le propriétaire, pas à nous. En attendant, on lui donne des chiffres pour choisir.
+- le duel : verrou physique chiffré (11–19 m derrière au freinage, même vitesse de pointe, aspiration qui ne rend que 10 m sur 680 m). Il faut une décision de jeu : elle est au propriétaire, pas à nous. En attendant, on lui donne des chiffres pour choisir.
 
 ORDRES
 

@@ -248,7 +248,7 @@ Mesures :
   - toute l'image derrière la voiture : 15 appels de dessin ; circuit 16 034 triangles.
   - robot : 66,46 s, 0 contact, écart max au centre 1,70 m (2,68 m au tour 3).
   - 0–100 : 2,64 s ; vitesse max 328,9 km/h ; 300→80 : 101,1 m (inchangés).
-  - Images par seconde réelles : pas mesurées par moi. C'est à le propriétaire de remesurer dans son Chrome.
+  - Images par seconde réelles : pas mesurées par moi. C'est au propriétaire de remesurer dans son Chrome.
   - Une série a échoué pendant le tour, avec la charge du Mac à 17–19 : ecrans.py a pris 358 s, et la voiture n'avait
     pas le temps d'accélérer dans le délai de 8 s. J'ai rallongé à 20 s les attentes de conduite. Depuis, tout est vert.
 

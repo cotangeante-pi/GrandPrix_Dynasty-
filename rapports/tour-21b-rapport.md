@@ -24,7 +24,7 @@ ORDRES (tour plus gros : tout se vérifie avec des chiffres)
 3. L'enregistreur branché dans la page (enregistreur.js, étape 13 préparée) : il enregistre la course en cours (joueur + IA), sans rien afficher encore. Mesure : poids en mémoire d'une course de 5 tours avec 20 voitures, et le temps par pas (doit rester négligeable).
    Fini quand : un test d'écran joue 1 tour avec ?ia=5&joueur=1, puis vérifie que l'enregistrement relu redonne les positions de la course à la fin (écart < 1 cm) ; chiffres de mémoire et de temps dans le compte rendu.
 
-4. pneus.js branché MAIS DÉSACTIVÉ PAR DÉFAUT : il change l'adhérence du joueur, et c'est à le propriétaire de juger la sensation. Il s'active seulement avec `?pneus=1` (et un réglage PNEUS_ACTIFS dans donnees.js, false). Sans `?pneus=1`, la course est identique au bit près (même graine = mêmes temps).
+4. pneus.js branché MAIS DÉSACTIVÉ PAR DÉFAUT : il change l'adhérence du joueur, et c'est au propriétaire de juger la sensation. Il s'active seulement avec `?pneus=1` (et un réglage PNEUS_ACTIFS dans donnees.js, false). Sans `?pneus=1`, la course est identique au bit près (même graine = mêmes temps).
    Fini quand : test moteur « sans pneus = identique » ; avec ?pneus=1, l'usure se voit dans ?debug=1 et un tour de 10 tours montre l'usure qui monte ; pas d'affichage de pneus pour l'instant.
 
 HORAIRES : jusqu'à 21h. Rien de nouveau après 20h40, dernier push à 20h50 au plus tard, compte rendu complet dans rapports/tour-21b-compte-rendu.md (dans ta copie, sur codeur2) avant 20h55.

@@ -784,11 +784,11 @@ Ajouté le 2026-10-22, à la demande du propriétaire (« le travail avance lent
 **Il faut les retours du propriétaire** (prévoir plusieurs allers-retours et ne pas promettre que la première version sera la bonne) :
 - **La sensation de conduite (étape 2).** Personne ne peut jouer à part le propriétaire. Le Chef lui demande ce qu'il ressent (« ça tourne trop ? le freinage est mou ? »), puis il donne au Codeur des ordres de réglage dans `donnees.js`.
 - **Les IA (étape 4).** C'est le plus dur du projet. Les premières versions taperont les murs, se bloqueront ou rouleront à la file. On avance par petits morceaux (4a à 4d), et le Chef juge avec les simulations de 50 courses : des chiffres, pas des impressions.
-- **La beauté : circuits détaillés et interface (étapes 10 et 11).** Les Claude ne voient le jeu qu'en captures d'écran. Le Chef prend des captures à chaque tour (comme `../../jeu poki/tests/ecrans.py`), les montre à le propriétaire et lui demande des retours précis (« plus de public », « couleurs ternes »).
+- **La beauté : circuits détaillés et interface (étapes 10 et 11).** Les Claude ne voient le jeu qu'en captures d'écran. Le Chef prend des captures à chaque tour (comme `../../jeu poki/tests/ecrans.py`), les montre au propriétaire et lui demande des retours précis (« plus de public », « couleurs ternes »).
 
 ### Si on demande « fais le jeu »
 
-**Personne ne fait tout le jeu d'un coup.** Le Chef découpe l'étape en cours en tours, et le Codeur fait un tour à la fois. À la fin d'une étape, le Chef s'arrête et explique à le propriétaire ce qui a été fait, comment l'essayer et ce qu'il attend de son essai. Le jeu se construit en des dizaines de tours.
+**Personne ne fait tout le jeu d'un coup.** Le Chef découpe l'étape en cours en tours, et le Codeur fait un tour à la fois. À la fin d'une étape, le Chef s'arrête et explique au propriétaire ce qui a été fait, comment l'essayer et ce qu'il attend de son essai. Le jeu se construit en des dizaines de tours.
 
 ### Une étape est finie seulement quand
 
@@ -797,7 +797,7 @@ Ajouté le 2026-10-22, à la demande du propriétaire (« le travail avance lent
 3. **Le propriétaire l'a essayée** et l'a acceptée ;
 4. le commit est fait.
 
-Avant tout ça, ne jamais écrire « fini ». Pour une grosse étape (2, 4, 10, 11), le Chef propose d'abord son découpage en tours à le propriétaire.
+Avant tout ça, ne jamais écrire « fini ». Pour une grosse étape (2, 4, 10, 11), le Chef propose d'abord son découpage en tours au propriétaire.
 
 ## Les étapes (dans l'ordre)
 
@@ -832,10 +832,11 @@ Avant tout ça, ne jamais écrire « fini ». Pour une grosse étape (2, 4, 10, 
 ## Façon de travailler avec le propriétaire
 
 - Parler en français, simplement.
+- **Aucune information personnelle dans le dépôt** (demande du propriétaire, 2026-11-03 : le dépôt est public et le code part sur Poki) : ni prénom, ni nom, ni adresse e-mail, ni nom du Mac, ni chemin de ses dossiers, dans le code, les commentaires, les tests, la doc et les rapports. On écrit « le propriétaire » ; les sessions Claude s'appellent « session-xx » ; les chemins se donnent relatifs (`../Grand Prix Dynasty - codeur 2`). Les commits utilisent l'adresse noreply GitHub déjà configurée dans le dépôt.
 - Avant un gros changement, expliquer le plan en quelques lignes. Pour une décision de jeu (règle, équilibrage, nom, circuit, style), proposer, puis laisser le propriétaire choisir.
 - Avancer par petits pas : un changement, on vérifie qu'il marche (tests, puis lancer le jeu), puis le suivant.
 - Dire franchement ce qui ne marche pas ou ce qui n'a pas été vérifié.
 - Si ce fichier ou le README disent autre chose que le code, c'est le code qui a raison : on corrige le texte.
 - Commits : dans la boucle, le Codeur commite à chaque tour vert (le propriétaire l'autorise en lançant la boucle). En dehors de la boucle, ne commiter que quand le propriétaire le demande.
 - Quand une décision est prise, la noter dans ce fichier, et enlever le « à approuver » correspondant.
-- Seul le Chef parle de l'avancement à le propriétaire. Le Codeur lui répond s'il lui parle directement.
+- Seul le Chef parle de l'avancement au propriétaire. Le Codeur lui répond s'il lui parle directement.

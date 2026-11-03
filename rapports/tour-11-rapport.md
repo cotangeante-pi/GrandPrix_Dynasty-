@@ -8,7 +8,7 @@ Ce qui marche (vérifié) : plus de rail, chaque IA choisit sa ligne, ne voit qu
 
 Ce qui ne va pas (du plus grave au moins grave) :
 - Toujours une procession : arrivée = grille 10/10 avec IA_DEPASSEMENT = false. Le rapide coincé derrière perd tout son avantage (55,1 → 57 s).
-- L'aspiration a été ajoutée à la physique : prévue par CLAUDE.md et identique pour tous, mais c'est un changement de conduite ; le Chef le signale à le propriétaire (il le sentira en roulant derrière une IA, pas avant l'étape 5).
+- L'aspiration a été ajoutée à la physique : prévue par CLAUDE.md et identique pour tous, mais c'est un changement de conduite ; le Chef le signale au propriétaire (il le sentira en roulant derrière une IA, pas avant l'étape 5).
 - Le calcul d'une course de 10 IA sur le technique a pris 15 s chez moi : à 50 courses (critère de l'étape 4), la page de test durerait trop longtemps. Peut-être la charge du Mac : à mesurer.
 
 Le diagnostic du Codeur est accepté : il faut une DÉCISION d'attaque à part, pas seulement une note de ligne.

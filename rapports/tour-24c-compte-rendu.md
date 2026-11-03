@@ -40,5 +40,5 @@ Pour CLAUDE.md (à ajouter par le Chef) :
 - « La carrière du joueur » : la question de la qualité de la F1 du joueur (voir ordre 3) ;
 - tests : « ?championnat=1&tours=1&robot=1&gp=12 (fin de saison, contrats, saison 2 ; en 960 la retraite) ; captures champion.png, duel-saison.png, contrats.png, champion-960.png, contrats-960.png, retraite-960.png ».
 
-Ce que je n'ai pas pu vérifier : l'équilibre des contrats (poids, exigences, prix) et de l'évolution des rivaux sur de vraies courses (seulement des résultats tirés) ; la beauté des écrans (captures à montrer à le propriétaire) ; les sponsors et la cérémonie du champion (plus tard) ; la question de la qualité de la F1 du joueur (à trancher). Rien touché dans ia.js, simulation.js, physique.js, fantome.js, depart.js, course.js, decouverte.js, pilote.js, cache-carte.js, CLAUDE.md.
+Ce que je n'ai pas pu vérifier : l'équilibre des contrats (poids, exigences, prix) et de l'évolution des rivaux sur de vraies courses (seulement des résultats tirés) ; la beauté des écrans (captures à montrer au propriétaire) ; les sponsors et la cérémonie du champion (plus tard) ; la question de la qualité de la F1 du joueur (à trancher). Rien touché dans ia.js, simulation.js, physique.js, fantome.js, depart.js, course.js, decouverte.js, pilote.js, cache-carte.js, CLAUDE.md.
 Réévalue.

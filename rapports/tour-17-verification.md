@@ -6,4 +6,4 @@ Ce qui reste pour l'étape 4 (reprise) :
 1. Les surprises : le poleman gagne 30 fois sur 30. Refaire les erreurs (branche tour-16) sur ce main, maintenant que les lignes sont stables : 0 choc fort pendant une erreur, 20 voitures ≤ 1 choc. Critère : vainqueur ≠ poleman ≥ 4, meilleur rythme top 3 entre 18 et 28.
 2. Le duel (rapide 30 m derrière un lent) ne double toujours pas.
 3. Les niveaux de difficulté (débutant, normal, expert, légende) et la défense.
-4. Puis demander à le propriétaire de jouer `?ia=9&joueur=1`, avant l'étape 5.
+4. Puis demander au propriétaire de jouer `?ia=9&joueur=1`, avant l'étape 5.

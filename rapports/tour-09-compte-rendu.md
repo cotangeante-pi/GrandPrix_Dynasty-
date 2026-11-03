@@ -53,7 +53,7 @@ Sortie des tests (python3 tests/lancer.py) : TOUT PASSE
 - tests/ecrans.py : RESULTAT 147/147 (93 s)
 
 À noter :
-- Le commit bc85623 n'a pas pu se faire normalement : git n'a aucune identité configurée et la devinait jusqu'ici à partir du nom réseau du Mac, qui a changé. Je l'ai faite avec la même identité que les commits précédents (le propriétaire <266356357+cotangeante-pi@users.noreply.github.com>), par variables d'environnement. Je n'ai rien changé à la configuration git. Il faudra peut-être le dire à le propriétaire (`git config user.name` / `user.email`).
+- Le commit bc85623 n'a pas pu se faire normalement : git n'a aucune identité configurée et la devinait jusqu'ici à partir du nom réseau du Mac, qui a changé. Je l'ai faite avec la même identité que les commits précédents (le propriétaire <266356357+cotangeante-pi@users.noreply.github.com>), par variables d'environnement. Je n'ai rien changé à la configuration git. Il faudra peut-être le dire au propriétaire (`git config user.name` / `user.email`).
 - CLAUDE.md : je n'y ai pas touché. Texte à ajouter dans la liste des fichiers :
   - `simulation.js` : une course entre IA en calcul pur : la grille (deux files), ce que chaque IA voit devant elle (`voitureDevant`, cône + couloir), `creerCourseIA` / `pasCourseIA` (aussi utilisés par la page) et `simulerCourse(circuit, nbVoitures, nbTours, graine)` pour les tests ;
   - dans `physique.js` : `contactsVoitures`, les contacts entre voitures (rectangles, choc mou), le même pour tous ;

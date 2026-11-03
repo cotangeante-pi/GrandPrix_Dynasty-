@@ -2,7 +2,7 @@ TOUR 2 — étape 1 (le circuit, fait à partir de sa courbe) — rapport du Che
 Commit vérifié : 044c78f (code a4f5bdd)
 Note : 10/100 — conduite 0/20, course et IA 0/20, championnat 0/15, interface 0/15, 3D et perf 1/15, code et tests 8/10, Poki 1/5
 Tests : relancés par le Chef, `python3 tests/lancer.py` → TOUT PASSE (test.html 23/23, ecrans.py 24/24, 55 s).
-Mesures : three.min.js 633 Ko, le reste < 25 Ko. Images par seconde réelles : pas encore mesurées (demandé à le propriétaire).
+Mesures : three.min.js 633 Ko, le reste < 25 Ko. Images par seconde réelles : pas encore mesurées (demandé au propriétaire).
 
 Ce qui marche (vérifié par le Chef, pas sur parole) :
 - boucle propre : accumulateur, plafond de 12 pas, EPSILON, onglet caché, simuler() sans affichage ;

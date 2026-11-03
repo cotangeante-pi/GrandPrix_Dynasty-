@@ -10,7 +10,7 @@ Ce qui ne va pas (du plus grave au moins grave) :
 - L'IA n'a été testée que dans le cas parfait : départ arrêté au centre, seule. À l'étape 4b, elle sera poussée hors de sa ligne, freinée par une voiture devant, remise en piste. Rien ne prouve qu'elle s'en remet.
 - Le calcul de la trajectoire peut bloquer la page jusqu'à 4,6 s au chargement (Mac chargé). Le chargement doit être court.
 - 47,88 s : 3 s plus lent que le propriétaire. Acceptable pour 4a ; les marges (frein 0,95, braquage 0,95) seront le levier des niveaux de difficulté en 4d. Pas d'ordre là-dessus maintenant.
-- Ordre 5 non fait : refus du Codeur compris (CLAUDE.md). Le Chef demande à le propriétaire.
+- Ordre 5 non fait : refus du Codeur compris (CLAUDE.md). Le Chef demande au propriétaire.
 
 ORDRES :
 1. Robustesse : piloteIA doit retrouver sa trajectoire depuis n'importe où sur la piste.
