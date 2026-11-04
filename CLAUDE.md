@@ -248,6 +248,13 @@ Le propriétaire, 2026-11-04 : « la personnalisation est très manquante ». Su
 - **La célébration** : le joueur choisit sa célébration (une liste dans `donnees.js` : poing levé, drapeau de son pays, donuts…), jouée à l'arrivée quand il gagne et sur le podium. Des célébrations se débloquent par des exploits de carrière, comme les motifs de casque.
 - **Les réglages de la voiture** : à côté de l'aileron (voir « Le réglage de l'aileron »), d'autres curseurs, chacun un compromis et jamais le meilleur partout (par exemple : l'équilibre des freins, la boîte courte ou longue). Les IA règlent aussi, avec la même règle. Un bouton « Réglage conseillé » pour ceux qui ne veulent pas y toucher. Lesquels exactement : à proposer au propriétaire avant de les coder.
 - **Tests** : la livrée et la célébration gardées après rechargement ; une ancienne sauvegarde sans livrée se charge avec la livrée par défaut ; le nombre d'appels de dessin d'une voiture inchangé ; chaque réglage ne gagne pas partout (tableau des temps sur les 12 tracés) ; textes fr et en.
+- **Les skins** (le propriétaire, 2026-11-04 : « des skins achetables par pub, par argent ou par récompense » ; règles du Chef acceptées). Chaque skin s'obtient d'**une** façon :
+  - **l'argent du jeu** (les € gagnés en course, pas d'argent réel : Poki se paie par les pubs) : la plupart, du moins cher au plus cher ; c'est un vrai choix contre les améliorations du garage ;
+  - **une pub** : quelques skins à part, par un bouton 📺 qui dit ce qu'on gagne (voir « Règles Poki ») ; une pub débloque le skin pour toujours ;
+  - **une récompense** de carrière : les plus beaux (or, champion, légende…), qui ne s'achètent pas ;
+  - **un skin ne change que le look, jamais la vitesse** ;
+  - **l'essai avant l'achat** : sur le circuit de test, seul (aucune IA), quelques tours hors championnat (rien n'est compté ni gagné), puis le **résumé vidéo** de l'essai pour voir la voiture sous les caméras télé ; à la fin, « Acheter » ou « Retour ».
+  - À demander au propriétaire : les skins sont-ils seulement les livrées, ou aussi les casques et les célébrations (une seule boutique, conseil du Chef) ?
 - Non retenu (2026-11-04) : les pièces à débloquer (aileron, jantes, fumée). La livrée spéciale du Grand Prix à domicile : à reproposer au propriétaire, mal expliquée la première fois.
 
 ## Le Grand Prix à domicile
