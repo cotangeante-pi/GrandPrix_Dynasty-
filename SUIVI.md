@@ -35,7 +35,7 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 ## Tour en cours
 
 **2026-11-04 : journée de discussion, pas de code.** Ordre du prochain jour de code (décisions du propriétaire, détail dans CLAUDE.md) :
-1. **PRIORITÉ : le nouveau paddock** (menu à gauche, page au centre : « Le nouveau paddock » dans CLAUDE.md).
+1. **PRIORITÉ : le nouveau paddock** (menu à gauche, page au centre : « Le nouveau paddock » dans CLAUDE.md), avec « Nouvelle carrière » dans ⚙ Réglages.
 2. La saison 2 sur test/technique (vieille sauvegarde, « Bugs connus »).
 3. Le pneu drift caché, la glisse pour personne.
 4. La personnalisation : livrée, célébration, boutique de skins (argent du jeu, pub, récompense ; essai sur le circuit de test avec résumé ; le skin du pays après la première course officielle). Puis les réglages de la voiture (liste à proposer au propriétaire d'abord).
