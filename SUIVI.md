@@ -186,6 +186,8 @@ Note du Chef session-5b (2026-10-23) : les lignes 18 à 19b ne s'additionnaient 
 
 ## Décidé
 
+- 2026-11-04 : le propriétaire approuve la liste des 12 circuits et celle des améliorations du garage, telles qu'elles sont dans le jeu (« momentanément c'est bon », il pourra revenir dessus).
+
 - 2026-11-02 17h (le propriétaire, après avoir essayé) : « 2 joueurs il faudrait montrer les touches, sinon tournoi chrono et 2 joueurs (après modification) seront parfaits » → **étape 5c (tournoi chrono) acceptée par le propriétaire** ; **étape 5b (2 joueurs) acceptée une fois les touches montrées** (CLAUDE.md, « Montrer les touches »).
 
 - 2026-10-29 20h20 (Chef, repli prévu par CLAUDE.md « La voiture vivante ») : **la voiture vivante pour le joueur seul en expert et légende** (VIVANTE_IA = 0). Les IA ne savent pas encore la piloter : en légende sur le circuit test, 46,6 s → plus de 180 s au tour, de l'herbe partout. Les références de courses.html et stands.html ne bougent pas. Les IA en voiture vivante restent à faire.
@@ -261,15 +263,12 @@ Note du Chef session-5b (2026-10-23) : les lignes 18 à 19b ne s'additionnaient 
 - **Le duel (étape 4, le dernier critère)** : sur le circuit technique, un pilote 6 % plus rapide ne double jamais un plus lent (il arrive au freinage 11–19 m derrière, même vitesse de pointe). **Les 3 options ont été mesurées par le Codeur 1 (tour 25, 30 courses chacune) et aucune ne tient seule** : A (aspiration 0,5 / 80 m) → 11 chocs au lieu de 4 et toujours pas de dépassement ; B (nez devant 0,2) → aucun effet, il n'arrive jamais à côté ; C (rythmes 0,90–1) → plateau plus lent, pas de dépassement. La cause : 14 m de suivi en virage = 29 m à la sortie, et un virage lent exige le nez devant au freinage. Le seul chemin est un tour d'IA dédié : suivre plus près en virage sans quitter sa ligne, remontée dans le sillage, et **l'attaqué qui laisse la place à une entrée côte à côte dans les virages lents** (donc des chocs à régler sur un tour). **Question pour le propriétaire : on accepte des entrées côte à côte dans les virages lents (plus de risque, plus de spectacle), ou on garde l'état actuel (41 dépassements par 30 courses, presque tous au freinage sur erreur, vainqueur ≠ poleman 1/30) ?** Avis du Chef : oui, côte à côte, c'est la F1 ; mais c'est un tour d'IA à part, pas ce soir.
 - À l'épingle du circuit technique, toutes les IA roulent à la corde (écart 0,40 m entre elles) même quand leur style prévoit une ligne plus large : la visée coupe vers l'intérieur dans les virages lents. Réaliste, ou veux-tu une visée plus courte dans les virages lents (ça change le pilotage des IA, à ressentir) ?
 - **Les 12 tracés refaits d'après les vrais** (le 2026-10-26, le Codeur 1 a fait rouler les IA dessus en simulation, tests/officiels.html : les 12 cartes se calculent, chaque IA seule fait ses tours sans sortie, 10 IA font 3 tours avec 0 à 2 chocs, l'arrêt au stand marche partout ; un peu d'herbe à Monoco, Suzuko, Montréol : les tracés sont prêts à être branchés dès ton accord) (ouvrir tests/circuits-a.svg et tests/circuits-b.svg dans Chrome ; les cartes sont tournées, le départ part vers la droite) : reconnaissables ? Points faibles connus : l'épingle de Monoco (108°), Bahrayn et Melbourn Park génériques. Ton accord = on les branche dans le jeu (?circuit=monoco…).
-- La liste des améliorations du garage proposée au tour 23c (changeurs de roues, moteur, aéro, freins ; +7 % au plus) : à approuver.
 - Les IA, même en légende, font 49,4 s seules sur le circuit test (le propriétaire ≈ 45 s) : les rendre plus rapides ?
 
 - Rendre l'herbe plus pénalisante (pour que les erreurs des IA coûtent, et donc des surprises) : ça change aussi la conduite du joueur.
 - Les noms des 20 pilotes et des 10 écuries (provisoires dans donnees.js).
 
 
-- La liste des 12 circuits.
-- La liste exacte des améliorations du garage.
 
 ## Journal des sessions
 
