@@ -254,8 +254,9 @@ Le propriétaire, 2026-11-04 : « la personnalisation est très manquante ». Su
   - **une récompense** de carrière : les plus beaux (or, champion, légende…), qui ne s'achètent pas ;
   - **un skin ne change que le look, jamais la vitesse** ;
   - **l'essai avant l'achat** : sur le circuit de test, seul (aucune IA), quelques tours hors championnat (rien n'est compté ni gagné), puis le **résumé vidéo** de l'essai pour voir la voiture sous les caméras télé ; à la fin, « Acheter » ou « Retour ».
-  - À demander au propriétaire : les skins sont-ils seulement les livrées, ou aussi les casques et les célébrations (une seule boutique, conseil du Chef) ?
-- Non retenu (2026-11-04) : les pièces à débloquer (aileron, jantes, fumée). La livrée spéciale du Grand Prix à domicile : à reproposer au propriétaire, mal expliquée la première fois.
+  - **Une seule boutique** (le propriétaire, 2026-11-04) : livrées, casques et célébrations au même endroit, avec les mêmes trois façons de les obtenir.
+  - **Le skin aux couleurs de son pays** (le propriétaire, 2026-11-04) : la livrée aux couleurs du drapeau du pays du joueur est la **récompense de la première course officielle** (le premier Grand Prix du championnat, quel que soit le résultat). Ensuite c'est un skin comme les autres, à mettre quand on veut.
+- Non retenu (2026-11-04) : les pièces à débloquer (aileron, jantes, fumée). La livrée spéciale du Grand Prix à domicile devient le skin aux couleurs du pays (ci-dessus).
 
 ## Le Grand Prix à domicile
 
