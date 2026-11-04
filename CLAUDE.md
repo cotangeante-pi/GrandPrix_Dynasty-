@@ -585,6 +585,35 @@ Le but : une interface qui a l'air d'une **vraie retransmission de F1**, claire 
   - les sponsors, et les contrats en fin de saison.
 - L'interface est en HTML et CSS, par-dessus la 3D. Elle a son propre style (police, couleurs, animations), défini une seule fois dans des variables CSS. Depuis le 2026-10-27 (tour 32, étape 11 commencée) : le thème télé `--tv-*` à la fin de `style.css`, appliqué à tous les écrans `.ecran` (voile en dégradé, titres en capitales italiques avec un bandeau rouge, boutons en plaques), des transitions de 180 à 230 ms (opacité et titre seulement, rien ne bouge sous un clic), les résultats animés, tout coupé par `prefers-reduced-motion` ; le paddock est un écran d'accueil (le prochain Grand Prix avec sa carte, ta situation, les classements, les boutons en 4 groupes).
 
+### Le nouveau paddock : un menu à gauche, une page au centre (PRIORITÉ au prochain jour de code)
+
+Décidé par le propriétaire le 2026-11-04 (« la page home n'est pas assez structurée clairement » ; sur la proposition du Chef : « excellent, bien plus organisé, mets ça en priorité », « la réorganisation est parfaite »). **C'est le premier travail du prochain jour de code**, avant le reste des décisions du 2026-11-04.
+
+Le constat (capture poki/captures/5-paddock-fr.jpg) : trois cartes du même poids, une carte « ta situation » qui mélange boutons et chiffres, le classement de 20 pilotes qui prend la moitié de l'écran, 9 boutons presque pareils en bas, 5 boutons perdus dans les coins (le son en double), les côtés de l'écran vides.
+
+```
+┌──────────────┬───────────────────────────────────────────┐
+│ GRAND PRIX   │  PROCHAIN GRAND PRIX  6/12                │
+│ DYNASTY      │  BARCELANA   ☁ nuageux     [carte]        │
+│              │                                           │
+│ ▶ Course     │  Toi : P4 · 52 pts · à 32 du leader       │
+│   Mon équipe │  Duel : Toi 10 – 0 Pilote 19              │
+│   Boutique   │                                           │
+│   Saison     │  ┌ Classement ┐  ┌ Messages (2) ┐         │
+│   Messages ● │  │ 1 Pilote 2 │  │ ✉ Coéquipier │         │
+│   Entre amis │  │ 2 …        │  │ ✉ Direction  │         │
+│              │  │ 4 Toi      │  └──────────────┘         │
+│ ⚙ Réglages   │  │ 5 …        │                           │
+│ ? Apprendre  │  └ voir tout ─┘     [ COURSE SUIVANTE ▶ ] │
+└──────────────┴───────────────────────────────────────────┘
+```
+
+- **Le menu à gauche** (6 entrées, au lieu de 9 boutons et 5 dans les coins) : **Course** (l'accueil), **Mon équipe** (garage, aileron, sponsors, argent, réputation), **Boutique** (skins, casques, célébrations : voir « La personnalisation »), **Saison** (calendrier, classements complets, album, arbre de la dynastie), **Messages** (courrier, coéquipier, direction ; un point quand il y a du nouveau), **Entre amis**. En bas : **⚙ Réglages** (son, aides au pilotage, revoir les aides, qualité graphique) et **? Apprendre** (le tutoriel). Plus rien dans les coins.
+- **La page Course** : le prochain Grand Prix en grand (numéro, circuit, météo, carte), ta place et ton duel, un classement réduit (les 3 premiers, toi et tes voisins, le coéquipier, puis « voir tout »), les messages, et **un seul gros bouton rouge « Course suivante »**.
+- **Petit écran** (960×600, téléphone 640×360) : le menu devient une rangée d'icônes ou un bouton ☰ ; rien ne déborde, aucun défilement.
+- Le thème télé (`--tv-*`) et les transitions restent ; manette et tactile marchent dans le menu (halo du bouton choisi) ; textes fr et en.
+- **Tests** : chaque ancien bouton du paddock se retrouve dans une page (aucune fonction perdue) ; « Course suivante » toujours visible sans défiler ; 960, 1280 et 640×360 sans débordement en fr et en en ; tests/saison.py et tests/recoins.py mis à jour pour le nouveau chemin ; captures fr/en à relire par le Chef puis montrées au propriétaire.
+
 ## Le monde 3D
 
 **Les circuits doivent être extrêmement détaillés** : tribunes avec du public, stands, bâtiments, arbres, panneaux, vibreurs, barrières, ciel et lumière propres à chaque lieu. Monoco doit avoir des rues, un port et des bateaux, et Singapura est de nuit avec des projecteurs. C'est une **grosse étape**, faite circuit par circuit.
