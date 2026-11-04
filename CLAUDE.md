@@ -135,6 +135,14 @@ Décidé par le propriétaire le 2026-10-21. **But** : donner une voix au joueur
 
 ## La voiture vivante (les pneus adhérant / drift)
 
+**Décidé le 2026-11-04 par le propriétaire : le pneu drift est caché** (« je propose d'enlever les pneus drift, je trouve que ça sert à rien » ; « ok cache-le, on garde la glisse pour personne »). Ce qui suit reste pour mémoire, le code est gardé, éteint :
+- le joueur ne voit plus le choix « Grip / Drift » (garage, ← → à l'arrêt, stand, bulles, icône) ; seuls les pneus de la météo restent (slick, inter, pluie) ;
+- **la glisse pour personne** : ni le joueur ni les IA ne roulent avec la voiture vivante ; la voiture est celle acceptée au tour 4, au bit près ;
+- la 8e leçon du tutoriel (« le drift ») n'est plus proposée : le tutoriel revient à 7 leçons ;
+- une sauvegarde qui avait le drift repasse en adhérant sans erreur ;
+- un seul réglage dans `donnees.js` rallume le tout (pour une version arcade un jour), avec un test « drift caché » (aucun texte drift à l'écran, voiture = adhérant au bit près) et un test « drift rallumé » (tout revient).
+- À faire par un Codeur au prochain jour de code (le 2026-11-04 on discute seulement).
+
 Demande du propriétaire, 2026-10-29. Puis, le même jour : « on pourrait faire des pneus adhérant ou drift, on change au changement de roue ou avant la course » → la voiture vivante n'est plus liée au niveau : elle vient d'un **pneu drift** que le joueur choisit (voir « Les pneus adhérant / drift » plus bas).
 
 **Le constat.** Aujourd'hui l'arrière accroche toujours plus que l'avant (`ADHERENCE_ARRIERE` 1,25) : c'est toujours l'avant qui glisse, jamais de tête-à-queue. La voiture est sûre mais plate : elle fait la même chose au freinage, en plein virage et en sortie.
