@@ -237,6 +237,31 @@ const SAUVEGARDE = (function () {
     return CARRIERE.place(d.temple, ch.retraite.temple);
   }
 
+  // --- « Nouvelle carrière » et « Nouvelle carrière à 0 » (tour 48a, le propriétaire 2026-11-04 ; ⚙ Réglages du paddock) ---
+  // nouvelle carrière : un monde neuf (CARRIERE.nouveauMonde : le championnat, l'argent et le garage repartent de zéro, le pilote est à
+  // créer) ; tout ce qui est à la racine reste (temple, records, motifs, skins, leçons, aides vues, réglages, fantômes). La carrière
+  // abandonnée entre au temple si elle a au moins une saison finie. Renvoie le nouveau championnat.
+  function nouvelleCarriere(ancien) {
+    const d = lire();
+    if (ancien && typeof CARRIERE !== 'undefined') {
+      try {   // (une saison finie dans CETTE carrière : la saison en cours est après celle du début ; une carrière abîmée n'entre pas au temple)
+        CARRIERE.completer(ancien);
+        if (ancien.saison > ancien.carriere.debut) CARRIERE.entrer(d.temple, CARRIERE.resume(ancien));
+      } catch (e) { /* rien d'autre ne change */ }
+    }
+    d.championnat = CARRIERE.nouveauMonde(ancien);
+    ecrire(d);
+    return d.championnat;
+  }
+  // à 0 : tout est effacé, comme au tout premier lancement (écran titre, course de découverte) ; seuls restent les réglages du son
+  // et de la qualité (la langue vient du navigateur ou de ?lang, elle n'est pas dans la sauvegarde). Choix du Chef, réversible.
+  const GARDES_A_ZERO = ['son_volumes', 'qualite'];
+  function toutEffacer() {
+    const avant = lire(), d = vierge();
+    for (const k of GARDES_A_ZERO) if (avant.options && avant.options[k] !== undefined) d.options[k] = avant.options[k];
+    return ecrire(d);
+  }
+
   // --- le tournoi chrono (tournoi.js) : { joueurs (la dernière liste), formule, enCours (le tournoi qui se joue, ou null) }, à part
   // de la carrière ; jamais de fantôme (ils restent en mémoire, le temps d'une manche)
   function tournoi() {
@@ -296,5 +321,5 @@ const SAUVEGARDE = (function () {
     return ecrire(d);
   }
 
-  return { perdue: () => perdue, impossible: () => impossible, surAvis, tutoriel, reussirLecon, aides, ecrireAides, motifs, debloquerMotifs, prendreAnnonceMotifs, tournoi, ecrireTournoi, deux, ecrireDeux, temple, entrerAuTemple, lire, ecrire, record, proposerRecord, championnat, ecrireChampionnat, fantome, proposerFantome, option, ecrireOption, reaction, proposerReaction, decouverteFaite, argent, finirDecouverte, carte, ecrireCarte, VERSION, CLE };
+  return { nouvelleCarriere, toutEffacer, GARDES_A_ZERO, perdue: () => perdue, impossible: () => impossible, surAvis, tutoriel, reussirLecon, aides, ecrireAides, motifs, debloquerMotifs, prendreAnnonceMotifs, tournoi, ecrireTournoi, deux, ecrireDeux, temple, entrerAuTemple, lire, ecrire, record, proposerRecord, championnat, ecrireChampionnat, fantome, proposerFantome, option, ecrireOption, reaction, proposerReaction, decouverteFaite, argent, finirDecouverte, carte, ecrireCarte, VERSION, CLE };
 })();

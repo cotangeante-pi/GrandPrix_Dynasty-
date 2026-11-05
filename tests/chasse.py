@@ -73,7 +73,14 @@ class Carriere:
             cle = (genre, el)
             if cle not in self.problemes and not any(k[0] == genre for k in self.problemes): self.capture(re.sub(r'\W+', '-', genre)[:20])
             if cle not in self.problemes: self.problemes[cle] = { 'ecran': quoi, 'detail': detail, 'page': self.pg.url.split('/')[-1] }
+    # (tour 48a) le nouveau paddock : un bouton rangé dans une page cachée du paddock ; on ouvre sa page par le menu, comme un joueur
+    def vers_page(self, sel):
+        page = self.ev('(s) => { const e = document.querySelector(s), p = e && e.closest(".paddockPage"); return p && p.classList.contains("cache") && JEU.ecran === "championnat" ? p.dataset.page : null; }', sel)
+        if page:
+            try: self.pg.click('#paddockMenu [data-page="' + page + '"]', timeout=8000)
+            except Exception: pass
     def clic(self, sel, navigation=False):
+        self.vers_page(sel)
         try: self.pg.wait_for_selector(sel, state='visible', timeout=3000)
         except Exception: pass
         try:
@@ -99,13 +106,16 @@ class Carriere:
         if gp not in faits:
             faits.add(gp)
             self.inspecter('paddock')
+            # (tour 48a) chaque page du paddock, ouverte par le menu
+            for page in ('equipe', 'boutique', 'saison', 'messages', 'reglages', 'course'):
+                if self.clic('#paddockMenu [data-page="' + page + '"]'): self.inspecter('paddock : ' + page)
             if self.clic('#boutonGarage'):
                 self.ev('() => 0'); self.inspecter('garage')
                 if self.ev('() => !document.getElementById("bulleAide").classList.contains("cache")'): self.clic('#bulleAide')
                 self.clic('#boutonGarageRetour')
-            if self.ev('() => !!document.getElementById("boutonCourrier") && document.getElementById("boutonCourrier").getClientRects().length > 0') and self.clic('#boutonCourrier'):
+            if self.ev('() => !!document.getElementById("boutonCourrier")') and self.clic('#boutonCourrier'):
                 self.inspecter('courrier'); self.clic('#boutonCourrierRetour')
-            if self.ev('() => !!document.getElementById("boutonParlerCoequipier") && document.getElementById("boutonParlerCoequipier").getClientRects().length > 0') and self.clic('#boutonParlerCoequipier'):
+            if self.ev('() => !!document.getElementById("boutonParlerCoequipier")') and self.clic('#boutonParlerCoequipier'):
                 n = self.ev('() => document.querySelectorAll("#discussionFil li").length') or 0
                 try: pg.fill('#discussionTexte', 'salut, belle course' if self.langue == 'fr' else 'hi, nice race', timeout=5000)
                 except Exception: pass

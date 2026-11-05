@@ -128,6 +128,13 @@ PAGES = [
     ('index.html?course=12&ia=3&joueur=1&robot=1&circuit=test&test=aides-course', 1280, 720, None),
     ('index.html?course=12&ia=3&joueur=1&robot=1&circuit=test&test=aides-course', 960, 600, None),
     ('index.html?championnat=1&test=aides-menus', 1280, 720, None),
+    # le nouveau paddock (tour 48a) : le menu, les pages, les deux « Nouvelle carrière » ; captures paddock-<page>-<langue>-<largeur>.png
+    ('index.html?championnat=1&gp=5&test=paddock&lang=fr', 1280, 720, None),
+    ('index.html?championnat=1&gp=5&test=paddock&lang=en', 1280, 720, None),
+    ('index.html?championnat=1&gp=5&test=paddock&lang=fr', 960, 600, None),
+    ('index.html?championnat=1&gp=5&test=paddock&lang=en', 960, 600, None),
+    ('index.html?championnat=1&gp=5&test=paddock&lang=fr', 640, 360, None),
+    ('index.html?championnat=1&gp=5&test=paddock&lang=en', 640, 360, None),
     ('index.html?championnat=1&test=aides-menus', 960, 600, None),
     ('index.html?championnat=1&tours=2&robot=1&test=aides-consigne', 1280, 720, None),   # les aides des contrats et de la consigne d'équipe, dans la page
     ('index.html?championnat=1&tours=2&robot=1&test=aides-consigne', 960, 600, None),
@@ -592,7 +599,7 @@ def decouverte(pg, titre):
     t(f'{titre} : au lancement suivant, la carte de la découverte est gardée dans le cache de la sauvegarde ; celle du 1er Grand Prix (un autre circuit) vient du cache ou se calcule en fond',
       pg.evaluate('() => SAUVEGARDE.carte(REGLAGES.DECOUVERTE_CIRCUIT) !== null && NOM_CIRCUIT === JEU.championnat.calendrier[0].circuit && (JEU.carteDuCache === true || JEU.calculTrajectoire !== null || JEU.carte !== null)'),
       str(pg.evaluate('() => [NOM_CIRCUIT, SAUVEGARDE.carte(REGLAGES.DECOUVERTE_CIRCUIT) !== null, JEU.carteDuCache, JEU.carte !== null]')))
-    pg.click('#boutonCourseSuivante')
+    paddock_clic(pg, '#boutonCourseSuivante')
     attendre(pg, '() => JEU.ecran === "qualif" && JEU.qualif && JEU.qualif.etat === "choix"', None, 10000)
     pg.click('#boutonQualifPasser')
     attendre(pg, '() => JEU.qualif && JEU.qualif.etat === "resultat"', None, 180000)   # (la carte des IA d'abord, s'il le faut)
@@ -719,7 +726,7 @@ def officiel_ecran(pg, titre, nom):
 def consigne_ecran(pg, titre, suivre):
     attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', None, 60000)
     avant = pg.evaluate('() => JEU.championnat.reputation ? JEU.championnat.reputation.ecurie : 50')
-    pg.click('#boutonCourseSuivante')
+    paddock_clic(pg, '#boutonCourseSuivante')
     passer_qualif(pg, titre)
     attendre(pg, '() => JEU.plateau.carte !== null && JEU.course.etat === "compte"', None, 180000)
     # le joueur et son coéquipier échangent leurs places sur la grille (le joueur devant lui)
@@ -769,7 +776,7 @@ def championnat_en(pg, titre):
     t(f'{titre} : l’écran du championnat en anglais : « Grand Prix 1 / 12 — Bahrayn », Drivers / Teams, « You » et « Driver n », « Team n », « Next race », pas un mot français',
       ecran['titre'] == 'Grand Prix 1 / 12 — Bahrayn' and ecran['h2'] == ['Drivers', 'Teams'] and all(re.fullmatch(r'Driver \d+|You', n) for n in ecran['pilotes']) and ecran['pilotes'].count('You') == 1
       and all(re.fullmatch(r'Team \d+', n) for n in ecran['ecuries']) and ecran['bouton'] == 'Next race' and not re.search(MOTS_FR, ecran['tout']), str(ecran)[:400])
-    pg.click('#boutonCourseSuivante')
+    paddock_clic(pg, '#boutonCourseSuivante')
     passer_qualif(pg, titre)
     attendre(pg, '() => JEU.plateau.carte !== null', None, 180000)
     for _ in range(80):
@@ -1048,7 +1055,7 @@ def accelere(pg, titre, page):
     champ = 'championnat=1' in page
     FINAL = '() => JEU.final.map(x => [x.k, x.place, x.total, x.penalites, JEU.plateau.pilotes[x.k].arrivee])'
     def jusqua_arrivee():
-        if champ: pg.click('#boutonCourseSuivante')
+        if champ: paddock_clic(pg, '#boutonCourseSuivante')
         passer_qualif(pg, titre)
         attendre(pg, '() => JEU.plateau.carte !== null', None, 180000)
         # le joueur « finit » au même pas de physique dans les deux courses (15 s après le départ, la boucle arrêtée : on lui donne ses
@@ -2052,7 +2059,7 @@ def album_ecran(pg, titre, titres):
     pg.evaluate('() => { SAISONS.avancer(JEU.championnat, 1); montrerChampionnat(null); }')
     titres = titres + [pg.evaluate('() => JOURNAL.rendre(JEU.championnat.album[2], JEU.championnat, { pilote: INTERFACE.nomPilote, ecurie: INTERFACE.nomEcurie }).titre')]
     t(f'{titre} : au paddock, le bouton « 📰 Album » (3 unes)', pg.evaluate('() => document.getElementById("boutonAlbum").textContent === "📰 Album" && !document.getElementById("boutonAlbum").disabled && JEU.championnat.album.length === 3'))
-    pg.click('#boutonAlbum')
+    paddock_clic(pg, '#boutonAlbum')
     a = pg.evaluate(ALBUM_ETAT)
     t(f'{titre} : l’album s’ouvre sur la dernière une (« Saison 1 · Grand Prix 3 · 3 / 3 »), la même que le jour même, la barre à la place de « clique pour passer », tout dans l’écran',
       a['ecran'] == 'album' and a['i'] == 2 and a['titre'] == titres[2] and a['page'] == 'Saison 1 · Grand Prix 3 · 3 / 3' and a['barre'] and a['passer'] and a['apres'] and not a['avant'] and a['dedans'] and pas_de_defilement(a['defile']), str(a))
@@ -2079,7 +2086,7 @@ PHOTO_ETAT = '''i => { const cv = document.querySelector("#unePhoto canvas"); if
 # depuis le tour 32, les 12 tracés sont au calendrier) ; les faits, le prochain, la maison du domicile ; capture
 def calendrier_ecran(pg, titre, capture):
     pg.evaluate('() => { JEU.coeurAvant = JEU.championnat.pilotes[19].coeur; JEU.championnat.pilotes[19].coeur = "suzuko"; }')
-    pg.click('#boutonCalendrier')
+    paddock_clic(pg, '#boutonCalendrier')
     c = pg.evaluate('''() => { const ch = JEU.championnat, lis = [...document.querySelectorAll("#calendrierListe li")];
       return { ecran: JEU.ecran, n: lis.length, faits: lis.filter(li => li.classList.contains("fait")).length, prochain: lis.findIndex(li => li.classList.contains("prochain")), attendu: ch.prochain,
         maisons: document.querySelectorAll("#calendrierListe li.domicile .maison").length, attenduMaisons: ch.calendrier.filter(g => g.circuit === "suzuko").length, resultats: ch.resultats.length,
@@ -2141,7 +2148,7 @@ def discussion_ecran(pg, titre, l, h, page):
     pg.click('#boutonDiscussionRetour')
     t(f'{titre} : « Retour » ramène à la fiche, puis au paddock', attendre(pg, '() => JEU.ecran === "fiche"', None, 3000) and (pg.click('#boutonFicheRetour') or True) and attendre(pg, '() => JEU.ecran === "championnat"', None, 3000))
     # le coéquipier, depuis le paddock : le duel est proposé
-    pg.click('#boutonParlerCoequipier')
+    paddock_clic(pg, '#boutonParlerCoequipier')
     d = pg.evaluate(DISCUSSION_ETAT)
     t(f'{titre} : « 💬 Coéquipier » au paddock ouvre la discussion avec ton coéquipier, le duel proposé', d['ecran'] == 'discussion' and d['k'] == pg.evaluate('() => CHAMPIONNAT.coequipierDe(JEU.championnat).id') and 'duel' in d['intentions'], str(d))
     pg.click('#discussionComposeur button[data-intention="duel"]'); pg.wait_for_timeout(200)
@@ -2153,7 +2160,7 @@ def discussion_ecran(pg, titre, l, h, page):
     pg.evaluate(f'''() => {{ const ch = JEU.championnat, c = COURRIER_PILOTES.completer(ch); c.messages.push({{ k: {k}, sujet: 'contact', cle: 'courrier_contact_calme', saison: ch.saison, gp: ch.resultats.length, lu: false }}); montrerChampionnat(null); }}''')
     b = pg.evaluate('() => document.getElementById("boutonCourrier").textContent')
     t(f'{titre} : au paddock, « ✉ Courrier ({avant + 1}) » annonce les messages non lus', b.endswith(f'({avant + 1})') and pg.evaluate('() => document.getElementById("boutonCourrier").classList.contains("nouveau")'), b)
-    pg.click('#boutonCourrier')
+    paddock_clic(pg, '#boutonCourrier')
     c = pg.evaluate('''() => { const li = [...document.querySelectorAll("#courrierListe li")]; const el = document.getElementById("courrier");
       const hors = [...el.querySelectorAll("*")].filter(e => e.childElementCount === 0 && e.textContent.trim() && getComputedStyle(e).display !== "none" && e.getClientRects().length)
         .filter(e => { const r = e.getBoundingClientRect(); return r.right > innerWidth + 1 || r.bottom > innerHeight + 1 || r.left < -1 || r.top < -1; }).map(e => e.textContent.trim().slice(0, 30));
@@ -2178,7 +2185,7 @@ def patron_ecran(pg, titre, l, h, page):
     en = 'lang=en' in page
     t(f'{titre} : le paddock', attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', None, 60000))
     pg.wait_for_timeout(300)
-    pg.click('#boutonParlerPatron')
+    paddock_clic(pg, '#boutonParlerPatron')
     d = pg.evaluate(DISCUSSION_ETAT)
     t(f'{titre} : « 💼 Direction » ouvre la discussion avec le patron de ton écurie (confiance, statut, budget, consignes)', d['ecran'] == 'discussion' and pg.evaluate('() => JEU.discussion.patron === PILOTE.joueur(JEU.championnat).ecurie')
       and all(i in d['intentions'] for i in ['confiance', 'statut', 'budget', 'consigne']), str(d))
@@ -2214,6 +2221,113 @@ def patron_ecran(pg, titre, l, h, page):
     c = pg.evaluate(CONTRATS_PATRON)
     t(f'{titre} : « Retour » ramène aux contrats, l’offre redessinée avec le salaire négocié ({attendu})', c['ecran'] == 'contrats' and attendu in (c['salaires'][0] or ''), str(c['salaires']))
 
+# (tour 48a) le nouveau paddock : chaque bouton est rangé dans une page (menu à gauche) ; on ouvre sa page par le menu, comme un
+# joueur, puis on clique le bouton
+MENU_PAGES = {'course': '#menuCourse', 'equipe': '#menuEquipe', 'boutique': '#menuBoutique', 'saison': '#menuSaison', 'messages': '#menuMessages', 'reglages': '#menuReglages'}
+def paddock_page(pg, sel):
+    page = pg.evaluate('(s) => { const e = document.querySelector(s), p = e && e.closest(".paddockPage"); return p && p.classList.contains("cache") ? p.dataset.page : null; }', sel)
+    if page: pg.click(MENU_PAGES[page])
+def paddock_clic(pg, sel):
+    paddock_page(pg, sel)
+    pg.click(sel)
+
+# --- le nouveau paddock (tour 48a, Codeur 1 ; le propriétaire 2026-11-04) : un menu à gauche, une page au centre ; chaque ancien bouton
+# rangé dans une page (aucune fonction perdue) ; chaque page tient dans l'écran (1280×720, 960×600, téléphone 640×360, fr et en), sans
+# défilement ni bouton coupé ; « Course suivante » visible sur la page Course ; plus rien dans les coins ; le classement réduit ; la page
+# gardée au retour du garage ; « Nouvelle carrière » et « Nouvelle carrière à 0 » avec leurs deux confirmations, ce qui reste et ce qui part
+PADDOCK_RANGES = {'boutonCourseSuivante': 'course', 'boutonVoirTout': 'course', 'boutonVoirMessages': 'course', 'boutonGarage': 'equipe', 'boutonSponsors': 'equipe', 'boutonMonCasque': 'equipe',
+  'boutonCalendrier': 'saison', 'boutonAlbum': 'saison', 'boutonArbre': 'saison', 'boutonCourrier': 'messages', 'boutonParlerCoequipier': 'messages', 'boutonParlerPatron': 'messages',
+  'boutonMuetPaddock': 'reglages', 'boutonSonEffets': 'reglages', 'boutonSonAmbiance': 'reglages', 'boutonSonCommentateur': 'reglages', 'boutonAidesPaddock': 'reglages',
+  'boutonRevoirAides': 'reglages', 'boutonQualitePaddock': 'reglages', 'boutonNouvelleCarriere': 'reglages', 'boutonNouvelleCarriereZero': 'reglages'}
+PADDOCK_DEDANS = """() => { const out = [], L = innerWidth, H = innerHeight;
+  for (const e of document.querySelectorAll('#championnat button, #championnat .tvCarte, #championnat li, #championnat h1, #championnat h2, #championnat p')) {
+    const r = e.getBoundingClientRect(); if (!r.width || !r.height) continue;
+    if (r.left < -1 || r.top < -1 || r.right > L + 1 || r.bottom > H + 1) out.push('hors:' + (e.id || e.className || e.tagName));
+    if (e.tagName === 'BUTTON' && e.scrollWidth > e.clientWidth + 2) out.push('coupé:' + e.id); }
+  const page = document.querySelector('#paddockPages .paddockPage:not(.cache)');
+  return { out, page: page && page.dataset.page, defile: [document.documentElement.scrollHeight, H, document.documentElement.scrollWidth, L],
+    fixes: [...document.querySelectorAll('#championnat button')].filter(b => getComputedStyle(b).position === 'fixed').map(b => b.id),
+    son: document.getElementById('boutonSon').getBoundingClientRect().width }; }"""
+def paddock_menu(pg, titre, l, h, lang):
+    attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', None, 60000)
+    pg.evaluate('() => { if (typeof AIDES_ECRAN !== "undefined") { REGLAGES.AIDES_ACTIVES = false; AIDES_ECRAN.fermer(); } }')   # (la bulle d'aide ne compte pas ici : aides-menus la teste)
+    pg.wait_for_timeout(300)
+    m = pg.evaluate("""() => [...document.querySelectorAll('#paddockMenu button')].map(b => [b.id, b.querySelector('.menuNom').textContent, b.getBoundingClientRect().width > 0])""")
+    noms = pg.evaluate("() => ['paddock_course', 'paddock_equipe', 'paddock_boutique', 'paddock_saison', 'paddock_messages', 'titreAmis', 'paddock_reglages', 'paddock_apprendre'].map(texte)")
+    t(f'{titre} : le menu à gauche : Course, Mon équipe, Boutique, Saison, Messages, Entre amis, puis Réglages et Apprendre en bas, tous visibles', [x[1] for x in m] == noms and all(x[2] for x in m)
+      and [x[0] for x in m] == ['menuCourse', 'menuEquipe', 'menuBoutique', 'menuSaison', 'menuMessages', 'boutonAmisPaddock', 'menuReglages', 'boutonTutorielPaddock'], str(m))
+    ranges = pg.evaluate('(ids) => Object.fromEntries(Object.keys(ids).map(id => [id, INTERFACE.pageDe(id)]))', PADDOCK_RANGES)
+    t(f'{titre} : chaque ancien bouton du paddock est rangé dans sa page (aucune fonction perdue) ; « Entre amis » et « Apprendre » sont dans le menu', ranges == PADDOCK_RANGES
+      and pg.evaluate('() => ["boutonAmisPaddock", "boutonTutorielPaddock"].every(id => document.getElementById(id).closest("#paddockMenu"))'), str({k: v for k, v in ranges.items() if PADDOCK_RANGES[k] != v}))
+    for page, menu in MENU_PAGES.items():
+        pg.click(menu); pg.wait_for_timeout(250)
+        d = pg.evaluate(PADDOCK_DEDANS)
+        t(f'{titre} : la page « {page} » (un clic sur le menu) tient dans l’écran, sans défilement ni bouton coupé ; rien dans les coins, pas de 🔊 en double',
+          d['page'] == page and not d['out'] and pas_de_defilement(d['defile']) and not d['fixes'] and d['son'] == 0, str(d))
+        pg.screenshot(path=os.path.join(CAPTURES, f'paddock-{page}-{lang}-{l}.png'))
+    pg.click('#menuCourse'); pg.wait_for_timeout(200)
+    c = pg.evaluate("""() => { const b = document.getElementById('boutonCourseSuivante').getBoundingClientRect(), ch = JEU.championnat, cl = CHAMPIONNAT.classementPilotes(ch), co = CHAMPIONNAT.coequipierDe(ch);
+      const lignes = [...document.querySelectorAll('#paddockClassementCourt li:not(.trou) .place')].map(e => Number(e.textContent));
+      const j = cl.findIndex(x => ch.pilotes[x.k].humain) + 1, c = co ? cl.findIndex(x => x.k === co.id) + 1 : null;
+      return { bouton: [b.left, b.top, b.right, b.bottom, innerWidth, innerHeight], lignes, j, c, moi: !!document.querySelector('#paddockClassementCourt li.moi'), coeq: !!document.querySelector('#paddockClassementCourt li.coequipier') }; }""")
+    bo = c['bouton']
+    t(f'{titre} : « Course suivante » est visible en entier sur la page Course ; le classement réduit : les 3 premiers, toi (P{c["j"]}) et tes voisins, ton coéquipier (P{c["c"]}), dans l’ordre',
+      bo[2] - bo[0] > 50 and bo[0] >= 0 and bo[1] >= 0 and bo[2] <= bo[4] and bo[3] <= bo[5] and c['lignes'][:3] == [1, 2, 3] and c['j'] in c['lignes'] and c['c'] in c['lignes']
+      and c['lignes'] == sorted(c['lignes']) and c['moi'] and c['coeq'] and len(c['lignes']) <= 8, str(c))
+    pg.click('#boutonVoirTout')
+    t(f'{titre} : « Voir tout » ouvre la page Saison (les classements complets)', pg.evaluate('() => INTERFACE.pageActive() === "saison" && document.querySelectorAll("#championnatPilotes li").length === 20'))
+    pg.click('#menuEquipe'); pg.click('#boutonGarage'); attendre(pg, '() => JEU.ecran === "garage"')
+    if h >= 600: pg.click('#boutonGarageRetour')
+    else: pg.evaluate('() => quitterGarage()')   # (le garage lui-même n'est pas fait pour 640×360 : son « Retour » sort de l'écran, noté au compte rendu du tour 48a)
+    t(f'{titre} : au retour du garage, le paddock est resté sur « Mon équipe »', attendre(pg, '() => JEU.ecran === "championnat" && INTERFACE.pageActive() === "equipe" && !document.getElementById("pageEquipe").classList.contains("cache")'))
+    garde = pg.evaluate('() => localStorage.getItem(SAUVEGARDE.CLE)')
+    pg.click('#menuReglages'); pg.click('#boutonNouvelleCarriereZero'); pg.click('#boutonCarriereOui'); pg.wait_for_timeout(200)
+    d = pg.evaluate(PADDOCK_DEDANS)
+    pg.screenshot(path=os.path.join(CAPTURES, f'paddock-confirmation-{lang}-{l}.png'))
+    pg.click('#boutonCarriereNon')
+    t(f'{titre} : la confirmation de « Nouvelle carrière à 0 » (le second temps, avec la liste) tient dans l’écran, sans défilement ; « Annuler » la referme sans rien effacer',
+      not d['out'] and pas_de_defilement(d['defile']) and pg.evaluate('() => document.getElementById("carriereConfirmation").classList.contains("cache") && JEU.ecran === "championnat"') and pg.evaluate('() => localStorage.getItem(SAUVEGARDE.CLE)') == garde, str(d))
+    if l != 1280: return
+    # « Nouvelle carrière » : deux temps, « Annuler » ne change rien ; puis la création du pilote, un monde neuf, l'argent à 0, les motifs,
+    # les leçons et le temple gardés (la carrière abandonnée y entre : elle a une saison finie)
+    avant = pg.evaluate("""() => { const d = SAUVEGARDE.lire(); d.motifs = ['etoile']; d.tutoriel = ['conduite']; SAUVEGARDE.ecrire(d); JEU.championnat.saison = 2; JEU.championnat.carriere.debut = 1;
+      return { graine: JEU.championnat.graine, temple: d.temple.carrieres.length, argent: ARGENT.solde(JEU.championnat), decouverte: d.decouverteFaite }; }""")
+    pg.click('#menuReglages'); pg.click('#boutonNouvelleCarriere')
+    q1 = pg.evaluate('() => [document.getElementById("carriereConfirmationTexte").textContent, document.getElementById("boutonCarriereOui").textContent]')
+    pg.click('#boutonCarriereNon')
+    annule = pg.evaluate('() => document.getElementById("carriereConfirmation").classList.contains("cache") && JEU.ecran === "championnat"')
+    pg.click('#boutonNouvelleCarriere'); pg.click('#boutonCarriereOui')
+    q2 = pg.evaluate('() => [document.getElementById("carriereConfirmationTexte").textContent, document.getElementById("boutonCarriereOui").textContent, JEU.ecran]')
+    t(f'{titre} : « Nouvelle carrière » demande deux fois (« {q1[0]} », puis « {q2[1]} ») ; « Annuler » ne change rien', q1[0] == pg.evaluate('() => texte("carriere_nouvelleQuestion")') and annule
+      and q2[0] == pg.evaluate('() => texte("carriere_nouvelleSur")') and q2[1] == pg.evaluate('() => texte("carriere_nouvelleOui")') and q2[2] == 'championnat', str([q1, q2, annule]))
+    pg.click('#boutonCarriereOui')
+    apres = pg.evaluate("""() => { const d = SAUVEGARDE.lire(); return { ecran: JEU.ecran, graine: d.championnat.graine, manque: PILOTE.manque(d.championnat), argent: ARGENT.solde(d.championnat),
+      saison: d.championnat.saison, motifs: d.motifs, tutoriel: d.tutoriel, temple: d.temple.carrieres.length, decouverte: d.decouverteFaite }; }""")
+    t(f'{titre} : après « Nouvelle carrière » : la création du pilote, un monde neuf (saison 1, argent 0), les motifs, les leçons et la découverte gardés, la carrière abandonnée au temple',
+      apres['ecran'] == 'pilote' and apres['graine'] != avant['graine'] and apres['manque'] and apres['argent'] == 0 and apres['saison'] == 1 and apres['motifs'] == ['etoile']
+      and apres['tutoriel'] == ['conduite'] and apres['temple'] == avant['temple'] + 1 and apres['decouverte'] == avant['decouverte'], str([avant, apres]))
+    # « Nouvelle carrière à 0 » : deux temps en rouge, avec la liste de ce qui sera perdu ; puis tout est effacé sauf le son et la qualité, et
+    # la page nue repart du premier lancement (l'écran titre, « ▶ Jouer » → la découverte)
+    pg.goto('file://' + RACINE + '/index.html?championnat=1&gp=5&lang=' + lang); attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', None, 60000)
+    pg.evaluate("""() => { REGLAGES.AIDES_ACTIVES = false; AIDES_ECRAN.fermer(); SAUVEGARDE.ecrireOption('qualite', 'basse'); SAUVEGARDE.ecrireOption('son_volumes', { effets: 0.5, ambiance: 1, commentateur: 0.25 });
+      SAUVEGARDE.ecrireOption('fantome', false); const d = SAUVEGARDE.lire(); d.motifs = ['etoile']; d.tutoriel = ['conduite']; d.aides = ['duel']; d.records = { 5: 50 }; SAUVEGARDE.ecrire(d); }""")
+    pg.click('#menuReglages'); pg.click('#boutonNouvelleCarriereZero')
+    z1 = pg.evaluate('() => ({ texte: document.getElementById("carriereConfirmationTexte").textContent, liste: document.querySelectorAll("#carriereConfirmationListe li").length, rouge: document.getElementById("carriereConfirmation").classList.contains("danger") })')
+    pg.click('#boutonCarriereOui')
+    z2 = pg.evaluate('() => [document.getElementById("carriereConfirmationTexte").textContent, document.getElementById("boutonCarriereOui").textContent, JSON.parse(localStorage.getItem(SAUVEGARDE.CLE)).motifs]')
+    pg.screenshot(path=os.path.join(CAPTURES, f'paddock-zero-{lang}.png'))
+    t(f'{titre} : « Nouvelle carrière à 0 » : deux temps, en rouge, avec la liste de ce qui sera perdu ; rien n’est effacé avant le second « Oui »',
+      z1['texte'] == pg.evaluate('() => texte("carriere_zeroQuestion")') and z1['liste'] >= 5 and z1['rouge'] and z2[1] == pg.evaluate('() => texte("carriere_zeroOui")') and z2[2] == ['etoile'], str([z1, z2]))
+    with pg.expect_navigation(): pg.click('#boutonCarriereOui')
+    attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "titre"', None, 30000)
+    z = pg.evaluate("""() => { const d = JSON.parse(localStorage.getItem(SAUVEGARDE.CLE)); return { ecran: JEU.ecran, url: location.search, ch: !d.championnat || (d.championnat.prochain === 0 && d.championnat.saison === 1 && !d.championnat.resultats.length), options: Object.keys(d.options).sort(), qualite: d.options.qualite,
+      motifs: d.motifs, tutoriel: d.tutoriel, aides: d.aides, records: Object.keys(d.records).length, temple: d.temple.carrieres.length, decouverte: d.decouverteFaite, fantomes: Object.keys(d.fantomes).length }; }""")
+    t(f'{titre} : après « Nouvelle carrière à 0 » : l’écran titre du premier lancement, la sauvegarde ne garde que le son et la qualité (aucune carrière jouée, motif, leçon, aide, record, temple ; le monde neuf du premier lancement)',
+      z['ecran'] == 'titre' and z['ch'] and z['options'] == ['qualite', 'son_volumes'] and z['qualite'] == 'basse' and not z['motifs'] and not z['tutoriel'] and not z['aides']
+      and z['records'] == 0 and z['temple'] == 0 and not z['decouverte'] and z['fantomes'] == 0, str(z))
+    pg.click('#boutonJouer')
+    t(f'{titre} : puis « ▶ Jouer » mène à la course de découverte', attendre(pg, '() => JEU.ecran === "course" && JEU.plateau && JEU.qualif === null && !!JEU.decouverte', None, 30000), str(pg.evaluate('() => [JEU.ecran, !!JEU.decouverte]')))
+
 # le thème télé (tour 32, Codeur 3, style.css) : l'écran affiché a le voile en dégradé, son titre la police des titres (sauf la une,
 # qui a sa police de journal), et son arrivée (une animation CSS) dure moins de 250 ms ; la cérémonie, sans voile, laisse voir le podium 3D
 THEME_ETAT = """() => { const id = JEU.ecran === "album" ? "une" : JEU.ecran, el = document.getElementById(id); if (!el) return { id, ok: false };
@@ -2227,9 +2341,9 @@ THEME_ETAT = """() => { const id = JEU.ecran === "album" ? "une" : JEU.ecran, el
 # texte ne change pas) ; les lignes des résultats qui arrivent une à une ; rien de tout ça avec prefers-reduced-motion
 PADDOCK_ETAT = """() => { const $ = id => document.getElementById(id), ch = JEU.championnat, cv = $("paddockCarte"), d = cv.getContext("2d").getImageData(0, 0, cv.width, cv.height).data;
   let dessine = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 0) dessine++;
-  const groupes = [...document.querySelectorAll("#paddockBoutons .paddockGroupe")].map(g => [g.querySelector(".paddockGroupeNom").textContent, [...g.querySelectorAll("button")].map(b => b.id)]);
+  const groupes = [...document.querySelectorAll("#paddockMenu .menuNom")].map(e => e.textContent);   // (tour 48a : le menu à gauche à la place des groupes de boutons)
   const cl = CHAMPIONNAT.classementPilotes(ch), k = ch.pilotes.findIndex(p => p.humain), i = cl.findIndex(x => x.k === k);
-  const boites = ["paddockProchain", "paddockMoi", "championnatTableaux", "paddockBoutons"].map(id => { const r = $(id).getBoundingClientRect(); return [id, r.left, r.top, r.right, r.bottom]; });
+  const boites = ["paddockMenu", "paddockProchain", "paddockMoi", "paddockCourt", "boutonCourseSuivante"].map(id => { const r = $(id).getBoundingClientRect(); return [id, r.left, r.top, r.right, r.bottom]; });
   const cal = CHAMPIONNAT.calendrierSaison(ch)[ch.prochain];
   return { ecran: JEU.ecran, surtitre: $("paddockSurtitre").textContent, titre: $("championnatTitre").textContent, dessine, carte: !cv.classList.contains("cache"),
     domicile: !$("paddockDomicile").classList.contains("cache"), domicileAttendu: !!(cal && cal.domicile), place: $("paddockPlace").textContent,
@@ -2250,12 +2364,11 @@ SANS_MOUVEMENT = """() => { montrerChampionnat(25); const r = [getComputedStyle(
 def paddock_ecran(pg, titre):
     pg.wait_for_timeout(300)
     p = pg.evaluate(PADDOCK_ETAT)
-    G = [['boutonCourseSuivante'], ['boutonGarage', 'boutonSponsors', 'boutonMonCasque'], ['boutonCalendrier', 'boutonAlbum', 'boutonArbre'], ['boutonAmisPaddock']]
-    t(f'{titre} : le paddock en écran d’accueil : « Next Grand Prix », le titre du Grand Prix, la carte du circuit dessinée, ta place et l’écart au leader, quatre groupes de boutons rangés par usage',
+    t(f'{titre} : le paddock en écran d’accueil : « Next Grand Prix », le titre du Grand Prix, la carte du circuit dessinée, ta place et l’écart au leader, le menu à gauche (tour 48a)',
       p['ecran'] == 'championnat' and p['surtitre'] == 'Next Grand Prix' and p['titre'].startswith('Grand Prix ') and p['carte'] and p['dessine'] > 500
-      and p['place'].startswith(p['attendu'] + ' · ') and [g[1] for g in p['groupes']] == G and [g[0] for g in p['groupes']] == ['Race', 'Team', 'Season', 'Play together'], str(p)[:900])
+      and p['place'].startswith(p['attendu'] + ' · ') and p['groupes'] == ['Race', 'My team', 'Shop', 'Season', 'Messages', 'With friends', 'Settings', 'Learn'], str(p)[:900])
     dedans = all(b[1] >= 0 and b[2] >= 0 and b[3] <= p['l'] + 1 and b[4] <= p['h'] + 1 for b in p['boites'])
-    t(f'{titre} : le paddock tient dans l’écran ({p["l"]}×{p["h"]}), sans défilement : le prochain Grand Prix, toi, les classements, les boutons', dedans and pas_de_defilement(p['defile']), str(p['boites']))
+    t(f'{titre} : le paddock tient dans l’écran ({p["l"]}×{p["h"]}), sans défilement : le menu, le prochain Grand Prix, toi, le classement réduit, « Course suivante »', dedans and pas_de_defilement(p['defile']), str(p['boites']))
     t(f'{titre} : la maison du Grand Prix à domicile seulement si le prochain est chez toi', p['domicile'] == p['domicileAttendu'], str(p))
     d = pg.evaluate(PADDOCK_DOMICILE)
     t(f'{titre} : le prochain Grand Prix chez toi : « Your home Grand Prix » avec la maison ; ailleurs, rien', d['oui'] and d['non'] and d['texte'] == 'Your home Grand Prix', str(d))
@@ -2360,7 +2473,7 @@ def audit_autres(pg, titre, page, l, h):
             pg.evaluate('() => BOUCLE.simuler(1)')
         verifier('stand-arret')
     elif 'audit-consigne' in page:
-        pg.click('#boutonCourseSuivante')
+        paddock_clic(pg, '#boutonCourseSuivante')
         attendre(pg, '() => JEU.ecran === "qualif" && JEU.qualif && JEU.qualif.etat === "choix"', None, 10000); verifier('qualif')
         pg.click('#boutonQualifPasser'); attendre(pg, '() => JEU.qualif && JEU.qualif.etat === "resultat"', None, 180000)
         pg.click('#boutonQualifCourse')
@@ -2405,7 +2518,7 @@ SPONSORS_ETAT = '''() => { const ch = JEU.championnat, lis = [...document.queryS
 def sponsors_ecran(pg, titre, capture):
     r0 = pg.evaluate('() => document.getElementById("championnatSponsor").textContent')
     t(f'{titre} : au paddock, « Pas encore de sponsor »', r0 == 'Pas encore de sponsor', r0)
-    pg.click('#boutonSponsors')
+    paddock_clic(pg, '#boutonSponsors')
     e = pg.evaluate(SPONSORS_ETAT)
     t(f'{titre} : « Sponsors » : les offres (2 à 4, celles de SPONSORS.offres, chacune avec ses objectifs et « Choisir »), sans défilement',
       e['ecran'] == 'sponsors' and 2 <= e['n'] <= 4 and e['cles'] == e['offres'] and all(e['boutons']) and all(x >= 1 for x in e['objectifs']) and pas_de_defilement(e['defile']), str(e))
@@ -2415,7 +2528,7 @@ def sponsors_ecran(pg, titre, capture):
       sauve: SAUVEGARDE.championnat().sponsor && SAUVEGARDE.championnat().sponsor.cle, nom: ch.sponsor ? texte("sponsor_" + ch.sponsor.cle) : "" }; }""")
     t(f'{titre} : « Choisir » : retour au paddock avec le rappel « Sponsor : <nom> · objectifs », le montant crédité, sauvegardé',
       r['ecran'] == 'championnat' and r['sponsor'] == e['cles'][0] and r['rappel'].startswith('Sponsor : ' + r['nom']) and ' / ' in r['rappel'] and r['solde'] == e['solde'] + e['montant0'] and r['sauve'] == r['sponsor'], str(r))
-    pg.click('#boutonSponsors')
+    paddock_clic(pg, '#boutonSponsors')
     t(f'{titre} : « Sponsors » une fois signé : le sponsor et l’avancement de ses objectifs, sans bouton « Choisir » ; « Retour »',
       pg.evaluate('() => JEU.ecran === "sponsors" && document.querySelectorAll("#sponsorsListe > li").length === 1 && !document.querySelector("#sponsorsListe button.choisir") && /0 \\/ \\d/.test(document.getElementById("sponsorsListe").textContent)'),
       pg.evaluate('() => document.getElementById("sponsorsListe").textContent')[:200])
@@ -2463,7 +2576,7 @@ def aileron_ecran(pg, titre, capture, cran):
 
 def garage_ecran(pg, titre, achat=True, capture='garage.png'):
     if achat: pg.evaluate('() => ARGENT.crediter(JEU.championnat, 200000, "test")')
-    pg.click('#boutonGarage')
+    paddock_clic(pg, '#boutonGarage')
     e = pg.evaluate(GARAGE_ETAT)
     t(f'{titre} : « Garage » ouvre le garage : 4 améliorations (roues, moteur, aero, freins) au niveau 0, leur prix, le solde, le bonus de la voiture, sans défilement',
       e['ecran'] == 'garage' and e['visible'] and e['noms'] == ['roues', 'moteur', 'aero', 'freins'] and all('0 / 5' in n for n in e['niveaux']) and e['soldeTexte'] == 'Solde : ' + pg.evaluate('() => ARGENT.formater(JEU.championnat.argent.solde)')
@@ -2601,7 +2714,7 @@ def releve(pg, titre):
       s['ecran'] == 'championnat' and s['saison'] == avant['saison'] + 1 and s['prochain'] == 0 and s['nom'] == 'Léa Rossi' and s['ecurie'] == s['faible'] and s['garage'] and s['solde'] == 0 and s['stats'] == 0
       and s['gens'] == 1 and s['lien'] == 'fille' and s['couleurs'] == json_couleurs(avant['casque']) and s['sauve'] == s['saison'] and s['retraite'] is None and s['ecuries'] == avant['ecuries'] and s['titre'].startswith('Grand Prix 1 / 12'), str(s))
     # l'arbre de la dynastie au paddock (tour 29c) : les deux générations, Léa en piste, les records de famille ; « Retour »
-    pg.click('#boutonArbre')
+    paddock_clic(pg, '#boutonArbre')
     ar = pg.evaluate('''() => ({ ecran: JEU.ecran, lignes: [...document.querySelectorAll("#arbreGenerations li")].map(li => li.textContent), actuel: document.querySelectorAll("#arbreGenerations li.actuel").length,
       casques: document.querySelectorAll("#arbreGenerations canvas").length, famille: document.getElementById("arbreFamille").textContent, circuits: document.getElementById("arbreCircuits").textContent,
       dans: [...document.querySelectorAll("#arbre > *")].every(e => { const r = e.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight && r.right <= innerWidth; }),
@@ -2661,7 +2774,7 @@ def fin_saison(pg, titre, l):
     # le titre est à lui avant le 12e) ; puis la une spéciale « CHAMPION ! » et la cérémonie, avec ses vrais points et ses vraies victoires
     pg.evaluate(f'() => {{ ({FABRIQUER_CHAMPION})(11); montrerChampionnat(null); }}')
     calendrier_ecran(pg, titre, 'calendrier.png')   # (11 Grands Prix faits, le 12e est le prochain)
-    pg.click('#boutonCourseSuivante')
+    paddock_clic(pg, '#boutonCourseSuivante')
     passer_qualif(pg, titre)
     t(f'{titre} : le 12e Grand Prix part (circuit du calendrier, 20 voitures)', attendre(pg, '() => JEU.ecran === "course" && JEU.plateau && JEU.plateau.pilotes.length === 20', None, 10000))
     attendre(pg, '() => JEU.plateau.carte !== null', None, 180000)
@@ -2718,7 +2831,7 @@ def fin_saison(pg, titre, l):
     if choix != c['actuelle']:
         # (sauf si l'ancien coéquipier avait lui-même un transfert annoncé vers cette écurie : saisons.js, les intentions de la saison)
         t(f'{titre} : le coéquipier a changé avec l’écurie (ou l’ancien l’y a suivi par un transfert annoncé)', (s2['coequipier'] != avant['coequipier'] or any(avant['coequipier'] in x for x in avant['transferts'])) and pg.evaluate(f'() => JEU.championnat.pilotes[CHAMPIONNAT.coequipierDe(JEU.championnat).id].ecurie === {choix}'), str([avant['coequipier'], s2['coequipier']]))
-    with pg.expect_navigation(): pg.click('#boutonCourseSuivante')
+    with pg.expect_navigation(): paddock_clic(pg, '#boutonCourseSuivante')
     t(f'{titre} : « Course suivante » recharge la page sur le Grand Prix 1 de la saison 2', attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat" && JEU.championnat.saison === 2 && JEU.championnat.prochain === 0', None, 60000), str(pg.evaluate('() => [JEU.ecran, JEU.championnat && JEU.championnat.saison]')))
 
 def championnat(pg, titre, l):
@@ -2758,9 +2871,9 @@ def championnat(pg, titre, l):
     points = None
     for gp in (1, 2):
         if gp == 2:
-            with pg.expect_navigation(): pg.click('#boutonCourseSuivante')   # le Grand Prix joué : la page se recharge sur le suivant
+            with pg.expect_navigation(): paddock_clic(pg, '#boutonCourseSuivante')   # le Grand Prix joué : la page se recharge sur le suivant
             t(f'{titre} : « Course suivante » recharge la page sur le Grand Prix {gp}', attendre(pg, f'() => typeof JEU !== "undefined" && JEU.ecran === "championnat" && JEU.championnat.prochain === {gp - 1}', None, 60000), str(pg.evaluate(ECRAN)))
-        pg.click('#boutonCourseSuivante')
+        paddock_clic(pg, '#boutonCourseSuivante')
         passer_qualif(pg, titre)
         t(f'{titre} : GP {gp} : la course part sur le circuit du calendrier, le joueur (robot) et 19 IA aux couleurs des écuries',
           attendre(pg, '() => JEU.ecran === "course" && JEU.contre && JEU.robot && JEU.plateau && JEU.plateau.pilotes.length === 20 && NOM_CIRCUIT === JEU.championnat.calendrier[JEU.championnat.prochain].circuit'
@@ -2905,12 +3018,12 @@ def aides_menus(pg, titre, l, h):
     vis = '() => !document.getElementById("bulleAide").classList.contains("cache") && document.getElementById("bulleAide").dataset.aide'
     t(f'{titre} : au paddock, sauvegarde neuve : l’aide du duel contre le coéquipier', attendre(pg, '() => JEU.ecran === "championnat" && !document.getElementById("bulleAide").classList.contains("cache") && document.getElementById("bulleAide").dataset.aide === "duel"', None, 20000), str(pg.evaluate(AIDE_BULLE)))
     b = pg.evaluate(AIDE_BULLE)
-    t(f'{titre} : la bulle du paddock et « Revoir les aides » (dans un coin) tiennent dans l’écran, ne touchent aucun bouton ; au plus deux lignes', b and b['x1'] >= 0 and b['y1'] >= 0 and b['x2'] <= l and b['y2'] - b['y1'] <= 60 and not aide_recouvre(pg, b, '#championnat button, #boutonSon')
-      and pg.evaluate(f'() => {{ const r = document.getElementById("boutonRevoirAides").getBoundingClientRect(), autres = [...document.querySelectorAll("#paddockBoutons button")].map(e => e.getBoundingClientRect()); return r.width > 0 && r.right <= {l} && r.bottom <= {h} && document.getElementById("boutonRevoirAides").textContent === texte("revoirAides") && autres.every(o => o.right <= r.left || o.left >= r.right || o.bottom <= r.top || o.top >= r.bottom); }}'),
+    t(f'{titre} : la bulle du paddock tient dans l’écran, ne touche aucun bouton (le menu à gauche compris) ; au plus deux lignes ; « Revoir les aides » est dans la page Réglages', b and b['x1'] >= 0 and b['y1'] >= 0 and b['x2'] <= l and b['y2'] - b['y1'] <= 60 and not aide_recouvre(pg, b, '#championnat button, #boutonSon')
+      and pg.evaluate(f'() => {{ const b = document.getElementById("boutonRevoirAides"); return INTERFACE.pageDe("boutonRevoirAides") === "reglages" && b.textContent === texte("revoirAides"); }}'),
       str([b, b and aide_recouvre(pg, b, '#championnat button, #boutonSon')]))
     pg.click('#bulleAide')
     t(f'{titre} : un clic ferme la bulle ; l’aide est vue (sauvegardée)', pg.evaluate('() => document.getElementById("bulleAide").classList.contains("cache") && SAUVEGARDE.aides().includes("duel")'), str(pg.evaluate('() => SAUVEGARDE.aides()')))
-    pg.click('#boutonGarage')
+    paddock_clic(pg, '#boutonGarage')
     t(f'{titre} : le premier garage : l’aide du garage (à quoi servent les améliorations, le plafond), sur aucun bouton', attendre(pg, '() => JEU.ecran === "garage" && document.getElementById("bulleAide").dataset.aide === "garage" && !document.getElementById("bulleAide").classList.contains("cache")'), str(pg.evaluate(AIDE_BULLE)))
     b = pg.evaluate(AIDE_BULLE)
     t(f'{titre} : la bulle du garage dit le plafond de GARAGE_PLAFOND et ne touche aucun bouton ni aucune ligne du garage', b and pg.evaluate('() => document.getElementById("bulleAideTexte").textContent.includes(String(Math.round(REGLAGES.GARAGE_PLAFOND * 100)))') and not aide_recouvre(pg, b, '#garage button, #garageListe li, #garage h1'), str([b, b and aide_recouvre(pg, b, '#garage button, #garageListe li, #garage h1')]))
@@ -2927,7 +3040,7 @@ def aides_menus(pg, titre, l, h):
     t(f'{titre} : revenu au garage : plus d’aide (vue une fois) ; au paddock non plus', garage and pg.evaluate(vis) is False and (pg.click('#boutonGarageRetour') or True) and attendre(pg, '() => JEU.ecran === "championnat"') and (pg.wait_for_timeout(500) or True) and pg.evaluate(vis) is False, str([pg.evaluate('() => JEU.ecran'), pg.evaluate(AIDE_BULLE), pg.evaluate('() => SAUVEGARDE.aides()')]))
     pg.reload(); attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', None, 30000); pg.wait_for_timeout(500)
     t(f'{titre} : après un rechargement, les aides vues ne reviennent pas (duel, garage, aileron gardés à la racine de la sauvegarde)', pg.evaluate(vis) is False and pg.evaluate('() => ["duel", "garage", "aileron"].every(a => SAUVEGARDE.aides().includes(a))'), str(pg.evaluate('() => SAUVEGARDE.aides()')))
-    pg.click('#boutonRevoirAides')
+    paddock_clic(pg, '#boutonRevoirAides')
     t(f'{titre} : « Revoir les aides » au paddock : la liste est vidée, l’aide du duel revient tout de suite', attendre(pg, '() => SAUVEGARDE.aides().length === 0 && document.getElementById("bulleAide").dataset.aide === "duel" && !document.getElementById("bulleAide").classList.contains("cache")'), str([pg.evaluate('() => SAUVEGARDE.aides()'), pg.evaluate(AIDE_BULLE)]))
     # une ancienne sauvegarde : la même, sans le champ « aides » (comme avant ce tour) : elle se charge, et aucune aide n'est vue
     pg.evaluate('() => { const d = JSON.parse(localStorage.getItem(SAUVEGARDE.CLE)); d.aides = ["duel"]; localStorage.setItem(SAUVEGARDE.CLE, JSON.stringify(d)); delete d.aides; localStorage.setItem(SAUVEGARDE.CLE, JSON.stringify(d)); }')
@@ -2952,7 +3065,7 @@ def aides_consigne(pg, titre, l, h):
     pg.evaluate('() => montrerChampionnat(null)')
     # la consigne d'équipe : une vraie course du championnat ; la consigne posée comme dans consigne_ecran (le joueur devant son coéquipier) ;
     # l'aide ne vient qu'en ligne droite, ne recouvre pas la piste devant la voiture, et se ferme quand la consigne a sa réponse
-    pg.click('#boutonCourseSuivante')
+    paddock_clic(pg, '#boutonCourseSuivante')
     passer_qualif(pg, titre)
     attendre(pg, '() => JEU.plateau.carte !== null && JEU.course.etat === "compte"', None, 180000)
     # (comme consigne_ecran : le joueur et son coéquipier échangent leurs places sur la grille, le joueur devant lui)
@@ -3007,7 +3120,7 @@ def tuto_lecon(pg, titre, l, h, page):
             pg.evaluate('() => { const c = document.getElementById("aileronCurseur"); c.value = String((Number(c.value) + 2) % REGLAGES.AILERON_CRANS); c.dispatchEvent(new Event("input")); }')
             return pg.evaluate('(a) => JSON.stringify(SAUVEGARDE.lire().championnat) !== a', avant)
         if 'quitter' in page:
-            pg.click('#boutonGarage'); attendre(pg, '() => JEU.ecran === "garage"')
+            paddock_clic(pg, '#boutonGarage'); attendre(pg, '() => JEU.ecran === "garage"')
             pg.click('#boutonAileron'); attendre(pg, '() => JEU.ecran === "aileron"')
             change = changer_carriere()
             # on quitte la page (une autre page du jeu, qui ne touche pas à la sauvegarde) : la carrière est remise en partant
@@ -3021,7 +3134,7 @@ def tuto_lecon(pg, titre, l, h, page):
         change = False
         for clic, attendu in [('#boutonGarage', 'garage'), ('#garagePneus button:last-of-type', None), ('#boutonAileron', 'aileron'), (None, None), ('#boutonAileronRetour', 'retour'), ('#boutonGarageRetour', None)]:
             if clic is None: change = changer_carriere(); continue
-            pg.click(clic); pg.wait_for_timeout(400)
+            paddock_clic(pg, clic); pg.wait_for_timeout(400)
             if attendu: etapes.append(attendre(pg, f'() => document.getElementById("tutoConsigneTexte").textContent === texte("tuto_visite_{attendu}")', None, 10000))
         attendre(pg, '() => TUTORIEL_ECRAN.resultat() !== null', None, 10000)
         apres = pg.evaluate('(a) => ({ sauvee: JSON.stringify(SAUVEGARDE.lire().championnat) === a, memoire: JSON.stringify(JEU.championnat) === a })', avant)
@@ -3084,8 +3197,8 @@ def tuto_menu(pg, titre, l, h):
     attendre(pg, '() => JEU.ecran === "course"', None, 10000); pg.keyboard.press('Escape')
     t(f'{titre} : le menu pause a « Apprendre à piloter », qui ouvre la liste', attendre(pg, '() => JEU.ecran === "pause"') and (pg.click('#boutonTutorielPause') or True) and pg.evaluate('() => !document.getElementById("tutoMenu").classList.contains("cache")'))
     pg.goto('file://' + RACINE + '/index.html?championnat=1'); attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', None, 30000)
-    b = pg.evaluate('() => { const b = document.getElementById("boutonTutorielPaddock"), r = b.getBoundingClientRect(), autres = [...document.querySelectorAll("#paddockBoutons button, #boutonRevoirAides")].map(e => e.getBoundingClientRect()); return { texte: b.textContent, libre: autres.every(o => o.right <= r.left || o.left >= r.right || o.bottom <= r.top || o.top >= r.bottom), dedans: r.left >= 0 && r.right <= innerWidth && r.bottom <= innerHeight && r.width > 0 }; }')
-    t(f'{titre} : au paddock, « Apprendre à piloter » est dans le coin en bas à gauche, dans l’écran, sur aucun autre bouton', b['texte'] == pg.evaluate('() => texte("tutoBouton")') and b['libre'] and b['dedans'], str(b))
+    b = pg.evaluate('() => { const b = document.getElementById("boutonTutorielPaddock"), r = b.getBoundingClientRect(); return { texte: b.querySelector(".menuNom").textContent, menu: !!b.closest("#paddockMenu"), dedans: r.left >= 0 && r.right <= innerWidth && r.bottom <= innerHeight && r.width > 0 }; }')
+    t(f'{titre} : au paddock, « ? Apprendre » est en bas du menu à gauche, dans l’écran', b['texte'] == pg.evaluate('() => texte("paddock_apprendre")') and b['menu'] and b['dedans'], str(b))
 
 def INTERFACE_TEMPS(t, virgule='.'):
     m = int(t // 60); s = t - m * 60
@@ -3208,6 +3321,8 @@ with sync_playwright() as p:
                 prevision_ecran(pg, titre)
             elif 'test=aides-course' in page:
                 aides_course(pg, titre, l, h)
+            elif 'test=paddock' in page:
+                paddock_menu(pg, titre, l, h, 'en' if 'lang=en' in page else 'fr')
             elif 'test=aides-menus' in page:
                 aides_menus(pg, titre, l, h)
             elif 'test=aides-consigne' in page:
