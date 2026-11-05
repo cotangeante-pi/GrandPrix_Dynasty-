@@ -899,8 +899,9 @@ def touches_deux(pg, titre, l, h):
     r = pg.evaluate('() => [1, 2].map(j => !document.getElementById("deuxRappel" + j).classList.contains("cache"))')
     t(f'{titre} : le joueur 1 a utilisé ses quatre commandes : son rappel s’efface, celui du joueur 2 reste', r == [False, True], str([r, pg.evaluate('() => JEU.rappelDeux')]))
     # le temps passe après l'extinction : le rappel du joueur 2 s'efface aussi (au plus DEUX_RAPPEL_DUREE s)
-    pg.evaluate('() => { JEU.rappelDeux.t = REGLAGES.DEUX_RAPPEL_DUREE; }'); pg.wait_for_timeout(300)
-    t(f'{titre} : DEUX_RAPPEL_DUREE s après l’extinction des feux, plus aucun rappel', pg.evaluate('() => document.querySelectorAll(".deuxRappel:not(.cache)").length') == 0)
+    # (tour 48b) on attend l'image qui les efface (sous swiftshader, 300 ms peuvent passer sans une image), 5 s au plus
+    pg.evaluate('() => { JEU.rappelDeux.t = REGLAGES.DEUX_RAPPEL_DUREE; }')
+    t(f'{titre} : DEUX_RAPPEL_DUREE s après l’extinction des feux, plus aucun rappel', attendre(pg, '() => document.querySelectorAll(".deuxRappel:not(.cache)").length === 0'), str(pg.evaluate('() => [document.querySelectorAll(".deuxRappel:not(.cache)").length, JEU.rappelDeux]')))
     pg.keyboard.press('Escape')
     p = pg.evaluate('() => ({ ecran: JEU.ecran, vu: !document.getElementById("pauseTouches").classList.contains("cache"), texte: document.getElementById("pauseTouches").innerText })')
     t(f'{titre} : dans le menu pause, les touches des deux joueurs (🔵 et 🔴)', p['ecran'] == 'pause' and p['vu'] and '🔵' in p['texte'] and '🔴' in p['texte'] and '↑' in p['texte'] and dans('#pause > *'), str(p))
