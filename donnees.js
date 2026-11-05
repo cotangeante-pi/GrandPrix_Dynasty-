@@ -541,6 +541,7 @@ const REGLAGES = {
     { motif: 'damier', couleur2: 0xd8262e }, { motif: 'degrade', couleur2: 0x1abc9c }, { motif: 'uni', couleur2: 0xffffff },
     { motif: 'bandes', couleur2: 0xffffff },
   ],
+  LIVREE_DEUX: ['bandes', 'fleche'],   // le mode 2 joueurs : le motif de chaque joueur (sur sa couleur choisie, la 2e couleur de son casque)
   LIVREE_ATLAS_CASE: 128,       // pixels : la case de chaque voiture dans l'atlas des livrées (une texture partagée, un seul matériau)
   LIVREE_APERCU_VITESSE: 0.7,   // rad/s : la voiture tourne dans l'éditeur « Ma voiture »
   // la célébration (celebration.js) : jouée à l'arrivée quand le joueur gagne, et sur le podium quand il est premier

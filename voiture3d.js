@@ -128,8 +128,7 @@ const VOITURE3D = (function () {
   let apercuV = null;
   function apercuVoiture(canvas, couleur, casque, livree) {
     if (!apercuV || apercuV.canvas !== canvas) {
-      const rendu = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-      rendu.setPixelRatio(Math.min(window.devicePixelRatio || 1, R.PIXEL_RATIO_MAX));
+      const rendu = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: true });   // (sans anticrénelage : un second rendu doit rester léger)
       const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(30, canvas.width / canvas.height, 0.1, 40);
       camera.position.set(0, 2.7, 7.8); camera.lookAt(0, 0.35, 0);
       scene.add(new THREE.HemisphereLight(0xffffff, 0x445566, 0.95));
