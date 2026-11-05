@@ -42,7 +42,7 @@ def serie(page, delai=300, options=()):
     r = re.search(r'RESULTAT (\d+)/(\d+)', texte)
     return bool(r and r.group(1) == r.group(2) and int(r.group(2)) > 0)
 
-def ecrans(delai=600):
+def ecrans(delai=900):   # (tour 48a : 900 s, les 6 pages du nouveau paddock ont fait passer une tranche au-dessus de 600)
     # dans son propre groupe, avec une limite : s'il est interrompu ou trop long, Playwright et ses Chrome partent avec lui
     t0 = time.monotonic()
     p = subprocess.Popen([sys.executable, os.path.join(RACINE, 'tests', 'ecrans.py')], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True)

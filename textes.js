@@ -787,7 +787,7 @@ Object.assign(TEXTES.en, {
   tuto_depassement: 'Slipstream and overtaking', tuto_depassement_but: 'Pass the slow car and stay ahead.', tuto_depassement_consigne: 'Tuck in behind the car ahead (slipstream), then pull out on the straight and pass it.',
   tuto_stand: 'The pit stop', tuto_stand_but: 'Take the pit lane at {v} km/h at most and stop in your box.', tuto_stand_consigne: 'Before the line, take the pit lane: {v} km/h at most; in the box, the stop is automatic.',
   tuto_pluie: 'Rain and tyres', tuto_pluie_but: 'When the shower comes, pit for wet-weather tyres.', tuto_pluie_consigne: 'A shower is coming: when the track gets wet, pit for rain tyres.',
-  tuto_visite: 'Garage, rear wing and paddock', tuto_visite_but: 'A guided tour of the screens, no racing.', tuto_visite_paddock: 'This is the paddock: your next race, your standings. Click “Garage”.',
+  tuto_visite: 'Garage, rear wing and paddock', tuto_visite_but: 'A guided tour of the screens, no racing.', tuto_visite_paddock: 'This is the paddock: your next race, your standings. Open “My team” on the left, then click “Garage”.',
   tuto_visite_garage: 'The garage: upgrades bought with your winnings. Now click “Rear wing”.', tuto_visite_aileron: 'The rear wing: grip or top speed, read the map. Click “Back”.',
   tuto_visite_retour: 'Back to the garage: click “Back” to return to the paddock.', tuto_visite_fin: 'That’s the tour!',
   tuto_raison_sortie: 'You left the track: one lap on the tarmac.', tuto_raison_temps: 'Time is up.', tuto_raison_attente: 'You didn’t start: press ↑ again when the lights go out.',
@@ -806,7 +806,7 @@ Object.assign(TEXTES.fr, {
   tuto_depassement: 'L’aspiration et le dépassement', tuto_depassement_but: 'Passer la voiture lente et rester devant.', tuto_depassement_consigne: 'Colle-toi derrière la voiture de devant (l’aspiration), puis déboîte dans la ligne droite et passe.',
   tuto_stand: 'L’arrêt au stand', tuto_stand_but: 'Prendre la voie des stands à {v} km/h au plus et s’arrêter dans sa zone.', tuto_stand_consigne: 'Avant la ligne, prends la voie des stands : {v} km/h au plus ; dans la zone, l’arrêt est automatique.',
   tuto_pluie: 'La pluie et les pneus', tuto_pluie_but: 'Quand l’averse arrive, passer au stand pour des pneus pluie.', tuto_pluie_consigne: 'Une averse arrive : quand la piste est mouillée, passe au stand pour des pneus pluie.',
-  tuto_visite: 'Le garage, l’aileron et le paddock', tuto_visite_but: 'Une visite guidée des écrans, sans course.', tuto_visite_paddock: 'Voici le paddock : ta prochaine course, ton classement. Clique sur « Garage ».',
+  tuto_visite: 'Le garage, l’aileron et le paddock', tuto_visite_but: 'Une visite guidée des écrans, sans course.', tuto_visite_paddock: 'Voici le paddock : ta prochaine course, ton classement. Ouvre « Mon équipe » à gauche, puis clique sur « Garage ».',
   tuto_visite_garage: 'Le garage : les améliorations, payées avec tes gains. Clique maintenant sur « Aileron ».', tuto_visite_aileron: 'L’aileron : adhérence ou vitesse de pointe, lis la carte. Clique sur « Retour ».',
   tuto_visite_retour: 'De retour au garage : « Retour » ramène au paddock.', tuto_visite_fin: 'La visite est finie !',
   tuto_raison_sortie: 'Sortie de piste : un tour sur le goudron.', tuto_raison_temps: 'Le temps est écoulé.', tuto_raison_attente: 'Pas de départ : réappuie sur ↑ quand les feux s’éteignent.',
@@ -1168,3 +1168,41 @@ Object.assign(TEXTES.fr, {
 // --- tour 45d, Codeur 4 : suivre un pilote après l'arrivée (un clic sur le classement) ---
 Object.assign(TEXTES.en, { cameraSuivie: 'Camera: {nom}' });
 Object.assign(TEXTES.fr, { cameraSuivie: 'Caméra : {nom}' });
+
+// --- tour 48a, Codeur 1 : le nouveau paddock (un menu à gauche, une page au centre), « Nouvelle carrière » et « Nouvelle carrière à 0 » ---
+Object.assign(TEXTES.en, {
+  paddock_course: 'Race', paddock_equipe: 'My team', paddock_boutique: 'Shop', paddock_saison: 'Season', paddock_messages: 'Messages',
+  paddock_reglages: 'Settings', paddock_apprendre: 'Learn', paddock_boutiqueBientot: 'Liveries, helmets and celebrations: buy them with your race money, unlock some with a 📺 ad, earn the best ones in your career. Try a skin before you buy it.', paddock_ouvrirBoutique: '🛒 Open the shop',
+  paddock_voirTout: 'See all', paddock_lireMessages: 'Open messages', paddock_rienDeNeuf: 'Nothing new. Talk to your team-mate or your team boss.',
+  nb_paddock_nonLus: ['{n} new message', '{n} new messages'], paddock_reglagesJeu: 'Game', paddock_carriere: 'Career',
+  paddock_sonActif: '🔊 Sound: on', paddock_sonCoupe: '🔇 Sound: off',
+  carriere_nouvelle: 'New career', carriere_zero: 'New career from zero',
+  carriere_nouvelleQuestion: 'Start over? Your current career will be lost.',
+  carriere_nouvelleSur: 'Sure? You go straight to creating a new driver.',
+  carriere_zeroQuestion: 'Erase everything? The game starts again like the very first time.',
+  carriere_zeroSur: 'Last chance: all of this will be erased for good.',
+  carriere_continuer: 'Continue', carriere_nouvelleOui: 'Yes, start over', carriere_zeroOui: 'Yes, erase everything', carriere_annuler: 'Cancel',
+  carriere_perduCarriere: 'Lost: the career, the championship, the money, the garage',
+  carriere_garde: 'Kept: hall of fame, records, helmet patterns, skins, lessons, settings',
+  carriere_perduSkins: 'Lost: the skins you got', carriere_perduMotifs: 'Lost: the unlocked helmet patterns',
+  carriere_perduTemple: 'Lost: the hall of fame', carriere_perduRecords: 'Lost: the records and the ghosts',
+  carriere_perduLecons: 'Lost: the lessons and the tips already seen (language, sound and graphics stay)',
+});
+Object.assign(TEXTES.fr, {
+  paddock_course: 'Course', paddock_equipe: 'Mon équipe', paddock_boutique: 'Boutique', paddock_saison: 'Saison', paddock_messages: 'Messages',
+  paddock_reglages: 'Réglages', paddock_apprendre: 'Apprendre', paddock_boutiqueBientot: 'Livrées, casques et célébrations : achète-les avec l’argent des courses, débloque-en avec une pub 📺, gagne les plus beaux dans ta carrière. Essaie un skin avant de l’acheter.', paddock_ouvrirBoutique: '🛒 Ouvrir la boutique',
+  paddock_voirTout: 'Voir tout', paddock_lireMessages: 'Ouvrir les messages', paddock_rienDeNeuf: 'Rien de neuf. Parle à ton coéquipier ou à ta direction.',
+  nb_paddock_nonLus: ['{n} nouveau message', '{n} nouveaux messages'], paddock_reglagesJeu: 'Le jeu', paddock_carriere: 'La carrière',
+  paddock_sonActif: '🔊 Son : oui', paddock_sonCoupe: '🔇 Son : coupé',
+  carriere_nouvelle: 'Nouvelle carrière', carriere_zero: 'Nouvelle carrière à 0',
+  carriere_nouvelleQuestion: 'Tout recommencer ? Ta carrière en cours sera perdue.',
+  carriere_nouvelleSur: 'Sûr ? Tu passes tout de suite à la création d’un nouveau pilote.',
+  carriere_zeroQuestion: 'Tout effacer ? Le jeu repart comme au tout premier lancement.',
+  carriere_zeroSur: 'Dernière chance : tout ceci sera effacé pour de bon.',
+  carriere_continuer: 'Continuer', carriere_nouvelleOui: 'Oui, recommencer', carriere_zeroOui: 'Oui, tout effacer', carriere_annuler: 'Annuler',
+  carriere_perduCarriere: 'Perdu : la carrière, le championnat, l’argent, le garage',
+  carriere_garde: 'Gardé : le temple, les records, les motifs de casque, les skins, les leçons, les réglages',
+  carriere_perduSkins: 'Perdu : les skins obtenus', carriere_perduMotifs: 'Perdu : les motifs de casque débloqués',
+  carriere_perduTemple: 'Perdu : le temple de la renommée', carriere_perduRecords: 'Perdu : les records et les fantômes',
+  carriere_perduLecons: 'Perdu : les leçons et les aides déjà vues (la langue, le son et la qualité restent)',
+});

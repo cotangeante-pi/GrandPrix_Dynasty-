@@ -53,6 +53,7 @@ const INTERFACE = (function () {
     const course = ecran === 'course' || ecran === 'pause';
     for (const id of ['hudCourse', 'hudPenalite', 'hudStand', 'compte', 'feux', 'classement', 'radar', 'jauge', 'departResultat', 'aides', 'feux2', 'jauge2', 'departResultat2', 'deuxHaut', 'deuxBas', 'deuxSeparation']) if (!course) $(id).classList.add('cache');
     if (course) $('hudCourse').classList.remove('cache');
+    document.body.classList.toggle('auPaddock', ecran === 'championnat');   // (au paddock, le son est dans « Réglages » : 🔊 se cache, tour 48a)
   }
 
   // à chaque image, pendant la course
@@ -599,8 +600,30 @@ const INTERFACE = (function () {
     const pilotes = $('championnatPilotes'), ecuries = $('championnatEcuries');
     pilotes.textContent = ''; ecuries.textContent = '';
     $('championnatTableaux').classList.toggle('tvMonte', gagne !== null);   // les points qui montent, seulement au retour d'une course
-    CHAMPIONNAT.classementPilotes(ch).forEach((x, i) => { const p = ch.pilotes[x.k]; pilotes.appendChild(ligne(i + 1, ch.ecuries[p.ecurie].couleur, nomPilote(p), x.points, p.humain, x.k, p.casque)); });
+    const cl = CHAMPIONNAT.classementPilotes(ch);
+    cl.forEach((x, i) => { const p = ch.pilotes[x.k]; pilotes.appendChild(ligne(i + 1, ch.ecuries[p.ecurie].couleur, nomPilote(p), x.points, p.humain, x.k, p.casque)); });
     CHAMPIONNAT.classementEcuries(ch).forEach((x, i) => { const e = ch.ecuries[x.id]; ecuries.appendChild(ligne(i + 1, e.couleur, nomEcurie(e), x.points, e.id === REGLAGES.ECURIE_JOUEUR)); });
+    // le classement réduit de la page Course (tour 48a) : les 3 premiers, toi et tes voisins, ton coéquipier ; « … » entre deux trous
+    const court = $('paddockClassementCourt'), co = CHAMPIONNAT.coequipierDe(ch);
+    court.textContent = '';
+    let avant = -1;
+    for (const i of rangsCourts(cl, ch, co)) {
+      if (avant >= 0 && i > avant + 1) { const li = document.createElement('li'); li.className = 'trou'; li.textContent = '…'; court.appendChild(li); }
+      avant = i;
+      const x = cl[i], p = ch.pilotes[x.k], li = ligne(i + 1, ch.ecuries[p.ecurie].couleur, nomPilote(p), x.points, p.humain, x.k, p.casque);
+      if (co && x.k === co.id) li.classList.add('coequipier');
+      court.appendChild(li);
+    }
+  }
+  // les rangs (0 = le premier) du classement réduit, dans l'ordre : les PADDOCK_COURT_TETE premiers, le joueur et PADDOCK_COURT_VOISINS
+  // voisins de chaque côté, le coéquipier
+  function rangsCourts(cl, ch, co) {
+    const R = REGLAGES, j = cl.findIndex(x => ch.pilotes[x.k].humain), rangs = new Set();
+    for (let i = 0; i < Math.min(R.PADDOCK_COURT_TETE, cl.length); i++) rangs.add(i);
+    if (j >= 0) for (let i = j - R.PADDOCK_COURT_VOISINS; i <= j + R.PADDOCK_COURT_VOISINS; i++) if (i >= 0 && i < cl.length) rangs.add(i);
+    const c = co ? cl.findIndex(x => x.k === co.id) : -1;
+    if (c >= 0) rangs.add(c);
+    return [...rangs].sort((a, b) => a - b);
   }
 
   function preparerChampionnat(suivante, garage) {
@@ -1216,7 +1239,6 @@ const INTERFACE = (function () {
     $('boutonAmisTournoi').textContent = texte('amisTournoi') + (tournoi ? '' : ' — ' + texte('bientot'));
     $('boutonAmisTournoi').disabled = !tournoi;
     $('boutonAmisRetour').textContent = texte('retour');
-    $('boutonAmisPaddock').textContent = texte('titreAmis');
     for (const [id, f] of [['boutonAmisDeux', deux], ['boutonAmisTournoi', tournoi]]) {
       if (!f) continue;
       $(id).addEventListener('mousedown', e => e.preventDefault());
@@ -1552,11 +1574,82 @@ const INTERFACE = (function () {
     const moi = cl[i], ecart = moi ? cl[0].points - moi.points : 0;
     $('paddockPlace').textContent = !ch.resultats.length || !moi ? texte('paddockPasClasse')
       : avec(texte('paddockPlace'), { p: i + 1, n: moi.points }) + ' · ' + (i === 0 ? texte('paddockLeader') : elider(avec(texte('paddockEcart'), { n: ecart })));
-    for (const g of ['Course', 'Equipe', 'Saison', 'Amis']) $('paddockGroupe' + g).textContent = texte('paddockGroupe' + g);
-    // le courrier des pilotes (courrier-pilotes.js) : « ✉ Courrier (2) » s'il y a des messages non lus
+    // le courrier des pilotes (courrier-pilotes.js) : « ✉ Courrier (2) » s'il y a des messages non lus ; le point du menu « Messages »
+    // et la carte des messages de la page Course (tour 48a)
     const nonLus = typeof COURRIER_PILOTES !== 'undefined' ? COURRIER_PILOTES.nonLus(ch) : 0;
     $('boutonCourrier').textContent = texte('courrier') + (nonLus ? ' (' + nonLus + ')' : '');
     $('boutonCourrier').classList.toggle('nouveau', nonLus > 0);
+    $('menuMessages').querySelector('.menuPoint').classList.toggle('cache', !nonLus);
+    $('menuMessages').classList.toggle('nouveau', nonLus > 0);
+    $('paddockNouvellesTitre').textContent = texte('paddock_messages') + (nonLus ? ' (' + nonLus + ')' : '');
+    $('paddockNouvellesTexte').textContent = nonLus ? nombre(nonLus, 'paddock_nonLus') : texte('paddock_rienDeNeuf');
+    $('paddockNouvelles').classList.toggle('nouveau', nonLus > 0);
+  }
+
+  // --- le nouveau paddock (tour 48a, Codeur 1 ; le propriétaire, 2026-11-04) : un menu à gauche, une page au centre. La page choisie
+  // reste choisie au retour d'un écran (garage, calendrier…) ; une nouvelle page (rechargée après chaque Grand Prix) part de « Course ».
+  const PAGES_PADDOCK = ['course', 'equipe', 'boutique', 'saison', 'messages', 'reglages'];
+  let pageActive = 'course';
+  function pagePaddock(nom) {
+    if (!PAGES_PADDOCK.includes(nom)) return pageActive;
+    pageActive = nom;
+    for (const el of document.querySelectorAll('#paddockPages .paddockPage')) el.classList.toggle('cache', el.dataset.page !== nom);
+    for (const b of document.querySelectorAll('#paddockMenu .menuEntree')) b.classList.toggle('actif', b.dataset.page === nom);
+    if (nom !== 'reglages') fermerConfirmationCarriere();
+    return nom;
+  }
+  // la page où est rangé un bouton (ou un élément) du paddock : 'course', 'equipe'… ; null s'il n'est dans aucune page
+  function pageDe(id) {
+    const el = $(id), p = el && el.closest('.paddockPage');
+    return p ? p.dataset.page : null;
+  }
+  // les textes du menu et des pages, et les clics du menu ; carriere = { nouvelle, zero } : « Nouvelle carrière » et « à 0 »
+  // (la double confirmation est ici ; carriere.nouvelle() et carriere.zero() font le travail, principal.js)
+  let actionCarriere = null, choixCarriere = null;
+  function preparerPaddock(carriere) {
+    const noms = { menuCourse: 'paddock_course', menuEquipe: 'paddock_equipe', menuBoutique: 'paddock_boutique', menuSaison: 'paddock_saison', menuMessages: 'paddock_messages',
+      boutonAmisPaddock: 'titreAmis', menuReglages: 'paddock_reglages', boutonTutorielPaddock: 'paddock_apprendre' };
+    for (const id in noms) { const b = $(id); b.querySelector('.menuNom').textContent = texte(noms[id]); b.title = texte(noms[id]); b.setAttribute('aria-label', texte(noms[id])); }
+    $('paddockMarque').textContent = texte('nomDuJeu');
+    for (const [id, cle] of [['pageEquipeTitre', 'paddock_equipe'], ['pageBoutiqueTitre', 'paddock_boutique'], ['pageSaisonTitre', 'paddock_saison'], ['pageMessagesTitre', 'paddock_messages'],
+      ['pageReglagesTitre', 'paddock_reglages'], ['boutiqueBientot', 'paddock_boutiqueBientot'], ['paddockCourtTitre', 'classementPilotes'], ['boutonVoirTout', 'paddock_voirTout'],
+      ['boutonVoirMessages', 'paddock_lireMessages'], ['reglagesJeuTitre', 'paddock_reglagesJeu'], ['reglagesCarriereTitre', 'paddock_carriere'],
+      ['boutonNouvelleCarriere', 'carriere_nouvelle'], ['boutonNouvelleCarriereZero', 'carriere_zero'], ['boutonCarriereNon', 'carriere_annuler']]) $(id).textContent = texte(cle);
+    const clic = (id, f) => { $(id).addEventListener('mousedown', e => e.preventDefault()); $(id).addEventListener('click', f); };
+    for (const b of document.querySelectorAll('#paddockMenu .menuEntree[data-page]')) clic(b.id, () => pagePaddock(b.dataset.page));
+    clic('boutonVoirTout', () => pagePaddock('saison'));
+    clic('boutonVoirMessages', () => pagePaddock('messages'));
+    actionCarriere = carriere || null;
+    clic('boutonNouvelleCarriere', () => confirmerCarriere('nouvelle'));
+    clic('boutonNouvelleCarriereZero', () => confirmerCarriere('zero'));
+    clic('boutonCarriereNon', fermerConfirmationCarriere);
+    clic('boutonCarriereOui', () => {
+      const c = choixCarriere;
+      if (!c) return;
+      if (c.temps === 1) { c.temps = 2; ecrireConfirmation(); return; }   // le second temps : « Oui, recommencer » / « Oui, tout effacer »
+      fermerConfirmationCarriere();
+      if (actionCarriere && actionCarriere[c.quoi]) actionCarriere[c.quoi]();
+    });
+  }
+  // la double confirmation : premier temps (« Tout recommencer ? … »), second temps (« Oui, recommencer ») ; à 0, en rouge, avec la liste
+  function confirmerCarriere(quoi) { choixCarriere = { quoi, temps: 1 }; ecrireConfirmation(); }
+  function ecrireConfirmation() {
+    const c = choixCarriere, z = $('carriereConfirmation'), zero = c.quoi === 'zero';
+    z.classList.remove('cache'); z.classList.toggle('danger', zero);
+    $('carriereConfirmationTexte').textContent = texte(c.temps === 1 ? (zero ? 'carriere_zeroQuestion' : 'carriere_nouvelleQuestion') : (zero ? 'carriere_zeroSur' : 'carriere_nouvelleSur'));
+    const ul = $('carriereConfirmationListe'); ul.textContent = '';
+    for (const cle of (zero ? ['carriere_perduCarriere', 'carriere_perduSkins', 'carriere_perduMotifs', 'carriere_perduTemple', 'carriere_perduRecords', 'carriere_perduLecons']
+      : ['carriere_perduCarriere', 'carriere_garde'])) { const li = document.createElement('li'); li.textContent = texte(cle); ul.appendChild(li); }
+    $('boutonCarriereOui').textContent = texte(c.temps === 1 ? 'carriere_continuer' : (zero ? 'carriere_zeroOui' : 'carriere_nouvelleOui'));
+    for (const id of ['boutonNouvelleCarriere', 'boutonNouvelleCarriereZero']) $(id).classList.toggle('cache', true);
+    $('pageReglages').classList.add('confirme');   // (pendant la confirmation, seule la carte de la carrière reste : elle tient aussi en 640×360)
+  }
+  function fermerConfirmationCarriere() {
+    choixCarriere = null;
+    if (!$('carriereConfirmation')) return;
+    $('carriereConfirmation').classList.add('cache');
+    $('pageReglages').classList.remove('confirme');
+    for (const id of ['boutonNouvelleCarriere', 'boutonNouvelleCarriereZero']) $(id).classList.remove('cache');
   }
 
   // --- les discussions (Codeur 3, étape 12b, discussion.js) : l'en-tête (son portrait, son nom, l'humeur de sa relation avec toi),
@@ -1755,7 +1848,7 @@ const INTERFACE = (function () {
     ecrireAides();
   }
 
-  return { surClicClassement, marquerSuivie, lireDispositionClavier, remplirTouchesDeux, montrerTouchesPause, majRappelDeux, majPneus, majMessage, preparerGrille, preparerAides, ouvrirAides, fermerAides, ecrireAides, aidesDeux, aidesAmi, noterAidesAmi, annoncerMotifs, preparerResume, montrerBoutonResume, majResume, remplirInscription, lireInscription, montrerErreursTournoi, preparerInscription, remplirAToi, majCompteTournoi, preparerPauseTournoi, remplirMancheTournoi, preparerMancheTournoi, remplirFinTournoi, preparerFinTournoi, preparerAmis, remplirDeux, lireDeux, montrerErreursDeux, preparerDeux, remplirPodiumDeux, remplirRivalite, formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, remplirPaddock, remplirDiscussion, remplirDiscussionPatron, preparerNegociation, preparerDiscussion, remplirCourrier, preparerCourrier, preparerChampionnat, remplirQualif, preparerQualif,
+  return { surClicClassement, marquerSuivie, lireDispositionClavier, remplirTouchesDeux, montrerTouchesPause, majRappelDeux, majPneus, majMessage, preparerGrille, preparerAides, ouvrirAides, fermerAides, ecrireAides, aidesDeux, aidesAmi, noterAidesAmi, annoncerMotifs, preparerResume, montrerBoutonResume, majResume, remplirInscription, lireInscription, montrerErreursTournoi, preparerInscription, remplirAToi, majCompteTournoi, preparerPauseTournoi, remplirMancheTournoi, preparerMancheTournoi, remplirFinTournoi, preparerFinTournoi, preparerAmis, remplirDeux, lireDeux, montrerErreursDeux, preparerDeux, remplirPodiumDeux, remplirRivalite, formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, remplirPaddock, pagePaddock, pageDe, preparerPaddock, pageActive: () => pageActive, remplirDiscussion, remplirDiscussionPatron, preparerNegociation, preparerDiscussion, remplirCourrier, preparerCourrier, preparerChampionnat, remplirQualif, preparerQualif,
     remplirDuel, avec, remplirUne, preparerUne, remplirArgent, remplirSolde, remplirGarage, preparerGarage,
     remplirSaison, remplirDuelSaison, remplirContrats, remplirRetraite, preparerSaison, retraiteEnAttente, remplirCeremonie, preparerCeremonie, remplirAlbum, preparerAlbum, remplirBilan, remplirTemple, preparerTemple, preparerReleve, remplirHeritier, lireHeritier, montrerErreurHeritier, remplirAileron, majAileron, preparerAileron, preparerPneusGarage, remplirArbre, preparerArbre, remplirCalendrier, preparerCalendrier,
     remplirSponsors, remplirRappelSponsor, preparerSponsors, remplirFiche, preparerFiche, remplirInterview, montrerEffetInterview, preparerInterview, remplirReputation,
@@ -1864,7 +1957,7 @@ const TUTORIEL_ECRAN = (function () {
 
   function bouton(id, cle, f) {
     const b = $(id);
-    b.textContent = texte(cle);
+    if (!b.querySelector('.menuNom')) b.textContent = texte(cle);   // (une entrée du menu du paddock garde son icône et son nom : INTERFACE.preparerPaddock)
     b.addEventListener('mousedown', e => e.preventDefault());
     b.addEventListener('click', f);
   }
@@ -1958,7 +2051,7 @@ const TUTORIEL_ECRAN = (function () {
     bouton('boutonTutoRetour', 'tutoRetour', fermerMenu);
     for (const id of ['boutonTutorielTitre', 'boutonTutorielPause']) bouton(id, 'tutoBouton', ouvrirMenu);
     bouton('boutonTutorielBravo', 'tutoBravo', ouvrirMenu);
-    bouton('boutonTutorielPaddock', 'tutoBouton', ouvrirMenu);   // (au paddock, dans le coin en bas à gauche : les quatre rangées de boutons sont fixées par les tests du paddock)
+    bouton('boutonTutorielPaddock', 'tutoBouton', ouvrirMenu);   // (au paddock : « ? Apprendre », en bas du menu, tour 48a)
     bouton('boutonTutoPasser', 'tutoPasser', () => { const s = TUTORIEL.suivante(LECON); aller(s ? adresse(s) : 'index.html' + (langue() ? '?' + langue().slice(1) : '')); });
     bouton('boutonTutoRecommencer', 'tutoRecommencer', () => location.reload());
     bouton('boutonTutoSuivante', 'tutoSuivante', () => { const s = TUTORIEL.suivante(LECON); if (s) aller(adresse(s)); });
