@@ -3218,6 +3218,7 @@ def essai_ecran(pg, titre):
 if os.environ.get('ECRANS_TRANCHE'):
     k_, n_ = (int(x) for x in os.environ['ECRANS_TRANCHE'].split('/'))
     PAGES = [x for i, x in enumerate(PAGES) if i % n_ == k_ - 1]
+DUREES = []   # (page, largeur, secondes) : imprimées à la fin
 mesures = None
 mesures_voiture = []
 os.makedirs(CAPTURES, exist_ok=True)
@@ -3226,6 +3227,7 @@ with sync_playwright() as p:
     try:
         for page, l, h, capture in PAGES:
             titre = f'{page} {l}×{h}'
+            debut_page = time.monotonic()   # (la durée de chaque page, pour équilibrer les tranches de GitHub)
             ctx = b.new_context(viewport={'width': l, 'height': h})
             pg = ctx.new_page(); console = []
             # les tâches longues (> 50 ms) qui bloquent la page, relevées dès le début du chargement
@@ -3416,10 +3418,12 @@ with sync_playwright() as p:
                         t(f'{titre} : la voiture du joueur est la voiture détaillée', pg.evaluate('() => JEU.modele.detaille'))
             else: t(f'{titre} : sans debug, pas de compteur', ips is None, repr(ips))
             ctx.close()
+            DUREES.append((page, l, round(time.monotonic() - debut_page)))
     finally:
         b.close()
 
 print(f'RESULTAT {ok}/{ok + ko}'); print('\n'.join(L))
+for page_, l_, d_ in DUREES: print(f'  ⏱ {d_} s : {page_} {l_}')
 if mesures_voiture: print(f'  (une voiture : {mesures_voiture[0][0]} triangles, {mesures_voiture[0][1]} appels de dessin ; toute l’image : {mesures_voiture[0][2]} appels)')
 if mesures: print(f'  (circuit 3D : {mesures["triangles"]:.0f} triangles, construit en {mesures["msConstruction"]:.0f} ms sous swiftshader)')
 sys.exit(0 if ko == 0 else 1)
