@@ -1031,7 +1031,10 @@ def camera_suivie(pg, titre, page):
     e = pg.evaluate(SUIVIE_ETAT, k)
     t(f'{titre} : un clic sur une ligne du classement : la caméra suit ce pilote, la ligne est marquée, le bandeau « Caméra : Nom »', e['tele'] == k and e['choisi'] == k and e['suivie'] == [num] and e['bandeau'] and e['nom'] in e['texte'], str([k, num, e]))
     pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'camera-suivie.png'))
-    pg.click(f'#classementListe li[data-numero="{num}"]'); pg.wait_for_timeout(300)
+    pg.click(f'#classementListe li[data-numero="{num}"]')
+    # (la régie choisit sa voiture à l'image suivante : on attend qu'elle l'ait fait, au lieu de 300 ms qui, sous swiftshader, pouvaient
+    # passer sans une image ; vu sur GitHub le 2026-11-02, tele encore null)
+    attendre(pg, '() => JEU.attente && JEU.attente.tele !== null', None, 10000)
     e2 = pg.evaluate(SUIVIE_ETAT, k)
     t(f'{titre} : un second clic sur la même ligne : la régie reprend (plus de ligne marquée ni de bandeau)', e2['choisi'] is None and e2['suivie'] == [] and not e2['bandeau'] and e2['tele'] is not None, str(e2))
     pg.click(f'#classementListe li[data-numero="{num}"]'); pg.wait_for_timeout(200)
