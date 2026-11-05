@@ -39,6 +39,10 @@ const REGLAGES = {
   STABILITE_LACET: 4,           // 1/s : la rotation de la voiture rejoint ce que demande le volant (aide arcade)
   ANTI_DERIVE: 2.5,             // 1/s : la glissade de côté s'amortit (aide arcade)
   // la voiture vivante = le pneu drift (physique.js pasPneusVivant, voitureVivante) : en adhérant (slick), la voiture d'aujourd'hui au bit près
+  // (tour 48b, décision du propriétaire du 2026-11-04 : « cache-le, on garde la glisse pour personne ») le pneu drift caché : false = ni choix
+  // Grip / Drift (garage, ← → à l'arrêt, bulles), ni 8e leçon, ni voiture vivante pour personne (un pneu 'drift' roule en adhérant, au bit
+  // près), une sauvegarde en drift repasse en adhérant ; true rallume tout (une version arcade un jour ; ?drift=1 pour les tests)
+  PNEU_DRIFT: false,
   VOITURE_VIVANTE: 1,           // le curseur (&reglages=1) : le pneu drift va de 0 (= l'adhérant) à 1 (la voiture vivante)
   DRIFT_VITESSE: 40,            // m/s : le pneu drift adhère comme l'adhérant à cette vitesse…
   DRIFT_LENT: 0.04,             // … mieux en dessous (jusqu'à + ça à l'arrêt : les virages lents)…

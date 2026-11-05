@@ -180,6 +180,7 @@ const CHAMPIONNAT = (function () {
 
   // une sauvegarde d'une ancienne version : ce qui manque est ajouté (sauvegarde.js, migrer)
   function completer(ch) {
+    if (ch.pneusDepart === 'drift' && !R.PNEU_DRIFT) ch.pneusDepart = 'slick';   // (tour 48b) le drift caché : une sauvegarde en drift repasse en adhérant
     remettreCalendrier(ch);   // (tour 48b) l'ancien calendrier d'essai d'une sauvegarde d'avant le 2026-10-27 : les GP à venir sur les vrais tracés
     if (ch.pilotes) duelDe(ch);   // (une sauvegarde de test peut n'avoir que des pilotes)
     if (!ch.album) ch.album = [];   // l'album des unes du journal (journal.js) : vide dans une sauvegarde d'avant

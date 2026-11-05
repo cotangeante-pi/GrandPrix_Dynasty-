@@ -106,6 +106,7 @@ function pasVoiture(v, circuit, dt) {
   memoriserAvant(v);
 
   const herbe = v.surHerbe;
+  if (v.typePneus === 'drift' && !R.PNEU_DRIFT) v.typePneus = 'slick';   // (tour 48b) le drift caché : la glisse pour personne, l'adhérant au bit près
   // (le pneu drift : son adhérence selon la vitesse, adherenceDrift, gardée dans v.adhDrift pour qui pilote ; × 1 en adhérant, au bit près)
   if (v.typePneus === 'drift') v.adhDrift = adherenceDrift(v.u);
   const mu = R.ADHERENCE * (v.adhMeteo || 1) * (v.adherence || 1) * (v.aero || 1) * (v.aileronAdherence || 1) * (herbe ? R.ADHERENCE_HERBE : 1) * (v.typePneus === 'drift' ? v.adhDrift : 1);   // × 1 sans pneus ni garage ni aileron (aileron, Codeur 3) : le même nombre au bit près
@@ -177,7 +178,7 @@ function pasVoiture(v, circuit, dt) {
 // d'aujourd'hui au bit près) ; et 0 pour une IA sans VIVANTE_IA (elles gardent l'adhérant : elles ne savent pas piloter le drift)
 function voitureVivante(v) {
   const R = REGLAGES;
-  if (!v || v.typePneus !== 'drift' || (v.ia && !R.VIVANTE_IA)) return 0;
+  if (!v || v.typePneus !== 'drift' || !R.PNEU_DRIFT || (v.ia && !R.VIVANTE_IA)) return 0;   // (PNEU_DRIFT : le drift caché, tour 48b)
   return R.VOITURE_VIVANTE || 0;
 }
 

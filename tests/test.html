@@ -14,6 +14,9 @@ const CALENDRIER_JEU=REGLAGES.CALENDRIER_CIRCUITS;REGLAGES.CALENDRIER_CIRCUITS=[
 // de même, les tests du moteur sont écrits sans les pneus (PNEUS_ACTIFS, vrai dans le jeu depuis le tour 32) : ceux qui les veulent les
 // allument (avecPneus) ; les courses avec les pneus sont mesurées dans courses.html, stands.html, consignes.html et officiels.html
 REGLAGES.PNEUS_ACTIFS=false;
+// (tour 48b) le pneu drift est caché dans le jeu (PNEU_DRIFT faux) ; les tests de la voiture vivante et du choix des pneus sont écrits
+// avec lui : ils le rallument ici (« drift rallumé »), et le test « drift caché » l'éteint
+REGLAGES.PNEU_DRIFT=true;
 
 // --- les réglages
 t('la physique avance par pas de 1/120 s', ()=>{v(REGLAGES.PAS_PHYSIQUE===1/120);});
@@ -1194,6 +1197,26 @@ t('pneus adhérant / drift (moteur) : le drift est un pneu du sec de meteo.js (j
   v(PNEUS_CHOIX.secs().join()==='slick,drift'&&PNEUS_CHOIX.tous().join()===METEO.TYPES.join()&&PNEUS_CHOIX.estDrift('drift')&&!PNEUS_CHOIX.estDrift('slick'),'API');
   const ch={};v(PNEUS_CHOIX.choisirDepart(ch,'drift')==='drift'&&ch.pneusDepart==='drift'&&PNEUS_CHOIX.choisirDepart(ch,'rien')==='drift','départ');
   const vo=creerVoiture(null);v(PNEUS_CHOIX.de(vo)==='slick'&&PNEUS_CHOIX.choisirArret(vo,'drift')==='drift'&&vo.choixPneus===true,'arrêt');});
+// (tour 48b, décision du propriétaire du 2026-11-04) le pneu drift caché : un seul réglage, PNEU_DRIFT (donnees.js)
+t('drift caché (PNEU_DRIFT faux, le jeu) : aucun choix drift (garage, ← → à l’arrêt, départ ; les 7 leçons : tests/tutoriel.html), la voiture vivante pour personne (un pneu drift roule en adhérant au bit près, joueur et IA), une sauvegarde en drift repasse en adhérant', ()=>{
+  const R_=REGLAGES,av=[R_.PNEU_DRIFT,R_.NIVEAU];R_.PNEU_DRIFT=false;
+  try{v(METEO.TYPES.join()==='slick,inter,pluie'&&PNEUS_CHOIX.secs().join()==='slick'&&!PNEUS_CHOIX.tous().includes('drift'),'pneus '+METEO.TYPES);
+    const ch0={};PNEUS_CHOIX.choisirDepart(ch0,'drift');v(ch0.pneusDepart===undefined,'départ '+ch0.pneusDepart);
+    const vo=creerVoiture(null);PNEUS_CHOIX.choisirArret(vo,'drift');v(vo.pneusProchain===undefined,'arrêt '+vo.pneusProchain);
+    const v_={typePneus:'slick'},suite=[];for(const d of [1,0,1,0,1,0,-1])  {choisirPneusArret(v_,d);suite.push(v_.pneusProchain);}
+    v(suite.join()==='inter,inter,pluie,pluie,slick,slick,pluie','← → : '+suite.join());
+    const jo=creerVoiture(TQ),ia=creerVoiture(TQ);jo.typePneus=ia.typePneus='drift';ia.ia=true;v(voitureVivante(jo)===0&&voitureVivante(ia)===0,'vivante');
+    const a=tourVivant(TQ,'legende',1,true,'slick'),b=tourVivant(TQ,'legende',1,true,'drift');v(JSON.stringify(a)===JSON.stringify(b),'drift ≠ adhérant : '+JSON.stringify([a,b]));
+    const ch=CHAMPIONNAT.creer(5);ch.pneusDepart='drift';CHAMPIONNAT.completer(ch);v(ch.pneusDepart==='slick','sauvegarde '+ch.pneusDepart);
+  }finally{R_.PNEU_DRIFT=av[0];R_.NIVEAU=av[1];}});
+t('drift rallumé (PNEU_DRIFT vrai) : tout revient : le drift au garage et à l’arrêt, la voiture vivante en pneus drift, une sauvegarde en drift le garde', ()=>{
+  const R_=REGLAGES,av=R_.PNEU_DRIFT;R_.PNEU_DRIFT=true;
+  try{v(METEO.TYPES.join()==='slick,drift,inter,pluie'&&PNEUS_CHOIX.secs().join()==='slick,drift','pneus '+METEO.TYPES);
+    const ch0={};v(PNEUS_CHOIX.choisirDepart(ch0,'drift')==='drift','départ');
+    const jo=creerVoiture(TQ);jo.typePneus='drift';v(voitureVivante(jo)===R_.VOITURE_VIVANTE&&R_.VOITURE_VIVANTE>0,'vivante');
+    const a=tourVivant(TQ,'legende',1,true,'slick'),b=tourVivant(TQ,'legende',1,true,'drift');v(JSON.stringify(a)!==JSON.stringify(b),'le drift est une autre voiture');
+    const ch=CHAMPIONNAT.creer(5);ch.pneusDepart='drift';CHAMPIONNAT.completer(ch);v(ch.pneusDepart==='drift','sauvegarde '+ch.pneusDepart);
+  }finally{R_.PNEU_DRIFT=av;}});
 // (tour 42d, Codeur 4) les aides au pilotage avec la voiture vivante : le freinage assisté et l'anti-blocage étaient faits pour la
 // voiture d'avant ; avec elle, le brutal aidé du freinage assisté glissait plus que sans aide (dérive 0,094 → 0,177 rad, 3 glissades, au technique) ;
 // (tour 43d) l'antipatinage coupait les gaz d'un coup en courbe rapide (le lever de pied fait partir l'arrière) : il les relâche en douceur ;

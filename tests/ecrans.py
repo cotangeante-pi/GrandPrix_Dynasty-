@@ -106,7 +106,7 @@ PAGES = [
     ('index.html?championnat=1&meteo=risque&test=prevision', 1280, 720, None),
     ('index.html?course=3&ia=20&circuit=test&test=commentaire', 1280, 720, None),   # le commentateur (commentaire.js) dans le bandeau télé ; capture commentaire.png
     ('index.html?course=3&ia=20&circuit=monoco&test=tele', 1280, 720, None),
-    ('index.html?course=3&ia=9&joueur=1&robot=1&circuit=test&test=sensations&pneus=drift', 1280, 720, None),   # (tour 44 : la voiture vivante vient du pneu drift)
+    ('index.html?course=3&ia=9&joueur=1&robot=1&circuit=test&test=sensations&pneus=drift&drift=1', 1280, 720, None),   # (tour 44 : la voiture vivante vient du pneu drift)
     ('index.html?course=3&ia=5&joueur=1&robot=1&circuit=test&niveau=debutant&test=conseil', 1280, 720, None),   # la trajectoire conseillée (tour 39) : en débutant, d'office ; capture conseil.png
     ('index.html?course=3&ia=5&joueur=1&robot=1&circuit=test&niveau=normal&test=conseil', 960, 600, None),     # … en normal, aucune
     ('index.html?course=3&ia=9&joueur=1&robot=1&circuit=test&qualite=auto&test=qualite', 1280, 720, None),   # la qualité automatique (tour 40) : jusqu'à « basse » sous swiftshader, jamais pendant les feux ; capture qualite-basse.png
@@ -2474,7 +2474,8 @@ def garage_ecran(pg, titre, achat=True, capture='garage.png'):
     apres = pg.evaluate('() => [JEU.championnat.pneusDepart, SAUVEGARDE.championnat().pneusDepart, [...document.querySelectorAll("#garagePneus button.choisi")].map(x => x.dataset.pneu)]')
     pg.click('#garagePneus button[data-pneu="equipe"]')
     retour = pg.evaluate('() => JEU.championnat.pneusDepart')
-    t(f'{titre} : au garage, les pneus du départ : « Au choix de l’équipe » par défaut (l’adhérant), slicks, drift, intermédiaires, pluie ; « Pluie » choisi et sauvegardé, puis de nouveau l’équipe', pn['n'] == 5 and pn['choisi'] == ['equipe'] and pn['titre'].startswith('Pneus au départ') and apres == ['pluie', 'pluie', ['pluie']] and retour is None, str([pn, apres, retour]))
+    # (tour 48b) le drift caché : ni bouton ni texte « Drift » au garage
+    t(f'{titre} : au garage, les pneus du départ : « Au choix de l’équipe » par défaut (l’adhérant), slicks, intermédiaires, pluie (le drift caché : aucun bouton ni texte drift) ; « Pluie » choisi et sauvegardé, puis de nouveau l’équipe', pn['n'] == 4 and pg.evaluate('() => !/drift/i.test(document.getElementById("garage").innerText)') and pn['choisi'] == ['equipe'] and pn['titre'].startswith('Pneus au départ') and apres == ['pluie', 'pluie', ['pluie']] and retour is None, str([pn, apres, retour]))
     if not achat:
         t(f'{titre} : sans argent, tous les boutons « Acheter » sont grisés', not any(e['actifs']), str(e['actifs']))
     else:
@@ -3068,8 +3069,8 @@ def tuto_menu(pg, titre, l, h):
     m = pg.evaluate('''() => { const e = document.getElementById("tutoMenu"), li = [...e.querySelectorAll("#tutoListe li")], b = [...e.querySelectorAll("button")].map(x => x.getBoundingClientRect());
       return { vu: !e.classList.contains("cache"), n: li.length, etoiles: li.map(x => x.querySelector(".tutoEtoile").textContent).join(""), noms: li.map(x => x.querySelector(".tutoNom").textContent), dedans: b.every(x => x.left >= 0 && x.top >= 0 && x.right <= innerWidth && x.bottom <= innerHeight),
         defile: [document.documentElement.scrollHeight, innerHeight] }; }''')
-    t(f'{titre} : « Apprendre à piloter » : la liste des 8 leçons (numéro, nom, but, « Commencer » ; la 8e, la voiture vivante, tour 37j), aucune étoile encore, tout dans l’écran sans défilement',
-      m['vu'] and m['n'] == 8 and m['etoiles'] == '☆' * 8 and m['noms'][0].startswith('1. ') and m['dedans'] and m['defile'][0] <= m['defile'][1] + 2, str(m))
+    t(f'{titre} : « Apprendre à piloter » : la liste des 7 leçons (numéro, nom, but, « Commencer » ; la 8e, le drift, cachée avec le pneu drift, tour 48b), aucune étoile encore, aucun texte drift, tout dans l’écran sans défilement',
+      m['vu'] and m['n'] == 7 and m['etoiles'] == '☆' * 7 and pg.evaluate('() => !/drift/i.test(document.getElementById("tutoMenu").innerText)') and m['noms'][0].startswith('1. ') and m['dedans'] and m['defile'][0] <= m['defile'][1] + 2, str(m))
     pg.wait_for_timeout(400); pg.screenshot(path=os.path.join(CAPTURES, 'tuto-menu.png' if l == 1280 else 'tuto-menu-960.png'))
     pg.click('#boutonTutoRetour')
     t(f'{titre} : « Retour » referme la liste : l’écran titre est toujours là, « ▶ Jouer » mène toujours à la grille d’un clic', pg.evaluate('() => document.getElementById("tutoMenu").classList.contains("cache") && JEU.ecran === "titre"'))

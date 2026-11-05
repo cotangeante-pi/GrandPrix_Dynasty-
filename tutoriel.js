@@ -17,8 +17,12 @@ const TUTORIEL = (function () {
     { id: 'visite', adresse: 'championnat=1' },                                               // le paddock, le garage, l'aileron
     { id: 'vivante', adresse: 'course=0&circuit=technique&pneus=drift' },                    // (tours 37j, 37l, 44) le drift, à l'épingle du technique : en pneus drift (la voiture vivante), puis en adhérant
   ];
-  const PAR_ID = {};
-  LECONS.forEach((l, i) => { l.numero = i + 1; PAR_ID[l.id] = l; });
+  LECONS.forEach((l, i) => { l.numero = i + 1; });
+  // (tour 48b) le drift caché (PNEU_DRIFT) : la 8e leçon n'est plus proposée, le tutoriel revient à 7 leçons (la 8e est la dernière : les
+  // numéros des 7 autres ne bougent pas)
+  const leconOuverte = l => l.id !== 'vivante' || R.PNEU_DRIFT;
+  const lecons = () => LECONS.filter(leconOuverte);
+  const parId = () => { const p = {}; for (const l of lecons()) p[l.id] = l; return p; };
 
   // le virage de la leçon du freinage : le plus serré du circuit ; la zone chronométrée va de TUTO_ZONE_AVANT m avant lui (les plots
   // du point de freinage) à TUTO_ZONE_APRES m après sa sortie ; { debut, fin, virage: [debut, fin] } en m le long de la piste
@@ -176,9 +180,9 @@ const TUTORIEL = (function () {
 
   // la leçon qui suit (ou null après la dernière)
   function suivante(id) {
-    const l = PAR_ID[id];
-    return l && l.numero < LECONS.length ? LECONS[l.numero].id : null;
+    const l = parId()[id], ls = lecons();
+    return l && l.numero < ls.length ? ls[l.numero].id : null;
   }
 
-  return { LECONS, PAR_ID, zoneFreinage, situation, creerSuivi, pas, etapeVisite, preparer, suivante, pneu, appliquerPneu };
+  return { get LECONS() { return lecons(); }, get PAR_ID() { return parId(); }, zoneFreinage, situation, creerSuivi, pas, etapeVisite, preparer, suivante, pneu, appliquerPneu };
 })();
