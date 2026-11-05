@@ -1425,6 +1425,7 @@ body.deux:not(.cote) #deuxRappel2 { left: 50%; }
 /* au paddock, le son est dans Réglages : 🔊 ne reste pas dans un coin ; la bulle d'aide se pose à droite du menu */
 body.auPaddock #boutonSon { display: none; }
 #championnat:not(.cache) ~ #bulleAide.bulleMenu { left: calc(var(--paddock-menu) + 16px); }
+#championnat:not(.cache) ~ #tutoConsigne.tutoMenuConsigne { left: calc(var(--paddock-menu) + 16px); }   /* (la consigne de la leçon « visite » non plus ne couvre pas le menu) */
 
 /* 960×600 et moins large : le menu devient une colonne d'icônes (le nom en bulle, title) */
 @media (max-width: 1100px) {

@@ -2035,7 +2035,9 @@ REPUTATION_ETAT = """() => { const ch = JEU.championnat, js = [...document.query
   noms: js.map(j => j.querySelector(".nom").textContent), valeurs: js.map(j => +j.querySelector(".valeur").textContent), largeurs: js.map(j => j.querySelector(".plein").style.width), attendu: INTERVIEW.JAUGES.map(j => Math.round(ch.reputation[j])),
   visible: js.length > 0 && js.every(j => j.querySelector(".barre").getBoundingClientRect().width > 40 && j.getBoundingClientRect().bottom <= innerHeight), defile: [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth] }; }"""
 def reputation_paddock(pg, titre, attendu=None):
+    if pg.evaluate('() => JEU.ecran === "championnat"'): paddock_page(pg, '#championnatReputation')   # (tour 48a : les jauges sont dans la page « Mon équipe »)
     e = pg.evaluate(REPUTATION_ETAT)
+    if pg.evaluate('() => JEU.ecran === "championnat"'): pg.click('#menuCourse')
     t(f'{titre} : au paddock, les trois jauges de réputation (Public, Écurie, Sponsors) en petites barres, aux valeurs du championnat' + (f' ({attendu})' if attendu else '') + ', sans défilement',
       e['ecran'] == 'championnat' and e['n'] == 3 and e['jauges'] == ['public', 'ecurie', 'sponsors'] and e['noms'] == ['Public', 'Écurie', 'Sponsors'] and e['valeurs'] == e['attendu'] and e['largeurs'] == [f'{v}%' for v in e['attendu']]
       and e['visible'] and (attendu is None or e['valeurs'] == attendu) and pas_de_defilement(e['defile']), str(e))
