@@ -342,8 +342,37 @@
   <p id="garageSolde"></p>
   <p id="garageBonus"></p>
   <ul id="garageListe"></ul>
-  <div class="boutons"><button id="boutonAileron" tabindex="-1"></button><button id="boutonGarageRetour" tabindex="-1"></button></div>
+  <div class="boutons"><button id="boutonAileron" tabindex="-1"></button><button id="boutonMaVoiture" tabindex="-1"></button><button id="boutonBoutique" tabindex="-1"></button><button id="boutonGarageRetour" tabindex="-1"></button></div>
 </section>
+<!-- « Ma voiture » (livree.js, celebration.js, ma-voiture.js, tour 48c) : depuis le garage : la livrée (motif, couleur secondaire ; la couleur
+     principale est celle de l'écurie), le numéro en gros, la célébration ; la voiture qui tourne en 3D -->
+<section id="livree" class="ecran cache">
+  <h1 id="livreeTitre"></h1>
+  <div id="livreeEditeur">
+    <canvas id="livreeApercu" width="380" height="220"></canvas>
+    <div id="livreeChamps">
+      <label><span id="livreeMotifTexte"></span><select id="livreeMotif"></select></label>
+      <label><span id="livreeCouleur2Texte"></span><input id="livreeC2" type="color"></label>
+      <label id="livreeC1Ligne" class="cache"><span id="livreeCouleur1Texte"></span><input id="livreeC1" type="color"></label>
+      <label><span id="livreeCelebrationTexte"></span><select id="livreeCelebration"></select></label>
+      <p id="livreeNote"></p>
+    </div>
+  </div>
+  <div class="boutons"><button id="boutonLivreeValider" tabindex="-1"></button><button id="boutonLivreeRetour" tabindex="-1"></button></div>
+</section>
+<!-- la boutique de skins (boutique.js, tour 48c) : BOUTIQUE.rendre la dessine dans #boutiqueConteneur ; un écran à part, provisoire, ouvert
+     depuis le garage (elle ira dans la page « Boutique » du nouveau paddock) ; l'écran de fin de l'essai d'un skin -->
+<section id="boutique" class="ecran cache">
+  <div id="boutiqueConteneur"></div>
+  <div class="boutons"><button id="boutonBoutiqueRetour" tabindex="-1"></button></div>
+</section>
+<section id="essaiFin" class="ecran cache">
+  <h1 id="essaiFinTitre"></h1>
+  <p id="essaiFinTexte"></p>
+  <p id="essaiFinMessage"></p>
+  <div class="boutons"><button id="boutonEssaiAcheter" tabindex="-1"></button><button id="boutonEssaiRetour" tabindex="-1"></button></div>
+</section>
+<div id="essaiBandeau" class="cache"></div>
 <!-- l'aileron (aileron.js, carte2d.js, Codeur 3) : depuis le garage, avant le Grand Prix : la carte de la prochaine course, le curseur, la voiture, deux barres ; aucun conseil -->
 <section id="aileron" class="ecran cache">
   <h1 id="aileronTitre"></h1>
@@ -469,7 +498,7 @@
 <script src="deux-joueurs.js"></script>
 <script src="touches.js"></script>
 <script src="tournoi.js"></script>
-<script src="casque.js"></script><script src="photo.js"></script>
+<script src="casque.js"></script><script src="livree.js"></script><script src="celebration.js"></script><script src="boutique.js"></script><script src="ma-voiture.js"></script><script src="photo.js"></script>
 <script src="cache-carte.js"></script>
 <script src="journal.js"></script>
 <script src="argent.js"></script>

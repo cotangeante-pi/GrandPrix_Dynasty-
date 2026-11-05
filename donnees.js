@@ -528,6 +528,46 @@ const REGLAGES = {
   CASQUE_ATLAS_CASE: 64,        // pixels : la case de chaque casque dans l'atlas (une petite texture partagée, un seul matériau)
   CASQUE_ICONE: 14,             // pixels : l'icône du casque dans la tour, les résultats, le championnat
   CASQUE_APERCU_VITESSE: 1.2,   // rad/s : le casque tourne dans l'éditeur
+  // --- la personnalisation (CLAUDE.md « La personnalisation », tour 48c) : la livrée (livree.js), la célébration (celebration.js),
+  // la boutique de skins (boutique.js). Un skin ne change que le look, jamais la vitesse
+  LIVREE_ACTIVE: true,          // false : la voiture d'avant, d'une seule couleur (sans texture)
+  // les motifs de départ (libres) ; les motifs des skins viennent de SKINS (type livree)
+  LIVREE_MOTIFS: ['uni', 'bandes', 'fleche', 'degrade', 'damier', 'flammes'],
+  LIVREE_DEFAUT: { motif: 'bandes', couleur2: 0xffffff },   // le joueur avant d'avoir choisi, une ancienne sauvegarde
+  // la livrée de chaque écurie (dans l'ordre de ECURIES) : son motif et sa couleur secondaire ; la couleur principale reste celle de l'écurie
+  LIVREE_ECURIES: [
+    { motif: 'fleche', couleur2: 0xffffff }, { motif: 'bandes', couleur2: 0x111111 }, { motif: 'degrade', couleur2: 0xf2c230 },
+    { motif: 'flammes', couleur2: 0x111111 }, { motif: 'bandes', couleur2: 0xf2c230 }, { motif: 'fleche', couleur2: 0x34495e },
+    { motif: 'damier', couleur2: 0xd8262e }, { motif: 'degrade', couleur2: 0x1abc9c }, { motif: 'uni', couleur2: 0xffffff },
+    { motif: 'bandes', couleur2: 0xffffff },
+  ],
+  LIVREE_ATLAS_CASE: 128,       // pixels : la case de chaque voiture dans l'atlas des livrées (une texture partagée, un seul matériau)
+  LIVREE_APERCU_VITESSE: 0.7,   // rad/s : la voiture tourne dans l'éditeur « Ma voiture »
+  // la célébration (celebration.js) : jouée à l'arrivée quand le joueur gagne, et sur le podium quand il est premier
+  CELEBRATIONS: ['poing', 'drapeau'],   // celles de départ
+  // celles à débloquer par un exploit de carrière (les mêmes conditions que les motifs de casque, casque.js) : célébration → condition
+  CELEBRATION_DEBLOCAGES: { donuts: 'victoire', saut: 'podiums', confettis: 'titre' },
+  CELEBRATION_DEFAUT: 'poing',
+  CELEBRATION_DUREE: 4,         // s : une célébration tourne en boucle, une période dure ce temps
+  // la boutique (boutique.js) : chaque skin s'obtient d'UNE façon : argent (le prix, en € du jeu), pub (📺 rewardedBreak, pour toujours)
+  // ou recompense (une condition de carrière, il ne s'achète pas). type : livree (un motif de livrée), casque (un motif de casque),
+  // celebration ; les skins obtenus sont à la racine de la sauvegarde (ils survivent à une nouvelle carrière)
+  SKINS: [
+    { id: 'livree_carbone', type: 'livree', motif: 'carbone', obtention: 'argent', prix: 60000 },
+    { id: 'livree_eclairs', type: 'livree', motif: 'eclairs', obtention: 'argent', prix: 120000 },
+    { id: 'livree_galaxie', type: 'livree', motif: 'galaxie', obtention: 'pub' },
+    { id: 'livree_or', type: 'livree', motif: 'or', obtention: 'recompense', condition: 'titre' },
+    { id: 'livree_drapeau', type: 'livree', motif: 'drapeau', obtention: 'recompense', condition: 'premiereCourse' },
+    { id: 'casque_tigre', type: 'casque', motif: 'tigre', obtention: 'argent', prix: 40000 },
+    { id: 'casque_galaxie', type: 'casque', motif: 'galaxie', obtention: 'pub' },
+    { id: 'casque_or', type: 'casque', motif: 'or', obtention: 'recompense', condition: 'victoires5' },
+    { id: 'celebration_feux', type: 'celebration', motif: 'feux', obtention: 'argent', prix: 80000 },
+    { id: 'celebration_toupie', type: 'celebration', motif: 'toupie', obtention: 'pub' },
+    { id: 'celebration_trophee', type: 'celebration', motif: 'trophee', obtention: 'recompense', condition: 'legende' },
+  ],
+  SKIN_VICTOIRES: 5,            // la condition victoires5 : ce nombre de victoires en carrière
+  SKIN_LEGENDE_TITRES: 3,       // la condition legende : ce nombre de titres
+  ESSAI_TOURS: 2,               // l'essai avant l'achat : ce nombre de tours seul sur le circuit de test, hors championnat (rien n'est compté)
   CACHE_CARTE_TAILLE_MAX: 150000,   // octets : la carte des IA d'un circuit en cache dans la sauvegarde (cache-carte.js) ne doit pas peser plus (test)
 
   // la création du pilote (pilote.js, étape 6) : le nom, le numéro, le pays, la course de cœur

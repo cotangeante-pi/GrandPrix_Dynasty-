@@ -2747,7 +2747,7 @@ t('casque : chaque motif à débloquer se gagne exactement à sa condition (une 
   ch.carriere.domicile=2;v(!gagnes().includes('coeur'),'2e à domicile');ch.carriere.domicile=1;v(gagnes().includes('coeur'),'gagné à domicile');
   ch.saisons=[{duel:[3,4,6,5,7]}];v(!gagnes().includes('diagonale'),'duel perdu (9 – 13)');ch.saisons.push({duel:[3,7,5,6,4]});v(gagnes().includes('diagonale'),'duel gagné (13 – 9)');
   v(gagnes()==='chevrons,couronne,zigzag,diagonale,coeur','tout : '+gagnes());
-  v(CASQUE.tousLesMotifs().length===R.CASQUE_MOTIFS.length+Object.keys(R.CASQUE_DEBLOCAGES).length&&Object.keys(R.CASQUE_DEBLOCAGES).every(m=>!R.CASQUE_MOTIFS.includes(m)),'listes');
+  v(CASQUE.tousLesMotifs().length===R.CASQUE_MOTIFS.length+Object.keys(R.CASQUE_DEBLOCAGES).length+CASQUE.motifsSkins().length&&Object.keys(R.CASQUE_DEBLOCAGES).every(m=>!R.CASQUE_MOTIFS.includes(m)),'listes');
   v(R.CASQUE_MOTIFS.every(m=>CASQUE.permis(m,[]))&&!CASQUE.permis('couronne',[])&&CASQUE.permis('couronne',['couronne']),'permis');
   v(CASQUE.valide({motif:'couronne',couleurs:[1,2,3]}),'un motif débloqué est un casque valide');
   // jamais de la vitesse : la même voiture roule pareil, quel que soit le casque (le casque n'est pas dans l'état de la voiture)
