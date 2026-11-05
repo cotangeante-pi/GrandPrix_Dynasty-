@@ -3076,7 +3076,7 @@ def tuto_menu(pg, titre, l, h):
     t(f'{titre} : « Retour » referme la liste : l’écran titre est toujours là, « ▶ Jouer » mène toujours à la grille d’un clic', pg.evaluate('() => document.getElementById("tutoMenu").classList.contains("cache") && JEU.ecran === "titre"'))
     pg.evaluate('() => { SAUVEGARDE.reussirLecon("depart"); }')
     pg.click('#boutonTutorielTitre')
-    t(f'{titre} : une leçon réussie a son étoile dans la liste', pg.evaluate('() => [...document.querySelectorAll("#tutoListe .tutoEtoile")].map(x => x.textContent).join("") === "☆☆★☆☆☆☆☆"'), pg.evaluate('() => [...document.querySelectorAll("#tutoListe .tutoEtoile")].map(x => x.textContent).join("")'))
+    t(f'{titre} : une leçon réussie a son étoile dans la liste', pg.evaluate('() => [...document.querySelectorAll("#tutoListe .tutoEtoile")].map(x => x.textContent).join("") === "☆☆★☆☆☆☆"'), pg.evaluate('() => [...document.querySelectorAll("#tutoListe .tutoEtoile")].map(x => x.textContent).join("")'))
     with pg.expect_navigation(): pg.click('#tutoListe li:first-child button')
     t(f'{titre} : « Commencer » ouvre la leçon 1 (course seule, un tour)', attendre(pg, '() => typeof TUTORIEL_ECRAN !== "undefined" && TUTORIEL_ECRAN.lecon() === "conduite" && JEU.course && JEU.course.nbTours === 1 && !JEU.plateau', None, 20000), pg.url)
     with pg.expect_navigation(): pg.click('#boutonTutoPasser')
