@@ -76,6 +76,19 @@ Ce qu'on ajoute, c'est **un vrai championnat** : des saisons de 12 Grands Prix, 
   Monoco (Monaco), Silverstoun (Silverstone), Monzo (Monza), Spaa (Spa), Suzuko (Suzuka), Interlagas (Interlagos), Montréol (Montréal), Melbourn Park (Melbourne), Barcelana (Barcelone), Bahrayn (Bahreïn), Singapura (Singapour, de nuit), Yas Marino (Abou Dabi).
   Les 12 tracés refaits d'après la forme des vrais sont dans `circuits-officiels-a.js` et `-b.js` (données : `vraieLongueur`, `reperes` = les virages célèbres, longueur à ±10 % de la vraie), avec leurs vues de dessus `tests/circuits-a.svg` et `-b.svg` (noms des virages, départ, sens) et l'outil `tests/circuits-outil.py`. **Suzuko se croise (un huit) : c'est le seul croisement permis**, marqué dans les données (`croisement`) ; le pont est dessiné (tour 33), et la physique reste plate : deux voitures sur les deux passages du croisement (à moins de `CROISEMENT_ZONE` = 200 m de chaque passage, `branchesOpposees` dans circuits.js) ne se touchent pas, ne se voient pas et ne s'aspirent pas, et `positionSurPiste` ne saute jamais d'un passage à l'autre (tour 34, tests dans officiels.html). Points faibles connus : l'épingle de Monoco n'est qu'un virage de 108°, Bahrayn et Melbourn Park restent génériques. **Branchés dans le jeu le 2026-10-27** (décision du Chef, le propriétaire ne voulant plus qu'on attende ses accords) : `CALENDRIER_CIRCUITS` = les 12 (Bahrayn, Melbourn Park, Suzuko, Montréol, Monoco, Barcelana, Silverstoun, Spaa, Monzo, Singapura, Interlagas, Yas Marino) ; `?circuit=<nom>` pour chacun ; la course de découverte reste sur `test`.
 
+## Les divisions (4, 3, 2, 1)
+
+Idée du propriétaire, 2026-11-05 (« à l'avenir ») : « il faudra faire des divisions, division 4, 3, 2, 1, on commence avec la 4 (bots nuls, voitures nulles), puis 3 (bots moyens, voitures moyennes), puis 2 (bots forts, voitures fortes), et finalement 1 (bots légendaires et voitures surpuissantes) ». **Pas encore à coder** : après les décisions du 2026-11-04.
+
+- **Division 4** : IA au niveau débutant, voitures lentes (toutes, joueur compris). **Division 3** : IA normales, voitures moyennes. **Division 2** : IA expertes, voitures fortes. **Division 1** : IA légendes, voitures surpuissantes (plus de puissance et d'adhérence, la vraie F1).
+- La carrière commence en division 4 ; on monte de division en gagnant sa place (la règle exacte est à choisir par le propriétaire).
+- **Propositions du Chef, à confirmer par le propriétaire** :
+  - **monter** : champion de la division, ou dans les 3 premiers du championnat, à la fin de la saison ; **descendre** : jamais (le jeu reste agréable pour un enfant), ou seulement dernier deux saisons de suite ;
+  - les 4 niveaux de difficulté (débutant, normal, expert, légende) deviennent les 4 divisions en carrière ; le choix du niveau reste en course rapide et entre amis ;
+  - chaque division a ses propres écuries et pilotes (les meilleurs pilotes montent aussi, la relève et les transferts suivent) ; les gains, les sponsors et les améliorations du garage grandissent avec la division ;
+  - les aides au pilotage restent au choix du joueur dans toutes les divisions.
+- **Tests** (quand on le codera) : une carrière neuve est en division 4 ; la montée après la saison selon la règle ; la vitesse des voitures et le niveau des IA changent d'une division à l'autre ; une vieille sauvegarde est rangée dans une division sans rien perdre.
+
 ## Le duel contre le coéquipier
 
 Décidé par le propriétaire le 2026-10-21. **But** : que chaque course compte, même dans une voiture faible. Au début de la carrière, le joueur finit loin (sa voiture est parmi les moins bonnes) ; le coéquipier a **la même voiture**, c'est donc le seul combat à armes égales. On en fait un deuxième championnat, toujours visible.
