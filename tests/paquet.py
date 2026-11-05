@@ -266,9 +266,12 @@ try:
             pg.goto('file://' + dossier + '/index.html?championnat=1&tours=1&robot=1&gp=6&lang=en')
             pg.wait_for_function('() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', timeout=60000)
             LIRE = """() => [document.body.innerText, ...[...document.querySelectorAll('[title]')].map(e => e.title)].join('\\n')"""
-            lus = {'paddock': pg.evaluate(LIRE)}
+            # (tour 48a) au paddock, chaque page du menu est lue (innerText ne lit que la page affichée), puis on revient sur « Course »
+            LIRE_PADDOCK = """() => { const lu = []; for (const p of ['course', 'equipe', 'boutique', 'saison', 'messages', 'reglages']) { INTERFACE.pagePaddock(p); lu.push(document.body.innerText); }
+              INTERFACE.pagePaddock('course'); return lu.concat([...document.querySelectorAll('[title]')].map(e => e.title)).join('\\n'); }"""
+            lus = {'paddock': pg.evaluate(LIRE_PADDOCK)}
             # (tour 37c) le panneau des classements : le contenu en haut, les 20 pilotes en une colonne qui le remplissent (plus de grand vide au-dessus)
-            pan = pg.evaluate("""() => { const p = document.getElementById("championnatTableaux").getBoundingClientRect(), h = document.querySelector("#championnatTableaux h2").getBoundingClientRect(),
+            pan = pg.evaluate("""() => { INTERFACE.pagePaddock('saison'); const p = document.getElementById("championnatTableaux").getBoundingClientRect(), h = document.querySelector("#championnatTableaux h2").getBoundingClientRect(),
               l = [...document.querySelectorAll("#championnatPilotes li")], d = l[l.length - 1].getBoundingClientRect(); return { haut: h.top - p.top, rempli: (d.bottom - p.top) / p.height, n: l.length, bas: d.bottom <= p.bottom + 1, colonne: l[0].getBoundingClientRect().left === d.left }; }""")
             t(f'{titre} : au paddock, les classements commencent en haut du panneau ({pan["haut"]:.0f} px) et les {pan["n"]} pilotes en une colonne le remplissent à {pan["rempli"] * 100:.0f} %, sans déborder',
               pan['haut'] < 30 and pan['rempli'] > 0.7 and pan['bas'] and pan['colonne'] and pan['n'] == 20, str(pan))
@@ -292,7 +295,7 @@ try:
                 pg.on('pageerror', lambda e: console.append('PAGEERROR ' + str(e)))
                 pg.goto('file://' + dossier + f'/index.html?championnat=1&tours=1&robot=1&gp=6&lang={lg}')
                 pg.wait_for_function('() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', timeout=60000)
-                lus = {'paddock': pg.evaluate(LIRE)}
+                lus = {'paddock': pg.evaluate(LIRE_PADDOCK)}
                 for nom, montrer, quitter in (('calendrier', 'montrerCalendrier()', 'quitterCalendrier()'), ('fiche', 'montrerFiche(3)', 'quitterFiche()'),
                                               ('album', 'montrerAlbum()', 'quitterAlbum()'), ('arbre', 'montrerArbre()', 'quitterArbre()')):
                     pg.evaluate(f'() => {montrer}'); pg.wait_for_timeout(300); lus[nom] = pg.evaluate(LIRE); pg.evaluate(f'() => {quitter}')
@@ -321,6 +324,7 @@ try:
             page_ch = 'file://' + dossier + '/index.html?championnat=1&tours=1&robot=1&gp=3'
             pg.goto(page_ch)
             pg.wait_for_function('() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', timeout=60000)
+            pg.click('#menuReglages')   # (tour 48a : « Aides au pilotage » est dans la page Réglages du paddock)
             avant = pg.evaluate('() => ({ niveau: REGLAGES.NIVEAU, aides: Object.assign({}, JEU.assistance), visible: document.getElementById("boutonAidesPaddock").getBoundingClientRect().width > 0 })')
             pg.click('#boutonAidesPaddock')
             # (tour 37g) la première fois, la bulle d'aide du choix : ce que fait chaque aide, et le bonus ; chaque bouton dit ce que fait son aide

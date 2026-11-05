@@ -173,43 +173,75 @@
   <div class="boutons"><button id="boutonFantomeQualif" class="boutonFantome" tabindex="-1"></button></div>
 </section>
 
-<!-- ?championnat=1 : l'écran entre les courses -->
+<!-- ?championnat=1 : l'écran entre les courses, le paddock (tour 48a, Codeur 1 ; le propriétaire 2026-11-04) : un menu à gauche, une page
+     au centre. Les anciens boutons gardent leur id et sont rangés dans les pages (interface.js : pagePaddock) -->
 <section id="championnat" class="ecran cache">
-  <!-- le paddock, l'écran d'accueil de la carrière (tour 32, Codeur 3) : le prochain Grand Prix en grand, toi (classement, duel,
-       argent, sponsor, réputation), les classements, et les boutons rangés par usage -->
-  <div id="paddock">
-    <div id="paddockProchain" class="tvCarte">
-      <p id="paddockSurtitre" class="tvSurtitre"></p>
-      <h1 id="championnatTitre"></h1>
-      <p id="prevision" class="cache"></p>   <!-- la météo prévue (meteo3d.js) -->
-      <p id="paddockDomicile" class="cache"><span class="maison"></span> <span id="paddockDomicileTexte"></span></p>
-      <canvas id="paddockCarte" width="330" height="170"></canvas>
-      <p id="championnatGagne"></p>
+  <nav id="paddockMenu">
+    <p id="paddockMarque"></p>
+    <button id="menuCourse" class="menuEntree" data-page="course" tabindex="-1"><span class="menuIcone">🏁</span><span class="menuNom"></span></button>
+    <button id="menuEquipe" class="menuEntree" data-page="equipe" tabindex="-1"><span class="menuIcone">🔧</span><span class="menuNom"></span></button>
+    <button id="menuBoutique" class="menuEntree" data-page="boutique" tabindex="-1"><span class="menuIcone">🛒</span><span class="menuNom"></span></button>
+    <button id="menuSaison" class="menuEntree" data-page="saison" tabindex="-1"><span class="menuIcone">📅</span><span class="menuNom"></span></button>
+    <button id="menuMessages" class="menuEntree" data-page="messages" tabindex="-1"><span class="menuIcone">✉</span><span class="menuNom"></span><span class="menuPoint cache">●</span></button>
+    <button id="boutonAmisPaddock" class="menuEntree" tabindex="-1"><span class="menuIcone">👥</span><span class="menuNom"></span></button>   <!-- « Entre amis » : ouvre son menu (preparerAmis) -->
+    <span class="menuEspace"></span>
+    <button id="menuReglages" class="menuEntree" data-page="reglages" tabindex="-1"><span class="menuIcone">⚙</span><span class="menuNom"></span></button>
+    <button id="boutonTutorielPaddock" class="menuEntree" tabindex="-1"><span class="menuIcone">?</span><span class="menuNom"></span></button>   <!-- « Apprendre » : la liste des leçons (tutoriel.js) -->
+  </nav>
+  <div id="paddockPages">
+    <!-- Course (l'accueil) : le prochain Grand Prix, ta place et ton duel, le classement réduit, les messages, « Course suivante » -->
+    <div id="pageCourse" class="paddockPage" data-page="course">
+      <div id="paddockProchain" class="tvCarte">
+        <p id="paddockSurtitre" class="tvSurtitre"></p>
+        <h1 id="championnatTitre"></h1>
+        <p id="prevision" class="cache"></p>   <!-- la météo prévue (meteo3d.js) -->
+        <p id="paddockDomicile" class="cache"><span class="maison"></span> <span id="paddockDomicileTexte"></span></p>
+        <p id="championnatGagne"></p>
+        <canvas id="paddockCarte" width="330" height="170"></canvas>
+      </div>
+      <div id="paddockMoi" class="tvCarte">
+        <p id="paddockPlace"></p>
+        <p id="championnatDuel"></p>
+      </div>
+      <div id="paddockCourt" class="tvCarte"><h2 id="paddockCourtTitre"></h2><ol id="paddockClassementCourt"></ol><button id="boutonVoirTout" class="petit" tabindex="-1"></button></div>
+      <div id="paddockNouvelles" class="tvCarte"><h2 id="paddockNouvellesTitre"></h2><p id="paddockNouvellesTexte"></p><button id="boutonVoirMessages" class="petit" tabindex="-1"></button></div>
+      <button id="boutonCourseSuivante" tabindex="-1"></button>
     </div>
-    <div id="paddockMoi" class="tvCarte">
-      <div id="paddockMessages"><button id="boutonCourrier" class="petit" tabindex="-1"></button><button id="boutonParlerCoequipier" class="petit" tabindex="-1"></button><button id="boutonParlerPatron" class="petit" tabindex="-1"></button></div>
-      <p id="paddockPlace"></p>
-      <p id="championnatDuel"></p>
-      <p id="championnatArgent"></p>
-      <p id="championnatSponsor"></p>
-      <div id="championnatReputation"></div>
+    <!-- Mon équipe : l'argent, le sponsor, la réputation ; le garage (et l'aileron), les sponsors, le casque -->
+    <div id="pageEquipe" class="paddockPage cache" data-page="equipe">
+      <h2 class="pageTitre" id="pageEquipeTitre"></h2>
+      <div class="tvCarte pageInfos"><p id="championnatArgent"></p><p id="championnatSponsor"></p><div id="championnatReputation"></div></div>
+      <div class="pageBoutons"><button id="boutonGarage" tabindex="-1"></button><button id="boutonMaVoiture" tabindex="-1"></button><button id="boutonSponsors" tabindex="-1"></button><button id="boutonMonCasque" tabindex="-1"></button></div>
     </div>
-    <div id="championnatTableaux" class="tvCarte">
-      <div><h2 id="championnatPilotesTitre"></h2><ol id="championnatPilotes"></ol></div>
-      <div><h2 id="championnatEcuriesTitre"></h2><ol id="championnatEcuries"></ol></div>
+    <!-- Boutique : livrées, casques et célébrations ; « Ouvrir la boutique » ouvre l'écran de la boutique (boutique.js, tour 48c) -->
+    <div id="pageBoutique" class="paddockPage cache" data-page="boutique">
+      <h2 class="pageTitre" id="pageBoutiqueTitre"></h2>
+      <div id="boutiqueContenu" class="tvCarte"><p id="boutiqueBientot"></p><div class="pageBoutons"><button id="boutonBoutique" tabindex="-1"></button></div></div>
+    </div>
+    <!-- Saison : le calendrier, l'album, l'arbre ; les classements complets -->
+    <div id="pageSaison" class="paddockPage cache" data-page="saison">
+      <h2 class="pageTitre" id="pageSaisonTitre"></h2>
+      <div class="pageBoutons"><button id="boutonCalendrier" tabindex="-1"></button><button id="boutonAlbum" tabindex="-1"></button><button id="boutonArbre" tabindex="-1"></button></div>
+      <div id="championnatTableaux" class="tvCarte">
+        <div><h2 id="championnatPilotesTitre"></h2><ol id="championnatPilotes"></ol></div>
+        <div><h2 id="championnatEcuriesTitre"></h2><ol id="championnatEcuries"></ol></div>
+      </div>
+    </div>
+    <!-- Messages : le courrier, le coéquipier, la direction -->
+    <div id="pageMessages" class="paddockPage cache" data-page="messages">
+      <h2 class="pageTitre" id="pageMessagesTitre"></h2>
+      <div id="paddockMessages" class="pageBoutons colonne"><button id="boutonCourrier" tabindex="-1"></button><button id="boutonParlerCoequipier" tabindex="-1"></button><button id="boutonParlerPatron" tabindex="-1"></button></div>
+    </div>
+    <!-- Réglages : le son, les aides au pilotage, revoir les aides, la qualité ; « Nouvelle carrière » et « Nouvelle carrière à 0 » -->
+    <div id="pageReglages" class="paddockPage cache" data-page="reglages">
+      <h2 class="pageTitre" id="pageReglagesTitre"></h2>
+      <div id="sonPanneau" class="tvCarte"><h2 id="sonTitre"></h2><div class="pageBoutons"><button id="boutonMuetPaddock" class="petit" tabindex="-1"></button><button id="boutonSonEffets" class="petit" tabindex="-1"></button><button id="boutonSonAmbiance" class="petit" tabindex="-1"></button><button id="boutonSonCommentateur" class="petit" tabindex="-1"></button></div></div>
+      <div class="tvCarte"><h2 id="reglagesJeuTitre"></h2><div class="pageBoutons"><button id="boutonAidesPaddock" class="petit" tabindex="-1"></button><button id="boutonRevoirAides" class="petit" tabindex="-1"></button><button id="boutonQualitePaddock" class="petit" tabindex="-1"></button></div></div>
+      <div id="reglagesCarriere" class="tvCarte"><h2 id="reglagesCarriereTitre"></h2><div class="pageBoutons"><button id="boutonNouvelleCarriere" class="petit" tabindex="-1"></button><button id="boutonNouvelleCarriereZero" class="petit danger" tabindex="-1"></button></div>
+        <div id="carriereConfirmation" class="cache"><p id="carriereConfirmationTexte"></p><ul id="carriereConfirmationListe"></ul><div class="pageBoutons"><button id="boutonCarriereOui" class="petit danger" tabindex="-1"></button><button id="boutonCarriereNon" class="petit" tabindex="-1"></button></div></div>
+      </div>
     </div>
   </div>
-  <div class="boutons" id="paddockBoutons">
-    <div class="paddockGroupe"><span class="paddockGroupeNom" id="paddockGroupeCourse"></span><div><button id="boutonCourseSuivante" tabindex="-1"></button></div></div>
-    <div class="paddockGroupe"><span class="paddockGroupeNom" id="paddockGroupeEquipe"></span><div><button id="boutonGarage" tabindex="-1"></button><button id="boutonSponsors" tabindex="-1"></button><button id="boutonMonCasque" class="petit" tabindex="-1"></button></div></div>
-    <div class="paddockGroupe"><span class="paddockGroupeNom" id="paddockGroupeSaison"></span><div><button id="boutonCalendrier" class="petit" tabindex="-1"></button><button id="boutonAlbum" class="petit" tabindex="-1"></button><button id="boutonArbre" class="petit" tabindex="-1"></button></div></div>
-    <div class="paddockGroupe"><span class="paddockGroupeNom" id="paddockGroupeAmis"></span><div><button id="boutonAmisPaddock" class="petit" tabindex="-1"></button></div></div>
-  </div>
-  <button id="boutonTutorielPaddock" class="petit coinPaddock" tabindex="-1"></button>
-  <button id="boutonSonPaddock" class="petit coinPaddock" tabindex="-1"></button>   <!-- « 🔊 Son » (tour 44) : le volume de chaque famille de sons -->
-  <div id="sonPanneau" class="cache"><h2 id="sonTitre"></h2><div class="boutons"><button id="boutonSonEffets" class="petit" tabindex="-1"></button><button id="boutonSonAmbiance" class="petit" tabindex="-1"></button><button id="boutonSonCommentateur" class="petit" tabindex="-1"></button></div><div class="boutons"><button id="boutonSonFermer" class="petit" tabindex="-1"></button></div></div>
-  <button id="boutonAidesPaddock" class="petit coinPaddock" tabindex="-1"></button>   <!-- « Aides au pilotage » (tour 37e, Codeur 3) : choisies avant le Grand Prix -->   <!-- « Apprendre à piloter » (tutoriel.js, Codeur 4) : dans le coin en bas à gauche -->
-  <button id="boutonRevoirAides" class="petit coinPaddock" tabindex="-1"></button>   <!-- « Revoir les aides » (aides.js, Codeur 4) : dans un coin du paddock -->
 </section>
 <!-- le calendrier de la saison (Codeur 3) : les 12 Grands Prix, faits ou à venir, le prochain mis en valeur, le Grand Prix à domicile marqué -->
 <section id="calendrier" class="ecran cache">
@@ -342,9 +374,9 @@
   <p id="garageSolde"></p>
   <p id="garageBonus"></p>
   <ul id="garageListe"></ul>
-  <div class="boutons"><button id="boutonAileron" tabindex="-1"></button><button id="boutonMaVoiture" tabindex="-1"></button><button id="boutonBoutique" tabindex="-1"></button><button id="boutonGarageRetour" tabindex="-1"></button></div>
+  <div class="boutons"><button id="boutonAileron" tabindex="-1"></button><button id="boutonGarageRetour" tabindex="-1"></button></div>
 </section>
-<!-- « Ma voiture » (livree.js, celebration.js, ma-voiture.js, tour 48c) : depuis le garage : la livrée (motif, couleur secondaire ; la couleur
+<!-- « Ma voiture » (livree.js, celebration.js, ma-voiture.js, tour 48c) : depuis la page « Mon équipe » du paddock : la livrée (motif, couleur secondaire ; la couleur
      principale est celle de l'écurie), le numéro en gros, la célébration ; la voiture qui tourne en 3D -->
 <section id="livree" class="ecran cache">
   <h1 id="livreeTitre"></h1>
@@ -360,8 +392,8 @@
   </div>
   <div class="boutons"><button id="boutonLivreeValider" tabindex="-1"></button><button id="boutonLivreeRetour" tabindex="-1"></button></div>
 </section>
-<!-- la boutique de skins (boutique.js, tour 48c) : BOUTIQUE.rendre la dessine dans #boutiqueConteneur ; un écran à part, provisoire, ouvert
-     depuis le garage (elle ira dans la page « Boutique » du nouveau paddock) ; l'écran de fin de l'essai d'un skin -->
+<!-- la boutique de skins (boutique.js, tour 48c) : BOUTIQUE.rendre la dessine dans #boutiqueConteneur ; un écran à part, ouvert
+     depuis la page « Boutique » du paddock (tour 48a) ; l'écran de fin de l'essai d'un skin -->
 <section id="boutique" class="ecran cache">
   <div id="boutiqueConteneur"></div>
   <div class="boutons"><button id="boutonBoutiqueRetour" tabindex="-1"></button></div>

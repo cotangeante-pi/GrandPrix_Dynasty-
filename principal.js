@@ -1177,6 +1177,23 @@ function validerHeritier() {
   return true;
 }
 
+// « Nouvelle carrière » (⚙ Réglages du paddock, tour 48a ; confirmée deux fois dans interface.js) : un monde neuf, la carrière abandonnée
+// au temple si elle a une saison finie, tout le reste gardé (sauvegarde.js) ; puis la création du pilote, sans la course de découverte
+function nouvelleCarriere() {
+  if (JEU.ecran !== 'championnat') return;
+  JEU.championnat = SAUVEGARDE.nouvelleCarriere(JEU.championnat);
+  JEU.gagne = null;
+  JEU.grandPrixFini = false;
+  montrerPilote();
+}
+// « Nouvelle carrière à 0 » : tout est effacé (sauf le son et la qualité), le jeu repart comme au premier lancement : la page nue
+// (l'écran titre, puis la course de découverte)
+function carriereAZero() {
+  if (JEU.ecran !== 'championnat') return;
+  SAUVEGARDE.toutEffacer();
+  location.href = PARAMETRES.get('lang') ? adresseAvec({}) : location.pathname;
+}
+
 function nouvelleDynastie() {
   if (JEU.ecran !== 'retraite') return;
   const ancien = JEU.championnat;
@@ -1301,7 +1318,8 @@ function quitterPerso() {
 // « Ma voiture » : la livrée du joueur (motif, couleur secondaire) sur la couleur de son écurie, son numéro, sa célébration ; la voiture
 // tourne (sa case de l'atlas des livrées est redessinée à chaque changement : sa voiture sur la grille suit)
 function montrerMaVoiture() {
-  if (JEU.ecran !== 'garage') return;
+  if (JEU.ecran !== 'garage' && JEU.ecran !== 'championnat') return;
+  JEU.maVoitureDepuis = JEU.ecran;   // (tour 48a : ouverte depuis la page « Mon équipe » du paddock ; le retour y ramène)
   const j = PILOTE.joueur(JEU.championnat), k = indiceJoueur();
   MA_VOITURE.remplir({ livree: j.livree, couleur1: JEU.couleurs[k], numero: j.numero, libre: false, possedes: SAUVEGARDE.motifsSkins('livree'),
     celebration: CELEBRATION.de(j), debloquees: SAUVEGARDE.celebrations(), possedees: SAUVEGARDE.motifsSkins('celebration') });
@@ -1332,6 +1350,7 @@ function quitterLivree() {
   const j = PILOTE.joueur(JEU.championnat), k = indiceJoueur();
   VOITURE3D.majLivree(k, LIVREE.pourVoiture(JEU.couleurs[k], j.livree, j.numero, false, j.pays));   // (sans « Garder » : la livrée d'avant revient)
   quitterPerso();
+  if (JEU.maVoitureDepuis === 'championnat') { montrerChampionnat(JEU.gagne === undefined ? null : JEU.gagne); return; }
   INTERFACE.remplirGarage(JEU.championnat);
   JEU.ecran = 'garage';
   INTERFACE.montrer('garage');
@@ -2210,6 +2229,7 @@ function demarrerJeu() {
     document.getElementById('boutonRejouerResultats').classList.add('cache');
     document.getElementById('boutonChangerResultats').textContent = texte('continuer');
     INTERFACE.preparerChampionnat(courseSuivante, montrerGarage);
+    INTERFACE.preparerPaddock({ nouvelle: nouvelleCarriere, zero: carriereAZero });   // le menu et les pages du paddock (tour 48a)
     INTERFACE.preparerUne(passerUne);
     INTERFACE.preparerCeremonie(suiteCeremonie);
     INTERFACE.preparerAlbum(montrerAlbum, feuilleterAlbum, saisonAlbum, quitterAlbum);
@@ -2219,8 +2239,8 @@ function demarrerJeu() {
     INTERFACE.preparerCalendrier(montrerCalendrier, quitterCalendrier);
     INTERFACE.preparerReleve(montrerHeritier, nouvelleDynastie, validerHeritier);
     INTERFACE.preparerGarage(acheterAmelioration, quitterGarage);
-    // la personnalisation (tour 48c) : « Ma voiture » et la boutique, depuis le garage (provisoire, en attendant la page Boutique du paddock)
-    for (const [id, cle, f] of [['boutonMaVoiture', 'maVoiture', montrerMaVoiture], ['boutonBoutique', 'boutique', () => montrerBoutique()], ['boutonBoutiqueRetour', 'boutiqueRetour', quitterBoutique]]) {
+    // la personnalisation (tour 48c) : « Ma voiture » (page « Mon équipe » du paddock) et la boutique (page « Boutique »), tour 48a
+    for (const [id, cle, f] of [['boutonMaVoiture', 'maVoiture', montrerMaVoiture], ['boutonBoutique', 'paddock_ouvrirBoutique', () => montrerBoutique()], ['boutonBoutiqueRetour', 'boutiqueRetour', quitterBoutique]]) {
       const b = document.getElementById(id); b.textContent = texte(cle); b.addEventListener('mousedown', e => e.preventDefault()); b.addEventListener('click', f);
     }
     MA_VOITURE.preparer(changerLivree, validerLivree, quitterLivree);
@@ -2305,14 +2325,16 @@ function demarrerJeu() {
   // la force. Sous un automate (navigator.webdriver : les tests), « auto » ne baisse pas seul sans ?qualite=auto, pour que les
   // mesures d'images restent comparables d'un passage à l'autre
   {
-    const b = document.getElementById('boutonQualitePause'), demandee = PARAMETRES.get('qualite');
+    const bs = ['boutonQualitePause', 'boutonQualitePaddock'].map(id => document.getElementById(id)), demandee = PARAMETRES.get('qualite');   // (le menu pause et la page « Réglages » du paddock, tour 48a)
     JEU.qualite = QUALITE.creer(QUALITE.REGLES.includes(demandee) ? demandee : SAUVEGARDE.option('qualite', 'auto'));
     JEU.qualiteAuto = !(navigator.webdriver && !QUALITE.REGLES.includes(demandee));
     const appliquer = () => SCENE3D.reglerQualite(JEU.qualite.cran ? QUALITE.cran(JEU.qualite.cran) : null);
-    const ecrire = () => { b.textContent = texte('qualite_' + JEU.qualite.regle); };
+    const ecrire = () => { for (const b of bs) b.textContent = texte('qualite_' + JEU.qualite.regle); };
     appliquer(); ecrire();
-    b.addEventListener('mousedown', e => e.preventDefault());
-    b.addEventListener('click', () => { QUALITE.regler(JEU.qualite, QUALITE.suivante(JEU.qualite.regle)); SAUVEGARDE.ecrireOption('qualite', JEU.qualite.regle); appliquer(); ecrire(); });
+    for (const b of bs) {
+      b.addEventListener('mousedown', e => e.preventDefault());
+      b.addEventListener('click', () => { QUALITE.regler(JEU.qualite, QUALITE.suivante(JEU.qualite.regle)); SAUVEGARDE.ecrireOption('qualite', JEU.qualite.regle); appliquer(); ecrire(); });
+    }
   }
   // les aides au pilotage (assistance.js, tour 41 ; le choix du joueur, le propriétaire 2026-10-30, tour 37e) : choisies AVANT la course, une
   // par une, à tous les niveaux (le niveau ne donne que le réglage proposé : toutes en débutant, aucune au-dessus), sauvegardées ;
@@ -2336,17 +2358,13 @@ function demarrerJeu() {
     const ids = { effets: ['boutonSonEffetsPause', 'boutonSonEffets'], ambiance: ['boutonSonAmbiancePause', 'boutonSonAmbiance'], commentateur: ['boutonSonCommentateurPause', 'boutonSonCommentateur'] };
     SON.reglerVolumes(SAUVEGARDE.option('son_volumes', null) || REGLAGES.SON_FAMILLES);
     const ecrire = () => { const v = SON.volumes; for (const f of SON.FAMILLES) for (const id of ids[f]) document.getElementById(id).textContent = texte('son_' + f).replace('{p}', String(Math.round(v[f] * 100))); };
-    const panneau = document.getElementById('sonPanneau');
-    document.getElementById('sonTitre').textContent = texte('son_titre');
-    for (const [id, cle] of [['boutonSonPaddock', 'son_paddock'], ['boutonSonFermer', 'son_fermer']]) document.getElementById(id).textContent = texte(cle);
+    document.getElementById('sonTitre').textContent = texte('son_titre');   // (tour 48a : les volumes sont dans la page « Réglages » du paddock)
     ecrire();
     for (const f of SON.FAMILLES) for (const id of ids[f]) {
       const b = document.getElementById(id);
       b.addEventListener('mousedown', e => e.preventDefault());
       b.addEventListener('click', () => { SON.reglerVolumes({ [f]: SON.suivant(SON.volumes[f]) }); SAUVEGARDE.ecrireOption('son_volumes', SON.volumes); ecrire(); });
     }
-    document.getElementById('boutonSonPaddock').addEventListener('click', () => panneau.classList.toggle('cache'));
-    document.getElementById('boutonSonFermer').addEventListener('click', () => panneau.classList.add('cache'));
   }
   INTERFACE.majBoutonsFantome(SAUVEGARDE.option('fantome', true));
   PODIUM3D.init(CIRCUIT);
@@ -2362,7 +2380,7 @@ function demarrerJeu() {
   else if (JEU.deux) lancerCourse(JEU.deux.nbTours);   // le mode 2 joueurs : la course tout de suite (son menu et ses réglages : ordre 3)
   else if (demandee !== null && !isNaN(Number(demandee))) lancerCourse(Number(demandee));
   else allerAuChoix();
-  if (PARAMETRES.get('boutique') && JEU.ecran === 'championnat') montrerBoutique(PARAMETRES.get('boutique'));   // le retour de l'essai d'un skin (tour 48c)
+  if (PARAMETRES.get('boutique') && JEU.ecran === 'championnat') { INTERFACE.pagePaddock('boutique'); montrerBoutique(PARAMETRES.get('boutique')); }   // (tour 48a : son « Retour » ramène sur la page Boutique)   // le retour de l'essai d'un skin (tour 48c)
   if (ESSAI) {
     const b = document.getElementById('essaiBandeau');
     b.textContent = texte('essaiBandeau').replace('{skin}', BOUTIQUE.nom(ESSAI)); b.classList.remove('cache');
@@ -2373,7 +2391,11 @@ function demarrerJeu() {
   brancherClavier();
   const boutonSon = document.getElementById('boutonSon');
   boutonSon.title = texte('son');
-  const majBoutonSon = () => { boutonSon.textContent = SON.muet ? '🔇' : '🔊'; };
+  const boutonMuet = document.getElementById('boutonMuetPaddock');   // (le même interrupteur dans la page « Réglages » du paddock, où 🔊 est caché : tour 48a)
+  const majBoutonSon = () => { boutonSon.textContent = SON.muet ? '🔇' : '🔊'; boutonMuet.textContent = texte(SON.muet ? 'paddock_sonCoupe' : 'paddock_sonActif'); };
+  boutonMuet.addEventListener('mousedown', e => e.preventDefault());
+  boutonMuet.addEventListener('click', () => { SON.basculer(); majBoutonSon(); });
+  majBoutonSon();
   // pas de focus sur le bouton : Espace ne doit pas le cliquer
   boutonSon.addEventListener('mousedown', e => e.preventDefault());
   boutonSon.addEventListener('click', () => { SON.basculer(); majBoutonSon(); });

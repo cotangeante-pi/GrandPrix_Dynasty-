@@ -280,6 +280,8 @@ const REGLAGES = {
   ],
   FACTEUR_VOITURE_JOUEUR: 1,    // la qualité de la voiture du joueur : 1 pour l'instant (sa conduite, c'est le propriétaire qui la valide) ; plus tard celle de son écurie, dans ±3 %
   CHAMPIONNAT_TOURS: 5,         // ?championnat=1 : la longueur des Grands Prix, fixe pour l'instant (?tours=1 pour les tests)
+  PADDOCK_COURT_TETE: 3,        // le paddock (tour 48a) : le classement réduit de la page Course montre les 3 premiers,
+  PADDOCK_COURT_VOISINS: 1,     // … le joueur avec 1 voisin de chaque côté, et le coéquipier ; « Voir tout » ouvre la page Saison
   // l'argent (étape 8, argent.js, Codeur 3) : les gains d'un Grand Prix, plafonnés par course ; les sponsors viendront à l'étape 9
   ARGENT_PLACE: [50000, 40000, 32000, 26000, 22000, 18000, 15000, 12500, 10000, 8000, 6500, 5500, 4500, 4000, 3500, 3000, 2500, 2000, 1500, 1000],   // du 1er au 20e
   ARGENT_MEILLEUR_TOUR: 5000,   // le meilleur tour de la course
