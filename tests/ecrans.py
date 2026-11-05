@@ -432,10 +432,9 @@ def fantome(pg, titre):
     L.append(f"  (appels de dessin pendant le tour de qualification : {appels1} sans le fantôme, {e['appels']} avec)")
     pg.screenshot(path=os.path.join(CAPTURES, 'fantome.png'))
     # les classes de l'écart : vert devant, rouge derrière, neutre à 0
-    pg.evaluate('() => INTERFACE.majEcartFantome(-0.34)')
-    vert = pg.evaluate('() => [document.getElementById("hudEcart").textContent, document.getElementById("hudEcart").className]')
-    pg.evaluate('() => INTERFACE.majEcartFantome(0.004)')
-    egal = pg.evaluate('() => [document.getElementById("hudEcart").textContent, document.getElementById("hudEcart").className]')
+    # (tour 48b) l'écart posé et lu dans le même appel : sans image entre les deux (avant, une image du jeu remettait l'écart du tour, « +1,10 »)
+    vert = pg.evaluate('() => { INTERFACE.majEcartFantome(-0.34); return [document.getElementById("hudEcart").textContent, document.getElementById("hudEcart").className]; }')
+    egal = pg.evaluate('() => { INTERFACE.majEcartFantome(0.004); return [document.getElementById("hudEcart").textContent, document.getElementById("hudEcart").className]; }')
     t(f'{titre} : « −0,34 » en vert quand le joueur est devant, « 0,00 » neutre à égalité', vert == ['−0' + pg.evaluate('() => texte("virgule")') + '34', 'vert'] and egal[1] == 'egal', str([vert, egal]))
     finir_tour(); image()
     r2 = pg.evaluate('''() => ({ etat: JEU.qualif.etat, temps: JEU.qualif.q.temps, record: SAUVEGARDE.fantome(NOM_CIRCUIT).temps, resultat: JEU.qualif.fantome, texte: document.getElementById("qualifFantome").textContent, visible: JEU.modeleFantome.groupe.visible })''')

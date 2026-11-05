@@ -85,7 +85,8 @@ const JOURNAL = (function () {
     if (!r || (!r.sa && !r.lg)) return f;
     const j = ch.pilotes.find(p => p.humain), avant = ch.resultats.slice(0, n), place = r.ordre.indexOf(j.id) + 1;
     const placeAvant = x => x.ordre.indexOf(j.id) + 1;
-    if (r.lg && place === 1 && !avant.some(x => x.lg && placeAvant(x) === 1)) f.legendeVictoire = base;
+    // (tour 48b) ses textes parlent de la voiture qui glisse : seulement avec le pneu drift rallumé (PNEU_DRIFT)
+    if (R.PNEU_DRIFT && r.lg && place === 1 && !avant.some(x => x.lg && placeAvant(x) === 1)) f.legendeVictoire = base;
     // (sans aide : seulement pour qui a déjà couru avec des aides, ra : couper ses aides est une étape ; qui n'en a jamais eu ne « passe »
     // rien, et une course d'avant ce tour n'est comptée ni avec ni sans)
     if (r.sa && avant.some(x => x.ra)) {
