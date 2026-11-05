@@ -7,25 +7,44 @@
 const CASQUE = (function () {
   const R = REGLAGES;
 
-  // tous les motifs : ceux de départ (CASQUE_MOTIFS, les seuls tirés pour les rivaux) puis ceux à débloquer (CASQUE_DEBLOCAGES)
+  // tous les motifs : ceux de départ (CASQUE_MOTIFS, les seuls tirés pour les rivaux) puis ceux à débloquer (CASQUE_DEBLOCAGES),
+  // puis ceux des skins de la boutique (SKINS de type casque, tour 48c : SAUVEGARDE.motifs() rend aussi ceux qui sont obtenus)
+  function motifsSkins() {
+    return (R.SKINS || []).filter(s => s.type === 'casque').map(s => s.motif);
+  }
   function tousLesMotifs() {
-    return R.CASQUE_MOTIFS.concat(Object.keys(R.CASQUE_DEBLOCAGES));
+    return R.CASQUE_MOTIFS.concat(Object.keys(R.CASQUE_DEBLOCAGES), motifsSkins());
+  }
+
+  // ce qu'il faut pour un motif pas encore permis, en mots : l'exploit (« un titre ») ou la boutique (tour 48c)
+  function condition(m) {
+    if (R.CASQUE_DEBLOCAGES[m]) return texte('deblocage_' + R.CASQUE_DEBLOCAGES[m]).replace('{n}', R.CASQUE_PODIUMS_DEBLOCAGE);
+    return texte('skinBoutique');
   }
 
   // --- les déblocages (CLAUDE.md « Le casque du pilote ») : les conditions remplies par la carrière en cours (ch : le championnat) ;
   // renvoie les motifs gagnés. Jamais de la vitesse : un motif n'est qu'un dessin
-  function conditionsRemplies(ch) {
-    const j = ch && Array.isArray(ch.pilotes) ? ch.pilotes.find(p => p.humain) : null;
-    if (!j) return [];
-    const s = j.stats || {}, faits = {
+  // les exploits de la carrière en cours : { victoire, titre, podiums, duel, domicile, premiereCourse, victoires5, legende } (vrai / faux) ;
+  // ils servent aux motifs de casque, aux célébrations (celebration.js) et aux récompenses de la boutique (boutique.js, tour 48c)
+  function faits(ch) {
+    const j = ch && Array.isArray(ch.pilotes) ? ch.pilotes.find(p => p && p.humain) : null;
+    if (!j) return {};
+    const s = j.stats || {};
+    return {
       victoire: (s.victoires || 0) >= 1,
       titre: (s.titres || 0) >= 1,
       podiums: (s.podiums || 0) >= R.CASQUE_PODIUMS_DEBLOCAGE,
       // une saison gagnée contre son coéquipier : l'historique compact (saisons.js) garde [k, qualifs joueur, qualifs coéquipier, courses joueur, courses coéquipier]
       duel: (ch.saisons || []).some(x => Array.isArray(x.duel) && x.duel[1] + x.duel[3] > x.duel[2] + x.duel[4]),
       domicile: !!(ch.carriere && ch.carriere.domicile === 1),
+      premiereCourse: (s.courses || 0) >= 1,
+      victoires5: (s.victoires || 0) >= R.SKIN_VICTOIRES,
+      legende: (s.titres || 0) >= R.SKIN_LEGENDE_TITRES,
     };
-    return Object.keys(R.CASQUE_DEBLOCAGES).filter(m => faits[R.CASQUE_DEBLOCAGES[m]]);
+  }
+  function conditionsRemplies(ch) {
+    const f = faits(ch);
+    return Object.keys(R.CASQUE_DEBLOCAGES).filter(m => f[R.CASQUE_DEBLOCAGES[m]]);
   }
 
   // le motif m est-il permis ? ceux de départ toujours ; les autres s'ils sont dans la liste des débloqués
@@ -149,6 +168,19 @@ const CASQUE = (function () {
       ctx.bezierCurveTo(cx - k * 2, cy - k * 0.2, cx - k * 0.9, cy - k * 1.6, cx, cy - k * 0.5);
       ctx.bezierCurveTo(cx + k * 0.9, cy - k * 1.6, cx + k * 2, cy - k * 0.2, cx, cy + k * 1.2); ctx.fill();
       ctx.fillStyle = c3; ctx.fillRect(x, y + t * 0.88, t, t * 0.12);
+    } else if (m === 'tigre') {   // (skin de la boutique) des rayures de tigre
+      for (let i = 0; i < 7; i++) { const fx = x + t * (i + 0.3) / 7; ctx.beginPath(); ctx.moveTo(fx, y); ctx.lineTo(fx + t * 0.09, y + t * 0.45); ctx.lineTo(fx - t * 0.02, y + t * 0.8); ctx.lineTo(fx + t * 0.03, y + t * 0.42); ctx.closePath(); ctx.fill(); }
+      ctx.fillStyle = c3; ctx.fillRect(x, y + t * 0.9, t, t * 0.1);
+    } else if (m === 'galaxie') {   // (skin de la boutique) un ciel de nuit étoilé (couleurs fixes : c'est le skin), le liseré de la troisième couleur
+      const g = ctx.createLinearGradient(x, y, x + t, y + t); g.addColorStop(0, '#120a2e'); g.addColorStop(0.5, '#3b1a6e'); g.addColorStop(1, '#0b1f4d');
+      ctx.fillStyle = g; ctx.fillRect(x, y, t, t);
+      let s = 11; const alea = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };   // (jamais hasard() : un dessin ne touche pas à la graine)
+      ctx.fillStyle = '#ffffff'; for (let i = 0; i < 18; i++) { const r = Math.max(1, t * 0.025 * (0.5 + alea())); ctx.fillRect(x + alea() * t, y + alea() * t, r, r); }
+      ctx.fillStyle = c3; ctx.fillRect(x, y + t * 0.9, t, t * 0.1);
+    } else if (m === 'or') {   // (skin, récompense) un casque d'or, une bande de la première couleur
+      const g = ctx.createLinearGradient(x, y, x, y + t); g.addColorStop(0, '#fff1a8'); g.addColorStop(0.5, '#d4af37'); g.addColorStop(1, '#8a6d1c');
+      ctx.fillStyle = g; ctx.fillRect(x, y, t, t);
+      ctx.fillStyle = c1; ctx.fillRect(x, y + t * 0.72, t, t * 0.1);
     } else {   // uni : le fond, un simple liseré de la troisième couleur
       ctx.fillStyle = c3; ctx.fillRect(x, y + t * 0.9, t, t * 0.1);
     }
@@ -174,5 +206,5 @@ const CASQUE = (function () {
     return c;
   }
 
-  return { tousLesMotifs, conditionsRemplies, permis, creer, neutre, cle, valide, tirer, completer, doublons, dessiner, icone };
+  return { tousLesMotifs, motifsSkins, condition, faits, conditionsRemplies, permis, creer, neutre, cle, valide, tirer, completer, doublons, dessiner, icone };
 })();

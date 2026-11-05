@@ -1,6 +1,7 @@
 // Le démarrage : il branche la physique et l'affichage sur la boucle.
 // La voiture du joueur roule sur le circuit de test, ou sur celui de ?circuit=… (un nom de CIRCUITS, donnees.js).
 const PARAMETRES = new URLSearchParams(location.search);
+if (PARAMETRES.get('drift') === '1') REGLAGES.PNEU_DRIFT = true;   // (tour 48b, tests) ?drift=1 rallume le pneu drift caché (PNEU_DRIFT, donnees.js)
 // la page nue (index.html sans paramètre de développement) est le vrai jeu (CLAUDE.md « En piste en 10 secondes ») : au
 // premier lancement, l'écran titre puis la course de découverte ; ensuite (découverte faite), le championnat = le paddock.
 // Les paramètres ?course=, ?ia=, ?camera=, ?seul=1 (l'écran de choix d'une course seule), ?joueur=1 et ?championnat=1 restent
@@ -32,6 +33,11 @@ const DEUX_EN_COURS = EST_PAGE && PARAMETRES.get('deux') === '1';
 // ?pneus=1 : les pneus du joueur (pneus.js), désactivés par défaut (PNEUS_ACTIFS) tant que le propriétaire n'a pas jugé la sensation
 if (PARAMETRES.get('pneus') === '1') REGLAGES.PNEUS_ACTIFS = true;
 if (PARAMETRES.get('pneus') === '0') REGLAGES.PNEUS_ACTIFS = false;   // (tour 32 : les pneus sont là par défaut ; ?pneus=0 les coupe)
+if (PARAMETRES.get('livree') === '0') REGLAGES.LIVREE_ACTIVE = false;   // (tour 48c) ?livree=0 : la voiture d'avant, d'une seule couleur (tests, mesure)
+
+// ?essai=<skin> (boutique.js, tour 48c) : l'essai d'un skin avant l'achat, seul sur le circuit de test, hors championnat (rien n'est
+// compté ni gagné) ; à l'arrivée, le résumé vidéo de l'essai, puis « Acheter » ou « Retour à la boutique »
+const ESSAI = EST_PAGE && typeof BOUTIQUE !== 'undefined' && PARAMETRES.get('essai') ? BOUTIQUE.skin(PARAMETRES.get('essai')) : null;
 
 // l'état du jeu, lisible par les tests
 const JEU = {
@@ -138,7 +144,7 @@ function lancerCourse(nbTours) {
   // ?pneus=1 : des pneus neufs à chaque course, seulement sur la voiture que le joueur conduit (jamais sur une IA suivie)
   JEU.joueur.pneus = REGLAGES.PNEUS_ACTIFS && (JEU.contre || !JEU.plateau) ? creerPneus() : null;
   JEU.joueur.adherence = 1;
-  if (PARAMETRES.get('pneus') === 'drift') JEU.joueur.typePneus = 'drift';   // (?pneus=drift : la voiture vivante, le pneu drift ; la leçon 8 du tutoriel, les tests)
+  if (PARAMETRES.get('pneus') === 'drift' && REGLAGES.PNEU_DRIFT) JEU.joueur.typePneus = 'drift';   // (?pneus=drift : la voiture vivante, le pneu drift ; la leçon 8 du tutoriel, les tests)
   if (JEU.deux) { const v2 = DEUX_JOUEURS.joueurs(JEU.plateau)[1].v; v2.pneus = JEU.joueur.pneus ? creerPneus() : null; v2.adherence = 1; }   // le joueur 2 : la même voiture
   AILERON.appliquer(JEU.joueur, JEU.championnat ? AILERON.cranDe(JEU.championnat, NOM_CIRCUIT) : null);   // l'aileron du joueur sur ce circuit (aileron.js ; le milieu = rien)
   GARAGE.appliquer(JEU.joueur, JEU.championnat ? JEU.championnat.garage : null, niveauEcurieJoueur());   // ?championnat=1 : les améliorations du garage × le niveau de l'écurie, sur la voiture du joueur (1 = rien sans championnat)
@@ -751,6 +757,41 @@ function casqueDe(k) {
   return p && CASQUE.valide(p.casque) ? p.casque : CASQUE.neutre();
 }
 
+// --- la livrée (livree.js, tour 48c) de la voiture k, à dessiner dans l'atlas des livrées (couleur : celle de sa voiture) : le joueur
+// a la sienne sur la couleur de son écurie ; une IA, celle de son écurie ; chacun son numéro. À deux, la couleur choisie par chaque joueur
+function livreeDe(k, couleur) {
+  if (JEU.deux && k >= JEU.ia) return LIVREE.pourVoiture(couleur, livreeSauvee(), k - JEU.ia + 1);
+  const p = piloteDe(k);
+  if (p && p.humain) return LIVREE.pourVoiture(couleur, p.livree, p.numero, false, p.pays);
+  if (p) return LIVREE.pourVoiture(couleur, LIVREE.ecurie(p.ecurie), p.numero);
+  if (JEU.contre && k === JEU.ia) { const j = joueurSauve(); return LIVREE.pourVoiture(couleur, j && j.livree, j ? j.numero : k + 1, false, j && j.pays); }   // (la découverte, ?ia=N&joueur=1)
+  return LIVREE.pourVoiture(couleur, LIVREE.ecurie(k), k + 1);
+}
+// le pilote du joueur dans la sauvegarde (le monde de la découverte, le championnat), ou null
+function joueurSauve() {
+  const ch = JEU.championnat || JEU.monde || SAUVEGARDE.championnat();
+  return ch && Array.isArray(ch.pilotes) ? ch.pilotes.find(p => p && p.humain) || null : null;
+}
+function livreeSauvee() {
+  const j = joueurSauve();
+  return j && LIVREE.valide(j.livree) ? j.livree : LIVREE.defaut();
+}
+// seul en piste (une course seule, l'essai d'un skin) : la livrée du joueur sur la couleur du joueur
+function livreeSeul() {
+  const j = joueurSauve(), ch = JEU.championnat || JEU.monde || SAUVEGARDE.championnat();
+  if (ESSAI && ESSAI.type === 'livree') {   // l'essai d'une livrée : le motif du skin, sur la couleur de l'écurie du joueur
+    const c = j && ch && ch.ecuries[j.ecurie] ? ch.ecuries[j.ecurie].couleur : REGLAGES.COULEUR_JOUEUR;
+    return LIVREE.pourVoiture(c, LIVREE.creer(ESSAI.motif, livreeSauvee().couleur2), j ? j.numero : '', false, j && j.pays);
+  }
+  return LIVREE.pourVoiture(REGLAGES.COULEUR_JOUEUR, livreeSauvee(), j ? j.numero : '', false, j && j.pays);
+}
+// seul en piste : le casque du joueur (l'essai d'un casque : le motif du skin sur ses couleurs), sinon le neutre
+function casqueSeul() {
+  const j = joueurSauve(), c = j && CASQUE.valide(j.casque) ? j.casque : CASQUE.neutre();
+  if (ESSAI && ESSAI.type === 'casque') return CASQUE.creer(ESSAI.motif, c.couleurs[0] === c.couleurs[1] ? [c.couleurs[0], REGLAGES.CASQUE_PALETTE[1], c.couleurs[2]] : c.couleurs);
+  return ESSAI ? c : CASQUE.neutre();
+}
+
 // le numéro affiché de la voiture k de la course : celui de son pilote du championnat (le joueur a le sien), sinon celui de la course
 function numeroDe(k) {
   const ch = JEU.championnat, P = JEU.plateau.pilotes;
@@ -793,6 +834,7 @@ function montrerChampionnat(gagne) {
   // un motif de casque gagné depuis la dernière fois : « Nouveau motif : Couronne ! », une seule fois (casque.js, sauvegarde.js)
   const pilote = PILOTE.joueur(JEU.championnat);
   INTERFACE.annoncerMotifs(SAUVEGARDE.prendreAnnonceMotifs(), pilote && CASQUE.valide(pilote.casque) ? pilote.casque : CASQUE.neutre());
+  annoncerSkins();   // un skin gagné (une récompense) : « Nouveau skin : Ton drapeau ! », une fois (tour 48c)
 }
 
 // « Course suivante » : la course de ce Grand Prix ; s'il est déjà joué, la page se recharge sur le suivant
@@ -836,6 +878,7 @@ function finirInterview() {
   if (JEU.plateau && typeof PATRONS !== 'undefined') PATRONS.noterConsigne(JEU.championnat, JEU.plateau.consigne);   // (le patron s'en souvient : patrons.js, Codeur 3)   // la consigne d'équipe suivie ou ignorée : la confiance de l'écurie (Codeur 1)
   CHAMPIONNAT.finirGrandPrix(JEU.championnat, lignes, JEU.assistance);   // (les aides choisies avant la course : le bonus sans aide)
   SAUVEGARDE.debloquerMotifs(CASQUE.conditionsRemplies(JEU.championnat));   // les motifs de casque gagnés (victoire, podiums, domicile), à la racine de la sauvegarde
+  donnerRecompenses(JEU.championnat);   // (tour 48c) les skins des récompenses (la première course officielle : la livrée aux couleurs du pays) et les célébrations
   JEU.grandPrixFini = true;
   JEU.interview = null;
   JEU.lignesGP = null;
@@ -905,6 +948,7 @@ function montrerFinSaison() {
   if (ch.retraite) { montrerRetraite(); return; }
   const b = SAISONS.terminerSaison(ch);
   SAUVEGARDE.debloquerMotifs(CASQUE.conditionsRemplies(ch));   // les motifs de casque gagnés en fin de saison (titre, duel)
+  donnerRecompenses(ch);   // (tour 48c) les skins et célébrations gagnés en fin de saison (titre…)
   // la cérémonie du champion (une fois par saison, avant le classement final) : le joueur champion → le podium, « CHAMPION DU
   // MONDE » et les confettis ; un rival → un écran plus court ; gardée dans l'historique de la saison (pas deux fois au rechargement)
   const close = ch.saisons[ch.saisons.length - 1];
@@ -1255,6 +1299,175 @@ function quitterGarage() {
   montrerChampionnat(JEU.gagne);
 }
 
+// --- la personnalisation (tour 48c) : « Ma voiture » et la boutique sont des écrans à part (ils ne sont pas dans la liste de
+// INTERFACE.montrer) : ecranPerso cache les autres écrans puis montre le sien ; ils s'ouvrent depuis le garage (provisoire : la boutique
+// ira dans la page « Boutique » du nouveau paddock)
+const ECRANS_PERSO = ['livree', 'boutique', 'essaiFin'];
+function ecranPerso(id) {
+  INTERFACE.montrer(id);
+  for (const x of ECRANS_PERSO) document.getElementById(x).classList.toggle('cache', x !== id);
+  JEU.ecran = id;
+}
+function quitterPerso() {
+  for (const x of ECRANS_PERSO) document.getElementById(x).classList.add('cache');
+}
+
+// « Ma voiture » : la livrée du joueur (motif, couleur secondaire) sur la couleur de son écurie, son numéro, sa célébration ; la voiture
+// tourne (sa case de l'atlas des livrées est redessinée à chaque changement : sa voiture sur la grille suit)
+function montrerMaVoiture() {
+  if (JEU.ecran !== 'garage' && JEU.ecran !== 'championnat') return;
+  JEU.maVoitureDepuis = JEU.ecran;   // (tour 48a : ouverte depuis la page « Mon équipe » du paddock ; le retour y ramène)
+  const j = PILOTE.joueur(JEU.championnat), k = indiceJoueur();
+  MA_VOITURE.remplir({ livree: j.livree, couleur1: JEU.couleurs[k], numero: j.numero, libre: false, possedes: SAUVEGARDE.motifsSkins('livree'),
+    celebration: CELEBRATION.de(j), debloquees: SAUVEGARDE.celebrations(), possedees: SAUVEGARDE.motifsSkins('celebration') });
+  ecranPerso('livree');
+  JEU.apercuVoiture = VOITURE3D.apercuVoiture(document.getElementById('livreeApercu'), JEU.couleurs[k], k, k);
+  JEU.apercuCelebration = null;
+}
+function changerLivree(choix) {
+  if (JEU.ecran !== 'livree') return;
+  const j = PILOTE.joueur(JEU.championnat), k = indiceJoueur();
+  if (LIVREE.valide(choix.livree)) VOITURE3D.majLivree(k, LIVREE.pourVoiture(JEU.couleurs[k], choix.livree, j.numero, false, j.pays));
+  // la célébration choisie se joue sur la voiture de l'aperçu
+  if (JEU.apercuVoiture && CELEBRATION.valide(choix.celebration)) CELEBRATION.commencer(JEU.apercuVoiture, choix.celebration, j.pays);
+}
+function validerLivree(choix) {
+  if (JEU.ecran !== 'livree') return;
+  const j = PILOTE.joueur(JEU.championnat);
+  if (LIVREE.valide(choix.livree) && LIVREE.permis(choix.livree.motif, SAUVEGARDE.motifsSkins('livree'))) j.livree = LIVREE.creer(choix.livree.motif, choix.livree.couleur2);
+  if (CELEBRATION.valide(choix.celebration) && CELEBRATION.permis(choix.celebration, SAUVEGARDE.celebrations(), SAUVEGARDE.motifsSkins('celebration'))) j.celebration = choix.celebration;
+  SAUVEGARDE.ecrireChampionnat(JEU.championnat);
+  quitterLivree();
+}
+function quitterLivree() {
+  if (JEU.ecran !== 'livree') return;
+  CELEBRATION.arreter();
+  VOITURE3D.libererApercuVoiture();
+  JEU.apercuVoiture = null;
+  const j = PILOTE.joueur(JEU.championnat), k = indiceJoueur();
+  VOITURE3D.majLivree(k, LIVREE.pourVoiture(JEU.couleurs[k], j.livree, j.numero, false, j.pays));   // (sans « Garder » : la livrée d'avant revient)
+  quitterPerso();
+  if (JEU.maVoitureDepuis === 'championnat') { montrerChampionnat(JEU.gagne === undefined ? null : JEU.gagne); return; }
+  INTERFACE.remplirGarage(JEU.championnat);
+  JEU.ecran = 'garage';
+  INTERFACE.montrer('garage');
+}
+
+// --- la boutique (boutique.js) : BOUTIQUE.rendre la dessine dans son conteneur ; acheter (l'argent du championnat), 📺 une pub
+// récompensée (sdk.js : seulement si elle est regardée jusqu'au bout), essayer (la page de l'essai, puis retour ici)
+function montrerBoutique(onglet) {
+  if (JEU.ecran !== 'garage' && JEU.ecran !== 'championnat') return;
+  JEU.boutique = { depuis: JEU.ecran, onglet: BOUTIQUE.TYPES.includes(onglet) ? onglet : 'livree', message: '' };
+  ecranPerso('boutique');
+  rendreBoutique();
+}
+function rendreBoutique() {
+  const ch = JEU.championnat, j = ch ? PILOTE.joueur(ch) : null, k = indiceJoueur();
+  BOUTIQUE.rendre(document.getElementById('boutiqueConteneur'), { onglet: JEU.boutique.onglet, possedes: SAUVEGARDE.skins(), ch, solde: ch ? ARGENT.solde(ch) : null, message: JEU.boutique.message,
+    couleur: JEU.couleurs[k] !== undefined ? JEU.couleurs[k] : REGLAGES.COULEUR_JOUEUR, casque: j && CASQUE.valide(j.casque) ? j.casque : null, numero: j ? j.numero : '', pays: j && j.pays },
+    { onglet: t => { JEU.boutique.onglet = t; JEU.boutique.message = ''; rendreBoutique(); }, acheter: acheterSkin, pub: pubSkin, essayer: essayerSkin });
+}
+function acheterSkin(id) {
+  if (JEU.ecran !== 'boutique') return;
+  const s = BOUTIQUE.skin(id), r = BOUTIQUE.acheter(JEU.championnat, id, SAUVEGARDE.skins());
+  if (r.ok) { SAUVEGARDE.ecrireChampionnat(JEU.championnat); SAUVEGARDE.obtenirSkin(id); }
+  JEU.boutique.message = r.ok ? texte('boutiqueAchete').replace('{skin}', BOUTIQUE.nom(s)) : r.raison === 'solde' ? texte('boutiqueTrop') : '';
+  rendreBoutique();
+}
+// 📺 : la pub récompensée (Poki) ; le skin n'est donné que si elle a été regardée jusqu'au bout (hors Poki : pas de pub, pas de skin)
+function pubSkin(id) {
+  if (JEU.ecran !== 'boutique' || SDK.pubEnCours || BOUTIQUE.etat(id, SAUVEGARDE.skins()) !== 'pub') return;
+  const s = BOUTIQUE.skin(id);
+  SDK.pubRecompense(gagne => {
+    if (gagne) SAUVEGARDE.obtenirSkin(id);
+    JEU.boutique.message = gagne ? texte('boutiqueAchete').replace('{skin}', BOUTIQUE.nom(s)) : texte('boutiquePubRatee');
+    if (JEU.ecran === 'boutique') rendreBoutique();
+  }, couperSonPub);
+}
+function essayerSkin(id) {
+  if (JEU.ecran !== 'boutique' || !BOUTIQUE.essayable(id, SAUVEGARDE.skins())) return;
+  location.href = adresseAvec({ course: String(REGLAGES.ESSAI_TOURS), circuit: 'test', essai: id });
+}
+function quitterBoutique() {
+  if (JEU.ecran !== 'boutique') return;
+  quitterPerso();
+  if (JEU.boutique && JEU.boutique.depuis === 'garage') { INTERFACE.remplirGarage(JEU.championnat); JEU.ecran = 'garage'; INTERFACE.montrer('garage'); }
+  else montrerChampionnat(JEU.gagne === undefined ? null : JEU.gagne);
+}
+
+// les skins des récompenses gagnées (la première course officielle, un titre…) : donnés tout de suite, annoncés au paddock
+function donnerRecompenses(ch) {
+  for (const id of BOUTIQUE.recompensesGagnees(ch, SAUVEGARDE.skins())) SAUVEGARDE.obtenirSkin(id, true);
+  SAUVEGARDE.debloquerCelebrations(CELEBRATION.conditionsRemplies(ch));   // les célébrations gagnées par un exploit
+}
+function annoncerSkins() {
+  const ids = SAUVEGARDE.prendreAnnonceSkins(), el = document.getElementById('annonceMotif');
+  if (!ids.length) return;
+  for (const id of ids) { const s = BOUTIQUE.skin(id); if (!s) continue; const l = document.createElement('div'); l.className = 'annonceSkin'; l.textContent = '🎁 ' + texte('skinGagne').replace('{skin}', BOUTIQUE.nom(s)); el.appendChild(l); }
+  el.classList.remove('cache');
+  setTimeout(() => el.classList.add('cache'), REGLAGES.ANNONCE_MOTIF_DUREE * 1000);
+}
+
+// --- la célébration du joueur (celebration.js) : la voiture qui célèbre (ou null) ; seulement le dessin, la physique ne la voit pas
+function voitureQuiCelebre(apres) {
+  if (JEU.deux || JEU.tournoi) return null;
+  if (apres) return (JEU.ecran === 'podium' || JEU.ecran === 'resultats' || JEU.ecran === 'ceremonie') && JEU.contre && JEU.final && JEU.final[0] && JEU.final[0].k === JEU.ia ? JEU.modeles[JEU.ia] || null : null;   // le podium : le joueur premier
+  const c = JEU.course;
+  if (JEU.ecran !== 'course' || !c) return null;
+  if (ESSAI) return c.etat === 'finie' ? JEU.modele : null;   // l'essai : sur la ligne d'arrivée
+  if (!JEU.plateau || !JEU.contre) return null;
+  const P = JEU.plateau.pilotes, moi = P[JEU.ia];
+  if (!moi || moi.arrivee === null) return null;
+  return P.every((p, k) => k === JEU.ia || p.arrivee === null || p.arrivee > moi.arrivee) ? JEU.modeles[JEU.ia] || null : null;   // le premier à passer la ligne
+}
+function majCelebration(dt, apres) {
+  if (JEU.ecran === 'livree') return;   // (« Ma voiture » joue la sienne sur l'aperçu)
+  const m = voitureQuiCelebre(apres);
+  if (!m) { if (CELEBRATION.enCours) CELEBRATION.arreter(); return; }
+  const j = JEU.championnat ? PILOTE.joueur(JEU.championnat) : joueurSauve();
+  CELEBRATION.commencer(m, ESSAI && ESSAI.type === 'celebration' ? ESSAI.motif : CELEBRATION.de(j), j && j.pays);
+  CELEBRATION.maj(dt);
+}
+
+// --- l'essai d'un skin (ESSAI) : à l'arrivée, l'arrivée est notée dans l'enregistrement et le résumé vidéo de l'essai se joue ; à la
+// fin du résumé, l'écran de l'essai : « Acheter » (ou 📺) et « Retour à la boutique » (la page du paddock, la boutique ouverte)
+function finirEssai() {
+  const c = JEU.course;
+  if (JEU.enregistreur) JEU.enregistreur.enr.arrivee(c.temps, 0);
+  JEU.modeles = [JEU.modele];   // (le résumé rejoue les voitures de JEU.modeles : seul en piste, la voiture du joueur)
+  JEU.ecran = 'resultats';
+  if (!resumeDisponible()) { montrerFinEssai(); return; }
+  montrerResume();
+}
+function montrerFinEssai() {
+  CELEBRATION.arreter();
+  const s = ESSAI, st = BOUTIQUE.etat(s.id, SAUVEGARDE.skins());
+  document.getElementById('essaiFinTitre').textContent = texte('essaiFinTitre');
+  document.getElementById('essaiFinTexte').textContent = texte('essaiFinTexte').replace('{skin}', BOUTIQUE.nom(s));
+  const b = document.getElementById('boutonEssaiAcheter');
+  b.textContent = st === 'pub' ? texte('boutiquePub') : texte('essaiAcheter').replace('{p}', ARGENT.formater(s.prix || 0));
+  b.classList.toggle('cache', st === 'possede' || st === 'bloque');
+  document.getElementById('boutonEssaiRetour').textContent = texte('essaiRetour');
+  document.getElementById('essaiBandeau').classList.add('cache');
+  ecranPerso('essaiFin');
+}
+function acheterEssai() {
+  if (JEU.ecran !== 'essaiFin' || SDK.pubEnCours) return;
+  const s = ESSAI, msg = document.getElementById('essaiFinMessage');
+  if (BOUTIQUE.etat(s.id, SAUVEGARDE.skins()) === 'pub') {
+    SDK.pubRecompense(gagne => { if (gagne) { SAUVEGARDE.obtenirSkin(s.id); retourBoutique(); } else msg.textContent = texte('boutiquePubRatee'); }, couperSonPub);
+    return;
+  }
+  const ch = SAUVEGARDE.championnat(), r = BOUTIQUE.acheter(ch, s.id, SAUVEGARDE.skins());
+  if (!r.ok) { msg.textContent = r.raison === 'solde' ? texte('boutiqueTrop') : ''; return; }
+  SAUVEGARDE.ecrireChampionnat(ch);
+  SAUVEGARDE.obtenirSkin(s.id);
+  retourBoutique();
+}
+function retourBoutique() {
+  location.href = adresseAvec({ boutique: ESSAI ? ESSAI.type : 'livree' });
+}
+
 function pause(oui) {
   if (oui && JEU.ecran === 'course' && JEU.deux) INTERFACE.remplirTouchesDeux(MANETTE.lireManettes().length);   // à deux : les touches des deux dans le menu pause
   INTERFACE.montrerTouchesPause(!!JEU.deux);
@@ -1407,7 +1620,7 @@ function voirResultats() {
 // l'enregistrement (enregistreur.js) avec la caméra télé ; les voitures viennent de l'enregistrement, pas de la physique (elle
 // est arrêtée : JEU.ecran n'est pas « course ») ; un bandeau dit le moment ; Échap, un clic ou la fin du résumé ramènent aux résultats
 function resumeDisponible() {
-  return !!(JEU.plateau && JEU.enregistreur && JEU.enregistreur.enr.nbImages > 1);
+  return !!((JEU.plateau || ESSAI) && JEU.enregistreur && JEU.enregistreur.enr.nbImages > 1);   // (l'essai d'un skin, seul en piste : son résumé aussi)
 }
 
 // le nom d'une voiture dans le bandeau : le joueur (son nom à deux), le pilote du championnat, sinon son numéro
@@ -1467,6 +1680,7 @@ function quitterResume() {
   if (JEU.ecran !== 'resume' || !JEU.resume) return;
   const z = JEU.resume;
   JEU.resume = null;
+  if (ESSAI) { CAMERA.forcer(z.camera); montrerFinEssai(); return; }   // l'essai d'un skin : « Acheter » ou « Retour à la boutique » (tour 48c)
   CAMERA.forcer(z.camera);
   for (const m of JEU.modeles) m.groupe.visible = false;
   PODIUM3D.montrer(JEU.final.slice(0, 3).map(x => JEU.modeles[x.k]));   // le podium revient derrière les résultats
@@ -1925,6 +2139,7 @@ function demarrerJeu() {
   // ?championnat=1 : le joueur contre les 19 pilotes du championnat, comme ?ia=19&joueur=1
   JEU.championnat = CHAMPIONNAT_EN_COURS;
   if (JEU.championnat) CASQUE.completer(JEU.championnat);   // (un championnat neuf de ?championnat=1 : ses casques)
+  if (JEU.championnat) { LIVREE.completer(JEU.championnat); CELEBRATION.completer(JEU.championnat); }   // (tour 48c : la livrée et la célébration du joueur, par défaut)
   // le premier lancement : le monde du championnat est créé et sauvegardé maintenant, et DECOUVERTE_IA de ses pilotes courent la découverte
   JEU.decouverte = DECOUVERTE_EN_COURS;
   if (JEU.decouverte) {
@@ -1983,18 +2198,23 @@ function demarrerJeu() {
       if (JEU.contre) JEU.couleurs.push(REGLAGES.COULEUR_JOUEUR);
     }
     VOITURE3D.preparerCasques(JEU.couleurs.map((c, k) => casqueDe(k)));   // l'atlas des casques (casque.js) : une case par voiture
-    JEU.couleurs.forEach((couleur, k) => JEU.modeles.push(VOITURE3D.creer(couleur, JEU.contre && (k === JEU.ia || (JEU.deux && k === JEU.ia + 1)), undefined, k)));   // le joueur (les deux, à deux) : détaillée
+    VOITURE3D.preparerLivrees(JEU.couleurs.map((c, k) => livreeDe(k, c)));   // l'atlas des livrées (livree.js, tour 48c) : une case par voiture
+    JEU.couleurs.forEach((couleur, k) => JEU.modeles.push(VOITURE3D.creer(couleur, JEU.contre && (k === JEU.ia || (JEU.deux && k === JEU.ia + 1)), undefined, k, k)));   // le joueur (les deux, à deux) : détaillée
     for (const m of JEU.modeles) SCENE3D.ajouter(m.groupe);
   }
   if (JEU.tournoi) {   // le tournoi : les casques des joueurs dans l'atlas (une voiture chacun pour le podium), puis la case de la voiture du tour
     const cs = JEU.tournoi.joueurs.map(j => j.casque);
     VOITURE3D.preparerCasques(cs.concat([cs[0]]));
-    cs.forEach((c, j) => { const m = VOITURE3D.creer(c.couleurs[0], false, undefined, j); m.groupe.visible = false; SCENE3D.ajouter(m.groupe); JEU.tournoiPodium.push(m); });
-    JEU.modele = VOITURE3D.creer(REGLAGES.COULEUR_JOUEUR, true, undefined, cs.length);
+    // les livrées du tournoi (libres) : la couleur du casque de chacun, le motif par défaut, sa deuxième couleur en secondaire
+    VOITURE3D.preparerLivrees(cs.map(c => LIVREE.pourVoiture(c.couleurs[0], LIVREE.creer(REGLAGES.LIVREE_DEFAUT.motif, c.couleurs[1]), ''))
+      .concat([LIVREE.pourVoiture(REGLAGES.COULEUR_JOUEUR, LIVREE.creer(REGLAGES.LIVREE_DEFAUT.motif, cs[0].couleurs[1]), '')]));
+    cs.forEach((c, j) => { const m = VOITURE3D.creer(c.couleurs[0], false, undefined, j, j); m.groupe.visible = false; SCENE3D.ajouter(m.groupe); JEU.tournoiPodium.push(m); });
+    JEU.modele = VOITURE3D.creer(REGLAGES.COULEUR_JOUEUR, true, undefined, cs.length, cs.length);
     SCENE3D.ajouter(JEU.modele.groupe);
   } else if (!JEU.modeles.length) {
-    VOITURE3D.preparerCasques([CASQUE.neutre()]);
-    JEU.modele = VOITURE3D.creer(REGLAGES.COULEUR_JOUEUR, true, undefined, 0);
+    VOITURE3D.preparerCasques([casqueSeul()]);
+    VOITURE3D.preparerLivrees([livreeSeul()]);   // seul en piste : la livrée du joueur (ou celle d'un skin à l'essai)
+    JEU.modele = VOITURE3D.creer(REGLAGES.COULEUR_JOUEUR, true, undefined, 0, 0);
     SCENE3D.ajouter(JEU.modele.groupe);
   } else JEU.modele = JEU.modeles[JEU.contre ? JEU.ia : 0];   // avant la course (écran de choix), sur la ligne
   SCENE3D.colorerRepereStand(JEU.contre && JEU.couleurs.length > JEU.ia ? JEU.couleurs[JEU.ia] : REGLAGES.COULEUR_JOUEUR);   // le repère de la zone d'arrêt aux couleurs de l'écurie du joueur (tour 46d2)
@@ -2016,6 +2236,11 @@ function demarrerJeu() {
     INTERFACE.preparerCalendrier(montrerCalendrier, quitterCalendrier);
     INTERFACE.preparerReleve(montrerHeritier, nouvelleDynastie, validerHeritier);
     INTERFACE.preparerGarage(acheterAmelioration, quitterGarage);
+    // la personnalisation (tour 48c) : « Ma voiture » (page « Mon équipe » du paddock) et la boutique (page « Boutique »), tour 48a
+    for (const [id, cle, f] of [['boutonMaVoiture', 'maVoiture', montrerMaVoiture], ['boutonBoutique', 'paddock_ouvrirBoutique', () => montrerBoutique()], ['boutonBoutiqueRetour', 'boutiqueRetour', quitterBoutique]]) {
+      const b = document.getElementById(id); b.textContent = texte(cle); b.addEventListener('mousedown', e => e.preventDefault()); b.addEventListener('click', f);
+    }
+    MA_VOITURE.preparer(changerLivree, validerLivree, quitterLivree);
     INTERFACE.preparerPneusGarage(choisirPneusDepart);   // les pneus du départ (la météo, Codeur 1)
     INTERFACE.preparerSaison(suiteClassementSaison, suiteDuelSaison, signerContrat, prendreRetraite);
     INTERFACE.preparerSponsors(montrerSponsors, choisirSponsor, quitterSponsors);
@@ -2152,6 +2377,12 @@ function demarrerJeu() {
   else if (JEU.deux) lancerCourse(JEU.deux.nbTours);   // le mode 2 joueurs : la course tout de suite (son menu et ses réglages : ordre 3)
   else if (demandee !== null && !isNaN(Number(demandee))) lancerCourse(Number(demandee));
   else allerAuChoix();
+  if (PARAMETRES.get('boutique') && JEU.ecran === 'championnat') { INTERFACE.pagePaddock('boutique'); montrerBoutique(PARAMETRES.get('boutique')); }   // (tour 48a : son « Retour » ramène sur la page Boutique)   // le retour de l'essai d'un skin (tour 48c)
+  if (ESSAI) {
+    const b = document.getElementById('essaiBandeau');
+    b.textContent = texte('essaiBandeau').replace('{skin}', BOUTIQUE.nom(ESSAI)); b.classList.remove('cache');
+    for (const [id, f] of [['boutonEssaiAcheter', acheterEssai], ['boutonEssaiRetour', retourBoutique]]) { const x = document.getElementById(id); x.addEventListener('mousedown', e => e.preventDefault()); x.addEventListener('click', f); }
+  }
   if (PARAMETRES.get('menu') === 'amis') montrerAmis();
   if (PARAMETRES.get('menu') === 'tournoi') { montrerAmis(); ouvrirTournoi(); }   // « Nouveaux joueurs » : l'inscription du tournoi   // le retour du mode 2 joueurs : le menu « Entre amis » (sur le titre ou le paddock)
   brancherClavier();
@@ -2207,6 +2438,7 @@ function demarrerJeu() {
       // le mode 2 joueurs : la seconde caméra, derrière la voiture du joueur 2 (la moitié du bas)
       if (JEU.deux) { const j2 = DEUX_JOUEURS.joueurs(JEU.plateau)[1]; CAMERA.majSeconde(dt, SCENE3D.camera2, etatAffiche(j2.v, alpha), j2.v); }
     }
+    majCelebration(dt, apres);   // (tour 48c) la célébration du joueur : à l'arrivée quand il gagne, sur le podium (le dessin seulement)
     if (JEU.deux && SCENE3D.partage === apres) SCENE3D.partager(!apres);   // le podium : une seule vue
     majPneusHud();   // ?pneus=1 : l'usure des pneus du joueur
     majMessages();   // les messages de course, un à la fois
@@ -2222,6 +2454,7 @@ function demarrerJeu() {
     INTERFACE.majPreparation(JEU.ecran === 'course' && JEU.ia > 0 && !JEU.carte);
     majAides();
     if (JEU.ecran === 'pilote') VOITURE3D.tournerApercu(dt);   // l'éditeur du casque
+    if (JEU.ecran === 'livree') { CELEBRATION.maj(dt); VOITURE3D.tournerApercuVoiture(dt); }   // « Ma voiture » (tour 48c) : la voiture tourne, sa célébration se joue
     // la mesure du premier lancement : du clic sur « Jouer » à l'extinction des feux (ms)
     if (JEU.depuisClic !== null && JEU.clicAuxFeux === null && JEU.course && JEU.course.feux && JEU.course.etat !== 'compte') JEU.clicAuxFeux = performance.now() - JEU.depuisClic;
     // … et jusqu'au premier feu (la fin de l'attente de la carte des IA)
@@ -2236,7 +2469,7 @@ function demarrerJeu() {
     // la voiture suivie a fini : seule, l'écran de fin ; contre les IA, on attend les autres (vue télé) ; entre IA, le
     // podium dès que les trois premiers sont connus
     if (JEU.ecran === 'course' && JEU.course && JEU.course.etat === 'finie') {
-      if (!JEU.plateau) finDeCourse();
+      if (!JEU.plateau) { if (!ESSAI) finDeCourse(); else if (JEU.apresArrivee >= REGLAGES.CELEBRATION_DUREE) finirEssai(); }   // (l'essai d'un skin : sa célébration, puis le résumé ; rien n'est compté)
       else if (JEU.contre) attendreLesAutres();
       else if (podiumConnu(JEU.plateau)) montrerPodium();
     }

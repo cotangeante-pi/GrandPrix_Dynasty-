@@ -87,6 +87,7 @@ const PANNEAU_REGLAGES = (function () {
     titre.textContent = texte('reglagesTitre');
     panneau.appendChild(titre);
     for (const [cle, i, min, max, pas] of CURSEURS) {
+      if (cle === 'VOITURE_VIVANTE' && !REGLAGES.PNEU_DRIFT) continue;   // (tour 48b) le curseur du pneu drift, caché avec lui
       const ligne = document.createElement('label');
       const nom = document.createElement('span');
       nom.textContent = cle + (i === null ? '' : `[${i}]`);

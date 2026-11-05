@@ -81,6 +81,21 @@ const TEXTES = {
     casqueTitre: 'Your helmet', casqueMotif: 'Pattern', casqueCouleurs: 'Colours', monCasque: 'My helmet', casqueValider: 'Keep this helmet',
     motif_uni: 'Plain', motif_bandes: 'Stripes', motif_etoile: 'Star', motif_flammes: 'Flames', motif_damier: 'Chequered', motif_eclair: 'Lightning',
     motifGagne: 'New helmet design: {motif}!',
+    // la personnalisation (tour 48c) : « Ma voiture » (livree.js), la célébration (celebration.js), la boutique de skins (boutique.js)
+    maVoiture: 'My car', livreeTitre: 'My car', livreeMotif: 'Livery', livreeCouleur2: 'Second colour', livreeCouleur1: 'Main colour', livreeValider: 'Keep this car', livreeRetour: 'Back',
+    livreeNote: 'Main colour: your team’s. Number {n} on the nose and the rear wing.', livreeNoteLibre: 'Number {n} on the nose and the rear wing.',
+    livree_uni: 'Plain', livree_bandes: 'Stripes', livree_fleche: 'Arrow', livree_degrade: 'Fade', livree_damier: 'Chequered', livree_flammes: 'Flames',
+    livree_carbone: 'Carbon', livree_eclairs: 'Lightning bolts', livree_galaxie: 'Galaxy', livree_or: 'Gold', livree_drapeau: 'Your flag',
+    motif_tigre: 'Tiger', motif_galaxie: 'Galaxy', motif_or: 'Gold',
+    celebrationTexte: 'Celebration', celebration_poing: 'Fist pump', celebration_drapeau: 'Waving flag', celebration_donuts: 'Donuts', celebration_saut: 'Jump for joy',
+    celebration_confettis: 'Confetti', celebration_feux: 'Fireworks', celebration_toupie: 'Spin', celebration_trophee: 'Trophy',
+    skinBoutique: '🛒 shop', skinVerrou: '🔒 {c}',
+    boutique: 'Shop', boutiqueTitre: 'Shop', boutiqueSolde: 'Money: {s}', boutique_livree: 'Liveries', boutique_casque: 'Helmets', boutique_celebration: 'Celebrations',
+    boutiqueAcheter: 'Buy · {p}', boutiquePub: '📺 Watch an ad: yours forever', boutiqueRecompense: '🏆 Reward: {c}', boutiquePossede: '✔ Yours', boutiqueEssayer: 'Try it',
+    boutiqueTrop: 'Not enough money', boutiqueAchete: 'Bought: {skin}!', boutiquePubRatee: 'No ad right now: try again later.', boutiqueRetour: 'Back', boutiqueSansCarriere: 'Start your career to earn money.',
+    cond_titre: 'win a title', cond_premiereCourse: 'race your first Grand Prix', cond_victoires5: 'win {n} races', cond_legende: 'win {n} titles',
+    essaiBandeau: 'Test drive: {skin} — nothing counts', essaiFinTitre: 'Test drive', essaiFinTexte: 'Do you like {skin}?', essaiAcheter: 'Buy · {p}', essaiRetour: 'Back to the shop',
+    skinGagne: 'New skin: {skin}!',
     motif_chevrons: 'Chevrons', motif_couronne: 'Crown', motif_zigzag: 'Zigzag', motif_diagonale: 'Diagonal', motif_coeur: 'Heart',   // les motifs à débloquer (tour 27b)
     deblocage_victoire: 'win a race', deblocage_titre: 'win a title', deblocage_podiums: '{n} podiums', deblocage_duel: 'beat your teammate over a season', deblocage_domicile: 'win your home Grand Prix',
     // les 12 circuits (clé : circuit_ + son nom dans CIRCUITS_PAYS), le même nom dans les deux langues
@@ -437,6 +452,21 @@ const TEXTES = {
     casqueTitre: 'Ton casque', casqueMotif: 'Motif', casqueCouleurs: 'Couleurs', monCasque: 'Mon casque', casqueValider: 'Garder ce casque',
     motif_uni: 'Uni', motif_bandes: 'Bandes', motif_etoile: 'Étoile', motif_flammes: 'Flammes', motif_damier: 'Damier', motif_eclair: 'Éclair',
     motifGagne: 'Nouveau motif de casque : {motif} !',
+    // la personnalisation (tour 48c) : « Ma voiture » (livree.js), la célébration (celebration.js), la boutique de skins (boutique.js)
+    maVoiture: 'Ma voiture', livreeTitre: 'Ma voiture', livreeMotif: 'Livrée', livreeCouleur2: 'Couleur secondaire', livreeCouleur1: 'Couleur principale', livreeValider: 'Garder cette voiture', livreeRetour: 'Retour',
+    livreeNote: 'Couleur principale : celle de ton écurie. Le numéro {n} sur le nez et l’aileron.', livreeNoteLibre: 'Le numéro {n} sur le nez et l’aileron.',
+    livree_uni: 'Unie', livree_bandes: 'Bandes', livree_fleche: 'Flèche', livree_degrade: 'Dégradé', livree_damier: 'Damier', livree_flammes: 'Flammes',
+    livree_carbone: 'Carbone', livree_eclairs: 'Éclairs', livree_galaxie: 'Galaxie', livree_or: 'Or', livree_drapeau: 'Ton drapeau',
+    motif_tigre: 'Tigre', motif_galaxie: 'Galaxie', motif_or: 'Or',
+    celebrationTexte: 'Célébration', celebration_poing: 'Poing levé', celebration_drapeau: 'Drapeau', celebration_donuts: 'Donuts', celebration_saut: 'Bond de joie',
+    celebration_confettis: 'Confettis', celebration_feux: 'Feu d’artifice', celebration_toupie: 'Toupie', celebration_trophee: 'Trophée',
+    skinBoutique: '🛒 boutique', skinVerrou: '🔒 {c}',
+    boutique: 'Boutique', boutiqueTitre: 'Boutique', boutiqueSolde: 'Argent : {s}', boutique_livree: 'Livrées', boutique_casque: 'Casques', boutique_celebration: 'Célébrations',
+    boutiqueAcheter: 'Acheter · {p}', boutiquePub: '📺 Regarder une pub : à toi pour toujours', boutiqueRecompense: '🏆 Récompense : {c}', boutiquePossede: '✔ À toi', boutiqueEssayer: 'Essayer',
+    boutiqueTrop: 'Pas assez d’argent', boutiqueAchete: 'Acheté : {skin} !', boutiquePubRatee: 'Pas de pub pour l’instant : réessaie plus tard.', boutiqueRetour: 'Retour', boutiqueSansCarriere: 'Commence ta carrière pour gagner de l’argent.',
+    cond_titre: 'gagner un titre', cond_premiereCourse: 'courir ton premier Grand Prix', cond_victoires5: 'gagner {n} courses', cond_legende: 'gagner {n} titres',
+    essaiBandeau: 'Essai : {skin} — rien n’est compté', essaiFinTitre: 'Essai', essaiFinTexte: '{skin} te plaît ?', essaiAcheter: 'Acheter · {p}', essaiRetour: 'Retour à la boutique',
+    skinGagne: 'Nouveau skin : {skin} !',
     motif_chevrons: 'Chevrons', motif_couronne: 'Couronne', motif_zigzag: 'Zigzag', motif_diagonale: 'Diagonale', motif_coeur: 'Cœur',   // les motifs à débloquer (tour 27b)
     deblocage_victoire: 'gagner une course', deblocage_titre: 'gagner un titre', deblocage_podiums: '{n} podiums', deblocage_duel: 'battre son coéquipier sur une saison', deblocage_domicile: 'gagner son Grand Prix à domicile',
     circuit_monoco: 'Monoco', circuit_silverstoun: 'Silverstoun', circuit_monzo: 'Monzo', circuit_spaa: 'Spaa', circuit_suzuko: 'Suzuko', circuit_interlagas: 'Interlagas',
@@ -1142,7 +1172,7 @@ Object.assign(TEXTES.fr, { cameraSuivie: 'Caméra : {nom}' });
 // --- tour 48a, Codeur 1 : le nouveau paddock (un menu à gauche, une page au centre), « Nouvelle carrière » et « Nouvelle carrière à 0 » ---
 Object.assign(TEXTES.en, {
   paddock_course: 'Race', paddock_equipe: 'My team', paddock_boutique: 'Shop', paddock_saison: 'Season', paddock_messages: 'Messages',
-  paddock_reglages: 'Settings', paddock_apprendre: 'Learn', paddock_boutiqueBientot: 'Coming soon: liveries, helmets and celebrations.',
+  paddock_reglages: 'Settings', paddock_apprendre: 'Learn', paddock_boutiqueBientot: 'Liveries, helmets and celebrations: buy them with your race money, unlock some with a 📺 ad, earn the best ones in your career. Try a skin before you buy it.', paddock_ouvrirBoutique: '🛒 Open the shop',
   paddock_voirTout: 'See all', paddock_lireMessages: 'Open messages', paddock_rienDeNeuf: 'Nothing new. Talk to your team-mate or your team boss.',
   nb_paddock_nonLus: ['{n} new message', '{n} new messages'], paddock_reglagesJeu: 'Game', paddock_carriere: 'Career',
   paddock_sonActif: '🔊 Sound: on', paddock_sonCoupe: '🔇 Sound: off',
@@ -1160,7 +1190,7 @@ Object.assign(TEXTES.en, {
 });
 Object.assign(TEXTES.fr, {
   paddock_course: 'Course', paddock_equipe: 'Mon équipe', paddock_boutique: 'Boutique', paddock_saison: 'Saison', paddock_messages: 'Messages',
-  paddock_reglages: 'Réglages', paddock_apprendre: 'Apprendre', paddock_boutiqueBientot: 'Bientôt : livrées, casques et célébrations.',
+  paddock_reglages: 'Réglages', paddock_apprendre: 'Apprendre', paddock_boutiqueBientot: 'Livrées, casques et célébrations : achète-les avec l’argent des courses, débloque-en avec une pub 📺, gagne les plus beaux dans ta carrière. Essaie un skin avant de l’acheter.', paddock_ouvrirBoutique: '🛒 Ouvrir la boutique',
   paddock_voirTout: 'Voir tout', paddock_lireMessages: 'Ouvrir les messages', paddock_rienDeNeuf: 'Rien de neuf. Parle à ton coéquipier ou à ta direction.',
   nb_paddock_nonLus: ['{n} nouveau message', '{n} nouveaux messages'], paddock_reglagesJeu: 'Le jeu', paddock_carriere: 'La carrière',
   paddock_sonActif: '🔊 Son : oui', paddock_sonCoupe: '🔇 Son : coupé',

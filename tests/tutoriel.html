@@ -8,6 +8,7 @@
 const L=[];let ok=0,ko=0;
 function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
 const v=(c,m)=>{if(!c)throw new Error(m||'faux');};
+REGLAGES.PNEU_DRIFT=true;   // (tour 48b) les tests de la 8e leçon sont écrits avec le pneu drift : rallumé ici ; « drift caché » l'éteint
 const R=REGLAGES,C=CIRCUIT_TEST,IDS=['conduite','freinage','depart','depassement','stand','pluie','visite','vivante'];   // (tour 37j : la 8e, la voiture vivante)
 const base=o=>Object.assign({ecran:'course',etat:'course',tours:0,temps:0,herbe:false,s:0,vitesse:30,depart:null,arrets:0,arretEnCours:false,penalitesStands:0,pneus:'slick',eau:0,devant:false,longueur:C.longueur},o||{});
 // joue une suite de situations, dt par image ; renvoie le résultat
@@ -95,6 +96,14 @@ t('7. la visite : le garage puis l’aileron, de retour au paddock : réussie ; 
   v(jouer(su,[e('aileron')])==='encours'&&TUTORIEL.etapeVisite(su,'aileron')==='aileron');
   v(jouer(su,[e('garage')])==='encours'&&TUTORIEL.etapeVisite(su,'garage')==='retour');
   v(jouer(su,[e('championnat')])==='reussie');});
+// (tour 48b, décision du propriétaire du 2026-11-04) le drift caché (PNEU_DRIFT faux, le jeu) : le tutoriel revient à 7 leçons, la 8e n'est
+// plus proposée (ni dans la liste, ni par « Leçon suivante », ni par son adresse) ; rallumé, elle revient
+t('drift caché : 7 leçons (la 8e, le drift, ni dans la liste, ni après la 7e, ni par son id) ; drift rallumé : les 8 reviennent', ()=>{
+  const av=R.PNEU_DRIFT;R.PNEU_DRIFT=false;
+  try{v(JSON.stringify(TUTORIEL.LECONS.map(l=>l.id))===JSON.stringify(IDS.slice(0,7))&&TUTORIEL.LECONS.every((l,i)=>l.numero===i+1),'caché : '+TUTORIEL.LECONS.map(l=>l.id));
+    v(!TUTORIEL.PAR_ID.vivante&&TUTORIEL.suivante('visite')===null&&TUTORIEL.suivante('pluie')==='visite','caché : PAR_ID, suivante');
+    R.PNEU_DRIFT=true;v(JSON.stringify(TUTORIEL.LECONS.map(l=>l.id))===JSON.stringify(IDS)&&TUTORIEL.PAR_ID.vivante.numero===8&&TUTORIEL.suivante('visite')==='vivante','rallumé');}
+  finally{R.PNEU_DRIFT=av;}});
 // --- 8. (tours 37j, 37l ; la règle du propriétaire du 2026-10-29) le drift, à l'épingle du technique : en pneus drift (la voiture vivante, tant que le pneu
 // drift n'existe pas), faire glisser l'arrière (TUTO_DRIFT_ARRIERE pendant TUTO_DRIFT_TENUE s) sans herbe ni tête-à-queue ; puis le même virage
 // en adhérant, sans herbe : réussie. L'herbe ou un tête-à-queue : ratée tout de suite ; TUTO_ZONE_ESSAIS passages sans glisser : « pasGlisse » ; rien : « temps »

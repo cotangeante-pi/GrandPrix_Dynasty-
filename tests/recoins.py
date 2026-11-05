@@ -649,12 +649,15 @@ def aides_pilotage(c, titre):
             pg.keyboard.press('Escape')
     # le curseur VOITURE_VIVANTE (?reglages=1) à 0 en légende : le même tour que la voiture d'avant (en normal), au bit près
     ref = tour_robot(c, f'index.html?course=1&circuit=test&niveau=normal&lang={c.langue}')
-    leg0 = tour_robot(c, f'index.html?course=1&circuit=test&niveau=legende&reglages=1&lang={c.langue}', '() => { const k = document.querySelector("input[data-cle=VOITURE_VIVANTE]"); k.value = "0"; k.dispatchEvent(new Event("input")); }')
+    leg0 = tour_robot(c, f'index.html?course=1&circuit=test&niveau=legende&reglages=1&drift=1&lang={c.langue}', '() => { const k = document.querySelector("input[data-cle=VOITURE_VIVANTE]"); k.value = "0"; k.dispatchEvent(new Event("input")); }')
     # (depuis le tour 46 du Codeur 1, la voiture vivante vient du pneu drift, plus du niveau : en légende, en pneus adhérant, la voiture
     # d'avant au bit près quel que soit le curseur ; en pneus drift et le curseur à 1, une autre voiture)
     leg1 = tour_robot(c, f'index.html?course=1&circuit=test&niveau=legende&lang={c.langue}')
-    drift = tour_robot(c, f'index.html?course=1&circuit=test&niveau=legende&lang={c.langue}', '() => { JEU.joueur.typePneus = "drift"; }')
-    t(f'{titre} : en légende, en pneus adhérant : 20 s du robot au bit près comme la voiture d’avant, le curseur VOITURE_VIVANTE (?reglages=1) à 0 ou à 1 ; en pneus drift, une autre voiture', bool(ref and leg0 and leg1 and drift) and ref[:4] == leg0[:4] and leg0[5] == 0 and leg1[:4] == ref[:4] and drift[:4] != ref[:4], str([ref, leg0, leg1, drift]))
+    drift = tour_robot(c, f'index.html?course=1&circuit=test&niveau=legende&drift=1&lang={c.langue}', '() => { JEU.joueur.typePneus = "drift"; }')   # (tour 48b : ?drift=1, le drift rallumé)
+    t(f'{titre} : en légende, en pneus adhérant : 20 s du robot au bit près comme la voiture d’avant, le curseur VOITURE_VIVANTE (?reglages=1) à 0 ou à 1 ; en pneus drift (rallumés), une autre voiture', bool(ref and leg0 and leg1 and drift) and ref[:4] == leg0[:4] and leg0[5] == 0 and leg1[:4] == ref[:4] and drift[:4] != ref[:4], str([ref, leg0, leg1, drift]))
+    # (tour 48b) le drift caché (PNEU_DRIFT faux, le jeu) : un pneu 'drift' posé sur la voiture roule en adhérant, au bit près
+    cache = tour_robot(c, f'index.html?course=1&circuit=test&niveau=legende&lang={c.langue}', '() => { JEU.joueur.typePneus = "drift"; }')
+    t(f'{titre} : drift caché : un pneu drift posé sur la voiture roule comme l’adhérant, au bit près (20 s du robot)', bool(ref and cache) and cache[:4] == ref[:4], str([ref, cache]))
 
 # --- les grandes tailles (tour 39d) : un passage court en 1280×720 et en 1920×1080, en plus du 960×600 des autres parties ---
 # la carrière : le premier lancement (titre → découverte → Bravo → création), le premier Grand Prix joué par le robot comme dans saison.py

@@ -725,6 +725,43 @@ body.deux #hudStand { display: none; }
 #garage button.acheter { min-width: 0; padding: 6px 14px; font-size: 14px; }
 #garage button.acheter:disabled { opacity: 0.4; cursor: default; box-shadow: none; }
 
+/* la personnalisation (tour 48c) : « Ma voiture » (la livrée, la célébration), la boutique de skins, l'essai d'un skin (tiennent en 960×600 et en 640×360) */
+#livree h1, #essaiFin h1 { margin: 0; }
+#livreeEditeur { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; justify-content: center; }
+#livreeApercu { width: min(380px, 46vw); height: auto; aspect-ratio: 380 / 220; border-radius: 10px; background: rgba(255, 255, 255, 0.08); }
+#livreeChamps { display: flex; flex-direction: column; gap: 8px; width: 270px; }
+#livreeChamps label { display: flex; align-items: center; justify-content: space-between; gap: 10px; font: 600 14px/1.3 var(--police); }
+#livreeChamps select { width: 150px; padding: 4px 6px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.35); background: rgba(255, 255, 255, 0.1); color: inherit; font: 600 14px/1.3 var(--police); }
+#livreeChamps select option { color: #111; }
+#livreeChamps input[type=color] { width: 44px; height: 26px; padding: 0; border: 1px solid rgba(255, 255, 255, 0.35); border-radius: 6px; background: none; }
+#livreeNote { margin: 0; font-size: 13px; opacity: 0.85; }
+#boutiqueConteneur { display: flex; flex-direction: column; align-items: center; gap: 6px; width: min(94vw, 720px); }
+.boutiqueVue h1 { margin: 0; }
+.boutiqueVue .boutiqueSolde { margin: 0; font-weight: 700; color: #ffd666; }
+.boutiqueVue .boutiqueOnglets { display: flex; gap: 8px; }
+.boutiqueVue .boutiqueOnglets button { min-width: 0; padding: 6px 14px; font-size: 14px; opacity: 0.7; }
+.boutiqueVue .boutiqueOnglets button.choisi { opacity: 1; box-shadow: 0 0 0 2px #ffd666; }
+.boutiqueVue .boutiqueListe { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; width: 100%; }
+.boutiqueVue .skin { display: grid; grid-template-columns: 104px 1fr auto; gap: 12px; align-items: center; padding: 6px 12px; border-radius: 8px; background: rgba(255, 255, 255, 0.1); font: 600 14px/1.3 var(--police); }
+.boutiqueVue .skin > * { min-width: 0; }
+.boutiqueVue .skin .apercu { display: flex; align-items: center; justify-content: center; font-size: 26px; }
+.boutiqueVue .skin .apercu canvas { border-radius: 4px; }
+.boutiqueVue .skin .apercu canvas.casqueIcone { width: 34px; height: 34px; border-radius: 50%; }
+.boutiqueVue .skin .nom { text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.boutiqueVue .skin .actions { display: flex; gap: 6px; align-items: center; justify-content: flex-end; }
+.boutiqueVue .skin button { min-width: 0; padding: 5px 12px; font-size: 13px; }
+.boutiqueVue .skin button:disabled { opacity: 0.4; cursor: default; box-shadow: none; }
+.boutiqueVue .skin .possede { color: #7dff9a; }
+.boutiqueVue .skin .condition { font-size: 12px; opacity: 0.8; text-align: right; }
+.boutiqueVue .boutiqueMessage { margin: 0; min-height: 1.2em; font-weight: 700; }
+#essaiFin p { margin: 0; }
+#essaiBandeau { position: absolute; bottom: 44px; left: 50%; transform: translateX(-50%); padding: 4px 14px; border-radius: 6px; background: rgba(0, 0, 0, 0.6); color: #ffd666; font: 700 14px/1.3 var(--police); pointer-events: none; z-index: 5; }
+@media (max-height: 420px) {
+  #livreeApercu { width: min(300px, 40vw); }
+  .boutiqueVue .skin { padding: 3px 10px; }
+  .boutiqueVue .boutiqueListe { gap: 3px; }
+}
+
 /* la fin de saison (Codeur 3) : le classement final et le champion, le duel de la saison, les contrats, la retraite (tiennent en 960×600) */
 #saison h1, #duelSaison h1, #contrats h1, #retraite h1 { margin: 0; }
 #saison p, #duelSaison p, #contrats p, #retraite p { margin: 0; }
@@ -1406,6 +1443,7 @@ body.deux:not(.cote) #deuxRappel2 { left: 50%; }
 .pageInfos p { font-size: 15px; }
 #championnat #championnatReputation { flex-wrap: wrap; gap: 6px 14px; justify-content: flex-start; }
 #championnat #championnatReputation .barre { width: 64px; }
+#boutiqueContenu { display: flex; flex-direction: column; gap: 12px; }
 #boutiqueContenu p { font-size: 16px; opacity: 0.85; }
 #pageSaison #championnatTableaux { display: flex; gap: 28px; align-items: flex-start; padding: 12px 18px; }
 #pageSaison #championnatTableaux h2 { text-align: center; }

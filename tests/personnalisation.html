@@ -1,0 +1,149 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>tests de la personnalisation</title></head><body>
+<pre id="res"></pre>
+<script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));
+window.__console=[];for(const n of ['warn','error']){const o=console[n].bind(console);console[n]=(...a)=>{__console.push(n+' : '+a.join(' '));o(...a);};}</script>
+<!-- la personnalisation (CLAUDE.md « La personnalisation », tour 48c) : la livrée (livree.js) et son atlas (voiture3d.js), la célébration
+     (celebration.js), la boutique de skins (boutique.js), la sauvegarde ; calcul pur + canvas 2D + géométries Three.js (sans rendu) -->
+<script src="../lib/three.min.js"></script>
+<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script>
+<script src="../circuits-officiels-a.js"></script><script src="../circuits-officiels-b.js"></script><script src="../circuits.js"></script>
+<script src="../physique.js"></script><script src="../robot.js"></script><script src="../ia.js"></script>
+<script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../pilote.js"></script><script src="../casque.js"></script>
+<script src="../argent.js"></script><script src="../saisons.js"></script><script src="../carriere.js"></script>
+<script src="../livree.js"></script><script src="../celebration.js"></script><script src="../boutique.js"></script><script src="../voiture3d.js"></script>
+<script>
+const L=[];let ok=0,ko=0;
+function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
+const v=(c,m)=>{if(!c)throw new Error(m||'faux');};
+const R=REGLAGES;
+localStorage.removeItem(SAUVEGARDE.CLE);
+// les pixels d'une zone de la case d'une livrée dessinée seule dans un canvas
+function pixels(d,zone,t=R.LIVREE_ATLAS_CASE){const c=document.createElement('canvas');c.width=c.height=t;const ctx=c.getContext('2d',{willReadFrequently:true});LIVREE.dessiner(ctx,0,0,t,d);
+  const z=LIVREE.ZONES[zone];return ctx.getImageData(Math.ceil(z[0]*t)+1,Math.ceil(z[1]*t)+1,Math.floor(z[2]*t)-3,Math.floor(z[3]*t)-3).data;}   // (sans les bords de la zone)
+const teintes=d=>{const s=new Set();for(let i=0;i<d.length;i+=4) s.add(d[i]+','+d[i+1]+','+d[i+2]);return s.size;};
+function championnatJoueur(graine){const ch=CHAMPIONNAT.creer(graine||1);CASQUE.completer(ch);const j=PILOTE.joueur(ch);j.nom='Léa';j.numero=27;j.pays='it';j.coeur='monzo';return ch;}
+
+// --- la livrée
+t('livrée : les motifs de départ et ceux des skins, chacun avec son nom en anglais et en français ; la livrée par défaut est valide ; une livrée inconnue ne l’est pas', ()=>{
+  const ms=LIVREE.tousLesMotifs();v(ms.length===R.LIVREE_MOTIFS.length+R.SKINS.filter(s=>s.type==='livree').length,ms.join());
+  for(const m of ms) v(TEXTES.en['livree_'+m]&&TEXTES.fr['livree_'+m],'livree_'+m);
+  v(LIVREE.valide(LIVREE.defaut()),'défaut');v(!LIVREE.valide({motif:'licorne',couleur2:0})&&!LIVREE.valide({motif:'bandes',couleur2:-1})&&!LIVREE.valide(null),'invalide acceptée');
+  v(LIVREE.permis('bandes',[])&&!LIVREE.permis('carbone',[])&&LIVREE.permis('carbone',['carbone']),'permis');});
+t('livrée : chaque motif dessine des flancs et un dessus de plusieurs couleurs, deux motifs différents donnent des images différentes, le même dessin deux fois donne la même image', ()=>{
+  const img={};for(const m of LIVREE.tousLesMotifs()){const d=LIVREE.pourVoiture(0xd8262e,LIVREE.creer(m,0xf2c230),27,false,'it'),c=pixels(d,'COTE'),h=pixels(d,'DESSUS');
+    v(teintes(c)>=2,m+' : flancs unis');v(teintes(h)>=2,m+' : dessus uni');img[m]=c.join()+'|'+h.join();}
+  const ms=Object.keys(img);for(let a=0;a<ms.length;a++) for(let b=a+1;b<ms.length;b++) v(img[ms[a]]!==img[ms[b]],ms[a]+' = '+ms[b]);
+  const d=LIVREE.pourVoiture(0xd8262e,LIVREE.creer('flammes',0xf2c230),27);v(pixels(d,'COTE').join()===pixels(d,'COTE').join(),'pas reproductible');});
+t('livrée : le numéro en gros sur le nez et la dérive (des pixels du numéro, lisible : blanc sur fond foncé, noir sur fond clair) ; sans numéro, le fond seul', ()=>{
+  for(const [c1,attendu] of [[0x1f6fe0,[255,255,255]],[0xf2c230,[17,17,17]]]) for(const z of ['NEZ','DERIVE']){
+    const avec=pixels(LIVREE.pourVoiture(c1,LIVREE.defaut(),27),z),sans=pixels(LIVREE.pourVoiture(c1,LIVREE.defaut(),''),z);
+    v(teintes(sans)===1,z+' sans numéro : '+teintes(sans)+' teintes');let n=0;for(let i=0;i<avec.length;i+=4) if(Math.abs(avec[i]-attendu[0])+Math.abs(avec[i+1]-attendu[1])+Math.abs(avec[i+2]-attendu[2])<30) n++;
+    v(n>avec.length/4*0.04,z+' '+c1.toString(16)+' : '+n+' pixels du numéro');}});
+t('livrée : en championnat la couleur principale reste celle de l’écurie (même si la livrée en a une) ; libre (2 joueurs, tournoi) la sienne ; chaque écurie a sa livrée (au moins 8 différentes sur 10), avec le numéro de son pilote', ()=>{
+  const l=LIVREE.creer('bandes',0xffffff,0x00ff00);v(LIVREE.pourVoiture(0xd8262e,l,5).couleur1===0xd8262e,'championnat');v(LIVREE.pourVoiture(0xd8262e,l,5,true).couleur1===0x00ff00,'libre');
+  const ch=championnatJoueur(1),cles=new Set(ch.ecuries.map((e,i)=>{const x=LIVREE.ecurie(i);v(LIVREE.valide(x),'écurie '+i);return e.couleur+':'+x.motif+':'+x.couleur2;}));v(cles.size>=8,cles.size+' livrées d’écurie');
+  const p=ch.pilotes.find(q=>!q.humain),d=LIVREE.pourVoiture(ch.ecuries[p.ecurie].couleur,LIVREE.ecurie(p.ecurie),p.numero);v(d.numero===String(p.numero)&&d.motif===R.LIVREE_ECURIES[p.ecurie].motif,JSON.stringify(d));});
+t('livrée et célébration : gardées après rechargement ; une ancienne sauvegarde sans livrée ni célébration se charge avec celles par défaut (LIVREE.completer, CELEBRATION.completer)', ()=>{
+  const ch=championnatJoueur(2);LIVREE.completer(ch);CELEBRATION.completer(ch);const j=PILOTE.joueur(ch);v(j.livree.motif===R.LIVREE_DEFAUT.motif&&j.celebration===R.CELEBRATION_DEFAUT,'défaut '+JSON.stringify([j.livree,j.celebration]));
+  j.livree=LIVREE.creer('damier',0x112233);j.celebration='drapeau';SAUVEGARDE.ecrireChampionnat(ch);
+  const re=SAUVEGARDE.championnat(),jr=PILOTE.joueur(re);v(jr.livree.motif==='damier'&&jr.livree.couleur2===0x112233&&jr.celebration==='drapeau','rechargé '+JSON.stringify([jr.livree,jr.celebration]));
+  v(LIVREE.completer(re)===0&&CELEBRATION.completer(re)===0,'complété deux fois');
+  const vieux=championnatJoueur(3);for(const p of vieux.pilotes){delete p.livree;delete p.celebration;}localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:3,records:{},championnat:vieux}));
+  const v2=SAUVEGARDE.championnat();v(LIVREE.completer(v2)===1&&CELEBRATION.completer(v2)===1,'une livrée et une célébration données');const j2=PILOTE.joueur(v2);
+  v(LIVREE.valide(j2.livree)&&j2.livree.motif===R.LIVREE_DEFAUT.motif&&j2.celebration===R.CELEBRATION_DEFAUT,'ancienne : '+JSON.stringify([j2.livree,j2.celebration]));
+  v(v2.pilotes.every(p=>p.humain||p.livree===undefined),'les rivaux n’ont pas de livrée à eux (celle de leur écurie)');
+  localStorage.removeItem(SAUVEGARDE.CLE);});
+
+// --- l'atlas des livrées (voiture3d.js) : aucun appel de dessin en plus, un seul matériau, chaque voiture lit sa case
+t('atlas des livrées : 20 voitures, une texture et UN matériau pour toutes les carrosseries ; chaque voiture coûte 6 appels de dessin comme avant ; ses coordonnées de texture restent dans sa case ; seule la plaque du numéro ajoute des triangles (12)', ()=>{
+  const ch=championnatJoueur(4),couleurs=ch.pilotes.map(p=>ch.ecuries[p.ecurie].couleur);
+  VOITURE3D.preparerCasques(ch.pilotes.map(p=>p.casque));VOITURE3D.preparerLivrees([]);
+  const avant=couleurs.map((c,k)=>VOITURE3D.creer(c,k===19,undefined,k));   // sans atlas des livrées : la voiture d'avant
+  VOITURE3D.preparerLivrees(ch.pilotes.map((p,k)=>LIVREE.pourVoiture(couleurs[k],p.humain?LIVREE.defaut():LIVREE.ecurie(p.ecurie),p.numero)));
+  const a=VOITURE3D.atlasLivrees;v(a&&a.livrees.length===20&&a.canvas.width===a.colonnes*R.LIVREE_ATLAS_CASE,'atlas');
+  const apres=couleurs.map((c,k)=>VOITURE3D.creer(c,k===19,undefined,k,k));
+  v(apres.every(m=>m.corps.material===a.materiau)&&a.materiau.map===a.texture&&a.materiau.vertexColors,'un seul matériau, avec la texture');
+  v(apres.every((m,k)=>VOITURE3D.appels(m)===6&&VOITURE3D.appels(avant[k])===6),'appels : '+apres.map(VOITURE3D.appels).join(','));
+  v(apres.every((m,k)=>VOITURE3D.triangles(m)===VOITURE3D.triangles(avant[k])+12),'triangles '+VOITURE3D.triangles(apres[0])+' / '+VOITURE3D.triangles(avant[0]));
+  apres.forEach((m,k)=>{const uv=m.corps.geometry.attributes.uv,col=k%a.colonnes,lig=Math.floor(k/a.colonnes);v(uv&&uv.count===m.corps.geometry.attributes.position.count,'uv '+k);
+    const u0=col/a.colonnes,u1=(col+1)/a.colonnes,v1=1-lig/a.lignes,v0=1-(lig+1)/a.lignes;
+    for(let i=0;i<uv.count;i++){const u=uv.getX(i),w=uv.getY(i);if(!(u>=u0&&u<=u1&&w>=v0&&w<=v1)) throw new Error('voiture '+k+' : uv hors de sa case '+u+','+w);}});
+  v(apres.every(m=>m.roues.every(r=>r.tourne.material!==a.materiau)),'les roues gardent leur matériau');
+  // la livrée change (l'éditeur) : seule la case de la voiture est redessinée
+  const lire=k=>{const t=a.t;return Array.from(a.ctx.getImageData((k%a.colonnes)*t,Math.floor(k/a.colonnes)*t,t,t).data).join();};
+  const c0=lire(0),c19=lire(19);VOITURE3D.majLivree(19,LIVREE.pourVoiture(couleurs[19],LIVREE.creer('flammes',0x111111),27));v(lire(19)!==c19&&lire(0)===c0,'majLivree');
+  // le fantôme garde ses propres matériaux, sans livrée
+  const f=VOITURE3D.creerFantome(0xffffff,0.5);v(f.corps.material!==a.materiau&&!f.corps.geometry.attributes.uv,'fantôme');
+  // LIVREE_ACTIVE faux : pas d'atlas, la voiture d'avant
+  R.LIVREE_ACTIVE=false;VOITURE3D.preparerLivrees([LIVREE.pourVoiture(0,LIVREE.defaut(),1)]);v(VOITURE3D.atlasLivrees===null,'LIVREE_ACTIVE');const m=VOITURE3D.creer(0x1f6fe0,true,undefined,0,0);v(!m.corps.geometry.attributes.uv&&VOITURE3D.triangles(m)===VOITURE3D.triangles(avant[19]),'voiture d’avant');R.LIVREE_ACTIVE=true;});
+
+// --- la célébration
+t('célébration : celles de départ toujours permises, celles d’un exploit seulement débloquées, celles de la boutique seulement obtenues ; chacune a son nom en anglais et en français', ()=>{
+  for(const c of CELEBRATION.toutes()) v(TEXTES.en['celebration_'+c]&&TEXTES.fr['celebration_'+c],'celebration_'+c);
+  v(R.CELEBRATIONS.every(c=>CELEBRATION.permis(c,[],[])),'départ');v(!CELEBRATION.permis('donuts',[],[])&&CELEBRATION.permis('donuts',['donuts'],[]),'exploit');v(!CELEBRATION.permis('feux',['donuts'],[])&&CELEBRATION.permis('feux',[],['feux']),'boutique');
+  v(CELEBRATION.de({celebration:'licorne'})===R.CELEBRATION_DEFAUT&&CELEBRATION.de({celebration:'saut'})==='saut','de');});
+t('célébration : débloquée exactement à son exploit (une victoire : donuts ; 10 podiums : bond de joie ; un titre : confettis) ; gardée à la racine de la sauvegarde, elle survit à une nouvelle carrière', ()=>{
+  const ch=championnatJoueur(5),j=PILOTE.joueur(ch);v(CELEBRATION.conditionsRemplies(ch).length===0,'rien au début');
+  j.stats.victoires=1;v(CELEBRATION.conditionsRemplies(ch).join()==='donuts',CELEBRATION.conditionsRemplies(ch).join());
+  j.stats.podiums=R.CASQUE_PODIUMS_DEBLOCAGE-1;v(!CELEBRATION.conditionsRemplies(ch).includes('saut'),'9 podiums');j.stats.podiums++;v(CELEBRATION.conditionsRemplies(ch).includes('saut'),'10 podiums');
+  j.stats.titres=1;v(CELEBRATION.conditionsRemplies(ch).includes('confettis'),'titre');
+  v(SAUVEGARDE.debloquerCelebrations(CELEBRATION.conditionsRemplies(ch)).length===3&&SAUVEGARDE.debloquerCelebrations(['donuts']).length===0,'déblocage');
+  SAUVEGARDE.ecrireChampionnat(championnatJoueur(6));v(SAUVEGARDE.celebrations().length===3,'nouvelle carrière : '+SAUVEGARDE.celebrations().join());
+  localStorage.removeItem(SAUVEGARDE.CLE);});
+t('célébration : le dessin seulement (decalage) : chaque célébration part de 0 et y revient à la fin de sa période, jamais plus de 1 m en hauteur ; les autres ne bougent pas la voiture', ()=>{
+  const T=R.CELEBRATION_DUREE;for(const c of CELEBRATION.toutes()){const d0=CELEBRATION.decalage(c,0);v(d0.y===0&&d0.rot===0&&d0.tangage===0,c+' à 0 : '+JSON.stringify(d0));
+    for(let k=0;k<=40;k++){const d=CELEBRATION.decalage(c,k*T/40);v(d.y>=0&&d.y<=1,c+' hauteur '+d.y);}
+    const fin=CELEBRATION.decalage(c,T-1e-9);v(Math.abs(fin.y)<1e-6&&Math.abs(Math.sin(fin.rot))<1e-6,c+' fin '+JSON.stringify(fin));}
+  v(['poing','drapeau','confettis','feux','trophee'].every(c=>{const d=CELEBRATION.decalage(c,1.3);return d.rot===0&&d.y===0;}),'immobiles');});
+t('célébration en 3D : sur une voiture, ses objets s’accrochent puis partent, le décalage est retiré à l’arrêt (la voiture revient exactement à sa place)', ()=>{
+  VOITURE3D.preparerCasques([CASQUE.neutre()]);VOITURE3D.preparerLivrees([LIVREE.pourVoiture(0x1f6fe0,LIVREE.defaut(),7)]);
+  const m=VOITURE3D.creer(0x1f6fe0,true,undefined,0,0);m.groupe.rotation.y=0.3;m.groupe.position.y=0.2;const n0=m.groupe.children.length;
+  for(const c of CELEBRATION.toutes()){CELEBRATION.commencer(m,c,'it');v(m.groupe.children.length===n0+1,c+' : objets');for(let i=0;i<30;i++) CELEBRATION.maj(0.07);CELEBRATION.arreter();
+    v(m.groupe.children.length===n0&&Math.abs(m.groupe.rotation.y-0.3)<1e-12&&Math.abs(m.groupe.position.y-0.2)<1e-12&&Math.abs(m.groupe.rotation.z)<1e-12,c+' : '+[m.groupe.rotation.y,m.groupe.position.y,m.groupe.rotation.z]);}});
+
+// --- la boutique
+t('boutique : une seule boutique (livrées, casques, célébrations), chaque skin d’UNE façon (argent avec un prix, pub, ou récompense avec une condition) ; un skin ne porte que du look (aucun champ de vitesse) ; noms et conditions en anglais et en français', ()=>{
+  v(BOUTIQUE.TYPES.every(t=>BOUTIQUE.liste(t).length>=3),'3 skins par type au moins');v(new Set(R.SKINS.map(s=>s.id)).size===R.SKINS.length,'identifiants');
+  for(const s of R.SKINS){v(['argent','pub','recompense'].includes(s.obtention),s.id);v(s.obtention!=='argent'||s.prix>0,s.id+' prix');v(s.obtention!=='recompense'||(TEXTES.en['cond_'+s.condition]&&TEXTES.fr['cond_'+s.condition]),s.id+' condition');
+    v(Object.keys(s).every(k=>['id','type','motif','obtention','prix','condition'].includes(k)),s.id+' : '+Object.keys(s));v(BOUTIQUE.nom(s)&&!/^(livree|motif|celebration)_/.test(BOUTIQUE.nom(s)),s.id+' nom');}
+  v(['argent','pub','recompense'].every(o=>R.SKINS.some(s=>s.obtention===o)),'les trois façons');});
+t('boutique : acheter à l’argent du championnat : refusé sans assez d’argent (le solde ne bouge pas), accepté sinon (solde − prix), jamais deux fois ; un skin de pub ou de récompense ne s’achète pas', ()=>{
+  const ch=championnatJoueur(7),s=R.SKINS.find(x=>x.obtention==='argent');ARGENT.completer(ch);const s0=ARGENT.solde(ch);
+  let r=BOUTIQUE.acheter(ch,s.id,[]);v(!r.ok&&r.raison==='solde'&&ARGENT.solde(ch)===s0,'sans argent '+JSON.stringify(r));
+  ARGENT.crediter(ch,s.prix+10,'test');r=BOUTIQUE.acheter(ch,s.id,[]);v(r.ok&&ARGENT.solde(ch)===s0+10,'achat '+ARGENT.solde(ch));
+  r=BOUTIQUE.acheter(ch,s.id,[s.id]);v(!r.ok&&r.raison==='possede','deux fois');
+  for(const x of R.SKINS.filter(y=>y.obtention!=='argent')){ARGENT.crediter(ch,1e6,'test');r=BOUTIQUE.acheter(ch,x.id,[]);v(!r.ok&&r.raison==='pasArgent',x.id);}
+  v(BOUTIQUE.etat(s.id,[s.id])==='possede'&&BOUTIQUE.etat(s.id,[])==='argent'&&BOUTIQUE.etat('livree_galaxie',[])==='pub'&&BOUTIQUE.etat('livree_or',[])==='bloque','états');
+  v(BOUTIQUE.essayable(s.id,[])&&BOUTIQUE.essayable('livree_galaxie',[])&&!BOUTIQUE.essayable('livree_or',[])&&!BOUTIQUE.essayable(s.id,[s.id]),'essayable');});
+t('boutique : les récompenses : la livrée aux couleurs du pays après la première course officielle (quel que soit le résultat), l’or après un titre, le casque d’or après 5 victoires, le trophée après 3 titres ; jamais deux fois', ()=>{
+  const ch=championnatJoueur(8),j=PILOTE.joueur(ch);v(BOUTIQUE.recompensesGagnees(ch,[]).length===0,'rien au début');
+  j.stats.courses=1;v(BOUTIQUE.recompensesGagnees(ch,[]).join()==='livree_drapeau','première course : '+BOUTIQUE.recompensesGagnees(ch,[]).join());v(BOUTIQUE.recompensesGagnees(ch,['livree_drapeau']).length===0,'deux fois');
+  j.stats.titres=1;v(BOUTIQUE.recompensesGagnees(ch,['livree_drapeau']).join()==='livree_or','titre');
+  j.stats.victoires=R.SKIN_VICTOIRES;v(BOUTIQUE.recompensesGagnees(ch,['livree_drapeau','livree_or']).join()==='casque_or','victoires');
+  j.stats.titres=R.SKIN_LEGENDE_TITRES;v(BOUTIQUE.recompensesGagnees(ch,['livree_drapeau','livree_or','casque_or']).join()==='celebration_trophee','légende');
+  // le skin du pays : les couleurs du drapeau du joueur sur les flancs
+  const d=LIVREE.pourVoiture(0xd8262e,LIVREE.creer('drapeau',0xffffff),27,false,'it');v(d.drapeau.join()===R.PAYS_COULEURS.it.join(),'drapeau '+d.drapeau);});
+t('boutique et sauvegarde : un skin obtenu est gardé à la racine (une nouvelle carrière le garde), annoncé une fois s’il est une récompense ; un casque obtenu devient un motif permis ; une ancienne sauvegarde sans skins se charge (aucun)', ()=>{
+  localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:4,records:{},championnat:null}));v(SAUVEGARDE.skins().length===0&&SAUVEGARDE.celebrations().length===0,'ancienne sauvegarde');
+  v(SAUVEGARDE.obtenirSkin('casque_tigre')&&!SAUVEGARDE.obtenirSkin('casque_tigre'),'obtenir');v(SAUVEGARDE.motifs().includes('tigre')&&CASQUE.permis('tigre',SAUVEGARDE.motifs())&&CASQUE.valide(CASQUE.creer('tigre',[1,2,3])),'motif de casque permis');
+  v(SAUVEGARDE.motifsSkins('livree').length===0,'pas une livrée');SAUVEGARDE.obtenirSkin('livree_drapeau',true);v(SAUVEGARDE.prendreAnnonceSkins().join()==='livree_drapeau'&&SAUVEGARDE.prendreAnnonceSkins().length===0,'annonce une fois');
+  SAUVEGARDE.ecrireChampionnat(championnatJoueur(9));v(SAUVEGARDE.skins().join()==='casque_tigre,livree_drapeau'&&SAUVEGARDE.motifsSkins('livree').join()==='drapeau','nouvelle carrière : '+SAUVEGARDE.skins());
+  v(SAUVEGARDE.prendreAnnonceMotifs().length===0,'un skin n’est pas annoncé comme un motif gagné');
+  localStorage.removeItem(SAUVEGARDE.CLE);});
+t('boutique : l’écran (rendre) dans n’importe quel conteneur : les trois onglets, un skin par ligne avec son aperçu, « Acheter » grisé sans assez d’argent, 📺 pour une pub, la condition d’une récompense, « À toi » s’il est obtenu', ()=>{
+  const ch=championnatJoueur(10),div=document.createElement('div'),vus=[];document.body.append(div);
+  const e={onglet:'livree',possedes:['livree_eclairs'],ch,solde:1000,message:'',couleur:0xd8262e,casque:PILOTE.joueur(ch).casque,numero:27,pays:'it'};
+  BOUTIQUE.rendre(div,e,{onglet:t=>vus.push('onglet:'+t),acheter:id=>vus.push('acheter:'+id),pub:id=>vus.push('pub:'+id),essayer:id=>vus.push('essayer:'+id)});
+  v(div.querySelectorAll('.boutiqueOnglets button').length===3&&div.querySelectorAll('.skin').length===BOUTIQUE.liste('livree').length,'onglets et lignes');
+  const ligne=id=>div.querySelector('.skin[data-id="'+id+'"]');v(ligne('livree_carbone').querySelector('button.acheter').disabled,'acheter grisé');
+  v(ligne('livree_eclairs').dataset.etat==='possede'&&ligne('livree_eclairs').querySelector('.possede'),'à toi');v(ligne('livree_galaxie').querySelector('button.pub'),'pub');v(ligne('livree_or').querySelector('.condition'),'condition');
+  v([...div.querySelectorAll('.skin .apercu canvas')].length===BOUTIQUE.liste('livree').length,'aperçus');
+  ligne('livree_galaxie').querySelector('button.pub').click();ligne('livree_carbone').querySelector('button.essayer').click();div.querySelector('.boutiqueOnglets button[data-type="casque"]').click();
+  v(vus.join()==='pub:livree_galaxie,essayer:livree_carbone,onglet:casque',vus.join());
+  e.onglet='celebration';e.solde=1e6;BOUTIQUE.rendre(div,e,{onglet(){},acheter(){},pub(){},essayer(){}});v(!div.querySelector('.skin[data-id="celebration_feux"] button.acheter').disabled,'acheter possible');
+  div.remove();});
+
+t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
+t('console vide (ni avertissement, ni erreur)', ()=>{v(__console.length===0,__console.join(' | '));});
+document.getElementById('res').textContent=`RESULTAT ${ok}/${ok+ko}\n`+L.join('\n');
+</script></body></html>

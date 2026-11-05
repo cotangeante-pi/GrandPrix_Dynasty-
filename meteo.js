@@ -109,5 +109,6 @@ const METEO = (function () {
     return { type: p.type, risque: p.pourcent };
   }
 
-  return { TYPES, plan, creer, pas, eauEn, adherence, usure, meilleurPneu, choisir, etat, graineGP, prevision };
+  // (tour 48b) la liste des pneus de l'écran (garage, ← → à l'arrêt) : sans le drift quand il est caché (PNEU_DRIFT)
+  return { get TYPES() { return R.PNEU_DRIFT ? TYPES.slice() : TYPES.filter(t => t !== 'drift'); }, plan, creer, pas, eauEn, adherence, usure, meilleurPneu, choisir, etat, graineGP, prevision };
 })();
