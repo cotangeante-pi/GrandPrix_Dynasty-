@@ -759,7 +759,10 @@ function casqueDe(k) {
 // --- la livrée (livree.js, tour 48c) de la voiture k, à dessiner dans l'atlas des livrées (couleur : celle de sa voiture) : le joueur
 // a la sienne sur la couleur de son écurie ; une IA, celle de son écurie ; chacun son numéro. À deux, la couleur choisie par chaque joueur
 function livreeDe(k, couleur) {
-  if (JEU.deux && k >= JEU.ia) return LIVREE.pourVoiture(couleur, livreeSauvee(), k - JEU.ia + 1);
+  if (JEU.deux && k >= JEU.ia) {   // à deux : la couleur choisie, un motif par joueur (LIVREE_DEUX), la 2e couleur de son casque en secondaire
+    const i = k - JEU.ia, j = JEU.deux.reglages.joueurs[i];
+    return LIVREE.pourVoiture(couleur, LIVREE.creer(REGLAGES.LIVREE_DEUX[i % REGLAGES.LIVREE_DEUX.length], j.casque.couleurs[1]), i + 1);
+  }
   const p = piloteDe(k);
   if (p && p.humain) return LIVREE.pourVoiture(couleur, p.livree, p.numero, false, p.pays);
   if (p) return LIVREE.pourVoiture(couleur, LIVREE.ecurie(p.ecurie), p.numero);
