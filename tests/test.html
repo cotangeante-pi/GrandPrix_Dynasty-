@@ -969,6 +969,27 @@ t('les 12 tracés au calendrier : CALENDRIER_CIRCUITS = les 12 dans l’ordre de
     v(PILOTE.domicile('jp')==='suzuko','domicile jp');ch.pilotes[19].coeur='suzuko';const cal=CHAMPIONNAT.calendrierSaison(ch),dom=cal.filter(x=>x.domicile);
     v(dom.length===1&&dom[0].circuit==='suzuko'&&dom[0].numero===3,'domicile '+JSON.stringify(dom));
   }finally{R_.CALENDRIER_CIRCUITS=avant;}});
+// --- (tour 48b) la saison 2 sur test/technique : une sauvegarde d'avant le 2026-10-27 (13bbb85) gardait le calendrier d'essai
+t('vieille sauvegarde test/technique : au chargement, les Grands Prix à venir passent sur les 12 tracés (les courus restent), points, résultats, argent et sponsor intacts ; la saison suivante est sur les 12 tracés', ()=>{
+  const avant=REGLAGES.CALENDRIER_CIRCUITS,ancien=localStorage.getItem(SAUVEGARDE.CLE);
+  try{REGLAGES.CALENDRIER_CIRCUITS=['test','technique'];   // le calendrier d'avant le tour 32
+    const ch=CHAMPIONNAT.creer(91);SAISONS.avancer(ch,3);ch.argent.solde=123456;
+    ch.sponsor={cle:'x',saison:ch.saison,montant:1,objectifs:[{type:'top5Circuit',n:1,prime:1,circuit:'technique',progres:0,fait:false}]};
+    v(ch.calendrier.every(g=>['test','technique'].includes(g.circuit)),'fabriquée sur test/technique');
+    const points=JSON.stringify(ch.pilotes.map(p=>p.stats)),res=JSON.stringify(ch.resultats),eq=JSON.stringify(ch.ecuries.map(e=>e.points));
+    localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:4,records:{},championnat:ch}));
+    REGLAGES.CALENDRIER_CIRCUITS=CALENDRIER_JEU;
+    const re=SAUVEGARDE.lire().championnat,c=re.calendrier.map(g=>g.circuit);
+    v(re.prochain===3&&c.slice(0,3).join()==='test,technique,test','les 3 courus restent : '+c.join());
+    v(c.slice(3).every((x,i)=>x===CALENDRIER_JEU[i+3]),'les 9 à venir sur les vrais tracés : '+c.join());
+    v(JSON.stringify(re.pilotes.map(p=>p.stats))===points&&JSON.stringify(re.resultats)===res&&JSON.stringify(re.ecuries.map(e=>e.points))===eq&&re.argent.solde===123456,'points, résultats, argent');
+    v(re.sponsor.objectifs[0].circuit===CALENDRIER_JEU[3],'objectif du sponsor : '+re.sponsor.objectifs[0].circuit);
+    re.sponsor=null;SAISONS.avancer(re,9);SAISONS.terminerSaison(re);SAISONS.nouvelleSaison(re);
+    v(re.saison===2&&re.calendrier.length===12&&re.calendrier.every((g,i)=>g.circuit===CALENDRIER_JEU[i]),'saison 2 : '+re.calendrier.map(g=>g.circuit).join());
+    // une saison 2 déjà commencée sur test/technique (rien de couru) : tout le calendrier repasse sur les 12
+    const ch2=CHAMPIONNAT.creer(92);ch2.saison=2;ch2.calendrier.forEach((g,i)=>g.circuit=['test','technique'][i%2]);CHAMPIONNAT.completer(ch2);
+    v(ch2.calendrier.every((g,i)=>g.circuit===CALENDRIER_JEU[i]),'saison 2 à venir : '+ch2.calendrier.map(g=>g.circuit).join());
+  }finally{REGLAGES.CALENDRIER_CIRCUITS=avant;if(ancien===null)localStorage.removeItem(SAUVEGARDE.CLE);else localStorage.setItem(SAUVEGARDE.CLE,ancien);}});
 // --- la météo (étape 12, meteo.js, Codeur 1 ; tour 33)
 const SEC={prevision:{type:'sec',pourcent:0},debut:0,change:null},MOUILLE={prevision:{type:'pluie',pourcent:100},debut:0.9,change:null};
 t('météo : le plan d’une course est tiré avec la graine du Grand Prix selon le lieu (la même graine, le même plan) ; Spaa pleut souvent, Bahrayn presque jamais, les circuits d’essai jamais', ()=>{

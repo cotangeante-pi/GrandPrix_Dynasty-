@@ -257,6 +257,9 @@ const REGLAGES = {
   NB_GRANDS_PRIX: 12,
   // les 12 Grands Prix d'une saison, dans l'ordre (les tracés de circuits-officiels-a.js et -b.js ; tour 32)
   CALENDRIER_CIRCUITS: ['bahrayn', 'melbourn', 'suzuko', 'montreol', 'monoco', 'barcelana', 'silverstoun', 'spaa', 'monzo', 'singapura', 'interlagas', 'yasmarino'],
+  // les circuits d'essai, jamais au calendrier d'une saison : une vieille sauvegarde qui les a encore (le calendrier d'avant le tour 32)
+  // repasse sur les 12 tracés au chargement (championnat.js : remettreCalendrier, tour 48b)
+  CIRCUITS_ESSAI: ['test', 'technique'],
   GRAINE_CHAMPIONNAT: 5000,     // les caractères des 19 pilotes IA sont tirés avec la graine du championnat + ce nombre
   ECURIE_JOUEUR: 9,             // le joueur est le 2e pilote de cette écurie (une des plus faibles)
   NOM_JOUEUR: null,             // null : le nom par défaut, texte('nomJoueur') (« You » / « Toi ») ; la création du pilote (étape 6) le remplira

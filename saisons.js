@@ -239,8 +239,7 @@ const SAISONS = (function () {
     ch.resultats = [];
     for (const p of ch.pilotes) { p.stats.points = 0; p.places = []; }
     for (const e of ch.ecuries) e.points = 0;
-    ch.calendrier = [];
-    for (let i = 0; i < R.NB_GRANDS_PRIX; i++) ch.calendrier.push({ numero: i + 1, circuit: R.CALENDRIER_CIRCUITS[i % R.CALENDRIER_CIRCUITS.length] });
+    ch.calendrier = CHAMPIONNAT.calendrierNeuf();   // toujours les tracés de CALENDRIER_CIRCUITS
     ch.enFinDeSaison = false;
     ch.transferts = intentions(ch);   // les transferts de la nouvelle saison, décidés d'avance (les rumeurs du journal)
     CHAMPIONNAT.completer(ch);   // le duel repart de 0 pour la nouvelle saison (et le nouveau coéquipier)

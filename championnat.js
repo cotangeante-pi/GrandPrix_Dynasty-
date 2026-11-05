@@ -31,9 +31,33 @@ const CHAMPIONNAT = (function () {
       }
     }
     ALEATOIRE.semer();
-    const calendrier = [];
-    for (let i = 0; i < R.NB_GRANDS_PRIX; i++) calendrier.push({ numero: i + 1, circuit: R.CALENDRIER_CIRCUITS[i % R.CALENDRIER_CIRCUITS.length] });
-    return completer({ graine, saison: 1, prochain: 0, calendrier, ecuries, pilotes, resultats: [], duel: null, album: [] });
+    return completer({ graine, saison: 1, prochain: 0, calendrier: calendrierNeuf(), ecuries, pilotes, resultats: [], duel: null, album: [] });
+  }
+
+  // le calendrier d'une saison neuve : les NB_GRANDS_PRIX Grands Prix sur les tracés de CALENDRIER_CIRCUITS, dans l'ordre
+  // (creer et SAISONS.nouvelleSaison)
+  function calendrierNeuf() {
+    const cal = [];
+    for (let i = 0; i < R.NB_GRANDS_PRIX; i++) cal.push({ numero: i + 1, circuit: R.CALENDRIER_CIRCUITS[i % R.CALENDRIER_CIRCUITS.length] });
+    return cal;
+  }
+
+  // (tour 48b) une sauvegarde d'avant le 2026-10-27 (13bbb85) garde l'ancien calendrier d'essai ['test', 'technique'] : chaque Grand
+  // Prix pas encore couru sur un circuit d'essai (CIRCUITS_ESSAI) absent de CALENDRIER_CIRCUITS reprend le tracé de sa place dans le
+  // calendrier actuel ;
+  // les Grands Prix courus, les points, les résultats et l'argent ne bougent pas. L'objectif de sponsor « dans les 5 premiers à … »
+  // sur un circuit remplacé suit le premier Grand Prix à venir qui était sur ce circuit
+  function remettreCalendrier(ch) {
+    if (!Array.isArray(ch.calendrier)) return;
+    const cal = R.CALENDRIER_CIRCUITS, debut = typeof ch.prochain === 'number' ? ch.prochain : 0, remplace = {};
+    ch.calendrier.forEach((gp, i) => {
+      if (i < debut || !gp || cal.includes(gp.circuit) || !R.CIRCUITS_ESSAI.includes(gp.circuit)) return;   // (un calendrier fabriqué par un test, avec un vrai tracé, reste tel quel)
+      const neuf = cal[i % cal.length];
+      if (!(gp.circuit in remplace)) remplace[gp.circuit] = neuf;
+      gp.circuit = neuf;
+    });
+    const s = ch.sponsor;
+    if (s && Array.isArray(s.objectifs)) for (const o of s.objectifs) if (o.type === 'top5Circuit' && !o.fait && o.circuit in remplace) o.circuit = remplace[o.circuit];
   }
 
   function pointsPour(place) {
@@ -156,6 +180,7 @@ const CHAMPIONNAT = (function () {
 
   // une sauvegarde d'une ancienne version : ce qui manque est ajouté (sauvegarde.js, migrer)
   function completer(ch) {
+    remettreCalendrier(ch);   // (tour 48b) l'ancien calendrier d'essai d'une sauvegarde d'avant le 2026-10-27 : les GP à venir sur les vrais tracés
     if (ch.pilotes) duelDe(ch);   // (une sauvegarde de test peut n'avoir que des pilotes)
     if (!ch.album) ch.album = [];   // l'album des unes du journal (journal.js) : vide dans une sauvegarde d'avant
     if (typeof JOURNAL !== 'undefined') JOURNAL.completer(ch);   // la saison de chaque une (une sauvegarde d'avant le tour 28c)
@@ -269,6 +294,6 @@ const CHAMPIONNAT = (function () {
     return ordre.map((v, i) => ({ k: k(v), place: i + 1, grille: grille.indexOf(v.numero) + 1, meilleurTour: v.meilleurTour, classe: !!v.fini }));
   }
 
-  return { calendrierSaison, creer, pointsPour, enregistrerCourse, finirGrandPrix, classementPilotes, classementEcuries, lignesDepuisCourse, lignesDepuisSimulation, appliquerNiveaux, simulerGrandPrix,
+  return { calendrierSaison, calendrierNeuf, creer, pointsPour, enregistrerCourse, finirGrandPrix, classementPilotes, classementEcuries, lignesDepuisCourse, lignesDepuisSimulation, appliquerNiveaux, simulerGrandPrix,
     coequipierDe, gagnantDuel, scoreDuel, completer };
 })();
