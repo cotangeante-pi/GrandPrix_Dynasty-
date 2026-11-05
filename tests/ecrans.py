@@ -149,9 +149,7 @@ PAGES = [
     ('index.html?ia=20&course=1&circuit=test&mesure=1&ips=1', 1280, 720, None),   # la mesure des images par seconde du propriétaire (tour 45) : 20 voitures, caméra de course, « Copier » ; capture mesure.png
     # la personnalisation (tour 48c, Codeur 3) : « Ma voiture » (livrée, numéro, célébration) et la boutique depuis le garage ; les appels de
     # dessin avec et sans livrée ; l'essai d'un skin (seul sur le test, sa célébration, le résumé, « Acheter ») ; captures livree*.png, boutique*.png, essai*.png
-    ('index.html?championnat=1&test=livree', 1280, 720, None),
-    ('index.html?championnat=1&lang=en&test=livree', 1280, 720, None),
-    ('index.html?championnat=1&test=livree', 960, 600, None),
+    ('index.html?championnat=1&test=livree', 1280, 720, None),   # (deux pages seulement : les tranches de GitHub approchent de leurs 600 s)
     ('index.html?championnat=1&lang=en&test=livree', 960, 600, None),
     ('index.html?course=1&ia=9&joueur=1&circuit=test&test=livree-appels', 1280, 720, None),
     ('index.html?course=1&circuit=test&essai=celebration_feux&robot=1&test=essai', 1280, 720, None),
