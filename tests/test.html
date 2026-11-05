@@ -2395,6 +2395,18 @@ t('aides et journal : « sans les petites roues » à la première course sans a
     u=gp(place(1),TOUTES);v(u.f==='victoire','deuxième victoire en légende : '+u.f);
   }finally{R_.NIVEAU=niv;localStorage.removeItem(SAUVEGARDE.CLE);}
   for(const k of ['sansAideVictoire','sansAidePodium','sansAidePremiere','legendeVictoire']) for(const l of ['en','fr']) v(TEXTES[l]['uneTitre_'+k].length>=3&&TEXTES[l]['uneTexte_'+k].length>=2,l+' '+k);});
+// (tour 48b) le drift caché : les textes de la victoire en légende parlent de la voiture qui glisse (une, interview, discussions, patrons) :
+// plus aucun avec PNEU_DRIFT faux ; une victoire en légende est une victoire ; un vieil exploit en légende sauvegardé est oublié
+t('drift caché : la victoire en légende n’a plus ses textes de glisse (une, interview, discussions), c’est une victoire ; rallumé, ils reviennent', ()=>{
+  const R_=REGLAGES,av=[R_.NIVEAU,R_.PNEU_DRIFT],TOUTES={direction:true,freinage:true,antiblocage:true,antipatinage:true};
+  const P=[...Array(19).keys()],premier=[19].concat(P);
+  try{R_.NIVEAU='legende';R_.PNEU_DRIFT=false;
+    const ch=CHAMPIONNAT.creer(79);v(INTERVIEW.question(ch,itwLignes(premier),TOUTES).fait!=='legende','interview caché : '+INTERVIEW.question(ch,itwLignes(premier),TOUTES).fait);
+    CHAMPIONNAT.finirGrandPrix(ch,lignesUne(premier),TOUTES);const u=ch.album[ch.album.length-1];v(u.f!=='legendeVictoire'&&!(ch.exploitAides&&ch.exploitAides.f==='legendeVictoire'),'une cachée : '+u.f);
+    const vieux=CHAMPIONNAT.creer(80);vieux.exploitAides={f:'legendeVictoire',gp:1,saison:1,circuit:'test',place:1};CHAMPIONNAT.completer(vieux);v(!vieux.exploitAides,'vieil exploit');
+    R_.PNEU_DRIFT=true;const ch2=CHAMPIONNAT.creer(81);v(INTERVIEW.question(ch2,itwLignes(premier),TOUTES).fait==='legende','interview rallumée');
+    CHAMPIONNAT.finirGrandPrix(ch2,lignesUne(premier),TOUTES);v(ch2.album[ch2.album.length-1].f==='legendeVictoire'&&ch2.exploitAides.f==='legendeVictoire','une rallumée');
+  }finally{[R_.NIVEAU,R_.PNEU_DRIFT]=av;localStorage.removeItem(SAUVEGARDE.CLE);}});
 t('aides et interview : la question sur les aides (première course sans aide, premier podium sans aide ; victoire en légende), avec les trois tons ; rien avec les aides ni sans les aides de la course', ()=>{
   const R_=REGLAGES,niv=R_.NIVEAU,SANS={direction:false,freinage:false,antiblocage:false,antipatinage:false},TOUTES={direction:true,freinage:true,antiblocage:true,antipatinage:true};
   const ch=CHAMPIONNAT.creer(78);
