@@ -2259,6 +2259,11 @@ PADDOCK_DEDANS = """() => { const out = [], L = innerWidth, H = innerHeight;
   return { out, page: page && page.dataset.page, defile: [document.documentElement.scrollHeight, H, document.documentElement.scrollWidth, L],
     fixes: [...document.querySelectorAll('#championnat button')].filter(b => getComputedStyle(b).position === 'fixed').map(b => b.id),
     son: document.getElementById('boutonSon').getBoundingClientRect().width }; }"""
+ECRAN_DEDANS = """(id) => { const out = [], ec = document.getElementById(id);
+  for (const e of ec.querySelectorAll('button, li, h1, p, canvas, select, input, label')) { const r = e.getBoundingClientRect(); if (!r.width || !r.height) continue;
+    if (r.left < -1 || r.top < -1 || r.right > innerWidth + 1 || r.bottom > innerHeight + 1) out.push((e.id || e.className || e.tagName) + ' ' + Math.round(r.top) + '→' + Math.round(r.bottom)); }
+  const retour = [...ec.querySelectorAll('button')].find(b => /Retour$/.test(b.id)), rr = retour && retour.getBoundingClientRect();
+  return { ecran: JEU.ecran, out, retour: !!rr && rr.width > 0 && rr.bottom <= innerHeight + 1, defile: [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth] }; }"""
 def paddock_menu(pg, titre, l, h, lang):
     attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', None, 60000)
     pg.evaluate('() => { if (typeof AIDES_ECRAN !== "undefined") { REGLAGES.AIDES_ACTIVES = false; AIDES_ECRAN.fermer(); } }')   # (la bulle d'aide ne compte pas ici : aides-menus la teste)
@@ -2289,9 +2294,17 @@ def paddock_menu(pg, titre, l, h, lang):
     pg.click('#boutonVoirTout')
     t(f'{titre} : « Voir tout » ouvre la page Saison (les classements complets)', pg.evaluate('() => INTERFACE.pageActive() === "saison" && document.querySelectorAll("#championnatPilotes li").length === 20'))
     pg.click('#menuEquipe'); pg.click('#boutonGarage'); attendre(pg, '() => JEU.ecran === "garage"')
-    if h >= 600: pg.click('#boutonGarageRetour')
-    else: pg.evaluate('() => quitterGarage()')   # (le garage lui-même n'est pas fait pour 640×360 : son « Retour » sort de l'écran, noté au compte rendu du tour 48a)
+    pg.click('#boutonGarageRetour')
     t(f'{titre} : au retour du garage, le paddock est resté sur « Mon équipe »', attendre(pg, '() => JEU.ecran === "championnat" && INTERFACE.pageActive() === "equipe" && !document.getElementById("pageEquipe").classList.contains("cache")'))
+    # (tour 48a-2) les écrans ouverts depuis les pages du paddock tiennent aussi dans l'écran (le garage, l'aileron, « Ma voiture », la boutique),
+    # ouverts par leurs fonctions (sous swiftshader, l'aperçu 3D de « Ma voiture » fait attendre les clics de Playwright)
+    for nom, ouvrir, fermer in (('garage', 'montrerGarage()', 'quitterGarage()'), ('aileron', 'montrerGarage(); montrerAileron()', 'quitterAileron(); quitterGarage()'),
+                                ('livree', 'montrerMaVoiture()', 'quitterLivree()'), ('boutique', 'montrerBoutique()', 'quitterBoutique()')):
+        pg.evaluate('() => { ' + ouvrir + ' }'); pg.wait_for_timeout(400)
+        e = pg.evaluate(ECRAN_DEDANS, nom)
+        if l == 640: pg.screenshot(path=os.path.join(CAPTURES, f'paddock-{nom}-{lang}-{l}.png'))
+        pg.evaluate('() => { ' + fermer + ' }'); pg.wait_for_timeout(200)
+        t(f'{titre} : l’écran « {nom} » (depuis le paddock) tient dans l’écran, son « Retour » compris, sans défilement', e['ecran'] == nom and not e['out'] and e['retour'] and pas_de_defilement(e['defile']), str(e))
     garde = pg.evaluate('() => localStorage.getItem(SAUVEGARDE.CLE)')
     pg.click('#menuReglages'); pg.click('#boutonNouvelleCarriereZero'); pg.click('#boutonCarriereOui'); pg.wait_for_timeout(200)
     d = pg.evaluate(PADDOCK_DEDANS)
