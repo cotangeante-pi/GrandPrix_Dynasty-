@@ -109,7 +109,7 @@ def recoins(delai=2400):
     return p.returncode == 0
 
 # (stands.html, 30 courses de 12 tours, est une partie à lui : sur GitHub, chaque partie tourne dans son propre travail, en parallèle ;
-# ecrans y est découpé en tranches par ECRANS_TRANCHE=k/n, voir .github/workflows/tests.yml)
+# ecrans y est découpé en 6 tranches par ECRANS_TRANCHE=k/n, voir .github/workflows/tests.yml)
 PARTIES = {'moteur': lambda: serie('tests/test.html'), 'courses': lambda: all([serie('tests/courses.html'), serie('tests/courses.html?ailerons=1')]), 'stands': lambda: serie('tests/stands.html', delai=1200), 'consignes': lambda: serie('tests/consignes.html', delai=1200), 'officiels': lambda: serie('tests/officiels.html', delai=1500), 'meteo': lambda: serie('tests/meteo.html', delai=1500), 'ecrans': lambda: ecrans(), 'annexes': annexes, 'paquet': paquet, 'saison': lambda: saison(), 'premier': lambda: premier(), 'recoins': lambda: recoins()}
 
 def tests(parties=tuple(PARTIES)):
