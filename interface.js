@@ -426,7 +426,7 @@ const INTERFACE = (function () {
     for (const m of CASQUE.tousLesMotifs()) {
       const o = document.createElement('option'), ok = CASQUE.permis(m, debloques);
       o.value = m; o.disabled = !ok;
-      o.textContent = texte('motif_' + m) + (ok ? '' : ' — 🔒 ' + texte('deblocage_' + REGLAGES.CASQUE_DEBLOCAGES[m]).replace('{n}', REGLAGES.CASQUE_PODIUMS_DEBLOCAGE));
+      o.textContent = texte('motif_' + m) + (ok ? '' : ' — 🔒 ' + CASQUE.condition(m));   // (un exploit, ou la boutique : tour 48c)
       select.appendChild(o);
     }
   }

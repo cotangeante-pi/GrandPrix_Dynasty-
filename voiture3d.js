@@ -73,18 +73,106 @@ const VOITURE3D = (function () {
     apercu.rendu.render(apercu.scene, apercu.camera);
   }
 
-  // un paquet de pièces à fusionner : positions, normales, couleurs
-  function paquet() {
-    return { pos: [], nor: [], col: [] };
+  // --- l'atlas des livrées (livree.js, tour 48c) : une case par voiture dessinée une fois dans un canvas, UNE texture et UN
+  // matériau pour toutes les carrosseries (couleur des sommets × texture). Les pièces de la livrée ont des sommets blancs et
+  // prennent leur case ; les autres (carbone, noir) gardent leur couleur et lisent la zone blanche de la case : aucun appel de
+  // dessin en plus. Sans atlas (LIVREE_ACTIVE faux, pages sans livrées), la voiture d'avant, d'une seule couleur
+  let atlasL = null;   // { canvas, ctx, texture, materiau, livrees, colonnes, lignes, t, largeur, hauteur }
+  function dessinerCaseLivree(i) {
+    const t = atlasL.t;
+    LIVREE.dessiner(atlasL.ctx, (i % atlasL.colonnes) * t, Math.floor(i / atlasL.colonnes) * t, t, atlasL.livrees[i]);
+  }
+
+  // les livrées des voitures de la page, dans l'ordre des voitures : [{ couleur1, couleur2, motif, numero, drapeau }] (LIVREE.pourVoiture)
+  function preparerLivrees(liste) {
+    if (!R.LIVREE_ACTIVE || typeof LIVREE === 'undefined' || !liste || !liste.length) { atlasL = null; return; }
+    const n = liste.length, colonnes = Math.ceil(Math.sqrt(n)), lignes = Math.ceil(n / colonnes), t = R.LIVREE_ATLAS_CASE;
+    const canvas = document.createElement('canvas');
+    canvas.width = colonnes * t; canvas.height = lignes * t;
+    const texture = new THREE.CanvasTexture(canvas);
+    if (THREE.SRGBColorSpace !== undefined) texture.colorSpace = THREE.SRGBColorSpace;
+    atlasL = { canvas, ctx: canvas.getContext('2d'), texture, materiau: new THREE.MeshLambertMaterial({ vertexColors: true, map: texture }), livrees: liste.slice(), colonnes, lignes, t, largeur: canvas.width, hauteur: canvas.height };
+    liste.forEach((d, i) => dessinerCaseLivree(i));
+    texture.needsUpdate = true;
+  }
+
+  // la livrée i a changé (l'éditeur « Ma voiture ») : sa case est redessinée
+  function majLivree(i, d) {
+    if (!atlasL || i < 0 || i >= atlasL.livrees.length) return;
+    atlasL.livrees[i] = d;
+    dessinerCaseLivree(i);
+    atlasL.texture.needsUpdate = true;
+  }
+
+  // la plaque du numéro sur le nez et les dérives de l'aileron arrière (m, repère du modèle) : leur étendue, projetée dans leur zone
+  const NEZ = { x0: 1.9, x1: 2.6, z: 0.15 }, DERIVE = { x0: -2.7, x1: -2.1, y0: 0.425, y1: 1.075 };
+  const borne = f => f < 0.02 ? 0.02 : f > 0.98 ? 0.98 : f;
+  // les coordonnées de texture d'un sommet (x, y, z, sa normale) : sa zone de la case cl ({ col, lig }) selon la pièce (sorte : 'livree',
+  // 'nez', 'derive', ou null pour une pièce sans livrée) et le sens de sa face ; la gauche des bandes est l'arrière de la voiture
+  function uvLivree(cl, sorte, x, y, z, nx, ny, nz) {
+    const E = LIVREE.ETENDUE, ax = Math.abs(nx), ay = Math.abs(ny), az = Math.abs(nz), lx = (x - E.xMin) / (E.xMax - E.xMin);
+    let zone = 'BLANC', fx = 0.5, fy = 0.5;
+    if (sorte === 'nez') { zone = 'NEZ'; if (ny > 0 && ay >= ax && ay >= az) { fx = (z + NEZ.z) / (2 * NEZ.z); fy = (NEZ.x1 - x) / (NEZ.x1 - NEZ.x0); } else fx = fy = 0.03; }
+    else if (sorte === 'derive') { zone = 'DERIVE'; if (az >= ax && az >= ay) { fx = (nz > 0 ? x - DERIVE.x0 : DERIVE.x1 - x) / (DERIVE.x1 - DERIVE.x0); fy = (DERIVE.y1 - y) / (DERIVE.y1 - DERIVE.y0); } else fx = fy = 0.03; }
+    else if (sorte === 'livree') {
+      if (ay >= ax && ay >= az) { zone = 'DESSUS'; fx = lx; fy = (z - E.zMin) / (E.zMax - E.zMin); }
+      else { zone = 'COTE'; fx = az >= ax ? lx : (nx > 0 ? 0.82 : 0) + 0.18 * (z - E.zMin) / (E.zMax - E.zMin); fy = (E.yMax - y) / (E.yMax - E.yMin); }   // (les faces avant et arrière : le bout de la bande)
+    }
+    const Z = LIVREE.ZONES[zone], t = atlasL.t;
+    const px = (cl.col + Z[0] + borne(fx) * Z[2]) * t, py = (cl.lig + Z[1] + borne(fy) * Z[3]) * t;
+    return [px / atlasL.largeur, 1 - py / atlasL.hauteur];   // (la texture est retournée : v = 0 en bas du canvas)
+  }
+
+  // l'aperçu de la voiture qui tourne dans l'éditeur « Ma voiture » : un petit rendu à part sur le canvas donné, une voiture
+  // détaillée faite avec les mêmes atlas (sa case de casque et de livrée : l'éditeur redessine la case, l'aperçu suit)
+  let apercuV = null;
+  function apercuVoiture(canvas, couleur, casque, livree) {
+    if (!apercuV || apercuV.canvas !== canvas) {
+      const rendu = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+      rendu.setPixelRatio(Math.min(window.devicePixelRatio || 1, R.PIXEL_RATIO_MAX));
+      const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(30, canvas.width / canvas.height, 0.1, 40);
+      camera.position.set(0, 2.7, 7.8); camera.lookAt(0, 0.35, 0);
+      scene.add(new THREE.HemisphereLight(0xffffff, 0x445566, 0.95));
+      const soleil = new THREE.DirectionalLight(0xffffff, 0.75); soleil.position.set(3, 6, 4); scene.add(soleil);
+      apercuV = { canvas, rendu, scene, camera, modele: null, angle: 0.6 };
+    }
+    if (apercuV.modele) { apercuV.scene.remove(apercuV.modele.groupe); apercuV.modele.corps.geometry.dispose(); }
+    apercuV.modele = creer(couleur, true, undefined, casque, livree);
+    apercuV.scene.add(apercuV.modele.groupe);
+    return apercuV.modele;
+  }
+  // l'écran se ferme : le second rendu est rendu au navigateur (un contexte WebGL caché qui reste ouvert gêne l'image de la page)
+  function libererApercuVoiture() {
+    if (!apercuV) return;
+    if (apercuV.modele) apercuV.modele.corps.geometry.dispose();
+    apercuV.rendu.dispose(); apercuV.rendu.forceContextLoss();
+    apercuV.canvas.replaceWith(apercuV.canvas.cloneNode(false));   // (un canvas neuf : celui-ci a perdu son contexte pour toujours)
+    apercuV = null;
+  }
+  function tournerApercuVoiture(dt) {
+    if (!apercuV || !apercuV.modele) return;
+    apercuV.angle += R.LIVREE_APERCU_VITESSE * dt;
+    apercuV.modele.groupe.rotation.y = apercuV.angle;
+    apercuV.rendu.render(apercuV.scene, apercuV.camera);
+  }
+
+  // un paquet de pièces à fusionner : positions, normales, couleurs (et coordonnées de texture avec une case de livrée cl)
+  function paquet(cl) {
+    return { pos: [], nor: [], col: [], uv: [], cl: cl || null };
   }
 
   // ajoute une géométrie Three.js (déjà placée) au paquet, avec une couleur
   function ajouter(p, g, couleur) {
     const n = g.index ? g.toNonIndexed() : g;
-    const c = new THREE.Color(couleur);
+    const sorte = typeof couleur === 'string' ? couleur : null;   // une pièce de la livrée : 'livree', 'nez' ou 'derive' (sommets blancs)
+    const c = new THREE.Color(sorte ? 0xffffff : couleur);
     p.pos.push(...n.attributes.position.array);
     p.nor.push(...n.attributes.normal.array);
     for (let i = 0; i < n.attributes.position.count; i++) p.col.push(c.r, c.g, c.b);
+    if (p.cl) {
+      const a = n.attributes.position.array, b = n.attributes.normal.array;
+      for (let i = 0; i < n.attributes.position.count; i++) p.uv.push(...uvLivree(p.cl, sorte, a[3 * i], a[3 * i + 1], a[3 * i + 2], b[3 * i], b[3 * i + 1], b[3 * i + 2]));
+    }
     if (n !== g) n.dispose();
     g.dispose();
   }
@@ -103,6 +191,7 @@ const VOITURE3D = (function () {
     g.setAttribute('position', new THREE.Float32BufferAttribute(p.pos, 3));
     g.setAttribute('normal', new THREE.Float32BufferAttribute(p.nor, 3));
     g.setAttribute('color', new THREE.Float32BufferAttribute(p.col, 3));
+    if (p.uv.length) g.setAttribute('uv', new THREE.Float32BufferAttribute(p.uv, 2));
     return g;
   }
 
@@ -150,9 +239,11 @@ const VOITURE3D = (function () {
     for (const z of [-0.45, -0.15, 0.15, 0.45]) boite(p, 0.45, 0.16, 0.025, CARBONE, -2.3, 0.2, z, -0.3);
   }
 
-  // toutes les pièces fixes de la voiture, en une seule géométrie ; detaille : la voiture du joueur
-  function geometrieCorps(couleur, detaille) {
-    const p = paquet();
+  // toutes les pièces fixes de la voiture, en une seule géométrie ; detaille : la voiture du joueur ; cl : sa case dans l'atlas des
+  // livrées ({ col, lig }) : les pièces de la couleur de l'écurie prennent la livrée, les dérives de l'aileron arrière portent le numéro,
+  // et une plaque fine sur le nez aussi (quelques triangles, dans la même géométrie)
+  function geometrieCorps(couleurEcurie, detaille, cl) {
+    const p = paquet(cl), couleur = cl ? 'livree' : couleurEcurie, derive = cl ? 'derive' : CARBONE;
     // la coque, le nez, le capot moteur et la prise d'air au-dessus du pilote
     boite(p, 2.6, 0.5, 0.8, couleur, 0.1, 0.45, 0);
     boite(p, 1.7, 0.26, 0.36, couleur, 2.2, 0.33, 0, -0.08);
@@ -170,8 +261,9 @@ const VOITURE3D = (function () {
     // l'aileron arrière, ses dérives et son support
     boite(p, 0.45, 0.06, 1.0, CARBONE, -2.45, 0.98, 0);
     boite(p, 0.4, 0.06, 1.0, couleur, -2.4, 0.84, 0);
-    boite(p, 0.6, 0.65, 0.04, CARBONE, -2.4, 0.75, 0.52);
-    boite(p, 0.6, 0.65, 0.04, CARBONE, -2.4, 0.75, -0.52);
+    boite(p, 0.6, 0.65, 0.04, derive, -2.4, 0.75, 0.52);
+    boite(p, 0.6, 0.65, 0.04, derive, -2.4, 0.75, -0.52);
+    if (cl) boite(p, 0.7, 0.012, 0.3, 'nez', 2.25, 0.463, 0, -0.08);   // la plaque du numéro, posée sur le nez
     boite(p, 0.12, 0.45, 0.06, CARBONE, -2.3, 0.62, 0);
     // le halo (un arceau devant et au-dessus de la tête, posé sur un pilier) ; même orientation qu'au tour 3
     const [hx, hr] = R.HALO;
@@ -222,14 +314,16 @@ const VOITURE3D = (function () {
   // materiaux (facultatif, le fantôme) : { corps, casque } à la place des matériaux partagés ;
   // renvoie { groupe, roues, tete, corps, couleur, detaille }
   // casque (facultatif) : l'indice de la case de la voiture dans l'atlas des casques (preparerCasques)
-  function creer(couleur, detaille, materiaux, casque) {
+  // livree (facultatif) : l'indice de la case de la voiture dans l'atlas des livrées (preparerLivrees)
+  function creer(couleur, detaille, materiaux, casque, livree) {
     if (!materiauSommets) {
       materiauSommets = new THREE.MeshLambertMaterial({ vertexColors: true });
       materiauCasque = new THREE.MeshLambertMaterial({ color: COULEUR_CASQUE });
     }
-    const matCorps = materiaux ? materiaux.corps : materiauSommets, matCasque = materiaux ? materiaux.casque : (atlas ? atlas.materiau : materiauCasque);
+    const cl = !materiaux && atlasL && livree !== undefined && livree >= 0 && livree < atlasL.livrees.length ? { col: livree % atlasL.colonnes, lig: Math.floor(livree / atlasL.colonnes) } : null;
+    const matRoues = materiaux ? materiaux.corps : materiauSommets, matCorps = cl ? atlasL.materiau : matRoues, matCasque = materiaux ? materiaux.casque : (atlas ? atlas.materiau : materiauCasque);
     const groupe = new THREE.Group();
-    const corps = new THREE.Mesh(geometrieCorps(couleur, detaille), matCorps);
+    const corps = new THREE.Mesh(geometrieCorps(couleur, detaille, cl), matCorps);
     groupe.add(corps);
     const tete = new THREE.Mesh(materiaux ? new THREE.SphereGeometry(0.17, 10, 8) : geometrieTete(casque === undefined ? 0 : casque, 0.17, [10, 8]), matCasque);
     tete.position.set(0.2, 0.85, 0);
@@ -237,13 +331,13 @@ const VOITURE3D = (function () {
     // les roues : l'avant à CG_AVANT devant le centre, l'arrière à l'empattement derrière
     const xa = R.CG_AVANT, xr = R.CG_AVANT - R.EMPATTEMENT;
     const roues = [
-      roue(0.33, 0.36, xa, 0.85, true, matCorps), roue(0.33, 0.36, xa, -0.85, true, matCorps),
-      roue(0.35, 0.42, xr, 0.8, false, matCorps), roue(0.35, 0.42, xr, -0.8, false, matCorps),
+      roue(0.33, 0.36, xa, 0.85, true, matRoues), roue(0.33, 0.36, xa, -0.85, true, matRoues),
+      roue(0.35, 0.42, xr, 0.8, false, matRoues), roue(0.35, 0.42, xr, -0.8, false, matRoues),
     ];
     for (const r of roues) groupe.add(r.pivot);
     // une vraie voiture (pas le fantôme) peut être dessinée de loin en forme simple (scene3d.js : formeLointaine, toutes en un appel)
     if (!materiaux) groupe.userData.lointaine = { couleur: new THREE.Color(couleur) };
-    return { groupe, roues, tete, corps, couleur, detaille: !!detaille };
+    return { groupe, roues, tete, corps, couleur, detaille: !!detaille, cl };
   }
 
   // le fantôme du meilleur tour (fantome.js) : la même voiture légère, toute d'une couleur neutre et légèrement transparente,
@@ -261,7 +355,7 @@ const VOITURE3D = (function () {
   // le panneau de réglage change l'épaisseur du halo : on refait la géométrie du corps
   function majHalo(modele) {
     modele.corps.geometry.dispose();
-    modele.corps.geometry = geometrieCorps(modele.couleur, modele.detaille);
+    modele.corps.geometry = geometrieCorps(modele.couleur, modele.detaille, modele.cl);
   }
 
   // les triangles d'une voiture
@@ -343,5 +437,6 @@ const VOITURE3D = (function () {
     return { y, z: -d, angle: -braquage * R.VOLANT_FACTEUR, haut: (y + r * 1.2) / bas };
   }
 
-  return { creerVolant, poseVolant, creer, creerFantome, formeLointaine, placer, majHalo, triangles, appels, preparerCasques, majCasque, apercuCasque, tournerApercu, get atlas() { return atlas; } };
+  return { creerVolant, poseVolant, creer, creerFantome, formeLointaine, placer, majHalo, triangles, appels, preparerCasques, majCasque, apercuCasque, tournerApercu, get atlas() { return atlas; },
+    preparerLivrees, majLivree, apercuVoiture, libererApercuVoiture, tournerApercuVoiture, get atlasLivrees() { return atlasL; }, get apercuVoitureModele() { return apercuV && apercuV.modele; } };
 })();

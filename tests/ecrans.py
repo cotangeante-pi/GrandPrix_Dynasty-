@@ -147,6 +147,14 @@ PAGES = [
     ('index.html?tutoriel=visite&championnat=1&test=tuto-quitter', 960, 600, None),   # … passée en cours de route : rien ne reste dans la carrière
     ('index.html?course=3&circuit=test&test=son', 960, 600, None),   # le réglage du son (tour 44) : le pire mélange ne sature pas, le volume par famille, l'onglet caché et la pub coupent
     ('index.html?ia=20&course=1&circuit=test&mesure=1&ips=1', 1280, 720, None),   # la mesure des images par seconde du propriétaire (tour 45) : 20 voitures, caméra de course, « Copier » ; capture mesure.png
+    # la personnalisation (tour 48c, Codeur 3) : « Ma voiture » (livrée, numéro, célébration) et la boutique depuis le garage ; les appels de
+    # dessin avec et sans livrée ; l'essai d'un skin (seul sur le test, sa célébration, le résumé, « Acheter ») ; captures livree*.png, boutique*.png, essai*.png
+    ('index.html?championnat=1&test=livree', 1280, 720, None),
+    ('index.html?championnat=1&lang=en&test=livree', 1280, 720, None),
+    ('index.html?championnat=1&test=livree', 960, 600, None),
+    ('index.html?championnat=1&lang=en&test=livree', 960, 600, None),
+    ('index.html?course=1&ia=9&joueur=1&circuit=test&test=livree-appels', 1280, 720, None),
+    ('index.html?course=1&circuit=test&essai=celebration_feux&robot=1&test=essai', 1280, 720, None),
 ]
 # ECRANS_FILTRE=… (pendant le travail, sur le Mac) : seulement les pages dont l'adresse contient ce texte ; GitHub lance toujours tout
 if os.environ.get('ECRANS_FILTRE'): PAGES = [x for x in PAGES if os.environ['ECRANS_FILTRE'] in f'{x[0]} {x[1]}']   # (« adresse largeur » : « robot=1 960 »)
@@ -3093,6 +3101,116 @@ def INTERFACE_TEMPS(t, virgule='.'):
 
 # PAGES_FILTRE=<expression> (variable d'environnement, développement) : seulement les pages dont l'adresse y correspond
 if os.environ.get('PAGES_FILTRE'): PAGES = [x for x in PAGES if re.search(os.environ['PAGES_FILTRE'], x[0])]
+# --- la personnalisation (tour 48c, Codeur 3) : « Ma voiture » depuis le garage : la livrée (motif, couleur secondaire ; la couleur principale est
+# celle de l'écurie), le numéro, la célébration, la voiture qui tourne ; « Garder » sauvegarde ; puis la boutique (onglets, achat à l'argent du
+# championnat, 📺 avec le faux SDK) ; rien ne déborde ; après rechargement, tout est là
+# un clic par la page (element.click()) : sous swiftshader, l'aperçu 3D de « Ma voiture » (un second rendu) ralentit tant la page
+# que le clic de Playwright attend plus de 30 s qu'elle lui réponde
+def clic(pg, sel):
+    pg.evaluate('s => document.querySelector(s).click()', sel)
+
+def livree_ecran(pg, titre, l, h, page):
+    suffixe = ('-en' if 'lang=en' in page else '') + ('-960' if l == 960 else '')
+    def tient(sels):
+        b = pg.evaluate('ss => ss.map(s => { const e = document.querySelector(s); if (!e) return null; const r = e.getBoundingClientRect(); return [r.left, r.top, r.right, r.bottom]; })', sels)
+        d = pg.evaluate('() => [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth]')
+        return all(x is not None and x[0] >= -1 and x[1] >= -1 and x[2] <= l + 1 and x[3] <= h + 1 and x[2] > x[0] for x in b) and pas_de_defilement(d), str([b, d])
+    t(f'{titre} : le paddock', attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', None, 30000))
+    pg.evaluate('() => { ARGENT.crediter(JEU.championnat, 150000, "test"); SAUVEGARDE.ecrireChampionnat(JEU.championnat); montrerGarage(); }')
+    t(f'{titre} : le garage a « Ma voiture » et « Boutique »', attendre(pg, '() => JEU.ecran === "garage" && document.getElementById("boutonMaVoiture").textContent === texte("maVoiture") && document.getElementById("boutonBoutique").textContent === texte("boutique")'))
+    CASE = '() => { const a = VOITURE3D.atlasLivrees, i = indiceJoueur(), t = a.t; return Array.from(a.ctx.getImageData((i % a.colonnes) * t, Math.floor(i / a.colonnes) * t, t, t).data).join(); }'
+    case0 = pg.evaluate(CASE)
+    clic(pg, '#boutonMaVoiture')
+    e = pg.evaluate('''() => ({ ecran: JEU.ecran, visible: !document.getElementById("livree").classList.contains("cache"), garage: document.getElementById("garage").classList.contains("cache"),
+      motifs: document.querySelectorAll("#livreeMotif option").length, bloques: [...document.querySelectorAll("#livreeMotif option")].filter(o => o.disabled).map(o => o.value).join(),
+      c1: document.getElementById("livreeC1Ligne").classList.contains("cache"), note: document.getElementById("livreeNote").textContent, numero: String(PILOTE.joueur(JEU.championnat).numero),
+      celebrations: document.querySelectorAll("#livreeCelebration option").length, apercu: !!VOITURE3D.apercuVoitureModele })''')
+    t(f'{titre} : « Ma voiture » : les motifs (ceux des skins grisés), la couleur secondaire seule (la principale est celle de l’écurie), le numéro, les célébrations, la voiture en 3D',
+      e['ecran'] == 'livree' and e['visible'] and e['garage'] and e['motifs'] == 11 and e['bloques'] == 'carbone,eclairs,galaxie,or,drapeau' and e['c1'] and e['numero'] in e['note'] and e['celebrations'] == 8 and e['apercu'], str(e))
+    pg.select_option('#livreeMotif', 'flammes')
+    pg.evaluate('() => { const c = document.getElementById("livreeC2"); c.value = "#111111"; c.dispatchEvent(new Event("input")); }')
+    pg.select_option('#livreeCelebration', 'drapeau')
+    t(f'{titre} : changer le motif et la couleur redessine la case de la voiture du joueur dans l’atlas des livrées, et sa célébration se joue sur l’aperçu',
+      pg.evaluate(CASE) != case0 and attendre(pg, '() => CELEBRATION.enCours && CELEBRATION.enCours.nom === "drapeau" && CELEBRATION.enCours.modele === VOITURE3D.apercuVoitureModele'), str(pg.evaluate('() => CELEBRATION.enCours && CELEBRATION.enCours.nom')))
+    ok_, det = tient(['#livreeTitre', '#livreeApercu', '#livreeMotif', '#livreeCelebration', '#boutonLivreeValider', '#boutonLivreeRetour'])
+    t(f'{titre} : « Ma voiture » tient en {l}×{h}', ok_, det)
+    pg.wait_for_timeout(700); pg.screenshot(path=os.path.join(CAPTURES, f'livree{suffixe}.png'))
+    clic(pg, '#boutonLivreeValider')
+    t(f'{titre} : « Garder » écrit la livrée et la célébration dans le championnat sauvegardé, et revient au garage',
+      attendre(pg, '() => { const j = PILOTE.joueur(SAUVEGARDE.championnat()); return JEU.ecran === "garage" && j.livree.motif === "flammes" && j.livree.couleur2 === 0x111111 && j.celebration === "drapeau" && !CELEBRATION.enCours && document.getElementById("livree").classList.contains("cache"); }'))
+    # la boutique
+    clic(pg, '#boutonBoutique')
+    b = pg.evaluate('() => ({ ecran: JEU.ecran, onglets: document.querySelectorAll("#boutiqueConteneur .boutiqueOnglets button").length, lignes: document.querySelectorAll("#boutiqueConteneur .skin").length, solde: document.querySelector("#boutiqueConteneur .boutiqueSolde").textContent })')
+    t(f'{titre} : la boutique (une seule : trois onglets), les livrées d’abord, le solde', b['ecran'] == 'boutique' and b['onglets'] == 3 and b['lignes'] == 5 and b['solde'] != '', str(b))
+    solde0 = pg.evaluate('() => ARGENT.solde(JEU.championnat)')
+    clic(pg, '#boutiqueConteneur .skin[data-id="livree_carbone"] button.acheter')
+    t(f'{titre} : « Acheter » : le skin est à toi, le solde baisse de son prix, le championnat est sauvegardé',
+      attendre(pg, '() => SAUVEGARDE.skins().includes("livree_carbone") && document.querySelector("#boutiqueConteneur .skin[data-id=\\"livree_carbone\\"]").dataset.etat === "possede"') and pg.evaluate('() => ARGENT.solde(SAUVEGARDE.championnat())') == solde0 - 60000,
+      str(pg.evaluate('() => [SAUVEGARDE.skins(), ARGENT.solde(SAUVEGARDE.championnat())]')))
+    clic(pg, '#boutiqueConteneur .skin[data-id="livree_galaxie"] button.pub')
+    t(f'{titre} : 📺 : une pub récompensée (rewardedBreak, regardée jusqu’au bout) donne le skin pour toujours',
+      attendre(pg, '() => SAUVEGARDE.skins().includes("livree_galaxie") && APPELS_SDK.includes("rewardedBreak")'), str(pg.evaluate('() => [SAUVEGARDE.skins(), APPELS_SDK]')))
+    clic(pg, '#boutiqueConteneur .boutiqueOnglets button[data-type="casque"]')
+    t(f'{titre} : l’onglet des casques', attendre(pg, '() => document.querySelectorAll("#boutiqueConteneur .skin").length === 3 && document.querySelector("#boutiqueConteneur .onglet.choisi").dataset.type === "casque"'))
+    ok_, det = tient(['#boutiqueConteneur .boutiqueTitre', '#boutiqueConteneur .boutiqueOnglets', '#boutiqueConteneur .boutiqueListe', '#boutonBoutiqueRetour'])
+    t(f'{titre} : la boutique tient en {l}×{h}', ok_, det)
+    pg.wait_for_timeout(300)
+    vu = pg.evaluate('() => [JEU.ecran, ...["boutique", "garage", "championnat", "livree", "pause"].filter(i => !document.getElementById(i).classList.contains("cache"))].join()')
+    t(f'{titre} : au moment de la capture, la boutique est l’écran visible', vu == 'boutique,boutique', vu)
+    clic(pg, '#boutonBoutiqueRetour')
+    t(f'{titre} : « Retour » ramène au garage', attendre(pg, '() => JEU.ecran === "garage" && document.getElementById("boutique").classList.contains("cache")'))
+    # après rechargement : la livrée, la célébration et les skins sont là ; le motif acheté n'est plus grisé
+    pg.reload()
+    attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', None, 30000)
+    # (la capture de la boutique : avant d'ouvrir « Ma voiture », dont le second rendu WebGL fige l'image des captures sous swiftshader)
+    pg.evaluate('() => montrerGarage()'); clic(pg, '#boutonBoutique'); clic(pg, '#boutiqueConteneur .boutiqueOnglets button[data-type="casque"]')
+    pg.wait_for_timeout(500); pg.screenshot(path=os.path.join(CAPTURES, f'boutique{suffixe}.png'))
+    clic(pg, '#boutonBoutiqueRetour'); clic(pg, '#boutonMaVoiture')
+    r = pg.evaluate('() => ({ motif: document.getElementById("livreeMotif").value, cel: document.getElementById("livreeCelebration").value, carbone: document.querySelector("#livreeMotif option[value=carbone]").disabled, galaxie: document.querySelector("#livreeMotif option[value=galaxie]").disabled, atlas: VOITURE3D.atlasLivrees.livrees[indiceJoueur()].motif })')
+    t(f'{titre} : après rechargement : la livrée (flammes, aussi sur la voiture), la célébration et les skins obtenus (plus grisés)', r == {'motif': 'flammes', 'cel': 'drapeau', 'carbone': False, 'galaxie': False, 'atlas': 'flammes'}, str(r))
+
+# les appels de dessin d'une course de 10 voitures, la même image avec et sans livrée (?livree=0) : aucun en plus (une texture, un matériau)
+def livree_appels(pg, titre, page):
+    MES = '''() => { BOUCLE.arreter(); const c = SCENE3D.camera, x = CIRCUIT.x[0], z = CIRCUIT.z[0]; c.position.set(x + 40 * CIRCUIT.nx[0], 30, z + 40 * CIRCUIT.nz[0]); c.lookAt(x, 0, z); c.updateMatrixWorld();
+      SCENE3D.dessiner(); return { appels: SCENE3D.appelsDessin, voitures: JEU.modeles.map(m => VOITURE3D.appels(m)).join(), atlas: !!VOITURE3D.atlasLivrees, triangles: VOITURE3D.triangles(JEU.modele) }; }'''
+    attendre(pg, '() => JEU.modeles.length === 10 && SCENE3D.trianglesDessines > 5000', None, 30000)
+    avec = pg.evaluate(MES)
+    pg.screenshot(path=os.path.join(CAPTURES, 'livree-grille.png'))
+    pg.goto('file://' + RACINE + '/' + page + '&livree=0'); pg.wait_for_timeout(1500)
+    attendre(pg, '() => JEU.modeles.length === 10 && SCENE3D.trianglesDessines > 5000', None, 30000)
+    sans = pg.evaluate(MES)
+    L.append(f"  (livrées : {avec['appels']} appels de dessin avec, {sans['appels']} sans ; la voiture du joueur {avec['triangles']} triangles avec, {sans['triangles']} sans)")
+    t(f'{titre} : avec les livrées, la même image a autant d’appels de dessin que sans (6 par voiture), une seule texture pour toutes', avec['atlas'] and not sans['atlas'] and avec['appels'] == sans['appels'] and avec['voitures'] == sans['voitures'] == ','.join(['6'] * 10), str([avec, sans]))
+
+# l'essai d'un skin avant l'achat : seul sur le circuit de test, hors championnat (aucun record), la célébration du skin à l'arrivée, le résumé
+# vidéo de l'essai, puis « Acheter » (l'argent du championnat) : la page revient au paddock, la boutique ouverte, le skin à toi
+def essai_ecran(pg, titre):
+    pg.evaluate('''() => { const ch = CHAMPIONNAT.creer(1); CASQUE.completer(ch); const j = PILOTE.joueur(ch); j.nom = "Léa"; j.numero = 27; j.pays = "it"; j.coeur = "monzo";
+      ARGENT.crediter(ch, 100000, "test"); SAUVEGARDE.ecrireChampionnat(ch); SAUVEGARDE.finirDecouverte(0); }''')
+    pg.reload(); pg.wait_for_timeout(1000)
+    e = pg.evaluate('() => ({ essai: ESSAI && ESSAI.id, plateau: !!JEU.plateau, bandeau: !document.getElementById("essaiBandeau").classList.contains("cache") && document.getElementById("essaiBandeau").textContent, numero: VOITURE3D.atlasLivrees.livrees[0].numero, circuit: NOM_CIRCUIT })')
+    t(f'{titre} : l’essai : seul (aucune IA) sur le circuit de test, le bandeau « rien n’est compté », la voiture du joueur (son numéro)', e['essai'] == 'celebration_feux' and not e['plateau'] and e['bandeau'] and e['numero'] == '27' and e['circuit'] == 'test', str(e))
+    # le robot conduit : après le GO, la physique avance sans affichage jusqu'à juste après l'arrivée (BOUCLE.simuler, comme course_robot)
+    attendre(pg, '() => JEU.course && JEU.course.etat === "course"', None, 30000)
+    pg.evaluate('() => { for (let i = 0; i < 300 && JEU.course.etat !== "finie"; i++) BOUCLE.simuler(0.5); }')
+    t(f'{titre} : à l’arrivée, la célébration du skin (feu d’artifice) se joue sur la voiture', attendre(pg, '() => JEU.course && JEU.course.etat === "finie" && CELEBRATION.enCours && CELEBRATION.enCours.nom === "feux" && CELEBRATION.enCours.modele === JEU.modele', None, 20000),
+      str(pg.evaluate('() => [JEU.ecran, JEU.course && JEU.course.etat, CELEBRATION.enCours && CELEBRATION.enCours.nom]')))
+    pg.wait_for_timeout(800); pg.screenshot(path=os.path.join(CAPTURES, 'essai-celebration.png'))
+    t(f'{titre} : puis le résumé vidéo de l’essai ; aucun record n’est gardé', attendre(pg, '() => JEU.ecran === "resume"', None, 60000) and pg.evaluate('() => Object.keys(SAUVEGARDE.lire().records).length === 0'), str(pg.evaluate('() => [JEU.ecran, SAUVEGARDE.lire().records]')))
+    pg.wait_for_timeout(1500); pg.screenshot(path=os.path.join(CAPTURES, 'essai-resume.png'))
+    pg.keyboard.press('Escape')
+    t(f'{titre} : la fin de l’essai : « Acheter · 80 000 € » et « Retour à la boutique »', attendre(pg, '() => JEU.ecran === "essaiFin" && !document.getElementById("essaiFin").classList.contains("cache") && /80/.test(document.getElementById("boutonEssaiAcheter").textContent) && document.getElementById("boutonEssaiRetour").textContent === texte("essaiRetour")'),
+      str(pg.evaluate('() => [JEU.ecran, document.getElementById("boutonEssaiAcheter").textContent]')))
+    pg.screenshot(path=os.path.join(CAPTURES, 'essai-fin.png'))
+    try:
+        with pg.expect_navigation(timeout=30000): clic(pg, '#boutonEssaiAcheter')
+    except Exception as x:
+        t(f'{titre} : « Acheter » recharge la page', False, str(x)[:200] + ' ' + str(pg.evaluate('() => [JEU.ecran, document.getElementById("essaiFinMessage").textContent, SAUVEGARDE.skins()]')))
+        return
+    t(f'{titre} : « Acheter » : la page revient au paddock, la boutique ouverte sur les célébrations, le skin à toi, 80 000 € de moins',
+      attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "boutique" && document.querySelector("#boutiqueConteneur .onglet.choisi").dataset.type === "celebration" && SAUVEGARDE.skins().includes("celebration_feux") && ARGENT.solde(JEU.championnat) === 20000', None, 30000),
+      str(pg.evaluate('() => typeof JEU !== "undefined" && [JEU.ecran, SAUVEGARDE.skins(), JEU.championnat && ARGENT.solde(JEU.championnat)]')))
+
 # ECRANS_TRANCHE=k/n (GitHub, les travaux en parallèle) : seulement la k-ième tranche des pages sur n (une page sur n, à partir de la k-ième) ;
 # chaque page a son propre contexte de navigateur, les tranches sont indépendantes
 if os.environ.get('ECRANS_TRANCHE'):
@@ -3115,7 +3233,7 @@ with sync_playwright() as p:
             pg.on('console', lambda m: console.append(m.type + ': ' + m.text) if m.type in ('error', 'warning') and not LECTURE_PIXELS.fullmatch(m.text) else None)
             pg.on('pageerror', lambda e: console.append('PAGEERROR ' + str(e)))
             pg.on('requestfailed', lambda r: console.append('FICHIER MANQUANT ' + r.url))
-            if 'test=sdk' in page or 'test=decouverte' in page or 'test=amis' in page or 'test=tournoi' in page: pg.add_init_script(FAUX_SDK)
+            if 'test=sdk' in page or 'test=decouverte' in page or 'test=amis' in page or 'test=tournoi' in page or 'test=livree' in page or 'test=essai' in page: pg.add_init_script(FAUX_SDK)
             # la météo dessinée (meteo3d.js) : une fausse météo de test (window.METEO_TEST, jamais dans le jeu), ?meteo=pluie ou ?meteo=risque
             if 'test=manette' in page: pg.add_init_script(FAUSSES_MANETTES)   # la manette (tour 38) : de fausses manettes
             if 'meteo=pluie' in page: pg.add_init_script('window.METEO_TEST = { etat: () => ({ pluie: 0.85, eau: 0.75, eauTrajectoire: 0.35, ciel: 0.9 }), prevision: () => ({ type: "pluie", risque: 90 }) };')
@@ -3150,7 +3268,7 @@ with sync_playwright() as p:
                 decouverte(pg, titre)
             if 'reglages=1' in page:
                 reglages(pg, titre)
-            if 'test=audit' not in page and 'robot=1' in page and 'championnat=1' not in page and 'joueur=1' not in page and 'test=sdk' not in page and 'pneus=1' not in page and 'test=decouverte' not in page and 'test=deux' not in page:   # (avec ?championnat=1 ou &joueur=1, le robot joue dans championnat() ou qualif() ; sdk() et pneus() ont leur page)
+            if 'test=audit' not in page and 'test=essai' not in page and 'robot=1' in page and 'championnat=1' not in page and 'joueur=1' not in page and 'test=sdk' not in page and 'pneus=1' not in page and 'test=decouverte' not in page and 'test=deux' not in page:   # (avec ?championnat=1 ou &joueur=1, le robot joue dans championnat() ou qualif() ; sdk() et pneus() ont leur page)
                 course_robot(pg, titre, page)
             if 'test=sdk' in page:
                 sdk(pg, titre)
@@ -3192,6 +3310,12 @@ with sync_playwright() as p:
                 assistance_ecran(pg, titre, page)
             if 'test=son' in page:
                 son_ecran(pg, titre)
+            if 'test=livree-appels' in page:
+                livree_appels(pg, titre, page)
+            elif 'test=livree' in page:
+                livree_ecran(pg, titre, l, h, page)
+            if 'test=essai' in page:
+                essai_ecran(pg, titre)
             if 'mesure=1' in page:
                 mesure_ecran(pg, titre)
             elif 'test=' not in page and 'mesure' not in page and l == 1280 and page.startswith('index.html?course='):
@@ -3206,6 +3330,7 @@ with sync_playwright() as p:
                 pluie_ecran(pg, titre, l, h)
             if 'test=prevision' in page:
                 prevision_ecran(pg, titre)
+            elif 'test=livree' in page or 'test=essai' in page: pass   # (la personnalisation : ses fonctions à elle, plus haut)
             elif 'test=aides-course' in page:
                 aides_course(pg, titre, l, h)
             elif 'test=aides-menus' in page:
@@ -3234,7 +3359,7 @@ with sync_playwright() as p:
                 accelere(pg, titre, page)
             elif 'championnat=1' in page:
                 championnat(pg, titre, l)
-            if 'test=accelere' in page or 'test=audit' in page or 'test=suivie' in page: pass   # (test=suivie : sa page à lui, plus haut ; sinon hud() recommencerait la qualification après le podium)
+            if 'test=accelere' in page or 'test=audit' in page or 'test=suivie' in page or 'test=livree' in page or 'test=essai' in page: pass   # (test=suivie : sa page à lui, plus haut ; sinon hud() recommencerait la qualification après le podium)
             elif 'test=aides' in page or 'test=tuto' in page: pass   # (les aides et le tutoriel : leurs pages à eux, plus haut)
             elif 'test=hudcourse' in page:
                 hud_course(pg, titre, l, h)

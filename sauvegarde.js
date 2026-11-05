@@ -12,7 +12,7 @@ const SAUVEGARDE = (function () {
     // réglages du joueur (fantome : le fantôme affiché, vrai par défaut) ; reaction : le meilleur temps de réaction au départ (s)
     // decouverteFaite : la course de découverte du premier lancement est jouée ; argent : l'argent du joueur (la prime de la découverte, pas encore dépensable)
     // temple : le temple de la renommée et les records de carrière (carriere.js), à côté du championnat : ils survivent à une nouvelle carrière
-    return { version: VERSION, records: {}, championnat: null, fantomes: {}, options: {}, reaction: null, decouverteFaite: false, argent: 0, cartes: {}, temple: { carrieres: [], records: {} }, deux: null, tournoi: null, motifs: [], motifsAnnonce: [], aides: [], tutoriel: [] };   // tutoriel : les leçons réussies (tutoriel.js)   // aides : les aides au premier usage déjà vues (aides.js), à la racine
+    return { version: VERSION, records: {}, championnat: null, fantomes: {}, options: {}, reaction: null, decouverteFaite: false, argent: 0, cartes: {}, temple: { carrieres: [], records: {} }, deux: null, tournoi: null, motifs: [], motifsAnnonce: [], aides: [], tutoriel: [], skins: [], skinsAnnonce: [], celebrations: [] };   // skins : les skins obtenus (boutique.js, tour 48c), à la racine   // tutoriel : les leçons réussies (tutoriel.js)   // aides : les aides au premier usage déjà vues (aides.js), à la racine
   }
 
   // une sauvegarde d'une ancienne version est transformée ici, sans rien perdre :
@@ -41,6 +41,9 @@ const SAUVEGARDE = (function () {
     if (!d.tournoi || typeof d.tournoi !== 'object') d.tournoi = null;
     if (!Array.isArray(d.motifs)) d.motifs = [];
     if (!Array.isArray(d.motifsAnnonce)) d.motifsAnnonce = [];   // les motifs gagnés pas encore annoncés à l'écran (une fois, au paddock)   // les motifs de casque débloqués (casque.js, tour 27b) : à la racine, ils survivent à une nouvelle carrière   // la dernière liste de joueurs du tournoi chrono et le tournoi en cours (tournoi.js, tour 26b), à part de la carrière   // les réglages et la rivalité du mode 2 joueurs (deux-joueurs.js, tour 25b), à part de la carrière
+    if (!Array.isArray(d.skins)) d.skins = [];   // les skins de la boutique obtenus (boutique.js, tour 48c) : à la racine, ils survivent à une nouvelle carrière
+    if (!Array.isArray(d.skinsAnnonce)) d.skinsAnnonce = [];
+    if (!Array.isArray(d.celebrations)) d.celebrations = [];   // les célébrations débloquées par un exploit (celebration.js) : à la racine, comme les motifs   // les skins gagnés (récompenses) pas encore annoncés
     if (!Array.isArray(d.tutoriel)) d.tutoriel = [];   // les leçons du tutoriel réussies (tutoriel.js, Codeur 4) : aucune dans une sauvegarde d'avant
     if (!Array.isArray(d.aides)) d.aides = [];   // les aides au premier usage déjà vues (aides.js, Codeur 4) : aucune dans une sauvegarde d'avant
     if (typeof CARRIERE !== 'undefined') d.temple = CARRIERE.completerTemple(d.temple);   // le temple de la renommée (tour 28c) : vide dans une sauvegarde d'avant
@@ -252,7 +255,46 @@ const SAUVEGARDE = (function () {
   // --- les motifs de casque débloqués (casque.js) : à la racine de la sauvegarde, ils survivent à une nouvelle carrière ; renvoie
   // les motifs nouveaux (pas encore débloqués)
   function motifs() {
-    return lire().motifs.slice();
+    const d = lire(), skins = typeof CASQUE !== 'undefined' ? skinsDe(d, 'casque') : [];   // (et les motifs de casque des skins obtenus, tour 48c)
+    return d.motifs.concat(skins.filter(m => !d.motifs.includes(m)));
+  }
+
+  // --- les skins de la boutique (boutique.js, tour 48c) : les identifiants obtenus (SKINS), à la racine ; skinsDe : les motifs d'un type
+  function skinsDe(d, type) {
+    return (REGLAGES.SKINS || []).filter(x => x.type === type && d.skins.includes(x.id)).map(x => x.motif);
+  }
+  function skins() {
+    return lire().skins.slice();
+  }
+  function motifsSkins(type) {
+    return skinsDe(lire(), type);
+  }
+  // un skin obtenu (acheté, pub regardée, récompense) : vrai s'il est nouveau ; annonce : à annoncer au paddock (une récompense)
+  function obtenirSkin(id, annonce) {
+    const d = lire();
+    if (d.skins.includes(id)) return false;
+    d.skins.push(id);
+    if (annonce) d.skinsAnnonce.push(id);
+    ecrire(d);
+    return true;
+  }
+  // les célébrations débloquées (celebration.js) : renvoie les nouvelles
+  function celebrations() {
+    return lire().celebrations.slice();
+  }
+  function debloquerCelebrations(liste) {
+    const d = lire(), nouvelles = (liste || []).filter(c => !d.celebrations.includes(c));
+    if (!nouvelles.length) return [];
+    d.celebrations.push(...nouvelles);
+    ecrire(d);
+    return nouvelles;
+  }
+  function prendreAnnonceSkins() {
+    const d = lire(), l = d.skinsAnnonce.slice();
+    if (!l.length) return [];
+    d.skinsAnnonce = [];
+    ecrire(d);
+    return l;
   }
 
   function debloquerMotifs(liste) {
@@ -296,5 +338,5 @@ const SAUVEGARDE = (function () {
     return ecrire(d);
   }
 
-  return { perdue: () => perdue, impossible: () => impossible, surAvis, tutoriel, reussirLecon, aides, ecrireAides, motifs, debloquerMotifs, prendreAnnonceMotifs, tournoi, ecrireTournoi, deux, ecrireDeux, temple, entrerAuTemple, lire, ecrire, record, proposerRecord, championnat, ecrireChampionnat, fantome, proposerFantome, option, ecrireOption, reaction, proposerReaction, decouverteFaite, argent, finirDecouverte, carte, ecrireCarte, VERSION, CLE };
+  return { celebrations, debloquerCelebrations, skins, motifsSkins, obtenirSkin, prendreAnnonceSkins, perdue: () => perdue, impossible: () => impossible, surAvis, tutoriel, reussirLecon, aides, ecrireAides, motifs, debloquerMotifs, prendreAnnonceMotifs, tournoi, ecrireTournoi, deux, ecrireDeux, temple, entrerAuTemple, lire, ecrire, record, proposerRecord, championnat, ecrireChampionnat, fantome, proposerFantome, option, ecrireOption, reaction, proposerReaction, decouverteFaite, argent, finirDecouverte, carte, ecrireCarte, VERSION, CLE };
 })();
