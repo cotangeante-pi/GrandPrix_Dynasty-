@@ -142,6 +142,7 @@ if(Q.get('techniques')!=='0'&&(!FILTRE||FILTRE.split(',').some(x=>['monoco','spa
 // les pneus adhérant / drift (tour 44) : le robot neutre, 3 tours, chaque pneu, sur les 12 tracés ; EXIGÉ : le drift devant sur 3 au moins,
 // l'adhérant sur 3 au moins, l'écart sous 1 % partout, le drift sans tête-à-queue ni barrière. ?drift=0 : sauté
 if(Q.get('drift')!=='0'&&!FILTRE){
+  REGLAGES.PNEU_DRIFT=true;   // (tour 48b) le drift caché dans le jeu : rallumé pour ce test (le tableau des pneus, gardé)
   t('pneus : le robot neutre sur les 12 tracés en adhérant et en drift : chacun devant sur 3 au moins, l’écart sous 1 %, le drift sans tête-à-queue ni barrière',()=>{
     const R=REGLAGES,av=R.PNEUS_ACTIFS;R.PNEUS_ACTIFS=false;let d=0,a=0,max=0;const lignes=[];
     try{for(const [cle,def] of Object.entries(TOUS)){const C=construireCircuit(def),m={};

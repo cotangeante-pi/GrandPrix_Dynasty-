@@ -68,9 +68,9 @@ function penaliteSansArret(etat, nbTours) {
 const PNEUS_CHOIX = {
   SECS: ['slick', 'drift'],
   // la liste des pneus du sec, dans l'ordre de l'écran
-  secs() { return PNEUS_CHOIX.SECS.slice(); },
+  secs() { return PNEUS_CHOIX.SECS.filter(t => t !== 'drift' || REGLAGES.PNEU_DRIFT); },   // (tour 48b : sans le drift caché)
   // tous les pneus (sec et pluie)
-  tous() { return typeof METEO !== 'undefined' ? METEO.TYPES.slice() : PNEUS_CHOIX.SECS.slice(); },
+  tous() { return typeof METEO !== 'undefined' ? METEO.TYPES.slice() : PNEUS_CHOIX.secs(); },
   estDrift(type) { return type === 'drift'; },
   // le pneu du départ choisi au garage (le championnat le garde jusqu'à la course : principal.js le pose sur la voiture du joueur)
   choisirDepart(ch, type) { if (ch && PNEUS_CHOIX.tous().includes(type)) ch.pneusDepart = type; return ch ? ch.pneusDepart : null; },

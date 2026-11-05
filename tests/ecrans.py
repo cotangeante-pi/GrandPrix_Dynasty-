@@ -106,7 +106,7 @@ PAGES = [
     ('index.html?championnat=1&meteo=risque&test=prevision', 1280, 720, None),
     ('index.html?course=3&ia=20&circuit=test&test=commentaire', 1280, 720, None),   # le commentateur (commentaire.js) dans le bandeau télé ; capture commentaire.png
     ('index.html?course=3&ia=20&circuit=monoco&test=tele', 1280, 720, None),
-    ('index.html?course=3&ia=9&joueur=1&robot=1&circuit=test&test=sensations&pneus=drift', 1280, 720, None),   # (tour 44 : la voiture vivante vient du pneu drift)
+    ('index.html?course=3&ia=9&joueur=1&robot=1&circuit=test&test=sensations&pneus=drift&drift=1', 1280, 720, None),   # (tour 44 : la voiture vivante vient du pneu drift)
     ('index.html?course=3&ia=5&joueur=1&robot=1&circuit=test&niveau=debutant&test=conseil', 1280, 720, None),   # la trajectoire conseillée (tour 39) : en débutant, d'office ; capture conseil.png
     ('index.html?course=3&ia=5&joueur=1&robot=1&circuit=test&niveau=normal&test=conseil', 960, 600, None),     # … en normal, aucune
     ('index.html?course=3&ia=9&joueur=1&robot=1&circuit=test&qualite=auto&test=qualite', 1280, 720, None),   # la qualité automatique (tour 40) : jusqu'à « basse » sous swiftshader, jamais pendant les feux ; capture qualite-basse.png
@@ -440,10 +440,9 @@ def fantome(pg, titre):
     L.append(f"  (appels de dessin pendant le tour de qualification : {appels1} sans le fantôme, {e['appels']} avec)")
     pg.screenshot(path=os.path.join(CAPTURES, 'fantome.png'))
     # les classes de l'écart : vert devant, rouge derrière, neutre à 0
-    pg.evaluate('() => INTERFACE.majEcartFantome(-0.34)')
-    vert = pg.evaluate('() => [document.getElementById("hudEcart").textContent, document.getElementById("hudEcart").className]')
-    pg.evaluate('() => INTERFACE.majEcartFantome(0.004)')
-    egal = pg.evaluate('() => [document.getElementById("hudEcart").textContent, document.getElementById("hudEcart").className]')
+    # (tour 48b) l'écart posé et lu dans le même appel : sans image entre les deux (avant, une image du jeu remettait l'écart du tour, « +1,10 »)
+    vert = pg.evaluate('() => { INTERFACE.majEcartFantome(-0.34); return [document.getElementById("hudEcart").textContent, document.getElementById("hudEcart").className]; }')
+    egal = pg.evaluate('() => { INTERFACE.majEcartFantome(0.004); return [document.getElementById("hudEcart").textContent, document.getElementById("hudEcart").className]; }')
     t(f'{titre} : « −0,34 » en vert quand le joueur est devant, « 0,00 » neutre à égalité', vert == ['−0' + pg.evaluate('() => texte("virgule")') + '34', 'vert'] and egal[1] == 'egal', str([vert, egal]))
     finir_tour(); image()
     r2 = pg.evaluate('''() => ({ etat: JEU.qualif.etat, temps: JEU.qualif.q.temps, record: SAUVEGARDE.fantome(NOM_CIRCUIT).temps, resultat: JEU.qualif.fantome, texte: document.getElementById("qualifFantome").textContent, visible: JEU.modeleFantome.groupe.visible })''')
@@ -908,8 +907,9 @@ def touches_deux(pg, titre, l, h):
     r = pg.evaluate('() => [1, 2].map(j => !document.getElementById("deuxRappel" + j).classList.contains("cache"))')
     t(f'{titre} : le joueur 1 a utilisé ses quatre commandes : son rappel s’efface, celui du joueur 2 reste', r == [False, True], str([r, pg.evaluate('() => JEU.rappelDeux')]))
     # le temps passe après l'extinction : le rappel du joueur 2 s'efface aussi (au plus DEUX_RAPPEL_DUREE s)
-    pg.evaluate('() => { JEU.rappelDeux.t = REGLAGES.DEUX_RAPPEL_DUREE; }'); pg.wait_for_timeout(300)
-    t(f'{titre} : DEUX_RAPPEL_DUREE s après l’extinction des feux, plus aucun rappel', pg.evaluate('() => document.querySelectorAll(".deuxRappel:not(.cache)").length') == 0)
+    # (tour 48b) on attend l'image qui les efface (sous swiftshader, 300 ms peuvent passer sans une image), 5 s au plus
+    pg.evaluate('() => { JEU.rappelDeux.t = REGLAGES.DEUX_RAPPEL_DUREE; }')
+    t(f'{titre} : DEUX_RAPPEL_DUREE s après l’extinction des feux, plus aucun rappel', attendre(pg, '() => document.querySelectorAll(".deuxRappel:not(.cache)").length === 0'), str(pg.evaluate('() => [document.querySelectorAll(".deuxRappel:not(.cache)").length, JEU.rappelDeux]')))
     pg.keyboard.press('Escape')
     p = pg.evaluate('() => ({ ecran: JEU.ecran, vu: !document.getElementById("pauseTouches").classList.contains("cache"), texte: document.getElementById("pauseTouches").innerText })')
     t(f'{titre} : dans le menu pause, les touches des deux joueurs (🔵 et 🔴)', p['ecran'] == 'pause' and p['vu'] and '🔵' in p['texte'] and '🔴' in p['texte'] and '↑' in p['texte'] and dans('#pause > *'), str(p))
@@ -1039,7 +1039,10 @@ def camera_suivie(pg, titre, page):
     e = pg.evaluate(SUIVIE_ETAT, k)
     t(f'{titre} : un clic sur une ligne du classement : la caméra suit ce pilote, la ligne est marquée, le bandeau « Caméra : Nom »', e['tele'] == k and e['choisi'] == k and e['suivie'] == [num] and e['bandeau'] and e['nom'] in e['texte'], str([k, num, e]))
     pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'camera-suivie.png'))
-    pg.click(f'#classementListe li[data-numero="{num}"]'); pg.wait_for_timeout(300)
+    pg.click(f'#classementListe li[data-numero="{num}"]')
+    # (la régie choisit sa voiture à l'image suivante : on attend qu'elle l'ait fait, au lieu de 300 ms qui, sous swiftshader, pouvaient
+    # passer sans une image ; vu sur GitHub le 2026-11-02, tele encore null)
+    attendre(pg, '() => JEU.attente && JEU.attente.tele !== null', None, 10000)
     e2 = pg.evaluate(SUIVIE_ETAT, k)
     t(f'{titre} : un second clic sur la même ligne : la régie reprend (plus de ligne marquée ni de bandeau)', e2['choisi'] is None and e2['suivie'] == [] and not e2['bandeau'] and e2['tele'] is not None, str(e2))
     pg.click(f'#classementListe li[data-numero="{num}"]'); pg.wait_for_timeout(200)
@@ -2482,7 +2485,8 @@ def garage_ecran(pg, titre, achat=True, capture='garage.png'):
     apres = pg.evaluate('() => [JEU.championnat.pneusDepart, SAUVEGARDE.championnat().pneusDepart, [...document.querySelectorAll("#garagePneus button.choisi")].map(x => x.dataset.pneu)]')
     pg.click('#garagePneus button[data-pneu="equipe"]')
     retour = pg.evaluate('() => JEU.championnat.pneusDepart')
-    t(f'{titre} : au garage, les pneus du départ : « Au choix de l’équipe » par défaut (l’adhérant), slicks, drift, intermédiaires, pluie ; « Pluie » choisi et sauvegardé, puis de nouveau l’équipe', pn['n'] == 5 and pn['choisi'] == ['equipe'] and pn['titre'].startswith('Pneus au départ') and apres == ['pluie', 'pluie', ['pluie']] and retour is None, str([pn, apres, retour]))
+    # (tour 48b) le drift caché : ni bouton ni texte « Drift » au garage
+    t(f'{titre} : au garage, les pneus du départ : « Au choix de l’équipe » par défaut (l’adhérant), slicks, intermédiaires, pluie (le drift caché : aucun bouton ni texte drift) ; « Pluie » choisi et sauvegardé, puis de nouveau l’équipe', pn['n'] == 4 and pg.evaluate('() => !/drift/i.test(document.getElementById("garage").innerText)') and pn['choisi'] == ['equipe'] and pn['titre'].startswith('Pneus au départ') and apres == ['pluie', 'pluie', ['pluie']] and retour is None, str([pn, apres, retour]))
     if not achat:
         t(f'{titre} : sans argent, tous les boutons « Acheter » sont grisés', not any(e['actifs']), str(e['actifs']))
     else:
@@ -3076,14 +3080,14 @@ def tuto_menu(pg, titre, l, h):
     m = pg.evaluate('''() => { const e = document.getElementById("tutoMenu"), li = [...e.querySelectorAll("#tutoListe li")], b = [...e.querySelectorAll("button")].map(x => x.getBoundingClientRect());
       return { vu: !e.classList.contains("cache"), n: li.length, etoiles: li.map(x => x.querySelector(".tutoEtoile").textContent).join(""), noms: li.map(x => x.querySelector(".tutoNom").textContent), dedans: b.every(x => x.left >= 0 && x.top >= 0 && x.right <= innerWidth && x.bottom <= innerHeight),
         defile: [document.documentElement.scrollHeight, innerHeight] }; }''')
-    t(f'{titre} : « Apprendre à piloter » : la liste des 8 leçons (numéro, nom, but, « Commencer » ; la 8e, la voiture vivante, tour 37j), aucune étoile encore, tout dans l’écran sans défilement',
-      m['vu'] and m['n'] == 8 and m['etoiles'] == '☆' * 8 and m['noms'][0].startswith('1. ') and m['dedans'] and m['defile'][0] <= m['defile'][1] + 2, str(m))
+    t(f'{titre} : « Apprendre à piloter » : la liste des 7 leçons (numéro, nom, but, « Commencer » ; la 8e, le drift, cachée avec le pneu drift, tour 48b), aucune étoile encore, aucun texte drift, tout dans l’écran sans défilement',
+      m['vu'] and m['n'] == 7 and m['etoiles'] == '☆' * 7 and pg.evaluate('() => !/drift/i.test(document.getElementById("tutoMenu").innerText)') and m['noms'][0].startswith('1. ') and m['dedans'] and m['defile'][0] <= m['defile'][1] + 2, str(m))
     pg.wait_for_timeout(400); pg.screenshot(path=os.path.join(CAPTURES, 'tuto-menu.png' if l == 1280 else 'tuto-menu-960.png'))
     pg.click('#boutonTutoRetour')
     t(f'{titre} : « Retour » referme la liste : l’écran titre est toujours là, « ▶ Jouer » mène toujours à la grille d’un clic', pg.evaluate('() => document.getElementById("tutoMenu").classList.contains("cache") && JEU.ecran === "titre"'))
     pg.evaluate('() => { SAUVEGARDE.reussirLecon("depart"); }')
     pg.click('#boutonTutorielTitre')
-    t(f'{titre} : une leçon réussie a son étoile dans la liste', pg.evaluate('() => [...document.querySelectorAll("#tutoListe .tutoEtoile")].map(x => x.textContent).join("") === "☆☆★☆☆☆☆☆"'), pg.evaluate('() => [...document.querySelectorAll("#tutoListe .tutoEtoile")].map(x => x.textContent).join("")'))
+    t(f'{titre} : une leçon réussie a son étoile dans la liste', pg.evaluate('() => [...document.querySelectorAll("#tutoListe .tutoEtoile")].map(x => x.textContent).join("") === "☆☆★☆☆☆☆"'), pg.evaluate('() => [...document.querySelectorAll("#tutoListe .tutoEtoile")].map(x => x.textContent).join("")'))
     with pg.expect_navigation(): pg.click('#tutoListe li:first-child button')
     t(f'{titre} : « Commencer » ouvre la leçon 1 (course seule, un tour)', attendre(pg, '() => typeof TUTORIEL_ECRAN !== "undefined" && TUTORIEL_ECRAN.lecon() === "conduite" && JEU.course && JEU.course.nbTours === 1 && !JEU.plateau', None, 20000), pg.url)
     with pg.expect_navigation(): pg.click('#boutonTutoPasser')
