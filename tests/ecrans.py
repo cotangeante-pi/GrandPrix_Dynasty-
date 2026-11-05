@@ -2041,7 +2041,7 @@ def reputation_paddock(pg, titre, attendu=None):
       and e['visible'] and (attendu is None or e['valeurs'] == attendu) and pas_de_defilement(e['defile']), str(e))
 # la fiche d'un rival avec une rivalité en cours : « “phrase” — circuit, saison N · rivalité : encore n courses »
 def fiche_rivalite(pg, titre, k, n):
-    pg.click(f'#championnatPilotes li[data-k="{k}"] .nom')
+    paddock_clic(pg, f'#championnatPilotes li[data-k="{k}"] .nom')
     e = pg.evaluate("""k => { const ch = JEU.championnat, p = ch.pilotes[k], rv = p.rivalite, $ = id => document.getElementById(id); return { ecran: JEU.ecran, texte: $("ficheRivalite").textContent, courses: rv ? rv.courses : null,
       nom: INTERFACE.nomPilote(p), circuit: rv ? (texte("circuit_" + rv.circuit) || CIRCUITS[rv.circuit].nom) : null, saison: ch.saison, defile: [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth] }; }""", k)
     t(f'{titre} : la fiche du rival montre la rivalité : « “phrase” — circuit, saison N · rivalité : encore {n} courses », la phrase le nomme, sans défilement',
@@ -2125,7 +2125,7 @@ def discussion_ecran(pg, titre, l, h, page):
     t(f'{titre} : le paddock', attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', None, 60000))
     pg.wait_for_timeout(300)
     k = pg.evaluate('() => { const co = CHAMPIONNAT.coequipierDe(JEU.championnat); return JEU.championnat.pilotes.find(p => !p.humain && p.id !== co.id).id; }')
-    pg.click(f'#championnatPilotes li[data-k="{k}"] .nom')
+    paddock_clic(pg, f'#championnatPilotes li[data-k="{k}"] .nom')
     attendre(pg, '() => JEU.ecran === "fiche"', None, 5000)
     pg.click('#boutonFicheDiscuter')
     t(f'{titre} : « Discuter » sur la fiche d’un rival ouvre la discussion, la saisie prête à écrire', attendre(pg, f'() => JEU.ecran === "discussion" && JEU.discussion.k === {k} && document.activeElement && document.activeElement.id === "discussionTexte"', None, 5000),
@@ -2262,8 +2262,9 @@ def paddock_menu(pg, titre, l, h, lang):
     for page, menu in MENU_PAGES.items():
         pg.click(menu); pg.wait_for_timeout(250)
         d = pg.evaluate(PADDOCK_DEDANS)
-        t(f'{titre} : la page « {page} » (un clic sur le menu) tient dans l’écran, sans défilement ni bouton coupé ; rien dans les coins, pas de 🔊 en double',
-          d['page'] == page and not d['out'] and pas_de_defilement(d['defile']) and not d['fixes'] and d['son'] == 0, str(d))
+        fr = re.search(MOTS_FR, pg.evaluate('() => document.getElementById("championnat").innerText')) if lang == 'en' else None
+        t(f'{titre} : la page « {page} » (un clic sur le menu) tient dans l’écran, sans défilement ni bouton coupé ; rien dans les coins, pas de 🔊 en double' + (' ; pas un mot français' if lang == 'en' else ''),
+          d['page'] == page and not d['out'] and pas_de_defilement(d['defile']) and not d['fixes'] and d['son'] == 0 and not fr, str([d, fr and fr.group(0)]))
         pg.screenshot(path=os.path.join(CAPTURES, f'paddock-{page}-{lang}-{l}.png'))
     pg.click('#menuCourse'); pg.wait_for_timeout(200)
     c = pg.evaluate("""() => { const b = document.getElementById('boutonCourseSuivante').getBoundingClientRect(), ch = JEU.championnat, cl = CHAMPIONNAT.classementPilotes(ch), co = CHAMPIONNAT.coequipierDe(ch);
@@ -2540,7 +2541,7 @@ FICHE_ETAT = '''k => { const ch = JEU.championnat, f = FICHE.fiche(ch, k), p = c
   historique: $("ficheHistorique"), duels: $("ficheDuels"), rivalite: $("ficheRivalite"), devant: f.duels.devant, derriere: f.duels.derriere, photo: document.getElementById("fichePhoto").getBoundingClientRect().width,
   defile: [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth] }; }'''
 def fiche_ecran(pg, titre, capture):
-    pg.click('#championnatPilotes li[data-k="3"] .nom')
+    paddock_clic(pg, '#championnatPilotes li[data-k="3"] .nom')
     f = pg.evaluate(FICHE_ETAT, 3)
     t(f'{titre} : un clic sur un rival ouvre sa fiche : nom, numéro, écurie, âge, caractère en mots, saison (place, points), historique, duels contre le joueur, la place de la photo, sans défilement',
       f['ecran'] == 'fiche' and f['nom'] == f['attenduNom'] and f['nom'] != '' and str(f['numero']) in f['infos'] and (str(f['age']) + ' ans') in f['infos'] and f['caractere'] == 'Caractère : ' + ', '.join(f['mots'])
