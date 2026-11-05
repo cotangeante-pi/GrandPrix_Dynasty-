@@ -3,7 +3,7 @@
 Pour chaque page : la console reste vide (ni erreur, ni avertissement, ni fichier manquant), la page ne défile
 pas, la scène 3D dessine le circuit. En plus : la conduite au clavier (avancer, tourner, freiner, Espace, C),
 l'interpolation de l'affichage, les caméras de survol, ?debug=1. Captures dans tests/captures/."""
-import base64, math, os, re, sys, time
+import base64, json, math, os, re, sys, time
 try:
     from playwright.sync_api import sync_playwright
 except ImportError:
@@ -3345,9 +3345,19 @@ def essai_ecran(pg, titre):
 
 # ECRANS_TRANCHE=k/n (GitHub, les travaux en parallèle) : seulement la k-ième tranche des pages sur n (une page sur n, à partir de la k-ième) ;
 # chaque page a son propre contexte de navigateur, les tranches sont indépendantes
+# (tour 48c-2) les pages sont réparties par leur durée mesurée sur GitHub (tests/ecrans-durees.json, « adresse largeur » → secondes ;
+# une page nouvelle compte DUREE_INCONNUE s) : la plus longue d'abord dans la tranche la moins chargée, chaque tranche garde l'ordre de PAGES
+DUREE_INCONNUE = 30
 if os.environ.get('ECRANS_TRANCHE'):
     k_, n_ = (int(x) for x in os.environ['ECRANS_TRANCHE'].split('/'))
-    PAGES = [x for i, x in enumerate(PAGES) if i % n_ == k_ - 1]
+    try: DUREES_PAGES = json.load(open(os.path.join(RACINE, 'tests', 'ecrans-durees.json'), encoding='utf-8'))
+    except (OSError, ValueError): DUREES_PAGES = {}
+    charges, tranche_de = [0] * n_, {}
+    for i in sorted(range(len(PAGES)), key=lambda i: (-DUREES_PAGES.get(f'{PAGES[i][0]} {PAGES[i][1]}', DUREE_INCONNUE), i)):
+        k = charges.index(min(charges)); tranche_de[i] = k; charges[k] += DUREES_PAGES.get(f'{PAGES[i][0]} {PAGES[i][1]}', DUREE_INCONNUE)
+    print(f'(tranche {k_}/{n_} : {charges[k_ - 1]} s prévues)')
+    PAGES = [x for i, x in enumerate(PAGES) if tranche_de[i] == k_ - 1]
+DUREES = []   # (page, largeur, secondes) : imprimées à la fin
 mesures = None
 mesures_voiture = []
 os.makedirs(CAPTURES, exist_ok=True)
@@ -3356,6 +3366,7 @@ with sync_playwright() as p:
     try:
         for page, l, h, capture in PAGES:
             titre = f'{page} {l}×{h}'
+            debut_page = time.monotonic()   # (la durée de chaque page, pour équilibrer les tranches de GitHub)
             ctx = b.new_context(viewport={'width': l, 'height': h})
             pg = ctx.new_page(); console = []
             # les tâches longues (> 50 ms) qui bloquent la page, relevées dès le début du chargement
@@ -3548,10 +3559,12 @@ with sync_playwright() as p:
                         t(f'{titre} : la voiture du joueur est la voiture détaillée', pg.evaluate('() => JEU.modele.detaille'))
             else: t(f'{titre} : sans debug, pas de compteur', ips is None, repr(ips))
             ctx.close()
+            DUREES.append((page, l, round(time.monotonic() - debut_page)))
     finally:
         b.close()
 
 print(f'RESULTAT {ok}/{ok + ko}'); print('\n'.join(L))
+for page_, l_, d_ in DUREES: print(f'  ⏱ {d_} s : {page_} {l_}')
 if mesures_voiture: print(f'  (une voiture : {mesures_voiture[0][0]} triangles, {mesures_voiture[0][1]} appels de dessin ; toute l’image : {mesures_voiture[0][2]} appels)')
 if mesures: print(f'  (circuit 3D : {mesures["triangles"]:.0f} triangles, construit en {mesures["msConstruction"]:.0f} ms sous swiftshader)')
 sys.exit(0 if ko == 0 else 1)
