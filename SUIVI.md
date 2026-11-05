@@ -34,6 +34,7 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 
 ## Tour en cours
 
+**2026-11-05 15h50 : le propriétaire : « travaille jusqu'à 22h sur ce qu'il y a sur le claude.md », « sur les nouvelles modifications où on avait parlé »** → tour 48, les décisions du 2026-11-04 : Codeur 1 le nouveau paddock, « Nouvelle carrière » et « Nouvelle carrière à 0 » (branche paddock) ; Codeur 2 la saison 2 sur test/technique puis le pneu drift caché (branche saison2-drift) ; Codeur 3 la livrée et la célébration, puis la boutique de skins (branche personnalisation ; la page Boutique se branche sur le paddock du Codeur 1 une fois fusionné) ; Codeur 4 la correction du test « suivie », le zip Poki, puis l'essai des 5 exclamations en voix fabriquée (branche voix-zip). Tous repartent de origin/main (1ddfe84). Le travail non fini du tour 47 (forme du jour, panneau ?reglages=1, test « suivie ») est gardé en patchs par le Chef, hors du dépôt. Rien de nouveau après 21h30, push 21h40, figé à 21h50 ; écran bloqué à 21h : après, GitHub seulement.
 **2026-11-04 : journée de discussion, pas de code.** Ordre du prochain jour de code (décisions du propriétaire, détail dans CLAUDE.md) :
 1. **PRIORITÉ : le nouveau paddock** (menu à gauche, page au centre : « Le nouveau paddock » dans CLAUDE.md), avec « Nouvelle carrière » dans ⚙ Réglages.
 2. La saison 2 sur test/technique (vieille sauvegarde, « Bugs connus »).
