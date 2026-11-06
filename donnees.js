@@ -836,6 +836,12 @@ const REGLAGES = {
   FANTOME_COULEUR: 0xdfe3ea,    // une couleur neutre, claire…
   FANTOME_OPACITE: 0.55,        // … et légèrement transparente (toute la voiture d'une seule couleur, sans ses pièces sombres : on le reconnaît comme un fantôme)
   FANTOME_PIXELS_MIN: 400,      // tests : au moins ce nombre de pixels changent dans la moitié basse de l'image quand le fantôme est caché (il est visible)
+  // le défi du fantôme entre amis (defi.js, tour 49b) : un code à copier qui contient le tour (le fantôme), sans serveur
+  DEFI_VERSION: 1,              // la version du code : un code d'une autre version est refusé proprement
+  DEFI_LONGUEUR_MAX: 30000,     // caractères au plus (le plus long tracé tient dessous : test)
+  DEFI_VITESSE_MAX: 120,        // m/s : entre deux images du tour, plus vite que ça est impossible (un code trafiqué)
+  DEFI_DISTANCE_TOLERANCE: 0.05, // la distance du tour enregistré : la longueur du circuit à 5 % près
+  DEFI_LISTE_MAX: 20,           // les défis reçus gardés dans la sauvegarde (le plus ancien part)
   // le podium 3D (podium3d.js)
   PODIUM_DISTANCE: 30,          // m : à cette distance du bord gauche de la piste, en face de la ligne
   PODIUM_LARGEUR: 6.5,          // m : la largeur d'une marche…

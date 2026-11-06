@@ -1539,3 +1539,12 @@ body.auPaddock #boutonSon { display: none; }
   .boutiqueVue .skin button { padding: 3px 9px; font-size: 12px; }
   .boutiqueVue .boutiqueMessage { min-height: 0; }
 }
+
+/* le défi du fantôme entre amis (tour 49b) : le champ du code (collé ou à copier), la liste des défis reçus */
+#defiSaisie, .codeDefi input { width: min(560px, 86vw); padding: 6px 8px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.35); background: rgba(255, 255, 255, 0.1); color: inherit; font: 600 13px/1.3 var(--police); user-select: text; -webkit-user-select: text; }
+.codeDefi { display: flex; flex-direction: column; align-items: center; gap: 6px; margin: 6px 0; }
+.codeDefi.cache { display: none; }
+.codeDefi p { margin: 0; font-size: 13px; opacity: 0.85; }
+#defiMessage { min-height: 1.2em; color: #ffb4a8; }
+#defiListe { max-height: 22vh; overflow: hidden; margin: 6px 0 0; padding: 0; list-style: none; font-size: 13px; }
+#defiListe li { margin: 2px 0; }

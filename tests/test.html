@@ -1,7 +1,7 @@
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><title>tests</title></head><body>
 <pre id="res"></pre>
 <script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));window.addEventListener('unhandledrejection',e=>__err.push('promesse : '+(e.reason&&e.reason.message||e.reason)));</script>
-<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits-officiels-a.js"></script><script src="../circuits-officiels-b.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../sensations.js"></script><script src="../manette.js"></script><script src="../son.js"></script><script src="../effets3d.js"></script><script src="../conseil.js"></script><script src="../qualite.js"></script><script src="../assistance.js"></script><script src="../mesure.js"></script><script src="../regie.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../decouverte.js"></script><script src="../pilote.js"></script><script src="../deux-joueurs.js"></script><script src="../tournoi.js"></script><script src="../casque.js"></script><script src="../decors-officiels.js"></script><script src="../decor-public.js"></script><script src="../photo.js"></script><script src="../cache-carte.js"></script><script src="../journal.js"></script><script src="../argent.js"></script><script src="../garage.js"></script><script src="../aileron.js"></script><script src="../carte2d.js"></script><script src="../saisons.js"></script><script src="../sponsors.js"></script><script src="../fiche.js"></script><script src="../interview.js"></script><script src="../carriere.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../meteo.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../resume.js"></script><script src="../messages.js"></script><script src="../commentaire.js"></script><script src="../decor.js"></script><script src="../fantome.js"></script><script src="../principal.js"></script>
+<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits-officiels-a.js"></script><script src="../circuits-officiels-b.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../sensations.js"></script><script src="../manette.js"></script><script src="../son.js"></script><script src="../effets3d.js"></script><script src="../conseil.js"></script><script src="../qualite.js"></script><script src="../assistance.js"></script><script src="../mesure.js"></script><script src="../regie.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../decouverte.js"></script><script src="../pilote.js"></script><script src="../deux-joueurs.js"></script><script src="../tournoi.js"></script><script src="../casque.js"></script><script src="../decors-officiels.js"></script><script src="../decor-public.js"></script><script src="../photo.js"></script><script src="../cache-carte.js"></script><script src="../journal.js"></script><script src="../argent.js"></script><script src="../garage.js"></script><script src="../aileron.js"></script><script src="../carte2d.js"></script><script src="../saisons.js"></script><script src="../sponsors.js"></script><script src="../fiche.js"></script><script src="../interview.js"></script><script src="../carriere.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../meteo.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../resume.js"></script><script src="../messages.js"></script><script src="../commentaire.js"></script><script src="../decor.js"></script><script src="../fantome.js"></script><script src="../defi.js"></script><script src="../principal.js"></script>
 <script>
 const L=[];let ok=0,ko=0;
 function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
@@ -1852,6 +1852,51 @@ t('fantôme : un tour du robot enregistré puis compacté (nombres arrondis) et 
   v(nImages>=f.x.length-1,'images relues '+nImages+' / '+f.x.length);v(pireImage<0.02,'aux images : '+pireImage);v(pireEntre<0.3,'entre les images : '+pireEntre);
   v(pireEcart<0.01,'écart contre soi-même '+pireEcart);v(Math.abs(final)<0.001,'écart final '+final);
   v(FANTOME.taille(f)<60000,'taille '+FANTOME.taille(f));});
+// --- (tour 49b) le défi du fantôme entre amis (defi.js) : le tour codé dans un texte à copier, sans serveur
+// un tour du robot sur un circuit (comme tourFantome) ; rejeu : un fantôme à suivre (l'écart en direct, contre soi-même)
+function tourDefi(circ,rejeu){const vo=creerVoiture(circ,0),q=QUALIFICATION.creer(circ,vo);q.course.compte=0;const tour=FANTOME.commencer();let pire=0;
+  rouler(vo,circ,400,v_=>piloteRobot(v_,circ),(v_,i)=>{const finiAvant=q.fini,fini=QUALIFICATION.pas(q,v_,DT);
+    if(q.lance&&!finiAvant){const t_=fini?q.temps:QUALIFICATION.chrono(q),s_=fini?q.fin:QUALIFICATION.distance(q);FANTOME.noter(tour,t_,v_,s_);if(rejeu&&!fini)pire=Math.max(pire,Math.abs(FANTOME.ecart(rejeu,t_,s_)));}
+    if(fini) return false;});
+  return {q,f:FANTOME.compacter(tour,q.temps,q.fin),pire};}
+const CASQUE_T={motif:'eclair',couleurs:[0xff0000,0xffffff,0x0000ff]};
+let DEFI_T=null;
+t('défi : un tour codé puis décodé est le même fantôme au bit près (repasse aux mêmes positions) ; le nom, le casque, l’aileron et les aides suivent ; le circuit et le temps sont en clair (« GPD-TECHNIQUE-1:0… ») ; le défi joué contre soi-même donne un écart de 0', ()=>{
+  const a=tourDefi(TQ);v(a.q.fini&&a.q.valide,'tour');DEFI_T=a;
+  const code=DEFI.coder({circuit:'technique',fantome:a.f,nom:'Léa',casque:CASQUE_T,aileron:3,aides:['freinage']});
+  v(/^GPD-TECHNIQUE-\d+:\d\d\.\d{3}-1-[A-Za-z0-9_.]+-[0-9a-z]+$/.test(code),'forme '+code.slice(0,40));
+  const d=DEFI.decoder(code,TQ.longueur);v(d.ok,'refusé : '+d.raison);
+  v(JSON.stringify(d.defi.fantome)===JSON.stringify(a.f),'fantôme différent');
+  const r1=FANTOME.charger(a.f),r2=FANTOME.charger(d.defi.fantome);for(let t_=0;t_<a.f.temps;t_+=0.037){const p1=FANTOME.position(r1,t_),p2=FANTOME.position(r2,t_);v(p1.x===p2.x&&p1.z===p2.z&&p1.cap===p2.cap,'position à '+t_);}
+  v(d.defi.circuit==='technique'&&d.defi.nom==='Léa'&&JSON.stringify(d.defi.casque)===JSON.stringify(CASQUE_T)&&d.defi.aileron===3&&d.defi.aides.join()==='freinage'&&d.defi.temps===a.f.temps,'méta '+JSON.stringify([d.defi.nom,d.defi.aileron,d.defi.aides]));
+  const b=tourDefi(TQ,FANTOME.charger(d.defi.fantome)),fin=DEFI.ecart(d.defi,b.q.temps);
+  L.push('  (défi : technique, tour du robot '+a.q.temps.toFixed(3)+' s, code de '+code.length+' caractères ; contre soi-même : écart en direct au plus '+(b.pire*1000).toFixed(2)+' ms, final '+fin.toFixed(4)+' s)');
+  // (l'écart en direct vient de l'interpolation du fantôme entre ses images, 0,1 s : le même avec le fantôme d'origine, au bit près ; le code n'y ajoute rien)
+  const o=tourDefi(TQ,FANTOME.charger(a.f));v(o.pire===b.pire,'décodé '+b.pire+' / origine '+o.pire);
+  v(b.pire<0.05&&Math.abs(fin)<0.0005,'contre soi-même '+b.pire+' / '+fin);});
+t('défi : un code abîmé d’un seul caractère est refusé (à 300 places, en-tête compris) ; d’une autre version, refusé (« version ») ; vide, sans forme, d’un circuit inconnu : refusé proprement, sans erreur', ()=>{
+  const code=DEFI.coder({circuit:'technique',fantome:DEFI_T.f,nom:null,casque:null,aileron:null,aides:[]}),S='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_.';let n=0;
+  for(let k=0;k<300;k++){const i=Math.floor(k*(code.length-1)/299),c=code[i],r=c===S[0]?S[1]:c==='-'?'A':(c>='0'&&c<='9')?String((+c+1)%10):S[(S.indexOf(c)+1)%64]||'x';
+    const x=code.slice(0,i)+r+code.slice(i+1),d=DEFI.decoder(x,TQ.longueur);v(!d.ok,'accepté abîmé en '+i+' : '+c+' → '+r);n++;}
+  const p=code.split('-');p[3]='2';v(DEFI.decoder(p.join('-')).raison==='version','version');
+  v(DEFI.decoder('').raison==='vide'&&DEFI.decoder('bonjour').raison==='format'&&DEFI.decoder(null).raison==='vide','vide, forme');
+  const q=code.split('-');q[1]='NULLEPART';const corps=q.slice(0,5).join('-');v(DEFI.decoder(corps+'-'+DEFI.somme(corps)).raison==='circuit','circuit');
+  v(DEFI.decoder('  '+code.slice(0,50)+'\n'+code.slice(50)+' ',TQ.longueur).ok,'les espaces et retours à la ligne collés avec le code sont ignorés');});
+t('défi : un code trafiqué avec une bonne somme mais un tour impossible est refusé (« impossible ») : un temps plus court que ses images, une image qui saute de 50 m, une distance qui n’est pas la longueur du circuit', ()=>{
+  const f=DEFI_T.f,copie=()=>JSON.parse(JSON.stringify(f)),essai=g=>DEFI.decoder(DEFI.coder({circuit:'technique',fantome:g}),TQ.longueur).raison;
+  let g=copie();g.temps=Math.round((f.temps-3)*1000)/1000;v(essai(g)==='impossible','temps plus court : '+essai(g));
+  g=copie();g.x[50]=Math.round((g.x[50]+50)*100)/100;v(essai(g)==='impossible','saut : '+essai(g));
+  g=copie();g.fin=Math.round(f.fin*0.8*100)/100;g.s=g.s.map(x=>Math.min(x,g.fin));v(essai(g)==='impossible','distance : '+essai(g));
+  v(DEFI.decoder(DEFI.coder({circuit:'technique',fantome:f}),TQ.longueur).ok,'le vrai passe');});
+t('défi : le code du plus long tracé (Spaa, un tour du robot) tient sous DEFI_LONGUEUR_MAX (30 000 caractères)', ()=>{
+  const SP=construireCircuit(CIRCUITS.spaa),a=tourDefi(SP);v(a.q.fini&&a.q.valide,'tour Spaa');
+  const code=DEFI.coder({circuit:'spaa',fantome:a.f,nom:'Un nom assez long pour voir',casque:CASQUE_T,aileron:0,aides:['direction','freinage','antiblocage','antipatinage']});
+  L.push('  (défi : Spaa, tour du robot '+a.q.temps.toFixed(2)+' s, '+a.f.x.length+' images, code de '+code.length+' caractères)');
+  v(code.length<REGLAGES.DEFI_LONGUEUR_MAX&&DEFI.decoder(code,SP.longueur).ok,'longueur '+code.length);});
+t('défi : la liste des défis reçus (sauvegarde) : un défi reçu deux fois n’est gardé qu’une fois, son meilleur écart reste le meilleur, DEFI_LISTE_MAX au plus', ()=>{
+  let l=[];const d={id:'a1',circuit:'spaa',temps:120.5,nom:'Léa'};l=DEFI.recevoir(l,d);DEFI.noterResultat(l,'a1',0.45);DEFI.noterResultat(l,'a1',-0.3124);DEFI.noterResultat(l,'a1',0.2);
+  l=DEFI.recevoir(l,d);v(l.length===1&&l[0].meilleur===-0.312,'meilleur '+JSON.stringify(l));
+  for(let i=0;i<REGLAGES.DEFI_LISTE_MAX+5;i++) l=DEFI.recevoir(l,{id:'x'+i,circuit:'test',temps:60,nom:null});v(l.length===REGLAGES.DEFI_LISTE_MAX&&l[l.length-1].id==='x'+(REGLAGES.DEFI_LISTE_MAX+4),'plafond '+l.length);});
 t('fantôme : contre un tour plus lent (robot plus prudent en virage), l’écart en direct est positif après le premier virage et grandit ; l’écart final = la différence des temps ; un tour plus lent ne remplace pas le record, un tour coupé jamais, un meilleur temps oui, le premier tour valide aussi', ()=>{
   const f=FANTOME_F,rejeu=FANTOME.charger(f),b=tourFantome(0.7);v(b.q.fini&&b.q.valide&&b.q.temps>f.temps+1,'tour prudent '+b.q.temps+' / '+f.temps);
   const ecarts=b.pts.map(p=>FANTOME.ecart(rejeu,p.t,p.s));const milieu=ecarts[Math.floor(ecarts.length/2)],fin=ecarts[ecarts.length-1];

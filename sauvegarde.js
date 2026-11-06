@@ -12,7 +12,7 @@ const SAUVEGARDE = (function () {
     // réglages du joueur (fantome : le fantôme affiché, vrai par défaut) ; reaction : le meilleur temps de réaction au départ (s)
     // decouverteFaite : la course de découverte du premier lancement est jouée ; argent : l'argent du joueur (la prime de la découverte, pas encore dépensable)
     // temple : le temple de la renommée et les records de carrière (carriere.js), à côté du championnat : ils survivent à une nouvelle carrière
-    return { version: VERSION, records: {}, championnat: null, fantomes: {}, options: {}, reaction: null, decouverteFaite: false, argent: 0, cartes: {}, temple: { carrieres: [], records: {} }, deux: null, tournoi: null, motifs: [], motifsAnnonce: [], aides: [], tutoriel: [], skins: [], skinsAnnonce: [], celebrations: [] };   // skins : les skins obtenus (boutique.js, tour 48c), à la racine   // tutoriel : les leçons réussies (tutoriel.js)   // aides : les aides au premier usage déjà vues (aides.js), à la racine
+    return { version: VERSION, records: {}, championnat: null, fantomes: {}, options: {}, reaction: null, decouverteFaite: false, argent: 0, cartes: {}, temple: { carrieres: [], records: {} }, deux: null, tournoi: null, motifs: [], motifsAnnonce: [], aides: [], tutoriel: [], skins: [], skinsAnnonce: [], celebrations: [], defis: { enCours: null, liste: [] } };   // skins : les skins obtenus (boutique.js, tour 48c), à la racine   // tutoriel : les leçons réussies (tutoriel.js)   // aides : les aides au premier usage déjà vues (aides.js), à la racine
   }
 
   // une sauvegarde d'une ancienne version est transformée ici, sans rien perdre :
@@ -44,6 +44,7 @@ const SAUVEGARDE = (function () {
     if (!Array.isArray(d.skins)) d.skins = [];   // les skins de la boutique obtenus (boutique.js, tour 48c) : à la racine, ils survivent à une nouvelle carrière
     if (!Array.isArray(d.skinsAnnonce)) d.skinsAnnonce = [];
     if (!Array.isArray(d.celebrations)) d.celebrations = [];   // les célébrations débloquées par un exploit (celebration.js) : à la racine, comme les motifs   // les skins gagnés (récompenses) pas encore annoncés
+    if (!d.defis || typeof d.defis !== 'object' || !Array.isArray(d.defis.liste)) d.defis = { enCours: null, liste: [] };   // (tour 49b) les défis du fantôme reçus (defi.js) : à la racine
     if (!Array.isArray(d.tutoriel)) d.tutoriel = [];   // les leçons du tutoriel réussies (tutoriel.js, Codeur 4) : aucune dans une sauvegarde d'avant
     if (!Array.isArray(d.aides)) d.aides = [];   // les aides au premier usage déjà vues (aides.js, Codeur 4) : aucune dans une sauvegarde d'avant
     if (typeof CARRIERE !== 'undefined') d.temple = CARRIERE.completerTemple(d.temple);   // le temple de la renommée (tour 28c) : vide dans une sauvegarde d'avant
@@ -267,6 +268,16 @@ const SAUVEGARDE = (function () {
 
   // --- le tournoi chrono (tournoi.js) : { joueurs (la dernière liste), formule, enCours (le tournoi qui se joue, ou null) }, à part
   // de la carrière ; jamais de fantôme (ils restent en mémoire, le temps d'une manche)
+  // (tour 49b) le défi du fantôme entre amis (defi.js) : { enCours : le code du défi à courir (la page ?defi=1), liste : les défis reçus }
+  function defis() {
+    return lire().defis;
+  }
+  function ecrireDefis(r) {
+    const d = lire();
+    d.defis = r;
+    return ecrire(d);
+  }
+
   function tournoi() {
     return lire().tournoi;
   }
@@ -363,5 +374,5 @@ const SAUVEGARDE = (function () {
     return ecrire(d);
   }
 
-  return { nouvelleCarriere, toutEffacer, GARDES_A_ZERO, celebrations, debloquerCelebrations, skins, motifsSkins, obtenirSkin, prendreAnnonceSkins, perdue: () => perdue, impossible: () => impossible, surAvis, tutoriel, reussirLecon, aides, ecrireAides, motifs, debloquerMotifs, prendreAnnonceMotifs, tournoi, ecrireTournoi, deux, ecrireDeux, temple, entrerAuTemple, lire, ecrire, record, proposerRecord, championnat, ecrireChampionnat, fantome, proposerFantome, option, ecrireOption, reaction, proposerReaction, decouverteFaite, argent, finirDecouverte, carte, ecrireCarte, VERSION, CLE };
+  return { defis, ecrireDefis, nouvelleCarriere, toutEffacer, GARDES_A_ZERO, celebrations, debloquerCelebrations, skins, motifsSkins, obtenirSkin, prendreAnnonceSkins, perdue: () => perdue, impossible: () => impossible, surAvis, tutoriel, reussirLecon, aides, ecrireAides, motifs, debloquerMotifs, prendreAnnonceMotifs, tournoi, ecrireTournoi, deux, ecrireDeux, temple, entrerAuTemple, lire, ecrire, record, proposerRecord, championnat, ecrireChampionnat, fantome, proposerFantome, option, ecrireOption, reaction, proposerReaction, decouverteFaite, argent, finirDecouverte, carte, ecrireCarte, VERSION, CLE };
 })();

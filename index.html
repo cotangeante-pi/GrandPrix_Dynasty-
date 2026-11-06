@@ -64,8 +64,24 @@
 <!-- « Entre amis » (titre et paddock) : le petit menu, puis l'écran avant la course à deux (deux-joueurs.js, tour 25b) -->
 <section id="amis" class="ecran cache">
   <h1 id="amisTitre"></h1>
-  <div class="boutons"><button id="boutonAmisDeux" tabindex="-1"></button><button id="boutonAmisTournoi" tabindex="-1"></button></div>
+  <div class="boutons"><button id="boutonAmisDeux" tabindex="-1"></button><button id="boutonAmisTournoi" tabindex="-1"></button><button id="boutonAmisDefi" tabindex="-1"></button></div>   <!-- « Relever un défi » (defi.js, tour 49b) -->
   <div class="boutons"><button id="boutonAmisRetour" class="petit" tabindex="-1"></button></div>
+</section>
+<!-- le défi du fantôme entre amis (defi.js, tour 49b) : coller le code d'un ami, la liste des défis reçus ; puis la fin du tour -->
+<section id="defi" class="ecran cache">
+  <h1 id="defiTitre"></h1>
+  <p id="defiExplication"></p>
+  <input id="defiSaisie" type="text" autocomplete="off" spellcheck="false">
+  <p id="defiMessage"></p>
+  <div class="boutons"><button id="boutonDefiCourir" tabindex="-1"></button><button id="boutonDefiRetour" class="petit" tabindex="-1"></button></div>
+  <ol id="defiListe"></ol>
+</section>
+<section id="defiFin" class="ecran cache">
+  <h1 id="defiFinTitre"></h1>
+  <p id="defiFinContre"></p>
+  <p id="defiFinTexte"></p>
+  <div id="defiFinCode" class="codeDefi cache"></div>
+  <div class="boutons"><button id="boutonDefiRecommencer" tabindex="-1"></button><button id="boutonDefiRenvoyer" tabindex="-1"></button><button id="boutonDefiQuitter" class="petit" tabindex="-1"></button></div>
 </section>
 <section id="deuxReglages" class="ecran cache">
   <h1 id="deuxTitre"></h1>
@@ -169,7 +185,8 @@
   <h1 id="qualifTitre"></h1>
   <p id="qualifTexte"></p>
   <p id="qualifFantome"></p>   <!-- après le tour : nouveau record, ou l'écart final avec le fantôme -->
-  <div class="boutons"><button id="boutonQualifTour" tabindex="-1"></button><button id="boutonQualifPasser" tabindex="-1"></button><button id="boutonQualifCourse" tabindex="-1"></button></div>
+  <div class="boutons"><button id="boutonQualifTour" tabindex="-1"></button><button id="boutonQualifPasser" tabindex="-1"></button><button id="boutonQualifCourse" tabindex="-1"></button><button id="boutonQualifDefi" tabindex="-1"></button></div>
+  <div id="qualifCode" class="codeDefi cache"></div>   <!-- « 📋 Défier un ami » : le code du tour (defi.js, tour 49b) -->
   <div class="boutons"><button id="boutonFantomeQualif" class="boutonFantome" tabindex="-1"></button></div>
 </section>
 
@@ -547,6 +564,7 @@
 <script src="enregistreur.js"></script>
 <script src="resume.js"></script>
 <script src="fantome.js"></script>
+<script src="defi.js"></script>
 <script src="boite.js"></script>
 <script src="sensations.js"></script>
 <script src="manette.js"></script>

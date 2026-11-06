@@ -68,7 +68,8 @@ PAGES = [
     ('index.html?course=12&robot=1&pneus=1&circuit=test&lang=en&test=audit-stand', 960, 600, None),
     ('index.html?championnat=1&tours=2&robot=1&lang=en&test=audit-consigne', 960, 600, None),
     ('index.html?course=0&camera=cockpit&lang=en&test=audit-volant', 960, 600, None),   # l'audit anglais (tour 31, Codeur 3) : chaque écran du championnat et de la fin de carrière, sans un mot français, rien hors de l'écran en 960×600   # la page en anglais : championnat et podium sans un mot français, capture championnat-en.png
-    ('index.html?course=1&ia=5&joueur=1&robot=1&circuit=test&test=fantome', 1280, 720, None),   # le fantôme du meilleur tour : deux qualifications de suite, la 2e contre le fantôme, capture fantome.png
+    ('index.html?course=1&ia=5&joueur=1&robot=1&circuit=test&test=fantome', 1280, 720, None),
+    ('index.html?course=1&ia=5&joueur=1&robot=1&circuit=test&test=defi', 960, 600, None),   # (tour 49b) le défi du fantôme : « Défier un ami » après la qualification, « Relever un défi », le tour contre le fantôme, captures defi-*.png   # le fantôme du meilleur tour : deux qualifications de suite, la 2e contre le fantôme, capture fantome.png
     ('index.html?robot=1&test=decouverte&tours=1', 1280, 720, None),
     ('index.html?deux=1&ia=5&robot=1&circuit=test&test=deux', 1280, 720, None),   # le mode 2 joueurs (deux-joueurs.js) : l'écran partagé, deux robots + 5 IA, jusqu'au podium ; capture deux-joueurs.png
     ('index.html?deux=1&ia=5&robot=1&circuit=test&test=deux', 960, 600, None),    # … en petit : rien ne déborde ; capture deux-joueurs-960.png
@@ -397,6 +398,60 @@ def enregistreur(pg, titre):
 # le fantôme du meilleur tour (fantome.js) : deux qualifications de suite par le robot. La première n'a pas de fantôme et
 # devient le record du circuit (sauvegardé, compact) ; la deuxième, par un robot plus prudent, roule contre le fantôme
 # (voiture transparente, écart en direct en rouge) et ne remplace pas le record. Puis l'option « masqué » et la course sans fantôme
+# (tour 49b) le défi du fantôme entre amis (defi.js) : le robot fait sa qualification, « 📋 Défier un ami » donne le code ; « Entre amis »
+# → « Relever un défi » refuse un code abîmé (le message) et accepte le bon ; la page ?defi=1 : le même tour du robot contre ce fantôme
+# (visible, l'écart en direct) ; à l'arrivée, l'écart au fantôme vaut 0 (le même robot), « Renvoyer mon code », le meilleur gardé
+def defi_ecran(pg, titre):
+    attendre(pg, '() => JEU.ecran === "qualif" && JEU.qualif && JEU.qualif.etat === "choix"', None, 60000)
+    attendre(pg, '() => JEU.plateau.carte !== null', None, 180000)
+    pg.click('#boutonQualifTour'); pg.evaluate('() => { JEU.course.compte = 0.01; }')
+    for _ in range(60):
+        pg.evaluate('() => BOUCLE.simuler(5)')
+        if pg.evaluate('() => JEU.qualif.etat') == 'resultat': break
+        pg.wait_for_timeout(50)
+    vu = pg.evaluate('() => JEU.ecran === "qualif" && !document.getElementById("boutonQualifDefi").classList.contains("cache") && document.getElementById("boutonQualifDefi").textContent === texte("defiBouton")')
+    t(f'{titre} : après un tour de qualification valide, le bouton « 📋 Défier un ami »', vu, str(pg.evaluate('() => [JEU.ecran, JEU.qualif && JEU.qualif.etat, JEU.qualif && JEU.qualif.q.valide]')))
+    pg.click('#boutonQualifDefi')
+    attendre(pg, '() => !!document.querySelector("#qualifCode input")', None, 5000)
+    code = pg.evaluate('() => { const c = document.querySelector("#qualifCode input"); return c ? c.value : ""; }')
+    temps = pg.evaluate('() => JEU.qualif.q.temps')
+    ok = pg.evaluate('c => { const r = DEFI.decoder(c, CIRCUIT.longueur); return r.ok && Math.abs(r.defi.temps - JEU.qualif.q.temps) < 0.001 && !document.getElementById("qualifCode").classList.contains("cache"); }', code)
+    t(f'{titre} : le code du tour s’affiche à copier (« GPD-TEST-… », {len(code)} caractères), avec « Copier », et il se décode', code.startswith('GPD-TEST-') and ok and pg.evaluate('() => document.querySelector("#qualifCode button").textContent === texte("defiCopier")'), code[:60])
+    pg.screenshot(path=os.path.join(CAPTURES, 'defi-code.png'))
+    # « Entre amis » → « Relever un défi »
+    pg.goto('file://' + RACINE + '/index.html?menu=amis'); attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "amis"', None, 30000)
+    pg.click('#boutonAmisDefi')
+    attendre(pg, '() => JEU.ecran === "defi"', None, 5000)
+    abime = code[:200] + ('B' if code[200] != 'B' else 'C') + code[201:]
+    pg.fill('#defiSaisie', abime); pg.click('#boutonDefiCourir'); pg.wait_for_timeout(200)
+    m = pg.evaluate('() => [JEU.ecran, document.getElementById("defiMessage").textContent, texte("defiRefus_abime")]')
+    t(f'{titre} : « Relever un défi » : un code abîmé d’un caractère est refusé, avec son message, et l’on reste sur l’écran', m[0] == 'defi' and m[1] == m[2] and m[1] != '', str(m))
+    pg.screenshot(path=os.path.join(CAPTURES, 'defi-refus.png'))
+    pg.fill('#defiSaisie', code)
+    with pg.expect_navigation(timeout=30000): pg.click('#boutonDefiCourir')
+    s = pg.evaluate('() => SAUVEGARDE.defis()')
+    t(f'{titre} : le bon code est accepté : gardé dans la sauvegarde (le défi en cours, la liste des reçus), la page du défi s’ouvre', 'defi=1' in pg.url and s['enCours'] == code and len(s['liste']) == 1 and s['liste'][0]['meilleur'] is None, str([pg.url[-30:], len(s['liste'])]))
+    # le tour contre le fantôme, par le robot (le même tour que le code : l'écart final vaut 0)
+    pg.goto('file://' + RACINE + '/index.html?defi=1&robot=1'); attendre(pg, '() => typeof JEU !== "undefined" && !!JEU.defi && JEU.ecran === "qualif" && !!JEU.qualif', None, 60000)
+    pg.evaluate('() => { JEU.course.compte = 0.01; }')
+    pg.evaluate('() => BOUCLE.simuler(10)')
+    attendre(pg, '() => JEU.modeleFantome && JEU.modeleFantome.groupe.visible && !document.getElementById("hudEcart").classList.contains("cache")', None, 10000)
+    e = pg.evaluate('() => ({ circuit: NOM_CIRCUIT, rejeu: !!(JEU.fantome && JEU.fantome.rejeu), visible: !!(JEU.modeleFantome && JEU.modeleFantome.groupe.visible), ecart: JEU.fantome && JEU.fantome.ecart, hud: !document.getElementById("hudEcart").classList.contains("cache"), ia: JEU.plateau === null })')
+    t(f'{titre} : la page du défi : seul sur le circuit du code, contre le fantôme (visible), l’écart en direct sous le chrono', e['circuit'] == 'test' and e['rejeu'] and e['visible'] and e['hud'] and e['ia'] and e['ecart'] is not None and abs(e['ecart']) < 0.05, str(e))
+    pg.screenshot(path=os.path.join(CAPTURES, 'defi-tour.png'))
+    for _ in range(60):
+        pg.evaluate('() => BOUCLE.simuler(5)')
+        if pg.evaluate('() => JEU.ecran') == 'defiFin': break
+        pg.wait_for_timeout(50)
+    attendre(pg, '() => JEU.ecran === "defiFin" && !document.getElementById("defiFin").classList.contains("cache")', None, 10000)
+    f = pg.evaluate('() => ({ ecran: JEU.ecran, ecart: JEU.defi.ecart, texte: document.getElementById("defiFinTexte").textContent, contre: document.getElementById("defiFinContre").textContent, circuitVu: document.getElementById("defiFinContre").textContent.includes(texte("circuit_test")), renvoyer: !document.getElementById("boutonDefiRenvoyer").classList.contains("cache"), meilleur: SAUVEGARDE.defis().liste[0].meilleur, defile: [document.documentElement.scrollHeight, innerHeight] })')
+    t(f'{titre} : à l’arrivée, le résultat : le même robot que le fantôme, l’écart vaut 0 (« … 0,000 »), le défi affiché (nom, temps, circuit, aides), « Renvoyer mon code », le meilleur gardé, sans défilement',
+      f['ecran'] == 'defiFin' and f['ecart'] is not None and abs(f['ecart']) < 0.0005 and '0,000' in f['texte'] and f['circuitVu'] and f['renvoyer'] and f['meilleur'] is not None and abs(f['meilleur']) < 0.001 and f['defile'][0] <= f['defile'][1] + 2, str(f))
+    pg.click('#boutonDefiRenvoyer')
+    c2 = pg.evaluate('() => { const c = document.querySelector("#defiFinCode input"); return c ? c.value : ""; }')
+    t(f'{titre} : « Renvoyer mon code » : son propre code, sur le même circuit, qui se décode', c2.startswith('GPD-TEST-') and pg.evaluate('c => DEFI.decoder(c, CIRCUIT.longueur).ok', c2), c2[:40])
+    pg.screenshot(path=os.path.join(CAPTURES, 'defi-fin.png'))
+
 def fantome(pg, titre):
     TOUR = '() => JEU.ecran === "qualif" && JEU.qualif.etat === "tour" && JEU.qualif.q.lance'
     # après BOUCLE.simuler, l'écran et la 3D ne sont à jour qu'à l'image suivante : on attend deux images dessinées (sous
@@ -3518,6 +3573,8 @@ with sync_playwright() as p:
                 resume_ecran(pg, titre, l, h)
             elif 'test=qualif' in page:
                 qualif(pg, titre)
+            elif 'test=defi' in page:
+                defi_ecran(pg, titre)
             elif 'test=fantome' in page:
                 fantome(pg, titre)
             elif 'joueur=1' in page and 'test=supporters' not in page and 'test=sensations' not in page and 'test=conseil' not in page and 'test=qualite' not in page:   # (la page des supporters a son propre parcours)
