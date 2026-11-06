@@ -55,7 +55,7 @@ const FICHE = (function () {
       victoires: p.places.filter(x => x === 1).length, podiums: p.places.filter(x => x <= 3).length,
     };
     let meilleur = saison.courses ? saison.place : null;
-    for (const s of ch.saisons || []) { const i = s.classement.findIndex(c => c[0] === k); if (i >= 0 && (meilleur === null || i + 1 < meilleur)) meilleur = i + 1; }
+    for (const s of ch.saisons || []) { if (typeof DIVISIONS !== 'undefined' && !DIVISIONS.saisonIci(ch, s.saison)) continue; const i = s.classement.findIndex(c => c[0] === k); if (i >= 0 && (meilleur === null || i + 1 < meilleur)) meilleur = i + 1; }
     const historique = { saisons: (p.stats.saisons || 0) + (saison.courses ? 1 : 0), titres: p.stats.titres || 0, victoires: p.stats.victoires, podiums: p.stats.podiums, poles: p.stats.poles, meilleur };
     const d = ch.rivaux[k] || [0, 0], c = ch.duel && ch.duel.carriere && ch.duel.carriere[k];
     const duels = { devant: d[0], derriere: d[1], coequipier: c ? [c.qualifs[0] + c.courses[0], c.qualifs[1] + c.courses[1]] : null };

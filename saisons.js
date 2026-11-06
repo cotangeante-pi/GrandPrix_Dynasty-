@@ -112,19 +112,24 @@ const SAISONS = (function () {
   // le pilote qui resterait le coéquipier du joueur dans l'écurie e : celui des deux qui a le plus de points (l'autre part)
   function coequipierDans(ch, id) {
     const j = joueur(ch), autres = ch.pilotes.filter(p => p.ecurie === id && !p.humain);
-    if (id === j.ecurie) return autres[0] || null;
+    if (j && id === j.ecurie) return autres[0] || null;
     return autres.slice().sort((a, b) => b.stats.points - a.stats.points || a.id - b.id)[0] || null;
   }
 
   // les offres, de la meilleure écurie à la moins bonne : [{ ecurie, niveau, coequipier (k), actuelle, exigence }] ; l'écurie
-  // actuelle propose de garder le joueur si sa note le permet ; la plus faible accepte toujours : il y a toujours une offre
+  // actuelle propose de garder le joueur si sa note le permet ; la plus faible accepte toujours : il y a toujours une offre.
+  // (tour 50d) monté de division : les offres viennent des écuries d'en haut (DIVISIONS.vueContrats), la note × DIVISION_NOTE_MONTEE
   function offres(ch) {
-    const n = note(ch), ex = exigences(ch), j = joueur(ch);
+    const v = typeof DIVISIONS !== 'undefined' ? DIVISIONS.vueContrats(ch) : ch;
+    return offresSur(v, note(ch) * (v !== ch ? R.DIVISION_NOTE_MONTEE : 1));
+  }
+  function offresSur(ch, n) {
+    const ex = exigences(ch), j = joueur(ch);
     const bonus = id => typeof CARRIERE !== 'undefined' ? CARRIERE.attention(ch, rangEcurie(ch, id), ch.ecuries.length) : 0;   // la relève : un peu d'attention pour l'héritier (jamais d'une grande écurie)
     return ch.ecuries.filter(e => ex[e.id] <= n + bonus(e.id) + 1e-12)
       .sort((a, b) => b.niveau - a.niveau || a.id - b.id)
       .map(e => {
-        const o = { ecurie: e.id, niveau: e.niveau, coequipier: coequipierDans(ch, e.id) ? coequipierDans(ch, e.id).id : null, actuelle: e.id === j.ecurie, exigence: ex[e.id] };
+        const o = { ecurie: e.id, niveau: e.niveau, coequipier: coequipierDans(ch, e.id) ? coequipierDans(ch, e.id).id : null, actuelle: !!j && e.id === j.ecurie, exigence: ex[e.id] };
         // le salaire et le statut (patrons.js) : ceux de la négociation avec son patron, sinon le salaire de base et « second pilote »
         if (R.CONTRAT_SALAIRES_ACTIFS && typeof PATRONS !== 'undefined') { const c = PATRONS.conditions(ch, e.id); o.salaire = c.salaire; o.statut = c.statut; }
         return o;
@@ -142,16 +147,18 @@ const SAISONS = (function () {
   function signer(ch, id) {
     if (!ch.enFinDeSaison || ch.retraite) return false;
     if (!offres(ch).some(o => o.ecurie === id)) return false;
-    const j = joueur(ch);
-    if (id !== j.ecurie) {
+    const j = joueur(ch), monte = typeof DIVISIONS !== 'undefined' && DIVISIONS.enAttente(ch);
+    // (tour 50d) monté de division : l'écurie signée est sur le plateau d'en haut, le joueur y passe à la saison suivante (nouvelleSaison)
+    const conditionsMontee = monte && R.CONTRAT_SALAIRES_ACTIFS && typeof PATRONS !== 'undefined' ? PATRONS.conditions(DIVISIONS.vueContrats(ch), id) : null;
+    if (!monte && id !== j.ecurie) {
       const partant = ch.pilotes.filter(p => p.ecurie === id && !p.humain).sort((a, b) => a.stats.points - b.stats.points || b.id - a.id)[0];
       partant.ecurie = j.ecurie;
       j.ecurie = id;
     }
     ch.contrats.push([ch.saison + 1, id]);
     // le salaire de la saison, versé à la signature, et le statut négocié (patrons.js) ; posé après la nouvelle saison
-    const conditions = R.CONTRAT_SALAIRES_ACTIFS && typeof PATRONS !== 'undefined' ? PATRONS.conditions(ch, id) : null;
-    nouvelleSaison(ch);
+    const conditions = monte ? conditionsMontee : R.CONTRAT_SALAIRES_ACTIFS && typeof PATRONS !== 'undefined' ? PATRONS.conditions(ch, id) : null;
+    nouvelleSaison(ch, monte ? id : undefined);
     if (conditions) {
       if (typeof ARGENT !== 'undefined') ARGENT.crediter(ch, conditions.salaire, 'salaire');
       ch.statut = { saison: ch.saison, valeur: conditions.statut };
@@ -186,7 +193,7 @@ const SAISONS = (function () {
 
   function evoluer(ch) {
     ALEATOIRE.semer(ch.graine + R.GRAINE_SAISONS + ch.saison * 101);
-    const j = joueur(ch), numerosPris = new Set(ch.pilotes.map(p => p.numero)), partis = new Set();   // les retraités de cette fin de saison
+    const j = joueur(ch), numerosPris = typeof DIVISIONS !== 'undefined' && ch.plateaux ? DIVISIONS.numerosPris(ch) : new Set(ch.pilotes.map(p => p.numero)), partis = new Set();   // (tour 50d : les numéros de tous les plateaux)   // les retraités de cette fin de saison
     // l'âge, le rythme (les jeunes progressent, les anciens baissent), la retraite
     for (const p of ch.pilotes) {
       if (p.humain) continue;
@@ -232,9 +239,12 @@ const SAISONS = (function () {
   }
 
   // la saison suivante : les rivaux évoluent, les points repartent de 0, le calendrier est reconstruit, le score du duel
-  // repart de 0 (championnat.js : duelDe), l'historique de la saison est déjà compact (terminerSaison)
-  function nouvelleSaison(ch) {
+  // repart de 0 (championnat.js : duelDe), l'historique de la saison est déjà compact (terminerSaison).
+  // (tour 50d) monté de division : après l'évolution des rivaux d'en bas, le joueur passe sur le plateau d'en haut (dans l'écurie
+  // signée, sinon la plus faible : divisions.js, changerPlateau)
+  function nouvelleSaison(ch, ecurieMontee) {
     evoluer(ch);
+    if (typeof DIVISIONS !== 'undefined') DIVISIONS.changerPlateau(ch, ecurieMontee);
     ch.saison++;
     ch.prochain = 0;
     ch.resultats = [];
