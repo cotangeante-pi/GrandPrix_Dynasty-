@@ -1206,3 +1206,13 @@ Object.assign(TEXTES.fr, {
   carriere_perduTemple: 'Perdu : le temple de la renommée', carriere_perduRecords: 'Perdu : les records et les fantômes',
   carriere_perduLecons: 'Perdu : les leçons et les aides déjà vues (la langue, le son et la qualité restent)',
 });
+
+// --- tour 49d, Codeur 4 : les divisions (divisions.js) ---
+Object.assign(TEXTES.en, {
+  divisionMontee: '⬆ Promoted: next season in Division {n}!', divisionSommet: 'Division 1: the very top.',
+  divisionResteSaison: 'Division {n}: finish in the top {p} to move up.', divisionNom: 'Division {n}',
+});
+Object.assign(TEXTES.fr, {
+  divisionMontee: '⬆ Montée : la saison prochaine en division {n} !', divisionSommet: 'Division 1 : le sommet.',
+  divisionResteSaison: 'Division {n} : finis dans les {p} premiers pour monter.', divisionNom: 'Division {n}',
+});

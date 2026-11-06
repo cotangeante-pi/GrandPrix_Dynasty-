@@ -80,6 +80,7 @@ const SAISONS = (function () {
       classement: b.pilotes.map(x => [x.k, x.points]), ecuries: b.ecuries.map(x => [x.id, x.points]),
       duel: b.duel ? [b.duel.k, b.duel.qualifs[0], b.duel.qualifs[1], b.duel.courses[0], b.duel.courses[1]] : null,
     });
+    if (typeof DIVISIONS !== 'undefined') DIVISIONS.finSaison(ch, ch.saisons[ch.saisons.length - 1], b.joueurPlace);   // (tour 49d) la montée de division
     ch.enFinDeSaison = true;
     // la retraite par l'âge : après SAISONS_MAX saisons, la carrière s'arrête (pas de contrat)
     // (les saisons de CETTE carrière : un héritier de la relève a ses propres 15 saisons, carriere.js : ch.carriere.debut)
