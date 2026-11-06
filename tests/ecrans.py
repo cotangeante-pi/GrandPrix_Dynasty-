@@ -130,6 +130,7 @@ PAGES = [
     ('index.html?course=12&ia=3&joueur=1&robot=1&circuit=test&test=aides-course', 960, 600, None),
     ('index.html?championnat=1&test=aides-menus', 1280, 720, None),
     # le nouveau paddock (tour 48a) : le menu, les pages, les deux « Nouvelle carrière » ; captures paddock-<page>-<langue>-<largeur>.png
+    ('index.html?championnat=1&gp=5&test=stand&lang=fr', 1280, 720, None),   # l'arrière-plan des menus (tour 49a-2) : la voiture au stand ; capture paddock-fond-1280.png
     ('index.html?championnat=1&gp=5&test=paddock&lang=fr', 1280, 720, None),
     ('index.html?championnat=1&gp=5&test=paddock&lang=en', 1280, 720, None),
     ('index.html?championnat=1&gp=5&test=paddock&lang=fr', 960, 600, None),
@@ -1488,6 +1489,32 @@ def conseil_ecran(pg, titre, page):
         t(f'{titre} : le menu pause la règle (oui → freinages seulement → non, sauvegardé) ; à « non », plus de ligne', r == ['freinages', 'non'] and not pg.evaluate('() => CONSEIL.ligne.visible'), str(r))
     else:
         t(f'{titre} : en normal, aucune trajectoire conseillée (sans réglage choisi)', roule and not pg.evaluate('() => CONSEIL.ligne.visible') and pg.evaluate('() => REGLAGES.NIVEAU') == 'normal', pg.evaluate('() => [CONSEIL.ligne.visible, REGLAGES.NIVEAU]'))
+# l'arrière-plan du paddock et des menus (stand3d.js, tour 49a-2) : au paddock, la voiture du joueur (sa livrée) garée devant le garage de son
+# écurie, rien d'autre ne se montre ni ne bouge, la caméra tourne autour ; son coût en appels de dessin ; « Course suivante » mène à la course
+STAND_ETAT = '''() => { const p = JEU.stand && JEU.stand.pose, c = SCENE3D.camera.position, g = JEU.modele.groupe;
+  return { ecran: JEU.ecran, stand: !!(JEU.stand && JEU.stand.groupe.visible), ou: p ? p.ou : null, voiture: [g.position.x, g.position.z, g.rotation.y], visible: g.visible,
+    autres: JEU.modeles.filter(m => m !== JEU.modele && m.groupe.visible).length, poses: JEU.modeles.map(m => [m.groupe.position.x, m.groupe.position.z]),
+    joueur: [JEU.joueur.x, JEU.joueur.z, JEU.joueur.u], cam: [c.x, c.y, c.z], rayon: p ? Math.hypot(c.x - p.x, c.z - p.z) : null,
+    livree: JEU.modele === JEU.modeles[indiceJoueur()] && !!JEU.modele.cl, appels: SCENE3D.appelsDessin, triangles: SCENE3D.trianglesDessines }; }'''
+def stand_ecran(pg, titre, l, h):
+    attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat" && JEU.stand && JEU.stand.groupe.visible', None, 60000)
+    pg.wait_for_timeout(500)
+    a = pg.evaluate(STAND_ETAT)
+    pg.wait_for_timeout(2500)
+    b = pg.evaluate(STAND_ETAT)
+    pg.screenshot(path=os.path.join(CAPTURES, f'paddock-fond-{l}.png'))
+    bouge = max(abs(x - y) for x, y in zip(a['voiture'] + a['joueur'], b['voiture'] + b['joueur']))
+    poses = max(abs(x - y) for p, q in zip(a['poses'], b['poses']) for x, y in zip(p, q))
+    cam = math.dist(a['cam'], b['cam'])
+    t(f'{titre} : derrière le paddock, la voiture du joueur avec sa livrée, garée devant le garage de son écurie ; aucune autre voiture ; rien ne bouge',
+      a['stand'] and b['stand'] and a['ou'] == 'garage' and a['visible'] and a['livree'] and a['autres'] == 0 and b['autres'] == 0 and bouge < 1e-9 and poses < 1e-9, str([a, b, bouge, poses]))
+    t(f'{titre} : la caméra tourne lentement autour de la voiture (à STAND3D_RAYON m)', cam > 0.2 and abs(a['rayon'] - pg.evaluate('() => REGLAGES.STAND3D_RAYON')) < 0.01, str([cam, a['rayon'], a['cam'], b['cam']]))
+    L.append(f"  (le paddock, arrière-plan au stand : {b['appels']} appels de dessin, {b['triangles']} triangles ; capture paddock-fond-{l}.png)")
+    pg.click('#boutonCourseSuivante')
+    attendre(pg, '() => JEU.ecran === "qualif" || JEU.ecran === "course" || JEU.ecran === "grille"', None, 30000)
+    pg.wait_for_timeout(500)
+    c = pg.evaluate(STAND_ETAT)
+    t(f'{titre} : « Course suivante » mène à la course : le stand disparaît, les autres voitures reviennent', c['ecran'] in ('qualif', 'course', 'grille') and not c['stand'] and c['autres'] > 0, str(c))
 # le rétroviseur (tour 49a, scene3d.js dessinerRetro) dans le vrai jeu : en course, vue derrière, en haut au milieu sous le chrono ; aucun
 # point de la piste devant la voiture sous lui (la méthode des aides : les points du couloir projetés à l'écran) ; une voiture posée
 # 20 m derrière se voit dans son image (les pixels changent quand on l'enlève) ; son coût en appels de dessin ; masqué, rien de plus
@@ -3543,6 +3570,8 @@ with sync_playwright() as p:
             elif 'test=livree' in page or 'test=essai' in page: pass   # (la personnalisation : ses fonctions à elle, plus haut)
             elif 'test=aides-course' in page:
                 aides_course(pg, titre, l, h)
+            elif 'test=stand' in page:
+                stand_ecran(pg, titre, l, h)
             elif 'test=paddock' in page:
                 paddock_menu(pg, titre, l, h, 'en' if 'lang=en' in page else 'fr')
             elif 'test=aides-menus' in page:

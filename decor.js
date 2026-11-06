@@ -154,7 +154,7 @@ const DECOR = (function () {
         for (let k = e0; k < e1; k++) {
           const r = repere(c, e.s + (k - e0 + 0.5) * e.longueur / (e1 - e0), d, cote);
           if (!modulesIci.some(o => Math.hypot(o.x - r.x, o.z - r.z) < R.STANDS_MODULE * 0.6)) { refus++; continue; }   // (seulement sur la façade du bâtiment)
-          ranger(objets.garage, r, 0, 0, 0, 0, 0, R.STANDS_GARAGE / 2, { couleur: R.ECURIES[k].couleur, travers: 0.3 });
+          ranger(objets.garage, r, 0, 0, 0, 0, 0, R.STANDS_GARAGE / 2, { couleur: R.ECURIES[k].couleur, travers: 0.3, ecurie: k });   // (ecurie : stand3d.js y gare la voiture du joueur derrière les menus)
         }
       } else if (e.type === 'arbres') {
         // nombre : donné, ou tiré de la surface (longueur × profondeur × densite / ARBRE_SURFACE) ; forme 'A' : des sapins seulement

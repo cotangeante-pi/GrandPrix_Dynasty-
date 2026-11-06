@@ -1994,6 +1994,40 @@ function volantVisible() {
   return CAMERA.mode === 'cockpit' && !JEU.deux && !JEU.attente && (JEU.ecran === 'course' || JEU.ecran === 'pause' || JEU.ecran === 'survol' || enTourQualif());
 }
 
+// l'arrière-plan des menus de la carrière (stand3d.js, tour 49a-2) : sur tout écran de la carrière qui n'est pas la course (paddock,
+// garage, calendrier, interview, une, contrats…), la voiture du joueur garée devant le garage de son écurie, les autres voitures cachées,
+// la caméra qui tourne autour ; la course, la qualification, la grille, le podium et les résultats gardent leur 3D
+const ECRANS_COURSE = ['course', 'pause', 'qualif', 'grille', 'survol', 'resume', 'podium', 'resultats', 'bravo', 'ceremonie', 'fin', 'choix'];
+function standVisible() {
+  return REGLAGES.STAND3D_ACTIF && !!JEU.championnat && !JEU.deux && !JEU.tournoi && !!JEU.modele && !ECRANS_COURSE.includes(JEU.ecran);
+}
+function majStand(dt) {
+  const oui = standVisible();
+  if (!oui) {
+    if (JEU.stand && JEU.stand.groupe.visible) { JEU.stand.groupe.visible = false; CAMERA.forcer(CAMERA.mode); }   // (la caméra de course repart sans glisser depuis le stand)
+    return;
+  }
+  if (!JEU.stand) {
+    const j = JEU.championnat.pilotes.find(p => p.humain), ecurie = j ? j.ecurie : 0;
+    JEU.stand = STAND3D.creer(); SCENE3D.ajouter(JEU.stand.groupe);
+    JEU.stand.pose = STAND3D.pose(CIRCUIT, SCENE3D.decor ? SCENE3D.decor.objets : null, ecurie);
+    JEU.stand.couleur = REGLAGES.ECURIES[ecurie] ? REGLAGES.ECURIES[ecurie].couleur : REGLAGES.COULEUR_JOUEUR;
+    JEU.stand.temps = 0;
+  }
+  const st = JEU.stand, p = st.pose;
+  st.temps += dt;
+  for (const m of JEU.modeles) if (m !== JEU.modele) m.groupe.visible = false;   // (rien d'autre ne roule ni ne se montre derrière les menus)
+  if (JEU.modeleFantome) JEU.modeleFantome.groupe.visible = false;
+  VOITURE3D.placer(JEU.modele, p, { braquage: 0, rotationRoues: 0 });
+  JEU.modele.groupe.visible = true; JEU.modele.tete.visible = true;
+  if (JEU.volant) JEU.volant.groupe.visible = false;
+  const c = STAND3D.camera(p, st.temps), cam = SCENE3D.camera;
+  if (cam.fov !== REGLAGES.STAND3D_CHAMP) { cam.fov = REGLAGES.STAND3D_CHAMP; cam.updateProjectionMatrix(); }
+  cam.up.set(0, 1, 0); cam.position.set(c.x, c.y, c.z); cam.lookAt(c.vx, c.vy, c.vz);
+  if (st.couleurMise !== st.couleur || !st.groupe.visible) { st.couleurMise = st.couleur; STAND3D.maj(st, p, st.couleur); }
+  st.groupe.visible = true;
+}
+
 // le rétroviseur (tour 49a, scene3d.js dessinerRetro) : en vue derrière et cockpit, en course avec d'autres voitures (pas seul, pas en
 // qualification), jamais pendant la vue télé d'après l'arrivée, à deux seulement si RETRO_DEUX ; masqué par le réglage (JEU.retro) ou
 // par la qualité (« basse », ou l'Auto quand il en a besoin : retro faux). Sa place : en haut au milieu, juste sous le chrono
@@ -2488,6 +2522,7 @@ function demarrerJeu() {
     majGrille(dt);   // avant les feux : la grille vue d'en haut (après la caméra de course, qu'elle remplace)
     majVolant();   // le volant en vue cockpit (après la caméra : il suit son champ de vision)
     majRetro(dt);   // le rétroviseur (tour 49a)
+    majStand(dt);   // derrière les menus de la carrière : la voiture au stand (tour 49a-2)
     majTableau();
     INTERFACE.majCourse(JEU.course, enTourQualif() ? 'course' : JEU.ecran);   // le chrono du tour de qualification
     majFantome(dt);

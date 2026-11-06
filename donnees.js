@@ -1214,6 +1214,17 @@ const REGLAGES = {
     { retro: false },
     { pixelRatio: 1.35 }, { pixelRatio: 1.2 }, { pixelRatio: 1.05 }, { pixelRatio: 0.9 }, { pixelRatio: 0.75 }, { pixelRatio: 0.6 },   // 6) les pixels par pixel CSS
   ],
+  // l'arrière-plan du paddock et des menus (stand3d.js, tour 49a-2) : la voiture du joueur garée devant le garage de son écurie, la
+  // caméra qui tourne autour, des mécaniciens ; STAND3D_ACTIF faux : l'arrière-plan d'avant (la grille)
+  STAND3D_ACTIF: true,
+  STAND3D_DEVANT: 6,            // m devant la porte du garage, vers la piste
+  STAND3D_RAYON: 6.5, STAND3D_HAUTEUR: 2.2, STAND3D_VISEE_Y: 0.5,   // m : la caméra autour de la voiture
+  STAND3D_VITESSE: 0.12,        // rad/s (un tour en 52 s)
+  STAND3D_CHAMP: 50,            // degrés
+  STAND3D_DEPART: 2.4,          // rad : là où la caméra commence (de trois quarts avant)
+  STAND3D_TAILLE: 1.75,         // m : un mécanicien
+  STAND3D_CASQUE: 0xf2f2f2,
+  STAND3D_MECANICIENS: [[2.6, 1.3, 2.6], [2.6, -1.3, -2.6], [-2.6, 1.4, 1.2], [0.2, -2.2, -1.6]],   // [m devant, m à droite, regard (rad)]
   // le rétroviseur (scene3d.js dessinerRetro, principal.js majRetro ; tour 49a) : en haut au milieu, sous le chrono, en vue derrière et
   // cockpit, en course avec d'autres voitures ; jamais à deux (RETRO_DEUX : choix du Codeur, réversible) ; coupé en qualité basse et par l'Auto
   RETRO_ACTIF: true,            // affiché par défaut (le menu pause et ⚙ Réglages : « Rétroviseur : oui / non », sauvegardé)
