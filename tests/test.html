@@ -4,6 +4,9 @@
 <script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits-officiels-a.js"></script><script src="../circuits-officiels-b.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../sensations.js"></script><script src="../manette.js"></script><script src="../son.js"></script><script src="../effets3d.js"></script><script src="../conseil.js"></script><script src="../qualite.js"></script><script src="../assistance.js"></script><script src="../mesure.js"></script><script src="../regie.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../divisions.js"></script><script src="../decouverte.js"></script><script src="../pilote.js"></script><script src="../deux-joueurs.js"></script><script src="../tournoi.js"></script><script src="../casque.js"></script><script src="../decors-officiels.js"></script><script src="../decor-public.js"></script><script src="../photo.js"></script><script src="../cache-carte.js"></script><script src="../journal.js"></script><script src="../argent.js"></script><script src="../garage.js"></script><script src="../aileron.js"></script><script src="../carte2d.js"></script><script src="../saisons.js"></script><script src="../sponsors.js"></script><script src="../fiche.js"></script><script src="../interview.js"></script><script src="../carriere.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../meteo.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../resume.js"></script><script src="../messages.js"></script><script src="../commentaire.js"></script><script src="../decor.js"></script><script src="../fantome.js"></script><script src="../principal.js"></script>
 <script>
 const L=[];let ok=0,ko=0;
+// (tour 49d-2) les championnats des tests sont en division 3 (le jeu d'avant : l'argent, le garage, les sponsors au bit près) ; les tests
+// des divisions remettent DIVISION_DEPART (4) le temps de leur essai
+const DIVISION_DEPART_JEU=REGLAGES.DIVISION_DEPART;REGLAGES.DIVISION_DEPART=3;
 function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
 const v=(c,m)=>{if(!c)throw new Error(m||'faux');};
 // le résultat s'écrit au fil de l'eau : si la page est coupée, #res montre jusqu'où elle est allée
@@ -3053,7 +3056,7 @@ t('commentateur du résumé vidéo : une phrase par moment fort (départ, dépas
 // (le jeu d'avant) sans rien perdre ; la montée dans les DIVISION_MONTEE_PLACE premiers, jamais de descente ; le niveau des IA et la
 // force des voitures changent d'une division à l'autre (la division 3 : les mêmes nombres au bit près)
 t('divisions : une carrière neuve en division 4, une vieille sauvegarde en division 3 sans rien perdre ; la montée dans les 3 premiers, jamais de descente', ()=>{
-  const R=REGLAGES,ch=CHAMPIONNAT.creer(3);v(DIVISIONS.de(ch)===R.DIVISION_DEPART&&R.DIVISION_DEPART===4,'carrière neuve : '+ch.division);
+  const R=REGLAGES;R.DIVISION_DEPART=DIVISION_DEPART_JEU;let ch;try{ch=CHAMPIONNAT.creer(3);}finally{R.DIVISION_DEPART=3;}v(DIVISIONS.de(ch)===DIVISION_DEPART_JEU&&DIVISION_DEPART_JEU===4,'carrière neuve : '+ch.division);
   const vieille=JSON.parse(JSON.stringify(ch));delete vieille.division;vieille.pilotes[19].stats.points=42;vieille.argent=vieille.argent||{};
   const avant=JSON.stringify(vieille),apres=CHAMPIONNAT.completer(JSON.parse(avant));
   v(apres.division===R.DIVISION_VIEILLE&&R.DIVISION_VIEILLE===3,'vieille sauvegarde : '+apres.division);
@@ -3066,7 +3069,7 @@ t('divisions : une carrière neuve en division 4, une vieille sauvegarde en divi
   v(JSON.stringify(essai(2,20))==='[2,2,null,null]','dernier : ne descend jamais');
   v(JSON.stringify(essai(1,1))==='[1,1,null,null]','division 1 : le sommet');
   const act=R.DIVISIONS_ACTIVES;try{R.DIVISIONS_ACTIVES=false;v(JSON.stringify(essai(4,1))==='[4,4,null,null]','coupées : rien');}finally{R.DIVISIONS_ACTIVES=act;}
-  if(typeof SAISONS!=='undefined'){const c=CHAMPIONNAT.creer(5);SAISONS.avancer(c,99);SAISONS.terminerSaison(c);const b=SAISONS.bilan(c);v(c.division===(b.joueurPlace<=3?3:4),'fin de saison (saisons.js) : P'+b.joueurPlace+' → division '+c.division);}
+  if(typeof SAISONS!=='undefined'){const c=CHAMPIONNAT.creer(5);c.division=4;SAISONS.avancer(c,99);SAISONS.terminerSaison(c);const b=SAISONS.bilan(c);v(c.division===(b.joueurPlace<=3?3:4),'fin de saison (saisons.js) : P'+b.joueurPlace+' → division '+c.division);}
   ['divisionMontee','divisionSommet','divisionResteSaison','divisionNom'].forEach(k=>v(TEXTES.fr[k]&&TEXTES.en[k],'texte '+k));});
 t('divisions : le niveau des IA et la force de toutes les voitures (débutant et lentes en 4 … légende et surpuissantes en 1) ; la division 3 = le jeu d’avant au bit près ; la carte des IA est recalculée avec', ()=>{
   const R=REGLAGES,B=Object.assign({},DIVISIONS.BASE),vmax=()=>{const vo=creerVoiture(null);rouler(vo,null,40,{gaz:1,frein:0,direction:0});return vo.u*KMH;};
@@ -3080,6 +3083,18 @@ t('divisions : le niveau des IA et la force de toutes les voitures (débutant et
     L.push('  (divisions, vitesse max : '+[4,3,2,1].map(d=>'D'+d+' '+vit[d].toFixed(0)+' km/h').join(', ')+')');
   }finally{DIVISIONS.retablir();}
   v(R.PUISSANCE===B.PUISSANCE&&R.NIVEAU===B.NIVEAU,'rétablis');});
+t('divisions : les gains, les sponsors et les prix du garage grandissent avec la division (D4 le plus bas, D3 = le jeu d’avant au bit près)', ()=>{
+  const R=REGLAGES,mk=d=>{const c=CHAMPIONNAT.creer(9);c.division=d;return c;},j=19;
+  const lignes=c=>{const o=c.pilotes.map(p=>p.id).filter(k=>k!==j);o.splice(2,0,j);return o.map((k,i)=>({k,place:i+1,grille:i+1,ligne:i+1,penalites:0,meilleurTour:k===j?59:60+i,classe:true}));};
+  const g={},px={},sp={};for(const d of [4,3,2,1]){const c=mk(d);g[d]=ARGENT.gains(c,lignes(c)).total;px[d]=GARAGE.prix(c,'moteur');const o=SPONSORS.offres(c);sp[d]=o.length?o[0].montant:0;}
+  v(g[4]<g[3]&&g[3]<g[2]&&g[2]<g[1],'gains d’une 3e place : '+JSON.stringify(g));
+  v(px[4]<px[3]&&px[3]<px[2]&&px[2]<px[1]&&px[3]===R.GARAGE.moteur.prix[0],'prix du moteur : '+JSON.stringify(px));
+  v(sp[4]<sp[3]&&sp[3]<sp[2]&&sp[2]<sp[1],'sponsor : '+JSON.stringify(sp));
+  const c3=mk(3),vieille=CHAMPIONNAT.creer(9);delete vieille.division;CHAMPIONNAT.completer(vieille);
+  v(JSON.stringify(ARGENT.gains(c3,lignes(c3)))===JSON.stringify(ARGENT.gains(vieille,lignes(vieille)))&&JSON.stringify(SPONSORS.offres(c3))===JSON.stringify(SPONSORS.offres(vieille)),'D3 = une sauvegarde d’avant');
+  v([4,2,1].every(d=>g[d]%100===0&&px[d]%100===0&&sp[d]%100===0),'arrondis à 100 €');
+  const act=R.DIVISIONS_ACTIVES;try{R.DIVISIONS_ACTIVES=false;const c=mk(1);v(ARGENT.gains(c,lignes(c)).total===g[3]&&GARAGE.prix(c,'moteur')===px[3],'divisions coupées : le jeu d’avant');}finally{R.DIVISIONS_ACTIVES=act;}
+  L.push('  (divisions, 3e place : '+[4,3,2,1].map(d=>'D'+d+' '+g[d]+' €').join(', ')+' ; moteur niveau 1 : '+[4,3,2,1].map(d=>px[d]).join(' / ')+' €)');});
 t('divisions : une course entre IA en division 4 et en division 1 sur le technique (la carte calculée pour chaque division) : tout le monde finit, la division 1 tourne plus vite que la 4', ()=>{
   const R=REGLAGES,res={};
   try{
