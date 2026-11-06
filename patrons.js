@@ -72,6 +72,7 @@ const PATRONS = (function () {
     if (ecran !== undefined && !DISCUSSION.peutDiscuter(ecran) && ecran !== 'contrats') return false;
     if (!ch.ecuries[e]) return false;
     if (e === joueur(ch).ecurie) return true;
+    if (typeof DIVISIONS !== 'undefined' && DIVISIONS.enAttente(ch)) return false;   // (tour 50d) monté : les offres viennent des écuries d'en haut
     return !!ch.enFinDeSaison && SAISONS.offres(ch).some(o => o.ecurie === e);
   }
 
@@ -204,7 +205,7 @@ const PATRONS = (function () {
   // dire(ch, e, txt, ecran, noms) : le joueur écrit au patron de l'écurie e ; { analyse, reaction, raisons, effets, texte }, ou null
   function dire(ch, e, txt, ecran, noms) {
     if (!peutParler(ch, e, ecran)) return null;
-    noms = noms || { pilote: p => p.nom || (p.humain ? texte('nomJoueur') : texte('pilote').replace('{n}', p.numero)), ecurie: x => x.nom || texte('ecurie').replace('{n}', x.id + 1) };
+    noms = noms || { pilote: p => p.nom || (p.humain ? texte('nomJoueur') : texte('pilote').replace('{n}', p.numero)), ecurie: x => x.nom || texte('ecurie').replace('{n}', x.numero || x.id + 1) };
     const analyse = PARLE.comprendre(txt, DISCUSSION.noms(ch)), r = raisonner(ch, e, analyse);
     appliquer(ch, e, r, analyse.acte);
     return { analyse, reaction: r.reaction, raisons: r.raisons, effets: r.effets, texte: composerReponse(ch, e, r, noms) };
