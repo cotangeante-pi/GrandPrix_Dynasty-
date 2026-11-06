@@ -1775,7 +1775,7 @@ t('relève : les records de famille s’additionnent sur 3 générations de 15 s
 t('championnat : le niveau de l’écurie agit sur le rythme des IA (rythme × niveau, avant la carte) ; sur 6 Grands Prix simulés, les 5 écuries fortes marquent plus que les 5 faibles', ()=>{
   const R=REGLAGES,ch=CHAMPIONNAT.creer(11),circuits={test:C,technique:construireCircuit(CIRCUITS.technique)},t0=performance.now();
   for(let g=0;g<6;g++){const gp=ch.calendrier[ch.prochain],e=CHAMPIONNAT.simulerGrandPrix(ch,circuits[gp.circuit],1,200+g);
-    v(e.pilotes.slice(0,19).every((p,k)=>p.pilote&&Math.abs(p.rythme-p.rythmeBase*ch.ecuries[ch.pilotes[k].ecurie].niveau)<1e-9&&Math.abs(p.pilote.rythme-p.rythme)<1e-9),'rythme × niveau, GP '+(g+1));
+    v(e.pilotes.slice(0,19).every((p,k)=>p.pilote&&Math.abs(p.rythme-p.rythmeBase*ch.ecuries[ch.pilotes[k].ecurie].niveau)<1e-9&&Math.abs(p.pilote.rythme-p.rythme*(p.forme===undefined?1:p.forme))<1e-9),'rythme × niveau (× la forme du jour, tour 49c), GP '+(g+1));
     v(e.pilotes.every(p=>p.arrivee!==null),'pas tous arrivés : '+e.pilotes.map(p=>p.arrivee===null?'-':'✓').join(''));
     CHAMPIONNAT.enregistrerCourse(ch,CHAMPIONNAT.lignesDepuisCourse(e));}
   // par pilote IA (le joueur, conduit par le robot, est à part) : les 10 des écuries 1 à 5 contre les 9 des écuries 6 à 10
