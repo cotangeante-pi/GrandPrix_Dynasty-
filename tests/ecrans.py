@@ -778,8 +778,8 @@ def championnat_en(pg, titre):
     ecran = pg.evaluate('''() => ({ titre: document.getElementById("championnatTitre").textContent, h2: [...document.querySelectorAll("#championnatTableaux h2")].map(e => e.textContent),
       pilotes: [...document.querySelectorAll("#championnatPilotes li .nom")].map(e => e.textContent), ecuries: [...document.querySelectorAll("#championnatEcuries li .nom")].map(e => e.textContent),
       bouton: document.getElementById("boutonCourseSuivante").textContent, tout: document.getElementById("championnat").innerText })''')
-    t(f'{titre} : l’écran du championnat en anglais : « Grand Prix 1 / 12 — Bahrayn », Drivers / Teams, « You » et « Driver n », « Team n », « Next race », pas un mot français',
-      ecran['titre'] == 'Grand Prix 1 / 12 — Bahrayn' and ecran['h2'] == ['Drivers', 'Teams'] and all(re.fullmatch(r'Driver \d+|You', n) for n in ecran['pilotes']) and ecran['pilotes'].count('You') == 1
+    t(f'{titre} : l’écran du championnat en anglais : « Grand Prix 1 / 12 — Bahrayn », « Drivers · Division 4 » / Teams (une carrière neuve en division 4, tour 49d), « You » et « Driver n », « Team n », « Next race », pas un mot français',
+      ecran['titre'] == 'Grand Prix 1 / 12 — Bahrayn' and ecran['h2'] == ['Drivers · Division 4', 'Teams'] and all(re.fullmatch(r'Driver \d+|You', n) for n in ecran['pilotes']) and ecran['pilotes'].count('You') == 1
       and all(re.fullmatch(r'Team \d+', n) for n in ecran['ecuries']) and ecran['bouton'] == 'Next race' and not re.search(MOTS_FR, ecran['tout']), str(ecran)[:400])
     paddock_clic(pg, '#boutonCourseSuivante')
     passer_qualif(pg, titre)
@@ -2905,7 +2905,7 @@ def championnat(pg, titre, l):
           attendre(pg, '() => JEU.ecran === "course" && JEU.contre && JEU.robot && JEU.plateau && JEU.plateau.pilotes.length === 20 && NOM_CIRCUIT === JEU.championnat.calendrier[JEU.championnat.prochain].circuit'
                        ' && JEU.couleurs.every((c, k) => c === JEU.championnat.ecuries[JEU.championnat.pilotes[k].ecurie].couleur) && JEU.course.nbTours === 1', None, 10000), str(pg.evaluate(ECRAN)))
         t(f'{titre} : GP {gp} : la carte se calcule, chaque IA prend le caractère de son pilote du championnat',
-          attendre(pg, '() => JEU.plateau.carte !== null && JEU.plateau.pilotes.slice(0, 19).every((p, k) => p.pilote && p.pilote.caractere.regularite === JEU.championnat.pilotes[k].caractere.regularite)', None, 180000))
+          attendre(pg, '() => JEU.plateau.carte !== null && JEU.plateau.pilotes.slice(0, 19).every((p, k) => p.pilote && p.pilote.caractere.regularite === JEU.championnat.pilotes[k].caractere.regularite * niveau().regularite)', None, 180000))   # (tour 49d : × le niveau de la division, débutant en division 4)
         if gp == 2:   # l'aileron réglé au garage après le GP 1 (cran 5 pour ce circuit) est sur la voiture du joueur ; les IA ont le leur
             al = pg.evaluate('() => ({ ad: JEU.joueur.aileronAdherence, tr: JEU.joueur.aileronTrainee, attendu: AILERON.facteurs(AILERON.cranDe(JEU.championnat, NOM_CIRCUIT)), cran: AILERON.cranDe(JEU.championnat, NOM_CIRCUIT), ia: JEU.plateau.pilotes.slice(0, 19).filter(p => typeof p.aileron === "number").length })')
             t(f'{titre} : GP 2 : l’aileron réglé (cran {al["cran"] + 1}) est sur la voiture du joueur, et les 19 IA ont choisi le leur', al['cran'] == 4 and al['ad'] == al['attendu']['adherence'] and al['tr'] == al['attendu']['trainee'] and al['ia'] == 19, str(al))
