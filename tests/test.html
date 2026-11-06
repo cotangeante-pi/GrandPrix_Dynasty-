@@ -559,9 +559,9 @@ t('qualité auto : rien ne change pendant les feux ; le niveau gardé repart de 
   v(QUALITE.suivante('auto')==='haute'&&QUALITE.suivante('haute')==='moyenne'&&QUALITE.suivante('moyenne')==='basse'&&QUALITE.suivante('basse')==='auto','le menu');
   v(QUALITE.regler(b,'haute')===0&&QUALITE.reglages(b)===null&&QUALITE.regler(b,'auto')===5,'l’Auto reprend son niveau');
   v(QUALITE.creer('n_importe').regle==='auto','réglage inconnu');});
-t('qualité : l’ordre des pas, du moins visible au plus visible (voitures lointaines, densité du décor, distance de dessin, effets, pixels) ; chaque pas simplifie ; le plus beau est l’image d’avant ; jamais la piste ni la voiture du joueur ; un pas sans effet à l’écran est sauté', ()=>{const R_=REGLAGES;
-  const FAM={voitureLoin:1,voituresDetaillees:1,densite:2,detail:3,rien:3,effets:4,pixelRatio:6},N=QUALITE.niveaux(),pb=N[0];
-  v(pb.pixelRatio===R_.PIXEL_RATIO_MAX&&pb.detail===R_.DECOR_DETAIL_LOIN&&pb.rien===R_.DECOR_RIEN_LOIN&&pb.voitureLoin===R_.VOITURE_LOIN&&pb.voituresDetaillees===R_.VOITURES_DETAILLEES_MAX&&pb.densite===1&&pb.effets===1,'le plus beau '+JSON.stringify(pb));
+t('qualité : l’ordre des pas, du moins visible au plus visible (voitures lointaines, densité du décor, distance de dessin, effets, rétroviseur, pixels) ; chaque pas simplifie ; le plus beau est l’image d’avant ; jamais la piste ni la voiture du joueur ; un pas sans effet à l’écran est sauté', ()=>{const R_=REGLAGES;
+  const FAM={voitureLoin:1,voituresDetaillees:1,densite:2,detail:3,rien:3,effets:4,retro:5,pixelRatio:6},N=QUALITE.niveaux(),pb=N[0];
+  v(pb.pixelRatio===R_.PIXEL_RATIO_MAX&&pb.detail===R_.DECOR_DETAIL_LOIN&&pb.rien===R_.DECOR_RIEN_LOIN&&pb.voitureLoin===R_.VOITURE_LOIN&&pb.voituresDetaillees===R_.VOITURES_DETAILLEES_MAX&&pb.densite===1&&pb.effets===1&&pb.retro===true,'le plus beau '+JSON.stringify(pb));
   let f0=0;for(let k=1;k<N.length;k++){const ch=Object.keys(N[k]).filter(c=>N[k][c]!==N[k-1][c]);v(ch.length>0&&ch.every(c=>c in FAM&&N[k][c]<N[k-1][c]),'pas '+k+' '+ch);const f=Math.max(...ch.map(c=>FAM[c]));v(f>=f0,'ordre au pas '+k);f0=f;}
   const s=N[N.length-1];v(s.voitureLoin===15&&s.voituresDetaillees===2&&s.pixelRatio===0.6&&Math.abs(s.pixelRatio-0.6)<1e-9,'le plus simple '+JSON.stringify(s));
   const N1=QUALITE.niveaux(1);v(N1.length<N.length&&N1.every((x,k)=>k===0||JSON.stringify(Object.assign({},x,{pixelRatio:Math.min(1,x.pixelRatio)}))!==JSON.stringify(Object.assign({},N1[k-1],{pixelRatio:Math.min(1,N1[k-1].pixelRatio)}))),'écran à 1 pixel par pixel CSS : '+N1.length+' niveaux');

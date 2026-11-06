@@ -1210,14 +1210,27 @@ const REGLAGES = {
     { densite: 0.75 }, { densite: 0.5 }, { densite: 0.3 },                                // 2) la part du public, des arbres et des piles de pneus dessinés
     { detail: 150, rien: 1350 }, { detail: 120, rien: 1100 }, { detail: 90, rien: 900 },  // 3) la distance de dessin du décor (m)
     { effets: 0.5 }, { effets: 0.25 },                                                    // 4) la part de fumée, d'étincelles, de gerbes, de gouttes
-    // 5) les ombres : le jeu n'en dessine pas aujourd'hui (shadowMap éteint) ; leur pas viendra avec elles
+    // 5) les ombres : le jeu n'en dessine pas aujourd'hui (shadowMap éteint) ; leur pas viendra avec elles. À leur place : le rétroviseur
+    { retro: false },
     { pixelRatio: 1.35 }, { pixelRatio: 1.2 }, { pixelRatio: 1.05 }, { pixelRatio: 0.9 }, { pixelRatio: 0.75 }, { pixelRatio: 0.6 },   // 6) les pixels par pixel CSS
   ],
+  // le rétroviseur (scene3d.js dessinerRetro, principal.js majRetro ; tour 49a) : en haut au milieu, sous le chrono, en vue derrière et
+  // cockpit, en course avec d'autres voitures ; jamais à deux (RETRO_DEUX : choix du Codeur, réversible) ; coupé en qualité basse et par l'Auto
+  RETRO_ACTIF: true,            // affiché par défaut (le menu pause et ⚙ Réglages : « Rétroviseur : oui / non », sauvegardé)
+  RETRO_DEUX: false,
+  RETRO_LARGEUR: 0.24, RETRO_LARGEUR_MAX: 340, RETRO_RAPPORT: 4,   // la part de la largeur de l'écran, au plus tant de pixels CSS ; largeur / hauteur
+  RETRO_ECART: 6,               // pixels CSS sous le chrono (#hudCourse) ; sans lui, à RETRO_HAUT de la hauteur
+  RETRO_HAUT: 0.2,
+  RETRO_RESOLUTION: 0.5,        // pixels dessinés par pixel CSS (une petite image)
+  RETRO_CHAMP: 40, RETRO_PRES: 0.5, RETRO_LOIN: 400,   // degrés ; m (rien au-delà : moins à dessiner)
+  RETRO_RECUL: 1.6, RETRO_HAUTEUR: 1.1,                // m : la caméra à l'arrière de la voiture, à hauteur de casque…
+  RETRO_VISEE: 40, RETRO_VISEE_Y: 0.4,                 // … qui regarde à tant de mètres derrière, à cette hauteur
+  RETRO_MAJ_ZONE: 0.5,          // s : la place du chrono est relue tous les tant
   // les réglages fixes du menu (haute = l'image d'avant) ; les voitures, la densité et les effets y restent ceux du plus beau
   QUALITE_CRANS: [
     { pixelRatio: 1.5, detail: 180, rien: 1600 },   // haute
     { pixelRatio: 1, detail: 130, rien: 1200 },     // moyenne
-    { pixelRatio: 0.75, detail: 90, rien: 900 },    // basse
+    { pixelRatio: 0.75, detail: 90, rien: 900, retro: false },    // basse (sans rétroviseur)
   ],
 
   // le mode ?debug=1

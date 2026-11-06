@@ -2,8 +2,8 @@
 // Elle ne change que le dessin, jamais la physique ni les IA. Le calcul est pur (testé sans écran, tests/test.html).
 // - « haute », « moyenne », « basse » : un réglage fixe (QUALITE_CRANS ; haute = l'image d'avant).
 // - « auto » (par défaut) : un niveau de 0 (le plus beau) à QUALITE_PAS.length (le plus simple), un petit pas à la fois, du moins
-//   visible au plus visible (QUALITE_PAS : les voitures lointaines, la densité du décor, sa distance de dessin, les effets, les
-//   pixels). Sous QUALITE_IPS_MIN images/s (moyenne sur QUALITE_MOYENNE s), on simplifie d'un pas toutes les QUALITE_PAS_DESCENTE s
+//   visible au plus visible (QUALITE_PAS : les voitures lointaines, la densité du décor, sa distance de dessin, les effets, le
+//   rétroviseur, les pixels). Sous QUALITE_IPS_MIN images/s (moyenne sur QUALITE_MOYENNE s), on simplifie d'un pas toutes les QUALITE_PAS_DESCENTE s
 //   au plus, jusqu'à revenir à QUALITE_IPS_VISEE ou plus. Le détail revient d'un pas toutes les QUALITE_PAS_RETOUR s au plus, et
 //   seulement si le temps de calcul d'une image est sous QUALITE_MARGE du temps permis (QUALITE_TEMPS_PERMIS) ; un pas rendu qui
 //   refait passer sous QUALITE_IPS_VISEE est repris aussitôt, et ce niveau n'est plus rendu avant QUALITE_BLOCAGE s (doublé à
@@ -17,7 +17,7 @@ const QUALITE = (function () {
   // le plus beau : l'image d'avant (les réglages de toujours de donnees.js)
   function plusBeau() {
     return { pixelRatio: R.PIXEL_RATIO_MAX, detail: R.DECOR_DETAIL_LOIN, rien: R.DECOR_RIEN_LOIN, voitureLoin: R.VOITURE_LOIN,
-      voituresDetaillees: R.VOITURES_DETAILLEES_MAX, densite: 1, effets: 1 };
+      voituresDetaillees: R.VOITURES_DETAILLEES_MAX, densite: 1, effets: 1, retro: true };
   }
   // les niveaux de l'Auto : [plus beau, après le pas 1, …] ; dpr : les pixels par pixel CSS de l'écran (un pas qui ne change rien
   // à l'écran, comme 1,5 → 1,35 sur un écran à 1 pixel par pixel CSS, est sauté : il ferait perdre une demi-seconde pour rien)
@@ -80,7 +80,7 @@ const QUALITE = (function () {
     return null;
   }
 
-  // ce que le dessin doit faire (scene3d.js) : null = l'image d'avant ; sinon { pixelRatio, detail, rien, voitureLoin, voituresDetaillees, densite, effets }
+  // ce que le dessin doit faire (scene3d.js) : null = l'image d'avant ; sinon { pixelRatio, detail, rien, voitureLoin, voituresDetaillees, densite, effets, retro }
   function reglages(q) {
     if (q.regle === 'auto') return q.niveau > 0 ? Object.assign({}, q.niveaux[q.niveau]) : null;
     const c = CRAN[q.regle];

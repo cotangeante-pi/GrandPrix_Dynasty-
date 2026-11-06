@@ -1994,6 +1994,30 @@ function volantVisible() {
   return CAMERA.mode === 'cockpit' && !JEU.deux && !JEU.attente && (JEU.ecran === 'course' || JEU.ecran === 'pause' || JEU.ecran === 'survol' || enTourQualif());
 }
 
+// le rétroviseur (tour 49a, scene3d.js dessinerRetro) : en vue derrière et cockpit, en course avec d'autres voitures (pas seul, pas en
+// qualification), jamais pendant la vue télé d'après l'arrivée, à deux seulement si RETRO_DEUX ; masqué par le réglage (JEU.retro) ou
+// par la qualité (« basse », ou l'Auto quand il en a besoin : retro faux). Sa place : en haut au milieu, juste sous le chrono
+function retroVisible() {
+  const q = SCENE3D.qualite;
+  return !!JEU.retro && !!JEU.plateau && !!JEU.contre && (JEU.ecran === 'course' || JEU.ecran === 'pause') && !JEU.attente
+    && (CAMERA.mode === 'derriere' || CAMERA.mode === 'cockpit') && (!JEU.deux || REGLAGES.RETRO_DEUX) && !(q && q.retro === false);
+}
+function majRetro(dt) {
+  const cadre = document.getElementById('retroviseur'), oui = retroVisible();
+  if (!oui) { if (SCENE3D.retroZone) SCENE3D.reglerRetro(null); if (cadre) cadre.classList.add('cache'); return; }
+  JEU.retroMaj = (JEU.retroMaj || 0) - dt;
+  if (!JEU.retroPlace || JEU.retroMaj <= 0) {   // (la place du chrono, relue de temps en temps : lire une boîte force la mise en page)
+    JEU.retroMaj = REGLAGES.RETRO_MAJ_ZONE;
+    const W = window.innerWidth, H = window.innerHeight, hud = document.getElementById('hudCourse');
+    const r = hud && !hud.classList.contains('cache') ? hud.getBoundingClientRect() : null;
+    const l = Math.round(Math.min(REGLAGES.RETRO_LARGEUR_MAX, W * REGLAGES.RETRO_LARGEUR)), h = Math.round(l / REGLAGES.RETRO_RAPPORT);
+    JEU.retroPlace = { x: Math.round((W - l) / 2), y: Math.round(r && r.height > 0 ? r.bottom + REGLAGES.RETRO_ECART : H * REGLAGES.RETRO_HAUT), l, h };
+    if (cadre) Object.assign(cadre.style, { left: JEU.retroPlace.x + 'px', top: JEU.retroPlace.y + 'px', width: l + 'px', height: h + 'px' });
+  }
+  SCENE3D.reglerRetro(JEU.retroPlace, JEU.modele.groupe);
+  if (cadre) cadre.classList.remove('cache');
+}
+
 function majVolant() {
   const oui = volantVisible();
   if (!JEU.volant) { if (!oui) return; JEU.volant = VOITURE3D.creerVolant(casqueDe(indiceJoueur())); SCENE3D.accrocher(JEU.volant.groupe); }
@@ -2340,6 +2364,17 @@ function demarrerJeu() {
       b.addEventListener('click', () => { QUALITE.regler(JEU.qualite, QUALITE.suivante(JEU.qualite.regle)); SAUVEGARDE.ecrireOption('qualite', JEU.qualite.regle); appliquer(); ecrire(); });
     }
   }
+  // le rétroviseur (tour 49a) : « Rétroviseur : oui / non » dans le menu pause et ⚙ Réglages, sauvegardé (RETRO_ACTIF par défaut)
+  {
+    const bs = ['boutonRetroPause', 'boutonRetroPaddock'].map(id => document.getElementById(id)).filter(Boolean);
+    JEU.retro = SAUVEGARDE.option('retroviseur', REGLAGES.RETRO_ACTIF) !== false;
+    const ecrire = () => { for (const b of bs) b.textContent = texte(JEU.retro ? 'retro_oui' : 'retro_non'); };
+    ecrire();
+    for (const b of bs) {
+      b.addEventListener('mousedown', e => e.preventDefault());
+      b.addEventListener('click', () => { JEU.retro = !JEU.retro; SAUVEGARDE.ecrireOption('retroviseur', JEU.retro); ecrire(); });
+    }
+  }
   // les aides au pilotage (assistance.js, tour 41 ; le choix du joueur, le propriétaire 2026-10-30, tour 37e) : choisies AVANT la course, une
   // par une, à tous les niveaux (le niveau ne donne que le réglage proposé : toutes en débutant, aucune au-dessus), sauvegardées ;
   // le choix (INTERFACE.preparerAides) s'ouvre du titre, du paddock, de la course rapide et du menu des leçons ; pendant la
@@ -2418,7 +2453,7 @@ function demarrerJeu() {
     JEU.alpha = alpha;
     JEU.dtImage = dt;
     majManettes(dt);   // la manette (manette.js) : lue à chaque image
-    if (JEU.ecran === 'resume') { majResume(dt); if (JEU.sdkPret) SDK.jeuArrete(); if (JEU.ecran === 'resume') { if (typeof EFFETS3D !== 'undefined') SENSATIONS.observer([], CIRCUIT); SCENE3D.dessiner(); return; } }   // le résumé vidéo : la 3D rejoue l'enregistrement (Poki : gameplayStop)
+    if (JEU.ecran === 'resume') { majResume(dt); if (JEU.sdkPret) SDK.jeuArrete(); if (JEU.ecran === 'resume') { majRetro(dt); if (typeof EFFETS3D !== 'undefined') SENSATIONS.observer([], CIRCUIT); SCENE3D.dessiner(); return; } }   // le résumé vidéo : la 3D rejoue l'enregistrement (Poki : gameplayStop)
     majAToi(dt);   // le tournoi : le compte à rebours de « À toi, … ! »   // (« passer » en accéléré : le nombre de pas de l'image suit sa durée)
     const apres = JEU.ecran === 'podium' || JEU.ecran === 'resultats' || JEU.ecran === 'bravo' || JEU.ecran === 'tournoiFin' || JEU.ecran === 'ceremonie';   // le podium (et la cérémonie du champion) : les voitures n'y bougent plus
     // ?ia=N : chaque IA à sa place ; une IA arrivée quitte la piste (elle n'est plus dessinée)
@@ -2451,6 +2486,7 @@ function demarrerJeu() {
     majMessages();   // les messages de course, un à la fois
     majGrille(dt);   // avant les feux : la grille vue d'en haut (après la caméra de course, qu'elle remplace)
     majVolant();   // le volant en vue cockpit (après la caméra : il suit son champ de vision)
+    majRetro(dt);   // le rétroviseur (tour 49a)
     majTableau();
     INTERFACE.majCourse(JEU.course, enTourQualif() ? 'course' : JEU.ecran);   // le chrono du tour de qualification
     majFantome(dt);
