@@ -44,13 +44,13 @@ t('réglages : le réglage conseillé = la voiture d’aujourd’hui au bit prè
 
 t('freins : vers l’avant, le freinage est plus court depuis les grandes vitesses et plus long à basse vitesse ; en freinant en virage, l’adhérence de côté baisse (les roues avant bloquent) ; vers l’arrière, l’inverse ; sans braquer, rien ne bloque', ()=>{
   const dist=(c,de,a)=>{const vo=voiture(avec('freins',c),de);let d=0;rouler(vo,null,10,{gaz:0,frein:1,direction:0},w=>{d+=w.u*DT;return w.u>a;});return d;};
-  const d=[0,1,2,3,4].map(c=>dist(c,85,60)),b=[0,1,2,3,4].map(c=>dist(c,22,5));
-  v(d[4]<d[3]&&d[3]<d[2]&&d[2]<d[1]&&d[1]<d[0],'distances depuis 306 km/h '+d.map(x=>x.toFixed(1)).join(' / '));
+  const d=[0,1,2,3,4].map(c=>dist(c,95,80)),b=[0,1,2,3,4].map(c=>dist(c,22,5));
+  v(d[4]<d[3]&&d[3]<d[2]&&d[2]<d[1]&&d[1]<d[0],'distances depuis 342 km/h '+d.map(x=>x.toFixed(1)).join(' / '));
   v(b[4]>b[3]&&b[3]>b[2]&&b[2]>b[1]&&b[1]>b[0],'distances depuis 79 km/h '+b.map(x=>x.toFixed(2)).join(' / '));
   const blo=c=>{const vo=voiture(avec('freins',c),50);vo.frein=1;vo.direction=0.6;return adherenceReglages(vo,50);};
   v(blo(4)<blo(3)&&blo(3)<1&&blo(1)>1&&blo(0)>blo(1),'adhérence en freinant en virage '+[0,1,3,4].map(blo).join(' / '));
   const droit=voiture(avec('freins',4),50);droit.frein=1;droit.direction=0;v(adherenceReglages(droit,50)===1,'en ligne droite');
-  L.push('  (freins, de l’arrière à l’avant, au frein à fond de 306 à 216 km/h : '+d.map(x=>x.toFixed(1)+' m').join(' / ')+' ; de 79 à 18 km/h : '+b.map(x=>x.toFixed(2)+' m').join(' / ')+' ; adhérence en freinant en virage : '+[0,1,3,4].map(c=>blo(c).toFixed(3)).join(' / ')+')');});
+  L.push('  (freins, de l’arrière à l’avant, au frein à fond de 342 à 288 km/h : '+d.map(x=>x.toFixed(1)+' m').join(' / ')+' ; de 79 à 18 km/h : '+b.map(x=>x.toFixed(2)+' m').join(' / ')+' ; adhérence en freinant en virage : '+[0,1,3,4].map(c=>blo(c).toFixed(3)).join(' / ')+')');});
 
 t('boîte : courte, plus d’accélération (0–100 km/h) et moins de vitesse de pointe ; longue, l’inverse', ()=>{
   const m=c=>{const vo=voiture(avec('boite',c));let t100=null;rouler(vo,null,60,{gaz:1,frein:0,direction:0},(w,k)=>{if(t100===null&&w.u*KMH>=100)t100=(k+1)*DT;});return {t100,pointe:vo.u*KMH};};
