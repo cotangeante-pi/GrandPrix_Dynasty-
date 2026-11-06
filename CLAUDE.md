@@ -78,10 +78,11 @@ Ce qu'on ajoute, c'est **un vrai championnat** : des saisons de 12 Grands Prix, 
 
 ## Les divisions (4, 3, 2, 1)
 
-Idée du propriétaire, 2026-11-05 (« à l'avenir ») : « il faudra faire des divisions, division 4, 3, 2, 1, on commence avec la 4 (bots nuls, voitures nulles), puis 3 (bots moyens, voitures moyennes), puis 2 (bots forts, voitures fortes), et finalement 1 (bots légendaires et voitures surpuissantes) ». **Pas encore à coder** : après les décisions du 2026-11-04.
+Idée du propriétaire, 2026-11-05 (« à l'avenir ») : « il faudra faire des divisions, division 4, 3, 2, 1, on commence avec la 4 (bots nuls, voitures nulles), puis 3 (bots moyens, voitures moyennes), puis 2 (bots forts, voitures fortes), et finalement 1 (bots légendaires et voitures surpuissantes) ». **Codé à partir du 2026-11-05** (voir plus bas).
 
 - **Division 4** : IA au niveau débutant, voitures lentes (toutes, joueur compris). **Division 3** : IA normales, voitures moyennes. **Division 2** : IA expertes, voitures fortes. **Division 1** : IA légendes, voitures surpuissantes (plus de puissance et d'adhérence, la vraie F1).
 - La carrière commence en division 4 ; on monte de division en gagnant sa place (la règle exacte est à choisir par le propriétaire).
+- **À coder dès le 2026-11-05** (le propriétaire : « continue … sur les étapes 3, 6, 7 et 10 »). Il n'a pas encore choisi la règle : **choix du Chef, réversible (un réglage chacun dans `donnees.js`)** : **monter** quand on finit dans les 3 premiers du championnat pilotes ; **descendre** : jamais.
 - **Propositions du Chef, à confirmer par le propriétaire** :
   - **monter** : champion de la division, ou dans les 3 premiers du championnat, à la fin de la saison ; **descendre** : jamais (le jeu reste agréable pour un enfant), ou seulement dernier deux saisons de suite ;
   - les 4 niveaux de difficulté (débutant, normal, expert, légende) deviennent les 4 divisions en carrière ; le choix du niveau reste en course rapide et entre amis ;
