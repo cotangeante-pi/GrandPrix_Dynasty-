@@ -1792,10 +1792,10 @@ function finDeCourse() {
   INTERFACE.montrer('fin');
 }
 
-// les touches de conduite, par leur place (e.code) : ZQSD en AZERTY = WASD en QWERTY
-const TOUCHES = {
-  gaz: ['ArrowUp', 'KeyW'], frein: ['ArrowDown', 'KeyS'], gauche: ['ArrowLeft', 'KeyA'], droite: ['ArrowRight', 'KeyD'],
-};
+// les touches de conduite, par leur place (e.code) : ZQSD en AZERTY = WASD en QWERTY ; celles choisies par le joueur (clavier.js, tour 49b),
+// sinon celles de départ (TOUCHES_SEUL) ; les deux joueurs : CLAVIER.appliquer les pose dans REGLAGES.TOUCHES_DEUX
+let touchesChoix = CLAVIER.completer(SAUVEGARDE.touches());
+const TOUCHES = CLAVIER.appliquer(touchesChoix);
 const enfoncees = new Set();
 
 function majCibles() {
@@ -1811,20 +1811,69 @@ function majCibles() {
   if (JEU.deux && JEU.rappelDeux) TOUCHES_DEUX_ECRAN.pasRappel(JEU.rappelDeux, { 1: JEU.deuxCommandes[1].cibles, 2: JEU.deuxCommandes[2].cibles }, true, 0);
 }
 
+// --- les touches au choix (clavier.js, tour 49b) : l'écran depuis la page « Réglages » du paddock ; un clic sur une commande, puis la
+// touche voulue (Échap annule) ; une touche déjà prise est refusée avec la commande qui l'a ; « Par défaut » remet tout ; gardé à la racine
+let attenteTouche = null;
+function ouvrirTouches() {
+  if (JEU.ecran !== 'championnat') return;
+  attenteTouche = null;
+  TOUCHES_ECRAN.remplir(touchesChoix, null, '');
+  JEU.ecran = 'touches';
+  INTERFACE.montrer('touches');
+}
+function quitterTouches() {
+  if (JEU.ecran !== 'touches') return;
+  attenteTouche = null;
+  montrerChampionnat(JEU.gagne);
+}
+function choisirTouche(groupe, action) {
+  if (JEU.ecran !== 'touches') return;
+  attenteTouche = { groupe, action };
+  TOUCHES_ECRAN.remplir(touchesChoix, attenteTouche, texte('touchesAppuie'));
+}
+function garderTouches() {
+  SAUVEGARDE.ecrireTouches(CLAVIER.auDepart(touchesChoix) ? null : touchesChoix);
+  Object.assign(TOUCHES, CLAVIER.appliquer(touchesChoix));
+}
+function touchesParDefaut() {
+  if (JEU.ecran !== 'touches') return;
+  touchesChoix = CLAVIER.defaut(); attenteTouche = null;
+  garderTouches();
+  TOUCHES_ECRAN.remplir(touchesChoix, null, texte('touchesDefautFait'));
+}
+// la touche appuyée pendant l'attente : elle ne va pas au reste du jeu (ni pause, ni conduite)
+function toucheChoisie(e) {
+  if (JEU.ecran !== 'touches' || !attenteTouche) return;
+  e.preventDefault(); e.stopImmediatePropagation();
+  if (e.repeat) return;
+  const { groupe, action } = attenteTouche;
+  attenteTouche = null;
+  if (e.code === 'Escape') { TOUCHES_ECRAN.remplir(touchesChoix, null, ''); return; }
+  const r = CLAVIER.changer(touchesChoix, groupe, action, e.code), nom = TOUCHES_DEUX_ECRAN.nom(e.code, null);
+  let m;
+  if (r.ok) { garderTouches(); m = texte('touchesFait').replace('{commande}', TOUCHES_ECRAN.commande(groupe, action)).replace('{touche}', nom); }
+  else if (r.raison === 'echap') m = texte('touchesEchap');
+  else if (r.raison === 'prise') m = texte('touchesPrise').replace('{touche}', nom).replace('{commande}', TOUCHES_ECRAN.commande(r.groupe, r.action));
+  else m = '';
+  TOUCHES_ECRAN.remplir(touchesChoix, null, m);
+}
+
 function brancherClavier() {
+  window.addEventListener('keydown', toucheChoisie, true);   // (tour 49b) avant tout le reste : la touche choisie pour une commande
   window.addEventListener('keydown', e => {
     // le mode 2 joueurs : ni C (la caméra reste derrière), ni Espace, ni Entrée pour le podium ; chacun sa touche de remise en piste
     if (JEU.deux) { if (!e.repeat) for (const j of [1, 2]) if (DEUX_JOUEURS.remise(new Set([e.code]), j)) JEU.deuxCommandes[j].remettre = true; }
     else {
-      if (e.code === 'KeyC' && !e.repeat) CAMERA.suivante();
-      if (e.code === 'Space' && !e.repeat) JEU.remettre = true;
+      if (TOUCHES.camera.includes(e.code) && !e.repeat) CAMERA.suivante();
+      if (TOUCHES.remise.includes(e.code) && !e.repeat) JEU.remettre = true;
       if (e.code === 'Enter' && !e.repeat) passerAuPodium();
     }
     if (e.code === 'Escape' && !e.repeat && JEU.ecran === 'resume') { quitterResume(); return; }
     if (JEU.ecran === 'grille' && !e.repeat) { finirGrille(); }   // la grille vue d'en haut : une touche la passe   // le résumé vidéo : Échap ramène aux résultats
-    if (e.code === 'Escape' && !e.repeat) pause(JEU.ecran === 'course');
-    if (e.code === 'Escape' && !e.repeat && JEU.defi && enTourQualif()) finirTourDefi(JEU.qualif.q, true);   // (tour 49b) le défi : Échap abandonne le tour (pas de temps)
-    if (e.code === 'Escape' && !e.repeat && JEU.tournoi) pauseTournoi(enTourQualif());   // le tournoi : la pause d'un tour (reprendre, abandonner)
+    const touchePause = e.code === 'Escape' || (!JEU.deux && TOUCHES.pause.includes(e.code));   // (tour 49b : Échap, et la touche de pause choisie)
+    if (touchePause && !e.repeat) pause(JEU.ecran === 'course');
+    if (touchePause && !e.repeat && JEU.defi && enTourQualif()) finirTourDefi(JEU.qualif.q, true);   // (tour 49b) le défi : Échap abandonne le tour (pas de temps)
+    if (touchePause && !e.repeat && JEU.tournoi) pauseTournoi(enTourQualif());   // le tournoi : la pause d'un tour (reprendre, abandonner)
     if (JEU.ecran === 'une' && !e.repeat) passerUne();   // n'importe quelle touche passe la une du journal
     else if (JEU.ecran === 'album' && !e.repeat) {   // l'album : ← → feuillettent, Échap ferme
       if (e.code === 'ArrowLeft') feuilleterAlbum(-1);
@@ -2357,6 +2406,7 @@ function demarrerJeu() {
   INTERFACE.preparerResume(montrerResume, quitterResume);
   INTERFACE.preparerGrille(finirGrille);
   INTERFACE.preparerAmis(ouvrirDeux, ouvrirTournoi, montrerAmis);
+  TOUCHES_ECRAN.preparer({ ouvrir: ouvrirTouches, choisir: choisirTouche, defaut: touchesParDefaut, retour: quitterTouches });   // (tour 49b) les touches au choix
   // (tour 49b) le défi du fantôme : « Relever un défi » dans « Entre amis », son écran, la fin du tour, « 📋 Défier un ami » après la qualification
   { const b = document.getElementById('boutonAmisDefi'); b.textContent = texte('amisDefi'); b.addEventListener('mousedown', e => e.preventDefault()); b.addEventListener('click', ouvrirDefi); }
   DEFI_ECRAN.preparer({ courir: courirDefi, retour: retourDefi, recommencer: () => { if (JEU.ecran === 'defiFin') location.reload(); },

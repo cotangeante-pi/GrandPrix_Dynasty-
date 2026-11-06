@@ -453,6 +453,9 @@ const REGLAGES = {
   DECOUVERTE_ARGENT_MAX: 1000,  // … et son plafond
   // le mode 2 joueurs (deux-joueurs.js, CLAUDE.md « Le mode 2 joueurs (écran partagé) ») : ?deux=1 ; les touches par leur place
   // sur le clavier (e.code : W A S D = Z Q S D en AZERTY) ; Échap met en pause pour les deux ; Espace et C ne font rien
+  // (tour 49b) les touches au choix (clavier.js) : celles de départ de la course seule (par e.code, la place de la touche : ZQSD en AZERTY
+  // = WASD en QWERTY) ; Échap ouvre toujours la pause, quoi qu'on choisisse, et ne peut pas servir à autre chose
+  TOUCHES_SEUL: { gaz: ['ArrowUp', 'KeyW'], frein: ['ArrowDown', 'KeyS'], gauche: ['ArrowLeft', 'KeyA'], droite: ['ArrowRight', 'KeyD'], remise: ['Space'], camera: ['KeyC'], pause: ['Escape'] },
   TOUCHES_DEUX: {
     1: { gaz: ['KeyW'], frein: ['KeyS'], gauche: ['KeyA'], droite: ['KeyD'], remise: ['KeyE'] },
     2: { gaz: ['ArrowUp'], frein: ['ArrowDown'], gauche: ['ArrowLeft'], droite: ['ArrowRight'], remise: ['Enter', 'ShiftRight'] },

@@ -45,7 +45,7 @@ const INTERFACE = (function () {
   }
 
   function montrer(ecran) {
-    for (const id of ['defi', 'defiFin', 'choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une', 'garage', 'saison', 'duelSaison', 'contrats', 'retraite', 'titre', 'amis', 'bravo', 'pilote', 'sponsors', 'fiche', 'interview', 'ceremonie', 'temple', 'heritier', 'calendrier', 'deuxReglages', 'resume', 'grille', 'tournoiInscription', 'tournoiAToi', 'tournoiPause', 'tournoiManche', 'tournoiFin', 'aileron', 'arbre', 'discussion', 'courrier']) $(id).classList.toggle('cache', id !== ecran);
+    for (const id of ['touches', 'defi', 'defiFin', 'choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une', 'garage', 'saison', 'duelSaison', 'contrats', 'retraite', 'titre', 'amis', 'bravo', 'pilote', 'sponsors', 'fiche', 'interview', 'ceremonie', 'temple', 'heritier', 'calendrier', 'deuxReglages', 'resume', 'grille', 'tournoiInscription', 'tournoiAToi', 'tournoiPause', 'tournoiManche', 'tournoiFin', 'aileron', 'arbre', 'discussion', 'courrier']) $(id).classList.toggle('cache', id !== ecran);
     // l'album des unes (Codeur 3) : la page de la une, avec la barre pour feuilleter
     if (ecran === 'album') $('une').classList.remove('cache');
     $('une').classList.toggle('album', ecran === 'album');
@@ -2156,4 +2156,51 @@ const DEFI_ECRAN = (function () {
   }
 
   return { preparer, remplirSaisie, lire, message, montrerCode, remplirFin, contre, boutonTournoi };
+})();
+
+// --- les touches au choix (clavier.js, tour 49b) : trois colonnes (course seule, joueur 1, joueur 2), une ligne par commande avec sa
+// touche ; la commande qui attend sa touche est marquée d'un halo ; Échap reste écrit à côté de la pause (elle ouvre toujours la pause)
+const TOUCHES_ECRAN = (function () {
+  const $ = id => document.getElementById(id);
+  let rappel = null;
+  const commande = (groupe, action) => texte('touchesGroupe_' + groupe) + ' · ' + texte('touchesAction_' + action);
+  const nom = code => TOUCHES_DEUX_ECRAN.nom(code, null);
+
+  function preparer(f) {
+    rappel = f;
+    for (const [id, g] of [['boutonTouchesPaddock', f.ouvrir], ['boutonTouchesDefaut', f.defaut], ['boutonTouchesRetour', f.retour]]) {
+      const b = $(id); if (!b) continue;
+      b.addEventListener('mousedown', e => e.preventDefault()); b.addEventListener('click', g);
+    }
+    if ($('boutonTouchesPaddock')) $('boutonTouchesPaddock').textContent = texte('touchesBouton');
+  }
+
+  // t : les touches (CLAVIER) ; attente : { groupe, action } ou null ; message : la ligne sous le titre
+  function remplir(t, attente, message) {
+    $('touchesTitre').textContent = texte('touchesTitre');
+    $('touchesMessage').textContent = message || texte('touchesExplication');
+    $('boutonTouchesDefaut').textContent = texte('touchesDefaut');
+    $('boutonTouchesRetour').textContent = texte('retour');
+    const box = $('touchesGroupes');
+    box.textContent = '';
+    for (const g of Object.keys(CLAVIER.GROUPES)) {
+      const col = document.createElement('div'); col.className = 'touchesGroupe';
+      const h = document.createElement('h2'); h.textContent = texte('touchesGroupe_' + g); col.appendChild(h);
+      for (const a of CLAVIER.GROUPES[g]) {
+        const l = document.createElement('div'); l.className = 'touchesLigne';
+        const s = document.createElement('span'); s.textContent = texte('touchesAction_' + a);
+        const b = document.createElement('button');
+        b.tabIndex = -1; b.dataset.groupe = g; b.dataset.action = a;
+        const enAttente = attente && attente.groupe === g && attente.action === a;
+        b.classList.toggle('attente', !!enAttente);
+        b.textContent = enAttente ? '…' : t[g][a].map(nom).join(texte('tch_ou'));
+        b.addEventListener('mousedown', e => e.preventDefault());
+        b.addEventListener('click', () => rappel && rappel.choisir(g, a));
+        l.append(s, b); col.appendChild(l);
+      }
+      box.appendChild(col);
+    }
+  }
+
+  return { preparer, remplir, commande };
 })();

@@ -1548,3 +1548,12 @@ body.auPaddock #boutonSon { display: none; }
 #defiMessage { min-height: 1.2em; color: #ffb4a8; }
 #defiListe { max-height: 22vh; overflow: hidden; margin: 6px 0 0; padding: 0; list-style: none; font-size: 13px; }
 #defiListe li { margin: 2px 0; }
+
+/* les touches au choix (tour 49b) : trois colonnes (course seule, joueur 1, joueur 2), une ligne par commande */
+#touchesGroupes { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+.touchesGroupe { min-width: 200px; }
+.touchesGroupe h2 { margin: 0 0 6px; font-size: 15px; }
+.touchesLigne { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 3px 0; font-size: 13px; }
+.touchesLigne button { min-width: 74px; padding: 3px 8px; font-size: 13px; }
+.touchesLigne button.attente { box-shadow: 0 0 0 3px #ffd34d; }
+#touchesMessage { min-height: 1.2em; }

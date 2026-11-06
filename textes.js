@@ -1242,3 +1242,21 @@ Object.assign(TEXTES.fr, {
   defiCoupe: 'Virage coupé : pas de temps.', defiAbandon: 'Tour abandonné : pas de temps.',
   defiRecommencer: '🔁 Recommencer', defiRenvoyer: '📋 Renvoyer mon code', defiQuitter: 'Retour',
 });
+
+// (tour 49b) les touches au choix (clavier.js)
+Object.assign(TEXTES.en, {
+  touchesBouton: '⌨ Keys', touchesTitre: 'Keys', touchesExplication: 'Click a command, then press the key you want.',
+  touchesAppuie: 'Press a key… (Esc: cancel)', touchesPrise: '{touche} is already used: {commande}', touchesEchap: 'Esc always opens the pause.',
+  touchesFait: '{commande}: {touche}', touchesDefaut: 'Default', touchesDefautFait: 'All keys are back to default.',
+  touchesGroupe_seul: 'Racing', touchesGroupe_j1: '🔵 Player 1', touchesGroupe_j2: '🔴 Player 2',
+  touchesAction_gaz: 'Throttle', touchesAction_frein: 'Brake', touchesAction_gauche: 'Left', touchesAction_droite: 'Right',
+  touchesAction_remise: 'Back on track', touchesAction_camera: 'Camera', touchesAction_pause: 'Pause',
+});
+Object.assign(TEXTES.fr, {
+  touchesBouton: '⌨ Touches', touchesTitre: 'Touches', touchesExplication: 'Clique sur une commande, puis appuie sur la touche voulue.',
+  touchesAppuie: 'Appuie sur une touche… (Échap : annuler)', touchesPrise: '{touche} est déjà prise : {commande}', touchesEchap: 'Échap ouvre toujours la pause.',
+  touchesFait: '{commande} : {touche}', touchesDefaut: 'Par défaut', touchesDefautFait: 'Toutes les touches sont revenues par défaut.',
+  touchesGroupe_seul: 'Course', touchesGroupe_j1: '🔵 Joueur 1', touchesGroupe_j2: '🔴 Joueur 2',
+  touchesAction_gaz: 'Accélérer', touchesAction_frein: 'Freiner', touchesAction_gauche: 'Gauche', touchesAction_droite: 'Droite',
+  touchesAction_remise: 'Retour en piste', touchesAction_camera: 'Caméra', touchesAction_pause: 'Pause',
+});

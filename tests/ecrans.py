@@ -69,7 +69,8 @@ PAGES = [
     ('index.html?championnat=1&tours=2&robot=1&lang=en&test=audit-consigne', 960, 600, None),
     ('index.html?course=0&camera=cockpit&lang=en&test=audit-volant', 960, 600, None),   # l'audit anglais (tour 31, Codeur 3) : chaque écran du championnat et de la fin de carrière, sans un mot français, rien hors de l'écran en 960×600   # la page en anglais : championnat et podium sans un mot français, capture championnat-en.png
     ('index.html?course=1&ia=5&joueur=1&robot=1&circuit=test&test=fantome', 1280, 720, None),
-    ('index.html?course=1&ia=5&joueur=1&robot=1&circuit=test&test=defi', 960, 600, None),   # (tour 49b) le défi du fantôme : « Défier un ami » après la qualification, « Relever un défi », le tour contre le fantôme, captures defi-*.png   # le fantôme du meilleur tour : deux qualifications de suite, la 2e contre le fantôme, capture fantome.png
+    ('index.html?course=1&ia=5&joueur=1&robot=1&circuit=test&test=defi', 960, 600, None),
+    ('index.html?championnat=1&tours=1&test=clavier', 960, 600, None),   # (tour 49b) les touches au choix : l'écran depuis Réglages, une touche changée conduit la voiture, capture touches.png   # (tour 49b) le défi du fantôme : « Défier un ami » après la qualification, « Relever un défi », le tour contre le fantôme, captures defi-*.png   # le fantôme du meilleur tour : deux qualifications de suite, la 2e contre le fantôme, capture fantome.png
     ('index.html?robot=1&test=decouverte&tours=1', 1280, 720, None),
     ('index.html?deux=1&ia=5&robot=1&circuit=test&test=deux', 1280, 720, None),   # le mode 2 joueurs (deux-joueurs.js) : l'écran partagé, deux robots + 5 IA, jusqu'au podium ; capture deux-joueurs.png
     ('index.html?deux=1&ia=5&robot=1&circuit=test&test=deux', 960, 600, None),    # … en petit : rien ne déborde ; capture deux-joueurs-960.png
@@ -398,6 +399,40 @@ def enregistreur(pg, titre):
 # le fantôme du meilleur tour (fantome.js) : deux qualifications de suite par le robot. La première n'a pas de fantôme et
 # devient le record du circuit (sauvegardé, compact) ; la deuxième, par un robot plus prudent, roule contre le fantôme
 # (voiture transparente, écart en direct en rouge) et ne remplace pas le record. Puis l'option « masqué » et la course sans fantôme
+# (tour 49b) les touches au choix (clavier.js) : depuis « Réglages » du paddock, l'écran (3 colonnes, tient en 960×600) ; le gaz sur I ;
+# I pour le frein est refusé (déjà pris par le gaz) ; Échap annule ; puis dans une course, I accélère et ↑ / W ne font plus rien ;
+# « Par défaut » remet tout (la sauvegarde revient à null)
+def clavier_ecran(pg, titre, l, h):
+    attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', None, 60000)
+    pg.evaluate('() => INTERFACE.pagePaddock("reglages")')
+    pg.click('#boutonTouchesPaddock')
+    attendre(pg, '() => JEU.ecran === "touches"', None, 5000)
+    e = pg.evaluate('''() => { const b = [...document.querySelectorAll("#touchesGroupes button")].map(x => x.getBoundingClientRect());
+      return { n: b.length, dedans: b.every(x => x.left >= 0 && x.top >= 0 && x.right <= innerWidth && x.bottom <= innerHeight), defile: [document.documentElement.scrollHeight, innerHeight],
+        gaz: document.querySelector('#touchesGroupes button[data-groupe=seul][data-action=gaz]').textContent }; }''')
+    t(f'{titre} : « ⌨ Touches » (Réglages) : chaque commande (course : 7, joueur 1 : 5, joueur 2 : 5) avec sa touche d’aujourd’hui, tout dans l’écran sans défilement', e['n'] == 17 and e['dedans'] and e['defile'][0] <= e['defile'][1] + 2 and '↑' in e['gaz'], str(e))
+    pg.click('#touchesGroupes button[data-groupe=seul][data-action=gaz]'); pg.keyboard.press('KeyI')
+    a = pg.evaluate('() => [JEU.ecran, document.querySelector("#touchesGroupes button[data-groupe=seul][data-action=gaz]").textContent, (SAUVEGARDE.touches() || {}).seul && SAUVEGARDE.touches().seul.gaz]')
+    t(f'{titre} : un clic sur « Accélérer », puis I : le gaz est sur I, gardé dans la sauvegarde', a[0] == 'touches' and a[1] == 'I' and a[2] == ['KeyI'], str(a))
+    pg.click('#touchesGroupes button[data-groupe=seul][data-action=frein]'); pg.keyboard.press('KeyI')
+    b = pg.evaluate('() => [JEU.ecran, document.getElementById("touchesMessage").textContent, texte("touchesAction_gaz"), SAUVEGARDE.touches().seul.frein]')
+    t(f'{titre} : I pour freiner est refusé : la touche est déjà prise, le message dit par quoi (« Accélérer »), le frein ne change pas', b[0] == 'touches' and b[2] in b[1] and b[3] == ['ArrowDown', 'KeyS'], str(b))
+    pg.click('#touchesGroupes button[data-groupe=seul][data-action=camera]'); pg.keyboard.press('Escape')
+    c = pg.evaluate('() => [JEU.ecran, SAUVEGARDE.touches().seul.camera]')
+    t(f'{titre} : Échap pendant l’attente annule (rien ne change, pas de pause, on reste sur l’écran)', c == ['touches', ['KeyC']], str(c))
+    pg.screenshot(path=os.path.join(CAPTURES, 'touches.png'))
+    pg.goto('file://' + RACINE + '/index.html?course=0'); attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "course"', None, 60000)
+    r = []
+    for k in ('KeyI', 'ArrowUp', 'KeyW'):
+        pg.keyboard.down(k); r.append(pg.evaluate('() => JEU.cibles.gaz')); pg.keyboard.up(k)
+    t(f'{titre} : dans une course, I accélère ; ↑ et W (Z en AZERTY) ne font plus rien', r == [1, 0, 0], str(r))
+    pg.goto('file://' + RACINE + '/index.html?championnat=1&tours=1'); attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', None, 60000)
+    pg.evaluate('() => INTERFACE.pagePaddock("reglages")'); pg.click('#boutonTouchesPaddock'); attendre(pg, '() => JEU.ecran === "touches"', None, 5000)
+    pg.click('#boutonTouchesDefaut')
+    d = pg.evaluate('() => [SAUVEGARDE.touches(), document.querySelector("#touchesGroupes button[data-groupe=seul][data-action=gaz]").textContent]')
+    pg.click('#boutonTouchesRetour')
+    t(f'{titre} : « Par défaut » remet tout (la sauvegarde revient à celles de départ), « Retour » ramène au paddock', d[0] is None and '↑' in d[1] and pg.evaluate('() => JEU.ecran === "championnat"'), str(d))
+
 # (tour 49b) le défi du fantôme entre amis (defi.js) : le robot fait sa qualification, « 📋 Défier un ami » donne le code ; « Entre amis »
 # → « Relever un défi » refuse un code abîmé (le message) et accepte le bon ; la page ?defi=1 : le même tour du robot contre ce fantôme
 # (visible, l'écart en direct) ; à l'arrivée, l'écart au fantôme vaut 0 (le même robot), « Renvoyer mon code », le meilleur gardé
@@ -3550,6 +3585,8 @@ with sync_playwright() as p:
                 tuto_lecon(pg, titre, l, h, page)
             elif 'test=audit' in page:
                 audit_autres(pg, titre, page, l, h)
+            elif 'test=clavier' in page:
+                clavier_ecran(pg, titre, l, h)
             elif 'test=patron' in page:
                 patron_ecran(pg, titre, l, h, page)
             elif 'test=discussion' in page:
