@@ -1192,13 +1192,47 @@ const REGLAGES = {
   MESURE_DUREE: 30,             // s : la mesure des images par seconde du propriétaire (mesure.js, ?mesure=1 : 20 voitures, la caméra de course)
   COUTS_POINTS: 12,             // la mesure des coûts par circuit (tests/lieu.html, tour 40) : la caméra de course en tant d'endroits du tour (12 : un sur deux des 24 de la mesure du tour 40, plus court sur GitHub)
   PIXEL_RATIO_MAX: 1.5,         // au plus 1,5 pixel dessiné par pixel CSS (un écran Retina en demande 2)
-  // la qualité de l'image (qualite.js, tour 40) : le dessin seulement ; le cran 0 = l'image d'avant (PIXEL_RATIO_MAX, DECOR_DETAIL_LOIN, DECOR_RIEN_LOIN)
-  QUALITE_IPS_MIN: 55,          // images par seconde : en dessous en moyenne…
-  QUALITE_FENETRE: 3,           // … pendant tant de secondes, on baisse d'un cran (« auto »)
+  // la qualité de l'image (qualite.js ; tour 40 les crans, tour 49a l'Auto continu) : le dessin seulement ; le plus beau = l'image d'avant
+  // (PIXEL_RATIO_MAX, DECOR_DETAIL_LOIN, DECOR_RIEN_LOIN, VOITURE_LOIN, VOITURES_DETAILLEES_MAX, toute la densité, tous les effets)
+  QUALITE_IPS_MIN: 55,          // images par seconde : en dessous (moyenne sur QUALITE_MOYENNE s), les simplifications commencent…
+  QUALITE_IPS_VISEE: 58,        // … un pas à la fois, jusqu'à revenir à tant ou plus
+  QUALITE_MOYENNE: 1,           // s : la moyenne des images par seconde
+  QUALITE_PAS_DESCENTE: 0.5,    // s : au plus un pas de simplification tous les tant
+  QUALITE_PAS_RETOUR: 3,        // s : au plus un pas de détail rendu tous les tant
+  QUALITE_MARGE: 0.7,           // le détail revient seulement si une image se calcule en moins de cette part du temps permis…
+  QUALITE_TEMPS_PERMIS: 1 / 60, // … (s : une image à 60 Hz ; 0,7 × 16,7 ms = 11,7 ms)
+  QUALITE_BLOCAGE: 90,          // s de jeu : un pas rendu puis repris n'est plus rendu avant tant (doublé à chaque nouvel échec)
+  QUALITE_DT_MAX: 0.25,         // s : une image plus longue (un chargement, l'onglet caché) ne compte pas
+  // les pas de l'Auto, dans l'ordre, du moins visible au plus visible (chacun change ce qu'il donne, le reste suit le pas d'avant) ;
+  // le détail revient dans l'ordre inverse. Jamais : la piste, les vibreurs, les repères, la trajectoire conseillée, la voiture du joueur
+  QUALITE_PAS: [
+    { voitureLoin: 35, voituresDetaillees: 6 }, { voitureLoin: 25, voituresDetaillees: 4 }, { voitureLoin: 15, voituresDetaillees: 2 },   // 1) les voitures lointaines (m, nombre)
+    { densite: 0.75 }, { densite: 0.5 }, { densite: 0.3 },                                // 2) la part du public, des arbres et des piles de pneus dessinés
+    { detail: 150, rien: 1350 }, { detail: 120, rien: 1100 }, { detail: 90, rien: 900 },  // 3) la distance de dessin du décor (m)
+    { effets: 0.5 }, { effets: 0.25 },                                                    // 4) la part de fumée, d'étincelles, de gerbes, de gouttes
+    // 5) les ombres : le jeu n'en dessine pas aujourd'hui (shadowMap éteint) ; leur pas viendra avec elles. À leur place : le rétroviseur
+    { retro: false },
+    { pixelRatio: 1.35 }, { pixelRatio: 1.2 }, { pixelRatio: 1.05 }, { pixelRatio: 0.9 }, { pixelRatio: 0.75 }, { pixelRatio: 0.6 },   // 6) les pixels par pixel CSS
+  ],
+  // le rétroviseur (scene3d.js dessinerRetro, principal.js majRetro ; tour 49a) : en haut au milieu, sous le chrono, en vue derrière et
+  // cockpit, en course avec d'autres voitures ; jamais à deux (RETRO_DEUX : choix du Codeur, réversible) ; coupé en qualité basse et par l'Auto
+  RETRO_ACTIF: true,            // affiché par défaut (le menu pause et ⚙ Réglages : « Rétroviseur : oui / non », sauvegardé)
+  RETRO_DEUX: false,
+  RETRO_LARGEUR: 0.24, RETRO_LARGEUR_MAX: 340, RETRO_RAPPORT: 4,   // la part de la largeur de l'écran, au plus tant de pixels CSS ; largeur / hauteur
+  RETRO_ECART: 6,               // pixels CSS sous le chrono (#hudCourse) ; sans lui, à RETRO_HAUT de la hauteur
+  RETRO_HAUT: 0.2,
+  RETRO_BAS_MAX: 170,           // pixels CSS : le bas du rétroviseur reste au-dessus des messages de course (#messageCourse, à 176 px du haut)
+  RETRO_HAUTEUR_MIN: 24,
+  RETRO_RESOLUTION: 0.5,        // pixels dessinés par pixel CSS (une petite image)
+  RETRO_CHAMP: 55, RETRO_PRES: 0.5, RETRO_LOIN: 400,   // degrés de gauche à droite ; m (rien au-delà : moins à dessiner)
+  RETRO_RECUL: 1.6, RETRO_HAUTEUR: 1.1,                // m : la caméra à l'arrière de la voiture, à hauteur de casque…
+  RETRO_VISEE: 40, RETRO_VISEE_Y: 0.4,                 // … qui regarde à tant de mètres derrière, à cette hauteur
+  RETRO_MAJ_ZONE: 0.5,          // s : la place du chrono est relue tous les tant
+  // les réglages fixes du menu (haute = l'image d'avant) ; les voitures, la densité et les effets y restent ceux du plus beau
   QUALITE_CRANS: [
     { pixelRatio: 1.5, detail: 180, rien: 1600 },   // haute
     { pixelRatio: 1, detail: 130, rien: 1200 },     // moyenne
-    { pixelRatio: 0.75, detail: 90, rien: 900 },    // basse
+    { pixelRatio: 0.75, detail: 90, rien: 900, retro: false },    // basse (sans rétroviseur)
   ],
 
   // le mode ?debug=1

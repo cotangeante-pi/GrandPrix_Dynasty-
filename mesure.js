@@ -57,7 +57,7 @@ const MESURE = (function () {
       if (t < R.MESURE_DUREE) return;
       fini = true;
       const s = stats(durees), c = SCENE3D.canvas;
-      const q = JEU.qualite ? JEU.qualite.regle + ' ' + JEU.qualite.cran + '/2, ' + SCENE3D.pixelRatio + ' px/px' : '?';   // (le réglage, le cran : 0 haute, 2 basse)
+      const q = JEU.qualite ? JEU.qualite.regle + ' ' + JEU.qualite.niveau + '/' + (JEU.qualite.niveaux.length - 1) + ', ' + SCENE3D.pixelRatio + ' px/px' : '?';   // (le réglage, le niveau de l'Auto : 0 le plus beau)
       window.__mesure = Object.assign(s, { circuit, appels: Math.round(appels.reduce((a, b) => a + b, 0) / appels.length), appelsMax: Math.max(...appels), triangles,
         qualite: q, taille: (c ? c.width + '×' + c.height : '?') + ' px', duree: R.MESURE_DUREE });
       sortie.textContent = texteResultat(window.__mesure);
