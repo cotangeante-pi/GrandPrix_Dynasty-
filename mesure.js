@@ -84,7 +84,7 @@ const MESURE = (function () {
     const b = document.createElement('button');
     b.id = 'boutonMesurer'; b.tabIndex = -1; b.textContent = texte('mesure_bouton');
     b.addEventListener('click', () => { location.href = adresse(circuit); });
-    p.appendChild(b);
+    (p.querySelector('.reglagesPied') || p).appendChild(b);   // dans le pied du panneau, toujours visible (tour 47c)
   }
 
   return { stats, texteResultat, compteur, mesurer, adresse, boutonReglages };
