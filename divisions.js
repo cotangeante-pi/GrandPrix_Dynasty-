@@ -4,6 +4,7 @@
 // - DIVISIONS.de(ch) : la division (1 à 4) ; une sauvegarde d'avant : DIVISION_VIEILLE (completer)
 // - DIVISIONS.appliquer(division) : REGLAGES.NIVEAU et la physique de toutes les voitures pour cette division (à faire au chargement de
 //   la page, avant la carte des IA et la course) ; DIVISIONS.retablir() : les réglages de base
+// - DIVISIONS.facteur(ch, cle), DIVISIONS.echelle(x, ch, cle) : l'argent (gains, sponsors) et les prix du garage selon la division
 // - DIVISIONS.finSaison(ch, entree, placeJoueur) : la montée (une fois par saison, saisons.js : terminerSaison) ; renvoie la nouvelle
 //   division si le joueur monte, sinon null
 const DIVISIONS = (function () {
@@ -42,5 +43,17 @@ const DIVISIONS = (function () {
     return ch.division;
   }
 
-  return { completer, de, regles, appliquer, retablir, finSaison, BASE };
+  // (tour 49d-2) l'argent grandit avec la division : facteur(ch, 'argent' | 'garage') ; echelle(x, ch, cle) : x × le facteur, arrondi à
+  // 100 € (x tel quel quand le facteur vaut 1 : la division 3, une sauvegarde d'avant, ou les divisions coupées)
+  function facteur(ch, cle) {
+    if (!R.DIVISIONS_ACTIVES || !ch) return 1;
+    const f = regles(de(ch))[cle];
+    return typeof f === 'number' && f > 0 ? f : 1;
+  }
+  function echelle(x, ch, cle) {
+    const f = facteur(ch, cle);
+    return f === 1 || typeof x !== 'number' ? x : Math.round(x * f / 100) * 100;
+  }
+
+  return { completer, de, regles, appliquer, retablir, finSaison, facteur, echelle, BASE };
 })();

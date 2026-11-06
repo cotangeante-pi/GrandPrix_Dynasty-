@@ -2827,7 +2827,7 @@ def garage_ecran(pg, titre, achat=True, capture='garage.png'):
         t(f'{titre} : sans argent, tous les boutons « Acheter » sont grisés', not any(e['actifs']), str(e['actifs']))
     else:
         t(f'{titre} : avec de l’argent, « Acheter » est actif', all(e['actifs']), str(e['actifs']))
-        prix = pg.evaluate('() => REGLAGES.GARAGE.moteur.prix[0]')
+        prix = pg.evaluate('() => GARAGE.prix(JEU.championnat, "moteur")')   # (tour 49d-2 : le prix de la division, × DIVISIONS[d].garage)
         pg.click('#garageListe li[data-nom="moteur"] button')
         e2 = pg.evaluate(GARAGE_ETAT)
         t(f'{titre} : acheter le moteur : le solde baisse du prix ({prix}), le niveau passe à 1 / 5, le prix suivant s’affiche, le bonus monte, et c’est sauvegardé',
@@ -3164,7 +3164,7 @@ def championnat(pg, titre, l):
         duel_ecran(pg, titre, gp)
         # le solde = les gains des Grands Prix + les crédits (le test du garage en ajoute un) − les achats du garage (la somme des prix des niveaux achetés)
         sol = pg.evaluate('''() => { const ch = JEU.championnat, s = ch.argent.solde, R = REGLAGES; return { texte: document.getElementById("championnatArgent").textContent, attendu: "Solde : " + ARGENT.formater(s), s,
-          somme: ch.argent.historique.reduce((a, h) => a + h[1], 0) - GARAGE.NOMS.reduce((a, n) => a + R.GARAGE[n].prix.slice(0, ch.garage[n]).reduce((x, y) => x + y, 0), 0),
+          somme: ch.argent.historique.reduce((a, h) => a + h[1], 0) - GARAGE.NOMS.reduce((a, n) => a + R.GARAGE[n].prix.slice(0, ch.garage[n]).reduce((x, y) => x + DIVISIONS.echelle(y, ch, "garage"), 0), 0),   /* (tour 49d-2) les prix de la division */
           sauve: SAUVEGARDE.championnat().argent.solde, n: ch.argent.historique.filter(h => h[0] > 0).length }; }''')
         t(f'{titre} : GP {gp} : l’écran du championnat montre le solde = les gains + les crédits − les achats, sauvegardé, {gp} Grand(s) Prix dans l’historique', sol['texte'] == sol['attendu'] and sol['s'] == sol['somme'] and sol['sauve'] == sol['s'] and sol['n'] == gp and sol['s'] > 0, str(sol))
         if gp == 1:

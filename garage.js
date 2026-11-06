@@ -21,7 +21,7 @@ const GARAGE = (function () {
   function prix(ch, nom) {
     const g = completer(ch), niveau = g[nom];
     if (!R.GARAGE[nom] || niveau >= R.GARAGE_NIVEAUX) return null;
-    return R.GARAGE[nom].prix[niveau];
+    return typeof DIVISIONS !== 'undefined' ? DIVISIONS.echelle(R.GARAGE[nom].prix[niveau], ch, 'garage') : R.GARAGE[nom].prix[niveau];   // (tour 49d-2) × la division
   }
 
   // pourquoi on ne peut pas acheter : 'max' (niveau maximum), 'argent' (pas assez), ou null si on peut

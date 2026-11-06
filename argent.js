@@ -25,20 +25,21 @@ const ARGENT = (function () {
   function gains(ch, lignes, aides) {
     const j = ch.pilotes.find(p => p.humain), lj = lignes.find(l => l.k === j.id);
     if (!lj) return null;
-    const place = R.ARGENT_PLACE[lj.place - 1] || 0;
+    const ech = x => typeof DIVISIONS !== 'undefined' ? DIVISIONS.echelle(x, ch, 'argent') : x;   // (tour 49d-2) × la division
+    const place = ech(R.ARGENT_PLACE[lj.place - 1] || 0);
     let meilleur = null;
     for (const l of lignes) if (l.meilleurTour !== null && l.meilleurTour !== undefined && (meilleur === null || l.meilleurTour < meilleur.meilleurTour)) meilleur = l;
-    const meilleurTour = meilleur && meilleur.k === j.id ? R.ARGENT_MEILLEUR_TOUR : 0;
+    const meilleurTour = meilleur && meilleur.k === j.id ? ech(R.ARGENT_MEILLEUR_TOUR) : 0;
     const nbPlacesGagnees = Math.max(0, (lj.grille || lj.place) - lj.place);   // jamais négatif : perdre des places ne coûte rien
-    const placesGagnees = nbPlacesGagnees * R.ARGENT_PLACE_GAGNEE;
+    const placesGagnees = ech(nbPlacesGagnees * R.ARGENT_PLACE_GAGNEE);
     // le bonus du duel : le joueur finit devant son coéquipier (la règle du duel : classement final, non classé = perdu)
     const c = CHAMPIONNAT.coequipierDe(ch), lc = c ? lignes.find(l => l.k === c.id) : null;
-    const duel = lc && CHAMPIONNAT.gagnantDuel(lj, lc).course === 0 ? R.DUEL_BONUS : 0;
+    const duel = lc && CHAMPIONNAT.gagnantDuel(lj, lc).course === 0 ? ech(R.DUEL_BONUS) : 0;
     const base = place + meilleurTour + placesGagnees + duel;
     const partSansAide = aides && typeof ASSISTANCE !== 'undefined' ? ASSISTANCE.bonus(aides) : 0, A = R.ASSIST_BONUS_ARRONDI;
     const sansAide = partSansAide > 0 ? Math.round(base * partSansAide / A) * A : 0;
     const brut = base + sansAide;
-    const total = Math.min(brut, R.ARGENT_PLAFOND_COURSE);
+    const total = Math.min(brut, ech(R.ARGENT_PLAFOND_COURSE));
     return { place, meilleurTour, placesGagnees, duel, sansAide, partSansAide, brut, total, plafonne: brut > total, nbPlacesGagnees };
   }
 

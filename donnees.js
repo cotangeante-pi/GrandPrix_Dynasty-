@@ -810,11 +810,13 @@ const REGLAGES = {
   // sauvegarde y est rangée sans rien perdre). DIVISIONS_ACTIVES false : la carrière comme avant (niveau normal, voitures de base)
   DIVISIONS_ACTIVES: true,
   DIVISIONS: {
-    4: { niveau: 'debutant', puissance: 0.85, adherence: 0.98 },   // bots débutants, voitures lentes
-    3: { niveau: 'normal', puissance: 1, adherence: 1 },           // bots moyens, voitures moyennes (le jeu d'avant)
-    2: { niveau: 'expert', puissance: 1.07, adherence: 1.01 },     // bots forts, voitures fortes
-    1: { niveau: 'legende', puissance: 1.14, adherence: 1.03 },    // bots légendaires, voitures surpuissantes
+    4: { niveau: 'debutant', puissance: 0.85, adherence: 0.98, argent: 0.6, garage: 0.6 },   // bots débutants, voitures lentes
+    3: { niveau: 'normal', puissance: 1, adherence: 1, argent: 1, garage: 1 },           // bots moyens, voitures moyennes (le jeu d'avant)
+    2: { niveau: 'expert', puissance: 1.07, adherence: 1.01, argent: 1.5, garage: 1.5 },     // bots forts, voitures fortes
+    1: { niveau: 'legende', puissance: 1.14, adherence: 1.03, argent: 2.2, garage: 2.2 },    // bots légendaires, voitures surpuissantes
   },
+  // (tour 49d-2) argent : × les gains d'un Grand Prix (place, meilleur tour, places gagnées, duel, le plafond) et les sponsors (montant
+  // de la saison, primes des objectifs) ; garage : × les prix du garage ; arrondis à 100 € (× 1 en division 3 : les mêmes nombres)
   DIVISION_DEPART: 4,           // une carrière neuve commence ici
   DIVISION_VIEILLE: 3,          // une sauvegarde d'avant les divisions (le niveau normal, les voitures de base) est rangée ici
   DIVISION_MONTEE_PLACE: 3,     // on monte d'une division en finissant dans les DIVISION_MONTEE_PLACE premiers du championnat pilotes
