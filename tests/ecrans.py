@@ -1515,7 +1515,7 @@ def fond_ecran(pg, titre, l, h):
     L.append(f"  (le paddock, arrière-plan au stand : {b['appels']} appels de dessin, {b['triangles']} triangles ; captures paddock-fond-{l}.png, paddock-fond-seul-{l}.png)")
     pg.click('#boutonCourseSuivante')
     attendre(pg, '() => JEU.ecran === "qualif" || JEU.ecran === "course" || JEU.ecran === "grille"', None, 30000)
-    pg.wait_for_timeout(500)
+    attendre(pg, '() => !JEU.stand.groupe.visible && JEU.modeles.some(m => m !== JEU.modele && m.groupe.visible)', None, 15000)   # (la prochaine image dessinée ; swiftshader est lent)
     c = pg.evaluate(STAND_ETAT)
     t(f'{titre} : « Course suivante » mène à la course : le stand disparaît, les autres voitures reviennent', c['ecran'] in ('qualif', 'course', 'grille') and not c['stand'] and c['autres'] > 0, str(c))
 # le rétroviseur (tour 49a, scene3d.js dessinerRetro) dans le vrai jeu : en course, vue derrière, en haut au milieu sous le chrono ; aucun

@@ -25,7 +25,9 @@ Ordre : l'arrière-plan du paddock et des menus : fait.
     disparaît, les autres voitures reviennent). Captures paddock-fond-1280.png et paddock-fond-seul-1280.png (sans les menus).
   - tests/ecrans-durees.json : test=fond (15 s) et test=retro (5 s).
 
-Sortie des tests : GitHub b5feb73 → 42154001192 vert 18/18 ; 9b98e11 → 42156030930 vert 18/18. Avant : 8c759d9 rouge (ma page
+Sortie des tests : c6146ab → 42158393384 rouge sur deux tests lents : ecrans-4 (ma vérification lisait 0,5 s après « Course suivante »,
+avant la première image dessinée : elle attend maintenant cette image, au plus 15 s) et recoins-1 (« à toi » du tournoi en 1920×1080, pas
+touché par ce tour ; vert au passage d'avant). Le dernier commit corrige le premier. GitHub b5feb73 → 42154001192 vert 18/18 ; 9b98e11 → 42156030930 vert 18/18. Avant : 8c759d9 rouge (ma page
 s'appelait test=stand, déjà prise par le test de l'arrêt au stand : nom changé en test=fond), d509ea6 rouge (le garage du joueur
 manquait sur Monoco en jeu : la zone d'arrêt passe d'abord).
 
