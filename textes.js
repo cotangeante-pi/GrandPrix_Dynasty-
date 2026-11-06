@@ -1207,6 +1207,59 @@ Object.assign(TEXTES.fr, {
   carriere_perduLecons: 'Perdu : les leçons et les aides déjà vues (la langue, le son et la qualité restent)',
 });
 
+// (tour 49b) le défi du fantôme entre amis (defi.js) : le code à copier, « Relever un défi », la fin du tour
+Object.assign(TEXTES.en, {
+  defiBouton: '📋 Challenge a friend', defiCopier: 'Copy', defiCopie: 'Copied!',
+  defiCodeAide: 'Send this code to a friend: they paste it in “Friends” → “Take a challenge”.',
+  amisDefi: '🎯 Take a challenge', defiTitre: 'Take a challenge',
+  defiExplication: 'Paste the code a friend sent you, then race alone against their lap.',
+  defiColler: 'Paste the code here', defiCourir: '▶ Race!',
+  defiRefus_vide: 'Paste a code first.', defiRefus_format: 'This is not a challenge code.',
+  defiRefus_version: 'This code comes from another version of the game.', defiRefus_abime: 'This code is damaged: copy it again in full.',
+  defiRefus_circuit: 'This code is for a track this game does not have.', defiRefus_impossible: 'This lap is impossible: the code was changed.',
+  defiRecus: 'Challenges received', defiContre: '{nom} — {temps} ({circuit})', defiAnonyme: 'A friend',
+  defiAides: 'aids: {liste}', defiSansAide: 'no aids',
+  defiAide_direction: 'steering', defiAide_freinage: 'braking', defiAide_antiblocage: 'ABS', defiAide_antipatinage: 'traction',
+  defiMeilleurReleve: 'beaten {s}', defiMeilleurEncore: 'best: {s} behind', defiPasCouru: 'not raced yet',
+  defiFinTitre: 'Challenge', defiReleve: 'Challenge beaten! {s}', defiEncore: 'Still {s} to go',
+  defiCoupe: 'Corner cut: no time.', defiAbandon: 'Lap abandoned: no time.',
+  defiRecommencer: '🔁 Try again', defiRenvoyer: '📋 Send back my code', defiQuitter: 'Back',
+});
+Object.assign(TEXTES.fr, {
+  defiBouton: '📋 Défier un ami', defiCopier: 'Copier', defiCopie: 'Copié !',
+  defiCodeAide: 'Envoie ce code à un ami : il le colle dans « Entre amis » → « Relever un défi ».',
+  amisDefi: '🎯 Relever un défi', defiTitre: 'Relever un défi',
+  defiExplication: 'Colle le code qu’un ami t’a envoyé, puis cours seul contre son tour.',
+  defiColler: 'Colle le code ici', defiCourir: '▶ Courir !',
+  defiRefus_vide: 'Colle d’abord un code.', defiRefus_format: 'Ce n’est pas un code de défi.',
+  defiRefus_version: 'Ce code vient d’une autre version du jeu.', defiRefus_abime: 'Ce code est abîmé : copie-le de nouveau en entier.',
+  defiRefus_circuit: 'Ce code est pour un circuit que ce jeu n’a pas.', defiRefus_impossible: 'Ce tour est impossible : le code a été modifié.',
+  defiRecus: 'Défis reçus', defiContre: '{nom} — {temps} ({circuit})', defiAnonyme: 'Un ami',
+  defiAides: 'aides : {liste}', defiSansAide: 'sans aide',
+  defiAide_direction: 'direction', defiAide_freinage: 'freinage', defiAide_antiblocage: 'anti-blocage', defiAide_antipatinage: 'antipatinage',
+  defiMeilleurReleve: 'relevé {s}', defiMeilleurEncore: 'au mieux à {s}', defiPasCouru: 'pas encore couru',
+  defiFinTitre: 'Le défi', defiReleve: 'Défi relevé ! {s}', defiEncore: 'Encore {s}',
+  defiCoupe: 'Virage coupé : pas de temps.', defiAbandon: 'Tour abandonné : pas de temps.',
+  defiRecommencer: '🔁 Recommencer', defiRenvoyer: '📋 Renvoyer mon code', defiQuitter: 'Retour',
+});
+
+// (tour 49b) les touches au choix (clavier.js)
+Object.assign(TEXTES.en, {
+  touchesBouton: '⌨ Keys', touchesTitre: 'Keys', touchesExplication: 'Click a command, then press the key you want.',
+  touchesAppuie: 'Press a key… (Esc: cancel)', touchesPrise: '{touche} is already used: {commande}', touchesEchap: 'Esc always opens the pause.',
+  touchesFait: '{commande}: {touche}', touchesDefaut: 'Default', touchesDefautFait: 'All keys are back to default.',
+  touchesGroupe_seul: 'Racing', touchesGroupe_j1: '🔵 Player 1', touchesGroupe_j2: '🔴 Player 2',
+  touchesAction_gaz: 'Throttle', touchesAction_frein: 'Brake', touchesAction_gauche: 'Left', touchesAction_droite: 'Right',
+  touchesAction_remise: 'Back on track', touchesAction_camera: 'Camera', touchesAction_pause: 'Pause',
+});
+Object.assign(TEXTES.fr, {
+  touchesBouton: '⌨ Touches', touchesTitre: 'Touches', touchesExplication: 'Clique sur une commande, puis appuie sur la touche voulue.',
+  touchesAppuie: 'Appuie sur une touche… (Échap : annuler)', touchesPrise: '{touche} est déjà prise : {commande}', touchesEchap: 'Échap ouvre toujours la pause.',
+  touchesFait: '{commande} : {touche}', touchesDefaut: 'Par défaut', touchesDefautFait: 'Toutes les touches sont revenues par défaut.',
+  touchesGroupe_seul: 'Course', touchesGroupe_j1: '🔵 Joueur 1', touchesGroupe_j2: '🔴 Joueur 2',
+  touchesAction_gaz: 'Accélérer', touchesAction_frein: 'Freiner', touchesAction_gauche: 'Gauche', touchesAction_droite: 'Droite',
+  touchesAction_remise: 'Retour en piste', touchesAction_camera: 'Caméra', touchesAction_pause: 'Pause',
+});
 // --- tour 49d, Codeur 4 : les divisions (divisions.js) ---
 Object.assign(TEXTES.en, {
   divisionMontee: '⬆ Promoted: next season in Division {n}!', divisionSommet: 'Division 1: the very top.',

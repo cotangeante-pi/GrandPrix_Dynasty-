@@ -1543,6 +1543,23 @@ body.auPaddock #boutonSon { display: none; }
   .boutiqueVue .boutiqueMessage { min-height: 0; }
 }
 
+/* le défi du fantôme entre amis (tour 49b) : le champ du code (collé ou à copier), la liste des défis reçus */
+#defiSaisie, .codeDefi input { width: min(560px, 86vw); padding: 6px 8px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.35); background: rgba(255, 255, 255, 0.1); color: inherit; font: 600 13px/1.3 var(--police); user-select: text; -webkit-user-select: text; }
+.codeDefi { display: flex; flex-direction: column; align-items: center; gap: 6px; margin: 6px 0; }
+.codeDefi.cache { display: none; }
+.codeDefi p { margin: 0; font-size: 13px; opacity: 0.85; }
+#defiMessage { min-height: 1.2em; color: #ffb4a8; }
+#defiListe { max-height: 22vh; overflow: hidden; margin: 6px 0 0; padding: 0; list-style: none; font-size: 13px; }
+#defiListe li { margin: 2px 0; }
+
+/* les touches au choix (tour 49b) : trois colonnes (course seule, joueur 1, joueur 2), une ligne par commande */
+#touchesGroupes { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+.touchesGroupe { min-width: 200px; }
+.touchesGroupe h2 { margin: 0 0 6px; font-size: 15px; }
+.touchesLigne { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 3px 0; font-size: 13px; }
+.touchesLigne button { min-width: 74px; padding: 3px 8px; font-size: 13px; }
+.touchesLigne button.attente { box-shadow: 0 0 0 3px #ffd34d; }
+#touchesMessage { min-height: 1.2em; }
 /* le rétroviseur (tour 49a) : seulement le cadre, l'image est dessinée dans la 3D juste dessous (scene3d.js dessinerRetro) */
 #retroviseur {
   position: fixed;

@@ -45,7 +45,7 @@ const INTERFACE = (function () {
   }
 
   function montrer(ecran) {
-    for (const id of ['choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une', 'garage', 'saison', 'duelSaison', 'contrats', 'retraite', 'titre', 'amis', 'bravo', 'pilote', 'sponsors', 'fiche', 'interview', 'ceremonie', 'temple', 'heritier', 'calendrier', 'deuxReglages', 'resume', 'grille', 'tournoiInscription', 'tournoiAToi', 'tournoiPause', 'tournoiManche', 'tournoiFin', 'aileron', 'arbre', 'discussion', 'courrier']) $(id).classList.toggle('cache', id !== ecran);
+    for (const id of ['touches', 'defi', 'defiFin', 'choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une', 'garage', 'saison', 'duelSaison', 'contrats', 'retraite', 'titre', 'amis', 'bravo', 'pilote', 'sponsors', 'fiche', 'interview', 'ceremonie', 'temple', 'heritier', 'calendrier', 'deuxReglages', 'resume', 'grille', 'tournoiInscription', 'tournoiAToi', 'tournoiPause', 'tournoiManche', 'tournoiFin', 'aileron', 'arbre', 'discussion', 'courrier']) $(id).classList.toggle('cache', id !== ecran);
     // l'album des unes (Codeur 3) : la page de la une, avec la barre pour feuilleter
     if (ecran === 'album') $('une').classList.remove('cache');
     $('une').classList.toggle('album', ecran === 'album');
@@ -547,6 +547,10 @@ const INTERFACE = (function () {
     $('boutonQualifTour').classList.toggle('cache', etat !== 'choix');
     $('boutonQualifPasser').classList.toggle('cache', etat !== 'choix');
     $('boutonQualifCourse').classList.toggle('cache', etat !== 'resultat');
+    // (tour 49b) « 📋 Défier un ami » : après un tour valide ; le code s'affiche en dessous au clic (DEFI_ECRAN.montrerCode)
+    $('boutonQualifDefi').textContent = texte('defiBouton');
+    $('boutonQualifDefi').classList.toggle('cache', !(etat === 'resultat' && r && r.valide && !r.passe && r.fantome && r.fantome.compact));
+    $('qualifCode').classList.add('cache');
     let t = texte('qualifExplication');
     if (etat === 'attente') t = texte('preparation');
     else if (etat === 'resultat') {
@@ -2073,4 +2077,138 @@ const TUTORIEL_ECRAN = (function () {
   }
 
   return { lecon: () => LECON, maj, restaurerCarriere, avantVisite: () => avantVisite, ouvrirMenu, suivi: () => suivi, resultat: () => resultat, adresse };
+})();
+
+// --- le défi du fantôme entre amis (defi.js, tour 49b) : l'écran « Relever un défi » (coller un code, les défis reçus), la fin du
+// tour (« Défi relevé ! −0,312 » ou « Encore 0,450 »), et le code à copier (un champ en lecture seule et « Copier »)
+const DEFI_ECRAN = (function () {
+  const $ = id => document.getElementById(id);
+  const s3 = x => Math.abs(x).toFixed(3).replace('.', texte('virgule'));
+  const temps = t => DEFI.tempsClair(t).replace('.', texte('virgule'));
+  const nom = d => d.nom || texte('defiAnonyme');
+  const aides = d => d.aides && d.aides.length ? texte('defiAides').replace('{liste}', d.aides.map(a => texte('defiAide_' + a) || a).join(', ')) : texte('defiSansAide');
+  // « Léa — 1:04,575 (Technique) · sans aide »
+  const contre = d => texte('defiContre').replace('{nom}', nom(d)).replace('{temps}', temps(d.temps)).replace('{circuit}', texte('circuit_' + d.circuit) || d.circuit) + ' · ' + aides(d);
+
+  function bouton(id, f) { const b = $(id); b.addEventListener('mousedown', e => e.preventDefault()); b.addEventListener('click', f); }
+
+  function preparer(f) {
+    bouton('boutonDefiCourir', f.courir); bouton('boutonDefiRetour', f.retour);
+    bouton('boutonDefiRecommencer', f.recommencer); bouton('boutonDefiRenvoyer', f.renvoyer); bouton('boutonDefiQuitter', f.quitter);
+    bouton('boutonQualifDefi', f.defierQualif); bouton('boutonTournoiDefi', f.defierTournoi);
+    $('defiSaisie').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); f.courir(); } });
+  }
+
+  // l'écran « Relever un défi » : liste = les défis reçus (la sauvegarde), le plus récent d'abord
+  function remplirSaisie(liste) {
+    $('defiTitre').textContent = texte('defiTitre');
+    $('defiExplication').textContent = texte('defiExplication');
+    $('defiSaisie').placeholder = texte('defiColler');
+    $('defiSaisie').value = '';
+    $('defiMessage').textContent = '';
+    $('boutonDefiCourir').textContent = texte('defiCourir');
+    $('boutonDefiRetour').textContent = texte('retour');
+    const ol = $('defiListe');
+    ol.textContent = '';
+    const l = (liste || []).slice().reverse().slice(0, 6);
+    if (l.length) { const t = document.createElement('li'); t.textContent = texte('defiRecus'); t.style.fontWeight = '700'; ol.appendChild(t); }
+    for (const d of l) {
+      const li = document.createElement('li');
+      li.textContent = texte('defiContre').replace('{nom}', nom(d)).replace('{temps}', temps(d.temps)).replace('{circuit}', texte('circuit_' + d.circuit) || d.circuit)
+        + ' · ' + (typeof d.meilleur === 'number' ? (d.meilleur < 0 ? texte('defiMeilleurReleve') : texte('defiMeilleurEncore')).replace('{s}', (d.meilleur < 0 ? '−' : '') + s3(d.meilleur)) : texte('defiPasCouru'));
+      ol.appendChild(li);
+    }
+  }
+  const lire = () => $('defiSaisie').value;
+  const message = t => { $('defiMessage').textContent = t; };
+
+  // le code à copier dans une boîte (qualifCode, defiFinCode) : le champ (tout sélectionné au clic), « Copier », l'explication
+  function montrerCode(id, code) {
+    const boite = $(id);
+    boite.textContent = '';
+    const champ = document.createElement('input');
+    champ.type = 'text'; champ.readOnly = true; champ.value = code; champ.spellcheck = false;
+    champ.addEventListener('focus', () => champ.select());
+    const b = document.createElement('button');
+    b.tabIndex = -1; b.textContent = texte('defiCopier');
+    b.addEventListener('mousedown', e => e.preventDefault());
+    b.addEventListener('click', () => {
+      const fait = () => { b.textContent = texte('defiCopie'); };
+      try { navigator.clipboard.writeText(code).then(fait, () => { champ.select(); try { document.execCommand('copy'); fait(); } catch (e) { /* le joueur copie à la main */ } }); }
+      catch (e) { champ.select(); try { document.execCommand('copy'); fait(); } catch (e2) { /* le joueur copie à la main */ } }
+    });
+    const p = document.createElement('p');
+    p.textContent = texte('defiCodeAide');
+    boite.append(champ, b, p);
+    boite.classList.remove('cache');
+  }
+
+  // la fin du tour : r = { d (le défi), e (l'écart, null sans temps), coupe, abandon, code (le sien, null sans temps) }
+  function remplirFin(r) {
+    $('defiFinTitre').textContent = texte('defiFinTitre');
+    $('defiFinContre').textContent = contre(r.d);
+    $('defiFinTexte').textContent = r.abandon ? texte('defiAbandon') : r.coupe ? texte('defiCoupe')
+      : r.e < 0 ? texte('defiReleve').replace('{s}', '−' + s3(r.e)) : texte('defiEncore').replace('{s}', s3(r.e));
+    $('defiFinCode').classList.add('cache');
+    $('boutonDefiRecommencer').textContent = texte('defiRecommencer');
+    $('boutonDefiRenvoyer').textContent = texte('defiRenvoyer');
+    $('boutonDefiRenvoyer').classList.toggle('cache', !r.code);
+    $('boutonDefiQuitter').textContent = texte('defiQuitter');
+  }
+
+  // le tournoi chrono : le bouton sous le classement de la manche (le code se cache à chaque passage)
+  function boutonTournoi(oui) {
+    $('boutonTournoiDefi').textContent = texte('defiBouton');
+    $('boutonTournoiDefi').classList.toggle('cache', !oui);
+    $('tournoiCode').classList.add('cache');
+  }
+
+  return { preparer, remplirSaisie, lire, message, montrerCode, remplirFin, contre, boutonTournoi };
+})();
+
+// --- les touches au choix (clavier.js, tour 49b) : trois colonnes (course seule, joueur 1, joueur 2), une ligne par commande avec sa
+// touche ; la commande qui attend sa touche est marquée d'un halo ; Échap reste écrit à côté de la pause (elle ouvre toujours la pause)
+const TOUCHES_ECRAN = (function () {
+  const $ = id => document.getElementById(id);
+  let rappel = null;
+  const commande = (groupe, action) => texte('touchesGroupe_' + groupe) + ' · ' + texte('touchesAction_' + action);
+  const nom = code => TOUCHES_DEUX_ECRAN.nom(code, null);
+
+  function preparer(f) {
+    rappel = f;
+    for (const [id, g] of [['boutonTouchesPaddock', f.ouvrir], ['boutonTouchesDefaut', f.defaut], ['boutonTouchesRetour', f.retour]]) {
+      const b = $(id); if (!b) continue;
+      b.addEventListener('mousedown', e => e.preventDefault()); b.addEventListener('click', g);
+    }
+    if ($('boutonTouchesPaddock')) $('boutonTouchesPaddock').textContent = texte('touchesBouton');
+  }
+
+  // t : les touches (CLAVIER) ; attente : { groupe, action } ou null ; message : la ligne sous le titre
+  function remplir(t, attente, message) {
+    $('touchesTitre').textContent = texte('touchesTitre');
+    $('touchesMessage').textContent = message || texte('touchesExplication');
+    $('boutonTouchesDefaut').textContent = texte('touchesDefaut');
+    $('boutonTouchesRetour').textContent = texte('retour');
+    const box = $('touchesGroupes');
+    box.textContent = '';
+    for (const g of Object.keys(CLAVIER.GROUPES)) {
+      const col = document.createElement('div'); col.className = 'touchesGroupe';
+      const h = document.createElement('h2'); h.textContent = texte('touchesGroupe_' + g); col.appendChild(h);
+      for (const a of CLAVIER.GROUPES[g]) {
+        const l = document.createElement('div'); l.className = 'touchesLigne';
+        const s = document.createElement('span'); s.textContent = texte('touchesAction_' + a);
+        const b = document.createElement('button');
+        b.tabIndex = -1; b.dataset.groupe = g; b.dataset.action = a;
+        const enAttente = attente && attente.groupe === g && attente.action === a;
+        b.classList.toggle('attente', !!enAttente);
+        b.textContent = enAttente ? '…' : t[g][a].map(nom).join(texte('tch_ou'));
+        b.addEventListener('mousedown', e => e.preventDefault());
+        b.addEventListener('click', () => rappel && rappel.choisir(g, a));
+        l.append(s, b); col.appendChild(l);
+      }
+      box.appendChild(col);
+    }
+  }
+
+  return { preparer, remplir, commande };
 })();

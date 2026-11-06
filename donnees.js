@@ -453,6 +453,9 @@ const REGLAGES = {
   DECOUVERTE_ARGENT_MAX: 1000,  // … et son plafond
   // le mode 2 joueurs (deux-joueurs.js, CLAUDE.md « Le mode 2 joueurs (écran partagé) ») : ?deux=1 ; les touches par leur place
   // sur le clavier (e.code : W A S D = Z Q S D en AZERTY) ; Échap met en pause pour les deux ; Espace et C ne font rien
+  // (tour 49b) les touches au choix (clavier.js) : celles de départ de la course seule (par e.code, la place de la touche : ZQSD en AZERTY
+  // = WASD en QWERTY) ; Échap ouvre toujours la pause, quoi qu'on choisisse, et ne peut pas servir à autre chose
+  TOUCHES_SEUL: { gaz: ['ArrowUp', 'KeyW'], frein: ['ArrowDown', 'KeyS'], gauche: ['ArrowLeft', 'KeyA'], droite: ['ArrowRight', 'KeyD'], remise: ['Space'], camera: ['KeyC'], pause: ['Escape'] },
   TOUCHES_DEUX: {
     1: { gaz: ['KeyW'], frein: ['KeyS'], gauche: ['KeyA'], droite: ['KeyD'], remise: ['KeyE'] },
     2: { gaz: ['ArrowUp'], frein: ['ArrowDown'], gauche: ['ArrowLeft'], droite: ['ArrowRight'], remise: ['Enter', 'ShiftRight'] },
@@ -851,6 +854,12 @@ const REGLAGES = {
   FANTOME_COULEUR: 0xdfe3ea,    // une couleur neutre, claire…
   FANTOME_OPACITE: 0.55,        // … et légèrement transparente (toute la voiture d'une seule couleur, sans ses pièces sombres : on le reconnaît comme un fantôme)
   FANTOME_PIXELS_MIN: 400,      // tests : au moins ce nombre de pixels changent dans la moitié basse de l'image quand le fantôme est caché (il est visible)
+  // le défi du fantôme entre amis (defi.js, tour 49b) : un code à copier qui contient le tour (le fantôme), sans serveur
+  DEFI_VERSION: 1,              // la version du code : un code d'une autre version est refusé proprement
+  DEFI_LONGUEUR_MAX: 30000,     // caractères au plus (le plus long tracé tient dessous : test)
+  DEFI_VITESSE_MAX: 120,        // m/s : entre deux images du tour, plus vite que ça est impossible (un code trafiqué)
+  DEFI_DISTANCE_TOLERANCE: 0.05, // la distance du tour enregistré : la longueur du circuit à 5 % près
+  DEFI_LISTE_MAX: 20,           // les défis reçus gardés dans la sauvegarde (le plus ancien part)
   // le podium 3D (podium3d.js)
   PODIUM_DISTANCE: 30,          // m : à cette distance du bord gauche de la piste, en face de la ligne
   PODIUM_LARGEUR: 6.5,          // m : la largeur d'une marche…
