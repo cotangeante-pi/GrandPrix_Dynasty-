@@ -521,7 +521,7 @@ function noterLigne(pilote, v, voisines, s0, t, type) {
   for (let i = h; i < N - h; i++) k[i] = courbureTroisPoints(x[i - h], z[i - h], x[i], z[i], x[i + h], z[i + h]);
   for (let i = 0; i < h; i++) { k[i] = k[h]; k[N - 1 - i] = k[N - 1 - h]; }
   // (aileron, Codeur 3 : sa vitesse de pointe avec la traînée de son aileron ; ÷ 1 au cran du milieu)
-  const pointe = pilote.carte.pointe / racineCubique(v.aileronTrainee || 1) * (v.rvPuissance ? racineCubique(v.rvPuissance) : 1), rythme = rythmeDuTour(pilote), dehors = c.largeur / 2 + R.MARGE_HERBE, bord = c.largeur / 2 - (pilote.bordMin === undefined ? R.IA_MARGE_BORD_MIN : pilote.bordMin);   // (le niveau : pilote.bordMin)
+  const pointe = pilote.carte.pointe / racineCubique(v.aileronTrainee || 1) * (v.rvBoite ? racineCubique(1 - v.rvBoite) : 1) / (v.rvRoulement ? racineCubique(v.rvRoulement) : 1), rythme = rythmeDuTour(pilote), dehors = c.largeur / 2 + R.MARGE_HERBE, bord = c.largeur / 2 - (pilote.bordMin === undefined ? R.IA_MARGE_BORD_MIN : pilote.bordMin);   // (le niveau : pilote.bordMin)
   // (la limite qu'il ose, pilote.limite : le niveau de difficulté, NIVEAUX[…].limite ; la voiture accroche un peu plus que vitesseVirage
   // ne le dit, l'arrière accroche plus que l'avant : un pilote de haut niveau va la chercher ; × 1 au niveau normal, au bit près)
   const lim = pilote.limite || 1;
@@ -540,7 +540,7 @@ function noterLigne(pilote, v, voisines, s0, t, type) {
     let kv = Math.abs(k[i]);
     if (i > 0 && i < N - 1 && Math.abs(valeurEn(c, c.courbure, s0 + i * pas)) > 1 / R.IA_RAYON_SERRE) kv = Math.max(kv, Math.abs(courbureTroisPoints(x[i - 1], z[i - 1], x[i], z[i], x[i + 1], z[i + 1])));
     // (les suspensions, tour 50b : il connaît l'adhérence de sa voiture à la vitesse de ce virage ; rien au réglage conseillé)
-    const muV = v.rvSuspension ? mu * (1 + v.rvSuspension * penteSuspension(vitesseVirage(kv, mu))) : mu;
+    const muV = v.rvSuspension ? mu * (1 + v.rvSuspension * penteVitesse(vitesseVirage(kv, mu), R.RV_SUSPENSION_VITESSE, R.RV_SUSPENSION_PLAGE)) : mu;
     vb[i] = Math.min(pointe, rythme * Math.min(vitesseVirage(kv, muV) * R.IA_MARGE_VIRAGE * lim, vitesseBraquage(kv)));
     if (type === 'stands') { vb[i] = Math.min(vb[i], t.plafond[i]); continue; }   // (la limite de la voie et l'arrêt ; ni bord ni herbe)
     if (Math.abs(e[i]) > bord) { penalite += R.IA_PENALITE_BORD * (Math.abs(e[i]) - bord) * pas; danger = true; }
@@ -554,10 +554,10 @@ function noterLigne(pilote, v, voisines, s0, t, type) {
   // son freinage : la marge habituelle, son style et son rythme (un pilote plus rapide freine plus près de la limite) ;
   // en attaque, il ose le freinage complet. Son rythme moyen, pas celui du tour : un freinage qui change d'un tour à
   // l'autre surprend celui qui le suit (tour 16 : 9 chocs au lieu de 6 sur les 30 courses)
-  const frein = R.IA_MARGE_FREIN * pilote.rythme * (pilote.attaque && (pilote.attaque.etat !== 'preparer' || pilote.attaque.proche) ? R.IA_ATTAQUE_FREIN : pilote.style.frein) * (v.adhMeteo || 1) * (v.rvFrein || 1);   // (sur le mouillé, il freine plus tôt : × l'adhérence de la météo, 1 au sec)
+  const frein = R.IA_MARGE_FREIN * pilote.rythme * (pilote.attaque && (pilote.attaque.etat !== 'preparer' || pilote.attaque.proche) ? R.IA_ATTAQUE_FREIN : pilote.style.frein) * (v.adhMeteo || 1);   // (sur le mouillé, il freine plus tôt : × l'adhérence de la météo, 1 au sec)
   for (let i = N - 2; i >= 0; i--) {
     const ds = Math.hypot(x[i + 1] - x[i], z[i + 1] - z[i]);
-    vb[i] = Math.min(vb[i], Math.sqrt(vb[i + 1] * vb[i + 1] + 2 * frein * freinagePossible(vb[i + 1]) * ds));
+    vb[i] = Math.min(vb[i], Math.sqrt(vb[i + 1] * vb[i + 1] + 2 * frein * freinagePossible(vb[i + 1]) * (v.rvFrein ? facteurFreinage(v, vb[i + 1]) : 1) * ds));   // (l'équilibre des freins, tour 50b : × 1 au conseillé)
   }
   const u = Math.max(0, v.u);
   if (u > vb[0]) penalite += R.IA_PENALITE_FREIN * (pilote.penaliteFrein === undefined ? 1 : pilote.penaliteFrein) * (u - vb[0]);   // (le niveau : pilote.penaliteFrein)
@@ -988,7 +988,7 @@ function majAttaque(pilote, v, vues, dt) {
 // la voiture vue w n'a pas le même réglage d'aileron que la sienne (aileron.js : v.aileronAdherence, v.aileronTrainee ; 1 = le milieu)
 function autreAileron(v, w) {
   // (et des pneus plus ou moins usés, étape 7 : elle n'a pas la même adhérence, elle ne freine pas pareil)
-  return !!w && ((w.aileronAdherence || 1) !== (v.aileronAdherence || 1) || (w.aileronTrainee || 1) !== (v.aileronTrainee || 1) || (w.adherence || 1) !== (v.adherence || 1) || (w.rvFrein || 1) !== (v.rvFrein || 1));
+  return !!w && ((w.aileronAdherence || 1) !== (v.aileronAdherence || 1) || (w.aileronTrainee || 1) !== (v.aileronTrainee || 1) || (w.adherence || 1) !== (v.adherence || 1) || (w.rvFrein || 0) !== (v.rvFrein || 0));
 }
 
 // la décélération (m/s²) d'une voiture vue devant lui, d'un pas à l'autre (pilote.vitessesVues : voiture → sa vitesse au pas d'avant) ;

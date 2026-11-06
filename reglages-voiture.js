@@ -1,12 +1,13 @@
 // Les réglages de la voiture (CLAUDE.md « La personnalisation », liste approuvée par le propriétaire le 2026-11-06 ; tour 50b), en calcul
 // pur (ni Three.js ni page), sur le modèle de l'aileron (aileron.js). Quatre curseurs de RV_CRANS crans, chacun un ÉCHANGE, jamais un bonus
 // (hors du plafond du garage) :
-//   freins      : l'équilibre des freins ; vers l'avant (cran haut) : freinage plus court, roues avant qui bloquent au freinage en virage
-//   boite       : courte (cran haut) : plus d'accélération, moins de vitesse de pointe ; longue : l'inverse
+//   freins      : l'équilibre des freins ; vers l'avant (cran haut) : freinage plus fort depuis les grandes vitesses, moins fort à basse vitesse,
+//                 roues avant qui bloquent au freinage en virage ; vers l'arrière : l'inverse
+//   boite       : courte (cran haut) : plus de force à basse vitesse (accélération), moins en haut (vitesse de pointe) ; longue : l'inverse
 //   suspensions : dures (cran haut) : plus d'adhérence dans les virages rapides, moins dans les lents ; souples : l'inverse
-//   pression    : haute (cran haut) : moins d'adhérence, moins de résistance au roulement et moins d'usure ; basse : l'inverse
+//   pression    : haute (cran haut) : moins d'adhérence, moins de frottement (traînée et roulement) et moins d'usure ; basse : l'inverse
 // Le cran du milieu de chacun = le « Réglage conseillé » = la voiture d'aujourd'hui au bit près : appliquer() n'y pose AUCUN champ (physique.js
-// lit « || 1 » et ne touche à rien). Les effets sont lus par physique.js (rvFrein, rvBlocage, rvForce, rvPuissance, rvSuspension, rvAdherence,
+// lit « || 1 » et ne touche à rien). Les effets sont lus par physique.js (rvFrein, rvBlocage, rvBoite, rvSuspension, rvAdherence,
 // rvRoulement), pneus.js (rvUsure), robot.js et ia.js (ce que le pilote sait de sa voiture) : le même code pour le joueur et les IA.
 // Le réglage du joueur est gardé par circuit (ch.reglagesVoiture, dans la sauvegarde unique ; rien = le conseillé) ; les IA règlent leur
 // voiture avant chaque Grand Prix selon le circuit (AILERON.profil), leur caractère et hasard(), avec leur propre graine.
@@ -38,22 +39,22 @@ const REGLAGES_VOITURE = (function () {
   function effets(r) {
     const x = normaliser(r), d = n => x[n] - milieu();
     return {
-      frein: 1 + d('freins') * R.RV_FREINS_FORCE, blocage: d('freins') * R.RV_FREINS_BLOCAGE,
-      force: 1 + d('boite') * R.RV_BOITE_FORCE, puissance: 1 - d('boite') * R.RV_BOITE_PUISSANCE,
+      frein: d('freins') * R.RV_FREINS_FORCE, blocage: d('freins') * R.RV_FREINS_BLOCAGE,
+      boite: d('boite') * R.RV_BOITE,
       suspension: d('suspensions') * R.RV_SUSPENSION,
       adherence: 1 - d('pression') * R.RV_PRESSION_ADHERENCE, roulement: 1 - d('pression') * R.RV_PRESSION_ROULEMENT, usure: 1 - d('pression') * R.RV_PRESSION_USURE,
     };
   }
 
-  const CHAMPS = ['rvFrein', 'rvBlocage', 'rvForce', 'rvPuissance', 'rvSuspension', 'rvAdherence', 'rvRoulement', 'rvUsure'];
+  const CHAMPS = ['rvFrein', 'rvBlocage', 'rvBoite', 'rvSuspension', 'rvAdherence', 'rvRoulement', 'rvUsure'];
 
   // pose le réglage r sur la voiture v (null, absent ou le conseillé : les champs sont enlevés, la voiture d'aujourd'hui au bit près)
   function appliquer(v, r) {
     for (const c of CHAMPS) delete v[c];
     if (!r || estConseille(r)) return v;
     const e = effets(r), x = normaliser(r), poser = (champ, val, neutre) => { if (val !== neutre) v[champ] = val; };
-    poser('rvFrein', e.frein, 1); poser('rvBlocage', e.blocage, 0);
-    poser('rvForce', e.force, 1); poser('rvPuissance', e.puissance, 1);
+    poser('rvFrein', e.frein, 0); poser('rvBlocage', e.blocage, 0);
+    poser('rvBoite', e.boite, 0);
     poser('rvSuspension', e.suspension, 0);
     poser('rvAdherence', e.adherence, 1); poser('rvRoulement', e.roulement, 1); poser('rvUsure', e.usure, 1);
     v.reglageVoiture = x;

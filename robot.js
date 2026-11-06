@@ -29,10 +29,10 @@ function piloteRobot(v, circuit, vitesseCible) {
       const i = (i0 + k) % circuit.nb;
       let vMax = vitesseVirage(circuit.courbure[i], R.ADHERENCE * (v.adhMeteo || 1) * (v.aero || 1) * (v.aileronAdherence || 1) * (v.typePneus === 'drift' ? (v.adhDrift || 1) : 1)) * R.ROBOT_MARGE_VIRAGE;   // × 1 sans garage : pareil
       // (les réglages de la voiture, tour 50b : la pression et les suspensions à la vitesse du virage ; rien au réglage conseillé)
-      if ((v.rvAdherence || v.rvSuspension) && vMax !== Infinity) vMax = vitesseVirage(circuit.courbure[i], R.ADHERENCE * (v.adhMeteo || 1) * (v.aero || 1) * (v.aileronAdherence || 1) * (v.rvAdherence || 1) * (v.rvSuspension ? 1 + v.rvSuspension * penteSuspension(vMax / R.ROBOT_MARGE_VIRAGE) : 1)) * R.ROBOT_MARGE_VIRAGE;
+      if ((v.rvAdherence || v.rvSuspension) && vMax !== Infinity) vMax = vitesseVirage(circuit.courbure[i], R.ADHERENCE * (v.adhMeteo || 1) * (v.aero || 1) * (v.aileronAdherence || 1) * (v.rvAdherence || 1) * (v.rvSuspension ? 1 + v.rvSuspension * penteVitesse(vMax / R.ROBOT_MARGE_VIRAGE, R.RV_SUSPENSION_VITESSE, R.RV_SUSPENSION_PLAGE) : 1)) * R.ROBOT_MARGE_VIRAGE;
       if (vMax === Infinity) continue;
       const distance = k * circuit.pas;
-      cible = Math.min(cible, Math.sqrt(vMax * vMax + 2 * R.ROBOT_DECELERATION * (v.freins || 1) * (v.rvFrein || 1) * distance));   // de meilleurs freins (garage) : il freine plus tard
+      cible = Math.min(cible, Math.sqrt(vMax * vMax + 2 * R.ROBOT_DECELERATION * (v.freins || 1) * (v.rvFrein ? facteurFreinage(v) : 1) * distance));   // de meilleurs freins (garage) : il freine plus tard
     }
   }
   if (st) cible = Math.min(cible, st.vitesse);

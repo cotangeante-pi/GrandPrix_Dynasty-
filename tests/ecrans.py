@@ -3493,7 +3493,7 @@ def reglages_voiture_ecran(pg, titre, l, h, page):
     pg.evaluate('() => { INTERFACE.pagePaddock("equipe"); montrerGarage(); }')
     t(f'{titre} : le garage a le bouton « Réglages »', attendre(pg, '() => JEU.ecran === "garage" && document.getElementById("boutonReglagesVoiture").textContent === texte("reglagesVoiture")'))
     clic(pg, '#boutonReglagesVoiture')
-    ETAT = '''() => { const $ = id => document.getElementById(id), nom = circuitProchain(), s = SAUVEGARDE.championnat();
+    ETAT = '''() => { const $ = id => document.getElementById(id), nom = circuitProchain(), s = SAUVEGARDE.championnat() || {};
       return { ecran: JEU.ecran, visible: !$("reglagesVoiture").classList.contains("cache"), garage: $("garage").classList.contains("cache"), lignes: document.querySelectorAll("#rvListe .rvLigne").length,
         curseurs: REGLAGES_VOITURE.NOMS.map(n => Number($("rvCurseur_" + n).value)), effets: REGLAGES_VOITURE.NOMS.map(n => $("rvEffet_" + n).textContent), conseilleGris: $("boutonRvConseille").disabled,
         titre: $("rvTitre").textContent, nom, sauve: s.reglagesVoiture ? s.reglagesVoiture[nom] || null : null }; }'''
@@ -3520,7 +3520,7 @@ def reglages_voiture_ecran(pg, titre, l, h, page):
     pg.evaluate('() => { quitterGarage(); courseSuivante(); }')
     ok_ = attendre(pg, '() => JEU.joueur && JEU.plateau && (JEU.ecran === "qualif" || JEU.ecran === "course")', None, 60000)
     r = pg.evaluate('''() => ({ ecran: JEU.ecran, joueur: JEU.joueur.reglageVoiture || null, susp: JEU.joueur.rvSuspension, attendu: REGLAGES_VOITURE.effets({ suspensions: 4 }).suspension,
-      ia: JEU.plateau.pilotes.filter(p => !p.humain && p.reglageVoiture).length, autres: JEU.joueur.rvForce === undefined && JEU.joueur.rvAdherence === undefined && JEU.joueur.rvFrein === undefined })''') if ok_ else None
+      ia: JEU.plateau.pilotes.filter(p => !p.humain && p.reglageVoiture).length, autres: JEU.joueur.rvBoite === undefined && JEU.joueur.rvAdherence === undefined && JEU.joueur.rvFrein === undefined })''') if ok_ else None
     t(f'{titre} : au Grand Prix suivant, la voiture du joueur porte son réglage (suspensions dures, rien d’autre) et les 19 IA ont choisi le leur',
       r is not None and r['joueur'] == {'freins': 2, 'boite': 2, 'suspensions': 4, 'pression': 2} and r['susp'] == r['attendu'] and r['autres'] and r['ia'] == 19, str(r))
 
