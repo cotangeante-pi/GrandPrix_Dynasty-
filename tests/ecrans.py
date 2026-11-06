@@ -485,6 +485,8 @@ def clavier_ecran(pg, titre, l, h):
 # (tour 49b) le défi du fantôme entre amis (defi.js) : le robot fait sa qualification, « 📋 Défier un ami » donne le code ; « Entre amis »
 # → « Relever un défi » refuse un code abîmé (le message) et accepte le bon ; la page ?defi=1 : le même tour du robot contre ce fantôme
 # (visible, l'écart en direct) ; à l'arrivée, l'écart au fantôme vaut 0 (le même robot), « Renvoyer mon code », le meilleur gardé
+def texte_ok(x): return bool(x) and '{' not in x and 'undefined' not in x and 'null' not in x
+
 def defi_ecran(pg, titre):
     attendre(pg, '() => JEU.ecran === "qualif" && JEU.qualif && JEU.qualif.etat === "choix"', None, 60000)
     attendre(pg, '() => JEU.plateau.carte !== null', None, 180000)
@@ -496,11 +498,14 @@ def defi_ecran(pg, titre):
     vu = pg.evaluate('() => JEU.ecran === "qualif" && !document.getElementById("boutonQualifDefi").classList.contains("cache") && document.getElementById("boutonQualifDefi").textContent === texte("defiBouton")')
     t(f'{titre} : après un tour de qualification valide, le bouton « 📋 Défier un ami »', vu, str(pg.evaluate('() => [JEU.ecran, JEU.qualif && JEU.qualif.etat, JEU.qualif && JEU.qualif.q.valide]')))
     pg.click('#boutonQualifDefi')
-    attendre(pg, '() => !!document.querySelector("#qualifCode input")', None, 5000)
-    code = pg.evaluate('() => { const c = document.querySelector("#qualifCode input"); return c ? c.value : ""; }')
+    attendre(pg, '() => !!document.querySelector("#qualifCode input.defiCode")', None, 5000)
+    code = pg.evaluate('() => { const c = document.querySelector("#qualifCode input.defiCode"); return c ? c.value : ""; }')
     temps = pg.evaluate('() => JEU.qualif.q.temps')
     ok = pg.evaluate('c => { const r = DEFI.decoder(c, CIRCUIT.longueur); return r.ok && Math.abs(r.defi.temps - JEU.qualif.q.temps) < 0.001 && !document.getElementById("qualifCode").classList.contains("cache"); }', code)
-    t(f'{titre} : le code du tour s’affiche à copier (« GPD-TEST-… », {len(code)} caractères), avec « Copier », et il se décode', code.startswith('GPD-TEST-') and ok and pg.evaluate('() => document.querySelector("#qualifCode button").textContent === texte("defiCopier")'), code[:60])
+    t(f'{titre} : le code du tour s’affiche à copier (« GPD-TEST-… », {len(code)} caractères), avec « Copier », et il se décode', code.startswith('GPD-TEST-') and ok and pg.evaluate('() => document.querySelector("#qualifCode button.defiCode").textContent === texte("defiCopier")'), code[:60])
+    # (tour 50b) le lien de défi : d'abord le lien (l'adresse du jeu + ?defi=<code>) et « Copier le lien »
+    lien = pg.evaluate('() => { const c = document.querySelector("#qualifCode input.defiLien"), b = document.querySelector("#qualifCode button.defiLien"); return c && b && b.textContent === texte("defiCopierLien") ? c.value : ""; }')
+    t(f'{titre} : le lien de défi s’affiche avant le code, avec « Copier le lien » : l’adresse du jeu + ?defi=<le code>', lien.startswith('file://') and '/index.html?defi=' in lien and pg.evaluate('l => decodeURIComponent(new URL(l).searchParams.get("defi") || "")', lien) == code, lien[:80])
     pg.screenshot(path=os.path.join(CAPTURES, 'defi-code.png'))
     # « Entre amis » → « Relever un défi »
     pg.goto('file://' + RACINE + '/index.html?menu=amis'); attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "amis"', None, 30000)
@@ -532,9 +537,34 @@ def defi_ecran(pg, titre):
     t(f'{titre} : à l’arrivée, le résultat : le même robot que le fantôme, l’écart vaut 0 (« … 0,000 »), le défi affiché (nom, temps, circuit, aides), « Renvoyer mon code », le meilleur gardé, sans défilement',
       f['ecran'] == 'defiFin' and f['ecart'] is not None and abs(f['ecart']) < 0.0005 and '0,000' in f['texte'] and f['circuitVu'] and f['renvoyer'] and f['meilleur'] is not None and abs(f['meilleur']) < 0.001 and f['defile'][0] <= f['defile'][1] + 2, str(f))
     pg.click('#boutonDefiRenvoyer')
-    c2 = pg.evaluate('() => { const c = document.querySelector("#defiFinCode input"); return c ? c.value : ""; }')
-    t(f'{titre} : « Renvoyer mon code » : son propre code, sur le même circuit, qui se décode', c2.startswith('GPD-TEST-') and pg.evaluate('c => DEFI.decoder(c, CIRCUIT.longueur).ok', c2), c2[:40])
+    c2 = pg.evaluate('() => { const c = document.querySelector("#defiFinCode input.defiCode"); return c ? c.value : ""; }')
+    l2 = pg.evaluate('() => { const c = document.querySelector("#defiFinCode input.defiLien"); return c ? c.value : ""; }')
+    t(f'{titre} : « Renvoyer mon lien » : son propre lien (et son code), sur le même circuit, qui se décode', c2.startswith('GPD-TEST-') and pg.evaluate('c => DEFI.decoder(c, CIRCUIT.longueur).ok', c2)
+      and pg.evaluate('() => document.getElementById("boutonDefiRenvoyer").textContent === texte("defiRenvoyer")') and '?defi=' in l2 and pg.evaluate('l => new URL(l).searchParams.get("defi")', l2) == c2, c2[:40])
     pg.screenshot(path=os.path.join(CAPTURES, 'defi-fin.png'))
+    # (tour 50b) le lien de défi : un clic sur le lien (une page neuve) ouvre directement la grille du défi, sans autre écran
+    pg.evaluate('() => { const s = SAUVEGARDE.defis(); s.enCours = null; s.liste = []; SAUVEGARDE.ecrireDefis(s); }')
+    pg.goto(lien)
+    vus = []
+    for _ in range(300):
+        e = pg.evaluate('() => typeof JEU === "undefined" ? null : JEU.ecran')
+        if e and (not vus or vus[-1] != e): vus.append(e)
+        if e == 'qualif' and pg.evaluate('() => !!JEU.defi && !!JEU.qualif'): break
+        pg.wait_for_timeout(100)
+    s = pg.evaluate('() => ({ circuit: NOM_CIRCUIT, defi: !!JEU.defi, liste: SAUVEGARDE.defis().liste.map(d => [d.nom, typeof d.code === "string"]), enCours: SAUVEGARDE.defis().enCours })')
+    t(f'{titre} : un clic sur le lien ouvre directement la grille du défi (écrans vus : {vus}), le défi est reçu avec son code', not (set(vus) & {'titre', 'championnat', 'amis', 'defi', 'choix', 'pilote'}) and vus[-1:] == ['qualif'] and s['circuit'] == 'test' and s['defi'] and s['enCours'] == code and s['liste'] == [[s['liste'][0][0], True]], str([vus, s]))
+    # un lien abîmé : le jeu s'ouvre normalement (le paddock), avec le message de refus
+    abime_lien = lien.split('?')[0] + '?championnat=1&defi=' + pg.evaluate('c => encodeURIComponent(c)', abime)
+    pg.goto(abime_lien); attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', None, 60000)
+    r = pg.evaluate('() => { const e = document.getElementById("defiLienRefus"); return { defi: !!JEU.defi, vu: !!e && !e.classList.contains("cache"), texte: e ? e.textContent : "", refus: texte("defiLienRefuse") }; }')
+    t(f'{titre} : un lien de défi abîmé est refusé proprement : le jeu s’ouvre normalement (le paddock), le message de refus en haut', not r['defi'] and r['vu'] and r['texte'].startswith(r['refus']), str(r))
+    # le défi reçu est dans la page Messages, avec « Relever » ; le clic ouvre la grille du défi
+    pg.evaluate('() => INTERFACE.pagePaddock("messages")')
+    m = pg.evaluate('() => [...document.querySelectorAll("#paddockDefis .defiMessage")].map(x => [x.querySelector("span").textContent, x.querySelector("button").textContent])')
+    t(f'{titre} : la page Messages : « Défi de <nom> : <circuit>, <temps> » avec « Relever »', len(m) == 1 and texte_ok(m[0][0]) and m[0][1] == pg.evaluate('() => texte("defiRelever")'), str(m))
+    pg.screenshot(path=os.path.join(CAPTURES, 'defi-messages.png'))
+    with pg.expect_navigation(timeout=30000): pg.evaluate('() => document.querySelector("#paddockDefis .defiMessage button").click()')
+    t(f'{titre} : « Relever » ouvre la grille du défi', attendre(pg, '() => typeof JEU !== "undefined" && !!JEU.defi && JEU.ecran === "qualif" && !!JEU.qualif', None, 60000) and 'defi=1' in pg.url, pg.url[-40:])
 
 def fantome(pg, titre):
     TOUR = '() => JEU.ecran === "qualif" && JEU.qualif.etat === "tour" && JEU.qualif.q.lance'

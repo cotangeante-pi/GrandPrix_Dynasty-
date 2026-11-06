@@ -1238,7 +1238,7 @@ Object.assign(TEXTES.fr, {
 // (tour 49b) le défi du fantôme entre amis (defi.js) : le code à copier, « Relever un défi », la fin du tour
 Object.assign(TEXTES.en, {
   defiBouton: '📋 Challenge a friend', defiCopier: 'Copy', defiCopie: 'Copied!',
-  defiCodeAide: 'Send this code to a friend: they paste it in “Friends” → “Take a challenge”.',
+  defiCodeAide: 'Or the code: they paste it in “Friends” → “Take a challenge”.',
   amisDefi: '🎯 Take a challenge', defiTitre: 'Take a challenge',
   defiExplication: 'Paste the code a friend sent you, then race alone against their lap.',
   defiColler: 'Paste the code here', defiCourir: '▶ Race!',
@@ -1251,11 +1251,15 @@ Object.assign(TEXTES.en, {
   defiMeilleurReleve: 'beaten {s}', defiMeilleurEncore: 'best: {s} behind', defiPasCouru: 'not raced yet',
   defiFinTitre: 'Challenge', defiReleve: 'Challenge beaten! {s}', defiEncore: 'Still {s} to go',
   defiCoupe: 'Corner cut: no time.', defiAbandon: 'Lap abandoned: no time.',
-  defiRecommencer: '🔁 Try again', defiRenvoyer: '📋 Send back my code', defiQuitter: 'Back',
+  defiRecommencer: '🔁 Try again', defiRenvoyer: '📋 Send back my link', defiQuitter: 'Back',
+  // (tour 50b) le lien de défi
+  defiCopierLien: '🔗 Copy the link', defiLienAide: 'Send this link to a friend: one click and they race against your lap.',
+  defiMessagesTitre: 'Challenges received', defiMessage: 'Challenge from {nom}: {circuit}, {temps}', defiRelever: '▶ Take it on',
+  defiLienRefuse: 'This challenge link does not work.',
 });
 Object.assign(TEXTES.fr, {
   defiBouton: '📋 Défier un ami', defiCopier: 'Copier', defiCopie: 'Copié !',
-  defiCodeAide: 'Envoie ce code à un ami : il le colle dans « Entre amis » → « Relever un défi ».',
+  defiCodeAide: 'Ou le code : il le colle dans « Entre amis » → « Relever un défi ».',
   amisDefi: '🎯 Relever un défi', defiTitre: 'Relever un défi',
   defiExplication: 'Colle le code qu’un ami t’a envoyé, puis cours seul contre son tour.',
   defiColler: 'Colle le code ici', defiCourir: '▶ Courir !',
@@ -1268,7 +1272,11 @@ Object.assign(TEXTES.fr, {
   defiMeilleurReleve: 'relevé {s}', defiMeilleurEncore: 'au mieux à {s}', defiPasCouru: 'pas encore couru',
   defiFinTitre: 'Le défi', defiReleve: 'Défi relevé ! {s}', defiEncore: 'Encore {s}',
   defiCoupe: 'Virage coupé : pas de temps.', defiAbandon: 'Tour abandonné : pas de temps.',
-  defiRecommencer: '🔁 Recommencer', defiRenvoyer: '📋 Renvoyer mon code', defiQuitter: 'Retour',
+  defiRecommencer: '🔁 Recommencer', defiRenvoyer: '📋 Renvoyer mon lien', defiQuitter: 'Retour',
+  // (tour 50b) le lien de défi
+  defiCopierLien: '🔗 Copier le lien', defiLienAide: 'Envoie ce lien à un ami : un clic, et il court contre ton tour.',
+  defiMessagesTitre: 'Défis reçus', defiMessage: 'Défi de {nom} : {circuit}, {temps}', defiRelever: '▶ Relever',
+  defiLienRefuse: 'Ce lien de défi ne marche pas.',
 });
 
 // (tour 49b) les touches au choix (clavier.js)

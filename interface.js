@@ -2122,25 +2122,68 @@ const DEFI_ECRAN = (function () {
   const lire = () => $('defiSaisie').value;
   const message = t => { $('defiMessage').textContent = t; };
 
-  // le code à copier dans une boîte (qualifCode, defiFinCode) : le champ (tout sélectionné au clic), « Copier », l'explication
-  function montrerCode(id, code) {
-    const boite = $(id);
-    boite.textContent = '';
+  // un champ à copier (tout sélectionné au clic) et son bouton « Copier » (cle : le texte du bouton)
+  function champCopie(valeur, cle, classe) {
     const champ = document.createElement('input');
-    champ.type = 'text'; champ.readOnly = true; champ.value = code; champ.spellcheck = false;
+    champ.type = 'text'; champ.readOnly = true; champ.value = valeur; champ.spellcheck = false; champ.className = classe;
     champ.addEventListener('focus', () => champ.select());
     const b = document.createElement('button');
-    b.tabIndex = -1; b.textContent = texte('defiCopier');
+    b.tabIndex = -1; b.textContent = texte(cle); b.className = classe;
     b.addEventListener('mousedown', e => e.preventDefault());
     b.addEventListener('click', () => {
       const fait = () => { b.textContent = texte('defiCopie'); };
-      try { navigator.clipboard.writeText(code).then(fait, () => { champ.select(); try { document.execCommand('copy'); fait(); } catch (e) { /* le joueur copie à la main */ } }); }
+      try { navigator.clipboard.writeText(valeur).then(fait, () => { champ.select(); try { document.execCommand('copy'); fait(); } catch (e) { /* le joueur copie à la main */ } }); }
       catch (e) { champ.select(); try { document.execCommand('copy'); fait(); } catch (e2) { /* le joueur copie à la main */ } }
     });
+    return [champ, b];
+  }
+
+  // le code à copier dans une boîte (qualifCode, defiFinCode, tournoiCode) : (tour 50b) d'abord le LIEN (lienDe(code) : l'adresse du jeu
+  // + ?defi=<code>) et « Copier le lien », puis le code et « Copier », l'explication
+  function montrerCode(id, code, lienDe) {
+    const boite = $(id);
+    boite.textContent = '';
+    if (lienDe) {
+      boite.append(...champCopie(lienDe(code), 'defiCopierLien', 'defiLien'));
+      const p = document.createElement('p'); p.textContent = texte('defiLienAide'); boite.append(p);
+    }
+    boite.append(...champCopie(code, 'defiCopier', 'defiCode'));
     const p = document.createElement('p');
     p.textContent = texte('defiCodeAide');
-    boite.append(champ, b, p);
+    boite.append(p);
     boite.classList.remove('cache');
+  }
+
+  // (tour 50b) la page Messages du paddock : les défis reçus (le plus récent d'abord), « Défi de <nom> : <circuit>, <temps> » et
+  // « Relever » (seulement ceux dont le code est gardé) ; rien quand il n'y en a pas
+  function remplirMessages(liste, relever) {
+    const boite = $('paddockDefis');
+    if (!boite) return;
+    boite.textContent = '';
+    const l = (liste || []).filter(d => d && typeof d.code === 'string').slice().reverse();
+    boite.classList.toggle('cache', !l.length);
+    if (!l.length) return;
+    const h = document.createElement('h3'); h.textContent = texte('defiMessagesTitre'); boite.appendChild(h);
+    for (const d of l) {
+      const ligne = document.createElement('div'); ligne.className = 'defiMessage'; ligne.dataset.id = d.id;
+      const t = document.createElement('span');
+      t.textContent = texte('defiMessage').replace('{nom}', nom(d)).replace('{circuit}', texte('circuit_' + d.circuit) || d.circuit).replace('{temps}', temps(d.temps))
+        + (typeof d.meilleur === 'number' ? ' · ' + (d.meilleur < 0 ? texte('defiMeilleurReleve') : texte('defiMeilleurEncore')).replace('{s}', (d.meilleur < 0 ? '−' : '') + s3(d.meilleur)) : '');
+      const b = document.createElement('button'); b.tabIndex = -1; b.className = 'petit'; b.textContent = texte('defiRelever');
+      b.addEventListener('mousedown', e => e.preventDefault());
+      b.addEventListener('click', () => relever(d.id));
+      ligne.append(t, b);
+      boite.appendChild(ligne);
+    }
+  }
+
+  // (tour 50b) un lien de défi abîmé : le jeu s'ouvre normalement, et la raison s'affiche quelques secondes en haut de l'écran
+  function annoncerRefus(t) {
+    let el = $('defiLienRefus');
+    if (!el) { el = document.createElement('div'); el.id = 'defiLienRefus'; document.body.appendChild(el); }
+    el.textContent = texte('defiLienRefuse') + ' ' + t;
+    el.classList.remove('cache');
+    setTimeout(() => el.classList.add('cache'), REGLAGES.DEFI_REFUS_DUREE * 1000);
   }
 
   // la fin du tour : r = { d (le défi), e (l'écart, null sans temps), coupe, abandon, code (le sien, null sans temps) }
@@ -2163,7 +2206,7 @@ const DEFI_ECRAN = (function () {
     $('tournoiCode').classList.add('cache');
   }
 
-  return { preparer, remplirSaisie, lire, message, montrerCode, remplirFin, contre, boutonTournoi };
+  return { preparer, remplirSaisie, lire, message, montrerCode, remplirFin, contre, boutonTournoi, remplirMessages, annoncerRefus };
 })();
 
 // --- les touches au choix (clavier.js, tour 49b) : trois colonnes (course seule, joueur 1, joueur 2), une ligne par commande avec sa
