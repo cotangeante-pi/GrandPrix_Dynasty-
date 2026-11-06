@@ -644,10 +644,10 @@ t('forme du jour : la grille et les autres tirages identiques, la plus en forme 
   v(a.pilotes.every((p_,k)=>JSON.stringify(p_.pilote.style)===JSON.stringify(b.pilotes[k].pilote.style)&&JSON.stringify(p_.pilote.caractere)===JSON.stringify(b.pilotes[k].pilote.caractere)),'styles ou caractères changés');
   const fo=a.pilotes.map(p_=>p_.forme);
   v(fo.filter(x=>x===1).length===1&&fo.every(x=>x>=1-f0&&x<=1),'formes '+fo.join(' '));
-  v(a.pilotes.every((p_,k)=>p_.rythme===b.pilotes[k].rythme*p_.forme&&p_.pilote.rythme===p_.rythme&&p_.rythmeAvantForme===b.pilotes[k].rythme),'rythmes');
+  v(a.pilotes.every((p_,k)=>p_.rythme===b.pilotes[k].rythme&&p_.pilote.rythme===p_.rythme*p_.forme&&b.pilotes[k].pilote.rythme===p_.rythme),'rythmes');
   v(b.pilotes.every(p_=>p_.forme===undefined),'IA_FORME 0 : une forme posée');
-  const r1=a.pilotes.map(p_=>p_.rythme).join(',');donnerCarte(a,CARTES_T.technique);v(a.pilotes.map(p_=>p_.rythme).join(',')===r1,'deux fois appliquée');
-  const s1=tirer(1,f0),s0=tirer(1,0);v(s1.pilotes[0].rythme===s0.pilotes[0].rythme&&s1.pilotes[0].forme===1,'une IA seule');
+  const r1=a.pilotes.map(p_=>p_.pilote.rythme).join(',');donnerCarte(a,CARTES_T.technique);v(a.pilotes.map(p_=>p_.pilote.rythme).join(',')===r1,'deux fois appliquée');
+  const s1=tirer(1,f0),s0=tirer(1,0);v(s1.pilotes[0].pilote.rythme===s0.pilotes[0].pilote.rythme&&s1.pilotes[0].forme===1,'une IA seule');
   L.push('  (forme du jour, graine 7, 10 IA : '+fo.map(x=>x.toFixed(4)).join(' ')+')');});
 // la façon de piloter : 10 IA, chacune seule sur le technique, 4 tours
 // tour 22 (décision du Chef) : le style déplace l'apex de ±IA_STYLE_APEX m, donc les lignes « apex tôt » et « apex tard » se
