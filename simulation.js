@@ -83,6 +83,7 @@ function donnerCarte(e, carte) {
   const R = REGLAGES;
   e.carte = carte;
   if (e.pilotes.every(p => p.humain || p.v.u === 0)) qualifier(e);
+  if (R.IA_FORME) formeDuJour(e);
   ALEATOIRE.semer(e.graine + R.GRAINE_STYLES);
   e.pilotes.forEach((p, k) => {
     if (p.humain) return;
@@ -132,6 +133,23 @@ function donnerCarte(e, carte) {
   for (const p of e.pilotes) if (!p.humain) { const [a, b] = R.IA_CARACTERE.consigneRefus; p.pilote.caractere.consigneRefus = a + hasard() * (b - a); }
   ALEATOIRE.semer();
   strategieStands(e);
+}
+
+// la forme du jour (IA_FORME, tour 49c) : après la qualification (qui a lu le rythme de base), chaque IA tire sa forme avec sa propre graine
+// (GRAINE_FORME : les autres tirages ne bougent pas) ; la plus en forme garde son rythme, les autres perdent jusqu'à IA_FORME. Une seule fois
+// par course (p.rythmeAvantForme), même si donnerCarte revenait. p.forme : le facteur (1 = la meilleure forme)
+function formeDuJour(e) {
+  const R = REGLAGES, ia = e.pilotes.filter(p => !p.humain);
+  if (!ia.length) return;
+  ALEATOIRE.semer(e.graine + R.GRAINE_FORME);
+  const tirages = ia.map(() => hasard());
+  ALEATOIRE.semer();
+  const min = Math.min(...tirages);
+  ia.forEach((p, i) => {
+    if (p.rythmeAvantForme === undefined) p.rythmeAvantForme = p.rythme;
+    p.forme = 1 - R.IA_FORME * (tirages[i] - min);
+    p.rythme = p.rythmeAvantForme * p.forme;
+  });
 }
 
 // --- les consignes d'équipe (CLAUDE.md « Le duel contre le coéquipier », Codeur 1) ---
