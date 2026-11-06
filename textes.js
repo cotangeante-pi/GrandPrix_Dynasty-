@@ -330,6 +330,16 @@ const TEXTES = {
     // l'aileron (aileron.js, Codeur 3) : aucun conseil, seulement ce que fait le curseur
     aileron: '🪽 Rear wing', aileronTitre: 'Rear wing — {circuit}', aileronBas: 'Low', aileronHaut: 'High', aileronVirages: 'Corners', aileronVitesse: 'Speed',
     aileronCran: 'Setting {n} / {max}', aileronLongueur: '{km} km',
+    // les réglages de la voiture (reglages-voiture.js, mes-reglages.js, tour 50b) : chaque curseur, ses deux bouts et ce qu'il change
+    reglagesVoiture: '🔩 Car setup', rvTitre: 'Car setup — {circuit}', rvConseille: '↺ Recommended setup', rvEquilibre: 'Balanced: recommended setup',
+    rv_freins: 'Brake balance', rv_freins_bas: 'Rear', rv_freins_haut: 'Front',
+    rv_freins_effet_bas: 'Longer braking, steadier when braking into corners', rv_freins_effet_haut: 'Shorter braking, the fronts lock up in corners',
+    rv_boite: 'Gearbox', rv_boite_bas: 'Long', rv_boite_haut: 'Short',
+    rv_boite_effet_bas: 'More top speed, less acceleration', rv_boite_effet_haut: 'More acceleration, less top speed',
+    rv_suspensions: 'Suspension', rv_suspensions_bas: 'Soft', rv_suspensions_haut: 'Stiff',
+    rv_suspensions_effet_bas: 'More grip in slow corners, less in fast ones', rv_suspensions_effet_haut: 'More grip in fast corners, less in slow ones',
+    rv_pression: 'Tyre pressure', rv_pression_bas: 'Low', rv_pression_haut: 'High',
+    rv_pression_effet_bas: 'More grip, but more drag and tyre wear', rv_pression_effet_haut: 'Less drag and tyre wear, but less grip',
     // un nombre devant un mot (nombre(n, cle), Codeur 3) : [singulier, pluriel] ; en anglais le singulier est pour 1 seulement
     nb_saison: ['{n} season', '{n} seasons'], nb_titre: ['{n} title', '{n} titles'], nb_victoire: ['{n} win', '{n} wins'], nb_podium: ['{n} podium', '{n} podiums'],
     nb_point: ['{n} point', '{n} points'], nb_generation: ['{n} generation', '{n} generations'], nb_championne: ['{n} champion generation', '{n} champion generations'],
@@ -711,6 +721,16 @@ const TEXTES = {
     // l'aileron (aileron.js, Codeur 3) : aucun conseil, seulement ce que fait le curseur
     aileron: '🪽 Aileron', aileronTitre: 'Aileron — {circuit}', aileronBas: 'Bas', aileronHaut: 'Haut', aileronVirages: 'Virages', aileronVitesse: 'Vitesse',
     aileronCran: 'Cran {n} / {max}', aileronLongueur: '{km} km',
+    // les réglages de la voiture (reglages-voiture.js, mes-reglages.js, tour 50b) : chaque curseur, ses deux bouts et ce qu'il change
+    reglagesVoiture: '🔩 Réglages', rvTitre: 'Réglages — {circuit}', rvConseille: '↺ Réglage conseillé', rvEquilibre: 'Équilibré : le réglage conseillé',
+    rv_freins: 'Équilibre des freins', rv_freins_bas: 'Arrière', rv_freins_haut: 'Avant',
+    rv_freins_effet_bas: 'Freinage plus long, plus stable en freinant dans les virages', rv_freins_effet_haut: 'Freinage plus court, l’avant bloque en virage',
+    rv_boite: 'Boîte de vitesses', rv_boite_bas: 'Longue', rv_boite_haut: 'Courte',
+    rv_boite_effet_bas: 'Plus de vitesse de pointe, moins d’accélération', rv_boite_effet_haut: 'Plus d’accélération, moins de vitesse de pointe',
+    rv_suspensions: 'Suspensions', rv_suspensions_bas: 'Souples', rv_suspensions_haut: 'Dures',
+    rv_suspensions_effet_bas: 'Plus d’adhérence dans les virages lents, moins dans les rapides', rv_suspensions_effet_haut: 'Plus d’adhérence dans les virages rapides, moins dans les lents',
+    rv_pression: 'Pression des pneus', rv_pression_bas: 'Basse', rv_pression_haut: 'Haute',
+    rv_pression_effet_bas: 'Plus d’adhérence, mais plus de frottement et d’usure', rv_pression_effet_haut: 'Moins de frottement et d’usure, mais moins d’adhérence',
     // un nombre devant un mot (nombre(n, cle), Codeur 3) : [singulier, pluriel] ; en français le singulier est pour 0 et 1
     nb_saison: ['{n} saison', '{n} saisons'], nb_titre: ['{n} titre', '{n} titres'], nb_victoire: ['{n} victoire', '{n} victoires'], nb_podium: ['{n} podium', '{n} podiums'],
     nb_point: ['{n} point', '{n} points'], nb_generation: ['{n} génération', '{n} générations'], nb_championne: ['{n} génération championne', '{n} générations championnes'],

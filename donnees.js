@@ -316,6 +316,29 @@ const REGLAGES = {
   // même aileron (ia.js, freinsVus, IA_FREIN_PREVU ; Codeur 1). Les IA choisissent et gardent leur cran ; vrai = elles le portent
   AILERON_IA_ACTIF: true,
   GRAINE_AILERON: 12000,        // les crans des IA sont tirés avec la graine du championnat + ce nombre + la saison et le Grand Prix
+  // les réglages de la voiture (reglages-voiture.js, tour 50b ; liste approuvée par le propriétaire le 2026-11-06) : quatre curseurs de
+  // RV_CRANS crans, chacun un échange, jamais un bonus (hors du plafond du garage) ; le cran du milieu = le réglage conseillé = la voiture
+  // d'aujourd'hui au bit près (aucun champ posé). « écart » = cran − milieu (−2 à +2)
+  RV_CRANS: 5,
+  RV_FREINS_FORCE: 0.03,        // l'équilibre des freins (écart > 0 : vers l'avant) : la force de freinage × (1 + écart × ça)…
+  RV_FREINS_BLOCAGE: 0.05,      // … et l'adhérence de côté × (1 − écart × ça × frein × |direction|) : les roues avant bloquent en virage
+  RV_BOITE_FORCE: 0.04,         // la boîte (écart > 0 : courte) : la force du moteur à bas régime × (1 + écart × ça)…
+  RV_BOITE_PUISSANCE: 0.025,    // … et la puissance en haut × (1 − écart × ça) : moins de vitesse de pointe
+  RV_SUSPENSION: 0.015,         // les suspensions (écart > 0 : dures) : l'adhérence × (1 + écart × ça × la pente), …
+  RV_SUSPENSION_VITESSE: 50,    // … la pente vaut 0 à cette vitesse (m/s, 180 km/h)…
+  RV_SUSPENSION_PLAGE: 25,      // … −1 à ça de moins (virages lents), +1 à ça de plus (rapides)
+  RV_PRESSION_ADHERENCE: 0.012, // la pression des pneus (écart > 0 : haute) : l'adhérence × (1 − écart × ça)…
+  RV_PRESSION_ROULEMENT: 0.3,   // … la résistance au roulement × (1 − écart × ça)…
+  RV_PRESSION_USURE: 0.1,       // … et l'usure × (1 − écart × ça)
+  RV_MARGE: 0.01,               // test : sur le circuit test, aucun cran n'est plus rapide que le milieu de plus de cette part du tour
+  // le choix des IA (comme l'aileron) : le milieu + le circuit (AILERON.profil : part de virages lents − part de lignes droites − AILERON_IA_REFERENCE)
+  // × RV_IA_CIRCUIT[réglage] + (agressivité − 0,5) × RV_IA_AGRESSIVITE[réglage] + une part de hasard ; au plus RV_IA_ECART crans du milieu
+  RV_IA_CIRCUIT: { freins: -4, boite: 5, suspensions: -5, pression: -4 },
+  RV_IA_AGRESSIVITE: { freins: 1.2, boite: -1, suspensions: 0.8, pression: -0.8 },
+  RV_IA_HASARD: 1.5,
+  RV_IA_ECART: 1,
+  RV_IA_ACTIF: true,            // false : les IA choisissent et gardent leurs crans, sans les porter (comme AILERON_IA_ACTIF)
+  GRAINE_REGLAGES_VOITURE: 13000,   // les crans des IA : la graine du championnat + ce nombre + la saison et le Grand Prix
   // les saisons (étape 9, saisons.js, Codeur 3)
   SAISONS_MAX: 15,              // la retraite par l'âge : la carrière s'arrête après ce nombre de saisons
   GRAINE_SAISONS: 7000,         // l'évolution des rivaux est tirée avec la graine du championnat + ce nombre + la saison

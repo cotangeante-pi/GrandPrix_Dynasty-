@@ -1,0 +1,119 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>tests des réglages de la voiture</title></head><body>
+<pre id="res"></pre>
+<script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));
+window.__console=[];for(const n of ['warn','error']){const o=console[n].bind(console);console[n]=(...a)=>{__console.push(n+' : '+a.join(' '));o(...a);};}</script>
+<!-- les réglages de la voiture (CLAUDE.md « La personnalisation », liste approuvée le 2026-11-06 ; tour 50b) : reglages-voiture.js, ses effets
+     dans physique.js, pneus.js, robot.js et ia.js, le choix des IA, la sauvegarde ; en calcul pur. Le tableau des temps du robot sur les
+     12 tracés pour chaque réglage extrême est dans tests/officiels.html (sa partie a le temps). -->
+<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script>
+<script src="../circuits-officiels-a.js"></script><script src="../circuits-officiels-b.js"></script><script src="../circuits.js"></script>
+<script src="../physique.js"></script><script src="../course.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script>
+<script src="../pneus-donnees.js"></script><script src="../pneus.js"></script>
+<script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../pilote.js"></script>
+<script src="../argent.js"></script><script src="../garage.js"></script><script src="../aileron.js"></script><script src="../reglages-voiture.js"></script>
+<script>
+const L=[];let ok=0,ko=0;
+function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
+const v=(c,m)=>{if(!c)throw new Error(m||'faux');};
+const R=REGLAGES,RV=REGLAGES_VOITURE,DT=R.PAS_PHYSIQUE,KMH=3.6;
+const ecrire=()=>{document.getElementById('res').textContent=`RESULTAT ${ok}/${ok+ko}\n`+L.join('\n');};
+function rouler(vo,circuit,secondes,commandes,chaquePas){const n=Math.round(secondes/DT);for(let k=0;k<n;k++){appliquerCommandes(vo,typeof commandes==='function'?commandes(vo,k):commandes);pasVoiture(vo,circuit,DT);if(chaquePas&&chaquePas(vo,k)===false) return k;}return n;}
+const avec=(nom,cran)=>{const r=RV.conseille();r[nom]=cran;return r;};
+const voiture=(r,u)=>{const vo=creerVoiture(null);RV.appliquer(vo,r);if(u)vo.u=u;return vo;};
+const C=construireCircuit(CIRCUITS.test);
+const CHAMPS=['rvFrein','rvBlocage','rvForce','rvPuissance','rvSuspension','rvAdherence','rvRoulement','rvUsure'];
+localStorage.removeItem(SAUVEGARDE.CLE);
+
+t('réglages : quatre curseurs de RV_CRANS crans ; le conseillé = le milieu partout ; un réglage partiel ou faux est complété au milieu', ()=>{
+  v(RV.NOMS.join()==='freins,boite,suspensions,pression'&&R.RV_CRANS===5&&RV.milieu()===2,'noms '+RV.NOMS);
+  v(JSON.stringify(RV.conseille())==='{"freins":2,"boite":2,"suspensions":2,"pression":2}','conseillé '+JSON.stringify(RV.conseille()));
+  v(JSON.stringify(RV.normaliser({boite:4,freins:9,pression:'x'}))==='{"freins":2,"boite":4,"suspensions":2,"pression":2}','normaliser');
+  v(RV.estConseille(null)&&RV.estConseille({})&&RV.estConseille(RV.conseille())&&!RV.estConseille(avec('pression',1)),'estConseille');});
+
+t('réglages : le réglage conseillé = la voiture d’aujourd’hui au bit près (aucun champ posé ; le robot, une course d’IA et l’usure rejoués pas à pas : les mêmes nombres)', ()=>{
+  const e=RV.effets(RV.conseille());v(e.frein===1&&e.blocage===0&&e.force===1&&e.puissance===1&&e.suspension===0&&e.adherence===1&&e.roulement===1&&e.usure===1,'effets '+JSON.stringify(e));
+  const vo=creerVoiture(C,0),cles=Object.keys(vo).sort().join();RV.appliquer(vo,RV.conseille());RV.appliquer(vo,null);v(Object.keys(vo).sort().join()===cles,'des champs posés');
+  // une voiture réglée puis remise au conseillé perd ses champs
+  const w=creerVoiture(C,0);RV.appliquer(w,avec('boite',0));v(w.rvForce!==undefined,'pas posé');RV.appliquer(w,RV.conseille());v(CHAMPS.every(c=>w[c]===undefined),'pas enlevé');
+  const a=creerVoiture(C,0),b=creerVoiture(C,0);RV.appliquer(b,RV.conseille());a.pneus=creerPneus();b.pneus=creerPneus();
+  rouler(a,C,40,v_=>piloteRobot(v_,C),v_=>{pasPneus(v_.pneus,v_,DT);});rouler(b,C,40,v_=>piloteRobot(v_,C),v_=>{pasPneus(v_.pneus,v_,DT);});
+  v(a.x===b.x&&a.z===b.z&&a.u===b.u&&a.cap===b.cap&&a.pneus.usure===b.pneus.usure,'robot : '+[a.x,b.x,a.u,b.u,a.pneus.usure,b.pneus.usure].join(' '));
+  const e1=creerCourseIA(C,4,1,7),e2=creerCourseIA(C,4,1,7);for(const p of e2.pilotes) RV.appliquer(p.v,RV.conseille());
+  for(let k=0;k<20*120;k++){pasCourseIA(e1,DT);pasCourseIA(e2,DT);}
+  v(e1.pilotes.every((p,i)=>p.v.x===e2.pilotes[i].v.x&&p.v.z===e2.pilotes[i].v.z&&p.v.u===e2.pilotes[i].v.u),'IA : positions différentes');});
+
+t('freins : vers l’avant, le freinage est plus court en ligne droite ; en freinant en virage, l’adhérence de côté baisse (les roues avant bloquent) ; vers l’arrière, l’inverse ; sans braquer, rien ne bloque', ()=>{
+  const dist=c=>{const vo=voiture(avec('freins',c),80);let d=0;rouler(vo,null,10,{gaz:0,frein:1,direction:0},w=>{d+=w.u*DT;return w.u>30;});return d;};
+  const d=[0,1,2,3,4].map(dist);v(d[4]<d[3]&&d[3]<d[2]&&d[2]<d[1]&&d[1]<d[0],'distances '+d.map(x=>x.toFixed(1)).join(' / '));
+  const blo=c=>{const vo=voiture(avec('freins',c),50);vo.frein=1;vo.direction=0.6;return adherenceReglages(vo,50);};
+  v(blo(4)<blo(3)&&blo(3)<1&&blo(1)>1&&blo(0)>blo(1),'adhérence en freinant en virage '+[0,1,3,4].map(blo).join(' / '));
+  const droit=voiture(avec('freins',4),50);droit.frein=1;droit.direction=0;v(adherenceReglages(droit,50)===1,'en ligne droite');
+  L.push('  (freins, de 80 à 108 km/h au frein à fond, de l’arrière à l’avant : '+d.map(x=>x.toFixed(1)+' m').join(' / ')+' ; adhérence en freinant en virage : '+[0,1,3,4].map(c=>blo(c).toFixed(3)).join(' / ')+')');});
+
+t('boîte : courte, plus d’accélération (0–100 km/h) et moins de vitesse de pointe ; longue, l’inverse', ()=>{
+  const m=c=>{const vo=voiture(avec('boite',c));let t100=null;rouler(vo,null,60,{gaz:1,frein:0,direction:0},(w,k)=>{if(t100===null&&w.u*KMH>=100)t100=(k+1)*DT;});return {t100,pointe:vo.u*KMH};};
+  const r=[0,1,2,3,4].map(m);
+  for(let c=0;c<4;c++) v(r[c+1].t100<=r[c].t100&&r[c+1].pointe<r[c].pointe,'cran '+c+' → '+(c+1)+' : '+JSON.stringify([r[c],r[c+1]]));
+  v(r[4].t100<r[0].t100,'0–100 '+r[0].t100+' / '+r[4].t100);
+  L.push('  (boîte, de la longue à la courte : 0–100 km/h '+r.map(x=>x.t100.toFixed(2)+' s').join(' / ')+' ; pointe '+r.map(x=>x.pointe.toFixed(1)).join(' / ')+' km/h)');});
+
+t('suspensions : dures, plus d’adhérence dans les virages rapides et moins dans les lents ; souples, l’inverse ; la vitesse limite d’un virage de 40 m et d’un de 400 m le montre', ()=>{
+  const lim=(c,rayon)=>{const vo=voiture(avec('suspensions',c));let u=vitesseVirage(1/rayon);for(let i=0;i<20;i++) u=vitesseVirage(1/rayon,R.ADHERENCE*adherenceReglages(vo,u));return u*KMH;};
+  const lent=[0,1,2,3,4].map(c=>lim(c,40)),rapide=[0,1,2,3,4].map(c=>lim(c,400));
+  for(let c=0;c<4;c++) v(lent[c+1]<lent[c]&&rapide[c+1]>rapide[c],'cran '+c+' : '+[lent[c],lent[c+1],rapide[c],rapide[c+1]].join(' '));
+  v(lent[2]===vitesseVirage(1/40)*KMH&&rapide[2]===vitesseVirage(1/400)*KMH,'milieu');
+  L.push('  (suspensions, des souples aux dures : virage de 40 m '+lent.map(x=>x.toFixed(1)).join(' / ')+' km/h ; de 400 m '+rapide.map(x=>x.toFixed(1)).join(' / ')+' km/h)');});
+
+t('pression : basse, plus d’adhérence mais plus de frottement (moins de vitesse de pointe) et plus d’usure ; haute, l’inverse', ()=>{
+  const r=[0,1,2,3,4].map(c=>{const vo=voiture(avec('pression',c));const adh=adherenceReglages(vo,50);rouler(vo,null,60,{gaz:1,frein:0,direction:0});
+    const w=voiture(avec('pression',c),60);w.v=1;w.frein=0.9;return {adh,pointe:vo.u*KMH,usure:tauxUsure(w)};});
+  for(let c=0;c<4;c++) v(r[c+1].adh<r[c].adh&&r[c+1].pointe>r[c].pointe&&r[c+1].usure<r[c].usure,'cran '+c+' : '+JSON.stringify([r[c],r[c+1]]));
+  v(r[2].adh===1,'milieu');
+  L.push('  (pression, de la basse à la haute : adhérence '+r.map(x=>x.adh.toFixed(3)).join(' / ')+' ; pointe '+r.map(x=>x.pointe.toFixed(1)).join(' / ')+' km/h ; usure ×'+r.map(x=>(x.usure/r[2].usure).toFixed(2)).join(' / ')+')');});
+
+t('réglages : un échange, jamais un bonus : hors du plafond du garage (les facteurs ne passent pas par GARAGE)', ()=>{
+  const g={roues:5,moteur:5,aero:5,freins:5};v(GARAGE.bonus(g)<=R.GARAGE_PLAFOND+1e-12,'plafond');
+  const vo=creerVoiture(null);GARAGE.appliquer(vo,g,1);const m=vo.moteur;RV.appliquer(vo,avec('boite',4));v(vo.moteur===m,'le garage touché');});
+
+// les IA : un circuit de virages lents (Monoco) et un de lignes droites (Monzo)
+const LENTS=construireCircuit(CIRCUITS_OFFICIELS_A.monoco||CIRCUITS.monoco),DROITES=construireCircuit(CIRCUITS_OFFICIELS_A.monzo||CIRCUITS.monzo);
+t('IA : elles règlent leur voiture selon le circuit (sur un circuit de virages lents : boîte plus courte, suspensions plus souples, pression plus basse, freins plus en arrière que sur un circuit de lignes droites, en moyenne sur 6 graines), leur caractère et le hasard ; au plus RV_IA_ECART cran du milieu ; la même graine, les mêmes réglages', ()=>{
+  const pl=AILERON.profil(LENTS),pd=AILERON.profil(DROITES);v(pl.lents-pl.droites>pd.lents-pd.droites,'profils '+JSON.stringify([pl,pd]));
+  const somme={lents:{},droites:{}},vus={};for(const n of RV.NOMS){somme.lents[n]=0;somme.droites[n]=0;vus[n]=new Set();}let nb=0;
+  for(let g=1;g<=6;g++){const ch=CHAMPIONNAT.creer(g),a=RV.reglagesIA(ch,LENTS),b=RV.reglagesIA(ch,DROITES);
+    v(JSON.stringify(RV.reglagesIA(ch,LENTS))===JSON.stringify(a),'la même graine');
+    ch.pilotes.forEach((p,k)=>{if(p.humain){v(a[k]===null,'le joueur');return;}nb++;
+      for(const n of RV.NOMS){somme.lents[n]+=a[k][n];somme.droites[n]+=b[k][n];vus[n].add(a[k][n]);vus[n].add(b[k][n]);v(Math.abs(a[k][n]-2)<=R.RV_IA_ECART&&Math.abs(b[k][n]-2)<=R.RV_IA_ECART,n+' '+a[k][n]);}});}
+  const moy=(c,n)=>somme[c][n]/nb;
+  v(moy('lents','boite')>moy('droites','boite')&&moy('lents','suspensions')<moy('droites','suspensions')&&moy('lents','pression')<moy('droites','pression')&&moy('lents','freins')<moy('droites','freins'),'moyennes '+JSON.stringify(RV.NOMS.map(n=>[n,moy('lents',n).toFixed(2),moy('droites',n).toFixed(2)])));
+  v(RV.NOMS.every(n=>vus[n].size>=2),'toujours le même cran');
+  L.push('  (IA, moyennes Monoco / Monzo : '+RV.NOMS.map(n=>n+' '+moy('lents',n).toFixed(2)+' / '+moy('droites',n).toFixed(2)).join(' ; ')+')');});
+
+t('IA : un pilote agressif prend une boîte plus longue qu’un prudent, en moyenne (comme l’aileron bas : pour doubler en ligne droite)', ()=>{
+  const prof=AILERON.profil(LENTS);let ag=0,pr=0;ALEATOIRE.semer(5);for(let i=0;i<200;i++){ag+=RV.choisirIA('boite',{agressivite:1},prof);pr+=RV.choisirIA('boite',{agressivite:0},prof);}ALEATOIRE.semer();
+  v(ag<pr,'agressif '+ag+' prudent '+pr);});
+
+t('championnat : les IA d’un Grand Prix ont leur réglage (appliquerNiveaux : p.reglageVoiture et ses effets sur la voiture), le joueur non', ()=>{
+  const ch=CHAMPIONNAT.creer(1),e=creerCourseIA(C,19,1,3,null,true);CHAMPIONNAT.appliquerNiveaux(ch,e);const rv=RV.reglagesIA(ch,C);
+  v(e.pilotes.slice(0,19).every((p,k)=>JSON.stringify(p.reglageVoiture)===JSON.stringify(rv[k])),'réglages '+e.pilotes.slice(0,3).map(p=>JSON.stringify(p.reglageVoiture)).join());
+  v(e.pilotes.slice(0,19).every((p,k)=>RV.estConseille(rv[k])?CHAMPS.every(c=>p.v[c]===undefined):(R.RV_IA_ACTIF?p.v.reglageVoiture&&JSON.stringify(p.v.reglageVoiture)===JSON.stringify(rv[k]):true)),'effets posés');
+  v(e.pilotes[19].reglageVoiture===undefined&&CHAMPS.every(c=>e.pilotes[19].v[c]===undefined),'le joueur');});
+
+t('sauvegarde : le réglage du joueur est gardé par circuit ; « Réglage conseillé » le remet au milieu ; une vieille sauvegarde sans réglages se charge au réglage conseillé', ()=>{
+  localStorage.removeItem(SAUVEGARDE.CLE);const ch=CHAMPIONNAT.creer(1);v(RV.estConseille(RV.de(ch,'monzo')),'au départ');
+  RV.regler(ch,'monzo','boite',0);RV.regler(ch,'monzo','pression',4);RV.regler(ch,'monoco','suspensions',9);RV.regler(ch,'monoco','inconnu',1);
+  SAUVEGARDE.ecrireChampionnat(ch);const re=SAUVEGARDE.championnat();
+  v(JSON.stringify(RV.de(re,'monzo'))==='{"freins":2,"boite":0,"suspensions":2,"pression":4}'&&RV.de(re,'monoco').suspensions===4&&RV.estConseille(RV.de(re,'spaa')),'gardé : '+JSON.stringify(re.reglagesVoiture));
+  RV.remettre(re,'monzo');v(RV.estConseille(RV.de(re,'monzo'))&&RV.de(re,'monoco').suspensions===4,'conseillé');
+  const vieux=JSON.parse(JSON.stringify(ch));delete vieux.reglagesVoiture;localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:4,records:{},championnat:vieux}));
+  const d=SAUVEGARDE.lire();v(d.championnat.reglagesVoiture&&typeof d.championnat.reglagesVoiture==='object'&&RV.estConseille(RV.de(d.championnat,'monzo')),'vieille : '+JSON.stringify(d.championnat.reglagesVoiture));
+  const abime=JSON.parse(JSON.stringify(ch));abime.reglagesVoiture={monzo:{boite:'x',freins:7}};localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:4,records:{},championnat:abime}));
+  v(RV.estConseille(RV.de(SAUVEGARDE.lire().championnat,'monzo')),'abîmée');localStorage.removeItem(SAUVEGARDE.CLE);});
+
+t('textes : toutes les clés des réglages existent en anglais et en français', ()=>{
+  const cles=['reglagesVoiture','rvTitre','rvConseille','rvEquilibre'];for(const n of RV.NOMS) cles.push('rv_'+n,'rv_'+n+'_bas','rv_'+n+'_haut','rv_'+n+'_effet_bas','rv_'+n+'_effet_haut');
+  const manque=cles.filter(c=>!TEXTES.en[c]||!TEXTES.fr[c]);v(!manque.length,'manque '+manque.join());});
+
+t('aucune erreur JavaScript ni avertissement',()=>v(__err.length===0&&__console.length===0,__err.concat(__console).join(' | ')));
+ecrire();
+</script></body></html>

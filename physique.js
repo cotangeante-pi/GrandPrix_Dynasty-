@@ -109,7 +109,10 @@ function pasVoiture(v, circuit, dt) {
   if (v.typePneus === 'drift' && !R.PNEU_DRIFT) v.typePneus = 'slick';   // (tour 48b) le drift caché : la glisse pour personne, l'adhérant au bit près
   // (le pneu drift : son adhérence selon la vitesse, adherenceDrift, gardée dans v.adhDrift pour qui pilote ; × 1 en adhérant, au bit près)
   if (v.typePneus === 'drift') v.adhDrift = adherenceDrift(v.u);
-  const mu = R.ADHERENCE * (v.adhMeteo || 1) * (v.adherence || 1) * (v.aero || 1) * (v.aileronAdherence || 1) * (herbe ? R.ADHERENCE_HERBE : 1) * (v.typePneus === 'drift' ? v.adhDrift : 1);   // × 1 sans pneus ni garage ni aileron (aileron, Codeur 3) : le même nombre au bit près
+  let mu = R.ADHERENCE * (v.adhMeteo || 1) * (v.adherence || 1) * (v.aero || 1) * (v.aileronAdherence || 1) * (herbe ? R.ADHERENCE_HERBE : 1) * (v.typePneus === 'drift' ? v.adhDrift : 1);   // × 1 sans pneus ni garage ni aileron (aileron, Codeur 3) : le même nombre au bit près
+  // (les réglages de la voiture, tour 50b, reglages-voiture.js : la pression, les suspensions selon la vitesse, l'équilibre des freins au
+  // freinage en virage ; au réglage conseillé, aucun champ n'est posé : mu n'est pas touché, au bit près)
+  if (v.rvAdherence || v.rvSuspension || v.rvBlocage) mu *= adherenceReglages(v, v.u);
   const fz = charge(v.u);
   const fzAvant = fz * b / R.EMPATTEMENT, fzArriere = fz * a / R.EMPATTEMENT;
   const delta = v.direction * braquageMax(v.u);
@@ -118,11 +121,11 @@ function pasVoiture(v, circuit, dt) {
   // la force vers l'avant : moteur, frein, traînée, roulement, herbe
   let fx = 0;
   const avance = v.u > 0.01;
-  if (v.gaz > 0) fx += v.gaz * Math.min(R.FORCE_MOTEUR_MAX, R.PUISSANCE / Math.max(v.u, 1)) * (herbe ? R.GAZ_HERBE : 1) * (v.facteurDepart || 1) * (v.moteur || 1);   // × 1 sans départ ni garage : le même nombre au bit près
+  if (v.gaz > 0) fx += v.gaz * Math.min(R.FORCE_MOTEUR_MAX * (v.rvForce || 1), R.PUISSANCE * (v.rvPuissance || 1) / Math.max(v.u, 1)) * (herbe ? R.GAZ_HERBE : 1) * (v.facteurDepart || 1) * (v.moteur || 1);   // × 1 sans départ ni garage : le même nombre au bit près
   // le frein à l'arrêt devient la marche arrière (si on n'accélère pas)
   if (v.frein > 0 && v.u <= 0.5 && v.gaz === 0 && v.u > -R.MARCHE_ARRIERE_MAX) fx -= v.frein * R.FORCE_MARCHE_ARRIERE;
-  const resistance = R.TRAINEE * (v.aileronTrainee || 1) * (1 - R.ASPIRATION_MAX * v.aspiration * (v.eau ? 1 - R.METEO_GERBE * v.eau : 1)) * v.u * v.u + R.ROULEMENT + (herbe ? R.FROTTEMENT_HERBE * Math.abs(v.u) + R.FROTTEMENT_HERBE_CARRE * v.u * v.u : 0)
-    + (avance ? v.frein * R.ADHERENCE_FREIN * (v.adhMeteo || 1) * (v.freins || 1) * (herbe ? R.ADHERENCE_HERBE : 1) * fz : 0);   // × 1 sans garage
+  const resistance = R.TRAINEE * (v.aileronTrainee || 1) * (1 - R.ASPIRATION_MAX * v.aspiration * (v.eau ? 1 - R.METEO_GERBE * v.eau : 1)) * v.u * v.u + R.ROULEMENT * (v.rvRoulement || 1) + (herbe ? R.FROTTEMENT_HERBE * Math.abs(v.u) + R.FROTTEMENT_HERBE_CARRE * v.u * v.u : 0)
+    + (avance ? v.frein * R.ADHERENCE_FREIN * (v.adhMeteo || 1) * (v.freins || 1) * (v.rvFrein || 1) * (herbe ? R.ADHERENCE_HERBE : 1) * fz : 0);   // × 1 sans garage (ni réglage des freins)
 
   if (Math.abs(v.u) < R.VITESSE_CINEMATIQUE) {
     // presque à l'arrêt : la voiture roule sans glisser
@@ -173,6 +176,26 @@ function pasVoiture(v, circuit, dt) {
   if (circuit) contactPiste(v, circuit);
 }
 
+// les réglages de la voiture (tour 50b, reglages-voiture.js) : ce par quoi multiplier l'adhérence à la vitesse u. Trois effets, posés sur
+// la voiture par REGLAGES_VOITURE.appliquer (absents au réglage conseillé : 1) :
+// - la pression des pneus (v.rvAdherence) : basse, plus d'adhérence partout ; haute, moins ;
+// - les suspensions (v.rvSuspension = écart × RV_SUSPENSION ; > 0 dures) : penteSuspension(u) va de −1 dans les virages lents à +1 dans les
+//   rapides ; dures, plus d'adhérence dans les rapides (l'appui bien tenu) et moins dans les lents ; souples, l'inverse ;
+// - l'équilibre des freins (v.rvBlocage = écart × RV_FREINS_BLOCAGE ; > 0 vers l'avant) : en freinant en virage (v.frein × |v.direction|),
+//   vers l'avant, les roues avant bloquent et l'adhérence de côté baisse ; vers l'arrière, la voiture tourne mieux au freinage
+function adherenceReglages(v, u) {
+  let f = v.rvAdherence || 1;
+  if (v.rvSuspension) f *= 1 + v.rvSuspension * penteSuspension(u);
+  if (v.rvBlocage && v.frein > 0) f *= 1 - v.rvBlocage * v.frein * Math.min(1, Math.abs(v.direction));
+  return f;
+}
+
+// de −1 (virages lents, sous RV_SUSPENSION_VITESSE − RV_SUSPENSION_PLAGE) à +1 (rapides, au-dessus de RV_SUSPENSION_VITESSE + RV_SUSPENSION_PLAGE)
+function penteSuspension(u) {
+  const R = REGLAGES;
+  return Math.max(-1, Math.min(1, (Math.abs(u) - R.RV_SUSPENSION_VITESSE) / R.RV_SUSPENSION_PLAGE));
+}
+
 // la voiture vivante (CLAUDE.md « La voiture vivante (les pneus adhérant / drift) ») : elle vient du pneu drift (v.typePneus === 'drift'),
 // pas du niveau ; VOITURE_VIVANTE (le curseur de ?reglages=1, 0 à 1) règle le drift. 0 pour tout autre pneu (l'adhérant, la voiture
 // d'aujourd'hui au bit près) ; et 0 pour une IA sans VIVANTE_IA (elles gardent l'adhérant : elles ne savent pas piloter le drift)
@@ -203,7 +226,7 @@ function pasPneusVivant(v, mu, fz, fzAvant0, fzArriere0, delta, fx, resistance, 
   const fzAvant = Math.max(R.VIVANTE_CHARGE_MIN * fz, fzAvant0 - transfert), fzArriere = Math.max(R.VIVANTE_CHARGE_MIN * fz, fzArriere0 + transfert);
   const arr = R.ADHERENCE_ARRIERE + k * (R.VIVANTE_ADHERENCE_ARRIERE - R.ADHERENCE_ARRIERE);
   // le frein (la part de « resistance » qui vient des freins), réparti entre les deux essieux
-  const freinage = v.u > 0.01 ? v.frein * R.ADHERENCE_FREIN * (v.adhMeteo || 1) * (v.freins || 1) * (v.surHerbe ? R.ADHERENCE_HERBE : 1) * fz : 0;
+  const freinage = v.u > 0.01 ? v.frein * R.ADHERENCE_FREIN * (v.adhMeteo || 1) * (v.freins || 1) * (v.rvFrein || 1) * (v.surHerbe ? R.ADHERENCE_HERBE : 1) * fz : 0;
   const freinAvant = freinage * R.VIVANTE_REPARTITION_FREIN, freinArriere = freinage - freinAvant;
   // le moteur pousse par l'arrière : au-delà de son adhérence, il patine (le surplus est perdu, × k)
   const capArriere = mu * arr * fzArriere, moteur = Math.max(0, fx);

@@ -155,6 +155,7 @@ function lancerCourse(nbTours) {
   if (PARAMETRES.get('pneus') === 'drift' && REGLAGES.PNEU_DRIFT) JEU.joueur.typePneus = 'drift';   // (?pneus=drift : la voiture vivante, le pneu drift ; la leçon 8 du tutoriel, les tests)
   if (JEU.deux) { const v2 = DEUX_JOUEURS.joueurs(JEU.plateau)[1].v; v2.pneus = JEU.joueur.pneus ? creerPneus() : null; v2.adherence = 1; }   // le joueur 2 : la même voiture
   AILERON.appliquer(JEU.joueur, JEU.championnat ? AILERON.cranDe(JEU.championnat, NOM_CIRCUIT) : null);   // l'aileron du joueur sur ce circuit (aileron.js ; le milieu = rien)
+  if (typeof REGLAGES_VOITURE !== 'undefined') REGLAGES_VOITURE.appliquer(JEU.joueur, JEU.championnat ? REGLAGES_VOITURE.de(JEU.championnat, NOM_CIRCUIT) : null);   // (tour 50b) ses réglages de la voiture sur ce circuit (le conseillé = rien)
   GARAGE.appliquer(JEU.joueur, JEU.championnat ? JEU.championnat.garage : null, niveauEcurieJoueur());   // ?championnat=1 : les améliorations du garage × le niveau de l'écurie, sur la voiture du joueur (1 = rien sans championnat)
   JEU.enregistreur = creerEnregistrement();
   JEU.fantome = null;   // le fantôme ne vit que pendant le tour de qualification (commencerFantome)
@@ -185,6 +186,7 @@ function faireMonTour() {
   const v = creerVoiture(CIRCUIT, 0);
   GARAGE.appliquer(v, JEU.championnat ? JEU.championnat.garage : null, niveauEcurieJoueur());   // la même voiture qu'en course (garage, niveau de l'écurie)
   AILERON.appliquer(v, JEU.championnat ? AILERON.cranDe(JEU.championnat, NOM_CIRCUIT) : null);   // … et le même aileron
+  if (typeof REGLAGES_VOITURE !== 'undefined') REGLAGES_VOITURE.appliquer(v, JEU.championnat ? REGLAGES_VOITURE.de(JEU.championnat, NOM_CIRCUIT) : null);   // … et les mêmes réglages (tour 50b)
   JEU.qualif.v = v;
   JEU.qualif.q = QUALIFICATION.creer(CIRCUIT, v);
   JEU.qualif.etat = 'tour';
@@ -1390,6 +1392,35 @@ function quitterAileron() {
   INTERFACE.montrer('garage');
 }
 
+// ?championnat=1 : les réglages de la voiture (tour 50b, reglages-voiture.js, mes-reglages.js), depuis le garage, avant le Grand Prix :
+// gardés par circuit et sauvegardés à chaque changement ; ils s'appliquent aux qualifications et à la course (lancerCourse, faireMonTour)
+function montrerReglagesVoiture() {
+  if (JEU.ecran !== 'garage') return;
+  const nom = circuitProchain();
+  MES_REGLAGES.remplir(texte('circuit_' + nom) || (CIRCUITS[nom] ? CIRCUITS[nom].nom : nom), REGLAGES_VOITURE.de(JEU.championnat, nom));
+  ecranPerso('reglagesVoiture');
+}
+
+function changerReglageVoiture(reglage, cran) {
+  if (JEU.ecran !== 'reglagesVoiture') return;
+  MES_REGLAGES.maj(REGLAGES_VOITURE.regler(JEU.championnat, circuitProchain(), reglage, cran));
+  SAUVEGARDE.ecrireChampionnat(JEU.championnat);
+}
+
+function reglageVoitureConseille() {
+  if (JEU.ecran !== 'reglagesVoiture') return;
+  MES_REGLAGES.maj(REGLAGES_VOITURE.remettre(JEU.championnat, circuitProchain()));
+  SAUVEGARDE.ecrireChampionnat(JEU.championnat);
+}
+
+function quitterReglagesVoiture() {
+  if (JEU.ecran !== 'reglagesVoiture') return;
+  quitterPerso();
+  INTERFACE.remplirGarage(JEU.championnat);
+  JEU.ecran = 'garage';
+  INTERFACE.montrer('garage');
+}
+
 function quitterGarage() {
   if (JEU.ecran !== 'garage') return;
   montrerChampionnat(JEU.gagne);
@@ -1398,7 +1429,7 @@ function quitterGarage() {
 // --- la personnalisation (tour 48c) : « Ma voiture » et la boutique sont des écrans à part (ils ne sont pas dans la liste de
 // INTERFACE.montrer) : ecranPerso cache les autres écrans puis montre le sien ; ils s'ouvrent depuis le garage (provisoire : la boutique
 // ira dans la page « Boutique » du nouveau paddock)
-const ECRANS_PERSO = ['livree', 'boutique', 'essaiFin'];
+const ECRANS_PERSO = ['livree', 'boutique', 'essaiFin', 'reglagesVoiture'];   // (+ les réglages de la voiture, tour 50b)
 function ecranPerso(id) {
   INTERFACE.montrer(id);
   for (const x of ECRANS_PERSO) document.getElementById(x).classList.toggle('cache', x !== id);
@@ -2256,7 +2287,7 @@ function majTableau() {
   document.getElementById('rapport').textContent = rapportPourVitesse(v.u);
   const roule = JEU.ecran === 'course' || JEU.ecran === 'survol' || enTourQualif();
   // sur le podium et les résultats, ni vitesse ni aide des touches
-  const apres = ['podium', 'resultats', 'championnat', 'une', 'garage', 'titre', 'amis', 'bravo', 'saison', 'duelSaison', 'contrats', 'retraite', 'sponsors', 'fiche', 'interview', 'ceremonie', 'album', 'temple', 'heritier', 'calendrier', 'deuxReglages', 'tournoiInscription', 'tournoiAToi', 'tournoiPause', 'tournoiManche', 'tournoiFin', 'aileron', 'arbre'].includes(JEU.ecran);
+  const apres = ['podium', 'resultats', 'championnat', 'une', 'garage', 'titre', 'amis', 'bravo', 'saison', 'duelSaison', 'contrats', 'retraite', 'sponsors', 'fiche', 'interview', 'ceremonie', 'album', 'temple', 'heritier', 'calendrier', 'deuxReglages', 'tournoiInscription', 'tournoiAToi', 'tournoiPause', 'tournoiManche', 'tournoiFin', 'aileron', 'arbre', 'reglagesVoiture'].includes(JEU.ecran);
   document.getElementById('tableau').classList.toggle('cache', apres || volantVisible());   // (en vue cockpit, rapport et vitesse sont sur le volant)
   document.getElementById('aide').classList.toggle('cache', apres);
   // après l'arrivée du joueur (en attendant les autres), il ne court plus : pas de « hors piste »
@@ -2438,6 +2469,7 @@ function demarrerJeu() {
     INTERFACE.preparerAlbum(montrerAlbum, feuilleterAlbum, saisonAlbum, quitterAlbum);
     INTERFACE.preparerTemple(montrerTemple, quitterTemple);
     INTERFACE.preparerAileron(montrerAileron, changerAileron, quitterAileron);
+    MES_REGLAGES.preparer(montrerReglagesVoiture, changerReglageVoiture, reglageVoitureConseille, quitterReglagesVoiture);   // (tour 50b)
     INTERFACE.preparerArbre(montrerArbre, quitterArbre);
     INTERFACE.preparerCalendrier(montrerCalendrier, quitterCalendrier);
     INTERFACE.preparerReleve(montrerHeritier, nouvelleDynastie, validerHeritier);
