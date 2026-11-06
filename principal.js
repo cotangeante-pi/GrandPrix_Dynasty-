@@ -344,6 +344,10 @@ function finirTourTournoi(q, abandon) {
   if (j === null) return;
   const avant = TOURNOI.classementManche(t, t.manche), recordAvant = avant.length && avant[0].temps !== null ? avant[0].temps : null;
   if (!abandon && f) JEU.tournoiFantomes[j] = FANTOME.compacter(f.tour, q.tour, q.fin);
+  // (tour 49b) « 📋 Défier un ami » sous le classement de la manche : le tour qui vient d'être fait, s'il est propre (sans virage coupé :
+  // le code garde le temps du tour, sans pénalité), signé du prénom et du casque du joueur, avec ses aides
+  const aidesJ = aidesDe(null);
+  JEU.tournoiDefi = !abandon && f && q.valide && !q.penalites ? { circuit: NOM_CIRCUIT, fantome: JEU.tournoiFantomes[j], nom: t.joueurs[j].prenom || null, casque: t.joueurs[j].casque || null, aileron: null, aides: aidesJ ? ASSISTANCE.AIDES.filter(a => aidesJ[a]) : [] } : null;
   TOURNOI.enregistrer(t, j, abandon ? { abandon: true } : { tour: q.tour, penalites: q.penalites });
   JEU.fantome = null;
   JEU.qualif = null;
@@ -453,6 +457,7 @@ function montrerMancheTournoi(j, recordAvant) {
   const general = finie && t.formule === 'tournoi' ? lignesTournoi(t, TOURNOI.classementGeneral(t), null) : null;
   const bouton = !finie ? texte('tournoiSuivant').replace('{prenom}', t.joueurs[suivant].prenom) : TOURNOI.fini(t) ? texte('tournoiPodium') : texte('tournoiMancheSuivante');
   INTERFACE.remplirMancheTournoi(titre, phraseTournoi(t, j, recordAvant), lignesTournoi(t, TOURNOI.classementManche(t, t.manche), j), general, bouton);
+  DEFI_ECRAN.boutonTournoi(!!JEU.tournoiDefi);   // (tour 49b) « 📋 Défier un ami » pour le tour qui vient d'être fait
   JEU.ecran = 'tournoiManche';
   INTERFACE.montrer('tournoiManche');
 }
@@ -2356,7 +2361,8 @@ function demarrerJeu() {
   { const b = document.getElementById('boutonAmisDefi'); b.textContent = texte('amisDefi'); b.addEventListener('mousedown', e => e.preventDefault()); b.addEventListener('click', ouvrirDefi); }
   DEFI_ECRAN.preparer({ courir: courirDefi, retour: retourDefi, recommencer: () => { if (JEU.ecran === 'defiFin') location.reload(); },
     renvoyer: () => { if (JEU.ecran === 'defiFin' && JEU.defi && JEU.defi.code) DEFI_ECRAN.montrerCode('defiFinCode', JEU.defi.code); },
-    quitter: () => { if (JEU.ecran === 'defiFin') location.href = adresseAvec({ menu: 'amis' }); }, defierQualif });
+    quitter: () => { if (JEU.ecran === 'defiFin') location.href = adresseAvec({ menu: 'amis' }); }, defierQualif,
+    defierTournoi: () => { if (JEU.ecran === 'tournoiManche' && JEU.tournoiDefi) DEFI_ECRAN.montrerCode('tournoiCode', DEFI.coder(JEU.tournoiDefi)); } });
   INTERFACE.preparerInscription(partirTournoi, montrerAmis);
   INTERFACE.preparerPauseTournoi(() => pauseTournoi(false), abandonnerTournoi);
   INTERFACE.preparerMancheTournoi(suiteTournoi);

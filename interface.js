@@ -2087,7 +2087,7 @@ const DEFI_ECRAN = (function () {
   function preparer(f) {
     bouton('boutonDefiCourir', f.courir); bouton('boutonDefiRetour', f.retour);
     bouton('boutonDefiRecommencer', f.recommencer); bouton('boutonDefiRenvoyer', f.renvoyer); bouton('boutonDefiQuitter', f.quitter);
-    bouton('boutonQualifDefi', f.defierQualif);
+    bouton('boutonQualifDefi', f.defierQualif); bouton('boutonTournoiDefi', f.defierTournoi);
     $('defiSaisie').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); f.courir(); } });
   }
 
@@ -2148,5 +2148,12 @@ const DEFI_ECRAN = (function () {
     $('boutonDefiQuitter').textContent = texte('defiQuitter');
   }
 
-  return { preparer, remplirSaisie, lire, message, montrerCode, remplirFin, contre };
+  // le tournoi chrono : le bouton sous le classement de la manche (le code se cache à chaque passage)
+  function boutonTournoi(oui) {
+    $('boutonTournoiDefi').textContent = texte('defiBouton');
+    $('boutonTournoiDefi').classList.toggle('cache', !oui);
+    $('tournoiCode').classList.add('cache');
+  }
+
+  return { preparer, remplirSaisie, lire, message, montrerCode, remplirFin, contre, boutonTournoi };
 })();

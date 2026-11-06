@@ -1245,6 +1245,13 @@ def tournoi(pg, titre, l, h):
             pubs = pg.evaluate(PUBS)
             e = passage(abandon=(m == 0 and k == 2))
             vus.append(e)
+            if m == 0 and k in (0, 2):   # (tour 49b) « 📋 Défier un ami » sous le classement : pour un tour propre, jamais après un abandon
+                d = pg.evaluate('() => { const b = document.getElementById("boutonTournoiDefi"), vu = !b.classList.contains("cache"); if (vu) b.click(); const c = document.querySelector("#tournoiCode input"); return [vu, !!JEU.tournoiDefi, c ? c.value : "", TOURNOI.joueurActuel(JEU.tournoi)]; }')
+                if k == 0:
+                    bon = d[0] == d[1] and (not d[0] or pg.evaluate('c => { const r = DEFI.decoder(c, CIRCUIT.longueur); return r.ok && r.defi.nom === "Léo" && r.defi.circuit === NOM_CIRCUIT; }', d[2]))
+                    t(f'{titre} : après le tour de Léo, « 📋 Défier un ami » (s’il est sans virage coupé) donne le code de son tour, signé Léo, sur le circuit de la manche', bon, str([d[0], d[1], d[2][:40]]))
+                else:
+                    t(f'{titre} : après un abandon, pas de « Défier un ami »', not d[0] and not d[1], str(d[:2]))
             t(f'{titre} : manche {m + 1}, passage {k + 1} : le fantôme du leader du moment ({"aucun pour le premier" if k == 0 else "présent"}), gameplayStart pendant le tour, le classement s’anime (le nouveau temps marqué), aucune pub entre deux joueurs',
               e['fantome'] == (k > 0) and (e['leader'] is None) == (k == 0) and e['sdk'] == 'gameplayStart' and e['nouveau'] != '' and pg.evaluate(PUBS) == pubs, str(e))
             if k < 2 or m == 2:
