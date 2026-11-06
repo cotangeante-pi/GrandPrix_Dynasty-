@@ -12,14 +12,16 @@ const SCENE3D = (function () {
   const haut = i => relief ? relief[i] : 0;
   // les voitures lointaines (étape 10) : au-delà de VOITURE_LOIN m de la caméra (à champ égal), une voiture est dessinée en forme simple,
   // toutes ensemble en un seul InstancedMesh ; { maillage, voitures } (les groupes des voitures ajoutées), créé à la première voiture
-  let flotte = null, nbLointaines = 0;
+  let flotte = null, nbLointaines = 0, joueurSimplifie = false;
   // la qualité de l'image (qualite.js, tour 40) : null = les réglages d'avant ; sinon { pixelRatio, detail, rien } d'un cran
   let qualite = null;
+  // (tour 49a : l'Auto continu ; q = QUALITE.reglages, avec aussi voitureLoin, voituresDetaillees, densite, effets ; le canvas n'est
+  // refait que si les pixels changent)
   function reglerQualite(q) {
     qualite = q || null;
     if (!rendu) return;
-    rendu.setPixelRatio(Math.min(window.devicePixelRatio || 1, qualite ? qualite.pixelRatio : R.PIXEL_RATIO_MAX));
-    redimensionner();
+    const pr = Math.min(window.devicePixelRatio || 1, qualite ? qualite.pixelRatio : R.PIXEL_RATIO_MAX);
+    if (pr !== rendu.getPixelRatio()) { rendu.setPixelRatio(pr); redimensionner(); }
   }
 
   // gp (facultatif) : { championnat, circuit } du Grand Prix (le public du décor, decor-public.js)
@@ -361,7 +363,11 @@ const SCENE3D = (function () {
     const cachees = [];
     if (!flotte) return cachees;
     const cams = partage ? [camera, camera2] : [camera], seuil = R.VOITURE_LOIN * R.VOITURE_LOIN_CHAMP / camera.fov, s2 = seuil * seuil, m = flotte.maillage;
+    // l'Auto (qualite.js) rapproche la forme simple et détaille moins de voitures, jamais pour la voiture du joueur (userData.lointaine.joueur)
+    const seuilQ = (qualite && qualite.voitureLoin ? qualite.voitureLoin : R.VOITURE_LOIN) * R.VOITURE_LOIN_CHAMP / camera.fov, s2Q = seuilQ * seuilQ;
+    const maxQ = qualite && qualite.voituresDetaillees ? qualite.voituresDetaillees : R.VOITURES_DETAILLEES_MAX;
     let n = 0;
+    joueurSimplifie = false;
     // (au plus VOITURES_DETAILLEES_MAX voitures détaillées, les plus proches : sur la grille vue de la télé, toutes sont « proches »)
     const vues = [];
     for (const g of flotte.voitures) {
@@ -373,12 +379,14 @@ const SCENE3D = (function () {
     vues.sort((a, b) => a.d2 - b.d2);
     for (let k = 0; k < vues.length; k++) {
       const { g, d2 } = vues[k];
-      if ((d2 < s2 && k < R.VOITURES_DETAILLEES_MAX) || n >= R.VOITURES_LOINTAINES_MAX) continue;
+      const joueur = g.userData.lointaine.joueur;
+      if ((joueur ? d2 < s2 && k < R.VOITURES_DETAILLEES_MAX : d2 < s2Q && k < maxQ) || n >= R.VOITURES_LOINTAINES_MAX) continue;
       g.updateMatrix();
       g.matrix.toArray(m.instanceMatrix.array, n * 16);
       m.setColorAt(n, g.userData.lointaine.couleur);
       g.visible = false;
       cachees.push(g);
+      if (joueur) joueurSimplifie = true;
       n++;
     }
     m.count = n; m.visible = n > 0; m.instanceMatrix.needsUpdate = true; m.instanceColor.needsUpdate = true;
@@ -399,7 +407,8 @@ const SCENE3D = (function () {
     get infoCircuit() { return infoCircuit; },
     get decor() { return decor; },
     get relief() { return relief; },   // (la hauteur de la route à chaque échantillon, ou null : voiture3d.js et camera.js la suivent)
-    get nbLointaines() { return nbLointaines; },   // (tests : les voitures dessinées en forme simple à la dernière image)   // (tests : le décor placé, ses maillages, ses niveaux de détail)
+    get nbLointaines() { return nbLointaines; },
+    get joueurSimplifie() { return joueurSimplifie; },   // (tests : la voiture du joueur dessinée en forme simple à la dernière image)   // (tests : les voitures dessinées en forme simple à la dernière image)   // (tests : le décor placé, ses maillages, ses niveaux de détail)
     get trianglesDessines() { return trianglesDessines; },
     get appelsDessin() { return appelsDessin; },
     reglerQualite, get qualite() { return qualite; }, get pixelRatio() { return rendu ? rendu.getPixelRatio() : 0; },

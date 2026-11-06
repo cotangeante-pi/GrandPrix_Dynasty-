@@ -129,9 +129,14 @@ const EFFETS3D = (function () {
     traces.visible = n > 0;
   }
   const matrice = typeof THREE !== 'undefined' ? new THREE.Matrix4() : null, cFumee = typeof THREE !== 'undefined' ? new THREE.Color() : null;
+  // (l'Auto de qualite.js, tour 49a : seulement la part effets des particules est dessinée, une sur deux ou sur quatre, toujours les mêmes ;
+  // la simulation, elle, ne change pas)
+  const partEffets = () => typeof SCENE3D !== 'undefined' && SCENE3D.qualite && SCENE3D.qualite.effets !== undefined ? SCENE3D.qualite.effets : 1;
   function remplir(im, liste, taille, couleur) {
     let n = 0;
-    for (const p of liste) {
+    const pas = Math.max(1, Math.round(1 / Math.max(0.01, partEffets())));
+    for (let j = 0; j < liste.length; j += pas) {
+      const p = liste[j];
       const k = taille(p);
       matrice.makeScale(k, k, k); matrice.setPosition(p.x, p.y, p.z);
       im.setMatrixAt(n, matrice);

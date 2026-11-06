@@ -2321,15 +2321,19 @@ function demarrerJeu() {
     b.addEventListener('mousedown', e => e.preventDefault());
     b.addEventListener('click', () => { JEU.reglageTrajectoire = SUITE[(SUITE.indexOf(vu()) + 1) % SUITE.length]; SAUVEGARDE.ecrireOption('trajectoire', JEU.reglageTrajectoire); ecrire(); });
   }
-  // la qualité de l'image (qualite.js, tour 40) : auto (par défaut), haute ou basse dans le menu pause, sauvegardé ; ?qualite=…
-  // la force. Sous un automate (navigator.webdriver : les tests), « auto » ne baisse pas seul sans ?qualite=auto, pour que les
-  // mesures d'images restent comparables d'un passage à l'autre
+  // la qualité de l'image (qualite.js ; tour 40, tour 49a l'Auto continu) : auto (par défaut), haute, moyenne ou basse dans le menu
+  // pause et la page « Réglages » du paddock, sauvegardé ; ?qualite=… la force. Le niveau atteint par l'Auto est gardé (option
+  // qualite_niveau) : la course suivante repart de là. Sous un automate (navigator.webdriver : les tests), « auto » ne bouge pas seul
+  // sans ?qualite=auto et repart du plus beau, pour que les mesures d'images restent comparables d'un passage à l'autre
   {
     const bs = ['boutonQualitePause', 'boutonQualitePaddock'].map(id => document.getElementById(id)), demandee = PARAMETRES.get('qualite');   // (le menu pause et la page « Réglages » du paddock, tour 48a)
-    JEU.qualite = QUALITE.creer(QUALITE.REGLES.includes(demandee) ? demandee : SAUVEGARDE.option('qualite', 'auto'));
     JEU.qualiteAuto = !(navigator.webdriver && !QUALITE.REGLES.includes(demandee));
-    const appliquer = () => SCENE3D.reglerQualite(JEU.qualite.cran ? QUALITE.cran(JEU.qualite.cran) : null);
-    const ecrire = () => { for (const b of bs) b.textContent = texte('qualite_' + JEU.qualite.regle); };
+    JEU.qualite = QUALITE.creer(QUALITE.REGLES.includes(demandee) ? demandee : SAUVEGARDE.option('qualite', 'auto'),
+      { niveau: JEU.qualiteAuto ? SAUVEGARDE.option('qualite_niveau', 0) : 0, dpr: window.devicePixelRatio || 1 });
+    JEU.qualiteASauver = false;
+    const appliquer = () => SCENE3D.reglerQualite(QUALITE.reglages(JEU.qualite));
+    const ecrire = () => { for (const b of bs) b.textContent = texte(QUALITE.auPlusSimple(JEU.qualite) ? 'qualite_autoSimple' : 'qualite_' + JEU.qualite.regle); };
+    JEU.appliquerQualite = () => { appliquer(); ecrire(); };
     appliquer(); ecrire();
     for (const b of bs) {
       b.addEventListener('mousedown', e => e.preventDefault());
@@ -2488,8 +2492,15 @@ function demarrerJeu() {
     if (typeof METEO3D !== 'undefined') METEO3D.maj(METEO3D.etat(JEU.plateau || JEU.course), SCENE3D.camera, JEU.plateau ? JEU.plateau.pilotes.map(p => p.v) : [JEU.joueur], dt, CAMERA.mode === 'cockpit' && JEU.ecran === 'course', CIRCUIT, JEU.carte ? JEU.carte.trajectoire : null);
     // (tour 46, l'arrivée lente : pendant « passer », la scène n'est redessinée qu'une image sur ARRIVEE_IMAGE_TOUS : le budget va au calcul)
     if (!(JEU.attente && JEU.attente.passer) || ((JEU.attente.images = (JEU.attente.images || 0) + 1) % REGLAGES.ARRIVEE_IMAGE_TOUS) === 1) SCENE3D.dessiner();
-    // la qualité automatique : sous QUALITE_IPS_MIN images par seconde pendant QUALITE_FENETRE s, un cran plus bas ; jamais pendant les feux
-    if (JEU.qualite && JEU.qualiteAuto) { const n = QUALITE.observer(JEU.qualite, dt, !!(JEU.course && JEU.course.etat === 'compte')); if (n !== null) SCENE3D.reglerQualite(QUALITE.cran(n)); }
+    // l'Auto (qualite.js) : sous QUALITE_IPS_MIN images par seconde, un pas plus simple à la fois jusqu'à QUALITE_IPS_VISEE ; le détail revient
+    // lentement, au temps de calcul de l'image (de son début dans boucle.js jusqu'ici) ; jamais pendant les feux. Le niveau est sauvegardé
+    // une fois tenu QUALITE_PAS_RETOUR s (pas à chaque pas : écrire la sauvegarde coûte une image), jamais pendant les feux
+    if (JEU.qualite && JEU.qualiteAuto) {
+      const feux = !!(JEU.course && JEU.course.etat === 'compte');
+      const n = QUALITE.observer(JEU.qualite, dt, feux, BOUCLE.debutImage !== null ? (performance.now() - BOUCLE.debutImage) / 1000 : undefined);
+      if (n !== null) { JEU.appliquerQualite(); JEU.qualiteASauver = true; }
+      else if (JEU.qualiteASauver && !feux && JEU.qualite.depuis >= REGLAGES.QUALITE_PAS_RETOUR) { JEU.qualiteASauver = false; SAUVEGARDE.ecrireOption('qualite_niveau', JEU.qualite.niveauAuto); }
+    }
   });
   if (PARAMETRES.get('debug') === '1') brancherDebug();
   // Poki (sdk.js, le seul passage vers le SDK) : init, puis « chargement fini » une seule fois ; hors Poki, le rappel vient tout de suite

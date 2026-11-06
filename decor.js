@@ -611,8 +611,11 @@ const DECOR = (function () {
   function majDetail(decor, cameras, distances) {
     if (!decor) return;
     const dDetail = distances ? distances.detail : R.DECOR_DETAIL_LOIN, dRien = distances ? distances.rien : R.DECOR_RIEN_LOIN;
-    const change = decor.distances !== dDetail + '/' + dRien;   // (une autre qualité : tout est refait, même sans bouger)
-    decor.distances = dDetail + '/' + dRien;
+    // la densité (l'Auto, tour 49a) : la part des objets dessinés ; chaque objet a sa place fixe (un tirage par son rang), le même
+    // objet reste ou part toujours, rien ne clignote ; à 1, tout est dessiné comme avant
+    const densite = distances && distances.densite !== undefined ? distances.densite : 1;
+    const change = decor.distances !== dDetail + '/' + dRien + '/' + densite;   // (une autre qualité : tout est refait, même sans bouger)
+    decor.distances = dDetail + '/' + dRien + '/' + densite;
     for (const g of decor.detail) {
       const bouge = change || !g.dernier || g.dernier.length !== cameras.length || cameras.some((p, k) => Math.hypot(p.x - g.dernier[k].x, p.y - g.dernier[k].y, p.z - g.dernier[k].z) > R.DECOR_MAJ_DEPLACEMENT);
       if (!bouge) continue;
@@ -622,6 +625,7 @@ const DECOR = (function () {
       let nl = 0;
       const ma = g.proches.map(m => m.instanceMatrix.array), la = g.loin ? g.loin.instanceMatrix.array : null;
       for (let k = 0; k < g.tous.length; k++) {
+        if (densite < 1 && ((Math.imul(k + 1, 2654435761) >>> 0) / 4294967296) >= densite) continue;
         const o = g.tous[k].o;
         let d2 = Infinity;
         for (const p of cameras) { const dx = o.x - p.x, dy = o.y - p.y, dz = o.z - p.z, q = dx * dx + dy * dy + dz * dz; if (q < d2) d2 = q; }
