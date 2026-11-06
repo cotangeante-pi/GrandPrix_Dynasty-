@@ -1874,14 +1874,14 @@ PLAFONDS_IMAGE = {
     'monoco': (47, 169000),
     'silverstoun': (44, 134000),
     'monzo': (46, 89000),
-    'spaa': (45, 118000),
+    'spaa': (45, 98000),      # (tour 50c : 107 008 → 88 712 triangles au pire, le décor allégé)
     'suzuko': (48, 143000),
     'interlagas': (45, 151000),
     'montreol': (51, 117000),
     'melbourn': (48, 99000),
     'barcelana': (44, 108000),
     'bahrayn': (45, 94000),
-    'singapura': (46, 172000),
+    'singapura': (46, 106000),   # (tour 50c : 147 286 → 96 344)
     'yasmarino': (48, 97000),
 }
 def lieu_ecran(pg, titre, page):

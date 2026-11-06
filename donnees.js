@@ -1102,6 +1102,7 @@ const REGLAGES = {
   DECOR_MARGE_TELE: 10,         // m autour d'un poste de caméra télé (rien ne cache ce qu'il filme)
   DECOR_PODIUM_RAYON: 16,       // m : la place du podium (podium3d.js), en face de la ligne, reste libre
   DECOR_DETAIL_LOIN: 180,       // m : au-delà, le public et les arbres passent à leur forme simple… (tour 35 : 250 → 180, la mesure des images par seconde)
+  DECOR_PUBLIC_DETAIL: 0.6,     // part de la distance de détail pour le public : au-delà (108 m), un spectateur est une plaque (tour 50c : il fait moins de 10 pixels de haut ; 1 = comme les arbres)
   DECOR_RIEN_LOIN: 1600,        // m : … et au-delà, ils ne sont plus dessinés
   DECOR_MAJ_DEPLACEMENT: 20,    // m : le tri proche / loin est refait quand une caméra a bougé de ça (tour 35 : 10 → 20)
   DECOR_APPELS_MAX: 26,
