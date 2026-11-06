@@ -509,7 +509,7 @@ def clavier_titre(pg, titre, l, h):
     t(f'{titre} : le gaz mis sur I depuis le titre (gardé), puis Échap ramène à l’écran titre', a == ['touches', ['KeyI']] and e == ['titre', True], str([a, e]))
 
 def clavier_pause(pg, titre, l, h):
-    if not attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "course" && JEU.plateau && JEU.plateau.carte !== null', None, 180000):
+    if not attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "course" && !!JEU.course', None, 120000)   # (?course=0 : une course seule, sans plateau d'IA):
         t(f'{titre} : la course', False, str(pg.evaluate('() => typeof JEU !== "undefined" && JEU.ecran'))); return
     pg.keyboard.press('Escape')
     attendre(pg, '() => JEU.ecran === "pause"', None, 5000)
