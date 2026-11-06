@@ -8,11 +8,11 @@ const Q=new URLSearchParams(location.search),LOT=Q.get('lot')||'1';const L=[];
 const ecrire=etape=>{document.getElementById('res').textContent=`${etape?'EN COURS ('+etape+') ':''}RESULTAT 1/1\n`+L.join('\n');};
 const circuits={test:CIRCUIT_TEST,technique:construireCircuit(CIRCUITS.technique)};
 const chocsForts=r=>r.voitures.flatMap(x=>x.chocs).filter(c=>c>5).length/2,somme=(r,f)=>r.voitures.reduce((a,x)=>a+f(x),0);
-const LOTS={'1':[['5 tours, forme 0, feux',5,15,{IA_FORME:0,SIMULATION_FEUX:1}],['5 tours, forme 0.02, feux',5,15,{IA_FORME:0.02,SIMULATION_FEUX:1}]],
-  '2':[['5 tours, forme 0.05, feux',5,15,{IA_FORME:0.05,SIMULATION_FEUX:1}],['5 tours, forme 0.05',5,15,{IA_FORME:0.05}]],
-  '3':[['12 tours avec pneus, forme 0, feux (graines 1-15)',12,15,{IA_FORME:0,SIMULATION_FEUX:1}]],
-  '4':[['12 tours avec pneus, forme 0.02, feux (graines 1-15)',12,15,{IA_FORME:0.02,SIMULATION_FEUX:1}]]};
-const avant={IA_FORME:REGLAGES.IA_FORME,SIMULATION_FEUX:REGLAGES.SIMULATION_FEUX,IA_PROFITER_ERREUR:REGLAGES.IA_PROFITER_ERREUR,PNEUS_ACTIFS:REGLAGES.PNEUS_ACTIFS};
+const LOTS={'1':[['5 tours, forme 0.10',5,15,{IA_FORME:0.10}],['5 tours, forme 0.15',5,15,{IA_FORME:0.15}]],
+  '2':[['5 tours, forme 0.10, profiter',5,15,{IA_FORME:0.10,IA_PROFITER_ERREUR:true}],['5 tours, forme 0, IA_LENT_COTE_A_COTE 1',5,15,{IA_FORME:0,IA_LENT_COTE_A_COTE:1}]],
+  '3':[['12 tours avec pneus, forme 0.10 (graines 1-15)',12,15,{IA_FORME:0.10}]],
+  '4':[['12 tours avec pneus, forme 0 (graines 1-15, la référence)',12,15,{IA_FORME:0}]]};
+const avant={IA_LENT_COTE_A_COTE:REGLAGES.IA_LENT_COTE_A_COTE,IA_FORME:REGLAGES.IA_FORME,SIMULATION_FEUX:REGLAGES.SIMULATION_FEUX,IA_PROFITER_ERREUR:REGLAGES.IA_PROFITER_ERREUR,PNEUS_ACTIFS:REGLAGES.PNEUS_ACTIFS};
 window.onerror=(m,f,l)=>{L.push('ERREUR '+m+' @'+f+':'+l);ecrire();};
 for(const [nomE,tours,G,reg] of LOTS[LOT]){Object.assign(REGLAGES,avant,reg);const T={n:0,pasPole:0,dep:0,depPiste:0,chocs:0,herbe:0,barr:0,fini:true,places:{}};
   for(const nom of ['test','technique']) for(let g=1;g<=G;g++){const r=simulerCourse(circuits[nom],10,tours,g),V=r.voitures,pole=r.grille[0].numero;

@@ -852,7 +852,7 @@ const REGLAGES = {
   // la forme du jour (tour 49c, parti du tour 47a) : après la qualification, le rythme de course de chaque IA × (1 − IA_FORME × (son tirage −
   // le plus petit tirage)) ; le pilote le plus en forme garde son rythme (une IA seule ne change pas). Le poleman n'est plus toujours le plus
   // rapide en course, comme en vraie F1. 0 = la course d'avant au bit près
-  IA_FORME: 0.02,
+  IA_FORME: 0.05,
   GRAINE_FORME: 17000,          // … tirée avec la graine de la course + ce nombre (les autres tirages ne bougent pas)
   GRAINE_QUALIF: 2000,          // … et la qualification avec la graine + ce nombre
   GRAINE_TECHNIQUE: 16000,      // … et son goût pour les techniques selon le virage (IA_STYLE_TECHNIQUE) avec la graine + ce nombre
