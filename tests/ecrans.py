@@ -130,7 +130,7 @@ PAGES = [
     ('index.html?course=12&ia=3&joueur=1&robot=1&circuit=test&test=aides-course', 960, 600, None),
     ('index.html?championnat=1&test=aides-menus', 1280, 720, None),
     # le nouveau paddock (tour 48a) : le menu, les pages, les deux « Nouvelle carrière » ; captures paddock-<page>-<langue>-<largeur>.png
-    ('index.html?championnat=1&gp=5&test=stand&lang=fr', 1280, 720, None),   # l'arrière-plan des menus (tour 49a-2) : la voiture au stand ; capture paddock-fond-1280.png
+    ('index.html?championnat=1&gp=5&test=fond&lang=fr', 1280, 720, None),   # l'arrière-plan des menus (tour 49a-2) : la voiture au stand ; capture paddock-fond-1280.png
     ('index.html?championnat=1&gp=5&test=paddock&lang=fr', 1280, 720, None),
     ('index.html?championnat=1&gp=5&test=paddock&lang=en', 1280, 720, None),
     ('index.html?championnat=1&gp=5&test=paddock&lang=fr', 960, 600, None),
@@ -1496,7 +1496,7 @@ STAND_ETAT = '''() => { const p = JEU.stand && JEU.stand.pose, c = SCENE3D.camer
     autres: JEU.modeles.filter(m => m !== JEU.modele && m.groupe.visible).length, poses: JEU.modeles.map(m => [m.groupe.position.x, m.groupe.position.z]),
     joueur: [JEU.joueur.x, JEU.joueur.z, JEU.joueur.u], cam: [c.x, c.y, c.z], rayon: p ? Math.hypot(c.x - p.x, c.z - p.z) : null,
     livree: JEU.modele === JEU.modeles[indiceJoueur()] && !!JEU.modele.cl, appels: SCENE3D.appelsDessin, triangles: SCENE3D.trianglesDessines }; }'''
-def stand_ecran(pg, titre, l, h):
+def fond_ecran(pg, titre, l, h):
     attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat" && JEU.stand && JEU.stand.groupe.visible', None, 60000)
     pg.wait_for_timeout(500)
     a = pg.evaluate(STAND_ETAT)
@@ -3570,8 +3570,8 @@ with sync_playwright() as p:
             elif 'test=livree' in page or 'test=essai' in page: pass   # (la personnalisation : ses fonctions à elle, plus haut)
             elif 'test=aides-course' in page:
                 aides_course(pg, titre, l, h)
-            elif 'test=stand' in page:
-                stand_ecran(pg, titre, l, h)
+            elif 'test=fond' in page:
+                fond_ecran(pg, titre, l, h)
             elif 'test=paddock' in page:
                 paddock_menu(pg, titre, l, h, 'en' if 'lang=en' in page else 'fr')
             elif 'test=aides-menus' in page:
