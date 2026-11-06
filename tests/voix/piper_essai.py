@@ -69,7 +69,7 @@ def main():
                 base = os.path.join(sortie, 'piper-%s-%s-%s' % (langue, 'n' if loc is None else loc, cle))
                 dire(voix[langue], texte, base + '-brut.wav', loc)
                 x, sr = T.lire_wav(base + '-brut.wav')
-                y, sr2 = T.energie(x, sr)
+                y, sr2 = T.energie(x, sr, plus_haut=1.06)
                 T.ecrire_wav(base + '.wav', y, sr2); T.encoder_m4a(base + '.wav', base + '.m4a')
                 print(base, '%.2f s' % (len(y) / sr2), os.path.getsize(base + '.m4a'), 'octets')
 
