@@ -280,8 +280,11 @@ def reglages_panneau(pg, titre):
     langue = pg.evaluate('() => LANGUE')
     sans = [c['texte'] for c in infos if not (isinstance(c['en'], str) and c['en'].strip() and isinstance(c['fr'], str) and c['fr'].strip()) or c['en'] == c['cle'] or c['fr'] == c['cle']]
     t(f'{titre} : chaque curseur ({len(infos)}) a un nom lisible en français et en anglais (textes.js, reglage_…), pas le nom du code', len(infos) >= 30 and not sans, ', '.join(sans))
-    mal = [c['texte'] for c in infos if c['affiche'] != c[langue] or c['code_affiche'] != c['code'] or c['theme_affiche'] != c['theme'] or not c['titre_theme']]
-    t(f'{titre} : chaque curseur montre son nom en {langue}, le nom du code en petit, et il est dans son thème (titre fr et en)', not mal, ', '.join(mal))
+    # (tour 48b) le curseur du pneu drift est caché avec lui (PNEU_DRIFT faux) : absent du panneau, ses textes gardés pour le drift rallumé
+    drift = pg.evaluate('() => REGLAGES.PNEU_DRIFT')
+    cache = lambda c: c['cle'] == 'VOITURE_VIVANTE' and not drift
+    mal = [c['texte'] for c in infos if (c['affiche'] is not None if cache(c) else (c['affiche'] != c[langue] or c['code_affiche'] != c['code'] or c['theme_affiche'] != c['theme'] or not c['titre_theme']))]
+    t(f'{titre} : chaque curseur montre son nom en {langue}, le nom du code en petit, et il est dans son thème (titre fr et en) ; celui du pneu drift caché avec lui', not mal, ', '.join(mal))
     themes = pg.evaluate('() => [...document.querySelectorAll("#reglages section")].map(s => [s.dataset.theme, s.querySelector("h3").textContent, s.querySelectorAll("input").length])')
     t(f'{titre} : les curseurs sont rangés par thème, aucun thème vide', len(themes) >= 5 and all(n > 0 and h for _, h, n in themes), str(themes))
     taille = pg.viewport_size
