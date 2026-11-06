@@ -29,7 +29,36 @@ Mesures : vitesse max D4 311, D3 329, D2 336, D1 344 km/h ; meilleur tour des IA
 Pas fait / ce que je n'ai pas pu vérifier :
 - Des écuries et des pilotes propres à chaque division (les meilleurs qui montent aussi) : pas fait ce soir ; aujourd'hui le joueur
   monte avec le même plateau, qui change de niveau et de voitures.
-- Les gains, sponsors et prix du garage qui grandissent avec la division : pas fait (des tests vérifient des montants exacts).
 - La sensation en D1 (voitures surpuissantes) et en D4 : à essayer par le propriétaire (?division=1, ?division=4).
 - Une nouvelle carrière en D4 allume les aides du débutant par défaut (comme le niveau débutant d'avant).
+Réévalue.
+
+---
+
+TOUR 49d-2 — compte rendu du Codeur 4 (l'argent selon la division)
+Commit : d0ed4f3 (branche divisions, repartie de main 804faf7 par une fusion), GitHub 42153432081 : completed success (18 travaux)
+Ordres : gains, sponsors, prix du garage selon la division fait / écuries et pilotes propres à chaque division pas fait (pourquoi plus bas)
+
+Ce qui est fait :
+- DIVISIONS[d].argent et .garage (donnees.js) : D4 0,6 ; D3 1 (le jeu d'avant, au bit près) ; D2 1,5 ; D1 2,2. DIVISIONS.facteur(ch, cle) et
+  DIVISIONS.echelle(x, ch, cle) (× le facteur, arrondi à 100 € ; x tel quel quand le facteur vaut 1).
+- argent.js (gains) : la place, le meilleur tour, les places gagnées, le duel et le plafond de la course × argent (le bonus sans aide suit).
+- sponsors.js (offres) : le montant de la saison et les primes des objectifs (domicile compris) × argent.
+- garage.js (prix) : chaque niveau × garage.
+- Mesures : une 3e place rapporte D4 25 200 €, D3 42 000 €, D2 63 000 €, D1 92 400 € ; le moteur niveau 1 coûte 15 000 / 25 000 / 37 500 / 55 000 €.
+
+Sortie des tests :
+- test.html : un test de plus (les trois montants croissent de D4 à D1 ; D3 = une sauvegarde d'avant ; arrondis à 100 € ; coupées : le jeu
+  d'avant). Les championnats de test.html sont mis en division 3 (le jeu d'avant : les montants exacts des tests de l'argent, du garage et
+  des sponsors restent vrais) ; les tests des divisions remettent DIVISION_DEPART (4) le temps de leur essai. Mac, sous le verrou :
+  358/359 au premier passage (mon test comparait au réglage remis à 3, corrigé) ; la page dépasse les 300 s de lancer.py sur le Mac
+  chargé (294 à 301 s), elle a été relancée avec 600 s ; GitHub : vert.
+- ecrans.py : les deux tests du garage (le solde baisse du prix, le solde = gains − achats) lisent GARAGE.prix et DIVISIONS.echelle au
+  lieu des prix de base (une carrière neuve est en division 4).
+
+Pas fait :
+- Des écuries et pilotes propres à chaque division (les meilleurs qui montent avec le joueur) : il faudrait 4 plateaux dans la sauvegarde
+  et toucher le championnat, les saisons, les fiches, le journal et les contrats ; trop risqué avant 23h30. Aujourd'hui, le joueur monte
+  avec les mêmes 19 rivaux, qui prennent le niveau et les voitures de la nouvelle division.
+- Les salaires des patrons (patrons.js) ne changent pas avec la division.
 Réévalue.
