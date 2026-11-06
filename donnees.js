@@ -801,6 +801,21 @@ const REGLAGES = {
   // pilotes : rythme ajouté au rythme tiré (jamais au-dessus de 1 : au-delà, il dépasserait l'adhérence de la carte,
   // donc les niveaux durs ne gagnent pas en rythme, ils font moins d'erreurs et attaquent plus), erreurs : le taux
   // multiplié, agressivite ajoutée (bornée entre 0 et 1), regularite multipliée
+  // les divisions (CLAUDE.md « Les divisions (4, 3, 2, 1) », tour 49d ; choix du Chef, réversibles) : en carrière, la division donne le
+  // niveau des IA (NIVEAUX) et la force de TOUTES les voitures, joueur compris (× PUISSANCE et FORCE_MOTEUR_MAX, × ADHERENCE : la
+  // carte des IA est calculée avec, donc elles en profitent autant que le joueur). La division 3 = le jeu d'avant (une vieille
+  // sauvegarde y est rangée sans rien perdre). DIVISIONS_ACTIVES false : la carrière comme avant (niveau normal, voitures de base)
+  DIVISIONS_ACTIVES: true,
+  DIVISIONS: {
+    4: { niveau: 'debutant', puissance: 0.85, adherence: 0.98 },   // bots débutants, voitures lentes
+    3: { niveau: 'normal', puissance: 1, adherence: 1 },           // bots moyens, voitures moyennes (le jeu d'avant)
+    2: { niveau: 'expert', puissance: 1.07, adherence: 1.01 },     // bots forts, voitures fortes
+    1: { niveau: 'legende', puissance: 1.14, adherence: 1.03 },    // bots légendaires, voitures surpuissantes
+  },
+  DIVISION_DEPART: 4,           // une carrière neuve commence ici
+  DIVISION_VIEILLE: 3,          // une sauvegarde d'avant les divisions (le niveau normal, les voitures de base) est rangée ici
+  DIVISION_MONTEE_PLACE: 3,     // on monte d'une division en finissant dans les DIVISION_MONTEE_PLACE premiers du championnat pilotes
+  DIVISION_DESCENTE: false,     // on ne descend jamais (le jeu reste agréable pour un enfant)
   NIVEAU: 'normal',             // le niveau en cours (?niveau=…, principal.js) ; normal = les réglages tels quels
   NIVEAUX: {
     debutant: { rythme: -0.05, erreurs: 2, agressivite: -0.3, regularite: 1.5, gestionPneus: -0.2, bataille: 0, technique: 0.1 },
