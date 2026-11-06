@@ -107,7 +107,9 @@ const METEO3D = (function () {
       if (m.ligne.visible) { m.ligne.material.color.set(R.COULEUR_ROUTE).lerp(new THREE.Color(R.COULEUR_ROUTE_MOUILLEE), e.eauTrajectoire); m.ligne.material.specular.setScalar(R.ROUTE_MOUILLEE_REFLET * e.eauTrajectoire); }
     }
     // la pluie qui tombe autour de la caméra
-    const n = Math.round(R.PLUIE_GOUTTES * e.pluie);
+    // (l'Auto de qualite.js, tour 49a : la part effets des gouttes et des gerbes)
+    const part = typeof SCENE3D !== 'undefined' && SCENE3D.qualite && SCENE3D.qualite.effets !== undefined ? SCENE3D.qualite.effets : 1;
+    const n = Math.round(R.PLUIE_GOUTTES * e.pluie * part);
     m.pluie.visible = n > 0;
     if (n > 0) {
       const [B, H] = R.PLUIE_BOITE, g = m.gouttes, p = m.pluie.geometry.attributes.position.array, cx = camera.position.x, cy = camera.position.y, cz = camera.position.z;
@@ -125,7 +127,7 @@ const METEO3D = (function () {
     let k = 0;
     const gb = m.gerbes, mat = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), po = new THREE.Vector3(), haut = new THREE.Vector3(0, 1, 0);
     if (e.eau > 0) for (const v of voitures || []) {
-      if (!v || k >= gb.instanceMatrix.count) break;
+      if (!v || k >= gb.instanceMatrix.count * part) break;
       const u = Math.abs(v.u || 0);
       if (u < R.GERBE_VITESSE_MIN || Math.hypot(v.x - camera.position.x, v.z - camera.position.z) < R.GERBE_CAMERA_MIN) continue;   // (pas la gerbe qui passerait devant l'objectif)
       const t = Math.min(1, u / R.GERBE_VITESSE_PLEINE) * e.eau, fx = Math.cos(v.cap), fz = Math.sin(v.cap);

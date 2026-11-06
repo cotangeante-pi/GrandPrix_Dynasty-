@@ -12,6 +12,7 @@ const BOUCLE = (function () {
   let cache = document.hidden;   // l'onglet est caché
   let idImage = null;
   let derniereImage = null;
+  let debutImage = null;  // performance.now() au début de l'image en cours (l'Auto de qualite.js mesure le temps de calcul d'une image)
 
   // (tour 37d, Codeur 4) le plafond de pas par image peut dépendre du moment : le jeu donne une fonction (relue à chaque pas) qui
   // dit combien de pas une image peut rattraper. Pendant les feux, les voitures sont tenues sur place : rien n'empêche de rattraper le
@@ -52,6 +53,7 @@ const BOUCLE = (function () {
   function image(temps) {
     idImage = null;
     if (!enMarche || cache) return;
+    debutImage = typeof performance !== 'undefined' ? performance.now() : null;
     const dt = derniereImage === null ? 0 : (temps - derniereImage) / 1000;
     derniereImage = temps;
     avancer(dt);
@@ -86,6 +88,7 @@ const BOUCLE = (function () {
   return {
     surPhysique, surAffichage, avancer, simuler, demarrer, arreter, changerVisibilite, reglerPlafond,
     get nbPas() { return nbPas; },
+    get debutImage() { return debutImage; },
     get tourne() { return idImage !== null; },
   };
 })();

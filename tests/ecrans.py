@@ -109,8 +109,9 @@ PAGES = [
     ('index.html?course=3&ia=9&joueur=1&robot=1&circuit=test&test=sensations&pneus=drift&drift=1', 1280, 720, None),   # (tour 44 : la voiture vivante vient du pneu drift)
     ('index.html?course=3&ia=5&joueur=1&robot=1&circuit=test&niveau=debutant&test=conseil', 1280, 720, None),   # la trajectoire conseillée (tour 39) : en débutant, d'office ; capture conseil.png
     ('index.html?course=3&ia=5&joueur=1&robot=1&circuit=test&niveau=normal&test=conseil', 960, 600, None),     # … en normal, aucune
-    ('index.html?course=3&ia=9&joueur=1&robot=1&circuit=test&qualite=auto&test=qualite', 1280, 720, None),   # la qualité automatique (tour 40) : jusqu'à « basse » sous swiftshader, jamais pendant les feux ; capture qualite-basse.png
+    ('index.html?course=3&ia=9&joueur=1&robot=1&circuit=test&qualite=auto&test=qualite', 1280, 720, None),   # la qualité automatique (tour 40, tour 49a l'Auto continu) : jusqu'au plus simple sous swiftshader, jamais pendant les feux ; captures qualite-plus-beau.png, qualite-plus-simple.png
     ('index.html?course=3&ia=5&circuit=test&test=qualite', 960, 600, None),   # … sans ?qualite, sous un automate, rien ne bouge
+    ('index.html?course=3&ia=5&joueur=1&robot=1&circuit=test&niveau=normal&test=retro', 960, 600, None),   # le rétroviseur (tour 49a) : sous le chrono, jamais sur la piste devant, une voiture 20 m derrière s'y voit ; capture retroviseur.png
     ('index.html?course=3&circuit=test&test=manette', 1280, 720, None),   # la manette (tour 38) : une fausse manette conduit un tour, la pause, le menu au stick et à la croix
     ('index.html?deux=1&ia=0&circuit=test&test=manette-deux', 1280, 720, None),   # … deux manettes, une par joueur   # les sensations de conduite (tour 37) : son au premier geste, fumée, étincelles, réglage ; capture sensations.png
     ('index.html?course=3&ia=19&joueur=1&circuit=monzo&domicile=1&test=supporters', 1280, 720, None),   # le Grand Prix à domicile : la caméra de la grille longe d'abord la tribune des supporters ; capture supporters.png   # la réalisation télé (regie.js) : de vraies caméras, l'hélicoptère ; captures tele-monoco.png, tele-helico.png   # … et Monzo de jour : la luminosité de l'image, pour la comparer à la nuit   # le décor dans le vrai jeu : la course de nuit à Singapura, 20 voitures, vue télé ; capture jeu-singapura.png
@@ -1487,35 +1488,99 @@ def conseil_ecran(pg, titre, page):
         t(f'{titre} : le menu pause la règle (oui → freinages seulement → non, sauvegardé) ; à « non », plus de ligne', r == ['freinages', 'non'] and not pg.evaluate('() => CONSEIL.ligne.visible'), str(r))
     else:
         t(f'{titre} : en normal, aucune trajectoire conseillée (sans réglage choisi)', roule and not pg.evaluate('() => CONSEIL.ligne.visible') and pg.evaluate('() => REGLAGES.NIVEAU') == 'normal', pg.evaluate('() => [CONSEIL.ligne.visible, REGLAGES.NIVEAU]'))
-# la qualité automatique (qualite.js, tour 40) dans le vrai jeu, ?qualite=auto (sous un automate, « auto » ne bouge pas seul sans ce
-# paramètre) : swiftshader est sous 55 images par seconde, donc la qualité baisse d'un cran toutes les 3 s jusqu'à « basse », jamais
-# pendant les feux ; le menu pause la règle (auto → haute → basse, sauvegardé) ; sans ?qualite, rien ne bouge
+# le rétroviseur (tour 49a, scene3d.js dessinerRetro) dans le vrai jeu : en course, vue derrière, en haut au milieu sous le chrono ; aucun
+# point de la piste devant la voiture sous lui (la méthode des aides : les points du couloir projetés à l'écran) ; une voiture posée
+# 20 m derrière se voit dans son image (les pixels changent quand on l'enlève) ; son coût en appels de dessin ; masqué, rien de plus
+RETRO_IMAGE = '''(derriere) => { const c = SCENE3D.canvas, W = c.clientWidth, z = SCENE3D.retroZone, sx = c.width / W, k = document.createElement('canvas'); k.width = c.width; k.height = c.height;
+  const ctx = k.getContext('2d'), j = JEU.modele.groupe, f = new THREE.Vector3(1, 0, 0).applyQuaternion(j.quaternion), autres = JEU.modeles.filter(m => m !== JEU.modele);
+  const vus = autres.map(m => m.groupe.visible); autres.forEach(m => m.groupe.visible = false);
+  const m = autres[0].groupe, avant = m.position.clone(), q = m.quaternion.clone();
+  if (derriere) { m.visible = true; m.position.set(j.position.x - f.x * 20, j.position.y, j.position.z - f.z * 20); m.quaternion.copy(j.quaternion); }
+  SCENE3D.dessiner(); ctx.drawImage(c, 0, 0);
+  const d = z ? Array.from(ctx.getImageData(Math.round(z.x * sx), Math.round(z.y * sx), Math.round(z.l * sx), Math.round(z.h * sx)).data) : [];
+  m.position.copy(avant); m.quaternion.copy(q); autres.forEach((a, i) => a.groupe.visible = vus[i]);
+  return { d, appels: SCENE3D.appelsDessin, retro: SCENE3D.appelsRetro }; }'''
+RETRO_COULOIR = '''() => { const c = SCENE3D.canvas, W = c.clientWidth, H = c.clientHeight, z = SCENE3D.retroZone;
+  const C = CIRCUIT, v = JEU.joueur, i0 = v.piste.indice, cam = SCENE3D.camera; let n = 0, dessous = 0;
+  for (let m = 6; m <= REGLAGES.AIDES_DROITE_DEVANT; m += 3) for (const cote of [-2, 0, 2]) {
+    const i = (i0 + Math.round(m / C.pas)) % C.nb, p = new THREE.Vector3(C.x[i] + C.nx[i] * cote, 0.02, C.z[i] + C.nz[i] * cote).project(cam);
+    if (p.z < -1 || p.z > 1) continue; const x = (p.x + 1) / 2 * W, y = (1 - p.y) / 2 * H; if (x < 0 || x >= W || y < 0 || y >= H) continue;
+    n++; if (z && x >= z.x && x <= z.x + z.l && y >= z.y && y <= z.y + z.h) dessous++; }
+  return { n, dessous, zone: z }; }'''
+def retro_ecran(pg, titre, l, h):
+    attendre(pg, '() => JEU.ecran === "qualif" && JEU.qualif && JEU.qualif.etat === "choix"', None, 60000)
+    pg.evaluate('() => document.getElementById("boutonQualifPasser").click()')
+    attendre(pg, '() => JEU.qualif && JEU.qualif.etat === "resultat"', None, 180000)
+    pg.evaluate('() => document.getElementById("boutonQualifCourse").click()')
+    attendre(pg, '() => JEU.ecran === "course" || JEU.ecran === "grille"', None, 10000)
+    attendre(pg, '() => JEU.plateau.carte !== null', None, 180000)
+    if pg.evaluate('() => JEU.ecran === "grille"'): pg.evaluate('() => finirGrille()')
+    pg.evaluate('() => { BOUCLE.arreter(); BOUCLE.simuler(12); BOUCLE.demarrer(); }')
+    roule = attendre(pg, '() => JEU.ecran === "course" && JEU.course && JEU.course.etat === "course" && JEU.joueur.u > 15 && SCENE3D.retroZone !== null', None, 60000)
+    pg.wait_for_timeout(1000)
+    pg.evaluate('() => BOUCLE.arreter()')
+    hud = pg.evaluate('() => { const r = document.getElementById("hudCourse").getBoundingClientRect(), c = document.getElementById("retroviseur"), b = c.getBoundingClientRect(); return { bas: r.bottom, cadre: !c.classList.contains("cache"), x: b.left, y: b.top, l: b.width, h: b.height, mode: CAMERA.mode }; }')
+    co = pg.evaluate(RETRO_COULOIR)
+    z = co['zone']
+    t(f'{titre} : en course, vue derrière : le rétroviseur en haut au milieu, juste sous le chrono et au-dessus des messages de course, dans son cadre ; aucun point de la piste devant la voiture dessous',
+      roule and z and hud['cadre'] and hud['mode'] == 'derriere' and abs(z['x'] + z['l'] / 2 - l / 2) <= 1 and z['y'] >= hud['bas'] and z['y'] + z['h'] < h * 0.4 and z['y'] + z['h'] <= pg.evaluate('() => document.getElementById("messageCourse").offsetTop || 176')
+      and abs(hud['x'] - z['x']) <= 1 and abs(hud['l'] - z['l']) <= 1 and co['n'] >= 20 and co['dessous'] == 0, str([hud, co]))
+    avec = pg.evaluate(RETRO_IMAGE, True)
+    sans = pg.evaluate(RETRO_IMAGE, False)
+    diff = sum(1 for k in range(0, min(len(avec['d']), len(sans['d'])), 4) if abs(avec['d'][k] - sans['d'][k]) + abs(avec['d'][k + 1] - sans['d'][k + 1]) + abs(avec['d'][k + 2] - sans['d'][k + 2]) > 60)
+    part = diff / max(1, len(avec['d']) // 4)
+    pg.screenshot(path=os.path.join(CAPTURES, 'retroviseur.png'))
+    t(f'{titre} : une voiture posée 20 m derrière se voit dans le rétroviseur (au moins 1 % de ses pixels changent quand on l’enlève)', len(avec['d']) > 0 and part >= 0.01, f'{diff} pixels, {part:.3f}')
+    r = pg.evaluate('''() => { const b = document.getElementById("boutonRetroPause"); SCENE3D.dessiner(); const vu = [b.textContent, SCENE3D.appelsDessin]; b.click(); majRetro(0); SCENE3D.dessiner();
+      vu.push(b.textContent, SCENE3D.appelsDessin, SCENE3D.appelsRetro, SCENE3D.retroZone, document.getElementById("retroviseur").classList.contains("cache"), SAUVEGARDE.option("retroviseur", "?"));
+      b.click(); majRetro(0); SCENE3D.dessiner(); vu.push(b.textContent, SCENE3D.retroZone !== null, SAUVEGARDE.option("retroviseur", "?")); return vu; }''')
+    pg.evaluate('() => BOUCLE.demarrer()')
+    L.append(f"  (le rétroviseur : {sans['appels']} → {sans['appels'] + sans['retro']} appels de dessin, {sans['retro']} pour lui ; {diff} pixels changent avec une voiture 20 m derrière)")
+    t(f'{titre} : le rétroviseur coûte peu (au plus 30 appels de dessin) ; « Rétroviseur : non » (menu pause, sauvegardé) le masque : plus rien de dessiné en plus ; « oui » le remet',
+      0 < sans['retro'] <= 30 and r[0] == pg.evaluate('() => texte("retro_oui")') and r[2] == pg.evaluate('() => texte("retro_non")') and r[3] == r[1]
+      and r[4] == 0 and r[5] is None and r[6] and r[7] is False and r[8] == r[0] and r[9] and r[10] is True, str([r, sans['appels'], sans['retro']]))
+# la qualité automatique (qualite.js ; tour 40, tour 49a l'Auto continu) dans le vrai jeu, ?qualite=auto (sous un automate, « auto » ne
+# bouge pas seul sans ce paramètre) : swiftshader est sous 55 images par seconde, donc l'Auto se simplifie un pas à la fois jusqu'au plus
+# simple, jamais pendant les feux, sans jamais simplifier la voiture du joueur ; le niveau est sauvegardé ; le menu pause la règle
+# (auto → haute → moyenne → basse → auto, sauvegardé) ; captures et coûts du plus beau et du plus simple ; sans ?qualite, rien ne bouge
 def qualite_ecran(pg, titre, page):
     if 'qualite=auto' not in page:
         pg.wait_for_timeout(4000)
-        t(f'{titre} : sous un automate, sans ?qualite, la qualité ne bouge pas seule (les mesures restent comparables)', pg.evaluate('() => JEU.qualite.cran === 0 && SCENE3D.qualite === null'), pg.evaluate('() => [JEU.qualite.cran, JEU.qualiteAuto]'))
+        t(f'{titre} : sous un automate, sans ?qualite, la qualité ne bouge pas seule (les mesures restent comparables)', pg.evaluate('() => JEU.qualite.niveau === 0 && SCENE3D.qualite === null'), pg.evaluate('() => [JEU.qualite.niveau, JEU.qualiteAuto]'))
         return
-    pg.evaluate('() => { window.__qFeux = 0; BOUCLE.surAffichage(() => { if (JEU.course && JEU.course.etat === "compte" && window.__qAvant !== undefined) window.__qFeux = Math.max(window.__qFeux, JEU.qualite.cran - window.__qAvant); }); }')
+    # (sous swiftshader, une image peut dépasser QUALITE_DT_MAX, faite pour les chargements : ici, toutes les images comptent)
+    pg.evaluate('() => { REGLAGES.QUALITE_DT_MAX = 10; window.__qFeux = 0; window.__qJoueur = 0; BOUCLE.surAffichage(() => { if (SCENE3D.joueurSimplifie && JEU.qualite.niveau > 0) window.__qJoueur++; if (JEU.course && JEU.course.etat === "compte" && window.__qAvant !== undefined) window.__qFeux = Math.max(window.__qFeux, Math.abs(JEU.qualite.niveau - window.__qAvant)); }); }')
     attendre(pg, '() => JEU.ecran === "qualif" && JEU.qualif && JEU.qualif.etat === "choix"', None, 60000)
     pg.evaluate('() => document.getElementById("boutonQualifPasser").click()')
     attendre(pg, '() => JEU.qualif && JEU.qualif.etat === "resultat"', None, 180000)
     pg.evaluate('() => document.getElementById("boutonQualifCourse").click()')
     attendre(pg, '() => JEU.plateau.carte !== null', None, 180000)
     if pg.evaluate('() => JEU.ecran === "grille"'): pg.evaluate('() => finirGrille()')
-    # (les menus d'avant, sous swiftshader, ont déjà fait baisser la qualité : on repart d'« auto » au cran haut, juste avant les feux)
-    # les feux : on les retient 8 s (bien plus que la fenêtre de 3 s) ; la qualité ne doit pas bouger pendant ce temps
-    pg.evaluate('() => { QUALITE.regler(JEU.qualite, "auto"); SCENE3D.reglerQualite(null); window.__qAvant = JEU.qualite.cran; window.__qFeux = 0; for (const p of JEU.plateau.pilotes) if (p.course.feux) { p.course.feux.delai = 8; p.course.feux.total = 13; p.course.compte = 8; } }')
+    # (les menus d'avant, sous swiftshader, ont déjà simplifié : on repart d'« auto » au plus beau, juste avant les feux)
+    # les feux : on les retient 8 s ; la qualité ne doit pas bouger pendant ce temps
+    pg.evaluate('() => { JEU.qualite.niveauAuto = 0; QUALITE.regler(JEU.qualite, "auto"); JEU.appliquerQualite(); window.__qAvant = JEU.qualite.niveau; window.__qFeux = 0; for (const p of JEU.plateau.pilotes) if (p.course.feux) { p.course.feux.delai = 8; p.course.feux.total = 13; p.course.compte = 8; } }')
     attendre(pg, '() => JEU.course && JEU.course.etat !== "compte"', None, 60000)
     feux = pg.evaluate('() => window.__qFeux')
-    basse = attendre(pg, '() => JEU.qualite.cran === 2', None, 30000)
-    q = pg.evaluate('() => ({ cran: JEU.qualite.cran, qualite: SCENE3D.qualite, ratio: SCENE3D.pixelRatio, feux: window.__qFeux })')
-    t(f'{titre} : qualité « auto » sous 55 images par seconde : un cran plus bas toutes les 3 s jusqu’à « basse » (moins de pixels, le décor moins loin), jamais pendant les feux',
-      feux == 0 and basse and q['qualite'] and q['qualite']['detail'] < pg.evaluate('() => REGLAGES.DECOR_DETAIL_LOIN') and q['ratio'] <= 0.75 + 1e-9, str([feux, q]))
-    pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'qualite-basse.png'))
-    r = pg.evaluate('''() => { const b = document.getElementById("boutonQualitePause"), vu = [b.textContent, JEU.qualite.regle]; b.click(); vu.push(JEU.qualite.regle, JEU.qualite.cran, SCENE3D.qualite, SAUVEGARDE.option("qualite", "?"));
-      b.click(); vu.push(JEU.qualite.regle, JEU.qualite.cran, SCENE3D.qualite && SCENE3D.qualite.pixelRatio); b.click(); vu.push(JEU.qualite.regle, b.textContent); return vu; }''')
-    t(f'{titre} : le menu pause règle la qualité (auto → haute → basse → auto, sauvegardé) ; « haute » remet l’image d’avant',
-      r[1] == 'auto' and r[2] == 'haute' and r[3] == 0 and r[4] is None and r[5] == 'haute' and r[6] == 'basse' and r[7] == 2 and r[8] == 0.75 and r[9] == 'auto' and r[0] == r[10], str(r))
+    simple = attendre(pg, '() => QUALITE.auPlusSimple(JEU.qualite)', None, 90000)
+    pg.wait_for_timeout(int(pg.evaluate('() => REGLAGES.QUALITE_PAS_RETOUR') * 1000) + 1500)
+    q = pg.evaluate("""() => ({ niveau: JEU.qualite.niveau, max: JEU.qualite.niveaux.length - 1, qualite: SCENE3D.qualite, ratio: SCENE3D.pixelRatio, feux: window.__qFeux, joueur: window.__qJoueur,
+      sauve: SAUVEGARDE.option("qualite_niveau", -1), texte: document.getElementById("boutonQualitePause").textContent, attendu: texte("qualite_autoSimple"), appels: SCENE3D.appelsDessin, triangles: SCENE3D.trianglesDessines })""")
+    t(f'{titre} : qualité « auto » sous 55 images par seconde : un pas à la fois jusqu’au plus simple (moins de pixels, le décor moins loin), jamais pendant les feux ; la voiture du joueur jamais simplifiée ; le niveau sauvegardé ; le menu dit « au plus simple »',
+      feux == 0 and simple and q['qualite'] and q['qualite']['detail'] < pg.evaluate('() => REGLAGES.DECOR_DETAIL_LOIN') and q['ratio'] <= 0.6 + 1e-9 and q['joueur'] == 0
+      and q['sauve'] == q['max'] and q['texte'] == q['attendu'], str([feux, q]))
+    pg.screenshot(path=os.path.join(CAPTURES, 'qualite-plus-simple.png'))
+    r = pg.evaluate("""() => { const b = document.getElementById("boutonQualitePause"), vu = [b.textContent, JEU.qualite.regle]; b.click(); vu.push(JEU.qualite.regle, JEU.qualite.niveau, SCENE3D.qualite, SAUVEGARDE.option("qualite", "?"));
+      b.click(); vu.push(JEU.qualite.regle, SCENE3D.qualite && SCENE3D.qualite.pixelRatio); b.click(); vu.push(JEU.qualite.regle, SCENE3D.qualite && SCENE3D.qualite.pixelRatio); return vu; }""")
+    pg.evaluate('() => { const b = document.getElementById("boutonQualitePause"); b.click(); b.click(); }')   # (basse → auto → haute : le plus beau, mesuré et capturé)
+    pg.wait_for_timeout(1500)
+    beau = pg.evaluate('() => ({ appels: SCENE3D.appelsDessin, triangles: SCENE3D.trianglesDessines, regle: JEU.qualite.regle })')
+    pg.screenshot(path=os.path.join(CAPTURES, 'qualite-plus-beau.png'))
+    pg.evaluate('() => { const b = document.getElementById("boutonQualitePause"); b.click(); b.click(); b.click(); }')   # (haute → moyenne → basse → auto)
+    r2 = pg.evaluate('() => [JEU.qualite.regle, document.getElementById("boutonQualitePause").textContent, JEU.qualite.niveau, JEU.qualite.niveaux.length - 1]')
+    print(f'  (qualité, appels de dessin / triangles : le plus beau {beau["appels"]} / {beau["triangles"]}, le plus simple {q["appels"]} / {q["triangles"]} ; captures qualite-plus-beau.png, qualite-plus-simple.png)')
+    t(f'{titre} : le menu pause règle la qualité (auto → haute → moyenne → basse → auto, sauvegardé) ; « haute » remet l’image d’avant ; l’Auto reprend son niveau',
+      r[1] == 'auto' and r[2] == 'haute' and r[3] == 0 and r[4] is None and r[5] == 'haute' and r[6] == 'moyenne' and r[7] == 1 and r[8] == 'basse' and r[9] == 0.75
+      and beau['regle'] == 'haute' and r2[0] == 'auto' and r2[1] == r[0] and r2[2] == r2[3], str([r, r2, beau]))
 # les aides au pilotage (assistance.js, tour 41) dans le vrai jeu, une course seule : en débutant, les trois aides sont allumées
 # d'office (menu pause), et pour un joueur qui ne freine jamais, le freinage assisté freine avant les virages (le frein de la
 # voiture monte sans que le joueur freine) et la voiture reste sur la piste ; en normal, elles sont coupées et ce joueur sort
@@ -3449,6 +3514,8 @@ with sync_playwright() as p:
                 conseil_ecran(pg, titre, page)
             if 'test=qualite' in page:
                 qualite_ecran(pg, titre, page)
+            if 'test=retro' in page:
+                retro_ecran(pg, titre, l, h)
             if 'test=assistance' in page:
                 assistance_ecran(pg, titre, page)
             if 'test=son' in page:
@@ -3520,7 +3587,7 @@ with sync_playwright() as p:
                 qualif(pg, titre)
             elif 'test=fantome' in page:
                 fantome(pg, titre)
-            elif 'joueur=1' in page and 'test=supporters' not in page and 'test=sensations' not in page and 'test=conseil' not in page and 'test=qualite' not in page:   # (la page des supporters a son propre parcours)
+            elif 'joueur=1' in page and 'test=supporters' not in page and 'test=sensations' not in page and 'test=conseil' not in page and 'test=qualite' not in page and 'test=retro' not in page:   # (la page des supporters a son propre parcours)
                 hud(pg, titre, l)
                 if l == 1280: course_joueur(pg, titre)
             if 'camera=auto' in page:
