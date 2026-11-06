@@ -317,15 +317,15 @@ const SCENE3D = (function () {
   // et les voitures seulement), puis posée en miroir (gauche et droite inversées) dans la zone { x, y, l, h } (pixels CSS, en haut au
   // milieu, principal.js) ; null = pas de rétroviseur (rien n'est dessiné en plus). groupe : la voiture du joueur (cachée pour la
   // caméra du rétroviseur, qui est dedans)
-  let retro = null, retroZone = null, retroGroupe = null, appelsRetro = 0;
+  let retro = null, retroZone = null, retroGroupe = null, appelsRetro = 0, trianglesRetro = 0;   // (appelsDessin et trianglesDessines restent ceux de la vue de course ; le rétroviseur compte à part)
   function reglerRetro(zone, groupe) { retroZone = zone || null; retroGroupe = groupe || null; }
   const avantRetro = typeof THREE !== 'undefined' ? new THREE.Vector3() : null;
   function dessinerRetro() {
     const z = retroZone, g = retroGroupe;
-    if (!z || !g || partage) { appelsRetro = 0; return; }
+    if (!z || !g || partage) { appelsRetro = 0; trianglesRetro = 0; return; }
     const lc = Math.max(8, Math.round(z.l * R.RETRO_RESOLUTION)), hc = Math.max(4, Math.round(z.h * R.RETRO_RESOLUTION));
     if (!retro) {
-      const cam = new THREE.PerspectiveCamera(R.RETRO_CHAMP, z.l / z.h, R.RETRO_PRES, R.RETRO_LOIN);
+      const cam = new THREE.PerspectiveCamera(50, z.l / z.h, R.RETRO_PRES, R.RETRO_LOIN);
       const cible = new THREE.WebGLRenderTarget(lc, hc);
       const vue = new THREE.Scene(), ortho = new THREE.OrthographicCamera(-0.5, 0.5, 0.5, -0.5, 0, 1);
       const plan = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: cible.texture, depthTest: false, depthWrite: false }));
@@ -334,13 +334,17 @@ const SCENE3D = (function () {
       retro = { cam, cible, vue, ortho };
     }
     if (retro.cible.width !== lc || retro.cible.height !== hc) retro.cible.setSize(lc, hc);
-    if (Math.abs(retro.cam.aspect - z.l / z.h) > 1e-6) { retro.cam.aspect = z.l / z.h; retro.cam.updateProjectionMatrix(); }
+    if (Math.abs(retro.cam.aspect - z.l / z.h) > 1e-6 || retro.champ !== R.RETRO_CHAMP) {   // (RETRO_CHAMP de gauche à droite : le champ vertical s'en déduit)
+      retro.champ = R.RETRO_CHAMP; retro.cam.aspect = z.l / z.h;
+      retro.cam.fov = 2 * Math.atan(Math.tan(R.RETRO_CHAMP * Math.PI / 360) / retro.cam.aspect) * 180 / Math.PI;
+      retro.cam.updateProjectionMatrix();
+    }
     // la caméra : à l'arrière de la voiture, à hauteur de casque, qui regarde loin derrière (un peu vers le bas)
     avantRetro.set(1, 0, 0).applyQuaternion(g.quaternion);
     const p = g.position, c = retro.cam;
     c.position.set(p.x - avantRetro.x * R.RETRO_RECUL, p.y + R.RETRO_HAUTEUR, p.z - avantRetro.z * R.RETRO_RECUL);
     c.lookAt(p.x - avantRetro.x * R.RETRO_VISEE, p.y + R.RETRO_VISEE_Y, p.z - avantRetro.z * R.RETRO_VISEE);
-    const avant = rendu.info.render.calls, vusDecor = decor ? decor.groupe.visible : false, vuJoueur = g.visible, vuCam = camera.visible;
+    const avant = rendu.info.render.calls, avantT = rendu.info.render.triangles, vusDecor = decor ? decor.groupe.visible : false, vuJoueur = g.visible, vuCam = camera.visible;
     if (decor) decor.groupe.visible = false;
     g.visible = false; camera.visible = false;   // (la voiture du joueur et ce qui est accroché à la caméra, comme le volant)
     rendu.setRenderTarget(retro.cible);
@@ -358,7 +362,7 @@ const SCENE3D = (function () {
     rendu.setScissorTest(false);
     const l = conteneur.clientWidth || 1;
     rendu.setViewport(0, 0, l, H); rendu.setScissor(0, 0, l, H);
-    appelsRetro = rendu.info.render.calls - avant;
+    appelsRetro = rendu.info.render.calls - avant; trianglesRetro = rendu.info.render.triangles - avantT;
   }
 
   // renvoie le nombre de triangles dessinés
@@ -383,10 +387,11 @@ const SCENE3D = (function () {
         rendu.setViewport(0, 0, l, demi); rendu.setScissor(0, 0, l, demi);
         rendu.render(scene, camera2);
       }
+      appelsRetro = 0; trianglesRetro = 0;
     } else { rendu.render(scene, camera); dessinerRetro(); }
     for (const g of cachees) g.visible = true;   // (les voitures lointaines retrouvent leur état : le jeu ne voit pas la différence)
-    trianglesDessines = rendu.info.render.triangles;
-    appelsDessin = rendu.info.render.calls;
+    trianglesDessines = rendu.info.render.triangles - trianglesRetro;
+    appelsDessin = rendu.info.render.calls - appelsRetro;
     return trianglesDessines;
   }
 
@@ -458,7 +463,7 @@ const SCENE3D = (function () {
     get relief() { return relief; },   // (la hauteur de la route à chaque échantillon, ou null : voiture3d.js et camera.js la suivent)
     get nbLointaines() { return nbLointaines; },
     get joueurSimplifie() { return joueurSimplifie; },
-    reglerRetro, get retroZone() { return retroZone; }, get appelsRetro() { return appelsRetro; },   // (le rétroviseur ; tests : sa zone, ses appels de dessin à la dernière image)   // (tests : la voiture du joueur dessinée en forme simple à la dernière image)   // (tests : les voitures dessinées en forme simple à la dernière image)   // (tests : le décor placé, ses maillages, ses niveaux de détail)
+    reglerRetro, get retroZone() { return retroZone; }, get appelsRetro() { return appelsRetro; }, get trianglesRetro() { return trianglesRetro; },   // (le rétroviseur ; tests : sa zone, ses appels de dessin à la dernière image)   // (tests : la voiture du joueur dessinée en forme simple à la dernière image)   // (tests : les voitures dessinées en forme simple à la dernière image)   // (tests : le décor placé, ses maillages, ses niveaux de détail)
     get trianglesDessines() { return trianglesDessines; },
     get appelsDessin() { return appelsDessin; },
     reglerQualite, get qualite() { return qualite; }, get pixelRatio() { return rendu ? rendu.getPixelRatio() : 0; },

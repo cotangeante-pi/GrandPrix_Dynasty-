@@ -1221,8 +1221,10 @@ const REGLAGES = {
   RETRO_LARGEUR: 0.24, RETRO_LARGEUR_MAX: 340, RETRO_RAPPORT: 4,   // la part de la largeur de l'écran, au plus tant de pixels CSS ; largeur / hauteur
   RETRO_ECART: 6,               // pixels CSS sous le chrono (#hudCourse) ; sans lui, à RETRO_HAUT de la hauteur
   RETRO_HAUT: 0.2,
+  RETRO_BAS_MAX: 170,           // pixels CSS : le bas du rétroviseur reste au-dessus des messages de course (#messageCourse, à 176 px du haut)
+  RETRO_HAUTEUR_MIN: 24,
   RETRO_RESOLUTION: 0.5,        // pixels dessinés par pixel CSS (une petite image)
-  RETRO_CHAMP: 40, RETRO_PRES: 0.5, RETRO_LOIN: 400,   // degrés ; m (rien au-delà : moins à dessiner)
+  RETRO_CHAMP: 55, RETRO_PRES: 0.5, RETRO_LOIN: 400,   // degrés de gauche à droite ; m (rien au-delà : moins à dessiner)
   RETRO_RECUL: 1.6, RETRO_HAUTEUR: 1.1,                // m : la caméra à l'arrière de la voiture, à hauteur de casque…
   RETRO_VISEE: 40, RETRO_VISEE_Y: 0.4,                 // … qui regarde à tant de mètres derrière, à cette hauteur
   RETRO_MAJ_ZONE: 0.5,          // s : la place du chrono est relue tous les tant

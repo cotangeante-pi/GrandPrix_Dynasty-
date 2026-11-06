@@ -1522,8 +1522,8 @@ def retro_ecran(pg, titre, l, h):
     hud = pg.evaluate('() => { const r = document.getElementById("hudCourse").getBoundingClientRect(), c = document.getElementById("retroviseur"), b = c.getBoundingClientRect(); return { bas: r.bottom, cadre: !c.classList.contains("cache"), x: b.left, y: b.top, l: b.width, h: b.height, mode: CAMERA.mode }; }')
     co = pg.evaluate(RETRO_COULOIR)
     z = co['zone']
-    t(f'{titre} : en course, vue derrière : le rétroviseur en haut au milieu, juste sous le chrono, dans son cadre ; aucun point de la piste devant la voiture dessous',
-      roule and z and hud['cadre'] and hud['mode'] == 'derriere' and abs(z['x'] + z['l'] / 2 - l / 2) <= 1 and z['y'] >= hud['bas'] and z['y'] + z['h'] < h * 0.4
+    t(f'{titre} : en course, vue derrière : le rétroviseur en haut au milieu, juste sous le chrono et au-dessus des messages de course, dans son cadre ; aucun point de la piste devant la voiture dessous',
+      roule and z and hud['cadre'] and hud['mode'] == 'derriere' and abs(z['x'] + z['l'] / 2 - l / 2) <= 1 and z['y'] >= hud['bas'] and z['y'] + z['h'] < h * 0.4 and z['y'] + z['h'] <= pg.evaluate('() => document.getElementById("messageCourse").offsetTop || 176')
       and abs(hud['x'] - z['x']) <= 1 and abs(hud['l'] - z['l']) <= 1 and co['n'] >= 20 and co['dessous'] == 0, str([hud, co]))
     avec = pg.evaluate(RETRO_IMAGE, True)
     sans = pg.evaluate(RETRO_IMAGE, False)
@@ -1531,11 +1531,11 @@ def retro_ecran(pg, titre, l, h):
     part = diff / max(1, len(avec['d']) // 4)
     pg.screenshot(path=os.path.join(CAPTURES, 'retroviseur.png'))
     t(f'{titre} : une voiture posée 20 m derrière se voit dans le rétroviseur (au moins 1 % de ses pixels changent quand on l’enlève)', len(avec['d']) > 0 and part >= 0.01, f'{diff} pixels, {part:.3f}')
-    r = pg.evaluate('''() => { const b = document.getElementById("boutonRetroPause"); SCENE3D.dessiner(); const vu = [b.textContent, SCENE3D.appelsDessin - SCENE3D.appelsRetro]; b.click(); majRetro(0); SCENE3D.dessiner();
+    r = pg.evaluate('''() => { const b = document.getElementById("boutonRetroPause"); SCENE3D.dessiner(); const vu = [b.textContent, SCENE3D.appelsDessin]; b.click(); majRetro(0); SCENE3D.dessiner();
       vu.push(b.textContent, SCENE3D.appelsDessin, SCENE3D.appelsRetro, SCENE3D.retroZone, document.getElementById("retroviseur").classList.contains("cache"), SAUVEGARDE.option("retroviseur", "?"));
       b.click(); majRetro(0); SCENE3D.dessiner(); vu.push(b.textContent, SCENE3D.retroZone !== null, SAUVEGARDE.option("retroviseur", "?")); return vu; }''')
     pg.evaluate('() => BOUCLE.demarrer()')
-    L.append(f"  (le rétroviseur : {sans['appels'] - sans['retro']} → {sans['appels']} appels de dessin, {sans['retro']} pour lui ; {diff} pixels changent avec une voiture 20 m derrière)")
+    L.append(f"  (le rétroviseur : {sans['appels']} → {sans['appels'] + sans['retro']} appels de dessin, {sans['retro']} pour lui ; {diff} pixels changent avec une voiture 20 m derrière)")
     t(f'{titre} : le rétroviseur coûte peu (au plus 30 appels de dessin) ; « Rétroviseur : non » (menu pause, sauvegardé) le masque : plus rien de dessiné en plus ; « oui » le remet',
       0 < sans['retro'] <= 30 and r[0] == pg.evaluate('() => texte("retro_oui")') and r[2] == pg.evaluate('() => texte("retro_non")') and r[3] == r[1]
       and r[4] == 0 and r[5] is None and r[6] and r[7] is False and r[8] == r[0] and r[9] and r[10] is True, str([r, sans['appels'], sans['retro']]))

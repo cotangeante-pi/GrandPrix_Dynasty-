@@ -2010,8 +2010,9 @@ function majRetro(dt) {
     JEU.retroMaj = REGLAGES.RETRO_MAJ_ZONE;
     const W = window.innerWidth, H = window.innerHeight, hud = document.getElementById('hudCourse');
     const r = hud && !hud.classList.contains('cache') ? hud.getBoundingClientRect() : null;
-    const l = Math.round(Math.min(REGLAGES.RETRO_LARGEUR_MAX, W * REGLAGES.RETRO_LARGEUR)), h = Math.round(l / REGLAGES.RETRO_RAPPORT);
-    JEU.retroPlace = { x: Math.round((W - l) / 2), y: Math.round(r && r.height > 0 ? r.bottom + REGLAGES.RETRO_ECART : H * REGLAGES.RETRO_HAUT), l, h };
+    const l = Math.round(Math.min(REGLAGES.RETRO_LARGEUR_MAX, W * REGLAGES.RETRO_LARGEUR)), y = Math.round(r && r.height > 0 ? r.bottom + REGLAGES.RETRO_ECART : H * REGLAGES.RETRO_HAUT);
+    const h = Math.max(REGLAGES.RETRO_HAUTEUR_MIN, Math.min(Math.round(l / REGLAGES.RETRO_RAPPORT), REGLAGES.RETRO_BAS_MAX - y));   // (au-dessus des messages de course)
+    JEU.retroPlace = { x: Math.round((W - l) / 2), y, l, h };
     if (cadre) Object.assign(cadre.style, { left: JEU.retroPlace.x + 'px', top: JEU.retroPlace.y + 'px', width: l + 'px', height: h + 'px' });
   }
   SCENE3D.reglerRetro(JEU.retroPlace, JEU.modele.groupe);
