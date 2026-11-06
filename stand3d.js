@@ -6,12 +6,13 @@
 const STAND3D = (function () {
   const R = REGLAGES;
 
-  // la place de la voiture : { x, z, cap, ou } ; ou = 'garage' (devant le garage de l'écurie, le nez vers la piste), 'arret' (sa zone
-  // d'arrêt dans la voie des stands, sans décor ou sans garage), 'ligne' (sur la ligne, sans voie des stands)
+  // la place de la voiture : { x, z, cap, ou } ; ou = 'arret' (la zone d'arrêt du joueur dans la voie des stands, celle de son écurie,
+  // marquée au sol à ses couleurs), 'garage' (sans voie des stands : devant le garage de l'écurie, le nez vers la piste ; sur certains
+  // tracés, le décor n'a pas la place de tous les garages), 'ligne' (ni l'un ni l'autre)
   function pose(circuit, objets, ecurie) {
-    const g = objets && objets.garage ? objets.garage.find(o => o.ecurie === ecurie) : null;
-    if (g) return { x: g.x - g.bx * R.STAND3D_DEVANT, z: g.z - g.bz * R.STAND3D_DEVANT, cap: Math.atan2(-g.bz, -g.bx), ou: 'garage' };
     const c = circuit, za = typeof zoneArretStands === 'function' ? zoneArretStands(c) : null;
+    const g = !za && objets && objets.garage ? objets.garage.find(o => o.ecurie === ecurie) : null;
+    if (g) return { x: g.x - g.bx * R.STAND3D_DEVANT, z: g.z - g.bz * R.STAND3D_DEVANT, cap: Math.atan2(-g.bz, -g.bx), ou: 'garage' };
     const L = c.longueur, s = za ? za.s : 0, d = za ? (za.d1 + za.d2) / 2 : 0, i = Math.round((((s % L) + L) % L) / c.pas) % c.nb;
     return { x: c.x[i] + c.nx[i] * d, z: c.z[i] + c.nz[i] * d, cap: Math.atan2(c.tz[i], c.tx[i]), ou: za ? 'arret' : 'ligne' };
   }

@@ -573,14 +573,15 @@ t('qualité : le cran haut est l’image d’avant (PIXEL_RATIO_MAX, DECOR_DETAI
   v(C_[0].pixelRatio===R_.PIXEL_RATIO_MAX&&C_[0].detail===R_.DECOR_DETAIL_LOIN&&C_[0].rien===R_.DECOR_RIEN_LOIN,'cran haut '+JSON.stringify(C_[0]));
   for(let k=1;k<C_.length;k++) v(C_[k].pixelRatio<C_[k-1].pixelRatio&&C_[k].detail<C_[k-1].detail&&C_[k].rien<C_[k-1].rien,'cran '+k);});
 // --- l'arrière-plan des menus (stand3d.js, tour 49a-2) : la voiture du joueur devant le garage de son écurie, la caméra autour
-t('arrière-plan des menus : la voiture devant le garage de chaque écurie (le nez vers la piste, plus près de la piste que la porte) ; sans décor, dans sa zone d’arrêt ; la caméra tourne à rayon constant ; les mécaniciens autour, jamais sur la voiture', ()=>{const R_=REGLAGES;
-  const c=construireCircuit(CIRCUITS.test),o=DECOR.placer(c,DECORS.test).objets,loin=(x,z)=>{const p=positionSurPiste(c,x,z);return Math.abs(p.d);};
-  for(let k=0;k<R_.ECURIES.length;k++){const g=o.garage.find(x=>x.ecurie===k);if(!g) continue;const p=STAND3D.pose(c,o,k);
+t('arrière-plan des menus : la voiture dans sa zone d’arrêt de la voie des stands ; sans voie des stands, devant le garage de son écurie (le nez vers la piste, plus près de la piste que la porte) ; la caméra tourne à rayon constant ; les mécaniciens autour, jamais sur la voiture', ()=>{const R_=REGLAGES;
+  const c=construireCircuit(CIRCUITS.test),cs=Object.assign({},c,{stands:null}),o=DECOR.placer(c,DECORS.test).objets,loin=(x,z)=>{const p=positionSurPiste(c,x,z);return Math.abs(p.d);};
+  for(let k=0;k<R_.ECURIES.length;k++){const g=o.garage.find(x=>x.ecurie===k);if(!g) continue;const p=STAND3D.pose(cs,o,k);
     v(p.ou==='garage'&&Math.abs(Math.hypot(p.x-g.x,p.z-g.z)-R_.STAND3D_DEVANT)<1e-9&&loin(p.x,p.z)<loin(g.x,g.z),'écurie '+k+' '+JSON.stringify(p));
     v(Math.abs(Math.cos(p.cap)*(-g.bx)+Math.sin(p.cap)*(-g.bz)-1)<1e-9,'le nez vers la piste '+k);}
   v(o.garage.filter(x=>x.ecurie!==undefined).length>=5,'des garages d’écurie '+o.garage.length);
-  const za=zoneArretStands(c),p0=STAND3D.pose(c,null,3);v(p0.ou===(za?'arret':'ligne'),'sans décor '+p0.ou);
-  if(za){const z=zoneStands(c,positionSurPiste(c,p0.x,p0.z).s,positionSurPiste(c,p0.x,p0.z).d);v(z&&z.arret,'dans la zone d’arrêt');}
+  v(STAND3D.pose(cs,null,3).ou==='ligne','ni stands ni décor : sur la ligne');
+  for(const n of ['monoco','monzo']){const cm=construireCircuit(CIRCUITS[n]),pm=STAND3D.pose(cm,DECOR.placer(cm,DECOR.pour(cm,n,null).description).objets,9),q=positionSurPiste(cm,pm.x,pm.z),z=zoneStands(cm,q.s,q.d);
+    v(pm.ou==='arret'&&z&&z.arret,n+' : dans la zone d’arrêt du joueur '+JSON.stringify(pm));}
   const p=STAND3D.pose(c,o,0),a=STAND3D.camera(p,0),b=STAND3D.camera(p,5);
   v(Math.abs(Math.hypot(a.x-p.x,a.z-p.z)-R_.STAND3D_RAYON)<1e-9&&Math.abs(Math.hypot(b.x-p.x,b.z-p.z)-R_.STAND3D_RAYON)<1e-9&&Math.hypot(a.x-b.x,a.z-b.z)>0.5&&a.vx===p.x,'la caméra');
   const m=STAND3D.mecaniciens(p);v(m.length===R_.STAND3D_MECANICIENS.length&&m.every(x=>Math.hypot(x.x-p.x,x.z-p.z)>1.2),'les mécaniciens '+JSON.stringify(m));});
