@@ -1223,7 +1223,7 @@ const REGLAGES = {
   STAND3D_CHAMP: 50,            // degrés
   STAND3D_DEPART: 2.4,          // rad : là où la caméra commence (de trois quarts avant)
   STAND3D_TAILLE: 1.75,         // m : un mécanicien
-  STAND3D_CASQUE: 0xf2f2f2,
+  STAND3D_CASQUE: 0xf2f2f2, STAND3D_PANTALON: 0x22252c,
   STAND3D_MECANICIENS: [[2.6, 1.3, 2.6], [2.6, -1.3, -2.6], [-2.6, 1.4, 1.2], [0.2, -2.2, -1.6]],   // [m devant, m à droite, regard (rad)]
   // le rétroviseur (scene3d.js dessinerRetro, principal.js majRetro ; tour 49a) : en haut au milieu, sous le chrono, en vue derrière et
   // cockpit, en course avec d'autres voitures ; jamais à deux (RETRO_DEUX : choix du Codeur, réversible) ; coupé en qualité basse et par l'Auto

@@ -29,14 +29,15 @@ const STAND3D = (function () {
     return R.STAND3D_MECANICIENS.map(([a, d, r]) => ({ x: p.x + fx * a + dx * d, z: p.z + fz * a + dz * d, cap: p.cap + r }));
   }
 
-  // --- le dessin : les mécaniciens (un corps et une tête chacun, en deux InstancedMesh : deux appels de dessin)
+  // --- le dessin : les mécaniciens (les jambes sombres, le buste aux couleurs de l'écurie, le casque : trois InstancedMesh, trois appels de dessin)
   function creer() {
-    const n = R.STAND3D_MECANICIENS.length, groupe = new THREE.Group();
-    const corps = new THREE.InstancedMesh(new THREE.BoxGeometry(0.34, R.STAND3D_TAILLE - 0.3, 0.5).translate(0, (R.STAND3D_TAILLE - 0.3) / 2, 0), new THREE.MeshLambertMaterial({ color: 0xffffff }), n);
-    const tetes = new THREE.InstancedMesh(new THREE.SphereGeometry(0.15, 8, 6).translate(0, R.STAND3D_TAILLE - 0.15, 0), new THREE.MeshLambertMaterial({ color: R.STAND3D_CASQUE }), n);
-    corps.name = 'stand-mecaniciens'; tetes.name = 'stand-tetes';
-    groupe.add(corps, tetes); groupe.name = 'stand'; groupe.visible = false;
-    return { groupe, corps, tetes, couleur: null };
+    const n = R.STAND3D_MECANICIENS.length, groupe = new THREE.Group(), T = R.STAND3D_TAILLE, jambes = T * 0.47, buste = T * 0.38;
+    const bas = new THREE.InstancedMesh(new THREE.BoxGeometry(0.24, jambes, 0.34).translate(0, jambes / 2, 0), new THREE.MeshLambertMaterial({ color: R.STAND3D_PANTALON }), n);
+    const corps = new THREE.InstancedMesh(new THREE.BoxGeometry(0.26, buste, 0.46).translate(0, jambes + buste / 2, 0), new THREE.MeshLambertMaterial({ color: 0xffffff }), n);
+    const tetes = new THREE.InstancedMesh(new THREE.SphereGeometry(0.13, 10, 8).translate(0, T - 0.13, 0), new THREE.MeshLambertMaterial({ color: R.STAND3D_CASQUE }), n);
+    bas.name = 'stand-jambes'; corps.name = 'stand-mecaniciens'; tetes.name = 'stand-tetes';
+    groupe.add(bas, corps, tetes); groupe.name = 'stand'; groupe.visible = false;
+    return { groupe, bas, corps, tetes, couleur: null };
   }
   const m4 = typeof THREE !== 'undefined' ? new THREE.Matrix4() : null, q4 = typeof THREE !== 'undefined' ? new THREE.Quaternion() : null;
   const haut = typeof THREE !== 'undefined' ? new THREE.Vector3(0, 1, 0) : null, un = typeof THREE !== 'undefined' ? new THREE.Vector3(1, 1, 1) : null;
@@ -44,9 +45,9 @@ const STAND3D = (function () {
     mecaniciens(p).forEach((m, k) => {
       q4.setFromAxisAngle(haut, -m.cap);
       m4.compose(new THREE.Vector3(m.x, 0, m.z), q4, un);
-      st.corps.setMatrixAt(k, m4); st.tetes.setMatrixAt(k, m4);
+      st.bas.setMatrixAt(k, m4); st.corps.setMatrixAt(k, m4); st.tetes.setMatrixAt(k, m4);
     });
-    st.corps.instanceMatrix.needsUpdate = true; st.tetes.instanceMatrix.needsUpdate = true;
+    st.bas.instanceMatrix.needsUpdate = true; st.corps.instanceMatrix.needsUpdate = true; st.tetes.instanceMatrix.needsUpdate = true;
     if (st.couleur !== couleur) { st.couleur = couleur; st.corps.material.color.set(couleur); }
   }
 

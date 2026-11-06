@@ -2011,7 +2011,7 @@ function majStand(dt) {
     const j = JEU.championnat.pilotes.find(p => p.humain), ecurie = j ? j.ecurie : 0;
     JEU.stand = STAND3D.creer(); SCENE3D.ajouter(JEU.stand.groupe);
     JEU.stand.pose = STAND3D.pose(CIRCUIT, SCENE3D.decor ? SCENE3D.decor.objets : null, ecurie);
-    JEU.stand.couleur = REGLAGES.ECURIES[ecurie] ? REGLAGES.ECURIES[ecurie].couleur : REGLAGES.COULEUR_JOUEUR;
+    JEU.stand.couleur = JEU.modele.couleur !== undefined ? JEU.modele.couleur : REGLAGES.ECURIES[ecurie] ? REGLAGES.ECURIES[ecurie].couleur : REGLAGES.COULEUR_JOUEUR;   // (les mécaniciens à la couleur de la voiture)
     JEU.stand.temps = 0;
   }
   const st = JEU.stand, p = st.pose;
