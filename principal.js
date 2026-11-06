@@ -25,6 +25,10 @@ const NOM_CIRCUIT = DECOUVERTE_EN_COURS ? REGLAGES.DECOUVERTE_CIRCUIT
   : CHAMPIONNAT_EN_COURS && CHAMPIONNAT_EN_COURS.prochain < CHAMPIONNAT_EN_COURS.calendrier.length ? CHAMPIONNAT_EN_COURS.calendrier[CHAMPIONNAT_EN_COURS.prochain].circuit
   : Object.prototype.hasOwnProperty.call(CIRCUITS, PARAMETRES.get('circuit')) ? PARAMETRES.get('circuit') : 'test';
 const CIRCUIT = NOM_CIRCUIT === 'test' ? CIRCUIT_TEST : construireCircuit(CIRCUITS[NOM_CIRCUIT]);
+// (tour 49d) la carrière : sa division donne le niveau des IA et la force de toutes les voitures (divisions.js), avant la carte et la course
+if (CHAMPIONNAT_EN_COURS && typeof DIVISIONS !== 'undefined') DIVISIONS.appliquer(DIVISIONS.de(CHAMPIONNAT_EN_COURS));
+// ?division=1|2|3|4 (essais du propriétaire, tests) : cette division pour la page seulement, en carrière ou en course rapide (rien n'est sauvegardé)
+if (typeof DIVISIONS !== 'undefined' && ['1', '2', '3', '4'].includes(PARAMETRES.get('division'))) DIVISIONS.appliquer(Number(PARAMETRES.get('division')));
 // ?niveau=debutant|normal|expert|legende : le niveau de difficulté des IA (normal par défaut)
 if (Object.prototype.hasOwnProperty.call(REGLAGES.NIVEAUX, PARAMETRES.get('niveau'))) REGLAGES.NIVEAU = PARAMETRES.get('niveau');
 // ?deux=1 : le mode 2 joueurs (deux-joueurs.js, CLAUDE.md « Le mode 2 joueurs ») : &ia=0|3|5 IA, &tours=3|5, &niveau=… ; un mode à part de
@@ -1994,6 +1998,31 @@ function volantVisible() {
   return CAMERA.mode === 'cockpit' && !JEU.deux && !JEU.attente && (JEU.ecran === 'course' || JEU.ecran === 'pause' || JEU.ecran === 'survol' || enTourQualif());
 }
 
+// le rétroviseur (tour 49a, scene3d.js dessinerRetro) : en vue derrière et cockpit, en course avec d'autres voitures (pas seul, pas en
+// qualification), jamais pendant la vue télé d'après l'arrivée, à deux seulement si RETRO_DEUX ; masqué par le réglage (JEU.retro) ou
+// par la qualité (« basse », ou l'Auto quand il en a besoin : retro faux). Sa place : en haut au milieu, juste sous le chrono
+function retroVisible() {
+  const q = SCENE3D.qualite;
+  return !!JEU.retro && !!JEU.plateau && !!JEU.contre && (JEU.ecran === 'course' || JEU.ecran === 'pause') && !JEU.attente
+    && (CAMERA.mode === 'derriere' || CAMERA.mode === 'cockpit') && (!JEU.deux || REGLAGES.RETRO_DEUX) && !(q && q.retro === false);
+}
+function majRetro(dt) {
+  const cadre = document.getElementById('retroviseur'), oui = retroVisible();
+  if (!oui) { if (SCENE3D.retroZone) SCENE3D.reglerRetro(null); if (cadre) cadre.classList.add('cache'); return; }
+  JEU.retroMaj = (JEU.retroMaj || 0) - dt;
+  if (!JEU.retroPlace || JEU.retroMaj <= 0) {   // (la place du chrono, relue de temps en temps : lire une boîte force la mise en page)
+    JEU.retroMaj = REGLAGES.RETRO_MAJ_ZONE;
+    const W = window.innerWidth, H = window.innerHeight, hud = document.getElementById('hudCourse');
+    const r = hud && !hud.classList.contains('cache') ? hud.getBoundingClientRect() : null;
+    const l = Math.round(Math.min(REGLAGES.RETRO_LARGEUR_MAX, W * REGLAGES.RETRO_LARGEUR)), y = Math.round(r && r.height > 0 ? r.bottom + REGLAGES.RETRO_ECART : H * REGLAGES.RETRO_HAUT);
+    const h = Math.max(REGLAGES.RETRO_HAUTEUR_MIN, Math.min(Math.round(l / REGLAGES.RETRO_RAPPORT), REGLAGES.RETRO_BAS_MAX - y));   // (au-dessus des messages de course)
+    JEU.retroPlace = { x: Math.round((W - l) / 2), y, l, h };
+    if (cadre) Object.assign(cadre.style, { left: JEU.retroPlace.x + 'px', top: JEU.retroPlace.y + 'px', width: l + 'px', height: h + 'px' });
+  }
+  SCENE3D.reglerRetro(JEU.retroPlace, JEU.modele.groupe);
+  if (cadre) cadre.classList.remove('cache');
+}
+
 function majVolant() {
   const oui = volantVisible();
   if (!JEU.volant) { if (!oui) return; JEU.volant = VOITURE3D.creerVolant(casqueDe(indiceJoueur())); SCENE3D.accrocher(JEU.volant.groupe); }
@@ -2321,19 +2350,34 @@ function demarrerJeu() {
     b.addEventListener('mousedown', e => e.preventDefault());
     b.addEventListener('click', () => { JEU.reglageTrajectoire = SUITE[(SUITE.indexOf(vu()) + 1) % SUITE.length]; SAUVEGARDE.ecrireOption('trajectoire', JEU.reglageTrajectoire); ecrire(); });
   }
-  // la qualité de l'image (qualite.js, tour 40) : auto (par défaut), haute ou basse dans le menu pause, sauvegardé ; ?qualite=…
-  // la force. Sous un automate (navigator.webdriver : les tests), « auto » ne baisse pas seul sans ?qualite=auto, pour que les
-  // mesures d'images restent comparables d'un passage à l'autre
+  // la qualité de l'image (qualite.js ; tour 40, tour 49a l'Auto continu) : auto (par défaut), haute, moyenne ou basse dans le menu
+  // pause et la page « Réglages » du paddock, sauvegardé ; ?qualite=… la force. Le niveau atteint par l'Auto est gardé (option
+  // qualite_niveau) : la course suivante repart de là. Sous un automate (navigator.webdriver : les tests), « auto » ne bouge pas seul
+  // sans ?qualite=auto et repart du plus beau, pour que les mesures d'images restent comparables d'un passage à l'autre
   {
     const bs = ['boutonQualitePause', 'boutonQualitePaddock'].map(id => document.getElementById(id)), demandee = PARAMETRES.get('qualite');   // (le menu pause et la page « Réglages » du paddock, tour 48a)
-    JEU.qualite = QUALITE.creer(QUALITE.REGLES.includes(demandee) ? demandee : SAUVEGARDE.option('qualite', 'auto'));
     JEU.qualiteAuto = !(navigator.webdriver && !QUALITE.REGLES.includes(demandee));
-    const appliquer = () => SCENE3D.reglerQualite(JEU.qualite.cran ? QUALITE.cran(JEU.qualite.cran) : null);
-    const ecrire = () => { for (const b of bs) b.textContent = texte('qualite_' + JEU.qualite.regle); };
+    JEU.qualite = QUALITE.creer(QUALITE.REGLES.includes(demandee) ? demandee : SAUVEGARDE.option('qualite', 'auto'),
+      { niveau: JEU.qualiteAuto ? SAUVEGARDE.option('qualite_niveau', 0) : 0, dpr: window.devicePixelRatio || 1 });
+    JEU.qualiteASauver = false;
+    const appliquer = () => SCENE3D.reglerQualite(QUALITE.reglages(JEU.qualite));
+    const ecrire = () => { for (const b of bs) b.textContent = texte(QUALITE.auPlusSimple(JEU.qualite) ? 'qualite_autoSimple' : 'qualite_' + JEU.qualite.regle); };
+    JEU.appliquerQualite = () => { appliquer(); ecrire(); };
     appliquer(); ecrire();
     for (const b of bs) {
       b.addEventListener('mousedown', e => e.preventDefault());
       b.addEventListener('click', () => { QUALITE.regler(JEU.qualite, QUALITE.suivante(JEU.qualite.regle)); SAUVEGARDE.ecrireOption('qualite', JEU.qualite.regle); appliquer(); ecrire(); });
+    }
+  }
+  // le rétroviseur (tour 49a) : « Rétroviseur : oui / non » dans le menu pause et ⚙ Réglages, sauvegardé (RETRO_ACTIF par défaut)
+  {
+    const bs = ['boutonRetroPause', 'boutonRetroPaddock'].map(id => document.getElementById(id)).filter(Boolean);
+    JEU.retro = SAUVEGARDE.option('retroviseur', REGLAGES.RETRO_ACTIF) !== false;
+    const ecrire = () => { for (const b of bs) b.textContent = texte(JEU.retro ? 'retro_oui' : 'retro_non'); };
+    ecrire();
+    for (const b of bs) {
+      b.addEventListener('mousedown', e => e.preventDefault());
+      b.addEventListener('click', () => { JEU.retro = !JEU.retro; SAUVEGARDE.ecrireOption('retroviseur', JEU.retro); ecrire(); });
     }
   }
   // les aides au pilotage (assistance.js, tour 41 ; le choix du joueur, le propriétaire 2026-10-30, tour 37e) : choisies AVANT la course, une
@@ -2414,7 +2458,7 @@ function demarrerJeu() {
     JEU.alpha = alpha;
     JEU.dtImage = dt;
     majManettes(dt);   // la manette (manette.js) : lue à chaque image
-    if (JEU.ecran === 'resume') { majResume(dt); if (JEU.sdkPret) SDK.jeuArrete(); if (JEU.ecran === 'resume') { if (typeof EFFETS3D !== 'undefined') SENSATIONS.observer([], CIRCUIT); SCENE3D.dessiner(); return; } }   // le résumé vidéo : la 3D rejoue l'enregistrement (Poki : gameplayStop)
+    if (JEU.ecran === 'resume') { majResume(dt); if (JEU.sdkPret) SDK.jeuArrete(); if (JEU.ecran === 'resume') { majRetro(dt); if (typeof EFFETS3D !== 'undefined') SENSATIONS.observer([], CIRCUIT); SCENE3D.dessiner(); return; } }   // le résumé vidéo : la 3D rejoue l'enregistrement (Poki : gameplayStop)
     majAToi(dt);   // le tournoi : le compte à rebours de « À toi, … ! »   // (« passer » en accéléré : le nombre de pas de l'image suit sa durée)
     const apres = JEU.ecran === 'podium' || JEU.ecran === 'resultats' || JEU.ecran === 'bravo' || JEU.ecran === 'tournoiFin' || JEU.ecran === 'ceremonie';   // le podium (et la cérémonie du champion) : les voitures n'y bougent plus
     // ?ia=N : chaque IA à sa place ; une IA arrivée quitte la piste (elle n'est plus dessinée)
@@ -2447,6 +2491,7 @@ function demarrerJeu() {
     majMessages();   // les messages de course, un à la fois
     majGrille(dt);   // avant les feux : la grille vue d'en haut (après la caméra de course, qu'elle remplace)
     majVolant();   // le volant en vue cockpit (après la caméra : il suit son champ de vision)
+    majRetro(dt);   // le rétroviseur (tour 49a)
     majTableau();
     INTERFACE.majCourse(JEU.course, enTourQualif() ? 'course' : JEU.ecran);   // le chrono du tour de qualification
     majFantome(dt);
@@ -2488,8 +2533,15 @@ function demarrerJeu() {
     if (typeof METEO3D !== 'undefined') METEO3D.maj(METEO3D.etat(JEU.plateau || JEU.course), SCENE3D.camera, JEU.plateau ? JEU.plateau.pilotes.map(p => p.v) : [JEU.joueur], dt, CAMERA.mode === 'cockpit' && JEU.ecran === 'course', CIRCUIT, JEU.carte ? JEU.carte.trajectoire : null);
     // (tour 46, l'arrivée lente : pendant « passer », la scène n'est redessinée qu'une image sur ARRIVEE_IMAGE_TOUS : le budget va au calcul)
     if (!(JEU.attente && JEU.attente.passer) || ((JEU.attente.images = (JEU.attente.images || 0) + 1) % REGLAGES.ARRIVEE_IMAGE_TOUS) === 1) SCENE3D.dessiner();
-    // la qualité automatique : sous QUALITE_IPS_MIN images par seconde pendant QUALITE_FENETRE s, un cran plus bas ; jamais pendant les feux
-    if (JEU.qualite && JEU.qualiteAuto) { const n = QUALITE.observer(JEU.qualite, dt, !!(JEU.course && JEU.course.etat === 'compte')); if (n !== null) SCENE3D.reglerQualite(QUALITE.cran(n)); }
+    // l'Auto (qualite.js) : sous QUALITE_IPS_MIN images par seconde, un pas plus simple à la fois jusqu'à QUALITE_IPS_VISEE ; le détail revient
+    // lentement, au temps de calcul de l'image (de son début dans boucle.js jusqu'ici) ; jamais pendant les feux. Le niveau est sauvegardé
+    // une fois tenu QUALITE_PAS_RETOUR s (pas à chaque pas : écrire la sauvegarde coûte une image), jamais pendant les feux
+    if (JEU.qualite && JEU.qualiteAuto) {
+      const feux = !!(JEU.course && JEU.course.etat === 'compte');
+      const n = QUALITE.observer(JEU.qualite, dt, feux, BOUCLE.debutImage !== null ? (performance.now() - BOUCLE.debutImage) / 1000 : undefined);
+      if (n !== null) { JEU.appliquerQualite(); JEU.qualiteASauver = true; }
+      else if (JEU.qualiteASauver && !feux && JEU.qualite.depuis >= REGLAGES.QUALITE_PAS_RETOUR) { JEU.qualiteASauver = false; SAUVEGARDE.ecrireOption('qualite_niveau', JEU.qualite.niveauAuto); }
+    }
   });
   if (PARAMETRES.get('debug') === '1') brancherDebug();
   // Poki (sdk.js, le seul passage vers le SDK) : init, puis « chargement fini » une seule fois ; hors Poki, le rappel vient tout de suite

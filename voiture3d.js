@@ -335,7 +335,7 @@ const VOITURE3D = (function () {
     ];
     for (const r of roues) groupe.add(r.pivot);
     // une vraie voiture (pas le fantôme) peut être dessinée de loin en forme simple (scene3d.js : formeLointaine, toutes en un appel)
-    if (!materiaux) groupe.userData.lointaine = { couleur: new THREE.Color(couleur) };
+    if (!materiaux) groupe.userData.lointaine = { couleur: new THREE.Color(couleur), joueur: !!detaille };   // (joueur : l'Auto de qualite.js ne la simplifie jamais)
     return { groupe, roues, tete, corps, couleur, detaille: !!detaille, cl };
   }
 
