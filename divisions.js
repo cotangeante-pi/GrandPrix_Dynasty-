@@ -114,6 +114,13 @@ const DIVISIONS = (function () {
     B.pilotes[kb] = pa; pa.id = kb; pa.ecurie = eb;
   }
 
+  // deux places d'un même plateau échangées (chacun garde son écurie) ; ses compteurs par indice suivent
+  function permuter(P, a, b) {
+    [P.pilotes[a], P.pilotes[b]] = [P.pilotes[b], P.pilotes[a]];
+    P.pilotes[a].id = a; P.pilotes[b].id = b;
+    for (const o of [P.rivaux, P.duelCarriere]) if (o) { const x = o[a], y = o[b]; delete o[a]; delete o[b]; if (y !== undefined) o[a] = y; if (x !== undefined) o[b] = x; }
+  }
+
   // la saison suivante commence sur le plateau d'en haut (saisons.js : nouvelleSaison, après l'évolution des rivaux d'en bas) ; ecurie :
   // celle signée (vueContrats), sinon la plus faible
   function changerPlateau(ch, ecurie) {
@@ -134,11 +141,12 @@ const DIVISIONS = (function () {
     // ceux qui descendent à la place des rivaux qui montent : les plus faibles d'en haut (rythme × niveau de l'écurie), jamais le partant
     const faibles = P.pilotes.filter(p => p !== partant).sort((a, b) => (a.rythme || 1) * P.ecuries[a.ecurie].niveau - (b.rythme || 1) * P.ecuries[b.ecurie].niveau || b.id - a.id);
     const vers = {};   // ancien indice → nouvel indice, pour ceux qui montent
-    vers[j.id] = partant.id;
-    montent.forEach((k, i) => { vers[k] = faibles[i].id; });
-    const kj = j.id;
+    const kj = j.id, dernier = P.pilotes.length - 1;
     echanger(A, kj, P, partant.id);
-    montent.forEach(k => echanger(A, k, P, vers[k]));
+    // le joueur reste la DERNIÈRE voiture (simulation.js : creerCourseIA, la voiture k = le pilote k, l'humain est la dernière)
+    if (j.id !== dernier) permuter(P, j.id, dernier);
+    vers[kj] = j.id;
+    montent.forEach((k, i) => { vers[k] = faibles[i].id; echanger(A, k, P, faibles[i].id); });
     // les compteurs par pilote (fiche : ch.rivaux ; le duel : ch.duel.carriere) : ceux des pilotes qui montent les suivent, le reste
     // reste avec le plateau d'en bas
     const suivre = (obj, reste) => { const neuf = Object.assign({}, reste || {}); for (const k of Object.keys(obj || {})) if (vers[k] !== undefined) { neuf[vers[k]] = obj[k]; delete obj[k]; } return neuf; };
