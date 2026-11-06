@@ -1,9 +1,12 @@
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><title>tests</title></head><body>
 <pre id="res"></pre>
 <script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));window.addEventListener('unhandledrejection',e=>__err.push('promesse : '+(e.reason&&e.reason.message||e.reason)));</script>
-<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits-officiels-a.js"></script><script src="../circuits-officiels-b.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../sensations.js"></script><script src="../manette.js"></script><script src="../son.js"></script><script src="../effets3d.js"></script><script src="../conseil.js"></script><script src="../qualite.js"></script><script src="../assistance.js"></script><script src="../mesure.js"></script><script src="../regie.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../decouverte.js"></script><script src="../pilote.js"></script><script src="../deux-joueurs.js"></script><script src="../tournoi.js"></script><script src="../casque.js"></script><script src="../decors-officiels.js"></script><script src="../decor-public.js"></script><script src="../photo.js"></script><script src="../cache-carte.js"></script><script src="../journal.js"></script><script src="../argent.js"></script><script src="../garage.js"></script><script src="../aileron.js"></script><script src="../carte2d.js"></script><script src="../saisons.js"></script><script src="../sponsors.js"></script><script src="../fiche.js"></script><script src="../interview.js"></script><script src="../carriere.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../meteo.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../resume.js"></script><script src="../messages.js"></script><script src="../commentaire.js"></script><script src="../decor.js"></script><script src="../stand3d.js"></script><script src="../fantome.js"></script><script src="../principal.js"></script>
+<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits-officiels-a.js"></script><script src="../circuits-officiels-b.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../sensations.js"></script><script src="../manette.js"></script><script src="../son.js"></script><script src="../effets3d.js"></script><script src="../conseil.js"></script><script src="../qualite.js"></script><script src="../assistance.js"></script><script src="../mesure.js"></script><script src="../regie.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../divisions.js"></script><script src="../decouverte.js"></script><script src="../pilote.js"></script><script src="../deux-joueurs.js"></script><script src="../tournoi.js"></script><script src="../casque.js"></script><script src="../decors-officiels.js"></script><script src="../decor-public.js"></script><script src="../photo.js"></script><script src="../cache-carte.js"></script><script src="../journal.js"></script><script src="../argent.js"></script><script src="../garage.js"></script><script src="../aileron.js"></script><script src="../carte2d.js"></script><script src="../saisons.js"></script><script src="../sponsors.js"></script><script src="../fiche.js"></script><script src="../interview.js"></script><script src="../carriere.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../meteo.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../resume.js"></script><script src="../messages.js"></script><script src="../commentaire.js"></script><script src="../decor.js"></script><script src="../stand3d.js"></script><script src="../fantome.js"></script><script src="../defi.js"></script><script src="../clavier.js"></script><script src="../principal.js"></script>
 <script>
 const L=[];let ok=0,ko=0;
+// (tour 49d-2) les championnats des tests sont en division 3 (le jeu d'avant : l'argent, le garage, les sponsors au bit près) ; les tests
+// des divisions remettent DIVISION_DEPART (4) le temps de leur essai
+const DIVISION_DEPART_JEU=REGLAGES.DIVISION_DEPART;REGLAGES.DIVISION_DEPART=3;
 function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
 const v=(c,m)=>{if(!c)throw new Error(m||'faux');};
 // le résultat s'écrit au fil de l'eau : si la page est coupée, #res montre jusqu'où elle est allée
@@ -685,6 +688,21 @@ t('pilote IA : coût de 20 pilotes en course × 120 pas, moins de 2 ms par pas e
   for(let k=0;k<120*5;k++) pasCourseIA(e,DT);   // ils roulent déjà
   const t0=performance.now();for(let k=0;k<120*3;k++) pasCourseIA(e,DT);const ms=(performance.now()-t0)/(120*3);
   L.push('  (20 pilotes en course, sur 3 s : '+ms.toFixed(3)+' ms par pas en moyenne, décisions, vision, physique et contacts compris)');v(ms<2,ms+' ms');});
+// la forme du jour (tour 49c, Codeur 3) : après la qualification, chaque IA garde de 1 − IA_FORME à 1 de son rythme, la plus en forme 1 ;
+// la grille, les styles et les caractères ne bougent pas ; une IA seule ne change pas ; à 0, rien (la course d'avant au bit près)
+t('forme du jour : la grille et les autres tirages identiques, la plus en forme garde son rythme, les autres entre 1 − IA_FORME et 1, une IA seule et IA_FORME = 0 inchangées', ()=>{
+  const R_=REGLAGES,f0=R_.IA_FORME;v(f0>0&&f0<=0.05,'IA_FORME '+f0);
+  const tirer=(nb,f)=>{R_.IA_FORME=f;try{return creerCourseIA(TQ,nb,5,7,CARTES_T.technique);}finally{R_.IA_FORME=f0;}};
+  const a=tirer(10,f0),b=tirer(10,0);
+  v(JSON.stringify(a.grille)===JSON.stringify(b.grille),'la grille a changé');
+  v(a.pilotes.every((p_,k)=>JSON.stringify(p_.pilote.style)===JSON.stringify(b.pilotes[k].pilote.style)&&JSON.stringify(p_.pilote.caractere)===JSON.stringify(b.pilotes[k].pilote.caractere)),'styles ou caractères changés');
+  const fo=a.pilotes.map(p_=>p_.forme);
+  v(fo.filter(x=>x===1).length===1&&fo.every(x=>x>=1-f0&&x<=1),'formes '+fo.join(' '));
+  v(a.pilotes.every((p_,k)=>p_.rythme===b.pilotes[k].rythme&&p_.pilote.rythme===p_.rythme*p_.forme&&b.pilotes[k].pilote.rythme===p_.rythme),'rythmes');
+  v(b.pilotes.every(p_=>p_.forme===undefined),'IA_FORME 0 : une forme posée');
+  const r1=a.pilotes.map(p_=>p_.pilote.rythme).join(',');donnerCarte(a,CARTES_T.technique);v(a.pilotes.map(p_=>p_.pilote.rythme).join(',')===r1,'deux fois appliquée');
+  const s1=tirer(1,f0),s0=tirer(1,0);v(s1.pilotes[0].pilote.rythme===s0.pilotes[0].pilote.rythme&&s1.pilotes[0].forme===1,'une IA seule');
+  L.push('  (forme du jour, graine 7, 10 IA : '+fo.map(x=>x.toFixed(4)).join(' ')+')');});
 // la façon de piloter : 10 IA, chacune seule sur le technique, 4 tours
 // tour 22 (décision du Chef) : le style déplace l'apex de ±IA_STYLE_APEX m, donc les lignes « apex tôt » et « apex tard » se
 // croisent près du sommet géométrique : mesuré pile à l'apex, l'écart-type peut être petit alors que les lignes diffèrent.
@@ -1811,7 +1829,7 @@ t('relève : les records de famille s’additionnent sur 3 générations de 15 s
 t('championnat : le niveau de l’écurie agit sur le rythme des IA (rythme × niveau, avant la carte) ; sur 6 Grands Prix simulés, les 5 écuries fortes marquent plus que les 5 faibles', ()=>{
   const R=REGLAGES,ch=CHAMPIONNAT.creer(11),circuits={test:C,technique:construireCircuit(CIRCUITS.technique)},t0=performance.now();
   for(let g=0;g<6;g++){const gp=ch.calendrier[ch.prochain],e=CHAMPIONNAT.simulerGrandPrix(ch,circuits[gp.circuit],1,200+g);
-    v(e.pilotes.slice(0,19).every((p,k)=>p.pilote&&Math.abs(p.rythme-p.rythmeBase*ch.ecuries[ch.pilotes[k].ecurie].niveau)<1e-9&&Math.abs(p.pilote.rythme-p.rythme)<1e-9),'rythme × niveau, GP '+(g+1));
+    v(e.pilotes.slice(0,19).every((p,k)=>p.pilote&&Math.abs(p.rythme-p.rythmeBase*ch.ecuries[ch.pilotes[k].ecurie].niveau)<1e-9&&Math.abs(p.pilote.rythme-p.rythme*(p.forme===undefined?1:p.forme))<1e-9),'rythme × niveau (× la forme du jour, tour 49c), GP '+(g+1));
     v(e.pilotes.every(p=>p.arrivee!==null),'pas tous arrivés : '+e.pilotes.map(p=>p.arrivee===null?'-':'✓').join(''));
     CHAMPIONNAT.enregistrerCourse(ch,CHAMPIONNAT.lignesDepuisCourse(e));}
   // par pilote IA (le joueur, conduit par le robot, est à part) : les 10 des écuries 1 à 5 contre les 9 des écuries 6 à 10
@@ -1903,6 +1921,73 @@ t('fantôme : un tour du robot enregistré puis compacté (nombres arrondis) et 
   v(nImages>=f.x.length-1,'images relues '+nImages+' / '+f.x.length);v(pireImage<0.02,'aux images : '+pireImage);v(pireEntre<0.3,'entre les images : '+pireEntre);
   v(pireEcart<0.01,'écart contre soi-même '+pireEcart);v(Math.abs(final)<0.001,'écart final '+final);
   v(FANTOME.taille(f)<60000,'taille '+FANTOME.taille(f));});
+// --- (tour 49b) les touches au choix (clavier.js), en calcul pur, et la conduite qui les lit (majCibles, DEUX_JOUEURS.cibles)
+t('touches au choix : celles de départ sont celles d’aujourd’hui (flèches et WASD/ZQSD, Espace, C, Échap ; à deux, TOUCHES_DEUX) ; une ancienne sauvegarde (sans touches, ou abîmées) les donne ; une touche changée remplace ; prise ou Échap : refusée, avec la commande qui l’a ; à deux, jamais la même touche pour les deux joueurs ; « Par défaut » remet tout', ()=>{
+  const d=CLAVIER.defaut();
+  v(d.seul.gaz.join()==='ArrowUp,KeyW'&&d.seul.frein.join()==='ArrowDown,KeyS'&&d.seul.remise.join()==='Space'&&d.seul.camera.join()==='KeyC'&&d.seul.pause.join()==='Escape'&&JSON.stringify(d.j1)===JSON.stringify({gaz:['KeyW'],frein:['KeyS'],gauche:['KeyA'],droite:['KeyD'],remise:['KeyE']})&&d.j2.remise.join()==='Enter,ShiftRight','départ '+JSON.stringify(d));
+  v(JSON.stringify(CLAVIER.completer(null))===JSON.stringify(d)&&JSON.stringify(CLAVIER.completer({seul:{gaz:'x',frein:[3]}}))===JSON.stringify(d),'ancienne');
+  const ancien=localStorage.getItem(SAUVEGARDE.CLE);
+  try{localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:4,records:{}}));v(SAUVEGARDE.lire().touches===null,'une sauvegarde d’avant : null');}finally{if(ancien===null)localStorage.removeItem(SAUVEGARDE.CLE);else localStorage.setItem(SAUVEGARDE.CLE,ancien);}
+  const t_=CLAVIER.defaut();v(CLAVIER.changer(t_,'seul','gaz','KeyI').ok&&t_.seul.gaz.join()==='KeyI','changée');
+  let r=CLAVIER.changer(t_,'seul','frein','KeyI');v(!r.ok&&r.raison==='prise'&&r.groupe==='seul'&&r.action==='gaz'&&t_.seul.frein.join()==='ArrowDown,KeyS','prise '+JSON.stringify(r));
+  r=CLAVIER.changer(t_,'seul','camera','Escape');v(!r.ok&&r.raison==='echap','Échap');
+  r=CLAVIER.changer(t_,'j1','gaz','ArrowUp');v(!r.ok&&r.groupe==='j2'&&r.action==='gaz','à deux '+JSON.stringify(r));
+  v(CLAVIER.changer(t_,'j1','gaz','KeyI').ok,'la course seule et l’écran partagé ne servent jamais ensemble');
+  v(CLAVIER.changer(t_,'seul','pause','KeyP').ok&&t_.seul.pause.join()==='Escape,KeyP','la pause garde Échap');
+  v(JSON.stringify(CLAVIER.completer(JSON.parse(JSON.stringify(t_))))===JSON.stringify(t_),'relue telle quelle');
+  v(!CLAVIER.auDepart(t_)&&CLAVIER.auDepart(CLAVIER.defaut()),'par défaut');
+  const av=JSON.stringify(REGLAGES.TOUCHES_DEUX),avT=JSON.stringify(TOUCHES);
+  try{Object.assign(TOUCHES,CLAVIER.appliquer(t_));
+    const essai=codes=>{enfoncees.clear();codes.forEach(c=>enfoncees.add(c));majCibles();return JEU.cibles.gaz;};
+    v(essai(['KeyI'])===1&&essai(['ArrowUp'])===0&&essai(['KeyW'])===0,'la course seule : I accélère, ↑ et W plus');
+    const i=new Set(['KeyI']),w=new Set(['KeyW']);v(DEUX_JOUEURS.cibles(i,1).gaz===1&&DEUX_JOUEURS.cibles(i,2).gaz===0&&DEUX_JOUEURS.cibles(w,1).gaz===0,'à deux : I pour le joueur 1 seulement');}
+  finally{Object.assign(TOUCHES,CLAVIER.appliquer(CLAVIER.defaut()));enfoncees.clear();majCibles();}
+  v(JSON.stringify(REGLAGES.TOUCHES_DEUX)===av&&JSON.stringify(TOUCHES)===avT,'remis');});
+// --- (tour 49b) le défi du fantôme entre amis (defi.js) : le tour codé dans un texte à copier, sans serveur
+// un tour du robot sur un circuit (comme tourFantome) ; rejeu : un fantôme à suivre (l'écart en direct, contre soi-même)
+function tourDefi(circ,rejeu){const vo=creerVoiture(circ,0),q=QUALIFICATION.creer(circ,vo);q.course.compte=0;const tour=FANTOME.commencer();let pire=0;
+  rouler(vo,circ,400,v_=>piloteRobot(v_,circ),(v_,i)=>{const finiAvant=q.fini,fini=QUALIFICATION.pas(q,v_,DT);
+    if(q.lance&&!finiAvant){const t_=fini?q.temps:QUALIFICATION.chrono(q),s_=fini?q.fin:QUALIFICATION.distance(q);FANTOME.noter(tour,t_,v_,s_);if(rejeu&&!fini)pire=Math.max(pire,Math.abs(FANTOME.ecart(rejeu,t_,s_)));}
+    if(fini) return false;});
+  return {q,f:FANTOME.compacter(tour,q.temps,q.fin),pire};}
+const CASQUE_T={motif:'eclair',couleurs:[0xff0000,0xffffff,0x0000ff]};
+let DEFI_T=null;
+t('défi : un tour codé puis décodé est le même fantôme au bit près (repasse aux mêmes positions) ; le nom, le casque, l’aileron et les aides suivent ; le circuit et le temps sont en clair (« GPD-TECHNIQUE-1:0… ») ; le défi joué contre soi-même donne un écart de 0', ()=>{
+  const a=tourDefi(TQ);v(a.q.fini&&a.q.valide,'tour');DEFI_T=a;
+  const code=DEFI.coder({circuit:'technique',fantome:a.f,nom:'Léa',casque:CASQUE_T,aileron:3,aides:['freinage']});
+  v(/^GPD-TECHNIQUE-\d+:\d\d\.\d{3}-1-[A-Za-z0-9_.]+-[0-9a-z]+$/.test(code),'forme '+code.slice(0,40));
+  const d=DEFI.decoder(code,TQ.longueur);v(d.ok,'refusé : '+d.raison);
+  v(JSON.stringify(d.defi.fantome)===JSON.stringify(a.f),'fantôme différent');
+  const r1=FANTOME.charger(a.f),r2=FANTOME.charger(d.defi.fantome);for(let t_=0;t_<a.f.temps;t_+=0.037){const p1=FANTOME.position(r1,t_),p2=FANTOME.position(r2,t_);v(p1.x===p2.x&&p1.z===p2.z&&p1.cap===p2.cap,'position à '+t_);}
+  v(d.defi.circuit==='technique'&&d.defi.nom==='Léa'&&JSON.stringify(d.defi.casque)===JSON.stringify(CASQUE_T)&&d.defi.aileron===3&&d.defi.aides.join()==='freinage'&&d.defi.temps===a.f.temps,'méta '+JSON.stringify([d.defi.nom,d.defi.aileron,d.defi.aides]));
+  const b=tourDefi(TQ,FANTOME.charger(d.defi.fantome)),fin=DEFI.ecart(d.defi,b.q.temps);
+  L.push('  (défi : technique, tour du robot '+a.q.temps.toFixed(3)+' s, code de '+code.length+' caractères ; contre soi-même : écart en direct au plus '+(b.pire*1000).toFixed(2)+' ms, final '+fin.toFixed(4)+' s)');
+  // (l'écart en direct vient de l'interpolation du fantôme entre ses images, 0,1 s : le même avec le fantôme d'origine, au bit près ; le code n'y ajoute rien)
+  const o=tourDefi(TQ,FANTOME.charger(a.f));v(o.pire===b.pire,'décodé '+b.pire+' / origine '+o.pire);
+  v(b.pire<0.05&&Math.abs(fin)<0.0005,'contre soi-même '+b.pire+' / '+fin);});
+t('défi : un code abîmé d’un seul caractère est refusé (à 300 places, en-tête compris) ; d’une autre version, refusé (« version ») ; vide, sans forme, d’un circuit inconnu : refusé proprement, sans erreur', ()=>{
+  const code=DEFI.coder({circuit:'technique',fantome:DEFI_T.f,nom:null,casque:null,aileron:null,aides:[]}),S='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_.';let n=0;
+  for(let k=0;k<300;k++){const i=Math.floor(k*(code.length-1)/299),c=code[i],r=c===S[0]?S[1]:c==='-'?'A':(c>='0'&&c<='9')?String((+c+1)%10):S[(S.indexOf(c)+1)%64]||'x';
+    const x=code.slice(0,i)+r+code.slice(i+1),d=DEFI.decoder(x,TQ.longueur);v(!d.ok,'accepté abîmé en '+i+' : '+c+' → '+r);n++;}
+  const p=code.split('-');p[3]='2';v(DEFI.decoder(p.join('-')).raison==='version','version');
+  v(DEFI.decoder('').raison==='vide'&&DEFI.decoder('bonjour').raison==='format'&&DEFI.decoder(null).raison==='vide','vide, forme');
+  const q=code.split('-');q[1]='NULLEPART';const corps=q.slice(0,5).join('-');v(DEFI.decoder(corps+'-'+DEFI.somme(corps)).raison==='circuit','circuit');
+  v(DEFI.decoder('  '+code.slice(0,50)+'\n'+code.slice(50)+' ',TQ.longueur).ok,'les espaces et retours à la ligne collés avec le code sont ignorés');});
+t('défi : un code trafiqué avec une bonne somme mais un tour impossible est refusé (« impossible ») : un temps plus court que ses images, une image qui saute de 50 m, une distance qui n’est pas la longueur du circuit', ()=>{
+  const f=DEFI_T.f,copie=()=>JSON.parse(JSON.stringify(f)),essai=g=>DEFI.decoder(DEFI.coder({circuit:'technique',fantome:g}),TQ.longueur).raison;
+  let g=copie();g.temps=Math.round((f.temps-3)*1000)/1000;v(essai(g)==='impossible','temps plus court : '+essai(g));
+  g=copie();g.x[50]=Math.round((g.x[50]+50)*100)/100;v(essai(g)==='impossible','saut : '+essai(g));
+  g=copie();g.fin=Math.round(f.fin*0.8*100)/100;g.s=g.s.map(x=>Math.min(x,g.fin));v(essai(g)==='impossible','distance : '+essai(g));
+  v(DEFI.decoder(DEFI.coder({circuit:'technique',fantome:f}),TQ.longueur).ok,'le vrai passe');});
+t('défi : le code du plus long tracé (Spaa, un tour du robot) tient sous DEFI_LONGUEUR_MAX (30 000 caractères)', ()=>{
+  const SP=construireCircuit(CIRCUITS.spaa),a=tourDefi(SP);v(a.q.fini&&a.q.valide,'tour Spaa');
+  const code=DEFI.coder({circuit:'spaa',fantome:a.f,nom:'Un nom assez long pour voir',casque:CASQUE_T,aileron:0,aides:['direction','freinage','antiblocage','antipatinage']});
+  L.push('  (défi : Spaa, tour du robot '+a.q.temps.toFixed(2)+' s, '+a.f.x.length+' images, code de '+code.length+' caractères)');
+  v(code.length<REGLAGES.DEFI_LONGUEUR_MAX&&DEFI.decoder(code,SP.longueur).ok,'longueur '+code.length);});
+t('défi : la liste des défis reçus (sauvegarde) : un défi reçu deux fois n’est gardé qu’une fois, son meilleur écart reste le meilleur, DEFI_LISTE_MAX au plus', ()=>{
+  let l=[];const d={id:'a1',circuit:'spaa',temps:120.5,nom:'Léa'};l=DEFI.recevoir(l,d);DEFI.noterResultat(l,'a1',0.45);DEFI.noterResultat(l,'a1',-0.3124);DEFI.noterResultat(l,'a1',0.2);
+  l=DEFI.recevoir(l,d);v(l.length===1&&l[0].meilleur===-0.312,'meilleur '+JSON.stringify(l));
+  for(let i=0;i<REGLAGES.DEFI_LISTE_MAX+5;i++) l=DEFI.recevoir(l,{id:'x'+i,circuit:'test',temps:60,nom:null});v(l.length===REGLAGES.DEFI_LISTE_MAX&&l[l.length-1].id==='x'+(REGLAGES.DEFI_LISTE_MAX+4),'plafond '+l.length);});
 t('fantôme : contre un tour plus lent (robot plus prudent en virage), l’écart en direct est positif après le premier virage et grandit ; l’écart final = la différence des temps ; un tour plus lent ne remplace pas le record, un tour coupé jamais, un meilleur temps oui, le premier tour valide aussi', ()=>{
   const f=FANTOME_F,rejeu=FANTOME.charger(f),b=tourFantome(0.7);v(b.q.fini&&b.q.valide&&b.q.temps>f.temps+1,'tour prudent '+b.q.temps+' / '+f.temps);
   const ecarts=b.pts.map(p=>FANTOME.ecart(rejeu,p.t,p.s));const milieu=ecarts[Math.floor(ecarts.length/2)],fin=ecarts[ecarts.length-1];
@@ -3061,6 +3146,60 @@ t('commentateur du résumé vidéo : une phrase par moment fort (départ, dépas
   let avant=null,deux=false;for(let i=0;i<20;i++){const it=COMMENTAIRE.momentResume(c,{type:'depassement',qui:1,sur:2,place:3},0,'');const k=it.type+':'+it.variante;if(k===avant)deux=true;avant=k;}v(!deux,'jamais deux fois de suite');
   const mode=R.COMMENTAIRE_MODE;try{R.COMMENTAIRE_MODE='non';v(COMMENTAIRE.momentResume(c,{type:'depart',qui:1},0,'')===null,'coupé');
     R.COMMENTAIRE_MODE='joueur';v(COMMENTAIRE.momentResume(c,{type:'depassement',qui:1,sur:2},0,'')===null&&COMMENTAIRE.momentResume(c,{type:'sortie',qui:0},0,'')!==null&&COMMENTAIRE.momentResume(c,{type:'arrivee',qui:4},0,'')!==null,'tes faits');}finally{R.COMMENTAIRE_MODE=mode;}});
+
+// --- (tour 49d, Codeur 4) les divisions (divisions.js) : une carrière neuve en division 4 ; une vieille sauvegarde rangée en division 3
+// (le jeu d'avant) sans rien perdre ; la montée dans les DIVISION_MONTEE_PLACE premiers, jamais de descente ; le niveau des IA et la
+// force des voitures changent d'une division à l'autre (la division 3 : les mêmes nombres au bit près)
+t('divisions : une carrière neuve en division 4, une vieille sauvegarde en division 3 sans rien perdre ; la montée dans les 3 premiers, jamais de descente', ()=>{
+  const R=REGLAGES;R.DIVISION_DEPART=DIVISION_DEPART_JEU;let ch;try{ch=CHAMPIONNAT.creer(3);}finally{R.DIVISION_DEPART=3;}v(DIVISIONS.de(ch)===DIVISION_DEPART_JEU&&DIVISION_DEPART_JEU===4,'carrière neuve : '+ch.division);
+  const vieille=JSON.parse(JSON.stringify(ch));delete vieille.division;vieille.pilotes[19].stats.points=42;vieille.argent=vieille.argent||{};
+  const avant=JSON.stringify(vieille),apres=CHAMPIONNAT.completer(JSON.parse(avant));
+  v(apres.division===R.DIVISION_VIEILLE&&R.DIVISION_VIEILLE===3,'vieille sauvegarde : '+apres.division);
+  const sans=JSON.parse(JSON.stringify(apres));delete sans.division;v(JSON.stringify(CHAMPIONNAT.completer(JSON.parse(avant)),(k,x)=>k==='division'?undefined:x)===JSON.stringify(sans),'rien d’autre ne change');
+  v(apres.pilotes[19].stats.points===42,'les points gardés');
+  const essai=(div,place)=>{const c={division:div},e={};const r=DIVISIONS.finSaison(c,e,place);return [c.division,e.division,e.montee===undefined?null:e.montee,r];};
+  v(JSON.stringify(essai(4,1))==='[3,4,3,3]','champion en division 4 : '+essai(4,1));
+  v(JSON.stringify(essai(4,3))==='[3,4,3,3]','3e : monte');
+  v(JSON.stringify(essai(4,4))==='[4,4,null,null]','4e : reste');
+  v(JSON.stringify(essai(2,20))==='[2,2,null,null]','dernier : ne descend jamais');
+  v(JSON.stringify(essai(1,1))==='[1,1,null,null]','division 1 : le sommet');
+  const act=R.DIVISIONS_ACTIVES;try{R.DIVISIONS_ACTIVES=false;v(JSON.stringify(essai(4,1))==='[4,4,null,null]','coupées : rien');}finally{R.DIVISIONS_ACTIVES=act;}
+  if(typeof SAISONS!=='undefined'){const c=CHAMPIONNAT.creer(5);c.division=4;SAISONS.avancer(c,99);SAISONS.terminerSaison(c);const b=SAISONS.bilan(c);v(c.division===(b.joueurPlace<=3?3:4),'fin de saison (saisons.js) : P'+b.joueurPlace+' → division '+c.division);}
+  ['divisionMontee','divisionSommet','divisionResteSaison','divisionNom'].forEach(k=>v(TEXTES.fr[k]&&TEXTES.en[k],'texte '+k));});
+t('divisions : le niveau des IA et la force de toutes les voitures (débutant et lentes en 4 … légende et surpuissantes en 1) ; la division 3 = le jeu d’avant au bit près ; la carte des IA est recalculée avec', ()=>{
+  const R=REGLAGES,B=Object.assign({},DIVISIONS.BASE),vmax=()=>{const vo=creerVoiture(null);rouler(vo,null,40,{gaz:1,frein:0,direction:0});return vo.u*KMH;};
+  try{
+    const n={},vit={},cles={};
+    for(const d of [4,3,2,1]){DIVISIONS.appliquer(d);n[d]=R.NIVEAU;vit[d]=vmax();cles[d]=CACHE_CARTE.cle('technique',CIRCUITS.technique);}
+    v(n[4]==='debutant'&&n[3]==='normal'&&n[2]==='expert'&&n[1]==='legende','niveaux : '+JSON.stringify(n));
+    v(vit[4]<vit[3]&&vit[3]<vit[2]&&vit[2]<vit[1],'vitesse max : '+JSON.stringify(Object.fromEntries(Object.entries(vit).map(([k,x])=>[k,x.toFixed(1)]))));
+    DIVISIONS.appliquer(3);v(R.PUISSANCE===B.PUISSANCE&&R.FORCE_MOTEUR_MAX===B.FORCE_MOTEUR_MAX&&R.ADHERENCE===B.ADHERENCE&&R.NIVEAU==='normal','division 3 : les réglages de base');
+    v(new Set(Object.values(cles)).size===4,'une carte des IA par division (la clé du cache change)');
+    L.push('  (divisions, vitesse max : '+[4,3,2,1].map(d=>'D'+d+' '+vit[d].toFixed(0)+' km/h').join(', ')+')');
+  }finally{DIVISIONS.retablir();}
+  v(R.PUISSANCE===B.PUISSANCE&&R.NIVEAU===B.NIVEAU,'rétablis');});
+t('divisions : les gains, les sponsors et les prix du garage grandissent avec la division (D4 le plus bas, D3 = le jeu d’avant au bit près)', ()=>{
+  const R=REGLAGES,mk=d=>{const c=CHAMPIONNAT.creer(9);c.division=d;return c;},j=19;
+  const lignes=c=>{const o=c.pilotes.map(p=>p.id).filter(k=>k!==j);o.splice(2,0,j);return o.map((k,i)=>({k,place:i+1,grille:i+1,ligne:i+1,penalites:0,meilleurTour:k===j?59:60+i,classe:true}));};
+  const g={},px={},sp={};for(const d of [4,3,2,1]){const c=mk(d);g[d]=ARGENT.gains(c,lignes(c)).total;px[d]=GARAGE.prix(c,'moteur');const o=SPONSORS.offres(c);sp[d]=o.length?o[0].montant:0;}
+  v(g[4]<g[3]&&g[3]<g[2]&&g[2]<g[1],'gains d’une 3e place : '+JSON.stringify(g));
+  v(px[4]<px[3]&&px[3]<px[2]&&px[2]<px[1]&&px[3]===R.GARAGE.moteur.prix[0],'prix du moteur : '+JSON.stringify(px));
+  v(sp[4]<sp[3]&&sp[3]<sp[2]&&sp[2]<sp[1],'sponsor : '+JSON.stringify(sp));
+  const c3=mk(3),vieille=CHAMPIONNAT.creer(9);delete vieille.division;CHAMPIONNAT.completer(vieille);
+  v(JSON.stringify(ARGENT.gains(c3,lignes(c3)))===JSON.stringify(ARGENT.gains(vieille,lignes(vieille)))&&JSON.stringify(SPONSORS.offres(c3))===JSON.stringify(SPONSORS.offres(vieille)),'D3 = une sauvegarde d’avant');
+  v([4,2,1].every(d=>g[d]%100===0&&px[d]%100===0&&sp[d]%100===0),'arrondis à 100 €');
+  const act=R.DIVISIONS_ACTIVES;try{R.DIVISIONS_ACTIVES=false;const c=mk(1);v(ARGENT.gains(c,lignes(c)).total===g[3]&&GARAGE.prix(c,'moteur')===px[3],'divisions coupées : le jeu d’avant');}finally{R.DIVISIONS_ACTIVES=act;}
+  L.push('  (divisions, 3e place : '+[4,3,2,1].map(d=>'D'+d+' '+g[d]+' €').join(', ')+' ; moteur niveau 1 : '+[4,3,2,1].map(d=>px[d]).join(' / ')+' €)');});
+t('divisions : une course entre IA en division 4 et en division 1 sur le technique (la carte calculée pour chaque division) : tout le monde finit, la division 1 tourne plus vite que la 4', ()=>{
+  const R=REGLAGES,res={};
+  try{
+    for(const d of [4,1]){DIVISIONS.appliquer(d);const carte=carteDepuis(TQ,calculerTrajectoire(TQ)),e=creerCourseIA(TQ,4,1,11,carte);for(const p_ of e.pilotes) p_.course.compte=0;
+      for(let k=0;k<120*400&&e.pilotes.some(p_=>p_.arrivee===null);k++)pasCourseIA(e,DT);
+      const best=Math.min(...e.pilotes.map(p_=>p_.course.meilleurTour||Infinity));res[d]={finis:e.pilotes.filter(p_=>p_.arrivee!==null).length,n:e.pilotes.length,best};}
+  }finally{DIVISIONS.retablir();}
+  v(res[4].finis===res[4].n&&res[1].finis===res[1].n,'arrivés : '+JSON.stringify(res));
+  v(res[1].best<res[4].best,'meilleur tour : D1 '+res[1].best.toFixed(2)+' s, D4 '+res[4].best.toFixed(2)+' s');
+  L.push('  (divisions, meilleur tour IA sur le technique : D4 '+res[4].best.toFixed(2)+' s, D1 '+res[1].best.toFixed(2)+' s)');});
 
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 ecrire();

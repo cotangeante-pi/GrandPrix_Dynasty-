@@ -453,6 +453,9 @@ const REGLAGES = {
   DECOUVERTE_ARGENT_MAX: 1000,  // … et son plafond
   // le mode 2 joueurs (deux-joueurs.js, CLAUDE.md « Le mode 2 joueurs (écran partagé) ») : ?deux=1 ; les touches par leur place
   // sur le clavier (e.code : W A S D = Z Q S D en AZERTY) ; Échap met en pause pour les deux ; Espace et C ne font rien
+  // (tour 49b) les touches au choix (clavier.js) : celles de départ de la course seule (par e.code, la place de la touche : ZQSD en AZERTY
+  // = WASD en QWERTY) ; Échap ouvre toujours la pause, quoi qu'on choisisse, et ne peut pas servir à autre chose
+  TOUCHES_SEUL: { gaz: ['ArrowUp', 'KeyW'], frein: ['ArrowDown', 'KeyS'], gauche: ['ArrowLeft', 'KeyA'], droite: ['ArrowRight', 'KeyD'], remise: ['Space'], camera: ['KeyC'], pause: ['Escape'] },
   TOUCHES_DEUX: {
     1: { gaz: ['KeyW'], frein: ['KeyS'], gauche: ['KeyA'], droite: ['KeyD'], remise: ['KeyE'] },
     2: { gaz: ['ArrowUp'], frein: ['ArrowDown'], gauche: ['ArrowLeft'], droite: ['ArrowRight'], remise: ['Enter', 'ShiftRight'] },
@@ -801,6 +804,23 @@ const REGLAGES = {
   // pilotes : rythme ajouté au rythme tiré (jamais au-dessus de 1 : au-delà, il dépasserait l'adhérence de la carte,
   // donc les niveaux durs ne gagnent pas en rythme, ils font moins d'erreurs et attaquent plus), erreurs : le taux
   // multiplié, agressivite ajoutée (bornée entre 0 et 1), regularite multipliée
+  // les divisions (CLAUDE.md « Les divisions (4, 3, 2, 1) », tour 49d ; choix du Chef, réversibles) : en carrière, la division donne le
+  // niveau des IA (NIVEAUX) et la force de TOUTES les voitures, joueur compris (× PUISSANCE et FORCE_MOTEUR_MAX, × ADHERENCE : la
+  // carte des IA est calculée avec, donc elles en profitent autant que le joueur). La division 3 = le jeu d'avant (une vieille
+  // sauvegarde y est rangée sans rien perdre). DIVISIONS_ACTIVES false : la carrière comme avant (niveau normal, voitures de base)
+  DIVISIONS_ACTIVES: true,
+  DIVISIONS: {
+    4: { niveau: 'debutant', puissance: 0.85, adherence: 0.98, argent: 0.6, garage: 0.6 },   // bots débutants, voitures lentes
+    3: { niveau: 'normal', puissance: 1, adherence: 1, argent: 1, garage: 1 },           // bots moyens, voitures moyennes (le jeu d'avant)
+    2: { niveau: 'expert', puissance: 1.07, adherence: 1.01, argent: 1.5, garage: 1.5 },     // bots forts, voitures fortes
+    1: { niveau: 'legende', puissance: 1.14, adherence: 1.03, argent: 2.2, garage: 2.2 },    // bots légendaires, voitures surpuissantes
+  },
+  // (tour 49d-2) argent : × les gains d'un Grand Prix (place, meilleur tour, places gagnées, duel, le plafond) et les sponsors (montant
+  // de la saison, primes des objectifs) ; garage : × les prix du garage ; arrondis à 100 € (× 1 en division 3 : les mêmes nombres)
+  DIVISION_DEPART: 4,           // une carrière neuve commence ici
+  DIVISION_VIEILLE: 3,          // une sauvegarde d'avant les divisions (le niveau normal, les voitures de base) est rangée ici
+  DIVISION_MONTEE_PLACE: 3,     // on monte d'une division en finissant dans les DIVISION_MONTEE_PLACE premiers du championnat pilotes
+  DIVISION_DESCENTE: false,     // on ne descend jamais (le jeu reste agréable pour un enfant)
   NIVEAU: 'normal',             // le niveau en cours (?niveau=…, principal.js) ; normal = les réglages tels quels
   NIVEAUX: {
     debutant: { rythme: -0.05, erreurs: 2, agressivite: -0.3, regularite: 1.5, gestionPneus: -0.2, bataille: 0, technique: 0.1 },
@@ -836,6 +856,12 @@ const REGLAGES = {
   FANTOME_COULEUR: 0xdfe3ea,    // une couleur neutre, claire…
   FANTOME_OPACITE: 0.55,        // … et légèrement transparente (toute la voiture d'une seule couleur, sans ses pièces sombres : on le reconnaît comme un fantôme)
   FANTOME_PIXELS_MIN: 400,      // tests : au moins ce nombre de pixels changent dans la moitié basse de l'image quand le fantôme est caché (il est visible)
+  // le défi du fantôme entre amis (defi.js, tour 49b) : un code à copier qui contient le tour (le fantôme), sans serveur
+  DEFI_VERSION: 1,              // la version du code : un code d'une autre version est refusé proprement
+  DEFI_LONGUEUR_MAX: 30000,     // caractères au plus (le plus long tracé tient dessous : test)
+  DEFI_VITESSE_MAX: 120,        // m/s : entre deux images du tour, plus vite que ça est impossible (un code trafiqué)
+  DEFI_DISTANCE_TOLERANCE: 0.05, // la distance du tour enregistré : la longueur du circuit à 5 % près
+  DEFI_LISTE_MAX: 20,           // les défis reçus gardés dans la sauvegarde (le plus ancien part)
   // le podium 3D (podium3d.js)
   PODIUM_DISTANCE: 30,          // m : à cette distance du bord gauche de la piste, en face de la ligne
   PODIUM_LARGEUR: 6.5,          // m : la largeur d'une marche…
@@ -849,6 +875,11 @@ const REGLAGES = {
   CLASSEMENT_PAS: 2,            // m : pour les écarts du classement, on note quand chaque voiture passe tous les 2 m
   GRAINE_STYLES: 1000,          // les façons de piloter sont tirées avec la graine de la course + ce nombre
   GRAINE_CARACTERE: 3000,       // … et le caractère des pilotes avec la graine + ce nombre
+  // la forme du jour (tour 49c, parti du tour 47a) : après la qualification, le rythme de course de chaque IA × (1 − IA_FORME × (son tirage −
+  // le plus petit tirage)) ; le pilote le plus en forme garde son rythme (une IA seule ne change pas). Le poleman n'est plus toujours le plus
+  // rapide en course, comme en vraie F1. 0 = la course d'avant au bit près
+  IA_FORME: 0.02,
+  GRAINE_FORME: 17000,          // … tirée avec la graine de la course + ce nombre (les autres tirages ne bougent pas)
   GRAINE_QUALIF: 2000,          // … et la qualification avec la graine + ce nombre
   GRAINE_TECHNIQUE: 16000,      // … et son goût pour les techniques selon le virage (IA_STYLE_TECHNIQUE) avec la graine + ce nombre
   GRAINE_QUALIF_TRAIT: 15000,   // … et le niveau en qualifications de chaque IA (IA_CARACTERE.qualif) avec la graine + ce nombre

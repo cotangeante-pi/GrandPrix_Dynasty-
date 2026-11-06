@@ -36,10 +36,11 @@ const SPONSORS = (function () {
     let choix = possibles.slice(0, maxi);
     if (choix.length < mini) for (const s of R.SPONSORS.slice().sort((a, b) => a.exigence - b.exigence)) { if (choix.length >= mini) break; if (!choix.includes(s)) choix.push(s); }
     const j = joueur(ch), coeur = typeof j.coeur === 'string' ? j.coeur : null;
+    const ech = x => typeof DIVISIONS !== 'undefined' ? DIVISIONS.echelle(x, ch, 'argent') : x;   // (tour 49d-2) × la division
     const resultat = choix.map(s => {
-      const objectifs = s.objectifs.map(o => Object.assign({}, o, o.type === 'top5Circuit' ? { circuit: circuitObjectif(ch) } : {}));
-      if (coeur) objectifs.push({ type: 'domicile', n: 1, prime: Math.min(R.SPONSOR_DOMICILE_PRIME, R.SPONSOR_DOMICILE_PLAFOND), circuit: coeur });
-      return { cle: s.cle, montant: Math.round(s.montant * (1 + reputation)), exigence: s.exigence, objectifs };
+      const objectifs = s.objectifs.map(o => Object.assign({}, o, o.type === 'top5Circuit' ? { circuit: circuitObjectif(ch) } : {}, { prime: ech(o.prime) }));
+      if (coeur) objectifs.push({ type: 'domicile', n: 1, prime: ech(Math.min(R.SPONSOR_DOMICILE_PRIME, R.SPONSOR_DOMICILE_PLAFOND)), circuit: coeur });
+      return { cle: s.cle, montant: ech(Math.round(s.montant * (1 + reputation))), exigence: s.exigence, objectifs };
     }).sort((a, b) => b.montant - a.montant);
     ALEATOIRE.semer();
     return resultat;

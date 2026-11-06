@@ -7,7 +7,7 @@ if (PARAMETRES.get('drift') === '1') REGLAGES.PNEU_DRIFT = true;   // (tour 48b,
 // Les paramètres ?course=, ?ia=, ?camera=, ?seul=1 (l'écran de choix d'une course seule), ?joueur=1 et ?championnat=1 restent
 // les chemins des tests et du développement. (La page de test charge ce fichier sans scène : rien n'est décidé ni sauvegardé)
 const EST_PAGE = !!document.getElementById('scene3d');
-const PAGE_NUE = !['course', 'ia', 'camera', 'seul', 'joueur', 'championnat', 'deux', 'tournoi'].some(k => PARAMETRES.has(k));
+const PAGE_NUE = !['course', 'ia', 'camera', 'seul', 'joueur', 'championnat', 'deux', 'tournoi', 'defi'].some(k => PARAMETRES.has(k));
 const DECOUVERTE_EN_COURS = EST_PAGE && PAGE_NUE && !SAUVEGARDE.decouverteFaite();
 if (DECOUVERTE_EN_COURS) REGLAGES.NIVEAU = REGLAGES.DECOUVERTE_NIVEAU;   // les IA de la découverte sont au niveau débutant
 // ?championnat=1 (ou la page nue après la découverte) : le championnat sauvegardé, ou un nouveau ; son prochain Grand Prix choisit le circuit de la page
@@ -21,10 +21,18 @@ if (DEUX_SAUVE) for (const [k, v] of [['circuit', DEUX_SAUVE.circuit], ['ia', DE
 // ?tournoi=1 : le tournoi chrono en cours (tournoi.js, sauvegardé à part de la carrière) ; le circuit est celui de sa manche en cours
 const TOURNOI_SAUVE = EST_PAGE && PARAMETRES.get('tournoi') === '1' ? (s => s && s.enCours && Array.isArray(s.enCours.passages) && s.enCours.joueurs && s.enCours.joueurs.length ? s.enCours : null)(SAUVEGARDE.tournoi()) : null;
 if (TOURNOI_SAUVE && !PARAMETRES.has('circuit')) PARAMETRES.set('circuit', TOURNOI_SAUVE.circuits[TOURNOI_SAUVE.manche]);
+// ?defi=1 : le défi du fantôme en cours (defi.js, tour 49b) : le code collé par le joueur, gardé dans la sauvegarde (defis.enCours,
+// vérifié au collage) ; le circuit de la page est celui du défi
+const DEFI_SAUVE = EST_PAGE && PARAMETRES.get('defi') === '1' ? (r => r.ok ? r.defi : null)(DEFI.decoder(SAUVEGARDE.defis().enCours)) : null;
+if (DEFI_SAUVE) PARAMETRES.set('circuit', DEFI_SAUVE.circuit);
 const NOM_CIRCUIT = DECOUVERTE_EN_COURS ? REGLAGES.DECOUVERTE_CIRCUIT
   : CHAMPIONNAT_EN_COURS && CHAMPIONNAT_EN_COURS.prochain < CHAMPIONNAT_EN_COURS.calendrier.length ? CHAMPIONNAT_EN_COURS.calendrier[CHAMPIONNAT_EN_COURS.prochain].circuit
   : Object.prototype.hasOwnProperty.call(CIRCUITS, PARAMETRES.get('circuit')) ? PARAMETRES.get('circuit') : 'test';
 const CIRCUIT = NOM_CIRCUIT === 'test' ? CIRCUIT_TEST : construireCircuit(CIRCUITS[NOM_CIRCUIT]);
+// (tour 49d) la carrière : sa division donne le niveau des IA et la force de toutes les voitures (divisions.js), avant la carte et la course
+if (CHAMPIONNAT_EN_COURS && typeof DIVISIONS !== 'undefined') DIVISIONS.appliquer(DIVISIONS.de(CHAMPIONNAT_EN_COURS));
+// ?division=1|2|3|4 (essais du propriétaire, tests) : cette division pour la page seulement, en carrière ou en course rapide (rien n'est sauvegardé)
+if (typeof DIVISIONS !== 'undefined' && ['1', '2', '3', '4'].includes(PARAMETRES.get('division'))) DIVISIONS.appliquer(Number(PARAMETRES.get('division')));
 // ?niveau=debutant|normal|expert|legende : le niveau de difficulté des IA (normal par défaut)
 if (Object.prototype.hasOwnProperty.call(REGLAGES.NIVEAUX, PARAMETRES.get('niveau'))) REGLAGES.NIVEAU = PARAMETRES.get('niveau');
 // ?deux=1 : le mode 2 joueurs (deux-joueurs.js, CLAUDE.md « Le mode 2 joueurs ») : &ia=0|3|5 IA, &tours=3|5, &niveau=… ; un mode à part de
@@ -215,7 +223,7 @@ function finirFantome(q) {
   const compact = FANTOME.compacter(f.tour, q.temps, q.fin);
   const record = SAUVEGARDE.proposerFantome(NOM_CIRCUIT, compact, !q.valide);
   const ecart = f.rejeu ? FANTOME.ecartFinal(f.rejeu, q.temps) : null;
-  return { record, gagne: record && ecart !== null ? -ecart : null, ecart: !record && ecart !== null ? ecart : null, taille: FANTOME.taille(compact) };
+  return { record, gagne: record && ecart !== null ? -ecart : null, ecart: !record && ecart !== null ? ecart : null, taille: FANTOME.taille(compact), compact: q.valide ? compact : null };   // (compact : le tour, pour « 📋 Défier un ami », tour 49b)
 }
 
 // le bouton « Fantôme : affiché / masqué » : l'option est sauvegardée, et le fantôme en cours la suit
@@ -256,6 +264,7 @@ function pasTourQualif(pas) {
   pasVoiture(v, CIRCUIT, pas);
   const finiAvant = q.fini, fini = QUALIFICATION.pas(q, v, pas);
   if (q.lance && !finiAvant) noterFantome(q, v, fini);   // le fantôme : le tour lancé, jusqu'au pas de l'arrivée
+  if (fini && JEU.defi) { finirTourDefi(q, false); return; }   // le défi du fantôme (tour 49b) : son résultat, jamais le fantôme de carrière
   if (fini && JEU.tournoi) { finirTourTournoi(q, false); return; }   // le tournoi chrono : son classement, jamais le fantôme de carrière
   if (fini) { JEU.qualif.fantome = finirFantome(q); finirQualif(); }
 }
@@ -339,11 +348,94 @@ function finirTourTournoi(q, abandon) {
   if (j === null) return;
   const avant = TOURNOI.classementManche(t, t.manche), recordAvant = avant.length && avant[0].temps !== null ? avant[0].temps : null;
   if (!abandon && f) JEU.tournoiFantomes[j] = FANTOME.compacter(f.tour, q.tour, q.fin);
+  // (tour 49b) « 📋 Défier un ami » sous le classement de la manche : le tour qui vient d'être fait, s'il est propre (sans virage coupé :
+  // le code garde le temps du tour, sans pénalité), signé du prénom et du casque du joueur, avec ses aides
+  const aidesJ = aidesDe(null);
+  JEU.tournoiDefi = !abandon && f && q.valide && !q.penalites ? { circuit: NOM_CIRCUIT, fantome: JEU.tournoiFantomes[j], nom: t.joueurs[j].prenom || null, casque: t.joueurs[j].casque || null, aileron: null, aides: aidesJ ? ASSISTANCE.AIDES.filter(a => aidesJ[a]) : [] } : null;
   TOURNOI.enregistrer(t, j, abandon ? { abandon: true } : { tour: q.tour, penalites: q.penalites });
   JEU.fantome = null;
   JEU.qualif = null;
   sauverTournoi();
   montrerMancheTournoi(j, recordAvant);
+}
+
+// --- le défi du fantôme entre amis (defi.js, tour 49b, CLAUDE.md « Le défi du fantôme entre amis ») : « 📋 Défier un ami » après un
+// tour de qualification valide donne un code ; « Relever un défi » (dans « Entre amis ») le colle, le vérifie, le garde dans la
+// sauvegarde et ouvre la page ?defi=1 : le même tour que la qualification, seul, contre le fantôme de l'ami (aucun contact, seulement
+// dessiné), avec l'écart en direct ; à l'arrivée, « Défi relevé ! −0,312 » ou « Encore 0,450 », et son propre code à renvoyer
+
+// le pilote qui signe le code : son nom et son casque (la carrière), son aileron sur ce circuit, les aides de ce tour
+function signatureDefi() {
+  const ch = JEU.championnat || SAUVEGARDE.championnat(), j = ch && ch.pilotes ? ch.pilotes.find(p => p.humain) : null;
+  const r = aidesDe(null), aides = r ? ASSISTANCE.AIDES.filter(a => r[a]) : [];
+  return { nom: j && j.nom ? j.nom : null, casque: j && j.casque ? j.casque : null, aileron: JEU.championnat ? AILERON.cranDe(JEU.championnat, NOM_CIRCUIT) : null, aides };
+}
+
+// « 📋 Défier un ami » sur l'écran de la qualification : le code du tour qui vient d'être fait
+function defierQualif() {
+  const f = JEU.qualif && JEU.qualif.etat === 'resultat' && JEU.qualif.fantome && JEU.qualif.fantome.compact;
+  if (!f) return;
+  DEFI_ECRAN.montrerCode('qualifCode', DEFI.coder(Object.assign({ circuit: NOM_CIRCUIT, fantome: f }, signatureDefi())));
+}
+
+function ouvrirDefi() {
+  if (JEU.ecran !== 'amis') return;
+  DEFI_ECRAN.remplirSaisie(SAUVEGARDE.defis().liste);
+  JEU.ecran = 'defi';
+  INTERFACE.montrer('defi');
+}
+function retourDefi() {
+  if (JEU.ecran !== 'defi') return;
+  JEU.ecran = 'amis';
+  INTERFACE.montrer('amis');
+}
+
+// « Courir ! » : le code vérifié (somme, version, tour possible, la distance du tour = la longueur du circuit) ; refusé, la raison
+// s'affiche ; accepté, il entre dans la liste des défis reçus et la page du défi s'ouvre
+function courirDefi() {
+  if (JEU.ecran !== 'defi') return false;
+  const code = DEFI_ECRAN.lire().replace(/\s+/g, '');
+  let r = DEFI.decoder(code);
+  if (r.ok) r = DEFI.decoder(code, (r.defi.circuit === 'test' ? CIRCUIT_TEST : construireCircuit(CIRCUITS[r.defi.circuit])).longueur);
+  if (!r.ok) { DEFI_ECRAN.message(texte('defiRefus_' + r.raison)); return false; }
+  const s = SAUVEGARDE.defis();
+  s.liste = DEFI.recevoir(s.liste, r.defi);
+  s.enCours = code;
+  SAUVEGARDE.ecrireDefis(s);
+  location.href = adresseAvec({ defi: '1' });
+  return true;
+}
+
+// la page ?defi=1 : le tour de qualification (le compte à rebours, puis le tour lancé), avec le fantôme du défi
+function commencerTourDefi() {
+  const v = creerVoiture(CIRCUIT, 0);
+  JEU.qualif = { etat: 'tour', q: QUALIFICATION.creer(CIRCUIT, v), v, passe: false };
+  JEU.joueur = v; JEU.course = JEU.qualif.q.course;
+  JEU.signal = null;
+  JEU.fantome = { rejeu: FANTOME.charger(JEU.defi.d.fantome), tour: FANTOME.commencer(), ecart: null, visible: true, roues: 0 };
+  if (JEU.fantome.rejeu && !JEU.modeleFantome) {
+    JEU.modeleFantome = VOITURE3D.creerFantome(REGLAGES.FANTOME_COULEUR, REGLAGES.FANTOME_OPACITE);
+    SCENE3D.ajouter(JEU.modeleFantome.groupe);
+  }
+  JEU.ecran = 'qualif';
+  INTERFACE.montrer('course');
+}
+
+// le tour fini, coupé ou abandonné : l'écart au fantôme (et le meilleur gardé dans la liste des défis reçus), son propre code
+function finirTourDefi(q, abandon) {
+  const d = JEU.defi.d, f = JEU.fantome, temps = !abandon && q.valide ? q.temps : null;
+  const e = temps === null ? null : DEFI.ecart(d, temps);
+  const s = SAUVEGARDE.defis();
+  DEFI.noterResultat(s.liste, d.id, e);
+  SAUVEGARDE.ecrireDefis(s);
+  JEU.defi.code = temps === null || !f ? null : DEFI.coder(Object.assign({ circuit: NOM_CIRCUIT, fantome: FANTOME.compacter(f.tour, q.temps, q.fin) }, signatureDefi()));
+  JEU.defi.ecart = e;
+  JEU.fantome = null;
+  JEU.qualif = null;
+  if (JEU.modeleFantome) JEU.modeleFantome.groupe.visible = false;
+  DEFI_ECRAN.remplirFin({ d, e, coupe: !abandon && !q.valide, abandon, code: JEU.defi.code });
+  JEU.ecran = 'defiFin';
+  INTERFACE.montrer('defiFin');
 }
 
 function sauverTournoi() {
@@ -369,6 +461,7 @@ function montrerMancheTournoi(j, recordAvant) {
   const general = finie && t.formule === 'tournoi' ? lignesTournoi(t, TOURNOI.classementGeneral(t), null) : null;
   const bouton = !finie ? texte('tournoiSuivant').replace('{prenom}', t.joueurs[suivant].prenom) : TOURNOI.fini(t) ? texte('tournoiPodium') : texte('tournoiMancheSuivante');
   INTERFACE.remplirMancheTournoi(titre, phraseTournoi(t, j, recordAvant), lignesTournoi(t, TOURNOI.classementManche(t, t.manche), j), general, bouton);
+  DEFI_ECRAN.boutonTournoi(!!JEU.tournoiDefi);   // (tour 49b) « 📋 Défier un ami » pour le tour qui vient d'être fait
   JEU.ecran = 'tournoiManche';
   INTERFACE.montrer('tournoiManche');
 }
@@ -1703,10 +1796,10 @@ function finDeCourse() {
   INTERFACE.montrer('fin');
 }
 
-// les touches de conduite, par leur place (e.code) : ZQSD en AZERTY = WASD en QWERTY
-const TOUCHES = {
-  gaz: ['ArrowUp', 'KeyW'], frein: ['ArrowDown', 'KeyS'], gauche: ['ArrowLeft', 'KeyA'], droite: ['ArrowRight', 'KeyD'],
-};
+// les touches de conduite, par leur place (e.code) : ZQSD en AZERTY = WASD en QWERTY ; celles choisies par le joueur (clavier.js, tour 49b),
+// sinon celles de départ (TOUCHES_SEUL) ; les deux joueurs : CLAVIER.appliquer les pose dans REGLAGES.TOUCHES_DEUX
+let touchesChoix = CLAVIER.completer(SAUVEGARDE.touches());
+const TOUCHES = CLAVIER.appliquer(touchesChoix);
 const enfoncees = new Set();
 
 function majCibles() {
@@ -1722,19 +1815,69 @@ function majCibles() {
   if (JEU.deux && JEU.rappelDeux) TOUCHES_DEUX_ECRAN.pasRappel(JEU.rappelDeux, { 1: JEU.deuxCommandes[1].cibles, 2: JEU.deuxCommandes[2].cibles }, true, 0);
 }
 
+// --- les touches au choix (clavier.js, tour 49b) : l'écran depuis la page « Réglages » du paddock ; un clic sur une commande, puis la
+// touche voulue (Échap annule) ; une touche déjà prise est refusée avec la commande qui l'a ; « Par défaut » remet tout ; gardé à la racine
+let attenteTouche = null;
+function ouvrirTouches() {
+  if (JEU.ecran !== 'championnat') return;
+  attenteTouche = null;
+  TOUCHES_ECRAN.remplir(touchesChoix, null, '');
+  JEU.ecran = 'touches';
+  INTERFACE.montrer('touches');
+}
+function quitterTouches() {
+  if (JEU.ecran !== 'touches') return;
+  attenteTouche = null;
+  montrerChampionnat(JEU.gagne);
+}
+function choisirTouche(groupe, action) {
+  if (JEU.ecran !== 'touches') return;
+  attenteTouche = { groupe, action };
+  TOUCHES_ECRAN.remplir(touchesChoix, attenteTouche, texte('touchesAppuie'));
+}
+function garderTouches() {
+  SAUVEGARDE.ecrireTouches(CLAVIER.auDepart(touchesChoix) ? null : touchesChoix);
+  Object.assign(TOUCHES, CLAVIER.appliquer(touchesChoix));
+}
+function touchesParDefaut() {
+  if (JEU.ecran !== 'touches') return;
+  touchesChoix = CLAVIER.defaut(); attenteTouche = null;
+  garderTouches();
+  TOUCHES_ECRAN.remplir(touchesChoix, null, texte('touchesDefautFait'));
+}
+// la touche appuyée pendant l'attente : elle ne va pas au reste du jeu (ni pause, ni conduite)
+function toucheChoisie(e) {
+  if (JEU.ecran !== 'touches' || !attenteTouche) return;
+  e.preventDefault(); e.stopImmediatePropagation();
+  if (e.repeat) return;
+  const { groupe, action } = attenteTouche;
+  attenteTouche = null;
+  if (e.code === 'Escape') { TOUCHES_ECRAN.remplir(touchesChoix, null, ''); return; }
+  const r = CLAVIER.changer(touchesChoix, groupe, action, e.code), nom = TOUCHES_DEUX_ECRAN.nom(e.code, null);
+  let m;
+  if (r.ok) { garderTouches(); m = texte('touchesFait').replace('{commande}', TOUCHES_ECRAN.commande(groupe, action)).replace('{touche}', nom); }
+  else if (r.raison === 'echap') m = texte('touchesEchap');
+  else if (r.raison === 'prise') m = texte('touchesPrise').replace('{touche}', nom).replace('{commande}', TOUCHES_ECRAN.commande(r.groupe, r.action));
+  else m = '';
+  TOUCHES_ECRAN.remplir(touchesChoix, null, m);
+}
+
 function brancherClavier() {
+  window.addEventListener('keydown', toucheChoisie, true);   // (tour 49b) avant tout le reste : la touche choisie pour une commande
   window.addEventListener('keydown', e => {
     // le mode 2 joueurs : ni C (la caméra reste derrière), ni Espace, ni Entrée pour le podium ; chacun sa touche de remise en piste
     if (JEU.deux) { if (!e.repeat) for (const j of [1, 2]) if (DEUX_JOUEURS.remise(new Set([e.code]), j)) JEU.deuxCommandes[j].remettre = true; }
     else {
-      if (e.code === 'KeyC' && !e.repeat) CAMERA.suivante();
-      if (e.code === 'Space' && !e.repeat) JEU.remettre = true;
+      if (TOUCHES.camera.includes(e.code) && !e.repeat) CAMERA.suivante();
+      if (TOUCHES.remise.includes(e.code) && !e.repeat) JEU.remettre = true;
       if (e.code === 'Enter' && !e.repeat) passerAuPodium();
     }
     if (e.code === 'Escape' && !e.repeat && JEU.ecran === 'resume') { quitterResume(); return; }
     if (JEU.ecran === 'grille' && !e.repeat) { finirGrille(); }   // la grille vue d'en haut : une touche la passe   // le résumé vidéo : Échap ramène aux résultats
-    if (e.code === 'Escape' && !e.repeat) pause(JEU.ecran === 'course');
-    if (e.code === 'Escape' && !e.repeat && JEU.tournoi) pauseTournoi(enTourQualif());   // le tournoi : la pause d'un tour (reprendre, abandonner)
+    const touchePause = e.code === 'Escape' || (!JEU.deux && TOUCHES.pause.includes(e.code));   // (tour 49b : Échap, et la touche de pause choisie)
+    if (touchePause && !e.repeat) pause(JEU.ecran === 'course');
+    if (touchePause && !e.repeat && JEU.defi && enTourQualif()) finirTourDefi(JEU.qualif.q, true);   // (tour 49b) le défi : Échap abandonne le tour (pas de temps)
+    if (touchePause && !e.repeat && JEU.tournoi) pauseTournoi(enTourQualif());   // le tournoi : la pause d'un tour (reprendre, abandonner)
     if (JEU.ecran === 'une' && !e.repeat) passerUne();   // n'importe quelle touche passe la une du journal
     else if (JEU.ecran === 'album' && !e.repeat) {   // l'album : ← → feuillettent, Échap ferme
       if (e.code === 'ArrowLeft') feuilleterAlbum(-1);
@@ -1886,7 +2029,7 @@ function conduireJoueur(p, pas) {
 function pasJoueur(pas) {
   if (JEU.ecran === 'pause') return;   // la pause arrête la physique
   JEU.pas++;
-  if (JEU.tournoi) { if (enTourQualif()) pasTourQualif(pas); JEU.remettre = false; return; }   // le tournoi chrono : seule la voiture du tour roule
+  if (JEU.tournoi || JEU.defi) { if (enTourQualif()) pasTourQualif(pas); JEU.remettre = false; return; }   // le tournoi chrono (et le défi du fantôme, tour 49b) : seule la voiture du tour roule
   // ?ia=N : toutes les IA, leurs contacts, leurs courses (la voiture suivie comprise) ; avec &joueur=1, la voiture du
   // joueur est dans la même course et il la conduit au clavier
   if (JEU.plateau) {
@@ -2217,6 +2360,7 @@ function demarrerJeu() {
     JEU.monde = SAUVEGARDE.championnat();
     if (JEU.monde) JEU.indices = DECOUVERTE.pilotes(JEU.monde).slice(0, JEU.deux.nbIA).map(p => p.id);
   }
+  if (DEFI_SAUVE) JEU.defi = { d: DEFI_SAUVE, code: null };   // (tour 49b) le défi du fantôme : le défi à courir, puis le code de son tour
   if (TOURNOI_SAUVE) { JEU.tournoi = TOURNOI_SAUVE; JEU.tournoiFantomes = {}; JEU.tournoiPodium = []; }   // (les fantômes du tournoi : en mémoire, une manche)
   JEU.contre = (PARAMETRES.get('joueur') === '1' && Number(PARAMETRES.get('ia')) >= 1) || !!JEU.championnat || JEU.decouverte || !!JEU.deux;
   JEU.ia = JEU.deux ? JEU.deux.nbIA : JEU.championnat ? JEU.championnat.pilotes.length - 1 : JEU.decouverte ? JEU.indices.length : Math.max(0, Math.min(REGLAGES.IA_PAGE_MAX - (JEU.contre ? 1 : 0), Math.floor(Number(PARAMETRES.get('ia'))) || 0));
@@ -2235,7 +2379,7 @@ function demarrerJeu() {
   // la trajectoire conseillée (conseil.js) a besoin de la carte : seul en piste aussi, quand elle peut se montrer (le réglage
   // du joueur, son niveau, ou la leçon du freinage du tutoriel, qui l'allume pendant la leçon) ; jamais au tournoi ni à deux
   JEU.conseilForce = PARAMETRES.get('tutoriel') === 'freinage' ? 'oui' : null;
-  const carteConseil = !JEU.tournoi && !JEU.deux && (JEU.conseilForce !== null || CONSEIL.reglageVu(SAUVEGARDE.option('trajectoire', null), REGLAGES.NIVEAU) !== 'non');
+  const carteConseil = !JEU.tournoi && !JEU.deux && !JEU.defi && (JEU.conseilForce !== null || CONSEIL.reglageVu(SAUVEGARDE.option('trajectoire', null), REGLAGES.NIVEAU) !== 'non');
   if (JEU.ia || JEU.deux || carteConseil) {   // (à deux sans IA aussi : la course attend la carte, comme les autres)
     const enCache = CACHE_CARTE.decoder(SAUVEGARDE.carte(NOM_CIRCUIT), NOM_CIRCUIT, CIRCUITS[NOM_CIRCUIT], CIRCUIT);
     if (enCache) { JEU.carteDuCache = true; carteFinie(enCache); }
@@ -2325,6 +2469,13 @@ function demarrerJeu() {
   INTERFACE.preparerResume(montrerResume, quitterResume);
   INTERFACE.preparerGrille(finirGrille);
   INTERFACE.preparerAmis(ouvrirDeux, ouvrirTournoi, montrerAmis);
+  TOUCHES_ECRAN.preparer({ ouvrir: ouvrirTouches, choisir: choisirTouche, defaut: touchesParDefaut, retour: quitterTouches });   // (tour 49b) les touches au choix
+  // (tour 49b) le défi du fantôme : « Relever un défi » dans « Entre amis », son écran, la fin du tour, « 📋 Défier un ami » après la qualification
+  { const b = document.getElementById('boutonAmisDefi'); b.textContent = texte('amisDefi'); b.addEventListener('mousedown', e => e.preventDefault()); b.addEventListener('click', ouvrirDefi); }
+  DEFI_ECRAN.preparer({ courir: courirDefi, retour: retourDefi, recommencer: () => { if (JEU.ecran === 'defiFin') location.reload(); },
+    renvoyer: () => { if (JEU.ecran === 'defiFin' && JEU.defi && JEU.defi.code) DEFI_ECRAN.montrerCode('defiFinCode', JEU.defi.code); },
+    quitter: () => { if (JEU.ecran === 'defiFin') location.href = adresseAvec({ menu: 'amis' }); }, defierQualif,
+    defierTournoi: () => { if (JEU.ecran === 'tournoiManche' && JEU.tournoiDefi) DEFI_ECRAN.montrerCode('tournoiCode', DEFI.coder(JEU.tournoiDefi)); } });
   INTERFACE.preparerInscription(partirTournoi, montrerAmis);
   INTERFACE.preparerPauseTournoi(() => pauseTournoi(false), abandonnerTournoi);
   INTERFACE.preparerMancheTournoi(suiteTournoi);
@@ -2451,6 +2602,8 @@ function demarrerJeu() {
   else if (JEU.championnat) montrerChampionnat(null);
   else if (EST_PAGE && PARAMETRES.get('tournoi') === '1' && !JEU.tournoi) location.replace(adresseAvec({ menu: 'tournoi' }));   // pas de tournoi en cours : l'inscription
   else if (JEU.tournoi) { if (TOURNOI.fini(JEU.tournoi)) montrerPodiumTournoi(); else montrerAToi(); }   // le tournoi : « À toi, … ! » (ou le podium s'il est fini)
+  else if (JEU.defi) commencerTourDefi();   // (tour 49b) le défi du fantôme : le tour tout de suite, contre le fantôme de l'ami
+  else if (EST_PAGE && PARAMETRES.get('defi') === '1') location.replace(adresseAvec({ menu: 'amis' }));   // (un défi illisible : le menu « Entre amis »)
   else if (JEU.deux) lancerCourse(JEU.deux.nbTours);   // le mode 2 joueurs : la course tout de suite (son menu et ses réglages : ordre 3)
   else if (demandee !== null && !isNaN(Number(demandee))) lancerCourse(Number(demandee));
   else allerAuChoix();

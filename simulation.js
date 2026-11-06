@@ -83,6 +83,7 @@ function donnerCarte(e, carte) {
   const R = REGLAGES;
   e.carte = carte;
   if (e.pilotes.every(p => p.humain || p.v.u === 0)) qualifier(e);
+  if (R.IA_FORME) formeDuJour(e);
   ALEATOIRE.semer(e.graine + R.GRAINE_STYLES);
   e.pilotes.forEach((p, k) => {
     if (p.humain) return;
@@ -97,7 +98,7 @@ function donnerCarte(e, carte) {
       for (let i = 0; i < style.variations.length; i++) style.variations[i] *= n.precision;
     }
     if (n.marge !== undefined) style.margeBord = Math.max(n.bordMin === undefined ? R.IA_MARGE_BORD_MIN : n.bordMin, style.margeBord + n.marge);
-    p.pilote = creerPilote(carte, p.rythme, style, R.IA_PERIODE_DECISION * k / e.pilotes.length);
+    p.pilote = creerPilote(carte, p.forme === undefined ? p.rythme : p.rythme * p.forme, style, R.IA_PERIODE_DECISION * k / e.pilotes.length);
     if (n.limite !== undefined) p.pilote.limite = n.limite;
     if (n.bordMin !== undefined) p.pilote.bordMin = n.bordMin;
     if (n.penaliteFrein !== undefined) p.pilote.penaliteFrein = n.penaliteFrein;
@@ -132,6 +133,19 @@ function donnerCarte(e, carte) {
   for (const p of e.pilotes) if (!p.humain) { const [a, b] = R.IA_CARACTERE.consigneRefus; p.pilote.caractere.consigneRefus = a + hasard() * (b - a); }
   ALEATOIRE.semer();
   strategieStands(e);
+}
+
+// la forme du jour (IA_FORME, tour 49c) : après la qualification (qui a lu le rythme), chaque IA tire sa forme avec sa propre graine
+// (GRAINE_FORME : les autres tirages ne bougent pas) ; p.forme, de 1 − IA_FORME à 1 (la plus en forme : 1), multiplie le rythme que son
+// pilote reçoit (donnerCarte) ; p.rythme reste le rythme de base (le niveau, la fiche, le championnat le lisent)
+function formeDuJour(e) {
+  const R = REGLAGES, ia = e.pilotes.filter(p => !p.humain);
+  if (!ia.length) return;
+  ALEATOIRE.semer(e.graine + R.GRAINE_FORME);
+  const tirages = ia.map(() => hasard());
+  ALEATOIRE.semer();
+  const min = Math.min(...tirages);
+  ia.forEach((p, i) => { p.forme = 1 - R.IA_FORME * (tirages[i] - min); });
 }
 
 // --- les consignes d'équipe (CLAUDE.md « Le duel contre le coéquipier », Codeur 1) ---

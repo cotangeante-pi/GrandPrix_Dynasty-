@@ -37,6 +37,20 @@ const TEXTES = {
     reglagesTitre: 'Tuning',
     reglagesCopier: 'Copy the changed values',
     reglagesRienChange: '(nothing changed)',
+    // the ?reglages=1 panel: the themes, then one readable name per slider (the code name is shown next to it)
+    reglagesTheme_voiture: 'Car', reglagesTheme_pneus: 'Tyres', reglagesTheme_direction: 'Steering and assists', reglagesTheme_herbe: 'Grass', reglagesTheme_camera: 'Camera', reglagesTheme_depart: 'Perfect start',
+    reglage_PUISSANCE: 'Engine power (W)', reglage_APPUI: 'Downforce', reglage_HALO_EPAISSEUR: 'Halo thickness (3D, m)',
+    reglage_ADHERENCE: 'Cornering grip', reglage_ADHERENCE_FREIN: 'Braking grip', reglage_ADHERENCE_ARRIERE: 'Rear grip', reglage_VOITURE_VIVANTE: 'Drift tyre (0 = grip, 1 = drift)',
+    reglage_BRAQUAGE_MAX: 'Max steering angle (standstill)', reglage_BRAQUAGE_VITESSE: 'Steering fade with speed', reglage_DIRECTION_PALIER: 'Steering step',
+    reglage_RAMPE_DIRECTION_RAPIDE: 'Steering speed up to the step', reglage_RAMPE_DIRECTION_LENTE: 'Steering speed past the step', reglage_RETOUR_DIRECTION: 'Steering back to centre',
+    reglage_STABILITE_LACET: 'Rotation assist', reglage_ANTI_DERIVE: 'Anti-slide assist',
+    reglage_ADHERENCE_HERBE: 'Grip on grass', reglage_FROTTEMENT_HERBE_CARRE: 'Grass drag', reglage_GAZ_HERBE: 'Engine power on grass',
+    reglage_CAMERA_DERRIERE_0: 'Camera distance behind', reglage_CAMERA_DERRIERE_1: 'Camera height', reglage_CAMERA_RECUL_VITESSE: 'Extra distance at top speed',
+    reglage_CAMERA_SUIVI_CAP: 'Camera follow in corners', reglage_CAMERA_CHAMP_1: 'Wider view at top speed (°)',
+    reglage_DEPART_MONTEE: 'Revs: rise speed', reglage_DEPART_DESCENTE: 'Revs: fall speed', reglage_DEPART_VERT_0: 'Green zone: start', reglage_DEPART_VERT_1: 'Green zone: end',
+    reglage_DEPART_BORD: 'Margin around the green', reglage_DEPART_REACTION_PARFAITE: 'Perfect reaction time (s)', reglage_DEPART_ANTICIPATION: 'False start window (s)',
+    reglage_DEPART_PATINAGE_0: 'Wheelspin: engine share', reglage_DEPART_PATINAGE_1: 'Wheelspin: duration (s)', reglage_DEPART_CALE_0: 'Stall: engine share',
+    reglage_DEPART_CALE_1: 'Stall: duration (s)', reglage_DEPART_BON_0: 'Good start: engine share',
     virgule: '.',                 // le séparateur décimal des écarts du classement (+0.8 s)
     tourRetard: 'lap',
     toursRetard: 'laps',
@@ -414,6 +428,20 @@ const TEXTES = {
     reglagesTitre: 'Réglages',
     reglagesCopier: 'Copier les valeurs changées',
     reglagesRienChange: '(rien n’a changé)',
+    // le panneau ?reglages=1 : les thèmes, puis un nom lisible par curseur (le nom du code est écrit à côté)
+    reglagesTheme_voiture: 'Voiture', reglagesTheme_pneus: 'Pneus', reglagesTheme_direction: 'Direction et aides', reglagesTheme_herbe: 'Herbe', reglagesTheme_camera: 'Caméra', reglagesTheme_depart: 'Départ parfait',
+    reglage_PUISSANCE: 'Puissance du moteur (W)', reglage_APPUI: 'Appui aérodynamique', reglage_HALO_EPAISSEUR: 'Épaisseur du halo (3D, m)',
+    reglage_ADHERENCE: 'Adhérence en virage', reglage_ADHERENCE_FREIN: 'Adhérence au freinage', reglage_ADHERENCE_ARRIERE: 'Adhérence de l’arrière', reglage_VOITURE_VIVANTE: 'Pneu drift (0 = adhérant, 1 = drift)',
+    reglage_BRAQUAGE_MAX: 'Braquage maximal (à l’arrêt)', reglage_BRAQUAGE_VITESSE: 'Baisse du braquage avec la vitesse', reglage_DIRECTION_PALIER: 'Palier de la direction',
+    reglage_RAMPE_DIRECTION_RAPIDE: 'Vitesse du volant jusqu’au palier', reglage_RAMPE_DIRECTION_LENTE: 'Vitesse du volant après le palier', reglage_RETOUR_DIRECTION: 'Retour du volant au centre',
+    reglage_STABILITE_LACET: 'Aide à la rotation', reglage_ANTI_DERIVE: 'Aide anti-glissade',
+    reglage_ADHERENCE_HERBE: 'Adhérence dans l’herbe', reglage_FROTTEMENT_HERBE_CARRE: 'Freinage de l’herbe', reglage_GAZ_HERBE: 'Moteur dans l’herbe',
+    reglage_CAMERA_DERRIERE_0: 'Recul de la caméra', reglage_CAMERA_DERRIERE_1: 'Hauteur de la caméra', reglage_CAMERA_RECUL_VITESSE: 'Recul en plus à pleine vitesse',
+    reglage_CAMERA_SUIVI_CAP: 'Suivi de la caméra en virage', reglage_CAMERA_CHAMP_1: 'Champ en plus à pleine vitesse (°)',
+    reglage_DEPART_MONTEE: 'Régime : vitesse de montée', reglage_DEPART_DESCENTE: 'Régime : vitesse de descente', reglage_DEPART_VERT_0: 'Zone verte : début', reglage_DEPART_VERT_1: 'Zone verte : fin',
+    reglage_DEPART_BORD: 'Marge autour du vert', reglage_DEPART_REACTION_PARFAITE: 'Réaction parfaite (s)', reglage_DEPART_ANTICIPATION: 'Fenêtre du faux départ (s)',
+    reglage_DEPART_PATINAGE_0: 'Patinage : part du moteur', reglage_DEPART_PATINAGE_1: 'Patinage : durée (s)', reglage_DEPART_CALE_0: 'Calé : part du moteur',
+    reglage_DEPART_CALE_1: 'Calé : durée (s)', reglage_DEPART_BON_0: 'Bon départ : part du moteur',
     virgule: ',',
     tourRetard: 'tour',
     toursRetard: 'tours',
@@ -1205,4 +1233,67 @@ Object.assign(TEXTES.fr, {
   carriere_perduSkins: 'Perdu : les skins obtenus', carriere_perduMotifs: 'Perdu : les motifs de casque débloqués',
   carriere_perduTemple: 'Perdu : le temple de la renommée', carriere_perduRecords: 'Perdu : les records et les fantômes',
   carriere_perduLecons: 'Perdu : les leçons et les aides déjà vues (la langue, le son et la qualité restent)',
+});
+
+// (tour 49b) le défi du fantôme entre amis (defi.js) : le code à copier, « Relever un défi », la fin du tour
+Object.assign(TEXTES.en, {
+  defiBouton: '📋 Challenge a friend', defiCopier: 'Copy', defiCopie: 'Copied!',
+  defiCodeAide: 'Send this code to a friend: they paste it in “Friends” → “Take a challenge”.',
+  amisDefi: '🎯 Take a challenge', defiTitre: 'Take a challenge',
+  defiExplication: 'Paste the code a friend sent you, then race alone against their lap.',
+  defiColler: 'Paste the code here', defiCourir: '▶ Race!',
+  defiRefus_vide: 'Paste a code first.', defiRefus_format: 'This is not a challenge code.',
+  defiRefus_version: 'This code comes from another version of the game.', defiRefus_abime: 'This code is damaged: copy it again in full.',
+  defiRefus_circuit: 'This code is for a track this game does not have.', defiRefus_impossible: 'This lap is impossible: the code was changed.',
+  defiRecus: 'Challenges received', defiContre: '{nom} — {temps} ({circuit})', defiAnonyme: 'A friend',
+  defiAides: 'aids: {liste}', defiSansAide: 'no aids',
+  defiAide_direction: 'steering', defiAide_freinage: 'braking', defiAide_antiblocage: 'ABS', defiAide_antipatinage: 'traction',
+  defiMeilleurReleve: 'beaten {s}', defiMeilleurEncore: 'best: {s} behind', defiPasCouru: 'not raced yet',
+  defiFinTitre: 'Challenge', defiReleve: 'Challenge beaten! {s}', defiEncore: 'Still {s} to go',
+  defiCoupe: 'Corner cut: no time.', defiAbandon: 'Lap abandoned: no time.',
+  defiRecommencer: '🔁 Try again', defiRenvoyer: '📋 Send back my code', defiQuitter: 'Back',
+});
+Object.assign(TEXTES.fr, {
+  defiBouton: '📋 Défier un ami', defiCopier: 'Copier', defiCopie: 'Copié !',
+  defiCodeAide: 'Envoie ce code à un ami : il le colle dans « Entre amis » → « Relever un défi ».',
+  amisDefi: '🎯 Relever un défi', defiTitre: 'Relever un défi',
+  defiExplication: 'Colle le code qu’un ami t’a envoyé, puis cours seul contre son tour.',
+  defiColler: 'Colle le code ici', defiCourir: '▶ Courir !',
+  defiRefus_vide: 'Colle d’abord un code.', defiRefus_format: 'Ce n’est pas un code de défi.',
+  defiRefus_version: 'Ce code vient d’une autre version du jeu.', defiRefus_abime: 'Ce code est abîmé : copie-le de nouveau en entier.',
+  defiRefus_circuit: 'Ce code est pour un circuit que ce jeu n’a pas.', defiRefus_impossible: 'Ce tour est impossible : le code a été modifié.',
+  defiRecus: 'Défis reçus', defiContre: '{nom} — {temps} ({circuit})', defiAnonyme: 'Un ami',
+  defiAides: 'aides : {liste}', defiSansAide: 'sans aide',
+  defiAide_direction: 'direction', defiAide_freinage: 'freinage', defiAide_antiblocage: 'anti-blocage', defiAide_antipatinage: 'antipatinage',
+  defiMeilleurReleve: 'relevé {s}', defiMeilleurEncore: 'au mieux à {s}', defiPasCouru: 'pas encore couru',
+  defiFinTitre: 'Le défi', defiReleve: 'Défi relevé ! {s}', defiEncore: 'Encore {s}',
+  defiCoupe: 'Virage coupé : pas de temps.', defiAbandon: 'Tour abandonné : pas de temps.',
+  defiRecommencer: '🔁 Recommencer', defiRenvoyer: '📋 Renvoyer mon code', defiQuitter: 'Retour',
+});
+
+// (tour 49b) les touches au choix (clavier.js)
+Object.assign(TEXTES.en, {
+  touchesBouton: '⌨ Keys', touchesTitre: 'Keys', touchesExplication: 'Click a command, then press the key you want.',
+  touchesAppuie: 'Press a key… (Esc: cancel)', touchesPrise: '{touche} is already used: {commande}', touchesEchap: 'Esc always opens the pause.',
+  touchesFait: '{commande}: {touche}', touchesDefaut: 'Default', touchesDefautFait: 'All keys are back to default.',
+  touchesGroupe_seul: 'Racing', touchesGroupe_j1: '🔵 Player 1', touchesGroupe_j2: '🔴 Player 2',
+  touchesAction_gaz: 'Throttle', touchesAction_frein: 'Brake', touchesAction_gauche: 'Left', touchesAction_droite: 'Right',
+  touchesAction_remise: 'Back on track', touchesAction_camera: 'Camera', touchesAction_pause: 'Pause',
+});
+Object.assign(TEXTES.fr, {
+  touchesBouton: '⌨ Touches', touchesTitre: 'Touches', touchesExplication: 'Clique sur une commande, puis appuie sur la touche voulue.',
+  touchesAppuie: 'Appuie sur une touche… (Échap : annuler)', touchesPrise: '{touche} est déjà prise : {commande}', touchesEchap: 'Échap ouvre toujours la pause.',
+  touchesFait: '{commande} : {touche}', touchesDefaut: 'Par défaut', touchesDefautFait: 'Toutes les touches sont revenues par défaut.',
+  touchesGroupe_seul: 'Course', touchesGroupe_j1: '🔵 Joueur 1', touchesGroupe_j2: '🔴 Joueur 2',
+  touchesAction_gaz: 'Accélérer', touchesAction_frein: 'Freiner', touchesAction_gauche: 'Gauche', touchesAction_droite: 'Droite',
+  touchesAction_remise: 'Retour en piste', touchesAction_camera: 'Caméra', touchesAction_pause: 'Pause',
+});
+// --- tour 49d, Codeur 4 : les divisions (divisions.js) ---
+Object.assign(TEXTES.en, {
+  divisionMontee: '⬆ Promoted: next season in Division {n}!', divisionSommet: 'Division 1: the very top.',
+  divisionResteSaison: 'Division {n}: finish in the top {p} to move up.', divisionNom: 'Division {n}',
+});
+Object.assign(TEXTES.fr, {
+  divisionMontee: '⬆ Montée : la saison prochaine en division {n} !', divisionSommet: 'Division 1 : le sommet.',
+  divisionResteSaison: 'Division {n} : finis dans les {p} premiers pour monter.', divisionNom: 'Division {n}',
 });

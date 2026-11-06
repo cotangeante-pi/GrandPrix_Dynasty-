@@ -1,6 +1,8 @@
 TOUR 49a-2 — étape 11 (le nouveau paddock) — compte rendu du Codeur 1
 Branche : paddock-fond (depuis origin/main a2721e4, qui contient la fusion de qualite-auto)
-Commit : voir la fin (le dernier commit de la branche ; 9b98e11 = dernier passage GitHub complet vert, 42156030930, 18/18)
+Commit : cbdda6e pour le travail (GitHub 42159624354 : vert 18/18), puis la fusion de origin/main 9bc6c79 dans paddock-fond
+(le dernier commit de la branche, demandé par le Chef : conflits seulement dans tests/ecrans-durees.json et l'en-tête de tests/test.html,
+les deux côtés gardés)
 
 Ordre : l'arrière-plan du paddock et des menus : fait.
 - stand3d.js (nouveau, un rôle) :
