@@ -260,7 +260,7 @@ const SAUVEGARDE = (function () {
   }
   // à 0 : tout est effacé, comme au tout premier lancement (écran titre, course de découverte) ; seuls restent les réglages du son
   // et de la qualité (la langue vient du navigateur ou de ?lang, elle n'est pas dans la sauvegarde). Choix du Chef, réversible.
-  const GARDES_A_ZERO = ['son_volumes', 'qualite'];
+  const GARDES_A_ZERO = ['son_volumes', 'qualite', 'qualite_niveau'];
   function toutEffacer() {
     const avant = lire(), d = vierge();
     for (const k of GARDES_A_ZERO) if (avant.options && avant.options[k] !== undefined) d.options[k] = avant.options[k];

@@ -584,7 +584,7 @@ const INTERFACE = (function () {
     const fini = ch.prochain >= ch.calendrier.length;
     $('championnatTitre').textContent = fini ? texte('finChampionnat') : texte('titreGrandPrix').replace('{i}', ch.prochain + 1).replace('{n}', ch.calendrier.length).replace('{circuit}', nomCircuit);
     $('championnatGagne').textContent = gagne === null ? '' : elider(texte('pointsGagnes').replace('{n}', gagne));   // (« 1 point » : accorder)
-    $('championnatPilotesTitre').textContent = texte('classementPilotes');
+    $('championnatPilotesTitre').textContent = texte('classementPilotes') + (REGLAGES.DIVISIONS_ACTIVES && typeof DIVISIONS !== 'undefined' ? ' · ' + avec(texte('divisionNom'), { n: DIVISIONS.de(ch) }) : '');   // (tour 49d) la division de la carrière
     $('championnatEcuriesTitre').textContent = texte('classementEcuries');
     $('boutonCourseSuivante').textContent = texte('courseSuivante');
     $('boutonCourseSuivante').classList.toggle('cache', fini);
@@ -698,6 +698,14 @@ const INTERFACE = (function () {
     $('saisonChampion').textContent = champion.humain ? texte('saisonChampionToi') : avec(texte('saisonChampion'), { pilote: nomPilote(champion) });
     $('saisonChampion').classList.toggle('toi', !!champion.humain);
     $('saisonEcurie').textContent = avec(texte('saisonChampionEcurie'), { ecurie: nomEcurie(ch.ecuries[b.championEcurie]) });
+    // (tour 49d) la division : la montée annoncée, sinon ce qu'il faut pour monter (divisions.js)
+    const close = (ch.saisons || []).find(x => x.saison === b.saison), dv = $('saisonDivision');
+    if (dv) {
+      const d = close && close.division ? close.division : (typeof DIVISIONS !== 'undefined' ? DIVISIONS.de(ch) : null);
+      dv.textContent = !REGLAGES.DIVISIONS_ACTIVES || !d ? '' : close && close.montee ? avec(texte('divisionMontee'), { n: close.montee })
+        : d <= 1 ? texte('divisionSommet') : avec(texte('divisionResteSaison'), { n: d, p: REGLAGES.DIVISION_MONTEE_PLACE });
+      dv.classList.toggle('montee', !!(close && close.montee));
+    }
     $('saisonPilotesTitre').textContent = texte('saisonClassement');
     $('boutonSaisonSuite').textContent = texte('suite');
     const ol = $('saisonPilotes');

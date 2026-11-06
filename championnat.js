@@ -31,7 +31,7 @@ const CHAMPIONNAT = (function () {
       }
     }
     ALEATOIRE.semer();
-    return completer({ graine, saison: 1, prochain: 0, calendrier: calendrierNeuf(), ecuries, pilotes, resultats: [], duel: null, album: [] });
+    return completer({ graine, saison: 1, prochain: 0, calendrier: calendrierNeuf(), ecuries, pilotes, resultats: [], duel: null, album: [], division: R.DIVISION_DEPART });   // (tour 49d) une carrière neuve en division DIVISION_DEPART
   }
 
   // le calendrier d'une saison neuve : les NB_GRANDS_PRIX Grands Prix sur les tracés de CALENDRIER_CIRCUITS, dans l'ordre
@@ -199,6 +199,7 @@ const CHAMPIONNAT = (function () {
     if (typeof FICHE !== 'undefined' && ch.pilotes) FICHE.completer(ch);
     if (typeof INTERVIEW !== 'undefined' && ch.pilotes) INTERVIEW.completer(ch);
     if (typeof CARRIERE !== 'undefined' && ch.pilotes) CARRIERE.completer(ch);
+    if (typeof DIVISIONS !== 'undefined') DIVISIONS.completer(ch);   // (tour 49d) une sauvegarde d'avant les divisions : DIVISION_VIEILLE (le jeu d'avant)
     if (typeof AILERON !== 'undefined') AILERON.completer(ch);   // les crans du joueur par circuit (aileron.js) : aucun dans une sauvegarde d'avant (le milieu)   // la carrière en cours (carriere.js) : commencée à la saison 1 dans une sauvegarde d'avant   // la réputation (interview.js) : 50 partout dans une sauvegarde d'avant
     return ch;
   }

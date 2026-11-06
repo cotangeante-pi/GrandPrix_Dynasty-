@@ -1,7 +1,7 @@
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><title>tests</title></head><body>
 <pre id="res"></pre>
 <script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));window.addEventListener('unhandledrejection',e=>__err.push('promesse : '+(e.reason&&e.reason.message||e.reason)));</script>
-<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits-officiels-a.js"></script><script src="../circuits-officiels-b.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../sensations.js"></script><script src="../manette.js"></script><script src="../son.js"></script><script src="../effets3d.js"></script><script src="../conseil.js"></script><script src="../qualite.js"></script><script src="../assistance.js"></script><script src="../mesure.js"></script><script src="../regie.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../decouverte.js"></script><script src="../pilote.js"></script><script src="../deux-joueurs.js"></script><script src="../tournoi.js"></script><script src="../casque.js"></script><script src="../decors-officiels.js"></script><script src="../decor-public.js"></script><script src="../photo.js"></script><script src="../cache-carte.js"></script><script src="../journal.js"></script><script src="../argent.js"></script><script src="../garage.js"></script><script src="../aileron.js"></script><script src="../carte2d.js"></script><script src="../saisons.js"></script><script src="../sponsors.js"></script><script src="../fiche.js"></script><script src="../interview.js"></script><script src="../carriere.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../meteo.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../resume.js"></script><script src="../messages.js"></script><script src="../commentaire.js"></script><script src="../decor.js"></script><script src="../fantome.js"></script><script src="../defi.js"></script><script src="../clavier.js"></script><script src="../principal.js"></script>
+<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits-officiels-a.js"></script><script src="../circuits-officiels-b.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../sensations.js"></script><script src="../manette.js"></script><script src="../son.js"></script><script src="../effets3d.js"></script><script src="../conseil.js"></script><script src="../qualite.js"></script><script src="../assistance.js"></script><script src="../mesure.js"></script><script src="../regie.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../divisions.js"></script><script src="../decouverte.js"></script><script src="../pilote.js"></script><script src="../deux-joueurs.js"></script><script src="../tournoi.js"></script><script src="../casque.js"></script><script src="../decors-officiels.js"></script><script src="../decor-public.js"></script><script src="../photo.js"></script><script src="../cache-carte.js"></script><script src="../journal.js"></script><script src="../argent.js"></script><script src="../garage.js"></script><script src="../aileron.js"></script><script src="../carte2d.js"></script><script src="../saisons.js"></script><script src="../sponsors.js"></script><script src="../fiche.js"></script><script src="../interview.js"></script><script src="../carriere.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../meteo.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../resume.js"></script><script src="../messages.js"></script><script src="../commentaire.js"></script><script src="../decor.js"></script><script src="../fantome.js"></script><script src="../defi.js"></script><script src="../clavier.js"></script><script src="../principal.js"></script>
 <script>
 const L=[];let ok=0,ko=0;
 function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
@@ -517,23 +517,61 @@ t('la manette : un appui compte une fois ; dans les menus, la croix ou le stick 
   v(MANETTE.voisin(B_,-1,'bas')===0&&MANETTE.voisin(B_,0,'droite')===1&&MANETTE.voisin(B_,0,'bas')===2&&MANETTE.voisin(B_,2,'bas')!==2&&MANETTE.voisin(B_,1,'droite')===1&&MANETTE.voisin(B_,3,'droite')===4&&MANETTE.voisin(B_,4,'haut')===2&&MANETTE.voisin([],0,'bas')===-1,'voisins');
   // le menu pause du jeu : de « Commentateur » vers la droite, « Effets de conduite » (sur la même rangée), pas « Fantôme » plus près au-dessus
   const P_=[{x:464,y:284,l:170,h:49},{x:555,y:342,l:170,h:46},{x:462,y:399,l:170,h:29},{x:644,y:399,l:174,h:29}];v(MANETTE.voisin(P_,2,'droite')===3&&MANETTE.voisin(P_,0,'bas')===1&&MANETTE.voisin(P_,1,'bas')!==1,'menu pause');});
-// --- la qualité de l'image (qualite.js, tour 40) : un cran plus bas après QUALITE_FENETRE s sous QUALITE_IPS_MIN, jamais pendant les
-// feux, ni en « haute » ou « basse » ; le cran 0 est l'image d'avant ; la physique ne bouge pas
-t('qualité automatique : sous 55 images par seconde pendant 3 s, un cran plus bas (puis une nouvelle fenêtre entière) ; au-dessus, rien ; jamais pendant les feux ; haute et basse ne bougent pas', ()=>{const R_=REGLAGES,Q_=QUALITE;
-  const jouer=(q,ips,s,feux)=>{const vus=[];for(let k=0;k<Math.round(s*ips);k++){const n=Q_.observer(q,1/ips,feux);if(n!==null)vus.push([n,(k+1)/ips]);}return vus;};
-  const a=Q_.creer('auto');v(jouer(a,60,10,false).length===0&&a.cran===0,'60 i/s');
-  const b=Q_.creer('auto'),vb=jouer(b,40,7,false);v(vb.length===2&&vb[0][0]===1&&Math.abs(vb[0][1]-R_.QUALITE_FENETRE)<0.05&&vb[1][0]===2&&Math.abs(vb[1][1]-2*R_.QUALITE_FENETRE)<0.05,'40 i/s '+JSON.stringify(vb));
-  v(jouer(b,20,10,false).length===0&&b.cran===R_.QUALITE_CRANS.length-1,'pas plus bas que basse');
-  const c=Q_.creer('auto');v(jouer(c,30,10,true).length===0&&c.cran===0,'pendant les feux');v(jouer(c,30,2.9,false).length===0,'avant 3 s');
-  const d=Q_.creer('auto');jouer(d,50,2,false);jouer(d,70,2,false);v(d.cran===0,'une moyenne au-dessus de 55 : '+d.cran);
-  for(const r of ['haute','basse']){const q=Q_.creer(r);v(jouer(q,20,10,false).length===0&&q.cran===(r==='basse'?2:0),r);}
-  const e=Q_.creer('auto');jouer(e,30,4,false);v(e.cran===1&&Q_.regler(e,'haute')===0&&Q_.regler(e,'auto')===0&&Q_.suivante('auto')==='haute'&&Q_.suivante('basse')==='auto','le menu');
-  v(Q_.creer('n_importe').regle==='auto','réglage inconnu');});
-t('qualité : le cran haut est l’image d’avant (PIXEL_RATIO_MAX, DECOR_DETAIL_LOIN, DECOR_RIEN_LOIN) ; chaque cran plus bas dessine moins ; la course ne bouge pas d’un bit avec un cran ou un autre', ()=>{const R_=REGLAGES,C_=R_.QUALITE_CRANS;
-  v(C_[0].pixelRatio===R_.PIXEL_RATIO_MAX&&C_[0].detail===R_.DECOR_DETAIL_LOIN&&C_[0].rien===R_.DECOR_RIEN_LOIN,'cran haut '+JSON.stringify(C_[0]));
-  for(let k=1;k<C_.length;k++) v(C_[k].pixelRatio<C_[k-1].pixelRatio&&C_[k].detail<C_[k-1].detail&&C_[k].rien<C_[k-1].rien,'cran '+k);
+// --- la qualité de l'image (qualite.js ; tour 40 les crans, tour 49a l'Auto continu, CLAUDE.md « L'Auto qui tient 58 images/s ») :
+// des ordinateurs simulés (un temps d'image imposé selon le niveau ; l'écran bloque à 60 Hz) ; la physique ne bouge pas
+// machine(q, cout, s, o) : cout(niveau) en ms (le temps de calcul) ; o.gpu(niveau) : le temps d'image s'il est plus long que le calcul (la carte
+// graphique) ; o.feux ; renvoie les changements [niveau, temps]
+const machineQ=(q,cout,s,o)=>{o=o||{};const vus=[];let t_=0,k=0;while(t_<s){const c=cout(q.niveau,k)/1000,g=o.gpu?o.gpu(q.niveau)/1000:0,dt=Math.max(1/60,c,g);t_+=dt;k++;
+  const n=QUALITE.observer(q,dt,!!o.feux,c);if(n!==null)vus.push([n,t_]);}return vus;};
+const bruitQ=k=>((k*7919)%13-6)/4;   // ±1,5 ms, toujours le même
+const ipsQ=(cout,n)=>{let s_=0;for(let k=0;k<1300;k++) s_+=Math.max(1000/60,cout(n,k));return 1300000/s_;};   // (la moyenne, bruit compris)
+t('qualité auto : un ordinateur lent simulé (24 ms au plus beau, 1 ms de moins par pas, ± 1,5 ms) passe sous 55, se simplifie un pas à la fois (0,5 s au moins entre deux) jusqu’à 58 ou plus, puis ne bouge plus pendant 60 s', ()=>{
+  const lent=(n,k)=>24-n+bruitQ(k),q=QUALITE.creer('auto'),vus=machineQ(q,lent,30);
+  v(vus.length>0&&vus.every((x,i)=>x[0]===i+1),'un pas à la fois '+JSON.stringify(vus));
+  v(vus.every((x,i)=>i===0||x[1]-vus[i-1][1]>=REGLAGES.QUALITE_PAS_DESCENTE-1e-9),'0,5 s entre deux pas '+JSON.stringify(vus));
+  v(ipsQ(lent,q.niveau)>=REGLAGES.QUALITE_IPS_VISEE&&ipsQ(lent,q.niveau-1)<REGLAGES.QUALITE_IPS_VISEE,'arrêté au premier niveau à 58 : '+q.niveau);
+  L.push('  (ordinateur lent simulé : niveau '+q.niveau+' / '+(q.niveaux.length-1)+' en '+vus[vus.length-1][1].toFixed(1)+' s, '+ipsQ(lent,q.niveau).toFixed(1)+' images/s)');
+  const apres=machineQ(q,lent,60);v(apres.length===0,'va-et-vient '+JSON.stringify(apres));});
+t('qualité auto : un ordinateur rapide (6 ms) garde tout le détail ; trop lent (40 ms), il va au plus simple et y reste (« au plus simple ») ; entre 55 et 58, rien ne commence ; une image très longue (un chargement) ne compte pas', ()=>{
+  const a=QUALITE.creer('auto');v(machineQ(a,()=>6,60).length===0&&a.niveau===0&&QUALITE.reglages(a)===null,'rapide '+a.niveau);
+  const b=QUALITE.creer('auto'),vb=machineQ(b,()=>40,30);v(b.niveau===b.niveaux.length-1&&QUALITE.auPlusSimple(b)&&vb.length===b.niveaux.length-1,'trop lent '+b.niveau);
+  v(machineQ(b,()=>40,60).length===0&&!QUALITE.auPlusSimple(a),'il y reste');
+  const c=QUALITE.creer('auto');v(machineQ(c,()=>1000/56.5,30).length===0,'56,5 images/s');
+  const d=QUALITE.creer('auto');v(QUALITE.observer(d,2,false,0.002)===null&&machineQ(d,()=>6,5).length===0,'une image de 2 s');});
+t('qualité auto : le détail revient lentement (un pas toutes les 3 s au plus), seulement avec de la marge au temps de calcul (< 70 % de 16,7 ms) ; un pas rendu qui repasse sous 58 est repris aussitôt, et pas de va-et-vient sur 60 s', ()=>{const R_=REGLAGES;
+  const a=QUALITE.creer('auto',{niveau:10}),va=machineQ(a,()=>6,40);
+  v(a.niveau===0&&va.length===10&&va.every((x,i)=>x[0]===9-i&&x[1]-(i?va[i-1][1]:0)>=R_.QUALITE_PAS_RETOUR-1e-9),'le retour '+JSON.stringify(va));
+  const b=QUALITE.creer('auto',{niveau:10});v(machineQ(b,()=>12.5,40).length===0&&b.niveau===10,'12,5 ms : pas assez de marge, le détail ne revient pas');
+  // (la carte graphique limite : le calcul est court mais l'image longue ; au niveau 6, 55,5 images/s)
+  const gpu=n=>24-n,c=QUALITE.creer('auto'),vc=machineQ(c,()=>5,15,{gpu});
+  const n0=c.niveau,vd=machineQ(c,()=>5,REGLAGES.QUALITE_BLOCAGE-15,{gpu});
+  L.push('  (carte graphique lente simulée : '+JSON.stringify(vc.concat(vd).map(x=>x[0]))+')');
+  v(n0===7&&c.niveau===7,'le niveau tenu '+n0+' '+c.niveau);
+  v(vd.length===0,'va-et-vient sur 60 s après l’essai repris '+JSON.stringify(vd));
+  const essais=vc.concat(vd).filter((x,i,l)=>i&&x[0]<l[i-1][0]);v(essais.length===1,'un seul essai de retour '+JSON.stringify(vc.concat(vd)));
+  const k=vc.concat(vd).findIndex((x,i,l)=>i&&x[0]<l[i-1][0]),tout=vc.concat(vd);v(tout[k+1]&&tout[k+1][0]===7&&tout[k+1][1]-tout[k][1]<=R_.QUALITE_PAS_DESCENTE+0.05,'repris aussitôt '+JSON.stringify(tout));});
+t('qualité auto : rien ne change pendant les feux ; le niveau gardé repart de là ; haute, moyenne, basse ne bougent pas ; le menu (auto → haute → moyenne → basse → auto, l’Auto reprend son niveau)', ()=>{
+  const a=QUALITE.creer('auto');v(machineQ(a,()=>30,10,{feux:true}).length===0&&a.niveau===0,'pendant les feux');
+  const b=QUALITE.creer('auto',{niveau:5});v(b.niveau===5&&JSON.stringify(QUALITE.reglages(b))===JSON.stringify(b.niveaux[5]),'niveau gardé');
+  v(QUALITE.creer('auto',{niveau:999}).niveau===b.niveaux.length-1&&QUALITE.creer('auto',{niveau:'x'}).niveau===0,'niveau abîmé');
+  for(const r of ['haute','moyenne','basse']){const q=QUALITE.creer(r,{niveau:5});v(machineQ(q,()=>40,10).length===0,r);}
+  v(QUALITE.reglages(QUALITE.creer('haute'))===null&&QUALITE.reglages(QUALITE.creer('basse')).pixelRatio===REGLAGES.QUALITE_CRANS[2].pixelRatio&&QUALITE.reglages(QUALITE.creer('moyenne')).detail===REGLAGES.QUALITE_CRANS[1].detail,'les crans');
+  v(QUALITE.suivante('auto')==='haute'&&QUALITE.suivante('haute')==='moyenne'&&QUALITE.suivante('moyenne')==='basse'&&QUALITE.suivante('basse')==='auto','le menu');
+  v(QUALITE.regler(b,'haute')===0&&QUALITE.reglages(b)===null&&QUALITE.regler(b,'auto')===5,'l’Auto reprend son niveau');
+  v(QUALITE.creer('n_importe').regle==='auto','réglage inconnu');});
+t('qualité : l’ordre des pas, du moins visible au plus visible (voitures lointaines, densité du décor, distance de dessin, effets, rétroviseur, pixels) ; chaque pas simplifie ; le plus beau est l’image d’avant ; jamais la piste ni la voiture du joueur ; un pas sans effet à l’écran est sauté', ()=>{const R_=REGLAGES;
+  const FAM={voitureLoin:1,voituresDetaillees:1,densite:2,detail:3,rien:3,effets:4,retro:5,pixelRatio:6},N=QUALITE.niveaux(),pb=N[0];
+  v(pb.pixelRatio===R_.PIXEL_RATIO_MAX&&pb.detail===R_.DECOR_DETAIL_LOIN&&pb.rien===R_.DECOR_RIEN_LOIN&&pb.voitureLoin===R_.VOITURE_LOIN&&pb.voituresDetaillees===R_.VOITURES_DETAILLEES_MAX&&pb.densite===1&&pb.effets===1&&pb.retro===true,'le plus beau '+JSON.stringify(pb));
+  let f0=0;for(let k=1;k<N.length;k++){const ch=Object.keys(N[k]).filter(c=>N[k][c]!==N[k-1][c]);v(ch.length>0&&ch.every(c=>c in FAM&&N[k][c]<N[k-1][c]),'pas '+k+' '+ch);const f=Math.max(...ch.map(c=>FAM[c]));v(f>=f0,'ordre au pas '+k);f0=f;}
+  const s=N[N.length-1];v(s.voitureLoin===15&&s.voituresDetaillees===2&&s.pixelRatio===0.6&&Math.abs(s.pixelRatio-0.6)<1e-9,'le plus simple '+JSON.stringify(s));
+  const N1=QUALITE.niveaux(1);v(N1.length<N.length&&N1.every((x,k)=>k===0||JSON.stringify(Object.assign({},x,{pixelRatio:Math.min(1,x.pixelRatio)}))!==JSON.stringify(Object.assign({},N1[k-1],{pixelRatio:Math.min(1,N1[k-1].pixelRatio)}))),'écran à 1 pixel par pixel CSS : '+N1.length+' niveaux');
+  L.push('  (les niveaux de l’Auto : '+N.length+' ; sur un écran à 1 pixel par pixel CSS : '+N1.length+')');});
+t('qualité : la course ne bouge pas d’un bit au plus beau ou au plus simple', ()=>{
   const course=()=>{const e=creerCourseIA(TQ,4,1,11,CARTES_T.technique);for(const p_ of e.pilotes) p_.course.compte=0;for(let k=0;k<120*10;k++) pasCourseIA(e,DT);return JSON.stringify(e.pilotes.map(p_=>p_.v));};
-  const q=QUALITE.creer('auto'),avant=course();for(let k=0;k<400;k++) QUALITE.observer(q,1/20,false);v(q.cran===2,'cran '+q.cran);v(course()===avant,'la course a changé');});
+  const q=QUALITE.creer('auto'),avant=course();machineQ(q,()=>40,30);v(QUALITE.auPlusSimple(q),'niveau '+q.niveau);v(course()===avant,'la course a changé');});
+t('qualité : le cran haut est l’image d’avant (PIXEL_RATIO_MAX, DECOR_DETAIL_LOIN, DECOR_RIEN_LOIN) ; chaque cran plus bas dessine moins', ()=>{const R_=REGLAGES,C_=R_.QUALITE_CRANS;
+  v(C_[0].pixelRatio===R_.PIXEL_RATIO_MAX&&C_[0].detail===R_.DECOR_DETAIL_LOIN&&C_[0].rien===R_.DECOR_RIEN_LOIN,'cran haut '+JSON.stringify(C_[0]));
+  for(let k=1;k<C_.length;k++) v(C_[k].pixelRatio<C_[k-1].pixelRatio&&C_[k].detail<C_[k-1].detail&&C_[k].rien<C_[k-1].rien,'cran '+k);});
 // --- la trajectoire conseillée (conseil.js, tour 39) : la couleur juste avant l'épingle du circuit technique, selon la
 // vitesse de la voiture ; quand elle se montre ; la physique et les IA au bit près
 t('trajectoire conseillée : avant l’épingle du technique (à la vitesse conseillée), rouge à partir du point de freinage de la carte, verte en sortie ; plus vite, le rouge commence tout de suite ; plus lent, plus tard', ()=>{
@@ -3077,6 +3115,48 @@ t('commentateur du résumé vidéo : une phrase par moment fort (départ, dépas
   let avant=null,deux=false;for(let i=0;i<20;i++){const it=COMMENTAIRE.momentResume(c,{type:'depassement',qui:1,sur:2,place:3},0,'');const k=it.type+':'+it.variante;if(k===avant)deux=true;avant=k;}v(!deux,'jamais deux fois de suite');
   const mode=R.COMMENTAIRE_MODE;try{R.COMMENTAIRE_MODE='non';v(COMMENTAIRE.momentResume(c,{type:'depart',qui:1},0,'')===null,'coupé');
     R.COMMENTAIRE_MODE='joueur';v(COMMENTAIRE.momentResume(c,{type:'depassement',qui:1,sur:2},0,'')===null&&COMMENTAIRE.momentResume(c,{type:'sortie',qui:0},0,'')!==null&&COMMENTAIRE.momentResume(c,{type:'arrivee',qui:4},0,'')!==null,'tes faits');}finally{R.COMMENTAIRE_MODE=mode;}});
+
+// --- (tour 49d, Codeur 4) les divisions (divisions.js) : une carrière neuve en division 4 ; une vieille sauvegarde rangée en division 3
+// (le jeu d'avant) sans rien perdre ; la montée dans les DIVISION_MONTEE_PLACE premiers, jamais de descente ; le niveau des IA et la
+// force des voitures changent d'une division à l'autre (la division 3 : les mêmes nombres au bit près)
+t('divisions : une carrière neuve en division 4, une vieille sauvegarde en division 3 sans rien perdre ; la montée dans les 3 premiers, jamais de descente', ()=>{
+  const R=REGLAGES,ch=CHAMPIONNAT.creer(3);v(DIVISIONS.de(ch)===R.DIVISION_DEPART&&R.DIVISION_DEPART===4,'carrière neuve : '+ch.division);
+  const vieille=JSON.parse(JSON.stringify(ch));delete vieille.division;vieille.pilotes[19].stats.points=42;vieille.argent=vieille.argent||{};
+  const avant=JSON.stringify(vieille),apres=CHAMPIONNAT.completer(JSON.parse(avant));
+  v(apres.division===R.DIVISION_VIEILLE&&R.DIVISION_VIEILLE===3,'vieille sauvegarde : '+apres.division);
+  const sans=JSON.parse(JSON.stringify(apres));delete sans.division;v(JSON.stringify(CHAMPIONNAT.completer(JSON.parse(avant)),(k,x)=>k==='division'?undefined:x)===JSON.stringify(sans),'rien d’autre ne change');
+  v(apres.pilotes[19].stats.points===42,'les points gardés');
+  const essai=(div,place)=>{const c={division:div},e={};const r=DIVISIONS.finSaison(c,e,place);return [c.division,e.division,e.montee===undefined?null:e.montee,r];};
+  v(JSON.stringify(essai(4,1))==='[3,4,3,3]','champion en division 4 : '+essai(4,1));
+  v(JSON.stringify(essai(4,3))==='[3,4,3,3]','3e : monte');
+  v(JSON.stringify(essai(4,4))==='[4,4,null,null]','4e : reste');
+  v(JSON.stringify(essai(2,20))==='[2,2,null,null]','dernier : ne descend jamais');
+  v(JSON.stringify(essai(1,1))==='[1,1,null,null]','division 1 : le sommet');
+  const act=R.DIVISIONS_ACTIVES;try{R.DIVISIONS_ACTIVES=false;v(JSON.stringify(essai(4,1))==='[4,4,null,null]','coupées : rien');}finally{R.DIVISIONS_ACTIVES=act;}
+  if(typeof SAISONS!=='undefined'){const c=CHAMPIONNAT.creer(5);SAISONS.avancer(c,99);SAISONS.terminerSaison(c);const b=SAISONS.bilan(c);v(c.division===(b.joueurPlace<=3?3:4),'fin de saison (saisons.js) : P'+b.joueurPlace+' → division '+c.division);}
+  ['divisionMontee','divisionSommet','divisionResteSaison','divisionNom'].forEach(k=>v(TEXTES.fr[k]&&TEXTES.en[k],'texte '+k));});
+t('divisions : le niveau des IA et la force de toutes les voitures (débutant et lentes en 4 … légende et surpuissantes en 1) ; la division 3 = le jeu d’avant au bit près ; la carte des IA est recalculée avec', ()=>{
+  const R=REGLAGES,B=Object.assign({},DIVISIONS.BASE),vmax=()=>{const vo=creerVoiture(null);rouler(vo,null,40,{gaz:1,frein:0,direction:0});return vo.u*KMH;};
+  try{
+    const n={},vit={},cles={};
+    for(const d of [4,3,2,1]){DIVISIONS.appliquer(d);n[d]=R.NIVEAU;vit[d]=vmax();cles[d]=CACHE_CARTE.cle('technique',CIRCUITS.technique);}
+    v(n[4]==='debutant'&&n[3]==='normal'&&n[2]==='expert'&&n[1]==='legende','niveaux : '+JSON.stringify(n));
+    v(vit[4]<vit[3]&&vit[3]<vit[2]&&vit[2]<vit[1],'vitesse max : '+JSON.stringify(Object.fromEntries(Object.entries(vit).map(([k,x])=>[k,x.toFixed(1)]))));
+    DIVISIONS.appliquer(3);v(R.PUISSANCE===B.PUISSANCE&&R.FORCE_MOTEUR_MAX===B.FORCE_MOTEUR_MAX&&R.ADHERENCE===B.ADHERENCE&&R.NIVEAU==='normal','division 3 : les réglages de base');
+    v(new Set(Object.values(cles)).size===4,'une carte des IA par division (la clé du cache change)');
+    L.push('  (divisions, vitesse max : '+[4,3,2,1].map(d=>'D'+d+' '+vit[d].toFixed(0)+' km/h').join(', ')+')');
+  }finally{DIVISIONS.retablir();}
+  v(R.PUISSANCE===B.PUISSANCE&&R.NIVEAU===B.NIVEAU,'rétablis');});
+t('divisions : une course entre IA en division 4 et en division 1 sur le technique (la carte calculée pour chaque division) : tout le monde finit, la division 1 tourne plus vite que la 4', ()=>{
+  const R=REGLAGES,res={};
+  try{
+    for(const d of [4,1]){DIVISIONS.appliquer(d);const carte=carteDepuis(TQ,calculerTrajectoire(TQ)),e=creerCourseIA(TQ,4,1,11,carte);for(const p_ of e.pilotes) p_.course.compte=0;
+      for(let k=0;k<120*400&&e.pilotes.some(p_=>p_.arrivee===null);k++)pasCourseIA(e,DT);
+      const best=Math.min(...e.pilotes.map(p_=>p_.course.meilleurTour||Infinity));res[d]={finis:e.pilotes.filter(p_=>p_.arrivee!==null).length,n:e.pilotes.length,best};}
+  }finally{DIVISIONS.retablir();}
+  v(res[4].finis===res[4].n&&res[1].finis===res[1].n,'arrivés : '+JSON.stringify(res));
+  v(res[1].best<res[4].best,'meilleur tour : D1 '+res[1].best.toFixed(2)+' s, D4 '+res[4].best.toFixed(2)+' s');
+  L.push('  (divisions, meilleur tour IA sur le technique : D4 '+res[4].best.toFixed(2)+' s, D1 '+res[1].best.toFixed(2)+' s)');});
 
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 ecrire();

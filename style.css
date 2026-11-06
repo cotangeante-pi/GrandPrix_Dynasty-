@@ -768,6 +768,9 @@ body.deux #hudStand { display: none; }
 #saisonChampion { font-size: 22px; color: #ffd666; }
 #saisonChampion.toi { font-size: 34px; letter-spacing: 2px; }
 #saisonEcurie { font-size: 15px; opacity: 0.9; }
+#saisonDivision { font-size: 15px; margin: 2px 0; opacity: 0.9; }
+#saisonDivision:empty { display: none; }
+#saisonDivision.montee { opacity: 1; font-weight: 700; color: #f2c230; }
 #saisonTableaux h2 { margin: 0 0 4px; font-size: 14px; text-align: center; opacity: 0.85; }
 #saisonPilotes { margin: 0; padding: 0; list-style: none; font: 12px/1.35 var(--police); columns: 2; column-gap: 18px; }
 #saisonPilotes li { display: flex; gap: 6px; align-items: center; padding: 0 6px; border-radius: 3px; white-space: nowrap; break-inside: avoid; }
@@ -1557,3 +1560,12 @@ body.auPaddock #boutonSon { display: none; }
 .touchesLigne button { min-width: 74px; padding: 3px 8px; font-size: 13px; }
 .touchesLigne button.attente { box-shadow: 0 0 0 3px #ffd34d; }
 #touchesMessage { min-height: 1.2em; }
+/* le rétroviseur (tour 49a) : seulement le cadre, l'image est dessinée dans la 3D juste dessous (scene3d.js dessinerRetro) */
+#retroviseur {
+  position: fixed;
+  box-sizing: border-box;
+  border: 3px solid #1b1d22;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+  pointer-events: none;
+}
