@@ -480,6 +480,7 @@ const REGLAGES = {
   TOURNOI_MANCHES: 3,           // 🏆 Tournoi : trois manches (⚡ Éclair : une)
   TOURNOI_POINTS: [25, 18, 15, 12, 10, 8, 6, 4],   // les points d'une manche selon la place (aucun sans temps)
   TOURNOI_COMPTE: 3,            // s : « À toi, Sarah ! » et le compte à rebours, le temps de prendre le clavier
+  TOURNOI_COMPTE_DT_MAX: 0.1,   // s : une image plus longue (le chargement, un ordinateur lent) ne compte que ça : le compte à rebours ne saute pas (tour 50c)
   GRAINE_TOURNOI: 8000,
   TOURNOI_PRES: 0.2,            // s : à moins de ça du meilleur temps, la phrase « À 0,03 s du record ! »         // les circuits tirés au sort : la graine + ce nombre
   TOURNOI_CASQUES: [            // les casques par défaut des joueurs (dans l'ordre d'inscription)

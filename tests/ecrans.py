@@ -1032,6 +1032,10 @@ def deux_ecran(pg, titre, l, h, page):
         for (let i = 0; i < d.length; i += 4) { n++; const m = Math.max(d[i], d[i + 1], d[i + 2]) - Math.min(d[i], d[i + 1], d[i + 2]); if (m <= REGLAGES.PISTE_GRIS_ECART_MAX) gris++; }
         res.push({ gris: Math.round(100 * gris / n), exemple: [d[0], d[1], d[2]].join(',') }); }
       BOUCLE.demarrer(); return res; }'''
+    # (tour 50c, le test instable du 2026-11-05) les deux caméras rejoignent leur place derrière la voiture en quelques images (lissées) ;
+    # sous swiftshader, la lecture pouvait venir avant : on attend qu'elles ne bougent plus d'une image à l'autre (les feux retenus, rien ne roule)
+    attendre(pg, '''() => { const p = [SCENE3D.camera, SCENE3D.camera2].map(c => c.position.x.toFixed(2) + ',' + c.position.y.toFixed(2) + ',' + c.position.z.toFixed(2)).join(';');
+      const ok = window.__camerasAvant === p; window.__camerasAvant = p; return ok; }''', None, 20000)
     piste = pg.evaluate(PISTE, [[0.20, 0.93, 0.30, 0.99], [0.70, 0.93, 0.80, 0.99]])
     t(f'{titre} : la piste est dessinée sous chaque voiture : sur la grille, sous le joueur 1 (bas de la moitié gauche) et sous le joueur 2 (bas de la moitié droite), au moins 90 % de pixels gris de route', all(p['gris'] >= 90 for p in piste), str(piste))
     pg.evaluate('() => { for (const p of JEU.plateau.pilotes) p.course.compte = 0.01; }')
@@ -1574,7 +1578,7 @@ def sensations_ecran(pg, titre):
     pg.wait_for_timeout(1500)
     t(f'{titre} : aucun son avant un geste du joueur : la course roule (robot), pas d’AudioContext', roule and pg.evaluate('() => !SON.actif && SON.etatContexte === "aucun"'), pg.evaluate('() => SON.etatContexte'))
     m = pg.evaluate('''() => { BOUCLE.arreter(); const E = EFFETS3D, e = E.etat, j = JEU.joueur, F = { vibreur: 0, herbe: 1, glisse: 0, blocage: 1, contact: 1, choc: 0, vitesse: 40 };
-      const sansRien = () => { e.fumee.length = 0; e.etincelle.length = 0; E.maj([], null, 0); SCENE3D.dessiner(); return SCENE3D.appelsDessin; };
+      const sansRien = () => { e.fumee.length = 0; e.etincelle.length = 0; e.trace.length = 0; E.maj([], null, 0); SCENE3D.dessiner(); return SCENE3D.appelsDessin; };   // (tour 50c : les traces aussi : celles laissées par le robot pendant la course comptaient un appel dans « vide », pas dans « coupe »)
       const vide = sansRien(); SENSATIONS.regler(false); const coupe = sansRien(); SENSATIONS.regler(true);
       const devant = { x: j.x + Math.cos(j.cap) * 9, z: j.z + Math.sin(j.cap) * 9, cap: j.cap };   // (devant la voiture : la capture les montre)
       E.emettre(e, j, devant, F, 0.4);

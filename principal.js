@@ -321,7 +321,7 @@ function montrerAToi() {
 // à chaque image de « À toi » : le compte à rebours (temps réel) ; à 0, le tour commence, avec le fantôme du leader du moment
 function majAToi(dt) {
   if (JEU.ecran !== 'tournoiAToi') return;
-  JEU.tournoiCompte -= dt;
+  JEU.tournoiCompte -= Math.min(dt, REGLAGES.TOURNOI_COMPTE_DT_MAX);   // (tour 50c : une image très longue, juste après le chargement, mangeait le compte à rebours)
   INTERFACE.majCompteTournoi(JEU.tournoiCompte);
   if (JEU.tournoiCompte <= 0) commencerTourTournoi();
 }
