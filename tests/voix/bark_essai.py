@@ -8,6 +8,7 @@ Les outils restent HORS du dépôt, dans OUTILS (donné en argument) :
   OUTILS/venv-bark       python3 -m venv venv-bark ; pip install torch==2.2.2 "numpy<2" git+https://github.com/suno-ai/bark
   les poids              téléchargés par Bark lui-même dans XDG_CACHE_HOME=OUTILS/cache (huggingface.co/suno/bark, MIT)
 Lancement : OUTILS/venv-bark/bin/python tests/voix/bark_essai.py OUTILS SORTIE [--prises N] [--jusqua HH:MM] [--langues fr,en]
+                                                                     [--voix fr:2,0;en:6,3]
   Les prises déjà faites sont gardées (on peut relancer) ; à l'heure --jusqua, il finit la prise en cours et s'arrête.
 Voix : les « speaker presets » fournis avec Bark (v2/fr_speaker_N, v2/en_speaker_N), des voix synthétiques de Suno (MIT), pas des
 personnes enregistrées pour l'occasion ; aucune imitation d'un commentateur réel, jamais la voix du propriétaire.
@@ -39,13 +40,22 @@ PHRASES = {
            ('bataille', 'What a BATTLE!', 'What a — BATTLE!'), ('erreur', 'Oh! Off into the GRASS!', 'Oh! Off — into the GRASS!'),
            ('victoire', 'VICTORY!', 'And — VICTORY!')],
 }
+# --tiret : les prises paires avec le « — ». Coupé par défaut : sur les prises 2, il n'aidait pas l'intonation et coupait les mots
+# (« Il passe — IL PASSE ! » entendu « Il pass, il pass »)
+TIRET = '--tiret' in sys.argv
 # la voix du premier essai d'abord (fr 2, en 6), puis d'autres voix fournies avec Bark
 VOIX = {'fr': [2, 0, 3, 6], 'en': [6, 0, 3, 9]}
-TEMP_TEXTE, TEMP_SON = 0.6, 0.6      # plus bas que 0,7 : moins de mots inventés et d'hésitations
+# --voix fr:2,0;en:6,3 : après une première prise de chaque voix, garder les meilleures (transcrire.py) pour leur donner plus de prises
+if '--voix' in sys.argv:
+    VOIX = {l: [int(v) for v in vs.split(',')] for l, vs in (x.split(':') for x in option('--voix', '').split(';'))}
+# un peu plus bas que 0,7 (le premier essai) : moins de mots inventés et d'hésitations. (0,6 / 0,6 avec un plafond trop court, la
+# première prise : le français devenait incompréhensible, Whisper n'y reconnaissait plus qu'une phrase sur quatre)
+TEMP_TEXTE, TEMP_SON = 0.65, 0.7
 
 def duree_max(texte):
-    """Le plafond de génération (s) : ~0,09 s par lettre + 0,8 s, entre 1,6 et 3,6 s ; au-delà, Bark ajoute des mots."""
-    return max(1.6, min(3.6, 0.8 + 0.09 * len(texte.replace(' ', ''))))
+    """Le plafond de génération (s) : 1,2 s + 0,12 s par lettre, entre 2,4 et 4,5 s (le souffle du début compte : plus court, les mots
+    étaient coupés) ; au-delà, Bark ajoute des mots, que le tri (transcrire.py) rejette."""
+    return max(2.4, min(4.5, 1.2 + 0.12 * len(texte.replace(' ', ''))))
 
 def heure_passee():
     if not JUSQUA: return False
@@ -61,7 +71,7 @@ def main():
         for langue in LANGUES:
             for voix in VOIX[langue]:
                 for cle, simple, elan in PHRASES[langue]:
-                    texte = elan if prise % 2 == 0 else simple
+                    texte = elan if TIRET and prise % 2 == 0 else simple
                     nom = 'bark-%s-v%d-%s-p%d' % (langue, voix, cle, prise)
                     if nom in faites: continue
                     if heure_passee(): print('heure atteinte, arrêt'); return
@@ -78,7 +88,8 @@ def main():
                         y, sr2 = T.energie(x, SAMPLE_RATE, niveau=niveau)
                         T.ecrire_wav(base + '-' + niveau + '.wav', y, sr2); T.encoder_mp4(base + '-' + niveau + '.wav', base + '-' + niveau + '.mp4')
                     faites[nom] = dict(langue=langue, voix=voix, cle=cle, prise=prise, texte=texte, duree_brute=len(x) / SAMPLE_RATE,
-                                       parole=T.duree_parole(T.rogner(x, SAMPLE_RATE), SAMPLE_RATE), calcul=time.time() - t1)
+                                       parole=T.duree_parole(T.rogner(x, SAMPLE_RATE), SAMPLE_RATE), calcul=time.time() - t1,
+                                       temp=[TEMP_TEXTE, TEMP_SON], plafond=duree_max(texte))
                     json.dump(faites, open(journal, 'w'), indent=1, ensure_ascii=False)
                     print(nom, '%.2f s de parole' % faites[nom]['parole'], '(%.0f s de calcul)' % faites[nom]['calcul'], flush=True)
 

@@ -1,6 +1,7 @@
 """Le tri des prises Bark par calcul (tour 48e) : chaque prise est transcrite par Whisper (openai-whisper, licence MIT pour le code et
 les poids ; installé hors du dépôt : OUTILS/venv-bark/bin/pip install openai-whisper ; les poids dans OUTILS/cache), puis comparée
 au texte voulu. Une prise est REJETÉE si :
+  - la transcription contient un mot parasite (um, uh, euh, I guess, you know…), toujours ;
   - la transcription a des mots en trop (« I guess », « uh », un mot inventé) ou en moins : ressemblance des mots < SEUIL ;
   - la parole dure plus que prévu pour la phrase (hésitations, mots ajoutés) : > 1,7 × la durée attendue (0,075 s par lettre + 0,35 s).
 Les autres sont classées par INTONATION d'abord (le propriétaire : « c'est surtout l'intonation » ; traitement.intonation, sur la
@@ -18,6 +19,8 @@ import traitement as T
 import whisper
 
 SEUIL = 0.75
+# les mots que Bark ajoute (le propriétaire : « des petits "I guess" ») : toujours rejetés
+PARASITES = re.compile(r' (um+|uh+|hm+|euh+|bah|ben|i guess|you know|like|professional|okay|ok) ')
 
 def mots(s):
     s = unicodedata.normalize('NFKD', s.lower().replace('’', "'")); s = ''.join(c for c in s if not unicodedata.combining(c))
@@ -42,7 +45,8 @@ def main():
         en_trop = sum(j2 - j1 for op, i1, i2, j1, j2 in sm.get_opcodes() if op in ('insert', 'replace'))
         parole, att = T.duree_parole(x, sr), attendu(p['texte'])
         rejet, raison = False, ''
-        if sm.ratio() < SEUIL: rejet, raison = True, 'mots différents'
+        if PARASITES.search(' ' + ' '.join(B) + ' '): rejet, raison = True, 'hésitation ou mot ajouté (' + PARASITES.search(' ' + ' '.join(B) + ' ').group(0).strip() + ')'
+        elif sm.ratio() < SEUIL: rejet, raison = True, 'mots différents'
         elif parole > 1.7 * att: rejet, raison = True, 'trop longue'
         xb, srb = T.lire_wav(os.path.join(SORTIE, nom + '-brut.wav'))
         notes[nom] = dict(intonation=T.intonation(xb, srb), texte_entendu=ent, ressemblance=round(sm.ratio(), 2), en_trop=en_trop, parole=round(parole, 2), attendu=round(att, 2), rejet=rejet, raison=raison)
