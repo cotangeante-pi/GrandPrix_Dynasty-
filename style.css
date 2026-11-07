@@ -1687,3 +1687,41 @@ body.auPaddock #boutonSon { display: none; }
   #pause button, #pause button.petit { min-width: 0; padding: 4px 10px; font-size: 12px; }
   #pause #boutonReprendre, #pause #boutonRecommencer { padding: 6px 18px; font-size: 14px; }
 }
+
+/* le téléphone couché (640×360, tour 51g, Codeur 3) : la création du pilote (son « Commencer » sortait de l'écran, et le bouton 🔊 couvrait deux
+   champs) et le classement final de la saison (son « Continuer » sortait aussi) tiennent dans l'écran ; rien ne change au-dessus de 420 px de haut */
+@media (max-height: 420px) {
+  #pilote { gap: 4px; padding: 52px 12px 6px; box-sizing: border-box; }
+  #pilote h1 { font-size: 20px; line-height: 1.1; margin: 0; }
+  #pilote h1::after { margin-top: 2px; height: 3px; }
+  #piloteChamps { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 20px; width: 580px; max-width: 94vw; }
+  #piloteChamps label { font-size: 13px; }
+  #piloteChamps input, #piloteChamps select { width: 120px; padding: 3px 6px; font-size: 13px; }
+  #piloteDomicile { grid-column: 1 / -1; min-height: 0; font-size: 12px; }
+  #casqueEditeur { gap: 12px; }
+  #casqueApercu { width: 72px; height: 72px; }
+  #casqueChamps { gap: 3px; }
+  #casqueChamps h2 { font-size: 13px; }
+  #casqueChamps label { font-size: 13px; }
+  #casqueChamps select { padding: 2px 6px; font-size: 13px; }
+  #casqueChamps input[type=color] { height: 22px; }
+  #piloteErreur { min-height: 0; font-size: 12px; }
+  #pilote .boutons button { padding: 6px 18px; font-size: 14px; }
+  #saison { gap: 2px; padding: 4px 12px; box-sizing: border-box; }
+  #saison h1 { font-size: 22px; line-height: 1.1; }
+  #saison h1::after { margin-top: 2px; height: 3px; }
+  #saisonChampion { font-size: 15px; }
+  #saisonChampion.toi { font-size: 22px; letter-spacing: 1px; }
+  #saisonEcurie, #saisonDivision { font-size: 12px; margin: 0; }
+  #saisonTableaux h2 { font-size: 12px; margin-bottom: 2px; }
+  #saisonPilotes { font-size: 11px; line-height: 1.2; }
+  #saison .boutons button { padding: 6px 18px; font-size: 14px; }  /* les contrats : la liste des offres défile quand elle ne tient pas (le « Signer » du bas sortait de l'écran) */
+  #contrats { gap: 3px; padding: 4px 12px; box-sizing: border-box; }
+  #contrats h1 { font-size: 20px; line-height: 1.1; margin: 0; }
+  #contrats h1::after { margin-top: 2px; height: 3px; }
+  #contratsNote { font-size: 12px; }
+  #contratsListe { gap: 3px; margin: 0; max-height: calc(100vh - 124px); overflow-y: auto; }
+  #contratsListe li { padding: 2px 8px; gap: 6px; font-size: 12px; line-height: 1.2; }
+  #contrats button.signer, #contrats button.negocier { padding: 3px 10px; font-size: 12px; }
+  #contrats .boutons button { padding: 6px 16px; font-size: 13px; }
+}

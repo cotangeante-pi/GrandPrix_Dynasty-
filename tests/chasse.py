@@ -81,7 +81,7 @@ class Carriere:
     def vers_page(self, sel):
         page = self.ev('(s) => { const e = document.querySelector(s), p = e && e.closest(".paddockPage"); return p && p.classList.contains("cache") && JEU.ecran === "championnat" ? p.dataset.page : null; }', sel)
         if page:
-            try: self.pg.click('#paddockMenu [data-page="' + page + '"]', timeout=8000)
+            try: self.pg.click('#paddockMenu [data-page="' + page + '"]', timeout=30000)
             except Exception: pass
     def clic(self, sel, navigation=False):
         self.vers_page(sel)

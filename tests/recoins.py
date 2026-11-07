@@ -773,7 +773,7 @@ def defi(c, titre):
     e = etat(); c.inspecter('défi : la grille')
     t(f'{titre} : le lien ?defi= mène à la grille du défi (écran qualif, défi en cours, 1 défi reçu)', bool(e) and e['ecran'] == 'qualif' and e['defi'] and e['liste'] == 1 and not e['refus'], str(e))
     # 2. le même lien rechargé : pas de doublon
-    pg.reload(); c.pret(120000); c.attendre('() => JEU.ecran === "qualif"', 30000)
+    pg.reload(timeout=120000); c.pret(120000); c.attendre('() => JEU.ecran === "qualif"', 30000)
     e = etat(); t(f'{titre} : le même lien rechargé ne double pas le défi reçu', bool(e) and e['liste'] == 1 and e['ecran'] == 'qualif', str(e))
     # 3. Échap abandonne le tour : l'écran de fin du défi, « Quitter » mène à Entre amis
     c.attendre('() => JEU.qualif && JEU.qualif.etat === "tour"', 60000)
@@ -848,6 +848,12 @@ def carrieres(c, titre):
     if ok:
         r = c.ev('() => { const d = SAUVEGARDE.lire(), ch = d.championnat; return { div: ch.division, saison: ch.saison, prochain: ch.prochain, argent: ch.argent && ch.argent.solde, skins: d.skins, voix: d.options.voixsons, decouverte: d.decouverteFaite, temple: d.temple.carrieres.length, plateaux: Object.keys(ch.plateaux || {}).length }; }')
         t(f'{titre} : après « Nouvelle carrière » : un monde neuf en division 4, saison 1, argent à zéro ; skins, voix et découverte gardés ; la carrière de 3 saisons… entre au temple', bool(r) and r['div'] == 4 and r['saison'] == 1 and r['prochain'] == 0 and not r['argent'] and 'or' in r['skins'] and r['voix'] is True and r['decouverte'] is True and r['temple'] == 1 and r['plateaux'] == 0, str(r))
+        # le clavier dans les champs : Tab passe d'un champ au suivant (la touche Tab du jeu ne sert qu'à changer de voiture suivie) ; une
+        # lettre ou Espace tapée dans le nom ne déclenche ni la caméra, ni la remise en piste, ni la pause
+        try: pg.click('#piloteNom', timeout=5000); pg.keyboard.type('Test c p', delay=30); pg.keyboard.press('Tab')
+        except Exception: pass
+        r = c.ev('() => ({ actif: document.activeElement && document.activeElement.id, remettre: JEU.remettre, nom: document.getElementById("piloteNom").value, ecran: JEU.ecran })')
+        t(f'{titre} : à la création du pilote, Tab passe au champ suivant (le numéro), taper « c », « p » et Espace dans le nom ne change rien au jeu', bool(r) and r['actif'] == 'piloteNumero' and r['ecran'] == 'pilote' and r['nom'] == 'Test c p', str(r))
         try: pg.fill('#piloteNom', 'Testeur', timeout=5000)
         except Exception: pass
         c.cliquer('#boutonPiloteValider', navigation=True)
@@ -860,12 +866,74 @@ def carrieres(c, titre):
     c.clic('#paddockMenu [data-page="reglages"]'); pg.wait_for_timeout(200)
     c.cliquer('#boutonNouvelleCarriereZero'); c.inspecter('à 0 : confirmation 1'); c.cliquer('#boutonCarriereOui'); c.inspecter('à 0 : confirmation 2'); c.cliquer('#boutonCarriereOui', navigation=True)
     ok = c.ecran('titre', 'titre après « à 0 »', 60000)
-    r = c.ev('() => { const d = SAUVEGARDE.lire(); return { championnat: !!d.championnat && d.championnat.saison === 1 && d.championnat.prochain === 0 && d.championnat.division === 4 && !(d.championnat.argent && d.championnat.argent.solde) && d.championnat.pilotes.find(p => p.humain).nom !== 'Testeur', skins: d.skins.length, decouverte: !!d.decouverteFaite, temple: d.temple.carrieres.length, voix: d.options.voixsons, defis: d.defis.liste.length, touches: d.touches }; }')
+    r = c.ev('() => { const d = SAUVEGARDE.lire(); return { championnat: !!d.championnat && d.championnat.saison === 1 && d.championnat.prochain === 0 && d.championnat.division === 4 && !(d.championnat.argent && d.championnat.argent.solde) && d.championnat.pilotes.find(p => p.humain).nom !== "Testeur", skins: d.skins.length, decouverte: !!d.decouverteFaite, temple: d.temple.carrieres.length, voix: d.options.voixsons, defis: d.defis.liste.length, touches: d.touches }; }')
     t(f'{titre} : « Nouvelle carrière à 0 » : l’écran titre, un monde neuf de division 4 (celui du premier lancement), plus de skins, de temple ni de découverte', ok and bool(r) and r['championnat'] and r['skins'] == 0 and not r['decouverte'] and r['temple'] == 0 and not r['voix'], str(r))
     if ok:
         c.cliquer('#boutonJouer')
         ok = c.attendre('() => JEU.ecran === "course" || JEU.ecran === "grille"', 60000)
         t(f'{titre} : après « à 0 », « ▶ Jouer » mène à la course de découverte au niveau débutant', ok and c.ev('() => !!JEU.decouverte && REGLAGES.NIVEAU === "debutant"') is True, str(c.ev('() => [JEU.ecran, !!JEU.decouverte, REGLAGES.NIVEAU]')))
+
+# --- (tour 51g) des sauvegardes abîmées SUR LES CHAMPS RÉCENTS (division, plateaux, défis, touches, skins, réglages de voiture, voix) :
+# le jeu repart sans erreur, et les écrans qui lisent ces champs (paddock et ses pages, Relever un défi, ⌨ Touches, garage, Mes réglages) s'ouvrent
+def sauvegardes_recentes(c, titre, racine=False):
+    import json
+    c.aller(f'index.html?championnat=1&tours=1&lang={c.langue}')
+    if not c.ecran('championnat', 'paddock de référence', 60000): return
+    # une carrière montée en division 3 (le plateau d'en bas gardé), avec un défi reçu, des touches, un skin, un réglage de voiture
+    c.ev("""() => { const ch = JEU.championnat; SAISONS.avancer(ch, REGLAGES.NB_GRANDS_PRIX); const j = ch.pilotes.find(p => p.humain); j.nom = 'Testeur'; j.pays = 'jp'; j.coeur = 'suzuko'; if (SAISONS.bilan(ch).joueurPlace > 3) j.stats.points += 2000;
+      SAISONS.terminerSaison(ch); SAISONS.signer(ch, ch.ecuries.length - 1 > 0 ? DIVISIONS.vueContrats(ch).ecuries[0].id : 0); SAISONS.nouvelleSaison(ch);
+      REGLAGES_VOITURE.regler(ch, 'spaa', 'freins', 3); SAUVEGARDE.ecrireChampionnat(ch); SAUVEGARDE.obtenirSkin('or'); SAUVEGARDE.ecrireOption('voixsons', true);
+      const x = SAUVEGARDE.lire(); x.decouverteFaite = true; x.touches = { seul: { gaz: ['KeyI'] } }; SAUVEGARDE.ecrire(x); }""")
+    bonne = c.ev('() => localStorage.getItem("grand-prix-dynasty")')
+    div = c.ev('() => [JSON.parse(localStorage.getItem("grand-prix-dynasty")).championnat.division, JSON.parse(localStorage.getItem("grand-prix-dynasty")).championnat.plateau]')
+    t(f'{titre} : la carrière de référence est montée en division 3', div == [3, 3], str(div))
+    base = json.loads(bonne)
+    def cas(nom, f):
+        x = json.loads(bonne); f(x); return (nom, json.dumps(x))
+    def ch(f): return lambda x: f(x['championnat'])
+    liste = [
+        cas('division 7', ch(lambda k: k.__setitem__('division', 7))),
+        cas('division « trois »', ch(lambda k: k.__setitem__('division', 'trois'))),
+        cas('division absente', ch(lambda k: k.pop('division'))),
+        cas('plateau 9', ch(lambda k: k.__setitem__('plateau', 9))),
+        cas('plateaux nul', ch(lambda k: k.__setitem__('plateaux', None))),
+        cas('plateaux : une liste', ch(lambda k: k.__setitem__('plateaux', []))),
+        cas('plateaux sans ses pilotes', ch(lambda k: k.__setitem__('plateaux', { '4': { 'ecuries': [] } }))),
+        cas('parcours abîmé', ch(lambda k: k.__setitem__('parcours', 'x'))),
+        cas('défis nuls', lambda x: x.__setitem__('defis', None)),
+        cas('défis : liste bizarre', lambda x: x.__setitem__('defis', { 'liste': [None, 5, { 'id': 1 }, { 'id': 'a', 'code': 7, 'circuit': 'nulle', 'temps': 'x' }], 'enCours': 12 })),
+        cas('défis : liste en texte', lambda x: x.__setitem__('defis', { 'liste': 'x', 'enCours': None })),
+        cas('touches en texte', lambda x: x.__setitem__('touches', 'x')),
+        cas('touches : des groupes vides', lambda x: x.__setitem__('touches', { 'seul': None, 'j1': 3, 'j2': { 'gaz': [] } })),
+        cas('touches : codes bizarres', lambda x: x.__setitem__('touches', { 'seul': { 'gaz': ['<script>', 5], 'pause': [] } })),
+        cas('skins en texte', lambda x: x.__setitem__('skins', 'x')),
+        cas('skins nuls, célébrations nulles', lambda x: (x.__setitem__('skins', None), x.__setitem__('celebrations', None))),
+        cas('voix : « oui » (pas un booléen)', lambda x: x['options'].__setitem__('voixsons', 'oui')),
+        cas('réglages de voiture en texte', ch(lambda k: k.__setitem__('reglagesVoiture', 'x'))),
+        cas('réglages de voiture hors des crans', ch(lambda k: k.__setitem__('reglagesVoiture', { 'spaa': { 'freins': 99, 'boite': -3, 'pression': 'x' }, 'test': None }))),
+        cas('livrée et célébration inconnues', ch(lambda k: (k.__setitem__('livree', { 'motif': 'inconnu', 'numero': 'x' }), k.__setitem__('celebration', 'zzz')))),
+    ]
+    # (deux moitiés, pour tenir dans la limite de 600 s d'un travail GitHub : le championnat, puis la racine de la sauvegarde)
+    liste = [x for k, x in enumerate(liste) if (k >= 8) == racine]
+    for nom, valeur in liste:
+        t_cas = time.monotonic()
+        ecrire_sauvegarde(c, valeur)
+        avant = len(c.console)
+        c.aller(f'index.html?lang={c.langue}')
+        vu = c.attendre(ECRAN_VU, 30000)
+        e = c.ev('() => JEU.ecran')
+        if e == 'championnat':
+            c.ev('() => { if (window.AIDES_ECRAN) AIDES_ECRAN.fermer(); }')
+            for page in ('equipe', 'boutique', 'saison', 'messages', 'reglages'): c.clic('#paddockMenu [data-page="' + page + '"]')
+            c.cliquer('#boutonGarage')
+            c.si('#boutonReglagesVoiture')
+            c.ev('() => { if (JEU.ecran !== "championnat") montrerChampionnat(null); }')
+        ok_ecrans = c.ev('() => { try { const out = []; for (const f of [() => ouvrirDefi(), () => montrerAmis(), () => { JEU.ecran = "amis"; ouvrirDefi(); }, () => { if (typeof ouvrirTouches === "function") ouvrirTouches("titre"); }]) { try { f(); } catch (e) { out.push(e.message); } } return out; } catch (e) { return [e.message]; } }')
+        erreurs = [m for _, m in c.console[avant:]]
+        t(f'{titre} : sauvegarde abîmée ({nom}) : le jeu repart sur un écran visible ({e}) et ses écrans s’ouvrent, sans erreur', vu and e == 'championnat' and not erreurs and not ok_ecrans, str([e, erreurs[:3], ok_ecrans]))
+        c.inspecter(f'sauvegarde récente : {nom}')
+        L.append(f'  ({titre} : {nom} en {time.monotonic() - t_cas:.0f} s)')
+    ecrire_sauvegarde(c, bonne)
 
 # --- les grandes tailles (tour 39d) : un passage court en 1280×720 et en 1920×1080, en plus du 960×600 des autres parties ---
 # la carrière : le premier lancement (titre → découverte → Bravo → création), le premier Grand Prix joué par le robot comme dans saison.py
@@ -883,8 +951,9 @@ def tailles_jeux(c, titre):
     deux(c, titre, court=True)
     tournoi(c, titre, court=True)
 
-PARTIES = { 'aides-pilotage': aides_pilotage, 'dynastie': dynastie, 'pendant': pendant, 'sauvegarde': sauvegarde, 'stockage': stockage, 'saison-en': saison_en, 'manette': manette, 'deux': deux, 'tournoi': tournoi, 'fin': fin, 'ecrans': ecrans, 'tuto': tuto, 'divisions': divisions, 'carrieres': carrieres, 'defi': defi, 'tailles-carriere': tailles_carriere, 'tailles-jeux': tailles_jeux }
-LANGUES = { 'divisions': ('fr',), 'saison-en': ('en',), 'dynastie': ('fr',) }   # (la saison entière en français, c'est saison.py)
+PARTIES = { 'aides-pilotage': aides_pilotage, 'dynastie': dynastie, 'pendant': pendant, 'sauvegarde': sauvegarde, 'stockage': stockage, 'saison-en': saison_en, 'manette': manette, 'deux': deux, 'tournoi': tournoi, 'fin': fin, 'ecrans': ecrans, 'tuto': tuto, 'divisions': divisions, 'sauvegardes-recentes': sauvegardes_recentes, 'sauvegardes-racine': lambda c, titre: sauvegardes_recentes(c, titre, True), 'carrieres': carrieres, 'defi': defi, 'tailles-carriere': tailles_carriere, 'tailles-jeux': tailles_jeux }
+LANGUES = { 'divisions': ('fr',), 'sauvegardes-recentes': ('fr',), 'sauvegardes-racine': ('fr',), 'saison-en': ('en',), 'dynastie': ('fr',) }   # (la saison entière en français, c'est saison.py)
+COMBOS = { 'divisions': [('fr', 960, 600), ('en', 640, 360)], 'carrieres': [('fr', 960, 600), ('en', 960, 600), ('en', 640, 360)], 'defi': [('fr', 960, 600), ('en', 960, 600), ('fr', 640, 360)] }   # (tour 51g : langue, largeur, hauteur)
 TAILLES = { 'tailles-carriere': [(1280, 720), (1920, 1080)], 'tailles-jeux': [(1280, 720), (1920, 1080)] }
 demandees = [x for x in (sys.argv[1:] or os.environ.get('RECOINS', '').replace(',', ' ').split()) if x] or list(PARTIES)
 inconnues = [x for x in demandees if x not in PARTIES]
@@ -895,7 +964,7 @@ with sync_playwright() as p:
     b = p.chromium.launch(channel='chrome', args=['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--allow-file-access-from-files', '--disable-audio-output'])
     try:
         for nom in demandees:
-            for langue, (l, h) in [(lg, tl) for tl in TAILLES.get(nom, [(960, 600)]) for lg in LANGUES.get(nom, ('fr', 'en'))]:
+            for langue, (l, h) in ([(a, (b, d)) for a, b, d in COMBOS[nom]] if nom in COMBOS else [(lg, tl) for tl in TAILLES.get(nom, [(960, 600)]) for lg in LANGUES.get(nom, ('fr', 'en'))]):
                 ctx = b.new_context(viewport={'width': l, 'height': h}); pg = ctx.new_page()
                 c = Recoin(pg, langue, ''); c.prefixe = f'recoins-{nom}-{l}'
                 titre = f'{nom} {langue} {l}×{h}'

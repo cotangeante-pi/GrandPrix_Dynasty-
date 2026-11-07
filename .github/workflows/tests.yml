@@ -24,12 +24,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { nom: moteur, partie: moteur }
-          - { nom: courses, partie: courses }
-          - { nom: stands, partie: stands }
-          - { nom: consignes, partie: consignes }
+          - { nom: moteur, partie: moteur recoins, recoins: 'defi' }   # (+ la chasse aux bugs du tour 51g, tests/recoins.py : travail le moins chargé, sous les 600 s)
+          - { nom: courses, partie: courses recoins, recoins: 'divisions' }   # (+ la chasse aux bugs du tour 51g, tests/recoins.py : travail le moins chargé, sous les 600 s)
+          - { nom: stands, partie: stands recoins, recoins: 'sauvegardes-recentes' }   # (+ la chasse aux bugs du tour 51g, tests/recoins.py : travail le moins chargé, sous les 600 s)
+          - { nom: consignes, partie: consignes recoins, recoins: 'sauvegardes-racine' }   # (+ la chasse aux bugs du tour 51g, tests/recoins.py : travail le moins chargé, sous les 600 s)
           - { nom: officiels, partie: officiels }
-          - { nom: meteo, partie: meteo }
+          - { nom: meteo, partie: meteo recoins, recoins: 'carrieres' }   # (+ la chasse aux bugs du tour 51g, tests/recoins.py : travail le moins chargé, sous les 600 s)
           # (6 tranches depuis le 2026-11-05, tour 48c-2 : à 4, elles tournaient entre 500 et 597 s pour une limite de 600 s)
           - { nom: ecrans-1, partie: ecrans, tranche: 1/6 }
           - { nom: ecrans-2, partie: ecrans, tranche: 2/6 }
