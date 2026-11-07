@@ -1625,3 +1625,23 @@ body.auPaddock #boutonSon { display: none; }
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.18);
   pointer-events: none;
 }
+
+/* le téléphone couché (640×360, tour 50c) : « ⌨ Touches » (ses trois colonnes côte à côte) et le menu pause tiennent dans l'écran ;
+   rien ne change au-dessus de 420 px de haut */
+@media (max-height: 420px) {
+  #touches { gap: 4px; padding: 4px 10px; box-sizing: border-box; }
+  #touches h1 { font-size: 18px; line-height: 1.1; margin: 0; }
+  #touches #touchesMessage { font-size: 12px; line-height: 1.2; }
+  #touchesGroupes { gap: 10px; flex-wrap: nowrap; }
+  .touchesGroupe { min-width: 0; }
+  .touchesGroupe h2 { margin: 0 0 2px; font-size: 12px; }
+  .touchesLigne { margin: 1px 0; gap: 5px; font-size: 11px; }
+  .ecran .touchesLigne button { min-width: 50px; padding: 1px 6px; font-size: 11px; }
+  #touches .boutons { gap: 8px; }
+  #touches .boutons button { min-width: 0; padding: 5px 14px; font-size: 13px; }
+  #pause { gap: 3px; padding: 4px 10px; box-sizing: border-box; }
+  #pause h1 { font-size: 18px; line-height: 1.1; margin: 0; }
+  #pause .boutons { gap: 4px; }
+  #pause button, #pause button.petit { min-width: 0; padding: 4px 10px; font-size: 12px; }
+  #pause #boutonReprendre, #pause #boutonRecommencer { padding: 6px 18px; font-size: 14px; }
+}

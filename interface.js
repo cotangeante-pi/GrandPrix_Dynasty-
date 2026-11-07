@@ -2176,11 +2176,13 @@ const TOUCHES_ECRAN = (function () {
 
   function preparer(f) {
     rappel = f;
-    for (const [id, g] of [['boutonTouchesPaddock', f.ouvrir], ['boutonTouchesDefaut', f.defaut], ['boutonTouchesRetour', f.retour]]) {
+    // (tour 50c) « ⌨ Touches » aussi sur l'écran titre et dans le menu pause
+    const ouvrir = ['boutonTouchesPaddock', 'boutonTouchesTitre', 'boutonTouchesPause'];
+    for (const [id, g] of ouvrir.map(id => [id, f.ouvrir]).concat([['boutonTouchesDefaut', f.defaut], ['boutonTouchesRetour', f.retour]])) {
       const b = $(id); if (!b) continue;
       b.addEventListener('mousedown', e => e.preventDefault()); b.addEventListener('click', g);
     }
-    if ($('boutonTouchesPaddock')) $('boutonTouchesPaddock').textContent = texte('touchesBouton');
+    for (const id of ouvrir) if ($(id)) $(id).textContent = texte('touchesBouton');
   }
 
   // t : les touches (CLAVIER) ; attente : { groupe, action } ou null ; message : la ligne sous le titre

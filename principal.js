@@ -321,7 +321,7 @@ function montrerAToi() {
 // à chaque image de « À toi » : le compte à rebours (temps réel) ; à 0, le tour commence, avec le fantôme du leader du moment
 function majAToi(dt) {
   if (JEU.ecran !== 'tournoiAToi') return;
-  JEU.tournoiCompte -= dt;
+  JEU.tournoiCompte -= Math.min(dt, REGLAGES.TOURNOI_COMPTE_DT_MAX);   // (tour 50c : une image très longue, juste après le chargement, mangeait le compte à rebours)
   INTERFACE.majCompteTournoi(JEU.tournoiCompte);
   if (JEU.tournoiCompte <= 0) commencerTourTournoi();
 }
@@ -1565,6 +1565,7 @@ function retourBoutique() {
 }
 
 function pause(oui) {
+  if (!oui && touchesOuvertes()) return;   // (tour 50c) pendant le choix des touches, la pause ne se ferme pas
   if (oui && JEU.ecran === 'course' && JEU.deux) INTERFACE.remplirTouchesDeux(MANETTE.lireManettes().length);   // à deux : les touches des deux dans le menu pause
   INTERFACE.montrerTouchesPause(!!JEU.deux);
   if (oui && JEU.ecran === 'course') { JEU.ecran = 'pause'; INTERFACE.montrer('pause'); if (typeof VOIX !== 'undefined') VOIX.taire(); }   // (la voix se tait en pause, tour 45c)
@@ -1817,21 +1818,29 @@ function majCibles() {
 
 // --- les touches au choix (clavier.js, tour 49b) : l'écran depuis la page « Réglages » du paddock ; un clic sur une commande, puis la
 // touche voulue (Échap annule) ; une touche déjà prise est refusée avec la commande qui l'a ; « Par défaut » remet tout ; gardé à la racine
-let attenteTouche = null;
+// (tour 50c) aussi depuis l'écran titre et le menu pause. Depuis la pause, JEU.ecran reste « pause » (la course reste arrêtée, et tout ce
+// qui se règle sur la pause ne bouge pas) : seul l'écran affiché change ; Échap ou la touche de pause, hors de l'attente d'une touche,
+// ramènent au menu pause sans le fermer
+let attenteTouche = null, touchesDepuis = null;
+const touchesOuvertes = () => touchesDepuis !== null && (touchesDepuis === 'pause' ? JEU.ecran === 'pause' : JEU.ecran === 'touches');
 function ouvrirTouches() {
-  if (JEU.ecran !== 'championnat') return;
-  attenteTouche = null;
+  const de = JEU.ecran;
+  if (!['championnat', 'titre', 'pause'].includes(de) || touchesOuvertes()) return;
+  attenteTouche = null; touchesDepuis = de;
   TOUCHES_ECRAN.remplir(touchesChoix, null, '');
-  JEU.ecran = 'touches';
+  if (de !== 'pause') JEU.ecran = 'touches';
   INTERFACE.montrer('touches');
 }
 function quitterTouches() {
-  if (JEU.ecran !== 'touches') return;
-  attenteTouche = null;
-  montrerChampionnat(JEU.gagne);
+  if (!touchesOuvertes()) return;
+  const de = touchesDepuis;
+  attenteTouche = null; touchesDepuis = null;
+  if (de === 'pause') INTERFACE.montrer('pause');
+  else if (de === 'titre') montrerTitre();
+  else montrerChampionnat(JEU.gagne);
 }
 function choisirTouche(groupe, action) {
-  if (JEU.ecran !== 'touches') return;
+  if (!touchesOuvertes()) return;
   attenteTouche = { groupe, action };
   TOUCHES_ECRAN.remplir(touchesChoix, attenteTouche, texte('touchesAppuie'));
 }
@@ -1840,14 +1849,19 @@ function garderTouches() {
   Object.assign(TOUCHES, CLAVIER.appliquer(touchesChoix));
 }
 function touchesParDefaut() {
-  if (JEU.ecran !== 'touches') return;
+  if (!touchesOuvertes()) return;
   touchesChoix = CLAVIER.defaut(); attenteTouche = null;
   garderTouches();
   TOUCHES_ECRAN.remplir(touchesChoix, null, texte('touchesDefautFait'));
 }
 // la touche appuyée pendant l'attente : elle ne va pas au reste du jeu (ni pause, ni conduite)
 function toucheChoisie(e) {
-  if (JEU.ecran !== 'touches' || !attenteTouche) return;
+  if (!touchesOuvertes()) return;
+  if (!attenteTouche) {   // (tour 50c) Échap (ou la touche de pause) ramène d'où l'on vient ; depuis la pause, la pause reste ouverte
+    if (!e.repeat && (e.code === 'Escape' || (touchesDepuis === 'pause' && TOUCHES.pause.includes(e.code)))) { e.preventDefault(); e.stopImmediatePropagation(); quitterTouches(); }
+    else if (touchesDepuis === 'pause') e.stopImmediatePropagation();   // (rien d'autre ne passe à la course en pause : ni caméra, ni retour en piste)
+    return;
+  }
   e.preventDefault(); e.stopImmediatePropagation();
   if (e.repeat) return;
   const { groupe, action } = attenteTouche;
