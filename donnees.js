@@ -793,7 +793,7 @@ const REGLAGES = {
   // lui quand il est déjà à côté ; il ne la perd pas de vue à côté de lui. 0 : la course d'avant, au bit près
   IA_ATTAQUE_SORTIE: 1,         // (tour 51a) 1 : l'attaque abandonnée tout près de l'autre voiture reste à côté d'elle et lève le pied jusqu'à être derrière ; 0 : il revient tout de suite sur sa ligne
   IA_ATTAQUE_ECART_MIN: 1,      // (tour 51a) 1 : au virage, l'attaquant garde au moins une largeur et la marge d'écart de la voiture attaquée ; 0 : il rejoint sa ligne même si elle est plus près
-  IA_ATTAQUE_ECART_PLUS: -1,    // m en plus de cet écart minimal
+  IA_ATTAQUE_ECART_PLUS: 0,     // m en plus de cet écart minimal
   IA_ATTAQUE_TETE: 2,     // s avant le freinage où il peut sortir du sillage (tour 51a : 3, avec la sortie propre de l attaque abandonnée, IA_ATTAQUE_SORTIE, et l écart gardé, IA_ATTAQUE_ECART_MIN ; le tour 50a avait dû rester à 1,5)
   IA_BATAILLE_PLONGER: 0,       // 1 : l'attaque se joue à l'intérieur ou pas du tout
   IA_PLUIE_LIGNE: 1,            // 1 : sur le mouillé, il connaît l'adhérence de la trajectoire (plus sèche) et du reste de la piste
@@ -889,7 +889,7 @@ const REGLAGES = {
   IA_VISION_COTE: [8, 7],       // m : … et celles à côté d'elle (dans les rétroviseurs) : à moins de 8 m devant ou derrière, 7 m de côté
   IA_LENTE_ECART_STANDS: 3,     // m en plus de IA_LENTE_ECART autour d'une voiture qui sort des stands (tour 51a, avec IA_ATTAQUE_TETE)
   IA_ATTAQUE_ASPIRE_PREPARER: 1, // (tour 51a) 0 : il ne compte l'aspiration dans sa vitesse de pointe qu'une fois décalé à côté, pas en préparant
-  IA_APPROCHE_TEMPS: 1,         // s (tour 51a, avec IA_ATTAQUE_TETE) : s'approcher d'une voiture devant d'au plus (distance − une longueur) / ça m/s de plus qu'elle ; 0 : rien
+  IA_APPROCHE_TEMPS: 0.7,        // s (tour 51a, avec IA_ATTAQUE_TETE) : s'approcher d'une voiture devant d'au plus (distance − une longueur) / ça m/s de plus qu'elle ; 0 : rien
   IA_APPROCHE_LONG: 18,         // m : … tant qu'elle est à moins de ça devant lui
   IA_APPROCHE_COTE: 8,          // m : … et à moins de ça de côté
   IA_APPROCHE_VITESSE: 0.6,    // … sauf une voiture qui roule à moins de cette part de sa vitesse de ligne (lente, arrêtée : on la contourne)
