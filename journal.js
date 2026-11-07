@@ -202,7 +202,7 @@ const JOURNAL = (function () {
   // interface.js (le sien, sinon le nom par défaut de textes.js) ; le circuit : son texte, sinon son nom dans CIRCUITS
   const NOMS = {
     pilote: p => p.nom || (p.humain ? texte('nomJoueur') : texte('pilote').replace('{n}', p.numero)),
-    ecurie: e => e.nom || texte('ecurie').replace('{n}', e.id + 1),
+    ecurie: e => e.nom || texte('ecurie').replace('{n}', e.numero || e.id + 1),   // (tour 50d : le numéro d'une écurie d'une autre division)
   };
   const nomCircuit = nom => texte('circuit_' + nom) || (CIRCUITS[nom] ? CIRCUITS[nom].nom : nom);
 
@@ -295,6 +295,7 @@ const JOURNAL = (function () {
   // la une n° i de l'album, en phrases, avec les noms de sa saison (= la une du jour même)
   function rendreAlbum(ch, i, noms) {
     const u = ch.album[i];
+    if (u && typeof DIVISIONS !== 'undefined') ch = DIVISIONS.vueSaison(ch, u.s);   // (tour 50d) une une d'un plateau quitté : ses noms à lui
     return u ? rendre(u, ch, nomsAu(ch, u.s, noms)) : null;
   }
 

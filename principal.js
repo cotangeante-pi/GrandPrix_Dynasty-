@@ -1090,7 +1090,7 @@ function suiteDuelSaison() {
 
 function montrerContrats() {
   const ch = JEU.championnat;
-  INTERFACE.remplirContrats(ch, SAISONS.offres(ch), SAISONS.note(ch));
+  INTERFACE.remplirContrats(DIVISIONS.vueContrats(ch), SAISONS.offres(ch), SAISONS.note(ch));   // (tour 50d) monté : les écuries d'en haut
   JEU.ecran = 'contrats';
   INTERFACE.montrer('contrats');
 }

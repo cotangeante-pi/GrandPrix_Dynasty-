@@ -822,6 +822,15 @@ const REGLAGES = {
   DIVISION_VIEILLE: 3,          // une sauvegarde d'avant les divisions (le niveau normal, les voitures de base) est rangée ici
   DIVISION_MONTEE_PLACE: 3,     // on monte d'une division en finissant dans les DIVISION_MONTEE_PLACE premiers du championnat pilotes
   DIVISION_DESCENTE: false,     // on ne descend jamais (le jeu reste agréable pour un enfant)
+  // (tour 50d) chaque division a son plateau (ses 10 écuries et ses 20 pilotes, divisions.js) ; choix du Codeur 4, réversibles.
+  // DIVISION_PLATEAUX false : le joueur monte avec le même plateau, qui prend le niveau de la nouvelle division (le tour 49d)
+  DIVISION_PLATEAUX: true,
+  // à la montée, les rivaux classés dans les DIVISION_MONTEE_PLACE premiers montent aussi (ils prennent la place des plus faibles du
+  // plateau d'en haut, qui descendent) ; false : le joueur monte seul
+  DIVISION_MONTEE_RIVAUX: true,
+  // les offres de contrat d'une division au-dessus : la note du joueur × ça (un promu est attendu dans le milieu ou le bas de grille)
+  DIVISION_NOTE_MONTEE: 0.5,
+  GRAINE_PLATEAUX: 21000,       // les pilotes d'un plateau neuf sont tirés avec la graine du championnat + ça + 101 × la division
   NIVEAU: 'normal',             // le niveau en cours (?niveau=…, principal.js) ; normal = les réglages tels quels
   NIVEAUX: {
     debutant: { rythme: -0.05, erreurs: 2, agressivite: -0.3, regularite: 1.5, gestionPneus: -0.2, bataille: 0, technique: 0.1 },
