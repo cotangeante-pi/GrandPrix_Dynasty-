@@ -24,7 +24,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { nom: moteur, partie: moteur recoins, recoins: 'defi,stockage,manette' }   # (+ des parties de tests/recoins.py, réparties au tour 51i selon les durées du passage 42417410695 : aucun travail au-dessus de ~430 s, sauf stands.html seul, ~470 s)
+          - { nom: moteur, partie: moteur recoins, recoins: 'defi,stockage,manette,touches-deux' }   # (tour 51j : touches-deux, les touches au choix à deux et au tournoi, dans le travail le plus court : 257 s sur le passage 42425442653)   # (+ des parties de tests/recoins.py, réparties au tour 51i selon les durées du passage 42417410695 : aucun travail au-dessus de ~430 s, sauf stands.html seul, ~470 s)
           - { nom: courses, partie: courses recoins, recoins: 'tailles-jeux-1920' }   # (+ des parties de tests/recoins.py, réparties au tour 51i selon les durées du passage 42417410695 : aucun travail au-dessus de ~430 s, sauf stands.html seul, ~470 s)
           - { nom: stands, partie: stands }   # (+ des parties de tests/recoins.py, réparties au tour 51i selon les durées du passage 42417410695 : aucun travail au-dessus de ~430 s, sauf stands.html seul, ~470 s)
           - { nom: consignes, partie: consignes recoins, recoins: 'sauvegardes-racine' }   # (+ des parties de tests/recoins.py, réparties au tour 51i selon les durées du passage 42417410695 : aucun travail au-dessus de ~430 s, sauf stands.html seul, ~470 s)

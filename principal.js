@@ -1914,6 +1914,8 @@ function finDeCourse() {
 let touchesChoix = CLAVIER.completer(SAUVEGARDE.touches());
 const TOUCHES = CLAVIER.appliquer(touchesChoix);
 const enfoncees = new Set();
+// (tour 51j) une touche choisie pour une commande de la course seule (hors pause) ne garde pas son autre rôle (Entrée : passer au podium)
+const toucheDeCommande = code => ['gaz', 'frein', 'gauche', 'droite', 'remise', 'camera'].some(a => TOUCHES[a].includes(code));
 
 function majCibles() {
   const appui = liste => liste.some(c => enfoncees.has(c));
@@ -1947,7 +1949,7 @@ function quitterTouches() {
   if (!touchesOuvertes()) return;
   const de = touchesDepuis;
   attenteTouche = null; touchesDepuis = null;
-  if (de === 'pause') INTERFACE.montrer('pause');
+  if (de === 'pause') { if (JEU.deux) INTERFACE.remplirTouchesDeux(MANETTE.lireManettes().length); INTERFACE.montrer('pause'); }   // (tour 51j) à deux, le menu pause montre les touches d'après le changement
   else if (de === 'titre') montrerTitre();
   else montrerChampionnat(JEU.gagne);
 }
@@ -1970,7 +1972,7 @@ function touchesParDefaut() {
 function toucheChoisie(e) {
   if (!touchesOuvertes()) return;
   if (!attenteTouche) {   // (tour 50c) Échap (ou la touche de pause) ramène d'où l'on vient ; depuis la pause, la pause reste ouverte
-    if (!e.repeat && (e.code === 'Escape' || (touchesDepuis === 'pause' && TOUCHES.pause.includes(e.code)))) { e.preventDefault(); e.stopImmediatePropagation(); quitterTouches(); }
+    if (!e.repeat && (e.code === 'Escape' || (touchesDepuis === 'pause' && !JEU.deux && TOUCHES.pause.includes(e.code)))) { e.preventDefault(); e.stopImmediatePropagation(); quitterTouches(); }
     else if (touchesDepuis === 'pause') e.stopImmediatePropagation();   // (rien d'autre ne passe à la course en pause : ni caméra, ni retour en piste)
     return;
   }
@@ -1979,7 +1981,7 @@ function toucheChoisie(e) {
   const { groupe, action } = attenteTouche;
   attenteTouche = null;
   if (e.code === 'Escape') { TOUCHES_ECRAN.remplir(touchesChoix, null, ''); return; }
-  const r = CLAVIER.changer(touchesChoix, groupe, action, e.code), nom = TOUCHES_DEUX_ECRAN.nom(e.code, null);
+  const r = CLAVIER.changer(touchesChoix, groupe, action, e.code), nom = TOUCHES_DEUX_ECRAN.nom(e.code, INTERFACE.dispositionClavier());
   let m;
   if (r.ok) { garderTouches(); m = texte('touchesFait').replace('{commande}', TOUCHES_ECRAN.commande(groupe, action)).replace('{touche}', nom); }
   else if (r.raison === 'echap') m = texte('touchesEchap');
@@ -1996,7 +1998,7 @@ function brancherClavier() {
     else {
       if (TOUCHES.camera.includes(e.code) && !e.repeat) CAMERA.suivante();
       if (TOUCHES.remise.includes(e.code) && !e.repeat) JEU.remettre = true;
-      if (e.code === 'Enter' && !e.repeat) passerAuPodium();
+      if (e.code === 'Enter' && !e.repeat && !toucheDeCommande('Enter')) passerAuPodium();   // (tour 51j) sauf si Entrée est une touche choisie
     }
     if (e.code === 'Escape' && !e.repeat && JEU.ecran === 'resume') { quitterResume(); return; }
     if (JEU.ecran === 'grille' && !e.repeat) { finirGrille(); }   // la grille vue d'en haut : une touche la passe   // le résumé vidéo : Échap ramène aux résultats
