@@ -23,4 +23,4 @@ Les empreintes de trajectoire (test.html) ne changent pas : elles portent sur la
 tests/test.html, « résumé » : la graine 2 n'a plus de dépassement tenu avec les techniques en bataille dans Chrome ; le test prend la première graine de 2, 1 à 8 qui en a un (il vérifie le résumé, pas les IA).
 
 ## GitHub
-Voir le message final du Codeur (commit, passage).
+Commit 7022463, passage GitHub 42405729155 : 18/18 vert (courses, stands avec la ligne DUEL, meteo, moteur compris). Un premier passage (ca11780) n avait que le test du résumé en échec.
