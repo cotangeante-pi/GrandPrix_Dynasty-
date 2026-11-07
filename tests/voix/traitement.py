@@ -254,32 +254,61 @@ def intonation(x, sr):
     note = 0.45 * min(etendue / 10, 1) + 0.45 * min(1, max(0, (fin + 3) / 7)) + 0.10 * claque
     return dict(note=round(note, 3), etendue=round(etendue, 1), fin=round(fin, 1), claque=claque, voisees=len(v))
 
+def courbe_fiable(f):
+    """(tour 50e) La courbe de hauteur nettoyée, en demi-tons : [(trame, demi-tons)] des seules trames voisées fiables.
+    Sauts d'octave ramenés par rapport à la médiane glissante, trames isolées (moins de 3 de suite) jetées, lissage médian sur 5 trames."""
+    v = [(i, 12 * np.log2(h)) for i, h in enumerate(f) if h]
+    if len(v) < 6: return []
+    idx = np.array([i for i, s in v]); st = np.array([s for i, s in v]); med = np.median(st)
+    st = np.where(st - med > 8, st - 12, np.where(med - st > 8, st + 12, st))
+    # des segments : trames voisées séparées d'au plus 4 trames (40 ms) ; moins de 4 trames dans le segment = bruit
+    segs, cur = [], [0]
+    for k in range(1, len(idx)):
+        if idx[k] - idx[k - 1] <= 4: cur.append(k)
+        else: segs.append(cur); cur = [k]
+    segs.append(cur)
+    out = []
+    for g in segs:
+        if len(g) < 4: continue
+        y = st[g]
+        if len(y) >= 5: y = np.array([np.median(y[max(0, j - 2):j + 3]) for j in range(len(y))])
+        out += list(zip(idx[g], y))
+    return out
+
 def intonation2(x, sr):
     """(essai n° 3, le propriétaire : « il faut pas que ce soit une question, certains finissent haut mais en question ») La note
-    d'une exclamation de commentateur (0 à 1), sur la courbe de hauteur en demi-tons de la prise brute :
+    d'une exclamation de commentateur (0 à 1), sur la courbe de hauteur FIABLE (courbe_fiable) de la prise brute :
     - l'étendue : 10 % les plus hauts moins 10 % les plus bas (10 demi-tons ou plus = 1) ;
-    - le sommet : le mot fort est haut (le 95e centile) et pas collé à la fin ;
-    - la chute : la fin (les 180 dernières ms qui sonnent) retombe depuis le sommet (4 demi-tons ou plus = 1) ;
-    - le claquement : la dernière syllabe encore forte (au moins la moitié du plus fort).
+    - la chute : le sommet (95e centile) moins la hauteur de la dernière syllabe voisée (4 demi-tons ou plus = 1) ;
+    - le claquement : la dernière syllabe encore forte (au moins la moitié du plus fort) ;
+    - le sommet avant la dernière syllabe.
     note = 0,40 × étendue + 0,35 × chute + 0,15 × claquement + 0,10 × sommet avant la fin.
-    QUESTION : la hauteur monte encore sur les 180 dernières ms (pente > +1,5 demi-ton) ou la fin est au sommet : note × 0,4, question vraie
-    (essai3.py écarte ces prises)."""
-    x = rogner(x, sr); f = hauteurs(x, sr)
-    v = [(i, 12 * np.log2(h)) for i, h in enumerate(f) if h]
-    if len(v) < 6: return dict(note=0.0, etendue=0.0, chute=0.0, claque=False, question=False, voisees=len(v))
-    st = np.array([s for i, s in v]); idx = np.array([i for i, s in v])
-    med = np.median(st)
-    st = np.where(st - med > 9, st - 12, np.where(med - st > 9, st + 12, st))
+    La dernière syllabe = le dernier segment voisé (sans ses 2 dernières trames, fin de son bruitée), au moins 5 trames ; l'avant = le segment
+    précédent. QUESTION (note × 0,4) : la dernière syllabe est nettement plus haute que la précédente (+3 demi-tons) ET proche ou au-dessus
+    du sommet (à moins de 2 demi-tons), ou encore elle monte seule de plus de 3 demi-tons sur sa durée en finissant au sommet."""
+    x = rogner(x, sr); c = courbe_fiable(hauteurs(x, sr))
+    if len(c) < 6: return dict(note=0.0, etendue=0.0, chute=0.0, pente=0.0, claque=False, question=False, saut=0.0, voisees=len(c))
+    idx = np.array([i for i, s in c]); st = np.array([s for i, s in c])
     etendue = float(np.percentile(st, 90) - np.percentile(st, 10))
     sommet = float(np.percentile(st, 95)); isommet = idx[int(np.argmax(st))]
-    fin = idx >= idx[-1] - 18   # les 180 dernières ms voisées (trames de 10 ms)
-    finale = st[fin]; chute = sommet - float(np.median(finale))
-    pente = float(np.polyfit(idx[fin] * 0.01, finale, 1)[0] * 0.18) if fin.sum() >= 4 else 0.0   # demi-tons gagnés sur 180 ms
-    avant_fin = isommet < idx[-1] - 18
+    segs, cur = [], [0]
+    for k in range(1, len(idx)):
+        if idx[k] - idx[k - 1] <= 4: cur.append(k)
+        else: segs.append(cur); cur = [k]
+    segs.append(cur)
+    # la dernière syllabe : le dernier segment, amputé de 2 trames ; s'il est trop court, on le joint au précédent
+    dern = segs[-1][:-2] if len(segs[-1]) >= 7 else segs[-1]
+    if len(dern) < 3: dern = segs[-1]
+    fin = st[dern]; niveau = float(np.median(fin[len(fin) // 2:]))   # sa seconde moitié
+    avant = [k for g in segs[:-1] for k in g][-12:] if len(segs) > 1 else []
+    avant_n = float(np.median(st[avant])) if avant else niveau
+    chute = sommet - niveau
+    pente = float(np.polyfit(idx[dern] * 0.01, fin, 1)[0] * 0.18) if len(dern) >= 4 else 0.0
+    avant_fin = isommet < idx[dern[0]]
     n = int(0.01 * sr); e = np.array([np.sqrt(np.mean(x[i:i + n] ** 2)) for i in range(0, len(x) - n, n)])
     fortes = np.where(e >= 0.06 * e.max())[0]
     claque = bool(len(fortes) and e[max(0, fortes[-1] - 15):fortes[-1] + 1].max() >= 0.5 * e.max())
     note = 0.40 * min(etendue / 10, 1) + 0.35 * min(1, max(0, chute / 4)) + 0.15 * claque + 0.10 * avant_fin
-    question = pente > 1.5 or (chute < 0.5 and not avant_fin)
+    question = bool((niveau - avant_n >= 3 and chute <= 2) or (pente > 3 and chute <= 1))
     if question: note *= 0.4
-    return dict(note=round(note, 3), etendue=round(etendue, 1), chute=round(chute, 1), pente=round(pente, 1), claque=claque, question=bool(question), voisees=len(v))
+    return dict(note=round(note, 3), etendue=round(etendue, 1), chute=round(chute, 1), pente=round(pente, 1), saut=round(niveau - avant_n, 1), claque=claque, question=question, voisees=len(c))
