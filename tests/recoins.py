@@ -9,7 +9,7 @@ La vraie page, en 960×600, en français puis en anglais, jouée par le robot d'
 - ecrans : le calendrier, l'album des unes (feuilleté), la fiche d'un rival, l'arbre, « Mon casque », les sponsors, et le menu pause d'une
   course avec tous ses réglages (fantôme, commentateur, revoir les aides, tutoriel) ;
 - tuto : le tutoriel guidé complet, les 7 leçons à la suite (« Leçon suivante ») ;
-- tailles-carriere, tailles-jeux (tour 39d) : en 1280×720 et en 1920×1080, un passage court : le premier lancement, un Grand Prix, le
+- tailles-carriere-1280/-1920, tailles-jeux-1280/-1920 (tour 39d, une partie par taille depuis le tour 51i) : en 1280×720 et en 1920×1080, un passage court : le premier lancement, un Grand Prix, le
   paddock et ses écrans, le menu pause ; une course à deux, un tournoi Éclair.
 Relevé comme saison.py (tests/chasse.py) : la console, les textes cassés, les clés de textes.js qui manquent dans la langue, les boutons
 vides, hors de l'écran, qui débordent ou se recouvrent, le défilement, les clics impossibles, les écrans où l'on reste bloqué.
@@ -951,10 +951,10 @@ def tailles_jeux(c, titre):
     deux(c, titre, court=True)
     tournoi(c, titre, court=True)
 
-PARTIES = { 'aides-pilotage': aides_pilotage, 'dynastie': dynastie, 'pendant': pendant, 'sauvegarde': sauvegarde, 'stockage': stockage, 'saison-en': saison_en, 'manette': manette, 'deux': deux, 'tournoi': tournoi, 'fin': fin, 'ecrans': ecrans, 'tuto': tuto, 'divisions': divisions, 'sauvegardes-recentes': sauvegardes_recentes, 'sauvegardes-racine': lambda c, titre: sauvegardes_recentes(c, titre, True), 'carrieres': carrieres, 'defi': defi, 'tailles-carriere': tailles_carriere, 'tailles-jeux': tailles_jeux }
+PARTIES = { 'aides-pilotage': aides_pilotage, 'dynastie': dynastie, 'pendant': pendant, 'sauvegarde': sauvegarde, 'stockage': stockage, 'saison-en': saison_en, 'manette': manette, 'deux': deux, 'tournoi': tournoi, 'fin': fin, 'ecrans': ecrans, 'tuto': tuto, 'divisions': divisions, 'sauvegardes-recentes': sauvegardes_recentes, 'sauvegardes-racine': lambda c, titre: sauvegardes_recentes(c, titre, True), 'carrieres': carrieres, 'defi': defi, 'tailles-carriere-1280': tailles_carriere, 'tailles-carriere-1920': tailles_carriere, 'tailles-jeux-1280': tailles_jeux, 'tailles-jeux-1920': tailles_jeux }   # (tour 51i : une partie par taille, pour répartir entre les travaux ; -1280 et -1920 = les deux tailles d'avant)
 LANGUES = { 'divisions': ('fr',), 'sauvegardes-recentes': ('fr',), 'sauvegardes-racine': ('fr',), 'saison-en': ('en',), 'dynastie': ('fr',) }   # (la saison entière en français, c'est saison.py)
 COMBOS = { 'divisions': [('fr', 960, 600), ('en', 640, 360)], 'carrieres': [('fr', 960, 600), ('en', 960, 600), ('en', 640, 360)], 'defi': [('fr', 960, 600), ('en', 960, 600), ('fr', 640, 360)] }   # (tour 51g : langue, largeur, hauteur)
-TAILLES = { 'tailles-carriere': [(1280, 720), (1920, 1080)], 'tailles-jeux': [(1280, 720), (1920, 1080)] }
+TAILLES = { 'tailles-carriere-1280': [(1280, 720)], 'tailles-carriere-1920': [(1920, 1080)], 'tailles-jeux-1280': [(1280, 720)], 'tailles-jeux-1920': [(1920, 1080)] }
 demandees = [x for x in (sys.argv[1:] or os.environ.get('RECOINS', '').replace(',', ' ').split()) if x] or list(PARTIES)
 inconnues = [x for x in demandees if x not in PARTIES]
 if inconnues: sys.exit(f'partie inconnue : {" ".join(inconnues)} (au choix : {" ".join(PARTIES)})')
