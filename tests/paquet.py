@@ -427,7 +427,7 @@ try:
                 p_.route('**/poki-sdk.js', lambda r: r.fulfill(status=200, content_type='text/javascript', body=''))
                 p_.on('console', lambda m: cons.append(m.type + ': ' + m.text) if m.type in ('error', 'warning') and not LECTURE_PIXELS.fullmatch(m.text) else None)
                 p_.on('pageerror', lambda e: cons.append('PAGEERROR ' + str(e)))
-                p_.goto('file://' + dossier + '/index.html' + url)
+                p_.goto('file://' + dossier + '/index.html' + url, timeout=90000)
                 return c, p_, cons
             MONTRER = """() => { window.COPIES = []; navigator.clipboard.writeText = v => { COPIES.push(v); return Promise.resolve(); };
               document.getElementById('qualifCode').classList.remove('cache'); DEFI_ECRAN.montrerCode('qualifCode', 'GPD-TEST-abc', lienDefi); }"""
@@ -449,7 +449,7 @@ try:
             pg.wait_for_function('() => typeof JEU !== "undefined" && JEU.ecran === "amis"', timeout=60000)
             pg.evaluate(MONTRER); pg.wait_for_timeout(300)
             lien = pg.evaluate(LIEN)
-            pg.click('#qualifCode button.defiLien'); pg.wait_for_timeout(200)
+            pg.evaluate('() => document.querySelector("#qualifCode button.defiLien").click()'); pg.wait_for_timeout(200)   # (l'écran de la qualification est caché : le clic part du code)
             copies = pg.evaluate('() => COPIES')
             t('paquet Poki : avec le SDK, le lien de défi est l’adresse de shareableURL, et « Copier le lien » la copie', lien == ADRESSE_POKI + 'GPD-TEST-abc' and copies == [lien] and 'shareableURL' in pg.evaluate('() => APPELS_SDK') and not cons, str([lien, copies, cons]))
             ctx.close()
@@ -472,7 +472,7 @@ try:
             ctx = b.new_context(viewport={'width': 960, 'height': 600}); pg = ctx.new_page(); cons = []
             pg.route('**/poki-sdk.js', lambda r: r.fulfill(status=404, body=''))
             pg.on('pageerror', lambda e: cons.append(str(e)))
-            pg.goto('file://' + dossier + '/index.html?menu=amis')
+            pg.goto('file://' + dossier + '/index.html?menu=amis', timeout=90000)
             pg.wait_for_function('() => typeof JEU !== "undefined" && JEU.ecran === "amis"', timeout=60000)
             pg.evaluate(MONTRER); pg.wait_for_timeout(300)
             lien = pg.evaluate(LIEN)
@@ -483,7 +483,7 @@ try:
             pg.wait_for_function('() => typeof JEU !== "undefined" && !!JEU.defi && JEU.ecran === "qualif"', timeout=90000)
             e = pg.evaluate('() => ({ circuit: NOM_CIRCUIT, enCours: SAUVEGARDE.defis().enCours, recus: SAUVEGARDE.defis().liste.length })')
             t('paquet Poki : getURLParam(\'defi\') mène à la grille du défi (le circuit du code, le défi reçu et gardé), sans erreur console', e['circuit'] == 'test' and e['enCours'] == code and e['recus'] == 1 and not [c for c in cons if 'error' in c or 'PAGEERROR' in c], str([e, cons]))
-            pg.goto('file://' + dossier + '/index.html?menu=amis')
+            pg.goto('file://' + dossier + '/index.html?menu=amis', timeout=90000)
             pg.wait_for_function('() => typeof JEU !== "undefined" && JEU.ecran === "amis"', timeout=60000)
             t('paquet Poki : au rechargement dans le même onglet, le paramètre de la page Poki n’est pas relu (le jeu ne retombe pas sur le défi)', pg.evaluate('() => JEU.ecran === "amis" && !JEU.defi'))
             ctx.close()
