@@ -2913,8 +2913,9 @@ t('casque : les motifs débloqués sont gardés à la racine de la sauvegarde : 
 
 // --- le résumé vidéo de la course (resume.js, étape 13)
 t('résumé : sur une course simulée (12 IA, 3 tours, enregistrée comme dans la page), les moments forts : le départ, au moins un dépassement, l’arrivée ; la durée totale bornée (RESUME_DUREE_MAX) ; le rejeu ne passe que par ces plages et redonne les positions de l’enregistrement à 1 cm près', ()=>{
+  // (tour 51f : la graine 1, pas la 2 : avec les techniques en bataille (IA_TECH_BATAILLE), la 2 n'a plus de dépassement tenu, la 1 en a avec et sans)
   // (tour 50a : la graine 2, pas la 5 : avec l'attaque de la voiture de tête, la graine 5 n'a plus aucun dépassement tenu, la 2 en a avec et sans)
-  const R=REGLAGES,e=creerCourseIA(C,12,3,2,CARTES_T.test),N=e.pilotes.length,voitures=e.pilotes.map(p=>p.v),enr=creerEnregistreur(N,{joueur:11});
+  const R=REGLAGES,e=creerCourseIA(C,12,3,1,CARTES_T.test),N=e.pilotes.length,voitures=e.pilotes.map(p=>p.v),enr=creerEnregistreur(N,{joueur:11});
   const vraies=[];let parti=false,pas=0;const arrivees=new Set();
   for(let k=0;k<400*120&&!e.pilotes.every(p=>p.arrivee!==null);k++){pasCourseIA(e,DT);
     if(!parti&&courseAutorise(e.pilotes[0].course)){parti=true;enr.depart(e.temps);}
