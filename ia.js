@@ -523,7 +523,7 @@ function noterLigne(pilote, v, voisines, s0, t, type) {
   // (aileron, Codeur 3 : sa vitesse de pointe avec la traînée de son aileron ; ÷ 1 au cran du milieu)
   // (IA_ATTAQUE_TETE, tour 50a : en attaque, dans le sillage, il sait que l'aspiration lui donne plus de vitesse de pointe, et il la prend ;
   // sans ça, il levait le pied à sa vitesse de pointe en air libre et ne gagnait que 3 m/s sur la voiture devant : il ne la rattrapait pas)
-  const aspire = R.IA_ATTAQUE_TETE && pilote.attaque && pilote.attaque.etat !== 'sortie' && v.aspiration ? racineCubique(1 - R.ASPIRATION_MAX * v.aspiration) : 1;
+  const aspire = R.IA_ATTAQUE_TETE && pilote.attaque && pilote.attaque.etat !== 'sortie' && !(pilote.attaque.etat === 'preparer' && !R.IA_ATTAQUE_ASPIRE_PREPARER) && v.aspiration ? racineCubique(1 - R.ASPIRATION_MAX * v.aspiration) : 1;
   const pointe = pilote.carte.pointe / racineCubique(v.aileronTrainee || 1) * (v.rvBoite ? racineCubique(1 - v.rvBoite) : 1) / (v.rvRoulement ? racineCubique(v.rvRoulement) : 1) / aspire, rythme = rythmeDuTour(pilote), dehors = c.largeur / 2 + R.MARGE_HERBE, bord = c.largeur / 2 - (pilote.bordMin === undefined ? R.IA_MARGE_BORD_MIN : pilote.bordMin);   // (le niveau : pilote.bordMin)
   // (la limite qu'il ose, pilote.limite : le niveau de difficulté, NIVEAUX[…].limite ; la voiture accroche un peu plus que vitesseVirage
   // ne le dit, l'arrière accroche plus que l'avant : un pilote de haut niveau va la chercher ; × 1 au niveau normal, au bit près)
@@ -718,7 +718,10 @@ function deciderLigne(pilote, v, vues) {
         const finRampe = Math.max(gLente - marge, Math.min(gLente, marge));
         const debut = Math.max(0, finRampe - avant), fin = gLente + R.IA_LENTE_APRES, base = debut > 0 ? r : e0;
         const m = s < debut ? 0 : s < finRampe ? (s - debut) / (finRampe - debut) : s < fin ? 1 : Math.max(0, 1 - (s - fin) / R.IA_DEPASSEMENT_RAMPE);
-        val = base * (1 - m) + (lente.d + cote * R.IA_LENTE_ECART) * m;
+        // (IA_LENTE_ECART_STANDS, tour 51a : une voiture qui sort des stands se déporte vers la piste de 4 m/s pendant qu'il arrive ; à 86 m/s,
+        // l'écart pris sur sa place d'avant la laissait le toucher)
+        const sortant = R.IA_ATTAQUE_TETE && lente.id && (lente.id.rampeStands || lente.id.manoeuvreStands) ? R.IA_LENTE_ECART_STANDS : 0;
+        val = base * (1 - m) + (lente.d + cote * (R.IA_LENTE_ECART + sortant)) * m;
         // (la ligne part de sa place : elle prend tout de suite la pente de la rampe, pas celle de sa voiture ; à l'arrêt, il
         // braque sur place, sinon la transition ramenait la ligne sur la voiture)
         if (debut === 0 && i === 1) penteLigne = (val - e0) / pas;
@@ -1154,6 +1157,16 @@ function piloterIA(pilote, v, vues, dt) {
     if (R.IA_SUIVI_CARTE && g > R.IA_SUIVI_CARTE_LOIN) { const vc = valeurEn(c, pilote.carte.trajectoire.vitesse, w.s) * rythmeDuTour(pilote); if (w.vitesse >= R.IA_SUIVI_CARTE * vc) vVue = Math.max(vVue, vc); }
     const derriere = vitesseDerriere({ distance: g, vitesse: vVue }, suiviEff);
     if (derriere < cible) { cible = derriere; retenuPar = w.id; }
+  }
+  // (IA_APPROCHE_TEMPS, tour 51a : il ne s'approche pas d'une voiture devant lui plus vite que ce qu'il peut annuler en IA_APPROCHE_TEMPS s :
+  // sa vitesse au plus celle de l'autre + (la distance − une longueur) / IA_APPROCHE_TEMPS, tant qu'elle est à moins de IA_APPROCHE_COTE de côté.
+  // Hors du couloir de sa ligne, rien ne le retenait : il arrivait à 8 m/s de plus, puis sa ligne le rabattait sur elle ; pas sur celle qu'il
+  // attaque une fois décalé à côté d'elle)
+  if (R.IA_ATTAQUE_TETE && R.IA_APPROCHE_TEMPS) for (const w of vues) {
+    const g = ecartLeLong(c, w.s - p.s);
+    if (g <= 0 || g > R.IA_APPROCHE_LONG || Math.abs(w.d - p.d) > R.IA_APPROCHE_COTE) continue;
+    if (a && w.id === a.id && a.etat !== 'preparer' && a.etat !== 'sortie') continue;
+    cible = Math.min(cible, w.vitesse + Math.max(0, g - R.LONGUEUR_VOITURE) / R.IA_APPROCHE_TEMPS);
   }
   // retenu : il voudrait aller nettement plus vite que la voiture devant ne le laisse
   // (plus agressif : il se sent retenu avec moins d'avance de vitesse)

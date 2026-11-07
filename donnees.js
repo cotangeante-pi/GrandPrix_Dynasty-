@@ -887,6 +887,11 @@ const REGLAGES = {
   IA_VISION_DISTANCE: 120,      // m : … et à moins de cette distance
   IA_VISION_COULOIR: 4.5,       // m : … et aussi toute voiture devant elle à moins de ça de son axe (même tout près, sur le côté)
   IA_VISION_COTE: [8, 7],       // m : … et celles à côté d'elle (dans les rétroviseurs) : à moins de 8 m devant ou derrière, 7 m de côté
+  IA_LENTE_ECART_STANDS: 3,     // m en plus de IA_LENTE_ECART autour d'une voiture qui sort des stands (tour 51a, avec IA_ATTAQUE_TETE)
+  IA_ATTAQUE_ASPIRE_PREPARER: 1, // (tour 51a) 0 : il ne compte l'aspiration dans sa vitesse de pointe qu'une fois décalé à côté, pas en préparant
+  IA_APPROCHE_TEMPS: 1,         // s (tour 51a, avec IA_ATTAQUE_TETE) : s'approcher d'une voiture devant d'au plus (distance − une longueur) / ça m/s de plus qu'elle ; 0 : rien
+  IA_APPROCHE_LONG: 18,         // m : … tant qu'elle est à moins de ça devant lui
+  IA_APPROCHE_COTE: 8,          // m : … et à moins de ça de côté
   IA_VISION_PROCHE: 25,         // m (tour 51a, avec IA_ATTAQUE_TETE) : une voiture devant lui à moins de ça est vue, même très de côté (0 : le cône et le couloir seulement)
 
   // la qualification du joueur (qualification.js) : un tour lancé, seul
