@@ -1312,8 +1312,10 @@ Object.assign(TEXTES.fr, {
 Object.assign(TEXTES.en, {
   divisionMontee: '⬆ Promoted: next season in Division {n}!', divisionSommet: 'Division 1: the very top.',
   divisionResteSaison: 'Division {n}: finish in the top {p} to move up.', divisionNom: 'Division {n}',
+  contratsDivision: 'Offers from Division {n}: new teams, new rivals.',   // (tour 50d) monté : les écuries d'en haut
 });
 Object.assign(TEXTES.fr, {
   divisionMontee: '⬆ Montée : la saison prochaine en division {n} !', divisionSommet: 'Division 1 : le sommet.',
   divisionResteSaison: 'Division {n} : finis dans les {p} premiers pour monter.', divisionNom: 'Division {n}',
+  contratsDivision: 'Offres de la division {n} : nouvelles écuries, nouveaux rivaux.',
 });

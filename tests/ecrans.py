@@ -72,7 +72,9 @@ PAGES = [
     ('index.html?course=0&camera=cockpit&lang=en&test=audit-volant', 960, 600, None),   # l'audit anglais (tour 31, Codeur 3) : chaque écran du championnat et de la fin de carrière, sans un mot français, rien hors de l'écran en 960×600   # la page en anglais : championnat et podium sans un mot français, capture championnat-en.png
     ('index.html?course=1&ia=5&joueur=1&robot=1&circuit=test&test=fantome', 1280, 720, None),
     ('index.html?course=1&ia=5&joueur=1&robot=1&circuit=test&test=defi', 960, 600, None),
-    ('index.html?championnat=1&tours=1&test=clavier', 960, 600, None),   # (tour 49b) les touches au choix : l'écran depuis Réglages, une touche changée conduit la voiture, capture touches.png   # (tour 49b) le défi du fantôme : « Défier un ami » après la qualification, « Relever un défi », le tour contre le fantôme, captures defi-*.png   # le fantôme du meilleur tour : deux qualifications de suite, la 2e contre le fantôme, capture fantome.png
+    ('index.html?championnat=1&tours=1&test=clavier', 960, 600, None),
+    ('index.html?test=clavier-titre', 640, 360, None),   # (tour 50c) « ⌨ Touches » depuis l'écran titre, tout tient en 640×360 ; capture touches-titre-640.png
+    ('index.html?course=0&test=clavier-pause', 640, 360, None),   # (tour 50c) … depuis le menu pause : la course reste en pause pendant le choix ; captures pause-640.png, touches-pause-640.png   # (tour 49b) les touches au choix : l'écran depuis Réglages, une touche changée conduit la voiture, capture touches.png   # (tour 49b) le défi du fantôme : « Défier un ami » après la qualification, « Relever un défi », le tour contre le fantôme, captures defi-*.png   # le fantôme du meilleur tour : deux qualifications de suite, la 2e contre le fantôme, capture fantome.png
     ('index.html?robot=1&test=decouverte&tours=1', 1280, 720, None),
     ('index.html?deux=1&ia=5&robot=1&circuit=test&test=deux', 1280, 720, None),   # le mode 2 joueurs (deux-joueurs.js) : l'écran partagé, deux robots + 5 IA, jusqu'au podium ; capture deux-joueurs.png
     ('index.html?deux=1&ia=5&robot=1&circuit=test&test=deux', 960, 600, None),    # … en petit : rien ne déborde ; capture deux-joueurs-960.png
@@ -485,6 +487,58 @@ def clavier_ecran(pg, titre, l, h):
     d = pg.evaluate('() => [SAUVEGARDE.touches(), document.querySelector("#touchesGroupes button[data-groupe=seul][data-action=gaz]").textContent]')
     pg.click('#boutonTouchesRetour')
     t(f'{titre} : « Par défaut » remet tout (la sauvegarde revient à celles de départ), « Retour » ramène au paddock', d[0] is None and '↑' in d[1] and pg.evaluate('() => JEU.ecran === "championnat"'), str(d))
+
+# (tour 50c) « ⌨ Touches » aussi sur l'écran titre et dans le menu pause, en 640×360 (le téléphone couché, l'écran le plus petit) :
+# chaque bouton de l'écran dans l'image, sans défilement ; depuis la pause, la course reste arrêtée pendant le choix, Échap annule le
+# choix sans fermer la pause, puis ramène au menu pause ; la touche choisie conduit dès la reprise
+DEDANS_JS = '''sel => { const bs = [...document.querySelectorAll(sel)].filter(b => b.offsetParent !== null).map(b => b.getBoundingClientRect());
+  return { n: bs.length, dedans: bs.every(r => r.width > 0 && r.left >= -1 && r.top >= -1 && r.right <= innerWidth + 1 && r.bottom <= innerHeight + 1),
+    defile: document.documentElement.scrollHeight <= innerHeight + 2 && document.documentElement.scrollWidth <= innerWidth + 2,
+    recouvre: bs.some((a, i) => bs.some((b, j) => j > i && a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1)) }; }'''
+def clavier_titre(pg, titre, l, h):
+    if not attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "titre"', None, 60000):
+        t(f'{titre} : l’écran titre', False, str(pg.evaluate('() => typeof JEU !== "undefined" && JEU.ecran'))); return
+    d = pg.evaluate(DEDANS_JS, '#titre button')
+    vu = pg.evaluate('() => { const b = document.getElementById("boutonTouchesTitre"); return !!b && b.offsetParent !== null && b.textContent === texte("touchesBouton"); }')
+    t(f'{titre} : l’écran titre : « ⌨ Touches », et chaque bouton dans l’écran, sans défilement ni recouvrement', vu and d['dedans'] and d['defile'] and not d['recouvre'], str([vu, d]))
+    pg.click('#boutonTouchesTitre')
+    attendre(pg, '() => JEU.ecran === "touches"', None, 5000)
+    d = pg.evaluate(DEDANS_JS, '#touches button')
+    t(f'{titre} : « ⌨ Touches » depuis le titre : les 17 commandes, « Par défaut » et « Retour » dans l’écran, sans défilement ni recouvrement', d['n'] == 19 and d['dedans'] and d['defile'] and not d['recouvre'], str(d))
+    pg.click('#touchesGroupes button[data-groupe=seul][data-action=gaz]'); pg.keyboard.press('KeyI')
+    a = pg.evaluate('() => [JEU.ecran, (SAUVEGARDE.touches() || {}).seul && SAUVEGARDE.touches().seul.gaz]')
+    pg.screenshot(path=os.path.join(CAPTURES, f'touches-titre-{l}.png'))
+    pg.keyboard.press('Escape')
+    e = pg.evaluate('() => [JEU.ecran, !document.getElementById("titre").classList.contains("cache")]')
+    t(f'{titre} : le gaz mis sur I depuis le titre (gardé), puis Échap ramène à l’écran titre', a == ['touches', ['KeyI']] and e == ['titre', True], str([a, e]))
+
+def clavier_pause(pg, titre, l, h):
+    if not attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "course" && !!JEU.course', None, 120000):   # (?course=0 : une course seule, sans plateau d'IA)
+        t(f'{titre} : la course', False, str(pg.evaluate('() => typeof JEU !== "undefined" && JEU.ecran'))); return
+    pg.keyboard.press('Escape')
+    attendre(pg, '() => JEU.ecran === "pause"', None, 5000)
+    d = pg.evaluate(DEDANS_JS, '#pause button')
+    vu = pg.evaluate('() => { const b = document.getElementById("boutonTouchesPause"); return !!b && b.offsetParent !== null && b.textContent === texte("touchesBouton"); }')
+    pg.screenshot(path=os.path.join(CAPTURES, f'pause-{l}.png'))
+    t(f'{titre} : le menu pause : « ⌨ Touches », et chaque bouton dans l’écran, sans défilement ni recouvrement', vu and d['dedans'] and d['defile'] and not d['recouvre'], str([vu, d]))
+    pg.click('#boutonTouchesPause')
+    ETAT = '() => ({ ecran: JEU.ecran, touches: !document.getElementById("touches").classList.contains("cache"), pause: !document.getElementById("pause").classList.contains("cache"), pas: JEU.pas, gaz: (SAUVEGARDE.touches() || {}).seul && SAUVEGARDE.touches().seul.gaz })'
+    e0 = pg.evaluate(ETAT)
+    d = pg.evaluate(DEDANS_JS, '#touches button')
+    t(f'{titre} : « ⌨ Touches » depuis la pause : les 17 commandes, « Par défaut » et « Retour » dans l’écran, sans défilement ni recouvrement ; la course reste en pause', e0['ecran'] == 'pause' and e0['touches'] and not e0['pause'] and d['n'] == 19 and d['dedans'] and d['defile'] and not d['recouvre'], str([e0, d]))
+    pg.click('#touchesGroupes button[data-groupe=seul][data-action=gaz]'); pg.keyboard.press('Escape')
+    e1 = pg.evaluate(ETAT)
+    pg.click('#touchesGroupes button[data-groupe=seul][data-action=gaz]'); pg.keyboard.press('KeyI')
+    pg.wait_for_timeout(500)   # (des images passent : la physique ne doit pas repartir)
+    e2 = pg.evaluate(ETAT)
+    pg.screenshot(path=os.path.join(CAPTURES, f'touches-pause-{l}.png'))
+    t(f'{titre} : pendant le choix, Échap annule le choix sans fermer la pause (l’écran des touches reste) ; I pour le gaz est gardé ; la course n’a pas bougé',
+      e1['ecran'] == 'pause' and e1['touches'] and e2['ecran'] == 'pause' and e2['touches'] and e2['gaz'] == ['KeyI'] and e2['pas'] == e0['pas'], str([e0, e1, e2]))
+    pg.keyboard.press('Escape')
+    e3 = pg.evaluate(ETAT)
+    pg.keyboard.press('Escape')
+    pg.keyboard.down('KeyI'); g = pg.evaluate('() => [JEU.ecran, JEU.cibles.gaz]'); pg.keyboard.up('KeyI')
+    t(f'{titre} : Échap ramène au menu pause (toujours en pause), puis Échap reprend la course, et I accélère', e3['ecran'] == 'pause' and e3['pause'] and not e3['touches'] and g == ['course', 1], str([e3, g]))
 
 # (tour 49b) le défi du fantôme entre amis (defi.js) : le robot fait sa qualification, « 📋 Défier un ami » donne le code ; « Entre amis »
 # → « Relever un défi » refuse un code abîmé (le message) et accepte le bon ; la page ?defi=1 : le même tour du robot contre ce fantôme
@@ -982,6 +1036,10 @@ def deux_ecran(pg, titre, l, h, page):
         for (let i = 0; i < d.length; i += 4) { n++; const m = Math.max(d[i], d[i + 1], d[i + 2]) - Math.min(d[i], d[i + 1], d[i + 2]); if (m <= REGLAGES.PISTE_GRIS_ECART_MAX) gris++; }
         res.push({ gris: Math.round(100 * gris / n), exemple: [d[0], d[1], d[2]].join(',') }); }
       BOUCLE.demarrer(); return res; }'''
+    # (tour 50c, le test instable du 2026-11-05) les deux caméras rejoignent leur place derrière la voiture en quelques images (lissées) ;
+    # sous swiftshader, la lecture pouvait venir avant : on attend qu'elles ne bougent plus d'une image à l'autre (les feux retenus, rien ne roule)
+    attendre(pg, '''() => { const p = [SCENE3D.camera, SCENE3D.camera2].map(c => c.position.x.toFixed(2) + ',' + c.position.y.toFixed(2) + ',' + c.position.z.toFixed(2)).join(';');
+      const ok = window.__camerasAvant === p; window.__camerasAvant = p; return ok; }''', None, 20000)
     piste = pg.evaluate(PISTE, [[0.20, 0.93, 0.30, 0.99], [0.70, 0.93, 0.80, 0.99]])
     t(f'{titre} : la piste est dessinée sous chaque voiture : sur la grille, sous le joueur 1 (bas de la moitié gauche) et sous le joueur 2 (bas de la moitié droite), au moins 90 % de pixels gris de route', all(p['gris'] >= 90 for p in piste), str(piste))
     pg.evaluate('() => { for (const p of JEU.plateau.pilotes) p.course.compte = 0.01; }')
@@ -1524,7 +1582,7 @@ def sensations_ecran(pg, titre):
     pg.wait_for_timeout(1500)
     t(f'{titre} : aucun son avant un geste du joueur : la course roule (robot), pas d’AudioContext', roule and pg.evaluate('() => !SON.actif && SON.etatContexte === "aucun"'), pg.evaluate('() => SON.etatContexte'))
     m = pg.evaluate('''() => { BOUCLE.arreter(); const E = EFFETS3D, e = E.etat, j = JEU.joueur, F = { vibreur: 0, herbe: 1, glisse: 0, blocage: 1, contact: 1, choc: 0, vitesse: 40 };
-      const sansRien = () => { e.fumee.length = 0; e.etincelle.length = 0; E.maj([], null, 0); SCENE3D.dessiner(); return SCENE3D.appelsDessin; };
+      const sansRien = () => { e.fumee.length = 0; e.etincelle.length = 0; e.trace.length = 0; E.maj([], null, 0); SCENE3D.dessiner(); return SCENE3D.appelsDessin; };   // (tour 50c : les traces aussi : celles laissées par le robot pendant la course comptaient un appel dans « vide », pas dans « coupe »)
       const vide = sansRien(); SENSATIONS.regler(false); const coupe = sansRien(); SENSATIONS.regler(true);
       const devant = { x: j.x + Math.cos(j.cap) * 9, z: j.z + Math.sin(j.cap) * 9, cap: j.cap };   // (devant la voiture : la capture les montre)
       E.emettre(e, j, devant, F, 0.4);
@@ -1878,14 +1936,14 @@ PLAFONDS_IMAGE = {
     'monoco': (47, 169000),
     'silverstoun': (44, 134000),
     'monzo': (46, 89000),
-    'spaa': (45, 118000),
+    'spaa': (45, 98000),      # (tour 50c : 107 008 → 88 712 triangles au pire, le décor allégé)
     'suzuko': (48, 143000),
     'interlagas': (45, 151000),
     'montreol': (51, 117000),
     'melbourn': (48, 99000),
     'barcelana': (44, 108000),
     'bahrayn': (45, 94000),
-    'singapura': (46, 172000),
+    'singapura': (46, 106000),   # (tour 50c : 147 286 → 96 344)
     'yasmarino': (48, 97000),
 }
 def lieu_ecran(pg, titre, page):
@@ -3779,6 +3837,10 @@ with sync_playwright() as p:
                 tuto_lecon(pg, titre, l, h, page)
             elif 'test=audit' in page:
                 audit_autres(pg, titre, page, l, h)
+            elif 'test=clavier-titre' in page:
+                clavier_titre(pg, titre, l, h)
+            elif 'test=clavier-pause' in page:
+                clavier_pause(pg, titre, l, h)
             elif 'test=clavier' in page:
                 clavier_ecran(pg, titre, l, h)
             elif 'test=patron' in page:
