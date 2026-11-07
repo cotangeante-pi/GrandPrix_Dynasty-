@@ -99,10 +99,12 @@ def rogner(x, sr, seuil=0.03):
 NIVEAUX = {
     'clair':  dict(plus_haut=1.0,  presence=3, seuil=-20, ratio=2.5, gain=6,  pousse=0,   echo=((0.06,), (0.07,)),            foule=0.012),
     'fort':   dict(plus_haut=1.04, presence=4, seuil=-22, ratio=4.0, gain=9,  pousse=1.15, echo=((0.071, 0.123), (0.10, 0.06)), foule=0.022),
-    # « vif » (essai n° 3, le propriétaire : « plus d'intonation et plus rapide à parler ») : la base de « fort », la parole 15 % plus
-    # rapide SANS changer la hauteur (accelerer, WSOLA), silences ramenés à 40 ms, la fin qui monte de 2,5 demi-tons sur 0,35 s
+    # « vif » (essai n° 3, le propriétaire : « plus d'intonation et plus rapide à parler », puis sur la page : « un tout petit peu
+    # ralenti » et « il faut pas que ce soit une question, certains finissent haut mais en question ») : la base de « fort », la parole
+    # 9 % plus rapide SANS changer la hauteur (accelerer, WSOLA ; 15 % à la première page), silences ramenés à 40 ms, PAS de fin qui monte
+    # (une fin qui monte sonne comme une question) : un léger accent (+ACCENT_DB) sur le mot fort (le sommet de hauteur) à la place
     'vif':    dict(plus_haut=1.0,  presence=4, seuil=-22, ratio=4.0, gain=9,  pousse=1.15, echo=((0.071, 0.123), (0.10, 0.06)), foule=0.022,
-                   vitesse=1.15, garde=0.04, monte=2.5, monte_duree=0.35),
+                   vitesse=1.09, garde=0.04, accent=2.5),
     'ancien': dict(plus_haut=1.03, presence=5, seuil=-22, ratio=4.0, gain=10, pousse=1.6, echo=((0.071, 0.123, 0.197, 0.29), (0.22, 0.15, 0.10, 0.06)), foule=0.05),
 }
 
@@ -153,6 +155,18 @@ def accelerer(x, sr, facteur=1.15, trame=0.03, tolerance=0.012):
         y[k * Hs: k * Hs + N] += w * xp[tol + prec: tol + prec + N]; somme[k * Hs: k * Hs + N] += w
     return y / np.maximum(somme, 1e-3)
 
+def accentuer(x, sr, gain_db=2.5, largeur=0.22):
+    """(essai n° 3) Le mot fort un peu plus fort : +gain_db autour du sommet de hauteur (fenêtre en cosinus de `largeur` s)."""
+    f = hauteurs(x, sr)
+    v = [(i, h) for i, h in enumerate(f) if h]
+    if len(v) < 6 or gain_db <= 0: return x
+    st = np.array([12 * np.log2(h) for i, h in v]); med = np.median(st)
+    st = np.where(st - med > 9, st - 12, np.where(med - st > 9, st + 12, st))
+    centre = int(v[int(np.argmax(st))][0] * 0.01 * sr); n = int(largeur * sr)
+    g = np.ones(len(x)); a, b = max(0, centre - n // 2), min(len(x), centre + n // 2)
+    g[a:b] += (10 ** (gain_db / 20) - 1) * 0.5 * (1 - np.cos(2 * np.pi * (np.arange(a, b) - (centre - n // 2)) / n))
+    return x * g
+
 def duree_parole(x, sr, seuil=0.06):
     """La durée (s) des trames qui sonnent : pour rejeter une prise trop longue (des mots ajoutés, des hésitations)."""
     n = int(0.01 * sr); nb = len(x) // n
@@ -181,7 +195,7 @@ def energie(x, sr, plus_haut=None, sortie_sr=32000, avec_foule=True, avec_echo=T
     x = rogner(x, sr)
     if niveau != 'ancien': x = raccourcir_silences(x, sr, garde=N.get('garde', 0.09))
     if niveau == 'fort': x = monter_fin(x, sr)
-    if niveau == 'vif': x = monter_fin(accelerer(x, sr, N['vitesse']), sr, N['monte'], N['monte_duree'])
+    if niveau == 'vif': x = accentuer(accelerer(x, sr, N['vitesse']), sr, N['accent'])
     x = reechantillonner(x, N['plus_haut'] if plus_haut is None else plus_haut)
     x = vers_frequence(x, sr, sortie_sr); sr = sortie_sr
     x = passe_haut(x, sr, 90 if niveau == 'clair' else 110)
@@ -239,3 +253,62 @@ def intonation(x, sr):
     claque = bool(len(fortes) and e[max(0, fortes[-1] - 15):fortes[-1] + 1].max() >= 0.5 * e.max())
     note = 0.45 * min(etendue / 10, 1) + 0.45 * min(1, max(0, (fin + 3) / 7)) + 0.10 * claque
     return dict(note=round(note, 3), etendue=round(etendue, 1), fin=round(fin, 1), claque=claque, voisees=len(v))
+
+def courbe_fiable(f):
+    """(tour 50e) La courbe de hauteur nettoyée, en demi-tons : [(trame, demi-tons)] des seules trames voisées fiables.
+    Sauts d'octave ramenés par rapport à la médiane glissante, trames isolées (moins de 3 de suite) jetées, lissage médian sur 5 trames."""
+    v = [(i, 12 * np.log2(h)) for i, h in enumerate(f) if h]
+    if len(v) < 6: return []
+    idx = np.array([i for i, s in v]); st = np.array([s for i, s in v]); med = np.median(st)
+    st = np.where(st - med > 8, st - 12, np.where(med - st > 8, st + 12, st))
+    # des segments : trames voisées séparées d'au plus 4 trames (40 ms) ; moins de 4 trames dans le segment = bruit
+    segs, cur = [], [0]
+    for k in range(1, len(idx)):
+        if idx[k] - idx[k - 1] <= 4: cur.append(k)
+        else: segs.append(cur); cur = [k]
+    segs.append(cur)
+    out = []
+    for g in segs:
+        if len(g) < 4: continue
+        y = st[g]
+        if len(y) >= 5: y = np.array([np.median(y[max(0, j - 2):j + 3]) for j in range(len(y))])
+        out += list(zip(idx[g], y))
+    return out
+
+def intonation2(x, sr):
+    """(essai n° 3, le propriétaire : « il faut pas que ce soit une question, certains finissent haut mais en question ») La note
+    d'une exclamation de commentateur (0 à 1), sur la courbe de hauteur FIABLE (courbe_fiable) de la prise brute :
+    - l'étendue : 10 % les plus hauts moins 10 % les plus bas (10 demi-tons ou plus = 1) ;
+    - la chute : le sommet (95e centile) moins la hauteur de la dernière syllabe voisée (4 demi-tons ou plus = 1) ;
+    - le claquement : la dernière syllabe encore forte (au moins la moitié du plus fort) ;
+    - le sommet avant la dernière syllabe.
+    note = 0,40 × étendue + 0,35 × chute + 0,15 × claquement + 0,10 × sommet avant la fin.
+    La dernière syllabe = le dernier segment voisé (sans ses 2 dernières trames, fin de son bruitée), au moins 5 trames ; l'avant = le segment
+    précédent. QUESTION (note × 0,4) : la dernière syllabe est nettement plus haute que la précédente (+3 demi-tons) ET proche ou au-dessus
+    du sommet (à moins de 2 demi-tons), ou encore elle monte seule de plus de 3 demi-tons sur sa durée en finissant au sommet."""
+    x = rogner(x, sr); c = courbe_fiable(hauteurs(x, sr))
+    if len(c) < 6: return dict(note=0.0, etendue=0.0, chute=0.0, pente=0.0, claque=False, question=False, saut=0.0, voisees=len(c))
+    idx = np.array([i for i, s in c]); st = np.array([s for i, s in c])
+    etendue = float(np.percentile(st, 90) - np.percentile(st, 10))
+    sommet = float(np.percentile(st, 95)); isommet = idx[int(np.argmax(st))]
+    segs, cur = [], [0]
+    for k in range(1, len(idx)):
+        if idx[k] - idx[k - 1] <= 4: cur.append(k)
+        else: segs.append(cur); cur = [k]
+    segs.append(cur)
+    # la dernière syllabe : le dernier segment, amputé de 2 trames ; s'il est trop court, on le joint au précédent
+    dern = segs[-1][:-2] if len(segs[-1]) >= 7 else segs[-1]
+    if len(dern) < 3: dern = segs[-1]
+    fin = st[dern]; niveau = float(np.median(fin[len(fin) // 2:]))   # sa seconde moitié
+    avant = [k for g in segs[:-1] for k in g][-12:] if len(segs) > 1 else []
+    avant_n = float(np.median(st[avant])) if avant else niveau
+    chute = sommet - niveau
+    pente = float(np.polyfit(idx[dern] * 0.01, fin, 1)[0] * 0.18) if len(dern) >= 4 else 0.0
+    avant_fin = isommet < idx[dern[0]]
+    n = int(0.01 * sr); e = np.array([np.sqrt(np.mean(x[i:i + n] ** 2)) for i in range(0, len(x) - n, n)])
+    fortes = np.where(e >= 0.06 * e.max())[0]
+    claque = bool(len(fortes) and e[max(0, fortes[-1] - 15):fortes[-1] + 1].max() >= 0.5 * e.max())
+    note = 0.40 * min(etendue / 10, 1) + 0.35 * min(1, max(0, chute / 4)) + 0.15 * claque + 0.10 * avant_fin
+    question = bool((niveau - avant_n >= 3 and chute <= 2) or (pente > 3 and chute <= 1))
+    if question: note *= 0.4
+    return dict(note=round(note, 3), etendue=round(etendue, 1), chute=round(chute, 1), pente=round(pente, 1), saut=round(niveau - avant_n, 1), claque=claque, question=question, voisees=len(c))

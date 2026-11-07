@@ -8,7 +8,9 @@ Lancement : OUTILS/venv-bark/bin/python tests/voix/essai3.py ESSAI2 ESSAI3 PAGE
 On garde : les meilleures voix (VOIX, jamais en 6), les prises comprises (pas rejetées), avec une note d'intonation haute
 (≥ NOTE_MIN ; traitement.intonation, sur la prise brute) ; au plus GARDEES par phrase, les meilleures d'abord. Une phrase sans
 aucune prise assez haute garde sa meilleure, marquée « faible ». Chaque prise gardée passe par le traitement « vif »
-(traitement.energie : parole 15 % plus rapide à la même hauteur, silences de 40 ms au plus, la fin qui monte de 2,5 demi-tons)."""
+(traitement.energie : parole 9 % plus rapide à la même hauteur, silences de 40 ms au plus, un léger accent sur le mot fort, PAS de fin
+qui monte). La note est traitement.intonation2 (une exclamation, pas une question : les prises qui finissent en montant sont écartées),
+et le propriétaire vise environ 0,8 (CIBLE) : d'abord les prises entre 0,75 et 0,9."""
 import os, sys, json, tempfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import traitement as T
@@ -16,7 +18,8 @@ import transcrire as TR
 
 ESSAI2, ESSAI3, PAGE = sys.argv[1], sys.argv[2], sys.argv[3]
 VOIX = {'fr': [7, 4, 6, 1], 'en': [0, 3, 9, 2]}   # les meilleures de l'essai n° 2 (le Chef) ; jamais en 6
-NOTE_MIN, GARDEES = 0.6, 4
+NOTE_MIN, NOTE_MOYENNE, GARDEES = 0.6, 0.5, 4
+CIBLE, CIBLE_BAS, CIBLE_HAUT = 0.8, 0.75, 0.9
 CLES = ['depart', 'depassement', 'bataille', 'erreur', 'victoire']
 
 def lire(dossier, essai):
@@ -27,8 +30,10 @@ def lire(dossier, essai):
         p = prises[nom]
         if p['voix'] not in VOIX[p['langue']]: continue
         j = TR.juger(p['texte'], n['texte_entendu'], n['parole'])
+        xb, sr = T.lire_wav(os.path.join(dossier, nom + '-brut.wav'))
+        n = dict(n, intonation=T.intonation2(xb, sr))   # (la note d'exclamation, sans question : traitement.intonation2)
         r.append(dict(nom=nom, essai=essai, dossier=dossier, langue=p['langue'], cle=p['cle'], voix=p['voix'], prise=p['prise'], texte=p['texte'],
-                      entendu=n['texte_entendu'], note=n['intonation']['note'], into=n['intonation'], rejet=j['rejet'], raison=j['raison']))
+                      entendu=n['texte_entendu'], note=n['intonation']['note'], into=n['intonation'], rejet=j['rejet'] or n['intonation']['question'], raison=j['raison'] or 'question'))
     return r
 
 def main():
@@ -37,8 +42,14 @@ def main():
     gardees, fichiers = [], []
     for l in ('fr', 'en'):
         for cle in CLES:
-            bonnes = sorted([x for x in toutes if x['langue'] == l and x['cle'] == cle and not x['rejet']], key=lambda x: -x['note'])
+            # (le propriétaire : « intonation 0,8 serait idéal ») d'abord les prises entre CIBLE_BAS et CIBLE_HAUT, les plus proches de
+            # CIBLE ; puis les autres au-dessus de NOTE_MIN, les plus proches de CIBLE
+            bonnes = sorted([x for x in toutes if x['langue'] == l and x['cle'] == cle and not x['rejet']], key=lambda x: (not CIBLE_BAS <= x['note'] <= CIBLE_HAUT, abs(x['note'] - CIBLE)))
             hautes = [x for x in bonnes if x['note'] >= NOTE_MIN][:GARDEES]
+            bonnes.sort(key=lambda x: -x['note'])
+            # une phrase avec moins de 2 prises hautes : les meilleures suivantes au-dessus de NOTE_MOYENNE, marquées « moyenne » (pour
+            # que le propriétaire ait au moins le choix entre deux) ; aucune : la meilleure, marquée « faible »
+            if len(hautes) < 2: hautes += [dict(x, moyenne=True) for x in bonnes if NOTE_MOYENNE <= x['note'] < NOTE_MIN][:2 - len(hautes)]
             if not hautes and bonnes: hautes = [dict(bonnes[0], faible=True)]
             for i, x in enumerate(hautes):
                 xb, sr = T.lire_wav(os.path.join(x['dossier'], x['nom'] + '-brut.wav'))
@@ -47,7 +58,7 @@ def main():
                 with tempfile.TemporaryDirectory() as tmp:
                     w = os.path.join(tmp, 'vif.wav'); T.ecrire_wav(w, y, sr2); T.encoder_mp4(w, os.path.join(PAGE, f))
                 x.update(fichier=f, duree=round(len(y) / sr2, 2), duree_avant=round(T.duree_parole(T.rogner(xb, sr), sr), 2))
-                gardees.append({k: x[k] for k in ('fichier', 'langue', 'cle', 'voix', 'essai', 'prise', 'texte', 'entendu', 'note', 'into', 'duree') if k in x} | {'faible': bool(x.get('faible'))})
+                gardees.append({k: x[k] for k in ('fichier', 'langue', 'cle', 'voix', 'essai', 'prise', 'texte', 'entendu', 'note', 'into', 'duree') if k in x} | {'faible': bool(x.get('faible')), 'moyenne': bool(x.get('moyenne'))})
                 fichiers.append(f)
     json.dump([{'path': f} for f in fichiers + ['ecoute.html']], open(os.path.join(PAGE, 'fichiers.json'), 'w'), indent=1)
     open(os.path.join(PAGE, 'ecoute.html'), 'w').write(PAGE_HTML.replace('__DONNEES__', json.dumps(gardees, ensure_ascii=False)))
@@ -71,7 +82,7 @@ button{font:inherit;padding:4px 9px;border-radius:6px;border:1px solid var(--tra
 tr.top td{background:color-mix(in srgb,var(--bon) 8%,var(--carte))}
 </style></head><body><main>
 <h1>Essai voix n° 3 : plus d'intonation, plus rapide</h1>
-<p>Seulement les meilleures prises (les voix gardées de l'essai n° 2, plus de nouvelles prises surtout pour « Quelle BAGARRE ! »), triées par la note d'intonation : on ne garde que les notes hautes. Toutes passent par le même traitement « vif » : la parole 15 % plus rapide sans changer la hauteur de la voix, les silences encore plus courts, et la fin de la phrase qui monte nettement.</p>
+<p>Seulement les meilleures prises (les voix gardées de l'essai n° 2, plus de nouvelles prises surtout pour « Quelle BAGARRE ! »), rangées de la plus proche de 0,8 à la plus loin (0,6 au moins ; une phrase qui en a moins de deux montre aussi sa meilleure prise « moyenne », entre 0,5 et 0,6). Mise à jour après ton avis : la note d'intonation récompense maintenant une exclamation (le mot fort haut, puis la voix qui retombe ou claque net) et écarte les prises qui finissent en montant comme une question ; on garde d'abord les prises autour de 0,8. Toutes passent par le même traitement « vif » : la parole 9 % plus rapide (au lieu de 15 %) sans changer la hauteur de la voix, les silences plus courts, un léger accent sur le mot fort, et plus de fin qui monte.</p>
 <p>Pour chaque phrase : la voix d'aujourd'hui (la synthèse du navigateur) pour comparer, puis les prises, de la meilleure intonation à la moins bonne.</p>
 <div id="z"></div></main>
 <script>
@@ -88,10 +99,10 @@ for(const l of ["fr","en"]){const h=document.createElement("h2");h.textContent=l
   const b=document.createElement("button");b.textContent="▶ la voix d'aujourd'hui (synthèse)";b.onclick=()=>dire(SYN[l][cle],l);z.appendChild(b);
   if(!rs.length){const s=document.createElement("p");s.textContent="Aucune prise comprise pour cette phrase.";z.appendChild(s);continue}
   const w=document.createElement("div");w.className="l";const t=document.createElement("table");let tr=document.createElement("tr");
-  for(const c of ["#","Intonation","Voix","Texte donné","Entendu (transcription)","Écouter"]){const th=document.createElement("th");th.textContent=c;tr.appendChild(th)}t.appendChild(tr);
+  for(const c of ["#","Intonation (cible 0,8)","Voix","Texte donné","Entendu (transcription)","Écouter"]){const th=document.createElement("th");th.textContent=c;tr.appendChild(th)}t.appendChild(tr);
   rs.forEach((r,i)=>{tr=document.createElement("tr");if(i===0)tr.className="top";
-   td(tr,String(i+1));const n=td(tr,r.note.toFixed(2)+(r.faible?" (faible)":""));n.className="n";
-   if(r.into)n.title="étendue "+r.into.etendue+" demi-tons, fin "+(r.into.fin>0?"+":"")+r.into.fin+", claque : "+(r.into.claque?"oui":"non");
+   td(tr,String(i+1));const n=td(tr,r.note.toFixed(2)+(r.faible?" (faible)":r.moyenne?" (moyenne)":""));n.className="n";
+   if(r.into)n.title="étendue "+r.into.etendue+" demi-tons, chute après le sommet "+r.into.chute+", pente de fin "+r.into.pente+", claque : "+(r.into.claque?"oui":"non");
    td(tr,"voix "+r.voix+" · essai "+r.essai);td(tr,r.texte);td(tr,r.entendu||"–");td(tr,son(r.fichier));t.appendChild(tr)});
   w.appendChild(t);z.appendChild(w)}}
 </script></body></html>'''
