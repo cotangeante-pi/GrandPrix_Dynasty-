@@ -757,7 +757,7 @@ const INTERFACE = (function () {
       b.addEventListener('mousedown', ev => ev.preventDefault());
       b.addEventListener('click', () => { if (signatureContrat) signatureContrat(o.ecurie); });
       li.appendChild(b);
-      if (negociationContrat && !ch.vueDivision) {   // (tour 50d : pas de négociation avec les patrons d'en haut, pas encore) (après « Signer » : « Signer » reste le premier bouton de chaque offre)
+      if (negociationContrat) {   // (tour 51b : « Négocier » aussi avec les patrons d'en haut, pour un promu) (après « Signer » : « Signer » reste le premier bouton de chaque offre)
         const n2 = document.createElement('button'); n2.className = 'negocier petit'; n2.tabIndex = -1; n2.textContent = texte('contratNegocier');
         n2.addEventListener('mousedown', ev => ev.preventDefault());
         n2.addEventListener('click', () => negociationContrat(o.ecurie));
@@ -1229,7 +1229,11 @@ const INTERFACE = (function () {
   }
 
   // l'écran de fin : temps total, meilleur tour, les tours (✂ = virage coupé), le record
-  function remplirFin(c, nouveauRecord) {
+  function remplirFin(c, nouveauRecord, defi) {
+    // (tour 51b) « 📋 Défier un ami » après une course seule : si un tour propre a été enregistré (principal.js, fantomeSeul)
+    $('boutonFinDefi').textContent = texte('defiBouton');
+    $('boutonFinDefi').classList.toggle('cache', !defi);
+    $('finCode').classList.add('cache');
     $('finTitre').textContent = texte('fin');
     $('finTotal').textContent = texte('tempsTotal') + ' ' + formatTemps(tempsTotal(c));
     $('finMeilleur').textContent = texte('meilleurTour') + ' ' + formatTemps(c.meilleurTour);
@@ -1670,7 +1674,7 @@ const INTERFACE = (function () {
   let envoiDiscussion = null, compositionDiscussion = null;
   function remplirDiscussion(ch, k, fil, intentions) {
     const p = ch.pilotes[k], e = ch.ecuries[p.ecurie], m = p.memoire || { relation: 0 };
-    const co = CHAMPIONNAT.coequipierDe(ch);
+    const co = ch.vueDivision ? null : CHAMPIONNAT.coequipierDe(ch);   // (tour 51b : vu d'en haut, le joueur n'y est pas encore)
     $('discussionSurtitre').textContent = texte(co && co.id === k ? 'discussionCoequipier' : 'discussionRival');
     $('discussionNom').textContent = nomPilote(p);
     const humeur = m.relation >= REGLAGES.DISCUSSION_AMI ? 'bonne' : m.relation <= -REGLAGES.DISCUSSION_ENNEMI ? 'tendue' : 'neutre';
@@ -1706,7 +1710,7 @@ const INTERFACE = (function () {
   // de … »), l'humeur de la confiance de l'écurie (la tienne) ou de son envie de t'avoir (les autres, aux contrats)
   function remplirDiscussionPatron(ch, e, fil, intentions, nom) {
     remplirDiscussion(ch, ch.pilotes.find(p => !p.humain && p.ecurie === e).id, fil, intentions);
-    const eq = ch.ecuries[e], mien = e === ch.pilotes.find(p => p.humain).ecurie, conf = typeof ch.confiance === 'number' ? ch.confiance : REGLAGES.CONFIANCE_DEPART;
+    const eq = ch.ecuries[e], mien = !ch.vueDivision && e === ch.pilotes.find(p => p.humain).ecurie, conf = typeof ch.confiance === 'number' ? ch.confiance : REGLAGES.CONFIANCE_DEPART;
     $('discussionSurtitre').textContent = texte('discussionPatron') + ' · ' + nomEcurie(eq);
     $('discussionNom').textContent = nom;
     const humeur = mien ? (conf >= REGLAGES.PATRON_CONFIANCE_HAUTE ? 'bonne' : conf <= REGLAGES.PATRON_CONFIANCE_BASSE ? 'tendue' : 'neutre') : (PATRONS.envie(ch, e) >= REGLAGES.PATRON_ENVIE_FORTE ? 'bonne' : PATRONS.envie(ch, e) < 0 ? 'tendue' : 'neutre');
@@ -2095,7 +2099,7 @@ const DEFI_ECRAN = (function () {
   function preparer(f) {
     bouton('boutonDefiCourir', f.courir); bouton('boutonDefiRetour', f.retour);
     bouton('boutonDefiRecommencer', f.recommencer); bouton('boutonDefiRenvoyer', f.renvoyer); bouton('boutonDefiQuitter', f.quitter);
-    bouton('boutonQualifDefi', f.defierQualif); bouton('boutonTournoiDefi', f.defierTournoi);
+    bouton('boutonQualifDefi', f.defierQualif); bouton('boutonTournoiDefi', f.defierTournoi); bouton('boutonFinDefi', f.defierFin);
     $('defiSaisie').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); f.courir(); } });
   }
 
@@ -2132,7 +2136,7 @@ const DEFI_ECRAN = (function () {
     b.addEventListener('mousedown', e => e.preventDefault());
     b.addEventListener('click', () => {
       const fait = () => { b.textContent = texte('defiCopie'); };
-      try { navigator.clipboard.writeText(valeur).then(fait, () => { champ.select(); try { document.execCommand('copy'); fait(); } catch (e) { /* le joueur copie à la main */ } }); }
+      try { navigator.clipboard.writeText(champ.value).then(fait, () => { champ.select(); try { document.execCommand('copy'); fait(); } catch (e) { /* le joueur copie à la main */ } }); }
       catch (e) { champ.select(); try { document.execCommand('copy'); fait(); } catch (e2) { /* le joueur copie à la main */ } }
     });
     return [champ, b];
@@ -2144,7 +2148,9 @@ const DEFI_ECRAN = (function () {
     const boite = $(id);
     boite.textContent = '';
     if (lienDe) {
-      boite.append(...champCopie(lienDe(code), 'defiCopierLien', 'defiLien'));
+      // (tour 51e) l'adresse de repli tout de suite ; sur Poki, lienDe rappelle avec l'adresse de la page du jeu (SDK.lienPartage) et le champ la prend
+      const [champLien, boutonLien] = champCopie(lienDe(code, adresse => { if (typeof adresse === 'string' && adresse) champLien.value = adresse; }), 'defiCopierLien', 'defiLien');
+      boite.append(champLien, boutonLien);
       const p = document.createElement('p'); p.textContent = texte('defiLienAide'); boite.append(p);
     }
     boite.append(...champCopie(code, 'defiCopier', 'defiCode'));

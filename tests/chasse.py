@@ -67,7 +67,11 @@ class Carriere:
         self.ev(PATCH_TEXTE); return True
     def capture(self, quoi):
         n = len(self.captures)
-        if n < 8: nom = f'{getattr(self, "prefixe", "saison")}-{self.langue}-{n + 1}-{quoi}.png'; self.pg.screenshot(path=os.path.join(CAPTURES, nom)); self.captures.append(nom)
+        if n < 8:
+            nom = f'{getattr(self, "prefixe", "saison")}-{self.langue}-{n + 1}-{quoi}.png'
+            try: self.pg.screenshot(path=os.path.join(CAPTURES, nom), timeout=90000)
+            except Exception: nom = nom + ' (capture impossible : machine chargée)'
+            self.captures.append(nom)
     def inspecter(self, quoi):
         for genre, el, detail in self.ev(INSPECTER) or []:
             cle = (genre, el)
@@ -77,7 +81,7 @@ class Carriere:
     def vers_page(self, sel):
         page = self.ev('(s) => { const e = document.querySelector(s), p = e && e.closest(".paddockPage"); return p && p.classList.contains("cache") && JEU.ecran === "championnat" ? p.dataset.page : null; }', sel)
         if page:
-            try: self.pg.click('#paddockMenu [data-page="' + page + '"]', timeout=8000)
+            try: self.pg.click('#paddockMenu [data-page="' + page + '"]', timeout=30000)
             except Exception: pass
     def clic(self, sel, navigation=False):
         self.vers_page(sel)
@@ -85,9 +89,9 @@ class Carriere:
         except Exception: pass
         try:
             if navigation:
-                with self.pg.expect_navigation(timeout=60000): self.pg.click(sel, timeout=8000)
+                with self.pg.expect_navigation(timeout=60000): self.pg.click(sel, timeout=30000)
                 self.pret()
-            else: self.pg.click(sel, timeout=8000)
+            else: self.pg.click(sel, timeout=30000)
             return True
         except Exception as e:
             m = str(e); cause = re.search(r'[^\n]*(intercepts pointer events|outside of the viewport|not visible|not stable)[^\n]*', m)

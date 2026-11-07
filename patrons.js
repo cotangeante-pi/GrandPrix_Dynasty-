@@ -11,12 +11,19 @@
 const PATRONS = (function () {
   const R = REGLAGES;
   const borne = (x, a, b) => Math.max(a, Math.min(b, x));
-  const joueur = ch => ch.pilotes.find(p => p.humain);
+  // (tour 51b) monté de division : les patrons à qui l'on parle sont ceux du plateau d'en haut (DIVISIONS.vueContrats : le championnat vu de
+  // là-haut, sans le joueur ; vue.reel = le vrai championnat). Toutes les fonctions ci-dessous prennent le vrai championnat ou cette vue
+  // (sur() les ramène à la vue) ; hors montée, sur(ch) est ch lui-même : rien ne change
+  const reel = ch => ch.reel || ch;
+  const joueur = ch => reel(ch).pilotes.find(p => p.humain);
+  const sur = ch => typeof DIVISIONS !== 'undefined' && !ch.vueDivision && DIVISIONS.enAttente(ch) ? DIVISIONS.vueContrats(ch) : ch;
+  const estMien = (ch, e) => !ch.vueDivision && e === joueur(ch).ecurie;   // le patron de TON écurie (jamais un patron d'en haut)
   const confiance = ch => typeof ch.confiance === 'number' ? ch.confiance : R.CONFIANCE_DEPART;
 
   // la mémoire de chaque patron (par écurie), créée à la première discussion : la relation, les derniers actes, la négociation de
   // la saison (le bonus de salaire obtenu, le statut, une contre-offre en attente, les refus), le budget déjà donné cette saison
   function memoire(ch, e) {
+    ch = sur(ch);
     if (!ch.patrons || typeof ch.patrons !== 'object') ch.patrons = {};
     const m = ch.patrons[e] || (ch.patrons[e] = {});
     if (typeof m.relation !== 'number') m.relation = 0;
@@ -50,19 +57,25 @@ const PATRONS = (function () {
 
   // à quel point une écurie te veut (de −1 à 1) : ta note contre son exigence, plus un peu de réputation (sponsors) et de relation
   function envie(ch, e) {
-    const ex = SAISONS.exigences(ch)[e], n = SAISONS.note(ch), m = memoire(ch, e), rep = ch.reputation ? ch.reputation.sponsors : R.REPUTATION_DEPART;
+    ch = sur(ch);
+    const ex = SAISONS.exigences(ch)[e], n = SAISONS.note(reel(ch)) * (ch.vueDivision ? R.DIVISION_NOTE_MONTEE : 1), m = memoire(ch, e), rep = ch.reputation ? ch.reputation.sponsors : R.REPUTATION_DEPART;
     return borne(n - ex + (rep - R.REPUTATION_DEPART) / 100 * R.PATRON_POIDS_REPUTATION + m.relation / R.DISCUSSION_RELATION_MAX * R.PATRON_POIDS_RELATION, -1, 1);
   }
   // le bonus de salaire le plus fort qu'il peut accepter (une part du salaire de base, plafonnée à CONTRAT_NEGO_MAX)
   const bonusMax = (ch, e) => borne(envie(ch, e) * R.CONTRAT_NEGO_FACTEUR, 0, R.CONTRAT_NEGO_MAX);
 
   // le salaire de base d'une offre : de CONTRAT_SALAIRE_MIN (la plus faible écurie) à CONTRAT_SALAIRE_MAX (la meilleure)
+  // (tour 51b) le salaire grandit avec la division du patron (DIVISIONS[d].argent : × 0,6 en D4 … × 2,2 en D1), arrondi à 1 000 ; × 1 en
+  // division 3, une sauvegarde d'avant ou les divisions coupées : exactement les mêmes nombres qu'avant
   function salaireBase(ch, e) {
-    const n = ch.ecuries.length, rang = SAISONS.rangEcurie(ch, e);
-    return Math.round((R.CONTRAT_SALAIRE_MIN + (R.CONTRAT_SALAIRE_MAX - R.CONTRAT_SALAIRE_MIN) * (1 - rang / Math.max(1, n - 1))) / 1000) * 1000;
+    ch = sur(ch);
+    const n = ch.ecuries.length, rang = SAISONS.rangEcurie(ch, e), f = typeof DIVISIONS !== 'undefined' ? DIVISIONS.facteur(ch, 'argent') : 1;
+    const base = R.CONTRAT_SALAIRE_MIN + (R.CONTRAT_SALAIRE_MAX - R.CONTRAT_SALAIRE_MIN) * (1 - rang / Math.max(1, n - 1));
+    return f === 1 ? Math.round(base / 1000) * 1000 : Math.round(base * f / 1000) * 1000;
   }
   // l'offre telle que la négociation l'a faite : { salaire, statut }
   function conditions(ch, e) {
+    ch = sur(ch);
     const m = ch.patrons && ch.patrons[e] && ch.patrons[e].nego && ch.patrons[e].nego.saison === ch.saison ? ch.patrons[e].nego : null;
     return { salaire: Math.round(salaireBase(ch, e) * (1 + (m ? m.salaire : 0)) / 1000) * 1000, statut: m && m.statut ? m.statut : 'second', bonus: m ? m.salaire : 0 };
   }
@@ -70,17 +83,18 @@ const PATRONS = (function () {
   // à qui l'on peut parler : ton patron toute l'année ; les autres, à la période des contrats seulement, et seulement s'ils te font une offre
   function peutParler(ch, e, ecran) {
     if (ecran !== undefined && !DISCUSSION.peutDiscuter(ecran) && ecran !== 'contrats') return false;
+    ch = sur(ch);
     if (!ch.ecuries[e]) return false;
-    if (e === joueur(ch).ecurie) return true;
-    if (typeof DIVISIONS !== 'undefined' && DIVISIONS.enAttente(ch)) return false;   // (tour 50d) monté : les offres viennent des écuries d'en haut
-    return !!ch.enFinDeSaison && SAISONS.offres(ch).some(o => o.ecurie === e);
+    if (estMien(ch, e)) return true;
+    return !!ch.enFinDeSaison && SAISONS.offres(reel(ch)).some(o => o.ecurie === e);   // (tour 51b) monté : les offres, donc les patrons, sont ceux d'en haut
   }
 
   // --- le raisonnement : { reaction, raisons, effets } (rien n'est appliqué ici)
   function raisonner(ch, e, a) {
-    const m = ch.patrons && ch.patrons[e] ? memoire(ch, e) : memoire({ saison: ch.saison }, e), j = joueur(ch), mien = e === j.ecurie, conf = confiance(ch);
+    ch = sur(ch);
+    const m = ch.patrons && ch.patrons[e] ? memoire(ch, e) : memoire({ saison: ch.saison }, e), j = joueur(ch), mien = estMien(ch, e), conf = confiance(reel(ch));
     const raisons = [], effets = {}, garde = x => raisons.push(x), at = mien ? attente(ch) : null, cs = memoireConsignes({ saison: ch.saison, consignesJoueur: ch.consignesJoueur });
-    const contrats = !!ch.enFinDeSaison, offre = contrats ? SAISONS.offres(ch).find(o => o.ecurie === e) : null, P = R.DISCUSSION_PAS;
+    const contrats = !!ch.enFinDeSaison, offre = contrats ? SAISONS.offres(reel(ch)).find(o => o.ecurie === e) : null, P = R.DISCUSSION_PAS;
     // ce qu'il garde en tête : tes résultats (ton patron) et les consignes de la saison
     const resultats = () => { if (at && ch.resultats.length) garde(at.ecart >= R.PATRON_ECART_RESULTATS ? 'au_dessus' : at.ecart <= -R.PATRON_ECART_RESULTATS ? 'en_dessous' : 'comme_prevu'); };
     const consignes = () => { if (mien && cs.ignorees) garde('consigne_ignoree'); else if (mien && cs.suivies) garde('consigne_suivie'); };
@@ -103,7 +117,8 @@ const PATRONS = (function () {
           if (!offre) { reaction = 'pas_offre'; break; }
           const c = offre.coequipier !== null ? ch.pilotes[offre.coequipier] : null;
           if (m.nego.ferme) { reaction = 'ferme'; break; }
-          if (!c || j.stats.points > c.stats.points) { reaction = 'statut_accepte'; effets.statutOffre = 'premier'; garde('points'); }
+          if (ch.vueDivision) { reaction = 'statut_refuse'; garde('promu'); }   // (tour 51b) les points d'une division plus bas ne se comparent pas à ceux d'en haut : un promu n'est pas premier pilote d'emblée
+          else if (!c || j.stats.points > c.stats.points) { reaction = 'statut_accepte'; effets.statutOffre = 'premier'; garde('points'); }
           else { reaction = 'statut_refuse'; garde('coequipier_meilleur'); }
           break;
         }
@@ -166,6 +181,7 @@ const PATRONS = (function () {
   // de la saison, le budget (une fois par saison, PATRON_BUDGET_MONTANT, crédité au solde), le salaire négocié (≤ CONTRAT_NEGO_MAX),
   // la contre-offre, les refus (au CONTRAT_NEGO_REFUS_MAX-ième, il ferme la négociation : l'offre reste, au salaire de base)
   function appliquer(ch, e, r, acte) {
+    ch = sur(ch);
     const m = memoire(ch, e), x = r.effets;
     if (x.relation) m.relation = borne(m.relation + borne(x.relation, -R.DISCUSSION_PAS, R.DISCUSSION_PAS), -R.DISCUSSION_RELATION_MAX, R.DISCUSSION_RELATION_MAX);
     if (x.confiance && ch.reputation) { ch.reputation.ecurie = borne(ch.reputation.ecurie + borne(x.confiance, -R.PATRON_CONFIANCE_INSULTE, 0), 0, 100); ch.confiance = ch.reputation.ecurie; }
@@ -184,14 +200,16 @@ const PATRONS = (function () {
 
   // le nom du patron : l'ancien rival devenu patron de cette écurie (la relève), sinon « le patron de {ecurie} »
   function nom(ch, e, noms) {
+    ch = sur(ch);
     const s = SAISONS.signataire(ch, e);
     return s ? noms.pilote(Object.assign({ humain: false }, s)) : texte('patronDe').replace('{ecurie}', noms.ecurie(ch.ecuries[e]));
   }
 
   function composerReponse(ch, e, r, noms) {
+    ch = sur(ch);
     const m = memoire(ch, e), alea = ALEATOIRE.suite((ch.graine || 0) + R.GRAINE_DISCUSSION + 7777 + e * 53 + m.dits.length * 11 + ch.resultats.length * 1009);
     const choisir = cle => { const v = texte(cle); return Array.isArray(v) ? v[Math.floor(alea() * v.length)] : v || ''; };
-    const F = typeof ARGENT !== 'undefined' ? ARGENT.formater : String, cd = conditions(ch, e), at = e === joueur(ch).ecurie ? attente(ch) : null;
+    const F = typeof ARGENT !== 'undefined' ? ARGENT.formater : String, cd = conditions(ch, e), at = estMien(ch, e) ? attente(ch) : null;
     const vals = { nom: noms.pilote(joueur(ch)), ecurie: noms.ecurie(ch.ecuries[e]), salaire: F(cd.salaire), contre: F(Math.round(salaireBase(ch, e) * (1 + (m.nego.contre || 0)) / 1000) * 1000),
       budget: F(R.PATRON_BUDGET_MONTANT), place: at ? at.place : '', attendue: at ? Math.round(at.attendue) : '',
       circuit_exploit: r.effets.exploit ? (texte('circuit_' + r.effets.exploit.circuit) || r.effets.exploit.circuit) : '', place_exploit: r.effets.exploit ? r.effets.exploit.place : '' };   // (tour 37i)
@@ -205,15 +223,17 @@ const PATRONS = (function () {
   // dire(ch, e, txt, ecran, noms) : le joueur écrit au patron de l'écurie e ; { analyse, reaction, raisons, effets, texte }, ou null
   function dire(ch, e, txt, ecran, noms) {
     if (!peutParler(ch, e, ecran)) return null;
+    ch = sur(ch);
     noms = noms || { pilote: p => p.nom || (p.humain ? texte('nomJoueur') : texte('pilote').replace('{n}', p.numero)), ecurie: x => x.nom || texte('ecurie').replace('{n}', x.numero || x.id + 1) };
-    const analyse = PARLE.comprendre(txt, DISCUSSION.noms(ch)), r = raisonner(ch, e, analyse);
+    const analyse = PARLE.comprendre(txt, DISCUSSION.noms(reel(ch))), r = raisonner(ch, e, analyse);
     appliquer(ch, e, r, analyse.acte);
     return { analyse, reaction: r.reaction, raisons: r.raisons, effets: r.effets, texte: composerReponse(ch, e, r, noms) };
   }
 
   // les intentions au clic avec ce patron : le tien (confiance, statut, budget, consignes), les autres aux contrats (salaire, statut)
   function intentions(ch, e) {
-    const mien = e === joueur(ch).ecurie, m = ch.patrons && ch.patrons[e] ? memoire(ch, e) : null, contre = !!(m && m.nego.contre !== null);
+    ch = sur(ch);
+    const mien = estMien(ch, e), m = ch.patrons && ch.patrons[e] ? memoire(ch, e) : null, contre = !!(m && m.nego.contre !== null);
     const liste = ['saluer'];
     if (mien) liste.push('confiance', 'statut', 'budget', 'consigne');
     if (ch.enFinDeSaison) liste.push('salaire', ...(mien ? [] : ['statut', 'confiance']));

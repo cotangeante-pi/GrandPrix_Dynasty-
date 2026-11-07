@@ -12,6 +12,13 @@ const EST_PAGE = !!document.getElementById('scene3d');
 // devient le défi en cours, et la page est celle de ?defi=1 : directement la grille du défi, sans autre écran ; abîmé, le jeu s'ouvre
 // normalement (le paramètre est oublié) et LIEN_DEFI_REFUS garde la raison, affichée une fois le jeu prêt
 let LIEN_DEFI_REFUS = null;
+// (tour 51e) sur Poki, le paramètre passé par la page Poki (getURLParam) ; lu une seule fois par onglet (le jeu se recharge entre les écrans, la page Poki garde le paramètre)
+if (EST_PAGE && !PARAMETRES.has('defi')) {
+  const venu = SDK.parametreUrl('defi');
+  let deja = null;
+  try { deja = sessionStorage.getItem('gpd_defi_poki'); } catch (e) { /* pas de sessionStorage : lu à chaque chargement */ }
+  if (venu && venu !== deja) { PARAMETRES.set('defi', venu); try { sessionStorage.setItem('gpd_defi_poki', venu); } catch (e) { /* tant pis */ } }
+}
 if (EST_PAGE && PARAMETRES.has('defi') && PARAMETRES.get('defi') !== '1') {
   const code = String(PARAMETRES.get('defi')).replace(/\s+/g, '');
   let r = DEFI.decoder(code);
@@ -245,6 +252,45 @@ function finirFantome(q) {
   return { record, gagne: record && ecart !== null ? -ecart : null, ecart: !record && ecart !== null ? ecart : null, taille: FANTOME.taille(compact), compact: q.valide ? compact : null };   // (compact : le tour, pour « 📋 Défier un ami », tour 49b)
 }
 
+// --- le défi après une course seule (tour 51b, CLAUDE.md « Le défi du fantôme entre amis ») : chaque tour de la course seule est enregistré
+// comme celui d'une qualification (le même enregistreur, une voiture, sans rien d'affiché) ; le premier tour (départ arrêté, depuis la
+// grille), un tour coupé (✂) et un tour qui passe par la voie des stands ne sont jamais gardés. On garde le plus rapide de la course :
+// « 📋 Défier un ami » à l'arrivée, et le record du circuit s'il le bat (comme une qualification). Seul le calcul tourne : aucun
+// affichage, aucun fantôme à rejouer, rien ne change à la physique ni à la course
+function noterFantomeSeul(c, v) {
+  if (ESSAI || JEU.defi || JEU.tournoi || JEU.plateau) return;
+  const f = JEU.fantomeSeul || (JEU.fantomeSeul = { tour: null, nTours: 0, ligne: 0, sale: false, meilleur: null });
+  if (c.tours.length > f.nTours) {   // un tour vient de finir
+    const t = c.tours[c.tours.length - 1];
+    if (f.tour && !f.sale && !t.coupe && (!f.meilleur || t.temps < f.meilleur.temps)) {
+      FANTOME.noter(f.tour, t.temps, v, c.progression - f.ligne);
+      f.meilleur = { temps: t.temps, compact: FANTOME.compacter(f.tour, t.temps, c.progression - f.ligne) };
+    }
+    f.nTours = c.tours.length; f.sale = false; f.ligne = c.progression;
+    f.tour = c.etat === 'finie' ? null : FANTOME.commencer();
+    if (f.tour) FANTOME.noter(f.tour, 0, v, 0);
+    return;
+  }
+  if (!f.tour || c.etat !== 'course') return;
+  if (c.arretEnCours || v.dansStands) f.sale = true;
+  FANTOME.noter(f.tour, c.temps - c.debutTour, v, c.progression - f.ligne);
+}
+
+// la course seule est finie : le meilleur tour propre devient le record du circuit s'il le bat ; renvoie ce tour (ou null : pas de défi)
+function finirFantomeSeul(c) {
+  const f = JEU.fantomeSeul;
+  if (!f || !f.meilleur || JEU.plateau || ESSAI) return null;
+  SAUVEGARDE.proposerFantome(NOM_CIRCUIT, f.meilleur.compact, false);
+  return f.meilleur.compact;
+}
+
+// « 📋 Défier un ami » à la fin d'une course seule : le code du meilleur tour propre
+function defierFin() {
+  const f = JEU.ecran === 'fin' && JEU.fantomeSeul && JEU.fantomeSeul.meilleur;
+  if (!f) return;
+  DEFI_ECRAN.montrerCode('finCode', DEFI.coder(Object.assign({ circuit: NOM_CIRCUIT, fantome: f.compact }, signatureDefi())), lienDefi);
+}
+
 // le bouton « Fantôme : affiché / masqué » : l'option est sauvegardée, et le fantôme en cours la suit
 function basculerFantome() {
   const visible = !SAUVEGARDE.option('fantome', true);
@@ -398,7 +444,8 @@ function defierQualif() {
 }
 
 // (tour 50b) le lien d'un code : l'adresse où le jeu tourne (sur Poki : à vérifier au paquet, CLAUDE.md « Le lien de défi »)
-const lienDefi = code => DEFI.lien(code, location.href);
+// (tour 51e) l'adresse où le jeu tourne tout de suite ; avec le SDK Poki, maj(adresse) apporte celle de la page Poki du jeu (shareableURL, 2 s au plus)
+const lienDefi = (code, maj) => { SDK.lienPartage({ defi: code }, maj); return DEFI.lien(code, location.href); };
 
 // (tour 50b) « Relever » depuis la page Messages du paddock : un défi reçu dont le code est gardé devient le défi en cours, et la page du
 // défi s'ouvre (la grille, directement)
@@ -1194,7 +1241,7 @@ function montrerDiscussion(k, depuis, premier) {
 }
 function remplirDiscussion() {
   const d = JEU.discussion, ch = JEU.championnat;
-  if (d.patron !== undefined) INTERFACE.remplirDiscussionPatron(ch, d.patron, d.fil, PATRONS.intentions(ch, d.patron), PATRONS.nom(ch, d.patron, { pilote: INTERFACE.nomPilote, ecurie: INTERFACE.nomEcurie }));
+  if (d.patron !== undefined) INTERFACE.remplirDiscussionPatron(DIVISIONS.vueContrats(ch), d.patron, d.fil, PATRONS.intentions(ch, d.patron), PATRONS.nom(ch, d.patron, { pilote: INTERFACE.nomPilote, ecurie: INTERFACE.nomEcurie }));
   else INTERFACE.remplirDiscussion(ch, d.k, d.fil, DISCUSSION.intentions(ch, d.k));
 }
 // un patron (patrons.js, tour 35) : le tien depuis le paddock, toute l'année ; les autres depuis l'écran des contrats (« Négocier »)
@@ -1632,7 +1679,7 @@ function pause(oui) {
   if (!oui && touchesOuvertes()) return;   // (tour 50c) pendant le choix des touches, la pause ne se ferme pas
   if (oui && JEU.ecran === 'course' && JEU.deux) INTERFACE.remplirTouchesDeux(MANETTE.lireManettes().length);   // à deux : les touches des deux dans le menu pause
   INTERFACE.montrerTouchesPause(!!JEU.deux);
-  if (oui && JEU.ecran === 'course') { JEU.ecran = 'pause'; INTERFACE.montrer('pause'); if (typeof VOIX !== 'undefined') VOIX.taire(); }   // (la voix se tait en pause, tour 45c)
+  if (oui && JEU.ecran === 'course') { JEU.ecran = 'pause'; INTERFACE.montrer('pause'); if (typeof VOIX !== 'undefined') VOIX.taire(); if (typeof VOIXSONS !== 'undefined') VOIXSONS.taire(); }   // (la voix se tait en pause, tour 45c)
   else if (!oui && JEU.ecran === 'pause') { JEU.ecran = 'course'; INTERFACE.montrer('course'); }
 }
 
@@ -1855,7 +1902,8 @@ function finDeCourse() {
   const c = JEU.course;
   // une course entre IA ne bat pas les records du joueur
   const nouveau = JEU.plateau ? false : SAUVEGARDE.proposerRecord(c.nbTours, c.meilleurTour, NOM_CIRCUIT);
-  INTERFACE.remplirFin(c, nouveau);
+  const defi = finirFantomeSeul(c);
+  INTERFACE.remplirFin(c, nouveau, !!defi);
   SON.signal('arrivee');
   JEU.ecran = 'fin';
   INTERFACE.montrer('fin');
@@ -2133,7 +2181,7 @@ function pasJoueur(pas) {
   else lisserCommandes(v, permis ? aiderJoueur(JEU.cibles, v) : AUCUNE, pas);
   pasVoiture(v, CIRCUIT, pas);
   pasPneusJoueur(v, pas);
-  if (c && JEU.ecran === 'course' && !(JEU.ia && !JEU.carte)) { majCourse(c, v, pas); enregistrerPas(); }   // ?ia=1 : pareil, la course attend la carte
+  if (c && JEU.ecran === 'course' && !(JEU.ia && !JEU.carte)) { majCourse(c, v, pas); enregistrerPas(); noterFantomeSeul(c, v); }   // ?ia=1 : pareil, la course attend la carte
 }
 
 // le joueur fait son tour de qualification (le chrono s'affiche, « hors piste » aussi)
@@ -2322,8 +2370,11 @@ function majCommentaire(e, m) {
     const dit = COMMENTAIRE.phrase(it, etiquetteVoiture, INTERFACE.formatTemps);
     MESSAGES.pousserTexte(m, { type: 'commentaire', texte: '🎙 ' + texte('commentateur') + texte('deuxPoints') + dit });
     if (!it.comble) SON.signal('commentaire');   // (le petit signal pour les faits, pas pour ce qui comble)
-    if (typeof VOIX !== 'undefined' && JEU.ecran === 'course') VOIX.dire(dit, it.prio >= REGLAGES.COMMENTAIRE_IMPORTANT);   // (tour 45c : à voix haute)
+    // (tour 51c) un fait qui a un son enregistré le joue (voix-sons.js) ; la synthèse ne dit que le reste
+    const sonne = typeof VOIXSONS !== 'undefined' && JEU.ecran === 'course' && VOIXSONS.jouer(it.type);
+    if (!sonne && typeof VOIX !== 'undefined' && JEU.ecran === 'course') VOIX.dire(dit, it.prio >= REGLAGES.COMMENTAIRE_IMPORTANT);   // (tour 45c : à voix haute)
   }
+  if (typeof VOIXSONS !== 'undefined') { if (JEU.ecran !== 'course') VOIXSONS.taire(); else VOIXSONS.charger(); }   // (tour 51c : chargés après la découverte)
   if (typeof VOIX !== 'undefined' && JEU.ecran !== 'course' && (VOIX.parle || VOIX.enAttente)) VOIX.taire();   // (la pause, l'arrivée : il se tait)
 }
 
@@ -2553,7 +2604,7 @@ function demarrerJeu() {
   { const b = document.getElementById('boutonAmisDefi'); b.textContent = texte('amisDefi'); b.addEventListener('mousedown', e => e.preventDefault()); b.addEventListener('click', ouvrirDefi); }
   DEFI_ECRAN.preparer({ courir: courirDefi, retour: retourDefi, recommencer: () => { if (JEU.ecran === 'defiFin') location.reload(); },
     renvoyer: () => { if (JEU.ecran === 'defiFin' && JEU.defi && JEU.defi.code) DEFI_ECRAN.montrerCode('defiFinCode', JEU.defi.code, lienDefi); },
-    quitter: () => { if (JEU.ecran === 'defiFin') location.href = adresseAvec({ menu: 'amis' }); }, defierQualif,
+    quitter: () => { if (JEU.ecran === 'defiFin') location.href = adresseAvec({ menu: 'amis' }); }, defierQualif, defierFin,
     defierTournoi: () => { if (JEU.ecran === 'tournoiManche' && JEU.tournoiDefi) DEFI_ECRAN.montrerCode('tournoiCode', DEFI.coder(JEU.tournoiDefi), lienDefi); } });
   if (LIEN_DEFI_REFUS) DEFI_ECRAN.annoncerRefus(texte('defiRefus_' + LIEN_DEFI_REFUS));   // (tour 50b) un lien de défi abîmé : le jeu normal, et la raison
   INTERFACE.preparerInscription(partirTournoi, montrerAmis);
@@ -2583,6 +2634,14 @@ function demarrerJeu() {
       ecrireVoix();
       bv.addEventListener('mousedown', e => e.preventDefault());
       bv.addEventListener('click', () => { VOIX.regler(!VOIX.active); ecrireVoix(); });
+    }
+    // (tour 51c) les voix enregistrées (voix-sons.js) : « oui / non » dans ⚙ Réglages, sauvegardé ; ?voixsons=1 les allume
+    const bs = document.getElementById('boutonVoixSonsPaddock');
+    if (bs && typeof VOIXSONS !== 'undefined') {
+      const ecrireVs = () => { bs.textContent = texte(VOIXSONS.active ? 'vs_oui' : 'vs_non'); };
+      ecrireVs();
+      bs.addEventListener('mousedown', e => e.preventDefault());
+      bs.addEventListener('click', () => { VOIXSONS.regler(!VOIXSONS.active); ecrireVs(); });
     }
     const MODES = ['tout', 'joueur', 'non'], b = document.getElementById('boutonCommentairePause');
     REGLAGES.COMMENTAIRE_MODE = MODES.includes(SAUVEGARDE.option('commentaire', REGLAGES.COMMENTAIRE_MODE)) ? SAUVEGARDE.option('commentaire', REGLAGES.COMMENTAIRE_MODE) : REGLAGES.COMMENTAIRE_MODE;

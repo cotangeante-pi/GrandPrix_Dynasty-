@@ -45,7 +45,10 @@ const SAUVEGARDE = (function () {
     if (!Array.isArray(d.skinsAnnonce)) d.skinsAnnonce = [];
     if (!Array.isArray(d.celebrations)) d.celebrations = [];   // les célébrations débloquées par un exploit (celebration.js) : à la racine, comme les motifs   // les skins gagnés (récompenses) pas encore annoncés
     if (!d.touches || typeof d.touches !== 'object') d.touches = null;   // (tour 49b) les touches au choix (clavier.js) : null = celles de départ
-    if (!d.defis || typeof d.defis !== 'object' || !Array.isArray(d.defis.liste)) d.defis = { enCours: null, liste: [] };   // (tour 49b) les défis du fantôme reçus (defi.js) : à la racine
+    if (!d.defis || typeof d.defis !== 'object' || !Array.isArray(d.defis.liste)) d.defis = { enCours: null, liste: [] };
+    // (tour 51g) une liste de défis abîmée (une entrée nulle, sans temps, d'un circuit inconnu…) faisait planter l'écran « Relever un défi » : seules les entrées lisibles restent
+    d.defis.liste = d.defis.liste.filter(x => x && typeof x === 'object' && typeof x.id === 'string' && typeof x.circuit === 'string' && Number.isFinite(x.temps) && (typeof CIRCUITS === 'undefined' || Object.prototype.hasOwnProperty.call(CIRCUITS, x.circuit)));
+    if (typeof d.defis.enCours !== 'string') d.defis.enCours = null;   // (tour 49b) les défis du fantôme reçus (defi.js) : à la racine
     if (!Array.isArray(d.tutoriel)) d.tutoriel = [];   // les leçons du tutoriel réussies (tutoriel.js, Codeur 4) : aucune dans une sauvegarde d'avant
     if (!Array.isArray(d.aides)) d.aides = [];   // les aides au premier usage déjà vues (aides.js, Codeur 4) : aucune dans une sauvegarde d'avant
     if (typeof CARRIERE !== 'undefined') d.temple = CARRIERE.completerTemple(d.temple);   // le temple de la renommée (tour 28c) : vide dans une sauvegarde d'avant
