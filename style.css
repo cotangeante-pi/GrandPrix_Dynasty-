@@ -1626,6 +1626,24 @@ body.auPaddock #boutonSon { display: none; }
   pointer-events: none;
 }
 
+/* le lien de défi (tour 50b) : le lien d'abord (« Copier le lien »), le code en plus petit ; les défis reçus dans la page Messages ;
+   le message d'un lien abîmé, en haut de l'écran */
+.codeDefi input.defiCode { font-size: 11px; opacity: 0.8; }
+.codeDefi button.defiCode { padding: 3px 10px; font-size: 12px; min-width: 0; }
+#paddockDefis { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; max-height: 40vh; overflow: hidden; }
+#paddockDefis.cache { display: none; }
+#paddockDefis h3 { margin: 0; font-size: 14px; }
+.defiMessage { display: flex; align-items: center; justify-content: space-between; gap: 10px; font: 600 13px/1.25 var(--police); }
+.defiMessage span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#defiLienRefus { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 50; padding: 8px 16px; border-radius: 8px;
+  background: rgba(160, 20, 20, 0.92); color: #fff; font: 700 14px/1.3 var(--police); max-width: 90vw; text-align: center; pointer-events: none; }
+#defiLienRefus.cache { display: none; }
+@media (max-height: 420px) {
+  .codeDefi { gap: 3px; margin: 3px 0; }
+  .codeDefi p { font-size: 11px; }
+  #paddockDefis { max-height: 30vh; }
+}
+
 /* le téléphone couché (640×360, tour 50c) : « ⌨ Touches » (ses trois colonnes côte à côte) et le menu pause tiennent dans l'écran ;
    rien ne change au-dessus de 420 px de haut */
 @media (max-height: 420px) {

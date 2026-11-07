@@ -7,6 +7,23 @@ if (PARAMETRES.get('drift') === '1') REGLAGES.PNEU_DRIFT = true;   // (tour 48b,
 // Les paramètres ?course=, ?ia=, ?camera=, ?seul=1 (l'écran de choix d'une course seule), ?joueur=1 et ?championnat=1 restent
 // les chemins des tests et du développement. (La page de test charge ce fichier sans scène : rien n'est décidé ni sauvegardé)
 const EST_PAGE = !!document.getElementById('scene3d');
+// le lien de défi (tour 50b, CLAUDE.md « Le lien de défi ») : ?defi=<code> (un lien envoyé par un ami). Le code est vérifié (somme, version,
+// tour possible, la distance = la longueur du circuit) ; bon, il entre dans les défis reçus (avec son code : « Relever » depuis Messages),
+// devient le défi en cours, et la page est celle de ?defi=1 : directement la grille du défi, sans autre écran ; abîmé, le jeu s'ouvre
+// normalement (le paramètre est oublié) et LIEN_DEFI_REFUS garde la raison, affichée une fois le jeu prêt
+let LIEN_DEFI_REFUS = null;
+if (EST_PAGE && PARAMETRES.has('defi') && PARAMETRES.get('defi') !== '1') {
+  const code = String(PARAMETRES.get('defi')).replace(/\s+/g, '');
+  let r = DEFI.decoder(code);
+  if (r.ok) r = DEFI.decoder(code, (r.defi.circuit === 'test' ? CIRCUIT_TEST : construireCircuit(CIRCUITS[r.defi.circuit])).longueur);
+  if (r.ok) {
+    const s = SAUVEGARDE.defis();
+    s.liste = DEFI.recevoir(s.liste, r.defi, code);
+    s.enCours = code;
+    SAUVEGARDE.ecrireDefis(s);
+    PARAMETRES.set('defi', '1');
+  } else { LIEN_DEFI_REFUS = r.raison; PARAMETRES.delete('defi'); }
+}
 const PAGE_NUE = !['course', 'ia', 'camera', 'seul', 'joueur', 'championnat', 'deux', 'tournoi', 'defi'].some(k => PARAMETRES.has(k));
 const DECOUVERTE_EN_COURS = EST_PAGE && PAGE_NUE && !SAUVEGARDE.decouverteFaite();
 if (DECOUVERTE_EN_COURS) REGLAGES.NIVEAU = REGLAGES.DECOUVERTE_NIVEAU;   // les IA de la découverte sont au niveau débutant
@@ -375,7 +392,22 @@ function signatureDefi() {
 function defierQualif() {
   const f = JEU.qualif && JEU.qualif.etat === 'resultat' && JEU.qualif.fantome && JEU.qualif.fantome.compact;
   if (!f) return;
-  DEFI_ECRAN.montrerCode('qualifCode', DEFI.coder(Object.assign({ circuit: NOM_CIRCUIT, fantome: f }, signatureDefi())));
+  DEFI_ECRAN.montrerCode('qualifCode', DEFI.coder(Object.assign({ circuit: NOM_CIRCUIT, fantome: f }, signatureDefi())), lienDefi);
+}
+
+// (tour 50b) le lien d'un code : l'adresse où le jeu tourne (sur Poki : à vérifier au paquet, CLAUDE.md « Le lien de défi »)
+const lienDefi = code => DEFI.lien(code, location.href);
+
+// (tour 50b) « Relever » depuis la page Messages du paddock : un défi reçu dont le code est gardé devient le défi en cours, et la page du
+// défi s'ouvre (la grille, directement)
+function releverDefi(id) {
+  if (JEU.ecran !== 'championnat') return false;
+  const s = SAUVEGARDE.defis(), d = (s.liste || []).find(x => x && x.id === id);
+  if (!d || typeof d.code !== 'string') return false;
+  s.enCours = d.code;
+  SAUVEGARDE.ecrireDefis(s);
+  location.href = adresseAvec({ defi: '1' });
+  return true;
 }
 
 function ouvrirDefi() {
@@ -399,7 +431,7 @@ function courirDefi() {
   if (r.ok) r = DEFI.decoder(code, (r.defi.circuit === 'test' ? CIRCUIT_TEST : construireCircuit(CIRCUITS[r.defi.circuit])).longueur);
   if (!r.ok) { DEFI_ECRAN.message(texte('defiRefus_' + r.raison)); return false; }
   const s = SAUVEGARDE.defis();
-  s.liste = DEFI.recevoir(s.liste, r.defi);
+  s.liste = DEFI.recevoir(s.liste, r.defi, code);   // (tour 50b : avec son code, pour « Relever » depuis Messages)
   s.enCours = code;
   SAUVEGARDE.ecrireDefis(s);
   location.href = adresseAvec({ defi: '1' });
@@ -921,6 +953,7 @@ function montrerChampionnat(gagne) {
   INTERFACE.remplirSolde(JEU.championnat);
   INTERFACE.remplirRappelSponsor(JEU.championnat);
   INTERFACE.remplirReputation(JEU.championnat);   // les trois jauges de l'interview (interview.js)
+  DEFI_ECRAN.remplirMessages(SAUVEGARDE.defis().liste, releverDefi);   // (tour 50b) les défis reçus, dans la page Messages, avec « Relever »
   INTERFACE.remplirPaddock(JEU.championnat, circuitPaddock(), texte('circuit_' + circuitProchain()) || (CIRCUITS[circuitProchain()] || CIRCUIT).nom);   // le paddock en écran d'accueil (tour 32) : la carte du prochain Grand Prix
   // la météo prévue pour le prochain Grand Prix (meteo.js ; meteo3d.js l'écrit), rien sans prévision
   if (typeof METEO3D !== 'undefined') { const t = METEO3D.textePrevision(METEO3D.prevision(JEU.championnat, JEU.championnat.prochain)), el = document.getElementById('prevision'); el.textContent = t || ''; el.classList.toggle('cache', !t); }
@@ -2487,9 +2520,10 @@ function demarrerJeu() {
   // (tour 49b) le défi du fantôme : « Relever un défi » dans « Entre amis », son écran, la fin du tour, « 📋 Défier un ami » après la qualification
   { const b = document.getElementById('boutonAmisDefi'); b.textContent = texte('amisDefi'); b.addEventListener('mousedown', e => e.preventDefault()); b.addEventListener('click', ouvrirDefi); }
   DEFI_ECRAN.preparer({ courir: courirDefi, retour: retourDefi, recommencer: () => { if (JEU.ecran === 'defiFin') location.reload(); },
-    renvoyer: () => { if (JEU.ecran === 'defiFin' && JEU.defi && JEU.defi.code) DEFI_ECRAN.montrerCode('defiFinCode', JEU.defi.code); },
+    renvoyer: () => { if (JEU.ecran === 'defiFin' && JEU.defi && JEU.defi.code) DEFI_ECRAN.montrerCode('defiFinCode', JEU.defi.code, lienDefi); },
     quitter: () => { if (JEU.ecran === 'defiFin') location.href = adresseAvec({ menu: 'amis' }); }, defierQualif,
-    defierTournoi: () => { if (JEU.ecran === 'tournoiManche' && JEU.tournoiDefi) DEFI_ECRAN.montrerCode('tournoiCode', DEFI.coder(JEU.tournoiDefi)); } });
+    defierTournoi: () => { if (JEU.ecran === 'tournoiManche' && JEU.tournoiDefi) DEFI_ECRAN.montrerCode('tournoiCode', DEFI.coder(JEU.tournoiDefi), lienDefi); } });
+  if (LIEN_DEFI_REFUS) DEFI_ECRAN.annoncerRefus(texte('defiRefus_' + LIEN_DEFI_REFUS));   // (tour 50b) un lien de défi abîmé : le jeu normal, et la raison
   INTERFACE.preparerInscription(partirTournoi, montrerAmis);
   INTERFACE.preparerPauseTournoi(() => pauseTournoi(false), abandonnerTournoi);
   INTERFACE.preparerMancheTournoi(suiteTournoi);

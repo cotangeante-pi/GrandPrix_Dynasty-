@@ -10,6 +10,7 @@
 //   DEFI.decoder(code, longueur)   → { ok: true, defi: { id, circuit, temps, nom, casque, aileron, aides, fantome } }
 //                                    ou { ok: false, raison: 'vide' | 'format' | 'version' | 'abime' | 'circuit' | 'impossible' }
 //   (longueur : la longueur du circuit en m, si on la connaît, pour vérifier la distance du tour)
+//   DEFI.lien(code, adresse)   → l'adresse du jeu + ?defi=<code> (le lien de défi, tour 50b)
 const DEFI = (function () {
   const R = REGLAGES;
   const SIGNES = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_.';   // 64 signes, jamais « - » (le séparateur)
@@ -120,13 +121,25 @@ const DEFI = (function () {
   // le résultat d'un défi relevé : l'écart (s) du tour de l'ami au fantôme ; < 0 : relevé
   const ecart = (defi, temps) => temps - defi.temps;
 
-  // les défis reçus (la sauvegarde) : ajouter ou retrouver un défi par son id ; le meilleur écart y est gardé
-  function recevoir(liste, defi) {
+  // les défis reçus (la sauvegarde) : ajouter ou retrouver un défi par son id ; le meilleur écart y est gardé. code (le lien de défi,
+  // tour 50b) : le code lui-même, pour « Relever » depuis la page Messages ; seuls les DEFI_CODES_MAX derniers le gardent (la taille)
+  function recevoir(liste, defi, code) {
     const l = Array.isArray(liste) ? liste.filter(x => x && x.id !== defi.id) : [];
     const ancien = Array.isArray(liste) ? liste.find(x => x && x.id === defi.id) : null;
-    l.push({ id: defi.id, circuit: defi.circuit, temps: defi.temps, nom: defi.nom, meilleur: ancien && typeof ancien.meilleur === 'number' ? ancien.meilleur : null });
+    const garde = typeof code === 'string' ? code : ancien && typeof ancien.code === 'string' ? ancien.code : undefined;
+    const x = { id: defi.id, circuit: defi.circuit, temps: defi.temps, nom: defi.nom, meilleur: ancien && typeof ancien.meilleur === 'number' ? ancien.meilleur : null };
+    if (garde !== undefined) x.code = garde;
+    l.push(x);
     while (l.length > R.DEFI_LISTE_MAX) l.shift();
+    let n = 0;
+    for (let i = l.length - 1; i >= 0; i--) if (typeof l[i].code === 'string' && ++n > R.DEFI_CODES_MAX) delete l[i].code;
     return l;
+  }
+
+  // le lien de défi (tour 50b, CLAUDE.md « Le lien de défi ») : l'adresse du jeu (base : sans paramètres) + ?defi=<code> ; un clic sur ce
+  // lien ouvre le jeu directement sur la grille du défi (principal.js, lireLienDefi)
+  function lien(code, base) {
+    return String(base).split('#')[0].split('?')[0] + '?defi=' + encodeURIComponent(code);
   }
   function noterResultat(liste, id, e) {
     const x = (liste || []).find(y => y && y.id === id);
@@ -134,5 +147,5 @@ const DEFI = (function () {
     return liste;
   }
 
-  return { coder, decoder, possible, ecart, recevoir, noterResultat, tempsClair, somme };
+  return { coder, decoder, possible, ecart, recevoir, noterResultat, tempsClair, somme, lien };
 })();

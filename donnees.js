@@ -872,6 +872,8 @@ const REGLAGES = {
   DEFI_VITESSE_MAX: 120,        // m/s : entre deux images du tour, plus vite que ça est impossible (un code trafiqué)
   DEFI_DISTANCE_TOLERANCE: 0.05, // la distance du tour enregistré : la longueur du circuit à 5 % près
   DEFI_LISTE_MAX: 20,           // les défis reçus gardés dans la sauvegarde (le plus ancien part)
+  DEFI_REFUS_DUREE: 8,          // s : un lien de défi abîmé, le message reste ce temps en haut de l'écran
+  DEFI_CODES_MAX: 5,            // (le lien de défi, tour 50b) les derniers défis reçus gardent leur code (« Relever » depuis Messages)
   // le podium 3D (podium3d.js)
   PODIUM_DISTANCE: 30,          // m : à cette distance du bord gauche de la piste, en face de la ligne
   PODIUM_LARGEUR: 6.5,          // m : la largeur d'une marche…

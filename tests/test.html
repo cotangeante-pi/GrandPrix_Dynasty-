@@ -1991,6 +1991,12 @@ t('défi : la liste des défis reçus (sauvegarde) : un défi reçu deux fois n�
   let l=[];const d={id:'a1',circuit:'spaa',temps:120.5,nom:'Léa'};l=DEFI.recevoir(l,d);DEFI.noterResultat(l,'a1',0.45);DEFI.noterResultat(l,'a1',-0.3124);DEFI.noterResultat(l,'a1',0.2);
   l=DEFI.recevoir(l,d);v(l.length===1&&l[0].meilleur===-0.312,'meilleur '+JSON.stringify(l));
   for(let i=0;i<REGLAGES.DEFI_LISTE_MAX+5;i++) l=DEFI.recevoir(l,{id:'x'+i,circuit:'test',temps:60,nom:null});v(l.length===REGLAGES.DEFI_LISTE_MAX&&l[l.length-1].id==='x'+(REGLAGES.DEFI_LISTE_MAX+4),'plafond '+l.length);});
+t('défi (le lien, tour 50b) : DEFI.lien = l’adresse du jeu sans ses paramètres + ?defi=<code>, qui redonne le code ; un défi reçu garde son code (« Relever »), seuls les DEFI_CODES_MAX derniers', ()=>{
+  const code=DEFI.coder({circuit:'technique',fantome:DEFI_T.f,nom:'Léa',casque:null,aileron:null,aides:[]}),l_=DEFI.lien(code,'https://exemple.test/jeu/index.html?championnat=1&lang=fr#x');
+  v(l_.startsWith('https://exemple.test/jeu/index.html?defi=')&&new URL(l_).searchParams.get('defi')===code&&DEFI.decoder(new URL(l_).searchParams.get('defi')).ok,'lien '+l_.slice(0,60));
+  let l=[];for(let i=0;i<REGLAGES.DEFI_CODES_MAX+3;i++) l=DEFI.recevoir(l,{id:'c'+i,circuit:'test',temps:60,nom:null},'CODE'+i);
+  v(l.filter(x=>typeof x.code==='string').length===REGLAGES.DEFI_CODES_MAX&&l[l.length-1].code==='CODE'+(REGLAGES.DEFI_CODES_MAX+2)&&l[0].code===undefined,'codes '+JSON.stringify(l.map(x=>x.code)));
+  l=DEFI.recevoir(l,{id:'c'+(REGLAGES.DEFI_CODES_MAX+2),circuit:'test',temps:60,nom:null});v(l[l.length-1].code==='CODE'+(REGLAGES.DEFI_CODES_MAX+2),'reçu de nouveau sans code : le code reste');});
 t('fantôme : contre un tour plus lent (robot plus prudent en virage), l’écart en direct est positif après le premier virage et grandit ; l’écart final = la différence des temps ; un tour plus lent ne remplace pas le record, un tour coupé jamais, un meilleur temps oui, le premier tour valide aussi', ()=>{
   const f=FANTOME_F,rejeu=FANTOME.charger(f),b=tourFantome(0.7);v(b.q.fini&&b.q.valide&&b.q.temps>f.temps+1,'tour prudent '+b.q.temps+' / '+f.temps);
   const ecarts=b.pts.map(p=>FANTOME.ecart(rejeu,p.t,p.s));const milieu=ecarts[Math.floor(ecarts.length/2)],fin=ecarts[ecarts.length-1];
