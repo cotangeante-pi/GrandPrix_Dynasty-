@@ -2136,7 +2136,7 @@ const DEFI_ECRAN = (function () {
     b.addEventListener('mousedown', e => e.preventDefault());
     b.addEventListener('click', () => {
       const fait = () => { b.textContent = texte('defiCopie'); };
-      try { navigator.clipboard.writeText(valeur).then(fait, () => { champ.select(); try { document.execCommand('copy'); fait(); } catch (e) { /* le joueur copie à la main */ } }); }
+      try { navigator.clipboard.writeText(champ.value).then(fait, () => { champ.select(); try { document.execCommand('copy'); fait(); } catch (e) { /* le joueur copie à la main */ } }); }
       catch (e) { champ.select(); try { document.execCommand('copy'); fait(); } catch (e2) { /* le joueur copie à la main */ } }
     });
     return [champ, b];
@@ -2148,7 +2148,9 @@ const DEFI_ECRAN = (function () {
     const boite = $(id);
     boite.textContent = '';
     if (lienDe) {
-      boite.append(...champCopie(lienDe(code), 'defiCopierLien', 'defiLien'));
+      // (tour 51e) l'adresse de repli tout de suite ; sur Poki, lienDe rappelle avec l'adresse de la page du jeu (SDK.lienPartage) et le champ la prend
+      const [champLien, boutonLien] = champCopie(lienDe(code, adresse => { if (typeof adresse === 'string' && adresse) champLien.value = adresse; }), 'defiCopierLien', 'defiLien');
+      boite.append(champLien, boutonLien);
       const p = document.createElement('p'); p.textContent = texte('defiLienAide'); boite.append(p);
     }
     boite.append(...champCopie(code, 'defiCopier', 'defiCode'));
