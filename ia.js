@@ -644,7 +644,7 @@ function deciderLigne(pilote, v, vues) {
   if (laisserCote) essais.splice(0, essais.length, ['ecarter', laisserCote]);
   if (pilote.rivalite && !stand && !enAttaque) defendreContreJoueur(pilote, v, vues, s0);
   if (pilote.disposition && pilote.disposition.type === 'bloquer' && !stand && !enAttaque) defendreDisposition(pilote, v, vues, s0);   // (la disposition « bloquer X »)
-  if (R.IA_BATAILLE_DEFENSE && !pilote.rivalite && !stand && !enAttaque) defendreBataille(pilote, v, vues, s0);   // (en bataille : fermer la corde)
+  if (R.IA_BATAILLE_DEFENSE && (!pilote.rivalite || R.IA_ATTAQUE_TETE) && !stand && !enAttaque) defendreBataille(pilote, v, vues, s0);   // (en bataille : fermer la corde)
   if (stand) stand.ceder = cederSortieStands(pilote, v, vues, s0);   // à la sortie des stands, il laisse passer ceux qui arrivent   // le rival du joueur couvre l'intérieur (interview)
   pilote.depassement = !!enAttaque;
   // les voitures lentes ou arrêtées qu'il voit (estLente), et les plus proches devant lui (IA_LENTE_NB) : il les contourne
