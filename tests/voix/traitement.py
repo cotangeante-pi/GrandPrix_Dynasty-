@@ -99,6 +99,10 @@ def rogner(x, sr, seuil=0.03):
 NIVEAUX = {
     'clair':  dict(plus_haut=1.0,  presence=3, seuil=-20, ratio=2.5, gain=6,  pousse=0,   echo=((0.06,), (0.07,)),            foule=0.012),
     'fort':   dict(plus_haut=1.04, presence=4, seuil=-22, ratio=4.0, gain=9,  pousse=1.15, echo=((0.071, 0.123), (0.10, 0.06)), foule=0.022),
+    # « vif » (essai n° 3, le propriétaire : « plus d'intonation et plus rapide à parler ») : la base de « fort », la parole 15 % plus
+    # rapide SANS changer la hauteur (accelerer, WSOLA), silences ramenés à 40 ms, la fin qui monte de 2,5 demi-tons sur 0,35 s
+    'vif':    dict(plus_haut=1.0,  presence=4, seuil=-22, ratio=4.0, gain=9,  pousse=1.15, echo=((0.071, 0.123), (0.10, 0.06)), foule=0.022,
+                   vitesse=1.15, garde=0.04, monte=2.5, monte_duree=0.35),
     'ancien': dict(plus_haut=1.03, presence=5, seuil=-22, ratio=4.0, gain=10, pousse=1.6, echo=((0.071, 0.123, 0.197, 0.29), (0.22, 0.15, 0.10, 0.06)), foule=0.05),
 }
 
@@ -129,6 +133,26 @@ def raccourcir_silences(x, sr, garde=0.09, seuil=0.06):
     morceaux.append(x[nb * n:])
     return np.concatenate(morceaux)
 
+def accelerer(x, sr, facteur=1.15, trame=0.03, tolerance=0.012):
+    """(essai n° 3) La parole `facteur` fois plus rapide, à la même hauteur : WSOLA (recouvrement-addition de trames de 30 ms
+    fenêtrées ; chaque trame est prise près de sa place « accélérée », décalée d'au plus `tolerance` s pour ressembler le plus à la
+    suite naturelle de la trame d'avant : pas de « phasing », pas de saut de hauteur)."""
+    if facteur == 1 or len(x) < int(trame * sr) * 4: return x
+    N = int(trame * sr) // 2 * 2; Hs = N // 2; Ha = int(round(Hs * facteur)); tol = int(tolerance * sr)
+    w = np.hanning(N); xp = np.concatenate([np.zeros(tol), x, np.zeros(N + tol + Ha)])
+    nb = int((len(x) - N) / Ha) + 1
+    y = np.zeros(nb * Hs + N); somme = np.zeros_like(y); prec = 0
+    for k in range(nb):
+        a = k * Ha
+        if k == 0: d = 0
+        else:
+            modele = xp[tol + prec + Hs: tol + prec + Hs + N]
+            zone = xp[a: a + N + 2 * tol]
+            c = np.correlate(zone, modele, 'valid'); d = int(np.argmax(c)) - tol
+        prec = a + d
+        y[k * Hs: k * Hs + N] += w * xp[tol + prec: tol + prec + N]; somme[k * Hs: k * Hs + N] += w
+    return y / np.maximum(somme, 1e-3)
+
 def duree_parole(x, sr, seuil=0.06):
     """La durée (s) des trames qui sonnent : pour rejeter une prise trop longue (des mots ajoutés, des hésitations)."""
     n = int(0.01 * sr); nb = len(x) // n
@@ -155,8 +179,9 @@ def energie(x, sr, plus_haut=None, sortie_sr=32000, avec_foule=True, avec_echo=T
     """La chaîne complète : vitesse + hauteur, nettoyage, présence, compression, saturation, écho, foule, normalisation."""
     N = NIVEAUX[niveau]
     x = rogner(x, sr)
-    if niveau != 'ancien': x = raccourcir_silences(x, sr)
+    if niveau != 'ancien': x = raccourcir_silences(x, sr, garde=N.get('garde', 0.09))
     if niveau == 'fort': x = monter_fin(x, sr)
+    if niveau == 'vif': x = monter_fin(accelerer(x, sr, N['vitesse']), sr, N['monte'], N['monte_duree'])
     x = reechantillonner(x, N['plus_haut'] if plus_haut is None else plus_haut)
     x = vers_frequence(x, sr, sortie_sr); sr = sortie_sr
     x = passe_haut(x, sr, 90 if niveau == 'clair' else 110)

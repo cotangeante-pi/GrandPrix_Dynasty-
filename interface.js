@@ -576,7 +576,7 @@ const INTERFACE = (function () {
   // le nom affiché d'un pilote et d'une écurie du championnat : le sien, sinon le nom par défaut de textes.js
   // (« You » / « Toi » pour le joueur, « Driver 7 » / « Pilote 7 », « Team 3 » / « Écurie 3 »)
   const nomPilote = p => p.nom || (p.humain ? texte('nomJoueur') : texte('pilote').replace('{n}', p.numero));
-  const nomEcurie = e => e.nom || texte('ecurie').replace('{n}', e.id + 1);
+  const nomEcurie = e => e.nom || texte('ecurie').replace('{n}', e.numero || e.id + 1);   // (tour 50d : e.numero, une écurie d'une autre division)
 
   // ?championnat=1 : l'écran entre les courses. ch : le championnat ; gagne : les points du joueur à la course qui
   // vient de finir (null au démarrage) ; nomCircuit : celui du prochain Grand Prix (déjà traduit) ; suivante : le bouton
@@ -735,7 +735,7 @@ const INTERFACE = (function () {
   let signatureContrat = null, retraiteDemandee = false;
   function remplirContrats(ch, offres, note) {
     $('contratsTitre').textContent = avec(texte('contratsTitre'), { n: ch.saison + 1 });
-    $('contratsNote').textContent = avec(texte('contratsNote'), { n: Math.round(note * 100) });
+    $('contratsNote').textContent = avec(texte('contratsNote'), { n: Math.round(note * 100) }) + (ch.vueDivision ? ' · ' + avec(texte('contratsDivision'), { n: ch.vueDivision }) : '');   // (tour 50d) monté de division
     $('boutonRetraite').textContent = texte(retraiteDemandee ? 'retraiteConfirmer' : 'retraite');
     const ul = $('contratsListe'), n = ch.ecuries.length;
     ul.textContent = '';
@@ -757,7 +757,7 @@ const INTERFACE = (function () {
       b.addEventListener('mousedown', ev => ev.preventDefault());
       b.addEventListener('click', () => { if (signatureContrat) signatureContrat(o.ecurie); });
       li.appendChild(b);
-      if (negociationContrat) {   // (après « Signer » : « Signer » reste le premier bouton de chaque offre)
+      if (negociationContrat && !ch.vueDivision) {   // (tour 50d : pas de négociation avec les patrons d'en haut, pas encore) (après « Signer » : « Signer » reste le premier bouton de chaque offre)
         const n2 = document.createElement('button'); n2.className = 'negocier petit'; n2.tabIndex = -1; n2.textContent = texte('contratNegocier');
         n2.addEventListener('mousedown', ev => ev.preventDefault());
         n2.addEventListener('click', () => negociationContrat(o.ecurie));
@@ -2219,11 +2219,13 @@ const TOUCHES_ECRAN = (function () {
 
   function preparer(f) {
     rappel = f;
-    for (const [id, g] of [['boutonTouchesPaddock', f.ouvrir], ['boutonTouchesDefaut', f.defaut], ['boutonTouchesRetour', f.retour]]) {
+    // (tour 50c) « ⌨ Touches » aussi sur l'écran titre et dans le menu pause
+    const ouvrir = ['boutonTouchesPaddock', 'boutonTouchesTitre', 'boutonTouchesPause'];
+    for (const [id, g] of ouvrir.map(id => [id, f.ouvrir]).concat([['boutonTouchesDefaut', f.defaut], ['boutonTouchesRetour', f.retour]])) {
       const b = $(id); if (!b) continue;
       b.addEventListener('mousedown', e => e.preventDefault()); b.addEventListener('click', g);
     }
-    if ($('boutonTouchesPaddock')) $('boutonTouchesPaddock').textContent = texte('touchesBouton');
+    for (const id of ouvrir) if ($(id)) $(id).textContent = texte('touchesBouton');
   }
 
   // t : les touches (CLAVIER) ; attente : { groupe, action } ou null ; message : la ligne sous le titre

@@ -480,6 +480,7 @@ const REGLAGES = {
   TOURNOI_MANCHES: 3,           // 🏆 Tournoi : trois manches (⚡ Éclair : une)
   TOURNOI_POINTS: [25, 18, 15, 12, 10, 8, 6, 4],   // les points d'une manche selon la place (aucun sans temps)
   TOURNOI_COMPTE: 3,            // s : « À toi, Sarah ! » et le compte à rebours, le temps de prendre le clavier
+  TOURNOI_COMPTE_DT_MAX: 0.1,   // s : une image plus longue (le chargement, un ordinateur lent) ne compte que ça : le compte à rebours ne saute pas (tour 50c)
   GRAINE_TOURNOI: 8000,
   TOURNOI_PRES: 0.2,            // s : à moins de ça du meilleur temps, la phrase « À 0,03 s du record ! »         // les circuits tirés au sort : la graine + ce nombre
   TOURNOI_CASQUES: [            // les casques par défaut des joueurs (dans l'ordre d'inscription)
@@ -821,6 +822,15 @@ const REGLAGES = {
   DIVISION_VIEILLE: 3,          // une sauvegarde d'avant les divisions (le niveau normal, les voitures de base) est rangée ici
   DIVISION_MONTEE_PLACE: 3,     // on monte d'une division en finissant dans les DIVISION_MONTEE_PLACE premiers du championnat pilotes
   DIVISION_DESCENTE: false,     // on ne descend jamais (le jeu reste agréable pour un enfant)
+  // (tour 50d) chaque division a son plateau (ses 10 écuries et ses 20 pilotes, divisions.js) ; choix du Codeur 4, réversibles.
+  // DIVISION_PLATEAUX false : le joueur monte avec le même plateau, qui prend le niveau de la nouvelle division (le tour 49d)
+  DIVISION_PLATEAUX: true,
+  // à la montée, les rivaux classés dans les DIVISION_MONTEE_PLACE premiers montent aussi (ils prennent la place des plus faibles du
+  // plateau d'en haut, qui descendent) ; false : le joueur monte seul
+  DIVISION_MONTEE_RIVAUX: true,
+  // les offres de contrat d'une division au-dessus : la note du joueur × ça (un promu est attendu dans le milieu ou le bas de grille)
+  DIVISION_NOTE_MONTEE: 0.5,
+  GRAINE_PLATEAUX: 21000,       // les pilotes d'un plateau neuf sont tirés avec la graine du championnat + ça + 101 × la division
   NIVEAU: 'normal',             // le niveau en cours (?niveau=…, principal.js) ; normal = les réglages tels quels
   NIVEAUX: {
     debutant: { rythme: -0.05, erreurs: 2, agressivite: -0.3, regularite: 1.5, gestionPneus: -0.2, bataille: 0, technique: 0.1 },
@@ -1104,6 +1114,7 @@ const REGLAGES = {
   DECOR_MARGE_TELE: 10,         // m autour d'un poste de caméra télé (rien ne cache ce qu'il filme)
   DECOR_PODIUM_RAYON: 16,       // m : la place du podium (podium3d.js), en face de la ligne, reste libre
   DECOR_DETAIL_LOIN: 180,       // m : au-delà, le public et les arbres passent à leur forme simple… (tour 35 : 250 → 180, la mesure des images par seconde)
+  DECOR_PUBLIC_DETAIL: 0.6,     // part de la distance de détail pour le public : au-delà (108 m), un spectateur est une plaque (tour 50c : il fait moins de 10 pixels de haut ; 1 = comme les arbres)
   DECOR_RIEN_LOIN: 1600,        // m : … et au-delà, ils ne sont plus dessinés
   DECOR_MAJ_DEPLACEMENT: 20,    // m : le tri proche / loin est refait quand une caméra a bougé de ça (tour 35 : 10 → 20)
   DECOR_APPELS_MAX: 26,
