@@ -200,6 +200,7 @@ const CHAMPIONNAT = (function () {
     if (typeof INTERVIEW !== 'undefined' && ch.pilotes) INTERVIEW.completer(ch);
     if (typeof CARRIERE !== 'undefined' && ch.pilotes) CARRIERE.completer(ch);
     if (typeof DIVISIONS !== 'undefined') DIVISIONS.completer(ch);   // (tour 49d) une sauvegarde d'avant les divisions : DIVISION_VIEILLE (le jeu d'avant)
+    if (typeof REGLAGES_VOITURE !== 'undefined') REGLAGES_VOITURE.completer(ch);   // (tour 50b) les réglages de la voiture du joueur par circuit : aucun dans une sauvegarde d'avant (le conseillé)
     if (typeof AILERON !== 'undefined') AILERON.completer(ch);   // les crans du joueur par circuit (aileron.js) : aucun dans une sauvegarde d'avant (le milieu)   // la carrière en cours (carriere.js) : commencée à la saison 1 dans une sauvegarde d'avant   // la réputation (interview.js) : 50 partout dans une sauvegarde d'avant
     return ch;
   }
@@ -256,6 +257,9 @@ const CHAMPIONNAT = (function () {
     const crans = typeof AILERON !== 'undefined' && e.circuit ? AILERON.cransIA(ch, e.circuit) : null;
     // (l'effet sur les voitures des IA attend AILERON_IA_ACTIF : voir donnees.js ; le cran est choisi et gardé quand même)
     if (crans) e.pilotes.forEach((p, k) => { if (ch.pilotes[k] && !p.humain && crans[k] !== null) { if (REGLAGES.AILERON_IA_ACTIF) AILERON.appliquer(p.v, crans[k]); p.aileron = crans[k]; } });
+    // les réglages de la voiture (tour 50b, reglages-voiture.js) : la même règle (le circuit, le caractère, leur propre graine) ; RV_IA_ACTIF
+    const rv = typeof REGLAGES_VOITURE !== 'undefined' && e.circuit ? REGLAGES_VOITURE.reglagesIA(ch, e.circuit) : null;
+    if (rv) e.pilotes.forEach((p, k) => { if (ch.pilotes[k] && !p.humain && rv[k] !== null) { if (REGLAGES.RV_IA_ACTIF) REGLAGES_VOITURE.appliquer(p.v, rv[k]); p.reglageVoiture = rv[k]; } });
     // la disposition promise en discussion (discussion.js, p.disposition { type, saison, gp, cible }) : pour ce Grand Prix seulement
     // (le prochain : ch.resultats.length + 1) ; une disposition passée ne compte plus (simulation.js, donnerCarte ; ia.js)
     e.dispositions = ch.pilotes.map(p => { const d = p.disposition; return d && d.saison === ch.saison && d.gp === ch.resultats.length + 1 && (d.type === 'laisser' || d.type === 'bloquer') ? { type: d.type, cible: d.cible } : null; });

@@ -1,7 +1,7 @@
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><title>les IA sur les 12 tracés officiels</title></head><body>
 <pre id="res"></pre>
 <script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));</script>
-<script src="../donnees.js"></script><script src="../aleatoire.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../course.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../robot.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../circuits-officiels-a.js"></script><script src="../circuits-officiels-b.js"></script>
+<script src="../donnees.js"></script><script src="../aleatoire.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../course.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../robot.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../aileron.js"></script><script src="../reglages-voiture.js"></script><script src="../circuits-officiels-a.js"></script><script src="../circuits-officiels-b.js"></script>
 <script>
 // Les IA sur les 12 tracés officiels (tour 31, Codeur 1), EN SIMULATION SEULEMENT : rien n'est branché dans le jeu (les tracés
 // attendent l'accord du propriétaire). Pour chaque tracé : la carte des IA se calcule (temps) ; une IA seule fait 2 tours (temps au tour,
@@ -155,6 +155,30 @@ if(Q.get('drift')!=='0'&&!FILTRE){
     finally{R.PNEUS_ACTIFS=av;}
     L.push('  (pneus, robot neutre, meilleur tour adhérant / drift : '+lignes.join(' ; ')+')');
     v(d>=3&&a>=3&&max<1,'drift devant sur '+d+', adhérant sur '+a+', écart max '+max.toFixed(2)+' %');});
+  ecrire();
+}
+// les réglages de la voiture (tour 50b, reglages-voiture.js) : le robot neutre, un tour lancé (le 2e), au réglage conseillé puis à chaque bout de
+// chaque curseur (les autres au milieu), sur les 12 tracés. EXIGÉ : aucun réglage ne gagne partout (chaque bout est plus rapide que l'autre bout
+// sur au moins RV_TABLEAU_MIN tracés), l'écart au conseillé reste sous RV_TABLEAU_ECART, sans barrière. ?reglages=0 : sauté
+if(Q.get('reglages')!=='0'&&!FILTRE){
+  t('réglages de la voiture : le robot neutre sur les 12 tracés, chaque bout de chaque curseur : aucun ne gagne partout, l’écart au réglage conseillé reste petit, sans barrière',()=>{
+    const R=REGLAGES,RV=REGLAGES_VOITURE,av=R.PNEUS_ACTIFS,MIN=2,ECART=2.5;R.PNEUS_ACTIFS=false;const lignes=[],bilan=[];
+    const tour=(C,r)=>{const c=creerCourse(C,2),vo=creerVoiture(C);placerAuDepart(vo,C);RV.appliquer(vo,r);c.compte=0;
+      for(let k=0;k<2*400*120&&c.etat!=='finie';k++){appliquerCommandes(vo,piloteRobot(vo,C));pasVoiture(vo,C,DT);majCourse(c,vo,DT);}
+      return {t:c.tours.length>1?c.tours[1].temps:Infinity,b:vo.contactsBarriere};};
+    try{const T={};for(const [cle,def] of Object.entries(TOUS)){const C=construireCircuit(def),m={milieu:tour(C,null)};
+        for(const n of RV.NOMS) for(const c of [0,R.RV_CRANS-1]){const r=RV.conseille();r[n]=c;m[n+c]=tour(C,r);}
+        T[cle]=m;lignes.push(def.nom+' '+m.milieu.t.toFixed(2)+' | '+RV.NOMS.map(n=>n+' '+m[n+0].t.toFixed(2)+' / '+m[n+(R.RV_CRANS-1)].t.toFixed(2)).join(' | '));
+        for(const k in m) v(m[k].b===0,def.nom+' '+k+' : barrières '+m[k].b);}
+      const echecs=[];
+      for(const n of RV.NOMS){const h=n+(R.RV_CRANS-1);let bas=0,haut=0,max=0;
+        for(const cle in T){const m=T[cle];if(m[n+0].t<m[h].t)bas++;else if(m[h].t<m[n+0].t)haut++;max=Math.max(max,Math.abs(m[n+0].t/m.milieu.t-1)*100,Math.abs(m[h].t/m.milieu.t-1)*100);}
+        bilan.push(n+' : bas devant sur '+bas+', haut sur '+haut+', écart max '+max.toFixed(2)+' %');
+        if(!(bas>=MIN&&haut>=MIN&&max<ECART)) echecs.push(n);}
+      L.push('  (réglages, robot neutre, tour lancé : conseillé | chaque curseur, bout bas / bout haut : '+lignes.join(' ; ')+')');
+      L.push('  (réglages, bilan : '+bilan.join(' ; ')+')');
+      v(!echecs.length,'gagne partout ou trop loin : '+echecs.join());}
+    finally{R.PNEUS_ACTIFS=av;}});
   ecrire();
 }
 t('aucune erreur JavaScript',()=>v(__err.length===0,__err.join(' | ')));

@@ -60,6 +60,7 @@ ANNEXES = ['tests/sdk.html', 'tests/pneus.html', 'tests/enregistreur.html', 'tes
 ANNEXES.extend(['tests/aides.html', 'tests/tutoriel.html'])   # les aides au premier usage (aides.js, étape 11b) et le tutoriel guidé (tutoriel.js, étape 11d), Codeur 4
 ANNEXES.extend(['tests/courses-mesure.html?lot=1', 'tests/courses-mesure.html?lot=2'])   # MESURE TEMPORAIRE du tour 50a (Codeur 1), à retirer
 ANNEXES.append('tests/personnalisation.html')   # la personnalisation : livrée, célébration, boutique de skins (tour 48c, Codeur 3)
+ANNEXES.append('tests/reglages-voiture.html')   # les réglages de la voiture (tour 50b, Codeur 2) ; leur tableau sur les 12 tracés : tests/officiels.html
 def annexes():
     return all([serie(p, delai=300 if 'courses' in p else 600 if 'officiels' in p else 120, options=['--virtual-time-budget=5000'] if p.endswith('sdk.html') else []) for p in ANNEXES])
 

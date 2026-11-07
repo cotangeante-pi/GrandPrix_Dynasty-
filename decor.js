@@ -308,11 +308,13 @@ const DECOR = (function () {
   // --- la construction en Three.js (seulement dans la page)
 
   // une boîte dans le repère local (x le long, y en haut, z au loin), ajoutée à pos / col (36 sommets, 12 triangles, tournés vers l'extérieur)
-  function boite(pos, col, x0, x1, y0, y1, z0, z1, couleur) {
+  // sans (facultatif) : les faces qu'on ne voit jamais, à ne pas faire (tour 50c, moins de triangles) : 'v' devant (z0), 'f' le fond (z1),
+  // 'g' x0, 'd' x1, 'h' le haut, 'b' le bas (posé au sol ou caché par une autre boîte)
+  function boite(pos, col, x0, x1, y0, y1, z0, z1, couleur, sans) {
     const C = new THREE.Color(couleur);
     const v = [[x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0], [x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]];
     const faces = [[0, 3, 2, 1], [4, 5, 6, 7], [0, 4, 7, 3], [1, 2, 6, 5], [3, 7, 6, 2], [0, 1, 5, 4]];
-    for (const f of faces) for (const k of [f[0], f[1], f[2], f[0], f[2], f[3]]) { pos.push(...v[k]); col.push(C.r, C.g, C.b); }
+    faces.forEach((f, i) => { if (sans && sans.includes('vfgdhb'[i])) return; for (const k of [f[0], f[1], f[2], f[0], f[2], f[3]]) { pos.push(...v[k]); col.push(C.r, C.g, C.b); } });
   }
   // un prisme vertical à n côtés (un tronc, un pneu), de rayon r0 en bas à r1 en haut ; avecHaut : le couvercle
   function prisme(pos, col, n, r0, r1, y0, y1, couleur, avecHaut, z) {
@@ -354,13 +356,14 @@ const DECOR = (function () {
     const C = R.DECOR_COULEURS, M = R.TRIBUNE_MODULE, [pm, hm] = R.TRIBUNE_MARCHE;
     return {
       tribune: rangs => fabriquer((p, c) => {
-        for (let g = 0; g < rangs; g++) boite(p, c, -M / 2, M / 2, 0, (g + 1) * hm, g * pm, (g + 1) * pm, g % 2 ? C.gradinA : C.gradinB);
+        // (sans le bas, posé au sol, ni le fond de chaque marche, caché par la marche suivante, plus haute, ou par le mur)
+        for (let g = 0; g < rangs; g++) boite(p, c, -M / 2, M / 2, 0, (g + 1) * hm, g * pm, (g + 1) * pm, g % 2 ? C.gradinA : C.gradinB, 'bf');
         const haut = rangs * hm + R.TRIBUNE_TOIT, prof = rangs * pm;
-        boite(p, c, -M / 2, M / 2, 0, haut, prof, prof + 0.3, C.mur);                                // le mur du fond
+        boite(p, c, -M / 2, M / 2, 0, haut, prof, prof + 0.3, C.mur, 'b');                           // le mur du fond
         boite(p, c, -M / 2, M / 2, haut, haut + 0.3, -1, prof + 0.3, C.toit);                         // le toit, un peu en avant
       }),
       // une personne de 1 m de haut (l'objet est mis à la taille du spectateur par son échelle) : le corps, puis la tête
-      personne: fabriquer((p, c) => { boite(p, c, -0.13, 0.13, 0, 0.8, -0.08, 0.08, 0xffffff); boite(p, c, -0.07, 0.07, 0.83, 1, -0.07, 0.07, C.tete); }),
+      personne: fabriquer((p, c) => { boite(p, c, -0.13, 0.13, 0, 0.8, -0.08, 0.08, 0xffffff, 'b'); boite(p, c, -0.07, 0.07, 0.83, 1, -0.07, 0.07, C.tete, 'b'); }),   // (sans les dessous)
       personneLoin: fabriquer((p, c) => {   // une simple plaque (2 triangles, des deux côtés), tournée vers la piste
         const C2 = new THREE.Color(0xffffff);
         for (const q of [[-0.14, 0], [0.14, 0], [0.14, 1], [-0.14, 0], [0.14, 1], [-0.14, 1]]) { p.push(q[0], q[1], 0); c.push(C2.r, C2.g, C2.b); }
@@ -377,13 +380,15 @@ const DECOR = (function () {
       arbreLoin: fabriquer((p, c) => { prisme(p, c, 4, 2.6, 0, 0, 8.5, C.sapin, false); }),
       panneau: fabriquer((p, c) => { boite(p, c, -R.PANNEAU_LONGUEUR / 2, R.PANNEAU_LONGUEUR / 2, 0.2, 0.2 + R.PANNEAU_HAUTEUR, 0, 0.15, 0xffffff); }),
       // un immeuble de 1 m de côté (mis à l'échelle par son instance) : les murs, des bandes de fenêtres, le toit plus sombre
+      // (tour 50c : 26 triangles au lieu de 72 : les murs sans le bas, le toit en une face à la place du haut, et de chaque bande de
+      // fenêtres seulement ses deux faces devant et derrière ; le reste était caché dans le mur ou faisait 1 cm)
       immeuble: fabriquer((p, c) => {
-        boite(p, c, -0.5, 0.5, 0, 1, 0, 1, 0xffffff);
-        for (let k = 0; k < R.IMMEUBLE_BANDES; k++) { const y = (k + 0.6) / (R.IMMEUBLE_BANDES + 0.4); boite(p, c, -0.46, 0.46, y, y + 0.35 / (R.IMMEUBLE_BANDES + 0.4), -0.01, 1.01, C.fenetres); }
-        boite(p, c, -0.5, 0.5, 1, 1.02, 0, 1, C.toitImmeuble);
-      }, g => {   // (l'attribut lumiere : 1 sur les fenêtres, allumées la nuit par le matériau)
+        boite(p, c, -0.5, 0.5, 0, 1, 0, 1, 0xffffff, 'hb');
+        boite(p, c, -0.5, 0.5, 0, 1, 0, 1, C.toitImmeuble, 'vfgdb');
+        for (let k = 0; k < R.IMMEUBLE_BANDES; k++) { const y = (k + 0.6) / (R.IMMEUBLE_BANDES + 0.4); boite(p, c, -0.46, 0.46, y, y + 0.35 / (R.IMMEUBLE_BANDES + 0.4), -0.01, 1.01, C.fenetres, 'gdhb'); }
+      }, g => {   // (l'attribut lumiere : 1 sur les fenêtres, allumées la nuit par le matériau : les sommets après les murs et le toit)
         const n = g.attributes.position.count, l = new Float32Array(n);
-        for (let k = 36; k < 36 + 36 * R.IMMEUBLE_BANDES; k++) l[k] = 1;
+        for (let k = 30; k < n; k++) l[k] = 1;
         g.setAttribute('lumiere', new THREE.BufferAttribute(l, 1));
       }),
       // une dalle d'eau (1 m de côté, de 0 à 1 au loin), un champ, pareil
@@ -489,6 +494,7 @@ const DECOR = (function () {
       instances(F.panneau, objets.panneau, 'panneau'),
     ];
     const publicG = groupeDetail([objets.public], [F.personne], F.personneLoin, 'public', true, { side: THREE.DoubleSide });
+    publicG.partDetail = R.DECOR_PUBLIC_DETAIL;   // (le public passe en plaque plus près que les arbres)
     const arbres = groupeDetail([objets.arbreA, objets.arbreB], [F.arbreA, F.arbreB], F.arbreLoin, 'arbres', false);
     const pneus = groupeDetail([objets.pneus], [F.pneus], null, 'pneus', true);   // les piles de pneus : de près seulement (de loin, on ne les voit pas)
     const C = R.DECOR_COULEURS;
@@ -620,7 +626,7 @@ const DECOR = (function () {
       const bouge = change || !g.dernier || g.dernier.length !== cameras.length || cameras.some((p, k) => Math.hypot(p.x - g.dernier[k].x, p.y - g.dernier[k].y, p.z - g.dernier[k].z) > R.DECOR_MAJ_DEPLACEMENT);
       if (!bouge) continue;
       g.dernier = cameras.map(p => ({ x: p.x, y: p.y, z: p.z }));
-      const proche2 = dDetail * dDetail, rien2 = dRien * dRien;
+      const dg = dDetail * (g.partDetail || 1), proche2 = dg * dg, rien2 = dRien * dRien;
       const n = g.proches.map(() => 0);
       let nl = 0;
       const ma = g.proches.map(m => m.instanceMatrix.array), la = g.loin ? g.loin.instanceMatrix.array : null;

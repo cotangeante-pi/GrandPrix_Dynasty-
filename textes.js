@@ -330,6 +330,16 @@ const TEXTES = {
     // l'aileron (aileron.js, Codeur 3) : aucun conseil, seulement ce que fait le curseur
     aileron: '🪽 Rear wing', aileronTitre: 'Rear wing — {circuit}', aileronBas: 'Low', aileronHaut: 'High', aileronVirages: 'Corners', aileronVitesse: 'Speed',
     aileronCran: 'Setting {n} / {max}', aileronLongueur: '{km} km',
+    // les réglages de la voiture (reglages-voiture.js, mes-reglages.js, tour 50b) : chaque curseur, ses deux bouts et ce qu'il change
+    reglagesVoiture: '🔩 Car setup', rvTitre: 'Car setup — {circuit}', rvConseille: '↺ Recommended setup', rvEquilibre: 'Balanced: recommended setup',
+    rv_freins: 'Brake balance', rv_freins_bas: 'Rear', rv_freins_haut: 'Front',
+    rv_freins_effet_bas: 'Longer braking, steadier when braking into corners', rv_freins_effet_haut: 'Shorter braking, the fronts lock up in corners',
+    rv_boite: 'Gearbox', rv_boite_bas: 'Long', rv_boite_haut: 'Short',
+    rv_boite_effet_bas: 'More top speed, less acceleration', rv_boite_effet_haut: 'More acceleration, less top speed',
+    rv_suspensions: 'Suspension', rv_suspensions_bas: 'Soft', rv_suspensions_haut: 'Stiff',
+    rv_suspensions_effet_bas: 'More grip in slow corners, less in fast ones', rv_suspensions_effet_haut: 'More grip in fast corners, less in slow ones',
+    rv_pression: 'Tyre pressure', rv_pression_bas: 'Low', rv_pression_haut: 'High',
+    rv_pression_effet_bas: 'More grip, but more drag and tyre wear', rv_pression_effet_haut: 'Less drag and tyre wear, but less grip',
     // un nombre devant un mot (nombre(n, cle), Codeur 3) : [singulier, pluriel] ; en anglais le singulier est pour 1 seulement
     nb_saison: ['{n} season', '{n} seasons'], nb_titre: ['{n} title', '{n} titles'], nb_victoire: ['{n} win', '{n} wins'], nb_podium: ['{n} podium', '{n} podiums'],
     nb_point: ['{n} point', '{n} points'], nb_generation: ['{n} generation', '{n} generations'], nb_championne: ['{n} champion generation', '{n} champion generations'],
@@ -711,6 +721,16 @@ const TEXTES = {
     // l'aileron (aileron.js, Codeur 3) : aucun conseil, seulement ce que fait le curseur
     aileron: '🪽 Aileron', aileronTitre: 'Aileron — {circuit}', aileronBas: 'Bas', aileronHaut: 'Haut', aileronVirages: 'Virages', aileronVitesse: 'Vitesse',
     aileronCran: 'Cran {n} / {max}', aileronLongueur: '{km} km',
+    // les réglages de la voiture (reglages-voiture.js, mes-reglages.js, tour 50b) : chaque curseur, ses deux bouts et ce qu'il change
+    reglagesVoiture: '🔩 Réglages', rvTitre: 'Réglages — {circuit}', rvConseille: '↺ Réglage conseillé', rvEquilibre: 'Équilibré : le réglage conseillé',
+    rv_freins: 'Équilibre des freins', rv_freins_bas: 'Arrière', rv_freins_haut: 'Avant',
+    rv_freins_effet_bas: 'Freinage plus long, plus stable en freinant dans les virages', rv_freins_effet_haut: 'Freinage plus court, l’avant bloque en virage',
+    rv_boite: 'Boîte de vitesses', rv_boite_bas: 'Longue', rv_boite_haut: 'Courte',
+    rv_boite_effet_bas: 'Plus de vitesse de pointe, moins d’accélération', rv_boite_effet_haut: 'Plus d’accélération, moins de vitesse de pointe',
+    rv_suspensions: 'Suspensions', rv_suspensions_bas: 'Souples', rv_suspensions_haut: 'Dures',
+    rv_suspensions_effet_bas: 'Plus d’adhérence dans les virages lents, moins dans les rapides', rv_suspensions_effet_haut: 'Plus d’adhérence dans les virages rapides, moins dans les lents',
+    rv_pression: 'Pression des pneus', rv_pression_bas: 'Basse', rv_pression_haut: 'Haute',
+    rv_pression_effet_bas: 'Plus d’adhérence, mais plus de frottement et d’usure', rv_pression_effet_haut: 'Moins de frottement et d’usure, mais moins d’adhérence',
     // un nombre devant un mot (nombre(n, cle), Codeur 3) : [singulier, pluriel] ; en français le singulier est pour 0 et 1
     nb_saison: ['{n} saison', '{n} saisons'], nb_titre: ['{n} titre', '{n} titres'], nb_victoire: ['{n} victoire', '{n} victoires'], nb_podium: ['{n} podium', '{n} podiums'],
     nb_point: ['{n} point', '{n} points'], nb_generation: ['{n} génération', '{n} générations'], nb_championne: ['{n} génération championne', '{n} générations championnes'],
@@ -1238,7 +1258,7 @@ Object.assign(TEXTES.fr, {
 // (tour 49b) le défi du fantôme entre amis (defi.js) : le code à copier, « Relever un défi », la fin du tour
 Object.assign(TEXTES.en, {
   defiBouton: '📋 Challenge a friend', defiCopier: 'Copy', defiCopie: 'Copied!',
-  defiCodeAide: 'Send this code to a friend: they paste it in “Friends” → “Take a challenge”.',
+  defiCodeAide: 'Or the code: they paste it in “Friends” → “Take a challenge”.',
   amisDefi: '🎯 Take a challenge', defiTitre: 'Take a challenge',
   defiExplication: 'Paste the code a friend sent you, then race alone against their lap.',
   defiColler: 'Paste the code here', defiCourir: '▶ Race!',
@@ -1251,11 +1271,15 @@ Object.assign(TEXTES.en, {
   defiMeilleurReleve: 'beaten {s}', defiMeilleurEncore: 'best: {s} behind', defiPasCouru: 'not raced yet',
   defiFinTitre: 'Challenge', defiReleve: 'Challenge beaten! {s}', defiEncore: 'Still {s} to go',
   defiCoupe: 'Corner cut: no time.', defiAbandon: 'Lap abandoned: no time.',
-  defiRecommencer: '🔁 Try again', defiRenvoyer: '📋 Send back my code', defiQuitter: 'Back',
+  defiRecommencer: '🔁 Try again', defiRenvoyer: '📋 Send back my link', defiQuitter: 'Back',
+  // (tour 50b) le lien de défi
+  defiCopierLien: '🔗 Copy the link', defiLienAide: 'Send this link to a friend: one click and they race against your lap.',
+  defiMessagesTitre: 'Challenges received', defiMessage: 'Challenge from {nom}: {circuit}, {temps}', defiRelever: '▶ Take it on',
+  defiLienRefuse: 'This challenge link does not work.',
 });
 Object.assign(TEXTES.fr, {
   defiBouton: '📋 Défier un ami', defiCopier: 'Copier', defiCopie: 'Copié !',
-  defiCodeAide: 'Envoie ce code à un ami : il le colle dans « Entre amis » → « Relever un défi ».',
+  defiCodeAide: 'Ou le code : il le colle dans « Entre amis » → « Relever un défi ».',
   amisDefi: '🎯 Relever un défi', defiTitre: 'Relever un défi',
   defiExplication: 'Colle le code qu’un ami t’a envoyé, puis cours seul contre son tour.',
   defiColler: 'Colle le code ici', defiCourir: '▶ Courir !',
@@ -1268,7 +1292,11 @@ Object.assign(TEXTES.fr, {
   defiMeilleurReleve: 'relevé {s}', defiMeilleurEncore: 'au mieux à {s}', defiPasCouru: 'pas encore couru',
   defiFinTitre: 'Le défi', defiReleve: 'Défi relevé ! {s}', defiEncore: 'Encore {s}',
   defiCoupe: 'Virage coupé : pas de temps.', defiAbandon: 'Tour abandonné : pas de temps.',
-  defiRecommencer: '🔁 Recommencer', defiRenvoyer: '📋 Renvoyer mon code', defiQuitter: 'Retour',
+  defiRecommencer: '🔁 Recommencer', defiRenvoyer: '📋 Renvoyer mon lien', defiQuitter: 'Retour',
+  // (tour 50b) le lien de défi
+  defiCopierLien: '🔗 Copier le lien', defiLienAide: 'Envoie ce lien à un ami : un clic, et il court contre ton tour.',
+  defiMessagesTitre: 'Défis reçus', defiMessage: 'Défi de {nom} : {circuit}, {temps}', defiRelever: '▶ Relever',
+  defiLienRefuse: 'Ce lien de défi ne marche pas.',
 });
 
 // (tour 49b) les touches au choix (clavier.js)
@@ -1292,8 +1320,10 @@ Object.assign(TEXTES.fr, {
 Object.assign(TEXTES.en, {
   divisionMontee: '⬆ Promoted: next season in Division {n}!', divisionSommet: 'Division 1: the very top.',
   divisionResteSaison: 'Division {n}: finish in the top {p} to move up.', divisionNom: 'Division {n}',
+  contratsDivision: 'Offers from Division {n}: new teams, new rivals.',   // (tour 50d) monté : les écuries d'en haut
 });
 Object.assign(TEXTES.fr, {
   divisionMontee: '⬆ Montée : la saison prochaine en division {n} !', divisionSommet: 'Division 1 : le sommet.',
   divisionResteSaison: 'Division {n} : finis dans les {p} premiers pour monter.', divisionNom: 'Division {n}',
+  contratsDivision: 'Offres de la division {n} : nouvelles écuries, nouveaux rivaux.',
 });

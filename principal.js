@@ -7,6 +7,23 @@ if (PARAMETRES.get('drift') === '1') REGLAGES.PNEU_DRIFT = true;   // (tour 48b,
 // Les paramètres ?course=, ?ia=, ?camera=, ?seul=1 (l'écran de choix d'une course seule), ?joueur=1 et ?championnat=1 restent
 // les chemins des tests et du développement. (La page de test charge ce fichier sans scène : rien n'est décidé ni sauvegardé)
 const EST_PAGE = !!document.getElementById('scene3d');
+// le lien de défi (tour 50b, CLAUDE.md « Le lien de défi ») : ?defi=<code> (un lien envoyé par un ami). Le code est vérifié (somme, version,
+// tour possible, la distance = la longueur du circuit) ; bon, il entre dans les défis reçus (avec son code : « Relever » depuis Messages),
+// devient le défi en cours, et la page est celle de ?defi=1 : directement la grille du défi, sans autre écran ; abîmé, le jeu s'ouvre
+// normalement (le paramètre est oublié) et LIEN_DEFI_REFUS garde la raison, affichée une fois le jeu prêt
+let LIEN_DEFI_REFUS = null;
+if (EST_PAGE && PARAMETRES.has('defi') && PARAMETRES.get('defi') !== '1') {
+  const code = String(PARAMETRES.get('defi')).replace(/\s+/g, '');
+  let r = DEFI.decoder(code);
+  if (r.ok) r = DEFI.decoder(code, (r.defi.circuit === 'test' ? CIRCUIT_TEST : construireCircuit(CIRCUITS[r.defi.circuit])).longueur);
+  if (r.ok) {
+    const s = SAUVEGARDE.defis();
+    s.liste = DEFI.recevoir(s.liste, r.defi, code);
+    s.enCours = code;
+    SAUVEGARDE.ecrireDefis(s);
+    PARAMETRES.set('defi', '1');
+  } else { LIEN_DEFI_REFUS = r.raison; PARAMETRES.delete('defi'); }
+}
 const PAGE_NUE = !['course', 'ia', 'camera', 'seul', 'joueur', 'championnat', 'deux', 'tournoi', 'defi'].some(k => PARAMETRES.has(k));
 const DECOUVERTE_EN_COURS = EST_PAGE && PAGE_NUE && !SAUVEGARDE.decouverteFaite();
 if (DECOUVERTE_EN_COURS) REGLAGES.NIVEAU = REGLAGES.DECOUVERTE_NIVEAU;   // les IA de la découverte sont au niveau débutant
@@ -155,6 +172,7 @@ function lancerCourse(nbTours) {
   if (PARAMETRES.get('pneus') === 'drift' && REGLAGES.PNEU_DRIFT) JEU.joueur.typePneus = 'drift';   // (?pneus=drift : la voiture vivante, le pneu drift ; la leçon 8 du tutoriel, les tests)
   if (JEU.deux) { const v2 = DEUX_JOUEURS.joueurs(JEU.plateau)[1].v; v2.pneus = JEU.joueur.pneus ? creerPneus() : null; v2.adherence = 1; }   // le joueur 2 : la même voiture
   AILERON.appliquer(JEU.joueur, JEU.championnat ? AILERON.cranDe(JEU.championnat, NOM_CIRCUIT) : null);   // l'aileron du joueur sur ce circuit (aileron.js ; le milieu = rien)
+  if (typeof REGLAGES_VOITURE !== 'undefined') REGLAGES_VOITURE.appliquer(JEU.joueur, JEU.championnat ? REGLAGES_VOITURE.de(JEU.championnat, NOM_CIRCUIT) : null);   // (tour 50b) ses réglages de la voiture sur ce circuit (le conseillé = rien)
   GARAGE.appliquer(JEU.joueur, JEU.championnat ? JEU.championnat.garage : null, niveauEcurieJoueur());   // ?championnat=1 : les améliorations du garage × le niveau de l'écurie, sur la voiture du joueur (1 = rien sans championnat)
   JEU.enregistreur = creerEnregistrement();
   JEU.fantome = null;   // le fantôme ne vit que pendant le tour de qualification (commencerFantome)
@@ -185,6 +203,7 @@ function faireMonTour() {
   const v = creerVoiture(CIRCUIT, 0);
   GARAGE.appliquer(v, JEU.championnat ? JEU.championnat.garage : null, niveauEcurieJoueur());   // la même voiture qu'en course (garage, niveau de l'écurie)
   AILERON.appliquer(v, JEU.championnat ? AILERON.cranDe(JEU.championnat, NOM_CIRCUIT) : null);   // … et le même aileron
+  if (typeof REGLAGES_VOITURE !== 'undefined') REGLAGES_VOITURE.appliquer(v, JEU.championnat ? REGLAGES_VOITURE.de(JEU.championnat, NOM_CIRCUIT) : null);   // … et les mêmes réglages (tour 50b)
   JEU.qualif.v = v;
   JEU.qualif.q = QUALIFICATION.creer(CIRCUIT, v);
   JEU.qualif.etat = 'tour';
@@ -321,7 +340,7 @@ function montrerAToi() {
 // à chaque image de « À toi » : le compte à rebours (temps réel) ; à 0, le tour commence, avec le fantôme du leader du moment
 function majAToi(dt) {
   if (JEU.ecran !== 'tournoiAToi') return;
-  JEU.tournoiCompte -= dt;
+  JEU.tournoiCompte -= Math.min(dt, REGLAGES.TOURNOI_COMPTE_DT_MAX);   // (tour 50c : une image très longue, juste après le chargement, mangeait le compte à rebours)
   INTERFACE.majCompteTournoi(JEU.tournoiCompte);
   if (JEU.tournoiCompte <= 0) commencerTourTournoi();
 }
@@ -375,7 +394,22 @@ function signatureDefi() {
 function defierQualif() {
   const f = JEU.qualif && JEU.qualif.etat === 'resultat' && JEU.qualif.fantome && JEU.qualif.fantome.compact;
   if (!f) return;
-  DEFI_ECRAN.montrerCode('qualifCode', DEFI.coder(Object.assign({ circuit: NOM_CIRCUIT, fantome: f }, signatureDefi())));
+  DEFI_ECRAN.montrerCode('qualifCode', DEFI.coder(Object.assign({ circuit: NOM_CIRCUIT, fantome: f }, signatureDefi())), lienDefi);
+}
+
+// (tour 50b) le lien d'un code : l'adresse où le jeu tourne (sur Poki : à vérifier au paquet, CLAUDE.md « Le lien de défi »)
+const lienDefi = code => DEFI.lien(code, location.href);
+
+// (tour 50b) « Relever » depuis la page Messages du paddock : un défi reçu dont le code est gardé devient le défi en cours, et la page du
+// défi s'ouvre (la grille, directement)
+function releverDefi(id) {
+  if (JEU.ecran !== 'championnat') return false;
+  const s = SAUVEGARDE.defis(), d = (s.liste || []).find(x => x && x.id === id);
+  if (!d || typeof d.code !== 'string') return false;
+  s.enCours = d.code;
+  SAUVEGARDE.ecrireDefis(s);
+  location.href = adresseAvec({ defi: '1' });
+  return true;
 }
 
 function ouvrirDefi() {
@@ -399,7 +433,7 @@ function courirDefi() {
   if (r.ok) r = DEFI.decoder(code, (r.defi.circuit === 'test' ? CIRCUIT_TEST : construireCircuit(CIRCUITS[r.defi.circuit])).longueur);
   if (!r.ok) { DEFI_ECRAN.message(texte('defiRefus_' + r.raison)); return false; }
   const s = SAUVEGARDE.defis();
-  s.liste = DEFI.recevoir(s.liste, r.defi);
+  s.liste = DEFI.recevoir(s.liste, r.defi, code);   // (tour 50b : avec son code, pour « Relever » depuis Messages)
   s.enCours = code;
   SAUVEGARDE.ecrireDefis(s);
   location.href = adresseAvec({ defi: '1' });
@@ -921,6 +955,7 @@ function montrerChampionnat(gagne) {
   INTERFACE.remplirSolde(JEU.championnat);
   INTERFACE.remplirRappelSponsor(JEU.championnat);
   INTERFACE.remplirReputation(JEU.championnat);   // les trois jauges de l'interview (interview.js)
+  DEFI_ECRAN.remplirMessages(SAUVEGARDE.defis().liste, releverDefi);   // (tour 50b) les défis reçus, dans la page Messages, avec « Relever »
   INTERFACE.remplirPaddock(JEU.championnat, circuitPaddock(), texte('circuit_' + circuitProchain()) || (CIRCUITS[circuitProchain()] || CIRCUIT).nom);   // le paddock en écran d'accueil (tour 32) : la carte du prochain Grand Prix
   // la météo prévue pour le prochain Grand Prix (meteo.js ; meteo3d.js l'écrit), rien sans prévision
   if (typeof METEO3D !== 'undefined') { const t = METEO3D.textePrevision(METEO3D.prevision(JEU.championnat, JEU.championnat.prochain)), el = document.getElementById('prevision'); el.textContent = t || ''; el.classList.toggle('cache', !t); }
@@ -1090,7 +1125,7 @@ function suiteDuelSaison() {
 
 function montrerContrats() {
   const ch = JEU.championnat;
-  INTERFACE.remplirContrats(ch, SAISONS.offres(ch), SAISONS.note(ch));
+  INTERFACE.remplirContrats(DIVISIONS.vueContrats(ch), SAISONS.offres(ch), SAISONS.note(ch));   // (tour 50d) monté : les écuries d'en haut
   JEU.ecran = 'contrats';
   INTERFACE.montrer('contrats');
 }
@@ -1390,6 +1425,35 @@ function quitterAileron() {
   INTERFACE.montrer('garage');
 }
 
+// ?championnat=1 : les réglages de la voiture (tour 50b, reglages-voiture.js, mes-reglages.js), depuis le garage, avant le Grand Prix :
+// gardés par circuit et sauvegardés à chaque changement ; ils s'appliquent aux qualifications et à la course (lancerCourse, faireMonTour)
+function montrerReglagesVoiture() {
+  if (JEU.ecran !== 'garage') return;
+  const nom = circuitProchain();
+  MES_REGLAGES.remplir(texte('circuit_' + nom) || (CIRCUITS[nom] ? CIRCUITS[nom].nom : nom), REGLAGES_VOITURE.de(JEU.championnat, nom));
+  ecranPerso('reglagesVoiture');
+}
+
+function changerReglageVoiture(reglage, cran) {
+  if (JEU.ecran !== 'reglagesVoiture') return;
+  MES_REGLAGES.maj(REGLAGES_VOITURE.regler(JEU.championnat, circuitProchain(), reglage, cran));
+  SAUVEGARDE.ecrireChampionnat(JEU.championnat);
+}
+
+function reglageVoitureConseille() {
+  if (JEU.ecran !== 'reglagesVoiture') return;
+  MES_REGLAGES.maj(REGLAGES_VOITURE.remettre(JEU.championnat, circuitProchain()));
+  SAUVEGARDE.ecrireChampionnat(JEU.championnat);
+}
+
+function quitterReglagesVoiture() {
+  if (JEU.ecran !== 'reglagesVoiture') return;
+  quitterPerso();
+  INTERFACE.remplirGarage(JEU.championnat);
+  JEU.ecran = 'garage';
+  INTERFACE.montrer('garage');
+}
+
 function quitterGarage() {
   if (JEU.ecran !== 'garage') return;
   montrerChampionnat(JEU.gagne);
@@ -1398,7 +1462,7 @@ function quitterGarage() {
 // --- la personnalisation (tour 48c) : « Ma voiture » et la boutique sont des écrans à part (ils ne sont pas dans la liste de
 // INTERFACE.montrer) : ecranPerso cache les autres écrans puis montre le sien ; ils s'ouvrent depuis le garage (provisoire : la boutique
 // ira dans la page « Boutique » du nouveau paddock)
-const ECRANS_PERSO = ['livree', 'boutique', 'essaiFin'];
+const ECRANS_PERSO = ['livree', 'boutique', 'essaiFin', 'reglagesVoiture'];   // (+ les réglages de la voiture, tour 50b)
 function ecranPerso(id) {
   INTERFACE.montrer(id);
   for (const x of ECRANS_PERSO) document.getElementById(x).classList.toggle('cache', x !== id);
@@ -1565,6 +1629,7 @@ function retourBoutique() {
 }
 
 function pause(oui) {
+  if (!oui && touchesOuvertes()) return;   // (tour 50c) pendant le choix des touches, la pause ne se ferme pas
   if (oui && JEU.ecran === 'course' && JEU.deux) INTERFACE.remplirTouchesDeux(MANETTE.lireManettes().length);   // à deux : les touches des deux dans le menu pause
   INTERFACE.montrerTouchesPause(!!JEU.deux);
   if (oui && JEU.ecran === 'course') { JEU.ecran = 'pause'; INTERFACE.montrer('pause'); if (typeof VOIX !== 'undefined') VOIX.taire(); }   // (la voix se tait en pause, tour 45c)
@@ -1817,21 +1882,29 @@ function majCibles() {
 
 // --- les touches au choix (clavier.js, tour 49b) : l'écran depuis la page « Réglages » du paddock ; un clic sur une commande, puis la
 // touche voulue (Échap annule) ; une touche déjà prise est refusée avec la commande qui l'a ; « Par défaut » remet tout ; gardé à la racine
-let attenteTouche = null;
+// (tour 50c) aussi depuis l'écran titre et le menu pause. Depuis la pause, JEU.ecran reste « pause » (la course reste arrêtée, et tout ce
+// qui se règle sur la pause ne bouge pas) : seul l'écran affiché change ; Échap ou la touche de pause, hors de l'attente d'une touche,
+// ramènent au menu pause sans le fermer
+let attenteTouche = null, touchesDepuis = null;
+const touchesOuvertes = () => touchesDepuis !== null && (touchesDepuis === 'pause' ? JEU.ecran === 'pause' : JEU.ecran === 'touches');
 function ouvrirTouches() {
-  if (JEU.ecran !== 'championnat') return;
-  attenteTouche = null;
+  const de = JEU.ecran;
+  if (!['championnat', 'titre', 'pause'].includes(de) || touchesOuvertes()) return;
+  attenteTouche = null; touchesDepuis = de;
   TOUCHES_ECRAN.remplir(touchesChoix, null, '');
-  JEU.ecran = 'touches';
+  if (de !== 'pause') JEU.ecran = 'touches';
   INTERFACE.montrer('touches');
 }
 function quitterTouches() {
-  if (JEU.ecran !== 'touches') return;
-  attenteTouche = null;
-  montrerChampionnat(JEU.gagne);
+  if (!touchesOuvertes()) return;
+  const de = touchesDepuis;
+  attenteTouche = null; touchesDepuis = null;
+  if (de === 'pause') INTERFACE.montrer('pause');
+  else if (de === 'titre') montrerTitre();
+  else montrerChampionnat(JEU.gagne);
 }
 function choisirTouche(groupe, action) {
-  if (JEU.ecran !== 'touches') return;
+  if (!touchesOuvertes()) return;
   attenteTouche = { groupe, action };
   TOUCHES_ECRAN.remplir(touchesChoix, attenteTouche, texte('touchesAppuie'));
 }
@@ -1840,14 +1913,19 @@ function garderTouches() {
   Object.assign(TOUCHES, CLAVIER.appliquer(touchesChoix));
 }
 function touchesParDefaut() {
-  if (JEU.ecran !== 'touches') return;
+  if (!touchesOuvertes()) return;
   touchesChoix = CLAVIER.defaut(); attenteTouche = null;
   garderTouches();
   TOUCHES_ECRAN.remplir(touchesChoix, null, texte('touchesDefautFait'));
 }
 // la touche appuyée pendant l'attente : elle ne va pas au reste du jeu (ni pause, ni conduite)
 function toucheChoisie(e) {
-  if (JEU.ecran !== 'touches' || !attenteTouche) return;
+  if (!touchesOuvertes()) return;
+  if (!attenteTouche) {   // (tour 50c) Échap (ou la touche de pause) ramène d'où l'on vient ; depuis la pause, la pause reste ouverte
+    if (!e.repeat && (e.code === 'Escape' || (touchesDepuis === 'pause' && TOUCHES.pause.includes(e.code)))) { e.preventDefault(); e.stopImmediatePropagation(); quitterTouches(); }
+    else if (touchesDepuis === 'pause') e.stopImmediatePropagation();   // (rien d'autre ne passe à la course en pause : ni caméra, ni retour en piste)
+    return;
+  }
   e.preventDefault(); e.stopImmediatePropagation();
   if (e.repeat) return;
   const { groupe, action } = attenteTouche;
@@ -2256,7 +2334,7 @@ function majTableau() {
   document.getElementById('rapport').textContent = rapportPourVitesse(v.u);
   const roule = JEU.ecran === 'course' || JEU.ecran === 'survol' || enTourQualif();
   // sur le podium et les résultats, ni vitesse ni aide des touches
-  const apres = ['podium', 'resultats', 'championnat', 'une', 'garage', 'titre', 'amis', 'bravo', 'saison', 'duelSaison', 'contrats', 'retraite', 'sponsors', 'fiche', 'interview', 'ceremonie', 'album', 'temple', 'heritier', 'calendrier', 'deuxReglages', 'tournoiInscription', 'tournoiAToi', 'tournoiPause', 'tournoiManche', 'tournoiFin', 'aileron', 'arbre'].includes(JEU.ecran);
+  const apres = ['podium', 'resultats', 'championnat', 'une', 'garage', 'titre', 'amis', 'bravo', 'saison', 'duelSaison', 'contrats', 'retraite', 'sponsors', 'fiche', 'interview', 'ceremonie', 'album', 'temple', 'heritier', 'calendrier', 'deuxReglages', 'tournoiInscription', 'tournoiAToi', 'tournoiPause', 'tournoiManche', 'tournoiFin', 'aileron', 'arbre', 'reglagesVoiture'].includes(JEU.ecran);
   document.getElementById('tableau').classList.toggle('cache', apres || volantVisible());   // (en vue cockpit, rapport et vitesse sont sur le volant)
   document.getElementById('aide').classList.toggle('cache', apres);
   // après l'arrivée du joueur (en attendant les autres), il ne court plus : pas de « hors piste »
@@ -2438,6 +2516,7 @@ function demarrerJeu() {
     INTERFACE.preparerAlbum(montrerAlbum, feuilleterAlbum, saisonAlbum, quitterAlbum);
     INTERFACE.preparerTemple(montrerTemple, quitterTemple);
     INTERFACE.preparerAileron(montrerAileron, changerAileron, quitterAileron);
+    MES_REGLAGES.preparer(montrerReglagesVoiture, changerReglageVoiture, reglageVoitureConseille, quitterReglagesVoiture);   // (tour 50b)
     INTERFACE.preparerArbre(montrerArbre, quitterArbre);
     INTERFACE.preparerCalendrier(montrerCalendrier, quitterCalendrier);
     INTERFACE.preparerReleve(montrerHeritier, nouvelleDynastie, validerHeritier);
@@ -2473,9 +2552,10 @@ function demarrerJeu() {
   // (tour 49b) le défi du fantôme : « Relever un défi » dans « Entre amis », son écran, la fin du tour, « 📋 Défier un ami » après la qualification
   { const b = document.getElementById('boutonAmisDefi'); b.textContent = texte('amisDefi'); b.addEventListener('mousedown', e => e.preventDefault()); b.addEventListener('click', ouvrirDefi); }
   DEFI_ECRAN.preparer({ courir: courirDefi, retour: retourDefi, recommencer: () => { if (JEU.ecran === 'defiFin') location.reload(); },
-    renvoyer: () => { if (JEU.ecran === 'defiFin' && JEU.defi && JEU.defi.code) DEFI_ECRAN.montrerCode('defiFinCode', JEU.defi.code); },
+    renvoyer: () => { if (JEU.ecran === 'defiFin' && JEU.defi && JEU.defi.code) DEFI_ECRAN.montrerCode('defiFinCode', JEU.defi.code, lienDefi); },
     quitter: () => { if (JEU.ecran === 'defiFin') location.href = adresseAvec({ menu: 'amis' }); }, defierQualif,
-    defierTournoi: () => { if (JEU.ecran === 'tournoiManche' && JEU.tournoiDefi) DEFI_ECRAN.montrerCode('tournoiCode', DEFI.coder(JEU.tournoiDefi)); } });
+    defierTournoi: () => { if (JEU.ecran === 'tournoiManche' && JEU.tournoiDefi) DEFI_ECRAN.montrerCode('tournoiCode', DEFI.coder(JEU.tournoiDefi), lienDefi); } });
+  if (LIEN_DEFI_REFUS) DEFI_ECRAN.annoncerRefus(texte('defiRefus_' + LIEN_DEFI_REFUS));   // (tour 50b) un lien de défi abîmé : le jeu normal, et la raison
   INTERFACE.preparerInscription(partirTournoi, montrerAmis);
   INTERFACE.preparerPauseTournoi(() => pauseTournoi(false), abandonnerTournoi);
   INTERFACE.preparerMancheTournoi(suiteTournoi);

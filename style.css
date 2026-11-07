@@ -1625,3 +1625,65 @@ body.auPaddock #boutonSon { display: none; }
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.18);
   pointer-events: none;
 }
+
+/* le lien de défi (tour 50b) : le lien d'abord (« Copier le lien »), le code en plus petit ; les défis reçus dans la page Messages ;
+   le message d'un lien abîmé, en haut de l'écran */
+.codeDefi input.defiCode { font-size: 11px; opacity: 0.8; }
+.codeDefi button.defiCode { padding: 3px 10px; font-size: 12px; min-width: 0; }
+#paddockDefis { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; max-height: 40vh; overflow: hidden; }
+#paddockDefis.cache { display: none; }
+#paddockDefis h3 { margin: 0; font-size: 14px; }
+.defiMessage { display: flex; align-items: center; justify-content: space-between; gap: 10px; font: 600 13px/1.25 var(--police); }
+.defiMessage span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#defiLienRefus { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 50; padding: 8px 16px; border-radius: 8px;
+  background: rgba(160, 20, 20, 0.92); color: #fff; font: 700 14px/1.3 var(--police); max-width: 90vw; text-align: center; pointer-events: none; }
+#defiLienRefus.cache { display: none; }
+@media (max-height: 420px) {
+  .codeDefi { gap: 3px; margin: 3px 0; }
+  .codeDefi p { font-size: 11px; }
+  #paddockDefis { max-height: 30vh; }
+}
+
+/* les réglages de la voiture (tour 50b, mes-reglages.js) : quatre lignes « nom | bout | curseur | bout », la ligne d'effet dessous ;
+   tient en 960×600, 1280×720 et 640×360 */
+#reglagesVoiture h1 { margin: 0; }
+#rvListe { display: grid; gap: 10px; width: min(640px, 92vw); }
+.rvLigne { display: grid; grid-template-columns: 190px 70px 1fr 70px; gap: 2px 10px; align-items: center; padding: 6px 12px; border-radius: 8px;
+  background: rgba(0, 0, 0, 0.35); font: 600 14px/1.2 var(--police); text-align: left; }
+.rvNom { font-weight: 800; }
+.rvBout { font-size: 13px; opacity: 0.85; text-align: center; }
+.rvLigne input[type=range] { width: 100%; margin: 0; }
+.rvEffet { grid-column: 1 / -1; margin: 0; font-size: 13px !important; font-weight: 600 !important; opacity: 0.75; }
+.rvEffet.rvRegle { opacity: 1; color: #ffd666; }
+#boutonRvConseille:disabled { opacity: 0.45; cursor: default; box-shadow: none; }
+@media (max-height: 420px) {
+  #reglagesVoiture { gap: 4px; padding: 4px 12px; box-sizing: border-box; }
+  #reglagesVoiture h1 { font-size: 18px; line-height: 1.1; }
+  #reglagesVoiture h1::after { margin-top: 2px; height: 3px; }
+  #rvListe { gap: 4px; }
+  .rvLigne { grid-template-columns: 150px 58px 1fr 58px; padding: 3px 10px; font-size: 12px; }
+  .rvBout { font-size: 11px; }
+  .rvEffet { font-size: 11px !important; line-height: 1.15; }
+  #reglagesVoiture .boutons { gap: 8px; }
+  #reglagesVoiture .boutons button { padding: 6px 14px; font-size: 13px; min-width: 0; }
+}
+
+/* le téléphone couché (640×360, tour 50c) : « ⌨ Touches » (ses trois colonnes côte à côte) et le menu pause tiennent dans l'écran ;
+   rien ne change au-dessus de 420 px de haut */
+@media (max-height: 420px) {
+  #touches { gap: 4px; padding: 4px 10px; box-sizing: border-box; }
+  #touches h1 { font-size: 18px; line-height: 1.1; margin: 0; }
+  #touches #touchesMessage { font-size: 12px; line-height: 1.2; }
+  #touchesGroupes { gap: 10px; flex-wrap: nowrap; }
+  .touchesGroupe { min-width: 0; }
+  .touchesGroupe h2 { margin: 0 0 2px; font-size: 12px; }
+  .touchesLigne { margin: 1px 0; gap: 5px; font-size: 11px; }
+  .ecran .touchesLigne button { min-width: 50px; padding: 1px 6px; font-size: 11px; }
+  #touches .boutons { gap: 8px; }
+  #touches .boutons button { min-width: 0; padding: 5px 14px; font-size: 13px; }
+  #pause { gap: 3px; padding: 4px 10px; box-sizing: border-box; }
+  #pause h1 { font-size: 18px; line-height: 1.1; margin: 0; }
+  #pause .boutons { gap: 4px; }
+  #pause button, #pause button.petit { min-width: 0; padding: 4px 10px; font-size: 12px; }
+  #pause #boutonReprendre, #pause #boutonRecommencer { padding: 6px 18px; font-size: 14px; }
+}

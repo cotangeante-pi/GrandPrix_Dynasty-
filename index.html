@@ -60,7 +60,7 @@
   <h1 id="titreNom"></h1>
   <div class="boutons"><button id="boutonJouer" tabindex="-1"></button></div>
   <div class="boutons"><button id="boutonAmis" class="petit" tabindex="-1"></button></div>
-  <div class="boutons"><button id="boutonTutorielTitre" class="petit" tabindex="-1"></button><button id="boutonAidesTitre" class="petit" tabindex="-1"></button></div>   <!-- « Apprendre à piloter » (tutoriel.js, Codeur 4) : proposé, jamais imposé -->
+  <div class="boutons"><button id="boutonTutorielTitre" class="petit" tabindex="-1"></button><button id="boutonAidesTitre" class="petit" tabindex="-1"></button><button id="boutonTouchesTitre" class="petit" tabindex="-1"></button></div>   <!-- « Apprendre à piloter » (tutoriel.js, Codeur 4) : proposé, jamais imposé -->
 </section>
 <!-- « Entre amis » (titre et paddock) : le petit menu, puis l'écran avant la course à deux (deux-joueurs.js, tour 25b) -->
 <section id="amis" class="ecran cache">
@@ -257,6 +257,7 @@
     <div id="pageMessages" class="paddockPage cache" data-page="messages">
       <h2 class="pageTitre" id="pageMessagesTitre"></h2>
       <div id="paddockMessages" class="pageBoutons colonne"><button id="boutonCourrier" tabindex="-1"></button><button id="boutonParlerCoequipier" tabindex="-1"></button><button id="boutonParlerPatron" tabindex="-1"></button></div>
+      <div id="paddockDefis" class="tvCarte cache"></div>   <!-- les défis reçus, avec « Relever » (le lien de défi, tour 50b) -->
     </div>
     <!-- Réglages : le son, les aides au pilotage, revoir les aides, la qualité ; « Nouvelle carrière » et « Nouvelle carrière à 0 » -->
     <div id="pageReglages" class="paddockPage cache" data-page="reglages">
@@ -401,7 +402,7 @@
   <p id="garageSolde"></p>
   <p id="garageBonus"></p>
   <ul id="garageListe"></ul>
-  <div class="boutons"><button id="boutonAileron" tabindex="-1"></button><button id="boutonGarageRetour" tabindex="-1"></button></div>
+  <div class="boutons"><button id="boutonAileron" tabindex="-1"></button><button id="boutonReglagesVoiture" tabindex="-1"></button><button id="boutonGarageRetour" tabindex="-1"></button></div>
 </section>
 <!-- « Ma voiture » (livree.js, celebration.js, ma-voiture.js, tour 48c) : depuis la page « Mon équipe » du paddock : la livrée (motif, couleur secondaire ; la couleur
      principale est celle de l'écurie), le numéro en gros, la célébration ; la voiture qui tourne en 3D -->
@@ -432,6 +433,13 @@
   <div class="boutons"><button id="boutonEssaiAcheter" tabindex="-1"></button><button id="boutonEssaiRetour" tabindex="-1"></button></div>
 </section>
 <div id="essaiBandeau" class="cache"></div>
+<!-- les réglages de la voiture (reglages-voiture.js, mes-reglages.js, tour 50b) : depuis le garage, avant le Grand Prix : quatre curseurs, chacun un échange ;
+     « Réglage conseillé » remet le milieu (la voiture d'aujourd'hui) ; tient en 640×360 -->
+<section id="reglagesVoiture" class="ecran cache">
+  <h1 id="rvTitre"></h1>
+  <div id="rvListe"></div>
+  <div class="boutons"><button id="boutonRvConseille" tabindex="-1"></button><button id="boutonRvRetour" tabindex="-1"></button></div>
+</section>
 <!-- l'aileron (aileron.js, carte2d.js, Codeur 3) : depuis le garage, avant le Grand Prix : la carte de la prochaine course, le curseur, la voiture, deux barres ; aucun conseil -->
 <section id="aileron" class="ecran cache">
   <h1 id="aileronTitre"></h1>
@@ -503,7 +511,7 @@
   <div class="boutons"><button id="boutonCommentairePause" class="petit" tabindex="-1"></button><button id="boutonEffetsPause" class="petit" tabindex="-1"></button><button id="boutonVoixPause" class="petit" tabindex="-1"></button></div>   <!-- les effets de conduite : oui, non (sensations.js, sauvegardé) -->   <!-- le commentateur : tout, tes faits, coupé (commentaire.js) -->   <!-- le fantôme affiché ou masqué (sauvegardé) -->
   <div class="boutons"><button id="boutonDirectionPause" class="petit aideFigee" tabindex="-1"></button><button id="boutonFreinagePause" class="petit aideFigee" tabindex="-1"></button><button id="boutonAntiblocagePause" class="petit aideFigee" tabindex="-1"></button><button id="boutonAntipatinagePause" class="petit aideFigee" tabindex="-1"></button></div>   <!-- les aides au pilotage (assistance.js) : une par bouton, oui / non, sauvegardées -->
   <div class="boutons"><button id="boutonRevoirAidesPause" class="petit" tabindex="-1"></button><button id="boutonQualitePause" class="petit" tabindex="-1"></button><button id="boutonRetroPause" class="petit" tabindex="-1"></button></div>   <!-- la qualité de l'image : auto, haute, basse (qualite.js, sauvegardé) -->   <!-- « Revoir les aides » (aides.js, Codeur 4) -->
-  <div class="boutons"><button id="boutonTutorielPause" class="petit" tabindex="-1"></button></div>
+  <div class="boutons"><button id="boutonTutorielPause" class="petit" tabindex="-1"></button><button id="boutonTouchesPause" class="petit" tabindex="-1"></button></div>   <!-- « ⌨ Touches » (clavier.js, tour 50c) : aussi au titre ; la course reste en pause pendant le choix -->
   <div class="boutons"><button id="boutonSonEffetsPause" class="petit" tabindex="-1"></button><button id="boutonSonAmbiancePause" class="petit" tabindex="-1"></button><button id="boutonSonCommentateurPause" class="petit" tabindex="-1"></button></div>   <!-- le volume de chaque famille de sons, 100 → 0 % (son.js, tour 44, sauvegardé) -->   <!-- « Apprendre à piloter » (tutoriel.js, Codeur 4) -->
 </section>
 
@@ -561,7 +569,7 @@
 <script src="cache-carte.js"></script>
 <script src="journal.js"></script>
 <script src="argent.js"></script>
-<script src="garage.js"></script><script src="aileron.js"></script><script src="carte2d.js"></script>
+<script src="garage.js"></script><script src="aileron.js"></script><script src="reglages-voiture.js"></script><script src="mes-reglages.js"></script><script src="carte2d.js"></script>
 <script src="saisons.js"></script>
 <script src="divisions.js"></script>
 <script src="sponsors.js"></script>

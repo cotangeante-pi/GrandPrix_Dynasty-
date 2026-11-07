@@ -7,6 +7,9 @@ const L=[];let ok=0,ko=0;
 // (tour 49d-2) les championnats des tests sont en division 3 (le jeu d'avant : l'argent, le garage, les sponsors au bit près) ; les tests
 // des divisions remettent DIVISION_DEPART (4) le temps de leur essai
 const DIVISION_DEPART_JEU=REGLAGES.DIVISION_DEPART;REGLAGES.DIVISION_DEPART=3;
+// (tour 50d) de même, un seul plateau pour tous (DIVISION_PLATEAUX faux : le joueur monte avec ses rivaux, les contrats d'avant) ; les tests
+// des plateaux le rallument (avecPlateaux)
+const DIVISION_PLATEAUX_JEU=REGLAGES.DIVISION_PLATEAUX;REGLAGES.DIVISION_PLATEAUX=false;
 function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
 const v=(c,m)=>{if(!c)throw new Error(m||'faux');};
 // le résultat s'écrit au fil de l'eau : si la page est coupée, #res montre jusqu'où elle est allée
@@ -1991,6 +1994,12 @@ t('défi : la liste des défis reçus (sauvegarde) : un défi reçu deux fois n�
   let l=[];const d={id:'a1',circuit:'spaa',temps:120.5,nom:'Léa'};l=DEFI.recevoir(l,d);DEFI.noterResultat(l,'a1',0.45);DEFI.noterResultat(l,'a1',-0.3124);DEFI.noterResultat(l,'a1',0.2);
   l=DEFI.recevoir(l,d);v(l.length===1&&l[0].meilleur===-0.312,'meilleur '+JSON.stringify(l));
   for(let i=0;i<REGLAGES.DEFI_LISTE_MAX+5;i++) l=DEFI.recevoir(l,{id:'x'+i,circuit:'test',temps:60,nom:null});v(l.length===REGLAGES.DEFI_LISTE_MAX&&l[l.length-1].id==='x'+(REGLAGES.DEFI_LISTE_MAX+4),'plafond '+l.length);});
+t('défi (le lien, tour 50b) : DEFI.lien = l’adresse du jeu sans ses paramètres + ?defi=<code>, qui redonne le code ; un défi reçu garde son code (« Relever »), seuls les DEFI_CODES_MAX derniers', ()=>{
+  const code=DEFI.coder({circuit:'technique',fantome:DEFI_T.f,nom:'Léa',casque:null,aileron:null,aides:[]}),l_=DEFI.lien(code,'https://exemple.test/jeu/index.html?championnat=1&lang=fr#x');
+  v(l_.startsWith('https://exemple.test/jeu/index.html?defi=')&&new URL(l_).searchParams.get('defi')===code&&DEFI.decoder(new URL(l_).searchParams.get('defi')).ok,'lien '+l_.slice(0,60));
+  let l=[];for(let i=0;i<REGLAGES.DEFI_CODES_MAX+3;i++) l=DEFI.recevoir(l,{id:'c'+i,circuit:'test',temps:60,nom:null},'CODE'+i);
+  v(l.filter(x=>typeof x.code==='string').length===REGLAGES.DEFI_CODES_MAX&&l[l.length-1].code==='CODE'+(REGLAGES.DEFI_CODES_MAX+2)&&l[0].code===undefined,'codes '+JSON.stringify(l.map(x=>x.code)));
+  l=DEFI.recevoir(l,{id:'c'+(REGLAGES.DEFI_CODES_MAX+2),circuit:'test',temps:60,nom:null});v(l[l.length-1].code==='CODE'+(REGLAGES.DEFI_CODES_MAX+2),'reçu de nouveau sans code : le code reste');});
 t('fantôme : contre un tour plus lent (robot plus prudent en virage), l’écart en direct est positif après le premier virage et grandit ; l’écart final = la différence des temps ; un tour plus lent ne remplace pas le record, un tour coupé jamais, un meilleur temps oui, le premier tour valide aussi', ()=>{
   const f=FANTOME_F,rejeu=FANTOME.charger(f),b=tourFantome(0.7);v(b.q.fini&&b.q.valide&&b.q.temps>f.temps+1,'tour prudent '+b.q.temps+' / '+f.temps);
   const ecarts=b.pts.map(p=>FANTOME.ecart(rejeu,p.t,p.s));const milieu=ecarts[Math.floor(ecarts.length/2)],fin=ecarts[ecarts.length-1];
@@ -3203,6 +3212,75 @@ t('divisions : une course entre IA en division 4 et en division 1 sur le techniq
   v(res[4].finis===res[4].n&&res[1].finis===res[1].n,'arrivés : '+JSON.stringify(res));
   v(res[1].best<res[4].best,'meilleur tour : D1 '+res[1].best.toFixed(2)+' s, D4 '+res[4].best.toFixed(2)+' s');
   L.push('  (divisions, meilleur tour IA sur le technique : D4 '+res[4].best.toFixed(2)+' s, D1 '+res[1].best.toFixed(2)+' s)');});
+
+// --- (tour 50d, Codeur 4) chaque division a son plateau (divisions.js) : créer, monter (le joueur et ses rivaux des 3 premiers), recharger,
+// une vieille sauvegarde, la taille de la sauvegarde
+// (les autres tests du championnat sont écrits avec un seul plateau : DIVISION_PLATEAUX faux en haut de la page ; ceux-ci le rallument)
+const avecPlateaux=f=>{const pl=REGLAGES.DIVISION_PLATEAUX;REGLAGES.DIVISION_PLATEAUX=DIVISION_PLATEAUX_JEU;try{f();}finally{REGLAGES.DIVISION_PLATEAUX=pl;}};
+const plateauxMonter=(ch,ecurie)=>{SAISONS.avancer(ch,99);const j=ch.pilotes.find(p=>p.humain);if(SAISONS.bilan(ch).joueurPlace>REGLAGES.DIVISION_MONTEE_PLACE){j.stats.points+=1000;}SAISONS.terminerSaison(ch);const o=SAISONS.offres(ch);SAISONS.signer(ch,ecurie===undefined?o[o.length-1].ecurie:ecurie);return o;};
+t('divisions, plateaux : une carrière neuve a son plateau en division 4 ; à la montée, un plateau neuf en division 3 (écuries 11 à 20, d’autres pilotes, numéros jamais pris deux fois)', ()=>avecPlateaux(()=>{
+  const R=REGLAGES;R.DIVISION_DEPART=DIVISION_DEPART_JEU;let ch;try{ch=CHAMPIONNAT.creer(21);}finally{R.DIVISION_DEPART=3;}
+  v(ch.plateau===4&&JSON.stringify(ch.plateaux)==='{}'&&JSON.stringify(ch.parcours)==='[[1,4]]','neuve : plateau '+ch.plateau+' '+JSON.stringify(ch.parcours));
+  const neuve=JSON.stringify(CHAMPIONNAT.creer(21));
+  SAISONS.avancer(ch,99);const j=ch.pilotes.find(p=>p.humain);if(SAISONS.bilan(ch).joueurPlace>3)j.stats.points+=1000;
+  const b=SAISONS.terminerSaison(ch);const top=b.pilotes.slice(0,3).map(x=>x.k).filter(k=>!ch.pilotes[k].humain),topObj=top.map(k=>ch.pilotes[k]);
+  v(ch.division===3&&ch.plateau===4&&DIVISIONS.enAttente(ch)&&ch.plateaux[3]&&ch.plateaux[3].pilotes.length===20,'montée en attente : D'+ch.division+' plateau '+ch.plateau);
+  const vue=DIVISIONS.vueContrats(ch),o=SAISONS.offres(ch);
+  v(vue.ecuries===ch.plateaux[3].ecuries&&o.length>=1&&o.every(x=>!x.actuelle)&&vue.ecuries.map(e=>e.numero).join()==='11,12,13,14,15,16,17,18,19,20','offres d’en haut : '+o.map(x=>x.ecurie).join());
+  const n=SAISONS.note(ch);v(o.every(x=>x.exigence<=n*R.DIVISION_NOTE_MONTEE+1e-9)&&!o.some(x=>x.ecurie===0),'un promu ne signe pas chez la meilleure (note '+n.toFixed(2)+')');
+  const ecu=o[0].ecurie,partant=ch.plateaux[3].pilotes.filter(p=>p.ecurie===ecu).sort((a,b)=>b.stats.points-a.stats.points||a.id-b.id)[1];
+  v(SAISONS.signer(ch,ecu),'signé');
+  v(ch.plateau===3&&!DIVISIONS.enAttente(ch)&&ch.saison===2&&ch.pilotes.length===20&&ch.ecuries.length===10,'saison 2 en division 3 : plateau '+ch.plateau);
+  const j2=ch.pilotes.find(p=>p.humain);v(j2===j&&j2.ecurie===ecu&&ch.pilotes[j2.id]===j2&&j2.id===19,'le joueur dans l’écurie signée, toujours la dernière voiture (k = 19)');
+  v(topObj.every(p=>ch.pilotes.includes(p))&&topObj.every(p=>ch.pilotes[p.id]===p),'les rivaux des 3 premiers montent aussi : '+topObj.map(p=>p.numero).join());
+  v(ch.plateaux[4].pilotes.includes(partant)&&ch.plateaux[4].pilotes.every((p,k)=>p.id===k&&!p.humain),'le pilote remplacé descend en division 4');
+  const nums=[].concat(ch.pilotes,ch.plateaux[4].pilotes).map(p=>p.numero);v(new Set(nums).size===40,'40 numéros différents');
+  v(ch.pilotes.every(p=>p.stats.points===0&&p.places.length===0)&&ch.ecuries.every(e=>e.points===0),'les points repartent de 0');
+  v(CASQUE.doublons(ch).length===0,'casques tous différents');
+  v(ch.plateaux[4].noms.length===20&&ch.plateaux[4].noms.some(x=>x[2]===1)&&JSON.stringify(ch.plateaux[4].saisons)==='[1,1]','les noms du dernier jour gardés');
+  // la même graine : le même plateau d'en haut
+  const autre=JSON.parse(neuve);CHAMPIONNAT.completer(autre);const p3=DIVISIONS.creerPlateau(autre,3);v(p3.pilotes.length===20&&p3.ecuries[0].numero===11,'plateau neuf tiré');
+}));
+t('divisions, plateaux : championnat, journal, fiche, duel et transferts suivent ; la sauvegarde rechargée est la même ; on monte jusqu’en division 1 ; taille mesurée', ()=>avecPlateaux(()=>{
+  const R=REGLAGES;R.DIVISION_DEPART=DIVISION_DEPART_JEU;let ch;try{ch=CHAMPIONNAT.creer(22);}finally{R.DIVISION_DEPART=3;}
+  SAISONS.avancer(ch,99);if(SAISONS.bilan(ch).joueurPlace>3)ch.pilotes.find(p=>p.humain).stats.points+=1000;
+  const une0=JSON.stringify(JOURNAL.rendreAlbum(ch,0));const taille4=JSON.stringify(ch).length;
+  SAISONS.terminerSaison(ch);const o=SAISONS.offres(ch);SAISONS.signer(ch,o[o.length-1].ecurie);
+  v(JSON.stringify(JOURNAL.rendreAlbum(ch,0))===une0,'l’album de la saison 1 garde ses noms');
+  v(ch.transferts&&ch.transferts.saison===2&&ch.transferts.liste.every(([a,b])=>ch.pilotes[a]&&ch.pilotes[b]&&!ch.pilotes[a].humain&&!ch.pilotes[b].humain),'les transferts du nouveau plateau');
+  const co=CHAMPIONNAT.coequipierDe(ch);v(co&&co.ecurie===ch.pilotes.find(p=>p.humain).ecurie&&ch.duel.coequipier===co.id,'le duel avec le nouveau coéquipier');
+  for(let k=0;k<20;k++){const f=FICHE.fiche(ch,k);v(f&&f.pilote===ch.pilotes[k],'fiche '+k);}
+  SAISONS.avancer(ch,1);const une=JOURNAL.rendreAlbum(ch,ch.album.length-1);v(une&&une.classement.length&&une.classement.every(x=>x.nom&&!/undefined/.test(x.nom)),'une de la division 3');
+  // recharger : la sauvegarde rend le même championnat
+  const s=JSON.stringify(ch),ch2=CHAMPIONNAT.completer(JSON.parse(s));v(JSON.stringify(ch2)===s,'rechargé : le même');
+  // monter encore : D2 puis D1
+  SAISONS.avancer(ch,99);if(SAISONS.bilan(ch).joueurPlace>3)ch.pilotes.find(p=>p.humain).stats.points+=1000;SAISONS.terminerSaison(ch);let o2=SAISONS.offres(ch);SAISONS.signer(ch,o2[0].ecurie);
+  v(ch.plateau===2&&ch.ecuries[0].numero===21,'division 2 : écuries 21 à 30');
+  SAISONS.avancer(ch,99);if(SAISONS.bilan(ch).joueurPlace>3)ch.pilotes.find(p=>p.humain).stats.points+=1000;SAISONS.terminerSaison(ch);o2=SAISONS.offres(ch);SAISONS.signer(ch,o2[0].ecurie);
+  v(ch.plateau===1&&ch.division===1&&Object.keys(ch.plateaux).join()==='2,3,4'&&JSON.stringify(ch.parcours)==='[[1,4],[2,3],[3,2],[4,1]]','division 1 : '+JSON.stringify(ch.parcours));
+  const tous=[].concat(ch.pilotes,...Object.values(ch.plateaux).map(P=>P.pilotes));v(tous.length===80&&new Set(tous.map(p=>p.numero)).size===80,'80 pilotes, 80 numéros');
+  for(let i=0;i<ch.album.length;i++){const u=JOURNAL.rendreAlbum(ch,i);v(u&&u.classement.some(x=>x.moi),'une '+i+' : le joueur y est');}
+  // la division 1 : on reste (le sommet), plusieurs saisons
+  for(let s_=0;s_<3;s_++){SAISONS.avancer(ch,99);SAISONS.terminerSaison(ch);const o3=SAISONS.offres(ch);SAISONS.signer(ch,o3[o3.length-1].ecurie);}
+  v(ch.plateau===1&&ch.saison===7&&ch.pilotes[19].humain&&ch.pilotes.every((p,k)=>p.id===k),'3 saisons en division 1, le joueur toujours k = 19');
+  const taille=JSON.stringify(ch).length,plateaux=JSON.stringify(ch.plateaux).length;
+  // la même carrière sans les plateaux (DIVISION_PLATEAUX faux : un seul plateau), pour comparer
+  let base;const pl=R.DIVISION_PLATEAUX;try{R.DIVISION_PLATEAUX=false;R.DIVISION_DEPART=DIVISION_DEPART_JEU;const c=CHAMPIONNAT.creer(22);R.DIVISION_DEPART=3;for(let s_=0;s_<7;s_++){SAISONS.avancer(c,99);if(c.division>1&&SAISONS.bilan(c).joueurPlace>3)c.pilotes.find(p=>p.humain).stats.points+=1000;SAISONS.terminerSaison(c);const o4=SAISONS.offres(c);SAISONS.signer(c,o4[o4.length-1].ecurie);}base=JSON.stringify(c).length;}finally{R.DIVISION_PLATEAUX=pl;R.DIVISION_DEPART=3;}
+  v(plateaux<30*1024&&taille-base<30*1024,'taille : '+taille+' (sans plateaux '+base+', les 3 plateaux gardés '+plateaux+')');
+  L.push('  (plateaux : sauvegarde du championnat '+(taille4/1024).toFixed(1)+' Ko après une saison en D4 ; après 7 saisons et 4 plateaux '+(taille/1024).toFixed(1)+' Ko, dont '+(plateaux/1024).toFixed(1)+' Ko pour les 3 plateaux gardés ; la même carrière sur un seul plateau '+(base/1024).toFixed(1)+' Ko)');
+}));
+t('divisions, plateaux : une vieille sauvegarde garde son plateau unique en division 3 sans rien perdre ; plateaux coupés : le même plateau monte', ()=>avecPlateaux(()=>{
+  const R=REGLAGES;const ch=CHAMPIONNAT.creer(23);SAISONS.avancer(ch,4);const vieille=JSON.parse(JSON.stringify(ch));
+  for(const k of ['division','plateau','plateaux','parcours'])delete vieille[k];
+  const s=JSON.stringify(vieille),c=CHAMPIONNAT.completer(JSON.parse(s));
+  v(c.division===3&&c.plateau===3&&JSON.stringify(c.plateaux)==='{}'&&JSON.stringify(c.parcours)==='[[1,3]]','rangée en D3 sur son plateau');
+  const sans=JSON.parse(JSON.stringify(c));for(const k of ['division','plateau','plateaux','parcours'])delete sans[k];
+  v(JSON.stringify(sans)===JSON.stringify(CHAMPIONNAT.completer(JSON.parse(s)),(k,x)=>['division','plateau','plateaux','parcours'].includes(k)?undefined:x),'rien d’autre ne change');
+  v(c.pilotes.map(p=>p.numero).join()===ch.pilotes.map(p=>p.numero).join()&&c.pilotes.every((p,k)=>p.stats.points===ch.pilotes[k].stats.points),'mêmes pilotes, mêmes points');
+  const pl=R.DIVISION_PLATEAUX;try{R.DIVISION_PLATEAUX=false;const d=CHAMPIONNAT.creer(24);d.division=4;d.plateau=4;const avant=d.pilotes.map(p=>p.numero).join();plateauxMonter(d);v(d.division===3&&d.plateau===3&&JSON.stringify(d.plateaux)==='{}'&&d.pilotes.map(p=>p.numero).length===20,'coupés : le même plateau');}finally{R.DIVISION_PLATEAUX=pl;}
+  const mr=R.DIVISION_MONTEE_RIVAUX;try{R.DIVISION_MONTEE_RIVAUX=false;const d=CHAMPIONNAT.creer(25);d.division=4;d.plateau=4;const anciens=new Set(d.pilotes);plateauxMonter(d);v(d.plateau===3&&d.pilotes.filter(p=>anciens.has(p)).length===1,'rivaux coupés : le joueur monte seul');}finally{R.DIVISION_MONTEE_RIVAUX=mr;}
+  v(TEXTES.fr.contratsDivision&&TEXTES.en.contratsDivision,'texte contratsDivision');
+}));
 
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 ecrire();

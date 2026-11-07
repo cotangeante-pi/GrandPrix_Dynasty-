@@ -316,6 +316,33 @@ const REGLAGES = {
   // même aileron (ia.js, freinsVus, IA_FREIN_PREVU ; Codeur 1). Les IA choisissent et gardent leur cran ; vrai = elles le portent
   AILERON_IA_ACTIF: true,
   GRAINE_AILERON: 12000,        // les crans des IA sont tirés avec la graine du championnat + ce nombre + la saison et le Grand Prix
+  // les réglages de la voiture (reglages-voiture.js, tour 50b ; liste approuvée par le propriétaire le 2026-11-06) : quatre curseurs de
+  // RV_CRANS crans, chacun un échange, jamais un bonus (hors du plafond du garage) ; le cran du milieu = le réglage conseillé = la voiture
+  // d'aujourd'hui au bit près (aucun champ posé). « écart » = cran − milieu (−2 à +2)
+  RV_CRANS: 5,
+  // (la « pente » d'un réglage selon la vitesse u : de −1 sous VITESSE − PLAGE à +1 au-dessus de VITESSE + PLAGE ; physique.js penteVitesse)
+  RV_FREINS_FORCE: 0.03,        // l'équilibre des freins (écart > 0 : vers l'avant) : la force de freinage × (1 + écart × ça × la pente) …
+  RV_FREINS_VITESSE: 63,        // … (plus fort depuis les grandes vitesses, moins à basse vitesse)…
+  RV_FREINS_PLAGE: 25,
+  RV_FREINS_BLOCAGE: 0.05,      // … et l'adhérence de côté × (1 − écart × ça × frein × |direction|) : les roues avant bloquent en virage
+  RV_BOITE: 0.03,               // la boîte (écart > 0 : courte) : la force du moteur × (1 − écart × ça × la pente) : plus en bas, moins en haut
+  RV_BOITE_VITESSE: 45,
+  RV_BOITE_PLAGE: 20,
+  RV_SUSPENSION: 0.015,         // les suspensions (écart > 0 : dures) : l'adhérence × (1 + écart × ça × la pente)
+  RV_SUSPENSION_VITESSE: 40,
+  RV_SUSPENSION_PLAGE: 20,
+  RV_PRESSION_ADHERENCE: 0.008, // la pression des pneus (écart > 0 : haute) : l'adhérence × (1 − écart × ça)…
+  RV_PRESSION_ROULEMENT: 0.024, // … le frottement (la traînée et le roulement) × (1 − écart × ça)…
+  RV_PRESSION_USURE: 0.1,       // … et l'usure × (1 − écart × ça)
+  RV_MARGE: 0.01,               // test : sur le circuit test, aucun cran n'est plus rapide que le milieu de plus de cette part du tour
+  // le choix des IA (comme l'aileron) : le milieu + le circuit (AILERON.profil : part de virages lents − part de lignes droites − AILERON_IA_REFERENCE)
+  // × RV_IA_CIRCUIT[réglage] + (agressivité − 0,5) × RV_IA_AGRESSIVITE[réglage] + une part de hasard ; au plus RV_IA_ECART crans du milieu
+  RV_IA_CIRCUIT: { freins: -4, boite: 5, suspensions: -5, pression: -4 },
+  RV_IA_AGRESSIVITE: { freins: 1.2, boite: -1, suspensions: 0.8, pression: -0.8 },
+  RV_IA_HASARD: 1.5,
+  RV_IA_ECART: 1,
+  RV_IA_ACTIF: true,            // false : les IA choisissent et gardent leurs crans, sans les porter (comme AILERON_IA_ACTIF)
+  GRAINE_REGLAGES_VOITURE: 13000,   // les crans des IA : la graine du championnat + ce nombre + la saison et le Grand Prix
   // les saisons (étape 9, saisons.js, Codeur 3)
   SAISONS_MAX: 15,              // la retraite par l'âge : la carrière s'arrête après ce nombre de saisons
   GRAINE_SAISONS: 7000,         // l'évolution des rivaux est tirée avec la graine du championnat + ce nombre + la saison
@@ -480,6 +507,7 @@ const REGLAGES = {
   TOURNOI_MANCHES: 3,           // 🏆 Tournoi : trois manches (⚡ Éclair : une)
   TOURNOI_POINTS: [25, 18, 15, 12, 10, 8, 6, 4],   // les points d'une manche selon la place (aucun sans temps)
   TOURNOI_COMPTE: 3,            // s : « À toi, Sarah ! » et le compte à rebours, le temps de prendre le clavier
+  TOURNOI_COMPTE_DT_MAX: 0.1,   // s : une image plus longue (le chargement, un ordinateur lent) ne compte que ça : le compte à rebours ne saute pas (tour 50c)
   GRAINE_TOURNOI: 8000,
   TOURNOI_PRES: 0.2,            // s : à moins de ça du meilleur temps, la phrase « À 0,03 s du record ! »         // les circuits tirés au sort : la graine + ce nombre
   TOURNOI_CASQUES: [            // les casques par défaut des joueurs (dans l'ordre d'inscription)
@@ -827,6 +855,15 @@ const REGLAGES = {
   DIVISION_VIEILLE: 3,          // une sauvegarde d'avant les divisions (le niveau normal, les voitures de base) est rangée ici
   DIVISION_MONTEE_PLACE: 3,     // on monte d'une division en finissant dans les DIVISION_MONTEE_PLACE premiers du championnat pilotes
   DIVISION_DESCENTE: false,     // on ne descend jamais (le jeu reste agréable pour un enfant)
+  // (tour 50d) chaque division a son plateau (ses 10 écuries et ses 20 pilotes, divisions.js) ; choix du Codeur 4, réversibles.
+  // DIVISION_PLATEAUX false : le joueur monte avec le même plateau, qui prend le niveau de la nouvelle division (le tour 49d)
+  DIVISION_PLATEAUX: true,
+  // à la montée, les rivaux classés dans les DIVISION_MONTEE_PLACE premiers montent aussi (ils prennent la place des plus faibles du
+  // plateau d'en haut, qui descendent) ; false : le joueur monte seul
+  DIVISION_MONTEE_RIVAUX: true,
+  // les offres de contrat d'une division au-dessus : la note du joueur × ça (un promu est attendu dans le milieu ou le bas de grille)
+  DIVISION_NOTE_MONTEE: 0.5,
+  GRAINE_PLATEAUX: 21000,       // les pilotes d'un plateau neuf sont tirés avec la graine du championnat + ça + 101 × la division
   NIVEAU: 'normal',             // le niveau en cours (?niveau=…, principal.js) ; normal = les réglages tels quels
   NIVEAUX: {
     debutant: { rythme: -0.05, erreurs: 2, agressivite: -0.3, regularite: 1.5, gestionPneus: -0.2, bataille: 0, technique: 0.1 },
@@ -868,6 +905,8 @@ const REGLAGES = {
   DEFI_VITESSE_MAX: 120,        // m/s : entre deux images du tour, plus vite que ça est impossible (un code trafiqué)
   DEFI_DISTANCE_TOLERANCE: 0.05, // la distance du tour enregistré : la longueur du circuit à 5 % près
   DEFI_LISTE_MAX: 20,           // les défis reçus gardés dans la sauvegarde (le plus ancien part)
+  DEFI_REFUS_DUREE: 8,          // s : un lien de défi abîmé, le message reste ce temps en haut de l'écran
+  DEFI_CODES_MAX: 5,            // (le lien de défi, tour 50b) les derniers défis reçus gardent leur code (« Relever » depuis Messages)
   // le podium 3D (podium3d.js)
   PODIUM_DISTANCE: 30,          // m : à cette distance du bord gauche de la piste, en face de la ligne
   PODIUM_LARGEUR: 6.5,          // m : la largeur d'une marche…
@@ -1108,6 +1147,7 @@ const REGLAGES = {
   DECOR_MARGE_TELE: 10,         // m autour d'un poste de caméra télé (rien ne cache ce qu'il filme)
   DECOR_PODIUM_RAYON: 16,       // m : la place du podium (podium3d.js), en face de la ligne, reste libre
   DECOR_DETAIL_LOIN: 180,       // m : au-delà, le public et les arbres passent à leur forme simple… (tour 35 : 250 → 180, la mesure des images par seconde)
+  DECOR_PUBLIC_DETAIL: 0.6,     // part de la distance de détail pour le public : au-delà (108 m), un spectateur est une plaque (tour 50c : il fait moins de 10 pixels de haut ; 1 = comme les arbres)
   DECOR_RIEN_LOIN: 1600,        // m : … et au-delà, ils ne sont plus dessinés
   DECOR_MAJ_DEPLACEMENT: 20,    // m : le tri proche / loin est refait quand une caméra a bougé de ça (tour 35 : 10 → 20)
   DECOR_APPELS_MAX: 26,
