@@ -14,7 +14,10 @@ const v=(c,m)=>{if(!c)throw new Error(m||'faux');};
 const ecrire=etape=>{document.getElementById('res').textContent=`${etape?'EN COURS ('+etape+') ':''}RESULTAT ${ok}/${ok+ko}\n`+L.join('\n');};
 const circuits={test:CIRCUIT_TEST,technique:construireCircuit(CIRCUITS.technique)},DT=REGLAGES.PAS_PHYSIQUE;
 // une course, pas à pas : chaque choc > 5 m/s avec son temps ; les consignes vues (pour compter : au plus une)
-function course(circ,g){const e=creerCourseIA(circ,10,TOURS,g),P=e.pilotes,chocs=[],consignes=new Set(),vus=P.map(()=>0);
+// (tour 51a : comme dans test.html, sans l'attaque de la voiture de tête, IA_ATTAQUE_TETE 0 : la voiture de derrière doit rester à la file pour que la
+// consigne serve ; avec elle, elle passe parfois seule avant la consigne, ou la consigne tombe pendant une attaque qui échoue)
+function course(circ,g){const t_=REGLAGES.IA_ATTAQUE_TETE;REGLAGES.IA_ATTAQUE_TETE=0;try{return courseSansAttaque(circ,g);}finally{REGLAGES.IA_ATTAQUE_TETE=t_;}}
+function courseSansAttaque(circ,g){const e=creerCourseIA(circ,10,TOURS,g),P=e.pilotes,chocs=[],consignes=new Set(),vus=P.map(()=>0);
   const pasMax=Math.round(TOURS*REGLAGES.SIMULATION_TEMPS_MAX/DT);
   for(let k=0;k<pasMax&&e.arrives<10;k++){pasCourseIA(e,DT);if(e.consigne)consignes.add(e.consigne);
     P.forEach((p,i)=>{while(vus[i]<p.v.chocs.length){if(p.v.chocs[vus[i]]>5)chocs.push({k:i,temps:e.temps});vus[i]++;}});}

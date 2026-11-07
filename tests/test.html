@@ -1179,11 +1179,12 @@ t('erreurs : 10 IA, 2 min sur le technique : aucune erreur ne se déclenche avec
   for(let k=0;k<120*120;k++){
     const avant=P.map(p_=>p_.pilote.erreursFaites.length);
     const voitures=P.map(p_=>p_.v);P.forEach(p_=>vues.set(p_,voituresVues(p_.v,voitures)));
+    const sAvant=P.map(p_=>p_.v.piste.s),uAvant=P.map(p_=>p_.v.u);   // (la voiture et sa vitesse au moment où l'IA décide, comme les voitures vues : avant le pas)
     pasCourseIA(e,R_.PAS_PHYSIQUE);
     P.forEach((p_,i)=>{if(p_.pilote.erreursFaites.length>avant[i]){faites++;
       // au moment du déclenchement : personne à côté ni derrière à moins de IA_DISTANCE_ERREUR (vu juste avant le pas)
-      const e_=p_.pilote.erreursFaites[p_.pilote.erreursFaites.length-1],devant=e_.type==='large'?0:Math.max(R_.IA_DISTANCE_ERREUR,p_.v.u*R_.IA_ERREUR_TEMPS_DEVANT);
-      for(const w of vues.get(p_)){const g=ecartLeLong(TQ,w.s-p_.v.piste.s);v(!(g>-R_.IA_DISTANCE_ERREUR&&g<R_.LONGUEUR_VOITURE)&&!(g>=0&&g<devant),'n°'+p_.numero+' : erreur '+e_.type+' avec une voiture à '+g.toFixed(1)+' m');}
+      const e_=p_.pilote.erreursFaites[p_.pilote.erreursFaites.length-1],devant=e_.type==='large'?0:Math.max(R_.IA_DISTANCE_ERREUR,Math.max(0,uAvant[i])*R_.IA_ERREUR_TEMPS_DEVANT);
+      for(const w of vues.get(p_)){const g=ecartLeLong(TQ,w.s-sAvant[i]);v(!(g>-R_.IA_DISTANCE_ERREUR&&g<R_.LONGUEUR_VOITURE)&&!(g>=0&&g<devant),'n°'+p_.numero+' : erreur '+e_.type+' avec une voiture à '+g.toFixed(1)+' m');}
       v(!p_.pilote.attaque,'n°'+p_.numero+' : attaque pendant une erreur');}});}
   for(const p_ of P) evitees+=p_.pilote.erreurs.filter(x=>x.evitee).length;
   v(faites>=3,'trop peu d’erreurs faites : '+faites);
