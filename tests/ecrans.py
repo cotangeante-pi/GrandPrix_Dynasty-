@@ -1360,7 +1360,7 @@ def tournoi(pg, titre, l, h):
             e = passage(abandon=(m == 0 and k == 2))
             vus.append(e)
             if m == 0 and k in (0, 2):   # (tour 49b) « 📋 Défier un ami » sous le classement : pour un tour propre, jamais après un abandon
-                d = pg.evaluate('() => { const b = document.getElementById("boutonTournoiDefi"), vu = !b.classList.contains("cache"); if (vu) b.click(); const c = document.querySelector("#tournoiCode input"); return [vu, !!JEU.tournoiDefi, c ? c.value : "", TOURNOI.joueurActuel(JEU.tournoi)]; }')
+                d = pg.evaluate('() => { const b = document.getElementById("boutonTournoiDefi"), vu = !b.classList.contains("cache"); if (vu) b.click(); const c = document.querySelector("#tournoiCode input.defiCode"); return [vu, !!JEU.tournoiDefi, c ? c.value : "", TOURNOI.joueurActuel(JEU.tournoi)]; }')
                 if k == 0:
                     bon = d[0] == d[1] and (not d[0] or pg.evaluate('c => { const r = DEFI.decoder(c, CIRCUIT.longueur); return r.ok && r.defi.nom === "Léo" && r.defi.circuit === NOM_CIRCUIT; }', d[2]))
                     t(f'{titre} : après le tour de Léo, « 📋 Défier un ami » (s’il est sans virage coupé) donne le code de son tour, signé Léo, sur le circuit de la manche', bon, str([d[0], d[1], d[2][:40]]))
