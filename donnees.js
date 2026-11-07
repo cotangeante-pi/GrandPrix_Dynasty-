@@ -892,6 +892,7 @@ const REGLAGES = {
   IA_APPROCHE_TEMPS: 1,         // s (tour 51a, avec IA_ATTAQUE_TETE) : s'approcher d'une voiture devant d'au plus (distance − une longueur) / ça m/s de plus qu'elle ; 0 : rien
   IA_APPROCHE_LONG: 18,         // m : … tant qu'elle est à moins de ça devant lui
   IA_APPROCHE_COTE: 8,          // m : … et à moins de ça de côté
+  IA_APPROCHE_VITESSE: 0.6,    // … sauf une voiture qui roule à moins de cette part de sa vitesse de ligne (lente, arrêtée : on la contourne)
   IA_VISION_PROCHE: 25,         // m (tour 51a, avec IA_ATTAQUE_TETE) : une voiture devant lui à moins de ça est vue, même très de côté (0 : le cône et le couloir seulement)
 
   // la qualification du joueur (qualification.js) : un tour lancé, seul

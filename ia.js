@@ -1166,6 +1166,7 @@ function piloterIA(pilote, v, vues, dt) {
     const g = ecartLeLong(c, w.s - p.s);
     if (g <= 0 || g > R.IA_APPROCHE_LONG || Math.abs(w.d - p.d) > R.IA_APPROCHE_COTE) continue;
     if (a && w.id === a.id && a.etat !== 'preparer' && a.etat !== 'sortie') continue;
+    if (w.vitesse < R.IA_APPROCHE_VITESSE * libre || estLente(pilote, v, w)) continue;   // (une voiture arrêtée, lente ou qui sort des stands : on la contourne, ligne « éviter »)
     cible = Math.min(cible, w.vitesse + Math.max(0, g - R.LONGUEUR_VOITURE) / R.IA_APPROCHE_TEMPS);
   }
   // retenu : il voudrait aller nettement plus vite que la voiture devant ne le laisse
