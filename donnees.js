@@ -786,6 +786,12 @@ const REGLAGES = {
   IA_SUIVI_CARTE_LOIN: 20,      // m : … seulement plus loin que ça devant lui (plus près, sa vitesse vue)
   // les techniques en bataille et sous la pluie (tour 45, ia.js) ; 0 = la course d'avant
   IA_BATAILLE_DEFENSE: 1.5,      // m : une voiture plus rapide dans ses rétroviseurs avant un freinage : il ferme la corde de ça (× 0,5 + son agressivité)
+  // l'attaque de la voiture de tête (tour 50a, Codeur 1 ; ia.js) : en 5 tours, une IA rattrapait la voiture devant mais ne la doublait jamais
+  // (29-30 courses sur 30, l'arrivée = la grille). > 0 : collé derrière elle, il sort du sillage jusqu'à ce nombre de secondes avant le
+  // freinage ; dans le sillage, il prend la vitesse de pointe que l'aspiration lui donne ; décalé, à 4,5 m d'elle, elle ne le retient plus
+  // (le réflexe revient sous l'écart sûr) ; à l'intérieur, il rejoint sa propre corde au lieu de longer le bord ; elle ne se rabat pas sur
+  // lui quand il est déjà à côté ; il ne la perd pas de vue à côté de lui. 0 : la course d'avant, au bit près
+  IA_ATTAQUE_TETE: 1.5,   // (3 donnait trois fois plus de chocs dans le duel des stands, 1,5 garde l'essentiel des dépassements)
   IA_BATAILLE_PLONGER: 0,       // 1 : l'attaque se joue à l'intérieur ou pas du tout
   IA_PLUIE_LIGNE: 1,            // 1 : sur le mouillé, il connaît l'adhérence de la trajectoire (plus sèche) et du reste de la piste
   IA_ATTAQUE_CONTROLE: 40,      // m avant le sommet du virage : l'entrée, où elle doit être à hauteur…

@@ -999,7 +999,10 @@ t('arrêt au stand sans pénalité (tour 45a) : le joueur entre trop vite (144 k
   v(r.pousse&&r.j.course.penalites===0&&(r.j.v.penalitesStands||0)===0,'pénalités '+r.j.course.penalites);v(r.saut===0,r.saut+' sauts d’un coup à 80 km/h');v((r.j.course.arrets||[]).length>=1,'pas d’arrêt');v(r.j.v.excesStands>=1,'le limiteur n’a pas agi');});
 // --- les consignes d'équipe (CLAUDE.md « Le duel contre le coéquipier », simulation.js majConsignes, Codeur 1)
 // une course sur le technique : l'IA k = 0 et la voiture k = 1 sont de la même écurie ; celle qui part devant est rendue nettement plus lente
-function courseConsigne(avecJoueur,refus,tours){const e=creerCourseIA(TQ,avecJoueur?1:2,tours||6,1,CARTES_T.technique,avecJoueur),P=e.pilotes,ia=P[0];
+// (tour 50a : sans l'attaque de la voiture de tête, IA_ATTAQUE_TETE 0 : la voiture de derrière doit rester à la file pour que la consigne serve ;
+// avec elle, elle passait seule avant la consigne)
+function courseConsigne(avecJoueur,refus,tours){const t_=REGLAGES.IA_ATTAQUE_TETE;REGLAGES.IA_ATTAQUE_TETE=0;try{return courseConsigneSansAttaque(avecJoueur,refus,tours);}finally{REGLAGES.IA_ATTAQUE_TETE=t_;}}
+function courseConsigneSansAttaque(avecJoueur,refus,tours){const e=creerCourseIA(TQ,avecJoueur?1:2,tours||6,1,CARTES_T.technique,avecJoueur),P=e.pilotes,ia=P[0];
   const jp=avecJoueur?creerPilote(CARTES_T.technique,1,styleNeutre()):null;
   // (la voiture de devant a moins de moteur : elle est plus lente en ligne droite, mais celle de derrière, à la file, ne la passe pas seule)
   if(avecJoueur){ia.v.moteur=0.85;ia.pilote.rythme=0.9;ia.pilote.caractere.consigneRefus=refus;}else{const dev=P[0].depart>P[1].depart?P[0]:P[1],der=dev===P[0]?P[1]:P[0];dev.v.moteur=0.85;dev.pilote.rythme=0.9;der.pilote.rythme=1;}
@@ -2910,7 +2913,8 @@ t('casque : les motifs débloqués sont gardés à la racine de la sauvegarde : 
 
 // --- le résumé vidéo de la course (resume.js, étape 13)
 t('résumé : sur une course simulée (12 IA, 3 tours, enregistrée comme dans la page), les moments forts : le départ, au moins un dépassement, l’arrivée ; la durée totale bornée (RESUME_DUREE_MAX) ; le rejeu ne passe que par ces plages et redonne les positions de l’enregistrement à 1 cm près', ()=>{
-  const R=REGLAGES,e=creerCourseIA(C,12,3,5,CARTES_T.test),N=e.pilotes.length,voitures=e.pilotes.map(p=>p.v),enr=creerEnregistreur(N,{joueur:11});
+  // (tour 50a : la graine 2, pas la 5 : avec l'attaque de la voiture de tête, la graine 5 n'a plus aucun dépassement tenu, la 2 en a avec et sans)
+  const R=REGLAGES,e=creerCourseIA(C,12,3,2,CARTES_T.test),N=e.pilotes.length,voitures=e.pilotes.map(p=>p.v),enr=creerEnregistreur(N,{joueur:11});
   const vraies=[];let parti=false,pas=0;const arrivees=new Set();
   for(let k=0;k<400*120&&!e.pilotes.every(p=>p.arrivee!==null);k++){pasCourseIA(e,DT);
     if(!parti&&courseAutorise(e.pilotes[0].course)){parti=true;enr.depart(e.temps);}
