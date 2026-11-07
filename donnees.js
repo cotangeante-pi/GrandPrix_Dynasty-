@@ -1127,6 +1127,8 @@ const REGLAGES = {
   COMMENTAIRE_COMBLE_APRES_DEPART: 2,   // s après le départ avant de combler
   COMMENTAIRE_IMPORTANT: 7,       // la priorité à partir de laquelle une phrase passe devant les autres à la voix (dépassement du joueur, erreur, arrivée…)
   VOIX_VOLUME: 0.7,               // la voix, sous le moteur : × le volume du commentateur (son.js)
+  VOIX_SONS: false,               // (tour 51c) les voix enregistrées (voix-sons.js, sons/voix/) : éteintes par défaut, ?voixsons=1 ou ⚙ Réglages les allument ; provisoires
+  VOIX_SONS_VOLUME: 0.9,          // leur volume, × le volume du commentateur (son.js)
   VOIX_DEBIT: 1.1,                // la vitesse de la voix
   GRAINE_COMMENTAIRE: 15000,      // sa suite de hasard à lui (ALEATOIRE.suite) : la course ne change pas
   MESSAGES_PLUIE_SEUIL: 0.15, MESSAGES_SECHE_SEUIL: 0.15,   // la météo : « La pluie arrive » au-dessus de ce qui tombe, « La piste sèche » sous cette eau

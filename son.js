@@ -302,6 +302,7 @@ const SON = (function () {
     get coupe() { return muet || cache || pub; },
     get indices() { return indices; },
     get actif() { return ctx !== null; },
+    get contexte() { return ctx && familles ? { ctx, sortie: familles.commentateur } : null; },   // (tour 51c : les voix enregistrées, voix-sons.js)
     get muet() { return muet || pub; },   // (pendant une pub, le son est coupé : 🔇 ; le choix du joueur, lui, est gardé)
     get muetJoueur() { return muet; },
     get etatContexte() { return ctx ? ctx.state : 'aucun'; },
