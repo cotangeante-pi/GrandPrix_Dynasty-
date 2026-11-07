@@ -818,6 +818,55 @@ def defi(c, titre):
                     c.inspecter('défi : refus')
                 else: t(f'{titre} : code {nom} accepté : la grille du défi', c.attendre('() => JEU.ecran === "qualif" && !!JEU.defi', 30000), str(c.ev('() => JEU.ecran')))
 
+# --- (tour 51g) « Nouvelle carrière » et « à 0 » (⚙ Réglages du paddock), depuis une carrière en division 1 avec des skins ---
+def carrieres(c, titre):
+    pg = c.pg
+    c.aller(f'index.html?championnat=1&tours=1&lang={c.langue}')
+    if not c.ecran('championnat', 'paddock (carrières)', 60000): return
+    # une carrière en division 1, avec de l'argent, un skin acheté, un motif de casque, un réglage de voiture, les voix enregistrées allumées
+    c.ev("""() => { if (window.AIDES_ECRAN) AIDES_ECRAN.fermer(); const ch = JEU.championnat; ch.division = 1; ch.plateau = 1; ch.saison = 3; ch.prochain = 4;
+      ARGENT.crediter(ch, 50000, 'test'); SAUVEGARDE.ecrireChampionnat(ch); SAUVEGARDE.obtenirSkin('or'); SAUVEGARDE.ecrireOption('voixsons', true);
+      const x = SAUVEGARDE.lire(); x.decouverteFaite = true; SAUVEGARDE.ecrire(x); }""")
+    c.aller(f'index.html?championnat=1&tours=1&lang={c.langue}')
+    if not c.ecran('championnat', 'paddock en division 1', 60000): return
+    c.ev('() => { if (window.AIDES_ECRAN) AIDES_ECRAN.fermer(); }')
+    avant = c.ev('() => ({ div: JEU.championnat.division, niveau: REGLAGES.NIVEAU, skins: SAUVEGARDE.lire().skins.slice(), argent: JEU.championnat.argent.solde })')
+    t(f'{titre} : la carrière d’essai est en division 1 (niveau légende, skins gardés)', bool(avant) and avant['div'] == 1 and avant['niveau'] == 'legende', str(avant))
+    # la confirmation en deux temps ; « Non » ne change rien ; quitter la page et y revenir ne laisse pas la confirmation coincée
+    c.clic('#paddockMenu [data-page="reglages"]'); pg.wait_for_timeout(200)
+    c.cliquer('#boutonNouvelleCarriere')
+    c.inspecter('nouvelle carrière : confirmation 1'); c.cliquer('#boutonCarriereOui'); c.inspecter('nouvelle carrière : confirmation 2')
+    c.clic('#paddockMenu [data-page="course"]'); pg.wait_for_timeout(200); c.clic('#paddockMenu [data-page="reglages"]'); pg.wait_for_timeout(200)
+    e = c.ev('() => ({ conf: !document.getElementById("carriereConfirmation").classList.contains("cache"), boutons: !document.getElementById("boutonNouvelleCarriere").classList.contains("cache") })')
+    if e and e['conf']: c.cliquer('#boutonCarriereNon')
+    e = c.ev('() => ({ conf: !document.getElementById("carriereConfirmation").classList.contains("cache"), boutons: !document.getElementById("boutonNouvelleCarriere").classList.contains("cache"), ecran: JEU.ecran, div: JEU.championnat.division })')
+    t(f'{titre} : « Non » (ou quitter la page de Réglages) : plus de confirmation, les deux boutons sont revenus, la carrière est intacte', bool(e) and not e['conf'] and e['boutons'] and e['ecran'] == 'championnat' and e['div'] == 1, str(e))
+    # « Nouvelle carrière »
+    c.cliquer('#boutonNouvelleCarriere'); c.cliquer('#boutonCarriereOui'); c.cliquer('#boutonCarriereOui')
+    ok = c.ecran('pilote', 'création du pilote (nouvelle carrière)')
+    t(f'{titre} : « Nouvelle carrière » mène à la création du pilote', ok, str(c.ev('() => JEU.ecran')))
+    if ok:
+        r = c.ev('() => { const d = SAUVEGARDE.lire(), ch = d.championnat; return { div: ch.division, saison: ch.saison, prochain: ch.prochain, argent: ch.argent && ch.argent.solde, skins: d.skins, voix: d.options.voixsons, decouverte: d.decouverteFaite, temple: d.temple.carrieres.length, plateaux: Object.keys(ch.plateaux || {}).length }; }')
+        t(f'{titre} : après « Nouvelle carrière » : un monde neuf en division 4, saison 1, argent à zéro ; skins, voix et découverte gardés ; la carrière de 3 saisons… entre au temple', bool(r) and r['div'] == 4 and r['saison'] == 1 and r['prochain'] == 0 and not r['argent'] and 'or' in r['skins'] and r['voix'] is True and r['decouverte'] is True and r['temple'] == 1 and r['plateaux'] == 0, str(r))
+        try: pg.fill('#piloteNom', 'Testeur', timeout=5000)
+        except Exception: pass
+        c.cliquer('#boutonPiloteValider', navigation=True)
+        ok = c.ecran('championnat', 'paddock de la nouvelle carrière', 60000)
+        r = c.ev('() => ({ div: JEU.championnat.division, niveau: REGLAGES.NIVEAU, saison: JEU.championnat.saison, nom: JEU.championnat.pilotes.find(p => p.humain).nom })') if ok else None
+        t(f'{titre} : le paddock de la nouvelle carrière : division 4, les IA au niveau débutant (pas celui de la division 1), le pilote créé', bool(r) and r['div'] == 4 and r['niveau'] == 'debutant' and r['nom'] == 'Testeur', str(r))
+        c.inspecter('paddock de la nouvelle carrière')
+    # « à 0 »
+    c.ev('() => { if (window.AIDES_ECRAN) AIDES_ECRAN.fermer(); }')
+    c.clic('#paddockMenu [data-page="reglages"]'); pg.wait_for_timeout(200)
+    c.cliquer('#boutonNouvelleCarriereZero'); c.inspecter('à 0 : confirmation 1'); c.cliquer('#boutonCarriereOui'); c.inspecter('à 0 : confirmation 2'); c.cliquer('#boutonCarriereOui', navigation=True)
+    ok = c.ecran('titre', 'titre après « à 0 »', 60000)
+    r = c.ev('() => { const d = SAUVEGARDE.lire(); return { championnat: !!d.championnat && d.championnat.saison === 1 && d.championnat.prochain === 0 && d.championnat.division === 4 && !(d.championnat.argent && d.championnat.argent.solde) && d.championnat.pilotes.find(p => p.humain).nom !== 'Testeur', skins: d.skins.length, decouverte: !!d.decouverteFaite, temple: d.temple.carrieres.length, voix: d.options.voixsons, defis: d.defis.liste.length, touches: d.touches }; }')
+    t(f'{titre} : « Nouvelle carrière à 0 » : l’écran titre, un monde neuf de division 4 (celui du premier lancement), plus de skins, de temple ni de découverte', ok and bool(r) and r['championnat'] and r['skins'] == 0 and not r['decouverte'] and r['temple'] == 0 and not r['voix'], str(r))
+    if ok:
+        c.cliquer('#boutonJouer')
+        ok = c.attendre('() => JEU.ecran === "course" || JEU.ecran === "grille"', 60000)
+        t(f'{titre} : après « à 0 », « ▶ Jouer » mène à la course de découverte au niveau débutant', ok and c.ev('() => !!JEU.decouverte && REGLAGES.NIVEAU === "debutant"') is True, str(c.ev('() => [JEU.ecran, !!JEU.decouverte, REGLAGES.NIVEAU]')))
+
 # --- les grandes tailles (tour 39d) : un passage court en 1280×720 et en 1920×1080, en plus du 960×600 des autres parties ---
 # la carrière : le premier lancement (titre → découverte → Bravo → création), le premier Grand Prix joué par le robot comme dans saison.py
 # (au paddock : garage, courrier, discussion), puis le paddock et tous ses écrans et le menu pause (la partie ecrans)
@@ -834,7 +883,7 @@ def tailles_jeux(c, titre):
     deux(c, titre, court=True)
     tournoi(c, titre, court=True)
 
-PARTIES = { 'aides-pilotage': aides_pilotage, 'dynastie': dynastie, 'pendant': pendant, 'sauvegarde': sauvegarde, 'stockage': stockage, 'saison-en': saison_en, 'manette': manette, 'deux': deux, 'tournoi': tournoi, 'fin': fin, 'ecrans': ecrans, 'tuto': tuto, 'divisions': divisions, 'defi': defi, 'tailles-carriere': tailles_carriere, 'tailles-jeux': tailles_jeux }
+PARTIES = { 'aides-pilotage': aides_pilotage, 'dynastie': dynastie, 'pendant': pendant, 'sauvegarde': sauvegarde, 'stockage': stockage, 'saison-en': saison_en, 'manette': manette, 'deux': deux, 'tournoi': tournoi, 'fin': fin, 'ecrans': ecrans, 'tuto': tuto, 'divisions': divisions, 'carrieres': carrieres, 'defi': defi, 'tailles-carriere': tailles_carriere, 'tailles-jeux': tailles_jeux }
 LANGUES = { 'divisions': ('fr',), 'saison-en': ('en',), 'dynastie': ('fr',) }   # (la saison entière en français, c'est saison.py)
 TAILLES = { 'tailles-carriere': [(1280, 720), (1920, 1080)], 'tailles-jeux': [(1280, 720), (1920, 1080)] }
 demandees = [x for x in (sys.argv[1:] or os.environ.get('RECOINS', '').replace(',', ' ').split()) if x] or list(PARTIES)
