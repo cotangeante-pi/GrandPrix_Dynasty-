@@ -12,6 +12,13 @@ const EST_PAGE = !!document.getElementById('scene3d');
 // devient le défi en cours, et la page est celle de ?defi=1 : directement la grille du défi, sans autre écran ; abîmé, le jeu s'ouvre
 // normalement (le paramètre est oublié) et LIEN_DEFI_REFUS garde la raison, affichée une fois le jeu prêt
 let LIEN_DEFI_REFUS = null;
+// (tour 51e) sur Poki, le paramètre passé par la page Poki (getURLParam) ; lu une seule fois par onglet (le jeu se recharge entre les écrans, la page Poki garde le paramètre)
+if (EST_PAGE && !PARAMETRES.has('defi')) {
+  const venu = SDK.parametreUrl('defi');
+  let deja = null;
+  try { deja = sessionStorage.getItem('gpd_defi_poki'); } catch (e) { /* pas de sessionStorage : lu à chaque chargement */ }
+  if (venu && venu !== deja) { PARAMETRES.set('defi', venu); try { sessionStorage.setItem('gpd_defi_poki', venu); } catch (e) { /* tant pis */ } }
+}
 if (EST_PAGE && PARAMETRES.has('defi') && PARAMETRES.get('defi') !== '1') {
   const code = String(PARAMETRES.get('defi')).replace(/\s+/g, '');
   let r = DEFI.decoder(code);
@@ -437,7 +444,8 @@ function defierQualif() {
 }
 
 // (tour 50b) le lien d'un code : l'adresse où le jeu tourne (sur Poki : à vérifier au paquet, CLAUDE.md « Le lien de défi »)
-const lienDefi = code => DEFI.lien(code, location.href);
+// (tour 51e) l'adresse où le jeu tourne tout de suite ; avec le SDK Poki, maj(adresse) apporte celle de la page Poki du jeu (shareableURL, 2 s au plus)
+const lienDefi = (code, maj) => { SDK.lienPartage({ defi: code }, maj); return DEFI.lien(code, location.href); };
 
 // (tour 50b) « Relever » depuis la page Messages du paddock : un défi reçu dont le code est gardé devient le défi en cours, et la page du
 // défi s'ouvre (la grille, directement)
