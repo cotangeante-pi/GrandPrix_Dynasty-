@@ -6,6 +6,9 @@ function t(n, f) { try { f(); ok++; L.push('✔ ' + n); } catch (e) { ko++; L.pu
 const v = (c, m) => { if (!c) throw new Error(m || 'faux'); };
 function ecrire() { const r = 'RESULTAT ' + ok + '/' + (ok + ko) + '\n' + L.join('\n'); if (typeof document !== 'undefined' && document.getElementById('res')) document.getElementById('res').textContent = r; return r; }
 const R = REGLAGES;
+// (tour 51b) comme test.html : une carrière neuve est en division 3, sur un seul plateau (les tests de ce banc sont écrits ainsi)
+const DIVISION_PLATEAUX_JEU = R.DIVISION_PLATEAUX, DIVISION_DEPART_JEU = R.DIVISION_DEPART;
+R.DIVISION_PLATEAUX = false; R.DIVISION_DEPART = 3;
 
 // --- 1. le banc de phrases
 const NOMS = [{ k: 3, nom: 'Rossi' }, { k: 7, nom: 'Léa Moreau' }];
@@ -376,6 +379,52 @@ t('patrons : ton patron remarque l’exploit sans aide une seule fois (circuit e
   const r3 = PATRONS.peutParler(ch, autre, 'championnat') ? PATRONS.dire(ch, autre, 'salut', 'championnat') : null;
   v(!r3 || !r3.raisons.some(x => x.startsWith('exploit_')), 'un autre patron');
   for (const l of ['en', 'fr']) for (const c of ['pat_raison_exploit_sansAide', 'pat_raison_exploit_legende']) v(Array.isArray(TEXTES[l][c]) && TEXTES[l][c].length >= 2, l + ' ' + c);
+});
+// --- (tour 51b) la division : un promu parle et négocie avec les patrons d'en haut ; les salaires suivent la division
+// (les autres tests de ce banc tournent sur un seul plateau, en division 3 : comme test.html, DIVISION_PLATEAUX est coupé ; ceux-ci le rallument)
+const avecPlateaux = f => { const pl = R.DIVISION_PLATEAUX; R.DIVISION_PLATEAUX = DIVISION_PLATEAUX_JEU; try { f(); } finally { R.DIVISION_PLATEAUX = pl; } };
+t('divisions, patrons : un promu négocie avec les patrons de la division d’en haut (salaire, statut), la mémoire est celle du plateau d’en haut, le salaire négocié est versé à la signature ; pas de premier pilote d’emblée', ()=>avecPlateaux(()=>{
+  R.DIVISION_DEPART=DIVISION_DEPART_JEU;let ch;try{ch=CHAMPIONNAT.creer(31);}finally{R.DIVISION_DEPART=3;}
+  SAISONS.avancer(ch,99);if(SAISONS.bilan(ch).joueurPlace>3)ch.pilotes.find(p=>p.humain).stats.points+=1000;SAISONS.terminerSaison(ch);
+  v(DIVISIONS.enAttente(ch)&&ch.enFinDeSaison,'monté, en attente');
+  const o=SAISONS.offres(ch),e=o[0].ecurie,hors=ch.plateaux[3].ecuries.map(x=>x.id).find(i=>!o.some(x=>x.ecurie===i));
+  v(o.length>=1&&o.every(x=>x.salaire>0),'des offres d’en haut avec un salaire : '+o.map(x=>x.salaire).join());
+  v(PATRONS.peutParler(ch,e,'contrats')&&(hors===undefined||!PATRONS.peutParler(ch,hors,'contrats')),'on parle au patron qui fait une offre, pas aux autres');
+  v(!PATRONS.peutParler(ch,ch.pilotes.find(p=>p.humain).ecurie,'contrats')||o.some(x=>x.ecurie===ch.pilotes.find(p=>p.humain).ecurie),'l’écurie d’en bas n’est pas “la sienne” là-haut');
+  const base=PATRONS.conditions(ch,e).salaire,sal0=o[0].salaire;v(base===sal0&&base===PATRONS.salaireBase(ch,e),'le salaire de l’offre = la base d’en haut : '+base);
+  const nomsT={pilote:p=>p.nom||'Pilote '+p.numero,ecurie:x=>x.nom||'Écurie '+x.numero};
+  const r0=PATRONS.dire(ch,e,'salut','contrats',nomsT);v(r0&&r0.texte&&r0.texte.length>0&&!/\{|undefined/.test(r0.texte),'il répond : '+(r0&&r0.texte));
+  // une demande raisonnable : acceptée ou contre-offre ; jamais au-dessus du plafond ; le salaire de l'offre suit
+  let r=PATRONS.dire(ch,e,DISCUSSION.composer(ch,'salaire',{}),'contrats',nomsT);
+  v(r&&['salaire_accepte','contre_offre','salaire_refuse'].includes(r.reaction),'la réponse au salaire : '+(r&&r.reaction)+' / '+(r&&r.texte));
+  if(r.reaction==='contre_offre'){const r2=PATRONS.dire(ch,e,'ok marché conclu','contrats',nomsT);v(r2&&r2.reaction==='marche_conclu','la contre-offre acceptée');}
+  const m=ch.plateaux[3].patrons&&ch.plateaux[3].patrons[e];v(m&&m.nego&&m.nego.saison===ch.saison&&Array.isArray(m.dits)&&m.dits.length>=2,'la mémoire est celle du plateau d’en haut (ch.plateaux[3].patrons)');
+  v(!ch.patrons||!ch.patrons[e]||!ch.patrons[e].dits||ch.patrons[e].dits.length===0||m!==ch.patrons[e],'l’écurie de même numéro d’en bas n’a rien entendu');
+  const cd=PATRONS.conditions(ch,e);v(cd.salaire>=base&&cd.salaire<=Math.round(base*(1+R.CONTRAT_NEGO_MAX)/1000)*1000+1000,'le salaire négocié ('+cd.salaire+') est entre la base et +25 %');
+  v(SAISONS.offres(ch).find(x=>x.ecurie===e).salaire===cd.salaire,'l’offre affiche le salaire négocié');
+  // le statut : un promu n'est pas premier pilote d'emblée
+  const rs=PATRONS.dire(ch,e,DISCUSSION.composer(ch,'statut',{}),'contrats',nomsT);v(rs&&rs.reaction==='statut_refuse'&&rs.raisons.includes('promu')&&PATRONS.conditions(ch,e).statut==='second','premier pilote refusé pour un promu : '+(rs&&rs.reaction));
+  // les intentions au clic : salaire, statut, confiance (jamais budget ni consigne : ce n'est pas son patron)
+  const ints=PATRONS.intentions(ch,e);v(ints.includes('salaire')&&ints.includes('statut')&&!ints.includes('budget')&&!ints.includes('consigne'),'intentions : '+ints.join());
+  // rechargé : la même négociation
+  const ch2=CHAMPIONNAT.completer(JSON.parse(JSON.stringify(ch)));v(PATRONS.conditions(ch2,e).salaire===cd.salaire,'rechargée, la négociation est la même');
+  // signer : le salaire négocié est versé, la saison suivante est sur le plateau d'en haut
+  const avant=ARGENT.solde(ch);v(SAISONS.signer(ch,e),'signé');v(ARGENT.solde(ch)-avant>=cd.salaire&&ch.plateau===3,'le salaire négocié est versé ('+cd.salaire+') et le joueur est en division 3');
+  // l'ancien patron d'en bas (le tien maintenant) : tout comme avant
+  const mien=ch.pilotes.find(p=>p.humain).ecurie;v(PATRONS.peutParler(ch,mien,'championnat'),'son patron actuel, toute l’année');
+  v(TEXTES.fr.pat_raison_promu&&TEXTES.en.pat_raison_promu,'texte pat_raison_promu');
+}));
+t('divisions, patrons : le salaire de base suit la division (× 0,6 / 1 / 1,5 / 2,2 arrondi à 1 000) ; division 3 et divisions coupées = le salaire d’avant au bit près', ()=>{
+  const mk=d=>{const c=CHAMPIONNAT.creer(9);c.division=d;return c;},sal={};
+  for(const d of [4,3,2,1]){const c=mk(d);sal[d]=c.ecuries.map(x=>PATRONS.salaireBase(c,x.id));}
+  const avant=(c,e)=>{const n=c.ecuries.length,rang=SAISONS.rangEcurie(c,e);return Math.round((R.CONTRAT_SALAIRE_MIN+(R.CONTRAT_SALAIRE_MAX-R.CONTRAT_SALAIRE_MIN)*(1-rang/Math.max(1,n-1)))/1000)*1000;};
+  const c3=mk(3);v(sal[3].every((s,i)=>s===avant(c3,c3.ecuries[i].id)),'D3 = la formule d’avant');
+  v(sal[4].every((s,i)=>s<sal[3][i])&&sal[3].every((s,i)=>s<sal[2][i])&&sal[2].every((s,i)=>s<sal[1][i]),'D4 < D3 < D2 < D1 : '+[4,3,2,1].map(d=>sal[d][0]).join(' / '));
+  const brut=(c,e)=>{const n=c.ecuries.length,rang=SAISONS.rangEcurie(c,e);return R.CONTRAT_SALAIRE_MIN+(R.CONTRAT_SALAIRE_MAX-R.CONTRAT_SALAIRE_MIN)*(1-rang/Math.max(1,n-1));};
+  v([4,2,1].every(d=>sal[d].every((s,i)=>s%1000===0&&Math.abs(s-brut(c3,c3.ecuries[i].id)*R.DIVISIONS[d].argent)<=500+1e-6)),'× DIVISIONS[d].argent, arrondi à 1 000 : '+JSON.stringify(sal));
+  const vieille=CHAMPIONNAT.creer(9);delete vieille.division;CHAMPIONNAT.completer(vieille);v(vieille.ecuries.every(x=>PATRONS.salaireBase(vieille,x.id)===avant(vieille,x.id)),'une vieille sauvegarde = D3');
+  const act=R.DIVISIONS_ACTIVES;try{R.DIVISIONS_ACTIVES=false;const c=mk(1);v(c.ecuries.every(x=>PATRONS.salaireBase(c,x.id)===avant(c,x.id)),'divisions coupées : le salaire d’avant');}finally{R.DIVISIONS_ACTIVES=act;}
+  L.push('  (salaire de la meilleure écurie : D4 '+sal[4][0]+', D3 '+sal[3][0]+', D2 '+sal[2][0]+', D1 '+sal[1][0]+' €)');
 });
 t('la console reste vide', () => { v(typeof __err === 'undefined' || !__err.length, typeof __err !== 'undefined' ? __err.join(' | ') : ''); });
 ecrire();

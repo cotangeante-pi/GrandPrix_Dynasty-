@@ -757,7 +757,7 @@ const INTERFACE = (function () {
       b.addEventListener('mousedown', ev => ev.preventDefault());
       b.addEventListener('click', () => { if (signatureContrat) signatureContrat(o.ecurie); });
       li.appendChild(b);
-      if (negociationContrat && !ch.vueDivision) {   // (tour 50d : pas de négociation avec les patrons d'en haut, pas encore) (après « Signer » : « Signer » reste le premier bouton de chaque offre)
+      if (negociationContrat) {   // (tour 51b : « Négocier » aussi avec les patrons d'en haut, pour un promu) (après « Signer » : « Signer » reste le premier bouton de chaque offre)
         const n2 = document.createElement('button'); n2.className = 'negocier petit'; n2.tabIndex = -1; n2.textContent = texte('contratNegocier');
         n2.addEventListener('mousedown', ev => ev.preventDefault());
         n2.addEventListener('click', () => negociationContrat(o.ecurie));
@@ -1674,7 +1674,7 @@ const INTERFACE = (function () {
   let envoiDiscussion = null, compositionDiscussion = null;
   function remplirDiscussion(ch, k, fil, intentions) {
     const p = ch.pilotes[k], e = ch.ecuries[p.ecurie], m = p.memoire || { relation: 0 };
-    const co = CHAMPIONNAT.coequipierDe(ch);
+    const co = ch.vueDivision ? null : CHAMPIONNAT.coequipierDe(ch);   // (tour 51b : vu d'en haut, le joueur n'y est pas encore)
     $('discussionSurtitre').textContent = texte(co && co.id === k ? 'discussionCoequipier' : 'discussionRival');
     $('discussionNom').textContent = nomPilote(p);
     const humeur = m.relation >= REGLAGES.DISCUSSION_AMI ? 'bonne' : m.relation <= -REGLAGES.DISCUSSION_ENNEMI ? 'tendue' : 'neutre';
@@ -1710,7 +1710,7 @@ const INTERFACE = (function () {
   // de … »), l'humeur de la confiance de l'écurie (la tienne) ou de son envie de t'avoir (les autres, aux contrats)
   function remplirDiscussionPatron(ch, e, fil, intentions, nom) {
     remplirDiscussion(ch, ch.pilotes.find(p => !p.humain && p.ecurie === e).id, fil, intentions);
-    const eq = ch.ecuries[e], mien = e === ch.pilotes.find(p => p.humain).ecurie, conf = typeof ch.confiance === 'number' ? ch.confiance : REGLAGES.CONFIANCE_DEPART;
+    const eq = ch.ecuries[e], mien = !ch.vueDivision && e === ch.pilotes.find(p => p.humain).ecurie, conf = typeof ch.confiance === 'number' ? ch.confiance : REGLAGES.CONFIANCE_DEPART;
     $('discussionSurtitre').textContent = texte('discussionPatron') + ' · ' + nomEcurie(eq);
     $('discussionNom').textContent = nom;
     const humeur = mien ? (conf >= REGLAGES.PATRON_CONFIANCE_HAUTE ? 'bonne' : conf <= REGLAGES.PATRON_CONFIANCE_BASSE ? 'tendue' : 'neutre') : (PATRONS.envie(ch, e) >= REGLAGES.PATRON_ENVIE_FORTE ? 'bonne' : PATRONS.envie(ch, e) < 0 ? 'tendue' : 'neutre');

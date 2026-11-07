@@ -1233,7 +1233,7 @@ function montrerDiscussion(k, depuis, premier) {
 }
 function remplirDiscussion() {
   const d = JEU.discussion, ch = JEU.championnat;
-  if (d.patron !== undefined) INTERFACE.remplirDiscussionPatron(ch, d.patron, d.fil, PATRONS.intentions(ch, d.patron), PATRONS.nom(ch, d.patron, { pilote: INTERFACE.nomPilote, ecurie: INTERFACE.nomEcurie }));
+  if (d.patron !== undefined) INTERFACE.remplirDiscussionPatron(DIVISIONS.vueContrats(ch), d.patron, d.fil, PATRONS.intentions(ch, d.patron), PATRONS.nom(ch, d.patron, { pilote: INTERFACE.nomPilote, ecurie: INTERFACE.nomEcurie }));
   else INTERFACE.remplirDiscussion(ch, d.k, d.fil, DISCUSSION.intentions(ch, d.k));
 }
 // un patron (patrons.js, tour 35) : le tien depuis le paddock, toute l'année ; les autres depuis l'écran des contrats (« Négocier »)

@@ -2581,6 +2581,23 @@ def patron_ecran(pg, titre, l, h, page):
     pg.click('#boutonDiscussionRetour')
     c = pg.evaluate(CONTRATS_PATRON)
     t(f'{titre} : « Retour » ramène aux contrats, l’offre redessinée avec le salaire négocié ({attendu})', c['ecran'] == 'contrats' and attendu in (c['salaires'][0] or ''), str(c['salaires']))
+    # (tour 51b) un promu : les contrats d'en haut, « Négocier » avec leurs patrons (salaire d'en haut), et le retour
+    pg.evaluate('''() => { const ch = CHAMPIONNAT.creer(77); SAISONS.avancer(ch, 99); const j = ch.pilotes.find(p => p.humain); if (SAISONS.bilan(ch).joueurPlace > 3) j.stats.points += 1000;
+      SAISONS.terminerSaison(ch); JEU.championnat = ch; JEU.discussion = null; montrerContrats(); }'''); pg.wait_for_timeout(300)
+    c = pg.evaluate(CONTRATS_PATRON)
+    promu = pg.evaluate('() => ({ monte: DIVISIONS.enAttente(JEU.championnat), note: document.getElementById("contratsNote").textContent })')
+    t(f'{titre} : monté de division, les offres d’en haut montrent leur salaire et « 💬 Négocier », rien hors de l’écran', promu['monte'] and c['n'] >= 1 and all(c['salaires']) and all(c['negocier']) and not c['hors'] and pas_de_defilement(c['defile']), str([promu, c]))
+    e = pg.evaluate('() => Number(document.querySelector("#contratsListe li").dataset.ecurie)')
+    pg.evaluate('() => document.querySelector("#contratsListe li:first-child button.negocier").click()')
+    d = pg.evaluate(DISCUSSION_ETAT)
+    t(f'{titre} : « Négocier » avec le patron d’en haut ouvre la discussion (salaire, statut ; ni budget ni consigne), dans l’écran', attendre(pg, f'() => JEU.ecran === "discussion" && JEU.discussion.patron === {e}', None, 3000) and 'salaire' in d['intentions'] and 'budget' not in d['intentions'] and d['dedans'] and not d['hors'] and pas_de_defilement(d['defile']), str(d))
+    pg.evaluate('() => document.querySelector("#discussionComposeur button[data-intention=\"salaire\"]").click()'); pg.wait_for_timeout(200)
+    r = pg.evaluate('() => JEU.derniereReponse && JEU.derniereReponse.reaction')
+    t(f'{titre} : il répond au salaire depuis son envie de t’avoir, avec un texte', r in ('contre_offre', 'salaire_refuse', 'salaire_accepte') and pg.evaluate('() => !!JEU.derniereReponse.texte && !/[{]|undefined/.test(JEU.derniereReponse.texte)'), str(r))
+    pg.evaluate('() => document.querySelector("#discussionComposeur button[data-intention=\"statut\"]").click()'); pg.wait_for_timeout(200)
+    t(f'{titre} : « Premier pilote » : refusé à un promu', pg.evaluate('() => JEU.derniereReponse.reaction') == 'statut_refuse', pg.evaluate('() => JEU.derniereReponse.reaction'))
+    pg.evaluate('() => document.querySelector("#boutonDiscussionRetour").click()')
+    t(f'{titre} : « Retour » ramène aux contrats d’en haut', attendre(pg, '() => JEU.ecran === "contrats" && DIVISIONS.enAttente(JEU.championnat)', None, 3000))
 
 # (tour 48a) le nouveau paddock : chaque bouton est rangé dans une page (menu à gauche) ; on ouvre sa page par le menu, comme un
 # joueur, puis on clique le bouton
