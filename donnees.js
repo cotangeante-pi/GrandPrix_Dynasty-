@@ -887,6 +887,7 @@ const REGLAGES = {
   IA_VISION_DISTANCE: 120,      // m : … et à moins de cette distance
   IA_VISION_COULOIR: 4.5,       // m : … et aussi toute voiture devant elle à moins de ça de son axe (même tout près, sur le côté)
   IA_VISION_COTE: [8, 7],       // m : … et celles à côté d'elle (dans les rétroviseurs) : à moins de 8 m devant ou derrière, 7 m de côté
+  IA_VISION_PROCHE: 25,         // m (tour 51a, avec IA_ATTAQUE_TETE) : une voiture devant lui à moins de ça est vue, même très de côté (0 : le cône et le couloir seulement)
 
   // la qualification du joueur (qualification.js) : un tour lancé, seul
   QUALIF_LANCEMENT: 250,        // m avant la ligne : la voiture part de là, à l'arrêt ; le chrono part à la ligne

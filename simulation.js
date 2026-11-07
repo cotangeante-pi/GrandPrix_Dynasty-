@@ -32,7 +32,9 @@ function voituresVues(v, voitures, circuit) {
     if (dx * dx + dz * dz > R.IA_VISION_DISTANCE * R.IA_VISION_DISTANCE) continue;   // trop loin pour être vue
     const avant = c * dx + s * dz, cote = Math.abs(-s * dx + c * dz);
     const aCote = Math.abs(avant) <= R.IA_VISION_COTE[0] && cote <= R.IA_VISION_COTE[1];
-    const devant = avant > 0 && Math.hypot(dx, dz) <= R.IA_VISION_DISTANCE && (cote <= avant * tanAngle || cote <= R.IA_VISION_COULOIR);
+    // (IA_VISION_PROCHE, tour 51a : une voiture juste devant lui, à moins de ça, il la voit même très en biais : sur une ligne qui l'écarte
+    // de 8 m d'elle, dans un virage lent, il la perdait de vue à 10 m, filait dessus à 9 m/s de plus et revenait sur elle ; avec l'attaque de tête seulement)
+    const devant = avant > 0 && Math.hypot(dx, dz) <= R.IA_VISION_DISTANCE && (cote <= avant * tanAngle || cote <= R.IA_VISION_COULOIR || (R.IA_ATTAQUE_TETE && avant <= R.IA_VISION_PROCHE));
     if (!aCote && !devant) continue;
     const cw = Math.cos(w.cap), sw = Math.sin(w.cap);
     const vx = cw * w.u - sw * w.v, vz = sw * w.u + cw * w.v;
