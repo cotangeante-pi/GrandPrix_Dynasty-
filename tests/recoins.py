@@ -420,7 +420,7 @@ ECRAN_VU = '() => typeof JEU !== "undefined" && !!JEU.ecran && (["course", "qual
 def ecrire_sauvegarde(c, js_valeur):
     # (depuis une page qui ne touche pas à la sauvegarde ; null : la clé enlevée)
     # (sans attendre JEU : cette page n'a pas le jeu ; c.aller attendrait 60 s pour rien)
-    c.recolter(); c.pg.goto('file://' + RACINE + '/tests/textes.html')
+    c.recolter(); c.pg.goto('file://' + RACINE + '/tests/textes.html', timeout=120000)
     c.ev(f'(v) => {{ if (v === null) localStorage.removeItem("grand-prix-dynasty"); else localStorage.setItem("grand-prix-dynasty", v); }}', js_valeur)
 def lire_sauvegarde(c):
     return c.ev('() => localStorage.getItem("grand-prix-dynasty")')
