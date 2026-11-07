@@ -2630,7 +2630,10 @@ ECRAN_DEDANS = """(id) => { const out = [], ec = document.getElementById(id);
   for (const e of ec.querySelectorAll('button, li, h1, p, canvas, select, input, label')) { const r = e.getBoundingClientRect(); if (!r.width || !r.height) continue;
     if (r.left < -1 || r.top < -1 || r.right > innerWidth + 1 || r.bottom > innerHeight + 1) out.push((e.id || e.className || e.tagName) + ' ' + Math.round(r.top) + '→' + Math.round(r.bottom)); }
   const retour = [...ec.querySelectorAll('button')].find(b => /Retour$/.test(b.id)), rr = retour && retour.getBoundingClientRect();
-  return { ecran: JEU.ecran, out, retour: !!rr && rr.width > 0 && rr.bottom <= innerHeight + 1, defile: [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth] }; }"""
+  const bs = [...ec.querySelectorAll('button')].filter(b => b.getBoundingClientRect().width), rec = [];   // (tour 51e) deux boutons ne se recouvrent pas
+  for (let i = 0; i < bs.length; i++) for (let j = i + 1; j < bs.length; j++) { const a = bs[i].getBoundingClientRect(), c = bs[j].getBoundingClientRect();
+    if (a.left < c.right - 1 && c.left < a.right - 1 && a.top < c.bottom - 1 && c.top < a.bottom - 1) rec.push(bs[i].id + '/' + bs[j].id); }
+  return { ecran: JEU.ecran, out, rec, retour: !!rr && rr.width > 0 && rr.bottom <= innerHeight + 1, defile: [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth] }; }"""
 def paddock_menu(pg, titre, l, h, lang):
     attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', None, 60000)
     pg.evaluate('() => { if (typeof AIDES_ECRAN !== "undefined") { REGLAGES.AIDES_ACTIVES = false; AIDES_ECRAN.fermer(); } }')   # (la bulle d'aide ne compte pas ici : aides-menus la teste)
@@ -2672,7 +2675,7 @@ def paddock_menu(pg, titre, l, h, lang):
         e = pg.evaluate(ECRAN_DEDANS, nom)
         if l == 640: pg.screenshot(path=os.path.join(CAPTURES, f'paddock-{nom}-{lang}-{l}.png'))
         pg.evaluate('() => { ' + fermer + ' }'); pg.wait_for_timeout(200)
-        t(f'{titre} : l’écran « {nom} » (depuis le paddock) tient dans l’écran, son « Retour » compris, sans défilement', e['ecran'] == nom and not e['out'] and e['retour'] and pas_de_defilement(e['defile']), str(e))
+        t(f'{titre} : l’écran « {nom} » (depuis le paddock) tient dans l’écran, son « Retour » compris, sans défilement ni boutons qui se recouvrent', e['ecran'] == nom and not e['out'] and not e['rec'] and e['retour'] and pas_de_defilement(e['defile']), str(e))
     garde = pg.evaluate('() => localStorage.getItem(SAUVEGARDE.CLE)')
     pg.click('#menuReglages'); pg.click('#boutonNouvelleCarriereZero'); pg.click('#boutonCarriereOui'); pg.wait_for_timeout(200)
     d = pg.evaluate(PADDOCK_DEDANS)

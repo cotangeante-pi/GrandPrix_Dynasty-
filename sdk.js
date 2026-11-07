@@ -102,7 +102,24 @@ const SDK = (function () {
     pub('rewardedBreak', couperSon, resultat => rappeler(rappel, resultat === true));
   }
 
+  // (tour 51e) un paramètre passé par la page Poki (PokiSDK.getURLParam) ; '' sans SDK, sans valeur ou en cas d'erreur
+  function parametreUrl(nom) {
+    const v = appeler('getURLParam', nom);
+    return typeof v === 'string' ? v : '';
+  }
+
+  // (tour 51e) l'adresse à partager : rappel(adresse) avec celle de la page Poki du jeu (PokiSDK.shareableURL) ;
+  // jamais appelé sans SDK, ni si shareableURL échoue ou tarde plus de delai ms (l'appelant garde alors l'adresse où le jeu tourne)
+  function lienPartage(params, rappel, delai) {
+    if (!poki()) return;
+    let fini = false;
+    const fin = adresse => { if (fini) return; fini = true; if (typeof adresse === 'string' && adresse) rappeler(rappel, adresse); };
+    setTimeout(() => { fini = true; }, delai || 2000);
+    attendre(appeler('shareableURL', params), fin);
+  }
+
   return {
+    parametreUrl, lienPartage,
     init, chargementFini, jeuCommence, jeuArrete, pubEntreCourses, pubRecompense,
     get present() { return !!poki(); },   // le SDK Poki est-il là ?
     get pubEnCours() { return pubEnCours; }, // vrai pendant une pub : bloquer les clics
