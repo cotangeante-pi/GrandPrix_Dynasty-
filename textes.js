@@ -1177,6 +1177,7 @@ Object.assign(TEXTES.en, {
   com_combleMeteo: ['The rain is still falling.', 'A wet track: careful under braking.', 'Spray everywhere behind the cars.'],
   com_combleSec: ['A dry track, perfect conditions.', 'The tyres are working on this dry track.', 'Clear skies over the circuit.'],
   voix_oui: 'Commentary voice: on', voix_non: 'Commentary voice: off',
+  vs_oui: 'Recorded voices: on', vs_non: 'Recorded voices: off',
 });
 Object.assign(TEXTES.fr, {
   com_combleTete: ['{qui} mène devant {sur}, {ecart} secondes.', '{ecart} secondes entre {qui} et {sur} en tête.', '{qui} toujours devant, {sur} à {ecart} s.'],
@@ -1186,6 +1187,7 @@ Object.assign(TEXTES.fr, {
   com_combleMeteo: ['La pluie tombe toujours.', 'Piste mouillée : prudence au freinage.', 'Des gerbes d’eau derrière les voitures.'],
   com_combleSec: ['Piste sèche, des conditions parfaites.', 'Les pneus travaillent bien sur le sec.', 'Grand ciel bleu sur le circuit.'],
   voix_oui: 'Voix du commentateur : oui', voix_non: 'Voix du commentateur : non',
+  vs_oui: 'Voix enregistrées : oui', vs_non: 'Voix enregistrées : non',
 });
 // --- tour 44d, Codeur 4 : les touches de chaque joueur à deux (touches.js) ---
 Object.assign(TEXTES.en, {

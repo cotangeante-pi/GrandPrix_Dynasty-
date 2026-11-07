@@ -26,7 +26,9 @@ def fichiers_du_jeu():
     refs = re.findall(r'(?:src|href)="([^"]+)"', page)
     locaux = [r for r in refs if not re.match(r'^(https?:|data:|#|//)', r)]
     externes = [r for r in refs if re.match(r'^(https?:|//)', r)]
-    return ['index.html'] + sorted(set(locaux)), externes
+    # (tour 51c) les voix enregistrées (voix-sons.js) : sons/voix/*.m4a font partie du jeu
+    sons = sorted('sons/voix/' + f for f in os.listdir(os.path.join(RACINE, 'sons', 'voix'))) if os.path.isdir(os.path.join(RACINE, 'sons', 'voix')) else []
+    return ['index.html'] + sorted(set(locaux)) + sons, externes
 
 # le script du SDK Poki (CLAUDE.md « Règles Poki ») : ajouté SEULEMENT dans l'index.html du zip, juste avant sdk.js ; le dépôt reste
 # sans réseau (les tests ouvrent la page en file://). Sans réseau, le script échoue et sdk.js fait comme si Poki n'était pas là
@@ -365,6 +367,39 @@ try:
               return { a1, a2, m: texte('aidesMarque'), leo: INTERFACE.aidesAmi('léo'), sam: INTERFACE.aidesAmi('SAM') }; }""")
             t(f'{titre} : au tournoi, les aides de chacun à côté de son nom (« {amis["a1"]} » / « {amis["a2"]} »), gardées par prénom',
               amis['m'] in amis['a1'] and amis['m'] not in amis['a2'] and amis['leo'] is True and amis['sam'] is False and not console, str([amis, console]))
+            ctx.close()
+            # (tour 51c) les voix enregistrées, depuis le zip : les sons y sont, servis avec un type audio, décodés par Chrome après la découverte,
+            # jamais avant le premier geste ; un son joué passe par le mixage ; console vide
+            import mimetypes
+            noms_sons = [n for n in zipfile.ZipFile(ZIP).namelist() if n.startswith('sons/voix/')]
+            t('paquet : les 30 sons des voix (3 prises × 5 faits × 2 langues) sont dans le zip, et pèsent moins de 400 Ko', len(noms_sons) == 30 and sum(zipfile.ZipFile(ZIP).getinfo(n).file_size for n in noms_sons) < 400000, len(noms_sons))
+            t('paquet : les sons ont un type audio (' + str(mimetypes.guess_type('x.m4a')[0]) + ')', (mimetypes.guess_type('x.m4a')[0] or '').startswith('audio/') or mimetypes.guess_type('x.m4a')[0] is None)
+            titre = 'paquet voix enregistrées 1280×720'
+            ctx = b.new_context(viewport={'width': 1280, 'height': 720})
+            pg = ctx.new_page(); console = []
+            pg.add_init_script(FAUX_SDK)
+            pg.route('**/poki-sdk.js', lambda r: r.fulfill(status=200, content_type='text/javascript', body=''))
+            pg.on('console', lambda m: console.append(m.type + ': ' + m.text) if m.type in ('error', 'warning') and not LECTURE_PIXELS.fullmatch(m.text) else None)
+            pg.on('pageerror', lambda e: console.append('PAGEERROR ' + str(e)))
+            pg.on('request', lambda r: sons_vus.append(r.url) if '/sons/voix/' in r.url else None)
+            sons_vus = []
+            pg.goto('file://' + dossier + '/index.html?voixsons=1')
+            pg.wait_for_function('() => typeof JEU !== "undefined" && JEU.ecran === "titre"', timeout=60000)
+            pg.wait_for_timeout(1500)
+            t(f'{titre} : ?voixsons=1 allume les voix ; avant le premier geste et pendant la découverte, aucun son demandé ni lu', pg.evaluate('() => VOIXSONS.active && !SON.actif') and not sons_vus, sons_vus[:3])
+            pg.mouse.click(640, 360); pg.wait_for_timeout(500)
+            pg.evaluate('() => { VOIXSONS.charger(); }')
+            t(f'{titre} : après un geste, pendant la découverte, rien ne se charge', not sons_vus, sons_vus[:3])
+            pg.evaluate('() => { JEU.decouverte = false; VOIXSONS.charger(); }')
+            try: pg.wait_for_function('() => { const e = VOIXSONS.etat()[LANGUE] || {}; return VOIXSONS.CLES.every(c => e[c] === VOIXSONS.PRISES); }', timeout=20000)
+            except Exception: pass
+            vs = pg.evaluate('() => ({ etat: VOIXSONS.etat(), langue: LANGUE, ctx: SON.etatContexte, joue: VOIXSONS.jouer("depassement"), joues: VOIXSONS.joues })')
+            t(f'{titre} : après la découverte, les 15 sons de la langue sont chargés et décodés par Chrome ({len(sons_vus)} fichiers), un fait joue un son', len(sons_vus) == 15 and all(vs['etat'].get(vs['langue'], {}).get(c) == 3 for c in ('depart', 'depassement', 'bataille', 'erreur', 'victoire')) and vs['joue'] is True, str([vs, sons_vus[:2]]))
+            pg.evaluate('() => { SON.basculer(); }')
+            muet = pg.evaluate('() => ({ coupe: SON.coupe, joue: VOIXSONS.jouer("erreur") })')
+            pg.evaluate('() => { SON.basculer(); }')
+            t(f'{titre} : son coupé (M) : aucun son de voix', muet['coupe'] is True and muet['joue'] is False, str(muet))
+            t(f'{titre} : console vide', not console, ' | '.join(console)[:400])
             ctx.close()
             # SANS réseau : le script du SDK Poki échoue (requête refusée) ; le jeu reste jouable, sans SDK (sdk.js le tolère) ; la seule
             # trace est l'échec de ce script
