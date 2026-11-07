@@ -168,6 +168,10 @@ PAGES = [
     ('index.html?championnat=1&lang=en&test=livree', 960, 600, None),
     ('index.html?course=1&ia=9&joueur=1&circuit=test&test=livree-appels', 1280, 720, None),
     ('index.html?course=1&circuit=test&essai=celebration_feux&robot=1&test=essai', 1280, 720, None),
+    # les réglages de la voiture (tour 50b) : depuis le garage, les quatre curseurs, « Réglage conseillé », la sauvegarde, la voiture du joueur
+    # et celles des IA réglées au Grand Prix suivant ; tient en 1280×720 et 640×360 ; captures reglages-voiture*.png
+    ('index.html?championnat=1&test=reglages-voiture', 1280, 720, None),
+    ('index.html?championnat=1&lang=en&test=reglages-voiture', 640, 360, None),
 ]
 # ECRANS_FILTRE=… (pendant le travail, sur le Mac) : seulement les pages dont l'adresse contient ce texte ; GitHub lance toujours tout
 if os.environ.get('ECRANS_FILTRE'): PAGES = [x for x in PAGES if os.environ['ECRANS_FILTRE'] in f'{x[0]} {x[1]}']   # (« adresse largeur » : « robot=1 960 »)
@@ -2626,7 +2630,8 @@ def paddock_menu(pg, titre, l, h, lang):
     # (tour 48a-2) les écrans ouverts depuis les pages du paddock tiennent aussi dans l'écran (le garage, l'aileron, « Ma voiture », la boutique),
     # ouverts par leurs fonctions (sous swiftshader, l'aperçu 3D de « Ma voiture » fait attendre les clics de Playwright)
     for nom, ouvrir, fermer in (('garage', 'montrerGarage()', 'quitterGarage()'), ('aileron', 'montrerGarage(); montrerAileron()', 'quitterAileron(); quitterGarage()'),
-                                ('livree', 'montrerMaVoiture()', 'quitterLivree()'), ('boutique', 'montrerBoutique()', 'quitterBoutique()')):
+                                ('livree', 'montrerMaVoiture()', 'quitterLivree()'), ('boutique', 'montrerBoutique()', 'quitterBoutique()'),
+                                ('reglagesVoiture', 'montrerGarage(); montrerReglagesVoiture()', 'quitterReglagesVoiture(); quitterGarage()')):   # (+ les réglages de la voiture, tour 50b)
         pg.evaluate('() => { ' + ouvrir + ' }'); pg.wait_for_timeout(400)
         e = pg.evaluate(ECRAN_DEDANS, nom)
         if l == 640: pg.screenshot(path=os.path.join(CAPTURES, f'paddock-{nom}-{lang}-{l}.png'))
@@ -3567,6 +3572,46 @@ if os.environ.get('PAGES_FILTRE'): PAGES = [x for x in PAGES if re.search(os.env
 def clic(pg, sel):
     pg.evaluate('s => document.querySelector(s).click()', sel)
 
+# les réglages de la voiture (tour 50b, reglages-voiture.js, mes-reglages.js) : depuis le garage (page « Mon équipe »), « 🔩 Réglages » : quatre
+# curseurs au milieu, « Réglage conseillé » grisé ; un curseur bougé change sa ligne d'effet et est sauvegardé pour ce circuit ; « Réglage
+# conseillé » remet le milieu ; « Retour » : le garage ; au Grand Prix suivant, la voiture du joueur porte son réglage et les IA ont le leur
+def reglages_voiture_ecran(pg, titre, l, h, page):
+    suffixe = ('-en' if 'lang=en' in page else '') + ('-' + str(l) if l != 1280 else '')
+    t(f'{titre} : le paddock', attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', None, 60000))
+    pg.evaluate('() => { INTERFACE.pagePaddock("equipe"); montrerGarage(); }')
+    t(f'{titre} : le garage a le bouton « Réglages »', attendre(pg, '() => JEU.ecran === "garage" && document.getElementById("boutonReglagesVoiture").textContent === texte("reglagesVoiture")'))
+    clic(pg, '#boutonReglagesVoiture')
+    ETAT = '''() => { const $ = id => document.getElementById(id), nom = circuitProchain(), s = SAUVEGARDE.championnat() || {};
+      return { ecran: JEU.ecran, visible: !$("reglagesVoiture").classList.contains("cache"), garage: $("garage").classList.contains("cache"), lignes: document.querySelectorAll("#rvListe .rvLigne").length,
+        curseurs: REGLAGES_VOITURE.NOMS.map(n => Number($("rvCurseur_" + n).value)), effets: REGLAGES_VOITURE.NOMS.map(n => $("rvEffet_" + n).textContent), conseilleGris: $("boutonRvConseille").disabled,
+        titre: $("rvTitre").textContent, nom, sauve: s.reglagesVoiture ? s.reglagesVoiture[nom] || null : null }; }'''
+    e = pg.evaluate(ETAT)
+    t(f'{titre} : « Réglages » : quatre curseurs au milieu (le réglage conseillé, grisé), une ligne d’effet chacun, le nom du circuit',
+      e['ecran'] == 'reglagesVoiture' and e['visible'] and e['garage'] and e['lignes'] == 4 and e['curseurs'] == [2, 2, 2, 2] and e['conseilleGris'] and len(set(e['effets'])) == 1 and e['effets'][0] and e['sauve'] is None, str(e))
+    pg.evaluate('() => { for (const [n, c] of [["boite", 0], ["pression", 4]]) { const x = document.getElementById("rvCurseur_" + n); x.value = c; x.dispatchEvent(new Event("input")); } }')
+    f = pg.evaluate(ETAT)
+    t(f'{titre} : la boîte longue et la pression haute : leurs lignes d’effet changent, le réglage est sauvegardé pour ce circuit, « Réglage conseillé » n’est plus grisé',
+      f['curseurs'] == [2, 0, 2, 4] and f['effets'][1] != e['effets'][1] and f['effets'][3] != e['effets'][3] and f['effets'][0] == e['effets'][0] and not f['conseilleGris']
+      and f['sauve'] == {'freins': 2, 'boite': 0, 'suspensions': 2, 'pression': 4}, str(f))
+    d = pg.evaluate(ECRAN_DEDANS, 'reglagesVoiture')
+    coupe = pg.evaluate('() => [...document.querySelectorAll("#reglagesVoiture .rvNom, #reglagesVoiture .rvBout, #reglagesVoiture .rvEffet, #reglagesVoiture button")].filter(e => e.scrollWidth > e.clientWidth + 1 || e.scrollHeight > e.clientHeight + 1).map(e => e.id + " " + e.textContent)')
+    t(f'{titre} : l’écran des réglages tient en {l}×{h}, son « Retour » compris, sans défilement ni texte coupé', not d['out'] and d['retour'] and pas_de_defilement(d['defile']) and not coupe, str([d, coupe]))
+    pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, f'reglages-voiture{suffixe}.png'))
+    clic(pg, '#boutonRvConseille')
+    g = pg.evaluate(ETAT)
+    t(f'{titre} : « Réglage conseillé » remet les quatre curseurs au milieu (sauvegardé) et se grise', g['curseurs'] == [2, 2, 2, 2] and g['conseilleGris'] and g['sauve'] is None and g['effets'] == e['effets'], str(g))
+    pg.evaluate('() => { const x = document.getElementById("rvCurseur_suspensions"); x.value = 4; x.dispatchEvent(new Event("input")); }')
+    clic(pg, '#boutonRvRetour')
+    t(f'{titre} : « Retour » ramène au garage', attendre(pg, '() => JEU.ecran === "garage" && document.getElementById("reglagesVoiture").classList.contains("cache") && !document.getElementById("garage").classList.contains("cache")'))
+    if l != 1280: return
+    # au Grand Prix suivant : la voiture du joueur porte son réglage (les suspensions dures), les IA ont le leur
+    pg.evaluate('() => { quitterGarage(); courseSuivante(); }')
+    ok_ = attendre(pg, '() => JEU.joueur && JEU.plateau && (JEU.ecran === "qualif" || JEU.ecran === "course")', None, 60000)
+    r = pg.evaluate('''() => ({ ecran: JEU.ecran, joueur: JEU.joueur.reglageVoiture || null, susp: JEU.joueur.rvSuspension, attendu: REGLAGES_VOITURE.effets({ suspensions: 4 }).suspension,
+      ia: JEU.plateau.pilotes.filter(p => !p.humain && p.reglageVoiture).length, autres: JEU.joueur.rvBoite === undefined && JEU.joueur.rvAdherence === undefined && JEU.joueur.rvFrein === undefined })''') if ok_ else None
+    t(f'{titre} : au Grand Prix suivant, la voiture du joueur porte son réglage (suspensions dures, rien d’autre) et les 19 IA ont choisi le leur',
+      r is not None and r['joueur'] == {'freins': 2, 'boite': 2, 'suspensions': 4, 'pression': 2} and r['susp'] == r['attendu'] and r['autres'] and r['ia'] == 19, str(r))
+
 def livree_ecran(pg, titre, l, h, page):
     suffixe = ('-en' if 'lang=en' in page else '') + ('-960' if l == 960 else '')
     def tient(sels):
@@ -3787,6 +3832,8 @@ with sync_playwright() as p:
                 livree_appels(pg, titre, page)
             elif 'test=livree' in page:
                 livree_ecran(pg, titre, l, h, page)
+            if 'test=reglages-voiture' in page:
+                reglages_voiture_ecran(pg, titre, l, h, page)
             if 'test=essai' in page:
                 essai_ecran(pg, titre)
             if 'mesure=1' in page:
@@ -3803,7 +3850,7 @@ with sync_playwright() as p:
                 pluie_ecran(pg, titre, l, h)
             if 'test=prevision' in page:
                 prevision_ecran(pg, titre)
-            elif 'test=livree' in page or 'test=essai' in page: pass   # (la personnalisation : ses fonctions à elle, plus haut)
+            elif 'test=livree' in page or 'test=essai' in page or 'test=reglages-voiture' in page: pass   # (la personnalisation : ses fonctions à elle, plus haut ; + les réglages de la voiture, tour 50b)
             elif 'test=aides-course' in page:
                 aides_course(pg, titre, l, h)
             elif 'test=fond' in page:
@@ -3842,7 +3889,7 @@ with sync_playwright() as p:
                 accelere(pg, titre, page)
             elif 'championnat=1' in page:
                 championnat(pg, titre, l)
-            if 'test=accelere' in page or 'test=audit' in page or 'test=suivie' in page or 'test=livree' in page or 'test=essai' in page: pass   # (test=suivie : sa page à lui, plus haut ; sinon hud() recommencerait la qualification après le podium)
+            if 'test=accelere' in page or 'test=audit' in page or 'test=suivie' in page or 'test=livree' in page or 'test=essai' in page or 'test=reglages-voiture' in page: pass   # (test=suivie : sa page à lui, plus haut ; sinon hud() recommencerait la qualification après le podium)
             elif 'test=aides' in page or 'test=tuto' in page: pass   # (les aides et le tutoriel : leurs pages à eux, plus haut)
             elif 'test=hudcourse' in page:
                 hud_course(pg, titre, l, h)

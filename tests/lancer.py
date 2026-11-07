@@ -59,6 +59,7 @@ def ecrans(delai=900):   # (tour 48a : 900 s, les 6 pages du nouveau paddock ont
 ANNEXES = ['tests/sdk.html', 'tests/pneus.html', 'tests/enregistreur.html', 'tests/circuits-a.html', 'tests/circuits-b.html', 'tests/textes.html', 'tests/decors.html', 'tests/banc-parle.html']   # (decors : les décors des 12 tracés, Codeur 3 ; banc-parle : les discussions, Codeur 3 ; officiels.html, les IA sur les 12 tracés : une partie à elle)
 ANNEXES.extend(['tests/aides.html', 'tests/tutoriel.html'])   # les aides au premier usage (aides.js, étape 11b) et le tutoriel guidé (tutoriel.js, étape 11d), Codeur 4
 ANNEXES.append('tests/personnalisation.html')   # la personnalisation : livrée, célébration, boutique de skins (tour 48c, Codeur 3)
+ANNEXES.append('tests/reglages-voiture.html')   # les réglages de la voiture (tour 50b, Codeur 2) ; leur tableau sur les 12 tracés : tests/officiels.html
 def annexes():
     return all([serie(p, delai=300 if 'courses' in p else 600 if 'officiels' in p else 120, options=['--virtual-time-budget=5000'] if p.endswith('sdk.html') else []) for p in ANNEXES])
 

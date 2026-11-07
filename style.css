@@ -1644,6 +1644,30 @@ body.auPaddock #boutonSon { display: none; }
   #paddockDefis { max-height: 30vh; }
 }
 
+/* les réglages de la voiture (tour 50b, mes-reglages.js) : quatre lignes « nom | bout | curseur | bout », la ligne d'effet dessous ;
+   tient en 960×600, 1280×720 et 640×360 */
+#reglagesVoiture h1 { margin: 0; }
+#rvListe { display: grid; gap: 10px; width: min(640px, 92vw); }
+.rvLigne { display: grid; grid-template-columns: 190px 70px 1fr 70px; gap: 2px 10px; align-items: center; padding: 6px 12px; border-radius: 8px;
+  background: rgba(0, 0, 0, 0.35); font: 600 14px/1.2 var(--police); text-align: left; }
+.rvNom { font-weight: 800; }
+.rvBout { font-size: 13px; opacity: 0.85; text-align: center; }
+.rvLigne input[type=range] { width: 100%; margin: 0; }
+.rvEffet { grid-column: 1 / -1; margin: 0; font-size: 13px !important; font-weight: 600 !important; opacity: 0.75; }
+.rvEffet.rvRegle { opacity: 1; color: #ffd666; }
+#boutonRvConseille:disabled { opacity: 0.45; cursor: default; box-shadow: none; }
+@media (max-height: 420px) {
+  #reglagesVoiture { gap: 4px; padding: 4px 12px; box-sizing: border-box; }
+  #reglagesVoiture h1 { font-size: 18px; line-height: 1.1; }
+  #reglagesVoiture h1::after { margin-top: 2px; height: 3px; }
+  #rvListe { gap: 4px; }
+  .rvLigne { grid-template-columns: 150px 58px 1fr 58px; padding: 3px 10px; font-size: 12px; }
+  .rvBout { font-size: 11px; }
+  .rvEffet { font-size: 11px !important; line-height: 1.15; }
+  #reglagesVoiture .boutons { gap: 8px; }
+  #reglagesVoiture .boutons button { padding: 6px 14px; font-size: 13px; min-width: 0; }
+}
+
 /* le téléphone couché (640×360, tour 50c) : « ⌨ Touches » (ses trois colonnes côte à côte) et le menu pause tiennent dans l'écran ;
    rien ne change au-dessus de 420 px de haut */
 @media (max-height: 420px) {
