@@ -72,6 +72,7 @@ PAGES = [
     ('index.html?course=0&camera=cockpit&lang=en&test=audit-volant', 960, 600, None),   # l'audit anglais (tour 31, Codeur 3) : chaque écran du championnat et de la fin de carrière, sans un mot français, rien hors de l'écran en 960×600   # la page en anglais : championnat et podium sans un mot français, capture championnat-en.png
     ('index.html?course=1&ia=5&joueur=1&robot=1&circuit=test&test=fantome', 1280, 720, None),
     ('index.html?course=1&ia=5&joueur=1&robot=1&circuit=test&test=defi', 960, 600, None),
+    ('index.html?course=3&robot=1&circuit=test&test=seuldefi', 960, 600, None),   # (tour 51b) « 📋 Défier un ami » après une course seule
     ('index.html?championnat=1&tours=1&test=clavier', 960, 600, None),
     ('index.html?test=clavier-titre', 640, 360, None),   # (tour 50c) « ⌨ Touches » depuis l'écran titre, tout tient en 640×360 ; capture touches-titre-640.png
     ('index.html?course=0&test=clavier-pause', 640, 360, None),   # (tour 50c) … depuis le menu pause : la course reste en pause pendant le choix ; captures pause-640.png, touches-pause-640.png   # (tour 49b) les touches au choix : l'écran depuis Réglages, une touche changée conduit la voiture, capture touches.png   # (tour 49b) le défi du fantôme : « Défier un ami » après la qualification, « Relever un défi », le tour contre le fantôme, captures defi-*.png   # le fantôme du meilleur tour : deux qualifications de suite, la 2e contre le fantôme, capture fantome.png
@@ -544,6 +545,24 @@ def clavier_pause(pg, titre, l, h):
 # → « Relever un défi » refuse un code abîmé (le message) et accepte le bon ; la page ?defi=1 : le même tour du robot contre ce fantôme
 # (visible, l'écart en direct) ; à l'arrivée, l'écart au fantôme vaut 0 (le même robot), « Renvoyer mon code », le meilleur gardé
 def texte_ok(x): return bool(x) and '{' not in x and 'undefined' not in x and 'null' not in x
+
+# (tour 51b) le défi après une course seule : le robot fait 3 tours seul ; le premier (départ arrêté) n'est pas gardé, le meilleur des deux autres l'est ;
+# « 📋 Défier un ami » à l'arrivée donne un lien et un code qui se décodent, au temps du meilleur tour ; le record du circuit est le même tour
+def defi_seul(pg, titre):
+    attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "course" && !!JEU.course', None, 120000)
+    for _ in range(120):
+        pg.evaluate('() => BOUCLE.simuler(5)')
+        if pg.evaluate('() => JEU.ecran') == 'fin': break
+        pg.wait_for_timeout(50)
+    attendre(pg, '() => JEU.ecran === "fin"', None, 10000)
+    e = pg.evaluate('() => ({ meilleur: JEU.course.meilleurTour, garde: JEU.fantomeSeul && JEU.fantomeSeul.meilleur && JEU.fantomeSeul.meilleur.temps, bouton: !document.getElementById("boutonFinDefi").classList.contains("cache"), texte: document.getElementById("boutonFinDefi").textContent === texte("defiBouton"), record: SAUVEGARDE.fantome(NOM_CIRCUIT) && SAUVEGARDE.fantome(NOM_CIRCUIT).temps, tours: JEU.course.tours.map(x => x.temps) })')
+    ok = e['garde'] is not None and e['meilleur'] is not None and abs(e['garde'] - e['meilleur']) < 0.0005 and e['tours'][0] != e['garde']
+    t(f'{titre} : après une course seule de 3 tours, le meilleur tour propre est enregistré (pas le premier, départ arrêté), c’est le record du circuit, et « 📋 Défier un ami » est là', ok and e['bouton'] and e['texte'] and e['record'] is not None and abs(e['record'] - e['garde']) < 0.0005, str(e))
+    pg.click('#boutonFinDefi')
+    c = pg.evaluate('() => { const c = document.querySelector("#finCode input.defiCode"); return c ? c.value : ""; }')
+    l = pg.evaluate('() => { const c = document.querySelector("#finCode input.defiLien"); return c ? c.value : ""; }')
+    d = pg.evaluate('c => { const r = DEFI.decoder(c, CIRCUIT.longueur); return r.ok ? r.defi.temps : null; }', c)
+    t(f'{titre} : le lien (?defi=…) et le code (« GPD-TEST-… ») s’affichent à l’arrivée et se décodent au temps du meilleur tour', c.startswith('GPD-TEST-') and '/index.html?defi=' in l and d is not None and abs(d - e['garde']) < 0.0015, str([c[:20], l[:60], d, e['garde']]))
 
 def defi_ecran(pg, titre):
     attendre(pg, '() => JEU.ecran === "qualif" && JEU.qualif && JEU.qualif.etat === "choix"', None, 60000)
@@ -3784,7 +3803,7 @@ with sync_playwright() as p:
             if 'reglages=1' in page:
                 reglages_panneau(pg, titre)
                 reglages(pg, titre)
-            if 'test=audit' not in page and 'test=essai' not in page and 'robot=1' in page and 'championnat=1' not in page and 'joueur=1' not in page and 'test=sdk' not in page and 'pneus=1' not in page and 'test=decouverte' not in page and 'test=deux' not in page:   # (avec ?championnat=1 ou &joueur=1, le robot joue dans championnat() ou qualif() ; sdk() et pneus() ont leur page)
+            if 'test=audit' not in page and 'test=seuldefi' not in page and 'test=essai' not in page and 'robot=1' in page and 'championnat=1' not in page and 'joueur=1' not in page and 'test=sdk' not in page and 'pneus=1' not in page and 'test=decouverte' not in page and 'test=deux' not in page:   # (avec ?championnat=1 ou &joueur=1, le robot joue dans championnat() ou qualif() ; sdk() et pneus() ont leur page)
                 course_robot(pg, titre, page)
             if 'test=sdk' in page:
                 sdk(pg, titre)
@@ -3903,6 +3922,8 @@ with sync_playwright() as p:
                 resume_ecran(pg, titre, l, h)
             elif 'test=qualif' in page:
                 qualif(pg, titre)
+            elif 'test=seuldefi' in page:
+                defi_seul(pg, titre)
             elif 'test=defi' in page:
                 defi_ecran(pg, titre)
             elif 'test=fantome' in page:

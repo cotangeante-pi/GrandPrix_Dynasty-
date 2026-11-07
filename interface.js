@@ -1229,7 +1229,11 @@ const INTERFACE = (function () {
   }
 
   // l'écran de fin : temps total, meilleur tour, les tours (✂ = virage coupé), le record
-  function remplirFin(c, nouveauRecord) {
+  function remplirFin(c, nouveauRecord, defi) {
+    // (tour 51b) « 📋 Défier un ami » après une course seule : si un tour propre a été enregistré (principal.js, fantomeSeul)
+    $('boutonFinDefi').textContent = texte('defiBouton');
+    $('boutonFinDefi').classList.toggle('cache', !defi);
+    $('finCode').classList.add('cache');
     $('finTitre').textContent = texte('fin');
     $('finTotal').textContent = texte('tempsTotal') + ' ' + formatTemps(tempsTotal(c));
     $('finMeilleur').textContent = texte('meilleurTour') + ' ' + formatTemps(c.meilleurTour);
@@ -2095,7 +2099,7 @@ const DEFI_ECRAN = (function () {
   function preparer(f) {
     bouton('boutonDefiCourir', f.courir); bouton('boutonDefiRetour', f.retour);
     bouton('boutonDefiRecommencer', f.recommencer); bouton('boutonDefiRenvoyer', f.renvoyer); bouton('boutonDefiQuitter', f.quitter);
-    bouton('boutonQualifDefi', f.defierQualif); bouton('boutonTournoiDefi', f.defierTournoi);
+    bouton('boutonQualifDefi', f.defierQualif); bouton('boutonTournoiDefi', f.defierTournoi); bouton('boutonFinDefi', f.defierFin);
     $('defiSaisie').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); f.courir(); } });
   }
 

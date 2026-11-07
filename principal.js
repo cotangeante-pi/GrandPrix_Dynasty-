@@ -245,6 +245,45 @@ function finirFantome(q) {
   return { record, gagne: record && ecart !== null ? -ecart : null, ecart: !record && ecart !== null ? ecart : null, taille: FANTOME.taille(compact), compact: q.valide ? compact : null };   // (compact : le tour, pour « 📋 Défier un ami », tour 49b)
 }
 
+// --- le défi après une course seule (tour 51b, CLAUDE.md « Le défi du fantôme entre amis ») : chaque tour de la course seule est enregistré
+// comme celui d'une qualification (le même enregistreur, une voiture, sans rien d'affiché) ; le premier tour (départ arrêté, depuis la
+// grille), un tour coupé (✂) et un tour qui passe par la voie des stands ne sont jamais gardés. On garde le plus rapide de la course :
+// « 📋 Défier un ami » à l'arrivée, et le record du circuit s'il le bat (comme une qualification). Seul le calcul tourne : aucun
+// affichage, aucun fantôme à rejouer, rien ne change à la physique ni à la course
+function noterFantomeSeul(c, v) {
+  if (ESSAI || JEU.defi || JEU.tournoi || JEU.plateau) return;
+  const f = JEU.fantomeSeul || (JEU.fantomeSeul = { tour: null, nTours: 0, ligne: 0, sale: false, meilleur: null });
+  if (c.tours.length > f.nTours) {   // un tour vient de finir
+    const t = c.tours[c.tours.length - 1];
+    if (f.tour && !f.sale && !t.coupe && (!f.meilleur || t.temps < f.meilleur.temps)) {
+      FANTOME.noter(f.tour, t.temps, v, c.progression - f.ligne);
+      f.meilleur = { temps: t.temps, compact: FANTOME.compacter(f.tour, t.temps, c.progression - f.ligne) };
+    }
+    f.nTours = c.tours.length; f.sale = false; f.ligne = c.progression;
+    f.tour = c.etat === 'finie' ? null : FANTOME.commencer();
+    if (f.tour) FANTOME.noter(f.tour, 0, v, 0);
+    return;
+  }
+  if (!f.tour || c.etat !== 'course') return;
+  if (c.arretEnCours || v.dansStands) f.sale = true;
+  FANTOME.noter(f.tour, c.temps - c.debutTour, v, c.progression - f.ligne);
+}
+
+// la course seule est finie : le meilleur tour propre devient le record du circuit s'il le bat ; renvoie ce tour (ou null : pas de défi)
+function finirFantomeSeul(c) {
+  const f = JEU.fantomeSeul;
+  if (!f || !f.meilleur || JEU.plateau || ESSAI) return null;
+  SAUVEGARDE.proposerFantome(NOM_CIRCUIT, f.meilleur.compact, false);
+  return f.meilleur.compact;
+}
+
+// « 📋 Défier un ami » à la fin d'une course seule : le code du meilleur tour propre
+function defierFin() {
+  const f = JEU.ecran === 'fin' && JEU.fantomeSeul && JEU.fantomeSeul.meilleur;
+  if (!f) return;
+  DEFI_ECRAN.montrerCode('finCode', DEFI.coder(Object.assign({ circuit: NOM_CIRCUIT, fantome: f.compact }, signatureDefi())), lienDefi);
+}
+
 // le bouton « Fantôme : affiché / masqué » : l'option est sauvegardée, et le fantôme en cours la suit
 function basculerFantome() {
   const visible = !SAUVEGARDE.option('fantome', true);
@@ -1855,7 +1894,8 @@ function finDeCourse() {
   const c = JEU.course;
   // une course entre IA ne bat pas les records du joueur
   const nouveau = JEU.plateau ? false : SAUVEGARDE.proposerRecord(c.nbTours, c.meilleurTour, NOM_CIRCUIT);
-  INTERFACE.remplirFin(c, nouveau);
+  const defi = finirFantomeSeul(c);
+  INTERFACE.remplirFin(c, nouveau, !!defi);
   SON.signal('arrivee');
   JEU.ecran = 'fin';
   INTERFACE.montrer('fin');
@@ -2133,7 +2173,7 @@ function pasJoueur(pas) {
   else lisserCommandes(v, permis ? aiderJoueur(JEU.cibles, v) : AUCUNE, pas);
   pasVoiture(v, CIRCUIT, pas);
   pasPneusJoueur(v, pas);
-  if (c && JEU.ecran === 'course' && !(JEU.ia && !JEU.carte)) { majCourse(c, v, pas); enregistrerPas(); }   // ?ia=1 : pareil, la course attend la carte
+  if (c && JEU.ecran === 'course' && !(JEU.ia && !JEU.carte)) { majCourse(c, v, pas); enregistrerPas(); noterFantomeSeul(c, v); }   // ?ia=1 : pareil, la course attend la carte
 }
 
 // le joueur fait son tour de qualification (le chrono s'affiche, « hors piste » aussi)
@@ -2553,7 +2593,7 @@ function demarrerJeu() {
   { const b = document.getElementById('boutonAmisDefi'); b.textContent = texte('amisDefi'); b.addEventListener('mousedown', e => e.preventDefault()); b.addEventListener('click', ouvrirDefi); }
   DEFI_ECRAN.preparer({ courir: courirDefi, retour: retourDefi, recommencer: () => { if (JEU.ecran === 'defiFin') location.reload(); },
     renvoyer: () => { if (JEU.ecran === 'defiFin' && JEU.defi && JEU.defi.code) DEFI_ECRAN.montrerCode('defiFinCode', JEU.defi.code, lienDefi); },
-    quitter: () => { if (JEU.ecran === 'defiFin') location.href = adresseAvec({ menu: 'amis' }); }, defierQualif,
+    quitter: () => { if (JEU.ecran === 'defiFin') location.href = adresseAvec({ menu: 'amis' }); }, defierQualif, defierFin,
     defierTournoi: () => { if (JEU.ecran === 'tournoiManche' && JEU.tournoiDefi) DEFI_ECRAN.montrerCode('tournoiCode', DEFI.coder(JEU.tournoiDefi), lienDefi); } });
   if (LIEN_DEFI_REFUS) DEFI_ECRAN.annoncerRefus(texte('defiRefus_' + LIEN_DEFI_REFUS));   // (tour 50b) un lien de défi abîmé : le jeu normal, et la raison
   INTERFACE.preparerInscription(partirTournoi, montrerAmis);
