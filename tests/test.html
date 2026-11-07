@@ -2913,16 +2913,21 @@ t('casque : les motifs débloqués sont gardés à la racine de la sauvegarde : 
 
 // --- le résumé vidéo de la course (resume.js, étape 13)
 t('résumé : sur une course simulée (12 IA, 3 tours, enregistrée comme dans la page), les moments forts : le départ, au moins un dépassement, l’arrivée ; la durée totale bornée (RESUME_DUREE_MAX) ; le rejeu ne passe que par ces plages et redonne les positions de l’enregistrement à 1 cm près', ()=>{
-  // (tour 51f : la graine 1, pas la 2 : avec les techniques en bataille (IA_TECH_BATAILLE), la 2 n'a plus de dépassement tenu, la 1 en a avec et sans)
-  // (tour 50a : la graine 2, pas la 5 : avec l'attaque de la voiture de tête, la graine 5 n'a plus aucun dépassement tenu, la 2 en a avec et sans)
-  const R=REGLAGES,e=creerCourseIA(C,12,3,1,CARTES_T.test),N=e.pilotes.length,voitures=e.pilotes.map(p=>p.v),enr=creerEnregistreur(N,{joueur:11});
-  const vraies=[];let parti=false,pas=0;const arrivees=new Set();
-  for(let k=0;k<400*120&&!e.pilotes.every(p=>p.arrivee!==null);k++){pasCourseIA(e,DT);
-    if(!parti&&courseAutorise(e.pilotes[0].course)){parti=true;enr.depart(e.temps);}
-    const n0=enr.nbImages;enr.enregistrer(e.temps,voitures,pas%REGLAGES_ENREGISTREUR.CLASSEMENT_PAS===0?classementCourse(e):null);pas++;
-    if(enr.nbImages>n0)vraies.push({t:enr.temps(enr.nbImages-1),p:voitures.map(v=>[v.x,v.z])});
-    e.pilotes.forEach((p,i)=>{if(p.arrivee!==null&&!arrivees.has(i)){arrivees.add(i);enr.arrivee(p.arrivee,i);}});}
-  const r=RESUME.creer(enr),types=r.plages.flatMap(p=>p.moments.map(m=>m.type));
+  // (tour 51f : la première graine de 1 à 8 qui a un dépassement tenu : avec les techniques en bataille, IA_TECH_BATAILLE, la 2 n'en a plus dans Chrome
+  // et la 1 non plus sur GitHub ; ce test vérifie le résumé, pas les IA — la graine dépend du moteur JavaScript)
+  // (tour 50a : la graine 2, pas la 5 : avec l'attaque de la voiture de tête, la graine 5 n'a plus aucun dépassement tenu)
+  const R=REGLAGES;
+  function jouer(graine){
+    const e=creerCourseIA(C,12,3,graine,CARTES_T.test),N=e.pilotes.length,voitures=e.pilotes.map(p=>p.v),enr=creerEnregistreur(N,{joueur:11});
+    const vraies=[];let parti=false,pas=0;const arrivees=new Set();
+    for(let k=0;k<400*120&&!e.pilotes.every(p=>p.arrivee!==null);k++){pasCourseIA(e,DT);
+      if(!parti&&courseAutorise(e.pilotes[0].course)){parti=true;enr.depart(e.temps);}
+      const n0=enr.nbImages;enr.enregistrer(e.temps,voitures,pas%REGLAGES_ENREGISTREUR.CLASSEMENT_PAS===0?classementCourse(e):null);pas++;
+      if(enr.nbImages>n0)vraies.push({t:enr.temps(enr.nbImages-1),p:voitures.map(v=>[v.x,v.z])});
+      e.pilotes.forEach((p,i)=>{if(p.arrivee!==null&&!arrivees.has(i)){arrivees.add(i);enr.arrivee(p.arrivee,i);}});}
+    const r=RESUME.creer(enr);return {N,enr,vraies,r,types:r.plages.flatMap(p=>p.moments.map(m=>m.type))};}
+  let J=jouer(2);for(let g=1;g<=8&&!J.types.includes('depassement');g++)J=jouer(g);
+  const {N,enr,vraies,r,types}=J;
   v(types.includes('depart')&&types.includes('arrivee')&&types.filter(x=>x==='depassement').length>=1,'moments : '+types.join());
   v(r.duree<=R.RESUME_DUREE_MAX+1e-9&&r.duree>0,'durée '+r.duree);
   // le rejeu : à 30 images par seconde, toujours dans une plage, jusqu'au bout ; puis fini
