@@ -16,7 +16,7 @@ import transcrire as TR
 
 ESSAI2, ESSAI3, PAGE = sys.argv[1], sys.argv[2], sys.argv[3]
 VOIX = {'fr': [7, 4, 6, 1], 'en': [0, 3, 9, 2]}   # les meilleures de l'essai n° 2 (le Chef) ; jamais en 6
-NOTE_MIN, GARDEES = 0.6, 4
+NOTE_MIN, NOTE_MOYENNE, GARDEES = 0.6, 0.5, 4
 CLES = ['depart', 'depassement', 'bataille', 'erreur', 'victoire']
 
 def lire(dossier, essai):
@@ -39,6 +39,9 @@ def main():
         for cle in CLES:
             bonnes = sorted([x for x in toutes if x['langue'] == l and x['cle'] == cle and not x['rejet']], key=lambda x: -x['note'])
             hautes = [x for x in bonnes if x['note'] >= NOTE_MIN][:GARDEES]
+            # une phrase avec moins de 2 prises hautes : les meilleures suivantes au-dessus de NOTE_MOYENNE, marquées « moyenne » (pour
+            # que le propriétaire ait au moins le choix entre deux) ; aucune : la meilleure, marquée « faible »
+            if len(hautes) < 2: hautes += [dict(x, moyenne=True) for x in bonnes if NOTE_MOYENNE <= x['note'] < NOTE_MIN][:2 - len(hautes)]
             if not hautes and bonnes: hautes = [dict(bonnes[0], faible=True)]
             for i, x in enumerate(hautes):
                 xb, sr = T.lire_wav(os.path.join(x['dossier'], x['nom'] + '-brut.wav'))
@@ -47,7 +50,7 @@ def main():
                 with tempfile.TemporaryDirectory() as tmp:
                     w = os.path.join(tmp, 'vif.wav'); T.ecrire_wav(w, y, sr2); T.encoder_mp4(w, os.path.join(PAGE, f))
                 x.update(fichier=f, duree=round(len(y) / sr2, 2), duree_avant=round(T.duree_parole(T.rogner(xb, sr), sr), 2))
-                gardees.append({k: x[k] for k in ('fichier', 'langue', 'cle', 'voix', 'essai', 'prise', 'texte', 'entendu', 'note', 'into', 'duree') if k in x} | {'faible': bool(x.get('faible'))})
+                gardees.append({k: x[k] for k in ('fichier', 'langue', 'cle', 'voix', 'essai', 'prise', 'texte', 'entendu', 'note', 'into', 'duree') if k in x} | {'faible': bool(x.get('faible')), 'moyenne': bool(x.get('moyenne'))})
                 fichiers.append(f)
     json.dump([{'path': f} for f in fichiers + ['ecoute.html']], open(os.path.join(PAGE, 'fichiers.json'), 'w'), indent=1)
     open(os.path.join(PAGE, 'ecoute.html'), 'w').write(PAGE_HTML.replace('__DONNEES__', json.dumps(gardees, ensure_ascii=False)))
@@ -71,7 +74,7 @@ button{font:inherit;padding:4px 9px;border-radius:6px;border:1px solid var(--tra
 tr.top td{background:color-mix(in srgb,var(--bon) 8%,var(--carte))}
 </style></head><body><main>
 <h1>Essai voix n° 3 : plus d'intonation, plus rapide</h1>
-<p>Seulement les meilleures prises (les voix gardées de l'essai n° 2, plus de nouvelles prises surtout pour « Quelle BAGARRE ! »), triées par la note d'intonation : on ne garde que les notes hautes. Toutes passent par le même traitement « vif » : la parole 15 % plus rapide sans changer la hauteur de la voix, les silences encore plus courts, et la fin de la phrase qui monte nettement.</p>
+<p>Seulement les meilleures prises (les voix gardées de l'essai n° 2, plus de nouvelles prises surtout pour « Quelle BAGARRE ! »), triées par la note d'intonation : on ne garde que les notes hautes (0,6 et plus ; une phrase qui en a moins de deux montre aussi sa meilleure prise « moyenne », entre 0,5 et 0,6). Toutes passent par le même traitement « vif » : la parole 15 % plus rapide sans changer la hauteur de la voix, les silences encore plus courts, et la fin de la phrase qui monte nettement.</p>
 <p>Pour chaque phrase : la voix d'aujourd'hui (la synthèse du navigateur) pour comparer, puis les prises, de la meilleure intonation à la moins bonne.</p>
 <div id="z"></div></main>
 <script>
@@ -90,7 +93,7 @@ for(const l of ["fr","en"]){const h=document.createElement("h2");h.textContent=l
   const w=document.createElement("div");w.className="l";const t=document.createElement("table");let tr=document.createElement("tr");
   for(const c of ["#","Intonation","Voix","Texte donné","Entendu (transcription)","Écouter"]){const th=document.createElement("th");th.textContent=c;tr.appendChild(th)}t.appendChild(tr);
   rs.forEach((r,i)=>{tr=document.createElement("tr");if(i===0)tr.className="top";
-   td(tr,String(i+1));const n=td(tr,r.note.toFixed(2)+(r.faible?" (faible)":""));n.className="n";
+   td(tr,String(i+1));const n=td(tr,r.note.toFixed(2)+(r.faible?" (faible)":r.moyenne?" (moyenne)":""));n.className="n";
    if(r.into)n.title="étendue "+r.into.etendue+" demi-tons, fin "+(r.into.fin>0?"+":"")+r.into.fin+", claque : "+(r.into.claque?"oui":"non");
    td(tr,"voix "+r.voix+" · essai "+r.essai);td(tr,r.texte);td(tr,r.entendu||"–");td(tr,son(r.fichier));t.appendChild(tr)});
   w.appendChild(t);z.appendChild(w)}}
