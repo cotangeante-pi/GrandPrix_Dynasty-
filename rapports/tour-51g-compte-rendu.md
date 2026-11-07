@@ -1,0 +1,28 @@
+# Tour 51g : chasse aux bugs sur les ajouts récents (Codeur 3, branche chasse-51)
+
+## Ce que j'ai étendu (tests/recoins.py et tests/chasse.py, rien de nouveau comme fichier)
+Cinq parties nouvelles de `tests/recoins.py` (RECOINS=…), toutes avec le relevé commun de `tests/chasse.py` (console, textes cassés, clés manquantes, boutons vides / hors de l'écran / qui débordent / qui se recouvrent, défilement, clics impossibles, écrans bloqués) :
+- **divisions** (fr 960×600, en 640×360) : une carrière qui monte de la division 4 à la 1, une saison dans chacune. À chaque division : invariants du plateau (20 pilotes, 10 écuries, le joueur dernier, un coéquipier, numéros uniques sur tous les plateaux, niveau des IA = celui de la division, JSON aller-retour, classements), toutes les pages du paddock, calendrier, album, « Voir tout », fiche d'un rival ; la saison jouée sans physique (`SAISONS.avancer`), la montée, les contrats d'en haut (salaires, « 💬 Négocier » sur chaque offre d'un promu, négociation d'un patron d'en haut, signature), les sponsors, puis le paddock de la division suivante ; en division 1 on ne monte pas.
+- **defi** (fr 960, en 960, fr 640×360) : un code fabriqué, le lien `?defi=` (grille du défi sans autre écran, pas de doublon au rechargement, Échap = abandon, « Quitter »), six liens abîmés (un caractère, coupé, vide, texte, autre jeu, circuit inconnu : le jeu s'ouvre normalement, la raison s'affiche), page Messages et « Relever », « Entre amis » → « Relever un défi » (code abîmé refusé, code avec espaces et retours à la ligne accepté).
+- **carrieres** (fr 960, en 960, en 640×360) : depuis une carrière en division 1 avec skin, voix enregistrées et argent : la confirmation en deux temps (et « Non » / quitter la page), « Nouvelle carrière » (monde neuf en division 4, argent à zéro, skins et voix gardés, temple), le paddock de la nouvelle carrière (niveau débutant), « Nouvelle carrière à 0 » (monde neuf du premier lancement, plus de skins ni de temple), « ▶ Jouer » mène à la découverte ; et la création du pilote au clavier (Tab, lettres et Espace tapés dans le nom).
+- **sauvegardes-recentes** et **sauvegardes-racine** (fr 960×600) : 20 sauvegardes abîmées sur les champs récents (division, plateau, plateaux, parcours ; défis, touches, skins, célébrations, voix, réglages de voiture, livrée) ; le jeu doit repartir au paddock sans erreur et ouvrir le paddock et ses pages, le garage, « Relever un défi ».
+Aussi : `tests/chasse.py` : captures qui ne plantent plus quand la machine est chargée (délai 90 s), clic sur le menu du paddock avec 30 s ; `tests/recoins.py` : `COMBOS` (langue × taille propres à une partie), délais de chargement de 120 s.
+
+## Bugs
+| Trouvé | Corrigé ? | Test |
+|---|---|---|
+| Création du pilote en 640×360 : « Let's go! » sortait de l'écran (bas à 425 px sur 360), donc impossible de finir la création sur un téléphone couché, premier lancement compris ; le bouton 🔊 couvrait deux champs (nom, numéro) | corrigé (`style.css`, bloc 51g : champs en deux colonnes, casque compact, marge haute de 52 px) | carrieres en 640×360 (« bouton hors de l'écran », clic) |
+| Classement final de la saison en 640×360 : « Continuer » sortait de l'écran (bas à 400 px) | corrigé (titres, lignes et marges serrés sous 420 px de haut) | divisions en 640×360 |
+| Contrats en 640×360 : les offres du bas (et leur « Signer ») sortaient de l'écran | corrigé (lignes serrées, la liste défile si besoin) | divisions en 640×360 |
+| Liste de défis abîmée dans la sauvegarde (entrée nulle, sans temps, circuit inconnu) : « Relever un défi » plantait (`Cannot read properties of null (reading 'nom')`), clés `circuit_nulle` manquantes | corrigé (`sauvegarde.js` ne garde que les entrées lisibles ; `enCours` non texte → null) | sauvegardes-racine « défis : liste bizarre » |
+
+## Cherché et rien trouvé (donc couvert par un test qui reste)
+Divisions : plateau, numéros uniques, niveau des IA, offres et négociation d'un promu, salaires, montée jusqu'en division 1, album et fiches après un changement de plateau. Défi : tous les cas de lien et de code. Nouvelle carrière / à 0 : tout ce qui est gardé ou effacé, `REGLAGES.NIVEAU` de la nouvelle carrière. Réglages de voiture, touches, voix, boutique, livrée, célébration : lus depuis vingt sauvegardes abîmées sans erreur. Tab dans les champs de la création du pilote passe bien au champ suivant.
+
+## Laissé, et pourquoi
+- Le bouton 🔊 (haut au centre en 640×360) couvre le titre centré des écrans de fin de saison, contrats, etc. : pas un bouton, pas un bug de clic ; un changement global de position demande l'avis du Chef (il porte aussi la course).
+- Garage en 640×360 et lien de défi sur Poki : Codeur 2. `ia.js` : Codeur 1.
+- Les saisons des divisions 3, 2 et 1 sont avancées sans physique (le test fait jouer les 12 Grands Prix à `saison.py` en division 4 seulement) : douze courses par division dans Chrome sur le Mac chargé dépasseraient les 600 s d'un travail. Le premier lancement et les courses avec le niveau de chaque division sont déjà dans `ecrans.py` (tour 49d).
+
+## Répartition sur GitHub (limite de 600 s)
+Pas de nouveau travail : les cinq parties sont ajoutées à des travaux courts du workflow : moteur (+ defi), courses (+ divisions), stands (+ sauvegardes-recentes), consignes (+ sauvegardes-racine), meteo (+ carrieres). À réajuster selon les durées du premier passage.
