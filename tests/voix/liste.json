@@ -1,0 +1,242 @@
+[
+ {
+  "id": "depart-1",
+  "moment": "Le départ",
+  "fait": "depart",
+  "texte": "Et c'est PARTI !"
+ },
+ {
+  "id": "depart-2",
+  "moment": "Le départ",
+  "fait": "depart",
+  "texte": "C'est le DÉPART !"
+ },
+ {
+  "id": "depart-3",
+  "moment": "Le départ",
+  "fait": "depart",
+  "texte": "Feux éteints, ça PART !"
+ },
+ {
+  "id": "depassement-1",
+  "moment": "Dépassement",
+  "fait": "depassement",
+  "texte": "Ça PASSE !"
+ },
+ {
+  "id": "depassement-2",
+  "moment": "Dépassement",
+  "fait": "depassement",
+  "texte": "Quel DÉPASSEMENT !"
+ },
+ {
+  "id": "depassement-3",
+  "moment": "Dépassement",
+  "fait": "depassement",
+  "texte": "Dehors, et ça PASSE !"
+ },
+ {
+  "id": "depassementTete-1",
+  "moment": "Prise de la tête",
+  "fait": "depassementTete",
+  "texte": "On change de LEADER !"
+ },
+ {
+  "id": "depassementTete-2",
+  "moment": "Prise de la tête",
+  "fait": "depassementTete",
+  "texte": "La TÊTE est prise !"
+ },
+ {
+  "id": "bataille-1",
+  "moment": "Bataille",
+  "fait": "coteACote",
+  "texte": "Quelle BAGARRE !"
+ },
+ {
+  "id": "bataille-2",
+  "moment": "Bataille",
+  "fait": "coteACote",
+  "texte": "Roues contre ROUES !"
+ },
+ {
+  "id": "bataille-3",
+  "moment": "Bataille",
+  "fait": "coteACote",
+  "texte": "Côte à CÔTE !"
+ },
+ {
+  "id": "erreur-1",
+  "moment": "Erreur, herbe",
+  "fait": "erreur",
+  "texte": "Oh ! Dans l'HERBE !"
+ },
+ {
+  "id": "erreur-2",
+  "moment": "Erreur, herbe",
+  "fait": "erreur",
+  "texte": "Quelle ERREUR !"
+ },
+ {
+  "id": "erreur-3",
+  "moment": "Erreur, herbe",
+  "fait": "erreur",
+  "texte": "Ça glisse, c'est la SORTIE !"
+ },
+ {
+  "id": "glissade-1",
+  "moment": "Glissade rattrapée",
+  "fait": "glissade",
+  "texte": "Quel RATTRAPAGE !"
+ },
+ {
+  "id": "glissade-2",
+  "moment": "Glissade rattrapée",
+  "fait": "glissade",
+  "texte": "SAUVÉ de justesse !"
+ },
+ {
+  "id": "contact-1",
+  "moment": "Contact",
+  "fait": "contact",
+  "texte": "Aïe, CONTACT !"
+ },
+ {
+  "id": "contact-2",
+  "moment": "Contact",
+  "fait": "contact",
+  "texte": "Ça TOUCHE !"
+ },
+ {
+  "id": "arret-1",
+  "moment": "Voiture arrêtée",
+  "fait": "arret",
+  "texte": "Voiture ARRÊTÉE en piste !"
+ },
+ {
+  "id": "arret-2",
+  "moment": "Voiture arrêtée",
+  "fait": "arret",
+  "texte": "Ça s'ARRÊTE là !"
+ },
+ {
+  "id": "stands-1",
+  "moment": "Arrêt au stand",
+  "fait": "stands",
+  "texte": "Direction les STANDS !"
+ },
+ {
+  "id": "stands-2",
+  "moment": "Arrêt au stand",
+  "fait": "stands",
+  "texte": "Arrêt au STAND !"
+ },
+ {
+  "id": "pluie-1",
+  "moment": "Pluie",
+  "fait": "pluie",
+  "texte": "La PLUIE arrive !"
+ },
+ {
+  "id": "pluie-2",
+  "moment": "Pluie",
+  "fait": "pluie",
+  "texte": "Attention, il PLEUT !"
+ },
+ {
+  "id": "meilleurTour-1",
+  "moment": "Meilleur tour",
+  "fait": "meilleurTour",
+  "texte": "MEILLEUR tour !"
+ },
+ {
+  "id": "meilleurTour-2",
+  "moment": "Meilleur tour",
+  "fait": "meilleurTour",
+  "texte": "Quel CHRONO !"
+ },
+ {
+  "id": "meilleurTour-3",
+  "moment": "Meilleur tour",
+  "fait": "meilleurTour",
+  "texte": "Record du TOUR !"
+ },
+ {
+  "id": "dernierTour-1",
+  "moment": "Dernier tour",
+  "fait": "dernierTour",
+  "texte": "DERNIER tour !"
+ },
+ {
+  "id": "dernierTour-2",
+  "moment": "Dernier tour",
+  "fait": "dernierTour",
+  "texte": "Plus qu'un TOUR !"
+ },
+ {
+  "id": "arrivee-1",
+  "moment": "Arrivée, victoire",
+  "fait": "arrivee",
+  "texte": "VICTOIRE !"
+ },
+ {
+  "id": "arrivee-2",
+  "moment": "Arrivée, victoire",
+  "fait": "arrivee",
+  "texte": "Quelle VICTOIRE !"
+ },
+ {
+  "id": "arrivee-3",
+  "moment": "Arrivée, victoire",
+  "fait": "arrivee",
+  "texte": "Le DRAPEAU à damiers !"
+ },
+ {
+  "id": "podium-1",
+  "moment": "Podium",
+  "fait": "podium",
+  "texte": "Quel PODIUM !"
+ },
+ {
+  "id": "podium-2",
+  "moment": "Podium",
+  "fait": "podium",
+  "texte": "Voilà le PODIUM !"
+ },
+ {
+  "id": "joueurArrivee-1",
+  "moment": "Arrivée du joueur",
+  "fait": "joueurArrivee",
+  "texte": "Belle ARRIVÉE !"
+ },
+ {
+  "id": "joueurArrivee-2",
+  "moment": "Arrivée du joueur",
+  "fait": "joueurArrivee",
+  "texte": "Course TERMINÉE !"
+ },
+ {
+  "id": "remontee-1",
+  "moment": "Remontée",
+  "fait": "remontee",
+  "texte": "Quelle REMONTÉE !"
+ },
+ {
+  "id": "remontee-2",
+  "moment": "Remontée",
+  "fait": "remontee",
+  "texte": "Ça REMONTE !"
+ },
+ {
+  "id": "penalite-1",
+  "moment": "Pénalité",
+  "fait": "penalite",
+  "texte": "PÉNALITÉ !"
+ },
+ {
+  "id": "penalite-2",
+  "moment": "Pénalité",
+  "fait": "penalite",
+  "texte": "Ça va coûter des SECONDES !"
+ }
+]
