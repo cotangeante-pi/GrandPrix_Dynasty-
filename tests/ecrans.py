@@ -3762,7 +3762,7 @@ with sync_playwright() as p:
                 pluie_ecran(pg, titre, l, h)
             if 'test=prevision' in page:
                 prevision_ecran(pg, titre)
-            elif 'test=livree' in page or 'test=essai' in page: pass   # (la personnalisation : ses fonctions à elle, plus haut)
+            elif 'test=livree' in page or 'test=essai' in page or 'test=reglages-voiture' in page: pass   # (la personnalisation : ses fonctions à elle, plus haut ; + les réglages de la voiture, tour 50b)
             elif 'test=aides-course' in page:
                 aides_course(pg, titre, l, h)
             elif 'test=fond' in page:
@@ -3797,7 +3797,7 @@ with sync_playwright() as p:
                 accelere(pg, titre, page)
             elif 'championnat=1' in page:
                 championnat(pg, titre, l)
-            if 'test=accelere' in page or 'test=audit' in page or 'test=suivie' in page or 'test=livree' in page or 'test=essai' in page: pass   # (test=suivie : sa page à lui, plus haut ; sinon hud() recommencerait la qualification après le podium)
+            if 'test=accelere' in page or 'test=audit' in page or 'test=suivie' in page or 'test=livree' in page or 'test=essai' in page or 'test=reglages-voiture' in page: pass   # (test=suivie : sa page à lui, plus haut ; sinon hud() recommencerait la qualification après le podium)
             elif 'test=aides' in page or 'test=tuto' in page: pass   # (les aides et le tutoriel : leurs pages à eux, plus haut)
             elif 'test=hudcourse' in page:
                 hud_course(pg, titre, l, h)
