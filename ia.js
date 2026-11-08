@@ -617,7 +617,8 @@ function noterLigne(pilote, v, voisines, s0, t, type) {
     for (const w of voisines) {
       if (!w.lente && temps >= R.IA_PREDICTION) continue;
       const sPrevu = w.s + w.vitesse * temps;
-      if (Math.abs(e[i + 1] - dPrevu(pilote.carte, w, sPrevu, s0)) >= (w.lente ? R.IA_LENTE_CONTACT : ecartSur(v.u))) continue;   // (une voiture lente : plus large, hors du réflexe)
+      // (IA_LENTE_RECUL, tour 51a : au pas, il la frôle s'il le faut, à IA_LENTE_SUR, comme la retenue de piloterIA : sinon, à l'arrêt près d'elle, toute ligne la touchait)
+      if (Math.abs(e[i + 1] - dPrevu(pilote.carte, w, sPrevu, s0)) >= (w.lente ? (R.IA_LENTE_RECUL && u < R.IA_LENTE_VITESSE_FROLE ? R.IA_LENTE_SUR : R.IA_LENTE_CONTACT) : ecartSur(v.u))) continue;   // (une voiture lente : plus large, hors du réflexe)
       const ecart = ecartLeLong(c, sPrevu - (s0 + (i + 1) * pas));
       if (!touchees.has(w) && Math.abs(ecart) < R.LONGUEUR_VOITURE + R.IA_MARGE_LONG) {
         penalite += w.lente ? R.IA_PENALITE_LENTE : R.IA_PENALITE_VOITURE;   // (une voiture arrêtée : on ne passe pas à travers)
@@ -754,7 +755,10 @@ function deciderLigne(pilote, v, vues) {
         // L'écart est atteint une longueur de voiture et IA_MARGE_LONG avant elle (là où une ligne commence à la « toucher ») ;
         // tout près d'elle, la rampe va de sa place à elle (jamais une marche au départ : la transition repasserait sur elle)
         const marge = R.LONGUEUR_VOITURE + R.IA_MARGE_LONG, avant = Math.max(R.IA_LENTE_AVANT, Math.max(0, v.u) * R.IA_LENTE_TEMPS);
-        const finRampe = Math.max(gLente - marge, Math.min(gLente, marge));
+        // (IA_LENTE_RECUL, tour 51a : au pas, l'écart est pris au plus tard là où les nez se croisent (une longueur avant elle), pas à sa hauteur :
+        // à 12 m d'une voiture arrêtée, la ligne d'avant la touchait encore (noterLigne), comme la ligne rapide, et il restait derrière)
+        let finRampe = Math.max(gLente - marge, Math.min(gLente, marge));
+        if (R.IA_LENTE_RECUL && v.u < R.IA_LENTE_VITESSE_FROLE) finRampe = Math.max(pas, Math.min(finRampe, gLente - R.LONGUEUR_VOITURE));
         const debut = Math.max(0, finRampe - avant), fin = gLente + R.IA_LENTE_APRES, base = debut > 0 ? r : e0;
         const m = s < debut ? 0 : s < finRampe ? (s - debut) / (finRampe - debut) : s < fin ? 1 : Math.max(0, 1 - (s - fin) / R.IA_DEPASSEMENT_RAMPE);
         // (IA_LENTE_ECART_STANDS, tour 51a : une voiture qui sort des stands se déporte vers la piste de 4 m/s pendant qu'il arrive ; à 86 m/s,
@@ -1005,6 +1009,10 @@ function majAttaque(pilote, v, vues, dt) {
   if (!a) {
     // plus agressif : il attaque plus tôt (après moins de temps retenu)
     if (R.IA_DEPASSEMENT && pilote.repos <= 0 && pilote.retenue >= R.IA_ATTENTE_ATTAQUE * (1.5 - agressivite(pilote, pilote.retenuePar)) && pilote.retenuePar !== null) {
+      // (IA_ATTAQUE_LENTE, tour 51a : une voiture lente ou arrêtée ne s'attaque pas, elle se contourne (ligne « éviter ») ; en se préparant
+      // à l'attaquer, il venait se coller à IA_DISTANCE_MIN derrière elle, trop près pour la contourner ensuite, et restait là)
+      const vue = vues.find(x => x.id === pilote.retenuePar);
+      if (R.IA_ATTAQUE_LENTE && vue && estLente(pilote, v, vue)) return;
       pilote.attaque = { id: pilote.retenuePar, etat: 'preparer', virage: null, cote: 0, vue: null, duree: 0, impossible: false };
       pilote.attaques++;
       compterCible(pilote, pilote.retenuePar, 'attaques');
@@ -1027,6 +1035,7 @@ function majAttaque(pilote, v, vues, dt) {
   const limite = c.largeur / 2 - R.IA_MARGE_BORD_MIN, ecart = ecartSur(v.u);
   if (a.etat === 'preparer') {
     if (g > R.IA_ATTAQUE_ECART_TEMPS * Math.max(v.u, R.IA_VISEE_MIN)) return finirAttaque(pilote, false, 'échappée g ' + g.toFixed(1) + ' u ' + v.u.toFixed(0));   // elle s'est échappée
+    if (R.IA_ATTAQUE_LENTE && estLente(pilote, v, w)) return finirAttaque(pilote, false, 'lente g ' + g.toFixed(1));   // (IA_ATTAQUE_LENTE : elle s'est arrêtée, ou presque : on la contourne, on ne l'attaque pas)
     const f = prochainFreinage(carte, p.s);
     a.proche = !!R.IA_PREPARER_FREINE_TARD && g < R.IA_DECALAGE_ECART && pilote.parcouru > R.IA_PREPARER_APRES;   // (duel-2 : tout près d'elle, il ose déjà le freinage de l'attaque, noterLigne)
     // tout près, ou en train de fondre sur elle au freinage (il voudrait aller nettement plus vite qu'elle)
@@ -1252,6 +1261,20 @@ function piloterIA(pilote, v, vues, dt) {
     if (g > -2 * R.LONGUEUR_VOITURE && g < R.LONGUEUR_VOITURE + R.IA_MARGE_LONG && Math.abs(w.d - p.d) < R.IA_REFLEXE_COTE)
       cible = Math.min(cible, w.vitesse - R.IA_CEDER_FORT);
   }
+  // (IA_LENTE_RECUL, tour 51a : à l'arrêt derrière une voiture arrêtée sur sa ligne, à moins de IA_LENTE_RECUL_SOUS m, il n'a pas la place de la
+  // contourner : toute ligne « éviter » la touche encore (noterLigne, IA_LENTE_CONTACT), il gardait sa ligne et restait là (7 fois sur 40 dans le
+  // test de la voiture immobilisée). Il recule, en ligne droite (le frein à l'arrêt, physique.js), jusqu'à IA_LENTE_RECUL m, si personne n'est
+  // derrière lui ; puis il la contourne au pas (IA_LENTE_PROCHE le retient tant qu'il n'est pas à côté), sans reculer à nouveau ; 0 : comme avant)
+  if (R.IA_LENTE_RECUL && !pilote.stand && pilote.parcouru > R.IA_DEPART_LANCEMENT) {
+    let devant = null, derriere = false;
+    for (const w of vues) {
+      const g = ecartLeLong(c, w.s - p.s);
+      if (g > 0 && w.vitesse < R.IA_ARRET_VITESSE && Math.abs(w.d - p.d) < ecartSur(v.u) && estLente(pilote, v, w) && (pilote.recule === w.id ? g < R.IA_LENTE_RECUL : v.u < 1 && g < R.IA_LENTE_RECUL_SOUS)) devant = w.id;
+      if (g <= 0 && g > -R.IA_LENTE_RECUL && Math.abs(w.d - p.d) < R.IA_REFLEXE_COTE) derriere = true;
+    }
+    pilote.recule = devant;
+    if (devant && !derriere) return { gaz: 0, frein: 1, direction: 0 };
+  } else pilote.recule = null;
   const ecartVitesse = cible - v.u;
   let frein = ecartVitesse < 0 ? Math.min(1, -ecartVitesse * R.IA_GAIN_FREIN) : 0;
   if (er === 'blocage') frein = Math.min(frein, R.IA_ERREUR_BLOCAGE);   // roues bloquées : il freine moins, plus longtemps

@@ -734,6 +734,9 @@ const REGLAGES = {
   IA_LENTE_AVANT: 40,           // m : il se porte à côté d'elle sur cette distance avant elle…
   IA_LENTE_TEMPS: 1,            // s : … ou ce qu'il parcourt en ce temps, si c'est plus
   IA_LENTE_APRES: 15,           // m : il reste à côté jusque-là derrière elle, puis revient sur sa ligne
+  IA_LENTE_RECUL: 14,           // m (tour 51a) : à l'arrêt derrière une voiture arrêtée sur sa ligne, à moins de IA_LENTE_RECUL_SOUS m, il recule (marche arrière) jusqu'à ça, la place de la contourner ; 0 : il restait là
+  IA_LENTE_RECUL_SOUS: 10,      // m : … il ne recule que s'il est arrêté à moins de ça d'elle (une longueur et IA_LENTE_SUR : plus loin, il la contourne au pas)
+  IA_ATTAQUE_LENTE: 1,          // (tour 51a) 1 : il n'attaque pas une voiture lente ou arrêtée (il la contourne) ; 0 : il s'y préparait, collé à IA_DISTANCE_MIN, trop près pour la contourner
   IA_VITESSE_VIRAGE_LENT: 36,   // m/s (130 km/h) : un virage lent, la carte y passe moins vite que ça…
   IA_NEZ_DEVANT: 0.5,           // … au point de freinage, l'attaquant doit y avoir le nez devant (son centre au moins cette part de longueur devant)
   IA_REFLEXE_COTE: 4.5,         // m : il ne braque pas vers une voiture à côté de lui plus près que ça
