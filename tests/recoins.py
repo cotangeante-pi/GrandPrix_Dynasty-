@@ -827,7 +827,11 @@ def tenir(c, touches, secondes=1):
     pg = c.pg
     for k in touches: pg.keyboard.down(k)
     pg.wait_for_timeout(100)
-    v = c.ev('(s) => { BOUCLE.arreter(); const J = JEU.deux ? DEUX_JOUEURS.joueurs(JEU.plateau) : [JEU.joueur]; const u0 = J.map(p => p.v.u); const g = JEU.deux ? [JEU.deuxCommandes[1].cibles.gaz, JEU.deuxCommandes[2].cibles.gaz] : [JEU.cibles.gaz]; BOUCLE.simuler(s); return [u0, J.map(p => p.v.u), g]; }', secondes)
+    # (la voiture : celles des deux joueurs, celle du tour de qualification ou de défi, sinon celle du joueur ; les feux encore allumés sont passés d'abord)
+    v = c.ev('''(s) => { BOUCLE.arreter(); const q = !!(JEU.qualif && JEU.qualif.etat === "tour" && JEU.qualif.v);
+      const W = JEU.deux ? DEUX_JOUEURS.joueurs(JEU.plateau).map(p => p.v) : [q ? JEU.qualif.v : JEU.joueur], c = q ? JEU.qualif.q.course : JEU.course; let n = 0;
+      if (c && c.compte > 0.05) c.compte = 0.05; while (c && c.etat === "compte" && n++ < 2400) BOUCLE.simuler(REGLAGES.PAS_PHYSIQUE);
+      const u0 = W.map(w => w.u), g = JEU.deux ? [JEU.deuxCommandes[1].cibles.gaz, JEU.deuxCommandes[2].cibles.gaz] : [JEU.cibles.gaz]; BOUCLE.simuler(s); return [u0, W.map(w => w.u), g]; }''', secondes)
     for k in touches: pg.keyboard.up(k)
     c.ev('() => BOUCLE.demarrer()')
     return v
@@ -862,8 +866,9 @@ def touches_deux(c, titre):
     m = choisir('seul', 'frein', 'KeyI')
     t(f'{titre} : la même touche (I) peut servir à la course seule et au joueur 1 (jamais en même temps)', 'I' not in texte_bouton('seul', 'frein') or texte_bouton('seul', 'frein') == 'I', f'{m} | {texte_bouton("seul", "frein")}')
     choisir('seul', 'frein', 'KeyN')
+    avant = texte_bouton('j2', 'remise')
     pg.click(bouton('j2', 'remise')); pg.keyboard.press('Escape'); pg.wait_for_timeout(60)
-    t(f'{titre} : Échap pendant l’attente d’une touche annule (on reste sur l’écran, la touche ne change pas)', c.ev('() => JEU.ecran') == 'touches' and 'Enter' not in texte_bouton('j2', 'remise') and texte_bouton('j2', 'remise') != '…', texte_bouton('j2', 'remise'))
+    t(f'{titre} : Échap pendant l’attente d’une touche annule (on reste sur l’écran, la touche ne change pas)', c.ev('() => JEU.ecran') == 'touches' and texte_bouton('j2', 'remise') == avant and avant != '…' and c.ev('() => texte("tch_echap")') not in avant, f'{avant} → {texte_bouton("j2", "remise")}')
     m = choisir('seul', 'pause', 'KeyP')
     t(f'{titre} : la pause : Échap reste toujours avec la touche choisie', 'P' in texte_bouton('seul', 'pause'), texte_bouton('seul', 'pause'))
     c.inspecter('touches (changées)')
@@ -935,7 +940,7 @@ def touches_deux(c, titre):
     if not c.ecran('course', 'course à deux, manette et touches changées', 60000): return
     c.attendre('() => JEU.plateau && JEU.plateau.carte !== null', 240000)
     c.ev(FEUX_PASSES)
-    c.ev('() => __padFixer(0, "gachetteD", 1)'); pg.keyboard.down('KeyT'); pg.wait_for_timeout(800)
+    c.ev('() => __padFixer(0, "gachetteD", 1)'); pg.keyboard.down('KeyT'); c.attendre('() => JEU.deuxCommandes[1].cibles.gaz === 1 && JEU.deuxCommandes[2].cibles.gaz === 1', 5000)   # (la manette est lue par la boucle : on lui laisse le temps sur une machine chargée)
     a = c.ev('() => [JEU.deuxCommandes[1].cibles.gaz, JEU.deuxCommandes[2].cibles.gaz]')
     pg.keyboard.up('KeyT'); pg.keyboard.down('ArrowUp'); pg.wait_for_timeout(500)
     b = c.ev('() => [JEU.deuxCommandes[1].cibles.gaz, JEU.deuxCommandes[2].cibles.gaz]')
