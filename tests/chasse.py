@@ -46,6 +46,13 @@ INSPECTER = r'''() => { const P = [], W = innerWidth, H = innerHeight;
   for (let i = 0; i < bs.length; i++) for (let j = i + 1; j < bs.length; j++) { const [a, ra] = bs[i], [b, rb] = bs[j];
     if (a.contains(b) || b.contains(a)) continue;
     if (Math.min(ra.right, rb.right) - Math.max(ra.left, rb.left) > 2 && Math.min(ra.bottom, rb.bottom) - Math.max(ra.top, rb.top) > 2) P.push(['boutons qui se recouvrent', nom(a) + ' / ' + nom(b), a.textContent.trim().slice(0, 25) + ' / ' + b.textContent.trim().slice(0, 25)]); }
+  // le bouton 🔊 ne recouvre aucun titre (la zone du texte) ni aucun autre bouton visible (tour 51h)
+  const son = document.getElementById('boutonSon');
+  if (son && vu(son) && getComputedStyle(son).display !== 'none') { const rs = son.getBoundingClientRect();
+    const sur = r => Math.min(rs.right, r.right) - Math.max(rs.left, r.left) > 2 && Math.min(rs.bottom, r.bottom) - Math.max(rs.top, r.top) > 2;
+    for (const e of document.querySelectorAll('h1, h2, button, [id$="Titre"]')) { if (e === son || !vu(e)) continue;
+      let r = e.getBoundingClientRect(); if (e.tagName !== 'BUTTON') { const g = document.createRange(); g.selectNodeContents(e); r = g.getBoundingClientRect(); }
+      if (r.width > 0 && r.height > 0 && sur(r) && getComputedStyle(e).opacity !== '0') P.push(['🔊 recouvre', nom(e), e.textContent.trim().slice(0, 30) + ' ' + [r.left, r.top, r.right, r.bottom].map(Math.round)]); } }
   const d = document.documentElement; if (d.scrollHeight > H + 2 || d.scrollWidth > W + 2) P.push(['défilement', JEU.ecran, d.scrollWidth + '×' + d.scrollHeight]);
   return P; }'''
 
@@ -211,7 +218,7 @@ class Carriere:
 
 def rapport(c, titre):
     t(f'{titre} : aucune erreur ni avertissement dans la console', not c.console, ' | '.join(f'[{a}] {b}' for a, b in c.console[:8]))
-    for genre in ('texte cassé', 'vide', 'bouton hors de l’écran', 'boutons qui se recouvrent', 'texte qui déborde du bouton', 'défilement', 'clic impossible', 'discussion sans réponse', '« passer » absent', 'erreur dans une évaluation qui arrête la boucle'):
+    for genre in ('texte cassé', 'vide', 'bouton hors de l’écran', 'boutons qui se recouvrent', '🔊 recouvre', 'texte qui déborde du bouton', 'défilement', 'clic impossible', 'discussion sans réponse', '« passer » absent', 'erreur dans une évaluation qui arrête la boucle'):
         l = [(k[1], v) for k, v in c.problemes.items() if k[0] == genre]
         t(f'{titre} : {genre} : aucun', not l, ' | '.join(f"{el} sur « {v['ecran']} » ({v['detail']}) — {v['page']}" for el, v in l[:12]))
     m = c.manquantes()

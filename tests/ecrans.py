@@ -548,16 +548,43 @@ def texte_ok(x): return bool(x) and '{' not in x and 'undefined' not in x and 'n
 
 # (tour 51b) le défi après une course seule : le robot fait 3 tours seul ; le premier (départ arrêté) n'est pas gardé, le meilleur des deux autres l'est ;
 # « 📋 Défier un ami » à l'arrivée donne un lien et un code qui se décodent, au temps du meilleur tour ; le record du circuit est le même tour
-def defi_seul(pg, titre):
+# (tour 51l) le robot (?robot=1) et l'IA (?ia=1) ne font plus de défi : un tour que le joueur n'a pas conduit ne devient ni son fantôme ni son code.
+# Pour la suite du test, le robot conduit « comme le joueur » : JEU.robot éteint, ses commandes passent par JEU.cibles (lisserCommandes, comme les touches)
+ROBOT_COMME_JOUEUR = '''() => { JEU.robot = false; window.LEVER_LE_PIED = null;
+  BOUCLE.surPhysique(() => { if (JEU.ecran !== "course" || !JEU.course || !courseAutorise(JEU.course)) return; const c = piloteRobot(JEU.joueur, CIRCUIT);
+    if (window.LEVER_LE_PIED && window.LEVER_LE_PIED()) c.gaz = 0; Object.assign(JEU.cibles, c); }); }'''
+ETAT_SEUL = '() => ({ meilleur: JEU.course.meilleurTour, garde: JEU.fantomeSeul && JEU.fantomeSeul.meilleur && JEU.fantomeSeul.meilleur.temps, bouton: !document.getElementById("boutonFinDefi").classList.contains("cache"), texte: document.getElementById("boutonFinDefi").textContent === texte("defiBouton"), record: SAUVEGARDE.fantome(NOM_CIRCUIT) && SAUVEGARDE.fantome(NOM_CIRCUIT).temps, tours: JEU.course.tours.map(x => x.temps) })'
+
+def course_seule_jusqu_a_la_fin(pg):
     attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "course" && !!JEU.course', None, 120000)
     for _ in range(120):
         pg.evaluate('() => BOUCLE.simuler(5)')
         if pg.evaluate('() => JEU.ecran') == 'fin': break
         pg.wait_for_timeout(50)
     attendre(pg, '() => JEU.ecran === "fin"', None, 10000)
-    e = pg.evaluate('() => ({ meilleur: JEU.course.meilleurTour, garde: JEU.fantomeSeul && JEU.fantomeSeul.meilleur && JEU.fantomeSeul.meilleur.temps, bouton: !document.getElementById("boutonFinDefi").classList.contains("cache"), texte: document.getElementById("boutonFinDefi").textContent === texte("defiBouton"), record: SAUVEGARDE.fantome(NOM_CIRCUIT) && SAUVEGARDE.fantome(NOM_CIRCUIT).temps, tours: JEU.course.tours.map(x => x.temps) })')
+
+def defi_seul(pg, titre):
+    # 1. le robot (?robot=1) : rien n'est enregistré, pas de « Défier un ami »
+    course_seule_jusqu_a_la_fin(pg)
+    e0 = pg.evaluate(ETAT_SEUL)
+    t(f'{titre} : (tour 51l) une course seule conduite par le robot (?robot=1) : aucun tour enregistré, pas de « 📋 Défier un ami » (le joueur ne l’a pas conduite)', e0['garde'] is None and not e0['bouton'] and len(e0['tours']) == 3, str(e0))
+    # 2. « Rejouer », le robot conduit comme le joueur : le meilleur tour propre est gardé
+    pg.evaluate(ROBOT_COMME_JOUEUR)
+    pg.click('#boutonRejouer')
+    course_seule_jusqu_a_la_fin(pg)
+    e = pg.evaluate(ETAT_SEUL)
     ok = e['garde'] is not None and e['meilleur'] is not None and abs(e['garde'] - e['meilleur']) < 0.0005 and e['tours'][0] != e['garde']
-    t(f'{titre} : après une course seule de 3 tours, le meilleur tour propre est enregistré (pas le premier, départ arrêté), c’est le record du circuit, et « 📋 Défier un ami » est là', ok and e['bouton'] and e['texte'] and e['record'] is not None and abs(e['record'] - e['garde']) < 0.0005, str(e))
+    t(f'{titre} : après une course seule de 3 tours (le joueur), le meilleur tour propre est enregistré (pas le premier, départ arrêté), c’est le record du circuit, et « 📋 Défier un ami » est là', ok and e['bouton'] and e['texte'] and e['record'] is not None and abs(e['record'] - e['garde']) < 0.0005, str(e))
+    # 3. (tour 51l) « Rejouer » encore : la course repart de zéro (JEU.fantomeSeul remis) ; on lève le pied 2 s au début des tours 2 et 3 : ils sont
+    # plus lents que ceux d'avant, et le tour proposé doit être le meilleur de CETTE course, pas celui de la course précédente
+    pg.evaluate('() => { window.LEVER_LE_PIED = () => JEU.course.tours.length >= 1 && JEU.course.temps - JEU.course.debutTour < 2; }')
+    pg.click('#boutonRejouer')
+    course_seule_jusqu_a_la_fin(pg)
+    e2 = pg.evaluate(ETAT_SEUL)
+    lents = e2['tours'][1:]
+    ok2 = e2['garde'] is not None and len(lents) == 2 and abs(e2['garde'] - min(lents)) < 0.0005 and min(lents) > e['garde'] + 0.1
+    t(f'{titre} : (tour 51l) « Rejouer » : le défi repart de zéro, le tour proposé est le meilleur de cette course (plus lente d’un pied levé), pas celui de la course d’avant ; le record du circuit reste le plus rapide', ok2 and e2['bouton'] and abs(e2['record'] - e['garde']) < 0.0005, str([e['garde'], e2]))
+    e = e2
     pg.click('#boutonFinDefi')
     c = pg.evaluate('() => { const c = document.querySelector("#finCode input.defiCode"); return c ? c.value : ""; }')
     l = pg.evaluate('() => { const c = document.querySelector("#finCode input.defiLien"); return c ? c.value : ""; }')
@@ -908,6 +935,18 @@ def sdk(pg, titre):
       attendre(pg, '() => JEU.ecran === "fin" && window.APPELS_SDK.slice(-1)[0] === "gameplayStop"') and pg.evaluate(J) == 'init,gameLoadingFinished,gameplayStart,gameplayStop,gameplayStart,gameplayStop', pg.evaluate(J))
     pg.click('#boutonRejouer')
     t(f'{titre} : « Rejouer » : gameplayStart, une seule fois', attendre(pg, '() => JEU.ecran === "course" && window.APPELS_SDK.slice(-2).join(",") === "gameplayStop,gameplayStart"'), pg.evaluate(J))
+    # (tour 51l) DEFI_ECRAN.montrerCode : un lienDe qui rappelle tout de suite (un shareableURL synchrone) remplit le champ du lien sans erreur ;
+    # un rappel qui arrive après que la boîte a été redessinée (« Renvoyer mon lien » deux fois) ne touche pas le champ courant, le bon le remplit
+    r = pg.evaluate('''() => { const R = [], lien = () => document.querySelector("#finCode input.defiLien").value; let erreur = null;
+      try { DEFI_ECRAN.montrerCode('finCode', 'GPD-TEST-x', (c, rap) => { rap('sync://' + c); return 'repli://' + c; }); } catch (e) { erreur = String(e); }
+      const sync = erreur ? null : lien();
+      DEFI_ECRAN.montrerCode('finCode', 'GPD-TEST-a', (c, rap) => { R.push(rap); return 'repli://a'; });
+      DEFI_ECRAN.montrerCode('finCode', 'GPD-TEST-b', (c, rap) => { R.push(rap); return 'repli://b'; });
+      R[0]('tard://a'); const apresTard = lien(); R[1]('poki://b'); const apresBon = lien();
+      document.getElementById('finCode').classList.add('cache');
+      return { erreur, sync, apresTard, apresBon, n: document.querySelectorAll('#finCode input.defiLien').length }; }''')
+    t(f'{titre} : le lien de défi (montrerCode) : un rappel immédiat de shareableURL remplit le champ sans erreur ; un rappel en retard (boîte redessinée) ne touche pas le champ courant, le bon le remplit',
+      r['erreur'] is None and r['sync'] == 'sync://GPD-TEST-x' and r['apresTard'] == 'repli://b' and r['apresBon'] == 'poki://b' and r['n'] == 1, str(r))
 
 # ?pneus=1 : les pneus du joueur (pneus.js) s'usent, son adhérence baisse, ?debug=1 l'affiche (sans ?pneus=1 : rien, PNEUS_ACTIFS faux)
 def pneus(pg, titre):
