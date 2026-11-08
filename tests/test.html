@@ -3324,28 +3324,28 @@ t('voix enregistrées : éteintes par défaut ; chaque fait a son groupe ; jamai
 
 // --- (tour 51l) le défi après une course seule (noterFantomeSeul, principal.js) : jamais pour un tour que le joueur n'a pas conduit
 t('défi après une course seule : rien n’est enregistré quand l’IA (?ia=1) ou le robot (?robot=1) conduit ; pour le joueur, l’enregistrement démarre', ()=>{
-  const vo=creerVoiture(C,0),c=creerCourse(C,3),avant={ia:JEU.ia,robot:JEU.robot,f:JEU.fantomeSeul,plateau:JEU.plateau};
-  try{JEU.plateau=null;JEU.fantomeSeul=null;
+  const vo=creerVoiture(C,0),c=creerCourse(C,3),avant={ia:JEU.ia,robot:JEU.robot,f:JEU.fantomeSeul,plateau:JEU.plateau,defi:JEU.defi,tournoi:JEU.tournoi};
+  try{JEU.plateau=null;JEU.fantomeSeul=null;JEU.defi=null;JEU.tournoi=null;
     JEU.ia=1;JEU.robot=false;noterFantomeSeul(c,vo);v(JEU.fantomeSeul===null,'l’IA : rien');
     JEU.ia=0;JEU.robot=true;noterFantomeSeul(c,vo);v(JEU.fantomeSeul===null,'le robot : rien');
     JEU.robot=false;noterFantomeSeul(c,vo);v(JEU.fantomeSeul!==null&&JEU.fantomeSeul.meilleur===null,'le joueur : l’enregistrement démarre');
-  }finally{JEU.ia=avant.ia;JEU.robot=avant.robot;JEU.fantomeSeul=avant.f;JEU.plateau=avant.plateau;}});
+  }finally{JEU.ia=avant.ia;JEU.robot=avant.robot;JEU.fantomeSeul=avant.f;JEU.plateau=avant.plateau;JEU.defi=avant.defi;JEU.tournoi=avant.tournoi;}});
 
 // --- (tour 51l) le commentateur (majCommentaire, principal.js) : un son enregistré coupe la synthèse en cours, jamais deux voix à la fois
 t('commentateur : quand un son enregistré part, la synthèse en cours se tait et ne dit pas la phrase ; sans son, elle la dit', ()=>{
   const appels=[],sansInterface=typeof INTERFACE==='undefined',sansVoix=typeof VOIX==='undefined';
-  const sauve={ecran:JEU.ecran,contre:JEU.contre,commentaire:JEU.commentaire,jouer:VOIXSONS.jouer,observer:COMMENTAIRE.observer,afficher:COMMENTAIRE.afficher,phrase:COMMENTAIRE.phrase,
+  const sauve={mode:REGLAGES.COMMENTAIRE_MODE,ecran:JEU.ecran,contre:JEU.contre,commentaire:JEU.commentaire,jouer:VOIXSONS.jouer,observer:COMMENTAIRE.observer,afficher:COMMENTAIRE.afficher,phrase:COMMENTAIRE.phrase,
     taire:sansVoix?null:VOIX.taire,dire:sansVoix?null:VOIX.dire};
   try{
     if(sansInterface)window.INTERFACE={formatTemps:String};
     if(sansVoix)window.VOIX={};
     VOIX.taire=()=>{appels.push('taire');};VOIX.dire=()=>{appels.push('dire');};
     VOIXSONS.jouer=()=>true;COMMENTAIRE.observer=()=>{};COMMENTAIRE.afficher=()=>({type:'depassement',prio:9,comble:false});COMMENTAIRE.phrase=()=>'x';
-    JEU.ecran='course';JEU.contre=false;JEU.commentaire=null;
+    REGLAGES.COMMENTAIRE_MODE='tout';JEU.ecran='course';JEU.contre=false;JEU.commentaire=null;
     const e={graine:1,temps:10,pilotes:[]},m=MESSAGES.creer();
     majCommentaire(e,m);v(appels.join()==='taire','un son : la synthèse se tait, sans parler ('+appels.join()+')');
     appels.length=0;VOIXSONS.jouer=()=>false;majCommentaire(e,m);v(appels.join()==='dire','sans son : la synthèse parle ('+appels.join()+')');
-  }finally{JEU.ecran=sauve.ecran;JEU.contre=sauve.contre;JEU.commentaire=sauve.commentaire;VOIXSONS.jouer=sauve.jouer;COMMENTAIRE.observer=sauve.observer;COMMENTAIRE.afficher=sauve.afficher;COMMENTAIRE.phrase=sauve.phrase;
+  }finally{REGLAGES.COMMENTAIRE_MODE=sauve.mode;JEU.ecran=sauve.ecran;JEU.contre=sauve.contre;JEU.commentaire=sauve.commentaire;VOIXSONS.jouer=sauve.jouer;COMMENTAIRE.observer=sauve.observer;COMMENTAIRE.afficher=sauve.afficher;COMMENTAIRE.phrase=sauve.phrase;
     if(sansVoix)delete window.VOIX;else{VOIX.taire=sauve.taire;VOIX.dire=sauve.dire;}
     if(sansInterface)delete window.INTERFACE;}});
 
