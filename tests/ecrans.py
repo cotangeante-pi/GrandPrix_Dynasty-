@@ -1715,7 +1715,7 @@ def manette_ecran(pg, titre):
 FAUSSE_PERMISSION = "DeviceOrientationEvent.requestPermission = () => Promise.resolve(sessionStorage.getItem('perm') || 'granted');"
 DOIGT = "([id, pid, bas]) => { const el = document.getElementById(id); el.dispatchEvent(new PointerEvent(bas ? 'pointerdown' : 'pointerup', { pointerId: pid, pointerType: 'touch', isPrimary: pid === 1, bubbles: true, cancelable: true })); }"
 INCLINER = "(beta) => window.dispatchEvent(new DeviceOrientationEvent('deviceorientation', { alpha: 0, beta, gamma: 0, absolute: false }))"
-TACTILE_ETAT = '''() => { const b = id => { const e = document.getElementById(id), r = e.getBoundingClientRect(); return { cache: e.classList.contains('cache') || e.offsetParent === null, x: r.left, y: r.top, l: r.width, h: r.height, texte: e.textContent }; };
+TACTILE_ETAT = '''() => { const b = id => { const e = document.getElementById(id), r = e.getBoundingClientRect(); return { cache: e.classList.contains('cache') || getComputedStyle(e).display === 'none', x: r.left, y: r.top, l: r.width, h: r.height, texte: e.textContent }; };
   return { present: TACTILE.estPresent(), mode: TACTILE.etat.mode, choix: TACTILE.etat.choix, neutre: TACTILE.etat.neutre, cibles: Object.assign({}, JEU.cibles), ecran: JEU.ecran, W: innerWidth, H: innerHeight,
     tactile: !document.getElementById('tactile').classList.contains('cache'), gaz: b('tactileGaz'), frein: b('tactileFrein'), gauche: b('tactileGauche'), droite: b('tactileDroite'), pause: b('tactilePause'),
     activer: b('tactileActiver'), portrait: b('tactilePortrait'), volantPause: b('boutonVolantPause'), recentrer: b('boutonRecentrerPause') }; }'''
@@ -1756,15 +1756,16 @@ def tactile_ecran(pg, titre, l, h, page):
     d1 = pg.evaluate('() => [JEU.cibles.direction, TACTILE.cibles().direction, JEU.cibles.gaz]')
     t(f'{titre} : 25° à droite du neutre = braquage à fond (direction 1), sans gaz', plein and d1[2] == 0, str(d1))
     # la zone morte : 1° ne braque pas ; 12,5° de l'autre côté : à peu près la moitié (la zone morte retirée, sans saut)
-    pg.evaluate('() => { window.__beta = 41; }'); pg.wait_for_timeout(700)
-    d0 = pg.evaluate('() => JEU.cibles.direction')
-    pg.evaluate('() => { window.__beta = 40 - 12.5; }'); pg.wait_for_timeout(700)
-    dm = pg.evaluate('() => JEU.cibles.direction')
+    pg.evaluate('() => { window.__beta = 41; }')
+    d0 = attendre(pg, '() => JEU.cibles.direction === 0', None, 4000)   # (le lissage : quelques images)
     z, p = pg.evaluate('() => [REGLAGES.VOLANT_ZONE_MORTE, REGLAGES.VOLANT_PLEIN]')
     attendu = -(12.5 - z) / (p - z)
-    t(f'{titre} : 1° dans la zone morte ne braque pas ; 12,5° à gauche braque à gauche, à {attendu:.2f} (la zone morte retirée, sans saut)', d0 == 0 and abs(dm - attendu) < 0.03, str([d0, dm, attendu]))
+    pg.evaluate('() => { window.__beta = 40 - 12.5; }')
+    dm = attendre(pg, 'a => Math.abs(JEU.cibles.direction - a) < 0.03', attendu, 4000)
+    t(f'{titre} : 1° dans la zone morte ne braque pas ; 12,5° à gauche braque à gauche, à {attendu:.2f} (la zone morte retirée, sans saut)', d0 and dm, str([d0, dm, pg.evaluate('() => JEU.cibles.direction'), attendu]))
     # « Recentrer » : le neutre devient l'angle d'aujourd'hui (27,5°), et l'on ne braque plus
-    pg.evaluate('() => TACTILE.recentrer()'); pg.wait_for_timeout(400)
+    pg.evaluate('() => TACTILE.recentrer()')
+    attendre(pg, '() => JEU.cibles.direction === 0', None, 4000)
     r = pg.evaluate('() => [TACTILE.etat.neutre, JEU.cibles.direction]')
     t(f'{titre} : « Recentrer » prend l’angle du moment pour neutre, et le volant recentré ne braque pas', r[0] == 27.5 and r[1] == 0, str(r))
     # le choix de la pause : « Direction : boutons ◀ ▶ » rend les boutons, même avec un capteur ; puis retour au volant
@@ -3923,7 +3924,7 @@ with sync_playwright() as p:
             t(f'{titre} : le panneau de réglage n’existe que avec ?reglages=1', pg.evaluate('() => !!document.getElementById("reglages")') == ('reglages=1' in page))
             # le téléphone (tactile.js, tour 51k) : sur un écran sans tactile, rien ne s'affiche et rien n'est branché
             if 'test=tactile' not in page:
-                t(f'{titre} : sans écran tactile, aucun bouton tactile (ni GAZ / FREIN, ni ◀ ▶, ni « Activer le volant »), rien n’est branché', pg.evaluate('() => !TACTILE.estPresent() && TACTILE.etat.mode === "aucun" && ["tactile", "tactileActiver", "tactilePortrait", "boutonVolantPause", "boutonRecentrerPause"].every(id => document.getElementById(id).classList.contains("cache"))'), str(pg.evaluate('() => [TACTILE.estPresent(), TACTILE.etat.mode, navigator.maxTouchPoints]')))
+                t(f'{titre} : sans écran tactile, aucun bouton tactile (ni GAZ / FREIN, ni ◀ ▶, ni « Activer le volant »), rien n’est branché', pg.evaluate('() => typeof TACTILE === "undefined" || !TACTILE.estPresent() && TACTILE.etat.mode === "aucun" && ["tactile", "tactileActiver", "tactilePortrait", "boutonVolantPause", "boutonRecentrerPause"].every(id => document.getElementById(id).classList.contains("cache"))'), str(pg.evaluate('() => typeof TACTILE === "undefined" ? "pas de TACTILE" : [TACTILE.estPresent(), TACTILE.etat.mode, navigator.maxTouchPoints]')))
             if page == 'index.html?seul=1' and l == 1280:
                 conduite(pg, titre)
             if page == 'index.html':
