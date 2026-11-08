@@ -1064,7 +1064,7 @@ function majAttaque(pilote, v, vues, dt) {
     // au moins IA_NEZ_DEVANT longueur devant le sien), sinon il abandonne avant de freiner : elle garde le virage
     if (ecartLeLong(c, carte.virages[a.virage].freinage - p.s) <= 0) {
       if (g <= -R.LONGUEUR_VOITURE * R.IA_NEZ_DEVANT) a.etat = 'plonger';
-      else if (R.IA_ATTAQUE_TETE && R.IA_ATTAQUE_SORTIE && g < sortieDistance(v, w)) { a.etat = 'sortie'; a.duree = 0; if (pilote.journal) pilote.journal.push('sortie (virage lent) g ' + g.toFixed(1)); }
+      else if (R.IA_ATTAQUE_TETE && R.IA_ATTAQUE_SORTIE && g < sortieDistance(v, w)) { a.etat = 'sortie'; a.duree = 0; pilote.cede = { id: a.id, duree: 0 }; if (pilote.journal) pilote.journal.push('sortie (virage lent) g ' + g.toFixed(1)); }
       else return finirAttaque(pilote, false, 'pas devant au freinage (virage lent) g ' + g.toFixed(1));
     }
   } else if (a.etat === 'decaler') {
@@ -1074,9 +1074,11 @@ function majAttaque(pilote, v, vues, dt) {
       if (g <= R.LONGUEUR_VOITURE * R.IA_ATTAQUE_HAUTEUR) a.etat = 'plonger';
       // (IA_ATTAQUE_TETE, tour 51a : il a renoncé, mais elle est encore à moins d'une longueur de lui : revenir sur sa ligne l'envoyait
       // sur elle, avec dix m/s de plus. Il garde sa place à côté, lève le pied derrière elle, et ne rejoint sa ligne qu'une fois derrière)
-      else if (R.IA_ATTAQUE_TETE && R.IA_ATTAQUE_SORTIE && g < sortieDistance(v, w)) { a.etat = 'sortie'; a.duree = 0; if (pilote.journal) pilote.journal.push('sortie g ' + g.toFixed(1)); }
+      else if (R.IA_ATTAQUE_TETE && R.IA_ATTAQUE_SORTIE && g < sortieDistance(v, w)) { a.etat = 'sortie'; a.duree = 0; pilote.cede = { id: a.id, duree: 0 }; if (pilote.journal) pilote.journal.push('sortie g ' + g.toFixed(1)); }
       else return finirAttaque(pilote, false, 'pas à hauteur g ' + g.toFixed(1) + ' u ' + v.u.toFixed(0) + ' / ' + w.vitesse.toFixed(0) + ' d ' + p.d.toFixed(1) + ' / ' + w.d.toFixed(1));
     }
+  // (tour 51a, reprise : en sortie, il lui cède franchement (pilote.cede : IA_CEDER_FORT m/s sous sa vitesse, le réflexe de côté), pas seulement IA_CEDER :
+  // à 5 m derrière elle au point de freinage du virage lent, avec 7 m/s de plus, lever le pied d'1 m/s ne suffisait pas, il la touchait)
   } else if (a.etat === 'sortie' && g >= sortieDistance(v, w)) {
     return finirAttaque(pilote, false, 'sortie finie g ' + g.toFixed(1));   // (IA_ATTAQUE_TETE) derrière elle, il rejoint sa ligne
   } else if (ecartLeLong(c, carte.virages[a.virage].s + R.IA_ATTAQUE_APRES_SOMMET - p.s) < 0 && g > 0) {
