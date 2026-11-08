@@ -144,7 +144,8 @@ const TACTILE = (function () {
     if (act) act.classList.toggle('cache', conduite || !permissionADemander() || V.permission !== null);
     const po = $('tactilePortrait');
     if (po) po.classList.toggle('cache', !portrait(window.innerWidth, window.innerHeight));
-    const bv = $('boutonVolantPause'), br = $('boutonRecentrerPause');
+    const bv = $('boutonVolantPause'), br = $('boutonRecentrerPause'), ligne = $('pauseTactile');
+    if (ligne) ligne.classList.toggle('cache', V.mode !== 'volant');   // (la rangée entière : sans volant, la pause garde sa hauteur d'avant)
     if (bv) { bv.classList.toggle('cache', V.mode !== 'volant'); bv.textContent = texte(V.choix === 'volant' ? 'tac_mode_volant' : 'tac_mode_boutons'); }
     if (br) { br.classList.toggle('cache', !volantActif()); br.textContent = texte('tac_recentrer'); }
   }
