@@ -54,6 +54,7 @@ const INTERFACE = (function () {
     for (const id of ['hudCourse', 'hudPenalite', 'hudStand', 'compte', 'feux', 'classement', 'radar', 'jauge', 'departResultat', 'aides', 'feux2', 'jauge2', 'departResultat2', 'deuxHaut', 'deuxBas', 'deuxSeparation']) if (!course) $(id).classList.add('cache');
     if (course) $('hudCourse').classList.remove('cache');
     document.body.classList.toggle('auPaddock', ecran === 'championnat');   // (au paddock, le son est dans « Réglages » : 🔊 se cache, tour 48a)
+    document.body.classList.toggle('horsCourse', !course);   // (hors course, la tour de classement est cachée : 🔊 va dans le coin, tour 51h)
   }
 
   // à chaque image, pendant la course
