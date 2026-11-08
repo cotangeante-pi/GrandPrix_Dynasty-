@@ -25,3 +25,9 @@ Ordre : la liste complète des exclamations, en français d'abord.
 3. Tri et page (tests/voix/liste_page.py, avec transcrire.py) : Whisper, intonation2 >= 0,7 (de préférence 0,75 à 0,9), pas de question,
    pas de mot en trop, niveau « vif » (+9 %), 3 prises au plus par phrase.
 Rien n'est branché dans le jeu.
+
+Résultat (20h20) : 150 prises Bark (voix fr 7 et fr 4, 1 à 2 prises par phrase : la machine était très chargée, 5 à 15 min par prise
+avant 17h). Whisper en comprend 36 (24 %), 5 finissent en question, 12 passent la note de 0,7. 30 phrases sur 40 n'ont aucune prise gardée.
+Notes des 36 prises comprises : 0,12 à 0,95, la moitié sous 0,7. Page d'écoute hors du dépôt. Pour combler : plus de prises (bark_liste.py saute
+déjà les phrases qui ont 2 prises comprises), ou des textes plus longs pour les phrases très courtes, ou baisser NOTE_MIN à 0,6.
+bark_liste.py : option BONNES (saute une phrase déjà comprise 2 fois).

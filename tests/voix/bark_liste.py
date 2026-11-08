@@ -21,6 +21,16 @@ import traitement as T
 from bark.generation import SAMPLE_RATE, preload_models, generate_text_semantic, generate_coarse, generate_fine, codec_decode
 import torch, random
 TEMPS_TEXTE, TEMP_SON = [0.65, 0.78], 0.7
+BONNES = 2   # une phrase qui a déjà BONNES prises comprises par Whisper (notes.json, relu à chaque prise) ne reçoit plus de prise
+
+def comprises(cle):
+    """Le nombre de prises de cette phrase que Whisper a comprises (notes.json, écrit par transcrire.py ; 0 s'il n'existe pas)."""
+    try:
+        import transcrire as TR
+        notes, prises = json.load(open(os.path.join(SORTIE, 'notes.json'))), json.load(open(os.path.join(SORTIE, 'prises.json')))
+        return sum(1 for nom, n in notes.items() if prises[nom]['cle'] == cle and not TR.juger(prises[nom]['texte'], n['texte_entendu'], n['parole'])['rejet'])
+    except Exception:
+        return 0
 
 def duree_max(texte):
     return max(2.4, min(4.5, 1.2 + 0.12 * len(texte.replace(' ', ''))))
@@ -41,6 +51,7 @@ def main():
             for ph in liste:
                 nom = 'bark-fr-v%d-%s-p%d' % (voix, ph['id'], prise)
                 if nom in faites: continue
+                if comprises(ph['id']) >= BONNES: continue
                 if heure_passee(): print('heure atteinte, arrêt', flush=True); return
                 t1, texte = time.time(), ph['texte']
                 g = 1000 * prise + 10 * voix + sum(map(ord, ph['id'])) % 997; torch.manual_seed(g); np.random.seed(g); random.seed(g)
