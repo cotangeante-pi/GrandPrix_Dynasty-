@@ -942,7 +942,7 @@ def touches_deux(c, titre):
     c.ev(FEUX_PASSES)
     c.ev('() => __padFixer(0, "gachetteD", 1)'); pg.keyboard.down('KeyT'); c.attendre('() => JEU.deuxCommandes[1].cibles.gaz === 1 && JEU.deuxCommandes[2].cibles.gaz === 1', 5000)   # (la manette est lue par la boucle : on lui laisse le temps sur une machine chargée)
     a = c.ev('() => [JEU.deuxCommandes[1].cibles.gaz, JEU.deuxCommandes[2].cibles.gaz]')
-    pg.keyboard.up('KeyT'); pg.keyboard.down('ArrowUp'); pg.wait_for_timeout(500)
+    pg.keyboard.up('KeyT'); pg.keyboard.down('ArrowUp'); c.attendre('() => JEU.deuxCommandes[1].cibles.gaz === 1 && JEU.deuxCommandes[2].cibles.gaz === 0', 5000)   # (idem : la manette revient par la boucle après la touche)
     b = c.ev('() => [JEU.deuxCommandes[1].cibles.gaz, JEU.deuxCommandes[2].cibles.gaz]')
     pg.keyboard.up('ArrowUp')
     t(f'{titre} : à deux, manette (joueur 1) et T (joueur 2, choisie) : chacun ses gaz ; l’ancienne ↑ du joueur 2 ne fait plus rien', a == [1, 1] and b == [1, 0], str([a, b]))
