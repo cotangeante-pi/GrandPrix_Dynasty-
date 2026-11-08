@@ -1203,6 +1203,20 @@ Object.assign(TEXTES.fr, {
   tch_titrePause: 'Touches',
 });
 
+// --- tour 51k, Codeur 5 : le téléphone, les boutons tactiles et le volant (tactile.js) ---
+Object.assign(TEXTES.en, {
+  tac_gaz: 'GAS', tac_frein: 'BRAKE', tac_pause: 'Pause', tac_remise: 'Back on track',
+  tac_activer: '🎮 Enable the steering wheel', tac_recentrer: 'Recentre the wheel',
+  tac_mode_volant: 'Steering: tilt the phone', tac_mode_boutons: 'Steering: ◀ ▶ buttons',
+  tac_portrait: 'Turn your phone sideways',
+});
+Object.assign(TEXTES.fr, {
+  tac_gaz: 'GAZ', tac_frein: 'FREIN', tac_pause: 'Pause', tac_remise: 'Retour en piste',
+  tac_activer: '🎮 Activer le volant', tac_recentrer: 'Recentrer le volant',
+  tac_mode_volant: 'Direction : incliner le téléphone', tac_mode_boutons: 'Direction : boutons ◀ ▶',
+  tac_portrait: 'Tourne ton téléphone',
+});
+
 // (tour 45c2, Codeur 3) le commentateur parle du championnat, en carrière : la place du joueur, le leader, ce que donnerait l'arrivée
 Object.assign(TEXTES.en, {
   com_combleChamp: ['Title race: you’re P{place}, {n} points off {qui}.', 'P{place} in the title race, {n} points behind {qui}.', '{qui} leads the title, {n} points ahead of you.'],

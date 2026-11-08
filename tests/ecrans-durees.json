@@ -138,5 +138,8 @@
 "tests/lieu.html?circuit=suzuko&vue=pont 1280": 5,
 "tests/lieu.html?circuit=yasmarino 1280": 6,
 "index.html?course=3&ia=5&joueur=1&robot=1&circuit=test&niveau=normal&test=retro 960": 5,
-"index.html?championnat=1&gp=5&test=fond&lang=fr 1280": 15
+"index.html?championnat=1&gp=5&test=fond&lang=fr 1280": 15,
+"index.html?course=3&circuit=test&test=tactile 640": 75,
+"index.html?course=3&circuit=test&lang=en&test=tactile 960": 75,
+"index.html?test=tactile-iphone 960": 20
 }
