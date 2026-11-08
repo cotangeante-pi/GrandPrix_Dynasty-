@@ -183,6 +183,7 @@ function lancerCourse(nbTours) {
   GARAGE.appliquer(JEU.joueur, JEU.championnat ? JEU.championnat.garage : null, niveauEcurieJoueur());   // ?championnat=1 : les améliorations du garage × le niveau de l'écurie, sur la voiture du joueur (1 = rien sans championnat)
   JEU.enregistreur = creerEnregistrement();
   JEU.fantome = null;   // le fantôme ne vit que pendant le tour de qualification (commencerFantome)
+  JEU.fantomeSeul = null;   // (tour 51l) le défi d'après une course seule repart de zéro : « Rejouer » ou « Changer » ne proposent jamais le tour de la course d'avant
   JEU.departRecord = false;
   finirAttente();
   PODIUM3D.cacher();
@@ -258,7 +259,7 @@ function finirFantome(q) {
 // « 📋 Défier un ami » à l'arrivée, et le record du circuit s'il le bat (comme une qualification). Seul le calcul tourne : aucun
 // affichage, aucun fantôme à rejouer, rien ne change à la physique ni à la course
 function noterFantomeSeul(c, v) {
-  if (ESSAI || JEU.defi || JEU.tournoi || JEU.plateau) return;
+  if (ESSAI || JEU.ia || JEU.robot || JEU.defi || JEU.tournoi || JEU.plateau) return;   // (tour 51l) ni un tour de l'IA (?ia=1) ni du robot (?robot=1) : le joueur ne l'a pas conduit
   const f = JEU.fantomeSeul || (JEU.fantomeSeul = { tour: null, nTours: 0, ligne: 0, sale: false, meilleur: null });
   if (c.tours.length > f.nTours) {   // un tour vient de finir
     const t = c.tours[c.tours.length - 1];
@@ -2372,6 +2373,7 @@ function majCommentaire(e, m) {
     if (!it.comble) SON.signal('commentaire');   // (le petit signal pour les faits, pas pour ce qui comble)
     // (tour 51c) un fait qui a un son enregistré le joue (voix-sons.js) ; la synthèse ne dit que le reste
     const sonne = typeof VOIXSONS !== 'undefined' && JEU.ecran === 'course' && VOIXSONS.jouer(it.type);
+    if (sonne && typeof VOIX !== 'undefined') VOIX.taire();   // (tour 51l) le son coupe la synthèse en cours : jamais deux voix à la fois
     if (!sonne && typeof VOIX !== 'undefined' && JEU.ecran === 'course') VOIX.dire(dit, it.prio >= REGLAGES.COMMENTAIRE_IMPORTANT);   // (tour 45c : à voix haute)
   }
   if (typeof VOIXSONS !== 'undefined') { if (JEU.ecran !== 'course') VOIXSONS.taire(); else VOIXSONS.charger(); }   // (tour 51c : chargés après la découverte)

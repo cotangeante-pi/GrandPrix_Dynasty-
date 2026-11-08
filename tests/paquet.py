@@ -435,6 +435,8 @@ try:
             # le code d'un vrai tour (le robot, 3 tours seul)
             ctx, pg, cons = page_poki("getURLParam() { return ''; }", '?course=3&robot=1&circuit=test')
             pg.wait_for_function('() => typeof JEU !== "undefined" && JEU.ecran === "course" && !!JEU.course', timeout=120000)
+            # (tour 51l) le robot (?robot=1) ne fait plus de défi : il conduit ici « comme le joueur », par JEU.cibles (comme tests/ecrans.py)
+            pg.evaluate('''() => { JEU.robot = false; BOUCLE.surPhysique(() => { if (JEU.ecran === "course" && JEU.course && courseAutorise(JEU.course)) Object.assign(JEU.cibles, piloteRobot(JEU.joueur, CIRCUIT)); }); }''')
             for _ in range(120):
                 pg.evaluate('() => BOUCLE.simuler(5)')
                 if pg.evaluate('() => JEU.ecran') == 'fin': break
