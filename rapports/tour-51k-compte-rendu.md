@@ -1,7 +1,7 @@
 TOUR 51k — compte rendu du Codeur 5 (le téléphone : tactile.js, première journée)
 Branche : tactile (locale tactile-local), depuis main 4fba7cf
-Commits : be3b0c2 (le code et les tests), 142e880 (corrections des tests)
-Passage GitHub : 42427995775 (142e880) — résultat : voir plus bas
+Commits : be3b0c2 (le code et les tests) → 142e880, 0c65266, f72b613, 9d3fc2a (corrections) → le dernier (ce compte rendu)
+Passages GitHub : f72b613 = 42429379126, 17/18 (un rouge : test=touches 960, la rangée vide ajoutée au menu pause le faisait déborder, corrigé dans 9d3fc2a) ; le passage du dernier commit est en cours au moment d'écrire (dernier push avant 20h40) : à relire par le Chef.
 
 Ordres : 1 (GAZ / FREIN, ◀ ▶) fait · 2 (le volant, le neutre, « Recentrer », l'autorisation iPhone, le repli ◀ ▶) fait · 3 (menus au doigt, « Tourne ton téléphone ») fait en partie (le message portrait et les boutons ⏸ / ↩ sont là ; les menus réagissent déjà au clic, pas de vérification faite écran par écran).
 
@@ -18,7 +18,8 @@ Ce qui est fait
 - `index.html` : `#tactile` (des div, pas des boutons : la manette ne les choisit pas dans les menus), `#tactileActiver`, `#tactilePortrait`, deux boutons dans la pause (`boutonVolantPause`, `boutonRecentrerPause`, cachés sans tactile) ; `<script src="tactile.js">` après manette.js. `style.css` : bloc à la fin, tailles réduites sous 420 px de haut (640×360).
 - Tests (`tests/ecrans.py`) : 3 pages nouvelles avec un écran tactile émulé (`has_touch`, CDP), de faux doigts (PointerEvent touch) et de fausses mesures (`DeviceOrientationEvent`) : `index.html?course=3&circuit=test&test=tactile` en 640×360 (fr) et 960×600 (en) : GAZ / FREIN à leur place et en gros ; sans capteur → ◀ ▶ après 2,5 s ; un doigt, trois doigts à la fois, tout lâché ; le neutre = la première mesure ; 25° à droite = direction 1 ; 1° = 0 ; −12,5° = −0,457 ; « Recentrer » → 0 ; le choix boutons / volant dans la pause ; **un tour entier sans clavier ni robot** (le robot d'essai dicte, mais tout passe par les doigts et le volant) ; captures `tactile-640.png`, `tactile-960.png` ; ⏸ ouvre la pause, Reprendre rend les boutons. `index.html?test=tactile-iphone` (960) : le bouton « Activer », accordé → attente → volant ; portrait → le message ; refusé → boutons. Sur **toutes** les autres pages : rien de tactile n'est affiché ni branché. `ECRANS_PAGES=<texte>` filtre les pages sur le Mac (nouveau). Durées ajoutées dans `tests/ecrans-durees.json` (75, 75, 20 s : les tranches se rééquilibrent toutes seules).
 
-Sortie des tests : (local) …
+Sortie des tests : sur le Mac (sous le verrou, Mac très chargé), les 3 pages tactiles : RESULTAT 42/42 ; « un tour aux doigts et au volant en 68,3 s » (640) et 68,5 s (960) ; 210 s, 254 s, 15 s (sur GitHub, ecrans-6 vert 384/384 avec le contrôle « rien sans tactile » sur toutes ses pages ; recoins-1 70/70).
+Captures relues : tactile-640.png et tactile-960.png (GAZ vert, FREIN rouge en bas à droite ; la vitesse et les pneus écartés ; ⏸ et ↩ sous 🔊 ; en 640×360, ⏸ ↩ et 🔊 frôlent le bandeau du tour : 🔊 le faisait déjà, à ranger demain).
 Mesures : pas de mesure d'images par seconde (le Mac est très chargé, aucune mesure ne vaudrait).
 
 Pas fait / à reprendre demain
@@ -29,6 +30,10 @@ Pas fait / à reprendre demain
 - 60 images/s en 640×360 avec 9 IA : pas mesuré.
 - Les boutons GAZ / FREIN peuvent chevaucher la tour de classement en bas à droite à 640×360 : à regarder sur les captures.
 - Une bulle d'aide pour le téléphone (aides.js) : « tiens GAZ, incline pour tourner ».
+- Les durées GitHub des 3 pages dans tests/ecrans-durees.json sont des estimations (75, 75, 20 s) : à remplacer par les « ⏱ » du passage.
+- `TACTILE_ACTIF` reste à vrai (les tests sont verts) ; le mettre à faux coupe tout, même sur tactile.
+
+État de reprise : branche `tactile` (origin), tout est dans tactile.js + le bloc `tactile_ecran` / `tactile_iphone` de tests/ecrans.py ; `ECRANS_PAGES=test=tactile python3 tests/ecrans.py` rejoue les 3 pages seules sur le Mac.
 
 Ce que je n'ai pas pu vérifier : un vrai capteur, un vrai écran tactile.
 Réévalue.
