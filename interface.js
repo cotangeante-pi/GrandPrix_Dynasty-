@@ -2150,7 +2150,13 @@ const DEFI_ECRAN = (function () {
     boite.textContent = '';
     if (lienDe) {
       // (tour 51e) l'adresse de repli tout de suite ; sur Poki, lienDe rappelle avec l'adresse de la page du jeu (SDK.lienPartage) et le champ la prend
-      const [champLien, boutonLien] = champCopie(lienDe(code, adresse => { if (typeof adresse === 'string' && adresse) champLien.value = adresse; }), 'defiCopierLien', 'defiLien');
+      // (tour 51l) champLien est déclaré avant l'appel (un rappel immédiat le lirait sinon avant sa déclaration), et un rappel qui arrive
+      // après que la boîte a été redessinée (deux clics sur « Renvoyer mon lien ») ne touche plus un champ déjà remplacé
+      let champLien = null, recue = null;
+      const poser = adresse => { if (typeof adresse !== 'string' || !adresse) return; if (!champLien) recue = adresse; else if (champLien.isConnected) champLien.value = adresse; };
+      const [champ, boutonLien] = champCopie(lienDe(code, poser), 'defiCopierLien', 'defiLien');
+      champLien = champ;
+      if (recue) champLien.value = recue;
       boite.append(champLien, boutonLien);
       const p = document.createElement('p'); p.textContent = texte('defiLienAide'); boite.append(p);
     }
