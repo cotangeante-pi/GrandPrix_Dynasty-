@@ -1740,13 +1740,17 @@ body.auPaddock #boutonSon { display: none; }
 #tactileGauche { left: 18px; bottom: 18px; width: 96px; height: 96px; font-size: 30px; }
 #tactileDroite { left: 126px; bottom: 18px; width: 96px; height: 96px; font-size: 30px; }
 .tactilePetit { top: 10px; width: 46px; height: 40px; font-size: 18px; border-radius: 8px; background: rgba(0, 0, 0, 0.45); }
-#tactilePause { left: calc(50% + 4px); }
-#tactileRemise { left: calc(50% - 50px); }
+#tactilePause { top: 56px; right: calc(24px + var(--classement-largeur)); width: 40px; }   /* sous 🔊, à gauche de la tour */
+#tactileRemise { top: 102px; right: calc(24px + var(--classement-largeur)); width: 40px; }
+/* sur un écran tactile (body.tactile) : la vitesse et les pneus s'écartent des boutons, l'aide du clavier ne s'affiche pas */
+body.tactile #tableau, body.tactile #pneusHud { right: 282px; }
+body.tactile #aide { display: none; }
 @media (max-height: 420px) {   /* le téléphone couché, 640×360 */
   #tactileGaz { width: 92px; height: 92px; right: 12px; bottom: 12px; font-size: 18px; }
   #tactileFrein { width: 78px; height: 78px; right: 114px; bottom: 12px; font-size: 16px; }
   #tactileGauche, #tactileDroite { width: 72px; height: 72px; bottom: 12px; font-size: 24px; }
   #tactileGauche { left: 12px; } #tactileDroite { left: 94px; }
+  body.tactile #tableau, body.tactile #pneusHud { right: 216px; }
 }
 #tactileActiver { position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 20; padding: 10px 18px; border: 1px solid rgba(255, 255, 255, 0.45);
   border-radius: 10px; background: #1f6fe0; color: #fff; font: 600 16px/1.3 var(--police); cursor: pointer; }

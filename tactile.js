@@ -107,6 +107,7 @@ const TACTILE = (function () {
   function brancher(f) {
     rappels = f || {};
     if (!estPresent() || typeof document === 'undefined') return false;
+    document.body.classList.add('tactile');   // (style.css : la vitesse et les pneus s'écartent des boutons, l'aide du clavier se cache)
     for (const [id, nom] of [['tactileGaz', 'gaz'], ['tactileFrein', 'frein'], ['tactileGauche', 'gauche'], ['tactileDroite', 'droite']]) { E[nom] = $(id); if (E[nom]) brancherBouton(E[nom], nom); }
     E.gaz.textContent = texte('tac_gaz'); E.frein.textContent = texte('tac_frein');
     for (const [id, nom] of [['tactilePause', 'pause'], ['tactileRemise', 'remise']]) {
