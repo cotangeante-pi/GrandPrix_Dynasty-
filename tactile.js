@@ -29,11 +29,12 @@ const TACTILE = (function () {
     const d = Math.sign(e) * Math.min(1, (m - z) / (p - z));
     return d * (sens || 1) * (R.VOLANT_INVERSE ? -1 : 1);
   }
-  // le léger lissage : la part VOLANT_LISSAGE du nouvel angle à chaque image
-  function lisser(avant, a) {
+  // le léger lissage, en temps (pas en images : un téléphone lent suit quand même) : l'angle rejoint la mesure en VOLANT_LISSAGE s
+  function lisser(avant, a, dt) {
     if (a === null) return avant;
     if (avant === null) return a;
-    return avant + (a - avant) * R.VOLANT_LISSAGE;
+    const k = R.VOLANT_LISSAGE > 0 ? Math.min(1, (dt || 0) / R.VOLANT_LISSAGE) : 1;
+    return avant + (a - avant) * k;
   }
   // le sens du volant selon le côté où le téléphone est couché : −1 en landscape-secondary (le haut du téléphone à droite)
   function sensEcran(type, orientation) {
@@ -153,7 +154,7 @@ const TACTILE = (function () {
     if (conduite && !V.conduite) { if (V.brut !== null) { V.neutre = V.brut; V.lisse = V.brut; } toutLacher(); }   // le neutre pris au départ
     if (conduite !== V.conduite) { V.conduite = conduite; rafraichir(); }
     if (V.mode === 'attente') { V.attente += dt || 0; if (V.attente >= R.VOLANT_ATTENTE) { V.mode = 'boutons'; rafraichir(); } }   // pas de capteur : ◀ ▶
-    V.lisse = lisser(V.lisse, V.brut);
+    V.lisse = lisser(V.lisse, V.brut, dt || 0);
   }
   // les cibles du tactile (le plus fort rejoint celles du clavier) ; null sans écran tactile
   function cibles() {

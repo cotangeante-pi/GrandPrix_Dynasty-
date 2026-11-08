@@ -182,7 +182,7 @@ const REGLAGES = {
   TACTILE_ACTIF: true,             // faux : rien, même sur un écran tactile (le clavier seul, au bit près) ; sans écran tactile, rien ne change
   VOLANT_PLEIN: 25,                // ° d'inclinaison depuis le neutre = braquage à fond
   VOLANT_ZONE_MORTE: 2,            // ° autour du neutre où l'on ne braque pas
-  VOLANT_LISSAGE: 0.35,            // la part du nouvel angle gardée à chaque image (1 : aucun lissage)
+  VOLANT_LISSAGE: 0.06,            // s : le temps que met l'angle lissé à rejoindre la mesure (0 : aucun lissage)
   VOLANT_ATTENTE: 2.5,             // s sans mesure d'orientation après l'activation : pas de capteur, les boutons ◀ ▶
   VOLANT_INVERSE: false,           // vrai : le sens du volant retourné (si un téléphone le prend à l'envers)
 

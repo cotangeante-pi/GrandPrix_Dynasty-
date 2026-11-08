@@ -1735,24 +1735,25 @@ def tactile_ecran(pg, titre, l, h, page):
       boutons and not e['gauche']['cache'] and not e['droite']['cache'] and dedans(e['gauche']) and dedans(e['droite']) and e['droite']['x'] + e['droite']['l'] < e['W'] / 2 and e['gauche']['y'] > e['H'] / 2 and e['gauche']['x'] + e['gauche']['l'] <= e['droite']['x'] + 1
       and e['volantPause']['cache'] and e['recentrer']['cache'], str(e))
     # les doigts : GAZ tenu → gaz 1 ; GAZ et ▶ en même temps (deux doigts) → gaz 1 et direction 1 ; FREIN par-dessus → frein 1 ; tout lâché → 0
-    pg.evaluate(DOIGT, ['tactileGaz', 1, True]); pg.wait_for_timeout(250)
+    # (le Mac chargé : une image peut prendre plus d'une seconde sous swiftshader ; on attend que les cibles suivent, 4 s au plus)
+    pg.evaluate(DOIGT, ['tactileGaz', 1, True]); attendre(pg, '() => JEU.cibles.gaz === 1', None, 4000)
     a = pg.evaluate('() => [TACTILE.cibles(), Object.assign({}, JEU.cibles), document.getElementById("tactileGaz").classList.contains("tenu")]')
-    pg.evaluate(DOIGT, ['tactileDroite', 2, True]); pg.evaluate(DOIGT, ['tactileFrein', 3, True]); pg.wait_for_timeout(250)
+    pg.evaluate(DOIGT, ['tactileDroite', 2, True]); pg.evaluate(DOIGT, ['tactileFrein', 3, True]); attendre(pg, '() => JEU.cibles.gaz === 1 && JEU.cibles.frein === 1 && JEU.cibles.direction === 1', None, 4000)
     b = pg.evaluate('() => [TACTILE.cibles(), Object.assign({}, JEU.cibles)]')
-    pg.evaluate(DOIGT, ['tactileGaz', 1, False]); pg.evaluate(DOIGT, ['tactileDroite', 2, False]); pg.evaluate(DOIGT, ['tactileFrein', 3, False]); pg.wait_for_timeout(250)
+    pg.evaluate(DOIGT, ['tactileGaz', 1, False]); pg.evaluate(DOIGT, ['tactileDroite', 2, False]); pg.evaluate(DOIGT, ['tactileFrein', 3, False]); attendre(pg, '() => JEU.cibles.gaz === 0 && JEU.cibles.frein === 0 && JEU.cibles.direction === 0', None, 4000)
     c = pg.evaluate('() => [TACTILE.cibles(), Object.assign({}, JEU.cibles), document.getElementById("tactileGaz").classList.contains("tenu")]')
     t(f'{titre} : un doigt sur GAZ donne gaz 1 dans les cibles du joueur (le bouton s’allume) ; trois doigts à la fois (GAZ, ▶, FREIN) donnent gaz 1, direction 1, frein 1 ; tout lâché, 0 partout',
       a[0]['gaz'] == 1 and a[1]['gaz'] == 1 and a[1]['direction'] == 0 and a[2] and b[0] == {'gaz': 1, 'frein': 1, 'direction': 1} and b[1]['gaz'] == 1 and b[1]['frein'] == 1 and b[1]['direction'] == 1
       and c[0] == {'gaz': 0, 'frein': 0, 'direction': 0} and c[1] == {'gaz': 0, 'frein': 0, 'direction': 0} and not c[2], str([a, b, c]))
     # le volant : de faux évènements d'orientation ; la première mesure est le neutre (ici 40°, le téléphone tenu comme on veut) ; ◀ ▶ disparaissent
-    pg.evaluate(INCLINER, 40); pg.wait_for_timeout(100); pg.evaluate(INCLINER, 40); pg.wait_for_timeout(300)
+    pg.evaluate(INCLINER, 40); attendre(pg, '() => TACTILE.etat.mode === "volant" && document.getElementById("tactileGauche").classList.contains("cache")', None, 4000)
     e = pg.evaluate(TACTILE_ETAT)
     t(f'{titre} : dès qu’une mesure d’orientation arrive, le volant prend la main (neutre = la première mesure, 40°), les boutons ◀ ▶ disparaissent, la pause propose « Recentrer » et le choix du volant',
       e['mode'] == 'volant' and e['neutre'] == 40 and e['gauche']['cache'] and e['droite']['cache'] and not e['volantPause']['cache'] and not e['recentrer']['cache']
       and e['volantPause']['texte'] == pg.evaluate('() => texte("tac_mode_volant")') and e['recentrer']['texte'] == pg.evaluate('() => texte("tac_recentrer")'), str(e))
     # 25° à droite (beta 65) = braquage à fond ; lissé, il y arrive en moins d'une seconde
     pg.evaluate("() => { window.__beta = 65; window.__pencher = () => window.dispatchEvent(new DeviceOrientationEvent('deviceorientation', { alpha: 0, beta: window.__beta, gamma: 0 })); window.__penche = setInterval(window.__pencher, 16); }")
-    plein = attendre(pg, '() => JEU.cibles.direction >= 0.98 && TACTILE.cibles().direction >= 0.98', None, 3000)
+    plein = attendre(pg, '() => JEU.cibles.direction >= 0.98 && TACTILE.cibles().direction >= 0.98', None, 6000)
     d1 = pg.evaluate('() => [JEU.cibles.direction, TACTILE.cibles().direction, JEU.cibles.gaz]')
     t(f'{titre} : 25° à droite du neutre = braquage à fond (direction 1), sans gaz', plein and d1[2] == 0, str(d1))
     # la zone morte : 1° ne braque pas ; 12,5° de l'autre côté : à peu près la moitié (la zone morte retirée, sans saut)
@@ -1769,9 +1770,9 @@ def tactile_ecran(pg, titre, l, h, page):
     r = pg.evaluate('() => [TACTILE.etat.neutre, JEU.cibles.direction]')
     t(f'{titre} : « Recentrer » prend l’angle du moment pour neutre, et le volant recentré ne braque pas', r[0] == 27.5 and r[1] == 0, str(r))
     # le choix de la pause : « Direction : boutons ◀ ▶ » rend les boutons, même avec un capteur ; puis retour au volant
-    pg.evaluate('() => document.getElementById("boutonVolantPause").click()'); pg.wait_for_timeout(200)
-    e = pg.evaluate(TACTILE_ETAT)
-    pg.evaluate('() => document.getElementById("boutonVolantPause").click()'); pg.wait_for_timeout(200)
+    pg.evaluate('() => document.getElementById("boutonVolantPause").click()')
+    e = pg.evaluate(TACTILE_ETAT)   # (rafraichir est immédiat : pas d'image à attendre)
+    pg.evaluate('() => document.getElementById("boutonVolantPause").click()')
     e2 = pg.evaluate(TACTILE_ETAT)
     t(f'{titre} : dans la pause, le joueur peut préférer les boutons ◀ ▶ au volant (ils reviennent, « Recentrer » se cache), puis revenir au volant',
       e['choix'] == 'boutons' and not e['gauche']['cache'] and e['recentrer']['cache'] and e['volantPause']['texte'] == pg.evaluate('() => texte("tac_mode_boutons")') and e2['choix'] == 'volant' and e2['gauche']['cache'], str([e['choix'], e2['choix']]))
@@ -1795,9 +1796,9 @@ def tactile_ecran(pg, titre, l, h, page):
     pg.evaluate('() => { window.__conduire = false; }'); pg.wait_for_timeout(200)
     for id_, pid in [('tactileGaz', 1), ('tactileFrein', 2)]: pg.evaluate(DOIGT, [id_, pid, False])
     # ⏸ au doigt ouvre la pause ; les boutons de conduite se cachent ; « Reprendre » les rend
-    pg.evaluate('() => document.getElementById("tactilePause").click()'); pg.wait_for_timeout(300)
+    pg.evaluate('() => document.getElementById("tactilePause").click()'); attendre(pg, '() => JEU.ecran === "pause" && document.getElementById("tactile").classList.contains("cache")', None, 4000)
     e = pg.evaluate(TACTILE_ETAT)
-    pg.evaluate('() => document.getElementById("boutonReprendre").click()'); pg.wait_for_timeout(300)
+    pg.evaluate('() => document.getElementById("boutonReprendre").click()'); attendre(pg, '() => JEU.ecran === "course" && !document.getElementById("tactile").classList.contains("cache")', None, 4000)
     e2 = pg.evaluate(TACTILE_ETAT)
     t(f'{titre} : le bouton ⏸ ouvre la pause (les boutons de conduite se cachent) et « Reprendre » les rend', e['ecran'] == 'pause' and not e['tactile'] and e2['ecran'] == 'course' and e2['tactile'], str([e['ecran'], e['tactile'], e2['ecran'], e2['tactile']]))
 # l'iPhone : le navigateur ne donne l'orientation qu'après un toucher (DeviceOrientationEvent.requestPermission, faux ici) ; sur l'écran titre,
@@ -1807,9 +1808,9 @@ def tactile_iphone(pg, titre, l, h):
     pret = attendre(pg, '() => typeof TACTILE !== "undefined" && TACTILE.estPresent() && JEU.ecran === "titre"', None, 30000)
     e = pg.evaluate(TACTILE_ETAT)
     t(f'{titre} : sur un iPhone (autorisation à demander), l’écran titre montre « 🎮 Activer le volant », et pas les boutons de conduite', pret and not e['activer']['cache'] and e['activer']['texte'] == pg.evaluate('() => texte("tac_activer")') and not e['tactile'] and e['mode'] == 'aucun', str(e))
-    pg.evaluate('() => document.getElementById("tactileActiver").click()'); pg.wait_for_timeout(400)
+    pg.evaluate('() => document.getElementById("tactileActiver").click()'); attendre(pg, '() => TACTILE.etat.mode === "attente"', None, 4000)
     e = pg.evaluate(TACTILE_ETAT)
-    pg.evaluate(INCLINER, 30); pg.wait_for_timeout(200)
+    pg.evaluate(INCLINER, 30)
     e2 = pg.evaluate(TACTILE_ETAT)
     t(f'{titre} : accordée, le bouton disparaît, le volant écoute (mode attente), puis une mesure le met en mode volant', e['activer']['cache'] and e['mode'] == 'attente' and e2['mode'] == 'volant' and e2['neutre'] == 30, str([e['mode'], e2['mode'], e2['neutre']]))
     # le téléphone debout : le message, puis couché : plus rien
@@ -1821,7 +1822,7 @@ def tactile_iphone(pg, titre, l, h):
     # l'autorisation refusée : le mode « boutons » (◀ ▶ dès la conduite)
     pg.evaluate('() => sessionStorage.setItem("perm", "denied")'); pg.reload()
     attendre(pg, '() => typeof TACTILE !== "undefined" && JEU.ecran === "titre"', None, 30000)
-    pg.evaluate('() => document.getElementById("tactileActiver").click()'); pg.wait_for_timeout(400)
+    pg.evaluate('() => document.getElementById("tactileActiver").click()'); attendre(pg, '() => TACTILE.etat.mode === "boutons"', None, 4000)
     e = pg.evaluate(TACTILE_ETAT)
     t(f'{titre} : autorisation refusée : le bouton disparaît et le mode « boutons » (◀ ▶) est pris, sans erreur', e['activer']['cache'] and e['mode'] == 'boutons', str([e['activer']['cache'], e['mode']]))
 # le mode 2 joueurs : deux fausses manettes, une par joueur ; la gâchette de l'une ne fait rouler que sa voiture
