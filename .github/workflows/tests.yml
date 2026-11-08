@@ -24,25 +24,25 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { nom: moteur, partie: moteur recoins, recoins: 'defi,stockage,manette,touches-deux' }   # (tour 51j : touches-deux, les touches au choix à deux et au tournoi, dans le travail le plus court : 257 s sur le passage 42425442653)   # (+ des parties de tests/recoins.py, réparties au tour 51i selon les durées du passage 42417410695 : aucun travail au-dessus de ~430 s, sauf stands.html seul, ~470 s)
-          - { nom: courses, partie: courses recoins, recoins: 'tailles-jeux-1920' }   # (+ des parties de tests/recoins.py, réparties au tour 51i selon les durées du passage 42417410695 : aucun travail au-dessus de ~430 s, sauf stands.html seul, ~470 s)
-          - { nom: stands, partie: stands }   # (+ des parties de tests/recoins.py, réparties au tour 51i selon les durées du passage 42417410695 : aucun travail au-dessus de ~430 s, sauf stands.html seul, ~470 s)
-          - { nom: consignes, partie: consignes recoins, recoins: 'sauvegardes-racine' }   # (+ des parties de tests/recoins.py, réparties au tour 51i selon les durées du passage 42417410695 : aucun travail au-dessus de ~430 s, sauf stands.html seul, ~470 s)
+          - { nom: moteur, partie: moteur recoins, recoins: 'defi,stockage,manette,touches-deux' }   # (+ des parties de tests/recoins.py, réparties au tour 51m selon les durées du passage 42425442653 : chaque travail sous ~430 s, sauf stands.html seul, ~450 s, et saison.py seul, ~530 s ; voir CLAUDE.md, « Répartition de tests/recoins.py »)
+          - { nom: courses, partie: courses recoins, recoins: 'tailles-jeux-1920,pendant' }
+          - { nom: stands, partie: stands }   # (stands.html seul : ~440 s, le plus long des tests, on ne lui ajoute rien)
+          - { nom: consignes, partie: consignes recoins, recoins: 'sauvegardes-racine,sauvegardes-recentes' }
           - { nom: officiels, partie: officiels recoins, recoins: 'fin' }
-          - { nom: meteo, partie: meteo recoins, recoins: 'carrieres,dynastie' }   # (+ des parties de tests/recoins.py, réparties au tour 51i selon les durées du passage 42417410695 : aucun travail au-dessus de ~430 s, sauf stands.html seul, ~470 s)
+          - { nom: meteo, partie: meteo recoins, recoins: 'carrieres' }
           # (6 tranches depuis le 2026-11-05, tour 48c-2 : à 4, elles tournaient entre 500 et 597 s pour une limite de 600 s)
-          - { nom: ecrans-1, partie: ecrans recoins, tranche: 1/6, recoins: 'pendant,deux' }
+          - { nom: ecrans-1, partie: ecrans, tranche: 1/6 }   # (tour 51m : plus aucune partie de recoins.py dans les tranches ecrans, ~380 s chacune : leur durée varie beaucoup d'une machine à l'autre, ecrans-4 a fait 597 s pour 384 prévues sur le passage 42425442653)
           - { nom: ecrans-2, partie: ecrans, tranche: 2/6 }
           - { nom: ecrans-3, partie: ecrans, tranche: 3/6 }
-          - { nom: ecrans-4, partie: ecrans recoins, tranche: 4/6, recoins: 'sauvegardes-recentes' }
+          - { nom: ecrans-4, partie: ecrans, tranche: 4/6 }
           - { nom: ecrans-5, partie: ecrans, tranche: 5/6 }
           - { nom: ecrans-6, partie: ecrans, tranche: 6/6 }
-          - { nom: annexes, partie: annexes recoins, recoins: 'saison-en' }   # (+ la solidité pendant la conduite, tests/recoins.py)
-          - { nom: paquet, partie: paquet recoins, recoins: 'aides-pilotage,sauvegarde' }   # (+ la solidité de la sauvegarde et une dynastie de 2 générations, tests/recoins.py)
+          - { nom: annexes, partie: annexes recoins, recoins: 'saison-en' }   # (+ la saison entière en anglais, tests/recoins.py)
+          - { nom: paquet, partie: paquet recoins, recoins: 'aides-pilotage,sauvegarde' }   # (+ les aides au pilotage et la solidité de la sauvegarde, tests/recoins.py)
           - { nom: saison, partie: saison }   # la carrière entière jouée par le robot (tests/saison.py, Codeur 4)
           - { nom: premier, partie: premier recoins, recoins: 'ecrans,tuto,divisions' }   # le premier lancement : clic → feux, médiane de 3 essais (tests/premier.py), puis des recoins courts (8 min au plus par travail, Codeur 4)
-          - { nom: recoins-1, partie: recoins, recoins: 'tailles-carriere-1920,tailles-jeux-1280' }   # les recoins que saison.py ne visite pas (tests/recoins.py, Codeur 4)
-          - { nom: recoins-2, partie: recoins, recoins: 'tailles-carriere-1280,tournoi' }
+          - { nom: recoins-1, partie: recoins, recoins: 'tailles-carriere-1920,tailles-jeux-1280,deux' }   # les recoins que saison.py ne visite pas (tests/recoins.py, Codeur 4)
+          - { nom: recoins-2, partie: recoins, recoins: 'tailles-carriere-1280,tournoi,dynastie' }
     steps:
       - uses: actions/checkout@v4
 
