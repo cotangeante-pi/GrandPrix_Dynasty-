@@ -1762,8 +1762,9 @@ body.tactile #aide { display: none; }
   body.tactile:not(.horsCourse) { --classement-largeur: 132px; --classement-ligne: 13px; }
   body.tactile #classement { font-size: 10px; padding: 3px 5px 4px; }
   body.tactile #classementPlace { font-size: 16px; margin-bottom: 3px; }
-  body.tactile:not(.horsCourse) #boutonSon { left: 12px; right: auto; top: 146px; width: 30px; height: 28px; }
-  #tactilePause, #tactileRemise { top: 146px; right: auto; width: 30px; height: 28px; font-size: 14px; }
+  body.tactile #minicarte { width: 144px; height: 104px; }
+  body.tactile:not(.horsCourse) #boutonSon { left: 12px; right: auto; top: 122px; width: 30px; height: 28px; }
+  #tactilePause, #tactileRemise { top: 122px; right: auto; width: 30px; height: 28px; font-size: 14px; }
   #tactilePause { left: 48px; } #tactileRemise { left: 84px; }
 }
 #tactileActiver { position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 20; padding: 10px 18px; border: 1px solid rgba(255, 255, 255, 0.45);
