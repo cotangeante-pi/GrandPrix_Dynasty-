@@ -1738,3 +1738,35 @@ body.auPaddock #boutonSon { display: none; }
 body.grilleDecouverte #jauge, body.grilleDecouverte #hudCourse, body.grilleDecouverte #radar, body.grilleDecouverte #aide { display: none; }
 #aides.grille { left: 50%; top: 58%; transform: translateX(-50%); align-items: center; }
 #aides.grille span { font-size: clamp(30px, 6vw, 56px); padding: 10px 28px; border-radius: 14px; }
+=======
+/* le téléphone (tactile.js, tour 51k) : de gros boutons à demi transparents, seulement sur un écran tactile, pendant la conduite ;
+   GAZ et FREIN en bas à droite (le pouce droit), ◀ ▶ de secours en bas à gauche, ⏸ et ↩ en haut au milieu */
+#tactile { position: fixed; inset: 0; pointer-events: none; z-index: 15; }
+.tactileBouton { position: absolute; pointer-events: auto; touch-action: none; display: flex; align-items: center; justify-content: center;
+  border-radius: 18px; background: rgba(255, 255, 255, 0.16); border: 2px solid rgba(255, 255, 255, 0.5); color: #fff;
+  font: 800 22px/1 var(--police); letter-spacing: 0.04em; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; cursor: pointer; }
+.tactileBouton.tenu { background: rgba(255, 255, 255, 0.45); border-color: #fff; }
+#tactileGaz { right: 18px; bottom: 18px; width: 124px; height: 124px; background: rgba(30, 158, 74, 0.38); }
+#tactileGaz.tenu { background: rgba(30, 158, 74, 0.8); }
+#tactileFrein { right: 156px; bottom: 18px; width: 104px; height: 104px; background: rgba(216, 38, 46, 0.38); }
+#tactileFrein.tenu { background: rgba(216, 38, 46, 0.8); }
+#tactileGauche { left: 18px; bottom: 18px; width: 96px; height: 96px; font-size: 30px; }
+#tactileDroite { left: 126px; bottom: 18px; width: 96px; height: 96px; font-size: 30px; }
+.tactilePetit { top: 10px; width: 46px; height: 40px; font-size: 18px; border-radius: 8px; background: rgba(0, 0, 0, 0.45); }
+#tactilePause { top: 56px; right: calc(24px + var(--classement-largeur)); width: 40px; }   /* sous 🔊, à gauche de la tour */
+#tactileRemise { top: 102px; right: calc(24px + var(--classement-largeur)); width: 40px; }
+/* sur un écran tactile (body.tactile) : la vitesse et les pneus s'écartent des boutons, l'aide du clavier ne s'affiche pas */
+body.tactile #tableau, body.tactile #pneusHud { right: 282px; }
+body.tactile #aide { display: none; }
+@media (max-height: 420px) {   /* le téléphone couché, 640×360 */
+  #tactileGaz { width: 92px; height: 92px; right: 12px; bottom: 12px; font-size: 18px; }
+  #tactileFrein { width: 78px; height: 78px; right: 114px; bottom: 12px; font-size: 16px; }
+  #tactileGauche, #tactileDroite { width: 72px; height: 72px; bottom: 12px; font-size: 24px; }
+  #tactileGauche { left: 12px; } #tactileDroite { left: 94px; }
+  body.tactile #tableau, body.tactile #pneusHud { right: 216px; }
+}
+#tactileActiver { position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 20; padding: 10px 18px; border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 10px; background: #1f6fe0; color: #fff; font: 600 16px/1.3 var(--police); cursor: pointer; }
+#tactilePortrait { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 24px; text-align: center;
+  background: rgba(0, 0, 0, 0.92); color: #fff; font: 800 28px/1.3 var(--police); }
+>>>>>>> origin/main

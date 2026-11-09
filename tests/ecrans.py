@@ -120,6 +120,9 @@ PAGES = [
     ('index.html?course=3&ia=5&circuit=test&test=qualite', 960, 600, None),   # … sans ?qualite, sous un automate, rien ne bouge
     ('index.html?course=3&ia=5&joueur=1&robot=1&circuit=test&niveau=normal&test=retro', 960, 600, None),   # le rétroviseur (tour 49a) : sous le chrono, jamais sur la piste devant, une voiture 20 m derrière s'y voit ; capture retroviseur.png
     ('index.html?course=3&circuit=test&test=manette', 1280, 720, None),   # la manette (tour 38) : une fausse manette conduit un tour, la pause, le menu au stick et à la croix
+    ('index.html?course=3&circuit=test&test=tactile', 640, 360, None),   # le téléphone (tactile.js, tour 51k) : écran tactile émulé, GAZ / FREIN, ◀ ▶ sans capteur, le volant par de faux évènements d'orientation, un tour sans clavier ; capture tactile-640.png
+    ('index.html?course=3&circuit=test&lang=en&test=tactile', 960, 600, None),   # … en anglais, 960×600 ; capture tactile-960.png
+    ('index.html?test=tactile-iphone', 960, 600, None),   # … l'autorisation de l'iPhone (« 🎮 Activer le volant »), refusée → ◀ ▶ ; le message « Tourne ton téléphone » en portrait
     ('index.html?deux=1&ia=0&circuit=test&test=manette-deux', 1280, 720, None),   # … deux manettes, une par joueur   # les sensations de conduite (tour 37) : son au premier geste, fumée, étincelles, réglage ; capture sensations.png
     ('index.html?course=3&ia=19&joueur=1&circuit=monzo&domicile=1&test=supporters', 1280, 720, None),   # le Grand Prix à domicile : la caméra de la grille longe d'abord la tribune des supporters ; capture supporters.png   # la réalisation télé (regie.js) : de vraies caméras, l'hélicoptère ; captures tele-monoco.png, tele-helico.png   # … et Monzo de jour : la luminosité de l'image, pour la comparer à la nuit   # le décor dans le vrai jeu : la course de nuit à Singapura, 20 voitures, vue télé ; capture jeu-singapura.png
     ('tests/lieu.html?circuit=monoco&vue=port', 1280, 720, None),
@@ -1207,7 +1210,7 @@ def touches_deux(pg, titre, l, h):
     t(f'{titre} : DEUX_RAPPEL_DUREE s après l’extinction des feux, plus aucun rappel', attendre(pg, '() => document.querySelectorAll(".deuxRappel:not(.cache)").length === 0'), str(pg.evaluate('() => [document.querySelectorAll(".deuxRappel:not(.cache)").length, JEU.rappelDeux]')))
     pg.keyboard.press('Escape')
     p = pg.evaluate('() => ({ ecran: JEU.ecran, vu: !document.getElementById("pauseTouches").classList.contains("cache"), texte: document.getElementById("pauseTouches").innerText })')
-    t(f'{titre} : dans le menu pause, les touches des deux joueurs (🔵 et 🔴)', p['ecran'] == 'pause' and p['vu'] and '🔵' in p['texte'] and '🔴' in p['texte'] and '↑' in p['texte'] and dans('#pause > *'), str(p))
+    t(f'{titre} : dans le menu pause, les touches des deux joueurs (🔵 et 🔴)', p['ecran'] == 'pause' and p['vu'] and '🔵' in p['texte'] and '🔴' in p['texte'] and '↑' in p['texte'] and dans('#pause > *:not(.cache)'), str(p))   # (tour 52b : les rangées cachées, comme celle du téléphone, ont une largeur nulle : elles ne comptent pas)
     pg.wait_for_timeout(200); pg.screenshot(path=os.path.join(CAPTURES, f'touches-pause-{l}.png'))
     pg.keyboard.press('Escape')
 
@@ -1747,6 +1750,121 @@ def manette_ecran(pg, titre):
       await new Promise(r => setTimeout(r, 1500)); SENSATIONS.de = de; const glisse = window.__vibrations.slice(); window.__vibrations.length = 0;
       await new Promise(r => setTimeout(r, 1000)); return { glisse: glisse.length, fort: glisse.length ? glisse[0][2] : 0, type: glisse.length ? glisse[0][1] : null, apres: window.__vibrations.filter(x => x[2] > 0.5).length }; }''')
     t(f'{titre} : la manette vibre quand l’arrière part (le gros moteur, « dual-rumble »), et plus de gros moteur quand la voiture accroche', vb['glisse'] >= 2 and vb['fort'] > 0.5 and vb['type'] == 'dual-rumble' and vb['apres'] == 0, str(vb))
+# le téléphone (tactile.js, tour 51k) : l'écran tactile est émulé par Playwright (has_touch) ; les doigts sont de faux évènements pointer
+# (pointerType touch, un pointerId par doigt) sur les boutons ; le volant, de faux évènements deviceorientation (beta = l'inclinaison)
+FAUSSE_PERMISSION = "DeviceOrientationEvent.requestPermission = () => Promise.resolve(sessionStorage.getItem('perm') || 'granted');"
+DOIGT = "([id, pid, bas]) => { const el = document.getElementById(id); el.dispatchEvent(new PointerEvent(bas ? 'pointerdown' : 'pointerup', { pointerId: pid, pointerType: 'touch', isPrimary: pid === 1, bubbles: true, cancelable: true })); }"
+INCLINER = "(beta) => window.dispatchEvent(new DeviceOrientationEvent('deviceorientation', { alpha: 0, beta, gamma: 0, absolute: false }))"
+TACTILE_ETAT = '''() => { const b = id => { const e = document.getElementById(id), r = e.getBoundingClientRect(); return { cache: e.classList.contains('cache') || getComputedStyle(e).display === 'none', x: r.left, y: r.top, l: r.width, h: r.height, texte: e.textContent }; };
+  return { present: TACTILE.estPresent(), mode: TACTILE.etat.mode, choix: TACTILE.etat.choix, neutre: TACTILE.etat.neutre, cibles: Object.assign({}, JEU.cibles), ecran: JEU.ecran, W: innerWidth, H: innerHeight,
+    tactile: !document.getElementById('tactile').classList.contains('cache'), gaz: b('tactileGaz'), frein: b('tactileFrein'), gauche: b('tactileGauche'), droite: b('tactileDroite'), pause: b('tactilePause'),
+    activer: b('tactileActiver'), portrait: b('tactilePortrait'), volantPause: b('boutonVolantPause'), recentrer: b('boutonRecentrerPause') }; }'''
+def tactile_ecran(pg, titre, l, h, page):
+    if 'tactile-iphone' in page: return tactile_iphone(pg, titre, l, h)
+    pret = attendre(pg, '() => typeof TACTILE !== "undefined" && TACTILE.estPresent() && JEU.ecran === "course"', None, 30000)
+    pg.wait_for_timeout(300)
+    e = pg.evaluate(TACTILE_ETAT)
+    dedans = lambda b: b['x'] >= 0 and b['y'] >= 0 and b['x'] + b['l'] <= e['W'] + 1 and b['y'] + b['h'] <= e['H'] + 1
+    t(f'{titre} : sur un écran tactile, GAZ et FREIN s’affichent pendant la conduite, en bas à droite, dans l’écran, FREIN à gauche de GAZ, en gros (≥ 72 px)',
+      pret and e['tactile'] and not e['gaz']['cache'] and not e['frein']['cache'] and dedans(e['gaz']) and dedans(e['frein']) and e['gaz']['x'] > e['W'] / 2 and e['gaz']['y'] > e['H'] / 2 and e['frein']['x'] + e['frein']['l'] <= e['gaz']['x'] + 1
+      and e['gaz']['l'] >= 72 and e['frein']['l'] >= 72 and e['gaz']['texte'] == pg.evaluate('() => texte("tac_gaz")') and e['frein']['texte'] == pg.evaluate('() => texte("tac_frein")'), str(e))
+    # sans capteur (aucun évènement d'orientation n'arrive) : après VOLANT_ATTENTE, le mode « boutons » et ◀ ▶ en bas à gauche
+    boutons = attendre(pg, '() => TACTILE.etat.mode === "boutons"', None, 8000)
+    e = pg.evaluate(TACTILE_ETAT)
+    t(f'{titre} : sans capteur d’orientation, après {pg.evaluate("() => REGLAGES.VOLANT_ATTENTE")} s, les boutons ◀ ▶ de secours apparaissent en bas à gauche ; pas de « Recentrer » ni de choix du volant dans la pause',
+      boutons and not e['gauche']['cache'] and not e['droite']['cache'] and dedans(e['gauche']) and dedans(e['droite']) and e['droite']['x'] + e['droite']['l'] < e['W'] / 2 and e['gauche']['y'] > e['H'] / 2 and e['gauche']['x'] + e['gauche']['l'] <= e['droite']['x'] + 1
+      and e['volantPause']['cache'] and e['recentrer']['cache'], str(e))
+    # les doigts : GAZ tenu → gaz 1 ; GAZ et ▶ en même temps (deux doigts) → gaz 1 et direction 1 ; FREIN par-dessus → frein 1 ; tout lâché → 0
+    # (le Mac chargé : une image peut prendre plus d'une seconde sous swiftshader ; on attend que les cibles suivent, 4 s au plus)
+    pg.evaluate(DOIGT, ['tactileGaz', 1, True]); attendre(pg, '() => JEU.cibles.gaz === 1', None, 4000)
+    a = pg.evaluate('() => [TACTILE.cibles(), Object.assign({}, JEU.cibles), document.getElementById("tactileGaz").classList.contains("tenu")]')
+    pg.evaluate(DOIGT, ['tactileDroite', 2, True]); pg.evaluate(DOIGT, ['tactileFrein', 3, True]); attendre(pg, '() => JEU.cibles.gaz === 1 && JEU.cibles.frein === 1 && JEU.cibles.direction === 1', None, 4000)
+    b = pg.evaluate('() => [TACTILE.cibles(), Object.assign({}, JEU.cibles)]')
+    pg.evaluate(DOIGT, ['tactileGaz', 1, False]); pg.evaluate(DOIGT, ['tactileDroite', 2, False]); pg.evaluate(DOIGT, ['tactileFrein', 3, False]); attendre(pg, '() => JEU.cibles.gaz === 0 && JEU.cibles.frein === 0 && JEU.cibles.direction === 0', None, 4000)
+    c = pg.evaluate('() => [TACTILE.cibles(), Object.assign({}, JEU.cibles), document.getElementById("tactileGaz").classList.contains("tenu")]')
+    t(f'{titre} : un doigt sur GAZ donne gaz 1 dans les cibles du joueur (le bouton s’allume) ; trois doigts à la fois (GAZ, ▶, FREIN) donnent gaz 1, direction 1, frein 1 ; tout lâché, 0 partout',
+      a[0]['gaz'] == 1 and a[1]['gaz'] == 1 and a[1]['direction'] == 0 and a[2] and b[0] == {'gaz': 1, 'frein': 1, 'direction': 1} and b[1]['gaz'] == 1 and b[1]['frein'] == 1 and b[1]['direction'] == 1
+      and c[0] == {'gaz': 0, 'frein': 0, 'direction': 0} and c[1] == {'gaz': 0, 'frein': 0, 'direction': 0} and not c[2], str([a, b, c]))
+    # le volant : de faux évènements d'orientation ; la première mesure est le neutre (ici 40°, le téléphone tenu comme on veut) ; ◀ ▶ disparaissent
+    pg.evaluate(INCLINER, 40); attendre(pg, '() => TACTILE.etat.mode === "volant" && document.getElementById("tactileGauche").classList.contains("cache")', None, 4000)
+    e = pg.evaluate(TACTILE_ETAT)
+    t(f'{titre} : dès qu’une mesure d’orientation arrive, le volant prend la main (neutre = la première mesure, 40°), les boutons ◀ ▶ disparaissent, la pause propose « Recentrer » et le choix du volant',
+      e['mode'] == 'volant' and e['neutre'] == 40 and e['gauche']['cache'] and e['droite']['cache'] and not e['volantPause']['cache'] and not e['recentrer']['cache']
+      and e['volantPause']['texte'] == pg.evaluate('() => texte("tac_mode_volant")') and e['recentrer']['texte'] == pg.evaluate('() => texte("tac_recentrer")'), str(e))
+    # 25° à droite (beta 65) = braquage à fond ; lissé, il y arrive en moins d'une seconde
+    pg.evaluate("() => { window.__beta = 65; window.__pencher = () => window.dispatchEvent(new DeviceOrientationEvent('deviceorientation', { alpha: 0, beta: window.__beta, gamma: 0 })); window.__penche = setInterval(window.__pencher, 16); }")
+    plein = attendre(pg, '() => JEU.cibles.direction >= 0.98 && TACTILE.cibles().direction >= 0.98', None, 6000)
+    d1 = pg.evaluate('() => [JEU.cibles.direction, TACTILE.cibles().direction, JEU.cibles.gaz]')
+    t(f'{titre} : 25° à droite du neutre = braquage à fond (direction 1), sans gaz', plein and d1[2] == 0, str(d1))
+    # la zone morte : 1° ne braque pas ; 12,5° de l'autre côté : à peu près la moitié (la zone morte retirée, sans saut)
+    pg.evaluate('() => { window.__beta = 41; }')
+    d0 = attendre(pg, '() => JEU.cibles.direction === 0', None, 4000)   # (le lissage : quelques images)
+    z, p = pg.evaluate('() => [REGLAGES.VOLANT_ZONE_MORTE, REGLAGES.VOLANT_PLEIN]')
+    attendu = -(12.5 - z) / (p - z)
+    pg.evaluate('() => { window.__beta = 40 - 12.5; }')
+    dm = attendre(pg, 'a => Math.abs(JEU.cibles.direction - a) < 0.03', attendu, 4000)
+    t(f'{titre} : 1° dans la zone morte ne braque pas ; 12,5° à gauche braque à gauche, à {attendu:.2f} (la zone morte retirée, sans saut)', d0 and dm, str([d0, dm, pg.evaluate('() => JEU.cibles.direction'), attendu]))
+    # « Recentrer » : le neutre devient l'angle d'aujourd'hui (27,5°), et l'on ne braque plus
+    pg.evaluate('() => TACTILE.recentrer()')
+    attendre(pg, '() => JEU.cibles.direction === 0', None, 4000)
+    r = pg.evaluate('() => [TACTILE.etat.neutre, JEU.cibles.direction]')
+    t(f'{titre} : « Recentrer » prend l’angle du moment pour neutre, et le volant recentré ne braque pas', r[0] == 27.5 and r[1] == 0, str(r))
+    # le choix de la pause : « Direction : boutons ◀ ▶ » rend les boutons, même avec un capteur ; puis retour au volant
+    pg.evaluate('() => document.getElementById("boutonVolantPause").click()')
+    e = pg.evaluate(TACTILE_ETAT)   # (rafraichir est immédiat : pas d'image à attendre)
+    pg.evaluate('() => document.getElementById("boutonVolantPause").click()')
+    e2 = pg.evaluate(TACTILE_ETAT)
+    t(f'{titre} : dans la pause, le joueur peut préférer les boutons ◀ ▶ au volant (ils reviennent, « Recentrer » se cache), puis revenir au volant',
+      e['choix'] == 'boutons' and not e['gauche']['cache'] and e['recentrer']['cache'] and e['volantPause']['texte'] == pg.evaluate('() => texte("tac_mode_boutons")') and e2['choix'] == 'volant' and e2['gauche']['cache'], str([e['choix'], e2['choix']]))
+    # une course sans clavier : le robot d'essai dit quoi faire, mais tout passe par les doigts (GAZ, FREIN tenus ou lâchés) et le volant (l'inclinaison) ;
+    # au moins un tour entier, sans robot ni clavier
+    pg.evaluate('''() => { clearInterval(window.__penche); const Z = REGLAGES.VOLANT_ZONE_MORTE, P = REGLAGES.VOLANT_PLEIN, doigt = (id, pid, bas) => document.getElementById(id).dispatchEvent(new PointerEvent(bas ? 'pointerdown' : 'pointerup', { pointerId: pid, pointerType: 'touch', isPrimary: pid === 1, bubbles: true, cancelable: true }));
+      window.__tenus = { gaz: false, frein: false };
+      BOUCLE.surAffichage(() => { if (!window.__conduire) return; const c = piloteRobot(JEU.joueur, CIRCUIT);
+        const gaz = c.gaz > 0.3, frein = c.frein > 0.3;
+        if (gaz !== window.__tenus.gaz) { doigt('tactileGaz', 1, gaz); window.__tenus.gaz = gaz; }
+        if (frein !== window.__tenus.frein) { doigt('tactileFrein', 2, frein); window.__tenus.frein = frein; }
+        const d = c.direction, a = d === 0 ? 0 : Math.sign(d) * (Z + Math.min(1, Math.abs(d)) * (P - Z));
+        window.dispatchEvent(new DeviceOrientationEvent('deviceorientation', { alpha: 0, beta: TACTILE.etat.neutre + a, gamma: 0 })); });
+      window.__conduire = true; }''')
+    pg.wait_for_timeout(4000)
+    pg.screenshot(path=os.path.join(CAPTURES, f'tactile-{l}.png'))
+    fini = attendre(pg, '() => JEU.course && JEU.course.tours.length >= 1', None, 240000)
+    r = pg.evaluate('() => ({ tours: JEU.course.tours.map(x => x.temps), coupes: JEU.course.tours.filter(x => x.coupe).length, robot: !!JEU.robot })')
+    L.append(f"  (le téléphone : un tour aux doigts et au volant en {r['tours'][0] if r['tours'] else '—'} s)")
+    t(f'{titre} : une course au téléphone, sans clavier ni robot : GAZ / FREIN aux doigts et le volant à l’inclinaison font un tour entier', fini and not r['robot'], str(r))
+    pg.evaluate('() => { window.__conduire = false; }'); pg.wait_for_timeout(200)
+    for id_, pid in [('tactileGaz', 1), ('tactileFrein', 2)]: pg.evaluate(DOIGT, [id_, pid, False])
+    # ⏸ au doigt ouvre la pause ; les boutons de conduite se cachent ; « Reprendre » les rend
+    pg.evaluate('() => document.getElementById("tactilePause").click()'); attendre(pg, '() => JEU.ecran === "pause" && document.getElementById("tactile").classList.contains("cache")', None, 4000)
+    e = pg.evaluate(TACTILE_ETAT)
+    pg.evaluate('() => document.getElementById("boutonReprendre").click()'); attendre(pg, '() => JEU.ecran === "course" && !document.getElementById("tactile").classList.contains("cache")', None, 4000)
+    e2 = pg.evaluate(TACTILE_ETAT)
+    t(f'{titre} : le bouton ⏸ ouvre la pause (les boutons de conduite se cachent) et « Reprendre » les rend', e['ecran'] == 'pause' and not e['tactile'] and e2['ecran'] == 'course' and e2['tactile'], str([e['ecran'], e['tactile'], e2['ecran'], e2['tactile']]))
+# l'iPhone : le navigateur ne donne l'orientation qu'après un toucher (DeviceOrientationEvent.requestPermission, faux ici) ; sur l'écran titre,
+# « 🎮 Activer le volant » ; accordée → le volant écoute ; refusée (rechargement avec sessionStorage perm = denied) → les boutons ◀ ▶ ;
+# le téléphone debout (viewport portrait) → « Tourne ton téléphone »
+def tactile_iphone(pg, titre, l, h):
+    pret = attendre(pg, '() => typeof TACTILE !== "undefined" && TACTILE.estPresent() && JEU.ecran === "titre"', None, 30000)
+    e = pg.evaluate(TACTILE_ETAT)
+    t(f'{titre} : sur un iPhone (autorisation à demander), l’écran titre montre « 🎮 Activer le volant », et pas les boutons de conduite', pret and not e['activer']['cache'] and e['activer']['texte'] == pg.evaluate('() => texte("tac_activer")') and not e['tactile'] and e['mode'] == 'aucun', str(e))
+    pg.evaluate('() => document.getElementById("tactileActiver").click()'); attendre(pg, '() => TACTILE.etat.mode === "attente"', None, 4000)
+    e = pg.evaluate(TACTILE_ETAT)
+    pg.evaluate(INCLINER, 30)
+    e2 = pg.evaluate(TACTILE_ETAT)
+    t(f'{titre} : accordée, le bouton disparaît, le volant écoute (mode attente), puis une mesure le met en mode volant', e['activer']['cache'] and e['mode'] == 'attente' and e2['mode'] == 'volant' and e2['neutre'] == 30, str([e['mode'], e2['mode'], e2['neutre']]))
+    # le téléphone debout : le message, puis couché : plus rien
+    pg.set_viewport_size({'width': h, 'height': l}); attendre(pg, '() => !document.getElementById("tactilePortrait").classList.contains("cache")', None, 5000)
+    p1 = pg.evaluate(TACTILE_ETAT)
+    pg.set_viewport_size({'width': l, 'height': h}); attendre(pg, '() => document.getElementById("tactilePortrait").classList.contains("cache")', None, 5000)
+    p2 = pg.evaluate(TACTILE_ETAT)
+    t(f'{titre} : le téléphone debout montre « Tourne ton téléphone » par-dessus tout ; couché, le message disparaît', not p1['portrait']['cache'] and p1['portrait']['texte'] == pg.evaluate('() => texte("tac_portrait")') and p2['portrait']['cache'], str([p1['portrait'], p2['portrait']['cache']]))
+    # l'autorisation refusée : le mode « boutons » (◀ ▶ dès la conduite)
+    pg.evaluate('() => sessionStorage.setItem("perm", "denied")'); pg.reload()
+    attendre(pg, '() => typeof TACTILE !== "undefined" && JEU.ecran === "titre"', None, 30000)
+    pg.evaluate('() => document.getElementById("tactileActiver").click()'); attendre(pg, '() => TACTILE.etat.mode === "boutons"', None, 4000)
+    e = pg.evaluate(TACTILE_ETAT)
+    t(f'{titre} : autorisation refusée : le bouton disparaît et le mode « boutons » (◀ ▶) est pris, sans erreur', e['activer']['cache'] and e['mode'] == 'boutons', str([e['activer']['cache'], e['mode']]))
 # le mode 2 joueurs : deux fausses manettes, une par joueur ; la gâchette de l'une ne fait rouler que sa voiture
 def manette_deux(pg, titre):
     pret = attendre(pg, '() => JEU.deux && JEU.plateau && JEU.plateau.carte !== null && DEUX_JOUEURS.joueurs(JEU.plateau).every(p => p.course.depart && p.course.depart.extinction !== null)', None, 240000)
@@ -3808,6 +3926,7 @@ if os.environ.get('ECRANS_TRANCHE'):
         k = charges.index(min(charges)); tranche_de[i] = k; charges[k] += DUREES_PAGES.get(f'{PAGES[i][0]} {PAGES[i][1]}', DUREE_INCONNUE)
     print(f'(tranche {k_}/{n_} : {charges[k_ - 1]} s prévues)')
     PAGES = [x for i, x in enumerate(PAGES) if tranche_de[i] == k_ - 1]
+if os.environ.get('ECRANS_PAGES'): PAGES = [x for x in PAGES if os.environ['ECRANS_PAGES'] in x[0]]   # (tour 51k) sur le Mac : seulement les pages dont l'adresse contient ce texte
 DUREES = []   # (page, largeur, secondes) : imprimées à la fin
 mesures = None
 mesures_voiture = []
@@ -3818,7 +3937,7 @@ with sync_playwright() as p:
         for page, l, h, capture in PAGES:
             titre = f'{page} {l}×{h}'
             debut_page = time.monotonic()   # (la durée de chaque page, pour équilibrer les tranches de GitHub)
-            ctx = b.new_context(viewport={'width': l, 'height': h})
+            ctx = b.new_context(viewport={'width': l, 'height': h}, has_touch='test=tactile' in page)   # (le téléphone, tour 51k : un écran tactile émulé pour ces pages seulement)
             pg = ctx.new_page(); console = []
             # les tâches longues (> 50 ms) qui bloquent la page, relevées dès le début du chargement
             pg.add_init_script('window.__longues = []; new PerformanceObserver(l => { for (const e of l.getEntries()) window.__longues.push(e.duration); }).observe({ entryTypes: ["longtask"] });')
@@ -3830,6 +3949,8 @@ with sync_playwright() as p:
             if 'test=sdk' in page or 'test=decouverte' in page or 'test=amis' in page or 'test=tournoi' in page or 'test=livree' in page or 'test=essai' in page: pg.add_init_script(FAUX_SDK)
             # la météo dessinée (meteo3d.js) : une fausse météo de test (window.METEO_TEST, jamais dans le jeu), ?meteo=pluie ou ?meteo=risque
             if 'test=manette' in page: pg.add_init_script(FAUSSES_MANETTES)   # la manette (tour 38) : de fausses manettes
+            if 'test=tactile' in page and 'test=tactile-iphone' not in page: pg.add_init_script('try { DeviceOrientationEvent.requestPermission = undefined; } catch (e) {}')   # (tour 52b : un Chrome récent sur GitHub offre requestPermission, jamais résolue sans geste : ces pages simulent un Android, sans autorisation à demander)
+            if 'test=tactile-iphone' in page: pg.add_init_script(FAUSSE_PERMISSION)   # le téléphone (tour 51k) : l'autorisation de l'iPhone, accordée ou refusée (sessionStorage perm)
             if 'meteo=pluie' in page: pg.add_init_script('window.METEO_TEST = { etat: () => ({ pluie: 0.85, eau: 0.75, eauTrajectoire: 0.35, ciel: 0.9 }), prevision: () => ({ type: "pluie", risque: 90 }) };')
             if 'meteo=risque' in page: pg.add_init_script('window.METEO_TEST = { etat: () => ({ pluie: 0, eau: 0, ciel: 0 }), prevision: () => ({ type: "risque", risque: 40 }) };')
             # le tournoi change de page entre deux manches : les pubs sont aussi comptées dans sessionStorage (qui survit au rechargement)
@@ -3843,6 +3964,9 @@ with sync_playwright() as p:
             if mesures is None: mesures = pg.evaluate('() => SCENE3D.infoCircuit')
 
             t(f'{titre} : le panneau de réglage n’existe que avec ?reglages=1', pg.evaluate('() => !!document.getElementById("reglages")') == ('reglages=1' in page))
+            # le téléphone (tactile.js, tour 51k) : sur un écran sans tactile, rien ne s'affiche et rien n'est branché
+            if 'test=tactile' not in page:
+                t(f'{titre} : sans écran tactile, aucun bouton tactile (ni GAZ / FREIN, ni ◀ ▶, ni « Activer le volant »), rien n’est branché', pg.evaluate('() => typeof TACTILE === "undefined" || !TACTILE.estPresent() && TACTILE.etat.mode === "aucun" && ["tactile", "tactileActiver", "tactilePortrait", "boutonVolantPause", "boutonRecentrerPause"].every(id => document.getElementById(id).classList.contains("cache"))'), str(pg.evaluate('() => typeof TACTILE === "undefined" ? "pas de TACTILE" : [TACTILE.estPresent(), TACTILE.etat.mode, navigator.maxTouchPoints]')))
             if page == 'index.html?seul=1' and l == 1280:
                 conduite(pg, titre)
             if page == 'index.html':
@@ -3919,6 +4043,8 @@ with sync_playwright() as p:
                 mesure_ecran(pg, titre)
             elif 'test=' not in page and 'mesure' not in page and l == 1280 and page.startswith('index.html?course='):
                 t(f'{titre} : sans ?ips ni ?mesure, ni compteur ni panneau de mesure (aucun coût)', pg.evaluate('() => !document.getElementById("compteurIps") && !document.getElementById("mesurePanneau")'))
+            if 'test=tactile' in page:
+                tactile_ecran(pg, titre, l, h, page)
             if 'test=manette-deux' in page:
                 manette_deux(pg, titre)
             elif 'test=manette' in page:

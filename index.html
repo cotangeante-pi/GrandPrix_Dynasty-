@@ -17,6 +17,14 @@
 <div id="sauvegardePerdue" class="cache" role="status"></div>
 <div id="horsPiste" class="cache"></div>
 <div id="aide"></div>
+<!-- le téléphone (tactile.js, tour 51k) : seulement sur un écran tactile, pendant la conduite ; des div, pas des boutons (la manette ne les choisit pas) -->
+<div id="tactile" class="cache">
+  <div id="tactileGauche" class="tactileBouton tactileDir">◀</div><div id="tactileDroite" class="tactileBouton tactileDir">▶</div>
+  <div id="tactileFrein" class="tactileBouton"></div><div id="tactileGaz" class="tactileBouton"></div>
+  <div id="tactileRemise" class="tactileBouton tactilePetit">↩</div><div id="tactilePause" class="tactileBouton tactilePetit">⏸</div>
+</div>
+<button id="tactileActiver" class="cache" tabindex="-1"></button>
+<div id="tactilePortrait" class="cache"></div>
 
 <!-- la course (étape 3) -->
 <div id="retroviseur" class="cache"></div>   <!-- le cadre du rétroviseur (son image est dessinée par scene3d.js dans la 3D, dessous) -->
@@ -511,7 +519,8 @@
   <div class="boutons"><button id="boutonCommentairePause" class="petit" tabindex="-1"></button><button id="boutonEffetsPause" class="petit" tabindex="-1"></button><button id="boutonVoixPause" class="petit" tabindex="-1"></button></div>   <!-- les effets de conduite : oui, non (sensations.js, sauvegardé) -->   <!-- le commentateur : tout, tes faits, coupé (commentaire.js) -->   <!-- le fantôme affiché ou masqué (sauvegardé) -->
   <div class="boutons"><button id="boutonDirectionPause" class="petit aideFigee" tabindex="-1"></button><button id="boutonFreinagePause" class="petit aideFigee" tabindex="-1"></button><button id="boutonAntiblocagePause" class="petit aideFigee" tabindex="-1"></button><button id="boutonAntipatinagePause" class="petit aideFigee" tabindex="-1"></button></div>   <!-- les aides au pilotage (assistance.js) : une par bouton, oui / non, sauvegardées -->
   <div class="boutons"><button id="boutonRevoirAidesPause" class="petit" tabindex="-1"></button><button id="boutonQualitePause" class="petit" tabindex="-1"></button><button id="boutonRetroPause" class="petit" tabindex="-1"></button></div>   <!-- la qualité de l'image : auto, haute, basse (qualite.js, sauvegardé) -->   <!-- « Revoir les aides » (aides.js, Codeur 4) -->
-  <div class="boutons"><button id="boutonTutorielPause" class="petit" tabindex="-1"></button><button id="boutonTouchesPause" class="petit" tabindex="-1"></button></div>   <!-- « ⌨ Touches » (clavier.js, tour 50c) : aussi au titre ; la course reste en pause pendant le choix -->
+  <div class="boutons"><button id="boutonTutorielPause" class="petit" tabindex="-1"></button><button id="boutonTouchesPause" class="petit" tabindex="-1"></button></div>
+  <div id="pauseTactile" class="boutons cache"><button id="boutonVolantPause" class="petit cache" tabindex="-1"></button><button id="boutonRecentrerPause" class="petit cache" tabindex="-1"></button></div>   <!-- le téléphone (tactile.js, tour 51k) : volant ou ◀ ▶, « Recentrer » ; cachés sans écran tactile -->   <!-- « ⌨ Touches » (clavier.js, tour 50c) : aussi au titre ; la course reste en pause pendant le choix -->
   <div class="boutons"><button id="boutonSonEffetsPause" class="petit" tabindex="-1"></button><button id="boutonSonAmbiancePause" class="petit" tabindex="-1"></button><button id="boutonSonCommentateurPause" class="petit" tabindex="-1"></button></div>   <!-- le volume de chaque famille de sons, 100 → 0 % (son.js, tour 44, sauvegardé) -->   <!-- « Apprendre à piloter » (tutoriel.js, Codeur 4) -->
 </section>
 
@@ -590,6 +599,7 @@
 <script src="boite.js"></script>
 <script src="sensations.js"></script>
 <script src="manette.js"></script>
+<script src="tactile.js"></script>
 <script src="son.js"></script><script src="voix.js"></script><script src="voix-sons.js"></script>
 <script src="decors-officiels.js"></script>
 <script src="decor-public.js"></script>
