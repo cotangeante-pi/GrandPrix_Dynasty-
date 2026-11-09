@@ -1893,7 +1893,7 @@ def tactile_decouverte(pg, titre, l, h):
     pg.evaluate('() => { window.__conduire = false; }')
     for id_, pid in [('tactileGaz', 1), ('tactileFrein', 2)]: pg.evaluate(DOIGT, [id_, pid, False])
     pg.screenshot(path=os.path.join(CAPTURES, f'tactile-decouverte-{l}.png'))
-    t(f'{titre} : les trois tours de la course de découverte se font aux doigts et au volant, sans clavier ni robot', arrive and pg.evaluate('() => !JEU.robot'), str(pg.evaluate('() => [JEU.ecran, JEU.course.etat, JEU.course.tours.length]')))
+    t(f'{titre} : les trois tours de la course de découverte se font aux doigts et au volant, sans clavier ni robot', arrive and pg.evaluate('() => !JEU.robot'), str(pg.evaluate('() => [JEU.ecran, JEU.course ? JEU.course.etat : null, JEU.course ? JEU.course.tours.length : null]')))
     if pg.evaluate('() => JEU.ecran === "course" && !document.getElementById("attenteArrivee").classList.contains("cache")'): pg.tap('#boutonPasser')
     t(f'{titre} : à l’arrivée, « Passer » au doigt mène au podium', attendre(pg, '() => JEU.ecran === "podium"', None, 120000), str(pg.evaluate('() => JEU.ecran')))
     pg.tap('#boutonResultats')
