@@ -57,5 +57,38 @@ const PILOTE = (function () {
     return j;
   }
 
-  return { joueur, manque, domicile, numeroLibre, nettoyerNom, valider, appliquer };
+  // le pays qui va avec la langue du navigateur (« fr-CA » → ca, « en-US » → us, « fr » → fr) : la région si elle est dans PAYS, sinon la
+  // langue (PILOTE_LANGUE_PAYS), sinon le premier de PAYS
+  function paysDeLangue(langue) {
+    const [l, region] = String(langue || '').toLowerCase().split(/[-_]/);
+    const r = region === 'uk' ? 'gb' : region;
+    if (r && R.PAYS.includes(r)) return r;
+    const p = R.PILOTE_LANGUE_PAYS[l];
+    return p && R.PAYS.includes(p) ? p : R.PAYS[0];
+  }
+
+  // un tirage dans [0, n[ avec hasard() (la suite semée des tests, sinon Math.random)
+  const tirage = n => Math.min(n - 1, Math.floor(hasard() * n));
+
+  // « trois pilotes prêts » (le premier lancement, après la découverte) : PILOTE_PROPOSITIONS cartes { nom (null : « Toi »), numero (libre),
+  // pays (celui du navigateur), coeur (le circuit du pays, sinon un circuit tiré), casque (tiré, jamais celui d'un autre pilote du monde) }
+  // La première s'appelle « Toi », les autres ont un prénom générique tiré (jamais celui d'un rival du monde) ; chaque carte est valide pour valider()
+  function propositions(ch, langue) {
+    const pays = paysDeLangue(langue), maison = domicile(pays);
+    const rivaux = new Set(ch.pilotes.filter(p => !p.humain && typeof p.nom === 'string').map(p => p.nom.toLowerCase()));
+    const noms = R.PILOTE_PRENOMS.filter(n => !rivaux.has(n.toLowerCase()));
+    const numeros = [];
+    for (let n = R.NUMERO_MIN; n <= R.NUMERO_MAX; n++) if (numeroLibre(ch, n)) numeros.push(n);
+    const circuits = Object.keys(R.CIRCUITS_PAYS), prises = new Set(ch.pilotes.filter(p => CASQUE.valide(p.casque)).map(p => CASQUE.cle(p.casque)));
+    const cartes = [];
+    for (let i = 0; i < R.PILOTE_PROPOSITIONS; i++) {
+      const nom = i === 0 || !noms.length ? null : noms.splice(tirage(noms.length), 1)[0];
+      const numero = numeros.length ? numeros.splice(tirage(numeros.length), 1)[0] : R.NUMERO_MIN;
+      const coeur = maison || circuits[tirage(circuits.length)];
+      cartes.push({ nom, numero, pays, coeur, casque: CASQUE.tirer(prises) || CASQUE.neutre() });
+    }
+    return cartes;
+  }
+
+  return { paysDeLangue, propositions, joueur, manque, domicile, numeroLibre, nettoyerNom, valider, appliquer };
 })();

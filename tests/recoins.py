@@ -248,6 +248,18 @@ def ecrans(c, titre):
     c.cliquer('#boutonMonCasque')
     if c.ecran('pilote', 'Mon casque'):
         c.cliquer('#boutonPiloteValider'); c.ecran('championnat', 'retour de Mon casque')
+    # « Mon pilote » (Réglages, tour 52e) : le formulaire entier avec les valeurs d'aujourd'hui ; un nouveau nom et un nouveau numéro sont gardés (sans rechargement)
+    c.clic('#paddockMenu [data-page="reglages"]'); pg.wait_for_timeout(200)
+    c.cliquer('#boutonMonPilote')
+    if c.ecran('pilote', 'Mon pilote'):
+        avant = c.ev('() => { const j = PILOTE.joueur(JEU.championnat); return { nom: document.getElementById("piloteNom").value === (j.nom || ""), numero: Number(document.getElementById("piloteNumero").value) === j.numero, pays: document.getElementById("pilotePays").value === j.pays, rapide: document.getElementById("pilote").classList.contains("rapide"), titre: document.getElementById("piloteTitre").textContent === texte("monPilote") }; }')
+        t(f'{titre} : « Mon pilote » ouvre le formulaire avec le nom, le numéro et le pays d’aujourd’hui (pas les cartes)', bool(avant) and avant['nom'] and avant['numero'] and avant['pays'] and not avant['rapide'] and avant['titre'], str(avant))
+        try: pg.fill('#piloteNom', 'Zed', timeout=5000); pg.fill('#piloteNumero', '88', timeout=5000)
+        except Exception: pass
+        c.cliquer('#boutonPiloteValider')
+        c.ecran('championnat', 'retour de Mon pilote')
+        r = c.ev('() => { const j = PILOTE.joueur(JEU.championnat), s = PILOTE.joueur(SAUVEGARDE.championnat()); return { nom: j.nom, numero: j.numero, sNom: s.nom, sNumero: s.numero, ecran: JEU.ecran }; }')
+        t(f'{titre} : « Mon pilote » : le nom « Zed » et le numéro 88 sont changés et sauvegardés, retour au paddock sans rechargement', bool(r) and r['nom'] == 'Zed' and r['numero'] == 88 and r['sNom'] == 'Zed' and r['sNumero'] == 88 and r['ecran'] == 'championnat', str(r))
     c.cliquer('#boutonSponsors')
     if c.ecran('sponsors', 'sponsors (en saison)'): c.cliquer('#boutonSponsorsRetour'); c.ecran('championnat', 'retour des sponsors')
     c.cliquer('#boutonCourrier')
