@@ -59,10 +59,10 @@ const TEXTES = {
     resultats: 'Race results',
     colonnesResultats: ['Pos', 'No', 'Time', 'Penalty', 'Gap', 'Grid'],
     enCourse: 'running',
-    qualifTitre: 'Qualifying: one timed lap', qualifTour: 'Do my lap', qualifPasser: 'Skip (start last)', qualifCourse: 'Start the race',
+    qualifTitre: 'Qualifying: one timed lap', qualifTour: 'Do my lap', qualifPasser: 'Skip (start last)', qualifPasserMilieu: 'Skip (start mid-grid)', qualifCourse: 'Start the race',
     qualifExplication: 'Alone on track, flying lap. A corner cut voids the lap.',
     qualifResultat: 'P{p} / {n} — {t}', qualifPole: 'Pole position!', qualifEcart: '+{s} s off pole',
-    qualifInvalide: 'Lap voided (corner cut): starting last', qualifPasse: 'Qualifying skipped: starting last',
+    qualifInvalide: 'Lap voided (corner cut): starting last', qualifPasse: 'Qualifying skipped: starting last', qualifPasseMilieu: 'Qualifying skipped: starting mid-grid',
     grandPrix: 'Grand Prix', classementPilotes: 'Drivers', classementEcuries: 'Teams', courseSuivante: 'Next race', continuer: 'Continue',
     pointsGagnes: 'You scored {n} points', pts: 'pts', finChampionnat: 'Season over',
     preparation: 'Preparing the race…',
@@ -460,10 +460,10 @@ const TEXTES = {
     resultats: 'Résultats de la course',
     colonnesResultats: ['Pos', 'N°', 'Temps', 'Pénalité', 'Écart', 'Grille'],
     enCourse: 'en course',
-    qualifTitre: 'Qualification : un tour chronométré', qualifTour: 'Faire mon tour', qualifPasser: 'Passer (départ dernier)', qualifCourse: 'Départ de la course',
+    qualifTitre: 'Qualification : un tour chronométré', qualifTour: 'Faire mon tour', qualifPasser: 'Passer (départ dernier)', qualifPasserMilieu: 'Passer (départ milieu de grille)', qualifCourse: 'Départ de la course',
     qualifExplication: 'Seul sur la piste, tour lancé. Un virage coupé annule le tour.',
     qualifResultat: 'P{p} / {n} — {t}', qualifPole: 'Pole position !', qualifEcart: '+{s} s de la pole',
-    qualifInvalide: 'Tour annulé (virage coupé) : départ dernier', qualifPasse: 'Qualification passée : départ dernier',
+    qualifInvalide: 'Tour annulé (virage coupé) : départ dernier', qualifPasse: 'Qualification passée : départ dernier', qualifPasseMilieu: 'Qualification passée : départ au milieu de la grille',
     grandPrix: 'Grand Prix', classementPilotes: 'Pilotes', classementEcuries: 'Écuries', courseSuivante: 'Course suivante', continuer: 'Continuer',
     pointsGagnes: 'Tu marques {n} points', pts: 'pts', finChampionnat: 'Saison terminée',
     preparation: 'Préparation de la course…',
@@ -796,7 +796,7 @@ const TEXTES = {
 // touche ou le bouton à utiliser ; jamais genrées sur le joueur ({v} : la vitesse permise dans la voie des stands, en km/h)
 Object.assign(TEXTES.en, {
   aide_depart: 'Start: hold ↑ in the green. Lights out: release, then press ↑ again, fast!',
-  aide_qualif: 'Qualifying: one timed lap sets your grid slot. “Skip” = start last.',
+  aide_qualif: 'Do your lap to start higher up the grid.',
   aide_fantome: 'The see-through car is your best lap: the gap under the timer shows where you lose time.',
   aide_stand: 'Mandatory stop: at the end of the lap, take the pit lane, {v} km/h at most.',
   aide_pluie: 'The track is wet: switch to rain tyres at your next pit stop?',
@@ -810,7 +810,7 @@ Object.assign(TEXTES.en, {
 });
 Object.assign(TEXTES.fr, {
   aide_depart: 'Départ : tiens ↑ dans le vert. Feux éteints : lâche, puis réappuie vite sur ↑ !',
-  aide_qualif: 'Qualification : un tour chronométré donne ta place. « Passer » = partir dernier.',
+  aide_qualif: 'Fais ton tour pour partir plus haut.',
   aide_fantome: 'La voiture transparente : ton meilleur tour. L’écart sous le chrono dit où tu perds du temps.',
   aide_stand: 'Arrêt obligatoire : à la fin du tour, prends la voie des stands, {v} km/h au plus.',
   aide_pluie: 'La piste est mouillée : passer aux pneus pluie à ton prochain arrêt au stand ?',

@@ -46,7 +46,7 @@ def un_essai(b, couverture):
     r = pg.evaluate('''(t0) => { const im = window.__images.filter(x => x >= t0 && x <= t0 + JEU.clicAuxFeux), d = [];
       for (let i = 1; i < im.length; i++) d.push(im[i] - im[i - 1]); d.sort((a, b) => a - b); const c = JEU.calculTrajectoire;
       return { premier: JEU.clicAuPremierFeu / 1000, feux: JEU.clicAuxFeux / 1000, total: JEU.course.feux.total, ips: im.length / (JEU.clicAuxFeux / 1000),
-        image: d.length ? d[Math.floor(d.length / 2)] : null, carte: c ? (c.fin === null ? 'pas finie' : Math.round(c.fin - c.debut)) : 'cache' }; }''', t0)
+        image: d.length ? d[Math.floor(d.length / 2)] : null, cache: JEU.carteDuCache, carte: c ? (c.fin === null ? 'pas finie' : Math.round(c.fin - c.debut)) : 'cache' }; }''', t0)
     scripts = pg.evaluate('() => window.__scripts')
     cov = cdp.send('Profiler.takePreciseCoverage')['result'] if cdp else None
     ctx.close()
@@ -80,6 +80,7 @@ t('le premier lancement, 3 fois : la console reste vide', not consoles, ' | '.jo
 med = lambda k: statistics.median(e[1][k] for e in essais)
 premier, feux, total = med('premier'), med('feux'), med('total')
 L.append('  (essais : ' + ' ; '.join(f"clic → premier feu {e[1]['premier']:.2f} s, → feux éteints {e[1]['feux']:.2f} s (feux {e[1]['total']:.2f} s de jeu), {e[1]['ips']:.1f} images/s, image médiane {e[1]['image']:.0f} ms, carte {e[1]['carte']} ms" for e in essais) + ')')
+t('la carte des IA du circuit test vient de cache-carte-test.js au premier lancement (carteDuCache, aucun calcul en fond)', all(e[1]['cache'] and e[1]['carte'] == 'cache' for e in essais), [(e[1]['cache'], e[1]['carte']) for e in essais])
 t(f'clic → premier feu : médiane {premier:.2f} s, sous 1 s (aucune attente de la carte des IA)', premier < 1.0, premier)
 t(f'clic → feux éteints : médiane {feux:.2f} s, sous la référence d’avant le tour 37d ({REFERENCE_CLIC_AUX_FEUX} s)', feux < REFERENCE_CLIC_AUX_FEUX, feux)
 t(f'les feux durent leurs vraies secondes : du premier feu à l’extinction {feux - premier:.2f} s pour {total:.2f} s de feux (à moins de 1,5 s près, même à quelques images par seconde)', abs((feux - premier) - total) < 1.5, [feux - premier, total])

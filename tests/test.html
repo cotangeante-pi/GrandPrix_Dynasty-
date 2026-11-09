@@ -1,7 +1,7 @@
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><title>tests</title></head><body>
 <pre id="res"></pre>
 <script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));window.addEventListener('unhandledrejection',e=>__err.push('promesse : '+(e.reason&&e.reason.message||e.reason)));</script>
-<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits-officiels-a.js"></script><script src="../circuits-officiels-b.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../sensations.js"></script><script src="../manette.js"></script><script src="../son.js"></script><script src="../effets3d.js"></script><script src="../conseil.js"></script><script src="../qualite.js"></script><script src="../assistance.js"></script><script src="../mesure.js"></script><script src="../regie.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../divisions.js"></script><script src="../decouverte.js"></script><script src="../pilote.js"></script><script src="../deux-joueurs.js"></script><script src="../tournoi.js"></script><script src="../casque.js"></script><script src="../decors-officiels.js"></script><script src="../decor-public.js"></script><script src="../photo.js"></script><script src="../cache-carte.js"></script><script src="../journal.js"></script><script src="../argent.js"></script><script src="../garage.js"></script><script src="../aileron.js"></script><script src="../carte2d.js"></script><script src="../saisons.js"></script><script src="../sponsors.js"></script><script src="../fiche.js"></script><script src="../interview.js"></script><script src="../carriere.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../meteo.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../resume.js"></script><script src="../messages.js"></script><script src="../commentaire.js"></script><script src="../voix-sons.js"></script><script src="../decor.js"></script><script src="../stand3d.js"></script><script src="../fantome.js"></script><script src="../defi.js"></script><script src="../touches.js"></script><script src="../clavier.js"></script><script src="../principal.js"></script>
+<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits-officiels-a.js"></script><script src="../circuits-officiels-b.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../sensations.js"></script><script src="../manette.js"></script><script src="../son.js"></script><script src="../effets3d.js"></script><script src="../conseil.js"></script><script src="../qualite.js"></script><script src="../assistance.js"></script><script src="../mesure.js"></script><script src="../regie.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../divisions.js"></script><script src="../decouverte.js"></script><script src="../pilote.js"></script><script src="../deux-joueurs.js"></script><script src="../tournoi.js"></script><script src="../casque.js"></script><script src="../decors-officiels.js"></script><script src="../decor-public.js"></script><script src="../photo.js"></script><script src="../cache-carte.js"></script><script src="../cache-carte-test.js"></script><script src="../journal.js"></script><script src="../argent.js"></script><script src="../garage.js"></script><script src="../aileron.js"></script><script src="../carte2d.js"></script><script src="../saisons.js"></script><script src="../sponsors.js"></script><script src="../fiche.js"></script><script src="../interview.js"></script><script src="../carriere.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../meteo.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../resume.js"></script><script src="../messages.js"></script><script src="../commentaire.js"></script><script src="../voix-sons.js"></script><script src="../decor.js"></script><script src="../stand3d.js"></script><script src="../fantome.js"></script><script src="../defi.js"></script><script src="../touches.js"></script><script src="../clavier.js"></script><script src="../principal.js"></script>
 <script>
 const L=[];let ok=0,ko=0;
 // (tour 49d-2) les championnats des tests sont en division 3 (le jeu d'avant : l'argent, le garage, les sponsors au bit près) ; les tests
@@ -2142,6 +2142,20 @@ t('découverte : DECOUVERTE_IA pilotes du monde (jamais le joueur, tous différe
   const primes=[1,2,3,4,5,6,7,8].map(DECOUVERTE.prime);v(primes[0]===Math.min(R_.DECOUVERTE_ARGENT[0],R_.DECOUVERTE_ARGENT_MAX)&&primes.every((x,i)=>i===0||x<=primes[i-1])&&primes.every(x=>x<=R_.DECOUVERTE_ARGENT_MAX)&&primes[7]===0&&DECOUVERTE.prime(null)===0,'primes '+primes);
   const avant=R_.DECOUVERTE_ARGENT_MAX;R_.DECOUVERTE_ARGENT_MAX=500;v(DECOUVERTE.prime(1)===500,'plafond');R_.DECOUVERTE_ARGENT_MAX=avant;
   L.push('  (découverte : pilotes '+pil.map(p=>p.id).join(', ')+' ; grille '+devant+' devant / '+derriere+' derrière ; primes '+primes.slice(0,R_.DECOUVERTE_IA+1).join(', ')+')');});
+t('premier Grand Prix (tour 52f) : 3 tours au tout premier Grand Prix de la carrière, CHAMPIONNAT_TOURS ensuite ; « Passer » la qualification = milieu de grille (médiane des IA) au GP 1 seulement, dernier au GP 2 ; CHAMPIONNAT_TOURS_PREMIER = CHAMPIONNAT_TOURS et QUALIF_PASSER_PREMIER_MILIEU = false rendent le jeu d\u2019avant', ()=>{
+  const R_=REGLAGES,ch=CHAMPIONNAT.creer(1);
+  v(CHAMPIONNAT.estPremierGrandPrix(ch)&&CHAMPIONNAT.toursDuGrandPrix(ch)===R_.CHAMPIONNAT_TOURS_PREMIER&&R_.CHAMPIONNAT_TOURS_PREMIER===3,'GP 1 : 3 tours');
+  const e=creerCourseIA(C,19,2,7,CARTES_T.test,true),P=e.pilotes,moi=P[P.length-1],tIA=P.filter(p=>!p.humain).map(p=>p.qualif);
+  const place=(c_)=>{QUALIFICATION.grille(e,QUALIFICATION.tempsPasse(c_,tIA));return e.grille.findIndex(g=>P[g.numero-1].humain)+1;};
+  const p1=place(ch);v(p1===10||p1===11,'GP 1 : place médiane '+p1+' / 20');
+  ch.prochain=1;ch.resultats.push({grandPrix:1,ordre:[]});
+  v(!CHAMPIONNAT.estPremierGrandPrix(ch)&&CHAMPIONNAT.toursDuGrandPrix(ch)===R_.CHAMPIONNAT_TOURS,'GP 2 : '+CHAMPIONNAT.toursDuGrandPrix(ch)+' tours');
+  const p2=place(ch);v(p2===20,'GP 2 : dernier '+p2);
+  const ch2=CHAMPIONNAT.creer(1),a1=R_.QUALIF_PASSER_PREMIER_MILIEU,a2=R_.CHAMPIONNAT_TOURS_PREMIER;
+  R_.QUALIF_PASSER_PREMIER_MILIEU=false;R_.CHAMPIONNAT_TOURS_PREMIER=R_.CHAMPIONNAT_TOURS;
+  v(place(ch2)===20&&CHAMPIONNAT.toursDuGrandPrix(ch2)===R_.CHAMPIONNAT_TOURS,'réglages « avant » : dernier, 5 tours');
+  R_.QUALIF_PASSER_PREMIER_MILIEU=a1;R_.CHAMPIONNAT_TOURS_PREMIER=a2;
+  L.push('  (GP 1 : « Passer » = P'+p1+' / 20 ; GP 2 : P'+p2+')');});
 t('découverte : la sauvegarde : sans sauvegarde, découverte pas faite et argent 0 ; finirDecouverte garde la prime et le drapeau (une seule fois, jamais négatif) ; une ancienne sauvegarde avec un championnat compte comme découverte faite, une sans championnat non', ()=>{
   localStorage.removeItem(SAUVEGARDE.CLE);v(!SAUVEGARDE.decouverteFaite()&&SAUVEGARDE.argent()===0,'vierge');
   v(SAUVEGARDE.finirDecouverte(600)&&SAUVEGARDE.decouverteFaite()&&SAUVEGARDE.argent()===600,'prime');
@@ -2361,6 +2375,14 @@ t('cache de la carte : la clé invalide le cache quand un réglage IA_* change, 
   const T3=CACHE_CARTE.decoder(relu,'test',CIRCUITS.test,C);v(T3&&T3.vitesse[300]===T.vitesse[300]&&T3.ecart[100]===T.ecart[100],'relu depuis la sauvegarde');
   localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:3,records:{},championnat:null}));v(SAUVEGARDE.carte('test')===null&&JSON.stringify(SAUVEGARDE.lire().cartes)==='{}','ancienne sauvegarde sans cartes');
   localStorage.removeItem(SAUVEGARDE.CLE);});
+
+t('carte livrée (tour 52f) : cache-carte-test.js est un cache valide du circuit test (sa clé correspond) et sa trajectoire décodée = la trajectoire calculée au bit près ; sinon : python3 tests/regenerer-cache-carte.py', ()=>{
+  v(typeof CACHE_CARTE_LIVREE!=='undefined'&&CACHE_CARTE_LIVREE.test,'cache-carte-test.js absent ou vide');
+  const cache=CACHE_CARTE_LIVREE.test,T=TRAJ.test,T2=CACHE_CARTE.decoder(cache,'test',CIRCUITS.test,C);
+  v(T2!==null,'carte livrée périmée (clé '+cache.cle+' ≠ '+CACHE_CARTE.cle('test',CIRCUITS.test)+') : à régénérer');
+  for(const k of ['ecart','x','z','courbure','ds','vitesse','vitesseLimite']){v(T2[k].length===T[k].length,k+' longueur');for(let i=0;i<T[k].length;i++) if(T2[k][i]!==T[k][i]) throw new Error('carte livrée '+k+'['+i+'] : '+T2[k][i]+' ≠ '+T[k][i]+' (à régénérer)');}
+  v(JSON.stringify(cache)===JSON.stringify(CACHE_CARTE.encoder('test',CIRCUITS.test,T)),'l\u2019encodage diffère');
+  L.push('  (carte livrée : '+CACHE_CARTE.taille(cache)+' octets)');});
 
 // --- la voiture du joueur suit son écurie (tour 25c, garage.js appliquer × niveau)
 t('garage : appliquer(v, g, niveau) multiplie moteur, aéro et freins par le niveau de l’écurie (0,96 × les améliorations, exact) ; NIVEAU_JOUEUR_ACTIF false → 1 ; sans niveau (hors championnat, découverte) → 1 ; changer d’écurie change la voiture dès la course suivante', ()=>{
@@ -3361,6 +3383,30 @@ t('commentateur : quand un son enregistré part, la synthèse en cours se tait e
     majCommentaire(e,m);v(appels.join()==='taire','un son : la synthèse se tait, sans parler ('+appels.join()+')');
     appels.length=0;VOIXSONS.jouer=()=>false;majCommentaire(e,m);v(appels.join()==='dire','sans son : la synthèse parle ('+appels.join()+')');
   }finally{REGLAGES.COMMENTAIRE_MODE=sauve.mode;JEU.ecran=sauve.ecran;JEU.contre=sauve.contre;JEU.commentaire=sauve.commentaire;VOIXSONS.jouer=sauve.jouer;COMMENTAIRE.observer=sauve.observer;COMMENTAIRE.afficher=sauve.afficher;COMMENTAIRE.phrase=sauve.phrase;
+    if(sansVoix)delete window.VOIX;else{VOIX.taire=sauve.taire;VOIX.dire=sauve.dire;}
+    if(sansInterface)delete window.INTERFACE;}});
+
+t('commentateur (tour 52f) : à la découverte, un commentateur « tout » ne parle que du joueur (mode forcé à « joueur » le temps de l\u2019appel, voix comprise), le réglage sauvegardé revient après ; en carrière, le réglage ; COMMENTAIRE_DECOUVERTE_MODE vide = comme avant', ()=>{
+  const appels=[],modes=[],sansInterface=typeof INTERFACE==='undefined',sansVoix=typeof VOIX==='undefined';
+  const sauve={mode:REGLAGES.COMMENTAIRE_MODE,dm:REGLAGES.COMMENTAIRE_DECOUVERTE_MODE,ecran:JEU.ecran,contre:JEU.contre,decouverte:JEU.decouverte,commentaire:JEU.commentaire,jouer:VOIXSONS.jouer,observer:COMMENTAIRE.observer,afficher:COMMENTAIRE.afficher,phrase:COMMENTAIRE.phrase,
+    taire:sansVoix?null:VOIX.taire,dire:sansVoix?null:VOIX.dire};
+  let fait={type:'depassement',prio:9,comble:false,joueur:false};
+  try{
+    if(sansInterface)window.INTERFACE={formatTemps:String};
+    if(sansVoix)window.VOIX={};
+    VOIX.taire=()=>{};VOIX.dire=()=>{appels.push('dire');};VOIXSONS.jouer=()=>false;
+    COMMENTAIRE.observer=()=>{modes.push(REGLAGES.COMMENTAIRE_MODE);};COMMENTAIRE.afficher=()=>fait;COMMENTAIRE.phrase=()=>'x';
+    REGLAGES.COMMENTAIRE_MODE='tout';JEU.ecran='course';JEU.contre=false;JEU.commentaire=null;
+    const e={graine:1,temps:10,pilotes:[]},m=MESSAGES.creer();
+    JEU.decouverte=true;majCommentaire(e,m);
+    v(modes[0]==='joueur'&&REGLAGES.COMMENTAIRE_MODE==='tout','mode forcé pendant l\u2019appel puis rendu ('+modes+')');
+    v(appels.length===0,'la voix se tait pour un fait des autres ('+appels+')');
+    fait={type:'depassement',prio:9,comble:false,joueur:true};majCommentaire(e,m);v(appels.join()==='dire','la voix dit un fait du joueur');
+    REGLAGES.COMMENTAIRE_MODE='non';modes.length=0;majCommentaire(e,m);v(modes.length===0,'« non » reste coupé');
+    REGLAGES.COMMENTAIRE_MODE='tout';JEU.decouverte=false;modes.length=0;appels.length=0;fait={type:'depassement',prio:9,comble:false,joueur:false};majCommentaire(e,m);
+    v(modes[0]==='tout'&&appels.join()==='dire','en carrière : le réglage sauvegardé');
+    JEU.decouverte=true;REGLAGES.COMMENTAIRE_DECOUVERTE_MODE='';modes.length=0;appels.length=0;majCommentaire(e,m);v(modes[0]==='tout'&&appels.join()==='dire','réglage vide = comme avant');
+  }finally{REGLAGES.COMMENTAIRE_MODE=sauve.mode;REGLAGES.COMMENTAIRE_DECOUVERTE_MODE=sauve.dm;JEU.ecran=sauve.ecran;JEU.contre=sauve.contre;JEU.decouverte=sauve.decouverte;JEU.commentaire=sauve.commentaire;VOIXSONS.jouer=sauve.jouer;COMMENTAIRE.observer=sauve.observer;COMMENTAIRE.afficher=sauve.afficher;COMMENTAIRE.phrase=sauve.phrase;
     if(sansVoix)delete window.VOIX;else{VOIX.taire=sauve.taire;VOIX.dire=sauve.dire;}
     if(sansInterface)delete window.INTERFACE;}});
 

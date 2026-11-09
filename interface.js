@@ -543,7 +543,7 @@ const INTERFACE = (function () {
   function remplirQualif(etat, r) {
     $('qualifTitre').textContent = texte('qualifTitre');
     $('boutonQualifTour').textContent = texte('qualifTour');
-    $('boutonQualifPasser').textContent = texte('qualifPasser');
+    $('boutonQualifPasser').textContent = texte(r && r.milieu ? 'qualifPasserMilieu' : 'qualifPasser');   // (tour 52f) le tout premier Grand Prix : « Passer » = milieu de grille
     $('boutonQualifCourse').textContent = texte('qualifCourse');
     $('boutonQualifTour').classList.toggle('cache', etat !== 'choix');
     $('boutonQualifPasser').classList.toggle('cache', etat !== 'choix');
@@ -555,7 +555,7 @@ const INTERFACE = (function () {
     let t = texte('qualifExplication');
     if (etat === 'attente') t = texte('preparation');
     else if (etat === 'resultat') {
-      if (r.passe) t = texte('qualifPasse');
+      if (r.passe) t = texte(r.milieu ? 'qualifPasseMilieu' : 'qualifPasse');
       else if (!r.valide) t = texte('qualifInvalide');
       else t = texte('qualifResultat').replace('{p}', r.place).replace('{n}', r.nb).replace('{t}', formatTemps(r.temps))
         + ' · ' + (r.ecart > 0 ? texte('qualifEcart').replace('{s}', r.ecart.toFixed(3).replace('.', texte('virgule'))) : texte('qualifPole'));
