@@ -814,7 +814,9 @@ def decouverte(pg, titre):
     mesure = pg.evaluate('() => JEU.clicAuxFeux'); premier = pg.evaluate('() => JEU.clicAuPremierFeu')
     t(f'{titre} : les feux s’éteignent, le temps du clic aux feux est mesuré (sous swiftshader, la carte en fond pèse : la valeur est donnée telle quelle)', extinction and mesure is not None and mesure > 0, str(mesure))
     cache = pg.evaluate('() => { const c = SAUVEGARDE.carte(NOM_CIRCUIT); return { present: !!c, taille: c ? CACHE_CARTE.taille(c) : 0, duCache: JEU.carteDuCache }; }')
-    t(f'{titre} : au premier lancement, pas de cache : la carte est calculée en fond, puis mise en cache dans la sauvegarde (taille < CACHE_CARTE_TAILLE_MAX)', not cache['duCache'] and cache['present'] and 0 < cache['taille'] < pg.evaluate('() => REGLAGES.CACHE_CARTE_TAILLE_MAX'), str(cache))
+    # (tour 52f) la carte du circuit de la découverte (test) est livrée (cache-carte-test.js) : prise comme un cache valide, aucun calcul en fond, rien à écrire dans la sauvegarde ;
+    # l'écriture en cache d'un circuit non livré est vérifiée plus bas, avec le 1er Grand Prix (bahrayn)
+    t(f'{titre} : au premier lancement, la carte du circuit test vient du fichier livré (duCache vrai), sans calcul en fond', cache['duCache'] and not pg.evaluate('() => JEU.calculTrajectoire !== null'), str(cache))
     L.append(f"  (premier lancement : page chargée en {chargement} ms ; du clic sur « Jouer » au premier feu (l’attente de la carte des IA) : {(premier or 0) / 1000:.1f} s, à l’extinction des feux : {(mesure or 0) / 1000:.1f} s, sous swiftshader ; carte mise en cache : {cache['taille']} octets)")
     t(f'{titre} : gameplayStart seulement aux feux éteints, une fois', attendre(pg, '() => window.APPELS_SDK.join(",") === "init,gameLoadingFinished,gameplayStart"', None, 10000), str(pg.evaluate('() => window.APPELS_SDK')))
     # les touches : chaque aide part quand sa touche a servi (le robot conduit ; les touches ne font que marquer les aides)
@@ -874,13 +876,15 @@ def decouverte(pg, titre):
     # un Grand Prix d'un tour : le numéro 27 dans la tour de classement, le nom sur la une du journal
     # (depuis le tour 32, le 1er Grand Prix est Bahrayn, pas le circuit de la découverte : sa carte n'est pas encore dans le cache, elle se
     # calcule en fond ; celle de la découverte, elle, y est gardée)
-    t(f'{titre} : au lancement suivant, la carte de la découverte est gardée dans le cache de la sauvegarde ; celle du 1er Grand Prix (un autre circuit) vient du cache ou se calcule en fond',
-      pg.evaluate('() => SAUVEGARDE.carte(REGLAGES.DECOUVERTE_CIRCUIT) !== null && NOM_CIRCUIT === JEU.championnat.calendrier[0].circuit && (JEU.carteDuCache === true || JEU.calculTrajectoire !== null || JEU.carte !== null)'),
+    t(f'{titre} : au lancement suivant, la carte de la découverte vient encore du fichier livré (ou de la sauvegarde) ; celle du 1er Grand Prix (un autre circuit, non livré) vient du cache ou se calcule en fond',
+      pg.evaluate('() => CACHE_CARTE.decoder(SAUVEGARDE.carte(REGLAGES.DECOUVERTE_CIRCUIT) || CACHE_CARTE_LIVREE[REGLAGES.DECOUVERTE_CIRCUIT], REGLAGES.DECOUVERTE_CIRCUIT, CIRCUITS[REGLAGES.DECOUVERTE_CIRCUIT], construireCircuit(CIRCUITS[REGLAGES.DECOUVERTE_CIRCUIT])) !== null && NOM_CIRCUIT === JEU.championnat.calendrier[0].circuit && (JEU.carteDuCache === true || JEU.calculTrajectoire !== null || JEU.carte !== null)'),
       str(pg.evaluate('() => [NOM_CIRCUIT, SAUVEGARDE.carte(REGLAGES.DECOUVERTE_CIRCUIT) !== null, JEU.carteDuCache, JEU.carte !== null]')))
     paddock_clic(pg, '#boutonCourseSuivante')
     attendre(pg, '() => JEU.ecran === "qualif" && JEU.qualif && JEU.qualif.etat === "choix"', None, 10000)
     pg.click('#boutonQualifPasser')
     attendre(pg, '() => JEU.qualif && JEU.qualif.etat === "resultat"', None, 180000)   # (la carte des IA d'abord, s'il le faut)
+    t(f'{titre} : la carte du 1er Grand Prix (non livrée) est calculée puis écrite dans la sauvegarde (la mise en cache des autres circuits est intacte, taille < CACHE_CARTE_TAILLE_MAX)',
+      pg.evaluate('() => { const c = SAUVEGARDE.carte(NOM_CIRCUIT); return !!c && CACHE_CARTE.taille(c) < REGLAGES.CACHE_CARTE_TAILLE_MAX; }'), str(pg.evaluate('() => [NOM_CIRCUIT, SAUVEGARDE.carte(NOM_CIRCUIT) !== null, JEU.carteDuCache]')))
     pg.click('#boutonQualifCourse')
     # avant les feux, la grille vue d'en haut (CLAUDE.md « L'interface ») : la caméra au-dessus de la grille, les feux pas encore
     # allumés (la physique attend), une touche la passe ; jamais à deux ni au tournoi (vérifié dans leurs pages : pas d'écran « grille »)
