@@ -54,6 +54,7 @@ const INTERFACE = (function () {
     for (const id of ['hudCourse', 'hudPenalite', 'hudStand', 'compte', 'feux', 'classement', 'radar', 'jauge', 'departResultat', 'aides', 'feux2', 'jauge2', 'departResultat2', 'deuxHaut', 'deuxBas', 'deuxSeparation']) if (!course) $(id).classList.add('cache');
     if (course) $('hudCourse').classList.remove('cache');
     document.body.classList.toggle('auPaddock', ecran === 'championnat');   // (au paddock, le son est dans « Réglages » : 🔊 se cache, tour 48a)
+    document.body.classList.toggle('horsCourse', !course);   // (hors course, la tour de classement est cachée : 🔊 va dans le coin, tour 51h)
   }
 
   // à chaque image, pendant la course
@@ -1864,7 +1865,7 @@ const INTERFACE = (function () {
     ecrireAides();
   }
 
-  return { surClicClassement, marquerSuivie, lireDispositionClavier, remplirTouchesDeux, montrerTouchesPause, majRappelDeux, majPneus, majMessage, preparerGrille, preparerAides, ouvrirAides, fermerAides, ecrireAides, aidesDeux, aidesAmi, noterAidesAmi, annoncerMotifs, preparerResume, montrerBoutonResume, majResume, remplirInscription, lireInscription, montrerErreursTournoi, preparerInscription, remplirAToi, majCompteTournoi, preparerPauseTournoi, remplirMancheTournoi, preparerMancheTournoi, remplirFinTournoi, preparerFinTournoi, preparerAmis, remplirDeux, lireDeux, montrerErreursDeux, preparerDeux, remplirPodiumDeux, remplirRivalite, formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, remplirPaddock, pagePaddock, pageDe, preparerPaddock, pageActive: () => pageActive, remplirDiscussion, remplirDiscussionPatron, preparerNegociation, preparerDiscussion, remplirCourrier, preparerCourrier, preparerChampionnat, remplirQualif, preparerQualif,
+  return { surClicClassement, marquerSuivie, lireDispositionClavier, dispositionClavier: () => dispoClavier, remplirTouchesDeux, montrerTouchesPause, majRappelDeux, majPneus, majMessage, preparerGrille, preparerAides, ouvrirAides, fermerAides, ecrireAides, aidesDeux, aidesAmi, noterAidesAmi, annoncerMotifs, preparerResume, montrerBoutonResume, majResume, remplirInscription, lireInscription, montrerErreursTournoi, preparerInscription, remplirAToi, majCompteTournoi, preparerPauseTournoi, remplirMancheTournoi, preparerMancheTournoi, remplirFinTournoi, preparerFinTournoi, preparerAmis, remplirDeux, lireDeux, montrerErreursDeux, preparerDeux, remplirPodiumDeux, remplirRivalite, formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, remplirPaddock, pagePaddock, pageDe, preparerPaddock, pageActive: () => pageActive, remplirDiscussion, remplirDiscussionPatron, preparerNegociation, preparerDiscussion, remplirCourrier, preparerCourrier, preparerChampionnat, remplirQualif, preparerQualif,
     remplirDuel, avec, remplirUne, preparerUne, remplirArgent, remplirSolde, remplirGarage, preparerGarage,
     remplirSaison, remplirDuelSaison, remplirContrats, remplirRetraite, preparerSaison, retraiteEnAttente, remplirCeremonie, preparerCeremonie, remplirAlbum, preparerAlbum, remplirBilan, remplirTemple, preparerTemple, preparerReleve, remplirHeritier, lireHeritier, montrerErreurHeritier, remplirAileron, majAileron, preparerAileron, preparerPneusGarage, remplirArbre, preparerArbre, remplirCalendrier, preparerCalendrier,
     remplirSponsors, remplirRappelSponsor, preparerSponsors, remplirFiche, preparerFiche, remplirInterview, montrerEffetInterview, preparerInterview, remplirReputation,
@@ -2149,7 +2150,13 @@ const DEFI_ECRAN = (function () {
     boite.textContent = '';
     if (lienDe) {
       // (tour 51e) l'adresse de repli tout de suite ; sur Poki, lienDe rappelle avec l'adresse de la page du jeu (SDK.lienPartage) et le champ la prend
-      const [champLien, boutonLien] = champCopie(lienDe(code, adresse => { if (typeof adresse === 'string' && adresse) champLien.value = adresse; }), 'defiCopierLien', 'defiLien');
+      // (tour 51l) champLien est déclaré avant l'appel (un rappel immédiat le lirait sinon avant sa déclaration), et un rappel qui arrive
+      // après que la boîte a été redessinée (deux clics sur « Renvoyer mon lien ») ne touche plus un champ déjà remplacé
+      let champLien = null, recue = null;
+      const poser = adresse => { if (typeof adresse !== 'string' || !adresse) return; if (!champLien) recue = adresse; else if (champLien.isConnected) champLien.value = adresse; };
+      const [champ, boutonLien] = champCopie(lienDe(code, poser), 'defiCopierLien', 'defiLien');
+      champLien = champ;
+      if (recue) champLien.value = recue;
       boite.append(champLien, boutonLien);
       const p = document.createElement('p'); p.textContent = texte('defiLienAide'); boite.append(p);
     }
@@ -2221,7 +2228,7 @@ const TOUCHES_ECRAN = (function () {
   const $ = id => document.getElementById(id);
   let rappel = null;
   const commande = (groupe, action) => texte('touchesGroupe_' + groupe) + ' · ' + texte('touchesAction_' + action);
-  const nom = code => TOUCHES_DEUX_ECRAN.nom(code, null);
+  const nom = code => TOUCHES_DEUX_ECRAN.nom(code, INTERFACE.dispositionClavier());   // (tour 51j) selon la disposition du clavier quand on l'a
 
   function preparer(f) {
     rappel = f;

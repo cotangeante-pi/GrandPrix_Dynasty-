@@ -2,10 +2,12 @@
 // (le départ, un dépassement, une bataille côte à côte, une erreur, la victoire), le jeu joue une des prises (jamais la même deux fois de
 // suite, par fait) ; la voix de synthèse (voix.js) ne dit plus que ce qui n'a pas de son ; le bandeau texte reste.
 // - PROVISOIRE ET RÉVERSIBLE : le propriétaire n'a pas encore choisi sa voix. Éteint par défaut (VOIX_SONS faux) : le jeu est alors
-//   exactement comme avant. ?voixsons=1 ou « Voix enregistrées : oui » dans ⚙ Réglages (sauvegardé : option 'voixsons') l'allument.
+//   exactement comme avant. ?voixsons=1 ou « Voix enregistrées : oui » dans ⚙ Réglages (sauvegardé : option 'voixsons') l'allument
+//   (?voixsons=1 écrit l'option, ?voixsons=0 l'éteint : le réglage tient quand le jeu se recharge entre deux écrans, tour 51h).
 // - Les sons (sons/voix/<langue>-<fait>-<n>.m4a, environ 13 Ko chacun) ne se chargent qu'APRÈS la course de découverte (« En piste en
 //   10 secondes » ne doit pas ralentir), seulement dans la langue du jeu, et seulement quand l'AudioContext existe (le premier geste) ;
-//   ils passent par la famille « commentateur » de son.js (son coupé, M, pub, onglet caché : muet comme le reste).
+//   ils passent par la famille « commentateur » de son.js (son coupé, M, pub, onglet caché : muet comme le reste). En file:// (index.html
+//   ouvert directement), Chrome refuse le XHR d'un fichier : la prise est alors un élément <audio> (rattraper), joué au volume du commentateur.
 // - Un son qui manque ou qui ne se décode pas : le texte reste (et la voix de synthèse parle), aucune erreur.
 // - Ne touche jamais à la course : son propre hasard (ALEATOIRE.suite), aucun tirage dans hasard().
 // VOIXSONS.jouer(type) : vrai si un son a été lancé ; VOIXSONS.taire() ; VOIXSONS.regler(oui) / VOIXSONS.active ;
@@ -19,8 +21,12 @@ const VOIXSONS = (function () {
   const PRISES = 3;   // trois prises par groupe et par langue
   const DOSSIER = 'sons/voix/';
   const url = (l, cle, n) => DOSSIER + l + '-' + cle + '-' + n + '.m4a';
-  let active = (typeof location !== 'undefined' && new URLSearchParams(location.search).get('voixsons') === '1') ? true
+  // ?voixsons=1 (ou =0) vaut le réglage « Voix enregistrées » : il est ÉCRIT dans la sauvegarde (tour 51h : le jeu se recharge entre deux
+  // écrans sans garder ce paramètre, et les voix s'éteignaient au premier rechargement ; la synthèse reprenait)
+  const DEMANDE = typeof location !== 'undefined' ? new URLSearchParams(location.search).get('voixsons') : null;
+  let active = DEMANDE === '1' || DEMANDE === '0' ? DEMANDE === '1'
     : (typeof SAUVEGARDE !== 'undefined' ? SAUVEGARDE.option('voixsons', R.VOIX_SONS) === true : R.VOIX_SONS === true);
+  if ((DEMANDE === '1' || DEMANDE === '0') && typeof SAUVEGARDE !== 'undefined') { try { SAUVEGARDE.ecrireOption('voixsons', active); } catch (e) { /* rien */ } }
   const tampons = {};       // { fr: { depart: [AudioBuffer…] } } ce qui est décodé
   const demandes = {};      // la langue → vrai quand son chargement est lancé
   const dernier = {};       // le groupe → la dernière prise jouée
@@ -45,16 +51,30 @@ const VOIXSONS = (function () {
         const x = new XMLHttpRequest();
         x.open('GET', url(l, cle, n)); x.responseType = 'arraybuffer';
         x.onload = () => {
-          if (!(x.status === 200 || (x.status === 0 && x.response && x.response.byteLength))) return;
+          if (!(x.status === 200 || (x.status === 0 && x.response && x.response.byteLength))) return rattraper(l, cle, n);
           const ok = b => { (tampons[l][cle] = tampons[l][cle] || []).push(b); };
           try { const p = s.ctx.decodeAudioData(x.response, ok, () => { /* un son illisible : le texte reste */ }); if (p && p.catch) p.catch(() => {}); } catch (e) { /* rien */ }
         };
-        x.onerror = () => { /* un son manquant : le texte reste */ };
+        x.onerror = () => rattraper(l, cle, n);   // (un son manquant : le texte reste ; en file://, le XHR est refusé : l'élément <audio>)
         x.send();
       } catch (e) { /* rien */ }
     }
     return true;
   }
+
+  // le XHR refusé (index.html ouvert directement en file:// : Chrome refuse les XHR d'un fichier vers un autre, tour 51h) : la même prise
+  // par un élément <audio>, qui lui a le droit ; il est joué hors de Web Audio, au volume du commentateur, seulement si le son est permis
+  function rattraper(l, cle, n) {
+    if (typeof Audio === 'undefined' || typeof location === 'undefined' || location.protocol !== 'file:') return;
+    try {
+      const a = new Audio(url(l, cle, n));
+      a.preload = 'auto';
+      a.addEventListener('canplaythrough', () => { const t = (tampons[l][cle] = tampons[l][cle] || []); if (!t.includes(a)) t.push(a); }, { once: true });
+      a.addEventListener('error', () => { /* un son manquant : le texte reste */ });
+      a.load();
+    } catch (e) { /* rien */ }
+  }
+  const volumeCommentateur = () => (typeof SON !== 'undefined' && SON.volumes && typeof SON.volumes.commentateur === 'number') ? SON.volumes.commentateur : 1;
 
   // une prise du groupe, jamais la même deux fois de suite ; null s'il n'y en a pas
   function choisir(cle, l) {
@@ -67,7 +87,7 @@ const VOIXSONS = (function () {
     return liste[i];
   }
 
-  function taire() { if (courant) { try { courant.stop(); } catch (e) { /* rien */ } courant = null; } }
+  function taire() { if (courant) { try { if (courant.pause) courant.pause(); else courant.stop(); } catch (e) { /* rien */ } courant = null; } }
 
   // le fait (type du commentaire) → un son joué ; vrai seulement si un son est parti (sinon la synthèse parle)
   function jouer(type) {
@@ -77,6 +97,14 @@ const VOIXSONS = (function () {
     if (!b) return false;
     try {
       taire();
+      if (b.play) {   // (l'élément <audio> du rattrapage en file://)
+        b.volume = Math.max(0, Math.min(1, R.VOIX_SONS_VOLUME * volumeCommentateur()));
+        b.currentTime = 0;
+        b.onended = () => { if (courant === b) courant = null; };
+        const p = b.play(); if (p && p.catch) p.catch(() => {});
+        courant = b; joues++;
+        return true;
+      }
       const src = s.ctx.createBufferSource(), g = s.ctx.createGain();
       src.buffer = b; g.gain.value = R.VOIX_SONS_VOLUME;
       src.connect(g); g.connect(s.sortie);

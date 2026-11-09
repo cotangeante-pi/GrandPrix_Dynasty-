@@ -14,18 +14,35 @@ const CLAVIER = (function () {
   const GROUPES = { seul: ['gaz', 'frein', 'gauche', 'droite', 'remise', 'camera', 'pause'], j1: ['gaz', 'frein', 'gauche', 'droite', 'remise'], j2: ['gaz', 'frein', 'gauche', 'droite', 'remise'] };
   // les groupes qui servent en même temps (une touche n'y est qu'à une commande) : la course seule à part, les deux joueurs ensemble
   const ENSEMBLE = { seul: ['seul'], j1: ['j1', 'j2'], j2: ['j1', 'j2'] };
+  const ENSEMBLES = [['seul'], ['j1', 'j2']];
   const codeValide = c => typeof c === 'string' && /^[A-Za-z0-9]{1,24}$/.test(c);
 
   const defaut = () => copie(DEPART);
 
   function completer(s) {
     const t = defaut();
-    if (!s || typeof s !== 'object') return t;
-    for (const g of Object.keys(GROUPES)) for (const a of GROUPES[g]) {
+    if (s && typeof s === 'object') for (const g of Object.keys(GROUPES)) for (const a of GROUPES[g]) {
       const l = s[g] && s[g][a];
       if (Array.isArray(l) && l.length && l.every(codeValide)) t[g][a] = l.slice(0, 2);
     }
+    // (tour 51j) Échap : la pause et rien d'autre, même dans une sauvegarde écrite à la main
+    for (const g of Object.keys(GROUPES)) for (const a of GROUPES[g]) if (g !== 'seul' || a !== 'pause') t[g][a] = t[g][a].filter(c => c !== 'Escape');
     t.seul.pause = ['Escape'].concat(t.seul.pause.filter(c => c !== 'Escape')).slice(0, 2);   // (Échap toujours d'abord)
+    // (tour 51j) jamais la même touche à deux commandes d'un même ensemble (une sauvegarde écrite à la main) : la première la garde, les
+    // suivantes la perdent ; une commande restée sans touche reprend celle de départ si elle est libre, sinon tout l'ensemble repart du départ
+    for (const ens of ENSEMBLES) {
+      const vu = new Set(), vides = [];
+      for (const g of ens) for (const a of GROUPES[g]) {
+        t[g][a] = t[g][a].filter(c => !vu.has(c));
+        t[g][a].forEach(c => vu.add(c));
+        if (!t[g][a].length) vides.push([g, a]);
+      }
+      for (const [g, a] of vides) {
+        const d = DEPART[g][a].filter(c => !vu.has(c));
+        if (!d.length) { for (const g2 of ens) t[g2] = copie(DEPART[g2]); break; }
+        t[g][a] = d; d.forEach(c => vu.add(c));
+      }
+    }
     return t;
   }
 

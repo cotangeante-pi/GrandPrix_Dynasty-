@@ -108,6 +108,13 @@ html, body {
   font-size: 20px;
   cursor: pointer;
 }
+/* hors course (la tour de classement cachée) : dans le coin, pour ne recouvrir aucun titre centré (cérémonie en 960×600, calendrier,
+   classement de la saison… ; tour 51h) ; le téléphone couché (640×360) : plus petit */
+body.horsCourse #boutonSon { right: 10px; }
+@media (max-height: 420px) {
+  #boutonSon { top: 6px; width: 28px; height: 28px; border-radius: 6px; font-size: 14px; }
+  body.horsCourse #boutonSon { right: 6px; }
+}
 
 /* ?reglages=1 : le panneau du pilote d'essai. Le titre et le pied (le bouton « Copier » et ce qui est copié) restent
    toujours visibles ; seule la liste des curseurs, rangée par thème, défile (tour 47c). */
