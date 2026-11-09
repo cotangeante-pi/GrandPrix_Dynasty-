@@ -1209,7 +1209,7 @@ def touches_deux(pg, titre, l, h):
     t(f'{titre} : DEUX_RAPPEL_DUREE s après l’extinction des feux, plus aucun rappel', attendre(pg, '() => document.querySelectorAll(".deuxRappel:not(.cache)").length === 0'), str(pg.evaluate('() => [document.querySelectorAll(".deuxRappel:not(.cache)").length, JEU.rappelDeux]')))
     pg.keyboard.press('Escape')
     p = pg.evaluate('() => ({ ecran: JEU.ecran, vu: !document.getElementById("pauseTouches").classList.contains("cache"), texte: document.getElementById("pauseTouches").innerText })')
-    t(f'{titre} : dans le menu pause, les touches des deux joueurs (🔵 et 🔴)', p['ecran'] == 'pause' and p['vu'] and '🔵' in p['texte'] and '🔴' in p['texte'] and '↑' in p['texte'] and dans('#pause > *'), str(p))
+    t(f'{titre} : dans le menu pause, les touches des deux joueurs (🔵 et 🔴)', p['ecran'] == 'pause' and p['vu'] and '🔵' in p['texte'] and '🔴' in p['texte'] and '↑' in p['texte'] and dans('#pause > *:not(.cache)'), str(p))   # (tour 52b : les rangées cachées, comme celle du téléphone, ont une largeur nulle : elles ne comptent pas)
     pg.wait_for_timeout(200); pg.screenshot(path=os.path.join(CAPTURES, f'touches-pause-{l}.png'))
     pg.keyboard.press('Escape')
 
@@ -3948,6 +3948,7 @@ with sync_playwright() as p:
             if 'test=sdk' in page or 'test=decouverte' in page or 'test=amis' in page or 'test=tournoi' in page or 'test=livree' in page or 'test=essai' in page: pg.add_init_script(FAUX_SDK)
             # la météo dessinée (meteo3d.js) : une fausse météo de test (window.METEO_TEST, jamais dans le jeu), ?meteo=pluie ou ?meteo=risque
             if 'test=manette' in page: pg.add_init_script(FAUSSES_MANETTES)   # la manette (tour 38) : de fausses manettes
+            if 'test=tactile' in page and 'test=tactile-iphone' not in page: pg.add_init_script('try { DeviceOrientationEvent.requestPermission = undefined; } catch (e) {}')   # (tour 52b : un Chrome récent sur GitHub offre requestPermission, jamais résolue sans geste : ces pages simulent un Android, sans autorisation à demander)
             if 'test=tactile-iphone' in page: pg.add_init_script(FAUSSE_PERMISSION)   # le téléphone (tour 51k) : l'autorisation de l'iPhone, accordée ou refusée (sessionStorage perm)
             if 'meteo=pluie' in page: pg.add_init_script('window.METEO_TEST = { etat: () => ({ pluie: 0.85, eau: 0.75, eauTrajectoire: 0.35, ciel: 0.9 }), prevision: () => ({ type: "pluie", risque: 90 }) };')
             if 'meteo=risque' in page: pg.add_init_script('window.METEO_TEST = { etat: () => ({ pluie: 0, eau: 0, ciel: 0 }), prevision: () => ({ type: "risque", risque: 40 }) };')
