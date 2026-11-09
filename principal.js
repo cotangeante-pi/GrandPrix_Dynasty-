@@ -183,6 +183,7 @@ function lancerCourse(nbTours) {
   GARAGE.appliquer(JEU.joueur, JEU.championnat ? JEU.championnat.garage : null, niveauEcurieJoueur());   // ?championnat=1 : les améliorations du garage × le niveau de l'écurie, sur la voiture du joueur (1 = rien sans championnat)
   JEU.enregistreur = creerEnregistrement();
   JEU.fantome = null;   // le fantôme ne vit que pendant le tour de qualification (commencerFantome)
+  JEU.fantomeSeul = null;   // (tour 51l) le défi d'après une course seule repart de zéro : « Rejouer » ou « Changer » ne proposent jamais le tour de la course d'avant
   JEU.departRecord = false;
   finirAttente();
   PODIUM3D.cacher();
@@ -258,7 +259,7 @@ function finirFantome(q) {
 // « 📋 Défier un ami » à l'arrivée, et le record du circuit s'il le bat (comme une qualification). Seul le calcul tourne : aucun
 // affichage, aucun fantôme à rejouer, rien ne change à la physique ni à la course
 function noterFantomeSeul(c, v) {
-  if (ESSAI || JEU.defi || JEU.tournoi || JEU.plateau) return;
+  if (ESSAI || JEU.ia || JEU.robot || JEU.defi || JEU.tournoi || JEU.plateau) return;   // (tour 51l) ni un tour de l'IA (?ia=1) ni du robot (?robot=1) : le joueur ne l'a pas conduit
   const f = JEU.fantomeSeul || (JEU.fantomeSeul = { tour: null, nTours: 0, ligne: 0, sale: false, meilleur: null });
   if (c.tours.length > f.nTours) {   // un tour vient de finir
     const t = c.tours[c.tours.length - 1];
@@ -1914,6 +1915,8 @@ function finDeCourse() {
 let touchesChoix = CLAVIER.completer(SAUVEGARDE.touches());
 const TOUCHES = CLAVIER.appliquer(touchesChoix);
 const enfoncees = new Set();
+// (tour 51j) une touche choisie pour une commande de la course seule (hors pause) ne garde pas son autre rôle (Entrée : passer au podium)
+const toucheDeCommande = code => ['gaz', 'frein', 'gauche', 'droite', 'remise', 'camera'].some(a => TOUCHES[a].includes(code));
 
 function majCibles() {
   const appui = liste => liste.some(c => enfoncees.has(c));
@@ -1947,7 +1950,7 @@ function quitterTouches() {
   if (!touchesOuvertes()) return;
   const de = touchesDepuis;
   attenteTouche = null; touchesDepuis = null;
-  if (de === 'pause') INTERFACE.montrer('pause');
+  if (de === 'pause') { if (JEU.deux) INTERFACE.remplirTouchesDeux(MANETTE.lireManettes().length); INTERFACE.montrer('pause'); }   // (tour 51j) à deux, le menu pause montre les touches d'après le changement
   else if (de === 'titre') montrerTitre();
   else montrerChampionnat(JEU.gagne);
 }
@@ -1970,7 +1973,7 @@ function touchesParDefaut() {
 function toucheChoisie(e) {
   if (!touchesOuvertes()) return;
   if (!attenteTouche) {   // (tour 50c) Échap (ou la touche de pause) ramène d'où l'on vient ; depuis la pause, la pause reste ouverte
-    if (!e.repeat && (e.code === 'Escape' || (touchesDepuis === 'pause' && TOUCHES.pause.includes(e.code)))) { e.preventDefault(); e.stopImmediatePropagation(); quitterTouches(); }
+    if (!e.repeat && (e.code === 'Escape' || (touchesDepuis === 'pause' && !JEU.deux && TOUCHES.pause.includes(e.code)))) { e.preventDefault(); e.stopImmediatePropagation(); quitterTouches(); }
     else if (touchesDepuis === 'pause') e.stopImmediatePropagation();   // (rien d'autre ne passe à la course en pause : ni caméra, ni retour en piste)
     return;
   }
@@ -1979,7 +1982,7 @@ function toucheChoisie(e) {
   const { groupe, action } = attenteTouche;
   attenteTouche = null;
   if (e.code === 'Escape') { TOUCHES_ECRAN.remplir(touchesChoix, null, ''); return; }
-  const r = CLAVIER.changer(touchesChoix, groupe, action, e.code), nom = TOUCHES_DEUX_ECRAN.nom(e.code, null);
+  const r = CLAVIER.changer(touchesChoix, groupe, action, e.code), nom = TOUCHES_DEUX_ECRAN.nom(e.code, INTERFACE.dispositionClavier());
   let m;
   if (r.ok) { garderTouches(); m = texte('touchesFait').replace('{commande}', TOUCHES_ECRAN.commande(groupe, action)).replace('{touche}', nom); }
   else if (r.raison === 'echap') m = texte('touchesEchap');
@@ -1996,7 +1999,7 @@ function brancherClavier() {
     else {
       if (TOUCHES.camera.includes(e.code) && !e.repeat) CAMERA.suivante();
       if (TOUCHES.remise.includes(e.code) && !e.repeat) JEU.remettre = true;
-      if (e.code === 'Enter' && !e.repeat) passerAuPodium();
+      if (e.code === 'Enter' && !e.repeat && !toucheDeCommande('Enter')) passerAuPodium();   // (tour 51j) sauf si Entrée est une touche choisie
     }
     if (e.code === 'Escape' && !e.repeat && JEU.ecran === 'resume') { quitterResume(); return; }
     if (JEU.ecran === 'grille' && !e.repeat) { finirGrille(); }   // la grille vue d'en haut : une touche la passe   // le résumé vidéo : Échap ramène aux résultats
@@ -2387,6 +2390,7 @@ function majCommentaire(e, m) {
     if (!it.comble) SON.signal('commentaire');   // (le petit signal pour les faits, pas pour ce qui comble)
     // (tour 51c) un fait qui a un son enregistré le joue (voix-sons.js) ; la synthèse ne dit que le reste
     const sonne = typeof VOIXSONS !== 'undefined' && JEU.ecran === 'course' && VOIXSONS.jouer(it.type);
+    if (sonne && typeof VOIX !== 'undefined') VOIX.taire();   // (tour 51l) le son coupe la synthèse en cours : jamais deux voix à la fois
     if (!sonne && typeof VOIX !== 'undefined' && JEU.ecran === 'course') VOIX.dire(dit, it.prio >= REGLAGES.COMMENTAIRE_IMPORTANT);   // (tour 45c : à voix haute)
   }
   if (typeof VOIXSONS !== 'undefined') { if (JEU.ecran !== 'course') VOIXSONS.taire(); else VOIXSONS.charger(); }   // (tour 51c : chargés après la découverte)

@@ -1193,12 +1193,14 @@ Object.assign(TEXTES.fr, {
 Object.assign(TEXTES.en, {
   tch_gaz: 'Accelerate', tch_frein: 'Brake', tch_tourner: 'Steer', tch_remise: 'Back on track', tch_pause: 'Pause (both)',
   tch_entree: 'Enter', tch_majDroite: 'Right Shift', tch_echap: 'Esc', tch_espace: 'Space', tch_ou: ' or ',
+  tch_majGauche: 'Left Shift', tch_tab: 'Tab', tch_retourArriere: 'Backspace', tch_ctrl: 'Ctrl', tch_alt: 'Alt', tch_verrMaj: 'Caps Lock', tch_num: 'Num',
   tch_manette: 'Gamepad: right trigger accelerates, left trigger brakes, stick steers, A back on track',
   tch_titrePause: 'Keys',
 });
 Object.assign(TEXTES.fr, {
   tch_gaz: 'Accélérer', tch_frein: 'Freiner', tch_tourner: 'Tourner', tch_remise: 'Retour en piste', tch_pause: 'Pause (les deux)',
   tch_entree: 'Entrée', tch_majDroite: 'Maj droite', tch_echap: 'Échap', tch_espace: 'Espace', tch_ou: ' ou ',
+  tch_majGauche: 'Maj gauche', tch_tab: 'Tab', tch_retourArriere: 'Retour arrière', tch_ctrl: 'Ctrl', tch_alt: 'Alt', tch_verrMaj: 'Verr maj', tch_num: 'Num',
   tch_manette: 'Manette : gâchette droite pour accélérer, gauche pour freiner, stick pour tourner, A pour revenir en piste',
   tch_titrePause: 'Touches',
 });

@@ -818,6 +818,180 @@ def defi(c, titre):
                     c.inspecter('défi : refus')
                 else: t(f'{titre} : code {nom} accepté : la grille du défi', c.attendre('() => JEU.ecran === "qualif" && !!JEU.defi', 30000), str(c.ev('() => JEU.ecran')))
 
+
+# --- (tour 51j) les touches au choix (clavier.js) à deux, au tournoi chrono et au défi : changées depuis l'écran titre, gardées après
+# rechargement, celles de chaque joueur et seulement elles ; une touche prise par l'autre joueur refusée ; Échap ; « Par défaut » ;
+# la manette ; le menu pause ; le rétroviseur et la qualité Auto en écran partagé ---
+def tenir(c, touches, secondes=1):
+    """Les touches tenues secondes s de jeu (la boucle arrêtée) : les vitesses (u) des joueurs avant et après."""
+    pg = c.pg
+    for k in touches: pg.keyboard.down(k)
+    pg.wait_for_timeout(100)
+    # (la voiture : celles des deux joueurs, celle du tour de qualification ou de défi, sinon celle du joueur ; les feux encore allumés sont passés d'abord)
+    v = c.ev('''(s) => { BOUCLE.arreter(); const q = !!(JEU.qualif && JEU.qualif.etat === "tour" && JEU.qualif.v);
+      const W = JEU.deux ? DEUX_JOUEURS.joueurs(JEU.plateau).map(p => p.v) : [q ? JEU.qualif.v : JEU.joueur], c = q ? JEU.qualif.q.course : JEU.course; let n = 0;
+      if (c && c.compte > 0.05) c.compte = 0.05; while (c && c.etat === "compte" && n++ < 2400) BOUCLE.simuler(REGLAGES.PAS_PHYSIQUE);
+      const u0 = W.map(w => w.u), g = JEU.deux ? [JEU.deuxCommandes[1].cibles.gaz, JEU.deuxCommandes[2].cibles.gaz] : [JEU.cibles.gaz]; BOUCLE.simuler(s); return [u0, W.map(w => w.u), g]; }''', secondes)
+    for k in touches: pg.keyboard.up(k)
+    c.ev('() => BOUCLE.demarrer()')
+    return v
+def accelere(v): return [v[1][k] > v[0][k] + 2 for k in range(len(v[0]))]
+def immobile(v): return [abs(v[1][k] - v[0][k]) < 0.5 for k in range(len(v[0]))]
+
+def touches_deux(c, titre):
+    pg = c.pg
+    pg.add_init_script(FAUSSES_MANETTES)
+    J1, J2 = ('Joueur 1', 'Player 1')[c.langue == 'en'], ('Joueur 2', 'Player 2')[c.langue == 'en']
+    def bouton(g, a): return f'#touchesGroupes button[data-groupe={g}][data-action={a}]'
+    def msg(): return c.ev('() => document.getElementById("touchesMessage").textContent') or ''
+    def texte_bouton(g, a): return c.ev('(s) => document.querySelector(s).textContent', bouton(g, a))
+    def choisir(g, a, code):
+        pg.click(bouton(g, a)); pg.keyboard.press(code); pg.wait_for_timeout(60)
+        return msg()
+    # 1. depuis l'écran titre : les choix, les refus, Échap qui annule
+    c.aller(f'index.html?lang={c.langue}')
+    if not c.ecran('titre', 'titre'): return
+    c.cliquer('#boutonTouchesTitre')
+    if not c.ecran('touches', 'touches (titre)'): return
+    for g, a, code in (('j1', 'gaz', 'KeyI'), ('j1', 'frein', 'KeyK'), ('j1', 'gauche', 'KeyJ'), ('j1', 'droite', 'KeyL'), ('j2', 'gaz', 'KeyT'), ('j2', 'gauche', 'KeyF'), ('j2', 'droite', 'KeyH'),
+                       ('seul', 'gaz', 'KeyO'), ('seul', 'droite', 'KeyM')):
+        choisir(g, a, code)
+    m = choisir('j2', 'frein', 'KeyI')
+    t(f'{titre} : une touche déjà prise par l’autre joueur (I, au joueur 1) est refusée, on dit par qui', J1 in m and 'I' in m and texte_bouton('j2', 'frein') == '↓', f'{m} | {texte_bouton("j2", "frein")}')
+    m = choisir('j1', 'frein', 'KeyL')
+    t(f'{titre} : une touche déjà prise par la même colonne (L, droite du joueur 1) est refusée', J1 in m and texte_bouton('j1', 'frein') == 'K', f'{m} | {texte_bouton("j1", "frein")}')
+    m = choisir('j1', 'remise', 'KeyT')
+    t(f'{titre} : la remise du joueur 1 ne peut pas prendre la touche T du joueur 2', J2 in m and 'T' in m, m)
+    choisir('j2', 'frein', 'KeyG')
+    m = choisir('seul', 'frein', 'KeyI')
+    t(f'{titre} : la même touche (I) peut servir à la course seule et au joueur 1 (jamais en même temps)', 'I' not in texte_bouton('seul', 'frein') or texte_bouton('seul', 'frein') == 'I', f'{m} | {texte_bouton("seul", "frein")}')
+    choisir('seul', 'frein', 'KeyN')
+    avant = texte_bouton('j2', 'remise')
+    pg.click(bouton('j2', 'remise')); pg.keyboard.press('Escape'); pg.wait_for_timeout(60)
+    t(f'{titre} : Échap pendant l’attente d’une touche annule (on reste sur l’écran, la touche ne change pas)', c.ev('() => JEU.ecran') == 'touches' and texte_bouton('j2', 'remise') == avant and avant != '…' and c.ev('() => texte("tch_echap")') not in avant, f'{avant} → {texte_bouton("j2", "remise")}')
+    m = choisir('seul', 'pause', 'KeyP')
+    t(f'{titre} : la pause : Échap reste toujours avec la touche choisie', 'P' in texte_bouton('seul', 'pause'), texte_bouton('seul', 'pause'))
+    c.inspecter('touches (changées)')
+    sauve = c.ev('() => SAUVEGARDE.touches()')
+    t(f'{titre} : les touches sont gardées à la racine de la sauvegarde', bool(sauve) and sauve['j1']['gaz'] == ['KeyI'] and sauve['j2']['gaz'] == ['KeyT'] and sauve['seul']['gaz'] == ['KeyO'], str(sauve))
+    c.cliquer('#boutonTouchesRetour')
+    t(f'{titre} : « Retour » ramène à l’écran titre', c.ev('() => JEU.ecran') == 'titre', str(c.ev('() => JEU.ecran')))
+    # 2. après rechargement : les mêmes ; l'écran à deux les montre, la course à deux les utilise
+    c.aller(f'index.html?lang={c.langue}')
+    if not c.ecran('titre', 'titre (rechargé)'): return
+    r = c.ev('() => [REGLAGES.TOUCHES_DEUX[1].gaz, REGLAGES.TOUCHES_DEUX[2].gaz, REGLAGES.TOUCHES_DEUX[2].frein, TOUCHES.gaz, TOUCHES.pause]')
+    t(f'{titre} : après rechargement, les touches choisies sont celles du jeu', r == [['KeyI'], ['KeyT'], ['KeyG'], ['KeyO'], ['Escape', 'KeyP']], str(r))
+    c.cliquer('#boutonAmis'); c.cliquer('#boutonAmisDeux')
+    if not c.ecran('deuxReglages', 'réglages à deux (touches changées)'): return
+    cartes = c.ev('() => [...document.querySelectorAll(".deuxTouches")].map(e => e.textContent)') or []
+    t(f'{titre} : l’écran avant la course à deux montre les touches choisies de chaque joueur (I K J L / T G F H)', len(cartes) == 2 and all(x in cartes[0] for x in 'IKJL') and all(x in cartes[1] for x in 'TGFH') and '↑' not in cartes[1], str(cartes))
+    pg.select_option('#deuxIA', '3'); pg.select_option('#deuxTours', '3'); pg.select_option('#deuxCircuit', 'test')
+    c.cliquer('#boutonDeuxPartir', navigation=True)
+    if not c.ecran('course', 'course à deux (touches changées)', 60000): return
+    c.attendre('() => JEU.plateau && JEU.plateau.carte !== null', 240000)
+    c.ev(FEUX_PASSES)
+    rap = c.ev('() => [...document.querySelectorAll(".deuxRappel")].map(e => e.textContent)')
+    v = tenir(c, ['KeyI'])
+    t(f'{titre} : à deux, I (touche choisie du joueur 1) accélère le joueur 1 et pas le joueur 2', accelere(v) == [True, False], str(v))
+    v = tenir(c, ['KeyT'])
+    t(f'{titre} : à deux, T (touche choisie du joueur 2) accélère le joueur 2 et pas le joueur 1', accelere(v) == [False, True], str(v))
+    v = tenir(c, ['KeyW', 'ArrowUp', 'KeyO'])
+    t(f'{titre} : à deux, W, ↑ et O (touches d’avant ou de la course seule) ne font plus rien', immobile(v) and v[2] == [0, 0], str(v))
+    v = tenir(c, ['KeyI', 'KeyT'])
+    t(f'{titre} : à deux, I et T ensemble : les deux accélèrent', accelere(v) == [True, True], str(v))
+    # la remise en piste de chacun, la pause (Échap), le menu pause qui montre les touches des deux
+    pg.keyboard.press('Escape'); pg.wait_for_timeout(150)
+    e = c.ev('() => [JEU.ecran, document.getElementById("pauseTouches").textContent, document.getElementById("pauseTouches").className]') or []
+    t(f'{titre} : à deux, Échap ouvre la pause, et le menu pause montre les touches choisies des deux (I… / T…)', len(e) == 3 and e[0] == 'pause' and 'cache' not in e[2] and 'I' in e[1].split('\n')[0] and 'T' in e[1], str(e))
+    pg.keyboard.press('KeyP'); pg.wait_for_timeout(100)
+    t(f'{titre} : à deux, la touche de pause de la course seule (P) ne ferme pas la pause', c.ev('() => JEU.ecran') == 'pause', str(c.ev('() => JEU.ecran')))
+    # les touches changées depuis le menu pause : la pause reste ouverte, et le menu montre ensuite les nouvelles
+    c.cliquer('#boutonTouchesPause')
+    if c.ev('() => touchesOuvertes()'):
+        choisir('j1', 'gaz', 'KeyY')
+        pg.keyboard.press('KeyP'); pg.wait_for_timeout(100)   # (à deux, P ne sert pas de pause : elle ne quitte pas l'écran des touches)
+        reste = c.ev('() => touchesOuvertes()')
+        pg.keyboard.press('Escape'); pg.wait_for_timeout(150)
+        e = c.ev('() => [JEU.ecran, touchesOuvertes(), document.getElementById("pauseTouches").textContent]') or []
+        t(f'{titre} : à deux, une touche changée depuis la pause : on revient à la pause, qui montre la nouvelle touche (Y) du joueur 1 et plus I', len(e) == 3 and e[0] == 'pause' and not e[1] and 'Y' in e[2].split('\n')[0] and 'I' not in e[2].split('\n')[0].replace('Joueur', '').replace('Player', ''), str(e))
+        t(f'{titre} : à deux, depuis l’écran des touches de la pause, la touche de pause de la course seule (P) ne fait pas quitter l’écran', reste is True, str(reste))
+    pg.keyboard.press('Escape'); pg.wait_for_timeout(150)
+    t(f'{titre} : à deux, Échap ferme la pause', c.ev('() => JEU.ecran') == 'course', str(c.ev('() => JEU.ecran')))
+    v = tenir(c, ['KeyY'])
+    t(f'{titre} : à deux, Y (changée depuis la pause) accélère le joueur 1', accelere(v) == [True, False], str(v))
+    # le rétroviseur et la qualité Auto en écran partagé : on laisse tourner de vraies images, rien ne casse
+    c.ev('() => { REGLAGES.RETRO_DEUX = true; JEU.retro = true; }')
+    pg.keyboard.down('KeyY'); pg.keyboard.down('KeyT'); pg.wait_for_timeout(2500); pg.keyboard.up('KeyY'); pg.keyboard.up('KeyT')
+    e = c.ev('() => [JEU.ecran, !!JEU.qualite, JEU.qualite && JEU.qualite.regle, !document.getElementById("retroviseur").classList.contains("cache")]')
+    t(f'{titre} : à deux, rétroviseur permis et qualité Auto en écran partagé : la course tourne (2,5 s d’images réelles), aucune erreur', bool(e) and e[0] == 'course' and e[1], str(e))
+    c.inspecter('course à deux (rétroviseur permis)')
+    # « Par défaut » depuis la pause : tout revient, y compris les touches de l'autre joueur
+    pg.keyboard.press('Escape'); pg.wait_for_timeout(150)
+    c.cliquer('#boutonTouchesPause')
+    if c.ev('() => touchesOuvertes()'):
+        c.cliquer('#boutonTouchesDefaut')
+        m = msg()
+        pg.keyboard.press('Escape'); pg.wait_for_timeout(150); pg.keyboard.press('Escape'); pg.wait_for_timeout(150)
+        v = tenir(c, ['KeyW', 'ArrowUp'])
+        t(f'{titre} : « Par défaut » depuis la pause : W et ↑ conduisent de nouveau les deux joueurs, la sauvegarde revient à null', accelere(v) == [True, True] and c.ev('() => SAUVEGARDE.touches()') is None, f'{v} {m}')
+    # 3. la manette avec des touches changées : le joueur 1 à la manette, le joueur 2 à sa touche choisie
+    c.ev('() => { const t = CLAVIER.defaut(); CLAVIER.changer(t, "j2", "gaz", "KeyT"); CLAVIER.changer(t, "seul", "gaz", "KeyO"); SAUVEGARDE.ecrireTouches(t); }')
+    c.aller(f'index.html?deux=1&ia=0&tours=3&circuit=test&niveau=debutant&lang={c.langue}')
+    if not c.ecran('course', 'course à deux, manette et touches changées', 60000): return
+    c.attendre('() => JEU.plateau && JEU.plateau.carte !== null', 240000)
+    c.ev(FEUX_PASSES)
+    c.ev('() => __padFixer(0, "gachetteD", 1)'); pg.keyboard.down('KeyT'); c.attendre('() => JEU.deuxCommandes[1].cibles.gaz === 1 && JEU.deuxCommandes[2].cibles.gaz === 1', 5000)   # (la manette est lue par la boucle : on lui laisse le temps sur une machine chargée)
+    a = c.ev('() => [JEU.deuxCommandes[1].cibles.gaz, JEU.deuxCommandes[2].cibles.gaz]')
+    pg.keyboard.up('KeyT'); pg.keyboard.down('ArrowUp'); c.attendre('() => JEU.deuxCommandes[1].cibles.gaz === 1 && JEU.deuxCommandes[2].cibles.gaz === 0', 5000)   # (idem : la manette revient par la boucle après la touche)
+    b = c.ev('() => [JEU.deuxCommandes[1].cibles.gaz, JEU.deuxCommandes[2].cibles.gaz]')
+    pg.keyboard.up('ArrowUp')
+    t(f'{titre} : à deux, manette (joueur 1) et T (joueur 2, choisie) : chacun ses gaz ; l’ancienne ↑ du joueur 2 ne fait plus rien', a == [1, 1] and b == [1, 0], str([a, b]))
+    # 4. au tournoi chrono : la touche choisie de la course (O) conduit le tour de chacun, l'ancienne (↑) non ; Échap ouvre la pause du tour
+    c.aller(f'index.html?lang={c.langue}')
+    if not c.ecran('titre', 'titre (tournoi)'): return
+    c.cliquer('#boutonAmis'); c.cliquer('#boutonAmisTournoi')
+    if not c.ecran('tournoiInscription', 'inscription du tournoi (touches changées)'): return
+    try:
+        while (c.ev('() => document.querySelectorAll("#tournoiListe li").length') or 0) < 3: pg.click('#boutonTournoiAjouter', timeout=3000)
+        for i, nom in enumerate(['Léo', 'Sarah', 'Tom']): pg.fill(f'#tournoiListe li:nth-child({i + 1}) .tournoiPrenom', nom, timeout=3000)
+    except Exception as ex: c.problemes.setdefault(('inscription', 'touches'), { 'ecran': 'tournoiInscription', 'detail': str(ex)[:200], 'page': pg.url.split('/')[-1] })
+    c.cliquer('#boutonFormuleEclair'); c.cliquer('#boutonTournoiPartir', navigation=True)
+    for k in range(3):
+        if not c.ecran('tournoiAToi', f'tournoi : à toi (joueur {k + 1}, touches changées)', 60000): return
+        if not c.attendre('() => JEU.ecran === "qualif" && JEU.qualif && JEU.qualif.etat === "tour"', 30000):
+            c.blocages.append({ 'quoi': 'tournoi : le tour ne part pas (touches changées)', 'attendu': 'qualif', 'ecran': c.ev('() => JEU.ecran'), 'page': pg.url.split('/')[-1] }); return
+        if k < 2:
+            v = tenir(c, ['KeyO'])
+            w = tenir(c, ['ArrowUp', 'KeyW'])
+            t(f'{titre} : tournoi, joueur {k + 1} : O (touche choisie) accélère, ↑ et W ne font plus rien', accelere(v) == [True] and immobile(w) and w[2] == [0], str([v, w]))
+            pg.keyboard.press('Escape'); pg.wait_for_timeout(150)
+            t(f'{titre} : tournoi, joueur {k + 1} : Échap ouvre la pause du tour', c.ev('() => JEU.ecran') == 'tournoiPause', str(c.ev('() => JEU.ecran')))
+            pg.keyboard.press('Escape'); pg.wait_for_timeout(150)
+            t(f'{titre} : tournoi, joueur {k + 1} : Échap la referme', c.ev('() => JEU.ecran') == 'qualif', str(c.ev('() => JEU.ecran')))
+        c.ev('() => { JEU.robot = true; }')
+        for _ in range(300):
+            if c.ev('() => JEU.ecran') == 'tournoiManche': break
+            c.ev('() => BOUCLE.simuler(2)'); pg.wait_for_timeout(30)
+        if not c.ecran('tournoiManche', f'tournoi : classement ({k + 1})', 20000): return
+        if k < 2: c.cliquer('#boutonTournoiSuite')
+    # 5. le défi du fantôme (?defi=) : la touche choisie conduit le tour ; Échap l'abandonne
+    c.aller('index.html')
+    code = c.ev(CODE_DEFI)
+    if not code: return
+    c.recolter(); pg.goto('file://' + RACINE + '/index.html?lang=' + c.langue + '&defi=' + __import__('urllib.parse').parse.quote(code, safe=''), timeout=120000); c.pret(120000)
+    if not c.attendre('() => JEU.qualif && JEU.qualif.etat === "tour"', 90000):
+        c.blocages.append({ 'quoi': 'défi : le tour ne part pas (touches changées)', 'attendu': 'tour', 'ecran': c.ev('() => JEU.ecran'), 'page': 'defi' }); return
+    v = tenir(c, ['KeyO']); w = tenir(c, ['ArrowUp'])
+    t(f'{titre} : défi (?defi=), touches changées : O accélère, ↑ ne fait plus rien', accelere(v) == [True] and immobile(w), str([v, w]))
+    pg.keyboard.press('Escape')
+    t(f'{titre} : défi : Échap abandonne le tour', c.attendre('() => JEU.ecran === "defiFin"', 10000), str(c.ev('() => JEU.ecran')))
+    # 6. une sauvegarde abîmée ou écrite à la main : deux joueurs sur la même touche ne doivent jamais se retrouver avec les mêmes commandes
+    c.ev('() => { const x = SAUVEGARDE.lire(); x.touches = { j1: { gaz: ["KeyQ"], frein: ["KeyQ"] }, j2: { gaz: ["KeyQ"], gauche: ["KeyZ"] }, seul: { gaz: ["KeyU"], frein: ["KeyU"] } }; SAUVEGARDE.ecrire(x); }')
+    c.aller(f'index.html?lang={c.langue}')
+    r = c.ev('() => { const t = CLAVIER.completer(SAUVEGARDE.touches()); const doublons = []; for (const ens of [["seul"], ["j1", "j2"]]) { const vu = {}; for (const g of ens) for (const a of CLAVIER.GROUPES[g]) for (const k of t[g][a]) { if (vu[k] && !(g === "seul" && a === "pause" && k === "Escape")) doublons.push(k + ":" + vu[k] + "/" + g + "." + a); vu[k] = g + "." + a; } } return doublons; }')
+    t(f'{titre} : une sauvegarde écrite à la main avec la même touche pour deux commandes se charge sans doublon', r == [], str(r))
+    c.ev('() => { const x = SAUVEGARDE.lire(); x.touches = null; SAUVEGARDE.ecrire(x); }')
+
 # --- (tour 51g) « Nouvelle carrière » et « à 0 » (⚙ Réglages du paddock), depuis une carrière en division 1 avec des skins ---
 def carrieres(c, titre):
     pg = c.pg
@@ -951,7 +1125,7 @@ def tailles_jeux(c, titre):
     deux(c, titre, court=True)
     tournoi(c, titre, court=True)
 
-PARTIES = { 'aides-pilotage': aides_pilotage, 'dynastie': dynastie, 'pendant': pendant, 'sauvegarde': sauvegarde, 'stockage': stockage, 'saison-en': saison_en, 'manette': manette, 'deux': deux, 'tournoi': tournoi, 'fin': fin, 'ecrans': ecrans, 'tuto': tuto, 'divisions': divisions, 'sauvegardes-recentes': sauvegardes_recentes, 'sauvegardes-racine': lambda c, titre: sauvegardes_recentes(c, titre, True), 'carrieres': carrieres, 'defi': defi, 'tailles-carriere-1280': tailles_carriere, 'tailles-carriere-1920': tailles_carriere, 'tailles-jeux-1280': tailles_jeux, 'tailles-jeux-1920': tailles_jeux }   # (tour 51i : une partie par taille, pour répartir entre les travaux ; -1280 et -1920 = les deux tailles d'avant)
+PARTIES = { 'aides-pilotage': aides_pilotage, 'dynastie': dynastie, 'pendant': pendant, 'sauvegarde': sauvegarde, 'stockage': stockage, 'saison-en': saison_en, 'manette': manette, 'deux': deux, 'tournoi': tournoi, 'fin': fin, 'ecrans': ecrans, 'tuto': tuto, 'divisions': divisions, 'sauvegardes-recentes': sauvegardes_recentes, 'sauvegardes-racine': lambda c, titre: sauvegardes_recentes(c, titre, True), 'carrieres': carrieres, 'defi': defi, 'touches-deux': touches_deux, 'tailles-carriere-1280': tailles_carriere, 'tailles-carriere-1920': tailles_carriere, 'tailles-jeux-1280': tailles_jeux, 'tailles-jeux-1920': tailles_jeux }   # (tour 51i : une partie par taille, pour répartir entre les travaux ; -1280 et -1920 = les deux tailles d'avant)
 LANGUES = { 'divisions': ('fr',), 'sauvegardes-recentes': ('fr',), 'sauvegardes-racine': ('fr',), 'saison-en': ('en',), 'dynastie': ('fr',) }   # (la saison entière en français, c'est saison.py)
 COMBOS = { 'divisions': [('fr', 960, 600), ('en', 640, 360)], 'carrieres': [('fr', 960, 600), ('en', 960, 600), ('en', 640, 360)], 'defi': [('fr', 960, 600), ('en', 960, 600), ('fr', 640, 360)] }   # (tour 51g : langue, largeur, hauteur)
 TAILLES = { 'tailles-carriere-1280': [(1280, 720)], 'tailles-carriere-1920': [(1920, 1080)], 'tailles-jeux-1280': [(1280, 720)], 'tailles-jeux-1920': [(1920, 1080)] }

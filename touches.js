@@ -6,7 +6,12 @@
 const TOUCHES_DEUX_ECRAN = (function () {
   const R = REGLAGES;
   const FIXES = { ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→' };
-  const NOMMEES = { Enter: 'tch_entree', ShiftRight: 'tch_majDroite', Escape: 'tch_echap', Space: 'tch_espace' };
+  const NOMMEES = { Enter: 'tch_entree', NumpadEnter: 'tch_entree', ShiftRight: 'tch_majDroite', ShiftLeft: 'tch_majGauche', Escape: 'tch_echap', Space: 'tch_espace',
+    Tab: 'tch_tab', Backspace: 'tch_retourArriere', ControlLeft: 'tch_ctrl', ControlRight: 'tch_ctrl', AltLeft: 'tch_alt', AltRight: 'tch_alt', CapsLock: 'tch_verrMaj' };
+  // (tour 51j) les signes : le nom QWERTY et le nom AZERTY de la même place (sans la disposition, les deux, comme les lettres) ; le pavé numérique
+  const PONCTUATION = { Semicolon: [';', 'M'], Comma: [',', ';'], Period: ['.', ':'], Slash: ['/', '!'], Quote: ["'", 'ù'], BracketLeft: ['[', '^'], BracketRight: [']', '$'],
+    Minus: ['-', ')'], Equal: ['=', '='], Backquote: ['`', '²'], Backslash: ['\\', '*'], IntlBackslash: ['\\', '<'] };
+  const PAVE = { NumpadAdd: '+', NumpadSubtract: '-', NumpadMultiply: '*', NumpadDivide: '/', NumpadDecimal: '.' };
   // en AZERTY, les lettres qui ne sont pas à la même place qu'en QWERTY (celles de TOUCHES_DEUX)
   const AZERTY = { W: 'Z', A: 'Q', Q: 'A', Z: 'W' };
   const ACTIONS = ['gaz', 'frein', 'gauche', 'droite'];
@@ -15,12 +20,16 @@ const TOUCHES_DEUX_ECRAN = (function () {
   function nom(code, dispo) {
     if (FIXES[code]) return FIXES[code];
     if (NOMMEES[code]) return texte(NOMMEES[code]);
-    const m = /^Key([A-Z])$/.exec(code);
-    if (!m) return code;
-    if (dispo && typeof dispo.get === 'function') { const l = dispo.get(code); if (typeof l === 'string' && l.length === 1) return l.toUpperCase(); }
-    const az = AZERTY[m[1]];
-    if (!az) return m[1];
-    return LANGUE === 'fr' ? az + '/' + m[1] : m[1] + '/' + az;   // (le clavier le plus courant d'abord)
+    let m = /^Digit([0-9])$/.exec(code);
+    if (m) return m[1];
+    m = /^Numpad([0-9])$/.exec(code);
+    if (m || PAVE[code]) return texte('tch_num') + ' ' + (m ? m[1] : PAVE[code]);
+    if (dispo && typeof dispo.get === 'function') { const l = dispo.get(code); if (typeof l === 'string' && l.length === 1 && l.trim()) return l.toUpperCase(); }
+    const deux = (qw, az) => (az === qw ? qw : LANGUE === 'fr' ? az + '/' + qw : qw + '/' + az);   // (le clavier le plus courant d'abord)
+    m = /^Key([A-Z])$/.exec(code);
+    if (m) return deux(m[1], AZERTY[m[1]] || m[1]);
+    if (PONCTUATION[code]) return deux(PONCTUATION[code][0], PONCTUATION[code][1]);
+    return code;   // (F1, Home… : lisibles tels quels)
   }
 
   // la carte du joueur j : le nom de chaque commande
