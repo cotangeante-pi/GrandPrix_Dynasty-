@@ -10,7 +10,7 @@
 //
 //   const d = DEPART.creer(humain);                  // un départ par voiture, armé avec les feux (course.js)
 //   DEPART.pas(d, dt, eteint);                       // à chaque pas de physique (course.js, majCourse) : le temps, le régime
-//   DEPART.commande(d, appui, compte);               // le joueur : la touche d'accélérateur (vrai = tenue), compte = s avant l'extinction (< 0 après)
+//   DEPART.commande(d, appui, compte, doux);         // le joueur : la touche d'accélérateur (vrai = tenue), compte = s avant l'extinction (< 0 après)
 //   DEPART.lancer(d, resultat, reaction);            // le lancement (le joueur par commande, l'IA et le robot par course.js)
 //   DEPART.facteur(d)                                → le facteur sur la force du moteur en ce moment (1 = la voiture normale)
 //   DEPART.resultat(regime, reaction)                → 'parfait' | 'bon' | 'patinage' | 'cale'
@@ -25,6 +25,7 @@ const DEPART = (function () {
       appui: false,       // la touche d'accélérateur est tenue
       t: 0,               // s depuis l'armement des feux
       extinction: null,   // t de l'extinction des feux (null tant qu'ils sont allumés)
+      tenu: false,        // le lancement est la touche tenue à l'extinction (pas un réflexe : pas de record de réaction)
       lance: null,        // t du lancement (null tant que la voiture est tenue)
       resultat: null,     // 'parfait', 'bon', 'patinage', 'cale', 'faux'
       reaction: null,     // s entre l'extinction et le lancement (négatif : avant l'extinction)
@@ -69,14 +70,24 @@ const DEPART = (function () {
   // le joueur : l'état de sa touche d'accélérateur à ce pas ; compte = secondes avant l'extinction des feux (négatif après).
   // Une pression (la touche passe de lâchée à tenue) est le lancement si les feux sont éteints, ou un faux départ si elle
   // vient dans l'anticipation (DEPART_ANTICIPATION avant l'extinction, ou moins que ça après) ; plus tôt, elle règle le régime
-  function commande(d, appui, compte) {
+  // (tour 52d) tenue : la touche déjà tenue à l'extinction est le lancement, à l'extinction même (DEPART_TENIR_PART), résultat
+  // « bon » si le régime est dans le vert, patinage/calé sinon ; le parfait reste au lâcher-réappuyer. doux (la découverte,
+  // DEPART_DECOUVERTE_DOUX) : jamais de patinage ni de calé, au pire « bon »
+  function commande(d, appui, compte, doux) {
     if (d.lance !== null) return;
     const pression = appui && !d.appui;
     d.appui = appui;
-    if (!pression) return;
+    const adoucir = r => doux && R.DEPART_DECOUVERTE_DOUX && (r === 'patinage' || r === 'cale') ? 'bon' : r;
+    if (!pression) {
+      if (appui && d.extinction !== null && R.DEPART_TENIR_PART) {
+        lancer(d, adoucir(resultat(d.regime, R.DEPART_REACTION_PARFAITE + 0.001)), d.t - d.extinction);
+        d.tenu = true; d.lance = d.extinction; d.fin = d.extinction + effet(d.resultat)[1];
+      }
+      return;
+    }
     if (d.extinction === null) { if (compte <= R.DEPART_ANTICIPATION) lancer(d, 'faux', -compte); return; }
     const reaction = d.t - d.extinction;
-    lancer(d, reaction < R.DEPART_ANTICIPATION ? 'faux' : resultat(d.regime, reaction), reaction);
+    lancer(d, reaction < R.DEPART_ANTICIPATION ? 'faux' : adoucir(resultat(d.regime, reaction)), reaction);
   }
 
   // le facteur sur la force du moteur en ce moment : 1 = la voiture normale (avant le lancement, après l'effet, départ parfait)

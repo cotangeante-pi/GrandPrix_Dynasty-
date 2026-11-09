@@ -78,13 +78,13 @@ const TEXTES = {
     fantomeRecord: 'New record! {s} s faster', fantomeEcart: '+{s} s off your record',
     fantomeOui: 'Ghost: shown', fantomeNon: 'Ghost: hidden',
     // le départ parfait (depart.js)
-    departAide: 'Hold ↑ to keep the needle in the green · lights out: release, then press ↑',
+    departAide: 'Hold ↑ in the green · lights out: release and press ↑ again for a perfect start',
     departParfait: 'Perfect start!', departBon: 'Good start', departPatinage: 'Wheelspin!', departCale: 'Stalled!', departFaux: 'False start!',
     departRecord: 'reaction record!',
     // le premier lancement (decouverte.js) : l'écran titre, les aides, « On lance ta carrière ? »
     titreJouer: '▶ Play', titreAmis: 'With friends', retour: 'Back',   // (sans emoji : la police de Linux n'a pas 👥)
     amisBientot: 'Coming soon: split screen for two, and the time-trial tournament with friends.',
-    aideGaz: '↑ accelerate', aideDirection: '← → steer', aideFrein: '↓ brake',
+    aideGaz: '↑ accelerate', aideDirection: '← → to steer', aideFrein: '↓ brake',
     bravoTitre: 'Well done!', bravoPlace: 'You finished P{p} / {n}', bravoArgent: 'Your prize: {n}, the first money of your career',
     bravoQuestion: 'Ready for your career?', bravoBouton: 'Start my career',
     // la création du pilote (pilote.js)
@@ -476,12 +476,12 @@ const TEXTES = {
     secondes: '{s} s',
     fantomeRecord: 'Nouveau record ! {s} s de mieux', fantomeEcart: '+{s} s du record',
     fantomeOui: 'Fantôme : affiché', fantomeNon: 'Fantôme : masqué',
-    departAide: 'Tiens ↑ pour garder l’aiguille dans le vert · feux éteints : lâche, puis réappuie ↑',
+    departAide: 'Tiens ↑ dans le vert · feux éteints : lâche et réappuie ↑ pour un départ parfait',
     departParfait: 'Départ parfait !', departBon: 'Bon départ', departPatinage: 'Patinage !', departCale: 'Calé !', departFaux: 'Faux départ !',
     departRecord: 'record de réaction !',
     titreJouer: '▶ Jouer', titreAmis: 'Entre amis', retour: 'Retour',
     amisBientot: 'Bientôt : l’écran partagé à deux, et le tournoi chrono entre copains.',
-    aideGaz: '↑ accélérer', aideDirection: '← → tourner', aideFrein: '↓ freiner',
+    aideGaz: '↑ accélérer', aideDirection: '← → pour tourner', aideFrein: '↓ freiner',
     bravoTitre: 'Bravo !', bravoPlace: 'Tu finis P{p} / {n}', bravoArgent: 'Ta prime : {n}, ton premier argent de carrière',
     bravoQuestion: 'On lance ta carrière ?', bravoBouton: 'Commencer ma carrière',
     piloteTitre: 'Ton pilote', piloteNom: 'Nom', piloteNumero: 'Numéro ({min}–{max})', pilotePays: 'Pays', piloteCoeur: 'Course de cœur',
@@ -795,7 +795,7 @@ const TEXTES = {
 // --- les aides au premier usage (aides.js, interface.js AIDES_ECRAN ; étape 11b, Codeur 4) : une bulle d'une ou deux lignes, avec la
 // touche ou le bouton à utiliser ; jamais genrées sur le joueur ({v} : la vitesse permise dans la voie des stands, en km/h)
 Object.assign(TEXTES.en, {
-  aide_depart: 'Start: hold ↑ in the green. Lights out: release, then press ↑ again, fast!',
+  aide_depart: 'Start: hold ↑ in the green and you go. Perfect start: at lights out, release and press ↑ again, fast!',
   aide_qualif: 'Qualifying: one timed lap sets your grid slot. “Skip” = start last.',
   aide_fantome: 'The see-through car is your best lap: the gap under the timer shows where you lose time.',
   aide_stand: 'Mandatory stop: at the end of the lap, take the pit lane, {v} km/h at most.',
@@ -809,7 +809,7 @@ Object.assign(TEXTES.en, {
   aideFermer: 'Click to close', revoirAides: '↺ Show the tips again', aidesRevues: 'The tips will show again',
 });
 Object.assign(TEXTES.fr, {
-  aide_depart: 'Départ : tiens ↑ dans le vert. Feux éteints : lâche, puis réappuie vite sur ↑ !',
+  aide_depart: 'Départ : tiens ↑ dans le vert et tu pars. Départ parfait : feux éteints, lâche puis réappuie vite sur ↑ !',
   aide_qualif: 'Qualification : un tour chronométré donne ta place. « Passer » = partir dernier.',
   aide_fantome: 'La voiture transparente : ton meilleur tour. L’écart sous le chrono dit où tu perds du temps.',
   aide_stand: 'Arrêt obligatoire : à la fin du tour, prends la voie des stands, {v} km/h au plus.',
@@ -982,8 +982,35 @@ const LANGUE = (function () {
   return (navigator.language || 'en').toLowerCase().startsWith('fr') ? 'fr' : 'en';
 })();
 
+// (tour 52d, plan « première minute » n° 2 et 8) la grille de la découverte : une seule grosse aide ; et les textes écrits pour le doigt
+// (tac_*, choisis quand l'écran est tactile : TACTILE.estPresent(), tactile.js) à la place de ceux qui citent une touche
+Object.assign(TEXTES.en, {
+  aideTenir: 'Hold ↑',
+  tac_aideTenir: 'Hold GAS', tac_aideGaz: 'Hold GAS', tac_aideDirection: 'Tilt the phone', tac_aideDirectionBoutons: '◀ ▶', tac_aideFrein: 'BRAKE',
+  tac_departAide: 'Hold GAS in the green · lights out: release and press GAS again for a perfect start',
+  tac_aide_depart: 'Start: hold GAS in the green and you go. Perfect start: at lights out, release and press GAS again, fast!',
+  tac_aide_consigne: 'Team order: lift off (BRAKE) to let your team-mate through, or keep your place.',
+});
+Object.assign(TEXTES.fr, {
+  aideTenir: 'Tiens ↑',
+  tac_aideTenir: 'Tiens GAZ', tac_aideGaz: 'Tiens GAZ', tac_aideDirection: 'Incline le téléphone', tac_aideDirectionBoutons: '◀ ▶', tac_aideFrein: 'FREIN',
+  tac_departAide: 'Tiens GAZ dans le vert · feux éteints : lâche et réappuie GAZ pour un départ parfait',
+  tac_aide_depart: 'Départ : tiens GAZ dans le vert et tu pars. Départ parfait : feux éteints, lâche puis réappuie vite sur GAZ !',
+  tac_aide_consigne: 'Consigne : lève le pied (FREIN) pour laisser passer ton coéquipier, ou garde ta place.',
+});
+
 function texte(cle) {
   return TEXTES[LANGUE][cle] !== undefined ? TEXTES[LANGUE][cle] : TEXTES.en[cle];
+}
+
+// (tour 52d) le texte écrit pour le doigt quand l'écran est tactile (TACTILE.estPresent(), tactile.js, s'il existe), sinon celui du clavier :
+// texteDoigt('aideGaz') → « Tiens GAZ » (clé tac_aideGaz) ; la direction a une variante pour le mode boutons (TACTILE.etat.mode)
+function texteDoigt(cle) {
+  const doigt = typeof TACTILE !== 'undefined' && TACTILE && typeof TACTILE.estPresent === 'function' && TACTILE.estPresent();
+  if (!doigt) return texte(cle);
+  if (cle === 'aideDirection' && TACTILE.etat && TACTILE.etat.mode === 'boutons') return texte('tac_aideDirectionBoutons');
+  const t = TEXTES[LANGUE]['tac_' + cle] !== undefined ? TEXTES[LANGUE]['tac_' + cle] : TEXTES.en['tac_' + cle];
+  return t !== undefined ? t : texte(cle);
 }
 
 // un nombre devant un mot, accordé : nombre(1, 'saison') → « 1 saison », nombre(3, 'saison') → « 3 saisons » (texte('nb_<cle>') =

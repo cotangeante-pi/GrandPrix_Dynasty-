@@ -846,6 +846,7 @@ function majAides() {
   if (JEU.cibles.frein) a.frein = true;
   const d = c.depart;
   a.clignote = !!d && d.lance === null && d.t >= REGLAGES.AIDE_CLIGNOTE_APRES && !a.gaz && !a.direction && !a.frein;
+  a.grille = !!d && d.lance === null && REGLAGES.GRILLE_DECOUVERTE_NUE;   // (tour 52d) pendant les feux : l'écran nu, une seule aide
   INTERFACE.majAides(a);
 }
 
@@ -2143,9 +2144,9 @@ function conduireJoueur(p, pas) {
   const d = p.course.depart;
   if (d && d.lance === null) {
     if (JEU.robot) { if (d.extinction !== null && d.t - d.extinction >= REGLAGES.DEPART_ROBOT_REACTION) DEPART.lancer(d, 'parfait', REGLAGES.DEPART_ROBOT_REACTION); }
-    else DEPART.commande(d, cmd.cibles.gaz > 0, p.course.compte);
+    else DEPART.commande(d, cmd.cibles.gaz > 0, p.course.compte, JEU.decouverte);
     if (d.lance === null) cibles = AUCUNE;
-    else if (!JEU.robot && !JEU.deux && d.resultat !== 'faux') {
+    else if (!JEU.robot && !JEU.deux && d.resultat !== 'faux' && !d.tenu) {
       JEU.departRecord = SAUVEGARDE.proposerReaction(d.reaction);   // le record du temps de réaction (pas celui du robot, ni à deux)
       if (JEU.championnat && p === JEU.plateau.pilotes[JEU.ia]) CARRIERE.noterReaction(JEU.championnat, d.reaction);   // … et celui de la carrière (carriere.js, sauvegardé avec le Grand Prix)
     }
