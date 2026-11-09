@@ -1853,9 +1853,9 @@ def tactile_iphone(pg, titre, l, h):
     e2 = pg.evaluate(TACTILE_ETAT)
     t(f'{titre} : accordée, le bouton disparaît, le volant écoute (mode attente), puis une mesure le met en mode volant', e['activer']['cache'] and e['mode'] == 'attente' and e2['mode'] == 'volant' and e2['neutre'] == 30, str([e['mode'], e2['mode'], e2['neutre']]))
     # le téléphone debout : le message, puis couché : plus rien
-    pg.set_viewport_size({'width': h, 'height': l}); pg.wait_for_timeout(300)
+    pg.set_viewport_size({'width': h, 'height': l}); attendre(pg, '() => !document.getElementById("tactilePortrait").classList.contains("cache")', None, 5000)
     p1 = pg.evaluate(TACTILE_ETAT)
-    pg.set_viewport_size({'width': l, 'height': h}); pg.wait_for_timeout(300)
+    pg.set_viewport_size({'width': l, 'height': h}); attendre(pg, '() => document.getElementById("tactilePortrait").classList.contains("cache")', None, 5000)
     p2 = pg.evaluate(TACTILE_ETAT)
     t(f'{titre} : le téléphone debout montre « Tourne ton téléphone » par-dessus tout ; couché, le message disparaît', not p1['portrait']['cache'] and p1['portrait']['texte'] == pg.evaluate('() => texte("tac_portrait")') and p2['portrait']['cache'], str([p1['portrait'], p2['portrait']['cache']]))
     # l'autorisation refusée : le mode « boutons » (◀ ▶ dès la conduite)
