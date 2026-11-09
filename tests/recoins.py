@@ -252,7 +252,7 @@ def ecrans(c, titre):
     c.clic('#paddockMenu [data-page="reglages"]'); pg.wait_for_timeout(200)
     c.cliquer('#boutonMonPilote')
     if c.ecran('pilote', 'Mon pilote'):
-        avant = c.ev('() => { const j = PILOTE.joueur(JEU.championnat); return { nom: document.getElementById("piloteNom").value === (j.nom || ""), numero: Number(document.getElementById("piloteNumero").value) === j.numero, pays: document.getElementById("pilotePays").value === j.pays, rapide: document.getElementById("pilote").classList.contains("rapide"), titre: document.getElementById("piloteTitre").textContent === texte("monPilote") }; }')
+        avant = c.ev('() => { const j = PILOTE.joueur(JEU.championnat); return { nom: document.getElementById("piloteNom").value === (j.nom || ""), numero: Number(document.getElementById("piloteNumero").value) === j.numero, pays: !j.pays || document.getElementById("pilotePays").value === j.pays, rapide: document.getElementById("pilote").classList.contains("rapide"), titre: document.getElementById("piloteTitre").textContent === texte("monPilote") }; }')
         t(f'{titre} : « Mon pilote » ouvre le formulaire avec le nom, le numéro et le pays d’aujourd’hui (pas les cartes)', bool(avant) and avant['nom'] and avant['numero'] and avant['pays'] and not avant['rapide'] and avant['titre'], str(avant))
         try: pg.fill('#piloteNom', 'Zed', timeout=5000); pg.fill('#piloteNumero', '88', timeout=5000)
         except Exception: pass

@@ -823,12 +823,12 @@ def decouverte(pg, titre):
     pg.wait_for_timeout(400); pg.screenshot(path=os.path.join(CAPTURES, 'decouverte.png'))
     pg.keyboard.press('ArrowLeft'); pg.keyboard.press('ArrowDown')
     t(f'{titre} : ← et ↓ pressées : plus aucune aide', attendre(pg, '() => document.getElementById("aides").classList.contains("cache") || ["aideGaz", "aideDirection", "aideFrein"].every(id => document.getElementById(id).classList.contains("cache"))', None, 5000), str(pg.evaluate('() => JEU.aides')))
+    pg.evaluate('() => { REGLAGES.PODIUM_DECOUVERTE_DUREE = 1e9; }')   # (avant le podium : sous swiftshader une image dure des secondes ; le passage tout seul est testé plus bas, avec un délai court)
     # le robot roule jusqu'au podium (3 tours, 7 voitures)
     for _ in range(90):
         pg.evaluate('() => BOUCLE.simuler(5)')
         if pg.evaluate('() => JEU.ecran') == 'podium': break
         pg.wait_for_timeout(50)
-    pg.evaluate('() => { REGLAGES.PODIUM_DECOUVERTE_DUREE = 1e9; }')   # (le passage tout seul est testé plus bas, avec un délai court : les captures d'écran sous swiftshader prennent des secondes)
     t(f'{titre} : la course va jusqu’au podium ; gameplayStop au podium', pg.evaluate('() => JEU.ecran === "podium" && JEU.final && JEU.final.length === REGLAGES.DECOUVERTE_IA + 1') and attendre(pg, '() => window.APPELS_SDK.slice(-1)[0] === "gameplayStop"'), str(pg.evaluate('() => [JEU.ecran, window.APPELS_SDK]')))
     # le podium de la découverte (tour 52e) : « Tu finis P2 / 7 · +800 € », « Continuer » (plus de « Résultats », plus d'écran « Bravo ! »)
     bravo = pg.evaluate('''() => { const moi = JEU.final.find(x => x.k === JEU.suivie), vu = id => !document.getElementById(id).classList.contains("cache"); return { ecran: JEU.ecran, place: moi.place, prime: JEU.prime, attendu: DECOUVERTE.prime(moi.place),
@@ -2891,9 +2891,9 @@ def audit_autres(pg, titre, page, l, h):
         pg.click('#boutonAmisDeux'); verifier('deux-reglages')
         pg.click('#boutonDeuxRetour'); pg.click('#boutonAmisRetour')
         pg.click('#boutonJouer')
+        pg.evaluate('() => { REGLAGES.PODIUM_DECOUVERTE_DUREE = 1e9; }')   # (les captures sous swiftshader : le passage tout seul est testé dans decouverte())
         verifier('decouverte-aides', None, '() => JEU.ecran === "course" && JEU.plateau && JEU.plateau.carte !== null && JEU.course.etat === "course"')
         t(f'{titre} : la course de découverte va jusqu’au podium', jusqu_au_podium())
-        pg.evaluate('() => { REGLAGES.PODIUM_DECOUVERTE_DUREE = 1e9; }')   # (les captures sous swiftshader : le passage tout seul est testé dans decouverte())
         verifier('podium')
         pg.click('#boutonPodiumContinuer'); verifier('pilote', None, '() => JEU.ecran === "pilote"')   # (« Bravo ! » n'existe plus : le podium mène à la création, tour 52e)
         # du podium au paddock en DEUX clics : « Continuer », puis un pilote prêt ; le pilote est valide et sauvegardé, la découverte faite

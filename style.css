@@ -1754,3 +1754,6 @@ body.auPaddock #boutonSon { display: none; }
   #piloteCartes .piloteCarte strong { font-size: 17px; }
   #piloteCartes .piloteCarte .casqueIcone { width: 40px; height: 40px; }
 }
+#podiumDecouverte button { border: 0; border-radius: var(--tv-coin, 8px); background: var(--tv-bouton, #2a2f3a); color: var(--texte, #fff); font-family: var(--tv-police, inherit); cursor: pointer; }
+#podiumDecouverte button.petit { font-size: 13px; padding: 6px 14px; opacity: 0.9; }
+#boutonPodiumContinuer { color: #fff; }
