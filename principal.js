@@ -2097,6 +2097,21 @@ function majManettes(dt) {
   }
 }
 
+// le téléphone (tactile.js, tour 51k) : sur un écran tactile seulement, les boutons GAZ / FREIN (et ◀ ▶ de secours) et le volant
+// (l'inclinaison) rejoignent les cibles du clavier et de la manette (le plus fort des trois) ; sans écran tactile, ou TACTILE_ACTIF
+// faux, rien ne s'affiche et rien ne change (le clavier seul, au bit près) ; pas à deux (deux joueurs sur un téléphone, non)
+function majTactile(dt) {
+  if (!TACTILE.estPresent()) return;
+  const conduite = !JEU.deux && (JEU.ecran === 'course' || JEU.ecran === 'survol' || enTourQualif());
+  TACTILE.maj(conduite, dt || 0);
+  if (!conduite) return;
+  const t = TACTILE.cibles();
+  if (!t) return;
+  if (!MANETTE.lireManettes().length) majCibles();   // (avec une manette, majManettes vient de remettre le clavier et la manette)
+  Object.assign(JEU.cibles, TACTILE.fusionner(Object.assign({}, JEU.cibles), t));
+  if (JEU.aides) { if (JEU.cibles.gaz) JEU.aides.gaz = true; if (JEU.cibles.direction) JEU.aides.direction = true; if (JEU.cibles.frein) JEU.aides.frein = true; }
+}
+
 const AUCUNE = { gaz: 0, frein: 0, direction: 0 }, FREIN_SEUL = { gaz: 0, frein: 1, direction: 0 };
 
 // les aides au pilotage du joueur (assistance.js, tour 41) : ses cibles corrigées avant la physique (freinage assisté,
@@ -2574,6 +2589,7 @@ function demarrerJeu() {
   } else JEU.modele = JEU.modeles[JEU.contre ? JEU.ia : 0];   // avant la course (écran de choix), sur la ligne
   SCENE3D.colorerRepereStand(JEU.contre && JEU.couleurs.length > JEU.ia ? JEU.couleurs[JEU.ia] : REGLAGES.COULEUR_JOUEUR);   // le repère de la zone d'arrêt aux couleurs de l'écurie du joueur (tour 46d2)
   INTERFACE.preparerPause(() => pause(false), () => lancerCourse(JEU.course.nbTours));
+  TACTILE.brancher({ pause: () => toucheVirtuelle('Escape'), remettre: () => { JEU.remettre = true; } });   // le téléphone (tactile.js, tour 51k)
   INTERFACE.preparerFin(() => lancerCourse(JEU.course.nbTours), allerAuChoix);
   if (JEU.championnat) {
     // après les résultats d'un Grand Prix, un seul bouton : « Continuer »
@@ -2800,6 +2816,7 @@ function demarrerJeu() {
     JEU.alpha = alpha;
     JEU.dtImage = dt;
     majManettes(dt);   // la manette (manette.js) : lue à chaque image
+    majTactile(dt);   // le téléphone (tactile.js, tour 51k) : les boutons tenus et le volant, à chaque image
     if (JEU.ecran === 'resume') { majResume(dt); if (JEU.sdkPret) SDK.jeuArrete(); if (JEU.ecran === 'resume') { majRetro(dt); if (typeof EFFETS3D !== 'undefined') SENSATIONS.observer([], CIRCUIT); SCENE3D.dessiner(); return; } }   // le résumé vidéo : la 3D rejoue l'enregistrement (Poki : gameplayStop)
     majAToi(dt);   // le tournoi : le compte à rebours de « À toi, … ! »   // (« passer » en accéléré : le nombre de pas de l'image suit sa durée)
     const apres = JEU.ecran === 'podium' || JEU.ecran === 'resultats' || JEU.ecran === 'bravo' || JEU.ecran === 'tournoiFin' || JEU.ecran === 'ceremonie';   // le podium (et la cérémonie du champion) : les voitures n'y bougent plus
