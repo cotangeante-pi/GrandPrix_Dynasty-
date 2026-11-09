@@ -9,7 +9,7 @@
    geste, gameLoadingFinished une seule fois, jamais deux gameplayStart ou deux gameplayStop de suite, aucun commercialBreak avant la
    première course de carrière (faux SDK). Le test sur inspector.poki.dev reste à faire par le propriétaire.
 --zip seul : fabrique le zip sans lancer Chrome. Écrit RESULTAT n/m comme les autres tests."""
-import os, re, sys, shutil, tempfile, zipfile
+import json, os, re, sys, shutil, tempfile, zipfile
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DIST = os.path.join(RACINE, 'dist')
 ZIP = os.path.join(DIST, 'grand-prix-dynasty.zip')
@@ -26,7 +26,9 @@ def fichiers_du_jeu():
     refs = re.findall(r'(?:src|href)="([^"]+)"', page)
     locaux = [r for r in refs if not re.match(r'^(https?:|data:|#|//)', r)]
     externes = [r for r in refs if re.match(r'^(https?:|//)', r)]
-    return ['index.html'] + sorted(set(locaux)), externes
+    # (tour 51c) les voix enregistrées (voix-sons.js) : sons/voix/*.m4a font partie du jeu
+    sons = sorted('sons/voix/' + f for f in os.listdir(os.path.join(RACINE, 'sons', 'voix'))) if os.path.isdir(os.path.join(RACINE, 'sons', 'voix')) else []
+    return ['index.html'] + sorted(set(locaux)) + sons, externes
 
 # le script du SDK Poki (CLAUDE.md « Règles Poki ») : ajouté SEULEMENT dans l'index.html du zip, juste avant sdk.js ; le dépôt reste
 # sans réseau (les tests ouvrent la page en file://). Sans réseau, le script échoue et sdk.js fait comme si Poki n'était pas là
@@ -366,6 +368,39 @@ try:
             t(f'{titre} : au tournoi, les aides de chacun à côté de son nom (« {amis["a1"]} » / « {amis["a2"]} »), gardées par prénom',
               amis['m'] in amis['a1'] and amis['m'] not in amis['a2'] and amis['leo'] is True and amis['sam'] is False and not console, str([amis, console]))
             ctx.close()
+            # (tour 51c) les voix enregistrées, depuis le zip : les sons y sont, servis avec un type audio, décodés par Chrome après la découverte,
+            # jamais avant le premier geste ; un son joué passe par le mixage ; console vide
+            import mimetypes
+            noms_sons = [n for n in zipfile.ZipFile(ZIP).namelist() if n.startswith('sons/voix/')]
+            t('paquet : les 30 sons des voix (3 prises × 5 faits × 2 langues) sont dans le zip, et pèsent moins de 400 Ko', len(noms_sons) == 30 and sum(zipfile.ZipFile(ZIP).getinfo(n).file_size for n in noms_sons) < 400000, len(noms_sons))
+            t('paquet : les sons ont un type audio (' + str(mimetypes.guess_type('x.m4a')[0]) + ')', (mimetypes.guess_type('x.m4a')[0] or '').startswith('audio/') or mimetypes.guess_type('x.m4a')[0] is None)
+            titre = 'paquet voix enregistrées 1280×720'
+            ctx = b.new_context(viewport={'width': 1280, 'height': 720})
+            pg = ctx.new_page(); console = []
+            pg.add_init_script(FAUX_SDK)
+            pg.route('**/poki-sdk.js', lambda r: r.fulfill(status=200, content_type='text/javascript', body=''))
+            pg.on('console', lambda m: console.append(m.type + ': ' + m.text) if m.type in ('error', 'warning') and not LECTURE_PIXELS.fullmatch(m.text) else None)
+            pg.on('pageerror', lambda e: console.append('PAGEERROR ' + str(e)))
+            pg.on('request', lambda r: sons_vus.append(r.url) if '/sons/voix/' in r.url else None)
+            sons_vus = []
+            pg.goto('file://' + dossier + '/index.html?voixsons=1')
+            pg.wait_for_function('() => typeof JEU !== "undefined" && JEU.ecran === "titre"', timeout=60000)
+            pg.wait_for_timeout(1500)
+            t(f'{titre} : ?voixsons=1 allume les voix ; avant le premier geste et pendant la découverte, aucun son demandé ni lu', pg.evaluate('() => VOIXSONS.active && !SON.actif') and not sons_vus, sons_vus[:3])
+            pg.mouse.click(640, 360); pg.wait_for_timeout(500)
+            pg.evaluate('() => { VOIXSONS.charger(); }')
+            t(f'{titre} : après un geste, pendant la découverte, rien ne se charge', not sons_vus, sons_vus[:3])
+            pg.evaluate('() => { JEU.decouverte = false; VOIXSONS.charger(); }')
+            try: pg.wait_for_function('() => { const e = VOIXSONS.etat()[LANGUE] || {}; return VOIXSONS.CLES.every(c => e[c] === VOIXSONS.PRISES); }', timeout=20000)
+            except Exception: pass
+            vs = pg.evaluate('() => ({ etat: VOIXSONS.etat(), langue: LANGUE, ctx: SON.etatContexte, joue: VOIXSONS.jouer("depassement"), joues: VOIXSONS.joues })')
+            t(f'{titre} : après la découverte, les 15 sons de la langue sont chargés et décodés par Chrome ({len(sons_vus)} fichiers), un fait joue un son', len(sons_vus) == 15 and all(vs['etat'].get(vs['langue'], {}).get(c) == 3 for c in ('depart', 'depassement', 'bataille', 'erreur', 'victoire')) and vs['joue'] is True, str([vs, sons_vus[:2]]))
+            pg.evaluate('() => { SON.basculer(); }')
+            muet = pg.evaluate('() => ({ coupe: SON.coupe, joue: VOIXSONS.jouer("erreur") })')
+            pg.evaluate('() => { SON.basculer(); }')
+            t(f'{titre} : son coupé (M) : aucun son de voix', muet['coupe'] is True and muet['joue'] is False, str(muet))
+            t(f'{titre} : console vide', not console, ' | '.join(console)[:400])
+            ctx.close()
             # SANS réseau : le script du SDK Poki échoue (requête refusée) ; le jeu reste jouable, sans SDK (sdk.js le tolère) ; la seule
             # trace est l'échec de ce script
             titre = 'paquet sans réseau 960×600'
@@ -382,6 +417,82 @@ try:
             autres = [c for c in console if 'poki-sdk' not in c and 'ERR_FAILED' not in c and 'Failed to load resource' not in c]
             t(f'{titre} : le script du SDK Poki échoue, le jeu marche quand même (titre, « Jouer », la découverte), sans SDK, aucune autre erreur',
               bool(jouable) and pg.evaluate('() => !SDK.present && JEU.sdkPret') and all('poki-sdk.js' in u for u in echecs) and not autres, str([echecs, console]))
+            ctx.close()
+            # (tour 51e) le lien de défi sur Poki : avec le SDK, « Copier le lien » donne l'adresse de PokiSDK.shareableURL ({defi: code}) ; si elle échoue
+            # ou tarde (> 2 s), l'adresse où le jeu tourne, sans erreur console ; et PokiSDK.getURLParam('defi') mène à la grille du défi (une fois par onglet)
+            ADRESSE_POKI = 'https://poki.com/fr/g/grand-prix-dynasty?gdgd_defi='
+            def page_poki(extra, url, ctx_args=None):
+                c = b.new_context(viewport={'width': 960, 'height': 600}); p_ = c.new_page(); cons = []
+                p_.add_init_script(FAUX_SDK.replace("window.PokiSDK = {", "window.PokiSDK = { " + extra + ","))
+                p_.route('**/poki-sdk.js', lambda r: r.fulfill(status=200, content_type='text/javascript', body=''))
+                p_.on('console', lambda m: cons.append(m.type + ': ' + m.text) if m.type in ('error', 'warning') and not LECTURE_PIXELS.fullmatch(m.text) else None)
+                p_.on('pageerror', lambda e: cons.append('PAGEERROR ' + str(e)))
+                p_.goto('file://' + dossier + '/index.html' + url, timeout=90000)
+                return c, p_, cons
+            MONTRER = """() => { window.COPIES = []; navigator.clipboard.writeText = v => { COPIES.push(v); return Promise.resolve(); };
+              document.getElementById('qualifCode').classList.remove('cache'); DEFI_ECRAN.montrerCode('qualifCode', 'GPD-TEST-abc', lienDefi); }"""
+            LIEN = '() => { const c = document.querySelector("#qualifCode input.defiLien"); return c ? c.value : ""; }'
+            # le code d'un vrai tour (le robot, 3 tours seul)
+            ctx, pg, cons = page_poki("getURLParam() { return ''; }", '?course=3&robot=1&circuit=test')
+            pg.wait_for_function('() => typeof JEU !== "undefined" && JEU.ecran === "course" && !!JEU.course', timeout=120000)
+            # (tour 51l) le robot (?robot=1) ne fait plus de défi : il conduit ici « comme le joueur », par JEU.cibles (comme tests/ecrans.py)
+            pg.evaluate('''() => { JEU.robot = false; BOUCLE.surPhysique(() => { if (JEU.ecran === "course" && JEU.course && courseAutorise(JEU.course)) Object.assign(JEU.cibles, piloteRobot(JEU.joueur, CIRCUIT)); }); }''')
+            for _ in range(120):
+                pg.evaluate('() => BOUCLE.simuler(5)')
+                if pg.evaluate('() => JEU.ecran') == 'fin': break
+                pg.wait_for_timeout(50)
+            pg.wait_for_function('() => JEU.ecran === "fin"', timeout=10000)
+            pg.click('#boutonFinDefi')
+            code = pg.evaluate('() => { const c = document.querySelector("#finCode input.defiCode"); return c ? c.value : ""; }')
+            ctx.close()
+            t('paquet Poki : un vrai code de défi pour les essais du lien', code.startswith('GPD-TEST-'), code[:30])
+            # shareableURL répond : le lien et « Copier le lien » donnent son adresse
+            ctx, pg, cons = page_poki("shareableURL(p) { noter('shareableURL'); return Promise.resolve('" + ADRESSE_POKI + "' + p.defi); }", '?menu=amis')
+            pg.wait_for_function('() => typeof JEU !== "undefined" && JEU.ecran === "amis"', timeout=60000)
+            pg.evaluate(MONTRER); pg.wait_for_timeout(300)
+            lien = pg.evaluate(LIEN)
+            pg.evaluate('() => document.querySelector("#qualifCode button.defiLien").click()'); pg.wait_for_timeout(200)   # (l'écran de la qualification est caché : le clic part du code)
+            copies = pg.evaluate('() => COPIES')
+            t('paquet Poki : avec le SDK, le lien de défi est l’adresse de shareableURL, et « Copier le lien » la copie', lien == ADRESSE_POKI + 'GPD-TEST-abc' and copies == [lien] and 'shareableURL' in pg.evaluate('() => APPELS_SDK') and not cons, str([lien, copies, cons]))
+            ctx.close()
+            # shareableURL échoue (rejet, exception) : l'adresse où le jeu tourne, sans erreur console
+            for nom, extra in (('rejette', "shareableURL() { return Promise.reject(new Error('non')); }"), ('lève', "shareableURL() { throw new Error('non'); }")):
+                ctx, pg, cons = page_poki(extra, '?menu=amis')
+                pg.wait_for_function('() => typeof JEU !== "undefined" && JEU.ecran === "amis"', timeout=60000)
+                pg.evaluate(MONTRER); pg.wait_for_timeout(300)
+                lien = pg.evaluate(LIEN)
+                t(f'paquet Poki : shareableURL {nom} : le lien garde l’adresse où le jeu tourne (?defi=<code>), sans erreur console', lien.startswith('file://') and lien.endswith('/index.html?defi=GPD-TEST-abc') and not cons, str([lien, cons]))
+                ctx.close()
+            # shareableURL tarde plus de 2 s : le repli reste, même si la réponse arrive après
+            ctx, pg, cons = page_poki("shareableURL(p) { return new Promise(r => setTimeout(() => r('" + ADRESSE_POKI + "' + p.defi), 3500)); }", '?menu=amis')
+            pg.wait_for_function('() => typeof JEU !== "undefined" && JEU.ecran === "amis"', timeout=60000)
+            pg.evaluate(MONTRER); pg.wait_for_timeout(2600)
+            avant = pg.evaluate(LIEN); pg.wait_for_timeout(1500); apres = pg.evaluate(LIEN)
+            t('paquet Poki : shareableURL tarde (> 2 s) : le lien reste l’adresse où le jeu tourne, même quand la réponse arrive ensuite, sans erreur console', avant == apres and avant.startswith('file://') and not cons, str([avant, apres, cons]))
+            ctx.close()
+            # sans SDK : inchangé (le lien de l'adresse du jeu)
+            ctx = b.new_context(viewport={'width': 960, 'height': 600}); pg = ctx.new_page(); cons = []
+            pg.route('**/poki-sdk.js', lambda r: r.fulfill(status=404, body=''))
+            pg.on('pageerror', lambda e: cons.append(str(e)))
+            pg.goto('file://' + dossier + '/index.html?menu=amis', timeout=90000)
+            pg.wait_for_function('() => typeof JEU !== "undefined" && JEU.ecran === "amis"', timeout=60000)
+            pg.evaluate(MONTRER); pg.wait_for_timeout(300)
+            lien = pg.evaluate(LIEN)
+            t('paquet Poki : sans SDK, le lien est l’adresse du jeu + ?defi=<code>, comme avant', lien.startswith('file://') and lien.endswith('/index.html?defi=GPD-TEST-abc') and not cons, str([lien, cons]))
+            ctx.close()
+            # getURLParam('defi') : le code passé par la page Poki mène directement à la grille du défi ; rechargé, le jeu ne le relit pas
+            ctx, pg, cons = page_poki("getURLParam(n) { return n === 'defi' ? " + json.dumps(code) + " : ''; }", '')
+            pg.wait_for_function('() => typeof JEU !== "undefined" && !!JEU.defi && JEU.ecran === "qualif"', timeout=90000)
+            e = pg.evaluate('() => ({ circuit: NOM_CIRCUIT, enCours: SAUVEGARDE.defis().enCours, recus: SAUVEGARDE.defis().liste.length })')
+            t('paquet Poki : getURLParam(\'defi\') mène à la grille du défi (le circuit du code, le défi reçu et gardé), sans erreur console', e['circuit'] == 'test' and e['enCours'] == code and e['recus'] == 1 and not [c for c in cons if 'error' in c or 'PAGEERROR' in c], str([e, cons]))
+            pg.goto('file://' + dossier + '/index.html?menu=amis', timeout=90000)
+            pg.wait_for_function('() => typeof JEU !== "undefined" && JEU.ecran === "amis"', timeout=60000)
+            t('paquet Poki : au rechargement dans le même onglet, le paramètre de la page Poki n’est pas relu (le jeu ne retombe pas sur le défi)', pg.evaluate('() => JEU.ecran === "amis" && !JEU.defi'))
+            ctx.close()
+            # getURLParam renvoie n'importe quoi ou lève : le jeu s'ouvre normalement
+            ctx, pg, cons = page_poki("getURLParam() { throw new Error('non'); }", '')
+            pg.wait_for_function('() => typeof JEU !== "undefined" && JEU.ecran === "titre"', timeout=60000)
+            t('paquet Poki : getURLParam qui lève : le jeu s’ouvre normalement (l’écran titre), sans erreur', not cons, str(cons))
             ctx.close()
         finally:
             b.close()

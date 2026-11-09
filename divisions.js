@@ -105,7 +105,7 @@ const DIVISIONS = (function () {
     if (!enAttente(ch)) return ch;
     const P = preparer(ch, ch.division);
     if (!P.patrons) P.patrons = {};
-    return Object.assign({}, ch, { pilotes: P.pilotes, ecuries: P.ecuries, patrons: P.patrons, vueDivision: ch.division });
+    return Object.assign({}, ch, { pilotes: P.pilotes, ecuries: P.ecuries, patrons: P.patrons, vueDivision: ch.division, reel: ch });
   }
 
   function echanger(A, ka, B, kb) {

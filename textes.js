@@ -199,7 +199,7 @@ const TEXTES = {
     pat_raison_au_dessus: ['You’re P{place}, better than our car is worth.', 'Your results are above what we expected.'], pat_raison_en_dessous: ['P{place} is below what this car can do.', 'Your results are below what we expected.'],
     pat_raison_comme_prevu: ['Your results are about what we expected.'], pat_raison_consigne_ignoree: ['And you ignored a team order this season.'], pat_raison_consigne_suivie: ['And you followed team orders. That counts.'],
     pat_raison_confiance: ['The team’s trust in you isn’t high enough.'], pat_raison_offre_fermee: ['Our offer is no longer negotiable.'],
-    pat_raison_points: ['You scored more than our other driver.'], pat_raison_coequipier_meilleur: ['Our other driver scored more than you.'],
+    pat_raison_points: ['You scored more than our other driver.'], pat_raison_coequipier_meilleur: ['Our other driver scored more than you.'], pat_raison_promu: ['You’re new in this division: prove yourself here first.'],
     pat_raison_duel_gagne: ['You’re clearly beating your teammate.'], pat_raison_duel_pas_assez: ['Beat your teammate clearly first.'],
     pat_raison_en_dessous_budget: ['Do better than the car first.'], pat_raison_trop_tot: ['The season hasn’t even started.'],
     pat_raison_pas_assez_envie: ['Your season doesn’t justify more.'], pat_raison_trop: ['You’re asking for far too much.'],
@@ -592,7 +592,7 @@ const TEXTES = {
     pat_raison_au_dessus: ['Tu es P{place}, mieux que ce que vaut notre voiture.', 'Tes résultats dépassent ce qu’on attendait.'], pat_raison_en_dessous: ['P{place}, c’est en dessous de ce que vaut cette voiture.', 'Tes résultats sont en dessous de ce qu’on attendait.'],
     pat_raison_comme_prevu: ['Tes résultats sont à peu près ceux qu’on attendait.'], pat_raison_consigne_ignoree: ['Et tu as ignoré une consigne cette saison.'], pat_raison_consigne_suivie: ['Et tu as suivi les consignes. Ça compte.'],
     pat_raison_confiance: ['La confiance de l’écurie en toi n’est pas assez haute.'], pat_raison_offre_fermee: ['Notre offre n’est plus négociable.'],
-    pat_raison_points: ['Tu as marqué plus de points que notre autre pilote.'], pat_raison_coequipier_meilleur: ['Notre autre pilote a marqué plus de points que toi.'],
+    pat_raison_points: ['Tu as marqué plus de points que notre autre pilote.'], pat_raison_coequipier_meilleur: ['Notre autre pilote a marqué plus de points que toi.'], pat_raison_promu: ['Tu arrives dans cette division : montre d’abord ce que tu vaux ici.'],
     pat_raison_duel_gagne: ['Tu bats nettement ton coéquipier.'], pat_raison_duel_pas_assez: ['Commence par battre nettement ton coéquipier.'],
     pat_raison_en_dessous_budget: ['Fais d’abord mieux que la voiture.'], pat_raison_trop_tot: ['La saison n’a même pas commencé.'],
     pat_raison_pas_assez_envie: ['Ta saison ne justifie pas plus.'], pat_raison_trop: ['Tu demandes beaucoup trop.'],
@@ -1177,6 +1177,7 @@ Object.assign(TEXTES.en, {
   com_combleMeteo: ['The rain is still falling.', 'A wet track: careful under braking.', 'Spray everywhere behind the cars.'],
   com_combleSec: ['A dry track, perfect conditions.', 'The tyres are working on this dry track.', 'Clear skies over the circuit.'],
   voix_oui: 'Commentary voice: on', voix_non: 'Commentary voice: off',
+  vs_oui: 'Recorded voices: on', vs_non: 'Recorded voices: off',
 });
 Object.assign(TEXTES.fr, {
   com_combleTete: ['{qui} mène devant {sur}, {ecart} secondes.', '{ecart} secondes entre {qui} et {sur} en tête.', '{qui} toujours devant, {sur} à {ecart} s.'],
@@ -1186,17 +1187,20 @@ Object.assign(TEXTES.fr, {
   com_combleMeteo: ['La pluie tombe toujours.', 'Piste mouillée : prudence au freinage.', 'Des gerbes d’eau derrière les voitures.'],
   com_combleSec: ['Piste sèche, des conditions parfaites.', 'Les pneus travaillent bien sur le sec.', 'Grand ciel bleu sur le circuit.'],
   voix_oui: 'Voix du commentateur : oui', voix_non: 'Voix du commentateur : non',
+  vs_oui: 'Voix enregistrées : oui', vs_non: 'Voix enregistrées : non',
 });
 // --- tour 44d, Codeur 4 : les touches de chaque joueur à deux (touches.js) ---
 Object.assign(TEXTES.en, {
   tch_gaz: 'Accelerate', tch_frein: 'Brake', tch_tourner: 'Steer', tch_remise: 'Back on track', tch_pause: 'Pause (both)',
   tch_entree: 'Enter', tch_majDroite: 'Right Shift', tch_echap: 'Esc', tch_espace: 'Space', tch_ou: ' or ',
+  tch_majGauche: 'Left Shift', tch_tab: 'Tab', tch_retourArriere: 'Backspace', tch_ctrl: 'Ctrl', tch_alt: 'Alt', tch_verrMaj: 'Caps Lock', tch_num: 'Num',
   tch_manette: 'Gamepad: right trigger accelerates, left trigger brakes, stick steers, A back on track',
   tch_titrePause: 'Keys',
 });
 Object.assign(TEXTES.fr, {
   tch_gaz: 'Accélérer', tch_frein: 'Freiner', tch_tourner: 'Tourner', tch_remise: 'Retour en piste', tch_pause: 'Pause (les deux)',
   tch_entree: 'Entrée', tch_majDroite: 'Maj droite', tch_echap: 'Échap', tch_espace: 'Espace', tch_ou: ' ou ',
+  tch_majGauche: 'Maj gauche', tch_tab: 'Tab', tch_retourArriere: 'Retour arrière', tch_ctrl: 'Ctrl', tch_alt: 'Alt', tch_verrMaj: 'Verr maj', tch_num: 'Num',
   tch_manette: 'Manette : gâchette droite pour accélérer, gauche pour freiner, stick pour tourner, A pour revenir en piste',
   tch_titrePause: 'Touches',
 });

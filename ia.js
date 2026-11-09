@@ -422,6 +422,37 @@ function creerPilote(carte, rythme = 1, style = styleNeutre(), decalage = 0) {
   };
 }
 
+// ses techniques de virage adaptées à la situation (tour 51f, CLAUDE.md « Des techniques de pilote selon le virage »), posées dans
+// pilote.techMod avant de tracer sa ligne rapide (null : sa technique de toujours, au bit près) :
+// - sous la pluie (IA_TECH_PLUIE) : corde moins tardive, moins à l'intérieur (les vibreurs mouillés), entrée plus large, plus l'eau est haute ;
+// - en bataille (IA_TECH_BATAILLE, une voiture à moins de IA_TECH_BATAILLE_DIST m devant ou derrière, dans la même largeur) : le défenseur
+//   (la voiture plus rapide derrière lui) ferme l'intérieur et prend sa corde plus tôt ; l'attaquant qui se prépare entre plus large et garde
+//   la corde tardive (croisement : sortie plus vite, pour plonger au virage suivant). Sans toucher à ce qu'il fait pendant l'attaque (ligne « attaque »)
+function techModifier(pilote, v, vues, s0) {
+  const R = REGLAGES, st = pilote.style;
+  pilote.techMod = null;
+  if (!st.techApex || !(R.IA_TECH_PLUIE || R.IA_TECH_BATAILLE)) return;
+  let apex = 1, cote = 1, entree = 0, change = false;
+  if (R.IA_TECH_PLUIE && v.eauHors > 0) {
+    const w = Math.min(1, v.eauHors);
+    apex -= R.IA_TECH_PLUIE_APEX * w; cote -= R.IA_TECH_PLUIE_COTE * w; entree += R.IA_TECH_PLUIE_ENTREE * w; change = true;
+  }
+  if (R.IA_TECH_BATAILLE) {
+    const c = pilote.carte.circuit;
+    let proche = null;
+    for (const w of vues) {
+      const g = ecartLeLong(c, w.s - s0);
+      if (Math.abs(g) > R.IA_TECH_BATAILLE_DIST || Math.abs(w.d - v.piste.d) > R.IA_TECH_BATAILLE_LARGEUR) continue;
+      if (!proche || Math.abs(g) < Math.abs(proche.g)) proche = { w, g };
+    }
+    if (proche) {
+      if (proche.g < 0 && proche.w.vitesse >= v.u) { apex -= R.IA_TECH_DEFENSE_APEX; cote += R.IA_TECH_DEFENSE_COTE; change = true; }   // (le défenseur)
+      else if (proche.g > 0 && pilote.attaque && pilote.attaque.etat === 'preparer') { apex += R.IA_TECH_ATTAQUE_APEX; entree += R.IA_TECH_ATTAQUE_ENTREE; change = true; }   // (l'attaquant)
+    }
+  }
+  if (change) pilote.techMod = { apex, cote, entree };
+}
+
 // la ligne rapide du pilote au point s (s compté depuis le début de son tour en cours, il peut dépasser L) :
 // la carte, avec son point de corde et sa marge au bord, et la variation de ce tour pour chaque virage.
 // proches (facultatif) : les numéros des seuls virages qui peuvent compter (les autres sont trop loin)
@@ -436,8 +467,15 @@ function ligneRapide(pilote, s, proches) {
     if (Math.abs(x) >= 1) continue;
     const bosse = (1 - x * x) * (1 - x * x);
     const var0 = st.variations ? st.variations[(tour * nv + j) * 2] : 0, var1 = st.variations ? st.variations[(tour * nv + j) * 2 + 1] : 0;
+    if (pilote.techMod && st.techApex) {
+      // (IA_TECH_PLUIE / IA_TECH_BATAILLE, tour 51f : sa technique s'adapte, techModifier ; entree : avant la corde, m vers l'extérieur du virage)
+      const m = pilote.techMod;
+      sCarte -= (st.apex + var0 + st.techApex[j] * m.apex) * bosse;
+      cote += (var1 + st.techCote[j] * m.cote - (x < 0 ? carte.virages[j].sens * m.entree : 0)) * bosse;
+    } else {
     sCarte -= (st.apex + var0 + (st.techApex ? st.techApex[j] : 0)) * bosse;
     cote += (var1 + (st.techCote ? st.techCote[j] : 0)) * bosse;   // (ses techniques selon le virage : techniquesPilote ; aucune pour le pilote neutre)
+    }
     corde = Math.max(corde, st.corde * bosse);
   }
   const limite = c.largeur / 2 - st.margeBord;
@@ -557,7 +595,7 @@ function noterLigne(pilote, v, voisines, s0, t, type) {
   // son freinage : la marge habituelle, son style et son rythme (un pilote plus rapide freine plus près de la limite) ;
   // en attaque, il ose le freinage complet. Son rythme moyen, pas celui du tour : un freinage qui change d'un tour à
   // l'autre surprend celui qui le suit (tour 16 : 9 chocs au lieu de 6 sur les 30 courses)
-  const frein = R.IA_MARGE_FREIN * pilote.rythme * (pilote.attaque && (pilote.attaque.etat !== 'preparer' || pilote.attaque.proche) ? R.IA_ATTAQUE_FREIN : pilote.style.frein) * (v.adhMeteo || 1);   // (sur le mouillé, il freine plus tôt : × l'adhérence de la météo, 1 au sec)
+  const frein = R.IA_MARGE_FREIN * pilote.rythme * (pilote.attaque && (pilote.attaque.etat !== 'preparer' || pilote.attaque.proche) ? R.IA_ATTAQUE_FREIN : pilote.style.frein) * (v.adhMeteo || 1) * (REGLAGES.IA_TECH_PLUIE && v.eauHors > 0 ? REGLAGES.IA_TECH_PLUIE_FREIN : 1);   // (sur le mouillé, il freine plus tôt : × l'adhérence de la météo, 1 au sec)
   for (let i = N - 2; i >= 0; i--) {
     const ds = Math.hypot(x[i + 1] - x[i], z[i + 1] - z[i]);
     vb[i] = Math.min(vb[i], Math.sqrt(vb[i + 1] * vb[i + 1] + 2 * frein * freinagePossible(vb[i + 1]) * (v.rvFrein ? facteurFreinage(v, vb[i + 1]) : 1) * ds));   // (l'équilibre des freins, tour 50b : × 1 au conseillé)
@@ -620,6 +658,7 @@ function deciderLigne(pilote, v, vues) {
   // les seuls virages assez près de l'horizon pour changer sa ligne rapide
   const proches = [];
   carte.virages.forEach((x, j) => { const d = ((x.s - s0) % L + L) % L; if (d <= R.IA_HORIZON + pas + R.IA_VIRAGE_LARGEUR || d >= L - R.IA_VIRAGE_LARGEUR) proches.push(j); });
+  techModifier(pilote, v, vues, s0);
   for (let i = 0; i <= N; i++) {
     t.rapide[i] = ligneRapide(pilote, s0 + i * pas, proches);
     // au départ, il garde sa file, puis la quitte doucement pour sa ligne

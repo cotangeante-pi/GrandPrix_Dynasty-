@@ -72,6 +72,7 @@ PAGES = [
     ('index.html?course=0&camera=cockpit&lang=en&test=audit-volant', 960, 600, None),   # l'audit anglais (tour 31, Codeur 3) : chaque écran du championnat et de la fin de carrière, sans un mot français, rien hors de l'écran en 960×600   # la page en anglais : championnat et podium sans un mot français, capture championnat-en.png
     ('index.html?course=1&ia=5&joueur=1&robot=1&circuit=test&test=fantome', 1280, 720, None),
     ('index.html?course=1&ia=5&joueur=1&robot=1&circuit=test&test=defi', 960, 600, None),
+    ('index.html?course=3&robot=1&circuit=test&test=seuldefi', 960, 600, None),   # (tour 51b) « 📋 Défier un ami » après une course seule
     ('index.html?championnat=1&tours=1&test=clavier', 960, 600, None),
     ('index.html?test=clavier-titre', 640, 360, None),   # (tour 50c) « ⌨ Touches » depuis l'écran titre, tout tient en 640×360 ; capture touches-titre-640.png
     ('index.html?course=0&test=clavier-pause', 640, 360, None),   # (tour 50c) … depuis le menu pause : la course reste en pause pendant le choix ; captures pause-640.png, touches-pause-640.png   # (tour 49b) les touches au choix : l'écran depuis Réglages, une touche changée conduit la voiture, capture touches.png   # (tour 49b) le défi du fantôme : « Défier un ami » après la qualification, « Relever un défi », le tour contre le fantôme, captures defi-*.png   # le fantôme du meilleur tour : deux qualifications de suite, la 2e contre le fantôme, capture fantome.png
@@ -545,6 +546,51 @@ def clavier_pause(pg, titre, l, h):
 # (visible, l'écart en direct) ; à l'arrivée, l'écart au fantôme vaut 0 (le même robot), « Renvoyer mon code », le meilleur gardé
 def texte_ok(x): return bool(x) and '{' not in x and 'undefined' not in x and 'null' not in x
 
+# (tour 51b) le défi après une course seule : le robot fait 3 tours seul ; le premier (départ arrêté) n'est pas gardé, le meilleur des deux autres l'est ;
+# « 📋 Défier un ami » à l'arrivée donne un lien et un code qui se décodent, au temps du meilleur tour ; le record du circuit est le même tour
+# (tour 51l) le robot (?robot=1) et l'IA (?ia=1) ne font plus de défi : un tour que le joueur n'a pas conduit ne devient ni son fantôme ni son code.
+# Pour la suite du test, le robot conduit « comme le joueur » : JEU.robot éteint, ses commandes passent par JEU.cibles (lisserCommandes, comme les touches)
+ROBOT_COMME_JOUEUR = '''() => { JEU.robot = false; window.LEVER_LE_PIED = null;
+  BOUCLE.surPhysique(() => { if (JEU.ecran !== "course" || !JEU.course || !courseAutorise(JEU.course)) return; const c = piloteRobot(JEU.joueur, CIRCUIT);
+    if (window.LEVER_LE_PIED && window.LEVER_LE_PIED()) c.gaz = 0; Object.assign(JEU.cibles, c); }); }'''
+ETAT_SEUL = '() => ({ meilleur: JEU.course.meilleurTour, garde: JEU.fantomeSeul && JEU.fantomeSeul.meilleur && JEU.fantomeSeul.meilleur.temps, bouton: !document.getElementById("boutonFinDefi").classList.contains("cache"), texte: document.getElementById("boutonFinDefi").textContent === texte("defiBouton"), record: SAUVEGARDE.fantome(NOM_CIRCUIT) && SAUVEGARDE.fantome(NOM_CIRCUIT).temps, tours: JEU.course.tours.map(x => x.temps) })'
+
+def course_seule_jusqu_a_la_fin(pg):
+    attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "course" && !!JEU.course', None, 120000)
+    for _ in range(120):
+        pg.evaluate('() => BOUCLE.simuler(5)')
+        if pg.evaluate('() => JEU.ecran') == 'fin': break
+        pg.wait_for_timeout(50)
+    attendre(pg, '() => JEU.ecran === "fin"', None, 10000)
+
+def defi_seul(pg, titre):
+    # 1. le robot (?robot=1) : rien n'est enregistré, pas de « Défier un ami »
+    course_seule_jusqu_a_la_fin(pg)
+    e0 = pg.evaluate(ETAT_SEUL)
+    t(f'{titre} : (tour 51l) une course seule conduite par le robot (?robot=1) : aucun tour enregistré, pas de « 📋 Défier un ami » (le joueur ne l’a pas conduite)', e0['garde'] is None and not e0['bouton'] and len(e0['tours']) == 3, str(e0))
+    # 2. « Rejouer », le robot conduit comme le joueur : le meilleur tour propre est gardé
+    pg.evaluate(ROBOT_COMME_JOUEUR)
+    pg.click('#boutonRejouer')
+    course_seule_jusqu_a_la_fin(pg)
+    e = pg.evaluate(ETAT_SEUL)
+    ok = e['garde'] is not None and e['meilleur'] is not None and abs(e['garde'] - e['meilleur']) < 0.0005 and e['tours'][0] != e['garde']
+    t(f'{titre} : après une course seule de 3 tours (le joueur), le meilleur tour propre est enregistré (pas le premier, départ arrêté), c’est le record du circuit, et « 📋 Défier un ami » est là', ok and e['bouton'] and e['texte'] and e['record'] is not None and abs(e['record'] - e['garde']) < 0.0005, str(e))
+    # 3. (tour 51l) « Rejouer » encore : la course repart de zéro (JEU.fantomeSeul remis) ; on lève le pied 2 s au début des tours 2 et 3 : ils sont
+    # plus lents que ceux d'avant, et le tour proposé doit être le meilleur de CETTE course, pas celui de la course précédente
+    pg.evaluate('() => { window.LEVER_LE_PIED = () => JEU.course.tours.length >= 1 && JEU.course.temps - JEU.course.debutTour < 2; }')
+    pg.click('#boutonRejouer')
+    course_seule_jusqu_a_la_fin(pg)
+    e2 = pg.evaluate(ETAT_SEUL)
+    lents = e2['tours'][1:]
+    ok2 = e2['garde'] is not None and len(lents) == 2 and abs(e2['garde'] - min(lents)) < 0.0005 and min(lents) > e['garde'] + 0.1
+    t(f'{titre} : (tour 51l) « Rejouer » : le défi repart de zéro, le tour proposé est le meilleur de cette course (plus lente d’un pied levé), pas celui de la course d’avant ; le record du circuit reste le plus rapide', ok2 and e2['bouton'] and abs(e2['record'] - e['garde']) < 0.0005, str([e['garde'], e2]))
+    e = e2
+    pg.click('#boutonFinDefi')
+    c = pg.evaluate('() => { const c = document.querySelector("#finCode input.defiCode"); return c ? c.value : ""; }')
+    l = pg.evaluate('() => { const c = document.querySelector("#finCode input.defiLien"); return c ? c.value : ""; }')
+    d = pg.evaluate('c => { const r = DEFI.decoder(c, CIRCUIT.longueur); return r.ok ? r.defi.temps : null; }', c)
+    t(f'{titre} : le lien (?defi=…) et le code (« GPD-TEST-… ») s’affichent à l’arrivée et se décodent au temps du meilleur tour', c.startswith('GPD-TEST-') and '/index.html?defi=' in l and d is not None and abs(d - e['garde']) < 0.0015, str([c[:20], l[:60], d, e['garde']]))
+
 def defi_ecran(pg, titre):
     attendre(pg, '() => JEU.ecran === "qualif" && JEU.qualif && JEU.qualif.etat === "choix"', None, 60000)
     attendre(pg, '() => JEU.plateau.carte !== null', None, 180000)
@@ -889,6 +935,18 @@ def sdk(pg, titre):
       attendre(pg, '() => JEU.ecran === "fin" && window.APPELS_SDK.slice(-1)[0] === "gameplayStop"') and pg.evaluate(J) == 'init,gameLoadingFinished,gameplayStart,gameplayStop,gameplayStart,gameplayStop', pg.evaluate(J))
     pg.click('#boutonRejouer')
     t(f'{titre} : « Rejouer » : gameplayStart, une seule fois', attendre(pg, '() => JEU.ecran === "course" && window.APPELS_SDK.slice(-2).join(",") === "gameplayStop,gameplayStart"'), pg.evaluate(J))
+    # (tour 51l) DEFI_ECRAN.montrerCode : un lienDe qui rappelle tout de suite (un shareableURL synchrone) remplit le champ du lien sans erreur ;
+    # un rappel qui arrive après que la boîte a été redessinée (« Renvoyer mon lien » deux fois) ne touche pas le champ courant, le bon le remplit
+    r = pg.evaluate('''() => { const R = [], lien = () => document.querySelector("#finCode input.defiLien").value; let erreur = null;
+      try { DEFI_ECRAN.montrerCode('finCode', 'GPD-TEST-x', (c, rap) => { rap('sync://' + c); return 'repli://' + c; }); } catch (e) { erreur = String(e); }
+      const sync = erreur ? null : lien();
+      DEFI_ECRAN.montrerCode('finCode', 'GPD-TEST-a', (c, rap) => { R.push(rap); return 'repli://a'; });
+      DEFI_ECRAN.montrerCode('finCode', 'GPD-TEST-b', (c, rap) => { R.push(rap); return 'repli://b'; });
+      R[0]('tard://a'); const apresTard = lien(); R[1]('poki://b'); const apresBon = lien();
+      document.getElementById('finCode').classList.add('cache');
+      return { erreur, sync, apresTard, apresBon, n: document.querySelectorAll('#finCode input.defiLien').length }; }''')
+    t(f'{titre} : le lien de défi (montrerCode) : un rappel immédiat de shareableURL remplit le champ sans erreur ; un rappel en retard (boîte redessinée) ne touche pas le champ courant, le bon le remplit',
+      r['erreur'] is None and r['sync'] == 'sync://GPD-TEST-x' and r['apresTard'] == 'repli://b' and r['apresBon'] == 'poki://b' and r['n'] == 1, str(r))
 
 # ?pneus=1 : les pneus du joueur (pneus.js) s'usent, son adhérence baisse, ?debug=1 l'affiche (sans ?pneus=1 : rien, PNEUS_ACTIFS faux)
 def pneus(pg, titre):
@@ -2562,6 +2620,23 @@ def patron_ecran(pg, titre, l, h, page):
     pg.click('#boutonDiscussionRetour')
     c = pg.evaluate(CONTRATS_PATRON)
     t(f'{titre} : « Retour » ramène aux contrats, l’offre redessinée avec le salaire négocié ({attendu})', c['ecran'] == 'contrats' and attendu in (c['salaires'][0] or ''), str(c['salaires']))
+    # (tour 51b) un promu : les contrats d'en haut, « Négocier » avec leurs patrons (salaire d'en haut), et le retour
+    pg.evaluate('''() => { const ch = CHAMPIONNAT.creer(77); SAISONS.avancer(ch, 99); const j = ch.pilotes.find(p => p.humain); if (SAISONS.bilan(ch).joueurPlace > 3) j.stats.points += 1000;
+      SAISONS.terminerSaison(ch); JEU.championnat = ch; JEU.discussion = null; montrerContrats(); }'''); pg.wait_for_timeout(300)
+    c = pg.evaluate(CONTRATS_PATRON)
+    promu = pg.evaluate('() => ({ monte: DIVISIONS.enAttente(JEU.championnat), note: document.getElementById("contratsNote").textContent })')
+    t(f'{titre} : monté de division, les offres d’en haut montrent leur salaire et « 💬 Négocier », rien hors de l’écran', promu['monte'] and c['n'] >= 1 and all(c['salaires']) and all(c['negocier']) and not c['hors'] and pas_de_defilement(c['defile']), str([promu, c]))
+    e = pg.evaluate('() => Number(document.querySelector("#contratsListe li").dataset.ecurie)')
+    pg.evaluate('() => document.querySelector("#contratsListe li:first-child button.negocier").click()')
+    d = pg.evaluate(DISCUSSION_ETAT)
+    t(f'{titre} : « Négocier » avec le patron d’en haut ouvre la discussion (salaire, statut ; ni budget ni consigne), dans l’écran', attendre(pg, f'() => JEU.ecran === "discussion" && JEU.discussion.patron === {e}', None, 3000) and 'salaire' in d['intentions'] and 'budget' not in d['intentions'] and d['dedans'] and not d['hors'] and pas_de_defilement(d['defile']), str(d))
+    pg.evaluate('() => document.querySelector("#discussionComposeur button[data-intention=salaire]").click()'); pg.wait_for_timeout(200)
+    r = pg.evaluate('() => JEU.derniereReponse && JEU.derniereReponse.reaction')
+    t(f'{titre} : il répond au salaire depuis son envie de t’avoir, avec un texte', r in ('contre_offre', 'salaire_refuse', 'salaire_accepte') and pg.evaluate('() => !!JEU.derniereReponse.texte && !/[{]|undefined/.test(JEU.derniereReponse.texte)'), str(r))
+    pg.evaluate('() => document.querySelector("#discussionComposeur button[data-intention=statut]").click()'); pg.wait_for_timeout(200)
+    t(f'{titre} : « Premier pilote » : refusé à un promu', pg.evaluate('() => JEU.derniereReponse.reaction') == 'statut_refuse', pg.evaluate('() => JEU.derniereReponse.reaction'))
+    pg.evaluate('() => document.querySelector("#boutonDiscussionRetour").click()')
+    t(f'{titre} : « Retour » ramène aux contrats d’en haut', attendre(pg, '() => JEU.ecran === "contrats" && DIVISIONS.enAttente(JEU.championnat)', None, 3000))
 
 # (tour 48a) le nouveau paddock : chaque bouton est rangé dans une page (menu à gauche) ; on ouvre sa page par le menu, comme un
 # joueur, puis on clique le bouton
@@ -2594,7 +2669,10 @@ ECRAN_DEDANS = """(id) => { const out = [], ec = document.getElementById(id);
   for (const e of ec.querySelectorAll('button, li, h1, p, canvas, select, input, label')) { const r = e.getBoundingClientRect(); if (!r.width || !r.height) continue;
     if (r.left < -1 || r.top < -1 || r.right > innerWidth + 1 || r.bottom > innerHeight + 1) out.push((e.id || e.className || e.tagName) + ' ' + Math.round(r.top) + '→' + Math.round(r.bottom)); }
   const retour = [...ec.querySelectorAll('button')].find(b => /Retour$/.test(b.id)), rr = retour && retour.getBoundingClientRect();
-  return { ecran: JEU.ecran, out, retour: !!rr && rr.width > 0 && rr.bottom <= innerHeight + 1, defile: [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth] }; }"""
+  const bs = [...ec.querySelectorAll('button')].filter(b => b.getBoundingClientRect().width), rec = [];   // (tour 51e) deux boutons ne se recouvrent pas
+  for (let i = 0; i < bs.length; i++) for (let j = i + 1; j < bs.length; j++) { const a = bs[i].getBoundingClientRect(), c = bs[j].getBoundingClientRect();
+    if (a.left < c.right - 1 && c.left < a.right - 1 && a.top < c.bottom - 1 && c.top < a.bottom - 1) rec.push(bs[i].id + '/' + bs[j].id); }
+  return { ecran: JEU.ecran, out, rec, retour: !!rr && rr.width > 0 && rr.bottom <= innerHeight + 1, defile: [document.documentElement.scrollHeight, innerHeight, document.documentElement.scrollWidth, innerWidth] }; }"""
 def paddock_menu(pg, titre, l, h, lang):
     attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', None, 60000)
     pg.evaluate('() => { if (typeof AIDES_ECRAN !== "undefined") { REGLAGES.AIDES_ACTIVES = false; AIDES_ECRAN.fermer(); } }')   # (la bulle d'aide ne compte pas ici : aides-menus la teste)
@@ -2636,7 +2714,7 @@ def paddock_menu(pg, titre, l, h, lang):
         e = pg.evaluate(ECRAN_DEDANS, nom)
         if l == 640: pg.screenshot(path=os.path.join(CAPTURES, f'paddock-{nom}-{lang}-{l}.png'))
         pg.evaluate('() => { ' + fermer + ' }'); pg.wait_for_timeout(200)
-        t(f'{titre} : l’écran « {nom} » (depuis le paddock) tient dans l’écran, son « Retour » compris, sans défilement', e['ecran'] == nom and not e['out'] and e['retour'] and pas_de_defilement(e['defile']), str(e))
+        t(f'{titre} : l’écran « {nom} » (depuis le paddock) tient dans l’écran, son « Retour » compris, sans défilement ni boutons qui se recouvrent', e['ecran'] == nom and not e['out'] and not e['rec'] and e['retour'] and pas_de_defilement(e['defile']), str(e))
     garde = pg.evaluate('() => localStorage.getItem(SAUVEGARDE.CLE)')
     pg.click('#menuReglages'); pg.click('#boutonNouvelleCarriereZero'); pg.click('#boutonCarriereOui'); pg.wait_for_timeout(200)
     d = pg.evaluate(PADDOCK_DEDANS)
@@ -3784,7 +3862,7 @@ with sync_playwright() as p:
             if 'reglages=1' in page:
                 reglages_panneau(pg, titre)
                 reglages(pg, titre)
-            if 'test=audit' not in page and 'test=essai' not in page and 'robot=1' in page and 'championnat=1' not in page and 'joueur=1' not in page and 'test=sdk' not in page and 'pneus=1' not in page and 'test=decouverte' not in page and 'test=deux' not in page:   # (avec ?championnat=1 ou &joueur=1, le robot joue dans championnat() ou qualif() ; sdk() et pneus() ont leur page)
+            if 'test=audit' not in page and 'test=seuldefi' not in page and 'test=essai' not in page and 'robot=1' in page and 'championnat=1' not in page and 'joueur=1' not in page and 'test=sdk' not in page and 'pneus=1' not in page and 'test=decouverte' not in page and 'test=deux' not in page:   # (avec ?championnat=1 ou &joueur=1, le robot joue dans championnat() ou qualif() ; sdk() et pneus() ont leur page)
                 course_robot(pg, titre, page)
             if 'test=sdk' in page:
                 sdk(pg, titre)
@@ -3903,6 +3981,8 @@ with sync_playwright() as p:
                 resume_ecran(pg, titre, l, h)
             elif 'test=qualif' in page:
                 qualif(pg, titre)
+            elif 'test=seuldefi' in page:
+                defi_seul(pg, titre)
             elif 'test=defi' in page:
                 defi_ecran(pg, titre)
             elif 'test=fantome' in page:
