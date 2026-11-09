@@ -1003,6 +1003,12 @@ function finirAttaque(pilote, reussie, pourquoi) {
 // il freine plus tard ; à l'entrée du virage, s'il n'est pas au moins à moitié à hauteur, il abandonne et revient derrière
 // (IA_ATTAQUE_TETE, tour 51a) jusqu'à quelle distance devant lui (m) une voiture qu'il vient d'abandonner d'attaquer est encore « sur lui » :
 // une longueur et la marge, plus ce qu'il lui reprend en une demi-seconde s'il va plus vite
+// (IA_LENT_PREVU, tour 52a) l'écart (m) auquel il sera de la voiture vue w à son point de freinage, à `distance` m d'ici, s'ils gardent leurs vitesses
+function pasDevantPrevu(c, v, w, g, distance) {
+  const prevu = g - Math.max(0, v.u - w.vitesse) * Math.max(0, distance) / Math.max(v.u, 5);
+  return prevu > -REGLAGES.LONGUEUR_VOITURE * REGLAGES.IA_NEZ_DEVANT + REGLAGES.IA_LENT_PREVU_MARGE;   // pas le nez devant : l'attaque d'un virage lent est perdue d'avance
+}
+
 function sortieDistance(v, w) { return REGLAGES.LONGUEUR_VOITURE + REGLAGES.IA_MARGE_LONG + Math.max(0, v.u - w.vitesse) * 0.5; }
 function majAttaque(pilote, v, vues, dt) {
   const R = REGLAGES, carte = pilote.carte, c = carte.circuit, p = v.piste, a = pilote.attaque;
@@ -1057,9 +1063,18 @@ function majAttaque(pilote, v, vues, dt) {
       const sens = carte.virages[f.j].sens;
       // (IA_BATAILLE_PLONGER : il plonge à l'intérieur ou n'attaque pas ce virage-là ; 0 : l'extérieur s'il n'y a pas la place à l'intérieur)
       const cote = Math.abs(w.d + sens * ecart) <= limite ? sens : !R.IA_BATAILLE_PLONGER && Math.abs(w.d - sens * ecart) <= limite ? -sens : 0;
+      // (IA_LENT_PREVU : virage lent, il ne se décale pas s'il ne peut pas avoir le nez devant au point de freinage, d'après les vitesses)
+      if (cote && R.IA_ATTAQUE_TETE && R.IA_LENT_PREVU && carte.virages[f.j].lent && !R.IA_LENT_COTE_A_COTE && pasDevantPrevu(c, v, w, g, f.distance)) return;
       if (cote) { a.etat = 'decaler'; a.virage = f.j; a.cote = cote; }
     }
   } else if (a.etat === 'decaler' && carte.virages[a.virage].lent && !R.IA_LENT_COTE_A_COTE) {   // (IA_LENT_COTE_A_COTE : comme un virage rapide, l'entrée côte à côte)
+    // (IA_LENT_PREVU, tour 52a : il freinait tard pour l'attaque, la voiture devant freinait plus tôt, et il arrivait sur elle à 7 m/s de plus
+    // avant le point de freinage ; il renonce dès que, d'après les vitesses, il n'aura pas le nez devant au freinage, et freine comme avant l'attaque)
+    const dF = ecartLeLong(c, carte.virages[a.virage].freinage - p.s);
+    if (R.IA_ATTAQUE_TETE && R.IA_LENT_PREVU && dF > 0 && pasDevantPrevu(c, v, w, g, dF)) {
+      if (R.IA_ATTAQUE_SORTIE && g < sortieDistance(v, w)) { a.etat = 'sortie'; a.duree = 0; pilote.cede = { id: a.id, duree: 0 }; if (pilote.journal) pilote.journal.push('sortie (virage lent prévu) g ' + g.toFixed(1)); }
+      else return finirAttaque(pilote, false, 'pas devant au freinage prévu (virage lent) g ' + g.toFixed(1));
+    } else
     // virage lent : jamais à deux de front ; au point de freinage (celui de la carte), il a le nez devant (son centre
     // au moins IA_NEZ_DEVANT longueur devant le sien), sinon il abandonne avant de freiner : elle garde le virage
     if (ecartLeLong(c, carte.virages[a.virage].freinage - p.s) <= 0) {
