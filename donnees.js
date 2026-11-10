@@ -491,7 +491,7 @@ const REGLAGES = {
   PODIUM_DECOUVERTE_DUREE: 8,   // s : le podium de la découverte passe tout seul à la création du pilote après ce temps (0 : jamais ; tour 52e)
   PODIUM_DECOUVERTE_ENCORE: true, // « Encore une course ? » sur ce podium (la 2e fois sans prime) ; faux : le bouton n'y est pas
   PILOTE_PROPOSITIONS: 3,       // la création du pilote après la découverte : tant de pilotes prêts en grosses cartes (0 : le formulaire seul, comme avant le tour 52e)
-  PILOTE_PRENOMS: ['Alex', 'Sam', 'Noa', 'Lou', 'Kim', 'Robin', 'Sacha', 'Mika', 'Dani', 'Jo', 'Ilan', 'Maé', 'Tim', 'Zoé', 'Léa', 'Eden'],   // les prénoms tirés pour ces cartes : génériques, jamais un vrai pilote
+  PILOTE_PRENOMS: ['Alex', 'Sam', 'Noa', 'Lou', 'Kim', 'Robin', 'Sacha', 'Mika', 'Dani', 'Jo', 'Ilan', 'Mae', 'Tim', 'Zoe', 'Lea', 'Eden'],   // les prénoms tirés pour ces cartes : génériques, sans accent (l'audit anglais prend une lettre accentuée pour du français), jamais un vrai pilote
   PILOTE_LANGUE_PAYS: { fr: 'fr', en: 'gb', es: 'es', de: 'de', it: 'it', pt: 'pt', nl: 'nl', ja: 'jp', zh: 'cn', sv: 'se', fi: 'fi', da: 'dk', no: 'no', nb: 'no', pl: 'pl', ar: 'ae' },   // le pays d'une carte : la région du navigateur (fr-CA → ca) sinon sa langue
   // le mode 2 joueurs (deux-joueurs.js, CLAUDE.md « Le mode 2 joueurs (écran partagé) ») : ?deux=1 ; les touches par leur place
   // sur le clavier (e.code : W A S D = Z Q S D en AZERTY) ; Échap met en pause pour les deux ; Espace et C ne font rien
