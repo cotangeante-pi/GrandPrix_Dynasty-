@@ -1806,3 +1806,16 @@ body.tactile #aide { display: none; }
   border-radius: 10px; background: #1f6fe0; color: #fff; font: 600 16px/1.3 var(--police); cursor: pointer; }
 #tactilePortrait { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 24px; text-align: center;
   background: rgba(0, 0, 0, 0.92); color: #fff; font: 800 28px/1.3 var(--police); }
+
+/* la découverte (tour 52g) : la prime en direct à gauche de la tour de classement, et le gros « P3 ! » au centre */
+#primeDecouverte { position: fixed; top: 10px; right: calc(var(--classement-largeur, 170px) + 24px); display: flex; align-items: baseline; gap: 8px; padding: 6px 12px; border-radius: 8px; background: var(--panneau); font: 800 18px/1.2 var(--police); color: #ffd666; pointer-events: none; }
+#primeGain { color: #7dff9a; font-size: 16px; opacity: 0; }
+#primeDecouverte.monte #primeGain { animation: primeGain 1.2s ease-out; }
+#primeDecouverte.monte { animation: primeFlash 1.2s ease-out; }
+@keyframes primeGain { 0% { opacity: 0; transform: translateY(8px); } 15% { opacity: 1; } 70% { opacity: 1; } 100% { opacity: 0; transform: translateY(-8px); } }
+@keyframes primeFlash { 0% { box-shadow: 0 0 0 3px #7dff9a; } 100% { box-shadow: 0 0 0 0 rgba(125, 255, 154, 0); } }
+#placeGrand { position: fixed; left: 50%; top: 38%; transform: translate(-50%, -50%); font: 900 96px/1 var(--tv-police-titre, var(--police)); font-style: italic; color: #fff; text-shadow: 0 4px 18px rgba(0, 0, 0, 0.75), 0 0 28px rgba(125, 255, 154, 0.8); pointer-events: none; }
+#placeGrand.saute { animation: placeSaute 1s ease-out; }
+@keyframes placeSaute { 0% { opacity: 0; transform: translate(-50%, -50%) scale(0.6); } 20% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); } 80% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -50%) scale(1); } }
+@media (max-height: 420px) { #placeGrand { font-size: 56px; } #primeDecouverte { font-size: 14px; padding: 3px 8px; } }
+@media (prefers-reduced-motion: reduce) { #primeDecouverte.monte, #primeDecouverte.monte #primeGain, #placeGrand.saute { animation: none; } #primeGain { opacity: 1; } }
