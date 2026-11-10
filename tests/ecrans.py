@@ -123,6 +123,8 @@ PAGES = [
     ('index.html?course=3&circuit=test&test=tactile', 640, 360, None),   # le téléphone (tactile.js, tour 51k) : écran tactile émulé, GAZ / FREIN, ◀ ▶ sans capteur, le volant par de faux évènements d'orientation, un tour sans clavier ; capture tactile-640.png
     ('index.html?course=3&circuit=test&lang=en&test=tactile', 960, 600, None),   # … en anglais, 960×600 ; capture tactile-960.png
     ('index.html?test=tactile-decouverte', 960, 600, None),   # (tour 52b) de la découverte au podium sans clavier, aux doigts et au volant
+    ('index.html?test=tactile-titre', 640, 360, None),   # (tour 53c, premiere-minute n° 12) l'écran titre simple : au doigt, « ▶ Jouer », « Entre amis » et 🔊 seulement ; capture titre-640-tactile.png
+    ('index.html?test=titre-simple', 1280, 720, None),   # … au clavier en 1280×720, le titre est inchangé (Apprendre / Aides / Touches) ; capture titre-1280.png
     ('index.html?test=tactile-iphone', 960, 600, None),   # … l'autorisation de l'iPhone (« 🎮 Activer le volant »), refusée → ◀ ▶ ; le message « Tourne ton téléphone » en portrait
     ('index.html?deux=1&ia=0&circuit=test&test=manette-deux', 1280, 720, None),   # … deux manettes, une par joueur   # les sensations de conduite (tour 37) : son au premier geste, fumée, étincelles, réglage ; capture sensations.png
     ('index.html?course=3&ia=19&joueur=1&circuit=monzo&domicile=1&test=supporters', 1280, 720, None),   # le Grand Prix à domicile : la caméra de la grille longe d'abord la tribune des supporters ; capture supporters.png   # la réalisation télé (regie.js) : de vraies caméras, l'hélicoptère ; captures tele-monoco.png, tele-helico.png   # … et Monzo de jour : la luminosité de l'image, pour la comparer à la nuit   # le décor dans le vrai jeu : la course de nuit à Singapura, 20 voitures, vue télé ; capture jeu-singapura.png
@@ -503,6 +505,7 @@ DEDANS_JS = '''sel => { const bs = [...document.querySelectorAll(sel)].filter(b 
 def clavier_titre(pg, titre, l, h):
     if not attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "titre"', None, 60000):
         t(f'{titre} : l’écran titre', False, str(pg.evaluate('() => typeof JEU !== "undefined" && JEU.ecran'))); return
+    pg.evaluate('() => { REGLAGES.TITRE_SIMPLE = false; document.body.classList.remove("titreSimple"); }')   # (tour 53c : sous 700 px le titre n'a plus la rangée ; on la remet pour essayer « ⌨ Touches » depuis le titre)
     d = pg.evaluate(DEDANS_JS, '#titre button')
     vu = pg.evaluate('() => { const b = document.getElementById("boutonTouchesTitre"); return !!b && b.offsetParent !== null && b.textContent === texte("touchesBouton"); }')
     t(f'{titre} : l’écran titre : « ⌨ Touches », et chaque bouton dans l’écran, sans défilement ni recouvrement', vu and d['dedans'] and d['defile'] and not d['recouvre'], str([vu, d]))
@@ -1807,7 +1810,28 @@ CONDUITE_DOIGTS = '''() => { clearInterval(window.__penche); const Z = REGLAGES.
         const d = c.direction, a = d === 0 ? 0 : Math.sign(d) * (Z + Math.min(1, Math.abs(d)) * (P - Z));
         window.dispatchEvent(new DeviceOrientationEvent('deviceorientation', { alpha: 0, beta: TACTILE.etat.neutre + a, gamma: 0 })); });
       window.__conduire = true; }'''   # (tour 52b : le robot d'essai dicte, tout passe par les faux doigts et le faux volant)
+def titre_simple(pg, titre, l, h):
+    """(tour 53c) l'écran titre : sur tactile ou sous 700 px, 2 boutons + 🔊 ; au clavier en grand, la rangée « Apprendre / Aides / Touches » comme avant."""
+    attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "titre"', None, 60000)
+    pg.wait_for_timeout(400)
+    etat = pg.evaluate("""() => { const vis = id => { const e = document.getElementById(id); return !!e && e.offsetParent !== null; };
+      return { tactile: document.body.classList.contains('tactile'), simple: document.body.classList.contains('titreSimple'), jouer: vis('boutonJouer'), amis: vis('boutonAmis'),
+        apprendre: vis('boutonTutorielTitre'), aides: vis('boutonAidesTitre'), touches: vis('boutonTouchesTitre'),
+        paddock: ['boutonTutorielPaddock', 'boutonAidesPaddock', 'boutonTouchesPaddock'].every(id => !!document.getElementById(id)) }; }""")
+    d = pg.evaluate(DEDANS_JS, '#titre button')
+    if 'tactile' in titre or l < 700:
+        t(f'{titre} : sur un écran tactile (ou sous 700 px), le titre n’a que « ▶ Jouer » et « Entre amis » (et 🔊), tout dans l’écran ; « Apprendre / Aides / Touches » sont dans les Réglages du paddock',
+          etat['jouer'] and etat['amis'] and not etat['apprendre'] and not etat['aides'] and not etat['touches'] and etat['paddock'] and d['n'] == 2 and d['dedans'] and d['defile'] and not d['recouvre'], str([etat, d]))
+        pg.screenshot(path=os.path.join(CAPTURES, 'titre-640-tactile.png'))
+    else:
+        t(f'{titre} : au clavier en grand, le titre est inchangé : « ▶ Jouer », « Entre amis », « Apprendre », « Aides », « Touches »',
+          etat['jouer'] and etat['amis'] and etat['apprendre'] and etat['aides'] and etat['touches'] and d['n'] == 5 and d['dedans'] and d['defile'] and not d['recouvre'], str([etat, d]))
+        pg.screenshot(path=os.path.join(CAPTURES, 'titre-1280.png'))
+    pg.evaluate('() => { REGLAGES.TITRE_SIMPLE = false; INTERFACE.preparerTitre(() => {}, () => {}, () => {}); }')
+    t(f'{titre} : avec TITRE_SIMPLE faux, la rangée est là comme avant', pg.evaluate('() => document.getElementById("boutonTouchesTitre").offsetParent !== null'))
+
 def tactile_ecran(pg, titre, l, h, page):
+    if 'tactile-titre' in page: return titre_simple(pg, titre, l, h)
     if 'tactile-iphone' in page: return tactile_iphone(pg, titre, l, h)
     if 'tactile-decouverte' in page: return tactile_decouverte(pg, titre, l, h)
     pret = attendre(pg, '() => typeof TACTILE !== "undefined" && TACTILE.estPresent() && JEU.ecran === "course"', None, 30000)
@@ -4161,6 +4185,8 @@ with sync_playwright() as p:
                 tuto_lecon(pg, titre, l, h, page)
             elif 'test=audit' in page:
                 audit_autres(pg, titre, page, l, h)
+            elif 'test=titre-simple' in page:
+                titre_simple(pg, titre, l, h)
             elif 'test=clavier-titre' in page:
                 clavier_titre(pg, titre, l, h)
             elif 'test=clavier-pause' in page:
