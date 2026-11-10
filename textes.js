@@ -988,7 +988,7 @@ Object.assign(TEXTES.en, {
   aideTenir: 'Hold ↑',
   tac_aideTenir: 'Hold GAS', tac_aideGaz: 'Hold GAS', tac_aideDirection: 'Tilt the phone', tac_aideDirectionBoutons: '◀ ▶', tac_aideFrein: 'BRAKE',
   tac_departAide: 'Hold GAS in the green · lights out: release and press GAS again for a perfect start',
-  tac_aide_depart: 'Hold GAS in the green and you go. {d} Perfect start: at lights out, release and press GAS again, fast!',
+  tac_aide_depart: 'Hold GAS in the green and you go. {d}',
   tac_tourne: 'Tilt the phone to steer.', tac_tourneBoutons: 'Press ◀ ▶ to steer.',
   tac_aide_consigne: 'Team order: lift off (BRAKE) to let your team-mate through, or keep your place.',
 });
@@ -996,7 +996,7 @@ Object.assign(TEXTES.fr, {
   aideTenir: 'Tiens ↑',
   tac_aideTenir: 'Tiens GAZ', tac_aideGaz: 'Tiens GAZ', tac_aideDirection: 'Incline le téléphone', tac_aideDirectionBoutons: '◀ ▶', tac_aideFrein: 'FREIN',
   tac_departAide: 'Tiens GAZ dans le vert · feux éteints : lâche et réappuie GAZ pour un départ parfait',
-  tac_aide_depart: 'Tiens GAZ dans le vert et tu pars. {d} Départ parfait : feux éteints, lâche puis réappuie vite sur GAZ !',
+  tac_aide_depart: 'Tiens GAZ dans le vert et tu pars. {d}',
   tac_tourne: 'Incline le téléphone pour tourner.', tac_tourneBoutons: 'Appuie sur ◀ ▶ pour tourner.',
   tac_aide_consigne: 'Consigne : lève le pied (FREIN) pour laisser passer ton coéquipier, ou garde ta place.',
 });
