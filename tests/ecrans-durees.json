@@ -148,5 +148,7 @@
 "index.html?test=tactile-decouverte 960": 300,
 "index.html?test=tactile-iphone 960": 20,
 "index.html?test=tactile-titre 640": 3,
+"index.html?championnat=1&tours=1&robot=1&test=apres-course 1280": 40,
+"index.html?championnat=1&tours=1&robot=1&test=apres-course 640": 40,
 "index.html?test=titre-simple 1280": 3
 }

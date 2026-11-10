@@ -115,6 +115,7 @@ const JEU = {
   decouverte: false, monde: null, indices: null, aides: null, depuisClic: null, clicAuxFeux: null, clicAuPremierFeu: null,
   carteDuCache: false,  // la carte des IA est venue du cache de la sauvegarde (cache-carte.js) : pas de calcul en fond
   casqueSeul: false,    // l'écran du pilote ouvert depuis le paddock pour le casque seulement (« Mon casque »)
+  tempsUne: 0,          // s depuis l'affichage de la une du journal (UNE_AUTO_DUREE)
   primeVue: null,       // la découverte : { place, grandJusqua } de la prime en direct (majPrimeDecouverte), ou null
   monPilote: false,     // … ou en entier pour changer le nom, le numéro et le pays (« Mon pilote », Réglages)
   // le mode 2 joueurs (deux-joueurs.js) : ses réglages { nbIA, nbTours }, ou null ; les commandes de chaque joueur (1, 2), lues
@@ -1109,6 +1110,7 @@ function montrerUne(une) {
   PODIUM3D.cacher();
   INTERFACE.remplirUne(JOURNAL.rendre(une, JEU.championnat, { pilote: INTERFACE.nomPilote, ecurie: INTERFACE.nomEcurie }));
   JEU.ecran = 'une';
+  JEU.tempsUne = 0;   // (UNE_AUTO_DUREE : la une passe toute seule)
   INTERFACE.montrer('une');
 }
 
@@ -1765,7 +1767,9 @@ function montrerPodium() {
     const lignes = CHAMPIONNAT.lignesDepuisCourse(e), g = ARGENT.gains(JEU.championnat, lignes, JEU.assistance), moi = lignes.find(l => l.k === JEU.ia);
     if (g) { g.placeNumero = moi.place; g.sponsor = SPONSORS.primesPour(JEU.championnat, lignes); }   // les primes du sponsor que ce classement apporterait (sponsors.js)
     INTERFACE.remplirArgent(g);
-  } else INTERFACE.remplirArgent(null);
+    // (tour 53d) les gains dès le podium, et le gros « Continuer » droit à l'interview
+    INTERFACE.remplirPodiumCarriere(REGLAGES.APRES_PODIUM_DIRECT ? { gains: texte('apGains').replace('{n}', ARGENT.formater(g ? g.total : 0)).replace('{p}', CHAMPIONNAT.pointsPour(moi.place)) } : null);
+  } else { INTERFACE.remplirArgent(null); INTERFACE.remplirPodiumCarriere(null); }
   INTERFACE.remplirPodiumDecouverte(JEU.decouverte ? bilanDecouverte() : null);   // (la découverte : le bilan et « Continuer » à la place de « Résultats »)
   JEU.tempsPodium = 0;
   SON.signal('arrivee');
@@ -1855,6 +1859,13 @@ function nomTele(k) {
 function majCameraSuivie() {
   const a = JEU.attente, k = a && a.choisi !== undefined && a.choisi !== null ? a.choisi : null;
   INTERFACE.marquerSuivie(k === null ? null : numeroDe(k), k === null ? null : nomTele(k), !!a && JEU.ecran === 'course' && !a.passer && !JEU.deux);
+}
+
+// (tour 53d, APRES_PODIUM_DIRECT) le gros « Continuer » du podium : droit à l'interview (les résultats restent derrière « Résultats », en petit)
+function continuerPodium() {
+  if (JEU.ecran !== 'podium' || !JEU.championnat) return;
+  JEU.ecran = 'resultats';
+  apresGrandPrix();
 }
 
 function voirResultats() {
@@ -2655,6 +2666,7 @@ function demarrerJeu() {
     INTERFACE.preparerChampionnat(courseSuivante, montrerGarage);
     INTERFACE.preparerPaddock({ nouvelle: nouvelleCarriere, zero: carriereAZero });   // le menu et les pages du paddock (tour 48a)
     INTERFACE.preparerUne(passerUne);
+    { const b = document.getElementById('boutonPodiumSuite'); b.addEventListener('mousedown', e => e.preventDefault()); b.addEventListener('click', continuerPodium); }
     INTERFACE.preparerCeremonie(suiteCeremonie);
     INTERFACE.preparerAlbum(montrerAlbum, feuilleterAlbum, saisonAlbum, quitterAlbum);
     INTERFACE.preparerTemple(montrerTemple, quitterTemple);
@@ -2878,6 +2890,7 @@ function demarrerJeu() {
   BOUCLE.surAffichage((alpha, dt) => {
     JEU.alpha = alpha;
     JEU.dtImage = dt;
+    if (JEU.ecran === 'une' && REGLAGES.UNE_AUTO_DUREE > 0 && (JEU.tempsUne += dt) >= REGLAGES.UNE_AUTO_DUREE) passerUne();   // (tour 53d) la une du journal passe toute seule
     majManettes(dt);   // la manette (manette.js) : lue à chaque image
     majTactile(dt);   // le téléphone (tactile.js, tour 51k) : les boutons tenus et le volant, à chaque image
     if (JEU.ecran === 'resume') { majResume(dt); if (JEU.sdkPret) SDK.jeuArrete(); if (JEU.ecran === 'resume') { majRetro(dt); if (typeof EFFETS3D !== 'undefined') SENSATIONS.observer([], CIRCUIT); SCENE3D.dessiner(); return; } }   // le résumé vidéo : la 3D rejoue l'enregistrement (Poki : gameplayStop)

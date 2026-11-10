@@ -1942,3 +1942,10 @@ body.tactile #aide { display: none; }
 /* l'écran titre simple (tour 53c, premiere-minute n° 12) : sur un écran tactile ou sous 700 px de large, « Apprendre / Aides / Touches » ne sont plus au titre (ils sont dans les Réglages du paddock) */
 body.titreSimple.tactile #titreAide { display: none; }
 @media (max-width: 699px) { body.titreSimple #titreAide { display: none; } }
+
+/* l'après-course de la carrière (tour 53d) : les gains sous le podium, un gros « Continuer », « Résultats » en petit */
+#podiumGains { margin: 0; padding: 6px 16px; border-radius: 8px; background: var(--panneau); font: 800 20px/1.3 var(--police); color: #ffd666; text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5); }
+#boutonPodiumSuite { pointer-events: auto; padding: 14px 40px; border: 0; border-radius: var(--tv-coin, 10px); background: var(--accent); color: var(--texte); font: 700 22px/1.3 var(--police); cursor: pointer; }
+#boutonPodiumSuite:hover { box-shadow: var(--tv-halo, 0 0 0 3px rgba(255, 255, 255, 0.5)); }
+#boutonResultats.petit { padding: 6px 14px; font-size: 13px; opacity: 0.9; }
+@media (max-height: 420px) { #podiumGains { font-size: 15px; padding: 3px 12px; } #boutonPodiumSuite { padding: 8px 28px; font-size: 18px; } }

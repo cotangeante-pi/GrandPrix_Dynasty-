@@ -496,6 +496,9 @@ const REGLAGES = {
   PRIME_PLACE_GRAND_DUREE: 1,   // s : le « P3 ! » au centre
   PRIME_GAIN_DUREE: 1.2,        // s : le « +200 € » vert à côté du compteur
   TITRE_SIMPLE: true,           // l'écran titre sur un écran tactile ou sous 700 px de large : seulement « ▶ Jouer », « Entre amis » et 🔊 ; « Apprendre / Aides / Touches » sont dans les Réglages du paddock (faux : la rangée reste, comme avant le tour 53c)
+  APRES_PODIUM_DIRECT: true,    // en carrière, le podium montre les gains (« Gains : 800 € · +25 pts ») et un gros « Continuer » qui mène droit à l'interview ; « Résultats » reste en petit (faux : seulement « Résultats », comme avant le tour 53d)
+  INTERVIEW_PASSER: true,       // l'interview d'après course : un « Passer » visible à la place du petit « Pas de commentaire » (faux : comme avant)
+  UNE_AUTO_DUREE: 6,            // s : la une du journal passe toute seule au paddock après ce temps, un clic ou une touche la passe tout de suite (0 : jamais, comme avant)
   PODIUM_DECOUVERTE_DUREE: 8,   // s : le podium de la découverte passe tout seul à la création du pilote après ce temps (0 : jamais ; tour 52e)
   PODIUM_DECOUVERTE_ENCORE: true, // « Encore une course ? » sur ce podium (la 2e fois sans prime) ; faux : le bouton n'y est pas
   PILOTE_PROPOSITIONS: 3,       // la création du pilote après la découverte : tant de pilotes prêts en grosses cartes (0 : le formulaire seul, comme avant le tour 52e)
