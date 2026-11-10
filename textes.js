@@ -28,7 +28,7 @@ const TEXTES = {
     grillePasser: 'The grid — press a key to skip',
     pneus: 'Tyres', pneusAdherence: 'grip −{p} %', commentateur: "Gaston Virage", assist_freinage_oui: 'Braking assist: on', assist_freinage_non: 'Braking assist: off', assist_antipatinage_oui: 'Traction control: on', assist_antipatinage_non: 'Traction control: off', assist_direction_oui: 'Steering assist: on', assist_direction_non: 'Steering assist: off', qualite_auto: 'Graphics: auto', qualite_haute: 'Graphics: high', qualite_basse: 'Graphics: low', qualite_moyenne: 'Graphics: medium', retro_oui: 'Mirror: on', retro_non: 'Mirror: off', qualite_autoSimple: 'Graphics: auto (simplest)', trajectoire_oui: 'Racing line: on', trajectoire_non: 'Racing line: off', trajectoire_freinages: 'Racing line: braking only', effets_oui: 'Driving effects: on', effets_non: 'Driving effects: off', commentaire_tout: 'Commentator: on', commentaire_joueur: 'Commentator: your moves only', commentaire_non: 'Commentator: off', com_arret: ["{qui} has stopped on track!", "Trouble for {qui}: stopped on the circuit!", "{qui} is stationary out there!"], com_podium: ["The podium: {qui}, {sur} and {trois}!", "{qui} wins, ahead of {sur} and {trois}.", "Top three: {qui}, {sur}, {trois}!"], lieu_monoco: 'at Monoco', lieu_silverstoun: 'at Silverstoun', lieu_monzo: 'at Monzo', lieu_spaa: 'at Spaa', lieu_suzuko: 'at Suzuko', lieu_interlagas: 'at Interlagas', lieu_montreol: 'at Montréol', lieu_melbourn: 'at Melbourn Park', lieu_barcelana: 'at Barcelana', lieu_bahrayn: 'at Bahrayn', lieu_singapura: 'at Singapura', lieu_yasmarino: 'at Yas Marino', lieu_test: 'at the test track', lieu_technique: 'at the technical track', com_depart: ["Lights out {lieu}, and away they go!", "And they’re off {lieu}!", "Lights out, the race is on!", "Green light {lieu}: go, go, go!"], com_depassementTete: ["{qui} takes the lead!", "{qui} gets past {sur}: new leader!", "Change at the front: {qui} goes ahead!", "{qui} snatches the lead from {sur}!"], com_depassementJoueur: ["{qui} gets past {sur}, P{place}!", "A move by {qui} on {sur}, now P{place}.", "{qui} and {sur} swap: {qui} P{place}!", "{qui} slips by {sur}, up to P{place}."], com_depassement: ["{qui} dives down the inside of {sur}!", "{qui} passes {sur}, P{place}.", "Great move by {qui} on {sur}!", "{qui} goes around the outside of {sur}!", "{qui} gets the better of {sur}.", "{qui} out-brakes {sur}!"], com_contact: ["Contact between {qui} and {sur}!", "{qui} and {sur} touch!", "They rub wheels, {qui} and {sur}!", "A tap between {qui} and {sur}!"], com_coteACote: ["{qui} and {sur}, side by side!", "Wheel to wheel: {qui} alongside {sur}!", "{qui} pulls alongside {sur}!", "Nobody gives an inch: {qui} and {sur}!", "{qui} is right next to {sur}!"], com_erreur: ["A moment for {qui}!", "{qui} runs wide!", "Off the line for {qui}, that costs time."], com_penalite: ["A {s} s penalty for {qui}.", "{qui} picks up {s} s of penalty.", "The stewards hand {qui} {s} s."], com_stands: ["{qui} heads into the pits.", "Pit stop for {qui}.", "{qui} takes the pit lane."], com_meilleurTour: ["Fastest lap for {qui}: {temps}!", "{qui} sets the quickest lap, {temps}.", "A flying lap from {qui}: {temps}."], com_pluie: ["Rain is falling {lieu}!", "Here come the first drops…", "The rain is starting!"], com_dernierTour: ["Last lap {lieu}!", "One lap to go!", "The final lap, {qui} leads!"], com_arrivee: ["{qui} wins {lieu}!", "Victory for {qui}!", "Chequered flag: {qui} takes it!"], com_joueurArrivee: ["{qui} crosses the line, P{place}!", "Finish for {qui}: P{place}.", "{qui} brings it home in P{place}."], com_joueurTete: ["{qui} leads, {ecart} s ahead!", "{qui} out in front by {ecart} s.", "{qui} controls the race, {ecart} s clear."], com_joueurPlace: ["{qui}, P{place}, {ecart} s behind the car ahead.", "{qui} holds P{place}, {ecart} s back.", "{qui} in P{place}, the gap ahead: {ecart} s."], msg_pluieArrive: 'Rain is coming', msg_pisteSeche: 'The track is drying', meteoEau: 'water {p} %', meteoPrevue: 'Forecast: {temps}', meteo_sec: 'dry', meteo_nuageux: 'cloudy', meteo_risque: 'chance of rain ({p} %)', meteo_pluie: 'rain', msg_meilleurTour: '{qui}: fastest lap {temps}', msg_penalite: '{s} s penalty for {qui}', msg_stands: '{qui} pits',
     resume: '▶ Highlights', resumeTitre: 'Highlights', resumeSortir: 'Click or Esc to leave',   // le résumé vidéo (resume.js)
-    resume_depart: 'The start', resume_depassement: 'Overtake: {qui} passes {sur}', resume_sortie: 'Off track: {qui}', resume_glissade: 'Slide caught: {qui}', mesure_bouton: '⏱ Measure frame rate (30 s)', mesure_compteur: '{ips} fps · worst {pire}', mesure_attente: 'Measuring soon: waiting for the start…', mesure_encours: 'Measuring for {s} s…', mesure_fini: 'Measured. Copy and send it:', mesure_copier: 'Copy', mesure_copie: 'Copied ✓', mesure_resultat: '{jeu}, {circuit}, 20 cars, {duree} s: {ips} fps on average, slowest 1 % {un} fps, worst frame {pire} fps; {appels} draw calls on average ({appelsMax} at most), {triangles} triangles at most; graphics {qualite}; {taille}; {images} frames', son_effets: 'Engine & effects: {p} %', son_ambiance: 'Ambience: {p} %', son_commentateur: 'Commentator sound: {p} %', son_paddock: '🔊 Sound', son_titre: 'Sound', son_fermer: 'Close', com_glissade: ["{qui} catches the slide!", "Opposite lock from {qui}, saved!", "{qui} holds the slide, brilliant!"], resume_arrivee: 'The finish: {qui} wins', resume_arret: 'Pit stop: {qui}, {duree} s',
+    resume_depart: 'The start', resume_depassement: 'Overtake: {qui} passes {sur}', resume_sortie: 'Off track: {qui}', resume_glissade: 'Slide caught: {qui}', mesure_bouton: '⏱ Measure frame rate (30 s)', mesure_compteur: '{ips} fps · worst {pire}', mesure_attente: 'Measuring soon: waiting for the start…', mesure_encours: 'Measuring for {s} s…', mesure_fini: 'Measured. Copy and send it:', mesure_copier: 'Copy', mesure_copie: 'Copied ✓', mesure_resultat: '{jeu}, {circuit}, 20 cars, {duree} s: {ips} fps on average, slowest 1 % {un} fps, worst frame {pire} fps; {appels} draw calls on average ({appelsMax} at most), {triangles} triangles at most; graphics {qualite}; {taille}; {images} frames', son_effets: 'Effects: {p} %', son_ambiance: 'Ambience: {p} %', son_commentateur: 'Commentator: {p} %', son_paddock: '🔊 Sound', son_titre: 'Sound', son_fermer: 'Close', com_glissade: ["{qui} catches the slide!", "Opposite lock from {qui}, saved!", "{qui} holds the slide, brilliant!"], resume_arrivee: 'The finish: {qui} wins', resume_arret: 'Pit stop: {qui}, {duree} s',
     attenteAccelere: '⏩ Fast-forward: {n} cars still racing', attenteAccelere1: '⏩ Fast-forward: 1 car still racing',
     passerPodium: 'Skip to the podium (Enter)',
     pause: 'Pause', reprendre: 'Resume', recommencer: 'Restart',
@@ -59,10 +59,10 @@ const TEXTES = {
     resultats: 'Race results',
     colonnesResultats: ['Pos', 'No', 'Time', 'Penalty', 'Gap', 'Grid'],
     enCourse: 'running',
-    qualifTitre: 'Qualifying: one timed lap', qualifTour: 'Do my lap', qualifPasser: 'Skip (start last)', qualifCourse: 'Start the race',
+    qualifTitre: 'Qualifying: one timed lap', qualifTour: 'Do my lap', qualifPasser: 'Skip (start last)', qualifPasserMilieu: 'Skip (start mid-grid)', qualifCourse: 'Start the race',
     qualifExplication: 'Alone on track, flying lap. A corner cut voids the lap.',
     qualifResultat: 'P{p} / {n} — {t}', qualifPole: 'Pole position!', qualifEcart: '+{s} s off pole',
-    qualifInvalide: 'Lap voided (corner cut): starting last', qualifPasse: 'Qualifying skipped: starting last',
+    qualifInvalide: 'Lap voided (corner cut): starting last', qualifPasse: 'Qualifying skipped: starting last', qualifPasseMilieu: 'Qualifying skipped: starting mid-grid',
     grandPrix: 'Grand Prix', classementPilotes: 'Drivers', classementEcuries: 'Teams', courseSuivante: 'Next race', continuer: 'Continue',
     pointsGagnes: 'You scored {n} points', pts: 'pts', finChampionnat: 'Season over',
     preparation: 'Preparing the race…',
@@ -78,13 +78,13 @@ const TEXTES = {
     fantomeRecord: 'New record! {s} s faster', fantomeEcart: '+{s} s off your record',
     fantomeOui: 'Ghost: shown', fantomeNon: 'Ghost: hidden',
     // le départ parfait (depart.js)
-    departAide: 'Hold ↑ to keep the needle in the green · lights out: release, then press ↑',
+    departAide: 'Hold ↑ in the green · lights out: release and press ↑ again for a perfect start',
     departParfait: 'Perfect start!', departBon: 'Good start', departPatinage: 'Wheelspin!', departCale: 'Stalled!', departFaux: 'False start!',
     departRecord: 'reaction record!',
     // le premier lancement (decouverte.js) : l'écran titre, les aides, « On lance ta carrière ? »
     titreJouer: '▶ Play', titreAmis: 'With friends', retour: 'Back',   // (sans emoji : la police de Linux n'a pas 👥)
     amisBientot: 'Coming soon: split screen for two, and the time-trial tournament with friends.',
-    aideGaz: '↑ accelerate', aideDirection: '← → steer', aideFrein: '↓ brake',
+    aideGaz: '↑ accelerate', aideDirection: '← → to steer', aideFrein: '↓ brake',
     bravoTitre: 'Well done!', bravoPlace: 'You finished P{p} / {n}', bravoArgent: 'Your prize: {n}, the first money of your career',
     bravoQuestion: 'Ready for your career?', bravoBouton: 'Start my career',
     // la création du pilote (pilote.js)
@@ -104,8 +104,8 @@ const TEXTES = {
     celebrationTexte: 'Celebration', celebration_poing: 'Fist pump', celebration_drapeau: 'Waving flag', celebration_donuts: 'Donuts', celebration_saut: 'Jump for joy',
     celebration_confettis: 'Confetti', celebration_feux: 'Fireworks', celebration_toupie: 'Spin', celebration_trophee: 'Trophy',
     skinBoutique: '🛒 shop', skinVerrou: '🔒 {c}',
-    boutique: 'Shop', boutiqueTitre: 'Shop', boutiqueSolde: 'Money: {s}', boutique_livree: 'Liveries', boutique_casque: 'Helmets', boutique_celebration: 'Celebrations',
-    boutiqueAcheter: 'Buy · {p}', boutiquePub: '📺 Watch an ad: yours forever', boutiqueRecompense: '🏆 Reward: {c}', boutiquePossede: '✔ Yours', boutiqueEssayer: 'Try it',
+    boutique: 'Shop', boutiqueTitre: 'Shop', boutiqueSolde: '💰 {s}', boutique_livree: 'Liveries', boutique_casque: 'Helmets', boutique_celebration: 'Celebrations',
+    boutiqueAcheter: '🛒 {p}', boutiquePub: '📺 Free', boutiqueRecompense: '🔒 {c}', boutiquePossede: '✔ Yours', boutiqueEssayer: 'Try it',
     boutiqueTrop: 'Not enough money', boutiqueAchete: 'Bought: {skin}!', boutiquePubRatee: 'No ad right now: try again later.', boutiqueRetour: 'Back', boutiqueSansCarriere: 'Start your career to earn money.',
     cond_titre: 'win a title', cond_premiereCourse: 'race your first Grand Prix', cond_victoires5: 'win {n} races', cond_legende: 'win {n} titles',
     essaiBandeau: 'Test drive: {skin} — nothing counts', essaiFinTitre: 'Test drive', essaiFinTexte: 'Do you like {skin}?', essaiAcheter: 'Buy · {p}', essaiRetour: 'Back to the shop',
@@ -429,7 +429,7 @@ const TEXTES = {
     grillePasser: 'La grille — une touche pour passer',
     pneus: 'Pneus', pneusAdherence: 'adhérence −{p} %', commentateur: "Gaston Virage", assist_freinage_oui: 'Freinage assisté : oui', assist_freinage_non: 'Freinage assisté : non', assist_antipatinage_oui: 'Antipatinage : oui', assist_antipatinage_non: 'Antipatinage : non', assist_direction_oui: 'Direction assistée : oui', assist_direction_non: 'Direction assistée : non', qualite_auto: 'Qualité : auto', qualite_haute: 'Qualité : haute', qualite_basse: 'Qualité : basse', qualite_moyenne: 'Qualité : moyenne', retro_oui: 'Rétroviseur : oui', retro_non: 'Rétroviseur : non', qualite_autoSimple: 'Qualité : auto (au plus simple)', trajectoire_oui: 'Trajectoire conseillée : oui', trajectoire_non: 'Trajectoire conseillée : non', trajectoire_freinages: 'Trajectoire : freinages seulement', effets_oui: 'Effets de conduite : oui', effets_non: 'Effets de conduite : non', commentaire_tout: 'Commentateur : tout', commentaire_joueur: 'Commentateur : tes faits', commentaire_non: 'Commentateur : coupé', com_arret: ["{qui} s’arrête en piste !", "Problème pour {qui} : arrêt sur la piste !", "Plus rien ne bouge pour {qui}, arrêt en piste !"], com_podium: ["Le podium : {qui}, {sur} et {trois} !", "{qui} gagne devant {sur} et {trois}.", "Les trois premiers : {qui}, {sur}, {trois} !"], lieu_monoco: 'à Monoco', lieu_silverstoun: 'à Silverstoun', lieu_monzo: 'à Monzo', lieu_spaa: 'à Spaa', lieu_suzuko: 'à Suzuko', lieu_interlagas: 'à Interlagas', lieu_montreol: 'à Montréol', lieu_melbourn: 'à Melbourn Park', lieu_barcelana: 'à Barcelana', lieu_bahrayn: 'à Bahrayn', lieu_singapura: 'à Singapura', lieu_yasmarino: 'à Yas Marino', lieu_test: 'sur le circuit d’essai', lieu_technique: 'sur le circuit technique', com_depart: ["Les feux s’éteignent {lieu}, c’est parti !", "Et c’est parti {lieu} !", "Feux éteints, la course est lancée !", "Extinction des feux {lieu}, la course commence !"], com_depassementTete: ["{qui} prend la tête !", "{qui} passe {sur} : nouveau leader !", "Changement en tête : {qui} passe devant !", "{qui} arrache la tête à {sur} !"], com_depassementJoueur: ["{qui} passe {sur}, P{place} !", "Dépassement de {qui} sur {sur}, désormais P{place}.", "{qui} et {sur} échangent : {qui} P{place} !", "{qui} se faufile devant {sur}, P{place}."], com_depassement: ["{qui} plonge à l’intérieur de {sur} !", "{qui} double {sur}, P{place}.", "Belle attaque de {qui} sur {sur} !", "{qui} passe {sur} par l’extérieur !", "{qui} prend le dessus sur {sur}.", "{qui} freine plus tard que {sur} !"], com_contact: ["Contact entre {qui} et {sur} !", "Ça frotte entre {qui} et {sur} !", "Accrochage entre {qui} et {sur} !", "Une touchette entre {qui} et {sur} !"], com_coteACote: ["{qui} et {sur}, côte à côte !", "Roue contre roue : {qui} à hauteur de {sur} !", "{qui} se porte à hauteur de {sur} !", "Personne ne lâche : {qui} et {sur} !", "{qui} est juste à côté de {sur} !"], com_erreur: ["Une frayeur pour {qui} !", "{qui} élargit la trajectoire !", "Sortie de trajectoire pour {qui}, du temps de perdu."], com_penalite: ["Pénalité de {s} s pour {qui}.", "{s} s de pénalité pour {qui}.", "Les commissaires infligent {s} s à {qui}."], com_stands: ["{qui} rentre aux stands.", "Arrêt au stand pour {qui}.", "{qui} prend la voie des stands."], com_meilleurTour: ["Meilleur tour pour {qui} : {temps} !", "{qui} signe le tour le plus rapide, {temps}.", "Un tour canon de {qui} : {temps}."], com_pluie: ["La pluie arrive {lieu} !", "Voilà les premières gouttes…", "Attention, la pluie commence !"], com_dernierTour: ["Dernier tour {lieu} !", "Plus qu’un tour !", "Dernier tour, {qui} mène !"], com_arrivee: ["{qui} gagne {lieu} !", "Victoire de {qui} !", "Drapeau à damier : {qui} l’emporte !"], com_joueurArrivee: ["{qui} passe la ligne, P{place} !", "Arrivée pour {qui} : P{place}.", "{qui} termine P{place}."], com_joueurTete: ["{qui} mène, {ecart} s d’avance !", "{qui} en tête avec {ecart} s d’avance.", "{qui} contrôle la course, {ecart} s devant."], com_joueurPlace: ["{qui}, P{place}, à {ecart} s de la voiture devant.", "{qui} tient la P{place}, {ecart} s derrière.", "{qui} roule P{place}, l’écart devant : {ecart} s."], msg_pluieArrive: 'La pluie arrive', msg_pisteSeche: 'La piste sèche', meteoEau: 'eau {p} %', meteoPrevue: 'Météo prévue : {temps}', meteo_sec: 'sec', meteo_nuageux: 'nuageux', meteo_risque: 'risque de pluie ({p} %)', meteo_pluie: 'pluie', msg_meilleurTour: '{qui} : meilleur tour {temps}', msg_penalite: 'Pénalité de {s} s pour {qui}', msg_stands: '{qui} aux stands',
     resume: '▶ Résumé', resumeTitre: 'Résumé de la course', resumeSortir: 'Clic ou Échap pour sortir',   // le résumé vidéo (resume.js)
-    resume_depart: 'Le départ', resume_depassement: 'Dépassement : {qui} sur {sur}', resume_sortie: 'Sortie de piste : {qui}', resume_glissade: 'Glissade rattrapée : {qui}', mesure_bouton: '⏱ Mesurer les images par seconde (30 s)', mesure_compteur: '{ips} i/s · pire {pire}', mesure_attente: 'La mesure va commencer : on attend le départ…', mesure_encours: 'Mesure pendant {s} s…', mesure_fini: 'Mesuré. Copie-le et envoie-le :', mesure_copier: 'Copier', mesure_copie: 'Copié ✓', mesure_resultat: '{jeu}, {circuit}, 20 voitures, {duree} s : {ips} images par seconde en moyenne, le 1 % le plus lent à {un}, la pire image à {pire} ; {appels} appels de dessin en moyenne ({appelsMax} au plus), {triangles} triangles au plus ; qualité {qualite} ; {taille} ; {images} images', son_effets: 'Moteur et effets : {p} %', son_ambiance: 'Ambiance : {p} %', son_commentateur: 'Son du commentateur : {p} %', son_paddock: '🔊 Son', son_titre: 'Le son', son_fermer: 'Fermer', com_glissade: ["{qui} rattrape la glissade !", "Contre-braquage de {qui}, sauvé !", "{qui} tient la glissade, superbe !"], resume_arrivee: 'L’arrivée : {qui} gagne', resume_arret: 'Arrêt au stand : {qui}, {duree} s',
+    resume_depart: 'Le départ', resume_depassement: 'Dépassement : {qui} sur {sur}', resume_sortie: 'Sortie de piste : {qui}', resume_glissade: 'Glissade rattrapée : {qui}', mesure_bouton: '⏱ Mesurer les images par seconde (30 s)', mesure_compteur: '{ips} i/s · pire {pire}', mesure_attente: 'La mesure va commencer : on attend le départ…', mesure_encours: 'Mesure pendant {s} s…', mesure_fini: 'Mesuré. Copie-le et envoie-le :', mesure_copier: 'Copier', mesure_copie: 'Copié ✓', mesure_resultat: '{jeu}, {circuit}, 20 voitures, {duree} s : {ips} images par seconde en moyenne, le 1 % le plus lent à {un}, la pire image à {pire} ; {appels} appels de dessin en moyenne ({appelsMax} au plus), {triangles} triangles au plus ; qualité {qualite} ; {taille} ; {images} images', son_effets: 'Effets : {p} %', son_ambiance: 'Ambiance : {p} %', son_commentateur: 'Commentateur : {p} %', son_paddock: '🔊 Son', son_titre: 'Le son', son_fermer: 'Fermer', com_glissade: ["{qui} rattrape la glissade !", "Contre-braquage de {qui}, sauvé !", "{qui} tient la glissade, superbe !"], resume_arrivee: 'L’arrivée : {qui} gagne', resume_arret: 'Arrêt au stand : {qui}, {duree} s',
     attenteAccelere: '⏩ En accéléré : encore {n} voitures en course', attenteAccelere1: '⏩ En accéléré : encore 1 voiture en course',
     passerPodium: 'Passer au podium (Entrée)',
     pause: 'Pause', reprendre: 'Reprendre', recommencer: 'Recommencer',
@@ -460,10 +460,10 @@ const TEXTES = {
     resultats: 'Résultats de la course',
     colonnesResultats: ['Pos', 'N°', 'Temps', 'Pénalité', 'Écart', 'Grille'],
     enCourse: 'en course',
-    qualifTitre: 'Qualification : un tour chronométré', qualifTour: 'Faire mon tour', qualifPasser: 'Passer (départ dernier)', qualifCourse: 'Départ de la course',
+    qualifTitre: 'Qualification : un tour chronométré', qualifTour: 'Faire mon tour', qualifPasser: 'Passer (départ dernier)', qualifPasserMilieu: 'Passer (départ milieu de grille)', qualifCourse: 'Départ de la course',
     qualifExplication: 'Seul sur la piste, tour lancé. Un virage coupé annule le tour.',
     qualifResultat: 'P{p} / {n} — {t}', qualifPole: 'Pole position !', qualifEcart: '+{s} s de la pole',
-    qualifInvalide: 'Tour annulé (virage coupé) : départ dernier', qualifPasse: 'Qualification passée : départ dernier',
+    qualifInvalide: 'Tour annulé (virage coupé) : départ dernier', qualifPasse: 'Qualification passée : départ dernier', qualifPasseMilieu: 'Qualification passée : départ au milieu de la grille',
     grandPrix: 'Grand Prix', classementPilotes: 'Pilotes', classementEcuries: 'Écuries', courseSuivante: 'Course suivante', continuer: 'Continuer',
     pointsGagnes: 'Tu marques {n} points', pts: 'pts', finChampionnat: 'Saison terminée',
     preparation: 'Préparation de la course…',
@@ -476,12 +476,12 @@ const TEXTES = {
     secondes: '{s} s',
     fantomeRecord: 'Nouveau record ! {s} s de mieux', fantomeEcart: '+{s} s du record',
     fantomeOui: 'Fantôme : affiché', fantomeNon: 'Fantôme : masqué',
-    departAide: 'Tiens ↑ pour garder l’aiguille dans le vert · feux éteints : lâche, puis réappuie ↑',
+    departAide: 'Tiens ↑ dans le vert · feux éteints : lâche et réappuie ↑ pour un départ parfait',
     departParfait: 'Départ parfait !', departBon: 'Bon départ', departPatinage: 'Patinage !', departCale: 'Calé !', departFaux: 'Faux départ !',
     departRecord: 'record de réaction !',
     titreJouer: '▶ Jouer', titreAmis: 'Entre amis', retour: 'Retour',
     amisBientot: 'Bientôt : l’écran partagé à deux, et le tournoi chrono entre copains.',
-    aideGaz: '↑ accélérer', aideDirection: '← → tourner', aideFrein: '↓ freiner',
+    aideGaz: '↑ accélérer', aideDirection: '← → pour tourner', aideFrein: '↓ freiner',
     bravoTitre: 'Bravo !', bravoPlace: 'Tu finis P{p} / {n}', bravoArgent: 'Ta prime : {n}, ton premier argent de carrière',
     bravoQuestion: 'On lance ta carrière ?', bravoBouton: 'Commencer ma carrière',
     piloteTitre: 'Ton pilote', piloteNom: 'Nom', piloteNumero: 'Numéro ({min}–{max})', pilotePays: 'Pays', piloteCoeur: 'Course de cœur',
@@ -499,8 +499,8 @@ const TEXTES = {
     celebrationTexte: 'Célébration', celebration_poing: 'Poing levé', celebration_drapeau: 'Drapeau', celebration_donuts: 'Donuts', celebration_saut: 'Bond de joie',
     celebration_confettis: 'Confettis', celebration_feux: 'Feu d’artifice', celebration_toupie: 'Toupie', celebration_trophee: 'Trophée',
     skinBoutique: '🛒 boutique', skinVerrou: '🔒 {c}',
-    boutique: 'Boutique', boutiqueTitre: 'Boutique', boutiqueSolde: 'Argent : {s}', boutique_livree: 'Livrées', boutique_casque: 'Casques', boutique_celebration: 'Célébrations',
-    boutiqueAcheter: 'Acheter · {p}', boutiquePub: '📺 Regarder une pub : à toi pour toujours', boutiqueRecompense: '🏆 Récompense : {c}', boutiquePossede: '✔ À toi', boutiqueEssayer: 'Essayer',
+    boutique: 'Boutique', boutiqueTitre: 'Boutique', boutiqueSolde: '💰 {s}', boutique_livree: 'Livrées', boutique_casque: 'Casques', boutique_celebration: 'Célébrations',
+    boutiqueAcheter: '🛒 {p}', boutiquePub: '📺 Gratuit', boutiqueRecompense: '🔒 {c}', boutiquePossede: '✔ À toi', boutiqueEssayer: 'Essayer',
     boutiqueTrop: 'Pas assez d’argent', boutiqueAchete: 'Acheté : {skin} !', boutiquePubRatee: 'Pas de pub pour l’instant : réessaie plus tard.', boutiqueRetour: 'Retour', boutiqueSansCarriere: 'Commence ta carrière pour gagner de l’argent.',
     cond_titre: 'gagner un titre', cond_premiereCourse: 'courir ton premier Grand Prix', cond_victoires5: 'gagner {n} courses', cond_legende: 'gagner {n} titres',
     essaiBandeau: 'Essai : {skin} — rien n’est compté', essaiFinTitre: 'Essai', essaiFinTexte: '{skin} te plaît ?', essaiAcheter: 'Acheter · {p}', essaiRetour: 'Retour à la boutique',
@@ -795,8 +795,8 @@ const TEXTES = {
 // --- les aides au premier usage (aides.js, interface.js AIDES_ECRAN ; étape 11b, Codeur 4) : une bulle d'une ou deux lignes, avec la
 // touche ou le bouton à utiliser ; jamais genrées sur le joueur ({v} : la vitesse permise dans la voie des stands, en km/h)
 Object.assign(TEXTES.en, {
-  aide_depart: 'Start: hold ↑ in the green. Lights out: release, then press ↑ again, fast!',
-  aide_qualif: 'Qualifying: one timed lap sets your grid slot. “Skip” = start last.',
+  aide_depart: 'Start: hold ↑ in the green and you go. Perfect start: at lights out, release and press ↑ again, fast!',
+  aide_qualif: 'Do your lap to start higher up the grid.',
   aide_fantome: 'The see-through car is your best lap: the gap under the timer shows where you lose time.',
   aide_stand: 'Mandatory stop: at the end of the lap, take the pit lane, {v} km/h at most.',
   aide_pluie: 'The track is wet: switch to rain tyres at your next pit stop?',
@@ -809,8 +809,8 @@ Object.assign(TEXTES.en, {
   aideFermer: 'Click to close', revoirAides: '↺ Show the tips again', aidesRevues: 'The tips will show again',
 });
 Object.assign(TEXTES.fr, {
-  aide_depart: 'Départ : tiens ↑ dans le vert. Feux éteints : lâche, puis réappuie vite sur ↑ !',
-  aide_qualif: 'Qualification : un tour chronométré donne ta place. « Passer » = partir dernier.',
+  aide_depart: 'Départ : tiens ↑ dans le vert et tu pars. Départ parfait : feux éteints, lâche puis réappuie vite sur ↑ !',
+  aide_qualif: 'Fais ton tour pour partir plus haut.',
   aide_fantome: 'La voiture transparente : ton meilleur tour. L’écart sous le chrono dit où tu perds du temps.',
   aide_stand: 'Arrêt obligatoire : à la fin du tour, prends la voie des stands, {v} km/h au plus.',
   aide_pluie: 'La piste est mouillée : passer aux pneus pluie à ton prochain arrêt au stand ?',
@@ -982,8 +982,35 @@ const LANGUE = (function () {
   return (navigator.language || 'en').toLowerCase().startsWith('fr') ? 'fr' : 'en';
 })();
 
+// (tour 52d, plan « première minute » n° 2 et 8) la grille de la découverte : une seule grosse aide ; et les textes écrits pour le doigt
+// (tac_*, choisis quand l'écran est tactile : TACTILE.estPresent(), tactile.js) à la place de ceux qui citent une touche
+Object.assign(TEXTES.en, {
+  aideTenir: 'Hold ↑',
+  tac_aideTenir: 'Hold GAS', tac_aideGaz: 'Hold GAS', tac_aideDirection: 'Tilt the phone', tac_aideDirectionBoutons: '◀ ▶', tac_aideFrein: 'BRAKE',
+  tac_departAide: 'Hold GAS in the green · lights out: release and press GAS again for a perfect start',
+  tac_aide_depart: 'Start: hold GAS in the green and you go. Perfect start: at lights out, release and press GAS again, fast!',
+  tac_aide_consigne: 'Team order: lift off (BRAKE) to let your team-mate through, or keep your place.',
+});
+Object.assign(TEXTES.fr, {
+  aideTenir: 'Tiens ↑',
+  tac_aideTenir: 'Tiens GAZ', tac_aideGaz: 'Tiens GAZ', tac_aideDirection: 'Incline le téléphone', tac_aideDirectionBoutons: '◀ ▶', tac_aideFrein: 'FREIN',
+  tac_departAide: 'Tiens GAZ dans le vert · feux éteints : lâche et réappuie GAZ pour un départ parfait',
+  tac_aide_depart: 'Départ : tiens GAZ dans le vert et tu pars. Départ parfait : feux éteints, lâche puis réappuie vite sur GAZ !',
+  tac_aide_consigne: 'Consigne : lève le pied (FREIN) pour laisser passer ton coéquipier, ou garde ta place.',
+});
+
 function texte(cle) {
   return TEXTES[LANGUE][cle] !== undefined ? TEXTES[LANGUE][cle] : TEXTES.en[cle];
+}
+
+// (tour 52d) le texte écrit pour le doigt quand l'écran est tactile (TACTILE.estPresent(), tactile.js, s'il existe), sinon celui du clavier :
+// texteDoigt('aideGaz') → « Tiens GAZ » (clé tac_aideGaz) ; la direction a une variante pour le mode boutons (TACTILE.etat.mode)
+function texteDoigt(cle) {
+  const doigt = typeof TACTILE !== 'undefined' && TACTILE && typeof TACTILE.estPresent === 'function' && TACTILE.estPresent();
+  if (!doigt) return texte(cle);
+  if (cle === 'aideDirection' && TACTILE.etat && TACTILE.etat.mode === 'boutons') return texte('tac_aideDirectionBoutons');
+  const t = TEXTES[LANGUE]['tac_' + cle] !== undefined ? TEXTES[LANGUE]['tac_' + cle] : TEXTES.en['tac_' + cle];
+  return t !== undefined ? t : texte(cle);
 }
 
 // un nombre devant un mot, accordé : nombre(1, 'saison') → « 1 saison », nombre(3, 'saison') → « 3 saisons » (texte('nb_<cle>') =
@@ -1177,7 +1204,7 @@ Object.assign(TEXTES.en, {
   com_combleMeteo: ['The rain is still falling.', 'A wet track: careful under braking.', 'Spray everywhere behind the cars.'],
   com_combleSec: ['A dry track, perfect conditions.', 'The tyres are working on this dry track.', 'Clear skies over the circuit.'],
   voix_oui: 'Commentary voice: on', voix_non: 'Commentary voice: off',
-  vs_oui: 'Recorded voices: on', vs_non: 'Recorded voices: off',
+  vs_oui: 'Voices: on', vs_non: 'Voices: off',
 });
 Object.assign(TEXTES.fr, {
   com_combleTete: ['{qui} mène devant {sur}, {ecart} secondes.', '{ecart} secondes entre {qui} et {sur} en tête.', '{qui} toujours devant, {sur} à {ecart} s.'],
@@ -1187,7 +1214,7 @@ Object.assign(TEXTES.fr, {
   com_combleMeteo: ['La pluie tombe toujours.', 'Piste mouillée : prudence au freinage.', 'Des gerbes d’eau derrière les voitures.'],
   com_combleSec: ['Piste sèche, des conditions parfaites.', 'Les pneus travaillent bien sur le sec.', 'Grand ciel bleu sur le circuit.'],
   voix_oui: 'Voix du commentateur : oui', voix_non: 'Voix du commentateur : non',
-  vs_oui: 'Voix enregistrées : oui', vs_non: 'Voix enregistrées : non',
+  vs_oui: 'Voix : oui', vs_non: 'Voix : non',
 });
 // --- tour 44d, Codeur 4 : les touches de chaque joueur à deux (touches.js) ---
 Object.assign(TEXTES.en, {
@@ -1238,7 +1265,7 @@ Object.assign(TEXTES.fr, { cameraSuivie: 'Caméra : {nom}' });
 // --- tour 48a, Codeur 1 : le nouveau paddock (un menu à gauche, une page au centre), « Nouvelle carrière » et « Nouvelle carrière à 0 » ---
 Object.assign(TEXTES.en, {
   paddock_course: 'Race', paddock_equipe: 'My team', paddock_boutique: 'Shop', paddock_saison: 'Season', paddock_messages: 'Messages',
-  paddock_reglages: 'Settings', paddock_apprendre: 'Learn', paddock_boutiqueBientot: 'Liveries, helmets and celebrations: buy them with your race money, unlock some with a 📺 ad, earn the best ones in your career. Try a skin before you buy it.', paddock_ouvrirBoutique: '🛒 Open the shop',
+  paddock_reglages: 'Settings', paddock_apprendre: 'Learn', paddock_boutiqueBientot: 'Buy with your money, or get it free by watching an ad 📺.', paddock_ouvrirBoutique: '🛒 Open the shop',
   paddock_voirTout: 'See all', paddock_lireMessages: 'Open messages', paddock_rienDeNeuf: 'Nothing new. Talk to your team-mate or your team boss.',
   nb_paddock_nonLus: ['{n} new message', '{n} new messages'], paddock_reglagesJeu: 'Game', paddock_carriere: 'Career',
   paddock_sonActif: '🔊 Sound: on', paddock_sonCoupe: '🔇 Sound: off',
@@ -1256,7 +1283,7 @@ Object.assign(TEXTES.en, {
 });
 Object.assign(TEXTES.fr, {
   paddock_course: 'Course', paddock_equipe: 'Mon équipe', paddock_boutique: 'Boutique', paddock_saison: 'Saison', paddock_messages: 'Messages',
-  paddock_reglages: 'Réglages', paddock_apprendre: 'Apprendre', paddock_boutiqueBientot: 'Livrées, casques et célébrations : achète-les avec l’argent des courses, débloque-en avec une pub 📺, gagne les plus beaux dans ta carrière. Essaie un skin avant de l’acheter.', paddock_ouvrirBoutique: '🛒 Ouvrir la boutique',
+  paddock_reglages: 'Réglages', paddock_apprendre: 'Apprendre', paddock_boutiqueBientot: 'Achète avec ton argent, ou gratuit avec une pub 📺.', paddock_ouvrirBoutique: '🛒 Ouvrir la boutique',
   paddock_voirTout: 'Voir tout', paddock_lireMessages: 'Ouvrir les messages', paddock_rienDeNeuf: 'Rien de neuf. Parle à ton coéquipier ou à ta direction.',
   nb_paddock_nonLus: ['{n} nouveau message', '{n} nouveaux messages'], paddock_reglagesJeu: 'Le jeu', paddock_carriere: 'La carrière',
   paddock_sonActif: '🔊 Son : oui', paddock_sonCoupe: '🔇 Son : coupé',
