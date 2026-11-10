@@ -180,6 +180,7 @@ const REGLAGES = {
 
   // le téléphone (tactile.js, tour 51k, CLAUDE.md « Le téléphone : le volant ») : les mêmes cibles que le clavier, la physique ne change pas
   TACTILE_ACTIF: true,             // faux : rien, même sur un écran tactile (le clavier seul, au bit près) ; sans écran tactile, rien ne change
+  TACTILE_PAYSAGE: true,           // (tour 52b) au premier geste sur un écran tactile : plein écran puis verrou en paysage (là où le navigateur le permet) ; faux : rien demandé
   VOLANT_PLEIN: 25,                // ° d'inclinaison depuis le neutre = braquage à fond
   VOLANT_ZONE_MORTE: 2,            // ° autour du neutre où l'on ne braque pas
   VOLANT_LISSAGE: 0.06,            // s : le temps que met l'angle lissé à rejoindre la mesure (0 : aucun lissage)
@@ -240,6 +241,9 @@ const REGLAGES = {
   DEPART_BON: [0.85, 1],
   DEPART_PATINAGE: [0.5, 1.5],
   DEPART_CALE: [0.3, 1.5],
+  DEPART_TENIR_PART: true,      // la touche tenue à l'extinction des feux fait partir la voiture (« bon départ » si le régime est dans le vert) ; faux = lâcher puis réappuyer obligatoire (avant le tour 52d)
+  DEPART_DECOUVERTE_DOUX: true, // à la découverte : jamais de patinage ni de calé au départ du joueur (au pire « bon ») ; faux = comme avant
+  GRILLE_DECOUVERTE_NUE: true,  // la grille de la découverte, pendant les feux : ni jauge, ni chrono, ni radar, ni barre des touches, une seule aide « Tiens ↑ » (plan première minute n° 2) ; faux = l'écran d'avant
   DEPART_AFFICHAGE: 1.5,        // s : le résultat et le temps de réaction restent affichés ce temps
   DEPART_ROBOT_REACTION: 0.2,   // s : le robot d'essai (tests) fait toujours un départ parfait, après ce temps
   // les IA (tirerIA) : la part de la plage FEUX_REACTION_IA qu'un pilote parfaitement régulier garde (le reste vient de son irrégularité)
@@ -491,7 +495,7 @@ const REGLAGES = {
   PODIUM_DECOUVERTE_DUREE: 8,   // s : le podium de la découverte passe tout seul à la création du pilote après ce temps (0 : jamais ; tour 52e)
   PODIUM_DECOUVERTE_ENCORE: true, // « Encore une course ? » sur ce podium (la 2e fois sans prime) ; faux : le bouton n'y est pas
   PILOTE_PROPOSITIONS: 3,       // la création du pilote après la découverte : tant de pilotes prêts en grosses cartes (0 : le formulaire seul, comme avant le tour 52e)
-  PILOTE_PRENOMS: ['Alex', 'Sam', 'Noa', 'Lou', 'Kim', 'Robin', 'Sacha', 'Mika', 'Dani', 'Jo', 'Ilan', 'Maé', 'Tim', 'Zoé', 'Léa', 'Eden'],   // les prénoms tirés pour ces cartes : génériques, jamais un vrai pilote
+  PILOTE_PRENOMS: ['Alex', 'Sam', 'Noa', 'Lou', 'Kim', 'Robin', 'Sacha', 'Mika', 'Dani', 'Jo', 'Ilan', 'Mae', 'Tim', 'Zoe', 'Lea', 'Eden'],   // les prénoms tirés pour ces cartes : génériques, sans accent (l'audit anglais prend une lettre accentuée pour du français), jamais un vrai pilote
   PILOTE_LANGUE_PAYS: { fr: 'fr', en: 'gb', es: 'es', de: 'de', it: 'it', pt: 'pt', nl: 'nl', ja: 'jp', zh: 'cn', sv: 'se', fi: 'fi', da: 'dk', no: 'no', nb: 'no', pl: 'pl', ar: 'ae' },   // le pays d'une carte : la région du navigateur (fr-CA → ca) sinon sa langue
   // le mode 2 joueurs (deux-joueurs.js, CLAUDE.md « Le mode 2 joueurs (écran partagé) ») : ?deux=1 ; les touches par leur place
   // sur le clavier (e.code : W A S D = Z Q S D en AZERTY) ; Échap met en pause pour les deux ; Espace et C ne font rien
