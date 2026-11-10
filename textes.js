@@ -124,7 +124,7 @@ const TEXTES = {
     banderoleNumero: 'GO {numero}!', banderoleNom: 'GO {nom}!',
     // le paddock, l'écran d'accueil (tour 32)
     paddockProchain: 'Next Grand Prix', paddockFini: 'Season over', paddockDomicile: 'Your home Grand Prix', paddockPasClasse: 'Championship: no race yet',
-    paddockPlace: 'Championship: P{p} · {n} pts', paddockLeader: 'leading', paddockEcart: '{n} pts behind the leader',
+    saisonEtat: 'Season {s} · {i} of {n} races done', paddockPlace: 'Championship: P{p} · {n} pts', paddockLeader: 'leading', paddockEcart: '{n} pts behind the leader',
     paddockGroupeCourse: 'Race', paddockGroupeEquipe: 'Team', paddockGroupeSaison: 'Season', paddockGroupeAmis: 'Play together',
     // les discussions avec les pilotes (discussion.js) : la réaction (dis_…), puis ses raisons (dis_raison_…) ; jamais genré
     dis_salut: ['Hey.', 'Hi {nom}.', 'Hello. What do you want?'], dis_salut_chaud: ['Hey {nom}! Good to hear from you.', 'Ah, {nom}! Always a pleasure.'],
@@ -517,7 +517,7 @@ const TEXTES = {
     banderoleNumero: 'ALLEZ {numero} !', banderoleNom: 'ALLEZ {nom} !',
     // le paddock, l'écran d'accueil (tour 32)
     paddockProchain: 'Prochain Grand Prix', paddockFini: 'Saison terminée', paddockDomicile: 'Ton Grand Prix à domicile', paddockPasClasse: 'Championnat : pas encore de course',
-    paddockPlace: 'Championnat : P{p} · {n} pts', paddockLeader: 'en tête', paddockEcart: 'à {n} pts du leader',
+    saisonEtat: 'Saison {s} · {i} courses sur {n} faites', paddockPlace: 'Championnat : P{p} · {n} pts', paddockLeader: 'en tête', paddockEcart: 'à {n} pts du leader',
     paddockGroupeCourse: 'Course', paddockGroupeEquipe: 'Équipe', paddockGroupeSaison: 'Saison', paddockGroupeAmis: 'À plusieurs',
     // les discussions avec les pilotes (discussion.js) : la réaction (dis_…), puis ses raisons (dis_raison_…) ; jamais genré
     dis_salut: ['Salut.', 'Salut {nom}.', 'Bonjour. Qu’est-ce que tu veux ?'], dis_salut_chaud: ['Salut {nom} ! Ça fait plaisir.', 'Ah, {nom} ! Toujours un plaisir.'],

@@ -1665,6 +1665,7 @@ const INTERFACE = (function () {
     const moi = cl[i], ecart = moi ? cl[0].points - moi.points : 0;
     $('paddockPlace').textContent = !ch.resultats.length || !moi ? texte('paddockPasClasse')
       : avec(texte('paddockPlace'), { p: i + 1, n: moi.points }) + ' · ' + (i === 0 ? texte('paddockLeader') : elider(avec(texte('paddockEcart'), { n: ecart })));
+    $('saisonResume').textContent = avec(texte('saisonEtat'), { s: ch.saison || 1, i: Math.min(ch.resultats.length, ch.calendrier.length), n: ch.calendrier.length }) + ' · ' + $('paddockPlace').textContent;   // (tour 53e : la page Saison dit où tu en es)
     // le courrier des pilotes (courrier-pilotes.js) : « ✉ Courrier (2) » s'il y a des messages non lus ; le point du menu « Messages »
     // et la carte des messages de la page Course (tour 48a)
     const nonLus = typeof COURRIER_PILOTES !== 'undefined' ? COURRIER_PILOTES.nonLus(ch) : 0;
