@@ -289,6 +289,8 @@ const REGLAGES = {
   ],
   FACTEUR_VOITURE_JOUEUR: 1,    // la qualité de la voiture du joueur : 1 pour l'instant (sa conduite, c'est le propriétaire qui la valide) ; plus tard celle de son écurie, dans ±3 %
   CHAMPIONNAT_TOURS: 5,         // ?championnat=1 : la longueur des Grands Prix, fixe pour l'instant (?tours=1 pour les tests)
+  CHAMPIONNAT_TOURS_PREMIER: 3, // (tour 52f, décision du propriétaire) le tout premier Grand Prix de la carrière : 3 tours ; les suivants : CHAMPIONNAT_TOURS (le mettre à la même valeur = le jeu d'avant)
+  QUALIF_PASSER_PREMIER_MILIEU: true, // (tour 52f) au tout premier Grand Prix de la carrière seulement, « Passer » la qualification = milieu de grille (decouverte.js : tempsMilieu) ; false = dernier, comme avant
   PADDOCK_COURT_TETE: 3,        // le paddock (tour 48a) : le classement réduit de la page Course montre les 3 premiers,
   PADDOCK_COURT_VOISINS: 1,     // … le joueur avec 1 voisin de chaque côté, et le coéquipier ; « Voir tout » ouvre la page Saison
   // l'argent (étape 8, argent.js, Codeur 3) : les gains d'un Grand Prix, plafonnés par course ; les sponsors viendront à l'étape 9
@@ -1132,6 +1134,7 @@ const REGLAGES = {
   // les messages de course (messages.js) : chacun reste MESSAGES_DUREE s ; la file en garde au plus MESSAGES_FILE_MAX
   MESSAGES_DUREE: 3, MESSAGES_FILE_MAX: 4,
   // le commentateur (commentaire.js, CLAUDE.md « Le commentateur ») : ses phrases passent dans le bandeau des messages de course
+  COMMENTAIRE_DECOUVERTE_MODE: 'joueur', // (tour 52f, décision du propriétaire) pendant la course de découverte seulement, un commentateur réglé sur 'tout' ne parle que du joueur ('joueur' ; '' = le réglage du joueur, comme avant) ; la voix (synthèse et voix-sons) aussi ; dès la carrière, le réglage sauvegardé revient
   COMMENTAIRE_MODE: 'tout',       // 'tout', 'joueur' (seulement les faits du joueur, et l'arrivée) ou 'non' (coupé)
   COMMENTAIRE_INTERVALLE: 2.5,    // s : au plus une phrase tous les tant (tour 45c, le propriétaire 2026-11-02 : « presque en tout temps » ; c'était 5)
   COMMENTAIRE_LONGUEUR_MAX: 60,   // caractères d'une phrase au plus (les noms comptés à 7 lettres) : court, pour ne pas lire en pilotant

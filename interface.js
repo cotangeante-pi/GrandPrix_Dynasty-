@@ -590,7 +590,7 @@ const INTERFACE = (function () {
   function remplirQualif(etat, r) {
     $('qualifTitre').textContent = texte('qualifTitre');
     $('boutonQualifTour').textContent = texte('qualifTour');
-    $('boutonQualifPasser').textContent = texte('qualifPasser');
+    $('boutonQualifPasser').textContent = texte(r && r.milieu ? 'qualifPasserMilieu' : 'qualifPasser');   // (tour 52f) le tout premier Grand Prix : « Passer » = milieu de grille
     $('boutonQualifCourse').textContent = texte('qualifCourse');
     $('boutonQualifTour').classList.toggle('cache', etat !== 'choix');
     $('boutonQualifPasser').classList.toggle('cache', etat !== 'choix');
@@ -602,7 +602,7 @@ const INTERFACE = (function () {
     let t = texte('qualifExplication');
     if (etat === 'attente') t = texte('preparation');
     else if (etat === 'resultat') {
-      if (r.passe) t = texte('qualifPasse');
+      if (r.passe) t = texte(r.milieu ? 'qualifPasseMilieu' : 'qualifPasse');
       else if (!r.valide) t = texte('qualifInvalide');
       else t = texte('qualifResultat').replace('{p}', r.place).replace('{n}', r.nb).replace('{t}', formatTemps(r.temps))
         + ' · ' + (r.ecart > 0 ? texte('qualifEcart').replace('{s}', r.ecart.toFixed(3).replace('.', texte('virgule'))) : texte('qualifPole'));
@@ -705,6 +705,7 @@ const INTERFACE = (function () {
   // l'écran du championnat : le solde
   function remplirSolde(ch) {
     $('championnatArgent').textContent = avec(texte('solde'), { n: ARGENT.formater(ARGENT.solde(ch)) });
+    $('boutiqueSoldePage').textContent = texte('boutiqueSolde').replace('{s}', ARGENT.formater(ARGENT.solde(ch)));   // (la page Boutique : l'argent en gros, tour 52)
   }
 
   // l'écran du garage : les 4 améliorations (niveau, prix du suivant, « Acheter » grisé si impossible), le solde, le bonus
