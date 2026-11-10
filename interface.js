@@ -45,7 +45,7 @@ const INTERFACE = (function () {
   }
 
   function montrer(ecran) {
-    for (const id of ['touches', 'defi', 'defiFin', 'choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une', 'garage', 'saison', 'duelSaison', 'contrats', 'retraite', 'titre', 'amis', 'bravo', 'pilote', 'sponsors', 'fiche', 'interview', 'ceremonie', 'temple', 'heritier', 'calendrier', 'deuxReglages', 'resume', 'grille', 'tournoiInscription', 'tournoiAToi', 'tournoiPause', 'tournoiManche', 'tournoiFin', 'aileron', 'arbre', 'discussion', 'courrier']) $(id).classList.toggle('cache', id !== ecran);
+    for (const id of ['touches', 'defi', 'defiFin', 'choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une', 'garage', 'saison', 'duelSaison', 'contrats', 'retraite', 'titre', 'amis', 'pilote', 'sponsors', 'fiche', 'interview', 'ceremonie', 'temple', 'heritier', 'calendrier', 'deuxReglages', 'resume', 'grille', 'tournoiInscription', 'tournoiAToi', 'tournoiPause', 'tournoiManche', 'tournoiFin', 'aileron', 'arbre', 'discussion', 'courrier']) $(id).classList.toggle('cache', id !== ecran);
     // l'album des unes (Codeur 3) : la page de la une, avec la barre pour feuilleter
     if (ecran === 'album') $('une').classList.remove('cache');
     $('une').classList.toggle('album', ecran === 'album');
@@ -345,25 +345,36 @@ const INTERFACE = (function () {
   }
 
   // le premier lancement (decouverte.js) : l'écran titre (jouer, entre amis → « bientôt », retour) et « Prêt pour ta carrière ? »
-  function preparerTitre(jouer, amis, retour, carriere) {
+  function preparerTitre(jouer, amis, retour) {
     $('titreNom').textContent = texte('nomDuJeu');
     $('boutonJouer').textContent = texte('titreJouer');
     $('boutonAmis').textContent = texte('titreAmis');
     $('amisTitre').textContent = texte('amisTitre');
     $('boutonAmisRetour').textContent = texte('retour');
-    $('bravoTitre').textContent = texte('bravoTitre');
-    $('bravoQuestion').textContent = texte('bravoQuestion');
-    $('boutonCarriere').textContent = texte('bravoBouton');
-    for (const [id, f] of [['boutonJouer', jouer], ['boutonAmis', amis], ['boutonAmisRetour', retour], ['boutonCarriere', carriere]]) {
+    for (const [id, f] of [['boutonJouer', jouer], ['boutonAmis', amis], ['boutonAmisRetour', retour]]) {
       $(id).addEventListener('mousedown', e => e.preventDefault());
       $(id).addEventListener('click', f);
     }
   }
 
-  // « Bravo ! » : la place du joueur (place, nb) et sa prime
-  function remplirBravo(place, nb, prime) {
-    $('bravoPlace').textContent = texte('bravoPlace').replace('{p}', place).replace('{n}', nb);
-    $('bravoArgent').textContent = texte('bravoArgent').replace('{n}', typeof ARGENT !== 'undefined' ? ARGENT.formater(prime) : String(prime));   // la seule monnaie du jeu (argent.js)
+  // le podium de la découverte (tour 52e ; avant : l'écran « Bravo ! ») : d = { place, nb, prime, encore (le bouton « Encore une course ? ») } ou null
+  // (le podium ordinaire : « Résultats »). « Tu finis P2 / 7 · +800 € » (la prime seulement si elle est > 0), « Continuer », « Encore une course ? »
+  function remplirPodiumDecouverte(d) {
+    $('podiumDecouverte').classList.toggle('cache', !d);
+    $('boutonResultats').classList.toggle('cache', !!d);
+    if (!d) return;
+    const argent = d.prime > 0 ? ' · +' + (typeof ARGENT !== 'undefined' ? ARGENT.formater(d.prime) : String(d.prime)) : '';   // la seule monnaie du jeu (argent.js)
+    $('podiumBilan').textContent = texte('pdBilan').replace('{p}', d.place).replace('{n}', d.nb) + argent;
+    $('boutonPodiumContinuer').textContent = texte('pdContinuer');
+    $('boutonPodiumEncore').textContent = texte('pdEncore');
+    $('boutonPodiumEncore').classList.toggle('cache', !d.encore);
+  }
+
+  function preparerPodiumDecouverte(continuer, encore) {
+    for (const [id, f] of [['boutonPodiumContinuer', continuer], ['boutonPodiumEncore', encore]]) {
+      $(id).addEventListener('mousedown', e => e.preventDefault());
+      $(id).addEventListener('click', f);
+    }
   }
 
   // les aides en surimpression de la découverte : a = { gaz, direction, frein (vrais quand la touche a servi), clignote } ou null (cachées)
@@ -380,14 +391,15 @@ const INTERFACE = (function () {
   // la création du pilote (pilote.js) : l'écran et ses champs. remplirPilote(ch) : les listes (pays par nom traduit, les 12
   // circuits), les valeurs de départ (nom par défaut, premier numéro libre) ; lirePilote() : les choix tapés ; montrerErreursPilote
   const nomCircuit = c => texte('circuit_' + c) || c;
-  function remplirPilote(ch) {
+  // actuel : « Mon pilote » (le paddock) : les valeurs de départ sont celles du pilote du joueur, pas un nouveau départ
+  function remplirPilote(ch, actuel) {
     const R = REGLAGES;
     $('piloteTitre').textContent = texte('piloteTitre');
     $('piloteNomTexte').textContent = texte('piloteNom');
     $('piloteNumeroTexte').textContent = texte('piloteNumero').replace('{min}', R.NUMERO_MIN).replace('{max}', R.NUMERO_MAX);
     $('pilotePaysTexte').textContent = texte('pilotePays');
     $('piloteCoeurTexte').textContent = texte('piloteCoeur');
-    $('boutonPiloteValider').textContent = texte('piloteValider');
+    $('boutonPiloteValider').textContent = texte(actuel ? 'monPiloteValider' : 'piloteValider');
     const nom = $('piloteNom'), numero = $('piloteNumero');
     nom.maxLength = R.NOM_LONGUEUR_MAX; nom.placeholder = texte('nomJoueur'); nom.value = '';
     numero.min = R.NUMERO_MIN; numero.max = R.NUMERO_MAX;
@@ -398,6 +410,12 @@ const INTERFACE = (function () {
     for (const code of R.PAYS.slice().sort((a, b) => texte('pays_' + a).localeCompare(texte('pays_' + b), LANGUE))) { const o = document.createElement('option'); o.value = code; o.textContent = texte('pays_' + code); pays.appendChild(o); }
     for (const c of Object.keys(R.CIRCUITS_PAYS)) { const o = document.createElement('option'); o.value = c; o.textContent = nomCircuit(c); coeur.appendChild(o); }
     pays.value = R.PAYS[0];
+    const j = actuel ? PILOTE.joueur(ch) : null;
+    if (j) {
+      nom.value = j.nom || ''; numero.value = j.numero;
+      if (R.PAYS.includes(j.pays)) pays.value = j.pays;
+      if (Object.prototype.hasOwnProperty.call(R.CIRCUITS_PAYS, j.coeur)) coeur.value = j.coeur;
+    }
     $('piloteErreur').textContent = '';
     majDomicilePilote();
     remplirCasque(PILOTE.joueur(ch) && PILOTE.joueur(ch).casque);
@@ -434,10 +452,37 @@ const INTERFACE = (function () {
   }
 
   // casqueSeul : l'écran ne montre que le casque (« Mon casque » depuis le paddock)
-  function modePilote(casqueSeul) {
+  // rapide : les trois pilotes prêts (après la découverte), le formulaire derrière « Personnaliser » (tour 52e) ; modifier : « Mon pilote » (le paddock)
+  function modePilote(casqueSeul, rapide, modifier) {
     $('pilote').classList.toggle('casqueSeul', !!casqueSeul);
-    $('piloteTitre').textContent = texte(casqueSeul ? 'casqueTitre' : 'piloteTitre');
+    $('pilote').classList.toggle('rapide', !!rapide);
+    $('piloteTitre').textContent = texte(casqueSeul ? 'casqueTitre' : rapide ? 'pilotePretTitre' : modifier ? 'monPilote' : 'piloteTitre');
     $('boutonPiloteValider').textContent = texte(casqueSeul ? 'casqueValider' : 'piloteValider');
+  }
+
+  // les trois pilotes prêts : cartes = [{ nom (null : « Toi »), numero, pays, coeur, casque }] ; choisir(carte) : un clic sur une carte
+  function remplirPiloteRapide(cartes, choisir) {
+    $('boutonPilotePerso').textContent = texte('pilotePerso');
+    const zone = $('piloteCartes');
+    zone.textContent = '';
+    for (const c of cartes) {
+      const b = document.createElement('button');
+      b.className = 'piloteCarte'; b.tabIndex = -1;
+      const nom = document.createElement('strong'); nom.textContent = c.nom || texte('nomJoueur');
+      const infos = document.createElement('span'); infos.textContent = '#' + c.numero + ' · ' + texte('pays_' + c.pays);
+      b.append(CASQUE.icone(c.casque, 64), nom, infos);
+      b.addEventListener('mousedown', e => e.preventDefault());
+      b.addEventListener('click', () => choisir(c));
+      zone.appendChild(b);
+    }
+  }
+
+  // une carte choisie : ses valeurs dans le formulaire, que validerPilote relit (une seule vérification pour tous les chemins)
+  function appliquerPilote(c) {
+    $('piloteNom').value = c.nom || ''; $('piloteNumero').value = c.numero; $('pilotePays').value = c.pays;
+    majDomicilePilote();
+    if (!$('piloteCoeur').disabled) $('piloteCoeur').value = c.coeur;
+    remplirCasque(c.casque);
   }
 
   // changement(casque) : appelé à chaque changement de motif ou de couleur (l'aperçu 3D suit)
@@ -465,6 +510,8 @@ const INTERFACE = (function () {
 
   function preparerPilote(valider) {
     $('pilotePays').addEventListener('change', majDomicilePilote);
+    $('boutonPilotePerso').addEventListener('mousedown', e => e.preventDefault());
+    $('boutonPilotePerso').addEventListener('click', () => modePilote(false, false, false));   // « Personnaliser » : le formulaire d'avant
     $('boutonPiloteValider').addEventListener('mousedown', e => e.preventDefault());
     $('boutonPiloteValider').addEventListener('click', valider);
     $('piloteNom').addEventListener('keydown', e => e.stopPropagation());     // taper son nom ne conduit pas la voiture
@@ -1870,7 +1917,7 @@ const INTERFACE = (function () {
     remplirDuel, avec, remplirUne, preparerUne, remplirArgent, remplirSolde, remplirGarage, preparerGarage,
     remplirSaison, remplirDuelSaison, remplirContrats, remplirRetraite, preparerSaison, retraiteEnAttente, remplirCeremonie, preparerCeremonie, remplirAlbum, preparerAlbum, remplirBilan, remplirTemple, preparerTemple, preparerReleve, remplirHeritier, lireHeritier, montrerErreurHeritier, remplirAileron, majAileron, preparerAileron, preparerPneusGarage, remplirArbre, preparerArbre, remplirCalendrier, preparerCalendrier,
     remplirSponsors, remplirRappelSponsor, preparerSponsors, remplirFiche, preparerFiche, remplirInterview, montrerEffetInterview, preparerInterview, remplirReputation,
-    majEcartFantome, preparerFantome, majBoutonsFantome, majDepart, majDeux, preparerTitre, remplirBravo, majAides, remplirPilote, lirePilote, montrerErreursPilote, preparerPilote, nomCircuit, remplirCasque, lireCasque, modePilote, preparerCasque };
+    majEcartFantome, preparerFantome, majBoutonsFantome, majDepart, majDeux, preparerTitre, remplirPodiumDecouverte, preparerPodiumDecouverte, remplirPiloteRapide, appliquerPilote, majAides, remplirPilote, lirePilote, montrerErreursPilote, preparerPilote, nomCircuit, remplirCasque, lireCasque, modePilote, preparerCasque };
 })();
 
 // --- les aides au premier usage (aides.js, étape 11b, Codeur 4) : la bulle, « Revoir les aides » au paddock et dans le menu pause.
@@ -1945,7 +1992,7 @@ const AIDES_ECRAN = (function () {
   return { maj, revoir, fermer, etat: () => etat, affichee: () => affichee };
 })();
 
-// --- le tutoriel guidé (tutoriel.js, étape 11d, Codeur 4) : la liste des leçons (depuis le titre, le paddock, la pause, « Bravo ! »),
+// --- le tutoriel guidé (tutoriel.js, étape 11d, Codeur 4) : la liste des leçons (depuis le titre, le paddock, la pause, le podium de la découverte),
 // la consigne pendant une leçon, le résultat. Une leçon est une page à elle (index.html?tutoriel=<id>&… : les mêmes modes que le jeu,
 // TUTORIEL.LECONS) ; sa réussite est mesurée à chaque image sur l'état du jeu (JEU) et gardée à la racine de la sauvegarde.
 const TUTORIEL_ECRAN = (function () {
@@ -2068,7 +2115,7 @@ const TUTORIEL_ECRAN = (function () {
     $('tutoMenuIntro').textContent = texte('tutoIntro');
     bouton('boutonTutoRetour', 'tutoRetour', fermerMenu);
     for (const id of ['boutonTutorielTitre', 'boutonTutorielPause']) bouton(id, 'tutoBouton', ouvrirMenu);
-    bouton('boutonTutorielBravo', 'tutoBravo', ouvrirMenu);
+    bouton('boutonTutorielPodium', 'tutoBravo', ouvrirMenu);   // (le podium de la découverte : « D’abord apprendre », tour 52e)
     bouton('boutonTutorielPaddock', 'tutoBouton', ouvrirMenu);   // (au paddock : « ? Apprendre », en bas du menu, tour 48a)
     bouton('boutonTutoPasser', 'tutoPasser', () => { const s = TUTORIEL.suivante(LECON); aller(s ? adresse(s) : 'index.html' + (langue() ? '?' + langue().slice(1) : '')); });
     bouton('boutonTutoRecommencer', 'tutoRecommencer', () => location.reload());
