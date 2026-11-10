@@ -1509,6 +1509,18 @@ body.deux:not(.cote) #deuxRappel2 { left: 50%; }
 .pageInfos p { font-size: 15px; }
 #championnat #championnatReputation { flex-wrap: wrap; gap: 6px 14px; justify-content: flex-start; }
 #championnat #championnatReputation .barre { width: 64px; }
+/* Mon équipe (tour 52g) : l'argent en grand, les quatre portes en grosses tuiles égales (une icône au-dessus du nom), le garage en rouge */
+#pageEquipe .pageInfos { gap: 8px; }
+#pageEquipe #championnatArgent { font: 800 30px/1.1 var(--tv-police-titre); }
+#pageEquipe #championnatSponsor { font-size: 14px; opacity: 0.8; }
+#pageEquipe .pageBoutons { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+#pageEquipe .pageBoutons button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 104px; padding: 10px 6px; font: 800 17px/1.15 var(--tv-police); text-align: center; white-space: normal; }
+#pageEquipe .pageBoutons button::before { font-size: 34px; line-height: 1; }
+#pageEquipe #boutonGarage::before { content: "🔧"; }
+#pageEquipe #boutonMaVoiture::before { content: "🏎"; }
+#pageEquipe #boutonSponsors::before { content: "🤝"; }
+#pageEquipe #boutonMonCasque::before { content: "⛑"; }
+#pageEquipe #boutonGarage { background: var(--tv-bouton-principal); box-shadow: 0 4px 16px rgba(227, 36, 43, 0.35); }
 #boutiqueContenu { display: flex; flex-direction: column; gap: 12px; }
 #boutiqueContenu p { font-size: 16px; opacity: 0.85; }
 #pageSaison #championnatTableaux { display: flex; gap: 28px; align-items: flex-start; padding: 12px 18px; }
@@ -1549,6 +1561,7 @@ body.auPaddock #boutonSon { display: none; }
   #paddockCarte { height: min(130px, 21vh); }
   #championnat #championnatTableaux ol { font-size: 12px; line-height: 1.3; }
   .pageTitre { font-size: 21px !important; }
+  #pageEquipe .pageBoutons button { min-height: 92px; }
 }
 /* le téléphone couché (640×360) : tout se serre, les pilotes de la page Saison en deux colonnes */
 @media (max-height: 420px) {
@@ -1575,6 +1588,11 @@ body.auPaddock #boutonSon { display: none; }
   #pageCourse #boutonCourseSuivante { padding: 9px 16px; font-size: 16px; }
   .paddockPage .pageBoutons { gap: 6px; }
   .paddockPage .pageBoutons button { padding: 7px 11px; font-size: 13px; }
+  #pageEquipe #championnatArgent { font-size: 22px; }
+  #pageEquipe .pageInfos { gap: 4px; }
+  #pageEquipe .pageBoutons { gap: 6px; }
+  #pageEquipe .pageBoutons button { min-height: 66px; gap: 3px; padding: 5px 3px; font-size: 13px; }
+  #pageEquipe .pageBoutons button::before { font-size: 24px; }
   .paddockPage .pageBoutons button.petit { padding: 5px 9px; font-size: 12px; }
   #championnat #championnatPilotes { columns: 2; column-gap: 14px; }
   #championnat #championnatTableaux ol { font-size: 11px; line-height: 1.25; }
