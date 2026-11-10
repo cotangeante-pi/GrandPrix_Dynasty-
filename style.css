@@ -1806,3 +1806,29 @@ body.tactile #aide { display: none; }
   border-radius: 10px; background: #1f6fe0; color: #fff; font: 600 16px/1.3 var(--police); cursor: pointer; }
 #tactilePortrait { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 24px; text-align: center;
   background: rgba(0, 0, 0, 0.92); color: #fff; font: 800 28px/1.3 var(--police); }
+
+/* (tour 52h, plan « ui-messages ») le courrier et la page Messages lisibles en 3 secondes : le non lu d'abord et en rouge, une seule
+   action par message (« Répondre », le bouton principal pour un message neuf, discret pour un message lu), le nombre de messages
+   neufs à côté du titre, les trois boutons de la page de la même largeur */
+#paddockMessages { align-items: stretch; width: min(100%, 300px); }
+#paddockMessages button { width: 100%; justify-content: flex-start; text-align: left; font-size: 18px; padding: 12px 18px; }
+#paddockMessages button.nouveau { font-size: 20px; }
+.badgeNeuf { display: inline-block; min-width: 26px; margin-left: 10px; padding: 2px 9px; border-radius: 14px; background: var(--tv-rouge); color: #fff; font: 800 18px/1.3 var(--police);
+  font-style: normal; text-align: center; vertical-align: middle; letter-spacing: 0; }
+#courrierListe li { padding: 10px 14px; font-size: 15px; }
+#courrierListe li.nouveau { background: linear-gradient(90deg, rgba(227, 36, 43, 0.22), var(--tv-panneau) 55%); box-shadow: inset 5px 0 0 var(--tv-rouge); }
+#courrierListe li.nouveau strong { font-size: 17px; }
+#courrierListe li.nouveau span.texte { font-weight: 700; }
+#courrierListe li.lu { opacity: 0.6; }
+#courrierListe strong em { padding: 1px 8px; border-radius: 10px; background: var(--tv-rouge); color: #fff; font-size: 11px; letter-spacing: 0.06em; }
+#courrierListe li.nouveau button { background: var(--tv-bouton-principal); box-shadow: 0 2px 8px rgba(227, 36, 43, 0.35); }
+#courrierListe li.lu button { opacity: 0.8; }
+#boutonCourrierRetour { min-width: 160px; }
+@media (max-height: 420px) {
+  #paddockMessages { width: min(100%, 240px); }
+  #paddockMessages button { font-size: 15px; padding: 8px 14px; }
+  #paddockMessages button.nouveau { font-size: 16px; }
+  .badgeNeuf { font-size: 14px; margin-left: 8px; }
+  #courrierListe li { padding: 6px 10px; font-size: 13px; }
+  #courrierListe li.nouveau strong { font-size: 14px; }
+}

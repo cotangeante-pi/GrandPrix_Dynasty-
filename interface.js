@@ -1784,6 +1784,8 @@ const INTERFACE = (function () {
   let reponseCourrier = null;
   function remplirCourrier(ch, messages) {
     $('courrierTitre').textContent = texte('courrierTitre');
+    const neufs = messages.filter(m => !m.lu).length;   // (tour 52h) le nombre de messages neufs à côté du titre
+    if (neufs) { const b = document.createElement('span'); b.className = 'badgeNeuf'; b.textContent = neufs; $('courrierTitre').append(b); }
     $('boutonCourrierRetour').textContent = texte('courrierRetour');
     const ol = $('courrierListe');
     ol.textContent = '';
