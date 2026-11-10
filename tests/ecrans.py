@@ -1790,6 +1790,7 @@ CONDUITE_DOIGTS = '''() => { clearInterval(window.__penche); const Z = REGLAGES.
       window.__conduire = true; }'''   # (tour 52b : le robot d'essai dicte, tout passe par les faux doigts et le faux volant)
 def tactile_ecran(pg, titre, l, h, page):
     if 'tactile-iphone' in page: return tactile_iphone(pg, titre, l, h)
+    if 'tactile-decouverte' in page: return tactile_decouverte(pg, titre, l, h)
     pret = attendre(pg, '() => typeof TACTILE !== "undefined" && TACTILE.estPresent() && JEU.ecran === "course"', None, 30000)
     pg.wait_for_timeout(300)
     e = pg.evaluate(TACTILE_ETAT)
