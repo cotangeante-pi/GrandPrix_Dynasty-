@@ -1235,10 +1235,14 @@ function piloterIA(pilote, v, vues, dt) {
   // attaque une fois décalé à côté d'elle)
   if (R.IA_ATTAQUE_TETE && R.IA_APPROCHE_TEMPS) for (const w of vues) {
     const g = ecartLeLong(c, w.s - p.s);
-    if (g <= 0 || g > R.IA_APPROCHE_LONG || Math.abs(w.d - p.d) > R.IA_APPROCHE_COTE) continue;
+    const loin = R.IA_APPROCHE_DECEL ? R.IA_APPROCHE_LONG_DECEL : R.IA_APPROCHE_LONG;   // (IA_APPROCHE_DECEL, tour 53a : plus loin, pour la vitesse qu'il peut encore annuler)
+    if (g <= 0 || g > loin || Math.abs(w.d - p.d) > R.IA_APPROCHE_COTE) continue;
     if (a && w.id === a.id && a.etat !== 'preparer' && a.etat !== 'sortie') continue;
     if (w.vitesse < R.IA_APPROCHE_VITESSE * libre || estLente(pilote, v, w)) continue;   // (une voiture arrêtée, lente ou qui sort des stands : on la contourne, ligne « éviter »)
-    cible = Math.min(cible, w.vitesse + Math.max(0, g - R.LONGUEUR_VOITURE) / R.IA_APPROCHE_TEMPS);
+    const place = Math.max(0, g - R.LONGUEUR_VOITURE);
+    // (IA_APPROCHE_DECEL : l'écart de vitesse qu'il peut annuler en freinant de IA_APPROCHE_DECEL m/s² sur la place qui reste : une attaque abandonnée à 20 m d'une
+    // voiture 19 m/s plus lente rejoignait sa ligne à 9 m d'elle, et la touchait, 1 choc sur 8 courses ; sa ligne n'est pas encore devant lui, le réflexe ne le retient pas)
+    cible = Math.min(cible, w.vitesse + (g <= R.IA_APPROCHE_LONG ? place / R.IA_APPROCHE_TEMPS : Infinity), R.IA_APPROCHE_DECEL ? w.vitesse + Math.sqrt(2 * R.IA_APPROCHE_DECEL * place) : Infinity);
   }
   // retenu : il voudrait aller nettement plus vite que la voiture devant ne le laisse
   // (plus agressif : il se sent retenu avec moins d'avance de vitesse)

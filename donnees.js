@@ -930,6 +930,8 @@ const REGLAGES = {
   IA_ATTAQUE_ASPIRE_PREPARER: 1, // (tour 51a) 0 : il ne compte l'aspiration dans sa vitesse de pointe qu'une fois décalé à côté, pas en préparant
   IA_APPROCHE_TEMPS: 0.7,        // s (tour 51a, avec IA_ATTAQUE_TETE) : s'approcher d'une voiture devant d'au plus (distance − une longueur) / ça m/s de plus qu'elle ; 0 : rien
   IA_APPROCHE_LONG: 18,         // m : … tant qu'elle est à moins de ça devant lui
+  IA_APPROCHE_DECEL: 8,         // m/s² (tour 53a) : … et jusqu'à IA_APPROCHE_LONG_DECEL, au plus l'écart de vitesse qu'il annule en freinant de ça sur la place qui reste (0 : comme avant)
+  IA_APPROCHE_LONG_DECEL: 45,   // m : … la distance jusqu'à laquelle ça vaut
   IA_APPROCHE_COTE: 8,          // m : … et à moins de ça de côté
   IA_APPROCHE_VITESSE: 0.6,    // … sauf une voiture qui roule à moins de cette part de sa vitesse de ligne (lente, arrêtée : on la contourne)
   IA_VISION_PROCHE: 25,         // m (tour 51a, avec IA_ATTAQUE_TETE) : une voiture devant lui à moins de ça est vue, même très de côté (0 : le cône et le couloir seulement)
