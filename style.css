@@ -1585,6 +1585,31 @@ body.auPaddock #boutonSon { display: none; }
 #championnat:not(.cache) ~ #bulleAide.bulleMenu { left: calc(var(--paddock-menu) + 16px); }
 #championnat:not(.cache) ~ #tutoConsigne.tutoMenuConsigne { left: calc(var(--paddock-menu) + 16px); }   /* (la consigne de la leçon « visite » non plus ne couvre pas le menu) */
 
+/* (tour 53b, plan « menus-doigt ») sur un écran tactile (body.tactile), aucun bouton des menus du paddock et des écrans qui en partent
+   n'a moins de 40 px de haut (l'aire d'un doigt), même en 640×360. Les pages Course, Saison, Entre amis et Apprendre ne sont pas touchées ici
+   (le Codeur de chaque section s'en charge). Sans écran tactile, rien ne change. */
+body.tactile #paddockMenu { gap: 0; }
+body.tactile .ecran #paddockMenu button.menuEntree { min-height: 40px; padding-top: 0; padding-bottom: 0; }
+body.tactile :is(#pageEquipe, #pageBoutique, #pageMessages, #pageReglages, #carriereConfirmation) button,
+body.tactile :is(#garage, #boutique, #sponsors, #pilote, #discussion, #livree, #courrier, #qualif) button,
+body.tactile.horsCourse #boutonSon { min-height: 40px; }
+body.tactile.horsCourse #boutonSon { min-width: 40px; width: 40px; height: 40px; }
+body.tactile #pageReglages .pageBoutons button, body.tactile #pageReglages .pageBoutons button.petit { min-height: 40px; }
+
+@media (max-height: 420px) {
+  body.tactile #garageListe { gap: 2px; margin: 0; }
+  body.tactile #garageListe li { padding: 0 10px; }
+  body.tactile #garage { gap: 2px; padding-top: 2px; padding-bottom: 2px; }
+  body.tactile #garageBonus { font-size: 12px; }
+  body.tactile #garagePneus { margin: 2px 0; gap: 4px; }
+  body.tactile #discussionCarte { gap: 4px; padding: 6px 12px; max-height: calc(100vh - 52px); }
+  body.tactile #discussionPortrait canvas { width: 44px; height: 52px; }
+  body.tactile #discussion h1 { font-size: 18px; }
+  body.tactile #discussionFil { min-height: 40px; max-height: 70px; }
+  body.tactile #discussionComposeur { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; }
+  body.tactile #discussionComposeur button { flex: 0 0 auto; white-space: nowrap; }
+  body.tactile #discussionSaisie button, body.tactile #discussionTexte { min-height: 40px; }
+}
 /* 960×600 et moins large : le menu devient une colonne d'icônes (le nom en bulle, title) */
 @media (max-width: 1100px) {
   :root { --paddock-menu: 58px; }
