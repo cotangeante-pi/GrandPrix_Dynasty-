@@ -1130,8 +1130,8 @@ def championnat_en(pg, titre):
     t(f'{titre} : les résultats en anglais (Pos, No, Time, Penalty, Gap, Grid ; « Continue »)', res['entete'] == 'Pos,No,Time,Penalty,Gap,Grid' and 'Continue' in res['texte'] and not re.search(MOTS_FR, res['texte']), str(res)[:300])
     pg.click('#boutonChangerResultats')
     attendre(pg, '() => JEU.ecran === "interview"', None, 10000)
-    t(f'{titre} : après les résultats, l’interview en anglais (« Post-race interview », « No comment »), pas un mot français', not re.search(MOTS_FR, pg.evaluate('() => document.getElementById("interview").innerText'))
-      and 'post-race interview' in pg.evaluate('() => document.getElementById("interview").innerText').lower() and 'no comment' in pg.evaluate('() => document.getElementById("interview").innerText').lower(), pg.evaluate('() => document.getElementById("interview").innerText')[:300])
+    t(f'{titre} : après les résultats, l’interview en anglais (« Post-race interview », « Skip »), pas un mot français', not re.search(MOTS_FR, pg.evaluate('() => document.getElementById("interview").innerText'))
+      and 'post-race interview' in pg.evaluate('() => document.getElementById("interview").innerText').lower() and 'skip' in pg.evaluate('() => document.getElementById("interview").innerText').lower(), pg.evaluate('() => document.getElementById("interview").innerText')[:300])
     interview_ecran(pg, titre, 'calme', gp='en anglais : ')
     t(f'{titre} : après les résultats, la une du journal en anglais, pas un mot français', attendre(pg, '() => JEU.ecran === "une"') and not re.search(MOTS_FR, pg.evaluate('() => document.getElementById("une").innerText')),
       pg.evaluate('() => document.getElementById("une").innerText')[:300])
