@@ -2347,8 +2347,9 @@ def course_joueur(pg, titre):
     t(f'{titre} : le bouton « passer » mène au podium (la caméra d’avant revient, le bandeau part)',
       attendre(pg, '() => JEU.ecran === "podium" && CAMERA.mode !== "tele" && document.getElementById("attenteArrivee").classList.contains("cache")', None, 180000),   # (depuis le 2026-10-24, « passer » joue la fin de la course en accéléré : plus de temps réel)
       str(pg.evaluate('() => [JEU.ecran, CAMERA.mode]')))
-    # le patinage, joué par le test sur une nouvelle course (podium → résultats → « Rejouer » → qualification passée) : la touche
-    # tenue à travers l'extinction ne lance pas la voiture (le régime monte au bout), lâcher puis réappuyer = patinage
+    # le patinage, joué par le test sur une nouvelle course (podium → résultats → « Rejouer » → qualification passée) : depuis le tour 52d
+    # (décision du propriétaire), la touche tenue à travers l'extinction lance la voiture à l'extinction même (DEPART_TENIR_PART) ; le
+    # régime monté au bout donne le patinage (hors découverte). L'ancienne règle (lâcher d'abord) : DEPART_TENIR_PART faux, testé dans tests/test.html
     pg.click('#boutonResultats')
     attendre(pg, '() => JEU.ecran === "resultats"')
     pg.click('#boutonRejouerResultats')
@@ -2356,16 +2357,12 @@ def course_joueur(pg, titre):
     attendre(pg, '() => JEU.plateau.carte !== null && JEU.course.depart && JEU.course.depart.lance === null', None, 180000)
     pg.evaluate('() => { BOUCLE.arreter(); for (const p of JEU.plateau.pilotes) { p.course.feux.delai = 30; p.course.feux.total = 35; p.course.compte = 30; } }')
     pg.keyboard.down('ArrowUp')
-    pg.evaluate('() => { BOUCLE.simuler(2); for (const p of JEU.plateau.pilotes) p.course.compte = 0.01; BOUCLE.simuler(0.3); }')
-    tenue = pg.evaluate('() => ({ regime: JEU.course.depart.regime, lance: JEU.course.depart.lance, etat: JEU.course.etat, u: JEU.joueur.u, extinction: JEU.course.depart.extinction })')
-    t(f'{titre} : patinage : ↑ tenue 2 s puis à travers l’extinction : le régime est au bout, la voiture n’est pas lancée tant que la touche n’est pas lâchée', tenue['regime'] == 1 and tenue['lance'] is None and tenue['etat'] == 'attente' and tenue['u'] == 0 and tenue['extinction'] is not None, str(tenue))
-    pg.keyboard.up('ArrowUp')
-    pg.evaluate('() => BOUCLE.simuler(0.05)')
-    pg.keyboard.down('ArrowUp')
-    pg.evaluate('() => BOUCLE.simuler(0.5)')
+    pg.evaluate('() => { BOUCLE.simuler(2); for (const p of JEU.plateau.pilotes) p.course.compte = 0.01; BOUCLE.simuler(0.5); }')
+    tenue = pg.evaluate('() => ({ regime: JEU.course.depart.regime, lance: JEU.course.depart.lance, etat: JEU.course.etat, u: JEU.joueur.u, extinction: JEU.course.depart.extinction, resultat: JEU.course.depart.resultat, tenu: JEU.course.depart.tenu })')
+    t(f'{titre} : patinage : ↑ tenue 2 s puis à travers l’extinction : le régime est au bout, la voiture est lancée à l’extinction même (départ tenu), résultat « patinage »', tenue['regime'] == 1 and tenue['extinction'] is not None and tenue['lance'] == tenue['extinction'] and tenue['tenu'] and tenue['resultat'] == 'patinage' and tenue['u'] > 0, str(tenue))
     image()
     pt = pg.evaluate('() => ({ resultat: JEU.course.depart.resultat, reaction: JEU.course.depart.reaction, facteur: JEU.joueur.facteurDepart, u: JEU.joueur.u, penalites: JEU.course.penalites, texte: document.getElementById("departResultat").textContent, classe: document.getElementById("departResultat").className })')
-    t(f'{titre} : lâcher puis réappuyer avec le régime trop haut = patinage : la voiture part moins fort (facteur moteur DEPART_PATINAGE[0]), « Patinage ! » affiché, pas de pénalité',
+    t(f'{titre} : le départ tenu avec le régime trop haut = patinage : la voiture part moins fort (facteur moteur DEPART_PATINAGE[0]), « Patinage ! » affiché, pas de pénalité',
       pt['resultat'] == 'patinage' and pt['facteur'] == pg.evaluate('() => REGLAGES.DEPART_PATINAGE[0]') and pt['u'] > 0 and pt['penalites'] == 0 and pt['texte'].startswith(pg.evaluate('() => texte("departPatinage")')) and pt['classe'] == 'patinage', str(pt))
     L.append(f"  (patinage joué par le test : réaction {pt['reaction']:.3f} s, facteur moteur {pt['facteur']}, « {pt['texte']} »)")
     pg.evaluate('() => { BOUCLE.simuler(REGLAGES.DEPART_PATINAGE[1] + 0.1); }')
