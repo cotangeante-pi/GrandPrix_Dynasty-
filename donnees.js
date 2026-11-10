@@ -240,6 +240,9 @@ const REGLAGES = {
   DEPART_BON: [0.85, 1],
   DEPART_PATINAGE: [0.5, 1.5],
   DEPART_CALE: [0.3, 1.5],
+  DEPART_TENIR_PART: true,      // la touche tenue à l'extinction des feux fait partir la voiture (« bon départ » si le régime est dans le vert) ; faux = lâcher puis réappuyer obligatoire (avant le tour 52d)
+  DEPART_DECOUVERTE_DOUX: true, // à la découverte : jamais de patinage ni de calé au départ du joueur (au pire « bon ») ; faux = comme avant
+  GRILLE_DECOUVERTE_NUE: true,  // la grille de la découverte, pendant les feux : ni jauge, ni chrono, ni radar, ni barre des touches, une seule aide « Tiens ↑ » (plan première minute n° 2) ; faux = l'écran d'avant
   DEPART_AFFICHAGE: 1.5,        // s : le résultat et le temps de réaction restent affichés ce temps
   DEPART_ROBOT_REACTION: 0.2,   // s : le robot d'essai (tests) fait toujours un départ parfait, après ce temps
   // les IA (tirerIA) : la part de la plage FEUX_REACTION_IA qu'un pilote parfaitement régulier garde (le reste vient de son irrégularité)

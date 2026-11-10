@@ -2069,21 +2069,34 @@ t('départ : le résultat selon le régime et la réaction : dans le vert et rap
   v(JSON.stringify(DEPART.effet('parfait'))==='[1,0]'&&JSON.stringify(DEPART.effet('faux'))==='[1,0]'&&DEPART.effet('patinage')[0]<1&&DEPART.effet('cale')[0]<DEPART.effet('patinage')[0],'effets');});
 // une course avec les feux, un joueur ; appuyer(oui) = la touche d'accélérateur ; pas() = un pas de physique de la course (voiture tenue)
 function departJoueur(){const c=creerCourse(C,5);armerFeux([{course:c,humain:true}],7);const vo={u:0,x:0,z:0,piste:{s:0}};
-  return {c,d:c.depart,vo,pas(appui){DEPART.commande(c.depart,appui,c.compte);majCourse(c,vo,DT);}};}
-t('départ : pendant les feux, tenir la touche fait monter le régime (DEPART_MONTEE), la lâcher le fait descendre, la voiture n’est pas lancée ; tenir la touche pendant l’extinction ne lance pas la voiture tant qu’on ne l’a pas lâchée ; lâcher puis réappuyer lance : réaction mesurée, régime dans le vert + rapide = parfait, et le facteur moteur reste 1', ()=>{
+  return {c,d:c.depart,vo,doux:false,pas(appui){DEPART.commande(c.depart,appui,c.compte,this.doux);majCourse(c,vo,DT);}};}
+t('départ : pendant les feux, tenir la touche fait monter le régime (DEPART_MONTEE), la lâcher le fait descendre, la voiture n’est pas lancée ; tenir la touche pendant l’extinction lance la voiture à l’extinction (tour 52d) ; lâcher puis réappuyer lance : réaction mesurée, régime dans le vert + rapide = parfait, et le facteur moteur reste 1', ()=>{
   const R=REGLAGES,j=departJoueur(),d=j.d,c=j.c;v(d.humain&&d.lance===null&&d.regime===0,'armé');
   for(let k=0;k<60;k++) j.pas(true);v(Math.abs(d.regime-R.DEPART_MONTEE*0.5)<1e-9&&d.lance===null,'montée '+d.regime);
   for(let k=0;k<30;k++) j.pas(false);v(Math.abs(d.regime-(R.DEPART_MONTEE*0.5-R.DEPART_DESCENTE*0.25))<1e-9&&d.lance===null,'descente '+d.regime);
-  // on règle le régime au milieu du vert, puis on tient la touche à travers l'extinction
-  d.regime=(R.DEPART_VERT[0]+R.DEPART_VERT[1])/2;const vise=d.regime;c.compte=0.5;
-  for(let k=0;k<84;k++) j.pas(true);   // 0,7 s : l'extinction est passée depuis 0,2 s, la touche toujours tenue
-  v(d.extinction!==null&&c.etat==='attente'&&d.lance===null&&c.penalites===0,'lancée en tenant la touche : '+[d.lance,c.etat,c.penalites]);
-  v(d.regime===1,'le régime monte jusqu’au bout tant qu’on tient : '+d.regime);
-  d.regime=vise;j.pas(false);j.pas(false);   // lâcher 2 pas…
-  j.pas(true);                               // … et réappuyer : le lancement
-  v(d.lance!==null&&d.resultat==='parfait'&&d.reaction>0.2-1e-9&&d.reaction<0.3,'lancement '+[d.resultat,d.reaction]);
-  v(j.vo.facteurDepart===1&&DEPART.facteur(d)===1&&c.penalites===0&&!c.fauxDepart,'facteur '+j.vo.facteurDepart);
-  L.push('  (départ du joueur : réaction '+d.reaction.toFixed(3)+' s, régime '+vise.toFixed(2)+' → '+d.resultat+')');});
+  // tour 52d : tenir la touche à travers l'extinction = le lancement, à l'extinction même, « tenu », sans record de réaction
+  d.regime=(R.DEPART_VERT[0]+R.DEPART_VERT[1])/2;c.compte=0.5;
+  for(let k=0;k<84;k++) j.pas(true);
+  v(d.extinction!==null&&d.lance===d.extinction&&d.tenu&&c.penalites===0&&(d.resultat==='patinage'||d.resultat==='bon'),'tenue à l’extinction : '+[d.lance,d.extinction,d.resultat]);
+  // lâcher puis réappuyer, régime dans le vert, 0,2 s après l'extinction = parfait (inchangé)
+  const j2=departJoueur(),d2=j2.d;j2.c.compte=0.05;for(let k=0;k<12;k++) j2.pas(false);
+  d2.regime=(R.DEPART_VERT[0]+R.DEPART_VERT[1])/2;for(let k=0;k<12;k++) j2.pas(false);j2.pas(true);
+  v(d2.lance!==null&&d2.resultat==='parfait'&&!d2.tenu&&d2.reaction>0.1&&d2.reaction<0.3,'lancement '+[d2.resultat,d2.reaction]);
+  v(j2.vo.facteurDepart===1&&DEPART.facteur(d2)===1&&j2.c.penalites===0&&!j2.c.fauxDepart,'facteur '+j2.vo.facteurDepart);
+  L.push('  (départ du joueur : réaction '+d2.reaction.toFixed(3)+' s, régime '+d2.regime.toFixed(2)+' → '+d2.resultat+')');});
+t('départ (tour 52d) : tenue à l’extinction = lancement à l’extinction : bon dans le vert, patinage/calé hors du vert, bon partout à la découverte (doux) ; DEPART_TENIR_PART faux = l’ancien comportement (la voiture reste tenue) ; DEPART_DECOUVERTE_DOUX faux = comme avant ; lâcher-réappuyer rapide = parfait même en doux ; faux départ inchangé', ()=>{
+  const R=REGLAGES,m=(R.DEPART_VERT[0]+R.DEPART_VERT[1])/2;
+  const tenir=(regime,doux)=>{const j=departJoueur();j.doux=doux;const d=j.d;j.c.compte=0.05;for(let k=0;k<5;k++) j.pas(false);d.appui=true;d.regime=regime;d.t+=0;
+    // on tient la touche depuis avant l'extinction : le régime est figé ici en le remettant à chaque pas
+    for(let k=0;k<40&&d.lance===null;k++){d.regime=regime;j.pas(true);}return d;};
+  let d=tenir(m,false);v(d.lance===d.extinction&&d.resultat==='bon'&&d.tenu,'vert '+d.resultat);
+  d=tenir(1,false);v(d.resultat==='patinage'&&d.lance===d.extinction,'haut '+d.resultat);
+  d=tenir(0,false);v(d.resultat==='cale','bas '+d.resultat);
+  d=tenir(1,true);v(d.resultat==='bon','doux haut '+d.resultat);d=tenir(0,true);v(d.resultat==='bon','doux bas '+d.resultat);
+  R.DEPART_DECOUVERTE_DOUX=false;try{d=tenir(1,true);v(d.resultat==='patinage','doux coupé '+d.resultat);}finally{R.DEPART_DECOUVERTE_DOUX=true;}
+  R.DEPART_TENIR_PART=false;try{const j=departJoueur(),dd=j.d;j.c.compte=0.05;j.pas(false);dd.appui=true;for(let k=0;k<60;k++) j.pas(true);v(dd.extinction!==null&&dd.lance===null,'avant : reste tenue');}finally{R.DEPART_TENIR_PART=true;}
+  const j=departJoueur();j.doux=true;j.c.compte=0.05;for(let k=0;k<12;k++) j.pas(false);j.d.regime=m;for(let k=0;k<12;k++) j.pas(false);j.pas(true);v(j.d.resultat==='parfait','parfait en doux');
+  const f=departJoueur();f.c.compte=0.05;f.pas(false);f.pas(true);v(f.d.resultat==='faux'&&f.c.penalites===R.PENALITE_FAUX_DEPART,'faux départ tenu juste avant');});
 t('départ : régime trop haut = patinage (facteur < 1 pendant DEPART_PATINAGE[1] s, puis 1) ; trop bas = calé ; lent dans le vert = bon', ()=>{
   const R=REGLAGES;const essai=(regime,attente)=>{const j=departJoueur(),d=j.d;j.c.compte=0.05;for(let k=0;k<12;k++) j.pas(false);
     for(let k=0;k<Math.round(attente*120);k++) j.pas(false);d.regime=regime;j.pas(true);const f=j.vo.facteurDepart;for(let k=0;k<Math.round(DEPART.effet(d.resultat)[1]*120)+2;k++) j.pas(true);return {res:d.resultat,f,apres:j.vo.facteurDepart,reaction:d.reaction};};
