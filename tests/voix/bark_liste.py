@@ -10,6 +10,10 @@ OUTILS, SORTIE = sys.argv[1], sys.argv[2]
 def option(nom, defaut):
     return sys.argv[sys.argv.index(nom) + 1] if nom in sys.argv else defaut
 PRISES, DE, JUSQUA = int(option('--prises', '3')), int(option('--de', '1')), option('--jusqua', None)
+# (tour 52c) --variantes tiret,points,plain : la forme du texte envoyé à Bark change à chaque prise (en tournant) ; le texte comparé par Whisper reste l'original.
+# Chaque prise note sa variante dans prises.json : on mesure ainsi, sur la vraie liste, laquelle est le plus souvent comprise (stats_variantes.py).
+FORMES = {'plain': '%s', 'tiret': '— %s', 'points': '%s...', 'guillemets': '« %s »'}
+VARIANTES = option('--variantes', 'plain').split(',')
 VOIX = [int(v) for v in option('--voix', '7,4').split(',')]
 os.environ.setdefault('XDG_CACHE_HOME', os.path.join(OUTILS, 'cache'))
 os.environ['SUNO_USE_SMALL_MODELS'] = '1'
@@ -21,7 +25,7 @@ import traitement as T
 from bark.generation import SAMPLE_RATE, preload_models, generate_text_semantic, generate_coarse, generate_fine, codec_decode
 import torch, random
 TEMPS_TEXTE, TEMP_SON = [0.65, 0.78], 0.7
-BONNES = 2   # une phrase qui a déjà BONNES prises comprises par Whisper (notes.json, relu à chaque prise) ne reçoit plus de prise
+BONNES = int(option('--bonnes', '2'))  # une phrase qui a déjà BONNES prises comprises par Whisper (notes.json, relu à chaque prise) ne reçoit plus de prise
 
 def comprises(cle):
     """Le nombre de prises de cette phrase que Whisper a comprises (notes.json, écrit par transcrire.py ; 0 s'il n'existe pas)."""
@@ -53,16 +57,16 @@ def main():
                 if nom in faites: continue
                 if comprises(ph['id']) >= BONNES: continue
                 if heure_passee(): print('heure atteinte, arrêt', flush=True); return
-                t1, texte = time.time(), ph['texte']
+                t1, texte = time.time(), ph['texte']; var = VARIANTES[(prise - DE) % len(VARIANTES)]; envoye = FORMES[var] % texte
                 g = 1000 * prise + 10 * voix + sum(map(ord, ph['id'])) % 997; torch.manual_seed(g); np.random.seed(g); random.seed(g)
                 hp = 'v2/fr_speaker_%d' % voix
-                sem = generate_text_semantic(texte, history_prompt=hp, temp=TEMPS_TEXTE[prise % 2], silent=True, use_kv_caching=True, max_gen_duration_s=duree_max(texte))
+                sem = generate_text_semantic(envoye, history_prompt=hp, temp=TEMPS_TEXTE[prise % 2], silent=True, use_kv_caching=True, max_gen_duration_s=duree_max(envoye))
                 coarse = generate_coarse(sem, history_prompt=hp, temp=TEMP_SON, silent=True, use_kv_caching=True)
                 x = np.asarray(codec_decode(generate_fine(coarse, history_prompt=hp, temp=0.5)), dtype=np.float64)
                 base = os.path.join(SORTIE, nom)
                 T.ecrire_wav(base + '-brut.wav', T.normaliser(x, -1), SAMPLE_RATE)
                 y, sr2 = T.energie(x, SAMPLE_RATE, niveau='clair'); T.ecrire_wav(base + '-clair.wav', y, sr2)
-                faites[nom] = dict(langue='fr', voix=voix, cle=ph['id'], moment=ph['moment'], prise=prise, texte=texte, calcul=time.time() - t1)
+                faites[nom] = dict(langue='fr', voix=voix, cle=ph['id'], moment=ph['moment'], prise=prise, texte=texte, variante=var, calcul=time.time() - t1)
                 json.dump(faites, open(journal, 'w'), indent=1, ensure_ascii=False)
                 print(nom, '(%.0f s)' % faites[nom]['calcul'], flush=True)
 
