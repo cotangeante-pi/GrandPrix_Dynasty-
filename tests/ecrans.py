@@ -880,8 +880,8 @@ def decouverte(pg, titre):
     # (depuis le tour 32, le 1er Grand Prix est Bahrayn, pas le circuit de la découverte : sa carte n'est pas encore dans le cache, elle se
     # calcule en fond ; celle de la découverte, elle, y est gardée)
     t(f'{titre} : au lancement suivant, la carte de la découverte vient encore du fichier livré (ou de la sauvegarde) ; celle du 1er Grand Prix (un autre circuit, non livré) vient du cache ou se calcule en fond',
-      pg.evaluate('() => CACHE_CARTE.decoder(SAUVEGARDE.carte(REGLAGES.DECOUVERTE_CIRCUIT) || CACHE_CARTE_LIVREE[REGLAGES.DECOUVERTE_CIRCUIT], REGLAGES.DECOUVERTE_CIRCUIT, CIRCUITS[REGLAGES.DECOUVERTE_CIRCUIT], construireCircuit(CIRCUITS[REGLAGES.DECOUVERTE_CIRCUIT])) !== null && NOM_CIRCUIT === JEU.championnat.calendrier[0].circuit && (JEU.carteDuCache === true || JEU.calculTrajectoire !== null || JEU.carte !== null)'),
-      str(pg.evaluate('() => [NOM_CIRCUIT, SAUVEGARDE.carte(REGLAGES.DECOUVERTE_CIRCUIT) !== null, JEU.carteDuCache, JEU.carte !== null]')))
+      pg.evaluate('() => (SAUVEGARDE.carte(REGLAGES.DECOUVERTE_CIRCUIT) !== null || !!CACHE_CARTE_LIVREE[REGLAGES.DECOUVERTE_CIRCUIT]) && NOM_CIRCUIT === JEU.championnat.calendrier[0].circuit && (JEU.carteDuCache === true || JEU.calculTrajectoire !== null || JEU.carte !== null)'),   # (la clé du fichier livré se vérifie au lancement et dans test.html ; en carrière, DIVISIONS.appliquer change des réglages : pas ici)
+      str(pg.evaluate('() => [NOM_CIRCUIT, SAUVEGARDE.carte(REGLAGES.DECOUVERTE_CIRCUIT) !== null, JEU.carteDuCache, JEU.carte !== null, JEU.calculTrajectoire !== null]')))
     paddock_clic(pg, '#boutonCourseSuivante')
     attendre(pg, '() => JEU.ecran === "qualif" && JEU.qualif && JEU.qualif.etat === "choix"', None, 10000)
     pg.click('#boutonQualifPasser')
