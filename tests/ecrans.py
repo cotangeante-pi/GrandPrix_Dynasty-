@@ -1860,6 +1860,17 @@ def tactile_ecran(pg, titre, l, h, page):
     pg.evaluate('() => document.getElementById("boutonReprendre").click()'); attendre(pg, '() => JEU.ecran === "course" && !document.getElementById("tactile").classList.contains("cache")', None, 4000)
     e2 = pg.evaluate(TACTILE_ETAT)
     t(f'{titre} : le bouton ⏸ ouvre la pause (les boutons de conduite se cachent) et « Reprendre » les rend', e['ecran'] == 'pause' and not e['tactile'] and e2['ecran'] == 'course' and e2['tactile'], str([e['ecran'], e['tactile'], e2['ecran'], e2['tactile']]))
+    # (tour 52b) le premier geste demande le plein écran puis le verrou en paysage (une seule fois), et le refus ne se voit pas
+    pg.evaluate("() => { document.body.dispatchEvent(new PointerEvent('pointerup', { bubbles: true })); document.body.dispatchEvent(new PointerEvent('pointerup', { bubbles: true })); }"); pg.wait_for_timeout(200)
+    t(f'{titre} : au premier geste sur un écran tactile, le plein écran puis le verrou en paysage sont demandés, une seule fois', pg.evaluate('() => window.__plein === 2'), str(pg.evaluate('() => window.__plein')))
+    # le téléphone debout pendant la course : le message par-dessus tout et la course en pause ; couché : le message part, la pause reste jusqu'à « Reprendre »
+    pg.set_viewport_size({'width': h, 'height': l}); attendre(pg, '() => JEU.ecran === "pause" && !document.getElementById("tactilePortrait").classList.contains("cache")', None, 8000)
+    d = pg.evaluate(TACTILE_ETAT)
+    pg.set_viewport_size({'width': l, 'height': h}); attendre(pg, '() => document.getElementById("tactilePortrait").classList.contains("cache")', None, 8000); pg.wait_for_timeout(500)
+    c = pg.evaluate(TACTILE_ETAT)
+    pg.evaluate('() => document.getElementById("boutonReprendre").click()'); attendre(pg, '() => JEU.ecran === "course"', None, 4000)
+    t(f'{titre} : téléphone debout pendant la course : « Tourne ton téléphone » et la course en pause ; couché : le message disparaît, la pause reste ; « Reprendre » rend la course',
+      d['ecran'] == 'pause' and not d['portrait']['cache'] and c['ecran'] == 'pause' and c['portrait']['cache'] and pg.evaluate('() => JEU.ecran === "course"'), str([d['ecran'], d['portrait']['cache'], c['ecran'], c['portrait']['cache']]))
 # l'iPhone : le navigateur ne donne l'orientation qu'après un toucher (DeviceOrientationEvent.requestPermission, faux ici) ; sur l'écran titre,
 # « 🎮 Activer le volant » ; accordée → le volant écoute ; refusée (rechargement avec sessionStorage perm = denied) → les boutons ◀ ▶ ;
 # le téléphone debout (viewport portrait) → « Tourne ton téléphone »
@@ -3974,6 +3985,7 @@ with sync_playwright() as p:
             if 'test=sdk' in page or 'test=decouverte' in page or 'test=amis' in page or 'test=tournoi' in page or 'test=livree' in page or 'test=essai' in page: pg.add_init_script(FAUX_SDK)
             # la météo dessinée (meteo3d.js) : une fausse météo de test (window.METEO_TEST, jamais dans le jeu), ?meteo=pluie ou ?meteo=risque
             if 'test=manette' in page: pg.add_init_script(FAUSSES_MANETTES)   # la manette (tour 38) : de fausses manettes
+            pg.add_init_script('window.__plein = 0; try { Element.prototype.requestFullscreen = function () { window.__plein++; return Promise.resolve(); }; } catch (e) {} try { screen.orientation.lock = () => { window.__plein++; return Promise.resolve(); }; } catch (e) {}')   # (tour 52b : combien de fois le plein écran ou le verrou en paysage est demandé)
             if 'test=tactile' in page and 'test=tactile-iphone' not in page: pg.add_init_script('try { DeviceOrientationEvent.requestPermission = undefined; } catch (e) {}')   # (tour 52b : un Chrome récent sur GitHub offre requestPermission, jamais résolue sans geste : ces pages simulent un Android, sans autorisation à demander)
             if 'test=tactile-iphone' in page: pg.add_init_script(FAUSSE_PERMISSION)   # le téléphone (tour 51k) : l'autorisation de l'iPhone, accordée ou refusée (sessionStorage perm)
             if 'meteo=pluie' in page: pg.add_init_script('window.METEO_TEST = { etat: () => ({ pluie: 0.85, eau: 0.75, eauTrajectoire: 0.35, ciel: 0.9 }), prevision: () => ({ type: "pluie", risque: 90 }) };')
@@ -3991,6 +4003,8 @@ with sync_playwright() as p:
             t(f'{titre} : le panneau de réglage n’existe que avec ?reglages=1', pg.evaluate('() => !!document.getElementById("reglages")') == ('reglages=1' in page))
             # le téléphone (tactile.js, tour 51k) : sur un écran sans tactile, rien ne s'affiche et rien n'est branché
             if 'test=tactile' not in page:
+                pg.evaluate("() => { document.body.dispatchEvent(new PointerEvent('pointerup', { bubbles: true })); document.body.click(); }"); pg.wait_for_timeout(100)
+                t(f'{titre} : sans écran tactile, aucun plein écran ni verrou en paysage n’est jamais demandé', pg.evaluate('() => window.__plein === 0'), str(pg.evaluate('() => window.__plein')))
                 t(f'{titre} : sans écran tactile, aucun bouton tactile (ni GAZ / FREIN, ni ◀ ▶, ni « Activer le volant »), rien n’est branché', pg.evaluate('() => typeof TACTILE === "undefined" || !TACTILE.estPresent() && TACTILE.etat.mode === "aucun" && ["tactile", "tactileActiver", "tactilePortrait", "boutonVolantPause", "boutonRecentrerPause"].every(id => document.getElementById(id).classList.contains("cache"))'), str(pg.evaluate('() => typeof TACTILE === "undefined" ? "pas de TACTILE" : [TACTILE.estPresent(), TACTILE.etat.mode, navigator.maxTouchPoints]')))
             if page == 'index.html?seul=1' and l == 1280:
                 conduite(pg, titre)
