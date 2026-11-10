@@ -1506,6 +1506,16 @@ body.deux:not(.cote) #deuxRappel2 { left: 50%; }
 #pageCourse #boutonCourseSuivante:hover { box-shadow: var(--tv-halo); }
 #pageCourse #boutonCourseSuivante.cache { display: none; }
 
+/* Course (tour 52h) : le prochain Grand Prix en grand, puis « Course suivante » en pleine largeur juste dessous (l'action principale), le reste en dessous et plus discret */
+#pageCourse { grid-template-areas: "prochain prochain" "bouton bouton" "court moi" "court nouvelles"; }
+#pageCourse #boutonCourseSuivante { justify-self: stretch; align-self: stretch; padding: 14px 20px; font-size: 26px; text-align: center; }
+#paddockProchain h1 { font-size: 32px; }
+#paddockProchain h1::after { width: 56px; height: 4px; }
+#paddockProchain #prevision { font-size: 16px !important; }
+#paddockMoi { padding-top: 8px; padding-bottom: 8px; }
+#championnat #championnatDuel { font-size: 13px; opacity: 0.8; }
+#paddockNouvelles p { font-size: 13px; opacity: 0.85; }
+
 /* les autres pages */
 .pageInfos { display: flex; flex-direction: column; gap: 6px; }
 .pageInfos p { font-size: 15px; }
@@ -1567,7 +1577,8 @@ body.auPaddock #boutonSon { display: none; }
   .paddockPage { gap: 9px; }
   #pageCourse { gap: 9px; }
   .paddockPage .tvCarte { padding: 9px 14px; }
-  #paddockProchain h1 { font-size: 21px; }
+  #paddockProchain h1 { font-size: 24px; }
+  #pageCourse #boutonCourseSuivante { padding: 10px 16px; font-size: 22px; }
   #paddockCarte { height: min(130px, 21vh); }
   #championnat #championnatTableaux ol { font-size: 12px; line-height: 1.3; }
   .pageTitre { font-size: 21px !important; }
@@ -1595,7 +1606,9 @@ body.auPaddock #boutonSon { display: none; }
   #paddockClassementCourt { font-size: 11px; line-height: 1.3; margin-bottom: 4px; }
   #paddockNouvelles p, .pageInfos p { font-size: 12px; }
   #paddockCourt button, #paddockNouvelles button { padding: 4px 10px; font-size: 12px; }
-  #pageCourse #boutonCourseSuivante { padding: 9px 16px; font-size: 16px; }
+  #pageCourse #boutonCourseSuivante { padding: 6px 12px; font-size: 18px; }
+  #paddockProchain h1 { font-size: 18px; }
+  #championnat #championnatDuel { font-size: 11px; }
   .paddockPage .pageBoutons { gap: 6px; }
   .paddockPage .pageBoutons button { padding: 7px 11px; font-size: 13px; }
   #pageEquipe #championnatArgent { font-size: 22px; }
