@@ -1334,6 +1334,14 @@ body.deux.cote #boutonSon { top: auto; bottom: 12px; right: 12px; }   /* (côte 
 #tutoListe .tutoNom { font-weight: 800; font-size: 14px; }
 #tutoListe .tutoBut { grid-column: 2; font-size: 12px; color: var(--tv-texte-doux); }
 #tutoListe button { grid-column: 3; grid-row: 1 / 3; }
+/* tour 53e : la prochaine leçon en grand (cadre doré, gros bouton rouge), les leçons déjà faites plus discrètes, l'écran opaque (le paddock ne transparaît plus) */
+#tutoMenu { background: linear-gradient(180deg, rgb(7, 9, 15), rgb(12, 16, 27)); }
+#tutoListe .tutoNom { font-size: 16px; }
+#tutoListe .tutoBut { font-size: 13px; color: var(--tv-texte); opacity: 0.8; }
+#tutoListe li.tutoSuivant { border-color: var(--tv-or); box-shadow: 0 0 0 2px var(--tv-or); background: rgba(255, 200, 60, 0.12); }
+#tutoListe li.tutoSuivant .tutoEtoile { color: var(--tv-or); }
+#tutoListe li.tutoSuivant button { padding: 8px 18px; font-size: 17px; font-weight: 800; background: var(--tv-bouton-principal, linear-gradient(180deg, #e8323a, #b01820)); }
+#tutoListe li.tutoFaite { opacity: 0.6; }
 #tutoMenuIntro, #tutoResultatTexte { margin: 0; max-width: 620px; font-weight: 700; }
 #tutoConsigne { position: fixed; z-index: 21; left: 16px; top: max(36%, 226px); max-width: 300px; display: grid; gap: 4px; padding: 8px 12px; border-left: 4px solid var(--tv-or); border-radius: var(--tv-coin); background: var(--tv-hud); box-shadow: var(--tv-hud-ombre); color: var(--tv-texte); font: 700 13px/1.35 var(--tv-police); text-align: left; }
 #tutoConsigne.tutoMenuConsigne { top: 8px; max-width: min(560px, 56vw); }
@@ -1392,8 +1400,9 @@ button.manette-choix { box-shadow: 0 0 0 3px #ffd23f, 0 0 14px 2px rgba(255, 210
 @media (max-height: 680px) {   /* (tour 37j) huit leçons : la liste reste dans l'écran en 960×600 */
   #tutoListe { gap: 3px; }
   #tutoListe li { padding: 3px 10px; }
-  #tutoListe .tutoNom { font-size: 13px; }
-  #tutoListe .tutoBut { font-size: 11px; line-height: 1.15; }
+  #tutoListe .tutoNom { font-size: 14px; }
+  #tutoListe .tutoBut { font-size: 12px; line-height: 1.15; }
+  #tutoListe li.tutoSuivant button { padding: 5px 14px; font-size: 15px; }
   #tutoMenuIntro { font-size: 13px; }
 }
 
