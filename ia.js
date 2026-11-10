@@ -1063,15 +1063,13 @@ function majAttaque(pilote, v, vues, dt) {
       const sens = carte.virages[f.j].sens;
       // (IA_BATAILLE_PLONGER : il plonge à l'intérieur ou n'attaque pas ce virage-là ; 0 : l'extérieur s'il n'y a pas la place à l'intérieur)
       const cote = Math.abs(w.d + sens * ecart) <= limite ? sens : !R.IA_BATAILLE_PLONGER && Math.abs(w.d - sens * ecart) <= limite ? -sens : 0;
-      // (IA_LENT_PREVU : virage lent, il ne se décale pas s'il ne peut pas avoir le nez devant au point de freinage, d'après les vitesses)
-      if (cote && R.IA_ATTAQUE_TETE && R.IA_LENT_PREVU && carte.virages[f.j].lent && !R.IA_LENT_COTE_A_COTE && pasDevantPrevu(c, v, w, g, f.distance)) return;
       if (cote) { a.etat = 'decaler'; a.virage = f.j; a.cote = cote; }
     }
   } else if (a.etat === 'decaler' && carte.virages[a.virage].lent && !R.IA_LENT_COTE_A_COTE) {   // (IA_LENT_COTE_A_COTE : comme un virage rapide, l'entrée côte à côte)
     // (IA_LENT_PREVU, tour 52a : il freinait tard pour l'attaque, la voiture devant freinait plus tôt, et il arrivait sur elle à 7 m/s de plus
     // avant le point de freinage ; il renonce dès que, d'après les vitesses, il n'aura pas le nez devant au freinage, et freine comme avant l'attaque)
     const dF = ecartLeLong(c, carte.virages[a.virage].freinage - p.s);
-    if (R.IA_ATTAQUE_TETE && R.IA_LENT_PREVU && dF > 0 && pasDevantPrevu(c, v, w, g, dF)) {
+    if (R.IA_ATTAQUE_TETE && R.IA_LENT_PREVU && dF > 0 && dF < R.IA_LENT_PREVU_DIST && pasDevantPrevu(c, v, w, g, dF)) {
       if (R.IA_ATTAQUE_SORTIE && g < sortieDistance(v, w)) { a.etat = 'sortie'; a.duree = 0; pilote.cede = { id: a.id, duree: 0 }; if (pilote.journal) pilote.journal.push('sortie (virage lent prévu) g ' + g.toFixed(1)); }
       else return finirAttaque(pilote, false, 'pas devant au freinage prévu (virage lent) g ' + g.toFixed(1));
     } else

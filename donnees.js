@@ -794,7 +794,8 @@ const REGLAGES = {
   // freinage ; dans le sillage, il prend la vitesse de pointe que l'aspiration lui donne ; décalé, à 4,5 m d'elle, elle ne le retient plus
   // (le réflexe revient sous l'écart sûr) ; à l'intérieur, il rejoint sa propre corde au lieu de longer le bord ; elle ne se rabat pas sur
   // lui quand il est déjà à côté ; il ne la perd pas de vue à côté de lui. 0 : la course d'avant, au bit près
-  IA_LENT_PREVU: 1,             // (tour 52a) 1 : virage lent, pas d'attaque (ou il y renonce tout de suite) si, d'après les vitesses, il n'aura pas le nez devant au point de freinage ; 0 : comme avant
+  IA_LENT_PREVU: 1,             // (tour 52a) 1 : virage lent, il renonce à l'attaque décalée si, d'après les vitesses, il n'aura pas le nez devant au point de freinage ; 0 : comme avant
+  IA_LENT_PREVU_DIST: 60,       // m : … il y renonce à moins de cette distance du point de freinage (plus tôt, l'attaque pouvait encore se défendre : test « disposition »)
   IA_LENT_PREVU_MARGE: 2,       // m : … avec cette marge (il lui faut le nez devant de IA_NEZ_DEVANT longueur moins cette marge)
   IA_ATTAQUE_SORTIE: 1,         // (tour 51a) 1 : l'attaque abandonnée tout près de l'autre voiture reste à côté d'elle et lève le pied jusqu'à être derrière ; 0 : il revient tout de suite sur sa ligne
   IA_ATTAQUE_ECART_MIN: 1,      // (tour 51a) 1 : au virage, l'attaquant garde au moins une largeur et la marge d'écart de la voiture attaquée ; 0 : il rejoint sa ligne même si elle est plus près
