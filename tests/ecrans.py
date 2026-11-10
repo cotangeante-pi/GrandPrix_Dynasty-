@@ -122,6 +122,7 @@ PAGES = [
     ('index.html?course=3&circuit=test&test=manette', 1280, 720, None),   # la manette (tour 38) : une fausse manette conduit un tour, la pause, le menu au stick et à la croix
     ('index.html?course=3&circuit=test&test=tactile', 640, 360, None),   # le téléphone (tactile.js, tour 51k) : écran tactile émulé, GAZ / FREIN, ◀ ▶ sans capteur, le volant par de faux évènements d'orientation, un tour sans clavier ; capture tactile-640.png
     ('index.html?course=3&circuit=test&lang=en&test=tactile', 960, 600, None),   # … en anglais, 960×600 ; capture tactile-960.png
+    ('index.html?test=tactile-decouverte', 960, 600, None),   # (tour 52b) de la découverte au podium sans clavier, aux doigts et au volant
     ('index.html?test=tactile-iphone', 960, 600, None),   # … l'autorisation de l'iPhone (« 🎮 Activer le volant »), refusée → ◀ ▶ ; le message « Tourne ton téléphone » en portrait
     ('index.html?deux=1&ia=0&circuit=test&test=manette-deux', 1280, 720, None),   # … deux manettes, une par joueur   # les sensations de conduite (tour 37) : son au premier geste, fumée, étincelles, réglage ; capture sensations.png
     ('index.html?course=3&ia=19&joueur=1&circuit=monzo&domicile=1&test=supporters', 1280, 720, None),   # le Grand Prix à domicile : la caméra de la grille longe d'abord la tribune des supporters ; capture supporters.png   # la réalisation télé (regie.js) : de vraies caméras, l'hélicoptère ; captures tele-monoco.png, tele-helico.png   # … et Monzo de jour : la luminosité de l'image, pour la comparer à la nuit   # le décor dans le vrai jeu : la course de nuit à Singapura, 20 voitures, vue télé ; capture jeu-singapura.png
@@ -1783,8 +1784,18 @@ TACTILE_ETAT = '''() => { const b = id => { const e = document.getElementById(id
   return { present: TACTILE.estPresent(), mode: TACTILE.etat.mode, choix: TACTILE.etat.choix, neutre: TACTILE.etat.neutre, cibles: Object.assign({}, JEU.cibles), ecran: JEU.ecran, W: innerWidth, H: innerHeight,
     tactile: !document.getElementById('tactile').classList.contains('cache'), gaz: b('tactileGaz'), frein: b('tactileFrein'), gauche: b('tactileGauche'), droite: b('tactileDroite'), pause: b('tactilePause'),
     activer: b('tactileActiver'), portrait: b('tactilePortrait'), volantPause: b('boutonVolantPause'), recentrer: b('boutonRecentrerPause') }; }'''
+CONDUITE_DOIGTS = '''() => { clearInterval(window.__penche); const Z = REGLAGES.VOLANT_ZONE_MORTE, P = REGLAGES.VOLANT_PLEIN, doigt = (id, pid, bas) => document.getElementById(id).dispatchEvent(new PointerEvent(bas ? 'pointerdown' : 'pointerup', { pointerId: pid, pointerType: 'touch', isPrimary: pid === 1, bubbles: true, cancelable: true }));
+      window.__tenus = { gaz: false, frein: false };
+      BOUCLE.surAffichage(() => { if (!window.__conduire) return; const c = piloteRobot(JEU.joueur, CIRCUIT);
+        const gaz = c.gaz > 0.3, frein = c.frein > 0.3;
+        if (gaz !== window.__tenus.gaz) { doigt('tactileGaz', 1, gaz); window.__tenus.gaz = gaz; }
+        if (frein !== window.__tenus.frein) { doigt('tactileFrein', 2, frein); window.__tenus.frein = frein; }
+        const d = c.direction, a = d === 0 ? 0 : Math.sign(d) * (Z + Math.min(1, Math.abs(d)) * (P - Z));
+        window.dispatchEvent(new DeviceOrientationEvent('deviceorientation', { alpha: 0, beta: TACTILE.etat.neutre + a, gamma: 0 })); });
+      window.__conduire = true; }'''   # (tour 52b : le robot d'essai dicte, tout passe par les faux doigts et le faux volant)
 def tactile_ecran(pg, titre, l, h, page):
     if 'tactile-iphone' in page: return tactile_iphone(pg, titre, l, h)
+    if 'tactile-decouverte' in page: return tactile_decouverte(pg, titre, l, h)
     pret = attendre(pg, '() => typeof TACTILE !== "undefined" && TACTILE.estPresent() && JEU.ecran === "course"', None, 30000)
     pg.wait_for_timeout(300)
     e = pg.evaluate(TACTILE_ETAT)
@@ -1792,6 +1803,12 @@ def tactile_ecran(pg, titre, l, h, page):
     t(f'{titre} : sur un écran tactile, GAZ et FREIN s’affichent pendant la conduite, en bas à droite, dans l’écran, FREIN à gauche de GAZ, en gros (≥ 72 px)',
       pret and e['tactile'] and not e['gaz']['cache'] and not e['frein']['cache'] and dedans(e['gaz']) and dedans(e['frein']) and e['gaz']['x'] > e['W'] / 2 and e['gaz']['y'] > e['H'] / 2 and e['frein']['x'] + e['frein']['l'] <= e['gaz']['x'] + 1
       and e['gaz']['l'] >= 72 and e['frein']['l'] >= 72 and e['gaz']['texte'] == pg.evaluate('() => texte("tac_gaz")') and e['frein']['texte'] == pg.evaluate('() => texte("tac_frein")'), str(e))
+    # (tour 52b) rien ne se chevauche : 🔊 ⏸ ↩, le bandeau du tour, la minicarte, la tour de classement, GAZ / FREIN (ceux qui sont affichés)
+    sup = pg.evaluate("""() => { const ids = ['boutonSon', 'tactilePause', 'tactileRemise', 'hudCourse', 'minicarte', 'classement', 'tactileGaz', 'tactileFrein'], r = [];
+      for (const id of ids) { const e = document.getElementById(id); if (!e || e.classList.contains('cache') || getComputedStyle(e).display === 'none') continue; const b = e.getBoundingClientRect(); if (b.width > 0) r.push([id, b.left, b.top, b.right, b.bottom]); }
+      const c = []; for (let i = 0; i < r.length; i++) for (let j = i + 1; j < r.length; j++) { const a = r[i], b = r[j]; if (a[1] < b[3] - 1 && b[1] < a[3] - 1 && a[2] < b[4] - 1 && b[2] < a[4] - 1) c.push(a[0] + '/' + b[0]); }
+      return { vus: r.map(x => x[0]), chevauchements: c }; }""")
+    t(f'{titre} : ni 🔊, ⏸, ↩, le bandeau du tour, la minicarte, la tour de classement, GAZ ou FREIN ne se recouvrent', pret and not sup['chevauchements'] and len(sup['vus']) >= 5, str(sup))
     # sans capteur (aucun évènement d'orientation n'arrive) : après VOLANT_ATTENTE, le mode « boutons » et ◀ ▶ en bas à gauche
     boutons = attendre(pg, '() => TACTILE.etat.mode === "boutons"', None, 8000)
     e = pg.evaluate(TACTILE_ETAT)
@@ -1842,15 +1859,7 @@ def tactile_ecran(pg, titre, l, h, page):
       e['choix'] == 'boutons' and not e['gauche']['cache'] and e['recentrer']['cache'] and e['volantPause']['texte'] == pg.evaluate('() => texte("tac_mode_boutons")') and e2['choix'] == 'volant' and e2['gauche']['cache'], str([e['choix'], e2['choix']]))
     # une course sans clavier : le robot d'essai dit quoi faire, mais tout passe par les doigts (GAZ, FREIN tenus ou lâchés) et le volant (l'inclinaison) ;
     # au moins un tour entier, sans robot ni clavier
-    pg.evaluate('''() => { clearInterval(window.__penche); const Z = REGLAGES.VOLANT_ZONE_MORTE, P = REGLAGES.VOLANT_PLEIN, doigt = (id, pid, bas) => document.getElementById(id).dispatchEvent(new PointerEvent(bas ? 'pointerdown' : 'pointerup', { pointerId: pid, pointerType: 'touch', isPrimary: pid === 1, bubbles: true, cancelable: true }));
-      window.__tenus = { gaz: false, frein: false };
-      BOUCLE.surAffichage(() => { if (!window.__conduire) return; const c = piloteRobot(JEU.joueur, CIRCUIT);
-        const gaz = c.gaz > 0.3, frein = c.frein > 0.3;
-        if (gaz !== window.__tenus.gaz) { doigt('tactileGaz', 1, gaz); window.__tenus.gaz = gaz; }
-        if (frein !== window.__tenus.frein) { doigt('tactileFrein', 2, frein); window.__tenus.frein = frein; }
-        const d = c.direction, a = d === 0 ? 0 : Math.sign(d) * (Z + Math.min(1, Math.abs(d)) * (P - Z));
-        window.dispatchEvent(new DeviceOrientationEvent('deviceorientation', { alpha: 0, beta: TACTILE.etat.neutre + a, gamma: 0 })); });
-      window.__conduire = true; }''')
+    pg.evaluate(CONDUITE_DOIGTS)
     pg.wait_for_timeout(4000)
     pg.screenshot(path=os.path.join(CAPTURES, f'tactile-{l}.png'))
     fini = attendre(pg, '() => JEU.course && JEU.course.tours.length >= 1', None, 240000)
@@ -1865,6 +1874,42 @@ def tactile_ecran(pg, titre, l, h, page):
     pg.evaluate('() => document.getElementById("boutonReprendre").click()'); attendre(pg, '() => JEU.ecran === "course" && !document.getElementById("tactile").classList.contains("cache")', None, 4000)
     e2 = pg.evaluate(TACTILE_ETAT)
     t(f'{titre} : le bouton ⏸ ouvre la pause (les boutons de conduite se cachent) et « Reprendre » les rend', e['ecran'] == 'pause' and not e['tactile'] and e2['ecran'] == 'course' and e2['tactile'], str([e['ecran'], e['tactile'], e2['ecran'], e2['tactile']]))
+    # (tour 52b) le premier geste demande le plein écran puis le verrou en paysage (une seule fois), et le refus ne se voit pas
+    pg.evaluate("() => { document.body.dispatchEvent(new PointerEvent('pointerup', { bubbles: true })); document.body.dispatchEvent(new PointerEvent('pointerup', { bubbles: true })); }"); pg.wait_for_timeout(200)
+    t(f'{titre} : au premier geste sur un écran tactile, le plein écran puis le verrou en paysage sont demandés, une seule fois', pg.evaluate('() => window.__plein === 2'), str(pg.evaluate('() => window.__plein')))
+    # le téléphone debout pendant la course : le message par-dessus tout et la course en pause ; couché : le message part, la pause reste jusqu'à « Reprendre »
+    pg.set_viewport_size({'width': h, 'height': l}); attendre(pg, '() => JEU.ecran === "pause" && !document.getElementById("tactilePortrait").classList.contains("cache")', None, 8000)
+    d = pg.evaluate(TACTILE_ETAT)
+    pg.set_viewport_size({'width': l, 'height': h}); attendre(pg, '() => document.getElementById("tactilePortrait").classList.contains("cache")', None, 8000); pg.wait_for_timeout(500)
+    c = pg.evaluate(TACTILE_ETAT)
+    pg.evaluate('() => document.getElementById("boutonReprendre").click()'); attendre(pg, '() => JEU.ecran === "course"', None, 4000)
+    t(f'{titre} : téléphone debout pendant la course : « Tourne ton téléphone » et la course en pause ; couché : le message disparaît, la pause reste ; « Reprendre » rend la course',
+      d['ecran'] == 'pause' and not d['portrait']['cache'] and c['ecran'] == 'pause' and c['portrait']['cache'] and pg.evaluate('() => JEU.ecran === "course"'), str([d['ecran'], d['portrait']['cache'], c['ecran'], c['portrait']['cache']]))
+# (tour 52b) de la découverte au podium sans clavier : titre → « ▶ Jouer » au doigt, la course de découverte entière aux doigts et au volant
+# (le robot d'essai dicte, rien d'autre ne conduit), le bouton « Passer » au doigt, le podium, « Continuer » : aucune touche
+def toucher(pg, sel):   # un toucher au doigt ; si le bouton est caché ou recouvert un instant (mac chargé), le même clic par la page
+    try: pg.wait_for_selector(sel, state='visible', timeout=30000)
+    except Exception: pass
+    try: pg.tap(sel, timeout=8000)
+    except Exception: pg.evaluate('s => { const e = document.querySelector(s); if (e) e.click(); }', sel)
+def tactile_decouverte(pg, titre, l, h):
+    attendre(pg, '() => typeof TACTILE !== "undefined" && TACTILE.estPresent() && JEU.ecran === "titre"', None, 30000)
+    toucher(pg, '#boutonJouer')
+    t(f'{titre} : au doigt, « ▶ Jouer » mène à la grille de la course de découverte', attendre(pg, '() => JEU.ecran === "course" && JEU.plateau && JEU.qualif === null && !!JEU.decouverte', None, 30000), str(pg.evaluate('() => JEU.ecran')))
+    attendre(pg, '() => JEU.plateau.carte !== null && JEU.course.etat !== "compte"', None, 240000)
+    attendre(pg, '() => TACTILE.etat.mode === "boutons" || TACTILE.etat.mode === "volant"', None, 20000)
+    pg.evaluate("() => { window.__beta0 = 40; window.dispatchEvent(new DeviceOrientationEvent('deviceorientation', { alpha: 0, beta: 40, gamma: 0 })); }")
+    pg.evaluate(CONDUITE_DOIGTS)
+    arrive = attendre(pg, '() => !!JEU.attente || JEU.ecran === "podium"', None, 560000)
+    pg.evaluate('() => { window.__conduire = false; }')
+    for id_, pid in [('tactileGaz', 1), ('tactileFrein', 2)]: pg.evaluate(DOIGT, [id_, pid, False])
+    pg.screenshot(path=os.path.join(CAPTURES, f'tactile-decouverte-{l}.png'))
+    t(f'{titre} : les trois tours de la course de découverte se font aux doigts et au volant, sans clavier ni robot', arrive and pg.evaluate('() => !JEU.robot'), str(pg.evaluate('() => [JEU.ecran, JEU.course ? JEU.course.etat : null, JEU.course ? JEU.course.tours.length : null]')))
+    if pg.evaluate('() => JEU.ecran === "course" && !document.getElementById("attenteArrivee").classList.contains("cache")'): toucher(pg, '#boutonPasser')
+    t(f'{titre} : à l’arrivée, « Passer » au doigt mène au podium', attendre(pg, '() => JEU.ecran === "podium"', None, 120000), str(pg.evaluate('() => JEU.ecran')))
+    toucher(pg, '#boutonPodiumContinuer')
+    t(f'{titre} : « Continuer » au doigt mène à la création du pilote : toute la découverte s’est jouée sans une touche du clavier', attendre(pg, '() => JEU.ecran === "pilote"', None, 20000), str(pg.evaluate('() => JEU.ecran')))
+
 # l'iPhone : le navigateur ne donne l'orientation qu'après un toucher (DeviceOrientationEvent.requestPermission, faux ici) ; sur l'écran titre,
 # « 🎮 Activer le volant » ; accordée → le volant écoute ; refusée (rechargement avec sessionStorage perm = denied) → les boutons ◀ ▶ ;
 # le téléphone debout (viewport portrait) → « Tourne ton téléphone »
@@ -3976,6 +4021,7 @@ with sync_playwright() as p:
             if 'test=sdk' in page or 'test=decouverte' in page or 'test=amis' in page or 'test=tournoi' in page or 'test=livree' in page or 'test=essai' in page: pg.add_init_script(FAUX_SDK)
             # la météo dessinée (meteo3d.js) : une fausse météo de test (window.METEO_TEST, jamais dans le jeu), ?meteo=pluie ou ?meteo=risque
             if 'test=manette' in page: pg.add_init_script(FAUSSES_MANETTES)   # la manette (tour 38) : de fausses manettes
+            pg.add_init_script('window.__plein = 0; try { Element.prototype.requestFullscreen = function () { window.__plein++; return Promise.resolve(); }; } catch (e) {} try { screen.orientation.lock = () => { window.__plein++; return Promise.resolve(); }; } catch (e) {}')   # (tour 52b : combien de fois le plein écran ou le verrou en paysage est demandé)
             if 'test=tactile' in page and 'test=tactile-iphone' not in page: pg.add_init_script('try { DeviceOrientationEvent.requestPermission = undefined; } catch (e) {}')   # (tour 52b : un Chrome récent sur GitHub offre requestPermission, jamais résolue sans geste : ces pages simulent un Android, sans autorisation à demander)
             if 'test=tactile-iphone' in page: pg.add_init_script(FAUSSE_PERMISSION)   # le téléphone (tour 51k) : l'autorisation de l'iPhone, accordée ou refusée (sessionStorage perm)
             if 'meteo=pluie' in page: pg.add_init_script('window.METEO_TEST = { etat: () => ({ pluie: 0.85, eau: 0.75, eauTrajectoire: 0.35, ciel: 0.9 }), prevision: () => ({ type: "pluie", risque: 90 }) };')
@@ -3993,6 +4039,8 @@ with sync_playwright() as p:
             t(f'{titre} : le panneau de réglage n’existe que avec ?reglages=1', pg.evaluate('() => !!document.getElementById("reglages")') == ('reglages=1' in page))
             # le téléphone (tactile.js, tour 51k) : sur un écran sans tactile, rien ne s'affiche et rien n'est branché
             if 'test=tactile' not in page:
+                pg.evaluate("() => { document.body.dispatchEvent(new PointerEvent('pointerup', { bubbles: true })); document.body.click(); }"); pg.wait_for_timeout(100)
+                t(f'{titre} : sans écran tactile, aucun plein écran ni verrou en paysage n’est jamais demandé', pg.evaluate('() => window.__plein === 0'), str(pg.evaluate('() => window.__plein')))
                 t(f'{titre} : sans écran tactile, aucun bouton tactile (ni GAZ / FREIN, ni ◀ ▶, ni « Activer le volant »), rien n’est branché', pg.evaluate('() => typeof TACTILE === "undefined" || !TACTILE.estPresent() && TACTILE.etat.mode === "aucun" && ["tactile", "tactileActiver", "tactilePortrait", "boutonVolantPause", "boutonRecentrerPause"].every(id => document.getElementById(id).classList.contains("cache"))'), str(pg.evaluate('() => typeof TACTILE === "undefined" ? "pas de TACTILE" : [TACTILE.estPresent(), TACTILE.etat.mode, navigator.maxTouchPoints]')))
             if page == 'index.html?seul=1' and l == 1280:
                 conduite(pg, titre)
