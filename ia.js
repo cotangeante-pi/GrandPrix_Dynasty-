@@ -936,6 +936,9 @@ function defendreContreJoueur(pilote, v, vues, s0) {
   // (IA_ATTAQUE_TETE, tour 51a : comme defendreBataille, il ferme la porte avant que le joueur soit à côté de lui, pas sur lui : décalé à l'écart sûr,
   // le joueur n'est plus dans ses rétroviseurs ; le rival se rabattait sur lui au freinage du virage lent, 3 chocs sur 8 courses contre 0 sans rivalité)
   if (R.IA_ATTAQUE_TETE && Math.abs(joueur.d - v.piste.d) >= ecartSur(v.u)) return;
+  // (IA_DEFENSE_TEMPS_MIN, tour 53a : trop tard pour fermer la porte : le joueur arrive sur lui en moins de ça (il freine fort, l'autre est loin plus vite) ;
+  // se rabattre sur sa ligne à ce moment-là le jetait dessus, 2 chocs sur 8 courses : il garde sa ligne)
+  if (R.IA_DEFENSE_TEMPS_MIN && g < 0 && joueur.vitesse - v.u > 0 && -g / (joueur.vitesse - v.u) < R.IA_DEFENSE_TEMPS_MIN) return;
   const f = prochainFreinage(carte, s0);
   if (!f || f.distance > R.IA_HORIZON) return;
   const vir = carte.virages[f.j];

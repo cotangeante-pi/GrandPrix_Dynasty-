@@ -813,6 +813,7 @@ const REGLAGES = {
   // freinage ; dans le sillage, il prend la vitesse de pointe que l'aspiration lui donne ; décalé, à 4,5 m d'elle, elle ne le retient plus
   // (le réflexe revient sous l'écart sûr) ; à l'intérieur, il rejoint sa propre corde au lieu de longer le bord ; elle ne se rabat pas sur
   // lui quand il est déjà à côté ; il ne la perd pas de vue à côté de lui. 0 : la course d'avant, au bit près
+  IA_DEFENSE_TEMPS_MIN: 1.2,    // s (tour 53a) : le rival du joueur ne ferme plus la porte si le joueur arrive sur lui en moins de ça (distance / vitesse relative) ; 0 : comme avant
   IA_LENT_PREVU: 1,             // (tour 52a) 1 : attaque décalée sur un virage lent, si d'après les vitesses il n'aura pas le nez devant au point de freinage, il freine comme avant l'attaque (pas plus tard que la voiture devant : 7 m/s de plus et un choc) ; 0 : comme avant
   IA_LENT_PREVU_DIST: 80,       // m : … à moins de cette distance du point de freinage
   IA_LENT_PREVU_MARGE: 2,       // m : … avec cette marge (il lui faut le nez devant de IA_NEZ_DEVANT longueur moins cette marge)
