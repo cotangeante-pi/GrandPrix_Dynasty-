@@ -1996,3 +1996,16 @@ body.tactile #pageSaison .pageBoutons button, body.tactile #amis .boutons button
   body.tactile #tutoListe li.tutoSuivant button, body.tactile #tutoListe button { padding: 4px 10px; font-size: 13px; }
 }
 body.tactile #boutique .skin button, body.tactile #boutique button.onglet { display: inline-flex; align-items: center; justify-content: center; }
+
+/* (tour 53b, plan « classement-doigt ») au doigt, un appui sur un classement de pilotes ouvre la liste entière (interface.js : preparerClassementPlein) :
+   des lignes de 40 px qui défilent, un appui sur une ligne ouvre la fiche du rival */
+body.tactile #classementPlein { z-index: 24; justify-content: flex-start; padding: 6px 0; box-sizing: border-box; gap: 4px; background: #0b0f17; }
+body.tactile #classementPlein h1 { margin: 0; font-size: 20px; line-height: 1.1; }
+body.tactile #classementPleinListe { flex: 1; min-height: 0; width: min(92vw, 560px); margin: 0; padding: 0; list-style: none; overflow-y: auto; -webkit-overflow-scrolling: touch; touch-action: pan-y; font: 600 15px/1.2 var(--tv-police); text-align: left; }
+body.tactile #classementPleinListe li { display: flex; gap: 10px; align-items: center; min-height: 40px; padding: 0 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); white-space: nowrap; }
+body.tactile #classementPleinListe li.moi { background: var(--tv-ligne-moi, rgba(31, 111, 224, 0.75)); }
+body.tactile #classementPleinListe li .place { width: 24px; text-align: right; opacity: 0.8; }
+body.tactile #classementPleinListe li .nom { flex: 1; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 6px; }
+body.tactile #classementPleinListe li .points { font-weight: 700; }
+body.tactile #classementPleinListe li .pastille { display: inline-block; width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; }
+body.tactile #boutonClassementPleinRetour { min-height: 40px; min-width: 160px; }
