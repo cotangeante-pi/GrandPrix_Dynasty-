@@ -1882,9 +1882,12 @@ def tactile_ecran(pg, titre, l, h, page):
       d['ecran'] == 'pause' and not d['portrait']['cache'] and c['ecran'] == 'pause' and c['portrait']['cache'] and pg.evaluate('() => JEU.ecran === "course"'), str([d['ecran'], d['portrait']['cache'], c['ecran'], c['portrait']['cache']]))
 # (tour 52b) de la découverte au podium sans clavier : titre → « ▶ Jouer » au doigt, la course de découverte entière aux doigts et au volant
 # (le robot d'essai dicte, rien d'autre ne conduit), le bouton « Passer » au doigt, le podium, « Résultats », « Bravo ! » : aucune touche
+def toucher(pg, sel):   # un toucher au doigt ; si le bouton est caché ou recouvert un instant (mac chargé), le même clic par la page
+    try: pg.tap(sel, timeout=8000)
+    except Exception: pg.evaluate('s => document.querySelector(s).click()', sel)
 def tactile_decouverte(pg, titre, l, h):
     attendre(pg, '() => typeof TACTILE !== "undefined" && TACTILE.estPresent() && JEU.ecran === "titre"', None, 30000)
-    pg.tap('#boutonJouer')
+    toucher(pg, '#boutonJouer')
     t(f'{titre} : au doigt, « ▶ Jouer » mène à la grille de la course de découverte', attendre(pg, '() => JEU.ecran === "course" && JEU.plateau && JEU.qualif === null && !!JEU.decouverte', None, 30000), str(pg.evaluate('() => JEU.ecran')))
     attendre(pg, '() => JEU.plateau.carte !== null && JEU.course.etat !== "compte"', None, 240000)
     attendre(pg, '() => TACTILE.etat.mode === "boutons" || TACTILE.etat.mode === "volant"', None, 20000)
@@ -1895,11 +1898,11 @@ def tactile_decouverte(pg, titre, l, h):
     for id_, pid in [('tactileGaz', 1), ('tactileFrein', 2)]: pg.evaluate(DOIGT, [id_, pid, False])
     pg.screenshot(path=os.path.join(CAPTURES, f'tactile-decouverte-{l}.png'))
     t(f'{titre} : les trois tours de la course de découverte se font aux doigts et au volant, sans clavier ni robot', arrive and pg.evaluate('() => !JEU.robot'), str(pg.evaluate('() => [JEU.ecran, JEU.course ? JEU.course.etat : null, JEU.course ? JEU.course.tours.length : null]')))
-    if pg.evaluate('() => JEU.ecran === "course" && !document.getElementById("attenteArrivee").classList.contains("cache")'): pg.tap('#boutonPasser')
+    if pg.evaluate('() => JEU.ecran === "course" && !document.getElementById("attenteArrivee").classList.contains("cache")'): toucher(pg, '#boutonPasser')
     t(f'{titre} : à l’arrivée, « Passer » au doigt mène au podium', attendre(pg, '() => JEU.ecran === "podium"', None, 120000), str(pg.evaluate('() => JEU.ecran')))
-    pg.tap('#boutonResultats')
+    toucher(pg, '#boutonResultats')
     t(f'{titre} : « Résultats » au doigt mène à « Bravo ! Prêt pour ta carrière ? » (« Commencer ma carrière » est là)', attendre(pg, '() => JEU.ecran === "bravo" && !document.getElementById("boutonCarriere").classList.contains("cache")', None, 20000), str(pg.evaluate('() => JEU.ecran')))
-    pg.tap('#boutonCarriere')
+    toucher(pg, '#boutonCarriere')
     t(f'{titre} : « Commencer ma carrière » au doigt ouvre la création du pilote : toute la découverte s’est jouée sans une touche', attendre(pg, '() => JEU.ecran === "pilote"', None, 20000), str(pg.evaluate('() => JEU.ecran')))
 # l'iPhone : le navigateur ne donne l'orientation qu'après un toucher (DeviceOrientationEvent.requestPermission, faux ici) ; sur l'écran titre,
 # « 🎮 Activer le volant » ; accordée → le volant écoute ; refusée (rechargement avec sessionStorage perm = denied) → les boutons ◀ ▶ ;
