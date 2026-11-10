@@ -361,8 +361,6 @@ body.deux #hudStand { display: none; }
 #titre #boutonJouer { font-size: 24px; padding: 14px 40px; }
 .ecran button.petit { font-size: 13px; padding: 6px 14px; opacity: 0.85; }
 #amis p { max-width: 460px; text-align: center; font-weight: 700; }
-#bravo h2 { margin: 6px 0 0; font-size: 22px; }
-#bravo p { margin: 0; font-weight: 700; }
 #aides {
   position: fixed;
   left: 16px;
@@ -1509,6 +1507,18 @@ body.deux:not(.cote) #deuxRappel2 { left: 50%; }
 .pageInfos p { font-size: 15px; }
 #championnat #championnatReputation { flex-wrap: wrap; gap: 6px 14px; justify-content: flex-start; }
 #championnat #championnatReputation .barre { width: 64px; }
+/* Mon équipe (tour 52g) : l'argent en grand, les quatre portes en grosses tuiles égales (une icône au-dessus du nom), le garage en rouge */
+#pageEquipe .pageInfos { gap: 8px; }
+#pageEquipe #championnatArgent { font: 800 30px/1.1 var(--tv-police-titre); }
+#pageEquipe #championnatSponsor { font-size: 14px; opacity: 0.8; }
+#pageEquipe .pageBoutons { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+#pageEquipe .pageBoutons button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 104px; padding: 10px 6px; font: 800 17px/1.15 var(--tv-police); text-align: center; white-space: normal; }
+#pageEquipe .pageBoutons button::before { font-size: 34px; line-height: 1; }
+#pageEquipe #boutonGarage::before { content: "🔧"; }
+#pageEquipe #boutonMaVoiture::before { content: "🏎"; }
+#pageEquipe #boutonSponsors::before { content: "🤝"; }
+#pageEquipe #boutonMonCasque::before { content: "⛑"; }
+#pageEquipe #boutonGarage { background: var(--tv-bouton-principal); box-shadow: 0 4px 16px rgba(227, 36, 43, 0.35); }
 #boutiqueContenu { display: flex; flex-direction: column; gap: 12px; }
 #boutiqueContenu p { font-size: 16px; opacity: 0.85; }
 #pageSaison #championnatTableaux { display: flex; gap: 28px; align-items: flex-start; padding: 12px 18px; }
@@ -1549,6 +1559,7 @@ body.auPaddock #boutonSon { display: none; }
   #paddockCarte { height: min(130px, 21vh); }
   #championnat #championnatTableaux ol { font-size: 12px; line-height: 1.3; }
   .pageTitre { font-size: 21px !important; }
+  #pageEquipe .pageBoutons button { min-height: 92px; }
 }
 /* le téléphone couché (640×360) : tout se serre, les pilotes de la page Saison en deux colonnes */
 @media (max-height: 420px) {
@@ -1575,6 +1586,11 @@ body.auPaddock #boutonSon { display: none; }
   #pageCourse #boutonCourseSuivante { padding: 9px 16px; font-size: 16px; }
   .paddockPage .pageBoutons { gap: 6px; }
   .paddockPage .pageBoutons button { padding: 7px 11px; font-size: 13px; }
+  #pageEquipe #championnatArgent { font-size: 22px; }
+  #pageEquipe .pageInfos { gap: 4px; }
+  #pageEquipe .pageBoutons { gap: 6px; }
+  #pageEquipe .pageBoutons button { min-height: 66px; gap: 3px; padding: 5px 3px; font-size: 13px; }
+  #pageEquipe .pageBoutons button::before { font-size: 24px; }
   .paddockPage .pageBoutons button.petit { padding: 5px 9px; font-size: 12px; }
   #championnat #championnatPilotes { columns: 2; column-gap: 14px; }
   #championnat #championnatTableaux ol { font-size: 11px; line-height: 1.25; }
@@ -1738,6 +1754,33 @@ body.auPaddock #boutonSon { display: none; }
 body.grilleDecouverte #jauge, body.grilleDecouverte #hudCourse, body.grilleDecouverte #radar, body.grilleDecouverte #aide { display: none; }
 #aides.grille { left: 50%; top: 58%; transform: translateX(-50%); align-items: center; }
 #aides.grille span { font-size: clamp(30px, 6vw, 56px); padding: 10px 28px; border-radius: 14px; }
+
+/* le podium de la découverte (tour 52e) : le bilan, « Continuer », « Encore une course ? » et « D'abord apprendre » à la place de « Résultats » */
+#podiumDecouverte { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+#podiumDecouverte p { margin: 0; padding: 6px 16px; border-radius: 8px; background: var(--panneau); font: 800 22px/1.3 var(--police); text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5); }
+#podiumDecouverte .boutons { margin: 0; }
+#podiumDecouverte button { pointer-events: auto; }
+#boutonPodiumContinuer { padding: 12px 40px; font-size: 22px; background: var(--tv-bouton-principal); box-shadow: 0 2px 10px rgba(227, 36, 43, 0.35); }
+
+/* la création du pilote après la découverte (tour 52e) : trois pilotes prêts en grosses cartes, « Personnaliser » ouvre le formulaire */
+#pilote:not(.rapide) #piloteRapide { display: none; }
+#pilote.rapide #piloteChamps, #pilote.rapide #casqueEditeur, #pilote.rapide #piloteErreur, #pilote.rapide #piloteBoutons { display: none; }
+#piloteRapide { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+#piloteCartes { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+#piloteCartes .piloteCarte { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 150px; min-height: 150px; padding: 14px 18px; justify-content: center; font: 600 15px/1.3 var(--police); cursor: pointer; }
+#piloteCartes .piloteCarte strong { font-size: 22px; }
+#piloteCartes .piloteCarte .casqueIcone { width: 64px; height: 64px; margin: 0; }
+@media (max-height: 420px) {
+  #podiumDecouverte p { font-size: 17px; padding: 3px 12px; }
+  #boutonPodiumContinuer { padding: 6px 28px; font-size: 18px; }
+  #piloteCartes { gap: 8px; }
+  #piloteCartes .piloteCarte { min-width: 120px; min-height: 100px; padding: 6px 10px; gap: 2px; }
+  #piloteCartes .piloteCarte strong { font-size: 17px; }
+  #piloteCartes .piloteCarte .casqueIcone { width: 40px; height: 40px; }
+}
+#podiumDecouverte button { border: 0; border-radius: var(--tv-coin, 8px); background: var(--tv-bouton, #2a2f3a); color: var(--texte, #fff); font-family: var(--tv-police, inherit); cursor: pointer; }
+#podiumDecouverte button.petit { font-size: 13px; padding: 6px 14px; opacity: 0.9; }
+#boutonPodiumContinuer { color: #fff; }
 
 /* le téléphone (tactile.js, tour 51k) : de gros boutons à demi transparents, seulement sur un écran tactile, pendant la conduite ;
    GAZ et FREIN en bas à droite (le pouce droit), ◀ ▶ de secours en bas à gauche, ⏸ et ↩ en haut au milieu */

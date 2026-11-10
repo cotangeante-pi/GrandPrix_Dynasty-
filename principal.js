@@ -115,6 +115,7 @@ const JEU = {
   decouverte: false, monde: null, indices: null, aides: null, depuisClic: null, clicAuxFeux: null, clicAuPremierFeu: null,
   carteDuCache: false,  // la carte des IA est venue du cache de la sauvegarde (cache-carte.js) : pas de calcul en fond
   casqueSeul: false,    // l'écran du pilote ouvert depuis le paddock pour le casque seulement (« Mon casque »)
+  monPilote: false,     // … ou en entier pour changer le nom, le numéro et le pays (« Mon pilote », Réglages)
   // le mode 2 joueurs (deux-joueurs.js) : ses réglages { nbIA, nbTours }, ou null ; les commandes de chaque joueur (1, 2), lues
   // de ses touches à lui (TOUCHES_DEUX) : cibles comme JEU.cibles, remettre comme JEU.remettre
   deux: null, deuxCommandes: { 1: { cibles: { gaz: 0, frein: 0, direction: 0 }, remettre: false }, 2: { cibles: { gaz: 0, frein: 0, direction: 0 }, remettre: false } },
@@ -850,29 +851,46 @@ function majAides() {
   INTERFACE.majAides(a);
 }
 
-// après le podium de la découverte : « Bravo ! Prêt pour ta carrière ? », la place et la prime (decouverte.js)
-function montrerBravo() {
-  if (JEU.ecran !== 'podium' || !JEU.final) return;
-  const moi = JEU.final.find(x => x.k === JEU.suivie);
-  JEU.prime = DECOUVERTE.prime(moi.place);
-  INTERFACE.remplirBravo(moi.place, JEU.final.length, JEU.prime);
-  JEU.ecran = 'bravo';
-  INTERFACE.montrer('bravo');
+// le podium de la découverte (tour 52e ; avant, l'écran « Bravo ! » venait après lui) : « Tu finis P2 / 7 · +800 € » et « Continuer ».
+// La prime ne se gagne qu'à la première course : la première est gardée dans la session (sessionStorage), elle est créditée une seule fois,
+// à la création du pilote ; une course « Encore une course ? » ne montre aucune prime et ne change rien à ce qui est gardé
+const stockSession = {
+  lire: k => { try { return sessionStorage.getItem(k); } catch (e) { return null; } },
+  ecrire: (k, v) => { try { sessionStorage.setItem(k, v); } catch (e) { /* pas de stockage : chaque course compte comme la première */ } },
+  effacer: k => { try { sessionStorage.removeItem(k); } catch (e) { /* idem */ } },
+};
+function bilanDecouverte() {
+  const moi = JEU.final.find(x => x.k === JEU.suivie), gagne = DECOUVERTE.prime(moi.place), premiere = stockSession.lire('gpd-prime');
+  if (premiere === null) { stockSession.ecrire('gpd-prime', String(gagne)); JEU.prime = gagne; }
+  else JEU.prime = Number(premiere) || 0;   // la prime de la première course, pas de nouvelle
+  return { place: moi.place, nb: JEU.final.length, prime: premiere === null ? gagne : 0, encore: REGLAGES.PODIUM_DECOUVERTE_ENCORE };
 }
 
-// « Commencer ma carrière » : la création du pilote (pilote.js), puis le paddock
-function commencerCarriere() {
-  if (JEU.ecran !== 'bravo') return;
-  montrerPilote();
+// « Continuer » (ou 8 s sans clic) : la création du pilote (pilote.js), puis le paddock
+function continuerDecouverte() {
+  if (JEU.ecran !== 'podium' || !JEU.decouverte || !JEU.final) return;
+  montrerPilote(false, true);
+}
+
+// « Encore une course ? » : la page se recharge sur la grille de la découverte (la sauvegarde ne change pas : decouverteFaite reste faux)
+function encoreUneCourse() {
+  if (JEU.ecran !== 'podium' || !JEU.decouverte) return;
+  stockSession.ecrire('gpd-encore', '1');
+  location.reload();
 }
 
 // la création du pilote (pilote.js) : après la découverte (le monde), ou au chargement d'un championnat dont le joueur n'a
 // pas encore de pilote (une ancienne sauvegarde : demandée une fois)
-function montrerPilote(casqueSeul) {
+// casqueSeul : « Mon casque » ; rapide : les trois pilotes prêts, après la découverte (PILOTE_PROPOSITIONS > 0) ; modifier : « Mon pilote » (Réglages)
+function montrerPilote(casqueSeul, rapide, modifier) {
   PODIUM3D.cacher();
   JEU.casqueSeul = !!casqueSeul;
-  INTERFACE.remplirPilote(JEU.monde || JEU.championnat);
-  INTERFACE.modePilote(JEU.casqueSeul);
+  JEU.monPilote = !!modifier;
+  const ch = JEU.monde || JEU.championnat;
+  INTERFACE.remplirPilote(ch, !!modifier);
+  rapide = !!rapide && REGLAGES.PILOTE_PROPOSITIONS > 0;
+  if (rapide) INTERFACE.remplirPiloteRapide(PILOTE.propositions(ch, navigator.languages && navigator.languages[0] || navigator.language), carte => { INTERFACE.appliquerPilote(carte); validerPilote(); });
+  INTERFACE.modePilote(JEU.casqueSeul, rapide, !!modifier);
   VOITURE3D.apercuCasque(document.getElementById('casqueApercu'), indiceJoueur());   // le casque qui tourne, sur la case du joueur
   JEU.ecran = 'pilote';
   INTERFACE.montrer('pilote');
@@ -889,14 +907,20 @@ function changerCasque(casque) {
   VOITURE3D.majCasque(indiceJoueur(), casque);
 }
 
+// « Mon pilote » depuis les Réglages du paddock : le formulaire entier, avec les valeurs d'aujourd'hui (nom, numéro, pays)
+function monPilote() {
+  if (JEU.ecran !== 'championnat' || !JEU.championnat || !PILOTE.joueur(JEU.championnat)) return;
+  montrerPilote(false, false, true);
+}
+
 // « Mon casque » depuis le paddock : l'écran du pilote réduit au casque ; « Garder ce casque » l'écrit et revient au paddock
 function monCasque() {
   if (JEU.ecran !== 'championnat') return;
   montrerPilote(true);
 }
 
-// « C'est parti ! » : les choix vérifiés (numéro libre, pays, course de cœur ou domicile) et écrits dans le championnat ; la
-// découverte est faite (sa prime gardée), aucun point n'est donné ; la page se recharge sur le paddock
+// « C'est parti ! » (ou un clic sur un des pilotes prêts) : les choix vérifiés (numéro libre, pays, course de cœur ou domicile) et écrits dans le
+// championnat ; la découverte est faite (sa prime gardée), aucun point n'est donné ; la page se recharge sur le paddock
 function validerPilote() {
   if (JEU.ecran !== 'pilote') return;
   const ch = JEU.monde || JEU.championnat, choix = INTERFACE.lirePilote();
@@ -911,10 +935,20 @@ function validerPilote() {
   if (!r.ok) return;
   PILOTE.appliquer(ch, r.choix);
   if (CASQUE.valide(choix.casque)) PILOTE.joueur(ch).casque = choix.casque;   // le casque choisi (casque.js)
+  if (JEU.monPilote) {   // « Mon pilote » (Réglages) : écrit, sauvegardé, retour au paddock (sans rechargement : les courses rechargent la page)
+    SAUVEGARDE.ecrireChampionnat(ch);
+    JEU.monPilote = false;
+    montrerChampionnat(JEU.gagne === undefined ? null : JEU.gagne);
+    return;
+  }
   // la prime de la découverte va au solde du championnat (argent.js, Codeur 3) : un seul argent dans le jeu
   if (JEU.decouverte && typeof ARGENT !== 'undefined') ARGENT.crediter(ch, JEU.prime, 'decouverte');
   SAUVEGARDE.ecrireChampionnat(ch);
   if (JEU.decouverte) SAUVEGARDE.finirDecouverte(JEU.prime);
+  for (const k of ['gpd-prime', 'gpd-encore']) stockSession.effacer(k);
+  // le rechargement reste : la page est construite pour la découverte (circuit d'essai, IA débutantes, REGLAGES.NIVEAU, JEU.decouverte, les
+  // modèles 3D du plateau) alors que le paddock et le 1er Grand Prix demandent le championnat (autre circuit, autre niveau, JEU.championnat, constantes
+  // fixées au chargement : DECOUVERTE_EN_COURS, NOM_CIRCUIT, CHAMPIONNAT_EN_COURS) ; l'afficher sans recharger laisserait un état mélangé
   location.reload();
 }
 
@@ -1729,6 +1763,7 @@ function montrerPodium() {
     if (g) { g.placeNumero = moi.place; g.sponsor = SPONSORS.primesPour(JEU.championnat, lignes); }   // les primes du sponsor que ce classement apporterait (sponsors.js)
     INTERFACE.remplirArgent(g);
   } else INTERFACE.remplirArgent(null);
+  INTERFACE.remplirPodiumDecouverte(JEU.decouverte ? bilanDecouverte() : null);   // (la découverte : le bilan et « Continuer » à la place de « Résultats »)
   JEU.tempsPodium = 0;
   SON.signal('arrivee');
   JEU.ecran = 'podium';
@@ -2285,7 +2320,7 @@ function volantVisible() {
 // l'arrière-plan des menus de la carrière (stand3d.js, tour 49a-2) : sur tout écran de la carrière qui n'est pas la course (paddock,
 // garage, calendrier, interview, une, contrats…), la voiture du joueur garée devant le garage de son écurie, les autres voitures cachées,
 // la caméra qui tourne autour ; la course, la qualification, la grille, le podium et les résultats gardent leur 3D
-const ECRANS_COURSE = ['course', 'pause', 'qualif', 'grille', 'survol', 'resume', 'podium', 'resultats', 'bravo', 'ceremonie', 'fin', 'choix'];
+const ECRANS_COURSE = ['course', 'pause', 'qualif', 'grille', 'survol', 'resume', 'podium', 'resultats', 'ceremonie', 'fin', 'choix'];
 function standVisible() {
   return REGLAGES.STAND3D_ACTIF && !!JEU.championnat && !JEU.deux && !JEU.tournoi && !!JEU.modele && !ECRANS_COURSE.includes(JEU.ecran);
 }
@@ -2405,7 +2440,7 @@ function majTableau() {
   document.getElementById('rapport').textContent = rapportPourVitesse(v.u);
   const roule = JEU.ecran === 'course' || JEU.ecran === 'survol' || enTourQualif();
   // sur le podium et les résultats, ni vitesse ni aide des touches
-  const apres = ['podium', 'resultats', 'championnat', 'une', 'garage', 'titre', 'amis', 'bravo', 'saison', 'duelSaison', 'contrats', 'retraite', 'sponsors', 'fiche', 'interview', 'ceremonie', 'album', 'temple', 'heritier', 'calendrier', 'deuxReglages', 'tournoiInscription', 'tournoiAToi', 'tournoiPause', 'tournoiManche', 'tournoiFin', 'aileron', 'arbre', 'reglagesVoiture'].includes(JEU.ecran);
+  const apres = ['podium', 'resultats', 'championnat', 'une', 'garage', 'titre', 'amis', 'saison', 'duelSaison', 'contrats', 'retraite', 'sponsors', 'fiche', 'interview', 'ceremonie', 'album', 'temple', 'heritier', 'calendrier', 'deuxReglages', 'tournoiInscription', 'tournoiAToi', 'tournoiPause', 'tournoiManche', 'tournoiFin', 'aileron', 'arbre', 'reglagesVoiture'].includes(JEU.ecran);
   document.getElementById('tableau').classList.toggle('cache', apres || volantVisible());   // (en vue cockpit, rapport et vitesse sont sur le volant)
   document.getElementById('aide').classList.toggle('cache', apres);
   // après l'arrivée du joueur (en attendant les autres), il ne court plus : pas de « hors piste »
@@ -2610,7 +2645,7 @@ function demarrerJeu() {
     document.getElementById('boutonFicheDiscuter').addEventListener('click', () => { if (JEU.ecran === 'fiche') montrerDiscussion(JEU.ficheK, 'fiche'); });
     document.getElementById('boutonParlerCoequipier').addEventListener('click', () => { const c = CHAMPIONNAT.coequipierDe(JEU.championnat); if (JEU.ecran === 'championnat' && c) montrerDiscussion(c.id, 'championnat'); });
     INTERFACE.preparerInterview(repondreInterview, finirInterview);
-  } else if (JEU.decouverte) INTERFACE.preparerResultats(montrerBravo, () => {}, () => {});   // la découverte : après le podium, « Bravo ! »
+  } else if (JEU.decouverte) INTERFACE.preparerResultats(() => {}, () => {}, () => {});   // la découverte : « Résultats » est caché, c'est « Continuer » du podium (tour 52e)
   else if (JEU.tournoi) INTERFACE.preparerResultats(montrerFinTournoi, () => {}, () => {});   // le tournoi : du podium au classement final
   else if (JEU.deux) {   // le mode 2 joueurs : après les résultats, « Revanche » et « Menu »
     INTERFACE.preparerResultats(voirResultats, revancheDeux, menuDeux);
@@ -2633,12 +2668,16 @@ function demarrerJeu() {
   INTERFACE.preparerMancheTournoi(suiteTournoi);
   INTERFACE.preparerFinTournoi(rejouerTournoi, nouveauxJoueursTournoi);
   INTERFACE.preparerDeux(partirDeux, montrerAmis);
-  INTERFACE.preparerTitre(jouerDecouverte, montrerAmis, retourTitre, commencerCarriere);
+  INTERFACE.preparerTitre(jouerDecouverte, montrerAmis, retourTitre);
+  INTERFACE.preparerPodiumDecouverte(continuerDecouverte, encoreUneCourse);
   INTERFACE.preparerPilote(validerPilote);
   INTERFACE.preparerCasque(changerCasque);
   document.getElementById('boutonMonCasque').textContent = texte('monCasque');
   document.getElementById('boutonMonCasque').addEventListener('mousedown', e => e.preventDefault());
   document.getElementById('boutonMonCasque').addEventListener('click', monCasque);
+  document.getElementById('boutonMonPilote').textContent = texte('monPilote');
+  document.getElementById('boutonMonPilote').addEventListener('mousedown', e => e.preventDefault());
+  document.getElementById('boutonMonPilote').addEventListener('click', monPilote);
   document.getElementById('attenteTexte').textContent = texte('attenteArrivee');
   const boutonPasser = document.getElementById('boutonPasser');
   boutonPasser.textContent = texte('passerPodium');
@@ -2756,7 +2795,10 @@ function demarrerJeu() {
   // ?course=5, 12, 18 ou 0 (essai libre) lance directement une course (tests, développement)
   const demandee = PARAMETRES.get('course');
   if (SURVOL.includes(PARAMETRES.get('camera'))) { JEU.ecran = 'survol'; INTERFACE.montrer('survol'); }
-  else if (JEU.decouverte) montrerTitre();   // le premier lancement
+  else if (JEU.decouverte) {   // le premier lancement (« Encore une course ? » : la grille tout de suite, sans repasser par le titre)
+    montrerTitre();
+    if (stockSession.lire('gpd-encore') === '1') { stockSession.effacer('gpd-encore'); jouerDecouverte(); }
+  }
   else if (JEU.championnat && PAGE_NUE && PILOTE.manque(JEU.championnat)) montrerPilote();   // le vrai jeu, une sauvegarde sans pilote : la création, une fois (pas les pages ?championnat=1 des tests)
   else if (JEU.championnat && (JEU.championnat.retraite || SAISONS.finie(JEU.championnat))) montrerFinSaison();   // la saison est finie (la page a été rechargée pendant les contrats), ou la carrière
   else if (JEU.championnat) montrerChampionnat(null);
@@ -2804,7 +2846,7 @@ function demarrerJeu() {
     majTactile(dt);   // le téléphone (tactile.js, tour 51k) : les boutons tenus et le volant, à chaque image
     if (JEU.ecran === 'resume') { majResume(dt); if (JEU.sdkPret) SDK.jeuArrete(); if (JEU.ecran === 'resume') { majRetro(dt); if (typeof EFFETS3D !== 'undefined') SENSATIONS.observer([], CIRCUIT); SCENE3D.dessiner(); return; } }   // le résumé vidéo : la 3D rejoue l'enregistrement (Poki : gameplayStop)
     majAToi(dt);   // le tournoi : le compte à rebours de « À toi, … ! »   // (« passer » en accéléré : le nombre de pas de l'image suit sa durée)
-    const apres = JEU.ecran === 'podium' || JEU.ecran === 'resultats' || JEU.ecran === 'bravo' || JEU.ecran === 'tournoiFin' || JEU.ecran === 'ceremonie';   // le podium (et la cérémonie du champion) : les voitures n'y bougent plus
+    const apres = JEU.ecran === 'podium' || JEU.ecran === 'resultats' || JEU.ecran === 'tournoiFin' || JEU.ecran === 'ceremonie';   // le podium (et la cérémonie du champion) : les voitures n'y bougent plus
     // ?ia=N : chaque IA à sa place ; une IA arrivée quitte la piste (elle n'est plus dessinée)
     if (JEU.plateau && !apres) JEU.plateau.pilotes.forEach((p, k) => {
       const m = JEU.modeles[k];
@@ -2818,6 +2860,8 @@ function demarrerJeu() {
     if (typeof SENSATIONS !== 'undefined') SENSATIONS.observer(apres ? [] : voituresSens, CIRCUIT);
     if (apres) {
       JEU.tempsPodium += dt;
+      // le podium de la découverte passe tout seul à la création du pilote (sauf pendant la liste des leçons du tutoriel)
+      if (JEU.decouverte && JEU.ecran === 'podium' && REGLAGES.PODIUM_DECOUVERTE_DUREE > 0 && JEU.tempsPodium >= REGLAGES.PODIUM_DECOUVERTE_DUREE && document.getElementById('tutoMenu').classList.contains('cache')) continuerDecouverte();
       PODIUM3D.camera(SCENE3D.camera, JEU.tempsPodium);
       PODIUM3D.majConfettis(dt);   // la cérémonie du champion : les confettis tombent (rien sinon)
     } else {
