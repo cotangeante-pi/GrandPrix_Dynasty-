@@ -347,6 +347,7 @@ const INTERFACE = (function () {
   // le premier lancement (decouverte.js) : l'écran titre (jouer, entre amis → « bientôt », retour) et « Prêt pour ta carrière ? »
   function preparerTitre(jouer, amis, retour) {
     $('titreNom').textContent = texte('nomDuJeu');
+    document.body.classList.toggle('titreSimple', !!REGLAGES.TITRE_SIMPLE);   // (style.css : la rangée « Apprendre / Aides / Touches » se cache sur tactile et sous 700 px)
     $('boutonJouer').textContent = texte('titreJouer');
     $('boutonAmis').textContent = texte('titreAmis');
     $('amisTitre').textContent = texte('amisTitre');

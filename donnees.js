@@ -492,6 +492,7 @@ const REGLAGES = {
   DECOUVERTE_PILOTES: [0, 3, 6, 9, 12, 15],   // les pilotes du monde (ids dans championnat.pilotes) qui courent la découverte : un par écurie
   DECOUVERTE_ARGENT: [1000, 800, 600, 400, 300, 200, 100],   // la prime d'argent de départ selon la place (1er, 2e, …)
   DECOUVERTE_ARGENT_MAX: 1000,  // … et son plafond
+  TITRE_SIMPLE: true,           // l'écran titre sur un écran tactile ou sous 700 px de large : seulement « ▶ Jouer », « Entre amis » et 🔊 ; « Apprendre / Aides / Touches » sont dans les Réglages du paddock (faux : la rangée reste, comme avant le tour 53c)
   PODIUM_DECOUVERTE_DUREE: 8,   // s : le podium de la découverte passe tout seul à la création du pilote après ce temps (0 : jamais ; tour 52e)
   PODIUM_DECOUVERTE_ENCORE: true, // « Encore une course ? » sur ce podium (la 2e fois sans prime) ; faux : le bouton n'y est pas
   PILOTE_PROPOSITIONS: 3,       // la création du pilote après la découverte : tant de pilotes prêts en grosses cartes (0 : le formulaire seul, comme avant le tour 52e)

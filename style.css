@@ -1847,3 +1847,7 @@ body.tactile #aide { display: none; }
 #tactilePortrait::before { content: '📱'; display: block; font-size: 120px; line-height: 1; animation: tactile-tourne 2.2s ease-in-out infinite; }   /* (un téléphone qui se couche : pas de phrase longue) */
 @keyframes tactile-tourne { 0%, 20% { transform: rotate(0deg); } 60%, 100% { transform: rotate(-90deg); } }
 @media (prefers-reduced-motion: reduce) { #tactilePortrait::before { animation: none; transform: rotate(-90deg); } }
+
+/* l'écran titre simple (tour 53c, premiere-minute n° 12) : sur un écran tactile ou sous 700 px de large, « Apprendre / Aides / Touches » ne sont plus au titre (ils sont dans les Réglages du paddock) */
+body.titreSimple.tactile #titreAide { display: none; }
+@media (max-width: 699px) { body.titreSimple #titreAide { display: none; } }
