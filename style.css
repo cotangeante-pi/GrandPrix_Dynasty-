@@ -1854,8 +1854,7 @@ body.tactile #aide { display: none; }
 #placeGrand { position: fixed; left: 50%; top: 38%; transform: translate(-50%, -50%); font: 900 96px/1 var(--tv-police-titre, var(--police)); font-style: italic; color: #fff; text-shadow: 0 4px 18px rgba(0, 0, 0, 0.75), 0 0 28px rgba(125, 255, 154, 0.8); pointer-events: none; }
 #placeGrand.saute { animation: placeSaute 1s ease-out; }
 @keyframes placeSaute { 0% { opacity: 0; transform: translate(-50%, -50%) scale(0.6); } 20% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); } 80% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -50%) scale(1); } }
-@media (max-height: 420px) { #placeGrand { font-size: 56px; } #primeDecouverte { font-size: 14px; padding: 3px 8px; right: calc(var(--classement-largeur, 170px) + 40px); } }
-body.tactile:not(.horsCourse) #primeDecouverte { right: calc(var(--classement-largeur, 170px) + 24px); }   /* (le 🔊 et ⏸ sont à gauche en tactile couché) */
+@media (max-height: 420px) { #placeGrand { font-size: 56px; } #primeDecouverte { font-size: 14px; padding: 3px 8px; top: 160px; right: 12px; } }   /* (640×360 : sous la tour de classement, rien ne se recouvre : ni le chrono, ni GAZ / FREIN, ni la minicarte) */
 @media (prefers-reduced-motion: reduce) { #primeDecouverte.monte, #primeDecouverte.monte #primeGain, #placeGrand.saute { animation: none; } #primeGain { opacity: 1; } }
 #tactilePortrait { flex-direction: column; gap: 12px; }
 #tactilePortrait::before { content: '📱'; display: block; font-size: 120px; line-height: 1; animation: tactile-tourne 2.2s ease-in-out infinite; }   /* (un téléphone qui se couche : pas de phrase longue) */
