@@ -1540,6 +1540,13 @@ body.deux:not(.cote) #deuxRappel2 { left: 50%; }
 #carriereConfirmation.danger { padding: 8px 12px; border-radius: var(--tv-coin); background: rgba(150, 20, 24, 0.35); border-left: 4px solid var(--tv-rouge); }
 #pageReglages .pageBoutons button.cache { display: none; }
 #pageReglages.confirme > .tvCarte:not(#reglagesCarriere) { display: none; }
+/* (tour 52c, la clarté) Réglages : des tuiles toutes pareilles, rangées en colonnes égales, un titre en gros avec son icône, pour voir le thème en un coup d'œil */
+#pageReglages .tvCarte h2 { font-size: 17px; opacity: 1; letter-spacing: 0.04em; margin-bottom: 10px; }
+#sonPanneau h2::before { content: '🔊 '; }
+#reglagesJeuTitre::before { content: '🎮 '; }
+#reglagesCarriereTitre::before { content: '🏁 '; }
+#pageReglages .pageBoutons { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+#pageReglages .pageBoutons button, #pageReglages .pageBoutons button.petit { width: 100%; min-height: 40px; padding: 6px 8px; font-size: 13px; white-space: normal; line-height: 1.15; text-align: center; display: flex; align-items: center; justify-content: center; box-sizing: border-box; }
 
 /* au paddock, le son est dans Réglages : 🔊 ne reste pas dans un coin ; la bulle d'aide se pose à droite du menu */
 body.auPaddock #boutonSon { display: none; }
@@ -1597,6 +1604,9 @@ body.auPaddock #boutonSon { display: none; }
   #pageEquipe .pageBoutons button { min-height: 66px; gap: 3px; padding: 5px 3px; font-size: 13px; }
   #pageEquipe .pageBoutons button::before { font-size: 24px; }
   .paddockPage .pageBoutons button.petit { padding: 5px 9px; font-size: 12px; }
+  #pageReglages .tvCarte h2 { font-size: 13px; margin-bottom: 4px; }
+  #pageReglages .pageBoutons { gap: 5px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  #pageReglages .pageBoutons button, #pageReglages .pageBoutons button.petit { min-height: 28px; padding: 3px 6px; font-size: 12px; }
   #championnat #championnatPilotes { columns: 2; column-gap: 14px; }
   #championnat #championnatTableaux ol { font-size: 11px; line-height: 1.25; }
   #pageSaison #championnatTableaux { gap: 16px; padding: 6px 10px; }
