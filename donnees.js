@@ -495,6 +495,7 @@ const REGLAGES = {
   PRIME_LIVE: true,             // la découverte : « Prime : 400 € » près de la tour de classement, qui suit la place en direct, et un gros « P3 ! » à chaque place gagnée (faux : rien, comme avant le tour 52g)
   PRIME_PLACE_GRAND_DUREE: 1,   // s : le « P3 ! » au centre
   PRIME_GAIN_DUREE: 1.2,        // s : le « +200 € » vert à côté du compteur
+  TITRE_SIMPLE: true,           // l'écran titre sur un écran tactile ou sous 700 px de large : seulement « ▶ Jouer », « Entre amis » et 🔊 ; « Apprendre / Aides / Touches » sont dans les Réglages du paddock (faux : la rangée reste, comme avant le tour 53c)
   PODIUM_DECOUVERTE_DUREE: 8,   // s : le podium de la découverte passe tout seul à la création du pilote après ce temps (0 : jamais ; tour 52e)
   PODIUM_DECOUVERTE_ENCORE: true, // « Encore une course ? » sur ce podium (la 2e fois sans prime) ; faux : le bouton n'y est pas
   PILOTE_PROPOSITIONS: 3,       // la création du pilote après la découverte : tant de pilotes prêts en grosses cartes (0 : le formulaire seul, comme avant le tour 52e)

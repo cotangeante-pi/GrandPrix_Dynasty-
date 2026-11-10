@@ -1562,7 +1562,12 @@ body.deux:not(.cote) #deuxRappel2 { left: 50%; }
 #boutiqueContenu { display: flex; flex-direction: column; gap: 12px; }
 #boutiqueContenu p { font-size: 16px; opacity: 0.85; }
 #boutiqueContenu #boutiqueSoldePage { font-size: 28px; font-weight: 800; color: #ffd666; opacity: 1; margin: 0; }
-#pageSaison #championnatTableaux { display: flex; gap: 28px; align-items: flex-start; padding: 12px 18px; }
+/* tour 53e : Saison : où tu en es en une ligne, les trois portes en tuiles égales, les deux classements lisibles (titres colorés) */
+#saisonResume { margin: 0; font-size: 16px; font-weight: 700; }
+#pageSaison .pageBoutons { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+#pageSaison .pageBoutons button { display: flex; align-items: center; justify-content: center; min-height: 54px; padding: 8px 6px; font: 800 17px/1.15 var(--tv-police); text-align: center; white-space: normal; }
+#pageSaison #championnatTableaux h2 { font-size: 15px; color: var(--tv-or); letter-spacing: 0.06em; }
+#pageSaison #championnatTableaux { display: flex; gap: 28px; align-items: flex-start; justify-content: space-evenly; padding: 12px 18px; }
 #pageSaison #championnatTableaux h2 { text-align: center; }
 #championnat #championnatTableaux ol { font-size: 13px; line-height: 1.5; }
 #championnat #championnatTableaux li { padding: 0 7px; }
@@ -1590,6 +1595,31 @@ body.auPaddock #boutonSon { display: none; }
 #championnat:not(.cache) ~ #bulleAide.bulleMenu { top: auto; bottom: 8px; }   /* (tour 53e : les pages partent du haut, la bulle d'aide passe en bas pour ne couvrir aucun bouton) */
 #championnat:not(.cache) ~ #tutoConsigne.tutoMenuConsigne { left: calc(var(--paddock-menu) + 16px); }   /* (la consigne de la leçon « visite » non plus ne couvre pas le menu) */
 
+/* (tour 53b, plan « menus-doigt ») sur un écran tactile (body.tactile), aucun bouton des menus du paddock et des écrans qui en partent
+   n'a moins de 40 px de haut (l'aire d'un doigt), même en 640×360. Les pages Course, Saison, Entre amis et Apprendre ne sont pas touchées ici
+   (le Codeur de chaque section s'en charge). Sans écran tactile, rien ne change. */
+body.tactile #paddockMenu { gap: 0; }
+body.tactile .ecran #paddockMenu button.menuEntree { min-height: 40px; padding-top: 0; padding-bottom: 0; }
+body.tactile :is(#pageEquipe, #pageBoutique, #pageMessages, #pageReglages, #carriereConfirmation) button,
+body.tactile :is(#garage, #boutique, #sponsors, #pilote, #discussion, #livree, #courrier, #qualif) button,
+body.tactile.horsCourse #boutonSon { min-height: 40px; }
+body.tactile.horsCourse #boutonSon { min-width: 40px; width: 40px; height: 40px; }
+body.tactile #pageReglages .pageBoutons button, body.tactile #pageReglages .pageBoutons button.petit { min-height: 40px; }
+
+@media (max-height: 420px) {
+  body.tactile #garageListe { gap: 2px; margin: 0; }
+  body.tactile #garageListe li { padding: 0 10px; }
+  body.tactile #garage { gap: 2px; padding-top: 2px; padding-bottom: 2px; }
+  body.tactile #garageBonus { font-size: 12px; }
+  body.tactile #garagePneus { margin: 2px 0; gap: 4px; }
+  body.tactile #discussionCarte { gap: 4px; padding: 6px 12px; max-height: calc(100vh - 52px); }
+  body.tactile #discussionPortrait canvas { width: 44px; height: 52px; }
+  body.tactile #discussion h1 { font-size: 18px; }
+  body.tactile #discussionFil { min-height: 40px; max-height: 70px; }
+  body.tactile #discussionComposeur { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; }
+  body.tactile #discussionComposeur button { flex: 0 0 auto; white-space: nowrap; }
+  body.tactile #discussionSaisie button, body.tactile #discussionTexte { min-height: 40px; }
+}
 /* 960×600 et moins large : le menu devient une colonne d'icônes (le nom en bulle, title) */
 @media (max-width: 1100px) {
   :root { --paddock-menu: 58px; }
@@ -1650,6 +1680,10 @@ body.auPaddock #boutonSon { display: none; }
   #championnat #championnatPilotes { columns: 2; column-gap: 14px; }
   #championnat #championnatTableaux ol { font-size: 11px; line-height: 1.25; }
   #pageSaison #championnatTableaux { gap: 16px; padding: 6px 10px; }
+  #saisonResume { font-size: 13px; }
+  #pageSaison .pageBoutons { gap: 6px; }
+  #pageSaison .pageBoutons button { min-height: 34px; padding: 4px 4px; font-size: 13px; }
+  #pageSaison #championnatTableaux h2 { font-size: 12px; }
   #carriereConfirmation p { font-size: 12px; }
   #carriereConfirmation ul { font-size: 11px; line-height: 1.25; }
 }
@@ -1964,3 +1998,27 @@ body.tactile #aide { display: none; }
   #tutoListe button, #tutoListe li.tutoSuivant button { padding: 3px 12px; font-size: 12px; min-height: 0; }
   #tutoMenu .boutons button { padding: 5px 12px; font-size: 12px; min-height: 0; }
 }
+
+/* l'écran titre simple (tour 53c, premiere-minute n° 12) : sur un écran tactile ou sous 700 px de large, « Apprendre / Aides / Touches » ne sont plus au titre (ils sont dans les Réglages du paddock) */
+body.titreSimple.tactile #titreAide { display: none; }
+@media (max-width: 699px) { body.titreSimple #titreAide { display: none; } }
+
+/* (tour 53b, plan « doigt-suite ») au doigt (body.tactile), les derniers boutons des menus ont au moins 40 px de haut : Course (Voir tout, Voir messages,
+   Course suivante), Saison (Calendrier, Album, Arbre), Entre amis (Retour), Apprendre (les leçons et leurs boutons). Les lignes du classement
+   restent des lignes (le toucher ouvre la fiche d'un rival, mais vingt lignes de 40 px ne tiennent pas dans 360 px). */
+body.tactile :is(#paddockCourt, #paddockNouvelles) button, body.tactile #pageCourse #boutonCourseSuivante,
+body.tactile #pageSaison .pageBoutons button, body.tactile #amis .boutons button, body.tactile #tutoMenu button, body.tactile #tutoResultat button { min-height: 40px; }
+@media (max-height: 420px) {
+  body.tactile #tutoMenu { gap: 2px; padding-top: 14px; padding-bottom: 0; justify-content: flex-start; }
+  body.tactile #tutoMenu .boutons { margin: 0; }
+  body.tactile #tutoMenu h1 { position: absolute; top: 3px; left: 0; right: 0; }
+  body.tactile #tutoMenu h1 { font-size: 13px; margin: 0; line-height: 1.1; }
+  body.tactile #tutoMenu h1::after { display: none; }
+  body.tactile #tutoMenuIntro { display: none; }
+  body.tactile #tutoListe { gap: 1px; width: min(94vw, 720px); }
+  body.tactile #tutoListe li { padding: 0 8px; min-height: 40px; column-gap: 8px; border-width: 0; }
+  body.tactile #tutoListe .tutoNom { font-size: 13px; }
+  body.tactile #tutoListe .tutoBut { font-size: 11px; line-height: 1.1; }
+  body.tactile #tutoListe li.tutoSuivant button, body.tactile #tutoListe button { padding: 4px 10px; font-size: 13px; }
+}
+body.tactile #boutique .skin button, body.tactile #boutique button.onglet { display: inline-flex; align-items: center; justify-content: center; }
