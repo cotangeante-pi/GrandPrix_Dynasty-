@@ -658,6 +658,7 @@ const INTERFACE = (function () {
   // l'écran du championnat : le solde
   function remplirSolde(ch) {
     $('championnatArgent').textContent = avec(texte('solde'), { n: ARGENT.formater(ARGENT.solde(ch)) });
+    $('boutiqueSoldePage').textContent = texte('boutiqueSolde').replace('{s}', ARGENT.formater(ARGENT.solde(ch)));   // (la page Boutique : l'argent en gros, tour 52)
   }
 
   // l'écran du garage : les 4 améliorations (niveau, prix du suivant, « Acheter » grisé si impossible), le solde, le bonus
