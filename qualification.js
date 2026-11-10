@@ -52,11 +52,17 @@ const QUALIFICATION = (function () {
     return ordre.findIndex(p => p.humain) + 1;
   }
 
+  // le temps que prend « Passer » : null (dernier) ; au tout premier Grand Prix de la carrière (ch : championnat.js), le
+  // temps médian des IA (decouverte.js) = milieu de grille (tour 52f ; QUALIF_PASSER_PREMIER_MILIEU)
+  function tempsPasse(ch, tempsIA) {
+    return R.QUALIF_PASSER_PREMIER_MILIEU && CHAMPIONNAT.estPremierGrandPrix(ch) ? DECOUVERTE.tempsMilieu(tempsIA) : null;
+  }
+
   // l'écart du joueur à la pole (s), null s'il n'a pas de temps
   function ecartPole(e) {
     const moi = e.grille.find(g => e.pilotes[g.numero - 1].humain);
     return moi && moi.qualif !== null ? moi.qualif - e.grille[0].qualif : null;
   }
 
-  return { creer, pas, grille, ecartPole, distance, chrono };
+  return { creer, pas, grille, tempsPasse, ecartPole, distance, chrono };
 })();

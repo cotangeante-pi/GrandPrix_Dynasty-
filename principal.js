@@ -202,7 +202,7 @@ function lancerCourse(nbTours) {
 // à part : les IA restent sur la grille, et la carte peut finir de se calculer pendant ce temps), puis la grille
 function commencerQualif() {
   JEU.qualif = { etat: 'choix', q: null, v: null, passe: false };
-  INTERFACE.remplirQualif('choix');
+  INTERFACE.remplirQualif('choix', { milieu: REGLAGES.QUALIF_PASSER_PREMIER_MILIEU && CHAMPIONNAT.estPremierGrandPrix(JEU.championnat) });
   JEU.ecran = 'qualif';
   INTERFACE.montrer('qualif');
 }
@@ -620,11 +620,13 @@ function abandonnerTournoi() {
 function finirQualif() {
   const e = JEU.plateau;
   if (!e.carte) { JEU.qualif.etat = 'attente'; INTERFACE.remplirQualif('attente'); INTERFACE.montrer('qualif'); return; }
-  const temps = JEU.qualif.passe ? null : JEU.qualif.q.temps;
+  // « Passer » : dernier, sauf au tout premier Grand Prix de la carrière (milieu de grille, QUALIFICATION.tempsPasse)
+  const milieu = JEU.qualif.passe ? QUALIFICATION.tempsPasse(JEU.championnat, e.pilotes.filter(p => !p.humain).map(p => p.qualif)) : null;
+  const temps = JEU.qualif.passe ? milieu : JEU.qualif.q.temps;
   const place = QUALIFICATION.grille(e, temps);
   suivre(JEU.suivie);   // JEU.joueur et JEU.course : de nouveau sa voiture de course, sur la grille
   JEU.qualif.etat = 'resultat';
-  INTERFACE.remplirQualif('resultat', { place, nb: e.pilotes.length, temps, valide: temps !== null, passe: JEU.qualif.passe, ecart: QUALIFICATION.ecartPole(e), fantome: JEU.qualif.fantome || null });
+  INTERFACE.remplirQualif('resultat', { place, nb: e.pilotes.length, temps, valide: temps !== null, passe: JEU.qualif.passe, milieu: milieu !== null, ecart: QUALIFICATION.ecartPole(e), fantome: JEU.qualif.fantome || null });
   JEU.ecran = 'qualif';
   INTERFACE.montrer('qualif');
 }
@@ -847,6 +849,7 @@ function majAides() {
   if (JEU.cibles.frein) a.frein = true;
   const d = c.depart;
   a.clignote = !!d && d.lance === null && d.t >= REGLAGES.AIDE_CLIGNOTE_APRES && !a.gaz && !a.direction && !a.frein;
+  a.grille = !!d && d.lance === null && REGLAGES.GRILLE_DECOUVERTE_NUE;   // (tour 52d) pendant les feux : l'écran nu, une seule aide
   INTERFACE.majAides(a);
 }
 
@@ -1056,7 +1059,7 @@ function courseSuivante() {
   // le Grand Prix d'avant est fini (après l'interview et la une) : la pause pub Poki vient ici, ENTRE deux Grands Prix (commercialBreak,
   // jamais pendant une course), puis la page se recharge sur le suivant (Codeur 3, étape 15)
   if (JEU.grandPrixFini) { SDK.pubEntreCourses(() => location.reload(), couperSonPub); return; }
-  lancerCourse(Number(PARAMETRES.get('tours')) || REGLAGES.CHAMPIONNAT_TOURS);
+  lancerCourse(Number(PARAMETRES.get('tours')) || CHAMPIONNAT.toursDuGrandPrix(JEU.championnat));
 }
 
 // après les résultats : les points, la une du journal et la sauvegarde (finirGrandPrix), puis la une à l'écran
@@ -2193,9 +2196,9 @@ function conduireJoueur(p, pas) {
   const d = p.course.depart;
   if (d && d.lance === null) {
     if (JEU.robot) { if (d.extinction !== null && d.t - d.extinction >= REGLAGES.DEPART_ROBOT_REACTION) DEPART.lancer(d, 'parfait', REGLAGES.DEPART_ROBOT_REACTION); }
-    else DEPART.commande(d, cmd.cibles.gaz > 0, p.course.compte);
+    else DEPART.commande(d, cmd.cibles.gaz > 0, p.course.compte, JEU.decouverte);
     if (d.lance === null) cibles = AUCUNE;
-    else if (!JEU.robot && !JEU.deux && d.resultat !== 'faux') {
+    else if (!JEU.robot && !JEU.deux && d.resultat !== 'faux' && !d.tenu) {
       JEU.departRecord = SAUVEGARDE.proposerReaction(d.reaction);   // le record du temps de réaction (pas celui du robot, ni à deux)
       if (JEU.championnat && p === JEU.plateau.pilotes[JEU.ia]) CARRIERE.noterReaction(JEU.championnat, d.reaction);   // … et celui de la carrière (carriere.js, sauvegardé avec le Grand Prix)
     }
@@ -2408,6 +2411,17 @@ function majMessages() {
 // le commentateur (commentaire.js) : il lit la course, et sa phrase du moment passe dans le bandeau (« 🎙 Gaston Virage : … ») ;
 // il se tait pendant les premières secondes d'un virage serré du joueur
 function majCommentaire(e, m) {
+  // (tour 52f) la découverte : le commentateur de « tout » ne parle que du joueur (le réglage sauvegardé n'est pas touché : 'non' reste 'non')
+  const forcer = JEU.decouverte && REGLAGES.COMMENTAIRE_DECOUVERTE_MODE && REGLAGES.COMMENTAIRE_MODE === 'tout' ? REGLAGES.COMMENTAIRE_DECOUVERTE_MODE : null;
+  if (!forcer) { majCommentaireDit(e, m); return; }
+  REGLAGES.COMMENTAIRE_MODE = forcer;
+  try { majCommentaireDit(e, m); } finally { REGLAGES.COMMENTAIRE_MODE = 'tout'; }
+}
+
+// un fait « du joueur » : ce que la voix a le droit de dire pendant la découverte (le joueur, l'arrivée)
+function faitDuJoueur(it) { return !!it && (!!it.joueur || it.type === 'arrivee' || it.type === 'combleJoueur'); }
+
+function majCommentaireDit(e, m) {
   if (typeof COMMENTAIRE === 'undefined' || REGLAGES.COMMENTAIRE_MODE === 'non') return;
   if (!JEU.commentaire || JEU.commentaire.plateau !== e) JEU.commentaire = { plateau: e, c: COMMENTAIRE.creer(e.graine || 0), virage: null };
   const j = JEU.contre ? JEU.ia : -1, c = JEU.commentaire.c, v = j >= 0 ? e.pilotes[j].v : null;
@@ -2424,9 +2438,10 @@ function majCommentaire(e, m) {
     MESSAGES.pousserTexte(m, { type: 'commentaire', texte: '🎙 ' + texte('commentateur') + texte('deuxPoints') + dit });
     if (!it.comble) SON.signal('commentaire');   // (le petit signal pour les faits, pas pour ce qui comble)
     // (tour 51c) un fait qui a un son enregistré le joue (voix-sons.js) ; la synthèse ne dit que le reste
-    const sonne = typeof VOIXSONS !== 'undefined' && JEU.ecran === 'course' && VOIXSONS.jouer(it.type);
+    const voixOk = !(JEU.decouverte && REGLAGES.COMMENTAIRE_DECOUVERTE_MODE) || faitDuJoueur(it);   // (tour 52f) à la découverte, la voix (synthèse et sons) seulement pour les faits du joueur
+    const sonne = voixOk && typeof VOIXSONS !== 'undefined' && JEU.ecran === 'course' && VOIXSONS.jouer(it.type);
     if (sonne && typeof VOIX !== 'undefined') VOIX.taire();   // (tour 51l) le son coupe la synthèse en cours : jamais deux voix à la fois
-    if (!sonne && typeof VOIX !== 'undefined' && JEU.ecran === 'course') VOIX.dire(dit, it.prio >= REGLAGES.COMMENTAIRE_IMPORTANT);   // (tour 45c : à voix haute)
+    if (voixOk && !sonne && typeof VOIX !== 'undefined' && JEU.ecran === 'course') VOIX.dire(dit, it.prio >= REGLAGES.COMMENTAIRE_IMPORTANT);   // (tour 45c : à voix haute)
   }
   if (typeof VOIXSONS !== 'undefined') { if (JEU.ecran !== 'course') VOIXSONS.taire(); else VOIXSONS.charger(); }   // (tour 51c : chargés après la découverte)
   if (typeof VOIX !== 'undefined' && JEU.ecran !== 'course' && (VOIX.parle || VOIX.enAttente)) VOIX.taire();   // (la pause, l'arrivée : il se tait)
@@ -2564,7 +2579,9 @@ function demarrerJeu() {
   JEU.conseilForce = PARAMETRES.get('tutoriel') === 'freinage' ? 'oui' : null;
   const carteConseil = !JEU.tournoi && !JEU.deux && !JEU.defi && (JEU.conseilForce !== null || CONSEIL.reglageVu(SAUVEGARDE.option('trajectoire', null), REGLAGES.NIVEAU) !== 'non');
   if (JEU.ia || JEU.deux || carteConseil) {   // (à deux sans IA aussi : la course attend la carte, comme les autres)
-    const enCache = CACHE_CARTE.decoder(SAUVEGARDE.carte(NOM_CIRCUIT), NOM_CIRCUIT, CIRCUITS[NOM_CIRCUIT], CIRCUIT);
+    // la sauvegarde d'abord, puis la carte livrée avec le jeu (cache-carte-test.js : le circuit test, tour 52f ; périmée = refusée par sa clé, on calcule en fond)
+    const enCache = CACHE_CARTE.decoder(SAUVEGARDE.carte(NOM_CIRCUIT), NOM_CIRCUIT, CIRCUITS[NOM_CIRCUIT], CIRCUIT)
+      || (typeof CACHE_CARTE_LIVREE !== 'undefined' ? CACHE_CARTE.decoder(CACHE_CARTE_LIVREE[NOM_CIRCUIT], NOM_CIRCUIT, CIRCUITS[NOM_CIRCUIT], CIRCUIT) : null);
     if (enCache) { JEU.carteDuCache = true; carteFinie(enCache); }
     else JEU.calculTrajectoire = calculerEnFond(etapesTrajectoire(CIRCUIT), t => { SAUVEGARDE.ecrireCarte(NOM_CIRCUIT, CACHE_CARTE.encoder(NOM_CIRCUIT, CIRCUITS[NOM_CIRCUIT], t)); carteFinie(t); });
   }

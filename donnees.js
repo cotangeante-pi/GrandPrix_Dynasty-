@@ -180,6 +180,7 @@ const REGLAGES = {
 
   // le téléphone (tactile.js, tour 51k, CLAUDE.md « Le téléphone : le volant ») : les mêmes cibles que le clavier, la physique ne change pas
   TACTILE_ACTIF: true,             // faux : rien, même sur un écran tactile (le clavier seul, au bit près) ; sans écran tactile, rien ne change
+  TACTILE_PAYSAGE: true,           // (tour 52b) au premier geste sur un écran tactile : plein écran puis verrou en paysage (là où le navigateur le permet) ; faux : rien demandé
   VOLANT_PLEIN: 25,                // ° d'inclinaison depuis le neutre = braquage à fond
   VOLANT_ZONE_MORTE: 2,            // ° autour du neutre où l'on ne braque pas
   VOLANT_LISSAGE: 0.06,            // s : le temps que met l'angle lissé à rejoindre la mesure (0 : aucun lissage)
@@ -240,6 +241,9 @@ const REGLAGES = {
   DEPART_BON: [0.85, 1],
   DEPART_PATINAGE: [0.5, 1.5],
   DEPART_CALE: [0.3, 1.5],
+  DEPART_TENIR_PART: true,      // la touche tenue à l'extinction des feux fait partir la voiture (« bon départ » si le régime est dans le vert) ; faux = lâcher puis réappuyer obligatoire (avant le tour 52d)
+  DEPART_DECOUVERTE_DOUX: true, // à la découverte : jamais de patinage ni de calé au départ du joueur (au pire « bon ») ; faux = comme avant
+  GRILLE_DECOUVERTE_NUE: true,  // la grille de la découverte, pendant les feux : ni jauge, ni chrono, ni radar, ni barre des touches, une seule aide « Tiens ↑ » (plan première minute n° 2) ; faux = l'écran d'avant
   DEPART_AFFICHAGE: 1.5,        // s : le résultat et le temps de réaction restent affichés ce temps
   DEPART_ROBOT_REACTION: 0.2,   // s : le robot d'essai (tests) fait toujours un départ parfait, après ce temps
   // les IA (tirerIA) : la part de la plage FEUX_REACTION_IA qu'un pilote parfaitement régulier garde (le reste vient de son irrégularité)
@@ -288,6 +292,8 @@ const REGLAGES = {
   ],
   FACTEUR_VOITURE_JOUEUR: 1,    // la qualité de la voiture du joueur : 1 pour l'instant (sa conduite, c'est le propriétaire qui la valide) ; plus tard celle de son écurie, dans ±3 %
   CHAMPIONNAT_TOURS: 5,         // ?championnat=1 : la longueur des Grands Prix, fixe pour l'instant (?tours=1 pour les tests)
+  CHAMPIONNAT_TOURS_PREMIER: 3, // (tour 52f, décision du propriétaire) le tout premier Grand Prix de la carrière : 3 tours ; les suivants : CHAMPIONNAT_TOURS (le mettre à la même valeur = le jeu d'avant)
+  QUALIF_PASSER_PREMIER_MILIEU: true, // (tour 52f) au tout premier Grand Prix de la carrière seulement, « Passer » la qualification = milieu de grille (decouverte.js : tempsMilieu) ; false = dernier, comme avant
   PADDOCK_COURT_TETE: 3,        // le paddock (tour 48a) : le classement réduit de la page Course montre les 3 premiers,
   PADDOCK_COURT_VOISINS: 1,     // … le joueur avec 1 voisin de chaque côté, et le coéquipier ; « Voir tout » ouvre la page Saison
   // l'argent (étape 8, argent.js, Codeur 3) : les gains d'un Grand Prix, plafonnés par course ; les sponsors viendront à l'étape 9
@@ -489,7 +495,7 @@ const REGLAGES = {
   PODIUM_DECOUVERTE_DUREE: 8,   // s : le podium de la découverte passe tout seul à la création du pilote après ce temps (0 : jamais ; tour 52e)
   PODIUM_DECOUVERTE_ENCORE: true, // « Encore une course ? » sur ce podium (la 2e fois sans prime) ; faux : le bouton n'y est pas
   PILOTE_PROPOSITIONS: 3,       // la création du pilote après la découverte : tant de pilotes prêts en grosses cartes (0 : le formulaire seul, comme avant le tour 52e)
-  PILOTE_PRENOMS: ['Alex', 'Sam', 'Noa', 'Lou', 'Kim', 'Robin', 'Sacha', 'Mika', 'Dani', 'Jo', 'Ilan', 'Maé', 'Tim', 'Zoé', 'Léa', 'Eden'],   // les prénoms tirés pour ces cartes : génériques, jamais un vrai pilote
+  PILOTE_PRENOMS: ['Alex', 'Sam', 'Noa', 'Lou', 'Kim', 'Robin', 'Sacha', 'Mika', 'Dani', 'Jo', 'Ilan', 'Mae', 'Tim', 'Zoe', 'Lea', 'Eden'],   // les prénoms tirés pour ces cartes : génériques, sans accent (l'audit anglais prend une lettre accentuée pour du français), jamais un vrai pilote
   PILOTE_LANGUE_PAYS: { fr: 'fr', en: 'gb', es: 'es', de: 'de', it: 'it', pt: 'pt', nl: 'nl', ja: 'jp', zh: 'cn', sv: 'se', fi: 'fi', da: 'dk', no: 'no', nb: 'no', pl: 'pl', ar: 'ae' },   // le pays d'une carte : la région du navigateur (fr-CA → ca) sinon sa langue
   // le mode 2 joueurs (deux-joueurs.js, CLAUDE.md « Le mode 2 joueurs (écran partagé) ») : ?deux=1 ; les touches par leur place
   // sur le clavier (e.code : W A S D = Z Q S D en AZERTY) ; Échap met en pause pour les deux ; Espace et C ne font rien
@@ -1131,6 +1137,7 @@ const REGLAGES = {
   // les messages de course (messages.js) : chacun reste MESSAGES_DUREE s ; la file en garde au plus MESSAGES_FILE_MAX
   MESSAGES_DUREE: 3, MESSAGES_FILE_MAX: 4,
   // le commentateur (commentaire.js, CLAUDE.md « Le commentateur ») : ses phrases passent dans le bandeau des messages de course
+  COMMENTAIRE_DECOUVERTE_MODE: 'joueur', // (tour 52f, décision du propriétaire) pendant la course de découverte seulement, un commentateur réglé sur 'tout' ne parle que du joueur ('joueur' ; '' = le réglage du joueur, comme avant) ; la voix (synthèse et voix-sons) aussi ; dès la carrière, le réglage sauvegardé revient
   COMMENTAIRE_MODE: 'tout',       // 'tout', 'joueur' (seulement les faits du joueur, et l'arrivée) ou 'non' (coupé)
   COMMENTAIRE_INTERVALLE: 2.5,    // s : au plus une phrase tous les tant (tour 45c, le propriétaire 2026-11-02 : « presque en tout temps » ; c'était 5)
   COMMENTAIRE_LONGUEUR_MAX: 60,   // caractères d'une phrase au plus (les noms comptés à 7 lettres) : court, pour ne pas lire en pilotant
