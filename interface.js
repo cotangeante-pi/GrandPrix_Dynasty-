@@ -2037,6 +2037,7 @@ const TUTORIEL_ECRAN = (function () {
   function ouvrirMenu() {
     const faites = SAUVEGARDE.tutoriel(), liste = $('tutoListe');
     liste.textContent = '';
+    const prochaine = TUTORIEL.LECONS.find(x => !faites.includes(x.id));   // (tour 53e : la prochaine leçon à faire se voit tout de suite)
     for (const l of TUTORIEL.LECONS) {
       const li = document.createElement('li'), etoile = document.createElement('span'), nom = document.createElement('span'), but = document.createElement('span'), b = document.createElement('button');
       etoile.className = 'tutoEtoile' + (faites.includes(l.id) ? ' faite' : ''); etoile.textContent = faites.includes(l.id) ? '★' : '☆';
@@ -2045,6 +2046,8 @@ const TUTORIEL_ECRAN = (function () {
       b.textContent = texte('tutoCommencer'); b.tabIndex = -1; b.dataset.lecon = l.id; b.className = 'petit';
       b.addEventListener('mousedown', e => e.preventDefault());
       b.addEventListener('click', () => aller(adresse(l.id)));
+      if (prochaine && l.id === prochaine.id) { li.classList.add('tutoSuivant'); b.classList.remove('petit'); b.textContent = texte('tutoCommencer') + ' ▶'; }
+      else if (faites.includes(l.id)) li.classList.add('tutoFaite');
       li.append(etoile, nom, but, b);
       liste.appendChild(li);
     }
