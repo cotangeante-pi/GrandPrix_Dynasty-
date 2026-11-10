@@ -142,5 +142,9 @@
 "index.html?course=0&test=clavier-pause 640": 6,
 "index.html?reglages=1&course=0 960": 8,
 "index.html?reglages=1&course=0&lang=en 960": 6,
-"index.html?test=clavier-titre 640": 3
+"index.html?test=clavier-titre 640": 3,
+"index.html?course=3&circuit=test&test=tactile 640": 75,
+"index.html?course=3&circuit=test&lang=en&test=tactile 960": 75,
+"index.html?test=tactile-decouverte 960": 300,
+"index.html?test=tactile-iphone 960": 20
 }

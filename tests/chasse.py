@@ -175,11 +175,11 @@ class Carriere:
             else:
                 if e[3] == 'compte': self.ev('() => { for (const p of (JEU.plateau ? JEU.plateau.pilotes : [])) if (p.course.compte > 0.05) p.course.compte = 0.05; }')
                 self.ev('() => BOUCLE.simuler(5)'); pg.wait_for_timeout(60)
-        elif ecran == 'podium': self.clic('#boutonResultats')
+        elif ecran == 'podium': self.clic('#boutonPodiumContinuer' if self.ev('() => JEU.decouverte') else '#boutonResultats')   # (la découverte : « Continuer », plus de « Bravo ! », tour 52e)
         elif ecran == 'resultats': self.inspecter('résultats'); self.clic('#boutonChangerResultats' if self.ev('() => !document.getElementById("boutonChangerResultats").classList.contains("cache")') else '#boutonRejouerResultats')
-        elif ecran == 'bravo': self.inspecter('bravo'); self.clic('#boutonCarriere')
         elif ecran == 'pilote':
             self.inspecter('pilote')
+            if self.ev('() => document.getElementById("pilote").classList.contains("rapide")'): self.inspecter('pilote : les pilotes prêts'); self.clic('#boutonPilotePerso')   # (le formulaire, comme avant le tour 52e)
             try: pg.fill('#piloteNom', 'Testeur', timeout=5000); pg.select_option('#pilotePays', 'jp', timeout=5000)
             except Exception: pass
             self.clic('#boutonPiloteValider', navigation=True)
