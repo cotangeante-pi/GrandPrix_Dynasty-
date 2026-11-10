@@ -824,6 +824,20 @@ def decouverte(pg, titre):
     t(f'{titre} : au premier lancement, la carte du circuit test vient du fichier livré (duCache vrai), sans calcul en fond', cache['duCache'] and not pg.evaluate('() => JEU.calculTrajectoire !== null'), str(cache))
     L.append(f"  (premier lancement : page chargée en {chargement} ms ; du clic sur « Jouer » au premier feu (l’attente de la carte des IA) : {(premier or 0) / 1000:.1f} s, à l’extinction des feux : {(mesure or 0) / 1000:.1f} s, sous swiftshader ; carte mise en cache : {cache['taille']} octets)")
     t(f'{titre} : gameplayStart seulement aux feux éteints, une fois', attendre(pg, '() => window.APPELS_SDK.join(",") === "init,gameLoadingFinished,gameplayStart"', None, 10000), str(pg.evaluate('() => window.APPELS_SDK')))
+    # la prime en direct (tour 52g, premiere-minute n° 4) : pas pendant les feux, puis « Prime : <DECOUVERTE.prime(place)> » ; une place gagnée : « P3 ! » en moins de 0,5 s et « +<gain> »
+    t(f'{titre} : la prime en direct s’affiche après le départ (pas pendant les feux) et vaut DECOUVERTE.prime(place) de la place du joueur',
+      attendre(pg, '() => JEU.primeVue !== null && !document.getElementById("primeDecouverte").classList.contains("cache")', None, 10000)
+      and pg.evaluate('() => { const o = classementCourse(JEU.plateau), place = o.findIndex(x => x.k === JEU.suivie) + 1, v = JEU.primeVue.place; return document.getElementById("primeTexte").textContent === texte("primeLive").replace("{n}", ARGENT.formater(DECOUVERTE.prime(v))) && Math.abs(place - v) <= 2; }'),
+      str(pg.evaluate('() => [JEU.primeVue, document.getElementById("primeTexte").textContent]')))
+    gain = pg.evaluate('''() => { const o = classementCourse(JEU.plateau), v = JEU.primeVue, avant = v.place, nouvelle = Math.max(1, avant - 1), t0 = performance.now();
+      // le robot n'a pas forcément doublé : on rejoue le même classement avec le joueur une place plus haut (la fonction ne lit que cet ordre)
+      const moi = o.findIndex(x => x.k === JEU.suivie); const f = o.slice(); const [m] = f.splice(moi, 1); f.splice(Math.max(0, avant - 2), 0, m);
+      majPrimeDecouverte(f);
+      const g = document.getElementById("placeGrand");
+      return { avant, nouvelle, visible: !g.classList.contains("cache"), texte: g.textContent, attendu: texte("placeGrand").replace("{p}", nouvelle), ms: performance.now() - t0, gain: document.getElementById("primeGain").textContent,
+        gainAttendu: "+" + ARGENT.formater(DECOUVERTE.prime(nouvelle) - DECOUVERTE.prime(avant)), compteur: document.getElementById("primeTexte").textContent === texte("primeLive").replace("{n}", ARGENT.formater(DECOUVERTE.prime(nouvelle))), anime: document.getElementById("primeDecouverte").classList.contains("monte") }; }''')
+    t(f'{titre} : une place gagnée : « P{gain["nouvelle"]} ! » au centre en moins de 0,5 s, le compteur à DECOUVERTE.prime(place), « {gain["gainAttendu"]} » vert animé', gain['avant'] == 1 or (gain['visible'] and gain['texte'] == gain['attendu'] and gain['ms'] < 500 and gain['gain'] == gain['gainAttendu'] and gain['compteur'] and gain['anime']), str(gain))
+    t(f'{titre} : le « P{gain["nouvelle"]} ! » disparaît au bout de PRIME_PLACE_GRAND_DUREE s', attendre(pg, '() => document.getElementById("placeGrand").classList.contains("cache")', None, 5000))
     # les touches : chaque aide part quand sa touche a servi (le robot conduit ; les touches ne font que marquer les aides)
     pg.keyboard.press('ArrowUp'); pg.wait_for_timeout(100)
     t(f'{titre} : après le départ, ↑ pressée : « Tiens ↑ » disparaît, « ← → pour tourner » est la seule aide (« ↓ freiner » vient après)', attendre(pg, '() => !document.body.classList.contains("grilleDecouverte") && document.getElementById("aideGaz").classList.contains("cache") && !document.getElementById("aideDirection").classList.contains("cache") && document.getElementById("aideFrein").classList.contains("cache")', None, 5000), str(pg.evaluate('() => JEU.aides')))

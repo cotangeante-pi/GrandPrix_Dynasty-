@@ -492,6 +492,9 @@ const REGLAGES = {
   DECOUVERTE_PILOTES: [0, 3, 6, 9, 12, 15],   // les pilotes du monde (ids dans championnat.pilotes) qui courent la découverte : un par écurie
   DECOUVERTE_ARGENT: [1000, 800, 600, 400, 300, 200, 100],   // la prime d'argent de départ selon la place (1er, 2e, …)
   DECOUVERTE_ARGENT_MAX: 1000,  // … et son plafond
+  PRIME_LIVE: true,             // la découverte : « Prime : 400 € » près de la tour de classement, qui suit la place en direct, et un gros « P3 ! » à chaque place gagnée (faux : rien, comme avant le tour 52g)
+  PRIME_PLACE_GRAND_DUREE: 1,   // s : le « P3 ! » au centre
+  PRIME_GAIN_DUREE: 1.2,        // s : le « +200 € » vert à côté du compteur
   PODIUM_DECOUVERTE_DUREE: 8,   // s : le podium de la découverte passe tout seul à la création du pilote après ce temps (0 : jamais ; tour 52e)
   PODIUM_DECOUVERTE_ENCORE: true, // « Encore une course ? » sur ce podium (la 2e fois sans prime) ; faux : le bouton n'y est pas
   PILOTE_PROPOSITIONS: 3,       // la création du pilote après la découverte : tant de pilotes prêts en grosses cartes (0 : le formulaire seul, comme avant le tour 52e)

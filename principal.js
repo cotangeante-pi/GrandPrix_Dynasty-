@@ -115,6 +115,7 @@ const JEU = {
   decouverte: false, monde: null, indices: null, aides: null, depuisClic: null, clicAuxFeux: null, clicAuPremierFeu: null,
   carteDuCache: false,  // la carte des IA est venue du cache de la sauvegarde (cache-carte.js) : pas de calcul en fond
   casqueSeul: false,    // l'écran du pilote ouvert depuis le paddock pour le casque seulement (« Mon casque »)
+  primeVue: null,       // la découverte : { place, grandJusqua } de la prime en direct (majPrimeDecouverte), ou null
   monPilote: false,     // … ou en entier pour changer le nom, le numéro et le pays (« Mon pilote », Réglages)
   // le mode 2 joueurs (deux-joueurs.js) : ses réglages { nbIA, nbTours }, ou null ; les commandes de chaque joueur (1, 2), lues
   // de ses touches à lui (TOUCHES_DEUX) : cibles comme JEU.cibles, remettre comme JEU.remettre
@@ -2245,14 +2246,33 @@ function enTourQualif() {
   return JEU.ecran === 'qualif' && !!JEU.qualif && JEU.qualif.etat === 'tour';
 }
 
+// la découverte (tour 52g, premiere-minute n° 4) : une récompense visible dès le départ. « Prime : 400 € » près de la tour suit la place en direct
+// (DECOUVERTE.prime) ; une place gagnée joue un « +200 € » vert et un gros « P3 ! » pendant PRIME_PLACE_GRAND_DUREE s. Rien pendant les feux (la grille
+// reste nue) ni hors de la course ; l'argent crédité à la fin (JEU.prime) ne change pas : ce n'est qu'un affichage
+function majPrimeDecouverte(ordre) {
+  const c = JEU.course, vive = JEU.decouverte && REGLAGES.PRIME_LIVE && ordre && JEU.ecran === 'course' && c && c.etat === 'course';
+  if (!vive) { if (JEU.primeVue) { INTERFACE.majPrime(null); INTERFACE.majPlaceGrand(null); JEU.primeVue = null; } return; }
+  const place = ordre.findIndex(x => x.k === JEU.suivie) + 1, v = JEU.primeVue, maintenant = performance.now();
+  if (place < 1) return;
+  if (!v) { JEU.primeVue = { place, grandJusqua: 0 }; INTERFACE.majPrime({ prime: DECOUVERTE.prime(place), gain: null }); return; }
+  if (place !== v.place) {
+    const gain = DECOUVERTE.prime(place) - DECOUVERTE.prime(v.place);
+    INTERFACE.majPrime({ prime: DECOUVERTE.prime(place), gain: place < v.place ? gain : 0 });
+    if (place < v.place) { INTERFACE.majPlaceGrand(texte('placeGrand').replace('{p}', place)); v.grandJusqua = maintenant + REGLAGES.PRIME_PLACE_GRAND_DUREE * 1000; }
+    v.place = place;
+  }
+  if (v.grandJusqua && maintenant >= v.grandJusqua) { INTERFACE.majPlaceGrand(null); v.grandJusqua = 0; }
+}
+
 // la tour de classement (course à plusieurs) et le radar, pendant la course et la pause ; la voiture suivie est « moi »
 function majClassementRadar() {
   const enCourse = JEU.course && (JEU.ecran === 'course' || JEU.ecran === 'pause');
   const radar = document.getElementById('radar');
   radar.classList.toggle('cache', !enCourse);
-  if (!enCourse) { INTERFACE.majClassement(null); document.getElementById('minicarte').classList.add('cache'); return; }
+  if (!enCourse) { INTERFACE.majClassement(null); document.getElementById('minicarte').classList.add('cache'); majPrimeDecouverte(null); return; }
   const P = JEU.plateau ? JEU.plateau.pilotes : [];
   const ordre = JEU.plateau ? classementCourse(JEU.plateau) : null;
+  majPrimeDecouverte(ordre);
   // ?championnat=1 : le coéquipier du joueur (la voiture k = le pilote k du championnat), et l'écart entre eux
   const kc = JEU.championnat && JEU.contre ? (CHAMPIONNAT.coequipierDe(JEU.championnat) || { id: null }).id : null;
   const duel = kc !== null && ordre ? ecartCoequipier(ordre, kc) : null;

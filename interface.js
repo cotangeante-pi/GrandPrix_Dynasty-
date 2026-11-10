@@ -357,6 +357,25 @@ const INTERFACE = (function () {
     }
   }
 
+  // la découverte (tour 52g) : le compteur « Prime : 400 € » près de la tour (d = { prime, gain } : gain > 0 joue le « +200 € » vert ; null : caché) et le
+  // gros « P3 ! » au centre (texte, ou null : caché)
+  function majPrime(d) {
+    const el = $('primeDecouverte');
+    el.classList.toggle('cache', !d);
+    if (!d) return;
+    const argent = typeof ARGENT !== 'undefined' ? ARGENT.formater(d.prime) : String(d.prime);
+    $('primeTexte').textContent = texte('primeLive').replace('{n}', argent);
+    if (d.gain > 0) {
+      $('primeGain').textContent = '+' + (typeof ARGENT !== 'undefined' ? ARGENT.formater(d.gain) : String(d.gain));
+      el.classList.remove('monte'); void el.offsetWidth; el.classList.add('monte');   // (relance l'animation)
+    } else if (d.gain === null) { el.classList.remove('monte'); $('primeGain').textContent = ''; }
+  }
+  function majPlaceGrand(t) {
+    const el = $('placeGrand');
+    el.classList.toggle('cache', !t);
+    if (t) { el.textContent = t; el.classList.remove('saute'); void el.offsetWidth; el.classList.add('saute'); }
+  }
+
   // le podium de la découverte (tour 52e ; avant : l'écran « Bravo ! ») : d = { place, nb, prime, encore (le bouton « Encore une course ? ») } ou null
   // (le podium ordinaire : « Résultats »). « Tu finis P2 / 7 · +800 € » (la prime seulement si elle est > 0), « Continuer », « Encore une course ? »
   function remplirPodiumDecouverte(d) {
@@ -1925,7 +1944,7 @@ const INTERFACE = (function () {
     remplirDuel, avec, remplirUne, preparerUne, remplirArgent, remplirSolde, remplirGarage, preparerGarage,
     remplirSaison, remplirDuelSaison, remplirContrats, remplirRetraite, preparerSaison, retraiteEnAttente, remplirCeremonie, preparerCeremonie, remplirAlbum, preparerAlbum, remplirBilan, remplirTemple, preparerTemple, preparerReleve, remplirHeritier, lireHeritier, montrerErreurHeritier, remplirAileron, majAileron, preparerAileron, preparerPneusGarage, remplirArbre, preparerArbre, remplirCalendrier, preparerCalendrier,
     remplirSponsors, remplirRappelSponsor, preparerSponsors, remplirFiche, preparerFiche, remplirInterview, montrerEffetInterview, preparerInterview, remplirReputation,
-    majEcartFantome, preparerFantome, majBoutonsFantome, majDepart, majDeux, preparerTitre, remplirPodiumDecouverte, preparerPodiumDecouverte, remplirPiloteRapide, appliquerPilote, majAides, remplirPilote, lirePilote, montrerErreursPilote, preparerPilote, nomCircuit, remplirCasque, lireCasque, modePilote, preparerCasque };
+    majEcartFantome, preparerFantome, majBoutonsFantome, majDepart, majDeux, preparerTitre, remplirPodiumDecouverte, preparerPodiumDecouverte, majPrime, majPlaceGrand, remplirPiloteRapide, appliquerPilote, majAides, remplirPilote, lirePilote, montrerErreursPilote, preparerPilote, nomCircuit, remplirCasque, lireCasque, modePilote, preparerCasque };
 })();
 
 // --- les aides au premier usage (aides.js, étape 11b, Codeur 4) : la bulle, « Revoir les aides » au paddock et dans le menu pause.

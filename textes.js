@@ -1382,3 +1382,7 @@ Object.assign(TEXTES.fr, {
   pdBilan: 'Tu finis P{p} / {n}', pdContinuer: 'Continuer', pdEncore: 'Encore une course ?',
   pilotePretTitre: 'Choisis ton pilote', pilotePerso: 'Personnaliser', monPilote: 'Mon pilote', monPiloteValider: 'Enregistrer',
 });
+
+// --- tour 52g, Codeur 3 : la prime en direct de la découverte (premiere-minute n° 4) ---
+Object.assign(TEXTES.en, { primeLive: 'Prize: {n}', placeGrand: 'P{p}!' });
+Object.assign(TEXTES.fr, { primeLive: 'Prime : {n}', placeGrand: 'P{p} !' });
