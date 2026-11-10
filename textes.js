@@ -386,8 +386,8 @@ const TEXTES = {
     interview_moyen_q: ['P{place} at {circuit}. A normal day?', 'Not much to say about P{place}?', 'P{place} today. Where is the gap?'],
     interview_moyen_provocant: 'Normal? Nothing is normal until I win.', interview_moyen_calme: 'We got what the car could give, we keep going.', interview_moyen_malin: 'Ask me again when the car is as fast as I am.',
     // le mode 2 joueurs : le menu « Entre amis », l'écran avant la course, le podium à deux, la rivalité (tour 25b, ordre 3)
-    amisTitre: 'With friends', amisDeux: 'Split screen (2 players)', amisTournoi: 'Time-trial tournament (2 to 8 players)', bientot: 'coming soon',
-    deuxTitre: 'Split screen', deuxNom: 'Name', deuxCouleur: 'Car', deuxCasque: 'Helmet', deuxCircuit: 'Track', deuxTours: 'Laps', deuxIA: 'AI drivers', deuxNiveau: 'Level',
+    amisTitre: 'With friends', amisDeux: '👥 Two players', amisTournoi: '🏆 Tournament', bientot: 'coming soon',
+    deuxTitre: 'Two players', deuxNom: 'Name', deuxCouleur: 'Car', deuxCasque: 'Helmet', deuxCircuit: 'Track', deuxTours: 'Laps', deuxIA: 'Rivals', deuxNiveau: 'Level',
     niveau_debutant: 'Beginner', niveau_normal: 'Normal', niveau_expert: 'Expert', niveau_legende: 'Legend',
     deuxTouches1: 'W A S D (Z Q S D) · E: back on track', deuxTouches2: 'Arrows · Enter: back on track',
     deuxPartir: 'Race!', deuxErreurNom: 'The two players need different names.', deuxErreurCouleur: 'Pick two different car colours.',
@@ -775,8 +775,8 @@ const TEXTES = {
     interview_moyen_q: ['P{place} à {circuit}. Une journée normale ?', 'Pas grand-chose à dire sur cette P{place} ?', 'P{place} aujourd’hui. Il manque quoi ?'],
     interview_moyen_provocant: 'Normale ? Rien n’est normal tant que je ne gagne pas.', interview_moyen_calme: 'On a pris ce que la voiture pouvait donner, on continue.', interview_moyen_malin: 'Reposez-moi la question quand la voiture ira aussi vite que moi.',
     // le mode 2 joueurs : le menu « Entre amis », l'écran avant la course, le podium à deux, la rivalité (tour 25b, ordre 3)
-    amisTitre: 'Entre amis', amisDeux: 'Écran partagé (2 joueurs)', amisTournoi: 'Tournoi chrono (2 à 8 joueurs)', bientot: 'bientôt',
-    deuxTitre: 'Écran partagé', deuxNom: 'Nom', deuxCouleur: 'Voiture', deuxCasque: 'Casque', deuxCircuit: 'Circuit', deuxTours: 'Tours', deuxIA: 'Pilotes IA', deuxNiveau: 'Niveau',
+    amisTitre: 'Entre amis', amisDeux: '👥 À deux', amisTournoi: '🏆 Tournoi', bientot: 'bientôt',
+    deuxTitre: 'À deux', deuxNom: 'Nom', deuxCouleur: 'Voiture', deuxCasque: 'Casque', deuxCircuit: 'Circuit', deuxTours: 'Tours', deuxIA: 'Rivaux', deuxNiveau: 'Niveau',
     niveau_debutant: 'Débutant', niveau_normal: 'Normal', niveau_expert: 'Expert', niveau_legende: 'Légende',
     deuxTouches1: 'Z Q S D (W A S D) · E : retour en piste', deuxTouches2: 'Flèches · Entrée : retour en piste',
     deuxPartir: 'C’est parti !', deuxErreurNom: 'Les deux joueurs doivent avoir des noms différents.', deuxErreurCouleur: 'Choisissez deux couleurs de voiture différentes.',
@@ -1277,7 +1277,7 @@ Object.assign(TEXTES.fr, {
 Object.assign(TEXTES.en, {
   defiBouton: '📋 Challenge a friend', defiCopier: 'Copy', defiCopie: 'Copied!',
   defiCodeAide: 'Or the code: they paste it in “Friends” → “Take a challenge”.',
-  amisDefi: '🎯 Take a challenge', defiTitre: 'Take a challenge',
+  amisDefi: '🎯 Challenge', defiTitre: 'Take a challenge',
   defiExplication: 'Paste the code a friend sent you, then race alone against their lap.',
   defiColler: 'Paste the code here', defiCourir: '▶ Race!',
   defiRefus_vide: 'Paste a code first.', defiRefus_format: 'This is not a challenge code.',
@@ -1298,7 +1298,7 @@ Object.assign(TEXTES.en, {
 Object.assign(TEXTES.fr, {
   defiBouton: '📋 Défier un ami', defiCopier: 'Copier', defiCopie: 'Copié !',
   defiCodeAide: 'Ou le code : il le colle dans « Entre amis » → « Relever un défi ».',
-  amisDefi: '🎯 Relever un défi', defiTitre: 'Relever un défi',
+  amisDefi: '🎯 Défi', defiTitre: 'Relever un défi',
   defiExplication: 'Colle le code qu’un ami t’a envoyé, puis cours seul contre son tour.',
   defiColler: 'Colle le code ici', defiCourir: '▶ Courir !',
   defiRefus_vide: 'Colle d’abord un code.', defiRefus_format: 'Ce n’est pas un code de défi.',
