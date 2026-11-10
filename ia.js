@@ -595,7 +595,7 @@ function noterLigne(pilote, v, voisines, s0, t, type) {
   // son freinage : la marge habituelle, son style et son rythme (un pilote plus rapide freine plus près de la limite) ;
   // en attaque, il ose le freinage complet. Son rythme moyen, pas celui du tour : un freinage qui change d'un tour à
   // l'autre surprend celui qui le suit (tour 16 : 9 chocs au lieu de 6 sur les 30 courses)
-  const frein = R.IA_MARGE_FREIN * pilote.rythme * (pilote.attaque && ((pilote.attaque.etat !== 'preparer' && pilote.attaque.etat !== 'sortie') || pilote.attaque.proche) ? R.IA_ATTAQUE_FREIN : pilote.style.frein) * (v.adhMeteo || 1) * (REGLAGES.IA_TECH_PLUIE && v.eauHors > 0 ? REGLAGES.IA_TECH_PLUIE_FREIN : 1);   // (sur le mouillé, il freine plus tôt : × l'adhérence de la météo, 1 au sec)
+  const frein = R.IA_MARGE_FREIN * pilote.rythme * (pilote.attaque && ((pilote.attaque.etat !== 'preparer' && pilote.attaque.etat !== 'sortie') || pilote.attaque.proche) && !freinePrudent(pilote, v, pilote.carte) ? R.IA_ATTAQUE_FREIN : pilote.style.frein) * (v.adhMeteo || 1) * (REGLAGES.IA_TECH_PLUIE && v.eauHors > 0 ? REGLAGES.IA_TECH_PLUIE_FREIN : 1);   // (sur le mouillé, il freine plus tôt : × l'adhérence de la météo, 1 au sec)
   for (let i = N - 2; i >= 0; i--) {
     const ds = Math.hypot(x[i + 1] - x[i], z[i + 1] - z[i]);
     vb[i] = Math.min(vb[i], Math.sqrt(vb[i + 1] * vb[i + 1] + 2 * frein * freinagePossible(vb[i + 1]) * (v.rvFrein ? facteurFreinage(v, vb[i + 1]) : 1) * ds));   // (l'équilibre des freins, tour 50b : × 1 au conseillé)
@@ -1009,6 +1009,15 @@ function pasDevantPrevu(c, v, w, g, distance) {
   return prevu > -REGLAGES.LONGUEUR_VOITURE * REGLAGES.IA_NEZ_DEVANT + REGLAGES.IA_LENT_PREVU_MARGE;   // pas le nez devant : l'attaque d'un virage lent est perdue d'avance
 }
 
+// (IA_LENT_PREVU) attaque décalée sur un virage lent, avant son point de freinage : d'après les vitesses il n'aura pas le nez devant ;
+// il freine alors comme avant l'attaque (au même point que la voiture devant), pas plus tard
+function freinePrudent(pilote, v, carte) {
+  const a = pilote.attaque, R = REGLAGES;
+  if (!R.IA_ATTAQUE_TETE || !R.IA_LENT_PREVU || !a || a.etat !== 'decaler' || !a.vue || !carte.virages[a.virage].lent || R.IA_LENT_COTE_A_COTE) return false;
+  const c = carte.circuit, dF = ecartLeLong(c, carte.virages[a.virage].freinage - v.piste.s);
+  return dF > 0 && dF < R.IA_LENT_PREVU_DIST && pasDevantPrevu(c, v, a.vue, ecartLeLong(c, a.vue.s - v.piste.s), dF);
+}
+
 function sortieDistance(v, w) { return REGLAGES.LONGUEUR_VOITURE + REGLAGES.IA_MARGE_LONG + Math.max(0, v.u - w.vitesse) * 0.5; }
 function majAttaque(pilote, v, vues, dt) {
   const R = REGLAGES, carte = pilote.carte, c = carte.circuit, p = v.piste, a = pilote.attaque;
@@ -1066,13 +1075,6 @@ function majAttaque(pilote, v, vues, dt) {
       if (cote) { a.etat = 'decaler'; a.virage = f.j; a.cote = cote; }
     }
   } else if (a.etat === 'decaler' && carte.virages[a.virage].lent && !R.IA_LENT_COTE_A_COTE) {   // (IA_LENT_COTE_A_COTE : comme un virage rapide, l'entrée côte à côte)
-    // (IA_LENT_PREVU, tour 52a : il freinait tard pour l'attaque, la voiture devant freinait plus tôt, et il arrivait sur elle à 7 m/s de plus
-    // avant le point de freinage ; il renonce dès que, d'après les vitesses, il n'aura pas le nez devant au freinage, et freine comme avant l'attaque)
-    const dF = ecartLeLong(c, carte.virages[a.virage].freinage - p.s);
-    if (R.IA_ATTAQUE_TETE && R.IA_LENT_PREVU && dF > 0 && dF < R.IA_LENT_PREVU_DIST && pasDevantPrevu(c, v, w, g, dF)) {
-      if (R.IA_ATTAQUE_SORTIE && g < sortieDistance(v, w)) { a.etat = 'sortie'; a.duree = 0; pilote.cede = { id: a.id, duree: 0 }; if (pilote.journal) pilote.journal.push('sortie (virage lent prévu) g ' + g.toFixed(1)); }
-      else return finirAttaque(pilote, false, 'pas devant au freinage prévu (virage lent) g ' + g.toFixed(1));
-    } else
     // virage lent : jamais à deux de front ; au point de freinage (celui de la carte), il a le nez devant (son centre
     // au moins IA_NEZ_DEVANT longueur devant le sien), sinon il abandonne avant de freiner : elle garde le virage
     if (ecartLeLong(c, carte.virages[a.virage].freinage - p.s) <= 0) {
