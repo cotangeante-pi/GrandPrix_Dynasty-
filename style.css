@@ -1587,6 +1587,7 @@ body.deux:not(.cote) #deuxRappel2 { left: 50%; }
 /* au paddock, le son est dans Réglages : 🔊 ne reste pas dans un coin ; la bulle d'aide se pose à droite du menu */
 body.auPaddock #boutonSon { display: none; }
 #championnat:not(.cache) ~ #bulleAide.bulleMenu { left: calc(var(--paddock-menu) + 16px); }
+#championnat:not(.cache) ~ #bulleAide.bulleMenu { top: auto; bottom: 8px; }   /* (tour 53e : les pages partent du haut, la bulle d'aide passe en bas pour ne couvrir aucun bouton) */
 #championnat:not(.cache) ~ #tutoConsigne.tutoMenuConsigne { left: calc(var(--paddock-menu) + 16px); }   /* (la consigne de la leçon « visite » non plus ne couvre pas le menu) */
 
 /* 960×600 et moins large : le menu devient une colonne d'icônes (le nom en bulle, title) */
@@ -1948,8 +1949,9 @@ body.tactile #aide { display: none; }
 @keyframes tactile-tourne { 0%, 20% { transform: rotate(0deg); } 60%, 100% { transform: rotate(-90deg); } }
 @media (prefers-reduced-motion: reduce) { #tactilePortrait::before { animation: none; transform: rotate(-90deg); } }
 
-/* Cohérence (tour 53e) : la liste Apprendre dans le téléphone couché (640×360) : le titre et « Retour » restent dans l'écran */
+/* Cohérence (tour 53e) : la liste Apprendre dans le téléphone couché (640×360) : le titre et « Retour » restent dans l'écran ; la bulle d'aide du paddock laisse passer les clics (la page Réglages remplit l'écran ; la bulle s'efface seule) */
 @media (max-height: 420px) {
+  #championnat:not(.cache) ~ #bulleAide.bulleMenu { pointer-events: none; }
   #tutoMenu { justify-content: flex-start; padding-top: 4px; padding-bottom: 4px; gap: 3px; }
   #tutoMenu h1 { font-size: 18px; line-height: 1; }
   #tutoMenu h1::after { margin-top: 2px; height: 3px; }
