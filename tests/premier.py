@@ -75,6 +75,46 @@ with sync_playwright() as p:
     finally:
         b.close()
 
+# (tour 52d, plan « première minute » n° 10) le NOVICE : pas de ?robot=1 ; il clique « Jouer », tient ↑ dès la grille sans jamais le lâcher
+# (comme l'aide le lui dit) et ne lit rien. Budgets : la voiture roule à plus de 5 m/s moins de 1 s après l'extinction des feux (la touche
+# tenue fait partir, « bon départ »), et clic → voiture à plus de 5 m/s en 12 s au plus (réglage du test : BUDGET_NOVICE_*)
+BUDGET_NOVICE_VITESSE_APRES = 1.0
+BUDGET_NOVICE_CLIC = 12.0
+def novice(b):
+    ctx = b.new_context(viewport={'width': 960, 'height': 600}); pg = ctx.new_page(); console = []
+    pg.on('console', lambda m: console.append(m.type + ': ' + m.text) if m.type in ('error', 'warning') and not LECTURE_PIXELS.fullmatch(m.text) else None)
+    pg.on('pageerror', lambda e: console.append('PAGEERROR ' + str(e)))
+    pg.add_init_script(INIT)
+    pg.goto('file://' + RACINE + '/index.html')
+    pg.wait_for_function('() => typeof JEU !== "undefined" && JEU.ecran === "titre"', timeout=60000)
+    pg.wait_for_timeout(1500)
+    t0 = pg.evaluate('() => performance.now()')
+    pg.click('#boutonJouer')
+    pg.wait_for_function('() => JEU.course && JEU.course.feux && JEU.course.depart', timeout=180000)
+    # le temps DE JEU (d.t, pas l'horloge : sous swiftshader la page ne fait que quelques images par seconde) du premier pas de physique
+    # après l'extinction où la voiture du joueur dépasse 5 m/s
+    pg.evaluate('''() => { window.__jeu = null; const o = DEPART.pas;
+      DEPART.pas = function (d, dt, eteint) { o.apply(this, arguments); if (d.humain && window.__jeu === null && d.extinction !== null && JEU.joueur && JEU.joueur.u > 5) window.__jeu = d.t - d.extinction; }; }''')
+    pg.keyboard.down('ArrowUp')   # tenu dès la grille, jamais lâché
+    pg.wait_for_function('() => window.__jeu !== null', timeout=180000)
+    r = {'decouverte': pg.evaluate('() => JEU.decouverte')}
+    r.update(pg.evaluate('(t0) => ({ apres: window.__jeu, clic: (performance.now() - t0) / 1000, resultat: JEU.course.depart.resultat, tenu: JEU.course.depart.tenu, vitesse: JEU.joueur.u })', t0))
+    ctx.close()
+    return r, console
+
+with sync_playwright() as p:
+    b = p.chromium.launch(channel='chrome', args=['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--allow-file-access-from-files', '--disable-audio-output'])
+    try:
+        nov, nov_console = novice(b)
+    except Exception as e:
+        nov, nov_console = None, ['novice : ' + str(e)[:300]]
+    finally:
+        b.close()
+t('le novice (tient ↑ dès la grille, sans lâcher) : la console reste vide', not nov_console, ' | '.join(nov_console[:5]))
+t('le novice : la voiture part (« bon départ », départ tenu) et roule à plus de 5 m/s moins de ' + str(BUDGET_NOVICE_VITESSE_APRES) + ' s de jeu après l’extinction des feux', bool(nov) and nov['tenu'] and nov['resultat'] == 'bon' and nov['apres'] is not None and nov['apres'] < BUDGET_NOVICE_VITESSE_APRES, nov)
+t('le novice : clic → voiture à plus de 5 m/s en ' + str(BUDGET_NOVICE_CLIC) + ' s au plus', bool(nov) and nov['clic'] <= BUDGET_NOVICE_CLIC, nov)
+if nov: L.append(f"  (novice : à plus de 5 m/s {nov['apres']:.2f} s après l'extinction, {nov['clic']:.1f} s après le clic, départ {nov['resultat']})")
+
 consoles = [c for e in essais for c in e[4]]
 t('le premier lancement, 3 fois : la console reste vide', not consoles, ' | '.join(consoles[:5]))
 med = lambda k: statistics.median(e[1][k] for e in essais)

@@ -378,12 +378,18 @@ const INTERFACE = (function () {
   }
 
   // les aides en surimpression de la découverte : a = { gaz, direction, frein (vrais quand la touche a servi), clignote } ou null (cachées)
+  // (tour 52d) a.grille : pendant les feux de la découverte, une seule grosse aide centrée (« Tiens ↑ ») et l'écran presque nu (la
+  // classe body.grilleDecouverte cache la jauge, le chrono, le radar et la barre des touches) ; après le départ, « ← → pour tourner »,
+  // puis « ↓ freiner » une fois qu'on a tourné ; chaque aide part quand sa touche a servi
   function majAides(a) {
     $('aides').classList.toggle('cache', !a);
+    document.body.classList.toggle('grilleDecouverte', !!(a && a.grille));
+    $('aides').classList.toggle('grille', !!(a && a.grille));
     if (!a) return;
-    for (const [id, cle, servi] of [['aideGaz', 'aideGaz', a.gaz], ['aideDirection', 'aideDirection', a.direction], ['aideFrein', 'aideFrein', a.frein]]) {
-      $(id).textContent = texte(cle);
-      $(id).classList.toggle('cache', !!servi);
+    const grille = !!a.grille;
+    for (const [id, cle, cache] of [['aideGaz', grille ? 'aideTenir' : 'aideGaz', !grille && a.gaz], ['aideDirection', 'aideDirection', grille || a.direction], ['aideFrein', 'aideFrein', grille || a.frein || !a.direction]]) {
+      $(id).textContent = texteDoigt(cle);
+      $(id).classList.toggle('cache', !!cache);
     }
     $('aideGaz').classList.toggle('clignote', !!a.clignote);
   }
@@ -530,7 +536,7 @@ const INTERFACE = (function () {
       $('jaugeVert' + n).style.left = (bas * 100) + '%';
       $('jaugeVert' + n).style.width = ((haut - bas) * 100) + '%';
       $('jaugeAiguille' + n).style.left = (d.regime * 100) + '%';
-      $('jaugeAide' + n).textContent = texte('departAide');
+      $('jaugeAide' + n).textContent = texteDoigt('departAide');
     }
     const montre = !!d && d.humain && d.lance !== null && ecran === 'course' && d.t - d.lance < REGLAGES.DEPART_AFFICHAGE;
     res.classList.toggle('cache', !montre);
@@ -1930,7 +1936,7 @@ const AIDES_ECRAN = (function () {
   function sauver() { SAUVEGARDE.ecrireAides(Array.from(etat.vues)); }
 
   function phrase(id) {
-    return texte('aide_' + id).replace('{v}', Math.round(REGLAGES.STAND_VITESSE_MAX * 3.6)).replace('{p}', String(Math.round(REGLAGES.GARAGE_PLAFOND * 1000) / 10).replace('.', texte('virgule')));
+    return (id === 'depart' || id === 'consigne' ? texteDoigt('aide_' + id) : texte('aide_' + id)).replace('{v}', Math.round(REGLAGES.STAND_VITESSE_MAX * 3.6)).replace('{p}', String(Math.round(REGLAGES.GARAGE_PLAFOND * 1000) / 10).replace('.', texte('virgule')));
   }
 
   function montrer(id) {
