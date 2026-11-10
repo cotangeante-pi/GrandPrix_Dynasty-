@@ -1887,8 +1887,10 @@ def tactile_ecran(pg, titre, l, h, page):
 # (tour 52b) de la découverte au podium sans clavier : titre → « ▶ Jouer » au doigt, la course de découverte entière aux doigts et au volant
 # (le robot d'essai dicte, rien d'autre ne conduit), le bouton « Passer » au doigt, le podium, « Continuer » : aucune touche
 def toucher(pg, sel):   # un toucher au doigt ; si le bouton est caché ou recouvert un instant (mac chargé), le même clic par la page
+    try: pg.wait_for_selector(sel, state='visible', timeout=30000)
+    except Exception: pass
     try: pg.tap(sel, timeout=8000)
-    except Exception: pg.evaluate('s => document.querySelector(s).click()', sel)
+    except Exception: pg.evaluate('s => { const e = document.querySelector(s); if (e) e.click(); }', sel)
 def tactile_decouverte(pg, titre, l, h):
     attendre(pg, '() => typeof TACTILE !== "undefined" && TACTILE.estPresent() && JEU.ecran === "titre"', None, 30000)
     toucher(pg, '#boutonJouer')
