@@ -122,6 +122,7 @@ PAGES = [
     ('index.html?course=3&circuit=test&test=manette', 1280, 720, None),   # la manette (tour 38) : une fausse manette conduit un tour, la pause, le menu au stick et à la croix
     ('index.html?course=3&circuit=test&test=tactile', 640, 360, None),   # le téléphone (tactile.js, tour 51k) : écran tactile émulé, GAZ / FREIN, ◀ ▶ sans capteur, le volant par de faux évènements d'orientation, un tour sans clavier ; capture tactile-640.png
     ('index.html?course=3&circuit=test&lang=en&test=tactile', 960, 600, None),   # … en anglais, 960×600 ; capture tactile-960.png
+    ('index.html?test=tactile-decouverte', 960, 600, None),   # (tour 52b) de la découverte au podium sans clavier, aux doigts et au volant
     ('index.html?test=tactile-iphone', 960, 600, None),   # … l'autorisation de l'iPhone (« 🎮 Activer le volant »), refusée → ◀ ▶ ; le message « Tourne ton téléphone » en portrait
     ('index.html?deux=1&ia=0&circuit=test&test=manette-deux', 1280, 720, None),   # … deux manettes, une par joueur   # les sensations de conduite (tour 37) : son au premier geste, fumée, étincelles, réglage ; capture sensations.png
     ('index.html?course=3&ia=19&joueur=1&circuit=monzo&domicile=1&test=supporters', 1280, 720, None),   # le Grand Prix à domicile : la caméra de la grille longe d'abord la tribune des supporters ; capture supporters.png   # la réalisation télé (regie.js) : de vraies caméras, l'hélicoptère ; captures tele-monoco.png, tele-helico.png   # … et Monzo de jour : la luminosité de l'image, pour la comparer à la nuit   # le décor dans le vrai jeu : la course de nuit à Singapura, 20 voitures, vue télé ; capture jeu-singapura.png
@@ -811,13 +812,16 @@ def decouverte(pg, titre):
     t(f'{titre} : la carte se calcule, les IA reçoivent le caractère de leur pilote du monde', attendre(pg, '() => JEU.plateau.carte !== null && JEU.plateau.pilotes.slice(0, REGLAGES.DECOUVERTE_IA).every((p, k) => p.pilote && p.pilote.caractere && Math.abs(p.pilote.caractere.agressivite - Math.max(0, Math.min(1, JEU.monde.pilotes[JEU.indices[k]].caractere.agressivite + REGLAGES.NIVEAUX.debutant.agressivite))) < 1e-9)', None, 240000))
     grille = pg.evaluate('() => { const P = JEU.plateau.pilotes, moi = P[P.length - 1], devant = P.filter(p => !p.humain && p.depart > moi.depart).length, derriere = P.filter(p => !p.humain && p.depart < moi.depart).length; return { devant, derriere, bouge: P.some(p => p.v.u !== 0) }; }')
     t(f'{titre} : le joueur part au milieu de la grille ({R["ia"] // 2} IA devant, {R["ia"] - R["ia"] // 2} derrière)', grille['devant'] == R['ia'] // 2 and grille['derriere'] == R['ia'] - R['ia'] // 2 and not grille['bouge'], str(grille))
-    t(f'{titre} : sur la grille, les aides sont affichées (↑ ← → ↓), aucune touche encore', attendre(pg, '() => !document.getElementById("aides").classList.contains("cache") && ["aideGaz", "aideDirection", "aideFrein"].every(id => !document.getElementById(id).classList.contains("cache"))', None, 10000))
+    t(f'{titre} : sur la grille, une seule aide, grosse et centrée : « Tiens ↑ » (ni « ← → » ni « ↓ » encore)', attendre(pg, '() => !document.getElementById("aides").classList.contains("cache") && !document.getElementById("aideGaz").classList.contains("cache") && document.getElementById("aideGaz").textContent === texte("aideTenir") && ["aideDirection", "aideFrein"].every(id => document.getElementById(id).classList.contains("cache"))', None, 10000))
+    t(f'{titre} : sur la grille, l’écran est nu : ni jauge, ni chrono, ni secteurs, ni meilleur tour, ni radar, ni barre des touches', pg.evaluate('() => document.body.classList.contains("grilleDecouverte") && ["jauge", "hudCourse", "radar", "aide"].every(id => getComputedStyle(document.getElementById(id)).display === "none")'))
     t(f'{titre} : sans aucune touche pendant AIDE_CLIGNOTE_APRES s sur la grille, « ↑ » clignote', attendre(pg, '() => document.getElementById("aideGaz").classList.contains("clignote")', None, 20000), str(pg.evaluate('() => [JEU.course.depart && JEU.course.depart.t, JEU.aides]')))
     extinction = attendre(pg, '() => JEU.course.etat !== "compte"', None, 60000)
     mesure = pg.evaluate('() => JEU.clicAuxFeux'); premier = pg.evaluate('() => JEU.clicAuPremierFeu')
     t(f'{titre} : les feux s’éteignent, le temps du clic aux feux est mesuré (sous swiftshader, la carte en fond pèse : la valeur est donnée telle quelle)', extinction and mesure is not None and mesure > 0, str(mesure))
     cache = pg.evaluate('() => { const c = SAUVEGARDE.carte(NOM_CIRCUIT); return { present: !!c, taille: c ? CACHE_CARTE.taille(c) : 0, duCache: JEU.carteDuCache }; }')
-    t(f'{titre} : au premier lancement, pas de cache : la carte est calculée en fond, puis mise en cache dans la sauvegarde (taille < CACHE_CARTE_TAILLE_MAX)', not cache['duCache'] and cache['present'] and 0 < cache['taille'] < pg.evaluate('() => REGLAGES.CACHE_CARTE_TAILLE_MAX'), str(cache))
+    # (tour 52f) la carte du circuit de la découverte (test) est livrée (cache-carte-test.js) : prise comme un cache valide, aucun calcul en fond, rien à écrire dans la sauvegarde ;
+    # l'écriture en cache d'un circuit non livré est vérifiée plus bas, avec le 1er Grand Prix (bahrayn)
+    t(f'{titre} : au premier lancement, la carte du circuit test vient du fichier livré (duCache vrai), sans calcul en fond', cache['duCache'] and not pg.evaluate('() => JEU.calculTrajectoire !== null'), str(cache))
     L.append(f"  (premier lancement : page chargée en {chargement} ms ; du clic sur « Jouer » au premier feu (l’attente de la carte des IA) : {(premier or 0) / 1000:.1f} s, à l’extinction des feux : {(mesure or 0) / 1000:.1f} s, sous swiftshader ; carte mise en cache : {cache['taille']} octets)")
     t(f'{titre} : gameplayStart seulement aux feux éteints, une fois', attendre(pg, '() => window.APPELS_SDK.join(",") === "init,gameLoadingFinished,gameplayStart"', None, 10000), str(pg.evaluate('() => window.APPELS_SDK')))
     # la prime en direct (tour 52g, premiere-minute n° 4) : pas pendant les feux, puis « Prime : <DECOUVERTE.prime(place)> » ; une place gagnée : « P3 ! » en moins de 0,5 s et « +<gain> »
@@ -836,7 +840,7 @@ def decouverte(pg, titre):
     t(f'{titre} : le « P{gain["nouvelle"]} ! » disparaît au bout de PRIME_PLACE_GRAND_DUREE s', attendre(pg, '() => document.getElementById("placeGrand").classList.contains("cache")', None, 5000))
     # les touches : chaque aide part quand sa touche a servi (le robot conduit ; les touches ne font que marquer les aides)
     pg.keyboard.press('ArrowUp'); pg.wait_for_timeout(100)
-    t(f'{titre} : ↑ pressée : l’aide « ↑ accélérer » disparaît, les autres restent', attendre(pg, '() => document.getElementById("aideGaz").classList.contains("cache") && !document.getElementById("aideDirection").classList.contains("cache") && !document.getElementById("aideFrein").classList.contains("cache")', None, 5000), str(pg.evaluate('() => JEU.aides')))
+    t(f'{titre} : après le départ, ↑ pressée : « Tiens ↑ » disparaît, « ← → pour tourner » est la seule aide (« ↓ freiner » vient après)', attendre(pg, '() => !document.body.classList.contains("grilleDecouverte") && document.getElementById("aideGaz").classList.contains("cache") && !document.getElementById("aideDirection").classList.contains("cache") && document.getElementById("aideFrein").classList.contains("cache")', None, 5000), str(pg.evaluate('() => JEU.aides')))
     pg.wait_for_timeout(400); pg.screenshot(path=os.path.join(CAPTURES, 'decouverte.png'))
     pg.keyboard.press('ArrowLeft'); pg.keyboard.press('ArrowDown')
     t(f'{titre} : ← et ↓ pressées : plus aucune aide', attendre(pg, '() => document.getElementById("aides").classList.contains("cache") || ["aideGaz", "aideDirection", "aideFrein"].every(id => document.getElementById(id).classList.contains("cache"))', None, 5000), str(pg.evaluate('() => JEU.aides')))
@@ -869,7 +873,7 @@ def decouverte(pg, titre):
         perso: vu("boutonPilotePerso") && document.getElementById("boutonPilotePerso").textContent === texte("pilotePerso"), premier: cs[0].querySelector("strong").textContent === texte("nomJoueur"),
         valides: props.length === REGLAGES.PILOTE_PROPOSITIONS && props.every(p => PILOTE.valider(ch, { nom: p.nom, numero: p.numero, pays: p.pays, coeur: p.coeur }).ok && p.pays === "fr" && CASQUE.valide(p.casque)) && new Set(props.map(p => p.numero)).size === props.length,
         paysNavigateur: [PILOTE.paysDeLangue("fr-CA"), PILOTE.paysDeLangue("en-US"), PILOTE.paysDeLangue("ja"), PILOTE.paysDeLangue("xx"), PILOTE.paysDeLangue("it-IT")].join(),
-        noms: props.every(p => p.nom === null || (REGLAGES.PILOTE_PRENOMS.includes(p.nom) && !ch.pilotes.some(r => !r.humain && r.nom === p.nom))),
+        noms: REGLAGES.PILOTE_PRENOMS.every(n => /^[A-Za-z]+$/.test(n)) && props.every(p => p.nom === null || (REGLAGES.PILOTE_PRENOMS.includes(p.nom) && !ch.pilotes.some(r => !r.humain && r.nom === p.nom))),
         domicile: PILOTE.propositions(ch, "it").every(p => p.pays === "it" && p.coeur === "monzo" && PILOTE.valider(ch, { nom: p.nom, numero: p.numero, pays: p.pays, coeur: p.coeur }).ok) }; }''')
     t(f'{titre} : la création du pilote propose {cartes["attendu"]} pilotes prêts en cartes (le premier « Toi », numéros libres et différents, pays du navigateur, cœur cohérent avec le pays : Italie → Monzo, casque valide, prénoms génériques), le formulaire est derrière « Personnaliser »',
       cartes['n'] == cartes['attendu'] and cartes['rapide'] and cartes['champsCaches'] and cartes['perso'] and cartes['premier'] and cartes['valides'] and cartes['noms'] and cartes['domicile'] and cartes['paysNavigateur'] == 'ca,us,jp,fr,it', str(cartes))
@@ -911,13 +915,15 @@ def decouverte(pg, titre):
     # un Grand Prix d'un tour : le numéro 27 dans la tour de classement, le nom sur la une du journal
     # (depuis le tour 32, le 1er Grand Prix est Bahrayn, pas le circuit de la découverte : sa carte n'est pas encore dans le cache, elle se
     # calcule en fond ; celle de la découverte, elle, y est gardée)
-    t(f'{titre} : au lancement suivant, la carte de la découverte est gardée dans le cache de la sauvegarde ; celle du 1er Grand Prix (un autre circuit) vient du cache ou se calcule en fond',
-      pg.evaluate('() => SAUVEGARDE.carte(REGLAGES.DECOUVERTE_CIRCUIT) !== null && NOM_CIRCUIT === JEU.championnat.calendrier[0].circuit && (JEU.carteDuCache === true || JEU.calculTrajectoire !== null || JEU.carte !== null)'),
-      str(pg.evaluate('() => [NOM_CIRCUIT, SAUVEGARDE.carte(REGLAGES.DECOUVERTE_CIRCUIT) !== null, JEU.carteDuCache, JEU.carte !== null]')))
+    t(f'{titre} : au lancement suivant, la carte de la découverte vient encore du fichier livré (ou de la sauvegarde) ; celle du 1er Grand Prix (un autre circuit, non livré) vient du cache ou se calcule en fond',
+      pg.evaluate('() => (SAUVEGARDE.carte(REGLAGES.DECOUVERTE_CIRCUIT) !== null || !!CACHE_CARTE_LIVREE[REGLAGES.DECOUVERTE_CIRCUIT]) && NOM_CIRCUIT === JEU.championnat.calendrier[0].circuit && (JEU.carteDuCache === true || JEU.calculTrajectoire !== null || JEU.carte !== null)'),   # (la clé du fichier livré se vérifie au lancement et dans test.html ; en carrière, DIVISIONS.appliquer change des réglages : pas ici)
+      str(pg.evaluate('() => [NOM_CIRCUIT, SAUVEGARDE.carte(REGLAGES.DECOUVERTE_CIRCUIT) !== null, JEU.carteDuCache, JEU.carte !== null, JEU.calculTrajectoire !== null]')))
     paddock_clic(pg, '#boutonCourseSuivante')
     attendre(pg, '() => JEU.ecran === "qualif" && JEU.qualif && JEU.qualif.etat === "choix"', None, 10000)
     pg.click('#boutonQualifPasser')
     attendre(pg, '() => JEU.qualif && JEU.qualif.etat === "resultat"', None, 180000)   # (la carte des IA d'abord, s'il le faut)
+    t(f'{titre} : la carte du 1er Grand Prix (non livrée) est calculée puis écrite dans la sauvegarde (la mise en cache des autres circuits est intacte, taille < CACHE_CARTE_TAILLE_MAX)',
+      pg.evaluate('() => { const c = SAUVEGARDE.carte(NOM_CIRCUIT); return !!c && CACHE_CARTE.taille(c) < REGLAGES.CACHE_CARTE_TAILLE_MAX; }'), str(pg.evaluate('() => [NOM_CIRCUIT, SAUVEGARDE.carte(NOM_CIRCUIT) !== null, JEU.carteDuCache]')))
     pg.click('#boutonQualifCourse')
     # avant les feux, la grille vue d'en haut (CLAUDE.md « L'interface ») : la caméra au-dessus de la grille, les feux pas encore
     # allumés (la physique attend), une touche la passe ; jamais à deux ni au tournoi (vérifié dans leurs pages : pas d'écran « grille »)
@@ -1792,8 +1798,18 @@ TACTILE_ETAT = '''() => { const b = id => { const e = document.getElementById(id
   return { present: TACTILE.estPresent(), mode: TACTILE.etat.mode, choix: TACTILE.etat.choix, neutre: TACTILE.etat.neutre, cibles: Object.assign({}, JEU.cibles), ecran: JEU.ecran, W: innerWidth, H: innerHeight,
     tactile: !document.getElementById('tactile').classList.contains('cache'), gaz: b('tactileGaz'), frein: b('tactileFrein'), gauche: b('tactileGauche'), droite: b('tactileDroite'), pause: b('tactilePause'),
     activer: b('tactileActiver'), portrait: b('tactilePortrait'), volantPause: b('boutonVolantPause'), recentrer: b('boutonRecentrerPause') }; }'''
+CONDUITE_DOIGTS = '''() => { clearInterval(window.__penche); const Z = REGLAGES.VOLANT_ZONE_MORTE, P = REGLAGES.VOLANT_PLEIN, doigt = (id, pid, bas) => document.getElementById(id).dispatchEvent(new PointerEvent(bas ? 'pointerdown' : 'pointerup', { pointerId: pid, pointerType: 'touch', isPrimary: pid === 1, bubbles: true, cancelable: true }));
+      window.__tenus = { gaz: false, frein: false };
+      BOUCLE.surAffichage(() => { if (!window.__conduire) return; const c = piloteRobot(JEU.joueur, CIRCUIT);
+        const gaz = c.gaz > 0.3, frein = c.frein > 0.3;
+        if (gaz !== window.__tenus.gaz) { doigt('tactileGaz', 1, gaz); window.__tenus.gaz = gaz; }
+        if (frein !== window.__tenus.frein) { doigt('tactileFrein', 2, frein); window.__tenus.frein = frein; }
+        const d = c.direction, a = d === 0 ? 0 : Math.sign(d) * (Z + Math.min(1, Math.abs(d)) * (P - Z));
+        window.dispatchEvent(new DeviceOrientationEvent('deviceorientation', { alpha: 0, beta: TACTILE.etat.neutre + a, gamma: 0 })); });
+      window.__conduire = true; }'''   # (tour 52b : le robot d'essai dicte, tout passe par les faux doigts et le faux volant)
 def tactile_ecran(pg, titre, l, h, page):
     if 'tactile-iphone' in page: return tactile_iphone(pg, titre, l, h)
+    if 'tactile-decouverte' in page: return tactile_decouverte(pg, titre, l, h)
     pret = attendre(pg, '() => typeof TACTILE !== "undefined" && TACTILE.estPresent() && JEU.ecran === "course"', None, 30000)
     pg.wait_for_timeout(300)
     e = pg.evaluate(TACTILE_ETAT)
@@ -1801,6 +1817,12 @@ def tactile_ecran(pg, titre, l, h, page):
     t(f'{titre} : sur un écran tactile, GAZ et FREIN s’affichent pendant la conduite, en bas à droite, dans l’écran, FREIN à gauche de GAZ, en gros (≥ 72 px)',
       pret and e['tactile'] and not e['gaz']['cache'] and not e['frein']['cache'] and dedans(e['gaz']) and dedans(e['frein']) and e['gaz']['x'] > e['W'] / 2 and e['gaz']['y'] > e['H'] / 2 and e['frein']['x'] + e['frein']['l'] <= e['gaz']['x'] + 1
       and e['gaz']['l'] >= 72 and e['frein']['l'] >= 72 and e['gaz']['texte'] == pg.evaluate('() => texte("tac_gaz")') and e['frein']['texte'] == pg.evaluate('() => texte("tac_frein")'), str(e))
+    # (tour 52b) rien ne se chevauche : 🔊 ⏸ ↩, le bandeau du tour, la minicarte, la tour de classement, GAZ / FREIN (ceux qui sont affichés)
+    sup = pg.evaluate("""() => { const ids = ['boutonSon', 'tactilePause', 'tactileRemise', 'hudCourse', 'minicarte', 'classement', 'tactileGaz', 'tactileFrein'], r = [];
+      for (const id of ids) { const e = document.getElementById(id); if (!e || e.classList.contains('cache') || getComputedStyle(e).display === 'none') continue; const b = e.getBoundingClientRect(); if (b.width > 0) r.push([id, b.left, b.top, b.right, b.bottom]); }
+      const c = []; for (let i = 0; i < r.length; i++) for (let j = i + 1; j < r.length; j++) { const a = r[i], b = r[j]; if (a[1] < b[3] - 1 && b[1] < a[3] - 1 && a[2] < b[4] - 1 && b[2] < a[4] - 1) c.push(a[0] + '/' + b[0]); }
+      return { vus: r.map(x => x[0]), chevauchements: c }; }""")
+    t(f'{titre} : ni 🔊, ⏸, ↩, le bandeau du tour, la minicarte, la tour de classement, GAZ ou FREIN ne se recouvrent', pret and not sup['chevauchements'] and len(sup['vus']) >= 5, str(sup))
     # sans capteur (aucun évènement d'orientation n'arrive) : après VOLANT_ATTENTE, le mode « boutons » et ◀ ▶ en bas à gauche
     boutons = attendre(pg, '() => TACTILE.etat.mode === "boutons"', None, 8000)
     e = pg.evaluate(TACTILE_ETAT)
@@ -1851,15 +1873,7 @@ def tactile_ecran(pg, titre, l, h, page):
       e['choix'] == 'boutons' and not e['gauche']['cache'] and e['recentrer']['cache'] and e['volantPause']['texte'] == pg.evaluate('() => texte("tac_mode_boutons")') and e2['choix'] == 'volant' and e2['gauche']['cache'], str([e['choix'], e2['choix']]))
     # une course sans clavier : le robot d'essai dit quoi faire, mais tout passe par les doigts (GAZ, FREIN tenus ou lâchés) et le volant (l'inclinaison) ;
     # au moins un tour entier, sans robot ni clavier
-    pg.evaluate('''() => { clearInterval(window.__penche); const Z = REGLAGES.VOLANT_ZONE_MORTE, P = REGLAGES.VOLANT_PLEIN, doigt = (id, pid, bas) => document.getElementById(id).dispatchEvent(new PointerEvent(bas ? 'pointerdown' : 'pointerup', { pointerId: pid, pointerType: 'touch', isPrimary: pid === 1, bubbles: true, cancelable: true }));
-      window.__tenus = { gaz: false, frein: false };
-      BOUCLE.surAffichage(() => { if (!window.__conduire) return; const c = piloteRobot(JEU.joueur, CIRCUIT);
-        const gaz = c.gaz > 0.3, frein = c.frein > 0.3;
-        if (gaz !== window.__tenus.gaz) { doigt('tactileGaz', 1, gaz); window.__tenus.gaz = gaz; }
-        if (frein !== window.__tenus.frein) { doigt('tactileFrein', 2, frein); window.__tenus.frein = frein; }
-        const d = c.direction, a = d === 0 ? 0 : Math.sign(d) * (Z + Math.min(1, Math.abs(d)) * (P - Z));
-        window.dispatchEvent(new DeviceOrientationEvent('deviceorientation', { alpha: 0, beta: TACTILE.etat.neutre + a, gamma: 0 })); });
-      window.__conduire = true; }''')
+    pg.evaluate(CONDUITE_DOIGTS)
     pg.wait_for_timeout(4000)
     pg.screenshot(path=os.path.join(CAPTURES, f'tactile-{l}.png'))
     fini = attendre(pg, '() => JEU.course && JEU.course.tours.length >= 1', None, 240000)
@@ -1874,6 +1888,42 @@ def tactile_ecran(pg, titre, l, h, page):
     pg.evaluate('() => document.getElementById("boutonReprendre").click()'); attendre(pg, '() => JEU.ecran === "course" && !document.getElementById("tactile").classList.contains("cache")', None, 4000)
     e2 = pg.evaluate(TACTILE_ETAT)
     t(f'{titre} : le bouton ⏸ ouvre la pause (les boutons de conduite se cachent) et « Reprendre » les rend', e['ecran'] == 'pause' and not e['tactile'] and e2['ecran'] == 'course' and e2['tactile'], str([e['ecran'], e['tactile'], e2['ecran'], e2['tactile']]))
+    # (tour 52b) le premier geste demande le plein écran puis le verrou en paysage (une seule fois), et le refus ne se voit pas
+    pg.evaluate("() => { document.body.dispatchEvent(new PointerEvent('pointerup', { bubbles: true })); document.body.dispatchEvent(new PointerEvent('pointerup', { bubbles: true })); }"); pg.wait_for_timeout(200)
+    t(f'{titre} : au premier geste sur un écran tactile, le plein écran puis le verrou en paysage sont demandés, une seule fois', pg.evaluate('() => window.__plein === 2'), str(pg.evaluate('() => window.__plein')))
+    # le téléphone debout pendant la course : le message par-dessus tout et la course en pause ; couché : le message part, la pause reste jusqu'à « Reprendre »
+    pg.set_viewport_size({'width': h, 'height': l}); attendre(pg, '() => JEU.ecran === "pause" && !document.getElementById("tactilePortrait").classList.contains("cache")', None, 8000)
+    d = pg.evaluate(TACTILE_ETAT)
+    pg.set_viewport_size({'width': l, 'height': h}); attendre(pg, '() => document.getElementById("tactilePortrait").classList.contains("cache")', None, 8000); pg.wait_for_timeout(500)
+    c = pg.evaluate(TACTILE_ETAT)
+    pg.evaluate('() => document.getElementById("boutonReprendre").click()'); attendre(pg, '() => JEU.ecran === "course"', None, 4000)
+    t(f'{titre} : téléphone debout pendant la course : « Tourne ton téléphone » et la course en pause ; couché : le message disparaît, la pause reste ; « Reprendre » rend la course',
+      d['ecran'] == 'pause' and not d['portrait']['cache'] and c['ecran'] == 'pause' and c['portrait']['cache'] and pg.evaluate('() => JEU.ecran === "course"'), str([d['ecran'], d['portrait']['cache'], c['ecran'], c['portrait']['cache']]))
+# (tour 52b) de la découverte au podium sans clavier : titre → « ▶ Jouer » au doigt, la course de découverte entière aux doigts et au volant
+# (le robot d'essai dicte, rien d'autre ne conduit), le bouton « Passer » au doigt, le podium, « Continuer » : aucune touche
+def toucher(pg, sel):   # un toucher au doigt ; si le bouton est caché ou recouvert un instant (mac chargé), le même clic par la page
+    try: pg.wait_for_selector(sel, state='visible', timeout=30000)
+    except Exception: pass
+    try: pg.tap(sel, timeout=8000)
+    except Exception: pg.evaluate('s => { const e = document.querySelector(s); if (e) e.click(); }', sel)
+def tactile_decouverte(pg, titre, l, h):
+    attendre(pg, '() => typeof TACTILE !== "undefined" && TACTILE.estPresent() && JEU.ecran === "titre"', None, 30000)
+    toucher(pg, '#boutonJouer')
+    t(f'{titre} : au doigt, « ▶ Jouer » mène à la grille de la course de découverte', attendre(pg, '() => JEU.ecran === "course" && JEU.plateau && JEU.qualif === null && !!JEU.decouverte', None, 30000), str(pg.evaluate('() => JEU.ecran')))
+    attendre(pg, '() => JEU.plateau.carte !== null && JEU.course.etat !== "compte"', None, 240000)
+    attendre(pg, '() => TACTILE.etat.mode === "boutons" || TACTILE.etat.mode === "volant"', None, 20000)
+    pg.evaluate("() => { window.__beta0 = 40; window.dispatchEvent(new DeviceOrientationEvent('deviceorientation', { alpha: 0, beta: 40, gamma: 0 })); }")
+    pg.evaluate(CONDUITE_DOIGTS)
+    arrive = attendre(pg, '() => !!JEU.attente || JEU.ecran === "podium"', None, 560000)
+    pg.evaluate('() => { window.__conduire = false; }')
+    for id_, pid in [('tactileGaz', 1), ('tactileFrein', 2)]: pg.evaluate(DOIGT, [id_, pid, False])
+    pg.screenshot(path=os.path.join(CAPTURES, f'tactile-decouverte-{l}.png'))
+    t(f'{titre} : les trois tours de la course de découverte se font aux doigts et au volant, sans clavier ni robot', arrive and pg.evaluate('() => !JEU.robot'), str(pg.evaluate('() => [JEU.ecran, JEU.course ? JEU.course.etat : null, JEU.course ? JEU.course.tours.length : null]')))
+    if pg.evaluate('() => JEU.ecran === "course" && !document.getElementById("attenteArrivee").classList.contains("cache")'): toucher(pg, '#boutonPasser')
+    t(f'{titre} : à l’arrivée, « Passer » au doigt mène au podium', attendre(pg, '() => JEU.ecran === "podium"', None, 120000), str(pg.evaluate('() => JEU.ecran')))
+    toucher(pg, '#boutonPodiumContinuer')
+    t(f'{titre} : « Continuer » au doigt mène à la création du pilote : toute la découverte s’est jouée sans une touche du clavier', attendre(pg, '() => JEU.ecran === "pilote"', None, 20000), str(pg.evaluate('() => JEU.ecran')))
+
 # l'iPhone : le navigateur ne donne l'orientation qu'après un toucher (DeviceOrientationEvent.requestPermission, faux ici) ; sur l'écran titre,
 # « 🎮 Activer le volant » ; accordée → le volant écoute ; refusée (rechargement avec sessionStorage perm = denied) → les boutons ◀ ▶ ;
 # le téléphone debout (viewport portrait) → « Tourne ton téléphone »
@@ -2380,8 +2430,9 @@ def course_joueur(pg, titre):
     t(f'{titre} : le bouton « passer » mène au podium (la caméra d’avant revient, le bandeau part)',
       attendre(pg, '() => JEU.ecran === "podium" && CAMERA.mode !== "tele" && document.getElementById("attenteArrivee").classList.contains("cache")', None, 180000),   # (depuis le 2026-10-24, « passer » joue la fin de la course en accéléré : plus de temps réel)
       str(pg.evaluate('() => [JEU.ecran, CAMERA.mode]')))
-    # le patinage, joué par le test sur une nouvelle course (podium → résultats → « Rejouer » → qualification passée) : la touche
-    # tenue à travers l'extinction ne lance pas la voiture (le régime monte au bout), lâcher puis réappuyer = patinage
+    # le patinage, joué par le test sur une nouvelle course (podium → résultats → « Rejouer » → qualification passée) : depuis le tour 52d
+    # (décision du propriétaire), la touche tenue à travers l'extinction lance la voiture à l'extinction même (DEPART_TENIR_PART) ; le
+    # régime monté au bout donne le patinage (hors découverte). L'ancienne règle (lâcher d'abord) : DEPART_TENIR_PART faux, testé dans tests/test.html
     pg.click('#boutonResultats')
     attendre(pg, '() => JEU.ecran === "resultats"')
     pg.click('#boutonRejouerResultats')
@@ -2389,16 +2440,12 @@ def course_joueur(pg, titre):
     attendre(pg, '() => JEU.plateau.carte !== null && JEU.course.depart && JEU.course.depart.lance === null', None, 180000)
     pg.evaluate('() => { BOUCLE.arreter(); for (const p of JEU.plateau.pilotes) { p.course.feux.delai = 30; p.course.feux.total = 35; p.course.compte = 30; } }')
     pg.keyboard.down('ArrowUp')
-    pg.evaluate('() => { BOUCLE.simuler(2); for (const p of JEU.plateau.pilotes) p.course.compte = 0.01; BOUCLE.simuler(0.3); }')
-    tenue = pg.evaluate('() => ({ regime: JEU.course.depart.regime, lance: JEU.course.depart.lance, etat: JEU.course.etat, u: JEU.joueur.u, extinction: JEU.course.depart.extinction })')
-    t(f'{titre} : patinage : ↑ tenue 2 s puis à travers l’extinction : le régime est au bout, la voiture n’est pas lancée tant que la touche n’est pas lâchée', tenue['regime'] == 1 and tenue['lance'] is None and tenue['etat'] == 'attente' and tenue['u'] == 0 and tenue['extinction'] is not None, str(tenue))
-    pg.keyboard.up('ArrowUp')
-    pg.evaluate('() => BOUCLE.simuler(0.05)')
-    pg.keyboard.down('ArrowUp')
-    pg.evaluate('() => BOUCLE.simuler(0.5)')
+    pg.evaluate('() => { BOUCLE.simuler(2); for (const p of JEU.plateau.pilotes) p.course.compte = 0.01; BOUCLE.simuler(0.5); }')
+    tenue = pg.evaluate('() => ({ regime: JEU.course.depart.regime, lance: JEU.course.depart.lance, etat: JEU.course.etat, u: JEU.joueur.u, extinction: JEU.course.depart.extinction, resultat: JEU.course.depart.resultat, tenu: JEU.course.depart.tenu })')
+    t(f'{titre} : patinage : ↑ tenue 2 s puis à travers l’extinction : le régime est au bout, la voiture est lancée à l’extinction même (départ tenu), résultat « patinage »', tenue['regime'] == 1 and tenue['extinction'] is not None and tenue['lance'] == tenue['extinction'] and tenue['tenu'] and tenue['resultat'] == 'patinage' and tenue['u'] > 0, str(tenue))
     image()
     pt = pg.evaluate('() => ({ resultat: JEU.course.depart.resultat, reaction: JEU.course.depart.reaction, facteur: JEU.joueur.facteurDepart, u: JEU.joueur.u, penalites: JEU.course.penalites, texte: document.getElementById("departResultat").textContent, classe: document.getElementById("departResultat").className })')
-    t(f'{titre} : lâcher puis réappuyer avec le régime trop haut = patinage : la voiture part moins fort (facteur moteur DEPART_PATINAGE[0]), « Patinage ! » affiché, pas de pénalité',
+    t(f'{titre} : le départ tenu avec le régime trop haut = patinage : la voiture part moins fort (facteur moteur DEPART_PATINAGE[0]), « Patinage ! » affiché, pas de pénalité',
       pt['resultat'] == 'patinage' and pt['facteur'] == pg.evaluate('() => REGLAGES.DEPART_PATINAGE[0]') and pt['u'] > 0 and pt['penalites'] == 0 and pt['texte'].startswith(pg.evaluate('() => texte("departPatinage")')) and pt['classe'] == 'patinage', str(pt))
     L.append(f"  (patinage joué par le test : réaction {pt['reaction']:.3f} s, facteur moteur {pt['facteur']}, « {pt['texte']} »)")
     pg.evaluate('() => { BOUCLE.simuler(REGLAGES.DEPART_PATINAGE[1] + 0.1); }')
@@ -3988,6 +4035,7 @@ with sync_playwright() as p:
             if 'test=sdk' in page or 'test=decouverte' in page or 'test=amis' in page or 'test=tournoi' in page or 'test=livree' in page or 'test=essai' in page: pg.add_init_script(FAUX_SDK)
             # la météo dessinée (meteo3d.js) : une fausse météo de test (window.METEO_TEST, jamais dans le jeu), ?meteo=pluie ou ?meteo=risque
             if 'test=manette' in page: pg.add_init_script(FAUSSES_MANETTES)   # la manette (tour 38) : de fausses manettes
+            pg.add_init_script('window.__plein = 0; try { Element.prototype.requestFullscreen = function () { window.__plein++; return Promise.resolve(); }; } catch (e) {} try { screen.orientation.lock = () => { window.__plein++; return Promise.resolve(); }; } catch (e) {}')   # (tour 52b : combien de fois le plein écran ou le verrou en paysage est demandé)
             if 'test=tactile' in page and 'test=tactile-iphone' not in page: pg.add_init_script('try { DeviceOrientationEvent.requestPermission = undefined; } catch (e) {}')   # (tour 52b : un Chrome récent sur GitHub offre requestPermission, jamais résolue sans geste : ces pages simulent un Android, sans autorisation à demander)
             if 'test=tactile-iphone' in page: pg.add_init_script(FAUSSE_PERMISSION)   # le téléphone (tour 51k) : l'autorisation de l'iPhone, accordée ou refusée (sessionStorage perm)
             if 'meteo=pluie' in page: pg.add_init_script('window.METEO_TEST = { etat: () => ({ pluie: 0.85, eau: 0.75, eauTrajectoire: 0.35, ciel: 0.9 }), prevision: () => ({ type: "pluie", risque: 90 }) };')
@@ -4005,6 +4053,8 @@ with sync_playwright() as p:
             t(f'{titre} : le panneau de réglage n’existe que avec ?reglages=1', pg.evaluate('() => !!document.getElementById("reglages")') == ('reglages=1' in page))
             # le téléphone (tactile.js, tour 51k) : sur un écran sans tactile, rien ne s'affiche et rien n'est branché
             if 'test=tactile' not in page:
+                pg.evaluate("() => { document.body.dispatchEvent(new PointerEvent('pointerup', { bubbles: true })); document.body.click(); }"); pg.wait_for_timeout(100)
+                t(f'{titre} : sans écran tactile, aucun plein écran ni verrou en paysage n’est jamais demandé', pg.evaluate('() => window.__plein === 0'), str(pg.evaluate('() => window.__plein')))
                 t(f'{titre} : sans écran tactile, aucun bouton tactile (ni GAZ / FREIN, ni ◀ ▶, ni « Activer le volant »), rien n’est branché', pg.evaluate('() => typeof TACTILE === "undefined" || !TACTILE.estPresent() && TACTILE.etat.mode === "aucun" && ["tactile", "tactileActiver", "tactilePortrait", "boutonVolantPause", "boutonRecentrerPause"].every(id => document.getElementById(id).classList.contains("cache"))'), str(pg.evaluate('() => typeof TACTILE === "undefined" ? "pas de TACTILE" : [TACTILE.estPresent(), TACTILE.etat.mode, navigator.maxTouchPoints]')))
             if page == 'index.html?seul=1' and l == 1280:
                 conduite(pg, titre)

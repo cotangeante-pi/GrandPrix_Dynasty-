@@ -301,6 +301,16 @@ const CHAMPIONNAT = (function () {
     return ordre.map((v, i) => ({ k: k(v), place: i + 1, grille: grille.indexOf(v.numero) + 1, meilleurTour: v.meilleurTour, classe: !!v.fini }));
   }
 
-  return { calendrierSaison, calendrierNeuf, creer, pointsPour, enregistrerCourse, finirGrandPrix, classementPilotes, classementEcuries, lignesDepuisCourse, lignesDepuisSimulation, appliquerNiveaux, simulerGrandPrix,
+  // le tout premier Grand Prix de la carrière : saison 1, aucun Grand Prix joué (tour 52f : 3 tours, « Passer » = milieu de grille)
+  function estPremierGrandPrix(ch) {
+    return !!ch && ch.saison === 1 && !ch.prochain && !(ch.resultats && ch.resultats.length);
+  }
+
+  // la longueur du prochain Grand Prix de ch
+  function toursDuGrandPrix(ch) {
+    return estPremierGrandPrix(ch) ? R.CHAMPIONNAT_TOURS_PREMIER : R.CHAMPIONNAT_TOURS;
+  }
+
+  return { estPremierGrandPrix, toursDuGrandPrix, calendrierSaison, calendrierNeuf, creer, pointsPour, enregistrerCourse, finirGrandPrix, classementPilotes, classementEcuries, lignesDepuisCourse, lignesDepuisSimulation, appliquerNiveaux, simulerGrandPrix,
     coequipierDe, gagnantDuel, scoreDuel, completer };
 })();

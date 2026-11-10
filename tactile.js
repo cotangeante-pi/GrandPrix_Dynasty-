@@ -61,7 +61,7 @@ const TACTILE = (function () {
 
   const E = {};   // les éléments
   const tenus = { gaz: new Set(), frein: new Set(), gauche: new Set(), droite: new Set() };   // les doigts posés sur chaque bouton
-  const V = { mode: 'aucun', neutre: null, brut: null, lisse: null, attente: 0, permission: null, choix: 'volant', conduite: false, ecoute: false };
+  const V = { pauseDebout: false, mode: 'aucun', neutre: null, brut: null, lisse: null, attente: 0, permission: null, choix: 'volant', conduite: false, ecoute: false };
   // mode : 'aucun' (pas branché), 'attente' (on écoute, rien reçu), 'volant' (le capteur parle), 'boutons' (pas de capteur, ou refusé)
   let rappels = {};
 
@@ -103,6 +103,20 @@ const TACTILE = (function () {
   }
   function toutLacher() { for (const n in tenus) { tenus[n].clear(); if (E[n]) E[n].classList.remove('tenu'); } }
 
+  // le premier geste : le plein écran puis le verrou en paysage ; tout dans des try / promesses ignorées (le refus ne se voit jamais : iPhone Safari,
+  // l'iframe de Poki ; on garde alors le message « Tourne ton téléphone »)
+  let geste = false;
+  function premierGeste() {
+    if (geste) return;
+    geste = true;
+    for (const ev of ['pointerup', 'touchend', 'click']) document.removeEventListener(ev, premierGeste, true);
+    const verrouiller = () => { try { const o = screen.orientation; if (o && o.lock) { const p = o.lock('landscape'); if (p && p.catch) p.catch(() => {}); } } catch (err) { /* rien */ } };
+    try {
+      const el = document.documentElement;
+      if (el && el.requestFullscreen) { const p = el.requestFullscreen(); if (p && p.then) p.then(verrouiller, verrouiller); else verrouiller(); } else verrouiller();
+    } catch (err) { verrouiller(); }
+  }
+
   // f : { pause(), remettre(), } ; les textes et les boutons de la page
   function brancher(f) {
     rappels = f || {};
@@ -122,6 +136,7 @@ const TACTILE = (function () {
       const b = $(id); if (!b) continue;
       b.addEventListener('mousedown', e => e.preventDefault()); b.addEventListener('click', g);
     }
+    if (R.TACTILE_PAYSAGE) for (const ev of ['pointerup', 'touchend', 'click']) document.addEventListener(ev, premierGeste, true);   // (le plein écran demande un vrai geste : au premier appui lâché)
     window.addEventListener('blur', toutLacher);
     document.addEventListener('visibilitychange', toutLacher);
     window.addEventListener('resize', rafraichir);
@@ -155,6 +170,10 @@ const TACTILE = (function () {
     if (!E.gaz) return;
     if (conduite && !V.conduite) { if (V.brut !== null) { V.neutre = V.brut; V.lisse = V.brut; } toutLacher(); }   // le neutre pris au départ
     if (conduite !== V.conduite) { V.conduite = conduite; rafraichir(); }
+    // téléphone debout pendant la conduite : la course se met en pause (une fois) ; couché de nouveau, elle reprend seulement par « Reprendre »
+    const debout = portrait(window.innerWidth, window.innerHeight);
+    if (debout && conduite && !V.pauseDebout) { V.pauseDebout = true; if (rappels.pause) rappels.pause(); }
+    if (!debout) V.pauseDebout = false;
     if (V.mode === 'attente') { V.attente += dt || 0; if (V.attente >= R.VOLANT_ATTENTE) { V.mode = 'boutons'; rafraichir(); } }   // pas de capteur : ◀ ▶
     V.lisse = lisser(V.lisse, V.brut, dt || 0);
   }
