@@ -828,28 +828,48 @@ def decouverte(pg, titre):
     pg.wait_for_timeout(400); pg.screenshot(path=os.path.join(CAPTURES, 'decouverte.png'))
     pg.keyboard.press('ArrowLeft'); pg.keyboard.press('ArrowDown')
     t(f'{titre} : ← et ↓ pressées : plus aucune aide', attendre(pg, '() => document.getElementById("aides").classList.contains("cache") || ["aideGaz", "aideDirection", "aideFrein"].every(id => document.getElementById(id).classList.contains("cache"))', None, 5000), str(pg.evaluate('() => JEU.aides')))
+    pg.evaluate('() => { REGLAGES.PODIUM_DECOUVERTE_DUREE = 1e9; }')   # (avant le podium : sous swiftshader une image dure des secondes ; le passage tout seul est testé plus bas, avec un délai court)
     # le robot roule jusqu'au podium (3 tours, 7 voitures)
     for _ in range(90):
         pg.evaluate('() => BOUCLE.simuler(5)')
         if pg.evaluate('() => JEU.ecran') == 'podium': break
         pg.wait_for_timeout(50)
     t(f'{titre} : la course va jusqu’au podium ; gameplayStop au podium', pg.evaluate('() => JEU.ecran === "podium" && JEU.final && JEU.final.length === REGLAGES.DECOUVERTE_IA + 1') and attendre(pg, '() => window.APPELS_SDK.slice(-1)[0] === "gameplayStop"'), str(pg.evaluate('() => [JEU.ecran, window.APPELS_SDK]')))
-    pg.click('#boutonResultats')
-    bravo = pg.evaluate('''() => { const moi = JEU.final.find(x => x.k === JEU.suivie); return { ecran: JEU.ecran, place: moi.place, prime: JEU.prime, attendu: DECOUVERTE.prime(moi.place),
-      titre: document.getElementById("bravoTitre").textContent, question: document.getElementById("bravoQuestion").textContent, placeTexte: document.getElementById("bravoPlace").textContent, argentTexte: document.getElementById("bravoArgent").textContent, faite: SAUVEGARDE.decouverteFaite(), argent: SAUVEGARDE.argent() }; }''')
-    t(f'{titre} : après le podium, « Bravo ! Prêt pour ta carrière ? », la place et la prime selon la place (plafond {R["max"]}) ; rien n’est encore sauvegardé',
-      bravo['ecran'] == 'bravo' and bravo['prime'] == bravo['attendu'] and bravo['prime'] == min(R['argent'][bravo['place'] - 1], R['max']) and bravo['titre'] == pg.evaluate('() => texte("bravoTitre")')
-      and bravo['question'] == pg.evaluate('() => texte("bravoQuestion")') and f"P{bravo['place']} / {R['ia'] + 1}" in bravo['placeTexte'] and pg.evaluate('p => ARGENT.formater(p)', bravo['prime']) in bravo['argentTexte'] and '$' not in bravo['argentTexte'] and not bravo['faite'] and bravo['argent'] == 0, str(bravo))
+    # le podium de la découverte (tour 52e) : « Tu finis P2 / 7 · +800 € », « Continuer » (plus de « Résultats », plus d'écran « Bravo ! »)
+    bravo = pg.evaluate('''() => { const moi = JEU.final.find(x => x.k === JEU.suivie), vu = id => !document.getElementById(id).classList.contains("cache"); return { ecran: JEU.ecran, place: moi.place, prime: JEU.prime, attendu: DECOUVERTE.prime(moi.place),
+      bilan: document.getElementById("podiumBilan").textContent, continuer: vu("boutonPodiumContinuer") && document.getElementById("boutonPodiumContinuer").textContent === texte("pdContinuer"), resultats: vu("boutonResultats"),
+      encore: vu("boutonPodiumEncore"), apprendre: vu("boutonTutorielPodium") && document.getElementById("boutonTutorielPodium").textContent === texte("tutoBravo") && document.getElementById("boutonTutorielPodium").closest("#podium") !== null,
+      pas_de_bravo: document.getElementById("bravo") === null, faite: SAUVEGARDE.decouverteFaite(), argent: SAUVEGARDE.argent() }; }''')
+    t(f'{titre} : à la découverte, le podium dit « Tu finis P{bravo["place"]} / {R["ia"] + 1} · +prime » (selon la place, plafond {R["max"]}), un seul bouton « Continuer » (+ « Encore une course ? » et « D’abord apprendre » en petit), plus de « Résultats » ni d’écran « Bravo ! » ; rien n’est encore sauvegardé',
+      bravo['ecran'] == 'podium' and bravo['prime'] == bravo['attendu'] and bravo['prime'] == min(R['argent'][bravo['place'] - 1], R['max']) and f"P{bravo['place']} / {R['ia'] + 1}" in bravo['bilan']
+      and ('+' + pg.evaluate('p => ARGENT.formater(p)', bravo['prime'])) in bravo['bilan'] and '$' not in bravo['bilan'] and bravo['continuer'] and not bravo['resultats'] and bravo['encore'] and bravo['apprendre'] and bravo['pas_de_bravo']
+      and not bravo['faite'] and bravo['argent'] == 0, str(bravo))
     L.append(f"  (découverte du robot : P{bravo['place']} / {R['ia'] + 1}, prime {bravo['prime']} $)")
-    pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'bravo.png'))
+    pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'podium-decouverte.png'))
+    # sans clic, le podium passe tout seul à la création du pilote après PODIUM_DECOUVERTE_DUREE s (la liste du tutoriel, ouverte, l'arrête)
+    duree = 3
+    pg.evaluate('(d) => { REGLAGES.PODIUM_DECOUVERTE_DUREE = d; JEU.tempsPodium = 0; }', duree)
+    t(f'{titre} : le podium de la découverte passe tout seul à la création du pilote sans clic (PODIUM_DECOUVERTE_DUREE, 8 s par défaut, réglée à {duree} s ici), pas avant',
+      pg.evaluate('(d) => JEU.ecran === "podium" && JEU.tempsPodium < d', duree) and attendre(pg, '() => JEU.ecran === "pilote"', None, int(duree * 1000) + 15000) and pg.evaluate('() => SAUVEGARDE.championnat() !== null && !SAUVEGARDE.decouverteFaite()'), str(pg.evaluate('() => [JEU.ecran, JEU.tempsPodium]')))
+    cartes = pg.evaluate('''() => { const ch = JEU.monde, cs = Array.from(document.querySelectorAll("#piloteCartes .piloteCarte")), vu = id => !document.getElementById(id).classList.contains("cache") && document.getElementById(id).offsetParent !== null;
+      const props = PILOTE.propositions(ch, "fr-FR");
+      return { n: cs.length, attendu: REGLAGES.PILOTE_PROPOSITIONS, rapide: document.getElementById("pilote").classList.contains("rapide"), champsCaches: document.getElementById("piloteChamps").offsetParent === null && document.getElementById("casqueEditeur").offsetParent === null,
+        perso: vu("boutonPilotePerso") && document.getElementById("boutonPilotePerso").textContent === texte("pilotePerso"), premier: cs[0].querySelector("strong").textContent === texte("nomJoueur"),
+        valides: props.length === REGLAGES.PILOTE_PROPOSITIONS && props.every(p => PILOTE.valider(ch, { nom: p.nom, numero: p.numero, pays: p.pays, coeur: p.coeur }).ok && p.pays === "fr" && CASQUE.valide(p.casque)) && new Set(props.map(p => p.numero)).size === props.length,
+        paysNavigateur: [PILOTE.paysDeLangue("fr-CA"), PILOTE.paysDeLangue("en-US"), PILOTE.paysDeLangue("ja"), PILOTE.paysDeLangue("xx"), PILOTE.paysDeLangue("it-IT")].join(),
+        noms: props.every(p => p.nom === null || (REGLAGES.PILOTE_PRENOMS.includes(p.nom) && !ch.pilotes.some(r => !r.humain && r.nom === p.nom))),
+        domicile: PILOTE.propositions(ch, "it").every(p => p.pays === "it" && p.coeur === "monzo" && PILOTE.valider(ch, { nom: p.nom, numero: p.numero, pays: p.pays, coeur: p.coeur }).ok) }; }''')
+    t(f'{titre} : la création du pilote propose {cartes["attendu"]} pilotes prêts en cartes (le premier « Toi », numéros libres et différents, pays du navigateur, cœur cohérent avec le pays : Italie → Monzo, casque valide, prénoms génériques), le formulaire est derrière « Personnaliser »',
+      cartes['n'] == cartes['attendu'] and cartes['rapide'] and cartes['champsCaches'] and cartes['perso'] and cartes['premier'] and cartes['valides'] and cartes['noms'] and cartes['domicile'] and cartes['paysNavigateur'] == 'ca,us,jp,fr,it', str(cartes))
+    pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'pilote-cartes.png'))
+    pg.click('#boutonPilotePerso')
     t(f'{titre} : aucun point de championnat n’est donné', pg.evaluate('() => SAUVEGARDE.championnat().pilotes.every(p => p.stats.points === 0 && p.stats.courses === 0) && SAUVEGARDE.championnat().prochain === 0'))
     t(f'{titre} : jamais de commercialBreak', pg.evaluate('() => !window.APPELS_SDK.includes("commercialBreak")'), str(pg.evaluate('() => window.APPELS_SDK')))
     # la création du pilote (pilote.js) : après « Commencer ma carrière », l'écran ; un numéro de rival est refusé, un pays sans
     # circuit demande la course de cœur, un pays avec circuit l'impose (🏠) ; validé → sauvegardé, la page recharge sur le paddock
     # avec le nom du joueur ; puis un Grand Prix d'un tour : son numéro dans la tour, son nom sur la une du journal
-    pg.click('#boutonCarriere')
-    t(f'{titre} : « Commencer ma carrière » ouvre la création du pilote (nom, numéro, pays, course de cœur), rien n’est encore sauvegardé',
-      attendre(pg, '() => JEU.ecran === "pilote" && !document.getElementById("pilote").classList.contains("cache")') and pg.evaluate('() => !SAUVEGARDE.decouverteFaite() && document.querySelectorAll("#pilotePays option").length === REGLAGES.PAYS.length && document.querySelectorAll("#piloteCoeur option").length === 12 && document.getElementById("piloteNom").placeholder === texte("nomJoueur")'),
+    t(f'{titre} : « Personnaliser » ouvre le formulaire (nom, numéro, pays, course de cœur), rien n’est encore sauvegardé',
+      attendre(pg, '() => JEU.ecran === "pilote" && !document.getElementById("pilote").classList.contains("cache") && !document.getElementById("pilote").classList.contains("rapide")') and pg.evaluate('() => !SAUVEGARDE.decouverteFaite() && document.querySelectorAll("#pilotePays option").length === REGLAGES.PAYS.length && document.querySelectorAll("#piloteCoeur option").length === 12 && document.getElementById("piloteNom").placeholder === texte("nomJoueur")'),
       str(pg.evaluate('() => [JEU.ecran, document.querySelectorAll("#pilotePays option").length]')))
     # l'éditeur du casque : le motif et une couleur changent, la case du joueur dans l'atlas change, l'aperçu 3D tourne
     casque0 = pg.evaluate('() => { const a = VOITURE3D.atlas, i = JEU.contre ? JEU.ia : 0, t = a.t; return Array.from(a.ctx.getImageData((i % a.colonnes) * t, Math.floor(i / a.colonnes) * t, t, t).data).join(); }')
@@ -2993,11 +3013,17 @@ def audit_autres(pg, titre, page, l, h):
         pg.click('#boutonAmisDeux'); verifier('deux-reglages')
         pg.click('#boutonDeuxRetour'); pg.click('#boutonAmisRetour')
         pg.click('#boutonJouer')
+        pg.evaluate('() => { REGLAGES.PODIUM_DECOUVERTE_DUREE = 1e9; }')   # (les captures sous swiftshader : le passage tout seul est testé dans decouverte())
         verifier('decouverte-aides', None, '() => JEU.ecran === "course" && JEU.plateau && JEU.plateau.carte !== null && JEU.course.etat === "course"')
         t(f'{titre} : la course de découverte va jusqu’au podium', jusqu_au_podium())
         verifier('podium')
-        pg.click('#boutonResultats'); verifier('bravo', None, '() => JEU.ecran === "bravo"')
-        pg.click('#boutonCarriere'); verifier('pilote', None, '() => JEU.ecran === "pilote"')
+        pg.click('#boutonPodiumContinuer'); verifier('pilote', None, '() => JEU.ecran === "pilote"')   # (« Bravo ! » n'existe plus : le podium mène à la création, tour 52e)
+        # du podium au paddock en DEUX clics : « Continuer », puis un pilote prêt ; le pilote est valide et sauvegardé, la découverte faite
+        with pg.expect_navigation(timeout=120000): pg.click('#piloteCartes .piloteCarte >> nth=0', timeout=120000)
+        t(f'{titre} : du podium au paddock en deux clics (Continuer, un pilote prêt) : un pilote valide (numéro libre, pays de la liste, course de cœur cohérente), la découverte faite',
+          attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat" && JEU.championnat', None, 60000)
+          and pg.evaluate('() => { const j = PILOTE.joueur(JEU.championnat), s = PILOTE.joueur(SAUVEGARDE.championnat()); return !PILOTE.manque(JEU.championnat) && s.numero === j.numero && PILOTE.numeroLibre(JEU.championnat, j.numero) && REGLAGES.PAYS.includes(j.pays) && (PILOTE.domicile(j.pays) === null || PILOTE.domicile(j.pays) === j.coeur) && Object.keys(REGLAGES.CIRCUITS_PAYS).includes(j.coeur) && CASQUE.valide(j.casque) && SAUVEGARDE.decouverteFaite(); }'),
+          str(pg.evaluate('() => [JEU.ecran, PILOTE.joueur(JEU.championnat)]')))
     elif 'audit-tournoi' in page:
         pg.click('#boutonAmis'); pg.click('#boutonAmisTournoi'); verifier('tournoi-inscription', None, '() => JEU.ecran === "tournoiInscription"')
         with pg.expect_navigation(): pg.click('#boutonTournoiPartir')
@@ -3734,7 +3760,7 @@ def tuto_lecon(pg, titre, l, h, page):
 def tuto_menu(pg, titre, l, h):
     t(f'{titre} : le premier lancement : l’écran titre a le petit « Apprendre à piloter » sous « Entre amis » ; la liste des leçons est cachée (aucun écran de plus)',
       pg.evaluate('() => JEU.ecran === "titre" && document.getElementById("boutonTutorielTitre").textContent === texte("tutoBouton") && document.getElementById("boutonTutorielTitre").getBoundingClientRect().top > document.getElementById("boutonAmis").getBoundingClientRect().top && document.getElementById("tutoMenu").classList.contains("cache")'))
-    t(f'{titre} : « Bravo ! » (après la découverte) a aussi « D’abord apprendre »', pg.evaluate('() => document.getElementById("boutonTutorielBravo").textContent === texte("tutoBravo") && document.getElementById("boutonTutorielBravo").closest("#bravo") !== null'))
+    t(f'{titre} : le podium de la découverte a aussi « D’abord apprendre »', pg.evaluate('() => document.getElementById("boutonTutorielPodium").textContent === texte("tutoBravo") && document.getElementById("boutonTutorielPodium").closest("#podium") !== null'))
     pg.click('#boutonTutorielTitre')
     m = pg.evaluate('''() => { const e = document.getElementById("tutoMenu"), li = [...e.querySelectorAll("#tutoListe li")], b = [...e.querySelectorAll("button")].map(x => x.getBoundingClientRect());
       return { vu: !e.classList.contains("cache"), n: li.length, etoiles: li.map(x => x.querySelector(".tutoEtoile").textContent).join(""), noms: li.map(x => x.querySelector(".tutoNom").textContent), dedans: b.every(x => x.left >= 0 && x.top >= 0 && x.right <= innerWidth && x.bottom <= innerHeight),

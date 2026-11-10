@@ -361,8 +361,6 @@ body.deux #hudStand { display: none; }
 #titre #boutonJouer { font-size: 24px; padding: 14px 40px; }
 .ecran button.petit { font-size: 13px; padding: 6px 14px; opacity: 0.85; }
 #amis p { max-width: 460px; text-align: center; font-weight: 700; }
-#bravo h2 { margin: 6px 0 0; font-size: 22px; }
-#bravo p { margin: 0; font-weight: 700; }
 #aides {
   position: fixed;
   left: 16px;
@@ -1750,6 +1748,33 @@ body.auPaddock #boutonSon { display: none; }
   #contrats button.signer, #contrats button.negocier { padding: 3px 10px; font-size: 12px; }
   #contrats .boutons button { padding: 6px 16px; font-size: 13px; }
 }
+
+/* le podium de la découverte (tour 52e) : le bilan, « Continuer », « Encore une course ? » et « D'abord apprendre » à la place de « Résultats » */
+#podiumDecouverte { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+#podiumDecouverte p { margin: 0; padding: 6px 16px; border-radius: 8px; background: var(--panneau); font: 800 22px/1.3 var(--police); text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5); }
+#podiumDecouverte .boutons { margin: 0; }
+#podiumDecouverte button { pointer-events: auto; }
+#boutonPodiumContinuer { padding: 12px 40px; font-size: 22px; background: var(--tv-bouton-principal); box-shadow: 0 2px 10px rgba(227, 36, 43, 0.35); }
+
+/* la création du pilote après la découverte (tour 52e) : trois pilotes prêts en grosses cartes, « Personnaliser » ouvre le formulaire */
+#pilote:not(.rapide) #piloteRapide { display: none; }
+#pilote.rapide #piloteChamps, #pilote.rapide #casqueEditeur, #pilote.rapide #piloteErreur, #pilote.rapide #piloteBoutons { display: none; }
+#piloteRapide { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+#piloteCartes { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+#piloteCartes .piloteCarte { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 150px; min-height: 150px; padding: 14px 18px; justify-content: center; font: 600 15px/1.3 var(--police); cursor: pointer; }
+#piloteCartes .piloteCarte strong { font-size: 22px; }
+#piloteCartes .piloteCarte .casqueIcone { width: 64px; height: 64px; margin: 0; }
+@media (max-height: 420px) {
+  #podiumDecouverte p { font-size: 17px; padding: 3px 12px; }
+  #boutonPodiumContinuer { padding: 6px 28px; font-size: 18px; }
+  #piloteCartes { gap: 8px; }
+  #piloteCartes .piloteCarte { min-width: 120px; min-height: 100px; padding: 6px 10px; gap: 2px; }
+  #piloteCartes .piloteCarte strong { font-size: 17px; }
+  #piloteCartes .piloteCarte .casqueIcone { width: 40px; height: 40px; }
+}
+#podiumDecouverte button { border: 0; border-radius: var(--tv-coin, 8px); background: var(--tv-bouton, #2a2f3a); color: var(--texte, #fff); font-family: var(--tv-police, inherit); cursor: pointer; }
+#podiumDecouverte button.petit { font-size: 13px; padding: 6px 14px; opacity: 0.9; }
+#boutonPodiumContinuer { color: #fff; }
 
 /* le téléphone (tactile.js, tour 51k) : de gros boutons à demi transparents, seulement sur un écran tactile, pendant la conduite ;
    GAZ et FREIN en bas à droite (le pouce droit), ◀ ▶ de secours en bas à gauche, ⏸ et ↩ en haut au milieu */
