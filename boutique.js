@@ -78,15 +78,15 @@ const BOUTIQUE = (function () {
       const li = el('li', 'skin'), st = etat(s.id, e.possedes, e.ch);
       li.dataset.id = s.id; li.dataset.etat = st;
       const apercu = el('span', 'apercu');
-      if (s.type === 'livree') apercu.append(LIVREE.icone(LIVREE.pourVoiture(e.couleur, LIVREE.creer(s.motif, 0xffffff), e.numero, false, e.pays), 96, 34));
-      else if (s.type === 'casque') apercu.append(CASQUE.icone(CASQUE.creer(s.motif, e.casque ? e.casque.couleurs : R.CASQUE_NEUTRE.couleurs), 34));
+      if (s.type === 'livree') apercu.append(LIVREE.icone(LIVREE.pourVoiture(e.couleur, LIVREE.creer(s.motif, 0xffffff), e.numero, false, e.pays), 120, 44));
+      else if (s.type === 'casque') apercu.append(CASQUE.icone(CASQUE.creer(s.motif, e.casque ? e.casque.couleurs : R.CASQUE_NEUTRE.couleurs), 56));
       else apercu.textContent = ICONES[s.motif] || '★';
-      li.append(apercu, el('span', 'nom', nom(s)));
+      li.append(apercu, el('span', 'nom', nom(s)));   // (tour 52 : une carte par skin, l'aperçu en grand, le nom, UNE action : le prix ou « gratuit »)
       const actionsSkin = el('span', 'actions');
       if (st === 'possede') actionsSkin.append(el('span', 'possede', texte('boutiquePossede')));
       else if (st === 'bloque') actionsSkin.append(el('span', 'condition', texte('boutiqueRecompense').replace('{c}', conditionTexte(s))));
       else {
-        if (st === 'argent') { const b = bouton(texte('boutiqueAcheter').replace('{p}', ARGENT.formater(s.prix)), 'acheter', () => actions.acheter(s.id)); b.disabled = !(e.solde >= s.prix); actionsSkin.append(b); }
+        if (st === 'argent') { const b = bouton(texte('boutiqueAcheter').replace('{p}', ARGENT.formater(s.prix)), 'acheter', () => actions.acheter(s.id)); b.disabled = !(e.solde >= s.prix); if (b.disabled) b.classList.add('trop'); actionsSkin.append(b); }
         else actionsSkin.append(bouton(texte('boutiquePub'), 'pub', () => actions.pub(s.id)));
         if (essayable(s.id, e.possedes) && actions.essayer) actionsSkin.append(bouton(texte('boutiqueEssayer'), 'essayer', () => actions.essayer(s.id)));
       }

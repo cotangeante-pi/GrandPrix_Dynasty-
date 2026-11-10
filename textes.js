@@ -104,8 +104,8 @@ const TEXTES = {
     celebrationTexte: 'Celebration', celebration_poing: 'Fist pump', celebration_drapeau: 'Waving flag', celebration_donuts: 'Donuts', celebration_saut: 'Jump for joy',
     celebration_confettis: 'Confetti', celebration_feux: 'Fireworks', celebration_toupie: 'Spin', celebration_trophee: 'Trophy',
     skinBoutique: '🛒 shop', skinVerrou: '🔒 {c}',
-    boutique: 'Shop', boutiqueTitre: 'Shop', boutiqueSolde: 'Money: {s}', boutique_livree: 'Liveries', boutique_casque: 'Helmets', boutique_celebration: 'Celebrations',
-    boutiqueAcheter: 'Buy · {p}', boutiquePub: '📺 Watch an ad: yours forever', boutiqueRecompense: '🏆 Reward: {c}', boutiquePossede: '✔ Yours', boutiqueEssayer: 'Try it',
+    boutique: 'Shop', boutiqueTitre: 'Shop', boutiqueSolde: '💰 {s}', boutique_livree: 'Liveries', boutique_casque: 'Helmets', boutique_celebration: 'Celebrations',
+    boutiqueAcheter: '🛒 {p}', boutiquePub: '📺 Free', boutiqueRecompense: '🔒 {c}', boutiquePossede: '✔ Yours', boutiqueEssayer: 'Try it',
     boutiqueTrop: 'Not enough money', boutiqueAchete: 'Bought: {skin}!', boutiquePubRatee: 'No ad right now: try again later.', boutiqueRetour: 'Back', boutiqueSansCarriere: 'Start your career to earn money.',
     cond_titre: 'win a title', cond_premiereCourse: 'race your first Grand Prix', cond_victoires5: 'win {n} races', cond_legende: 'win {n} titles',
     essaiBandeau: 'Test drive: {skin} — nothing counts', essaiFinTitre: 'Test drive', essaiFinTexte: 'Do you like {skin}?', essaiAcheter: 'Buy · {p}', essaiRetour: 'Back to the shop',
@@ -499,8 +499,8 @@ const TEXTES = {
     celebrationTexte: 'Célébration', celebration_poing: 'Poing levé', celebration_drapeau: 'Drapeau', celebration_donuts: 'Donuts', celebration_saut: 'Bond de joie',
     celebration_confettis: 'Confettis', celebration_feux: 'Feu d’artifice', celebration_toupie: 'Toupie', celebration_trophee: 'Trophée',
     skinBoutique: '🛒 boutique', skinVerrou: '🔒 {c}',
-    boutique: 'Boutique', boutiqueTitre: 'Boutique', boutiqueSolde: 'Argent : {s}', boutique_livree: 'Livrées', boutique_casque: 'Casques', boutique_celebration: 'Célébrations',
-    boutiqueAcheter: 'Acheter · {p}', boutiquePub: '📺 Regarder une pub : à toi pour toujours', boutiqueRecompense: '🏆 Récompense : {c}', boutiquePossede: '✔ À toi', boutiqueEssayer: 'Essayer',
+    boutique: 'Boutique', boutiqueTitre: 'Boutique', boutiqueSolde: '💰 {s}', boutique_livree: 'Livrées', boutique_casque: 'Casques', boutique_celebration: 'Célébrations',
+    boutiqueAcheter: '🛒 {p}', boutiquePub: '📺 Gratuit', boutiqueRecompense: '🔒 {c}', boutiquePossede: '✔ À toi', boutiqueEssayer: 'Essayer',
     boutiqueTrop: 'Pas assez d’argent', boutiqueAchete: 'Acheté : {skin} !', boutiquePubRatee: 'Pas de pub pour l’instant : réessaie plus tard.', boutiqueRetour: 'Retour', boutiqueSansCarriere: 'Commence ta carrière pour gagner de l’argent.',
     cond_titre: 'gagner un titre', cond_premiereCourse: 'courir ton premier Grand Prix', cond_victoires5: 'gagner {n} courses', cond_legende: 'gagner {n} titres',
     essaiBandeau: 'Essai : {skin} — rien n’est compté', essaiFinTitre: 'Essai', essaiFinTexte: '{skin} te plaît ?', essaiAcheter: 'Acheter · {p}', essaiRetour: 'Retour à la boutique',
@@ -1238,7 +1238,7 @@ Object.assign(TEXTES.fr, { cameraSuivie: 'Caméra : {nom}' });
 // --- tour 48a, Codeur 1 : le nouveau paddock (un menu à gauche, une page au centre), « Nouvelle carrière » et « Nouvelle carrière à 0 » ---
 Object.assign(TEXTES.en, {
   paddock_course: 'Race', paddock_equipe: 'My team', paddock_boutique: 'Shop', paddock_saison: 'Season', paddock_messages: 'Messages',
-  paddock_reglages: 'Settings', paddock_apprendre: 'Learn', paddock_boutiqueBientot: 'Liveries, helmets and celebrations: buy them with your race money, unlock some with a 📺 ad, earn the best ones in your career. Try a skin before you buy it.', paddock_ouvrirBoutique: '🛒 Open the shop',
+  paddock_reglages: 'Settings', paddock_apprendre: 'Learn', paddock_boutiqueBientot: 'Buy with your money, or get it free by watching an ad 📺.', paddock_ouvrirBoutique: '🛒 Open the shop',
   paddock_voirTout: 'See all', paddock_lireMessages: 'Open messages', paddock_rienDeNeuf: 'Nothing new. Talk to your team-mate or your team boss.',
   nb_paddock_nonLus: ['{n} new message', '{n} new messages'], paddock_reglagesJeu: 'Game', paddock_carriere: 'Career',
   paddock_sonActif: '🔊 Sound: on', paddock_sonCoupe: '🔇 Sound: off',
@@ -1256,7 +1256,7 @@ Object.assign(TEXTES.en, {
 });
 Object.assign(TEXTES.fr, {
   paddock_course: 'Course', paddock_equipe: 'Mon équipe', paddock_boutique: 'Boutique', paddock_saison: 'Saison', paddock_messages: 'Messages',
-  paddock_reglages: 'Réglages', paddock_apprendre: 'Apprendre', paddock_boutiqueBientot: 'Livrées, casques et célébrations : achète-les avec l’argent des courses, débloque-en avec une pub 📺, gagne les plus beaux dans ta carrière. Essaie un skin avant de l’acheter.', paddock_ouvrirBoutique: '🛒 Ouvrir la boutique',
+  paddock_reglages: 'Réglages', paddock_apprendre: 'Apprendre', paddock_boutiqueBientot: 'Achète avec ton argent, ou gratuit avec une pub 📺.', paddock_ouvrirBoutique: '🛒 Ouvrir la boutique',
   paddock_voirTout: 'Voir tout', paddock_lireMessages: 'Ouvrir les messages', paddock_rienDeNeuf: 'Rien de neuf. Parle à ton coéquipier ou à ta direction.',
   nb_paddock_nonLus: ['{n} nouveau message', '{n} nouveaux messages'], paddock_reglagesJeu: 'Le jeu', paddock_carriere: 'La carrière',
   paddock_sonActif: '🔊 Son : oui', paddock_sonCoupe: '🔇 Son : coupé',

@@ -802,18 +802,22 @@ body.deux #hudStand { display: none; }
 .boutiqueVue .boutiqueOnglets { display: flex; gap: 8px; }
 .boutiqueVue .boutiqueOnglets button { min-width: 0; padding: 6px 14px; font-size: 14px; opacity: 0.7; }
 .boutiqueVue .boutiqueOnglets button.choisi { opacity: 1; box-shadow: 0 0 0 2px #ffd666; }
-.boutiqueVue .boutiqueListe { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; width: 100%; }
-.boutiqueVue .skin { display: grid; grid-template-columns: 104px 1fr auto; gap: 12px; align-items: center; padding: 6px 12px; border-radius: 8px; background: rgba(255, 255, 255, 0.1); font: 600 14px/1.3 var(--police); }
-.boutiqueVue .skin > * { min-width: 0; }
-.boutiqueVue .skin .apercu { display: flex; align-items: center; justify-content: center; font-size: 26px; }
+.boutiqueVue .boutiqueListe { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(128px, 1fr)); gap: 8px; width: 100%; }
+.boutiqueVue .skin { display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 6px; padding: 8px 10px; border-radius: 10px; background: rgba(255, 255, 255, 0.1); font: 600 14px/1.3 var(--police); text-align: center; }
+.boutiqueVue .skin[data-etat="possede"] { box-shadow: inset 0 0 0 2px #7dff9a; }
+.boutiqueVue .skin > * { min-width: 0; max-width: 100%; }
+.boutiqueVue .skin .apercu { display: flex; align-items: center; justify-content: center; font-size: 40px; min-height: 56px; }
 .boutiqueVue .skin .apercu canvas { border-radius: 4px; }
-.boutiqueVue .skin .apercu canvas.casqueIcone { width: 34px; height: 34px; border-radius: 50%; }
-.boutiqueVue .skin .nom { text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.boutiqueVue .skin .actions { display: flex; gap: 6px; align-items: center; justify-content: flex-end; }
-.boutiqueVue .skin button { min-width: 0; padding: 5px 12px; font-size: 13px; }
-.boutiqueVue .skin button:disabled { opacity: 0.4; cursor: default; box-shadow: none; }
-.boutiqueVue .skin .possede { color: #7dff9a; }
-.boutiqueVue .skin .condition { font-size: 12px; opacity: 0.8; text-align: right; }
+.boutiqueVue .skin .apercu canvas.casqueIcone { width: 56px; height: 56px; border-radius: 50%; }
+.boutiqueVue .skin .nom { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; }
+.boutiqueVue .skin .actions { display: flex; flex-direction: column; gap: 4px; align-items: center; }
+.boutiqueVue .skin button { min-width: 0; padding: 6px 14px; font-size: 15px; font-weight: 800; }
+.boutiqueVue .skin button.essayer { padding: 2px 10px; font-size: 12px; font-weight: 600; opacity: 0.8; }
+.boutiqueVue .skin button:disabled { opacity: 0.45; cursor: default; box-shadow: none; }
+.boutiqueVue .skin button.trop { color: #ff8a80; }
+.boutiqueVue .skin .possede { color: #7dff9a; font-size: 16px; font-weight: 800; }
+.boutiqueVue .skin .condition { font-size: 12px; opacity: 0.8; }
+.boutiqueVue .boutiqueSolde { font-size: 22px; }
 .boutiqueVue .boutiqueMessage { margin: 0; min-height: 1.2em; font-weight: 700; }
 #essaiFin p { margin: 0; }
 #essaiBandeau { position: absolute; bottom: 44px; left: 50%; transform: translateX(-50%); padding: 4px 14px; border-radius: 6px; background: rgba(0, 0, 0, 0.6); color: #ffd666; font: 700 14px/1.3 var(--police); pointer-events: none; z-index: 5; }
@@ -1521,6 +1525,7 @@ body.deux:not(.cote) #deuxRappel2 { left: 50%; }
 #pageEquipe #boutonGarage { background: var(--tv-bouton-principal); box-shadow: 0 4px 16px rgba(227, 36, 43, 0.35); }
 #boutiqueContenu { display: flex; flex-direction: column; gap: 12px; }
 #boutiqueContenu p { font-size: 16px; opacity: 0.85; }
+#boutiqueContenu #boutiqueSoldePage { font-size: 28px; font-weight: 800; color: #ffd666; opacity: 1; margin: 0; }
 #pageSaison #championnatTableaux { display: flex; gap: 28px; align-items: flex-start; padding: 12px 18px; }
 #pageSaison #championnatTableaux h2 { text-align: center; }
 #championnat #championnatTableaux ol { font-size: 13px; line-height: 1.5; }
@@ -1620,6 +1625,14 @@ body.auPaddock #boutonSon { display: none; }
   .boutiqueVue .skin { font-size: 12px; }
   .boutiqueVue .skin button { padding: 3px 9px; font-size: 12px; }
   .boutiqueVue .boutiqueMessage { min-height: 0; }
+  .boutiqueVue .boutiqueListe { grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 4px; }
+  .boutiqueVue .skin { padding: 3px 6px; gap: 2px; border-radius: 8px; }
+  .boutiqueVue .skin .apercu { min-height: 30px; font-size: 24px; }
+  .boutiqueVue .skin .apercu canvas { width: 80px; height: auto; }
+  .boutiqueVue .skin .apercu canvas.casqueIcone { width: 30px; height: 30px; }
+  .boutiqueVue .skin .nom { font-size: 12px; }
+  .boutiqueVue .skin button.essayer { padding: 1px 8px; font-size: 11px; }
+  .boutiqueVue .boutiqueSolde { font-size: 16px; }
 }
 
 /* le défi du fantôme entre amis (tour 49b) : le champ du code (collé ou à copier), la liste des défis reçus */
