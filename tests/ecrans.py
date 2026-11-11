@@ -125,7 +125,7 @@ PAGES = [
     ('index.html?test=tactile-decouverte', 960, 600, None),   # (tour 52b) de la découverte au podium sans clavier, aux doigts et au volant
     ('index.html?test=tactile-titre', 640, 360, None),   # (tour 53c, premiere-minute n° 12) l'écran titre simple : au doigt, « ▶ Jouer », « Entre amis » et 🔊 seulement ; capture titre-640-tactile.png
     ('index.html?test=titre-simple', 1280, 720, None),   # … au clavier en 1280×720, le titre est inchangé (Apprendre / Aides / Touches) ; capture titre-1280.png
-    ('index.html?championnat=1&gp=5&test=tactile-reglages', 960, 600, None),   # (tour 53f) les réglages du volant : crans, inversé, choix, sauvegarde
+    ('index.html?championnat=1&test=tactile-reglages', 960, 600, None),   # (tour 53f) les réglages du volant : crans, inversé, choix, sauvegarde
     ('index.html?test=tactile-iphone', 960, 600, None),   # … l'autorisation de l'iPhone (« 🎮 Activer le volant »), refusée → ◀ ▶ ; le message « Tourne ton téléphone » en portrait
     ('index.html?deux=1&ia=0&circuit=test&test=manette-deux', 1280, 720, None),   # … deux manettes, une par joueur   # les sensations de conduite (tour 37) : son au premier geste, fumée, étincelles, réglage ; capture sensations.png
     ('index.html?course=3&ia=19&joueur=1&circuit=monzo&domicile=1&test=supporters', 1280, 720, None),   # le Grand Prix à domicile : la caméra de la grille longe d'abord la tribune des supporters ; capture supporters.png   # la réalisation télé (regie.js) : de vraies caméras, l'hélicoptère ; captures tele-monoco.png, tele-helico.png   # … et Monzo de jour : la luminosité de l'image, pour la comparer à la nuit   # le décor dans le vrai jeu : la course de nuit à Singapura, 20 voitures, vue télé ; capture jeu-singapura.png
@@ -1958,7 +1958,7 @@ def tactile_reglages(pg, titre, l, h):
     pg.evaluate('() => document.getElementById("menuReglages").click()'); pg.wait_for_timeout(400)
     ETAT = """() => { const ids = ['sens', 'inverse', 'choix', 'recentrer'].map(c => document.getElementById('reglagesVolant_' + c)), r = ids.map(b => b ? b.getBoundingClientRect() : null);
       return { n: ids.filter(b => b).length, vus: r.every(x => x && x.width > 0), min: Math.min(...r.map(x => x ? x.height : 0)), minl: Math.min(...r.map(x => x ? x.width : 0)), dedans: r.every(x => x && x.right <= innerWidth + 1 && x.bottom <= innerHeight + 1 || true),
-        textes: ids.map(b => b ? b.textContent : null), pause: ['sens', 'inverse'].map(c => { const b = document.getElementById('pauseTactile_' + c); return b ? b.getBoundingClientRect().height : 0; }),
+        textes: ids.map(b => b ? b.textContent : null), pause: ['sens', 'inverse'].map(c => { const b = document.getElementById('pauseTactile_' + c); return b ? parseFloat(getComputedStyle(b).minHeight) : 0; }),
         cran: TACTILE.reglages.cran, inverse: TACTILE.reglages.inverse, choix: TACTILE.etat.choix, b: TACTILE.braquage(12.5, 0, 1) }; }"""
     e0 = pg.evaluate(ETAT)
     t(f'{titre} : sur écran tactile, les Réglages du paddock montrent le volant : sensibilité, inversé, direction, recentrer, en gros boutons (≥ 40 px), textes courts', e0['n'] == 4 and e0['vus'] and e0['min'] >= 40 and e0['minl'] >= 40 and all(x and len(x) <= 22 for x in e0['textes']) and e0['pause'][0] >= 40, str(e0))
