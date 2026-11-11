@@ -347,6 +347,7 @@ const INTERFACE = (function () {
   // le premier lancement (decouverte.js) : l'écran titre (jouer, entre amis → « bientôt », retour) et « Prêt pour ta carrière ? »
   function preparerTitre(jouer, amis, retour) {
     $('titreNom').textContent = texte('nomDuJeu');
+    document.body.classList.toggle('titreSimple', !!REGLAGES.TITRE_SIMPLE);   // (style.css : la rangée « Apprendre / Aides / Touches » se cache sur tactile et sous 700 px)
     $('boutonJouer').textContent = texte('titreJouer');
     $('boutonAmis').textContent = texte('titreAmis');
     $('amisTitre').textContent = texte('amisTitre');
@@ -357,8 +358,56 @@ const INTERFACE = (function () {
     }
   }
 
+  // la découverte (tour 52g) : le compteur « Prime : 400 € » près de la tour (d = { prime, gain } : gain > 0 joue le « +200 € » vert ; null : caché) et le
+  // gros « P3 ! » au centre (texte, ou null : caché)
+  function majPrime(d) {
+    const el = $('primeDecouverte');
+    el.classList.toggle('cache', !d);
+    if (!d) return;
+    const argent = typeof ARGENT !== 'undefined' ? ARGENT.formater(d.prime) : String(d.prime);
+    $('primeTexte').textContent = texte('primeLive').replace('{n}', argent);
+    if (d.gain > 0) {
+      $('primeGain').textContent = '+' + (typeof ARGENT !== 'undefined' ? ARGENT.formater(d.gain) : String(d.gain));
+      el.classList.remove('monte'); void el.offsetWidth; el.classList.add('monte');   // (relance l'animation)
+    } else if (d.gain === null) { el.classList.remove('monte'); $('primeGain').textContent = ''; }
+  }
+  function majPlaceGrand(t) {
+    const el = $('placeGrand');
+    el.classList.toggle('cache', !t);
+    if (t) { el.textContent = t; el.classList.remove('saute'); void el.offsetWidth; el.classList.add('saute'); }
+  }
+
+  // (tour 53h) les trois longueurs du prochain Grand Prix, sur la page Course : d = { courante (la clé), choisir(cle) } ou null (le premier Grand Prix : pas de choix)
+  function remplirLongueur(d) {
+    $('paddockLongueur').classList.toggle('cache', !d);
+    const zone = $('paddockLongueurBoutons');
+    zone.textContent = '';
+    if (!d) return;
+    $('paddockLongueurTitre').textContent = texte('longueurTitre');
+    for (const cle of ['tresCourte', 'moyenne', 'longue']) {
+      const nb = REGLAGES.LONGUEURS_COURSE[cle], b = document.createElement('button');
+      b.id = 'longueur' + nb;
+      b.className = 'longueurChoix' + (cle === d.courante ? ' choisi' : '');
+      const n = document.createElement('b'), t = document.createElement('span');
+      n.textContent = nb; t.textContent = texte(cle);
+      b.appendChild(n); b.appendChild(t);
+      b.title = texte('longueurTours').replace('{n}', nb);
+      b.tabIndex = -1;
+      b.addEventListener('mousedown', e => e.preventDefault());
+      b.addEventListener('click', () => d.choisir(cle));
+      zone.appendChild(b);
+    }
+  }
+
   // le podium de la découverte (tour 52e ; avant : l'écran « Bravo ! ») : d = { place, nb, prime, encore (le bouton « Encore une course ? ») } ou null
   // (le podium ordinaire : « Résultats »). « Tu finis P2 / 7 · +800 € » (la prime seulement si elle est > 0), « Continuer », « Encore une course ? »
+  // la carrière (tour 53d, APRES_PODIUM_DIRECT) : d = { gains (le texte) } ou null : les gains sous le podium, le gros « Continuer », « Résultats » en petit
+  function remplirPodiumCarriere(d) {
+    $('podiumGains').classList.toggle('cache', !d); $('boutonPodiumSuite').classList.toggle('cache', !d);
+    $('boutonResultats').classList.toggle('petit', !!d);
+    if (!d) return;
+    $('podiumGains').textContent = d.gains; $('boutonPodiumSuite').textContent = texte('continuer');
+  }
   function remplirPodiumDecouverte(d) {
     $('podiumDecouverte').classList.toggle('cache', !d);
     $('boutonResultats').classList.toggle('cache', !!d);
@@ -684,7 +733,35 @@ const INTERFACE = (function () {
     return [...rangs].sort((a, b) => a - b);
   }
 
+  // (tour 53b) au doigt (body.tactile) : un appui n'importe où sur un classement de pilotes (Course, Saison) ouvre la liste entière, en lignes de 40 px
+  // qui défile ; un appui sur une ligne ouvre la fiche du rival, comme avant. Au clavier et à la souris, rien ne change.
+  function preparerClassementPlein() {
+    const bloc = document.createElement('section');
+    bloc.id = 'classementPlein'; bloc.className = 'ecran cache';
+    const titre = document.createElement('h1'), liste = document.createElement('ol'), bas = document.createElement('div'), retour = document.createElement('button');
+    titre.id = 'classementPleinTitre'; liste.id = 'classementPleinListe'; bas.className = 'boutons'; retour.id = 'boutonClassementPleinRetour'; retour.tabIndex = -1;
+    bas.append(retour); bloc.append(titre, liste, bas); document.body.appendChild(bloc);
+    const fermer = () => bloc.classList.add('cache');
+    retour.addEventListener('mousedown', e => e.preventDefault());
+    retour.addEventListener('click', fermer);
+    const ouvrir = e => {
+      if (!document.body.classList.contains('tactile')) return;
+      e.stopPropagation(); e.preventDefault();
+      titre.textContent = texte('classementPilotes'); retour.textContent = texte('retour');
+      liste.textContent = '';
+      for (const li of $('championnatPilotes').children) {
+        const c = li.cloneNode(true);
+        c.classList.remove('rival');
+        if (li.dataset.k !== undefined && !li.classList.contains('moi')) { c.classList.add('rival'); c.addEventListener('click', () => { fermer(); if (ouvertureFiche) ouvertureFiche(Number(li.dataset.k)); }); }
+        liste.appendChild(c);
+      }
+      bloc.classList.remove('cache'); liste.scrollTop = 0;
+    };
+    for (const id of ['championnatPilotes', 'paddockClassementCourt']) $(id).addEventListener('click', ouvrir, true);
+  }
+
   function preparerChampionnat(suivante, garage) {
+    preparerClassementPlein();
     $('boutonCourseSuivante').addEventListener('mousedown', e => e.preventDefault());
     $('boutonCourseSuivante').addEventListener('click', suivante);
     $('boutonGarage').textContent = texte('garage');
@@ -1156,7 +1233,8 @@ const INTERFACE = (function () {
       tx.className = 'reponse'; tx.textContent = INTERVIEW.phrase(r.cle, 0, q.params, ch, noms);
       b.append(ic, tx); li.appendChild(b); ul.appendChild(li);
     }
-    $('boutonPasCommentaire').textContent = texte('interviewPasCommentaire');
+    $('boutonPasCommentaire').textContent = texte(REGLAGES.INTERVIEW_PASSER ? 'interviewPasser' : 'interviewPasCommentaire');
+    $('boutonPasCommentaire').classList.toggle('petit', !REGLAGES.INTERVIEW_PASSER);   // (tour 53d : « Passer » en gros, à la même place que les autres « Continuer »)
     $('boutonInterviewSuite').textContent = texte('continuer');
     $('interviewEffet').textContent = '';
     $('interviewChoix').classList.remove('cache');
@@ -1645,6 +1723,7 @@ const INTERFACE = (function () {
     const moi = cl[i], ecart = moi ? cl[0].points - moi.points : 0;
     $('paddockPlace').textContent = !ch.resultats.length || !moi ? texte('paddockPasClasse')
       : avec(texte('paddockPlace'), { p: i + 1, n: moi.points }) + ' · ' + (i === 0 ? texte('paddockLeader') : elider(avec(texte('paddockEcart'), { n: ecart })));
+    $('saisonResume').textContent = avec(texte('saisonEtat'), { s: ch.saison || 1, i: Math.min(ch.resultats.length, ch.calendrier.length), n: ch.calendrier.length }) + ' · ' + $('paddockPlace').textContent;   // (tour 53e : la page Saison dit où tu en es)
     // le courrier des pilotes (courrier-pilotes.js) : « ✉ Courrier (2) » s'il y a des messages non lus ; le point du menu « Messages »
     // et la carte des messages de la page Course (tour 48a)
     const nonLus = typeof COURRIER_PILOTES !== 'undefined' ? COURRIER_PILOTES.nonLus(ch) : 0;
@@ -1791,6 +1870,8 @@ const INTERFACE = (function () {
   let reponseCourrier = null;
   function remplirCourrier(ch, messages) {
     $('courrierTitre').textContent = texte('courrierTitre');
+    const neufs = messages.filter(m => !m.lu).length;   // (tour 52h) le nombre de messages neufs à côté du titre
+    if (neufs) { const b = document.createElement('span'); b.className = 'badgeNeuf'; b.textContent = neufs; $('courrierTitre').append(b); }
     $('boutonCourrierRetour').textContent = texte('courrierRetour');
     const ol = $('courrierListe');
     ol.textContent = '';
@@ -1923,7 +2004,7 @@ const INTERFACE = (function () {
     remplirDuel, avec, remplirUne, preparerUne, remplirArgent, remplirSolde, remplirGarage, preparerGarage,
     remplirSaison, remplirDuelSaison, remplirContrats, remplirRetraite, preparerSaison, retraiteEnAttente, remplirCeremonie, preparerCeremonie, remplirAlbum, preparerAlbum, remplirBilan, remplirTemple, preparerTemple, preparerReleve, remplirHeritier, lireHeritier, montrerErreurHeritier, remplirAileron, majAileron, preparerAileron, preparerPneusGarage, remplirArbre, preparerArbre, remplirCalendrier, preparerCalendrier,
     remplirSponsors, remplirRappelSponsor, preparerSponsors, remplirFiche, preparerFiche, remplirInterview, montrerEffetInterview, preparerInterview, remplirReputation,
-    majEcartFantome, preparerFantome, majBoutonsFantome, majDepart, majDeux, preparerTitre, remplirPodiumDecouverte, preparerPodiumDecouverte, remplirPiloteRapide, appliquerPilote, majAides, remplirPilote, lirePilote, montrerErreursPilote, preparerPilote, nomCircuit, remplirCasque, lireCasque, modePilote, preparerCasque };
+    majEcartFantome, preparerFantome, majBoutonsFantome, majDepart, majDeux, preparerTitre, remplirPodiumDecouverte, preparerPodiumDecouverte, majPrime, majPlaceGrand, remplirLongueur, remplirPodiumCarriere, remplirPiloteRapide, appliquerPilote, majAides, remplirPilote, lirePilote, montrerErreursPilote, preparerPilote, nomCircuit, remplirCasque, lireCasque, modePilote, preparerCasque };
 })();
 
 // --- les aides au premier usage (aides.js, étape 11b, Codeur 4) : la bulle, « Revoir les aides » au paddock et dans le menu pause.
@@ -2037,6 +2118,7 @@ const TUTORIEL_ECRAN = (function () {
   function ouvrirMenu() {
     const faites = SAUVEGARDE.tutoriel(), liste = $('tutoListe');
     liste.textContent = '';
+    const prochaine = TUTORIEL.LECONS.find(x => !faites.includes(x.id));   // (tour 53e : la prochaine leçon à faire se voit tout de suite)
     for (const l of TUTORIEL.LECONS) {
       const li = document.createElement('li'), etoile = document.createElement('span'), nom = document.createElement('span'), but = document.createElement('span'), b = document.createElement('button');
       etoile.className = 'tutoEtoile' + (faites.includes(l.id) ? ' faite' : ''); etoile.textContent = faites.includes(l.id) ? '★' : '☆';
@@ -2045,6 +2127,8 @@ const TUTORIEL_ECRAN = (function () {
       b.textContent = texte('tutoCommencer'); b.tabIndex = -1; b.dataset.lecon = l.id; b.className = 'petit';
       b.addEventListener('mousedown', e => e.preventDefault());
       b.addEventListener('click', () => aller(adresse(l.id)));
+      if (prochaine && l.id === prochaine.id) { li.classList.add('tutoSuivant'); b.classList.remove('petit'); b.textContent = texte('tutoCommencer') + ' ▶'; }
+      else if (faites.includes(l.id)) li.classList.add('tutoFaite');
       li.append(etoile, nom, but, b);
       liste.appendChild(li);
     }

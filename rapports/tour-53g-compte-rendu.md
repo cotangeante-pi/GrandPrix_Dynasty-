@@ -1,0 +1,8 @@
+TOUR 53g — compte rendu du Codeur 5
+Branche : doc-telephone (depuis origin/main 800219f, avec origin/reglages-volant fusionné pour que le texte dise ce que le code fait)
+Ordre : mettre à jour CLAUDE.md pour tout ce qui concerne le téléphone ; pas de code.
+
+Fait : la section « Le téléphone : le volant » de CLAUDE.md est réécrite d'après le code : GAZ / FREIN / ◀ ▶, le volant (zone morte, 25°, lissage, sens, neutre repris au départ et au « Recentrer »), le bouton iPhone sur la grille (TACTILE_IPHONE_GRILLE), les réglages du volant (3 crans, inversé, choix, recentrer ; sauvegardés), le plein écran et le paysage (refus ignoré), « Tourne ton téléphone » et la pause, les textes au doigt (tac_*, texteDoigt, {d}), la mise en page 640×360, les boutons de 40 px, les tests (pages test=tactile*, ce qu'elles vérifient, ECRANS_PAGES), les images par seconde (relatif), et une liste « jamais essayé sur un vrai téléphone » (sens du volant Android / iPhone, plein écran dans l'iframe de Poki, images par seconde, autorisation iPhone et délai de la grille, pouces, barre d'adresse).
+Corrections de l'ancien texte (le code a raison) : « 60 images/s en 640×360 avec 9 IA » n'a jamais été mesuré (swiftshader : environ 2 i/s, sans écart avec ou sans boutons) ; le bouton « Activer le volant » n'est plus « avant la première course » mais sur la grille ; « Recentrer » est aussi dans les Réglages.
+À vérifier par le Chef : le classement au doigt (branche classement-doigt, 34d8883) n'était pas fusionné quand j'ai écrit : le texte le dit ; à ajuster s'il l'est (ou si reglages-volant ne l'est pas : le paragraphe « réglages du volant » serait alors faux).
+Réévalue.

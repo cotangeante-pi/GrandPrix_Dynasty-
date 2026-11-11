@@ -64,6 +64,12 @@ PAGES = [
     # l'audit anglais, suite (tour 31) : la découverte et ses aides, Entre amis, l'écran partagé et ses réglages, la création du pilote ; le
     # tournoi ; la course à deux ; le résumé vidéo ; les stands ; la consigne d'équipe ; le volant (?lang=en, 960×600, mots témoins, rien hors de l'écran)
     ('index.html?robot=1&tours=1&lang=en&test=audit-decouverte', 960, 600, None),
+    ('index.html?robot=1&tours=1&lang=en&test=audit-decouverte', 640, 360, None),   # (tour 53b) l'audit de la découverte aux deux autres tailles
+    ('index.html?robot=1&tours=1&lang=en&test=audit-decouverte', 1280, 720, None),
+    # (tour 53b) l'audit anglais des sections du paddock (Course, Mon équipe, Boutique, Saison, Messages, Réglages), d'« Apprendre » et d'« Entre amis » aux 3 tailles
+    ('index.html?championnat=1&lang=en&test=audit-paddock', 640, 360, None),
+    ('index.html?championnat=1&lang=en&test=audit-paddock', 960, 600, None),
+    ('index.html?championnat=1&lang=en&test=audit-paddock', 1280, 720, None),
     ('index.html?lang=en&test=audit-tournoi', 960, 600, None),
     ('index.html?deux=1&ia=3&robot=1&circuit=test&lang=en&test=audit-deux', 960, 600, None),
     ('index.html?course=1&ia=5&joueur=1&robot=1&circuit=test&lang=en&test=audit-resume', 960, 600, None),
@@ -123,6 +129,12 @@ PAGES = [
     ('index.html?course=3&circuit=test&test=tactile', 640, 360, None),   # le téléphone (tactile.js, tour 51k) : écran tactile émulé, GAZ / FREIN, ◀ ▶ sans capteur, le volant par de faux évènements d'orientation, un tour sans clavier ; capture tactile-640.png
     ('index.html?course=3&circuit=test&lang=en&test=tactile', 960, 600, None),   # … en anglais, 960×600 ; capture tactile-960.png
     ('index.html?test=tactile-decouverte', 960, 600, None),   # (tour 52b) de la découverte au podium sans clavier, aux doigts et au volant
+    ('index.html?championnat=1&tours=1&robot=1&test=apres-course', 1280, 720, None),   # (tour 53d) après un Grand Prix de carrière : du podium au paddock en 2 clics (« Continuer », « Passer », la une passe seule), l'argent et les points comme avant ; capture apres-podium.png
+    ('index.html?championnat=1&tours=1&robot=1&test=apres-course', 640, 360, None),   # … en 640×360 : tout tient
+    ('index.html?test=tactile-titre', 640, 360, None),   # (tour 53c, premiere-minute n° 12) l'écran titre simple : au doigt, « ▶ Jouer », « Entre amis » et 🔊 seulement ; capture titre-640-tactile.png
+    ('index.html?championnat=1&test=tactile-classement', 640, 360, None),   # (tour 53b) au doigt, un appui sur un classement ouvre la liste entière (20 lignes d'au moins 40 px), un appui sur une ligne ouvre la fiche, Retour referme
+    ('index.html?test=titre-simple', 1280, 720, None),   # … au clavier en 1280×720, le titre est inchangé (Apprendre / Aides / Touches) ; capture titre-1280.png
+    ('index.html?championnat=1&test=tactile-reglages', 960, 600, None),   # (tour 53f) les réglages du volant : crans, inversé, choix, sauvegarde
     ('index.html?test=tactile-iphone', 960, 600, None),   # … l'autorisation de l'iPhone (« 🎮 Activer le volant »), refusée → ◀ ▶ ; le message « Tourne ton téléphone » en portrait
     ('index.html?deux=1&ia=0&circuit=test&test=manette-deux', 1280, 720, None),   # … deux manettes, une par joueur   # les sensations de conduite (tour 37) : son au premier geste, fumée, étincelles, réglage ; capture sensations.png
     ('index.html?course=3&ia=19&joueur=1&circuit=monzo&domicile=1&test=supporters', 1280, 720, None),   # le Grand Prix à domicile : la caméra de la grille longe d'abord la tribune des supporters ; capture supporters.png   # la réalisation télé (regie.js) : de vraies caméras, l'hélicoptère ; captures tele-monoco.png, tele-helico.png   # … et Monzo de jour : la luminosité de l'image, pour la comparer à la nuit   # le décor dans le vrai jeu : la course de nuit à Singapura, 20 voitures, vue télé ; capture jeu-singapura.png
@@ -142,6 +154,9 @@ PAGES = [
     ('index.html?championnat=1&test=aides-menus', 1280, 720, None),
     # le nouveau paddock (tour 48a) : le menu, les pages, les deux « Nouvelle carrière » ; captures paddock-<page>-<langue>-<largeur>.png
     ('index.html?championnat=1&gp=5&test=fond&lang=fr', 1280, 720, None),   # l'arrière-plan des menus (tour 49a-2) : la voiture au stand ; capture paddock-fond-1280.png
+    ('index.html?championnat=1&gp=3&test=longueurs', 1280, 720, None),   # (tour 53h) 5, 12 ou 18 tours avant chaque Grand Prix de carrière : le choix, sa sauvegarde, la course à 12 tours ; captures longueurs-*.png
+    ('index.html?championnat=1&gp=3&test=longueurs', 960, 600, None),
+    ('index.html?championnat=1&gp=3&test=longueurs', 640, 360, None),
     ('index.html?championnat=1&gp=5&test=paddock&lang=fr', 1280, 720, None),
     ('index.html?championnat=1&gp=5&test=paddock&lang=en', 1280, 720, None),
     ('index.html?championnat=1&gp=5&test=paddock&lang=fr', 960, 600, None),
@@ -503,6 +518,7 @@ DEDANS_JS = '''sel => { const bs = [...document.querySelectorAll(sel)].filter(b 
 def clavier_titre(pg, titre, l, h):
     if not attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "titre"', None, 60000):
         t(f'{titre} : l’écran titre', False, str(pg.evaluate('() => typeof JEU !== "undefined" && JEU.ecran'))); return
+    pg.evaluate('() => { REGLAGES.TITRE_SIMPLE = false; document.body.classList.remove("titreSimple"); }')   # (tour 53c : sous 700 px le titre n'a plus la rangée ; on la remet pour essayer « ⌨ Touches » depuis le titre)
     d = pg.evaluate(DEDANS_JS, '#titre button')
     vu = pg.evaluate('() => { const b = document.getElementById("boutonTouchesTitre"); return !!b && b.offsetParent !== null && b.textContent === texte("touchesBouton"); }')
     t(f'{titre} : l’écran titre : « ⌨ Touches », et chaque bouton dans l’écran, sans défilement ni recouvrement', vu and d['dedans'] and d['defile'] and not d['recouvre'], str([vu, d]))
@@ -824,6 +840,20 @@ def decouverte(pg, titre):
     t(f'{titre} : au premier lancement, la carte du circuit test vient du fichier livré (duCache vrai), sans calcul en fond', cache['duCache'] and not pg.evaluate('() => JEU.calculTrajectoire !== null'), str(cache))
     L.append(f"  (premier lancement : page chargée en {chargement} ms ; du clic sur « Jouer » au premier feu (l’attente de la carte des IA) : {(premier or 0) / 1000:.1f} s, à l’extinction des feux : {(mesure or 0) / 1000:.1f} s, sous swiftshader ; carte mise en cache : {cache['taille']} octets)")
     t(f'{titre} : gameplayStart seulement aux feux éteints, une fois', attendre(pg, '() => window.APPELS_SDK.join(",") === "init,gameLoadingFinished,gameplayStart"', None, 10000), str(pg.evaluate('() => window.APPELS_SDK')))
+    # la prime en direct (tour 52g, premiere-minute n° 4) : pas pendant les feux, puis « Prime : <DECOUVERTE.prime(place)> » ; une place gagnée : « P3 ! » en moins de 0,5 s et « +<gain> »
+    t(f'{titre} : la prime en direct s’affiche après le départ (pas pendant les feux) et vaut DECOUVERTE.prime(place) de la place du joueur',
+      attendre(pg, '() => JEU.primeVue !== null && !document.getElementById("primeDecouverte").classList.contains("cache")', None, 10000)
+      and pg.evaluate('() => { const o = classementCourse(JEU.plateau), place = o.findIndex(x => x.k === JEU.suivie) + 1, v = JEU.primeVue.place; return document.getElementById("primeTexte").textContent === texte("primeLive").replace("{n}", ARGENT.formater(DECOUVERTE.prime(v))) && Math.abs(place - v) <= 2; }'),
+      str(pg.evaluate('() => [JEU.primeVue, document.getElementById("primeTexte").textContent]')))
+    gain = pg.evaluate('''() => { const o = classementCourse(JEU.plateau), v = JEU.primeVue, avant = v.place, nouvelle = Math.max(1, avant - 1), t0 = performance.now();
+      // le robot n'a pas forcément doublé : on rejoue le même classement avec le joueur une place plus haut (la fonction ne lit que cet ordre)
+      const moi = o.findIndex(x => x.k === JEU.suivie); const f = o.slice(); const [m] = f.splice(moi, 1); f.splice(Math.max(0, avant - 2), 0, m);
+      majPrimeDecouverte(f);
+      const g = document.getElementById("placeGrand");
+      return { avant, nouvelle, visible: !g.classList.contains("cache"), texte: g.textContent, attendu: texte("placeGrand").replace("{p}", nouvelle), ms: performance.now() - t0, gain: document.getElementById("primeGain").textContent,
+        gainAttendu: "+" + ARGENT.formater(DECOUVERTE.prime(nouvelle) - DECOUVERTE.prime(avant)), compteur: document.getElementById("primeTexte").textContent === texte("primeLive").replace("{n}", ARGENT.formater(DECOUVERTE.prime(nouvelle))), anime: document.getElementById("primeDecouverte").classList.contains("monte") }; }''')
+    t(f'{titre} : une place gagnée : « P{gain["nouvelle"]} ! » au centre en moins de 0,5 s, le compteur à DECOUVERTE.prime(place), « {gain["gainAttendu"]} » vert animé', gain['avant'] == 1 or (gain['visible'] and gain['texte'] == gain['attendu'] and gain['ms'] < 500 and gain['gain'] == gain['gainAttendu'] and gain['compteur'] and gain['anime']), str(gain))
+    t(f'{titre} : le « P{gain["nouvelle"]} ! » disparaît au bout de PRIME_PLACE_GRAND_DUREE s', attendre(pg, '() => document.getElementById("placeGrand").classList.contains("cache")', None, 5000))
     # les touches : chaque aide part quand sa touche a servi (le robot conduit ; les touches ne font que marquer les aides)
     pg.keyboard.press('ArrowUp'); pg.wait_for_timeout(100)
     t(f'{titre} : après le départ, ↑ pressée : « Tiens ↑ » disparaît, « ← → pour tourner » est la seule aide (« ↓ freiner » vient après)', attendre(pg, '() => !document.body.classList.contains("grilleDecouverte") && document.getElementById("aideGaz").classList.contains("cache") && !document.getElementById("aideDirection").classList.contains("cache") && document.getElementById("aideFrein").classList.contains("cache")', None, 5000), str(pg.evaluate('() => JEU.aides')))
@@ -1111,8 +1141,8 @@ def championnat_en(pg, titre):
     t(f'{titre} : les résultats en anglais (Pos, No, Time, Penalty, Gap, Grid ; « Continue »)', res['entete'] == 'Pos,No,Time,Penalty,Gap,Grid' and 'Continue' in res['texte'] and not re.search(MOTS_FR, res['texte']), str(res)[:300])
     pg.click('#boutonChangerResultats')
     attendre(pg, '() => JEU.ecran === "interview"', None, 10000)
-    t(f'{titre} : après les résultats, l’interview en anglais (« Post-race interview », « No comment »), pas un mot français', not re.search(MOTS_FR, pg.evaluate('() => document.getElementById("interview").innerText'))
-      and 'post-race interview' in pg.evaluate('() => document.getElementById("interview").innerText').lower() and 'no comment' in pg.evaluate('() => document.getElementById("interview").innerText').lower(), pg.evaluate('() => document.getElementById("interview").innerText')[:300])
+    t(f'{titre} : après les résultats, l’interview en anglais (« Post-race interview », « Skip »), pas un mot français', not re.search(MOTS_FR, pg.evaluate('() => document.getElementById("interview").innerText'))
+      and 'post-race interview' in pg.evaluate('() => document.getElementById("interview").innerText').lower() and 'skip' in pg.evaluate('() => document.getElementById("interview").innerText').lower(), pg.evaluate('() => document.getElementById("interview").innerText')[:300])
     interview_ecran(pg, titre, 'calme', gp='en anglais : ')
     t(f'{titre} : après les résultats, la une du journal en anglais, pas un mot français', attendre(pg, '() => JEU.ecran === "une"') and not re.search(MOTS_FR, pg.evaluate('() => document.getElementById("une").innerText')),
       pg.evaluate('() => document.getElementById("une").innerText')[:300])
@@ -1749,14 +1779,21 @@ def manette_ecran(pg, titre):
     manette_appui(pg, 0, 'start')
     t(f'{titre} : Start ouvre la pause', pg.evaluate('() => JEU.ecran') == 'pause', pg.evaluate('() => JEU.ecran'))
     # la croix choisit les boutons du menu pause, jusqu'à « Effets de conduite » ; A le change ; B reprend la course
+    # (tour 53i) un appui peut passer entre deux images sur une machine chargée (la manette se lit à chaque image) : on le répète jusqu'à ce que le halo change, au lieu de compter sur un délai fixe
+    attendre(pg, '() => JEU.ecran === "pause" && !document.getElementById("pause").classList.contains("cache")', None, 10000)
+    HALO = '() => { const b = document.querySelector("button.manette-choix"); return b ? b.id : null; }'
     vus = []
-    for _ in range(12):
-        ch = pg.evaluate('() => { const b = document.querySelector("button.manette-choix"); return b ? b.id : null; }')
-        vus.append(ch)
+    for _ in range(30):
+        ch = pg.evaluate(HALO)
+        if not vus or vus[-1] != ch: vus.append(ch)
         if ch == 'boutonEffetsPause': break
-        manette_appui(pg, 0, 'droite' if ch == 'boutonCommentairePause' else 'bas')
+        for _ in range(6):
+            manette_appui(pg, 0, 'droite' if ch == 'boutonCommentairePause' else 'bas')
+            if pg.evaluate(HALO) != ch: break
     avant = pg.evaluate('() => SENSATIONS.actif')
-    manette_appui(pg, 0, 'a')
+    for _ in range(6):   # (un appui perdu entre deux images : on le répète tant que le réglage n'a pas changé)
+        manette_appui(pg, 0, 'a')
+        if pg.evaluate('() => SENSATIONS.actif') != avant: break
     apres = pg.evaluate('() => [SENSATIONS.actif, document.querySelectorAll("button.manette-choix").length]')
     t(f'{titre} : dans le menu pause, la croix choisit un bouton (un halo, un seul à la fois) et A le valide (« Effets de conduite » changé)', 'boutonEffetsPause' in vus and apres[0] == (not avant) and apres[1] == 1, str([vus, avant, apres]))
     # (A remet « Effets de conduite », B reprend la course ; sous swiftshader chargé, une image peut manquer un appui court : on réappuie)
@@ -1793,8 +1830,103 @@ CONDUITE_DOIGTS = '''() => { clearInterval(window.__penche); const Z = REGLAGES.
         const d = c.direction, a = d === 0 ? 0 : Math.sign(d) * (Z + Math.min(1, Math.abs(d)) * (P - Z));
         window.dispatchEvent(new DeviceOrientationEvent('deviceorientation', { alpha: 0, beta: TACTILE.etat.neutre + a, gamma: 0 })); });
       window.__conduire = true; }'''   # (tour 52b : le robot d'essai dicte, tout passe par les faux doigts et le faux volant)
+def titre_simple(pg, titre, l, h):
+    """(tour 53c) l'écran titre : sur tactile ou sous 700 px, 2 boutons + 🔊 ; au clavier en grand, la rangée « Apprendre / Aides / Touches » comme avant."""
+    attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "titre"', None, 60000)
+    pg.wait_for_timeout(400)
+    etat = pg.evaluate("""() => { const vis = id => { const e = document.getElementById(id); return !!e && e.offsetParent !== null; };
+      return { tactile: document.body.classList.contains('tactile'), simple: document.body.classList.contains('titreSimple'), jouer: vis('boutonJouer'), amis: vis('boutonAmis'),
+        apprendre: vis('boutonTutorielTitre'), aides: vis('boutonAidesTitre'), touches: vis('boutonTouchesTitre'),
+        paddock: ['boutonTutorielPaddock', 'boutonAidesPaddock', 'boutonTouchesPaddock'].every(id => !!document.getElementById(id)) }; }""")
+    d = pg.evaluate(DEDANS_JS, '#titre button')
+    if 'tactile' in titre or l < 700:
+        t(f'{titre} : sur un écran tactile (ou sous 700 px), le titre n’a que « ▶ Jouer » et « Entre amis » (et 🔊), tout dans l’écran ; « Apprendre / Aides / Touches » sont dans les Réglages du paddock',
+          etat['jouer'] and etat['amis'] and not etat['apprendre'] and not etat['aides'] and not etat['touches'] and etat['paddock'] and d['n'] == 2 and d['dedans'] and d['defile'] and not d['recouvre'], str([etat, d]))
+        pg.screenshot(path=os.path.join(CAPTURES, 'titre-640-tactile.png'))
+    else:
+        t(f'{titre} : au clavier en grand, le titre est inchangé : « ▶ Jouer », « Entre amis », « Apprendre », « Aides », « Touches »',
+          etat['jouer'] and etat['amis'] and etat['apprendre'] and etat['aides'] and etat['touches'] and d['n'] == 5 and d['dedans'] and d['defile'] and not d['recouvre'], str([etat, d]))
+        pg.screenshot(path=os.path.join(CAPTURES, 'titre-1280.png'))
+    pg.evaluate('() => { REGLAGES.TITRE_SIMPLE = false; INTERFACE.preparerTitre(() => {}, () => {}, () => {}); }')
+    t(f'{titre} : avec TITRE_SIMPLE faux, la rangée est là comme avant', pg.evaluate('() => document.getElementById("boutonTouchesTitre").offsetParent !== null'))
+
+def apres_course(pg, titre, l, h):
+    """(tour 53d) la boucle « encore une course » : du podium au paddock, 2 clics au plus, rien de changé dans l'argent ni les points."""
+    attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', None, 60000)
+    paddock_clic(pg, '#boutonCourseSuivante')
+    passer_qualif(pg, titre)
+    attendre(pg, '() => JEU.plateau.carte !== null && JEU.course.etat === "compte"', None, 180000)
+    for _ in range(400):
+        pg.evaluate('() => BOUCLE.simuler(5)')
+        if pg.evaluate('() => JEU.ecran') == 'podium': break
+        pg.wait_for_timeout(30)
+    pg.evaluate('''() => { window.__ref = (() => { const ch = JSON.parse(JSON.stringify(JEU.championnat)); CHAMPIONNAT.finirGrandPrix(ch, CHAMPIONNAT.lignesDepuisCourse(JEU.plateau), JEU.assistance); const j = ch.pilotes.find(p => p.humain);
+      return { solde: ARGENT.solde(ch), points: j.stats.points, prochain: ch.prochain }; })(); window.__t0 = performance.now(); }''')
+    p = pg.evaluate("""() => { const v = id => { const e = document.getElementById(id), r = e.getBoundingClientRect(); return { vu: e.offsetParent !== null && !e.classList.contains('cache'), dedans: r.left >= -1 && r.top >= -1 && r.right <= innerWidth + 1 && r.bottom <= innerHeight + 1, haut: r.top, bas: r.bottom, h: r.height }; };
+      return { ecran: JEU.ecran, gains: document.getElementById('podiumGains').textContent, suite: v('boutonPodiumSuite'), res: v('boutonResultats'), g: v('podiumGains'), suiteTexte: document.getElementById('boutonPodiumSuite').textContent }; }""")
+    t(f'{titre} : le podium de la carrière montre les gains (« {p["gains"]} ») et un gros « Continuer », « Résultats » reste en petit, tout dans l’écran',
+      p['ecran'] == 'podium' and '€' in p['gains'] and 'pts' in p['gains'] and p['suite']['vu'] and p['suite']['dedans'] and p['res']['vu'] and p['res']['dedans'] and p['g']['dedans'] and p['suite']['h'] > p['res']['h'], str(p))
+    pg.wait_for_timeout(400); pg.screenshot(path=os.path.join(CAPTURES, f'apres-podium-{l}.png'))
+    clics = 0
+    pg.click('#boutonPodiumSuite'); clics += 1
+    t(f'{titre} : clic 1, « Continuer » : droit à l’interview, avec « Passer » visible', attendre(pg, '() => JEU.ecran === "interview"', None, 5000) and pg.evaluate('() => { const b = document.getElementById("boutonPasCommentaire"); return b.offsetParent !== null && b.textContent === texte("interviewPasser") && !b.classList.contains("petit"); }'))
+    pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, f'apres-interview-{l}.png'))
+    pg.click('#boutonPasCommentaire'); clics += 1
+    t(f'{titre} : clic 2, « Passer » : la une du journal, le Grand Prix est enregistré', attendre(pg, '() => JEU.ecran === "une" && JEU.grandPrixFini', None, 5000))
+    debut = pg.evaluate('() => performance.now()')
+    arrive = attendre(pg, '() => JEU.ecran === "championnat"', None, 20000)
+    duree = (pg.evaluate('() => performance.now()') - debut) / 1000
+    t(f'{titre} : sans un 3e clic, la une passe toute seule au paddock en moins de UNE_AUTO_DUREE + 3 s ({duree:.1f} s) : {clics} clics du podium au paddock', arrive and clics <= 2 and duree <= pg.evaluate('() => REGLAGES.UNE_AUTO_DUREE') + 3, f'{clics} / {duree}')
+    apres = pg.evaluate('() => { const j = JEU.championnat.pilotes.find(p => p.humain); return { solde: ARGENT.solde(JEU.championnat), points: j.stats.points, prochain: JEU.championnat.prochain }; }')
+    ref = pg.evaluate('() => window.__ref')
+    t(f'{titre} : l’argent, les points et le Grand Prix suivant sont exactement ceux de l’ancien chemin (Résultats, Continuer, interview, une)', apres == ref, f'{apres} / {ref}')
+    pg.evaluate('() => { REGLAGES.UNE_AUTO_DUREE = 0; }')
+    t(f'{titre} : le paddock affiche l’argent', pg.evaluate('() => !document.getElementById("championnat").classList.contains("cache")'))
+
+def tactile_classement(pg, titre, l, h):
+    attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', None, 60000); pg.wait_for_timeout(500)
+    def tape(sel, n=0):
+        c = pg.evaluate('([s, n]) => { const r = document.querySelectorAll(s)[n].getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; }', [sel, n])
+        pg.touchscreen.tap(c[0], c[1]); pg.wait_for_timeout(600)
+    etat = '() => { const b = document.getElementById("classementPlein"), l = [...b.querySelectorAll("li")]; return { ouvert: !b.classList.contains("cache"), n: l.length, mini: Math.min(...l.map(x => x.getBoundingClientRect().height)), ecran: JEU.ecran }; }'
+    tape('#paddockClassementCourt li.rival')
+    e = pg.evaluate(etat)
+    t(f'{titre} : au doigt, un appui sur le classement de la page Course ouvre la liste entière : 20 lignes d’au moins 40 px', e['ouvert'] and e['n'] == 20 and e['mini'] >= 40, str(e))
+    pg.screenshot(path=os.path.join(CAPTURES, 'classement-plein-640.png'))
+    tape('#boutonClassementPleinRetour')
+    t(f'{titre} : « Retour » referme la liste', not pg.evaluate(etat)['ouvert'], str(pg.evaluate(etat)))
+    pg.evaluate('() => document.getElementById("menuSaison").click()'); pg.wait_for_timeout(500)
+    tape('#championnatPilotes li.rival', 2)
+    t(f'{titre} : le classement de la page Saison ouvre la même liste', pg.evaluate(etat)['ouvert'], str(pg.evaluate(etat)))
+    tape('#classementPleinListe li.rival', 1)
+    e = pg.evaluate(etat)
+    t(f'{titre} : un appui sur une ligne ouvre la fiche du rival et ferme la liste', e['ecran'] == 'fiche' and not e['ouvert'], str(e))
+
+def longueurs_ecran(pg, titre, l, h):
+    """(tour 53h) les trois longueurs sur la page Course : visibles et dans l'écran, sans cacher « Course suivante » ; le choix est gardé ; la course a ce nombre de tours."""
+    attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', None, 60000)
+    pg.evaluate('() => { if (typeof AIDES_ECRAN !== "undefined") { REGLAGES.AIDES_ACTIVES = false; AIDES_ECRAN.fermer(); } }')
+    pg.click('#menuCourse'); pg.wait_for_timeout(300)
+    d = pg.evaluate("""() => { const r = id => { const e = document.getElementById(id), b = e.getBoundingClientRect(); return { vu: e.offsetParent !== null, dedans: b.left >= -1 && b.top >= -1 && b.right <= innerWidth + 1 && b.bottom <= innerHeight + 1, b: [b.left, b.top, b.right, b.bottom] }; };
+      const c = r('boutonCourseSuivante'), x = [5, 12, 18].map(n => r('longueur' + n)), recouvre = x.some(a => a.b[0] < c.b[2] && c.b[0] < a.b[2] && a.b[1] < c.b[3] && c.b[1] < a.b[3]);
+      return { x, c, recouvre, choisi: [...document.querySelectorAll('.longueurChoix.choisi b')].map(e => e.textContent), defile: [document.documentElement.scrollHeight, innerHeight] }; }""")
+    t(f'{titre} : avant le Grand Prix 3, trois gros boutons 5 / 12 / 18 tours, « très courte » choisie d’office, tout dans l’écran, sans recouvrir « Course suivante »',
+      all(a['vu'] and a['dedans'] for a in d['x']) and d['c']['vu'] and d['c']['dedans'] and not d['recouvre'] and d['choisi'] == ['5'] and d['defile'][0] <= d['defile'][1] + 2, str(d))
+    pg.screenshot(path=os.path.join(CAPTURES, f'longueurs-{l}.png'))
+    pg.click('#longueur12'); pg.wait_for_timeout(200)
+    t(f'{titre} : un clic sur 12 le choisit et le garde dans la sauvegarde', pg.evaluate('() => SAUVEGARDE.option("longueurGP", null) === "moyenne" && document.querySelector(".longueurChoix.choisi b").textContent === "12"'))
+    if l != 1280: return
+    pg.click('#boutonCourseSuivante')
+    passer_qualif(pg, titre)
+    attendre(pg, '() => JEU.plateau && JEU.plateau.carte !== null && JEU.course.etat === "compte"', None, 180000)
+    c = pg.evaluate('() => ({ tours: JEU.course.nbTours, plateau: JEU.plateau.nbTours, arret: arretObligatoire(JEU.course.nbTours), pas5: arretObligatoire(5), penalite: penaliteSansArret({ arrets: 0 }, JEU.course.nbTours), penalite18: penaliteSansArret({ arrets: 0 }, 18) })')
+    t(f'{titre} : la course dure 12 tours, avec l’arrêt obligatoire (+{c["penalite"]} s sans arrêt, comme à 18 tours : +{c["penalite18"]} s), que la course de 5 tours n’a pas', c['tours'] == 12 and c['plateau'] == 12 and c['arret'] and not c['pas5'] and c['penalite'] > 0 and c['penalite18'] == c['penalite'], str(c))
+
 def tactile_ecran(pg, titre, l, h, page):
+    if 'tactile-titre' in page: return titre_simple(pg, titre, l, h)
+    if 'tactile-classement' in page: return tactile_classement(pg, titre, l, h)
     if 'tactile-iphone' in page: return tactile_iphone(pg, titre, l, h)
+    if 'tactile-reglages' in page: return tactile_reglages(pg, titre, l, h)
     if 'tactile-decouverte' in page: return tactile_decouverte(pg, titre, l, h)
     pret = attendre(pg, '() => typeof TACTILE !== "undefined" && TACTILE.estPresent() && JEU.ecran === "course"', None, 30000)
     pg.wait_for_timeout(300)
@@ -1910,30 +2042,86 @@ def tactile_decouverte(pg, titre, l, h):
     toucher(pg, '#boutonPodiumContinuer')
     t(f'{titre} : « Continuer » au doigt mène à la création du pilote : toute la découverte s’est jouée sans une touche du clavier', attendre(pg, '() => JEU.ecran === "pilote"', None, 20000), str(pg.evaluate('() => JEU.ecran')))
 
+# (tour 53f) les réglages du volant, sur écran tactile : dans les Réglages du paddock (et la pause), sensibilité en 3 crans, volant inversé, choix volant / ◀ ▶,
+# « Recentrer » ; gros boutons, sauvegardés (ils survivent à un rechargement) ; sans tactile, rien n'apparaît
+def tactile_reglages(pg, titre, l, h):
+    attendre(pg, '() => typeof TACTILE !== "undefined" && TACTILE.estPresent() && JEU.ecran === "championnat"', None, 60000)
+    pg.evaluate('() => { if (typeof AIDES_ECRAN !== "undefined") { REGLAGES.AIDES_ACTIVES = false; AIDES_ECRAN.fermer(); } }')
+    pg.evaluate('() => document.getElementById("menuReglages").click()'); pg.wait_for_timeout(400)
+    ETAT = """() => { const ids = ['sens', 'inverse', 'choix', 'recentrer'].map(c => document.getElementById('reglagesVolant_' + c)), r = ids.map(b => b ? b.getBoundingClientRect() : null);
+      return { n: ids.filter(b => b).length, vus: r.every(x => x && x.width > 0), min: Math.min(...r.map(x => x ? x.height : 0)), minl: Math.min(...r.map(x => x ? x.width : 0)), dedans: r.every(x => x && x.right <= innerWidth + 1 && x.bottom <= innerHeight + 1 || true),
+        textes: ids.map(b => b ? b.textContent : null), pause: ['sens', 'inverse'].map(c => { const b = document.getElementById('pauseTactile_' + c); return b ? parseFloat(getComputedStyle(b).minHeight) : 0; }),
+        cran: TACTILE.reglages.cran, inverse: TACTILE.reglages.inverse, choix: TACTILE.etat.choix, b: TACTILE.braquage(12.5, 0, 1) }; }"""
+    e0 = pg.evaluate(ETAT)
+    t(f'{titre} : sur écran tactile, les Réglages du paddock montrent le volant : sensibilité, inversé, direction, recentrer, en gros boutons (≥ 40 px), textes courts', e0['n'] == 4 and e0['vus'] and e0['min'] >= 40 and e0['minl'] >= 40 and all(x and len(x) <= 22 for x in e0['textes']) and e0['pause'][0] >= 40, str(e0))
+    clic = lambda c: (pg.evaluate('(c) => document.getElementById("reglagesVolant_" + c).click()', c), pg.wait_for_timeout(100))
+    clic('sens'); vif = pg.evaluate(ETAT)
+    clic('sens'); doux = pg.evaluate(ETAT)
+    clic('sens'); normal = pg.evaluate(ETAT)
+    t(f'{titre} : chaque cran change le braquage pour un même angle (12,5° : doux < normal < vif), et le texte du bouton suit',
+      doux['cran'] == 0 and normal['cran'] == 1 and vif['cran'] == 2 and 0 < doux['b'] < normal['b'] < vif['b'] <= 1 and len({e0['textes'][0], vif['textes'][0], doux['textes'][0]}) == 3, str([doux['b'], normal['b'], vif['b'], doux['textes'][0], normal['textes'][0], vif['textes'][0]]))
+    clic('sens'); clic('sens')   # (vif, puis doux : le doux est gardé pour le rechargement)
+    clic('inverse'); inv = pg.evaluate(ETAT)
+    clic('choix'); cb = pg.evaluate(ETAT)
+    t(f'{titre} : « Inversé » change le signe du braquage ; « Direction » passe aux boutons ◀ ▶', inv['inverse'] and inv['b'] < 0 and abs(inv['b'] + doux['b']) < 1e-6 and cb['choix'] == 'boutons' and cb['textes'][2] != inv['textes'][2], str([inv['b'], doux['b'], cb['choix']]))
+    pg.reload(); attendre(pg, '() => typeof TACTILE !== "undefined" && TACTILE.estPresent() && JEU.ecran === "championnat"', None, 60000)
+    ap = pg.evaluate(ETAT)
+    t(f'{titre} : les choix du volant sont sauvegardés : après un rechargement, cran doux, inversé, direction ◀ ▶', ap['cran'] == 0 and ap['inverse'] and ap['choix'] == 'boutons' and ap['b'] < 0, str([ap['cran'], ap['inverse'], ap['choix'], ap['b']]))
+    # sans tactile (la classe body.tactile retirée) : le bloc est caché
+    pg.evaluate('() => { document.getElementById("menuReglages").click(); document.body.classList.remove("tactile"); }'); pg.wait_for_timeout(200)
+    c = pg.evaluate('() => { const e = document.getElementById("reglagesVolant"); return getComputedStyle(e).display; }')
+    t(f'{titre} : sans écran tactile, les réglages du volant ne s’affichent pas', c == 'none', c)
+
 # l'iPhone : le navigateur ne donne l'orientation qu'après un toucher (DeviceOrientationEvent.requestPermission, faux ici) ; sur l'écran titre,
-# « 🎮 Activer le volant » ; accordée → le volant écoute ; refusée (rechargement avec sessionStorage perm = denied) → les boutons ◀ ▶ ;
+# (tour 53e : « 🎮 Activer le volant » est sur la grille, pendant les feux) ; accordée → le volant écoute ; refusée (rechargement avec sessionStorage perm = denied) → les boutons ◀ ▶ ;
 # le téléphone debout (viewport portrait) → « Tourne ton téléphone »
+def grille_iphone(pg, titre, l, h, passage):
+    """(tour 53e) du titre à la grille de la découverte : le bouton « Activer le volant » y est (gros, centre-bas, sous les feux), pas sur le titre"""
+    e = pg.evaluate(TACTILE_ETAT)
+    t(f'{titre} : {passage} : sur l’écran titre, pas de « 🎮 Activer le volant »', e['activer']['cache'] and e['mode'] == 'aucun', str(e['activer']))
+    toucher(pg, '#boutonJouer')
+    attendre(pg, '() => JEU.ecran === "course" && JEU.course && JEU.course.etat === "compte" && !document.getElementById("tactileActiver").classList.contains("cache")', None, 60000)
+    pg.wait_for_timeout(300)
+    g = pg.evaluate("""() => { const r = e => e.getBoundingClientRect(), a = r(document.getElementById('tactileActiver')), W = innerWidth, H = innerHeight;
+      const feux = ['feux', 'feuxDepart', 'feuxRouges'].map(i => document.getElementById(i)).filter(x => x && x.getBoundingClientRect().height > 0 && getComputedStyle(x).display !== 'none').map(r);
+      const recouvre = feux.some(f => a.left < f.right && a.right > f.left && a.top < f.bottom && a.bottom > f.top);
+      return { x: a.left + a.width / 2, y: a.top, l: a.width, h: a.height, W, H, bas: a.bottom, recouvre, nfeux: feux.length, texte: document.getElementById('tactileActiver').textContent }; }""")
+    t(f'{titre} : {passage} : sur la grille, pendant les feux, « 🎮 Activer le volant » est gros, au centre-bas, dans l’écran, sans cacher les feux',
+      g['h'] >= 36 and g['l'] >= 150 and abs(g['x'] - g['W'] / 2) < 3 and g['y'] > g['H'] / 2 and g['bas'] <= g['H'] and not g['recouvre'] and g['texte'] == pg.evaluate('() => texte("tac_activer")'), str(g))
+    return g
 def tactile_iphone(pg, titre, l, h):
     pret = attendre(pg, '() => typeof TACTILE !== "undefined" && TACTILE.estPresent() && JEU.ecran === "titre"', None, 30000)
+    # (tour 53e) dans l'iframe de Poki le plein écran peut être refusé : requestFullscreen rejette, rien ne casse
+    pg.evaluate('() => { window.__refus = 0; Element.prototype.requestFullscreen = function () { window.__refus++; return Promise.reject(new Error("refus")); }; }')
     e = pg.evaluate(TACTILE_ETAT)
-    t(f'{titre} : sur un iPhone (autorisation à demander), l’écran titre montre « 🎮 Activer le volant », et pas les boutons de conduite', pret and not e['activer']['cache'] and e['activer']['texte'] == pg.evaluate('() => texte("tac_activer")') and not e['tactile'] and e['mode'] == 'aucun', str(e))
+    t(f'{titre} : sur un iPhone (autorisation à demander), l’écran titre ne montre plus « 🎮 Activer le volant » ni les boutons de conduite', pret and e['activer']['cache'] and not e['tactile'] and e['mode'] == 'aucun', str(e))
+    grille_iphone(pg, titre, l, h, 'accordée')
+    t(f'{titre} : le plein écran refusé (requestFullscreen rejette) : demandé une fois, sans erreur', pg.evaluate('() => window.__refus') == 1, str(pg.evaluate('() => window.__refus')))
     pg.evaluate('() => document.getElementById("tactileActiver").click()'); attendre(pg, '() => TACTILE.etat.mode === "attente"', None, 4000)
     e = pg.evaluate(TACTILE_ETAT)
     pg.evaluate(INCLINER, 30)
     e2 = pg.evaluate(TACTILE_ETAT)
     t(f'{titre} : accordée, le bouton disparaît, le volant écoute (mode attente), puis une mesure le met en mode volant', e['activer']['cache'] and e['mode'] == 'attente' and e2['mode'] == 'volant' and e2['neutre'] == 30, str([e['mode'], e2['mode'], e2['neutre']]))
-    # le téléphone debout : le message, puis couché : plus rien
-    pg.set_viewport_size({'width': h, 'height': l}); attendre(pg, '() => !document.getElementById("tactilePortrait").classList.contains("cache")', None, 5000)
+    # le téléphone debout, sur la grille : le message par-dessus tout et la course en pause (même si le plein écran est refusé) ; couché : le message part, la pause reste
+    pg.set_viewport_size({'width': h, 'height': l}); attendre(pg, '() => JEU.ecran === "pause" && !document.getElementById("tactilePortrait").classList.contains("cache")', None, 8000)
     p1 = pg.evaluate(TACTILE_ETAT)
     pg.set_viewport_size({'width': l, 'height': h}); attendre(pg, '() => document.getElementById("tactilePortrait").classList.contains("cache")', None, 5000)
     p2 = pg.evaluate(TACTILE_ETAT)
-    t(f'{titre} : le téléphone debout montre « Tourne ton téléphone » par-dessus tout ; couché, le message disparaît', not p1['portrait']['cache'] and p1['portrait']['texte'] == pg.evaluate('() => texte("tac_portrait")') and p2['portrait']['cache'], str([p1['portrait'], p2['portrait']['cache']]))
+    t(f'{titre} : le téléphone debout (plein écran refusé) montre « Tourne ton téléphone » par-dessus tout et met la course en pause ; couché, le message disparaît',
+      p1['ecran'] == 'pause' and not p1['portrait']['cache'] and p1['portrait']['texte'] == pg.evaluate('() => texte("tac_portrait")') and p2['portrait']['cache'], str([p1['ecran'], p1['portrait'], p2['portrait']['cache']]))
     # l'autorisation refusée : le mode « boutons » (◀ ▶ dès la conduite)
     pg.evaluate('() => sessionStorage.setItem("perm", "denied")'); pg.reload()
     attendre(pg, '() => typeof TACTILE !== "undefined" && JEU.ecran === "titre"', None, 30000)
+    grille_iphone(pg, titre, l, h, 'refusée')
     pg.evaluate('() => document.getElementById("tactileActiver").click()'); attendre(pg, '() => TACTILE.etat.mode === "boutons"', None, 4000)
     e = pg.evaluate(TACTILE_ETAT)
     t(f'{titre} : autorisation refusée : le bouton disparaît et le mode « boutons » (◀ ▶) est pris, sans erreur', e['activer']['cache'] and e['mode'] == 'boutons', str([e['activer']['cache'], e['mode']]))
+    # sans réponse à l'extinction des feux : le bouton part, les boutons ◀ ▶ sont là (comme avant)
+    pg.reload(); attendre(pg, '() => typeof TACTILE !== "undefined" && JEU.ecran === "titre"', None, 30000)
+    grille_iphone(pg, titre, l, h, 'sans réponse')
+    attendre(pg, '() => JEU.course.etat !== "compte"', None, 400000); pg.wait_for_timeout(300)
+    e = pg.evaluate(TACTILE_ETAT)
+    t(f'{titre} : sans réponse à l’extinction des feux, le bouton a disparu et les boutons ◀ ▶ sont là', e['activer']['cache'] and not e['gauche']['cache'] and not e['droite']['cache'] and e['tactile'], str([e['activer']['cache'], e['gauche']['cache'], e['droite']['cache']]))
 # le mode 2 joueurs : deux fausses manettes, une par joueur ; la gâchette de l'une ne fait rouler que sa voiture
 def manette_deux(pg, titre):
     pret = attendre(pg, '() => JEU.deux && JEU.plateau && JEU.plateau.carte !== null && DEUX_JOUEURS.joueurs(JEU.plateau).every(p => p.course.depart && p.course.depart.extinction !== null)', None, 240000)
@@ -2584,7 +2772,7 @@ def interview_ecran(pg, titre, ton, capture=None, gp=''):
     e = pg.evaluate(INTERVIEW_ETAT)
     t(f'{titre} : {gp}après les résultats, l’interview (fait « {e["fait"]} ») : le journaliste et le journal, la question rendue avec les noms, trois boutons avec l’icône du ton (😤 🤝 😏), « Pas de commentaire », le Grand Prix pas encore enregistré, tout dans l’écran',
       ok and e['visible'] and e['journaliste'].startswith(pg.evaluate('() => texte("interviewJournaliste")')) and e['question'] == e['attenduQuestion'] and len(e['question']) > 5 and '{' not in e['question']
-      and e['n'] == 3 and e['tons'] == ['provocant', 'calme', 'malin'] and e['icones'] == ['😤', '🤝', '😏'] and all(len(x) > 5 and '{' not in x for x in e['textes']) and e['pas'] == pg.evaluate('() => texte("interviewPasCommentaire")')
+      and e['n'] == 3 and e['tons'] == ['provocant', 'calme', 'malin'] and e['icones'] == ['😤', '🤝', '😏'] and all(len(x) > 5 and '{' not in x for x in e['textes']) and e['pas'] == pg.evaluate('() => texte(REGLAGES.INTERVIEW_PASSER ? "interviewPasser" : "interviewPasCommentaire")')
       and not e['fini'] and e['suiteCache'] and not e['choixCache'] and e['dedans'] and pas_de_defilement(e['defile']), str(e)[:700])
     if capture:
         pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, capture))
@@ -2863,6 +3051,7 @@ def paddock_menu(pg, titre, l, h, lang):
     pg.evaluate('() => { if (typeof AIDES_ECRAN !== "undefined") { REGLAGES.AIDES_ACTIVES = false; AIDES_ECRAN.fermer(); } }')   # (la bulle d'aide ne compte pas ici : aides-menus la teste)
     pg.wait_for_timeout(300)
     m = pg.evaluate("""() => [...document.querySelectorAll('#paddockMenu button')].map(b => [b.id, b.querySelector('.menuNom').textContent, b.getBoundingClientRect().width > 0])""")
+    t(f'{titre} : sans écran tactile, les réglages du volant n’existent pas dans les Réglages du paddock', pg.evaluate('() => document.querySelectorAll(".tactileReglage").length === 0 && getComputedStyle(document.getElementById("reglagesVolant")).display === "none"'))
     noms = pg.evaluate("() => ['paddock_course', 'paddock_equipe', 'paddock_boutique', 'paddock_saison', 'paddock_messages', 'titreAmis', 'paddock_reglages', 'paddock_apprendre'].map(texte)")
     t(f'{titre} : le menu à gauche : Course, Mon équipe, Boutique, Saison, Messages, Entre amis, puis Réglages et Apprendre en bas, tous visibles', [x[1] for x in m] == noms and all(x[2] for x in m)
       and [x[0] for x in m] == ['menuCourse', 'menuEquipe', 'menuBoutique', 'menuSaison', 'menuMessages', 'boutonAmisPaddock', 'menuReglages', 'boutonTutorielPaddock'], str(m))
@@ -3067,6 +3256,13 @@ def audit_autres(pg, titre, page, l, h):
           attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat" && JEU.championnat', None, 60000)
           and pg.evaluate('() => { const j = PILOTE.joueur(JEU.championnat), s = PILOTE.joueur(SAUVEGARDE.championnat()); return !PILOTE.manque(JEU.championnat) && s.numero === j.numero && PILOTE.numeroLibre(JEU.championnat, j.numero) && REGLAGES.PAYS.includes(j.pays) && (PILOTE.domicile(j.pays) === null || PILOTE.domicile(j.pays) === j.coeur) && Object.keys(REGLAGES.CIRCUITS_PAYS).includes(j.coeur) && CASQUE.valide(j.casque) && SAUVEGARDE.decouverteFaite(); }'),
           str(pg.evaluate('() => [JEU.ecran, PILOTE.joueur(JEU.championnat)]')))
+    elif 'audit-paddock' in page:
+        attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', None, 60000)
+        for m in ['menuCourse', 'menuEquipe', 'menuBoutique', 'menuSaison', 'menuMessages'] + ([] if h < 500 else ['menuReglages']):   # (la page Réglages défile en 640×360 : c'est voulu)
+            verifier('paddock-' + m, f'() => document.getElementById("{m}").click()')
+        verifier('apprendre', '() => document.getElementById("boutonTutorielPaddock").click()')
+        pg.evaluate('() => document.getElementById("boutonTutoRetour").click()')
+        verifier('amis-paddock', '() => document.getElementById("boutonAmisPaddock").click()')
     elif 'audit-tournoi' in page:
         pg.click('#boutonAmis'); pg.click('#boutonAmisTournoi'); verifier('tournoi-inscription', None, '() => JEU.ecran === "tournoiInscription"')
         with pg.expect_navigation(): pg.click('#boutonTournoiPartir')
@@ -4147,6 +4343,12 @@ with sync_playwright() as p:
                 tuto_lecon(pg, titre, l, h, page)
             elif 'test=audit' in page:
                 audit_autres(pg, titre, page, l, h)
+            elif 'test=longueurs' in page:
+                longueurs_ecran(pg, titre, l, h)
+            elif 'test=apres-course' in page:
+                apres_course(pg, titre, l, h)
+            elif 'test=titre-simple' in page:
+                titre_simple(pg, titre, l, h)
             elif 'test=clavier-titre' in page:
                 clavier_titre(pg, titre, l, h)
             elif 'test=clavier-pause' in page:
@@ -4161,6 +4363,7 @@ with sync_playwright() as p:
                 audit_en(pg, titre, l)
             elif 'gp=12' in page:
                 fin_saison(pg, titre, l)
+            elif 'test=tactile-classement' in page: pass   # (sa page à lui : tactile_ecran, plus bas)
             elif 'championnat=1' in page and 'lang=en' in page:
                 championnat_en(pg, titre)
             elif 'test=consigne' in page:

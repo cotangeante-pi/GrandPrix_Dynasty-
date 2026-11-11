@@ -180,11 +180,13 @@ const REGLAGES = {
 
   // le téléphone (tactile.js, tour 51k, CLAUDE.md « Le téléphone : le volant ») : les mêmes cibles que le clavier, la physique ne change pas
   TACTILE_ACTIF: true,             // faux : rien, même sur un écran tactile (le clavier seul, au bit près) ; sans écran tactile, rien ne change
+  TACTILE_IPHONE_GRILLE: true,     // (tour 53e) iPhone : « 🎮 Activer le volant » n'est plus sur l'écran titre mais sur la grille, pendant les feux (gros, au centre-bas) ; sans réponse à l'extinction, les boutons ◀ ▶ ; faux = l'écran titre, comme avant
   TACTILE_PAYSAGE: true,           // (tour 52b) au premier geste sur un écran tactile : plein écran puis verrou en paysage (là où le navigateur le permet) ; faux : rien demandé
   VOLANT_PLEIN: 25,                // ° d'inclinaison depuis le neutre = braquage à fond
   VOLANT_ZONE_MORTE: 2,            // ° autour du neutre où l'on ne braque pas
   VOLANT_LISSAGE: 0.06,            // s : le temps que met l'angle lissé à rejoindre la mesure (0 : aucun lissage)
   VOLANT_ATTENTE: 2.5,             // s sans mesure d'orientation après l'activation : pas de capteur, les boutons ◀ ▶
+  VOLANT_SENSIBILITE: [1.4, 1, 0.68], // (tour 53f) les 3 crans « doux, normal, vif » du joueur (Réglages, pause) : VOLANT_PLEIN × ce nombre (normal = 1 : le jeu d'avant) ; le cran est sauvegardé
   VOLANT_INVERSE: false,           // vrai : le sens du volant retourné (si un téléphone le prend à l'envers)
 
   // les aides au pilotage du joueur (assistance.js, tour 41) : seulement ses cibles, avant la physique ; toutes en débutant
@@ -292,6 +294,7 @@ const REGLAGES = {
   ],
   FACTEUR_VOITURE_JOUEUR: 1,    // la qualité de la voiture du joueur : 1 pour l'instant (sa conduite, c'est le propriétaire qui la valide) ; plus tard celle de son écurie, dans ±3 %
   CHAMPIONNAT_TOURS: 5,         // ?championnat=1 : la longueur des Grands Prix, fixe pour l'instant (?tours=1 pour les tests)
+  CHAMPIONNAT_LONGUE_CHOIX: true, // (tour 53h, règle du propriétaire « trois longueurs à choisir avant chaque Grand Prix ») : en carrière, 5, 12 ou 18 tours au choix sur la page Course, dernier choix gardé, 5 par défaut ; faux : toujours CHAMPIONNAT_TOURS, comme avant
   CHAMPIONNAT_TOURS_PREMIER: 3, // (tour 52f, décision du propriétaire) le tout premier Grand Prix de la carrière : 3 tours ; les suivants : CHAMPIONNAT_TOURS (le mettre à la même valeur = le jeu d'avant)
   QUALIF_PASSER_PREMIER_MILIEU: true, // (tour 52f) au tout premier Grand Prix de la carrière seulement, « Passer » la qualification = milieu de grille (decouverte.js : tempsMilieu) ; false = dernier, comme avant
   PADDOCK_COURT_TETE: 3,        // le paddock (tour 48a) : le classement réduit de la page Course montre les 3 premiers,
@@ -492,6 +495,13 @@ const REGLAGES = {
   DECOUVERTE_PILOTES: [0, 3, 6, 9, 12, 15],   // les pilotes du monde (ids dans championnat.pilotes) qui courent la découverte : un par écurie
   DECOUVERTE_ARGENT: [1000, 800, 600, 400, 300, 200, 100],   // la prime d'argent de départ selon la place (1er, 2e, …)
   DECOUVERTE_ARGENT_MAX: 1000,  // … et son plafond
+  PRIME_LIVE: true,             // la découverte : « Prime : 400 € » près de la tour de classement, qui suit la place en direct, et un gros « P3 ! » à chaque place gagnée (faux : rien, comme avant le tour 52g)
+  PRIME_PLACE_GRAND_DUREE: 1,   // s : le « P3 ! » au centre
+  PRIME_GAIN_DUREE: 1.2,        // s : le « +200 € » vert à côté du compteur
+  TITRE_SIMPLE: true,           // l'écran titre sur un écran tactile ou sous 700 px de large : seulement « ▶ Jouer », « Entre amis » et 🔊 ; « Apprendre / Aides / Touches » sont dans les Réglages du paddock (faux : la rangée reste, comme avant le tour 53c)
+  APRES_PODIUM_DIRECT: true,    // en carrière, le podium montre les gains (« Gains : 800 € · +25 pts ») et un gros « Continuer » qui mène droit à l'interview ; « Résultats » reste en petit (faux : seulement « Résultats », comme avant le tour 53d)
+  INTERVIEW_PASSER: true,       // l'interview d'après course : un « Passer » visible à la place du petit « Pas de commentaire » (faux : comme avant)
+  UNE_AUTO_DUREE: 6,            // s : la une du journal passe toute seule au paddock après ce temps, un clic ou une touche la passe tout de suite (0 : jamais, comme avant)
   PODIUM_DECOUVERTE_DUREE: 8,   // s : le podium de la découverte passe tout seul à la création du pilote après ce temps (0 : jamais ; tour 52e)
   PODIUM_DECOUVERTE_ENCORE: true, // « Encore une course ? » sur ce podium (la 2e fois sans prime) ; faux : le bouton n'y est pas
   PILOTE_PROPOSITIONS: 3,       // la création du pilote après la découverte : tant de pilotes prêts en grosses cartes (0 : le formulaire seul, comme avant le tour 52e)

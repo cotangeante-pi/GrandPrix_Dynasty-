@@ -928,6 +928,13 @@ body.deux #departResultat { bottom: auto; top: calc(50% - 60px); }
 /* le mode 2 joueurs (tour 25b, ordre 3) : le menu « Entre amis », l'écran avant la course, le podium à deux et la rivalité */
 #amis .boutons, #deuxReglages .boutons { align-items: center; }   /* (le petit bouton « Retour » garde sa taille, son texte centré) */
 #amis .boutons button:disabled { opacity: 0.5; cursor: default; box-shadow: none; }
+/* (tour 52b, ui-amis) « Entre amis » : trois grosses plaques pareilles, « À deux » en rouge (l'action principale), « Retour » petit dessous */
+#amis .boutons:first-of-type button { min-width: 190px; padding: 22px 20px; font-size: 24px; }
+#boutonAmisDeux { background: var(--tv-bouton-principal); box-shadow: 0 2px 10px rgba(227, 36, 43, 0.35); }
+@media (max-height: 420px) {
+  #amis { gap: 10px; }
+  #amis .boutons:first-of-type button { min-width: 150px; padding: 14px 12px; font-size: 18px; }
+}
 #deuxJoueurs { display: flex; gap: 16px; }
 .deuxJoueur { display: flex; flex-direction: column; gap: 8px; width: 380px; max-width: 46vw; padding: 10px 14px; border-radius: 10px; background: rgba(255, 255, 255, 0.06); box-sizing: border-box; }
 .deuxJoueur h2 { margin: 0; font: 800 18px/1.2 var(--police); }
@@ -942,6 +949,7 @@ body.deux #departResultat { bottom: auto; top: calc(50% - 60px); }
 #deuxReglages .deuxCouleurs button.deuxPastille.choisie { box-shadow: 0 0 0 3px #fff; }
 .deuxCasque { display: flex; align-items: center; gap: 5px; }
 .deuxCasque input[type=color] { width: 28px; height: 24px; padding: 0; border: 1px solid rgba(255, 255, 255, 0.35); border-radius: 6px; background: none; }
+.deuxCasque select { width: 120px; min-width: 0; }   /* (tour 53d) le casque tient dans la carte à 960 aussi */
 .deuxIcone { display: inline-flex; }
 #deuxReglages p.deuxTouches { font: 600 12px/1.3 var(--police); opacity: 0.8; }
 #deuxCourse { display: grid; grid-template-columns: repeat(4, auto); gap: 8px 18px; }
@@ -1334,6 +1342,14 @@ body.deux.cote #boutonSon { top: auto; bottom: 12px; right: 12px; }   /* (côte 
 #tutoListe .tutoNom { font-weight: 800; font-size: 14px; }
 #tutoListe .tutoBut { grid-column: 2; font-size: 12px; color: var(--tv-texte-doux); }
 #tutoListe button { grid-column: 3; grid-row: 1 / 3; }
+/* tour 53e : la prochaine leçon en grand (cadre doré, gros bouton rouge), les leçons déjà faites plus discrètes, l'écran opaque (le paddock ne transparaît plus) */
+#tutoMenu { background: linear-gradient(180deg, rgb(7, 9, 15), rgb(12, 16, 27)); }
+#tutoListe .tutoNom { font-size: 16px; }
+#tutoListe .tutoBut { font-size: 13px; color: var(--tv-texte); opacity: 0.8; }
+#tutoListe li.tutoSuivant { border-color: var(--tv-or); box-shadow: 0 0 0 2px var(--tv-or); background: rgba(255, 200, 60, 0.12); }
+#tutoListe li.tutoSuivant .tutoEtoile { color: var(--tv-or); }
+#tutoListe li.tutoSuivant button { padding: 8px 18px; font-size: 17px; font-weight: 800; background: var(--tv-bouton-principal, linear-gradient(180deg, #e8323a, #b01820)); }
+#tutoListe li.tutoFaite { opacity: 0.6; }
 #tutoMenuIntro, #tutoResultatTexte { margin: 0; max-width: 620px; font-weight: 700; }
 #tutoConsigne { position: fixed; z-index: 21; left: 16px; top: max(36%, 226px); max-width: 300px; display: grid; gap: 4px; padding: 8px 12px; border-left: 4px solid var(--tv-or); border-radius: var(--tv-coin); background: var(--tv-hud); box-shadow: var(--tv-hud-ombre); color: var(--tv-texte); font: 700 13px/1.35 var(--tv-police); text-align: left; }
 #tutoConsigne.tutoMenuConsigne { top: 8px; max-width: min(560px, 56vw); }
@@ -1392,8 +1408,9 @@ button.manette-choix { box-shadow: 0 0 0 3px #ffd23f, 0 0 14px 2px rgba(255, 210
 @media (max-height: 680px) {   /* (tour 37j) huit leçons : la liste reste dans l'écran en 960×600 */
   #tutoListe { gap: 3px; }
   #tutoListe li { padding: 3px 10px; }
-  #tutoListe .tutoNom { font-size: 13px; }
-  #tutoListe .tutoBut { font-size: 11px; line-height: 1.15; }
+  #tutoListe .tutoNom { font-size: 14px; }
+  #tutoListe .tutoBut { font-size: 12px; line-height: 1.15; }
+  #tutoListe li.tutoSuivant button { padding: 5px 14px; font-size: 15px; }
   #tutoMenuIntro { font-size: 13px; }
 }
 
@@ -1468,7 +1485,7 @@ body.deux:not(.cote) #deuxRappel2 { left: 50%; }
 .paddockPage button.danger, #carriereConfirmation.danger #boutonCarriereOui { background: var(--tv-bouton-principal); }
 
 /* la page Course : le prochain Grand Prix en grand (la carte à droite), toi, le classement réduit, les messages, « Course suivante » */
-#pageCourse { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); grid-template-areas: "prochain prochain" "moi moi" "court nouvelles" "court bouton"; gap: 12px; }
+#pageCourse { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); grid-template-areas: "prochain prochain" "moi moi" "court nouvelles" "court longueur" "court bouton"; gap: 12px; }
 #paddockProchain { grid-area: prochain; display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 16px; row-gap: 3px; align-items: center; align-content: center; }
 #paddockProchain > * { grid-column: 1; }
 #paddockProchain h1 { font-size: 24px; line-height: 1.15; text-align: left; }
@@ -1506,7 +1523,26 @@ body.deux:not(.cote) #deuxRappel2 { left: 50%; }
 #pageCourse #boutonCourseSuivante:hover { box-shadow: var(--tv-halo); }
 #pageCourse #boutonCourseSuivante.cache { display: none; }
 
+/* Course (tour 52h) : le prochain Grand Prix en grand, puis « Course suivante » en pleine largeur juste dessous (l'action principale), le reste en dessous et plus discret */
+#pageCourse { grid-template-areas: "prochain prochain" "longueur longueur" "bouton bouton" "court moi" "court nouvelles"; }
+#pageCourse #boutonCourseSuivante { justify-self: stretch; align-self: stretch; padding: 14px 20px; font-size: 26px; text-align: center; }
+#paddockProchain h1 { font-size: 32px; }
+#paddockProchain h1::after { width: 56px; height: 4px; }
+#paddockProchain #prevision { font-size: 16px !important; }
+#paddockMoi { padding-top: 8px; padding-bottom: 8px; }
+#championnat #championnatDuel { font-size: 13px; opacity: 0.8; }
+#paddockNouvelles p { font-size: 13px; opacity: 0.85; }
+
 /* les autres pages */
+/* Cohérence (tour 53e) : toutes les pages partent du haut (le titre au même endroit), le même titre avec l'icône du menu, la porte principale de la page en rouge */
+#paddockPages { align-items: flex-start; }
+.pageTitre::before { margin-right: 8px; font-style: normal; }
+#pageEquipeTitre::before { content: "🔧"; }
+#pageBoutiqueTitre::before { content: "🛒"; }
+#pageSaisonTitre::before { content: "📅"; }
+#pageMessagesTitre::before { content: "✉"; }
+#pageReglagesTitre::before { content: "⚙"; }
+#pageBoutique #boutonBoutique { background: var(--tv-bouton-principal); box-shadow: 0 4px 16px rgba(227, 36, 43, 0.35); }
 .pageInfos { display: flex; flex-direction: column; gap: 6px; }
 .pageInfos p { font-size: 15px; }
 #championnat #championnatReputation { flex-wrap: wrap; gap: 6px 14px; justify-content: flex-start; }
@@ -1526,7 +1562,12 @@ body.deux:not(.cote) #deuxRappel2 { left: 50%; }
 #boutiqueContenu { display: flex; flex-direction: column; gap: 12px; }
 #boutiqueContenu p { font-size: 16px; opacity: 0.85; }
 #boutiqueContenu #boutiqueSoldePage { font-size: 28px; font-weight: 800; color: #ffd666; opacity: 1; margin: 0; }
-#pageSaison #championnatTableaux { display: flex; gap: 28px; align-items: flex-start; padding: 12px 18px; }
+/* tour 53e : Saison : où tu en es en une ligne, les trois portes en tuiles égales, les deux classements lisibles (titres colorés) */
+#saisonResume { margin: 0; font-size: 16px; font-weight: 700; }
+#pageSaison .pageBoutons { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+#pageSaison .pageBoutons button { display: flex; align-items: center; justify-content: center; min-height: 54px; padding: 8px 6px; font: 800 17px/1.15 var(--tv-police); text-align: center; white-space: normal; }
+#pageSaison #championnatTableaux h2 { font-size: 15px; color: var(--tv-or); letter-spacing: 0.06em; }
+#pageSaison #championnatTableaux { display: flex; gap: 28px; align-items: flex-start; justify-content: space-evenly; padding: 12px 18px; }
 #pageSaison #championnatTableaux h2 { text-align: center; }
 #championnat #championnatTableaux ol { font-size: 13px; line-height: 1.5; }
 #championnat #championnatTableaux li { padding: 0 7px; }
@@ -1551,8 +1592,34 @@ body.deux:not(.cote) #deuxRappel2 { left: 50%; }
 /* au paddock, le son est dans Réglages : 🔊 ne reste pas dans un coin ; la bulle d'aide se pose à droite du menu */
 body.auPaddock #boutonSon { display: none; }
 #championnat:not(.cache) ~ #bulleAide.bulleMenu { left: calc(var(--paddock-menu) + 16px); }
+#championnat:not(.cache) ~ #bulleAide.bulleMenu { top: auto; bottom: 8px; }   /* (tour 53e : les pages partent du haut, la bulle d'aide passe en bas pour ne couvrir aucun bouton) */
 #championnat:not(.cache) ~ #tutoConsigne.tutoMenuConsigne { left: calc(var(--paddock-menu) + 16px); }   /* (la consigne de la leçon « visite » non plus ne couvre pas le menu) */
 
+/* (tour 53b, plan « menus-doigt ») sur un écran tactile (body.tactile), aucun bouton des menus du paddock et des écrans qui en partent
+   n'a moins de 40 px de haut (l'aire d'un doigt), même en 640×360. Les pages Course, Saison, Entre amis et Apprendre ne sont pas touchées ici
+   (le Codeur de chaque section s'en charge). Sans écran tactile, rien ne change. */
+body.tactile #paddockMenu { gap: 0; }
+body.tactile .ecran #paddockMenu button.menuEntree { min-height: 40px; padding-top: 0; padding-bottom: 0; }
+body.tactile :is(#pageEquipe, #pageBoutique, #pageMessages, #pageReglages, #carriereConfirmation) button,
+body.tactile :is(#garage, #boutique, #sponsors, #pilote, #discussion, #livree, #courrier, #qualif) button,
+body.tactile.horsCourse #boutonSon { min-height: 40px; }
+body.tactile.horsCourse #boutonSon { min-width: 40px; width: 40px; height: 40px; }
+body.tactile #pageReglages .pageBoutons button, body.tactile #pageReglages .pageBoutons button.petit { min-height: 40px; }
+
+@media (max-height: 420px) {
+  body.tactile #garageListe { gap: 2px; margin: 0; }
+  body.tactile #garageListe li { padding: 0 10px; }
+  body.tactile #garage { gap: 2px; padding-top: 2px; padding-bottom: 2px; }
+  body.tactile #garageBonus { font-size: 12px; }
+  body.tactile #garagePneus { margin: 2px 0; gap: 4px; }
+  body.tactile #discussionCarte { gap: 4px; padding: 6px 12px; max-height: calc(100vh - 52px); }
+  body.tactile #discussionPortrait canvas { width: 44px; height: 52px; }
+  body.tactile #discussion h1 { font-size: 18px; }
+  body.tactile #discussionFil { min-height: 40px; max-height: 70px; }
+  body.tactile #discussionComposeur { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; }
+  body.tactile #discussionComposeur button { flex: 0 0 auto; white-space: nowrap; }
+  body.tactile #discussionSaisie button, body.tactile #discussionTexte { min-height: 40px; }
+}
 /* 960×600 et moins large : le menu devient une colonne d'icônes (le nom en bulle, title) */
 @media (max-width: 1100px) {
   :root { --paddock-menu: 58px; }
@@ -1567,7 +1634,8 @@ body.auPaddock #boutonSon { display: none; }
   .paddockPage { gap: 9px; }
   #pageCourse { gap: 9px; }
   .paddockPage .tvCarte { padding: 9px 14px; }
-  #paddockProchain h1 { font-size: 21px; }
+  #paddockProchain h1 { font-size: 24px; }
+  #pageCourse #boutonCourseSuivante { padding: 10px 16px; font-size: 22px; }
   #paddockCarte { height: min(130px, 21vh); }
   #championnat #championnatTableaux ol { font-size: 12px; line-height: 1.3; }
   .pageTitre { font-size: 21px !important; }
@@ -1595,7 +1663,9 @@ body.auPaddock #boutonSon { display: none; }
   #paddockClassementCourt { font-size: 11px; line-height: 1.3; margin-bottom: 4px; }
   #paddockNouvelles p, .pageInfos p { font-size: 12px; }
   #paddockCourt button, #paddockNouvelles button { padding: 4px 10px; font-size: 12px; }
-  #pageCourse #boutonCourseSuivante { padding: 9px 16px; font-size: 16px; }
+  #pageCourse #boutonCourseSuivante { padding: 6px 12px; font-size: 18px; }
+  #paddockProchain h1 { font-size: 18px; }
+  #championnat #championnatDuel { font-size: 11px; }
   .paddockPage .pageBoutons { gap: 6px; }
   .paddockPage .pageBoutons button { padding: 7px 11px; font-size: 13px; }
   #pageEquipe #championnatArgent { font-size: 22px; }
@@ -1610,6 +1680,10 @@ body.auPaddock #boutonSon { display: none; }
   #championnat #championnatPilotes { columns: 2; column-gap: 14px; }
   #championnat #championnatTableaux ol { font-size: 11px; line-height: 1.25; }
   #pageSaison #championnatTableaux { gap: 16px; padding: 6px 10px; }
+  #saisonResume { font-size: 13px; }
+  #pageSaison .pageBoutons { gap: 6px; }
+  #pageSaison .pageBoutons button { min-height: 34px; padding: 4px 4px; font-size: 13px; }
+  #pageSaison #championnatTableaux h2 { font-size: 12px; }
   #carriereConfirmation p { font-size: 12px; }
   #carriereConfirmation ul { font-size: 11px; line-height: 1.25; }
 }
@@ -1839,11 +1913,194 @@ body.tactile #aide { display: none; }
   #tactilePause, #tactileRemise { top: 122px; right: auto; width: 30px; height: 28px; font-size: 14px; }
   #tactilePause { left: 48px; } #tactileRemise { left: 84px; }
 }
+/* (tour 53d) la vue de la piste : avec les boutons ◀ ▶, le radar se pose au-dessus d'eux (plus petit) et, en petit écran, disparaît (le rétroviseur
+   montre l'arrière) ; l'aide « ◀ ▶ » de la découverte répète les boutons : cachée */
+body.tactile.tactileBoutons #radar { --radar-taille: 120px; bottom: 124px; left: 12px; }
+body.tactile.tactileBoutons #aideDirection { display: none; }
+@media (max-height: 420px) { body.tactile.tactileBoutons #radar { display: none; } }
 #tactileActiver { position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 20; padding: 10px 18px; border: 1px solid rgba(255, 255, 255, 0.45);
   border-radius: 10px; background: #1f6fe0; color: #fff; font: 600 16px/1.3 var(--police); cursor: pointer; }
+/* (tour 53e) sur la grille : gros, au centre-bas, les feux (en haut) restent visibles */
+body.tactile #tactileActiver { padding: 14px 26px; font-size: 20px; bottom: 16px; }
+@media (max-height: 420px) { body.tactile #tactileActiver { padding: 8px 16px; font-size: 16px; bottom: 8px; } }
 #tactilePortrait { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 24px; text-align: center;
   background: rgba(0, 0, 0, 0.92); color: #fff; font: 800 28px/1.3 var(--police); }
+
+/* (tour 52h, plan « ui-messages ») le courrier et la page Messages lisibles en 3 secondes : le non lu d'abord et en rouge, une seule
+   action par message (« Répondre », le bouton principal pour un message neuf, discret pour un message lu), le nombre de messages
+   neufs à côté du titre, les trois boutons de la page de la même largeur */
+#paddockMessages { align-items: stretch; width: min(100%, 300px); }
+#paddockMessages button { width: 100%; justify-content: flex-start; text-align: left; font-size: 18px; padding: 12px 18px; }
+#paddockMessages button.nouveau { font-size: 20px; }
+.badgeNeuf { display: inline-block; min-width: 26px; margin-left: 10px; padding: 2px 9px; border-radius: 14px; background: var(--tv-rouge); color: #fff; font: 800 18px/1.3 var(--police);
+  font-style: normal; text-align: center; vertical-align: middle; letter-spacing: 0; }
+#courrierListe li { padding: 10px 14px; font-size: 15px; }
+#courrierListe li.nouveau { background: linear-gradient(90deg, rgba(227, 36, 43, 0.22), var(--tv-panneau) 55%); box-shadow: inset 5px 0 0 var(--tv-rouge); }
+#courrierListe li.nouveau strong { font-size: 17px; }
+#courrierListe li.nouveau span.texte { font-weight: 700; }
+#courrierListe li.lu { opacity: 0.6; }
+#courrierListe strong em { padding: 1px 8px; border-radius: 10px; background: var(--tv-rouge); color: #fff; font-size: 11px; letter-spacing: 0.06em; }
+#courrierListe li.nouveau button { background: var(--tv-bouton-principal); box-shadow: 0 2px 8px rgba(227, 36, 43, 0.35); }
+#courrierListe li.lu button { opacity: 0.8; }
+#boutonCourrierRetour { min-width: 160px; }
+@media (max-height: 420px) {
+  #paddockMessages { width: min(100%, 240px); }
+  #paddockMessages button { font-size: 15px; padding: 8px 14px; }
+  #paddockMessages button.nouveau { font-size: 16px; }
+  .badgeNeuf { font-size: 14px; margin-left: 8px; }
+  #courrierListe li { padding: 6px 10px; font-size: 13px; }
+  #courrierListe li.nouveau strong { font-size: 14px; }
+}
+
+/* (tour 52b, ui-amis) l'écran « À deux » en 640×360 : tout tient (la carte de droite, le casque, les réglages de la course, « C'est parti ! ») */
+@media (max-height: 420px) {
+  #deuxReglages { gap: 4px; padding: 4px 8px; box-sizing: border-box; }
+  #deuxReglages h1 { font-size: 16px; margin: 0; }
+  #deuxJoueurs { gap: 8px; }
+  .deuxJoueur { width: calc(50vw - 14px); max-width: none; padding: 5px 8px; gap: 3px; }
+  .deuxJoueur h2 { font-size: 14px; }
+  .deuxJoueur label, #deuxCourse label { font-size: 12px; gap: 6px; }
+  .deuxJoueur input[type=text] { width: 110px; padding: 2px 5px; font-size: 12px; }
+  .deuxJoueur select, #deuxCourse select { padding: 2px 4px; font-size: 12px; max-width: 120px; }
+  #deuxReglages .deuxCouleurs { gap: 3px; }
+  #deuxReglages .deuxCouleurs button.deuxPastille { width: 18px; height: 18px; }
+  #deuxReglages .deuxJoueur button { padding: 3px 8px; font-size: 11px; min-width: 0; }
+  #deuxReglages p.deuxTouches { font-size: 10px; margin: 2px 0 0; }
+  #deuxCourse { gap: 4px 10px; }
+  #deuxCourse label { flex-direction: column; align-items: stretch; gap: 1px; }
+  #deuxCourse select { max-width: none; }
+  #deuxErreur { min-height: 0; margin: 0; }
+  #deuxReglages .boutons button { padding: 6px 16px; font-size: 14px; }
+}
+
+/* la découverte (tour 52g) : la prime en direct à gauche de la tour de classement, et le gros « P3 ! » au centre */
+#primeDecouverte { position: fixed; top: 10px; right: calc(var(--classement-largeur, 170px) + 72px);   /* (à gauche du bouton 🔊) */ display: flex; align-items: baseline; gap: 8px; padding: 6px 12px; border-radius: 8px; background: var(--panneau); font: 800 18px/1.2 var(--police); color: #ffd666; pointer-events: none; }
+#primeGain { color: #7dff9a; font-size: 16px; opacity: 0; }
+#primeDecouverte.monte #primeGain { animation: primeGain 1.2s ease-out; }
+#primeDecouverte.monte { animation: primeFlash 1.2s ease-out; }
+@keyframes primeGain { 0% { opacity: 0; transform: translateY(8px); } 15% { opacity: 1; } 70% { opacity: 1; } 100% { opacity: 0; transform: translateY(-8px); } }
+@keyframes primeFlash { 0% { box-shadow: 0 0 0 3px #7dff9a; } 100% { box-shadow: 0 0 0 0 rgba(125, 255, 154, 0); } }
+#placeGrand { position: fixed; left: 50%; top: 38%; transform: translate(-50%, -50%); font: 900 96px/1 var(--tv-police-titre, var(--police)); font-style: italic; color: #fff; text-shadow: 0 4px 18px rgba(0, 0, 0, 0.75), 0 0 28px rgba(125, 255, 154, 0.8); pointer-events: none; }
+#placeGrand.saute { animation: placeSaute 1s ease-out; }
+@keyframes placeSaute { 0% { opacity: 0; transform: translate(-50%, -50%) scale(0.6); } 20% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); } 80% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -50%) scale(1); } }
+@media (max-height: 420px) { #placeGrand { font-size: 56px; } #primeDecouverte { font-size: 14px; padding: 3px 8px; top: 148px; right: 12px; } }   /* (640×360 : sous la tour de classement, rien ne se recouvre : ni le chrono, ni GAZ / FREIN, ni la minicarte) */
+@media (prefers-reduced-motion: reduce) { #primeDecouverte.monte, #primeDecouverte.monte #primeGain, #placeGrand.saute { animation: none; } #primeGain { opacity: 1; } }
+
 #tactilePortrait { flex-direction: column; gap: 12px; }
 #tactilePortrait::before { content: '📱'; display: block; font-size: 120px; line-height: 1; animation: tactile-tourne 2.2s ease-in-out infinite; }   /* (un téléphone qui se couche : pas de phrase longue) */
 @keyframes tactile-tourne { 0%, 20% { transform: rotate(0deg); } 60%, 100% { transform: rotate(-90deg); } }
 @media (prefers-reduced-motion: reduce) { #tactilePortrait::before { animation: none; transform: rotate(-90deg); } }
+
+/* Cohérence (tour 53e) : la liste Apprendre dans le téléphone couché (640×360) : le titre et « Retour » restent dans l'écran ; la bulle d'aide du paddock laisse passer les clics (la page Réglages remplit l'écran ; la bulle s'efface seule) */
+@media (max-height: 420px) {
+  #championnat:not(.cache) ~ #bulleAide.bulleMenu { pointer-events: none; }
+  #tutoMenu { justify-content: flex-start; padding-top: 4px; padding-bottom: 4px; gap: 3px; }
+  #tutoMenu h1 { font-size: 18px; line-height: 1; }
+  #tutoMenu h1::after { margin-top: 2px; height: 3px; }
+  #tutoMenuIntro { font-size: 11px; }
+  #tutoListe { gap: 2px; }
+  #tutoListe li { padding: 2px 8px; column-gap: 8px; }
+  #tutoListe .tutoEtoile { font-size: 16px; }
+  #tutoListe .tutoNom { font-size: 12px; line-height: 1.1; }
+  #tutoListe .tutoBut { font-size: 10px; line-height: 1.1; }
+  #tutoListe button, #tutoListe li.tutoSuivant button { padding: 3px 12px; font-size: 12px; min-height: 0; }
+  #tutoMenu .boutons button { padding: 5px 12px; font-size: 12px; min-height: 0; }
+}
+
+/* l'écran titre simple (tour 53c, premiere-minute n° 12) : sur un écran tactile ou sous 700 px de large, « Apprendre / Aides / Touches » ne sont plus au titre (ils sont dans les Réglages du paddock) */
+body.titreSimple.tactile #titreAide { display: none; }
+@media (max-width: 699px) { body.titreSimple #titreAide { display: none; } }
+
+/* (tour 53b, plan « doigt-suite ») au doigt (body.tactile), les derniers boutons des menus ont au moins 40 px de haut : Course (Voir tout, Voir messages,
+   Course suivante), Saison (Calendrier, Album, Arbre), Entre amis (Retour), Apprendre (les leçons et leurs boutons). Les lignes du classement
+   restent des lignes (le toucher ouvre la fiche d'un rival, mais vingt lignes de 40 px ne tiennent pas dans 360 px). */
+body.tactile :is(#paddockCourt, #paddockNouvelles) button, body.tactile #pageCourse #boutonCourseSuivante,
+body.tactile #pageSaison .pageBoutons button, body.tactile #amis .boutons button, body.tactile #tutoMenu button, body.tactile #tutoResultat button { min-height: 40px; }
+@media (max-height: 420px) {
+  body.tactile #tutoMenu { gap: 2px; padding-top: 4px; padding-bottom: 0; justify-content: flex-start; }
+  body.tactile #tutoMenu .boutons { margin: 0; }
+  body.tactile #tutoMenu h1 { font-size: 13px; margin: 0; line-height: 1.1; }
+  body.tactile #tutoMenu h1::after { display: none; }
+  body.tactile #tutoMenuIntro { display: none; }
+  body.tactile #tutoListe { gap: 1px; width: min(94vw, 720px); }
+  body.tactile #tutoListe li { padding: 0 8px; min-height: 40px; column-gap: 8px; border-width: 0; }
+  body.tactile #tutoListe .tutoNom { font-size: 13px; }
+  body.tactile #tutoListe .tutoBut { font-size: 11px; line-height: 1.1; }
+  body.tactile #tutoListe li.tutoSuivant button, body.tactile #tutoListe button { padding: 4px 10px; font-size: 13px; }
+}
+body.tactile #boutique .skin button, body.tactile #boutique button.onglet { display: inline-flex; align-items: center; justify-content: center; }
+
+/* l'après-course de la carrière (tour 53d) : les gains sous le podium, un gros « Continuer », « Résultats » en petit */
+#podiumGains { margin: 0; padding: 6px 16px; border-radius: 8px; background: var(--panneau); font: 800 20px/1.3 var(--police); color: #ffd666; text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5); }
+#boutonPodiumSuite { pointer-events: auto; padding: 14px 40px; border: 0; border-radius: var(--tv-coin, 10px); background: var(--accent); color: var(--texte); font: 700 22px/1.3 var(--police); cursor: pointer; }
+#boutonPodiumSuite:hover { box-shadow: var(--tv-halo, 0 0 0 3px rgba(255, 255, 255, 0.5)); }
+#boutonResultats.petit { padding: 6px 14px; font-size: 13px; opacity: 0.9; }
+@media (max-height: 420px) { #podiumGains { font-size: 15px; padding: 3px 12px; } #boutonPodiumSuite { padding: 8px 28px; font-size: 18px; } }
+
+/* Chasse du tour 53 (Codeur 6) : au doigt dans le téléphone couché (640×360), les boutons de 40 px débordaient : « Nouvelle carrière » (Réglages, bas à 369 px) et « Ouvrir les messages » (Course, 373 px). On serre les marges, après les blocs tactiles ci-dessus */
+/* … et en course au doigt (640×360) : « Tiens GAZ » passait sous 🔊 ⏸ ↩ (ils sont à 122–150 px du haut), et les écarts de la tour de classement (« +0,3 s ») revenaient à la ligne */
+#classementListe .ecart { white-space: nowrap; }
+@media (max-height: 420px) {
+  body.tactile #aides:not(.grille) { top: 152px; gap: 4px; }
+  body.tactile #aides:not(.grille) span { font-size: 15px; padding: 2px 10px; }
+  body.tactile #classementListe li { gap: 3px; padding: 0 3px; }
+  body.tactile #classementListe .ecart { font-size: 10px; }
+  body.tactile #pageReglages { gap: 4px; }
+  body.tactile #pageReglages .tvCarte { padding: 3px 10px 5px; }
+  body.tactile #pageReglages .tvCarte h2 { margin: 0 0 2px; font-size: 11px; }
+  body.tactile #pageReglages .pageBoutons { gap: 4px; grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); }
+  body.tactile #pageReglages .pageBoutons button, body.tactile #pageReglages .pageBoutons button.petit { padding: 2px 3px; font-size: 11px; }
+  body.tactile #pageReglages { overflow-y: auto; }   /* (si une langue ou une section de plus ne tient pas : la page défile au doigt) */
+  body.tactile #pageReglages .pageBoutons button, body.tactile #pageReglages .pageBoutons button.petit { min-height: 40px; }
+  body.tactile #pageCourse { gap: 5px; }
+  body.tactile #pageCourse .tvCarte { padding: 4px 10px; }
+  body.tactile :is(#paddockCourt, #paddockNouvelles) button { min-height: 34px; padding-top: 2px; padding-bottom: 2px; }
+  body.tactile #pageCourse #boutonCourseSuivante { min-height: 36px; padding-top: 4px; padding-bottom: 4px; }
+}
+
+/* le choix de la longueur du Grand Prix (tour 53h) : trois gros boutons sur la page Course */
+#paddockLongueur { grid-area: longueur; display: flex; flex-direction: column; gap: 8px; }
+#paddockLongueurBoutons { display: flex; gap: 10px; }
+#paddockLongueurBoutons .longueurChoix { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 8px; border: 2px solid transparent; border-radius: var(--tv-coin, 10px); background: var(--tv-bouton, #2a2f3a); color: var(--texte, #fff); font-family: var(--tv-police, inherit); cursor: pointer; }
+#paddockLongueurBoutons .longueurChoix b { font: 800 26px/1 var(--tv-police-titre, var(--police)); }
+#paddockLongueurBoutons .longueurChoix span { font-size: 13px; opacity: 0.85; }
+#paddockLongueurBoutons .longueurChoix.choisi { border-color: #fff; background: var(--tv-bouton-principal, #e3242b); }
+@media (max-height: 420px) { #paddockLongueurBoutons .longueurChoix { padding: 4px 6px; } #paddockLongueurBoutons .longueurChoix b { font-size: 18px; } #paddockLongueur h2 { font-size: 12px; margin: 0; } }
+@media (max-height: 420px) {   /* 640×360 : les longueurs à côté de « Course suivante », sur la même ligne (rien de plus haut qu'avant) */
+  #pageCourse { grid-template-areas: "prochain prochain" "longueur bouton" "court moi" "court nouvelles"; }
+  #paddockLongueur { padding: 4px 6px; min-width: 0; } #paddockLongueurBoutons { gap: 4px; min-width: 0; }
+  #paddockLongueurBoutons .longueurChoix { min-height: 40px; min-width: 0; padding: 2px 3px; } #paddockLongueurBoutons .longueurChoix span { font-size: 10px; white-space: nowrap; }
+  #paddockLongueur h2 { display: none; }
+  #pageCourse #boutonCourseSuivante { font-size: 15px; padding: 6px 8px; white-space: normal; }
+}
+/* (tour 53f) les réglages du volant : seulement sur un écran tactile (body.tactile, posée par tactile.js), de gros boutons (≥ 40 px) */
+.tactileSeul { display: none; }
+body.tactile .tactileSeul { display: block; }
+.tactileReglage { min-height: 44px; min-width: 40px; }
+
+/* (tour 53b, plan « classement-doigt ») au doigt, un appui sur un classement de pilotes ouvre la liste entière (interface.js : preparerClassementPlein) :
+   des lignes de 40 px qui défilent, un appui sur une ligne ouvre la fiche du rival */
+body.tactile #classementPlein { z-index: 24; justify-content: flex-start; padding: 6px 0; box-sizing: border-box; gap: 4px; background: #0b0f17; }
+body.tactile #classementPlein h1 { margin: 0; font-size: 20px; line-height: 1.1; }
+body.tactile #classementPleinListe { flex: 1; min-height: 0; width: min(92vw, 560px); margin: 0; padding: 0; list-style: none; overflow-y: auto; -webkit-overflow-scrolling: touch; touch-action: pan-y; font: 600 15px/1.2 var(--tv-police); text-align: left; }
+body.tactile #classementPleinListe li { display: flex; gap: 10px; align-items: center; min-height: 40px; padding: 0 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); white-space: nowrap; }
+body.tactile #classementPleinListe li.moi { background: var(--tv-ligne-moi, rgba(31, 111, 224, 0.75)); }
+body.tactile #classementPleinListe li .place { width: 24px; text-align: right; opacity: 0.8; }
+body.tactile #classementPleinListe li .nom { flex: 1; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 6px; }
+body.tactile #classementPleinListe li .points { font-weight: 700; }
+body.tactile #classementPleinListe li .pastille { display: inline-block; width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; }
+body.tactile #boutonClassementPleinRetour { min-height: 40px; min-width: 160px; }
+
+/* (tour 53b, audit anglais) 640×360 à la souris : les 20 lignes du classement en course et les 7 leçons d'« Apprendre » tiennent dans l'écran (au doigt, c'est déjà le cas) */
+@media (max-height: 420px) {
+  :root { --classement-ligne: 13px; }
+  #tutoMenu { gap: 2px; padding-top: 4px; padding-bottom: 0; justify-content: flex-start; }
+  #tutoMenu h1 { font-size: 14px; margin: 0; line-height: 1.1; }
+  #tutoMenu h1::after { display: none; }
+  #tutoMenuIntro { display: none; }
+  #tutoListe { gap: 1px; width: min(94vw, 720px); }
+  #tutoListe li { padding: 0 8px; min-height: 34px; column-gap: 8px; border-width: 0; }
+  #tutoListe .tutoNom { font-size: 13px; }
+  #tutoListe .tutoBut { font-size: 11px; line-height: 1.1; }
+  #tutoListe button, #tutoListe li.tutoSuivant button { padding: 3px 10px; font-size: 13px; }
+}

@@ -38,6 +38,8 @@
 </div>
 <!-- la tour de classement (en haut à droite) et le radar (en bas à gauche), pendant une course à plusieurs -->
 <div id="classement" class="cache"><div id="classementPlace"></div><ol id="classementListe"></ol></div>
+<div id="primeDecouverte" class="cache"><span id="primeTexte"></span><b id="primeGain"></b></div>   <!-- la découverte : la prime selon ta place, en direct (tour 52g) -->
+<div id="placeGrand" class="cache"></div>   <!-- … et « P3 ! » à chaque place gagnée -->
 <div id="cameraSuivie" class="cache"></div>   <!-- « Caméra : Nom » : le pilote suivi après l'arrivée (tour 45d) -->
 <canvas id="radar" class="cache" width="170" height="170"></canvas>
 <canvas id="minicarte" class="cache" width="180" height="130"></canvas>   <!-- la minicarte : le circuit entier et toutes les voitures (minicarte.js) -->
@@ -68,7 +70,7 @@
   <h1 id="titreNom"></h1>
   <div class="boutons"><button id="boutonJouer" tabindex="-1"></button></div>
   <div class="boutons"><button id="boutonAmis" class="petit" tabindex="-1"></button></div>
-  <div class="boutons"><button id="boutonTutorielTitre" class="petit" tabindex="-1"></button><button id="boutonAidesTitre" class="petit" tabindex="-1"></button><button id="boutonTouchesTitre" class="petit" tabindex="-1"></button></div>   <!-- « Apprendre à piloter » (tutoriel.js, Codeur 4) : proposé, jamais imposé -->
+  <div class="boutons" id="titreAide"><button id="boutonTutorielTitre" class="petit" tabindex="-1"></button><button id="boutonAidesTitre" class="petit" tabindex="-1"></button><button id="boutonTouchesTitre" class="petit" tabindex="-1"></button></div>   <!-- « Apprendre à piloter » (tutoriel.js, Codeur 4) : proposé, jamais imposé -->
 </section>
 <!-- « Entre amis » (titre et paddock) : le petit menu, puis l'écran avant la course à deux (deux-joueurs.js, tour 25b) -->
 <section id="amis" class="ecran cache">
@@ -236,6 +238,7 @@
       </div>
       <div id="paddockCourt" class="tvCarte"><h2 id="paddockCourtTitre"></h2><ol id="paddockClassementCourt"></ol><button id="boutonVoirTout" class="petit" tabindex="-1"></button></div>
       <div id="paddockNouvelles" class="tvCarte"><h2 id="paddockNouvellesTitre"></h2><p id="paddockNouvellesTexte"></p><button id="boutonVoirMessages" class="petit" tabindex="-1"></button></div>
+      <div id="paddockLongueur" class="tvCarte cache"><h2 id="paddockLongueurTitre"></h2><div id="paddockLongueurBoutons"></div></div>   <!-- 5, 12 ou 18 tours (tour 53h) -->
       <button id="boutonCourseSuivante" tabindex="-1"></button>
     </div>
     <!-- Mon équipe : l'argent, le sponsor, la réputation ; le garage (et l'aileron), les sponsors, le casque -->
@@ -252,6 +255,7 @@
     <!-- Saison : le calendrier, l'album, l'arbre ; les classements complets -->
     <div id="pageSaison" class="paddockPage cache" data-page="saison">
       <h2 class="pageTitre" id="pageSaisonTitre"></h2>
+      <p id="saisonResume"></p>
       <div class="pageBoutons"><button id="boutonCalendrier" tabindex="-1"></button><button id="boutonAlbum" tabindex="-1"></button><button id="boutonArbre" tabindex="-1"></button></div>
       <div id="championnatTableaux" class="tvCarte">
         <div><h2 id="championnatPilotesTitre"></h2><ol id="championnatPilotes"></ol></div>
@@ -269,6 +273,7 @@
       <h2 class="pageTitre" id="pageReglagesTitre"></h2>
       <div id="sonPanneau" class="tvCarte"><h2 id="sonTitre"></h2><div class="pageBoutons"><button id="boutonMuetPaddock" class="petit" tabindex="-1"></button><button id="boutonSonEffets" class="petit" tabindex="-1"></button><button id="boutonSonAmbiance" class="petit" tabindex="-1"></button><button id="boutonSonCommentateur" class="petit" tabindex="-1"></button><button id="boutonVoixSonsPaddock" class="petit" tabindex="-1"></button></div></div>
       <div class="tvCarte"><h2 id="reglagesJeuTitre"></h2><div class="pageBoutons"><button id="boutonAidesPaddock" class="petit" tabindex="-1"></button><button id="boutonRevoirAides" class="petit" tabindex="-1"></button><button id="boutonQualitePaddock" class="petit" tabindex="-1"></button><button id="boutonRetroPaddock" class="petit" tabindex="-1"></button><button id="boutonTouchesPaddock" class="petit" tabindex="-1"></button><button id="boutonMonPilote" class="petit" tabindex="-1"></button></div></div>
+      <div id="reglagesVolant" class="tvCarte tactileSeul"><h2 id="reglagesVolantTitre"></h2><div class="pageBoutons"></div></div>   <!-- le volant (tactile.js, tour 53f) : seulement sur un écran tactile -->
       <div id="reglagesCarriere" class="tvCarte"><h2 id="reglagesCarriereTitre"></h2><div class="pageBoutons"><button id="boutonNouvelleCarriere" class="petit" tabindex="-1"></button><button id="boutonNouvelleCarriereZero" class="petit danger" tabindex="-1"></button></div>
         <div id="carriereConfirmation" class="cache"><p id="carriereConfirmationTexte"></p><ul id="carriereConfirmationListe"></ul><div class="pageBoutons"><button id="boutonCarriereOui" class="petit danger" tabindex="-1"></button><button id="boutonCarriereNon" class="petit" tabindex="-1"></button></div></div>
       </div>
@@ -526,6 +531,8 @@
   <h1 id="podiumTitre"></h1>
   <div id="podiumMarches"></div>
   <p id="podiumDeux" class="cache"></p>   <!-- le mode 2 joueurs : la place des deux joueurs, même hors du podium -->
+  <p id="podiumGains" class="cache"></p>   <!-- la carrière (tour 53d) : les gains dès le podium -->
+  <button id="boutonPodiumSuite" class="cache" tabindex="-1"></button>   <!-- … et un gros « Continuer » droit à l'interview ; « Résultats » reste en petit -->
   <button id="boutonResultats" tabindex="-1"></button>
   <!-- la découverte (tour 52e) : « Tu finis P2 / 7 · +800 € », « Continuer » (création du pilote), « Encore une course ? » et « D’abord apprendre » ; sans clic, le podium passe tout seul -->
   <div id="podiumDecouverte" class="cache">

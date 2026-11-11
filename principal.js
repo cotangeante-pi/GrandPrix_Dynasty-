@@ -115,6 +115,8 @@ const JEU = {
   decouverte: false, monde: null, indices: null, aides: null, depuisClic: null, clicAuxFeux: null, clicAuPremierFeu: null,
   carteDuCache: false,  // la carte des IA est venue du cache de la sauvegarde (cache-carte.js) : pas de calcul en fond
   casqueSeul: false,    // l'écran du pilote ouvert depuis le paddock pour le casque seulement (« Mon casque »)
+  tempsUne: 0,          // s depuis l'affichage de la une du journal (UNE_AUTO_DUREE)
+  primeVue: null,       // la découverte : { place, grandJusqua } de la prime en direct (majPrimeDecouverte), ou null
   monPilote: false,     // … ou en entier pour changer le nom, le numéro et le pays (« Mon pilote », Réglages)
   // le mode 2 joueurs (deux-joueurs.js) : ses réglages { nbIA, nbTours }, ou null ; les commandes de chaque joueur (1, 2), lues
   // de ses touches à lui (TOUCHES_DEUX) : cibles comme JEU.cibles, remettre comme JEU.remettre
@@ -1045,6 +1047,7 @@ function montrerChampionnat(gagne) {
   // la météo prévue pour le prochain Grand Prix (meteo.js ; meteo3d.js l'écrit), rien sans prévision
   if (typeof METEO3D !== 'undefined') { const t = METEO3D.textePrevision(METEO3D.prevision(JEU.championnat, JEU.championnat.prochain)), el = document.getElementById('prevision'); el.textContent = t || ''; el.classList.toggle('cache', !t); }
   document.getElementById('boutonAlbum').disabled = !JEU.championnat.album.length;   // l'album des unes (Codeur 3) : rien avant la première une
+  majLongueur();   // (tour 53h) 5, 12 ou 18 tours
   JEU.ecran = 'championnat';
   INTERFACE.montrer('championnat');
   // un motif de casque gagné depuis la dernière fois : « Nouveau motif : Couronne ! », une seule fois (casque.js, sauvegarde.js)
@@ -1053,13 +1056,23 @@ function montrerChampionnat(gagne) {
   annoncerSkins();   // un skin gagné (une récompense) : « Nouveau skin : Ton drapeau ! », une fois (tour 48c)
 }
 
+// (tour 53h) la longueur choisie pour le prochain Grand Prix (gardée dans les options : la dernière), très courte au début
+function longueurChoisie() {
+  const cle = SAUVEGARDE.option('longueurGP', 'tresCourte');
+  return REGLAGES.LONGUEURS_COURSE[cle] > 0 ? cle : 'tresCourte';
+}
+function majLongueur() {
+  const ch = JEU.championnat;
+  INTERFACE.remplirLongueur(REGLAGES.CHAMPIONNAT_LONGUE_CHOIX && ch && !CHAMPIONNAT.estPremierGrandPrix(ch) ? { courante: longueurChoisie(), choisir: cle => { SAUVEGARDE.ecrireOption('longueurGP', cle); majLongueur(); } } : null);
+}
+
 // « Course suivante » : la course de ce Grand Prix ; s'il est déjà joué, la page se recharge sur le suivant
 function courseSuivante() {
   if (JEU.ecran !== 'championnat' || SDK.pubEnCours) return;
   // le Grand Prix d'avant est fini (après l'interview et la une) : la pause pub Poki vient ici, ENTRE deux Grands Prix (commercialBreak,
   // jamais pendant une course), puis la page se recharge sur le suivant (Codeur 3, étape 15)
   if (JEU.grandPrixFini) { SDK.pubEntreCourses(() => location.reload(), couperSonPub); return; }
-  lancerCourse(Number(PARAMETRES.get('tours')) || CHAMPIONNAT.toursDuGrandPrix(JEU.championnat));
+  lancerCourse(Number(PARAMETRES.get('tours')) || CHAMPIONNAT.toursDuGrandPrix(JEU.championnat, longueurChoisie()));
 }
 
 // après les résultats : les points, la une du journal et la sauvegarde (finirGrandPrix), puis la une à l'écran
@@ -1108,6 +1121,7 @@ function montrerUne(une) {
   PODIUM3D.cacher();
   INTERFACE.remplirUne(JOURNAL.rendre(une, JEU.championnat, { pilote: INTERFACE.nomPilote, ecurie: INTERFACE.nomEcurie }));
   JEU.ecran = 'une';
+  JEU.tempsUne = 0;   // (UNE_AUTO_DUREE : la une passe toute seule)
   INTERFACE.montrer('une');
 }
 
@@ -1764,7 +1778,9 @@ function montrerPodium() {
     const lignes = CHAMPIONNAT.lignesDepuisCourse(e), g = ARGENT.gains(JEU.championnat, lignes, JEU.assistance), moi = lignes.find(l => l.k === JEU.ia);
     if (g) { g.placeNumero = moi.place; g.sponsor = SPONSORS.primesPour(JEU.championnat, lignes); }   // les primes du sponsor que ce classement apporterait (sponsors.js)
     INTERFACE.remplirArgent(g);
-  } else INTERFACE.remplirArgent(null);
+    // (tour 53d) les gains dès le podium, et le gros « Continuer » droit à l'interview
+    INTERFACE.remplirPodiumCarriere(REGLAGES.APRES_PODIUM_DIRECT ? { gains: texte('apGains').replace('{n}', ARGENT.formater(g ? g.total : 0)).replace('{p}', CHAMPIONNAT.pointsPour(moi.place)) } : null);
+  } else { INTERFACE.remplirArgent(null); INTERFACE.remplirPodiumCarriere(null); }
   INTERFACE.remplirPodiumDecouverte(JEU.decouverte ? bilanDecouverte() : null);   // (la découverte : le bilan et « Continuer » à la place de « Résultats »)
   JEU.tempsPodium = 0;
   SON.signal('arrivee');
@@ -1854,6 +1870,13 @@ function nomTele(k) {
 function majCameraSuivie() {
   const a = JEU.attente, k = a && a.choisi !== undefined && a.choisi !== null ? a.choisi : null;
   INTERFACE.marquerSuivie(k === null ? null : numeroDe(k), k === null ? null : nomTele(k), !!a && JEU.ecran === 'course' && !a.passer && !JEU.deux);
+}
+
+// (tour 53d, APRES_PODIUM_DIRECT) le gros « Continuer » du podium : droit à l'interview (les résultats restent derrière « Résultats », en petit)
+function continuerPodium() {
+  if (JEU.ecran !== 'podium' || !JEU.championnat) return;
+  JEU.ecran = 'resultats';
+  apresGrandPrix();
 }
 
 function voirResultats() {
@@ -2139,7 +2162,7 @@ function majManettes(dt) {
 function majTactile(dt) {
   if (!TACTILE.estPresent()) return;
   const conduite = !JEU.deux && (JEU.ecran === 'course' || JEU.ecran === 'survol' || enTourQualif());
-  TACTILE.maj(conduite, dt || 0);
+  TACTILE.maj(conduite, dt || 0, conduite && JEU.ecran === 'course' && !!JEU.course && JEU.course.etat === 'compte');
   if (!conduite) return;
   const t = TACTILE.cibles();
   if (!t) return;
@@ -2245,14 +2268,33 @@ function enTourQualif() {
   return JEU.ecran === 'qualif' && !!JEU.qualif && JEU.qualif.etat === 'tour';
 }
 
+// la découverte (tour 52g, premiere-minute n° 4) : une récompense visible dès le départ. « Prime : 400 € » près de la tour suit la place en direct
+// (DECOUVERTE.prime) ; une place gagnée joue un « +200 € » vert et un gros « P3 ! » pendant PRIME_PLACE_GRAND_DUREE s. Rien pendant les feux (la grille
+// reste nue) ni hors de la course ; l'argent crédité à la fin (JEU.prime) ne change pas : ce n'est qu'un affichage
+function majPrimeDecouverte(ordre) {
+  const c = JEU.course, vive = JEU.decouverte && REGLAGES.PRIME_LIVE && ordre && JEU.ecran === 'course' && c && c.etat === 'course';
+  if (!vive) { if (JEU.primeVue) { INTERFACE.majPrime(null); INTERFACE.majPlaceGrand(null); JEU.primeVue = null; } return; }
+  const place = ordre.findIndex(x => x.k === JEU.suivie) + 1, v = JEU.primeVue, maintenant = performance.now();
+  if (place < 1) return;
+  if (!v) { JEU.primeVue = { place, grandJusqua: 0 }; INTERFACE.majPrime({ prime: DECOUVERTE.prime(place), gain: null }); return; }
+  if (place !== v.place) {
+    const gain = DECOUVERTE.prime(place) - DECOUVERTE.prime(v.place);
+    INTERFACE.majPrime({ prime: DECOUVERTE.prime(place), gain: place < v.place ? gain : 0 });
+    if (place < v.place) { INTERFACE.majPlaceGrand(texte('placeGrand').replace('{p}', place)); v.grandJusqua = maintenant + REGLAGES.PRIME_PLACE_GRAND_DUREE * 1000; }
+    v.place = place;
+  }
+  if (v.grandJusqua && maintenant >= v.grandJusqua) { INTERFACE.majPlaceGrand(null); v.grandJusqua = 0; }
+}
+
 // la tour de classement (course à plusieurs) et le radar, pendant la course et la pause ; la voiture suivie est « moi »
 function majClassementRadar() {
   const enCourse = JEU.course && (JEU.ecran === 'course' || JEU.ecran === 'pause');
   const radar = document.getElementById('radar');
   radar.classList.toggle('cache', !enCourse);
-  if (!enCourse) { INTERFACE.majClassement(null); document.getElementById('minicarte').classList.add('cache'); return; }
+  if (!enCourse) { INTERFACE.majClassement(null); document.getElementById('minicarte').classList.add('cache'); majPrimeDecouverte(null); return; }
   const P = JEU.plateau ? JEU.plateau.pilotes : [];
   const ordre = JEU.plateau ? classementCourse(JEU.plateau) : null;
+  majPrimeDecouverte(ordre);
   // ?championnat=1 : le coéquipier du joueur (la voiture k = le pilote k du championnat), et l'écart entre eux
   const kc = JEU.championnat && JEU.contre ? (CHAMPIONNAT.coequipierDe(JEU.championnat) || { id: null }).id : null;
   const duel = kc !== null && ordre ? ecartCoequipier(ordre, kc) : null;
@@ -2625,7 +2667,9 @@ function demarrerJeu() {
   } else JEU.modele = JEU.modeles[JEU.contre ? JEU.ia : 0];   // avant la course (écran de choix), sur la ligne
   SCENE3D.colorerRepereStand(JEU.contre && JEU.couleurs.length > JEU.ia ? JEU.couleurs[JEU.ia] : REGLAGES.COULEUR_JOUEUR);   // le repère de la zone d'arrêt aux couleurs de l'écurie du joueur (tour 46d2)
   INTERFACE.preparerPause(() => pause(false), () => lancerCourse(JEU.course.nbTours));
-  TACTILE.brancher({ pause: () => toucheVirtuelle('Escape'), remettre: () => { JEU.remettre = true; } });   // le téléphone (tactile.js, tour 51k)
+  TACTILE.brancher({ pause: () => toucheVirtuelle('Escape'), remettre: () => { JEU.remettre = true; },
+    lire: () => ({ sensibilite: SAUVEGARDE.option('volant_sensibilite', 1), inverse: SAUVEGARDE.option('volant_inverse', false), choix: SAUVEGARDE.option('volant_choix', 'volant') }),   // (tour 53f : les réglages du volant, sauvegardés)
+    ecrire: (nom, valeur) => SAUVEGARDE.ecrireOption(nom, valeur) });   // le téléphone (tactile.js, tour 51k)
   INTERFACE.preparerFin(() => lancerCourse(JEU.course.nbTours), allerAuChoix);
   if (JEU.championnat) {
     // après les résultats d'un Grand Prix, un seul bouton : « Continuer »
@@ -2635,6 +2679,7 @@ function demarrerJeu() {
     INTERFACE.preparerChampionnat(courseSuivante, montrerGarage);
     INTERFACE.preparerPaddock({ nouvelle: nouvelleCarriere, zero: carriereAZero });   // le menu et les pages du paddock (tour 48a)
     INTERFACE.preparerUne(passerUne);
+    { const b = document.getElementById('boutonPodiumSuite'); b.addEventListener('mousedown', e => e.preventDefault()); b.addEventListener('click', continuerPodium); }
     INTERFACE.preparerCeremonie(suiteCeremonie);
     INTERFACE.preparerAlbum(montrerAlbum, feuilleterAlbum, saisonAlbum, quitterAlbum);
     INTERFACE.preparerTemple(montrerTemple, quitterTemple);
@@ -2858,6 +2903,7 @@ function demarrerJeu() {
   BOUCLE.surAffichage((alpha, dt) => {
     JEU.alpha = alpha;
     JEU.dtImage = dt;
+    if (JEU.ecran === 'une' && REGLAGES.UNE_AUTO_DUREE > 0 && (JEU.tempsUne += dt) >= REGLAGES.UNE_AUTO_DUREE) passerUne();   // (tour 53d) la une du journal passe toute seule
     majManettes(dt);   // la manette (manette.js) : lue à chaque image
     majTactile(dt);   // le téléphone (tactile.js, tour 51k) : les boutons tenus et le volant, à chaque image
     if (JEU.ecran === 'resume') { majResume(dt); if (JEU.sdkPret) SDK.jeuArrete(); if (JEU.ecran === 'resume') { majRetro(dt); if (typeof EFFETS3D !== 'undefined') SENSATIONS.observer([], CIRCUIT); SCENE3D.dessiner(); return; } }   // le résumé vidéo : la 3D rejoue l'enregistrement (Poki : gameplayStop)
