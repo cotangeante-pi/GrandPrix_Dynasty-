@@ -1779,14 +1779,21 @@ def manette_ecran(pg, titre):
     manette_appui(pg, 0, 'start')
     t(f'{titre} : Start ouvre la pause', pg.evaluate('() => JEU.ecran') == 'pause', pg.evaluate('() => JEU.ecran'))
     # la croix choisit les boutons du menu pause, jusqu'à « Effets de conduite » ; A le change ; B reprend la course
+    # (tour 53i) un appui peut passer entre deux images sur une machine chargée (la manette se lit à chaque image) : on le répète jusqu'à ce que le halo change, au lieu de compter sur un délai fixe
+    attendre(pg, '() => JEU.ecran === "pause" && !document.getElementById("pause").classList.contains("cache")', None, 10000)
+    HALO = '() => { const b = document.querySelector("button.manette-choix"); return b ? b.id : null; }'
     vus = []
-    for _ in range(12):
-        ch = pg.evaluate('() => { const b = document.querySelector("button.manette-choix"); return b ? b.id : null; }')
-        vus.append(ch)
+    for _ in range(30):
+        ch = pg.evaluate(HALO)
+        if not vus or vus[-1] != ch: vus.append(ch)
         if ch == 'boutonEffetsPause': break
-        manette_appui(pg, 0, 'droite' if ch == 'boutonCommentairePause' else 'bas')
+        for _ in range(6):
+            manette_appui(pg, 0, 'droite' if ch == 'boutonCommentairePause' else 'bas')
+            if pg.evaluate(HALO) != ch: break
     avant = pg.evaluate('() => SENSATIONS.actif')
-    manette_appui(pg, 0, 'a')
+    for _ in range(6):   # (un appui perdu entre deux images : on le répète tant que le réglage n'a pas changé)
+        manette_appui(pg, 0, 'a')
+        if pg.evaluate('() => SENSATIONS.actif') != avant: break
     apres = pg.evaluate('() => [SENSATIONS.actif, document.querySelectorAll("button.manette-choix").length]')
     t(f'{titre} : dans le menu pause, la croix choisit un bouton (un halo, un seul à la fois) et A le valide (« Effets de conduite » changé)', 'boutonEffetsPause' in vus and apres[0] == (not avant) and apres[1] == 1, str([vus, avant, apres]))
     # (A remet « Effets de conduite », B reprend la course ; sous swiftshader chargé, une image peut manquer un appui court : on réappuie)
