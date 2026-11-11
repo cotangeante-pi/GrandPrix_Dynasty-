@@ -988,14 +988,16 @@ Object.assign(TEXTES.en, {
   aideTenir: 'Hold ↑',
   tac_aideTenir: 'Hold GAS', tac_aideGaz: 'Hold GAS', tac_aideDirection: 'Tilt the phone', tac_aideDirectionBoutons: '◀ ▶', tac_aideFrein: 'BRAKE',
   tac_departAide: 'Hold GAS in the green · lights out: release and press GAS again for a perfect start',
-  tac_aide_depart: 'Start: hold GAS in the green and you go. Perfect start: at lights out, release and press GAS again, fast!',
+  tac_aide_depart: 'Hold GAS in the green and you go. {d}',
+  tac_tourne: 'Tilt the phone to steer.', tac_tourneBoutons: 'Press ◀ ▶ to steer.',
   tac_aide_consigne: 'Team order: lift off (BRAKE) to let your teammate through, or keep your place.',
 });
 Object.assign(TEXTES.fr, {
   aideTenir: 'Tiens ↑',
   tac_aideTenir: 'Tiens GAZ', tac_aideGaz: 'Tiens GAZ', tac_aideDirection: 'Incline le téléphone', tac_aideDirectionBoutons: '◀ ▶', tac_aideFrein: 'FREIN',
   tac_departAide: 'Tiens GAZ dans le vert · feux éteints : lâche et réappuie GAZ pour un départ parfait',
-  tac_aide_depart: 'Départ : tiens GAZ dans le vert et tu pars. Départ parfait : feux éteints, lâche puis réappuie vite sur GAZ !',
+  tac_aide_depart: 'Tiens GAZ dans le vert et tu pars. {d}',
+  tac_tourne: 'Incline le téléphone pour tourner.', tac_tourneBoutons: 'Appuie sur ◀ ▶ pour tourner.',
   tac_aide_consigne: 'Consigne : lève le pied (FREIN) pour laisser passer ton coéquipier, ou garde ta place.',
 });
 
@@ -1010,6 +1012,7 @@ function texteDoigt(cle) {
   if (!doigt) return texte(cle);
   if (cle === 'aideDirection' && TACTILE.etat && TACTILE.etat.mode === 'boutons') return texte('tac_aideDirectionBoutons');
   const t = TEXTES[LANGUE]['tac_' + cle] !== undefined ? TEXTES[LANGUE]['tac_' + cle] : TEXTES.en['tac_' + cle];
+  if (t !== undefined && t.includes('{d}')) return t.replace('{d}', texte(TACTILE.etat && TACTILE.etat.mode === 'boutons' ? 'tac_tourneBoutons' : 'tac_tourne'));   // (tour 53d : la bulle du premier départ dit aussi comment tourner)
   return t !== undefined ? t : texte(cle);
 }
 
@@ -1375,11 +1378,11 @@ Object.assign(TEXTES.fr, {
 
 // --- tour 52e, Codeur 3 : le podium de la découverte et les pilotes prêts (premiere-minute n° 5, 6 et 11) ---
 Object.assign(TEXTES.en, {
-  pdBilan: 'You finish P{p} / {n}', pdContinuer: 'Continue', pdEncore: 'One more race?',
+  apGains: 'Prize: {n} · +{p} pts', interviewPasser: 'Skip', pdBilan: 'You finish P{p} / {n}', pdContinuer: 'Continue', pdEncore: 'One more race?',
   pilotePretTitre: 'Pick your driver', pilotePerso: 'Customize', monPilote: 'My driver', monPiloteValider: 'Save',
 });
 Object.assign(TEXTES.fr, {
-  pdBilan: 'Tu finis P{p} / {n}', pdContinuer: 'Continuer', pdEncore: 'Encore une course ?',
+  apGains: 'Gains : {n} · +{p} pts', interviewPasser: 'Passer', pdBilan: 'Tu finis P{p} / {n}', pdContinuer: 'Continuer', pdEncore: 'Encore une course ?',
   pilotePretTitre: 'Choisis ton pilote', pilotePerso: 'Personnaliser', monPilote: 'Mon pilote', monPiloteValider: 'Enregistrer',
 });
 

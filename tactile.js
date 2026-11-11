@@ -61,7 +61,7 @@ const TACTILE = (function () {
 
   const E = {};   // les éléments
   const tenus = { gaz: new Set(), frein: new Set(), gauche: new Set(), droite: new Set() };   // les doigts posés sur chaque bouton
-  const V = { pauseDebout: false, mode: 'aucun', neutre: null, brut: null, lisse: null, attente: 0, permission: null, choix: 'volant', conduite: false, ecoute: false };
+  const V = { pauseDebout: false, mode: 'aucun', neutre: null, brut: null, lisse: null, attente: 0, grille: false, permission: null, choix: 'volant', conduite: false, ecoute: false };
   // mode : 'aucun' (pas branché), 'attente' (on écoute, rien reçu), 'volant' (le capteur parle), 'boutons' (pas de capteur, ou refusé)
   let rappels = {};
 
@@ -154,9 +154,11 @@ const TACTILE = (function () {
     if (!E.gaz) return;
     const t = $('tactile'), conduite = V.conduite;
     if (t) t.classList.toggle('cache', !conduite);
+    document.body.classList.toggle('tactileBoutons', conduite && !volantActif());   // (tour 53d : style.css, le radar et l'aide ◀ ▶ s'écartent des vrais boutons)
     for (const n of ['gauche', 'droite']) if (E[n]) E[n].classList.toggle('cache', volantActif());
     const act = $('tactileActiver');
-    if (act) act.classList.toggle('cache', conduite || !permissionADemander() || V.permission !== null);
+    // (tour 53e) iPhone : « 🎮 Activer le volant » sur la grille, pendant les feux (R.TACTILE_IPHONE_GRILLE) ; faux : sur l'écran titre, comme avant
+    if (act) act.classList.toggle('cache', !permissionADemander() || V.permission !== null || (R.TACTILE_IPHONE_GRILLE ? !V.grille : conduite));
     const po = $('tactilePortrait');
     if (po) po.classList.toggle('cache', !portrait(window.innerWidth, window.innerHeight));
     const bv = $('boutonVolantPause'), br = $('boutonRecentrerPause'), ligne = $('pauseTactile');
@@ -166,8 +168,9 @@ const TACTILE = (function () {
   }
 
   // à chaque image : conduite = la voiture est au joueur (course, survol, tour de qualification) ; dt en s
-  function maj(conduite, dt) {
+  function maj(conduite, dt, grille) {
     if (!E.gaz) return;
+    if (!!grille !== V.grille) { V.grille = !!grille; rafraichir(); }   // (tour 53e : la grille avec les feux allumés)
     if (conduite && !V.conduite) { if (V.brut !== null) { V.neutre = V.brut; V.lisse = V.brut; } toutLacher(); }   // le neutre pris au départ
     if (conduite !== V.conduite) { V.conduite = conduite; rafraichir(); }
     // téléphone debout pendant la conduite : la course se met en pause (une fois) ; couché de nouveau, elle reprend seulement par « Reprendre »

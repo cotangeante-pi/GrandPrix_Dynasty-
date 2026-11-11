@@ -379,6 +379,13 @@ const INTERFACE = (function () {
 
   // le podium de la découverte (tour 52e ; avant : l'écran « Bravo ! ») : d = { place, nb, prime, encore (le bouton « Encore une course ? ») } ou null
   // (le podium ordinaire : « Résultats »). « Tu finis P2 / 7 · +800 € » (la prime seulement si elle est > 0), « Continuer », « Encore une course ? »
+  // la carrière (tour 53d, APRES_PODIUM_DIRECT) : d = { gains (le texte) } ou null : les gains sous le podium, le gros « Continuer », « Résultats » en petit
+  function remplirPodiumCarriere(d) {
+    $('podiumGains').classList.toggle('cache', !d); $('boutonPodiumSuite').classList.toggle('cache', !d);
+    $('boutonResultats').classList.toggle('petit', !!d);
+    if (!d) return;
+    $('podiumGains').textContent = d.gains; $('boutonPodiumSuite').textContent = texte('continuer');
+  }
   function remplirPodiumDecouverte(d) {
     $('podiumDecouverte').classList.toggle('cache', !d);
     $('boutonResultats').classList.toggle('cache', !!d);
@@ -1204,7 +1211,8 @@ const INTERFACE = (function () {
       tx.className = 'reponse'; tx.textContent = INTERVIEW.phrase(r.cle, 0, q.params, ch, noms);
       b.append(ic, tx); li.appendChild(b); ul.appendChild(li);
     }
-    $('boutonPasCommentaire').textContent = texte('interviewPasCommentaire');
+    $('boutonPasCommentaire').textContent = texte(REGLAGES.INTERVIEW_PASSER ? 'interviewPasser' : 'interviewPasCommentaire');
+    $('boutonPasCommentaire').classList.toggle('petit', !REGLAGES.INTERVIEW_PASSER);   // (tour 53d : « Passer » en gros, à la même place que les autres « Continuer »)
     $('boutonInterviewSuite').textContent = texte('continuer');
     $('interviewEffet').textContent = '';
     $('interviewChoix').classList.remove('cache');
@@ -1974,7 +1982,7 @@ const INTERFACE = (function () {
     remplirDuel, avec, remplirUne, preparerUne, remplirArgent, remplirSolde, remplirGarage, preparerGarage,
     remplirSaison, remplirDuelSaison, remplirContrats, remplirRetraite, preparerSaison, retraiteEnAttente, remplirCeremonie, preparerCeremonie, remplirAlbum, preparerAlbum, remplirBilan, remplirTemple, preparerTemple, preparerReleve, remplirHeritier, lireHeritier, montrerErreurHeritier, remplirAileron, majAileron, preparerAileron, preparerPneusGarage, remplirArbre, preparerArbre, remplirCalendrier, preparerCalendrier,
     remplirSponsors, remplirRappelSponsor, preparerSponsors, remplirFiche, preparerFiche, remplirInterview, montrerEffetInterview, preparerInterview, remplirReputation,
-    majEcartFantome, preparerFantome, majBoutonsFantome, majDepart, majDeux, preparerTitre, remplirPodiumDecouverte, preparerPodiumDecouverte, majPrime, majPlaceGrand, remplirPiloteRapide, appliquerPilote, majAides, remplirPilote, lirePilote, montrerErreursPilote, preparerPilote, nomCircuit, remplirCasque, lireCasque, modePilote, preparerCasque };
+    majEcartFantome, preparerFantome, majBoutonsFantome, majDepart, majDeux, preparerTitre, remplirPodiumDecouverte, preparerPodiumDecouverte, majPrime, majPlaceGrand, remplirPodiumCarriere, remplirPiloteRapide, appliquerPilote, majAides, remplirPilote, lirePilote, montrerErreursPilote, preparerPilote, nomCircuit, remplirCasque, lireCasque, modePilote, preparerCasque };
 })();
 
 // --- les aides au premier usage (aides.js, étape 11b, Codeur 4) : la bulle, « Revoir les aides » au paddock et dans le menu pause.
