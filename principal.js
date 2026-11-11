@@ -1047,6 +1047,7 @@ function montrerChampionnat(gagne) {
   // la météo prévue pour le prochain Grand Prix (meteo.js ; meteo3d.js l'écrit), rien sans prévision
   if (typeof METEO3D !== 'undefined') { const t = METEO3D.textePrevision(METEO3D.prevision(JEU.championnat, JEU.championnat.prochain)), el = document.getElementById('prevision'); el.textContent = t || ''; el.classList.toggle('cache', !t); }
   document.getElementById('boutonAlbum').disabled = !JEU.championnat.album.length;   // l'album des unes (Codeur 3) : rien avant la première une
+  majLongueur();   // (tour 53h) 5, 12 ou 18 tours
   JEU.ecran = 'championnat';
   INTERFACE.montrer('championnat');
   // un motif de casque gagné depuis la dernière fois : « Nouveau motif : Couronne ! », une seule fois (casque.js, sauvegarde.js)
@@ -1055,13 +1056,23 @@ function montrerChampionnat(gagne) {
   annoncerSkins();   // un skin gagné (une récompense) : « Nouveau skin : Ton drapeau ! », une fois (tour 48c)
 }
 
+// (tour 53h) la longueur choisie pour le prochain Grand Prix (gardée dans les options : la dernière), très courte au début
+function longueurChoisie() {
+  const cle = SAUVEGARDE.option('longueurGP', 'tresCourte');
+  return REGLAGES.LONGUEURS_COURSE[cle] > 0 ? cle : 'tresCourte';
+}
+function majLongueur() {
+  const ch = JEU.championnat;
+  INTERFACE.remplirLongueur(REGLAGES.CHAMPIONNAT_LONGUE_CHOIX && ch && !CHAMPIONNAT.estPremierGrandPrix(ch) ? { courante: longueurChoisie(), choisir: cle => { SAUVEGARDE.ecrireOption('longueurGP', cle); majLongueur(); } } : null);
+}
+
 // « Course suivante » : la course de ce Grand Prix ; s'il est déjà joué, la page se recharge sur le suivant
 function courseSuivante() {
   if (JEU.ecran !== 'championnat' || SDK.pubEnCours) return;
   // le Grand Prix d'avant est fini (après l'interview et la une) : la pause pub Poki vient ici, ENTRE deux Grands Prix (commercialBreak,
   // jamais pendant une course), puis la page se recharge sur le suivant (Codeur 3, étape 15)
   if (JEU.grandPrixFini) { SDK.pubEntreCourses(() => location.reload(), couperSonPub); return; }
-  lancerCourse(Number(PARAMETRES.get('tours')) || CHAMPIONNAT.toursDuGrandPrix(JEU.championnat));
+  lancerCourse(Number(PARAMETRES.get('tours')) || CHAMPIONNAT.toursDuGrandPrix(JEU.championnat, longueurChoisie()));
 }
 
 // après les résultats : les points, la une du journal et la sauvegarde (finirGrandPrix), puis la une à l'écran

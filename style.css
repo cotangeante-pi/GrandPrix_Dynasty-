@@ -1485,7 +1485,7 @@ body.deux:not(.cote) #deuxRappel2 { left: 50%; }
 .paddockPage button.danger, #carriereConfirmation.danger #boutonCarriereOui { background: var(--tv-bouton-principal); }
 
 /* la page Course : le prochain Grand Prix en grand (la carte à droite), toi, le classement réduit, les messages, « Course suivante » */
-#pageCourse { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); grid-template-areas: "prochain prochain" "moi moi" "court nouvelles" "court bouton"; gap: 12px; }
+#pageCourse { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); grid-template-areas: "prochain prochain" "moi moi" "court nouvelles" "court longueur" "court bouton"; gap: 12px; }
 #paddockProchain { grid-area: prochain; display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 16px; row-gap: 3px; align-items: center; align-content: center; }
 #paddockProchain > * { grid-column: 1; }
 #paddockProchain h1 { font-size: 24px; line-height: 1.15; text-align: left; }
@@ -1524,7 +1524,7 @@ body.deux:not(.cote) #deuxRappel2 { left: 50%; }
 #pageCourse #boutonCourseSuivante.cache { display: none; }
 
 /* Course (tour 52h) : le prochain Grand Prix en grand, puis « Course suivante » en pleine largeur juste dessous (l'action principale), le reste en dessous et plus discret */
-#pageCourse { grid-template-areas: "prochain prochain" "bouton bouton" "court moi" "court nouvelles"; }
+#pageCourse { grid-template-areas: "prochain prochain" "longueur longueur" "bouton bouton" "court moi" "court nouvelles"; }
 #pageCourse #boutonCourseSuivante { justify-self: stretch; align-self: stretch; padding: 14px 20px; font-size: 26px; text-align: center; }
 #paddockProchain h1 { font-size: 32px; }
 #paddockProchain h1::after { width: 56px; height: 4px; }
@@ -2011,3 +2011,12 @@ body.tactile #boutique .skin button, body.tactile #boutique button.onglet { disp
 #boutonPodiumSuite:hover { box-shadow: var(--tv-halo, 0 0 0 3px rgba(255, 255, 255, 0.5)); }
 #boutonResultats.petit { padding: 6px 14px; font-size: 13px; opacity: 0.9; }
 @media (max-height: 420px) { #podiumGains { font-size: 15px; padding: 3px 12px; } #boutonPodiumSuite { padding: 8px 28px; font-size: 18px; } }
+
+/* le choix de la longueur du Grand Prix (tour 53h) : trois gros boutons sur la page Course */
+#paddockLongueur { grid-area: longueur; display: flex; flex-direction: column; gap: 8px; }
+#paddockLongueurBoutons { display: flex; gap: 10px; }
+#paddockLongueurBoutons .longueurChoix { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 8px; border: 2px solid transparent; border-radius: var(--tv-coin, 10px); background: var(--tv-bouton, #2a2f3a); color: var(--texte, #fff); font-family: var(--tv-police, inherit); cursor: pointer; }
+#paddockLongueurBoutons .longueurChoix b { font: 800 26px/1 var(--tv-police-titre, var(--police)); }
+#paddockLongueurBoutons .longueurChoix span { font-size: 13px; opacity: 0.85; }
+#paddockLongueurBoutons .longueurChoix.choisi { border-color: #fff; background: var(--tv-bouton-principal, #e3242b); }
+@media (max-height: 420px) { #paddockLongueurBoutons .longueurChoix { padding: 4px 6px; } #paddockLongueurBoutons .longueurChoix b { font-size: 18px; } #paddockLongueur h2 { font-size: 12px; margin: 0; } }

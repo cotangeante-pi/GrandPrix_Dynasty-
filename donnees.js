@@ -293,6 +293,7 @@ const REGLAGES = {
   ],
   FACTEUR_VOITURE_JOUEUR: 1,    // la qualité de la voiture du joueur : 1 pour l'instant (sa conduite, c'est le propriétaire qui la valide) ; plus tard celle de son écurie, dans ±3 %
   CHAMPIONNAT_TOURS: 5,         // ?championnat=1 : la longueur des Grands Prix, fixe pour l'instant (?tours=1 pour les tests)
+  CHAMPIONNAT_LONGUE_CHOIX: true, // (tour 53h, règle du propriétaire « trois longueurs à choisir avant chaque Grand Prix ») : en carrière, 5, 12 ou 18 tours au choix sur la page Course, dernier choix gardé, 5 par défaut ; faux : toujours CHAMPIONNAT_TOURS, comme avant
   CHAMPIONNAT_TOURS_PREMIER: 3, // (tour 52f, décision du propriétaire) le tout premier Grand Prix de la carrière : 3 tours ; les suivants : CHAMPIONNAT_TOURS (le mettre à la même valeur = le jeu d'avant)
   QUALIF_PASSER_PREMIER_MILIEU: true, // (tour 52f) au tout premier Grand Prix de la carrière seulement, « Passer » la qualification = milieu de grille (decouverte.js : tempsMilieu) ; false = dernier, comme avant
   PADDOCK_COURT_TETE: 3,        // le paddock (tour 48a) : le classement réduit de la page Course montre les 3 premiers,

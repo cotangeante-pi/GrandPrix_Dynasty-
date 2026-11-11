@@ -307,8 +307,10 @@ const CHAMPIONNAT = (function () {
   }
 
   // la longueur du prochain Grand Prix de ch
-  function toursDuGrandPrix(ch) {
-    return estPremierGrandPrix(ch) ? R.CHAMPIONNAT_TOURS_PREMIER : R.CHAMPIONNAT_TOURS;
+  // cle : la longueur choisie par le joueur (tresCourte, moyenne, longue ; tour 53h) ; le tout premier Grand Prix n'a pas de choix
+  function toursDuGrandPrix(ch, cle) {
+    if (estPremierGrandPrix(ch)) return R.CHAMPIONNAT_TOURS_PREMIER;
+    return R.CHAMPIONNAT_LONGUE_CHOIX && cle && R.LONGUEURS_COURSE[cle] > 0 ? R.LONGUEURS_COURSE[cle] : R.CHAMPIONNAT_TOURS;
   }
 
   return { estPremierGrandPrix, toursDuGrandPrix, calendrierSaison, calendrierNeuf, creer, pointsPour, enregistrerCourse, finirGrandPrix, classementPilotes, classementEcuries, lignesDepuisCourse, lignesDepuisSimulation, appliquerNiveaux, simulerGrandPrix,

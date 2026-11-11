@@ -146,6 +146,9 @@ PAGES = [
     ('index.html?championnat=1&test=aides-menus', 1280, 720, None),
     # le nouveau paddock (tour 48a) : le menu, les pages, les deux « Nouvelle carrière » ; captures paddock-<page>-<langue>-<largeur>.png
     ('index.html?championnat=1&gp=5&test=fond&lang=fr', 1280, 720, None),   # l'arrière-plan des menus (tour 49a-2) : la voiture au stand ; capture paddock-fond-1280.png
+    ('index.html?championnat=1&gp=3&test=longueurs', 1280, 720, None),   # (tour 53h) 5, 12 ou 18 tours avant chaque Grand Prix de carrière : le choix, sa sauvegarde, la course à 12 tours ; captures longueurs-*.png
+    ('index.html?championnat=1&gp=3&test=longueurs', 960, 600, None),
+    ('index.html?championnat=1&gp=3&test=longueurs', 640, 360, None),
     ('index.html?championnat=1&gp=5&test=paddock&lang=fr', 1280, 720, None),
     ('index.html?championnat=1&gp=5&test=paddock&lang=en', 1280, 720, None),
     ('index.html?championnat=1&gp=5&test=paddock&lang=fr', 960, 600, None),
@@ -1864,6 +1867,26 @@ def apres_course(pg, titre, l, h):
     t(f'{titre} : l’argent, les points et le Grand Prix suivant sont exactement ceux de l’ancien chemin (Résultats, Continuer, interview, une)', apres == ref, f'{apres} / {ref}')
     pg.evaluate('() => { REGLAGES.UNE_AUTO_DUREE = 0; }')
     t(f'{titre} : le paddock affiche l’argent', pg.evaluate('() => !document.getElementById("championnat").classList.contains("cache")'))
+
+def longueurs_ecran(pg, titre, l, h):
+    """(tour 53h) les trois longueurs sur la page Course : visibles et dans l'écran, sans cacher « Course suivante » ; le choix est gardé ; la course a ce nombre de tours."""
+    attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', None, 60000)
+    pg.evaluate('() => { if (typeof AIDES_ECRAN !== "undefined") { REGLAGES.AIDES_ACTIVES = false; AIDES_ECRAN.fermer(); } }')
+    pg.click('#menuCourse'); pg.wait_for_timeout(300)
+    d = pg.evaluate("""() => { const r = id => { const e = document.getElementById(id), b = e.getBoundingClientRect(); return { vu: e.offsetParent !== null, dedans: b.left >= -1 && b.top >= -1 && b.right <= innerWidth + 1 && b.bottom <= innerHeight + 1, b: [b.left, b.top, b.right, b.bottom] }; };
+      const c = r('boutonCourseSuivante'), x = [5, 12, 18].map(n => r('longueur' + n)), recouvre = x.some(a => a.b[0] < c.b[2] && c.b[0] < a.b[2] && a.b[1] < c.b[3] && c.b[1] < a.b[3]);
+      return { x, c, recouvre, choisi: [...document.querySelectorAll('.longueurChoix.choisi b')].map(e => e.textContent), defile: [document.documentElement.scrollHeight, innerHeight] }; }""")
+    t(f'{titre} : avant le Grand Prix 3, trois gros boutons 5 / 12 / 18 tours, « très courte » choisie d’office, tout dans l’écran, sans recouvrir « Course suivante »',
+      all(a['vu'] and a['dedans'] for a in d['x']) and d['c']['vu'] and d['c']['dedans'] and not d['recouvre'] and d['choisi'] == ['5'] and d['defile'][0] <= d['defile'][1] + 2, str(d))
+    pg.screenshot(path=os.path.join(CAPTURES, f'longueurs-{l}.png'))
+    pg.click('#longueur12'); pg.wait_for_timeout(200)
+    t(f'{titre} : un clic sur 12 le choisit et le garde dans la sauvegarde', pg.evaluate('() => SAUVEGARDE.option("longueurGP", null) === "moyenne" && document.querySelector(".longueurChoix.choisi b").textContent === "12"'))
+    if l != 1280: return
+    pg.click('#boutonCourseSuivante')
+    passer_qualif(pg, titre)
+    attendre(pg, '() => JEU.plateau && JEU.plateau.carte !== null && JEU.course.etat === "compte"', None, 180000)
+    c = pg.evaluate('() => ({ tours: JEU.course.nbTours, plateau: JEU.plateau.nbTours, arret: arretObligatoire(JEU.course.nbTours), pas5: arretObligatoire(5), penalite: penaliteSansArret({ arrets: 0 }, JEU.course.nbTours), penalite18: penaliteSansArret({ arrets: 0 }, 18) })')
+    t(f'{titre} : la course dure 12 tours, avec l’arrêt obligatoire (+{c["penalite"]} s sans arrêt, comme à 18 tours : +{c["penalite18"]} s), que la course de 5 tours n’a pas', c['tours'] == 12 and c['plateau'] == 12 and c['arret'] and not c['pas5'] and c['penalite'] > 0 and c['penalite18'] == c['penalite'], str(c))
 
 def tactile_ecran(pg, titre, l, h, page):
     if 'tactile-titre' in page: return titre_simple(pg, titre, l, h)
@@ -4246,6 +4269,8 @@ with sync_playwright() as p:
                 tuto_lecon(pg, titre, l, h, page)
             elif 'test=audit' in page:
                 audit_autres(pg, titre, page, l, h)
+            elif 'test=longueurs' in page:
+                longueurs_ecran(pg, titre, l, h)
             elif 'test=apres-course' in page:
                 apres_course(pg, titre, l, h)
             elif 'test=titre-simple' in page:
