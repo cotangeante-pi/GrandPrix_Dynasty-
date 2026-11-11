@@ -2037,3 +2037,8 @@ body.tactile #boutique .skin button, body.tactile #boutique button.onglet { disp
 #boutonPodiumSuite:hover { box-shadow: var(--tv-halo, 0 0 0 3px rgba(255, 255, 255, 0.5)); }
 #boutonResultats.petit { padding: 6px 14px; font-size: 13px; opacity: 0.9; }
 @media (max-height: 420px) { #podiumGains { font-size: 15px; padding: 3px 12px; } #boutonPodiumSuite { padding: 8px 28px; font-size: 18px; } }
+
+/* (tour 53f) les réglages du volant : seulement sur un écran tactile (body.tactile, posée par tactile.js), de gros boutons (≥ 40 px) */
+.tactileSeul { display: none; }
+body.tactile .tactileSeul { display: block; }
+.tactileReglage { min-height: 44px; min-width: 40px; }
