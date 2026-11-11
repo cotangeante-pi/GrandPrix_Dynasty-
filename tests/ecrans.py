@@ -64,6 +64,12 @@ PAGES = [
     # l'audit anglais, suite (tour 31) : la découverte et ses aides, Entre amis, l'écran partagé et ses réglages, la création du pilote ; le
     # tournoi ; la course à deux ; le résumé vidéo ; les stands ; la consigne d'équipe ; le volant (?lang=en, 960×600, mots témoins, rien hors de l'écran)
     ('index.html?robot=1&tours=1&lang=en&test=audit-decouverte', 960, 600, None),
+    ('index.html?robot=1&tours=1&lang=en&test=audit-decouverte', 640, 360, None),   # (tour 53b) l'audit de la découverte aux deux autres tailles
+    ('index.html?robot=1&tours=1&lang=en&test=audit-decouverte', 1280, 720, None),
+    # (tour 53b) l'audit anglais des sections du paddock (Course, Mon équipe, Boutique, Saison, Messages, Réglages), d'« Apprendre » et d'« Entre amis » aux 3 tailles
+    ('index.html?championnat=1&lang=en&test=audit-paddock', 640, 360, None),
+    ('index.html?championnat=1&lang=en&test=audit-paddock', 960, 600, None),
+    ('index.html?championnat=1&lang=en&test=audit-paddock', 1280, 720, None),
     ('index.html?lang=en&test=audit-tournoi', 960, 600, None),
     ('index.html?deux=1&ia=3&robot=1&circuit=test&lang=en&test=audit-deux', 960, 600, None),
     ('index.html?course=1&ia=5&joueur=1&robot=1&circuit=test&lang=en&test=audit-resume', 960, 600, None),
@@ -3105,6 +3111,13 @@ def audit_autres(pg, titre, page, l, h):
           attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat" && JEU.championnat', None, 60000)
           and pg.evaluate('() => { const j = PILOTE.joueur(JEU.championnat), s = PILOTE.joueur(SAUVEGARDE.championnat()); return !PILOTE.manque(JEU.championnat) && s.numero === j.numero && PILOTE.numeroLibre(JEU.championnat, j.numero) && REGLAGES.PAYS.includes(j.pays) && (PILOTE.domicile(j.pays) === null || PILOTE.domicile(j.pays) === j.coeur) && Object.keys(REGLAGES.CIRCUITS_PAYS).includes(j.coeur) && CASQUE.valide(j.casque) && SAUVEGARDE.decouverteFaite(); }'),
           str(pg.evaluate('() => [JEU.ecran, PILOTE.joueur(JEU.championnat)]')))
+    elif 'audit-paddock' in page:
+        attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', None, 60000)
+        for m in ['menuCourse', 'menuEquipe', 'menuBoutique', 'menuSaison', 'menuMessages'] + ([] if h < 500 else ['menuReglages']):   # (la page Réglages défile en 640×360 : c'est voulu)
+            verifier('paddock-' + m, f'() => document.getElementById("{m}").click()')
+        verifier('apprendre', '() => document.getElementById("boutonTutorielPaddock").click()')
+        pg.evaluate('() => document.getElementById("boutonTutoRetour").click()')
+        verifier('amis-paddock', '() => document.getElementById("boutonAmisPaddock").click()')
     elif 'audit-tournoi' in page:
         pg.click('#boutonAmis'); pg.click('#boutonAmisTournoi'); verifier('tournoi-inscription', None, '() => JEU.ecran === "tournoiInscription"')
         with pg.expect_navigation(): pg.click('#boutonTournoiPartir')

@@ -1983,9 +1983,8 @@ body.titreSimple.tactile #titreAide { display: none; }
 body.tactile :is(#paddockCourt, #paddockNouvelles) button, body.tactile #pageCourse #boutonCourseSuivante,
 body.tactile #pageSaison .pageBoutons button, body.tactile #amis .boutons button, body.tactile #tutoMenu button, body.tactile #tutoResultat button { min-height: 40px; }
 @media (max-height: 420px) {
-  body.tactile #tutoMenu { gap: 2px; padding-top: 14px; padding-bottom: 0; justify-content: flex-start; }
+  body.tactile #tutoMenu { gap: 2px; padding-top: 4px; padding-bottom: 0; justify-content: flex-start; }
   body.tactile #tutoMenu .boutons { margin: 0; }
-  body.tactile #tutoMenu h1 { position: absolute; top: 3px; left: 0; right: 0; }
   body.tactile #tutoMenu h1 { font-size: 13px; margin: 0; line-height: 1.1; }
   body.tactile #tutoMenu h1::after { display: none; }
   body.tactile #tutoMenuIntro { display: none; }
@@ -2009,3 +2008,17 @@ body.tactile #classementPleinListe li .nom { flex: 1; overflow: hidden; text-ove
 body.tactile #classementPleinListe li .points { font-weight: 700; }
 body.tactile #classementPleinListe li .pastille { display: inline-block; width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; }
 body.tactile #boutonClassementPleinRetour { min-height: 40px; min-width: 160px; }
+
+/* (tour 53b, audit anglais) 640×360 à la souris : les 20 lignes du classement en course et les 7 leçons d'« Apprendre » tiennent dans l'écran (au doigt, c'est déjà le cas) */
+@media (max-height: 420px) {
+  :root { --classement-ligne: 13px; }
+  #tutoMenu { gap: 2px; padding-top: 4px; padding-bottom: 0; justify-content: flex-start; }
+  #tutoMenu h1 { font-size: 14px; margin: 0; line-height: 1.1; }
+  #tutoMenu h1::after { display: none; }
+  #tutoMenuIntro { display: none; }
+  #tutoListe { gap: 1px; width: min(94vw, 720px); }
+  #tutoListe li { padding: 0 8px; min-height: 34px; column-gap: 8px; border-width: 0; }
+  #tutoListe .tutoNom { font-size: 13px; }
+  #tutoListe .tutoBut { font-size: 11px; line-height: 1.1; }
+  #tutoListe button, #tutoListe li.tutoSuivant button { padding: 3px 10px; font-size: 13px; }
+}
