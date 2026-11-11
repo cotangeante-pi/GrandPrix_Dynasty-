@@ -155,5 +155,6 @@
 "index.html?robot=1&tours=1&lang=en&test=audit-decouverte 640": 20,
 "index.html?robot=1&tours=1&lang=en&test=audit-decouverte 1280": 20,
 "index.html?championnat=1&tours=1&robot=1&test=apres-course 1280": 40,
-"index.html?championnat=1&tours=1&robot=1&test=apres-course 640": 40
+"index.html?championnat=1&tours=1&robot=1&test=apres-course 640": 40,
+"index.html?championnat=1&test=tactile-classement 640": 6
 }

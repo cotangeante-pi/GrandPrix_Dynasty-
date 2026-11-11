@@ -132,6 +132,7 @@ PAGES = [
     ('index.html?championnat=1&tours=1&robot=1&test=apres-course', 1280, 720, None),   # (tour 53d) après un Grand Prix de carrière : du podium au paddock en 2 clics (« Continuer », « Passer », la une passe seule), l'argent et les points comme avant ; capture apres-podium.png
     ('index.html?championnat=1&tours=1&robot=1&test=apres-course', 640, 360, None),   # … en 640×360 : tout tient
     ('index.html?test=tactile-titre', 640, 360, None),   # (tour 53c, premiere-minute n° 12) l'écran titre simple : au doigt, « ▶ Jouer », « Entre amis » et 🔊 seulement ; capture titre-640-tactile.png
+    ('index.html?championnat=1&test=tactile-classement', 640, 360, None),   # (tour 53b) au doigt, un appui sur un classement ouvre la liste entière (20 lignes d'au moins 40 px), un appui sur une ligne ouvre la fiche, Retour referme
     ('index.html?test=titre-simple', 1280, 720, None),   # … au clavier en 1280×720, le titre est inchangé (Apprendre / Aides / Touches) ; capture titre-1280.png
     ('index.html?test=tactile-iphone', 960, 600, None),   # … l'autorisation de l'iPhone (« 🎮 Activer le volant »), refusée → ◀ ▶ ; le message « Tourne ton téléphone » en portrait
     ('index.html?deux=1&ia=0&circuit=test&test=manette-deux', 1280, 720, None),   # … deux manettes, une par joueur   # les sensations de conduite (tour 37) : son au premier geste, fumée, étincelles, réglage ; capture sensations.png
@@ -1871,8 +1872,28 @@ def apres_course(pg, titre, l, h):
     pg.evaluate('() => { REGLAGES.UNE_AUTO_DUREE = 0; }')
     t(f'{titre} : le paddock affiche l’argent', pg.evaluate('() => !document.getElementById("championnat").classList.contains("cache")'))
 
+def tactile_classement(pg, titre, l, h):
+    attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', None, 60000); pg.wait_for_timeout(500)
+    def tape(sel, n=0):
+        c = pg.evaluate('([s, n]) => { const r = document.querySelectorAll(s)[n].getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; }', [sel, n])
+        pg.touchscreen.tap(c[0], c[1]); pg.wait_for_timeout(600)
+    etat = '() => { const b = document.getElementById("classementPlein"), l = [...b.querySelectorAll("li")]; return { ouvert: !b.classList.contains("cache"), n: l.length, mini: Math.min(...l.map(x => x.getBoundingClientRect().height)), ecran: JEU.ecran }; }'
+    tape('#paddockClassementCourt li.rival')
+    e = pg.evaluate(etat)
+    t(f'{titre} : au doigt, un appui sur le classement de la page Course ouvre la liste entière : 20 lignes d’au moins 40 px', e['ouvert'] and e['n'] == 20 and e['mini'] >= 40, str(e))
+    pg.screenshot(path=os.path.join(CAPTURES, 'classement-plein-640.png'))
+    tape('#boutonClassementPleinRetour')
+    t(f'{titre} : « Retour » referme la liste', not pg.evaluate(etat)['ouvert'], str(pg.evaluate(etat)))
+    pg.evaluate('() => document.getElementById("menuSaison").click()'); pg.wait_for_timeout(500)
+    tape('#championnatPilotes li.rival', 2)
+    t(f'{titre} : le classement de la page Saison ouvre la même liste', pg.evaluate(etat)['ouvert'], str(pg.evaluate(etat)))
+    tape('#classementPleinListe li.rival', 1)
+    e = pg.evaluate(etat)
+    t(f'{titre} : un appui sur une ligne ouvre la fiche du rival et ferme la liste', e['ecran'] == 'fiche' and not e['ouvert'], str(e))
+
 def tactile_ecran(pg, titre, l, h, page):
     if 'tactile-titre' in page: return titre_simple(pg, titre, l, h)
+    if 'tactile-classement' in page: return tactile_classement(pg, titre, l, h)
     if 'tactile-iphone' in page: return tactile_iphone(pg, titre, l, h)
     if 'tactile-decouverte' in page: return tactile_decouverte(pg, titre, l, h)
     pret = attendre(pg, '() => typeof TACTILE !== "undefined" && TACTILE.estPresent() && JEU.ecran === "course"', None, 30000)
@@ -4277,6 +4298,7 @@ with sync_playwright() as p:
                 audit_en(pg, titre, l)
             elif 'gp=12' in page:
                 fin_saison(pg, titre, l)
+            elif 'test=tactile-classement' in page: pass   # (sa page à lui : tactile_ecran, plus bas)
             elif 'championnat=1' in page and 'lang=en' in page:
                 championnat_en(pg, titre)
             elif 'test=consigne' in page:
