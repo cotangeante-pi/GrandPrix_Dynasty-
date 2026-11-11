@@ -1247,7 +1247,7 @@ function piloterIA(pilote, v, vues, dt) {
     const place = Math.max(0, g - R.LONGUEUR_VOITURE);
     // (IA_APPROCHE_DECEL : l'écart de vitesse qu'il peut annuler en freinant de IA_APPROCHE_DECEL m/s² sur la place qui reste : une attaque abandonnée à 20 m d'une
     // voiture 19 m/s plus lente rejoignait sa ligne à 9 m d'elle, et la touchait, 1 choc sur 8 courses ; sa ligne n'est pas encore devant lui, le réflexe ne le retient pas)
-    cible = Math.min(cible, w.vitesse + (g <= R.IA_APPROCHE_LONG ? place / R.IA_APPROCHE_TEMPS : Infinity), R.IA_APPROCHE_DECEL ? w.vitesse + Math.sqrt(2 * R.IA_APPROCHE_DECEL * place) : Infinity);
+    cible = Math.min(cible, w.vitesse + (g <= R.IA_APPROCHE_LONG ? place / R.IA_APPROCHE_TEMPS : Infinity), R.IA_APPROCHE_DECEL ? Math.max(0, w.vitesse - (w.freine || 0) * R.IA_APPROCHE_FREIN_TEMPS) + Math.sqrt(2 * R.IA_APPROCHE_DECEL * place) : Infinity);   // (IA_APPROCHE_FREIN_TEMPS : elle freine, il compte sa vitesse dans ce temps : un empilement derrière une voiture qui tombe de 56 à 7 m/s en 3 s)
   }
   // retenu : il voudrait aller nettement plus vite que la voiture devant ne le laisse
   // (plus agressif : il se sent retenu avec moins d'avance de vitesse)
