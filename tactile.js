@@ -154,6 +154,7 @@ const TACTILE = (function () {
     if (!E.gaz) return;
     const t = $('tactile'), conduite = V.conduite;
     if (t) t.classList.toggle('cache', !conduite);
+    document.body.classList.toggle('tactileBoutons', conduite && !volantActif());   // (tour 53d : style.css, le radar et l'aide ◀ ▶ s'écartent des vrais boutons)
     for (const n of ['gauche', 'droite']) if (E[n]) E[n].classList.toggle('cache', volantActif());
     const act = $('tactileActiver');
     if (act) act.classList.toggle('cache', conduite || !permissionADemander() || V.permission !== null);
