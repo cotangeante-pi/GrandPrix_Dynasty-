@@ -2054,6 +2054,7 @@ body.tactile #boutique .skin button, body.tactile #boutique button.onglet { disp
   body.tactile #pageCourse .tvCarte { padding: 4px 10px; }
   body.tactile :is(#paddockCourt, #paddockNouvelles) button { min-height: 34px; padding-top: 2px; padding-bottom: 2px; }
   body.tactile #pageCourse #boutonCourseSuivante { min-height: 36px; padding-top: 4px; padding-bottom: 4px; }
+}
 
 /* le choix de la longueur du Grand Prix (tour 53h) : trois gros boutons sur la page Course */
 #paddockLongueur { grid-area: longueur; display: flex; flex-direction: column; gap: 8px; }
