@@ -146,6 +146,7 @@
 "index.html?course=3&circuit=test&test=tactile 640": 75,
 "index.html?course=3&circuit=test&lang=en&test=tactile 960": 75,
 "index.html?test=tactile-decouverte 960": 300,
+"index.html?championnat=1&gp=5&test=tactile-reglages 960": 30,
 "index.html?test=tactile-iphone 960": 70,
 "index.html?test=tactile-titre 640": 3,
 "index.html?test=titre-simple 1280": 3

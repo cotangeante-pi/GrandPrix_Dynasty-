@@ -186,6 +186,7 @@ const REGLAGES = {
   VOLANT_ZONE_MORTE: 2,            // ° autour du neutre où l'on ne braque pas
   VOLANT_LISSAGE: 0.06,            // s : le temps que met l'angle lissé à rejoindre la mesure (0 : aucun lissage)
   VOLANT_ATTENTE: 2.5,             // s sans mesure d'orientation après l'activation : pas de capteur, les boutons ◀ ▶
+  VOLANT_SENSIBILITE: [1.4, 1, 0.68], // (tour 53f) les 3 crans « doux, normal, vif » du joueur (Réglages, pause) : VOLANT_PLEIN × ce nombre (normal = 1 : le jeu d'avant) ; le cran est sauvegardé
   VOLANT_INVERSE: false,           // vrai : le sens du volant retourné (si un téléphone le prend à l'envers)
 
   // les aides au pilotage du joueur (assistance.js, tour 41) : seulement ses cibles, avant la physique ; toutes en débutant

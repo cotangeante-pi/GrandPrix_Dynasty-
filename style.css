@@ -2004,3 +2004,8 @@ body.tactile #pageSaison .pageBoutons button, body.tactile #amis .boutons button
   body.tactile #tutoListe li.tutoSuivant button, body.tactile #tutoListe button { padding: 4px 10px; font-size: 13px; }
 }
 body.tactile #boutique .skin button, body.tactile #boutique button.onglet { display: inline-flex; align-items: center; justify-content: center; }
+
+/* (tour 53f) les réglages du volant : seulement sur un écran tactile (body.tactile, posée par tactile.js), de gros boutons (≥ 40 px) */
+.tactileSeul { display: none; }
+body.tactile .tactileSeul { display: block; }
+.tactileReglage { min-height: 44px; min-width: 40px; }

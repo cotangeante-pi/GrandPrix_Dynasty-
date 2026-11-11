@@ -1241,12 +1241,16 @@ Object.assign(TEXTES.en, {
   tac_activer: '🎮 Enable the steering wheel', tac_recentrer: 'Recentre the wheel',
   tac_mode_volant: 'Steering: tilt the phone', tac_mode_boutons: 'Steering: ◀ ▶ buttons',
   tac_portrait: 'Turn your phone sideways',
+  tac_titreVolant: 'Steering wheel', tac_sens: 'Wheel: {v}', tac_sens0: 'soft', tac_sens1: 'normal', tac_sens2: 'sharp',
+  tac_inverse_oui: 'Reversed: yes', tac_inverse_non: 'Reversed: no', tac_choix_volant: 'Steer: tilt', tac_choix_boutons: 'Steer: ◀ ▶',
 });
 Object.assign(TEXTES.fr, {
   tac_gaz: 'GAZ', tac_frein: 'FREIN', tac_pause: 'Pause', tac_remise: 'Retour en piste',
   tac_activer: '🎮 Activer le volant', tac_recentrer: 'Recentrer le volant',
   tac_mode_volant: 'Direction : incliner le téléphone', tac_mode_boutons: 'Direction : boutons ◀ ▶',
   tac_portrait: 'Tourne ton téléphone',
+  tac_titreVolant: 'Volant', tac_sens: 'Volant : {v}', tac_sens0: 'doux', tac_sens1: 'normal', tac_sens2: 'vif',
+  tac_inverse_oui: 'Inversé : oui', tac_inverse_non: 'Inversé : non', tac_choix_volant: 'Direction : volant', tac_choix_boutons: 'Direction : ◀ ▶',
 });
 
 // (tour 45c2, Codeur 3) le commentateur parle du championnat, en carrière : la place du joueur, le leader, ce que donnerait l'arrivée

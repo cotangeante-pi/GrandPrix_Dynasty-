@@ -8,6 +8,8 @@
 // Tout ce qui se calcule est pur (testé sans écran) : angle, braquage, lisser, fusionner, portrait ; la page est dans brancher / maj.
 const TACTILE = (function () {
   const R = REGLAGES;
+  // (tour 53f) les réglages du joueur (Réglages du paddock et pause, sauvegardés) : le cran de sensibilité (0 doux, 1 normal, 2 vif) et le sens retourné
+  const G = { cran: 1, inverse: false };
   const DEG = 180 / Math.PI;
 
   // --- le calcul pur
@@ -24,10 +26,10 @@ const TACTILE = (function () {
     if (a === null || neutre === null) return 0;
     let e = a - neutre;
     if (e > 180) e -= 360; else if (e < -180) e += 360;
-    const z = R.VOLANT_ZONE_MORTE, p = R.VOLANT_PLEIN, m = Math.abs(e);
+    const z = R.VOLANT_ZONE_MORTE, p = R.VOLANT_PLEIN * (R.VOLANT_SENSIBILITE && R.VOLANT_SENSIBILITE[G.cran] !== undefined ? R.VOLANT_SENSIBILITE[G.cran] : 1), m = Math.abs(e);
     if (!(m > z)) return 0;
     const d = Math.sign(e) * Math.min(1, (m - z) / (p - z));
-    return d * (sens || 1) * (R.VOLANT_INVERSE ? -1 : 1);
+    return d * (sens || 1) * (R.VOLANT_INVERSE !== G.inverse ? -1 : 1);
   }
   // le léger lissage, en temps (pas en images : un téléphone lent suit quand même) : l'angle rejoint la mesure en VOLANT_LISSAGE s
   function lisser(avant, a, dt) {
@@ -117,10 +119,40 @@ const TACTILE = (function () {
     } catch (err) { verrouiller(); }
   }
 
-  // f : { pause(), remettre(), } ; les textes et les boutons de la page
+  // (tour 53f) les réglages du volant : des gros boutons (≥ 40 px), dans la pause et dans les Réglages du paddock, sur écran tactile seulement ;
+  // les choix sont gardés par f.ecrire(nom, valeur) (la sauvegarde) et relus par f.lire() au démarrage
+  const reglageBoutons = [];
+  function sauver(nom, valeur) { if (rappels.ecrire) rappels.ecrire(nom, valeur); }
+  function textesReglages() {
+    for (const [b, cle] of reglageBoutons) {
+      if (cle === 'sens') b.textContent = texte('tac_sens').replace('{v}', texte('tac_sens' + G.cran));
+      else if (cle === 'inverse') b.textContent = texte(G.inverse ? 'tac_inverse_oui' : 'tac_inverse_non');
+      else if (cle === 'choix') b.textContent = texte(V.choix === 'volant' ? 'tac_choix_volant' : 'tac_choix_boutons');
+      else if (cle === 'recentrer') b.textContent = texte('tac_recentrer');
+    }
+    const ti = $('reglagesVolantTitre'); if (ti) ti.textContent = texte('tac_titreVolant');
+  }
+  const actions = {
+    sens: () => { G.cran = (G.cran + 1) % 3; sauver('volant_sensibilite', G.cran); },
+    inverse: () => { G.inverse = !G.inverse; sauver('volant_inverse', G.inverse); },
+    choix: () => { V.choix = V.choix === 'volant' ? 'boutons' : 'volant'; sauver('volant_choix', V.choix); },
+    recentrer: () => recentrer(),
+  };
+  function construireReglages(parent, cles) {
+    if (!parent) return;
+    for (const cle of cles) {
+      const b = document.createElement('button'); b.className = 'petit tactileReglage'; b.id = parent.id + '_' + cle; b.tabIndex = -1;
+      b.addEventListener('mousedown', e => e.preventDefault());
+      b.addEventListener('click', () => { actions[cle](); textesReglages(); rafraichir(); });
+      parent.appendChild(b); reglageBoutons.push([b, cle]);
+    }
+  }
+
+  // f : { pause(), remettre(), lire(), ecrire() } ; les textes et les boutons de la page
   function brancher(f) {
     rappels = f || {};
     if (!estPresent() || typeof document === 'undefined') return false;
+    if (rappels.lire) { const d = rappels.lire() || {}; if ([0, 1, 2].includes(d.sensibilite)) G.cran = d.sensibilite; G.inverse = d.inverse === true; if (d.choix === 'volant' || d.choix === 'boutons') V.choix = d.choix; }
     document.body.classList.add('tactile');   // (style.css : la vitesse et les pneus s'écartent des boutons, l'aide du clavier se cache)
     for (const [id, nom] of [['tactileGaz', 'gaz'], ['tactileFrein', 'frein'], ['tactileGauche', 'gauche'], ['tactileDroite', 'droite']]) { E[nom] = $(id); if (E[nom]) brancherBouton(E[nom], nom); }
     E.gaz.textContent = texte('tac_gaz'); E.frein.textContent = texte('tac_frein');
@@ -132,10 +164,12 @@ const TACTILE = (function () {
     const act = $('tactileActiver');
     if (act) { act.textContent = texte('tac_activer'); act.addEventListener('mousedown', e => e.preventDefault()); act.addEventListener('click', activer); }
     const po = $('tactilePortrait'); if (po) po.textContent = texte('tac_portrait');
-    for (const [id, g] of [['boutonVolantPause', () => { V.choix = V.choix === 'volant' ? 'boutons' : 'volant'; rafraichir(); }], ['boutonRecentrerPause', recentrer]]) {
+    for (const [id, g] of [['boutonVolantPause', () => { actions.choix(); rafraichir(); }], ['boutonRecentrerPause', recentrer]]) {
       const b = $(id); if (!b) continue;
       b.addEventListener('mousedown', e => e.preventDefault()); b.addEventListener('click', g);
     }
+    const pt = $('pauseTactile'), pg = document.querySelector('#reglagesVolant .pageBoutons');
+    construireReglages(pt, ['sens', 'inverse']); construireReglages(pg, ['sens', 'inverse', 'choix', 'recentrer']);
     if (R.TACTILE_PAYSAGE) for (const ev of ['pointerup', 'touchend', 'click']) document.addEventListener(ev, premierGeste, true);   // (le plein écran demande un vrai geste : au premier appui lâché)
     window.addEventListener('blur', toutLacher);
     document.addEventListener('visibilitychange', toutLacher);
@@ -165,6 +199,7 @@ const TACTILE = (function () {
     if (ligne) ligne.classList.toggle('cache', V.mode !== 'volant');   // (la rangée entière : sans volant, la pause garde sa hauteur d'avant)
     if (bv) { bv.classList.toggle('cache', V.mode !== 'volant'); bv.textContent = texte(V.choix === 'volant' ? 'tac_mode_volant' : 'tac_mode_boutons'); }
     if (br) { br.classList.toggle('cache', !volantActif()); br.textContent = texte('tac_recentrer'); }
+    textesReglages();
   }
 
   // à chaque image : conduite = la voiture est au joueur (course, survol, tour de qualification) ; dt en s
@@ -187,5 +222,5 @@ const TACTILE = (function () {
     return { gaz: tenus.gaz.size ? 1 : 0, frein: tenus.frein.size ? 1 : 0, direction };
   }
 
-  return { angle, braquage, lisser, sensEcran, fusionner, portrait, estPresent, brancher, maj, cibles, recentrer, activer, etat: V };
+  return { angle, braquage, lisser, sensEcran, fusionner, portrait, estPresent, brancher, maj, cibles, recentrer, activer, etat: V, reglages: G };
 })();

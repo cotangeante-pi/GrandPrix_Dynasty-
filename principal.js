@@ -2645,7 +2645,9 @@ function demarrerJeu() {
   } else JEU.modele = JEU.modeles[JEU.contre ? JEU.ia : 0];   // avant la course (écran de choix), sur la ligne
   SCENE3D.colorerRepereStand(JEU.contre && JEU.couleurs.length > JEU.ia ? JEU.couleurs[JEU.ia] : REGLAGES.COULEUR_JOUEUR);   // le repère de la zone d'arrêt aux couleurs de l'écurie du joueur (tour 46d2)
   INTERFACE.preparerPause(() => pause(false), () => lancerCourse(JEU.course.nbTours));
-  TACTILE.brancher({ pause: () => toucheVirtuelle('Escape'), remettre: () => { JEU.remettre = true; } });   // le téléphone (tactile.js, tour 51k)
+  TACTILE.brancher({ pause: () => toucheVirtuelle('Escape'), remettre: () => { JEU.remettre = true; },
+    lire: () => ({ sensibilite: SAUVEGARDE.option('volant_sensibilite', 1), inverse: SAUVEGARDE.option('volant_inverse', false), choix: SAUVEGARDE.option('volant_choix', 'volant') }),   // (tour 53f : les réglages du volant, sauvegardés)
+    ecrire: (nom, valeur) => SAUVEGARDE.ecrireOption(nom, valeur) });   // le téléphone (tactile.js, tour 51k)
   INTERFACE.preparerFin(() => lancerCourse(JEU.course.nbTours), allerAuChoix);
   if (JEU.championnat) {
     // après les résultats d'un Grand Prix, un seul bouton : « Continuer »
