@@ -1378,11 +1378,11 @@ Object.assign(TEXTES.fr, {
 
 // --- tour 52e, Codeur 3 : le podium de la découverte et les pilotes prêts (premiere-minute n° 5, 6 et 11) ---
 Object.assign(TEXTES.en, {
-  pdBilan: 'You finish P{p} / {n}', pdContinuer: 'Continue', pdEncore: 'One more race?',
+  apGains: 'Prize: {n} · +{p} pts', interviewPasser: 'Skip', pdBilan: 'You finish P{p} / {n}', pdContinuer: 'Continue', pdEncore: 'One more race?',
   pilotePretTitre: 'Pick your driver', pilotePerso: 'Customize', monPilote: 'My driver', monPiloteValider: 'Save',
 });
 Object.assign(TEXTES.fr, {
-  pdBilan: 'Tu finis P{p} / {n}', pdContinuer: 'Continuer', pdEncore: 'Encore une course ?',
+  apGains: 'Gains : {n} · +{p} pts', interviewPasser: 'Passer', pdBilan: 'Tu finis P{p} / {n}', pdContinuer: 'Continuer', pdEncore: 'Encore une course ?',
   pilotePretTitre: 'Choisis ton pilote', pilotePerso: 'Personnaliser', monPilote: 'Mon pilote', monPiloteValider: 'Enregistrer',
 });
 

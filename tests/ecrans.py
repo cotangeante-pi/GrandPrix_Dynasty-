@@ -123,6 +123,8 @@ PAGES = [
     ('index.html?course=3&circuit=test&test=tactile', 640, 360, None),   # le téléphone (tactile.js, tour 51k) : écran tactile émulé, GAZ / FREIN, ◀ ▶ sans capteur, le volant par de faux évènements d'orientation, un tour sans clavier ; capture tactile-640.png
     ('index.html?course=3&circuit=test&lang=en&test=tactile', 960, 600, None),   # … en anglais, 960×600 ; capture tactile-960.png
     ('index.html?test=tactile-decouverte', 960, 600, None),   # (tour 52b) de la découverte au podium sans clavier, aux doigts et au volant
+    ('index.html?championnat=1&tours=1&robot=1&test=apres-course', 1280, 720, None),   # (tour 53d) après un Grand Prix de carrière : du podium au paddock en 2 clics (« Continuer », « Passer », la une passe seule), l'argent et les points comme avant ; capture apres-podium.png
+    ('index.html?championnat=1&tours=1&robot=1&test=apres-course', 640, 360, None),   # … en 640×360 : tout tient
     ('index.html?test=tactile-titre', 640, 360, None),   # (tour 53c, premiere-minute n° 12) l'écran titre simple : au doigt, « ▶ Jouer », « Entre amis » et 🔊 seulement ; capture titre-640-tactile.png
     ('index.html?test=titre-simple', 1280, 720, None),   # … au clavier en 1280×720, le titre est inchangé (Apprendre / Aides / Touches) ; capture titre-1280.png
     ('index.html?test=tactile-iphone', 960, 600, None),   # … l'autorisation de l'iPhone (« 🎮 Activer le volant »), refusée → ◀ ▶ ; le message « Tourne ton téléphone » en portrait
@@ -1128,8 +1130,8 @@ def championnat_en(pg, titre):
     t(f'{titre} : les résultats en anglais (Pos, No, Time, Penalty, Gap, Grid ; « Continue »)', res['entete'] == 'Pos,No,Time,Penalty,Gap,Grid' and 'Continue' in res['texte'] and not re.search(MOTS_FR, res['texte']), str(res)[:300])
     pg.click('#boutonChangerResultats')
     attendre(pg, '() => JEU.ecran === "interview"', None, 10000)
-    t(f'{titre} : après les résultats, l’interview en anglais (« Post-race interview », « No comment »), pas un mot français', not re.search(MOTS_FR, pg.evaluate('() => document.getElementById("interview").innerText'))
-      and 'post-race interview' in pg.evaluate('() => document.getElementById("interview").innerText').lower() and 'no comment' in pg.evaluate('() => document.getElementById("interview").innerText').lower(), pg.evaluate('() => document.getElementById("interview").innerText')[:300])
+    t(f'{titre} : après les résultats, l’interview en anglais (« Post-race interview », « Skip »), pas un mot français', not re.search(MOTS_FR, pg.evaluate('() => document.getElementById("interview").innerText'))
+      and 'post-race interview' in pg.evaluate('() => document.getElementById("interview").innerText').lower() and 'skip' in pg.evaluate('() => document.getElementById("interview").innerText').lower(), pg.evaluate('() => document.getElementById("interview").innerText')[:300])
     interview_ecran(pg, titre, 'calme', gp='en anglais : ')
     t(f'{titre} : après les résultats, la une du journal en anglais, pas un mot français', attendre(pg, '() => JEU.ecran === "une"') and not re.search(MOTS_FR, pg.evaluate('() => document.getElementById("une").innerText')),
       pg.evaluate('() => document.getElementById("une").innerText')[:300])
@@ -1829,6 +1831,39 @@ def titre_simple(pg, titre, l, h):
         pg.screenshot(path=os.path.join(CAPTURES, 'titre-1280.png'))
     pg.evaluate('() => { REGLAGES.TITRE_SIMPLE = false; INTERFACE.preparerTitre(() => {}, () => {}, () => {}); }')
     t(f'{titre} : avec TITRE_SIMPLE faux, la rangée est là comme avant', pg.evaluate('() => document.getElementById("boutonTouchesTitre").offsetParent !== null'))
+
+def apres_course(pg, titre, l, h):
+    """(tour 53d) la boucle « encore une course » : du podium au paddock, 2 clics au plus, rien de changé dans l'argent ni les points."""
+    attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', None, 60000)
+    paddock_clic(pg, '#boutonCourseSuivante')
+    passer_qualif(pg, titre)
+    attendre(pg, '() => JEU.plateau.carte !== null && JEU.course.etat === "compte"', None, 180000)
+    for _ in range(400):
+        pg.evaluate('() => BOUCLE.simuler(5)')
+        if pg.evaluate('() => JEU.ecran') == 'podium': break
+        pg.wait_for_timeout(30)
+    pg.evaluate('''() => { window.__ref = (() => { const ch = JSON.parse(JSON.stringify(JEU.championnat)); CHAMPIONNAT.finirGrandPrix(ch, CHAMPIONNAT.lignesDepuisCourse(JEU.plateau), JEU.assistance); const j = ch.pilotes.find(p => p.humain);
+      return { solde: ARGENT.solde(ch), points: j.stats.points, prochain: ch.prochain }; })(); window.__t0 = performance.now(); }''')
+    p = pg.evaluate("""() => { const v = id => { const e = document.getElementById(id), r = e.getBoundingClientRect(); return { vu: e.offsetParent !== null && !e.classList.contains('cache'), dedans: r.left >= -1 && r.top >= -1 && r.right <= innerWidth + 1 && r.bottom <= innerHeight + 1, haut: r.top, bas: r.bottom, h: r.height }; };
+      return { ecran: JEU.ecran, gains: document.getElementById('podiumGains').textContent, suite: v('boutonPodiumSuite'), res: v('boutonResultats'), g: v('podiumGains'), suiteTexte: document.getElementById('boutonPodiumSuite').textContent }; }""")
+    t(f'{titre} : le podium de la carrière montre les gains (« {p["gains"]} ») et un gros « Continuer », « Résultats » reste en petit, tout dans l’écran',
+      p['ecran'] == 'podium' and '€' in p['gains'] and 'pts' in p['gains'] and p['suite']['vu'] and p['suite']['dedans'] and p['res']['vu'] and p['res']['dedans'] and p['g']['dedans'] and p['suite']['h'] > p['res']['h'], str(p))
+    pg.wait_for_timeout(400); pg.screenshot(path=os.path.join(CAPTURES, f'apres-podium-{l}.png'))
+    clics = 0
+    pg.click('#boutonPodiumSuite'); clics += 1
+    t(f'{titre} : clic 1, « Continuer » : droit à l’interview, avec « Passer » visible', attendre(pg, '() => JEU.ecran === "interview"', None, 5000) and pg.evaluate('() => { const b = document.getElementById("boutonPasCommentaire"); return b.offsetParent !== null && b.textContent === texte("interviewPasser") && !b.classList.contains("petit"); }'))
+    pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, f'apres-interview-{l}.png'))
+    pg.click('#boutonPasCommentaire'); clics += 1
+    t(f'{titre} : clic 2, « Passer » : la une du journal, le Grand Prix est enregistré', attendre(pg, '() => JEU.ecran === "une" && JEU.grandPrixFini', None, 5000))
+    debut = pg.evaluate('() => performance.now()')
+    arrive = attendre(pg, '() => JEU.ecran === "championnat"', None, 20000)
+    duree = (pg.evaluate('() => performance.now()') - debut) / 1000
+    t(f'{titre} : sans un 3e clic, la une passe toute seule au paddock en moins de UNE_AUTO_DUREE + 3 s ({duree:.1f} s) : {clics} clics du podium au paddock', arrive and clics <= 2 and duree <= pg.evaluate('() => REGLAGES.UNE_AUTO_DUREE') + 3, f'{clics} / {duree}')
+    apres = pg.evaluate('() => { const j = JEU.championnat.pilotes.find(p => p.humain); return { solde: ARGENT.solde(JEU.championnat), points: j.stats.points, prochain: JEU.championnat.prochain }; }')
+    ref = pg.evaluate('() => window.__ref')
+    t(f'{titre} : l’argent, les points et le Grand Prix suivant sont exactement ceux de l’ancien chemin (Résultats, Continuer, interview, une)', apres == ref, f'{apres} / {ref}')
+    pg.evaluate('() => { REGLAGES.UNE_AUTO_DUREE = 0; }')
+    t(f'{titre} : le paddock affiche l’argent', pg.evaluate('() => !document.getElementById("championnat").classList.contains("cache")'))
 
 def tactile_ecran(pg, titre, l, h, page):
     if 'tactile-titre' in page: return titre_simple(pg, titre, l, h)
@@ -2648,7 +2683,7 @@ def interview_ecran(pg, titre, ton, capture=None, gp=''):
     e = pg.evaluate(INTERVIEW_ETAT)
     t(f'{titre} : {gp}après les résultats, l’interview (fait « {e["fait"]} ») : le journaliste et le journal, la question rendue avec les noms, trois boutons avec l’icône du ton (😤 🤝 😏), « Pas de commentaire », le Grand Prix pas encore enregistré, tout dans l’écran',
       ok and e['visible'] and e['journaliste'].startswith(pg.evaluate('() => texte("interviewJournaliste")')) and e['question'] == e['attenduQuestion'] and len(e['question']) > 5 and '{' not in e['question']
-      and e['n'] == 3 and e['tons'] == ['provocant', 'calme', 'malin'] and e['icones'] == ['😤', '🤝', '😏'] and all(len(x) > 5 and '{' not in x for x in e['textes']) and e['pas'] == pg.evaluate('() => texte("interviewPasCommentaire")')
+      and e['n'] == 3 and e['tons'] == ['provocant', 'calme', 'malin'] and e['icones'] == ['😤', '🤝', '😏'] and all(len(x) > 5 and '{' not in x for x in e['textes']) and e['pas'] == pg.evaluate('() => texte(REGLAGES.INTERVIEW_PASSER ? "interviewPasser" : "interviewPasCommentaire")')
       and not e['fini'] and e['suiteCache'] and not e['choixCache'] and e['dedans'] and pas_de_defilement(e['defile']), str(e)[:700])
     if capture:
         pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, capture))
@@ -4211,6 +4246,8 @@ with sync_playwright() as p:
                 tuto_lecon(pg, titre, l, h, page)
             elif 'test=audit' in page:
                 audit_autres(pg, titre, page, l, h)
+            elif 'test=apres-course' in page:
+                apres_course(pg, titre, l, h)
             elif 'test=titre-simple' in page:
                 titre_simple(pg, titre, l, h)
             elif 'test=clavier-titre' in page:
