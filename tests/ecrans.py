@@ -64,6 +64,12 @@ PAGES = [
     # l'audit anglais, suite (tour 31) : la découverte et ses aides, Entre amis, l'écran partagé et ses réglages, la création du pilote ; le
     # tournoi ; la course à deux ; le résumé vidéo ; les stands ; la consigne d'équipe ; le volant (?lang=en, 960×600, mots témoins, rien hors de l'écran)
     ('index.html?robot=1&tours=1&lang=en&test=audit-decouverte', 960, 600, None),
+    ('index.html?robot=1&tours=1&lang=en&test=audit-decouverte', 640, 360, None),   # (tour 53b) l'audit de la découverte aux deux autres tailles
+    ('index.html?robot=1&tours=1&lang=en&test=audit-decouverte', 1280, 720, None),
+    # (tour 53b) l'audit anglais des sections du paddock (Course, Mon équipe, Boutique, Saison, Messages, Réglages), d'« Apprendre » et d'« Entre amis » aux 3 tailles
+    ('index.html?championnat=1&lang=en&test=audit-paddock', 640, 360, None),
+    ('index.html?championnat=1&lang=en&test=audit-paddock', 960, 600, None),
+    ('index.html?championnat=1&lang=en&test=audit-paddock', 1280, 720, None),
     ('index.html?lang=en&test=audit-tournoi', 960, 600, None),
     ('index.html?deux=1&ia=3&robot=1&circuit=test&lang=en&test=audit-deux', 960, 600, None),
     ('index.html?course=1&ia=5&joueur=1&robot=1&circuit=test&lang=en&test=audit-resume', 960, 600, None),
@@ -126,6 +132,7 @@ PAGES = [
     ('index.html?championnat=1&tours=1&robot=1&test=apres-course', 1280, 720, None),   # (tour 53d) après un Grand Prix de carrière : du podium au paddock en 2 clics (« Continuer », « Passer », la une passe seule), l'argent et les points comme avant ; capture apres-podium.png
     ('index.html?championnat=1&tours=1&robot=1&test=apres-course', 640, 360, None),   # … en 640×360 : tout tient
     ('index.html?test=tactile-titre', 640, 360, None),   # (tour 53c, premiere-minute n° 12) l'écran titre simple : au doigt, « ▶ Jouer », « Entre amis » et 🔊 seulement ; capture titre-640-tactile.png
+    ('index.html?championnat=1&test=tactile-classement', 640, 360, None),   # (tour 53b) au doigt, un appui sur un classement ouvre la liste entière (20 lignes d'au moins 40 px), un appui sur une ligne ouvre la fiche, Retour referme
     ('index.html?test=titre-simple', 1280, 720, None),   # … au clavier en 1280×720, le titre est inchangé (Apprendre / Aides / Touches) ; capture titre-1280.png
     ('index.html?championnat=1&test=tactile-reglages', 960, 600, None),   # (tour 53f) les réglages du volant : crans, inversé, choix, sauvegarde
     ('index.html?test=tactile-iphone', 960, 600, None),   # … l'autorisation de l'iPhone (« 🎮 Activer le volant »), refusée → ◀ ▶ ; le message « Tourne ton téléphone » en portrait
@@ -1866,8 +1873,28 @@ def apres_course(pg, titre, l, h):
     pg.evaluate('() => { REGLAGES.UNE_AUTO_DUREE = 0; }')
     t(f'{titre} : le paddock affiche l’argent', pg.evaluate('() => !document.getElementById("championnat").classList.contains("cache")'))
 
+def tactile_classement(pg, titre, l, h):
+    attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', None, 60000); pg.wait_for_timeout(500)
+    def tape(sel, n=0):
+        c = pg.evaluate('([s, n]) => { const r = document.querySelectorAll(s)[n].getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; }', [sel, n])
+        pg.touchscreen.tap(c[0], c[1]); pg.wait_for_timeout(600)
+    etat = '() => { const b = document.getElementById("classementPlein"), l = [...b.querySelectorAll("li")]; return { ouvert: !b.classList.contains("cache"), n: l.length, mini: Math.min(...l.map(x => x.getBoundingClientRect().height)), ecran: JEU.ecran }; }'
+    tape('#paddockClassementCourt li.rival')
+    e = pg.evaluate(etat)
+    t(f'{titre} : au doigt, un appui sur le classement de la page Course ouvre la liste entière : 20 lignes d’au moins 40 px', e['ouvert'] and e['n'] == 20 and e['mini'] >= 40, str(e))
+    pg.screenshot(path=os.path.join(CAPTURES, 'classement-plein-640.png'))
+    tape('#boutonClassementPleinRetour')
+    t(f'{titre} : « Retour » referme la liste', not pg.evaluate(etat)['ouvert'], str(pg.evaluate(etat)))
+    pg.evaluate('() => document.getElementById("menuSaison").click()'); pg.wait_for_timeout(500)
+    tape('#championnatPilotes li.rival', 2)
+    t(f'{titre} : le classement de la page Saison ouvre la même liste', pg.evaluate(etat)['ouvert'], str(pg.evaluate(etat)))
+    tape('#classementPleinListe li.rival', 1)
+    e = pg.evaluate(etat)
+    t(f'{titre} : un appui sur une ligne ouvre la fiche du rival et ferme la liste', e['ecran'] == 'fiche' and not e['ouvert'], str(e))
+
 def tactile_ecran(pg, titre, l, h, page):
     if 'tactile-titre' in page: return titre_simple(pg, titre, l, h)
+    if 'tactile-classement' in page: return tactile_classement(pg, titre, l, h)
     if 'tactile-iphone' in page: return tactile_iphone(pg, titre, l, h)
     if 'tactile-reglages' in page: return tactile_reglages(pg, titre, l, h)
     if 'tactile-decouverte' in page: return tactile_decouverte(pg, titre, l, h)
@@ -3199,6 +3226,13 @@ def audit_autres(pg, titre, page, l, h):
           attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat" && JEU.championnat', None, 60000)
           and pg.evaluate('() => { const j = PILOTE.joueur(JEU.championnat), s = PILOTE.joueur(SAUVEGARDE.championnat()); return !PILOTE.manque(JEU.championnat) && s.numero === j.numero && PILOTE.numeroLibre(JEU.championnat, j.numero) && REGLAGES.PAYS.includes(j.pays) && (PILOTE.domicile(j.pays) === null || PILOTE.domicile(j.pays) === j.coeur) && Object.keys(REGLAGES.CIRCUITS_PAYS).includes(j.coeur) && CASQUE.valide(j.casque) && SAUVEGARDE.decouverteFaite(); }'),
           str(pg.evaluate('() => [JEU.ecran, PILOTE.joueur(JEU.championnat)]')))
+    elif 'audit-paddock' in page:
+        attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', None, 60000)
+        for m in ['menuCourse', 'menuEquipe', 'menuBoutique', 'menuSaison', 'menuMessages'] + ([] if h < 500 else ['menuReglages']):   # (la page Réglages défile en 640×360 : c'est voulu)
+            verifier('paddock-' + m, f'() => document.getElementById("{m}").click()')
+        verifier('apprendre', '() => document.getElementById("boutonTutorielPaddock").click()')
+        pg.evaluate('() => document.getElementById("boutonTutoRetour").click()')
+        verifier('amis-paddock', '() => document.getElementById("boutonAmisPaddock").click()')
     elif 'audit-tournoi' in page:
         pg.click('#boutonAmis'); pg.click('#boutonAmisTournoi'); verifier('tournoi-inscription', None, '() => JEU.ecran === "tournoiInscription"')
         with pg.expect_navigation(): pg.click('#boutonTournoiPartir')
@@ -4297,6 +4331,7 @@ with sync_playwright() as p:
                 audit_en(pg, titre, l)
             elif 'gp=12' in page:
                 fin_saison(pg, titre, l)
+            elif 'test=tactile-classement' in page: pass   # (sa page à lui : tactile_ecran, plus bas)
             elif 'championnat=1' in page and 'lang=en' in page:
                 championnat_en(pg, titre)
             elif 'test=consigne' in page:

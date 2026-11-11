@@ -711,7 +711,35 @@ const INTERFACE = (function () {
     return [...rangs].sort((a, b) => a - b);
   }
 
+  // (tour 53b) au doigt (body.tactile) : un appui n'importe où sur un classement de pilotes (Course, Saison) ouvre la liste entière, en lignes de 40 px
+  // qui défile ; un appui sur une ligne ouvre la fiche du rival, comme avant. Au clavier et à la souris, rien ne change.
+  function preparerClassementPlein() {
+    const bloc = document.createElement('section');
+    bloc.id = 'classementPlein'; bloc.className = 'ecran cache';
+    const titre = document.createElement('h1'), liste = document.createElement('ol'), bas = document.createElement('div'), retour = document.createElement('button');
+    titre.id = 'classementPleinTitre'; liste.id = 'classementPleinListe'; bas.className = 'boutons'; retour.id = 'boutonClassementPleinRetour'; retour.tabIndex = -1;
+    bas.append(retour); bloc.append(titre, liste, bas); document.body.appendChild(bloc);
+    const fermer = () => bloc.classList.add('cache');
+    retour.addEventListener('mousedown', e => e.preventDefault());
+    retour.addEventListener('click', fermer);
+    const ouvrir = e => {
+      if (!document.body.classList.contains('tactile')) return;
+      e.stopPropagation(); e.preventDefault();
+      titre.textContent = texte('classementPilotes'); retour.textContent = texte('retour');
+      liste.textContent = '';
+      for (const li of $('championnatPilotes').children) {
+        const c = li.cloneNode(true);
+        c.classList.remove('rival');
+        if (li.dataset.k !== undefined && !li.classList.contains('moi')) { c.classList.add('rival'); c.addEventListener('click', () => { fermer(); if (ouvertureFiche) ouvertureFiche(Number(li.dataset.k)); }); }
+        liste.appendChild(c);
+      }
+      bloc.classList.remove('cache'); liste.scrollTop = 0;
+    };
+    for (const id of ['championnatPilotes', 'paddockClassementCourt']) $(id).addEventListener('click', ouvrir, true);
+  }
+
   function preparerChampionnat(suivante, garage) {
+    preparerClassementPlein();
     $('boutonCourseSuivante').addEventListener('mousedown', e => e.preventDefault());
     $('boutonCourseSuivante').addEventListener('click', suivante);
     $('boutonGarage').textContent = texte('garage');

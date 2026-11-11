@@ -23,7 +23,7 @@ const TEXTES = {
     pneu_slick: 'Grip', pneu_inter: 'Intermediates', pneu_pluie: 'Wets', pneu_drift: 'Drift',   // (tour 44, Codeur 1 : le pneu drift ; l'écran, Codeur 3)
     standPneus: 'tyres: {p} (← →)', garagePneus: 'Starting tyres', garagePneusEquipe: 'Team call',
     // team orders
-    consigneJoueur: 'Team order: let your team-mate no. {n} through (faster). Ignoring it lowers the team\'s trust.', consigneSuivie: 'Thank you! The team\'s trust goes up.', consigneIgnoree: 'Order ignored: the team\'s trust goes down.',
+    consigneJoueur: 'Team order: let your teammate no. {n} through (faster). Ignoring it lowers the team\'s trust.', consigneSuivie: 'Thank you! The team\'s trust goes up.', consigneIgnoree: 'Order ignored: the team\'s trust goes down.',
     attenteArrivee: 'Finished — waiting for the other drivers',
     grillePasser: 'The grid — press a key to skip',
     pneus: 'Tyres', pneusAdherence: 'grip −{p} %', commentateur: "Gaston Virage", assist_freinage_oui: 'Braking assist: on', assist_freinage_non: 'Braking assist: off', assist_antipatinage_oui: 'Traction control: on', assist_antipatinage_non: 'Traction control: off', assist_direction_oui: 'Steering assist: on', assist_direction_non: 'Steering assist: off', qualite_auto: 'Graphics: auto', qualite_haute: 'Graphics: high', qualite_basse: 'Graphics: low', qualite_moyenne: 'Graphics: medium', retro_oui: 'Mirror: on', retro_non: 'Mirror: off', qualite_autoSimple: 'Graphics: auto (simplest)', trajectoire_oui: 'Racing line: on', trajectoire_non: 'Racing line: off', trajectoire_freinages: 'Racing line: braking only', effets_oui: 'Driving effects: on', effets_non: 'Driving effects: off', commentaire_tout: 'Commentator: on', commentaire_joueur: 'Commentator: your moves only', commentaire_non: 'Commentator: off', com_arret: ["{qui} has stopped on track!", "Trouble for {qui}: stopped on the circuit!", "{qui} is stationary out there!"], com_podium: ["The podium: {qui}, {sur} and {trois}!", "{qui} wins, ahead of {sur} and {trois}.", "Top three: {qui}, {sur}, {trois}!"], lieu_monoco: 'at Monoco', lieu_silverstoun: 'at Silverstoun', lieu_monzo: 'at Monzo', lieu_spaa: 'at Spaa', lieu_suzuko: 'at Suzuko', lieu_interlagas: 'at Interlagas', lieu_montreol: 'at Montréol', lieu_melbourn: 'at Melbourn Park', lieu_barcelana: 'at Barcelana', lieu_bahrayn: 'at Bahrayn', lieu_singapura: 'at Singapura', lieu_yasmarino: 'at Yas Marino', lieu_test: 'at the test track', lieu_technique: 'at the technical track', com_depart: ["Lights out {lieu}, and away they go!", "And they’re off {lieu}!", "Lights out, the race is on!", "Green light {lieu}: go, go, go!"], com_depassementTete: ["{qui} takes the lead!", "{qui} gets past {sur}: new leader!", "Change at the front: {qui} goes ahead!", "{qui} snatches the lead from {sur}!"], com_depassementJoueur: ["{qui} gets past {sur}, P{place}!", "A move by {qui} on {sur}, now P{place}.", "{qui} and {sur} swap: {qui} P{place}!", "{qui} slips by {sur}, up to P{place}."], com_depassement: ["{qui} dives down the inside of {sur}!", "{qui} passes {sur}, P{place}.", "Great move by {qui} on {sur}!", "{qui} goes around the outside of {sur}!", "{qui} gets the better of {sur}.", "{qui} out-brakes {sur}!"], com_contact: ["Contact between {qui} and {sur}!", "{qui} and {sur} touch!", "They rub wheels, {qui} and {sur}!", "A tap between {qui} and {sur}!"], com_coteACote: ["{qui} and {sur}, side by side!", "Wheel to wheel: {qui} alongside {sur}!", "{qui} pulls alongside {sur}!", "Nobody gives an inch: {qui} and {sur}!", "{qui} is right next to {sur}!"], com_erreur: ["A moment for {qui}!", "{qui} runs wide!", "Off the line for {qui}, that costs time."], com_penalite: ["A {s} s penalty for {qui}.", "{qui} picks up {s} s of penalty.", "The stewards hand {qui} {s} s."], com_stands: ["{qui} heads into the pits.", "Pit stop for {qui}.", "{qui} takes the pit lane."], com_meilleurTour: ["Fastest lap for {qui}: {temps}!", "{qui} sets the quickest lap, {temps}.", "A flying lap from {qui}: {temps}."], com_pluie: ["Rain is falling {lieu}!", "Here come the first drops…", "The rain is starting!"], com_dernierTour: ["Last lap {lieu}!", "One lap to go!", "The final lap, {qui} leads!"], com_arrivee: ["{qui} wins {lieu}!", "Victory for {qui}!", "Chequered flag: {qui} takes it!"], com_joueurArrivee: ["{qui} crosses the line, P{place}!", "Finish for {qui}: P{place}.", "{qui} brings it home in P{place}."], com_joueurTete: ["{qui} leads, {ecart} s ahead!", "{qui} out in front by {ecart} s.", "{qui} controls the race, {ecart} s clear."], com_joueurPlace: ["{qui}, P{place}, {ecart} s behind the car ahead.", "{qui} holds P{place}, {ecart} s back.", "{qui} in P{place}, the gap ahead: {ecart} s."], msg_pluieArrive: 'Rain is coming', msg_pisteSeche: 'The track is drying', meteoEau: 'water {p} %', meteoPrevue: 'Forecast: {temps}', meteo_sec: 'dry', meteo_nuageux: 'cloudy', meteo_risque: 'chance of rain ({p} %)', meteo_pluie: 'rain', msg_meilleurTour: '{qui}: fastest lap {temps}', msg_penalite: '{s} s penalty for {qui}', msg_stands: '{qui} pits',
@@ -290,7 +290,7 @@ const TEXTES = {
     retraiteBilan: '{s} · {v} · {p} · {t}',
     // le bilan de carrière et le temple de la renommée (carriere.js, Codeur 3)
     bilanEtiquettes: ['Seasons', 'Titles', 'Wins', 'Podiums', 'Poles', 'Fastest laps', 'Best championship finish', 'Best home result', 'Best reaction'],
-    bilanDuels: 'Team-mate duels: {liste}', bilanDuel: '{nom} {a}–{b}', bilanAucunDuel: 'Team-mate duels: none',
+    bilanDuels: 'Teammate duels: {liste}', bilanDuel: '{nom} {a}–{b}', bilanAucunDuel: 'Teammate duels: none',
     bilanUne: 'Your favourite front page: “{titre}” — season {s}, Grand Prix {g}', bilanAucuneUne: 'Your favourite front page: none yet',
     bilanTemple: 'Hall of fame: {p} of {n}', bilanHorsTemple: 'Hall of fame: not among the best {n}',
     temple: '🏛 Hall of fame', templeTitre: 'Hall of fame', templeLigne: '{t} · {v} · {p} · {s}',
@@ -800,11 +800,11 @@ Object.assign(TEXTES.en, {
   aide_fantome: 'The see-through car is your best lap: the gap under the timer shows where you lose time.',
   aide_stand: 'Mandatory stop: at the end of the lap, take the pit lane, {v} km/h at most.',
   aide_pluie: 'The track is wet: switch to rain tyres at your next pit stop?',
-  aide_consigne: 'Team order: lift off (↓) to let your team-mate through, or keep your place.',
+  aide_consigne: 'Team order: lift off (↓) to let your teammate through, or keep your place.',
   aide_garage: 'Garage: each upgrade helps a little (+{p} % at most). Wheel changers: shorter stops.',
   aide_aileron: 'High wing: grip in corners. Low wing: top speed. Read the track map.',
-  aide_duel: 'Your team-mate has the same car: beat them for a bonus and better contracts.',
-  aide_contrats: 'Contracts: teams look at your points and your duel with your team-mate.',
+  aide_duel: 'Your teammate has the same car: beat them for a bonus and better contracts.',
+  aide_contrats: 'Contracts: teams look at your points and your duel with your teammate.',
   aide_interview: 'Pick a tone: 😤 provocative, 🤝 calm, 😏 cheeky. Your reputation depends on it.',
   aideFermer: 'Click to close', revoirAides: '↺ Show the tips again', aidesRevues: 'The tips will show again',
 });
@@ -938,7 +938,7 @@ Object.assign(TEXTES.fr, {
     dis_bloquer_qui: ['Block who, exactly?'], dis_bloquer_absurde: ['Block myself? Seriously?'], dis_bloquer_accepte: ['Suits me too: {cible} won’t get past easily.'], dis_bloquer_refuse: ['Not my fight.'],
     dis_avis_bon: ['Honestly? I like the way you race.'], dis_avis_neutre: ['Just another driver, for now.'], dis_avis_mauvais: ['You really want to know? Not much.'],
     dis_etat_debut: ['The season hasn’t started yet. Ask me after the first race.', 'Nothing to say before the first race.'], dis_etat_bien: ['Everything’s going my way right now.'], dis_etat_moyen: ['Not great, not bad. Working on it.'], dis_etat_mal: ['Not great, but it’ll come back.'],
-    dis_duel_pas_coequipier: ['Our duel? We’re not even in the same team.', 'The duel is with your team-mate, not me.'], dis_duel_devant: ['For now, I’m ahead.'], dis_duel_derriere: ['You lead, but it’s not over.'], dis_duel_egal: ['All square. Everything to play for.', 'Nobody ahead. It’ll be decided on track.'],
+    dis_duel_pas_coequipier: ['Our duel? We’re not even in the same team.', 'The duel is with your teammate, not me.'], dis_duel_devant: ['For now, I’m ahead.'], dis_duel_derriere: ['You lead, but it’s not over.'], dis_duel_egal: ['All square. Everything to play for.', 'Nobody ahead. It’ll be decided on track.'],
     dis_contrat_pas_moi: ['Contracts are for the bosses, not me.', 'Talk to your team about that.'], dis_accord_vague: ['Okay… but okay to what?', 'Sure. And?'], dis_refus_vague: ['No to what, exactly?', 'No problem, I didn’t ask you anything.'],
     dis_question: ['Good question, but I don’t really know what to tell you.'],
     dis_incompris: ['I didn’t get that. Can you say it another way?', 'Huh? Say it more simply.', 'Not sure what you mean. Is this about the race?'],
@@ -990,7 +990,7 @@ Object.assign(TEXTES.en, {
   tac_departAide: 'Hold GAS in the green · lights out: release and press GAS again for a perfect start',
   tac_aide_depart: 'Hold GAS in the green and you go. {d}',
   tac_tourne: 'Tilt the phone to steer.', tac_tourneBoutons: 'Press ◀ ▶ to steer.',
-  tac_aide_consigne: 'Team order: lift off (BRAKE) to let your team-mate through, or keep your place.',
+  tac_aide_consigne: 'Team order: lift off (BRAKE) to let your teammate through, or keep your place.',
 });
 Object.assign(TEXTES.fr, {
   aideTenir: 'Tiens ↑',
@@ -1273,7 +1273,7 @@ Object.assign(TEXTES.fr, { cameraSuivie: 'Caméra : {nom}' });
 Object.assign(TEXTES.en, {
   paddock_course: 'Race', paddock_equipe: 'My team', paddock_boutique: 'Shop', paddock_saison: 'Season', paddock_messages: 'Messages',
   paddock_reglages: 'Settings', paddock_apprendre: 'Learn', paddock_boutiqueBientot: 'Buy with your money, or get it free by watching an ad 📺.', paddock_ouvrirBoutique: '🛒 Open the shop',
-  paddock_voirTout: 'See all', paddock_lireMessages: 'Open messages', paddock_rienDeNeuf: 'Nothing new. Talk to your team-mate or your team boss.',
+  paddock_voirTout: 'See all', paddock_lireMessages: 'Open messages', paddock_rienDeNeuf: 'Nothing new. Talk to your teammate or your team boss.',
   nb_paddock_nonLus: ['{n} new message', '{n} new messages'], paddock_reglagesJeu: 'Game', paddock_carriere: 'Career',
   paddock_sonActif: '🔊 Sound: on', paddock_sonCoupe: '🔇 Sound: off',
   carriere_nouvelle: 'New career', carriere_zero: 'New career from zero',
