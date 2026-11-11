@@ -2163,6 +2163,11 @@ t('premier Grand Prix (tour 52f) : 3 tours au tout premier Grand Prix de la carr
   const p1=place(ch);v(p1===10||p1===11,'GP 1 : place médiane '+p1+' / 20');
   ch.prochain=1;ch.resultats.push({grandPrix:1,ordre:[]});
   v(!CHAMPIONNAT.estPremierGrandPrix(ch)&&CHAMPIONNAT.toursDuGrandPrix(ch)===R_.CHAMPIONNAT_TOURS,'GP 2 : '+CHAMPIONNAT.toursDuGrandPrix(ch)+' tours');
+  // (tour 53h) la longueur choisie = le nombre de tours (5, 12, 18) ; le tout premier Grand Prix reste à 3 tours ; les points ne dépendent pas de la longueur
+  v(CHAMPIONNAT.toursDuGrandPrix(ch,'tresCourte')===5&&CHAMPIONNAT.toursDuGrandPrix(ch,'moyenne')===12&&CHAMPIONNAT.toursDuGrandPrix(ch,'longue')===18&&CHAMPIONNAT.toursDuGrandPrix(ch,'nimporte')===R_.CHAMPIONNAT_TOURS,'GP 2 : 5, 12 ou 18 tours au choix');
+  { const lc=R_.CHAMPIONNAT_LONGUE_CHOIX; R_.CHAMPIONNAT_LONGUE_CHOIX=false; v(CHAMPIONNAT.toursDuGrandPrix(ch,'longue')===R_.CHAMPIONNAT_TOURS,'CHAMPIONNAT_LONGUE_CHOIX faux : 5 tours comme avant'); R_.CHAMPIONNAT_LONGUE_CHOIX=lc; }
+  { const ch0=CHAMPIONNAT.creer(1); v(CHAMPIONNAT.estPremierGrandPrix(ch0)&&['tresCourte','moyenne','longue'].every(k=>CHAMPIONNAT.toursDuGrandPrix(ch0,k)===3),'GP 1 : 3 tours, quel que soit le choix'); }
+  v(CHAMPIONNAT.pointsPour.length===1&&ARGENT.gains.length===3,'points et gains : calculés sur la place et les aides seulement, aucune longueur en entrée');
   const p2=place(ch);v(p2===20,'GP 2 : dernier '+p2);
   const ch2=CHAMPIONNAT.creer(1),a1=R_.QUALIF_PASSER_PREMIER_MILIEU,a2=R_.CHAMPIONNAT_TOURS_PREMIER;
   R_.QUALIF_PASSER_PREMIER_MILIEU=false;R_.CHAMPIONNAT_TOURS_PREMIER=R_.CHAMPIONNAT_TOURS;
