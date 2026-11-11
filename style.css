@@ -2048,8 +2048,10 @@ body.tactile #boutique .skin button, body.tactile #boutique button.onglet { disp
   body.tactile #pageReglages { gap: 4px; }
   body.tactile #pageReglages .tvCarte { padding: 3px 10px 5px; }
   body.tactile #pageReglages .tvCarte h2 { margin: 0 0 2px; font-size: 11px; }
-  body.tactile #pageReglages .pageBoutons { gap: 4px; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); }
-  body.tactile #pageReglages .pageBoutons button, body.tactile #pageReglages .pageBoutons button.petit { min-height: 36px; }
+  body.tactile #pageReglages .pageBoutons { gap: 4px; grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); }
+  body.tactile #pageReglages .pageBoutons button, body.tactile #pageReglages .pageBoutons button.petit { padding: 2px 3px; font-size: 11px; }
+  body.tactile #pageReglages { overflow-y: auto; }   /* (si une langue ou une section de plus ne tient pas : la page défile au doigt) */
+  body.tactile #pageReglages .pageBoutons button, body.tactile #pageReglages .pageBoutons button.petit { min-height: 40px; }
   body.tactile #pageCourse { gap: 5px; }
   body.tactile #pageCourse .tvCarte { padding: 4px 10px; }
   body.tactile :is(#paddockCourt, #paddockNouvelles) button { min-height: 34px; padding-top: 2px; padding-bottom: 2px; }
