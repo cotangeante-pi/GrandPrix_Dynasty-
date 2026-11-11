@@ -2140,7 +2140,7 @@ function majManettes(dt) {
 function majTactile(dt) {
   if (!TACTILE.estPresent()) return;
   const conduite = !JEU.deux && (JEU.ecran === 'course' || JEU.ecran === 'survol' || enTourQualif());
-  TACTILE.maj(conduite, dt || 0);
+  TACTILE.maj(conduite, dt || 0, conduite && JEU.ecran === 'course' && !!JEU.course && JEU.course.etat === 'compte');
   if (!conduite) return;
   const t = TACTILE.cibles();
   if (!t) return;
