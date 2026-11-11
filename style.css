@@ -2037,3 +2037,16 @@ body.tactile #boutique .skin button, body.tactile #boutique button.onglet { disp
 #boutonPodiumSuite:hover { box-shadow: var(--tv-halo, 0 0 0 3px rgba(255, 255, 255, 0.5)); }
 #boutonResultats.petit { padding: 6px 14px; font-size: 13px; opacity: 0.9; }
 @media (max-height: 420px) { #podiumGains { font-size: 15px; padding: 3px 12px; } #boutonPodiumSuite { padding: 8px 28px; font-size: 18px; } }
+
+/* Chasse du tour 53 (Codeur 6) : au doigt dans le téléphone couché (640×360), les boutons de 40 px débordaient : « Nouvelle carrière » (Réglages, bas à 369 px) et « Ouvrir les messages » (Course, 373 px). On serre les marges, après les blocs tactiles ci-dessus */
+@media (max-height: 420px) {
+  body.tactile #pageReglages { gap: 4px; }
+  body.tactile #pageReglages .tvCarte { padding: 3px 10px 5px; }
+  body.tactile #pageReglages .tvCarte h2 { margin: 0 0 2px; font-size: 11px; }
+  body.tactile #pageReglages .pageBoutons { gap: 4px; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); }
+  body.tactile #pageReglages .pageBoutons button, body.tactile #pageReglages .pageBoutons button.petit { min-height: 36px; }
+  body.tactile #pageCourse { gap: 5px; }
+  body.tactile #pageCourse .tvCarte { padding: 4px 10px; }
+  body.tactile :is(#paddockCourt, #paddockNouvelles) button { min-height: 34px; padding-top: 2px; padding-bottom: 2px; }
+  body.tactile #pageCourse #boutonCourseSuivante { min-height: 36px; padding-top: 4px; padding-bottom: 4px; }
+}
