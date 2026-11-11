@@ -377,6 +377,28 @@ const INTERFACE = (function () {
     if (t) { el.textContent = t; el.classList.remove('saute'); void el.offsetWidth; el.classList.add('saute'); }
   }
 
+  // (tour 53h) les trois longueurs du prochain Grand Prix, sur la page Course : d = { courante (la clé), choisir(cle) } ou null (le premier Grand Prix : pas de choix)
+  function remplirLongueur(d) {
+    $('paddockLongueur').classList.toggle('cache', !d);
+    const zone = $('paddockLongueurBoutons');
+    zone.textContent = '';
+    if (!d) return;
+    $('paddockLongueurTitre').textContent = texte('longueurTitre');
+    for (const cle of ['tresCourte', 'moyenne', 'longue']) {
+      const nb = REGLAGES.LONGUEURS_COURSE[cle], b = document.createElement('button');
+      b.id = 'longueur' + nb;
+      b.className = 'longueurChoix' + (cle === d.courante ? ' choisi' : '');
+      const n = document.createElement('b'), t = document.createElement('span');
+      n.textContent = nb; t.textContent = texte(cle);
+      b.appendChild(n); b.appendChild(t);
+      b.title = texte('longueurTours').replace('{n}', nb);
+      b.tabIndex = -1;
+      b.addEventListener('mousedown', e => e.preventDefault());
+      b.addEventListener('click', () => d.choisir(cle));
+      zone.appendChild(b);
+    }
+  }
+
   // le podium de la découverte (tour 52e ; avant : l'écran « Bravo ! ») : d = { place, nb, prime, encore (le bouton « Encore une course ? ») } ou null
   // (le podium ordinaire : « Résultats »). « Tu finis P2 / 7 · +800 € » (la prime seulement si elle est > 0), « Continuer », « Encore une course ? »
   // la carrière (tour 53d, APRES_PODIUM_DIRECT) : d = { gains (le texte) } ou null : les gains sous le podium, le gros « Continuer », « Résultats » en petit
@@ -711,7 +733,35 @@ const INTERFACE = (function () {
     return [...rangs].sort((a, b) => a - b);
   }
 
+  // (tour 53b) au doigt (body.tactile) : un appui n'importe où sur un classement de pilotes (Course, Saison) ouvre la liste entière, en lignes de 40 px
+  // qui défile ; un appui sur une ligne ouvre la fiche du rival, comme avant. Au clavier et à la souris, rien ne change.
+  function preparerClassementPlein() {
+    const bloc = document.createElement('section');
+    bloc.id = 'classementPlein'; bloc.className = 'ecran cache';
+    const titre = document.createElement('h1'), liste = document.createElement('ol'), bas = document.createElement('div'), retour = document.createElement('button');
+    titre.id = 'classementPleinTitre'; liste.id = 'classementPleinListe'; bas.className = 'boutons'; retour.id = 'boutonClassementPleinRetour'; retour.tabIndex = -1;
+    bas.append(retour); bloc.append(titre, liste, bas); document.body.appendChild(bloc);
+    const fermer = () => bloc.classList.add('cache');
+    retour.addEventListener('mousedown', e => e.preventDefault());
+    retour.addEventListener('click', fermer);
+    const ouvrir = e => {
+      if (!document.body.classList.contains('tactile')) return;
+      e.stopPropagation(); e.preventDefault();
+      titre.textContent = texte('classementPilotes'); retour.textContent = texte('retour');
+      liste.textContent = '';
+      for (const li of $('championnatPilotes').children) {
+        const c = li.cloneNode(true);
+        c.classList.remove('rival');
+        if (li.dataset.k !== undefined && !li.classList.contains('moi')) { c.classList.add('rival'); c.addEventListener('click', () => { fermer(); if (ouvertureFiche) ouvertureFiche(Number(li.dataset.k)); }); }
+        liste.appendChild(c);
+      }
+      bloc.classList.remove('cache'); liste.scrollTop = 0;
+    };
+    for (const id of ['championnatPilotes', 'paddockClassementCourt']) $(id).addEventListener('click', ouvrir, true);
+  }
+
   function preparerChampionnat(suivante, garage) {
+    preparerClassementPlein();
     $('boutonCourseSuivante').addEventListener('mousedown', e => e.preventDefault());
     $('boutonCourseSuivante').addEventListener('click', suivante);
     $('boutonGarage').textContent = texte('garage');
@@ -1954,7 +2004,7 @@ const INTERFACE = (function () {
     remplirDuel, avec, remplirUne, preparerUne, remplirArgent, remplirSolde, remplirGarage, preparerGarage,
     remplirSaison, remplirDuelSaison, remplirContrats, remplirRetraite, preparerSaison, retraiteEnAttente, remplirCeremonie, preparerCeremonie, remplirAlbum, preparerAlbum, remplirBilan, remplirTemple, preparerTemple, preparerReleve, remplirHeritier, lireHeritier, montrerErreurHeritier, remplirAileron, majAileron, preparerAileron, preparerPneusGarage, remplirArbre, preparerArbre, remplirCalendrier, preparerCalendrier,
     remplirSponsors, remplirRappelSponsor, preparerSponsors, remplirFiche, preparerFiche, remplirInterview, montrerEffetInterview, preparerInterview, remplirReputation,
-    majEcartFantome, preparerFantome, majBoutonsFantome, majDepart, majDeux, preparerTitre, remplirPodiumDecouverte, preparerPodiumDecouverte, majPrime, majPlaceGrand, remplirPodiumCarriere, remplirPiloteRapide, appliquerPilote, majAides, remplirPilote, lirePilote, montrerErreursPilote, preparerPilote, nomCircuit, remplirCasque, lireCasque, modePilote, preparerCasque };
+    majEcartFantome, preparerFantome, majBoutonsFantome, majDepart, majDeux, preparerTitre, remplirPodiumDecouverte, preparerPodiumDecouverte, majPrime, majPlaceGrand, remplirLongueur, remplirPodiumCarriere, remplirPiloteRapide, appliquerPilote, majAides, remplirPilote, lirePilote, montrerErreursPilote, preparerPilote, nomCircuit, remplirCasque, lireCasque, modePilote, preparerCasque };
 })();
 
 // --- les aides au premier usage (aides.js, étape 11b, Codeur 4) : la bulle, « Revoir les aides » au paddock et dans le menu pause.
