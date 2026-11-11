@@ -15,7 +15,8 @@
   "id": "depart-3",
   "moment": "Le départ",
   "fait": "depart",
-  "texte": "Feux éteints, ça PART !"
+  "texte": "Feux éteints, ça PART !",
+  "texte_long": "Les feux s'éteignent, et ça PART !"
  },
  {
   "id": "depassement-1",
@@ -57,13 +58,15 @@
   "id": "bataille-2",
   "moment": "Bataille",
   "fait": "coteACote",
-  "texte": "Roues contre ROUES !"
+  "texte": "Roues contre ROUES !",
+  "texte_long": "Ils roulent roues contre ROUES !"
  },
  {
   "id": "bataille-3",
   "moment": "Bataille",
   "fait": "coteACote",
-  "texte": "Côte à CÔTE !"
+  "texte": "Côte à CÔTE !",
+  "texte_long": "Ils se battent côte à CÔTE !"
  },
  {
   "id": "erreur-1",
@@ -93,7 +96,8 @@
   "id": "glissade-2",
   "moment": "Glissade rattrapée",
   "fait": "glissade",
-  "texte": "SAUVÉ de justesse !"
+  "texte": "SAUVÉ de justesse !",
+  "texte_long": "Il est SAUVÉ de justesse !"
  },
  {
   "id": "contact-1",
@@ -129,7 +133,8 @@
   "id": "stands-2",
   "moment": "Arrêt au stand",
   "fait": "stands",
-  "texte": "Arrêt au STAND !"
+  "texte": "Arrêt au STAND !",
+  "texte_long": "Il rentre pour l'arrêt au STAND !"
  },
  {
   "id": "pluie-1",

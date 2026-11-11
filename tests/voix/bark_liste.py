@@ -27,6 +27,8 @@ import torch, random
 TEMPS_TEXTE, TEMP_SON = [0.65, 0.78], 0.7
 BONNES = int(option('--bonnes', '2'))  # une phrase qui a déjà BONNES prises comprises par Whisper (notes.json, relu à chaque prise) ne reçoit plus de prise
 
+ECHECS = 6
+
 def comprises(cle):
     """Le nombre de prises de cette phrase que Whisper a comprises (notes.json, écrit par transcrire.py ; 0 s'il n'existe pas)."""
     try:
@@ -57,7 +59,10 @@ def main():
                 if nom in faites: continue
                 if comprises(ph['id']) >= BONNES: continue
                 if heure_passee(): print('heure atteinte, arrêt', flush=True); return
-                t1, texte = time.time(), ph['texte']; var = VARIANTES[(prise - DE) % len(VARIANTES)]; envoye = FORMES[var] % texte
+                t1, texte = time.time(), ph['texte']
+                # (tour 53f) après ECHECS prises sans une seule comprise, on essaie la version un peu plus longue (même sens, même énergie)
+                if ph.get('texte_long') and sum(1 for v in faites.values() if v['cle'] == ph['id']) >= ECHECS: texte = ph['texte_long']
+                var = VARIANTES[(prise - DE) % len(VARIANTES)]; envoye = FORMES[var] % texte
                 g = 1000 * prise + 10 * voix + sum(map(ord, ph['id'])) % 997; torch.manual_seed(g); np.random.seed(g); random.seed(g)
                 hp = 'v2/fr_speaker_%d' % voix
                 sem = generate_text_semantic(envoye, history_prompt=hp, temp=TEMPS_TEXTE[prise % 2], silent=True, use_kv_caching=True, max_gen_duration_s=duree_max(envoye))
