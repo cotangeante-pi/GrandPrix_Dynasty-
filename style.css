@@ -2020,3 +2020,9 @@ body.tactile #boutique .skin button, body.tactile #boutique button.onglet { disp
 #paddockLongueurBoutons .longueurChoix span { font-size: 13px; opacity: 0.85; }
 #paddockLongueurBoutons .longueurChoix.choisi { border-color: #fff; background: var(--tv-bouton-principal, #e3242b); }
 @media (max-height: 420px) { #paddockLongueurBoutons .longueurChoix { padding: 4px 6px; } #paddockLongueurBoutons .longueurChoix b { font-size: 18px; } #paddockLongueur h2 { font-size: 12px; margin: 0; } }
+@media (max-height: 420px) {   /* 640×360 : les longueurs à côté de « Course suivante », sur la même ligne (rien de plus haut qu'avant) */
+  #pageCourse { grid-template-areas: "prochain prochain" "longueur bouton" "court moi" "court nouvelles"; }
+  #paddockLongueur { padding: 4px 6px; }
+  #paddockLongueur h2 { display: none; }
+  #pageCourse #boutonCourseSuivante { font-size: 15px; padding: 6px 8px; white-space: normal; }
+}
