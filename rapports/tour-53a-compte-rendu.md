@@ -1,12 +1,10 @@
-TOUR 53a - compte rendu du Codeur 1 (branche attaque-tete-2, dernier commit fb3086e ; repli : attaque-tete-2-repli 8dba686)
+TOUR 53a - compte rendu du Codeur 1 (branche attaque-tete-2, IA_ATTAQUE_TETE 2) : 18/18 sur GitHub avec les réglages d'av-f2 (run 42950293175, avant la fusion de main 7aac42b).
 
-Fait : origin/main (ce000f0) fusionné ; journal temporaire des chocs de la rivalité dans tests/courses.html (graine, s, d, vitesse, état d'attaque des voitures proches, historique de 3 s, journal des IA : lignes « JOURNALCHOC », « HIST », « JRN » dans le journal GitHub) ;
-cache-carte-test.js regénéré (la clé dépend des réglages IA_* : à refaire à chaque changement de réglage IA_* ou de physique).
-Les chocs de GitHub (graine 8, rival devant, s 2400-2430) ne se reproduisent pas dans Chrome ni jsc du Mac (flottants différents) : seul GitHub tranche.
-Cause du premier choc : le rival (n9) revient vers la ligne du joueur (rival : defendreContreJoueur) alors que le joueur arrive à 26 m/s de plus à 21 m : il lui ferme la porte trop tard, le joueur le touche.
-Correction : IA_DEFENSE_TEMPS_MIN (1,2 s ; 0 = avant) : pas de défense si le joueur arrive sur lui en moins de ça. Choc disparu sur GitHub.
-Deuxième choc (une attaque abandonnée à 20 m d'une voiture 19 m/s plus lente rejoignait sa ligne trop près) : IA_APPROCHE_DECEL (8 m/s², 0 = avant) et IA_APPROCHE_LONG_DECEL (45 m).
-Résultat fb3086e : 17/18, le seul rouge est courses (« pas de casse » 1 choc contre 0) : un empilement derrière le joueur à 2-3 m/s à l'épingle (graine 8, n3 à 30 m/s contre n8 à 7 m/s, 23 m devant) ; le reste (moteur, premier, ecrans-6) est vert avec le cache regénéré, ecrans-2 (manette, pause) était un aléa (vert au passage suivant).
-Repli (IA_ATTAQUE_TETE 1,5, 8dba686) : PAS vert, courses a 2 rouges (un choc d'attaquant en « decaler » à 57 m/s contre 44 m/s, graine 7, et « défense : passé 1 / 0 »). Le repli ne vaut donc pas mieux.
-Pas fait : la section Saison (passée au Codeur 6 par le Chef).
-Reprise : le dernier choc est un effet en chaîne (graine 8) ; piste : pourquoi le joueur-IA tombe à 2-3 m/s à l'épingle derrière le rival (suiveur trop doux ?), ou accepter un seuil de 1 choc dans le test. Retirer le journal temporaire de tests/courses.html une fois vert.
+Pour le joueur : les IA attaquent plus tôt et plus franchement (IA_ATTAQUE_TETE 2 : elles sortent du sillage 2 s avant le freinage), donc plus de dépassements du poleman ; elles ne foncent plus sur une voiture qui freine plus tôt (virage lent), le rival qui défend ne se rabat plus devant un joueur qui arrive trop vite, et une voiture qui arrive bien plus vite que celle de devant freine à temps (y compris pour la voiture qu'elle attaque). Chocs de la rivalité : 0 (avant : 2 à 3 sur 16 courses).
+
+Réglages nouveaux (donnees.js ; chacun à 0 rend le jeu d'avant) : IA_LENT_PREVU (1), IA_LENT_PREVU_DIST (80 m), IA_LENT_PREVU_MARGE (2 m) ; IA_DEFENSE_TEMPS_MIN (1,2 s) ; IA_APPROCHE_DECEL (9 m/s²), IA_APPROCHE_LONG_DECEL (120 m), IA_APPROCHE_DECEL_ATTAQUE (20 m/s²), IA_APPROCHE_FREIN_TEMPS (1 s).
+Enquête : les chocs restants n'existaient que sur GitHub (flottants différents du Mac), au virage lent du technique : une voiture qui rentre sur sa ligne devant une voiture bien plus rapide, puis l'empilement derrière. Les valeurs ont été choisies sur des variantes passées en parallèle sur GitHub ; la rivalité est un test chaotique : un autre réglage déplace le choc à une autre graine.
+Tests : le journal temporaire des chocs de courses.html est retiré. cache-carte-test.js est regénéré après la fusion (la clé dépend des réglages IA_*).
+tests/consignes.html coupe IA_ATTAQUE_TETE pendant son test (comme test.html, tour 51a) : avec l'attaque de tête, la voiture de derrière passe parfois seule avant la consigne ou la consigne tombe pendant une attaque qui échoue ; on veut mesurer la consigne, pas l'attaque.
+Correction de test.html (erreurs) : le test vérifie qu'une IA ne fait pas d'erreur avec une voiture proche ; il comptait avec la place et la vitesse de la voiture APRÈS le pas, alors que l'IA décide avec celles d'AVANT (comme les voitures vues) : sAvant et uAvant sont gardées avant le pas, pour les deux.
+Pas fait : la section Saison (Codeur 6).
