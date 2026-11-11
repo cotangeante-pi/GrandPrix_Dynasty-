@@ -1237,7 +1237,12 @@ function piloterIA(pilote, v, vues, dt) {
     const g = ecartLeLong(c, w.s - p.s);
     const loin = R.IA_APPROCHE_DECEL ? R.IA_APPROCHE_LONG_DECEL : R.IA_APPROCHE_LONG;   // (IA_APPROCHE_DECEL, tour 53a : plus loin, pour la vitesse qu'il peut encore annuler)
     if (g <= 0 || g > loin || Math.abs(w.d - p.d) > R.IA_APPROCHE_COTE) continue;
-    if (a && w.id === a.id && a.etat !== 'preparer' && a.etat !== 'sortie') continue;
+    // (IA_APPROCHE_DECEL_ATTAQUE, tour 53a : la voiture qu'il attaque ne le retient pas, mais d'un freinage de ça m/s² sur la place qui reste il doit pouvoir
+    // encore s'arrêter derrière elle : il attaquait à 81 m/s une voiture à 33 m/s, 47 m devant, qui avait freiné plus tôt, et la touchait à 31 m/s de plus)
+    if (a && w.id === a.id && a.etat !== 'preparer' && a.etat !== 'sortie') {
+      if (R.IA_APPROCHE_DECEL && R.IA_APPROCHE_DECEL_ATTAQUE && g > R.LONGUEUR_VOITURE) cible = Math.min(cible, w.vitesse + Math.sqrt(2 * R.IA_APPROCHE_DECEL_ATTAQUE * (g - R.LONGUEUR_VOITURE)));
+      continue;
+    }
     if (w.vitesse < R.IA_APPROCHE_VITESSE * libre || estLente(pilote, v, w)) continue;   // (une voiture arrêtée, lente ou qui sort des stands : on la contourne, ligne « éviter »)
     const place = Math.max(0, g - R.LONGUEUR_VOITURE);
     // (IA_APPROCHE_DECEL : l'écart de vitesse qu'il peut annuler en freinant de IA_APPROCHE_DECEL m/s² sur la place qui reste : une attaque abandonnée à 20 m d'une
