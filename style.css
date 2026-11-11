@@ -1983,7 +1983,7 @@ body.tactile #tactileActiver { padding: 14px 26px; font-size: 20px; bottom: 16px
 #placeGrand { position: fixed; left: 50%; top: 38%; transform: translate(-50%, -50%); font: 900 96px/1 var(--tv-police-titre, var(--police)); font-style: italic; color: #fff; text-shadow: 0 4px 18px rgba(0, 0, 0, 0.75), 0 0 28px rgba(125, 255, 154, 0.8); pointer-events: none; }
 #placeGrand.saute { animation: placeSaute 1s ease-out; }
 @keyframes placeSaute { 0% { opacity: 0; transform: translate(-50%, -50%) scale(0.6); } 20% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); } 80% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -50%) scale(1); } }
-@media (max-height: 420px) { #placeGrand { font-size: 56px; } #primeDecouverte { font-size: 14px; padding: 3px 8px; top: 160px; right: 12px; } }   /* (640×360 : sous la tour de classement, rien ne se recouvre : ni le chrono, ni GAZ / FREIN, ni la minicarte) */
+@media (max-height: 420px) { #placeGrand { font-size: 56px; } #primeDecouverte { font-size: 14px; padding: 3px 8px; top: 148px; right: 12px; } }   /* (640×360 : sous la tour de classement, rien ne se recouvre : ni le chrono, ni GAZ / FREIN, ni la minicarte) */
 @media (prefers-reduced-motion: reduce) { #primeDecouverte.monte, #primeDecouverte.monte #primeGain, #placeGrand.saute { animation: none; } #primeGain { opacity: 1; } }
 
 #tactilePortrait { flex-direction: column; gap: 12px; }
@@ -2039,7 +2039,13 @@ body.tactile #boutique .skin button, body.tactile #boutique button.onglet { disp
 @media (max-height: 420px) { #podiumGains { font-size: 15px; padding: 3px 12px; } #boutonPodiumSuite { padding: 8px 28px; font-size: 18px; } }
 
 /* Chasse du tour 53 (Codeur 6) : au doigt dans le téléphone couché (640×360), les boutons de 40 px débordaient : « Nouvelle carrière » (Réglages, bas à 369 px) et « Ouvrir les messages » (Course, 373 px). On serre les marges, après les blocs tactiles ci-dessus */
+/* … et en course au doigt (640×360) : « Tiens GAZ » passait sous 🔊 ⏸ ↩ (ils sont à 122–150 px du haut), et les écarts de la tour de classement (« +0,3 s ») revenaient à la ligne */
+#classementListe .ecart { white-space: nowrap; }
 @media (max-height: 420px) {
+  body.tactile #aides:not(.grille) { top: 152px; gap: 4px; }
+  body.tactile #aides:not(.grille) span { font-size: 15px; padding: 2px 10px; }
+  body.tactile #classementListe li { gap: 3px; padding: 0 3px; }
+  body.tactile #classementListe .ecart { font-size: 10px; }
   body.tactile #pageReglages { gap: 4px; }
   body.tactile #pageReglages .tvCarte { padding: 3px 10px 5px; }
   body.tactile #pageReglages .tvCarte h2 { margin: 0 0 2px; font-size: 11px; }
