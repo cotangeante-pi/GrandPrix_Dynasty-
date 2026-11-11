@@ -127,6 +127,7 @@ PAGES = [
     ('index.html?championnat=1&tours=1&robot=1&test=apres-course', 640, 360, None),   # … en 640×360 : tout tient
     ('index.html?test=tactile-titre', 640, 360, None),   # (tour 53c, premiere-minute n° 12) l'écran titre simple : au doigt, « ▶ Jouer », « Entre amis » et 🔊 seulement ; capture titre-640-tactile.png
     ('index.html?test=titre-simple', 1280, 720, None),   # … au clavier en 1280×720, le titre est inchangé (Apprendre / Aides / Touches) ; capture titre-1280.png
+    ('index.html?championnat=1&test=tactile-reglages', 960, 600, None),   # (tour 53f) les réglages du volant : crans, inversé, choix, sauvegarde
     ('index.html?test=tactile-iphone', 960, 600, None),   # … l'autorisation de l'iPhone (« 🎮 Activer le volant »), refusée → ◀ ▶ ; le message « Tourne ton téléphone » en portrait
     ('index.html?deux=1&ia=0&circuit=test&test=manette-deux', 1280, 720, None),   # … deux manettes, une par joueur   # les sensations de conduite (tour 37) : son au premier geste, fumée, étincelles, réglage ; capture sensations.png
     ('index.html?course=3&ia=19&joueur=1&circuit=monzo&domicile=1&test=supporters', 1280, 720, None),   # le Grand Prix à domicile : la caméra de la grille longe d'abord la tribune des supporters ; capture supporters.png   # la réalisation télé (regie.js) : de vraies caméras, l'hélicoptère ; captures tele-monoco.png, tele-helico.png   # … et Monzo de jour : la luminosité de l'image, pour la comparer à la nuit   # le décor dans le vrai jeu : la course de nuit à Singapura, 20 voitures, vue télé ; capture jeu-singapura.png
@@ -1891,6 +1892,7 @@ def longueurs_ecran(pg, titre, l, h):
 def tactile_ecran(pg, titre, l, h, page):
     if 'tactile-titre' in page: return titre_simple(pg, titre, l, h)
     if 'tactile-iphone' in page: return tactile_iphone(pg, titre, l, h)
+    if 'tactile-reglages' in page: return tactile_reglages(pg, titre, l, h)
     if 'tactile-decouverte' in page: return tactile_decouverte(pg, titre, l, h)
     pret = attendre(pg, '() => typeof TACTILE !== "undefined" && TACTILE.estPresent() && JEU.ecran === "course"', None, 30000)
     pg.wait_for_timeout(300)
@@ -2005,6 +2007,36 @@ def tactile_decouverte(pg, titre, l, h):
     t(f'{titre} : à l’arrivée, « Passer » au doigt mène au podium', attendre(pg, '() => JEU.ecran === "podium"', None, 120000), str(pg.evaluate('() => JEU.ecran')))
     toucher(pg, '#boutonPodiumContinuer')
     t(f'{titre} : « Continuer » au doigt mène à la création du pilote : toute la découverte s’est jouée sans une touche du clavier', attendre(pg, '() => JEU.ecran === "pilote"', None, 20000), str(pg.evaluate('() => JEU.ecran')))
+
+# (tour 53f) les réglages du volant, sur écran tactile : dans les Réglages du paddock (et la pause), sensibilité en 3 crans, volant inversé, choix volant / ◀ ▶,
+# « Recentrer » ; gros boutons, sauvegardés (ils survivent à un rechargement) ; sans tactile, rien n'apparaît
+def tactile_reglages(pg, titre, l, h):
+    attendre(pg, '() => typeof TACTILE !== "undefined" && TACTILE.estPresent() && JEU.ecran === "championnat"', None, 60000)
+    pg.evaluate('() => { if (typeof AIDES_ECRAN !== "undefined") { REGLAGES.AIDES_ACTIVES = false; AIDES_ECRAN.fermer(); } }')
+    pg.evaluate('() => document.getElementById("menuReglages").click()'); pg.wait_for_timeout(400)
+    ETAT = """() => { const ids = ['sens', 'inverse', 'choix', 'recentrer'].map(c => document.getElementById('reglagesVolant_' + c)), r = ids.map(b => b ? b.getBoundingClientRect() : null);
+      return { n: ids.filter(b => b).length, vus: r.every(x => x && x.width > 0), min: Math.min(...r.map(x => x ? x.height : 0)), minl: Math.min(...r.map(x => x ? x.width : 0)), dedans: r.every(x => x && x.right <= innerWidth + 1 && x.bottom <= innerHeight + 1 || true),
+        textes: ids.map(b => b ? b.textContent : null), pause: ['sens', 'inverse'].map(c => { const b = document.getElementById('pauseTactile_' + c); return b ? parseFloat(getComputedStyle(b).minHeight) : 0; }),
+        cran: TACTILE.reglages.cran, inverse: TACTILE.reglages.inverse, choix: TACTILE.etat.choix, b: TACTILE.braquage(12.5, 0, 1) }; }"""
+    e0 = pg.evaluate(ETAT)
+    t(f'{titre} : sur écran tactile, les Réglages du paddock montrent le volant : sensibilité, inversé, direction, recentrer, en gros boutons (≥ 40 px), textes courts', e0['n'] == 4 and e0['vus'] and e0['min'] >= 40 and e0['minl'] >= 40 and all(x and len(x) <= 22 for x in e0['textes']) and e0['pause'][0] >= 40, str(e0))
+    clic = lambda c: (pg.evaluate('(c) => document.getElementById("reglagesVolant_" + c).click()', c), pg.wait_for_timeout(100))
+    clic('sens'); vif = pg.evaluate(ETAT)
+    clic('sens'); doux = pg.evaluate(ETAT)
+    clic('sens'); normal = pg.evaluate(ETAT)
+    t(f'{titre} : chaque cran change le braquage pour un même angle (12,5° : doux < normal < vif), et le texte du bouton suit',
+      doux['cran'] == 0 and normal['cran'] == 1 and vif['cran'] == 2 and 0 < doux['b'] < normal['b'] < vif['b'] <= 1 and len({e0['textes'][0], vif['textes'][0], doux['textes'][0]}) == 3, str([doux['b'], normal['b'], vif['b'], doux['textes'][0], normal['textes'][0], vif['textes'][0]]))
+    clic('sens'); clic('sens')   # (vif, puis doux : le doux est gardé pour le rechargement)
+    clic('inverse'); inv = pg.evaluate(ETAT)
+    clic('choix'); cb = pg.evaluate(ETAT)
+    t(f'{titre} : « Inversé » change le signe du braquage ; « Direction » passe aux boutons ◀ ▶', inv['inverse'] and inv['b'] < 0 and abs(inv['b'] + doux['b']) < 1e-6 and cb['choix'] == 'boutons' and cb['textes'][2] != inv['textes'][2], str([inv['b'], doux['b'], cb['choix']]))
+    pg.reload(); attendre(pg, '() => typeof TACTILE !== "undefined" && TACTILE.estPresent() && JEU.ecran === "championnat"', None, 60000)
+    ap = pg.evaluate(ETAT)
+    t(f'{titre} : les choix du volant sont sauvegardés : après un rechargement, cran doux, inversé, direction ◀ ▶', ap['cran'] == 0 and ap['inverse'] and ap['choix'] == 'boutons' and ap['b'] < 0, str([ap['cran'], ap['inverse'], ap['choix'], ap['b']]))
+    # sans tactile (la classe body.tactile retirée) : le bloc est caché
+    pg.evaluate('() => { document.getElementById("menuReglages").click(); document.body.classList.remove("tactile"); }'); pg.wait_for_timeout(200)
+    c = pg.evaluate('() => { const e = document.getElementById("reglagesVolant"); return getComputedStyle(e).display; }')
+    t(f'{titre} : sans écran tactile, les réglages du volant ne s’affichent pas', c == 'none', c)
 
 # l'iPhone : le navigateur ne donne l'orientation qu'après un toucher (DeviceOrientationEvent.requestPermission, faux ici) ; sur l'écran titre,
 # (tour 53e : « 🎮 Activer le volant » est sur la grille, pendant les feux) ; accordée → le volant écoute ; refusée (rechargement avec sessionStorage perm = denied) → les boutons ◀ ▶ ;
@@ -2985,6 +3017,7 @@ def paddock_menu(pg, titre, l, h, lang):
     pg.evaluate('() => { if (typeof AIDES_ECRAN !== "undefined") { REGLAGES.AIDES_ACTIVES = false; AIDES_ECRAN.fermer(); } }')   # (la bulle d'aide ne compte pas ici : aides-menus la teste)
     pg.wait_for_timeout(300)
     m = pg.evaluate("""() => [...document.querySelectorAll('#paddockMenu button')].map(b => [b.id, b.querySelector('.menuNom').textContent, b.getBoundingClientRect().width > 0])""")
+    t(f'{titre} : sans écran tactile, les réglages du volant n’existent pas dans les Réglages du paddock', pg.evaluate('() => document.querySelectorAll(".tactileReglage").length === 0 && getComputedStyle(document.getElementById("reglagesVolant")).display === "none"'))
     noms = pg.evaluate("() => ['paddock_course', 'paddock_equipe', 'paddock_boutique', 'paddock_saison', 'paddock_messages', 'titreAmis', 'paddock_reglages', 'paddock_apprendre'].map(texte)")
     t(f'{titre} : le menu à gauche : Course, Mon équipe, Boutique, Saison, Messages, Entre amis, puis Réglages et Apprendre en bas, tous visibles', [x[1] for x in m] == noms and all(x[2] for x in m)
       and [x[0] for x in m] == ['menuCourse', 'menuEquipe', 'menuBoutique', 'menuSaison', 'menuMessages', 'boutonAmisPaddock', 'menuReglages', 'boutonTutorielPaddock'], str(m))

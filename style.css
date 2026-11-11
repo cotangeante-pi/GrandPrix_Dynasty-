@@ -1534,6 +1534,15 @@ body.deux:not(.cote) #deuxRappel2 { left: 50%; }
 #paddockNouvelles p { font-size: 13px; opacity: 0.85; }
 
 /* les autres pages */
+/* Cohérence (tour 53e) : toutes les pages partent du haut (le titre au même endroit), le même titre avec l'icône du menu, la porte principale de la page en rouge */
+#paddockPages { align-items: flex-start; }
+.pageTitre::before { margin-right: 8px; font-style: normal; }
+#pageEquipeTitre::before { content: "🔧"; }
+#pageBoutiqueTitre::before { content: "🛒"; }
+#pageSaisonTitre::before { content: "📅"; }
+#pageMessagesTitre::before { content: "✉"; }
+#pageReglagesTitre::before { content: "⚙"; }
+#pageBoutique #boutonBoutique { background: var(--tv-bouton-principal); box-shadow: 0 4px 16px rgba(227, 36, 43, 0.35); }
 .pageInfos { display: flex; flex-direction: column; gap: 6px; }
 .pageInfos p { font-size: 15px; }
 #championnat #championnatReputation { flex-wrap: wrap; gap: 6px 14px; justify-content: flex-start; }
@@ -1583,6 +1592,7 @@ body.deux:not(.cote) #deuxRappel2 { left: 50%; }
 /* au paddock, le son est dans Réglages : 🔊 ne reste pas dans un coin ; la bulle d'aide se pose à droite du menu */
 body.auPaddock #boutonSon { display: none; }
 #championnat:not(.cache) ~ #bulleAide.bulleMenu { left: calc(var(--paddock-menu) + 16px); }
+#championnat:not(.cache) ~ #bulleAide.bulleMenu { top: auto; bottom: 8px; }   /* (tour 53e : les pages partent du haut, la bulle d'aide passe en bas pour ne couvrir aucun bouton) */
 #championnat:not(.cache) ~ #tutoConsigne.tutoMenuConsigne { left: calc(var(--paddock-menu) + 16px); }   /* (la consigne de la leçon « visite » non plus ne couvre pas le menu) */
 
 /* (tour 53b, plan « menus-doigt ») sur un écran tactile (body.tactile), aucun bouton des menus du paddock et des écrans qui en partent
@@ -1981,6 +1991,22 @@ body.tactile #tactileActiver { padding: 14px 26px; font-size: 20px; bottom: 16px
 @keyframes tactile-tourne { 0%, 20% { transform: rotate(0deg); } 60%, 100% { transform: rotate(-90deg); } }
 @media (prefers-reduced-motion: reduce) { #tactilePortrait::before { animation: none; transform: rotate(-90deg); } }
 
+/* Cohérence (tour 53e) : la liste Apprendre dans le téléphone couché (640×360) : le titre et « Retour » restent dans l'écran ; la bulle d'aide du paddock laisse passer les clics (la page Réglages remplit l'écran ; la bulle s'efface seule) */
+@media (max-height: 420px) {
+  #championnat:not(.cache) ~ #bulleAide.bulleMenu { pointer-events: none; }
+  #tutoMenu { justify-content: flex-start; padding-top: 4px; padding-bottom: 4px; gap: 3px; }
+  #tutoMenu h1 { font-size: 18px; line-height: 1; }
+  #tutoMenu h1::after { margin-top: 2px; height: 3px; }
+  #tutoMenuIntro { font-size: 11px; }
+  #tutoListe { gap: 2px; }
+  #tutoListe li { padding: 2px 8px; column-gap: 8px; }
+  #tutoListe .tutoEtoile { font-size: 16px; }
+  #tutoListe .tutoNom { font-size: 12px; line-height: 1.1; }
+  #tutoListe .tutoBut { font-size: 10px; line-height: 1.1; }
+  #tutoListe button, #tutoListe li.tutoSuivant button { padding: 3px 12px; font-size: 12px; min-height: 0; }
+  #tutoMenu .boutons button { padding: 5px 12px; font-size: 12px; min-height: 0; }
+}
+
 /* l'écran titre simple (tour 53c, premiere-minute n° 12) : sur un écran tactile ou sous 700 px de large, « Apprendre / Aides / Touches » ne sont plus au titre (ils sont dans les Réglages du paddock) */
 body.titreSimple.tactile #titreAide { display: none; }
 @media (max-width: 699px) { body.titreSimple #titreAide { display: none; } }
@@ -2022,7 +2048,11 @@ body.tactile #boutique .skin button, body.tactile #boutique button.onglet { disp
 @media (max-height: 420px) { #paddockLongueurBoutons .longueurChoix { padding: 4px 6px; } #paddockLongueurBoutons .longueurChoix b { font-size: 18px; } #paddockLongueur h2 { font-size: 12px; margin: 0; } }
 @media (max-height: 420px) {   /* 640×360 : les longueurs à côté de « Course suivante », sur la même ligne (rien de plus haut qu'avant) */
   #pageCourse { grid-template-areas: "prochain prochain" "longueur bouton" "court moi" "court nouvelles"; }
-  #paddockLongueur { padding: 4px 6px; }
+  #paddockLongueur { padding: 4px 6px; } #paddockLongueurBoutons .longueurChoix { min-height: 40px; }
   #paddockLongueur h2 { display: none; }
   #pageCourse #boutonCourseSuivante { font-size: 15px; padding: 6px 8px; white-space: normal; }
 }
+/* (tour 53f) les réglages du volant : seulement sur un écran tactile (body.tactile, posée par tactile.js), de gros boutons (≥ 40 px) */
+.tactileSeul { display: none; }
+body.tactile .tactileSeul { display: block; }
+.tactileReglage { min-height: 44px; min-width: 40px; }
