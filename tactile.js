@@ -138,10 +138,10 @@ const TACTILE = (function () {
     choix: () => { V.choix = V.choix === 'volant' ? 'boutons' : 'volant'; sauver('volant_choix', V.choix); },
     recentrer: () => recentrer(),
   };
-  function construireReglages(parent, cles) {
+  function construireReglages(parent, prefixe, cles) {
     if (!parent) return;
     for (const cle of cles) {
-      const b = document.createElement('button'); b.className = 'petit tactileReglage'; b.id = parent.id + '_' + cle; b.tabIndex = -1;
+      const b = document.createElement('button'); b.className = 'petit tactileReglage'; b.id = prefixe + '_' + cle; b.tabIndex = -1;
       b.addEventListener('mousedown', e => e.preventDefault());
       b.addEventListener('click', () => { actions[cle](); textesReglages(); rafraichir(); });
       parent.appendChild(b); reglageBoutons.push([b, cle]);
@@ -169,7 +169,7 @@ const TACTILE = (function () {
       b.addEventListener('mousedown', e => e.preventDefault()); b.addEventListener('click', g);
     }
     const pt = $('pauseTactile'), pg = document.querySelector('#reglagesVolant .pageBoutons');
-    construireReglages(pt, ['sens', 'inverse']); construireReglages(pg, ['sens', 'inverse', 'choix', 'recentrer']);
+    construireReglages(pt, 'pauseTactile', ['sens', 'inverse']); construireReglages(pg, 'reglagesVolant', ['sens', 'inverse', 'choix', 'recentrer']);
     if (R.TACTILE_PAYSAGE) for (const ev of ['pointerup', 'touchend', 'click']) document.addEventListener(ev, premierGeste, true);   // (le plein écran demande un vrai geste : au premier appui lâché)
     window.addEventListener('blur', toutLacher);
     document.addEventListener('visibilitychange', toutLacher);
