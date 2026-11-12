@@ -53,13 +53,17 @@ def audit(pg, nom, tel, ignorer_petits=()):
     petit_ok = 36 if 'course' in nom or 'barre' in nom or 'grille' in nom else 0
     pg.wait_for_timeout(500)
     a = pg.evaluate(AUDIT)
-    pg.screenshot(path=os.path.join(CAPTURES, f'tel-{tel.replace(" ", "_").replace("+", "p")}-{nom}.png'))
+    photo(pg, os.path.join(CAPTURES, f'tel-{tel.replace(" ", "_").replace("+", "p")}-{nom}.png'))
     petits = [v for v in a['petits'] if v['id'] not in ignorer_petits and not (v['id'] in EN_COURSE_PETITS and min(v['w'], v['h']) >= petit_ok > 0)]
     t(f'{tel} {a["W"]}×{a["H"]} · {nom} : rien hors de l’écran (boutons, textes), la page ne défile pas', not a['dehors'] and not a['texte'] and not a['defile'], json.dumps({k: a[k] for k in ('dehors', 'texte', 'defile')}, ensure_ascii=False))
     t(f'{tel} · {nom} : aucun bouton plus petit que {MIN_POUCE} px', not petits, json.dumps(petits, ensure_ascii=False))
     t(f'{tel} · {nom} : aucun bouton ne se recouvre', not a['chev'], a['chev'])
     t(f'{tel} · {nom} : champs de texte à 16 px au moins (sinon Safari zoome)', not a['zoom'], a['zoom'])
     return a
+
+def photo(pg, chemin):   # (swiftshader chargé : une capture peut dépasser 30 s ; un échec de capture ne casse pas le parcours)
+    try: pg.screenshot(path=chemin, timeout=120000)
+    except Exception: L.append('  (!) capture ratée : ' + os.path.basename(chemin))
 
 def toucher(pg, sel, delai=30000):
     """un vrai toucher (page.touchscreen.tap) au centre de l'élément, après l'avoir fait défiler dans l'écran s'il le faut"""
@@ -99,12 +103,12 @@ def course_aux_doigts(pg, D, nom, etape):
     D = Doigts(pg)
     D.poser(1, '#tactileGaz'); pg.wait_for_timeout(2500)
     t(f'{nom} · {etape} : un doigt tenu sur GAZ (vrai toucher) = gaz 1', pg.evaluate('() => JEU.cibles.gaz === 1'), pg.evaluate('() => JEU.cibles'))
-    D.poser(2, '#tactileFrein'); pg.wait_for_timeout(600)
+    D.poser(2, '#tactileFrein'); attendre(pg, '() => JEU.cibles.frein === 1', None, 6000)
     t(f'{nom} · {etape} : GAZ et FREIN tenus ensemble par deux doigts', pg.evaluate('() => JEU.cibles.gaz === 1 && JEU.cibles.frein === 1'), pg.evaluate('() => JEU.cibles'))
     D.tout_lever(); pg.wait_for_timeout(300)
     l, h = pg.evaluate('() => [innerWidth, innerHeight]')
     pg.set_viewport_size({'width': h, 'height': l}); attendre(pg, '() => !document.getElementById("tactilePortrait").classList.contains("cache")', None, 8000); pg.wait_for_timeout(400)
-    pg.screenshot(path=os.path.join(CAPTURES, f'tel-{nom.replace(" ", "_").replace("+", "p")}-{etape}-debout.png'))
+    photo(pg, os.path.join(CAPTURES, f'tel-{nom.replace(" ", "_").replace("+", "p")}-{etape}-debout.png'))
     t(f'{nom} · {etape} : debout en pleine course, « Tourne ton téléphone » couvre l’écran et la course est en pause',
       pg.evaluate('() => JEU.ecran === "pause"') and pg.evaluate('() => { const r = document.getElementById("tactilePortrait").getBoundingClientRect(); return r.width >= innerWidth - 2 && r.height >= innerHeight - 2; }'), pg.evaluate('() => JEU.ecran'))
     pg.set_viewport_size({'width': l, 'height': h}); attendre(pg, '() => document.getElementById("tactilePortrait").classList.contains("cache")', None, 8000)
