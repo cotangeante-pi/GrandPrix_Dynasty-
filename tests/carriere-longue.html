@@ -1,0 +1,240 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>tests de la carrière entière</title></head><body>
+<pre id="res"></pre>
+<script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));
+window.__console=[];for(const n of ['warn','error']){const o=console[n].bind(console);console[n]=(...a)=>{__console.push(n+' : '+a.join(' '));o(...a);};}</script>
+<!-- la carrière entière (tour 55, T1) : 15 saisons de suite avec les vrais réglages du jeu (division 4 au départ, un plateau par division,
+     sponsors, argent, contrats, retraite, héritier, temple, album), un contrôle d'invariants après chaque étape, et les vieilles sauvegardes
+     (v1, v2, v3) qui s'ouvrent puis se jouent jusqu'à la retraite. Calcul pur (sans 3D) : python3 tests/lancer.py annexes, ou cette page seule -->
+<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script>
+<script src="../circuits-officiels-a.js"></script><script src="../circuits-officiels-b.js"></script><script src="../circuits.js"></script>
+<script src="../physique.js"></script><script src="../robot.js"></script><script src="../ia.js"></script>
+<script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../divisions.js"></script><script src="../pilote.js"></script><script src="../casque.js"></script>
+<script src="../journal.js"></script><script src="../argent.js"></script><script src="../garage.js"></script><script src="../saisons.js"></script><script src="../sponsors.js"></script>
+<script src="../patrons.js"></script><script src="../fiche.js"></script><script src="../interview.js"></script><script src="../carriere.js"></script>
+<script>
+const L=[];let ok=0,ko=0;
+function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
+const v=(c,m)=>{if(!c)throw new Error(m||'faux');};
+const R=REGLAGES;
+function ecrire(etape){document.getElementById('res').textContent=`${etape?'EN COURS ('+etape+') ':''}RESULTAT ${ok}/${ok+ko}\n`+L.join('\n');}
+localStorage.removeItem(SAUVEGARDE.CLE);
+
+// --- les contrôles qui valent après chaque étape ---
+// un nombre qui n'en est pas un (NaN, Infinity) ou un texte « undefined » / « NaN » / « [object » n'importe où dans le championnat
+function mauvais(x,chemin,sortie,prof){
+  if(sortie.length>5||prof>9) return;
+  if(typeof x==='number'){if(!Number.isFinite(x)) sortie.push(chemin+' = '+x);return;}
+  if(typeof x==='string'){if(/undefined|NaN|\[object|\{[a-z]+\}/.test(x)) sortie.push(chemin+' = « '+x+' »');return;}
+  if(Array.isArray(x)){x.forEach((y,i)=>mauvais(y,chemin+'['+i+']',sortie,prof+1));return;}
+  if(x&&typeof x==='object') for(const k of Object.keys(x)) mauvais(x[k],chemin+'.'+k,sortie,prof+1);
+}
+// le plateau où court le joueur est sain
+function plateauSain(ch,ou){
+  const P=ch.pilotes,E=ch.ecuries;
+  v(P.length===20&&E.length===10,ou+' : '+P.length+' pilotes, '+E.length+' écuries');
+  v(P.every((p,i)=>p.id===i),ou+' : id de pilote différent de son indice');
+  v(P.filter(p=>p.humain).length===1&&P[19].humain,ou+' : le joueur doit être le seul humain et la dernière voiture');
+  v(E.every((e,i)=>e.id===i),ou+' : id d’écurie');
+  for(const e of E) v(P.filter(p=>p.ecurie===e.id).length===2,ou+' : l’écurie '+e.id+' n’a pas 2 pilotes');
+  v(new Set(P.map(p=>p.numero)).size===20,ou+' : numéros en double : '+P.map(p=>p.numero).join());
+  v(P.every(p=>Number.isInteger(p.numero)&&p.numero>=1&&p.numero<=99),ou+' : numéro hors 1-99');
+  v(P.filter(p=>!p.humain).every(p=>Number.isInteger(p.age)&&p.age>=R.AGE_ARRIVEE[0]&&p.age<=R.AGE_RETRAITE_MAX),ou+' : âges '+P.filter(p=>!p.humain).map(p=>p.age).join());
+  v(P.filter(p=>!p.humain).every(p=>p.rythme>=R.RYTHME_MIN-1e-9&&p.rythme<=R.RYTHME_MAX+1e-9),ou+' : rythme');
+  v(E.every(e=>e.niveau>=R.NIVEAU_MIN-1e-9&&e.niveau<=R.NIVEAU_MAX+1e-9),ou+' : niveau d’écurie '+E.map(e=>e.niveau).join());
+  v(P.every(p=>p.stats.points>=0&&p.stats.victoires<=p.stats.courses&&p.stats.podiums<=p.stats.courses&&p.stats.podiums>=p.stats.victoires),ou+' : statistiques incohérentes');
+}
+function sain(ch,ou){
+  const m=[];mauvais(ch,'ch',m,0);v(!m.length,ou+' : '+m.join(' ; '));
+  plateauSain(ch,ou);
+  for(const d of Object.keys(ch.plateaux||{})) v(ch.plateaux[d]&&ch.plateaux[d].pilotes&&ch.plateaux[d].pilotes.length===20&&ch.plateaux[d].ecuries.length===10,ou+' : plateau '+d+' abîmé');
+  if(ch.plateaux&&DIVISIONS.numerosPris) v(DIVISIONS.numerosPris(ch).size>=20,ou+' : numéros pris');
+  v(typeof ch.argent.solde==='number'&&ch.argent.solde>=0,ou+' : argent '+JSON.stringify(ch.argent&&ch.argent.solde));
+  v(ch.saisons.length===(ch.enFinDeSaison||ch.retraite?ch.saison:ch.saison-1)||ch.saisons.length>=ch.saison-1,ou+' : '+ch.saisons.length+' saisons closes à la saison '+ch.saison);
+}
+// la sauvegarde relue est la même (aller-retour par localStorage)
+function allerRetour(ch,ou){
+  SAUVEGARDE.ecrireChampionnat(ch);const lu=SAUVEGARDE.lire().championnat;
+  const a=JSON.parse(JSON.stringify(ch)),b=JSON.parse(JSON.stringify(lu));
+  // (la lecture complète : seuls des champs ajoutés par « completer » peuvent différer, jamais les saisons ni les pilotes)
+  v(JSON.stringify(a.saisons)===JSON.stringify(b.saisons)&&JSON.stringify(a.pilotes)===JSON.stringify(b.pilotes)&&a.saison===b.saison&&a.division===b.division,ou+' : la sauvegarde relue diffère');
+  return lu;
+}
+// des Grands Prix joués sans physique ; force = la force du joueur (0,985 = le milieu de grille d'avancer ; plus haut, il gagne)
+function course(ch,force){
+  ALEATOIRE.semer(ch.graine+R.GRAINE_SAISONS+7+ch.saison*1000+ch.prochain);
+  const f=ch.pilotes.map(p=>(p.humain?force:(p.rythme||1)*ch.ecuries[p.ecurie].niveau)+hasard()*0.04);
+  const ordre=ch.pilotes.map(p=>p.id).sort((a,b)=>f[b]-f[a]);
+  const grille=ch.pilotes.map(p=>p.id).sort((a,b)=>f[b]+(hasard()-0.5)*0.02-f[a]);
+  // quelques abandons, une pénalité : ce que les vraies courses font aussi (classe: false, penalites)
+  const ab=Math.floor(hasard()*20);
+  const lignes=ordre.map((k,i)=>({k,place:i+1,grille:grille.indexOf(k)+1,ligne:i+1,penalites:k===ab?5:0,meilleurTour:60+i*0.1+hasard(),classe:!(k===ab&&k!==19&&hasard()<0.5)}));
+  ALEATOIRE.semer();
+  CHAMPIONNAT.enregistrerCourse(ch,lignes);
+  JOURNAL.ranger(ch,JOURNAL.composer(ch,lignes));ARGENT.encaisser(ch,lignes);SPONSORS.suivre(ch,lignes);
+}
+// une saison entière, comme principal.js : 12 Grands Prix, la fin de saison ; renvoie false à la retraite
+function saison(ch,force,choix){
+  for(let g=0;g<R.NB_GRANDS_PRIX;g++) course(ch,force);
+  v(SAISONS.finie(ch),'saison pas finie');
+  const b=SAISONS.terminerSaison(ch);v(b&&b.saison===ch.saison&&b.pilotes.length===20,'bilan');
+  v(JSON.stringify(SAISONS.terminerSaison(ch).pilotes)===JSON.stringify(b.pilotes),'terminerSaison deux fois : le même bilan');
+  v(ch.saisons.filter(s=>s.saison===ch.saison).length===1,'saison close deux fois');
+  if(ch.retraite) return false;
+  const o=SAISONS.offres(ch);v(o.length>=1,'aucune offre de contrat');
+  v(o.every(x=>typeof x.ecurie==='number'&&Number.isFinite(x.niveau)&&(x.salaire===undefined||Number.isFinite(x.salaire))),'offre abîmée '+JSON.stringify(o[0]));
+  const e=o[choix==='haut'?0:choix==='bas'?o.length-1:Math.min(1,o.length-1)].ecurie;
+  v(SAISONS.signer(ch,e),'signature refusée');
+  // le sponsor de la nouvelle saison, comme l'écran
+  const s=SPONSORS.offres(ch);v(s.length>=1&&s.every(x=>Number.isFinite(x.montant)&&x.objectifs.every(y=>Number.isFinite(y.prime))),'offres de sponsor');
+  v(SPONSORS.choisir(ch,s[0].cle),'sponsor');
+  return true;
+}
+// la carrière : jusqu'à la retraite ; contrôle à chaque saison
+function carriere(ch,force,choix,debut){
+  const trace=[];let n=0;
+  const j=ch.pilotes[19];if(!j.nom){j.nom='Alex Rossi';j.numero=j.numero||27;}
+  for(;;){
+    const suite=saison(ch,force,choix);n++;
+    sain(ch,'saison '+(ch.saison)+' (n°'+n+')');
+    trace.push(ch.saisons[ch.saisons.length-1].joueur+'/D'+ch.division);
+    if(!suite) break;
+    if(n>40) throw new Error('la carrière ne finit pas');
+  }
+  return {n,trace};
+}
+
+// 1. trois carrières de 15 saisons, joueur faible / milieu / fort, avec les vrais réglages
+for(const [nom,force,choix,graine] of [['faible',0.93,'bas',5],['milieu',0.985,'milieu',6],['fort',1.12,'haut',7]]){
+  t('15 saisons ('+nom+') : chaque saison saine (plateaux, numéros, âges, niveaux, argent, rien de NaN ni « undefined »), la retraite par l’âge arrive à la 15e et pas avant, le bilan, le temple et la sauvegarde suivent', ()=>{
+    localStorage.removeItem(SAUVEGARDE.CLE);
+    const ch=CHAMPIONNAT.creer(graine);
+    const {n,trace}=carriere(ch,force,choix);
+    v(n===R.SAISONS_MAX&&ch.saison===R.SAISONS_MAX,'retraite à la saison '+n);
+    v(ch.retraite&&ch.retraite.raison==='age'&&ch.retraite.saisons===R.SAISONS_MAX,'retraite : '+JSON.stringify(ch.retraite));
+    v(!ch.saisons.slice(0,-1).some(s=>s.retraite),'retraite trop tôt');
+    v(SAISONS.offres(ch).length>=0&&!SAISONS.signer(ch,0),'signer après la retraite');
+    const b=CARRIERE.bilan(ch);
+    v(b.courses===180&&b.victoires===ch.pilotes[19].stats.victoires,'bilan : '+JSON.stringify([b.saisons,b.courses,b.victoires]));
+    const place=SAUVEGARDE.entrerAuTemple(ch),place2=SAUVEGARDE.entrerAuTemple(ch);
+    v(place===place2&&SAUVEGARDE.temple().carrieres.length===1,'temple : une seule entrée');
+    // l'album : chaque une se redessine sans erreur et sans texte cassé
+    v(ch.album.length>=15,'album : '+ch.album.length);
+    const noms={pilote:p=>'P'+(p&&p.numero),ecurie:e=>'E'+(e&&e.id)};let cassees=0;
+    for(let i=0;i<ch.album.length;i++){const r=JOURNAL.rendreAlbum(ch,i,noms);const s=JSON.stringify(r);if(!r||/undefined|NaN|\[object/.test(s)) cassees++;}
+    v(!cassees,cassees+' unes mal redessinées');
+    const un=allerRetour(ch,'fin de carrière');sain(un,'relue');
+    const montees=trace.filter(x=>/D[123]$/.test(x)).length;
+    L.push('  ('+nom+' : places/divisions '+trace.join(' ')+' ; sauvegarde '+(JSON.stringify(ch).length/1024).toFixed(1)+' Ko ; '+ch.retraites.length+' retraités ; temple place '+place+')');
+    if(nom==='fort') v(montees>0&&ch.division<R.DIVISION_DEPART||ch.division<=R.DIVISION_DEPART,'division');
+  });
+  ecrire(nom);
+}
+
+// 2. une montée : le joueur fort change de division, les plateaux restent 20 + 10, et la division finit par être la 1
+t('divisions : un joueur fort monte de division sans rien casser (plateau neuf, rivaux qui montent, numéros uniques sur tous les plateaux) et atteint la division 1', ()=>{
+  const ch=CHAMPIONNAT.creer(7);let max=ch.division;const vus=new Set();
+  for(let s=1;s<=R.SAISONS_MAX;s++){if(!saison(ch,1.2,'haut')) break;sain(ch,'montée, saison '+s);max=Math.min(max,ch.division);vus.add(ch.division);
+    const tous=[];for(const p of ch.pilotes) tous.push(p.numero);for(const d of Object.keys(ch.plateaux||{})) for(const p of ch.plateaux[d].pilotes) tous.push(p.numero);
+    v(new Set(tous).size===tous.length,'numéro en double entre plateaux à la saison '+s);}
+  v(max<R.DIVISION_DEPART,'jamais monté : division '+max);
+  L.push('  (divisions visitées : '+[...vus].join(',')+' ; la meilleure : '+max+')');
+});
+
+// 3. la relève : 3 générations de 15 saisons (45 saisons de suite), chaque génération saine, le monde continue
+t('relève : 3 générations de 15 saisons de suite (45 saisons) : tout reste sain, les numéros uniques, le nom de famille gardé, les records de famille justes, la sauvegarde reste petite', ()=>{
+  localStorage.removeItem(SAUVEGARDE.CLE);
+  const ch=CHAMPIONNAT.creer(11);const j0=ch.pilotes[19];j0.nom='Alex Rossi';j0.numero=27;j0.pays='fr';j0.coeur='technique';
+  const gens=[];
+  for(let g=0;g<3;g++){
+    const {n}=carriere(ch,[1.0,1.05,0.98][g],'milieu');v(n===R.SAISONS_MAX,'génération '+g+' : '+n+' saisons');
+    gens.push(CARRIERE.resume(ch));
+    SAUVEGARDE.entrerAuTemple(ch);
+    if(g<2){const num=[...Array(99).keys()].map(x=>x+1).find(x=>PILOTE.numeroLibre(ch,x));
+      v(CARRIERE.continuer(ch,{prenom:['Léa','Tom'][g],lien:['fille','fils'][g],numero:num}),'continuer refusé');
+      v(ch.pilotes[19].nom.endsWith('Rossi')&&!ch.retraite,'nom de famille / retraite : '+ch.pilotes[19].nom);
+      sain(ch,'héritier '+g);
+      // l'héritier joue tout de suite : un sponsor à choisir
+      const s=SPONSORS.offres(ch);v(s.length&&SPONSORS.choisir(ch,s[0].cle),'sponsor de l’héritier');}
+  }
+  const f=CARRIERE.recordsFamille(ch);v(f.generations===3&&ch.saison===45,'famille : '+JSON.stringify(f)+' saison '+ch.saison);
+  v(f.titres===gens.reduce((a,x)=>a+x.titres,0)&&f.victoires===gens.reduce((a,x)=>a+x.victoires,0),'records de famille');
+  v(SAUVEGARDE.temple().carrieres.length===3,'temple : '+SAUVEGARDE.temple().carrieres.length);
+  const taille=JSON.stringify(ch).length,total=localStorage.getItem(SAUVEGARDE.CLE).length;
+  L.push('  (3 générations : championnat '+(taille/1024).toFixed(1)+' Ko, sauvegarde entière '+(total/1024).toFixed(1)+' Ko, '+ch.album.length+' unes, '+ch.retraites.length+' retraités)');
+  v(taille<600000,taille+' octets');
+});
+
+// 3b. l'héritier d'un champion de division 1, et la retraite anticipée au milieu de la carrière
+t('relève en haut de grille : l\u2019héritier d\u2019un pilote de division 1 repart sain (plateau, numéros, argent à 0, sponsor à choisir), joue ses 15 saisons ; une retraite anticipée (au choix) à la saison 4 donne aussi un héritier', ()=>{
+  localStorage.removeItem(SAUVEGARDE.CLE);
+  const ch=CHAMPIONNAT.creer(7);const j0=ch.pilotes[19];j0.nom='Alex Rossi';j0.numero=27;j0.pays='fr';j0.coeur='technique';
+  carriere(ch,1.2,'haut');v(ch.division===1,'division '+ch.division);
+  const num=[...Array(99).keys()].map(x=>x+1).find(x=>PILOTE.numeroLibre(ch,x));
+  v(CARRIERE.continuer(ch,{prenom:'Léa',lien:'fille',numero:num}),'continuer refusé en division 1');sain(ch,'héritier D1');
+  v(ch.argent.solde===0&&SPONSORS.aChoisir(ch)&&ch.pilotes[19].stats.courses===0&&ch.carriere.debut===ch.saison,'héritier : '+JSON.stringify([ch.argent.solde,ch.pilotes[19].stats.courses,ch.carriere.debut,ch.saison]));
+  const {n}=carriere(ch,1.0,'milieu');v(n===R.SAISONS_MAX,'l\u2019héritier joue '+n+' saisons');
+  // la retraite anticipée
+  const c2=CHAMPIONNAT.creer(8);c2.pilotes[19].nom='Max Dupont';c2.pilotes[19].numero=33;c2.pilotes[19].pays='fr';c2.pilotes[19].coeur='technique';
+  for(let s=1;s<=4;s++){saison(c2,1.0,'milieu');}
+  for(let g=0;g<R.NB_GRANDS_PRIX;g++) course(c2,1.0);SAISONS.terminerSaison(c2);
+  v(!c2.retraite,'retraite avant l\u2019heure');SAISONS.prendreRetraite(c2,'choix');v(c2.retraite.raison==='choix'&&c2.retraite.saisons===5,'retraite : '+JSON.stringify(c2.retraite));
+  v(!SAISONS.signer(c2,0),'signer après la retraite');
+  const b=CARRIERE.bilan(c2);v(b.saisons===5,'bilan '+b.saisons);SAUVEGARDE.entrerAuTemple(c2);
+  const num2=[...Array(99).keys()].map(x=>x+1).find(x=>PILOTE.numeroLibre(c2,x));
+  v(CARRIERE.continuer(c2,{prenom:'Tom',lien:'fils',numero:num2}),'héritier refusé');sain(c2,'héritier après retraite anticipée');
+  const r=carriere(c2,1.0,'milieu');v(r.n===R.SAISONS_MAX,'héritier : '+r.n+' saisons');
+});
+
+// 4. les vieilles sauvegardes : elles s'ouvrent sans erreur, puis se jouent jusqu'à la retraite
+function vieux(version){
+  const ch=CHAMPIONNAT.creer(21);const j=ch.pilotes[19];j.nom=version===1?null:'Alex Rossi';
+  for(let g=0;g<5;g++) course(ch,1.0);
+  const c=JSON.parse(JSON.stringify(ch));
+  // ce qui n'existait pas encore (les saisons, la carrière, la relève, les divisions, les plateaux, le fantôme…)
+  for(const k of ['saisons','retraites','contrats','enFinDeSaison','retraite','confiance','transferts','album','carriere','dynastie','duel','division','plateau','plateaux','parcours','sponsor','reputation','patrons','rivaux','courrier','statut']) delete c[k];
+  for(const p of c.pilotes){delete p.age;delete p.rythme;delete p.casque;delete p.coeur;delete p.pays;}
+  for(const e of c.ecuries) delete e.titres;
+  if(version===2){c.pilotes[19].nom='Pilote joueur';c.pilotes[3].nom='Pilote 4';c.ecuries[2].nom='Écurie 3';}
+  return c;
+}
+for(const version of [1,2,3]) t('vieille sauvegarde v'+version+' : elle s’ouvre sans erreur, elle se complète (pilotes, écuries, saison, divisions), elle se joue jusqu’à la retraite', ()=>{
+  localStorage.removeItem(SAUVEGARDE.CLE);
+  const racine=version===1?{version:1,records:{'5':12.3}}:{version,records:{},championnat:vieux(version)};
+  localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify(racine));
+  const d=SAUVEGARDE.lire();
+  v(d.version===SAUVEGARDE.VERSION&&d.records&&d.temple&&Array.isArray(d.temple.carrieres),'racine : '+Object.keys(d));
+  if(version===1){v(d.championnat===null&&d.records['5']===12.3,'v1 : le record est perdu ou un championnat est apparu');
+    // une v1 démarre un championnat neuf, qui se joue entier
+    const ch=CHAMPIONNAT.creer(3);const {n}=carriere(ch,1,'milieu');v(n===15,'v1 puis carrière : '+n);return;}
+  const ch=d.championnat;v(ch&&ch.pilotes.length===20,'championnat perdu');
+  v(!SAUVEGARDE.perdue(),'signalée perdue');
+  v(ch.saisons&&ch.carriere&&ch.dynastie&&ch.album&&ch.argent&&ch.garage&&ch.duel,'champs manquants : '+['saisons','carriere','dynastie','album','argent','garage','duel'].filter(k=>!ch[k]));
+  v(ch.pilotes.filter(p=>!p.humain).every(p=>Number.isFinite(p.age)&&Number.isFinite(p.rythme)),'âge/rythme');
+  v(ch.prochain===5&&ch.resultats.length===5,'les 5 Grands Prix courus sont gardés');
+  if(version===2) v(ch.pilotes[19].nom===null&&ch.pilotes[3].nom===null&&ch.ecuries[2].nom===null,'noms provisoires pas remplacés');
+  const m=[];mauvais(ch,'ch',m,0);v(!m.length,m.join(' ; '));
+  // le reste de la saison, puis jusqu'à la retraite (ch.carriere.debut = 1 : 15 saisons à jouer)
+  for(let g=ch.prochain;g<R.NB_GRANDS_PRIX;g++) course(ch,1.0);
+  let n=0;for(;;){n++;const fin=ch.saison;
+    if(!SAISONS.finie(ch)) for(let g=ch.prochain;g<R.NB_GRANDS_PRIX;g++) course(ch,1.0);
+    SAISONS.terminerSaison(ch);sain(ch,'v'+version+' saison '+ch.saison);
+    if(ch.retraite) break;
+    SAISONS.signer(ch,SAISONS.offres(ch)[0].ecurie);const s=SPONSORS.offres(ch);SPONSORS.choisir(ch,s[0].cle);if(n>40) throw new Error('sans fin');}
+  v(n===15&&ch.retraite.raison==='age','retraite après '+n+' saisons');
+  v(CARRIERE.bilan(ch).saisons===15,'bilan');
+  SAUVEGARDE.ecrireChampionnat(ch);v(SAUVEGARDE.lire().championnat.retraite,'retraite relue');
+  L.push('  (v'+version+' : jouée jusqu’à la retraite, '+(JSON.stringify(ch).length/1024).toFixed(1)+' Ko)');
+});
+
+// 5. SAISONS_MAX et AGE_RETRAITE : les réglages changent bien la carrière
+t('réglages : SAISONS_MAX = 3 donne une carrière de 3 saisons ; un rival de AGE_RETRAITE_MAX ans prend sa retraite à coup sûr, remplacé par un jeune sans nom', ()=>{
+  const sauve=R.SAISONS_MAX;try{R.SAISONS_MAX=3;const ch=CHAMPIONNAT.creer(2);const {n}=carriere(ch,1,'milieu');v(n===3&&ch.retraite.saisons===3,'saisons '+n);}finally{R.SAISONS_MAX=sauve;}
+  const ch=CHAMPIONNAT.creer(4);const r=ch.pilotes[0];r.age=R.AGE_RETRAITE_MAX;const num=r.numero;
+  SAISONS.avancer(ch,R.NB_GRANDS_PRIX);SAISONS.terminerSaison(ch);SAISONS.signer(ch,SAISONS.offres(ch)[0].ecurie);
+  v(ch.retraites.some(x=>x.id===0&&x.numero===num)&&ch.pilotes[0].nom===null&&ch.pilotes[0].age<=R.AGE_ARRIVEE[1],'retraite du plus vieux : '+JSON.stringify(ch.retraites.map(x=>[x.id,x.age])));
+  sain(ch,'après la retraite d’un rival');
+});
+
+t('aucune erreur JavaScript, aucun avertissement dans la console', ()=>{v(__err.length===0,__err.join(' | '));v(__console.length===0,__console.slice(0,3).join(' | '));});
+ecrire();
+</script></body></html>
