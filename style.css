@@ -1841,7 +1841,7 @@ body.tactile #pageReglages .pageBoutons button, body.tactile #pageReglages .page
   #contrats h1 { font-size: 20px; line-height: 1.1; margin: 0; }
   #contrats h1::after { margin-top: 2px; height: 3px; }
   #contratsNote { font-size: 12px; }
-  #contratsListe { gap: 3px; margin: 0; max-height: calc(100vh - 124px); overflow-y: auto; }
+  #contratsListe { gap: 3px; margin: 0; max-height: calc(100vh - 124px); max-height: calc(100dvh - 124px); overflow-y: auto; }
   #contratsListe li { padding: 2px 8px; gap: 6px; font-size: 12px; line-height: 1.2; }
   #contrats button.signer, #contrats button.negocier { padding: 3px 10px; font-size: 12px; }
   #contrats .boutons button { padding: 6px 16px; font-size: 13px; }
@@ -2128,4 +2128,25 @@ body.tactile #boutonClassementPleinRetour { min-height: 40px; min-width: 160px; 
   #hudPrecedent { font-size: 10px; }
   #hudSecteurs { gap: 3px; }
   .secteur { min-width: 0; padding: 0 3px; font-size: 10px; }
+}
+
+/* (tour 54b, le téléphone émulé : tests/telephones.py) ce que l'émulation d'un vrai téléphone a montré.
+   - pas de zoom au double toucher ni de « tirer pour rafraîchir » en pleine course, pas de halo gris sous le doigt ;
+   - Safari zoome la page quand on touche un champ de texte dont la police fait moins de 16 px (création du pilote, discussion, défi) ;
+   - la barre d'adresse : 100vh est la hauteur SANS la barre (iOS) ; 100dvh est la hauteur visible (le premier est gardé pour les vieux navigateurs) ;
+   - 🔊 ⏸ ↩ en course : 36 px au lieu de 30×28 (le pouce) ; « Entre amis » du titre : 40 px ;
+   - la pause a plus de boutons qu'un écran de 320 px de haut n'en tient : elle défile au doigt au lieu de sortir de l'écran. */
+html, body { touch-action: manipulation; overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
+body.tactile input, body.tactile select, body.tactile textarea { font-size: 16px; }
+body.tactile #titre button { min-height: 40px; }
+#discussionCarte { max-height: calc(100dvh - 110px); }
+#discussionFil { max-height: 38dvh; }
+body.tactile #discussionCarte { max-height: calc(100dvh - 52px); }
+@media (max-height: 420px) {
+  body.tactile:not(.horsCourse) #boutonSon, body.tactile #tactilePause, body.tactile #tactileRemise { width: 36px; height: 36px; font-size: 16px; }
+  body.tactile #tactilePause { left: 52px; } body.tactile #tactileRemise { left: 92px; }
+  body.tactile #pause { justify-content: flex-start; overflow-y: auto; touch-action: pan-y; -webkit-overflow-scrolling: touch; padding-top: 6px; padding-bottom: 10px; }
+  body.tactile #pause > :first-child { margin-top: auto; }
+  body.tactile #pause > :last-child { margin-bottom: auto; }
+  body.tactile #pause button, body.tactile #pause button.petit { min-height: 40px; }
 }
