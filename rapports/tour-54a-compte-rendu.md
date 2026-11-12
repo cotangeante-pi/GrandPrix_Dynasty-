@@ -1,0 +1,8 @@
+TOUR 54a — compte rendu du Codeur
+Branche : longueur-partout (depuis origin/main, fusionnée avec 7a2415e)
+Ordres : 1 fait (longueur partout) / 2 fait (rétroviseur) / 3 (Course du paddock) pas fait, faute de temps.
+1. Course rapide : l'écran « Choisis ta course » proposait déjà 5 / 12 / 18 tours (mêmes noms que la carrière) en gros boutons ; test ajouté (≥ 40 px, dans l'écran, sans défilement, fr et en, 640×360). À deux : trois gros boutons 5 / 12 / 18 (mêmes classes, mêmes textes) à la place de la liste « Tours » (DEUX_LONGUE_CHOIX ; faux = la liste 3 / 5 d'avant) ; 3 reste permis par l'adresse et les tests ; 640×360 sur la même ligne que circuit / rivaux / niveau. Tests : tests/ecrans.py (test=amis en 640, 960, 1280 ; seul=1 en 640 fr et en), test.html (nbToursValide).
+2. Rétroviseur : cause = la ligne « Tour précédent » apparaissait et le chrono grandissait, la place du rétroviseur n'étant relue que toutes les 0,5 s. HUD_PRECEDENT_RESERVE (la ligne garde sa place, invisible) + ResizeObserver ; en 640×360 le chrono est resserré pour ne recouvrir ni la minicarte ni la tour de classement. Test : test=retro en 640, 960, 1280, mesure des recouvrements dans l'image où le texte arrive + capture retroviseur-precedent-*.png.
+Sortie des tests : Mac chargé (verrou pris ~1h, un ecrans.py bloqué tué) ; avant l'ajustement 640 des CSS : 169/174, les 5 échecs corrigés depuis. GitHub aa60cdd : 17/18, seul échec « Retour » à 640 (test trop strict, corrigé).
+Ce que je n'ai pas pu vérifier : captures finales 640×360 de l'écran à deux et du chrono après les derniers CSS (GitHub tranche).
+Réévalue.

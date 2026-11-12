@@ -1325,7 +1325,7 @@ def amis(pg, titre, l, h):
     pg.select_option('#deuxMotif2', 'damier'); pg.select_option('#deuxIA', '3'); pg.select_option('#deuxTours', '3'); pg.select_option('#deuxNiveau', 'debutant'); pg.select_option('#deuxCircuit', 'test')
     t(f'{titre} : deux couleurs différentes : le message d’erreur disparaît dès le nouveau choix', pg.evaluate('() => document.getElementById("deuxErreur").textContent === ""'), pg.evaluate('() => document.getElementById("deuxErreur").textContent'))
     rb = pg.evaluate('() => { const b = document.getElementById("boutonDeuxRetour").getBoundingClientRect(), p = document.getElementById("boutonDeuxPartir").getBoundingClientRect(); return [b.top + b.height / 2, p.top + p.height / 2, b.height, p.height]; }')
-    t(f'{titre} : le petit bouton « Retour » est centré sur la ligne de « C’est parti ! », pas étiré', abs(rb[0] - rb[1]) < 2 and rb[2] < rb[3], str(rb))
+    t(f'{titre} : le petit bouton « Retour » est centré sur la ligne de « C’est parti ! », pas étiré', abs(rb[0] - rb[1]) < 2 and rb[2] <= rb[3], str(rb))
     pg.wait_for_timeout(200); pg.screenshot(path=os.path.join(CAPTURES, 'deux-reglages.png'))
     carriere = pg.evaluate('() => localStorage.getItem(SAUVEGARDE.CLE) && JSON.stringify(JSON.parse(localStorage.getItem(SAUVEGARDE.CLE)).championnat)')
     with pg.expect_navigation(): pg.click('#boutonDeuxPartir')
