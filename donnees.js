@@ -518,6 +518,7 @@ const REGLAGES = {
   },
   DEUX_RAPPEL_DUREE: 10,       // s : le rappel des touches de chaque joueur s'efface au plus tard ce temps après l'extinction des feux (touches.js)
   DEUX_TOURS_CHOIX: [3, 5],     // les longueurs de course permises (la première par défaut)
+  DEUX_LONGUE_CHOIX: true,      // (tour 54a) à deux, les mêmes trois gros boutons 5 / 12 / 18 tours que sur la page Course de la carrière (LONGUEURS_COURSE), 5 d'office ; 3 reste permis par l'adresse (?tours=3) et les tests ; faux : la liste « Tours » 3 / 5, comme avant
   DEUX_IA_CHOIX: [0, 3, 5],     // les nombres d'IA permis (la première valeur par défaut)
   DEUX_VOITURES_MAX: 7,         // jamais plus de voitures en piste (2 joueurs + 5 IA) : la 3D est dessinée deux fois
   DEUX_COULEURS: [0x1f6fe0, 0xd8262e],   // la couleur des voitures du joueur 1 🔵 et du joueur 2 🔴 (en attendant leur choix, ordre 3)
@@ -1381,6 +1382,7 @@ const REGLAGES = {
   RETRO_CHAMP: 55, RETRO_PRES: 0.5, RETRO_LOIN: 400,   // degrés de gauche à droite ; m (rien au-delà : moins à dessiner)
   RETRO_RECUL: 1.6, RETRO_HAUTEUR: 1.1,                // m : la caméra à l'arrière de la voiture, à hauteur de casque…
   RETRO_VISEE: 40, RETRO_VISEE_Y: 0.4,                 // … qui regarde à tant de mètres derrière, à cette hauteur
+  HUD_PRECEDENT_RESERVE: true,  // (tour 54b) la ligne « Tour précédent » du chrono garde sa place avant le 1er tour fini (invisible) : le chrono ne grandit plus quand elle apparaît, le rétroviseur ne passe plus dessus ; faux : comme avant (la ligne apparaît, le chrono grandit, le rétroviseur se replace dans les 0,5 s)
   RETRO_MAJ_ZONE: 0.5,          // s : la place du chrono est relue tous les tant
   // les réglages fixes du menu (haute = l'image d'avant) ; les voitures, la densité et les effets y restent ceux du plus beau
   QUALITE_CRANS: [

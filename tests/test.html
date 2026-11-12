@@ -2765,6 +2765,12 @@ t('2 joueurs : la course : nbIA + 2 voitures, les deux joueurs humains (p.joueur
   for(const n of [9,20,-1,NaN,2,4]) v(courseADeux(n,3,1).pilotes.length===R.DEUX_IA_CHOIX[0]+2,n+' IA demandées : '+courseADeux(n,3,1).pilotes.length);
   const choix=R.DEUX_IA_CHOIX;R.DEUX_IA_CHOIX=[0,3,5,8];v(DEUX_JOUEURS.nbIAValide(8)===R.DEUX_VOITURES_MAX-2,'plafond '+DEUX_JOUEURS.nbIAValide(8));R.DEUX_IA_CHOIX=choix;
   v(DEUX_JOUEURS.nbToursValide(5)===5&&DEUX_JOUEURS.nbToursValide(3)===3&&DEUX_JOUEURS.nbToursValide(4)===R.DEUX_TOURS_CHOIX[0]&&DEUX_JOUEURS.nbToursValide(NaN)===R.DEUX_TOURS_CHOIX[0],'tours');
+  // (tour 54a) DEUX_LONGUE_CHOIX : les trois longueurs de la carrière (5, 12, 18) à deux ; faux : seulement 3 et 5, comme avant
+  { const dl=R.DEUX_LONGUE_CHOIX; R.DEUX_LONGUE_CHOIX=true;
+    v(DEUX_JOUEURS.nbToursValide(12)===12&&DEUX_JOUEURS.nbToursValide(18)===18&&DEUX_JOUEURS.nbToursValide(7)===R.DEUX_TOURS_CHOIX[0]&&Object.values(R.LONGUEURS_COURSE).filter(n=>n>0).every(n=>DEUX_JOUEURS.toursPermis().includes(n)),'DEUX_LONGUE_CHOIX : 5, 12 et 18 tours permis');
+    R.DEUX_LONGUE_CHOIX=false;
+    v(DEUX_JOUEURS.nbToursValide(12)===R.DEUX_TOURS_CHOIX[0]&&DEUX_JOUEURS.nbToursValide(18)===R.DEUX_TOURS_CHOIX[0]&&DEUX_JOUEURS.toursPermis().join()===R.DEUX_TOURS_CHOIX.join(),'DEUX_LONGUE_CHOIX faux : 3 et 5 seulement, comme avant');
+    R.DEUX_LONGUE_CHOIX=dl; }
   L.push('  (grille à 2 + 5 IA, graines 1 à 12 : place du joueur 1 = '+places.join(' ')+')');});
 t('2 joueurs : une course à 2 + 5 IA (3 tours, les deux joueurs conduits par le robot) finit : les 7 voitures arrivent et sont classées 1 à 7, les deux joueurs classés ; la même graine redonne exactement le même classement et les mêmes temps', ()=>{
   const jouer=graine=>{JEU.deux={nbIA:5,nbTours:3};JEU.robot=true;const e=courseADeux(5,3,graine);let k=0;

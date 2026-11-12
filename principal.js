@@ -2406,6 +2406,7 @@ function retroVisible() {
 function majRetro(dt) {
   const cadre = document.getElementById('retroviseur'), oui = retroVisible();
   if (!oui) { if (SCENE3D.retroZone) SCENE3D.reglerRetro(null); if (cadre) cadre.classList.add('cache'); return; }
+  if (!JEU.retroObs && typeof ResizeObserver !== 'undefined' && document.getElementById('hudCourse')) { JEU.retroObs = new ResizeObserver(() => { JEU.retroMaj = 0; }); JEU.retroObs.observe(document.getElementById('hudCourse')); }   // (tour 54b) le chrono change de taille : la place est relue tout de suite
   JEU.retroMaj = (JEU.retroMaj || 0) - dt;
   if (!JEU.retroPlace || JEU.retroMaj <= 0) {   // (la place du chrono, relue de temps en temps : lire une boîte force la mise en page)
     JEU.retroMaj = REGLAGES.RETRO_MAJ_ZONE;
