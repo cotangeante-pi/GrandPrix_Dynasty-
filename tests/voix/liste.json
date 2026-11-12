@@ -3,7 +3,8 @@
   "id": "depart-1",
   "moment": "Le départ",
   "fait": "depart",
-  "texte": "Et c'est PARTI !"
+  "texte": "Et c'est PARTI !",
+  "texte_long": "Les voitures sont lancées, et c'est PARTI !"
  },
  {
   "id": "depart-2",
@@ -28,7 +29,8 @@
   "id": "depassement-2",
   "moment": "Dépassement",
   "fait": "depassement",
-  "texte": "Quel DÉPASSEMENT !"
+  "texte": "Quel DÉPASSEMENT !",
+  "texte_long": "Il double son rival, quel DÉPASSEMENT !"
  },
  {
   "id": "depassement-3",
@@ -59,7 +61,7 @@
   "moment": "Bataille",
   "fait": "coteACote",
   "texte": "Roues contre ROUES !",
-  "texte_long": "Ils roulent roues contre ROUES !"
+  "texte_long": "Les deux pilotes sont roue contre ROUE !"
  },
  {
   "id": "bataille-3",
@@ -84,7 +86,8 @@
   "id": "erreur-3",
   "moment": "Erreur, herbe",
   "fait": "erreur",
-  "texte": "Ça glisse, c'est la SORTIE !"
+  "texte": "Ça glisse, c'est la SORTIE !",
+  "texte_long": "Il glisse dans le virage, c'est la SORTIE !"
  },
  {
   "id": "glissade-1",
@@ -103,13 +106,15 @@
   "id": "contact-1",
   "moment": "Contact",
   "fait": "contact",
-  "texte": "Aïe, CONTACT !"
+  "texte": "Aïe, CONTACT !",
+  "texte_long": "Les deux voitures se touchent, aïe, CONTACT !"
  },
  {
   "id": "contact-2",
   "moment": "Contact",
   "fait": "contact",
-  "texte": "Ça TOUCHE !"
+  "texte": "Ça TOUCHE !",
+  "texte_long": "Les voitures se frottent, ça TOUCHE !"
  },
  {
   "id": "arret-1",
@@ -146,19 +151,22 @@
   "id": "pluie-2",
   "moment": "Pluie",
   "fait": "pluie",
-  "texte": "Attention, il PLEUT !"
+  "texte": "Attention, il PLEUT !",
+  "texte_long": "Regardez le ciel, attention, il PLEUT !"
  },
  {
   "id": "meilleurTour-1",
   "moment": "Meilleur tour",
   "fait": "meilleurTour",
-  "texte": "MEILLEUR tour !"
+  "texte": "MEILLEUR tour !",
+  "texte_long": "Il vient de réaliser le MEILLEUR tour !"
  },
  {
   "id": "meilleurTour-2",
   "moment": "Meilleur tour",
   "fait": "meilleurTour",
-  "texte": "Quel CHRONO !"
+  "texte": "Quel CHRONO !",
+  "texte_long": "Il tourne très vite, quel CHRONO !"
  },
  {
   "id": "meilleurTour-3",
@@ -188,7 +196,8 @@
   "id": "arrivee-2",
   "moment": "Arrivée, victoire",
   "fait": "arrivee",
-  "texte": "Quelle VICTOIRE !"
+  "texte": "Quelle VICTOIRE !",
+  "texte_long": "Il passe la ligne, quelle VICTOIRE !"
  },
  {
   "id": "arrivee-3",
@@ -206,7 +215,8 @@
   "id": "podium-2",
   "moment": "Podium",
   "fait": "podium",
-  "texte": "Voilà le PODIUM !"
+  "texte": "Voilà le PODIUM !",
+  "texte_long": "Les trois pilotes arrivent, voilà le PODIUM !"
  },
  {
   "id": "joueurArrivee-1",
@@ -224,19 +234,22 @@
   "id": "remontee-1",
   "moment": "Remontée",
   "fait": "remontee",
-  "texte": "Quelle REMONTÉE !"
+  "texte": "Quelle REMONTÉE !",
+  "texte_long": "Il revient sur les autres, quelle REMONTÉE !"
  },
  {
   "id": "remontee-2",
   "moment": "Remontée",
   "fait": "remontee",
-  "texte": "Ça REMONTE !"
+  "texte": "Ça REMONTE !",
+  "texte_long": "Il double, il avance, ça REMONTE !"
  },
  {
   "id": "penalite-1",
   "moment": "Pénalité",
   "fait": "penalite",
-  "texte": "PÉNALITÉ !"
+  "texte": "PÉNALITÉ !",
+  "texte_long": "Les commissaires décident, une PÉNALITÉ !"
  },
  {
   "id": "penalite-2",

@@ -28,6 +28,8 @@ TEMPS_TEXTE, TEMP_SON = [0.65, 0.78], 0.7
 BONNES = int(option('--bonnes', '2'))  # une phrase qui a déjà BONNES prises comprises par Whisper (notes.json, relu à chaque prise) ne reçoit plus de prise
 
 ECHECS = 6
+IDS = option('--ids', '').split(',') if option('--ids', '') else None  # (tour 54c) seulement ces phrases
+LONG = '--long' in sys.argv  # (tour 54c) toujours la version texte_long quand elle existe
 
 def comprises(cle):
     """Le nombre de prises de cette phrase que Whisper a comprises (notes.json, écrit par transcrire.py ; 0 s'il n'existe pas)."""
@@ -55,13 +57,14 @@ def main():
     for prise in range(DE, DE + PRISES):
         for voix in VOIX:
             for ph in liste:
+                if IDS and ph['id'] not in IDS: continue
                 nom = 'bark-fr-v%d-%s-p%d' % (voix, ph['id'], prise)
                 if nom in faites: continue
                 if comprises(ph['id']) >= BONNES: continue
                 if heure_passee(): print('heure atteinte, arrêt', flush=True); return
                 t1, texte = time.time(), ph['texte']
                 # (tour 53f) après ECHECS prises sans une seule comprise, on essaie la version un peu plus longue (même sens, même énergie)
-                if ph.get('texte_long') and sum(1 for v in faites.values() if v['cle'] == ph['id']) >= ECHECS: texte = ph['texte_long']
+                if ph.get('texte_long') and (LONG or sum(1 for v in faites.values() if v['cle'] == ph['id']) >= ECHECS): texte = ph['texte_long']
                 var = VARIANTES[(prise - DE) % len(VARIANTES)]; envoye = FORMES[var] % texte
                 g = 1000 * prise + 10 * voix + sum(map(ord, ph['id'])) % 997; torch.manual_seed(g); np.random.seed(g); random.seed(g)
                 hp = 'v2/fr_speaker_%d' % voix

@@ -13,19 +13,22 @@ import transcrire as TR
 
 PRISES, PAGE = sys.argv[1], sys.argv[2]
 NOTE_MIN, CIBLE, BAS, HAUT, GARDEES = 0.7, 0.8, 0.75, 0.9, 3
+NOTE_MIN_SECOURS = 0.6  # (tour 54c) une phrase sans aucune prise à 0,7 accepte les prises comprises dès 0,6 (notée dans la page)
 
 def main():
     liste = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'liste.json')))
     prises, notes = json.load(open(os.path.join(PRISES, 'prises.json'))), json.load(open(os.path.join(PRISES, 'notes.json')))
     os.makedirs(PAGE, exist_ok=True)
-    cand = {}
+    cand, secours = {}, {}
     for nom, n in notes.items():
         p = prises[nom]
         j = TR.juger(p['texte'], n['texte_entendu'], n['parole'])
         xb, sr = T.lire_wav(os.path.join(PRISES, nom + '-brut.wav'))
         i2 = T.intonation2(xb, sr)
-        if j['rejet'] or i2['question'] or i2['note'] < NOTE_MIN: continue
-        cand.setdefault(p['cle'], []).append(dict(nom=nom, voix=p['voix'], prise=p['prise'], entendu=n['texte_entendu'], note=i2['note'], into=i2))
+        if j['rejet'] or i2['question'] or i2['note'] < NOTE_MIN_SECOURS: continue
+        (cand if i2['note'] >= NOTE_MIN else secours).setdefault(p['cle'], []).append(dict(nom=nom, voix=p['voix'], prise=p['prise'], entendu=n['texte_entendu'], note=i2['note'], into=i2))
+    for cle, v in secours.items():
+        if cle not in cand: cand[cle] = v; print('secours 0,6 :', cle, flush=True)
     sortie, fichiers = [], []
     for ph in liste:
         cs = sorted(cand.get(ph['id'], []), key=lambda x: (not BAS <= x['note'] <= HAUT, abs(x['note'] - CIBLE)))[:GARDEES]
