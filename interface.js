@@ -197,6 +197,9 @@ const INTERFACE = (function () {
       li.children[4].textContent = (l.ecartDuel > 0 ? '▼ ' : '▲ ') + secondes(Math.abs(l.ecartDuel).toFixed(1));
   }
 
+  // les boutons du paddock qui portent une ligne d'explication (textes sous_<id> ; affichée par style.css, jamais dans le texte du bouton)
+  const SOUS_PADDOCK = ['boutonBoutique', 'boutonGarage', 'boutonMaVoiture', 'boutonSponsors', 'boutonMonCasque', 'boutonCalendrier', 'boutonAlbum', 'boutonArbre', 'boutonParlerCoequipier', 'boutonParlerPatron'];
+
   // remplace {cle} par valeurs[cle] dans un texte
   function avec(t, valeurs) {
     return elider(t.replace(/\{(\w+)\}/g, (m, cle) => valeurs[cle] !== undefined ? valeurs[cle] : m));   // (« d’Alex » : textes.js, elider)
@@ -206,8 +209,12 @@ const INTERFACE = (function () {
   // pour son nom), ou rien (null)
   function remplirDuel(s, ch) {
     const p = $('championnatDuel');
-    p.textContent = s ? '⚔ ' + texte('duelTitre') + texte('deuxPoints') + avec(texte('duelScore'), { a: s.total[0], b: s.total[1], nom: nomPilote(ch.pilotes[s.k]) }) + ' '
-      + avec(texte('duelDetail'), { qa: s.qualifs[0], qb: s.qualifs[1], ca: s.courses[0], cb: s.courses[1] }) : '';
+    p.textContent = '';
+    if (!s) return;
+    // (tour 55a : le même texte, en deux lignes : le score, puis le détail plus discret)
+    p.append('⚔ ' + texte('duelTitre') + texte('deuxPoints') + avec(texte('duelScore'), { a: s.total[0], b: s.total[1], nom: nomPilote(ch.pilotes[s.k]) }) + ' ');
+    const d = document.createElement('span'); d.className = 'duelDetail';
+    d.textContent = avec(texte('duelDetail'), { qa: s.qualifs[0], qb: s.qualifs[1], ca: s.courses[0], cb: s.courses[1] }); p.append(d);
   }
 
   // --- la une du journal (Codeur 3) : r = JOURNAL.rendre(une, ch, { pilote: nomPilote, ecurie: nomEcurie }), déjà en phrases
@@ -812,7 +819,7 @@ const INTERFACE = (function () {
   // l'écran du championnat : le solde
   function remplirSolde(ch) {
     $('championnatArgent').textContent = avec(texte('solde'), { n: ARGENT.formater(ARGENT.solde(ch)) });
-    $('boutiqueSoldePage').textContent = texte('boutiqueSolde').replace('{s}', ARGENT.formater(ARGENT.solde(ch)));   // (la page Boutique : l'argent en gros, tour 52)
+    $('boutiqueSoldePage').textContent = texte('boutiqueSolde').replace('{s}', ARGENT.formater(ARGENT.solde(ch)).replace(/\u202f/g, '\u00a0'));   // (tour 55a : l'espace fine disparaissait en gros : « 71100 € »)   // (la page Boutique : l'argent en gros, tour 52)
   }
 
   // l'écran du garage : les 4 améliorations (niveau, prix du suivant, « Acheter » grisé si impossible), le solde, le bonus
@@ -1409,6 +1416,7 @@ const INTERFACE = (function () {
   // la rivalité. preparerAmis(deux, tournoi, paddock) : les boutons du menu (tournoi = null : « bientôt », grisé) et « Entre amis » au paddock
   function preparerAmis(deux, tournoi, paddock) {
     $('boutonAmisDeux').textContent = texte('amisDeux');
+    for (const id of ['boutonAmisDeux', 'boutonAmisTournoi', 'boutonAmisDefi']) $(id).dataset.sous = texte('sous_' + id);   // (tour 55a)
     $('boutonAmisTournoi').textContent = texte('amisTournoi') + (tournoi ? '' : ' — ' + texte('bientot'));
     $('boutonAmisTournoi').disabled = !tournoi;
     $('boutonAmisRetour').textContent = texte('retour');
@@ -1746,14 +1754,22 @@ const INTERFACE = (function () {
     // ta place : « P7 · 74 pts · à 109 pts du leader » (« en tête » si tu l'es) ; avant la première course, rien de classé
     const cl = CHAMPIONNAT.classementPilotes(ch), j = ch.pilotes.findIndex(p => p.humain), i = cl.findIndex(x => x.k === j);
     const moi = cl[i], ecart = moi ? cl[0].points - moi.points : 0;
-    $('paddockPlace').textContent = !ch.resultats.length || !moi ? texte('paddockPasClasse')
-      : avec(texte('paddockPlace'), { p: i + 1, n: moi.points }) + ' · ' + (i === 0 ? texte('paddockLeader') : elider(avec(texte('paddockEcart'), { n: ecart })));
+    const pl = $('paddockPlace'); pl.textContent = '';   // (tour 55a : le même texte ; l'écart au leader est son propre morceau, à la ligne sur la page Course)
+    if (!ch.resultats.length || !moi) pl.textContent = texte('paddockPasClasse');
+    else {
+      pl.append(avec(texte('paddockPlace'), { p: i + 1, n: moi.points }));
+      const sep = document.createElement('span'); sep.className = 'sepEcart'; sep.textContent = ' · ';
+      const ec = document.createElement('span'); ec.className = 'ecartLeader'; ec.textContent = i === 0 ? texte('paddockLeader') : elider(avec(texte('paddockEcart'), { n: ecart }));
+      pl.append(sep, ec);
+    }
+    for (const id of SOUS_PADDOCK) $(id).dataset.sous = texte('sous_' + id);   // (tour 55a : une ligne qui dit à quoi sert chaque bouton)
     $('saisonResume').textContent = avec(texte('saisonEtat'), { s: ch.saison || 1, i: Math.min(ch.resultats.length, ch.calendrier.length), n: ch.calendrier.length }) + ' · ' + $('paddockPlace').textContent;   // (tour 53e : la page Saison dit où tu en es)
     // le courrier des pilotes (courrier-pilotes.js) : « ✉ Courrier (2) » s'il y a des messages non lus ; le point du menu « Messages »
     // et la carte des messages de la page Course (tour 48a)
     const nonLus = typeof COURRIER_PILOTES !== 'undefined' ? COURRIER_PILOTES.nonLus(ch) : 0;
     $('boutonCourrier').textContent = texte('courrier') + (nonLus ? ' (' + nonLus + ')' : '');
     $('boutonCourrier').classList.toggle('nouveau', nonLus > 0);
+    $('boutonCourrier').dataset.sous = nonLus ? nombre(nonLus, 'paddock_nonLus') : texte('sous_courrierVide');
     $('menuMessages').querySelector('.menuPoint').classList.toggle('cache', !nonLus);
     $('menuMessages').classList.toggle('nouveau', nonLus > 0);
     $('paddockNouvellesTitre').textContent = texte('paddock_messages') + (nonLus ? ' (' + nonLus + ')' : '');
