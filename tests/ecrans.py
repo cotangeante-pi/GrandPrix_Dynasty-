@@ -3070,7 +3070,7 @@ def paddock_clic(pg, sel):
 # gardée au retour du garage ; « Nouvelle carrière » et « Nouvelle carrière à 0 » avec leurs deux confirmations, ce qui reste et ce qui part
 PADDOCK_RANGES = {'boutonCourseSuivante': 'course', 'boutonVoirTout': 'course', 'boutonVoirMessages': 'course', 'boutonGarage': 'equipe', 'boutonMaVoiture': 'equipe', 'boutonSponsors': 'equipe', 'boutonMonCasque': 'equipe', 'boutonBoutique': 'boutique',
   'boutonCalendrier': 'saison', 'boutonAlbum': 'saison', 'boutonArbre': 'saison', 'boutonCourrier': 'messages', 'boutonParlerCoequipier': 'messages', 'boutonParlerPatron': 'messages',
-  'boutonMuetPaddock': 'reglages', 'boutonSonEffets': 'reglages', 'boutonSonAmbiance': 'reglages', 'boutonSonCommentateur': 'reglages', 'boutonAidesPaddock': 'reglages',
+  'boutonFoulePaddock': 'reglages', 'boutonMuetPaddock': 'reglages', 'boutonSonEffets': 'reglages', 'boutonSonAmbiance': 'reglages', 'boutonSonCommentateur': 'reglages', 'boutonAidesPaddock': 'reglages',
   'boutonRevoirAides': 'reglages', 'boutonQualitePaddock': 'reglages', 'boutonNouvelleCarriere': 'reglages', 'boutonNouvelleCarriereZero': 'reglages'}
 PADDOCK_DEDANS = """() => { const out = [], L = innerWidth, H = innerHeight;
   for (const e of document.querySelectorAll('#championnat button, #championnat .tvCarte, #championnat li, #championnat h1, #championnat h2, #championnat p')) {
@@ -3101,6 +3101,13 @@ def paddock_menu(pg, titre, l, h, lang):
     ranges = pg.evaluate('(ids) => Object.fromEntries(Object.keys(ids).map(id => [id, INTERFACE.pageDe(id)]))', PADDOCK_RANGES)
     t(f'{titre} : chaque ancien bouton du paddock est rangé dans sa page (aucune fonction perdue) ; « Entre amis » et « Apprendre » sont dans le menu', ranges == PADDOCK_RANGES
       and pg.evaluate('() => ["boutonAmisPaddock", "boutonTutorielPaddock"].every(id => document.getElementById(id).closest("#paddockMenu"))'), str({k: v for k, v in ranges.items() if PADDOCK_RANGES[k] != v}))
+    # (tour 55, T2) « Foule : oui / non » dans ⚙ Réglages : le texte change, le choix est sauvegardé, puis remis comme avant
+    pg.click('#menuReglages'); pg.wait_for_timeout(200)
+    avant_f = pg.evaluate('() => FOULE.active')
+    pg.click('#boutonFoulePaddock')
+    t(f'{titre} : « Foule » : le bouton change le réglage, son texte et la sauvegarde', pg.evaluate('(a) => FOULE.active === !a && SAUVEGARDE.option("foule", null) === !a && document.getElementById("boutonFoulePaddock").textContent === texte(FOULE.active ? "foule_oui" : "foule_non")', avant_f))
+    pg.click('#boutonFoulePaddock')
+    t(f'{titre} : « Foule » : un second clic remet le réglage d’avant', pg.evaluate('(a) => FOULE.active === a', avant_f))
     for page, menu in MENU_PAGES.items():
         pg.click(menu); pg.wait_for_timeout(250)
         d = pg.evaluate(PADDOCK_DEDANS)

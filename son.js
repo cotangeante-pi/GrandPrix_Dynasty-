@@ -238,7 +238,8 @@ const SON = (function () {
   const historique = [];
   let indices = 0;
   function signal(type) {
-    if (type === 'commentaire') indices++; else historique.push(type);   // (le petit signal du commentateur n'est pas un signal de course)
+    if (type === 'commentaire') indices++; else historique.push(type);
+    if (typeof FOULE !== 'undefined' && (type === 'go' || type === 'arrivee')) FOULE.evenement(type === 'go' ? 'depart' : 'arrivee');   // (tour 55 : la foule au départ et à l'arrivée)   // (le petit signal du commentateur n'est pas un signal de course)
     if (!ctx || muet) return;
     const [notes, duree, part] = R.SON_SIGNAUX[type], famille = type === 'commentaire' ? familles.commentateur : familles.ambiance;
     let t = ctx.currentTime;
@@ -302,6 +303,7 @@ const SON = (function () {
     get coupe() { return muet || cache || pub; },
     get indices() { return indices; },
     get actif() { return ctx !== null; },
+    get ambiance() { return ctx && familles ? { ctx, sortie: familles.ambiance } : null; },   // (tour 55 : la foule, foule.js)
     get contexte() { return ctx && familles ? { ctx, sortie: familles.commentateur } : null; },   // (tour 51c : les voix enregistrées, voix-sons.js)
     get muet() { return muet || pub; },   // (pendant une pub, le son est coupé : 🔇 ; le choix du joueur, lui, est gardé)
     get muetJoueur() { return muet; },

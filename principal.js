@@ -1731,7 +1731,7 @@ function pause(oui) {
   if (!oui && touchesOuvertes()) return;   // (tour 50c) pendant le choix des touches, la pause ne se ferme pas
   if (oui && JEU.ecran === 'course' && JEU.deux) INTERFACE.remplirTouchesDeux(MANETTE.lireManettes().length);   // à deux : les touches des deux dans le menu pause
   INTERFACE.montrerTouchesPause(!!JEU.deux);
-  if (oui && JEU.ecran === 'course') { JEU.ecran = 'pause'; INTERFACE.montrer('pause'); if (typeof VOIX !== 'undefined') VOIX.taire(); if (typeof VOIXSONS !== 'undefined') VOIXSONS.taire(); }   // (la voix se tait en pause, tour 45c)
+  if (oui && JEU.ecran === 'course') { JEU.ecran = 'pause'; INTERFACE.montrer('pause'); if (typeof VOIX !== 'undefined') VOIX.taire(); if (typeof VOIXSONS !== 'undefined') VOIXSONS.taire(); if (typeof FOULE !== 'undefined') FOULE.taire(); }   // (la voix et la foule se taisent en pause, tour 45c)
   else if (!oui && JEU.ecran === 'pause') { JEU.ecran = 'course'; INTERFACE.montrer('course'); }
 }
 
@@ -2479,7 +2479,8 @@ function majCommentaireDit(e, m) {
   if (it) {
     const dit = COMMENTAIRE.phrase(it, etiquetteVoiture, INTERFACE.formatTemps);
     MESSAGES.pousserTexte(m, { type: 'commentaire', texte: '🎙 ' + texte('commentateur') + texte('deuxPoints') + dit });
-    if (!it.comble) SON.signal('commentaire');   // (le petit signal pour les faits, pas pour ce qui comble)
+    if (!it.comble) SON.signal('commentaire');
+    if (typeof FOULE !== 'undefined' && JEU.ecran === 'course' && /^depassement/.test(it.type)) FOULE.evenement('depassement');   // (tour 55 : la foule s'enflamme)   // (le petit signal pour les faits, pas pour ce qui comble)
     // (tour 51c) un fait qui a un son enregistré le joue (voix-sons.js) ; la synthèse ne dit que le reste
     const voixOk = !(JEU.decouverte && REGLAGES.COMMENTAIRE_DECOUVERTE_MODE) || faitDuJoueur(it);   // (tour 52f) à la découverte, la voix (synthèse et sons) seulement pour les faits du joueur
     const sonne = voixOk && typeof VOIXSONS !== 'undefined' && JEU.ecran === 'course' && VOIXSONS.jouer(it.type);
@@ -2765,6 +2766,14 @@ function demarrerJeu() {
       bs.addEventListener('mousedown', e => e.preventDefault());
       bs.addEventListener('click', () => { VOIXSONS.regler(!VOIXSONS.active); ecrireVs(); });
     }
+    // (tour 55) la foule : « oui / non » dans ⚙ Réglages, sauvegardé (foule.js) ; son volume suit le curseur « Ambiance »
+    const bf = document.getElementById('boutonFoulePaddock');
+    if (bf && typeof FOULE !== 'undefined') {
+      const ecrireF = () => { bf.textContent = texte(FOULE.active ? 'foule_oui' : 'foule_non'); };
+      ecrireF();
+      bf.addEventListener('mousedown', e => e.preventDefault());
+      bf.addEventListener('click', () => { FOULE.regler(!FOULE.active); ecrireF(); });
+    }
     const MODES = ['tout', 'joueur', 'non'], b = document.getElementById('boutonCommentairePause');
     REGLAGES.COMMENTAIRE_MODE = MODES.includes(SAUVEGARDE.option('commentaire', REGLAGES.COMMENTAIRE_MODE)) ? SAUVEGARDE.option('commentaire', REGLAGES.COMMENTAIRE_MODE) : REGLAGES.COMMENTAIRE_MODE;
     const ecrire = () => { b.textContent = texte('commentaire_' + REGLAGES.COMMENTAIRE_MODE); };
@@ -2975,6 +2984,7 @@ function demarrerJeu() {
     }
     document.getElementById('attenteArrivee').classList.toggle('cache', !(JEU.attente && JEU.ecran === 'course'));
     // (le son : la voiture la plus proche, la pluie sur la carrosserie ; au podium, plus rien de la course)
+    if (typeof FOULE !== 'undefined') FOULE.maj(JEU.joueur, JEU.ecran === 'course' && !apres);   // (tour 55 : la rumeur des tribunes)
     SON.maj(JEU.joueur, apres ? null : { voisins: voituresSens, pluie: typeof METEO3D !== 'undefined' ? (METEO3D.etat(JEU.plateau || JEU.course) || { pluie: 0 }).pluie : 0 });
     if (typeof EFFETS3D !== 'undefined') EFFETS3D.maj(apres ? [] : voituresSens.map(w => ({ v: w, pos: w === JEU.joueur ? etat : etatAffiche(w, alpha) })), CAMERA.position, dt);
     // la trajectoire conseillée (conseil.js) : devant le joueur, selon le réglage du menu pause (en débutant par défaut) ;

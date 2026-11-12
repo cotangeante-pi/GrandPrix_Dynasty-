@@ -1393,3 +1393,7 @@ Object.assign(TEXTES.fr, {
 // --- tour 52g, Codeur 3 : la prime en direct de la découverte (premiere-minute n° 4) ---
 Object.assign(TEXTES.en, { primeLive: 'Prize: {n}', placeGrand: 'P{p}!' });
 Object.assign(TEXTES.fr, { primeLive: 'Prime : {n}', placeGrand: 'P{p} !' });
+
+// --- tour 55, T2 : la foule et l'ambiance (foule.js) ---
+Object.assign(TEXTES.en, { foule_oui: 'Crowd: on', foule_non: 'Crowd: off' });
+Object.assign(TEXTES.fr, { foule_oui: 'Foule : oui', foule_non: 'Foule : non' });
