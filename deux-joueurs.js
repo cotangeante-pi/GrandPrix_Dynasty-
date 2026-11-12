@@ -30,8 +30,12 @@ const DEUX_JOUEURS = (function () {
     const c = R.DEUX_IA_CHOIX.includes(n) ? n : R.DEUX_IA_CHOIX[0];
     return Math.min(c, R.DEUX_VOITURES_MAX - 2);
   }
+  // (tour 54a) avec DEUX_LONGUE_CHOIX, les trois longueurs de la carrière (5, 12, 18) s'ajoutent à DEUX_TOURS_CHOIX
+  function toursPermis() {
+    return R.DEUX_LONGUE_CHOIX ? [...new Set([...R.DEUX_TOURS_CHOIX, ...Object.values(R.LONGUEURS_COURSE).filter(n => n > 0)])] : R.DEUX_TOURS_CHOIX;
+  }
   function nbToursValide(n) {
-    return R.DEUX_TOURS_CHOIX.includes(n) ? n : R.DEUX_TOURS_CHOIX[0];
+    return toursPermis().includes(n) ? n : R.DEUX_TOURS_CHOIX[0];
   }
 
   // la course : creerCourseIA avec nbIA + 1 voitures IA et le joueur 2 en dernier (humain), puis la dernière IA devient
@@ -108,7 +112,7 @@ const DEUX_JOUEURS = (function () {
     return {
       joueurs,
       circuit: Object.prototype.hasOwnProperty.call(CIRCUITS, d.circuit) ? d.circuit : 'test',
-      tours: R.DEUX_TOURS_CHOIX.includes(d.tours) ? d.tours : R.DEUX_TOURS_CHOIX[0],
+      tours: toursPermis().includes(d.tours) ? d.tours : R.DEUX_TOURS_CHOIX[0],
       ia: R.DEUX_IA_CHOIX.includes(d.ia) ? nbIAValide(d.ia) : nbIAValide(R.DEUX_IA_DEFAUT),
       niveau: Object.prototype.hasOwnProperty.call(R.NIVEAUX, d.niveau) ? d.niveau : R.DEUX_NIVEAU,
       courses: Number.isInteger(d.courses) && d.courses >= 0 ? d.courses : 0,
@@ -156,5 +160,5 @@ const DEUX_JOUEURS = (function () {
     return a.place < b.place ? 0 : 1;
   }
 
-  return { cibles, remise, nbIAValide, nbToursValide, creer, placerGrille, finie, joueurs, completer, valider, scoreRivalite, ajouterRivalite, gagnant };
+  return { cibles, remise, nbIAValide, nbToursValide, toursPermis, creer, placerGrille, finie, joueurs, completer, valider, scoreRivalite, ajouterRivalite, gagnant };
 })();

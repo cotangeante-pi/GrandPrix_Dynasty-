@@ -160,5 +160,10 @@
 "index.html?championnat=1&gp=3&test=longueurs 640": 8,
 "index.html?championnat=1&tours=1&robot=1&test=apres-course 1280": 40,
 "index.html?championnat=1&tours=1&robot=1&test=apres-course 640": 40,
-"index.html?championnat=1&test=tactile-classement 640": 6
+"index.html?championnat=1&test=tactile-classement 640": 6,
+"index.html?test=amis 640": 8,
+"index.html?course=3&ia=5&joueur=1&robot=1&circuit=test&niveau=normal&test=retro 640": 5,
+"index.html?course=3&ia=5&joueur=1&robot=1&circuit=test&niveau=normal&test=retro 1280": 5,
+"index.html?seul=1 640": 6,
+"index.html?seul=1&lang=en 640": 6
 }

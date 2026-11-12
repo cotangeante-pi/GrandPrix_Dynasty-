@@ -253,6 +253,7 @@ body.horsCourse #boutonSon { right: 10px; }
   font-size: 12px;
   opacity: 0.8;
 }
+#hudPrecedent.vide { visibility: hidden; }   /* (tour 54b) la place est gardée */
 
 #hudSecteurs {
   display: flex;
@@ -2061,15 +2062,15 @@ body.tactile #boutique .skin button, body.tactile #boutique button.onglet { disp
 /* le choix de la longueur du Grand Prix (tour 53h) : trois gros boutons sur la page Course */
 #paddockLongueur { grid-area: longueur; display: flex; flex-direction: column; gap: 8px; }
 #paddockLongueurBoutons { display: flex; gap: 10px; }
-#paddockLongueurBoutons .longueurChoix { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 8px; border: 2px solid transparent; border-radius: var(--tv-coin, 10px); background: var(--tv-bouton, #2a2f3a); color: var(--texte, #fff); font-family: var(--tv-police, inherit); cursor: pointer; }
-#paddockLongueurBoutons .longueurChoix b { font: 800 26px/1 var(--tv-police-titre, var(--police)); }
-#paddockLongueurBoutons .longueurChoix span { font-size: 13px; opacity: 0.85; }
-#paddockLongueurBoutons .longueurChoix.choisi { border-color: #fff; background: var(--tv-bouton-principal, #e3242b); }
-@media (max-height: 420px) { #paddockLongueurBoutons .longueurChoix { padding: 4px 6px; } #paddockLongueurBoutons .longueurChoix b { font-size: 18px; } #paddockLongueur h2 { font-size: 12px; margin: 0; } }
+#paddockLongueurBoutons .longueurChoix, #deuxLongueurBoutons .longueurChoix { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 8px; border: 2px solid transparent; border-radius: var(--tv-coin, 10px); background: var(--tv-bouton, #2a2f3a); color: var(--texte, #fff); font-family: var(--tv-police, inherit); cursor: pointer; }
+#paddockLongueurBoutons .longueurChoix b, #deuxLongueurBoutons .longueurChoix b { font: 800 26px/1 var(--tv-police-titre, var(--police)); }
+#paddockLongueurBoutons .longueurChoix span, #deuxLongueurBoutons .longueurChoix span { font-size: 13px; opacity: 0.85; }
+#paddockLongueurBoutons .longueurChoix.choisi, #deuxLongueurBoutons .longueurChoix.choisi { border-color: #fff; background: var(--tv-bouton-principal, #e3242b); }
+@media (max-height: 420px) { #paddockLongueurBoutons .longueurChoix, #deuxLongueurBoutons .longueurChoix { padding: 4px 6px; } #paddockLongueurBoutons .longueurChoix b, #deuxLongueurBoutons .longueurChoix b { font-size: 18px; } #paddockLongueur h2 { font-size: 12px; margin: 0; } }
 @media (max-height: 420px) {   /* 640×360 : les longueurs à côté de « Course suivante », sur la même ligne (rien de plus haut qu'avant) */
   #pageCourse { grid-template-areas: "prochain prochain" "longueur bouton" "court moi" "court nouvelles"; }
   #paddockLongueur { padding: 4px 6px; min-width: 0; } #paddockLongueurBoutons { gap: 4px; min-width: 0; }
-  #paddockLongueurBoutons .longueurChoix { min-height: 40px; min-width: 0; padding: 2px 3px; } #paddockLongueurBoutons .longueurChoix span { font-size: 10px; white-space: nowrap; }
+  #paddockLongueurBoutons .longueurChoix, #deuxLongueurBoutons .longueurChoix { min-height: 40px; min-width: 0; padding: 2px 3px; } #paddockLongueurBoutons .longueurChoix span, #deuxLongueurBoutons .longueurChoix span { font-size: 10px; white-space: nowrap; }
   #paddockLongueur h2 { display: none; }
   #pageCourse #boutonCourseSuivante { font-size: 15px; padding: 6px 8px; white-space: normal; }
 }
@@ -2103,6 +2104,30 @@ body.tactile #boutonClassementPleinRetour { min-height: 40px; min-width: 160px; 
   #tutoListe .tutoNom { font-size: 13px; }
   #tutoListe .tutoBut { font-size: 11px; line-height: 1.1; }
   #tutoListe button, #tutoListe li.tutoSuivant button { padding: 3px 10px; font-size: 13px; }
+}
+
+/* (tour 54a) à deux : les mêmes trois boutons à la place de la liste « Tours » ; la liste reste dans la page, cachée aux yeux (elle garde la valeur) */
+.deuxCache { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); opacity: 0; pointer-events: none; }
+#deuxLongueur { grid-column: 1 / -1; display: flex; align-items: center; justify-content: center; gap: 10px; font: 600 14px/1.3 var(--police); }
+#deuxLongueurBoutons { display: flex; gap: 8px; }
+#deuxLongueurBoutons .longueurChoix { min-width: 0; min-height: 44px; width: 110px; padding: 4px 6px; justify-items: center; align-content: center; }
+#deuxLongueurBoutons .longueurChoix.choisi { box-shadow: 0 0 0 2px #fff; }
+@media (max-height: 420px) {
+  #deuxLongueur { grid-column: auto; font-size: 12px; gap: 6px; }   /* (sur la même ligne que circuit, rivaux, niveau : rien de plus haut qu'avant) */
+  #deuxLongueur > span { display: none; }
+  #deuxLongueurBoutons { gap: 3px; }
+  #deuxLongueurBoutons .longueurChoix { min-height: 40px; width: 58px; padding: 1px 2px; }
+  #deuxLongueurBoutons .longueurChoix b { font-size: 16px; }
+  #deuxLongueurBoutons .longueurChoix span { font-size: 9px; white-space: nowrap; }
+}
+
+/* (tour 54b) 640×360 : le chrono se resserre pour ne recouvrir ni la minicarte (à gauche) ni la tour de classement (à droite), même avec « Tour précédent » */
+@media (max-height: 420px) {
+  #hudCourse { padding: 3px 6px; gap: 0; font-size: 12px; }
+  #hudChrono { font-size: 22px; }
+  #hudPrecedent { font-size: 10px; }
+  #hudSecteurs { gap: 3px; }
+  .secteur { min-width: 0; padding: 0 3px; font-size: 10px; }
 }
 
 /* (tour 54b, le téléphone émulé : tests/telephones.py) ce que l'émulation d'un vrai téléphone a montré.

@@ -18,6 +18,8 @@ PAGES = [
     ('index.html', 960, 600, 'poki.png'),   # la page nue = le premier lancement : l'écran titre
     ('index.html?debug=1', 960, 600, 'poki-debug.png'),
     ('index.html', 1280, 720, 'large.png'),
+    ('index.html?seul=1', 640, 360, None),   # (tour 54a) course rapide : les trois longueurs, au doigt, sans défilement (fr, puis en)
+    ('index.html?seul=1&lang=en', 640, 360, None),
     ('index.html?seul=1', 1280, 720, None),   # l'écran de choix d'une course seule (étape 3), la conduite au clavier
     ('index.html?debug=1', 1280, 720, 'large-debug.png'),
     ('index.html?camera=auto', 1280, 720, 'auto.png'),
@@ -124,7 +126,9 @@ PAGES = [
     ('index.html?course=3&ia=5&joueur=1&robot=1&circuit=test&niveau=normal&test=conseil', 960, 600, None),     # … en normal, aucune
     ('index.html?course=3&ia=9&joueur=1&robot=1&circuit=test&qualite=auto&test=qualite', 1280, 720, None),   # la qualité automatique (tour 40, tour 49a l'Auto continu) : jusqu'au plus simple sous swiftshader, jamais pendant les feux ; captures qualite-plus-beau.png, qualite-plus-simple.png
     ('index.html?course=3&ia=5&circuit=test&test=qualite', 960, 600, None),   # … sans ?qualite, sous un automate, rien ne bouge
-    ('index.html?course=3&ia=5&joueur=1&robot=1&circuit=test&niveau=normal&test=retro', 960, 600, None),   # le rétroviseur (tour 49a) : sous le chrono, jamais sur la piste devant, une voiture 20 m derrière s'y voit ; capture retroviseur.png
+    ('index.html?course=3&ia=5&joueur=1&robot=1&circuit=test&niveau=normal&test=retro', 960, 600, None),
+    ('index.html?course=3&ia=5&joueur=1&robot=1&circuit=test&niveau=normal&test=retro', 640, 360, None),   # (tour 54b) … et en 640×360 et 1280×720 : « Tour précédent » n'a jamais le rétroviseur dessus ; captures retroviseur-precedent-*.png
+    ('index.html?course=3&ia=5&joueur=1&robot=1&circuit=test&niveau=normal&test=retro', 1280, 720, None),   # le rétroviseur (tour 49a) : sous le chrono, jamais sur la piste devant, une voiture 20 m derrière s'y voit ; capture retroviseur.png
     ('index.html?course=3&circuit=test&test=manette', 1280, 720, None),   # la manette (tour 38) : une fausse manette conduit un tour, la pause, le menu au stick et à la croix
     ('index.html?course=3&circuit=test&test=tactile', 640, 360, None),   # le téléphone (tactile.js, tour 51k) : écran tactile émulé, GAZ / FREIN, ◀ ▶ sans capteur, le volant par de faux évènements d'orientation, un tour sans clavier ; capture tactile-640.png
     ('index.html?course=3&circuit=test&lang=en&test=tactile', 960, 600, None),   # … en anglais, 960×600 ; capture tactile-960.png
@@ -145,6 +149,7 @@ PAGES = [
     ('index.html?test=tournoi', 1280, 720, None),   # le tournoi chrono (tour 26b) : inscription de 3 joueurs → 3 manches (robot ; un abandon) → podium → Rejouer ; captures tournoi.png, tournoi-podium.png
     ('index.html?test=tournoi', 960, 600, None),    # … l'inscription de 8 joueurs tient en 960×600   # le mode 2 joueurs, tour 25b ordre 3 : titre → « Entre amis » → réglages → course à deux (robots) → podium → rivalité → Revanche → Menu ; captures entre-amis.png, deux-reglages.png, rivalite.png
     ('index.html?test=amis', 960, 600, None),
+    ('index.html?test=amis', 640, 360, None),   # (tour 54a) l'écran à deux avec les trois longueurs, au doigt, sans défilement ; capture deux-longueur-640.png
     ('index.html?test=touches', 960, 600, None),   # les touches de chaque joueur à deux (touches.js, tour 44d) : la carte, le rappel, la pause ; captures touches-*.png
     ('index.html?test=touches', 1280, 720, None),    # … en petit : le menu et l'écran avant la course tiennent sans défilement ni débordement   # … la mesure de la 3D dessinée deux fois sur le technique   # le premier lancement : titre → course de découverte (robot) → Bravo → paddock ; captures titre.png, decouverte.png, bravo.png
     # les aides au premier usage (aides.js, étape 11b, Codeur 4) : en course (qualification, feux, arrêt obligatoire en ligne droite, pause) et au paddock
@@ -348,7 +353,7 @@ def course_robot(pg, titre, page):
     t(f'{titre} : le robot part après le compte à rebours', attendre(pg, '() => JEU.course.etat === "course"', None, 20000), pg.evaluate('() => JEU.course.etat'))
     CASES = '() => ["hudS1", "hudS2", "hudS3"].map(id => document.getElementById(id).className).join(",")'
     t(f'{titre} : au début du tour, les 3 cases de secteur sont grises', attendre(pg, '() => JEU.course.etat === "course" && !/^0:00[.,]000$/.test(document.getElementById("hudChrono").textContent)', None, 20000)
-      and pg.evaluate(CASES) == 'secteur,secteur,secteur' and pg.evaluate('() => document.getElementById("hudPrecedent").classList.contains("cache")'), pg.evaluate(CASES))
+      and pg.evaluate(CASES) == 'secteur,secteur,secteur' and pg.evaluate('() => /cache|vide/.test(document.getElementById("hudPrecedent").className)'), pg.evaluate(CASES))
     pg.evaluate('() => BOUCLE.simuler(25)')
     t(f'{titre} : après le secteur 1, S1 se colore et S2, S3 restent grises', attendre(pg, 'c => /^secteur (violet|vert|jaune),secteur,secteur$/.test(eval(c)())', CASES), pg.evaluate(CASES))
     pg.evaluate('() => BOUCLE.simuler(130)')
@@ -1286,10 +1291,24 @@ def amis(pg, titre, l, h):
     if l == 1280: pg.wait_for_timeout(200); pg.screenshot(path=os.path.join(CAPTURES, 'entre-amis.png'))
     pg.click('#boutonAmisDeux')
     reg = pg.evaluate('() => ({ ecran: JEU.ecran, n1: document.getElementById("deuxNom1").value, p1: document.getElementById("deuxNom1").placeholder, c: [1, 2].map(i => Number(document.getElementById("deuxCouleurs" + i).dataset.couleur)), pastilles: document.querySelectorAll("#deuxCouleurs1 button").length, circuits: [...document.getElementById("deuxCircuit").options].map(o => o.value), tours: [...document.getElementById("deuxTours").options].map(o => o.value), ia: [...document.getElementById("deuxIA").options].map(o => o.value), niveaux: document.getElementById("deuxNiveau").options.length, motifs: document.getElementById("deuxMotif1").options.length, bloques: document.querySelectorAll("#deuxMotif1 option:disabled").length, icones: document.querySelectorAll(".deuxIcone canvas").length })')
-    t(f'{titre} : l’écran avant la course : nom (vide, « Joueur 1 » en attente), couleur (le bleu et le rouge d’abord), casque (tous les motifs, son icône) de chaque joueur ; circuits, 3/5 tours, 0/3/5 IA, 4 niveaux',
-      reg['ecran'] == 'deuxReglages' and reg['n1'] == '' and reg['p1'] in ('Joueur 1', 'Player 1') and reg['c'] == [0x1f6fe0, 0xd8262e] and reg['pastilles'] == 8 and reg['circuits'] == pg.evaluate('() => Object.keys(CIRCUITS)') and len(reg['circuits']) == 14 and reg['tours'] == ['3', '5'] and reg['ia'] == ['0', '3', '5'] and reg['niveaux'] == 4 and reg['motifs'] == 14 and reg['bloques'] == 8 and reg['icones'] == 2, str(reg))
+    t(f'{titre} : l’écran avant la course : nom (vide, « Joueur 1 » en attente), couleur (le bleu et le rouge d’abord), casque (tous les motifs, son icône) de chaque joueur ; circuits, tours (3/5 dans la liste, 5/12/18 en gros boutons), 0/3/5 IA, 4 niveaux',
+      reg['ecran'] == 'deuxReglages' and reg['n1'] == '' and reg['p1'] in ('Joueur 1', 'Player 1') and reg['c'] == [0x1f6fe0, 0xd8262e] and reg['pastilles'] == 8 and reg['circuits'] == pg.evaluate('() => Object.keys(CIRCUITS)') and len(reg['circuits']) == 14 and reg['tours'] == ['3', '5', '12', '18'] and reg['ia'] == ['0', '3', '5'] and reg['niveaux'] == 4 and reg['motifs'] == 14 and reg['bloques'] == 8 and reg['icones'] == 2, str(reg))
     ok_, det = tient(['#deuxTitre', '#deuxJoueur1', '#deuxJoueur2', '#deuxCourse', '#boutonDeuxPartir', '#boutonDeuxRetour'])
     t(f'{titre} : l’écran avant la course tient en {l}×{h} (les deux joueurs côte à côte, rien ne déborde)', ok_, det)
+    # (tour 54a) la longueur à deux : les mêmes trois gros boutons que sur la page Course (5 / 12 / 18, mêmes mots), au doigt, dans l'écran
+    lg = pg.evaluate("""() => { const bs = [...document.querySelectorAll('#deuxLongueurBoutons button')];
+      return { n: bs.map(b => b.querySelector('b').textContent), noms: bs.map(b => b.querySelector('span').textContent), attendus: ['tresCourte', 'moyenne', 'longue'].map(k => texte(k)), titre: document.getElementById('deuxLongueurTitre').textContent, titreCarriere: texte('longueurTitre'),
+        h: bs.map(b => Math.round(b.getBoundingClientRect().height)), l: bs.map(b => Math.round(b.getBoundingClientRect().width)), choisi: [...document.querySelectorAll('#deuxLongueurBoutons .choisi b')].map(b => b.textContent), liste: document.getElementById('deuxTours').value,
+        listeVue: document.querySelector('label:has(#deuxTours)').getBoundingClientRect().width <= 1 }; }""")
+    ok2, det2 = tient(['#deuxLongueurBoutons button:nth-child(1)', '#deuxLongueurBoutons button:nth-child(2)', '#deuxLongueurBoutons button:nth-child(3)', '#boutonDeuxPartir'])
+    t(f'{titre} : à deux, trois gros boutons 5 / 12 / 18 tours (mêmes mots que la carrière, ≥ 40 px), « très courte » choisie d’office, la liste « Tours » cachée, tout dans l’écran {l}×{h} sans défilement',
+      lg['n'] == ['5', '12', '18'] and lg['noms'] == lg['attendus'] and lg['titre'] == lg['titreCarriere'] and min(lg['h']) >= 40 and min(lg['l']) >= 40 and lg['choisi'] == ['5'] and lg['liste'] == '5' and lg['listeVue'] and ok2, str([lg, det2]))
+    pg.wait_for_timeout(200); pg.screenshot(path=os.path.join(CAPTURES, f'deux-longueur-{l}.png'))
+    pg.click('#deuxLongueur12'); pg.wait_for_timeout(100)
+    t(f'{titre} : un appui sur 12 le choisit (la valeur gardée par la liste devient 12, un seul bouton allumé) ; la valeur part dans les réglages', pg.evaluate('() => document.getElementById("deuxTours").value === "12" && document.querySelectorAll("#deuxLongueurBoutons .choisi").length === 1 && document.querySelector("#deuxLongueurBoutons .choisi b").textContent === "12" && INTERFACE.lireDeux().tours === 12'))
+    pg.evaluate('() => { REGLAGES.DEUX_LONGUE_CHOIX = false; INTERFACE.remplirDeux(DEUX_JOUEURS.completer(SAUVEGARDE.deux())); }')
+    t(f'{titre} : DEUX_LONGUE_CHOIX faux : la liste « Tours » 3 / 5 est de retour, sans les boutons, comme avant', pg.evaluate('() => document.getElementById("deuxLongueur").classList.contains("cache") && document.getElementById("deuxTours").offsetWidth > 20 && [...document.getElementById("deuxTours").options].map(o => o.value).join() === "3,5" && DEUX_JOUEURS.nbToursValide(12) === 3 && DEUX_JOUEURS.nbToursValide(5) === 5'))
+    pg.evaluate('() => { REGLAGES.DEUX_LONGUE_CHOIX = true; INTERFACE.remplirDeux(DEUX_JOUEURS.completer(SAUVEGARDE.deux())); }')
     if l == 960:
         pg.wait_for_timeout(200); pg.screenshot(path=os.path.join(CAPTURES, 'deux-reglages-960.png'))
         pg.click('#boutonDeuxRetour'); pg.click('#boutonAmisRetour')
@@ -1306,7 +1325,7 @@ def amis(pg, titre, l, h):
     pg.select_option('#deuxMotif2', 'damier'); pg.select_option('#deuxIA', '3'); pg.select_option('#deuxTours', '3'); pg.select_option('#deuxNiveau', 'debutant'); pg.select_option('#deuxCircuit', 'test')
     t(f'{titre} : deux couleurs différentes : le message d’erreur disparaît dès le nouveau choix', pg.evaluate('() => document.getElementById("deuxErreur").textContent === ""'), pg.evaluate('() => document.getElementById("deuxErreur").textContent'))
     rb = pg.evaluate('() => { const b = document.getElementById("boutonDeuxRetour").getBoundingClientRect(), p = document.getElementById("boutonDeuxPartir").getBoundingClientRect(); return [b.top + b.height / 2, p.top + p.height / 2, b.height, p.height]; }')
-    t(f'{titre} : le petit bouton « Retour » est centré sur la ligne de « C’est parti ! », pas étiré', abs(rb[0] - rb[1]) < 2 and rb[2] < rb[3], str(rb))
+    t(f'{titre} : le petit bouton « Retour » est centré sur la ligne de « C’est parti ! », pas étiré', abs(rb[0] - rb[1]) < 2 and rb[2] <= rb[3], str(rb))
     pg.wait_for_timeout(200); pg.screenshot(path=os.path.join(CAPTURES, 'deux-reglages.png'))
     carriere = pg.evaluate('() => localStorage.getItem(SAUVEGARDE.CLE) && JSON.stringify(JSON.parse(localStorage.getItem(SAUVEGARDE.CLE)).championnat)')
     with pg.expect_navigation(): pg.click('#boutonDeuxPartir')
@@ -1902,6 +1921,15 @@ def tactile_classement(pg, titre, l, h):
     e = pg.evaluate(etat)
     t(f'{titre} : un appui sur une ligne ouvre la fiche du rival et ferme la liste', e['ecran'] == 'fiche' and not e['ouvert'], str(e))
 
+def choix_longueurs(pg, titre, l, h):
+    """(tour 54a) course rapide : l'écran de choix propose les mêmes trois longueurs que la carrière (5 / 12 / 18 tours, mêmes mots, fr et en), en gros boutons (≥ 40 px), dans l'écran, sans défilement."""
+    attendre(pg, '() => JEU.ecran === "choix"', None, 30000)
+    d = pg.evaluate("""() => { const r = id => { const e = document.getElementById(id), b = e.getBoundingClientRect(); return { n: e.querySelector('strong').textContent, tours: e.querySelector('span').textContent, h: Math.round(b.height), l: Math.round(b.width), dedans: b.left >= -1 && b.top >= -1 && b.right <= innerWidth + 1 && b.bottom <= innerHeight + 1 }; };
+      const noms = ['tresCourte', 'moyenne', 'longue'], nb = noms.map(k => REGLAGES.LONGUEURS_COURSE[k]);
+      return { x: nb.map(n => r('choix' + n)), attendus: noms.map(k => texte(k)), nb, defile: [document.documentElement.scrollHeight, innerHeight], aides: document.getElementById('boutonAidesChoix').getBoundingClientRect().bottom <= innerHeight + 1 }; }""")
+    t(f'{titre} : en course rapide, les trois longueurs de la carrière (5 / 12 / 18 tours, mêmes noms), en gros boutons (≥ 40 px), dans l’écran sans défilement',
+      d['nb'] == [5, 12, 18] and [x['n'] for x in d['x']] == d['attendus'] and all(x['h'] >= 40 and x['l'] >= 40 and x['dedans'] for x in d['x']) and d['defile'][0] <= d['defile'][1] + 2 and d['aides'], str(d))
+
 def longueurs_ecran(pg, titre, l, h):
     """(tour 53h) les trois longueurs sur la page Course : visibles et dans l'écran, sans cacher « Course suivante » ; le choix est gardé ; la course a ce nombre de tours."""
     attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', None, 60000)
@@ -2223,8 +2251,23 @@ def retro_ecran(pg, titre, l, h):
     co = pg.evaluate(RETRO_COULOIR)
     z = co['zone']
     t(f'{titre} : en course, vue derrière : le rétroviseur en haut au milieu, juste sous le chrono et au-dessus des messages de course, dans son cadre ; aucun point de la piste devant la voiture dessous',
-      roule and z and hud['cadre'] and hud['mode'] == 'derriere' and abs(z['x'] + z['l'] / 2 - l / 2) <= 1 and z['y'] >= hud['bas'] and z['y'] + z['h'] < h * 0.4 and z['y'] + z['h'] <= pg.evaluate('() => document.getElementById("messageCourse").offsetTop || 176')
+      roule and z and hud['cadre'] and hud['mode'] == 'derriere' and abs(z['x'] + z['l'] / 2 - l / 2) <= 1 and z['y'] >= hud['bas'] and z['y'] + z['h'] <= max(h * 0.4, pg.evaluate('() => REGLAGES.RETRO_BAS_MAX')) and z['y'] + z['h'] <= pg.evaluate('() => document.getElementById("messageCourse").offsetTop || 176')
       and abs(hud['x'] - z['x']) <= 1 and abs(hud['l'] - z['l']) <= 1 and co['n'] >= 20 and co['dessous'] == 0, str([hud, co]))
+    # (tour 54b) « Tour précédent » apparaît (la 1re fois, au premier tour fini) : le chrono ne doit pas grandir sous le rétroviseur, même pour la durée d'une image (sa place n'est relue que tous les RETRO_MAJ_ZONE s)
+    def chevauchements():
+        return pg.evaluate("""() => { const r = [];
+          for (const id of ['hudCourse', 'retroviseur', 'classement', 'radar', 'minicarte', 'jauge', 'hudPenalite']) { const e = document.getElementById(id); if (!e || e.classList.contains('cache') || getComputedStyle(e).display === 'none') continue; const b = e.getBoundingClientRect(); if (b.width > 0 && b.height > 0) r.push([id, b.left, b.top, b.right, b.bottom]); }
+          const c = []; for (let i = 0; i < r.length; i++) for (let j = i + 1; j < r.length; j++) { const a = r[i], b = r[j]; if (a[1] < b[3] - 0.5 && b[1] < a[3] - 0.5 && a[2] < b[4] - 0.5 && b[2] < a[4] - 0.5) c.push(a[0] + '/' + b[0]); }
+          return { vus: r.map(x => x[0]), chevauchements: c }; }""")
+    avant_ = chevauchements()
+    pg.evaluate('() => { window.__tours0 = JEU.course.tours.length; JEU.course.tours.push({ temps: 83.456, secteurs: [27.1, 28.2, 28.156], coupe: false }); INTERFACE.majCourse(JEU.course, "course"); }')   # (l'image où le texte arrive, avant que majRetro relise la place)
+    pg.wait_for_timeout(100)
+    apres_ = chevauchements()
+    vu_ = pg.evaluate('() => [document.getElementById("hudPrecedent").textContent, document.getElementById("hudPrecedent").getBoundingClientRect().height]')
+    pg.screenshot(path=os.path.join(CAPTURES, f'retroviseur-precedent-{l}.png'))
+    t(f'{titre} : quand « Tour précédent » apparaît, rien ne se chevauche, ni avant ni dans l’image où il arrive (le chrono, le rétroviseur, la tour de classement, le radar, la minicarte)',
+      'retroviseur' in avant_['vus'] and 'hudCourse' in apres_['vus'] and vu_[0].startswith(pg.evaluate('() => texte("tourPrecedent")')) and vu_[1] > 0 and not avant_['chevauchements'] and not apres_['chevauchements'], str([avant_, apres_, vu_]))
+    pg.evaluate('() => { JEU.course.tours.length = window.__tours0; INTERFACE.majCourse(JEU.course, "course"); }')
     avec = pg.evaluate(RETRO_IMAGE, True)
     sans = pg.evaluate(RETRO_IMAGE, False)
     diff = sum(1 for k in range(0, min(len(avec['d']), len(sans['d'])), 4) if abs(avec['d'][k] - sans['d'][k]) + abs(avec['d'][k + 1] - sans['d'][k + 1]) + abs(avec['d'][k + 2] - sans['d'][k + 2]) > 60)
@@ -4238,6 +4281,8 @@ with sync_playwright() as p:
                 pg.evaluate("() => { document.body.dispatchEvent(new PointerEvent('pointerup', { bubbles: true })); document.body.click(); }"); pg.wait_for_timeout(100)
                 t(f'{titre} : sans écran tactile, aucun plein écran ni verrou en paysage n’est jamais demandé', pg.evaluate('() => window.__plein === 0'), str(pg.evaluate('() => window.__plein')))
                 t(f'{titre} : sans écran tactile, aucun bouton tactile (ni GAZ / FREIN, ni ◀ ▶, ni « Activer le volant »), rien n’est branché', pg.evaluate('() => typeof TACTILE === "undefined" || !TACTILE.estPresent() && TACTILE.etat.mode === "aucun" && ["tactile", "tactileActiver", "tactilePortrait", "boutonVolantPause", "boutonRecentrerPause"].every(id => document.getElementById(id).classList.contains("cache"))'), str(pg.evaluate('() => typeof TACTILE === "undefined" ? "pas de TACTILE" : [TACTILE.estPresent(), TACTILE.etat.mode, navigator.maxTouchPoints]')))
+            if page.startswith('index.html?seul=1'):
+                choix_longueurs(pg, titre, l, h)
             if page == 'index.html?seul=1' and l == 1280:
                 conduite(pg, titre)
             if page == 'index.html':

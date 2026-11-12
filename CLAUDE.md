@@ -19,7 +19,7 @@ Ce qu'on ajoute, c'est **un vrai championnat** : des saisons de 12 Grands Prix, 
 
 ## La course
 
-- **Trois longueurs**, à choisir avant chaque Grand Prix : **très courte (5 tours)**, **moyenne (12 tours)**, **longue (18 tours)**. Les points ne changent pas selon la longueur.
+- **Trois longueurs**, à choisir avant chaque Grand Prix : **très courte (5 tours)**, **moyenne (12 tours)**, **longue (18 tours)**. Les points ne changent pas selon la longueur. **Partout les mêmes trois boutons** (tour 54a) : avant chaque Grand Prix de la carrière (page Course), en course rapide (l'écran « Choisis ta course », avec l'essai libre en plus) et à deux (écran « À deux » : trois gros boutons à la place de la liste « Tours », `DEUX_LONGUE_CHOIX` ; faux = la liste 3 / 5 d'avant), ≥ 40 px au doigt, sans défilement en 640×360.
 - **20 voitures sur la grille** : 10 écuries de 2 pilotes, le joueur compris. Si les mesures montrent que 20 voitures, c'est trop lourd (voir « Performance »), on descend à 16. Jamais moins de 10.
 - **Les qualifications** : un seul tour chronométré, qu'on peut passer. Si on le passe, on part dernier. Les IA ont un temps de qualification calculé à partir de leur rythme, sans qu'on simule leur tour.
 - **Le départ** : cinq feux rouges qui s'allument puis s'éteignent. Partir trop tôt, c'est une pénalité de 5 secondes. Le départ se dose et demande du réflexe : voir « Le départ parfait ».
@@ -552,6 +552,7 @@ Décidé par le propriétaire le 2026-11-03 (« écris 1, 2, 3, 4 »). Trois ajo
 - **Le rétroviseur** : en vue derrière la voiture et en vue cockpit, un petit rétroviseur en haut au milieu de l'écran montre ce qui arrive derrière (une deuxième caméra, en basse résolution, avec moins de décor). Sans lui, défendre sa place, c'est deviner.
   - Il ne cache jamais la piste devant la voiture (le test en pixels existant) ; on peut le masquer (réglage sauvegardé) ; coupé d'office en qualité basse si l'Auto en a besoin, et en mode 2 joueurs s'il fait passer sous 60 images/s.
   - **Tests** : une voiture placée 20 m derrière se voit dans le rétroviseur ; le coût en appels de dessin est noté ; masqué = rien ne change.
+  - **Rien ne se chevauche, même pour une image** (tour 54b) : la ligne « Tour précédent » du chrono garde sa place avant le premier tour fini (`HUD_PRECEDENT_RESERVE`, invisible ; faux = comme avant), donc le chrono ne grandit plus sous le rétroviseur à la fin du 1er tour ; en plus, le rétroviseur relit sa place dès que le chrono change de taille (ResizeObserver). Test : capture et mesure au moment où le texte arrive, en 640×360, 960×600 et 1280×720 (`test=retro`).
 - **Les touches au choix** : dans les réglages, chaque commande (gaz, frein, gauche, droite, retour en piste, caméra, pause, et celles du joueur 2) peut prendre une autre touche : on clique sur la commande, on appuie sur la touche voulue. Une touche déjà prise est signalée ; « Par défaut » remet tout. Les touches d'aujourd'hui (flèches, WASD / ZQSD) restent le réglage de départ ; Échap ouvre toujours la pause, quoi qu'on choisisse. Gardé à la racine de la sauvegarde.
   - **Tests** : une touche changée conduit la voiture, l'ancienne ne fait plus rien ; en 2 joueurs, une touche de l'un ne bouge jamais la voiture de l'autre ; « Par défaut » remet tout ; une ancienne sauvegarde se charge avec les touches d'aujourd'hui.
 

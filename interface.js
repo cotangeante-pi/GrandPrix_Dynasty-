@@ -76,8 +76,12 @@ const INTERFACE = (function () {
     const secteurs = finie ? c.tours[c.tours.length - 1].secteurs : c.secteursTour;
     const avant = c.tours[c.tours.length - (finie ? 2 : 1)];
     const precedent = c.tours[c.tours.length - 1];
-    $('hudPrecedent').classList.toggle('cache', !precedent || finie);
+    // (tour 54b) HUD_PRECEDENT_RESERVE : la ligne garde sa place même vide (invisible), pour que le chrono ne grandisse pas d'un coup sous le rétroviseur
+    const reserve = REGLAGES.HUD_PRECEDENT_RESERVE, rien = !precedent || finie;
+    $('hudPrecedent').classList.toggle('cache', !reserve && rien);
+    $('hudPrecedent').classList.toggle('vide', reserve && rien);
     if (precedent) $('hudPrecedent').textContent = texte('tourPrecedent') + ' ' + formatTemps(precedent.temps) + (precedent.coupe ? ' ✂' : '');
+    else if (reserve) $('hudPrecedent').textContent = '\u00a0';
     for (let i = 0; i < 3; i++) {
       const el = $('hudS' + (i + 1)), t = secteurs[i];
       el.textContent = texte('secteur') + (i + 1) + ' ' + (t === undefined || t === null ? '–' : t.toFixed(3).replace('.', texte('virgule')));
@@ -384,19 +388,39 @@ const INTERFACE = (function () {
     zone.textContent = '';
     if (!d) return;
     $('paddockLongueurTitre').textContent = texte('longueurTitre');
+    boutonsLongueur(zone, 'longueur', d.courante, d.choisir);
+  }
+
+  // (tour 54a) les trois gros boutons 5 / 12 / 18 tours, les mêmes sur la page Course de la carrière et à deux : zone, préfixe des identifiants, clé choisie, choisir(cle)
+  function boutonsLongueur(zone, prefixe, courante, choisir) {
+    zone.textContent = '';
     for (const cle of ['tresCourte', 'moyenne', 'longue']) {
       const nb = REGLAGES.LONGUEURS_COURSE[cle], b = document.createElement('button');
-      b.id = 'longueur' + nb;
-      b.className = 'longueurChoix' + (cle === d.courante ? ' choisi' : '');
+      b.id = prefixe + nb;
+      b.className = 'longueurChoix' + (cle === courante ? ' choisi' : '');
       const n = document.createElement('b'), t = document.createElement('span');
       n.textContent = nb; t.textContent = texte(cle);
       b.appendChild(n); b.appendChild(t);
       b.title = texte('longueurTours').replace('{n}', nb);
       b.tabIndex = -1;
       b.addEventListener('mousedown', e => e.preventDefault());
-      b.addEventListener('click', () => d.choisir(cle));
+      b.addEventListener('click', () => choisir(cle));
       zone.appendChild(b);
     }
+  }
+
+  // (tour 54a) à deux : les trois boutons à la place de la liste « Tours » (la liste reste, cachée, pour garder la valeur) ; DEUX_LONGUE_CHOIX faux : la liste, comme avant
+  function majLongueurDeux() {
+    const R = REGLAGES, liste = $('deuxTours'), zone = $('deuxLongueurBoutons');
+    $('deuxLongueur').classList.toggle('cache', !R.DEUX_LONGUE_CHOIX);
+    liste.classList.toggle('deuxCache', !!R.DEUX_LONGUE_CHOIX);
+    $('deuxToursTexte').parentNode.classList.toggle('deuxCache', !!R.DEUX_LONGUE_CHOIX);
+    if (!R.DEUX_LONGUE_CHOIX) { zone.textContent = ''; return; }
+    $('deuxLongueurTitre').textContent = texte('longueurTitre');
+    const cles = Object.keys(R.LONGUEURS_COURSE).filter(k => R.LONGUEURS_COURSE[k] > 0);
+    const courante = cles.find(k => R.LONGUEURS_COURSE[k] === Number(liste.value)) || cles[0];   // (3 tours, l'ancien choix : « très courte » à l'écran)
+    if (!cles.some(k => R.LONGUEURS_COURSE[k] === Number(liste.value))) liste.value = String(R.LONGUEURS_COURSE[courante]);
+    boutonsLongueur(zone, 'deuxLongueur', courante, cle => { liste.value = String(R.LONGUEURS_COURSE[cle]); majLongueurDeux(); });
   }
 
   // le podium de la découverte (tour 52e ; avant : l'écran « Bravo ! ») : d = { place, nb, prime, encore (le bouton « Encore une course ? ») } ou null
@@ -1423,10 +1447,11 @@ const INTERFACE = (function () {
     $('deuxErreur').textContent = '';
     const options = (id, liste, nom) => { const s = $(id); s.textContent = ''; for (const v of liste) { const o = document.createElement('option'); o.value = String(v); o.textContent = nom(v); s.appendChild(o); } };
     options('deuxCircuit', Object.keys(CIRCUITS), c => nomCircuit(c));
-    options('deuxTours', R.DEUX_TOURS_CHOIX, n => accorder(n + ' ' + texte('tours')));
+    options('deuxTours', DEUX_JOUEURS.toursPermis(), n => accorder(n + ' ' + texte('tours')));
     options('deuxIA', R.DEUX_IA_CHOIX.filter(n => n <= R.DEUX_VOITURES_MAX - 2), n => String(n));
     options('deuxNiveau', Object.keys(R.NIVEAUX), n => texte('niveau_' + n));
     $('deuxCircuit').value = r.circuit; $('deuxTours').value = String(r.tours); $('deuxIA').value = String(r.ia); $('deuxNiveau').value = r.niveau;
+    majLongueurDeux();
     [1, 2].forEach(i => {
       const j = r.joueurs[i - 1], bloc = $('deuxJoueur' + i);
       bloc.querySelector('h2').textContent = (i === 1 ? '🔵 ' : '🔴 ') + texte('joueur' + i);
@@ -2004,7 +2029,7 @@ const INTERFACE = (function () {
     remplirDuel, avec, remplirUne, preparerUne, remplirArgent, remplirSolde, remplirGarage, preparerGarage,
     remplirSaison, remplirDuelSaison, remplirContrats, remplirRetraite, preparerSaison, retraiteEnAttente, remplirCeremonie, preparerCeremonie, remplirAlbum, preparerAlbum, remplirBilan, remplirTemple, preparerTemple, preparerReleve, remplirHeritier, lireHeritier, montrerErreurHeritier, remplirAileron, majAileron, preparerAileron, preparerPneusGarage, remplirArbre, preparerArbre, remplirCalendrier, preparerCalendrier,
     remplirSponsors, remplirRappelSponsor, preparerSponsors, remplirFiche, preparerFiche, remplirInterview, montrerEffetInterview, preparerInterview, remplirReputation,
-    majEcartFantome, preparerFantome, majBoutonsFantome, majDepart, majDeux, preparerTitre, remplirPodiumDecouverte, preparerPodiumDecouverte, majPrime, majPlaceGrand, remplirLongueur, remplirPodiumCarriere, remplirPiloteRapide, appliquerPilote, majAides, remplirPilote, lirePilote, montrerErreursPilote, preparerPilote, nomCircuit, remplirCasque, lireCasque, modePilote, preparerCasque };
+    majEcartFantome, preparerFantome, majBoutonsFantome, majDepart, majDeux, preparerTitre, remplirPodiumDecouverte, preparerPodiumDecouverte, majPrime, majPlaceGrand, remplirLongueur, majLongueurDeux, remplirPodiumCarriere, remplirPiloteRapide, appliquerPilote, majAides, remplirPilote, lirePilote, montrerErreursPilote, preparerPilote, nomCircuit, remplirCasque, lireCasque, modePilote, preparerCasque };
 })();
 
 // --- les aides au premier usage (aides.js, étape 11b, Codeur 4) : la bulle, « Revoir les aides » au paddock et dans le menu pause.
