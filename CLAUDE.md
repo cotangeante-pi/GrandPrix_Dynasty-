@@ -65,6 +65,7 @@ Ce qu'on ajoute, c'est **un vrai championnat** : des saisons de 12 Grands Prix, 
   - **la retraite par l'âge** : au bout de **15 saisons**, le pilote est trop vieux. Ce nombre est un réglage dans `donnees.js`.
 
   Dans les deux cas, on passe au bilan de carrière (étape 14), puis on continue la dynastie avec un héritier, ou on en commence une nouvelle (voir « La relève : une vraie dynastie »).
+  - **Chasse aux bugs de la carrière entière** (tour 55, T1) : `tests/carriere-longue.html` (annexes de `tests/lancer.py`, donc sur GitHub) joue 15 saisons de suite avec les vrais réglages (division 4 au départ, un plateau par division, sponsors, argent, contrats, retraite par l'âge, temple, album) pour un joueur faible, moyen et fort (qui monte jusqu'à la division 1), 45 saisons en 3 générations, un héritier de division 1, une retraite anticipée, et les vieilles sauvegardes v1, v2, v3 ouvertes puis jouées jusqu'à la retraite ; après chaque saison : 20 pilotes et 10 écuries, 2 pilotes par écurie, numéros uniques sur tous les plateaux, âges, rythmes et niveaux dans leurs bornes, argent, aucun NaN ni « undefined », sauvegarde relue identique, chaque une de l'album redessinée. Aucun bug trouvé le 2026-11-12 ; mesures : 85 Ko (une carrière en division 4), 118 Ko (jusqu'en division 1), 261 Ko pour 3 générations (45 saisons, 540 unes).
 
 ## Le championnat et les saisons
 

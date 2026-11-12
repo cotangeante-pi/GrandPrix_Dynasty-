@@ -58,6 +58,7 @@ def ecrans(delai=900):   # (tour 48a : 900 s, les 6 pages du nouveau paddock ont
 # des rappels (promesses, minuteurs) : --virtual-time-budget fait avancer l'horloge de la page avant de rendre le DOM
 ANNEXES = ['tests/sdk.html', 'tests/pneus.html', 'tests/enregistreur.html', 'tests/circuits-a.html', 'tests/circuits-b.html', 'tests/textes.html', 'tests/decors.html', 'tests/banc-parle.html']   # (decors : les décors des 12 tracés, Codeur 3 ; banc-parle : les discussions, Codeur 3 ; officiels.html, les IA sur les 12 tracés : une partie à elle)
 ANNEXES.extend(['tests/aides.html', 'tests/tutoriel.html'])   # les aides au premier usage (aides.js, étape 11b) et le tutoriel guidé (tutoriel.js, étape 11d), Codeur 4
+ANNEXES.append('tests/carriere-longue.html')   # la carrière entière : 15 saisons, 3 générations, vieilles sauvegardes (tour 55, T1)
 ANNEXES.append('tests/personnalisation.html')   # la personnalisation : livrée, célébration, boutique de skins (tour 48c, Codeur 3)
 ANNEXES.append('tests/reglages-voiture.html')   # les réglages de la voiture (tour 50b, Codeur 2) ; leur tableau sur les 12 tracés : tests/officiels.html
 def annexes():
