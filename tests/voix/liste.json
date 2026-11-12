@@ -61,7 +61,7 @@
   "moment": "Bataille",
   "fait": "coteACote",
   "texte": "Roues contre ROUES !",
-  "texte_long": "Les deux pilotes sont roue contre ROUE !"
+  "texte_long": "Ils se battent, roues contre ROUES !"
  },
  {
   "id": "bataille-3",
@@ -107,14 +107,14 @@
   "moment": "Contact",
   "fait": "contact",
   "texte": "Aïe, CONTACT !",
-  "texte_long": "Les deux voitures se touchent, aïe, CONTACT !"
+  "texte_long": "Oh là là, aïe, quel CONTACT !"
  },
  {
   "id": "contact-2",
   "moment": "Contact",
   "fait": "contact",
   "texte": "Ça TOUCHE !",
-  "texte_long": "Les voitures se frottent, ça TOUCHE !"
+  "texte_long": "Attention, ça TOUCHE là !"
  },
  {
   "id": "arret-1",
@@ -159,7 +159,7 @@
   "moment": "Meilleur tour",
   "fait": "meilleurTour",
   "texte": "MEILLEUR tour !",
-  "texte_long": "Il vient de réaliser le MEILLEUR tour !"
+  "texte_long": "Et voilà, c'est le MEILLEUR tour de la course !"
  },
  {
   "id": "meilleurTour-2",
@@ -197,7 +197,7 @@
   "moment": "Arrivée, victoire",
   "fait": "arrivee",
   "texte": "Quelle VICTOIRE !",
-  "texte_long": "Il passe la ligne, quelle VICTOIRE !"
+  "texte_long": "Il franchit la ligne d'arrivée, quelle VICTOIRE !"
  },
  {
   "id": "arrivee-3",
@@ -216,7 +216,7 @@
   "moment": "Podium",
   "fait": "podium",
   "texte": "Voilà le PODIUM !",
-  "texte_long": "Les trois pilotes arrivent, voilà le PODIUM !"
+  "texte_long": "Et maintenant, voilà le PODIUM !"
  },
  {
   "id": "joueurArrivee-1",
@@ -242,7 +242,7 @@
   "moment": "Remontée",
   "fait": "remontee",
   "texte": "Ça REMONTE !",
-  "texte_long": "Il double, il avance, ça REMONTE !"
+  "texte_long": "Il remonte, il remonte, ça REMONTE !"
  },
  {
   "id": "penalite-1",

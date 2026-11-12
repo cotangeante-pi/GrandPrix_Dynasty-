@@ -23,12 +23,19 @@ def main():
     for nom, n in notes.items():
         p = prises[nom]
         j = TR.juger(p['texte'], n['texte_entendu'], n['parole'])
+        if not os.path.exists(os.path.join(PRISES, nom + '-brut.wav')): continue  # (tour 55c) prise dont le son a été effacé
         xb, sr = T.lire_wav(os.path.join(PRISES, nom + '-brut.wav'))
         i2 = T.intonation2(xb, sr)
         if j['rejet'] or i2['question'] or i2['note'] < NOTE_MIN_SECOURS: continue
         (cand if i2['note'] >= NOTE_MIN else secours).setdefault(p['cle'], []).append(dict(nom=nom, voix=p['voix'], prise=p['prise'], entendu=n['texte_entendu'], note=i2['note'], into=i2))
     for cle, v in secours.items():
         if cle not in cand: cand[cle] = v; print('secours 0,6 :', cle, flush=True)
+    # (tour 55c) les sons de vieilles prises ont été effacés : une phrase sans candidat garde sa prise déjà présente dans la page
+    anciennes = {}
+    try:
+        h = open(os.path.join(PAGE, 'ecoute.html')).read(); anciennes = {e['id']: e for e in json.loads(h.split('const D=', 1)[1].split(';const z=', 1)[0])}
+    except Exception:
+        pass
     sortie, fichiers = [], []
     for ph in liste:
         cs = sorted(cand.get(ph['id'], []), key=lambda x: (not BAS <= x['note'] <= HAUT, abs(x['note'] - CIBLE)))[:GARDEES]
@@ -41,6 +48,8 @@ def main():
                 w = os.path.join(tmp, 'vif.wav'); T.ecrire_wav(w, y, sr2); T.encoder_mp4(w, os.path.join(PAGE, f))
             pris.append(dict(fichier=f, voix=x['voix'], prise=x['prise'], entendu=x['entendu'], note=x['note'], duree=round(len(y) / sr2, 2)))
             fichiers.append(f)
+        if not pris and anciennes.get(ph['id'], {}).get('prises'):
+            pris = [x for x in anciennes[ph['id']]['prises'] if os.path.exists(os.path.join(PAGE, x['fichier']))]; fichiers += [x['fichier'] for x in pris]
         sortie.append(dict(id=ph['id'], moment=ph['moment'], texte=ph['texte'], prises=pris))
     json.dump([{'path': f} for f in fichiers + ['ecoute.html']], open(os.path.join(PAGE, 'fichiers.json'), 'w'), indent=1)
     open(os.path.join(PAGE, 'ecoute.html'), 'w').write(PAGE_HTML.replace('__DONNEES__', json.dumps(sortie, ensure_ascii=False)))
