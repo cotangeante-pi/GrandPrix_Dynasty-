@@ -9,20 +9,21 @@ const L=[];let ok=0,ko=0;
 function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
 const v=(c,m)=>{if(!c)throw new Error(m||'faux');};
 REGLAGES.PNEU_DRIFT=true;   // (tour 48b) les tests de la 8e leçon sont écrits avec le pneu drift : rallumé ici ; « drift caché » l'éteint
-const R=REGLAGES,C=CIRCUIT_TEST,IDS=['conduite','freinage','depart','depassement','stand','pluie','visite','vivante'];   // (tour 37j : la 8e, la voiture vivante)
+const R=REGLAGES,C=CIRCUIT_TEST,IDS=['conduite','freinage','depart','depassement','stand','pluie','visite','drapeaux','vivante'];   // (tour 37j : la voiture vivante ; tour 55, T20 : « drapeaux » la précède)
 const base=o=>Object.assign({ecran:'course',etat:'course',tours:0,temps:0,herbe:false,s:0,vitesse:30,depart:null,arrets:0,arretEnCours:false,penalitesStands:0,pneus:'slick',eau:0,devant:false,longueur:C.longueur},o||{});
 // joue une suite de situations, dt par image ; renvoie le résultat
 const jouer=(su,liste,dt=1/30)=>{let r='encours';for(const s of liste){r=TUTORIEL.pas(su,s,dt);if(r!=='encours')break;}return r;};
 const pendant=(s,secondes,dt=1/30)=>Array.from({length:Math.round(secondes/dt)},()=>s);
 
-t('les 8 leçons (les 7 de CLAUDE.md, puis la voiture vivante), dans l’ordre, numérotées, chacune avec son adresse (les modes du jeu : course seule, contre une IA, championnat)', ()=>{
+t('les 9 leçons (les 7 de CLAUDE.md, puis les drapeaux, puis la voiture vivante), dans l’ordre, numérotées, chacune avec son adresse (les modes du jeu : course seule, contre une IA, championnat)', ()=>{
   v(JSON.stringify(TUTORIEL.LECONS.map(l=>l.id))===JSON.stringify(IDS));v(TUTORIEL.LECONS.every((l,i)=>l.numero===i+1&&/^(course|championnat)=/.test(l.adresse)));
   v(/meteo=averse/.test(TUTORIEL.PAR_ID.pluie.adresse)&&/ia=1&joueur=1/.test(TUTORIEL.PAR_ID.depassement.adresse));});
 t('chaque leçon a son nom, son but et sa consigne en anglais et en français, différents, avec les mêmes {repères} ; les raisons d’échec aussi', ()=>{
   const cles=['tutoBouton','tutoTitre','tutoIntro','tutoCommencer','tutoRetour','tutoPasser','tutoRecommencer','tutoSuivante','tutoListe','tutoQuitter','tutoReussie','tutoRatee','tutoBravo'];
   for(const id of IDS){cles.push('tuto_'+id,'tuto_'+id+'_but');if(id!=='visite') cles.push('tuto_'+id+'_consigne');}
+  cles.push('tuto_drapeaux_consigne_aileron');
   for(const e of ['paddock','garage','aileron','retour','fin']) cles.push('tuto_visite_'+e);
-  for(const r of ['sortie','temps','attente','patinage','cale','faux','essais','pasDevant','vitesse','pasArret','pneus','pasGlisse','teteAQueue']) cles.push('tuto_raison_'+r);
+  for(const r of ['sortie','temps','attente','patinage','cale','faux','essais','pasDevant','vitesse','pasArret','pneus','pasGlisse','teteAQueue','drapeau','pasPasse','pasRepare']) cles.push('tuto_raison_'+r);
   const rep=x=>(x.match(/\{\w+\}/g)||[]).sort().join();
   for(const k of cles){const en=TEXTES.en[k],fr=TEXTES.fr[k];v(typeof en==='string'&&typeof fr==='string'&&en&&fr&&en!==fr,k);v(rep(en)===rep(fr),k+' : repères');}});
 t('les textes du tutoriel ne sont jamais genrés sur le joueur (fr : ni prêt·e, seul·e, il, elle… ; en : ni he, she…)', ()=>{
@@ -98,16 +99,45 @@ t('7. la visite : le garage puis l’aileron, de retour au paddock : réussie ; 
   v(jouer(su,[e('championnat')])==='reussie');});
 // (tour 48b, décision du propriétaire du 2026-11-04) le drift caché (PNEU_DRIFT faux, le jeu) : le tutoriel revient à 7 leçons, la 8e n'est
 // plus proposée (ni dans la liste, ni par « Leçon suivante », ni par son adresse) ; rallumé, elle revient
-t('drift caché : 7 leçons (la 8e, le drift, ni dans la liste, ni après la 7e, ni par son id) ; drift rallumé : les 8 reviennent', ()=>{
+t('drift caché : 8 leçons (le drift, ni dans la liste, ni après les drapeaux, ni par son id) ; drift rallumé : les 9 reviennent', ()=>{
   const av=R.PNEU_DRIFT;R.PNEU_DRIFT=false;
-  try{v(JSON.stringify(TUTORIEL.LECONS.map(l=>l.id))===JSON.stringify(IDS.slice(0,7))&&TUTORIEL.LECONS.every((l,i)=>l.numero===i+1),'caché : '+TUTORIEL.LECONS.map(l=>l.id));
-    v(!TUTORIEL.PAR_ID.vivante&&TUTORIEL.suivante('visite')===null&&TUTORIEL.suivante('pluie')==='visite','caché : PAR_ID, suivante');
-    R.PNEU_DRIFT=true;v(JSON.stringify(TUTORIEL.LECONS.map(l=>l.id))===JSON.stringify(IDS)&&TUTORIEL.PAR_ID.vivante.numero===8&&TUTORIEL.suivante('visite')==='vivante','rallumé');}
+  try{v(JSON.stringify(TUTORIEL.LECONS.map(l=>l.id))===JSON.stringify(IDS.slice(0,8))&&TUTORIEL.LECONS.every((l,i)=>l.numero===i+1),'caché : '+TUTORIEL.LECONS.map(l=>l.id));
+    v(!TUTORIEL.PAR_ID.vivante&&TUTORIEL.suivante('drapeaux')===null&&TUTORIEL.suivante('pluie')==='visite','caché : PAR_ID, suivante');
+    R.PNEU_DRIFT=true;v(JSON.stringify(TUTORIEL.LECONS.map(l=>l.id))===JSON.stringify(IDS)&&TUTORIEL.PAR_ID.vivante.numero===9&&TUTORIEL.suivante('drapeaux')==='vivante','rallumé');}
   finally{R.PNEU_DRIFT=av;}});
-// --- 8. (tours 37j, 37l ; la règle du propriétaire du 2026-10-29) le drift, à l'épingle du technique : en pneus drift (la voiture vivante, tant que le pneu
+// --- 8. (tour 55, T20) les drapeaux et l'aileron : une IA garée sur l'herbe (la scène), drapeau jaune puis VSC, la passer sans pénalité ; puis l'aileron abîmé, réparé au stand
+t('8. les drapeaux : l’adresse (une IA, un joueur, 3 tours) ; passer la voiture arrêtée sans pénalité puis l’arrêt qui répare : réussie ; une pénalité, la fin de la course sans l’avoir passée, un arrêt sans réparation, la fin sans arrêt, un excès au stand, rien : ratée ; TUTO_LECON_DRAPEAUX faux : la leçon disparaît', ()=>{
+  v(/course=3/.test(TUTORIEL.PAR_ID.drapeaux.adresse)&&/ia=1&joueur=1/.test(TUTORIEL.PAR_ID.drapeaux.adresse),'adresse');
+  const L2=C.longueur,b=o=>base(Object.assign({longueur:L2,penalites:0,degats:0},o)),arrete=500;
+  const pose=su=>{su.arrete={s:arrete,penalites:0};return su;};
+  // avant la scène, rien ne se passe ; la voiture arrêtée vue puis passée : phase « aileron » et l'aileron à abîmer (poser)
+  let su=TUTORIEL.creerSuivi('drapeaux',C);v(su.phase==='jaune'&&jouer(su,pendant(b({s:100}),5))==='encours'&&su.phase==='jaune','la scène pas posée');
+  pose(su);v(jouer(su,[b({s:arrete-150}),b({s:arrete-30}),b({s:arrete+5})])==='encours'&&su.phase==='jaune','pas encore passée (5 m)');
+  v(jouer(su,[b({s:arrete+R.TUTO_DRAPEAUX_PASSE+3})])==='encours'&&su.phase==='aileron'&&su.poser===true,'passée : l’aileron');
+  v(jouer(su,[b({s:arrete+100,degats:R.TUTO_DRAPEAUX_DEGATS,arrets:0})])==='encours','encore abîmé, pas d’arrêt');
+  su.poser=false;v(jouer(su,[b({arrets:1,arretEnCours:true,degats:R.TUTO_DRAPEAUX_DEGATS}),b({arrets:1,degats:0})])==='reussie','l’arrêt répare : réussie');
+  su=pose(TUTORIEL.creerSuivi('drapeaux',C));v(jouer(su,[b({s:arrete-100}),b({s:arrete-10}),b({s:arrete+40,penalites:5})])==='ratee'&&su.raison==='drapeau','pénalité sous drapeau : '+su.raison);
+  su=pose(TUTORIEL.creerSuivi('drapeaux',C));v(jouer(su,[b({s:arrete-100}),b({etat:'finie',s:arrete-10})])==='ratee'&&su.raison==='pasPasse','course finie : '+su.raison);
+  su=pose(TUTORIEL.creerSuivi('drapeaux',C));su.vu=true;jouer(su,[b({s:arrete+50})]);su.poser=false;v(jouer(su,[b({arrets:1,degats:0.2})])==='ratee'&&su.raison==='pasRepare','arrêt sans réparation : '+su.raison);
+  su=pose(TUTORIEL.creerSuivi('drapeaux',C));su.phase='aileron';v(jouer(su,[b({etat:'finie'})])==='ratee'&&su.raison==='pasArret','fin sans arrêt : '+su.raison);
+  su=pose(TUTORIEL.creerSuivi('drapeaux',C));su.phase='aileron';v(jouer(su,[b({penalitesStands:5})])==='ratee'&&su.raison==='vitesse','excès au stand : '+su.raison);
+  su=TUTORIEL.creerSuivi('drapeaux',C);let r;for(let i=0;i<R.TUTO_TEMPS_MAX+2;i++) r=TUTORIEL.pas(su,b({s:0,vitesse:0}),1);v(r==='ratee'&&su.raison==='temps','rien : '+su.raison);
+  const av=R.TUTO_LECON_DRAPEAUX;R.TUTO_LECON_DRAPEAUX=false;
+  try{v(!TUTORIEL.PAR_ID.drapeaux&&!TUTORIEL.LECONS.some(l=>l.id==='drapeaux')&&TUTORIEL.LECONS.every((l,i)=>l.numero===i+1)&&TUTORIEL.suivante('visite')==='vivante','caché : '+TUTORIEL.LECONS.map(l=>l.id+l.numero));}finally{R.TUTO_LECON_DRAPEAUX=av;}});
+t('8. la scène des drapeaux : à TUTO_DRAPEAUX_ARRET s après le GO, l’IA est garée sur l’herbe TUTO_DRAPEAUX_DISTANCE m devant le joueur, immobile ; passée, l’aileron du joueur est abîmé et l’IA repart ; hors de la leçon, rien ne bouge', ()=>{
+  const T=construireCircuit(CIRCUITS.technique),jv=creerVoiture(T,100,0),iv=creerVoiture(T,50,0),ia={humain:false,pilote:{},v:iv},moi={humain:true,pilote:null,v:jv};
+  const J={ecran:'course',joueur:jv,course:{penalites:0},plateau:{go:0,temps:R.TUTO_DRAPEAUX_ARRET-1,pilotes:[moi,ia]}};
+  let su=TUTORIEL.creerSuivi('drapeaux',T);TUTORIEL.scene(su,J,T);v(!su.arrete&&iv.piste.s<200,'trop tôt');
+  J.plateau.temps=R.TUTO_DRAPEAUX_ARRET+0.5;iv.u=20;TUTORIEL.scene(su,J,T);
+  v(su.arrete&&Math.abs(su.arrete.s-(100+R.TUTO_DRAPEAUX_DISTANCE))<T.pas*2&&iv.u===0&&Math.abs(iv.piste.d)>T.largeur/2+R.MARGE_HERBE,'garée : '+JSON.stringify(su.arrete)+' d='+iv.piste.d);
+  iv.u=7;TUTORIEL.scene(su,J,T);v(iv.u===0,'immobile');
+  su.poser=true;TUTORIEL.scene(su,J,T);v(jv.degats===R.TUTO_DRAPEAUX_DEGATS&&su.libere===true,'l’aileron abîmé');iv.u=7;TUTORIEL.scene(su,J,T);v(iv.u===7,'l’IA repart');
+  const w=creerVoiture(T,100,0),ia2={humain:false,pilote:{},v:creerVoiture(T,50,0)};const J2={ecran:'course',joueur:w,course:{penalites:0},plateau:{go:0,temps:30,pilotes:[{humain:true,pilote:null,v:w},ia2]}};
+  const x0=ia2.v.x;TUTORIEL.scene(TUTORIEL.creerSuivi('conduite',T),J2,T);v(ia2.v.x===x0&&w.degats===0,'une autre leçon : rien');});
+// --- 9. (tours 37j, 37l ; la règle du propriétaire du 2026-10-29) le drift, à l'épingle du technique : en pneus drift (la voiture vivante, tant que le pneu
 // drift n'existe pas), faire glisser l'arrière (TUTO_DRIFT_ARRIERE pendant TUTO_DRIFT_TENUE s) sans herbe ni tête-à-queue ; puis le même virage
 // en adhérant, sans herbe : réussie. L'herbe ou un tête-à-queue : ratée tout de suite ; TUTO_ZONE_ESSAIS passages sans glisser : « pasGlisse » ; rien : « temps »
-t('8. le drift : l’adresse (essai libre sur le technique, la voiture vivante) ; une glissade tenue puis le même virage en adhérant : réussie ; l’herbe, un tête-à-queue, pas de glissade, rien : ratée ; le pneu de chaque phase', ()=>{
+t('9. le drift : l’adresse (essai libre sur le technique, la voiture vivante) ; une glissade tenue puis le même virage en adhérant : réussie ; l’herbe, un tête-à-queue, pas de glissade, rien : ratée ; le pneu de chaque phase', ()=>{
   v(/course=0/.test(TUTORIEL.PAR_ID.vivante.adresse)&&/circuit=technique/.test(TUTORIEL.PAR_ID.vivante.adresse)&&/pneus=drift/.test(TUTORIEL.PAR_ID.vivante.adresse),'adresse');
   const T=construireCircuit(CIRCUITS.technique),z=TUTORIEL.zoneFreinage(T),L=T.longueur,b=o=>Object.assign(base({longueur:L}),o),dt=0.1;
   // un passage dans l'épingle : 40 images dedans, l'arrière à a (0 à 1) et son angle al, avec l'herbe ou non
@@ -125,7 +155,7 @@ t('8. le drift : l’adresse (essai libre sur le technique, la voiture vivante) 
   w.typePneus='inter';v(TUTORIEL.appliquerPneu(TUTORIEL.creerSuivi('conduite',C),w)===null&&w.typePneus==='inter','autre leçon');});
 // le drift joué par un pilote scripté (le robot d'essai) en voiture vivante sur le technique, 400 m avant l'épingle : il freine tard en tournant,
 // l'arrière part et il le rattrape (le contre-braquage de sa poursuite), sans herbe ni tête-à-queue ; puis le même virage en adhérant : réussie
-t('8. le drift joué par un pilote scripté : la glissade rattrapée en drift, puis l’épingle propre en adhérant : réussie', ()=>{
+t('9. le drift joué par un pilote scripté : la glissade rattrapée en drift, puis l’épingle propre en adhérant : réussie', ()=>{
   const T=construireCircuit(CIRCUITS.technique),z=TUTORIEL.zoneFreinage(T),DT=1/120;let r='encours',su;
   {
     const vo=creerVoiture(T,0,0);placerSurPiste(vo,T,(z.debut-400+T.longueur)%T.longueur,0);vo.u=30;su=TUTORIEL.creerSuivi('vivante',T);
