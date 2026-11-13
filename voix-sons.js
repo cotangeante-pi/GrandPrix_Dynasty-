@@ -47,6 +47,27 @@ const VOIXSONS = (function () {
   const langueAvecSons = l => !Array.isArray(R.VOIX_SONS_LANGUES) || R.VOIX_SONS_LANGUES.includes(l);
   const cleDe = type => GROUPE[type] || null;
 
+  // (tour 55, T29) la mémoire : décodés par le contexte du jeu (48 kHz), les 41 sons pèsent ~10 Mo ; décodés à VOIX_SONS_FREQUENCE (24 kHz, la fréquence
+  // de Bark : rien ne se perd), ~5 Mo. Un OfflineAudioContext à cette fréquence sert de décodeur (decodeAudioData rééchantillonne à SA fréquence) ; un
+  // AudioBuffer de 24 kHz se joue tel quel dans le contexte du jeu. Pas d'OfflineAudioContext (ou VOIX_SONS_FREQUENCE 0) : le contexte du jeu, comme avant.
+  let decodeurHors;
+  function decodeur(ctx) {
+    if (decodeurHors === undefined) {
+      decodeurHors = false;
+      try {
+        const O = typeof OfflineAudioContext !== 'undefined' ? OfflineAudioContext : typeof webkitOfflineAudioContext !== 'undefined' ? webkitOfflineAudioContext : null;
+        if (O && R.VOIX_SONS_FREQUENCE > 0 && !essai) decodeurHors = new O(1, 1, R.VOIX_SONS_FREQUENCE);
+      } catch (e) { decodeurHors = false; }
+    }
+    return decodeurHors || ctx;
+  }
+  // la mémoire des sons décodés, en octets (float32 par échantillon et par canal) ; un élément <audio> (file://) ne compte pas
+  function memoire() {
+    let o = 0;
+    for (const l of Object.keys(tampons)) for (const g of Object.keys(tampons[l])) for (const b of tampons[l][g]) if (b && b.length && b.numberOfChannels) o += b.length * b.numberOfChannels * 4;
+    return o;
+  }
+
   // le chargement d'une langue (une fois) : chaque fichier à son tour, sans bruit en cas d'échec
   function charger() {
     const s = sortie(), l = langue();
@@ -60,7 +81,7 @@ const VOIXSONS = (function () {
         x.onload = () => {
           if (!(x.status === 200 || (x.status === 0 && x.response && x.response.byteLength))) return rattraper(l, cle, n);
           const ok = b => { (tampons[l][cle] = tampons[l][cle] || []).push(b); };
-          try { const p = s.ctx.decodeAudioData(x.response, ok, () => { /* un son illisible : le texte reste */ }); if (p && p.catch) p.catch(() => {}); } catch (e) { /* rien */ }
+          try { const p = decodeur(s.ctx).decodeAudioData(x.response, ok, () => { /* un son illisible : le texte reste */ }); if (p && p.catch) p.catch(() => {}); } catch (e) { /* rien */ }
         };
         x.onerror = () => rattraper(l, cle, n);   // (un son manquant : le texte reste ; en file://, le XHR est refusé : l'élément <audio>)
         x.send();
@@ -130,7 +151,7 @@ const VOIXSONS = (function () {
   }
   if (typeof document !== 'undefined') document.addEventListener('visibilitychange', () => { if (document.hidden) taire(); });
 
-  return { jouer, taire, charger, regler, cleDe, CLES, PRISES, PRISES_DE, url,
+  return { jouer, taire, charger, regler, cleDe, memoire, CLES, PRISES, PRISES_DE, url,
     get active() { return active; }, get joues() { return joues; }, get enCours() { return !!courant; },
     etat: () => Object.fromEntries(Object.entries(tampons).map(([l, d]) => [l, Object.fromEntries(Object.entries(d).map(([c, a]) => [c, a.length]))])),
     // pour les tests seulement : une sortie et des tampons faux

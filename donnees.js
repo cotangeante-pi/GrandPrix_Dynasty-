@@ -1263,6 +1263,7 @@ const REGLAGES = {
   FOULE_PAUSE_MIN: 0.6, FOULE_CLAMEURS_MAX: 12,   // jamais deux clameurs à moins de 0,6 s ; au plus 12 bandes en cours
   FOULE_ZONE: 0.07,               // la part du tour, avant et après la ligne, où les tribunes se font entendre
   FOULE_RUMEUR_VOLUME: 0.25, FOULE_RUMEUR_FREQUENCE: 450,   // la rumeur de fond près des tribunes
+  VOIX_SONS_FREQUENCE: 24000,     // (tour 55, T29) les sons sont décodés à cette fréquence (Hz ; celle de Bark) : ~5 Mo au lieu de ~10 ; 0 = celle du contexte du jeu, comme avant
   VOIX_SONS_VOLUME: 0.9,          // leur volume, × le volume du commentateur (son.js)
   VOIX_DEBIT: 1.1,                // la vitesse de la voix
   GRAINE_COMMENTAIRE: 15000,      // sa suite de hasard à lui (ALEATOIRE.suite) : la course ne change pas

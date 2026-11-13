@@ -3464,6 +3464,9 @@ t('voix enregistrées : allumées par défaut (tour 55, T10), en français seule
   v(lues.length===faits.length&&lues.every(b=>b&&b.id),'chaque son joué est une prise');
   lues.length=0;let ok=true;for(let i=0;i<60;i++){VOIXSONS.jouer('depassement');if(i>0&&lues[i]===lues[i-1])ok=false;}
   v(ok,'jamais la même prise deux fois de suite');
+  VOIXSONS._essai(faux,LANGUE,{depart:[{length:24000,numberOfChannels:1},{length:12000,numberOfChannels:1}],erreur:[{id:'x'}]},true);
+  v(VOIXSONS.memoire()===(24000+12000)*4&&REGLAGES.VOIX_SONS_FREQUENCE===24000,'la mémoire des sons décodés : float32 × échantillons × canaux ('+VOIXSONS.memoire()+' octets), 24 kHz');
+  VOIXSONS._essai(faux,LANGUE,groupes,true);
   v(new Set(lues).size===3,'les trois prises servent');
   permis.oui=false;const n=lues.length;
   v(VOIXSONS.jouer('erreur')===false&&lues.length===n,'son coupé : muet (et la synthèse décidera)');
