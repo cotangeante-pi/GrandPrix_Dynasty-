@@ -2478,7 +2478,8 @@ function majCommentaireDit(e, m) {
   const it = COMMENTAIRE.afficher(c, e.temps, attendre);
   if (it) {
     const dit = COMMENTAIRE.phrase(it, etiquetteVoiture, INTERFACE.formatTemps);
-    MESSAGES.pousserTexte(m, { type: 'commentaire', texte: '🎙 ' + texte('commentateur') + texte('deuxPoints') + dit });
+    // (tour 55, décision du propriétaire 2026-11-12) sur un écran tactile, le bandeau texte du commentateur ne s'affiche pas (il brouille la vue) ; la voix reste
+    if (!(document.body.classList.contains('tactile') && !REGLAGES.COMMENTAIRE_TEXTE_TACTILE)) MESSAGES.pousserTexte(m, { type: 'commentaire', texte: '🎙 ' + texte('commentateur') + texte('deuxPoints') + dit });
     if (!it.comble) SON.signal('commentaire');
     if (typeof FOULE !== 'undefined' && JEU.ecran === 'course' && /^depassement/.test(it.type)) FOULE.evenement('depassement');   // (tour 55 : la foule s'enflamme)   // (le petit signal pour les faits, pas pour ce qui comble)
     // (tour 51c) un fait qui a un son enregistré le joue (voix-sons.js) ; la synthèse ne dit que le reste
