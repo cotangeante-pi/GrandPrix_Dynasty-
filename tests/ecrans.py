@@ -4100,8 +4100,9 @@ def tuto_lecon(pg, titre, l, h, page):
     if id == 'stand': pg.evaluate('() => { BOUCLE.simuler(4); JEU.joueur.versStands = true; }')   # (le robot prend la voie des stands, comme dans stand_ecran)
     if id == 'drapeaux':
         # (tour 55, T20) la scène : l'IA garée sur l'herbe, le jaune puis la VSC montrés au joueur (en leçon, contrairement aux autres), la voiture arrêtée passée sans pénalité
+        # (une image de plus après la boucle : la scène abîme l'aileron à l'image qui suit le passage)
         vus = pg.evaluate('''() => { const vus = new Set(); for (let i = 0; i < 6000 && TUTORIEL_ECRAN.suivi().phase !== "aileron" && !TUTORIEL_ECRAN.resultat(); i++) { BOUCLE.simuler(0.05); TUTORIEL_ECRAN.maj(0.05); const j = DRAPEAUX.etatJoueur(JEU.plateau); if (j) vus.add(j.type); }
-          TUTORIEL_ECRAN.maj(0.05); JEU.joueur.versStands = true;   // (une image de plus : la scène abîme l'aileron à l'image qui suit le passage) return { vus: [...vus], phase: TUTORIEL_ECRAN.suivi().phase, degats: JEU.joueur.degats, consigne: document.getElementById("tutoConsigneTexte").textContent }; }''')
+          TUTORIEL_ECRAN.maj(0.05); JEU.joueur.versStands = true; return { vus: [...vus], phase: TUTORIEL_ECRAN.suivi().phase, degats: JEU.joueur.degats, consigne: document.getElementById("tutoConsigneTexte").textContent }; }''')
         t(f'{titre} : leçon des drapeaux : le drapeau jaune (puis la VSC) s’affiche au joueur, la voiture arrêtée est passée sans pénalité, l’aileron est alors abîmé et la consigne dit d’aller au stand', ('jaune' in vus['vus'] or 'vsc' in vus['vus']) and vus['phase'] == 'aileron' and vus['degats'] > 0 and vus['consigne'] == pg.evaluate('() => texte("tuto_drapeaux_consigne_aileron").replace("{v}", String(Math.round(REGLAGES.STAND_VITESSE_MAX * 3.6)))'), str(vus))
         if l == 960: pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'tuto-drapeaux-960.png'))
     if id == 'pluie':
