@@ -31,7 +31,10 @@ if (EST_PAGE && PARAMETRES.has('defi') && PARAMETRES.get('defi') !== '1') {
     PARAMETRES.set('defi', '1');
   } else { LIEN_DEFI_REFUS = r.raison; PARAMETRES.delete('defi'); }
 }
-const PAGE_NUE = !['course', 'ia', 'camera', 'seul', 'joueur', 'championnat', 'deux', 'tournoi', 'defi'].some(k => PARAMETRES.has(k));
+// ?enlignecourse=hote|CODE (tour 56, T7, enligne-page.js) : une course en ligne de bout en bout ; rouvre EN_LIGNE le temps de la page
+const EN_LIGNE_COURSE = EST_PAGE ? PARAMETRES.get('enlignecourse') : null;
+if (EN_LIGNE_COURSE) REGLAGES.EN_LIGNE = true;
+const PAGE_NUE = !['course', 'ia', 'camera', 'seul', 'joueur', 'championnat', 'deux', 'tournoi', 'defi', 'enlignecourse'].some(k => PARAMETRES.has(k));
 const DECOUVERTE_EN_COURS = EST_PAGE && PAGE_NUE && !SAUVEGARDE.decouverteFaite();
 if (DECOUVERTE_EN_COURS) REGLAGES.NIVEAU = REGLAGES.DECOUVERTE_NIVEAU;   // les IA de la découverte sont au niveau débutant
 // ?championnat=1 (ou la page nue après la découverte) : le championnat sauvegardé, ou un nouveau ; son prochain Grand Prix choisit le circuit de la page
@@ -125,6 +128,7 @@ const JEU = {
   monPilote: false,     // … ou en entier pour changer le nom, le numéro et le pays (« Mon pilote », Réglages)
   // le mode 2 joueurs (deux-joueurs.js) : ses réglages { nbIA, nbTours }, ou null ; les commandes de chaque joueur (1, 2), lues
   // de ses touches à lui (TOUCHES_DEUX) : cibles comme JEU.cibles, remettre comme JEU.remettre
+  enligne: null,        // (tour 56, T7) la course en ligne : l'état d'enligne-page.js, ou null
   deux: null, deuxCommandes: { 1: { cibles: { gaz: 0, frein: 0, direction: 0 }, remettre: false }, 2: { cibles: { gaz: 0, frein: 0, direction: 0 }, remettre: false } },
 };
 
@@ -1766,6 +1770,7 @@ function retourBoutique() {
 }
 
 function pause(oui) {
+  if (JEU.enligne) return;   // (tour 56, T7) en ligne, la course ne s'arrête pas pour un joueur : les autres l'attendraient (T8 : le menu sans pause)
   if (!oui && touchesOuvertes()) return;   // (tour 50c) pendant le choix des touches, la pause ne se ferme pas
   if (oui && JEU.ecran === 'course' && JEU.deux) INTERFACE.remplirTouchesDeux(MANETTE.lireManettes().length);   // à deux : les touches des deux dans le menu pause
   INTERFACE.montrerTouchesPause(!!JEU.deux);
@@ -1846,7 +1851,7 @@ function attendreLesAutres() {
   // « passer » (CLAUDE.md « La course ») : le reste de la course est vraiment joué, en accéléré (×ARRIVEE_ACCELERE) : à chaque image,
   // les mêmes pas de physique que la boucle (BOUCLE.simuler d'un pas), sans les dessiner, au plus ARRIVEE_TRANCHE_MS ; les places et
   // les temps sont ceux qu'on aurait eus en regardant ; ARRIVEE_ATTENTE_MAX reste le filet (une voiture bloquée)
-  if (JEU.attente.passer && !(JEU.attente.suivi && ARRIVEE.podiumPretAccelere(e, JEU.attente.suivi))) {
+  if (!JEU.enligne && JEU.attente.passer && !(JEU.attente.suivi && ARRIVEE.podiumPretAccelere(e, JEU.attente.suivi))) {   // (en ligne, jamais d'accéléré : les autres joueurs attendent nos commandes)
     const R = REGLAGES;
     if (!JEU.attente.suivi) { JEU.attente.suivi = ARRIVEE.creerSuivi(e); JEU.attente.debutReel = performance.now(); }
     // (tour 46, l'arrivée lente : au plafond de temps réel, ARRIVEE_ACCELERE_MAX_REEL, la fin de la course n'est plus classée dans l'ordre
@@ -1859,7 +1864,7 @@ function attendreLesAutres() {
   majAttente();
   // en accéléré : tout le monde a fini (sauf une voiture bloquée), ou le plafond de temps réel ; en regardant : podiumPret (ARRIVEE_ATTENTE_MAX)
   // (tour 46 : plus de podium au plafond de temps réel : la course finit pour de vrai ; une voiture bloquée reste le seul filet, ARRIVEE_BLOQUEE)
-  const a = JEU.attente, pret = a.suivi ? ARRIVEE.podiumPretAccelere(e, a.suivi) : ARRIVEE.podiumPret(e, e.temps - arrivee);
+  const a = JEU.attente, pret = JEU.enligne ? ENLIGNE_PAGE.podiumPret(e) : a.suivi ? ARRIVEE.podiumPretAccelere(e, a.suivi) : ARRIVEE.podiumPret(e, e.temps - arrivee);
   if (pret) {
     finirAttente();
     montrerPodium();
@@ -1884,6 +1889,7 @@ function finirAttente() {
 }
 
 function passerAuPodium() {
+  if (JEU.enligne) return;   // (en ligne : pas d'accéléré)
   if (JEU.attente && JEU.ecran === 'course') { JEU.attente.passer = true; JEU.attente.choisi = null; majCameraSuivie(); }
 }
 
@@ -2272,6 +2278,7 @@ function conduireJoueur(p, pas) {
 function pasJoueur(pas) {
   if (JEU.ecran === 'pause') return;   // la pause arrête la physique
   JEU.pas++;
+  if (JEU.enligne) { ENLIGNE_PAGE.pas(); return; }   // (tour 56, T7) la course en ligne : enligne-page.js
   if (JEU.tournoi || JEU.defi) { if (enTourQualif()) pasTourQualif(pas); JEU.remettre = false; return; }   // le tournoi chrono (et le défi du fantôme, tour 49b) : seule la voiture du tour roule
   // ?ia=N : toutes les IA, leurs contacts, leurs courses (la voiture suivie comprise) ; avec &joueur=1, la voiture du
   // joueur est dans la même course et il la conduit au clavier
@@ -2658,7 +2665,9 @@ function demarrerJeu() {
   if (DEFI_SAUVE) JEU.defi = { d: DEFI_SAUVE, code: null };   // (tour 49b) le défi du fantôme : le défi à courir, puis le code de son tour
   if (TOURNOI_SAUVE) { JEU.tournoi = TOURNOI_SAUVE; JEU.tournoiFantomes = {}; JEU.tournoiPodium = []; }   // (les fantômes du tournoi : en mémoire, une manche)
   JEU.contre = (PARAMETRES.get('joueur') === '1' && Number(PARAMETRES.get('ia')) >= 1) || !!JEU.championnat || JEU.decouverte || !!JEU.deux;
+  if (EN_LIGNE_COURSE) JEU.contre = true;   // (en ligne : la course est une course contre d'autres voitures, vue par son joueur)
   JEU.ia = JEU.deux ? JEU.deux.nbIA : JEU.championnat ? JEU.championnat.pilotes.length - 1 : JEU.decouverte ? JEU.indices.length : Math.max(0, Math.min(REGLAGES.IA_PAGE_MAX - (JEU.contre ? 1 : 0), Math.floor(Number(PARAMETRES.get('ia'))) || 0));
+  if (EN_LIGNE_COURSE) { JEU.enligne = ENLIGNE_PAGE.preparer(EN_LIGNE_COURSE, PARAMETRES); JEU.ia = 0; }   // (la voiture du joueur : trouvée au départ)
   // la carte des IA : lue du cache de la sauvegarde si elle y est et si sa clé est encore valable (cache-carte.js : les mêmes
   // nombres au bit près, les feux n'attendent plus), sinon calculée en fond puis mise en cache
   const carteFinie = t => {
@@ -2676,7 +2685,7 @@ function demarrerJeu() {
   // du joueur, son niveau, ou la leçon du freinage du tutoriel, qui l'allume pendant la leçon) ; jamais au tournoi ni à deux
   JEU.conseilForce = PARAMETRES.get('tutoriel') === 'freinage' ? 'oui' : null;
   const carteConseil = !JEU.tournoi && !JEU.deux && !JEU.defi && (JEU.conseilForce !== null || CONSEIL.reglageVu(SAUVEGARDE.option('trajectoire', null), REGLAGES.NIVEAU) !== 'non');
-  if (JEU.ia || JEU.deux || carteConseil) {   // (à deux sans IA aussi : la course attend la carte, comme les autres)
+  if (JEU.ia || JEU.deux || carteConseil || JEU.enligne) {   // (à deux sans IA aussi : la course attend la carte, comme les autres)
     // la sauvegarde d'abord, puis la carte livrée avec le jeu (cache-carte-test.js : le circuit test, tour 52f ; périmée = refusée par sa clé, on calcule en fond)
     const enCache = CACHE_CARTE.decoder(SAUVEGARDE.carte(NOM_CIRCUIT), NOM_CIRCUIT, CIRCUITS[NOM_CIRCUIT], CIRCUIT)
       || (typeof CACHE_CARTE_LIVREE !== 'undefined' ? CACHE_CARTE.decoder(CACHE_CARTE_LIVREE[NOM_CIRCUIT], NOM_CIRCUIT, CIRCUITS[NOM_CIRCUIT], CIRCUIT) : null);
@@ -2764,6 +2773,7 @@ function demarrerJeu() {
     INTERFACE.preparerInterview(repondreInterview, finirInterview);
   } else if (JEU.decouverte) INTERFACE.preparerResultats(() => {}, () => {}, () => {});   // la découverte : « Résultats » est caché, c'est « Continuer » du podium (tour 52e)
   else if (JEU.tournoi) INTERFACE.preparerResultats(montrerFinTournoi, () => {}, () => {});   // le tournoi : du podium au classement final
+  else if (JEU.enligne) INTERFACE.preparerResultats(voirResultats, () => ENLIGNE_PAGE.retourSalle(), () => ENLIGNE_PAGE.retourSalle());   // (tour 56, T7) en ligne : retour à la salle
   else if (JEU.deux) {   // le mode 2 joueurs : après les résultats, « Revanche » et « Menu »
     INTERFACE.preparerResultats(voirResultats, revancheDeux, menuDeux);
     document.getElementById('boutonRejouerResultats').textContent = texte('revanche');
@@ -2951,6 +2961,7 @@ function demarrerJeu() {
   else if (JEU.tournoi) { if (TOURNOI.fini(JEU.tournoi)) montrerPodiumTournoi(); else montrerAToi(); }   // le tournoi : « À toi, … ! » (ou le podium s'il est fini)
   else if (JEU.defi) commencerTourDefi();   // (tour 49b) le défi du fantôme : le tour tout de suite, contre le fantôme de l'ami
   else if (EST_PAGE && PARAMETRES.get('defi') === '1') location.replace(adresseAvec({ menu: 'amis' }));   // (un défi illisible : le menu « Entre amis »)
+  else if (JEU.enligne) { JEU.course = null; placerAuDepart(JEU.joueur, CIRCUIT); JEU.ecran = 'enligne'; INTERFACE.montrer('enligne'); ENLIGNE_PAGE.ouvrir(); }   // (tour 56, T7) la salle, puis la course en ligne
   else if (JEU.deux) lancerCourse(JEU.deux.nbTours);   // le mode 2 joueurs : la course tout de suite (son menu et ses réglages : ordre 3)
   else if (demandee !== null && !isNaN(Number(demandee))) lancerCourse(Number(demandee));
   else allerAuChoix();
@@ -2987,6 +2998,7 @@ function demarrerJeu() {
   BOUCLE.surAffichage((alpha, dt) => {
     JEU.alpha = alpha;
     JEU.dtImage = dt;
+    if (JEU.enligne) ENLIGNE_PAGE.image();   // (tour 56, T7) la course en ligne démarre dès que le départ et la carte sont là
     if (JEU.ecran === 'une' && REGLAGES.UNE_AUTO_DUREE > 0 && (JEU.tempsUne += dt) >= REGLAGES.UNE_AUTO_DUREE) passerUne();   // (tour 53d) la une du journal passe toute seule
     majManettes(dt);   // la manette (manette.js) : lue à chaque image
     majTactile(dt);   // le téléphone (tactile.js, tour 51k) : les boutons tenus et le volant, à chaque image
