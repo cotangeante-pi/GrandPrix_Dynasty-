@@ -3451,7 +3451,7 @@ t('voix enregistrées : allumées par défaut (tour 55, T10), en français seule
   VOIXSONS._essai({permis:()=>true,ctx:{},sortie:{}},'en',{depart:[{id:'x'}]},true);v(VOIXSONS.jouer('depart')===false,'en anglais : pas de son, la synthèse parle');VOIXSONS._essai(null,null,undefined,false);
   REGLAGES.VOIX_SONS_LANGUES=null;   // (le reste du test : la langue de la page, quelle qu'elle soit)
   const faits=['depart','depassement','depassementTete','depassementJoueur','coteACote','erreur','glissade','contact','arret','stands','pluie','meilleurTour','dernierTour','arrivee','podium','joueurArrivee','penalite'];
-  v(VOIXSONS.CLES.length===16&&VOIXSONS.CLES.every(c=>VOIXSONS.PRISES_DE[c]>=2&&VOIXSONS.PRISES_DE[c]<=3),'16 groupes de 2 ou 3 prises');
+  v(VOIXSONS.CLES.length===17&&VOIXSONS.CLES.every(c=>VOIXSONS.PRISES_DE[c]>=2&&VOIXSONS.PRISES_DE[c]<=3),'17 groupes de 2 ou 3 prises (les 16 du T10 + la remontée du T22)');
   v(faits.every(f=>VOIXSONS.cleDe(f)&&VOIXSONS.CLES.includes(VOIXSONS.cleDe(f))),'chaque fait a un groupe');
   v(VOIXSONS.cleDe('domicileRival')===null&&VOIXSONS.cleDe('combleTete')===null,'ce qui n’a pas de son reste à la synthèse');
   const lues=[],permis={oui:true};
