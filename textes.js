@@ -1424,3 +1424,6 @@ Object.assign(TEXTES.fr, { fantomeSrcPole: 'Fantôme : la pole', fantomeSrcMoi: 
 // --- tour 55, T22 : le fait « remontée » du commentateur (commentaire.js, COMMENTAIRE_REMONTEE_*) ---
 Object.assign(TEXTES.en, { com_remontee: ['{qui} is charging: {n} places up!', 'What a comeback by {qui}, {n} places gained!', '{qui} is on the move, up {n} places!'] });
 Object.assign(TEXTES.fr, { com_remontee: ['{qui} remonte : déjà {n} places gagnées !', 'Quelle remontée de {qui} : {n} places !', '{qui} est en pleine remontée, +{n} places !'] });
+
+Object.assign(TEXTES.en, { degats_oui: 'Damage: on', degats_non: 'Damage: off', drapeaux_oui: 'Flags: on', drapeaux_non: 'Flags: off' });
+Object.assign(TEXTES.fr, { degats_oui: 'Dégâts : oui', degats_non: 'Dégâts : non', drapeaux_oui: 'Drapeaux : oui', drapeaux_non: 'Drapeaux : non' });

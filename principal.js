@@ -65,6 +65,11 @@ const DEUX_EN_COURS = EST_PAGE && PARAMETRES.get('deux') === '1';
 // ?pneus=1 : les pneus du joueur (pneus.js), désactivés par défaut (PNEUS_ACTIFS) tant que le propriétaire n'a pas jugé la sensation
 if (PARAMETRES.get('pneus') === '1') REGLAGES.PNEUS_ACTIFS = true;
 if (PARAMETRES.get('pneus') === '0') REGLAGES.PNEUS_ACTIFS = false;   // (tour 32 : les pneus sont là par défaut ; ?pneus=0 les coupe)
+// (tour 55, T30) « Dégâts : oui / non » et « Drapeaux : oui / non » dans ⚙ Réglages du paddock (options sauvegardées 'degats' et 'drapeaux', changées seulement au paddock,
+// hors course : comme les aides). La valeur de donnees.js (DEGATS_ACTIF, DRAPEAUX_ACTIFS) est le réglage de départ : faux là-bas, les boutons n'apparaissent pas ; vrai, le joueur peut les couper
+const DEGATS_DEFAUT = REGLAGES.DEGATS_ACTIF, DRAPEAUX_DEFAUT = REGLAGES.DRAPEAUX_ACTIFS;
+if (DEGATS_DEFAUT && SAUVEGARDE.option('degats', true) === false) REGLAGES.DEGATS_ACTIF = false;
+if (DRAPEAUX_DEFAUT && SAUVEGARDE.option('drapeaux', true) === false) REGLAGES.DRAPEAUX_ACTIFS = false;
 if (PARAMETRES.get('livree') === '0') REGLAGES.LIVREE_ACTIVE = false;   // (tour 48c) ?livree=0 : la voiture d'avant, d'une seule couleur (tests, mesure)
 
 // ?essai=<skin> (boutique.js, tour 48c) : l'essai d'un skin avant l'achat, seul sur le circuit de test, hors championnat (rien n'est
@@ -2816,6 +2821,24 @@ function demarrerJeu() {
       if (!VOIXSONS.disponible) bs.classList.add('cache');   // (tour 55, revue T27 : en anglais il n'y a pas de sons, le bouton ne changerait rien)
       bs.addEventListener('mousedown', e => e.preventDefault());
       bs.addEventListener('click', () => { VOIXSONS.regler(!VOIXSONS.active); ecrireVs(); });
+    }
+    // (tour 55, T30) dégâts, drapeaux, fantôme de la pole : « oui / non » (ou « record / pole ») dans ⚙ Réglages, sauvegardés ; jamais pendant une course (ces boutons sont au paddock)
+    for (const [id, cle, defaut, ecritA] of [['boutonDegatsPaddock', 'DEGATS_ACTIF', DEGATS_DEFAUT, 'degats'], ['boutonDrapeauxPaddock', 'DRAPEAUX_ACTIFS', DRAPEAUX_DEFAUT, 'drapeaux']]) {
+      const bt = document.getElementById(id);
+      if (!bt) continue;
+      if (!defaut) { bt.classList.add('cache'); continue; }
+      const ecrireT = () => { bt.textContent = texte(ecritA + (REGLAGES[cle] ? '_oui' : '_non')); };
+      ecrireT();
+      bt.addEventListener('mousedown', e => e.preventDefault());
+      bt.addEventListener('click', () => { if (JEU.ecran === 'course' || JEU.ecran === 'pause') return; REGLAGES[cle] = !REGLAGES[cle]; SAUVEGARDE.ecrireOption(ecritA, REGLAGES[cle]); ecrireT(); });
+    }
+    const bfp = document.getElementById('boutonFantomePolePaddock');
+    if (bfp && REGLAGES.FANTOME_POLEMAN) {
+      bfp.classList.remove('cache');
+      const ecrireP = () => { bfp.textContent = texte(SAUVEGARDE.option('fantome_pole', null) === true ? 'fantomeSrcPole' : 'fantomeSrcMoi'); };
+      ecrireP();
+      bfp.addEventListener('mousedown', e => e.preventDefault());
+      bfp.addEventListener('click', () => { SAUVEGARDE.ecrireOption('fantome_pole', SAUVEGARDE.option('fantome_pole', null) !== true); ecrireP(); });
     }
     // (tour 55) la foule : « oui / non » dans ⚙ Réglages, sauvegardé (foule.js) ; son volume suit le curseur « Ambiance »
     const bf = document.getElementById('boutonFoulePaddock');

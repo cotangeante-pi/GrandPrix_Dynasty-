@@ -93,6 +93,22 @@ with sync_playwright() as p:
             ins = pg.evaluate(INSPECTER)
             mauvais = [x for x in ins if x[0] in ('bouton hors de l’écran', 'texte qui déborde du bouton', 'boutons qui se recouvrent', 'texte cassé')]
             t(f'{titre} : l’écran de qualification avec le bouton « Ghost: pole position » : rien hors de l’écran, coupé ni recouvert', not mauvais, ' | '.join(f'{g} {e} {d}' for g, e, d in mauvais[:6]))
+            # 6. (tour 55, T30) les nouveautés dans ⚙ Réglages du paddock : « Damage / Flags: on / off » et « Ghost: record / pole », au doigt ≥ 40 px, sauvegardés
+            pg.goto('file://' + RACINE + '/index.html?championnat=1&gp=5&test=paddock&lang=en', timeout=180000)
+            pg.wait_for_function('() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', timeout=120000); pg.wait_for_timeout(1500)
+            pg.click('#menuReglages'); pg.wait_for_timeout(600)
+            LIRE = '() => Object.fromEntries(["boutonDegatsPaddock", "boutonDrapeauxPaddock", "boutonFantomePolePaddock"].map(id => { const e = document.getElementById(id), r = e.getBoundingClientRect(); return [id, { t: e.textContent, w: r.width, h: r.height, vu: !e.classList.contains("cache") && r.width > 0, defile: e.scrollWidth > e.clientWidth + 2 }]; }))'
+            bt = pg.evaluate(LIRE)
+            t(f'{titre} : ⚙ Réglages : « Damage », « Flags » et « Ghost » sont là, lisibles, sans coupure' + (' et de 40 px au moins' if doigt else ''),
+              all(x['vu'] and not x['defile'] and (not doigt or x['h'] >= 40) for x in bt.values()), str(bt))
+            t(f'{titre} : ⚙ Réglages : les textes sont en anglais', bt['boutonDegatsPaddock']['t'] == 'Damage: on' and bt['boutonDrapeauxPaddock']['t'] == 'Flags: on' and bt['boutonFantomePolePaddock']['t'].startswith('Ghost'), str(bt))
+            pg.click('#boutonDegatsPaddock'); pg.click('#boutonDrapeauxPaddock'); pg.click('#boutonFantomePolePaddock'); pg.wait_for_timeout(300)
+            etat = pg.evaluate('() => [REGLAGES.DEGATS_ACTIF, REGLAGES.DRAPEAUX_ACTIFS, SAUVEGARDE.option("degats", true), SAUVEGARDE.option("drapeaux", true), SAUVEGARDE.option("fantome_pole", null), document.getElementById("boutonDegatsPaddock").textContent, document.getElementById("boutonFantomePolePaddock").textContent]')
+            t(f'{titre} : ⚙ Réglages : un clic coupe les dégâts et les drapeaux (réglage et sauvegarde) et choisit « Ghost: pole position »', etat[:5] == [False, False, False, False, True] and etat[5] == 'Damage: off' and 'pole' in etat[6].lower(), str(etat))
+            pg.reload(timeout=180000); pg.wait_for_function('() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', timeout=120000); pg.wait_for_timeout(1000)
+            apres = pg.evaluate('() => [REGLAGES.DEGATS_ACTIF, REGLAGES.DRAPEAUX_ACTIFS, SAUVEGARDE.option("fantome_pole", null)]')
+            t(f'{titre} : ⚙ Réglages : le choix survit à un rechargement', apres == [False, False, True], str(apres))
+            pg.evaluate('() => { SAUVEGARDE.ecrireOption("degats", true); SAUVEGARDE.ecrireOption("drapeaux", true); SAUVEGARDE.ecrireOption("fantome_pole", false); }')   # (rien ne reste dans la sauvegarde du profil d'essai)
             t(f'{titre} : aucune erreur ni avertissement dans la console', not console, ' | '.join(console[:5]))
             m = pg.evaluate('() => window.__clesManquantes || []')
             t(f'{titre} : aucune clé de textes.js ne manque en anglais', not m, ', '.join(m[:20]))
