@@ -264,6 +264,16 @@ function carteDepuis(circuit, trajectoire) {
 
 // le meilleur tour d'un pilote seul, estimé sans le simuler : la vitesse de la carte, à son rythme dans les virages
 // (la vitesse de pointe reste celle de la voiture)
+// T15 (tour 55) : la voiture ne sait pas faire ce tour de la carte (elle freine et braque moins bien que la carte ne le suppose) : mesuré sur
+// les 12 tracés, le circuit d'essai et le technique, un vrai tour lancé simulé dure de 1,07 à 1,22 fois l'estimation (1,14 en moyenne au niveau
+// normal et débutant, 1,09 en expert, 1,04 en légende, un peu moins à rythme plus bas) : l'estimation est multipliée par cette échelle
+// (NIVEAUX[…].qualifEchelle − QUALIF_ECHELLE_PENTE × (1 − rythme)) ; QUALIF_REALISTE faux = l'estimation d'avant, au bit près
+function echelleQualif(rythme) {
+  const R = REGLAGES;
+  if (!R.QUALIF_REALISTE) return 1;
+  const n = R.NIVEAUX[R.NIVEAU];
+  return (n && n.qualifEchelle !== undefined ? n.qualifEchelle : 1) - R.QUALIF_ECHELLE_PENTE * (1 - rythme);
+}
 function tourEstime(carte, rythme) {
   const tr = carte.trajectoire;
   let t = 0;
@@ -271,7 +281,7 @@ function tourEstime(carte, rythme) {
     const v = tr.vitesse[i];
     t += tr.ds[i] / (v < carte.pointe * 0.999 ? rythme * v : v);
   }
-  return t;
+  return REGLAGES.QUALIF_REALISTE ? t * echelleQualif(rythme) : t;
 }
 
 // le point de freinage d'un virage (sommet à l'échantillon i) : là où la vitesse possible commence à baisser avant

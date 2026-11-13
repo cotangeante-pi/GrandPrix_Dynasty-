@@ -950,10 +950,10 @@ const REGLAGES = {
   GRAINE_PLATEAUX: 21000,       // les pilotes d'un plateau neuf sont tirés avec la graine du championnat + ça + 101 × la division
   NIVEAU: 'normal',             // le niveau en cours (?niveau=…, principal.js) ; normal = les réglages tels quels
   NIVEAUX: {
-    debutant: { rythme: -0.05, erreurs: 2, agressivite: -0.3, regularite: 1.5, gestionPneus: -0.2, bataille: 0, technique: 0.1 },
-    normal: { rythme: 0, erreurs: 1, agressivite: 0, regularite: 1, gestionPneus: 0, technique: 0.28 },
-    expert: { rythme: 0, erreurs: 0.5, agressivite: 0.2, regularite: 0.7, gestionPneus: 0.1, corde: 0.5, marge: -0.7, limite: 1.01, penaliteFrein: 0.5, precision: 0.6, bordMin: 0.8, margeCarte: 1.1, technique: 0.7 },
-    legende: { rythme: 0, erreurs: 0.25, agressivite: 0.4, regularite: 0.5, gestionPneus: 0.2, corde: 0, marge: -1.4, limite: 1.02, penaliteFrein: 0, precision: 0.3, bordMin: 0.5, margeCarte: 0.7, technique: 1 },
+    debutant: { qualifEchelle: 1.14, rythme: -0.05, erreurs: 2, agressivite: -0.3, regularite: 1.5, gestionPneus: -0.2, bataille: 0, technique: 0.1 },
+    normal: { qualifEchelle: 1.14, rythme: 0, erreurs: 1, agressivite: 0, regularite: 1, gestionPneus: 0, technique: 0.28 },
+    expert: { qualifEchelle: 1.09, rythme: 0, erreurs: 0.5, agressivite: 0.2, regularite: 0.7, gestionPneus: 0.1, corde: 0.5, marge: -0.7, limite: 1.01, penaliteFrein: 0.5, precision: 0.6, bordMin: 0.8, margeCarte: 1.1, technique: 0.7 },
+    legende: { qualifEchelle: 1.04, rythme: 0, erreurs: 0.25, agressivite: 0.4, regularite: 0.5, gestionPneus: 0.2, corde: 0, marge: -1.4, limite: 1.02, penaliteFrein: 0, precision: 0.3, bordMin: 0.5, margeCarte: 0.7, technique: 1 },
   },
   // le caractère de chaque IA (étape 4d), tiré avec la graine entre ces bornes :
   IA_CARACTERE: {
@@ -1041,6 +1041,8 @@ const REGLAGES = {
   GRAINE_QUALIF_TRAIT: 15000,   // … et le niveau en qualifications de chaque IA (IA_CARACTERE.qualif) avec la graine + ce nombre
   GRAINE_PNEUS: 8000,           // … et la gestion des pneus de chaque IA avec la graine + ce nombre (à part : les autres tirages ne bougent pas)
   GRAINE_FEUX: 4000,            // … et le délai des feux et les réactions des IA avec la graine + ce nombre
+  QUALIF_REALISTE: true,        // (tour 55, T15) le temps de qualification des IA est celui d'un vrai tour (× NIVEAUX[…].qualifEchelle, 1,04 à 1,14 : ia.js, echelleQualif) ; faux = l'estimation d'avant (environ 12 % trop rapide)
+  QUALIF_ECHELLE_PENTE: 0,    // … moins ça par point de rythme sous 1 (0 : la même échelle pour tous, l'ordre de la grille ne change pas, donc les courses non plus ; 0,6 collerait mieux à rythme 0,95 mais change l'ordre de la grille : courses.html tombe à 23 dépassements)
   IA_QUALIF_HASARD: 0.005,      // le temps de qualification d'une IA varie de ±0,5 % autour de son meilleur tour estimé
   IA_PAGE_MAX: 20,              // ?ia=N : au plus ce nombre d'IA dans la page
   // ?ia=N : la couleur de chaque IA (provisoire : les écuries viendront à l'étape 6)
