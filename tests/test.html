@@ -545,6 +545,34 @@ t('qualité auto : un ordinateur rapide (6 ms) garde tout le détail ; trop lent
   v(machineQ(b,()=>40,60).length===0&&!QUALITE.auPlusSimple(a),'il y reste');
   const c=QUALITE.creer('auto');v(machineQ(c,()=>1000/56.5,30).length===0,'56,5 images/s');
   const d=QUALITE.creer('auto');v(QUALITE.observer(d,2,false,0.002)===null&&machineQ(d,()=>6,5).length===0,'une image de 2 s');});
+// (tour 55, T3) des téléphones lents simulés : un ordinateur de 9 ms au plus beau (0,35 ms de moins par pas), le processeur ralenti 4, 6 ou 8 fois
+// (Emulation.setCPUThrottlingRate des essais de tests/telephone-lent.py) : le coût multiplié. Un MODÈLE : le Mac des tests dessine en logiciel
+// (swiftshader), son calcul sur le fil principal ne baisse pas avec les niveaux (1,1 à 1,3 ms à tous), il ne dit rien d'un vrai téléphone
+t('qualité auto, téléphones lents simulés (processeur 4×, 6×, 8× plus lent, 9 ms au plus beau) : elle descend vite (un pas toutes les 0,5 s), se pose au premier niveau à 58 images/s ou au plus simple, et ne bouge plus pendant 120 s', ()=>{
+  const out=[];
+  for(const rythme of [4,6,8]){
+    const cout=(n,k)=>rythme*(9-0.35*n)+bruitQ(k)*rythme/4,q=QUALITE.creer('auto'),vus=machineQ(q,cout,40);
+    const plusSimple=q.niveau===q.niveaux.length-1,tenu=ipsQ(cout,q.niveau)>=REGLAGES.QUALITE_IPS_VISEE;
+    v(vus.length>0&&vus.every((x,i)=>x[0]===i+1),rythme+'× : un pas à la fois '+JSON.stringify(vus));
+    v(vus.every((x,i)=>i===0||x[1]-vus[i-1][1]>=REGLAGES.QUALITE_PAS_DESCENTE-1e-9),rythme+'× : 0,5 s entre deux pas');
+    v(tenu||plusSimple,rythme+'× : niveau '+q.niveau+', '+ipsQ(cout,q.niveau).toFixed(1)+' images/s');
+    if(tenu) v(ipsQ(cout,q.niveau-1)<REGLAGES.QUALITE_IPS_VISEE,rythme+'× : un niveau de trop');
+    const apres=machineQ(q,cout,120);v(apres.length===0,rythme+'× : va-et-vient sur 120 s '+JSON.stringify(apres));
+    out.push(rythme+'× : niveau '+q.niveau+'/'+(q.niveaux.length-1)+' en '+(vus.length?vus[vus.length-1][1].toFixed(1):'0')+' s, '+ipsQ(cout,q.niveau).toFixed(1)+' images/s');}
+  L.push('  (téléphones lents simulés — '+out.join(' ; ')+')');});
+t('qualité auto, appareil à moins de 4 images/s : QUALITE_LONGUES_SUITE images longues de suite comptent (l\u2019Auto simplifie), une image longue isolée ou deux de suite jamais ; à 0 (comme avant) elles ne comptent jamais', ()=>{
+  const R_=REGLAGES,sauve=R_.QUALITE_LONGUES_SUITE;
+  try{
+    const q=QUALITE.creer('auto');for(let k=0;k<3;k++) QUALITE.observer(q,0.4,false,0.4);
+    v(q.niveau===0,'3 images longues de suite : rien encore');
+    const a=QUALITE.creer('auto');let t_=0;for(let k=0;k<40;k++){t_+=0.4;QUALITE.observer(a,0.4,false,0.4);QUALITE.observer(a,1/60,false,0.004);}
+    v(a.niveau===0,'des images longues séparées par une image normale : rien');
+    const b=QUALITE.creer('auto');for(let k=0;k<60;k++) QUALITE.observer(b,0.4,false,0.4);
+    v(b.niveau>0,'un appareil à 2,5 images/s : l\u2019Auto simplifie ('+b.niveau+')');
+    const c=QUALITE.creer('auto');for(let k=0;k<40;k++) QUALITE.observer(c,0.4,true,0.4);v(c.niveau===0,'pendant les feux : rien');
+    R_.QUALITE_LONGUES_SUITE=0;const d=QUALITE.creer('auto');for(let k=0;k<60;k++) QUALITE.observer(d,0.4,false,0.4);v(d.niveau===0,'à 0, comme avant : elles ne comptent jamais');
+    L.push('  (appareil à 2,5 images/s : niveau '+b.niveau+'/'+(b.niveaux.length-1)+' après 60 images)');
+  }finally{R_.QUALITE_LONGUES_SUITE=sauve;}});
 t('qualité auto : le détail revient lentement (un pas toutes les 3 s au plus), seulement avec de la marge au temps de calcul (< 70 % de 16,7 ms) ; un pas rendu qui repasse sous 58 est repris aussitôt, et pas de va-et-vient sur 60 s', ()=>{const R_=REGLAGES;
   const a=QUALITE.creer('auto',{niveau:10}),va=machineQ(a,()=>6,40);
   v(a.niveau===0&&va.length===10&&va.every((x,i)=>x[0]===9-i&&x[1]-(i?va[i-1][1]:0)>=R_.QUALITE_PAS_RETOUR-1e-9),'le retour '+JSON.stringify(va));
@@ -3169,6 +3197,37 @@ t('commentateur : presque jamais de silence (jamais plus de 4 s sans phrase, du 
   let deux=false;for(let i=1;i<dits.length;i++){const a=dits[i-1][1],b=dits[i][1];if(a.type===b.type&&a.variante===b.variante)deux=true;}v(!deux,'jamais deux fois la même phrase de suite');
   v(dits.every(x=>{const f=COMMENTAIRE.phrase(x[1],k=>'n°'+(k+1),y=>String(y));return f.length>5&&!/\{/.test(f);}),'chaque phrase remplie');
   L.push('  (le commentateur sur 2 tours : '+dits.length+' phrases dont '+combles.length+' pour combler, le plus long silence '+pire.toFixed(2)+' s)');});
+// --- (tour 55, T4) les silences du commentateur, mesurés : la part de silence (la parole estimée à 15 caractères par seconde × VOIX_DEBIT),
+// les phrases perdues par la voix (une seule attend ; une importante prend la place d'une ordinaire : voix.js) et le retard de la voix sur le
+// bandeau, les répétitions (la même phrase écrite dans les 8 dernières ; le même fait avec la même variante), sur 3 courses (sans joueur, joueur au milieu, 2 tours)
+function mesurerCommentaire(graine,joueur,tours){
+  const R_=REGLAGES,e=creerCourseIA(TQ,8,tours,graine,CARTES_T.technique);for(const p_ of e.pilotes) p_.course.compte=0;const c=COMMENTAIRE.creer(graine),dits=[];let fin=null;
+  for(let k=0;k<120*500&&fin===null;k++){pasCourseIA(e,DT);if(k%6===0){COMMENTAIRE.observer(c,e,{joueur,circuit:'X'});const it=COMMENTAIRE.afficher(c,e.temps,false);if(it)dits.push({t:e.temps,it,txt:COMMENTAIRE.phrase(it,q=>'n°'+(q+1),String)});
+    if(e.pilotes.some(p_=>p_.arrivee!==null))fin=e.temps;}}
+  const debut=dits.length?dits[0].t:0,duree=Math.max(1,fin-debut),cps=15*R_.VOIX_DEBIT,dur=d=>d.txt.length/cps;
+  // la voix : une phrase en cours, une en attente (une importante remplace une ordinaire, jamais l'inverse)
+  let libre=-1,attente=null,perdues=0,retardMax=0,parleTotal=0;const parlees=[];
+  const lancer=(d,t_)=>{const b=Math.max(t_,libre);retardMax=Math.max(retardMax,b-d.t);libre=b+dur(d);parlees.push([b,libre]);parleTotal+=dur(d);};
+  for(const d of dits){
+    if(attente&&libre<=d.t){lancer(attente,libre);attente=null;}
+    if(libre<=d.t&&!attente)lancer(d,d.t);
+    else{const imp=d.it.prio>=R_.COMMENTAIRE_IMPORTANT;if(!attente||imp||!(attente.it.prio>=R_.COMMENTAIRE_IMPORTANT)){if(attente)perdues++;attente=d;}else perdues++;}
+  }
+  // la part de temps sans parole (de la première phrase à la fin du leader)
+  let parle=0,suite=debut;for(const [a,b] of parlees){const x=Math.max(a,suite),y=Math.min(b,fin);if(y>x){parle+=y-x;suite=y;}}
+  let rep8=0,memeVariante=0;for(let i=0;i<dits.length;i++){for(let j=Math.max(0,i-8);j<i;j++)if(dits[j].txt===dits[i].txt){rep8++;break;}
+    if(i>0&&dits[i].it.type===dits[i-1].it.type&&dits[i].it.variante===dits[i-1].it.variante)memeVariante++;}
+  const ts=dits.filter(x=>x.t<=fin).map(x=>x.t),trous=ts.slice(1).map((x,i)=>x-ts[i]);
+  return {phrases:dits.length,duree,silence:1-parle/duree,perdues,retardMax,rep8,memeVariante,pireTrou:Math.max(0,...trous),texteOk:dits.every(x=>x.txt.length>5&&!/\{/.test(x.txt))};}
+t('commentateur (tour 55, T4) : la part de silence, les phrases perdues et les répétitions, mesurées sur 3 courses', ()=>{
+  const res=[mesurerCommentaire(7,-1,2),mesurerCommentaire(11,3,2),mesurerCommentaire(21,0,2)];
+  for(const r of res)L.push('  (silence '+(r.silence*100).toFixed(0)+' % · '+r.phrases+' phrases sur '+r.duree.toFixed(0)+' s · perdues '+r.perdues+' · retard max de la voix '+r.retardMax.toFixed(1)+' s · mêmes phrases dans les 8 dernières '+r.rep8+' · même variante de suite '+r.memeVariante+' · plus long trou '+r.pireTrou.toFixed(1)+' s)');
+  v(res.every(r=>r.texteOk),'chaque phrase remplie');
+  v(res.every(r=>r.silence<=0.15),'la part de silence ≤ 15 % : '+res.map(r=>(r.silence*100).toFixed(0)).join(' / ')+' %');
+  v(res.every(r=>r.perdues<=2&&r.retardMax<=2),'la voix : au plus 2 phrases perdues par course, jamais plus de 2 s de retard sur le bandeau : '+res.map(r=>r.perdues+'/'+r.retardMax.toFixed(1)).join(' ; '));
+  v(res.every(r=>r.rep8<=2&&r.memeVariante===0),'répétitions : au plus 2 phrases redites dans les 8 dernières, jamais la même variante de suite : '+res.map(r=>r.rep8).join(' / '));
+  const m=REGLAGES.COMMENTAIRE_MEMOIRE;try{REGLAGES.COMMENTAIRE_MEMOIRE=0;const sans=mesurerCommentaire(7,-1,2);v(sans.rep8>=res[0].rep8,'sans mémoire (0) : les répétitions d’avant ('+sans.rep8+' contre '+res[0].rep8+')');}finally{REGLAGES.COMMENTAIRE_MEMOIRE=m;}
+});
 // (tour 45c2) le championnat dans ce qui comble, en carrière seulement : la place et les points du joueur, le leader, ce que donnerait l'arrivée ;
 // sans les données du championnat (course seule, à deux), jamais ; la course est la même au bit près (le hasard du commentaire seulement)
 t('commentateur : le championnat dans ce qui comble (la place du joueur, le leader, l’arrivée « si ça finit comme ça ») en carrière ; jamais sans championnat', ()=>{
@@ -3519,6 +3578,59 @@ t('fantôme du poleman : un tour simulé du pilote en pole, valide, qui dure son
   const sans=creerCourseIA(TQ,8,2,7,null);v(FANTOME_POLE.tour(sans)===null,'carte pas prête : rien');
   R.FANTOME_POLEMAN=false;try{v(FANTOME_POLE.tour(e)===null,'FANTOME_POLEMAN faux : rien');}finally{R.FANTOME_POLEMAN=true;}
 });
+
+// --- le Grand Prix à domicile des rivaux (tour 55, T5) : une nationalité par rival (championnat.js : completer), un petit bonus de rythme sur le
+// circuit de son pays (appliquerNiveaux), une phrase du commentateur au départ, une brève du journal s'il est sur le podium
+t('domicile des rivaux : chaque rival a un pays (de PAYS), tiré avec la graine, sans changer ni nom ni numéro ; le joueur n’en reçoit pas ; DOMICILE_RIVAUX_ACTIF faux = aucun pays (le jeu d’avant) ; rivauxADomicile ne rend que les rivaux du pays du circuit', ()=>{
+  const R_=REGLAGES,ch=CHAMPIONNAT.creer(31),ch2=CHAMPIONNAT.creer(31),riv=ch.pilotes.filter(p=>!p.humain);
+  v(riv.length===19&&riv.every(p=>R_.PAYS.includes(p.pays)),'pays : '+riv.map(p=>p.pays));
+  v(JSON.stringify(ch.pilotes.map(p=>p.pays))===JSON.stringify(ch2.pilotes.map(p=>p.pays)),'pas déterministe');
+  v(ch.pilotes[19].pays===undefined&&new Set(riv.map(p=>p.pays)).size>=6,'joueur / variété');
+  const avant=JSON.stringify(ch.pilotes.map(p=>[p.nom,p.numero,p.caractere,p.age]));
+  R_.DOMICILE_RIVAUX_ACTIF=false;let sans;try{sans=CHAMPIONNAT.creer(31);v(CHAMPIONNAT.rivauxADomicile(ch,'monzo').length===0,'coupé : encore des rivaux à domicile');}finally{R_.DOMICILE_RIVAUX_ACTIF=true;}
+  v(sans.pilotes.every(p=>p.pays===undefined)&&JSON.stringify(sans.pilotes.map(p=>[p.nom,p.numero,p.caractere,p.age]))===avant,'coupé : pays ou noms différents');
+  let total=0;for(const [c,pays] of Object.entries(R_.CIRCUITS_PAYS)){const l=CHAMPIONNAT.rivauxADomicile(ch,c);v(l.every(k=>ch.pilotes[k].pays===pays&&!ch.pilotes[k].humain),c);total+=l.length;}
+  v(total===riv.filter(p=>Object.values(R_.CIRCUITS_PAYS).includes(p.pays)).length&&total>0,'total '+total);
+  v(CHAMPIONNAT.rivauxADomicile(ch,'test').length===0&&CHAMPIONNAT.rivauxADomicile(ch,'technique').length===0,'un circuit d’essai n’a pas de pays');
+  // une sauvegarde d'avant (sans pays) : ils sont tirés au chargement, les mêmes qu'à la création
+  const vieux=JSON.parse(JSON.stringify(ch));for(const p of vieux.pilotes) delete p.pays;CHAMPIONNAT.completer(vieux);
+  v(JSON.stringify(vieux.pilotes.map(p=>p.pays))===JSON.stringify(ch.pilotes.map(p=>p.pays)),'ancienne sauvegarde');
+  L.push('  (domicile des rivaux : '+total+' rivaux sur 19 ont un Grand Prix à domicile dans le calendrier ; '+new Set(riv.map(p=>p.pays)).size+' pays)');});
+t('domicile des rivaux : sur le circuit de son pays, le rythme du rival est multiplié par 1 + DOMICILE_RIVAL_BONUS, pas celui des autres ; bonus à 0 ou réglage coupé = exactement le rythme d’avant', ()=>{
+  const R_=REGLAGES,ch=CHAMPIONNAT.creer(32);ch.pilotes[3].pays=R_.CIRCUITS_PAYS.monzo;for(const p of ch.pilotes) if(!p.humain&&p.id!==3&&p.pays===R_.CIRCUITS_PAYS.monzo) p.pays='fr';
+  const ry=nom=>{const e=creerCourseIA(TQ,19,1,5,CARTES_T.technique,true);CHAMPIONNAT.appliquerNiveaux(ch,e,nom);return e.pilotes.map(p=>p.rythme);};
+  const base=ry('technique'),monzo=ry('monzo'),spaa=ry('spaa');
+  v(Math.abs(monzo[3]/base[3]-(1+R_.DOMICILE_RIVAL_BONUS))<1e-12,'bonus à Monzo '+monzo[3]/base[3]);
+  v(monzo.every((x,k)=>k===3||x===base[k])&&spaa.every((x,k)=>x===base[k]),'les autres changent');
+  const sauve=R_.DOMICILE_RIVAL_BONUS;try{R_.DOMICILE_RIVAL_BONUS=0;v(JSON.stringify(ry('monzo'))===JSON.stringify(base),'bonus 0');}finally{R_.DOMICILE_RIVAL_BONUS=sauve;}
+  R_.DOMICILE_RIVAUX_ACTIF=false;try{v(JSON.stringify(ry('monzo'))===JSON.stringify(base),'coupé');}finally{R_.DOMICILE_RIVAUX_ACTIF=true;}
+  // sans nom de circuit : celui du calendrier (le Grand Prix à venir)
+  ch.calendrier[0].circuit='monzo';v(ry(undefined)[3]===monzo[3],'le calendrier');});
+t('domicile des rivaux : une brève du journal (en tête) quand un rival à domicile finit sur le podium, dans les deux langues ; rien s’il finit plus loin ou si le réglage est coupé', ()=>{
+  const R_=REGLAGES,faire=(place,actif)=>{const ch=CHAMPIONNAT.creer(33);ch.pilotes[5].pays='it';for(const p of ch.pilotes) if(!p.humain&&p.id!==5&&p.pays==='it') p.pays='fr';ch.calendrier[0].circuit='monzo';
+    const ids=ch.pilotes.map(p=>p.id).filter(k=>k!==5);ids.splice(place-1,0,5);
+    const lignes=ids.map((k,i)=>({k,place:i+1,grille:i+1,ligne:i+1,penalites:0,meilleurTour:60+i*0.1,classe:true}));
+    R_.DOMICILE_RIVAUX_ACTIF=actif;try{CHAMPIONNAT.enregistrerCourse(ch,lignes);const une=JOURNAL.composer(ch,lignes);JOURNAL.ranger(ch,une);return {ch,une};}finally{R_.DOMICILE_RIVAUX_ACTIF=true;}};
+  const {ch,une}=faire(2,true);v(une.b[0][0]==='breveDomicile'&&une.b[0][2].pilote===5&&une.b[0][2].place===2,'brève : '+JSON.stringify(une.b[0]));
+  const noms={pilote:p=>'P'+p.numero,ecurie:e=>'E'+e.id};
+  const r=JOURNAL.rendreAlbum(ch,0,noms);v(r.breves[0].includes('P6')&&r.breves[0].includes('P2')&&!/undefined|\{/.test(r.breves[0]),LANGUE+' : '+r.breves[0]);
+  for(const lang of ['fr','en']) for(const x of TEXTES[lang].breveDomicile) v(x.includes('{pilote}')&&x.includes('{place}')&&x.includes('{circuit}'),lang+' : '+x);
+  v(!faire(5,true).une.b.some(b=>b[0]==='breveDomicile'),'P5 : une brève');v(!faire(2,false).une.b.some(b=>b[0]==='breveDomicile'),'coupé : une brève');
+  v(TEXTES.fr.breveDomicile.length===TEXTES.en.breveDomicile.length&&JOURNAL.cles().includes('breveDomicile'),'variantes');});
+t('domicile des rivaux : au départ, le commentateur dit que le rival à domicile le mieux placé court chez lui (une fois), dans les deux langues ; rien sans rival à domicile ; la course est la même au bit près', ()=>{
+  const course=(domicile,avec)=>{const e=creerCourseIA(TQ,4,1,5,CARTES_T.technique);for(const p_ of e.pilotes) p_.course.compte=0;const c=COMMENTAIRE.creer(7),dits=[];
+    for(let k=0;k<120*20;k++){pasCourseIA(e,DT);if(avec&&k%6===0){COMMENTAIRE.observer(c,e,{joueur:-1,circuit:'X',lieu:'à X',domicile});const it=COMMENTAIRE.afficher(c,e.temps,false);if(it)dits.push(it);}}
+    return {dits,etat:JSON.stringify(e.pilotes.map(p_=>p_.v))};};
+  const a=course([1,3],true),b=course([],true),sans=course([1,3],false);
+  const d=a.dits.filter(x=>x.type==='domicileRival');v(d.length===1&&(d[0].params.qui===1||d[0].params.qui===3),'dits : '+a.dits.map(x=>x.type));
+  v(!b.dits.some(x=>x.type==='domicileRival'),'sans rival à domicile');v(a.etat===sans.etat,'la course a changé');
+  const ph=COMMENTAIRE.phrase(d[0],k=>'Pilote'+k);v(ph.includes('Pilote'+d[0].params.qui)&&!/undefined|\{/.test(ph),LANGUE+' : '+ph);
+  for(const lang of ['fr','en']) v(TEXTES[lang].com_domicileRival.length===3&&TEXTES[lang].com_domicileRival.every(x=>x.includes('{qui}')),lang);});
+t('domicile des rivaux : un jeune arrivé à la place d’un retraité reçoit sa propre nationalité (pas celle du retraité) ; les autres rivaux gardent la leur', ()=>{
+  const ch=CHAMPIONNAT.creer(34);ch.pilotes[0].age=REGLAGES.AGE_RETRAITE_MAX;const avant=ch.pilotes.map(p=>p.pays);
+  SAISONS.avancer(ch,REGLAGES.NB_GRANDS_PRIX);SAISONS.terminerSaison(ch);SAISONS.signer(ch,SAISONS.offres(ch)[0].ecurie);
+  v(ch.pilotes[0].nom===null&&ch.retraites.some(r=>r.id===0)&&REGLAGES.PAYS.includes(ch.pilotes[0].pays),'le jeune : '+ch.pilotes[0].pays);
+  const part=new Set(ch.retraites.map(r=>r.id));v(ch.pilotes.every((p,k)=>p.humain||part.has(k)||p.pays===avant[k]),'un rival a changé de pays');});
 
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 ecrire();

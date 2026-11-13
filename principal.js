@@ -157,7 +157,7 @@ function lancerCourse(nbTours) {
   } else if (JEU.ia >= 2 || JEU.contre) {
     // ?championnat=1 : le niveau de l'écurie sur le rythme de chaque IA, avant que la carte leur donne un pilote
     JEU.plateau = creerCourseIA(CIRCUIT, JEU.ia, nbTours, Number(PARAMETRES.get('graine')) || 1, JEU.championnat ? null : JEU.carte, JEU.contre);
-    if (JEU.championnat) { CHAMPIONNAT.appliquerNiveaux(JEU.championnat, JEU.plateau); if (JEU.carte) donnerCarte(JEU.plateau, JEU.carte); }
+    if (JEU.championnat) { CHAMPIONNAT.appliquerNiveaux(JEU.championnat, JEU.plateau, NOM_CIRCUIT); if (JEU.carte) donnerCarte(JEU.plateau, JEU.carte); }
     if (JEU.championnat) poserRivalites(JEU.plateau, JEU.championnat.pilotes.map(q => !!(q && q.rivalite)));   // les rivaux de l'interview (ia.js, Codeur 1)
     if (JEU.championnat) JEU.plateau.ecuries = JEU.championnat.pilotes.map(q => q ? q.ecurie : null);   // les écuries, pour les consignes d'équipe (simulation.js, Codeur 1)
     // la météo (meteo.js, étape 12, Codeur 1) : tirée avec la graine du Grand Prix selon le lieu ; ?meteo=sec|pluie|averse|eclaircie la force (tests)
@@ -2506,7 +2506,7 @@ function majCommentaireDit(e, m) {
   const etatMeteo = typeof METEO3D !== 'undefined' ? METEO3D.etat(e) : null;
   // (tour 45c2) le championnat, en carrière seulement (jamais en course seule ni à deux) : les points d'avant la course, par pilote
   const champ = JEU.championnat && !JEU.deux && !JEU.tournoi && j >= 0 ? { joueur: j, points: JEU.championnat.pilotes.map(p => p.stats ? p.stats.points : 0), pointsPour: CHAMPIONNAT.pointsPour } : null;
-  COMMENTAIRE.observer(c, e, { joueur: j, championnat: champ, pluie: etatMeteo ? etatMeteo.pluie : 0, circuit: texte('circuit_' + NOM_CIRCUIT) || CIRCUIT.nom, lieu: texte('lieu_' + NOM_CIRCUIT) || texte('circuit_' + NOM_CIRCUIT) || CIRCUIT.nom });
+  COMMENTAIRE.observer(c, e, { joueur: j, championnat: champ, domicile: JEU.championnat && !JEU.deux && !JEU.tournoi ? CHAMPIONNAT.rivauxADomicile(JEU.championnat, NOM_CIRCUIT) : [], pluie: etatMeteo ? etatMeteo.pluie : 0, circuit: texte('circuit_' + NOM_CIRCUIT) || CIRCUIT.nom, lieu: texte('lieu_' + NOM_CIRCUIT) || texte('circuit_' + NOM_CIRCUIT) || CIRCUIT.nom });
   const it = COMMENTAIRE.afficher(c, e.temps, attendre);
   if (it) {
     const dit = COMMENTAIRE.phrase(it, etiquetteVoiture, INTERFACE.formatTemps);
