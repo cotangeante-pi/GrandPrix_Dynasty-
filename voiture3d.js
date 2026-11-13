@@ -365,7 +365,7 @@ const VOITURE3D = (function () {
   // le panneau de réglage change l'épaisseur du halo : on refait la géométrie du corps
   function majHalo(modele) {
     modele.corps.geometry.dispose();
-    modele.corps.geometry = geometrieCorps(modele.couleur, modele.detaille, modele.cl);
+    modele.corps.geometry = geometrieCorps(modele.couleur, modele.detaille, modele.cl, !!modele.abime);   // (revue du tour 55 : un aileron abîmé le reste quand le halo change)
   }
 
   // (tour 55, T8) l'aileron avant abîmé (physique.js, v.degats > 0) : la géométrie du corps est refaite avec l'aileron de travers, une seule fois à
