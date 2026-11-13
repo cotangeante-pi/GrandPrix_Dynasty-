@@ -1356,6 +1356,7 @@ const REGLAGES = {
   QUALITE_TEMPS_PERMIS: 1 / 60, // … (s : une image à 60 Hz ; 0,7 × 16,7 ms = 11,7 ms)
   QUALITE_BLOCAGE: 90,          // s de jeu : un pas rendu puis repris n'est plus rendu avant tant (doublé à chaque nouvel échec)
   QUALITE_DT_MAX: 0.25,         // s : une image plus longue (un chargement, l'onglet caché) ne compte pas
+  QUALITE_LONGUES_SUITE: 4,     // (tour 55, T3) tant d'images plus longues que QUALITE_DT_MAX DE SUITE (un appareil à moins de 4 images/s) comptent quand même : l'Auto simplifie ; 0 = comme avant (elles ne comptaient jamais)
   // les pas de l'Auto, dans l'ordre, du moins visible au plus visible (chacun change ce qu'il donne, le reste suit le pas d'avant) ;
   // le détail revient dans l'ordre inverse. Jamais : la piste, les vibreurs, les repères, la trajectoire conseillée, la voiture du joueur
   QUALITE_PAS: [
