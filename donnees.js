@@ -183,6 +183,7 @@ const REGLAGES = {
   TACTILE_IPHONE_GRILLE: true,     // (tour 53e) iPhone : « 🎮 Activer le volant » n'est plus sur l'écran titre mais sur la grille, pendant les feux (gros, au centre-bas) ; sans réponse à l'extinction, les boutons ◀ ▶ ; faux = l'écran titre, comme avant
   PORTRAIT_DELAI: 0.8,             // (tour 56, le propriétaire : le message « tourne ton téléphone » venait trop souvent) s debout avant le message et la pause ; 0 = tout de suite, comme avant
   PORTRAIT_MARGE: 1.15,            // (tour 56) debout = plus haut que large d'au moins ce rapport ; 1 = h > l, comme avant
+  PORTRAIT_ANGLE: true,            // (tour 56) l'angle du téléphone (window.orientation) l'emporte : couché à ±90°, jamais le message ; faux = seulement la taille de la fenêtre, comme avant
   TACTILE_PAYSAGE: true,           // (tour 52b) au premier geste sur un écran tactile : plein écran puis verrou en paysage (là où le navigateur le permet) ; faux : rien demandé
   VOLANT_PLEIN: 30,                // ° d'inclinaison depuis le neutre = braquage à fond (le propriétaire, 2026-11-12 : zone morte 10° ; il reste 20° de course jusqu'au plein ; avant : 25)
   VOLANT_ZONE_MORTE: 10,           // ° autour du neutre où l'on ne braque pas : « 10° c'est tout droit, pour rester droit » (le propriétaire, 2026-11-12 ; avant : 2) ; le braquage part de 0 au bord, sans saut

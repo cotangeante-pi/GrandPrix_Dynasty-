@@ -177,6 +177,9 @@ const TACTILE = (function () {
     window.addEventListener('blur', toutLacher);
     document.addEventListener('visibilitychange', toutLacher);
     window.addEventListener('resize', rafraichir);
+    window.addEventListener('orientationchange', relireApresRotation);
+    try { if (screen.orientation && screen.orientation.addEventListener) screen.orientation.addEventListener('change', relireApresRotation); } catch (err) { /* rien */ }
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', rafraichir);
     if (!permissionADemander()) activer();   // (Android, Chromebook : pas d'autorisation à demander, on écoute tout de suite)
     rafraichir();
     return true;
@@ -188,9 +191,23 @@ const TACTILE = (function () {
   const volantActif = () => V.mode === 'volant' && V.choix === 'volant';
   // (tour 56) debout « pour de bon » : depuis PORTRAIT_DELAI s au moins (un volant tourné fort fait parfois pivoter l'écran un instant :
   // ni message ni pause pour ça) ; couché, tout de suite ; PORTRAIT_DELAI 0 = comme avant
-  let minuteurDebout = null;
+  // (tour 56, le propriétaire : « il me réaffiche ce message même si mon téléphone est couché ») : après une rotation, certains
+  // navigateurs (iPhone surtout) envoient « resize » avant d'avoir changé innerWidth / innerHeight, et plus rien ensuite : le message
+  // restait. Maintenant : (1) l'angle du téléphone (window.orientation), quand le navigateur le donne, l'emporte : couché à ±90°, jamais debout ; (2) on
+  // relit après chaque rotation (à 150, 500 et 1000 ms) ; (3) tant que le message est affiché, on relit toutes les 400 ms.
+  let minuteurDebout = null, relecture = null;
+  function angleCouche() {
+    // (window.orientation : donné par les navigateurs des téléphones, iPhone et Android, pas par ceux des ordinateurs ; screen.orientation,
+    // lui, répond aussi sur un ordinateur, où il suit l'écran et non la fenêtre : on ne s'y fie pas)
+    return typeof window.orientation === 'number' && Math.abs(window.orientation) === 90;
+  }
+  function relireApresRotation() { for (const ms of [150, 500, 1000]) setTimeout(rafraichir, ms); }
+  function suivreMessage(visible) {
+    if (visible && relecture === null) relecture = setInterval(rafraichir, 400);
+    if (!visible && relecture !== null) { clearInterval(relecture); relecture = null; }
+  }
   function deboutStable() {
-    if (!portrait(window.innerWidth, window.innerHeight)) { V.deboutDepuis = null; return false; }
+    if (!portrait(window.innerWidth, window.innerHeight) || (REGLAGES.PORTRAIT_ANGLE && angleCouche())) { V.deboutDepuis = null; return false; }
     const maintenant = performance.now(), delai = (REGLAGES.PORTRAIT_DELAI || 0) * 1000;
     if (V.deboutDepuis === null) V.deboutDepuis = maintenant;
     if (maintenant - V.deboutDepuis >= delai) return true;
@@ -209,7 +226,7 @@ const TACTILE = (function () {
     // (tour 53e) iPhone : « 🎮 Activer le volant » sur la grille, pendant les feux (R.TACTILE_IPHONE_GRILLE) ; faux : sur l'écran titre, comme avant
     if (act) act.classList.toggle('cache', !permissionADemander() || V.permission !== null || (R.TACTILE_IPHONE_GRILLE ? !V.grille : conduite));
     const po = $('tactilePortrait');
-    if (po) po.classList.toggle('cache', !deboutStable());
+    if (po) { const debout = deboutStable(); po.classList.toggle('cache', !debout); suivreMessage(debout); }
     const bv = $('boutonVolantPause'), br = $('boutonRecentrerPause'), ligne = $('pauseTactile');
     if (ligne) ligne.classList.toggle('cache', V.mode !== 'volant');   // (la rangée entière : sans volant, la pause garde sa hauteur d'avant)
     if (bv) { bv.classList.toggle('cache', V.mode !== 'volant'); bv.textContent = texte(V.choix === 'volant' ? 'tac_mode_volant' : 'tac_mode_boutons'); }
