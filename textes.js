@@ -224,7 +224,7 @@ const TEXTES = {
     courrier_bienvenue: ['Hi {nom}, we share the garage this season. Let’s make the team proud.'],
     courrier_patronVeut: ['{ecurie} is following your season closely. We should talk when contracts come.', 'Your results caught our eye at {ecurie}. Keep it up.'],
     courrier_patronDecu: ['Your results are below what we expect from this car. We need better.'], courrier_patronDecu_consigne: ['You ignored a team order at {circuit}. That cannot happen again.'],
-    courrier: '✉ Mail', courrierTitre: 'Mail', courrierVide: 'No message yet.', courrierRepondre: 'Reply', courrierRetour: 'Back', courrierNouveau: 'new',
+    courrier: '✉️ Mail', courrierTitre: 'Mail', courrierVide: 'No message yet.', courrierRepondre: 'Reply', courrierRetour: 'Back', courrierNouveau: 'new',
     // le duel contre le coéquipier (Codeur 3)
     deuxPoints: ': ', duelTitre: 'Teammate duel', duelScore: 'You {a} – {b} {nom}', duelDetail: '(qualifying {qa}–{qb}, races {ca}–{cb})',
     duelTour: 'Your teammate: ▲ ahead of you, ▼ behind you',
@@ -617,7 +617,7 @@ const TEXTES = {
     courrier_bienvenue: ['Salut {nom}, on partage le garage cette saison. Rendons l’écurie fière.'],
     courrier_patronVeut: ['Chez {ecurie}, on suit ta saison de près. Parlons-en au moment des contrats.', 'Tes résultats ont tapé dans l’œil de {ecurie}. Continue.'],
     courrier_patronDecu: ['Tes résultats sont en dessous de ce qu’on attend de cette voiture. Il faut mieux.'], courrier_patronDecu_consigne: ['Tu as ignoré une consigne à {circuit}. Ça ne doit plus arriver.'],
-    courrier: '✉ Courrier', courrierTitre: 'Courrier', courrierVide: 'Aucun message pour l’instant.', courrierRepondre: 'Répondre', courrierRetour: 'Retour', courrierNouveau: 'nouveau',
+    courrier: '✉️ Courrier', courrierTitre: 'Courrier', courrierVide: 'Aucun message pour l’instant.', courrierRepondre: 'Répondre', courrierRetour: 'Retour', courrierNouveau: 'nouveau',
     // le duel contre le coéquipier (Codeur 3)
     deuxPoints: ' : ', duelTitre: 'Duel contre ton coéquipier', duelScore: 'Toi {a} – {b} {nom}', duelDetail: '(qualifs {qa}–{qb}, courses {ca}–{cb})',
     duelTour: 'Ton coéquipier : ▲ devant toi, ▼ derrière toi',
@@ -1393,3 +1393,20 @@ Object.assign(TEXTES.fr, {
 // --- tour 52g, Codeur 3 : la prime en direct de la découverte (premiere-minute n° 4) ---
 Object.assign(TEXTES.en, { primeLive: 'Prize: {n}', placeGrand: 'P{p}!' });
 Object.assign(TEXTES.fr, { primeLive: 'Prime : {n}', placeGrand: 'P{p} !' });
+
+// --- tour 55a : une ligne sous les gros boutons du paddock et de « Entre amis » (dit à quoi ils servent) ---
+Object.assign(TEXTES.en, {
+  sous_boutonBoutique: 'Liveries · Helmets · Celebrations', sous_boutonGarage: 'Upgrade your car', sous_boutonMaVoiture: 'Colours and style', sous_boutonSponsors: 'Earn more money', sous_boutonMonCasque: 'Pick your pattern',
+  sous_boutonCalendrier: 'All the races', sous_boutonAlbum: 'Your front pages', sous_boutonArbre: 'Your driver family',
+  sous_boutonParlerCoequipier: 'Write to your teammate', sous_boutonParlerPatron: 'Talk to your team boss', sous_courrierVide: 'Nothing new',
+  sous_boutonAmisDeux: 'One screen, two players', sous_boutonAmisTournoi: 'Best lap time wins', sous_boutonAmisDefi: 'Beat a friend’s time',
+});
+Object.assign(TEXTES.fr, {
+  sous_boutonBoutique: 'Livrées · Casques · Célébrations', sous_boutonGarage: 'Améliore ta voiture', sous_boutonMaVoiture: 'Couleurs et style', sous_boutonSponsors: 'Gagne plus d’argent', sous_boutonMonCasque: 'Choisis ton motif',
+  sous_boutonCalendrier: 'Toutes les courses', sous_boutonAlbum: 'Tes unes de journal', sous_boutonArbre: 'Ta famille de pilotes',
+  sous_boutonParlerCoequipier: 'Écris à ton coéquipier', sous_boutonParlerPatron: 'Parle à ta direction', sous_courrierVide: 'Rien de neuf',
+  sous_boutonAmisDeux: 'Un écran, deux joueurs', sous_boutonAmisTournoi: 'Le meilleur chrono gagne', sous_boutonAmisDefi: 'Bats le temps d’un ami',
+});
+// --- tour 55, T2 : la foule et l'ambiance (foule.js) ---
+Object.assign(TEXTES.en, { foule_oui: 'Crowd: on', foule_non: 'Crowd: off' });
+Object.assign(TEXTES.fr, { foule_oui: 'Foule : oui', foule_non: 'Foule : non' });

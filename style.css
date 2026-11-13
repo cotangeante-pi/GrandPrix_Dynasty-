@@ -1541,7 +1541,7 @@ body.deux:not(.cote) #deuxRappel2 { left: 50%; }
 #pageEquipeTitre::before { content: "🔧"; }
 #pageBoutiqueTitre::before { content: "🛒"; }
 #pageSaisonTitre::before { content: "📅"; }
-#pageMessagesTitre::before { content: "✉"; }
+#pageMessagesTitre::before { content: "✉️"; }
 #pageReglagesTitre::before { content: "⚙"; }
 #pageBoutique #boutonBoutique { background: var(--tv-bouton-principal); box-shadow: 0 4px 16px rgba(227, 36, 43, 0.35); }
 .pageInfos { display: flex; flex-direction: column; gap: 6px; }
@@ -2163,3 +2163,34 @@ body.tactile #discussionCarte { max-height: calc(100dvh - 52px); }
   body.tactile .ecran #paddockMenu button.menuEntree { flex: 0 0 auto; min-width: 44px; }
   body.tactile #paddockMenu > * { flex-shrink: 0; }
 }
+
+
+/* tour 55a (clarté des sections) : une ligne sous les gros boutons (data-sous), la météo avec une icône, « Toi » en deux lignes, des icônes de menu de même taille */
+[data-sous]::after { content: attr(data-sous); display: block; font: 600 12px/1.2 var(--tv-police); opacity: 0.72; text-transform: none; letter-spacing: 0; }
+#pageEquipe .pageBoutons button[data-sous]::after { text-align: center; }
+#pageSaison .pageBoutons button[data-sous] { flex-direction: column; gap: 3px; }
+#paddockMessages button[data-sous] { display: grid; row-gap: 2px; }
+#paddockMessages button[data-sous]::after { font-size: 12px; }
+#paddockMessages { width: min(100%, 340px); }
+#amis .boutons:first-of-type button[data-sous] { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; }
+#amis .boutons:first-of-type button[data-sous]::after { font-size: 14px; max-width: 170px; }
+#amis .boutons:last-of-type { margin-top: 10px; }
+#prevision::before { content: "🌦 "; }
+#paddockPlace .ecartLeader, #championnat #championnatDuel .duelDetail { display: block; font: 600 13px/1.3 var(--tv-police); opacity: 0.75; }
+#paddockPlace .sepEcart { display: none; }
+#paddockMoi { flex-direction: column; align-items: flex-start; gap: 6px; }
+#championnat #championnatDuel .duelDetail { font-size: 12px; }
+.menuIcone { font-size: 20px; line-height: 1; }
+#boutiqueContenu #boutiqueSoldePage { word-spacing: 0.15em; }
+@media (max-height: 420px) {
+  [data-sous]::after { font-size: 10px; }
+  #pageEquipe .pageBoutons button[data-sous]::after, #pageSaison .pageBoutons button[data-sous]::after { display: none; }
+  #paddockMoi { flex-direction: row; flex-wrap: wrap; gap: 2px 14px; }
+  #paddockPlace .ecartLeader, #championnat #championnatDuel .duelDetail { display: inline; font-size: inherit; }
+  #paddockPlace .sepEcart { display: inline; }
+  .menuIcone { font-size: 17px; }
+  #amis .boutons:first-of-type button[data-sous]::after { font-size: 10px; max-width: 120px; }
+}
+@media (max-width: 1100px) { .menuIcone { font-size: 20px; } }
+#amis .boutons:first-of-type { align-items: stretch; }
+#boutiqueContenu .pageBoutons button[data-sous] { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
