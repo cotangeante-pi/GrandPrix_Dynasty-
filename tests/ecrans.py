@@ -431,14 +431,14 @@ def passer_qualif(pg, titre):
 def degats_ecran(pg, titre):
     attendre(pg, '() => typeof JEU !== "undefined" && !!JEU.modele && !!JEU.joueur', None, 60000)
     pg.wait_for_timeout(500)
-    avant = pg.evaluate('() => ({ appels: VOITURE3D.appels(JEU.modele), tri: VOITURE3D.triangles(JEU.modele), abime: !!JEU.modele.abime })')
+    avant = pg.evaluate('() => ({ appels: VOITURE3D.appels(JEU.modele), tri: VOITURE3D.triangles(JEU.modele), sig: JEU.modele.corps.geometry.attributes.position.array.reduce((a, b) => a + b, 0), abime: !!JEU.modele.abime })')
     pg.evaluate('() => { JEU.joueur.degats = 0.4; }'); pg.wait_for_timeout(800)
-    apres = pg.evaluate('() => ({ appels: VOITURE3D.appels(JEU.modele), tri: VOITURE3D.triangles(JEU.modele), abime: !!JEU.modele.abime })')
+    apres = pg.evaluate('() => ({ appels: VOITURE3D.appels(JEU.modele), tri: VOITURE3D.triangles(JEU.modele), sig: JEU.modele.corps.geometry.attributes.position.array.reduce((a, b) => a + b, 0), abime: !!JEU.modele.abime })')
     pg.screenshot(path=os.path.join(CAPTURES, 'degats.png'))
     pg.evaluate('() => { JEU.joueur.degats = 0; }'); pg.wait_for_timeout(800)
-    fin = pg.evaluate('() => ({ appels: VOITURE3D.appels(JEU.modele), tri: VOITURE3D.triangles(JEU.modele), abime: !!JEU.modele.abime })')
+    fin = pg.evaluate('() => ({ appels: VOITURE3D.appels(JEU.modele), tri: VOITURE3D.triangles(JEU.modele), sig: JEU.modele.corps.geometry.attributes.position.array.reduce((a, b) => a + b, 0), abime: !!JEU.modele.abime })')
     t(f'{titre} : un aileron avant abîmé : la voiture est dessinée de travers (une autre géométrie), sans appel de dessin en plus ; réparé, elle redevient comme avant',
-      not avant['abime'] and apres['abime'] and apres['appels'] == avant['appels'] and apres['tri'] != avant['tri'] and not fin['abime'] and fin['tri'] == avant['tri'], str([avant, apres, fin]))
+      not avant['abime'] and apres['abime'] and apres['appels'] == avant['appels'] and apres['sig'] != avant['sig'] and not fin['abime'] and fin['sig'] == avant['sig'], str([avant, apres, fin]))
 def qualif(pg, titre):
     # le robot fait le tour de qualification : il part à la place que donne son temps ; « Passer » le met dernier
     t(f'{titre} : l’écran de qualification, les IA sur la grille', attendre(pg, '() => JEU.ecran === "qualif" && JEU.qualif.etat === "choix" && JEU.plateau.pilotes.length === 6', None, 10000), str(pg.evaluate('() => [JEU.ecran, JEU.qualif]')))

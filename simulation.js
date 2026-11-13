@@ -291,7 +291,8 @@ function majStandsIA(p, e) {
   // la météo (meteo.js) : le pneu qu'il veut pour ce qu'il voit de la piste (l'eau, la pluie qui tombe ; jamais l'avenir), selon sa prudence
   const veut = e.meteo ? METEO.choisir(e.meteo.eau, e.meteo.pluie, 1 - (pi.caractere ? pi.caractere.agressivite : 0.5)) : null;
   const changer = !!veut && veut !== (v.typePneus || 'slick');
-  const repare = R.DEGATS_ACTIF && v.degats >= R.DEGATS_REPARER_SEUIL;   // (tour 55, T8) un aileron abîmé : il s'arrête au stand pour le faire réparer
+  // (tour 55, T8) un aileron abîmé : s'il a un arrêt prévu, il est réparé à cet arrêt (pasArretStand), sans arrêt de plus ni plus tôt ; sans arrêt prévu (course courte), il s'arrête pour le faire réparer
+  const repare = R.DEGATS_ACTIF && v.degats >= R.DEGATS_REPARER_SEUIL && !pi.standTour && v.pneus.arrets === 0;
   if (!pi.standTour && !changer && !repare && !pi.stand) return;
   const depuis = ecartLeLong(c, v.piste.s - st.entree);
   if (pi.stand) {

@@ -3651,13 +3651,17 @@ t('dégâts : un aileron abîmé fait perdre de l’adhérence (la voiture tourn
   v(b.cap<a.cap||Math.abs(b.cap)<Math.abs(a.cap),'abîmé : tourne moins ('+b.cap.toFixed(3)+' contre '+a.cap.toFixed(3)+' rad)');
   v(a.x===c0.x&&a.z===c0.z&&a.u===c0.u,'intact : au bit près');
 });
-t('dégâts : une IA abîmée s’arrête au stand pour réparer (arrêt plus long de DEGATS_REPARATION), repart réparée, et les IA intactes ne s’arrêtent pas plus', ()=>{
+t('dégâts : une IA abîmée sans arrêt prévu s’arrête au stand pour réparer (arrêt plus long de DEGATS_REPARATION), repart réparée ; avec un arrêt prévu, elle est réparée à cet arrêt, sans arrêt de plus ; les IA intactes ne s’arrêtent pas plus', ()=>{
   const R=REGLAGES,r=avecPneus(()=>{const e=creerCourseIA(TQ,2,5,1,CARTES_T.technique);for(const p_ of e.pilotes)p_.course.compte=0;e.pilotes[0].v.degats=0.4;
     for(let k=0;k<600*120&&e.arrives<2;k++)pasCourseIA(e,DT);return e;});
   const a=r.pilotes[0],b=r.pilotes[1];
   v(a.course.arrets.length>=1&&Math.abs(a.course.arrets[0].duree-(dureeArret(0)+R.DEGATS_REPARATION))<1e-9,'l’IA abîmée : un arrêt de '+(a.course.arrets[0]?a.course.arrets[0].duree:'—')+' s (attendu '+(dureeArret(0)+R.DEGATS_REPARATION)+')');
   v(a.v.degats===0,'réparée à la fin de l’arrêt');
   v(!b.course.arrets.length||b.course.arrets[0].duree===dureeArret(0),'l’IA intacte : son arrêt sans réparation ('+JSON.stringify(b.course.arrets.map(x=>x.duree))+')');
+  // avec un arrêt prévu (12 tours) : un seul arrêt, au tour prévu, et réparé à cet arrêt
+  const r2=avecPneus(()=>{const e=creerCourseIA(TQ,1,12,1,CARTES_T.technique),p_=e.pilotes[0];p_.course.compte=0;p_.v.degats=0.4;for(let k=0;k<900*120&&e.arrives<1;k++){pasCourseIA(e,DT);}return p_;});
+  const tA=r2.course.arrets.length?r2.course.arrets[0].tour:null;
+  v(r2.course.arrets.length===1&&tA>=r2.pilote.standTour&&tA<=r2.pilote.standTour+1&&Math.abs(r2.course.arrets[0].duree-(dureeArret(0)+R.DEGATS_REPARATION))<1e-9&&r2.v.degats===0,'avec un arrêt prévu : un seul arrêt, au tour prévu ('+r2.pilote.standTour+' : '+JSON.stringify(r2.course.arrets)+'), réparé');
   v(['msg_degats','msg_repare'].every(k=>TEXTES.fr[k]&&TEXTES.en[k]),'les messages dans les deux langues');
 });
 t('dégâts : le message « aileron abîmé / réparé » (messages.js) ; une IA abîmée vise un rythme plus bas', ()=>{

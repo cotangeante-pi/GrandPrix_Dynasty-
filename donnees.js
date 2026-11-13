@@ -974,7 +974,7 @@ const REGLAGES = {
   DEGATS_MAX: 0.6,              // le plus abîmé (jamais de casse totale : la voiture reste pilotable)
   DEGATS_APPUI: 0.45,           // à DEGATS_MAX, l'adhérence (donc l'appui dans les virages) baisse de DEGATS_APPUI × DEGATS_MAX = 27 %
   DEGATS_IA_RYTHME: 0.3,        // une IA abîmée vise un rythme plus bas de ça × ses dégâts (elle ne roule pas comme avant sur une voiture qui ne tient plus)
-  DEGATS_REPARER_SEUIL: 0.12,   // une IA abîmée au moins de ça s'arrête au stand pour réparer (seulement sur un circuit avec voie des stands, PNEUS_ACTIFS)
+  DEGATS_REPARER_SEUIL: 0.12,   // une IA abîmée au moins de ça, sans arrêt prévu (course courte) et sans arrêt fait, s'arrête au stand pour réparer ; avec un arrêt prévu, elle est réparée à cet arrêt (circuit avec voie des stands, PNEUS_ACTIFS)
   DEGATS_REPARATION: 4,         // s de plus à l'arrêt au stand quand l'aileron est abîmé (réparé en même temps que les pneus)
   FANTOME_POLEMAN: true,        // (tour 55, T6) en qualification, le joueur peut rejouer contre le tour du poleman IA (fantome-pole.js) ; faux = le jeu d'avant (seulement ton record)
   FANTOME_POLE_ETIRER: false,   // vrai : le fantôme du poleman est étiré pour durer le temps de qualification de la grille (environ 16 % plus vite que ce que la voiture sait faire) ; faux : son vrai tour simulé
