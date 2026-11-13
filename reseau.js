@@ -13,7 +13,7 @@
 const RESEAU = (function () {
   const R = REGLAGES;
   const CONSONNES = 'BCDFGHJKLMNPQRSTVWXZ';      // pas de voyelle (ni Y) : le code ne forme jamais un mot
-  const TYPES_CLIENT = ['creer', 'rejoindre', 'pret', 'reglages', 'lancer', 'cmd', 'controle', 'emote', 'quitter', 'ping'];
+  const TYPES_CLIENT = ['creer', 'rejoindre', 'pret', 'reglages', 'lancer', 'retour', 'cmd', 'controle', 'emote', 'quitter', 'ping'];
 
   // ---------------------------------------------------------------- les noms (jamais de texte libre devant des enfants)
   function nomAutorise(nom) {
@@ -129,6 +129,12 @@ const RESEAU = (function () {
           diffuser(salle, { t: 'depart', reglages: g, graine, ordre: salle.joueurs.map(j => j.id) });
           return;
         }
+        case 'retour':             // l'hôte, après la course : la salle se rouvre, les « prêt » repartent à faux
+          if (conn !== salle.hote || !salle.commencee) return;
+          salle.commencee = false;
+          for (const j of salle.joueurs) j.pret = false;
+          diffuser(salle, { t: 'retour' }); annoncer(salle);
+          return;
         case 'cmd':
           if (!salle.commencee || !entier(m.n, 0, 1e9) || m.c === undefined) return;
           diffuser(salle, { t: 'cmd', de: conn.id, n: m.n, c: m.c }, conn); return;
@@ -350,6 +356,7 @@ const RESEAU = (function () {
         case 'joueurs': c.joueurs = Array.isArray(m.liste) ? m.liste : []; emettre('joueurs', m); break;
         case 'reglages': c.reglagesSalle = m.reglages; emettre('reglages', m); break;
         case 'depart': c.depart = m; emettre('depart', m); break;
+        case 'retour': c.depart = null; emettre('retour', m); break;
         case 'nouvel-hote': c.hote = m.id; emettre('nouvel-hote', m); break;
         case 'pong':
           if (typeof m.h === 'number') {
@@ -428,6 +435,11 @@ const RESEAU = (function () {
         || !Number.isInteger(g.nbIA) || g.nbIA < 0) return erreur('reglages');
       return envoyer({ t: 'reglages', reglages: { circuit: g.circuit, tours: g.tours, meteo: g.meteo, nbIA: g.nbIA } });
     };
+    c.retour = function () {
+      if (!c.depart) return erreur('pas-commence');
+      if (!c.estHote()) return erreur('pas-hote');
+      return envoyer({ t: 'retour' });
+    };
     c.pret = function (p) { return c.code ? envoyer({ t: 'pret', pret: !!p }) : erreur('pas-en-salle'); };
     c.lancer = function (reglages) {
       if (!c.code) return erreur('pas-en-salle');
@@ -445,6 +457,7 @@ const RESEAU = (function () {
         case 'pret': return c.pret(m.pret);
         case 'reglages': return c.reglages(m.reglages);
         case 'lancer': return c.lancer(m.reglages);
+        case 'retour': return c.retour();
         case 'cmd': return c.cmd(m.n, m.c);
         case 'controle': return c.controle(m.n, m.h);
         case 'emote': return c.emote(m.i);

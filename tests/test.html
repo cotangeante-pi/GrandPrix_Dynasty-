@@ -3777,7 +3777,7 @@ t('drapeaux : majMessages éteint le bandeau du drapeau (INTERFACE.majDrapeau(nu
   const mondeEnLigne=(opt)=>RESEAU.monde(Object.assign({auto:false},opt||{}));
   const pomper=m=>{let n=0,k;while((k=m.vider())){n+=k;if(n>10000)throw new Error('boucle de messages');}return n;};
   const nouveau=(m,nom,opt)=>{const c=RESEAU.client(Object.assign({transport:'memoire',monde:m,ping:false},opt||{})),j={c,vus:[],refus:[],erreurs:[]};
-    for(const k of ['salle','joueurs','reglages','depart','cmd','controle','emote','parti','nouvel-hote','pong','perdu'])c.sur(k,d=>j.vus.push([k,d]));
+    for(const k of ['salle','joueurs','reglages','retour','depart','cmd','controle','emote','parti','nouvel-hote','pong','perdu'])c.sur(k,d=>j.vus.push([k,d]));
     c.sur('refus',d=>j.refus.push(d.raison));c.sur('erreur',d=>j.erreurs.push(d.raison));c.ouvrir();j.nom=nom;return j;};
   const salle=(n,opt)=>{const m=mondeEnLigne(opt),js=[];for(let i=0;i<n;i++)js.push(nouveau(m,NOM(i)));
     js[0].c.creer(js[0].nom);pomper(m);for(let i=1;i<n;i++){js[i].c.rejoindre(js[0].c.code,js[i].nom);pomper(m);}return{m,js};};
@@ -3886,6 +3886,17 @@ t('drapeaux : majMessages éteint le bandeau du drapeau (INTERFACE.majDrapeau(nu
     js[1].c.transport.couper();v(tous.some(x=>x.t==='coupure'),'coupure signalée');
     const m2=mondeEnLigne(),b=nouveau(m2,'Pilote 1'),tous2=[];b.c.sur(x=>tous2.push(x));b.c.envoyer({t:'creer',nom:'Bob'});v(tous2.some(x=>x.t==='refus'&&x.raison==='nom'),'refus local aussi dans sur(f)');
     js[0].c.fermer();});
+  t('réseau : retour à la salle : l’hôte seul, après le départ ; la salle se rouvre, les « prêt » repartent à faux, on peut relancer et accueillir', ()=>{
+    const {m,js}=salle(2);js[0].c.retour();v(js[0].erreurs.includes('pas-commence'),'pas avant le départ');
+    js[1].c.pret(true);pomper(m);js[0].c.lancer({circuit:'test',tours:1,meteo:'sec',nbIA:0});pomper(m);
+    js[1].c.retour();v(js[1].erreurs.includes('pas-hote'),'un invité ne rouvre pas');
+    js[0].c.retour();pomper(m);v(de(js[0],'retour').length===1&&de(js[1],'retour').length===1,'tous reçoivent « retour »');
+    v(!js[1].c.depart&&js[0].c.joueurs.every(j=>!j.pret),'départ oublié, prêts à faux');
+    const x=nouveau(m,'Pilote 3');x.c.rejoindre(js[0].c.code,'Pilote 3');pomper(m);v(x.c.enSalle(),'la salle accepte de nouveau');
+    js[0].c.lancer({circuit:'test',tours:2,meteo:'sec',nbIA:0});pomper(m);v(de(js[0],'depart').length===2&&de(x,'depart').length===1,'relancée');
+    const r=RESEAU.creerRelais(),s1=[],s2=[],a=r.connecter(q=>s1.push(q)),b=r.connecter(q=>s2.push(q));a.recevoir({t:'creer',nom:'Pilote 1',version:REGLAGES.EN_LIGNE_VERSION});
+    b.recevoir({t:'rejoindre',code:s1[0].code,nom:'Pilote 2',version:REGLAGES.EN_LIGNE_VERSION});a.recevoir({t:'lancer',reglages:{circuit:'test',tours:1,meteo:'sec',nbIA:0}});
+    b.recevoir({t:'retour'});v(!s1.some(q=>q.t==='retour'),'le relais jette le retour d’un invité');});
   t('réseau : un écouteur qui plante n’empêche pas les autres (événement « erreur »)', ()=>{
     const m=mondeEnLigne(),a=nouveau(m,'Pilote 1'),vus=[];a.c.sur('salle',()=>{throw new Error('boum');});a.c.sur('salle',d=>vus.push(d.code));a.c.creer('Pilote 1');pomper(m);v(vus.length===1&&a.erreurs.includes('ecouteur'));});
   t('réseau : EN_LIGNE est faux par défaut et reseau.js ne fait rien tout seul (aucun réseau sans le dire)', ()=>{
