@@ -1,7 +1,7 @@
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><title>tests</title></head><body>
 <pre id="res"></pre>
 <script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));window.addEventListener('unhandledrejection',e=>__err.push('promesse : '+(e.reason&&e.reason.message||e.reason)));</script>
-<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits-officiels-a.js"></script><script src="../circuits-officiels-b.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../sensations.js"></script><script src="../manette.js"></script><script src="../son.js"></script><script src="../effets3d.js"></script><script src="../conseil.js"></script><script src="../qualite.js"></script><script src="../assistance.js"></script><script src="../mesure.js"></script><script src="../regie.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../divisions.js"></script><script src="../decouverte.js"></script><script src="../pilote.js"></script><script src="../deux-joueurs.js"></script><script src="../tournoi.js"></script><script src="../casque.js"></script><script src="../decors-officiels.js"></script><script src="../decor-public.js"></script><script src="../photo.js"></script><script src="../cache-carte.js"></script><script src="../cache-carte-test.js"></script><script src="../journal.js"></script><script src="../argent.js"></script><script src="../garage.js"></script><script src="../aileron.js"></script><script src="../carte2d.js"></script><script src="../saisons.js"></script><script src="../sponsors.js"></script><script src="../fiche.js"></script><script src="../interview.js"></script><script src="../carriere.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../meteo.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../resume.js"></script><script src="../messages.js"></script><script src="../commentaire.js"></script><script src="../voix-sons.js"></script><script src="../decor.js"></script><script src="../stand3d.js"></script><script src="../fantome.js"></script><script src="../defi.js"></script><script src="../touches.js"></script><script src="../clavier.js"></script><script src="../principal.js"></script>
+<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits-officiels-a.js"></script><script src="../circuits-officiels-b.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../sensations.js"></script><script src="../manette.js"></script><script src="../son.js"></script><script src="../effets3d.js"></script><script src="../conseil.js"></script><script src="../qualite.js"></script><script src="../assistance.js"></script><script src="../mesure.js"></script><script src="../regie.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../divisions.js"></script><script src="../decouverte.js"></script><script src="../pilote.js"></script><script src="../deux-joueurs.js"></script><script src="../tournoi.js"></script><script src="../casque.js"></script><script src="../decors-officiels.js"></script><script src="../decor-public.js"></script><script src="../photo.js"></script><script src="../cache-carte.js"></script><script src="../cache-carte-test.js"></script><script src="../journal.js"></script><script src="../argent.js"></script><script src="../garage.js"></script><script src="../aileron.js"></script><script src="../carte2d.js"></script><script src="../saisons.js"></script><script src="../sponsors.js"></script><script src="../fiche.js"></script><script src="../interview.js"></script><script src="../carriere.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../meteo.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../resume.js"></script><script src="../messages.js"></script><script src="../commentaire.js"></script><script src="../voix-sons.js"></script><script src="../foule.js"></script><script src="../decor.js"></script><script src="../stand3d.js"></script><script src="../fantome.js"></script><script src="../defi.js"></script><script src="../touches.js"></script><script src="../clavier.js"></script><script src="../principal.js"></script>
 <script>
 const L=[];let ok=0,ko=0;
 // (tour 49d-2) les championnats des tests sont en division 3 (le jeu d'avant : l'argent, le garage, les sponsors au bit près) ; les tests
@@ -10,7 +10,8 @@ const DIVISION_DEPART_JEU=REGLAGES.DIVISION_DEPART;REGLAGES.DIVISION_DEPART=3;
 // (tour 50d) de même, un seul plateau pour tous (DIVISION_PLATEAUX faux : le joueur monte avec ses rivaux, les contrats d'avant) ; les tests
 // des plateaux le rallument (avecPlateaux)
 const DIVISION_PLATEAUX_JEU=REGLAGES.DIVISION_PLATEAUX;REGLAGES.DIVISION_PLATEAUX=false;
-function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
+const FILTRE=new URLSearchParams(location.search).get('filtre');   // (tour 55) ?filtre=foule : seulement les tests dont le nom contient ce texte (sur le Mac chargé)
+function t(n,f){if(FILTRE&&!n.includes(FILTRE)&&!n.includes('la trajectoire se calcule'))return;try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
 const v=(c,m)=>{if(!c)throw new Error(m||'faux');};
 // le résultat s'écrit au fil de l'eau : si la page est coupée, #res montre jusqu'où elle est allée
 function ecrire(etape){document.getElementById('res').textContent=`${etape?'EN COURS ('+etape+') ':''}RESULTAT ${ok}/${ok+ko}\n`+L.join('\n');}
@@ -3411,6 +3412,50 @@ t('voix enregistrées : éteintes par défaut ; chaque fait a son groupe ; jamai
   v(['vs_oui','vs_non'].every(k=>TEXTES.fr[k]&&TEXTES.en[k]),'le réglage dans les deux langues');
 });
 
+// --- la foule et l'ambiance (tour 55, T2, foule.js) : un faux contexte audio (rien ne joue), la rumeur et les clameurs
+t('foule : clameurs au départ, au dépassement, à l’arrivée ; jamais en pile ; muette si le son est coupé ; rumeur selon la proximité des tribunes ; AMBIANCE_ACTIF faux = rien ; course au bit près',()=>{
+  const R=REGLAGES,permis={oui:true},horloge={t:0},sources=[],gains=[];
+  const param=()=>({value:0,setValueAtTime(){},linearRampToValueAtTime(){},exponentialRampToValueAtTime(){},setTargetAtTime(x){this.cible=x;},cancelScheduledValues(){}});
+  const noeud=()=>({connect(){return this;},gain:param(),frequency:{value:0},Q:{value:0},type:''});
+  const ctx={sampleRate:100,get currentTime(){return horloge.t;},createGain:()=>{const n=noeud();gains.push(n);return n;},createBiquadFilter:noeud,
+    createBuffer:(c,n)=>({getChannelData:()=>new Float32Array(n)}),createBufferSource:()=>{const n=noeud();n.start=function(){sources.push(this);};n.stop=()=>{};n.buffer=null;return n;}};
+  const faux={ctx,sortie:{},permis:()=>permis.oui};
+  v(R.AMBIANCE_ACTIF===true&&FOULE.active===true,'allumée par défaut');
+  v(Object.keys(R.FOULE_CLAMEURS).join()==='depart,depassement,arrivee','les trois faits');
+  v(['foule_oui','foule_non'].every(k=>TEXTES.fr[k]&&TEXTES.en[k]),'le réglage dans les deux langues');
+  FOULE._essai(faux,false);
+  v(FOULE.evenement('depart')===false&&sources.length===0,'éteinte : rien');
+  FOULE._essai(faux,true);
+  v(FOULE.evenement('depart')===true&&sources.length===R.FOULE_BANDES.length+1,'départ : une clameur ('+sources.length+' bandes)');
+  v(FOULE.evenement('depart')===false,'pas deux clameurs au même instant');
+  horloge.t=10;v(FOULE.evenement('depassement')===true&&FOULE.evenement('arrivee')===false,'après la pause minimale, une autre ; pas deux à la fois');
+  horloge.t=20;v(FOULE.evenement('arrivee')===true&&FOULE.journal.join()==='depart,depassement,arrivee','l’arrivée');
+  v(FOULE.evenement('pluie')===false,'un fait inconnu : rien');
+  permis.oui=false;horloge.t=40;const n=sources.length;
+  v(FOULE.evenement('arrivee')===false&&sources.length===n,'son coupé : muette');
+  permis.oui=true;
+  // la proximité des tribunes : 1 sur la ligne, 0 loin
+  const nn=C.courbure.length;
+  v(FOULE.proximite({piste:{indice:0}},nn)===1&&FOULE.proximite({piste:{indice:Math.floor(nn/2)}},nn)===0&&FOULE.proximite(null,nn)===0,'1 sur la ligne, 0 à l’autre bout');
+  const a1=FOULE.proximite({piste:{indice:Math.round(nn*0.02)}},nn),a2=FOULE.proximite({piste:{indice:Math.round(nn*0.05)}},nn),a3=FOULE.proximite({piste:{indice:nn-Math.round(nn*0.02)}},nn);
+  v(a1>a2&&a2>0&&Math.abs(a1-a3)<0.1,'décroît avec la distance, des deux côtés de la ligne');
+  // la rumeur
+  gains.length=0;FOULE._essai(faux,true,nn);FOULE.maj({piste:{indice:0}},true);
+  const rum=gains.find(g=>g.gain.cible!==undefined);
+  v(rum&&Math.abs(rum.gain.cible-R.FOULE_RUMEUR_VOLUME)<1e-9,'sur la ligne : la rumeur monte à son volume');
+  FOULE.maj({piste:{indice:Math.floor(nn/2)}},true);v(rum.gain.cible===0,'loin des tribunes : elle redescend');
+  FOULE.maj({piste:{indice:0}},false);v(rum.gain.cible===0,'hors course (pause, podium) : elle se tait');
+  // la course est la même au bit près avec ou sans foule (le module ne tire jamais dans hasard())
+  const course=(avec)=>{const carte=CARTES_T.technique,e=creerCourseIA(TQ,8,1,5,carte);for(const p_ of e.pilotes)p_.course.compte=0;const c=COMMENTAIRE.creer(5);
+    if(avec)FOULE._essai(faux,true,TQ.courbure.length);
+    for(let k=0;k<120*20;k++){pasCourseIA(e,DT);if(k%6===0){COMMENTAIRE.observer(c,e,{joueur:-1,circuit:'X'});const it=COMMENTAIRE.afficher(c,e.temps,false);if(it&&avec&&/^depassement/.test(it.type)){horloge.t+=1;FOULE.evenement('depassement');}}
+      if(avec&&k%30===0)FOULE.maj(e.pilotes[0].v,true);}
+    FOULE._essai(null,false);return e;};
+  const a=course(false),b=course(true);
+  v(a.pilotes.every((p,k)=>p.v.x===b.pilotes[k].v.x&&p.v.z===b.pilotes[k].v.z&&p.v.u===b.pilotes[k].v.u),'course au bit près');
+  FOULE._essai(null,true);
+});
+
 // --- (tour 51l) le défi après une course seule (noterFantomeSeul, principal.js) : jamais pour un tour que le joueur n'a pas conduit
 t('défi après une course seule : rien n’est enregistré quand l’IA (?ia=1) ou le robot (?robot=1) conduit ; pour le joueur, l’enregistrement démarre', ()=>{
   const vo=creerVoiture(C,0),c=creerCourse(C,3),avant={ia:JEU.ia,robot:JEU.robot,f:JEU.fantomeSeul,plateau:JEU.plateau,defi:JEU.defi,tournoi:JEU.tournoi};
@@ -3459,6 +3504,26 @@ t('commentateur (tour 52f) : à la découverte, un commentateur « tout » ne pa
     v(modes[0]==='tout'&&appels.join()==='dire','en carrière : le réglage sauvegardé');
     JEU.decouverte=true;REGLAGES.COMMENTAIRE_DECOUVERTE_MODE='';modes.length=0;appels.length=0;majCommentaire(e,m);v(modes[0]==='tout'&&appels.join()==='dire','réglage vide = comme avant');
   }finally{REGLAGES.COMMENTAIRE_MODE=sauve.mode;REGLAGES.COMMENTAIRE_DECOUVERTE_MODE=sauve.dm;JEU.ecran=sauve.ecran;JEU.contre=sauve.contre;JEU.decouverte=sauve.decouverte;JEU.commentaire=sauve.commentaire;VOIXSONS.jouer=sauve.jouer;COMMENTAIRE.observer=sauve.observer;COMMENTAIRE.afficher=sauve.afficher;COMMENTAIRE.phrase=sauve.phrase;
+    if(sansVoix)delete window.VOIX;else{VOIX.taire=sauve.taire;VOIX.dire=sauve.dire;}
+    if(sansInterface)delete window.INTERFACE;}});
+
+t('commentateur (tour 55) : sur un écran tactile, plus de bandeau texte du commentateur (la voix reste) ; COMMENTAIRE_TEXTE_TACTILE vrai ou sans tactile : le bandeau d’avant', ()=>{
+  const appels=[],sansInterface=typeof INTERFACE==='undefined',sansVoix=typeof VOIX==='undefined';
+  const sauve={mode:REGLAGES.COMMENTAIRE_MODE,tt:REGLAGES.COMMENTAIRE_TEXTE_TACTILE,ecran:JEU.ecran,contre:JEU.contre,commentaire:JEU.commentaire,jouer:VOIXSONS.jouer,observer:COMMENTAIRE.observer,afficher:COMMENTAIRE.afficher,phrase:COMMENTAIRE.phrase,
+    taire:sansVoix?null:VOIX.taire,dire:sansVoix?null:VOIX.dire,tactile:document.body.classList.contains('tactile')};
+  try{
+    if(sansInterface)window.INTERFACE={formatTemps:String};
+    if(sansVoix)window.VOIX={};
+    VOIX.taire=()=>{};VOIX.dire=()=>{appels.push('dire');};VOIXSONS.jouer=()=>false;
+    COMMENTAIRE.observer=()=>{};COMMENTAIRE.afficher=()=>({type:'depassement',prio:9,comble:false,joueur:true});COMMENTAIRE.phrase=()=>'x';
+    REGLAGES.COMMENTAIRE_MODE='tout';JEU.ecran='course';JEU.contre=false;JEU.commentaire=null;
+    const e={graine:1,temps:10,pilotes:[]};
+    const essai=(tactile,reglage)=>{document.body.classList.toggle('tactile',tactile);REGLAGES.COMMENTAIRE_TEXTE_TACTILE=reglage;appels.length=0;const m=MESSAGES.creer();majCommentaire(e,m);return {texte:MESSAGES.afficher(m,0),voix:appels.join()};};
+    v(REGLAGES.COMMENTAIRE_TEXTE_TACTILE===false,'par défaut : faux');
+    let r=essai(true,false);v(r.texte===null&&r.voix==='dire','tactile : aucun bandeau, la voix parle ('+JSON.stringify(r)+')');
+    r=essai(true,true);v(r.texte&&/🎙/.test(r.texte.texte)&&r.voix==='dire','tactile, réglage vrai : le bandeau d’avant');
+    r=essai(false,false);v(r.texte&&/🎙/.test(r.texte.texte),'sans tactile : le bandeau est là');
+  }finally{document.body.classList.toggle('tactile',sauve.tactile);REGLAGES.COMMENTAIRE_MODE=sauve.mode;REGLAGES.COMMENTAIRE_TEXTE_TACTILE=sauve.tt;JEU.ecran=sauve.ecran;JEU.contre=sauve.contre;JEU.commentaire=sauve.commentaire;VOIXSONS.jouer=sauve.jouer;COMMENTAIRE.observer=sauve.observer;COMMENTAIRE.afficher=sauve.afficher;COMMENTAIRE.phrase=sauve.phrase;
     if(sansVoix)delete window.VOIX;else{VOIX.taire=sauve.taire;VOIX.dire=sauve.dire;}
     if(sansInterface)delete window.INTERFACE;}});
 

@@ -1407,3 +1407,6 @@ Object.assign(TEXTES.fr, {
   sous_boutonParlerCoequipier: 'Écris à ton coéquipier', sous_boutonParlerPatron: 'Parle à ta direction', sous_courrierVide: 'Rien de neuf',
   sous_boutonAmisDeux: 'Un écran, deux joueurs', sous_boutonAmisTournoi: 'Le meilleur chrono gagne', sous_boutonAmisDefi: 'Bats le temps d’un ami',
 });
+// --- tour 55, T2 : la foule et l'ambiance (foule.js) ---
+Object.assign(TEXTES.en, { foule_oui: 'Crowd: on', foule_non: 'Crowd: off' });
+Object.assign(TEXTES.fr, { foule_oui: 'Foule : oui', foule_non: 'Foule : non' });

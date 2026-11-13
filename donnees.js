@@ -1171,6 +1171,7 @@ const REGLAGES = {
   // le commentateur (commentaire.js, CLAUDE.md « Le commentateur ») : ses phrases passent dans le bandeau des messages de course
   COMMENTAIRE_DECOUVERTE_MODE: 'joueur', // (tour 52f, décision du propriétaire) pendant la course de découverte seulement, un commentateur réglé sur 'tout' ne parle que du joueur ('joueur' ; '' = le réglage du joueur, comme avant) ; la voix (synthèse et voix-sons) aussi ; dès la carrière, le réglage sauvegardé revient
   COMMENTAIRE_MODE: 'tout',       // 'tout', 'joueur' (seulement les faits du joueur, et l'arrivée) ou 'non' (coupé)
+  COMMENTAIRE_TEXTE_TACTILE: false, // (tour 55, le propriétaire 2026-11-12 : « enlève les messages du commentateur écrits sur mobile ») sur un écran tactile, le bandeau texte du commentateur (course et résumé) n'est pas affiché, la voix reste ; vrai = comme avant
   COMMENTAIRE_INTERVALLE: 2.5,    // s : au plus une phrase tous les tant (tour 45c, le propriétaire 2026-11-02 : « presque en tout temps » ; c'était 5)
   COMMENTAIRE_LONGUEUR_MAX: 60,   // caractères d'une phrase au plus (les noms comptés à 7 lettres) : court, pour ne pas lire en pilotant
   COMMENTAIRE_PEREMPTION: 8,      // s : un fait plus vieux n'est plus dit
@@ -1193,6 +1194,13 @@ const REGLAGES = {
   COMMENTAIRE_IMPORTANT: 7,       // la priorité à partir de laquelle une phrase passe devant les autres à la voix (dépassement du joueur, erreur, arrivée…)
   VOIX_VOLUME: 0.7,               // la voix, sous le moteur : × le volume du commentateur (son.js)
   VOIX_SONS: false,               // (tour 51c) les voix enregistrées (voix-sons.js, sons/voix/) : éteintes par défaut, ?voixsons=1 ou ⚙ Réglages les allument ; provisoires
+  // (tour 55, T2) la foule et l'ambiance (foule.js) : des clameurs et une rumeur faites par le code, dans la famille « ambiance » de son.js
+  AMBIANCE_ACTIF: true,           // faux = le jeu d'avant (aucun son de foule) ; « Foule : oui / non » dans ⚙ Réglages
+  FOULE_CLAMEURS: { depart: [2.8, 0.55, 0.5], depassement: [1.4, 0.35, 0.25], arrivee: [4.5, 0.8, 0.6] },   // [durée s, volume, montée s]
+  FOULE_BANDES: [[500, 0.7, 1], [1500, 1.2, 0.6], [3200, 1.5, 0.25]],   // [fréquence, Q, part du volume] : le gros de la foule, puis les cris aigus
+  FOULE_PAUSE_MIN: 0.6, FOULE_CLAMEURS_MAX: 12,   // jamais deux clameurs à moins de 0,6 s ; au plus 12 bandes en cours
+  FOULE_ZONE: 0.07,               // la part du tour, avant et après la ligne, où les tribunes se font entendre
+  FOULE_RUMEUR_VOLUME: 0.25, FOULE_RUMEUR_FREQUENCE: 450,   // la rumeur de fond près des tribunes
   VOIX_SONS_VOLUME: 0.9,          // leur volume, × le volume du commentateur (son.js)
   VOIX_DEBIT: 1.1,                // la vitesse de la voix
   GRAINE_COMMENTAIRE: 15000,      // sa suite de hasard à lui (ALEATOIRE.suite) : la course ne change pas
