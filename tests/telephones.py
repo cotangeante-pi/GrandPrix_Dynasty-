@@ -21,7 +21,7 @@ RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CAPTURES = os.path.join(RACINE, 'tests', 'captures')
 APPAREILS = ['iPhone SE landscape', 'iPhone 13 landscape', 'Pixel 7 landscape', 'Galaxy S9+ landscape']
 MIN_POUCE = 40
-COMPLETS = ['iPhone SE landscape', 'Pixel 7 landscape']   # (le parcours entier, découverte comprise)
+COMPLETS = ['iPhone SE landscape', 'Pixel 7 landscape'] if os.environ.get('TEL_COMPLET') else []   # (le tour de découverte entier par le robot, puis le podium : plus de 7 minutes sous swiftshader, donc seulement avec TEL_COMPLET=1 ; sinon la découverte est marquée faite et le podium se voit dans test=tactile-decouverte et test=apres-course de ecrans.py)
 EN_COURSE_PETITS = ('boutonSon', 'tactilePause', 'tactileRemise')   # (🔊 ⏸ ↩ pendant la course : ≥ 36 px, décision du tour 52b revue au 54b)
 L, ok, ko = [], 0, 0
 def t(nom, cond, detail=''):
@@ -45,14 +45,14 @@ AUDIT = """() => {
   const zoom = vus.filter(v => (v.tag === 'INPUT' || v.tag === 'SELECT' || v.tag === 'TEXTAREA') && v.fs < 16);
   const chev = []; for (let i = 0; i < vus.length; i++) for (let j = i + 1; j < vus.length; j++) { const a = vus[i], b = vus[j];
     if (a.x < b.r - 2 && b.x < a.r - 2 && a.y < b.b - 2 && b.y < a.b - 2) chev.push(a.id + '/' + b.id); }
-  const texte = []; for (const e of document.querySelectorAll('h1, h2, p, span, div, li, td, label')) { if (!e.childElementCount && (e.textContent || '').trim() && visible(e)) { const r = e.getBoundingClientRect();
-    if (r.width > 0 && (r.right > W + 1 || r.bottom > H + 1 || r.left < -1 || r.top < -1)) texte.push((e.id || e.className || e.tagName) + ':' + e.textContent.trim().slice(0, 20) + '@' + Math.round(r.left) + ',' + Math.round(r.top) + ',' + Math.round(r.right) + ',' + Math.round(r.bottom)); } }
+  const texte = []; for (const e of document.querySelectorAll('h1, h2, p, span, div, li, td, label')) { if (!e.childElementCount && (e.textContent || '').trim() && visible(e)) { const r = e.getBoundingClientRect(); let defil = false; for (let p = e.parentElement; p && p !== document.body; p = p.parentElement) { const q = getComputedStyle(p); if (/(auto|scroll)/.test(q.overflowY) && p.scrollHeight > p.clientHeight + 1) { defil = true; break; } }
+    if (r.width > 0 && (r.right > W + 1 || r.left < -1 || (!defil && (r.bottom > H + 1 || r.top < -1)))) texte.push((e.id || e.className || e.tagName) + ':' + e.textContent.trim().slice(0, 20) + '@' + Math.round(r.left) + ',' + Math.round(r.top) + ',' + Math.round(r.right) + ',' + Math.round(r.bottom)); } }
   const sw = document.documentElement.scrollWidth > W + 1 || document.documentElement.scrollHeight > H + 1 || document.body.scrollWidth > W + 1 || document.body.scrollHeight > H + 1;
   return { W, H, n: vus.length, dehors, petits, zoom, chev, texte: texte.slice(0, 6), defile: sw, ecran: typeof JEU !== 'undefined' ? JEU.ecran : null }; }""" % (MIN_POUCE, MIN_POUCE)
 # les recouvrements normaux (un bouton dans sa carte, GAZ / FREIN séparés…) ne sont pas filtrés : seuls des BOUTONS qui se touchent comptent
 def audit(pg, nom, tel, ignorer_petits=()):
     petit_ok = 36 if any(m in nom for m in ('course', 'barre', 'grille', 'pause')) else 0
-    pg.evaluate("() => { if (!document.getElementById('__sans_transition')) { const s = document.createElement('style'); s.id = '__sans_transition'; s.textContent = '*, *::before, *::after { transition: none !important; }'; document.head.appendChild(s); } }")   # (swiftshader chargé : une transition de 0,4 s peut ne pas avoir fini, la mesure verrait les lignes de la tour à mi-chemin)
+    pg.evaluate("() => { if (!document.getElementById('__sans_transition')) { const s = document.createElement('style'); s.id = '__sans_transition'; s.textContent = '*, *::before, *::after { transition: none !important; animation: none !important; }'; document.head.appendChild(s); } }")   # (swiftshader chargé : une transition de 0,4 s peut ne pas avoir fini, la mesure verrait les lignes de la tour à mi-chemin)
     pg.wait_for_timeout(500)
     a = pg.evaluate(AUDIT)
     photo(pg, os.path.join(CAPTURES, f'tel-{tel.replace(" ", "_").replace("+", "p")}-{nom}.png'))

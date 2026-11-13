@@ -2224,3 +2224,4 @@ body.tactile #discussionCarte { max-height: calc(100dvh - 52px); }
 
 /* (tour 55) la ligne du commentateur du résumé vidéo : cachée sur un écran tactile (COMMENTAIRE_TEXTE_TACTILE faux, classe posée par principal.js) */
 body.tactile.commentaireSansTexte #resumeCommentaire { display: none !important; }
+body.tactile:has(#pause:not(.cache)) #boutonSon { display: none; }   /* (tour 55b) la pause a ses propres boutons de son : 🔊 en coin recouvrait ses boutons larges en 568×320 */
