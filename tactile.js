@@ -49,7 +49,10 @@ const TACTILE = (function () {
     if (!t) return c;
     return { gaz: Math.max(c.gaz, t.gaz), frein: Math.max(c.frein, t.frein), direction: Math.max(-1, Math.min(1, c.direction + t.direction)) };
   }
-  const portrait = (l, h) => h > l;
+  // (tour 56, le propriétaire 2026-11-13 : « le message tourner le téléphone apparaît un peu souvent ») : debout seulement si nettement
+  // plus haut que large (PORTRAIT_MARGE : pas un écran presque carré, ni un instant de rotation où le navigateur rend des tailles à moitié
+  // changées) ; PORTRAIT_MARGE 1 = la règle d'avant (h > l)
+  const portrait = (l, h) => h > l * (REGLAGES.PORTRAIT_MARGE || 1);
 
   // --- la page
   let present = null;   // un écran tactile ? (calculé une fois)
@@ -63,7 +66,7 @@ const TACTILE = (function () {
 
   const E = {};   // les éléments
   const tenus = { gaz: new Set(), frein: new Set(), gauche: new Set(), droite: new Set() };   // les doigts posés sur chaque bouton
-  const V = { pauseDebout: false, mode: 'aucun', neutre: null, brut: null, lisse: null, attente: 0, grille: false, permission: null, choix: 'volant', conduite: false, ecoute: false };
+  const V = { pauseDebout: false, deboutDepuis: null, mode: 'aucun', neutre: null, brut: null, lisse: null, attente: 0, grille: false, permission: null, choix: 'volant', conduite: false, ecoute: false };
   // mode : 'aucun' (pas branché), 'attente' (on écoute, rien reçu), 'volant' (le capteur parle), 'boutons' (pas de capteur, ou refusé)
   let rappels = {};
 
@@ -183,6 +186,17 @@ const TACTILE = (function () {
   function recentrer() { if (V.brut !== null) { V.neutre = V.brut; V.lisse = V.brut; } rafraichir(); }
   // le volant conduit-il (plutôt que les boutons ◀ ▶) ?
   const volantActif = () => V.mode === 'volant' && V.choix === 'volant';
+  // (tour 56) debout « pour de bon » : depuis PORTRAIT_DELAI s au moins (un volant tourné fort fait parfois pivoter l'écran un instant :
+  // ni message ni pause pour ça) ; couché, tout de suite ; PORTRAIT_DELAI 0 = comme avant
+  let minuteurDebout = null;
+  function deboutStable() {
+    if (!portrait(window.innerWidth, window.innerHeight)) { V.deboutDepuis = null; return false; }
+    const maintenant = performance.now(), delai = (REGLAGES.PORTRAIT_DELAI || 0) * 1000;
+    if (V.deboutDepuis === null) V.deboutDepuis = maintenant;
+    if (maintenant - V.deboutDepuis >= delai) return true;
+    if (minuteurDebout === null) minuteurDebout = setTimeout(() => { minuteurDebout = null; rafraichir(); }, delai - (maintenant - V.deboutDepuis) + 20);
+    return false;
+  }
 
   function rafraichir() {
     if (!E.gaz) return;
@@ -195,7 +209,7 @@ const TACTILE = (function () {
     // (tour 53e) iPhone : « 🎮 Activer le volant » sur la grille, pendant les feux (R.TACTILE_IPHONE_GRILLE) ; faux : sur l'écran titre, comme avant
     if (act) act.classList.toggle('cache', !permissionADemander() || V.permission !== null || (R.TACTILE_IPHONE_GRILLE ? !V.grille : conduite));
     const po = $('tactilePortrait');
-    if (po) po.classList.toggle('cache', !portrait(window.innerWidth, window.innerHeight));
+    if (po) po.classList.toggle('cache', !deboutStable());
     const bv = $('boutonVolantPause'), br = $('boutonRecentrerPause'), ligne = $('pauseTactile');
     if (ligne) ligne.classList.toggle('cache', V.mode !== 'volant');   // (la rangée entière : sans volant, la pause garde sa hauteur d'avant)
     if (bv) { bv.classList.toggle('cache', V.mode !== 'volant'); bv.textContent = texte(V.choix === 'volant' ? 'tac_mode_volant' : 'tac_mode_boutons'); }
@@ -210,7 +224,9 @@ const TACTILE = (function () {
     if (conduite && !V.conduite) { if (V.brut !== null) { V.neutre = V.brut; V.lisse = V.brut; } toutLacher(); }   // le neutre pris au départ
     if (conduite !== V.conduite) { V.conduite = conduite; rafraichir(); }
     // téléphone debout pendant la conduite : la course se met en pause (une fois) ; couché de nouveau, elle reprend seulement par « Reprendre »
-    const debout = portrait(window.innerWidth, window.innerHeight);
+    const debout = deboutStable();
+    if (debout && !V.deboutVu) rafraichir();   // (le message suit la pause dans la même image)
+    V.deboutVu = debout;
     if (debout && conduite && !V.pauseDebout) { V.pauseDebout = true; if (rappels.pause) rappels.pause(); }
     if (!debout) V.pauseDebout = false;
     if (V.mode === 'attente') { V.attente += dt || 0; if (V.attente >= R.VOLANT_ATTENTE) { V.mode = 'boutons'; rafraichir(); } }   // pas de capteur : ◀ ▶
