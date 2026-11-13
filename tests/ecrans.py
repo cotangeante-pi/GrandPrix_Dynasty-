@@ -136,6 +136,7 @@ PAGES = [
     ('index.html?championnat=1&tours=1&robot=1&test=apres-course', 1280, 720, None),   # (tour 53d) après un Grand Prix de carrière : du podium au paddock en 2 clics (« Continuer », « Passer », la une passe seule), l'argent et les points comme avant ; capture apres-podium.png
     ('index.html?championnat=1&tours=1&robot=1&test=apres-course', 640, 360, None),   # … en 640×360 : tout tient
     ('index.html?test=tactile-titre', 640, 360, None),   # (tour 53c, premiere-minute n° 12) l'écran titre simple : au doigt, « ▶ Jouer », « Entre amis » et 🔊 seulement ; capture titre-640-tactile.png
+    ('index.html?test=tactile-aides', 640, 360, None),   # (tour 55, le propriétaire 2026-11-12) couper les aides au doigt avant la course (titre → Aides → 4 boutons → OK → ▶ Jouer) : captures aides-640.png
     ('index.html?championnat=1&test=tactile-classement', 640, 360, None),   # (tour 53b) au doigt, un appui sur un classement ouvre la liste entière (20 lignes d'au moins 40 px), un appui sur une ligne ouvre la fiche, Retour referme
     ('index.html?test=titre-simple', 1280, 720, None),   # … au clavier en 1280×720, le titre est inchangé (Apprendre / Aides / Touches) ; capture titre-1280.png
     ('index.html?championnat=1&test=tactile-reglages', 960, 600, None),   # (tour 53f) les réglages du volant : crans, inversé, choix, sauvegarde
@@ -1859,8 +1860,8 @@ def titre_simple(pg, titre, l, h):
         paddock: ['boutonTutorielPaddock', 'boutonAidesPaddock', 'boutonTouchesPaddock'].every(id => !!document.getElementById(id)) }; }""")
     d = pg.evaluate(DEDANS_JS, '#titre button')
     if 'tactile' in titre or l < 700:
-        t(f'{titre} : sur un écran tactile (ou sous 700 px), le titre n’a que « ▶ Jouer » et « Entre amis » (et 🔊), tout dans l’écran ; « Apprendre / Aides / Touches » sont dans les Réglages du paddock',
-          etat['jouer'] and etat['amis'] and not etat['apprendre'] and not etat['aides'] and not etat['touches'] and etat['paddock'] and d['n'] == 2 and d['dedans'] and d['defile'] and not d['recouvre'], str([etat, d]))
+        t(f'{titre} : sur un écran tactile (ou sous 700 px), le titre n’a que « ▶ Jouer », « Entre amis » et « Aides » (et 🔊), tout dans l’écran ; « Apprendre / Touches » sont dans les Réglages du paddock (tour 55 : « Aides » reste au titre, pour couper l’auto-guidage dès le premier lancement)',
+          etat['jouer'] and etat['amis'] and not etat['apprendre'] and etat['aides'] and not etat['touches'] and etat['paddock'] and d['n'] == 3 and d['dedans'] and d['defile'] and not d['recouvre'], str([etat, d]))
         pg.screenshot(path=os.path.join(CAPTURES, 'titre-640-tactile.png'))
     else:
         t(f'{titre} : au clavier en grand, le titre est inchangé : « ▶ Jouer », « Entre amis », « Apprendre », « Aides », « Touches »',
@@ -1868,6 +1869,31 @@ def titre_simple(pg, titre, l, h):
         pg.screenshot(path=os.path.join(CAPTURES, 'titre-1280.png'))
     pg.evaluate('() => { REGLAGES.TITRE_SIMPLE = false; INTERFACE.preparerTitre(() => {}, () => {}, () => {}); }')
     t(f'{titre} : avec TITRE_SIMPLE faux, la rangée est là comme avant', pg.evaluate('() => document.getElementById("boutonTouchesTitre").offsetParent !== null'))
+
+def tactile_aides(pg, titre, l, h):
+    """(tour 55, le propriétaire 2026-11-12 : « dans mobile, il faut pouvoir désactiver l'auto-guidage ») au doigt, en 640×360 : du titre au choix des aides,
+    chaque aide se coupe d'un toucher (boutons ≥ 40 px, sans défilement), le choix est gardé, et la course de découverte commence sans aide."""
+    attendre(pg, '() => typeof TACTILE !== "undefined" && TACTILE.estPresent() && JEU.ecran === "titre"', None, 60000)
+    toucher(pg, '#boutonAidesTitre')
+    ETAT = """() => { const bs = [...document.querySelectorAll('#choixAidesListe button')].map(b => b.getBoundingClientRect()), v = document.getElementById('boutonAidesValider').getBoundingClientRect();
+      return { n: bs.length, min: Math.min(...bs.map(r => r.height), v.height), dedans: [...bs, v].every(r => r.width > 0 && r.left >= -1 && r.top >= -1 && r.right <= innerWidth + 1 && r.bottom <= innerHeight + 1),
+        defile: document.documentElement.scrollHeight <= innerHeight + 2, ouvert: !document.getElementById('choixAides').classList.contains('cache'), a: JEU.assistance, garde: (() => { try { return JSON.parse(localStorage.getItem(SAUVEGARDE.CLE)).options.aides_pilotage; } catch (e) { return null; } })() }; }"""
+    e0 = pg.evaluate(ETAT)
+    pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'aides-640.png'))
+    t(f'{titre} : au doigt, « Aides » du titre ouvre le choix : 4 aides (toutes allumées au premier lancement), boutons ≥ 40 px, tout dans l’écran sans défilement',
+      e0['ouvert'] and e0['n'] == 4 and e0['min'] >= 40 and e0['dedans'] and e0['defile'] and all(e0['a'].values()), str(e0))
+    for a in ['direction', 'freinage', 'antiblocage', 'antipatinage']: toucher(pg, f'#choixAidesListe button[data-aide="{a}"]'); pg.wait_for_timeout(100)
+    e1 = pg.evaluate(ETAT)
+    t(f'{titre} : un toucher par aide les coupe toutes (direction assistée, freinage assisté, anti-blocage, antipatinage), le choix est sauvegardé, le bonus s’affiche',
+      not any(e1['a'].values()) and e1['garde'] is not None and not any(e1['garde'].values()) and '%' in pg.evaluate('() => document.getElementById("choixAidesBonus").textContent') and e1['defile'] and e1['dedans'], str(e1))
+    toucher(pg, '#boutonAidesValider')
+    t(f'{titre} : « OK » au doigt rend le titre', attendre(pg, '() => document.getElementById("choixAides").classList.contains("cache") && JEU.ecran === "titre"', None, 4000))
+    toucher(pg, '#boutonJouer')
+    attendre(pg, '() => JEU.ecran === "course" && JEU.plateau && JEU.plateau.carte !== null', None, 240000)
+    c = pg.evaluate("""() => { const p = JEU.plateau.pilotes[JEU.ia], c = { gaz: 1, frein: 0, direction: 0.4 }, r = aiderJoueur(Object.assign({}, c), p.v, p);
+      return { decouverte: !!JEU.decouverte, a: JEU.assistance, memes: r.gaz === c.gaz && r.frein === c.frein && r.direction === c.direction, bonus: ASSISTANCE.bonus(JEU.assistance) }; }""")
+    t(f'{titre} : en course de découverte, aucune aide : la direction (et gaz, frein) du joueur ne sont pas touchés, le bonus sans aide est de {c["bonus"]:.2f}',
+      c['decouverte'] and not any(c['a'].values()) and c['memes'] and abs(c['bonus'] - 0.28) < 1e-9, str(c))
 
 def apres_course(pg, titre, l, h):
     """(tour 53d) la boucle « encore une course » : du podium au paddock, 2 clics au plus, rien de changé dans l'argent ni les points."""
@@ -1952,6 +1978,7 @@ def longueurs_ecran(pg, titre, l, h):
 
 def tactile_ecran(pg, titre, l, h, page):
     if 'tactile-titre' in page: return titre_simple(pg, titre, l, h)
+    if 'tactile-aides' in page: return tactile_aides(pg, titre, l, h)
     if 'tactile-classement' in page: return tactile_classement(pg, titre, l, h)
     if 'tactile-iphone' in page: return tactile_iphone(pg, titre, l, h)
     if 'tactile-reglages' in page: return tactile_reglages(pg, titre, l, h)
