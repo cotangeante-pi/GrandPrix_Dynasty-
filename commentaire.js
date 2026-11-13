@@ -65,6 +65,22 @@ const COMMENTAIRE = (function () {
       if (type === 'depassement' && !haut(qui)) continue;
       pousser(c, t, type, prm(qui, { sur }), estJ(qui) || estJ(sur));
     }
+    // (tour 55, T22) la remontée : une voiture qui gagne COMMENTAIRE_REMONTEE_PLACES places en piste (des dépassements vraiment faits, ni les arrêts des autres ni
+    // les échanges aux stands) en moins de COMMENTAIRE_REMONTEE_FENETRE s ; le joueur d'abord ; une fois par voiture et par COMMENTAIRE_REMONTEE_REPETITION s
+    if (R.COMMENTAIRE_REMONTEE_ACTIF && e.go !== null) {
+      const hist = c.histPlaces || (c.histPlaces = []);
+      if (!hist.length || t - hist[hist.length - 1].t >= R.COMMENTAIRE_REMONTEE_PAS) hist.push({ t, place: e.pilotes.map((p, k) => (n.place.get(k) ? n.place.get(k).place : null)) });
+      while (hist.length > 1 && t - hist[1].t >= R.COMMENTAIRE_REMONTEE_FENETRE) hist.shift();
+      const ref = hist[0], dites = c.remontees || (c.remontees = new Map());
+      if (t - ref.t >= R.COMMENTAIRE_REMONTEE_FENETRE * 0.75) e.pilotes.forEach((p, k) => {
+        const q = n.place.get(k), avant = ref.place[k];
+        if (!q || avant === null || p.arrivee !== null || p.course.arretEnCours || !(haut(k) || estJ(k)) || t - (dites.get(k) || -Infinity) < R.COMMENTAIRE_REMONTEE_REPETITION) return;
+        let faits = 0;
+        for (let i = e.depassements.length - 1; i >= 0 && e.depassements[i].temps >= ref.t; i--) if (e.depassements[i].qui - 1 === k && !e.depassements[i].stand) faits++;
+        const gain = Math.min(avant - q.place, faits);
+        if (gain >= R.COMMENTAIRE_REMONTEE_PLACES) { dites.set(k, t); pousser(c, t, 'remontee', prm(k, { n: gain }), estJ(k)); }
+      });
+    }
     n.pilotes.forEach((p, k) => {
       const a = v.pilotes[k];
       if (!a) return;

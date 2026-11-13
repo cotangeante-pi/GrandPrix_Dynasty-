@@ -574,6 +574,12 @@ const REGLAGES = {
   TUTO_PLUIE_EAU: 0.2,          // la leçon de la pluie : la piste compte comme mouillée à partir de ce niveau d'eau
   TUTO_DRIFT_ARRIERE: 0.6,      // (tour 37l) la leçon du drift : l'arrière glisse au moins jusque-là (SENSATIONS.glisseArriere, 0 à 1)…
   TUTO_DRIFT_TENUE: 0.3,        // … pendant ce temps (s) dans l'épingle, pour que la glissade compte
+  TUTO_LECON_DRAPEAUX: true,    // (tour 55, T20) la leçon « drapeaux et aileron » est proposée ; faux = 7 leçons, comme avant
+  TUTO_DRAPEAUX_ARRET: 10,      // s après le GO : l'IA de la leçon est garée sur l'herbe…
+  TUTO_DRAPEAUX_DISTANCE: 260,  // … à tant de m devant le joueur
+  TUTO_DRAPEAUX_VU: 200,        // m : il s'est approché de la voiture arrêtée à moins de ça (le drapeau jaune l'a prévenu)
+  TUTO_DRAPEAUX_PASSE: 12,      // m : la voiture arrêtée est passée quand il est tant de m au-delà
+  TUTO_DRAPEAUX_DEGATS: 0.3,    // l'aileron abîmé de la 2e étape (de 0 à DEGATS_MAX), à réparer au stand
   TUTO_TETE_A_QUEUE: 1.2,       // rad : l'angle de l'arrière au-delà duquel c'est un tête-à-queue (la leçon est ratée)
   // le casque du pilote (casque.js) : un motif et trois couleurs ; les rivaux tirent le leur avec la graine du championnat
   CASQUE_MOTIFS: ['uni', 'bandes', 'etoile', 'flammes', 'damier', 'eclair'],
@@ -1043,6 +1049,14 @@ const REGLAGES = {
   GRAINE_FEUX: 4000,            // … et le délai des feux et les réactions des IA avec la graine + ce nombre
   QUALIF_REALISTE: true,        // (tour 55, T15) le temps de qualification des IA est celui d'un vrai tour (× NIVEAUX[…].qualifEchelle, 1,04 à 1,14 : ia.js, echelleQualif) ; faux = l'estimation d'avant (environ 12 % trop rapide)
   QUALIF_ECHELLE_PENTE: 0,    // … moins ça par point de rythme sous 1 (0 : la même échelle pour tous, l'ordre de la grille ne change pas, donc les courses non plus ; 0,6 collerait mieux à rythme 0,95 mais change l'ordre de la grille : courses.html tombe à 23 dépassements)
+  QUALIF_ECHELLE_CIRCUIT_ACTIF: true,   // (tour 55, T23) l'échelle de qualification des IA est celle de CHAQUE circuit (la table ci-dessous, la même pour tous les pilotes : la grille ne change pas) ; faux = l'échelle du niveau (T15)
+  // temps d'un vrai tour lancé simulé / temps estimé brut (tourEstime sans échelle), au rythme 1, par niveau et par circuit ; générée par tests/qualif-echelles.py (à refaire si la physique, ia.js ou un réglage IA_* change)
+  QUALIF_ECHELLE_CIRCUIT: {
+    debutant: { 'Test': 1.138, 'Technique': 1.13, 'Monoco': 1.213, 'Silverstoun': 1.131, 'Monzo': 1.169, 'Spaa': 1.136, 'Suzuko': 1.117, 'Interlagas': 1.089, 'Montréol': 1.145, 'Melbourn Park': 1.224, 'Barcelana': 1.139, 'Bahrayn': 1.174, 'Singapura': 1.097, 'Yas Marino': 1.08 },
+    normal: { 'Test': 1.134, 'Technique': 1.129, 'Monoco': 1.222, 'Silverstoun': 1.139, 'Monzo': 1.163, 'Spaa': 1.136, 'Suzuko': 1.117, 'Interlagas': 1.096, 'Montréol': 1.146, 'Melbourn Park': 1.223, 'Barcelana': 1.132, 'Bahrayn': 1.17, 'Singapura': 1.094, 'Yas Marino': 1.067 },
+    expert: { 'Test': 1.09, 'Technique': 1.106, 'Monoco': 1.105, 'Silverstoun': 1.117, 'Monzo': 1.101, 'Spaa': 1.068, 'Suzuko': 1.069, 'Interlagas': 1.057, 'Montréol': 1.063, 'Melbourn Park': 1.135, 'Barcelana': 1.111, 'Bahrayn': 1.107, 'Singapura': 1.095, 'Yas Marino': 1.077 },
+    legende: { 'Test': 1.051, 'Technique': 1.046, 'Monoco': 1.053, 'Silverstoun': 1.027, 'Monzo': 1.078, 'Spaa': 1.043, 'Suzuko': 1.013, 'Interlagas': 1.028, 'Montréol': 1.039, 'Melbourn Park': 1.071, 'Barcelana': 1.03, 'Bahrayn': 1.045, 'Singapura': 1.035, 'Yas Marino': 1.025 },
+  },
   IA_QUALIF_HASARD: 0.005,      // le temps de qualification d'une IA varie de ±0,5 % autour de son meilleur tour estimé
   IA_PAGE_MAX: 20,              // ?ia=N : au plus ce nombre d'IA dans la page
   // ?ia=N : la couleur de chaque IA (provisoire : les écuries viendront à l'étape 6)
@@ -1226,10 +1240,15 @@ const REGLAGES = {
   COMMENTAIRE_LONGUEUR_MAX: 60,   // caractères d'une phrase au plus (les noms comptés à 7 lettres) : court, pour ne pas lire en pilotant
   COMMENTAIRE_PEREMPTION: 8,      // s : un fait plus vieux n'est plus dit
   COMMENTAIRE_FILE_MAX: 6,
-  COMMENTAIRE_PRIORITES: { arrivee: 10, podium: 9, arret: 6, depart: 9, vsc: 9, drapeauJaune: 8, drapeauVert: 7, domicileRival: 7, degats: 6, depassementTete: 9, dernierTour: 8, joueurArrivee: 8, contact: 7, depassementJoueur: 6, pluie: 6, coteACote: 5, erreur: 5, penalite: 5, depassement: 4, stands: 3, meilleurTour: 3, joueurTete: 2, joueurPlace: 2, glissade: 6,
+  COMMENTAIRE_PRIORITES: { remontee: 7, arrivee: 10, podium: 9, arret: 6, depart: 9, vsc: 9, drapeauJaune: 8, drapeauVert: 7, domicileRival: 7, degats: 6, depassementTete: 9, dernierTour: 8, joueurArrivee: 8, contact: 7, depassementJoueur: 6, pluie: 6, coteACote: 5, erreur: 5, penalite: 5, depassement: 4, stands: 3, meilleurTour: 3, joueurTete: 2, joueurPlace: 2, glissade: 6,
     combleTete: 0, combleBagarre: 0, combleTours: 0, combleJoueur: 0, combleMeteo: 0, combleSec: 0, combleChamp: 0, combleChampTete: 0, combleChampProjection: 0 },   // (tour 45c : ce qu'il dit entre deux faits, jamais devant un fait)
   COMMENTAIRE_BONUS_JOUEUR: 2,    // un fait du joueur passe devant (plus de phrases quand le joueur est concerné)
   COMMENTAIRE_GLISSADE_INTERVALLE: 60,   // s : une glissade rattrapée du joueur n'est redite qu'après ça (tour 43)
+  COMMENTAIRE_REMONTEE_ACTIF: true,   // (tour 55, T22) le fait « remontée » : une voiture qui gagne des places en piste en peu de temps ; faux = le jeu d'avant (aucune phrase de plus)
+  COMMENTAIRE_REMONTEE_PLACES: 3,     // places gagnées en piste (des dépassements vraiment faits, pas les arrêts des autres) …
+  COMMENTAIRE_REMONTEE_FENETRE: 40,   // … en moins de tant de secondes
+  COMMENTAIRE_REMONTEE_PAS: 1,        // s : la place de chacun est notée tous les tant
+  COMMENTAIRE_REMONTEE_REPETITION: 90, // s : la même voiture n'est pas redite avant
   COMMENTAIRE_PLACE_MAX: 10,      // les dépassements, erreurs et côte à côte des voitures plus loin ne sont pas commentés (sauf le joueur)
   COMMENTAIRE_REPETITION: 15,     // s : un contact ou un côte à côte entre les deux mêmes voitures n'est redit qu'après ça
   COMMENTAIRE_CONTACT_DISTANCE: 8, // m
@@ -1252,6 +1271,7 @@ const REGLAGES = {
   FOULE_PAUSE_MIN: 0.6, FOULE_CLAMEURS_MAX: 12,   // jamais deux clameurs à moins de 0,6 s ; au plus 12 bandes en cours
   FOULE_ZONE: 0.07,               // la part du tour, avant et après la ligne, où les tribunes se font entendre
   FOULE_RUMEUR_VOLUME: 0.25, FOULE_RUMEUR_FREQUENCE: 450,   // la rumeur de fond près des tribunes
+  VOIX_SONS_FREQUENCE: 24000,     // (tour 55, T29) les sons sont décodés à cette fréquence (Hz ; celle de Bark) : ~5 Mo au lieu de ~10 ; 0 = celle du contexte du jeu, comme avant
   VOIX_SONS_VOLUME: 0.9,          // leur volume, × le volume du commentateur (son.js)
   VOIX_DEBIT: 1.1,                // la vitesse de la voix
   GRAINE_COMMENTAIRE: 15000,      // sa suite de hasard à lui (ALEATOIRE.suite) : la course ne change pas

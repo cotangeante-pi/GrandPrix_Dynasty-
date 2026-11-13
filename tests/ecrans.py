@@ -184,6 +184,7 @@ PAGES = [
     ('index.html?tutoriel=stand&course=2&test=tuto', 960, 600, None),
     ('index.html?tutoriel=pluie&course=3&ia=1&joueur=1&niveau=debutant&meteo=averse&test=tuto', 1280, 720, None),
     ('index.html?tutoriel=visite&championnat=1&test=tuto', 1280, 720, None),
+    ('index.html?tutoriel=drapeaux&course=3&ia=1&joueur=1&niveau=debutant&test=tuto', 960, 600, None),   # (tour 55, T20) la leçon des drapeaux et de l'aileron : une IA garée sur l'herbe, jaune, VSC, puis l'aileron réparé au stand
     ('index.html?course=3&circuit=test&niveau=debutant&test=assistance', 1280, 720, None),   # les aides au pilotage (tour 41) : d'office en débutant, le freinage assisté freine avant le virage (placées ici : les tranches de GitHub restent équilibrées)
     ('index.html?course=3&circuit=test&test=assistance', 960, 600, None),                    # … coupées en normal
     ('index.html?tutoriel=visite&championnat=1&test=tuto-quitter', 960, 600, None),   # … passée en cours de route : rien ne reste dans la carrière
@@ -1847,7 +1848,15 @@ def manette_ecran(pg, titre):
         if pg.evaluate('() => JEU.ecran') == 'course': break
     t(f'{titre} : B quitte la pause, la course reprend ; le halo disparaît en conduite', pg.evaluate('() => JEU.ecran === "course" && SENSATIONS.actif && !document.querySelector("button.manette-choix")'), pg.evaluate('() => [JEU.ecran, SENSATIONS.actif]'))
     # Y change la caméra, A remet sur la piste
-    c0 = pg.evaluate('() => CAMERA.mode'); manette_appui(pg, 0, 'y')
+    # (tour 55, T21) un délai fixe ne garantit pas que le jeu ait LU l'appui : sur une machine chargée (GitHub), une image peut durer plus de 350 ms et
+    # l'appui entier passe entre deux images (ce test échouait de temps en temps). Ici on tient Y jusqu'à ce que la page ait dessiné 2 images (au moins
+    # une image complète du jeu) ET 350 ms, puis on le relâche de même ; pas de répétition de l'appui (ce serait deux changements de caméra).
+    # (manette_appui, lui, reste comme avant : le menu pause s'y installe, et tenue plus de 0,4 s la croix répète et saute un bouton)
+    c0 = pg.evaluate('() => CAMERA.mode')
+    tenir = '''([x]) => new Promise(r => { __padFixer(0, 'y', x); const t0 = performance.now(); let images = 0;
+      const f = () => { images++; if (images >= 2 && performance.now() - t0 >= 350) r(); else requestAnimationFrame(f); };
+      requestAnimationFrame(f); setTimeout(r, 8000); })'''
+    pg.evaluate(tenir, [1]); pg.evaluate(tenir, [0])
     t(f'{titre} : Y change la caméra', pg.evaluate('() => CAMERA.mode') != c0, c0)
     # la vibration (tour 42) : l'arrière qui part fait vibrer le gros moteur (les faits de la voiture remplacés 1,5 s), puis plus rien
     vb = pg.evaluate('''async () => { const de = SENSATIONS.de; window.__vibrations.length = 0; SENSATIONS.de = v => Object.assign({}, SENSATIONS.RIEN, { arriere: 1 });
@@ -4097,6 +4106,13 @@ def tuto_lecon(pg, titre, l, h, page):
     if l == 1280: pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, f'tuto-{id}.png'))
     pg.evaluate('() => { BOUCLE.arreter(); JEU.robot = true; }')   # (le robot d'essai conduit, comme ?robot=1 : il fait aussi le départ parfait)
     if id == 'stand': pg.evaluate('() => { BOUCLE.simuler(4); JEU.joueur.versStands = true; }')   # (le robot prend la voie des stands, comme dans stand_ecran)
+    if id == 'drapeaux':
+        # (tour 55, T20) la scène : l'IA garée sur l'herbe, le jaune puis la VSC montrés au joueur (en leçon, contrairement aux autres), la voiture arrêtée passée sans pénalité
+        # (une image de plus après la boucle : la scène abîme l'aileron à l'image qui suit le passage)
+        vus = pg.evaluate('''() => { const vus = new Set(); for (let i = 0; i < 6000 && TUTORIEL_ECRAN.suivi().phase !== "aileron" && !TUTORIEL_ECRAN.resultat(); i++) { BOUCLE.simuler(0.05); TUTORIEL_ECRAN.maj(0.05); const j = DRAPEAUX.etatJoueur(JEU.plateau); if (j) vus.add(j.type); }
+          TUTORIEL_ECRAN.maj(0.05); JEU.joueur.versStands = true; return { vus: [...vus], phase: TUTORIEL_ECRAN.suivi().phase, degats: JEU.joueur.degats, consigne: document.getElementById("tutoConsigneTexte").textContent }; }''')
+        t(f'{titre} : leçon des drapeaux : le drapeau jaune (puis la VSC) s’affiche au joueur, la voiture arrêtée est passée sans pénalité, l’aileron est alors abîmé et la consigne dit d’aller au stand', ('jaune' in vus['vus'] or 'vsc' in vus['vus']) and vus['phase'] == 'aileron' and vus['degats'] > 0 and vus['consigne'] == pg.evaluate('() => texte("tuto_drapeaux_consigne_aileron").replace("{v}", String(Math.round(REGLAGES.STAND_VITESSE_MAX * 3.6)))'), str(vus))
+        if l == 960: pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'tuto-drapeaux-960.png'))
     if id == 'pluie':
         eau = pg.evaluate('() => { for (let i = 0; i < 4000 && !(JEU.plateau.meteo && JEU.plateau.meteo.eau >= REGLAGES.TUTO_PLUIE_EAU); i++) { BOUCLE.simuler(0.05); TUTORIEL_ECRAN.maj(0.05); } JEU.joueur.versStands = true; return JEU.plateau.meteo ? JEU.plateau.meteo.eau : null; }')
         L.append(f'  (leçon pluie : la piste mouillée à {eau}, le robot va au stand)')
@@ -4120,14 +4136,14 @@ def tuto_menu(pg, titre, l, h):
     m = pg.evaluate('''() => { const e = document.getElementById("tutoMenu"), li = [...e.querySelectorAll("#tutoListe li")], b = [...e.querySelectorAll("button")].map(x => x.getBoundingClientRect());
       return { vu: !e.classList.contains("cache"), n: li.length, etoiles: li.map(x => x.querySelector(".tutoEtoile").textContent).join(""), noms: li.map(x => x.querySelector(".tutoNom").textContent), dedans: b.every(x => x.left >= 0 && x.top >= 0 && x.right <= innerWidth && x.bottom <= innerHeight),
         defile: [document.documentElement.scrollHeight, innerHeight] }; }''')
-    t(f'{titre} : « Apprendre à piloter » : la liste des 7 leçons (numéro, nom, but, « Commencer » ; la 8e, le drift, cachée avec le pneu drift, tour 48b), aucune étoile encore, aucun texte drift, tout dans l’écran sans défilement',
-      m['vu'] and m['n'] == 7 and m['etoiles'] == '☆' * 7 and pg.evaluate('() => !/drift/i.test(document.getElementById("tutoMenu").innerText)') and m['noms'][0].startswith('1. ') and m['dedans'] and m['defile'][0] <= m['defile'][1] + 2, str(m))
+    t(f'{titre} : « Apprendre à piloter » : la liste des 8 leçons (numéro, nom, but, « Commencer » ; la 9e, le drift, cachée avec le pneu drift, tour 48b ; la 8e, les drapeaux, tour 55), aucune étoile encore, aucun texte drift, tout dans l’écran sans défilement',
+      m['vu'] and m['n'] == 8 and m['etoiles'] == '☆' * 8 and pg.evaluate('() => !/drift/i.test(document.getElementById("tutoMenu").innerText)') and m['noms'][0].startswith('1. ') and m['dedans'] and m['defile'][0] <= m['defile'][1] + 2, str(m))
     pg.wait_for_timeout(400); pg.screenshot(path=os.path.join(CAPTURES, 'tuto-menu.png' if l == 1280 else 'tuto-menu-960.png'))
     pg.click('#boutonTutoRetour')
     t(f'{titre} : « Retour » referme la liste : l’écran titre est toujours là, « ▶ Jouer » mène toujours à la grille d’un clic', pg.evaluate('() => document.getElementById("tutoMenu").classList.contains("cache") && JEU.ecran === "titre"'))
     pg.evaluate('() => { SAUVEGARDE.reussirLecon("depart"); }')
     pg.click('#boutonTutorielTitre')
-    t(f'{titre} : une leçon réussie a son étoile dans la liste', pg.evaluate('() => [...document.querySelectorAll("#tutoListe .tutoEtoile")].map(x => x.textContent).join("") === "☆☆★☆☆☆☆"'), pg.evaluate('() => [...document.querySelectorAll("#tutoListe .tutoEtoile")].map(x => x.textContent).join("")'))
+    t(f'{titre} : une leçon réussie a son étoile dans la liste', pg.evaluate('() => [...document.querySelectorAll("#tutoListe .tutoEtoile")].map(x => x.textContent).join("") === "☆☆★☆☆☆☆☆"'), pg.evaluate('() => [...document.querySelectorAll("#tutoListe .tutoEtoile")].map(x => x.textContent).join("")'))
     with pg.expect_navigation(): pg.click('#tutoListe li:first-child button')
     t(f'{titre} : « Commencer » ouvre la leçon 1 (course seule, un tour)', attendre(pg, '() => typeof TUTORIEL_ECRAN !== "undefined" && TUTORIEL_ECRAN.lecon() === "conduite" && JEU.course && JEU.course.nbTours === 1 && !JEU.plateau', None, 20000), pg.url)
     with pg.expect_navigation(): pg.click('#boutonTutoPasser')

@@ -1729,7 +1729,9 @@ const INTERFACE = (function () {
     el.classList.toggle('cache', !info);
     if (!info) return;
     for (const c of ['jaune', 'bleu', 'vsc', 'vert']) el.classList.toggle(c, c === info.type);
-    const t = texte('drapeau_' + info.type).replace('{v}', info.limite ? String(Math.round(info.limite * 3.6)) : '');
+    // (revue T26) sous 420 px de haut (le téléphone couché), le bandeau tient sur une ligne : le texte court de la VSC, sans la vitesse
+    const court = window.innerHeight <= 420 && TEXTES[LANGUE]['drapeau_' + info.type + '_court'] !== undefined;
+    const t = texte('drapeau_' + info.type + (court ? '_court' : '')).replace('{v}', info.limite ? String(Math.round(info.limite * 3.6)) : '');
     if (el.textContent !== t) el.textContent = t;
   }
   function majMessage(t) {
@@ -2223,7 +2225,7 @@ const TUTORIEL_ECRAN = (function () {
     if (!oui) return;
     $('tutoConsigne').classList.toggle('tutoMenuConsigne', visite);
     $('tutoConsigneTitre').textContent = TUTORIEL.PAR_ID[LECON].numero + '. ' + texte('tuto_' + LECON);
-    const cleConsigne = 'tuto_' + LECON + '_consigne' + (LECON === 'vivante' && suivi.phase === 'adherant' ? '_adherant' : '');   // (tour 37l : la 2e phase du drift)
+    const cleConsigne = 'tuto_' + LECON + '_consigne' + (LECON === 'vivante' && suivi.phase === 'adherant' ? '_adherant' : LECON === 'drapeaux' && suivi.phase === 'aileron' ? '_aileron' : '');   // (tour 37l : la 2e phase du drift)
     let t = visite ? texte('tuto_visite_' + TUTORIEL.etapeVisite(suivi, ecran)) : remplir(texte(cleConsigne), { n: Math.min(suivi.essais + 1, REGLAGES.TUTO_ZONE_ESSAIS) });
     if (LECON === 'freinage' && suivi.dernier) t += ' · ' + remplir(texte('tuto_essai'), { n: suivi.essais, t: virgule(suivi.dernier.temps) });
     $('tutoConsigneTexte').textContent = t;
@@ -2250,6 +2252,7 @@ const TUTORIEL_ECRAN = (function () {
     if (!suivi) suivi = TUTORIEL.creerSuivi(LECON, CIRCUIT);
     if (!prete) prete = TUTORIEL.preparer(LECON, JEU);
     if (LECON === 'freinage' || LECON === 'vivante') poserPlots();   // (le drift : les mêmes plots, à l'épingle du technique)
+    if (LECON === 'drapeaux') TUTORIEL.scene(suivi, JEU, CIRCUIT);   // (tour 55, T20 : l'IA garée sur l'herbe, puis l'aileron abîmé)
     if (LECON === 'vivante' && JEU.joueur) TUTORIEL.appliquerPneu(suivi, JEU.joueur);   // (tour 37l : le pneu de la phase, drift puis adhérant)
     if (!resultat && JEU.ecran !== 'pause') {
       const ordre = LECON === 'depassement' && JEU.plateau ? classementCourse(JEU.plateau) : null;

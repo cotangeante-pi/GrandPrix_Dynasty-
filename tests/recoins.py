@@ -8,7 +8,7 @@ La vraie page, en 960×600, en français puis en anglais, jouée par le robot d'
   l'âge (SAISONS_MAX), et une nouvelle dynastie ;
 - ecrans : le calendrier, l'album des unes (feuilleté), la fiche d'un rival, l'arbre, « Mon casque », les sponsors, et le menu pause d'une
   course avec tous ses réglages (fantôme, commentateur, revoir les aides, tutoriel) ;
-- tuto : le tutoriel guidé complet, les 7 leçons à la suite (« Leçon suivante ») ;
+- tuto : le tutoriel guidé complet, les 8 leçons à la suite (« Leçon suivante ») ;
 - tailles-carriere-1280/-1920, tailles-jeux-1280/-1920 (tour 39d, une partie par taille depuis le tour 51i) : en 1280×720 et en 1920×1080, un passage court : le premier lancement, un Grand Prix, le
   paddock et ses écrans, le menu pause ; une course à deux, un tournoi Éclair.
 Relevé comme saison.py (tests/chasse.py) : la console, les textes cassés, les clés de textes.js qui manquent dans la langue, les boutons
@@ -283,13 +283,13 @@ def ecrans(c, titre):
         c.si('#boutonTutoRetour')
     c.cliquer('#boutonReprendre'); c.ecran('course', 'reprendre')
 
-# --- le tutoriel complet : les 7 leçons à la suite ---
+# --- le tutoriel complet : les 8 leçons à la suite (tour 55, T20 : les drapeaux après la visite) ---
 TUTO_JOUER = '''(n) => { for (let i = 0; i < n; i++) { if (TUTORIEL_ECRAN.resultat()) break; BOUCLE.simuler(0.05); TUTORIEL_ECRAN.maj(0.05); } return TUTORIEL_ECRAN.resultat(); }'''
 def tuto(c, titre):
     pg = c.pg
     c.aller(f'index.html?tutoriel=conduite&course=1&lang={c.langue}')
     faites = []
-    for n in range(7):
+    for n in range(8):
         if not c.attendre('() => typeof TUTORIEL_ECRAN !== "undefined" && TUTORIEL_ECRAN.lecon() !== null', 30000):
             c.blocages.append({ 'quoi': f'leçon {n + 1}', 'attendu': 'une leçon', 'ecran': c.ev('() => JEU.ecran'), 'page': pg.url.split('/')[-1] }); break
         id = c.ev('() => TUTORIEL_ECRAN.lecon()')
@@ -319,15 +319,16 @@ def tuto(c, titre):
             c.inspecter(f'leçon {id} : la consigne')
             c.ev('() => { BOUCLE.arreter(); JEU.robot = true; }')
             if id == 'stand': c.ev('() => { BOUCLE.simuler(4); JEU.joueur.versStands = true; }')
+            if id == 'drapeaux': c.ev('() => { for (let i = 0; i < 6000 && TUTORIEL_ECRAN.suivi().phase !== "aileron" && !TUTORIEL_ECRAN.resultat(); i++) { BOUCLE.simuler(0.05); TUTORIEL_ECRAN.maj(0.05); } JEU.joueur.versStands = true; }')
             if id == 'pluie': c.ev('() => { for (let i = 0; i < 4000 && !(JEU.plateau.meteo && JEU.plateau.meteo.eau >= REGLAGES.TUTO_PLUIE_EAU); i++) { BOUCLE.simuler(0.05); TUTORIEL_ECRAN.maj(0.05); } JEU.joueur.versStands = true; }')
             c.ev(TUTO_JOUER, 6000)
         r = c.ev('() => TUTORIEL_ECRAN.resultat()')
         faites.append([id, r]); c.inspecter(f'leçon {id} : le résultat')
-        if n < 6:
+        if n < 7:
             if not c.cliquer('#boutonTutoSuivante', navigation=True): break
             c.pret(60000)
-    t(f'{titre} : le tutoriel complet : les 7 leçons à la suite, réussies par le robot', len(faites) == 7 and all(r == 'reussie' for _, r in faites), str(faites))
-    c.si('#boutonTutoListe'); c.inspecter('tutoriel : la liste des leçons (7 étoiles)')
+    t(f'{titre} : le tutoriel complet : les 8 leçons à la suite, réussies par le robot', len(faites) == 8 and all(r == 'reussie' for _, r in faites), str(faites))
+    c.si('#boutonTutoListe'); c.inspecter('tutoriel : la liste des leçons (8 étoiles)')
 
 # --- la manette et la trajectoire conseillée (tour 40d) : de fausses manettes (comme tests/ecrans.py), mêlées au clavier ---
 FAUSSES_MANETTES = """(() => { const pad = i => ({ index: i, id: 'fausse manette ' + i, connected: true, mapping: 'standard', axes: [0, 0, 0, 0], buttons: Array.from({ length: 17 }, () => ({ value: 0, pressed: false })) });

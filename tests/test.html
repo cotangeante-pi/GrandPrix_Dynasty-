@@ -3411,14 +3411,48 @@ t('divisions, plateaux : une vieille sauvegarde garde son plateau unique en divi
   v(TEXTES.fr.contratsDivision&&TEXTES.en.contratsDivision,'texte contratsDivision');
 }));
 
+// --- le fait « remontée » du commentateur (tour 55, T22, commentaire.js) : avec une course fausse, lue seulement
+t('commentateur : remontée : 3 places gagnées en piste en moins de 40 s = une phrase (le joueur d’abord) ; pas redite ; les arrêts des autres et les échanges aux stands ne comptent pas ; réglage coupé = rien ; phrases courtes',()=>{
+  const R_=REGLAGES,vraiCl=window.classementCourse,vraiPo=window.podiumConnu;
+  let ordre=[0,1,2,3,4,5,6,7];
+  window.classementCourse=()=>ordre.map((k,i)=>({k,place:i+1,ecart:null}));window.podiumConnu=()=>false;
+  const mk=()=>({temps:0,go:0,nbTours:10,circuit:{longueur:3000},depassements:[],pilotes:ordre.map(()=>({course:{tours:[],penalites:0,arretEnCours:null,meilleurTour:null},arrivee:null,v:{piste:{s:0,d:0},x:0,z:0,u:30,surHerbe:false,contactsVoiture:0,dansStands:false},pilote:null}))});
+  // le joueur (indice 5) double en 3 étapes (t = 20, 28, 36) ; stand : les doublés sont aux stands
+  const jouer=(stand,actif)=>{
+    ordre=[0,1,2,3,4,5,6,7];R_.COMMENTAIRE_REMONTEE_ACTIF=actif;
+    const e=mk(),c=COMMENTAIRE.creer(3),dits=[];
+    for(let t=1;t<=140;t++){
+      e.temps=t;
+      for(const [tt,sur] of [[20,4],[28,3],[36,2]]) if(t===tt){const i=ordre.indexOf(5),j=ordre.indexOf(sur);ordre[i]=sur;ordre[j]=5;e.depassements.push({temps:t,tour:1,s:100,qui:6,sur:sur+1,stand});}
+      COMMENTAIRE.observer(c,e,{joueur:5,circuit:'X'});
+      const it=COMMENTAIRE.afficher(c,t,false);if(it&&it.type==='remontee')dits.push(it);
+    }
+    return dits;
+  };
+  try{
+    const d=jouer(false,true);
+    v(d.length===1&&d[0].joueur&&d[0].params.n===3&&d[0].params.qui===5,'une remontée dite, une seule : '+JSON.stringify(d.map(x=>x.params)));
+    const ph=COMMENTAIRE.phrase(d[0],k=>'Joueur',x=>x);v(/3/.test(ph),'la phrase dit le nombre : '+ph);
+    v(jouer(true,true).length===0,'des places prises aux stands ne comptent pas');
+    v(jouer(false,false).length===0,'COMMENTAIRE_REMONTEE_ACTIF faux : rien');
+    // les phrases tiennent dans COMMENTAIRE_LONGUEUR_MAX (les noms à 7 lettres) en fr et en en
+    for(const l of ['fr','en']) for(const x of TEXTES[l].com_remontee){const t_=x.replace('{qui}','Abcdefg').replace('{n}','10');v(t_.length<=R_.COMMENTAIRE_LONGUEUR_MAX,l+' trop longue : '+t_);}
+    v(Array.isArray(TEXTES.fr.com_remontee)&&TEXTES.fr.com_remontee.length===3&&TEXTES.en.com_remontee.length===3,'3 variantes par langue');
+  }finally{R_.COMMENTAIRE_REMONTEE_ACTIF=true;window.classementCourse=vraiCl;window.podiumConnu=vraiPo;}
+});
+t('voix enregistrées : la remontée a son groupe et ses 3 prises (le fr seulement, VOIX_SONS_LANGUES) ; les réglages sont dans donnees.js',()=>{
+  v(VOIXSONS.cleDe('remontee')==='remontee'&&VOIXSONS.CLES.includes('remontee')&&VOIXSONS.PRISES_DE.remontee===3,'le fait remontée a son groupe de 3 prises');
+  v(REGLAGES.COMMENTAIRE_REMONTEE_ACTIF===true&&REGLAGES.COMMENTAIRE_REMONTEE_PLACES>=2&&REGLAGES.COMMENTAIRE_PRIORITES.remontee>0,'les réglages sont là');
+});
 // --- les voix enregistrées (tour 51c, voix-sons.js) : sans tampon ni contexte, avec de faux tampons
 t('voix enregistrées : allumées par défaut (tour 55, T10), en français seulement ; chaque fait a son groupe ; jamais deux fois la même prise ; muet si le son est coupé ; rien sans tampon ; course au bit près',()=>{
   v(REGLAGES.VOIX_SONS===true&&REGLAGES.VOIX_SONS_LANGUES.join()==='fr','allumées par défaut, en français seulement (VOIX_SONS faux = le jeu d’avant)');
   const langs=REGLAGES.VOIX_SONS_LANGUES;REGLAGES.VOIX_SONS_LANGUES=['fr'];
   VOIXSONS._essai({permis:()=>true,ctx:{},sortie:{}},'en',{depart:[{id:'x'}]},true);v(VOIXSONS.jouer('depart')===false,'en anglais : pas de son, la synthèse parle');VOIXSONS._essai(null,null,undefined,false);
+  v(VOIXSONS.disponible===(LANGUE==='fr'),'disponible : vrai seulement dans une langue qui a des sons (le bouton « Voix » du paddock se cache sinon, tour 55 revue)');
   REGLAGES.VOIX_SONS_LANGUES=null;   // (le reste du test : la langue de la page, quelle qu'elle soit)
   const faits=['depart','depassement','depassementTete','depassementJoueur','coteACote','erreur','glissade','contact','arret','stands','pluie','meilleurTour','dernierTour','arrivee','podium','joueurArrivee','penalite'];
-  v(VOIXSONS.CLES.length===20&&VOIXSONS.CLES.every(c=>VOIXSONS.PRISES_DE[c]>=2&&VOIXSONS.PRISES_DE[c]<=3),'20 groupes de 2 ou 3 prises');
+  v(VOIXSONS.CLES.length===21&&VOIXSONS.CLES.every(c=>VOIXSONS.PRISES_DE[c]>=2&&VOIXSONS.PRISES_DE[c]<=3),'21 groupes de 2 ou 3 prises (les 16 du T10, la remontée du T22, 4 des nouveautés du T25)');
   v(faits.every(f=>VOIXSONS.cleDe(f)&&VOIXSONS.CLES.includes(VOIXSONS.cleDe(f))),'chaque fait a un groupe');
   v(VOIXSONS.cleDe('joueurTete')===null&&VOIXSONS.cleDe('combleTete')===null,'ce qui n’a pas de son reste à la synthèse');
   const lues=[],permis={oui:true};
@@ -3431,6 +3465,9 @@ t('voix enregistrées : allumées par défaut (tour 55, T10), en français seule
   v(lues.length===faits.length&&lues.every(b=>b&&b.id),'chaque son joué est une prise');
   lues.length=0;let ok=true;for(let i=0;i<60;i++){VOIXSONS.jouer('depassement');if(i>0&&lues[i]===lues[i-1])ok=false;}
   v(ok,'jamais la même prise deux fois de suite');
+  VOIXSONS._essai(faux,LANGUE,{depart:[{length:24000,numberOfChannels:1},{length:12000,numberOfChannels:1}],erreur:[{id:'x'}]},true);
+  v(VOIXSONS.memoire()===(24000+12000)*4&&REGLAGES.VOIX_SONS_FREQUENCE===24000,'la mémoire des sons décodés : float32 × échantillons × canaux ('+VOIXSONS.memoire()+' octets), 24 kHz');
+  VOIXSONS._essai(faux,LANGUE,groupes,true);
   v(new Set(lues).size===3,'les trois prises servent');
   permis.oui=false;const n=lues.length;
   v(VOIXSONS.jouer('erreur')===false&&lues.length===n,'son coupé : muet (et la synthèse décidera)');
@@ -3591,7 +3628,7 @@ t('fantôme du poleman : un tour simulé du pilote en pole, valide, qui dure son
 t('qualification des IA réaliste : tourEstime × l’échelle du niveau (1,14 normal, 1,04 légende, moins QUALIF_ECHELLE_PENTE par point de rythme sous 1, 0 par défaut) ; QUALIF_REALISTE faux = l’estimation d’avant au bit près ; la grille a les mêmes pilotes', ()=>{
   const R=REGLAGES,carte=CARTES_T.technique,tr=carte.trajectoire;let brut=0;
   for(let i=0;i<tr.vitesse.length;i++){const w=tr.vitesse[i];brut+=tr.ds[i]/(w<carte.pointe*0.999?0.97*w:w);}
-  const niv0=R.NIVEAU,rea0=R.QUALIF_REALISTE;
+  const niv0=R.NIVEAU,rea0=R.QUALIF_REALISTE,cir0=R.QUALIF_ECHELLE_CIRCUIT_ACTIF;R.QUALIF_ECHELLE_CIRCUIT_ACTIF=false;   // (T23 : ici l'échelle du niveau, celle du T15)
   try{
     R.QUALIF_REALISTE=false;v(tourEstime(carte,0.97)===brut,'faux : pas l’estimation d’avant');
     R.QUALIF_REALISTE=true;
@@ -3601,7 +3638,26 @@ t('qualification des IA réaliste : tourEstime × l’échelle du niveau (1,14 n
     v(e.grille.map(g=>g.numero).sort().join()===e0.grille.map(g=>g.numero).sort().join(),'pas les mêmes pilotes');
     const pole=e.grille[0].qualif,pole0=e0.grille[0].qualif;v(pole>pole0*1.08&&pole<pole0*1.2,'la pole : '+pole0.toFixed(2)+' → '+pole.toFixed(2));
     L.push('  (qualification des IA, technique, graine 7 : pole '+pole0.toFixed(2)+' s avant, '+pole.toFixed(2)+' s maintenant)');
-  }finally{R.NIVEAU=niv0;R.QUALIF_REALISTE=rea0;}
+  }finally{R.NIVEAU=niv0;R.QUALIF_REALISTE=rea0;R.QUALIF_ECHELLE_CIRCUIT_ACTIF=cir0;}
+});
+// T23 : l'échelle de qualification par circuit (donnees.js QUALIF_ECHELLE_CIRCUIT, tests/qualif-echelles.py)
+t('qualification des IA par circuit : la table couvre les 14 circuits et 4 niveaux ; tourEstime = brut × l’échelle du circuit ; QUALIF_ECHELLE_CIRCUIT_ACTIF faux = l’échelle du niveau ; la grille garde ses pilotes et son ordre',()=>{
+  const R=REGLAGES,carte=CARTES_T.technique,tr=carte.trajectoire;let brut=0;
+  for(let i=0;i<tr.vitesse.length;i++){const w=tr.vitesse[i];brut+=tr.ds[i]/(w<carte.pointe*0.999?w:w);}
+  const niv0=R.NIVEAU,cir0=R.QUALIF_ECHELLE_CIRCUIT_ACTIF,pente0=R.QUALIF_ECHELLE_PENTE;
+  try{
+    const noms=['Test','Technique'].concat(Object.values(CIRCUITS_OFFICIELS_A).concat(Object.values(CIRCUITS_OFFICIELS_B)).map(d=>d.nom));
+    v(noms.length===14,'14 circuits');
+    for(const niv of ['debutant','normal','expert','legende']){const tab=R.QUALIF_ECHELLE_CIRCUIT[niv];v(!!tab,'niveau '+niv);for(const nom of noms)v(typeof tab[nom]==='number'&&tab[nom]>1&&tab[nom]<1.3,niv+' '+nom+' : '+tab[nom]);}
+    R.QUALIF_ECHELLE_PENTE=0;R.QUALIF_ECHELLE_CIRCUIT_ACTIF=true;
+    for(const niv of ['normal','expert']){R.NIVEAU=niv;v(Math.abs(tourEstime(carte,1)-brut*R.QUALIF_ECHELLE_CIRCUIT[niv]['Technique'])<1e-9,niv+' : brut × l’échelle du circuit');}
+    R.NIVEAU='normal';R.QUALIF_ECHELLE_CIRCUIT_ACTIF=false;
+    v(Math.abs(tourEstime(carte,1)-brut*R.NIVEAUX.normal.qualifEchelle)<1e-9,'faux : l’échelle du niveau');
+    R.QUALIF_ECHELLE_CIRCUIT_ACTIF=true;const e=creerCourseIA(TQ,10,2,11,carte);R.QUALIF_ECHELLE_CIRCUIT_ACTIF=false;const e0=creerCourseIA(TQ,10,2,11,carte);
+    v(e.grille.map(g=>g.numero).join()===e0.grille.map(g=>g.numero).join(),'l’ordre de la grille a changé');
+    const r=e.grille[0].qualif/e0.grille[0].qualif;v(Math.abs(r-R.QUALIF_ECHELLE_CIRCUIT.normal.Technique/R.NIVEAUX.normal.qualifEchelle)<1e-9,'la pole change de ce rapport : '+r);
+    L.push('  (qualification des IA, technique, normal : échelle du circuit '+R.QUALIF_ECHELLE_CIRCUIT.normal.Technique+' contre '+R.NIVEAUX.normal.qualifEchelle+' pour le niveau ; pole '+e0.grille[0].qualif.toFixed(2)+' → '+e.grille[0].qualif.toFixed(2)+' s)');
+  }finally{R.NIVEAU=niv0;R.QUALIF_ECHELLE_CIRCUIT_ACTIF=cir0;R.QUALIF_ECHELLE_PENTE=pente0;}
 });
 
 // --- le fait « aileron abîmé » du commentateur (tour 55, T25) : un aileron qui passe de 0 à plus de 0 est dit une fois (le joueur, ou un pilote du haut de la grille)

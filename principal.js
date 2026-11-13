@@ -157,7 +157,7 @@ function lancerCourse(nbTours) {
   } else if (JEU.ia >= 2 || JEU.contre) {
     // ?championnat=1 : le niveau de l'écurie sur le rythme de chaque IA, avant que la carte leur donne un pilote
     JEU.plateau = creerCourseIA(CIRCUIT, JEU.ia, nbTours, Number(PARAMETRES.get('graine')) || 1, JEU.championnat ? null : JEU.carte, JEU.contre);
-    JEU.plateau.sansDrapeaux = !!(JEU.decouverte || (typeof TUTORIEL_ECRAN !== 'undefined' && TUTORIEL_ECRAN.lecon()));   // (tour 55) la découverte et les leçons du tutoriel : pas de drapeaux
+    JEU.plateau.sansDrapeaux = !!(JEU.decouverte || (typeof TUTORIEL_ECRAN !== 'undefined' && TUTORIEL_ECRAN.lecon() && TUTORIEL_ECRAN.lecon() !== 'drapeaux'));   // (tour 55 ; T20 : la leçon des drapeaux les montre) la découverte et les leçons du tutoriel : pas de drapeaux
     if (JEU.championnat) { CHAMPIONNAT.appliquerNiveaux(JEU.championnat, JEU.plateau, NOM_CIRCUIT); if (JEU.carte) donnerCarte(JEU.plateau, JEU.carte); }
     if (JEU.championnat) poserRivalites(JEU.plateau, JEU.championnat.pilotes.map(q => !!(q && q.rivalite)));   // les rivaux de l'interview (ia.js, Codeur 1)
     if (JEU.championnat) JEU.plateau.ecuries = JEU.championnat.pilotes.map(q => q ? q.ecurie : null);   // les écuries, pour les consignes d'équipe (simulation.js, Codeur 1)
@@ -2813,6 +2813,7 @@ function demarrerJeu() {
     if (bs && typeof VOIXSONS !== 'undefined') {
       const ecrireVs = () => { bs.textContent = texte(VOIXSONS.active ? 'vs_oui' : 'vs_non'); };
       ecrireVs();
+      if (!VOIXSONS.disponible) bs.classList.add('cache');   // (tour 55, revue T27 : en anglais il n'y a pas de sons, le bouton ne changerait rien)
       bs.addEventListener('mousedown', e => e.preventDefault());
       bs.addEventListener('click', () => { VOIXSONS.regler(!VOIXSONS.active); ecrireVs(); });
     }
