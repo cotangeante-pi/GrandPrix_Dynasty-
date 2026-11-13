@@ -2055,7 +2055,7 @@ body.tactile #boutique .skin button, body.tactile #boutique button.onglet { disp
 /* … et en course au doigt (640×360) : « Tiens GAZ » passait sous 🔊 ⏸ ↩ (ils sont à 122–150 px du haut), et les écarts de la tour de classement (« +0,3 s ») revenaient à la ligne */
 #classementListe .ecart { white-space: nowrap; }
 @media (max-height: 420px) {
-  body.tactile #aides:not(.grille) { top: 152px; gap: 4px; }
+  body.tactile #aides:not(.grille) { top: 164px; gap: 4px; }   /* (tour 55 : ⏸ et ↩ font 36 px depuis le tour 54b et finissent à 158 px : 152 les touchait) */
   body.tactile #aides:not(.grille) span { font-size: 15px; padding: 2px 10px; }
   body.tactile #classementListe li { gap: 3px; padding: 0 3px; }
   body.tactile #classementListe .ecart { font-size: 10px; }
@@ -2207,3 +2207,16 @@ body.tactile #discussionCarte { max-height: calc(100dvh - 52px); }
 
 /* (tour 55) la ligne du commentateur du résumé vidéo : cachée sur un écran tactile (COMMENTAIRE_TEXTE_TACTILE faux, classe posée par principal.js) */
 body.tactile.commentaireSansTexte #resumeCommentaire { display: none !important; }
+
+/* Chasse du tour 55 (T14) : l'interview en 640×360 au doigt : « Passer » finissait à 375 px sur 360. La carte se serre (marges, textes), les réponses gardent 40 px */
+@media (max-height: 420px) {
+  #interviewCarte { gap: 4px; padding: 8px 18px 10px; max-height: 98vh; }
+  #interview h1 { font-size: 16px; }
+  #interviewJournaliste { font-size: 11px; }
+  #interviewQuestion { font-size: 15px; line-height: 1.2; }
+  #interviewReponses { gap: 4px; margin-top: 0; }
+  #interviewReponses button { padding: 4px 12px; font-size: 14px; }
+  #interviewReponses .icone { font-size: 20px; }
+  #interviewChoix, #interviewSuite { gap: 4px; }
+  #interviewEffet { font-size: 14px; min-height: 0; }
+}
