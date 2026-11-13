@@ -28,6 +28,7 @@ def t(nom, cond, detail=''):
     global ok, ko
     if cond: ok += 1; L.append('✔ ' + nom)
     else: ko += 1; L.append('✘ ' + nom + (' — ' + str(detail)[:900] if detail else ''))
+    print(time.strftime('%H:%M:%S'), L[-1][:300], flush=True)   # (au fil de l'eau : si un parcours se bloque, on voit où)
 def attendre(pg, cond, arg=None, delai=5000):
     try: pg.wait_for_function(cond, arg=arg, timeout=delai); return True
     except Exception: return False
