@@ -1464,7 +1464,7 @@ Object.assign(TEXTES.fr, {
   enligneRefus_version: 'Ton jeu n’est pas de la même version que celui de l’hôte.', enligneRefus_nom: 'Cette couleur est déjà prise : choisis-en une autre.',
   enligneCoupure: 'La connexion a été perdue.',
   enligneSalle: 'Salle', enligneJoueurs: 'Pilotes {n} / {max}', enligneHote: 'hôte', enligneToi: 'toi', enlignePret: 'prêt', enlignePasPret: 'pas prêt',
-  enlignePretBouton: '✔ Je suis prêt', enlignePretAnnuler: '✖ Pas prêt', enligneLancer: '🏁 Lancer la course', enligneQuitter: 'Quitter la salle',
+  enlignePretBouton: '✔ C’est bon pour moi', enlignePretAnnuler: '✖ Pas encore', enligneLancer: '🏁 Lancer la course', enligneQuitter: 'Quitter la salle',
   enligneAttentePrets: 'On attend que tout le monde soit prêt…', enligneAttenteAmi: 'On attend qu’un ami arrive…', enligneLancerPret: 'Tout le monde est prêt !',
   enligneReglages: 'La course', enligneCircuit: 'Circuit', enligneTours: 'Tours', enligneMeteo: 'Météo', enligneIA: 'Voitures IA',
   enligneMeteo_sec: 'Sec', enligneMeteo_nuageux: 'Nuageux', enligneMeteo_pluie: 'Pluie',
