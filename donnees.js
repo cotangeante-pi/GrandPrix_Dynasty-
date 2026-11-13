@@ -999,7 +999,8 @@ const REGLAGES = {
   DEGATS_REPARER_SEUIL: 0.12,   // une IA abîmée au moins de ça, sans arrêt prévu (course courte) et sans arrêt fait, s'arrête au stand pour réparer ; avec un arrêt prévu, elle est réparée à cet arrêt (circuit avec voie des stands, PNEUS_ACTIFS)
   DEGATS_REPARATION: 4,         // s de plus à l'arrêt au stand quand l'aileron est abîmé (réparé en même temps que les pneus)
   FANTOME_POLEMAN: true,        // (tour 55, T6) en qualification, le joueur peut rejouer contre le tour du poleman IA (fantome-pole.js) ; faux = le jeu d'avant (seulement ton record)
-  FANTOME_POLE_ETIRER: false,   // vrai : le fantôme du poleman est étiré pour durer le temps de qualification de la grille (environ 16 % plus vite que ce que la voiture sait faire) ; faux : son vrai tour simulé
+  FANTOME_POLE_LANCE: true,     // (tour 55, T11) le tour du poleman est un tour LANCÉ (un tour d'élan, puis le tour chronométré) : son temps colle à celui de la pole ; faux = le tour parti de l'arrêt de T6 (8 s plus lent)
+  FANTOME_POLE_ETIRER: true,    // (T11) vrai : le fantôme du poleman est étiré pour durer le temps de qualification de la grille (la voiture ne sait pas faire ce temps : ~16 % de moins que son meilleur tour simulé) ; faux (le jeu de T6) : son vrai tour simulé
   FANTOME_POLE_DUREE_MAX: 240,  // s : le tour simulé du poleman est abandonné au-delà (circuit où l'IA ne finit pas)
   GRAINE_FANTOME_POLE: 22000,   // la course d'une IA seule qui sert à simuler le tour du poleman : la graine du plateau + ça
   // le fantôme du meilleur tour (fantome.js, étape 5) : le tour de qualification enregistré avec l'enregistreur
