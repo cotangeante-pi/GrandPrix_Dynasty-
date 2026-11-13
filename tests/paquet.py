@@ -257,6 +257,90 @@ try:
                 f = verifier_sdk(pg.evaluate('() => JOURNAL_SDK.slice()'))
                 t(f'{titre} : les règles du SDK sur le journal', not f and not console, [f, console])
                 ctx.close()
+            # (tour 55, T9) LE TÉLÉPHONE depuis le zip (iPhone SE couché, vrais toucher) : « Jouer » au doigt, gameplayStart seulement aux feux éteints,
+            # le téléphone debout en pleine course = pause = gameplayStop (et il ne reprend pas tout seul couché), « Reprendre » = gameplayStart, console
+            # vide, aucun commercialBreak, et la mesure du clic aux feux (la cible de 10 s est celle du propriétaire sur un vrai appareil : sous swiftshader on note la valeur)
+            titre = 'paquet téléphone iPhone SE couché'
+            prof = p.devices['iPhone SE landscape']
+            args_tel = {k: v for k, v in prof.items() if k != 'default_browser_type'}
+            PLEIN_ECRAN_REFUSE = " Element.prototype.requestFullscreen = function () { return Promise.reject(new Error('refus')); };"
+            ctx = b.new_context(**args_tel)
+            pg = ctx.new_page(); console = []
+            pg.route('**/poki-sdk.js', lambda r: r.fulfill(status=200, content_type='text/javascript', body=''))
+            pg.add_init_script(FAUX_SDK + PLEIN_ECRAN_REFUSE)
+            pg.on('console', lambda m: console.append(m.type + ': ' + m.text) if m.type in ('error', 'warning') and not LECTURE_PIXELS.fullmatch(m.text) else None)
+            pg.on('pageerror', lambda e: console.append('PAGEERROR ' + str(e)))
+            pg.goto('file://' + dossier + '/index.html')
+            pg.wait_for_function('() => typeof TACTILE !== "undefined" && TACTILE.estPresent() && JEU.ecran === "titre"', timeout=60000)
+            pg.wait_for_timeout(500)
+            lt, ht = prof['viewport']['width'], prof['viewport']['height']
+            t(f'{titre} {lt}×{ht} : depuis le zip, l’écran titre au doigt, la console vide, la page ne défile pas', not console and pas_de_defilement(pg.evaluate(DEFILE)), ' | '.join(console)[:300] + str(pg.evaluate(DEFILE)))
+            bb = pg.locator('#boutonJouer').bounding_box()
+            pg.touchscreen.tap(bb['x'] + bb['width'] / 2, bb['y'] + bb['height'] / 2)
+            pg.wait_for_function('() => JEU.ecran === "course" && JEU.decouverte && JEU.course', timeout=120000)
+            pg.wait_for_function('() => JEU.course.feux && JEU.course.etat !== "compte"', timeout=240000)
+            pg.wait_for_timeout(500)
+            mesure = pg.evaluate('() => JEU.clicAuxFeux')
+            appels = pg.evaluate('() => APPELS_SDK.slice()')
+            t(f'{titre} : « Jouer » au toucher : init, gameLoadingFinished une fois, gameplayStart aux feux éteints seulement, aucune pub ({" → ".join(appels)})',
+              appels[:2] == ['init', 'gameLoadingFinished'] and appels.count('gameLoadingFinished') == 1 and appels.count('gameplayStart') == 1 and 'commercialBreak' not in appels and not verifier_sdk(pg.evaluate('() => JOURNAL_SDK.slice()')), str(appels))
+            L.append(f'  (téléphone émulé, depuis le zip, sous swiftshader : du clic sur « Jouer » aux feux éteints {(mesure or 0) / 1000:.1f} s ; la cible du propriétaire est 10 s sur un vrai appareil)')
+            t(f'{titre} : la mesure du clic aux feux existe et reste raisonnable (< 40 s sous swiftshader)', mesure is not None and 0 < mesure < 40000, str(mesure))
+            pg.set_viewport_size({'width': ht, 'height': lt})   # le téléphone debout
+            pg.wait_for_function('() => JEU.ecran === "pause" && APPELS_SDK.slice(-1)[0] === "gameplayStop"', timeout=10000)
+            t(f'{titre} : le téléphone debout en pleine course met la course en pause : gameplayStop, le message « tourne ton téléphone »', pg.evaluate('() => !document.getElementById("tactilePortrait").classList.contains("cache")'), str(pg.evaluate('() => APPELS_SDK.slice(-3)')))
+            pg.set_viewport_size({'width': lt, 'height': ht})   # de nouveau couché
+            pg.wait_for_timeout(800)
+            t(f'{titre} : couché de nouveau, la course ne reprend pas toute seule (pause, pas de gameplayStart de plus)', pg.evaluate('() => JEU.ecran === "pause" && APPELS_SDK.slice(-1)[0] === "gameplayStop"'), str(pg.evaluate('() => [JEU.ecran, APPELS_SDK.slice(-3)]')))
+            bb = pg.locator('#boutonReprendre').bounding_box()
+            pg.touchscreen.tap(bb['x'] + bb['width'] / 2, bb['y'] + bb['height'] / 2)
+            pg.wait_for_function('() => JEU.ecran === "course" && APPELS_SDK.slice(-1)[0] === "gameplayStart"', timeout=10000)
+            appels = pg.evaluate('() => APPELS_SDK.slice()')
+            jeu = [a for a in appels if a in ('gameplayStart', 'gameplayStop')]
+            f = verifier_sdk(pg.evaluate('() => JOURNAL_SDK.slice()'))
+            t(f'{titre} : « Reprendre » au toucher : gameplayStart, jamais deux fois le même état de suite, les règles du SDK tenues, console vide', not f and not [i for i in range(1, len(jeu)) if jeu[i] == jeu[i - 1]] and not console, [f, console])
+            ctx.close()
+            # (tour 55, T9) L'APRÈS-COURSE EN 2 CLICS sur téléphone, depuis le zip : podium → « Continuer » → interview → « Passer » → une → paddock :
+            # aucune pub avant « Course suivante », puis une seule, entre deux Grands Prix, gameplayStop d'abord, le son coupé
+            titre = 'paquet après-course en 2 clics, téléphone'
+            ctx = b.new_context(**args_tel)
+            pg = ctx.new_page(); console = []
+            pg.route('**/poki-sdk.js', lambda r: r.fulfill(status=200, content_type='text/javascript', body=''))
+            pg.add_init_script(FAUX_SDK.replace("commercialBreak() { noter('commercialBreak'); return Promise.resolve(); }", "commercialBreak() { noter('commercialBreak'); return new Promise(() => {}); }") + PLEIN_ECRAN_REFUSE)
+            pg.on('console', lambda m: console.append(m.type + ': ' + m.text) if m.type in ('error', 'warning') and not LECTURE_PIXELS.fullmatch(m.text) else None)
+            pg.on('pageerror', lambda e: console.append('PAGEERROR ' + str(e)))
+            pg.goto('file://' + dossier + '/index.html?championnat=1&tours=1&robot=1')
+            pg.wait_for_function('() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', timeout=60000)
+            pg.click('#boutonCourseSuivante')
+            pg.wait_for_function('() => JEU.ecran === "qualif" && JEU.qualif && JEU.qualif.etat === "choix"', timeout=10000)
+            pg.wait_for_function('() => JEU.plateau && JEU.plateau.carte !== null', timeout=240000)
+            pg.click('#boutonQualifTour')
+            for _ in range(200):
+                if pg.evaluate('() => JEU.qualif && JEU.qualif.etat === "resultat"'): break
+                pg.evaluate('() => { if (JEU.qualif && JEU.qualif.etat === "tour") BOUCLE.simuler(5); }'); pg.wait_for_timeout(30)
+            pg.wait_for_function('() => JEU.qualif && JEU.qualif.etat === "resultat"', timeout=240000)
+            pg.click('#boutonQualifCourse')
+            pg.wait_for_function('() => JEU.ecran === "course" && JEU.plateau.carte !== null', timeout=60000)
+            pg.evaluate('() => { JEU.course.compte = 0.01; }')
+            for _ in range(120):
+                pg.evaluate('() => BOUCLE.simuler(5)')
+                if pg.evaluate('() => JEU.ecran') == 'podium': break
+                pg.wait_for_timeout(30)
+            t(f'{titre} : la course va jusqu’au podium', pg.evaluate('() => JEU.ecran === "podium"'), pg.evaluate('() => JEU.ecran'))
+            t(f'{titre} : le podium a son gros « Continuer » (APRES_PODIUM_DIRECT), plus grand que 40 px au doigt', pg.evaluate('() => { const b = document.getElementById("boutonPodiumSuite"), r = b.getBoundingClientRect(); return !b.classList.contains("cache") && Math.min(r.width, r.height) >= 40; }'), '')
+            pg.click('#boutonPodiumSuite'); pg.wait_for_function('() => JEU.ecran === "interview"', timeout=10000)   # clic 1
+            pg.click('#boutonPasCommentaire'); pg.wait_for_function('() => JEU.ecran === "une"', timeout=10000)   # clic 2
+            avant = pg.evaluate('() => APPELS_SDK.slice()')
+            t(f'{titre} : en 2 clics du podium à la une, aucune pause pub, gameplayStop au podium et il le reste', 'commercialBreak' not in avant and avant[-1] == 'gameplayStop', str(avant))
+            pg.click('#uneTitre'); pg.wait_for_function('() => JEU.ecran === "championnat"', timeout=10000)
+            pg.click('#boutonCourseSuivante')
+            pg.wait_for_function('() => APPELS_SDK.includes("commercialBreak")', timeout=10000)
+            appels = pg.evaluate('() => APPELS_SDK.slice()')
+            jeu = [a for a in appels if a in ('gameplayStart', 'gameplayStop')]
+            t(f'{titre} : la pause pub vient une seule fois, entre deux Grands Prix, après gameplayStop, le son coupé pendant la pub', appels.count('commercialBreak') == 1 and jeu[-1] == 'gameplayStop' and not [i for i in range(1, len(jeu)) if jeu[i] == jeu[i - 1]] and pg.evaluate('() => SDK.pubEnCours && SON.muet'), str(appels))
+            f = verifier_sdk(pg.evaluate('() => JOURNAL_SDK.slice()'))
+            t(f'{titre} : les règles du SDK sur tout le parcours, console vide', not f and not console, [f, console])
+            ctx.close()
             # L'ANGLAIS (tour 37c) : la ponctuation anglaise n'a pas d'espace avant « : ; ! ? » (« Teammate duel: », jamais « Teammate duel : ») ;
             # le texte lu sur les écrans du paddock (championnat, calendrier, fiche, garage, album), les bulles (title) et la rivalité à deux
             titre = 'paquet anglais 1280×720'
