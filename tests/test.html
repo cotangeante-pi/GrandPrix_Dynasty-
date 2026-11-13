@@ -1,7 +1,7 @@
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><title>tests</title></head><body>
 <pre id="res"></pre>
 <script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));window.addEventListener('unhandledrejection',e=>__err.push('promesse : '+(e.reason&&e.reason.message||e.reason)));</script>
-<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits-officiels-a.js"></script><script src="../circuits-officiels-b.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../sensations.js"></script><script src="../manette.js"></script><script src="../son.js"></script><script src="../effets3d.js"></script><script src="../conseil.js"></script><script src="../qualite.js"></script><script src="../assistance.js"></script><script src="../mesure.js"></script><script src="../regie.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../divisions.js"></script><script src="../decouverte.js"></script><script src="../pilote.js"></script><script src="../deux-joueurs.js"></script><script src="../tournoi.js"></script><script src="../casque.js"></script><script src="../decors-officiels.js"></script><script src="../decor-public.js"></script><script src="../photo.js"></script><script src="../cache-carte.js"></script><script src="../cache-carte-test.js"></script><script src="../journal.js"></script><script src="../argent.js"></script><script src="../garage.js"></script><script src="../aileron.js"></script><script src="../carte2d.js"></script><script src="../saisons.js"></script><script src="../sponsors.js"></script><script src="../fiche.js"></script><script src="../interview.js"></script><script src="../carriere.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../meteo.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../resume.js"></script><script src="../messages.js"></script><script src="../commentaire.js"></script><script src="../voix-sons.js"></script><script src="../fantome-pole.js"></script><script src="../foule.js"></script><script src="../decor.js"></script><script src="../stand3d.js"></script><script src="../fantome.js"></script><script src="../defi.js"></script><script src="../touches.js"></script><script src="../clavier.js"></script><script src="../principal.js"></script>
+<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits-officiels-a.js"></script><script src="../circuits-officiels-b.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../sensations.js"></script><script src="../manette.js"></script><script src="../son.js"></script><script src="../effets3d.js"></script><script src="../conseil.js"></script><script src="../qualite.js"></script><script src="../assistance.js"></script><script src="../mesure.js"></script><script src="../regie.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../divisions.js"></script><script src="../decouverte.js"></script><script src="../pilote.js"></script><script src="../deux-joueurs.js"></script><script src="../enligne.js"></script><script src="../tournoi.js"></script><script src="../casque.js"></script><script src="../decors-officiels.js"></script><script src="../decor-public.js"></script><script src="../photo.js"></script><script src="../cache-carte.js"></script><script src="../cache-carte-test.js"></script><script src="../journal.js"></script><script src="../argent.js"></script><script src="../garage.js"></script><script src="../aileron.js"></script><script src="../carte2d.js"></script><script src="../saisons.js"></script><script src="../sponsors.js"></script><script src="../fiche.js"></script><script src="../interview.js"></script><script src="../carriere.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../meteo.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../resume.js"></script><script src="../messages.js"></script><script src="../commentaire.js"></script><script src="../voix-sons.js"></script><script src="../fantome-pole.js"></script><script src="../foule.js"></script><script src="../decor.js"></script><script src="../stand3d.js"></script><script src="../fantome.js"></script><script src="../defi.js"></script><script src="../touches.js"></script><script src="../clavier.js"></script><script src="../principal.js"></script>
 <script>
 const L=[];let ok=0,ko=0;
 // (tour 49d-2) les championnats des tests sont en division 3 (le jeu d'avant : l'argent, le garage, les sponsors au bit près) ; les tests
@@ -3770,6 +3770,100 @@ t('drapeaux : majMessages éteint le bandeau du drapeau (INTERFACE.majDrapeau(nu
     for(const ecran of ['podium','resultats','championnat','titre']){JEU.ecran=ecran;majMessages();}
     v(appels.length===4&&appels.every(x=>x===null),'appels hors course : '+JSON.stringify(appels));
   }finally{JEU.ecran=sauve.ecran;JEU.plateau=sauve.plateau;JEU.deux=sauve.deux;if(sauve.interface===undefined)delete window.INTERFACE;else window.INTERFACE=sauve.interface;}});
+
+// --- (tour 56, T2) les batailles en ligne : le cœur du lockstep (enligne.js), en calcul pur, un faux réseau en mémoire (EN_LIGNE.banc)
+const ENL_REG={circuit:'test',tours:1,meteo:'sec',nbIA:2},ENL_N=1400;
+const enlScript=(id,pas)=>{const k=id.charCodeAt(0)%7;return{gaz:pas>=0?1:0,frein:(pas+k*40)%400>340?1:0,direction:Math.sin((pas+k*50)/70)>0.3?1:Math.sin((pas+k*50)/70)<-0.3?-1:0,remise:pas%610===609};};
+const enlOpts=(plus)=>Object.assign({reglages:ENL_REG,graine:7,circuit:C,carte:CARTES_T.test,pasMax:ENL_N,local:enlScript},plus||{});
+// la référence : la même course, sans réseau, chaque commande prise au pas n - délai et appliquée au pas n (neutre avant)
+function enlReference(ids,opts,pasFin,dernierDe){const o=opts||enlOpts(),delai=REGLAGES.EN_LIGNE_DELAI,{e,humains}=EN_LIGNE.creerCourseEnLigne(EN_LIGNE.reglagesValides(o.reglages,ids.length),o.graine,ids.length,{circuit:C,carte:CARTES_T.test});
+  const idx=new Map(ids.map((id,i)=>[id,i]));
+  for(let n=0;n<(pasFin||ENL_N);n++){const cmds=new Map();for(const id of ids){const dernier=dernierDe&&dernierDe[id]!==undefined?dernierDe[id]:Infinity;
+      const brut=n<delai||n>dernier?EN_LIGNE.NEUTRE:enlScript(id,n-delai);cmds.set(humains[idx.get(id)],EN_LIGNE.decoder(EN_LIGNE.coder(brut)));}
+    pasCourseIA(e,DT,(p,dt)=>EN_LIGNE.conduire(e,p,cmds.get(p),dt));}
+  return EN_LIGNE.empreinte(e);}
+const enlTous=(b,n)=>[...b.parties].every(([id,p])=>b.partis.has(id)||p.n===n);
+t('en ligne : EN_LIGNE est faux par défaut (le jeu d’avant), les commandes se codent en entiers (aller-retour exact, bornes, valeurs absurdes)', ()=>{
+  v(REGLAGES.EN_LIGNE===false&&EN_LIGNE.actif()===false,'ouvert par défaut');
+  for(const c of [{gaz:0,frein:0,direction:0,remise:false},{gaz:1,frein:1,direction:-1,remise:true},{gaz:0.5,frein:0.2,direction:0.4,remise:false}]){const x=EN_LIGNE.coder(c),d=EN_LIGNE.decoder(x);v(Number.isInteger(x)&&x>=0&&x<16384,'entier '+x);v(EN_LIGNE.coder(d)===x,'aller-retour '+x);v(Math.abs(d.gaz-c.gaz)<=1/30+1e-9&&Math.abs(d.direction-c.direction)<=1/30+1e-9&&d.remise===c.remise,'valeur '+JSON.stringify(d));}
+  const e=EN_LIGNE.decoder(EN_LIGNE.coder({gaz:9,frein:-3,direction:50,remise:1}));v(e.gaz===1&&e.frein===0&&e.direction===1,'bornes');
+  const n=EN_LIGNE.decoder(EN_LIGNE.coder({gaz:NaN,frein:'x',direction:undefined}));v(n.gaz===0&&n.frein===0&&n.direction===0,'NaN');
+  for(const x of [-1,1.5,99999,NaN,'3',null,{}]) v(EN_LIGNE.codeValide(x)===false&&EN_LIGNE.decoder(x).gaz===0&&EN_LIGNE.decoder(x).direction===0,'invalide '+x);
+  const ver=EN_LIGNE.version();v(ver.v===REGLAGES.EN_LIGNE_VERSION&&Number.isInteger(ver.h)&&JSON.stringify(ver)===JSON.stringify(EN_LIGNE.version()),'version');});
+t('en ligne : les réglages de l’hôte sont corrigés pareil partout (circuit inconnu, tours, météo, IA plafonnées au nombre de voitures)', ()=>{
+  const R=REGLAGES,a=EN_LIGNE.reglagesValides({circuit:'nimporte',tours:99,meteo:'neige',nbIA:99},4);
+  v(a.circuit==='test'&&a.tours===R.EN_LIGNE_TOURS_DEFAUT&&a.meteo==='auto'&&a.nbIA===Math.min(R.EN_LIGNE_IA_MAX,R.EN_LIGNE_VOITURES_MAX-4),JSON.stringify(a));
+  const b=EN_LIGNE.reglagesValides({circuit:'technique',tours:5,meteo:'pluie',nbIA:3},2);v(b.circuit==='technique'&&b.tours===5&&b.meteo==='pluie'&&b.nbIA===3,JSON.stringify(b));
+  v(EN_LIGNE.reglagesValides(null,1).nbIA===0&&EN_LIGNE.reglagesValides({nbIA:-2},2).nbIA===0&&EN_LIGNE.reglagesValides({nbIA:2.5},2).nbIA===0,'IA absurdes');
+  v(JSON.stringify(EN_LIGNE.reglagesValides(a,4))===JSON.stringify(a),'idempotent');});
+t('en ligne : deux joueurs reliés sans délai ont, au pas '+ENL_N+', la même course au bit près — et c’est celle d’une simulation sans réseau (commandes prises au pas n - délai)', ()=>{
+  const b=EN_LIGNE.banc(['a','b'],enlOpts());b.jusqua(ENL_N);v(enlTous(b,ENL_N),'pas');
+  const ha=b.parties.get('a').empreinte(),hb=b.parties.get('b').empreinte();v(ha===hb,'a '+ha+' b '+hb);
+  v(ha===enlReference(['a','b']),'la référence sans réseau : '+enlReference(['a','b'])+' contre '+ha);
+  const p=b.parties.get('a').pilotes.get('a'),q=b.parties.get('a').pilotes.get('b');v(p.v.u>5&&q.v.u>5,'les deux voitures roulent : '+p.v.u.toFixed(1)+' '+q.v.u.toFixed(1));
+  v(b.parties.get('a').e.pilotes.length===4&&b.parties.get('a').e.pilotes.filter(x=>x.humain).length===2,'4 voitures dont 2 humaines');
+  v(b.parties.get('a').desynchro===null&&b.parties.get('b').desynchro===null,'aucune désynchro');});
+t('en ligne : quatre joueurs, des délais de réseau différents sur chaque lien (0 à 14 ticks, qui changent) : même état partout au bit près, même que la référence ; on a dû attendre', ()=>{
+  const ids=['a','b','c','d'];let attendu=false;
+  const b=EN_LIGNE.banc(ids,enlOpts({latence:(de,vers,tick)=>(de.charCodeAt(0)*3+vers.charCodeAt(0)*5+Math.floor(tick/37))%15}));
+  for(let k=0;k<ENL_N*30&&!enlTous(b,ENL_N);k++){b.avancer();for(const p of b.parties.values()) if(p.attente) attendu=true;}
+  v(enlTous(b,ENL_N),'pas atteints : '+[...b.parties].map(([i,p])=>i+'='+p.n).join(' '));
+  const h=ids.map(i=>b.parties.get(i).empreinte());v(h.every(x=>x===h[0]),'empreintes '+h.join(' '));
+  v(h[0]===enlReference(ids),'référence');v(attendu,'jamais attendu : le test ne prouve rien');
+  v(ids.every(i=>b.parties.get(i).desynchro===null),'désynchro');});
+t('en ligne : une commande en retard (un lien coupé 90 ticks) : les autres attendent (attente nomme le joueur), rien n’avance en douce, puis tout reprend et l’état est celui de la référence', ()=>{
+  const ids=['a','b','c'],coupe=(de,vers,tick)=>de==='c'&&tick>=200&&tick<290?300-tick:0;
+  const b=EN_LIGNE.banc(ids,enlOpts({latence:coupe}));let nom=null,nMax=0,vu=false;
+  for(let k=0;k<ENL_N*20&&!enlTous(b,ENL_N);k++){b.avancer();const pa=b.parties.get('a');if(pa.attente&&pa.attente.includes('c')){nom=pa.attente.join();vu=true;}}
+  v(vu&&nom==='c','a n’a jamais attendu c ('+nom+')');
+  v(enlTous(b,ENL_N),'fini');const h=ids.map(i=>b.parties.get(i).empreinte());v(h.every(x=>x===h[0])&&h[0]===enlReference(ids),'état '+h.join(' '));
+  // et les pas faits pendant l'attente : la partie ne dépasse jamais le délai d'avance sur la plus lente
+  const b2=EN_LIGNE.banc(ids,enlOpts({latence:(de,vers,tick)=>de==='c'?40:0}));let ecartMax=0;
+  for(let k=0;k<2000;k++){b2.avancer();const ns=[...b2.parties.values()].map(p=>p.n);ecartMax=Math.max(ecartMax,Math.max(...ns)-Math.min(...ns));}
+  v(ecartMax<=REGLAGES.EN_LIGNE_DELAI+REGLAGES.EN_LIGNE_PAQUET+45,'écart de pas entre joueurs : '+ecartMax);});
+t('en ligne : une empreinte de contrôle différente = désynchro signalée par les deux côtés, au premier contrôle qui suit, et la partie s’arrête ; sans écart, aucune alerte sur 1400 pas', ()=>{
+  const b=EN_LIGNE.banc(['a','b'],enlOpts({latence:()=>2}));b.jusqua(250);
+  v(b.parties.get('a').desynchro===null&&b.parties.get('b').desynchro===null,'alerte sans raison');
+  b.parties.get('b').moi.v.x+=1e-9;   // un seul bit de travers
+  b.jusqua(700);
+  const da=b.parties.get('a').desynchro,db=b.parties.get('b').desynchro;
+  v(da&&db,'pas signalée : '+JSON.stringify([da,db]));v(da.n===360&&db.n===360&&da.de==='b'&&db.de==='a'&&da.miens!==da.siens,'signal '+JSON.stringify([da,db]));
+  const n=b.parties.get('a').n;for(let k=0;k<50;k++) b.avancer();v(b.parties.get('a').n===n,'la partie continue après la désynchro');});
+t('en ligne : un joueur qui part (« parti ») : ses commandes arrivées comptent, puis il est neutre ; les autres continuent, restent d’accord au bit près et avec la référence', ()=>{
+  const ids=['a','b','c'],b=EN_LIGNE.banc(ids,enlOpts({latence:(de,vers)=>(de.charCodeAt(0)+vers.charCodeAt(0))%4,pasMax:900}));
+  for(let k=0;k<20000&&b.parties.get('c').n<400;k++) b.avancer();
+  b.partir('c');for(let k=0;k<20000&&!enlTous(b,900);k++) b.avancer();
+  v(enlTous(b,900),'les restants n’ont pas fini : '+[...b.parties].map(([i,p])=>i+'='+p.n+(p.attente?'?'+p.attente:'')).join(' '));
+  const dernier=b.parties.get('a').sortis.get('c');v(dernier>=399&&b.parties.get('b').sortis.get('c')===dernier,'dernier pas de c : '+dernier+' / '+b.parties.get('b').sortis.get('c'));
+  const ha=b.parties.get('a').empreinte(),hb=b.parties.get('b').empreinte();v(ha===hb,'a b');
+  v(ha===enlReference(ids,enlOpts(),900,{c:dernier}),'la référence (c neutre après '+dernier+')');
+  v(b.parties.get('a').pilotes.get('c').v.gaz===0,'c lève le pied');});
+t('en ligne : rien ne lit le hasard du navigateur ni l’horloge pendant une course en ligne (Math.random et Date.now qui échouent), avec pneus et averse', ()=>{
+  const mr=Math.random,dn=Date.now,pn=performance.now.bind(performance);let b=null;
+  try{Math.random=()=>{throw new Error('Math.random');};Date.now=()=>{throw new Error('Date.now');};performance.now=()=>{throw new Error('performance.now');};
+    ALEATOIRE.semer(1);
+    avecPneus(()=>{b=EN_LIGNE.banc(['a','b'],enlOpts({reglages:{circuit:'test',tours:1,meteo:'averse',nbIA:2},pasMax:700,latence:()=>1}));b.jusqua(700);});
+  }finally{Math.random=mr;Date.now=dn;performance.now=pn;ALEATOIRE.semer();}
+  v(enlTous(b,700)&&b.parties.get('a').empreinte()===b.parties.get('b').empreinte(),'état');
+  v(b.parties.get('a').e.meteo&&b.parties.get('a').moi.v.pneus,'météo et pneus présents');});
+t('en ligne : les messages sortants suivent le protocole (cmd par paquets sans trou, controle toutes les EN_LIGNE_CONTROLE pas), les messages reçus abîmés ou des autres salles sont ignorés', ()=>{
+  const out=[],p=EN_LIGNE.demarrer({reglages:ENL_REG,graine:7,ordre:['x','y']},'x',m=>out.push(m),{circuit:C,carte:CARTES_T.test});
+  const delai=p.delai,y=[];for(let k=0;k<400;k++) y.push(EN_LIGNE.CODE_NEUTRE);
+  p.recevoir({t:'cmd',de:'y',n:delai,c:y});p.local={gaz:1,frein:0,direction:0.5,remise:false};
+  v(p.avancer(300)===300,'300 pas');
+  const cmds=out.filter(m=>m.t==='cmd'),ctrl=out.filter(m=>m.t==='controle');
+  v(cmds.length>=70&&cmds.every(m=>Array.isArray(m.c)&&m.c.length===REGLAGES.EN_LIGNE_PAQUET&&m.c.every(EN_LIGNE.codeValide)),'paquets : '+cmds.length);
+  v(cmds[0].n===delai&&cmds.every((m,i)=>i===0||m.n===cmds[i-1].n+cmds[i-1].c.length),'paquets sans trou, le premier au pas du délai');
+  v(ctrl.length===2&&ctrl[0].n===120&&ctrl[1].n===240&&Number.isInteger(ctrl[0].h),'contrôles : '+JSON.stringify(ctrl));
+  const n0=p.n;for(const m of [null,3,'x',{},{t:'cmd'},{t:'cmd',de:'zz',n:0,c:[0]},{t:'cmd',de:'x',n:0,c:[1]},{t:'cmd',de:'y',n:'a',c:[1]},{t:'cmd',de:'y',n:-4,c:[1]},{t:'controle',de:'y',n:1,h:'x'},{t:'parti',id:'zz'},{t:'parti',id:'x'},{t:'inconnu'}]) p.recevoir(m);
+  v(p.n===n0&&p.desynchro===null&&!p.sortis.size,'messages abîmés');
+  // des valeurs hors bornes dans un paquet : neutres, jamais d'erreur
+  p.recevoir({t:'cmd',de:'y',n:delai+400,c:[-5,1e9,3.5,'a',null,EN_LIGNE.coder({gaz:1})]});
+  v(p.avancer(1)===0&&p.attente&&p.attente[0]==='y'||p.avancer(150)>0,'reprise');});
+t('en ligne : sans commande de l’autre, on attend (attente), rien n’avance, et le paquet à nous partit quand même (pas de blocage mutuel)', ()=>{
+  const out=[],p=EN_LIGNE.demarrer({reglages:ENL_REG,graine:7,ordre:['x','y']},'x',m=>out.push(m),{circuit:C,carte:CARTES_T.test});
+  const delai=p.delai;v(p.avancer(1000)===delai,'avance de '+p.n+' pas (le délai) puis attend');v(p.attente&&p.attente.join()==='y'&&p.pasAttendus>=1,'attente '+p.attente);
+  const envoyes=out.filter(m=>m.t==='cmd').reduce((s,m)=>s+m.c.length,0);v(envoyes===delai,'commandes envoyées '+envoyes);});
 
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 ecrire();
