@@ -3411,15 +3411,52 @@ t('divisions, plateaux : une vieille sauvegarde garde son plateau unique en divi
   v(TEXTES.fr.contratsDivision&&TEXTES.en.contratsDivision,'texte contratsDivision');
 }));
 
+// --- le fait « remontée » du commentateur (tour 55, T22, commentaire.js) : avec une course fausse, lue seulement
+t('commentateur : remontée : 3 places gagnées en piste en moins de 40 s = une phrase (le joueur d’abord) ; pas redite ; les arrêts des autres et les échanges aux stands ne comptent pas ; réglage coupé = rien ; phrases courtes',()=>{
+  const R_=REGLAGES,vraiCl=window.classementCourse,vraiPo=window.podiumConnu;
+  let ordre=[0,1,2,3,4,5,6,7];
+  window.classementCourse=()=>ordre.map((k,i)=>({k,place:i+1,ecart:null}));window.podiumConnu=()=>false;
+  const mk=()=>({temps:0,go:0,nbTours:10,circuit:{longueur:3000},depassements:[],pilotes:ordre.map(()=>({course:{tours:[],penalites:0,arretEnCours:null,meilleurTour:null},arrivee:null,v:{piste:{s:0,d:0},x:0,z:0,u:30,surHerbe:false,contactsVoiture:0,dansStands:false},pilote:null}))});
+  // le joueur (indice 5) double en 3 étapes (t = 20, 28, 36) ; stand : les doublés sont aux stands
+  const jouer=(stand,actif)=>{
+    ordre=[0,1,2,3,4,5,6,7];R_.COMMENTAIRE_REMONTEE_ACTIF=actif;
+    const e=mk(),c=COMMENTAIRE.creer(3),dits=[];
+    for(let t=1;t<=140;t++){
+      e.temps=t;
+      for(const [tt,sur] of [[20,4],[28,3],[36,2]]) if(t===tt){const i=ordre.indexOf(5),j=ordre.indexOf(sur);ordre[i]=sur;ordre[j]=5;e.depassements.push({temps:t,tour:1,s:100,qui:6,sur:sur+1,stand});}
+      COMMENTAIRE.observer(c,e,{joueur:5,circuit:'X'});
+      const it=COMMENTAIRE.afficher(c,t,false);if(it&&it.type==='remontee')dits.push(it);
+    }
+    return dits;
+  };
+  try{
+    const d=jouer(false,true);
+    v(d.length===1&&d[0].joueur&&d[0].params.n===3&&d[0].params.qui===5,'une remontée dite, une seule : '+JSON.stringify(d.map(x=>x.params)));
+    const ph=COMMENTAIRE.phrase(d[0],k=>'Joueur',x=>x);v(/3/.test(ph),'la phrase dit le nombre : '+ph);
+    v(jouer(true,true).length===0,'des places prises aux stands ne comptent pas');
+    v(jouer(false,false).length===0,'COMMENTAIRE_REMONTEE_ACTIF faux : rien');
+    // les phrases tiennent dans COMMENTAIRE_LONGUEUR_MAX (les noms à 7 lettres) en fr et en en
+    for(const l of ['fr','en']) for(const x of TEXTES[l].com_remontee){const t_=x.replace('{qui}','Abcdefg').replace('{n}','10');v(t_.length<=R_.COMMENTAIRE_LONGUEUR_MAX,l+' trop longue : '+t_);}
+    v(Array.isArray(TEXTES.fr.com_remontee)&&TEXTES.fr.com_remontee.length===3&&TEXTES.en.com_remontee.length===3,'3 variantes par langue');
+  }finally{R_.COMMENTAIRE_REMONTEE_ACTIF=true;window.classementCourse=vraiCl;window.podiumConnu=vraiPo;}
+});
+t('voix enregistrées : la remontée a son groupe et ses 3 prises (le fr seulement, VOIX_SONS_LANGUES) ; les réglages sont dans donnees.js',()=>{
+  v(VOIXSONS.cleDe('remontee')==='remontee'&&VOIXSONS.CLES.includes('remontee')&&VOIXSONS.PRISES_DE.remontee===3,'le fait remontée a son groupe de 3 prises');
+  v(REGLAGES.COMMENTAIRE_REMONTEE_ACTIF===true&&REGLAGES.COMMENTAIRE_REMONTEE_PLACES>=2&&REGLAGES.COMMENTAIRE_PRIORITES.remontee>0,'les réglages sont là');
+});
 // --- les voix enregistrées (tour 51c, voix-sons.js) : sans tampon ni contexte, avec de faux tampons
-t('voix enregistrées : éteintes par défaut ; chaque fait a son groupe ; jamais deux fois la même prise ; muet si le son est coupé ; rien sans tampon ; course au bit près',()=>{
-  v(REGLAGES.VOIX_SONS===false&&VOIXSONS.active===false,'éteintes par défaut');
-  const faits=['depart','depassement','depassementTete','depassementJoueur','coteACote','erreur','arrivee'];
+t('voix enregistrées : allumées par défaut (tour 55, T10), en français seulement ; chaque fait a son groupe ; jamais deux fois la même prise ; muet si le son est coupé ; rien sans tampon ; course au bit près',()=>{
+  v(REGLAGES.VOIX_SONS===true&&REGLAGES.VOIX_SONS_LANGUES.join()==='fr','allumées par défaut, en français seulement (VOIX_SONS faux = le jeu d’avant)');
+  const langs=REGLAGES.VOIX_SONS_LANGUES;REGLAGES.VOIX_SONS_LANGUES=['fr'];
+  VOIXSONS._essai({permis:()=>true,ctx:{},sortie:{}},'en',{depart:[{id:'x'}]},true);v(VOIXSONS.jouer('depart')===false,'en anglais : pas de son, la synthèse parle');VOIXSONS._essai(null,null,undefined,false);
+  REGLAGES.VOIX_SONS_LANGUES=null;   // (le reste du test : la langue de la page, quelle qu'elle soit)
+  const faits=['depart','depassement','depassementTete','depassementJoueur','coteACote','erreur','glissade','contact','arret','stands','pluie','meilleurTour','dernierTour','arrivee','podium','joueurArrivee','penalite'];
+  v(VOIXSONS.CLES.length===17&&VOIXSONS.CLES.every(c=>VOIXSONS.PRISES_DE[c]>=2&&VOIXSONS.PRISES_DE[c]<=3),'17 groupes de 2 ou 3 prises (les 16 du T10 + la remontée du T22)');
   v(faits.every(f=>VOIXSONS.cleDe(f)&&VOIXSONS.CLES.includes(VOIXSONS.cleDe(f))),'chaque fait a un groupe');
-  v(VOIXSONS.cleDe('pluie')===null&&VOIXSONS.cleDe('combleTete')===null,'ce qui n’a pas de son reste à la synthèse');
+  v(VOIXSONS.cleDe('domicileRival')===null&&VOIXSONS.cleDe('combleTete')===null,'ce qui n’a pas de son reste à la synthèse');
   const lues=[],permis={oui:true};
   const faux={permis:()=>permis.oui,ctx:{createGain:()=>({gain:{value:0},connect(){}}),createBufferSource:()=>({buffer:null,connect(){},start(){lues.push(this.buffer);},stop(){this.arrete=true;}})},sortie:{}};
-  const groupes={};for(const c of VOIXSONS.CLES)groupes[c]=[{id:c+'1'},{id:c+'2'},{id:c+'3'}];
+  const groupes={};for(const c of VOIXSONS.CLES)groupes[c]=[{id:c+'1'},{id:c+'2'},{id:c+'3'}].slice(0,VOIXSONS.PRISES_DE[c]);
   VOIXSONS._essai(faux,LANGUE,groupes,false);
   v(VOIXSONS.jouer('depart')===false&&lues.length===0,'éteint : rien');
   VOIXSONS._essai(faux,LANGUE,groupes,true);
@@ -3442,6 +3479,7 @@ t('voix enregistrées : éteintes par défaut ; chaque fait a son groupe ; jamai
   const a=course(false),b=course(true);
   v(a.pilotes.every((p,k)=>p.v.x===b.pilotes[k].v.x&&p.v.z===b.pilotes[k].v.z&&p.v.u===b.pilotes[k].v.u),'course au bit près');
   v(['vs_oui','vs_non'].every(k=>TEXTES.fr[k]&&TEXTES.en[k]),'le réglage dans les deux langues');
+  REGLAGES.VOIX_SONS_LANGUES=langs;
 });
 
 // --- la foule et l'ambiance (tour 55, T2, foule.js) : un faux contexte audio (rien ne joue), la rumeur et les clameurs

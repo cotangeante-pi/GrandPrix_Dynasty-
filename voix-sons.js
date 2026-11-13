@@ -15,10 +15,15 @@
 const VOIXSONS = (function () {
   const R = REGLAGES;
   // le fait du commentateur (commentaire.js) → le groupe de sons
-  const GROUPE = { depart: 'depart', depassement: 'depassement', depassementTete: 'depassement', depassementJoueur: 'depassement',
-    coteACote: 'bataille', erreur: 'erreur', arrivee: 'victoire' };
-  const CLES = ['depart', 'depassement', 'bataille', 'erreur', 'victoire'];
-  const PRISES = 3;   // trois prises par groupe et par langue
+  // (tour 55, T10) la liste complète des exclamations (tests/voix/liste.json) : 16 groupes, 2 ou 3 phrases chacun, une prise gardée par phrase
+  // (tour 55, T22) « remontée » est un fait du commentateur (commentaire.js) : 3 prises
+  const GROUPE = { depart: 'depart', depassement: 'depassement', depassementTete: 'depassementTete', depassementJoueur: 'depassement',
+    coteACote: 'bataille', erreur: 'erreur', glissade: 'glissade', contact: 'contact', arret: 'arret', stands: 'stands', pluie: 'pluie',
+    meilleurTour: 'meilleurTour', dernierTour: 'dernierTour', arrivee: 'arrivee', podium: 'podium', joueurArrivee: 'joueurArrivee', penalite: 'penalite', remontee: 'remontee' };
+  const PRISES_DE = { depart: 3, depassement: 3, depassementTete: 2, bataille: 3, erreur: 3, glissade: 2, contact: 2, arret: 2, stands: 2, pluie: 2,
+    meilleurTour: 3, dernierTour: 2, arrivee: 3, podium: 2, joueurArrivee: 2, penalite: 2, remontee: 3 };
+  const CLES = Object.keys(PRISES_DE);
+  const PRISES = 3;   // au plus trois prises par groupe et par langue
   const DOSSIER = 'sons/voix/';
   const url = (l, cle, n) => DOSSIER + l + '-' + cle + '-' + n + '.m4a';
   // ?voixsons=1 (ou =0) vaut le réglage « Voix enregistrées » : il est ÉCRIT dans la sauvegarde (tour 51h : le jeu se recharge entre deux
@@ -38,15 +43,17 @@ const VOIXSONS = (function () {
     return c && c.ctx && c.sortie ? c : null;
   };
   const sonPermis = () => essai ? (essai.permis ? !!essai.permis() : true) : typeof SON === 'undefined' || (SON.actif && !SON.coupe);
+  // (tour 55) les sons ne sont que dans les langues de VOIX_SONS_LANGUES (le français) : en anglais, la synthèse parle comme avant
+  const langueAvecSons = l => !Array.isArray(R.VOIX_SONS_LANGUES) || R.VOIX_SONS_LANGUES.includes(l);
   const cleDe = type => GROUPE[type] || null;
 
   // le chargement d'une langue (une fois) : chaque fichier à son tour, sans bruit en cas d'échec
   function charger() {
     const s = sortie(), l = langue();
-    if (!active || !s || demandes[l] || (typeof JEU !== 'undefined' && JEU.decouverte)) return false;
+    if (!active || !s || demandes[l] || !langueAvecSons(l) || (typeof JEU !== 'undefined' && JEU.decouverte)) return false;
     demandes[l] = true;
     tampons[l] = tampons[l] || {};
-    for (const cle of CLES) for (let n = 1; n <= PRISES; n++) {
+    for (const cle of CLES) for (let n = 1; n <= PRISES_DE[cle]; n++) {
       try {
         const x = new XMLHttpRequest();
         x.open('GET', url(l, cle, n)); x.responseType = 'arraybuffer';
@@ -92,7 +99,7 @@ const VOIXSONS = (function () {
   // le fait (type du commentaire) → un son joué ; vrai seulement si un son est parti (sinon la synthèse parle)
   function jouer(type) {
     const cle = cleDe(type), s = sortie();
-    if (!active || !cle || !s || !sonPermis() || (typeof document !== 'undefined' && document.hidden)) return false;
+    if (!active || !cle || !s || !langueAvecSons(langue()) || !sonPermis() || (typeof document !== 'undefined' && document.hidden)) return false;
     const b = choisir(cle);
     if (!b) return false;
     try {
@@ -123,7 +130,7 @@ const VOIXSONS = (function () {
   }
   if (typeof document !== 'undefined') document.addEventListener('visibilitychange', () => { if (document.hidden) taire(); });
 
-  return { jouer, taire, charger, regler, cleDe, CLES, PRISES, url,
+  return { jouer, taire, charger, regler, cleDe, CLES, PRISES, PRISES_DE, url,
     get active() { return active; }, get joues() { return joues; }, get enCours() { return !!courant; },
     etat: () => Object.fromEntries(Object.entries(tampons).map(([l, d]) => [l, Object.fromEntries(Object.entries(d).map(([c, a]) => [c, a.length]))])),
     // pour les tests seulement : une sortie et des tampons faux
