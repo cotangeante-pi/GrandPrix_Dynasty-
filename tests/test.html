@@ -3674,6 +3674,16 @@ t('dégâts : le message « aileron abîmé / réparé » (messages.js) ; une IA
   const pil=creerPilote(CARTES_T.technique,0.9);v(rythmeDuTour(pil)===0.9,'intact : le rythme d’avant');pil.facteurDegats=1-REGLAGES.DEGATS_IA_RYTHME*0.5;v(rythmeDuTour(pil)<0.9,'abîmé : plus bas');
 });
 
+// --- (revue du tour 55) le bandeau du drapeau s'en va avec la course : au podium, au paddock, il n'est plus montré
+t('drapeaux : majMessages éteint le bandeau du drapeau (INTERFACE.majDrapeau(null)) hors de la course et de la pause, et le laisse à drapeaux.js en course', ()=>{
+  const sauve={ecran:JEU.ecran,plateau:JEU.plateau,deux:JEU.deux,interface:window.INTERFACE},appels=[];
+  try{
+    window.INTERFACE={majMessage:()=>{},majDrapeau:x=>appels.push(x),formatTemps:String};
+    JEU.plateau=creerCourseIA(TQ,2,1,5,CARTES_T.technique);JEU.deux=null;
+    for(const ecran of ['podium','resultats','championnat','titre']){JEU.ecran=ecran;majMessages();}
+    v(appels.length===4&&appels.every(x=>x===null),'appels hors course : '+JSON.stringify(appels));
+  }finally{JEU.ecran=sauve.ecran;JEU.plateau=sauve.plateau;JEU.deux=sauve.deux;if(sauve.interface===undefined)delete window.INTERFACE;else window.INTERFACE=sauve.interface;}});
+
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 ecrire();
 </script></body></html>
