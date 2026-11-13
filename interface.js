@@ -89,8 +89,12 @@ const INTERFACE = (function () {
     }
     const recente = c.derniereCoupe !== undefined && c.temps - c.derniereCoupe < 3;
     const faux = c.fauxDepart && (c.etat === 'compte' || c.temps < 4);   // le faux départ, affiché jusqu'à 4 s après le départ
-    $('hudPenalite').classList.toggle('cache', !recente && !faux);
-    $('hudPenalite').textContent = recente ? texte('penalite').replace('{s}', REGLAGES.PENALITE_COUPE) : texte('fauxDepart').replace('{s}', REGLAGES.PENALITE_FAUX_DEPART);
+    // (tour 56, T1) l'avertissement de limites de piste : « Limites de piste (1/3) », 3 s, sans pénalité
+    const limite = !recente && c.derniereLimite !== undefined && c.temps - c.derniereLimite < 3;
+    $('hudPenalite').classList.toggle('cache', !recente && !faux && !limite);
+    $('hudPenalite').textContent = recente ? texte('penalite').replace('{s}', REGLAGES.PENALITE_COUPE)
+      : limite ? texte('limites').replace('{n}', c.limites).replace('{max}', REGLAGES.LIMITES_AVERTISSEMENTS)
+      : texte('fauxDepart').replace('{s}', REGLAGES.PENALITE_FAUX_DEPART);
     majStand(c);
   }
 

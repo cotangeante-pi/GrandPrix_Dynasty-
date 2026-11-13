@@ -13,6 +13,7 @@ function creerCourse(circuit, nbTours) {
     secteursTour: [],        // les temps de secteur du tour en cours
     etape: -1,               // -1 : avant la première ligne ; 0 : secteur 1 ; 2 : secteur 2 vu ; 3 : secteur 3 vu
     coupeTour: false,
+    limites: 0,              // les avertissements de limites de piste de la course (LIMITES_AVERTISSEMENTS), remis à 0 par une pénalité
     tours: [],               // [{ temps, secteurs: [t1, t2, t3], coupe }]
     meilleurTour: null,      // le meilleur tour sans virage coupé
     meilleursSecteurs: [null, null, null],
@@ -134,15 +135,18 @@ function majCourse(c, v, dt) {
   // (tour 45a : dans la voie des stands et ses rampes, jamais de virage coupé)
   const dehors = Math.abs(v.piste.d) > c.circuit.largeur / 2 + R.MARGE_COUPE && !(c.circuit.stands && (v.dansStands || v.rampeStands));
   if (dehors) {
-    if (!c.sortie) c.sortie = { progression: c.progression - ds, roule: 0 };
+    if (!c.sortie) c.sortie = { progression: c.progression - ds, roule: 0, bord: 0 };
     c.sortie.roule += roule;
+    // (tour 56, T1) la distance qu'une voiture restée sur le BORD de la piste, du côté de la sortie, aurait faite pour la même avance
+    if (R.COUPE_MESURE_BORD) c.sortie.bord += ds * ratioBord(c.circuit, v.piste.indice, v.piste.d);
   } else if (c.sortie) {
-    const gagne = c.progression - c.sortie.progression;
-    if (gagne > c.sortie.roule + R.SEUIL_COUPE) {
+    const S = c.sortie;
+    const gagne = R.COUPE_MESURE_BORD ? S.bord - S.roule : c.progression - S.progression - S.roule;
+    if (gagne > (R.COUPE_MESURE_BORD ? R.SEUIL_COUPE_GRAVE : R.SEUIL_COUPE)) {
       c.penalites += R.PENALITE_COUPE;
       c.coupeTour = true;
       c.derniereCoupe = c.temps;
-    }
+    } else if (R.LIMITES_AVERTISSEMENTS > 0) limitesDePiste(c);
     c.sortie = null;
   }
 
@@ -157,6 +161,37 @@ function majCourse(c, v, dt) {
     // passer la ligne sans avoir fait le tour (ou après avoir reculé) ne compte pas
   }
   if (c.etat === 'finie') penaliserSansArret(c, v);
+}
+
+// (tour 56, T1) un débordement sans vrai raccourci : un avertissement (« Limites de piste 1/3 ») et le tour ne compte pas pour le
+// record (comme un tour coupé) ; au 4e, +PENALITE_COUPE, puis le compte repart (la vraie F1 : tour annulé, avertissement, puis 5 s)
+function limitesDePiste(c) {
+  const R = REGLAGES;
+  c.coupeTour = true;
+  c.limites = (c.limites || 0) + 1;
+  c.derniereLimite = c.temps;
+  if (c.limites > R.LIMITES_AVERTISSEMENTS) {
+    c.penalites += R.PENALITE_COUPE;
+    c.limites = 0;
+    c.derniereCoupe = c.temps;
+    c.derniereLimite = undefined;
+  }
+}
+
+// le rapport entre la longueur du BORD de la piste (du côté d) et celle de la ligne du milieu, autour de l'échantillon i : plus petit que 1
+// à l'intérieur d'un virage, plus grand à l'extérieur. Calculé une fois par circuit (dans le circuit, jamais dans la sauvegarde ni le cache)
+function ratioBord(circuit, i, d) {
+  let r = circuit.ratioBord;
+  if (!r) {
+    const nb = circuit.nb, h = circuit.largeur / 2;
+    r = circuit.ratioBord = { droite: new Float32Array(nb), gauche: new Float32Array(nb) };
+    for (let k = 0; k < nb; k++) {
+      const j = (k + 1) % nb, centre = Math.hypot(circuit.x[j] - circuit.x[k], circuit.z[j] - circuit.z[k]) || 1;
+      r.droite[k] = Math.hypot(circuit.x[j] + circuit.nx[j] * h - circuit.x[k] - circuit.nx[k] * h, circuit.z[j] + circuit.nz[j] * h - circuit.z[k] - circuit.nz[k] * h) / centre;
+      r.gauche[k] = Math.hypot(circuit.x[j] - circuit.nx[j] * h - circuit.x[k] + circuit.nx[k] * h, circuit.z[j] - circuit.nz[j] * h - circuit.z[k] + circuit.nz[k] * h) / centre;
+    }
+  }
+  return (d >= 0 ? r.droite : r.gauche)[i];
 }
 
 // --- l'arrêt au stand (étape 7, tour 26 ; Codeur 1) : seulement une voiture qui a des pneus (PNEUS_ACTIFS) ---
