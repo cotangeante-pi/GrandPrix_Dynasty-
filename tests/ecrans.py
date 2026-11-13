@@ -27,7 +27,26 @@ PAGES = [
     ('index.html?camera=dessus', 1280, 720, 'dessus.png'),
     ('index.html?camera=virage', 1280, 720, 'virage.png'),
     ('index.html?camera=vitrine', 1280, 720, 'voiture.png'),
-    ('index.html?camera=vitrine&test=degats', 960, 600, 'degats.png'),   # (tour 55, T8) l'aileron avant abîmé : la voiture dessinée de travers, sans appel de dessin en plus, réparée = comme avant
+    ('index.html?camera=vitrine&test=degats', 960, 600, 'degats.png'),
+    # (tour 55, T17) les captures des nouveautés : drapeaux, aileron abîmé, fantôme de la pole, Foule ; fr et en, 3 tailles (640×360 au doigt)
+    ('index.html?course=12&ia=3&joueur=1&robot=1&circuit=test&test=nouveautes', 1280, 720, None),
+    ('index.html?course=1&ia=5&joueur=1&robot=1&circuit=test&test=nouveautes-qualif', 1280, 720, None),
+    ('index.html?championnat=1&test=nouveautes-reglages', 1280, 720, None),
+    ('index.html?course=12&ia=3&joueur=1&robot=1&circuit=test&test=nouveautes', 960, 600, None),
+    ('index.html?course=1&ia=5&joueur=1&robot=1&circuit=test&test=nouveautes-qualif', 960, 600, None),
+    ('index.html?championnat=1&test=nouveautes-reglages', 960, 600, None),
+    ('index.html?course=12&ia=3&joueur=1&robot=1&circuit=test&test=nouveautes&tel=1', 640, 360, None),
+    ('index.html?course=1&ia=5&joueur=1&robot=1&circuit=test&test=nouveautes-qualif&tel=1', 640, 360, None),
+    ('index.html?championnat=1&test=nouveautes-reglages&tel=1', 640, 360, None),
+    ('index.html?course=12&ia=3&joueur=1&robot=1&circuit=test&test=nouveautes&lang=en', 1280, 720, None),
+    ('index.html?course=1&ia=5&joueur=1&robot=1&circuit=test&test=nouveautes-qualif&lang=en', 1280, 720, None),
+    ('index.html?championnat=1&test=nouveautes-reglages&lang=en', 1280, 720, None),
+    ('index.html?course=12&ia=3&joueur=1&robot=1&circuit=test&test=nouveautes&lang=en', 960, 600, None),
+    ('index.html?course=1&ia=5&joueur=1&robot=1&circuit=test&test=nouveautes-qualif&lang=en', 960, 600, None),
+    ('index.html?championnat=1&test=nouveautes-reglages&lang=en', 960, 600, None),
+    ('index.html?course=12&ia=3&joueur=1&robot=1&circuit=test&test=nouveautes&tel=1&lang=en', 640, 360, None),
+    ('index.html?course=1&ia=5&joueur=1&robot=1&circuit=test&test=nouveautes-qualif&tel=1&lang=en', 640, 360, None),
+    ('index.html?championnat=1&test=nouveautes-reglages&tel=1&lang=en', 640, 360, None),   # (tour 55, T8) l'aileron avant abîmé : la voiture dessinée de travers, sans appel de dessin en plus, réparée = comme avant
     ('index.html?reglages=1&course=0', 1280, 720, 'reglages.png'),
     ('index.html?reglages=1&course=0', 960, 600, 'reglages-960.png'),          # le panneau en petit (tour 47c) : rien de coupé, libellés en français…
     ('index.html?reglages=1&course=0&lang=en', 960, 600, 'reglages-960-en.png'),   # … et en anglais
@@ -428,6 +447,97 @@ def passer_qualif(pg, titre):
     attendre(pg, '() => JEU.qualif && JEU.qualif.etat === "resultat"', None, 180000)   # (la carte des IA d'abord, s'il le faut)
     pg.click('#boutonQualifCourse')
     attendre(pg, '() => JEU.ecran === "course"', None, 10000)
+
+# (tour 55, T17) LES CAPTURES DES NOUVEAUTÉS de la nuit du 12 au 13 novembre : les drapeaux (bandeau et aide), l'aileron abîmé (voiture, aide, message), « Fantôme : ton record / la pole »
+# et son aide, le bouton Foule des Réglages ; en 640×360 (écran tactile émulé, &tel=1), 960×600 et 1280×720, en fr et en en. Pour chaque état : la bulle d'aide et le bandeau
+# dans l'écran, rien d'autre posé à l'écran ne les recouvre (CHEVAUCHE_NOUV : les éléments à id, fixes ou absolus, visibles), et la capture est gardée (nouv-<état>-<largeur>-<langue>.png)
+CHEVAUCHE_NOUV = '''() => { const els = [...document.body.children].flatMap(x => [x, ...x.querySelectorAll("*")]).filter(e => {
+  if (!e.id || e.id === "tactile" || e.closest(".cache") || (e.tagName === "CANVAS" && e.closest("#scene3d")) || e.tagName === "SCRIPT") return false; const cs = getComputedStyle(e); if (cs.display === "none" || cs.visibility === "hidden" || +cs.opacity < 0.05) return false;
+  if (!(cs.position === "fixed" || cs.position === "absolute")) return false; const r = e.getBoundingClientRect(); return r.width > 8 && r.height > 8 && r.right > 0 && r.bottom > 0 && r.left < innerWidth && r.top < innerHeight && (e.textContent.trim() || e.tagName === "BUTTON"); });
+  const out = []; for (let i = 0; i < els.length; i++) for (let j = i + 1; j < els.length; j++) { const a = els[i], b = els[j]; if (a.contains(b) || b.contains(a)) continue;
+    const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect(), w = Math.min(ra.right, rb.right) - Math.max(ra.left, rb.left), h = Math.min(ra.bottom, rb.bottom) - Math.max(ra.top, rb.top); if (w > 4 && h > 4) out.push(a.id + " / " + b.id + " " + Math.round(w) + "x" + Math.round(h)); }
+  const dehors = els.filter(e => { const r = e.getBoundingClientRect(); return r.left < -1 || r.top < -1 || r.right > innerWidth + 1 || r.bottom > innerHeight + 1; }).map(e => e.id);
+  return { chevauche: out, dehors }; }'''
+def nouveautes_ecran(pg, titre, l, h, page):
+    langue = 'en' if 'lang=en' in page else 'fr'
+    tag = f'{l}-{langue}'
+    attendre(pg, '() => JEU.ecran === "qualif" && JEU.qualif && JEU.qualif.etat === "choix"', None, 60000)
+    pg.click('#boutonQualifPasser')
+    attendre(pg, '() => JEU.qualif && JEU.qualif.etat === "resultat"', None, 240000)
+    pg.click('#boutonQualifCourse')
+    attendre(pg, '() => JEU.ecran === "grille" || JEU.ecran === "course"', None, 10000)
+    pg.evaluate('() => { if (JEU.ecran === "grille") finirGrille(); }')
+    attendre(pg, '() => JEU.ecran === "course" && JEU.course && JEU.course.feux && JEU.plateau && JEU.plateau.carte !== null', None, 180000)
+    pg.evaluate('() => { JEU.course.compte = 0.01; }')
+    attendre(pg, '() => JEU.course.etat === "course"', None, 60000)
+    pg.evaluate('() => { BOUCLE.arreter(); REGLAGES.AIDES_ACTIVES = true; }')   # (le robot de la page conduit : ?robot=1 ; on avance image par image)
+    # un état à la fois : on le pose, on roule image par image jusqu'à ce que son aide s'affiche (en ligne droite), on capture et on contrôle
+    etats = [
+        ('jaune', 'drapeauJaune', '() => { DRAPEAUX.etatJoueur = () => ({ type: "jaune" }); }'),
+        ('bleu', 'drapeauBleu', '() => { DRAPEAUX.etatJoueur = () => ({ type: "bleu" }); }'),
+        ('vsc', 'drapeauVsc', '() => { DRAPEAUX.etatJoueur = () => ({ type: "vsc", limite: REGLAGES.DRAPEAUX_VSC_LIMITE_JOUEUR }); }'),
+        ('vert', None, '() => { DRAPEAUX.etatJoueur = () => ({ type: "vert" }); }'),
+        ('degats', 'degats', '() => { DRAPEAUX.etatJoueur = () => null; JEU.joueur.degats = 0.4; }'),
+    ]
+    for nom, aide, pose in etats:
+        # (l'aide d'avant se ferme, les aides sont remises à zéro : chaque état montre la sienne)
+        pg.evaluate('() => { DRAPEAUX.etatJoueur = () => null; if (JEU.joueur) JEU.joueur.degats = 0; for (let i = 0; i < 6; i++) { BOUCLE.simuler(0.25); AIDES_ECRAN.maj(0.02); } AIDES_ECRAN.revoir(); }')
+        pg.evaluate(pose)
+        vu = None
+        for _ in range(400):
+            r = pg.evaluate('''(garder) => { if (!garder) JEU.joueur.degats = 0; BOUCLE.simuler(0.25); if (!garder) JEU.joueur.degats = 0; const a = AIDES_ECRAN.maj(0.02); return { aide: a, dom: !document.getElementById("bulleAide").classList.contains("cache") }; }''', nom == 'degats')
+            if aide is None or (r['aide'] == aide and r['dom']): vu = r; break
+        pg.evaluate('() => { BOUCLE.demarrer(); }'); pg.wait_for_timeout(3000)   # (quelques images vraies : le HUD se redessine)
+        if nom == 'degats': pg.evaluate('() => { INTERFACE.majMessage(texte("msg_degats").replace("{qui}", etiquetteVoiture(JEU.suivie))); }')
+        pg.evaluate('() => { BOUCLE.arreter(); SCENE3D.dessiner(); }'); pg.wait_for_timeout(300)
+        c = pg.evaluate(CHEVAUCHE_NOUV)
+        d = pg.evaluate('() => { const e = document.getElementById("drapeau"); const r = e.getBoundingClientRect(); return { visible: !e.classList.contains("cache"), texte: e.textContent, r: [r.left, r.top, r.right, r.bottom].map(Math.round) }; }')
+        if nom != 'degats': t(f'{titre} : le bandeau du drapeau {nom} s’affiche avec son texte (« {d["texte"]} »)', d['visible'] and len(d['texte']) > 6 and not d['texte'].startswith('drapeau_'), str(d))
+        if aide: t(f'{titre} : l’aide « {aide} » s’affiche en ligne droite', vu is not None, str(pg.evaluate('() => { const s = AIDES.situation(JEU, CIRCUIT, null); return [AIDES_ECRAN.etat().actuelle, s.ecran, s.etat, s.drapeau, Math.round(s.vitesse), s.courbure, s.frein, s.direction]; }')))
+        t(f'{titre} : {nom} : rien ne se recouvre et rien ne sort de l’écran ({l}×{h}, {langue})', not c['chevauche'] and not c['dehors'], str(c))
+        pg.screenshot(path=os.path.join(CAPTURES, f'nouv-{nom}-{tag}.png'))
+
+def nouveautes_qualif(pg, titre, l, h, page):
+    langue = 'en' if 'lang=en' in page else 'fr'
+    tag = f'{l}-{langue}'
+    t(f'{titre} : l’écran de qualification, les IA sur la grille', attendre(pg, '() => JEU.ecran === "qualif" && JEU.qualif.etat === "choix"', None, 60000))
+    attendre(pg, '() => JEU.plateau.carte !== null', None, 180000)
+    pg.evaluate('() => { REGLAGES.AIDES_ACTIVES = true; }')
+    attendre(pg, '() => !document.getElementById("boutonFantomePole").classList.contains("cache")', None, 10000)
+    pg.wait_for_timeout(1200)
+    info = pg.evaluate('''() => { const b = document.getElementById("boutonFantomePole"), a = document.getElementById("bulleAide"); const rb = b ? b.getBoundingClientRect() : null;
+      return { bouton: !!b && !b.classList.contains("cache"), texte: b ? b.textContent : "", h: rb ? Math.round(rb.height) : 0, bulle: a && !a.classList.contains("cache") ? a.dataset.aide : null }; }''')
+    t(f'{titre} : le bouton « Fantôme : ton record / la pole » est là, avec son texte ({info["texte"]})', info['bouton'] and len(info['texte']) > 4 and not info['texte'].startswith('fantome'), str(info))
+    # (l'écran de qualification est un voile par-dessus la course : on compare la bulle d'aide et les boutons, titres et textes DE ce voile)
+    c = pg.evaluate('''() => { const a = document.getElementById("bulleAide"), out = [], dehors = [];
+      const vis = e => e.getClientRects().length > 0 && !e.closest(".cache"); const ra = a.classList.contains("cache") ? null : a.getBoundingClientRect();
+      for (const e of document.querySelectorAll("#qualif button, #qualif h1, #qualif p, #qualif span")) { if (!vis(e)) continue; const r = e.getBoundingClientRect(); if (r.width < 4 || r.height < 4) continue;
+        if (r.left < -1 || r.top < -1 || r.right > innerWidth + 1 || r.bottom > innerHeight + 1) dehors.push(e.id || e.tagName);
+        if (ra && Math.min(r.right, ra.right) - Math.max(r.left, ra.left) > 4 && Math.min(r.bottom, ra.bottom) - Math.max(r.top, ra.top) > 4) out.push((e.id || e.tagName) + " / bulleAide"); }
+      return { chevauche: out, dehors }; }''')
+    t(f'{titre} : l’écran de qualification : la bulle d’aide ne recouvre rien du voile et rien ne sort de l’écran ({l}×{h}, {langue}), bulle d’aide : {info["bulle"]}', not c['chevauche'] and not c['dehors'], str(c))
+    pg.screenshot(path=os.path.join(CAPTURES, f'nouv-qualif-{tag}.png'))
+    # la bulle suivante : « Fantôme : ton record / la pole » (après celle de la qualification, qu'on ferme d'un clic)
+    if info['bulle'] == 'qualif' and pg.evaluate('() => !document.getElementById("bulleAide").classList.contains("cache")'):
+        pg.click('#bulleAide'); pg.wait_for_timeout(300)
+        vue = attendre(pg, '() => { AIDES_ECRAN.maj(0.02); const b = document.getElementById("bulleAide"); return !b.classList.contains("cache") && b.dataset.aide === "fantomePole"; }', None, 15000)
+        r = pg.evaluate('() => { const b = document.getElementById("bulleAide"); return { txt: b.textContent, aide: b.dataset.aide }; }')
+        t(f'{titre} : l’aide « Fantôme : ton record / la pole » s’affiche à la qualification, avec son texte', vue and 'aide_fantomePole' not in r['txt'] and len(r['txt']) > 20, str(r))
+        c = pg.evaluate('''() => { const a = document.getElementById("bulleAide"), ra = a.getBoundingClientRect(), out = [];
+          for (const e of document.querySelectorAll("#qualif button, #qualif h1, #qualif p")) { if (e.getClientRects().length === 0 || e.closest(".cache")) continue; const r = e.getBoundingClientRect(); if (r.width < 4) continue;
+            if (Math.min(r.right, ra.right) - Math.max(r.left, ra.left) > 4 && Math.min(r.bottom, ra.bottom) - Math.max(r.top, ra.top) > 4) out.push(e.id || e.tagName); }
+          return { chevauche: out, dehors: ra.left < -1 || ra.top < -1 || ra.right > innerWidth + 1 || ra.bottom > innerHeight + 1 }; }''')
+        t(f'{titre} : cette aide ne recouvre rien du voile de la qualification et reste dans l’écran ({l}×{h}, {langue})', not c['chevauche'] and not c['dehors'], str(c))
+        pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, f'nouv-pole-{tag}.png'))
+
+def nouveautes_reglages(pg, titre, l, h, page):
+    langue = 'en' if 'lang=en' in page else 'fr'
+    attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', None, 60000)
+    pg.evaluate('() => { INTERFACE.pagePaddock("reglages"); }'); pg.wait_for_timeout(700)
+    r = pg.evaluate('''() => { const b = document.getElementById("boutonFoulePaddock"); if (!b) return null; b.scrollIntoView({ block: "center" }); const r = b.getBoundingClientRect();
+      return { texte: b.textContent, w: Math.round(r.width), h: Math.round(r.height), dedans: r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight, tactile: document.body.classList.contains("tactile") }; }''')
+    t(f'{titre} : le bouton « Foule » des Réglages : visible, dans l’écran, son texte ({r and r["texte"]}), au moins 40 px de haut au doigt', bool(r) and r['dedans'] and r['h'] >= (40 if r['tactile'] else 20), str(r))
+    pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, f'nouv-foule-{l}-{langue}.png'))
 
 def degats_ecran(pg, titre):
     attendre(pg, '() => typeof JEU !== "undefined" && !!JEU.modele && !!JEU.joueur', None, 60000)
@@ -4337,7 +4447,7 @@ with sync_playwright() as p:
         for page, l, h, capture in PAGES:
             titre = f'{page} {l}×{h}'
             debut_page = time.monotonic()   # (la durée de chaque page, pour équilibrer les tranches de GitHub)
-            ctx = b.new_context(viewport={'width': l, 'height': h}, has_touch='test=tactile' in page)   # (le téléphone, tour 51k : un écran tactile émulé pour ces pages seulement)
+            ctx = b.new_context(viewport={'width': l, 'height': h}, has_touch='test=tactile' in page or 'tel=1' in page)   # (le téléphone, tour 51k : un écran tactile émulé pour ces pages seulement)
             pg = ctx.new_page(); console = []
             # les tâches longues (> 50 ms) qui bloquent la page, relevées dès le début du chargement
             pg.add_init_script('window.__longues = []; new PerformanceObserver(l => { for (const e of l.getEntries()) window.__longues.push(e.duration); }).observe({ entryTypes: ["longtask"] });')
@@ -4366,7 +4476,7 @@ with sync_playwright() as p:
 
             t(f'{titre} : le panneau de réglage n’existe que avec ?reglages=1', pg.evaluate('() => !!document.getElementById("reglages")') == ('reglages=1' in page))
             # le téléphone (tactile.js, tour 51k) : sur un écran sans tactile, rien ne s'affiche et rien n'est branché
-            if 'test=tactile' not in page:
+            if 'test=tactile' not in page and 'tel=1' not in page:
                 pg.evaluate("() => { document.body.dispatchEvent(new PointerEvent('pointerup', { bubbles: true })); document.body.click(); }"); pg.wait_for_timeout(100)
                 t(f'{titre} : sans écran tactile, aucun plein écran ni verrou en paysage n’est jamais demandé', pg.evaluate('() => window.__plein === 0'), str(pg.evaluate('() => window.__plein')))
                 t(f'{titre} : sans écran tactile, aucun bouton tactile (ni GAZ / FREIN, ni ◀ ▶, ni « Activer le volant »), rien n’est branché', pg.evaluate('() => typeof TACTILE === "undefined" || !TACTILE.estPresent() && TACTILE.etat.mode === "aucun" && ["tactile", "tactileActiver", "tactilePortrait", "boutonVolantPause", "boutonRecentrerPause"].every(id => document.getElementById(id).classList.contains("cache"))'), str(pg.evaluate('() => typeof TACTILE === "undefined" ? "pas de TACTILE" : [TACTILE.estPresent(), TACTILE.etat.mode, navigator.maxTouchPoints]')))
@@ -4465,6 +4575,12 @@ with sync_playwright() as p:
                 aides_course(pg, titre, l, h)
             elif 'test=fond' in page:
                 fond_ecran(pg, titre, l, h)
+            elif 'test=nouveautes-qualif' in page:
+                nouveautes_qualif(pg, titre, l, h, page)
+            elif 'test=nouveautes-reglages' in page:
+                nouveautes_reglages(pg, titre, l, h, page)
+            elif 'test=nouveautes' in page:
+                nouveautes_ecran(pg, titre, l, h, page)
             elif 'test=paddock' in page:
                 paddock_menu(pg, titre, l, h, 'en' if 'lang=en' in page else 'fr')
             elif 'test=aides-menus' in page:
@@ -4507,7 +4623,7 @@ with sync_playwright() as p:
             elif 'championnat=1' in page:
                 championnat(pg, titre, l)
             if 'test=accelere' in page or 'test=audit' in page or 'test=suivie' in page or 'test=livree' in page or 'test=essai' in page or 'test=reglages-voiture' in page: pass   # (test=suivie : sa page à lui, plus haut ; sinon hud() recommencerait la qualification après le podium)
-            elif 'test=aides' in page or 'test=tuto' in page: pass   # (les aides et le tutoriel : leurs pages à eux, plus haut)
+            elif 'test=aides' in page or 'test=tuto' in page or 'test=nouveautes' in page: pass   # (les aides et le tutoriel : leurs pages à eux, plus haut)
             elif 'test=hudcourse' in page:
                 hud_course(pg, titre, l, h)
             elif 'test=decor' in page:

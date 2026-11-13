@@ -288,14 +288,16 @@ body.horsCourse #boutonSon { right: 10px; }
 /* l'arrêt au stand (étape 7) : le message de course, sous l'avis de pénalité */
 #hudStand {
   position: fixed;
-  top: 190px;
+  top: 234px;   /* (tour 55, T17 : sous le drapeau (136 px, une ligne) et le message de course (192 px), que les 190 px d'avant recouvraient ; 280 px de large avec ses marges, sur deux lignes : à droite de la bulle d'aide, qui finit à 334 px en 960 de large, et sous le message de course (192 px) */
+  max-width: 252px;
+  white-space: normal;
+  text-align: center;
   left: 50%;
   transform: translateX(-50%);
   padding: 4px 14px;
   border-radius: 4px;
   background: rgba(31, 111, 224, 0.9);
   font: 700 15px/1.4 var(--police);
-  white-space: nowrap;
   pointer-events: none;
 }
 body.deux #hudStand { display: none; }
@@ -1139,15 +1141,17 @@ body.deux.cote #boutonSon { top: auto; bottom: 12px; right: 12px; }   /* (côte 
     radial-gradient(circle at 78% 22%, rgba(220, 235, 255, 0.32) 0 4px, transparent 6px), radial-gradient(circle at 88% 67%, rgba(220, 235, 255, 0.3) 0 6px, transparent 8px),
     radial-gradient(circle at 8% 78%, rgba(220, 235, 255, 0.28) 0 5px, transparent 7px), radial-gradient(circle at 55% 82%, rgba(220, 235, 255, 0.25) 0 4px, transparent 6px),
     radial-gradient(circle at 35% 35%, rgba(220, 235, 255, 0.22) 0 3px, transparent 5px), radial-gradient(circle at 71% 9%, rgba(220, 235, 255, 0.26) 0 3px, transparent 5px); }
-#drapeau { position: fixed; top: 128px; left: 50%; transform: translateX(-50%); padding: 6px 18px; border-radius: 6px; font: 900 17px/1.3 var(--police); white-space: normal; text-align: center; max-width: min(46vw, 520px); pointer-events: none; border: 3px solid rgba(0, 0, 0, 0.55); z-index: 5; }   /* (revue T24 : sur deux lignes au plus, jamais sous la tour de classement ni la minicarte) */   /* (tour 55, T7) le drapeau du joueur */
+#drapeau { position: fixed; top: 136px; left: 50%; transform: translateX(-50%); padding: 6px 18px; border-radius: 6px; font: 900 17px/1.3 var(--police); white-space: normal; text-align: center; max-width: min(46vw, 520px); pointer-events: none; border: 3px solid rgba(0, 0, 0, 0.55); z-index: 5; }   /* (revue T24 : sur deux lignes au plus, jamais sous la tour de classement ni la minicarte) */   /* (tour 55, T7) le drapeau du joueur */
 #drapeau.jaune, #drapeau.vsc { background: #f5c400; color: #111; }
 #drapeau.bleu { background: #1e6fe0; color: #fff; }
 #drapeau.vert { background: #1fa84a; color: #fff; }
+#drapeau.vsc { font-size: 15px; line-height: 1.2; padding: 4px 14px; }   /* (tour 55, T17 : la VSC, longue, sur deux lignes serrées : elle finit avant le message de course, à 192 px) */
+@media (max-height: 420px) { #drapeau, #drapeau.vsc { top: 108px; font-size: 13px; line-height: 1.3; padding: 3px 10px; } }   /* (640×360 : sous le chrono, qui finit vers 100 px) */
 @media (max-height: 420px) { #meteoHud { right: auto; bottom: auto; left: 128px; top: 134px; grid-template-columns: auto; padding: 2px 6px; font-size: 11px; } #meteoBarre, #meteoIcone { display: none; } }   /* (revue T26 : en 640×360 l'eau recouvrait la tour de classement ; elle se pose à droite de 🔊 ⏸ ↩, sans sa barre) */
-@media (max-height: 420px) { #drapeau { top: 106px; font-size: 12px; padding: 2px 8px; max-width: none; white-space: nowrap; } }   /* (640×360 : sous le chrono, qui finit vers 100 px) */
+@media (max-height: 420px) { #drapeau, #drapeau.vsc { top: 106px; font-size: 12px; padding: 2px 8px; max-width: none; white-space: nowrap; } }   /* (640×360 : sous le chrono, qui finit vers 100 px) */
 body.deux #drapeau { display: none; }
 #prevision { margin: 2px 0 6px; font-weight: 700; opacity: 0.9; }
-#messageCourse { position: fixed; top: 176px; left: 50%; transform: translateX(-50%); padding: 6px 14px; border-left: 4px solid #e10600; border-radius: 6px; background: rgba(11, 15, 23, 0.82); font: 800 16px/1.3 var(--police); white-space: nowrap; pointer-events: none; }
+#messageCourse { position: fixed; top: 192px; left: 50%; transform: translateX(-50%); padding: 6px 14px; border-left: 4px solid #e10600; border-radius: 6px; background: rgba(11, 15, 23, 0.82); font: 800 16px/1.3 var(--police); white-space: nowrap; pointer-events: none; }
 
 /* ===============================================================================================================   Le thème télé (étape 11, tour 32, Codeur 3) : le style de tous les écrans entre les courses, défini une seule fois ici,
    en variables CSS (CLAUDE.md « L'interface » : « une vraie retransmission de F1, claire et animée, jamais encombrée »).
@@ -1933,7 +1937,7 @@ body.tactile.tactileFreinG #radar { --radar-taille: 130px; left: 134px; bottom: 
   body.tactile.tactileFreinG #tactileFrein { left: 12px; right: auto; }
   body.tactile.tactileFreinG #tableau, body.tactile.tactileFreinG #pneusHud { right: 116px; }
   body.tactile.tactileFreinG #radar { --radar-taille: 96px; left: 96px; bottom: 12px; }
-  body.tactile #bulleAide.bulleCourse { top: 156px; max-width: 230px; }
+  body.tactile #bulleAide.bulleCourse { top: 164px; max-width: 190px; }   /* (tour 55, T17 : 164 px sous ⏸ ↩ (qui finissent à 158) ; 190 px pour laisser la place au message de course, décalé à droite) */
 }
 body.tactile.tactileBoutons #radar { --radar-taille: 120px; bottom: 124px; left: 12px; }
 body.tactile.tactileBoutons #aideDirection { display: none; }
@@ -2232,6 +2236,13 @@ body.tactile #discussionCarte { max-height: calc(100dvh - 52px); }
 /* (tour 55) la ligne du commentateur du résumé vidéo : cachée sur un écran tactile (COMMENTAIRE_TEXTE_TACTILE faux, classe posée par principal.js) */
 body.tactile.commentaireSansTexte #resumeCommentaire { display: none !important; }
 body.tactile:has(#pause:not(.cache)) #boutonSon { display: none; }   /* (tour 55b) la pause a ses propres boutons de son : 🔊 en coin recouvrait ses boutons larges en 568×320 */
+
+/* Chasse du tour 55 (T17) : en 640×360 au doigt, le message de course est décalé à droite de la bulle d'aide (elles se recouvraient de 70 px) */
+@media (max-height: 420px) {
+  #qualif:not(.cache) ~ #bulleAide.bulleMenu { max-width: 64vw; font-size: 11px; }   /* (en 640×360 la bulle de la qualification tient sur deux lignes : le titre commence à 71 px ; sur Linux les polices sont plus larges) */
+  body.tactile #messageCourse { left: 61%; top: 176px; max-width: 220px; white-space: normal; }
+  body.tactile #hudStand { left: 61%; top: 216px; max-width: 230px; white-space: normal; font-size: 12px; line-height: 1.3; padding: 3px 10px; }   /* (le bandeau des stands : à droite de la bulle d'aide, sous le message de course) */
+}
 
 /* Chasse du tour 55 (T14) : l'interview en 640×360 au doigt : « Passer » finissait à 375 px sur 360. La carte se serre (marges, textes), les réponses gardent 40 px */
 @media (max-height: 420px) {
