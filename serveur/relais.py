@@ -19,6 +19,7 @@ from websockets.exceptions import ConnectionClosed
 
 journal = logging.getLogger('relais')
 
+TOURS_MAX, IA_MAX = 20, 20   # EN_LIGNE_TOURS_MAX, EN_LIGNE_IA_MAX
 CONSONNES = 'BCDFGHJKLMNPQRSTVWXZ'   # le code d'une salle : 4 lettres sans voyelle (donc aucun mot) ni Y
 
 class Config:
@@ -32,7 +33,7 @@ class Config:
         self.rafale = 300                # réserve de messages (une seconde de retard rattrapée d'un coup)
         self.fautes_max = 200            # messages jetés (cadence, JSON faux, inconnus) avant de couper la connexion
         self.noms_libres = False         # EN_LIGNE_NOMS_LIBRES : faux = « Pilote N » + couleur, ou un nom d'une liste du jeu
-        self.max_emotes = 12             # indices d'émotes préréglées permis (0 à max_emotes - 1)
+        self.max_emotes = 8              # indices d'émotes préréglées permis (0 à 7, EN_LIGNE_EMOTES)
         self.delai_emote = 0.5           # secondes minimum entre deux émotes d'un joueur
         self.delai_arrivee = 10.0        # une connexion qui ne crée ni ne rejoint rien en 10 s est coupée
         self.refus_max = 12              # refus avant qu'on coupe (qui devine des codes)
@@ -47,31 +48,33 @@ class Config:
             if not hasattr(self, k): raise TypeError('réglage inconnu : ' + k)
             setattr(self, k, v)
 
-_NOM_LIBRE = re.compile(r"^[\w][\w '.\-]{0,23}$")
-# « Pilote 3 », « Pilote 3 Rouge », ou un prénom d'une liste : un mot, éventuellement suivi d'un numéro et d'une couleur
-_NOM_LISTE = re.compile(r'^[A-Za-zÀ-ÿ]{1,14}( \d{1,2})?( [A-Za-zÀ-ÿ]{1,12})?$')
-_CLE = re.compile(r'^\w{1,24}$')
+# les mêmes règles que reseau.js (nomAutorise), mêmes listes que donnees.js (EN_LIGNE_NOMS, EN_LIGNE_COULEURS)
+NOMS = ['Éclair', 'Turbo', 'Comète', 'Fusée', 'Tonnerre', 'Mistral', 'Phénix', 'Faucon', 'Panthère', 'Requin', 'Étoile', 'Tempête']
+COULEURS = ['Rouge', 'Bleu', 'Vert', 'Jaune', 'Orange', 'Violet', 'Rose', 'Blanc']
+_NOM_LIBRE = re.compile(r'^[\w _-]+$')
+_PILOTE = re.compile(r'^Pilote [1-9][0-9]?$')
 
-def nom_valide(nom, libres):
-    if not isinstance(nom, str) or not nom.strip() or nom != nom.strip(): return False
-    return bool((_NOM_LIBRE if libres else _NOM_LISTE).match(nom)) and nom.isprintable()
+def nom_valide(nom, libres, nom_max=20):
+    """Le nom (sans espaces autour) : « Pilote N » ou un nom de la liste, avec une couleur de la liste au bout ; libre si on l'autorise."""
+    if not isinstance(nom, str): return False
+    n = nom.strip()
+    if not n or len(n) > nom_max or not n.isprintable(): return False
+    if libres: return bool(_NOM_LIBRE.match(n))
+    mots = n.split(' ')
+    couleur = len(mots) > 1 and mots[-1] in COULEURS
+    base = ' '.join(mots[:-1] if couleur else mots)
+    return base in NOMS or bool(_PILOTE.match(base))
 
 def entier(v, lo, hi):
     return isinstance(v, int) and not isinstance(v, bool) and lo <= v <= hi
 
 def reglages_valides(r):
-    """Les réglages de l'hôte : un petit dictionnaire de valeurs simples ; circuit, tours, meteo, nbIA vérifiés."""
-    if not isinstance(r, dict) or len(r) > 16: return None
-    sortie = {}
-    for k, v in r.items():
-        if not isinstance(k, str) or not _CLE.match(k): return None
-        if isinstance(v, str):
-            if len(v) > 40 or not v.isprintable(): return None
-        elif not (v is None or isinstance(v, (bool, int)) or (isinstance(v, float) and abs(v) < 1e9)): return None
-        sortie[k] = v
-    if 'tours' in sortie and not entier(sortie['tours'], 1, 99): return None
-    if 'nbIA' in sortie and not entier(sortie['nbIA'], 0, 19): return None
-    return sortie
+    """Les réglages d'une course (comme reseau.js) : circuit, tours, meteo, nbIA, rien d'autre."""
+    if not isinstance(r, dict): return None
+    c, m = r.get('circuit'), r.get('meteo')
+    if not (isinstance(c, str) and 0 < len(c) <= 40 and isinstance(m, str) and len(m) <= 20): return None
+    if not (entier(r.get('tours'), 1, TOURS_MAX) and entier(r.get('nbIA'), 0, IA_MAX)): return None
+    return {'circuit': c, 'tours': r['tours'], 'meteo': m, 'nbIA': r['nbIA']}
 
 class Client:
     def __init__(self, ws, ip, cfg):
@@ -228,6 +231,12 @@ class Relais:
             elif now - c.derniere_emote >= self.cfg.delai_emote:   # trop vite : jetée sans bruit
                 c.derniere_emote = now
                 self._diffuser(salle, {'t': 'emote', 'de': c.id, 'i': m['i']}, sauf=c)
+        elif t == 'retour':
+            if c.id != salle.hote or not salle.commencee: return self._erreur(c, 'hote' if c.id != salle.hote else 'pas-commencee')
+            salle.commencee = False
+            for j in salle.joueurs.values(): j.pret = False
+            self._diffuser(salle, {'t': 'retour'})
+            self._diffuser(salle, self._liste(salle))
         elif t == 'quitter':
             self._sortir(c)
             self._armer(c)
@@ -254,7 +263,7 @@ class Relais:
             code = ''.join(self.hasard.choice(CONSONNES) for _ in range(4))
             if code not in self.salles: break
         salle = self.salles[code] = Salle(code)
-        self._entrer(c, salle, m['nom'])
+        self._entrer(c, salle, m['nom'].strip())
 
     def _rejoindre(self, c, m):
         code = m.get('code')
@@ -263,9 +272,9 @@ class Relais:
         if salle.commencee: return self._refuser(c, 'commencee')
         raison = self._controle_entree(c, m)
         if not raison and len(salle.joueurs) >= self.cfg.max_joueurs: raison = 'pleine'
-        if not raison and any(j.nom.lower() == m['nom'].lower() for j in salle.joueurs.values()): raison = 'nom'
+        if not raison and any(j.nom.lower() == m['nom'].strip().lower() for j in salle.joueurs.values()): raison = 'nom'
         if raison: return self._refuser(c, raison)
-        self._entrer(c, salle, m['nom'])
+        self._entrer(c, salle, m['nom'].strip())
 
     def _entrer(self, c, salle, nom):
         c.salle, c.nom, c.pret, c.id = salle, nom, False, salle.suivant
@@ -293,7 +302,6 @@ class Relais:
         reglages = reglages_valides(m.get('reglages'))
         if reglages is None: return self._erreur(c, 'reglages')
         if len(salle.joueurs) < self.cfg.min_pour_lancer: return self._erreur(c, 'seul')
-        if not all(j.pret for j in salle.joueurs.values() if j.id != salle.hote): return self._erreur(c, 'pas-prets')
         salle.commencee = True
         ordre = list(salle.joueurs)
         self.hasard.shuffle(ordre)
