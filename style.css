@@ -288,7 +288,7 @@ body.horsCourse #boutonSon { right: 10px; }
 /* l'arrêt au stand (étape 7) : le message de course, sous l'avis de pénalité */
 #hudStand {
   position: fixed;
-  top: 190px;
+  top: 234px;   /* (tour 55, T17 : sous le drapeau (136 px, deux lignes au plus) et le message de course (200 px), que les 190 px d'avant recouvraient) */
   left: 50%;
   transform: translateX(-50%);
   padding: 4px 14px;
@@ -1139,14 +1139,14 @@ body.deux.cote #boutonSon { top: auto; bottom: 12px; right: 12px; }   /* (côte 
     radial-gradient(circle at 78% 22%, rgba(220, 235, 255, 0.32) 0 4px, transparent 6px), radial-gradient(circle at 88% 67%, rgba(220, 235, 255, 0.3) 0 6px, transparent 8px),
     radial-gradient(circle at 8% 78%, rgba(220, 235, 255, 0.28) 0 5px, transparent 7px), radial-gradient(circle at 55% 82%, rgba(220, 235, 255, 0.25) 0 4px, transparent 6px),
     radial-gradient(circle at 35% 35%, rgba(220, 235, 255, 0.22) 0 3px, transparent 5px), radial-gradient(circle at 71% 9%, rgba(220, 235, 255, 0.26) 0 3px, transparent 5px); }
-#drapeau { position: fixed; top: 128px; left: 50%; transform: translateX(-50%); padding: 6px 18px; border-radius: 6px; font: 900 17px/1.3 var(--police); white-space: nowrap; pointer-events: none; border: 3px solid rgba(0, 0, 0, 0.55); z-index: 5; }   /* (tour 55, T7) le drapeau du joueur */
+#drapeau { position: fixed; top: 136px; max-width: 400px; white-space: normal; text-align: center; left: 50%; transform: translateX(-50%); padding: 6px 18px; border-radius: 6px; font: 900 17px/1.3 var(--police); pointer-events: none; border: 3px solid rgba(0, 0, 0, 0.55); z-index: 5; }   /* (tour 55, T7) le drapeau du joueur */
 #drapeau.jaune, #drapeau.vsc { background: #f5c400; color: #111; }
 #drapeau.bleu { background: #1e6fe0; color: #fff; }
 #drapeau.vert { background: #1fa84a; color: #fff; }
-@media (max-height: 420px) { #drapeau { top: 84px; font-size: 14px; padding: 3px 12px; } }
+@media (max-height: 420px) { #drapeau { top: 106px; font-size: 14px; padding: 3px 12px; white-space: normal; max-width: 270px; text-align: center; } }   /* (tour 55, T17 : sous le chrono (qui finit à 102 px), sur deux lignes entre la minicarte et la tour de classement : la VSC faisait 497 px de large) */
 body.deux #drapeau { display: none; }
 #prevision { margin: 2px 0 6px; font-weight: 700; opacity: 0.9; }
-#messageCourse { position: fixed; top: 176px; left: 50%; transform: translateX(-50%); padding: 6px 14px; border-left: 4px solid #e10600; border-radius: 6px; background: rgba(11, 15, 23, 0.82); font: 800 16px/1.3 var(--police); white-space: nowrap; pointer-events: none; }
+#messageCourse { position: fixed; top: 200px; left: 50%; transform: translateX(-50%); padding: 6px 14px; border-left: 4px solid #e10600; border-radius: 6px; background: rgba(11, 15, 23, 0.82); font: 800 16px/1.3 var(--police); white-space: nowrap; pointer-events: none; }
 
 /* ===============================================================================================================   Le thème télé (étape 11, tour 32, Codeur 3) : le style de tous les écrans entre les courses, défini une seule fois ici,
    en variables CSS (CLAUDE.md « L'interface » : « une vraie retransmission de F1, claire et animée, jamais encombrée »).
@@ -1333,7 +1333,7 @@ body.deux #drapeau { display: none; }
 /* les aides au premier usage (aides.js, interface.js AIDES_ECRAN, Codeur 4) : une bulle de la chaîne télé, une ou deux lignes ;
    en course à gauche sous la minicarte (jamais sur la piste devant la voiture), sur les écrans entre les courses en haut à gauche */
 #bulleAide { position: fixed; z-index: 21; display: flex; align-items: flex-start; gap: 10px; padding: 8px 12px; border-left: 4px solid var(--tv-rouge); border-radius: var(--tv-coin); background: var(--tv-hud); box-shadow: var(--tv-hud-ombre); color: var(--tv-texte); font: 700 13px/1.35 var(--tv-police); text-align: left; cursor: pointer; }
-#bulleAide.bulleCourse { left: 16px; top: max(36%, 226px); max-width: 290px; }   /* (sous le bandeau des stands, au-dessus du radar ; trois lignes au plus) */
+#bulleAide.bulleCourse { left: 16px; top: max(36%, 270px); max-width: 290px; }   /* (sous le bandeau des stands, au-dessus du radar ; trois lignes au plus) */
 #bulleAide.bulleMenu { left: 16px; top: 8px; max-width: min(520px, 38vw); font-size: 12px; }   /* (à gauche du titre centré de l’écran) */
 #bulleAideFermer { color: var(--tv-texte-doux); font-weight: 800; }
 #bulleAide:not(.cache) { animation: tv-message var(--tv-duree-message) ease-out; }
@@ -1932,7 +1932,7 @@ body.tactile.tactileFreinG #radar { --radar-taille: 130px; left: 134px; bottom: 
   body.tactile.tactileFreinG #tactileFrein { left: 12px; right: auto; }
   body.tactile.tactileFreinG #tableau, body.tactile.tactileFreinG #pneusHud { right: 116px; }
   body.tactile.tactileFreinG #radar { --radar-taille: 96px; left: 96px; bottom: 12px; }
-  body.tactile #bulleAide.bulleCourse { top: 156px; max-width: 230px; }
+  body.tactile #bulleAide.bulleCourse { top: 164px; max-width: 190px; }   /* (tour 55, T17 : 164 px sous ⏸ ↩ (qui finissent à 158) ; 190 px pour laisser la place au message de course, décalé à droite) */
 }
 body.tactile.tactileBoutons #radar { --radar-taille: 120px; bottom: 124px; left: 12px; }
 body.tactile.tactileBoutons #aideDirection { display: none; }
@@ -2231,3 +2231,10 @@ body.tactile #discussionCarte { max-height: calc(100dvh - 52px); }
 /* (tour 55) la ligne du commentateur du résumé vidéo : cachée sur un écran tactile (COMMENTAIRE_TEXTE_TACTILE faux, classe posée par principal.js) */
 body.tactile.commentaireSansTexte #resumeCommentaire { display: none !important; }
 body.tactile:has(#pause:not(.cache)) #boutonSon { display: none; }   /* (tour 55b) la pause a ses propres boutons de son : 🔊 en coin recouvrait ses boutons larges en 568×320 */
+
+/* Chasse du tour 55 (T17) : en 640×360 au doigt, le message de course est décalé à droite de la bulle d'aide (elles se recouvraient de 70 px) */
+@media (max-height: 420px) {
+  #bulleAide.bulleCourse { top: max(36%, 226px); }   /* (en peu de hauteur : comme avant le tour 55 T17) */
+  body.tactile #messageCourse { left: 61%; top: 176px; max-width: 220px; white-space: normal; }
+  body.tactile #hudStand { left: 61%; top: 216px; max-width: 230px; white-space: normal; font-size: 12px; line-height: 1.3; padding: 3px 10px; }   /* (le bandeau des stands : à droite de la bulle d'aide, sous le message de course) */
+}
