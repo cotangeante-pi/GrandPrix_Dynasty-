@@ -3168,6 +3168,33 @@ t('commentateur : presque jamais de silence (jamais plus de 4 s sans phrase, du 
   let deux=false;for(let i=1;i<dits.length;i++){const a=dits[i-1][1],b=dits[i][1];if(a.type===b.type&&a.variante===b.variante)deux=true;}v(!deux,'jamais deux fois la même phrase de suite');
   v(dits.every(x=>{const f=COMMENTAIRE.phrase(x[1],k=>'n°'+(k+1),y=>String(y));return f.length>5&&!/\{/.test(f);}),'chaque phrase remplie');
   L.push('  (le commentateur sur 2 tours : '+dits.length+' phrases dont '+combles.length+' pour combler, le plus long silence '+pire.toFixed(2)+' s)');});
+// --- (tour 55, T4) les silences du commentateur, mesurés : la part de silence (la parole estimée à 15 caractères par seconde × VOIX_DEBIT),
+// les phrases perdues par la voix (une seule attend ; une importante prend la place d'une ordinaire : voix.js) et le retard de la voix sur le
+// bandeau, les répétitions (la même phrase écrite dans les 8 dernières ; le même fait avec la même variante), sur 3 courses (sans joueur, joueur au milieu, 2 tours)
+function mesurerCommentaire(graine,joueur,tours){
+  const R_=REGLAGES,e=creerCourseIA(TQ,8,tours,graine,CARTES_T.technique);for(const p_ of e.pilotes) p_.course.compte=0;const c=COMMENTAIRE.creer(graine),dits=[];let fin=null;
+  for(let k=0;k<120*500&&fin===null;k++){pasCourseIA(e,DT);if(k%6===0){COMMENTAIRE.observer(c,e,{joueur,circuit:'X'});const it=COMMENTAIRE.afficher(c,e.temps,false);if(it)dits.push({t:e.temps,it,txt:COMMENTAIRE.phrase(it,q=>'n°'+(q+1),String)});
+    if(e.pilotes.some(p_=>p_.arrivee!==null))fin=e.temps;}}
+  const debut=dits.length?dits[0].t:0,duree=Math.max(1,fin-debut),cps=15*R_.VOIX_DEBIT,dur=d=>d.txt.length/cps;
+  // la voix : une phrase en cours, une en attente (une importante remplace une ordinaire, jamais l'inverse)
+  let libre=-1,attente=null,perdues=0,retardMax=0,parleTotal=0;const parlees=[];
+  const lancer=(d,t_)=>{const b=Math.max(t_,libre);retardMax=Math.max(retardMax,b-d.t);libre=b+dur(d);parlees.push([b,libre]);parleTotal+=dur(d);};
+  for(const d of dits){
+    if(attente&&libre<=d.t){lancer(attente,libre);attente=null;}
+    if(libre<=d.t&&!attente)lancer(d,d.t);
+    else{const imp=d.it.prio>=R_.COMMENTAIRE_IMPORTANT;if(!attente||imp||!(attente.it.prio>=R_.COMMENTAIRE_IMPORTANT)){if(attente)perdues++;attente=d;}else perdues++;}
+  }
+  // la part de temps sans parole (de la première phrase à la fin du leader)
+  let parle=0,suite=debut;for(const [a,b] of parlees){const x=Math.max(a,suite),y=Math.min(b,fin);if(y>x){parle+=y-x;suite=y;}}
+  let rep8=0,memeVariante=0;for(let i=0;i<dits.length;i++){for(let j=Math.max(0,i-8);j<i;j++)if(dits[j].txt===dits[i].txt){rep8++;break;}
+    if(i>0&&dits[i].it.type===dits[i-1].it.type&&dits[i].it.variante===dits[i-1].it.variante)memeVariante++;}
+  const ts=dits.filter(x=>x.t<=fin).map(x=>x.t),trous=ts.slice(1).map((x,i)=>x-ts[i]);
+  return {phrases:dits.length,duree,silence:1-parle/duree,perdues,retardMax,rep8,memeVariante,pireTrou:Math.max(0,...trous),texteOk:dits.every(x=>x.txt.length>5&&!/\{/.test(x.txt))};}
+t('commentateur (tour 55, T4) : la part de silence, les phrases perdues et les répétitions, mesurées sur 3 courses', ()=>{
+  const res=[mesurerCommentaire(7,-1,2),mesurerCommentaire(11,3,2),mesurerCommentaire(21,0,2)];
+  for(const r of res)L.push('  (silence '+(r.silence*100).toFixed(0)+' % · '+r.phrases+' phrases sur '+r.duree.toFixed(0)+' s · perdues '+r.perdues+' · retard max de la voix '+r.retardMax.toFixed(1)+' s · mêmes phrases dans les 8 dernières '+r.rep8+' · même variante de suite '+r.memeVariante+' · plus long trou '+r.pireTrou.toFixed(1)+' s)');
+  v(res.every(r=>r.texteOk),'chaque phrase remplie');
+});
 // (tour 45c2) le championnat dans ce qui comble, en carrière seulement : la place et les points du joueur, le leader, ce que donnerait l'arrivée ;
 // sans les données du championnat (course seule, à deux), jamais ; la course est la même au bit près (le hasard du commentaire seulement)
 t('commentateur : le championnat dans ce qui comble (la place du joueur, le leader, l’arrivée « si ça finit comme ça ») en carrière ; jamais sans championnat', ()=>{
