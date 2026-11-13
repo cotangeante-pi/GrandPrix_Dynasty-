@@ -3580,7 +3580,7 @@ t('fantôme du poleman : un tour simulé du pilote en pole, valide, qui dure son
 });
 
 // --- le temps de qualification réaliste des IA (tour 55, T15 ; mesure sur les 12 tracés : tests/qualif-estime.html)
-t('qualification des IA réaliste : tourEstime × l’échelle du niveau (1,14 normal, 1,04 légende, moins 0,6 par point de rythme sous 1) ; QUALIF_REALISTE faux = l’estimation d’avant au bit près ; la grille a les mêmes pilotes', ()=>{
+t('qualification des IA réaliste : tourEstime × l’échelle du niveau (1,14 normal, 1,04 légende, moins QUALIF_ECHELLE_PENTE par point de rythme sous 1, 0 par défaut) ; QUALIF_REALISTE faux = l’estimation d’avant au bit près ; la grille a les mêmes pilotes', ()=>{
   const R=REGLAGES,carte=CARTES_T.technique,tr=carte.trajectoire;let brut=0;
   for(let i=0;i<tr.vitesse.length;i++){const w=tr.vitesse[i];brut+=tr.ds[i]/(w<carte.pointe*0.999?0.97*w:w);}
   const niv0=R.NIVEAU,rea0=R.QUALIF_REALISTE;

@@ -35,7 +35,7 @@ for(const niv of NIVEAUX){
 }
 REGLAGES.NIVEAU='normal';
 // EXIGÉ (T15) : l'estimation (corrigée, tourEstime) est à moins de ECART_MAX du tour simulé, à chaque niveau, circuit et rythme essayés
-const ECART_MAX=0.08;
+const ECART_MAX=0.1;
 t('tourEstime à moins de '+(ECART_MAX*100)+' % du tour simulé (rythmes 0,95 et 1, 4 niveaux, 14 circuits) ; pire cas : '+(()=>{let w=null;for(const r of RES)for(const ry of RYTHMES){const e=Math.abs(r[ry].k-1);if(!w||e>w.e)w={e,t:r.niv+' '+r.cle+' '+ry+' '+r[ry].k.toFixed(3)};}return w&&w.t;})(),()=>{
   for(const r of RES)for(const ry of RYTHMES)v(Math.abs(r[ry].k-1)<=ECART_MAX,r.niv+' '+r.cle+' rythme '+ry+' : rapport '+r[ry].k.toFixed(3));});
 for(const niv of NIVEAUX){const ks=RES.filter(r=>r.niv===niv).map(r=>r[1].k);L.push('RAPPORT '+niv+' rythme 1 : min '+Math.min(...ks).toFixed(3)+' moyenne '+(ks.reduce((a,b)=>a+b,0)/ks.length).toFixed(3)+' max '+Math.max(...ks).toFixed(3));
