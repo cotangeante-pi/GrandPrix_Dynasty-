@@ -1226,7 +1226,7 @@ const INTERFACE = (function () {
     const g = f.famille === null || f.famille === undefined ? null : ch.dynastie.generations[f.famille];
     $('ficheFamille').textContent = g ? avec(texte('ficheFamille'), { parent: nomPilote({ nom: g.nom, numero: g.numero, humain: true }) }) : '';
     $('ficheInfos').textContent = '';
-    $('ficheInfos').append(texte('numero').replace('{n}', p.numero) + ' · ', pastille(e.couleur), ' ' + avec(texte('ficheEcurie'), { ecurie: nomEcurie(e) }) + (typeof p.age === 'number' ? ' · ' + avec(texte('ficheAge'), { n: p.age }) : ''));
+    $('ficheInfos').append(texte('numero').replace('{n}', p.numero) + ' · ', pastille(e.couleur), ' ' + avec(texte('ficheEcurie'), { ecurie: nomEcurie(e) }) + (typeof p.age === 'number' ? ' · ' + avec(texte('ficheAge'), { n: p.age }) : '') + (typeof p.pays === 'string' && texte('pays_' + p.pays) ? ' · ' + avec(texte('fichePays'), { pays: texte('pays_' + p.pays) }) : ''));
     $('ficheCaractere').textContent = f.mots.length ? avec(texte('ficheCaractere'), { mots: f.mots.map(m => texte('caractere_' + m)).join(', ') }) : '';
     // avant sa première course de la saison : pas de place (« pas encore de classement »)
     $('ficheSaison').textContent = f.saison.courses ? avec(texte('ficheSaison'), { place: f.saison.place, points: f.saison.points, v: f.saison.victoires, p: f.saison.podiums, c: f.saison.courses }) : texte('ficheSaisonAucune');

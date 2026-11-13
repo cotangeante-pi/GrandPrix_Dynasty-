@@ -210,6 +210,7 @@ const SAISONS = (function () {
       while (numerosPris.has(numero)) numero = numero % 99 + 1;
       numerosPris.add(numero);
       const c = tirerCaractere(1);
+      delete p.pays;   // (tour 55, T5) le jeune a sa propre nationalité (championnat.js : completer)
       p.nom = null; p.numero = numero; p.age = R.AGE_ARRIVEE[0] + Math.floor(hasard() * (R.AGE_ARRIVEE[1] - R.AGE_ARRIVEE[0] + 1));
       p.rythme = Math.round((R.RYTHME_ARRIVEE[0] + hasard() * (R.RYTHME_ARRIVEE[1] - R.RYTHME_ARRIVEE[0])) * 10000) / 10000;
       p.caractere = { regularite: c.regularite, agressivite: c.agressivite, erreurs: c.erreurs };
