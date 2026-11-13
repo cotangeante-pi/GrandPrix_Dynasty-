@@ -1,0 +1,45 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>coût des drapeaux</title></head><body>
+<pre id="res"></pre>
+<script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));</script>
+<script src="../donnees.js"></script><script src="../aleatoire.js"></script><script src="../circuits-officiels-a.js"></script><script src="../circuits-officiels-b.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../course.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../drapeaux.js"></script>
+<script>
+// Le coût des drapeaux (tour 55, T19), sur les 12 circuits : le calcul de 20 IA par pas de physique, sans drapeaux (e.sansDrapeaux), avec les drapeaux
+// (l'analyse tous les DRAPEAUX_PERIODE s : incidents, zones, bleus, dépassements) et avec une VSC en cours (toutes les IA ralenties). Les drapeaux ne
+// dessinent rien en 3D (un bandeau HTML) : leurs appels de dessin et triangles sont ceux d'avant, mesurés par tests/lieu.html (PLAFONDS_IMAGE).
+// Le Mac des tests est chargé : on alterne les variantes et on garde la médiane de 5 passages (relatif seulement).
+const L=[];let ok=0,ko=0;
+function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
+const v=(c,m)=>{if(!c)throw new Error(m||'faux');};
+const R=REGLAGES;R.PNEUS_ACTIFS=false;
+const NOMS=R.CALENDRIER_CIRCUITS,PAS=600,PASSAGES=5;
+const mediane=a=>a.slice().sort((x,y)=>x-y)[Math.floor(a.length/2)];
+const cout=(circuit,carte,variante)=>{
+  const e=creerCourseIA(circuit,20,1,3,carte);for(const p of e.pilotes)p.course.compte=0;
+  if(variante==='sans')e.sansDrapeaux=true;
+  const dt=R.PAS_PHYSIQUE;
+  for(let k=0;k<240;k++)pasCourseIA(e,dt);   // l'élan (les voitures roulent, e.go posé)
+  if(variante==='vsc'){e.drapeaux=DRAPEAUX.creer();e.drapeaux.vsc={debut:e.temps,id:1};e.drapeaux.nbVsc=1;}
+  const t0=performance.now();for(let k=0;k<PAS;k++)pasCourseIA(e,dt);
+  return (performance.now()-t0)/PAS;
+};
+const res=[];let ecartMax=0,avecMax=0;
+for(const nom of NOMS) t('coût de 20 IA sur '+nom+' : les drapeaux ajoutent moins de 0,15 ms par pas (ou la moitié du calcul, le plus grand des deux), le tout reste sous 2 ms par pas (médiane de '+PASSAGES+')', ()=>{
+  const c=construireCircuit(CIRCUITS[nom]),carte=carteDepuis(c,calculerTrajectoire(c));
+  const m={sans:[],avec:[],vsc:[]};
+  for(let i=0;i<PASSAGES;i++)for(const k of ['sans','avec','vsc'])m[k].push(cout(c,carte,k));
+  const a=mediane(m.sans),b=mediane(m.avec),d=mediane(m.vsc);ecartMax=Math.max(ecartMax,b-a,d-a);avecMax=Math.max(avecMax,b,d);
+  res.push(nom+' '+a.toFixed(2)+' → '+b.toFixed(2)+' (VSC '+d.toFixed(2)+')');
+  const marge=Math.max(0.15,a*0.5);   // (le bruit d'un passage à l'autre, sur un Mac ou un serveur chargé)
+  v(b-a<marge&&d-a<marge,nom+' : '+a.toFixed(2)+' → '+b.toFixed(2)+' / VSC '+d.toFixed(2)+' ms par pas');
+  v(b<2&&d<2,nom+' : '+b.toFixed(2)+' / '+d.toFixed(2)+' ms par pas, au-dessus de 2');});
+L.push('  (ms par pas, 20 IA, sans → avec drapeaux : '+res.join(' ; ')+')');
+t('l’analyse des drapeaux elle-même : moins de 0,15 ms par appel (20 voitures, 12 circuits), mesurée appel par appel', ()=>{
+  const c=construireCircuit(CIRCUITS.monoco),carte=carteDepuis(c,calculerTrajectoire(c)),e=creerCourseIA(c,20,1,3,carte);for(const p of e.pilotes)p.course.compte=0;
+  for(let k=0;k<2400;k++)pasCourseIA(e,R.PAS_PHYSIQUE);
+  const d=e.drapeaux||(e.drapeaux=DRAPEAUX.creer());let tot=0;const n=400;
+  for(let i=0;i<n;i++){d.t=-Infinity;const t0=performance.now();DRAPEAUX.pas(e,R.PAS_PHYSIQUE);tot+=performance.now()-t0;}
+  L.push('  (une analyse : '+(tot/n).toFixed(4)+' ms ; une tous les '+R.DRAPEAUX_PERIODE+' s = '+(tot/n/(R.DRAPEAUX_PERIODE/R.PAS_PHYSIQUE)).toFixed(5)+' ms par pas)');
+  v(tot/n<0.15,(tot/n).toFixed(4)+' ms');});
+t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
+document.getElementById('res').textContent='RESULTAT '+ok+'/'+(ok+ko)+'\n'+L.join('\n');
+</script></body></html>
