@@ -1723,6 +1723,15 @@ const INTERFACE = (function () {
     $('pneusAdherence').textContent = visible ? texte('pneusAdherence').replace('{p}', (p.perte * 100).toFixed(1).replace('.', texte('virgule'))) : '';
   }
   // le message de course du moment (ou null : caché)
+  // le drapeau du joueur (drapeaux.js : jaune, bleu, VSC, vert) : un bandeau de couleur, jamais seulement une couleur (le texte le dit aussi) ; info : { type, qui? } ou null
+  function majDrapeau(info) {
+    const el = $('drapeau');
+    el.classList.toggle('cache', !info);
+    if (!info) return;
+    for (const c of ['jaune', 'bleu', 'vsc', 'vert']) el.classList.toggle(c, c === info.type);
+    const t = texte('drapeau_' + info.type).replace('{v}', info.limite ? String(Math.round(info.limite * 3.6)) : '');
+    if (el.textContent !== t) el.textContent = t;
+  }
   function majMessage(t) {
     $('messageCourse').classList.toggle('cache', !t);
     if (t && $('messageCourse').textContent !== t) $('messageCourse').textContent = t;
@@ -2057,7 +2066,7 @@ const INTERFACE = (function () {
     ecrireAides();
   }
 
-  return { surClicClassement, marquerSuivie, lireDispositionClavier, dispositionClavier: () => dispoClavier, remplirTouchesDeux, montrerTouchesPause, majRappelDeux, majPneus, majMessage, preparerGrille, preparerAides, ouvrirAides, fermerAides, ecrireAides, aidesDeux, aidesAmi, noterAidesAmi, annoncerMotifs, preparerResume, montrerBoutonResume, majResume, remplirInscription, lireInscription, montrerErreursTournoi, preparerInscription, remplirAToi, majCompteTournoi, preparerPauseTournoi, remplirMancheTournoi, preparerMancheTournoi, remplirFinTournoi, preparerFinTournoi, preparerAmis, remplirDeux, lireDeux, montrerErreursDeux, preparerDeux, remplirPodiumDeux, remplirRivalite, formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, remplirPaddock, pagePaddock, pageDe, preparerPaddock, pageActive: () => pageActive, remplirDiscussion, remplirDiscussionPatron, preparerNegociation, preparerDiscussion, remplirCourrier, preparerCourrier, preparerChampionnat, remplirQualif, preparerQualif,
+  return { majDrapeau, surClicClassement, marquerSuivie, lireDispositionClavier, dispositionClavier: () => dispoClavier, remplirTouchesDeux, montrerTouchesPause, majRappelDeux, majPneus, majMessage, preparerGrille, preparerAides, ouvrirAides, fermerAides, ecrireAides, aidesDeux, aidesAmi, noterAidesAmi, annoncerMotifs, preparerResume, montrerBoutonResume, majResume, remplirInscription, lireInscription, montrerErreursTournoi, preparerInscription, remplirAToi, majCompteTournoi, preparerPauseTournoi, remplirMancheTournoi, preparerMancheTournoi, remplirFinTournoi, preparerFinTournoi, preparerAmis, remplirDeux, lireDeux, montrerErreursDeux, preparerDeux, remplirPodiumDeux, remplirRivalite, formatTemps, formatEcart, nomPilote, nomEcurie, preparerChoix, montrer, majCourse, majClassement, preparerPause, preparerFin, remplirFin, preparerResultats, remplirPodium, remplirResultats, majPreparation, remplirChampionnat, remplirPaddock, pagePaddock, pageDe, preparerPaddock, pageActive: () => pageActive, remplirDiscussion, remplirDiscussionPatron, preparerNegociation, preparerDiscussion, remplirCourrier, preparerCourrier, preparerChampionnat, remplirQualif, preparerQualif,
     remplirDuel, avec, remplirUne, preparerUne, remplirArgent, remplirSolde, remplirGarage, preparerGarage,
     remplirSaison, remplirDuelSaison, remplirContrats, remplirRetraite, preparerSaison, retraiteEnAttente, remplirCeremonie, preparerCeremonie, remplirAlbum, preparerAlbum, remplirBilan, remplirTemple, preparerTemple, preparerReleve, remplirHeritier, lireHeritier, montrerErreurHeritier, remplirAileron, majAileron, preparerAileron, preparerPneusGarage, remplirArbre, preparerArbre, remplirCalendrier, preparerCalendrier,
     remplirSponsors, remplirRappelSponsor, preparerSponsors, remplirFiche, preparerFiche, remplirInterview, montrerEffetInterview, preparerInterview, remplirReputation,

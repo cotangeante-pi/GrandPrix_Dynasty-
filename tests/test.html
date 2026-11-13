@@ -3566,8 +3566,11 @@ t('fantôme du poleman : un tour simulé du pilote en pole, valide, qui dure son
     const e=creerCourseIA(circ,8,2,7,carte),pole=e.pilotes[e.grille[0].numero-1];
     const t0=performance.now(),f=FANTOME_POLE.tour(e),ms=performance.now()-t0;
     v(f&&FANTOME.valide(f),nom+' : un fantôme valide');
-    const k=f.pole.simule/pole.qualif;v(k>0.8&&k<1.3&&f.temps===f.pole.simule,nom+' : le tour simulé ('+f.pole.simule+' s) est du même ordre que le temps de la grille ('+pole.qualif.toFixed(2)+' s) et c’est sa durée');
-    R.FANTOME_POLE_ETIRER=true;try{const g2=FANTOME_POLE.tour(creerCourseIA(circ,8,2,7,carte));v(Math.abs(g2.temps-pole.qualif)<=0.001&&g2.x.length===f.x.length,nom+' : étiré, il dure le temps de la grille ('+g2.temps+')');}finally{R.FANTOME_POLE_ETIRER=false;}
+    const r=f.pole.simule/pole.qualif;
+    v(f.pole.lance===true&&r>0.8&&r<1.3,nom+' : le tour simulé est LANCÉ ('+f.pole.simule+' s, du même ordre que les '+pole.qualif.toFixed(2)+' s de la grille)');
+    v(Math.abs(f.temps-pole.qualif)<0.5&&f.temps<f.pole.simule,nom+' : le fantôme dure le temps de la pole à moins de 0,5 s près ('+f.temps+' s pour '+pole.qualif.toFixed(2)+' s)');
+    R.FANTOME_POLE_ETIRER=false;try{const g2=FANTOME_POLE.tour(creerCourseIA(circ,8,2,7,carte));v(g2.temps===g2.pole.simule&&g2.x.length===f.x.length,nom+' : non étiré, il dure son vrai tour simulé ('+g2.temps+' s)');}finally{R.FANTOME_POLE_ETIRER=true;}
+    R.FANTOME_POLE_LANCE=false;try{const k=FANTOME_POLE.tour(creerCourseIA(circ,8,2,7,carte));v(!k.pole.lance&&Math.abs(k.temps-pole.qualif)<0.5,nom+' : FANTOME_POLE_LANCE faux = le tour parti de l’arrêt de T6 ('+k.pole.simule+' s simulé)');}finally{R.FANTOME_POLE_LANCE=true;}
     const g=FANTOME_POLE.tour(creerCourseIA(circ,8,2,7,carte));v(JSON.stringify(g)===JSON.stringify(f),nom+' : déterministe (le même fantôme)');
     const rejeu=FANTOME.charger(f);v(rejeu&&Math.abs(FANTOME.ecart(rejeu,f.temps,f.fin))<0.05,nom+' : l’écart à l’arrivée vaut 0 contre lui-même');
     const p0=FANTOME.position(rejeu,0),pm=FANTOME.position(rejeu,f.temps/2);v(Math.hypot(pm.x-p0.x,pm.z-p0.z)>50,nom+' : le fantôme avance');
@@ -3687,6 +3690,16 @@ t('dégâts : le message « aileron abîmé / réparé » (messages.js) ; une IA
   MESSAGES.observer(m,[{k:0,degats:0},{k:1,degats:0}]);const y=MESSAGES.afficher(m,100);v(y&&y.type==='repare'&&y.k===0,'réparé : le message');
   const pil=creerPilote(CARTES_T.technique,0.9);v(rythmeDuTour(pil)===0.9,'intact : le rythme d’avant');pil.facteurDegats=1-REGLAGES.DEGATS_IA_RYTHME*0.5;v(rythmeDuTour(pil)<0.9,'abîmé : plus bas');
 });
+
+// --- (revue du tour 55) le bandeau du drapeau s'en va avec la course : au podium, au paddock, il n'est plus montré
+t('drapeaux : majMessages éteint le bandeau du drapeau (INTERFACE.majDrapeau(null)) hors de la course et de la pause, et le laisse à drapeaux.js en course', ()=>{
+  const sauve={ecran:JEU.ecran,plateau:JEU.plateau,deux:JEU.deux,interface:window.INTERFACE},appels=[];
+  try{
+    window.INTERFACE={majMessage:()=>{},majDrapeau:x=>appels.push(x),formatTemps:String};
+    JEU.plateau=creerCourseIA(TQ,2,1,5,CARTES_T.technique);JEU.deux=null;
+    for(const ecran of ['podium','resultats','championnat','titre']){JEU.ecran=ecran;majMessages();}
+    v(appels.length===4&&appels.every(x=>x===null),'appels hors course : '+JSON.stringify(appels));
+  }finally{JEU.ecran=sauve.ecran;JEU.plateau=sauve.plateau;JEU.deux=sauve.deux;if(sauve.interface===undefined)delete window.INTERFACE;else window.INTERFACE=sauve.interface;}});
 
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 ecrire();

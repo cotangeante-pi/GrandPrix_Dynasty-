@@ -143,6 +143,11 @@ t('boutique : l’écran (rendre) dans n’importe quel conteneur : les trois on
   e.onglet='celebration';e.solde=1e6;BOUTIQUE.rendre(div,e,{onglet(){},acheter(){},pub(){},essayer(){}});v(!div.querySelector('.skin[data-id="celebration_feux"] button.acheter').disabled,'acheter possible');
   div.remove();});
 
+t('voiture abîmée (revue du tour 55) : l\u2019aileron de travers change la géométrie, la réparation la rend, et refaire le halo (majHalo) ne répare pas la voiture par erreur', ()=>{
+  const m=VOITURE3D.creer(0xd8262e,true,undefined,3),sig=()=>Array.from(m.corps.geometry.attributes.position.array).join();
+  const intact=sig();VOITURE3D.majDegats(m,0.5);const abime=sig();v(abime!==intact,'la géométrie ne change pas');
+  VOITURE3D.majHalo(m);v(sig()===abime,'le halo refait a réparé l\u2019aileron');
+  VOITURE3D.majDegats(m,0);v(sig()===intact,'la réparation ne rend pas l\u2019aileron droit');});
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 t('console vide (ni avertissement, ni erreur)', ()=>{v(__console.length===0,__console.join(' | '));});
 document.getElementById('res').textContent=`RESULTAT ${ok}/${ok+ko}\n`+L.join('\n');

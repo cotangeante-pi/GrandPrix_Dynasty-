@@ -157,6 +157,7 @@ function lancerCourse(nbTours) {
   } else if (JEU.ia >= 2 || JEU.contre) {
     // ?championnat=1 : le niveau de l'écurie sur le rythme de chaque IA, avant que la carte leur donne un pilote
     JEU.plateau = creerCourseIA(CIRCUIT, JEU.ia, nbTours, Number(PARAMETRES.get('graine')) || 1, JEU.championnat ? null : JEU.carte, JEU.contre);
+    JEU.plateau.sansDrapeaux = !!(JEU.decouverte || (typeof TUTORIEL_ECRAN !== 'undefined' && TUTORIEL_ECRAN.lecon()));   // (tour 55) la découverte et les leçons du tutoriel : pas de drapeaux
     if (JEU.championnat) { CHAMPIONNAT.appliquerNiveaux(JEU.championnat, JEU.plateau, NOM_CIRCUIT); if (JEU.carte) donnerCarte(JEU.plateau, JEU.carte); }
     if (JEU.championnat) poserRivalites(JEU.plateau, JEU.championnat.pilotes.map(q => !!(q && q.rivalite)));   // les rivaux de l'interview (ia.js, Codeur 1)
     if (JEU.championnat) JEU.plateau.ecuries = JEU.championnat.pilotes.map(q => q ? q.ecurie : null);   // les écuries, pour les consignes d'équipe (simulation.js, Codeur 1)
@@ -2473,14 +2474,28 @@ function majPneusHud() {
 // les messages de course (messages.js) : les faits du moteur (meilleur tour, pénalités, stands), lus seulement ; un à la fois
 function majMessages() {
   const e = JEU.plateau, oui = !!e && (JEU.ecran === 'course' || JEU.ecran === 'pause') && !JEU.deux;
-  if (!oui) { INTERFACE.majMessage(null); return; }
+  if (!oui) { INTERFACE.majMessage(null); if (INTERFACE.majDrapeau) INTERFACE.majDrapeau(null); return; }   // (tour 55, revue : le bandeau du drapeau s'en va avec la course, au podium comme au paddock)
   if (!JEU.messages || JEU.messages.plateau !== e) JEU.messages = { plateau: e, m: MESSAGES.creer() };
   const m = JEU.messages.m;
   MESSAGES.observer(m, e.pilotes.map((p, k) => ({ k, meilleurTour: p.course.meilleurTour, penalites: p.course.penalites, auxStands: !!p.course.arretEnCours, degats: p.v.degats })));
   if (typeof METEO3D !== 'undefined') MESSAGES.observerMeteo(m, METEO3D.etat(e));   // « La pluie arrive », « La piste sèche »
+  majDrapeaux(e, m);
   majCommentaire(e, m);
   const msg = MESSAGES.afficher(m, e.temps);
   INTERFACE.majMessage(msg && msg.texte ? msg.texte : msg ? texte('msg_' + msg.type).replace('{qui}', etiquetteVoiture(msg.k)).replace('{temps}', msg.temps === undefined ? '' : INTERFACE.formatTemps(msg.temps)).replace('{s}', msg.s === undefined ? '' : String(msg.s).replace('.', texte('virgule'))) : null);
+}
+
+// les drapeaux (drapeaux.js, tour 55) : le bandeau du drapeau du joueur (jaune, bleu, VSC, vert), et la pénalité d'un dépassement interdit dite au joueur
+function majDrapeaux(e, m) {
+  const d = typeof DRAPEAUX !== 'undefined' ? DRAPEAUX.etatJoueur(e) : null;
+  INTERFACE.majDrapeau(d);
+  if (!e.drapeaux) return;
+  if (!JEU.drapeauxVus || JEU.drapeauxVus.plateau !== e) JEU.drapeauxVus = { plateau: e, n: 0 };
+  const j = e.pilotes.find(p => p.humain);
+  for (; JEU.drapeauxVus.n < e.drapeaux.evenements.length; JEU.drapeauxVus.n++) {
+    const x = e.drapeaux.evenements[JEU.drapeauxVus.n];
+    if (x.type === 'infraction' && j && x.numero === j.numero && e.temps - x.temps < 5) MESSAGES.pousserTexte(m, { type: 'commentaire', texte: '🚩 ' + texte('drapeau_infraction').replace('{s}', String(x.s)) });
+  }
 }
 
 // le commentateur (commentaire.js) : il lit la course, et sa phrase du moment passe dans le bandeau (« 🎙 Gaston Virage : … ») ;

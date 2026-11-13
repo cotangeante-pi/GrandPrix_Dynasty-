@@ -1943,6 +1943,8 @@ def apres_course(pg, titre, l, h):
     pg.click('#boutonPodiumSuite'); clics += 1
     t(f'{titre} : clic 1, « Continuer » : droit à l’interview, avec « Passer » visible', attendre(pg, '() => JEU.ecran === "interview"', None, 5000) and pg.evaluate('() => { const b = document.getElementById("boutonPasCommentaire"); return b.offsetParent !== null && b.textContent === texte("interviewPasser") && !b.classList.contains("petit"); }'))
     pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, f'apres-interview-{l}.png'))
+    # (tour 55, T14) l'interview tient dans l'écran, « Passer » compris (au doigt en 640×360 il finissait à 375 px sur 360)
+    t(f'{titre} : l’interview et son « Passer » tiennent dans l’écran ({l}×{h})', pg.evaluate('() => [...document.querySelectorAll("#interviewCarte, #interviewReponses button, #boutonPasCommentaire")].filter(e => e.offsetParent !== null).every(e => { const r = e.getBoundingClientRect(); return r.right <= innerWidth + 1 && r.bottom <= innerHeight + 1; })'))
     pg.click('#boutonPasCommentaire'); clics += 1
     t(f'{titre} : clic 2, « Passer » : la une du journal, le Grand Prix est enregistré', attendre(pg, '() => JEU.ecran === "une" && JEU.grandPrixFini', None, 5000))
     debut = pg.evaluate('() => performance.now()')
