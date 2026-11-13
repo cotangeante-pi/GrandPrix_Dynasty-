@@ -3480,6 +3480,26 @@ t('commentateur (tour 52f) : à la découverte, un commentateur « tout » ne pa
     if(sansVoix)delete window.VOIX;else{VOIX.taire=sauve.taire;VOIX.dire=sauve.dire;}
     if(sansInterface)delete window.INTERFACE;}});
 
+t('commentateur (tour 55) : sur un écran tactile, plus de bandeau texte du commentateur (la voix reste) ; COMMENTAIRE_TEXTE_TACTILE vrai ou sans tactile : le bandeau d’avant', ()=>{
+  const appels=[],sansInterface=typeof INTERFACE==='undefined',sansVoix=typeof VOIX==='undefined';
+  const sauve={mode:REGLAGES.COMMENTAIRE_MODE,tt:REGLAGES.COMMENTAIRE_TEXTE_TACTILE,ecran:JEU.ecran,contre:JEU.contre,commentaire:JEU.commentaire,jouer:VOIXSONS.jouer,observer:COMMENTAIRE.observer,afficher:COMMENTAIRE.afficher,phrase:COMMENTAIRE.phrase,
+    taire:sansVoix?null:VOIX.taire,dire:sansVoix?null:VOIX.dire,tactile:document.body.classList.contains('tactile')};
+  try{
+    if(sansInterface)window.INTERFACE={formatTemps:String};
+    if(sansVoix)window.VOIX={};
+    VOIX.taire=()=>{};VOIX.dire=()=>{appels.push('dire');};VOIXSONS.jouer=()=>false;
+    COMMENTAIRE.observer=()=>{};COMMENTAIRE.afficher=()=>({type:'depassement',prio:9,comble:false,joueur:true});COMMENTAIRE.phrase=()=>'x';
+    REGLAGES.COMMENTAIRE_MODE='tout';JEU.ecran='course';JEU.contre=false;JEU.commentaire=null;
+    const e={graine:1,temps:10,pilotes:[]};
+    const essai=(tactile,reglage)=>{document.body.classList.toggle('tactile',tactile);REGLAGES.COMMENTAIRE_TEXTE_TACTILE=reglage;appels.length=0;const m=MESSAGES.creer();majCommentaire(e,m);return {texte:MESSAGES.afficher(m,0),voix:appels.join()};};
+    v(REGLAGES.COMMENTAIRE_TEXTE_TACTILE===false,'par défaut : faux');
+    let r=essai(true,false);v(r.texte===null&&r.voix==='dire','tactile : aucun bandeau, la voix parle ('+JSON.stringify(r)+')');
+    r=essai(true,true);v(r.texte&&/🎙/.test(r.texte.texte)&&r.voix==='dire','tactile, réglage vrai : le bandeau d’avant');
+    r=essai(false,false);v(r.texte&&/🎙/.test(r.texte.texte),'sans tactile : le bandeau est là');
+  }finally{document.body.classList.toggle('tactile',sauve.tactile);REGLAGES.COMMENTAIRE_MODE=sauve.mode;REGLAGES.COMMENTAIRE_TEXTE_TACTILE=sauve.tt;JEU.ecran=sauve.ecran;JEU.contre=sauve.contre;JEU.commentaire=sauve.commentaire;VOIXSONS.jouer=sauve.jouer;COMMENTAIRE.observer=sauve.observer;COMMENTAIRE.afficher=sauve.afficher;COMMENTAIRE.phrase=sauve.phrase;
+    if(sansVoix)delete window.VOIX;else{VOIX.taire=sauve.taire;VOIX.dire=sauve.dire;}
+    if(sansInterface)delete window.INTERFACE;}});
+
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 ecrire();
 </script></body></html>

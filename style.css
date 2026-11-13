@@ -2193,3 +2193,6 @@ body.tactile #discussionCarte { max-height: calc(100dvh - 52px); }
   #choixAidesListe .quoi { display: none; }
   #choixAides .boutons button { min-height: 44px; padding: 4px 18px; }
 }
+
+/* (tour 55) la ligne du commentateur du résumé vidéo : cachée sur un écran tactile (COMMENTAIRE_TEXTE_TACTILE faux, classe posée par principal.js) */
+body.tactile.commentaireSansTexte #resumeCommentaire { display: none !important; }

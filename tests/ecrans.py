@@ -1990,6 +1990,14 @@ def tactile_ecran(pg, titre, l, h, page):
     t(f'{titre} : sur un écran tactile, GAZ et FREIN s’affichent pendant la conduite, en bas à droite, dans l’écran, FREIN à gauche de GAZ, en gros (≥ 72 px)',
       pret and e['tactile'] and not e['gaz']['cache'] and not e['frein']['cache'] and dedans(e['gaz']) and dedans(e['frein']) and e['gaz']['x'] > e['W'] / 2 and e['gaz']['y'] > e['H'] / 2 and e['frein']['x'] + e['frein']['l'] <= e['gaz']['x'] + 1
       and e['gaz']['l'] >= 72 and e['frein']['l'] >= 72 and e['gaz']['texte'] == pg.evaluate('() => texte("tac_gaz")') and e['frein']['texte'] == pg.evaluate('() => texte("tac_frein")'), str(e))
+    # (tour 55, le propriétaire 2026-11-12) au doigt, aucun bandeau texte du commentateur (la ligne du résumé vidéo non plus) ; la voix reste
+    sans = pg.evaluate('''() => { const m = MESSAGES.creer(), sauve = [COMMENTAIRE.observer, COMMENTAIRE.afficher, COMMENTAIRE.phrase, REGLAGES.COMMENTAIRE_MODE, JEU.commentaire];
+      try { COMMENTAIRE.observer = () => {}; COMMENTAIRE.afficher = () => ({ type: 'depassement', prio: 9, comble: false, joueur: true }); COMMENTAIRE.phrase = () => 'x'; REGLAGES.COMMENTAIRE_MODE = 'tout'; JEU.commentaire = null;
+        majCommentaire({ graine: 1, temps: 10, pilotes: [] }, m); const r = MESSAGES.afficher(m, 0);
+        const rc = document.getElementById('resumeCommentaire'); if (rc) rc.textContent = 'x';
+        return { bandeau: r, classe: document.body.classList.contains('commentaireSansTexte'), resume: rc ? getComputedStyle(rc).display : 'absent' };
+      } finally { [COMMENTAIRE.observer, COMMENTAIRE.afficher, COMMENTAIRE.phrase, REGLAGES.COMMENTAIRE_MODE, JEU.commentaire] = sauve; } }''')
+    t(f'{titre} : sur un écran tactile, le commentateur n’écrit rien dans le bandeau (ni dans le résumé) ; la voix reste', pret and sans['bandeau'] is None and sans['classe'] and sans['resume'] in ('none', 'absent'), str(sans))
     # (tour 52b) rien ne se chevauche : 🔊 ⏸ ↩, le bandeau du tour, la minicarte, la tour de classement, GAZ / FREIN (ceux qui sont affichés)
     sup = pg.evaluate("""() => { const ids = ['boutonSon', 'tactilePause', 'tactileRemise', 'hudCourse', 'minicarte', 'classement', 'tactileGaz', 'tactileFrein'], r = [];
       for (const id of ids) { const e = document.getElementById(id); if (!e || e.classList.contains('cache') || getComputedStyle(e).display === 'none') continue; const b = e.getBoundingClientRect(); if (b.width > 0) r.push([id, b.left, b.top, b.right, b.bottom]); }
