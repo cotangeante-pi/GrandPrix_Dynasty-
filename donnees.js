@@ -1241,7 +1241,8 @@ const REGLAGES = {
   COMMENTAIRE_COMBLE_APRES_DEPART: 2,   // s après le départ avant de combler
   COMMENTAIRE_IMPORTANT: 7,       // la priorité à partir de laquelle une phrase passe devant les autres à la voix (dépassement du joueur, erreur, arrivée…)
   VOIX_VOLUME: 0.7,               // la voix, sous le moteur : × le volume du commentateur (son.js)
-  VOIX_SONS: false,               // (tour 51c) les voix enregistrées (voix-sons.js, sons/voix/) : éteintes par défaut, ?voixsons=1 ou ⚙ Réglages les allument ; provisoires
+  VOIX_SONS: true,                // (tour 55, T10 ; « avant » = false : le jeu d'avant) les voix enregistrées (voix-sons.js, sons/voix/ : 38 prises Bark du français, une par phrase de la liste) ; ?voixsons=0 ou ⚙ Réglages les coupent
+  VOIX_SONS_LANGUES: ['fr'],      // les langues qui ont des sons (en anglais : la synthèse, comme avant)
   // (tour 55, T2) la foule et l'ambiance (foule.js) : des clameurs et une rumeur faites par le code, dans la famille « ambiance » de son.js
   AMBIANCE_ACTIF: true,           // faux = le jeu d'avant (aucun son de foule) ; « Foule : oui / non » dans ⚙ Réglages
   FOULE_CLAMEURS: { depart: [2.8, 0.55, 0.5], depassement: [1.4, 0.35, 0.25], arrivee: [4.5, 0.8, 0.6] },   // [durée s, volume, montée s]
