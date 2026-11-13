@@ -62,8 +62,20 @@ ANNEXES.append('tests/drapeaux.html')   # les drapeaux : jaune, bleu, VSC (tour 
 ANNEXES.append('tests/carriere-longue.html')   # la carrière entière : 15 saisons, 3 générations, vieilles sauvegardes (tour 55, T1)
 ANNEXES.append('tests/personnalisation.html')   # la personnalisation : livrée, célébration, boutique de skins (tour 48c, Codeur 3)
 ANNEXES.append('tests/reglages-voiture.html')   # les réglages de la voiture (tour 50b, Codeur 2) ; leur tableau sur les 12 tracés : tests/officiels.html
+def chasse_en(delai=600):
+    # (tour 55, T24) l'anglais des nouveautés dans la vraie page, aux 3 tailles (tests/chasse-en.py : une dizaine de secondes)
+    t0 = time.monotonic()
+    p = subprocess.Popen([sys.executable, os.path.join(RACINE, 'tests', 'chasse-en.py')], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True)
+    try: out, err = p.communicate(timeout=delai)
+    except subprocess.TimeoutExpired:
+        os.killpg(p.pid, signal.SIGKILL); out, err = p.communicate(); out += f'\n✘ chasse-en.py : plus de {delai} s, arrêté'
+    if 'RESULTAT' not in out: out += '\n✘ chasse-en.py s’est arrêté sans résultat :\n' + (err or '').strip()[-2000:]
+    print(out.strip()); print(f'⏱ tests/chasse-en.py : {time.monotonic() - t0:.0f} s')
+    return p.returncode == 0 and '✘' not in out
+
 def annexes():
-    return all([serie(p, delai=300 if 'courses' in p else 600 if 'officiels' in p else 120, options=['--virtual-time-budget=5000'] if p.endswith('sdk.html') else []) for p in ANNEXES])
+    pages = all([serie(p, delai=300 if 'courses' in p else 600 if 'officiels' in p else 120, options=['--virtual-time-budget=5000'] if p.endswith('sdk.html') else []) for p in ANNEXES])
+    return chasse_en() and pages
 
 # les parties de la suite, dans l'ordre : moteur (test.html), courses (courses.html, 30 courses entre IA), ecrans (ecrans.py), annexes
 # le paquet Poki (tests/paquet.py, Codeur 3) : le zip fabriqué, puis le jeu ouvert depuis le zip décompressé (vérifications Poki)
