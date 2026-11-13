@@ -123,6 +123,49 @@ def course_aux_doigts(pg, D, nom, etape):
     t(f'{nom} · {etape} : avec la barre d’adresse (50 px de moins), GAZ et FREIN restent dans l’écran', pg.evaluate('() => { const b = id => document.getElementById(id).getBoundingClientRect(); return [b("tactileGaz"), b("tactileFrein")].every(r => r.bottom <= innerHeight + 1 && r.right <= innerWidth + 1); }'))
     pg.set_viewport_size({'width': l, 'height': h}); pg.wait_for_timeout(400)
 
+def nouveautes(pg, nom):
+    """(tour 55, T26) les nouveautés de la nuit au doigt, dans la course de carrière : le bandeau du drapeau (la VSC : le plus long), sa bulle d'aide, un aileron
+    abîmé (son message et sa bulle), la voix. L'état est forcé sans toucher aux vrais chemins : etatJoueur de drapeaux.js rend une VSC (le bandeau, la bulle et
+    la pause suivent comme en vrai), le joueur reçoit des dégâts (physique.js : v.degats ; messages.js et aides.js les lisent)."""
+    pg.evaluate("() => { window.__etatJoueur = DRAPEAUX.etatJoueur; DRAPEAUX.etatJoueur = () => ({ type: 'vsc', limite: REGLAGES.DRAPEAUX_VSC_LIMITE_JOUEUR }); }")
+    vu = attendre(pg, '() => !document.getElementById("drapeau").classList.contains("cache")', None, 20000)
+    t(f'{nom} · nouveautés : le bandeau « VSC » s\u2019affiche en course', vu, pg.evaluate('() => document.getElementById("drapeau").className'))
+    texte = pg.evaluate('() => document.getElementById("drapeau").textContent')
+    t(f'{nom} · nouveautés : le bandeau dit ce qu\u2019il faut faire, avec son texte (pas la couleur seule) : « {texte} »', 'VSC' in texte and len(texte) > 12, texte)
+    bulle = attendre(pg, '() => !document.getElementById("bulleAide").classList.contains("cache")', None, 20000)
+    t(f'{nom} · nouveautés : la bulle d\u2019aide du drapeau apparaît', bulle, pg.evaluate('() => AIDES_ECRAN.affichee()'))
+    pg.wait_for_timeout(400)
+    r = audit(pg, 'course-vsc-bandeau-bulle', nom)
+    box = pg.evaluate('() => { const g = id => { const r = document.getElementById(id).getBoundingClientRect(); return [r.left, r.top, r.right, r.bottom]; }; return { drapeau: g("drapeau"), bulle: g("bulleAide"), W: innerWidth, H: innerHeight }; }')
+    d, bl = box['drapeau'], box['bulle']
+    t(f'{nom} · nouveautés : le bandeau et la bulle tiennent dans l\u2019écran et ne se recouvrent pas', d[0] >= 0 and d[2] <= box['W'] and bl[0] >= 0 and bl[2] <= box['W'] and not (min(d[2], bl[2]) - max(d[0], bl[0]) > 4 and min(d[3], bl[3]) - max(d[1], bl[1]) > 4), json.dumps(box))
+    # (revue T26) rien du HUD de course ne se recouvre, l'eau de la météo comprise (elle recouvrait la tour de classement en 640×360)
+    pg.evaluate('() => { const m = document.getElementById("meteoHud"); m.classList.remove("cache"); document.getElementById("meteoIcone").textContent = "☁"; document.getElementById("meteoEau").textContent = "eau 40 %"; }')
+    sur = pg.evaluate('''() => { const ids = ["hudCourse", "drapeau", "classement", "meteoHud", "pneusHud", "bulleAide", "minicarte", "boutonSon", "tactilePause", "tactileRemise", "tableau", "radar"], out = [];
+      const vus = ids.map(i => [i, document.getElementById(i)]).filter(([, e]) => e && !e.closest(".cache") && getComputedStyle(e).display !== "none").map(([i, e]) => [i, e.getBoundingClientRect()]);
+      for (let a = 0; a < vus.length; a++) for (let b = a + 1; b < vus.length; b++) { const A = vus[a][1], B = vus[b][1];
+        if (Math.min(A.right, B.right) - Math.max(A.left, B.left) > 6 && Math.min(A.bottom, B.bottom) - Math.max(A.top, B.top) > 6) out.push(vus[a][0] + " / " + vus[b][0]); } return out; }''')
+    pg.evaluate('() => document.getElementById("meteoHud").classList.add("cache")')
+    t(f'{nom} · nouveautés : le bandeau, le chrono, la tour de classement, l\u2019eau, les pneus, la bulle et la minicarte ne se recouvrent pas', not sur, sur)
+    photo(pg, os.path.join(CAPTURES, f'tel-{nom.replace(" ", "_").replace("+", "p")}-vsc.png'))
+    # la bulle se ferme au toucher (une bulle de course se cache dans un virage : on attend qu'elle soit là, et on la touche tout de suite)
+    for _ in range(6):
+        if attendre(pg, '() => !document.getElementById("bulleAide").classList.contains("cache")', None, 8000):
+            try: toucher(pg, '#bulleAide', delai=2500); break
+            except Exception: pass
+    t(f'{nom} · nouveautés : un toucher ferme la bulle', attendre(pg, '() => document.getElementById("bulleAide").classList.contains("cache") || AIDES_ECRAN.affichee() !== "drapeauVsc"', None, 5000))
+    pg.evaluate("() => { DRAPEAUX.etatJoueur = window.__etatJoueur; JEU.joueur.degats = 0.45; }")   # l'aileron avant abîmé
+    msg = attendre(pg, '() => !document.getElementById("messageCourse").classList.contains("cache") && /aileron/i.test(document.getElementById("messageCourse").textContent)', None, 20000)
+    t(f'{nom} · nouveautés : le message « aileron avant abîmé » s\u2019affiche', msg, pg.evaluate('() => document.getElementById("messageCourse").textContent'))
+    attendre(pg, '() => AIDES_ECRAN.affichee() === "degats"', None, 20000)
+    pg.wait_for_timeout(400)
+    audit(pg, 'course-degats', nom)
+    t(f'{nom} · nouveautés : la bulle de l\u2019aileron abîmé est montrée', pg.evaluate('() => AIDES_ECRAN.affichee() === "degats"'), pg.evaluate('() => AIDES_ECRAN.affichee()'))
+    photo(pg, os.path.join(CAPTURES, f'tel-{nom.replace(" ", "_").replace("+", "p")}-degats.png'))
+    pg.evaluate('() => { JEU.joueur.degats = 0; }')
+    # la voix : les sons enregistrés et la synthèse n'ont rien cassé (aucun son sans geste : le jeu est déjà touché, SON.actif)
+    t(f'{nom} · nouveautés : la voix est là (VOIXSONS et VOIX chargés, aucune erreur)', pg.evaluate('() => typeof VOIXSONS !== "undefined" && typeof VOIX !== "undefined"'))
+
 def parcours(b, p, nom):
     prof = p.devices[nom]
     l, h = prof['viewport']['width'], prof['viewport']['height']
@@ -182,6 +225,7 @@ def parcours(b, p, nom):
     audit(pg, 'grille', nom)
     attendre(pg, '() => JEU.course.etat !== "compte"', None, 120000)
     course_aux_doigts(pg, None, nom, 'carriere')
+    nouveautes(pg, nom)
     ctx.close()
     return console
 

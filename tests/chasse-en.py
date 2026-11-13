@@ -21,12 +21,13 @@ CHEV = '''() => { const els = [...document.body.children].flatMap(x => [x, ...x.
     if (w > 6 && h > 6) out.push(a.id + " / " + b.id + " " + Math.round(w) + "x" + Math.round(h)); } return out; }'''
 # poser un état dans les vrais éléments puis mesurer, dans la même image (la boucle du jeu les rééteint à l'image suivante)
 POSER = '''(a) => { const [drap, msg, aide, genre] = a;
+  const eau = document.getElementById("meteoHud"); eau.classList.remove("cache"); document.getElementById("meteoEau").textContent = "water 40 %%";   // (l'eau de la météo : elle recouvrait la tour de classement en 640×360, revue T26)
   if (drap) INTERFACE.majDrapeau(drap); if (msg) INTERFACE.majMessage(msg);
   if (aide) { const b = document.getElementById("bulleAide"); b.classList.remove("cache"); document.getElementById("bulleAideTexte").textContent = aide;
     b.classList.toggle("bulleCourse", genre === "course"); b.classList.toggle("bulleMenu", genre !== "course"); }
   const rect = id => { const e = document.getElementById(id), r = e.getBoundingClientRect(); return { id, left: r.left, right: r.right, top: r.top, bottom: r.bottom, h: r.height, w: r.width, sw: e.scrollWidth, cw: e.clientWidth, visible: !e.classList.contains("cache") }; };
   const res = { W: innerWidth, H: innerHeight, elements: ["drapeau", "messageCourse", "bulleAide"].map(rect), chev: (%s)(), insp: (%s)() };
-  INTERFACE.majDrapeau(null); INTERFACE.majMessage(null); document.getElementById("bulleAide").classList.add("cache"); return res; }''' % (CHEV, INSPECTER)
+  INTERFACE.majDrapeau(null); INTERFACE.majMessage(null); eau.classList.add("cache"); document.getElementById("bulleAide").classList.add("cache"); return res; }''' % (CHEV, INSPECTER)
 TEXTES_JS = '''(INTERFACE_TACTILE) => { const g = k => TEXTES.en[k], bandeaux = ['jaune', 'bleu', 'vsc', 'vert'].map(t => [t, g('drapeau_' + t).replace('{v}', '151')]);
   const messages = [g('drapeau_infraction').replace('{s}', '5'), g('msg_degats').replace('{qui}', 'No. 27'), g('msg_repare').replace('{qui}', 'No. 27')]
     .concat(INTERFACE_TACTILE ? [] : ['com_drapeauJaune', 'com_vsc', 'com_drapeauVert', 'com_domicileRival'].flatMap(k => g(k).map(x => '🎙 ' + g('commentateur') + ': ' + x.replace('{qui}', 'Alexander Rossi-Moreau').replace('{lieu}', g('lieu_melbourn')))));
