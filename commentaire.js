@@ -45,6 +45,14 @@ const COMMENTAIRE = (function () {
     if (!v) { c.vu = Object.assign(n, { depart: false, meilleur: null, dernierTour: false, vainqueur: false, pluie: false, joueurArrive: false, podium: false, arrets: [] }); return c; }
     // le départ
     if (!v.depart && e.go !== null) { v.depart = true; pousser(c, e.go, 'depart', prm(n.ordre[0].k), false); }
+    // (tour 55, T7) les drapeaux (drapeaux.js : e.drapeaux.evenements) : le drapeau jaune d'une voiture arrêtée, la VSC et sa fin
+    const D = e.drapeaux;
+    if (D) for (v.drapeaux = v.drapeaux || 0; v.drapeaux < D.evenements.length; v.drapeaux++) {
+      const x = D.evenements[v.drapeaux];
+      if (x.type === 'jaune') pousser(c, t, 'drapeauJaune', prm(x.numero - 1), estJ(x.numero - 1));
+      else if (x.type === 'vsc') pousser(c, t, 'vsc', prm(n.ordre[0].k), false);
+      else if (x.type === 'vert') pousser(c, t, 'drapeauVert', prm(n.ordre[0].k), false);
+    }
     // les dépassements (enregistrés par la course : qui, sur, numéros = indice + 1)
     for (let i = v.depassements; i < n.depassements; i++) {
       const d = e.depassements[i], qui = d.qui - 1, sur = d.sur - 1, pl = n.place.get(qui) ? n.place.get(qui).place : null;

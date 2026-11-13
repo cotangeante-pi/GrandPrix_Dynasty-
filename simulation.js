@@ -346,13 +346,14 @@ function pasCourseIA(e, dt, conduireJoueur) {
   const R = REGLAGES;
   const enCourse = e.pilotes.filter(p => p.arrivee === null);
   const voitures = enCourse.map(p => p.v);
+  if (typeof DRAPEAUX !== 'undefined') DRAPEAUX.pas(e, dt);   // les drapeaux (drapeaux.js, tour 55 : jaune, bleu, VSC)
   if (e.meteo) pasMeteo(e, enCourse, dt);   // la météo (étape 12) ; sans e.meteo (le sec d'avant) : rien ne change
   if (R.PNEUS_ACTIFS && e.circuit.stands) for (const p of enCourse) if (!p.humain) majStandsIA(p, e);   // l'arrêt au stand des IA (étape 7)
   const commandes = enCourse.map(p => !p.humain && courseAutorise(p.course) && p.pilote
     ? piloterIA(p.pilote, p.v, vuesAvecArriere(p, voituresVues(p.v, voitures, e.circuit), enCourse, e.circuit), dt) : COMMANDES_AUCUNE);
   aspirationVoitures(voitures, e.circuit);
   enCourse.forEach((p, k) => {
-    if (p.humain && conduireJoueur) conduireJoueur(p, dt);
+    if (p.humain && conduireJoueur) { conduireJoueur(p, dt); if (typeof DRAPEAUX !== 'undefined') DRAPEAUX.limiter(e, p); }   // (sous VSC : le plafond du joueur)
     else appliquerCommandes(p.v, commandes[k]);
     pasVoiture(p.v, e.circuit, dt);
     // ses pneus s'usent (pneus.js), selon sa gestion des pneus ; son adhérence baisse, la physique et ses lignes la lisent

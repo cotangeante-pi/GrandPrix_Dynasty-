@@ -657,6 +657,28 @@ const REGLAGES = {
   // le public des tribunes (decor-public.js, CLAUDE.md « Le Grand Prix à domicile ») : au Grand Prix à domicile du joueur (sa course
   // de cœur), cette part des spectateurs porte les couleurs de son pays ; les autres, et tout le public ailleurs, celles des écuries
   PUBLIC_DOMICILE_PART: 0.4,
+  // les drapeaux (drapeaux.js, tour 55, T7 ; CLAUDE.md « Les drapeaux », levé par le propriétaire : « ni dégâts ni drapeaux » ne vaut plus) :
+  // jaune (une voiture arrêtée ou sortie : pas de dépassement dans sa zone), bleu (le retardataire laisse passer), VSC (tout le monde ralentit)
+  DRAPEAUX_ACTIFS: true,        // faux : la course d'avant, au bit près (la découverte, le tutoriel et le mode à deux n'en ont jamais)
+  DRAPEAUX_JAUNE: true, DRAPEAUX_BLEU: true, DRAPEAUX_VSC: true,   // chacun peut se couper à part
+  DRAPEAUX_PERIODE: 0.2,        // s : l'analyse (les facteurs posés restent entre deux)
+  DRAPEAUX_DEBUT: 8,            // s après le GO : pas d'incident pendant le départ
+  DRAPEAUX_ARRET_VITESSE: 2.5,  // m/s : sous cette vitesse, une voiture est arrêtée…
+  DRAPEAUX_HERBE_VITESSE: 12,   // … ou sortie sur l'herbe et sous cette vitesse
+  DRAPEAUX_INCIDENT_DUREE: 1.2, // s : un incident commence après tant de temps de lenteur
+  DRAPEAUX_INCIDENT_FIN: 1,     // s : et finit après tant de temps de roulage
+  DRAPEAUX_JAUNE_AVANT: 120, DRAPEAUX_JAUNE_APRES: 40,   // m : la zone jaune autour de la voiture (avant elle, après elle)
+  DRAPEAUX_JAUNE_FACTEUR: 0.82, // la vitesse visée des IA dans la zone jaune
+  DRAPEAUX_PENALITE: 5,         // s : un dépassement sous drapeau jaune ou VSC (une fois par drapeau et par pilote)
+  DRAPEAUX_BLEU_DISTANCE: 90,   // m : le meneur est derrière le retardataire à moins de tant : drapeau bleu
+  DRAPEAUX_BLEU_REPETITION: 12, // s : le même drapeau bleu n'est redit au joueur qu'après tant
+  DRAPEAUX_VSC_ARRET: 4,        // s : une IA arrêtée depuis tant de temps déclenche la VSC
+  DRAPEAUX_VSC_FACTEUR: 0.62,   // la vitesse visée des IA sous VSC
+  DRAPEAUX_VSC_LIMITE_JOUEUR: 42,   // m/s (151 km/h) : le plafond du joueur sous VSC (gaz coupé au-dessus)
+  DRAPEAUX_VSC_FREIN_SEUIL: 1.12, DRAPEAUX_VSC_FREIN: 0.4,   // au-dessus de limite × ça, un peu de frein
+  DRAPEAUX_VSC_DUREE: [8, 40],  // s : la VSC dure au moins ça, au plus ça
+  DRAPEAUX_VSC_PAUSE: 45, DRAPEAUX_VSC_MAX: 2,   // s entre deux VSC, et au plus par course
+  DRAPEAUX_VERT_DUREE: 3,       // s : le drapeau vert montré après la VSC
   PUBLIC_BANDEROLES: 6,         // les banderoles à domicile (« ALLEZ 27 ! » et le nom du joueur, une sur deux)
   GRAINE_PUBLIC: 14000,         // le public est tiré avec la graine du championnat + ce nombre + le numéro du circuit (une suite à part)
   // les discussions avec les pilotes (discussion.js, parle.js, étape 12b) : de petits effets, tous plafonnés, jamais de triche
@@ -1178,7 +1200,7 @@ const REGLAGES = {
   COMMENTAIRE_LONGUEUR_MAX: 60,   // caractères d'une phrase au plus (les noms comptés à 7 lettres) : court, pour ne pas lire en pilotant
   COMMENTAIRE_PEREMPTION: 8,      // s : un fait plus vieux n'est plus dit
   COMMENTAIRE_FILE_MAX: 6,
-  COMMENTAIRE_PRIORITES: { arrivee: 10, podium: 9, arret: 6, depart: 9, depassementTete: 9, dernierTour: 8, joueurArrivee: 8, contact: 7, depassementJoueur: 6, pluie: 6, coteACote: 5, erreur: 5, penalite: 5, depassement: 4, stands: 3, meilleurTour: 3, joueurTete: 2, joueurPlace: 2, glissade: 6,
+  COMMENTAIRE_PRIORITES: { arrivee: 10, podium: 9, arret: 6, depart: 9, vsc: 9, drapeauJaune: 8, drapeauVert: 7, depassementTete: 9, dernierTour: 8, joueurArrivee: 8, contact: 7, depassementJoueur: 6, pluie: 6, coteACote: 5, erreur: 5, penalite: 5, depassement: 4, stands: 3, meilleurTour: 3, joueurTete: 2, joueurPlace: 2, glissade: 6,
     combleTete: 0, combleBagarre: 0, combleTours: 0, combleJoueur: 0, combleMeteo: 0, combleSec: 0, combleChamp: 0, combleChampTete: 0, combleChampProjection: 0 },   // (tour 45c : ce qu'il dit entre deux faits, jamais devant un fait)
   COMMENTAIRE_BONUS_JOUEUR: 2,    // un fait du joueur passe devant (plus de phrases quand le joueur est concerné)
   COMMENTAIRE_GLISSADE_INTERVALLE: 60,   // s : une glissade rattrapée du joueur n'est redite qu'après ça (tour 43)

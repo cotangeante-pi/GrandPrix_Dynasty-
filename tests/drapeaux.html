@@ -1,0 +1,109 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>les drapeaux</title></head><body>
+<pre id="res"></pre>
+<script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));</script>
+<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../course.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../drapeaux.js"></script>
+<script>
+// Les drapeaux (tour 55, T7, drapeaux.js) : une voiture immobilisée à la main (une IA arrêtée en piste) déclenche le drapeau jaune puis la VSC ;
+// les IA ralentissent et n'attaquent pas, le joueur est plafonné, un dépassement interdit coûte 5 s, le drapeau bleu fait céder le retardataire ;
+// réglage coupé = la course d'avant au bit près ; la course est la même à chaque passage.
+const L=[];let ok=0,ko=0;
+function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
+const v=(c,m)=>{if(!c)throw new Error(m||'faux');};
+const R=REGLAGES;R.PNEUS_ACTIFS=false;   // (les arrêts au stand ne sont pas le sujet : stands.html)
+const DT=R.PAS_PHYSIQUE,TQ=construireCircuit(CIRCUITS.technique);
+// une course : nb IA (+ le joueur si joueur), des feux ; immobiliser(e,temps) est appelé à chaque pas (le test arrête une voiture à la main)
+function course(o){
+  const e=creerCourseIA(TQ,o.nb||9,o.tours||3,o.graine||3,undefined,!!o.joueur);if(R.SIMULATION_FEUX)armerFeux(e.pilotes,o.graine||3);
+  if(o.sans)e.sansDrapeaux=true;
+  const robot=(p,dt)=>appliquerCommandes(p.v,courseAutorise(p.course)?piloteRobot(p.v,TQ):COMMANDES_AUCUNE);
+  const pasMax=Math.round((o.secondes||60)/DT),vit=[];
+  for(let k=0;k<pasMax&&e.arrives<e.pilotes.length;k++){
+    pasCourseIA(e,DT,o.joueur?robot:undefined);
+    if(o.immobiliser)o.immobiliser(e);
+    if(o.sonde&&k%12===0)o.sonde(e,k);
+  }
+  return e;
+}
+// la voiture n° 5 (indice 4) s'arrête de t1 à t2 s après le GO, sur la piste
+const arret=(t1,t2,k=4)=>e=>{if(e.go===null)return;const d=e.temps-e.go;if(d>=t1&&d<t2){const w=e.pilotes[k].v;w.u=0;w.v=0;if(w.r!==undefined)w.r=0;}};
+const types=e=>e.drapeaux?e.drapeaux.evenements.map(x=>x.type):[];
+
+t('drapeau jaune puis VSC : une IA arrêtée en piste ouvre une zone jaune (1,2 s), la VSC part après DRAPEAUX_VSC_ARRET s, finit (drapeau vert) après qu’elle roule de nouveau ; dans l’ordre jaune, vsc, vert', ()=>{
+  const e=course({secondes:75,tours:3,immobiliser:arret(14,26)});
+  const ty=types(e);v(ty[0]==='jaune'&&ty.includes('vsc')&&ty.includes('vert')&&ty.indexOf('vsc')<ty.indexOf('vert'),'événements : '+ty);
+  const vsc=e.drapeaux.evenements.find(x=>x.type==='vsc'),jaune=e.drapeaux.evenements[0];
+  v(jaune.numero===5&&vsc.temps-jaune.temps>=R.DRAPEAUX_VSC_ARRET-R.DRAPEAUX_INCIDENT_DUREE-0.5,'jaune '+jaune.temps.toFixed(1)+' vsc '+vsc.temps.toFixed(1));
+  const vert=e.drapeaux.evenements.find(x=>x.type==='vert');v(vert.temps-vsc.temps>=R.DRAPEAUX_VSC_DUREE[0]&&vert.temps-vsc.temps<=R.DRAPEAUX_VSC_DUREE[1]+1,'durée de la VSC '+(vert.temps-vsc.temps).toFixed(1));
+  v(e.drapeaux.nbVsc<=R.DRAPEAUX_VSC_MAX,'trop de VSC');
+  L.push('  (événements : '+ty.join(' ')+' ; VSC de '+(vert.temps-vsc.temps).toFixed(1)+' s)');});
+t('sous VSC et dans la zone jaune : les IA roulent plus lentement qu’avec les drapeaux coupés (même course, même graine), n’attaquent pas, et retrouvent leur rythme après', ()=>{
+  const mesure=sans=>{const vs=[];let drap=0,interdit=0,attaques=0,apres=0;course({secondes:60,tours:3,sans,immobiliser:arret(14,26),sonde:e=>{
+    if(e.go===null)return;const d=e.temps-e.go;if(d>16&&d<24){vs.push(e.pilotes.filter((p,k)=>k!==4&&p.arrivee===null).reduce((a,p)=>a+Math.abs(p.v.u),0)/8);
+      for(const p of e.pilotes) if(p.pilote){if(p.pilote.drapeau)drap++;if(p.pilote.drapeau&&p.pilote.drapeau.interdit&&p.pilote.attaque)attaques++;}}
+    if(d>48)for(const p of e.pilotes) if(p.pilote&&p.pilote.drapeau)apres++;}});return {v:vs.reduce((a,b)=>a+b,0)/vs.length,drap,attaques,apres};};
+  const avec=mesure(false),sans=mesure(true);
+  v(avec.drap>0&&sans.drap===0,'drapeaux posés : '+avec.drap+' / '+sans.drap);
+  v(avec.v<sans.v*0.85,'vitesse moyenne sous VSC '+avec.v.toFixed(1)+' contre '+sans.v.toFixed(1));
+  v(avec.attaques===0,'une IA attaque sous drapeau');v(avec.apres===0,'drapeaux encore posés après la VSC : '+avec.apres);
+  L.push('  (vitesse moyenne des IA pendant la VSC : '+avec.v.toFixed(1)+' m/s contre '+sans.v.toFixed(1)+' sans drapeaux)');});
+t('le joueur sous VSC : sa vitesse ne dépasse pas DRAPEAUX_VSC_LIMITE_JOUEUR (au frein près), le bandeau dit « vsc », puis « vert », puis rien ; hors VSC il roule plus vite que la limite', ()=>{
+  let max=0,maxHors=0;const vus=new Set();
+  const e=course({secondes:75,tours:3,joueur:true,immobiliser:arret(14,26),sonde:e=>{const h=e.pilotes[e.pilotes.length-1];if(e.go===null)return;const d=e.temps-e.go,j=DRAPEAUX.etatJoueur(e);if(j)vus.add(j.type);
+    if(e.drapeaux&&e.drapeaux.vsc&&d>e.drapeaux.vsc.debut-e.go+2)max=Math.max(max,h.v.u);else if(d>8)maxHors=Math.max(maxHors,h.v.u);}});
+  v(vus.has('vsc')&&vus.has('vert'),'bandeaux vus : '+[...vus]);
+  v(max<=R.DRAPEAUX_VSC_LIMITE_JOUEUR*R.DRAPEAUX_VSC_FREIN_SEUIL+3,'vitesse sous VSC '+max.toFixed(1));
+  v(maxHors>R.DRAPEAUX_VSC_LIMITE_JOUEUR+5,'hors VSC '+maxHors.toFixed(1)+' : le test ne prouve rien');
+  L.push('  (le joueur : '+max.toFixed(1)+' m/s au plus sous VSC, '+maxHors.toFixed(1)+' hors VSC)');});
+t('un dépassement dans la zone jaune coûte DRAPEAUX_PENALITE s, une fois par drapeau et par pilote, jamais pour une voiture arrêtée ni au stand ; sous VSC aussi', ()=>{
+  R.DRAPEAUX_VSC=false;let e=course({secondes:34,tours:3,immobiliser:arret(8,100)});   // (la VSC à part : plus bas)
+  try{
+  const d=e.drapeaux;
+  v(d&&d.zones.some(z=>z.numero===5),'pas de zone : '+(d?JSON.stringify([...d.incidents.values()]):'sans drapeaux')+' t='+e.temps.toFixed(1)+' go='+e.go);const z=d.zones.find(z=>z.numero===5),P=e.pilotes;
+  const pen=k=>P[k].course.penalites,avant=pen(2),n0=d.evenements.filter(x=>x.type==='infraction').length;
+  const faux=(qui,sur,x)=>e.depassements.push({temps:e.temps,tour:1,s:z.s+x,endroit:null,qui,sur,stand:false});
+  const pas=()=>{d.t=-Infinity;DRAPEAUX.pas(e,DT);};
+  faux(3,7,-50);pas();v(pen(2)===avant+R.DRAPEAUX_PENALITE,'pénalité : '+(pen(2)-avant));
+  faux(3,8,-30);pas();v(pen(2)===avant+R.DRAPEAUX_PENALITE,'deuxième dépassement du même drapeau : une seule pénalité');
+  const a4=pen(0);faux(1,5,-30);pas();v(pen(0)===a4,'doubler la voiture arrêtée : rien');
+  const a5=pen(5);const loin=d.zones.every(zz=>!DRAPEAUX.dansZone(TQ,zz,z.s+TQ.longueur/2));faux(6,7,TQ.longueur/2);pas();v(!loin||pen(5)===a5,'hors zone : rien');
+  const a6=pen(6);e.depassements.push({temps:e.temps,tour:1,s:z.s-20,endroit:null,qui:7,sur:8,stand:true});pas();v(pen(6)===a6,'aux stands : rien');
+  v(d.evenements.filter(x=>x.type==='infraction').length-n0===1,'événements : '+(d.evenements.filter(x=>x.type==='infraction').length-n0));
+  R.DRAPEAUX_VSC=true;
+  // sous VSC : partout, même hors de toute zone, une fois par VSC et par pilote
+  d.vsc={debut:e.temps,id:99};const a7=pen(7);faux(8,9,TQ.longueur/2);pas();v(pen(7)===a7+R.DRAPEAUX_PENALITE,'VSC : pénalité '+(pen(7)-a7));
+  faux(8,10,TQ.longueur/2);pas();v(pen(7)===a7+R.DRAPEAUX_PENALITE,'VSC : une seule par pilote');}finally{R.DRAPEAUX_VSC=true;}});
+t('drapeau bleu : un retardataire d’un tour de retard devant le meneur à moins de DRAPEAUX_BLEU_DISTANCE m reçoit « laisser » ; il le perd après ; pas de pénalité', ()=>{
+  const e=course({nb:9,tours:8,secondes:1,graine:4});
+  // un faux état : la voiture 2 a un tour de moins que la voiture 1, et la 1 est 40 m derrière la 2 sur la piste
+  const P=e.pilotes,c=TQ;e.go=0;e.temps=20;
+  for(const p of P){p.course.etat='course';p.arrivee=null;}
+  const placer=(p,s,tours)=>{p.v.piste={s,d:0};p.v.u=60;p.course.progression=s+tours*c.longueur;p.course.tours=Array.from({length:tours},()=>({}));p.depart=-1e9;};
+  P.forEach((p,k)=>placer(p,(k*300)%c.longueur,0));
+  placer(P[1],500,1);placer(P[2],540,0);P[1].course.progression=540+c.longueur-40;   // (1 tour et 0 m de plus sur la distance, 40 m derrière sur la piste : un tour de retard pour la 3)
+  const d=e.drapeaux=DRAPEAUX.creer();d.t=-Infinity;
+  // (distanceCourse lit la progression et le départ : on le contrôle par la progression)
+  const dist=distanceCourse;
+  DRAPEAUX.pas(e,DT);
+  v(d.bleus.get(3)===2&&d.bleus.size===1,'bleus : '+JSON.stringify([...d.bleus]));
+  v(P[2].pilote&&P[2].pilote.laisser&&P[2].pilote.laisser.id===P[1].v&&P[2].pilote.laisserBleu,'le retardataire n\u2019a pas reçu « laisser »');
+  const x=[...d.bleus.entries()];
+  // le meneur est passé (il est devant lui) : le drapeau et le « laisser » s'en vont
+  P[1].v.piste={s:600,d:0};d.t=-Infinity;DRAPEAUX.pas(e,DT);v(d.bleus.size===0&&!P[2].pilote.laisser&&!P[2].pilote.laisserBleu,'le bleu reste après le dépassement');L.push('  (bleus posés : '+JSON.stringify(x)+')');
+  v(e.pilotes.every(p=>!p.course.penalites),'une pénalité pour un bleu');});
+t('réglages : DRAPEAUX_ACTIFS faux ou e.sansDrapeaux = la course d’avant au bit près (aucun e.drapeaux, aucun facteur) ; chaque drapeau se coupe à part ; la course est la même à chaque passage', ()=>{
+  const etat=e=>JSON.stringify(e.pilotes.map(p=>[p.v.x,p.v.z,p.v.u,p.arrivee,p.course.penalites]));
+  const a=course({secondes:40,immobiliser:arret(14,26)}),b=course({secondes:40,immobiliser:arret(14,26)});v(etat(a)===etat(b),'pas déterministe');
+  const sans=course({secondes:40,sans:true,immobiliser:arret(14,26)});v(!sans.drapeaux&&etat(sans)!==etat(a),'sansDrapeaux');
+  R.DRAPEAUX_ACTIFS=false;let off;try{off=course({secondes:40,immobiliser:arret(14,26)});}finally{R.DRAPEAUX_ACTIFS=true;}
+  v(!off.drapeaux&&etat(off)===etat(sans),'DRAPEAUX_ACTIFS faux ≠ sans drapeaux');
+  for(const k of ['DRAPEAUX_JAUNE','DRAPEAUX_VSC']){R[k]=false;try{const x=course({secondes:40,immobiliser:arret(14,26)});v(!types(x).includes(k==='DRAPEAUX_JAUNE'?'jaune':'vsc'),k+' coupé : '+types(x));}finally{R[k]=true;}}
+  // une course sans incident n'a aucun drapeau jaune ni VSC (le calme d'avant)
+  const calme=course({secondes:40,graine:9});L.push('  (course sans incident forcé : '+types(calme).join(' ')+')');});
+t('textes : chaque clé de drapeau existe en fr et en en, avec les mêmes variantes ; les placeholders y sont', ()=>{
+  for(const k of ['drapeau_jaune','drapeau_bleu','drapeau_vsc','drapeau_vert','drapeau_infraction','com_drapeauJaune','com_vsc','com_drapeauVert']) v(TEXTES.fr[k]!==undefined&&TEXTES.en[k]!==undefined&&(Array.isArray(TEXTES.fr[k])?TEXTES.fr[k].length===TEXTES.en[k].length:true),k);
+  v(TEXTES.fr.drapeau_vsc.includes('{v}')&&TEXTES.en.drapeau_vsc.includes('{v}')&&TEXTES.fr.drapeau_infraction.includes('{s}')&&TEXTES.en.drapeau_infraction.includes('{s}'),'placeholders');
+  v(TEXTES.fr.com_drapeauJaune.every(x=>x.includes('{qui}'))&&TEXTES.en.com_drapeauJaune.every(x=>x.includes('{qui}')),'qui');
+  for(const k of ['jaune','vsc','vert']) v(R.COMMENTAIRE_PRIORITES[{jaune:'drapeauJaune',vsc:'vsc',vert:'drapeauVert'}[k]]>0,'priorité '+k);});
+t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
+document.getElementById('res').textContent='RESULTAT '+ok+'/'+(ok+ko)+'\n'+L.join('\n');
+</script></body></html>
