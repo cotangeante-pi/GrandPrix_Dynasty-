@@ -72,6 +72,16 @@ t('un dépassement dans la zone jaune coûte DRAPEAUX_PENALITE s, une fois par d
   // sous VSC : partout, même hors de toute zone, une fois par VSC et par pilote
   d.vsc={debut:e.temps,id:99};const a7=pen(7);faux(8,9,TQ.longueur/2);pas();v(pen(7)===a7+R.DRAPEAUX_PENALITE,'VSC : pénalité '+(pen(7)-a7));
   faux(8,10,TQ.longueur/2);pas();v(pen(7)===a7+R.DRAPEAUX_PENALITE,'VSC : une seule par pilote');}finally{R.DRAPEAUX_VSC=true;}});
+t('sous VSC, le plafond du joueur suit la voiture qui roule devant lui (moins de DRAPEAUX_VSC_SUIVI m, même file) : il ne la rattrape pas ; une voiture arrêtée ou plus loin ne limite rien ; DRAPEAUX_VSC_SUIVI = 0 : comme avant', ()=>{
+  const e=course({nb:3,tours:3,secondes:1,graine:5,joueur:true});const P=e.pilotes,h=P[P.length-1],a=P[0];
+  e.go=0;e.temps=20;e.drapeaux=DRAPEAUX.creer();e.drapeaux.vsc={debut:0,id:1};
+  const poser=(g,ua,da,uh)=>{h.v.piste={s:1000,d:0};h.v.u=uh;h.v.gaz=1;h.v.frein=0;a.arrivee=null;a.v.piste={s:1000+g,d:da};a.v.u=ua;};
+  poser(20,25,0.5,40);DRAPEAUX.limiter(e,h);v(h.v.gaz===0&&h.v.frein>0,'derrière une voiture à 25 m/s, 20 m devant : plafonné '+h.v.gaz+' '+h.v.frein);
+  poser(20,3,0.5,30);DRAPEAUX.limiter(e,h);v(h.v.gaz===1,'une voiture arrêtée devant : pas de plafond de suivi');
+  poser(80,25,0.5,30);DRAPEAUX.limiter(e,h);v(h.v.gaz===1,'une voiture à 80 m : pas de suivi');
+  poser(20,25,6,30);DRAPEAUX.limiter(e,h);v(h.v.gaz===1,'une autre file : pas de suivi');
+  poser(20,25,0.5,30);R.DRAPEAUX_VSC_SUIVI=0;try{DRAPEAUX.limiter(e,h);v(h.v.gaz===1,'DRAPEAUX_VSC_SUIVI = 0 : comme avant (30 m/s < 42)');}finally{R.DRAPEAUX_VSC_SUIVI=35;}
+  poser(20,40,0.5,41);DRAPEAUX.limiter(e,h);v(h.v.gaz===1,'la voiture devant roule à la limite : le joueur peut la suivre');});
 t('drapeau bleu : un retardataire d’un tour de retard devant le meneur à moins de DRAPEAUX_BLEU_DISTANCE m reçoit « laisser » ; il le perd après ; pas de pénalité', ()=>{
   const e=course({nb:9,tours:8,secondes:1,graine:4});
   // un faux état : la voiture 2 a un tour de moins que la voiture 1, et la 1 est 40 m derrière la 2 sur la piste

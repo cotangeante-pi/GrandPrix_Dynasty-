@@ -135,7 +135,15 @@ const DRAPEAUX = (function () {
   function limiter(e, p) {
     const d = e && e.drapeaux;
     if (!d || !d.vsc || !actif(e) || !p || !p.v) return;
-    const v = p.v, lim = R.DRAPEAUX_VSC_LIMITE_JOUEUR;
+    const v = p.v;
+    let lim = R.DRAPEAUX_VSC_LIMITE_JOUEUR;
+    // (revue du tour 55) le plafond suit la voiture qui roule devant lui (même file, moins de DRAPEAUX_VSC_SUIVI m, pas une voiture arrêtée) :
+    // il ne la rattrape pas, donc ne la dépasse pas par mégarde ; une voiture arrêtée, elle, ne limite rien (il doit pouvoir la contourner)
+    if (R.DRAPEAUX_VSC_SUIVI > 0 && v.piste) for (const q of e.pilotes) {
+      if (q === p || q.arrivee !== null || !q.v.piste || Math.abs(q.v.u) < R.DRAPEAUX_ARRET_VITESSE * 3) continue;
+      const g = ecartLeLong(e.circuit, q.v.piste.s - v.piste.s);
+      if (g > 0 && g < R.DRAPEAUX_VSC_SUIVI && Math.abs(q.v.piste.d - v.piste.d) < 3) lim = Math.min(lim, q.v.u + Math.max(0, g - 10) * 0.5);
+    }
     if (v.u > lim) { v.gaz = 0; if (v.u > lim * R.DRAPEAUX_VSC_FREIN_SEUIL) v.frein = Math.max(v.frein, R.DRAPEAUX_VSC_FREIN); }
   }
 

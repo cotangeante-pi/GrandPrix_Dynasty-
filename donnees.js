@@ -682,6 +682,7 @@ const REGLAGES = {
   DRAPEAUX_VSC_ARRET: 4,        // s : une IA arrêtée depuis tant de temps déclenche la VSC
   DRAPEAUX_VSC_FACTEUR: 0.62,   // la vitesse visée des IA sous VSC
   DRAPEAUX_VSC_LIMITE_JOUEUR: 42,   // m/s (151 km/h) : le plafond du joueur sous VSC (gaz coupé au-dessus)
+  DRAPEAUX_VSC_SUIVI: 35,       // m : sous VSC, le joueur ne peut pas rattraper la voiture qui roule devant lui à moins de tant (sa vitesse est plafonnée à la sienne : un enfant ne prend pas 5 s pour avoir gardé le gaz) ; 0 = comme avant
   DRAPEAUX_VSC_FREIN_SEUIL: 1.12, DRAPEAUX_VSC_FREIN: 0.4,   // au-dessus de limite × ça, un peu de frein
   DRAPEAUX_VSC_DUREE: [8, 40],  // s : la VSC dure au moins ça, au plus ça
   DRAPEAUX_VSC_PAUSE: 45, DRAPEAUX_VSC_MAX: 2,   // s entre deux VSC, et au plus par course

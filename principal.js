@@ -2474,7 +2474,7 @@ function majPneusHud() {
 // les messages de course (messages.js) : les faits du moteur (meilleur tour, pénalités, stands), lus seulement ; un à la fois
 function majMessages() {
   const e = JEU.plateau, oui = !!e && (JEU.ecran === 'course' || JEU.ecran === 'pause') && !JEU.deux;
-  if (!oui) { INTERFACE.majMessage(null); return; }
+  if (!oui) { INTERFACE.majMessage(null); if (INTERFACE.majDrapeau) INTERFACE.majDrapeau(null); return; }   // (tour 55, revue : le bandeau du drapeau s'en va avec la course, au podium comme au paddock)
   if (!JEU.messages || JEU.messages.plateau !== e) JEU.messages = { plateau: e, m: MESSAGES.creer() };
   const m = JEU.messages.m;
   MESSAGES.observer(m, e.pilotes.map((p, k) => ({ k, meilleurTour: p.course.meilleurTour, penalites: p.course.penalites, auxStands: !!p.course.arretEnCours, degats: p.v.degats })));
