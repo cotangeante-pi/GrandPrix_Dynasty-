@@ -1026,6 +1026,7 @@ function majAttaque(pilote, v, vues, dt) {
   const R = REGLAGES, carte = pilote.carte, c = carte.circuit, p = v.piste, a = pilote.attaque;
   pilote.repos = Math.max(0, pilote.repos - dt);
   if (pilote.stand) return;   // en route vers les stands (étape 7) : il n'attaque pas
+  if (pilote.drapeau && pilote.drapeau.interdit) { if (pilote.attaque) finirAttaque(pilote, false, 'drapeau'); return; }   // (tour 55, T7) drapeau jaune ou VSC : pas d'attaque
   if (pilote.passer) { if (pilote.attaque) finirAttaque(pilote, false, 'consigne'); return; }   // une consigne d'équipe : on le laisse passer, il n'attaque pas
   if (!a) {
     // plus agressif : il attaque plus tôt (après moins de temps retenu)
@@ -1287,6 +1288,7 @@ function piloterIA(pilote, v, vues, dt) {
   // juste après (IA_ERREUR_SUITE), il se remet : il roule à IA_ERREUR_RECUPERATION de sa vitesse visée, c'est là
   // qu'une erreur coûte du temps (seule, l'erreur ne coûtait presque rien : à l'épingle, l'herbe raccourcit même le chemin)
   if (!pilote.erreur && pilote.enErreur) cible *= R.IA_ERREUR_RECUPERATION;
+  if (pilote.drapeau) cible *= pilote.drapeau.facteur;   // (tour 55, T7) sous drapeau jaune ou VSC (drapeaux.js) : sa vitesse visée baisse
   // pendant une erreur et IA_ERREUR_SUITE s après, il cède la place : toute voiture à côté de lui, même un peu en
   // retrait, passe d'abord (il ralentit sous sa vitesse)
   if (pilote.enErreur) for (const w of vues) {

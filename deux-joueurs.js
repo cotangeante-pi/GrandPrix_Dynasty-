@@ -43,6 +43,7 @@ const DEUX_JOUEURS = (function () {
   function creer(circuit, nbIA, nbTours, graine, carte) {
     const n = nbIAValide(nbIA);
     const e = creerCourseIA(circuit, n + 1, nbToursValide(nbTours), graine, carte, true);
+    e.sansDrapeaux = true;   // (tour 55) l'écran partagé : pas de drapeaux (le bandeau se poserait sur une moitié)
     const j1 = e.pilotes[n], j2 = e.pilotes[n + 1];
     j1.humain = true; j1.pilote = null; j1.rythme = null; j1.joueur = 1;
     j2.joueur = 2;
