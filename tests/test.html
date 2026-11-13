@@ -3452,7 +3452,7 @@ t('voix enregistrées : allumées par défaut (tour 55, T10), en français seule
   v(VOIXSONS.disponible===(LANGUE==='fr'),'disponible : vrai seulement dans une langue qui a des sons (le bouton « Voix » du paddock se cache sinon, tour 55 revue)');
   REGLAGES.VOIX_SONS_LANGUES=null;   // (le reste du test : la langue de la page, quelle qu'elle soit)
   const faits=['depart','depassement','depassementTete','depassementJoueur','coteACote','erreur','glissade','contact','arret','stands','pluie','meilleurTour','dernierTour','arrivee','podium','joueurArrivee','penalite'];
-  v(VOIXSONS.CLES.length===21&&VOIXSONS.CLES.every(c=>VOIXSONS.PRISES_DE[c]>=2&&VOIXSONS.PRISES_DE[c]<=3),'21 groupes de 2 ou 3 prises (les 16 du T10, la remontée du T22, 4 des nouveautés du T25)');
+  v(VOIXSONS.CLES.length===21&&VOIXSONS.CLES.every(c=>VOIXSONS.PRISES_DE[c]>=1&&VOIXSONS.PRISES_DE[c]<=3),'21 groupes de 1 à 3 prises (les 16 du T10, la remontée du T22, 4 des nouveautés du T25 à une prise)');
   v(faits.every(f=>VOIXSONS.cleDe(f)&&VOIXSONS.CLES.includes(VOIXSONS.cleDe(f))),'chaque fait a un groupe');
   v(VOIXSONS.cleDe('joueurTete')===null&&VOIXSONS.cleDe('combleTete')===null,'ce qui n’a pas de son reste à la synthèse');
   const lues=[],permis={oui:true};
