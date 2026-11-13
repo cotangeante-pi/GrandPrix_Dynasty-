@@ -16,12 +16,13 @@ const VOIXSONS = (function () {
   const R = REGLAGES;
   // le fait du commentateur (commentaire.js) → le groupe de sons
   // (tour 55, T10) la liste complète des exclamations (tests/voix/liste.json) : 16 groupes, 2 ou 3 phrases chacun, une prise gardée par phrase
-  // (« remontée » n'est pas un fait du commentateur : ses sons ne sont pas dans le jeu)
+  // (« remontée » n'est pas un fait du commentateur : ses sons ne sont pas dans le jeu) ; (tour 55, T25) 4 groupes de plus, 9 prises : drapeau jaune, VSC, drapeau vert, Grand Prix à domicile
   const GROUPE = { depart: 'depart', depassement: 'depassement', depassementTete: 'depassementTete', depassementJoueur: 'depassement',
     coteACote: 'bataille', erreur: 'erreur', glissade: 'glissade', contact: 'contact', arret: 'arret', stands: 'stands', pluie: 'pluie',
-    meilleurTour: 'meilleurTour', dernierTour: 'dernierTour', arrivee: 'arrivee', podium: 'podium', joueurArrivee: 'joueurArrivee', penalite: 'penalite' };
+    meilleurTour: 'meilleurTour', dernierTour: 'dernierTour', arrivee: 'arrivee', podium: 'podium', joueurArrivee: 'joueurArrivee', penalite: 'penalite',
+    drapeauJaune: 'drapeauJaune', vsc: 'vsc', drapeauVert: 'drapeauVert', domicileRival: 'domicile' };   // (tour 55, T25) les drapeaux et le Grand Prix à domicile ; « aileron abîmé » (degats) : pas de prise gardée par le tri, la synthèse parle
   const PRISES_DE = { depart: 3, depassement: 3, depassementTete: 2, bataille: 3, erreur: 3, glissade: 2, contact: 2, arret: 2, stands: 2, pluie: 2,
-    meilleurTour: 3, dernierTour: 2, arrivee: 3, podium: 2, joueurArrivee: 2, penalite: 2 };
+    meilleurTour: 3, dernierTour: 2, arrivee: 3, podium: 2, joueurArrivee: 2, penalite: 2, drapeauJaune: 3, vsc: 2, drapeauVert: 2, domicile: 2 };
   const CLES = Object.keys(PRISES_DE);
   const PRISES = 3;   // au plus trois prises par groupe et par langue
   const DOSSIER = 'sons/voix/';

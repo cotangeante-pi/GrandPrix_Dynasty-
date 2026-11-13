@@ -457,7 +457,7 @@ try:
             import mimetypes
             noms_sons = [n for n in zipfile.ZipFile(ZIP).namelist() if n.startswith('sons/voix/')]
             poids_sons = sum(zipfile.ZipFile(ZIP).getinfo(n).file_size for n in noms_sons)
-            t(f'paquet : les 38 sons des voix (tour 55, T10 : une prise par phrase, 16 groupes, en français seulement) sont dans le zip, et pèsent moins de 700 Ko ({poids_sons} octets)', len(noms_sons) == 38 and all(n.startswith('sons/voix/fr-') for n in noms_sons) and poids_sons < 700000, len(noms_sons))
+            t(f'paquet : les 47 sons des voix (tour 55, T10 : une prise par phrase, 16 groupes ; T25 : 4 groupes de plus, 9 prises ; en français seulement) sont dans le zip, et pèsent moins de 700 Ko ({poids_sons} octets)', len(noms_sons) == 47 and all(n.startswith('sons/voix/fr-') for n in noms_sons) and poids_sons < 700000, len(noms_sons))
             t('paquet : les sons ont un type audio (' + str(mimetypes.guess_type('x.m4a')[0]) + ')', (mimetypes.guess_type('x.m4a')[0] or '').startswith('audio/') or mimetypes.guess_type('x.m4a')[0] is None)
             titre = 'paquet voix enregistrées 1280×720'
             ctx = b.new_context(viewport={'width': 1280, 'height': 720})
@@ -479,7 +479,7 @@ try:
             try: pg.wait_for_function('() => { const e = VOIXSONS.etat()[LANGUE] || {}; return VOIXSONS.CLES.every(c => e[c] === VOIXSONS.PRISES_DE[c]); }', timeout=20000)
             except Exception: pass
             vs = pg.evaluate('() => ({ etat: VOIXSONS.etat(), langue: LANGUE, ctx: SON.etatContexte, joue: VOIXSONS.jouer("depassement"), joues: VOIXSONS.joues })')
-            t(f'{titre} : après la découverte, les 38 sons du français sont chargés et décodés par Chrome ({len(sons_vus)} fichiers), un fait joue un son', len(sons_vus) == 38 and vs['langue'] == 'fr' and all(vs['etat'].get('fr', {}).get(c) == n for c, n in pg.evaluate('() => VOIXSONS.PRISES_DE').items()) and vs['joue'] is True, str([vs, sons_vus[:2]]))
+            t(f'{titre} : après la découverte, les 47 sons du français sont chargés et décodés par Chrome ({len(sons_vus)} fichiers), un fait joue un son', len(sons_vus) == 47 and vs['langue'] == 'fr' and all(vs['etat'].get('fr', {}).get(c) == n for c, n in pg.evaluate('() => VOIXSONS.PRISES_DE').items()) and vs['joue'] is True, str([vs, sons_vus[:2]]))
             pg.evaluate('() => { SON.basculer(); }')
             muet = pg.evaluate('() => ({ coupe: SON.coupe, joue: VOIXSONS.jouer("erreur") })')
             pg.evaluate('() => { SON.basculer(); }')

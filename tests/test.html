@@ -3418,9 +3418,9 @@ t('voix enregistrées : allumées par défaut (tour 55, T10), en français seule
   VOIXSONS._essai({permis:()=>true,ctx:{},sortie:{}},'en',{depart:[{id:'x'}]},true);v(VOIXSONS.jouer('depart')===false,'en anglais : pas de son, la synthèse parle');VOIXSONS._essai(null,null,undefined,false);
   REGLAGES.VOIX_SONS_LANGUES=null;   // (le reste du test : la langue de la page, quelle qu'elle soit)
   const faits=['depart','depassement','depassementTete','depassementJoueur','coteACote','erreur','glissade','contact','arret','stands','pluie','meilleurTour','dernierTour','arrivee','podium','joueurArrivee','penalite'];
-  v(VOIXSONS.CLES.length===16&&VOIXSONS.CLES.every(c=>VOIXSONS.PRISES_DE[c]>=2&&VOIXSONS.PRISES_DE[c]<=3),'16 groupes de 2 ou 3 prises');
+  v(VOIXSONS.CLES.length===20&&VOIXSONS.CLES.every(c=>VOIXSONS.PRISES_DE[c]>=2&&VOIXSONS.PRISES_DE[c]<=3),'20 groupes de 2 ou 3 prises');
   v(faits.every(f=>VOIXSONS.cleDe(f)&&VOIXSONS.CLES.includes(VOIXSONS.cleDe(f))),'chaque fait a un groupe');
-  v(VOIXSONS.cleDe('domicileRival')===null&&VOIXSONS.cleDe('combleTete')===null,'ce qui n’a pas de son reste à la synthèse');
+  v(VOIXSONS.cleDe('joueurTete')===null&&VOIXSONS.cleDe('combleTete')===null,'ce qui n’a pas de son reste à la synthèse');
   const lues=[],permis={oui:true};
   const faux={permis:()=>permis.oui,ctx:{createGain:()=>({gain:{value:0},connect(){}}),createBufferSource:()=>({buffer:null,connect(){},start(){lues.push(this.buffer);},stop(){this.arrete=true;}})},sortie:{}};
   const groupes={};for(const c of VOIXSONS.CLES)groupes[c]=[{id:c+'1'},{id:c+'2'},{id:c+'3'}].slice(0,VOIXSONS.PRISES_DE[c]);
@@ -3603,6 +3603,15 @@ t('qualification des IA réaliste : tourEstime × l’échelle du niveau (1,14 n
     L.push('  (qualification des IA, technique, graine 7 : pole '+pole0.toFixed(2)+' s avant, '+pole.toFixed(2)+' s maintenant)');
   }finally{R.NIVEAU=niv0;R.QUALIF_REALISTE=rea0;}
 });
+
+// --- le fait « aileron abîmé » du commentateur (tour 55, T25) : un aileron qui passe de 0 à plus de 0 est dit une fois (le joueur, ou un pilote du haut de la grille)
+t('commentateur : un aileron qui vient d’être abîmé fait un fait « degats » (une fois, le joueur d’abord) ; DEGATS_ACTIF faux = rien ; la voix : drapeaux et domicile ont leur groupe, l’aileron abîmé pas (aucune prise gardée)', ()=>{
+  const R=REGLAGES,faits=(actif)=>{const sv=R.DEGATS_ACTIF;R.DEGATS_ACTIF=actif;try{const e=creerCourseIA(TQ,4,1,5,CARTES_T.technique),c=COMMENTAIRE.creer(3);
+    COMMENTAIRE.observer(c,e,{joueur:-1,circuit:'X'});c.file.length=0;e.pilotes[0].v.degats=0.4;COMMENTAIRE.observer(c,e,{joueur:0,circuit:'X'});COMMENTAIRE.observer(c,e,{joueur:0,circuit:'X'});
+    return c.file.filter(x=>x.type==='degats');}finally{R.DEGATS_ACTIF=sv;}};
+  const a=faits(true);v(a.length===1&&a[0].params.qui===0&&a[0].joueur===true,'un fait pour le joueur : '+JSON.stringify(a));
+  v(faits(false).length===0,'DEGATS_ACTIF faux : rien');
+  v(VOIXSONS.cleDe('degats')===null&&VOIXSONS.cleDe('drapeauJaune')==='drapeauJaune'&&VOIXSONS.cleDe('vsc')==='vsc'&&VOIXSONS.cleDe('drapeauVert')==='drapeauVert'&&VOIXSONS.cleDe('domicileRival')==='domicile','groupes de voix des nouveautés');});
 
 // --- le Grand Prix à domicile des rivaux (tour 55, T5) : une nationalité par rival (championnat.js : completer), un petit bonus de rythme sur le
 // circuit de son pays (appliquerNiveaux), une phrase du commentateur au départ, une brève du journal s'il est sur le podium
