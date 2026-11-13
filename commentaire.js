@@ -145,6 +145,14 @@ const COMMENTAIRE = (function () {
     const variantes = texte('com_' + item.type), nb = Array.isArray(variantes) ? variantes.length : 1;
     let v = Math.floor(c.rnd() * nb);
     if (nb > 1 && c.derniereCle === item.type + ':' + v) v = (v + 1) % nb;
+    // (tour 55, T4) la même phrase (même fait, même variante, mêmes noms et chiffres) pas deux fois dans les COMMENTAIRE_MEMOIRE dernières : on prend la variante suivante
+    // qui n'a pas servi ; si toutes ont servi, la première tirée (0 = comme avant)
+    const p = item.params || {}, cle = x => item.type + ':' + x + '|' + [p.qui, p.sur, p.place, p.n, p.meteo, p.ecart === undefined ? '' : Math.round(p.ecart)].join(',');
+    if (R.COMMENTAIRE_MEMOIRE > 0 && nb > 1) {
+      const recents = c.recents || (c.recents = []);
+      for (let k = 0; k < nb; k++) { const w = (v + k) % nb; if (!recents.includes(cle(w))) { v = w; break; } }
+      recents.push(cle(v)); if (recents.length > R.COMMENTAIRE_MEMOIRE) recents.shift();
+    }
     item.variante = v;
     c.derniereCle = item.type + ':' + v;
     c.dernier = t;

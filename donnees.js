@@ -1172,7 +1172,8 @@ const REGLAGES = {
   COMMENTAIRE_DECOUVERTE_MODE: 'joueur', // (tour 52f, décision du propriétaire) pendant la course de découverte seulement, un commentateur réglé sur 'tout' ne parle que du joueur ('joueur' ; '' = le réglage du joueur, comme avant) ; la voix (synthèse et voix-sons) aussi ; dès la carrière, le réglage sauvegardé revient
   COMMENTAIRE_MODE: 'tout',       // 'tout', 'joueur' (seulement les faits du joueur, et l'arrivée) ou 'non' (coupé)
   COMMENTAIRE_TEXTE_TACTILE: false, // (tour 55, le propriétaire 2026-11-12 : « enlève les messages du commentateur écrits sur mobile ») sur un écran tactile, le bandeau texte du commentateur (course et résumé) n'est pas affiché, la voix reste ; vrai = comme avant
-  COMMENTAIRE_INTERVALLE: 2.5,    // s : au plus une phrase tous les tant (tour 45c, le propriétaire 2026-11-02 : « presque en tout temps » ; c'était 5)
+  COMMENTAIRE_MEMOIRE: 8,         // (tour 55, T4) la même phrase (mêmes noms et chiffres) n'est pas redite dans les 8 dernières, quand une autre variante existe ; 0 = comme avant
+  COMMENTAIRE_INTERVALLE: 2.0,    // s : au plus une phrase tous les tant (tour 45c, le propriétaire 2026-11-02 : « presque en tout temps » ; c'était 5, puis 2,5 ; 2,0 au tour 55, T4 : silence 4–9 % au lieu de 21–24 %)
   COMMENTAIRE_LONGUEUR_MAX: 60,   // caractères d'une phrase au plus (les noms comptés à 7 lettres) : court, pour ne pas lire en pilotant
   COMMENTAIRE_PEREMPTION: 8,      // s : un fait plus vieux n'est plus dit
   COMMENTAIRE_FILE_MAX: 6,

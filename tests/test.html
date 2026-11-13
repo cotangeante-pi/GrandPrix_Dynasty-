@@ -3195,6 +3195,10 @@ t('commentateur (tour 55, T4) : la part de silence, les phrases perdues et les r
   const res=[mesurerCommentaire(7,-1,2),mesurerCommentaire(11,3,2),mesurerCommentaire(21,0,2)];
   for(const r of res)L.push('  (silence '+(r.silence*100).toFixed(0)+' % · '+r.phrases+' phrases sur '+r.duree.toFixed(0)+' s · perdues '+r.perdues+' · retard max de la voix '+r.retardMax.toFixed(1)+' s · mêmes phrases dans les 8 dernières '+r.rep8+' · même variante de suite '+r.memeVariante+' · plus long trou '+r.pireTrou.toFixed(1)+' s)');
   v(res.every(r=>r.texteOk),'chaque phrase remplie');
+  v(res.every(r=>r.silence<=0.15),'la part de silence ≤ 15 % : '+res.map(r=>(r.silence*100).toFixed(0)).join(' / ')+' %');
+  v(res.every(r=>r.perdues<=2&&r.retardMax<=2),'la voix : au plus 2 phrases perdues par course, jamais plus de 2 s de retard sur le bandeau : '+res.map(r=>r.perdues+'/'+r.retardMax.toFixed(1)).join(' ; '));
+  v(res.every(r=>r.rep8<=2&&r.memeVariante===0),'répétitions : au plus 2 phrases redites dans les 8 dernières, jamais la même variante de suite : '+res.map(r=>r.rep8).join(' / '));
+  const m=REGLAGES.COMMENTAIRE_MEMOIRE;try{REGLAGES.COMMENTAIRE_MEMOIRE=0;const sans=mesurerCommentaire(7,-1,2);v(sans.rep8>=res[0].rep8,'sans mémoire (0) : les répétitions d’avant ('+sans.rep8+' contre '+res[0].rep8+')');}finally{REGLAGES.COMMENTAIRE_MEMOIRE=m;}
 });
 // (tour 45c2) le championnat dans ce qui comble, en carrière seulement : la place et les points du joueur, le leader, ce que donnerait l'arrivée ;
 // sans les données du championnat (course seule, à deux), jamais ; la course est la même au bit près (le hasard du commentaire seulement)
