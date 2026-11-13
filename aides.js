@@ -20,8 +20,16 @@ const AIDES = (function () {
     { id: 'qualif', genre: 'menu', quand: s => s.ecran === 'qualif' && s.qualif === 'choix' && !s.tournoi, faite: () => false },
     // le fantôme : pendant le premier tour de qualification qui en a un (en ligne droite)
     { id: 'fantome', genre: 'course', quand: s => s.ecran === 'qualif' && s.qualif === 'tour' && s.fantome && !s.tournoi && !s.deux, faite: () => false },
+    // (tour 55, T12) le choix « Fantôme : ton record / la pole » : à l'écran de la qualification, quand le fantôme du poleman est possible
+    { id: 'fantomePole', genre: 'menu', quand: s => s.ecran === 'qualif' && s.qualif === 'choix' && s.poleDispo && !s.tournoi, faite: () => false },
     // le premier arrêt obligatoire : pendant le tour où il est conseillé (et après, tant qu'il n'est pas fait) ; fermée dans la voie
     { id: 'stand', genre: 'course', quand: s => enCourse(s) && s.etat === 'course' && !!s.arretConseille && !s.arretFait && s.tour + 1 >= s.arretConseille, faite: s => s.dansStands || s.arretFait },
+    // (tour 55, T12, T8) l'aileron avant abîmé du joueur : moins d'adhérence ; fermée dans la voie des stands (où il est réparé)
+    { id: 'degats', genre: 'course', quand: s => enCourse(s) && s.etat === 'course' && s.degats > 0, faite: s => s.dansStands },
+    // (tour 55, T12, T7) les drapeaux : la première fois qu'on voit chacun (jaune, bleu, VSC), tant qu'il est là
+    { id: 'drapeauJaune', genre: 'course', quand: s => enCourse(s) && s.etat === 'course' && s.drapeau === 'jaune', faite: s => s.drapeau !== 'jaune' },
+    { id: 'drapeauBleu', genre: 'course', quand: s => enCourse(s) && s.etat === 'course' && s.drapeau === 'bleu', faite: s => s.drapeau !== 'bleu' },
+    { id: 'drapeauVsc', genre: 'course', quand: s => enCourse(s) && s.etat === 'course' && s.drapeau === 'vsc', faite: s => s.drapeau !== 'vsc' },
     // la première pluie : passer aux pneus pluie au prochain arrêt ; fermée dans la voie des stands
     { id: 'pluie', genre: 'course', quand: s => enCourse(s) && s.etat === 'course' && s.eau >= R.AIDES_PLUIE_EAU, faite: s => s.dansStands },
     // la première consigne d'équipe qui vise le joueur, tant qu'il n'a pas répondu
@@ -32,6 +40,8 @@ const AIDES = (function () {
     { id: 'garage', genre: 'menu', quand: s => s.ecran === 'garage', faite: () => false },
     { id: 'aileron', genre: 'menu', quand: s => s.ecran === 'aileron', faite: () => false },
     { id: 'duel', genre: 'menu', quand: s => s.ecran === 'championnat' && s.coequipier && !s.choixAides, faite: () => false },   // (le choix des aides ouvert par-dessus : sa bulle à lui)
+    // (tour 55, T12, T5) le Grand Prix à domicile d'un rival : au paddock, quand la prochaine course est celle du pays d'un rival
+    { id: 'rivalDomicile', genre: 'menu', quand: s => s.ecran === 'championnat' && s.rivalDomicile && !s.choixAides, faite: () => false },
     { id: 'contrats', genre: 'menu', quand: s => s.ecran === 'contrats', faite: () => false },
     { id: 'interview', genre: 'menu', quand: s => s.ecran === 'interview', faite: () => false },
     // (tours 37g, 37l) les pneus drift (la voiture vivante, la règle du propriétaire du 2026-10-29) : la première course avec eux, en ligne droite
@@ -50,6 +60,14 @@ const AIDES = (function () {
     let pire = 0;
     for (let k = 0; k <= n; k++) pire = Math.max(pire, Math.abs(c.courbure[(v.piste.indice + k) % c.nb]));
     return pire;
+  }
+
+  // un rival à domicile à la prochaine course de la carrière (championnat.js : rivauxADomicile)
+  function rivalDomicile(J) {
+    const ch = J.championnat;
+    if (!ch || !ch.calendrier || typeof CHAMPIONNAT === 'undefined' || !CHAMPIONNAT.rivauxADomicile) return false;
+    const gp = ch.calendrier[ch.prochain];
+    return !!gp && CHAMPIONNAT.rivauxADomicile(ch, gp.circuit).length > 0;
   }
 
   // ce que les conditions lisent, tiré de l'état du jeu sans rien y changer ; meteo : { pluie, eau } (METEO3D.etat) ou null
@@ -75,6 +93,11 @@ const AIDES = (function () {
       courbure: courbureDevant(circuit, v),
       // (tour 37l) le pneu drift du joueur (pneus.js : v.typePneus === 'drift')
       drift: !!(v && v.typePneus === 'drift'),
+      // (tour 55, T12) les nouveautés : l'aileron abîmé, le drapeau du joueur (drapeaux.js), le fantôme du poleman possible, un rival à domicile
+      degats: v && R.DEGATS_ACTIF ? v.degats || 0 : 0,
+      drapeau: J.plateau && typeof DRAPEAUX !== 'undefined' && DRAPEAUX.etatJoueur(J.plateau) ? DRAPEAUX.etatJoueur(J.plateau).type : null,
+      poleDispo: typeof polePossible === 'function' && !!polePossible(),
+      rivalDomicile: rivalDomicile(J),
       pneusDrift: typeof METEO !== 'undefined' && Array.isArray(METEO.TYPES) && METEO.TYPES.includes('drift'), choixAides: !!J.choixAides, pneusTouches: !!J.pneusTouches,
     };
   }
