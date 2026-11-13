@@ -3465,6 +3465,9 @@ t('voix enregistrées : allumées par défaut (tour 55, T10), en français seule
   v(lues.length===faits.length&&lues.every(b=>b&&b.id),'chaque son joué est une prise');
   lues.length=0;let ok=true;for(let i=0;i<60;i++){VOIXSONS.jouer('depassement');if(i>0&&lues[i]===lues[i-1])ok=false;}
   v(ok,'jamais la même prise deux fois de suite');
+  VOIXSONS._essai(faux,LANGUE,{depart:[{length:24000,numberOfChannels:1},{length:12000,numberOfChannels:1}],erreur:[{id:'x'}]},true);
+  v(VOIXSONS.memoire()===(24000+12000)*4&&REGLAGES.VOIX_SONS_FREQUENCE===24000,'la mémoire des sons décodés : float32 × échantillons × canaux ('+VOIXSONS.memoire()+' octets), 24 kHz');
+  VOIXSONS._essai(faux,LANGUE,groupes,true);
   v(new Set(lues).size===3,'les trois prises servent');
   permis.oui=false;const n=lues.length;
   v(VOIXSONS.jouer('erreur')===false&&lues.length===n,'son coupé : muet (et la synthèse décidera)');
@@ -3625,7 +3628,7 @@ t('fantôme du poleman : un tour simulé du pilote en pole, valide, qui dure son
 t('qualification des IA réaliste : tourEstime × l’échelle du niveau (1,14 normal, 1,04 légende, moins QUALIF_ECHELLE_PENTE par point de rythme sous 1, 0 par défaut) ; QUALIF_REALISTE faux = l’estimation d’avant au bit près ; la grille a les mêmes pilotes', ()=>{
   const R=REGLAGES,carte=CARTES_T.technique,tr=carte.trajectoire;let brut=0;
   for(let i=0;i<tr.vitesse.length;i++){const w=tr.vitesse[i];brut+=tr.ds[i]/(w<carte.pointe*0.999?0.97*w:w);}
-  const niv0=R.NIVEAU,rea0=R.QUALIF_REALISTE;
+  const niv0=R.NIVEAU,rea0=R.QUALIF_REALISTE,cir0=R.QUALIF_ECHELLE_CIRCUIT_ACTIF;R.QUALIF_ECHELLE_CIRCUIT_ACTIF=false;   // (T23 : ici l'échelle du niveau, celle du T15)
   try{
     R.QUALIF_REALISTE=false;v(tourEstime(carte,0.97)===brut,'faux : pas l’estimation d’avant');
     R.QUALIF_REALISTE=true;
@@ -3635,7 +3638,26 @@ t('qualification des IA réaliste : tourEstime × l’échelle du niveau (1,14 n
     v(e.grille.map(g=>g.numero).sort().join()===e0.grille.map(g=>g.numero).sort().join(),'pas les mêmes pilotes');
     const pole=e.grille[0].qualif,pole0=e0.grille[0].qualif;v(pole>pole0*1.08&&pole<pole0*1.2,'la pole : '+pole0.toFixed(2)+' → '+pole.toFixed(2));
     L.push('  (qualification des IA, technique, graine 7 : pole '+pole0.toFixed(2)+' s avant, '+pole.toFixed(2)+' s maintenant)');
-  }finally{R.NIVEAU=niv0;R.QUALIF_REALISTE=rea0;}
+  }finally{R.NIVEAU=niv0;R.QUALIF_REALISTE=rea0;R.QUALIF_ECHELLE_CIRCUIT_ACTIF=cir0;}
+});
+// T23 : l'échelle de qualification par circuit (donnees.js QUALIF_ECHELLE_CIRCUIT, tests/qualif-echelles.py)
+t('qualification des IA par circuit : la table couvre les 14 circuits et 4 niveaux ; tourEstime = brut × l’échelle du circuit ; QUALIF_ECHELLE_CIRCUIT_ACTIF faux = l’échelle du niveau ; la grille garde ses pilotes et son ordre',()=>{
+  const R=REGLAGES,carte=CARTES_T.technique,tr=carte.trajectoire;let brut=0;
+  for(let i=0;i<tr.vitesse.length;i++){const w=tr.vitesse[i];brut+=tr.ds[i]/(w<carte.pointe*0.999?w:w);}
+  const niv0=R.NIVEAU,cir0=R.QUALIF_ECHELLE_CIRCUIT_ACTIF,pente0=R.QUALIF_ECHELLE_PENTE;
+  try{
+    const noms=['Test','Technique'].concat(Object.values(CIRCUITS_OFFICIELS_A).concat(Object.values(CIRCUITS_OFFICIELS_B)).map(d=>d.nom));
+    v(noms.length===14,'14 circuits');
+    for(const niv of ['debutant','normal','expert','legende']){const tab=R.QUALIF_ECHELLE_CIRCUIT[niv];v(!!tab,'niveau '+niv);for(const nom of noms)v(typeof tab[nom]==='number'&&tab[nom]>1&&tab[nom]<1.3,niv+' '+nom+' : '+tab[nom]);}
+    R.QUALIF_ECHELLE_PENTE=0;R.QUALIF_ECHELLE_CIRCUIT_ACTIF=true;
+    for(const niv of ['normal','expert']){R.NIVEAU=niv;v(Math.abs(tourEstime(carte,1)-brut*R.QUALIF_ECHELLE_CIRCUIT[niv]['Technique'])<1e-9,niv+' : brut × l’échelle du circuit');}
+    R.NIVEAU='normal';R.QUALIF_ECHELLE_CIRCUIT_ACTIF=false;
+    v(Math.abs(tourEstime(carte,1)-brut*R.NIVEAUX.normal.qualifEchelle)<1e-9,'faux : l’échelle du niveau');
+    R.QUALIF_ECHELLE_CIRCUIT_ACTIF=true;const e=creerCourseIA(TQ,10,2,11,carte);R.QUALIF_ECHELLE_CIRCUIT_ACTIF=false;const e0=creerCourseIA(TQ,10,2,11,carte);
+    v(e.grille.map(g=>g.numero).join()===e0.grille.map(g=>g.numero).join(),'l’ordre de la grille a changé');
+    const r=e.grille[0].qualif/e0.grille[0].qualif;v(Math.abs(r-R.QUALIF_ECHELLE_CIRCUIT.normal.Technique/R.NIVEAUX.normal.qualifEchelle)<1e-9,'la pole change de ce rapport : '+r);
+    L.push('  (qualification des IA, technique, normal : échelle du circuit '+R.QUALIF_ECHELLE_CIRCUIT.normal.Technique+' contre '+R.NIVEAUX.normal.qualifEchelle+' pour le niveau ; pole '+e0.grille[0].qualif.toFixed(2)+' → '+e.grille[0].qualif.toFixed(2)+' s)');
+  }finally{R.NIVEAU=niv0;R.QUALIF_ECHELLE_CIRCUIT_ACTIF=cir0;R.QUALIF_ECHELLE_PENTE=pente0;}
 });
 
 // --- le Grand Prix à domicile des rivaux (tour 55, T5) : une nationalité par rival (championnat.js : completer), un petit bonus de rythme sur le
