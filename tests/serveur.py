@@ -208,6 +208,18 @@ async def tests_salles(port, rel):
     await h.env(t='lancer', reglages={'circuit': 'spa', 'tours': 2, 'meteo': 'sec', 'nbIA': 0}); d = await b.jusqua('depart')
     t('retour : on peut relancer, nouvelle graine possible', d['reglages']['circuit'] == 'spa' and sorted(d['ordre']) == [1, 2, 3], d)
     await fin([h, b, c3]); await asyncio.sleep(0.2)
+    # --- « parti » vient APRÈS la dernière cmd du joueur (même file), paquets de 4 entiers de 14 bits (cœur lockstep) ---
+    code, (h, b, c) = await salle_de(port, ['Pilote 1', 'Pilote 2', 'Pilote 3'], lancee=True)
+    for n in range(200): await c.env(t='cmd', n=n, c=[(n * 37 + k) % 16384 for k in range(4)])
+    await c.ws.close()
+    for x in (h, b):
+        ms = []
+        while True:
+            m = await x.lire()
+            if m['t'] in ('cmd', 'parti'): ms.append(m)
+            if m['t'] == 'parti': break
+        t('en course : 200 paquets de 4 entiers 14 bits arrivent dans l’ordre, puis « parti » en dernier', [m['n'] for m in ms[:-1]] == list(range(200)) and ms[-1] == {'t': 'parti', 'id': 3} and ms[0]['c'] == [0, 1, 2, 3], (len(ms), ms[-1]))
+    await fin([h, b]); await asyncio.sleep(0.2)
     # --- une partie : un joueur parti en pleine course ---
     code, (h, b, c) = await salle_de(port, ['Pilote 1', 'Pilote 2', 'Pilote 3'], lancee=True)
     await c.ws.close()
