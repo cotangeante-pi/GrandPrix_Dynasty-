@@ -15,13 +15,15 @@ const TUTORIEL = (function () {
     { id: 'stand', adresse: 'course=2' },                                                     // seul : l'arrêt, sans excès de vitesse
     { id: 'pluie', adresse: 'course=3&ia=1&joueur=1&niveau=debutant&meteo=averse' },    // l'averse arrive : changer de pneus
     { id: 'visite', adresse: 'championnat=1' },                                               // le paddock, le garage, l'aileron
+    { id: 'drapeaux', adresse: 'course=3&ia=1&joueur=1&niveau=debutant' },                  // (tour 55, T20) une voiture arrêtée sur l'herbe : drapeau jaune, VSC ; puis l'aileron abîmé, réparé au stand
     { id: 'vivante', adresse: 'course=0&circuit=technique&pneus=drift' },                    // (tours 37j, 37l, 44) le drift, à l'épingle du technique : en pneus drift (la voiture vivante), puis en adhérant
   ];
   LECONS.forEach((l, i) => { l.numero = i + 1; });
   // (tour 48b) le drift caché (PNEU_DRIFT) : la 8e leçon n'est plus proposée, le tutoriel revient à 7 leçons (la 8e est la dernière : les
   // numéros des 7 autres ne bougent pas)
-  const leconOuverte = l => l.id !== 'vivante' || R.PNEU_DRIFT;
-  const lecons = () => LECONS.filter(leconOuverte);
+  // (tour 55, T20) la leçon des drapeaux se cache avec TUTO_LECON_DRAPEAUX faux (alors 7 leçons, comme avant)
+  const leconOuverte = l => (l.id !== 'vivante' || R.PNEU_DRIFT) && (l.id !== 'drapeaux' || R.TUTO_LECON_DRAPEAUX);
+  const lecons = () => { const ls = LECONS.filter(leconOuverte); ls.forEach((l, i) => { l.numero = i + 1; }); return ls; };   // (tour 55, T20 : les numéros suivent les leçons proposées)
   const parId = () => { const p = {}; for (const l of lecons()) p[l.id] = l; return p; };
 
   // le virage de la leçon du freinage : le plus serré du circuit ; la zone chronométrée va de TUTO_ZONE_AVANT m avant lui (les plots
@@ -53,6 +55,7 @@ const TUTORIEL = (function () {
       pneus: v ? v.typePneus || 'slick' : 'slick', eau: J.plateau && J.plateau.meteo ? J.plateau.meteo.eau : 0,
       devant: !!(ordre && J.plateau && ordre.length > 1 && ordre[0].k === J.suivie),
       longueur: circuit ? circuit.longueur : 0,
+      penalites: c ? c.penalites || 0 : 0, degats: v ? v.degats || 0 : 0,   // (tour 55, T20 : les pénalités du joueur, l'aileron abîmé)
       // (tour 37j) l'arrière qui glisse (0 à 1, sensations.js glisseArriere : la voiture vivante), lu sans rien changer
       ...(g => ({ arriere: g.arriere, alpha: g.alpha }))(v && typeof SENSATIONS !== 'undefined' && SENSATIONS.glisseArriere ? SENSATIONS.glisseArriere(v) : { arriere: 0, alpha: 0 }),
     };
@@ -60,7 +63,7 @@ const TUTORIEL = (function () {
 
   function creerSuivi(id, circuit) {
     return { id, t: 0, resultat: 'encours', raison: null, zone: (id === 'freinage' || id === 'vivante') && circuit ? zoneFreinage(circuit) : null,
-      dans: null, essais: 0, meilleur: null, dernier: null, devantDepuis: 0, visites: {}, sAvant: null, pluieVue: false, phase: id === 'vivante' ? 'drift' : null };
+      dans: null, essais: 0, meilleur: null, dernier: null, devantDepuis: 0, visites: {}, sAvant: null, pluieVue: false, phase: id === 'vivante' ? 'drift' : id === 'drapeaux' ? 'jaune' : null, arrete: null, vu: false, poser: false, libere: false };
   }
 
   const fini = (su, resultat, raison) => { su.resultat = resultat; su.raison = raison || null; return resultat; };
@@ -143,6 +146,26 @@ const TUTORIEL = (function () {
         if (su.pluieVue && s.arrets >= 1 && !s.arretEnCours) return s.pneus !== 'slick' ? fini(su, 'reussie') : fini(su, 'ratee', 'pneus');
         if (s.etat === 'finie') return fini(su, 'ratee', 'pasArret');
         break;
+      case 'drapeaux': {
+        // (tour 55, T20) 1) « jaune » : la scène (TUTORIEL.scene) gare une IA sur l'herbe, loin devant ; drapeau jaune puis VSC ; il faut la passer
+        // sans pénalité (aucun dépassement sous drapeau) ; 2) « aileron » : l'aileron est abîmé (TUTO_DRAPEAUX_DEGATS), il faut le faire réparer au stand
+        const L = s.longueur;
+        if (su.phase === 'jaune') {
+          if (!su.arrete) break;   // la scène n'est pas encore posée
+          if (s.penalites > su.arrete.penalites + 1e-9) return fini(su, 'ratee', 'drapeau');
+          if (enCourse && s.s !== null) {
+            if (avance(s.s, su.arrete.s, L) < R.TUTO_DRAPEAUX_VU) su.vu = true;   // il s'est approché de la voiture arrêtée
+            const apres = avance(su.arrete.s, s.s, L);
+            if (su.vu && apres > R.TUTO_DRAPEAUX_PASSE && apres < L / 2) { su.phase = 'aileron'; su.poser = true; }
+          }
+          if (s.etat === 'finie') return fini(su, 'ratee', 'pasPasse');
+        } else {
+          if (s.penalitesStands > 0 || s.excesStands > 0) return fini(su, 'ratee', 'vitesse');
+          if (s.arrets >= 1 && !s.arretEnCours && !su.poser) return s.degats > 0 ? fini(su, 'ratee', 'pasRepare') : fini(su, 'reussie');
+          if (s.etat === 'finie') return fini(su, 'ratee', 'pasArret');
+        }
+        break;
+      }
       case 'visite':
         if (s.ecran === 'garage' || s.ecran === 'aileron') su.visites[s.ecran] = true;
         if (su.visites.garage && su.visites.aileron && s.ecran === 'championnat') return fini(su, 'reussie');
@@ -169,6 +192,21 @@ const TUTORIEL = (function () {
     return true;
   }
 
+  // (tour 55, T20) la scène de la leçon des drapeaux, à chaque image (comme preparer) : à TUTO_DRAPEAUX_ARRET s après le GO, l'IA est garée sur l'herbe
+  // TUTO_DRAPEAUX_DISTANCE m devant le joueur et y reste, arrêtée, jusqu'à ce qu'il l'ait passée ; alors l'aileron du joueur est abîmé et l'IA repart
+  function scene(su, J, circuit) {
+    if (!su || su.id !== 'drapeaux' || !J.plateau || !J.joueur || !circuit || typeof placerSurPiste !== 'function') return;
+    const e = J.plateau, ia = e.pilotes.find(p => !p.humain && p.pilote), v = J.joueur;
+    if (!ia || !v.piste || e.go === null || e.go === undefined || J.ecran !== 'course') return;
+    if (!su.arrete) {
+      if (e.temps - e.go < R.TUTO_DRAPEAUX_ARRET) return;
+      const s = (v.piste.s + R.TUTO_DRAPEAUX_DISTANCE) % circuit.longueur;
+      placerSurPiste(ia.v, circuit, s, circuit.largeur / 2 + R.MARGE_HERBE + 3);
+      su.arrete = { s, penalites: J.course ? J.course.penalites || 0 : 0 };
+    } else if (!su.libere) { ia.v.u = 0; ia.v.v = 0; ia.v.r = 0; }
+    if (su.poser) { su.poser = false; su.libere = true; v.degats = R.TUTO_DRAPEAUX_DEGATS; }
+  }
+
   // (tour 37l) le pneu de la leçon du drift : 'drift' pendant la première phase, puis 'adherant' ; null pour les autres leçons.
   // appliquerPneu le monte sur la voiture du joueur (pneus.js : 'drift' ou 'slick', l'adhérant), à chaque image de la leçon
   const pneu = su => su && su.id === 'vivante' ? (su.phase === 'adherant' ? 'adherant' : 'drift') : null;
@@ -184,5 +222,5 @@ const TUTORIEL = (function () {
     return l && l.numero < ls.length ? ls[l.numero].id : null;
   }
 
-  return { get LECONS() { return lecons(); }, get PAR_ID() { return parId(); }, zoneFreinage, situation, creerSuivi, pas, etapeVisite, preparer, suivante, pneu, appliquerPneu };
+  return { get LECONS() { return lecons(); }, get PAR_ID() { return parId(); }, zoneFreinage, situation, creerSuivi, pas, etapeVisite, preparer, scene, suivante, pneu, appliquerPneu };
 })();

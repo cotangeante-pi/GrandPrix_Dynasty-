@@ -574,6 +574,12 @@ const REGLAGES = {
   TUTO_PLUIE_EAU: 0.2,          // la leçon de la pluie : la piste compte comme mouillée à partir de ce niveau d'eau
   TUTO_DRIFT_ARRIERE: 0.6,      // (tour 37l) la leçon du drift : l'arrière glisse au moins jusque-là (SENSATIONS.glisseArriere, 0 à 1)…
   TUTO_DRIFT_TENUE: 0.3,        // … pendant ce temps (s) dans l'épingle, pour que la glissade compte
+  TUTO_LECON_DRAPEAUX: true,    // (tour 55, T20) la leçon « drapeaux et aileron » est proposée ; faux = 7 leçons, comme avant
+  TUTO_DRAPEAUX_ARRET: 10,      // s après le GO : l'IA de la leçon est garée sur l'herbe…
+  TUTO_DRAPEAUX_DISTANCE: 260,  // … à tant de m devant le joueur
+  TUTO_DRAPEAUX_VU: 200,        // m : il s'est approché de la voiture arrêtée à moins de ça (le drapeau jaune l'a prévenu)
+  TUTO_DRAPEAUX_PASSE: 12,      // m : la voiture arrêtée est passée quand il est tant de m au-delà
+  TUTO_DRAPEAUX_DEGATS: 0.3,    // l'aileron abîmé de la 2e étape (de 0 à DEGATS_MAX), à réparer au stand
   TUTO_TETE_A_QUEUE: 1.2,       // rad : l'angle de l'arrière au-delà duquel c'est un tête-à-queue (la leçon est ratée)
   // le casque du pilote (casque.js) : un motif et trois couleurs ; les rivaux tirent le leur avec la graine du championnat
   CASQUE_MOTIFS: ['uni', 'bandes', 'etoile', 'flammes', 'damier', 'eclair'],
