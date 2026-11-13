@@ -1417,3 +1417,6 @@ Object.assign(TEXTES.fr, { msg_degats: '{qui} : aileron avant abîmé !', msg_re
 // --- tour 55, T6 : le fantôme du poleman ---
 Object.assign(TEXTES.en, { fantomeSrcPole: 'Ghost: pole position', fantomeSrcMoi: 'Ghost: your record', fantomePoleDevant: '{s} s faster than the pole ghost', fantomePoleDerriere: '+{s} s behind the pole ghost' });
 Object.assign(TEXTES.fr, { fantomeSrcPole: 'Fantôme : la pole', fantomeSrcMoi: 'Fantôme : ton record', fantomePoleDevant: '{s} s plus vite que le fantôme de la pole', fantomePoleDerriere: '+{s} s du fantôme de la pole' });
+// --- tour 55, T22 : le fait « remontée » du commentateur (commentaire.js, COMMENTAIRE_REMONTEE_*) ---
+Object.assign(TEXTES.en, { com_remontee: ['{qui} is charging: {n} places up!', 'What a comeback by {qui}, {n} places gained!', '{qui} is on the move, up {n} places!'] });
+Object.assign(TEXTES.fr, { com_remontee: ['{qui} remonte : déjà {n} places gagnées !', 'Quelle remontée de {qui} : {n} places !', '{qui} est en pleine remontée, +{n} places !'] });

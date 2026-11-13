@@ -1,5 +1,5 @@
 // Les voix enregistrées du commentateur (tour 51c ; CLAUDE.md « De vraies voix enregistrées »). Pour chaque fait qui a des sons
-// (le départ, un dépassement, une bataille côte à côte, une erreur, la victoire), le jeu joue une des prises (jamais la même deux fois de
+// (le départ, un dépassement, une bataille côte à côte, une erreur, la victoire ; en français aussi la remontée), le jeu joue une des prises (jamais la même deux fois de
 // suite, par fait) ; la voix de synthèse (voix.js) ne dit plus que ce qui n'a pas de son ; le bandeau texte reste.
 // - PROVISOIRE ET RÉVERSIBLE : le propriétaire n'a pas encore choisi sa voix. Éteint par défaut (VOIX_SONS faux) : le jeu est alors
 //   exactement comme avant. ?voixsons=1 ou « Voix enregistrées : oui » dans ⚙ Réglages (sauvegardé : option 'voixsons') l'allument
@@ -16,8 +16,11 @@ const VOIXSONS = (function () {
   const R = REGLAGES;
   // le fait du commentateur (commentaire.js) → le groupe de sons
   const GROUPE = { depart: 'depart', depassement: 'depassement', depassementTete: 'depassement', depassementJoueur: 'depassement',
-    coteACote: 'bataille', erreur: 'erreur', arrivee: 'victoire' };
+    coteACote: 'bataille', erreur: 'erreur', arrivee: 'victoire', remontee: 'remontee' };
   const CLES = ['depart', 'depassement', 'bataille', 'erreur', 'victoire'];
+  // (tour 55, T22) « remontée » : des prises en français seulement (en anglais, la synthèse la dit, comme avant) ; clesDe(langue) : les groupes de cette langue
+  const CLES_PLUS = { fr: ['remontee'] };
+  const clesDe = l => CLES.concat(CLES_PLUS[l] || []);
   const PRISES = 3;   // trois prises par groupe et par langue
   const DOSSIER = 'sons/voix/';
   const url = (l, cle, n) => DOSSIER + l + '-' + cle + '-' + n + '.m4a';
@@ -46,7 +49,7 @@ const VOIXSONS = (function () {
     if (!active || !s || demandes[l] || (typeof JEU !== 'undefined' && JEU.decouverte)) return false;
     demandes[l] = true;
     tampons[l] = tampons[l] || {};
-    for (const cle of CLES) for (let n = 1; n <= PRISES; n++) {
+    for (const cle of clesDe(l)) for (let n = 1; n <= PRISES; n++) {
       try {
         const x = new XMLHttpRequest();
         x.open('GET', url(l, cle, n)); x.responseType = 'arraybuffer';
@@ -123,7 +126,7 @@ const VOIXSONS = (function () {
   }
   if (typeof document !== 'undefined') document.addEventListener('visibilitychange', () => { if (document.hidden) taire(); });
 
-  return { jouer, taire, charger, regler, cleDe, CLES, PRISES, url,
+  return { jouer, taire, charger, regler, cleDe, CLES, clesDe, PRISES, url,
     get active() { return active; }, get joues() { return joues; }, get enCours() { return !!courant; },
     etat: () => Object.fromEntries(Object.entries(tampons).map(([l, d]) => [l, Object.fromEntries(Object.entries(d).map(([c, a]) => [c, a.length]))])),
     // pour les tests seulement : une sortie et des tampons faux
