@@ -268,11 +268,15 @@ function carteDepuis(circuit, trajectoire) {
 // les 12 tracés, le circuit d'essai et le technique, un vrai tour lancé simulé dure de 1,07 à 1,22 fois l'estimation (1,14 en moyenne au niveau
 // normal et débutant, 1,09 en expert, 1,04 en légende, un peu moins à rythme plus bas) : l'estimation est multipliée par cette échelle
 // (NIVEAUX[…].qualifEchelle − QUALIF_ECHELLE_PENTE × (1 − rythme)) ; QUALIF_REALISTE faux = l'estimation d'avant, au bit près
-function echelleQualif(rythme) {
+// T23 : une échelle PAR CIRCUIT (QUALIF_ECHELLE_CIRCUIT[niveau][nom du circuit], mesurée par tests/qualif-echelles.py) quand le circuit y est ; la même pour tous les
+// pilotes (l'ordre de la grille ne change pas) ; QUALIF_ECHELLE_CIRCUIT_ACTIF faux = l'échelle du niveau, comme au T15
+function echelleQualif(rythme, circuit) {
   const R = REGLAGES;
   if (!R.QUALIF_REALISTE) return 1;
   const n = R.NIVEAUX[R.NIVEAU];
-  return (n && n.qualifEchelle !== undefined ? n.qualifEchelle : 1) - R.QUALIF_ECHELLE_PENTE * (1 - rythme);
+  const tab = R.QUALIF_ECHELLE_CIRCUIT_ACTIF && R.QUALIF_ECHELLE_CIRCUIT ? R.QUALIF_ECHELLE_CIRCUIT[R.NIVEAU] : null;
+  const k = tab && circuit && tab[circuit.nom] !== undefined ? tab[circuit.nom] : (n && n.qualifEchelle !== undefined ? n.qualifEchelle : 1);
+  return k - R.QUALIF_ECHELLE_PENTE * (1 - rythme);
 }
 function tourEstime(carte, rythme) {
   const tr = carte.trajectoire;
@@ -281,7 +285,7 @@ function tourEstime(carte, rythme) {
     const v = tr.vitesse[i];
     t += tr.ds[i] / (v < carte.pointe * 0.999 ? rythme * v : v);
   }
-  return REGLAGES.QUALIF_REALISTE ? t * echelleQualif(rythme) : t;
+  return REGLAGES.QUALIF_REALISTE ? t * echelleQualif(rythme, carte.circuit) : t;
 }
 
 // le point de freinage d'un virage (sommet à l'échantillon i) : là où la vitesse possible commence à baisser avant

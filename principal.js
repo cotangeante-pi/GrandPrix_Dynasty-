@@ -2813,6 +2813,7 @@ function demarrerJeu() {
     if (bs && typeof VOIXSONS !== 'undefined') {
       const ecrireVs = () => { bs.textContent = texte(VOIXSONS.active ? 'vs_oui' : 'vs_non'); };
       ecrireVs();
+      if (!VOIXSONS.disponible) bs.classList.add('cache');   // (tour 55, revue T27 : en anglais il n'y a pas de sons, le bouton ne changerait rien)
       bs.addEventListener('mousedown', e => e.preventDefault());
       bs.addEventListener('click', () => { VOIXSONS.regler(!VOIXSONS.active); ecrireVs(); });
     }

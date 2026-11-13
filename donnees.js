@@ -1049,6 +1049,14 @@ const REGLAGES = {
   GRAINE_FEUX: 4000,            // … et le délai des feux et les réactions des IA avec la graine + ce nombre
   QUALIF_REALISTE: true,        // (tour 55, T15) le temps de qualification des IA est celui d'un vrai tour (× NIVEAUX[…].qualifEchelle, 1,04 à 1,14 : ia.js, echelleQualif) ; faux = l'estimation d'avant (environ 12 % trop rapide)
   QUALIF_ECHELLE_PENTE: 0,    // … moins ça par point de rythme sous 1 (0 : la même échelle pour tous, l'ordre de la grille ne change pas, donc les courses non plus ; 0,6 collerait mieux à rythme 0,95 mais change l'ordre de la grille : courses.html tombe à 23 dépassements)
+  QUALIF_ECHELLE_CIRCUIT_ACTIF: true,   // (tour 55, T23) l'échelle de qualification des IA est celle de CHAQUE circuit (la table ci-dessous, la même pour tous les pilotes : la grille ne change pas) ; faux = l'échelle du niveau (T15)
+  // temps d'un vrai tour lancé simulé / temps estimé brut (tourEstime sans échelle), au rythme 1, par niveau et par circuit ; générée par tests/qualif-echelles.py (à refaire si la physique, ia.js ou un réglage IA_* change)
+  QUALIF_ECHELLE_CIRCUIT: {
+    debutant: { 'Test': 1.138, 'Technique': 1.13, 'Monoco': 1.213, 'Silverstoun': 1.131, 'Monzo': 1.169, 'Spaa': 1.136, 'Suzuko': 1.117, 'Interlagas': 1.089, 'Montréol': 1.145, 'Melbourn Park': 1.224, 'Barcelana': 1.139, 'Bahrayn': 1.174, 'Singapura': 1.097, 'Yas Marino': 1.08 },
+    normal: { 'Test': 1.134, 'Technique': 1.129, 'Monoco': 1.222, 'Silverstoun': 1.139, 'Monzo': 1.163, 'Spaa': 1.136, 'Suzuko': 1.117, 'Interlagas': 1.096, 'Montréol': 1.146, 'Melbourn Park': 1.223, 'Barcelana': 1.132, 'Bahrayn': 1.17, 'Singapura': 1.094, 'Yas Marino': 1.067 },
+    expert: { 'Test': 1.09, 'Technique': 1.106, 'Monoco': 1.105, 'Silverstoun': 1.117, 'Monzo': 1.101, 'Spaa': 1.068, 'Suzuko': 1.069, 'Interlagas': 1.057, 'Montréol': 1.063, 'Melbourn Park': 1.135, 'Barcelana': 1.111, 'Bahrayn': 1.107, 'Singapura': 1.095, 'Yas Marino': 1.077 },
+    legende: { 'Test': 1.051, 'Technique': 1.046, 'Monoco': 1.053, 'Silverstoun': 1.027, 'Monzo': 1.078, 'Spaa': 1.043, 'Suzuko': 1.013, 'Interlagas': 1.028, 'Montréol': 1.039, 'Melbourn Park': 1.071, 'Barcelana': 1.03, 'Bahrayn': 1.045, 'Singapura': 1.035, 'Yas Marino': 1.025 },
+  },
   IA_QUALIF_HASARD: 0.005,      // le temps de qualification d'une IA varie de ±0,5 % autour de son meilleur tour estimé
   IA_PAGE_MAX: 20,              // ?ia=N : au plus ce nombre d'IA dans la page
   // ?ia=N : la couleur de chaque IA (provisoire : les écuries viendront à l'étape 6)
