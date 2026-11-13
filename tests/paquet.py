@@ -478,7 +478,8 @@ try:
             pg.evaluate('() => { JEU.decouverte = false; VOIXSONS.charger(); }')
             try: pg.wait_for_function('() => { const e = VOIXSONS.etat()[LANGUE] || {}; return VOIXSONS.CLES.every(c => e[c] === VOIXSONS.PRISES_DE[c]); }', timeout=20000)
             except Exception: pass
-            vs = pg.evaluate('() => ({ etat: VOIXSONS.etat(), langue: LANGUE, ctx: SON.etatContexte, joue: VOIXSONS.jouer("depassement"), joues: VOIXSONS.joues })')
+            vs = pg.evaluate('() => ({ etat: VOIXSONS.etat(), langue: LANGUE, ctx: SON.etatContexte, joue: VOIXSONS.jouer("depassement"), joues: VOIXSONS.joues, mem: VOIXSONS.memoire() })')
+            t(f'{titre} : (tour 55, T29) les sons décodés pèsent moins de 8 Mo en mémoire ({vs["mem"]} octets ; 24 kHz, ~5 Mo ; au contexte du jeu, 48 kHz, ils feraient ~10 Mo)', 1000000 < vs['mem'] < 8000000, vs['mem'])
             t(f'{titre} : après la découverte, les 41 sons du français sont chargés et décodés par Chrome ({len(sons_vus)} fichiers), un fait joue un son', len(sons_vus) == 41 and vs['langue'] == 'fr' and all(vs['etat'].get('fr', {}).get(c) == n for c, n in pg.evaluate('() => VOIXSONS.PRISES_DE').items()) and vs['joue'] is True, str([vs, sons_vus[:2]]))
             pg.evaluate('() => { SON.basculer(); }')
             muet = pg.evaluate('() => ({ coupe: SON.coupe, joue: VOIXSONS.jouer("erreur") })')
