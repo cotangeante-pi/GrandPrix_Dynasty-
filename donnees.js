@@ -1471,6 +1471,28 @@ const REGLAGES = {
     { pixelRatio: 0.75, detail: 90, rien: 900, retro: false },    // basse (sans rétroviseur)
   ],
 
+  // --- les batailles en ligne (tour 56, T5 : les écrans ; CLAUDE.md « Les batailles en ligne »). Tout reste derrière EN_LIGNE : faux = le jeu d'avant,
+  // aucun bouton « En ligne » nulle part ; ?enligne=1 l'ouvre pour la page, ?enligne=0 le ferme. Pas d'envoi à Poki avant 2027.
+  EN_LIGNE: false,
+  EN_LIGNE_NOMS_LIBRES: false,  // faux (public d'enfants) : aucun texte tapé entre joueurs ; le nom affiché = « Pilote » + la couleur choisie (EN_LIGNE_COULEURS)
+  EN_LIGNE_VERSION: 1,          // la version du protocole et de la course, envoyée à la salle (une autre version est refusée : « version »)
+  EN_LIGNE_CODE_LONGUEUR: 4,    // lettres du code d'une salle
+  EN_LIGNE_LETTRES: 'BCDFGHJKLMNPQRSTVWXZ',   // les lettres d'un code : aucune voyelle (pas de mots), ni Y
+  EN_LIGNE_JOUEURS_MAX: 8,      // joueurs par salle (2 à 8)
+  EN_LIGNE_COULEURS: [          // la couleur du pilote en ligne : son nom (textes.js : enligneCouleur_<id>) et sa pastille
+    { id: 'bleu', hex: 0x1f6fe0 }, { id: 'rouge', hex: 0xd8262e }, { id: 'jaune', hex: 0xf2c230 }, { id: 'vert', hex: 0x2fa84f },
+    { id: 'orange', hex: 0xf07d1a }, { id: 'violet', hex: 0x8e44ad }, { id: 'turquoise', hex: 0x1abc9c }, { id: 'rose', hex: 0xe84393 },
+  ],
+  EN_LIGNE_EMOTES: ['👍', '👏', '🔥', '😂', '😮', '🏁', '🤝', '😅'],   // les émotes préréglées (jamais de texte libre) ; le protocole envoie l'indice ; le nom parlant est enligneEmote_<i> (textes.js)
+  EN_LIGNE_EMOTE_PAUSE: 1.5,    // s : le délai entre deux émotes envoyées par le même joueur (pas de spam)
+  EN_LIGNE_EMOTE_DUREE: 3,      // s : combien de temps une émote reste affichée près du nom de son joueur
+  EN_LIGNE_CIRCUITS_CHOIX: ['test', 'technique'],   // les circuits que l'hôte peut choisir (des clés de CIRCUITS) ; vide = tous
+  EN_LIGNE_TOURS_CHOIX: [1, 3, 5],   // les longueurs de course (l'hôte)
+  EN_LIGNE_IA_CHOIX: [0, 3, 5],      // les IA ajoutées aux humains (l'hôte) ; jamais plus de EN_LIGNE_JOUEURS_MAX voitures en tout
+  EN_LIGNE_METEO_CHOIX: ['sec', 'nuageux', 'pluie'],   // la météo de la course (l'hôte)
+  EN_LIGNE_REGLAGES_DEFAUT: { circuit: 'test', tours: 3, meteo: 'sec', nbIA: 0 },   // ce que l'hôte voit d'abord
+  EN_LIGNE_FAUX_DELAI: 0.8,     // s : le faux transport (enligne-faux.js, en attendant le vrai réseau) fait « arriver » un ami après ce délai, puis le fait « prêt » après le même
+
   // le mode ?debug=1
   DEBUG_PERIODE_IPS: 0.5,       // secondes entre deux mises à jour du compteur d'images
 };

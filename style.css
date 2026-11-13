@@ -2256,3 +2256,67 @@ body.tactile:has(#pause:not(.cache)) #boutonSon { display: none; }   /* (tour 55
   #interviewChoix, #interviewSuite { gap: 4px; }
   #interviewEffet { font-size: 14px; min-height: 0; }
 }
+
+/* (tour 56, T5) les batailles en ligne : « En ligne », « rejoindre par code », la salle d'attente (enligne-ecran.js ; rien ne s'affiche sans EN_LIGNE) */
+#enligne, #enligneRejoindre, #enligneSalle { gap: 10px; }
+#enligne p, #enligneRejoindre p, #enligneSalle p { max-width: 520px; }
+#enligneExplication { font-weight: 600; opacity: 0.85; }
+#enligneNomChoisi { font-weight: 700; }
+.enligneMessage { min-height: 1.4em; color: #ffd666; font-weight: 700; }
+#enligne .boutons:first-of-type button, #enligneRejoindre .boutons:first-of-type button { min-width: 200px; padding: 16px 20px; font-size: 22px; }
+#boutonEnligneCreer, #boutonEnligneGo, #boutonEnlignePret, #boutonEnligneLancer { background: var(--tv-bouton-principal, #e3242b); }
+#boutonEnlignePret.actif { background: #2fa84f; }
+#enligne button:disabled, #enligneSalle button:disabled { opacity: 0.5; cursor: default; box-shadow: none; }
+#enligneCouleurs { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; max-width: 420px; }
+#enligneCouleurs button.enlignePastille { min-width: 0; width: 40px; height: 40px; padding: 0; border-radius: 50%; border: 3px solid rgba(255, 255, 255, 0.25); }
+#enligneCouleurs button.enlignePastille.choisie { border-color: #fff; box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.45); }
+#enligneCode { width: 8.2ch; box-sizing: content-box; padding: 6px 12px; border-radius: 10px; border: 2px solid rgba(255, 255, 255, 0.4); background: rgba(255, 255, 255, 0.1); color: inherit;
+  font: 800 38px/1.1 var(--tv-police, system-ui, sans-serif); letter-spacing: 0.35em; text-align: center; text-indent: 0.35em; text-transform: uppercase; user-select: text; -webkit-user-select: text; }
+#enligneClavier { display: grid; grid-template-columns: repeat(7, 46px); gap: 6px; justify-content: center; }
+#enligneClavier button { min-width: 0; width: 46px; height: 40px; padding: 0; font: 800 18px/1 var(--tv-police, system-ui, sans-serif); border-radius: 8px; }
+#enligneClavier button.enligneEffacer { grid-column: span 2; width: auto; background: #5a5f6e; }
+#enligneSalleTitre { display: flex; gap: 12px; align-items: baseline; justify-content: center; }
+#enligneSalleCode { letter-spacing: 0.3em; color: var(--tv-or, #ffd666); }
+#enligneCorps { display: flex; gap: 14px; align-items: stretch; justify-content: center; width: min(760px, 94vw); }
+#enligneJoueurs, #enligneReglages { flex: 1 1 0; min-width: 0; padding: 8px 12px; border-radius: 10px; background: rgba(255, 255, 255, 0.07); text-align: left; }
+#enligneCorps h2 { margin: 0 0 4px; font: 800 15px/1.2 var(--tv-police, system-ui, sans-serif); text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.8; }
+#enligneListe { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+#enligneListe li { display: flex; align-items: center; gap: 8px; min-height: 24px; font: 700 15px/1.2 var(--tv-police, system-ui, sans-serif); }
+#enligneListe li.moi { color: var(--tv-or, #ffd666); }
+#enligneListe .pastille { width: 14px; height: 14px; border-radius: 50%; flex: none; border: 2px solid rgba(255, 255, 255, 0.5); box-sizing: border-box; }
+#enligneListe .nom { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#enligneListe .etat { flex: none; font-size: 13px; opacity: 0.85; }
+#enligneListe .emote { flex: none; font-size: 20px; line-height: 1; animation: enligneEmote 0.35s ease-out; }
+@keyframes enligneEmote { from { transform: scale(0.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+#enligneRegles { display: grid; gap: 4px; }
+#enligneRegles .regle { display: grid; grid-template-columns: 1fr 40px minmax(70px, auto) 40px; align-items: center; gap: 6px; font: 700 15px/1.2 var(--tv-police, system-ui, sans-serif); }
+#enligneRegles .regle strong { text-align: center; font-size: 16px; }
+#enligneRegles button.enligneFleche { min-width: 0; width: 40px; height: 36px; padding: 0; border-radius: 8px; font-size: 14px; }
+#enligneHoteChoisit { font-weight: 700; opacity: 0.85; }
+#enligneRegles .regle.lecture { grid-template-columns: 1fr auto; }
+#enligneEmotes { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+#enligneEmotes button.enligneEmote { min-width: 0; width: 44px; height: 40px; padding: 0; font-size: 22px; line-height: 1; border-radius: 10px; background: rgba(255, 255, 255, 0.14); }
+#enligneSalle .boutons { align-items: center; }
+@media (max-height: 420px) {
+  #enligne, #enligneRejoindre, #enligneSalle { gap: 5px; }
+  #enligne h1, #enligneRejoindre h1, #enligneSalle h1 { font-size: 24px; margin: 0; }
+  #enligneExplication { font-size: 13px; line-height: 1.25; }
+  #enligne p, #enligneRejoindre p, #enligneSalle p { font-size: 14px; line-height: 1.25; }
+  #enligne .boutons:first-of-type button, #enligneRejoindre .boutons:first-of-type button { min-width: 150px; padding: 8px 14px; font-size: 17px; min-height: 40px; }
+  #enligneCouleurs { max-width: 440px; gap: 5px; }
+  #enligneCouleurs button.enlignePastille { width: 40px; height: 40px; }
+  #enligneCode { font-size: 26px; padding: 2px 10px; }
+  #enligneClavier { grid-template-columns: repeat(11, 40px); gap: 4px; }
+  #enligneClavier button { width: 40px; height: 40px; font-size: 16px; }
+  #enligneClavier button.enligneEffacer { grid-column: span 2; }
+  #enligneCorps { gap: 8px; }
+  #enligneJoueurs, #enligneReglages { padding: 4px 10px; }
+  #enligneCorps h2 { font-size: 12px; margin-bottom: 2px; }
+  #enligneListe li { min-height: 20px; font-size: 13px; }
+  #enligneRegles { gap: 2px; }
+  #enligneRegles .regle { font-size: 13px; }
+  #enligneRegles button.enligneFleche { height: 40px; }
+  #enligneEmotes button.enligneEmote { width: 40px; height: 40px; font-size: 19px; }
+  #enligneSalle .boutons button { min-height: 40px; padding: 6px 14px; font-size: 15px; }
+}
+body.tactile #boutonEnligneTitre, body.tactile :is(#enligne, #enligneRejoindre, #enligneSalle) .boutons button { min-height: 40px; }   /* (au doigt, 40 px au moins) */
