@@ -1471,24 +1471,36 @@ const REGLAGES = {
     { pixelRatio: 0.75, detail: 90, rien: 900, retro: false },    // basse (sans rétroviseur)
   ],
 
+  // --- (tour 56, T2) les batailles en ligne : le cœur du lockstep (enligne.js, calcul pur). Tout est derrière EN_LIGNE : faux = le jeu d'avant,
+  // identique (enligne.js ne change rien tant qu'on ne l'appelle pas). Voir rapports/en-ligne-conception.md
+  EN_LIGNE: false,              // le jeu en ligne est ouvert ? (?enligne=1 l'ouvre pour les essais ; le propriétaire n'a pas encore dit oui)
+  EN_LIGNE_VERSION: 1,          // à monter quand le calcul de la course change sans qu'un réglage change (deux clients de versions différentes ne jouent pas ensemble)
+  EN_LIGNE_DELAI: 12,           // pas de physique entre le moment où un joueur appuie et celui où sa commande agit (12 pas = 0,1 s) : le temps de faire voyager la commande
+  EN_LIGNE_PAQUET: 4,           // pas : les commandes partent par paquets de ce nombre de pas (30 messages par seconde) ; jamais plus que le délai
+  EN_LIGNE_CONTROLE: 120,       // pas : toutes les 120 pas (1 s), une empreinte de l'état de la course est envoyée pour voir si tous les clients voient la même course
+  EN_LIGNE_NIVEAU: 'normal',    // le niveau des IA en ligne (le même pour tous, quel que soit le niveau choisi dans la carrière de chacun)
+  EN_LIGNE_JOUEURS_MAX: 8,      // des joueurs dans une salle (le protocole : 2 à 8)
+  EN_LIGNE_IA_MAX: 8,           // des IA au plus avec eux
+  EN_LIGNE_VOITURES_MAX: 16,    // des voitures en piste au plus (joueurs + IA)
+  EN_LIGNE_TOURS_MAX: 30,       // des tours au plus
+  EN_LIGNE_TOURS_DEFAUT: 3,     // si les tours demandés ne sont pas permis
+  EN_LIGNE_METEOS: ['auto', 'sec', 'pluie', 'averse', 'eclaircie'],   // les météos au choix de l'hôte (auto : tirée avec la graine selon le lieu, comme en carrière)
+  EN_LIGNE_MATHS: true,         // enligne.js remplace sin, cos, tan, atan, atan2, exp, cbrt, hypot pendant une course en ligne par des calculs à nous, identiques au bit près sur tous les navigateurs (faux : ceux du navigateur)
+  GRAINE_GRILLE_LIGNE: 23000,   // la grille tirée au sort d'une course en ligne : la graine de la course + ce nombre
+
   // le mode ?debug=1
   DEBUG_PERIODE_IPS: 0.5,       // secondes entre deux mises à jour du compteur d'images
 
   // les batailles en ligne (tour 56 ; rien ne se voit ni ne se connecte tant que EN_LIGNE est faux ; ?enligne=1 l'ouvre)
-  EN_LIGNE: false,
-  EN_LIGNE_VERSION: 1,          // la version du protocole : le relais refuse (raison « version ») un client d'une autre version
   EN_LIGNE_URL: '',             // l'adresse WebSocket du relais (wss://…), vide tant que le propriétaire n'a pas choisi l'hébergement
   EN_LIGNE_CANAL: 'gpd-en-ligne',   // le nom du BroadcastChannel (deux onglets du même navigateur, sans serveur)
   EN_LIGNE_JOUEURS_MIN: 2,      // pour lancer une course
-  EN_LIGNE_JOUEURS_MAX: 8,      // par salle
   EN_LIGNE_NOM_MAX: 20,         // lettres d'un nom
   EN_LIGNE_NOMS_LIBRES: false,  // faux : jamais de nom tapé (public d'enfants) ; le nom vient de EN_LIGNE_NOMS ou est « Pilote N », avec une couleur
   EN_LIGNE_NOMS: ['Éclair', 'Turbo', 'Comète', 'Fusée', 'Tonnerre', 'Mistral', 'Phénix', 'Faucon', 'Panthère', 'Requin', 'Étoile', 'Tempête'],
   EN_LIGNE_COULEURS: ['Rouge', 'Bleu', 'Vert', 'Jaune', 'Orange', 'Violet', 'Rose', 'Blanc'],
   EN_LIGNE_EMOTES: 8,           // nombre d'émotes préréglées (indices 0 à 7) ; jamais de texte libre
   EN_LIGNE_TAILLE_MAX: 4096,    // caractères d'un message ; au-delà il est jeté
-  EN_LIGNE_TOURS_MAX: 20,       // tours d'une course en ligne
-  EN_LIGNE_IA_MAX: 20,          // IA en plus des humains
   EN_LIGNE_OUVERTURE_MS: 5000,  // attente de l'ouverture d'un WebSocket
   EN_LIGNE_ATTENTE_MS: 600,     // BroadcastChannel : sans réponse d'une salle après ce temps = « inconnue »
   EN_LIGNE_RECONNEXIONS: 3,     // essais après une coupure (0 = pas de reconnexion)
