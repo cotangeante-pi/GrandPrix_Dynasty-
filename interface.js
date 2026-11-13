@@ -665,6 +665,16 @@ const INTERFACE = (function () {
       $(id).addEventListener('click', bascule);
     }
   }
+  // (tour 55, T6) « Fantôme : ton record / la pole » : visible seulement quand le fantôme du poleman existe (texte null : caché)
+  function majBoutonFantomePole(texteBouton) {
+    const b = $('boutonFantomePole');
+    b.classList.toggle('cache', !texteBouton);
+    if (texteBouton) b.textContent = texteBouton;
+  }
+  function preparerFantomePole(bascule) {
+    $('boutonFantomePole').addEventListener('mousedown', e => e.preventDefault());
+    $('boutonFantomePole').addEventListener('click', bascule);
+  }
   function majBoutonsFantome(visible) {
     for (const id of ['boutonFantomeQualif', 'boutonFantomePause']) $(id).textContent = texte(visible ? 'fantomeOui' : 'fantomeNon');
   }
@@ -695,9 +705,15 @@ const INTERFACE = (function () {
     }
     $('qualifTexte').textContent = t;
     const f = etat === 'resultat' && r.fantome, s = x => x.toFixed(2).replace('.', texte('virgule'));
+    if (f && f.pole) {   // (tour 55, T6) contre le fantôme du poleman : l'écart à son tour, puis le record personnel s'il est battu
+      const pl = f.ecartPole;
+      $('qualifFantome').textContent = (pl === null || pl === undefined ? '' : pl < 0 ? texte('fantomePoleDevant').replace('{s}', s(-pl)) : texte('fantomePoleDerriere').replace('{s}', s(pl)))
+        + (f.record ? ' · ' + (f.gagne === null ? texte('nouveauRecord') : texte('fantomeRecord').replace('{s}', s(f.gagne))) : '');
+    } else
     $('qualifFantome').textContent = !f ? '' : f.record ? (f.gagne === null ? texte('nouveauRecord') : texte('fantomeRecord').replace('{s}', s(f.gagne)))
       : f.ecart !== null ? texte('fantomeEcart').replace('{s}', s(f.ecart)) : '';
     $('boutonFantomeQualif').classList.toggle('cache', etat !== 'choix');
+    if (etat !== 'choix') $('boutonFantomePole').classList.add('cache');
   }
 
   function preparerQualif(tour, passer, course) {
@@ -2045,7 +2061,7 @@ const INTERFACE = (function () {
     remplirDuel, avec, remplirUne, preparerUne, remplirArgent, remplirSolde, remplirGarage, preparerGarage,
     remplirSaison, remplirDuelSaison, remplirContrats, remplirRetraite, preparerSaison, retraiteEnAttente, remplirCeremonie, preparerCeremonie, remplirAlbum, preparerAlbum, remplirBilan, remplirTemple, preparerTemple, preparerReleve, remplirHeritier, lireHeritier, montrerErreurHeritier, remplirAileron, majAileron, preparerAileron, preparerPneusGarage, remplirArbre, preparerArbre, remplirCalendrier, preparerCalendrier,
     remplirSponsors, remplirRappelSponsor, preparerSponsors, remplirFiche, preparerFiche, remplirInterview, montrerEffetInterview, preparerInterview, remplirReputation,
-    majEcartFantome, preparerFantome, majBoutonsFantome, majDepart, majDeux, preparerTitre, remplirPodiumDecouverte, preparerPodiumDecouverte, majPrime, majPlaceGrand, remplirLongueur, majLongueurDeux, remplirPodiumCarriere, remplirPiloteRapide, appliquerPilote, majAides, remplirPilote, lirePilote, montrerErreursPilote, preparerPilote, nomCircuit, remplirCasque, lireCasque, modePilote, preparerCasque };
+    majEcartFantome, preparerFantome, majBoutonsFantome, majBoutonFantomePole, preparerFantomePole, majDepart, majDeux, preparerTitre, remplirPodiumDecouverte, preparerPodiumDecouverte, majPrime, majPlaceGrand, remplirLongueur, majLongueurDeux, remplirPodiumCarriere, remplirPiloteRapide, appliquerPilote, majAides, remplirPilote, lirePilote, montrerErreursPilote, preparerPilote, nomCircuit, remplirCasque, lireCasque, modePilote, preparerCasque };
 })();
 
 // --- les aides au premier usage (aides.js, étape 11b, Codeur 4) : la bulle, « Revoir les aides » au paddock et dans le menu pause.

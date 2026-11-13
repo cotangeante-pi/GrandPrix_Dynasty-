@@ -1410,3 +1410,7 @@ Object.assign(TEXTES.fr, {
 // --- tour 55, T2 : la foule et l'ambiance (foule.js) ---
 Object.assign(TEXTES.en, { foule_oui: 'Crowd: on', foule_non: 'Crowd: off' });
 Object.assign(TEXTES.fr, { foule_oui: 'Foule : oui', foule_non: 'Foule : non' });
+
+// --- tour 55, T6 : le fantôme du poleman ---
+Object.assign(TEXTES.en, { fantomeSrcPole: 'Ghost: pole position', fantomeSrcMoi: 'Ghost: your record', fantomePoleDevant: '{s} s faster than the pole ghost', fantomePoleDerriere: '+{s} s behind the pole ghost' });
+Object.assign(TEXTES.fr, { fantomeSrcPole: 'Fantôme : la pole', fantomeSrcMoi: 'Fantôme : ton record', fantomePoleDevant: '{s} s plus vite que le fantôme de la pole', fantomePoleDerriere: '+{s} s du fantôme de la pole' });
