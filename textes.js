@@ -1449,6 +1449,9 @@ Object.assign(TEXTES.en, {
   enligneHoteChoisit: 'The host chooses the race.', enligneEmotes: 'Reactions',
   enligneEmote_0: 'Thumbs up', enligneEmote_1: 'Applause', enligneEmote_2: 'Fire', enligneEmote_3: 'Laughing', enligneEmote_4: 'Wow',
   enligneEmote_5: 'Chequered flag', enligneEmote_6: 'Handshake', enligneEmote_7: 'Phew',
+  aide_enligne: 'Create a room and send its 4 letters to your friends, or type a friend’s letters to join.', aide_enligneSalle: 'Press “I’m ready”. The host picks the race and starts it. Use the reactions to say hi!',
+  enligneComment: '❓ How to play online', enligneCommentTitre: 'How to play online',
+  enligneComment1: '1. Pick your colour: it is your name in the race.', enligneComment2: '2. One friend creates a room and shares its 4 letters.', enligneComment3: '3. The others join with the letters, then press “I’m ready”.', enligneComment4: '4. The host picks the circuit and starts. Say hi with the reactions!',
   enligneNouvelHote: 'The host left: you are the new host.', enligneParti: '{nom} left the room.', enligneDepart: 'Starting! (the online race itself is not ready yet)',
 });
 Object.assign(TEXTES.fr, {
@@ -1471,5 +1474,8 @@ Object.assign(TEXTES.fr, {
   enligneHoteChoisit: 'L’hôte choisit la course.', enligneEmotes: 'Réactions',
   enligneEmote_0: 'Pouce levé', enligneEmote_1: 'Applaudissements', enligneEmote_2: 'Feu', enligneEmote_3: 'Rire', enligneEmote_4: 'Ouah',
   enligneEmote_5: 'Drapeau à damier', enligneEmote_6: 'Poignée de main', enligneEmote_7: 'Ouf',
+  aide_enligne: 'Crée une salle et envoie ses 4 lettres à tes amis, ou tape les lettres d’un ami pour le rejoindre.', aide_enligneSalle: 'Appuie sur « Je suis prêt ». L’hôte choisit la course et la lance. Dis bonjour avec les réactions !',
+  enligneComment: '❓ Comment jouer en ligne', enligneCommentTitre: 'Comment jouer en ligne',
+  enligneComment1: '1. Choisis ta couleur : c’est ton nom dans la course.', enligneComment2: '2. Un ami crée une salle et donne ses 4 lettres.', enligneComment3: '3. Les autres la rejoignent avec les lettres, puis appuient sur « Je suis prêt ».', enligneComment4: '4. L’hôte choisit le circuit et lance. Dis bonjour avec les réactions !',
   enligneNouvelHote: 'L’hôte est parti : c’est toi le nouvel hôte.', enligneParti: '{nom} a quitté la salle.', enligneDepart: 'C’est parti ! (la course en ligne elle-même n’est pas encore prête)',
 });

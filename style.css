@@ -2320,3 +2320,11 @@ body.tactile:has(#pause:not(.cache)) #boutonSon { display: none; }   /* (tour 55
   #enligneSalle .boutons button { min-height: 40px; padding: 6px 14px; font-size: 15px; }
 }
 body.tactile #boutonEnligneTitre, body.tactile :is(#enligne, #enligneRejoindre, #enligneSalle) .boutons button { min-height: 40px; }   /* (au doigt, 40 px au moins) */
+/* (tour 56, T12) « Comment jouer en ligne » : quatre étapes à la place du menu ; la bulle d'aide de la salle se pose en bas */
+#enligne.comment :is(#enligneExplication, #enligneCouleurs, #enligneNomChoisi, .boutons:first-of-type, #enligneMessage) { display: none; }
+#enligneComment { max-width: 520px; text-align: left; }
+#enligneEtapes { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; font: 700 18px/1.3 var(--tv-police, system-ui, sans-serif); }
+#enligneSalle:not(.cache) ~ #bulleAide.bulleMenu { top: auto; bottom: 8px; left: 50%; transform: translateX(-50%); max-width: min(560px, 90vw); pointer-events: none; }
+@media (max-height: 420px) { #enligneSalle:not(.cache) ~ #bulleAide.bulleMenu { display: none; } }   /* (640×360 : la salle est pleine, la ligne d'état dit déjà quoi faire) */
+@media (max-height: 420px) { #enligneEtapes { font-size: 14px; gap: 4px; } }
+body.tactile #boutonEnligneComment { min-height: 40px; }

@@ -10,7 +10,7 @@ const L=[];let ok=0,ko=0;
 function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
 const v=(c,m)=>{if(!c)throw new Error(m||'faux');};
 const R=REGLAGES;
-const IDS=['depart','qualif','fantome','fantomePole','stand','degats','drapeauJaune','drapeauBleu','drapeauVsc','pluie','consigne','pneus','garage','aileron','duel','rivalDomicile','contrats','interview','vivante','choixAides'];   // (tour 37g : la voiture vivante, le choix des aides ; tour 37l : le choix des pneus)
+const IDS=['depart','qualif','fantome','fantomePole','stand','degats','drapeauJaune','drapeauBleu','drapeauVsc','pluie','consigne','pneus','garage','aileron','duel','rivalDomicile','enligne','enligneSalle','contrats','interview','vivante','choixAides'];   // (tour 37g : la voiture vivante, le choix des aides ; tour 37l : le choix des pneus)
 
 // une situation de base : rien ne sert (un écran sans aide), la voiture en ligne droite
 const base=()=>({ecran:'choix',deux:false,tournoi:false,decouverte:false,attente:false,aidesDecouverte:false,feux:false,compte:false,etat:null,qualif:null,fantome:false,
@@ -25,6 +25,7 @@ const MOMENT={
   degats:avec({ecran:'course',etat:'course',degats:0.4}),
   drapeauJaune:avec({ecran:'course',etat:'course',drapeau:'jaune'}),drapeauBleu:avec({ecran:'course',etat:'course',drapeau:'bleu'}),drapeauVsc:avec({ecran:'course',etat:'course',drapeau:'vsc'}),
   rivalDomicile:avec({ecran:'championnat',rivalDomicile:true,vitesse:0}),
+  enligne:avec({ecran:'enligne',vitesse:0}),enligneSalle:avec({ecran:'enligneSalle',vitesse:0}),
   stand:avec({ecran:'course',etat:'course',arretConseille:6,tour:5}),
   pluie:avec({ecran:'course',etat:'course',eau:0.5}),
   consigne:avec({ecran:'course',etat:'course',consigne:true}),
@@ -163,7 +164,7 @@ t('nouveautés : situation() lit le drapeau du joueur (drapeaux.js), l\u2019aile
     v(s.drapeau==='bleu'&&s.degats===0.3&&s.rivalDomicile===false&&s.poleDispo===false,JSON.stringify(s));
     const sauveDeg=R.DEGATS_ACTIF;R.DEGATS_ACTIF=false;try{v(AIDES.situation(J,C,null).degats===0,'DEGATS_ACTIF faux : pas de bulle');}finally{R.DEGATS_ACTIF=sauveDeg;}
   }finally{if(sauve===undefined)delete window.DRAPEAUX;else window.DRAPEAUX=sauve;}});
-for(const id of ['fantomePole','degats','drapeauJaune','drapeauBleu','drapeauVsc','rivalDomicile']) t('le texte de l\u2019aide « '+id+' » est en anglais et en français, court, sans {repère} oublié',()=>{const en=TEXTES.en['aide_'+id],fr=TEXTES.fr['aide_'+id];v(en&&fr&&en!==fr&&en.length<=130&&fr.length<=130&&!/\{/.test(en+fr),id);});
+for(const id of ['fantomePole','degats','drapeauJaune','drapeauBleu','drapeauVsc','rivalDomicile','enligne','enligneSalle']) t('le texte de l\u2019aide « '+id+' » est en anglais et en français, court, sans {repère} oublié',()=>{const en=TEXTES.en['aide_'+id],fr=TEXTES.fr['aide_'+id];v(en&&fr&&en!==fr&&en.length<=130&&fr.length<=130&&!/\{/.test(en+fr),id);});
 t('aucune erreur dans la page', ()=>{v(window.__err.length===0,window.__err.join(' | '));});
 document.getElementById('res').textContent=`RESULTAT ${ok}/${ok+ko}\n`+L.join('\n');
 </script>
