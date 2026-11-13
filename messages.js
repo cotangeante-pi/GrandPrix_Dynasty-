@@ -29,6 +29,10 @@ const MESSAGES = (function () {
       const avant = m.vu.penalites[v.k] || 0;
       if (v.penalites > avant) pousser(m, { type: 'penalite', k: v.k, s: v.penalites - avant });
       m.vu.penalites[v.k] = v.penalites;
+      // (tour 55, T8) l'aileron abîmé (un nouveau choc), puis réparé
+      const dg = v.degats || 0, dgAvant = (m.vu.degats || (m.vu.degats = {}))[v.k] || 0;
+      if (dg > dgAvant + 1e-9) pousser(m, { type: 'degats', k: v.k }); else if (dg === 0 && dgAvant > 0) pousser(m, { type: 'repare', k: v.k });
+      m.vu.degats[v.k] = dg;
       if (v.auxStands && !m.vu.stands[v.k]) pousser(m, { type: 'stands', k: v.k });
       m.vu.stands[v.k] = !!v.auxStands;
     }

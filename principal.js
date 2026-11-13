@@ -2444,7 +2444,7 @@ function majMessages() {
   if (!oui) { INTERFACE.majMessage(null); return; }
   if (!JEU.messages || JEU.messages.plateau !== e) JEU.messages = { plateau: e, m: MESSAGES.creer() };
   const m = JEU.messages.m;
-  MESSAGES.observer(m, e.pilotes.map((p, k) => ({ k, meilleurTour: p.course.meilleurTour, penalites: p.course.penalites, auxStands: !!p.course.arretEnCours })));
+  MESSAGES.observer(m, e.pilotes.map((p, k) => ({ k, meilleurTour: p.course.meilleurTour, penalites: p.course.penalites, auxStands: !!p.course.arretEnCours, degats: p.v.degats })));
   if (typeof METEO3D !== 'undefined') MESSAGES.observerMeteo(m, METEO3D.etat(e));   // « La pluie arrive », « La piste sèche »
   majCommentaire(e, m);
   const msg = MESSAGES.afficher(m, e.temps);
@@ -2924,7 +2924,7 @@ function demarrerJeu() {
     if (JEU.plateau && !apres) JEU.plateau.pilotes.forEach((p, k) => {
       const m = JEU.modeles[k];
       m.groupe.visible = p.arrivee === null || k === JEU.suivie || (JEU.deux && !!p.joueur);   // (à deux, les deux joueurs restent visibles après l'arrivée)
-      if (m !== JEU.modele) { VOITURE3D.placer(m, etatAffiche(p.v, alpha), p.v); m.tete.visible = true; }
+      if (m !== JEU.modele) { VOITURE3D.majDegats(m, p.v.degats); VOITURE3D.placer(m, etatAffiche(p.v, alpha), p.v); m.tete.visible = true; }
     });
     const etat = etatAffiche(JEU.joueur, alpha);
     // les sensations de conduite (sensations.js, tour 37) : ce que vit chaque voiture, lu une fois par image pour le son,
@@ -2938,6 +2938,7 @@ function demarrerJeu() {
       PODIUM3D.camera(SCENE3D.camera, JEU.tempsPodium);
       PODIUM3D.majConfettis(dt);   // la cérémonie du champion : les confettis tombent (rien sinon)
     } else {
+      VOITURE3D.majDegats(JEU.modele, JEU.joueur.degats);
       VOITURE3D.placer(JEU.modele, etat, JEU.joueur);
       JEU.modele.tete.visible = CAMERA.mode !== 'cockpit';   // en vue cockpit, l'œil est dans le casque
       // après l'arrivée du joueur, la caméra télé suit une voiture encore en course

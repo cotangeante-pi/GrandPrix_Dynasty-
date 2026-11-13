@@ -291,7 +291,8 @@ function majStandsIA(p, e) {
   // la météo (meteo.js) : le pneu qu'il veut pour ce qu'il voit de la piste (l'eau, la pluie qui tombe ; jamais l'avenir), selon sa prudence
   const veut = e.meteo ? METEO.choisir(e.meteo.eau, e.meteo.pluie, 1 - (pi.caractere ? pi.caractere.agressivite : 0.5)) : null;
   const changer = !!veut && veut !== (v.typePneus || 'slick');
-  if (!pi.standTour && !changer && !pi.stand) return;
+  const repare = R.DEGATS_ACTIF && v.degats >= R.DEGATS_REPARER_SEUIL;   // (tour 55, T8) un aileron abîmé : il s'arrête au stand pour le faire réparer
+  if (!pi.standTour && !changer && !repare && !pi.stand) return;
   const depuis = ecartLeLong(c, v.piste.s - st.entree);
   if (pi.stand) {
     pi.stand.arrete = v.pneus.arrets > pi.stand.arretsAvant;
@@ -301,14 +302,14 @@ function majStandsIA(p, e) {
     v.manoeuvreStands = !!pi.stand && ((depuis > -Math.min(R.STAND_RANGER[0], droiteAvantStands(c)) && depuis < R.STAND_RAMPE) || (pi.stand.arrete && depuis > st.longueur - R.STAND_RAMPE));
     return;
   }
-  if ((v.pneus.arrets > 0 && !changer) || p.course.etat !== 'course') return;
+  if ((v.pneus.arrets > 0 && !changer && !repare) || p.course.etat !== 'course') return;
   if (depuis < -R.STAND_APPROCHE || depuis > 0) return;
   // (le tour où il arrivera à l'entrée : si l'entrée est juste après la ligne, il passera la ligne avant elle, c'est le tour suivant ;
   // sinon, il commencerait à freiner après la ligne, trop tard : tracés officiels, entrée à 20 m de la ligne)
   const tour = p.course.tours.length + 1 + (v.piste.s > st.entree && p.course.etape === 3 ? 1 : 0);
-  if ((!changer && tour < pi.standTour) || tour >= p.course.nbTours) return;
+  if ((!changer && !repare && tour < pi.standTour) || tour >= p.course.nbTours) return;
   // (pour changer de pneus, pas deux arrêts de suite : au moins METEO_ARRET_TOURS tours après le précédent)
-  if (changer && v.pneus.arrets > 0 && tour - (p.course.arrets && p.course.arrets.length ? p.course.arrets[p.course.arrets.length - 1].tour : 0) < R.METEO_ARRET_TOURS) return;
+  if ((changer || repare) && v.pneus.arrets > 0 && tour - (p.course.arrets && p.course.arrets.length ? p.course.arrets[p.course.arrets.length - 1].tour : 0) < R.METEO_ARRET_TOURS) return;
   pi.stand = { arrete: false, dedans: false, arretsAvant: v.pneus.arrets };
   if (veut) v.pneusProchain = veut;   // (les pneus qu'il prendra à l'arrêt : course.js, pasArretStand)
   if (pi.attaque) finirAttaque(pi, false, 'stands');

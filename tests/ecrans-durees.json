@@ -8,6 +8,7 @@
 "index.html?camera=libre 1280": 5,
 "index.html?camera=virage 1280": 3,
 "index.html?camera=vitrine 1280": 5,
+"index.html?camera=vitrine&test=degats 960": 5,
 "index.html?championnat=1&gp=5&test=paddock&lang=en 1280": 57,
 "index.html?championnat=1&gp=5&test=paddock&lang=en 640": 27,
 "index.html?championnat=1&gp=5&test=paddock&lang=en 960": 17,

@@ -178,6 +178,7 @@ function pasArretStand(c, v, dt) {
     a.reste -= dt;
     if (a.reste <= 0) {
       arretAuStand(v.pneus, v.changeurs || 0);
+      v.degats = 0;   // (tour 55, T8 : l'aileron réparé)
       if (v.pneusProchain) v.typePneus = v.pneusProchain;
       c.pneusMontes = v.typePneus || 'slick';   // (l'écran : « Pneus pluie montés »)
       v.choixPneus = false;   // (le prochain arrêt : l'équipe propose de nouveau)   // la météo (meteo.js) : les pneus choisis pour cet arrêt (slick, intermédiaire, pluie)
@@ -194,7 +195,7 @@ function pasArretStand(c, v, dt) {
   if (c.arretPassage || v.u >= R.STAND_VITESSE_ARRET) return false;
   const z = zoneStands(c.circuit, v.piste.s, v.piste.d);
   if (!z || !z.arret) return false;
-  const duree = dureeArret(v.changeurs || 0);
+  const duree = dureeArret(v.changeurs || 0) + (R.DEGATS_ACTIF && v.degats > 0 ? R.DEGATS_REPARATION : 0);   // (tour 55, T8 : l'aileron abîmé est réparé pendant l'arrêt)
   c.arretPassage = true;
   c.arretEnCours = { reste: duree, duree, tour: c.tours.length + 1, x: v.x, z: v.z, cap: v.cap, usure: v.pneus.usure };   // (usure : celle des pneus enlevés)
   v.u = v.v = v.r = 0;

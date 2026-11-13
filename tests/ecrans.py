@@ -27,6 +27,7 @@ PAGES = [
     ('index.html?camera=dessus', 1280, 720, 'dessus.png'),
     ('index.html?camera=virage', 1280, 720, 'virage.png'),
     ('index.html?camera=vitrine', 1280, 720, 'voiture.png'),
+    ('index.html?camera=vitrine&test=degats', 960, 600, 'degats.png'),   # (tour 55, T8) l'aileron avant abîmé : la voiture dessinée de travers, sans appel de dessin en plus, réparée = comme avant
     ('index.html?reglages=1&course=0', 1280, 720, 'reglages.png'),
     ('index.html?reglages=1&course=0', 960, 600, 'reglages-960.png'),          # le panneau en petit (tour 47c) : rien de coupé, libellés en français…
     ('index.html?reglages=1&course=0&lang=en', 960, 600, 'reglages-960-en.png'),   # … et en anglais
@@ -427,6 +428,17 @@ def passer_qualif(pg, titre):
     pg.click('#boutonQualifCourse')
     attendre(pg, '() => JEU.ecran === "course"', None, 10000)
 
+def degats_ecran(pg, titre):
+    attendre(pg, '() => typeof JEU !== "undefined" && !!JEU.modele && !!JEU.joueur', None, 60000)
+    pg.wait_for_timeout(500)
+    avant = pg.evaluate('() => ({ appels: VOITURE3D.appels(JEU.modele), tri: VOITURE3D.triangles(JEU.modele), abime: !!JEU.modele.abime })')
+    pg.evaluate('() => { JEU.joueur.degats = 0.4; }'); pg.wait_for_timeout(800)
+    apres = pg.evaluate('() => ({ appels: VOITURE3D.appels(JEU.modele), tri: VOITURE3D.triangles(JEU.modele), abime: !!JEU.modele.abime })')
+    pg.screenshot(path=os.path.join(CAPTURES, 'degats.png'))
+    pg.evaluate('() => { JEU.joueur.degats = 0; }'); pg.wait_for_timeout(800)
+    fin = pg.evaluate('() => ({ appels: VOITURE3D.appels(JEU.modele), tri: VOITURE3D.triangles(JEU.modele), abime: !!JEU.modele.abime })')
+    t(f'{titre} : un aileron avant abîmé : la voiture est dessinée de travers (une autre géométrie), sans appel de dessin en plus ; réparé, elle redevient comme avant',
+      not avant['abime'] and apres['abime'] and apres['appels'] == avant['appels'] and apres['tri'] != avant['tri'] and not fin['abime'] and fin['tri'] == avant['tri'], str([avant, apres, fin]))
 def qualif(pg, titre):
     # le robot fait le tour de qualification : il part à la place que donne son temps ; « Passer » le met dernier
     t(f'{titre} : l’écran de qualification, les IA sur la grille', attendre(pg, '() => JEU.ecran === "qualif" && JEU.qualif.etat === "choix" && JEU.plateau.pilotes.length === 6', None, 10000), str(pg.evaluate('() => [JEU.ecran, JEU.qualif]')))
@@ -4478,6 +4490,8 @@ with sync_playwright() as p:
                 lieu_ecran(pg, titre, page)
             elif 'test=resume' in page:
                 resume_ecran(pg, titre, l, h)
+            elif 'test=degats' in page:
+                degats_ecran(pg, titre)
             elif 'test=qualif' in page:
                 qualif(pg, titre)
             elif 'test=seuldefi' in page:

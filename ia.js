@@ -386,7 +386,7 @@ function majErreur(pilote, v, vues, dt) {
 // le rythme qu'il vise dans ce tour : le sien, moins ce que lui coûte sa régularité dans ce tour
 function rythmeDuTour(pilote) {
   const c = pilote.caractere;
-  return pilote.rythme * (c ? c.tours[pilote.tour % c.tours.length] : 1);
+  return pilote.rythme * (c ? c.tours[pilote.tour % c.tours.length] : 1) * (pilote.facteurDegats || 1);   // (tour 55, T8 : un aileron abîmé, un rythme plus bas)
 }
 
 // le pilote neutre : la carte telle quelle, sans variation (les essais d'une IA seule)
@@ -1129,6 +1129,7 @@ function valeurLigne(tableau, r) {
 function piloterIA(pilote, v, vues, dt) {
   const R = REGLAGES, c = pilote.carte.circuit, L = c.longueur, p = v.piste || positionSurPiste(c, v.x, v.z);
   if (!v.piste) v.piste = p;
+  pilote.facteurDegats = v.degats && R.DEGATS_ACTIF ? 1 - R.DEGATS_IA_RYTHME * v.degats : 0;   // (tour 55, T8 ; 0 = rien, au bit près)
   // il cède à une voiture tant qu'elle est à côté de lui ; ensuite, il l'oublie
   if (pilote.cede) {
     const w = vues.find(x => x.id === pilote.cede.id);

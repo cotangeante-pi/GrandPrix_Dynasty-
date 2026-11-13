@@ -13,6 +13,7 @@ function creerVoiture(circuit, s = 0, d = 0) {
     avant: { x: 0, z: 0, cap: 0 },    // l'état au début du pas, pour l'interpolation de l'affichage
     piste: null,                      // le dernier positionSurPiste
     surHerbe: false, contactsBarriere: 0,
+    degats: 0,                        // (tour 55, T8) l'aileron avant abîmé, de 0 (intact) à DEGATS_MAX : moins d'adhérence (pasVoiture), réparé à l'arrêt au stand (course.js)
     dansStands: false, standsExces: false, penalitesStands: 0, contactsMurStands: 0, campStands: 0,   // la voie des stands (étape 7, derrière PNEUS_ACTIFS) : dedans, la limite de vitesse déjà dépassée à ce passage, les secondes de pénalité, les contacts du muret
     contactsVoiture: 0,               // les contacts avec une autre voiture (un frottement qui dure compte pour un)
     chocMax: 0,                       // la plus forte vitesse de choc contre une voiture (m/s, vitesse relative)
@@ -109,7 +110,7 @@ function pasVoiture(v, circuit, dt) {
   if (v.typePneus === 'drift' && !R.PNEU_DRIFT) v.typePneus = 'slick';   // (tour 48b) le drift caché : la glisse pour personne, l'adhérant au bit près
   // (le pneu drift : son adhérence selon la vitesse, adherenceDrift, gardée dans v.adhDrift pour qui pilote ; × 1 en adhérant, au bit près)
   if (v.typePneus === 'drift') v.adhDrift = adherenceDrift(v.u);
-  let mu = R.ADHERENCE * (v.adhMeteo || 1) * (v.adherence || 1) * (v.aero || 1) * (v.aileronAdherence || 1) * (herbe ? R.ADHERENCE_HERBE : 1) * (v.typePneus === 'drift' ? v.adhDrift : 1);   // × 1 sans pneus ni garage ni aileron (aileron, Codeur 3) : le même nombre au bit près
+  let mu = R.ADHERENCE * (v.adhMeteo || 1) * (v.adherence || 1) * (v.aero || 1) * (v.aileronAdherence || 1) * (v.degats && R.DEGATS_ACTIF ? 1 - R.DEGATS_APPUI * v.degats : 1) * (herbe ? R.ADHERENCE_HERBE : 1) * (v.typePneus === 'drift' ? v.adhDrift : 1);   // × 1 sans pneus ni garage ni aileron (aileron, Codeur 3) : le même nombre au bit près
   // (les réglages de la voiture, tour 50b, reglages-voiture.js : la pression, les suspensions selon la vitesse, l'équilibre des freins au
   // freinage en virage ; au réglage conseillé, aucun champ n'est posé : mu n'est pas touché, au bit près)
   if (v.rvAdherence || v.rvSuspension || v.rvBlocage) mu *= adherenceReglages(v, v.u);
@@ -266,6 +267,13 @@ function pasPneusVivant(v, mu, fz, fzAvant0, fzArriere0, delta, fx, resistance, 
   v.v *= Math.exp(-R.ANTI_DERIVE * aides * dt);
 }
 
+// (tour 55, T8) un choc de vitesse `vitesse` (m/s) : au-delà du seuil, l'aileron avant perd DEGATS_PAR_MS par m/s de plus, jamais plus que DEGATS_MAX
+function abimerAileron(v, vitesse, seuil) {
+  const R = REGLAGES;
+  if (!R.DEGATS_ACTIF || !(vitesse > seuil)) return;
+  v.degats = Math.min(R.DEGATS_MAX, (v.degats || 0) + (vitesse - seuil) * R.DEGATS_PAR_MS);
+}
+
 // où est la voiture sur la piste : l'herbe, et les barrières qu'on ne traverse jamais
 function contactPiste(v, circuit) {
   const R = REGLAGES;
@@ -291,6 +299,7 @@ function contactPiste(v, circuit) {
     let wx = c * v.u - s * v.v, wz = s * v.u + c * v.v;
     const wn = wx * p.nx + wz * p.nz;
     if (wn * cote > 0) {
+      abimerAileron(v, wn * cote, R.DEGATS_SEUIL_BARRIERE);   // (tour 55, T8 : un choc fort contre la barrière ou le mur)
       wx -= p.nx * wn * (1 + R.REBOND_BARRIERE);
       wz -= p.nz * wn * (1 + R.REBOND_BARRIERE);
     }
@@ -393,6 +402,11 @@ function contactsVoitures(voitures, circuit) {
       const wbx = cb * b.u - sb * b.v, wbz = sb * b.u + cb * b.v;
       const rapproche = (wax - wbx) * nx + (waz - wbz) * nz;   // > 0 : a va vers b
       if (rapproche > 0) {
+        // (tour 55, T8) le nez d'une voiture qui en touche une autre fort : son aileron avant est abîmé ; de côté ou par l'arrière, rien
+        if (R.DEGATS_ACTIF && rapproche > R.DEGATS_SEUIL_VOITURE) {
+          if (ca * nx + sa * nz > R.DEGATS_NEZ) abimerAileron(a, rapproche, R.DEGATS_SEUIL_VOITURE);
+          if (-(cb * nx + sb * nz) > R.DEGATS_NEZ) abimerAileron(b, rapproche, R.DEGATS_SEUIL_VOITURE);
+        }
         const choc = rapproche * (1 + R.REBOND_VOITURE) / 2;   // mêmes masses
         const nwax = wax - nx * choc, nwaz = waz - nz * choc, nwbx = wbx + nx * choc, nwbz = wbz + nz * choc;
         a.u = ca * nwax + sa * nwaz; a.v = -sa * nwax + ca * nwaz;

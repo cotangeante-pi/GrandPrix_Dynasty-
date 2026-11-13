@@ -3612,6 +3612,41 @@ t('domicile des rivaux : un jeune arrivé à la place d’un retraité reçoit s
   v(ch.pilotes[0].nom===null&&ch.retraites.some(r=>r.id===0)&&REGLAGES.PAYS.includes(ch.pilotes[0].pays),'le jeune : '+ch.pilotes[0].pays);
   const part=new Set(ch.retraites.map(r=>r.id));v(ch.pilotes.every((p,k)=>p.humain||part.has(k)||p.pays===avant[k]),'un rival a changé de pays');});
 
+// --- les dégâts (tour 55, T8, CLAUDE.md « Les dégâts ») : l'aileron avant, la physique, les IA, la réparation au stand
+t('dégâts : un choc fort contre la barrière abîme l’aileron avant (jamais plus que DEGATS_MAX), un choc doux non ; de côté ou par l’arrière, une voiture touchée n’est pas abîmée ; DEGATS_ACTIF faux = rien', ()=>{
+  const R=REGLAGES,choc=(u,dcap)=>{const v_=creerVoiture(TQ,100,0);v_.cap+=dcap;v_.u=u;for(let k=0;k<120*4&&v_.contactsBarriere===0;k++)pasVoiture(v_,TQ,DT);return v_;};
+  const fort=choc(55,0.7);v(fort.contactsBarriere>0&&fort.degats>0&&fort.degats<=R.DEGATS_MAX,'un choc fort (55 m/s à 40°) : aileron abîmé '+fort.degats.toFixed(2));
+  const doux=choc(14,0.5);v(doux.contactsBarriere>0&&doux.degats===0,'un choc doux : rien ('+doux.degats+')');
+  const v_=creerVoiture(null);for(let i=0;i<30;i++)abimerAileron(v_,60,R.DEGATS_SEUIL_BARRIERE);v(v_.degats===R.DEGATS_MAX,'jamais plus que DEGATS_MAX ('+v_.degats+') : pas de casse totale');
+  // le nez contre une autre voiture
+  const duo=(ax,ay,acap,au,av_,bx,by,bcap)=>{const a=creerVoiture(null),b=creerVoiture(null);a.x=ax;a.z=ay;a.cap=acap;a.u=au;a.v=av_;b.x=bx;b.z=by;b.cap=bcap;contactsVoitures([a,b],null);return [a.degats,b.degats];};
+  let r=duo(0,0,0,20,0,3.5,0,0);v(r[0]>0&&r[1]===0,'le nez contre l’arrière d’une autre : le nez est abîmé, pas l’arrière ('+r+')');
+  r=duo(0,0,0,0,12,0,1.5,0);v(r[0]===0&&r[1]===0,'un choc de côté : rien ('+r+')');
+  r=duo(0,0,0,20,0,3.5,0,0);const lent=duo(0,0,0,4,0,3.5,0,0);v(lent[0]===0,'un frôlement : rien');
+  R.DEGATS_ACTIF=false;try{const f2=choc(55,0.7);v(f2.degats===0,'DEGATS_ACTIF faux : aucun dégât');r=duo(0,0,0,20,0,3.5,0,0);v(r[0]===0,'… ni contre une voiture');}finally{R.DEGATS_ACTIF=true;}
+});
+t('dégâts : un aileron abîmé fait perdre de l’adhérence (la voiture tourne moins), une voiture intacte est la même au bit près', ()=>{
+  const virage=(degats)=>{const v_=creerVoiture(null);v_.u=45;v_.degats=degats;for(let k=0;k<120*1.5;k++){v_.gaz=0.3;v_.direction=1;pasVoiture(v_,null,DT);}return v_;};
+  const a=virage(0),b=virage(REGLAGES.DEGATS_MAX),c0=virage(0);
+  v(b.cap<a.cap||Math.abs(b.cap)<Math.abs(a.cap),'abîmé : tourne moins ('+b.cap.toFixed(3)+' contre '+a.cap.toFixed(3)+' rad)');
+  v(a.x===c0.x&&a.z===c0.z&&a.u===c0.u,'intact : au bit près');
+});
+t('dégâts : une IA abîmée s’arrête au stand pour réparer (arrêt plus long de DEGATS_REPARATION), repart réparée, et les IA intactes ne s’arrêtent pas plus', ()=>{
+  const R=REGLAGES,r=avecPneus(()=>{const e=creerCourseIA(TQ,2,5,1,CARTES_T.technique);for(const p_ of e.pilotes)p_.course.compte=0;e.pilotes[0].v.degats=0.4;
+    for(let k=0;k<600*120&&e.arrives<2;k++)pasCourseIA(e,DT);return e;});
+  const a=r.pilotes[0],b=r.pilotes[1];
+  v(a.course.arrets.length>=1&&Math.abs(a.course.arrets[0].duree-(dureeArret(0)+R.DEGATS_REPARATION))<1e-9,'l’IA abîmée : un arrêt de '+(a.course.arrets[0]?a.course.arrets[0].duree:'—')+' s (attendu '+(dureeArret(0)+R.DEGATS_REPARATION)+')');
+  v(a.v.degats===0,'réparée à la fin de l’arrêt');
+  v(!b.course.arrets.length||b.course.arrets[0].duree===dureeArret(0),'l’IA intacte : son arrêt sans réparation ('+JSON.stringify(b.course.arrets.map(x=>x.duree))+')');
+  v(['msg_degats','msg_repare'].every(k=>TEXTES.fr[k]&&TEXTES.en[k]),'les messages dans les deux langues');
+});
+t('dégâts : le message « aileron abîmé / réparé » (messages.js) ; une IA abîmée vise un rythme plus bas', ()=>{
+  const m=MESSAGES.creer();MESSAGES.observer(m,[{k:0,degats:0},{k:1,degats:0}]);v(MESSAGES.afficher(m,0)===null,'rien au départ');
+  MESSAGES.observer(m,[{k:0,degats:0.3},{k:1,degats:0}]);const x=MESSAGES.afficher(m,1);v(x&&x.type==='degats'&&x.k===0,'abîmé : le message');
+  MESSAGES.observer(m,[{k:0,degats:0},{k:1,degats:0}]);const y=MESSAGES.afficher(m,100);v(y&&y.type==='repare'&&y.k===0,'réparé : le message');
+  const pil=creerPilote(CARTES_T.technique,0.9);v(rythmeDuTour(pil)===0.9,'intact : le rythme d’avant');pil.facteurDegats=1-REGLAGES.DEGATS_IA_RYTHME*0.5;v(rythmeDuTour(pil)<0.9,'abîmé : plus bas');
+});
+
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 ecrire();
 </script></body></html>

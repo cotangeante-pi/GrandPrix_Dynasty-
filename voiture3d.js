@@ -204,11 +204,14 @@ const VOITURE3D = (function () {
   }
 
   // les détails de la voiture du joueur (surtout pour la vue cockpit), fusionnés avec le reste : aucun appel de dessin en plus
-  function details(p, couleur) {
+  function details(p, couleur, abime) {
     const xa = R.CG_AVANT, xr = R.CG_AVANT - R.EMPATTEMENT;
     // l'aileron avant : deux volets étagés au-dessus du plan principal, et les deux supports sous le nez
-    boite(p, 0.22, 0.03, 1.75, couleur, 2.82, 0.21, 0, 0.25);
-    boite(p, 0.16, 0.025, 1.6, CARBONE, 2.66, 0.28, 0, 0.45);
+    if (abime) boite(p, 0.22, 0.03, 0.85, couleur, 2.82, 0.21, 0.45, 0.25);   // (tour 55, T8 : un volet seulement, l'autre côté est arraché)
+    else {
+      boite(p, 0.22, 0.03, 1.75, couleur, 2.82, 0.21, 0, 0.25);
+      boite(p, 0.16, 0.025, 1.6, CARBONE, 2.66, 0.28, 0, 0.45);
+    }
     for (const c of [1, -1]) boite(p, 0.3, 0.14, 0.03, CARBONE, 2.95, 0.24, c * 0.12, 0.3);
     // les suspensions : à chaque roue, un triangle en haut, un en bas et la tige de poussée
     for (const [x, h] of [[xa, 0.33], [xr, 0.35]]) {
@@ -241,7 +244,7 @@ const VOITURE3D = (function () {
   // toutes les pièces fixes de la voiture, en une seule géométrie ; detaille : la voiture du joueur ; cl : sa case dans l'atlas des
   // livrées ({ col, lig }) : les pièces de la couleur de l'écurie prennent la livrée, les dérives de l'aileron arrière portent le numéro,
   // et une plaque fine sur le nez aussi (quelques triangles, dans la même géométrie)
-  function geometrieCorps(couleurEcurie, detaille, cl) {
+  function geometrieCorps(couleurEcurie, detaille, cl, abime) {
     const p = paquet(cl), couleur = cl ? 'livree' : couleurEcurie, derive = cl ? 'derive' : CARBONE;
     // la coque, le nez, le capot moteur et la prise d'air au-dessus du pilote
     boite(p, 2.6, 0.5, 0.8, couleur, 0.1, 0.45, 0);
@@ -254,9 +257,17 @@ const VOITURE3D = (function () {
     // le fond plat
     boite(p, 3.6, 0.05, 1.5, CARBONE, -0.4, 0.12, 0);
     // l'aileron avant et ses dérives
-    boite(p, 0.5, 0.05, 1.95, CARBONE, 3.0, 0.14, 0);
-    boite(p, 0.55, 0.22, 0.04, CARBONE, 3.0, 0.22, 0.97);
-    boite(p, 0.55, 0.22, 0.04, CARBONE, 3.0, 0.22, -0.97);
+    if (abime) {
+      // (tour 55, T8) l'aileron avant abîmé : un côté pend vers la piste, plus court, sans dérive ; un morceau tordu tombe devant
+      boite(p, 0.5, 0.05, 1.0, CARBONE, 3.0, 0.14, 0.47);
+      boite(p, 0.55, 0.22, 0.04, CARBONE, 3.0, 0.22, 0.97);
+      boite(p, 0.5, 0.05, 0.7, CARBONE, 3.02, 0.07, -0.62, 0, 0.55);
+      boite(p, 0.3, 0.04, 0.25, CARBONE, 3.35, 0.03, -0.95, 0.4, 0.9, 0.3);
+    } else {
+      boite(p, 0.5, 0.05, 1.95, CARBONE, 3.0, 0.14, 0);
+      boite(p, 0.55, 0.22, 0.04, CARBONE, 3.0, 0.22, 0.97);
+      boite(p, 0.55, 0.22, 0.04, CARBONE, 3.0, 0.22, -0.97);
+    }
     // l'aileron arrière, ses dérives et son support
     boite(p, 0.45, 0.06, 1.0, CARBONE, -2.45, 0.98, 0);
     boite(p, 0.4, 0.06, 1.0, couleur, -2.4, 0.84, 0);
@@ -275,7 +286,7 @@ const VOITURE3D = (function () {
     // les bras de suspension, de la coque aux roues
     boite(p, 0.08, 0.04, 1.5, CARBONE, R.CG_AVANT, 0.36, 0);
     boite(p, 0.08, 0.04, 1.4, CARBONE, R.CG_AVANT - R.EMPATTEMENT, 0.4, 0);
-    if (detaille) details(p, couleur);
+    if (detaille) details(p, couleur, abime);
     return geometrie(p);
   }
 
@@ -357,6 +368,16 @@ const VOITURE3D = (function () {
     modele.corps.geometry = geometrieCorps(modele.couleur, modele.detaille, modele.cl);
   }
 
+  // (tour 55, T8) l'aileron avant abîmé (physique.js, v.degats > 0) : la géométrie du corps est refaite avec l'aileron de travers, une seule fois à
+  // chaque changement ; aucun appel de dessin en plus (la voiture vue de loin, formeLointaine, ne change pas)
+  function majDegats(modele, niveau) {
+    const abime = !!niveau && R.DEGATS_ACTIF !== false;
+    if (!modele || !modele.corps || !!modele.abime === abime) return;
+    modele.abime = abime;
+    modele.corps.geometry.dispose();
+    modele.corps.geometry = geometrieCorps(modele.couleur, modele.detaille, modele.cl, abime);
+  }
+
   // les triangles d'une voiture
   function triangles(modele) {
     let n = 0;
@@ -436,6 +457,6 @@ const VOITURE3D = (function () {
     return { y, z: -d, angle: -braquage * R.VOLANT_FACTEUR, haut: (y + r * 1.2) / bas };
   }
 
-  return { creerVolant, poseVolant, creer, creerFantome, formeLointaine, placer, majHalo, triangles, appels, preparerCasques, majCasque, apercuCasque, tournerApercu, get atlas() { return atlas; },
+  return { creerVolant, poseVolant, creer, creerFantome, formeLointaine, placer, majHalo, majDegats, triangles, appels, preparerCasques, majCasque, apercuCasque, tournerApercu, get atlas() { return atlas; },
     preparerLivrees, majLivree, apercuVoiture, libererApercuVoiture, tournerApercuVoiture, get atlasLivrees() { return atlasL; }, get apercuVoitureModele() { return apercuV && apercuV.modele; } };
 })();

@@ -1410,3 +1410,7 @@ Object.assign(TEXTES.fr, {
 // --- tour 55, T2 : la foule et l'ambiance (foule.js) ---
 Object.assign(TEXTES.en, { foule_oui: 'Crowd: on', foule_non: 'Crowd: off' });
 Object.assign(TEXTES.fr, { foule_oui: 'Foule : oui', foule_non: 'Foule : non' });
+
+// --- tour 55, T8 : les dégâts (l'aileron avant) ---
+Object.assign(TEXTES.en, { msg_degats: '{qui}: front wing damaged!', msg_repare: '{qui}: front wing fixed' });
+Object.assign(TEXTES.fr, { msg_degats: '{qui} : aileron avant abîmé !', msg_repare: '{qui} : aileron avant réparé' });

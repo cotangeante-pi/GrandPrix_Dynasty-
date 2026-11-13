@@ -966,6 +966,17 @@ const REGLAGES = {
   SIMULATION_TEMPS_MAX: 150,    // s par tour : une course simulée s'arrête là, même si des voitures n'ont pas fini
   RADAR_RAYON: 150,             // m : le radar montre la piste et les voitures jusque-là autour du joueur
   // le fantôme du meilleur tour (fantome.js, étape 5) : le tour de qualification enregistré avec l'enregistreur
+  // (tour 55, T8) les dégâts (CLAUDE.md « Les dégâts ») : un choc fort abîme l'aileron avant (moins d'appui, jamais de casse totale), réparé à l'arrêt au stand
+  DEGATS_ACTIF: true,           // faux = le jeu d'avant (aucun dégât, rien ne change au bit près)
+  DEGATS_SEUIL_BARRIERE: 9,     // m/s : la vitesse d'un choc contre une barrière ou un mur au-delà de laquelle l'aileron est touché…
+  DEGATS_SEUIL_VOITURE: 6,      // m/s : … ou la vitesse de rapprochement contre une autre voiture, avec le NEZ (devant, DEGATS_NEZ) ; les chocs de côté ou par l'arrière n'abîment rien
+  DEGATS_NEZ: 0.7,              // cosinus : la voiture touchée a son nez dans cette direction de l'autre voiture (0,7 ≈ 45°)
+  DEGATS_PAR_MS: 0.06,          // l'aileron perd ça (de 0 à DEGATS_MAX) par m/s au-dessus du seuil
+  DEGATS_MAX: 0.6,              // le plus abîmé (jamais de casse totale : la voiture reste pilotable)
+  DEGATS_APPUI: 0.45,           // à DEGATS_MAX, l'adhérence (donc l'appui dans les virages) baisse de DEGATS_APPUI × DEGATS_MAX = 27 %
+  DEGATS_IA_RYTHME: 0.3,        // une IA abîmée vise un rythme plus bas de ça × ses dégâts (elle ne roule pas comme avant sur une voiture qui ne tient plus)
+  DEGATS_REPARER_SEUIL: 0.12,   // une IA abîmée au moins de ça s'arrête au stand pour réparer (seulement sur un circuit avec voie des stands, PNEUS_ACTIFS)
+  DEGATS_REPARATION: 4,         // s de plus à l'arrêt au stand quand l'aileron est abîmé (réparé en même temps que les pneus)
   FANTOME_PAS: 0.1,             // s entre deux images du fantôme (un nombre entier de pas de physique : 12) ; le rejeu interpole entre elles
   FANTOME_DECIMALES: 2,         // les positions et distances sont arrondies au cm dans la sauvegarde (compact)
   FANTOME_COULEUR: 0xdfe3ea,    // une couleur neutre, claire…
