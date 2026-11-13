@@ -182,8 +182,9 @@ const REGLAGES = {
   TACTILE_ACTIF: true,             // faux : rien, même sur un écran tactile (le clavier seul, au bit près) ; sans écran tactile, rien ne change
   TACTILE_IPHONE_GRILLE: true,     // (tour 53e) iPhone : « 🎮 Activer le volant » n'est plus sur l'écran titre mais sur la grille, pendant les feux (gros, au centre-bas) ; sans réponse à l'extinction, les boutons ◀ ▶ ; faux = l'écran titre, comme avant
   TACTILE_PAYSAGE: true,           // (tour 52b) au premier geste sur un écran tactile : plein écran puis verrou en paysage (là où le navigateur le permet) ; faux : rien demandé
-  VOLANT_PLEIN: 25,                // ° d'inclinaison depuis le neutre = braquage à fond
-  VOLANT_ZONE_MORTE: 2,            // ° autour du neutre où l'on ne braque pas
+  VOLANT_PLEIN: 30,                // ° d'inclinaison depuis le neutre = braquage à fond (le propriétaire, 2026-11-12 : zone morte 10° ; il reste 20° de course jusqu'au plein ; avant : 25)
+  VOLANT_ZONE_MORTE: 10,           // ° autour du neutre où l'on ne braque pas : « 10° c'est tout droit, pour rester droit » (le propriétaire, 2026-11-12 ; avant : 2) ; le braquage part de 0 au bord, sans saut
+  TACTILE_FREIN_GAUCHE: true,      // (2026-11-12) FREIN en bas à gauche (pouce gauche), GAZ en bas à droite (pouce droit) quand le volant conduit ; avec les boutons ◀ ▶ de secours (à gauche), FREIN rejoint GAZ à droite ; faux : les deux à droite, FREIN à gauche de GAZ, comme avant
   VOLANT_LISSAGE: 0.06,            // s : le temps que met l'angle lissé à rejoindre la mesure (0 : aucun lissage)
   VOLANT_ATTENTE: 2.5,             // s sans mesure d'orientation après l'activation : pas de capteur, les boutons ◀ ▶
   VOLANT_SENSIBILITE: [1.4, 1, 0.68], // (tour 53f) les 3 crans « doux, normal, vif » du joueur (Réglages, pause) : VOLANT_PLEIN × ce nombre (normal = 1 : le jeu d'avant) ; le cran est sauvegardé

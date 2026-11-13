@@ -1835,6 +1835,11 @@ def manette_ecran(pg, titre):
 # (pointerType touch, un pointerId par doigt) sur les boutons ; le volant, de faux évènements deviceorientation (beta = l'inclinaison)
 FAUSSE_PERMISSION = "DeviceOrientationEvent.requestPermission = () => Promise.resolve(sessionStorage.getItem('perm') || 'granted');"
 DOIGT = "([id, pid, bas]) => { const el = document.getElementById(id); el.dispatchEvent(new PointerEvent(bas ? 'pointerdown' : 'pointerup', { pointerId: pid, pointerType: 'touch', isPrimary: pid === 1, bubbles: true, cancelable: true })); }"
+# (2026-11-12) tout ce que la vue de course pose sur l'écran : rien ne recouvre rien (🔊 ⏸ ↩, bandeau du tour, minicarte, tour, radar, vitesse, pneus, rétroviseur, GAZ, FREIN, ◀ ▶)
+SUPERPOSE = """() => { const ids = ['boutonSon', 'tactilePause', 'tactileRemise', 'hudCourse', 'minicarte', 'classement', 'tactileGaz', 'tactileFrein', 'tactileGauche', 'tactileDroite', 'radar', 'tableau', 'pneusHud', 'retroviseur'], r = [];
+      for (const id of ids) { const e = document.getElementById(id); if (!e || e.classList.contains('cache') || getComputedStyle(e).display === 'none' || getComputedStyle(e).visibility === 'hidden') continue; const b = e.getBoundingClientRect(); if (b.width > 0) r.push([id, b.left, b.top, b.right, b.bottom]); }
+      const c = []; for (let i = 0; i < r.length; i++) for (let j = i + 1; j < r.length; j++) { const a = r[i], b = r[j]; if (a[1] < b[3] - 1 && b[1] < a[3] - 1 && a[2] < b[4] - 1 && b[2] < a[4] - 1) c.push(a[0] + '/' + b[0]); }
+      return { vus: r.map(x => x[0]), chevauchements: c }; }"""
 INCLINER = "(beta) => window.dispatchEvent(new DeviceOrientationEvent('deviceorientation', { alpha: 0, beta, gamma: 0, absolute: false }))"
 TACTILE_ETAT = '''() => { const b = id => { const e = document.getElementById(id), r = e.getBoundingClientRect(); return { cache: e.classList.contains('cache') || getComputedStyle(e).display === 'none', x: r.left, y: r.top, l: r.width, h: r.height, texte: e.textContent }; };
   return { present: TACTILE.estPresent(), mode: TACTILE.etat.mode, choix: TACTILE.etat.choix, neutre: TACTILE.etat.neutre, cibles: Object.assign({}, JEU.cibles), ecran: JEU.ecran, W: innerWidth, H: innerHeight,
@@ -1960,14 +1965,11 @@ def tactile_ecran(pg, titre, l, h, page):
     pg.wait_for_timeout(300)
     e = pg.evaluate(TACTILE_ETAT)
     dedans = lambda b: b['x'] >= 0 and b['y'] >= 0 and b['x'] + b['l'] <= e['W'] + 1 and b['y'] + b['h'] <= e['H'] + 1
-    t(f'{titre} : sur un écran tactile, GAZ et FREIN s’affichent pendant la conduite, en bas à droite, dans l’écran, FREIN à gauche de GAZ, en gros (≥ 72 px)',
+    t(f'{titre} : sur un écran tactile, GAZ et FREIN s’affichent pendant la conduite, en bas à droite, dans l’écran, en gros (≥ 72 px) ; avant la première mesure (◀ ▶ affichés), FREIN à gauche de GAZ',
       pret and e['tactile'] and not e['gaz']['cache'] and not e['frein']['cache'] and dedans(e['gaz']) and dedans(e['frein']) and e['gaz']['x'] > e['W'] / 2 and e['gaz']['y'] > e['H'] / 2 and e['frein']['x'] + e['frein']['l'] <= e['gaz']['x'] + 1
       and e['gaz']['l'] >= 72 and e['frein']['l'] >= 72 and e['gaz']['texte'] == pg.evaluate('() => texte("tac_gaz")') and e['frein']['texte'] == pg.evaluate('() => texte("tac_frein")'), str(e))
     # (tour 52b) rien ne se chevauche : 🔊 ⏸ ↩, le bandeau du tour, la minicarte, la tour de classement, GAZ / FREIN (ceux qui sont affichés)
-    sup = pg.evaluate("""() => { const ids = ['boutonSon', 'tactilePause', 'tactileRemise', 'hudCourse', 'minicarte', 'classement', 'tactileGaz', 'tactileFrein'], r = [];
-      for (const id of ids) { const e = document.getElementById(id); if (!e || e.classList.contains('cache') || getComputedStyle(e).display === 'none') continue; const b = e.getBoundingClientRect(); if (b.width > 0) r.push([id, b.left, b.top, b.right, b.bottom]); }
-      const c = []; for (let i = 0; i < r.length; i++) for (let j = i + 1; j < r.length; j++) { const a = r[i], b = r[j]; if (a[1] < b[3] - 1 && b[1] < a[3] - 1 && a[2] < b[4] - 1 && b[2] < a[4] - 1) c.push(a[0] + '/' + b[0]); }
-      return { vus: r.map(x => x[0]), chevauchements: c }; }""")
+    sup = pg.evaluate(SUPERPOSE)
     t(f'{titre} : ni 🔊, ⏸, ↩, le bandeau du tour, la minicarte, la tour de classement, GAZ ou FREIN ne se recouvrent', pret and not sup['chevauchements'] and len(sup['vus']) >= 5, str(sup))
     # sans capteur (aucun évènement d'orientation n'arrive) : après VOLANT_ATTENTE, le mode « boutons » et ◀ ▶ en bas à gauche
     boutons = attendre(pg, '() => TACTILE.etat.mode === "boutons"', None, 8000)
@@ -1992,24 +1994,29 @@ def tactile_ecran(pg, titre, l, h, page):
     t(f'{titre} : dès qu’une mesure d’orientation arrive, le volant prend la main (neutre = la première mesure, 40°), les boutons ◀ ▶ disparaissent, la pause propose « Recentrer » et le choix du volant',
       e['mode'] == 'volant' and e['neutre'] == 40 and e['gauche']['cache'] and e['droite']['cache'] and not e['volantPause']['cache'] and not e['recentrer']['cache']
       and e['volantPause']['texte'] == pg.evaluate('() => texte("tac_mode_volant")') and e['recentrer']['texte'] == pg.evaluate('() => texte("tac_recentrer")'), str(e))
-    # 25° à droite (beta 65) = braquage à fond ; lissé, il y arrive en moins d'une seconde
-    pg.evaluate("() => { window.__beta = 65; window.__pencher = () => window.dispatchEvent(new DeviceOrientationEvent('deviceorientation', { alpha: 0, beta: window.__beta, gamma: 0 })); window.__penche = setInterval(window.__pencher, 16); }")
+    # (2026-11-12) le volant conduit : FREIN passe au pouce gauche (en bas à gauche), GAZ reste au pouce droit, et rien ne se recouvre (radar, vitesse, pneus, rétroviseur compris)
+    e = pg.evaluate(TACTILE_ETAT)
+    sup2 = pg.evaluate(SUPERPOSE)
+    t(f'{titre} : volant actif, FREIN est en bas à gauche (pouce gauche), GAZ en bas à droite, tous deux dans l’écran, et rien ne se recouvre (radar, vitesse, pneus, rétroviseur, minicarte, tour, 🔊 ⏸ ↩)',
+      dedans(e['frein']) and e['frein']['x'] + e['frein']['l'] / 2 < e['W'] / 2 and e['frein']['y'] > e['H'] / 2 and e['gaz']['x'] > e['W'] / 2 and not sup2['chevauchements'] and len(sup2['vus']) >= 6, str([e['frein'], e['gaz'], sup2]))
+    # VOLANT_PLEIN (30°) à droite du neutre = braquage à fond ; lissé, il y arrive en moins d'une seconde
+    pg.evaluate("() => { window.__beta = 40 + REGLAGES.VOLANT_PLEIN; window.__pencher = () => window.dispatchEvent(new DeviceOrientationEvent('deviceorientation', { alpha: 0, beta: window.__beta, gamma: 0 })); window.__penche = setInterval(window.__pencher, 16); }")
     plein = attendre(pg, '() => JEU.cibles.direction >= 0.98 && TACTILE.cibles().direction >= 0.98', None, 6000)
     d1 = pg.evaluate('() => [JEU.cibles.direction, TACTILE.cibles().direction, JEU.cibles.gaz]')
-    t(f'{titre} : 25° à droite du neutre = braquage à fond (direction 1), sans gaz', plein and d1[2] == 0, str(d1))
-    # la zone morte : 1° ne braque pas ; 12,5° de l'autre côté : à peu près la moitié (la zone morte retirée, sans saut)
-    pg.evaluate('() => { window.__beta = 41; }')
+    t(f'{titre} : VOLANT_PLEIN (30°) à droite du neutre = braquage à fond (direction 1), sans gaz', plein and d1[2] == 0, str(d1))
+    # la zone morte (10°) : 8° ne braquent pas ; 20° de l'autre côté : la moitié (la zone morte retirée, sans saut)
+    pg.evaluate('() => { window.__beta = 40 + REGLAGES.VOLANT_ZONE_MORTE - 2; }')
     d0 = attendre(pg, '() => JEU.cibles.direction === 0', None, 4000)   # (le lissage : quelques images)
     z, p = pg.evaluate('() => [REGLAGES.VOLANT_ZONE_MORTE, REGLAGES.VOLANT_PLEIN]')
-    attendu = -(12.5 - z) / (p - z)
-    pg.evaluate('() => { window.__beta = 40 - 12.5; }')
+    attendu = -(20 - z) / (p - z)
+    pg.evaluate('() => { window.__beta = 40 - 20; }')
     dm = attendre(pg, 'a => Math.abs(JEU.cibles.direction - a) < 0.03', attendu, 4000)
-    t(f'{titre} : 1° dans la zone morte ne braque pas ; 12,5° à gauche braque à gauche, à {attendu:.2f} (la zone morte retirée, sans saut)', d0 and dm, str([d0, dm, pg.evaluate('() => JEU.cibles.direction'), attendu]))
-    # « Recentrer » : le neutre devient l'angle d'aujourd'hui (27,5°), et l'on ne braque plus
+    t(f'{titre} : 2° sous le bord de la zone morte (10°) ne braquent pas ; 20° à gauche braquent à gauche, à {attendu:.2f} (la zone morte retirée, sans saut)', d0 and dm, str([d0, dm, pg.evaluate('() => JEU.cibles.direction'), attendu]))
+    # « Recentrer » : le neutre devient l'angle d'aujourd'hui (20°), et l'on ne braque plus
     pg.evaluate('() => TACTILE.recentrer()')
     attendre(pg, '() => JEU.cibles.direction === 0', None, 4000)
     r = pg.evaluate('() => [TACTILE.etat.neutre, JEU.cibles.direction]')
-    t(f'{titre} : « Recentrer » prend l’angle du moment pour neutre, et le volant recentré ne braque pas', r[0] == 27.5 and r[1] == 0, str(r))
+    t(f'{titre} : « Recentrer » prend l’angle du moment pour neutre, et le volant recentré ne braque pas', r[0] == 20 and r[1] == 0, str(r))
     # le choix de la pause : « Direction : boutons ◀ ▶ » rend les boutons, même avec un capteur ; puis retour au volant
     pg.evaluate('() => document.getElementById("boutonVolantPause").click()')
     e = pg.evaluate(TACTILE_ETAT)   # (rafraichir est immédiat : pas d'image à attendre)

@@ -1916,6 +1916,17 @@ body.tactile #aide { display: none; }
 }
 /* (tour 53d) la vue de la piste : avec les boutons ◀ ▶, le radar se pose au-dessus d'eux (plus petit) et, en petit écran, disparaît (le rétroviseur
    montre l'arrière) ; l'aide « ◀ ▶ » de la découverte répète les boutons : cachée */
+/* (2026-11-12, le propriétaire) FREIN au pouce gauche, GAZ au pouce droit (body.tactileFreinG, TACTILE_FREIN_GAUCHE) ; quand ◀ ▶ de secours sont là, FREIN reste à côté de GAZ (le pouce gauche braque).
+   Tout le reste s'écarte : le radar se pose à droite de FREIN, la vitesse et les pneus à gauche de GAZ, l'aide de course sous 🔊 ⏸ ↩ ; rien n'en recouvre un autre. */
+body.tactile.tactileFreinG #tactileFrein { right: auto; left: 18px; }
+body.tactile.tactileFreinG #tableau, body.tactile.tactileFreinG #pneusHud { right: 160px; }
+body.tactile.tactileFreinG #radar { --radar-taille: 130px; left: 134px; bottom: 18px; }
+@media (max-height: 420px) {
+  body.tactile.tactileFreinG #tactileFrein { left: 12px; right: auto; }
+  body.tactile.tactileFreinG #tableau, body.tactile.tactileFreinG #pneusHud { right: 116px; }
+  body.tactile.tactileFreinG #radar { --radar-taille: 96px; left: 96px; bottom: 12px; }
+  body.tactile #bulleAide.bulleCourse { top: 156px; max-width: 230px; }
+}
 body.tactile.tactileBoutons #radar { --radar-taille: 120px; bottom: 124px; left: 12px; }
 body.tactile.tactileBoutons #aideDirection { display: none; }
 @media (max-height: 420px) { body.tactile.tactileBoutons #radar { display: none; } }
