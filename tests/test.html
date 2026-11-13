@@ -3449,6 +3449,7 @@ t('voix enregistrées : allumées par défaut (tour 55, T10), en français seule
   v(REGLAGES.VOIX_SONS===true&&REGLAGES.VOIX_SONS_LANGUES.join()==='fr','allumées par défaut, en français seulement (VOIX_SONS faux = le jeu d’avant)');
   const langs=REGLAGES.VOIX_SONS_LANGUES;REGLAGES.VOIX_SONS_LANGUES=['fr'];
   VOIXSONS._essai({permis:()=>true,ctx:{},sortie:{}},'en',{depart:[{id:'x'}]},true);v(VOIXSONS.jouer('depart')===false,'en anglais : pas de son, la synthèse parle');VOIXSONS._essai(null,null,undefined,false);
+  v(VOIXSONS.disponible===(LANGUE==='fr'),'disponible : vrai seulement dans une langue qui a des sons (le bouton « Voix » du paddock se cache sinon, tour 55 revue)');
   REGLAGES.VOIX_SONS_LANGUES=null;   // (le reste du test : la langue de la page, quelle qu'elle soit)
   const faits=['depart','depassement','depassementTete','depassementJoueur','coteACote','erreur','glissade','contact','arret','stands','pluie','meilleurTour','dernierTour','arrivee','podium','joueurArrivee','penalite'];
   v(VOIXSONS.CLES.length===17&&VOIXSONS.CLES.every(c=>VOIXSONS.PRISES_DE[c]>=2&&VOIXSONS.PRISES_DE[c]<=3),'17 groupes de 2 ou 3 prises (les 16 du T10 + la remontée du T22)');
