@@ -1,0 +1,44 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>le temps de qualification estimé des IA contre un tour simulé</title></head><body>
+<pre id="res"></pre>
+<script src="../donnees.js"></script><script src="../aleatoire.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../course.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../robot.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../aileron.js"></script><script src="../reglages-voiture.js"></script><script src="../circuits-officiels-a.js"></script><script src="../circuits-officiels-b.js"></script>
+<script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));</script>
+<script>
+// T15 (tour 55) : tourEstime (ia.js, le temps de qualification des IA) contre un VRAI tour lancé simulé (une IA seule, régulière, sans erreur,
+// le 2e tour d'une course de 3 tours), sur les 12 tracés officiels, le circuit d'essai et le technique, à plusieurs rythmes. Mesure le rapport
+// simulé / estimé ; EXIGÉ : (voir plus bas) l'estimation corrigée est à moins de TOLERANCE du tour simulé, et QUALIF_ECHELLE = 1 rend l'estimation d'avant.
+const Q=new URLSearchParams(location.search),FILTRE=Q.get('circuits');
+const L=[];let ok=0,ko=0;
+function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
+const v=(c,m)=>{if(!c)throw new Error(m||'faux');};
+const ecrire=etape=>{document.getElementById('res').textContent=`${etape?'EN COURS ('+etape+') ':''}RESULTAT ${ok}/${ok+ko}\n`+L.join('\n');};
+const DT=REGLAGES.PAS_PHYSIQUE;
+const TOUS=Object.assign({test:CIRCUITS.test,technique:CIRCUITS.technique},CIRCUITS_OFFICIELS_A,CIRCUITS_OFFICIELS_B);
+function tourSimule(c,carte,rythme){
+  const e=creerCourseIA(c,1,3,1,carte),p=e.pilotes[0];p.course.compte=0;const src=p.pilote;
+  p.rythme=rythme;p.pilote=creerPilote(carte,rythme,src.style,0);
+  for(const k of ['limite','bordMin','penaliteFrein']) if(src[k]!==undefined) p.pilote[k]=src[k];
+  const max=Math.round(3*REGLAGES.SIMULATION_TEMPS_MAX/DT);
+  for(let k=0;k<max&&p.arrivee===null;k++)pasCourseIA(e,DT);
+  const tr=p.course.tours;return tr.length>=2&&!tr[1].coupe?tr[1].temps:null;
+}
+const NIVEAUX=(Q.get('niveaux')||'normal,debutant,expert,legende').split(','),RYTHMES=[0.95,1],RES=[];
+for(const niv of NIVEAUX){
+  REGLAGES.NIVEAU=niv;
+  for(const [cle,def] of Object.entries(TOUS)){
+    if(FILTRE&&!FILTRE.split(',').includes(cle))continue;
+    t(niv+' '+cle+' : estimé contre simulé',()=>{
+      const c=construireCircuit(def),carte=carteDepuis(c,calculerTrajectoire(c));CARTES.set(c,carte);
+      const r={niv,cle,L:c.longueur,nv:carte.virages.length};for(const ry of RYTHMES){const s=tourSimule(c,carte,ry),es=tourEstime(carte,ry);r[ry]={s,es,k:s&&s/es};}
+      RES.push(r);v(r[1].s!==null&&r[0.95].s!==null,'tour simulé invalide');});
+    ecrire(niv+' '+cle);
+  }
+}
+REGLAGES.NIVEAU='normal';
+// EXIGÉ (T15) : l'estimation (corrigée, tourEstime) est à moins de ECART_MAX du tour simulé, à chaque niveau, circuit et rythme essayés
+const ECART_MAX=0.08;
+t('tourEstime à moins de '+(ECART_MAX*100)+' % du tour simulé (rythmes 0,95 et 1, 4 niveaux, 14 circuits) ; pire cas : '+(()=>{let w=null;for(const r of RES)for(const ry of RYTHMES){const e=Math.abs(r[ry].k-1);if(!w||e>w.e)w={e,t:r.niv+' '+r.cle+' '+ry+' '+r[ry].k.toFixed(3)};}return w&&w.t;})(),()=>{
+  for(const r of RES)for(const ry of RYTHMES)v(Math.abs(r[ry].k-1)<=ECART_MAX,r.niv+' '+r.cle+' rythme '+ry+' : rapport '+r[ry].k.toFixed(3));});
+for(const niv of NIVEAUX){const ks=RES.filter(r=>r.niv===niv).map(r=>r[1].k);L.push('RAPPORT '+niv+' rythme 1 : min '+Math.min(...ks).toFixed(3)+' moyenne '+(ks.reduce((a,b)=>a+b,0)/ks.length).toFixed(3)+' max '+Math.max(...ks).toFixed(3));
+  const k9=RES.filter(r=>r.niv===niv).map(r=>r[0.95].k);L.push('RAPPORT '+niv+' rythme 0,95 : min '+Math.min(...k9).toFixed(3)+' moyenne '+(k9.reduce((a,b)=>a+b,0)/k9.length).toFixed(3)+' max '+Math.max(...k9).toFixed(3));}
+ecrire(null);
+</script></body></html>

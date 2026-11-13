@@ -3579,6 +3579,23 @@ t('fantôme du poleman : un tour simulé du pilote en pole, valide, qui dure son
   R.FANTOME_POLEMAN=false;try{v(FANTOME_POLE.tour(e)===null,'FANTOME_POLEMAN faux : rien');}finally{R.FANTOME_POLEMAN=true;}
 });
 
+// --- le temps de qualification réaliste des IA (tour 55, T15 ; mesure sur les 12 tracés : tests/qualif-estime.html)
+t('qualification des IA réaliste : tourEstime × l’échelle du niveau (1,14 normal, 1,04 légende, moins 0,6 par point de rythme sous 1) ; QUALIF_REALISTE faux = l’estimation d’avant au bit près ; la grille a les mêmes pilotes', ()=>{
+  const R=REGLAGES,carte=CARTES_T.technique,tr=carte.trajectoire;let brut=0;
+  for(let i=0;i<tr.vitesse.length;i++){const w=tr.vitesse[i];brut+=tr.ds[i]/(w<carte.pointe*0.999?0.97*w:w);}
+  const niv0=R.NIVEAU,rea0=R.QUALIF_REALISTE;
+  try{
+    R.QUALIF_REALISTE=false;v(tourEstime(carte,0.97)===brut,'faux : pas l’estimation d’avant');
+    R.QUALIF_REALISTE=true;
+    for(const [niv,k] of [['normal',1.14],['debutant',1.14],['expert',1.09],['legende',1.04]]){R.NIVEAU=niv;const att=brut*(k-R.QUALIF_ECHELLE_PENTE*0.03);v(Math.abs(tourEstime(carte,0.97)-att)<1e-9,niv+' : '+tourEstime(carte,0.97)+' au lieu de '+att);}
+    R.NIVEAU='normal';const a=tourEstime(carte,1),b=tourEstime(carte,0.95);v(a<b&&a>brut*0+1,'plus de rythme, plus vite');
+    const e=creerCourseIA(TQ,8,2,7,carte);R.QUALIF_REALISTE=false;const e0=creerCourseIA(TQ,8,2,7,carte);
+    v(e.grille.map(g=>g.numero).sort().join()===e0.grille.map(g=>g.numero).sort().join(),'pas les mêmes pilotes');
+    const pole=e.grille[0].qualif,pole0=e0.grille[0].qualif;v(pole>pole0*1.08&&pole<pole0*1.2,'la pole : '+pole0.toFixed(2)+' → '+pole.toFixed(2));
+    L.push('  (qualification des IA, technique, graine 7 : pole '+pole0.toFixed(2)+' s avant, '+pole.toFixed(2)+' s maintenant)');
+  }finally{R.NIVEAU=niv0;R.QUALIF_REALISTE=rea0;}
+});
+
 // --- le Grand Prix à domicile des rivaux (tour 55, T5) : une nationalité par rival (championnat.js : completer), un petit bonus de rythme sur le
 // circuit de son pays (appliquerNiveaux), une phrase du commentateur au départ, une brève du journal s'il est sur le podium
 t('domicile des rivaux : chaque rival a un pays (de PAYS), tiré avec la graine, sans changer ni nom ni numéro ; le joueur n’en reçoit pas ; DOMICILE_RIVAUX_ACTIF faux = aucun pays (le jeu d’avant) ; rivauxADomicile ne rend que les rivaux du pays du circuit', ()=>{
