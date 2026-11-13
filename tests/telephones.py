@@ -131,7 +131,7 @@ def nouveautes(pg, nom):
     vu = attendre(pg, '() => !document.getElementById("drapeau").classList.contains("cache")', None, 20000)
     t(f'{nom} · nouveautés : le bandeau « VSC » s\u2019affiche en course', vu, pg.evaluate('() => document.getElementById("drapeau").className'))
     texte = pg.evaluate('() => document.getElementById("drapeau").textContent')
-    t(f'{nom} · nouveautés : le bandeau dit ce qu\u2019il faut faire, avec son texte (pas la couleur seule) : « {texte} »', 'VSC' in texte and 'km' in texte, texte)
+    t(f'{nom} · nouveautés : le bandeau dit ce qu\u2019il faut faire, avec son texte (pas la couleur seule) : « {texte} »', 'VSC' in texte and len(texte) > 12, texte)
     bulle = attendre(pg, '() => !document.getElementById("bulleAide").classList.contains("cache")', None, 20000)
     t(f'{nom} · nouveautés : la bulle d\u2019aide du drapeau apparaît', bulle, pg.evaluate('() => AIDES_ECRAN.affichee()'))
     pg.wait_for_timeout(400)
@@ -139,6 +139,14 @@ def nouveautes(pg, nom):
     box = pg.evaluate('() => { const g = id => { const r = document.getElementById(id).getBoundingClientRect(); return [r.left, r.top, r.right, r.bottom]; }; return { drapeau: g("drapeau"), bulle: g("bulleAide"), W: innerWidth, H: innerHeight }; }')
     d, bl = box['drapeau'], box['bulle']
     t(f'{nom} · nouveautés : le bandeau et la bulle tiennent dans l\u2019écran et ne se recouvrent pas', d[0] >= 0 and d[2] <= box['W'] and bl[0] >= 0 and bl[2] <= box['W'] and not (min(d[2], bl[2]) - max(d[0], bl[0]) > 4 and min(d[3], bl[3]) - max(d[1], bl[1]) > 4), json.dumps(box))
+    # (revue T26) rien du HUD de course ne se recouvre, l'eau de la météo comprise (elle recouvrait la tour de classement en 640×360)
+    pg.evaluate('() => { const m = document.getElementById("meteoHud"); m.classList.remove("cache"); document.getElementById("meteoIcone").textContent = "☁"; document.getElementById("meteoEau").textContent = "eau 40 %"; }')
+    sur = pg.evaluate('''() => { const ids = ["hudCourse", "drapeau", "classement", "meteoHud", "pneusHud", "bulleAide", "minicarte", "boutonSon", "tactilePause", "tactileRemise", "tableau", "radar"], out = [];
+      const vus = ids.map(i => [i, document.getElementById(i)]).filter(([, e]) => e && !e.closest(".cache") && getComputedStyle(e).display !== "none").map(([i, e]) => [i, e.getBoundingClientRect()]);
+      for (let a = 0; a < vus.length; a++) for (let b = a + 1; b < vus.length; b++) { const A = vus[a][1], B = vus[b][1];
+        if (Math.min(A.right, B.right) - Math.max(A.left, B.left) > 6 && Math.min(A.bottom, B.bottom) - Math.max(A.top, B.top) > 6) out.push(vus[a][0] + " / " + vus[b][0]); } return out; }''')
+    pg.evaluate('() => document.getElementById("meteoHud").classList.add("cache")')
+    t(f'{nom} · nouveautés : le bandeau, le chrono, la tour de classement, l\u2019eau, les pneus, la bulle et la minicarte ne se recouvrent pas', not sur, sur)
     photo(pg, os.path.join(CAPTURES, f'tel-{nom.replace(" ", "_").replace("+", "p")}-vsc.png'))
     # la bulle se ferme au toucher (une bulle de course se cache dans un virage : on attend qu'elle soit là, et on la touche tout de suite)
     for _ in range(6):

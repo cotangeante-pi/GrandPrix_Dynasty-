@@ -1729,7 +1729,9 @@ const INTERFACE = (function () {
     el.classList.toggle('cache', !info);
     if (!info) return;
     for (const c of ['jaune', 'bleu', 'vsc', 'vert']) el.classList.toggle(c, c === info.type);
-    const t = texte('drapeau_' + info.type).replace('{v}', info.limite ? String(Math.round(info.limite * 3.6)) : '');
+    // (revue T26) sous 420 px de haut (le téléphone couché), le bandeau tient sur une ligne : le texte court de la VSC, sans la vitesse
+    const court = window.innerHeight <= 420 && TEXTES[LANGUE]['drapeau_' + info.type + '_court'] !== undefined;
+    const t = texte('drapeau_' + info.type + (court ? '_court' : '')).replace('{v}', info.limite ? String(Math.round(info.limite * 3.6)) : '');
     if (el.textContent !== t) el.textContent = t;
   }
   function majMessage(t) {
