@@ -1,0 +1,45 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>le temps de qualification estimé des IA contre un tour simulé</title></head><body>
+<pre id="res"></pre>
+<script src="../donnees.js"></script><script src="../aleatoire.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../course.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../robot.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../aileron.js"></script><script src="../reglages-voiture.js"></script><script src="../circuits-officiels-a.js"></script><script src="../circuits-officiels-b.js"></script>
+<script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));</script>
+<script>
+// T28 (tour 55) : OÙ SE QUALIFIE UN JOUEUR, avant et après T15 (QUALIF_REALISTE faux / vrai), pour chaque niveau d'IA. Le « joueur » est le robot d'essai (piloteRobot,
+// un tour lancé, le 2e d'une course de 3 tours) × un facteur de lenteur (0,90 = plus rapide que le robot ; 1 = le robot ; 1,25 = moyen ; 1,5 = débutant) ;
+// les IA : qualifier(e) (simulation.js), 19 IA ; la place = 1 + le nombre d'IA plus rapides. Outil de mesure, pas un test (rien d'exigé) :
+// ouvrir la page (?circuits=test,technique pour en choisir) et lire le tableau.
+const Q=new URLSearchParams(location.search),FILTRE=Q.get('circuits');
+const L=[];
+const TOUS=Object.assign({test:CIRCUITS.test,technique:CIRCUITS.technique},CIRCUITS_OFFICIELS_A,CIRCUITS_OFFICIELS_B);
+const DT=REGLAGES.PAS_PHYSIQUE,FACTEURS=[0.9,0.95,1,1.05,1.1,1.25,1.5],NIVEAUX=['debutant','normal','expert','legende'];
+function tourRobot(c,carte){
+  const e=creerCourseIA(c,1,3,1,carte,true),h=e.pilotes[e.pilotes.length-1];for(const p of e.pilotes)p.course.compte=0;
+  const robot=(p,dt)=>appliquerCommandes(p.v,courseAutorise(p.course)?piloteRobot(p.v,c):COMMANDES_AUCUNE);
+  const max=Math.round(3*REGLAGES.SIMULATION_TEMPS_MAX/DT);
+  for(let k=0;k<max&&h.arrivee===null;k++)pasCourseIA(e,DT,robot);
+  const tr=h.course.tours;return tr.length>=2&&!tr[1].coupe?tr[1].temps:null;
+}
+function tempsIA(c,carte,niv,realiste){
+  REGLAGES.NIVEAU=niv;REGLAGES.QUALIF_REALISTE=realiste;
+  const e=creerCourseIA(c,19,3,5,carte,true);qualifier(e);
+  REGLAGES.NIVEAU='normal';REGLAGES.QUALIF_REALISTE=true;
+  return e.pilotes.filter(p=>!p.humain).map(p=>p.qualif).sort((a,b)=>a-b);
+}
+const place=(ts,x)=>1+ts.filter(t=>t<x).length;
+const AGR={};   // niveau -> facteur -> {avant:[], apres:[]}
+for(const [cle,def] of Object.entries(TOUS)){
+  if(FILTRE&&!FILTRE.split(',').includes(cle))continue;
+  const c=construireCircuit(def),carte=carteDepuis(c,calculerTrajectoire(c));CARTES.set(c,carte);
+  const R0=tourRobot(c,carte);if(R0===null){L.push(cle+' : tour du robot invalide');continue;}
+  L.push('== '+cle+' : robot '+R0.toFixed(1)+' s');
+  for(const niv of NIVEAUX){
+    const av=tempsIA(c,carte,niv,false),ap=tempsIA(c,carte,niv,true);
+    L.push('  '+niv+' : IA avant '+av[0].toFixed(1)+'–'+av[av.length-1].toFixed(1)+' s, après '+ap[0].toFixed(1)+'–'+ap[ap.length-1].toFixed(1)+' s ; robot / IA(avant) '+(R0/av[0]).toFixed(3)+', robot / IA(après) '+(R0/ap[0]).toFixed(3));
+    for(const f of FACTEURS){const x=R0*f,a=AGR[niv]=AGR[niv]||{},g=a[f]=a[f]||{avant:[],apres:[]};g.avant.push(place(av,x));g.apres.push(place(ap,x));}
+  }
+  document.getElementById('res').textContent='EN COURS '+cle+'\n'+L.join('\n');
+}
+const moy=a=>a.reduce((s,x)=>s+x,0)/a.length;
+L.push('','PLACE MOYENNE SUR LA GRILLE (1 = pole, 20 = dernier) selon la lenteur du joueur (× le tour du robot) : avant → après');
+for(const niv of NIVEAUX){L.push(niv+' : '+FACTEURS.map(f=>'×'+f+' '+moy(AGR[niv][f].avant).toFixed(1)+'→'+moy(AGR[niv][f].apres).toFixed(1)).join(' | '));}
+document.getElementById('res').textContent='FINI\n'+L.join('\n');
+</script></body></html>
