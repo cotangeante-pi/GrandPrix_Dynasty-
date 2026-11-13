@@ -456,7 +456,8 @@ try:
             # jamais avant le premier geste ; un son joué passe par le mixage ; console vide
             import mimetypes
             noms_sons = [n for n in zipfile.ZipFile(ZIP).namelist() if n.startswith('sons/voix/')]
-            t('paquet : les 33 sons des voix (3 prises × 5 faits × 2 langues, + 3 prises « remontée » en français) sont dans le zip, et pèsent moins de 460 Ko', len(noms_sons) == 33 and sum(zipfile.ZipFile(ZIP).getinfo(n).file_size for n in noms_sons) < 460000, len(noms_sons))
+            poids_sons = sum(zipfile.ZipFile(ZIP).getinfo(n).file_size for n in noms_sons)
+            t(f'paquet : les 41 sons des voix (tour 55, T10 : une prise par phrase, 16 groupes, + 3 prises « remontée » au T22, en français seulement) sont dans le zip, et pèsent moins de 760 Ko ({poids_sons} octets)', len(noms_sons) == 41 and all(n.startswith('sons/voix/fr-') for n in noms_sons) and poids_sons < 760000, len(noms_sons))
             t('paquet : les sons ont un type audio (' + str(mimetypes.guess_type('x.m4a')[0]) + ')', (mimetypes.guess_type('x.m4a')[0] or '').startswith('audio/') or mimetypes.guess_type('x.m4a')[0] is None)
             titre = 'paquet voix enregistrées 1280×720'
             ctx = b.new_context(viewport={'width': 1280, 'height': 720})
@@ -467,7 +468,7 @@ try:
             pg.on('pageerror', lambda e: console.append('PAGEERROR ' + str(e)))
             pg.on('request', lambda r: sons_vus.append(r.url) if '/sons/voix/' in r.url else None)
             sons_vus = []
-            pg.goto('file://' + dossier + '/index.html?voixsons=1')
+            pg.goto('file://' + dossier + '/index.html?voixsons=1&lang=fr')
             pg.wait_for_function('() => typeof JEU !== "undefined" && JEU.ecran === "titre"', timeout=60000)
             pg.wait_for_timeout(1500)
             t(f'{titre} : ?voixsons=1 allume les voix ; avant le premier geste et pendant la découverte, aucun son demandé ni lu', pg.evaluate('() => VOIXSONS.active && !SON.actif') and not sons_vus, sons_vus[:3])
@@ -475,10 +476,10 @@ try:
             pg.evaluate('() => { VOIXSONS.charger(); }')
             t(f'{titre} : après un geste, pendant la découverte, rien ne se charge', not sons_vus, sons_vus[:3])
             pg.evaluate('() => { JEU.decouverte = false; VOIXSONS.charger(); }')
-            try: pg.wait_for_function('() => { const e = VOIXSONS.etat()[LANGUE] || {}; return VOIXSONS.clesDe(LANGUE).every(c => e[c] === VOIXSONS.PRISES); }', timeout=20000)
+            try: pg.wait_for_function('() => { const e = VOIXSONS.etat()[LANGUE] || {}; return VOIXSONS.CLES.every(c => e[c] === VOIXSONS.PRISES_DE[c]); }', timeout=20000)
             except Exception: pass
             vs = pg.evaluate('() => ({ etat: VOIXSONS.etat(), langue: LANGUE, ctx: SON.etatContexte, joue: VOIXSONS.jouer("depassement"), joues: VOIXSONS.joues })')
-            t(f'{titre} : après la découverte, les sons de la langue (15, et 18 en français avec la remontée) sont chargés et décodés par Chrome ({len(sons_vus)} fichiers), un fait joue un son', len(sons_vus) == (18 if vs['langue'] == 'fr' else 15) and all(vs['etat'].get(vs['langue'], {}).get(c) == 3 for c in (('depart', 'depassement', 'bataille', 'erreur', 'victoire') + (('remontee',) if vs['langue'] == 'fr' else ()))) and vs['joue'] is True, str([vs, sons_vus[:2]]))
+            t(f'{titre} : après la découverte, les 41 sons du français sont chargés et décodés par Chrome ({len(sons_vus)} fichiers), un fait joue un son', len(sons_vus) == 41 and vs['langue'] == 'fr' and all(vs['etat'].get('fr', {}).get(c) == n for c, n in pg.evaluate('() => VOIXSONS.PRISES_DE').items()) and vs['joue'] is True, str([vs, sons_vus[:2]]))
             pg.evaluate('() => { SON.basculer(); }')
             muet = pg.evaluate('() => ({ coupe: SON.coupe, joue: VOIXSONS.jouer("erreur") })')
             pg.evaluate('() => { SON.basculer(); }')

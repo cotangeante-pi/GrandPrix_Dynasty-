@@ -148,6 +148,20 @@ t('les accords corrigés ont gardé leur sens : la paix, la carrière, le statut
   v(/devant toi/.test(TEXTES.fr.duelSaisonPerdu)&&TEXTES.fr.duelSaisonPerdu.includes('{nom}'),'duelSaisonPerdu');});
 
 // --- texte() dans cette page : la langue du navigateur de test
+// --- (tour 55, T18) l'anglais des nouveautés (drapeaux, dégâts, foule, domicile, fantôme, aides, sous-titres du paddock) : naturel, court, même ton
+t('anglais des nouveautés : aucun mot ni lettre française, pas de double espace, une seule orthographe (British : « colour », « tyres »), les aides en 130 caractères, les phrases du commentateur et du bandeau en 60 caractères, aucune tournure collée du français', ()=>{
+  const cles=en.filter(k=>/^(drapeau_|com_drapeau|com_vsc|com_domicileRival|breveDomicile|fichePays|aide_(fantomePole|degats|drapeau|rivalDomicile)|sous_|foule_|msg_(degats|repare)|fantomeSrc|fantomePole)/.test(k));
+  v(cles.length>=30,'clés des nouveautés : '+cles.length);
+  const m=[],fraMots=/(^|[^A-Za-z])(le|la|les|des|du|une|et|est|pour|avec|sans|ralentit|passe)(?![A-Za-z])|[éèêàçù]/;
+  for(const k of cles) for(const x of morceaux(TEXTES.en[k])){
+    if(fraMots.test(x)&&!/^(Pays)/.test(x)) m.push(k+' : français « '+x+' »');
+    if(/  /.test(x)) m.push(k+' : double espace');
+    if(/\b(color|colors|tires?|gray)\b/i.test(x)) m.push(k+' : orthographe américaine');
+    if(k.startsWith('aide_')&&x.length>130) m.push(k+' : '+x.length+' caractères');
+    if((k.startsWith('com_')||k.startsWith('drapeau_')||k.startsWith('msg_'))&&x.replace(/\{[a-z]+\}/g,'Xxxxxx').length>70) m.push(k+' : trop long « '+x+' »');
+    if(/ at home (\{lieu\}|at )/.test(x)) m.push(k+' : « at home at… » (le lieu dit déjà « at »)');
+  }
+  v(!m.length,m.join(' | '));});
 t('LANGUE vaut « en » ou « fr »', ()=>{v(LANGUE==='en'||LANGUE==='fr',LANGUE);});
 t('texte() renvoie la valeur de la langue choisie', ()=>{for (const k of en) v(JSON.stringify(texte(k))===JSON.stringify(TEXTES[LANGUE][k]),k);});
 t('une clé inconnue donne undefined (pas d’erreur)', ()=>{v(texte('cleQuiNExistePas')===undefined);});
