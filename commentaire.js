@@ -44,7 +44,12 @@ const COMMENTAIRE = (function () {
     const prm = (k, x) => Object.assign({ qui: k, place: n.place.get(k) ? n.place.get(k).place : null, circuit: o.circuit || '', lieu: o.lieu || '' }, x);
     if (!v) { c.vu = Object.assign(n, { depart: false, meilleur: null, dernierTour: false, vainqueur: false, pluie: false, joueurArrive: false, podium: false, arrets: [] }); return c; }
     // le départ
-    if (!v.depart && e.go !== null) { v.depart = true; pousser(c, e.go, 'depart', prm(n.ordre[0].k), false); }
+    if (!v.depart && e.go !== null) {
+      v.depart = true; pousser(c, e.go, 'depart', prm(n.ordre[0].k), false);
+      // (tour 55, T5) un rival à domicile (o.domicile : ses indices, championnat.js : rivauxADomicile) : le mieux placé sur la grille
+      const dom = (o.domicile || []).filter(k => n.place.get(k)).sort((a, b) => n.place.get(a).place - n.place.get(b).place)[0];
+      if (dom !== undefined) pousser(c, e.go, 'domicileRival', prm(dom), false);
+    }
     // les dépassements (enregistrés par la course : qui, sur, numéros = indice + 1)
     for (let i = v.depassements; i < n.depassements; i++) {
       const d = e.depassements[i], qui = d.qui - 1, sur = d.sur - 1, pl = n.place.get(qui) ? n.place.get(qui).place : null;
@@ -145,6 +150,14 @@ const COMMENTAIRE = (function () {
     const variantes = texte('com_' + item.type), nb = Array.isArray(variantes) ? variantes.length : 1;
     let v = Math.floor(c.rnd() * nb);
     if (nb > 1 && c.derniereCle === item.type + ':' + v) v = (v + 1) % nb;
+    // (tour 55, T4) la même phrase (même fait, même variante, mêmes noms et chiffres) pas deux fois dans les COMMENTAIRE_MEMOIRE dernières : on prend la variante suivante
+    // qui n'a pas servi ; si toutes ont servi, la première tirée (0 = comme avant)
+    const p = item.params || {}, cle = x => item.type + ':' + x + '|' + [p.qui, p.sur, p.place, p.n, p.meteo, p.ecart === undefined ? '' : Math.round(p.ecart)].join(',');
+    if (R.COMMENTAIRE_MEMOIRE > 0 && nb > 1) {
+      const recents = c.recents || (c.recents = []);
+      for (let k = 0; k < nb; k++) { const w = (v + k) % nb; if (!recents.includes(cle(w))) { v = w; break; } }
+      recents.push(cle(v)); if (recents.length > R.COMMENTAIRE_MEMOIRE) recents.shift();
+    }
     item.variante = v;
     c.derniereCle = item.type + ':' + v;
     c.dernier = t;

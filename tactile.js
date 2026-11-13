@@ -153,7 +153,7 @@ const TACTILE = (function () {
     rappels = f || {};
     if (!estPresent() || typeof document === 'undefined') return false;
     if (rappels.lire) { const d = rappels.lire() || {}; if ([0, 1, 2].includes(d.sensibilite)) G.cran = d.sensibilite; G.inverse = d.inverse === true; if (d.choix === 'volant' || d.choix === 'boutons') V.choix = d.choix; }
-    document.body.classList.add('tactile');   // (style.css : la vitesse et les pneus s'écartent des boutons, l'aide du clavier se cache)
+    document.body.classList.add('tactile'); document.body.classList.toggle('commentaireSansTexte', !R.COMMENTAIRE_TEXTE_TACTILE);   // (tour 55 : pas de bandeau texte du commentateur au doigt)   // (style.css : la vitesse et les pneus s'écartent des boutons, l'aide du clavier se cache)
     for (const [id, nom] of [['tactileGaz', 'gaz'], ['tactileFrein', 'frein'], ['tactileGauche', 'gauche'], ['tactileDroite', 'droite']]) { E[nom] = $(id); if (E[nom]) brancherBouton(E[nom], nom); }
     E.gaz.textContent = texte('tac_gaz'); E.frein.textContent = texte('tac_frein');
     for (const [id, nom] of [['tactilePause', 'pause'], ['tactileRemise', 'remise']]) {
@@ -188,6 +188,7 @@ const TACTILE = (function () {
     if (!E.gaz) return;
     const t = $('tactile'), conduite = V.conduite;
     if (t) t.classList.toggle('cache', !conduite);
+    document.body.classList.toggle('tactileFreinG', !!R.TACTILE_FREIN_GAUCHE && volantActif());   // (2026-11-12 : FREIN au pouce gauche quand le volant conduit ; avec ◀ ▶ il reste à côté de GAZ)
     document.body.classList.toggle('tactileBoutons', conduite && !volantActif());   // (tour 53d : style.css, le radar et l'aide ◀ ▶ s'écartent des vrais boutons)
     for (const n of ['gauche', 'droite']) if (E[n]) E[n].classList.toggle('cache', volantActif());
     const act = $('tactileActiver');
