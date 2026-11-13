@@ -795,7 +795,7 @@ const TEXTES = {
 // --- les aides au premier usage (aides.js, interface.js AIDES_ECRAN ; étape 11b, Codeur 4) : une bulle d'une ou deux lignes, avec la
 // touche ou le bouton à utiliser ; jamais genrées sur le joueur ({v} : la vitesse permise dans la voie des stands, en km/h)
 Object.assign(TEXTES.en, {
-  aide_depart: 'Start: hold ↑ in the green and you go. Perfect start: at lights out, release and press ↑ again, fast!',
+  aide_fantomePole: 'New: “Ghost: pole” races you against the fastest car on the grid.', aide_degats: 'Your front wing is damaged: less grip. Pit stop to repair it.', aide_drapeauJaune: 'Yellow flag: a car is stopped ahead. Slow down, no overtaking here.', aide_drapeauBleu: 'Blue flag: a leader is lapping you. Hold your line and let them by.', aide_drapeauVsc: 'VSC: everyone slows down. Your speed is capped, no overtaking.', aide_rivalDomicile: 'A rival races at home this week, with a small boost on home soil.', aide_depart: 'Start: hold ↑ in the green and you go. Perfect start: at lights out, release and press ↑ again, fast!',
   aide_qualif: 'Do your lap to start higher up the grid.',
   aide_fantome: 'The see-through car is your best lap: the gap under the timer shows where you lose time.',
   aide_stand: 'Mandatory stop: at the end of the lap, take the pit lane, {v} km/h at most.',
@@ -809,7 +809,7 @@ Object.assign(TEXTES.en, {
   aideFermer: 'Click to close', revoirAides: '↺ Show the tips again', aidesRevues: 'The tips will show again',
 });
 Object.assign(TEXTES.fr, {
-  aide_depart: 'Départ : tiens ↑ dans le vert et tu pars. Départ parfait : feux éteints, lâche puis réappuie vite sur ↑ !',
+  aide_fantomePole: 'Nouveau : « Fantôme : la pole » te fait courir contre la voiture la plus rapide.', aide_degats: 'Ton aileron avant est abîmé : moins d’adhérence. Passe aux stands pour le réparer.', aide_drapeauJaune: 'Drapeau jaune : une voiture est arrêtée devant. Ralentis, pas de dépassement ici.', aide_drapeauBleu: 'Drapeau bleu : le meneur te double. Garde ta trajectoire et laisse-le passer.', aide_drapeauVsc: 'VSC : tout le monde ralentit. Ta vitesse est plafonnée, pas de dépassement.', aide_rivalDomicile: 'Un rival court à domicile cette semaine, avec un petit bonus sur ses terres.', aide_depart: 'Départ : tiens ↑ dans le vert et tu pars. Départ parfait : feux éteints, lâche puis réappuie vite sur ↑ !',
   aide_qualif: 'Fais ton tour pour partir plus haut.',
   aide_fantome: 'La voiture transparente : ton meilleur tour. L’écart sous le chrono dit où tu perds du temps.',
   aide_stand: 'Arrêt obligatoire : à la fin du tour, prends la voie des stands, {v} km/h au plus.',

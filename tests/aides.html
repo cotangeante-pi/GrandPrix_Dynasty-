@@ -10,17 +10,21 @@ const L=[];let ok=0,ko=0;
 function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
 const v=(c,m)=>{if(!c)throw new Error(m||'faux');};
 const R=REGLAGES;
-const IDS=['depart','qualif','fantome','stand','pluie','consigne','pneus','garage','aileron','duel','contrats','interview','vivante','choixAides'];   // (tour 37g : la voiture vivante, le choix des aides ; tour 37l : le choix des pneus)
+const IDS=['depart','qualif','fantome','fantomePole','stand','degats','drapeauJaune','drapeauBleu','drapeauVsc','pluie','consigne','pneus','garage','aileron','duel','rivalDomicile','contrats','interview','vivante','choixAides'];   // (tour 37g : la voiture vivante, le choix des aides ; tour 37l : le choix des pneus)
 
 // une situation de base : rien ne sert (un écran sans aide), la voiture en ligne droite
 const base=()=>({ecran:'choix',deux:false,tournoi:false,decouverte:false,attente:false,aidesDecouverte:false,feux:false,compte:false,etat:null,qualif:null,fantome:false,
-  arretConseille:null,arretFait:false,tour:0,dansStands:false,consigne:false,eau:0,coequipier:false,vitesse:60,frein:0,direction:0,courbure:0});
+  arretConseille:null,arretFait:false,tour:0,dansStands:false,consigne:false,eau:0,coequipier:false,vitesse:60,frein:0,direction:0,courbure:0,degats:0,drapeau:null,poleDispo:false,rivalDomicile:false});
 const avec=o=>Object.assign(base(),o);
 // pour chaque aide, une situation où elle sert (et la voiture à l'arrêt ou en ligne droite)
 const MOMENT={
   depart:avec({ecran:'course',feux:true,compte:true,etat:'compte',vitesse:0}),
   qualif:avec({ecran:'qualif',qualif:'choix',vitesse:0}),
   fantome:avec({ecran:'qualif',qualif:'tour',fantome:true}),
+  fantomePole:avec({ecran:'qualif',qualif:'choix',poleDispo:true,vitesse:0}),
+  degats:avec({ecran:'course',etat:'course',degats:0.4}),
+  drapeauJaune:avec({ecran:'course',etat:'course',drapeau:'jaune'}),drapeauBleu:avec({ecran:'course',etat:'course',drapeau:'bleu'}),drapeauVsc:avec({ecran:'course',etat:'course',drapeau:'vsc'}),
+  rivalDomicile:avec({ecran:'championnat',rivalDomicile:true,vitesse:0}),
   stand:avec({ecran:'course',etat:'course',arretConseille:6,tour:5}),
   pluie:avec({ecran:'course',etat:'course',eau:0.5}),
   consigne:avec({ecran:'course',etat:'course',consigne:true}),
@@ -34,8 +38,10 @@ const MOMENT={
   choixAides:avec({ecran:'championnat',choixAides:true,vitesse:0}),
 };
 const unPas=(e,s,dt=1/60)=>AIDES.pas(e,s,dt);
+// (la bulle du fantôme de la pole vient après celle de la qualification, sur le même écran : la 2e fois)
+const PRE={fantomePole:['qualif']},neuf=id=>AIDES.creer(PRE[id]||[]);
 
-t('la liste a les 14 aides de l’ordre (feux, qualification, fantôme, arrêt, pluie, consigne, choix des pneus, garage, aileron, duel, contrats, interview, pneus drift, choix des aides), chacune une fois', ()=>{
+t('la liste a les 20 aides de l’ordre (feux, qualification, fantôme, fantôme de la pole, arrêt, aileron abîmé, drapeaux jaune, bleu et VSC, pluie, consigne, choix des pneus, garage, aileron, duel, rival à domicile, contrats, interview, pneus drift, choix des aides), chacune une fois', ()=>{
   v(JSON.stringify(AIDES.LISTE.map(a=>a.id))===JSON.stringify(IDS),AIDES.LISTE.map(a=>a.id).join());
   v(AIDES.LISTE.every(a=>a.genre==='course'||a.genre==='menu'));});
 t('chaque aide a son texte en anglais et en français (une ou deux lignes : moins de 130 caractères), différent d’une langue à l’autre, avec les mêmes {repères}', ()=>{
@@ -48,7 +54,7 @@ t('les textes des aides ne sont jamais genrés sur le joueur (aucun accord au ma
   const en=/\b(he|she|his|her|him|himself|herself)\b/i;
   for(const id of IDS){v(!fr.test(TEXTES.fr['aide_'+id]),'fr '+id+' : '+TEXTES.fr['aide_'+id]);v(!en.test(TEXTES.en['aide_'+id]),'en '+id);}});
 t('chaque aide apparaît à son moment (aucune autre ne passe devant), sur une sauvegarde neuve', ()=>{
-  for(const id of IDS){const e=AIDES.creer([]);const r=unPas(e,MOMENT[id]);v(r.aide===id,id+' → '+r.aide);}});
+  for(const id of IDS){const e=neuf(id);const r=unPas(e,MOMENT[id]);v(r.aide===id,id+' → '+r.aide);}});
 t('hors de son moment, aucune aide (un écran sans aide, ou la course lancée sur une piste sèche, sans arrêt ni consigne)', ()=>{
   const e=AIDES.creer([]);for(const s of [base(),avec({ecran:'course',etat:'course'}),avec({ecran:'podium'}),avec({ecran:'resultats'}),avec({ecran:'une'})]) v(unPas(e,s).aide===null,s.ecran);});
 t('les bons moments seulement : pas de feux dans la découverte, pas d’arrêt avant le tour conseillé ni une fois fait, pas de pluie sous AIDES_PLUIE_EAU, rien à deux ni au tournoi ni après l’arrivée', ()=>{
@@ -67,7 +73,7 @@ t('les bons moments seulement : pas de feux dans la découverte, pas d’arrêt 
   v(n(avec({ecran:'qualif',qualif:'choix',tournoi:true}))===null,'tournoi');
   v(n(avec({ecran:'championnat',coequipier:false}))===null,'paddock sans championnat');});
 t('une aide fermée d’un clic est vue : elle ne revient plus jamais, même au même moment pendant 600 images', ()=>{
-  for(const id of IDS){const e=AIDES.creer([]);v(unPas(e,MOMENT[id]).aide===id);v(AIDES.fermer(e)===id);
+  for(const id of IDS){const e=neuf(id);v(unPas(e,MOMENT[id]).aide===id);v(AIDES.fermer(e)===id);
     for(let i=0;i<600;i++) v(unPas(e,MOMENT[id]).aide!==id,id+' revient');v(e.vues.has(id));}});
 t('toute une carrière jouée deux fois de suite : chaque aide s’affiche exactement une fois (fermée d’un clic après 2 s)', ()=>{
   const e=AIDES.creer([]),vues={};
@@ -96,7 +102,7 @@ t('jamais dans un virage, pendant un freinage ou volant tourné : une aide de co
   v(unPas(AIDES.creer([]),Object.assign(avec({}),MOMENT.stand,{courbure:0.05,vitesse:0.5})).aide==='stand','à l’arrêt');});
 t('« Revoir les aides » les remet toutes (la même aide revient)', ()=>{
   const e=AIDES.creer(IDS);for(const id of IDS) v(unPas(e,MOMENT[id]).aide===null,id);AIDES.revoir(e);v(e.vues.size===0);
-  for(const id of IDS){const f=AIDES.creer([...e.vues]);v(unPas(f,MOMENT[id]).aide===id,id);}});
+  for(const id of IDS){const f=neuf(id);v(unPas(f,MOMENT[id]).aide===id,id);}});
 t('AIDES_ACTIVES = false : aucune aide, même sur une sauvegarde neuve, et la bulle ouverte se ferme', ()=>{
   const e=AIDES.creer([]);v(unPas(e,MOMENT.garage).aide==='garage');R.AIDES_ACTIVES=false;
   try{for(const id of IDS) for(let i=0;i<10;i++) v(unPas(e,MOMENT[id]).aide===null,id);v(e.actuelle===null&&e.vues.size===0);}finally{R.AIDES_ACTIVES=true;}});
@@ -138,6 +144,26 @@ t('une ancienne sauvegarde (v3 et v4 sans le champ « aides ») se charge sans e
     v(JSON.stringify(SAUVEGARDE.aides())==='[]','v'+version);v(SAUVEGARDE.record(5)===61.2,'records v'+version);}
   localStorage.setItem(SAUVEGARDE.CLE,JSON.stringify({version:4,records:{},championnat:null,aides:'n’importe quoi'}));v(JSON.stringify(SAUVEGARDE.aides())==='[]','champ abîmé');
   localStorage.removeItem(SAUVEGARDE.CLE);});
+// --- (tour 55, T12) les aides des nouveautés
+t('nouveautés : un drapeau n\u2019a que sa bulle (jaune, bleu, VSC), l\u2019aileron abîmé la sienne, le rival à domicile et le fantôme de la pole seulement à leur écran ; jamais pendant les feux, à deux ni au tournoi ; la bulle d\u2019un drapeau se ferme quand il tombe', ()=>{
+  const n=s=>unPas(AIDES.creer(['qualif']),s).aide,c={ecran:'course',etat:'course'};
+  v(n(avec(Object.assign({drapeau:'jaune'},c)))==='drapeauJaune'&&n(avec(Object.assign({drapeau:'bleu'},c)))==='drapeauBleu'&&n(avec(Object.assign({drapeau:'vsc'},c)))==='drapeauVsc','un drapeau, une bulle');
+  v(n(avec(Object.assign({drapeau:'vert'},c)))===null&&n(avec(c))===null&&n(avec({ecran:'course',etat:'compte',drapeau:'jaune',vitesse:0}))===null,'vert, aucun, ou pendant les feux');
+  for(const k of ['deux','tournoi']) v(n(avec(Object.assign({drapeau:'jaune',[k]:true},c)))===null,k);
+  v(n(avec(Object.assign({degats:0.4},c)))==='degats'&&n(avec(Object.assign({degats:0},c)))===null,'l\u2019aileron abîmé');
+  v(n(avec({ecran:'championnat',rivalDomicile:true,vitesse:0}))==='rivalDomicile'&&n(avec({ecran:'championnat',rivalDomicile:false,vitesse:0}))===null,'le rival à domicile');
+  v(n(avec({ecran:'qualif',qualif:'choix',poleDispo:true,vitesse:0}))==='fantomePole'&&n(avec({ecran:'qualif',qualif:'choix',poleDispo:false,vitesse:0}))===null,'le fantôme de la pole');
+  const e=AIDES.creer(['qualif']);unPas(e,MOMENT.drapeauJaune);for(let i=0;i<60;i++) unPas(e,MOMENT.drapeauJaune);const r=unPas(e,avec(c));v(r.aide===null&&r.vue==='drapeauJaune','tombé : vue, fermée');
+  // un drapeau dans un virage : la bulle attend la ligne droite
+  const virage=Object.assign(avec({}),MOMENT.drapeauVsc,{courbure:R.AIDES_COURBURE_MAX*1.5});const f=AIDES.creer([]);for(let i=0;i<100;i++) v(unPas(f,virage).aide===null,'drapeau en virage');});
+t('nouveautés : situation() lit le drapeau du joueur (drapeaux.js), l\u2019aileron abîmé et le rival à domicile sans rien changer', ()=>{
+  const sauve=window.DRAPEAUX;window.DRAPEAUX={etatJoueur:()=>({type:'bleu'})};
+  try{const J={ecran:'course',deux:null,tournoi:null,decouverte:false,attente:null,championnat:null,fantome:null,qualif:null,joueur:Object.assign(voitureA(0),{degats:0.3}),plateau:{},course:{feux:null,etat:'course',tours:[],arretConseille:null,arrets:[]}};
+    const avant=JSON.stringify(J),s=AIDES.situation(J,C,null);v(JSON.stringify(J)===avant,'JEU changé');
+    v(s.drapeau==='bleu'&&s.degats===0.3&&s.rivalDomicile===false&&s.poleDispo===false,JSON.stringify(s));
+    const sauveDeg=R.DEGATS_ACTIF;R.DEGATS_ACTIF=false;try{v(AIDES.situation(J,C,null).degats===0,'DEGATS_ACTIF faux : pas de bulle');}finally{R.DEGATS_ACTIF=sauveDeg;}
+  }finally{if(sauve===undefined)delete window.DRAPEAUX;else window.DRAPEAUX=sauve;}});
+for(const id of ['fantomePole','degats','drapeauJaune','drapeauBleu','drapeauVsc','rivalDomicile']) t('le texte de l\u2019aide « '+id+' » est en anglais et en français, court, sans {repère} oublié',()=>{const en=TEXTES.en['aide_'+id],fr=TEXTES.fr['aide_'+id];v(en&&fr&&en!==fr&&en.length<=130&&fr.length<=130&&!/\{/.test(en+fr),id);});
 t('aucune erreur dans la page', ()=>{v(window.__err.length===0,window.__err.join(' | '));});
 document.getElementById('res').textContent=`RESULTAT ${ok}/${ok+ko}\n`+L.join('\n');
 </script>
