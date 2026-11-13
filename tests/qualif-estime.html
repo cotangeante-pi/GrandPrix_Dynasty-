@@ -6,7 +6,8 @@
 // T15 (tour 55) : tourEstime (ia.js, le temps de qualification des IA) contre un VRAI tour lancé simulé (une IA seule, régulière, sans erreur,
 // le 2e tour d'une course de 3 tours), sur les 12 tracés officiels, le circuit d'essai et le technique, à plusieurs rythmes. Mesure le rapport
 // simulé / estimé ; EXIGÉ : (voir plus bas) l'estimation corrigée est à moins de TOLERANCE du tour simulé, et QUALIF_ECHELLE = 1 rend l'estimation d'avant.
-const Q=new URLSearchParams(location.search),FILTRE=Q.get('circuits');
+const Q=new URLSearchParams(location.search),FILTRE=Q.get('circuits'),MESURE=Q.get('mesure')==='1';   // (?mesure=1 : l'estimation BRUTE (QUALIF_REALISTE faux) contre le tour simulé : ce que tests/qualif-echelles.py range dans donnees.js)
+if(MESURE)REGLAGES.QUALIF_REALISTE=false;
 const L=[];let ok=0,ko=0;
 function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
 const v=(c,m)=>{if(!c)throw new Error(m||'faux');};
@@ -21,14 +22,14 @@ function tourSimule(c,carte,rythme){
   for(let k=0;k<max&&p.arrivee===null;k++)pasCourseIA(e,DT);
   const tr=p.course.tours;return tr.length>=2&&!tr[1].coupe?tr[1].temps:null;
 }
-const NIVEAUX=(Q.get('niveaux')||'normal,debutant,expert,legende').split(','),RYTHMES=[0.95,1],RES=[];
+const NIVEAUX=(Q.get('niveaux')||'normal,debutant,expert,legende').split(','),RYTHMES=[0.95,1],RES=[];window.__RES=RES;
 for(const niv of NIVEAUX){
   REGLAGES.NIVEAU=niv;
   for(const [cle,def] of Object.entries(TOUS)){
     if(FILTRE&&!FILTRE.split(',').includes(cle))continue;
     t(niv+' '+cle+' : estimé contre simulé',()=>{
       const c=construireCircuit(def),carte=carteDepuis(c,calculerTrajectoire(c));CARTES.set(c,carte);
-      const r={niv,cle,L:c.longueur,nv:carte.virages.length};for(const ry of RYTHMES){const s=tourSimule(c,carte,ry),es=tourEstime(carte,ry);r[ry]={s,es,k:s&&s/es};}
+      const r={niv,cle,nom:def.nom,L:c.longueur,nv:carte.virages.length};for(const ry of RYTHMES){const s=tourSimule(c,carte,ry),es=tourEstime(carte,ry);r[ry]={s,es,k:s&&s/es};}
       RES.push(r);v(r[1].s!==null&&r[0.95].s!==null,'tour simulé invalide');});
     ecrire(niv+' '+cle);
   }
@@ -36,9 +37,14 @@ for(const niv of NIVEAUX){
 REGLAGES.NIVEAU='normal';
 // EXIGÉ (T15) : l'estimation (corrigée, tourEstime) est à moins de ECART_MAX du tour simulé, à chaque niveau, circuit et rythme essayés
 const ECART_MAX=0.1;
+if(!MESURE){
 t('tourEstime à moins de '+(ECART_MAX*100)+' % du tour simulé (rythmes 0,95 et 1, 4 niveaux, 14 circuits) ; pire cas : '+(()=>{let w=null;for(const r of RES)for(const ry of RYTHMES){const e=Math.abs(r[ry].k-1);if(!w||e>w.e)w={e,t:r.niv+' '+r.cle+' '+ry+' '+r[ry].k.toFixed(3)};}return w&&w.t;})(),()=>{
   for(const r of RES)for(const ry of RYTHMES)v(Math.abs(r[ry].k-1)<=ECART_MAX,r.niv+' '+r.cle+' rythme '+ry+' : rapport '+r[ry].k.toFixed(3));});
+// EXIGÉ (T23) : avec l'échelle PAR CIRCUIT (donnees.js, QUALIF_ECHELLE_CIRCUIT), au rythme 1 l'estimation colle au tour simulé à 1 % près, à chaque niveau et circuit
+t('échelle par circuit : tourEstime à moins de 1 % du tour simulé au rythme 1 (4 niveaux, 14 circuits) ; pire cas : '+(()=>{let w=null;for(const r of RES){const e=Math.abs(r[1].k-1);if(!w||e>w.e)w={e,t:r.niv+' '+r.cle+' '+r[1].k.toFixed(4)};}return w&&w.t;})(),()=>{for(const r of RES)v(Math.abs(r[1].k-1)<=0.01,r.niv+' '+r.cle+' : rapport '+r[1].k.toFixed(4));});
 for(const niv of NIVEAUX){const ks=RES.filter(r=>r.niv===niv).map(r=>r[1].k);L.push('RAPPORT '+niv+' rythme 1 : min '+Math.min(...ks).toFixed(3)+' moyenne '+(ks.reduce((a,b)=>a+b,0)/ks.length).toFixed(3)+' max '+Math.max(...ks).toFixed(3));
   const k9=RES.filter(r=>r.niv===niv).map(r=>r[0.95].k);L.push('RAPPORT '+niv+' rythme 0,95 : min '+Math.min(...k9).toFixed(3)+' moyenne '+(k9.reduce((a,b)=>a+b,0)/k9.length).toFixed(3)+' max '+Math.max(...k9).toFixed(3));}
+}
+window.__FIN=true;
 ecrire(null);
 </script></body></html>
