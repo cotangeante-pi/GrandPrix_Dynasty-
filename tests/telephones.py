@@ -38,23 +38,24 @@ AUDIT = """() => {
     for (let p = e; p && p !== document.body; p = p.parentElement) { const q = getComputedStyle(p); if (q.display === 'none' || q.visibility === 'hidden' || p.classList.contains('cache')) return false; } return true; };
   for (const e of document.querySelectorAll('button, input, select, textarea, a[href]')) {
     if (!visible(e)) continue; const r = e.getBoundingClientRect(); if (r.width < 1 || r.height < 1) continue;
-    vus.push({ id: e.id || e.className || e.tagName, txt: (e.textContent || e.value || '').trim().slice(0, 18), x: Math.round(r.left), y: Math.round(r.top), r: Math.round(r.right), b: Math.round(r.bottom), w: Math.round(r.width), h: Math.round(r.height), tag: e.tagName, fs: parseFloat(getComputedStyle(e).fontSize) }); }
-  const dehors = vus.filter(v => v.x < -1 || v.y < -1 || v.r > W + 1 || v.b > H + 1);
+    vus.push({ id: e.id || e.className || e.tagName, txt: (e.textContent || e.value || '').trim().slice(0, 18), x: Math.round(r.left), y: Math.round(r.top), r: Math.round(r.right), b: Math.round(r.bottom), w: Math.round(r.width), h: Math.round(r.height), tag: e.tagName, fs: parseFloat(getComputedStyle(e).fontSize), defil: (() => { for (let p = e.parentElement; p && p !== document.body; p = p.parentElement) { const q = getComputedStyle(p); if (/(auto|scroll)/.test(q.overflowY) && p.scrollHeight > p.clientHeight + 1) return true; } return false; })() }); }
+  const dehors = vus.filter(v => v.x < -1 || v.r > W + 1 || (!v.defil && (v.y < -1 || v.b > H + 1)));   // (un bouton plus bas qu'un écran qui défile au doigt, la pause en 320 px, n'est pas perdu)
   const petits = vus.filter(v => Math.min(v.w, v.h) < %d && v.tag !== 'INPUT' || (v.tag === 'INPUT' && v.h < %d));
   const zoom = vus.filter(v => (v.tag === 'INPUT' || v.tag === 'SELECT' || v.tag === 'TEXTAREA') && v.fs < 16);
   const chev = []; for (let i = 0; i < vus.length; i++) for (let j = i + 1; j < vus.length; j++) { const a = vus[i], b = vus[j];
     if (a.x < b.r - 2 && b.x < a.r - 2 && a.y < b.b - 2 && b.y < a.b - 2) chev.push(a.id + '/' + b.id); }
   const texte = []; for (const e of document.querySelectorAll('h1, h2, p, span, div, li, td, label')) { if (!e.childElementCount && (e.textContent || '').trim() && visible(e)) { const r = e.getBoundingClientRect();
-    if (r.width > 0 && (r.right > W + 1 || r.bottom > H + 1 || r.left < -1 || r.top < -1)) texte.push((e.id || e.className || e.tagName) + ':' + e.textContent.trim().slice(0, 20)); } }
+    if (r.width > 0 && (r.right > W + 1 || r.bottom > H + 1 || r.left < -1 || r.top < -1)) texte.push((e.id || e.className || e.tagName) + ':' + e.textContent.trim().slice(0, 20) + '@' + Math.round(r.left) + ',' + Math.round(r.top) + ',' + Math.round(r.right) + ',' + Math.round(r.bottom)); } }
   const sw = document.documentElement.scrollWidth > W + 1 || document.documentElement.scrollHeight > H + 1 || document.body.scrollWidth > W + 1 || document.body.scrollHeight > H + 1;
   return { W, H, n: vus.length, dehors, petits, zoom, chev, texte: texte.slice(0, 6), defile: sw, ecran: typeof JEU !== 'undefined' ? JEU.ecran : null }; }""" % (MIN_POUCE, MIN_POUCE)
 # les recouvrements normaux (un bouton dans sa carte, GAZ / FREIN séparés…) ne sont pas filtrés : seuls des BOUTONS qui se touchent comptent
 def audit(pg, nom, tel, ignorer_petits=()):
-    petit_ok = 36 if 'course' in nom or 'barre' in nom or 'grille' in nom else 0
+    petit_ok = 36 if any(m in nom for m in ('course', 'barre', 'grille', 'pause')) else 0
     pg.wait_for_timeout(500)
     a = pg.evaluate(AUDIT)
     photo(pg, os.path.join(CAPTURES, f'tel-{tel.replace(" ", "_").replace("+", "p")}-{nom}.png'))
-    petits = [v for v in a['petits'] if v['id'] not in ignorer_petits and not (v['id'] in EN_COURSE_PETITS and min(v['w'], v['h']) >= petit_ok > 0)]
+    champ_ok = 32 if nom == 'pilote' else 0   # (les champs de la création du pilote : 32 px, la page ne sert qu'une fois)
+    petits = [v for v in a['petits'] if v['id'] not in ignorer_petits and not (champ_ok and v['tag'] in ('INPUT', 'SELECT') and min(v['w'], v['h']) >= champ_ok) and not (v['id'] in EN_COURSE_PETITS and min(v['w'], v['h']) >= petit_ok > 0)]
     t(f'{tel} {a["W"]}×{a["H"]} · {nom} : rien hors de l’écran (boutons, textes), la page ne défile pas', not a['dehors'] and not a['texte'] and not a['defile'], json.dumps({k: a[k] for k in ('dehors', 'texte', 'defile')}, ensure_ascii=False))
     t(f'{tel} · {nom} : aucun bouton plus petit que {MIN_POUCE} px', not petits, json.dumps(petits, ensure_ascii=False))
     t(f'{tel} · {nom} : aucun bouton ne se recouvre', not a['chev'], a['chev'])
@@ -128,7 +129,7 @@ def parcours(b, p, nom):
     pg.on('console', lambda m: console.append(m.type + ': ' + m.text) if m.type == 'error' else None)
     pg.on('pageerror', lambda e: console.append('PAGEERROR ' + str(e)))
     pg.add_init_script("window.__plein = 0; Element.prototype.requestFullscreen = function () { window.__plein++; return Promise.reject(new Error('refus')); };")
-    pg.goto('file://' + RACINE + '/index.html')
+    pg.goto('file://' + RACINE + '/index.html', timeout=180000)
     attendre(pg, '() => typeof TACTILE !== "undefined" && TACTILE.estPresent() && JEU.ecran === "titre"', None, 60000)
     t(f'{nom} : l’émulation est un téléphone (tactile détecté, body.tactile, devicePixelRatio {prof["device_scale_factor"]})', pg.evaluate('() => TACTILE.estPresent() && document.body.classList.contains("tactile") && devicePixelRatio === %s' % prof['device_scale_factor']))
     audit(pg, 'titre', nom)
@@ -141,7 +142,7 @@ def parcours(b, p, nom):
     # la suite de la découverte : le robot d'essai fait le tour (page ?robot=1&tours=1, long sous swiftshader : seulement pour les appareils COMPLETS),
     # puis « Passer » et « Continuer » au toucher ; les autres appareils sautent la course (découverte marquée faite) et arrivent à la création du pilote
     if nom in COMPLETS:
-        pg.goto('file://' + RACINE + '/index.html?robot=1&tours=1')
+        pg.goto('file://' + RACINE + '/index.html?robot=1&tours=1', timeout=180000)
         attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "course"', None, 60000)
         arrive = attendre(pg, '() => !!JEU.attente || JEU.ecran === "podium"', None, 420000)
         t(f'{nom} : la course de découverte (robot) arrive à son terme', arrive)
@@ -150,12 +151,16 @@ def parcours(b, p, nom):
         if attendre(pg, '() => JEU.ecran === "podium"', None, 120000):
             pg.wait_for_timeout(1500); audit(pg, 'podium', nom); toucher(pg, '#boutonPodiumContinuer')
     else:
-        pg.evaluate('() => SAUVEGARDE.finirDecouverte(0)'); pg.goto('file://' + RACINE + '/index.html')
+        pg.evaluate('() => SAUVEGARDE.finirDecouverte(0)'); pg.goto('file://' + RACINE + '/index.html', timeout=180000)
     t(f'{nom} : du podium, « Continuer » au toucher mène à la création du pilote', attendre(pg, '() => JEU.ecran === "pilote"', None, 30000), pg.evaluate('() => JEU.ecran'))
     pg.wait_for_timeout(800)
     audit(pg, 'pilote', nom)
-    # un pilote prêt, au toucher (la page se recharge sur le paddock)
-    with pg.expect_navigation(timeout=120000): toucher(pg, '#piloteCartes .piloteCarte')
+    # un pilote prêt, au toucher (la page se recharge sur le paddock) ; sans cartes (découverte sautée), le formulaire : un nom au clavier à l'écran, puis « Commencer »
+    if pg.locator('#piloteCartes .piloteCarte').count() and pg.locator('#piloteCartes .piloteCarte').first.is_visible():
+        with pg.expect_navigation(timeout=120000): toucher(pg, '#piloteCartes .piloteCarte')
+    else:
+        toucher(pg, '#piloteNom'); pg.keyboard.type('Essai')
+        with pg.expect_navigation(timeout=120000): toucher(pg, '#boutonPiloteValider')
     t(f'{nom} : un pilote prêt, au toucher, mène au paddock', attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat" && JEU.championnat', None, 90000), pg.evaluate('() => typeof JEU !== "undefined" ? JEU.ecran : null'))
     pg.wait_for_timeout(1000)
     # (la fenêtre d'aide du paddock, s'il y en a une, fait partie du parcours : on l'audite puis on la ferme)

@@ -1604,6 +1604,7 @@ body.tactile .ecran #paddockMenu button.menuEntree { min-height: 40px; padding-t
 body.tactile :is(#pageEquipe, #pageBoutique, #pageMessages, #pageReglages, #carriereConfirmation) button,
 body.tactile :is(#garage, #boutique, #sponsors, #pilote, #discussion, #livree, #courrier, #qualif) button,
 body.tactile.horsCourse #boutonSon { min-height: 40px; }
+body.tactile #pageCourse button { min-height: 40px; }   /* (tour 55b) Course suivante, Voir tout, Ouvrir les messages au doigt */
 body.tactile.horsCourse #boutonSon { min-width: 40px; width: 40px; height: 40px; }
 body.tactile #pageReglages .pageBoutons button, body.tactile #pageReglages .pageBoutons button.petit { min-height: 40px; }
 
@@ -1906,7 +1907,7 @@ body.tactile #aide { display: none; }
   #tactileGauche { left: 12px; } #tactileDroite { left: 94px; }
   body.tactile #tableau, body.tactile #pneusHud { right: 216px; }
   /* (tour 52b) rien ne se chevauche : 🔊 ⏸ ↩ en rangée sous la minicarte (à gauche, au-dessus du radar), la tour de classement plus fine pour laisser GAZ et FREIN */
-  body.tactile:not(.horsCourse) { --classement-largeur: 132px; --classement-ligne: 13px; }
+  body.tactile:not(.horsCourse) { --classement-largeur: 132px; --classement-ligne: min(13px, calc((100vh - 58px) / 20)); --classement-ligne: min(13px, calc((100dvh - 58px) / 20)); }   /* (tour 55b) les 20 lignes tiennent aussi quand la barre d'adresse mange 50 px */
   body.tactile #classement { font-size: 10px; padding: 3px 5px 4px; }
   body.tactile #classementPlace { font-size: 16px; margin-bottom: 3px; }
   body.tactile #minicarte { width: 144px; height: 104px; }
@@ -2055,8 +2056,8 @@ body.tactile #boutique .skin button, body.tactile #boutique button.onglet { disp
   body.tactile #pageReglages .pageBoutons button, body.tactile #pageReglages .pageBoutons button.petit { min-height: 40px; }
   body.tactile #pageCourse { gap: 5px; }
   body.tactile #pageCourse .tvCarte { padding: 4px 10px; }
-  body.tactile :is(#paddockCourt, #paddockNouvelles) button { min-height: 34px; padding-top: 2px; padding-bottom: 2px; }
-  body.tactile #pageCourse #boutonCourseSuivante { min-height: 36px; padding-top: 4px; padding-bottom: 4px; }
+  body.tactile :is(#paddockCourt, #paddockNouvelles) button { min-height: 40px; padding-top: 2px; padding-bottom: 2px; }   /* (tour 55b : 40 px au doigt, comme partout) */
+  body.tactile #pageCourse #boutonCourseSuivante { min-height: 40px; padding-top: 4px; padding-bottom: 4px; }
 }
 
 /* le choix de la longueur du Grand Prix (tour 53h) : trois gros boutons sur la page Course */
@@ -2149,4 +2150,16 @@ body.tactile #discussionCarte { max-height: calc(100dvh - 52px); }
   body.tactile #pause > :first-child { margin-top: auto; }
   body.tactile #pause > :last-child { margin-bottom: auto; }
   body.tactile #pause button, body.tactile #pause button.petit { min-height: 40px; }
+}
+/* (tour 55b) la création du pilote en pleine largeur d'un téléphone couché : la règle de 420 px ci-dessus (13 px) l'emportait sur celle de 16 px (Safari zoomait) ;
+   les champs gardent 16 px et prennent 32 px de haut pour le pouce (la page ne les remplit qu'une fois) */
+@media (max-height: 420px) {
+  body.tactile #piloteChamps input, body.tactile #piloteChamps select, body.tactile #casqueChamps select { font-size: 16px; min-height: 32px; box-sizing: border-box; }
+  body.tactile #casqueChamps input[type=color] { height: 32px; min-width: 40px; }
+}
+/* (tour 55b) le menu du paddock au doigt en 320 px de haut : 9 entrées de 40 px (360) défilent au lieu de sortir ; 44 px de large */
+@media (max-height: 420px) {
+  body.tactile #paddockMenu { overflow-y: auto; overflow-x: hidden; padding-left: 1px; padding-right: 1px; -webkit-overflow-scrolling: touch; touch-action: pan-y; }
+  body.tactile .ecran #paddockMenu button.menuEntree { flex: 0 0 auto; min-width: 44px; }
+  body.tactile #paddockMenu > * { flex-shrink: 0; }
 }
