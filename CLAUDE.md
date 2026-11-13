@@ -715,6 +715,10 @@ Pour que ce soit beau **et** léger :
 - les textures sont peu nombreuses et petites ; on préfère les couleurs et les formes ;
 - les voitures sont toutes faites sur le même modèle, avec les couleurs de chaque écurie.
 
+## Le coût des nouveautés de la nuit du 12 au 13 novembre (tour 55, T13)
+
+Mesuré par rapport au main d'avant la nuit (aa60cdd), sur le Mac chargé (relatif seulement) : foule, dégâts, fantôme du poleman et domicile des rivaux sont sur main (les drapeaux n'y étaient pas). **Aucune hausse à corriger.** Décor (`tests/lieu.html`, 20 voitures, `__couts`) : identique au chiffre près (Monoco 45 appels / 95 770 triangles au pire, Monzo 44 / 74 252, Bahrayn 43 / 68 780), plafonds `PLAFONDS_IMAGE` intacts. En course (`tests/perf.py`, 20 IA, vraie carte graphique) : mêmes appels de dessin (43 à Monoco, 34 à Bahrayn), triangles +0,3 % (76 358 → 76 586 à Monoco, 53 210 → 53 306 à Bahrayn), 59–60 images par seconde avant comme après (le « pire 1 % » de Monoco, 30, est le même avant et après). Calcul de 20 IA (`tests/test.html?filtre=coût de 20 pilotes`, médiane de 5) : 0,44 ms par pas avant, 0,53 ms après, sous la limite de 2 ms ; l'écart est du même ordre que le bruit entre deux passages (0,32 à 0,68 ms). À refaire après la fusion des drapeaux.
+
 ## La technique
 
 - **JavaScript pur + Three.js** (`lib/three.min.js` en local, **version fixée : r152, build UMD**, copiée de `../../jeu poki/lib/`, avec l'avertissement de dépréciation déjà retiré pour garder la console vide), comme `../../jeu poki`. Pas de build, pas de framework. Ouvrir `index.html` suffit pour jouer.
