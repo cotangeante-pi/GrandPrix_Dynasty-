@@ -51,6 +51,7 @@ AUDIT = """() => {
 # les recouvrements normaux (un bouton dans sa carte, GAZ / FREIN séparés…) ne sont pas filtrés : seuls des BOUTONS qui se touchent comptent
 def audit(pg, nom, tel, ignorer_petits=()):
     petit_ok = 36 if any(m in nom for m in ('course', 'barre', 'grille', 'pause')) else 0
+    pg.evaluate("() => { if (!document.getElementById('__sans_transition')) { const s = document.createElement('style'); s.id = '__sans_transition'; s.textContent = '*, *::before, *::after { transition: none !important; }'; document.head.appendChild(s); } }")   # (swiftshader chargé : une transition de 0,4 s peut ne pas avoir fini, la mesure verrait les lignes de la tour à mi-chemin)
     pg.wait_for_timeout(500)
     a = pg.evaluate(AUDIT)
     photo(pg, os.path.join(CAPTURES, f'tel-{tel.replace(" ", "_").replace("+", "p")}-{nom}.png'))
