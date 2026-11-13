@@ -47,7 +47,13 @@ const QUALITE = (function () {
   // détail ne revient jamais) ; renvoie le nouveau niveau s'il change, sinon null
   function observer(q, dt, feux, travail) {
     if (q.regle !== 'auto' || !(dt > 0)) return null;
-    if (feux || dt > R.QUALITE_DT_MAX) { vider(q); return null; }   // (pendant les feux rien ne change ; une image très longue — chargement, onglet — ne compte pas)
+    // (pendant les feux rien ne change ; une image très longue — chargement, onglet — ne compte pas ; mais QUALITE_LONGUES_SUITE images très
+    // longues DE SUITE ne sont plus un accident : c'est un appareil très lent (moins de 4 images/s), elles comptent comme les autres. 0 = comme avant)
+    if (feux) { q.longues = 0; vider(q); return null; }
+    if (dt > R.QUALITE_DT_MAX) {
+      q.longues = (q.longues || 0) + 1;
+      if (!(R.QUALITE_LONGUES_SUITE > 0 && q.longues >= R.QUALITE_LONGUES_SUITE)) { vider(q); return null; }
+    } else q.longues = 0;
     q.temps += dt; q.depuis += dt;
     // la fenêtre : les images depuis le dernier changement, au plus les QUALITE_MOYENNE dernières secondes (en moyenne : on retire la part de trop)
     q.images++; q.somme += dt;
