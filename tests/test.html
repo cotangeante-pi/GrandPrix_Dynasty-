@@ -3413,7 +3413,7 @@ t('divisions, plateaux : une vieille sauvegarde garde son plateau unique en divi
 
 // --- les voix enregistrées (tour 51c, voix-sons.js) : sans tampon ni contexte, avec de faux tampons
 t('voix enregistrées : allumées par défaut (tour 55, T10), en français seulement ; chaque fait a son groupe ; jamais deux fois la même prise ; muet si le son est coupé ; rien sans tampon ; course au bit près',()=>{
-  v(REGLAGES.VOIX_SONS===true&&REGLAGES.VOIX_SONS_LANGUES.join()==='fr','allumées par défaut, en français seulement (VOIX_SONS faux = le jeu d'avant)');
+  v(REGLAGES.VOIX_SONS===true&&REGLAGES.VOIX_SONS_LANGUES.join()==='fr','allumées par défaut, en français seulement (VOIX_SONS faux = le jeu d’avant)');
   const langs=REGLAGES.VOIX_SONS_LANGUES;REGLAGES.VOIX_SONS_LANGUES=['fr'];
   VOIXSONS._essai({permis:()=>true,ctx:{},sortie:{}},'en',{depart:[{id:'x'}]},true);v(VOIXSONS.jouer('depart')===false,'en anglais : pas de son, la synthèse parle');VOIXSONS._essai(null,null,undefined,false);
   REGLAGES.VOIX_SONS_LANGUES=null;   // (le reste du test : la langue de la page, quelle qu'elle soit)
