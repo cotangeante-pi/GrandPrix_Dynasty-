@@ -1414,3 +1414,6 @@ Object.assign(TEXTES.fr, { foule_oui: 'Foule : oui', foule_non: 'Foule : non' })
 // --- tour 55, T8 : les dégâts (l'aileron avant) ---
 Object.assign(TEXTES.en, { msg_degats: '{qui}: front wing damaged!', msg_repare: '{qui}: front wing fixed' });
 Object.assign(TEXTES.fr, { msg_degats: '{qui} : aileron avant abîmé !', msg_repare: '{qui} : aileron avant réparé' });
+// --- tour 55, T6 : le fantôme du poleman ---
+Object.assign(TEXTES.en, { fantomeSrcPole: 'Ghost: pole position', fantomeSrcMoi: 'Ghost: your record', fantomePoleDevant: '{s} s faster than the pole ghost', fantomePoleDerriere: '+{s} s behind the pole ghost' });
+Object.assign(TEXTES.fr, { fantomeSrcPole: 'Fantôme : la pole', fantomeSrcMoi: 'Fantôme : ton record', fantomePoleDevant: '{s} s plus vite que le fantôme de la pole', fantomePoleDerriere: '+{s} s du fantôme de la pole' });

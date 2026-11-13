@@ -443,6 +443,16 @@ def qualif(pg, titre):
     # le robot fait le tour de qualification : il part à la place que donne son temps ; « Passer » le met dernier
     t(f'{titre} : l’écran de qualification, les IA sur la grille', attendre(pg, '() => JEU.ecran === "qualif" && JEU.qualif.etat === "choix" && JEU.plateau.pilotes.length === 6', None, 10000), str(pg.evaluate('() => [JEU.ecran, JEU.qualif]')))
     t(f'{titre} : la carte se calcule en fond', attendre(pg, '() => JEU.plateau.carte !== null', None, 180000))
+    # (tour 55, T6) le fantôme du poleman : le bouton « Fantôme : ton record / la pole » (sauvegardé), le tour simulé de la pole (valide, le pilote en pole)
+    pg.wait_for_timeout(300)
+    b0 = pg.evaluate('() => [document.getElementById("boutonFantomePole").classList.contains("cache"), document.getElementById("boutonFantomePole").textContent === texte("fantomeSrcMoi")]')
+    pg.click('#boutonFantomePole')
+    b1 = pg.evaluate('() => [document.getElementById("boutonFantomePole").textContent === texte("fantomeSrcPole"), SAUVEGARDE.option("fantome_pole", null), fantomeSource()]')
+    pole = pg.evaluate('() => { const c = fantomePole(), e = JEU.plateau; return c && { valide: FANTOME.valide(c), numero: c.pole.numero, grille: e.grille[0].numero, temps: c.temps, t: e.grille[0].qualif }; }')
+    pg.click('#boutonFantomePole')
+    b2 = pg.evaluate('() => [document.getElementById("boutonFantomePole").textContent === texte("fantomeSrcMoi"), SAUVEGARDE.option("fantome_pole", null), fantomeSource()]')
+    t(f'{titre} : « Fantôme : ton record / la pole » : visible quand la carte est prête, un clic change et sauvegarde, le fantôme de la pole est le tour simulé du pilote en pole ; un second clic remet « ton record »',
+      b0 == [False, True] and b1 == [True, True, 'pole'] and b2 == [True, False, 'moi'] and pole and pole['valide'] and pole['numero'] == pole['grille'] and 0.8 < pole['temps'] / pole['t'] < 1.3, str([b0, b1, b2, pole]))
     pg.click('#boutonQualifTour')
     t(f'{titre} : « Faire mon tour » : sa voiture du tour, seule, 250 m avant la ligne ; le chrono s’affiche ; les IA ne bougent pas',
       attendre(pg, '() => JEU.qualif.etat === "tour" && JEU.joueur === JEU.qualif.v && JEU.joueur !== JEU.plateau.pilotes[5].v && !document.getElementById("hudCourse").classList.contains("cache") && document.getElementById("classement").classList.contains("cache")'),

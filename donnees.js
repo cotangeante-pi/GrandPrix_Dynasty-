@@ -965,7 +965,6 @@ const REGLAGES = {
   SIMULATION_MARGE_DEVANT: 6,   // m : une voiture est devant une autre à partir de cet écart (un dépassement compte quand ça change)
   SIMULATION_TEMPS_MAX: 150,    // s par tour : une course simulée s'arrête là, même si des voitures n'ont pas fini
   RADAR_RAYON: 150,             // m : le radar montre la piste et les voitures jusque-là autour du joueur
-  // le fantôme du meilleur tour (fantome.js, étape 5) : le tour de qualification enregistré avec l'enregistreur
   // (tour 55, T8) les dégâts (CLAUDE.md « Les dégâts ») : un choc fort abîme l'aileron avant (moins d'appui, jamais de casse totale), réparé à l'arrêt au stand
   DEGATS_ACTIF: true,           // faux = le jeu d'avant (aucun dégât, rien ne change au bit près)
   DEGATS_SEUIL_BARRIERE: 9,     // m/s : la vitesse d'un choc contre une barrière ou un mur au-delà de laquelle l'aileron est touché…
@@ -977,6 +976,11 @@ const REGLAGES = {
   DEGATS_IA_RYTHME: 0.3,        // une IA abîmée vise un rythme plus bas de ça × ses dégâts (elle ne roule pas comme avant sur une voiture qui ne tient plus)
   DEGATS_REPARER_SEUIL: 0.12,   // une IA abîmée au moins de ça s'arrête au stand pour réparer (seulement sur un circuit avec voie des stands, PNEUS_ACTIFS)
   DEGATS_REPARATION: 4,         // s de plus à l'arrêt au stand quand l'aileron est abîmé (réparé en même temps que les pneus)
+  FANTOME_POLEMAN: true,        // (tour 55, T6) en qualification, le joueur peut rejouer contre le tour du poleman IA (fantome-pole.js) ; faux = le jeu d'avant (seulement ton record)
+  FANTOME_POLE_ETIRER: false,   // vrai : le fantôme du poleman est étiré pour durer le temps de qualification de la grille (environ 16 % plus vite que ce que la voiture sait faire) ; faux : son vrai tour simulé
+  FANTOME_POLE_DUREE_MAX: 240,  // s : le tour simulé du poleman est abandonné au-delà (circuit où l'IA ne finit pas)
+  GRAINE_FANTOME_POLE: 22000,   // la course d'une IA seule qui sert à simuler le tour du poleman : la graine du plateau + ça
+  // le fantôme du meilleur tour (fantome.js, étape 5) : le tour de qualification enregistré avec l'enregistreur
   FANTOME_PAS: 0.1,             // s entre deux images du fantôme (un nombre entier de pas de physique : 12) ; le rejeu interpole entre elles
   FANTOME_DECIMALES: 2,         // les positions et distances sont arrondies au cm dans la sauvegarde (compact)
   FANTOME_COULEUR: 0xdfe3ea,    // une couleur neutre, claire…
