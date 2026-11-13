@@ -75,9 +75,20 @@ def chasse_en(delai=600):
     print(out.strip()); print(f'⏱ tests/chasse-en.py : {time.monotonic() - t0:.0f} s')
     return p.returncode == 0 and '✘' not in out
 
+def enligne_course(delai=420):
+    # (tour 56, T7) une course en ligne de bout en bout : deux pages de la vraie page reliées par un BroadcastChannel, 1 tour, mêmes résultats (tests/enligne-course.py)
+    t0 = time.monotonic()
+    p = subprocess.Popen([sys.executable, os.path.join(RACINE, 'tests', 'enligne-course.py'), 'court'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True)
+    try: out, err = p.communicate(timeout=delai)
+    except subprocess.TimeoutExpired:
+        os.killpg(p.pid, signal.SIGKILL); out, err = p.communicate(); out += f'\n✘ enligne-course.py : plus de {delai} s, arrêté'
+    if 'RESULTAT' not in out: out += '\n✘ enligne-course.py s’est arrêté sans résultat :\n' + (err or '').strip()[-2000:]
+    print(out.strip()); print(f'⏱ tests/enligne-course.py : {time.monotonic() - t0:.0f} s')
+    return p.returncode == 0 and '✘' not in out
+
 def annexes():
     pages = all([serie(p, delai=300 if 'courses' in p else 600 if 'officiels' in p else 120, options=['--virtual-time-budget=5000'] if p.endswith('sdk.html') or p.endswith('reseau.html') else []) for p in ANNEXES])
-    return chasse_en() and pages
+    return enligne_course() and chasse_en() and pages
 
 # les parties de la suite, dans l'ordre : moteur (test.html), courses (courses.html, 30 courses entre IA), ecrans (ecrans.py), annexes
 # le paquet Poki (tests/paquet.py, Codeur 3) : le zip fabriqué, puis le jeu ouvert depuis le zip décompressé (vérifications Poki)
