@@ -188,6 +188,7 @@ const TACTILE = (function () {
     if (!E.gaz) return;
     const t = $('tactile'), conduite = V.conduite;
     if (t) t.classList.toggle('cache', !conduite);
+    document.body.classList.toggle('tactileFreinG', !!R.TACTILE_FREIN_GAUCHE && volantActif());   // (2026-11-12 : FREIN au pouce gauche quand le volant conduit ; avec ◀ ▶ il reste à côté de GAZ)
     document.body.classList.toggle('tactileBoutons', conduite && !volantActif());   // (tour 53d : style.css, le radar et l'aide ◀ ▶ s'écartent des vrais boutons)
     for (const n of ['gauche', 'droite']) if (E[n]) E[n].classList.toggle('cache', volantActif());
     const act = $('tactileActiver');
