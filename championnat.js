@@ -194,6 +194,14 @@ const CHAMPIONNAT = (function () {
       if (typeof p.rythme !== 'number') p.rythme = 1;
       if (p.stats) { if (typeof p.stats.titres !== 'number') p.stats.titres = 0; if (typeof p.stats.saisons !== 'number') p.stats.saisons = 0; }
     }
+    // (tour 55, T5) la nationalité des rivaux : une seule fois, avec un flux de hasard à eux (rien d'autre ne bouge) ; un jeune arrivé à la
+    // place d'un retraité (saisons.js) la reçoit ici aussi
+    if (R.DOMICILE_RIVAUX_ACTIF) for (const p of ch.pilotes || []) {
+      if (p.humain || typeof p.pays === 'string') continue;
+      ALEATOIRE.semer((ch.graine || 0) + R.GRAINE_PAYS_RIVAUX + p.id * 131 + (ch.saison || 1) * 7);
+      p.pays = R.PAYS[Math.floor(hasard() * R.PAYS.length)];
+      ALEATOIRE.semer();
+    }
     if (typeof SAISONS !== 'undefined') SAISONS.completer(ch);
     if (typeof SPONSORS !== 'undefined') SPONSORS.completer(ch);
     if (typeof FICHE !== 'undefined' && ch.pilotes) FICHE.completer(ch);
@@ -249,10 +257,18 @@ const CHAMPIONNAT = (function () {
       .map(id => ({ id, points: ch.ecuries[id].points }));
   }
 
+  // (tour 55, T5) les rivaux à domicile sur ce circuit : leurs indices (leur pays est celui du circuit, CIRCUITS_PAYS) ; [] si le réglage est coupé
+  function rivauxADomicile(ch, circuit) {
+    const pays = R.CIRCUITS_PAYS[circuit];
+    if (!R.DOMICILE_RIVAUX_ACTIF || !pays || !ch || !ch.pilotes) return [];
+    return ch.pilotes.filter(p => !p.humain && p.pays === pays).map(p => p.id);
+  }
+
   // le niveau de l'écurie et le facteur de rythme du pilote agissent sur le rythme de chaque IA de la course e (la voiture k = le
   // pilote k) : rythme × niveau × rythme du pilote.
   // À faire AVANT donnerCarte (le pilote et la qualification lisent le rythme). Le joueur garde sa voiture (FACTEUR_VOITURE_JOUEUR)
-  function appliquerNiveaux(ch, e) {
+  function appliquerNiveaux(ch, e, nomCircuit) {
+    const gp = ch.calendrier && ch.calendrier[ch.prochain], lieu = nomCircuit || (gp && gp.circuit);   // (tour 55, T5) le nom du circuit de ce Grand Prix (e.circuit est son tracé)
     // l'aileron (aileron.js) : chaque IA règle le sien avant le Grand Prix (le circuit, son caractère, la graine) ; mêmes effets que le joueur
     const crans = typeof AILERON !== 'undefined' && e.circuit ? AILERON.cransIA(ch, e.circuit) : null;
     // (l'effet sur les voitures des IA attend AILERON_IA_ACTIF : voir donnees.js ; le cran est choisi et gardé quand même)
@@ -268,6 +284,7 @@ const CHAMPIONNAT = (function () {
       if (!pilote || p.humain || p.rythmeBase !== undefined) return;
       p.rythmeBase = p.rythme;
       p.rythme = p.rythme * ch.ecuries[pilote.ecurie].niveau * (pilote.rythme || 1);   // × le facteur de rythme du pilote (saisons.js ; 1 = rien)
+      if (R.DOMICILE_RIVAL_BONUS > 0 && R.DOMICILE_RIVAUX_ACTIF && lieu && pilote.pays !== undefined && R.CIRCUITS_PAYS[lieu] === pilote.pays) p.rythme *= 1 + R.DOMICILE_RIVAL_BONUS;   // (tour 55, T5) à domicile : un petit bonus
     });
     return e;
   }
@@ -313,6 +330,6 @@ const CHAMPIONNAT = (function () {
     return R.CHAMPIONNAT_LONGUE_CHOIX && cle && R.LONGUEURS_COURSE[cle] > 0 ? R.LONGUEURS_COURSE[cle] : R.CHAMPIONNAT_TOURS;
   }
 
-  return { estPremierGrandPrix, toursDuGrandPrix, calendrierSaison, calendrierNeuf, creer, pointsPour, enregistrerCourse, finirGrandPrix, classementPilotes, classementEcuries, lignesDepuisCourse, lignesDepuisSimulation, appliquerNiveaux, simulerGrandPrix,
+  return { rivauxADomicile, estPremierGrandPrix, toursDuGrandPrix, calendrierSaison, calendrierNeuf, creer, pointsPour, enregistrerCourse, finirGrandPrix, classementPilotes, classementEcuries, lignesDepuisCourse, lignesDepuisSimulation, appliquerNiveaux, simulerGrandPrix,
     coequipierDe, gagnantDuel, scoreDuel, completer };
 })();

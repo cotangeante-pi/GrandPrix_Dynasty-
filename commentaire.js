@@ -44,7 +44,12 @@ const COMMENTAIRE = (function () {
     const prm = (k, x) => Object.assign({ qui: k, place: n.place.get(k) ? n.place.get(k).place : null, circuit: o.circuit || '', lieu: o.lieu || '' }, x);
     if (!v) { c.vu = Object.assign(n, { depart: false, meilleur: null, dernierTour: false, vainqueur: false, pluie: false, joueurArrive: false, podium: false, arrets: [] }); return c; }
     // le départ
-    if (!v.depart && e.go !== null) { v.depart = true; pousser(c, e.go, 'depart', prm(n.ordre[0].k), false); }
+    if (!v.depart && e.go !== null) {
+      v.depart = true; pousser(c, e.go, 'depart', prm(n.ordre[0].k), false);
+      // (tour 55, T5) un rival à domicile (o.domicile : ses indices, championnat.js : rivauxADomicile) : le mieux placé sur la grille
+      const dom = (o.domicile || []).filter(k => n.place.get(k)).sort((a, b) => n.place.get(a).place - n.place.get(b).place)[0];
+      if (dom !== undefined) pousser(c, e.go, 'domicileRival', prm(dom), false);
+    }
     // (tour 55, T7) les drapeaux (drapeaux.js : e.drapeaux.evenements) : le drapeau jaune d'une voiture arrêtée, la VSC et sa fin
     const D = e.drapeaux;
     if (D) for (v.drapeaux = v.drapeaux || 0; v.drapeaux < D.evenements.length; v.drapeaux++) {

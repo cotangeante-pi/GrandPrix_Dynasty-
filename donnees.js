@@ -656,6 +656,13 @@ const REGLAGES = {
   },
   // le public des tribunes (decor-public.js, CLAUDE.md « Le Grand Prix à domicile ») : au Grand Prix à domicile du joueur (sa course
   // de cœur), cette part des spectateurs porte les couleurs de son pays ; les autres, et tout le public ailleurs, celles des écuries
+  // le Grand Prix à domicile des rivaux (tour 55, T5 ; CLAUDE.md « Le Grand Prix à domicile », « Plus tard ») : chaque rival IA a une
+  // nationalité (un pays de PAYS, tirée une fois avec sa propre graine : ses noms ne changent pas) ; sur le circuit de son pays
+  // (CIRCUITS_PAYS) il est « à domicile » : un petit bonus de rythme, une phrase du commentateur au départ, une brève du journal s'il finit
+  // sur le podium. DOMICILE_RIVAUX_ACTIF faux (ou un bonus à 0 pour la seule piste) : le jeu d'avant, au bit près
+  DOMICILE_RIVAUX_ACTIF: true,
+  DOMICILE_RIVAL_BONUS: 0.004,  // × (1 + ce nombre) sur le rythme du rival à domicile (0 = rien ; 0,004 = 0,4 %, de l'ordre de 0,2 s par tour)
+  GRAINE_PAYS_RIVAUX: 22000,    // la nationalité d'un rival : la graine du championnat + ce nombre + son indice (son propre flux)
   PUBLIC_DOMICILE_PART: 0.4,
   // les drapeaux (drapeaux.js, tour 55, T7 ; CLAUDE.md « Les drapeaux », levé par le propriétaire : « ni dégâts ni drapeaux » ne vaut plus) :
   // jaune (une voiture arrêtée ou sortie : pas de dépassement dans sa zone), bleu (le retardataire laisse passer), VSC (tout le monde ralentit)
@@ -981,6 +988,10 @@ const REGLAGES = {
   SIMULATION_TEMPS_MAX: 150,    // s par tour : une course simulée s'arrête là, même si des voitures n'ont pas fini
   RADAR_RAYON: 150,             // m : le radar montre la piste et les voitures jusque-là autour du joueur
   // le fantôme du meilleur tour (fantome.js, étape 5) : le tour de qualification enregistré avec l'enregistreur
+  FANTOME_POLEMAN: true,        // (tour 55, T6) en qualification, le joueur peut rejouer contre le tour du poleman IA (fantome-pole.js) ; faux = le jeu d'avant (seulement ton record)
+  FANTOME_POLE_ETIRER: false,   // vrai : le fantôme du poleman est étiré pour durer le temps de qualification de la grille (environ 16 % plus vite que ce que la voiture sait faire) ; faux : son vrai tour simulé
+  FANTOME_POLE_DUREE_MAX: 240,  // s : le tour simulé du poleman est abandonné au-delà (circuit où l'IA ne finit pas)
+  GRAINE_FANTOME_POLE: 22000,   // la course d'une IA seule qui sert à simuler le tour du poleman : la graine du plateau + ça
   FANTOME_PAS: 0.1,             // s entre deux images du fantôme (un nombre entier de pas de physique : 12) ; le rejeu interpole entre elles
   FANTOME_DECIMALES: 2,         // les positions et distances sont arrondies au cm dans la sauvegarde (compact)
   FANTOME_COULEUR: 0xdfe3ea,    // une couleur neutre, claire…
@@ -1200,7 +1211,7 @@ const REGLAGES = {
   COMMENTAIRE_LONGUEUR_MAX: 60,   // caractères d'une phrase au plus (les noms comptés à 7 lettres) : court, pour ne pas lire en pilotant
   COMMENTAIRE_PEREMPTION: 8,      // s : un fait plus vieux n'est plus dit
   COMMENTAIRE_FILE_MAX: 6,
-  COMMENTAIRE_PRIORITES: { arrivee: 10, podium: 9, arret: 6, depart: 9, vsc: 9, drapeauJaune: 8, drapeauVert: 7, depassementTete: 9, dernierTour: 8, joueurArrivee: 8, contact: 7, depassementJoueur: 6, pluie: 6, coteACote: 5, erreur: 5, penalite: 5, depassement: 4, stands: 3, meilleurTour: 3, joueurTete: 2, joueurPlace: 2, glissade: 6,
+  COMMENTAIRE_PRIORITES: { arrivee: 10, podium: 9, arret: 6, depart: 9, vsc: 9, drapeauJaune: 8, drapeauVert: 7, domicileRival: 7, depassementTete: 9, dernierTour: 8, joueurArrivee: 8, contact: 7, depassementJoueur: 6, pluie: 6, coteACote: 5, erreur: 5, penalite: 5, depassement: 4, stands: 3, meilleurTour: 3, joueurTete: 2, joueurPlace: 2, glissade: 6,
     combleTete: 0, combleBagarre: 0, combleTours: 0, combleJoueur: 0, combleMeteo: 0, combleSec: 0, combleChamp: 0, combleChampTete: 0, combleChampProjection: 0 },   // (tour 45c : ce qu'il dit entre deux faits, jamais devant un fait)
   COMMENTAIRE_BONUS_JOUEUR: 2,    // un fait du joueur passe devant (plus de phrases quand le joueur est concerné)
   COMMENTAIRE_GLISSADE_INTERVALLE: 60,   // s : une glissade rattrapée du joueur n'est redite qu'après ça (tour 43)

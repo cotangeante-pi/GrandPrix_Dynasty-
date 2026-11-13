@@ -152,6 +152,9 @@ const JOURNAL = (function () {
     // la relève : un ancien rival de la génération d'avant, devenu consultant, parle du leader (un nom, aucune information de course)
     const consultants = typeof SAISONS !== 'undefined' ? SAISONS.anciensDuParent(ch, 'consultant') : [];
     if (consultants.length) { const lead = CHAMPIONNAT.classementPilotes(ch)[0].k; b.unshift(['breveConsultant', { consultant: consultants[n % consultants.length].i, pilote: lead }]); }
+    // (tour 55, T5) un rival à domicile sur le podium : sa brève passe devant
+    const dom = CHAMPIONNAT.rivauxADomicile(ch, circuit).map(k => ({ k, place: ordre.indexOf(k) + 1 })).filter(x => x.place >= 1 && x.place <= 3).sort((a, b) => a.place - b.place || a.k - b.k)[0];
+    if (dom) b.unshift(['breveDomicile', { pilote: dom.k, ecurie: ecurie(dom.k), place: dom.place, circuit }]);
     const cp = CHAMPIONNAT.classementPilotes(ch);
     if (!humain(cp[0].k)) b.push(['breveLeader', { pilote: cp[0].k, points: cp[0].points }]);
     else b.push(['breveChasseur', { pilote: cp[1].k, ecart: cp[0].points - cp[1].points }]);
@@ -311,7 +314,7 @@ const JOURNAL = (function () {
   }
 
   // les clés de texte que le journal demande (tests : toutes dans les deux langues, avec des variantes)
-  const BREVES = ['breveForme', 'breveRetraite', 'breveEcurie', 'breveVainqueur', 'breveRival', 'breveMeilleurTour', 'brevePole', 'breveLeader', 'breveChasseur', 'breveRumeur', 'breveConsultant'];
+  const BREVES = ['breveForme', 'breveRetraite', 'breveEcurie', 'breveVainqueur', 'breveRival', 'breveDomicile', 'breveMeilleurTour', 'brevePole', 'breveLeader', 'breveChasseur', 'breveRumeur', 'breveConsultant'];
   function cles() {
     return ['journalNom'].concat(R.JOURNAL_PRIORITES.flatMap(f => ['uneTitre_' + f, 'uneTexte_' + f]), BREVES);
   }

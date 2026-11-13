@@ -158,7 +158,7 @@ function lancerCourse(nbTours) {
     // ?championnat=1 : le niveau de l'écurie sur le rythme de chaque IA, avant que la carte leur donne un pilote
     JEU.plateau = creerCourseIA(CIRCUIT, JEU.ia, nbTours, Number(PARAMETRES.get('graine')) || 1, JEU.championnat ? null : JEU.carte, JEU.contre);
     JEU.plateau.sansDrapeaux = !!(JEU.decouverte || (typeof TUTORIEL_ECRAN !== 'undefined' && TUTORIEL_ECRAN.lecon()));   // (tour 55) la découverte et les leçons du tutoriel : pas de drapeaux
-    if (JEU.championnat) { CHAMPIONNAT.appliquerNiveaux(JEU.championnat, JEU.plateau); if (JEU.carte) donnerCarte(JEU.plateau, JEU.carte); }
+    if (JEU.championnat) { CHAMPIONNAT.appliquerNiveaux(JEU.championnat, JEU.plateau, NOM_CIRCUIT); if (JEU.carte) donnerCarte(JEU.plateau, JEU.carte); }
     if (JEU.championnat) poserRivalites(JEU.plateau, JEU.championnat.pilotes.map(q => !!(q && q.rivalite)));   // les rivaux de l'interview (ia.js, Codeur 1)
     if (JEU.championnat) JEU.plateau.ecuries = JEU.championnat.pilotes.map(q => q ? q.ecurie : null);   // les écuries, pour les consignes d'équipe (simulation.js, Codeur 1)
     // la météo (meteo.js, étape 12, Codeur 1) : tirée avec la graine du Grand Prix selon le lieu ; ?meteo=sec|pluie|averse|eclaircie la force (tests)
@@ -206,6 +206,7 @@ function lancerCourse(nbTours) {
 function commencerQualif() {
   JEU.qualif = { etat: 'choix', q: null, v: null, passe: false };
   INTERFACE.remplirQualif('choix', { milieu: REGLAGES.QUALIF_PASSER_PREMIER_MILIEU && CHAMPIONNAT.estPremierGrandPrix(JEU.championnat) });
+  majBoutonFantomePole();
   JEU.ecran = 'qualif';
   INTERFACE.montrer('qualif');
 }
@@ -229,11 +230,41 @@ function faireMonTour() {
 // le fantôme du meilleur tour (fantome.js) : le record du circuit est chargé pour être rejoué pendant le tour, et le tour
 // qui commence est enregistré (le même enregistreur que la course, pour une voiture)
 function commencerFantome() {
-  JEU.fantome = { rejeu: FANTOME.charger(SAUVEGARDE.fantome(NOM_CIRCUIT)), tour: FANTOME.commencer(), ecart: null, visible: SAUVEGARDE.option('fantome', true), roues: 0 };
+  let rejeu = FANTOME.charger(SAUVEGARDE.fantome(NOM_CIRCUIT)), pole = false;
+  if (fantomeSource() === 'pole') { const c = fantomePole(), r = c && FANTOME.charger(c); if (r) { rejeu = r; pole = true; } }   // (tour 55, T6 : le fantôme du poleman)
+  JEU.fantome = { rejeu, pole, tour: FANTOME.commencer(), ecart: null, visible: SAUVEGARDE.option('fantome', true), roues: 0 };
   if (JEU.fantome.rejeu && !JEU.modeleFantome) {
     JEU.modeleFantome = VOITURE3D.creerFantome(REGLAGES.FANTOME_COULEUR, REGLAGES.FANTOME_OPACITE);
     SCENE3D.ajouter(JEU.modeleFantome.groupe);
   }
+}
+
+// --- le fantôme du poleman (tour 55, T6 ; fantome-pole.js) : contre les IA, en qualification, le joueur peut rejouer contre le tour du pilote en pole
+// (simulé une seule fois par plateau, quand il est demandé) au lieu de son propre record. « Fantôme : ton record / la pole » (option 'fantome_pole' :
+// vrai = la pole ; sans choix ou faux : ton record, comme avant). FANTOME_POLEMAN faux : le jeu d'avant.
+function polePossible() {
+  const e = JEU.plateau;
+  return !!(REGLAGES.FANTOME_POLEMAN && JEU.contre && e && e.carte && e.grille && e.grille.length && !JEU.defi && !JEU.tournoi && !JEU.deux
+    && e.pilotes[e.grille[0].numero - 1] && !e.pilotes[e.grille[0].numero - 1].humain);
+}
+function fantomeSource() {
+  if (!polePossible()) return 'moi';
+  const choix = SAUVEGARDE.option('fantome_pole', null);
+  return choix === true ? 'pole' : 'moi';
+}
+function fantomePole() {
+  if (!polePossible()) return null;
+  const e = JEU.plateau;
+  if (e.fantomePole === undefined) { try { e.fantomePole = FANTOME_POLE.tour(e); } catch (err) { e.fantomePole = null; } }
+  return e.fantomePole;
+}
+function majBoutonFantomePole() {
+  INTERFACE.majBoutonFantomePole(polePossible() ? texte(fantomeSource() === 'pole' ? 'fantomeSrcPole' : 'fantomeSrcMoi') : null);
+}
+function basculerFantomePole() {
+  if (!polePossible()) return;
+  SAUVEGARDE.ecrireOption('fantome_pole', fantomeSource() !== 'pole');
+  majBoutonFantomePole();
 }
 
 // à chaque pas du tour lancé : la position du joueur est notée (fini : le pas de l'arrivée, avec le temps et la distance du tour)
@@ -254,6 +285,7 @@ function finirFantome(q) {
   const compact = FANTOME.compacter(f.tour, q.temps, q.fin);
   const record = SAUVEGARDE.proposerFantome(NOM_CIRCUIT, compact, !q.valide);
   const ecart = f.rejeu ? FANTOME.ecartFinal(f.rejeu, q.temps) : null;
+  if (f.pole) return { record, pole: true, ecartPole: ecart, gagne: null, ecart: null, taille: FANTOME.taille(compact), compact: q.valide ? compact : null };   // (tour 55, T6 : contre le poleman, l'écart à son tour)
   return { record, gagne: record && ecart !== null ? -ecart : null, ecart: !record && ecart !== null ? ecart : null, taille: FANTOME.taille(compact), compact: q.valide ? compact : null };   // (compact : le tour, pour « 📋 Défier un ami », tour 49b)
 }
 
@@ -2489,7 +2521,7 @@ function majCommentaireDit(e, m) {
   const etatMeteo = typeof METEO3D !== 'undefined' ? METEO3D.etat(e) : null;
   // (tour 45c2) le championnat, en carrière seulement (jamais en course seule ni à deux) : les points d'avant la course, par pilote
   const champ = JEU.championnat && !JEU.deux && !JEU.tournoi && j >= 0 ? { joueur: j, points: JEU.championnat.pilotes.map(p => p.stats ? p.stats.points : 0), pointsPour: CHAMPIONNAT.pointsPour } : null;
-  COMMENTAIRE.observer(c, e, { joueur: j, championnat: champ, pluie: etatMeteo ? etatMeteo.pluie : 0, circuit: texte('circuit_' + NOM_CIRCUIT) || CIRCUIT.nom, lieu: texte('lieu_' + NOM_CIRCUIT) || texte('circuit_' + NOM_CIRCUIT) || CIRCUIT.nom });
+  COMMENTAIRE.observer(c, e, { joueur: j, championnat: champ, domicile: JEU.championnat && !JEU.deux && !JEU.tournoi ? CHAMPIONNAT.rivauxADomicile(JEU.championnat, NOM_CIRCUIT) : [], pluie: etatMeteo ? etatMeteo.pluie : 0, circuit: texte('circuit_' + NOM_CIRCUIT) || CIRCUIT.nom, lieu: texte('lieu_' + NOM_CIRCUIT) || texte('circuit_' + NOM_CIRCUIT) || CIRCUIT.nom });
   const it = COMMENTAIRE.afficher(c, e.temps, attendre);
   if (it) {
     const dit = COMMENTAIRE.phrase(it, etiquetteVoiture, INTERFACE.formatTemps);
@@ -2632,6 +2664,7 @@ function demarrerJeu() {
       placerDecouverte();   // la découverte : le joueur au milieu de la grille
       if (JEU.deux) DEUX_JOUEURS.placerGrille(JEU.plateau);   // le mode 2 joueurs : la grille tirée au sort
       if (JEU.qualif && JEU.qualif.etat === 'attente') finirQualif();   // le joueur a fini son tour avant la carte
+      if (JEU.qualif && JEU.qualif.etat === 'choix') majBoutonFantomePole();   // (tour 55, T6 : le fantôme du poleman devient possible)
     } else JEU.pilote = creerPilote(JEU.carte);
   };
   // la trajectoire conseillée (conseil.js) a besoin de la carte : seul en piste aussi, quand elle peut se montrer (le réglage
@@ -2764,6 +2797,7 @@ function demarrerJeu() {
   boutonPasser.addEventListener('click', passerAuPodium);
   INTERFACE.preparerQualif(faireMonTour, passerQualif, partirEnCourse);
   INTERFACE.preparerFantome(basculerFantome);
+  INTERFACE.preparerFantomePole(basculerFantomePole);
   // le commentateur se règle dans le menu pause : tout, seulement tes faits, ou coupé (sauvegardé, commentaire.js lit COMMENTAIRE_MODE)
   {
     // (tour 45c) la voix du commentateur : oui / non, sauvegardé (voix.js)
