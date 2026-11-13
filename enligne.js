@@ -93,6 +93,75 @@ const EN_LIGNE = (function () {
     return h >>> 0;
   }
 
+  // --- des fonctions Math à nous (EN_LIGNE_MATHS). La spécification ne dit pas le dernier bit de sin, cos, tan, atan, atan2, exp, hypot : Chrome,
+  // Safari (iPhone) et Firefox peuvent différer d'un bit, et une course lockstep diverge alors en quelques secondes. Ici, seulement + - * / et
+  // sqrt (exacts selon IEEE 754), floor et round : le même résultat au bit près sur tous les navigateurs. Précision de l'ordre de 1e-15.
+  const maths = (function () {
+    const PI = Math.PI, PIO2 = PI / 2;
+    const PIO2_1 = 1.57079632673412561417e+00, PIO2_1T = 6.07710050650619224932e-11;   // π/2 en deux morceaux (fdlibm) : k × PIO2_1 est exact
+    const DEUX_SUR_PI = 0.6366197723675814;
+    const LN2_HI = 6.93147180369123816490e-01, LN2_LO = 1.90821492927058770002e-10, LOG2E = 1.4426950408889634;
+    const S3 = Math.sqrt(3), TAN15 = 0.2679491924311227, PIO6 = PI / 6;
+    const SIN_C = [], COS_C = [];   // (-1)^i / (2i+1)! et (-1)^i / (2i)!, calculés par divisions
+    { let f = 1; for (let i = 0; i < 14; i++) { if (i > 0) f /= (2 * i) * (2 * i + 1); SIN_C.push(i % 2 ? -f : f); }
+      f = 1; for (let i = 0; i < 14; i++) { if (i > 0) f /= (2 * i - 1) * (2 * i); COS_C.push(i % 2 ? -f : f); } }
+    const sinPetit = r => { const u = r * r; let p = SIN_C[13]; for (let i = 12; i >= 0; i--) p = SIN_C[i] + u * p; return r * p; };
+    const cosPetit = r => { const u = r * r; let p = COS_C[13]; for (let i = 12; i >= 0; i--) p = COS_C[i] + u * p; return p; };
+    function reduire(x) { const k = Math.floor(x * DEUX_SUR_PI + 0.5); return { r: (x - k * PIO2_1) - k * PIO2_1T, q: ((k % 4) + 4) % 4 }; }
+    function sin(x) {
+      if (x !== x || x === Infinity || x === -Infinity) return NaN;
+      const { r, q } = reduire(x);
+      return q === 0 ? sinPetit(r) : q === 1 ? cosPetit(r) : q === 2 ? -sinPetit(r) : -cosPetit(r);
+    }
+    function cos(x) {
+      if (x !== x || x === Infinity || x === -Infinity) return NaN;
+      const { r, q } = reduire(x);
+      return q === 0 ? cosPetit(r) : q === 1 ? -sinPetit(r) : q === 2 ? -cosPetit(r) : sinPetit(r);
+    }
+    const tan = x => sin(x) / cos(x);
+    const ATAN_C = []; for (let i = 0; i < 18; i++) ATAN_C.push((i % 2 ? -1 : 1) / (2 * i + 1));
+    function atanPetit(t) { const u = t * t; let p = ATAN_C[17]; for (let i = 16; i >= 0; i--) p = ATAN_C[i] + u * p; return t * p; }
+    function atanPositif(x) {   // x ≥ 0
+      if (x > 1) return PIO2 - atanPositif(1 / x);
+      if (x > TAN15) return PIO6 + atanPetit((x * S3 - 1) / (S3 + x));
+      return atanPetit(x);
+    }
+    function atan(x) { if (x !== x) return NaN; return x < 0 ? -atanPositif(-x) : atanPositif(x); }
+    function atan2(y, x) {
+      if (y !== y || x !== x) return NaN;
+      if (x === 0) {
+        if (y > 0) return PIO2;
+        if (y < 0) return -PIO2;
+        return (1 / x < 0) ? ((1 / y < 0) ? -PI : PI) : y;   // (±0, ±0)
+      }
+      if (x > 0) return atan(y / x);
+      const a = atan(y / x);
+      return (y > 0 || (y === 0 && 1 / y > 0)) ? a + PI : a - PI;
+    }
+    const fenetre = new Float64Array(1), motsF = new Uint32Array(fenetre.buffer);
+    function deuxPuissance(k) { motsF[0] = 0; motsF[1] = ((k + 1023) << 20) >>> 0; return fenetre[0]; }   // 2^k exact, -1022 ≤ k ≤ 1023
+    function exp(x) {
+      if (x !== x) return NaN;
+      if (x > 709.78) return Infinity;
+      if (x < -745.2) return 0;
+      const k = Math.floor(x * LOG2E + 0.5), r = (x - k * LN2_HI) - k * LN2_LO;
+      let p = 1; for (let n = 18; n >= 1; n--) p = 1 + p * r / n;
+      const k1 = Math.floor(k / 2), k2 = k - k1;
+      return p * deuxPuissance(k1) * deuxPuissance(k2);
+    }
+    function hypot() {
+      let s = 0, nan = false;
+      for (let i = 0; i < arguments.length; i++) { const a = +arguments[i]; if (a === Infinity || a === -Infinity) return Infinity; if (a !== a) nan = true; s += a * a; }
+      return nan ? NaN : Math.sqrt(s);
+    }
+    // l'échange : pendant une course en ligne, Math.sin… sont les siennes (comptés : plusieurs parties, un seul retour)
+    const noms = ['sin', 'cos', 'tan', 'atan', 'atan2', 'exp', 'hypot'], siennes = { sin, cos, tan, atan, atan2, exp, hypot };
+    const origine = {}; let actives = 0;
+    function activer() { if (actives++ === 0) for (const n of noms) { origine[n] = Math[n]; Math[n] = siennes[n]; } return actives; }
+    function desactiver() { if (actives > 0 && --actives === 0) for (const n of noms) Math[n] = origine[n]; return actives; }
+    return Object.assign({ activer, desactiver, actives: () => actives }, siennes);
+  })();
+
   // --- la version du calcul : EN_LIGNE_VERSION (à monter à la main) et l'empreinte de tous les réglages (une valeur qui change = un autre jeu)
   let versionCache = null;
   function version() {
@@ -119,10 +188,12 @@ const EN_LIGNE = (function () {
   }
 
   // --- la course : le circuit, la carte, la météo
+  // (avec nos maths : un circuit construit exprès avec elles, jamais celui du navigateur : sa géométrie est calculée avec sin, cos, atan2)
   const circuits = new Map();
   function circuitDe(nom) {
-    if (!circuits.has(nom)) circuits.set(nom, nom === 'test' ? CIRCUIT_TEST : construireCircuit(CIRCUITS[nom]));
-    return circuits.get(nom);
+    const cle = nom + (maths.actives() ? '#maths' : '');
+    if (!circuits.has(cle)) circuits.set(cle, nom === 'test' && !maths.actives() ? CIRCUIT_TEST : construireCircuit(CIRCUITS[nom]));
+    return circuits.get(cle);
   }
 
   // le plan de météo, comme planMeteo de principal.js mais sans l'adresse de la page : la même sur tous les clients
@@ -201,6 +272,9 @@ const EN_LIGNE = (function () {
   // --- la partie
   function creerPartie(o) {
     const ordre = o.ordre.slice();
+    const mathsOn = !!R.EN_LIGNE_MATHS && o.maths !== false;
+    if (mathsOn) maths.activer();
+    try {
     const reglages = reglagesValides(o.reglages, ordre.length);
     const delai = Math.max(1, Math.floor(o.delai || reglages.delai || R.EN_LIGNE_DELAI));
     const taillePaquet = Math.max(1, Math.min(delai, Math.floor(o.paquet || R.EN_LIGNE_PAQUET)));   // jamais plus que le délai : sinon un paquet attendrait un pas qui n'arrive pas
@@ -323,7 +397,14 @@ const EN_LIGNE = (function () {
     };
     partie.empreinte = () => empreinte(e);
     partie.vider = vider;
+    // la course est finie (ou quittée) : les fonctions Math du navigateur reviennent ; à appeler une fois
+    let termine = false;
+    partie.terminer = function () { if (!termine) { termine = true; if (mathsOn) maths.desactiver(); } };
     return partie;
+    } catch (err) {
+      if (mathsOn) maths.desactiver();
+      throw err;
+    }
   }
 
   // la partie depuis le message « depart » du serveur : { reglages, graine, ordre : [ids] }
@@ -385,10 +466,12 @@ const EN_LIGNE = (function () {
         partis.add(id);
         for (const autre of ids) if (autre !== id && !partis.has(autre)) poster(id, autre, { t: 'parti', id });
       },
+      // la course est finie : les Math du navigateur reviennent
+      fin() { for (const p of parties.values()) p.terminer(); },
       partis,
     };
     return banc;
   }
 
-  return { actif, version, reglagesValides, coder, decoder, codeValide, empreinte, demarrer, creerPartie, creerCourseEnLigne, conduire, planMeteo, circuitDe, banc, CODE_NEUTRE, NEUTRE };
+  return { actif, version, reglagesValides, coder, decoder, codeValide, empreinte, demarrer, creerPartie, creerCourseEnLigne, conduire, planMeteo, circuitDe, maths, banc, CODE_NEUTRE, NEUTRE };
 })();
