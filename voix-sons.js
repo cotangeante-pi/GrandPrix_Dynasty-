@@ -131,7 +131,7 @@ const VOIXSONS = (function () {
   if (typeof document !== 'undefined') document.addEventListener('visibilitychange', () => { if (document.hidden) taire(); });
 
   return { jouer, taire, charger, regler, cleDe, CLES, PRISES, PRISES_DE, url,
-    get active() { return active; }, get joues() { return joues; }, get enCours() { return !!courant; },
+    get active() { return active; }, get disponible() { return langueAvecSons(langue()); },   // (tour 55, revue : disponible = cette langue a des sons) get joues() { return joues; }, get enCours() { return !!courant; },
     etat: () => Object.fromEntries(Object.entries(tampons).map(([l, d]) => [l, Object.fromEntries(Object.entries(d).map(([c, a]) => [c, a.length]))])),
     // pour les tests seulement : une sortie et des tampons faux
     _essai(sortieFausse, l, groupes, oui) { essai = sortieFausse; if (l) tampons[l] = groupes; if (oui !== undefined) active = !!oui; for (const k of Object.keys(dernier)) delete dernier[k]; joues = 0; courant = null; } };
