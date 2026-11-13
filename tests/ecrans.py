@@ -1847,7 +1847,15 @@ def manette_ecran(pg, titre):
         if pg.evaluate('() => JEU.ecran') == 'course': break
     t(f'{titre} : B quitte la pause, la course reprend ; le halo disparaît en conduite', pg.evaluate('() => JEU.ecran === "course" && SENSATIONS.actif && !document.querySelector("button.manette-choix")'), pg.evaluate('() => [JEU.ecran, SENSATIONS.actif]'))
     # Y change la caméra, A remet sur la piste
-    c0 = pg.evaluate('() => CAMERA.mode'); manette_appui(pg, 0, 'y')
+    # (tour 55, T21) un délai fixe ne garantit pas que le jeu ait LU l'appui : sur une machine chargée (GitHub), une image peut durer plus de 350 ms et
+    # l'appui entier passe entre deux images (ce test échouait de temps en temps). Ici on tient Y jusqu'à ce que la page ait dessiné 2 images (au moins
+    # une image complète du jeu) ET 350 ms, puis on le relâche de même ; pas de répétition de l'appui (ce serait deux changements de caméra).
+    # (manette_appui, lui, reste comme avant : le menu pause s'y installe, et tenue plus de 0,4 s la croix répète et saute un bouton)
+    c0 = pg.evaluate('() => CAMERA.mode')
+    tenir = '''([x]) => new Promise(r => { __padFixer(0, 'y', x); const t0 = performance.now(); let images = 0;
+      const f = () => { images++; if (images >= 2 && performance.now() - t0 >= 350) r(); else requestAnimationFrame(f); };
+      requestAnimationFrame(f); setTimeout(r, 8000); })'''
+    pg.evaluate(tenir, [1]); pg.evaluate(tenir, [0])
     t(f'{titre} : Y change la caméra', pg.evaluate('() => CAMERA.mode') != c0, c0)
     # la vibration (tour 42) : l'arrière qui part fait vibrer le gros moteur (les faits de la voiture remplacés 1,5 s), puis plus rien
     vb = pg.evaluate('''async () => { const de = SENSATIONS.de; window.__vibrations.length = 0; SENSATIONS.de = v => Object.assign({}, SENSATIONS.RIEN, { arriere: 1 });
