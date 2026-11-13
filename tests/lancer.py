@@ -58,6 +58,7 @@ def ecrans(delai=900):   # (tour 48a : 900 s, les 6 pages du nouveau paddock ont
 # des rappels (promesses, minuteurs) : --virtual-time-budget fait avancer l'horloge de la page avant de rendre le DOM
 ANNEXES = ['tests/sdk.html', 'tests/pneus.html', 'tests/enregistreur.html', 'tests/circuits-a.html', 'tests/circuits-b.html', 'tests/textes.html', 'tests/decors.html', 'tests/banc-parle.html']   # (decors : les décors des 12 tracés, Codeur 3 ; banc-parle : les discussions, Codeur 3 ; officiels.html, les IA sur les 12 tracés : une partie à elle)
 ANNEXES.extend(['tests/aides.html', 'tests/tutoriel.html'])   # les aides au premier usage (aides.js, étape 11b) et le tutoriel guidé (tutoriel.js, étape 11d), Codeur 4
+ANNEXES.append('tests/cout-drapeaux.html')   # le coût des drapeaux sur les 12 circuits (tour 55, T19)
 ANNEXES.append('tests/drapeaux.html')   # les drapeaux : jaune, bleu, VSC (tour 55, T7)
 ANNEXES.append('tests/carriere-longue.html')   # la carrière entière : 15 saisons, 3 générations, vieilles sauvegardes (tour 55, T1)
 ANNEXES.append('tests/personnalisation.html')   # la personnalisation : livrée, célébration, boutique de skins (tour 48c, Codeur 3)
@@ -113,7 +114,8 @@ def recoins(delai=2400):
 
 # (stands.html, 30 courses de 12 tours, est une partie à lui : sur GitHub, chaque partie tourne dans son propre travail, en parallèle ;
 # ecrans y est découpé en 6 tranches par ECRANS_TRANCHE=k/n, voir .github/workflows/tests.yml)
-PARTIES = {'moteur': lambda: serie('tests/test.html'), 'courses': lambda: all([serie('tests/courses.html'), serie('tests/courses.html?ailerons=1')]), 'stands': lambda: serie('tests/stands.html', delai=1200), 'consignes': lambda: serie('tests/consignes.html', delai=1200), 'officiels': lambda: serie('tests/officiels.html', delai=1500), 'meteo': lambda: serie('tests/meteo.html', delai=1500), 'ecrans': lambda: ecrans(), 'annexes': annexes, 'paquet': paquet, 'saison': lambda: saison(), 'premier': lambda: premier(), 'recoins': lambda: recoins()}
+PARTIES = {'moteur': lambda: serie('tests/test.html'), 'courses': lambda: all([serie('tests/courses.html'), serie('tests/courses.html?ailerons=1')]), 'stands': lambda: serie('tests/stands.html', delai=1200), 'consignes': lambda: serie('tests/consignes.html', delai=1200), 'officiels': lambda: all([serie('tests/officiels.html', delai=1500), serie('tests/qualif-estime.html', delai=900)]),   # (qualif-estime : T15, le temps de qualification des IA contre un vrai tour)
+    'meteo': lambda: serie('tests/meteo.html', delai=1500), 'ecrans': lambda: ecrans(), 'annexes': annexes, 'paquet': paquet, 'saison': lambda: saison(), 'premier': lambda: premier(), 'recoins': lambda: recoins()}
 
 def tests(parties=tuple(PARTIES)):
     # une liste : tout tourne même si le premier échoue ; courses.html = le critère de l'étape 4 (30 courses entre IA)

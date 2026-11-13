@@ -950,10 +950,10 @@ const REGLAGES = {
   GRAINE_PLATEAUX: 21000,       // les pilotes d'un plateau neuf sont tirés avec la graine du championnat + ça + 101 × la division
   NIVEAU: 'normal',             // le niveau en cours (?niveau=…, principal.js) ; normal = les réglages tels quels
   NIVEAUX: {
-    debutant: { rythme: -0.05, erreurs: 2, agressivite: -0.3, regularite: 1.5, gestionPneus: -0.2, bataille: 0, technique: 0.1 },
-    normal: { rythme: 0, erreurs: 1, agressivite: 0, regularite: 1, gestionPneus: 0, technique: 0.28 },
-    expert: { rythme: 0, erreurs: 0.5, agressivite: 0.2, regularite: 0.7, gestionPneus: 0.1, corde: 0.5, marge: -0.7, limite: 1.01, penaliteFrein: 0.5, precision: 0.6, bordMin: 0.8, margeCarte: 1.1, technique: 0.7 },
-    legende: { rythme: 0, erreurs: 0.25, agressivite: 0.4, regularite: 0.5, gestionPneus: 0.2, corde: 0, marge: -1.4, limite: 1.02, penaliteFrein: 0, precision: 0.3, bordMin: 0.5, margeCarte: 0.7, technique: 1 },
+    debutant: { qualifEchelle: 1.14, rythme: -0.05, erreurs: 2, agressivite: -0.3, regularite: 1.5, gestionPneus: -0.2, bataille: 0, technique: 0.1 },
+    normal: { qualifEchelle: 1.14, rythme: 0, erreurs: 1, agressivite: 0, regularite: 1, gestionPneus: 0, technique: 0.28 },
+    expert: { qualifEchelle: 1.09, rythme: 0, erreurs: 0.5, agressivite: 0.2, regularite: 0.7, gestionPneus: 0.1, corde: 0.5, marge: -0.7, limite: 1.01, penaliteFrein: 0.5, precision: 0.6, bordMin: 0.8, margeCarte: 1.1, technique: 0.7 },
+    legende: { qualifEchelle: 1.04, rythme: 0, erreurs: 0.25, agressivite: 0.4, regularite: 0.5, gestionPneus: 0.2, corde: 0, marge: -1.4, limite: 1.02, penaliteFrein: 0, precision: 0.3, bordMin: 0.5, margeCarte: 0.7, technique: 1 },
   },
   // le caractère de chaque IA (étape 4d), tiré avec la graine entre ces bornes :
   IA_CARACTERE: {
@@ -1041,6 +1041,8 @@ const REGLAGES = {
   GRAINE_QUALIF_TRAIT: 15000,   // … et le niveau en qualifications de chaque IA (IA_CARACTERE.qualif) avec la graine + ce nombre
   GRAINE_PNEUS: 8000,           // … et la gestion des pneus de chaque IA avec la graine + ce nombre (à part : les autres tirages ne bougent pas)
   GRAINE_FEUX: 4000,            // … et le délai des feux et les réactions des IA avec la graine + ce nombre
+  QUALIF_REALISTE: true,        // (tour 55, T15) le temps de qualification des IA est celui d'un vrai tour (× NIVEAUX[…].qualifEchelle, 1,04 à 1,14 : ia.js, echelleQualif) ; faux = l'estimation d'avant (environ 12 % trop rapide)
+  QUALIF_ECHELLE_PENTE: 0,    // … moins ça par point de rythme sous 1 (0 : la même échelle pour tous, l'ordre de la grille ne change pas, donc les courses non plus ; 0,6 collerait mieux à rythme 0,95 mais change l'ordre de la grille : courses.html tombe à 23 dépassements)
   IA_QUALIF_HASARD: 0.005,      // le temps de qualification d'une IA varie de ±0,5 % autour de son meilleur tour estimé
   IA_PAGE_MAX: 20,              // ?ia=N : au plus ce nombre d'IA dans la page
   // ?ia=N : la couleur de chaque IA (provisoire : les écuries viendront à l'étape 6)
@@ -1224,10 +1226,15 @@ const REGLAGES = {
   COMMENTAIRE_LONGUEUR_MAX: 60,   // caractères d'une phrase au plus (les noms comptés à 7 lettres) : court, pour ne pas lire en pilotant
   COMMENTAIRE_PEREMPTION: 8,      // s : un fait plus vieux n'est plus dit
   COMMENTAIRE_FILE_MAX: 6,
-  COMMENTAIRE_PRIORITES: { arrivee: 10, podium: 9, arret: 6, depart: 9, vsc: 9, drapeauJaune: 8, drapeauVert: 7, domicileRival: 7, depassementTete: 9, dernierTour: 8, joueurArrivee: 8, contact: 7, depassementJoueur: 6, pluie: 6, coteACote: 5, erreur: 5, penalite: 5, depassement: 4, stands: 3, meilleurTour: 3, joueurTete: 2, joueurPlace: 2, glissade: 6,
+  COMMENTAIRE_PRIORITES: { remontee: 7, arrivee: 10, podium: 9, arret: 6, depart: 9, vsc: 9, drapeauJaune: 8, drapeauVert: 7, domicileRival: 7, depassementTete: 9, dernierTour: 8, joueurArrivee: 8, contact: 7, depassementJoueur: 6, pluie: 6, coteACote: 5, erreur: 5, penalite: 5, depassement: 4, stands: 3, meilleurTour: 3, joueurTete: 2, joueurPlace: 2, glissade: 6,
     combleTete: 0, combleBagarre: 0, combleTours: 0, combleJoueur: 0, combleMeteo: 0, combleSec: 0, combleChamp: 0, combleChampTete: 0, combleChampProjection: 0 },   // (tour 45c : ce qu'il dit entre deux faits, jamais devant un fait)
   COMMENTAIRE_BONUS_JOUEUR: 2,    // un fait du joueur passe devant (plus de phrases quand le joueur est concerné)
   COMMENTAIRE_GLISSADE_INTERVALLE: 60,   // s : une glissade rattrapée du joueur n'est redite qu'après ça (tour 43)
+  COMMENTAIRE_REMONTEE_ACTIF: true,   // (tour 55, T22) le fait « remontée » : une voiture qui gagne des places en piste en peu de temps ; faux = le jeu d'avant (aucune phrase de plus)
+  COMMENTAIRE_REMONTEE_PLACES: 3,     // places gagnées en piste (des dépassements vraiment faits, pas les arrêts des autres) …
+  COMMENTAIRE_REMONTEE_FENETRE: 40,   // … en moins de tant de secondes
+  COMMENTAIRE_REMONTEE_PAS: 1,        // s : la place de chacun est notée tous les tant
+  COMMENTAIRE_REMONTEE_REPETITION: 90, // s : la même voiture n'est pas redite avant
   COMMENTAIRE_PLACE_MAX: 10,      // les dépassements, erreurs et côte à côte des voitures plus loin ne sont pas commentés (sauf le joueur)
   COMMENTAIRE_REPETITION: 15,     // s : un contact ou un côte à côte entre les deux mêmes voitures n'est redit qu'après ça
   COMMENTAIRE_CONTACT_DISTANCE: 8, // m
@@ -1241,7 +1248,8 @@ const REGLAGES = {
   COMMENTAIRE_COMBLE_APRES_DEPART: 2,   // s après le départ avant de combler
   COMMENTAIRE_IMPORTANT: 7,       // la priorité à partir de laquelle une phrase passe devant les autres à la voix (dépassement du joueur, erreur, arrivée…)
   VOIX_VOLUME: 0.7,               // la voix, sous le moteur : × le volume du commentateur (son.js)
-  VOIX_SONS: false,               // (tour 51c) les voix enregistrées (voix-sons.js, sons/voix/) : éteintes par défaut, ?voixsons=1 ou ⚙ Réglages les allument ; provisoires
+  VOIX_SONS: true,                // (tour 55, T10 ; « avant » = false : le jeu d'avant) les voix enregistrées (voix-sons.js, sons/voix/ : 38 prises Bark du français, une par phrase de la liste) ; ?voixsons=0 ou ⚙ Réglages les coupent
+  VOIX_SONS_LANGUES: ['fr'],      // les langues qui ont des sons (en anglais : la synthèse, comme avant)
   // (tour 55, T2) la foule et l'ambiance (foule.js) : des clameurs et une rumeur faites par le code, dans la famille « ambiance » de son.js
   AMBIANCE_ACTIF: true,           // faux = le jeu d'avant (aucun son de foule) ; « Foule : oui / non » dans ⚙ Réglages
   FOULE_CLAMEURS: { depart: [2.8, 0.55, 0.5], depassement: [1.4, 0.35, 0.25], arrivee: [4.5, 0.8, 0.6] },   // [durée s, volume, montée s]
