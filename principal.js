@@ -2201,6 +2201,8 @@ function majTactile(dt) {
   if (!TACTILE.estPresent()) return;
   const conduite = !JEU.deux && (JEU.ecran === 'course' || JEU.ecran === 'survol' || enTourQualif());
   TACTILE.maj(conduite, dt || 0, conduite && JEU.ecran === 'course' && !!JEU.course && JEU.course.etat === 'compte');
+  { const h = conduite && JEU.plateau && JEU.ecran === 'course' ? pilotePlateauHumain() : null, aux = !!(h && h.course.arretEnCours);   // (tour 56, T14) le choix des pneus à l'arrêt, au doigt
+    TACTILE.pneus(aux ? METEO.TYPES : null, aux ? h.v.pneusProchain || h.v.typePneus || 'slick' : null); }
   if (!conduite) return;
   const t = TACTILE.cibles();
   if (!t) return;
@@ -2242,6 +2244,12 @@ function choisirPneusArret(v, direction, arret) {
   v.pneusSens = sens;
 }
 
+// (tour 56, T14) le pilote humain de la course (le bouton d'un pneu, au doigt, change ses pneus comme ← →)
+const pilotePlateauHumain = () => (JEU.plateau && JEU.plateau.pilotes.find(q => q.humain)) || null;
+function choisirPneuDoigt(type) {
+  const h = pilotePlateauHumain();
+  if (h && h.course.arretEnCours && METEO.TYPES.includes(type)) { h.v.pneusProchain = type; h.v.choixPneus = true; }
+}
 function conduireJoueur(p, pas) {
   // le mode 2 joueurs : chaque joueur (p.joueur = 1, 2) a ses commandes, lues de ses touches à lui ; sinon celles de la course seule
   const cmd = JEU.deux && p.joueur ? JEU.deuxCommandes[p.joueur] : JEU;
@@ -2723,7 +2731,7 @@ function demarrerJeu() {
   } else JEU.modele = JEU.modeles[JEU.contre ? JEU.ia : 0];   // avant la course (écran de choix), sur la ligne
   SCENE3D.colorerRepereStand(JEU.contre && JEU.couleurs.length > JEU.ia ? JEU.couleurs[JEU.ia] : REGLAGES.COULEUR_JOUEUR);   // le repère de la zone d'arrêt aux couleurs de l'écurie du joueur (tour 46d2)
   INTERFACE.preparerPause(() => pause(false), () => lancerCourse(JEU.course.nbTours));
-  TACTILE.brancher({ pause: () => toucheVirtuelle('Escape'), remettre: () => { JEU.remettre = true; },
+  TACTILE.brancher({ pause: () => toucheVirtuelle('Escape'), remettre: () => { JEU.remettre = true; }, pneu: choisirPneuDoigt, camera: () => { if (!JEU.deux) CAMERA.suivante(); },
     lire: () => ({ sensibilite: SAUVEGARDE.option('volant_sensibilite', 1), inverse: SAUVEGARDE.option('volant_inverse', false), choix: SAUVEGARDE.option('volant_choix', 'volant') }),   // (tour 53f : les réglages du volant, sauvegardés)
     ecrire: (nom, valeur) => SAUVEGARDE.ecrireOption(nom, valeur) });   // le téléphone (tactile.js, tour 51k)
   INTERFACE.preparerFin(() => lancerCourse(JEU.course.nbTours), allerAuChoix);
@@ -2797,7 +2805,7 @@ function demarrerJeu() {
   document.getElementById('boutonMonPilote').addEventListener('click', monPilote);
   document.getElementById('attenteTexte').textContent = texte('attenteArrivee');
   const boutonPasser = document.getElementById('boutonPasser');
-  boutonPasser.textContent = texte('passerPodium');
+  boutonPasser.textContent = texteDoigt('passerPodium');
   boutonPasser.addEventListener('mousedown', e => e.preventDefault());
   boutonPasser.addEventListener('click', passerAuPodium);
   INTERFACE.preparerQualif(faireMonTour, passerQualif, partirEnCourse);

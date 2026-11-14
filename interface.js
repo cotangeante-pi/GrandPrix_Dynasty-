@@ -108,7 +108,7 @@ const INTERFACE = (function () {
     if (!c.arrets || c.etat !== 'course') return null;
     const v = n => secondes(n.toFixed(1));
     // (tour 45a : le pneu choisi d'abord, en gros, puis « ← → pour changer » ; après l'arrêt, le pneu monté ; dans la voie, où s'arrêter)
-    if (c.arretEnCours) return (c.pneusProchain ? texte('standPneusChoisi').replace('{p}', texte('pneu_' + c.pneusProchain).toUpperCase()) + ' · ' : '') + texte('standEnCours').replace('{s}', v(Math.max(0, c.arretEnCours.reste)));
+    if (c.arretEnCours) return (c.pneusProchain ? texteDoigt('standPneusChoisi').replace('{p}', texte('pneu_' + c.pneusProchain).toUpperCase()) + ' · ' : '') + texte('standEnCours').replace('{s}', v(Math.max(0, c.arretEnCours.reste)));
     const dernier = c.arrets[c.arrets.length - 1];
     if (dernier && c.temps - c.arretFin < 3) return c.pneusMontes ? texte('standPneusMontes').replace('{p}', texte('pneu_' + c.pneusMontes)).replace('{s}', v(dernier.duree)) : texte('standFait').replace('{s}', v(dernier.duree));
     if (c.dansVoie && !c.arretPassage) return texte('standArreteIci');
@@ -243,7 +243,7 @@ const INTERFACE = (function () {
       li.append(sp('place', x.place), sp('nom', x.nom), sp('points', accorder(x.points + ' ' + texte('pts'))));
       ol.appendChild(li);
     }
-    $('unePasser').textContent = texte('unePasser');
+    $('unePasser').textContent = texteDoigt('unePasser');
   }
 
   // l'album : où on en est (« Saison 2 · Grand Prix 5 · 17 / 36 ») ; les boutons de saison grisés au bout de l'album
@@ -1701,7 +1701,7 @@ const INTERFACE = (function () {
     $('annonceMotif').addEventListener('click', () => $('annonceMotif').classList.add('cache'));   // (l'annonce d'un motif se ferme d'un clic)
     $('boutonResume').textContent = texte('resume');
     $('resumeTitre').textContent = texte('resumeTitre');
-    $('resumeSortir').textContent = texte('resumeSortir');
+    $('resumeSortir').textContent = texteDoigt('resumeSortir');
     $('boutonResume').addEventListener('mousedown', e => e.preventDefault());
     $('boutonResume').addEventListener('click', ouvrir);
     $('resume').addEventListener('mousedown', e => e.preventDefault());
@@ -1739,7 +1739,7 @@ const INTERFACE = (function () {
     if (t && $('messageCourse').textContent !== t) $('messageCourse').textContent = t;
   }
   function preparerGrille(passer) {
-    $('grilleAide').textContent = texte('grillePasser');
+    $('grilleAide').textContent = texteDoigt('grillePasser');
     $('grille').addEventListener('mousedown', e => e.preventDefault());
     $('grille').addEventListener('click', passer);
   }
@@ -2226,7 +2226,7 @@ const TUTORIEL_ECRAN = (function () {
     $('tutoConsigne').classList.toggle('tutoMenuConsigne', visite);
     $('tutoConsigneTitre').textContent = TUTORIEL.PAR_ID[LECON].numero + '. ' + texte('tuto_' + LECON);
     const cleConsigne = 'tuto_' + LECON + '_consigne' + (LECON === 'vivante' && suivi.phase === 'adherant' ? '_adherant' : LECON === 'drapeaux' && suivi.phase === 'aileron' ? '_aileron' : '');   // (tour 37l : la 2e phase du drift)
-    let t = visite ? texte('tuto_visite_' + TUTORIEL.etapeVisite(suivi, ecran)) : remplir(texte(cleConsigne), { n: Math.min(suivi.essais + 1, REGLAGES.TUTO_ZONE_ESSAIS) });
+    let t = visite ? texte('tuto_visite_' + TUTORIEL.etapeVisite(suivi, ecran)) : remplir(texteDoigt(cleConsigne), { n: Math.min(suivi.essais + 1, REGLAGES.TUTO_ZONE_ESSAIS) });
     if (LECON === 'freinage' && suivi.dernier) t += ' · ' + remplir(texte('tuto_essai'), { n: suivi.essais, t: virgule(suivi.dernier.temps) });
     $('tutoConsigneTexte').textContent = t;
   }
@@ -2238,7 +2238,7 @@ const TUTORIEL_ECRAN = (function () {
     if (ok && LECON === 'freinage') detail = remplir(texte('tuto_reussie_freinage'), { t: virgule(suivi.meilleur) });
     else if (ok && LECON === 'depart' && JEU.course && JEU.course.depart) detail = remplir(texte('tuto_reussie_depart'), { t: virgule(JEU.course.depart.reaction) });
     else if (ok) detail = texte('tuto_' + LECON + '_but').replace('{v}', kmh());
-    else detail = remplir(texte('tuto_raison_' + suivi.raison), { t: suivi.meilleur === null ? '–' : virgule(suivi.meilleur) });
+    else detail = remplir(texteDoigt('tuto_raison_' + suivi.raison), { t: suivi.meilleur === null ? '–' : virgule(suivi.meilleur) });
     if (ok && TUTORIEL.LECONS.every(l => SAUVEGARDE.tutoriel().includes(l.id))) detail += ' ' + texte('tutoFini');
     $('tutoResultatTexte').textContent = detail;
     $('boutonTutoSuivante').classList.toggle('cache', !suite);
