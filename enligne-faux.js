@@ -67,7 +67,8 @@ const ENLIGNE_FAUX = (function () {
       const s = t.salle, j = t.moi;
       if (!s || !j) return;
       s.joueurs = s.joueurs.filter(x => x !== j); t.salle = null; t.moi = null;
-      if (!s.joueurs.some(x => x.transport)) { salles.delete(s.code); return; }   // une salle sans humain disparaît
+      if (!s.joueurs.length) { salles.delete(s.code); return; }   // une salle vide disparaît (les salles toutes faites gardent leurs faux amis)
+      if (!s.joueurs.some(x => x.transport)) { s.hote = s.joueurs[0].id; s.commencee = false; return; }   // (plus d'humain : la salle toute faite revient à son état de départ)
       diffuser(s, { t: 'parti', id: j.id });
       if (s.hote === j.id) { s.hote = s.joueurs[0].id; diffuser(s, { t: 'nouvel-hote', id: s.hote }); }
       diffuser(s, { t: 'joueurs', liste: liste(s) });
