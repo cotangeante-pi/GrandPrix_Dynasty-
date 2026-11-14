@@ -49,6 +49,7 @@ class Config:
         self.delai_max = 120             # EN_LIGNE_DELAI_MAX
         self.delai_marge = 6             # EN_LIGNE_DELAI_MARGE : pas ajoutés au trajet mesuré
         self.pas_ms = 1000.0 / 120       # un pas de physique (REGLAGES.PAS_PHYSIQUE)
+        self.mesure_periode = 2.0        # s : le relais mesure lui-même l'aller-retour de chaque client (ping de la connexion websocket) ; 0 = pas de mesure
         self.ping_intervalle = 20        # pings de la bibliothèque (connexions mortes)
         for k, v in kw.items():
             if not hasattr(self, k): raise TypeError('réglage inconnu : ' + k)
@@ -106,7 +107,7 @@ class Client:
         self.jeton = None      # le jeton de retour (tiré à l'entrée en salle)
         self.absent = False    # coupé pendant la grâce : il reste dans la salle, « recharge »
         self.grace_minuteur = None
-        self.rtt = None        # son temps d'aller-retour en ms, annoncé dans ses « ping » (champ l) : le délai d'entrée du départ en dépend
+        self.rtt = None        # son temps d'aller-retour en ms, mesuré par le relais (_mesurer) : le délai d'entrée du départ en dépend
         self.circuit = None    # le circuit que sa page a chargé (message « charge »)
 
     def envoyer_texte(self, texte):
@@ -161,6 +162,7 @@ class Relais:
             return
         self.par_ip[ip] = n + 1
         ecrivain = asyncio.ensure_future(self._ecrire(c))
+        mesureur = asyncio.ensure_future(self._mesurer(c)) if self.cfg.mesure_periode > 0 else None
         self._armer(c)
         try:
             async for brut in ws:
@@ -172,8 +174,26 @@ class Relais:
             c.ferme = True
             self._deconnecte(c)
             ecrivain.cancel()
+            if mesureur: mesureur.cancel()
             self.par_ip[ip] = self.par_ip.get(ip, 1) - 1
             if self.par_ip[ip] <= 0: self.par_ip.pop(ip, None)
+
+    async def _mesurer(self, c):
+        """L'aller-retour du client, mesuré par le relais (ping de la connexion, auquel le navigateur répond tout seul) : ce que le client
+        dit de sa latence (champ l des « ping ») n'est PAS cru, un client ne peut pas imposer un délai énorme à toute la salle."""
+        try:
+            while not c.ferme:
+                debut = time.monotonic()
+                try:
+                    attente = await c.ws.ping()
+                    await asyncio.wait_for(attente, 10)
+                    ms = (time.monotonic() - debut) * 1000
+                    c.rtt = ms if c.rtt is None else c.rtt * 0.7 + ms * 0.3
+                except asyncio.TimeoutError:
+                    c.rtt = 10000.0
+                await asyncio.sleep(self.cfg.mesure_periode)
+        except (ConnectionClosed, asyncio.CancelledError):
+            return
 
     def _armer(self, c):
         """Sans salle, une connexion a delai_arrivee secondes pour en créer ou en rejoindre une."""
@@ -216,8 +236,6 @@ class Relais:
         t = m['t']
         if t == 'ping':
             h = m.get('h')
-            l = m.get('l')
-            if isinstance(l, (int, float)) and not isinstance(l, bool) and 0 <= l <= 60000: c.rtt = float(l)
             c.envoyer({'t': 'pong', 'h': h if h is None or isinstance(h, (int, float)) or (isinstance(h, str) and len(h) <= 64) else None})
             return
         if c.salle is None:
@@ -360,7 +378,7 @@ class Relais:
 
     def _delai(self, salle):
         """Le délai d'entrée (en pas) du départ, le même pour tous : le trajet d'une commande entre les deux joueurs les plus lents
-        ((rtt A + rtt B) / 2 : chacun passe par le relais), plus une marge, entre delai_base et delai_max. None : aucune latence annoncée."""
+        ((rtt A + rtt B) / 2 : chacun passe par le relais), plus une marge, entre delai_base et delai_max. None : aucune latence mesurée."""
         rtts = sorted((j.rtt for j in salle.joueurs.values() if j.rtt is not None and not j.absent), reverse=True)
         if not rtts: return None
         trajet = (rtts[0] + rtts[1]) / 2 if len(rtts) > 1 else rtts[0]

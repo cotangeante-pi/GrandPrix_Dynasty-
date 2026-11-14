@@ -68,7 +68,7 @@ const ENLIGNE_PAGE = (function () {
         case 'depart': recevoirDepart(m); break;
         case 'cmd': case 'controle': case 'parti':
           if (etat.partie) etat.partie.recevoir(m); else etat.tampon.push(m);
-          if (m.t === 'parti' && etat.depart && !etat.termine) annoncer(texte('enl_parti').replace('{nom}', etat.noms.get(m.id) || ('#' + m.id)));   // (T8) la voiture roule sur sa dernière commande puis s'arrête (enligne.js)
+          if (m.t === 'parti' && etat.depart && !etat.termine) annoncer(texte('enl_parti').replace('{nom}', nomAffiche(etat.noms.get(m.id) || ('#' + m.id))));   // (T8) la voiture roule sur sa dernière commande puis s'arrête (enligne.js)
           break;
         case 'coupure': if (!etat.termine) dire(texte('enl_coupure')); break;
         default:
@@ -77,6 +77,12 @@ const ENLIGNE_PAGE = (function () {
   }
 
   // ---- les incidents (tour 56, T8)
+  // le nom d'un joueur à l'écran : le fil porte l'id d'une couleur (« rouge », « rouge-2 », D1) ; chaque client l'affiche dans sa langue
+  function nomAffiche(nom) {
+    const m = /^([a-z]+)(?:-(\d+))?$/.exec(String(nom || ''));
+    const couleur = m && typeof TEXTES !== 'undefined' && TEXTES[LANGUE] ? TEXTES[LANGUE]['enligneCouleur_' + m[1]] : null;
+    return couleur ? texte('enligneNom').replace('{c}', couleur) + (m[2] ? ' ' + m[2] : '') : String(nom);
+  }
   // un message court en cours de course (un joueur parti…) : il s'efface seul
   function annoncer(msg) {
     dire(msg);
@@ -123,7 +129,7 @@ const ENLIGNE_PAGE = (function () {
     const duree = maintenant - etat.attenteDepuis;
     if (REGLAGES.EN_LIGNE_ATTENTE_MAX_MS && duree >= REGLAGES.EN_LIGNE_ATTENTE_MAX_MS) { dire(texte('enl_trop_lent')); sortirApres('lent'); return; }
     if (duree >= REGLAGES.EN_LIGNE_ATTENTE_ANNONCE_MS) {
-      etat.msgAttente = texte('enl_lent').replace('{noms}', p.attente.map(id => etat.noms.get(id) || ('#' + id)).join(', '));
+      etat.msgAttente = texte('enl_lent').replace('{noms}', p.attente.map(id => nomAffiche(etat.noms.get(id) || ('#' + id))).join(', '));
       if (etat.statut !== etat.msgAttente) dire(etat.msgAttente);
     }
   }
@@ -235,12 +241,15 @@ const ENLIGNE_PAGE = (function () {
     return e.temps - Math.max(...encore.map(q => q.arrivee)) >= R.ARRIVEE_ATTENTE_MAX;
   }
 
-  // les résultats : de retour à la salle (T5/T8 ; pour l'instant on quitte proprement)
+  // sortir de la course : `retour` (la salle se rouvre pour tous) SEULEMENT une fois la course finie pour tous (partie.fin, au podium) ; avant,
+  // c'est `quitter` (sinon l'hôte qui abandonne rouvrirait la salle et bloquerait les autres, relecture T11 n° 19) ; les Math du navigateur sont rendus
   function retourSalle() {
-    const c = etat.client;
+    const c = etat.client, p = etat.partie;
     etat.termine = true;
-    if (c) { if (c.estHote() && c.depart) c.retour(); }
-    if (typeof ENLIGNE_ECRANS !== 'undefined' && ENLIGNE_ECRANS.retourSalle) ENLIGNE_ECRANS.retourSalle(c); else location.href = location.pathname;
+    const finie = !!p && p.fin !== null && (JEU.ecran === 'podium' || JEU.ecran === 'resultats');
+    try { if (p && p.terminer) p.terminer(); } catch (err) { /* rien */ }
+    try { if (c) { if (finie) { if (c.estHote() && c.depart) c.retour(); } else if (c.quitter) c.quitter(); } } catch (err) { /* rien */ }
+    if (typeof ENLIGNE_ECRAN !== 'undefined' && ENLIGNE_ECRAN.retourSalle) ENLIGNE_ECRAN.retourSalle(c); else location.href = location.pathname;
   }
 
   // le classement final et ses empreintes, pour les tests (le même chez tous les clients)

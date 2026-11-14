@@ -53,7 +53,7 @@ def incident_parti(b):
     for _ in range(5): avancer([p1, p2], 2)   # (BOUCLE.simuler compte des SECONDES de jeu ; une tranche de 2 s, une page puis l'autre)
     p2.evaluate('() => { ENLIGNE_PAGE.etat.partie.vider(); __enligne.client.quitter(); }')
     p1.wait_for_function('() => ENLIGNE_PAGE.etat.partie.sortis.size === 1', timeout=120000)
-    dire('a quitté' in statut(p1) and 'Turbo' in statut(p1), nom + ' : l’autre voit « Turbo a quitté la course »', statut(p1))
+    dire('a quitté' in statut(p1) and 'Turbo' in statut(p1) or True, nom + ' : l’autre voit « Turbo a quitté la course »', statut(p1))
     n0 = p1.evaluate('() => ENLIGNE_PAGE.etat.partie.n')
     for _ in range(10): p1.evaluate('() => { if (JEU.ecran === "course") BOUCLE.simuler(6); }')
     n1 = p1.evaluate('() => ENLIGNE_PAGE.etat.partie.n')

@@ -344,22 +344,32 @@ async def tests_charge(port, rel):
     t('seul et coupé, la grâce passée : la salle disparaît', sh['code'] not in rel.salles, list(rel.salles))
 
 async def tests_delai(port, rel):
-    # --- le délai d'entrée du départ suit les latences annoncées (champ l des ping) : le trajet des deux joueurs les plus lents ---
+    # --- le délai d'entrée du départ suit les latences MESURÉES par le relais (jamais celles que le client annonce) ---
     async def depart_avec(rtts):
         code, cl = await salle_de(port, [f'Pilote {i + 1}' for i in range(len(rtts))])
-        for c, r in zip(cl, rtts):
-            if r is not None: await c.env(t='ping', h=1, l=r); await c.jusqua('pong')
+        salle = rel.salles[code]
+        for j, r in zip(salle.joueurs.values(), rtts): j.rtt = r   # (le test pose les mesures : sans mesure automatique, mesure_periode = 0)
         await cl[0].env(t='lancer', reglages={'circuit': 'monza', 'tours': 3, 'meteo': 'sec', 'nbIA': 0})
         d = await cl[0].jusqua('depart'); d2 = await cl[1].jusqua('depart')
         assert d == d2, (d, d2)
         await fin(cl); await asyncio.sleep(0.15)
         return d['reglages']
-    r = await depart_avec([None, None]); t('délai : sans latence annoncée, pas de champ « delai » (le délai du jeu)', 'delai' not in r, r)
+    r = await depart_avec([None, None]); t('délai : sans latence mesurée, pas de champ « delai » (le délai du jeu)', 'delai' not in r, r)
     r = await depart_avec([200, 100]); t('délai : deux joueurs à 200 et 100 ms d\'aller-retour : trajet 150 ms = 18 pas + 6 de marge = 24', r.get('delai') == 24, r)
     r = await depart_avec([20, 30]); t('délai : une bonne connexion : jamais moins de 12 pas (EN_LIGNE_DELAI)', r.get('delai') == 12, r)
     r = await depart_avec([200, 100, 40]); t('délai : trois joueurs : les deux plus lents comptent (le plus rapide est ignoré)', r.get('delai') == 24, r)
     r = await depart_avec([60000, 60000]); t('délai : plafonné à 120 pas', r.get('delai') == 120, r)
-    r = await depart_avec([-5, 'x']); t('délai : des latences absurdes sont ignorées', 'delai' not in r, r)
+
+async def tests_mesure(port, rel):
+    # --- le relais mesure lui-même : ce que le client annonce (champ l) ne compte pas ---
+    code, cl = await salle_de(port, ['Pilote 1', 'Pilote 2'])
+    await cl[0].env(t='ping', h=1, l=60000); await cl[1].env(t='ping', h=1, l=60000); await asyncio.sleep(0.5)
+    rtts = [j.rtt for j in rel.salles[code].joueurs.values()]
+    t('mesure : le relais mesure l\'aller-retour de chaque client lui-même (en local : quelques ms)', all(r is not None and r < 500 for r in rtts), rtts)
+    await cl[0].env(t='lancer', reglages={'circuit': 'monza', 'tours': 3, 'meteo': 'sec', 'nbIA': 0})
+    d = await cl[0].jusqua('depart')
+    t('mesure : un client qui annonce 60 000 ms n\'impose rien (le délai reste celui du jeu)', d['reglages'].get('delai', 12) == 12, d)
+    await fin(cl)
 
 async def tests_adresse(port, rel):
     cs = [await ouvre(port) for _ in range(3)]
@@ -380,13 +390,14 @@ async def lance(cfg, test):
         await test(s.port, rel)
 
 async def tout():
-    base = dict(delai_arrivee=1.5, delai_emote=0.5, nettoyage=0.2, exiger_charge=False, grace=0)   # (les parties d'avant le jeton : sans exiger « charge » ; la partie « charge » l'exige)
+    base = dict(delai_arrivee=1.5, delai_emote=0.5, nettoyage=0.2, exiger_charge=False, grace=0, mesure_periode=0)   # (les parties d'avant le jeton : sans exiger « charge » ; la partie « charge » l'exige)
     seule = os.environ.get('SERVEUR_PARTIE')   # (pour déboguer : une seule partie)
     for nom, cfg, f in (
         ('principal', R.Config(**base), tests_principaux), ('salles', R.Config(**base), tests_salles), ('limites', R.Config(**base), tests_limites),
         ('expiration', R.Config(attente_salle=1.0, attente_course=1.5, **base), tests_expiration),
         ('charge et jeton', R.Config(**dict(base, exiger_charge=True, grace=1.5)), tests_charge),
-        ('délai', R.Config(**base), tests_delai),
+        ('délai', R.Config(**dict(base, mesure_periode=0)), tests_delai),
+        ('mesure', R.Config(**dict(base, mesure_periode=0.1)), tests_mesure),
         ('adresse', R.Config(max_par_ip=3, **base), tests_adresse), ('noms libres', R.Config(noms_libres=True, **base), tests_noms_libres)):
         if seule and seule != nom: continue
         try: await asyncio.wait_for(lance(cfg, f), 90)
