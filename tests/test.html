@@ -3910,6 +3910,22 @@ enlT('en ligne : (relecture) rien de trop en avance n’est gardé (un client ab
   v(EN_LIGNE.maths.actives()===0&&EN_LIGNE.preparerCircuit('nimporte').circuit===prep.circuit,'maths rendus ; circuit inconnu = test');
   const q=EN_LIGNE.demarrer({reglages:ENL_REG,graine:7,ordre:['x','y']},'x',()=>{});v(q.e.circuit===prep.circuit&&q.e.carte===prep.carte,'demarrer retrouve le circuit et la carte préparés');q.terminer();});
 
+enlT('en ligne : (relecture) la fin de la course est décidée au même pas chez tous (tous arrivés, ou ARRIVEE_ATTENTE_MAX s après le dernier humain arrivé, un joueur parti ne comptant plus) et plus personne n’avance après : pas d’attente sans fin', ()=>{
+  const att=REGLAGES.ARRIVEE_ATTENTE_MAX;REGLAGES.ARRIVEE_ATTENTE_MAX=2;
+  try{const ids=['a','b','c'],b=EN_LIGNE.banc(ids,enlOpts({pasMax:0,latence:(de,vers,tick)=>(de.charCodeAt(0)+vers.charCodeAt(0)+Math.floor(tick/50))%6}));
+    for(let k=0;k<30000&&b.parties.get('c').n<200;k++) b.avancer();
+    b.partir('c');
+    for(let k=0;k<30000&&!enlTous(b,300);k++) if([...b.parties].every(([id,p])=>b.partis.has(id)||p.n>=300)) break; else b.avancer();
+    // a et b « arrivent » au même pas (comme la simulation le ferait), c est parti sans arriver
+    for(const id of ['a','b']){const p=b.parties.get(id);for(const x of ['a','b']) p.pilotes.get(x).arrivee=p.e.temps;}
+    for(let k=0;k<30000;k++){b.avancer();if(['a','b'].every(i=>b.parties.get(i).fin!==null)&&k>50) break;}
+    const fa=b.parties.get('a').fin,fb=b.parties.get('b').fin;v(fa!==null&&fa===fb,'fin : a '+fa+' b '+fb);
+    v(fa-300>=2*120-2&&fa-300<=2*120+25,'la fin vient ARRIVEE_ATTENTE_MAX s après les arrivées : '+(fa-300)+' pas');
+    for(let k=0;k<200;k++) b.avancer();
+    v(b.parties.get('a').n===fa&&b.parties.get('b').n===fb&&b.parties.get('a').empreinte()===b.parties.get('b').empreinte(),'la partie continue après la fin : '+b.parties.get('a').n);
+    b.fin();
+  }finally{REGLAGES.ARRIVEE_ATTENTE_MAX=att;}});
+
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 ecrire();
 </script></body></html>
