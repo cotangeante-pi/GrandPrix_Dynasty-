@@ -86,6 +86,17 @@ def serveur_relais(delai=300):
     print(out.strip()); print(f'⏱ tests/serveur.py : {time.monotonic() - t0:.0f} s')
     return p.returncode == 0 and '✘' not in out
 
+def reseau_ws(delai=420):
+    # (tour 56, T9) le vrai réseau : serveur/relais.py (un vrai processus) et deux pages du jeu par WebSocket (tests/reseau-ws.py : ~20 s sur un Mac libre)
+    t0 = time.monotonic()
+    p = subprocess.Popen([sys.executable, os.path.join(RACINE, 'tests', 'reseau-ws.py')], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True)
+    try: out, err = p.communicate(timeout=delai)
+    except subprocess.TimeoutExpired:
+        os.killpg(p.pid, signal.SIGKILL); out, err = p.communicate(); out += f'\n✘ reseau-ws.py : plus de {delai} s, arrêté'
+    if 'RESULTAT' not in out: out += '\n✘ reseau-ws.py s’est arrêté sans résultat :\n' + (err or '').strip()[-2000:]
+    print(out.strip()); print(f'⏱ tests/reseau-ws.py : {time.monotonic() - t0:.0f} s')
+    return p.returncode == 0 and '✘' not in out
+
 def jeu_tourne(delai=400):
     # (tour 56, T15) le téléphone debout : le jeu tourné de 90° (tests/tourne.py : une minute ; une page ciblée)
     t0 = time.monotonic()
@@ -99,7 +110,7 @@ def jeu_tourne(delai=400):
 
 def annexes():
     pages = all([serie(p, delai=300 if 'courses' in p else 600 if 'officiels' in p else 120, options=['--virtual-time-budget=5000'] if p.endswith('sdk.html') or p.endswith('reseau.html') else []) for p in ANNEXES])
-    return chasse_en() and serveur_relais() and jeu_tourne() and pages
+    return chasse_en() and serveur_relais() and reseau_ws() and jeu_tourne() and pages
 
 # les parties de la suite, dans l'ordre : moteur (test.html), courses (courses.html, 30 courses entre IA), ecrans (ecrans.py), annexes
 # le paquet Poki (tests/paquet.py, Codeur 3) : le zip fabriqué, puis le jeu ouvert depuis le zip décompressé (vérifications Poki)
