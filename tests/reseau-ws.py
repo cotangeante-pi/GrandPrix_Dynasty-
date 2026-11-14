@@ -70,7 +70,8 @@ if __name__ == '__main__':
     try: import websockets, playwright  # noqa
     except ImportError: print('RESULTAT 0/1 (playwright ou websockets absent)'); sys.exit(1)
     s = socket.socket(); s.bind(('127.0.0.1', 0)); port = s.getsockname()[1]; s.close()
-    rel = subprocess.Popen([sys.executable, os.path.join(RACINE, 'serveur', 'relais.py'), '--port', str(port), '--noms-libres']   # (provisoire, voir reseau-ws.html : D1 pas encore dans reseau.js), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+    # (provisoire : « --noms-libres », voir reseau-ws.html, tant que reseau.js n'a pas la décision D1)
+    rel = subprocess.Popen([sys.executable, os.path.join(RACINE, 'serveur', 'relais.py'), '--port', str(port), '--noms-libres'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
     try:
         for _ in range(50):
             try: socket.create_connection(('127.0.0.1', port), 0.2).close(); break
