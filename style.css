@@ -2124,6 +2124,7 @@ body.grilleDecouverte #jauge, body.grilleDecouverte #hudCourse, body.grilleDecou
 .tactilePetit { top: 10px; width: 46px; height: 40px; font-size: 18px; border-radius: 8px; background: rgba(0, 0, 0, 0.45); }
 #tactilePause { top: 56px; right: calc(24px + var(--classement-largeur)); width: 40px; }   /* sous 🔊, à gauche de la tour */
 #tactileRemise { top: 102px; right: calc(24px + var(--classement-largeur)); width: 40px; }
+#tactileCamera { top: 148px; right: calc(24px + var(--classement-largeur)); width: 40px; }   /* (tour 56, T14) la caméra, comme la touche C */
 /* sur un écran tactile (body.tactile) : la vitesse et les pneus s'écartent des boutons, l'aide du clavier ne s'affiche pas */
 body.tactile #tableau, body.tactile #pneusHud { right: 282px; }
 body.tactile #aide { display: none; }
@@ -2141,6 +2142,7 @@ body.tactile #aide { display: none; }
   body.tactile:not(.horsCourse) #boutonSon { left: 12px; right: auto; top: 122px; width: 30px; height: 28px; }
   #tactilePause, #tactileRemise { top: 122px; right: auto; width: 30px; height: 28px; font-size: 14px; }
   #tactilePause { left: 48px; } #tactileRemise { left: 84px; }
+  #tactileCamera { top: 120px; left: 132px; right: auto; width: 40px; height: 40px; font-size: 18px; }   /* (tour 56, T14) 40 px au doigt, dans la rangée 🔊 ⏸ ↩ */
 }
 /* tourne:debut */@media (max-width: 420px) {   /* le téléphone couché, 640×360 */
   :where(html.tourne) #tactileGaz { width: 92px; height: 92px; right: 12px; bottom: 12px; font-size: 18px; }
@@ -2156,6 +2158,7 @@ body.tactile #aide { display: none; }
   :where(html.tourne) body.tactile:not(.horsCourse) #boutonSon { left: 12px; right: auto; top: 122px; width: 30px; height: 28px; }
   :where(html.tourne) #tactilePause, :where(html.tourne) #tactileRemise { top: 122px; right: auto; width: 30px; height: 28px; font-size: 14px; }
   :where(html.tourne) #tactilePause { left: 48px; } :where(html.tourne) #tactileRemise { left: 84px; }
+  :where(html.tourne) #tactileCamera { top: 120px; left: 132px; right: auto; width: 40px; height: 40px; font-size: 18px; }   /* (tour 56, T14) 40 px au doigt, dans la rangée 🔊 ⏸ ↩ */
 }/* tourne:fin */
 /* (tour 53d) la vue de la piste : avec les boutons ◀ ▶, le radar se pose au-dessus d'eux (plus petit) et, en petit écran, disparaît (le rétroviseur
    montre l'arrière) ; l'aide « ◀ ▶ » de la découverte répète les boutons : cachée */
@@ -2168,13 +2171,13 @@ body.tactile.tactileFreinG #radar { --radar-taille: 130px; left: 134px; bottom: 
   body.tactile.tactileFreinG #tactileFrein { left: 12px; right: auto; }
   body.tactile.tactileFreinG #tableau, body.tactile.tactileFreinG #pneusHud { right: 116px; }
   body.tactile.tactileFreinG #radar { --radar-taille: 96px; left: 96px; bottom: 12px; }
-  body.tactile #bulleAide.bulleCourse { top: 164px; max-width: 190px; }   /* (tour 55, T17 : 164 px sous ⏸ ↩ (qui finissent à 158) ; 190 px pour laisser la place au message de course, décalé à droite) */
+  body.tactile #bulleAide.bulleCourse { top: 164px; max-width: 190px; font-size: 11px; line-height: 1.2; padding: 6px 10px; }   /* (tour 56, relecture : le texte le plus long, 4 lignes, finissait à 250 px et recouvrait l'état des pneus (234 px) sur iPhone SE et Galaxy S9+ ; 11 px et moins de marge : il finit avant 232 px) */   /* (tour 55, T17 : 164 px sous ⏸ ↩ (qui finissent à 158) ; 190 px pour laisser la place au message de course, décalé à droite) */
 }
 /* tourne:debut */@media (max-width: 420px) {
   :where(html.tourne) body.tactile.tactileFreinG #tactileFrein { left: 12px; right: auto; }
   :where(html.tourne) body.tactile.tactileFreinG #tableau, :where(html.tourne) body.tactile.tactileFreinG #pneusHud { right: 116px; }
   :where(html.tourne) body.tactile.tactileFreinG #radar { --radar-taille: 96px; left: 96px; bottom: 12px; }
-  :where(html.tourne) body.tactile #bulleAide.bulleCourse { top: 164px; max-width: 190px; }   /* (tour 55, T17 : 164 px sous ⏸ ↩ (qui finissent à 158) ; 190 px pour laisser la place au message de course, décalé à droite) */
+  :where(html.tourne) body.tactile #bulleAide.bulleCourse { top: 164px; max-width: 190px; font-size: 11px; line-height: 1.2; padding: 6px 10px; }   /* (tour 56, relecture : le texte le plus long, 4 lignes, finissait à 250 px et recouvrait l'état des pneus (234 px) sur iPhone SE et Galaxy S9+ ; 11 px et moins de marge : il finit avant 232 px) */   /* (tour 55, T17 : 164 px sous ⏸ ↩ (qui finissent à 158) ; 190 px pour laisser la place au message de course, décalé à droite) */
 }/* tourne:fin */
 body.tactile.tactileBoutons #radar { --radar-taille: 120px; bottom: 124px; left: 12px; }
 body.tactile.tactileBoutons #aideDirection { display: none; }
@@ -2658,13 +2661,21 @@ body.tactile:has(#pause:not(.cache)) #boutonSon { display: none; }   /* (tour 55
   :where(html.tourne) #interviewEffet { font-size: 14px; min-height: 0; }
 }/* tourne:fin */
 
+/* (tour 56, T14) au doigt, le choix des pneus pendant l'arrêt au stand : une rangée de boutons (≥ 40 px), sous le bandeau de l'arrêt, au centre (tactile.js, pneus) ; sans écran tactile, jamais affichée (← → comme avant) */
+#tactilePneus { position: absolute; top: 292px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; pointer-events: auto; touch-action: none; }
+#tactilePneus.cache { display: none; }
+.tactilePneu { min-width: 0; min-height: 44px; padding: 0 6px; display: flex; align-items: center; justify-content: center; box-sizing: border-box; border-radius: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.5); background: rgba(0, 0, 0, 0.6); color: #fff; font: 700 11px/1.1 var(--police); text-align: center; user-select: none; -webkit-user-select: none; }
+body.tactileStand #tableau, body.tactileStand #pneusHud { visibility: hidden; }
+.tactilePneu.choisi { background: #1f6fe0; border-color: #fff; }
+
 /* (tour 56, T5) les batailles en ligne : « En ligne », « rejoindre par code », la salle d'attente (enligne-ecran.js ; rien ne s'affiche sans EN_LIGNE) */
 #enligne, #enligneRejoindre, #enligneSalle { gap: 10px; }
 #enligne p, #enligneRejoindre p, #enligneSalle p { max-width: 520px; }
 #enligneExplication { font-weight: 600; opacity: 0.85; }
 #enligneNomChoisi { font-weight: 700; }
 .enligneMessage { min-height: 1.4em; color: #ffd666; font-weight: 700; }
-#enligne .boutons:first-of-type button, #enligneRejoindre .boutons:first-of-type button { min-width: 200px; padding: 16px 20px; font-size: 22px; }
+#enligneChoix button, #enligneRejoindre .boutons:first-of-type button { min-width: 200px; padding: 16px 20px; font-size: 22px; }
 #boutonEnligneCreer, #boutonEnligneGo, #boutonEnlignePret, #boutonEnligneLancer { background: var(--tv-bouton-principal, #e3242b); }
 #boutonEnlignePret.actif { background: #2fa84f; }
 #enligne button:disabled, #enligneSalle button:disabled { opacity: 0.5; cursor: default; box-shadow: none; }
@@ -2703,7 +2714,7 @@ body.tactile:has(#pause:not(.cache)) #boutonSon { display: none; }   /* (tour 55
   #enligne h1, #enligneRejoindre h1, #enligneSalle h1 { font-size: 24px; margin: 0; }
   #enligneExplication { font-size: 13px; line-height: 1.25; }
   #enligne p, #enligneRejoindre p, #enligneSalle p { font-size: 14px; line-height: 1.25; }
-  #enligne .boutons:first-of-type button, #enligneRejoindre .boutons:first-of-type button { min-width: 150px; padding: 8px 14px; font-size: 17px; min-height: 40px; }
+  #enligneChoix button, #enligneRejoindre .boutons:first-of-type button { min-width: 150px; padding: 8px 14px; font-size: 17px; min-height: 40px; }
   #enligneCouleurs { max-width: 440px; gap: 5px; }
   #enligneCouleurs button.enlignePastille { width: 40px; height: 40px; }
   #enligneCode { font-size: 26px; padding: 2px 10px; }
@@ -2725,7 +2736,7 @@ body.tactile:has(#pause:not(.cache)) #boutonSon { display: none; }   /* (tour 55
   :where(html.tourne) #enligne h1, :where(html.tourne) #enligneRejoindre h1, :where(html.tourne) #enligneSalle h1 { font-size: 24px; margin: 0; }
   :where(html.tourne) #enligneExplication { font-size: 13px; line-height: 1.25; }
   :where(html.tourne) #enligne p, :where(html.tourne) #enligneRejoindre p, :where(html.tourne) #enligneSalle p { font-size: 14px; line-height: 1.25; }
-  :where(html.tourne) #enligne .boutons:first-of-type button, :where(html.tourne) #enligneRejoindre .boutons:first-of-type button { min-width: 150px; padding: 8px 14px; font-size: 17px; min-height: 40px; }
+  :where(html.tourne) #enligneChoix button, :where(html.tourne) #enligneRejoindre .boutons:first-of-type button { min-width: 150px; padding: 8px 14px; font-size: 17px; min-height: 40px; }
   :where(html.tourne) #enligneCouleurs { max-width: 440px; gap: 5px; }
   :where(html.tourne) #enligneCouleurs button.enlignePastille { width: 40px; height: 40px; }
   :where(html.tourne) #enligneCode { font-size: 26px; padding: 2px 10px; }
@@ -2743,3 +2754,13 @@ body.tactile:has(#pause:not(.cache)) #boutonSon { display: none; }   /* (tour 55
   :where(html.tourne) #enligneSalle .boutons button { min-height: 40px; padding: 6px 14px; font-size: 15px; }
 }/* tourne:fin */
 body.tactile #boutonEnligneTitre, body.tactile :is(#enligne, #enligneRejoindre, #enligneSalle) .boutons button { min-height: 40px; }   /* (au doigt, 40 px au moins) */
+/* (tour 56, T12) « Comment jouer en ligne » : quatre étapes à la place du menu ; la bulle d'aide de la salle se pose en bas */
+#enligne.comment :is(#enligneExplication, #enligneCouleurs, #enligneNomChoisi, #enligneChoix, #enligneMessage) { display: none; }
+#enligneComment { max-width: 520px; text-align: left; }
+#enligneEtapes { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; font: 700 18px/1.3 var(--tv-police, system-ui, sans-serif); }
+#enligneSalle:not(.cache) ~ #bulleAide.bulleMenu { top: auto; bottom: 8px; left: 50%; transform: translateX(-50%); max-width: min(560px, 90vw); pointer-events: none; }
+@media (max-height: 420px) { #enligneSalle:not(.cache) ~ #bulleAide.bulleMenu { display: none; } }   /* (640×360 : la salle est pleine, la ligne d'état dit déjà quoi faire) */
+/* tourne:debut */@media (max-width: 420px) { :where(html.tourne) #enligneSalle:not(.cache) ~ #bulleAide.bulleMenu { display: none; } }/* tourne:fin */
+@media (max-height: 420px) { #enligneEtapes { font-size: 14px; gap: 4px; } }
+/* tourne:debut */@media (max-width: 420px) { :where(html.tourne) #enligneEtapes { font-size: 14px; gap: 4px; } }/* tourne:fin */
+body.tactile #boutonEnligneComment { min-height: 40px; }

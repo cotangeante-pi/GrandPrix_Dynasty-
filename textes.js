@@ -996,6 +996,11 @@ Object.assign(TEXTES.en, {
   tac_departAide: 'Hold GAS in the green · lights out: release and press GAS again for a perfect start',
   tac_aide_depart: 'Hold GAS in the green and you go. {d}',
   tac_tourne: 'Tilt the phone to steer.', tac_tourneBoutons: 'Press ◀ ▶ to steer.',
+  tac_standPneusChoisi: 'Tyres: {p} — tap a tyre to change',
+  tac_grillePasser: 'The grid — tap to skip', tac_resumeSortir: 'Tap to leave', tac_unePasser: 'Tap to continue', tac_passerPodium: 'Skip to the podium',
+  tac_tuto_conduite_consigne: 'GAS accelerate · tilt the phone (or ◀ ▶) to steer · BRAKE — one lap, stay on the tarmac.',
+  tac_tuto_depart_consigne: 'Hold GAS to keep the needle in the green. Lights out: release, then press GAS again!',
+  tac_tuto_raison_attente: 'You didn’t start: press GAS again when the lights go out.',
   tac_aide_consigne: 'Team order: lift off (BRAKE) to let your teammate through, or keep your place.',
 });
 Object.assign(TEXTES.fr, {
@@ -1004,6 +1009,11 @@ Object.assign(TEXTES.fr, {
   tac_departAide: 'Tiens GAZ dans le vert · feux éteints : lâche et réappuie GAZ pour un départ parfait',
   tac_aide_depart: 'Tiens GAZ dans le vert et tu pars. {d}',
   tac_tourne: 'Incline le téléphone pour tourner.', tac_tourneBoutons: 'Appuie sur ◀ ▶ pour tourner.',
+  tac_standPneusChoisi: 'Pneus : {p} — touche un pneu pour changer',
+  tac_grillePasser: 'La grille — touche pour passer', tac_resumeSortir: 'Touche pour sortir', tac_unePasser: 'Touche pour continuer', tac_passerPodium: 'Passer au podium',
+  tac_tuto_conduite_consigne: 'GAZ accélérer · incline le téléphone (ou ◀ ▶) pour tourner · FREIN — un tour, sans quitter le goudron.',
+  tac_tuto_depart_consigne: 'Tiens GAZ pour garder l’aiguille dans le vert. Feux éteints : lâche, puis réappuie sur GAZ !',
+  tac_tuto_raison_attente: 'Pas de départ : réappuie sur GAZ quand les feux s’éteignent.',
   tac_aide_consigne: 'Consigne : lève le pied (FREIN) pour laisser passer ton coéquipier, ou garde ta place.',
 });
 
@@ -1243,7 +1253,7 @@ Object.assign(TEXTES.fr, {
 
 // --- tour 51k, Codeur 5 : le téléphone, les boutons tactiles et le volant (tactile.js) ---
 Object.assign(TEXTES.en, {
-  tac_gaz: 'GAS', tac_frein: 'BRAKE', tac_pause: 'Pause', tac_remise: 'Back on track',
+  tac_gaz: 'GAS', tac_frein: 'BRAKE', tac_pause: 'Pause', tac_remise: 'Back on track', tac_camera: 'Camera',
   tac_activer: '🎮 Enable the steering wheel', tac_recentrer: 'Recentre the wheel',
   tac_mode_volant: 'Steering: tilt the phone', tac_mode_boutons: 'Steering: ◀ ▶ buttons',
   tac_portrait: 'Turn your phone sideways',
@@ -1251,7 +1261,7 @@ Object.assign(TEXTES.en, {
   tac_inverse_oui: 'Reversed: yes', tac_inverse_non: 'Reversed: no', tac_choix_volant: 'Steer: tilt', tac_choix_boutons: 'Steer: ◀ ▶',
 });
 Object.assign(TEXTES.fr, {
-  tac_gaz: 'GAZ', tac_frein: 'FREIN', tac_pause: 'Pause', tac_remise: 'Retour en piste',
+  tac_gaz: 'GAZ', tac_frein: 'FREIN', tac_pause: 'Pause', tac_remise: 'Retour en piste', tac_camera: 'Caméra',
   tac_activer: '🎮 Activer le volant', tac_recentrer: 'Recentrer le volant',
   tac_mode_volant: 'Direction : incliner le téléphone', tac_mode_boutons: 'Direction : boutons ◀ ▶',
   tac_portrait: 'Tourne ton téléphone',
@@ -1451,6 +1461,9 @@ Object.assign(TEXTES.en, {
   enligneHoteChoisit: 'The host chooses the race.', enligneEmotes: 'Reactions',
   enligneEmote_0: 'Thumbs up', enligneEmote_1: 'Applause', enligneEmote_2: 'Fire', enligneEmote_3: 'Laughing', enligneEmote_4: 'Wow',
   enligneEmote_5: 'Chequered flag', enligneEmote_6: 'Handshake', enligneEmote_7: 'Phew',
+  aide_enligne: 'Create a room and send its 4 letters to your friends, or type a friend’s letters to join.', aide_enligneSalle: 'Press “I’m ready”. The host picks the race and starts it. Use the reactions to say hi!',
+  enligneComment: '❓ How to play online', enligneCommentTitre: 'How to play online',
+  enligneComment1: '1. Pick your colour: it is your name in the race.', enligneComment2: '2. One friend creates a room and shares its 4 letters.', enligneComment3: '3. The others join with the letters, then press “I’m ready”.', enligneComment4: '4. The host picks the circuit and starts. Say hi with the reactions!',
   enligneNouvelHote: 'The host left: you are the new host.', enligneParti: '{nom} left the room.', enligneDepart: 'Starting! (the online race itself is not ready yet)',
 });
 Object.assign(TEXTES.fr, {
@@ -1473,5 +1486,8 @@ Object.assign(TEXTES.fr, {
   enligneHoteChoisit: 'L’hôte choisit la course.', enligneEmotes: 'Réactions',
   enligneEmote_0: 'Pouce levé', enligneEmote_1: 'Applaudissements', enligneEmote_2: 'Feu', enligneEmote_3: 'Rire', enligneEmote_4: 'Ouah',
   enligneEmote_5: 'Drapeau à damier', enligneEmote_6: 'Poignée de main', enligneEmote_7: 'Ouf',
+  aide_enligne: 'Crée une salle et envoie ses 4 lettres à tes amis, ou tape les lettres d’un ami pour le rejoindre.', aide_enligneSalle: 'Appuie sur « C’est bon pour moi ». L’hôte choisit la course et la lance. Dis bonjour avec les réactions !',
+  enligneComment: '❓ Comment jouer en ligne', enligneCommentTitre: 'Comment jouer en ligne',
+  enligneComment1: '1. Choisis ta couleur : c’est ton nom dans la course.', enligneComment2: '2. Un ami crée une salle et donne ses 4 lettres.', enligneComment3: '3. Les autres la rejoignent avec les lettres, puis appuient sur « C’est bon pour moi ».', enligneComment4: '4. L’hôte choisit le circuit et lance. Dis bonjour avec les réactions !',
   enligneNouvelHote: 'L’hôte est parti : c’est toi le nouvel hôte.', enligneParti: '{nom} a quitté la salle.', enligneDepart: 'C’est parti ! (la course en ligne elle-même n’est pas encore prête)',
 });

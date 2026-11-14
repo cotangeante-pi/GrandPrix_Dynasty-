@@ -168,11 +168,12 @@ const TACTILE = (function () {
     document.body.classList.add('tactile'); document.body.classList.toggle('commentaireSansTexte', !R.COMMENTAIRE_TEXTE_TACTILE);   // (tour 55 : pas de bandeau texte du commentateur au doigt)   // (style.css : la vitesse et les pneus s'écartent des boutons, l'aide du clavier se cache)
     for (const [id, nom] of [['tactileGaz', 'gaz'], ['tactileFrein', 'frein'], ['tactileGauche', 'gauche'], ['tactileDroite', 'droite']]) { E[nom] = $(id); if (E[nom]) brancherBouton(E[nom], nom); }
     E.gaz.textContent = texte('tac_gaz'); E.frein.textContent = texte('tac_frein');
-    for (const [id, nom] of [['tactilePause', 'pause'], ['tactileRemise', 'remise']]) {
+    for (const [id, nom] of [['tactilePause', 'pause'], ['tactileRemise', 'remettre'], ['tactileCamera', 'camera']]) {   // (tour 56, T14 : la caméra, comme la touche C)
       const el = $(id); if (!el) continue;
       el.addEventListener('pointerdown', e => e.preventDefault());
-      el.addEventListener('click', () => { if (rappels[nom === 'pause' ? 'pause' : 'remettre']) rappels[nom === 'pause' ? 'pause' : 'remettre'](); });
+      el.addEventListener('click', () => { if (rappels[nom]) rappels[nom](); });
     }
+    const cam = $('tactileCamera'); if (cam) { cam.title = texte('tac_camera'); cam.setAttribute('aria-label', texte('tac_camera')); }
     const act = $('tactileActiver');
     if (act) { act.textContent = texte('tac_activer'); act.addEventListener('mousedown', e => e.preventDefault()); act.addEventListener('click', activer); }
     const po = $('tactilePortrait'); if (po) po.textContent = texte('tac_portrait');
@@ -192,6 +193,28 @@ const TACTILE = (function () {
     if (!permissionADemander()) activer();   // (Android, Chromebook : pas d'autorisation à demander, on écoute tout de suite)
     rafraichir();
     return true;
+  }
+
+  // (tour 56, T14) le choix des pneus pendant l'arrêt au stand, au doigt : une rangée de boutons (un par pneu), à la place de ← → ; types = la liste
+  // des pneus permis, ou null hors de l'arrêt (la rangée se cache) ; courant = le pneu qui sera monté ; le doigt appelle rappels.pneu(type)
+  const P = { cle: '' };
+  function pneus(types, courant) {
+    const el = $('tactilePneus');
+    if (!el) return;
+    document.body.classList.toggle('tactileStand', !!(types && types.length));   // (la vitesse et les pneus du HUD s'effacent pendant l'arrêt : la voiture est tenue)
+    if (!types || !types.length) { if (P.cle) { P.cle = ''; el.classList.add('cache'); } return; }
+    const cle = types.join() + LANGUE;
+    if (cle !== P.cle) {
+      P.cle = cle; el.textContent = '';
+      for (const type of types) {
+        const b = document.createElement('div'); b.className = 'tactilePneu'; b.dataset.pneu = type; b.textContent = texte('pneu_' + type);
+        b.addEventListener('pointerdown', e => { e.preventDefault(); if (rappels.pneu) rappels.pneu(type); });
+        b.addEventListener('contextmenu', e => e.preventDefault());
+        el.appendChild(b);
+      }
+      el.classList.remove('cache');
+    }
+    for (const b of el.children) b.classList.toggle('choisi', b.dataset.pneu === courant);
   }
 
   // la position neutre reprise : le joueur tient son téléphone comme il veut
@@ -241,6 +264,14 @@ const TACTILE = (function () {
   // la taille du JEU (celle qu'il voit : tournée, largeur et hauteur échangées) et les doigts / la souris ramenés dans le jeu
   const tailleJeu = () => V.tourne ? { l: window.innerHeight, h: window.innerWidth } : { l: window.innerWidth, h: window.innerHeight };
   // un écart (dx, dy) en pixels de la fenêtre -> le même écart dans le jeu (tourné de 90° dans le sens inverse des aiguilles : x_jeu = −dy, y_jeu = dx)
+  // le rectangle d'un élément DANS le jeu (getBoundingClientRect donne l'espace de la fenêtre : tourné, il faut le ramener) :
+  // fenêtre (X, Y) = (y_jeu, largeur_jeu − x_jeu), donc x_jeu = largeur_jeu − Y et y_jeu = X
+  function rectJeu(el) {
+    const r = el.getBoundingClientRect();
+    if (!V.tourne) return r;
+    const lj = window.innerHeight, left = lj - r.bottom, top = r.left;
+    return { left, top, right: lj - r.top, bottom: r.right, x: left, y: top, width: r.height, height: r.width };
+  }
   const ecartJeu = (dx, dy) => V.tourne ? { x: -dy, y: dx } : { x: dx, y: dy };
 
   function rafraichir() {
@@ -286,5 +317,5 @@ const TACTILE = (function () {
     return { gaz: tenus.gaz.size ? 1 : 0, frein: tenus.frein.size ? 1 : 0, direction };
   }
 
-  return { angle, braquage, lisser, sensEcran, fusionner, portrait, estPresent, tailleJeu, ecartJeu, brancher, maj, cibles, recentrer, activer, etat: V, reglages: G };
+  return { angle, braquage, lisser, sensEcran, fusionner, portrait, estPresent, tailleJeu, ecartJeu, rectJeu, brancher, maj, cibles, pneus, recentrer, activer, etat: V, reglages: G };
 })();

@@ -61,6 +61,13 @@ def partie(b, tourner):
         cx = lambda r: r['x'] + r['l'] / 2; cy = lambda r: r['y'] + r['h'] / 2
         t(f'{titre} : GAZ et FREIN sont du côté du pouce droit (moitié droite de la fenêtre), GAZ au-dessus de FREIN, tous deux dans l\'écran',
           cx(gz) > 180 and cx(fr) > 180 and cy(gz) < cy(fr) and gz['x'] >= 0 and gz['x'] + gz['l'] <= 360 and fr['y'] + fr['h'] <= 640 and gz['y'] >= 0, str([gz, fr]))
+        # (T15b) les rectangles ramenés dans le jeu : les mêmes que couché ; la croix de la manette va du bon côté
+        rj = pg.evaluate('() => { const q = id => { const r = TACTILE.rectJeu(document.getElementById(id)); return { x: r.left, y: r.top, l: r.width, h: r.height }; }; return { gaz: q("tactileGaz"), frein: q("tactileFrein"), pause: q("tactilePause") }; }')
+        proche = lambda u, v: all(abs(u[k] - v[k]) <= 1.5 for k in ('x', 'y', 'l', 'h'))
+        coucheGaz = {'x': a['gaz']['x'], 'y': a['gaz']['y'], 'l': a['gaz']['l'], 'h': a['gaz']['h']}; coucheFrein = {'x': a['frein']['x'], 'y': a['frein']['y'], 'l': a['frein']['l'], 'h': a['frein']['h']}
+        t(f'{titre} : rectJeu ramène GAZ et FREIN dans le jeu : les mêmes rectangles que couché', proche(rj['gaz'], coucheGaz) and proche(rj['frein'], coucheFrein), str([rj, coucheGaz, coucheFrein]))
+        v = pg.evaluate('(r) => [MANETTE.voisin([r.frein, r.gaz], 0, "droite"), MANETTE.voisin([r.frein, r.gaz], 1, "gauche"), MANETTE.voisin([r.frein, r.gaz], 0, "haut")]', rj)
+        t(f'{titre} : la croix de la manette dans le jeu tourné : de FREIN (à gauche dans le jeu) vers la droite = GAZ, et retour vers la gauche', v[0] == 1 and v[1] == 0, str(v))
         # un vrai toucher sur GAZ (aux coordonnées de la FENÊTRE : le navigateur suit la rotation) fait son effet
         doigt(cdp, cx(gz), cy(gz), True); ok_gaz = attendre(pg, '() => JEU.cibles.gaz === 1', None, 5000)
         doigt(cdp, cx(gz), cy(gz), False); lache = attendre(pg, '() => JEU.cibles.gaz === 0', None, 5000)

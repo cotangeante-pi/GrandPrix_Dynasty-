@@ -34,6 +34,7 @@ const EN_LIGNE = (function () {
   // (0 à 30 = -1 à 1, 15 = tout droit), la remise en piste sur 1 bit (un niveau : « la touche est tenue »)
   const Q = 15;
   const CODE_MAX = (1 << 14) - 1;
+  const LISTE_MAX = 128;   // commandes au plus dans un message « cmd » reçu (un paquet fait EN_LIGNE_PAQUET pas, jamais plus que le délai)
   const NEUTRE = { gaz: 0, frein: 0, direction: 0, remise: false };
   const AUCUNE = { gaz: 0, frein: 0, direction: 0 }, FREIN_SEUL = { gaz: 0, frein: 1, direction: 0 };
   const CODE_NEUTRE = (Q << 8);
@@ -194,6 +195,17 @@ const EN_LIGNE = (function () {
     const cle = nom + (maths.actives() ? '#maths' : '');
     if (!circuits.has(cle)) circuits.set(cle, nom === 'test' && !maths.actives() ? CIRCUIT_TEST : construireCircuit(CIRCUITS[nom]));
     return circuits.get(cle);
+  }
+
+  // le circuit et sa carte d'avance, avec nos maths (EN_LIGNE_MATHS) : ils prennent une à deux secondes ; la page peut les préparer dès que l'hôte
+  // a choisi le circuit (la salle d'attente), puis demarrer() les retrouve (même objet) sans attendre. → { circuit, carte }
+  function preparerCircuit(nom) {
+    const noms = Object.prototype.hasOwnProperty.call(CIRCUITS, nom) ? nom : 'test';
+    const avant = R.NIVEAU, pose = !!R.EN_LIGNE_MATHS;
+    R.NIVEAU = R.EN_LIGNE_NIVEAU;
+    if (pose) maths.activer();
+    try { const circuit = circuitDe(noms); return { circuit, carte: carteDe(circuit) }; }
+    finally { if (pose) maths.desactiver(); R.NIVEAU = avant; }
   }
 
   // le plan de météo, comme planMeteo de principal.js mais sans l'adresse de la page : la même sur tous les clients
@@ -368,11 +380,15 @@ const EN_LIGNE = (function () {
       if (msg.t === 'cmd') {
         if (msg.de === moi || !codes.has(msg.de) || !Number.isInteger(msg.n) || msg.n < 0) return;
         const liste = Array.isArray(msg.c) ? msg.c : [msg.c];
-        if (liste.length > 4096) return;
+        if (liste.length > LISTE_MAX) return;
         const mes = codes.get(msg.de);
-        liste.forEach((x, i) => { const k = msg.n + i; if (k >= delai && k >= n - 1 && !mes.has(k)) mes.set(k, codeValide(x) ? x : CODE_NEUTRE); });
+        // (relecture T11) jamais de commande trop en avance : un joueur ne peut pas avoir fait plus de `delai` pas de plus que nous (il lui faut nos
+        // commandes), donc rien ne dépasse n + 2 délais ; au-delà, un client abîmé ou tricheur remplirait notre mémoire de pas lointains
+        const horizon = n + 2 * delai + 8;
+        liste.forEach((x, i) => { const k = msg.n + i; if (k >= delai && k >= n - 1 && k <= horizon && !mes.has(k)) mes.set(k, codeValide(x) ? x : CODE_NEUTRE); });
       } else if (msg.t === 'controle') {
-        if (msg.de === moi || !codes.has(msg.de) || !Number.isInteger(msg.n) || typeof msg.h !== 'number') return;
+        if (msg.de === moi || !codes.has(msg.de) || !Number.isInteger(msg.n) || !Number.isInteger(msg.h) || msg.h < 0 || msg.h > 4294967295) return;
+        if (msg.n % periode !== 0 || msg.n > n + 2 * delai + 8 || msg.n < n - 10 * periode) return;   // (relecture T11) un contrôle trop loin ne sert à rien et remplirait la mémoire
         if (!siens.has(msg.n)) siens.set(msg.n, new Map());
         siens.get(msg.n).set(msg.de, msg.h);
         comparer(msg.n);
@@ -473,5 +489,5 @@ const EN_LIGNE = (function () {
     return banc;
   }
 
-  return { actif, version, reglagesValides, coder, decoder, codeValide, empreinte, demarrer, creerPartie, creerCourseEnLigne, conduire, planMeteo, circuitDe, maths, banc, CODE_NEUTRE, NEUTRE };
+  return { actif, version, reglagesValides, coder, decoder, codeValide, empreinte, demarrer, creerPartie, creerCourseEnLigne, conduire, planMeteo, circuitDe, preparerCircuit, maths, banc, CODE_NEUTRE, NEUTRE };
 })();

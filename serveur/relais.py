@@ -45,6 +45,8 @@ class Config:
         self.max_salles = 500
         self.max_par_ip = 24             # connexions simultanées d'une même adresse (0 = pas de limite ; derrière un proxy : 0)
         self.max_file = 2000             # messages en attente d'envoi à un client lent avant de le couper
+        self.grace = 20.0                # EN_LIGNE_GRACE : s pendant lesquelles un joueur coupé (il recharge la page) peut revenir avec son jeton, sans « parti »
+        self.exiger_charge = True        # « lancer » refusé tant qu'un joueur n'a pas annoncé (charge) le circuit des réglages
         self.ping_intervalle = 20        # pings de la bibliothèque (connexions mortes)
         # les garde-fous contre la triche simple (tour 56, T9) : une commande est un entier de 0 à code_max (14 bits : gaz, frein, direction, remise)
         # ou un paquet de 1 à paquet_max entiers ; n est le premier pas du paquet
@@ -105,6 +107,10 @@ class Client:
         self.fin_cmd = 0                 # le pas qui suit la dernière commande reçue de ce joueur (la prochaine doit commencer là ou après)
         self.minuteur = None
         self.ferme = False
+        self.jeton = None      # le jeton de retour (tiré à l'entrée en salle)
+        self.absent = False    # coupé pendant la grâce : il reste dans la salle, « recharge »
+        self.grace_minuteur = None
+        self.circuit = None    # le circuit que sa page a chargé (message « charge »)
 
     def envoyer_texte(self, texte):
         if self.ferme: return
@@ -167,8 +173,8 @@ class Relais:
             pass
         finally:
             if c.minuteur: c.minuteur.cancel()
-            self._sortir(c)
             c.ferme = True
+            self._deconnecte(c)
             ecrivain.cancel()
             self.par_ip[ip] = self.par_ip.get(ip, 1) - 1
             if self.par_ip[ip] <= 0: self.par_ip.pop(ip, None)
@@ -247,6 +253,11 @@ class Relais:
             elif now - c.derniere_emote >= self.cfg.delai_emote:   # trop vite : jetée sans bruit
                 c.derniere_emote = now
                 self._diffuser(salle, {'t': 'emote', 'de': c.id, 'i': m['i']}, sauf=c)
+        elif t == 'charge':
+            circuit = m.get('circuit')
+            if salle.commencee or not (isinstance(circuit, str) and 0 < len(circuit) <= 40 and circuit.isprintable()): return self._faute(c)
+            c.circuit = circuit
+            self._diffuser(salle, self._liste(salle))
         elif t == 'retour':
             if c.id != salle.hote or not salle.commencee: return self._erreur(c, 'hote' if c.id != salle.hote else 'pas-commencee')
             salle.commencee = False
@@ -305,25 +316,50 @@ class Relais:
         salle = self.salles.get(code.strip().upper()) if isinstance(code, str) and len(code) <= 8 else None
         if salle is None: return self._refuser(c, 'inconnue')
         if salle.commencee: return self._refuser(c, 'commencee')
+        if self._retour(c, salle, m): return
         raison = self._controle_entree(c, m, salle)
         if not raison and len(salle.joueurs) >= self.cfg.max_joueurs: raison = 'pleine'
         if not raison and any(j.nom.lower() == m['nom'].strip().lower() for j in salle.joueurs.values()): raison = 'nom'
         if raison: return self._refuser(c, raison)
         self._entrer(c, salle, m['nom'].strip())
 
+    def _retour(self, c, salle, m):
+        """Un joueur qui revient avec son jeton pendant la grâce reprend sa place (même id, même rôle d'hôte) ; vrai si c'était lui."""
+        jeton = m.get('jeton')
+        if not isinstance(jeton, str) or not jeton: return False
+        vieux = next((j for j in salle.joueurs.values() if j.absent and j.jeton and secrets.compare_digest(j.jeton.encode(), jeton.encode())), None)
+        if vieux is None: return False
+        if self._controle_version(m, salle): self._refuser(c, 'version'); return True
+        if vieux.grace_minuteur: vieux.grace_minuteur.cancel()
+        vieux.salle = None
+        c.salle, c.id, c.nom, c.pret, c.jeton = salle, vieux.id, vieux.nom, vieux.pret, vieux.jeton
+        salle.joueurs[c.id] = c
+        salle.activite = time.monotonic()
+        if c.minuteur: c.minuteur.cancel(); c.minuteur = None
+        c.envoyer({'t': 'salle', 'code': salle.code, 'toi': c.id, 'hote': salle.hote, 'jeton': c.jeton})
+        self._diffuser(salle, self._liste(salle))
+        if salle.reglages is not None: c.envoyer({'t': 'reglages', 'reglages': salle.reglages})
+        return True
+
+    def _controle_version(self, m, salle):
+        """Vrai si la version annoncée n'est pas celle de la salle (D4 : celle de son créateur)."""
+        v = m.get('version')
+        return not isinstance(v, str) or not _VERSION.match(v) or v != salle.version
+
     def _entrer(self, c, salle, nom):
         c.salle, c.nom, c.pret, c.id = salle, nom, False, salle.suivant
+        c.jeton = secrets.token_urlsafe(12)
         salle.suivant += 1
         salle.joueurs[c.id] = c
         if salle.hote is None: salle.hote = c.id
         salle.activite = time.monotonic()
         if c.minuteur: c.minuteur.cancel(); c.minuteur = None
-        c.envoyer({'t': 'salle', 'code': salle.code, 'toi': c.id, 'hote': salle.hote})
+        c.envoyer({'t': 'salle', 'code': salle.code, 'toi': c.id, 'hote': salle.hote, 'jeton': c.jeton})
         self._diffuser(salle, self._liste(salle))
         if salle.reglages is not None: c.envoyer({'t': 'reglages', 'reglages': salle.reglages})
 
     def _liste(self, salle):
-        return {'t': 'joueurs', 'liste': [{'id': j.id, 'nom': j.nom, 'pret': j.pret, 'hote': j.id == salle.hote} for j in salle.joueurs.values()]}
+        return {'t': 'joueurs', 'liste': [{'id': j.id, 'nom': j.nom, 'pret': j.pret, 'hote': j.id == salle.hote, 'circuit': j.circuit, 'recharge': j.absent} for j in salle.joueurs.values()]}
 
     def _pret(self, c, m):
         salle = c.salle
@@ -337,6 +373,7 @@ class Relais:
         reglages = reglages_valides(m.get('reglages'), len(salle.joueurs))
         if reglages is None: return self._erreur(c, 'reglages')
         if len(salle.joueurs) < self.cfg.min_pour_lancer: return self._erreur(c, 'seul')
+        if self.cfg.exiger_charge and any(j.circuit != reglages.get('circuit') or j.absent for j in salle.joueurs.values()): return self._erreur(c, 'charge')
         salle.commencee = True
         for j in salle.joueurs.values(): j.fin_cmd, j.dernier_controle = 0, -1
         ordre = list(salle.joueurs)
@@ -352,11 +389,21 @@ class Relais:
         for j in list(salle.joueurs.values()):
             if j is not sauf: j.envoyer_texte(texte)
 
+    def _deconnecte(self, c):
+        """La connexion de c est finie. Avant le départ, il reste GRACE s dans la salle (il recharge sa page) : ni « parti » ni nouvel hôte."""
+        salle = c.salle
+        if salle is None: return
+        if salle.commencee or self.cfg.grace <= 0 or not c.jeton: return self._sortir(c)
+        c.absent, c.circuit = True, None
+        self._diffuser(salle, self._liste(salle))
+        c.grace_minuteur = asyncio.get_running_loop().call_later(self.cfg.grace, lambda: self._sortir(c) if c.absent and c.salle is not None else None)
+
     def _sortir(self, c):
         salle = c.salle
         if salle is None: return
         c.salle = None
-        salle.joueurs.pop(c.id, None)
+        if c.grace_minuteur: c.grace_minuteur.cancel()
+        if salle.joueurs.get(c.id) is c: salle.joueurs.pop(c.id, None)
         c.pret = False
         if not salle.joueurs:
             self.salles.pop(salle.code, None)
@@ -374,7 +421,10 @@ class Relais:
             limite = self.cfg.attente_course if salle.commencee else self.cfg.attente_salle
             if now - salle.activite > limite:
                 journal.info('salle %s expirée', salle.code)
-                for j in list(salle.joueurs.values()): j.couper(1001, 'salle expirée')
+                for j in list(salle.joueurs.values()):
+                    if j.absent: j.salle = None
+                    else: j.couper(1001, 'salle expirée')
+                if all(j.absent for j in salle.joueurs.values()): self.salles.pop(salle.code, None)
 
     async def _boucle_nettoyage(self):
         while True:

@@ -3851,9 +3851,10 @@ enlT('en ligne : rien ne lit le hasard du navigateur ni l’horloge pendant une 
   v(b.parties.get('a').e.meteo&&b.parties.get('a').moi.v.pneus,'météo et pneus présents');});
 enlT('en ligne : les messages sortants suivent le protocole (cmd par paquets sans trou, controle toutes les EN_LIGNE_CONTROLE pas), les messages reçus abîmés ou des autres salles sont ignorés', ()=>{
   const out=[],p=EN_LIGNE.demarrer({reglages:ENL_REG,graine:7,ordre:['x','y']},'x',m=>out.push(m),{circuit:C,carte:CARTES_T.test});
-  const delai=p.delai,y=[];for(let k=0;k<400;k++) y.push(EN_LIGNE.CODE_NEUTRE);
-  p.recevoir({t:'cmd',de:'y',n:delai,c:y});p.local={gaz:1,frein:0,direction:0.5,remise:false};
-  v(p.avancer(300)===300,'300 pas');
+  const delai=p.delai;let suivant=delai,faits=0;
+  p.local={gaz:1,frein:0,direction:0.5,remise:false};
+  while(faits<300){while(suivant<p.n+2*delai){p.recevoir({t:'cmd',de:'y',n:suivant,c:[EN_LIGNE.CODE_NEUTRE,EN_LIGNE.CODE_NEUTRE,EN_LIGNE.CODE_NEUTRE,EN_LIGNE.CODE_NEUTRE]});suivant+=4;}faits+=p.avancer(4);}
+  v(faits===300,'300 pas');
   const cmds=out.filter(m=>m.t==='cmd'),ctrl=out.filter(m=>m.t==='controle');
   v(cmds.length>=70&&cmds.every(m=>Array.isArray(m.c)&&m.c.length===REGLAGES.EN_LIGNE_PAQUET&&m.c.every(EN_LIGNE.codeValide)),'paquets : '+cmds.length);
   v(cmds[0].n===delai&&cmds.every((m,i)=>i===0||m.n===cmds[i-1].n+cmds[i-1].c.length),'paquets sans trou, le premier au pas du délai');
@@ -4024,6 +4025,22 @@ enlT('en ligne : le vrai chemin (sans circuit ni carte donnés : circuit et cart
     v(REGLAGES.EN_LIGNE===false&&REGLAGES.EN_LIGNE_NOMS_LIBRES===false&&REGLAGES.EN_LIGNE_URL==='','réglages d’avant');
     const c=RESEAU.client({transport:'memoire'});v(c.etat==='ferme'&&!c.enSalle(),'rien d’ouvert');});
 }
+
+enlT('en ligne : (relecture) rien de trop en avance n’est gardé (un client abîmé ne remplit pas la mémoire), un contrôle hors pas ou d’une forme fausse est jeté, preparerCircuit donne le circuit et la carte que demarrer retrouve', ()=>{
+  const neutre=EN_LIGNE.CODE_NEUTRE,nouvelle=()=>EN_LIGNE.demarrer({reglages:ENL_REG,graine:7,ordre:['x','y']},'x',()=>{},{circuit:C,carte:CARTES_T.test});
+  const p=nouvelle(),delai=p.delai;
+  p.recevoir({t:'cmd',de:'y',n:delai+100000,c:[neutre,neutre]});p.recevoir({t:'cmd',de:'y',n:delai+3*delai,c:[neutre]});p.recevoir({t:'cmd',de:'y',n:delai,c:new Array(5000).fill(neutre)});
+  p.quitter('y');p.terminer();v(p.sortis.get('y')===delai-1,'une commande trop en avance a été gardée : dernier pas '+p.sortis.get('y'));
+  // le flux normal, alimenté au fil des pas (jamais plus de 2 délais d'avance) : un contrôle sur un pas qui n'est pas un multiple, ou d'une forme fausse, ne change rien ; un contrôle faux au bon pas = désynchro
+  const course=(msgControle)=>{const q=nouvelle();let suivant=delai,envoye=false;
+    for(let k=0;k<300;k+=4){while(suivant<q.n+2*delai){q.recevoir({t:'cmd',de:'y',n:suivant,c:[neutre,neutre,neutre,neutre]});suivant+=4;}
+      if(!envoye&&q.n>=100){for(const m of msgControle) q.recevoir(m);envoye=true;}q.avancer(4);}q.terminer();return q;};
+  const mauvais=[{t:'controle',de:'y',n:121,h:5},{t:'controle',de:'y',n:120,h:'abc'},{t:'controle',de:'y',n:120,h:-4},{t:'controle',de:'y',n:120,h:1.5},{t:'controle',de:'y',n:1200000,h:5},{t:'controle',de:'y',n:-120,h:5}];
+  v(course(mauvais).desynchro===null,'un contrôle mal formé a compté');
+  const d=course([{t:'controle',de:'y',n:120,h:5}]).desynchro;v(d&&d.n===120&&d.de==='y'&&d.siens===5,'un contrôle faux au pas 120 : '+JSON.stringify(d));
+  const prep=EN_LIGNE.preparerCircuit('test');v(prep.circuit&&prep.carte&&EN_LIGNE.preparerCircuit('test').circuit===prep.circuit&&EN_LIGNE.preparerCircuit('test').carte===prep.carte,'preparerCircuit : mêmes objets');
+  v(EN_LIGNE.maths.actives()===0&&EN_LIGNE.preparerCircuit('nimporte').circuit===prep.circuit,'maths rendus ; circuit inconnu = test');
+  const q=EN_LIGNE.demarrer({reglages:ENL_REG,graine:7,ordre:['x','y']},'x',()=>{});v(q.e.circuit===prep.circuit&&q.e.carte===prep.carte,'demarrer retrouve le circuit et la carte préparés');q.terminer();});
 
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 ecrire();
