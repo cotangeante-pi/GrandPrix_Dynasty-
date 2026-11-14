@@ -767,7 +767,7 @@ def enligne_ecran(pg, titre, l, h, page):
     entre = attendre(pg, '() => JEU.ecran === "enligneSalle" && !!ENLIGNE_ECRAN.etat().joueurs.find(j => j.id === ENLIGNE_ECRAN.etat().moi)', None, 5000)
     moi_nom = pg.evaluate('() => { const e = ENLIGNE_ECRAN.etat(); const j = e.joueurs.find(x => x.id === e.moi); return j ? j.nom : null; }')
     t(f'{titre} : une couleur déjà prise dans la salle (D1) : le nom sur le fil est l’id de la couleur, « bleu-2 » à la 2e tentative, jamais le nom traduit', entre and moi_nom == 'bleu-2', str(moi_nom))
-    t(f'{titre} : le nom affiché est traduit chez chacun (« Pilote Bleu 2 » / « Blue driver 2 »), les amis aussi, aucun id brut', pg.evaluate('() => { const l = [...document.querySelectorAll("#enligneListe .nom")].map(e => e.textContent); return l.some(x => x.includes(texte("enligneCouleur_bleu") + " 2")) && l.every(x => !/^[a-z]+(-[2-8])?( \\(|$)/.test(x)); }'), pg.evaluate('() => [...document.querySelectorAll("#enligneListe .nom")].map(e => e.textContent)'))
+    t(f'{titre} : le nom affiché est traduit chez chacun (« Pilote Bleu 2 » / « Blue driver 2 »), les amis aussi, aucun id brut', pg.evaluate('() => { const l = [...document.querySelectorAll("#enligneListe .nom")].map(e => e.textContent); return l.some(x => x.includes(texte("enligneNom").replace("{c}", texte("enligneCouleur_bleu")) + " 2")) && l.every(x => !/^[a-z]+(-[2-8])?( \\(|$)/.test(x)); }'), pg.evaluate('() => [...document.querySelectorAll("#enligneListe .nom")].map(e => e.textContent)'))
     pg.keyboard.press('Escape'); attendre(pg, '() => JEU.ecran === "enligne"', None, 3000)
     pg.click('#enligneCouleurs button >> nth=6')
     pg.click('#boutonEnligneRejoindre')
