@@ -15,7 +15,7 @@
 // En BroadcastChannel, la page de l'hôte est le relais : elle ne se recharge pas (l'hôte n'y propose que le circuit de sa page).
 //
 // Les paramètres de l'adresse : enlignecourse=menu|reprise|hote|CODE, canal=<nom du BroadcastChannel>, joueurs=N (l'hôte attend N joueurs), tours=N, ia=N,
-// nom=<nom permis>, robot=1 (le robot d'essai conduit), transport=diffusion|websocket|memoire.
+// nom=<l'id d'une couleur : bleu, rouge…>, robot=1 (le robot d'essai conduit), transport=diffusion|websocket|memoire.
 const ENLIGNE_PAGE = (function () {
   const R = REGLAGES;
   const etat = { actif: false, client: null, role: null, partie: null, depart: null, tampon: [], joueurs: [], code: null, erreur: null, statut: '', attendus: 2, lance: false, termine: false };
@@ -36,12 +36,15 @@ const ENLIGNE_PAGE = (function () {
     etat.attendus = Math.max(2, Math.min(R.EN_LIGNE_JOUEURS_MAX, Math.floor(Number(parametres.get('joueurs'))) || 2));
     etat.tours = Math.max(1, Math.floor(Number(parametres.get('tours'))) || 1);
     etat.nbIA = Math.max(0, Math.floor(Number(parametres.get('ia'))) || 0);
-    etat.nom = parametres.get('nom') || (etat.role === 'hote' ? 'Pilote 1' : 'Pilote 2');
+    etat.nom = parametres.get('nom') || (etat.role === 'hote' ? 'bleu' : 'rouge');   // (D1 : l'id d'une couleur)
     etat.canal = parametres.get('canal') || undefined;
     etat.transport = parametres.get('transport') || (R.EN_LIGNE_URL ? 'websocket' : 'diffusion');
     if (etat.ecrans) {
       // l'hôte voit d'abord le circuit de cette page ; en BroadcastChannel (sa page est le relais, elle ne peut pas se recharger) il n'a que celui-là
-      R.EN_LIGNE_REGLAGES_DEFAUT = Object.assign({}, R.EN_LIGNE_REGLAGES_DEFAUT, { circuit: NOM_CIRCUIT });
+      const choix = { circuit: NOM_CIRCUIT };
+      if (parametres.has('tours')) choix.tours = etat.tours;
+      if (parametres.has('ia')) choix.nbIA = etat.nbIA;
+      R.EN_LIGNE_REGLAGES_DEFAUT = Object.assign({}, R.EN_LIGNE_REGLAGES_DEFAUT, choix);
       if (etat.transport === 'diffusion') R.EN_LIGNE_CIRCUITS_CHOIX = [NOM_CIRCUIT];
       if (typeof ENLIGNE_ECRAN !== 'undefined') ENLIGNE_ECRAN.fabrique = fabrique;
     }
@@ -58,6 +61,7 @@ const ENLIGNE_PAGE = (function () {
       return null;
     }
     dire(texte('enl_connexion'));
+    preparerCircuit({ circuit: NOM_CIRCUIT });
     const c = RESEAU.client({ transport: etat.transport, canal: etat.canal, ping: true, circuit: NOM_CIRCUIT });
     brancher(c);
     c.ouvrir().then(() => {
@@ -81,7 +85,8 @@ const ENLIGNE_PAGE = (function () {
         case 'salle': etat.code = m.code; if (!etat.ecrans) majSalle(); break;
         case 'joueurs': etat.joueurs = m.liste; if (!etat.ecrans) { majSalle(); essayerLancer(); } break;
         case 'refus': if (!etat.ecrans) dire(texte('enl_refus_' + m.raison) || m.raison); break;
-        case 'reglages': if (etat.ecrans) verifierCircuit(m.reglages); break;
+        case 'reglages': if (etat.ecrans) { verifierCircuit(m.reglages); preparerCircuit(m.reglages); } break;
+        case 'retour': retourALaSalle(); break;
         case 'depart': recevoirDepart(m); break;
         case 'cmd': case 'controle': case 'parti':
           if (etat.partie) etat.partie.recevoir(m); else etat.tampon.push(m);
@@ -91,6 +96,19 @@ const ENLIGNE_PAGE = (function () {
         default:
       }
     });
+  }
+
+  // le circuit de la course et sa carte, calculés avec nos Math d'avance (une à deux secondes) : dans la salle, dès que l'hôte a choisi (ou ici, pour l'entrée directe)
+  function preparerCircuit(reglages) {
+    if (!reglages || reglages.circuit !== NOM_CIRCUIT || etat.partie) return;
+    try { EN_LIGNE.preparerCircuit(reglages.circuit); } catch (e) { etat.erreur = 'circuit'; }
+  }
+  // l'hôte a dit « retour » : la salle se rouvre (les « prêt » repartent à faux) ; la course d'avant est finie
+  function retourALaSalle() {
+    if (etat.partie) { etat.partie.terminer(); }
+    etat.partie = null; etat.depart = null; etat.tampon = []; etat.lance = false; etat.erreur = null;
+    if (etat.ecrans && typeof ENLIGNE_ECRAN !== 'undefined' && ENLIGNE_ECRAN.retourSalle) ENLIGNE_ECRAN.retourSalle();
+    else if (!etat.ecrans) { dire(''); if (JEU.ecran === 'podium' || JEU.ecran === 'resultats') location.href = location.pathname; }
   }
 
   // --- le circuit et le rechargement ---
@@ -106,7 +124,7 @@ const ENLIGNE_PAGE = (function () {
     if (!c || !c.code || !c.jeton) return false;
     RESEAU.session.ecrire(c, { circuit });
     const p = new URLSearchParams({ enlignecourse: 'reprise', circuit });
-    for (const k of ['canal', 'transport', 'lang']) if (PARAMETRES.get(k)) p.set(k, PARAMETRES.get(k));
+    for (const k of ['canal', 'transport', 'lang', 'robot', 'tours', 'ia']) if (PARAMETRES.get(k)) p.set(k, PARAMETRES.get(k));
     location.href = location.pathname + '?' + p.toString();   // (jamais c.fermer() : un « quitter » ferait perdre la place ; la connexion tombe, la grâce la garde)
     return true;
   }
@@ -151,16 +169,19 @@ const ENLIGNE_PAGE = (function () {
   // à chaque image : la course démarre dès que le départ est arrivé et que la carte des IA est prête
   function image() {
     if (!etat.actif) return;
-    if (etat.depart && !etat.partie && JEU.carte) demarrerCourse();
+    if (etat.depart && !etat.partie) demarrerCourse();
     const p = etat.partie;
-    if (p && p.desynchro && !etat.erreur) { etat.erreur = 'desynchro'; dire(texte('enl_desynchro')); }
+    if (p && p.desynchro && !etat.erreur) { etat.erreur = 'desynchro'; p.terminer(); dire(texte('enl_desynchro')); }
+    // la course est finie (podium, résultats, salle) : nos Math reviennent (les fonctions de la page ne sont plus remplacées)
+    if (p && JEU.ecran !== 'course' && JEU.ecran !== 'pause') p.terminer();
   }
 
   const COULEURS_HUMAINS = () => R.DEUX_COULEURS_CHOIX;
 
   function demarrerCourse() {
     const c = etat.client, d = etat.depart;
-    const partie = EN_LIGNE.demarrer(d, c.moi, msg => c.envoyer(msg), { carte: JEU.carte, circuit: CIRCUIT });
+    // le cœur construit lui-même le circuit et sa carte avec nos Math (identiques sur tous les navigateurs : relecture T11, point 5) ; la page garde CIRCUIT pour le dessin
+    const partie = EN_LIGNE.demarrer(d, c.moi, msg => c.envoyer(msg), {});
     etat.partie = partie;
     const e = partie.e, P = e.pilotes;
     JEU.plateau = e;
@@ -172,12 +193,14 @@ const ENLIGNE_PAGE = (function () {
     VOITURE3D.preparerCasques(P.map(() => CASQUE.neutre()));
     VOITURE3D.preparerLivrees(P.map((p, k) => k < nbIA ? LIVREE.pourVoiture(JEU.couleurs[k], LIVREE.ecurie(k), p.numero)
       : LIVREE.pourVoiture(JEU.couleurs[k], LIVREE.creer(R.LIVREE_DEUX[(k - nbIA) % R.LIVREE_DEUX.length], R.DEUX_COULEURS_CHOIX[(k - nbIA + 1) % humains.length]), p.numero)));
+    for (const m of JEU.modeles) m.groupe.visible = false;   // les voitures d'une course d'avant (retour à la salle, puis une autre course)
     JEU.modeles = [];
     JEU.couleurs.forEach((couleur, k) => JEU.modeles.push(VOITURE3D.creer(couleur, k === JEU.ia, undefined, k, k)));
     for (const m of JEU.modeles) SCENE3D.ajouter(m.groupe);
     if (JEU.modele) JEU.modele.groupe.visible = false;   // la voiture « seul en piste » du chargement
     suivre(JEU.ia);
     SCENE3D.colorerRepereStand(JEU.couleurs[JEU.ia]);
+    finirAttente();
     JEU.apresArrivee = 0; JEU.arretApres = null; JEU.signal = null; JEU.final = null;
     JEU.enregistreur = creerEnregistrement();
     JEU.departRecord = false;
@@ -217,12 +240,20 @@ const ENLIGNE_PAGE = (function () {
     return e.temps - Math.max(...encore.map(q => q.arrivee)) >= R.ARRIVEE_ATTENTE_MAX;
   }
 
-  // les résultats : de retour à la salle (T5/T8 ; pour l'instant on quitte proprement)
+  // le bouton des résultats : de retour à la salle. L'hôte le dit à tous (« retour » : les prêts repartent à faux, la salle accepte de nouveau) ; les autres
+  // y vont tout de suite et attendent. Sans écrans de salle (l'entrée directe des essais), on quitte la page.
   function retourSalle() {
     const c = etat.client;
+    if (etat.partie) etat.partie.terminer();
+    if (c && c.depart && c.estHote()) c.retour();
+    if (etat.ecrans && typeof ENLIGNE_ECRAN !== 'undefined' && ENLIGNE_ECRAN.retourSalle) {
+      etat.partie = null; etat.depart = null; etat.tampon = []; etat.lance = false;
+      if (c && !c.estHote()) c.depart = null;   // (l'invité n'attend plus la course d'avant ; le « retour » de l'hôte rouvre la salle pour de bon)
+      ENLIGNE_ECRAN.retourSalle();
+      return;
+    }
     etat.termine = true;
-    if (c) { if (c.estHote() && c.depart) c.retour(); }
-    if (typeof ENLIGNE_ECRANS !== 'undefined' && ENLIGNE_ECRANS.retourSalle) ENLIGNE_ECRANS.retourSalle(c); else location.href = location.pathname;
+    location.href = location.pathname;
   }
 
   // le classement final et ses empreintes, pour les tests (le même chez tous les clients)

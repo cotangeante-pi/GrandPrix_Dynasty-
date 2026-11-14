@@ -1514,9 +1514,7 @@ const REGLAGES = {
   EN_LIGNE_CANAL: 'gpd-en-ligne',   // le nom du BroadcastChannel (deux onglets du même navigateur, sans serveur)
   EN_LIGNE_GRACE: 20,           // s : un joueur dont la connexion tombe garde sa place (même id, même rôle) et peut se rattacher avec le jeton de sa salle (rechargement sur le bon circuit)
   EN_LIGNE_JOUEURS_MIN: 2,      // pour lancer une course
-  EN_LIGNE_NOM_MAX: 20,         // lettres d'un nom
-  EN_LIGNE_NOMS_COULEURS: ['Rouge', 'Bleu', 'Vert', 'Jaune', 'Orange', 'Violet', 'Rose', 'Blanc'],   // …un nom de la liste peut porter une de ces couleurs (« Éclair Rouge ») ; ceux des écrans : « Pilote <couleur> » (textes.js : enligneNom)
-  EN_LIGNE_NOMS: ['Éclair', 'Turbo', 'Comète', 'Fusée', 'Tonnerre', 'Mistral', 'Phénix', 'Faucon', 'Panthère', 'Requin', 'Étoile', 'Tempête'],
+  EN_LIGNE_NOM_MAX: 20,         // lettres d'un nom (noms libres seulement : sinon l'id d'une couleur de EN_LIGNE_COULEURS, avec -2 à -8)
   EN_LIGNE_TAILLE_MAX: 4096,    // caractères d'un message ; au-delà il est jeté
   EN_LIGNE_OUVERTURE_MS: 5000,  // attente de l'ouverture d'un WebSocket
   EN_LIGNE_ATTENTE_MS: 600,     // BroadcastChannel : sans réponse d'une salle après ce temps = « inconnue »

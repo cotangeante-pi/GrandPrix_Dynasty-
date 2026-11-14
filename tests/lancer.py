@@ -75,7 +75,7 @@ def chasse_en(delai=600):
     print(out.strip()); print(f'⏱ tests/chasse-en.py : {time.monotonic() - t0:.0f} s')
     return p.returncode == 0 and '✘' not in out
 
-def enligne_course(delai=420):
+def enligne_course(delai=600):
     # (tour 56, T7) une course en ligne de bout en bout : deux pages de la vraie page reliées par un BroadcastChannel, 1 tour, mêmes résultats (tests/enligne-course.py)
     t0 = time.monotonic()
     p = subprocess.Popen([sys.executable, os.path.join(RACINE, 'tests', 'enligne-course.py'), 'court'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True)

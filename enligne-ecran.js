@@ -23,12 +23,15 @@ const ENLIGNE_ECRAN = (function () {
   const api = { fabrique: () => ENLIGNE_FAUX.creer() };
 
   const nomDe = id => texte('enligneNom').replace('{c}', texte('enligneCouleur_' + id));
-  const couleurDeNom = nom => R.EN_LIGNE_COULEURS.find(c => nomDe(c.id) === nom) || null;
+  // (D1) le nom qui voyage est l'id de la couleur (« rouge », « rouge-2 » si elle est prise) ; chaque client l'affiche traduit (« Pilote rouge 2 » / « Red driver 2 »)
+  const idDeNom = nom => String(nom).replace(/-[2-8]$/, '');
+  const couleurDeNom = nom => R.EN_LIGNE_COULEURS.find(c => c.id === idDeNom(nom)) || null;
+  const nomAffiche = nom => { const c = couleurDeNom(nom), s = /-([2-8])$/.exec(nom); return c ? nomDe(c.id) + (s ? ' ' + s[1] : '') : String(nom); };
   function couleurChoisie() {
     const i = Number(SAUVEGARDE.option('enligne_couleur', 0));
     return Number.isInteger(i) && i >= 0 && i < R.EN_LIGNE_COULEURS.length ? i : 0;
   }
-  const nomChoisi = () => nomDe(R.EN_LIGNE_COULEURS[couleurChoisie()].id);
+  const nomChoisi = () => R.EN_LIGNE_COULEURS[couleurChoisie()].id;   // (D1) l'id sur le fil
   const bouton = (id, f) => { const b = $(id); b.tabIndex = 0; b.addEventListener('mousedown', e => e.preventDefault()); b.addEventListener('click', f); return b; };
   const vide = el => { el.textContent = ''; return el; };
 
@@ -39,7 +42,7 @@ const ENLIGNE_ECRAN = (function () {
     $('boutonEnligneCreer').textContent = texte('enligneCreer');
     $('boutonEnligneRejoindre').textContent = texte('enligneRejoindre');
     $('boutonEnligneRetour').textContent = texte('enligneRetour');
-    $('enligneNomChoisi').textContent = texte('enligneNomChoisi').replace('{nom}', nomChoisi());
+    $('enligneNomChoisi').textContent = texte('enligneNomChoisi').replace('{nom}', nomAffiche(nomChoisi()));
     const boite = vide($('enligneCouleurs'));
     boite.setAttribute('aria-label', texte('enligneCouleur'));
     R.EN_LIGNE_COULEURS.forEach((c, i) => {
@@ -104,7 +107,7 @@ const ENLIGNE_ECRAN = (function () {
       if ((!hote || repris) && m.reglages && typeof m.reglages === 'object') { for (const x of regles()) if (m.reglages[x.cle] !== undefined && (x.cle === 'nbIA' ? Number.isInteger(m.reglages[x.cle]) : x.valeurs.includes(m.reglages[x.cle]))) reglages[x.cle] = m.reglages[x.cle]; majSalle(); }
     } else if (m.t === 'parti') {
       const j = joueurs.find(x => x.id === m.id);
-      if (j) dirNote(texte('enligneParti').replace('{nom}', j.nom));
+      if (j) dirNote(texte('enligneParti').replace('{nom}', nomAffiche(j.nom)));
     } else if (m.t === 'nouvel-hote') {
       if (m.id === moi) { hote = true; dirNote(texte('enligneNouvelHote')); }
       majSalle();
@@ -177,7 +180,7 @@ const ENLIGNE_ECRAN = (function () {
       if (j.id === moi) li.className = 'moi';
       const pastille = document.createElement('i'); const c = couleurDeNom(j.nom);
       pastille.className = 'pastille'; pastille.style.background = c ? hex(c.hex) : '#8a8f9c';
-      const nom = document.createElement('span'); nom.className = 'nom'; nom.textContent = j.nom + (j.id === moi ? ' (' + texte('enligneToi') + ')' : '');
+      const nom = document.createElement('span'); nom.className = 'nom'; nom.textContent = nomAffiche(j.nom) + (j.id === moi ? ' (' + texte('enligneToi') + ')' : '');
       const etat = document.createElement('span'); etat.className = 'etat';
       etat.textContent = j.hote ? '★ ' + texte('enligneHote') : j.pret ? '✔ ' + texte('enlignePret') : '… ' + texte('enlignePasPret');
       li.append(pastille, nom, etat);
@@ -255,6 +258,12 @@ const ENLIGNE_ECRAN = (function () {
   }
   api.ouvrir = function () { remiseAZero(); aller('enligne'); };
   // (T7b) la page s'est rechargée sur le bon circuit : on se rattache à la même salle avec le jeton gardé (code, nom, jeton : reseau.js, RESEAU.session)
+  // (T7) la course est finie : on revient à la salle d'attente (la même connexion, les « prêt » à faux) ; sans connexion, au menu
+  api.retourSalle = function () {
+    if (!transport) { remiseAZero(); aller('enligne'); return; }
+    pretMoi = false; emotes = {}; note = '';
+    aller('enligneSalle');
+  };
   api.reprendre = function (s) {
     remiseAZero(); repris = true; aller('enligne');
     dire('enligneMessage', texte('enligneConnexion'));

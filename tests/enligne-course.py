@@ -33,12 +33,12 @@ def course(b, nom, ia, joueurs=2, tours=1):
         pg.on('console', lambda m, i=i: erreurs.append('console %d : %s' % (i, m.text)) if m.type in ('error', 'warning') else None)
         pages.append(pg)
     base = 'file://' + RACINE + '/index.html?circuit=test&robot=1&tours=%d&ia=%d&canal=%s&joueurs=%d' % (tours, ia, canal, joueurs)
-    pages[0].goto(base + '&enlignecourse=hote&nom=Pilote%201')
+    pages[0].goto(base + '&enlignecourse=hote&nom=bleu', wait_until='domcontentloaded', timeout=120000)
     pages[0].wait_for_function('() => window.__enligne && window.__enligne.code', timeout=30000)
     code = pages[0].evaluate('() => window.__enligne.code')
     dire(len(code) == 4 and not any(c in 'AEIOUY' for c in code), nom + ' : un code de salle sans voyelle', code)
     for i in range(1, joueurs):
-        pages[i].goto(base + '&enlignecourse=%s&nom=Pilote%%20%d' % (code, i + 1))
+        pages[i].goto(base + '&enlignecourse=%s&nom=%s' % (code, ['bleu', 'rouge', 'jaune', 'vert'][i]), wait_until='domcontentloaded', timeout=120000)
     for pg in pages:
         pg.wait_for_function('() => window.__enligne && window.__enligne.partie', timeout=60000)
     dire(True, nom + ' : la course part sur les %d pages' % joueurs)
@@ -56,12 +56,75 @@ def course(b, nom, ia, joueurs=2, tours=1):
     dire(not erreurs, nom + ' : console vide', erreurs[:3])
     ctx.close()
 
+def salle_prete(pg, nom):
+    pg.wait_for_function('() => ENLIGNE_ECRAN.etat().ecran === "enligneSalle"', timeout=30000)
+
+def course_ecrans(b, nom='écrans de salle'):
+    # les vrais écrans de salle (enligne-ecran.js) : l'hôte crée sa salle sur le circuit « technique », l'invité (page chargée sur le circuit « test ») la rejoint par son code,
+    # voit le circuit de l'hôte et se recharge dessus (jeton, grâce du relais), se met prêt ; l'hôte lance ; 1 tour ; retour à la salle ; une 2e course ; mêmes résultats
+    ctx = b.new_context(viewport={'width': 960, 'height': 600})
+    erreurs = []; canal = 'ecrans-%d-%d' % (os.getpid(), time.time())
+    hote = ctx.new_page(); invite = ctx.new_page(); pages = [hote, invite]
+    for i, pg in enumerate(pages):
+        pg.set_default_timeout(30000)
+        pg.on('pageerror', lambda e, i=i: erreurs.append('page %d : %s' % (i, e)))
+        pg.on('console', lambda m, i=i: erreurs.append('console %d : %s' % (i, m.text)) if m.type in ('error', 'warning') else None)
+    base = 'file://' + RACINE + '/index.html?robot=1&tours=1&ia=0&canal=' + canal
+    hote.goto(base + '&circuit=technique&enlignecourse=menu', wait_until='domcontentloaded', timeout=120000)
+    hote.wait_for_function('() => ENLIGNE_ECRAN.etat().ecran === "enligne"')
+    hote.click('#boutonEnligneCreer'); salle_prete(hote, 'hote')
+    etat = hote.evaluate('() => ENLIGNE_ECRAN.etat()'); code = etat['code']
+    dire(len(code) == 4 and etat['hote'], nom + ' : l\'hôte crée la salle ' + code, etat)
+    dire(etat['reglages']['circuit'] == 'technique', nom + ' : l\'hôte propose le circuit de sa page', etat['reglages'])
+    invite.goto(base + '&circuit=test&enlignecourse=menu', wait_until='domcontentloaded', timeout=120000)
+    invite.wait_for_function('() => ENLIGNE_ECRAN.etat().ecran === "enligne"')
+    invite.click('#boutonEnligneRejoindre'); invite.fill('#enligneCode', code); invite.click('#boutonEnligneGo')
+    # l'invité se recharge sur le circuit de l'hôte puis revient dans la salle
+    invite.wait_for_function('() => /circuit=technique/.test(location.search) && /enlignecourse=reprise/.test(location.search)', timeout=30000)
+    invite.wait_for_function('() => window.ENLIGNE_ECRAN && ENLIGNE_ECRAN.etat().ecran === "enligneSalle" && ENLIGNE_ECRAN.etat().joueurs.length === 2', timeout=60000)
+    ei = invite.evaluate('() => ENLIGNE_ECRAN.etat()')
+    dire(sorted(j['nom'] for j in ei['joueurs']) == ['bleu', 'bleu-2'], nom + ' : les noms sur le fil (la couleur prise reçoit -2)', [j['nom'] for j in ei['joueurs']])
+    dire(not any(j.get('absent') for j in ei['joueurs']), nom + ' : l\'invité est revenu dans la salle (même place)', ei['joueurs'])
+    hote.wait_for_function('() => ENLIGNE_ECRAN.etat().joueurs.length === 2 && ENLIGNE_ECRAN.etat().joueurs.every(j => j.circuit === "technique")', timeout=30000)
+    dire(True, nom + ' : les deux pages ont annoncé le circuit « technique »')
+    invite.click('#boutonEnlignePret')
+    hote.wait_for_function('() => !document.getElementById("boutonEnligneLancer").disabled', timeout=30000)
+    for k in (1, 2):
+        if k == 2:
+            hote.wait_for_function('() => !document.getElementById("boutonEnligneLancer").disabled', timeout=30000)
+        hote.click('#boutonEnligneLancer')
+        for pg in pages:
+            pg.wait_for_function('() => window.__enligne && window.__enligne.partie', timeout=120000)
+        dire(True, nom + ' : course %d : elle part sur les 2 pages' % k)
+        t0 = time.monotonic(); resumes = None
+        while time.monotonic() - t0 < 700:
+            resumes = [pg.evaluate('() => { if (JEU.ecran === "course") BOUCLE.simuler(24); return ENLIGNE_PAGE.resume(); }') for pg in pages]
+            if all(r['ecran'] in ('podium', 'resultats') for r in resumes) or any(r['desynchro'] for r in resumes): break
+            time.sleep(0.02)
+        dire(all(r['ecran'] in ('podium', 'resultats') for r in resumes), nom + ' : course %d : les deux pages arrivent au podium (%.0f s)' % (k, time.monotonic() - t0), [r['ecran'] for r in resumes])
+        dire(not any(r['desynchro'] for r in resumes), nom + ' : course %d : aucune désynchro' % k)
+        dire(all(r['final'] is not None and r['final'] == resumes[0]['final'] for r in resumes) and all(r['arrivees'] == resumes[0]['arrivees'] for r in resumes), nom + ' : course %d : mêmes résultats partout' % k, [r['final'] for r in resumes])
+        # nos Math sont rendues (terminer) : plus de fonction remplacée après la course
+        pg_maths = [pg.evaluate('() => (ENLIGNE_PAGE.etat.partie ? ENLIGNE_PAGE.etat.partie : null) && Math.sin.toString().includes("[native code]")') for pg in pages]
+        if k == 1:
+            hote.evaluate('() => ENLIGNE_PAGE.retourSalle()')
+            for pg in pages:
+                pg.wait_for_function('() => ENLIGNE_ECRAN.etat().ecran === "enligneSalle" && !window.__enligne.partie', timeout=30000)
+            dire(all(pg.evaluate('() => Math.sin.toString().includes("[native code]") && Math.atan2.toString().includes("[native code]")') for pg in pages), nom + ' : les Math du navigateur sont revenues')
+            invite.wait_for_function('() => ENLIGNE_ECRAN.etat().joueurs.every(j => !j.pret || j.hote)', timeout=30000)
+            invite.click('#boutonEnlignePret')
+            dire(True, nom + ' : retour à la salle, les prêts repartent à faux, on se remet prêt')
+    dire(not erreurs, nom + ' : console vide', erreurs[:3])
+    ctx.close()
+
 with sync_playwright() as p:
     b = p.chromium.launch(channel='chrome', args=['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--allow-file-access-from-files', '--disable-audio-output'])
     try:
         mode = sys.argv[1] if len(sys.argv) > 1 else ''
-        if mode != 'ia': course(b, 'deux joueurs, 0 IA', 0)
+        if mode == 'ecrans': course_ecrans(b)
+        elif mode != 'ia': course(b, 'deux joueurs, 0 IA', 0)
         if mode in ('', 'ia'): course(b, 'deux joueurs, 2 IA', 2)
+        if mode in ('', 'court'): course_ecrans(b)
     finally:
         b.close()
 print('RESULTAT ' + ('OK' if ok_tout else 'ECHEC'))

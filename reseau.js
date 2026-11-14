@@ -16,45 +16,44 @@ const RESEAU = (function () {
   const TYPES_CLIENT = ['creer', 'rejoindre', 'pret', 'reglages', 'charge', 'lancer', 'retour', 'cmd', 'controle', 'emote', 'quitter', 'ping'];
 
   // ---------------------------------------------------------------- les noms (jamais de texte libre devant des enfants)
-  // les noms permis (EN_LIGNE_NOMS_LIBRES faux) : « Pilote <couleur> » / « <couleur> driver » des écrans (textes.js, dans les deux langues, avec un
-  // numéro facultatif pour deux joueurs de la même couleur), un nom de la liste (EN_LIGNE_NOMS) avec ou sans couleur, ou « Pilote N »
-  function nomsDesEcrans() {
-    const noms = new Set();
-    if (typeof TEXTES === 'undefined') return noms;
-    for (const l of Object.keys(TEXTES)) {
-      const t = TEXTES[l];
-      if (!t || !t.enligneNom || !Array.isArray(R.EN_LIGNE_COULEURS)) continue;
-      for (const c of R.EN_LIGNE_COULEURS) if (c && t['enligneCouleur_' + c.id]) noms.add(t.enligneNom.replace('{c}', t['enligneCouleur_' + c.id]));
-    }
-    return noms;
-  }
-  let nomsEcrans = null;
+  // D1 : le nom qui voyage est neutre de langue : l'id d'une couleur de EN_LIGNE_COULEURS (« rouge »), suivi de « -2 » à « -8 » quand la couleur est déjà
+  // prise dans la salle (le relais choisit le suffixe) ; chaque client affiche le nom traduit (« Pilote rouge » / « Red driver »). EN_LIGNE_NOMS_LIBRES
+  // vrai (plus tard) : des lettres, des chiffres, des espaces.
   function nomAutorise(nom) {
     if (typeof nom !== 'string') return false;
-    const n = nom.trim();
-    if (!n || n.length > R.EN_LIGNE_NOM_MAX) return false;
-    if (R.EN_LIGNE_NOMS_LIBRES) return /^[\p{L}\p{N} _-]+$/u.test(n);
-    if (!nomsEcrans) nomsEcrans = nomsDesEcrans();
-    if (nomsEcrans.has(n)) return true;
-    const m = /^(.*) [1-9][0-9]?$/.exec(n);      // un numéro de plus (deux joueurs de la même couleur)
-    if (m && nomsEcrans.has(m[1])) return true;
-    const mots = n.split(' ');
-    const couleur = mots.length > 1 && R.EN_LIGNE_NOMS_COULEURS.includes(mots[mots.length - 1]);
-    const base = (couleur ? mots.slice(0, -1) : mots).join(' ');
-    return R.EN_LIGNE_NOMS.includes(base) || /^Pilote [1-9][0-9]?$/.test(base);
+    if (R.EN_LIGNE_NOMS_LIBRES) { const n = nom.trim(); return !!n && n.length <= R.EN_LIGNE_NOM_MAX && /^[\p{L}\p{N} _-]+$/u.test(n); }
+    const m = /^([a-z]+)(?:-([2-8]))?$/.exec(nom);
+    return !!m && Array.isArray(R.EN_LIGNE_COULEURS) && R.EN_LIGNE_COULEURS.some(c => c && c.id === m[1]);
   }
   // un nom permis tiré au hasard
   function nomAuHasard(hasard) {
-    const h = hasard || Math.random, pick = l => l[Math.floor(h() * l.length) % l.length];
-    return pick(R.EN_LIGNE_NOMS) + ' ' + pick(R.EN_LIGNE_NOMS_COULEURS);
+    const h = hasard || Math.random;
+    return R.EN_LIGNE_COULEURS[Math.floor(h() * R.EN_LIGNE_COULEURS.length) % R.EN_LIGNE_COULEURS.length].id;
   }
+
+  // D3 : une seule source des bornes d'une course, le cœur (EN_LIGNE.reglagesValides : circuit connu, tours ≤ EN_LIGNE_TOURS_MAX, météo de EN_LIGNE_METEOS, IA ≤
+  // EN_LIGNE_IA_MAX et voitures ≤ EN_LIGNE_VOITURES_MAX) ; des réglages qu'il faudrait corriger sont refusés, pas corrigés. → les réglages, ou null
+  function reglagesAccepte(g, nbJoueurs) {
+    if (!g || typeof g !== 'object') return null;
+    if (typeof EN_LIGNE === 'undefined' || !EN_LIGNE.reglagesValides) return typeof g.circuit === 'string' && g.circuit && typeof g.meteo === 'string' && Number.isInteger(g.tours) && g.tours >= 1 && Number.isInteger(g.nbIA) && g.nbIA >= 0
+      ? { circuit: g.circuit, tours: g.tours, meteo: g.meteo, nbIA: g.nbIA } : null;
+    const c = EN_LIGNE.reglagesValides(g, nbJoueurs);
+    return c.circuit === g.circuit && c.tours === g.tours && c.meteo === g.meteo && c.nbIA === g.nbIA ? c : null;
+  }
+  // D4 : la version = EN_LIGNE_VERSION + l'empreinte des réglages de la course (le cœur) : deux jeux qui ne calculent pas la même course ne jouent pas ensemble
+  function versionLocale() {
+    if (typeof EN_LIGNE !== 'undefined' && EN_LIGNE.version) { const v = EN_LIGNE.version(); return v.v + '-' + v.h; }
+    return String(R.EN_LIGNE_VERSION);
+  }
+  // D5 : les commandes et les empreintes qui voyagent : un tableau de 1 à 128 entiers de 0 à 16383 ; une empreinte entière de 32 bits ou une chaîne de 64 signes au plus
+  const commandesValides = c => Array.isArray(c) && c.length >= 1 && c.length <= 128 && c.every(x => Number.isInteger(x) && x >= 0 && x <= 16383);
+  const empreinteValide = h => (Number.isInteger(h) && h >= 0 && h <= 4294967295) || (typeof h === 'string' && h.length > 0 && h.length <= 64);
 
   // ---------------------------------------------------------------- le relais (le rôle du serveur : mêmes règles que serveur/relais.py)
   // Sans transport : connecter(sortie) donne une connexion { id, recevoir(msg), fermer() } ; sortie(msg) reçoit ce que le relais lui dit.
   function creerRelais(opt) {
     opt = opt || {};
     const hasard = opt.hasard || Math.random, salles = new Map();
-    const version = opt.version === undefined ? R.EN_LIGNE_VERSION : opt.version;
     const max = opt.max || R.EN_LIGNE_JOUEURS_MAX, min = opt.min || R.EN_LIGNE_JOUEURS_MIN;
     // la grâce (EN_LIGNE_GRACE s) : un joueur dont la connexion tombe garde sa place (même id, même rôle d'hôte, aucun « parti » pour les autres) et peut
     // se rattacher avec le jeton de sa salle : le rechargement de la page sur le bon circuit, une coupure courte
@@ -73,12 +72,6 @@ const RESEAU = (function () {
       return null;
     }
     const entier = (x, a, b) => Number.isInteger(x) && x >= a && x <= b;
-    function reglagesValides(g) {      // les réglages d'une course : une forme fixe, des bornes (jamais de texte libre long)
-      if (!g || typeof g !== 'object') return null;
-      if (typeof g.circuit !== 'string' || !g.circuit || g.circuit.length > 40 || typeof g.meteo !== 'string' || g.meteo.length > 20
-        || !entier(g.tours, 1, R.EN_LIGNE_TOURS_MAX) || !entier(g.nbIA, 0, R.EN_LIGNE_IA_MAX)) return null;
-      return { circuit: g.circuit, tours: g.tours, meteo: g.meteo, nbIA: g.nbIA };
-    }
     const env = (conn, m) => { if (conn.ouverte) conn.sortie(m); };
     function diffuser(salle, m, sauf) { for (const j of salle.joueurs) if (j !== sauf) env(j, m); }
     function liste(salle) { return salle.joueurs.map(j => { const x = { id: j.id, nom: j.nom, pret: j.pret, hote: j === salle.hote }; if (j.circuit !== undefined) x.circuit = j.circuit; if (j.absent) x.absent = true; return x; }); }
@@ -100,19 +93,29 @@ const RESEAU = (function () {
       conn.salle = salle; conn.nom = nom.trim(); conn.pret = false;
       salle.joueurs.push(conn);
       conn.jeton = jetonNouveau();
-      env(conn, { t: 'salle', code: salle.code, toi: conn.id, hote: salle.hote.id, jeton: conn.jeton });
+      env(conn, { t: 'salle', code: salle.code, toi: conn.id, hote: salle.hote.id, jeton: conn.jeton, nom: conn.nom });
       annoncer(salle);
       if (salle.reglages) env(conn, { t: 'reglages', reglages: salle.reglages });     // ceux déjà choisis par l'hôte
     }
 
+    // la couleur est prise : « rouge-2 » à « rouge-8 » (R.EN_LIGNE_NOMS_LIBRES vrai : un nom pris reste refusé)
+    function nomLibre(salle, nom) {
+      const pris = new Set(salle.joueurs.map(j => j.nom.toLowerCase()));
+      if (!pris.has(nom.toLowerCase())) return nom;
+      if (R.EN_LIGNE_NOMS_LIBRES) return null;
+      const base = nom.replace(/-[2-8]$/, '');
+      if (!pris.has(base)) return base;
+      for (let k = 2; k <= 8; k++) if (!pris.has(base + '-' + k)) return base + '-' + k;
+      return null;
+    }
     function reprendre(conn, s, idx) {
       const ancien = s.joueurs[idx];
       if (ancien.minuteur !== null && ancien.minuteur !== undefined) { horloge.annuler(ancien.minuteur); ancien.minuteur = null; }
-      conn.id = ancien.id; conn.nom = ancien.nom; conn.pret = ancien.pret; conn.circuit = ancien.circuit; conn.jeton = ancien.jeton; conn.absent = false; conn.salle = s;
+      conn.id = ancien.id; conn.dernierN = ancien.dernierN; conn.nom = ancien.nom; conn.pret = ancien.pret; conn.circuit = ancien.circuit; conn.jeton = ancien.jeton; conn.absent = false; conn.salle = s;
       s.joueurs[idx] = conn;
       if (s.hote === ancien) s.hote = conn;
       ancien.ouverte = false; ancien.salle = null; ancien.absent = false;
-      env(conn, { t: 'salle', code: s.code, toi: conn.id, hote: s.hote.id, jeton: conn.jeton });
+      env(conn, { t: 'salle', code: s.code, toi: conn.id, hote: s.hote.id, jeton: conn.jeton, nom: conn.nom });
       annoncer(s);
       if (s.reglages) env(conn, { t: 'reglages', reglages: s.reglages });
       if (s.commencee && s.depart) env(conn, s.depart);
@@ -127,25 +130,27 @@ const RESEAU = (function () {
         case 'creer':
           if (salle) return;
           if (!nomValide(m.nom)) return env(conn, { t: 'refus', raison: 'nom' });
-          if (m.version !== version) return env(conn, { t: 'refus', raison: 'version' });
+          if (typeof m.version !== 'string' || !m.version || m.version.length > 64) return env(conn, { t: 'refus', raison: 'version' });
           { const code = codeNouveau();
             if (!code) return env(conn, { t: 'refus', raison: 'pleine' });
-            const s = { code, joueurs: [], hote: conn, commencee: false };
+            const s = { code, joueurs: [], hote: conn, commencee: false, version: m.version };
             salles.set(code, s); entrer(conn, s, m.nom); }
           return;
         case 'rejoindre': {
           if (salle) return;
           const s = typeof m.code === 'string' ? salles.get(m.code.trim().toUpperCase()) : null;
           if (!s) return env(conn, { t: 'refus', raison: 'inconnue' });
-          if (m.version !== version) return env(conn, { t: 'refus', raison: 'version' });
+          if (m.version !== s.version) return env(conn, { t: 'refus', raison: 'version' });   // D4 : celle du créateur de la salle
           if (typeof m.jeton === 'string' && m.jeton) {      // la reprise : le même joueur revient (rechargement, coupure courte)
             const idx = s.joueurs.findIndex(j => j.jeton === m.jeton && typeof m.nom === 'string' && j.nom.toLowerCase() === m.nom.trim().toLowerCase());
             if (idx >= 0) { reprendre(conn, s, idx); return; }
           }
           if (s.commencee) return env(conn, { t: 'refus', raison: 'commencee' });
           if (s.joueurs.length >= max) return env(conn, { t: 'refus', raison: 'pleine' });
-          if (!nomValide(m.nom) || s.joueurs.some(j => j.nom.toLowerCase() === m.nom.trim().toLowerCase())) return env(conn, { t: 'refus', raison: 'nom' });
-          entrer(conn, s, m.nom);
+          if (!nomValide(m.nom)) return env(conn, { t: 'refus', raison: 'nom' });
+          { const nom = nomLibre(s, m.nom);
+            if (!nom) return env(conn, { t: 'refus', raison: 'pleine' });
+            entrer(conn, s, nom); }
           return;
         }
         default:
@@ -160,17 +165,20 @@ const RESEAU = (function () {
           if (salle.commencee || typeof m.pret !== 'boolean') return;
           conn.pret = m.pret; annoncer(salle); return;
         case 'reglages': {         // l'hôte seul, avant le lancement : tout le monde les voit, et les suivants à leur arrivée
-          const g = reglagesValides(m.reglages);
-          if (conn !== salle.hote || salle.commencee || !g) return;
+          if (conn !== salle.hote || salle.commencee) return;
+          const g = reglagesAccepte(m.reglages, salle.joueurs.length);
+          if (!g) { env(conn, { t: 'erreur', raison: 'reglages' }); return; }   // D3
           salle.reglages = g; diffuser(salle, { t: 'reglages', reglages: g });
           return;
         }
         case 'lancer': {
-          const g = reglagesValides(m.reglages);
-          if (conn !== salle.hote || salle.commencee || salle.joueurs.length < min || !g) return;
+          if (conn !== salle.hote || salle.commencee || salle.joueurs.length < min) return;
+          const g = reglagesAccepte(m.reglages, salle.joueurs.length);
+          if (!g) { env(conn, { t: 'erreur', raison: 'reglages' }); return; }   // D3
           if (salle.joueurs.some(j => j.absent || (j.circuit !== undefined && j.circuit !== g.circuit))) { env(conn, { t: 'erreur', raison: 'charge' }); return; }
           salle.commencee = true;
           const graine = Math.floor(hasard() * 4294967296) >>> 0;
+          for (const j of salle.joueurs) j.dernierN = undefined;
           salle.depart = { t: 'depart', reglages: g, graine, ordre: salle.joueurs.map(j => j.id) };
           diffuser(salle, salle.depart);
           return;
@@ -178,14 +186,17 @@ const RESEAU = (function () {
         case 'retour':             // l'hôte, après la course : la salle se rouvre, les « prêt » repartent à faux
           if (conn !== salle.hote || !salle.commencee) return;
           salle.commencee = false;
-          for (const j of salle.joueurs) j.pret = false;
+          for (const j of salle.joueurs) { j.pret = false; j.dernierN = undefined; }
           diffuser(salle, { t: 'retour' }); annoncer(salle);
           return;
-        case 'cmd':
-          if (!salle.commencee || !entier(m.n, 0, 1e9) || m.c === undefined) return;
+        case 'cmd':          // D5 : des commandes bien formées, et un pas qui avance
+          if (!salle.commencee) return;
+          if (!entier(m.n, 0, 1e9) || !commandesValides(m.c) || (conn.dernierN !== undefined && m.n <= conn.dernierN)) { relais.rejets++; return; }
+          conn.dernierN = m.n;
           diffuser(salle, { t: 'cmd', de: conn.id, n: m.n, c: m.c }, conn); return;
         case 'controle':
-          if (!salle.commencee || !entier(m.n, 0, 1e9)) return;
+          if (!salle.commencee) return;
+          if (!entier(m.n, 0, 1e9) || !empreinteValide(m.h)) { relais.rejets++; return; }
           diffuser(salle, { t: 'controle', de: conn.id, n: m.n, h: m.h }, conn); return;
         case 'emote':
           if (!entier(m.i, 0, R.EN_LIGNE_EMOTES.length - 1)) return;
@@ -386,7 +397,7 @@ const RESEAU = (function () {
       : opt.transport === 'memoire' ? transportMemoire(opt.monde || (opt.monde = monde()))
       : opt.transport === 'diffusion' ? transportDiffusion({ horloge, canal: opt.canal, relais: opt.relais })
       : transportWebSocket(opt.url === undefined ? R.EN_LIGNE_URL : opt.url, { horloge, WebSocketClasse: opt.WebSocketClasse });
-    const version = opt.version === undefined ? R.EN_LIGNE_VERSION : opt.version;
+    const version = opt.version === undefined ? versionLocale() : opt.version;
     const ecouteurs = {};
     const c = { etat: 'ferme', code: null, moi: null, hote: null, joueurs: [], depart: null, jeton: null, reglagesSalle: null, latence: null, nom: null, transport, rejets: 0 };
     let volontaire = false, dernierRecu = 0, minuteurPing = null, minuteurRecon = null, essai = 0;
@@ -412,7 +423,7 @@ const RESEAU = (function () {
       dernierRecu = horloge.maintenant();
       switch (m.t) {
         case 'salle':
-          c.code = m.code; c.moi = m.toi; c.hote = m.hote; c.depart = null; c.jeton = typeof m.jeton === 'string' ? m.jeton : null; emettre('salle', m);
+          c.code = m.code; c.moi = m.toi; c.hote = m.hote; if (typeof m.nom === 'string') c.nom = m.nom; c.depart = null; c.jeton = typeof m.jeton === 'string' ? m.jeton : null; emettre('salle', m);
           if (opt.circuit) c.charge(opt.circuit);      // « mon circuit chargé » : le lancement attend que tous aient celui des réglages
           break;
         case 'erreur': emettre('erreur', { raison: m.raison, relais: true }); break;
@@ -499,9 +510,9 @@ const RESEAU = (function () {
     c.reglages = function (g) {
       if (!c.code) return erreur('pas-en-salle');
       if (!c.estHote()) return erreur('pas-hote');
-      if (!g || typeof g.circuit !== 'string' || !g.circuit || typeof g.meteo !== 'string' || !Number.isInteger(g.tours) || g.tours < 1
-        || !Number.isInteger(g.nbIA) || g.nbIA < 0) return erreur('reglages');
-      return envoyer({ t: 'reglages', reglages: { circuit: g.circuit, tours: g.tours, meteo: g.meteo, nbIA: g.nbIA } });
+      const ok = reglagesAccepte(g, c.joueurs.length || 1);
+      if (!ok) return erreur('reglages');
+      return envoyer({ t: 'reglages', reglages: ok });
     };
     c.retour = function () {
       if (!c.depart) return erreur('pas-commence');
@@ -512,10 +523,9 @@ const RESEAU = (function () {
     c.lancer = function (reglages) {
       if (!c.code) return erreur('pas-en-salle');
       if (!c.estHote()) return erreur('pas-hote');
-      const g = reglages;
-      if (!g || typeof g.circuit !== 'string' || !g.circuit || typeof g.meteo !== 'string' || !Number.isInteger(g.tours) || g.tours < 1
-        || !Number.isInteger(g.nbIA) || g.nbIA < 0) return erreur('reglages');
-      return envoyer({ t: 'lancer', reglages: { circuit: g.circuit, tours: g.tours, meteo: g.meteo, nbIA: g.nbIA } });
+      const ok = reglagesAccepte(reglages, c.joueurs.length || 1);
+      if (!ok) return erreur('reglages');
+      return envoyer({ t: 'lancer', reglages: ok });
     };
     c.envoyer = function (m) {      // l'interface générique : { t:'pret', pret:true }… (les mêmes contrôles que les méthodes)
       if (!m || typeof m !== 'object') return erreur('type');
@@ -537,10 +547,10 @@ const RESEAU = (function () {
     };
     c.cmd = function (n, cmds) {
       if (!c.depart) return erreur('pas-commence');
-      if (!Number.isInteger(n) || n < 0 || cmds === undefined) return erreur('cmd');
+      if (!Number.isInteger(n) || n < 0 || !commandesValides(cmds)) return erreur('cmd');
       return envoyer({ t: 'cmd', n, c: cmds });
     };
-    c.controle = function (n, h) { return c.depart && Number.isInteger(n) && n >= 0 ? envoyer({ t: 'controle', n, h }) : erreur('controle'); };
+    c.controle = function (n, h) { return c.depart && Number.isInteger(n) && n >= 0 && empreinteValide(h) ? envoyer({ t: 'controle', n, h }) : erreur('controle'); };
     c.emote = function (i) { return c.code && Number.isInteger(i) && i >= 0 && i < R.EN_LIGNE_EMOTES.length ? envoyer({ t: 'emote', i }) : erreur('emote'); };
     c.quitter = function () { if (!c.code) return false; const ok = envoyer({ t: 'quitter' }); oublierSalle(); return ok; };
     c.ping = function () { return c.code ? envoyer({ t: 'ping', h: horloge.maintenant() }) : false; };

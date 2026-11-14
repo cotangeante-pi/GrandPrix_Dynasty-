@@ -1453,11 +1453,11 @@ Object.assign(TEXTES.en, {
   enlignePretBouton: '✔ I’m ready', enlignePretAnnuler: '✖ Not ready', enligneLancer: '🏁 Start the race', enligneQuitter: 'Leave the room',
   enligneAttentePrets: 'Waiting for everyone to be ready…', enligneAttenteAmi: 'Waiting for a friend to join…', enligneLancerPret: 'Everyone is ready!',
   enligneReglages: 'The race', enligneCircuit: 'Circuit', enligneTours: 'Laps', enligneMeteo: 'Weather', enligneIA: 'AI cars',
-  enligneMeteo_sec: 'Dry', enligneMeteo_nuageux: 'Cloudy', enligneMeteo_pluie: 'Rain',
+  enligneMeteo_sec: 'Dry', enligneMeteo_nuageux: 'Cloudy', enligneMeteo_pluie: 'Rain', enligneMeteo_auto: 'Random', enligneMeteo_averse: 'Shower', enligneMeteo_eclaircie: 'Clearing up',
   enligneHoteChoisit: 'The host chooses the race.', enligneEmotes: 'Reactions',
   enligneEmote_0: 'Thumbs up', enligneEmote_1: 'Applause', enligneEmote_2: 'Fire', enligneEmote_3: 'Laughing', enligneEmote_4: 'Wow',
   enligneEmote_5: 'Chequered flag', enligneEmote_6: 'Handshake', enligneEmote_7: 'Phew',
-  enligneNouvelHote: 'The host left: you are the new host.', enligneParti: '{nom} left the room.', enligneDepart: 'Starting! (the online race itself is not ready yet)',
+  enligneNouvelHote: 'The host left: you are the new host.', enligneParti: '{nom} left the room.', enligneDepart: 'Starting!',
 });
 Object.assign(TEXTES.fr, {
   enligneBouton: '🌐 En ligne', enligneMenu: 'En ligne', enligneTitre: 'En ligne',
@@ -1475,9 +1475,9 @@ Object.assign(TEXTES.fr, {
   enlignePretBouton: '✔ C’est bon pour moi', enlignePretAnnuler: '✖ Pas encore', enligneLancer: '🏁 Lancer la course', enligneQuitter: 'Quitter la salle',
   enligneAttentePrets: 'On attend que tout le monde soit prêt…', enligneAttenteAmi: 'On attend qu’un ami arrive…', enligneLancerPret: 'Tout le monde est prêt !',
   enligneReglages: 'La course', enligneCircuit: 'Circuit', enligneTours: 'Tours', enligneMeteo: 'Météo', enligneIA: 'Voitures IA',
-  enligneMeteo_sec: 'Sec', enligneMeteo_nuageux: 'Nuageux', enligneMeteo_pluie: 'Pluie',
+  enligneMeteo_sec: 'Sec', enligneMeteo_nuageux: 'Nuageux', enligneMeteo_pluie: 'Pluie', enligneMeteo_auto: 'Au hasard', enligneMeteo_averse: 'Averse', enligneMeteo_eclaircie: 'Éclaircie',
   enligneHoteChoisit: 'L’hôte choisit la course.', enligneEmotes: 'Réactions',
   enligneEmote_0: 'Pouce levé', enligneEmote_1: 'Applaudissements', enligneEmote_2: 'Feu', enligneEmote_3: 'Rire', enligneEmote_4: 'Ouah',
   enligneEmote_5: 'Drapeau à damier', enligneEmote_6: 'Poignée de main', enligneEmote_7: 'Ouf',
-  enligneNouvelHote: 'L’hôte est parti : c’est toi le nouvel hôte.', enligneParti: '{nom} a quitté la salle.', enligneDepart: 'C’est parti ! (la course en ligne elle-même n’est pas encore prête)',
+  enligneNouvelHote: 'L’hôte est parti : c’est toi le nouvel hôte.', enligneParti: '{nom} a quitté la salle.', enligneDepart: 'C’est parti !',
 });
