@@ -2646,6 +2646,17 @@ body.tactile:has(#pause:not(.cache)) #boutonSon { display: none; }   /* (tour 55
   #interviewChoix, #interviewSuite { gap: 4px; }
   #interviewEffet { font-size: 14px; min-height: 0; }
 }
+/* tourne:debut */@media (max-width: 420px) {
+  :where(html.tourne) #interviewCarte { gap: 4px; padding: 8px 18px 10px; max-height: calc(98 * var(--uh)); }
+  :where(html.tourne) #interview h1 { font-size: 16px; }
+  :where(html.tourne) #interviewJournaliste { font-size: 11px; }
+  :where(html.tourne) #interviewQuestion { font-size: 15px; line-height: 1.2; }
+  :where(html.tourne) #interviewReponses { gap: 4px; margin-top: 0; }
+  :where(html.tourne) #interviewReponses button { padding: 4px 12px; font-size: 14px; }
+  :where(html.tourne) #interviewReponses .icone { font-size: 20px; }
+  :where(html.tourne) #interviewChoix, :where(html.tourne) #interviewSuite { gap: 4px; }
+  :where(html.tourne) #interviewEffet { font-size: 14px; min-height: 0; }
+}/* tourne:fin */
 
 /* (tour 56, T5) les batailles en ligne : « En ligne », « rejoindre par code », la salle d'attente (enligne-ecran.js ; rien ne s'affiche sans EN_LIGNE) */
 #enligne, #enligneRejoindre, #enligneSalle { gap: 10px; }
@@ -2709,15 +2720,26 @@ body.tactile:has(#pause:not(.cache)) #boutonSon { display: none; }   /* (tour 55
   #enligneEmotes button.enligneEmote { width: 40px; height: 40px; font-size: 19px; }
   #enligneSalle .boutons button { min-height: 40px; padding: 6px 14px; font-size: 15px; }
 }
-body.tactile #boutonEnligneTitre, body.tactile :is(#enligne, #enligneRejoindre, #enligneSalle) .boutons button { min-height: 40px; }   /* (au doigt, 40 px au moins) */
 /* tourne:debut */@media (max-width: 420px) {
-  :where(html.tourne) #interviewCarte { gap: 4px; padding: 8px 18px 10px; max-height: calc(98 * var(--uh)); }
-  :where(html.tourne) #interview h1 { font-size: 16px; }
-  :where(html.tourne) #interviewJournaliste { font-size: 11px; }
-  :where(html.tourne) #interviewQuestion { font-size: 15px; line-height: 1.2; }
-  :where(html.tourne) #interviewReponses { gap: 4px; margin-top: 0; }
-  :where(html.tourne) #interviewReponses button { padding: 4px 12px; font-size: 14px; }
-  :where(html.tourne) #interviewReponses .icone { font-size: 20px; }
-  :where(html.tourne) #interviewChoix, :where(html.tourne) #interviewSuite { gap: 4px; }
-  :where(html.tourne) #interviewEffet { font-size: 14px; min-height: 0; }
+  :where(html.tourne) #enligne, :where(html.tourne) #enligneRejoindre, :where(html.tourne) #enligneSalle { gap: 5px; }
+  :where(html.tourne) #enligne h1, :where(html.tourne) #enligneRejoindre h1, :where(html.tourne) #enligneSalle h1 { font-size: 24px; margin: 0; }
+  :where(html.tourne) #enligneExplication { font-size: 13px; line-height: 1.25; }
+  :where(html.tourne) #enligne p, :where(html.tourne) #enligneRejoindre p, :where(html.tourne) #enligneSalle p { font-size: 14px; line-height: 1.25; }
+  :where(html.tourne) #enligne .boutons:first-of-type button, :where(html.tourne) #enligneRejoindre .boutons:first-of-type button { min-width: 150px; padding: 8px 14px; font-size: 17px; min-height: 40px; }
+  :where(html.tourne) #enligneCouleurs { max-width: 440px; gap: 5px; }
+  :where(html.tourne) #enligneCouleurs button.enlignePastille { width: 40px; height: 40px; }
+  :where(html.tourne) #enligneCode { font-size: 26px; padding: 2px 10px; }
+  :where(html.tourne) #enligneClavier { grid-template-columns: repeat(11, 40px); gap: 4px; }
+  :where(html.tourne) #enligneClavier button { width: 40px; height: 40px; font-size: 16px; }
+  :where(html.tourne) #enligneClavier button.enligneEffacer { grid-column: span 2; }
+  :where(html.tourne) #enligneCorps { gap: 8px; }
+  :where(html.tourne) #enligneJoueurs, :where(html.tourne) #enligneReglages { padding: 4px 10px; }
+  :where(html.tourne) #enligneCorps h2 { font-size: 12px; margin-bottom: 2px; }
+  :where(html.tourne) #enligneListe li { min-height: 20px; font-size: 13px; }
+  :where(html.tourne) #enligneRegles { gap: 2px; }
+  :where(html.tourne) #enligneRegles .regle { font-size: 13px; }
+  :where(html.tourne) #enligneRegles button.enligneFleche { height: 40px; }
+  :where(html.tourne) #enligneEmotes button.enligneEmote { width: 40px; height: 40px; font-size: 19px; }
+  :where(html.tourne) #enligneSalle .boutons button { min-height: 40px; padding: 6px 14px; font-size: 15px; }
 }/* tourne:fin */
+body.tactile #boutonEnligneTitre, body.tactile :is(#enligne, #enligneRejoindre, #enligneSalle) .boutons button { min-height: 40px; }   /* (au doigt, 40 px au moins) */
