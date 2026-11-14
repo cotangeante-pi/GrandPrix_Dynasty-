@@ -3421,7 +3421,7 @@ def paddock_menu(pg, titre, l, h, lang):
     attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', None, 60000)
     pg.evaluate('() => { if (typeof AIDES_ECRAN !== "undefined") { REGLAGES.AIDES_ACTIVES = false; AIDES_ECRAN.fermer(); } }')   # (la bulle d'aide ne compte pas ici : aides-menus la teste)
     pg.wait_for_timeout(300)
-    m = pg.evaluate("""() => [...document.querySelectorAll('#paddockMenu button')].map(b => [b.id, b.querySelector('.menuNom').textContent, b.getBoundingClientRect().width > 0])""")
+    m = pg.evaluate("""() => [...document.querySelectorAll('#paddockMenu button:not(.cache)')].map(b => [b.id, b.querySelector('.menuNom').textContent, b.getBoundingClientRect().width > 0])""")
     t(f'{titre} : sans écran tactile, les réglages du volant n’existent pas dans les Réglages du paddock', pg.evaluate('() => document.querySelectorAll(".tactileReglage").length === 0 && getComputedStyle(document.getElementById("reglagesVolant")).display === "none"'))
     noms = pg.evaluate("() => ['paddock_course', 'paddock_equipe', 'paddock_boutique', 'paddock_saison', 'paddock_messages', 'titreAmis', 'paddock_reglages', 'paddock_apprendre'].map(texte)")
     t(f'{titre} : le menu à gauche : Course, Mon équipe, Boutique, Saison, Messages, Entre amis, puis Réglages et Apprendre en bas, tous visibles', [x[1] for x in m] == noms and all(x[2] for x in m)
@@ -3528,7 +3528,7 @@ THEME_ETAT = """() => { const id = JEU.ecran === "album" ? "une" : JEU.ecran, el
 # texte ne change pas) ; les lignes des résultats qui arrivent une à une ; rien de tout ça avec prefers-reduced-motion
 PADDOCK_ETAT = """() => { const $ = id => document.getElementById(id), ch = JEU.championnat, cv = $("paddockCarte"), d = cv.getContext("2d").getImageData(0, 0, cv.width, cv.height).data;
   let dessine = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 0) dessine++;
-  const groupes = [...document.querySelectorAll("#paddockMenu .menuNom")].map(e => e.textContent);   // (tour 48a : le menu à gauche à la place des groupes de boutons)
+  const groupes = [...document.querySelectorAll("#paddockMenu button:not(.cache) .menuNom")].map(e => e.textContent);   // (« En ligne », caché sans EN_LIGNE, n'est pas dans le menu)   // (tour 48a : le menu à gauche à la place des groupes de boutons)
   const cl = CHAMPIONNAT.classementPilotes(ch), k = ch.pilotes.findIndex(p => p.humain), i = cl.findIndex(x => x.k === k);
   const boites = ["paddockMenu", "paddockProchain", "paddockMoi", "paddockCourt", "boutonCourseSuivante"].map(id => { const r = $(id).getBoundingClientRect(); return [id, r.left, r.top, r.right, r.bottom]; });
   const cal = CHAMPIONNAT.calendrierSaison(ch)[ch.prochain];

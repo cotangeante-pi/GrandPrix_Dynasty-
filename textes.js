@@ -1474,8 +1474,8 @@ Object.assign(TEXTES.fr, {
   enligneHoteChoisit: 'L’hôte choisit la course.', enligneEmotes: 'Réactions',
   enligneEmote_0: 'Pouce levé', enligneEmote_1: 'Applaudissements', enligneEmote_2: 'Feu', enligneEmote_3: 'Rire', enligneEmote_4: 'Ouah',
   enligneEmote_5: 'Drapeau à damier', enligneEmote_6: 'Poignée de main', enligneEmote_7: 'Ouf',
-  aide_enligne: 'Crée une salle et envoie ses 4 lettres à tes amis, ou tape les lettres d’un ami pour le rejoindre.', aide_enligneSalle: 'Appuie sur « Je suis prêt ». L’hôte choisit la course et la lance. Dis bonjour avec les réactions !',
+  aide_enligne: 'Crée une salle et envoie ses 4 lettres à tes amis, ou tape les lettres d’un ami pour le rejoindre.', aide_enligneSalle: 'Appuie sur « C’est bon pour moi ». L’hôte choisit la course et la lance. Dis bonjour avec les réactions !',
   enligneComment: '❓ Comment jouer en ligne', enligneCommentTitre: 'Comment jouer en ligne',
-  enligneComment1: '1. Choisis ta couleur : c’est ton nom dans la course.', enligneComment2: '2. Un ami crée une salle et donne ses 4 lettres.', enligneComment3: '3. Les autres la rejoignent avec les lettres, puis appuient sur « Je suis prêt ».', enligneComment4: '4. L’hôte choisit le circuit et lance. Dis bonjour avec les réactions !',
+  enligneComment1: '1. Choisis ta couleur : c’est ton nom dans la course.', enligneComment2: '2. Un ami crée une salle et donne ses 4 lettres.', enligneComment3: '3. Les autres la rejoignent avec les lettres, puis appuient sur « C’est bon pour moi ».', enligneComment4: '4. L’hôte choisit le circuit et lance. Dis bonjour avec les réactions !',
   enligneNouvelHote: 'L’hôte est parti : c’est toi le nouvel hôte.', enligneParti: '{nom} a quitté la salle.', enligneDepart: 'C’est parti ! (la course en ligne elle-même n’est pas encore prête)',
 });
