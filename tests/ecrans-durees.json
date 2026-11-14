@@ -192,5 +192,6 @@
 "index.html?enligne=1&test=enligne&lang=en&tel=1 640": 45,
 "index.html?enligne=1&test=enligne&lang=en 1280": 45,
 "index.html?championnat=1&enligne=1&test=enligne-paddock&tel=1 640": 25,
-"index.html?championnat=1&enligne=1&test=enligne-paddock&lang=en 960": 25
+"index.html?championnat=1&enligne=1&test=enligne-paddock&lang=en 960": 25,
+"index.html?enligne=1&test=pad-enligne 960": 40
 }

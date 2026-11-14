@@ -181,6 +181,9 @@ const ENLIGNE_ECRAN = (function () {
     $('enligneSalleNom').textContent = texte('enligneSalle');
     $('enligneSalleCode').textContent = code;
     $('enligneJoueursTitre').textContent = texte('enligneJoueurs').replace('{n}', joueurs.length).replace('{max}', R.EN_LIGNE_JOUEURS_MAX);
+    // (T10) la manette : le halo d'un bouton de la salle survit au redessin (un message du réseau refait la liste, les réglages et les émotes)
+    const halo = document.querySelector('#enligneSalle button.manette-choix');
+    const gardeId = halo ? halo.id : null;
     const ul = vide($('enligneListe'));
     for (const j of joueurs) {
       const li = document.createElement('li');
@@ -204,7 +207,7 @@ const ENLIGNE_ECRAN = (function () {
       const ligne = document.createElement('div'); ligne.className = 'regle'; ligne.dataset.cle = r.cle;
       const l = document.createElement('span'); l.className = 'libelle'; l.textContent = texte(r.libelle);
       const moins = document.createElement('button'), val = document.createElement('strong'), plus = document.createElement('button');
-      moins.tabIndex = plus.tabIndex = 0; moins.className = plus.className = 'enligneFleche';
+      moins.tabIndex = plus.tabIndex = 0; moins.className = plus.className = 'enligneFleche'; moins.id = 'enligneReg_' + r.cle + '_moins'; plus.id = 'enligneReg_' + r.cle + '_plus';
       moins.textContent = '◀'; plus.textContent = '▶'; moins.setAttribute('aria-label', '◀ ' + texte(r.libelle)); plus.setAttribute('aria-label', texte(r.libelle) + ' ▶');
       val.textContent = r.valeurs.length ? r.nom(valeurReglage(r)) : '–';
       for (const [b, s] of [[moins, -1], [plus, 1]]) { b.addEventListener('mousedown', e => e.preventDefault()); b.addEventListener('click', () => changerReglage(r.cle, s)); }
@@ -216,7 +219,7 @@ const ENLIGNE_ECRAN = (function () {
     boite.setAttribute('aria-label', texte('enligneEmotes'));
     R.EN_LIGNE_EMOTES.forEach((e, i) => {
       const b = document.createElement('button');
-      b.tabIndex = 0; b.className = 'enligneEmote'; b.textContent = e; b.title = texte('enligneEmote_' + i); b.setAttribute('aria-label', texte('enligneEmote_' + i));
+      b.tabIndex = 0; b.className = 'enligneEmote'; b.id = 'enligneEmote_' + i; b.textContent = e; b.title = texte('enligneEmote_' + i); b.setAttribute('aria-label', texte('enligneEmote_' + i));
       b.addEventListener('mousedown', ev => ev.preventDefault());
       b.addEventListener('click', () => envoyerEmote(i));
       boite.appendChild(b);
@@ -227,6 +230,7 @@ const ENLIGNE_ECRAN = (function () {
     lancer.textContent = texte('enligneLancer'); lancer.disabled = !tousPrets();
     pret.textContent = texte(pretMoi ? 'enlignePretAnnuler' : 'enlignePretBouton'); pret.classList.toggle('actif', pretMoi);
     $('boutonEnligneQuitter').textContent = texte('enligneQuitter');
+    if (gardeId && typeof choisirBouton === 'function') { const nouveau = document.getElementById(gardeId); if (nouveau && nouveau !== halo) choisirBouton(nouveau); }
     $('enligneSalleMessage').textContent = note || (joueurs.length < 2 ? texte('enligneAttenteAmi') : tousPrets() ? texte('enligneLancerPret') : texte('enligneAttentePrets'));
   }
 
