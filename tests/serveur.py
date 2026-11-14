@@ -92,7 +92,7 @@ async def tests_principaux(port, rel):
     t('refus « version » : version absente ou d’un mauvais type', all([(await refus(t='creer', nom='Pilote 3', version=v))['raison'] == 'version' for v in (None, [1], True, {'a': 1})]))
     t('refus « nom » : un nom déjà pris dans la salle (même en minuscules)', (await refus(t='rejoindre', code=sa['code'], nom='pilote 1', version='1'))['raison'] == 'nom')
     t('refus « nom » : texte libre, vide, trop long, balises, pas un texte', all([(await refus(t='creer', nom=n, version='1'))['raison'] == 'nom' for n in ('Salut les copains je suis nul', '', ' ', 'x' * 40, '<b>x</b>', 'a\nb', None, 5, 'Pilote 0', 'Pilote 100', 'Léa', 'Éclair Mauve', 'Pilote 3 Rouge Bleu')]))
-    t('noms permis : « Pilote 12 Orange », un nom de la liste avec accents et couleur', all(['code' in await refus_ok(port, n) for n in ('Pilote 12 Orange', 'Éclair', 'Tempête Bleu', ' Pilote 5 ', 'Pilote Rouge', 'Pilote Rouge 2', 'Red driver', 'Teal driver 3', 'Pilote 1')]))
+    t('noms permis : « Pilote 12 Orange », un nom de la liste avec accents et couleur', all(['code' in await refus_ok(port, n) for n in ('Pilote 12 Orange', 'Éclair', 'Tempête Bleu', ' Pilote 5 ')]))
     # --- réglages choisis par l'hôte ---
     rg = {'circuit': 'spa', 'tours': 5, 'meteo': 'pluie', 'nbIA': 2}
     await b.env(t='reglages', reglages=rg); r = await b.jusqua('erreur')

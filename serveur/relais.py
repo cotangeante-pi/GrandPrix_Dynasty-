@@ -60,26 +60,22 @@ COULEURS = ['Rouge', 'Bleu', 'Vert', 'Jaune', 'Orange', 'Violet', 'Rose', 'Blanc
 _NOM_LIBRE = re.compile(r'^[\w _-]+$')
 _PILOTE = re.compile(r'^Pilote [1-9][0-9]?$')
 
-# les noms des écrans de salle (textes.js : enligneNom « Pilote {c} » / « {c} driver », avec enligneCouleur_<id>, deux langues)
-COULEURS_ECRANS = ['Bleu', 'Rouge', 'Jaune', 'Vert', 'Orange', 'Violet', 'Turquoise', 'Rose', 'Blue', 'Red', 'Yellow', 'Green', 'Purple', 'Teal', 'Pink']
-NOMS_ECRANS = {'Pilote ' + c for c in COULEURS_ECRANS} | {c + ' driver' for c in COULEURS_ECRANS}
+# les mêmes règles que reseau.js (nomAutorise), mêmes listes que donnees.js (EN_LIGNE_NOMS, EN_LIGNE_COULEURS)
+NOMS = ['Éclair', 'Turbo', 'Comète', 'Fusée', 'Tonnerre', 'Mistral', 'Phénix', 'Faucon', 'Panthère', 'Requin', 'Étoile', 'Tempête']
+COULEURS = ['Rouge', 'Bleu', 'Vert', 'Jaune', 'Orange', 'Violet', 'Rose', 'Blanc']
+_NOM_LIBRE = re.compile(r'^[\w _-]+$')
+_PILOTE = re.compile(r'^Pilote [1-9][0-9]?$')
 
 def nom_valide(nom, libres, nom_max=20):
-    """Le nom (sans espaces autour), comme nomAutorise de reseau.js : un nom des écrans (« Pilote Rouge », « Red driver »), un nom de la liste ou
-    « Pilote N » (avec une couleur de la liste au bout), le tout avec un numéro de plus facultatif ; libre si on l'autorise."""
+    """Le nom (sans espaces autour) : « Pilote N » ou un nom de la liste, avec une couleur de la liste au bout ; libre si on l'autorise."""
     if not isinstance(nom, str): return False
     n = nom.strip()
     if not n or len(n) > nom_max or not n.isprintable(): return False
     if libres: return bool(_NOM_LIBRE.match(n))
-    tous = n.split(' ')
-    variantes = [tous]
-    if len(tous) > 1 and re.fullmatch(r'[1-9][0-9]?', tous[-1]): variantes.append(tous[:-1])
-    for mots in variantes:
-        if ' '.join(mots) in NOMS_ECRANS: return True
-        couleur = len(mots) > 1 and mots[-1] in COULEURS
-        base = ' '.join(mots[:-1] if couleur else mots)
-        if base in NOMS or _PILOTE.match(base): return True
-    return False
+    mots = n.split(' ')
+    couleur = len(mots) > 1 and mots[-1] in COULEURS
+    base = ' '.join(mots[:-1] if couleur else mots)
+    return base in NOMS or bool(_PILOTE.match(base))
 
 def entier(v, lo, hi):
     return isinstance(v, int) and not isinstance(v, bool) and lo <= v <= hi

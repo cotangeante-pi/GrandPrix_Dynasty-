@@ -35,16 +35,13 @@ const RESEAU = (function () {
     if (!n || n.length > R.EN_LIGNE_NOM_MAX) return false;
     if (R.EN_LIGNE_NOMS_LIBRES) return /^[\p{L}\p{N} _-]+$/u.test(n);
     if (!nomsEcrans) nomsEcrans = nomsDesEcrans();
-    const tous = n.split(' ');
-    // le nom tel quel, puis sans un numéro final de plus (deux joueurs de la même couleur) : « Pilote 1 » est un nom permis AVEC son numéro
-    const variantes = [tous];
-    if (/^[1-9][0-9]?$/.test(tous[tous.length - 1]) && tous.length > 1) variantes.push(tous.slice(0, -1));
-    return variantes.some(mots => {
-      if (nomsEcrans.has(mots.join(' '))) return true;
-      const couleur = mots.length > 1 && R.EN_LIGNE_NOMS_COULEURS.includes(mots[mots.length - 1]);
-      const base = (couleur ? mots.slice(0, -1) : mots).join(' ');
-      return R.EN_LIGNE_NOMS.includes(base) || /^Pilote [1-9][0-9]?$/.test(base);
-    });
+    const mots = n.split(' ');
+    if (/^[1-9][0-9]?$/.test(mots[mots.length - 1]) && mots.length > 1) mots.pop();   // un numéro de plus (deux joueurs de la même couleur)
+    const sans = mots.join(' ');
+    if (nomsEcrans.has(sans)) return true;
+    const couleur = mots.length > 1 && R.EN_LIGNE_NOMS_COULEURS.includes(mots[mots.length - 1]);
+    const base = (couleur ? mots.slice(0, -1) : mots).join(' ');
+    return R.EN_LIGNE_NOMS.includes(base) || /^Pilote [1-9][0-9]?$/.test(base);
   }
   // un nom permis tiré au hasard
   function nomAuHasard(hasard) {
