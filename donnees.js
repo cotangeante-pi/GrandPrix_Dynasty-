@@ -1484,7 +1484,7 @@ const REGLAGES = {
   EN_LIGNE_VOITURES_MAX: 16,    // des voitures en piste au plus (joueurs + IA)
   EN_LIGNE_TOURS_MAX: 30,       // des tours au plus
   EN_LIGNE_TOURS_DEFAUT: 3,     // si les tours demandés ne sont pas permis
-  EN_LIGNE_METEOS: ['auto', 'sec', 'pluie', 'averse', 'eclaircie'],   // les météos au choix de l'hôte (auto : tirée avec la graine selon le lieu, comme en carrière)
+  EN_LIGNE_METEOS: ['auto', 'sec', 'nuageux', 'pluie', 'averse', 'eclaircie'],   // les météos au choix de l'hôte (auto : tirée avec la graine selon le lieu, comme en carrière)
   EN_LIGNE_MATHS: true,         // enligne.js remplace sin, cos, tan, atan, atan2, exp, cbrt, hypot pendant une course en ligne par des calculs à nous, identiques au bit près sur tous les navigateurs (faux : ceux du navigateur)
   GRAINE_GRILLE_LIGNE: 23000,   // la grille tirée au sort d'une course en ligne : la graine de la course + ce nombre
   // (tour 56, T5 : les écrans ; CLAUDE.md « Les batailles en ligne »). Tout reste derrière EN_LIGNE : faux = le jeu d'avant,
@@ -1514,10 +1514,8 @@ const REGLAGES = {
   EN_LIGNE_CANAL: 'gpd-en-ligne',   // le nom du BroadcastChannel (deux onglets du même navigateur, sans serveur)
   EN_LIGNE_JOUEURS_MIN: 2,      // pour lancer une course
   EN_LIGNE_NOM_MAX: 20,         // lettres d'un nom
-  EN_LIGNE_NOMS_LIBRES: false,  // faux : jamais de nom tapé (public d'enfants) ; le nom vient de EN_LIGNE_NOMS ou est « Pilote N », avec une couleur
+  EN_LIGNE_NOMS_COULEURS: ['Rouge', 'Bleu', 'Vert', 'Jaune', 'Orange', 'Violet', 'Rose', 'Blanc'],   // …un nom de la liste peut porter une de ces couleurs (« Éclair Rouge ») ; ceux des écrans : « Pilote <couleur> » (textes.js : enligneNom)
   EN_LIGNE_NOMS: ['Éclair', 'Turbo', 'Comète', 'Fusée', 'Tonnerre', 'Mistral', 'Phénix', 'Faucon', 'Panthère', 'Requin', 'Étoile', 'Tempête'],
-  EN_LIGNE_COULEURS: ['Rouge', 'Bleu', 'Vert', 'Jaune', 'Orange', 'Violet', 'Rose', 'Blanc'],
-  EN_LIGNE_EMOTES: 8,           // nombre d'émotes préréglées (indices 0 à 7) ; jamais de texte libre
   EN_LIGNE_TAILLE_MAX: 4096,    // caractères d'un message ; au-delà il est jeté
   EN_LIGNE_OUVERTURE_MS: 5000,  // attente de l'ouverture d'un WebSocket
   EN_LIGNE_ATTENTE_MS: 600,     // BroadcastChannel : sans réponse d'une salle après ce temps = « inconnue »

@@ -6,15 +6,21 @@ d'essai conduit les deux voitures ; 1 tour du circuit d'essai avec 0 puis 2 IA. 
 arrivées et le classement final sont identiques au bit près des deux côtés, aucune désynchro, aucune erreur dans la console. Les pas de physique
 sont donnés par BOUCLE.simuler (le dessin du Mac, en logiciel, serait bien trop lent), par petites tranches, une page puis l'autre.
 Plafond dur : 14 minutes ; sans prise sur le verrou des tests du Mac (à prendre par l'appelant)."""
-import json, os, signal, sys, time
+import json, os, signal, sys, threading, time
 from playwright.sync_api import sync_playwright
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-signal.alarm(840)
+# un garde-fou qui marche même si Playwright bloque le fil principal (signal.alarm n'y suffit pas : vu le 2026-11-13, un passage est resté des heures) :
+# au bout de 14 minutes, tout le groupe de processus (Python, Playwright, Chrome) est tué
+def _garde():
+    print('✘ enligne-course.py : plus de 14 min, arrêté', flush=True)
+    try: os.killpg(os.getpgid(0), signal.SIGKILL)
+    except Exception: os._exit(2)
+_t = threading.Timer(840, _garde); _t.daemon = True; _t.start()
 ok_tout = True
 def dire(ok, nom, detail=''):
     global ok_tout
     ok_tout = ok_tout and ok
-    print(('✔ ' if ok else '✘ ') + nom + (' — ' + str(detail) if (detail and not ok) else ''))
+    print(('✔ ' if ok else '✘ ') + nom + (' — ' + str(detail) if (detail and not ok) else ''), flush=True)
 
 def course(b, nom, ia, joueurs=2, tours=1):
     ctx = b.new_context(viewport={'width': 960, 'height': 600})
@@ -53,9 +59,9 @@ def course(b, nom, ia, joueurs=2, tours=1):
 with sync_playwright() as p:
     b = p.chromium.launch(channel='chrome', args=['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--allow-file-access-from-files', '--disable-audio-output'])
     try:
-        course(b, 'deux joueurs, 0 IA', 0)
-        if len(sys.argv) < 2 or sys.argv[1] != 'court':
-            course(b, 'deux joueurs, 2 IA', 2)
+        mode = sys.argv[1] if len(sys.argv) > 1 else ''
+        if mode != 'ia': course(b, 'deux joueurs, 0 IA', 0)
+        if mode in ('', 'ia'): course(b, 'deux joueurs, 2 IA', 2)
     finally:
         b.close()
 print('RESULTAT ' + ('OK' if ok_tout else 'ECHEC'))

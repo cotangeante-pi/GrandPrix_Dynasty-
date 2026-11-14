@@ -16,20 +16,37 @@ const RESEAU = (function () {
   const TYPES_CLIENT = ['creer', 'rejoindre', 'pret', 'reglages', 'lancer', 'retour', 'cmd', 'controle', 'emote', 'quitter', 'ping'];
 
   // ---------------------------------------------------------------- les noms (jamais de texte libre devant des enfants)
+  // les noms permis (EN_LIGNE_NOMS_LIBRES faux) : « Pilote <couleur> » / « <couleur> driver » des écrans (textes.js, dans les deux langues, avec un
+  // numéro facultatif pour deux joueurs de la même couleur), un nom de la liste (EN_LIGNE_NOMS) avec ou sans couleur, ou « Pilote N »
+  function nomsDesEcrans() {
+    const noms = new Set();
+    if (typeof TEXTES === 'undefined') return noms;
+    for (const l of Object.keys(TEXTES)) {
+      const t = TEXTES[l];
+      if (!t || !t.enligneNom || !Array.isArray(R.EN_LIGNE_COULEURS)) continue;
+      for (const c of R.EN_LIGNE_COULEURS) if (c && t['enligneCouleur_' + c.id]) noms.add(t.enligneNom.replace('{c}', t['enligneCouleur_' + c.id]));
+    }
+    return noms;
+  }
+  let nomsEcrans = null;
   function nomAutorise(nom) {
     if (typeof nom !== 'string') return false;
     const n = nom.trim();
     if (!n || n.length > R.EN_LIGNE_NOM_MAX) return false;
     if (R.EN_LIGNE_NOMS_LIBRES) return /^[\p{L}\p{N} _-]+$/u.test(n);
+    if (!nomsEcrans) nomsEcrans = nomsDesEcrans();
     const mots = n.split(' ');
-    const couleur = mots.length > 1 && R.EN_LIGNE_COULEURS.includes(mots[mots.length - 1]);
+    if (/^[1-9][0-9]?$/.test(mots[mots.length - 1]) && mots.length > 1) mots.pop();   // un numéro de plus (deux joueurs de la même couleur)
+    const sans = mots.join(' ');
+    if (nomsEcrans.has(sans)) return true;
+    const couleur = mots.length > 1 && R.EN_LIGNE_NOMS_COULEURS.includes(mots[mots.length - 1]);
     const base = (couleur ? mots.slice(0, -1) : mots).join(' ');
     return R.EN_LIGNE_NOMS.includes(base) || /^Pilote [1-9][0-9]?$/.test(base);
   }
-  // un nom permis tiré au hasard (pour le bouton « au hasard » de la salle)
+  // un nom permis tiré au hasard
   function nomAuHasard(hasard) {
     const h = hasard || Math.random, pick = l => l[Math.floor(h() * l.length) % l.length];
-    return pick(R.EN_LIGNE_NOMS) + ' ' + pick(R.EN_LIGNE_COULEURS);
+    return pick(R.EN_LIGNE_NOMS) + ' ' + pick(R.EN_LIGNE_NOMS_COULEURS);
   }
 
   // ---------------------------------------------------------------- le relais (le rôle du serveur : mêmes règles que serveur/relais.py)
@@ -142,7 +159,7 @@ const RESEAU = (function () {
           if (!salle.commencee || !entier(m.n, 0, 1e9)) return;
           diffuser(salle, { t: 'controle', de: conn.id, n: m.n, h: m.h }, conn); return;
         case 'emote':
-          if (!entier(m.i, 0, R.EN_LIGNE_EMOTES - 1)) return;
+          if (!entier(m.i, 0, R.EN_LIGNE_EMOTES.length - 1)) return;
           diffuser(salle, { t: 'emote', de: conn.id, i: m.i }, conn); return;
         default:
       }
@@ -472,7 +489,7 @@ const RESEAU = (function () {
       return envoyer({ t: 'cmd', n, c: cmds });
     };
     c.controle = function (n, h) { return c.depart && Number.isInteger(n) && n >= 0 ? envoyer({ t: 'controle', n, h }) : erreur('controle'); };
-    c.emote = function (i) { return c.code && Number.isInteger(i) && i >= 0 && i < R.EN_LIGNE_EMOTES ? envoyer({ t: 'emote', i }) : erreur('emote'); };
+    c.emote = function (i) { return c.code && Number.isInteger(i) && i >= 0 && i < R.EN_LIGNE_EMOTES.length ? envoyer({ t: 'emote', i }) : erreur('emote'); };
     c.quitter = function () { if (!c.code) return false; const ok = envoyer({ t: 'quitter' }); oublierSalle(); return ok; };
     c.ping = function () { return c.code ? envoyer({ t: 'ping', h: horloge.maintenant() }) : false; };
     c.fermer = function () {

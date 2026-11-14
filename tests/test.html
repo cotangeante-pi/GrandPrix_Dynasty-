@@ -3798,13 +3798,24 @@ t('drapeaux : majMessages éteint le bandeau du drapeau (INTERFACE.majDrapeau(nu
     b.c.rejoindre(js[0].c.code.toLowerCase(),b.nom);pomper(m);v(b.c.enSalle()&&b.c.code===js[0].c.code&&b.c.moi===2&&b.c.hote===1,'rejoint');
     v(js[0].c.joueurs.length===2&&b.c.joueurs.length===2,'les deux voient la liste');v(!b.c.estHote()&&js[0].c.estHote());});
   t('réseau : pas de nom tapé librement (EN_LIGNE_NOMS_LIBRES faux) : liste, « Pilote N », couleur', ()=>{
-    const ok=['Pilote 7','Éclair','Éclair Rouge','Pilote 12 Bleu','Phénix Vert'],ko=['','Bob','Pilote 0','Pilote 100','Éclair Rose Rouge','Pilote 7 Marron','<b>x</b>','x'.repeat(30)];
+    const ok=['Pilote 7','Éclair','Éclair Rouge','Pilote 12 Bleu','Phénix Vert','Pilote Rouge','Pilote Turquoise 2','Red driver','Teal driver 3'],ko=['','Bob','Pilote 0','Pilote 100','Éclair Rose Rouge','Pilote 7 Marron','<b>x</b>','x'.repeat(30)];
     for(const n of ok)v(RESEAU.nomAutorise(n),'refusé : '+n);for(const n of ko)v(!RESEAU.nomAutorise(n),'accepté : '+n);
     v(RESEAU.nomAutorise(RESEAU.nomAuHasard()),'nom au hasard');
     const m=mondeEnLigne(),a=nouveau(m,'Bob');a.c.creer('Bob');v(a.refus[0]==='nom'&&!a.c.enSalle(),'refus local du nom');
     // le relais refuse aussi (un client qui triche)
     const r=RESEAU.creerRelais(),sortie=[];const cn=r.connecter(x=>sortie.push(x));cn.recevoir({t:'creer',nom:'Bob',version:REGLAGES.EN_LIGNE_VERSION});v(sortie[0].t==='refus'&&sortie[0].raison==='nom','relais : nom');
     REGLAGES.EN_LIGNE_NOMS_LIBRES=true;try{v(RESEAU.nomAutorise('Bob'),'noms libres');v(!RESEAU.nomAutorise('<script>'),'jamais de balise');}finally{REGLAGES.EN_LIGNE_NOMS_LIBRES=false;}});
+  t('réseau : les choix des écrans (enligne-ecran.js) sont tous valides pour EN_LIGNE.reglagesValides et pour le relais (circuit, tours, météo, IA)', ()=>{
+    const R=REGLAGES,circuits=R.EN_LIGNE_CIRCUITS_CHOIX.length?R.EN_LIGNE_CIRCUITS_CHOIX:Object.keys(CIRCUITS);let n=0;
+    for(const circuit of circuits)for(const tours of R.EN_LIGNE_TOURS_CHOIX)for(const meteo of R.EN_LIGNE_METEO_CHOIX)for(const nbIA of R.EN_LIGNE_IA_CHOIX)for(const humains of [2,3,8]){
+      if(nbIA+humains>R.EN_LIGNE_JOUEURS_MAX)continue;   // les écrans ne proposent jamais plus de EN_LIGNE_JOUEURS_MAX voitures
+      const g={circuit,tours,meteo,nbIA},c=EN_LIGNE.reglagesValides(g,humains);
+      v(c.circuit===circuit&&c.tours===tours&&c.meteo===meteo&&c.nbIA===nbIA,'corrigé : '+JSON.stringify(g)+' → '+JSON.stringify(c));
+      const r2=RESEAU.creerRelais(),s1=[],s2=[],a=r2.connecter(q=>s1.push(q)),b=r2.connecter(q=>s2.push(q));
+      a.recevoir({t:'creer',nom:'Pilote Rouge',version:R.EN_LIGNE_VERSION});b.recevoir({t:'rejoindre',code:s1[0].code,nom:'Pilote Bleu',version:R.EN_LIGNE_VERSION});
+      a.recevoir({t:'lancer',reglages:g});v(s1.some(q=>q.t==='depart'),'le relais refuse '+JSON.stringify(g));n++;}
+    v(n>0,'aucune combinaison essayée');
+    for(const c of R.EN_LIGNE_COULEURS)for(const l of ['fr','en']){const nom=TEXTES[l].enligneNom.replace('{c}',TEXTES[l]['enligneCouleur_'+c.id]);v(RESEAU.nomAutorise(nom),'nom refusé : '+nom);}});
   t('réseau : deux joueurs de même nom : refus « nom »', ()=>{
     const {m,js}=salle(1),b=nouveau(m,'Pilote 1');b.c.rejoindre(js[0].c.code,'pilote 1');pomper(m);v(b.refus[0]==='nom'&&!b.c.enSalle(),'refus '+b.refus);});
   t('réseau : 8 joueurs au plus (« pleine »), une salle commencée refuse (« commencee »), une autre version aussi (« version »)', ()=>{
@@ -3844,7 +3855,7 @@ t('drapeaux : majMessages éteint le bandeau du drapeau (INTERFACE.majDrapeau(nu
     const {m,js}=salle(2);js[0].c.lancer({circuit:'test',tours:1,meteo:'sec',nbIA:0});pomper(m);
     js[0].c.controle(240,'a1b2');pomper(m);const c=de(js[1],'controle');v(c.length===1&&c[0].de===1&&c[0].n===240&&c[0].h==='a1b2','contrôle');
     js[1].c.emote(3);pomper(m);const e=de(js[0],'emote');v(e.length===1&&e[0].de===2&&e[0].i===3,'émote');
-    v(js[1].c.emote('bonjour')===false&&js[1].c.emote(REGLAGES.EN_LIGNE_EMOTES)===false&&js[1].c.emote(-1)===false,'pas de texte, pas d’indice hors liste');
+    v(js[1].c.emote('bonjour')===false&&js[1].c.emote(REGLAGES.EN_LIGNE_EMOTES.length)===false&&js[1].c.emote(-1)===false,'pas de texte, pas d’indice hors liste');
     const r=RESEAU.creerRelais(),s=[],a=r.connecter(x=>s.push(x));a.recevoir({t:'creer',nom:'Pilote 1',version:REGLAGES.EN_LIGNE_VERSION});const n=s.length;a.recevoir({t:'emote',i:'salut'});a.recevoir({t:'emote',i:99});v(s.length===n,'le relais jette un texte');});
   t('réseau : l’hôte qui part : « parti », « nouvel-hote » (le plus ancien), liste à jour ; salle vide = elle disparaît', ()=>{
     const {m,js}=salle(3);js[0].c.quitter();pomper(m);

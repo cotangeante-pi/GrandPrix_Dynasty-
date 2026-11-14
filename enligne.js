@@ -200,6 +200,7 @@ const EN_LIGNE = (function () {
   function planMeteo(choix, nomCircuit, graine, nbTours, circuit) {
     const duree = Math.max(1, nbTours) * circuit.longueur / R.METEO_VITESSE_MOYENNE;
     if (choix === 'sec') return { prevision: { type: 'sec', pourcent: 0 }, debut: 0, change: null };
+    if (choix === 'nuageux') return { prevision: { type: 'nuageux', pourcent: 20 }, debut: 0, change: null };   // (les écrans : couvert, sans pluie)
     if (choix === 'pluie') return { prevision: { type: 'pluie', pourcent: 100 }, debut: 0.8, change: null };
     if (choix === 'averse') return { prevision: { type: 'risque', pourcent: 100 }, debut: 0, change: { t: duree / 3, pluie: 0.8 } };
     if (choix === 'eclaircie') return { prevision: { type: 'pluie', pourcent: 100 }, debut: 0.8, change: { t: duree / 3, pluie: 0 } };
