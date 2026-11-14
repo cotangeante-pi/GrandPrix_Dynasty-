@@ -3908,34 +3908,37 @@ const ENL_REG={circuit:'test',tours:1,meteo:'sec',nbIA:2},ENL_N=1400;
 const enlScript=(id,pas)=>{const k=id.charCodeAt(0)%7;return{gaz:pas>=0?1:0,frein:(pas+k*40)%400>340?1:0,direction:Math.sin((pas+k*50)/70)>0.3?1:Math.sin((pas+k*50)/70)<-0.3?-1:0,remise:pas%610===609};};
 const enlOpts=(plus)=>Object.assign({reglages:ENL_REG,graine:7,circuit:C,carte:CARTES_T.test,pasMax:ENL_N,local:enlScript},plus||{});
 // la référence : la même course, sans réseau, chaque commande prise au pas n - délai et appliquée au pas n (neutre avant)
-function enlReference(ids,opts,pasFin,dernierDe){const o=opts||enlOpts(),delai=REGLAGES.EN_LIGNE_DELAI,{e,humains}=EN_LIGNE.creerCourseEnLigne(EN_LIGNE.reglagesValides(o.reglages,ids.length),o.graine,ids.length,{circuit:C,carte:CARTES_T.test});
+function enlReference(ids,opts,pasFin,dernierDe){EN_LIGNE.maths.activer();try{return enlReference_(ids,opts,pasFin,dernierDe);}finally{EN_LIGNE.maths.desactiver();}}
+function enlReference_(ids,opts,pasFin,dernierDe){const o=opts||enlOpts(),delai=REGLAGES.EN_LIGNE_DELAI,{e,humains}=EN_LIGNE.creerCourseEnLigne(EN_LIGNE.reglagesValides(o.reglages,ids.length),o.graine,ids.length,{circuit:C,carte:CARTES_T.test});
   const idx=new Map(ids.map((id,i)=>[id,i]));
   for(let n=0;n<(pasFin||ENL_N);n++){const cmds=new Map();for(const id of ids){const dernier=dernierDe&&dernierDe[id]!==undefined?dernierDe[id]:Infinity;
       const brut=n<delai||n>dernier?EN_LIGNE.NEUTRE:enlScript(id,n-delai);cmds.set(humains[idx.get(id)],EN_LIGNE.decoder(EN_LIGNE.coder(brut)));}
     pasCourseIA(e,DT,(p,dt)=>EN_LIGNE.conduire(e,p,cmds.get(p),dt));}
   return EN_LIGNE.empreinte(e);}
+// les maths de enligne.js (EN_LIGNE_MATHS) remplacent Math.sin… le temps d'une course : on les rend même si un test échoue
+function enlT(n,f){t(n,()=>{try{f();}finally{while(EN_LIGNE.maths.actives()) EN_LIGNE.maths.desactiver();}});}
 const enlTous=(b,n)=>[...b.parties].every(([id,p])=>b.partis.has(id)||p.n===n);
-t('en ligne : EN_LIGNE est faux par défaut (le jeu d’avant), les commandes se codent en entiers (aller-retour exact, bornes, valeurs absurdes)', ()=>{
+enlT('en ligne : EN_LIGNE est faux par défaut (le jeu d’avant), les commandes se codent en entiers (aller-retour exact, bornes, valeurs absurdes)', ()=>{
   v(REGLAGES.EN_LIGNE===false&&EN_LIGNE.actif()===false,'ouvert par défaut');
   for(const c of [{gaz:0,frein:0,direction:0,remise:false},{gaz:1,frein:1,direction:-1,remise:true},{gaz:0.5,frein:0.2,direction:0.4,remise:false}]){const x=EN_LIGNE.coder(c),d=EN_LIGNE.decoder(x);v(Number.isInteger(x)&&x>=0&&x<16384,'entier '+x);v(EN_LIGNE.coder(d)===x,'aller-retour '+x);v(Math.abs(d.gaz-c.gaz)<=1/30+1e-9&&Math.abs(d.direction-c.direction)<=1/30+1e-9&&d.remise===c.remise,'valeur '+JSON.stringify(d));}
   const e=EN_LIGNE.decoder(EN_LIGNE.coder({gaz:9,frein:-3,direction:50,remise:1}));v(e.gaz===1&&e.frein===0&&e.direction===1,'bornes');
   const n=EN_LIGNE.decoder(EN_LIGNE.coder({gaz:NaN,frein:'x',direction:undefined}));v(n.gaz===0&&n.frein===0&&n.direction===0,'NaN');
   for(const x of [-1,1.5,99999,NaN,'3',null,{}]) v(EN_LIGNE.codeValide(x)===false&&EN_LIGNE.decoder(x).gaz===0&&EN_LIGNE.decoder(x).direction===0,'invalide '+x);
   const ver=EN_LIGNE.version();v(ver.v===REGLAGES.EN_LIGNE_VERSION&&Number.isInteger(ver.h)&&JSON.stringify(ver)===JSON.stringify(EN_LIGNE.version()),'version');});
-t('en ligne : les réglages de l’hôte sont corrigés pareil partout (circuit inconnu, tours, météo, IA plafonnées au nombre de voitures)', ()=>{
+enlT('en ligne : les réglages de l’hôte sont corrigés pareil partout (circuit inconnu, tours, météo, IA plafonnées au nombre de voitures)', ()=>{
   const R=REGLAGES,a=EN_LIGNE.reglagesValides({circuit:'nimporte',tours:99,meteo:'neige',nbIA:99},4);
   v(a.circuit==='test'&&a.tours===R.EN_LIGNE_TOURS_DEFAUT&&a.meteo==='auto'&&a.nbIA===Math.min(R.EN_LIGNE_IA_MAX,R.EN_LIGNE_VOITURES_MAX-4),JSON.stringify(a));
   const b=EN_LIGNE.reglagesValides({circuit:'technique',tours:5,meteo:'pluie',nbIA:3},2);v(b.circuit==='technique'&&b.tours===5&&b.meteo==='pluie'&&b.nbIA===3,JSON.stringify(b));
   v(EN_LIGNE.reglagesValides(null,1).nbIA===0&&EN_LIGNE.reglagesValides({nbIA:-2},2).nbIA===0&&EN_LIGNE.reglagesValides({nbIA:2.5},2).nbIA===0,'IA absurdes');
   v(JSON.stringify(EN_LIGNE.reglagesValides(a,4))===JSON.stringify(a),'idempotent');});
-t('en ligne : deux joueurs reliés sans délai ont, au pas '+ENL_N+', la même course au bit près — et c’est celle d’une simulation sans réseau (commandes prises au pas n - délai)', ()=>{
+enlT('en ligne : deux joueurs reliés sans délai ont, au pas '+ENL_N+', la même course au bit près — et c’est celle d’une simulation sans réseau (commandes prises au pas n - délai)', ()=>{
   const b=EN_LIGNE.banc(['a','b'],enlOpts());b.jusqua(ENL_N);v(enlTous(b,ENL_N),'pas');
   const ha=b.parties.get('a').empreinte(),hb=b.parties.get('b').empreinte();v(ha===hb,'a '+ha+' b '+hb);
   v(ha===enlReference(['a','b']),'la référence sans réseau : '+enlReference(['a','b'])+' contre '+ha);
   const p=b.parties.get('a').pilotes.get('a'),q=b.parties.get('a').pilotes.get('b');v(p.v.u>5&&q.v.u>5,'les deux voitures roulent : '+p.v.u.toFixed(1)+' '+q.v.u.toFixed(1));
   v(b.parties.get('a').e.pilotes.length===4&&b.parties.get('a').e.pilotes.filter(x=>x.humain).length===2,'4 voitures dont 2 humaines');
   v(b.parties.get('a').desynchro===null&&b.parties.get('b').desynchro===null,'aucune désynchro');});
-t('en ligne : quatre joueurs, des délais de réseau différents sur chaque lien (0 à 14 ticks, qui changent) : même état partout au bit près, même que la référence ; on a dû attendre', ()=>{
+enlT('en ligne : quatre joueurs, des délais de réseau différents sur chaque lien (0 à 14 ticks, qui changent) : même état partout au bit près, même que la référence ; on a dû attendre', ()=>{
   const ids=['a','b','c','d'];let attendu=false;
   const b=EN_LIGNE.banc(ids,enlOpts({latence:(de,vers,tick)=>(de.charCodeAt(0)*3+vers.charCodeAt(0)*5+Math.floor(tick/37))%15}));
   for(let k=0;k<ENL_N*30&&!enlTous(b,ENL_N);k++){b.avancer();for(const p of b.parties.values()) if(p.attente) attendu=true;}
@@ -3943,7 +3946,7 @@ t('en ligne : quatre joueurs, des délais de réseau différents sur chaque lien
   const h=ids.map(i=>b.parties.get(i).empreinte());v(h.every(x=>x===h[0]),'empreintes '+h.join(' '));
   v(h[0]===enlReference(ids),'référence');v(attendu,'jamais attendu : le test ne prouve rien');
   v(ids.every(i=>b.parties.get(i).desynchro===null),'désynchro');});
-t('en ligne : une commande en retard (un lien coupé 90 ticks) : les autres attendent (attente nomme le joueur), rien n’avance en douce, puis tout reprend et l’état est celui de la référence', ()=>{
+enlT('en ligne : une commande en retard (un lien coupé 90 ticks) : les autres attendent (attente nomme le joueur), rien n’avance en douce, puis tout reprend et l’état est celui de la référence', ()=>{
   const ids=['a','b','c'],coupe=(de,vers,tick)=>de==='c'&&tick>=200&&tick<290?300-tick:0;
   const b=EN_LIGNE.banc(ids,enlOpts({latence:coupe}));let nom=null,nMax=0,vu=false;
   for(let k=0;k<ENL_N*20&&!enlTous(b,ENL_N);k++){b.avancer();const pa=b.parties.get('a');if(pa.attente&&pa.attente.includes('c')){nom=pa.attente.join();vu=true;}}
@@ -3953,7 +3956,7 @@ t('en ligne : une commande en retard (un lien coupé 90 ticks) : les autres atte
   const b2=EN_LIGNE.banc(ids,enlOpts({latence:(de,vers,tick)=>de==='c'?40:0}));let ecartMax=0;
   for(let k=0;k<2000;k++){b2.avancer();const ns=[...b2.parties.values()].map(p=>p.n);ecartMax=Math.max(ecartMax,Math.max(...ns)-Math.min(...ns));}
   v(ecartMax<=REGLAGES.EN_LIGNE_DELAI+REGLAGES.EN_LIGNE_PAQUET+45,'écart de pas entre joueurs : '+ecartMax);});
-t('en ligne : une empreinte de contrôle différente = désynchro signalée par les deux côtés, au premier contrôle qui suit, et la partie s’arrête ; sans écart, aucune alerte sur 1400 pas', ()=>{
+enlT('en ligne : une empreinte de contrôle différente = désynchro signalée par les deux côtés, au premier contrôle qui suit, et la partie s’arrête ; sans écart, aucune alerte sur 1400 pas', ()=>{
   const b=EN_LIGNE.banc(['a','b'],enlOpts({latence:()=>2}));b.jusqua(250);
   v(b.parties.get('a').desynchro===null&&b.parties.get('b').desynchro===null,'alerte sans raison');
   b.parties.get('b').moi.v.x+=1e-9;   // un seul bit de travers
@@ -3961,7 +3964,7 @@ t('en ligne : une empreinte de contrôle différente = désynchro signalée par 
   const da=b.parties.get('a').desynchro,db=b.parties.get('b').desynchro;
   v(da&&db,'pas signalée : '+JSON.stringify([da,db]));v(da.n===360&&db.n===360&&da.de==='b'&&db.de==='a'&&da.miens!==da.siens,'signal '+JSON.stringify([da,db]));
   const n=b.parties.get('a').n;for(let k=0;k<50;k++) b.avancer();v(b.parties.get('a').n===n,'la partie continue après la désynchro');});
-t('en ligne : un joueur qui part (« parti ») : ses commandes arrivées comptent, puis il est neutre ; les autres continuent, restent d’accord au bit près et avec la référence', ()=>{
+enlT('en ligne : un joueur qui part (« parti ») : ses commandes arrivées comptent, puis il est neutre ; les autres continuent, restent d’accord au bit près et avec la référence', ()=>{
   const ids=['a','b','c'],b=EN_LIGNE.banc(ids,enlOpts({latence:(de,vers)=>(de.charCodeAt(0)+vers.charCodeAt(0))%4,pasMax:900}));
   for(let k=0;k<20000&&b.parties.get('c').n<400;k++) b.avancer();
   b.partir('c');for(let k=0;k<20000&&!enlTous(b,900);k++) b.avancer();
@@ -3970,7 +3973,7 @@ t('en ligne : un joueur qui part (« parti ») : ses commandes arrivées compten
   const ha=b.parties.get('a').empreinte(),hb=b.parties.get('b').empreinte();v(ha===hb,'a b');
   v(ha===enlReference(ids,enlOpts(),900,{c:dernier}),'la référence (c neutre après '+dernier+')');
   v(b.parties.get('a').pilotes.get('c').v.gaz===0,'c lève le pied');});
-t('en ligne : rien ne lit le hasard du navigateur ni l’horloge pendant une course en ligne (Math.random et Date.now qui échouent), avec pneus et averse', ()=>{
+enlT('en ligne : rien ne lit le hasard du navigateur ni l’horloge pendant une course en ligne (Math.random et Date.now qui échouent), avec pneus et averse', ()=>{
   const mr=Math.random,dn=Date.now,pn=performance.now.bind(performance);let b=null;
   try{Math.random=()=>{throw new Error('Math.random');};Date.now=()=>{throw new Error('Date.now');};performance.now=()=>{throw new Error('performance.now');};
     ALEATOIRE.semer(1);
@@ -3978,7 +3981,7 @@ t('en ligne : rien ne lit le hasard du navigateur ni l’horloge pendant une cou
   }finally{Math.random=mr;Date.now=dn;performance.now=pn;ALEATOIRE.semer();}
   v(enlTous(b,700)&&b.parties.get('a').empreinte()===b.parties.get('b').empreinte(),'état');
   v(b.parties.get('a').e.meteo&&b.parties.get('a').moi.v.pneus,'météo et pneus présents');});
-t('en ligne : les messages sortants suivent le protocole (cmd par paquets sans trou, controle toutes les EN_LIGNE_CONTROLE pas), les messages reçus abîmés ou des autres salles sont ignorés', ()=>{
+enlT('en ligne : les messages sortants suivent le protocole (cmd par paquets sans trou, controle toutes les EN_LIGNE_CONTROLE pas), les messages reçus abîmés ou des autres salles sont ignorés', ()=>{
   const out=[],p=EN_LIGNE.demarrer({reglages:ENL_REG,graine:7,ordre:['x','y']},'x',m=>out.push(m),{circuit:C,carte:CARTES_T.test});
   const delai=p.delai,y=[];for(let k=0;k<400;k++) y.push(EN_LIGNE.CODE_NEUTRE);
   p.recevoir({t:'cmd',de:'y',n:delai,c:y});p.local={gaz:1,frein:0,direction:0.5,remise:false};
@@ -3992,10 +3995,35 @@ t('en ligne : les messages sortants suivent le protocole (cmd par paquets sans t
   // des valeurs hors bornes dans un paquet : neutres, jamais d'erreur
   p.recevoir({t:'cmd',de:'y',n:delai+400,c:[-5,1e9,3.5,'a',null,EN_LIGNE.coder({gaz:1})]});
   v(p.avancer(1)===0&&p.attente&&p.attente[0]==='y'||p.avancer(150)>0,'reprise');});
-t('en ligne : sans commande de l’autre, on attend (attente), rien n’avance, et le paquet à nous partit quand même (pas de blocage mutuel)', ()=>{
+enlT('en ligne : sans commande de l’autre, on attend (attente), rien n’avance, et le paquet à nous partit quand même (pas de blocage mutuel)', ()=>{
   const out=[],p=EN_LIGNE.demarrer({reglages:ENL_REG,graine:7,ordre:['x','y']},'x',m=>out.push(m),{circuit:C,carte:CARTES_T.test});
   const delai=p.delai;v(p.avancer(1000)===delai,'avance de '+p.n+' pas (le délai) puis attend');v(p.attente&&p.attente.join()==='y'&&p.pasAttendus>=1,'attente '+p.attente);
   const envoyes=out.filter(m=>m.t==='cmd').reduce((s,m)=>s+m.c.length,0);v(envoyes===delai,'commandes envoyées '+envoyes);});
+
+enlT('en ligne : nos fonctions Math (sin, cos, tan, atan, atan2, exp, hypot) sont justes à 1e-13 près de celles du navigateur, sur les valeurs que le jeu rencontre, ont les bons cas limites, et rendent Math tel qu’il était', ()=>{
+  const M=EN_LIGNE.maths,vrai={sin:Math.sin,cos:Math.cos,tan:Math.tan,atan:Math.atan,atan2:Math.atan2,exp:Math.exp,hypot:Math.hypot};
+  const proche=(a,b,m)=>{const e=Math.abs(a-b)/Math.max(1,Math.abs(b));if(!(e<=1e-13)) throw new Error(m+' : '+a+' contre '+b);};
+  for(let x=-40;x<=40;x+=0.0137){proche(M.sin(x),vrai.sin(x),'sin '+x);proche(M.cos(x),vrai.cos(x),'cos '+x);proche(M.atan(x),vrai.atan(x),'atan '+x);}
+  for(let x=-1.5;x<=1.5;x+=0.0071) proche(M.tan(x),vrai.tan(x),'tan '+x);
+  for(let x=-50;x<=50;x+=0.0173) proche(M.exp(x),vrai.exp(x),'exp '+x);
+  for(let y=-5;y<=5;y+=0.37) for(let x=-5;x<=5;x+=0.41){proche(M.atan2(y,x),vrai.atan2(y,x),'atan2 '+y+' '+x);proche(M.hypot(x,y),vrai.hypot(x,y),'hypot');}
+  for(const x of [1000,5000,12345.678,-777.7]){proche(M.sin(x),vrai.sin(x),'sin '+x);proche(M.cos(x),vrai.cos(x),'cos '+x);}
+  v(M.sin(0)===0&&M.cos(0)===1&&M.exp(0)===1&&M.atan(0)===0&&M.hypot(3,4)===5&&M.hypot(0,0)===0,'valeurs exactes');
+  v(Number.isNaN(M.sin(NaN))&&Number.isNaN(M.cos(Infinity))&&Number.isNaN(M.exp(NaN))&&M.exp(1000)===Infinity&&M.exp(-1000)===0&&M.atan(Infinity)===Math.PI/2&&M.atan2(0,-1)===Math.PI&&M.atan2(1,0)===Math.PI/2&&M.atan2(-1,0)===-Math.PI/2&&M.hypot(Infinity,NaN)===Infinity,'cas limites');
+  const a=Math.sin;v(M.actives()===0,'actives');M.activer();M.activer();v(Math.sin===M.sin&&Math.atan2===M.atan2&&Math.hypot===M.hypot&&M.actives()===2,'activé');
+  M.desactiver();v(Math.sin===M.sin,'encore activé (deux parties)');M.desactiver();v(Math.sin===a&&Math.exp===vrai.exp&&M.actives()===0,'rendu');M.desactiver();v(M.actives()===0,'désactiver de trop');});
+enlT('en ligne : le vrai chemin (sans circuit ni carte donnés : circuit et carte construits avec nos maths) : deux clients ont la même course, Math revient à la normale après terminer()', ()=>{
+  const sin0=Math.sin;REGLAGES.EN_LIGNE_MATHS=true;let b;
+  try{b=EN_LIGNE.banc(['a','b'],{reglages:ENL_REG,graine:11,pasMax:1000,latence:()=>1,local:enlScript});
+    v(Math.sin===EN_LIGNE.maths.sin,'maths pas actives pendant la partie');b.jusqua(1000);
+    v(enlTous(b,1000)&&b.parties.get('a').empreinte()===b.parties.get('b').empreinte(),'état');
+    v(b.parties.get('a').moi.v.u>1,'ça roule');
+    b.parties.get('a').e.circuit.nb;v(b.parties.get('a').e.circuit!==C,'le circuit natif a servi');}
+  finally{if(b) b.fin();}
+  v(Math.sin===sin0&&EN_LIGNE.maths.actives()===0,'Math pas rendu');
+  REGLAGES.EN_LIGNE_MATHS=false;
+  try{const b2=EN_LIGNE.banc(['a','b'],{reglages:ENL_REG,graine:11,pasMax:60,circuit:C,carte:CARTES_T.test,latence:()=>0});v(Math.sin===sin0,'EN_LIGNE_MATHS faux : Math du navigateur');b2.jusqua(60);b2.fin();}
+  finally{REGLAGES.EN_LIGNE_MATHS=true;}});
 
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 ecrire();

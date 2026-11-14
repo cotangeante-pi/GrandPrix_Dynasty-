@@ -86,9 +86,20 @@ def enligne_course(delai=420):
     print(out.strip()); print(f'⏱ tests/enligne-course.py : {time.monotonic() - t0:.0f} s')
     return p.returncode == 0 and '✘' not in out
 
+def serveur_relais(delai=300):
+    # (tour 56, T3) le serveur relais des batailles en ligne, avec de vrais clients websockets (tests/serveur.py : une trentaine de secondes ; pip install websockets)
+    t0 = time.monotonic()
+    p = subprocess.Popen([sys.executable, os.path.join(RACINE, 'tests', 'serveur.py')], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True)
+    try: out, err = p.communicate(timeout=delai)
+    except subprocess.TimeoutExpired:
+        os.killpg(p.pid, signal.SIGKILL); out, err = p.communicate(); out += f'\n✘ serveur.py : plus de {delai} s, arrêté'
+    if 'RESULTAT' not in out: out += '\n✘ serveur.py s’est arrêté sans résultat :\n' + (err or '').strip()[-2000:]
+    print(out.strip()); print(f'⏱ tests/serveur.py : {time.monotonic() - t0:.0f} s')
+    return p.returncode == 0 and '✘' not in out
+
 def annexes():
     pages = all([serie(p, delai=300 if 'courses' in p else 600 if 'officiels' in p else 120, options=['--virtual-time-budget=5000'] if p.endswith('sdk.html') or p.endswith('reseau.html') else []) for p in ANNEXES])
-    return enligne_course() and chasse_en() and pages
+    return enligne_course() and chasse_en() and serveur_relais() and pages
 
 # les parties de la suite, dans l'ordre : moteur (test.html), courses (courses.html, 30 courses entre IA), ecrans (ecrans.py), annexes
 # le paquet Poki (tests/paquet.py, Codeur 3) : le zip fabriqué, puis le jeu ouvert depuis le zip décompressé (vérifications Poki)

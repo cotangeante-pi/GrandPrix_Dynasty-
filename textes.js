@@ -1435,3 +1435,49 @@ Object.assign(TEXTES.fr, { com_remontee: ['{qui} remonte : déjà {n} places gag
 
 Object.assign(TEXTES.en, { degats_oui: 'Damage: on', degats_non: 'Damage: off', drapeaux_oui: 'Flags: on', drapeaux_non: 'Flags: off' });
 Object.assign(TEXTES.fr, { degats_oui: 'Dégâts : oui', degats_non: 'Dégâts : non', drapeaux_oui: 'Drapeaux : oui', drapeaux_non: 'Drapeaux : non' });
+
+// --- tour 56, T5 : les batailles en ligne (enligne-ecran.js ; derrière EN_LIGNE) : jamais de texte libre entre joueurs ---
+Object.assign(TEXTES.en, {
+  enligneBouton: '🌐 Online', enligneMenu: 'Online', enligneTitre: 'Online',
+  enligneExplication: 'Race real players. Create a room and share its code, or join a friend’s room.',
+  enligneCouleur: 'Your colour', enligneNom: '{c} driver', enligneNomChoisi: 'You race as: {nom}',
+  enligneCouleur_bleu: 'Blue', enligneCouleur_rouge: 'Red', enligneCouleur_jaune: 'Yellow', enligneCouleur_vert: 'Green',
+  enligneCouleur_orange: 'Orange', enligneCouleur_violet: 'Purple', enligneCouleur_turquoise: 'Teal', enligneCouleur_rose: 'Pink',
+  enligneCreer: '➕ Create a room', enligneRejoindre: '🔑 Join a room', enligneRetour: 'Back',
+  enligneRejoindreTitre: 'Room code', enligneCodeAide: 'The 4 letters of the room (never a vowel)', enligneEffacer: '⌫', enligneGo: 'Join',
+  enligneCodeCourt: 'Type the 4 letters of the code first.', enligneConnexion: 'Connecting…',
+  enligneRefus_inconnue: 'No room has this code.', enligneRefus_pleine: 'This room is full.', enligneRefus_commencee: 'This race has already started.',
+  enligneRefus_version: 'Your game is not the same version as the host’s.', enligneRefus_nom: 'This colour is already taken: pick another one.',
+  enligneCoupure: 'The connection was lost.',
+  enligneSalle: 'Room', enligneJoueurs: 'Drivers {n} / {max}', enligneHote: 'host', enligneToi: 'you', enlignePret: 'ready', enlignePasPret: 'not ready',
+  enlignePretBouton: '✔ I’m ready', enlignePretAnnuler: '✖ Not ready', enligneLancer: '🏁 Start the race', enligneQuitter: 'Leave the room',
+  enligneAttentePrets: 'Waiting for everyone to be ready…', enligneAttenteAmi: 'Waiting for a friend to join…', enligneLancerPret: 'Everyone is ready!',
+  enligneReglages: 'The race', enligneCircuit: 'Circuit', enligneTours: 'Laps', enligneMeteo: 'Weather', enligneIA: 'AI cars',
+  enligneMeteo_sec: 'Dry', enligneMeteo_nuageux: 'Cloudy', enligneMeteo_pluie: 'Rain',
+  enligneHoteChoisit: 'The host chooses the race.', enligneEmotes: 'Reactions',
+  enligneEmote_0: 'Thumbs up', enligneEmote_1: 'Applause', enligneEmote_2: 'Fire', enligneEmote_3: 'Laughing', enligneEmote_4: 'Wow',
+  enligneEmote_5: 'Chequered flag', enligneEmote_6: 'Handshake', enligneEmote_7: 'Phew',
+  enligneNouvelHote: 'The host left: you are the new host.', enligneParti: '{nom} left the room.', enligneDepart: 'Starting! (the online race itself is not ready yet)',
+});
+Object.assign(TEXTES.fr, {
+  enligneBouton: '🌐 En ligne', enligneMenu: 'En ligne', enligneTitre: 'En ligne',
+  enligneExplication: 'Cours contre de vrais joueurs. Crée une salle et donne son code, ou rejoins la salle d’un ami.',
+  enligneCouleur: 'Ta couleur', enligneNom: 'Pilote {c}', enligneNomChoisi: 'Tu cours sous le nom : {nom}',
+  enligneCouleur_bleu: 'Bleu', enligneCouleur_rouge: 'Rouge', enligneCouleur_jaune: 'Jaune', enligneCouleur_vert: 'Vert',
+  enligneCouleur_orange: 'Orange', enligneCouleur_violet: 'Violet', enligneCouleur_turquoise: 'Turquoise', enligneCouleur_rose: 'Rose',
+  enligneCreer: '➕ Créer une salle', enligneRejoindre: '🔑 Rejoindre une salle', enligneRetour: 'Retour',
+  enligneRejoindreTitre: 'Code de la salle', enligneCodeAide: 'Les 4 lettres de la salle (jamais de voyelle)', enligneEffacer: '⌫', enligneGo: 'Rejoindre',
+  enligneCodeCourt: 'Tape d’abord les 4 lettres du code.', enligneConnexion: 'Connexion…',
+  enligneRefus_inconnue: 'Aucune salle n’a ce code.', enligneRefus_pleine: 'Cette salle est pleine.', enligneRefus_commencee: 'La course a déjà commencé.',
+  enligneRefus_version: 'Ton jeu n’est pas de la même version que celui de l’hôte.', enligneRefus_nom: 'Cette couleur est déjà prise : choisis-en une autre.',
+  enligneCoupure: 'La connexion a été perdue.',
+  enligneSalle: 'Salle', enligneJoueurs: 'Pilotes {n} / {max}', enligneHote: 'hôte', enligneToi: 'toi', enlignePret: 'prêt', enlignePasPret: 'pas prêt',
+  enlignePretBouton: '✔ C’est bon pour moi', enlignePretAnnuler: '✖ Pas encore', enligneLancer: '🏁 Lancer la course', enligneQuitter: 'Quitter la salle',
+  enligneAttentePrets: 'On attend que tout le monde soit prêt…', enligneAttenteAmi: 'On attend qu’un ami arrive…', enligneLancerPret: 'Tout le monde est prêt !',
+  enligneReglages: 'La course', enligneCircuit: 'Circuit', enligneTours: 'Tours', enligneMeteo: 'Météo', enligneIA: 'Voitures IA',
+  enligneMeteo_sec: 'Sec', enligneMeteo_nuageux: 'Nuageux', enligneMeteo_pluie: 'Pluie',
+  enligneHoteChoisit: 'L’hôte choisit la course.', enligneEmotes: 'Réactions',
+  enligneEmote_0: 'Pouce levé', enligneEmote_1: 'Applaudissements', enligneEmote_2: 'Feu', enligneEmote_3: 'Rire', enligneEmote_4: 'Ouah',
+  enligneEmote_5: 'Drapeau à damier', enligneEmote_6: 'Poignée de main', enligneEmote_7: 'Ouf',
+  enligneNouvelHote: 'L’hôte est parti : c’est toi le nouvel hôte.', enligneParti: '{nom} a quitté la salle.', enligneDepart: 'C’est parti ! (la course en ligne elle-même n’est pas encore prête)',
+});
