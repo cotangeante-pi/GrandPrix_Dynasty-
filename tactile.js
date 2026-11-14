@@ -186,6 +186,7 @@ const TACTILE = (function () {
   function pneus(types, courant) {
     const el = $('tactilePneus');
     if (!el) return;
+    document.body.classList.toggle('tactileStand', !!(types && types.length));   // (la vitesse et les pneus du HUD s'effacent pendant l'arrêt : la voiture est tenue)
     if (!types || !types.length) { if (P.cle) { P.cle = ''; el.classList.add('cache'); } return; }
     const cle = types.join() + LANGUE;
     if (cle !== P.cle) {

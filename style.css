@@ -2262,6 +2262,7 @@ body.tactile:has(#pause:not(.cache)) #boutonSon { display: none; }   /* (tour 55
 /* (tour 56, T14) au doigt, le choix des pneus pendant l'arrêt au stand : une rangée de boutons (≥ 40 px), sous le bandeau de l'arrêt, au centre (tactile.js, pneus) ; sans écran tactile, jamais affichée (← → comme avant) */
 #tactilePneus { position: absolute; top: 292px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; pointer-events: auto; touch-action: none; }
 #tactilePneus.cache { display: none; }
-.tactilePneu { min-width: 64px; min-height: 44px; padding: 0 8px; display: flex; align-items: center; justify-content: center; box-sizing: border-box; border-radius: 10px;
-  border: 2px solid rgba(255, 255, 255, 0.5); background: rgba(0, 0, 0, 0.6); color: #fff; font: 700 12px/1.1 var(--police); text-align: center; user-select: none; -webkit-user-select: none; }
+.tactilePneu { min-width: 0; min-height: 44px; padding: 0 6px; display: flex; align-items: center; justify-content: center; box-sizing: border-box; border-radius: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.5); background: rgba(0, 0, 0, 0.6); color: #fff; font: 700 11px/1.1 var(--police); text-align: center; user-select: none; -webkit-user-select: none; }
+body.tactileStand #tableau, body.tactileStand #pneusHud { visibility: hidden; }
 .tactilePneu.choisi { background: #1f6fe0; border-color: #fff; }
