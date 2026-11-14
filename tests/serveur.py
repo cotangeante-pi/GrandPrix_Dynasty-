@@ -311,6 +311,13 @@ async def tests_garde_fous(port, rel):
     ms = [m['n'] for m in await vider(b) if m['t'] == 'cmd']
     t('garde-fou : la limite se règle sur ceux qui restent (le parti ne bloque personne) : 244 à 252 passent (fin 256 = 16 + 240), 256 (fin 260) est jeté', ms == [244, 248, 252], ms)
     await fin([h, b]); await asyncio.sleep(0.2)
+    # le délai adaptatif : la limite d'avance suit le délai de la salle (max(240, 2 × délai + 16))
+    code, (h, b) = await salle_de(port, ['bleu', 'rouge'])
+    await h.env(t='lancer', reglages={'circuit': 'monza', 'tours': 3, 'meteo': 'sec', 'nbIA': 0, 'delai': 200}); d = await b.jusqua('depart'); await h.jusqua('depart')
+    for n in range(0, 400, 4): await h.env(t='cmd', n=n, c=[1, 1, 1, 1])
+    ms = [m['n'] for m in await vider(b) if m['t'] == 'cmd']
+    t('garde-fou : avec un délai de 200 pas dans les réglages, la limite d’avance monte à 416 (2 × 200 + 16) : 400 pas passent', d['reglages'].get('delai') == 200 and ms == list(range(0, 400, 4)), (d['reglages'], len(ms)))
+    await fin([h, b]); await asyncio.sleep(0.2)
     # une nouvelle course dans la même salle repart de zéro
     code, (h, b) = await salle_de(port, ['bleu', 'rouge'], lancee=True)
     await h.env(t='cmd', n=0, c=[1] * 8); await b.env(t='cmd', n=0, c=[1] * 8); await vider(h); await vider(b)
@@ -349,10 +356,10 @@ async def tests_decisions(port, rel):
     # --- D5 : cmd et controle mal formés, n croissant, h une chaîne de 64 au plus
     code, (h, b) = await salle_de(port, ['bleu', 'rouge'], lancee=True)
     await b.env(t='controle', n=120, h='abc'); await b.env(t='controle', n=120, h='dup'); await b.env(t='controle', n=60, h='arriere')
-    await b.env(t='controle', n=240, h=12345); await b.env(t='controle', n=360, h='x' * 65); await b.env(t='controle', n=-1, h='a'); await b.env(t='controle', n=480, h=['a'])
+    await b.env(t='controle', n=240, h=12345); await b.env(t='controle', n=300, h=2 ** 32); await b.env(t='controle', n=301, h=-5); await b.env(t='controle', n=302, h=1.5); await b.env(t='controle', n=303, h=True); await b.env(t='controle', n=360, h='x' * 65); await b.env(t='controle', n=-1, h='a'); await b.env(t='controle', n=480, h=['a'])
     await b.env(t='controle', n=600, h='x' * 64); await b.env(t='cmd', n=0, c=[1]); await b.env(t='cmd', n=1, c=5)
     ms = [(m['t'], m['n']) for m in await vider(h)]
-    t('D5 : controle : h doit être une chaîne de 64 caractères au plus et n croissant ; cmd : c doit être un tableau (un entier seul est refusé)', ms == [('controle', 120), ('controle', 600), ('cmd', 0)], ms)
+    t('D5 : controle : h doit être une chaîne de 64 caractères au plus et n croissant ; cmd : c doit être un tableau (un entier seul est refusé)', ms == [('controle', 120), ('controle', 240), ('controle', 600), ('cmd', 0)], ms)
     await fin([h, b])
 
 async def refus_v(port, v_):

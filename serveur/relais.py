@@ -88,7 +88,11 @@ def reglages_valides(r, humains=2):
     if not (isinstance(c, str) and 0 < len(c) <= 40 and m in METEOS): return None
     if not (entier(r.get('tours'), 1, TOURS_MAX) and entier(r.get('nbIA'), 0, IA_MAX)): return None
     if humains + r['nbIA'] > VOITURES_MAX: return None
-    return {'circuit': c, 'tours': r['tours'], 'meteo': m, 'nbIA': r['nbIA']}
+    out = {'circuit': c, 'tours': r['tours'], 'meteo': m, 'nbIA': r['nbIA']}
+    if 'delai' in r:   # le délai d'entrée choisi pour la salle (pas) : la limite d'avance s'y adapte
+        if not entier(r['delai'], 1, 240): return None
+        out['delai'] = r['delai']
+    return out
 
 class Client:
     def __init__(self, ws, ip, cfg):
@@ -243,7 +247,7 @@ class Relais:
             else: self._faute(c)
         elif t == 'controle':
             h = m.get('h')
-            if salle.commencee and entier(m.get('n'), 0, 10 ** 8) and m['n'] > c.dernier_controle and isinstance(h, str) and len(h) <= 64:   # (D5) h : une chaîne de 64 caractères au plus ; n croissant
+            if salle.commencee and entier(m.get('n'), 0, 10 ** 8) and m['n'] > c.dernier_controle and ((isinstance(h, str) and len(h) <= 64) or entier(h, 0, 2 ** 32 - 1)):   # (D5) h : une chaîne de 64 caractères au plus (ou un entier de 32 bits : le cœur compare des entiers) ; n croissant
                 c.dernier_controle = m['n']
                 self._diffuser(salle, {'t': 'controle', 'de': c.id, 'n': m['n'], 'h': h}, sauf=c)
             else: self._faute(c)
@@ -281,7 +285,8 @@ class Relais:
         fin = n + len(paquet)
         if cfg.avance_max:
             autres = [j.fin_cmd for j in salle.joueurs.values() if j is not c]
-            if autres and fin > min(autres) + cfg.avance_max: return False
+            delai = (salle.reglages or {}).get('delai') or 12   # EN_LIGNE_DELAI
+            if autres and fin > min(autres) + max(cfg.avance_max, 2 * delai + 16): return False   # (le délai adaptatif : jamais refuser une commande honnête)
         c.fin_cmd = fin
         return True
 
@@ -375,6 +380,7 @@ class Relais:
         if len(salle.joueurs) < self.cfg.min_pour_lancer: return self._erreur(c, 'seul')
         if self.cfg.exiger_charge and any(j.circuit != reglages.get('circuit') or j.absent for j in salle.joueurs.values()): return self._erreur(c, 'charge')
         salle.commencee = True
+        salle.reglages = reglages   # (le délai de la course règle la limite d'avance)
         for j in salle.joueurs.values(): j.fin_cmd, j.dernier_controle = 0, -1
         ordre = list(salle.joueurs)
         self.hasard.shuffle(ordre)
