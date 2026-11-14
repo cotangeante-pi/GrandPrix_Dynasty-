@@ -181,6 +181,10 @@ const REGLAGES = {
   // le téléphone (tactile.js, tour 51k, CLAUDE.md « Le téléphone : le volant ») : les mêmes cibles que le clavier, la physique ne change pas
   TACTILE_ACTIF: true,             // faux : rien, même sur un écran tactile (le clavier seul, au bit près) ; sans écran tactile, rien ne change
   TACTILE_IPHONE_GRILLE: true,     // (tour 53e) iPhone : « 🎮 Activer le volant » n'est plus sur l'écran titre mais sur la grille, pendant les feux (gros, au centre-bas) ; sans réponse à l'extinction, les boutons ◀ ▶ ; faux = l'écran titre, comme avant
+  PORTRAIT_DELAI: 0.8,             // (tour 56, le propriétaire : le message « tourne ton téléphone » venait trop souvent) s debout avant le message et la pause ; 0 = tout de suite, comme avant
+  PORTRAIT_MARGE: 1.15,            // (tour 56) debout = plus haut que large d'au moins ce rapport ; 1 = h > l, comme avant
+  PORTRAIT_TOURNER: true,          // (tour 56, T15, le propriétaire : « B ») téléphone tenu debout : le jeu s'affiche tourné de 90° (le haut à gauche, le bas sous le pouce droit), sans message ni pause ; faux = le message « Tourne ton téléphone » et la pause, comme avant
+  PORTRAIT_ANGLE: true,            // (tour 56) l'angle du téléphone (window.orientation) l'emporte : couché à ±90°, jamais le message ; faux = seulement la taille de la fenêtre, comme avant
   TACTILE_PAYSAGE: true,           // (tour 52b) au premier geste sur un écran tactile : plein écran puis verrou en paysage (là où le navigateur le permet) ; faux : rien demandé
   VOLANT_PLEIN: 30,                // ° d'inclinaison depuis le neutre = braquage à fond (le propriétaire, 2026-11-12 : zone morte 10° ; il reste 20° de course jusqu'au plein ; avant : 25)
   VOLANT_ZONE_MORTE: 10,           // ° autour du neutre où l'on ne braque pas : « 10° c'est tout droit, pour rester droit » (le propriétaire, 2026-11-12 ; avant : 2) ; le braquage part de 0 au bord, sans saut
@@ -227,6 +231,12 @@ const REGLAGES = {
   MARGE_COUPE: 1,               // m au-delà du bord : à partir de là, on est sorti de la piste
   SEUIL_COUPE: 2,               // m : virage coupé si la sortie fait gagner plus que ça le long de la piste
   PENALITE_COUPE: 5,            // s ajoutées au temps total
+  // les limites de piste, comme la vraie F1 (tour 56, T1 ; le propriétaire : « 0,5 s en tournant long = 5 s : il faut rendre ça moins sévère »).
+  // La cause : le gain d'une sortie était mesuré sur la ligne du MILIEU ; à l'intérieur d'un long virage l'arc est plus court que celui du milieu,
+  // donc rester dehors à l'intérieur « gagnait » des mètres sans rien couper. Les valeurs d'avant (faux, faux, 0) rendent le jeu d'avant.
+  COUPE_MESURE_BORD: true,      // vrai : le gain se mesure contre le BORD de la piste (l'arc qu'on aurait fait sur la piste, côté de la sortie) ; faux : contre le milieu, comme avant
+  SEUIL_COUPE_GRAVE: 1,         // m : avec COUPE_MESURE_BORD, une sortie qui fait gagner plus que ça sur le bord est un vrai raccourci : +PENALITE_COUPE tout de suite
+  LIMITES_AVERTISSEMENTS: 3,    // un débordement sans vrai raccourci = un avertissement (le tour ne compte pas pour le record) ; au suivant (le 4e) : +PENALITE_COUPE, puis le compte repart ; 0 = pas d'avertissement (comme avant)
   // les feux de départ (?ia=N&joueur=1) : à la place du 3-2-1-GO
   FEUX_NB: 5,                   // cinq feux rouges…
   FEUX_INTERVALLE: 1,           // s : … qui s'allument un par un, un par seconde
@@ -1240,7 +1250,7 @@ const REGLAGES = {
   COMMENTAIRE_LONGUEUR_MAX: 60,   // caractères d'une phrase au plus (les noms comptés à 7 lettres) : court, pour ne pas lire en pilotant
   COMMENTAIRE_PEREMPTION: 8,      // s : un fait plus vieux n'est plus dit
   COMMENTAIRE_FILE_MAX: 6,
-  COMMENTAIRE_PRIORITES: { remontee: 7, arrivee: 10, podium: 9, arret: 6, depart: 9, vsc: 9, drapeauJaune: 8, drapeauVert: 7, domicileRival: 7, degats: 6, depassementTete: 9, dernierTour: 8, joueurArrivee: 8, contact: 7, depassementJoueur: 6, pluie: 6, coteACote: 5, erreur: 5, penalite: 5, depassement: 4, stands: 3, meilleurTour: 3, joueurTete: 2, joueurPlace: 2, glissade: 6,
+  COMMENTAIRE_PRIORITES: { limites: 5, remontee: 7, arrivee: 10, podium: 9, arret: 6, depart: 9, vsc: 9, drapeauJaune: 8, drapeauVert: 7, domicileRival: 7, degats: 6, depassementTete: 9, dernierTour: 8, joueurArrivee: 8, contact: 7, depassementJoueur: 6, pluie: 6, coteACote: 5, erreur: 5, penalite: 5, depassement: 4, stands: 3, meilleurTour: 3, joueurTete: 2, joueurPlace: 2, glissade: 6,
     combleTete: 0, combleBagarre: 0, combleTours: 0, combleJoueur: 0, combleMeteo: 0, combleSec: 0, combleChamp: 0, combleChampTete: 0, combleChampProjection: 0 },   // (tour 45c : ce qu'il dit entre deux faits, jamais devant un fait)
   COMMENTAIRE_BONUS_JOUEUR: 2,    // un fait du joueur passe devant (plus de phrases quand le joueur est concerné)
   COMMENTAIRE_GLISSADE_INTERVALLE: 60,   // s : une glissade rattrapée du joueur n'est redite qu'après ça (tour 43)

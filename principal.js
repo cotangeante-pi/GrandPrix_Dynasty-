@@ -309,7 +309,7 @@ function noterFantomeSeul(c, v) {
   const f = JEU.fantomeSeul || (JEU.fantomeSeul = { tour: null, nTours: 0, ligne: 0, sale: false, meilleur: null });
   if (c.tours.length > f.nTours) {   // un tour vient de finir
     const t = c.tours[c.tours.length - 1];
-    if (f.tour && !f.sale && !t.coupe && (!f.meilleur || t.temps < f.meilleur.temps)) {
+    if (f.tour && !f.sale && !t.coupe && !t.limites && (!f.meilleur || t.temps < f.meilleur.temps)) {
       FANTOME.noter(f.tour, t.temps, v, c.progression - f.ligne);
       f.meilleur = { temps: t.temps, compact: FANTOME.compacter(f.tour, t.temps, c.progression - f.ligne) };
     }
@@ -2473,7 +2473,7 @@ function majRetro(dt) {
   JEU.retroMaj = (JEU.retroMaj || 0) - dt;
   if (!JEU.retroPlace || JEU.retroMaj <= 0) {   // (la place du chrono, relue de temps en temps : lire une boîte force la mise en page)
     JEU.retroMaj = REGLAGES.RETRO_MAJ_ZONE;
-    const W = window.innerWidth, H = window.innerHeight, hud = document.getElementById('hudCourse');
+    const tj = typeof TACTILE !== 'undefined' ? TACTILE.tailleJeu() : { l: window.innerWidth, h: window.innerHeight }, W = tj.l, H = tj.h, hud = document.getElementById('hudCourse');   // (tour 56, T15 : la taille du JEU, tourné ou non)
     const r = hud && !hud.classList.contains('cache') ? hud.getBoundingClientRect() : null;
     const l = Math.round(Math.min(REGLAGES.RETRO_LARGEUR_MAX, W * REGLAGES.RETRO_LARGEUR)), y = Math.round(r && r.height > 0 ? r.bottom + REGLAGES.RETRO_ECART : H * REGLAGES.RETRO_HAUT);
     const h = Math.max(REGLAGES.RETRO_HAUTEUR_MIN, Math.min(Math.round(l / REGLAGES.RETRO_RAPPORT), REGLAGES.RETRO_BAS_MAX - y));   // (au-dessus des messages de course)

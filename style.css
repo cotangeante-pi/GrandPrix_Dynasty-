@@ -1,4 +1,6 @@
 :root {
+  /* (tour 56, T15) vw, vh, dvh du jeu : ceux de la fenêtre ; html.tourne (téléphone debout, jeu tourné de 90°) les échange (tactile.js) */
+  --uw: 1vw; --uh: 1vh; --udh: 1vh;
   --fond: #0b0f17;
   --texte: #f2f4f8;
   --police: system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -21,6 +23,13 @@ html, body {
   -webkit-user-select: none;
   -webkit-touch-callout: none;
 }
+
+@supports (height: 1dvh) { :root { --udh: 1dvh; } }
+/* (tour 56, T15) téléphone debout : tout le jeu dans le corps de page tourné de 90° dans le sens inverse des aiguilles (le haut du jeu à gauche, le
+   bas à droite, sous le pouce droit) ; --jw × --jh = la taille du jeu en px (la fenêtre, largeur et hauteur échangées), posées par tactile.js ;
+   les @media sont refaites aux dimensions échangées par tests/tourne-css.py (les copies « tourne:debut » plus bas) */
+html.tourne { --uw: calc(var(--jw) / 100); --uh: calc(var(--jh) / 100); --udh: calc(var(--jh) / 100); }
+html.tourne body { position: fixed; left: 0; top: 0; width: var(--jw); height: var(--jh); transform-origin: 0 0; transform: translateY(var(--jw)) rotate(-90deg); }
 
 #scene3d {
   position: fixed;
@@ -115,6 +124,10 @@ body.horsCourse #boutonSon { right: 10px; }
   #boutonSon { top: 6px; width: 28px; height: 28px; border-radius: 6px; font-size: 14px; }
   body.horsCourse #boutonSon { right: 6px; }
 }
+/* tourne:debut */@media (max-width: 420px) {
+  :where(html.tourne) #boutonSon { top: 6px; width: 28px; height: 28px; border-radius: 6px; font-size: 14px; }
+  :where(html.tourne) body.horsCourse #boutonSon { right: 6px; }
+}/* tourne:fin */
 
 /* ?reglages=1 : le panneau du pilote d'essai. Le titre et le pied (le bouton « Copier » et ce qui est copié) restent
    toujours visibles ; seule la liste des curseurs, rangée par thème, défile (tour 47c). */
@@ -399,7 +412,7 @@ body.deux #hudStand { display: none; }
 @keyframes clignote { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
 
 /* la création du pilote : des champs en colonne, lisibles en 960×600 */
-#piloteChamps { display: flex; flex-direction: column; gap: 10px; width: 360px; max-width: 90vw; }
+#piloteChamps { display: flex; flex-direction: column; gap: 10px; width: 360px; max-width: calc(90 * var(--uw)); }
 #piloteChamps label { display: flex; align-items: center; justify-content: space-between; gap: 12px; font: 600 15px/1.3 var(--police); }
 #piloteChamps input, #piloteChamps select { width: 190px; padding: 6px 8px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.35); background: rgba(255, 255, 255, 0.1); color: inherit; font: 600 15px/1.3 var(--police); user-select: text; -webkit-user-select: text; }
 #piloteChamps select option { color: #111; }
@@ -540,7 +553,7 @@ body.deux #hudStand { display: none; }
 .ecran button em { font-style: normal; font-size: 13px; opacity: 0.85; min-height: 1.3em; }
 
 #finTours {
-  max-height: 34vh;
+  max-height: calc(34 * var(--uh));
   overflow-y: auto;
   margin: 4px 0 8px;
   padding: 0;
@@ -715,7 +728,7 @@ body.deux #hudStand { display: none; }
 /* les résultats : une ligne par voiture, celle du joueur en surbrillance */
 #resultatsTable {
   display: block;
-  max-height: 62vh;
+  max-height: calc(62 * var(--uh));
   overflow-y: auto;
   border-collapse: collapse;
   font: 600 14px/1.5 ui-monospace, Menlo, monospace;
@@ -753,8 +766,8 @@ body.deux #hudStand { display: none; }
   --papier: #f3eee2;
   --encre: #1b1a17;
   --filet: #8d8574;
-  width: min(92vw, 1060px);
-  height: min(84vh, 620px);
+  width: min(calc(92 * var(--uw)), 1060px);
+  height: min(calc(84 * var(--uh)), 620px);
   box-sizing: border-box;
   padding: 10px 18px 8px;
   display: flex;
@@ -768,11 +781,11 @@ body.deux #hudStand { display: none; }
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
 }
 #uneEntete { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; border-bottom: 3px double var(--encre); padding-bottom: 4px; white-space: nowrap; }
-#uneNom { font: 700 clamp(20px, 3vw, 30px)/1.1 Georgia, "Times New Roman", serif; letter-spacing: 1px; text-transform: uppercase; }
+#uneNom { font: 700 clamp(20px, calc(3 * var(--uw)), 30px)/1.1 Georgia, "Times New Roman", serif; letter-spacing: 1px; text-transform: uppercase; }
 #uneEdition { font: italic 13px/1.2 Georgia, serif; opacity: 0.75; overflow: hidden; text-overflow: ellipsis; }
 #uneCorps { flex: 1; display: flex; gap: 16px; min-height: 0; }
 #unePrincipal { flex: 2.2; display: flex; flex-direction: column; gap: 6px; min-width: 0; min-height: 0; overflow: hidden; }
-#unePage h1#uneTitre { margin: 0; font: 800 clamp(22px, 3.1vw, 36px)/1.1 Georgia, "Times New Roman", serif; color: var(--encre); overflow: hidden; }
+#unePage h1#uneTitre { margin: 0; font: 800 clamp(22px, calc(3.1 * var(--uw)), 36px)/1.1 Georgia, "Times New Roman", serif; color: var(--encre); overflow: hidden; }
 #unePage p#uneTexte { margin: 0; font: 15px/1.35 Georgia, serif; color: var(--encre); overflow: hidden; }
 #unePhoto { flex: 1; min-height: 50px; border: 1px dashed var(--filet); background: repeating-linear-gradient(135deg, transparent 0 8px, rgba(0, 0, 0, 0.04) 8px 16px); }   /* la « photo » viendra plus tard */
 #uneCote { flex: 1; min-width: 0; min-height: 0; overflow: hidden; border-left: 1px solid var(--filet); padding-left: 12px; }
@@ -794,7 +807,7 @@ body.deux #hudStand { display: none; }
 #garage h1 { margin: 0; }
 #garage p { margin: 0; font-weight: 700; }
 #garageBonus { font-size: 15px; opacity: 0.9; }
-#garageListe { margin: 4px 0; padding: 0; list-style: none; display: grid; gap: 6px; width: min(92vw, 660px); }
+#garageListe { margin: 4px 0; padding: 0; list-style: none; display: grid; gap: 6px; width: min(calc(92 * var(--uw)), 660px); }
 #garageListe li { display: grid; grid-template-columns: 1fr 1.3fr auto auto auto; gap: 12px; align-items: center; padding: 6px 12px; border-radius: 8px; background: rgba(255, 255, 255, 0.1); font: 14px/1.3 var(--police); text-align: left; white-space: nowrap; }
 #garageListe li > * { min-width: 0; }   /* une colonne qui ne tient pas se coupe (…) au lieu de pousser le bouton hors de la ligne */
 #garageListe .nom { font-weight: 700; overflow: hidden; text-overflow: ellipsis; }
@@ -807,14 +820,14 @@ body.deux #hudStand { display: none; }
 /* la personnalisation (tour 48c) : « Ma voiture » (la livrée, la célébration), la boutique de skins, l'essai d'un skin (tiennent en 960×600 et en 640×360) */
 #livree h1, #essaiFin h1 { margin: 0; }
 #livreeEditeur { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; justify-content: center; }
-#livreeApercu { width: min(380px, 46vw); height: auto; aspect-ratio: 380 / 220; border-radius: 10px; background: rgba(255, 255, 255, 0.08); }
+#livreeApercu { width: min(380px, calc(46 * var(--uw))); height: auto; aspect-ratio: 380 / 220; border-radius: 10px; background: rgba(255, 255, 255, 0.08); }
 #livreeChamps { display: flex; flex-direction: column; gap: 8px; width: 270px; }
 #livreeChamps label { display: flex; align-items: center; justify-content: space-between; gap: 10px; font: 600 14px/1.3 var(--police); }
 #livreeChamps select { width: 150px; padding: 4px 6px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.35); background: rgba(255, 255, 255, 0.1); color: inherit; font: 600 14px/1.3 var(--police); }
 #livreeChamps select option { color: #111; }
 #livreeChamps input[type=color] { width: 44px; height: 26px; padding: 0; border: 1px solid rgba(255, 255, 255, 0.35); border-radius: 6px; background: none; }
 #livreeNote { margin: 0; font-size: 13px; opacity: 0.85; }
-#boutiqueConteneur { display: flex; flex-direction: column; align-items: center; gap: 6px; width: min(94vw, 720px); }
+#boutiqueConteneur { display: flex; flex-direction: column; align-items: center; gap: 6px; width: min(calc(94 * var(--uw)), 720px); }
 .boutiqueVue h1 { margin: 0; }
 .boutiqueVue .boutiqueSolde { margin: 0; font-weight: 700; color: #ffd666; }
 .boutiqueVue .boutiqueOnglets { display: flex; gap: 8px; }
@@ -840,10 +853,15 @@ body.deux #hudStand { display: none; }
 #essaiFin p { margin: 0; }
 #essaiBandeau { position: absolute; bottom: 44px; left: 50%; transform: translateX(-50%); padding: 4px 14px; border-radius: 6px; background: rgba(0, 0, 0, 0.6); color: #ffd666; font: 700 14px/1.3 var(--police); pointer-events: none; z-index: 5; }
 @media (max-height: 420px) {
-  #livreeApercu { width: min(300px, 40vw); }
+  #livreeApercu { width: min(300px, calc(40 * var(--uw))); }
   .boutiqueVue .skin { padding: 3px 10px; }
   .boutiqueVue .boutiqueListe { gap: 3px; }
 }
+/* tourne:debut */@media (max-width: 420px) {
+  :where(html.tourne) #livreeApercu { width: min(300px, calc(40 * var(--uw))); }
+  :where(html.tourne) .boutiqueVue .skin { padding: 3px 10px; }
+  :where(html.tourne) .boutiqueVue .boutiqueListe { gap: 3px; }
+}/* tourne:fin */
 
 /* la fin de saison (Codeur 3) : le classement final et le champion, le duel de la saison, les contrats, la retraite (tiennent en 960×600) */
 #saison h1, #duelSaison h1, #contrats h1, #retraite h1 { margin: 0; }
@@ -865,7 +883,7 @@ body.deux #hudStand { display: none; }
 #duelSaisonScore { font: 800 28px/1.2 var(--police); }
 #duelSaisonDetail { font-size: 15px; opacity: 0.9; }
 #contratsNote { font-size: 15px; opacity: 0.9; }
-#contratsListe { margin: 4px 0; padding: 0; list-style: none; display: grid; gap: 6px; width: min(92vw, 760px); max-height: 50vh; overflow: hidden; }
+#contratsListe { margin: 4px 0; padding: 0; list-style: none; display: grid; gap: 6px; width: min(calc(92 * var(--uw)), 760px); max-height: calc(50 * var(--uh)); overflow: hidden; }
 #contratsListe li { display: grid; grid-template-columns: auto 1fr 1.6fr auto auto auto; gap: 10px; align-items: center; padding: 5px 12px; border-radius: 8px; background: rgba(255, 255, 255, 0.1); font: 14px/1.3 var(--police); text-align: left; white-space: nowrap; }
 #contratsListe li > * { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 #contratsListe li.actuelle { outline: 2px solid rgba(255, 255, 255, 0.35); }
@@ -878,9 +896,9 @@ body.deux #hudStand { display: none; }
 #retraiteBilan { font: 700 20px/1.3 var(--police); color: #ffd666; }
 
 /* les sponsors et la fiche du rival (Codeur 3) : tiennent en 960×600 */
-#championnatSponsor { font-size: 13px; opacity: 0.9; max-width: 92vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#championnatSponsor { font-size: 13px; opacity: 0.9; max-width: calc(92 * var(--uw)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #sponsors h1 { margin: 0; }
-#sponsorsListe { margin: 4px 0; padding: 0; list-style: none; display: grid; gap: 8px; width: min(92vw, 720px); }
+#sponsorsListe { margin: 4px 0; padding: 0; list-style: none; display: grid; gap: 8px; width: min(calc(92 * var(--uw)), 720px); }
 #sponsorsListe > li { display: grid; grid-template-columns: 1fr auto auto; grid-template-areas: "nom montant bouton" "objectifs objectifs bouton"; gap: 2px 14px; align-items: center; padding: 8px 14px; border-radius: 8px; background: rgba(255, 255, 255, 0.1); font: 14px/1.3 var(--police); text-align: left; }
 #sponsorsListe .nom { grid-area: nom; font-weight: 700; font-size: 16px; }
 #sponsorsListe .montant { grid-area: montant; color: #ffd666; font-weight: 700; }
@@ -890,13 +908,13 @@ body.deux #hudStand { display: none; }
 #championnatPilotes li.rival:hover { background: rgba(255, 255, 255, 0.14); }
 #fiche h1 { margin: 0 0 6px; font-size: 26px; }
 #fiche p { margin: 0; font: 600 14px/1.5 var(--police); }
-#ficheCarte { display: flex; gap: 20px; align-items: flex-start; padding: 14px 18px; border-radius: 12px; background: rgba(255, 255, 255, 0.1); width: min(92vw, 720px); box-sizing: border-box; text-align: left; }
+#ficheCarte { display: flex; gap: 20px; align-items: flex-start; padding: 14px 18px; border-radius: 12px; background: rgba(255, 255, 255, 0.1); width: min(calc(92 * var(--uw)), 720px); box-sizing: border-box; text-align: left; }
 #fichePhoto { flex: 0 0 110px; height: 130px; border-radius: 10px; border: 1px dashed rgba(255, 255, 255, 0.4); background: linear-gradient(180deg, var(--ecurie, #444) 0 36px, rgba(255, 255, 255, 0.06) 36px); }   /* la photo stylisée (le casque) viendra ici */
 #ficheTexte { flex: 1; min-width: 0; }
 #ficheCaractere { color: #ffd666; }
 
 /* l'interview d'après course (interview.js, Codeur 3) : la carte au centre, le podium 3D derrière */
-#interviewCarte { display: flex; flex-direction: column; gap: 10px; width: min(92vw, 760px); max-height: 88vh; box-sizing: border-box; padding: 14px 22px 16px; border-radius: 12px; background: rgba(255, 255, 255, 0.1); text-align: left; overflow: hidden; }
+#interviewCarte { display: flex; flex-direction: column; gap: 10px; width: min(calc(92 * var(--uw)), 760px); max-height: calc(88 * var(--uh)); box-sizing: border-box; padding: 14px 22px 16px; border-radius: 12px; background: rgba(255, 255, 255, 0.1); text-align: left; overflow: hidden; }
 #interview h1 { margin: 0; font-size: 22px; }
 #interviewJournaliste { font-size: 13px; font-weight: 600; opacity: 0.8; }
 #interviewQuestion { font: 700 19px/1.35 var(--police); }
@@ -953,8 +971,12 @@ body.deux #departResultat { bottom: auto; top: calc(50% - 60px); }
   #amis { gap: 10px; }
   #amis .boutons:first-of-type button { min-width: 150px; padding: 14px 12px; font-size: 18px; }
 }
+/* tourne:debut */@media (max-width: 420px) {
+  :where(html.tourne) #amis { gap: 10px; }
+  :where(html.tourne) #amis .boutons:first-of-type button { min-width: 150px; padding: 14px 12px; font-size: 18px; }
+}/* tourne:fin */
 #deuxJoueurs { display: flex; gap: 16px; }
-.deuxJoueur { display: flex; flex-direction: column; gap: 8px; width: 380px; max-width: 46vw; padding: 10px 14px; border-radius: 10px; background: rgba(255, 255, 255, 0.06); box-sizing: border-box; }
+.deuxJoueur { display: flex; flex-direction: column; gap: 8px; width: 380px; max-width: calc(46 * var(--uw)); padding: 10px 14px; border-radius: 10px; background: rgba(255, 255, 255, 0.06); box-sizing: border-box; }
 .deuxJoueur h2 { margin: 0; font: 800 18px/1.2 var(--police); }
 #deuxJoueur1 { border-top: 3px solid #1f6fe0; }
 #deuxJoueur2 { border-top: 3px solid #d8262e; }
@@ -980,38 +1002,38 @@ body.deux #departResultat { bottom: auto; top: calc(50% - 60px); }
 #ceremonie { background: none; justify-content: space-between; padding: 22px 0 26px; box-sizing: border-box; pointer-events: none; }
 #ceremonie button { pointer-events: auto; }
 #ceremonieHaut { display: grid; gap: 4px; justify-items: center; text-shadow: 0 3px 14px rgba(0, 0, 0, 0.75); }
-#ceremonie h1#ceremonieTitre { margin: 0; font: 900 clamp(34px, 6vw, 64px)/1.05 var(--police); letter-spacing: 3px; color: #ffd666; }
-#ceremonieNom { font: 800 clamp(22px, 3.4vw, 34px)/1.2 var(--police) !important; }
+#ceremonie h1#ceremonieTitre { margin: 0; font: 900 clamp(34px, calc(6 * var(--uw)), 64px)/1.05 var(--police); letter-spacing: 3px; color: #ffd666; }
+#ceremonieNom { font: 800 clamp(22px, calc(3.4 * var(--uw)), 34px)/1.2 var(--police) !important; }
 #ceremonieSaison { font-size: 15px !important; letter-spacing: 2px; text-transform: uppercase; opacity: 0.9; }
 #ceremonieDetail { font-size: 16px !important; }
-#ceremonie.court h1#ceremonieTitre { font-size: clamp(24px, 3.6vw, 38px); letter-spacing: 1px; color: #fff; }
+#ceremonie.court h1#ceremonieTitre { font-size: clamp(24px, calc(3.6 * var(--uw)), 38px); letter-spacing: 1px; color: #fff; }
 /* la une spéciale du champion : le titre en or, plus grand */
-#unePage.speciale h1#uneTitre { font-size: clamp(28px, 4.2vw, 46px); color: #8a6a00; letter-spacing: 1px; }
+#unePage.speciale h1#uneTitre { font-size: clamp(28px, calc(4.2 * var(--uw)), 46px); color: #8a6a00; letter-spacing: 1px; }
 #unePage.speciale #uneEntete { border-bottom-color: #b8901c; }
 
 /* l'album des unes (Codeur 3) : la une du journal, un peu plus petite, et la barre pour feuilleter (seulement en mode album) */
 #albumBarre { display: none; align-items: center; gap: 8px; }
 #une.album #albumBarre { display: flex; }
 #une.album #unePasser { display: none; }
-#une.album #unePage { height: min(80vh, 600px); }
+#une.album #unePage { height: min(calc(80 * var(--uh)), 600px); }
 #albumBarre button { min-width: 0; padding: 6px 12px; }
 #albumPage { min-width: 230px; font: 700 14px/1.2 var(--police); }
 
 /* le bilan de carrière et le temple de la renommée (Codeur 3, carriere.js) : tiennent en 960×600 */
-#bilanStats { margin: 2px 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px 10px; width: min(92vw, 760px); }
+#bilanStats { margin: 2px 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px 10px; width: min(calc(92 * var(--uw)), 760px); }
 #bilanStats li { display: grid; gap: 2px; padding: 6px 10px; border-radius: 8px; background: rgba(255, 255, 255, 0.1); }
 #bilanStats .etiquette { font: 600 12px/1.2 var(--police); opacity: 0.8; }
 #bilanStats .valeur { font: 800 20px/1.2 var(--police); color: #ffd666; }
-#bilanDuels, #bilanUne, #bilanTemple { font-size: 15px !important; max-width: 92vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#bilanDuels, #bilanUne, #bilanTemple { font-size: 15px !important; max-width: calc(92 * var(--uw)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #bilanUne { font-style: italic; }
 #temple h1, #temple h2 { margin: 0; }
 #temple h2 { font-size: 16px; opacity: 0.9; }
-#templeListe { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; width: min(92vw, 720px); max-height: 46vh; overflow: hidden; }
+#templeListe { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; width: min(calc(92 * var(--uw)), 720px); max-height: calc(46 * var(--uh)); overflow: hidden; }
 #templeListe li { display: grid; grid-template-columns: 32px 1fr auto; gap: 10px; align-items: center; padding: 4px 12px; border-radius: 8px; background: rgba(255, 255, 255, 0.1); font: 14px/1.3 var(--police); text-align: left; white-space: nowrap; }
 #templeListe li.moi { background: rgba(31, 111, 224, 0.75); }
 #templeListe .place { font-weight: 800; color: #ffd666; }
 #templeListe .nom { font-weight: 700; overflow: hidden; text-overflow: ellipsis; }
-#templeRecords { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 18px; width: min(92vw, 720px); font: 13px/1.4 var(--police); text-align: left; }
+#templeRecords { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 18px; width: min(calc(92 * var(--uw)), 720px); font: 13px/1.4 var(--police); text-align: left; }
 #templeRecords li { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* le tournoi chrono entre copains (tour 26b) : l'inscription, « À toi ! », les classements */
@@ -1047,14 +1069,14 @@ body.deux #departResultat { bottom: auto; top: calc(50% - 60px); }
 /* la relève (Codeur 3) : le formulaire de l'héritier à gauche, l'arbre de la dynastie à droite ; tient en 960×600 */
 #bilanFamille { font-size: 14px !important; opacity: 0.9; }
 #heritier h1, #heritier h2 { margin: 0; }
-#heritierCorps { display: flex; gap: 22px; align-items: flex-start; width: min(92vw, 820px); }
+#heritierCorps { display: flex; gap: 22px; align-items: flex-start; width: min(calc(92 * var(--uw)), 820px); }
 #heritierForme { flex: 1.2; display: grid; gap: 6px; text-align: left; }
 #heritierForme label { display: grid; grid-template-columns: 150px 1fr; gap: 10px; align-items: center; font: 600 14px/1.3 var(--police); }
 #heritierForme input, #heritierForme select { font: 600 14px/1.2 var(--police); padding: 4px 6px; border-radius: 6px; border: 0; min-width: 0; }
 #heritierFamille { font-size: 13px !important; opacity: 0.85; }
 #heritierArbre { flex: 1; min-width: 0; text-align: left; }
 #heritierArbre h2 { font-size: 15px; margin-bottom: 4px; }
-#arbreListe { margin: 0; padding: 0 0 0 18px; font: 13px/1.4 var(--police); max-height: 40vh; overflow: hidden; }
+#arbreListe { margin: 0; padding: 0 0 0 18px; font: 13px/1.4 var(--police); max-height: calc(40 * var(--uh)); overflow: hidden; }
 #arbreListe li { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #heritierErreur { color: #ff8a8a; font-size: 14px !important; min-height: 18px; }
 #bilanBoutons button { align-content: center; }   /* (le petit bouton à la hauteur des autres : son texte au milieu) */
@@ -1072,7 +1094,7 @@ body.deux.cote #feux, body.deux.cote #feux2 { top: 34%; }
 body.deux.cote #feux { left: 25%; }
 body.deux.cote #feux2 { left: 75%; }
 body.deux.cote #feux span, body.deux.cote #feux2 span { width: 34px; height: 34px; }
-body.deux.cote #jauge, body.deux.cote #jauge2 { top: auto; bottom: 64px; width: min(360px, calc(50vw - 40px)); box-sizing: border-box; }
+body.deux.cote #jauge, body.deux.cote #jauge2 { top: auto; bottom: 64px; width: min(360px, calc(calc(50 * var(--uw)) - 40px)); box-sizing: border-box; }
 body.deux.cote #jauge { left: 25%; }
 body.deux.cote #jauge2 { left: 75%; }
 body.deux.cote #departResultat, body.deux.cote #departResultat2 { top: auto; bottom: 120px; }
@@ -1095,13 +1117,13 @@ body.deux.cote #boutonSon { top: auto; bottom: 12px; right: 12px; }   /* (côte 
 
 /* l'arbre de la dynastie (Codeur 3) : une ligne par génération, de la première à aujourd'hui ; tient en 960×600 */
 #arbre h1 { margin: 0; }
-#arbreGenerations { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; width: min(92vw, 760px); max-height: 56vh; overflow: hidden; }
+#arbreGenerations { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; width: min(calc(92 * var(--uw)), 760px); max-height: calc(56 * var(--uh)); overflow: hidden; }
 #arbreGenerations li { display: grid; grid-template-columns: 28px 30px 1fr auto; gap: 10px; align-items: center; padding: 6px 12px; border-radius: 8px; background: rgba(255, 255, 255, 0.1); font: 14px/1.3 var(--police); text-align: left; white-space: nowrap; }
 #arbreGenerations li.actuel { outline: 2px solid rgba(255, 214, 102, 0.7); }
 #arbreGenerations .rang { font-weight: 800; color: #ffd666; }
 #arbreGenerations .nom { font-weight: 700; overflow: hidden; text-overflow: ellipsis; }
 #arbreGenerations .chiffres { font-size: 13px; opacity: 0.92; }
-#arbreFamille, #arbreCircuits { font-size: 14px !important; max-width: 92vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#arbreFamille, #arbreCircuits { font-size: 14px !important; max-width: calc(92 * var(--uw)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* le résumé vidéo de la course (resume.js, étape 13) : la 3D en plein écran, un bandeau façon télé en bas à gauche, un clic pour sortir */
 #resume { position: fixed; inset: 0; cursor: pointer; z-index: 5; }
@@ -1126,7 +1148,7 @@ body.deux.cote #boutonSon { top: auto; bottom: 12px; right: 12px; }   /* (côte 
 
 /* le calendrier de la saison (Codeur 3) : 12 lignes sur deux colonnes, le prochain mis en valeur, une petite maison en CSS pour le domicile */
 #calendrier h1 { margin: 0; }
-#calendrierListe { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-flow: column; grid-template-rows: repeat(6, auto); gap: 6px 14px; width: min(92vw, 860px); }
+#calendrierListe { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-flow: column; grid-template-rows: repeat(6, auto); gap: 6px 14px; width: min(calc(92 * var(--uw)), 860px); }
 #calendrierListe li { display: grid; grid-template-columns: 28px 1fr auto; gap: 8px; align-items: center; padding: 6px 10px; border-radius: 8px; background: rgba(255, 255, 255, 0.08); font: 14px/1.3 var(--police); text-align: left; white-space: nowrap; }
 #calendrierListe li.fait { opacity: 0.8; }
 #calendrierListe li.prochain { background: rgba(31, 111, 224, 0.75); outline: 2px solid #ffd666; opacity: 1; }
@@ -1156,14 +1178,17 @@ body.deux.cote #boutonSon { top: auto; bottom: 12px; right: 12px; }   /* (côte 
     radial-gradient(circle at 78% 22%, rgba(220, 235, 255, 0.32) 0 4px, transparent 6px), radial-gradient(circle at 88% 67%, rgba(220, 235, 255, 0.3) 0 6px, transparent 8px),
     radial-gradient(circle at 8% 78%, rgba(220, 235, 255, 0.28) 0 5px, transparent 7px), radial-gradient(circle at 55% 82%, rgba(220, 235, 255, 0.25) 0 4px, transparent 6px),
     radial-gradient(circle at 35% 35%, rgba(220, 235, 255, 0.22) 0 3px, transparent 5px), radial-gradient(circle at 71% 9%, rgba(220, 235, 255, 0.26) 0 3px, transparent 5px); }
-#drapeau { position: fixed; top: 136px; left: 50%; transform: translateX(-50%); padding: 6px 18px; border-radius: 6px; font: 900 17px/1.3 var(--police); white-space: normal; text-align: center; max-width: min(46vw, 520px); pointer-events: none; border: 3px solid rgba(0, 0, 0, 0.55); z-index: 5; }   /* (revue T24 : sur deux lignes au plus, jamais sous la tour de classement ni la minicarte) */   /* (tour 55, T7) le drapeau du joueur */
+#drapeau { position: fixed; top: 136px; left: 50%; transform: translateX(-50%); padding: 6px 18px; border-radius: 6px; font: 900 17px/1.3 var(--police); white-space: normal; text-align: center; max-width: min(calc(46 * var(--uw)), 520px); pointer-events: none; border: 3px solid rgba(0, 0, 0, 0.55); z-index: 5; }   /* (revue T24 : sur deux lignes au plus, jamais sous la tour de classement ni la minicarte) */   /* (tour 55, T7) le drapeau du joueur */
 #drapeau.jaune, #drapeau.vsc { background: #f5c400; color: #111; }
 #drapeau.bleu { background: #1e6fe0; color: #fff; }
 #drapeau.vert { background: #1fa84a; color: #fff; }
 #drapeau.vsc { font-size: 15px; line-height: 1.2; padding: 4px 14px; }   /* (tour 55, T17 : la VSC, longue, sur deux lignes serrées : elle finit avant le message de course, à 192 px) */
 @media (max-height: 420px) { #drapeau, #drapeau.vsc { top: 108px; font-size: 13px; line-height: 1.3; padding: 3px 10px; } }   /* (640×360 : sous le chrono, qui finit vers 100 px) */
+/* tourne:debut */@media (max-width: 420px) { :where(html.tourne) #drapeau, :where(html.tourne) #drapeau.vsc { top: 108px; font-size: 13px; line-height: 1.3; padding: 3px 10px; } }/* tourne:fin */
 @media (max-height: 420px) { #meteoHud { right: auto; bottom: auto; left: 128px; top: 134px; grid-template-columns: auto; padding: 2px 6px; font-size: 11px; } #meteoBarre, #meteoIcone { display: none; } }   /* (revue T26 : en 640×360 l'eau recouvrait la tour de classement ; elle se pose à droite de 🔊 ⏸ ↩, sans sa barre) */
+/* tourne:debut */@media (max-width: 420px) { :where(html.tourne) #meteoHud { right: auto; bottom: auto; left: 128px; top: 134px; grid-template-columns: auto; padding: 2px 6px; font-size: 11px; } :where(html.tourne) #meteoBarre, :where(html.tourne) #meteoIcone { display: none; } }/* tourne:fin */
 @media (max-height: 420px) { #drapeau, #drapeau.vsc { top: 106px; font-size: 12px; padding: 2px 8px; max-width: none; white-space: nowrap; } }   /* (640×360 : sous le chrono, qui finit vers 100 px) */
+/* tourne:debut */@media (max-width: 420px) { :where(html.tourne) #drapeau, :where(html.tourne) #drapeau.vsc { top: 106px; font-size: 12px; padding: 2px 8px; max-width: none; white-space: nowrap; } }/* tourne:fin */
 body.deux #drapeau { display: none; }
 #prevision { margin: 2px 0 6px; font-weight: 700; opacity: 0.9; }
 #messageCourse { position: fixed; top: 192px; left: 50%; transform: translateX(-50%); padding: 6px 14px; border-left: 4px solid #e10600; border-radius: 6px; background: rgba(11, 15, 23, 0.82); font: 800 16px/1.3 var(--police); white-space: nowrap; pointer-events: none; }
@@ -1328,14 +1353,14 @@ body.deux #drapeau { display: none; }
 @media (prefers-reduced-motion: reduce) { #messageCourse:not(.cache) { animation: none; } }
 
 /* les discussions (Codeur 3, étape 12b) : une carte, son en-tête (portrait, nom, humeur), le fil en bulles, le composeur, la saisie */
-#discussionCarte { display: flex; flex-direction: column; gap: 8px; width: min(92vw, 760px); max-height: calc(100vh - 110px); padding: 12px 16px; text-align: left; }
+#discussionCarte { display: flex; flex-direction: column; gap: 8px; width: min(calc(92 * var(--uw)), 760px); max-height: calc(calc(100 * var(--uh)) - 110px); padding: 12px 16px; text-align: left; }
 #discussionEntete { display: flex; gap: 14px; align-items: center; }
 #discussionPortrait canvas { display: block; width: 66px; height: 78px; border-radius: var(--tv-coin); }
 #discussion h1 { margin: 0; font-size: 22px; text-align: left; }
 #discussion h1::after { margin-left: 0; width: 40px; height: 3px; }
 #discussionHumeur { font-size: 13px; }
 #discussionHumeur.bonne { color: var(--tv-vert); } #discussionHumeur.tendue { color: #ff8a80; }
-#discussionFil { flex: 1; min-height: 90px; max-height: 38vh; overflow-y: auto; margin: 0; padding: 8px; list-style: none; display: flex; flex-direction: column; gap: 6px;
+#discussionFil { flex: 1; min-height: 90px; max-height: calc(38 * var(--uh)); overflow-y: auto; margin: 0; padding: 8px; list-style: none; display: flex; flex-direction: column; gap: 6px;
   background: rgba(0, 0, 0, 0.25); border-radius: var(--tv-coin); }
 #discussionFil li { max-width: 78%; padding: 6px 10px; border-radius: 10px; font: 500 14px/1.35 var(--tv-police); }
 #discussionFil li.moi { align-self: flex-end; background: var(--tv-bleu); border-bottom-right-radius: 3px; }
@@ -1354,7 +1379,7 @@ body.deux #drapeau { display: none; }
    en course à gauche sous la minicarte (jamais sur la piste devant la voiture), sur les écrans entre les courses en haut à gauche */
 #bulleAide { position: fixed; z-index: 21; display: flex; align-items: flex-start; gap: 10px; padding: 8px 12px; border-left: 4px solid var(--tv-rouge); border-radius: var(--tv-coin); background: var(--tv-hud); box-shadow: var(--tv-hud-ombre); color: var(--tv-texte); font: 700 13px/1.35 var(--tv-police); text-align: left; cursor: pointer; }
 #bulleAide.bulleCourse { left: 16px; top: max(36%, 226px); max-width: 290px; }   /* (sous le bandeau des stands, au-dessus du radar ; trois lignes au plus) */
-#bulleAide.bulleMenu { left: 16px; top: 8px; max-width: min(520px, 38vw); font-size: 12px; }   /* (à gauche du titre centré de l’écran) */
+#bulleAide.bulleMenu { left: 16px; top: 8px; max-width: min(520px, calc(38 * var(--uw))); font-size: 12px; }   /* (à gauche du titre centré de l’écran) */
 #bulleAideFermer { color: var(--tv-texte-doux); font-weight: 800; }
 #bulleAide:not(.cache) { animation: tv-message var(--tv-duree-message) ease-out; }
 @media (prefers-reduced-motion: reduce) { #bulleAide:not(.cache) { animation: none; } }
@@ -1362,7 +1387,7 @@ body.deux #drapeau { display: none; }
 /* le tutoriel guidé (tutoriel.js, interface.js TUTORIEL_ECRAN, Codeur 4) : la liste des leçons et le résultat par-dessus l'écran du
    moment (le thème télé), la consigne d'une leçon à gauche en course (jamais sur la piste devant la voiture), en haut à gauche ailleurs */
 #tutoMenu, #tutoResultat { z-index: 22; background: linear-gradient(180deg, rgba(7, 9, 15, 0.97), rgba(12, 16, 27, 0.95)); }   /* (par-dessus l'écran du moment : presque opaque) */
-#tutoListe { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; width: min(720px, 92vw); }
+#tutoListe { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; width: min(720px, calc(92 * var(--uw))); }
 #tutoListe li { display: grid; grid-template-columns: 26px 1fr auto; grid-template-rows: auto auto; column-gap: 10px; align-items: center; padding: 6px 12px; border-radius: var(--tv-coin); background: var(--tv-panneau); border: 1px solid var(--tv-bord); text-align: left; }
 #tutoListe .tutoEtoile { grid-row: 1 / 3; font-size: 22px; color: var(--tv-texte-doux); }
 #tutoListe .tutoEtoile.faite { color: var(--tv-or); }
@@ -1379,7 +1404,7 @@ body.deux #drapeau { display: none; }
 #tutoListe li.tutoFaite { opacity: 0.6; }
 #tutoMenuIntro, #tutoResultatTexte { margin: 0; max-width: 620px; font-weight: 700; }
 #tutoConsigne { position: fixed; z-index: 21; left: 16px; top: max(36%, 226px); max-width: 300px; display: grid; gap: 4px; padding: 8px 12px; border-left: 4px solid var(--tv-or); border-radius: var(--tv-coin); background: var(--tv-hud); box-shadow: var(--tv-hud-ombre); color: var(--tv-texte); font: 700 13px/1.35 var(--tv-police); text-align: left; }
-#tutoConsigne.tutoMenuConsigne { top: 8px; max-width: min(560px, 56vw); }
+#tutoConsigne.tutoMenuConsigne { top: 8px; max-width: min(560px, calc(56 * var(--uw))); }
 #tutoConsigneTitre { font-weight: 800; color: var(--tv-or); }
 #boutonTutoPasser { justify-self: start; padding: 3px 10px; border: 0; border-radius: var(--tv-coin); background: var(--tv-bouton); color: var(--tv-texte); font: 700 12px/1.3 var(--tv-police); cursor: pointer; }
 #boutonTutoPasser:hover { box-shadow: var(--tv-halo); }
@@ -1389,7 +1414,7 @@ body.deux #drapeau { display: none; }
 #garagePneus button.choisi { box-shadow: 0 0 0 2px #ffd54a; }
 
 /* le courrier des pilotes (Codeur 3, étape 12b) : le bouton au paddock (dans ta carte), l'écran des messages */
-#courrierListe { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; width: min(92vw, 720px); max-height: 66vh; overflow-y: auto; }
+#courrierListe { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; width: min(calc(92 * var(--uw)), 720px); max-height: calc(66 * var(--uh)); overflow-y: auto; }
 #courrierListe li { display: grid; grid-template-columns: 1fr auto; grid-template-areas: "de bouton" "texte bouton"; gap: 3px 12px; align-items: center; padding: 8px 12px;
   background: var(--tv-panneau); border: 1px solid var(--tv-bord); border-radius: var(--tv-coin); text-align: left; font: 500 14px/1.35 var(--tv-police); }
 #courrierListe li.nouveau { box-shadow: inset 3px 0 0 var(--tv-rouge); }
@@ -1424,7 +1449,7 @@ button.manette-choix { box-shadow: 0 0 0 3px #ffd23f, 0 0 14px 2px rgba(255, 210
 #pause button.aideFigee { cursor: default; opacity: 0.7; box-shadow: none; }
 .marqueAides { margin-left: 4px; font-size: 0.85em; opacity: 0.9; }
 /* la sauvegarde abîmée ou impossible (tour 41d, Codeur 4) : un bandeau en haut, au milieu, qui ne prend aucun clic */
-#sauvegardePerdue { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 40; max-width: min(620px, 80vw); padding: 8px 14px;
+#sauvegardePerdue { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 40; max-width: min(620px, calc(80 * var(--uw))); padding: 8px 14px;
   background: rgba(150, 20, 24, 0.92); color: #fff; font-weight: 700; font-size: 15px; text-align: center; border-radius: 6px; pointer-events: none; }
 #sauvegardePerdue.cache { display: none; }
 .ecran button.aidesJoueur.court { min-width: 0; flex: 0 0 auto; padding: 4px 8px; }   /* (le tournoi : un petit bouton par ligne, la ligne tient en 960) */
@@ -1440,11 +1465,19 @@ button.manette-choix { box-shadow: 0 0 0 3px #ffd23f, 0 0 14px 2px rgba(255, 210
   #tutoListe li.tutoSuivant button { padding: 5px 14px; font-size: 15px; }
   #tutoMenuIntro { font-size: 13px; }
 }
+/* tourne:debut */@media (max-width: 680px) {   /* (tour 37j) huit leçons : la liste reste dans l'écran en 960×600 */
+  :where(html.tourne) #tutoListe { gap: 3px; }
+  :where(html.tourne) #tutoListe li { padding: 3px 10px; }
+  :where(html.tourne) #tutoListe .tutoNom { font-size: 14px; }
+  :where(html.tourne) #tutoListe .tutoBut { font-size: 12px; line-height: 1.15; }
+  :where(html.tourne) #tutoListe li.tutoSuivant button { padding: 5px 14px; font-size: 15px; }
+  :where(html.tourne) #tutoMenuIntro { font-size: 13px; }
+}/* tourne:fin */
 
 
 /* la mesure des images par seconde (mesure.js, tour 45) : le compteur discret (?ips=1) et le panneau du résultat (?mesure=1) */
 #compteurIps { position: fixed; right: 8px; bottom: 4px; z-index: 30; padding: 2px 6px; border-radius: 4px; background: rgba(0, 0, 0, 0.55); color: #fff; font: 600 11px/1.3 monospace; pointer-events: none; }
-#mesurePanneau { position: fixed; left: 50%; top: 12px; transform: translateX(-50%); z-index: 30; max-width: min(720px, 92vw); padding: 8px 12px; border-radius: var(--tv-coin); background: var(--tv-hud); box-shadow: var(--tv-hud-ombre); color: var(--tv-texte); font: 600 13px/1.4 var(--tv-police); text-align: center; }
+#mesurePanneau { position: fixed; left: 50%; top: 12px; transform: translateX(-50%); z-index: 30; max-width: min(720px, calc(92 * var(--uw))); padding: 8px 12px; border-radius: var(--tv-coin); background: var(--tv-hud); box-shadow: var(--tv-hud-ombre); color: var(--tv-texte); font: 600 13px/1.4 var(--tv-police); text-align: center; }
 #mesurePanneau p { margin: 0 0 4px; }
 #mesurePanneau pre { margin: 4px 0; white-space: pre-wrap; text-align: left; font-size: 12px; user-select: text; }
 
@@ -1517,7 +1550,7 @@ body.deux:not(.cote) #deuxRappel2 { left: 50%; }
 #paddockProchain > * { grid-column: 1; }
 #paddockProchain h1 { font-size: 24px; line-height: 1.15; text-align: left; }
 #paddockProchain h1::after { width: 40px; height: 3px; margin: 5px 0 0; }
-#paddockCarte { grid-column: 2; grid-row: 1 / span 6; width: auto; height: min(150px, 22vh); aspect-ratio: 330 / 170; border-radius: var(--tv-coin); background: rgba(0, 0, 0, 0.25); }
+#paddockCarte { grid-column: 2; grid-row: 1 / span 6; width: auto; height: min(150px, calc(22 * var(--uh))); aspect-ratio: 330 / 170; border-radius: var(--tv-coin); background: rgba(0, 0, 0, 0.25); }
 #paddockCarte.cache { display: none; }
 #prevision { font-size: 15px !important; margin: 0 !important; }
 #championnatGagne { font-size: 14px; color: var(--tv-or); }
@@ -1640,7 +1673,7 @@ body.tactile #pageReglages .pageBoutons button, body.tactile #pageReglages .page
   body.tactile #garage { gap: 2px; padding-top: 2px; padding-bottom: 2px; }
   body.tactile #garageBonus { font-size: 12px; }
   body.tactile #garagePneus { margin: 2px 0; gap: 4px; }
-  body.tactile #discussionCarte { gap: 4px; padding: 6px 12px; max-height: calc(100vh - 52px); }
+  body.tactile #discussionCarte { gap: 4px; padding: 6px 12px; max-height: calc(calc(100 * var(--uh)) - 52px); }
   body.tactile #discussionPortrait canvas { width: 44px; height: 52px; }
   body.tactile #discussion h1 { font-size: 18px; }
   body.tactile #discussionFil { min-height: 40px; max-height: 70px; }
@@ -1648,6 +1681,20 @@ body.tactile #pageReglages .pageBoutons button, body.tactile #pageReglages .page
   body.tactile #discussionComposeur button { flex: 0 0 auto; white-space: nowrap; }
   body.tactile #discussionSaisie button, body.tactile #discussionTexte { min-height: 40px; }
 }
+/* tourne:debut */@media (max-width: 420px) {
+  :where(html.tourne) body.tactile #garageListe { gap: 2px; margin: 0; }
+  :where(html.tourne) body.tactile #garageListe li { padding: 0 10px; }
+  :where(html.tourne) body.tactile #garage { gap: 2px; padding-top: 2px; padding-bottom: 2px; }
+  :where(html.tourne) body.tactile #garageBonus { font-size: 12px; }
+  :where(html.tourne) body.tactile #garagePneus { margin: 2px 0; gap: 4px; }
+  :where(html.tourne) body.tactile #discussionCarte { gap: 4px; padding: 6px 12px; max-height: calc(calc(100 * var(--uh)) - 52px); }
+  :where(html.tourne) body.tactile #discussionPortrait canvas { width: 44px; height: 52px; }
+  :where(html.tourne) body.tactile #discussion h1 { font-size: 18px; }
+  :where(html.tourne) body.tactile #discussionFil { min-height: 40px; max-height: 70px; }
+  :where(html.tourne) body.tactile #discussionComposeur { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; }
+  :where(html.tourne) body.tactile #discussionComposeur button { flex: 0 0 auto; white-space: nowrap; }
+  :where(html.tourne) body.tactile #discussionSaisie button, :where(html.tourne) body.tactile #discussionTexte { min-height: 40px; }
+}/* tourne:fin */
 /* 960×600 et moins large : le menu devient une colonne d'icônes (le nom en bulle, title) */
 @media (max-width: 1100px) {
   :root { --paddock-menu: 58px; }
@@ -1658,17 +1705,37 @@ body.tactile #pageReglages .pageBoutons button, body.tactile #pageReglages .page
   .menuPoint { position: absolute; top: 2px; right: 4px; }
   #paddockPages { padding: 12px 16px; }
 }
+/* tourne:debut */@media (max-height: 1100px) {
+  :where(html.tourne) :root { --paddock-menu: 58px; }
+  :where(html.tourne) #paddockMenu { padding: 10px 6px; gap: 3px; align-items: center; }
+  :where(html.tourne) #paddockMarque, :where(html.tourne) .menuNom { display: none; }
+  :where(html.tourne) .ecran #paddockMenu button.menuEntree { justify-content: center; padding: 8px 0; position: relative; }
+  :where(html.tourne) .menuIcone { flex: 0 0 auto; font-size: 19px; }
+  :where(html.tourne) .menuPoint { position: absolute; top: 2px; right: 4px; }
+  :where(html.tourne) #paddockPages { padding: 12px 16px; }
+}/* tourne:fin */
 @media (max-height: 680px) {
   .paddockPage { gap: 9px; }
   #pageCourse { gap: 9px; }
   .paddockPage .tvCarte { padding: 9px 14px; }
   #paddockProchain h1 { font-size: 24px; }
   #pageCourse #boutonCourseSuivante { padding: 10px 16px; font-size: 22px; }
-  #paddockCarte { height: min(130px, 21vh); }
+  #paddockCarte { height: min(130px, calc(21 * var(--uh))); }
   #championnat #championnatTableaux ol { font-size: 12px; line-height: 1.3; }
   .pageTitre { font-size: 21px !important; }
   #pageEquipe .pageBoutons button { min-height: 92px; }
 }
+/* tourne:debut */@media (max-width: 680px) {
+  :where(html.tourne) .paddockPage { gap: 9px; }
+  :where(html.tourne) #pageCourse { gap: 9px; }
+  :where(html.tourne) .paddockPage .tvCarte { padding: 9px 14px; }
+  :where(html.tourne) #paddockProchain h1 { font-size: 24px; }
+  :where(html.tourne) #pageCourse #boutonCourseSuivante { padding: 10px 16px; font-size: 22px; }
+  :where(html.tourne) #paddockCarte { height: min(130px, calc(21 * var(--uh))); }
+  :where(html.tourne) #championnat #championnatTableaux ol { font-size: 12px; line-height: 1.3; }
+  :where(html.tourne) .pageTitre { font-size: 21px !important; }
+  :where(html.tourne) #pageEquipe .pageBoutons button { min-height: 92px; }
+}/* tourne:fin */
 /* le téléphone couché (640×360) : tout se serre, les pilotes de la page Saison en deux colonnes */
 @media (max-height: 420px) {
   :root { --paddock-menu: 46px; }
@@ -1715,6 +1782,51 @@ body.tactile #pageReglages .pageBoutons button, body.tactile #pageReglages .page
   #carriereConfirmation p { font-size: 12px; }
   #carriereConfirmation ul { font-size: 11px; line-height: 1.25; }
 }
+/* tourne:debut */@media (max-width: 420px) {
+  :where(html.tourne) :root { --paddock-menu: 46px; }
+  :where(html.tourne) #paddockMenu { padding: 4px 4px; gap: 1px; }
+  :where(html.tourne) .ecran #paddockMenu button.menuEntree { padding: 5px 0; }
+  :where(html.tourne) .menuIcone { font-size: 16px; }
+  :where(html.tourne) #paddockPages { padding: 6px 10px; }
+  :where(html.tourne) .paddockPage, :where(html.tourne) #pageCourse { gap: 6px; }
+  :where(html.tourne) .paddockPage .tvCarte { padding: 6px 10px; }
+  :where(html.tourne) .paddockPage .tvCarte h2 { font-size: 12px; margin-bottom: 3px; }
+  :where(html.tourne) .pageTitre { font-size: 17px !important; }
+  :where(html.tourne) .pageTitre::after { margin-top: 3px; height: 3px; }
+  :where(html.tourne) #paddockProchain h1 { font-size: 16px; }
+  :where(html.tourne) #paddockProchain h1::after { display: none; }
+  :where(html.tourne) .tvSurtitre { font-size: 10px !important; }
+  :where(html.tourne) #prevision, :where(html.tourne) #paddockDomicile, :where(html.tourne) #championnatGagne { font-size: 12px !important; }
+  :where(html.tourne) #paddockCarte { height: 74px; }
+  :where(html.tourne) #paddockPlace { font-size: 13px !important; }
+  :where(html.tourne) #championnat #championnatDuel { font-size: 12px; }
+  :where(html.tourne) #paddockClassementCourt { font-size: 11px; line-height: 1.3; margin-bottom: 4px; }
+  :where(html.tourne) #paddockNouvelles p, :where(html.tourne) .pageInfos p { font-size: 12px; }
+  :where(html.tourne) #paddockCourt button, :where(html.tourne) #paddockNouvelles button { padding: 4px 10px; font-size: 12px; }
+  :where(html.tourne) #pageCourse #boutonCourseSuivante { padding: 6px 12px; font-size: 18px; }
+  :where(html.tourne) #paddockProchain h1 { font-size: 18px; }
+  :where(html.tourne) #championnat #championnatDuel { font-size: 11px; }
+  :where(html.tourne) .paddockPage .pageBoutons { gap: 6px; }
+  :where(html.tourne) .paddockPage .pageBoutons button { padding: 7px 11px; font-size: 13px; }
+  :where(html.tourne) #pageEquipe #championnatArgent { font-size: 22px; }
+  :where(html.tourne) #pageEquipe .pageInfos { gap: 4px; }
+  :where(html.tourne) #pageEquipe .pageBoutons { gap: 6px; }
+  :where(html.tourne) #pageEquipe .pageBoutons button { min-height: 66px; gap: 3px; padding: 5px 3px; font-size: 13px; }
+  :where(html.tourne) #pageEquipe .pageBoutons button::before { font-size: 24px; }
+  :where(html.tourne) .paddockPage .pageBoutons button.petit { padding: 5px 9px; font-size: 12px; }
+  :where(html.tourne) #pageReglages .tvCarte h2 { font-size: 13px; margin-bottom: 4px; }
+  :where(html.tourne) #pageReglages .pageBoutons { gap: 5px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  :where(html.tourne) #pageReglages .pageBoutons button, :where(html.tourne) #pageReglages .pageBoutons button.petit { min-height: 28px; padding: 3px 6px; font-size: 12px; }
+  :where(html.tourne) #championnat #championnatPilotes { columns: 2; column-gap: 14px; }
+  :where(html.tourne) #championnat #championnatTableaux ol { font-size: 11px; line-height: 1.25; }
+  :where(html.tourne) #pageSaison #championnatTableaux { gap: 16px; padding: 6px 10px; }
+  :where(html.tourne) #saisonResume { font-size: 13px; }
+  :where(html.tourne) #pageSaison .pageBoutons { gap: 6px; }
+  :where(html.tourne) #pageSaison .pageBoutons button { min-height: 34px; padding: 4px 4px; font-size: 13px; }
+  :where(html.tourne) #pageSaison #championnatTableaux h2 { font-size: 12px; }
+  :where(html.tourne) #carriereConfirmation p { font-size: 12px; }
+  :where(html.tourne) #carriereConfirmation ul { font-size: 11px; line-height: 1.25; }
+}/* tourne:fin */
 
 /* le téléphone couché (640×360, tour 48a-2, Codeur 1) : le garage, l'aileron et la boutique tiennent dans l'écran (leur « Retour » en sortait) ;
    rien ne change au-dessus de 420 px de haut */
@@ -1746,14 +1858,42 @@ body.tactile #pageReglages .pageBoutons button, body.tactile #pageReglages .page
   .boutiqueVue .skin button.essayer { padding: 1px 8px; font-size: 11px; }
   .boutiqueVue .boutiqueSolde { font-size: 16px; }
 }
+/* tourne:debut */@media (max-width: 420px) {
+  :where(html.tourne) #garage, :where(html.tourne) #aileron, :where(html.tourne) #boutique { gap: 4px; padding: 4px 12px; box-sizing: border-box; }
+  :where(html.tourne) #garage h1, :where(html.tourne) #aileron h1, :where(html.tourne) .boutiqueVue h1 { font-size: 18px; line-height: 1.1; }
+  :where(html.tourne) #garage h1::after, :where(html.tourne) #aileron h1::after, :where(html.tourne) .boutiqueVue h1::after { margin-top: 2px; height: 3px; }
+  :where(html.tourne) #garage p { font-size: 12px; line-height: 1.25; }
+  :where(html.tourne) #garageBonus { font-size: 11px; }
+  :where(html.tourne) #garageListe { margin: 0; gap: 2px; }
+  :where(html.tourne) #garageListe li { padding: 2px 10px; font-size: 12px; line-height: 1.2; }
+  :where(html.tourne) #garage button.acheter { padding: 3px 10px; font-size: 12px; }
+  :where(html.tourne) #garagePneus { margin: 0; gap: 4px; font-size: 12px; }
+  :where(html.tourne) #garagePneus button { padding: 3px 10px; font-size: 12px; min-width: 0; }
+  :where(html.tourne) #garage .boutons, :where(html.tourne) #aileron .boutons, :where(html.tourne) #boutique .boutons { gap: 8px; }
+  :where(html.tourne) #garage .boutons button, :where(html.tourne) #aileron .boutons button, :where(html.tourne) #boutique .boutons button { padding: 6px 14px; font-size: 13px; min-width: 0; }
+  :where(html.tourne) #aileronCorps { gap: 14px; }
+  :where(html.tourne) #aileronCarte { width: 280px; height: 210px; }
+  :where(html.tourne) .boutiqueVue .boutiqueOnglets button { padding: 3px 10px; font-size: 12px; }
+  :where(html.tourne) .boutiqueVue .skin { font-size: 12px; }
+  :where(html.tourne) .boutiqueVue .skin button { padding: 3px 9px; font-size: 12px; }
+  :where(html.tourne) .boutiqueVue .boutiqueMessage { min-height: 0; }
+  :where(html.tourne) .boutiqueVue .boutiqueListe { grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 4px; }
+  :where(html.tourne) .boutiqueVue .skin { padding: 3px 6px; gap: 2px; border-radius: 8px; }
+  :where(html.tourne) .boutiqueVue .skin .apercu { min-height: 30px; font-size: 24px; }
+  :where(html.tourne) .boutiqueVue .skin .apercu canvas { width: 80px; height: auto; }
+  :where(html.tourne) .boutiqueVue .skin .apercu canvas.casqueIcone { width: 30px; height: 30px; }
+  :where(html.tourne) .boutiqueVue .skin .nom { font-size: 12px; }
+  :where(html.tourne) .boutiqueVue .skin button.essayer { padding: 1px 8px; font-size: 11px; }
+  :where(html.tourne) .boutiqueVue .boutiqueSolde { font-size: 16px; }
+}/* tourne:fin */
 
 /* le défi du fantôme entre amis (tour 49b) : le champ du code (collé ou à copier), la liste des défis reçus */
-#defiSaisie, .codeDefi input { width: min(560px, 86vw); padding: 6px 8px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.35); background: rgba(255, 255, 255, 0.1); color: inherit; font: 600 13px/1.3 var(--police); user-select: text; -webkit-user-select: text; }
+#defiSaisie, .codeDefi input { width: min(560px, calc(86 * var(--uw))); padding: 6px 8px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.35); background: rgba(255, 255, 255, 0.1); color: inherit; font: 600 13px/1.3 var(--police); user-select: text; -webkit-user-select: text; }
 .codeDefi { display: flex; flex-direction: column; align-items: center; gap: 6px; margin: 6px 0; }
 .codeDefi.cache { display: none; }
 .codeDefi p { margin: 0; font-size: 13px; opacity: 0.85; }
 #defiMessage { min-height: 1.2em; color: #ffb4a8; }
-#defiListe { max-height: 22vh; overflow: hidden; margin: 6px 0 0; padding: 0; list-style: none; font-size: 13px; }
+#defiListe { max-height: calc(22 * var(--uh)); overflow: hidden; margin: 6px 0 0; padding: 0; list-style: none; font-size: 13px; }
 #defiListe li { margin: 2px 0; }
 
 /* les touches au choix (tour 49b) : trois colonnes (course seule, joueur 1, joueur 2), une ligne par commande */
@@ -1778,24 +1918,29 @@ body.tactile #pageReglages .pageBoutons button, body.tactile #pageReglages .page
    le message d'un lien abîmé, en haut de l'écran */
 .codeDefi input.defiCode { font-size: 11px; opacity: 0.8; }
 .codeDefi button.defiCode { padding: 3px 10px; font-size: 12px; min-width: 0; }
-#paddockDefis { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; max-height: 40vh; overflow: hidden; }
+#paddockDefis { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; max-height: calc(40 * var(--uh)); overflow: hidden; }
 #paddockDefis.cache { display: none; }
 #paddockDefis h3 { margin: 0; font-size: 14px; }
 .defiMessage { display: flex; align-items: center; justify-content: space-between; gap: 10px; font: 600 13px/1.25 var(--police); }
 .defiMessage span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #defiLienRefus { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 50; padding: 8px 16px; border-radius: 8px;
-  background: rgba(160, 20, 20, 0.92); color: #fff; font: 700 14px/1.3 var(--police); max-width: 90vw; text-align: center; pointer-events: none; }
+  background: rgba(160, 20, 20, 0.92); color: #fff; font: 700 14px/1.3 var(--police); max-width: calc(90 * var(--uw)); text-align: center; pointer-events: none; }
 #defiLienRefus.cache { display: none; }
 @media (max-height: 420px) {
   .codeDefi { gap: 3px; margin: 3px 0; }
   .codeDefi p { font-size: 11px; }
-  #paddockDefis { max-height: 30vh; }
+  #paddockDefis { max-height: calc(30 * var(--uh)); }
 }
+/* tourne:debut */@media (max-width: 420px) {
+  :where(html.tourne) .codeDefi { gap: 3px; margin: 3px 0; }
+  :where(html.tourne) .codeDefi p { font-size: 11px; }
+  :where(html.tourne) #paddockDefis { max-height: calc(30 * var(--uh)); }
+}/* tourne:fin */
 
 /* les réglages de la voiture (tour 50b, mes-reglages.js) : quatre lignes « nom | bout | curseur | bout », la ligne d'effet dessous ;
    tient en 960×600, 1280×720 et 640×360 */
 #reglagesVoiture h1 { margin: 0; }
-#rvListe { display: grid; gap: 10px; width: min(640px, 92vw); }
+#rvListe { display: grid; gap: 10px; width: min(640px, calc(92 * var(--uw))); }
 .rvLigne { display: grid; grid-template-columns: 190px 70px 1fr 70px; gap: 2px 10px; align-items: center; padding: 6px 12px; border-radius: 8px;
   background: rgba(0, 0, 0, 0.35); font: 600 14px/1.2 var(--police); text-align: left; }
 .rvNom { font-weight: 800; }
@@ -1815,6 +1960,17 @@ body.tactile #pageReglages .pageBoutons button, body.tactile #pageReglages .page
   #reglagesVoiture .boutons { gap: 8px; }
   #reglagesVoiture .boutons button { padding: 6px 14px; font-size: 13px; min-width: 0; }
 }
+/* tourne:debut */@media (max-width: 420px) {
+  :where(html.tourne) #reglagesVoiture { gap: 4px; padding: 4px 12px; box-sizing: border-box; }
+  :where(html.tourne) #reglagesVoiture h1 { font-size: 18px; line-height: 1.1; }
+  :where(html.tourne) #reglagesVoiture h1::after { margin-top: 2px; height: 3px; }
+  :where(html.tourne) #rvListe { gap: 4px; }
+  :where(html.tourne) .rvLigne { grid-template-columns: 150px 58px 1fr 58px; padding: 3px 10px; font-size: 12px; }
+  :where(html.tourne) .rvBout { font-size: 11px; }
+  :where(html.tourne) .rvEffet { font-size: 11px !important; line-height: 1.15; }
+  :where(html.tourne) #reglagesVoiture .boutons { gap: 8px; }
+  :where(html.tourne) #reglagesVoiture .boutons button { padding: 6px 14px; font-size: 13px; min-width: 0; }
+}/* tourne:fin */
 
 /* le téléphone couché (640×360, tour 50c) : « ⌨ Touches » (ses trois colonnes côte à côte) et le menu pause tiennent dans l'écran ;
    rien ne change au-dessus de 420 px de haut */
@@ -1835,6 +1991,23 @@ body.tactile #pageReglages .pageBoutons button, body.tactile #pageReglages .page
   #pause button, #pause button.petit { min-width: 0; padding: 4px 10px; font-size: 12px; }
   #pause #boutonReprendre, #pause #boutonRecommencer { padding: 6px 18px; font-size: 14px; }
 }
+/* tourne:debut */@media (max-width: 420px) {
+  :where(html.tourne) #touches { gap: 4px; padding: 4px 10px; box-sizing: border-box; }
+  :where(html.tourne) #touches h1 { font-size: 18px; line-height: 1.1; margin: 0; }
+  :where(html.tourne) #touches #touchesMessage { font-size: 12px; line-height: 1.2; }
+  :where(html.tourne) #touchesGroupes { gap: 10px; flex-wrap: nowrap; }
+  :where(html.tourne) .touchesGroupe { min-width: 0; }
+  :where(html.tourne) .touchesGroupe h2 { margin: 0 0 2px; font-size: 12px; }
+  :where(html.tourne) .touchesLigne { margin: 1px 0; gap: 5px; font-size: 11px; }
+  :where(html.tourne) .ecran .touchesLigne button { min-width: 50px; padding: 1px 6px; font-size: 11px; }
+  :where(html.tourne) #touches .boutons { gap: 8px; }
+  :where(html.tourne) #touches .boutons button { min-width: 0; padding: 5px 14px; font-size: 13px; }
+  :where(html.tourne) #pause { gap: 3px; padding: 4px 10px; box-sizing: border-box; }
+  :where(html.tourne) #pause h1 { font-size: 18px; line-height: 1.1; margin: 0; }
+  :where(html.tourne) #pause .boutons { gap: 4px; }
+  :where(html.tourne) #pause button, :where(html.tourne) #pause button.petit { min-width: 0; padding: 4px 10px; font-size: 12px; }
+  :where(html.tourne) #pause #boutonReprendre, :where(html.tourne) #pause #boutonRecommencer { padding: 6px 18px; font-size: 14px; }
+}/* tourne:fin */
 
 /* le téléphone couché (640×360, tour 51g, Codeur 3) : la création du pilote (son « Commencer » sortait de l'écran, et le bouton 🔊 couvrait deux
    champs) et le classement final de la saison (son « Continuer » sortait aussi) tiennent dans l'écran ; rien ne change au-dessus de 420 px de haut */
@@ -1842,7 +2015,7 @@ body.tactile #pageReglages .pageBoutons button, body.tactile #pageReglages .page
   #pilote { gap: 4px; padding: 52px 12px 6px; box-sizing: border-box; }
   #pilote h1 { font-size: 20px; line-height: 1.1; margin: 0; }
   #pilote h1::after { margin-top: 2px; height: 3px; }
-  #piloteChamps { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 20px; width: 580px; max-width: 94vw; }
+  #piloteChamps { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 20px; width: 580px; max-width: calc(94 * var(--uw)); }
   #piloteChamps label { font-size: 13px; }
   #piloteChamps input, #piloteChamps select { width: 120px; padding: 3px 6px; font-size: 13px; }
   #piloteDomicile { grid-column: 1 / -1; min-height: 0; font-size: 12px; }
@@ -1868,17 +2041,52 @@ body.tactile #pageReglages .pageBoutons button, body.tactile #pageReglages .page
   #contrats h1 { font-size: 20px; line-height: 1.1; margin: 0; }
   #contrats h1::after { margin-top: 2px; height: 3px; }
   #contratsNote { font-size: 12px; }
-  #contratsListe { gap: 3px; margin: 0; max-height: calc(100vh - 124px); max-height: calc(100dvh - 124px); overflow-y: auto; }
+  #contratsListe { gap: 3px; margin: 0; max-height: calc(calc(100 * var(--uh)) - 124px); max-height: calc(calc(100 * var(--udh)) - 124px); overflow-y: auto; }
   #contratsListe li { padding: 2px 8px; gap: 6px; font-size: 12px; line-height: 1.2; }
   #contrats button.signer, #contrats button.negocier { padding: 3px 10px; font-size: 12px; }
   #contrats .boutons button { padding: 6px 16px; font-size: 13px; }
 }
+/* tourne:debut */@media (max-width: 420px) {
+  :where(html.tourne) #pilote { gap: 4px; padding: 52px 12px 6px; box-sizing: border-box; }
+  :where(html.tourne) #pilote h1 { font-size: 20px; line-height: 1.1; margin: 0; }
+  :where(html.tourne) #pilote h1::after { margin-top: 2px; height: 3px; }
+  :where(html.tourne) #piloteChamps { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 20px; width: 580px; max-width: calc(94 * var(--uw)); }
+  :where(html.tourne) #piloteChamps label { font-size: 13px; }
+  :where(html.tourne) #piloteChamps input, :where(html.tourne) #piloteChamps select { width: 120px; padding: 3px 6px; font-size: 13px; }
+  :where(html.tourne) #piloteDomicile { grid-column: 1 / -1; min-height: 0; font-size: 12px; }
+  :where(html.tourne) #casqueEditeur { gap: 12px; }
+  :where(html.tourne) #casqueApercu { width: 72px; height: 72px; }
+  :where(html.tourne) #casqueChamps { gap: 3px; }
+  :where(html.tourne) #casqueChamps h2 { font-size: 13px; }
+  :where(html.tourne) #casqueChamps label { font-size: 13px; }
+  :where(html.tourne) #casqueChamps select { padding: 2px 6px; font-size: 13px; }
+  :where(html.tourne) #casqueChamps input[type=color] { height: 22px; }
+  :where(html.tourne) #piloteErreur { min-height: 0; font-size: 12px; }
+  :where(html.tourne) #pilote .boutons button { padding: 6px 18px; font-size: 14px; }
+  :where(html.tourne) #saison { gap: 2px; padding: 4px 12px; box-sizing: border-box; }
+  :where(html.tourne) #saison h1 { font-size: 22px; line-height: 1.1; }
+  :where(html.tourne) #saison h1::after { margin-top: 2px; height: 3px; }
+  :where(html.tourne) #saisonChampion { font-size: 15px; }
+  :where(html.tourne) #saisonChampion.toi { font-size: 22px; letter-spacing: 1px; }
+  :where(html.tourne) #saisonEcurie, :where(html.tourne) #saisonDivision { font-size: 12px; margin: 0; }
+  :where(html.tourne) #saisonTableaux h2 { font-size: 12px; margin-bottom: 2px; }
+  :where(html.tourne) #saisonPilotes { font-size: 11px; line-height: 1.2; }
+  :where(html.tourne) #saison .boutons button { padding: 6px 18px; font-size: 14px; }  /* les contrats : la liste des offres défile quand elle ne tient pas (le « Signer » du bas sortait de l'écran) */
+  :where(html.tourne) #contrats { gap: 3px; padding: 4px 12px; box-sizing: border-box; }
+  :where(html.tourne) #contrats h1 { font-size: 20px; line-height: 1.1; margin: 0; }
+  :where(html.tourne) #contrats h1::after { margin-top: 2px; height: 3px; }
+  :where(html.tourne) #contratsNote { font-size: 12px; }
+  :where(html.tourne) #contratsListe { gap: 3px; margin: 0; max-height: calc(calc(100 * var(--uh)) - 124px); max-height: calc(calc(100 * var(--udh)) - 124px); overflow-y: auto; }
+  :where(html.tourne) #contratsListe li { padding: 2px 8px; gap: 6px; font-size: 12px; line-height: 1.2; }
+  :where(html.tourne) #contrats button.signer, :where(html.tourne) #contrats button.negocier { padding: 3px 10px; font-size: 12px; }
+  :where(html.tourne) #contrats .boutons button { padding: 6px 16px; font-size: 13px; }
+}/* tourne:fin */
 
 /* (tour 52d, plan « première minute » n° 2) la grille de la découverte, pendant les feux : l'écran presque nu, une seule grosse aide
    centrée (« Tiens ↑ ») ; body.grilleDecouverte est posée par INTERFACE.majAides */
 body.grilleDecouverte #jauge, body.grilleDecouverte #hudCourse, body.grilleDecouverte #radar, body.grilleDecouverte #aide { display: none; }
 #aides.grille { left: 50%; top: 58%; transform: translateX(-50%); align-items: center; }
-#aides.grille span { font-size: clamp(30px, 6vw, 56px); padding: 10px 28px; border-radius: 14px; }
+#aides.grille span { font-size: clamp(30px, calc(6 * var(--uw)), 56px); padding: 10px 28px; border-radius: 14px; }
 
 /* le podium de la découverte (tour 52e) : le bilan, « Continuer », « Encore une course ? » et « D'abord apprendre » à la place de « Résultats » */
 #podiumDecouverte { display: flex; flex-direction: column; align-items: center; gap: 6px; }
@@ -1903,6 +2111,14 @@ body.grilleDecouverte #jauge, body.grilleDecouverte #hudCourse, body.grilleDecou
   #piloteCartes .piloteCarte strong { font-size: 17px; }
   #piloteCartes .piloteCarte .casqueIcone { width: 40px; height: 40px; }
 }
+/* tourne:debut */@media (max-width: 420px) {
+  :where(html.tourne) #podiumDecouverte p { font-size: 17px; padding: 3px 12px; }
+  :where(html.tourne) #boutonPodiumContinuer { padding: 6px 28px; font-size: 18px; }
+  :where(html.tourne) #piloteCartes { gap: 8px; }
+  :where(html.tourne) #piloteCartes .piloteCarte { min-width: 120px; min-height: 100px; padding: 6px 10px; gap: 2px; }
+  :where(html.tourne) #piloteCartes .piloteCarte strong { font-size: 17px; }
+  :where(html.tourne) #piloteCartes .piloteCarte .casqueIcone { width: 40px; height: 40px; }
+}/* tourne:fin */
 #podiumDecouverte button { border: 0; border-radius: var(--tv-coin, 8px); background: var(--tv-bouton, #2a2f3a); color: var(--texte, #fff); font-family: var(--tv-police, inherit); cursor: pointer; }
 #podiumDecouverte button.petit { font-size: 13px; padding: 6px 14px; opacity: 0.9; }
 #boutonPodiumContinuer { color: #fff; }
@@ -1933,7 +2149,7 @@ body.tactile #aide { display: none; }
   #tactileGauche { left: 12px; } #tactileDroite { left: 94px; }
   body.tactile #tableau, body.tactile #pneusHud { right: 216px; }
   /* (tour 52b) rien ne se chevauche : 🔊 ⏸ ↩ en rangée sous la minicarte (à gauche, au-dessus du radar), la tour de classement plus fine pour laisser GAZ et FREIN */
-  body.tactile:not(.horsCourse) { --classement-largeur: 132px; --classement-ligne: min(13px, calc((100vh - 58px) / 20)); --classement-ligne: min(13px, calc((100dvh - 58px) / 20)); }   /* (tour 55b) les 20 lignes tiennent aussi quand la barre d'adresse mange 50 px */
+  body.tactile:not(.horsCourse) { --classement-largeur: 132px; --classement-ligne: min(13px, calc((calc(100 * var(--uh)) - 58px) / 20)); --classement-ligne: min(13px, calc((calc(100 * var(--udh)) - 58px) / 20)); }   /* (tour 55b) les 20 lignes tiennent aussi quand la barre d'adresse mange 50 px */
   body.tactile #classement { font-size: 10px; padding: 3px 5px 4px; }
   body.tactile #classementPlace { font-size: 16px; margin-bottom: 3px; }
   body.tactile #minicarte { width: 144px; height: 104px; }
@@ -1941,6 +2157,21 @@ body.tactile #aide { display: none; }
   #tactilePause, #tactileRemise { top: 122px; right: auto; width: 30px; height: 28px; font-size: 14px; }
   #tactilePause { left: 48px; } #tactileRemise { left: 84px; }
 }
+/* tourne:debut */@media (max-width: 420px) {   /* le téléphone couché, 640×360 */
+  :where(html.tourne) #tactileGaz { width: 92px; height: 92px; right: 12px; bottom: 12px; font-size: 18px; }
+  :where(html.tourne) #tactileFrein { width: 78px; height: 78px; right: 114px; bottom: 12px; font-size: 16px; }
+  :where(html.tourne) #tactileGauche, :where(html.tourne) #tactileDroite { width: 72px; height: 72px; bottom: 12px; font-size: 24px; }
+  :where(html.tourne) #tactileGauche { left: 12px; } :where(html.tourne) #tactileDroite { left: 94px; }
+  :where(html.tourne) body.tactile #tableau, :where(html.tourne) body.tactile #pneusHud { right: 216px; }
+  /* (tour 52b) rien ne se chevauche : 🔊 ⏸ ↩ en rangée sous la minicarte (à gauche, au-dessus du radar), la tour de classement plus fine pour laisser GAZ et FREIN */
+  :where(html.tourne) body.tactile:not(.horsCourse) { --classement-largeur: 132px; --classement-ligne: min(13px, calc((calc(100 * var(--uh)) - 58px) / 20)); --classement-ligne: min(13px, calc((calc(100 * var(--udh)) - 58px) / 20)); }   /* (tour 55b) les 20 lignes tiennent aussi quand la barre d'adresse mange 50 px */
+  :where(html.tourne) body.tactile #classement { font-size: 10px; padding: 3px 5px 4px; }
+  :where(html.tourne) body.tactile #classementPlace { font-size: 16px; margin-bottom: 3px; }
+  :where(html.tourne) body.tactile #minicarte { width: 144px; height: 104px; }
+  :where(html.tourne) body.tactile:not(.horsCourse) #boutonSon { left: 12px; right: auto; top: 122px; width: 30px; height: 28px; }
+  :where(html.tourne) #tactilePause, :where(html.tourne) #tactileRemise { top: 122px; right: auto; width: 30px; height: 28px; font-size: 14px; }
+  :where(html.tourne) #tactilePause { left: 48px; } :where(html.tourne) #tactileRemise { left: 84px; }
+}/* tourne:fin */
 /* (tour 53d) la vue de la piste : avec les boutons ◀ ▶, le radar se pose au-dessus d'eux (plus petit) et, en petit écran, disparaît (le rétroviseur
    montre l'arrière) ; l'aide « ◀ ▶ » de la découverte répète les boutons : cachée */
 /* (2026-11-12, le propriétaire) FREIN au pouce gauche, GAZ au pouce droit (body.tactileFreinG, TACTILE_FREIN_GAUCHE) ; quand ◀ ▶ de secours sont là, FREIN reste à côté de GAZ (le pouce gauche braque).
@@ -1954,14 +2185,22 @@ body.tactile.tactileFreinG #radar { --radar-taille: 130px; left: 134px; bottom: 
   body.tactile.tactileFreinG #radar { --radar-taille: 96px; left: 96px; bottom: 12px; }
   body.tactile #bulleAide.bulleCourse { top: 164px; max-width: 190px; }   /* (tour 55, T17 : 164 px sous ⏸ ↩ (qui finissent à 158) ; 190 px pour laisser la place au message de course, décalé à droite) */
 }
+/* tourne:debut */@media (max-width: 420px) {
+  :where(html.tourne) body.tactile.tactileFreinG #tactileFrein { left: 12px; right: auto; }
+  :where(html.tourne) body.tactile.tactileFreinG #tableau, :where(html.tourne) body.tactile.tactileFreinG #pneusHud { right: 116px; }
+  :where(html.tourne) body.tactile.tactileFreinG #radar { --radar-taille: 96px; left: 96px; bottom: 12px; }
+  :where(html.tourne) body.tactile #bulleAide.bulleCourse { top: 164px; max-width: 190px; }   /* (tour 55, T17 : 164 px sous ⏸ ↩ (qui finissent à 158) ; 190 px pour laisser la place au message de course, décalé à droite) */
+}/* tourne:fin */
 body.tactile.tactileBoutons #radar { --radar-taille: 120px; bottom: 124px; left: 12px; }
 body.tactile.tactileBoutons #aideDirection { display: none; }
 @media (max-height: 420px) { body.tactile.tactileBoutons #radar { display: none; } }
+/* tourne:debut */@media (max-width: 420px) { :where(html.tourne) body.tactile.tactileBoutons #radar { display: none; } }/* tourne:fin */
 #tactileActiver { position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 20; padding: 10px 18px; border: 1px solid rgba(255, 255, 255, 0.45);
   border-radius: 10px; background: #1f6fe0; color: #fff; font: 600 16px/1.3 var(--police); cursor: pointer; }
 /* (tour 53e) sur la grille : gros, au centre-bas, les feux (en haut) restent visibles */
 body.tactile #tactileActiver { padding: 14px 26px; font-size: 20px; bottom: 16px; }
 @media (max-height: 420px) { body.tactile #tactileActiver { padding: 8px 16px; font-size: 16px; bottom: 8px; } }
+/* tourne:debut */@media (max-width: 420px) { :where(html.tourne) body.tactile #tactileActiver { padding: 8px 16px; font-size: 16px; bottom: 8px; } }/* tourne:fin */
 #tactilePortrait { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 24px; text-align: center;
   background: rgba(0, 0, 0, 0.92); color: #fff; font: 800 28px/1.3 var(--police); }
 
@@ -1990,13 +2229,21 @@ body.tactile #tactileActiver { padding: 14px 26px; font-size: 20px; bottom: 16px
   #courrierListe li { padding: 6px 10px; font-size: 13px; }
   #courrierListe li.nouveau strong { font-size: 14px; }
 }
+/* tourne:debut */@media (max-width: 420px) {
+  :where(html.tourne) #paddockMessages { width: min(100%, 240px); }
+  :where(html.tourne) #paddockMessages button { font-size: 15px; padding: 8px 14px; }
+  :where(html.tourne) #paddockMessages button.nouveau { font-size: 16px; }
+  :where(html.tourne) .badgeNeuf { font-size: 14px; margin-left: 8px; }
+  :where(html.tourne) #courrierListe li { padding: 6px 10px; font-size: 13px; }
+  :where(html.tourne) #courrierListe li.nouveau strong { font-size: 14px; }
+}/* tourne:fin */
 
 /* (tour 52b, ui-amis) l'écran « À deux » en 640×360 : tout tient (la carte de droite, le casque, les réglages de la course, « C'est parti ! ») */
 @media (max-height: 420px) {
   #deuxReglages { gap: 4px; padding: 4px 8px; box-sizing: border-box; }
   #deuxReglages h1 { font-size: 16px; margin: 0; }
   #deuxJoueurs { gap: 8px; }
-  .deuxJoueur { width: calc(50vw - 14px); max-width: none; padding: 5px 8px; gap: 3px; }
+  .deuxJoueur { width: calc(calc(50 * var(--uw)) - 14px); max-width: none; padding: 5px 8px; gap: 3px; }
   .deuxJoueur h2 { font-size: 14px; }
   .deuxJoueur label, #deuxCourse label { font-size: 12px; gap: 6px; }
   .deuxJoueur input[type=text] { width: 110px; padding: 2px 5px; font-size: 12px; }
@@ -2011,6 +2258,25 @@ body.tactile #tactileActiver { padding: 14px 26px; font-size: 20px; bottom: 16px
   #deuxErreur { min-height: 0; margin: 0; }
   #deuxReglages .boutons button { padding: 6px 16px; font-size: 14px; }
 }
+/* tourne:debut */@media (max-width: 420px) {
+  :where(html.tourne) #deuxReglages { gap: 4px; padding: 4px 8px; box-sizing: border-box; }
+  :where(html.tourne) #deuxReglages h1 { font-size: 16px; margin: 0; }
+  :where(html.tourne) #deuxJoueurs { gap: 8px; }
+  :where(html.tourne) .deuxJoueur { width: calc(calc(50 * var(--uw)) - 14px); max-width: none; padding: 5px 8px; gap: 3px; }
+  :where(html.tourne) .deuxJoueur h2 { font-size: 14px; }
+  :where(html.tourne) .deuxJoueur label, :where(html.tourne) #deuxCourse label { font-size: 12px; gap: 6px; }
+  :where(html.tourne) .deuxJoueur input[type=text] { width: 110px; padding: 2px 5px; font-size: 12px; }
+  :where(html.tourne) .deuxJoueur select, :where(html.tourne) #deuxCourse select { padding: 2px 4px; font-size: 12px; max-width: 120px; }
+  :where(html.tourne) #deuxReglages .deuxCouleurs { gap: 3px; }
+  :where(html.tourne) #deuxReglages .deuxCouleurs button.deuxPastille { width: 18px; height: 18px; }
+  :where(html.tourne) #deuxReglages .deuxJoueur button { padding: 3px 8px; font-size: 11px; min-width: 0; }
+  :where(html.tourne) #deuxReglages p.deuxTouches { font-size: 10px; margin: 2px 0 0; }
+  :where(html.tourne) #deuxCourse { gap: 4px 10px; }
+  :where(html.tourne) #deuxCourse label { flex-direction: column; align-items: stretch; gap: 1px; }
+  :where(html.tourne) #deuxCourse select { max-width: none; }
+  :where(html.tourne) #deuxErreur { min-height: 0; margin: 0; }
+  :where(html.tourne) #deuxReglages .boutons button { padding: 6px 16px; font-size: 14px; }
+}/* tourne:fin */
 
 /* la découverte (tour 52g) : la prime en direct à gauche de la tour de classement, et le gros « P3 ! » au centre */
 #primeDecouverte { position: fixed; top: 10px; right: calc(var(--classement-largeur, 170px) + 72px);   /* (à gauche du bouton 🔊) */ display: flex; align-items: baseline; gap: 8px; padding: 6px 12px; border-radius: 8px; background: var(--panneau); font: 800 18px/1.2 var(--police); color: #ffd666; pointer-events: none; }
@@ -2023,6 +2289,7 @@ body.tactile #tactileActiver { padding: 14px 26px; font-size: 20px; bottom: 16px
 #placeGrand.saute { animation: placeSaute 1s ease-out; }
 @keyframes placeSaute { 0% { opacity: 0; transform: translate(-50%, -50%) scale(0.6); } 20% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); } 80% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -50%) scale(1); } }
 @media (max-height: 420px) { #placeGrand { font-size: 56px; } #primeDecouverte { font-size: 14px; padding: 3px 8px; top: 148px; right: 12px; } }   /* (640×360 : sous la tour de classement, rien ne se recouvre : ni le chrono, ni GAZ / FREIN, ni la minicarte) */
+/* tourne:debut */@media (max-width: 420px) { :where(html.tourne) #placeGrand { font-size: 56px; } :where(html.tourne) #primeDecouverte { font-size: 14px; padding: 3px 8px; top: 148px; right: 12px; } }/* tourne:fin */
 @media (prefers-reduced-motion: reduce) { #primeDecouverte.monte, #primeDecouverte.monte #primeGain, #placeGrand.saute { animation: none; } #primeGain { opacity: 1; } }
 
 #tactilePortrait { flex-direction: column; gap: 12px; }
@@ -2045,10 +2312,25 @@ body.tactile #tactileActiver { padding: 14px 26px; font-size: 20px; bottom: 16px
   #tutoListe button, #tutoListe li.tutoSuivant button { padding: 3px 12px; font-size: 12px; min-height: 0; }
   #tutoMenu .boutons button { padding: 5px 12px; font-size: 12px; min-height: 0; }
 }
+/* tourne:debut */@media (max-width: 420px) {
+  :where(html.tourne) #championnat:not(.cache) ~ #bulleAide.bulleMenu { pointer-events: none; }
+  :where(html.tourne) #tutoMenu { justify-content: flex-start; padding-top: 4px; padding-bottom: 4px; gap: 3px; }
+  :where(html.tourne) #tutoMenu h1 { font-size: 18px; line-height: 1; }
+  :where(html.tourne) #tutoMenu h1::after { margin-top: 2px; height: 3px; }
+  :where(html.tourne) #tutoMenuIntro { font-size: 11px; }
+  :where(html.tourne) #tutoListe { gap: 2px; }
+  :where(html.tourne) #tutoListe li { padding: 2px 8px; column-gap: 8px; }
+  :where(html.tourne) #tutoListe .tutoEtoile { font-size: 16px; }
+  :where(html.tourne) #tutoListe .tutoNom { font-size: 12px; line-height: 1.1; }
+  :where(html.tourne) #tutoListe .tutoBut { font-size: 10px; line-height: 1.1; }
+  :where(html.tourne) #tutoListe button, :where(html.tourne) #tutoListe li.tutoSuivant button { padding: 3px 12px; font-size: 12px; min-height: 0; }
+  :where(html.tourne) #tutoMenu .boutons button { padding: 5px 12px; font-size: 12px; min-height: 0; }
+}/* tourne:fin */
 
 /* l'écran titre simple (tour 53c, premiere-minute n° 12) : sur un écran tactile ou sous 700 px de large, « Apprendre / Aides / Touches » ne sont plus au titre (ils sont dans les Réglages du paddock) */
 body.titreSimple.tactile #boutonTutorielTitre, body.titreSimple.tactile #boutonTouchesTitre { display: none; }
 @media (max-width: 699px) { body.titreSimple #boutonTutorielTitre, body.titreSimple #boutonTouchesTitre { display: none; } }
+/* tourne:debut */@media (max-height: 699px) { :where(html.tourne) body.titreSimple #boutonTutorielTitre, :where(html.tourne) body.titreSimple #boutonTouchesTitre { display: none; } }/* tourne:fin */
 /* (tour 55, le propriétaire 2026-11-12 : « dans mobile, il faut pouvoir désactiver l'auto-guidage ») « Aides au pilotage » RESTE au titre simple, en gros bouton au doigt : le premier lancement (la découverte, au niveau débutant : toutes les aides allumées) n'a pas de paddock où les couper */
 body.titreSimple.tactile #boutonAidesTitre, body.titreSimple #boutonAidesTitre { min-height: 44px; }
 
@@ -2063,12 +2345,24 @@ body.tactile #pageSaison .pageBoutons button, body.tactile #amis .boutons button
   body.tactile #tutoMenu h1 { font-size: 13px; margin: 0; line-height: 1.1; }
   body.tactile #tutoMenu h1::after { display: none; }
   body.tactile #tutoMenuIntro { display: none; }
-  body.tactile #tutoListe { gap: 1px; width: min(94vw, 720px); }
+  body.tactile #tutoListe { gap: 1px; width: min(calc(94 * var(--uw)), 720px); }
   body.tactile #tutoListe li { padding: 0 8px; min-height: 40px; column-gap: 8px; border-width: 0; }
   body.tactile #tutoListe .tutoNom { font-size: 13px; }
   body.tactile #tutoListe .tutoBut { font-size: 11px; line-height: 1.1; }
   body.tactile #tutoListe li.tutoSuivant button, body.tactile #tutoListe button { padding: 4px 10px; font-size: 13px; }
 }
+/* tourne:debut */@media (max-width: 420px) {
+  :where(html.tourne) body.tactile #tutoMenu { gap: 2px; padding-top: 4px; padding-bottom: 0; justify-content: flex-start; }
+  :where(html.tourne) body.tactile #tutoMenu .boutons { margin: 0; }
+  :where(html.tourne) body.tactile #tutoMenu h1 { font-size: 13px; margin: 0; line-height: 1.1; }
+  :where(html.tourne) body.tactile #tutoMenu h1::after { display: none; }
+  :where(html.tourne) body.tactile #tutoMenuIntro { display: none; }
+  :where(html.tourne) body.tactile #tutoListe { gap: 1px; width: min(calc(94 * var(--uw)), 720px); }
+  :where(html.tourne) body.tactile #tutoListe li { padding: 0 8px; min-height: 40px; column-gap: 8px; border-width: 0; }
+  :where(html.tourne) body.tactile #tutoListe .tutoNom { font-size: 13px; }
+  :where(html.tourne) body.tactile #tutoListe .tutoBut { font-size: 11px; line-height: 1.1; }
+  :where(html.tourne) body.tactile #tutoListe li.tutoSuivant button, :where(html.tourne) body.tactile #tutoListe button { padding: 4px 10px; font-size: 13px; }
+}/* tourne:fin */
 body.tactile #boutique .skin button, body.tactile #boutique button.onglet { display: inline-flex; align-items: center; justify-content: center; }
 
 /* l'après-course de la carrière (tour 53d) : les gains sous le podium, un gros « Continuer », « Résultats » en petit */
@@ -2077,6 +2371,7 @@ body.tactile #boutique .skin button, body.tactile #boutique button.onglet { disp
 #boutonPodiumSuite:hover { box-shadow: var(--tv-halo, 0 0 0 3px rgba(255, 255, 255, 0.5)); }
 #boutonResultats.petit { padding: 6px 14px; font-size: 13px; opacity: 0.9; }
 @media (max-height: 420px) { #podiumGains { font-size: 15px; padding: 3px 12px; } #boutonPodiumSuite { padding: 9px 28px; font-size: 18px; min-height: 40px; } }
+/* tourne:debut */@media (max-width: 420px) { :where(html.tourne) #podiumGains { font-size: 15px; padding: 3px 12px; } :where(html.tourne) #boutonPodiumSuite { padding: 9px 28px; font-size: 18px; min-height: 40px; } }/* tourne:fin */
 
 /* Chasse du tour 53 (Codeur 6) : au doigt dans le téléphone couché (640×360), les boutons de 40 px débordaient : « Nouvelle carrière » (Réglages, bas à 369 px) et « Ouvrir les messages » (Course, 373 px). On serre les marges, après les blocs tactiles ci-dessus */
 /* … et en course au doigt (640×360) : « Tiens GAZ » passait sous 🔊 ⏸ ↩ (ils sont à 122–150 px du haut), et les écarts de la tour de classement (« +0,3 s ») revenaient à la ligne */
@@ -2098,6 +2393,23 @@ body.tactile #boutique .skin button, body.tactile #boutique button.onglet { disp
   body.tactile :is(#paddockCourt, #paddockNouvelles) button { min-height: 40px; padding-top: 2px; padding-bottom: 2px; }   /* (tour 55b : 40 px au doigt, comme partout) */
   body.tactile #pageCourse #boutonCourseSuivante { min-height: 40px; padding-top: 4px; padding-bottom: 4px; }
 }
+/* tourne:debut */@media (max-width: 420px) {
+  :where(html.tourne) body.tactile #aides:not(.grille) { top: 164px; gap: 4px; }   /* (tour 55 : ⏸ et ↩ font 36 px depuis le tour 54b et finissent à 158 px : 152 les touchait) */
+  :where(html.tourne) body.tactile #aides:not(.grille) span { font-size: 15px; padding: 2px 10px; }
+  :where(html.tourne) body.tactile #classementListe li { gap: 3px; padding: 0 3px; }
+  :where(html.tourne) body.tactile #classementListe .ecart { font-size: 10px; }
+  :where(html.tourne) body.tactile #pageReglages { gap: 4px; }
+  :where(html.tourne) body.tactile #pageReglages .tvCarte { padding: 3px 10px 5px; }
+  :where(html.tourne) body.tactile #pageReglages .tvCarte h2 { margin: 0 0 2px; font-size: 11px; }
+  :where(html.tourne) body.tactile #pageReglages .pageBoutons { gap: 4px; grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); }
+  :where(html.tourne) body.tactile #pageReglages .pageBoutons button, :where(html.tourne) body.tactile #pageReglages .pageBoutons button.petit { padding: 2px 3px; font-size: 11px; }
+  :where(html.tourne) body.tactile #pageReglages { overflow-y: auto; }   /* (si une langue ou une section de plus ne tient pas : la page défile au doigt) */
+  :where(html.tourne) body.tactile #pageReglages .pageBoutons button, :where(html.tourne) body.tactile #pageReglages .pageBoutons button.petit { min-height: 40px; }
+  :where(html.tourne) body.tactile #pageCourse { gap: 5px; }
+  :where(html.tourne) body.tactile #pageCourse .tvCarte { padding: 4px 10px; }
+  :where(html.tourne) body.tactile :is(#paddockCourt, :where(html.tourne) #paddockNouvelles) button { min-height: 40px; padding-top: 2px; padding-bottom: 2px; }   /* (tour 55b : 40 px au doigt, comme partout) */
+  :where(html.tourne) body.tactile #pageCourse #boutonCourseSuivante { min-height: 40px; padding-top: 4px; padding-bottom: 4px; }
+}/* tourne:fin */
 
 /* le choix de la longueur du Grand Prix (tour 53h) : trois gros boutons sur la page Course */
 #paddockLongueur { grid-area: longueur; display: flex; flex-direction: column; gap: 8px; }
@@ -2107,6 +2419,7 @@ body.tactile #boutique .skin button, body.tactile #boutique button.onglet { disp
 #paddockLongueurBoutons .longueurChoix span, #deuxLongueurBoutons .longueurChoix span { font-size: 13px; opacity: 0.85; }
 #paddockLongueurBoutons .longueurChoix.choisi, #deuxLongueurBoutons .longueurChoix.choisi { border-color: #fff; background: var(--tv-bouton-principal, #e3242b); }
 @media (max-height: 420px) { #paddockLongueurBoutons .longueurChoix, #deuxLongueurBoutons .longueurChoix { padding: 4px 6px; } #paddockLongueurBoutons .longueurChoix b, #deuxLongueurBoutons .longueurChoix b { font-size: 18px; } #paddockLongueur h2 { font-size: 12px; margin: 0; } }
+/* tourne:debut */@media (max-width: 420px) { :where(html.tourne) #paddockLongueurBoutons .longueurChoix, :where(html.tourne) #deuxLongueurBoutons .longueurChoix { padding: 4px 6px; } :where(html.tourne) #paddockLongueurBoutons .longueurChoix b, :where(html.tourne) #deuxLongueurBoutons .longueurChoix b { font-size: 18px; } :where(html.tourne) #paddockLongueur h2 { font-size: 12px; margin: 0; } }/* tourne:fin */
 @media (max-height: 420px) {   /* 640×360 : les longueurs à côté de « Course suivante », sur la même ligne (rien de plus haut qu'avant) */
   #pageCourse { grid-template-areas: "prochain prochain" "longueur bouton" "court moi" "court nouvelles"; }
   #paddockLongueur { padding: 4px 6px; min-width: 0; } #paddockLongueurBoutons { gap: 4px; min-width: 0; }
@@ -2114,6 +2427,13 @@ body.tactile #boutique .skin button, body.tactile #boutique button.onglet { disp
   #paddockLongueur h2 { display: none; }
   #pageCourse #boutonCourseSuivante { font-size: 15px; padding: 6px 8px; white-space: normal; }
 }
+/* tourne:debut */@media (max-width: 420px) {   /* 640×360 : les longueurs à côté de « Course suivante », sur la même ligne (rien de plus haut qu'avant) */
+  :where(html.tourne) #pageCourse { grid-template-areas: "prochain prochain" "longueur bouton" "court moi" "court nouvelles"; }
+  :where(html.tourne) #paddockLongueur { padding: 4px 6px; min-width: 0; } :where(html.tourne) #paddockLongueurBoutons { gap: 4px; min-width: 0; }
+  :where(html.tourne) #paddockLongueurBoutons .longueurChoix, :where(html.tourne) #deuxLongueurBoutons .longueurChoix { min-height: 40px; min-width: 0; padding: 2px 3px; } :where(html.tourne) #paddockLongueurBoutons .longueurChoix span, :where(html.tourne) #deuxLongueurBoutons .longueurChoix span { font-size: 10px; white-space: nowrap; }
+  :where(html.tourne) #paddockLongueur h2 { display: none; }
+  :where(html.tourne) #pageCourse #boutonCourseSuivante { font-size: 15px; padding: 6px 8px; white-space: normal; }
+}/* tourne:fin */
 /* (tour 53f) les réglages du volant : seulement sur un écran tactile (body.tactile, posée par tactile.js), de gros boutons (≥ 40 px) */
 .tactileSeul { display: none; }
 body.tactile .tactileSeul { display: block; }
@@ -2123,7 +2443,7 @@ body.tactile .tactileSeul { display: block; }
    des lignes de 40 px qui défilent, un appui sur une ligne ouvre la fiche du rival */
 body.tactile #classementPlein { z-index: 24; justify-content: flex-start; padding: 6px 0; box-sizing: border-box; gap: 4px; background: #0b0f17; }
 body.tactile #classementPlein h1 { margin: 0; font-size: 20px; line-height: 1.1; }
-body.tactile #classementPleinListe { flex: 1; min-height: 0; width: min(92vw, 560px); margin: 0; padding: 0; list-style: none; overflow-y: auto; -webkit-overflow-scrolling: touch; touch-action: pan-y; font: 600 15px/1.2 var(--tv-police); text-align: left; }
+body.tactile #classementPleinListe { flex: 1; min-height: 0; width: min(calc(92 * var(--uw)), 560px); margin: 0; padding: 0; list-style: none; overflow-y: auto; -webkit-overflow-scrolling: touch; touch-action: pan-y; font: 600 15px/1.2 var(--tv-police); text-align: left; }
 body.tactile #classementPleinListe li { display: flex; gap: 10px; align-items: center; min-height: 40px; padding: 0 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); white-space: nowrap; }
 body.tactile #classementPleinListe li.moi { background: var(--tv-ligne-moi, rgba(31, 111, 224, 0.75)); }
 body.tactile #classementPleinListe li .place { width: 24px; text-align: right; opacity: 0.8; }
@@ -2139,12 +2459,24 @@ body.tactile #boutonClassementPleinRetour { min-height: 40px; min-width: 160px; 
   #tutoMenu h1 { font-size: 14px; margin: 0; line-height: 1.1; }
   #tutoMenu h1::after { display: none; }
   #tutoMenuIntro { display: none; }
-  #tutoListe { gap: 1px; width: min(94vw, 720px); }
+  #tutoListe { gap: 1px; width: min(calc(94 * var(--uw)), 720px); }
   #tutoListe li { padding: 0 8px; min-height: 34px; column-gap: 8px; border-width: 0; }
   #tutoListe .tutoNom { font-size: 13px; }
   #tutoListe .tutoBut { font-size: 11px; line-height: 1.1; }
   #tutoListe button, #tutoListe li.tutoSuivant button { padding: 3px 10px; font-size: 13px; }
 }
+/* tourne:debut */@media (max-width: 420px) {
+  :where(html.tourne) :root { --classement-ligne: 13px; }
+  :where(html.tourne) #tutoMenu { gap: 2px; padding-top: 4px; padding-bottom: 0; justify-content: flex-start; }
+  :where(html.tourne) #tutoMenu h1 { font-size: 14px; margin: 0; line-height: 1.1; }
+  :where(html.tourne) #tutoMenu h1::after { display: none; }
+  :where(html.tourne) #tutoMenuIntro { display: none; }
+  :where(html.tourne) #tutoListe { gap: 1px; width: min(calc(94 * var(--uw)), 720px); }
+  :where(html.tourne) #tutoListe li { padding: 0 8px; min-height: 34px; column-gap: 8px; border-width: 0; }
+  :where(html.tourne) #tutoListe .tutoNom { font-size: 13px; }
+  :where(html.tourne) #tutoListe .tutoBut { font-size: 11px; line-height: 1.1; }
+  :where(html.tourne) #tutoListe button, :where(html.tourne) #tutoListe li.tutoSuivant button { padding: 3px 10px; font-size: 13px; }
+}/* tourne:fin */
 
 /* (tour 54a) à deux : les mêmes trois boutons à la place de la liste « Tours » ; la liste reste dans la page, cachée aux yeux (elle garde la valeur) */
 .deuxCache { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); opacity: 0; pointer-events: none; }
@@ -2160,6 +2492,14 @@ body.tactile #boutonClassementPleinRetour { min-height: 40px; min-width: 160px; 
   #deuxLongueurBoutons .longueurChoix b { font-size: 16px; }
   #deuxLongueurBoutons .longueurChoix span { font-size: 9px; white-space: nowrap; }
 }
+/* tourne:debut */@media (max-width: 420px) {
+  :where(html.tourne) #deuxLongueur { grid-column: auto; font-size: 12px; gap: 6px; }   /* (sur la même ligne que circuit, rivaux, niveau : rien de plus haut qu'avant) */
+  :where(html.tourne) #deuxLongueur > span { display: none; }
+  :where(html.tourne) #deuxLongueurBoutons { gap: 3px; }
+  :where(html.tourne) #deuxLongueurBoutons .longueurChoix { min-height: 40px; width: 58px; padding: 1px 2px; }
+  :where(html.tourne) #deuxLongueurBoutons .longueurChoix b { font-size: 16px; }
+  :where(html.tourne) #deuxLongueurBoutons .longueurChoix span { font-size: 9px; white-space: nowrap; }
+}/* tourne:fin */
 
 /* (tour 54b) 640×360 : le chrono se resserre pour ne recouvrir ni la minicarte (à gauche) ni la tour de classement (à droite), même avec « Tour précédent » */
 @media (max-height: 420px) {
@@ -2169,6 +2509,13 @@ body.tactile #boutonClassementPleinRetour { min-height: 40px; min-width: 160px; 
   #hudSecteurs { gap: 3px; }
   .secteur { min-width: 0; padding: 0 3px; font-size: 10px; }
 }
+/* tourne:debut */@media (max-width: 420px) {
+  :where(html.tourne) #hudCourse { padding: 3px 6px; gap: 0; font-size: 12px; }
+  :where(html.tourne) #hudChrono { font-size: 22px; }
+  :where(html.tourne) #hudPrecedent { font-size: 10px; }
+  :where(html.tourne) #hudSecteurs { gap: 3px; }
+  :where(html.tourne) .secteur { min-width: 0; padding: 0 3px; font-size: 10px; }
+}/* tourne:fin */
 
 /* (tour 54b, le téléphone émulé : tests/telephones.py) ce que l'émulation d'un vrai téléphone a montré.
    - pas de zoom au double toucher ni de « tirer pour rafraîchir » en pleine course, pas de halo gris sous le doigt ;
@@ -2179,9 +2526,9 @@ body.tactile #boutonClassementPleinRetour { min-height: 40px; min-width: 160px; 
 html, body { touch-action: manipulation; overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
 body.tactile input, body.tactile select, body.tactile textarea { font-size: 16px; }
 body.tactile #titre button { min-height: 40px; }
-#discussionCarte { max-height: calc(100dvh - 110px); }
-#discussionFil { max-height: 38dvh; }
-body.tactile #discussionCarte { max-height: calc(100dvh - 52px); }
+#discussionCarte { max-height: calc(calc(100 * var(--udh)) - 110px); }
+#discussionFil { max-height: calc(38 * var(--udh)); }
+body.tactile #discussionCarte { max-height: calc(calc(100 * var(--udh)) - 52px); }
 @media (max-height: 420px) {
   body.tactile:not(.horsCourse) #boutonSon, body.tactile #tactilePause, body.tactile #tactileRemise { width: 36px; height: 36px; font-size: 16px; }
   body.tactile #tactilePause { left: 52px; } body.tactile #tactileRemise { left: 92px; }
@@ -2190,18 +2537,35 @@ body.tactile #discussionCarte { max-height: calc(100dvh - 52px); }
   body.tactile #pause > :last-child { margin-bottom: auto; }
   body.tactile #pause button, body.tactile #pause button.petit { min-height: 40px; }
 }
+/* tourne:debut */@media (max-width: 420px) {
+  :where(html.tourne) body.tactile:not(.horsCourse) #boutonSon, :where(html.tourne) body.tactile #tactilePause, :where(html.tourne) body.tactile #tactileRemise { width: 36px; height: 36px; font-size: 16px; }
+  :where(html.tourne) body.tactile #tactilePause { left: 52px; } :where(html.tourne) body.tactile #tactileRemise { left: 92px; }
+  :where(html.tourne) body.tactile #pause { justify-content: flex-start; overflow-y: auto; touch-action: pan-y; -webkit-overflow-scrolling: touch; padding-top: 6px; padding-bottom: 10px; }
+  :where(html.tourne) body.tactile #pause > :first-child { margin-top: auto; }
+  :where(html.tourne) body.tactile #pause > :last-child { margin-bottom: auto; }
+  :where(html.tourne) body.tactile #pause button, :where(html.tourne) body.tactile #pause button.petit { min-height: 40px; }
+}/* tourne:fin */
 /* (tour 55b) la création du pilote en pleine largeur d'un téléphone couché : la règle de 420 px ci-dessus (13 px) l'emportait sur celle de 16 px (Safari zoomait) ;
    les champs gardent 16 px et prennent 32 px de haut pour le pouce (la page ne les remplit qu'une fois) */
 @media (max-height: 420px) {
   body.tactile #piloteChamps input, body.tactile #piloteChamps select, body.tactile #casqueChamps select { font-size: 16px; min-height: 32px; box-sizing: border-box; }
   body.tactile #casqueChamps input[type=color] { height: 32px; min-width: 40px; }
 }
+/* tourne:debut */@media (max-width: 420px) {
+  :where(html.tourne) body.tactile #piloteChamps input, :where(html.tourne) body.tactile #piloteChamps select, :where(html.tourne) body.tactile #casqueChamps select { font-size: 16px; min-height: 32px; box-sizing: border-box; }
+  :where(html.tourne) body.tactile #casqueChamps input[type=color] { height: 32px; min-width: 40px; }
+}/* tourne:fin */
 /* (tour 55b) le menu du paddock au doigt en 320 px de haut : 9 entrées de 40 px (360) défilent au lieu de sortir ; 44 px de large */
 @media (max-height: 420px) {
   body.tactile #paddockMenu { overflow-y: auto; overflow-x: hidden; padding-left: 1px; padding-right: 1px; -webkit-overflow-scrolling: touch; touch-action: pan-y; }
   body.tactile .ecran #paddockMenu button.menuEntree { flex: 0 0 auto; min-width: 44px; }
   body.tactile #paddockMenu > * { flex-shrink: 0; }
 }
+/* tourne:debut */@media (max-width: 420px) {
+  :where(html.tourne) body.tactile #paddockMenu { overflow-y: auto; overflow-x: hidden; padding-left: 1px; padding-right: 1px; -webkit-overflow-scrolling: touch; touch-action: pan-y; }
+  :where(html.tourne) body.tactile .ecran #paddockMenu button.menuEntree { flex: 0 0 auto; min-width: 44px; }
+  :where(html.tourne) body.tactile #paddockMenu > * { flex-shrink: 0; }
+}/* tourne:fin */
 
 
 /* tour 55a (clarté des sections) : une ligne sous les gros boutons (data-sous), la météo avec une icône, « Toi » en deux lignes, des icônes de menu de même taille */
@@ -2230,11 +2594,23 @@ body.tactile #discussionCarte { max-height: calc(100dvh - 52px); }
   .menuIcone { font-size: 17px; }
   #amis .boutons:first-of-type button[data-sous]::after { font-size: 10px; max-width: 120px; }
 }
+/* tourne:debut */@media (max-width: 420px) {
+  :where(html.tourne) [data-sous]::after { font-size: 10px; }
+  :where(html.tourne) #pageEquipe .pageBoutons button[data-sous]::after, :where(html.tourne) #pageSaison .pageBoutons button[data-sous]::after { display: none; }
+  :where(html.tourne) #paddockMoi { flex-direction: row; flex-wrap: wrap; gap: 2px 14px; }
+  :where(html.tourne) #paddockPlace .ecartLeader, :where(html.tourne) #championnat #championnatDuel .duelDetail { display: inline; font-size: inherit; }
+  :where(html.tourne) #paddockPlace .sepEcart { display: inline; }
+  :where(html.tourne) .menuIcone { font-size: 17px; }
+  :where(html.tourne) #amis .boutons:first-of-type button[data-sous]::after { font-size: 10px; max-width: 120px; }
+}/* tourne:fin */
 @media (max-width: 1100px) { .menuIcone { font-size: 20px; } }
+/* tourne:debut */@media (max-height: 1100px) { :where(html.tourne) .menuIcone { font-size: 20px; } }/* tourne:fin */
 #amis .boutons:first-of-type { align-items: stretch; }
 #boutiqueContenu .pageBoutons button[data-sous] { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
-@media (max-height: 420px) { body.tactile { --classement-ligne: min(13px, calc((100vh - 58px) / 20)); --classement-ligne: min(13px, calc((100dvh - 58px) / 20)); } }   /* (tour 55b) la tour garde ses 20 lignes dans l'écran aussi derrière la pause */
+@media (max-height: 420px) { body.tactile { --classement-ligne: min(13px, calc((calc(100 * var(--uh)) - 58px) / 20)); --classement-ligne: min(13px, calc((calc(100 * var(--udh)) - 58px) / 20)); } }   /* (tour 55b) la tour garde ses 20 lignes dans l'écran aussi derrière la pause */
+/* tourne:debut */@media (max-width: 420px) { :where(html.tourne) body.tactile { --classement-ligne: min(13px, calc((calc(100 * var(--uh)) - 58px) / 20)); --classement-ligne: min(13px, calc((calc(100 * var(--udh)) - 58px) / 20)); } }/* tourne:fin */
 @media (max-height: 420px) { body.tactile #paddockNouvelles { gap: 2px; padding-top: 2px; padding-bottom: 2px; } body.tactile #paddockNouvelles p { margin: 0; font-size: 11px; line-height: 1.15; } body.tactile #paddockNouvelles h2 { margin: 0 0 1px; } }   /* (tour 55b) « Ouvrir les messages » à 40 px entre dans 320 px de haut */
+/* tourne:debut */@media (max-width: 420px) { :where(html.tourne) body.tactile #paddockNouvelles { gap: 2px; padding-top: 2px; padding-bottom: 2px; } :where(html.tourne) body.tactile #paddockNouvelles p { margin: 0; font-size: 11px; line-height: 1.15; } :where(html.tourne) body.tactile #paddockNouvelles h2 { margin: 0 0 1px; } }/* tourne:fin */
 
 
 /* (tour 55, le propriétaire 2026-11-12) le choix des aides au doigt, en 640×360 : 2 × 2 boutons de 44 px, sans défilement, la phrase « ce qu'elle fait » cachée */
@@ -2247,6 +2623,15 @@ body.tactile #discussionCarte { max-height: calc(100dvh - 52px); }
   #choixAidesListe .quoi { display: none; }
   #choixAides .boutons button { min-height: 44px; padding: 4px 18px; }
 }
+/* tourne:debut */@media (max-width: 420px) {
+  :where(html.tourne) #choixAides { gap: 6px; padding-top: 6px; padding-bottom: 6px; }
+  :where(html.tourne) #choixAides h1 { font-size: 20px; margin: 0; }
+  :where(html.tourne) #choixAidesIntro, :where(html.tourne) #choixAidesBonus { font-size: 12px; line-height: 1.2; }
+  :where(html.tourne) #choixAidesListe { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; max-width: 600px; width: 92%; }
+  :where(html.tourne) #choixAidesListe button { min-height: 44px; padding: 4px 10px; font-size: 13px; line-height: 1.15; align-items: center; }
+  :where(html.tourne) #choixAidesListe .quoi { display: none; }
+  :where(html.tourne) #choixAides .boutons button { min-height: 44px; padding: 4px 18px; }
+}/* tourne:fin */
 
 /* (tour 55) la ligne du commentateur du résumé vidéo : cachée sur un écran tactile (COMMENTAIRE_TEXTE_TACTILE faux, classe posée par principal.js) */
 body.tactile.commentaireSansTexte #resumeCommentaire { display: none !important; }
@@ -2254,14 +2639,19 @@ body.tactile:has(#pause:not(.cache)) #boutonSon { display: none; }   /* (tour 55
 
 /* Chasse du tour 55 (T17) : en 640×360 au doigt, le message de course est décalé à droite de la bulle d'aide (elles se recouvraient de 70 px) */
 @media (max-height: 420px) {
-  #qualif:not(.cache) ~ #bulleAide.bulleMenu { max-width: 64vw; font-size: 11px; }   /* (en 640×360 la bulle de la qualification tient sur deux lignes : le titre commence à 71 px ; sur Linux les polices sont plus larges) */
+  #qualif:not(.cache) ~ #bulleAide.bulleMenu { max-width: calc(64 * var(--uw)); font-size: 11px; }   /* (en 640×360 la bulle de la qualification tient sur deux lignes : le titre commence à 71 px ; sur Linux les polices sont plus larges) */
   body.tactile #messageCourse { left: 61%; top: 176px; max-width: 220px; white-space: normal; }
   body.tactile #hudStand { left: 61%; top: 216px; max-width: 230px; white-space: normal; font-size: 12px; line-height: 1.3; padding: 3px 10px; }   /* (le bandeau des stands : à droite de la bulle d'aide, sous le message de course) */
 }
+/* tourne:debut */@media (max-width: 420px) {
+  :where(html.tourne) #qualif:not(.cache) ~ #bulleAide.bulleMenu { max-width: calc(64 * var(--uw)); font-size: 11px; }   /* (en 640×360 la bulle de la qualification tient sur deux lignes : le titre commence à 71 px ; sur Linux les polices sont plus larges) */
+  :where(html.tourne) body.tactile #messageCourse { left: 61%; top: 176px; max-width: 220px; white-space: normal; }
+  :where(html.tourne) body.tactile #hudStand { left: 61%; top: 216px; max-width: 230px; white-space: normal; font-size: 12px; line-height: 1.3; padding: 3px 10px; }   /* (le bandeau des stands : à droite de la bulle d'aide, sous le message de course) */
+}/* tourne:fin */
 
 /* Chasse du tour 55 (T14) : l'interview en 640×360 au doigt : « Passer » finissait à 375 px sur 360. La carte se serre (marges, textes), les réponses gardent 40 px */
 @media (max-height: 420px) {
-  #interviewCarte { gap: 4px; padding: 8px 18px 10px; max-height: 98vh; }
+  #interviewCarte { gap: 4px; padding: 8px 18px 10px; max-height: calc(98 * var(--uh)); }
   #interview h1 { font-size: 16px; }
   #interviewJournaliste { font-size: 11px; }
   #interviewQuestion { font-size: 15px; line-height: 1.2; }
@@ -2271,6 +2661,17 @@ body.tactile:has(#pause:not(.cache)) #boutonSon { display: none; }   /* (tour 55
   #interviewChoix, #interviewSuite { gap: 4px; }
   #interviewEffet { font-size: 14px; min-height: 0; }
 }
+/* tourne:debut */@media (max-width: 420px) {
+  :where(html.tourne) #interviewCarte { gap: 4px; padding: 8px 18px 10px; max-height: calc(98 * var(--uh)); }
+  :where(html.tourne) #interview h1 { font-size: 16px; }
+  :where(html.tourne) #interviewJournaliste { font-size: 11px; }
+  :where(html.tourne) #interviewQuestion { font-size: 15px; line-height: 1.2; }
+  :where(html.tourne) #interviewReponses { gap: 4px; margin-top: 0; }
+  :where(html.tourne) #interviewReponses button { padding: 4px 12px; font-size: 14px; }
+  :where(html.tourne) #interviewReponses .icone { font-size: 20px; }
+  :where(html.tourne) #interviewChoix, :where(html.tourne) #interviewSuite { gap: 4px; }
+  :where(html.tourne) #interviewEffet { font-size: 14px; min-height: 0; }
+}/* tourne:fin */
 
 /* (tour 56, T5) les batailles en ligne : « En ligne », « rejoindre par code », la salle d'attente (enligne-ecran.js ; rien ne s'affiche sans EN_LIGNE) */
 #enligne, #enligneRejoindre, #enligneSalle { gap: 10px; }
@@ -2334,4 +2735,26 @@ body.tactile:has(#pause:not(.cache)) #boutonSon { display: none; }   /* (tour 55
   #enligneEmotes button.enligneEmote { width: 40px; height: 40px; font-size: 19px; }
   #enligneSalle .boutons button { min-height: 40px; padding: 6px 14px; font-size: 15px; }
 }
+/* tourne:debut */@media (max-width: 420px) {
+  :where(html.tourne) #enligne, :where(html.tourne) #enligneRejoindre, :where(html.tourne) #enligneSalle { gap: 5px; }
+  :where(html.tourne) #enligne h1, :where(html.tourne) #enligneRejoindre h1, :where(html.tourne) #enligneSalle h1 { font-size: 24px; margin: 0; }
+  :where(html.tourne) #enligneExplication { font-size: 13px; line-height: 1.25; }
+  :where(html.tourne) #enligne p, :where(html.tourne) #enligneRejoindre p, :where(html.tourne) #enligneSalle p { font-size: 14px; line-height: 1.25; }
+  :where(html.tourne) #enligne .boutons:first-of-type button, :where(html.tourne) #enligneRejoindre .boutons:first-of-type button { min-width: 150px; padding: 8px 14px; font-size: 17px; min-height: 40px; }
+  :where(html.tourne) #enligneCouleurs { max-width: 440px; gap: 5px; }
+  :where(html.tourne) #enligneCouleurs button.enlignePastille { width: 40px; height: 40px; }
+  :where(html.tourne) #enligneCode { font-size: 26px; padding: 2px 10px; }
+  :where(html.tourne) #enligneClavier { grid-template-columns: repeat(11, 40px); gap: 4px; }
+  :where(html.tourne) #enligneClavier button { width: 40px; height: 40px; font-size: 16px; }
+  :where(html.tourne) #enligneClavier button.enligneEffacer { grid-column: span 2; }
+  :where(html.tourne) #enligneCorps { gap: 8px; }
+  :where(html.tourne) #enligneJoueurs, :where(html.tourne) #enligneReglages { padding: 4px 10px; }
+  :where(html.tourne) #enligneCorps h2 { font-size: 12px; margin-bottom: 2px; }
+  :where(html.tourne) #enligneListe li { min-height: 20px; font-size: 13px; }
+  :where(html.tourne) #enligneRegles { gap: 2px; }
+  :where(html.tourne) #enligneRegles .regle { font-size: 13px; }
+  :where(html.tourne) #enligneRegles button.enligneFleche { height: 40px; }
+  :where(html.tourne) #enligneEmotes button.enligneEmote { width: 40px; height: 40px; font-size: 19px; }
+  :where(html.tourne) #enligneSalle .boutons button { min-height: 40px; padding: 6px 14px; font-size: 15px; }
+}/* tourne:fin */
 body.tactile #boutonEnligneTitre, body.tactile :is(#enligne, #enligneRejoindre, #enligneSalle) .boutons button { min-height: 40px; }   /* (au doigt, 40 px au moins) */
