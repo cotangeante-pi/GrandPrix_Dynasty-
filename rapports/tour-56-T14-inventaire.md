@@ -19,6 +19,8 @@ Sources lues : `principal.js` (`brancherClavier`, `choisirPneusArret`, `toucheVi
 | une touche | passer la grille vue d'en haut, la une du journal | un toucher (clic sur l'écran) | inchangé (texte « touche pour passer ») |
 | Échap / clic | sortir du résumé vidéo | un toucher | inchangé (texte « Touche pour sortir ») |
 | ← → (album des unes) | feuilleter | boutons ◀ ▶ ⏮ ⏭ | inchangé |
+| consigne d'équipe (« lève le pied ») | frein (↓) | bouton FREIN | inchangé (texte « FREIN » au doigt) |
+| rétroviseur oui / non | pas de touche : bouton de la pause et de ⚙ Réglages | bouton ≥ 40 px | inchangé ; touché dans le test (⏸ → rétroviseur → Reprendre) |
 | Tab | voiture suivante en course | rien | **laissé tel quel** : n'existe que dans la course vue en spectateur (`?ia=N` sans `joueur=1`, outil de test) ; après son arrivée, le joueur change de voiture en touchant une ligne du classement (déjà fait au tour 53) |
 | W A S D / flèches (`?camera=libre`) | caméra libre | rien | **laissé tel quel** : outil de développement |
 
@@ -42,4 +44,6 @@ Non touchés parce que jamais vus au téléphone : `aideConduite` (l'aide du cla
 ## Test
 
 `tests/ecrans.py`, page `?course=12&ia=3&joueur=1&robot=1&circuit=test&test=tactile-pneus` (écran tactile émulé, 640×360) :
-la rangée de pneus est cachée hors de l'arrêt ; pendant l'arrêt elle a un bouton par pneu, chacun ≥ 40 px, dans l'écran, sans rien recouvrir (🔊 ⏸ ↩ 🎥, bandeau, minicarte, radar, vitesse, GAZ, FREIN) ; un vrai toucher sur chaque pneu le choisit et le surligne ; la voiture repart avec le pneu touché ; la rangée se cache après l'arrêt ; le bouton 🎥 change la vue comme C ; aucun des textes ci-dessus ne cite une touche.
+la rangée de pneus est cachée hors de l'arrêt ; pendant l'arrêt elle a un bouton par pneu, chacun ≥ 40 px, dans l'écran, sans rien recouvrir (🔊 ⏸ ↩ 🎥, bandeau, minicarte, radar, vitesse, GAZ, FREIN) ; un vrai toucher sur chaque pneu le choisit et le surligne ; la voiture repart avec le pneu touché ; la rangée se cache après l'arrêt ; le bouton 🎥 change la vue comme C ; ↩ demande le retour en piste ; ⏸ ouvre la pause, le rétroviseur s'y bascule au doigt, « Reprendre » rend la course ; aucun des textes ci-dessus ne cite une touche.
+
+Téléphone debout (T15, `html.tourne`) : tous ces boutons sont dans `#tactile`, tourné avec la page ; `tests/tourne-css.py --verifier` est vert.
