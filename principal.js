@@ -305,7 +305,7 @@ function noterFantomeSeul(c, v) {
   const f = JEU.fantomeSeul || (JEU.fantomeSeul = { tour: null, nTours: 0, ligne: 0, sale: false, meilleur: null });
   if (c.tours.length > f.nTours) {   // un tour vient de finir
     const t = c.tours[c.tours.length - 1];
-    if (f.tour && !f.sale && !t.coupe && (!f.meilleur || t.temps < f.meilleur.temps)) {
+    if (f.tour && !f.sale && !t.coupe && !t.limites && (!f.meilleur || t.temps < f.meilleur.temps)) {
       FANTOME.noter(f.tour, t.temps, v, c.progression - f.ligne);
       f.meilleur = { temps: t.temps, compact: FANTOME.compacter(f.tour, t.temps, c.progression - f.ligne) };
     }
