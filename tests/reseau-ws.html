@@ -1,0 +1,41 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>réseau réel</title></head><body>
+<pre id="res">pas lancé</pre>
+<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits-officiels-a.js"></script><script src="../circuits-officiels-b.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../sensations.js"></script><script src="../manette.js"></script><script src="../son.js"></script><script src="../effets3d.js"></script><script src="../conseil.js"></script><script src="../qualite.js"></script><script src="../assistance.js"></script><script src="../mesure.js"></script><script src="../regie.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../divisions.js"></script><script src="../decouverte.js"></script><script src="../pilote.js"></script><script src="../deux-joueurs.js"></script><script src="../enligne.js"></script><script src="../tournoi.js"></script><script src="../casque.js"></script><script src="../decors-officiels.js"></script><script src="../decor-public.js"></script><script src="../photo.js"></script><script src="../cache-carte.js"></script><script src="../cache-carte-test.js"></script><script src="../journal.js"></script><script src="../argent.js"></script><script src="../garage.js"></script><script src="../aileron.js"></script><script src="../carte2d.js"></script><script src="../saisons.js"></script><script src="../sponsors.js"></script><script src="../fiche.js"></script><script src="../interview.js"></script><script src="../carriere.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../meteo.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../resume.js"></script><script src="../reseau.js"></script><script src="../messages.js"></script><script src="../commentaire.js"></script><script src="../voix-sons.js"></script><script src="../fantome-pole.js"></script><script src="../foule.js"></script><script src="../decor.js"></script><script src="../stand3d.js"></script><script src="../fantome.js"></script><script src="../defi.js"></script><script src="../touches.js"></script><script src="../clavier.js"></script><script src="../principal.js"></script>
+<script>
+// (tour 56, T9) une page de joueur en ligne : le VRAI lockstep (enligne.js) par le VRAI client réseau (reseau.js, transport WebSocket) vers le VRAI
+// relais (serveur/relais.py). La page est pilotée par tests/reseau-ws.py : window.jouer(url, nom, code, options) puis window.S (l'état).
+// options : { pasMax, perturber : un pas où CETTE page abîme son état (pour vérifier qu'une désynchro est vue) }
+window.S = { salle: null, joueurs: [], partie: null, fin: null, cmdsRecues: 0, controlesRecus: 0, refus: null, erreurs: [], ferme: false };
+window.jouer = function (url, nom, code, options) {
+  const o = options || {};
+  REGLAGES.EN_LIGNE = true; REGLAGES.EN_LIGNE_URL = url;
+  const r = window.r = RESEAU.client({ transport: 'websocket', url, version: REGLAGES.EN_LIGNE_VERSION + '-' + EN_LIGNE.version().h })   // (D4) la version annoncée : celle du jeu + l'empreinte des réglages de course;
+  r.sur('salle', d => { S.salle = d; });
+  r.sur('joueurs', d => { S.joueurs = d.liste; });
+  r.sur('refus', d => { S.refus = d.raison; });
+  r.sur('erreur', d => { S.erreurs.push(JSON.stringify(d)); });
+  r.sur('perdu', () => { S.ferme = true; });
+  r.sur('depart', d => {
+    const envoyer = m => { if (m.t === 'cmd') r.cmd(m.n, m.c); else if (m.t === 'controle') r.controle(m.n, m.h); };
+    const p = S.partie = EN_LIGNE.demarrer(d, r.moi, envoyer, { pasMax: o.pasMax || 1400 });
+    const k = r.moi % 7;
+    const boucle = setInterval(() => {
+      let fait = 0;
+      for (let i = 0; i < 40; i++) {
+        const n = p.n;
+        p.local = { gaz: 1, frein: (n + k * 40) % 400 > 340 ? 1 : 0, direction: Math.sin((n + k * 50) / 70) > 0.3 ? 1 : Math.sin((n + k * 50) / 70) < -0.3 ? -1 : 0, remise: false };
+        if (o.perturber && n === o.perturber) p.moi.v.x += 0.001;
+        const f = p.avancer(1); if (!f) break; fait += f;
+      }
+      if (p.desynchro || p.n >= (o.pasMax || 1400)) {
+        clearInterval(boucle);
+        S.fin = { n: p.n, empreinte: p.empreinte(), desynchro: p.desynchro };
+      }
+    }, 4);
+  });
+  r.sur('cmd', m => { S.cmdsRecues++; if (S.partie) S.partie.recevoir(m); });
+  r.sur('controle', m => { S.controlesRecus++; if (S.partie) S.partie.recevoir(m); });
+  r.sur('parti', m => { if (S.partie) S.partie.recevoir(m); });
+  return r.ouvrir().then(() => { if (code) r.rejoindre(code, nom); else r.creer(nom); });
+};
+</script></body></html>

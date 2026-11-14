@@ -13,7 +13,7 @@ python3 serveur/relais.py       # écoute sur ws://127.0.0.1:8765, cet ordinateu
 python3 serveur/relais.py --hote 0.0.0.0 --port 9000      # tout le réseau local (pour essayer avec un téléphone)
 ```
 
-Options : `--version` (la version que les clients doivent annoncer, « 1 » par défaut), `--noms-libres` (noms tapés librement,
+Options : `--version` (facultatif : impose la version que le créateur d'une salle doit annoncer ; sans cela, la version d'une salle est celle de son créateur et seuls les clients de la même version la rejoignent), `--noms-libres` (noms tapés librement,
 interdit au public d'enfants), `--max-par-ip` (0 derrière un proxy). Variables : `PORT`, `RELAIS_HOTE`, `RELAIS_VERSION`.
 Tous les autres réglages (taille, cadence, délais, nombre de joueurs) sont dans la classe `Config` du fichier.
 
@@ -50,11 +50,14 @@ Un ajout du relais, hors du protocole du Chef (un client peut l'ignorer) : `{t:'
 - Code de salle : 4 lettres sans voyelle ni Y (donc aucun mot), tiré au hasard. 2 à 8 joueurs (`id` de 1 à 8 dans l'ordre d'arrivée, jamais réutilisé dans la salle).
 - L'hôte est le premier ; s'il part, le suivant devient hôte (`parti` puis `nouvel-hote`, puis `joueurs` si la course n'a pas commencé).
   Une salle vide disparaît. Une salle commencée refuse les nouveaux (`commencee`) jusqu'au `retour` de l'hôte.
-- Noms (mêmes règles que `reseau.js`, mêmes listes que `donnees.js`) : un nom de EN_LIGNE_NOMS ou « Pilote N » (1 à 99), suivi au plus d'une couleur de EN_LIGNE_COULEURS, 20 signes au plus, espaces autour retirés ; sinon `refus nom`. Deux joueurs d'une salle ne portent pas le même nom (sans tenir compte des majuscules). `--noms-libres` accepte lettres, chiffres, espaces, tirets.
+- Noms (décision D1 du Chef, mêmes règles que `reseau.js`) : le nom sur le fil ne dépend d'aucune langue : l'id d'une couleur de EN_LIGNE_COULEURS (`bleu`, `rouge`, `jaune`, `vert`, `orange`, `violet`, `turquoise`, `rose`), suivi de `-2` à `-8` si la couleur est déjà prise dans la salle ; chaque client affiche le nom traduit (« Pilote rouge » / « Red driver »). Tout autre nom : `refus nom`. Deux joueurs d'une salle ne portent pas le même nom. `--noms-libres` accepte lettres, chiffres, espaces, tirets.
+- Version (D4) : `version` = `EN_LIGNE_VERSION + '-' + EN_LIGNE.version().h` (l'empreinte des réglages de course), par exemple `1-3735928559` ; une version mal formée est refusée à la création ; qui rejoint doit annoncer celle du créateur de la salle (`refus version`).
+- Réglages (D3, les nombres du cœur : donnees.js) : 1 à 30 tours (`EN_LIGNE_TOURS_MAX`), 0 à 8 IA (`EN_LIGNE_IA_MAX`), humains + IA au plus 16 (`EN_LIGNE_VOITURES_MAX`), météo dans `auto sec pluie averse eclaircie` (`EN_LIGNE_METEOS`) ; sinon `{t:'erreur', raison:'reglages'}` (réglages ou lancer).
 - Limites : 4096 octets par message (au-delà la connexion est coupée, code 1009) ; 150 messages par seconde et par client avec une réserve de 300
   (le surplus est jeté) ; 200 messages invalides (JSON faux, trame binaire, type inconnu, hors salle) et la connexion est coupée (1008) ;
   12 refus et coupé (1008) ; 10 s pour créer ou rejoindre une salle sinon coupé (1008) ; 24 connexions par adresse (1013) ; 500 salles ;
   un client trop lent (2000 messages en attente) est coupé (1013).
 - Expiration : une salle en attente muette 30 minutes, ou commencée muette 2 heures, expire : ses joueurs sont coupés (1001).
 - Les commandes ne sont relayées qu'après le départ ; les clients n'ont pas de droit sur les autres (le serveur remplit `de`).
-  Les garde-fous contre la triche simple (commandes hors limites, pas en avance) viennent avec T9.
+- Garde-fous contre la triche simple (T9, D5) : `cmd` = `{n, c}` avec `c` un tableau de 1 à 128 entiers de 0 à 16383 (14 bits) et `n` un entier qui ne revient jamais en arrière (un paquet qui recouvre le précédent est jeté) ; personne ne peut avoir envoyé plus de 240 pas (2 s) au-delà du plus en retard des autres (le lockstep attend le plus lent) ; un joueur parti ne compte plus. `controle` = `{n, h}` avec `h` une chaîne de 64 signes au plus et `n` croissant. NaN et Infinity sont refusés. Un message jeté compte comme une faute (200 fautes : connexion coupée, 1008).
+- Test du vrai réseau : `python3 tests/reseau-ws.py` lance ce relais et fait courir deux pages du jeu par WebSocket (lockstep réel, mêmes empreintes, désynchro vue).

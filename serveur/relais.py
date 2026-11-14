@@ -19,13 +19,15 @@ from websockets.exceptions import ConnectionClosed
 
 journal = logging.getLogger('relais')
 
-TOURS_MAX, IA_MAX = 20, 20   # EN_LIGNE_TOURS_MAX, EN_LIGNE_IA_MAX
+# (décision D3 du Chef : une seule source, le cœur ; ces nombres sont ceux de donnees.js) EN_LIGNE_TOURS_MAX, EN_LIGNE_IA_MAX, EN_LIGNE_VOITURES_MAX, EN_LIGNE_METEOS
+TOURS_MAX, IA_MAX, VOITURES_MAX = 30, 8, 16
+METEOS = ('auto', 'sec', 'pluie', 'averse', 'eclaircie')
 CONSONNES = 'BCDFGHJKLMNPQRSTVWXZ'   # le code d'une salle : 4 lettres sans voyelle (donc aucun mot) ni Y
 
 class Config:
     """Tous les réglages en un seul endroit ; les tests en changent quelques-uns (délais courts)."""
     def __init__(self, **kw):
-        self.version = '1'               # la version du protocole / du jeu que les clients doivent annoncer
+        self.version = None              # None : la version de la salle est celle de son créateur (décision D4) ; sinon le créateur doit annoncer exactement celle-ci
         self.max_joueurs = 8             # 2 à 8 joueurs par salle
         self.min_pour_lancer = 2         # on ne lance pas une course en ligne tout seul
         self.max_octets = 4096           # taille d'un message (au-delà : la connexion est coupée par la bibliothèque)
@@ -47,28 +49,28 @@ class Config:
         # les garde-fous contre la triche simple (tour 56, T9) : une commande est un entier de 0 à code_max (14 bits : gaz, frein, direction, remise)
         # ou un paquet de 1 à paquet_max entiers ; n est le premier pas du paquet
         self.code_max = (1 << 14) - 1
-        self.paquet_max = 32             # pas dans un paquet (le jeu en envoie 4 : EN_LIGNE_PAQUET)
+        self.paquet_max = 128            # pas dans un paquet (le jeu en envoie 4 : EN_LIGNE_PAQUET) ; décision D5 : de 1 à 128 entiers
         self.avance_max = 240            # pas (2 s) : un joueur ne peut pas avoir envoyé plus loin que le plus en retard des autres + ça ; 0 = pas de limite
         for k, v in kw.items():
             if not hasattr(self, k): raise TypeError('réglage inconnu : ' + k)
             setattr(self, k, v)
 
 # les mêmes règles que reseau.js (nomAutorise), mêmes listes que donnees.js (EN_LIGNE_NOMS, EN_LIGNE_COULEURS)
-NOMS = ['Éclair', 'Turbo', 'Comète', 'Fusée', 'Tonnerre', 'Mistral', 'Phénix', 'Faucon', 'Panthère', 'Requin', 'Étoile', 'Tempête']
-COULEURS = ['Rouge', 'Bleu', 'Vert', 'Jaune', 'Orange', 'Violet', 'Rose', 'Blanc']
+# (décision D1) le nom sur le fil ne dépend d'aucune langue : l'id d'une couleur (EN_LIGNE_COULEURS), suivi de « -2 » à « -8 » si la couleur est prise ;
+# chaque client affiche le nom traduit (« Pilote rouge », « Red driver »)
+COULEURS = ('bleu', 'rouge', 'jaune', 'vert', 'orange', 'violet', 'turquoise', 'rose')
 _NOM_LIBRE = re.compile(r'^[\w _-]+$')
-_PILOTE = re.compile(r'^Pilote [1-9][0-9]?$')
+_NOM_COULEUR = re.compile(r'^(' + '|'.join(COULEURS) + r')(-[2-8])?$')
+# (décision D4) la version = EN_LIGNE_VERSION + '-' + l'empreinte des réglages de course du cœur : « 1-3735928559 »
+_VERSION = re.compile(r'^[0-9]{1,5}-[0-9]{1,10}$')
 
 def nom_valide(nom, libres, nom_max=20):
-    """Le nom (sans espaces autour) : « Pilote N » ou un nom de la liste, avec une couleur de la liste au bout ; libre si on l'autorise."""
+    """Le nom (sans espaces autour) : l'id d'une couleur (+ « -2 » à « -8 »), ou libre si on l'autorise (EN_LIGNE_NOMS_LIBRES)."""
     if not isinstance(nom, str): return False
     n = nom.strip()
     if not n or len(n) > nom_max or not n.isprintable(): return False
     if libres: return bool(_NOM_LIBRE.match(n))
-    mots = n.split(' ')
-    couleur = len(mots) > 1 and mots[-1] in COULEURS
-    base = ' '.join(mots[:-1] if couleur else mots)
-    return base in NOMS or bool(_PILOTE.match(base))
+    return bool(_NOM_COULEUR.match(n))
 
 def _refuser_constante(x):
     raise ValueError(x)   # NaN, Infinity : pas du JSON permis
@@ -76,12 +78,14 @@ def _refuser_constante(x):
 def entier(v, lo, hi):
     return isinstance(v, int) and not isinstance(v, bool) and lo <= v <= hi
 
-def reglages_valides(r):
-    """Les réglages d'une course (comme reseau.js) : circuit, tours, meteo, nbIA, rien d'autre."""
+def reglages_valides(r, humains=2):
+    """Les réglages d'une course (comme le cœur, enligne.js reglagesValides) : circuit, tours, meteo, nbIA, rien d'autre ; au plus VOITURES_MAX voitures
+    (humains + IA)."""
     if not isinstance(r, dict): return None
     c, m = r.get('circuit'), r.get('meteo')
-    if not (isinstance(c, str) and 0 < len(c) <= 40 and isinstance(m, str) and len(m) <= 20): return None
+    if not (isinstance(c, str) and 0 < len(c) <= 40 and m in METEOS): return None
     if not (entier(r.get('tours'), 1, TOURS_MAX) and entier(r.get('nbIA'), 0, IA_MAX)): return None
+    if humains + r['nbIA'] > VOITURES_MAX: return None
     return {'circuit': c, 'tours': r['tours'], 'meteo': m, 'nbIA': r['nbIA']}
 
 class Client:
@@ -97,6 +101,7 @@ class Client:
         self.fautes = 0
         self.refus = 0
         self.derniere_emote = 0.0
+        self.dernier_controle = -1       # le pas de la dernière empreinte reçue (la suivante doit être après)
         self.fin_cmd = 0                 # le pas qui suit la dernière commande reçue de ce joueur (la prochaine doit commencer là ou après)
         self.minuteur = None
         self.ferme = False
@@ -132,6 +137,7 @@ class Salle:
         self.suivant = 1
         self.hote = None
         self.commencee = False
+        self.version = None    # celle de son créateur (D4)
         self.reglages = None   # les derniers réglages choisis par l'hôte (renvoyés à qui rejoint ensuite)
         self.activite = time.monotonic()
 
@@ -221,7 +227,7 @@ class Relais:
         elif t == 'lancer': self._lancer(c, m)
         elif t == 'reglages':
             if c.id != salle.hote or salle.commencee: return self._erreur(c, 'hote' if c.id != salle.hote else 'commencee')
-            r = reglages_valides(m.get('reglages'))
+            r = reglages_valides(m.get('reglages'), max(len(salle.joueurs), self.cfg.min_pour_lancer))
             if r is None: return self._erreur(c, 'reglages')
             salle.reglages = r
             self._diffuser(salle, {'t': 'reglages', 'reglages': r})
@@ -231,7 +237,8 @@ class Relais:
             else: self._faute(c)
         elif t == 'controle':
             h = m.get('h')
-            if salle.commencee and entier(m.get('n'), 0, 10 ** 8) and (isinstance(h, (int, str)) and not isinstance(h, bool) and len(str(h)) <= 64):
+            if salle.commencee and entier(m.get('n'), 0, 10 ** 8) and m['n'] > c.dernier_controle and isinstance(h, str) and len(h) <= 64:   # (D5) h : une chaîne de 64 caractères au plus ; n croissant
+                c.dernier_controle = m['n']
                 self._diffuser(salle, {'t': 'controle', 'de': c.id, 'n': m['n'], 'h': h}, sauf=c)
             else: self._faute(c)
         elif t == 'emote':
@@ -257,7 +264,7 @@ class Relais:
         jamais trop en avance sur les autres (lockstep : on ne joue pas plus vite que le plus lent). Met à jour fin_cmd si elle passe."""
         n, cmd, cfg = m.get('n'), m.get('c'), self.cfg
         if not entier(n, 0, 10 ** 8): return False
-        paquet = cmd if isinstance(cmd, list) else [cmd]
+        paquet = cmd if isinstance(cmd, list) else []   # (D5) toujours un tableau de 1 à paquet_max entiers
         if not (1 <= len(paquet) <= cfg.paquet_max and all(entier(x, 0, cfg.code_max) for x in paquet)): return False
         if n < c.fin_cmd: return False
         fin = n + len(paquet)
@@ -272,10 +279,13 @@ class Relais:
         c.envoyer({'t': 'refus', 'raison': raison})
         if c.refus >= self.cfg.refus_max: c.couper(1008, 'trop de refus')
 
-    def _controle_entree(self, c, m):
+    def _controle_entree(self, c, m, salle=None):
         """Version et nom : les mêmes règles pour créer et rejoindre. Renvoie la raison du refus, ou None."""
         v = m.get('version')
-        if not isinstance(v, (str, int)) or isinstance(v, bool) or str(v) != str(self.cfg.version): return 'version'
+        if not isinstance(v, str) or not _VERSION.match(v): return 'version'
+        if salle is not None:
+            if v != salle.version: return 'version'     # (décision D4) la version de la salle est celle de son créateur
+        elif self.cfg.version is not None and v != self.cfg.version: return 'version'
         if not nom_valide(m.get('nom'), self.cfg.noms_libres): return 'nom'
         return None
 
@@ -287,6 +297,7 @@ class Relais:
             code = ''.join(self.hasard.choice(CONSONNES) for _ in range(4))
             if code not in self.salles: break
         salle = self.salles[code] = Salle(code)
+        salle.version = m['version']
         self._entrer(c, salle, m['nom'].strip())
 
     def _rejoindre(self, c, m):
@@ -294,7 +305,7 @@ class Relais:
         salle = self.salles.get(code.strip().upper()) if isinstance(code, str) and len(code) <= 8 else None
         if salle is None: return self._refuser(c, 'inconnue')
         if salle.commencee: return self._refuser(c, 'commencee')
-        raison = self._controle_entree(c, m)
+        raison = self._controle_entree(c, m, salle)
         if not raison and len(salle.joueurs) >= self.cfg.max_joueurs: raison = 'pleine'
         if not raison and any(j.nom.lower() == m['nom'].strip().lower() for j in salle.joueurs.values()): raison = 'nom'
         if raison: return self._refuser(c, raison)
@@ -323,11 +334,11 @@ class Relais:
     def _lancer(self, c, m):
         salle = c.salle
         if c.id != salle.hote or salle.commencee: return self._erreur(c, 'hote' if c.id != salle.hote else 'commencee')
-        reglages = reglages_valides(m.get('reglages'))
+        reglages = reglages_valides(m.get('reglages'), len(salle.joueurs))
         if reglages is None: return self._erreur(c, 'reglages')
         if len(salle.joueurs) < self.cfg.min_pour_lancer: return self._erreur(c, 'seul')
         salle.commencee = True
-        for j in salle.joueurs.values(): j.fin_cmd = 0
+        for j in salle.joueurs.values(): j.fin_cmd, j.dernier_controle = 0, -1
         ordre = list(salle.joueurs)
         self.hasard.shuffle(ordre)
         self._diffuser(salle, {'t': 'depart', 'reglages': reglages, 'graine': secrets.randbelow(2 ** 32), 'ordre': ordre})
@@ -390,14 +401,14 @@ async def principal(args):
     cfg = Config(version=args.version, noms_libres=args.noms_libres, max_par_ip=args.max_par_ip)
     relais = Relais(cfg)
     async with await relais.servir(args.hote, args.port) as s:
-        journal.info('relais prêt sur %s:%d (version %s)', args.hote, s.port, cfg.version)
+        journal.info('relais prêt sur %s:%d (version %s)', args.hote, s.port, cfg.version or 'celle du créateur de chaque salle')
         await asyncio.Future()
 
 if __name__ == '__main__':
     p = argparse.ArgumentParser(description='Serveur relais des batailles en ligne de Grand Prix Dynasty')
     p.add_argument('--hote', default=os.environ.get('RELAIS_HOTE', '127.0.0.1'), help='adresse d écoute (127.0.0.1 : cet ordinateur seulement ; 0.0.0.0 : tout le réseau)')
     p.add_argument('--port', type=int, default=int(os.environ.get('PORT', 8765)))
-    p.add_argument('--version', default=os.environ.get('RELAIS_VERSION', '1'), help='la version que les clients doivent annoncer')
+    p.add_argument('--version', default=os.environ.get('RELAIS_VERSION') or None, help='imposer la version que le créateur d une salle doit annoncer (« 1-3735928559 ») ; sans cela, la version d une salle est celle de son créateur')
     p.add_argument('--noms-libres', action='store_true', help='noms tapés librement (interdit au public d enfants)')
     p.add_argument('--max-par-ip', type=int, default=24, help='connexions par adresse (0 = pas de limite, à mettre derrière un proxy)')
     logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
