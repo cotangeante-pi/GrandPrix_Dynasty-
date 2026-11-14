@@ -996,6 +996,11 @@ Object.assign(TEXTES.en, {
   tac_departAide: 'Hold GAS in the green · lights out: release and press GAS again for a perfect start',
   tac_aide_depart: 'Hold GAS in the green and you go. {d}',
   tac_tourne: 'Tilt the phone to steer.', tac_tourneBoutons: 'Press ◀ ▶ to steer.',
+  tac_standPneusChoisi: 'Tyres: {p} — tap a tyre to change',
+  tac_grillePasser: 'The grid — tap to skip', tac_resumeSortir: 'Tap to leave', tac_unePasser: 'Tap to continue', tac_passerPodium: 'Skip to the podium',
+  tac_tuto_conduite_consigne: 'GAS accelerate · tilt the phone (or ◀ ▶) to steer · BRAKE — one lap, stay on the tarmac.',
+  tac_tuto_depart_consigne: 'Hold GAS to keep the needle in the green. Lights out: release, then press GAS again!',
+  tac_tuto_raison_attente: 'You didn’t start: press GAS again when the lights go out.',
   tac_aide_consigne: 'Team order: lift off (BRAKE) to let your teammate through, or keep your place.',
 });
 Object.assign(TEXTES.fr, {
@@ -1004,6 +1009,11 @@ Object.assign(TEXTES.fr, {
   tac_departAide: 'Tiens GAZ dans le vert · feux éteints : lâche et réappuie GAZ pour un départ parfait',
   tac_aide_depart: 'Tiens GAZ dans le vert et tu pars. {d}',
   tac_tourne: 'Incline le téléphone pour tourner.', tac_tourneBoutons: 'Appuie sur ◀ ▶ pour tourner.',
+  tac_standPneusChoisi: 'Pneus : {p} — touche un pneu pour changer',
+  tac_grillePasser: 'La grille — touche pour passer', tac_resumeSortir: 'Touche pour sortir', tac_unePasser: 'Touche pour continuer', tac_passerPodium: 'Passer au podium',
+  tac_tuto_conduite_consigne: 'GAZ accélérer · incline le téléphone (ou ◀ ▶) pour tourner · FREIN — un tour, sans quitter le goudron.',
+  tac_tuto_depart_consigne: 'Tiens GAZ pour garder l’aiguille dans le vert. Feux éteints : lâche, puis réappuie sur GAZ !',
+  tac_tuto_raison_attente: 'Pas de départ : réappuie sur GAZ quand les feux s’éteignent.',
   tac_aide_consigne: 'Consigne : lève le pied (FREIN) pour laisser passer ton coéquipier, ou garde ta place.',
 });
 
@@ -1243,7 +1253,7 @@ Object.assign(TEXTES.fr, {
 
 // --- tour 51k, Codeur 5 : le téléphone, les boutons tactiles et le volant (tactile.js) ---
 Object.assign(TEXTES.en, {
-  tac_gaz: 'GAS', tac_frein: 'BRAKE', tac_pause: 'Pause', tac_remise: 'Back on track',
+  tac_gaz: 'GAS', tac_frein: 'BRAKE', tac_pause: 'Pause', tac_remise: 'Back on track', tac_camera: 'Camera',
   tac_activer: '🎮 Enable the steering wheel', tac_recentrer: 'Recentre the wheel',
   tac_mode_volant: 'Steering: tilt the phone', tac_mode_boutons: 'Steering: ◀ ▶ buttons',
   tac_portrait: 'Turn your phone sideways',
@@ -1251,7 +1261,7 @@ Object.assign(TEXTES.en, {
   tac_inverse_oui: 'Reversed: yes', tac_inverse_non: 'Reversed: no', tac_choix_volant: 'Steer: tilt', tac_choix_boutons: 'Steer: ◀ ▶',
 });
 Object.assign(TEXTES.fr, {
-  tac_gaz: 'GAZ', tac_frein: 'FREIN', tac_pause: 'Pause', tac_remise: 'Retour en piste',
+  tac_gaz: 'GAZ', tac_frein: 'FREIN', tac_pause: 'Pause', tac_remise: 'Retour en piste', tac_camera: 'Caméra',
   tac_activer: '🎮 Activer le volant', tac_recentrer: 'Recentrer le volant',
   tac_mode_volant: 'Direction : incliner le téléphone', tac_mode_boutons: 'Direction : boutons ◀ ▶',
   tac_portrait: 'Tourne ton téléphone',
