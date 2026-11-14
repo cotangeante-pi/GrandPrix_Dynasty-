@@ -70,7 +70,7 @@
 <section id="titre" class="ecran cache">
   <h1 id="titreNom"></h1>
   <div class="boutons"><button id="boutonJouer" tabindex="-1"></button></div>
-  <div class="boutons"><button id="boutonAmis" class="petit" tabindex="-1"></button></div>
+  <div class="boutons"><button id="boutonAmis" class="petit" tabindex="-1"></button><button id="boutonEnligneTitre" class="petit cache" tabindex="-1"></button></div>   <!-- « En ligne » (enligne-ecran.js, tour 56 T5) : seulement avec EN_LIGNE -->
   <div class="boutons" id="titreAide"><button id="boutonTutorielTitre" class="petit" tabindex="-1"></button><button id="boutonAidesTitre" class="petit" tabindex="-1"></button><button id="boutonTouchesTitre" class="petit" tabindex="-1"></button></div>   <!-- « Apprendre à piloter » (tutoriel.js, Codeur 4) : proposé, jamais imposé -->
 </section>
 <!-- « Entre amis » (titre et paddock) : le petit menu, puis l'écran avant la course à deux (deux-joueurs.js, tour 25b) -->
@@ -101,6 +101,33 @@
   <p id="defiFinTexte"></p>
   <div id="defiFinCode" class="codeDefi cache"></div>
   <div class="boutons"><button id="boutonDefiRecommencer" tabindex="-1"></button><button id="boutonDefiRenvoyer" tabindex="-1"></button><button id="boutonDefiQuitter" class="petit" tabindex="-1"></button></div>
+</section>
+<!-- les batailles en ligne (enligne-ecran.js, tour 56 T5, derrière EN_LIGNE) : le menu, « rejoindre par code », la salle d'attente -->
+<section id="enligne" class="ecran cache">
+  <h1 id="enligneTitre"></h1>
+  <p id="enligneExplication"></p>
+  <div id="enligneCouleurs" role="group"></div>
+  <p id="enligneNomChoisi"></p>
+  <div class="boutons"><button id="boutonEnligneCreer" tabindex="-1"></button><button id="boutonEnligneRejoindre" tabindex="-1"></button></div>
+  <p id="enligneMessage" class="enligneMessage" role="alert"></p>
+  <div class="boutons"><button id="boutonEnligneRetour" class="petit" tabindex="-1"></button></div>
+</section>
+<section id="enligneRejoindre" class="ecran cache">
+  <h1 id="enligneRejoindreTitre"></h1>
+  <input id="enligneCode" type="text" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false">
+  <div id="enligneClavier"></div>
+  <p id="enligneRejoindreMessage" class="enligneMessage" role="alert"></p>
+  <div class="boutons"><button id="boutonEnligneGo" tabindex="-1"></button><button id="boutonEnligneRejoindreRetour" class="petit" tabindex="-1"></button></div>
+</section>
+<section id="enligneSalle" class="ecran cache">
+  <h1 id="enligneSalleTitre"><span id="enligneSalleNom"></span> <span id="enligneSalleCode"></span></h1>
+  <div id="enligneCorps">
+    <div id="enligneJoueurs"><h2 id="enligneJoueursTitre"></h2><ul id="enligneListe"></ul></div>
+    <div id="enligneReglages"><h2 id="enligneReglagesTitre"></h2><div id="enligneRegles"></div><p id="enligneHoteChoisit"></p></div>
+  </div>
+  <div id="enligneEmotes" role="group"></div>
+  <p id="enligneSalleMessage" class="enligneMessage" role="status"></p>
+  <div class="boutons"><button id="boutonEnlignePret" tabindex="-1"></button><button id="boutonEnligneLancer" tabindex="-1"></button><button id="boutonEnligneQuitter" class="petit" tabindex="-1"></button></div>
 </section>
 <section id="deuxReglages" class="ecran cache">
   <h1 id="deuxTitre"></h1>
@@ -219,6 +246,7 @@
     <button id="menuSaison" class="menuEntree" data-page="saison" tabindex="-1"><span class="menuIcone">📅</span><span class="menuNom"></span></button>
     <button id="menuMessages" class="menuEntree" data-page="messages" tabindex="-1"><span class="menuIcone">✉️</span><span class="menuNom"></span><span class="menuPoint cache">●</span></button>
     <button id="boutonAmisPaddock" class="menuEntree" tabindex="-1"><span class="menuIcone">👥</span><span class="menuNom"></span></button>   <!-- « Entre amis » : ouvre son menu (preparerAmis) -->
+    <button id="boutonEnlignePaddock" class="menuEntree cache" tabindex="-1"><span class="menuIcone">🌐</span><span class="menuNom"></span></button>   <!-- « En ligne » (enligne-ecran.js) : seulement avec EN_LIGNE -->
     <span class="menuEspace"></span>
     <button id="menuReglages" class="menuEntree" data-page="reglages" tabindex="-1"><span class="menuIcone">⚙</span><span class="menuNom"></span></button>
     <button id="boutonTutorielPaddock" class="menuEntree" tabindex="-1"><span class="menuIcone">?</span><span class="menuNom"></span></button>   <!-- « Apprendre » : la liste des leçons (tutoriel.js) -->
@@ -610,6 +638,7 @@
 <script src="resume.js"></script>
 <script src="fantome.js"></script>
 <script src="defi.js"></script>
+<script src="enligne-faux.js"></script><script src="enligne-ecran.js"></script>
 <script src="clavier.js"></script>
 <script src="boite.js"></script>
 <script src="sensations.js"></script>
