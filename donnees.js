@@ -1512,6 +1512,7 @@ const REGLAGES = {
   // les batailles en ligne (tour 56 ; rien ne se voit ni ne se connecte tant que EN_LIGNE est faux ; ?enligne=1 l'ouvre)
   EN_LIGNE_URL: '',             // l'adresse WebSocket du relais (wss://…), vide tant que le propriétaire n'a pas choisi l'hébergement
   EN_LIGNE_CANAL: 'gpd-en-ligne',   // le nom du BroadcastChannel (deux onglets du même navigateur, sans serveur)
+  EN_LIGNE_GRACE: 20,           // s : un joueur dont la connexion tombe garde sa place (même id, même rôle) et peut se rattacher avec le jeton de sa salle (rechargement sur le bon circuit)
   EN_LIGNE_JOUEURS_MIN: 2,      // pour lancer une course
   EN_LIGNE_NOM_MAX: 20,         // lettres d'un nom
   EN_LIGNE_NOMS_COULEURS: ['Rouge', 'Bleu', 'Vert', 'Jaune', 'Orange', 'Violet', 'Rose', 'Blanc'],   // …un nom de la liste peut porter une de ces couleurs (« Éclair Rouge ») ; ceux des écrans : « Pilote <couleur> » (textes.js : enligneNom)

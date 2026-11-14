@@ -13,7 +13,7 @@
 const RESEAU = (function () {
   const R = REGLAGES;
   const CONSONNES = 'BCDFGHJKLMNPQRSTVWXZ';      // pas de voyelle (ni Y) : le code ne forme jamais un mot
-  const TYPES_CLIENT = ['creer', 'rejoindre', 'pret', 'reglages', 'lancer', 'retour', 'cmd', 'controle', 'emote', 'quitter', 'ping'];
+  const TYPES_CLIENT = ['creer', 'rejoindre', 'pret', 'reglages', 'charge', 'lancer', 'retour', 'cmd', 'controle', 'emote', 'quitter', 'ping'];
 
   // ---------------------------------------------------------------- les noms (jamais de texte libre devant des enfants)
   // les noms permis (EN_LIGNE_NOMS_LIBRES faux) : « Pilote <couleur> » / « <couleur> driver » des écrans (textes.js, dans les deux langues, avec un
@@ -35,10 +35,10 @@ const RESEAU = (function () {
     if (!n || n.length > R.EN_LIGNE_NOM_MAX) return false;
     if (R.EN_LIGNE_NOMS_LIBRES) return /^[\p{L}\p{N} _-]+$/u.test(n);
     if (!nomsEcrans) nomsEcrans = nomsDesEcrans();
+    if (nomsEcrans.has(n)) return true;
+    const m = /^(.*) [1-9][0-9]?$/.exec(n);      // un numéro de plus (deux joueurs de la même couleur)
+    if (m && nomsEcrans.has(m[1])) return true;
     const mots = n.split(' ');
-    if (/^[1-9][0-9]?$/.test(mots[mots.length - 1]) && mots.length > 1) mots.pop();   // un numéro de plus (deux joueurs de la même couleur)
-    const sans = mots.join(' ');
-    if (nomsEcrans.has(sans)) return true;
     const couleur = mots.length > 1 && R.EN_LIGNE_NOMS_COULEURS.includes(mots[mots.length - 1]);
     const base = (couleur ? mots.slice(0, -1) : mots).join(' ');
     return R.EN_LIGNE_NOMS.includes(base) || /^Pilote [1-9][0-9]?$/.test(base);
@@ -56,8 +56,13 @@ const RESEAU = (function () {
     const hasard = opt.hasard || Math.random, salles = new Map();
     const version = opt.version === undefined ? R.EN_LIGNE_VERSION : opt.version;
     const max = opt.max || R.EN_LIGNE_JOUEURS_MAX, min = opt.min || R.EN_LIGNE_JOUEURS_MIN;
+    // la grâce (EN_LIGNE_GRACE s) : un joueur dont la connexion tombe garde sa place (même id, même rôle d'hôte, aucun « parti » pour les autres) et peut
+    // se rattacher avec le jeton de sa salle : le rechargement de la page sur le bon circuit, une coupure courte
+    const grace = opt.grace === undefined ? R.EN_LIGNE_GRACE : opt.grace;
+    const horloge = opt.horloge || { delai: (f, ms) => setTimeout(f, ms), annuler: id => clearTimeout(id) };
     let suivant = 1;
     const relais = { salles, rejets: 0 };
+    function jetonNouveau() { let j = ''; for (let i = 0; i < 12; i++) j += Math.floor(hasard() * 36).toString(36); return j; }
 
     function codeNouveau() {
       for (let essai = 0; essai < 1000; essai++) {
@@ -76,14 +81,15 @@ const RESEAU = (function () {
     }
     const env = (conn, m) => { if (conn.ouverte) conn.sortie(m); };
     function diffuser(salle, m, sauf) { for (const j of salle.joueurs) if (j !== sauf) env(j, m); }
-    function liste(salle) { return salle.joueurs.map(j => ({ id: j.id, nom: j.nom, pret: j.pret, hote: j === salle.hote })); }
+    function liste(salle) { return salle.joueurs.map(j => { const x = { id: j.id, nom: j.nom, pret: j.pret, hote: j === salle.hote }; if (j.circuit !== undefined) x.circuit = j.circuit; if (j.absent) x.absent = true; return x; }); }
     function annoncer(salle) { diffuser(salle, { t: 'joueurs', liste: liste(salle) }); }
     const nomValide = nomAutorise;
 
     function retirer(conn) {
       const salle = conn.salle;
       if (!salle) return;
-      conn.salle = null; conn.pret = false;
+      if (conn.minuteur !== null && conn.minuteur !== undefined) { horloge.annuler(conn.minuteur); conn.minuteur = null; }
+      conn.absent = false; conn.salle = null; conn.pret = false; conn.circuit = undefined;
       salle.joueurs.splice(salle.joueurs.indexOf(conn), 1);
       if (!salle.joueurs.length) { salles.delete(salle.code); return; }
       diffuser(salle, { t: 'parti', id: conn.id });
@@ -93,9 +99,23 @@ const RESEAU = (function () {
     function entrer(conn, salle, nom) {
       conn.salle = salle; conn.nom = nom.trim(); conn.pret = false;
       salle.joueurs.push(conn);
-      env(conn, { t: 'salle', code: salle.code, toi: conn.id, hote: salle.hote.id });
+      conn.jeton = jetonNouveau();
+      env(conn, { t: 'salle', code: salle.code, toi: conn.id, hote: salle.hote.id, jeton: conn.jeton });
       annoncer(salle);
       if (salle.reglages) env(conn, { t: 'reglages', reglages: salle.reglages });     // ceux déjà choisis par l'hôte
+    }
+
+    function reprendre(conn, s, idx) {
+      const ancien = s.joueurs[idx];
+      if (ancien.minuteur !== null && ancien.minuteur !== undefined) { horloge.annuler(ancien.minuteur); ancien.minuteur = null; }
+      conn.id = ancien.id; conn.nom = ancien.nom; conn.pret = ancien.pret; conn.circuit = ancien.circuit; conn.jeton = ancien.jeton; conn.absent = false; conn.salle = s;
+      s.joueurs[idx] = conn;
+      if (s.hote === ancien) s.hote = conn;
+      ancien.ouverte = false; ancien.salle = null; ancien.absent = false;
+      env(conn, { t: 'salle', code: s.code, toi: conn.id, hote: s.hote.id, jeton: conn.jeton });
+      annoncer(s);
+      if (s.reglages) env(conn, { t: 'reglages', reglages: s.reglages });
+      if (s.commencee && s.depart) env(conn, s.depart);
     }
 
     function recevoir(conn, m) {
@@ -118,6 +138,10 @@ const RESEAU = (function () {
           const s = typeof m.code === 'string' ? salles.get(m.code.trim().toUpperCase()) : null;
           if (!s) return env(conn, { t: 'refus', raison: 'inconnue' });
           if (m.version !== version) return env(conn, { t: 'refus', raison: 'version' });
+          if (typeof m.jeton === 'string' && m.jeton) {      // la reprise : le même joueur revient (rechargement, coupure courte)
+            const idx = s.joueurs.findIndex(j => j.jeton === m.jeton && typeof m.nom === 'string' && j.nom.toLowerCase() === m.nom.trim().toLowerCase());
+            if (idx >= 0) { reprendre(conn, s, idx); return; }
+          }
           if (s.commencee) return env(conn, { t: 'refus', raison: 'commencee' });
           if (s.joueurs.length >= max) return env(conn, { t: 'refus', raison: 'pleine' });
           if (!nomValide(m.nom) || s.joueurs.some(j => j.nom.toLowerCase() === m.nom.trim().toLowerCase())) return env(conn, { t: 'refus', raison: 'nom' });
@@ -129,6 +153,9 @@ const RESEAU = (function () {
       if (!salle) { relais.rejets++; return; }
       switch (m.t) {
         case 'quitter': retirer(conn); return;
+        case 'charge':             // le circuit chargé dans la page du joueur : le lancement attend que tous aient celui des réglages
+          if (typeof m.circuit !== 'string' || !m.circuit || m.circuit.length > 40) return;
+          conn.circuit = m.circuit; annoncer(salle); return;
         case 'pret':
           if (salle.commencee || typeof m.pret !== 'boolean') return;
           conn.pret = m.pret; annoncer(salle); return;
@@ -141,9 +168,11 @@ const RESEAU = (function () {
         case 'lancer': {
           const g = reglagesValides(m.reglages);
           if (conn !== salle.hote || salle.commencee || salle.joueurs.length < min || !g) return;
+          if (salle.joueurs.some(j => j.absent || (j.circuit !== undefined && j.circuit !== g.circuit))) { env(conn, { t: 'erreur', raison: 'charge' }); return; }
           salle.commencee = true;
           const graine = Math.floor(hasard() * 4294967296) >>> 0;
-          diffuser(salle, { t: 'depart', reglages: g, graine, ordre: salle.joueurs.map(j => j.id) });
+          salle.depart = { t: 'depart', reglages: g, graine, ordre: salle.joueurs.map(j => j.id) };
+          diffuser(salle, salle.depart);
           return;
         }
         case 'retour':             // l'hôte, après la course : la salle se rouvre, les « prêt » repartent à faux
@@ -168,7 +197,14 @@ const RESEAU = (function () {
     relais.connecter = function (sortie) {
       const conn = { id: suivant++, nom: null, salle: null, pret: false, ouverte: true, sortie, vu: null };
       conn.recevoir = m => recevoir(conn, m);
-      conn.fermer = () => { retirer(conn); conn.ouverte = false; };
+      conn.minuteur = null;
+      conn.fermer = () => {         // la connexion est tombée (pas un « quitter » : celui-là retire tout de suite)
+        conn.ouverte = false;
+        if (conn.salle && grace > 0) {
+          conn.absent = true; annoncer(conn.salle);
+          conn.minuteur = horloge.delai(() => { conn.minuteur = null; if (conn.absent) retirer(conn); }, grace * 1000);
+        } else retirer(conn);
+      };
       return conn;
     };
     relais.aSalle = code => typeof code === 'string' && salles.has(code.trim().toUpperCase());
@@ -202,7 +238,7 @@ const RESEAU = (function () {
         const l = lien, s = JSON.stringify(msg);
         if (l && l.ouvert) m.planifier(() => { if (l.ouvert) l.conn.recevoir(JSON.parse(s)); });
       },
-      fermer() { if (lien && lien.ouvert) { lien.ouvert = false; m.liens.delete(lien); lien.conn.fermer(); } },
+      fermer() { if (lien && lien.ouvert) { if (lien.conn.salle) lien.conn.recevoir({ t: 'quitter' }); lien.ouvert = false; m.liens.delete(lien); lien.conn.fermer(); } },   // (« quitter » d'abord : une fermeture voulue ne garde pas de place)
       couper() { if (lien) lien.couper(); },     // pour les tests : une coupure du réseau
     };
   }
@@ -237,6 +273,7 @@ const RESEAU = (function () {
       const d = ev.data;
       if (!vivant || !d || typeof d !== 'object') return;
       if (d.fin) { if (d.s === rel) { rel = null; ferme(); } return; }
+      if (d.coupe) { if (relais && conns.has(d.s)) { conns.get(d.s).fermer(); conns.delete(d.s); vus.delete(d.s); } return; }   // un onglet qui se recharge : la grâce commence
       if (typeof d.s !== 'string' || !d.m || typeof d.m !== 'object') return;
       if (d.a === '*') {                                           // un « rejoindre » : seul le relais qui connaît la salle répond
         if (relais && d.m.t === 'rejoindre' && relais.aSalle(d.m.code)) chezRelais(d.s, d.m, true);
@@ -247,6 +284,12 @@ const RESEAU = (function () {
         rx(d.m);
       }
     }
+    // la page se ferme ou se recharge : ce n'est pas un « quitter » (le joueur garde sa place pendant la grâce, EN_LIGNE_GRACE) ; l'onglet du relais, lui, emporte la salle
+    function lacher() {
+      if (!vivant) return;
+      if (relais) { poster({ fin: true, s: moi }); return; }
+      if (rel) poster({ s: moi, a: rel, coupe: true });
+    }
     return {
       ouvrir(rx2, ferme2) {
         return new Promise((res, rej) => {
@@ -254,7 +297,7 @@ const RESEAU = (function () {
           rx = rx2; ferme = ferme2; vivant = true;
           canal = new BroadcastChannel(opt.canal || R.EN_LIGNE_CANAL);
           canal.onmessage = surCanal;
-          if (typeof addEventListener === 'function') addEventListener('pagehide', this.fermer);
+          if (typeof addEventListener === 'function') addEventListener('pagehide', lacher);
           res();
         });
       },
@@ -278,7 +321,7 @@ const RESEAU = (function () {
       fermer: function fermer() {
         if (!vivant) return;
         vivant = false;
-        if (typeof removeEventListener === 'function') removeEventListener('pagehide', fermer);
+        if (typeof removeEventListener === 'function') removeEventListener('pagehide', lacher);
         if (attente !== null) { horloge.annuler(attente); attente = null; }
         if (relais) poster({ fin: true, s: moi });
         else if (rel) poster({ s: moi, a: rel, m: { t: 'quitter' } });
@@ -345,7 +388,7 @@ const RESEAU = (function () {
       : transportWebSocket(opt.url === undefined ? R.EN_LIGNE_URL : opt.url, { horloge, WebSocketClasse: opt.WebSocketClasse });
     const version = opt.version === undefined ? R.EN_LIGNE_VERSION : opt.version;
     const ecouteurs = {};
-    const c = { etat: 'ferme', code: null, moi: null, hote: null, joueurs: [], depart: null, reglagesSalle: null, latence: null, nom: null, transport, rejets: 0 };
+    const c = { etat: 'ferme', code: null, moi: null, hote: null, joueurs: [], depart: null, jeton: null, reglagesSalle: null, latence: null, nom: null, transport, rejets: 0 };
     let volontaire = false, dernierRecu = 0, minuteurPing = null, minuteurRecon = null, essai = 0;
 
     function emettre(t, d) {
@@ -361,14 +404,18 @@ const RESEAU = (function () {
       return () => { const l = ecouteurs[t]; const i = l.indexOf(f); if (i >= 0) l.splice(i, 1); };
     };
     function changer(etat) { if (c.etat !== etat) { c.etat = etat; emettre('etat', { etat }); } }
-    function oublierSalle() { c.reglagesSalle = null; c.code = null; c.moi = null; c.hote = null; c.joueurs = []; c.depart = null; }
+    function oublierSalle() { c.jeton = null; c.reglagesSalle = null; c.code = null; c.moi = null; c.hote = null; c.joueurs = []; c.depart = null; }
     c.enSalle = () => c.code !== null;
     c.estHote = () => c.moi !== null && c.moi === c.hote;
 
     function recevoir(m) {
       dernierRecu = horloge.maintenant();
       switch (m.t) {
-        case 'salle': c.code = m.code; c.moi = m.toi; c.hote = m.hote; c.depart = null; emettre('salle', m); break;
+        case 'salle':
+          c.code = m.code; c.moi = m.toi; c.hote = m.hote; c.depart = null; c.jeton = typeof m.jeton === 'string' ? m.jeton : null; emettre('salle', m);
+          if (opt.circuit) c.charge(opt.circuit);      // « mon circuit chargé » : le lancement attend que tous aient celui des réglages
+          break;
+        case 'erreur': emettre('erreur', { raison: m.raison, relais: true }); break;
         case 'refus': emettre('refus', m); break;
         case 'joueurs': c.joueurs = Array.isArray(m.liste) ? m.liste : []; emettre('joueurs', m); break;
         case 'reglages': c.reglagesSalle = m.reglages; emettre('reglages', m); break;
@@ -400,10 +447,10 @@ const RESEAU = (function () {
         if (volontaire) return;
         transport.ouvrir(recevoir, surFermeture).then(() => {
           if (volontaire) return;
-          const code = c.code; oublierSalle();
+          const code = c.code, jeton = c.jeton; oublierSalle();
           changer('ouvert'); dernierRecu = horloge.maintenant(); essai = 0; ping_();
           emettre('reconnecte', { code });
-          if (code && c.nom) c.envoyerBrut({ t: 'rejoindre', code, nom: c.nom, version });
+          if (code && c.nom) c.envoyerBrut({ t: 'rejoindre', code, nom: c.nom, version, jeton });
         }, () => { if (!volontaire) essayer(); });
       }, R.EN_LIGNE_RECONNEXION_MS * essai);
     }
@@ -439,11 +486,15 @@ const RESEAU = (function () {
     function refuserNom(nom) { if (nomAutorise(nom)) return false; emettre('refus', { t: 'refus', raison: 'nom' }); return true; }
 
     c.creer = function (nom) { if (c.code) return erreur('deja-en-salle'); if (refuserNom(nom)) return false; c.nom = nom.trim(); return envoyer({ t: 'creer', nom: c.nom, version }); };
-    c.rejoindre = function (code, nom) {
+    c.charge = function (circuit) { return c.code ? envoyer({ t: 'charge', circuit }) : erreur('pas-en-salle'); };
+    c.rejoindre = function (code, nom, jeton) {
       if (c.code) return erreur('deja-en-salle');
       if (typeof code !== 'string' || !/^[A-Za-z]{4}$/.test(code.trim())) { emettre('refus', { t: 'refus', raison: 'inconnue' }); return false; }
       if (refuserNom(nom)) return false;
-      c.nom = nom.trim(); return envoyer({ t: 'rejoindre', code: code.trim().toUpperCase(), nom: c.nom, version });
+      c.nom = nom.trim();
+      const msg = { t: 'rejoindre', code: code.trim().toUpperCase(), nom: c.nom, version };
+      if (typeof jeton === 'string' && jeton) msg.jeton = jeton;
+      return envoyer(msg);
     };
     c.reglages = function (g) {
       if (!c.code) return erreur('pas-en-salle');
@@ -470,7 +521,8 @@ const RESEAU = (function () {
       if (!m || typeof m !== 'object') return erreur('type');
       switch (m.t) {
         case 'creer': return c.creer(m.nom);
-        case 'rejoindre': return c.rejoindre(m.code, m.nom);
+        case 'rejoindre': return c.rejoindre(m.code, m.nom, m.jeton);
+        case 'charge': return c.charge(m.circuit);
         case 'pret': return c.pret(m.pret);
         case 'reglages': return c.reglages(m.reglages);
         case 'lancer': return c.lancer(m.reglages);
@@ -501,5 +553,18 @@ const RESEAU = (function () {
     return c;
   }
 
-  return { client, creerRelais, monde, transportMemoire, transportDiffusion, transportWebSocket, horlogeReelle, nomAutorise, nomAuHasard, TYPES_CLIENT };
+  // la session gardée d'une page à l'autre (sessionStorage) : le rechargement sur le bon circuit rejoint la même salle avec le même jeton
+  const CLE_SESSION = 'gpd-enligne-session';
+  const session = {
+    ecrire(c, plus) { try { sessionStorage.setItem(CLE_SESSION, JSON.stringify(Object.assign({ code: c.code, nom: c.nom, jeton: c.jeton, moi: c.moi }, plus || {}))); return true; } catch (e) { return false; } },
+    lire() {
+      try {
+        const x = JSON.parse(sessionStorage.getItem(CLE_SESSION));
+        return x && typeof x === 'object' && typeof x.code === 'string' && typeof x.nom === 'string' && typeof x.jeton === 'string' ? x : null;
+      } catch (e) { return null; }
+    },
+    effacer() { try { sessionStorage.removeItem(CLE_SESSION); } catch (e) { /* tant pis */ } },
+  };
+
+  return { session, client, creerRelais, monde, transportMemoire, transportDiffusion, transportWebSocket, horlogeReelle, nomAutorise, nomAuHasard, TYPES_CLIENT };
 })();

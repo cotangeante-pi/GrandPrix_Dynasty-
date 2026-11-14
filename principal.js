@@ -801,12 +801,15 @@ function montrerAmis() {
 // « En ligne » (enligne-ecran.js, tour 56 T5 ; derrière EN_LIGNE) : le menu depuis l'écran titre ou le paddock ; « Retour » revient là d'où on vient
 function montrerEnligne() {
   if (!REGLAGES.EN_LIGNE || (JEU.ecran !== 'titre' && JEU.ecran !== 'championnat')) return;
+  // (T7) le menu et la salle vivent dans une page propre : pas de carrière, le circuit de la salle (la page se recharge dessus) ; ici seulement le chemin
+  if (!JEU.enligne) { location.href = adresseAvec({ enlignecourse: 'menu' }); return; }
   JEU.enligneDepuis = JEU.ecran;
   PODIUM3D.cacher();
   ENLIGNE_ECRAN.ouvrir();
 }
 function retourEnligne() {
   if (JEU.ecran !== 'enligne') return;
+  if (JEU.enligne) { RESEAU.session.effacer(); location.href = adresseAvec({}); return; }   // (T7) la page propre des salles : retour au jeu normal
   if (JEU.enligneDepuis === 'championnat' && JEU.championnat) montrerChampionnat(JEU.gagne === undefined ? null : JEU.gagne);
   else montrerTitre();
 }

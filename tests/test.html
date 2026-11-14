@@ -3782,6 +3782,7 @@ t('drapeaux : majMessages éteint le bandeau du drapeau (INTERFACE.majDrapeau(nu
   const salle=(n,opt)=>{const m=mondeEnLigne(opt),js=[];for(let i=0;i<n;i++)js.push(nouveau(m,NOM(i)));
     js[0].c.creer(js[0].nom);pomper(m);for(let i=1;i<n;i++){js[i].c.rejoindre(js[0].c.code,js[i].nom);pomper(m);}return{m,js};};
   const de=(j,k)=>j.vus.filter(x=>x[0]===k).map(x=>x[1]);
+  const horlogeFausse=()=>{const h={t:0,id:1,liste:[],delai(f,ms){const i=h.id++;h.liste.push({i,f,a:h.t+ms});return i;},annuler(i){h.liste=h.liste.filter(x=>x.i!==i);},avancer(ms){const fin=h.t+ms;for(;;){const p=h.liste.filter(x=>x.a<=fin).sort((x,y)=>x.a-y.a)[0];if(!p)break;h.liste=h.liste.filter(x=>x!==p);h.t=p.a;p.f();}h.t=fin;},maintenant(){return h.t;}};return h;};
 
   t('réseau : créer une salle donne un code de 4 consonnes (sans voyelle), toi et hôte', ()=>{
     const m=mondeEnLigne(),a=nouveau(m,'Pilote 1');v(a.c.etat==='ouvert','ouvert tout de suite');
@@ -3865,9 +3866,35 @@ t('drapeaux : majMessages éteint le bandeau du drapeau (INTERFACE.majDrapeau(nu
     js[0].c.rejoindre(js[1].c.code||'BCDF',js[0].nom);pomper(m);});
   t('réseau : un client qui se ferme sans prévenir est retiré de la salle (comme quitter)', ()=>{
     const {m,js}=salle(3);js[2].c.fermer();pomper(m);v(de(js[0],'parti').some(x=>x.id===3),'parti vu');v(js[0].c.joueurs.length===2,'liste à 2');});
-  t('réseau : coupure du réseau : « perdu » (pas de reconnexion en pleine course), le relais retire le joueur', ()=>{
-    const {m,js}=salle(2);js[0].c.lancer({circuit:'test',tours:1,meteo:'sec',nbIA:0});pomper(m);
-    js[1].c.transport.couper();pomper(m);v(de(js[1],'perdu').length===1&&js[1].c.etat==='ferme','perdu');v(de(js[0],'parti').some(x=>x.id===2),'l’hôte voit le départ du joueur');});
+  t('réseau : coupure du réseau en pleine course : « perdu » chez lui ; chez les autres, il garde sa place pendant la grâce (« absent »), puis « parti »', ()=>{
+    const h=horlogeFausse(),m=RESEAU.monde({auto:false,relais:{horloge:h}}),js=[];for(let i=0;i<2;i++)js.push(nouveau(m,NOM(i)));
+    js[0].c.creer(js[0].nom);pomper(m);js[1].c.rejoindre(js[0].c.code,js[1].nom);pomper(m);js[0].c.lancer({circuit:'test',tours:1,meteo:'sec',nbIA:0});pomper(m);
+    js[1].c.transport.couper();pomper(m);v(de(js[1],'perdu').length===1&&js[1].c.etat==='ferme','perdu');
+    v(!de(js[0],'parti').length&&js[0].c.joueurs.find(j=>j.id===2).absent===true,'grâce : absent, pas parti');
+    h.avancer(REGLAGES.EN_LIGNE_GRACE*1000-1);pomper(m);v(!de(js[0],'parti').length,'encore dans la grâce');
+    h.avancer(2);pomper(m);v(de(js[0],'parti').some(x=>x.id===2)&&js[0].c.joueurs.length===1,'la grâce finie : parti');});
+  t('réseau : la reprise : même id, même rôle d’hôte, même liste, avec le jeton de la salle ; un autre jeton ou un autre nom : refusé', ()=>{
+    const h=horlogeFausse(),m=RESEAU.monde({auto:false,relais:{horloge:h}}),a=nouveau(m,'Pilote 1'),b=nouveau(m,'Pilote 2');
+    a.c.creer('Pilote 1');pomper(m);const code=a.c.code,jetonA=a.c.jeton;v(typeof jetonA==='string'&&jetonA.length>=10,'jeton '+jetonA);
+    b.c.rejoindre(code,'Pilote 2');pomper(m);v(b.c.jeton&&b.c.jeton!==jetonA,'un jeton par joueur');
+    a.c.reglages({circuit:'technique',tours:2,meteo:'sec',nbIA:0});pomper(m);
+    a.c.transport.couper();pomper(m);                                  // l'hôte se recharge
+    const a2=nouveau(m,'Pilote 1');a2.c.rejoindre(code,'Pilote 1','pas-le-bon');pomper(m);v(a2.refus.includes('nom')&&!a2.c.enSalle(),'mauvais jeton : refusé ('+a2.refus+')');
+    const c2=nouveau(m,'Pilote 3');c2.c.rejoindre(code,'Pilote 3',jetonA);pomper(m);v(c2.c.enSalle()&&c2.c.moi!==1,'un autre nom avec le jeton d’un autre : une place neuve, jamais la sienne');
+    const a3=nouveau(m,'Pilote 1');a3.c.rejoindre(code,'Pilote 1',jetonA);pomper(m);
+    v(a3.c.enSalle()&&a3.c.moi===1&&a3.c.hote===1&&a3.c.estHote(),'même id, toujours l’hôte');v(a3.c.jeton===jetonA,'même jeton');
+    v(a3.c.joueurs.length===3&&!a3.c.joueurs.some(j=>j.absent),'liste complète, plus d’absent');v(de(b,'parti').length===0&&de(b,'nouvel-hote').length===0,'les autres n’ont rien vu partir');
+    v(JSON.stringify(a3.c.reglagesSalle)===JSON.stringify({circuit:'technique',tours:2,meteo:'sec',nbIA:0}),'les réglages sont renvoyés');
+    h.avancer(REGLAGES.EN_LIGNE_GRACE*1000+5);pomper(m);v(de(b,'parti').length===0,'revenu à temps : la grâce ne retire plus personne');});
+  t('réseau : « charge » : l’hôte ne lance que quand tous ont le circuit des réglages ; l’erreur « charge » sinon', ()=>{
+    const {m,js}=salle(2),g={circuit:'technique',tours:1,meteo:'sec',nbIA:0};
+    js[0].c.charge('technique');js[1].c.charge('test');pomper(m);v(js[0].c.joueurs.find(j=>j.id===2).circuit==='test','le circuit chargé est dans la liste des joueurs');
+    js[0].c.lancer(g);pomper(m);v(!de(js[0],'depart').length&&js[0].erreurs.includes('charge'),'refusé : un joueur n’a pas ce circuit ('+js[0].erreurs+')');
+    js[1].c.charge('technique');pomper(m);js[0].c.lancer(g);pomper(m);v(de(js[0],'depart').length===1&&de(js[1],'depart').length===1,'tous l’ont : lancé');});
+  t('réseau : une page qui annonce son circuit à l’arrivée (option circuit du client) ; la session gardée d’une page à l’autre', ()=>{
+    const m=mondeEnLigne(),a=nouveau(m,'Pilote 1',{circuit:'test'});a.c.creer('Pilote 1');pomper(m);v(a.c.joueurs[0].circuit==='test','annoncé tout seul');
+    RESEAU.session.effacer();v(RESEAU.session.lire()===null,'rien au départ');RESEAU.session.ecrire(a.c,{circuit:'technique'});const s=RESEAU.session.lire();
+    v(s&&s.code===a.c.code&&s.jeton===a.c.jeton&&s.nom==='Pilote 1'&&s.circuit==='technique','relue : '+JSON.stringify(s));RESEAU.session.effacer();v(RESEAU.session.lire()===null,'effacée');});
   t('réseau : ping/pong : la latence se mesure (horloge simulée)', ()=>{
     const h={t:1000,maintenant(){return this.t;},delai(){return 0;},annuler(){}};
     const m=mondeEnLigne(),a=nouveau(m,'Pilote 1',{horloge:h});a.c.creer('Pilote 1');pomper(m);

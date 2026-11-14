@@ -8,7 +8,13 @@
 // partent, celles des autres arrivent, la course n'avance que si tout le monde est là. La caméra, le tableau, le podium et les résultats sont
 // ceux d'une course contre les IA : la page voit une course à plusieurs dont le joueur est le sien.
 //
-// Les paramètres de l'adresse : enlignecourse=hote|CODE, canal=<nom du BroadcastChannel>, joueurs=N (l'hôte attend N joueurs), tours=N, ia=N,
+// Les écrans de salle (enligne-ecran.js, T5) tournent dans cette même page propre : ?enlignecourse=menu (le menu « En ligne », depuis le titre ou le paddock),
+// et ?enlignecourse=reprise (la page rechargée sur le circuit que l'hôte a choisi : elle se rattache à la même salle avec le jeton gardé dans
+// sessionStorage, RESEAU.session). Le circuit d'une page est fixé au chargement : quand l'hôte choisit un autre circuit en salle, chaque page qui n'a pas
+// le bon se recharge ; le relais garde la place (EN_LIGNE_GRACE s) et ne lance que quand tous ont annoncé le bon circuit (message « charge »).
+// En BroadcastChannel, la page de l'hôte est le relais : elle ne se recharge pas (l'hôte n'y propose que le circuit de sa page).
+//
+// Les paramètres de l'adresse : enlignecourse=menu|reprise|hote|CODE, canal=<nom du BroadcastChannel>, joueurs=N (l'hôte attend N joueurs), tours=N, ia=N,
 // nom=<nom permis>, robot=1 (le robot d'essai conduit), transport=diffusion|websocket|memoire.
 const ENLIGNE_PAGE = (function () {
   const R = REGLAGES;
@@ -25,20 +31,34 @@ const ENLIGNE_PAGE = (function () {
 
   // JEU.enligne est posé tôt dans demarrerJeu : la page sait qu'elle ne fait pas une course seule (pas de voiture, de carte ni d'écran de choix de plus)
   function preparer(param, parametres) {
-    etat.actif = true; etat.role = param === 'hote' ? 'hote' : 'invite'; etat.code = param === 'hote' ? null : String(param).toUpperCase();
+    etat.actif = true; etat.role = param === 'hote' ? 'hote' : param === 'menu' || param === 'reprise' ? param : 'invite'; etat.code = etat.role === 'invite' ? String(param).toUpperCase() : null;
+    etat.ecrans = etat.role === 'menu' || etat.role === 'reprise';   // les écrans de salle (T5) conduisent ; sinon, l'entrée directe des essais
     etat.attendus = Math.max(2, Math.min(R.EN_LIGNE_JOUEURS_MAX, Math.floor(Number(parametres.get('joueurs'))) || 2));
     etat.tours = Math.max(1, Math.floor(Number(parametres.get('tours'))) || 1);
     etat.nbIA = Math.max(0, Math.floor(Number(parametres.get('ia'))) || 0);
     etat.nom = parametres.get('nom') || (etat.role === 'hote' ? 'Pilote 1' : 'Pilote 2');
     etat.canal = parametres.get('canal') || undefined;
     etat.transport = parametres.get('transport') || (R.EN_LIGNE_URL ? 'websocket' : 'diffusion');
+    if (etat.ecrans) {
+      // l'hôte voit d'abord le circuit de cette page ; en BroadcastChannel (sa page est le relais, elle ne peut pas se recharger) il n'a que celui-là
+      R.EN_LIGNE_REGLAGES_DEFAUT = Object.assign({}, R.EN_LIGNE_REGLAGES_DEFAUT, { circuit: NOM_CIRCUIT });
+      if (etat.transport === 'diffusion') R.EN_LIGNE_CIRCUITS_CHOIX = [NOM_CIRCUIT];
+      if (typeof ENLIGNE_ECRAN !== 'undefined') ENLIGNE_ECRAN.fabrique = fabrique;
+    }
     return etat;
   }
 
   // la page est prête (scène, caméra) : on ouvre la connexion
   function ouvrir() {
+    if (etat.role === 'menu') { ENLIGNE_ECRAN.ouvrir(); return null; }
+    if (etat.role === 'reprise') {
+      const sess = RESEAU.session.lire();
+      if (!sess) { location.href = location.pathname; return null; }
+      ENLIGNE_ECRAN.reprendre(sess);
+      return null;
+    }
     dire(texte('enl_connexion'));
-    const c = RESEAU.client({ transport: etat.transport, canal: etat.canal, ping: true });
+    const c = RESEAU.client({ transport: etat.transport, canal: etat.canal, ping: true, circuit: NOM_CIRCUIT });
     brancher(c);
     c.ouvrir().then(() => {
       if (etat.role === 'hote') c.creer(etat.nom); else c.rejoindre(etat.code, etat.nom);
@@ -58,18 +78,53 @@ const ENLIGNE_PAGE = (function () {
     window.__enligne = etat;   // (les tests lisent le code de la salle et l'état de la partie)
     c.sur(m => {
       switch (m.t) {
-        case 'salle': etat.code = m.code; majSalle(); break;
-        case 'joueurs': etat.joueurs = m.liste; majSalle(); essayerLancer(); break;
-        case 'refus': dire(texte('enl_refus_' + m.raison) || m.raison); break;
+        case 'salle': etat.code = m.code; if (!etat.ecrans) majSalle(); break;
+        case 'joueurs': etat.joueurs = m.liste; if (!etat.ecrans) { majSalle(); essayerLancer(); } break;
+        case 'refus': if (!etat.ecrans) dire(texte('enl_refus_' + m.raison) || m.raison); break;
+        case 'reglages': if (etat.ecrans) verifierCircuit(m.reglages); break;
         case 'depart': recevoirDepart(m); break;
         case 'cmd': case 'controle': case 'parti':
           if (etat.partie) etat.partie.recevoir(m); else etat.tampon.push(m);
           break;
-        case 'coupure': if (!etat.termine) dire(texte('enl_coupure')); break;
-        case 'perdu': dire(texte('enl_coupure')); break;
+        case 'coupure': if (!etat.termine && !etat.ecrans) dire(texte('enl_coupure')); break;
+        case 'perdu': if (!etat.ecrans) dire(texte('enl_coupure')); break;
         default:
       }
     });
+  }
+
+  // --- le circuit et le rechargement ---
+  // l'hôte a choisi un circuit que cette page n'a pas : on garde la session (code, nom, jeton) et on recharge la page sur ce circuit
+  function verifierCircuit(reglages) {
+    const c = etat.client;
+    if (!c || etat.depart || !reglages || typeof reglages.circuit !== 'string' || reglages.circuit === NOM_CIRCUIT || !Object.prototype.hasOwnProperty.call(CIRCUITS, reglages.circuit)) return;
+    if (etat.transport === 'diffusion' && c.estHote()) return;   // la page de l'hôte est le relais : elle ne se recharge pas
+    rechargerPour(reglages.circuit);
+  }
+  function rechargerPour(circuit) {
+    const c = etat.client;
+    if (!c || !c.code || !c.jeton) return false;
+    RESEAU.session.ecrire(c, { circuit });
+    const p = new URLSearchParams({ enlignecourse: 'reprise', circuit });
+    for (const k of ['canal', 'transport', 'lang']) if (PARAMETRES.get(k)) p.set(k, PARAMETRES.get(k));
+    location.href = location.pathname + '?' + p.toString();   // (jamais c.fermer() : un « quitter » ferait perdre la place ; la connexion tombe, la grâce la garde)
+    return true;
+  }
+
+  // le transport que les écrans de salle utilisent (enligne-ecran.js : { envoyer(msg), sur(f), fermer() }) : le client réseau, ouvert à la première
+  // demande (les messages envoyés avant l'ouverture attendent) ; un client qui annonce le circuit de la page à chaque arrivée en salle
+  function fabrique() {
+    const c = RESEAU.client({ transport: etat.transport, canal: etat.canal, ping: true, circuit: NOM_CIRCUIT });
+    const file = [], ecouteurs = [];
+    let ouvert = false;
+    brancher(c);
+    c.ouvrir().then(() => { ouvert = true; for (const m of file.splice(0)) c.envoyer(m); }, () => { for (const f of ecouteurs) f({ t: 'coupure' }); });
+    return {
+      client: c,
+      envoyer: m => { if (ouvert) c.envoyer(m); else file.push(m); },
+      sur: f => { ecouteurs.push(f); c.sur(f); },
+      fermer: () => c.fermer(),
+    };
   }
 
   function majSalle() {
@@ -90,7 +145,7 @@ const ENLIGNE_PAGE = (function () {
     if (etat.depart) return;
     if (m.reglages.circuit !== NOM_CIRCUIT) { dire(texte('enl_circuit')); return; }
     etat.depart = m;
-    dire(texte('enl_demarrage'));
+    if (!etat.ecrans) dire(texte('enl_demarrage'));
   }
 
   // à chaque image : la course démarre dès que le départ est arrivé et que la carte des IA est prête
@@ -177,5 +232,5 @@ const ENLIGNE_PAGE = (function () {
     return { n: p.n, empreinte: p.empreinte(), arrivees: p.e.pilotes.map(q => q.arrivee), final: JEU.final ? JEU.final.map(x => [x.k, x.place, x.total]) : null, desynchro: p.desynchro, ecran: JEU.ecran };
   }
 
-  return { etat, preparer, ouvrir, lancer, image, pas, podiumPret, retourSalle, resume, dire };
+  return { etat, preparer, ouvrir, lancer, image, pas, podiumPret, retourSalle, resume, dire, fabrique, rechargerPour, verifierCircuit };
 })();
