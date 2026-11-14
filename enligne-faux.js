@@ -16,7 +16,7 @@ const ENLIGNE_FAUX = (function () {
   let salles = new Map(), suivant = 1;
   const api = { auto: true };
 
-  const nomDe = id => texte('enligneNom').replace('{c}', texte('enligneCouleur_' + id));
+  const nomDe = id => id;   // (D1) le nom sur le fil est l'id d'une couleur (« rouge », « rouge-2 »)
   const codeAuHasard = () => { let c; do { c = ''; for (let i = 0; i < R.EN_LIGNE_CODE_LONGUEUR; i++) c += R.EN_LIGNE_LETTRES[Math.floor(Math.random() * R.EN_LIGNE_LETTRES.length)]; } while (salles.has(c)); return c; };
 
   function salle(code, hote, commencee) {

@@ -2725,7 +2725,7 @@ body.tactile:has(#pause:not(.cache)) #boutonSon { display: none; }   /* (tour 55
   :where(html.tourne) #enligne h1, :where(html.tourne) #enligneRejoindre h1, :where(html.tourne) #enligneSalle h1 { font-size: 24px; margin: 0; }
   :where(html.tourne) #enligneExplication { font-size: 13px; line-height: 1.25; }
   :where(html.tourne) #enligne p, :where(html.tourne) #enligneRejoindre p, :where(html.tourne) #enligneSalle p { font-size: 14px; line-height: 1.25; }
-  :where(html.tourne) #enligne .boutons:first-of-type button, :where(html.tourne) #enligneRejoindre .boutons:first-of-type button { min-width: 150px; padding: 8px 14px; font-size: 17px; min-height: 40px; }
+  :where(html.tourne) #enligneChoix button, :where(html.tourne) #enligneRejoindre .boutons:first-of-type button { min-width: 150px; padding: 8px 14px; font-size: 17px; min-height: 40px; }
   :where(html.tourne) #enligneCouleurs { max-width: 440px; gap: 5px; }
   :where(html.tourne) #enligneCouleurs button.enlignePastille { width: 40px; height: 40px; }
   :where(html.tourne) #enligneCode { font-size: 26px; padding: 2px 10px; }
@@ -2749,5 +2749,7 @@ body.tactile #boutonEnligneTitre, body.tactile :is(#enligne, #enligneRejoindre, 
 #enligneEtapes { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; font: 700 18px/1.3 var(--tv-police, system-ui, sans-serif); }
 #enligneSalle:not(.cache) ~ #bulleAide.bulleMenu { top: auto; bottom: 8px; left: 50%; transform: translateX(-50%); max-width: min(560px, 90vw); pointer-events: none; }
 @media (max-height: 420px) { #enligneSalle:not(.cache) ~ #bulleAide.bulleMenu { display: none; } }   /* (640×360 : la salle est pleine, la ligne d'état dit déjà quoi faire) */
+/* tourne:debut */@media (max-width: 420px) { :where(html.tourne) #enligneSalle:not(.cache) ~ #bulleAide.bulleMenu { display: none; } }/* tourne:fin */
 @media (max-height: 420px) { #enligneEtapes { font-size: 14px; gap: 4px; } }
+/* tourne:debut */@media (max-width: 420px) { :where(html.tourne) #enligneEtapes { font-size: 14px; gap: 4px; } }/* tourne:fin */
 body.tactile #boutonEnligneComment { min-height: 40px; }

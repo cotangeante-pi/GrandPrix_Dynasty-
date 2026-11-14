@@ -709,7 +709,7 @@ def enligne_ecran(pg, titre, l, h, page):
     t(f'{titre} : l’hôte change la longueur (▶) : 3 → 5 tours', etat()['reglages']['tours'] == 5, str(etat()['reglages']))
     pg.click('#enligneRegles .regle[data-cle=meteo] .enligneFleche >> nth=1'); pg.click('#enligneRegles .regle[data-cle=circuit] .enligneFleche >> nth=1'); pg.click('#enligneRegles .regle[data-cle=nbIA] .enligneFleche >> nth=1')
     r = etat()['reglages']
-    t(f'{titre} : l’hôte choisit aussi la météo, le circuit et les IA', r['meteo'] == 'nuageux' and r['circuit'] == 'technique' and r['nbIA'] == 3, str(r))
+    t(f'{titre} : l’hôte choisit aussi la météo, le circuit et les IA', r['meteo'] == 'pluie' and r['circuit'] == 'technique' and r['nbIA'] == 3, str(r))
     # un ami arrive (à la main), puis se dit prêt
     code = etat()['code']
     pg.evaluate('c => ENLIGNE_FAUX.ajouterAmi(c, false)', code)
@@ -763,9 +763,12 @@ def enligne_ecran(pg, titre, l, h, page):
     t(f'{titre} : une course déjà commencée : refusée avec son message', essayer('LMNP', 'commencee'))
     pg.evaluate('() => SAUVEGARDE.ecrireOption("enligne_couleur", 0)')
     pg.evaluate('() => ENLIGNE_ECRAN.echap()'); pg.click('#boutonEnligneRejoindre')
-    t(f'{titre} : une couleur déjà prise dans la salle : refusée (« choisis-en une autre »)', essayer('BCDF', 'nom'))
-    t(f'{titre} : un refus ferme la connexion, on reste sur l’écran du code', ecran() == 'enligneRejoindre' and not etat()['connecte'])
-    pg.evaluate('() => ENLIGNE_ECRAN.echap()')
+    pg.evaluate('() => { ENLIGNE_FAUX.auto = false; document.getElementById("enligneCode").value = "BCDF"; document.getElementById("boutonEnligneGo").click(); }')
+    entre = attendre(pg, '() => JEU.ecran === "enligneSalle" && !!ENLIGNE_ECRAN.etat().joueurs.find(j => j.id === ENLIGNE_ECRAN.etat().moi)', None, 5000)
+    moi_nom = pg.evaluate('() => { const e = ENLIGNE_ECRAN.etat(); const j = e.joueurs.find(x => x.id === e.moi); return j ? j.nom : null; }')
+    t(f'{titre} : une couleur déjà prise dans la salle (D1) : le nom sur le fil est l’id de la couleur, « bleu-2 » à la 2e tentative, jamais le nom traduit', entre and moi_nom == 'bleu-2', str(moi_nom))
+    t(f'{titre} : le nom affiché est traduit chez chacun (« Pilote Bleu 2 » / « Blue driver 2 »), les amis aussi, aucun id brut', pg.evaluate('() => { const l = [...document.querySelectorAll("#enligneListe .nom")].map(e => e.textContent); return l.some(x => x.includes(texte("enligneCouleur_bleu") + " 2")) && l.every(x => !/^[a-z]+(-[2-8])?( \\(|$)/.test(x)); }'), pg.evaluate('() => [...document.querySelectorAll("#enligneListe .nom")].map(e => e.textContent)'))
+    pg.keyboard.press('Escape'); attendre(pg, '() => JEU.ecran === "enligne"', None, 3000)
     pg.click('#enligneCouleurs button >> nth=6')
     pg.click('#boutonEnligneRejoindre')
     pg.evaluate('() => { ENLIGNE_FAUX.auto = true; document.getElementById("enligneCode").value = "BCDF"; document.getElementById("boutonEnligneGo").click(); }')

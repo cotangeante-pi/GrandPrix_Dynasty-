@@ -19,16 +19,19 @@ const ENLIGNE_ECRAN = (function () {
   const hex = c => '#' + c.toString(16).padStart(6, '0');
   let rappels = { aller: () => {}, retour: () => {}, depart: () => {} };
   let transport = null, ecran = 'enligne', code = '', moi = null, hote = false, joueurs = [], note = '', emotes = {}, prochaineEmote = 0;
-  let reglages = null, pretMoi = false, minuterieNote = null;
+  let reglages = null, pretMoi = false, minuterieNote = null, demande = null, rang = 1;   // (demande : la dernière demande de « rejoindre », pour retenter avec -2, -3…)
   const api = { fabrique: () => ENLIGNE_FAUX.creer() };
 
-  const nomDe = id => texte('enligneNom').replace('{c}', texte('enligneCouleur_' + id));
-  const couleurDeNom = nom => R.EN_LIGNE_COULEURS.find(c => nomDe(c.id) === nom) || null;
+  // (D1) le nom sur le fil ne dépend pas de la langue : l'id d'une couleur (« rouge »), suivi de « -2 » à « -8 » si elle est déjà prise dans la salle
+  // (« rouge-2 ») ; chaque client affiche le nom traduit (« Pilote Rouge », « Red driver », « Pilote Rouge 2 »)
+  const lireNom = nom => { const m = /^([a-z]+)(?:-([2-8]))?$/.exec(String(nom)); const c = m && R.EN_LIGNE_COULEURS.find(x => x.id === m[1]); return c ? { couleur: c, rang: m[2] ? Number(m[2]) : 1 } : null; };
+  const nomAffiche = nom => { const n = lireNom(nom); return n ? texte('enligneNom').replace('{c}', texte('enligneCouleur_' + n.couleur.id)) + (n.rang > 1 ? ' ' + n.rang : '') : String(nom); };
+  const couleurDeNom = nom => { const n = lireNom(nom); return n ? n.couleur : null; };
   function couleurChoisie() {
     const i = Number(SAUVEGARDE.option('enligne_couleur', 0));
     return Number.isInteger(i) && i >= 0 && i < R.EN_LIGNE_COULEURS.length ? i : 0;
   }
-  const nomChoisi = () => nomDe(R.EN_LIGNE_COULEURS[couleurChoisie()].id);
+  const nomChoisi = () => R.EN_LIGNE_COULEURS[couleurChoisie()].id;   // (l'id sur le fil)
   const bouton = (id, f) => { const b = $(id); b.tabIndex = 0; b.addEventListener('mousedown', e => e.preventDefault()); b.addEventListener('click', f); return b; };
   const vide = el => { el.textContent = ''; return el; };
 
@@ -40,7 +43,7 @@ const ENLIGNE_ECRAN = (function () {
     $('boutonEnligneRejoindre').textContent = texte('enligneRejoindre');
     $('boutonEnligneRetour').textContent = texte('enligneRetour');
     majComment();
-    $('enligneNomChoisi').textContent = texte('enligneNomChoisi').replace('{nom}', nomChoisi());
+    $('enligneNomChoisi').textContent = texte('enligneNomChoisi').replace('{nom}', nomAffiche(nomChoisi()));
     const boite = vide($('enligneCouleurs'));
     boite.setAttribute('aria-label', texte('enligneCouleur'));
     R.EN_LIGNE_COULEURS.forEach((c, i) => {
@@ -74,7 +77,7 @@ const ENLIGNE_ECRAN = (function () {
     return transport;
   }
   function fermerTransport() { if (transport) { try { transport.fermer(); } catch (e) { /* déjà fermé */ } } transport = null; }
-  function remiseAZero() { fermerTransport(); code = ''; moi = null; hote = false; joueurs = []; note = ''; emotes = {}; reglages = null; pretMoi = false; clearTimeout(minuterieNote); }
+  function remiseAZero() { demande = null; fermerTransport(); code = ''; moi = null; hote = false; joueurs = []; note = ''; emotes = {}; reglages = null; pretMoi = false; clearTimeout(minuterieNote); }
 
   function creer() {
     if (ecran !== 'enligne') return;
@@ -86,7 +89,8 @@ const ENLIGNE_ECRAN = (function () {
     const c = $('enligneCode').value;
     if (c.length < R.EN_LIGNE_CODE_LONGUEUR) { dire('enligneRejoindreMessage', texte('enligneCodeCourt')); return; }
     dire('enligneRejoindreMessage', texte('enligneConnexion'));
-    ouvrirTransport().envoyer({ t: 'rejoindre', code: c, nom: nomChoisi(), version: R.EN_LIGNE_VERSION });
+    demande = { t: 'rejoindre', code: c, version: R.EN_LIGNE_VERSION }; rang = 1;
+    ouvrirTransport().envoyer(Object.assign({ nom: nomChoisi() }, demande));
   }
 
   function recevoir(m) {
@@ -97,6 +101,11 @@ const ENLIGNE_ECRAN = (function () {
       ecran = 'enligneSalle'; rappels.aller('enligneSalle'); majSalle();
       if (hote) envoyerReglages();   // (l'hôte dit tout de suite son choix : les invités le voient)
     } else if (m.t === 'refus') {
+      // (D1) couleur déjà prise dans la salle : on retente avec « -2 », « -3 »… jusqu'à « -8 » (la salle est de 8 au plus)
+      if (m.raison === 'nom' && demande && ecran === 'enligneRejoindre' && rang < R.EN_LIGNE_JOUEURS_MAX) {
+        rang++; const nom = nomChoisi() + '-' + rang; fermerTransport();
+        ouvrirTransport().envoyer(Object.assign({ nom }, demande)); return;
+      }
       fermerTransport();
       const t = texte('enligneRefus_' + m.raison) || texte('enligneCoupure');
       dire(ecran === 'enligneRejoindre' ? 'enligneRejoindreMessage' : 'enligneMessage', t);
@@ -115,7 +124,7 @@ const ENLIGNE_ECRAN = (function () {
       if (!hote && m.reglages && typeof m.reglages === 'object') { for (const x of regles()) if (m.reglages[x.cle] !== undefined && (x.cle === 'nbIA' ? Number.isInteger(m.reglages[x.cle]) : x.valeurs.includes(m.reglages[x.cle]))) reglages[x.cle] = m.reglages[x.cle]; majSalle(); }
     } else if (m.t === 'parti') {
       const j = joueurs.find(x => x.id === m.id);
-      if (j) dirNote(texte('enligneParti').replace('{nom}', j.nom));
+      if (j) dirNote(texte('enligneParti').replace('{nom}', nomAffiche(j.nom)));
     } else if (m.t === 'nouvel-hote') {
       if (m.id === moi) { hote = true; dirNote(texte('enligneNouvelHote')); }
       majSalle();
@@ -155,7 +164,7 @@ const ENLIGNE_ECRAN = (function () {
   const regles = () => [
     { cle: 'circuit', libelle: 'enligneCircuit', valeurs: circuitsPermis(), nom: v => texte('circuit_' + v) || v },
     { cle: 'tours', libelle: 'enligneTours', valeurs: R.EN_LIGNE_TOURS_CHOIX, nom: v => String(v) },
-    { cle: 'meteo', libelle: 'enligneMeteo', valeurs: R.EN_LIGNE_METEO_CHOIX, nom: v => texte('enligneMeteo_' + v) },
+    { cle: 'meteo', libelle: 'enligneMeteo', valeurs: R.EN_LIGNE_METEOS, nom: v => texte('enligneMeteo_' + v) },
     { cle: 'nbIA', libelle: 'enligneIA', valeurs: iaPermis(), nom: v => String(v) },
   ];
   function valeurReglage(r) {   // la valeur courante, ramenée dans la liste permise (moins de places = moins d'IA)
@@ -191,7 +200,7 @@ const ENLIGNE_ECRAN = (function () {
       if (j.id === moi) li.className = 'moi';
       const pastille = document.createElement('i'); const c = couleurDeNom(j.nom);
       pastille.className = 'pastille'; pastille.style.background = c ? hex(c.hex) : '#8a8f9c';
-      const nom = document.createElement('span'); nom.className = 'nom'; nom.textContent = j.nom + (j.id === moi ? ' (' + texte('enligneToi') + ')' : '');
+      const nom = document.createElement('span'); nom.className = 'nom'; nom.textContent = nomAffiche(j.nom) + (j.id === moi ? ' (' + texte('enligneToi') + ')' : '');
       const etat = document.createElement('span'); etat.className = 'etat';
       etat.textContent = j.hote ? '★ ' + texte('enligneHote') : j.pret ? '✔ ' + texte('enlignePret') : '… ' + texte('enlignePasPret');
       li.append(pastille, nom, etat);

@@ -93,6 +93,45 @@ def partie(b, tourner):
     t(f'{titre} : aucune erreur ni avertissement dans la console', not console, ' | '.join(console[:5]))
     ctx.close()
 
+def enligne_tourne(b):
+    """(tour 56, T10) les écrans En ligne (menu, rejoindre par code, salle d'attente) dans le jeu tourné : téléphone debout, chaque bouton dans la fenêtre
+    (360×640), sans recouvrement, et de vrais toucher (pg.tap, aux coordonnées de la fenêtre) ouvrent chaque écran."""
+    titre = 'jeu tourné, En ligne'
+    ctx = b.new_context(viewport={'width': 640, 'height': 360}, has_touch=True, is_mobile=True); pg = ctx.new_page(); console = []
+    pg.on('console', lambda m: console.append(m.type + ': ' + m.text) if m.type in ('error', 'warning') and 'GL Driver Message' not in m.text else None)
+    pg.on('pageerror', lambda e: console.append('PAGEERROR ' + str(e)))
+    pg.add_init_script('try { Element.prototype.requestFullscreen = function () { return Promise.resolve(); }; screen.orientation.lock = () => Promise.resolve(); } catch (e) {} try { DeviceOrientationEvent.requestPermission = undefined; } catch (e) {}')
+    pg.goto('file://' + RACINE + '/index.html?enligne=1'); pg.wait_for_timeout(1500)
+    if not attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "titre"', None, 60000): t(f'{titre} : l\'écran titre', False); ctx.close(); return
+    pg.evaluate('() => { REGLAGES.EN_LIGNE_FAUX_DELAI = 0.15; }')
+    pg.set_viewport_size({'width': 360, 'height': 640})
+    t(f'{titre} : debout, le jeu est tourné', attendre(pg, '() => document.documentElement.classList.contains("tourne")', None, 10000)); pg.wait_for_timeout(600)
+    DEDANS = '''sel => { const bs = [...document.querySelectorAll(sel)].filter(b => b.offsetParent !== null).map(b => [b.id || b.className, b.getBoundingClientRect()]);
+      return { n: bs.length, hors: bs.filter(([i, r]) => r.width <= 0 || r.left < -1 || r.top < -1 || r.right > innerWidth + 1 || r.bottom > innerHeight + 1).map(x => x[0]),
+        bas: bs.filter(([i, r]) => Math.min(r.width, r.height) < 39.5).map(x => x[0] + ":" + Math.round(Math.min(x[1].width, x[1].height))),
+        rec: bs.some(([i, a], k) => bs.some(([j, c], m) => m > k && a.left < c.right - 1 && c.left < a.right - 1 && a.top < c.bottom - 1 && c.top < a.bottom - 1)) }; }'''
+    def verifier(nom, sel):
+        pg.wait_for_timeout(300); d = pg.evaluate(DEDANS, sel)
+        t(f'{titre} : « {nom} » : chaque bouton dans la fenêtre (360×640), sans recouvrement, de 40 px au moins', d['n'] > 0 and not d['hors'] and not d['rec'] and not d['bas'], str(d))
+        pg.screenshot(path=os.path.join(CAPTURES, f'tourne-enligne-{nom.split()[0]}.png'))
+    verifier('titre', '#titre button')
+    pg.tap('#boutonEnligneTitre')
+    t(f'{titre} : un toucher sur « En ligne » ouvre le menu', attendre(pg, '() => JEU.ecran === "enligne"', None, 5000)); verifier('menu', '#enligne button')
+    pg.tap('#boutonEnligneRejoindre')
+    t(f'{titre} : un toucher sur « Rejoindre une salle » ouvre l\'écran du code', attendre(pg, '() => JEU.ecran === "enligneRejoindre"', None, 5000)); verifier('code', '#enligneRejoindre button')
+    pg.tap('#enligneClavier button >> nth=0'); pg.tap('#enligneClavier button >> nth=1')
+    t(f'{titre} : les touches de lettres au doigt tapent le code', pg.evaluate('() => document.getElementById("enligneCode").value') == 'BC', pg.evaluate('() => document.getElementById("enligneCode").value'))
+    pg.tap('#boutonEnligneRejoindreRetour'); attendre(pg, '() => JEU.ecran === "enligne"', None, 5000)
+    pg.tap('#boutonEnligneCreer')
+    t(f'{titre} : un toucher sur « Créer une salle » ouvre la salle', attendre(pg, '() => JEU.ecran === "enligneSalle"', None, 5000))
+    attendre(pg, '() => ENLIGNE_ECRAN.etat().joueurs.length >= 2', None, 8000); verifier('salle', '#enligneSalle button')
+    pg.tap('#enligneReg_tours_plus')
+    t(f'{titre} : un toucher sur ▶ change la longueur', pg.evaluate('() => ENLIGNE_ECRAN.etat().reglages.tours') != 3)
+    pg.tap('#enligneEmote_2')
+    t(f'{titre} : un toucher sur une émote l\'affiche', pg.evaluate('() => !!document.querySelector("#enligneListe li.moi .emote")'))
+    t(f'{titre} : aucune erreur ni avertissement dans la console', not console, ' | '.join(console[:5]))
+    ctx.close()
+
 os.makedirs(CAPTURES, exist_ok=True)
 t0 = time.monotonic()
 r = subprocess.run([sys.executable, os.path.join(RACINE, 'tests', 'tourne-css.py'), '--verifier'], capture_output=True, text=True)
@@ -100,7 +139,7 @@ t('style.css : les @media aux dimensions échangées (tests/tourne-css.py) sont 
 with sync_playwright() as p:
     b = p.chromium.launch(channel='chrome', args=['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--allow-file-access-from-files', '--disable-audio-output'])
     try:
-        partie(b, True); partie(b, False)
+        partie(b, True); partie(b, False); enligne_tourne(b)
     finally: b.close()
 print(f'RESULTAT {ok}/{ok + ko}'); print('\n'.join(L)); print(f'⏱ {time.monotonic() - t0:.0f} s')
 sys.exit(0 if ko == 0 else 1)
