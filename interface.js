@@ -45,7 +45,7 @@ const INTERFACE = (function () {
   }
 
   function montrer(ecran) {
-    for (const id of ['touches', 'defi', 'defiFin', 'choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une', 'garage', 'saison', 'duelSaison', 'contrats', 'retraite', 'titre', 'amis', 'pilote', 'sponsors', 'fiche', 'interview', 'ceremonie', 'temple', 'heritier', 'calendrier', 'deuxReglages', 'resume', 'grille', 'tournoiInscription', 'tournoiAToi', 'tournoiPause', 'tournoiManche', 'tournoiFin', 'aileron', 'arbre', 'discussion', 'courrier']) $(id).classList.toggle('cache', id !== ecran);
+    for (const id of ['enligne', 'enligneRejoindre', 'enligneSalle', 'touches', 'defi', 'defiFin', 'choix', 'pause', 'fin', 'podium', 'resultats', 'championnat', 'qualif', 'une', 'garage', 'saison', 'duelSaison', 'contrats', 'retraite', 'titre', 'amis', 'pilote', 'sponsors', 'fiche', 'interview', 'ceremonie', 'temple', 'heritier', 'calendrier', 'deuxReglages', 'resume', 'grille', 'tournoiInscription', 'tournoiAToi', 'tournoiPause', 'tournoiManche', 'tournoiFin', 'aileron', 'arbre', 'discussion', 'courrier']) $(id).classList.toggle('cache', id !== ecran);
     // l'album des unes (Codeur 3) : la page de la une, avec la barre pour feuilleter
     if (ecran === 'album') $('une').classList.remove('cache');
     $('une').classList.toggle('album', ecran === 'album');
@@ -80,7 +80,7 @@ const INTERFACE = (function () {
     const reserve = REGLAGES.HUD_PRECEDENT_RESERVE, rien = !precedent || finie;
     $('hudPrecedent').classList.toggle('cache', !reserve && rien);
     $('hudPrecedent').classList.toggle('vide', reserve && rien);
-    if (precedent) $('hudPrecedent').textContent = texte('tourPrecedent') + ' ' + formatTemps(precedent.temps) + (precedent.coupe ? ' ✂' : '');
+    if (precedent) $('hudPrecedent').textContent = texte('tourPrecedent') + ' ' + formatTemps(precedent.temps) + (precedent.coupe ? ' ✂' : precedent.limites ? ' ⚠' : '');
     else if (reserve) $('hudPrecedent').textContent = '\u00a0';
     for (let i = 0; i < 3; i++) {
       const el = $('hudS' + (i + 1)), t = secteurs[i];
@@ -89,8 +89,12 @@ const INTERFACE = (function () {
     }
     const recente = c.derniereCoupe !== undefined && c.temps - c.derniereCoupe < 3;
     const faux = c.fauxDepart && (c.etat === 'compte' || c.temps < 4);   // le faux départ, affiché jusqu'à 4 s après le départ
-    $('hudPenalite').classList.toggle('cache', !recente && !faux);
-    $('hudPenalite').textContent = recente ? texte('penalite').replace('{s}', REGLAGES.PENALITE_COUPE) : texte('fauxDepart').replace('{s}', REGLAGES.PENALITE_FAUX_DEPART);
+    // (tour 56, T1) l'avertissement de limites de piste : « Limites de piste (1/3) », 3 s, sans pénalité
+    const limite = !recente && c.derniereLimite !== undefined && c.temps - c.derniereLimite < 3;
+    $('hudPenalite').classList.toggle('cache', !recente && !faux && !limite);
+    $('hudPenalite').textContent = recente ? texte('penalite').replace('{s}', REGLAGES.PENALITE_COUPE)
+      : limite ? texte('limites').replace('{n}', c.limites).replace('{max}', REGLAGES.LIMITES_AVERTISSEMENTS)
+      : texte('fauxDepart').replace('{s}', REGLAGES.PENALITE_FAUX_DEPART);
     majStand(c);
   }
 
@@ -1423,7 +1427,7 @@ const INTERFACE = (function () {
     liste.textContent = '';
     c.tours.forEach((t, i) => {
       const li = document.createElement('li');
-      li.textContent = texte('tour') + ' ' + (i + 1) + ' · ' + formatTemps(t.temps) + (t.coupe ? ' ✂' : '') + (t.temps === c.meilleurTour ? ' ★' : '');
+      li.textContent = texte('tour') + ' ' + (i + 1) + ' · ' + formatTemps(t.temps) + (t.coupe ? ' ✂' : t.limites ? ' ⚠' : '') + (t.temps === c.meilleurTour ? ' ★' : '');
       liste.appendChild(li);
     });
   }
@@ -1730,7 +1734,7 @@ const INTERFACE = (function () {
     if (!info) return;
     for (const c of ['jaune', 'bleu', 'vsc', 'vert']) el.classList.toggle(c, c === info.type);
     // (revue T26) sous 420 px de haut (le téléphone couché), le bandeau tient sur une ligne : le texte court de la VSC, sans la vitesse
-    const court = window.innerHeight <= 420 && TEXTES[LANGUE]['drapeau_' + info.type + '_court'] !== undefined;
+    const court = (typeof TACTILE !== 'undefined' ? TACTILE.tailleJeu().h : window.innerHeight) <= 420 && TEXTES[LANGUE]['drapeau_' + info.type + '_court'] !== undefined;
     const t = texte('drapeau_' + info.type + (court ? '_court' : '')).replace('{v}', info.limite ? String(Math.round(info.limite * 3.6)) : '');
     if (el.textContent !== t) el.textContent = t;
   }

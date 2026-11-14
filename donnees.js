@@ -181,6 +181,10 @@ const REGLAGES = {
   // le téléphone (tactile.js, tour 51k, CLAUDE.md « Le téléphone : le volant ») : les mêmes cibles que le clavier, la physique ne change pas
   TACTILE_ACTIF: true,             // faux : rien, même sur un écran tactile (le clavier seul, au bit près) ; sans écran tactile, rien ne change
   TACTILE_IPHONE_GRILLE: true,     // (tour 53e) iPhone : « 🎮 Activer le volant » n'est plus sur l'écran titre mais sur la grille, pendant les feux (gros, au centre-bas) ; sans réponse à l'extinction, les boutons ◀ ▶ ; faux = l'écran titre, comme avant
+  PORTRAIT_DELAI: 0.8,             // (tour 56, le propriétaire : le message « tourne ton téléphone » venait trop souvent) s debout avant le message et la pause ; 0 = tout de suite, comme avant
+  PORTRAIT_MARGE: 1.15,            // (tour 56) debout = plus haut que large d'au moins ce rapport ; 1 = h > l, comme avant
+  PORTRAIT_TOURNER: true,          // (tour 56, T15, le propriétaire : « B ») téléphone tenu debout : le jeu s'affiche tourné de 90° (le haut à gauche, le bas sous le pouce droit), sans message ni pause ; faux = le message « Tourne ton téléphone » et la pause, comme avant
+  PORTRAIT_ANGLE: true,            // (tour 56) l'angle du téléphone (window.orientation) l'emporte : couché à ±90°, jamais le message ; faux = seulement la taille de la fenêtre, comme avant
   TACTILE_PAYSAGE: true,           // (tour 52b) au premier geste sur un écran tactile : plein écran puis verrou en paysage (là où le navigateur le permet) ; faux : rien demandé
   VOLANT_PLEIN: 30,                // ° d'inclinaison depuis le neutre = braquage à fond (le propriétaire, 2026-11-12 : zone morte 10° ; il reste 20° de course jusqu'au plein ; avant : 25)
   VOLANT_ZONE_MORTE: 10,           // ° autour du neutre où l'on ne braque pas : « 10° c'est tout droit, pour rester droit » (le propriétaire, 2026-11-12 ; avant : 2) ; le braquage part de 0 au bord, sans saut
@@ -227,6 +231,12 @@ const REGLAGES = {
   MARGE_COUPE: 1,               // m au-delà du bord : à partir de là, on est sorti de la piste
   SEUIL_COUPE: 2,               // m : virage coupé si la sortie fait gagner plus que ça le long de la piste
   PENALITE_COUPE: 5,            // s ajoutées au temps total
+  // les limites de piste, comme la vraie F1 (tour 56, T1 ; le propriétaire : « 0,5 s en tournant long = 5 s : il faut rendre ça moins sévère »).
+  // La cause : le gain d'une sortie était mesuré sur la ligne du MILIEU ; à l'intérieur d'un long virage l'arc est plus court que celui du milieu,
+  // donc rester dehors à l'intérieur « gagnait » des mètres sans rien couper. Les valeurs d'avant (faux, faux, 0) rendent le jeu d'avant.
+  COUPE_MESURE_BORD: true,      // vrai : le gain se mesure contre le BORD de la piste (l'arc qu'on aurait fait sur la piste, côté de la sortie) ; faux : contre le milieu, comme avant
+  SEUIL_COUPE_GRAVE: 1,         // m : avec COUPE_MESURE_BORD, une sortie qui fait gagner plus que ça sur le bord est un vrai raccourci : +PENALITE_COUPE tout de suite
+  LIMITES_AVERTISSEMENTS: 3,    // un débordement sans vrai raccourci = un avertissement (le tour ne compte pas pour le record) ; au suivant (le 4e) : +PENALITE_COUPE, puis le compte repart ; 0 = pas d'avertissement (comme avant)
   // les feux de départ (?ia=N&joueur=1) : à la place du 3-2-1-GO
   FEUX_NB: 5,                   // cinq feux rouges…
   FEUX_INTERVALLE: 1,           // s : … qui s'allument un par un, un par seconde
@@ -1240,7 +1250,7 @@ const REGLAGES = {
   COMMENTAIRE_LONGUEUR_MAX: 60,   // caractères d'une phrase au plus (les noms comptés à 7 lettres) : court, pour ne pas lire en pilotant
   COMMENTAIRE_PEREMPTION: 8,      // s : un fait plus vieux n'est plus dit
   COMMENTAIRE_FILE_MAX: 6,
-  COMMENTAIRE_PRIORITES: { remontee: 7, arrivee: 10, podium: 9, arret: 6, depart: 9, vsc: 9, drapeauJaune: 8, drapeauVert: 7, domicileRival: 7, degats: 6, depassementTete: 9, dernierTour: 8, joueurArrivee: 8, contact: 7, depassementJoueur: 6, pluie: 6, coteACote: 5, erreur: 5, penalite: 5, depassement: 4, stands: 3, meilleurTour: 3, joueurTete: 2, joueurPlace: 2, glissade: 6,
+  COMMENTAIRE_PRIORITES: { limites: 5, remontee: 7, arrivee: 10, podium: 9, arret: 6, depart: 9, vsc: 9, drapeauJaune: 8, drapeauVert: 7, domicileRival: 7, degats: 6, depassementTete: 9, dernierTour: 8, joueurArrivee: 8, contact: 7, depassementJoueur: 6, pluie: 6, coteACote: 5, erreur: 5, penalite: 5, depassement: 4, stands: 3, meilleurTour: 3, joueurTete: 2, joueurPlace: 2, glissade: 6,
     combleTete: 0, combleBagarre: 0, combleTours: 0, combleJoueur: 0, combleMeteo: 0, combleSec: 0, combleChamp: 0, combleChampTete: 0, combleChampProjection: 0 },   // (tour 45c : ce qu'il dit entre deux faits, jamais devant un fait)
   COMMENTAIRE_BONUS_JOUEUR: 2,    // un fait du joueur passe devant (plus de phrases quand le joueur est concerné)
   COMMENTAIRE_GLISSADE_INTERVALLE: 60,   // s : une glissade rattrapée du joueur n'est redite qu'après ça (tour 43)
@@ -1484,12 +1494,52 @@ const REGLAGES = {
   EN_LIGNE_VOITURES_MAX: 16,    // des voitures en piste au plus (joueurs + IA)
   EN_LIGNE_TOURS_MAX: 30,       // des tours au plus
   EN_LIGNE_TOURS_DEFAUT: 3,     // si les tours demandés ne sont pas permis
-  EN_LIGNE_METEOS: ['auto', 'sec', 'pluie', 'averse', 'eclaircie'],   // les météos au choix de l'hôte (auto : tirée avec la graine selon le lieu, comme en carrière)
+  EN_LIGNE_METEOS: ['auto', 'sec', 'nuageux', 'pluie', 'averse', 'eclaircie'],   // les météos au choix de l'hôte (auto : tirée avec la graine selon le lieu, comme en carrière)
   EN_LIGNE_MATHS: true,         // enligne.js remplace sin, cos, tan, atan, atan2, exp, cbrt, hypot pendant une course en ligne par des calculs à nous, identiques au bit près sur tous les navigateurs (faux : ceux du navigateur)
   GRAINE_GRILLE_LIGNE: 23000,   // la grille tirée au sort d'une course en ligne : la graine de la course + ce nombre
+  // (tour 56, T5 : les écrans ; CLAUDE.md « Les batailles en ligne »). Tout reste derrière EN_LIGNE : faux = le jeu d'avant,
+  // aucun bouton « En ligne » nulle part ; ?enligne=1 l'ouvre pour la page, ?enligne=0 le ferme. Pas d'envoi à Poki avant 2027.
+  EN_LIGNE_NOMS_LIBRES: false,  // faux (public d'enfants) : aucun texte tapé entre joueurs ; le nom affiché = « Pilote » + la couleur choisie (EN_LIGNE_COULEURS)
+  EN_LIGNE_CODE_LONGUEUR: 4,    // lettres du code d'une salle
+  EN_LIGNE_LETTRES: 'BCDFGHJKLMNPQRSTVWXZ',   // les lettres d'un code : aucune voyelle (pas de mots), ni Y
+  EN_LIGNE_COULEURS: [          // la couleur du pilote en ligne : son nom (textes.js : enligneCouleur_<id>) et sa pastille
+    { id: 'bleu', hex: 0x1f6fe0 }, { id: 'rouge', hex: 0xd8262e }, { id: 'jaune', hex: 0xf2c230 }, { id: 'vert', hex: 0x2fa84f },
+    { id: 'orange', hex: 0xf07d1a }, { id: 'violet', hex: 0x8e44ad }, { id: 'turquoise', hex: 0x1abc9c }, { id: 'rose', hex: 0xe84393 },
+  ],
+  EN_LIGNE_EMOTES: ['👍', '👏', '🔥', '😂', '😮', '🏁', '🤝', '😅'],   // les émotes préréglées (jamais de texte libre) ; le protocole envoie l'indice ; le nom parlant est enligneEmote_<i> (textes.js)
+  EN_LIGNE_EMOTE_PAUSE: 1.5,    // s : le délai entre deux émotes envoyées par le même joueur (pas de spam)
+  EN_LIGNE_EMOTE_DUREE: 3,      // s : combien de temps une émote reste affichée près du nom de son joueur
+  EN_LIGNE_CIRCUITS_CHOIX: ['test', 'technique'],   // les circuits que l'hôte peut choisir (des clés de CIRCUITS) ; vide = tous
+  EN_LIGNE_TOURS_CHOIX: [1, 3, 5],   // les longueurs de course (l'hôte)
+  EN_LIGNE_IA_CHOIX: [0, 3, 5],      // les IA ajoutées aux humains (l'hôte) ; jamais plus de EN_LIGNE_JOUEURS_MAX voitures en tout
+  EN_LIGNE_METEO_CHOIX: ['sec', 'nuageux', 'pluie'],   // la météo de la course (l'hôte)
+  EN_LIGNE_REGLAGES_DEFAUT: { circuit: 'test', tours: 3, meteo: 'sec', nbIA: 0 },   // ce que l'hôte voit d'abord
+  EN_LIGNE_FAUX_DELAI: 0.8,     // s : le faux transport (enligne-faux.js, en attendant le vrai réseau) fait « arriver » un ami après ce délai, puis le fait « prêt » après le même
 
   // le mode ?debug=1
   DEBUG_PERIODE_IPS: 0.5,       // secondes entre deux mises à jour du compteur d'images
+
+  // les batailles en ligne (tour 56 ; rien ne se voit ni ne se connecte tant que EN_LIGNE est faux ; ?enligne=1 l'ouvre)
+  EN_LIGNE_URL: '',             // l'adresse WebSocket du relais (wss://…), vide tant que le propriétaire n'a pas choisi l'hébergement
+  EN_LIGNE_CANAL: 'gpd-en-ligne',   // le nom du BroadcastChannel (deux onglets du même navigateur, sans serveur)
+  EN_LIGNE_JOUEURS_MIN: 2,      // pour lancer une course
+  EN_LIGNE_NOM_MAX: 20,         // lettres d'un nom
+  EN_LIGNE_NOMS_COULEURS: ['Rouge', 'Bleu', 'Vert', 'Jaune', 'Orange', 'Violet', 'Rose', 'Blanc'],   // …un nom de la liste peut porter une de ces couleurs (« Éclair Rouge ») ; ceux des écrans : « Pilote <couleur> » (textes.js : enligneNom)
+  EN_LIGNE_NOMS: ['Éclair', 'Turbo', 'Comète', 'Fusée', 'Tonnerre', 'Mistral', 'Phénix', 'Faucon', 'Panthère', 'Requin', 'Étoile', 'Tempête'],
+  EN_LIGNE_TAILLE_MAX: 4096,    // caractères d'un message ; au-delà il est jeté
+  EN_LIGNE_OUVERTURE_MS: 5000,  // attente de l'ouverture d'un WebSocket
+  EN_LIGNE_ATTENTE_MS: 600,     // BroadcastChannel : sans réponse d'une salle après ce temps = « inconnue »
+  EN_LIGNE_RECONNEXIONS: 3,     // essais après une coupure (0 = pas de reconnexion)
+  EN_LIGNE_RECONNEXION_MS: 400, // attente avant le k-ième essai : k × ce temps
+  EN_LIGNE_PING_MS: 2000,       // un ping tous les…
+  EN_LIGNE_ATTENTE_ANNONCE_MS: 1000,   // (T8) attendre les commandes d'un joueur plus longtemps que ça : « On attend … » à l'écran
+  EN_LIGNE_ATTENTE_MAX_MS: 15000,      // (T8) … et plus longtemps que ça : on abandonne (« connexion trop lente »), retour à la salle ; 0 = jamais
+  EN_LIGNE_RETOUR_MS: 4000,            // (T8) le temps de lire le message (connexion perdue, trop lente, désynchro) avant le retour à la salle
+  EN_LIGNE_FOND_MS: 250,               // (T8) onglet caché : la course avance depuis un minuteur de cette période (requestAnimationFrame est coupé) ; 0 = rien (les autres attendraient)
+  EN_LIGNE_FOND_PAS_MAX: 2400,         // (T8) pas rattrapés au plus par passage du minuteur de fond (le navigateur ralentit les minuteurs cachés)
+  EN_LIGNE_DELAI_MAX: 120,             // (T8) le délai d'entrée adaptatif choisi par le relais à l'arrivée au départ ne dépasse pas ce nombre de pas
+  EN_LIGNE_DELAI_MARGE: 6,             // (T8) pas de marge ajoutés au temps de trajet mesuré (le relais, serveur/relais.py : Config.delai_marge)
+  EN_LIGNE_SILENCE_MS: 10000,   // rien reçu depuis ce temps = connexion morte (côté client) ; un client muet disparaît de la salle (relais en onglet)
 };
 
 // Les circuits, décrits par morceaux dans l'ordre de la course, la ligne d'arrivée au début du premier :

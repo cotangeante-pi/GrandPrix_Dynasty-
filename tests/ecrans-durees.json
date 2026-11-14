@@ -186,5 +186,11 @@
 "index.html?championnat=1&test=nouveautes-reglages&lang=en 960": 9,
 "index.html?course=12&ia=3&joueur=1&robot=1&circuit=test&test=nouveautes&tel=1&lang=en 640": 26,
 "index.html?course=1&ia=5&joueur=1&robot=1&circuit=test&test=nouveautes-qualif&tel=1&lang=en 640": 9,
-"index.html?championnat=1&test=nouveautes-reglages&tel=1&lang=en 640": 7
+"index.html?championnat=1&test=nouveautes-reglages&tel=1&lang=en 640": 7,
+"index.html?enligne=1&test=enligne&tel=1 640": 45,
+"index.html?enligne=1&test=enligne 960": 45,
+"index.html?enligne=1&test=enligne&lang=en&tel=1 640": 45,
+"index.html?enligne=1&test=enligne&lang=en 1280": 45,
+"index.html?championnat=1&enligne=1&test=enligne-paddock&tel=1 640": 25,
+"index.html?championnat=1&enligne=1&test=enligne-paddock&lang=en 960": 25
 }

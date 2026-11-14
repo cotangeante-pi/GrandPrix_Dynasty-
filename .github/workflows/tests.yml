@@ -55,7 +55,7 @@ jobs:
       # (Essayé le 2026-10-22 : avec Chrome 150 comme sur le Mac, le test de la carte calculée en fond
       # reste rouge ici ; les écarts viennent de la machine, pas seulement de la version. Voir CLAUDE.md, « Aller plus vite ».)
       - name: Playwright
-        run: pip install playwright
+        run: pip install playwright websockets   # (websockets : le serveur relais en ligne, tests/serveur.py)
 
       # le Mac du propriétaire est en français et les tests attendent les textes français : même langue ici
       # (sinon navigator.language = en-US et le jeu s'affiche en anglais)
