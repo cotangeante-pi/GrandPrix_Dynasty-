@@ -1786,7 +1786,7 @@ function retourBoutique() {
 }
 
 function pause(oui) {
-  if (JEU.enligne) return;   // (tour 56, T7) en ligne, la course ne s'arrête pas pour un joueur : les autres l'attendraient (T8 : le menu sans pause)
+  if (JEU.enligne) { if (oui) ENLIGNE_PAGE.echap(); return; }   // (tour 56, T7/T8) en ligne, la course ne s'arrête pas pour un joueur : les autres l'attendraient ; Échap deux fois = quitter
   if (!oui && touchesOuvertes()) return;   // (tour 50c) pendant le choix des touches, la pause ne se ferme pas
   if (oui && JEU.ecran === 'course' && JEU.deux) INTERFACE.remplirTouchesDeux(MANETTE.lireManettes().length);   // à deux : les touches des deux dans le menu pause
   INTERFACE.montrerTouchesPause(!!JEU.deux);

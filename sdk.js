@@ -77,6 +77,7 @@ const SDK = (function () {
   function pub(nomPoki, couperSon, fin) {
     if (pubEnCours) { fin(undefined); return; }
     if (!poki()) { fin(undefined); return; }
+    if (typeof JEU !== 'undefined' && JEU.enligne && JEU.ecran === 'course') { fin(undefined); return; }   // (tour 56, T8) jamais de pub pendant une course en ligne : les autres joueurs attendraient
     pubEnCours = true;
     enJeuVoulu = enJeu;
     envoyerEtat(false);

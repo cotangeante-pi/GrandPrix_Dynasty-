@@ -92,7 +92,7 @@ async def tests_principaux(port, rel):
     t('refus « version » : version absente ou d’un mauvais type', all([(await refus(t='creer', nom='Pilote 3', version=v))['raison'] == 'version' for v in (None, [1], True, {'a': 1})]))
     t('refus « nom » : un nom déjà pris dans la salle (même en minuscules)', (await refus(t='rejoindre', code=sa['code'], nom='pilote 1', version='1'))['raison'] == 'nom')
     t('refus « nom » : texte libre, vide, trop long, balises, pas un texte', all([(await refus(t='creer', nom=n, version='1'))['raison'] == 'nom' for n in ('Salut les copains je suis nul', '', ' ', 'x' * 40, '<b>x</b>', 'a\nb', None, 5, 'Pilote 0', 'Pilote 100', 'Léa', 'Éclair Mauve', 'Pilote 3 Rouge Bleu')]))
-    t('noms permis : « Pilote 12 Orange », un nom de la liste avec accents et couleur', all(['code' in await refus_ok(port, n) for n in ('Pilote 12 Orange', 'Éclair', 'Tempête Bleu', ' Pilote 5 ')]))
+    t('noms permis : « Pilote 12 Orange », un nom de la liste avec accents et couleur', all(['code' in await refus_ok(port, n) for n in ('Pilote 12 Orange', 'Éclair', 'Tempête Bleu', ' Pilote 5 ', 'Pilote Rouge', 'Pilote Rouge 2', 'Red driver', 'Teal driver 3', 'Pilote 1')]))
     # --- réglages choisis par l'hôte ---
     rg = {'circuit': 'spa', 'tours': 5, 'meteo': 'pluie', 'nbIA': 2}
     await b.env(t='reglages', reglages=rg); r = await b.jusqua('erreur')
@@ -343,6 +343,24 @@ async def tests_charge(port, rel):
     await asyncio.sleep(2.0)
     t('seul et coupé, la grâce passée : la salle disparaît', sh['code'] not in rel.salles, list(rel.salles))
 
+async def tests_delai(port, rel):
+    # --- le délai d'entrée du départ suit les latences annoncées (champ l des ping) : le trajet des deux joueurs les plus lents ---
+    async def depart_avec(rtts):
+        code, cl = await salle_de(port, [f'Pilote {i + 1}' for i in range(len(rtts))])
+        for c, r in zip(cl, rtts):
+            if r is not None: await c.env(t='ping', h=1, l=r); await c.jusqua('pong')
+        await cl[0].env(t='lancer', reglages={'circuit': 'monza', 'tours': 3, 'meteo': 'sec', 'nbIA': 0})
+        d = await cl[0].jusqua('depart'); d2 = await cl[1].jusqua('depart')
+        assert d == d2, (d, d2)
+        await fin(cl); await asyncio.sleep(0.15)
+        return d['reglages']
+    r = await depart_avec([None, None]); t('délai : sans latence annoncée, pas de champ « delai » (le délai du jeu)', 'delai' not in r, r)
+    r = await depart_avec([200, 100]); t('délai : deux joueurs à 200 et 100 ms d\'aller-retour : trajet 150 ms = 18 pas + 6 de marge = 24', r.get('delai') == 24, r)
+    r = await depart_avec([20, 30]); t('délai : une bonne connexion : jamais moins de 12 pas (EN_LIGNE_DELAI)', r.get('delai') == 12, r)
+    r = await depart_avec([200, 100, 40]); t('délai : trois joueurs : les deux plus lents comptent (le plus rapide est ignoré)', r.get('delai') == 24, r)
+    r = await depart_avec([60000, 60000]); t('délai : plafonné à 120 pas', r.get('delai') == 120, r)
+    r = await depart_avec([-5, 'x']); t('délai : des latences absurdes sont ignorées', 'delai' not in r, r)
+
 async def tests_adresse(port, rel):
     cs = [await ouvre(port) for _ in range(3)]
     c4 = await connect(f'ws://127.0.0.1:{port}', open_timeout=5)
@@ -368,6 +386,7 @@ async def tout():
         ('principal', R.Config(**base), tests_principaux), ('salles', R.Config(**base), tests_salles), ('limites', R.Config(**base), tests_limites),
         ('expiration', R.Config(attente_salle=1.0, attente_course=1.5, **base), tests_expiration),
         ('charge et jeton', R.Config(**dict(base, exiger_charge=True, grace=1.5)), tests_charge),
+        ('délai', R.Config(**base), tests_delai),
         ('adresse', R.Config(max_par_ip=3, **base), tests_adresse), ('noms libres', R.Config(noms_libres=True, **base), tests_noms_libres)):
         if seule and seule != nom: continue
         try: await asyncio.wait_for(lance(cfg, f), 90)

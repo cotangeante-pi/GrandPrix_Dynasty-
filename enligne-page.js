@@ -12,7 +12,7 @@
 // nom=<nom permis>, robot=1 (le robot d'essai conduit), transport=diffusion|websocket|memoire.
 const ENLIGNE_PAGE = (function () {
   const R = REGLAGES;
-  const etat = { actif: false, client: null, role: null, partie: null, depart: null, tampon: [], joueurs: [], code: null, erreur: null, statut: '', attendus: 2, lance: false, termine: false };
+  const etat = { actif: false, client: null, role: null, partie: null, depart: null, tampon: [], joueurs: [], code: null, erreur: null, statut: '', attendus: 2, lance: false, termine: false, noms: new Map(), attenteDepuis: null, fond: null, fondT: 0, sortie: null };
 
   function zone() { return document.getElementById('enligneInfo'); }
   function dire(msg) {
@@ -53,23 +53,95 @@ const ENLIGNE_PAGE = (function () {
     recevoirDepart(depart);
   }
 
+  // la connexion est perdue pour de bon (reseau.js : « perdu » ne passe pas par le gestionnaire général) : le message, puis le retour au début
+  function surPerdu() { if (!etat.termine && !etat.sortie) { dire(texte('enl_perdu')); sortirApres('perdu'); } }
+
   function brancher(c) {
     etat.client = c;
+    if (c.sur) c.sur('perdu', surPerdu);
     window.__enligne = etat;   // (les tests lisent le code de la salle et l'état de la partie)
     c.sur(m => {
       switch (m.t) {
         case 'salle': etat.code = m.code; majSalle(); break;
-        case 'joueurs': etat.joueurs = m.liste; majSalle(); essayerLancer(); break;
+        case 'joueurs': etat.joueurs = m.liste; for (const j of m.liste) etat.noms.set(j.id, j.nom); majSalle(); essayerLancer(); break;
         case 'refus': dire(texte('enl_refus_' + m.raison) || m.raison); break;
         case 'depart': recevoirDepart(m); break;
         case 'cmd': case 'controle': case 'parti':
           if (etat.partie) etat.partie.recevoir(m); else etat.tampon.push(m);
+          if (m.t === 'parti' && etat.depart && !etat.termine) annoncer(texte('enl_parti').replace('{nom}', etat.noms.get(m.id) || ('#' + m.id)));   // (T8) la voiture roule sur sa dernière commande puis s'arrête (enligne.js)
           break;
         case 'coupure': if (!etat.termine) dire(texte('enl_coupure')); break;
-        case 'perdu': dire(texte('enl_coupure')); break;
         default:
       }
     });
+  }
+
+  // ---- les incidents (tour 56, T8)
+  // un message court en cours de course (un joueur parti…) : il s'efface seul
+  function annoncer(msg) {
+    dire(msg);
+    clearTimeout(etat.annonceT);
+    etat.annonceT = setTimeout(() => { if (etat.statut === msg && !etat.sortie) dire(''); }, 4000);
+  }
+  // le message d'un incident qui finit la course pour moi, puis le retour (à la salle, ou au début si la connexion est perdue)
+  function sortirApres(raison) {
+    if (etat.sortie) return;
+    etat.sortie = raison;
+    const ms = REGLAGES.EN_LIGNE_RETOUR_MS;
+    setTimeout(() => { if (raison === 'perdu') { etat.termine = true; location.href = location.pathname; } else retourSalle(); }, ms);
+  }
+  // onglet caché : requestAnimationFrame est coupé, donc la boucle du jeu ne tourne plus et les autres joueurs nous attendraient ; un minuteur
+  // fait avancer la course (mes commandes : neutres, personne ne conduit un onglet caché) au rythme du temps réel
+  function cacher(cache) {
+    const ms = REGLAGES.EN_LIGNE_FOND_MS;
+    if (!cache) { if (etat.fond !== null) { clearInterval(etat.fond); etat.fond = null; } return; }
+    if (!ms || etat.fond !== null || !etat.partie) return;
+    etat.fondT = performance.now();   // (l'horloge de la page, jamais dans la simulation)
+    etat.fond = setInterval(() => {
+      const t = performance.now(), pas = Math.min(REGLAGES.EN_LIGNE_FOND_PAS_MAX, Math.floor((t - etat.fondT) / 1000 / REGLAGES.PAS_PHYSIQUE));
+      if (pas <= 0) return;
+      etat.fondT += pas * REGLAGES.PAS_PHYSIQUE * 1000;
+      const p = etat.partie;
+      for (let i = 0; i < pas && p && JEU.ecran === 'course' && !etat.sortie; i++) {
+        p.local = { gaz: 0, frein: 0, direction: 0, remise: false };
+        if (!p.avancer(1)) break;   // (on attend un autre : le prochain passage réessaie)
+      }
+      surveillerAttente();
+    }, ms);
+  }
+  document.addEventListener('visibilitychange', () => cacher(document.hidden));
+  // attendre les commandes d'un autre : « On attend … » après un moment, abandon après un long moment (connexion trop lente)
+  function surveillerAttente() {
+    const p = etat.partie;
+    if (!p || etat.sortie) return;
+    if (p.attente === null) {
+      if (etat.attenteDepuis !== null) { etat.attenteDepuis = null; if (!etat.annonceT || etat.statut === etat.msgAttente) dire(''); }
+      return;
+    }
+    const maintenant = performance.now();
+    if (etat.attenteDepuis === null) etat.attenteDepuis = maintenant;
+    const duree = maintenant - etat.attenteDepuis;
+    if (REGLAGES.EN_LIGNE_ATTENTE_MAX_MS && duree >= REGLAGES.EN_LIGNE_ATTENTE_MAX_MS) { dire(texte('enl_trop_lent')); sortirApres('lent'); return; }
+    if (duree >= REGLAGES.EN_LIGNE_ATTENTE_ANNONCE_MS) {
+      etat.msgAttente = texte('enl_lent').replace('{noms}', p.attente.map(id => etat.noms.get(id) || ('#' + id)).join(', '));
+      if (etat.statut !== etat.msgAttente) dire(etat.msgAttente);
+    }
+  }
+
+  // Échap (ou ⏸) pendant la course en ligne : pas de pause (les autres attendraient) ; deux fois de suite en 3 s = quitter la course
+  function echap() {
+    if (!etat.partie || etat.termine || etat.sortie) return;
+    const t = performance.now();
+    if (etat.echapT && t - etat.echapT < 3000) { quitter(); return; }
+    etat.echapT = t;
+    annoncer(texte('enl_quitter'));
+  }
+  function quitter() {
+    etat.termine = true; etat.sortie = 'quitte';
+    const c = etat.client;
+    try { if (etat.partie && etat.partie.vider) etat.partie.vider(); } catch (err) { /* rien */ }   // (mes dernières commandes partent avant « quitter » : les autres ont le même dernier pas)
+    try { if (c && c.quitter) c.quitter(); } catch (err) { /* rien */ }
+    location.href = location.pathname;
   }
 
   function majSalle() {
@@ -98,7 +170,8 @@ const ENLIGNE_PAGE = (function () {
     if (!etat.actif) return;
     if (etat.depart && !etat.partie && JEU.carte) demarrerCourse();
     const p = etat.partie;
-    if (p && p.desynchro && !etat.erreur) { etat.erreur = 'desynchro'; dire(texte('enl_desynchro')); }
+    if (p && p.desynchro && !etat.erreur) { etat.erreur = 'desynchro'; dire(texte('enl_desynchro')); sortirApres('desynchro'); }   // (T8) message clair, puis retour à la salle
+    surveillerAttente();
   }
 
   const COULEURS_HUMAINS = () => R.DEUX_COULEURS_CHOIX;
@@ -137,7 +210,7 @@ const ENLIGNE_PAGE = (function () {
   // un pas de physique (BOUCLE.surPhysique : pasJoueur de principal.js) : mes commandes partent, la course avance si tout le monde est là
   function pas() {
     const p = etat.partie;
-    if (!p || JEU.ecran !== 'course') return;   // (au podium, la course ne bouge plus ; la pause n'existe pas en ligne : T8)
+    if (!p || JEU.ecran !== 'course' || etat.sortie) return;   // (au podium, la course ne bouge plus ; la pause n'existe pas en ligne : les autres nous attendraient)
     const moi = p.moi, cmd = JEU.robot ? commandeRobot(moi) : JEU.cibles;
     p.local = { gaz: cmd.gaz, frein: cmd.frein, direction: cmd.direction, remise: !!JEU.remettre };
     JEU.remettre = false;
@@ -177,5 +250,5 @@ const ENLIGNE_PAGE = (function () {
     return { n: p.n, empreinte: p.empreinte(), arrivees: p.e.pilotes.map(q => q.arrivee), final: JEU.final ? JEU.final.map(x => [x.k, x.place, x.total]) : null, desynchro: p.desynchro, ecran: JEU.ecran };
   }
 
-  return { etat, preparer, ouvrir, lancer, image, pas, podiumPret, retourSalle, resume, dire };
+  return { etat, preparer, ouvrir, lancer, image, pas, podiumPret, retourSalle, resume, dire, surPerdu, echap, quitter, cacher, surveillerAttente, sortirApres };
 })();
