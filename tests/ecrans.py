@@ -97,6 +97,13 @@ PAGES = [
     ('index.html?course=1&ia=5&joueur=1&robot=1&circuit=test&lang=en&test=audit-resume', 960, 600, None),
     ('index.html?course=12&robot=1&pneus=1&circuit=test&lang=en&test=audit-stand', 960, 600, None),
     ('index.html?championnat=1&tours=2&robot=1&lang=en&test=audit-consigne', 960, 600, None),
+    # (tour 56, T5) les batailles en ligne (enligne-ecran.js, derrière EN_LIGNE ; le faux transport enligne-faux.js) : titre, menu, rejoindre par code, salle d'attente, émotes, refus ; fr et en, au doigt en 640×360
+    ('index.html?enligne=1&test=enligne&tel=1', 640, 360, None),
+    ('index.html?enligne=1&test=enligne', 960, 600, None),
+    ('index.html?enligne=1&test=enligne&lang=en&tel=1', 640, 360, None),
+    ('index.html?enligne=1&test=enligne&lang=en', 1280, 720, None),
+    ('index.html?championnat=1&enligne=1&test=enligne-paddock&tel=1', 640, 360, None),
+    ('index.html?championnat=1&enligne=1&test=enligne-paddock&lang=en', 960, 600, None),
     ('index.html?course=0&camera=cockpit&lang=en&test=audit-volant', 960, 600, None),   # l'audit anglais (tour 31, Codeur 3) : chaque écran du championnat et de la fin de carrière, sans un mot français, rien hors de l'écran en 960×600   # la page en anglais : championnat et podium sans un mot français, capture championnat-en.png
     ('index.html?course=1&ia=5&joueur=1&robot=1&circuit=test&test=fantome', 1280, 720, None),
     ('index.html?course=1&ia=5&joueur=1&robot=1&circuit=test&test=defi', 960, 600, None),
@@ -655,6 +662,137 @@ DEDANS_JS = '''sel => { const bs = [...document.querySelectorAll(sel)].filter(b 
   return { n: bs.length, dedans: bs.every(r => r.width > 0 && r.left >= -1 && r.top >= -1 && r.right <= innerWidth + 1 && r.bottom <= innerHeight + 1),
     defile: document.documentElement.scrollHeight <= innerHeight + 2 && document.documentElement.scrollWidth <= innerWidth + 2,
     recouvre: bs.some((a, i) => bs.some((b, j) => j > i && a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1)) }; }'''
+# (tour 56, T5) les batailles en ligne : les écrans (menu, rejoindre par code, salle d'attente) avec le faux transport ; jamais de texte libre ;
+# chaque écran tient dans l'image sans défilement ni recouvrement, au doigt (tel=1) les boutons font 40 px ; fr et en (aucun mot français en anglais)
+def enligne_ecran(pg, titre, l, h, page):
+    en = 'lang=en' in page
+    tel = 'tel=1' in page
+    def ecran(): return pg.evaluate('() => JEU.ecran')
+    def etat(): return pg.evaluate('() => ENLIGNE_ECRAN.etat()')
+    def verifier(nom, sel, capture):
+        pg.wait_for_timeout(300)
+        d = pg.evaluate(DEDANS_JS, sel)
+        t(f'{titre} : « {nom} » : chaque bouton dans l’écran, sans défilement ni recouvrement', d['n'] > 0 and d['dedans'] and d['defile'] and not d['recouvre'], str(d))
+        if tel:
+            bas = pg.evaluate('sel => [...document.querySelectorAll(sel)].filter(b => b.offsetParent !== null && b.getBoundingClientRect().height < 39.5).map(b => (b.id || b.className) + ":" + Math.round(b.getBoundingClientRect().height))', sel)
+            t(f'{titre} : « {nom} » : au doigt, tous les boutons font au moins 40 px de haut', not bas, str(bas))
+        a = pg.evaluate(AUDIT_ETAT, FRANCAIS) if en else None
+        if en: t(f'{titre} : « {nom} » en anglais : aucun mot français, rien hors de l’écran', not a['francais'] and not a['hors'], str(a))
+        else:
+            hors = pg.evaluate('() => [...document.getElementById(JEU.ecran).querySelectorAll("*")].filter(e => e.childElementCount === 0 && e.textContent.trim() && e.getClientRects().length).filter(e => { const r = e.getBoundingClientRect(); return r.right > innerWidth + 1 || r.bottom > innerHeight + 1 || r.left < -1 || r.top < -1; }).map(e => e.textContent.trim().slice(0, 30))')
+            t(f'{titre} : « {nom} » : aucun texte hors de l’écran', not hors, str(hors))
+        pg.screenshot(path=os.path.join(CAPTURES, f'enligne-{capture}-{l}{"-en" if en else ""}.png'))
+    if not attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "titre"', None, 60000):
+        t(f'{titre} : l’écran titre', False, str(pg.evaluate('() => typeof JEU !== "undefined" && JEU.ecran'))); return
+    pg.evaluate('() => { REGLAGES.EN_LIGNE_FAUX_DELAI = 0.15; REGLAGES.EN_LIGNE_EMOTE_PAUSE = 0.5; REGLAGES.EN_LIGNE_EMOTE_DUREE = 1.2; }')
+    t(f'{titre} : ?enligne=1 : « En ligne » au titre (visible, avec son texte), pas de défilement', pg.evaluate('() => { const b = document.getElementById("boutonEnligneTitre"); return REGLAGES.EN_LIGNE === true && b.offsetParent !== null && b.textContent === texte("enligneBouton"); }'))
+    verifier('titre avec En ligne', '#titre button', 'titre')
+    pg.click('#boutonEnligneTitre')
+    t(f'{titre} : « En ligne » ouvre le menu (créer, rejoindre, retour, six pastilles de couleur)', ecran() == 'enligne' and pg.evaluate('() => document.querySelectorAll("#enligneCouleurs button").length') == 8)
+    verifier('menu En ligne', '#enligne button', 'menu')
+    # le nom : « Pilote » + la couleur, aucun champ de texte (public d'enfants)
+    t(f'{titre} : le nom vient d’une couleur choisie : aucun champ de texte dans le menu ni dans la salle', pg.evaluate('() => document.querySelectorAll("#enligne input, #enligneSalle input").length') == 0 and not pg.evaluate('() => REGLAGES.EN_LIGNE_NOMS_LIBRES'))
+    pg.click('#enligneCouleurs button >> nth=3')
+    t(f'{titre} : choisir la 4e couleur (vert) change le nom et se garde', pg.evaluate('() => document.getElementById("enligneNomChoisi").textContent.includes(texte("enligneCouleur_vert")) && SAUVEGARDE.option("enligne_couleur", 0) === 3'))
+    # créer une salle
+    pg.evaluate('() => { ENLIGNE_FAUX.auto = false; }')   # (les amis arrivent à la main, pour voir la salle seule d'abord)
+    pg.click('#boutonEnligneCreer')
+    t(f'{titre} : « Créer une salle » ouvre la salle d’attente : un code de 4 lettres sans voyelle, l’hôte seul, « Lancer » grisé', attendre(pg, '() => JEU.ecran === "enligneSalle"', None, 5000)
+      and re.fullmatch(r'[BCDFGHJKLMNPQRSTVWXZ]{4}', etat()['code'] or '') is not None and etat()['hote'] and len(etat()['joueurs']) == 1 and pg.evaluate('() => document.getElementById("boutonEnligneLancer").disabled'), str(etat()))
+    t(f'{titre} : la salle : mon nom, « hôte », l’attente d’un ami', pg.evaluate('() => { const li = document.querySelector("#enligneListe li.moi"); return !!li && li.textContent.includes(texte("enligneCouleur_vert")) && li.textContent.includes(texte("enligneHote")) && document.getElementById("enligneSalleMessage").textContent === texte("enligneAttenteAmi"); }'))
+    pg.click('#enligneRegles .regle[data-cle=tours] .enligneFleche >> nth=1')
+    t(f'{titre} : l’hôte change la longueur (▶) : 3 → 5 tours', etat()['reglages']['tours'] == 5, str(etat()['reglages']))
+    pg.click('#enligneRegles .regle[data-cle=meteo] .enligneFleche >> nth=1'); pg.click('#enligneRegles .regle[data-cle=circuit] .enligneFleche >> nth=1'); pg.click('#enligneRegles .regle[data-cle=nbIA] .enligneFleche >> nth=1')
+    r = etat()['reglages']
+    t(f'{titre} : l’hôte choisit aussi la météo, le circuit et les IA', r['meteo'] == 'nuageux' and r['circuit'] == 'technique' and r['nbIA'] == 3, str(r))
+    # un ami arrive (à la main), puis se dit prêt
+    code = etat()['code']
+    pg.evaluate('c => ENLIGNE_FAUX.ajouterAmi(c, false)', code)
+    t(f'{titre} : un ami arrive (2 pilotes) : « Lancer » reste grisé tant qu’il n’est pas prêt', attendre(pg, '() => ENLIGNE_ECRAN.etat().joueurs.length === 2', None, 5000) and pg.evaluate('() => document.getElementById("boutonEnligneLancer").disabled'), str(etat()))
+    pg.evaluate('([c, id]) => ENLIGNE_FAUX.pretAmi(c, id, true)', [code, etat()['joueurs'][1]['id']])
+    t(f'{titre} : l’ami est prêt : « Lancer » s’allume', attendre(pg, '() => !document.getElementById("boutonEnligneLancer").disabled', None, 5000), str(etat()))
+    verifier('salle (hôte)', '#enligneSalle button', 'salle')
+    # les émotes : préréglées, une seule toutes les EN_LIGNE_EMOTE_PAUSE s
+    pg.click('#enligneEmotes button >> nth=2')
+    t(f'{titre} : une émote préréglée (🔥) s’affiche près de mon nom, les boutons s’éteignent un instant (pas de spam)', pg.evaluate('() => document.querySelector("#enligneListe li.moi .emote").textContent === REGLAGES.EN_LIGNE_EMOTES[2] && document.querySelector("#enligneEmotes button").disabled'))
+    attendre(pg, '() => !document.querySelector("#enligneEmotes button").disabled', None, 3000)
+    t(f'{titre} : après la pause, on peut en envoyer une autre ; l’émote disparaît toute seule', attendre(pg, '() => !document.querySelector("#enligneListe .emote")', None, 4000))
+    ami = pg.evaluate('() => ENLIGNE_ECRAN.etat().joueurs.find(j => !j.hote && j.id !== ENLIGNE_ECRAN.etat().moi).id')
+    pg.evaluate('([c, id]) => ENLIGNE_FAUX.emoteAmi(c, id, 5)', [code, ami])
+    t(f'{titre} : l’émote d’un ami (🏁) s’affiche sur sa ligne', attendre(pg, '() => !![...document.querySelectorAll("#enligneListe li:not(.moi) .emote")].find(e => e.textContent === REGLAGES.EN_LIGNE_EMOTES[5])', None, 3000))
+    pg.evaluate('([c, id]) => ENLIGNE_FAUX.emoteAmi(c, id, 99)', [code, ami]); pg.evaluate('([c, id]) => ENLIGNE_FAUX.emoteAmi(c, id, "<b>texte</b>")', [code, ami]); pg.wait_for_timeout(200)
+    t(f'{titre} : une émote inconnue ou du texte libre venu du réseau est ignoré', pg.evaluate('() => !document.querySelector("#enligneSalle b") && [...document.querySelectorAll("#enligneListe .emote")].every(e => REGLAGES.EN_LIGNE_EMOTES.includes(e.textContent))'))
+    # un 3e ami : plus de places pour les IA ; 8 joueurs en tout : la liste tient dans l’écran
+    for _ in range(6): pg.evaluate('c => ENLIGNE_FAUX.ajouterAmi(c, true)', code)
+    attendre(pg, '() => ENLIGNE_ECRAN.etat().joueurs.length === 8', None, 3000)
+    t(f'{titre} : salle pleine (8 pilotes) : plus d’IA possible, la liste tient dans l’écran', pg.evaluate('() => document.querySelector("#enligneRegles .regle[data-cle=nbIA] strong").textContent') == '0' and pg.evaluate('() => document.querySelectorAll("#enligneListe li").length') == 8)
+    verifier('salle pleine (8)', '#enligneSalle button', 'salle-8')
+    pg.evaluate('([c, id]) => ENLIGNE_FAUX.partirAmi(c, id)', [code, ami])
+    t(f'{titre} : un ami qui part disparaît de la liste (7 pilotes)', attendre(pg, '() => ENLIGNE_ECRAN.etat().joueurs.length === 7', None, 3000))
+    # lancer
+    pg.click('#boutonEnligneLancer')
+    t(f'{titre} : « Lancer la course » : l’hôte envoie ses réglages, le départ arrive (le faux serveur le fait)', attendre(pg, '() => JEU.enligneDepart && JEU.enligneDepart.t === "depart" && JEU.enligneDepart.reglages.tours === 5 && JEU.enligneDepart.reglages.circuit === "technique" && JEU.enligneDepart.ordre.length === 7', None, 3000), str(pg.evaluate('() => JEU.enligneDepart')))
+    # quitter : Échap
+    pg.keyboard.press('Escape')
+    t(f'{titre} : Échap dans la salle la quitte : retour au menu, la connexion fermée', attendre(pg, '() => JEU.ecran === "enligne"', None, 2000) and not etat()['connecte'] and etat()['code'] == '')
+    t(f'{titre} : la salle vide a disparu du faux serveur', pg.evaluate('c => !ENLIGNE_FAUX.salle(c) || ENLIGNE_FAUX.salle(c).joueurs.every(j => j.faux)', code) )
+    # rejoindre par code
+    pg.click('#boutonEnligneRejoindre')
+    t(f'{titre} : « Rejoindre une salle » : un champ de 4 lettres, les gros boutons des lettres (aucune voyelle)', ecran() == 'enligneRejoindre' and pg.evaluate('() => document.getElementById("enligneCode").maxLength === 4 && [...document.querySelectorAll("#enligneClavier .enligneTouche:not(.enligneEffacer)")].map(b => b.textContent).join("") === REGLAGES.EN_LIGNE_LETTRES'))
+    verifier('rejoindre par code', '#enligneRejoindre button', 'rejoindre')
+    pg.click('#boutonEnligneGo')
+    t(f'{titre} : un code trop court : « Tape d’abord les 4 lettres »', pg.evaluate('() => document.getElementById("enligneRejoindreMessage").textContent === texte("enligneCodeCourt")'))
+    for lettre in 'BCD': pg.click(f'#enligneClavier button:text-is("{lettre}")')
+    pg.click('#enligneClavier .enligneEffacer')
+    t(f'{titre} : les gros boutons tapent le code, « ⌫ » efface la dernière lettre', pg.evaluate('() => document.getElementById("enligneCode").value') == 'BC')
+    if not tel:
+        pg.fill('#enligneCode', ''); pg.keyboard.type('abecdizf')
+        t(f'{titre} : au clavier, les voyelles et les signes sont ignorés, 4 lettres au plus, en majuscules', pg.evaluate('() => document.getElementById("enligneCode").value') == 'BCDZ', pg.evaluate('() => document.getElementById("enligneCode").value'))
+    def essayer(code_, cle):
+        pg.evaluate('c => { document.getElementById("enligneCode").value = c; }', code_)
+        pg.click('#boutonEnligneGo')
+        return attendre(pg, f'() => document.getElementById("enligneRejoindreMessage").textContent === texte("enligneRefus_{cle}")', None, 3000)
+    t(f'{titre} : un code qui n’existe pas : « Aucune salle n’a ce code »', essayer('ZZZZ', 'inconnue'))
+    verifier('refus (inconnue)', '#enligneRejoindre button', 'refus')
+    t(f'{titre} : une salle pleine : refusée avec son message', essayer('GHJK', 'pleine'))
+    t(f'{titre} : une course déjà commencée : refusée avec son message', essayer('LMNP', 'commencee'))
+    pg.evaluate('() => SAUVEGARDE.ecrireOption("enligne_couleur", 0)')
+    pg.evaluate('() => ENLIGNE_ECRAN.echap()'); pg.click('#boutonEnligneRejoindre')
+    t(f'{titre} : une couleur déjà prise dans la salle : refusée (« choisis-en une autre »)', essayer('BCDF', 'nom'))
+    t(f'{titre} : un refus ferme la connexion, on reste sur l’écran du code', ecran() == 'enligneRejoindre' and not etat()['connecte'])
+    pg.evaluate('() => ENLIGNE_ECRAN.echap()')
+    pg.click('#enligneCouleurs button >> nth=6')
+    pg.click('#boutonEnligneRejoindre')
+    pg.evaluate('() => { ENLIGNE_FAUX.auto = true; document.getElementById("enligneCode").value = "BCDF"; document.getElementById("boutonEnligneGo").click(); }')
+    entre = attendre(pg, '() => JEU.ecran === "enligneSalle" && ENLIGNE_ECRAN.etat().joueurs.length >= 3', None, 3000)
+    t(f'{titre} : une bonne salle (BCDF) : on entre comme invité, l’hôte est un ami, « Je suis prêt » à la place de « Lancer »', entre
+      and not etat()['hote'] and pg.evaluate('() => document.getElementById("boutonEnligneLancer").classList.contains("cache") && !document.getElementById("boutonEnlignePret").classList.contains("cache") && document.getElementById("enligneHoteChoisit").textContent === texte("enligneHoteChoisit") && document.querySelectorAll("#enligneRegles .regle").length === 4 && document.querySelectorAll("#enligneRegles .enligneFleche").length === 0'), str(etat()))
+    t(f'{titre} : l’invité voit le choix de l’hôte (technique, 5 tours, pluie, 3 IA)', attendre(pg, '() => { const r = ENLIGNE_ECRAN.etat().reglages; return r.circuit === "technique" && r.tours === 5 && r.meteo === "pluie" && r.nbIA === 3; }', None, 3000), str(etat()))
+    verifier('salle (invité)', '#enligneSalle button', 'invite')
+    pg.click('#boutonEnlignePret')
+    t(f'{titre} : « Je suis prêt » : mon état passe à prêt, puis l’hôte (faux) lance la course', attendre(pg, '() => ENLIGNE_ECRAN.etat().pret', None, 3000) and attendre(pg, '() => JEU.enligneDepart && JEU.enligneDepart.t === "depart" && JEU.enligneDepart.ordre.length >= 3', None, 5000), str(etat()))
+    pg.click('#boutonEnligneQuitter')
+    t(f'{titre} : « Quitter la salle » : retour au menu', attendre(pg, '() => JEU.ecran === "enligne"', None, 2000))
+    pg.keyboard.press('Escape')
+    t(f'{titre} : Échap au menu : retour à l’écran titre', attendre(pg, '() => JEU.ecran === "titre"', None, 2000))
+    t(f'{titre} : l’écran titre reste dans l’image après tout ça, sans défilement', pg.evaluate(DEDANS_JS, '#titre button')['defile'])
+
+def enligne_paddock(pg, titre, l, h, page):
+    en = 'lang=en' in page
+    if not attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', None, 60000):
+        t(f'{titre} : le paddock', False, str(pg.evaluate('() => typeof JEU !== "undefined" && JEU.ecran'))); return
+    d = pg.evaluate(DEDANS_JS, '#paddockMenu button')
+    defile = pg.evaluate('() => { const m = document.getElementById("paddockMenu"); return getComputedStyle(m).overflowY === "auto" || getComputedStyle(m).overflowY === "scroll"; }')
+    pg.evaluate('() => document.getElementById("boutonEnlignePaddock").scrollIntoView({ block: "nearest" })')
+    t(f'{titre} : ?enligne=1 : « En ligne » est dans le menu du paddock (avec son nom), tout le menu dans l’image (ou le menu défile, en 640×360)', pg.evaluate('() => { const b = document.getElementById("boutonEnlignePaddock"), r = b.getBoundingClientRect(); return b.offsetParent !== null && b.querySelector(".menuNom").textContent === texte("enligneMenu") && r.top >= 0 && r.bottom <= innerHeight + 1; }') and (d['dedans'] or defile), str([d, defile]))
+    pg.screenshot(path=os.path.join(CAPTURES, f'enligne-paddock-{l}{"-en" if en else ""}.png'))
+    pg.click('#boutonEnlignePaddock')
+    t(f'{titre} : « En ligne » du paddock ouvre le menu En ligne', attendre(pg, '() => JEU.ecran === "enligne"', None, 3000))
+    d = pg.evaluate(DEDANS_JS, '#enligne button')
+    t(f'{titre} : le menu En ligne tient dans l’image, sans défilement ni recouvrement', d['dedans'] and d['defile'] and not d['recouvre'], str(d))
+    pg.click('#boutonEnligneRetour')
+    t(f'{titre} : « Retour » ramène au paddock', attendre(pg, '() => JEU.ecran === "championnat" && !document.getElementById("championnat").classList.contains("cache")', None, 3000))
+
 def clavier_titre(pg, titre, l, h):
     if not attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "titre"', None, 60000):
         t(f'{titre} : l’écran titre', False, str(pg.evaluate('() => typeof JEU !== "undefined" && JEU.ecran'))); return
@@ -2265,6 +2403,12 @@ def tactile_ecran(pg, titre, l, h, page):
     # (tour 52b) le premier geste demande le plein écran puis le verrou en paysage (une seule fois), et le refus ne se voit pas
     pg.evaluate("() => { document.body.dispatchEvent(new PointerEvent('pointerup', { bubbles: true })); document.body.dispatchEvent(new PointerEvent('pointerup', { bubbles: true })); }"); pg.wait_for_timeout(200)
     t(f'{titre} : au premier geste sur un écran tactile, le plein écran puis le verrou en paysage sont demandés, une seule fois', pg.evaluate('() => window.__plein === 2'), str(pg.evaluate('() => window.__plein')))
+    # (tour 56, le propriétaire : le message venait trop souvent) debout un instant (0,3 s, un volant tourné fort) : ni message ni pause
+    vu = []
+    pg.evaluate('() => { REGLAGES.PORTRAIT_TOURNER = false; }'); 
+    pg.set_viewport_size({'width': h, 'height': l}); pg.wait_for_timeout(300); vu.append(pg.evaluate('() => document.getElementById("tactilePortrait").classList.contains("cache")'))
+    pg.set_viewport_size({'width': l, 'height': h}); pg.wait_for_timeout(1200)
+    t(f'{titre} : téléphone debout un instant (0,3 s) : ni « Tourne ton téléphone » ni pause', vu[0] and pg.evaluate('() => JEU.ecran === "course" && document.getElementById("tactilePortrait").classList.contains("cache")'), str([vu, pg.evaluate('() => JEU.ecran')]))
     # le téléphone debout pendant la course : le message par-dessus tout et la course en pause ; couché : le message part, la pause reste jusqu'à « Reprendre »
     pg.set_viewport_size({'width': h, 'height': l}); attendre(pg, '() => JEU.ecran === "pause" && !document.getElementById("tactilePortrait").classList.contains("cache")', None, 8000)
     d = pg.evaluate(TACTILE_ETAT)
@@ -2359,6 +2503,7 @@ def tactile_iphone(pg, titre, l, h):
     e2 = pg.evaluate(TACTILE_ETAT)
     t(f'{titre} : accordée, le bouton disparaît, le volant écoute (mode attente), puis une mesure le met en mode volant', e['activer']['cache'] and e['mode'] == 'attente' and e2['mode'] == 'volant' and e2['neutre'] == 30, str([e['mode'], e2['mode'], e2['neutre']]))
     # le téléphone debout, sur la grille : le message par-dessus tout et la course en pause (même si le plein écran est refusé) ; couché : le message part, la pause reste
+    pg.evaluate('() => { REGLAGES.PORTRAIT_TOURNER = false; }'); 
     pg.set_viewport_size({'width': h, 'height': l}); attendre(pg, '() => JEU.ecran === "pause" && !document.getElementById("tactilePortrait").classList.contains("cache")', None, 8000)
     p1 = pg.evaluate(TACTILE_ETAT)
     pg.set_viewport_size({'width': l, 'height': h}); attendre(pg, '() => document.getElementById("tactilePortrait").classList.contains("cache")', None, 5000)
@@ -3321,7 +3466,7 @@ def paddock_menu(pg, titre, l, h, lang):
     attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "championnat"', None, 60000)
     pg.evaluate('() => { if (typeof AIDES_ECRAN !== "undefined") { REGLAGES.AIDES_ACTIVES = false; AIDES_ECRAN.fermer(); } }')   # (la bulle d'aide ne compte pas ici : aides-menus la teste)
     pg.wait_for_timeout(300)
-    m = pg.evaluate("""() => [...document.querySelectorAll('#paddockMenu button')].map(b => [b.id, b.querySelector('.menuNom').textContent, b.getBoundingClientRect().width > 0])""")
+    m = pg.evaluate("""() => [...document.querySelectorAll('#paddockMenu button:not(.cache)')].map(b => [b.id, b.querySelector('.menuNom').textContent, b.getBoundingClientRect().width > 0])""")
     t(f'{titre} : sans écran tactile, les réglages du volant n’existent pas dans les Réglages du paddock', pg.evaluate('() => document.querySelectorAll(".tactileReglage").length === 0 && getComputedStyle(document.getElementById("reglagesVolant")).display === "none"'))
     noms = pg.evaluate("() => ['paddock_course', 'paddock_equipe', 'paddock_boutique', 'paddock_saison', 'paddock_messages', 'titreAmis', 'paddock_reglages', 'paddock_apprendre'].map(texte)")
     t(f'{titre} : le menu à gauche : Course, Mon équipe, Boutique, Saison, Messages, Entre amis, puis Réglages et Apprendre en bas, tous visibles', [x[1] for x in m] == noms and all(x[2] for x in m)
@@ -3428,7 +3573,7 @@ THEME_ETAT = """() => { const id = JEU.ecran === "album" ? "une" : JEU.ecran, el
 # texte ne change pas) ; les lignes des résultats qui arrivent une à une ; rien de tout ça avec prefers-reduced-motion
 PADDOCK_ETAT = """() => { const $ = id => document.getElementById(id), ch = JEU.championnat, cv = $("paddockCarte"), d = cv.getContext("2d").getImageData(0, 0, cv.width, cv.height).data;
   let dessine = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 0) dessine++;
-  const groupes = [...document.querySelectorAll("#paddockMenu .menuNom")].map(e => e.textContent);   // (tour 48a : le menu à gauche à la place des groupes de boutons)
+  const groupes = [...document.querySelectorAll("#paddockMenu button:not(.cache) .menuNom")].map(e => e.textContent);   // (« En ligne », caché sans EN_LIGNE, n'est pas dans le menu)   // (tour 48a : le menu à gauche à la place des groupes de boutons)
   const cl = CHAMPIONNAT.classementPilotes(ch), k = ch.pilotes.findIndex(p => p.humain), i = cl.findIndex(x => x.k === k);
   const boites = ["paddockMenu", "paddockProchain", "paddockMoi", "paddockCourt", "boutonCourseSuivante"].map(id => { const r = $(id).getBoundingClientRect(); return [id, r.left, r.top, r.right, r.bottom]; });
   const cal = CHAMPIONNAT.calendrierSaison(ch)[ch.prochain];
@@ -4529,6 +4674,7 @@ with sync_playwright() as p:
                 conduite(pg, titre)
             if page == 'index.html':
                 t(f'{titre} : la page nue, sans sauvegarde : l’écran titre (« ▶ Jouer », « 👥 Entre amis »), pas de qualification ni d’écran de choix', pg.evaluate('() => JEU.ecran === "titre" && JEU.decouverte && !document.getElementById("titre").classList.contains("cache") && document.getElementById("choix").classList.contains("cache") && document.getElementById("boutonJouer").textContent === texte("titreJouer")'), str(pg.evaluate('() => [JEU.ecran, JEU.decouverte]')))
+                t(f'{titre} : sans ?enligne=1, EN_LIGNE est faux : aucun bouton « En ligne » au titre (le jeu d’avant), et le réglage « En ligne » existe', pg.evaluate('() => REGLAGES.EN_LIGNE === false && document.getElementById("boutonEnligneTitre").offsetParent === null && document.getElementById("boutonEnlignePaddock").offsetParent === null'))
                 if l == 960:
                     # une ancienne sauvegarde : un championnat déjà commencé, sans pilote créé → la création est demandée une fois, en 960×600 sans défilement
                     pg.evaluate('() => { const ch = CHAMPIONNAT.creer(1); ch.prochain = 2; localStorage.setItem(SAUVEGARDE.CLE, JSON.stringify({ version: 3, records: {}, championnat: ch })); }')   # (une sauvegarde d'avant : sans decouverteFaite ni argent)
@@ -4555,6 +4701,10 @@ with sync_playwright() as p:
                 amis(pg, titre, l, h)
             if 'test=touches' in page:
                 touches_deux(pg, titre, l, h)
+            if 'test=enligne-paddock' in page:
+                enligne_paddock(pg, titre, l, h, page)
+            elif 'test=enligne' in page:
+                enligne_ecran(pg, titre, l, h, page)
             if 'test=suivie' in page:
                 camera_suivie(pg, titre, page)
             if 'test=tournoi' in page:
@@ -4656,6 +4806,7 @@ with sync_playwright() as p:
                 audit_en(pg, titre, l)
             elif 'gp=12' in page:
                 fin_saison(pg, titre, l)
+            elif 'test=enligne' in page: pass   # (tour 56, T5 : sa page à lui, plus haut)
             elif 'test=tactile-classement' in page: pass   # (sa page à lui : tactile_ecran, plus bas)
             elif 'championnat=1' in page and 'lang=en' in page:
                 championnat_en(pg, titre)

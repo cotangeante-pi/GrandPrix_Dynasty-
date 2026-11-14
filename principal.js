@@ -1,6 +1,7 @@
 // Le démarrage : il branche la physique et l'affichage sur la boucle.
 // La voiture du joueur roule sur le circuit de test, ou sur celui de ?circuit=… (un nom de CIRCUITS, donnees.js).
 const PARAMETRES = new URLSearchParams(location.search);
+if (PARAMETRES.get('enligne') === '1') REGLAGES.EN_LIGNE = true; else if (PARAMETRES.get('enligne') === '0') REGLAGES.EN_LIGNE = false;   // (tour 56, T5) les batailles en ligne : ?enligne=1 montre « En ligne » au titre et au paddock (EN_LIGNE, donnees.js : faux d'office)
 if (PARAMETRES.get('drift') === '1') REGLAGES.PNEU_DRIFT = true;   // (tour 48b, tests) ?drift=1 rallume le pneu drift caché (PNEU_DRIFT, donnees.js)
 // la page nue (index.html sans paramètre de développement) est le vrai jeu (CLAUDE.md « En piste en 10 secondes ») : au
 // premier lancement, l'écran titre puis la course de découverte ; ensuite (découverte faite), le championnat = le paddock.
@@ -304,7 +305,7 @@ function noterFantomeSeul(c, v) {
   const f = JEU.fantomeSeul || (JEU.fantomeSeul = { tour: null, nTours: 0, ligne: 0, sale: false, meilleur: null });
   if (c.tours.length > f.nTours) {   // un tour vient de finir
     const t = c.tours[c.tours.length - 1];
-    if (f.tour && !f.sale && !t.coupe && (!f.meilleur || t.temps < f.meilleur.temps)) {
+    if (f.tour && !f.sale && !t.coupe && !t.limites && (!f.meilleur || t.temps < f.meilleur.temps)) {
       FANTOME.noter(f.tour, t.temps, v, c.progression - f.ligne);
       f.meilleur = { temps: t.temps, compact: FANTOME.compacter(f.tour, t.temps, c.progression - f.ligne) };
     }
@@ -792,6 +793,21 @@ function montrerAmis() {
   JEU.ecran = 'amis';
   INTERFACE.montrer('amis');
 }
+
+// « En ligne » (enligne-ecran.js, tour 56 T5 ; derrière EN_LIGNE) : le menu depuis l'écran titre ou le paddock ; « Retour » revient là d'où on vient
+function montrerEnligne() {
+  if (!REGLAGES.EN_LIGNE || (JEU.ecran !== 'titre' && JEU.ecran !== 'championnat')) return;
+  JEU.enligneDepuis = JEU.ecran;
+  PODIUM3D.cacher();
+  ENLIGNE_ECRAN.ouvrir();
+}
+function retourEnligne() {
+  if (JEU.ecran !== 'enligne') return;
+  if (JEU.enligneDepuis === 'championnat' && JEU.championnat) montrerChampionnat(JEU.gagne === undefined ? null : JEU.gagne);
+  else montrerTitre();
+}
+// la course en ligne elle-même (T7) : pour l'instant la salle dit seulement « C'est parti ! »
+function departEnligne(msg) { JEU.enligneDepart = msg; }
 
 function retourTitre() {
   if (JEU.ecran !== 'amis') return;
@@ -2093,6 +2109,8 @@ function toucheChoisie(e) {
 function brancherClavier() {
   window.addEventListener('keydown', toucheChoisie, true);   // (tour 49b) avant tout le reste : la touche choisie pour une commande
   window.addEventListener('keydown', e => {
+    // (tour 56, T5) les écrans « En ligne » : on y tape un code, aucune commande de course ; Échap fait un pas en arrière
+    if (ENLIGNE_ECRAN.actif()) { if (e.code === 'Escape' && !e.repeat) { e.preventDefault(); ENLIGNE_ECRAN.echap(); } return; }
     // le mode 2 joueurs : ni C (la caméra reste derrière), ni Espace, ni Entrée pour le podium ; chacun sa touche de remise en piste
     if (JEU.deux) { if (!e.repeat) for (const j of [1, 2]) if (DEUX_JOUEURS.remise(new Set([e.code]), j)) JEU.deuxCommandes[j].remettre = true; }
     else {
@@ -2456,7 +2474,7 @@ function majRetro(dt) {
   JEU.retroMaj = (JEU.retroMaj || 0) - dt;
   if (!JEU.retroPlace || JEU.retroMaj <= 0) {   // (la place du chrono, relue de temps en temps : lire une boîte force la mise en page)
     JEU.retroMaj = REGLAGES.RETRO_MAJ_ZONE;
-    const W = window.innerWidth, H = window.innerHeight, hud = document.getElementById('hudCourse');
+    const tj = typeof TACTILE !== 'undefined' ? TACTILE.tailleJeu() : { l: window.innerWidth, h: window.innerHeight }, W = tj.l, H = tj.h, hud = document.getElementById('hudCourse');   // (tour 56, T15 : la taille du JEU, tourné ou non)
     const r = hud && !hud.classList.contains('cache') ? hud.getBoundingClientRect() : null;
     const l = Math.round(Math.min(REGLAGES.RETRO_LARGEUR_MAX, W * REGLAGES.RETRO_LARGEUR)), y = Math.round(r && r.height > 0 ? r.bottom + REGLAGES.RETRO_ECART : H * REGLAGES.RETRO_HAUT);
     const h = Math.max(REGLAGES.RETRO_HAUTEUR_MIN, Math.min(Math.round(l / REGLAGES.RETRO_RAPPORT), REGLAGES.RETRO_BAS_MAX - y));   // (au-dessus des messages de course)
@@ -2559,7 +2577,7 @@ function majTableau() {
   document.getElementById('rapport').textContent = rapportPourVitesse(v.u);
   const roule = JEU.ecran === 'course' || JEU.ecran === 'survol' || enTourQualif();
   // sur le podium et les résultats, ni vitesse ni aide des touches
-  const apres = ['podium', 'resultats', 'championnat', 'une', 'garage', 'titre', 'amis', 'saison', 'duelSaison', 'contrats', 'retraite', 'sponsors', 'fiche', 'interview', 'ceremonie', 'album', 'temple', 'heritier', 'calendrier', 'deuxReglages', 'tournoiInscription', 'tournoiAToi', 'tournoiPause', 'tournoiManche', 'tournoiFin', 'aileron', 'arbre', 'reglagesVoiture'].includes(JEU.ecran);
+  const apres = ['podium', 'resultats', 'championnat', 'une', 'garage', 'titre', 'amis', 'enligne', 'enligneRejoindre', 'enligneSalle', 'saison', 'duelSaison', 'contrats', 'retraite', 'sponsors', 'fiche', 'interview', 'ceremonie', 'album', 'temple', 'heritier', 'calendrier', 'deuxReglages', 'tournoiInscription', 'tournoiAToi', 'tournoiPause', 'tournoiManche', 'tournoiFin', 'aileron', 'arbre', 'reglagesVoiture'].includes(JEU.ecran);
   document.getElementById('tableau').classList.toggle('cache', apres || volantVisible());   // (en vue cockpit, rapport et vitesse sont sur le volant)
   document.getElementById('aide').classList.toggle('cache', apres);
   // après l'arrivée du joueur (en attendant les autres), il ne court plus : pas de « hors piste »
@@ -2780,6 +2798,7 @@ function demarrerJeu() {
   INTERFACE.preparerResume(montrerResume, quitterResume);
   INTERFACE.preparerGrille(finirGrille);
   INTERFACE.preparerAmis(ouvrirDeux, ouvrirTournoi, montrerAmis);
+  ENLIGNE_ECRAN.preparer({ aller: e => { JEU.ecran = e; INTERFACE.montrer(e); }, retour: retourEnligne, depart: departEnligne, ouvrir: montrerEnligne });   // (tour 56, T5)
   TOUCHES_ECRAN.preparer({ ouvrir: ouvrirTouches, choisir: choisirTouche, defaut: touchesParDefaut, retour: quitterTouches });   // (tour 49b) les touches au choix
   // (tour 49b) le défi du fantôme : « Relever un défi » dans « Entre amis », son écran, la fin du tour, « 📋 Défier un ami » après la qualification
   { const b = document.getElementById('boutonAmisDefi'); b.textContent = texte('amisDefi'); b.addEventListener('mousedown', e => e.preventDefault()); b.addEventListener('click', ouvrirDefi); }
