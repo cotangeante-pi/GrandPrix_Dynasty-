@@ -377,7 +377,7 @@ const EN_LIGNE = (function () {
       if (n % periode === 0) {
         const h = empreinte(e);
         miens.set(n, h);
-        envoyer({ t: 'controle', n, h });
+        envoyer({ t: 'controle', n, h: String(h) });   // (décision D5 : h est une chaîne ; le relais refuse un nombre, et coupe qui en envoie trop)
         comparer(n);
         for (const k of [...miens.keys()]) if (k <= n - 10 * periode) { miens.delete(k); siens.delete(k); }
       }
@@ -404,10 +404,13 @@ const EN_LIGNE = (function () {
         const horizon = n + 2 * delai + 8;
         liste.forEach((x, i) => { const k = msg.n + i; if (k >= delai && k >= n - 1 && k <= horizon && !mes.has(k)) mes.set(k, codeValide(x) ? x : CODE_NEUTRE); });
       } else if (msg.t === 'controle') {
-        if (msg.de === moi || !codes.has(msg.de) || !Number.isInteger(msg.n) || !Number.isInteger(msg.h) || msg.h < 0 || msg.h > 4294967295) return;
+        if (msg.de === moi || !codes.has(msg.de) || !Number.isInteger(msg.n)) return;
+        // l'empreinte arrive en chaîne décimale (D5) ; un entier de 32 bits est aussi accepté (le faux réseau des tests)
+        const h = typeof msg.h === 'string' ? (/^[0-9]{1,10}$/.test(msg.h) ? Number(msg.h) : -1) : msg.h;
+        if (!Number.isInteger(h) || h < 0 || h > 4294967295) return;
         if (msg.n % periode !== 0 || msg.n > n + 2 * delai + 8 || msg.n < n - 10 * periode) return;   // (relecture T11) un contrôle trop loin ne sert à rien et remplirait la mémoire
         if (!siens.has(msg.n)) siens.set(msg.n, new Map());
-        siens.get(msg.n).set(msg.de, msg.h);
+        siens.get(msg.n).set(msg.de, h);
         comparer(msg.n);
       } else if (msg.t === 'parti') {
         partie.quitter(msg.id);
