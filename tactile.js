@@ -198,6 +198,7 @@ const TACTILE = (function () {
   // (tour 56, T14) le choix des pneus pendant l'arrêt au stand, au doigt : une rangée de boutons (un par pneu), à la place de ← → ; types = la liste
   // des pneus permis, ou null hors de l'arrêt (la rangée se cache) ; courant = le pneu qui sera monté ; le doigt appelle rappels.pneu(type)
   const P = { cle: '' };
+  const ICONES_PNEUS = { slick: '☀️', inter: '🌦️', pluie: '🌧️', drift: '🌀' };   // (une icône par pneu : le nom est dans le bandeau de l'arrêt, « Pneus : X »)
   function pneus(types, courant) {
     const el = $('tactilePneus');
     if (!el) return;
@@ -207,7 +208,7 @@ const TACTILE = (function () {
     if (cle !== P.cle) {
       P.cle = cle; el.textContent = '';
       for (const type of types) {
-        const b = document.createElement('div'); b.className = 'tactilePneu'; b.dataset.pneu = type; b.textContent = texte('pneu_' + type);
+        const b = document.createElement('div'); b.className = 'tactilePneu'; b.dataset.pneu = type; b.textContent = ICONES_PNEUS[type] || texte('pneu_' + type); b.title = texte('pneu_' + type); b.setAttribute('aria-label', texte('pneu_' + type));
         b.addEventListener('pointerdown', e => { e.preventDefault(); if (rappels.pneu) rappels.pneu(type); });
         b.addEventListener('contextmenu', e => e.preventDefault());
         el.appendChild(b);
