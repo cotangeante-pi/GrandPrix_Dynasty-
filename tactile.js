@@ -20,6 +20,15 @@ const TACTILE = (function () {
     if (typeof beta !== 'number' || !isFinite(beta)) return null;
     return Math.round(Math.asin(Math.max(-1, Math.min(1, Math.sin(beta / DEG)))) * DEG * 1e6) / 1e6;   // (arrondi au millionième : 40 reste 40)
   }
+  // (tour 56, T15) le volant du téléphone tenu DEBOUT (le jeu est tourné) : on tourne le téléphone dans son plan, comme un vrai volant ;
+  // la gravité mesurée a pour composantes gx = −cos(beta)·sin(gamma) (le petit côté) et gy = sin(beta) (le grand côté) : l'angle de roulis,
+  // dans le sens des aiguilles d'une montre (le haut du téléphone part vers la droite) positif, braque à droite
+  function angleDebout(beta, gamma) {
+    if (typeof beta !== 'number' || typeof gamma !== 'number' || !isFinite(beta) || !isFinite(gamma)) return null;
+    const gx = Math.cos(beta / DEG) * Math.sin(gamma / DEG), gy = Math.sin(beta / DEG);
+    if (gx * gx + gy * gy < 1e-6) return null;   // (téléphone à plat : pas d'angle)
+    return Math.round(Math.atan2(gx, gy) * DEG * 1e6) / 1e6;
+  }
   // le braquage (−1..1) : l'écart au neutre, une zone morte au milieu (sans saut à son bord), VOLANT_PLEIN ° = à fond ;
   // sens = +1 ou −1 selon le côté où le téléphone est couché (landscape-primary ou secondary), VOLANT_INVERSE le retourne
   function braquage(a, neutre, sens) {
@@ -66,7 +75,7 @@ const TACTILE = (function () {
 
   const E = {};   // les éléments
   const tenus = { gaz: new Set(), frein: new Set(), gauche: new Set(), droite: new Set() };   // les doigts posés sur chaque bouton
-  const V = { pauseDebout: false, deboutDepuis: null, mode: 'aucun', neutre: null, brut: null, lisse: null, attente: 0, grille: false, permission: null, choix: 'volant', conduite: false, ecoute: false };
+  const V = { tourne: false, pauseDebout: false, deboutDepuis: null, mode: 'aucun', neutre: null, brut: null, lisse: null, attente: 0, grille: false, permission: null, choix: 'volant', conduite: false, ecoute: false };
   // mode : 'aucun' (pas branché), 'attente' (on écoute, rien reçu), 'volant' (le capteur parle), 'boutons' (pas de capteur, ou refusé)
   let rappels = {};
 
@@ -74,7 +83,7 @@ const TACTILE = (function () {
   const sens = () => sensEcran(typeof screen !== 'undefined' && screen.orientation ? screen.orientation.type : undefined, typeof window !== 'undefined' ? window.orientation : undefined);
 
   function surOrientation(e) {
-    const a = angle(e.beta);
+    const a = V.tourne ? angleDebout(e.beta, e.gamma) : angle(e.beta);
     if (a === null) return;
     V.brut = a;
     if (V.neutre === null) V.neutre = a;   // la position neutre : la première mesure (puis reprise au départ de la conduite, et « Recentrer »)
@@ -198,6 +207,25 @@ const TACTILE = (function () {
     return false;
   }
 
+  // (tour 56, T15) téléphone debout pour de bon (deboutStable) et PORTRAIT_TOURNER : html.tourne et la taille du jeu (--jw × --jh : la fenêtre,
+  // largeur et hauteur échangées) ; couché de nouveau, tout redevient comme avant. Le volant change d'axe : le neutre est repris à la mesure suivante.
+  function appliquerTourne() {
+    if (typeof document === 'undefined') return;
+    const racine = document.documentElement, voulu = !!R.PORTRAIT_TOURNER && deboutStable();
+    if (voulu) { racine.style.setProperty('--jw', window.innerHeight + 'px'); racine.style.setProperty('--jh', window.innerWidth + 'px'); }
+    if (voulu === V.tourne) return;
+    V.tourne = voulu;
+    racine.classList.toggle('tourne', voulu);
+    if (!voulu) { racine.style.removeProperty('--jw'); racine.style.removeProperty('--jh'); }
+    V.brut = null; V.neutre = null; V.lisse = null;
+    // (la mise en page change : les éléments qui lisent leur taille la relisent)
+    try { window.dispatchEvent(new Event('resize')); } catch (err) { /* rien */ }
+  }
+  // la taille du JEU (celle qu'il voit : tournée, largeur et hauteur échangées) et les doigts / la souris ramenés dans le jeu
+  const tailleJeu = () => V.tourne ? { l: window.innerHeight, h: window.innerWidth } : { l: window.innerWidth, h: window.innerHeight };
+  // un écart (dx, dy) en pixels de la fenêtre -> le même écart dans le jeu (tourné de 90° dans le sens inverse des aiguilles : x_jeu = −dy, y_jeu = dx)
+  const ecartJeu = (dx, dy) => V.tourne ? { x: -dy, y: dx } : { x: dx, y: dy };
+
   function rafraichir() {
     if (!E.gaz) return;
     const t = $('tactile'), conduite = V.conduite;
@@ -209,7 +237,8 @@ const TACTILE = (function () {
     // (tour 53e) iPhone : « 🎮 Activer le volant » sur la grille, pendant les feux (R.TACTILE_IPHONE_GRILLE) ; faux : sur l'écran titre, comme avant
     if (act) act.classList.toggle('cache', !permissionADemander() || V.permission !== null || (R.TACTILE_IPHONE_GRILLE ? !V.grille : conduite));
     const po = $('tactilePortrait');
-    if (po) po.classList.toggle('cache', !deboutStable());
+    appliquerTourne();
+    if (po) po.classList.toggle('cache', !deboutStable() || !!R.PORTRAIT_TOURNER);
     const bv = $('boutonVolantPause'), br = $('boutonRecentrerPause'), ligne = $('pauseTactile');
     if (ligne) ligne.classList.toggle('cache', V.mode !== 'volant');   // (la rangée entière : sans volant, la pause garde sa hauteur d'avant)
     if (bv) { bv.classList.toggle('cache', V.mode !== 'volant'); bv.textContent = texte(V.choix === 'volant' ? 'tac_mode_volant' : 'tac_mode_boutons'); }
@@ -224,9 +253,10 @@ const TACTILE = (function () {
     if (conduite && !V.conduite) { if (V.brut !== null) { V.neutre = V.brut; V.lisse = V.brut; } toutLacher(); }   // le neutre pris au départ
     if (conduite !== V.conduite) { V.conduite = conduite; rafraichir(); }
     // téléphone debout pendant la conduite : la course se met en pause (une fois) ; couché de nouveau, elle reprend seulement par « Reprendre »
-    const debout = deboutStable();
-    if (debout && !V.deboutVu) rafraichir();   // (le message suit la pause dans la même image)
-    V.deboutVu = debout;
+    const debout = deboutStable() && !R.PORTRAIT_TOURNER;   // (le jeu tourné ne se met pas en pause : il s'affiche, voir appliquerTourne)
+    if (deboutStable() && !V.deboutVu) rafraichir();   // (le message suit la pause dans la même image)
+    V.deboutVu = deboutStable();
+    appliquerTourne();
     if (debout && conduite && !V.pauseDebout) { V.pauseDebout = true; if (rappels.pause) rappels.pause(); }
     if (!debout) V.pauseDebout = false;
     if (V.mode === 'attente') { V.attente += dt || 0; if (V.attente >= R.VOLANT_ATTENTE) { V.mode = 'boutons'; rafraichir(); } }   // pas de capteur : ◀ ▶
@@ -235,9 +265,9 @@ const TACTILE = (function () {
   // les cibles du tactile (le plus fort rejoint celles du clavier) ; null sans écran tactile
   function cibles() {
     if (!E.gaz) return null;
-    const direction = volantActif() ? braquage(V.lisse, V.neutre, sens()) : (tenus.droite.size ? 1 : 0) - (tenus.gauche.size ? 1 : 0);
+    const direction = volantActif() ? braquage(V.lisse, V.neutre, V.tourne ? 1 : sens()) : (tenus.droite.size ? 1 : 0) - (tenus.gauche.size ? 1 : 0);
     return { gaz: tenus.gaz.size ? 1 : 0, frein: tenus.frein.size ? 1 : 0, direction };
   }
 
-  return { angle, braquage, lisser, sensEcran, fusionner, portrait, estPresent, brancher, maj, cibles, recentrer, activer, etat: V, reglages: G };
+  return { angle, braquage, lisser, sensEcran, fusionner, portrait, estPresent, tailleJeu, ecartJeu, brancher, maj, cibles, recentrer, activer, etat: V, reglages: G };
 })();

@@ -2224,6 +2224,7 @@ def tactile_ecran(pg, titre, l, h, page):
     t(f'{titre} : au premier geste sur un écran tactile, le plein écran puis le verrou en paysage sont demandés, une seule fois', pg.evaluate('() => window.__plein === 2'), str(pg.evaluate('() => window.__plein')))
     # (tour 56, le propriétaire : le message venait trop souvent) debout un instant (0,3 s, un volant tourné fort) : ni message ni pause
     vu = []
+    pg.evaluate('() => { REGLAGES.PORTRAIT_TOURNER = false; }'); 
     pg.set_viewport_size({'width': h, 'height': l}); pg.wait_for_timeout(300); vu.append(pg.evaluate('() => document.getElementById("tactilePortrait").classList.contains("cache")'))
     pg.set_viewport_size({'width': l, 'height': h}); pg.wait_for_timeout(1200)
     t(f'{titre} : téléphone debout un instant (0,3 s) : ni « Tourne ton téléphone » ni pause', vu[0] and pg.evaluate('() => JEU.ecran === "course" && document.getElementById("tactilePortrait").classList.contains("cache")'), str([vu, pg.evaluate('() => JEU.ecran')]))
@@ -2321,6 +2322,7 @@ def tactile_iphone(pg, titre, l, h):
     e2 = pg.evaluate(TACTILE_ETAT)
     t(f'{titre} : accordée, le bouton disparaît, le volant écoute (mode attente), puis une mesure le met en mode volant', e['activer']['cache'] and e['mode'] == 'attente' and e2['mode'] == 'volant' and e2['neutre'] == 30, str([e['mode'], e2['mode'], e2['neutre']]))
     # le téléphone debout, sur la grille : le message par-dessus tout et la course en pause (même si le plein écran est refusé) ; couché : le message part, la pause reste
+    pg.evaluate('() => { REGLAGES.PORTRAIT_TOURNER = false; }'); 
     pg.set_viewport_size({'width': h, 'height': l}); attendre(pg, '() => JEU.ecran === "pause" && !document.getElementById("tactilePortrait").classList.contains("cache")', None, 8000)
     p1 = pg.evaluate(TACTILE_ETAT)
     pg.set_viewport_size({'width': l, 'height': h}); attendre(pg, '() => document.getElementById("tactilePortrait").classList.contains("cache")', None, 5000)
