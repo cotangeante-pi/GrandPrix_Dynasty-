@@ -21,6 +21,8 @@
 //   partie.n                                  le prochain pas à faire (= le nombre de pas faits) ; partie.attente : les ids qu'on attend (null : personne)
 //   partie.desynchro                          null, ou { n, de, miens, siens } : l'empreinte de `de` au pas n n'est pas la nôtre (la partie s'arrête)
 //   partie.finie()                            tous les humains encore là sont arrivés (ou toutes les voitures)
+//   partie.fin                                null, ou le pas où la course en ligne est finie POUR TOUS (la même chose chez tous les clients, car décidé à un pas
+//                                              précis : tout le monde a fini, ou ARRIVEE_ATTENTE_MAX s après le dernier humain arrivé) ; la partie n'avance plus après
 //   partie.empreinte()                        l'empreinte de l'état maintenant (un entier de 32 bits)
 //   EN_LIGNE.coder(c) / EN_LIGNE.decoder(x)   une commande { gaz, frein, direction, remise } ↔ un entier (14 bits) ; c'est l'entier qui voyage
 //   EN_LIGNE.banc(ids, options)               un faux réseau en mémoire (latences réglables) qui relie plusieurs parties : pour les tests
@@ -304,6 +306,7 @@ const EN_LIGNE = (function () {
     const miens = new Map(), siens = new Map();               // pas → empreinte à nous ; pas → (id → empreinte)
     let paquet = { n: delai, c: [] };                          // les commandes à nous pas encore envoyées
     let desynchro = null;
+    let finPas = null;
     let attente = null;
     let pasAttendus = 0;                                       // de suite, sans pouvoir avancer (pour le délai adaptatif, le « le joueur ne répond plus »)
 
@@ -313,6 +316,7 @@ const EN_LIGNE = (function () {
       get n() { return n; },
       get attente() { return attente; },
       get desynchro() { return desynchro; },
+      get fin() { return finPas; },
       get pasAttendus() { return pasAttendus; },
       sortis,
     };
@@ -341,7 +345,7 @@ const EN_LIGNE = (function () {
 
     // un pas, si les commandes de tous sont là ; sinon false (et attente dit qui)
     function unPas() {
-      if (desynchro || n >= pasMax) return false;
+      if (desynchro || n >= pasMax || finPas !== null) return false;
       const manque = [];
       for (const id of ordre) if (codeDe(id, n) === undefined) manque.push(id);
       if (manque.length) { attente = manque; pasAttendus++; return false; }
@@ -355,6 +359,14 @@ const EN_LIGNE = (function () {
       paquet.c.push(code);
       if (paquet.c.length >= taillePaquet) vider();
       n++;
+      // (relecture T11, 2e passe) la fin de la course est décidée à un pas précis : si chaque page décidait « podium » à son image, l'une s'arrêterait
+      // quelques pas avant l'autre (jusqu'à 12 pas par image, autant que le délai) et la plus lente attendrait pour toujours les commandes de l'autre.
+      // Un joueur parti ne compte comme tel qu'une fois son pas dernier + 1 joué (il faut alors savoir qu'il est parti : la même chose chez tous)
+      if (finPas === null) {
+        const encore = ordre.filter(id => !(sortis.has(id) && n > sortis.get(id) + 1)).map(id => pilotes.get(id));
+        if (e.pilotes.every(q => q.arrivee !== null) || !encore.length) finPas = n;
+        else if (encore.every(q => q.arrivee !== null) && e.temps - Math.max(...encore.map(q => q.arrivee)) >= R.ARRIVEE_ATTENTE_MAX) finPas = n;
+      }
       // le ménage : les commandes d'il y a longtemps ne servent plus
       for (const m of codes.values()) m.delete(n - 2);
       if (n % periode === 0) {
