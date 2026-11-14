@@ -17,6 +17,8 @@ def _garde():
     except Exception: os._exit(2)
 _t = threading.Timer(840, _garde); _t.daemon = True; _t.start()
 ok_tout = True
+try: os.setpgrp()   # (son propre groupe de processus : le garde-fou ci-dessous emporte Playwright et Chrome avec lui, jamais un enfant orphelin qui tient un tube ouvert)
+except Exception: pass
 def dire(ok, nom, detail=''):
     global ok_tout
     ok_tout = ok_tout and ok

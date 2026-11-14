@@ -230,14 +230,11 @@ const ENLIGNE_PAGE = (function () {
     return { gaz: d && d.extinction !== null ? 1 : 0, frein: 0, direction: 0 };
   }
 
-  // le podium : les voitures qui roulent encore sont attendues autant que dans une course contre les IA, mais le moment doit être le même pour tous :
-  // toutes arrivées, ou ARRIVEE_ATTENTE_MAX s de course après l'arrivée du dernier joueur encore là (e.temps et les arrivées sont ceux de la simulation)
-  function podiumPret(e) {
+  // le podium : au pas où la course est finie POUR TOUS (partie.fin, décidé par le cœur : le même pas chez tous les clients : tout le monde a fini, ou
+  // ARRIVEE_ATTENTE_MAX s après le dernier humain arrivé) ; la partie n'avance plus ensuite
+  function podiumPret() {
     const p = etat.partie;
-    if (e.pilotes.every(q => q.arrivee !== null)) return true;
-    const encore = p.ordre.filter(id => !p.sortis.has(id)).map(id => p.pilotes.get(id));
-    if (!encore.length || !encore.every(q => q.arrivee !== null)) return false;
-    return e.temps - Math.max(...encore.map(q => q.arrivee)) >= R.ARRIVEE_ATTENTE_MAX;
+    return !!p && p.fin !== null && p.fin !== undefined;
   }
 
   // le bouton des résultats : de retour à la salle. L'hôte le dit à tous (« retour » : les prêts repartent à faux, la salle accepte de nouveau) ; les autres
