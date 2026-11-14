@@ -16,7 +16,7 @@ const ENLIGNE_FAUX = (function () {
   let salles = new Map(), suivant = 1;
   const api = { auto: true };
 
-  const nomDe = id => texte('enligneNom').replace('{c}', texte('enligneCouleur_' + id));
+  const nomDe = id => id;   // (D1) le nom sur le fil est l'id d'une couleur (« rouge », « rouge-2 »)
   const codeAuHasard = () => { let c; do { c = ''; for (let i = 0; i < R.EN_LIGNE_CODE_LONGUEUR; i++) c += R.EN_LIGNE_LETTRES[Math.floor(Math.random() * R.EN_LIGNE_LETTRES.length)]; } while (salles.has(c)); return c; };
 
   function salle(code, hote, commencee) {
@@ -67,7 +67,8 @@ const ENLIGNE_FAUX = (function () {
       const s = t.salle, j = t.moi;
       if (!s || !j) return;
       s.joueurs = s.joueurs.filter(x => x !== j); t.salle = null; t.moi = null;
-      if (!s.joueurs.some(x => x.transport)) { salles.delete(s.code); return; }   // une salle sans humain disparaît
+      if (!s.joueurs.length) { salles.delete(s.code); return; }   // une salle vide disparaît (les salles toutes faites gardent leurs faux amis)
+      if (!s.joueurs.some(x => x.transport)) { s.hote = s.joueurs[0].id; s.commencee = false; return; }   // (plus d'humain : la salle toute faite revient à son état de départ)
       diffuser(s, { t: 'parti', id: j.id });
       if (s.hote === j.id) { s.hote = s.joueurs[0].id; diffuser(s, { t: 'nouvel-hote', id: s.hote }); }
       diffuser(s, { t: 'joueurs', liste: liste(s) });

@@ -309,7 +309,7 @@ function noterFantomeSeul(c, v) {
   const f = JEU.fantomeSeul || (JEU.fantomeSeul = { tour: null, nTours: 0, ligne: 0, sale: false, meilleur: null });
   if (c.tours.length > f.nTours) {   // un tour vient de finir
     const t = c.tours[c.tours.length - 1];
-    if (f.tour && !f.sale && !t.coupe && (!f.meilleur || t.temps < f.meilleur.temps)) {
+    if (f.tour && !f.sale && !t.coupe && !t.limites && (!f.meilleur || t.temps < f.meilleur.temps)) {
       FANTOME.noter(f.tour, t.temps, v, c.progression - f.ligne);
       f.meilleur = { temps: t.temps, compact: FANTOME.compacter(f.tour, t.temps, c.progression - f.ligne) };
     }
@@ -2200,7 +2200,8 @@ function majManettes(dt) {
     const sens = MANETTE.sensMenu(MANETTES.menus[k] || (MANETTES.menus[k] = { sens: null, tenu: 0 }), m, dt);
     if (sens) {
       const bs = boutonsVisibles(), i = bs.indexOf(MANETTES.choix);
-      const j = MANETTE.voisin(bs.map(b => { const r = b.getBoundingClientRect(); return { x: r.left, y: r.top, l: r.width, h: r.height }; }), i, sens);
+      const j = MANETTE.voisin(bs.map(b => { const r = typeof TACTILE !== 'undefined' ? TACTILE.rectJeu(b) : b.getBoundingClientRect();   // (T15b : dans le jeu tourné, les rectangles sont ramenés dans le jeu, sinon la croix irait de travers)
+         return { x: r.left, y: r.top, l: r.width, h: r.height }; }), i, sens);
       if (j >= 0) choisirBouton(bs[j]);
     }
     if (f.includes('a')) { if (MANETTES.choix) MANETTES.choix.click(); else choisirBouton(boutonsVisibles()[0] || null); }
@@ -2228,6 +2229,8 @@ function majTactile(dt) {
   if (!TACTILE.estPresent()) return;
   const conduite = !JEU.deux && (JEU.ecran === 'course' || JEU.ecran === 'survol' || enTourQualif());
   TACTILE.maj(conduite, dt || 0, conduite && JEU.ecran === 'course' && !!JEU.course && JEU.course.etat === 'compte');
+  { const h = conduite && JEU.plateau && JEU.ecran === 'course' ? pilotePlateauHumain() : null, aux = !!(h && h.course.arretEnCours);   // (tour 56, T14) le choix des pneus à l'arrêt, au doigt
+    TACTILE.pneus(aux ? METEO.TYPES : null, aux ? h.v.pneusProchain || h.v.typePneus || 'slick' : null); }
   if (!conduite) return;
   const t = TACTILE.cibles();
   if (!t) return;
@@ -2269,6 +2272,12 @@ function choisirPneusArret(v, direction, arret) {
   v.pneusSens = sens;
 }
 
+// (tour 56, T14) le pilote humain de la course (le bouton d'un pneu, au doigt, change ses pneus comme ← →)
+const pilotePlateauHumain = () => (JEU.plateau && JEU.plateau.pilotes.find(q => q.humain)) || null;
+function choisirPneuDoigt(type) {
+  const h = pilotePlateauHumain();
+  if (h && h.course.arretEnCours && METEO.TYPES.includes(type)) { h.v.pneusProchain = type; h.v.choixPneus = true; }
+}
 function conduireJoueur(p, pas) {
   // le mode 2 joueurs : chaque joueur (p.joueur = 1, 2) a ses commandes, lues de ses touches à lui ; sinon celles de la course seule
   const cmd = JEU.deux && p.joueur ? JEU.deuxCommandes[p.joueur] : JEU;
@@ -2476,8 +2485,8 @@ function majRetro(dt) {
   JEU.retroMaj = (JEU.retroMaj || 0) - dt;
   if (!JEU.retroPlace || JEU.retroMaj <= 0) {   // (la place du chrono, relue de temps en temps : lire une boîte force la mise en page)
     JEU.retroMaj = REGLAGES.RETRO_MAJ_ZONE;
-    const W = window.innerWidth, H = window.innerHeight, hud = document.getElementById('hudCourse');
-    const r = hud && !hud.classList.contains('cache') ? hud.getBoundingClientRect() : null;
+    const tj = typeof TACTILE !== 'undefined' ? TACTILE.tailleJeu() : { l: window.innerWidth, h: window.innerHeight }, W = tj.l, H = tj.h, hud = document.getElementById('hudCourse');   // (tour 56, T15 : la taille du JEU, tourné ou non)
+    const r = hud && !hud.classList.contains('cache') ? (typeof TACTILE !== 'undefined' ? TACTILE.rectJeu(hud) : hud.getBoundingClientRect()) : null;   // (T15b : dans le jeu, tourné ou non)
     const l = Math.round(Math.min(REGLAGES.RETRO_LARGEUR_MAX, W * REGLAGES.RETRO_LARGEUR)), y = Math.round(r && r.height > 0 ? r.bottom + REGLAGES.RETRO_ECART : H * REGLAGES.RETRO_HAUT);
     const h = Math.max(REGLAGES.RETRO_HAUTEUR_MIN, Math.min(Math.round(l / REGLAGES.RETRO_RAPPORT), REGLAGES.RETRO_BAS_MAX - y));   // (au-dessus des messages de course)
     JEU.retroPlace = { x: Math.round((W - l) / 2), y, l, h };
@@ -2753,7 +2762,7 @@ function demarrerJeu() {
   } else JEU.modele = JEU.modeles[JEU.contre ? JEU.ia : 0];   // avant la course (écran de choix), sur la ligne
   SCENE3D.colorerRepereStand(JEU.contre && JEU.couleurs.length > JEU.ia ? JEU.couleurs[JEU.ia] : REGLAGES.COULEUR_JOUEUR);   // le repère de la zone d'arrêt aux couleurs de l'écurie du joueur (tour 46d2)
   INTERFACE.preparerPause(() => pause(false), () => lancerCourse(JEU.course.nbTours));
-  TACTILE.brancher({ pause: () => toucheVirtuelle('Escape'), remettre: () => { JEU.remettre = true; },
+  TACTILE.brancher({ pause: () => toucheVirtuelle('Escape'), remettre: () => { JEU.remettre = true; }, pneu: choisirPneuDoigt, camera: () => { if (!JEU.deux) CAMERA.suivante(); },
     lire: () => ({ sensibilite: SAUVEGARDE.option('volant_sensibilite', 1), inverse: SAUVEGARDE.option('volant_inverse', false), choix: SAUVEGARDE.option('volant_choix', 'volant') }),   // (tour 53f : les réglages du volant, sauvegardés)
     ecrire: (nom, valeur) => SAUVEGARDE.ecrireOption(nom, valeur) });   // le téléphone (tactile.js, tour 51k)
   INTERFACE.preparerFin(() => lancerCourse(JEU.course.nbTours), allerAuChoix);
@@ -2829,7 +2838,7 @@ function demarrerJeu() {
   document.getElementById('boutonMonPilote').addEventListener('click', monPilote);
   document.getElementById('attenteTexte').textContent = texte('attenteArrivee');
   const boutonPasser = document.getElementById('boutonPasser');
-  boutonPasser.textContent = texte('passerPodium');
+  boutonPasser.textContent = texteDoigt('passerPodium');
   boutonPasser.addEventListener('mousedown', e => e.preventDefault());
   boutonPasser.addEventListener('click', passerAuPodium);
   INTERFACE.preparerQualif(faireMonTour, passerQualif, partirEnCourse);

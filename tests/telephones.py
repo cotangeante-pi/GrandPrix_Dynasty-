@@ -110,6 +110,7 @@ def course_aux_doigts(pg, D, nom, etape):
     t(f'{nom} · {etape} : GAZ et FREIN tenus ensemble par deux doigts', pg.evaluate('() => JEU.cibles.gaz === 1 && JEU.cibles.frein === 1'), pg.evaluate('() => JEU.cibles'))
     D.tout_lever(); pg.wait_for_timeout(300)
     l, h = pg.evaluate('() => [innerWidth, innerHeight]')
+    pg.evaluate('() => { REGLAGES.PORTRAIT_TOURNER = false; }')   # (tour 56, T15 : ici le message d'avant ; le jeu tourné est dans tests/tourne.py)
     pg.set_viewport_size({'width': h, 'height': l}); attendre(pg, '() => !document.getElementById("tactilePortrait").classList.contains("cache")', None, 8000); pg.wait_for_timeout(400)
     photo(pg, os.path.join(CAPTURES, f'tel-{nom.replace(" ", "_").replace("+", "p")}-{etape}-debout.png'))
     t(f'{nom} · {etape} : debout en pleine course, « Tourne ton téléphone » couvre l’écran et la course est en pause',

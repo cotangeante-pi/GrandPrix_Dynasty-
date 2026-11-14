@@ -98,6 +98,7 @@ PAGES = [
     ('index.html?course=12&robot=1&pneus=1&circuit=test&lang=en&test=audit-stand', 960, 600, None),
     ('index.html?championnat=1&tours=2&robot=1&lang=en&test=audit-consigne', 960, 600, None),
     # (tour 56, T5) les batailles en ligne (enligne-ecran.js, derrière EN_LIGNE ; le faux transport enligne-faux.js) : titre, menu, rejoindre par code, salle d'attente, émotes, refus ; fr et en, au doigt en 640×360
+    ('index.html?enligne=1&test=pad-enligne', 960, 600, None),   # (tour 56, T10) les écrans En ligne à la manette : la croix choisit, A valide, B revient
     ('index.html?enligne=1&test=enligne&tel=1', 640, 360, None),
     ('index.html?enligne=1&test=enligne', 960, 600, None),
     ('index.html?enligne=1&test=enligne&lang=en&tel=1', 640, 360, None),
@@ -167,6 +168,7 @@ PAGES = [
     ('index.html?championnat=1&test=tactile-classement', 640, 360, None),   # (tour 53b) au doigt, un appui sur un classement ouvre la liste entière (20 lignes d'au moins 40 px), un appui sur une ligne ouvre la fiche, Retour referme
     ('index.html?test=titre-simple', 1280, 720, None),   # … au clavier en 1280×720, le titre est inchangé (Apprendre / Aides / Touches) ; capture titre-1280.png
     ('index.html?championnat=1&test=tactile-reglages', 960, 600, None),   # (tour 53f) les réglages du volant : crans, inversé, choix, sauvegarde
+    ('index.html?course=12&ia=3&joueur=1&robot=1&circuit=test&test=tactile-pneus', 640, 360, None),   # (tour 56, T14) au doigt, pendant l'arrêt au stand : une rangée de boutons de pneus (≥ 40 px), un toucher change le pneu monté ; capture tactile-pneus-640.png
     ('index.html?test=tactile-iphone', 960, 600, None),   # … l'autorisation de l'iPhone (« 🎮 Activer le volant »), refusée → ◀ ▶ ; le message « Tourne ton téléphone » en portrait
     ('index.html?deux=1&ia=0&circuit=test&test=manette-deux', 1280, 720, None),   # … deux manettes, une par joueur   # les sensations de conduite (tour 37) : son au premier geste, fumée, étincelles, réglage ; capture sensations.png
     ('index.html?course=3&ia=19&joueur=1&circuit=monzo&domicile=1&test=supporters', 1280, 720, None),   # le Grand Prix à domicile : la caméra de la grille longe d'abord la tribune des supporters ; capture supporters.png   # la réalisation télé (regie.js) : de vraies caméras, l'hélicoptère ; captures tele-monoco.png, tele-helico.png   # … et Monzo de jour : la luminosité de l'image, pour la comparer à la nuit   # le décor dans le vrai jeu : la course de nuit à Singapura, 20 voitures, vue télé ; capture jeu-singapura.png
@@ -693,6 +695,11 @@ def enligne_ecran(pg, titre, l, h, page):
     t(f'{titre} : le nom vient d’une couleur choisie : aucun champ de texte dans le menu ni dans la salle', pg.evaluate('() => document.querySelectorAll("#enligne input, #enligneSalle input").length') == 0 and not pg.evaluate('() => REGLAGES.EN_LIGNE_NOMS_LIBRES'))
     pg.click('#enligneCouleurs button >> nth=3')
     t(f'{titre} : choisir la 4e couleur (vert) change le nom et se garde', pg.evaluate('() => document.getElementById("enligneNomChoisi").textContent.includes(texte("enligneCouleur_vert")) && SAUVEGARDE.option("enligne_couleur", 0) === 3'))
+    pg.click('#boutonEnligneComment')
+    t(f'{titre} : « Comment jouer en ligne » : les quatre étapes à la place du menu, dans l’écran', pg.evaluate('() => document.querySelectorAll("#enligneEtapes li").length') == 4 and pg.evaluate('() => !document.getElementById("enligneComment").classList.contains("cache") && document.getElementById("boutonEnligneCreer").offsetParent === null'))
+    verifier('comment jouer en ligne', '#enligne button', 'comment')
+    pg.keyboard.press('Escape')
+    t(f'{titre} : Échap referme « Comment jouer » (le menu revient, on reste sur En ligne)', pg.evaluate('() => JEU.ecran === "enligne" && document.getElementById("boutonEnligneCreer").offsetParent !== null'))
     # créer une salle
     pg.evaluate('() => { ENLIGNE_FAUX.auto = false; }')   # (les amis arrivent à la main, pour voir la salle seule d'abord)
     pg.click('#boutonEnligneCreer')
@@ -703,7 +710,7 @@ def enligne_ecran(pg, titre, l, h, page):
     t(f'{titre} : l’hôte change la longueur (▶) : 3 → 5 tours', etat()['reglages']['tours'] == 5, str(etat()['reglages']))
     pg.click('#enligneRegles .regle[data-cle=meteo] .enligneFleche >> nth=1'); pg.click('#enligneRegles .regle[data-cle=circuit] .enligneFleche >> nth=1'); pg.click('#enligneRegles .regle[data-cle=nbIA] .enligneFleche >> nth=1')
     r = etat()['reglages']
-    t(f'{titre} : l’hôte choisit aussi la météo, le circuit et les IA', r['meteo'] == 'nuageux' and r['circuit'] == 'technique' and r['nbIA'] == 3, str(r))
+    t(f'{titre} : l’hôte choisit aussi la météo, le circuit et les IA', r['meteo'] == 'pluie' and r['circuit'] == 'technique' and r['nbIA'] == 3, str(r))
     # un ami arrive (à la main), puis se dit prêt
     code = etat()['code']
     pg.evaluate('c => ENLIGNE_FAUX.ajouterAmi(c, false)', code)
@@ -757,9 +764,12 @@ def enligne_ecran(pg, titre, l, h, page):
     t(f'{titre} : une course déjà commencée : refusée avec son message', essayer('LMNP', 'commencee'))
     pg.evaluate('() => SAUVEGARDE.ecrireOption("enligne_couleur", 0)')
     pg.evaluate('() => ENLIGNE_ECRAN.echap()'); pg.click('#boutonEnligneRejoindre')
-    t(f'{titre} : une couleur déjà prise dans la salle : refusée (« choisis-en une autre »)', essayer('BCDF', 'nom'))
-    t(f'{titre} : un refus ferme la connexion, on reste sur l’écran du code', ecran() == 'enligneRejoindre' and not etat()['connecte'])
-    pg.evaluate('() => ENLIGNE_ECRAN.echap()')
+    pg.evaluate('() => { ENLIGNE_FAUX.auto = false; document.getElementById("enligneCode").value = "BCDF"; document.getElementById("boutonEnligneGo").click(); }')
+    entre = attendre(pg, '() => JEU.ecran === "enligneSalle" && !!ENLIGNE_ECRAN.etat().joueurs.find(j => j.id === ENLIGNE_ECRAN.etat().moi)', None, 5000)
+    moi_nom = pg.evaluate('() => { const e = ENLIGNE_ECRAN.etat(); const j = e.joueurs.find(x => x.id === e.moi); return j ? j.nom : null; }')
+    t(f'{titre} : une couleur déjà prise dans la salle (D1) : le nom sur le fil est l’id de la couleur, « bleu-2 » à la 2e tentative, jamais le nom traduit', entre and moi_nom == 'bleu-2', str(moi_nom))
+    t(f'{titre} : le nom affiché est traduit chez chacun (« Pilote Bleu 2 » / « Blue driver 2 »), les amis aussi, aucun id brut', pg.evaluate('() => { const l = [...document.querySelectorAll("#enligneListe .nom")].map(e => e.textContent); return l.some(x => x.includes(texte("enligneNom").replace("{c}", texte("enligneCouleur_bleu")) + " 2")) && l.every(x => !/^[a-z]+(-[2-8])?( \\(|$)/.test(x)); }'), pg.evaluate('() => [...document.querySelectorAll("#enligneListe .nom")].map(e => e.textContent)'))
+    pg.keyboard.press('Escape'); attendre(pg, '() => JEU.ecran === "enligne"', None, 3000)
     pg.click('#enligneCouleurs button >> nth=6')
     pg.click('#boutonEnligneRejoindre')
     pg.evaluate('() => { ENLIGNE_FAUX.auto = true; document.getElementById("enligneCode").value = "BCDF"; document.getElementById("boutonEnligneGo").click(); }')
@@ -791,6 +801,56 @@ def enligne_paddock(pg, titre, l, h, page):
     t(f'{titre} : le menu En ligne tient dans l’image, sans défilement ni recouvrement', d['dedans'] and d['defile'] and not d['recouvre'], str(d))
     pg.click('#boutonEnligneRetour')
     t(f'{titre} : « Retour » ramène au paddock', attendre(pg, '() => JEU.ecran === "championnat" && !document.getElementById("championnat").classList.contains("cache")', None, 3000))
+
+# (tour 56, T10) les batailles en ligne à la manette : de l'écran titre à la salle d'attente, à la croix, A et B (de fausses manettes)
+def pad_enligne(pg, titre):
+    if not attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "titre"', None, 60000):
+        t(f'{titre} : l’écran titre', False, ''); return
+    pg.evaluate('() => { REGLAGES.EN_LIGNE_FAUX_DELAI = 0.15; }')
+    HALO = '() => { const b = document.querySelector("button.manette-choix"); return b ? b.id || b.className : null; }'
+    def vers(cible):
+        # la croix vers un bouton : la direction du plus grand écart, jusqu'à ce que le halo y soit
+        for _ in range(40):
+            if pg.evaluate('() => { const b = document.querySelector("button.manette-choix"); return b ? b.id : null; }') == cible: return True
+            d = pg.evaluate('c => { const h = document.querySelector("button.manette-choix"), x = document.getElementById(c); if (!h || !x) return null; const a = h.getBoundingClientRect(), b = x.getBoundingClientRect(), dx = (b.left + b.width / 2) - (a.left + a.width / 2), dy = (b.top + b.height / 2) - (a.top + a.height / 2); return Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "droite" : "gauche") : (dy > 0 ? "bas" : "haut"); }', cible)
+            if d is None: manette_appui(pg, 0, 'bas')   # (pas encore de halo : un premier appui sur A le pose)
+            else: manette_appui(pg, 0, d)
+        return False
+    for _ in range(8):   # (le premier appui pose le halo sur le premier bouton ; sur une machine chargée il peut passer entre deux images)
+        manette_appui(pg, 0, 'a')
+        if pg.evaluate(HALO) is not None: break
+    t(f'{titre} : au titre, la manette pose un halo sur un bouton', pg.evaluate(HALO) is not None, str(pg.evaluate(HALO)))
+    t(f'{titre} : la croix mène à « En ligne »', vers('boutonEnligneTitre'))
+    for _ in range(10):
+        manette_appui(pg, 0, 'a')
+        if pg.evaluate('() => JEU.ecran') == 'enligne': break
+    t(f'{titre} : A ouvre le menu En ligne', pg.evaluate('() => JEU.ecran') == 'enligne', pg.evaluate('() => JEU.ecran'))
+    t(f'{titre} : la croix mène à « Créer une salle »', vers('boutonEnligneCreer'))
+    for _ in range(10):
+        manette_appui(pg, 0, 'a')
+        if pg.evaluate('() => JEU.ecran') == 'enligneSalle': break
+    t(f'{titre} : A crée la salle (la salle d’attente s’ouvre)', pg.evaluate('() => JEU.ecran') == 'enligneSalle', pg.evaluate('() => JEU.ecran'))
+    attendre(pg, '() => ENLIGNE_ECRAN.etat().joueurs.length >= 2', None, 8000)
+    t0 = pg.evaluate('() => ENLIGNE_ECRAN.etat().reglages.tours')
+    # ▶ des tours : la 2e flèche de la ligne « tours »
+    t(f'{titre} : la croix mène à ▶ de « Tours »', vers('enligneReg_tours_plus'))
+    for _ in range(10):
+        manette_appui(pg, 0, 'a')
+        if pg.evaluate('() => ENLIGNE_ECRAN.etat().reglages.tours') != t0: break
+    t(f'{titre} : A change la longueur de la course (choix de l’hôte)', pg.evaluate('() => ENLIGNE_ECRAN.etat().reglages.tours') != t0, str(pg.evaluate('() => ENLIGNE_ECRAN.etat().reglages')))
+    t(f'{titre} : la croix mène à une émote', vers('enligneEmote_3'))
+    for _ in range(10):
+        manette_appui(pg, 0, 'a')
+        if pg.evaluate('() => !!document.querySelector("#enligneListe li.moi .emote")'): break
+    t(f'{titre} : A envoie l’émote : elle s’affiche près de mon nom', pg.evaluate('() => !!document.querySelector("#enligneListe li.moi .emote")'))
+    for _ in range(10):
+        manette_appui(pg, 0, 'b')
+        if pg.evaluate('() => JEU.ecran') == 'enligne': break
+    t(f'{titre} : B quitte la salle (retour au menu En ligne)', pg.evaluate('() => JEU.ecran') == 'enligne', pg.evaluate('() => JEU.ecran'))
+    for _ in range(10):
+        manette_appui(pg, 0, 'b')
+        if pg.evaluate('() => JEU.ecran') == 'titre': break
+    t(f'{titre} : B au menu : retour à l’écran titre', pg.evaluate('() => JEU.ecran') == 'titre', pg.evaluate('() => JEU.ecran'))
 
 def clavier_titre(pg, titre, l, h):
     if not attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "titre"', None, 60000):
@@ -2116,7 +2176,7 @@ def manette_ecran(pg, titre):
 FAUSSE_PERMISSION = "DeviceOrientationEvent.requestPermission = () => Promise.resolve(sessionStorage.getItem('perm') || 'granted');"
 DOIGT = "([id, pid, bas]) => { const el = document.getElementById(id); el.dispatchEvent(new PointerEvent(bas ? 'pointerdown' : 'pointerup', { pointerId: pid, pointerType: 'touch', isPrimary: pid === 1, bubbles: true, cancelable: true })); }"
 # (2026-11-12) tout ce que la vue de course pose sur l'écran : rien ne recouvre rien (🔊 ⏸ ↩, bandeau du tour, minicarte, tour, radar, vitesse, pneus, rétroviseur, GAZ, FREIN, ◀ ▶)
-SUPERPOSE = """() => { const ids = ['boutonSon', 'tactilePause', 'tactileRemise', 'hudCourse', 'minicarte', 'classement', 'tactileGaz', 'tactileFrein', 'tactileGauche', 'tactileDroite', 'radar', 'tableau', 'pneusHud', 'retroviseur'], r = [];
+SUPERPOSE = """() => { const ids = ['boutonSon', 'tactilePause', 'tactileRemise', 'tactileCamera', 'hudCourse', 'minicarte', 'classement', 'tactileGaz', 'tactileFrein', 'tactileGauche', 'tactileDroite', 'tactilePneus', 'hudStand', 'radar', 'tableau', 'pneusHud', 'retroviseur'], r = [];
       for (const id of ids) { const e = document.getElementById(id); if (!e || e.classList.contains('cache') || getComputedStyle(e).display === 'none' || getComputedStyle(e).visibility === 'hidden') continue; const b = e.getBoundingClientRect(); if (b.width > 0) r.push([id, b.left, b.top, b.right, b.bottom]); }
       const c = []; for (let i = 0; i < r.length; i++) for (let j = i + 1; j < r.length; j++) { const a = r[i], b = r[j]; if (a[1] < b[3] - 1 && b[1] < a[3] - 1 && a[2] < b[4] - 1 && b[2] < a[4] - 1) c.push(a[0] + '/' + b[0]); }
       return { vus: r.map(x => x[0]), chevauchements: c }; }"""
@@ -2262,7 +2322,62 @@ def longueurs_ecran(pg, titre, l, h):
     c = pg.evaluate('() => ({ tours: JEU.course.nbTours, plateau: JEU.plateau.nbTours, arret: arretObligatoire(JEU.course.nbTours), pas5: arretObligatoire(5), penalite: penaliteSansArret({ arrets: 0 }, JEU.course.nbTours), penalite18: penaliteSansArret({ arrets: 0 }, 18) })')
     t(f'{titre} : la course dure 12 tours, avec l’arrêt obligatoire (+{c["penalite"]} s sans arrêt, comme à 18 tours : +{c["penalite18"]} s), que la course de 5 tours n’a pas', c['tours'] == 12 and c['plateau'] == 12 and c['arret'] and not c['pas5'] and c['penalite'] > 0 and c['penalite18'] == c['penalite'], str(c))
 
+def tactile_pneus(pg, titre, l, h):
+    """(tour 56, T14) le choix des pneus pendant l'arrêt au stand, au doigt : un bouton par pneu (≥ 40 px, dans l'écran, rien ne recouvre rien), un toucher change le pneu qui sera monté."""
+    attendre(pg, '() => typeof TACTILE !== "undefined" && TACTILE.estPresent() && JEU.ecran === "qualif"', None, 60000)
+    passer_qualif(pg, titre)   # (?joueur=1 : la qualification d'abord)
+    attendre(pg, '() => typeof TACTILE !== "undefined" && TACTILE.estPresent() && JEU.ecran === "course" && !!JEU.course && !!JEU.plateau && JEU.plateau.carte !== null && !!JEU.joueur.pneus', None, 120000)   # (la course attend la carte des IA)
+    pg.evaluate('() => { JEU.course.compte = 0.01; }')
+    attendre(pg, '() => JEU.course.etat === "course"', None, 20000)
+    pg.evaluate('() => BOUCLE.arreter()')   # (on avance image par image : BOUCLE.simuler)
+    PANNEAU = '''() => { majTactile(0); const el = document.getElementById('tactilePneus'), bs = [...el.children].map(b => { const r = b.getBoundingClientRect(); return { type: b.dataset.pneu, h: r.height, w: r.width, choisi: b.classList.contains('choisi'), dedans: r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight }; });
+      return { cache: el.classList.contains('cache') || getComputedStyle(el).display === 'none', bs, prochain: JEU.joueur.pneusProchain, types: METEO.TYPES, arret: !!JEU.course.arretEnCours, texte: texteDoigt('standPneusChoisi'), chev: (%s)().chevauchements }; }''' % SUPERPOSE
+    t(f'{titre} : hors de l’arrêt, la rangée de pneus est cachée', pg.evaluate(PANNEAU)['cache'])
+    # (tour 56, T14) la caméra, comme la touche C : un bouton de 40 px, un toucher change de vue
+    cam = pg.evaluate('() => { majTactile(0); const e = document.getElementById("tactileCamera"), r = e.getBoundingClientRect(); return { visible: r.width > 0 && !e.closest(".cache"), h: r.height, w: r.width, dedans: r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight, mode: CAMERA.mode, chev: (%s)().chevauchements }; }' % SUPERPOSE)
+    toucher(pg, '#tactileCamera'); pg.wait_for_timeout(150)
+    mode2 = pg.evaluate('() => CAMERA.mode')
+    t(f'{titre} : un bouton caméra (≥ 40 px, dans l’écran, sans rien recouvrir) ; un toucher change de vue comme la touche C', cam['visible'] and cam['h'] >= 40 and cam['w'] >= 40 and cam['dedans'] and not cam['chev'] and mode2 != cam['mode'], str([cam, mode2]))
+    # (tour 56, T14) retour en piste ↩ (comme Espace), pause ⏸ (comme Échap), rétroviseur et reprise dans la pause : chaque bouton, au toucher
+    toucher(pg, '#tactileRemise'); pg.wait_for_timeout(100)
+    t(f'{titre} : le bouton ↩ demande le retour en piste (comme Espace)', pg.evaluate('() => JEU.remettre === true'))
+    pg.evaluate('() => { JEU.remettre = false; }')
+    toucher(pg, '#tactilePause'); attendre(pg, '() => JEU.ecran === "pause"', None, 6000)
+    r0 = pg.evaluate('() => [JEU.ecran, JEU.retro, (() => { const b = document.getElementById("boutonRetroPause").getBoundingClientRect(); return [b.width > 0, b.height >= 40]; })()]')
+    toucher(pg, '#boutonRetroPause'); pg.wait_for_timeout(150)
+    r1 = pg.evaluate('() => JEU.retro')
+    toucher(pg, '#boutonRetroPause'); pg.wait_for_timeout(150)
+    r2 = pg.evaluate('() => JEU.retro')
+    toucher(pg, '#boutonReprendre'); attendre(pg, '() => JEU.ecran === "course"', None, 6000)
+    pg.evaluate('() => BOUCLE.arreter()')
+    t(f'{titre} : le bouton ⏸ ouvre la pause ; au doigt le rétroviseur s’y bascule (boutons ≥ 40 px) ; « Reprendre » rend la course', r0[0] == 'pause' and r0[2] == [True, True] and r1 != r0[1] and r2 == r0[1] and pg.evaluate('() => JEU.ecran') == 'course', str([r0, r1, r2]))
+    mots = pg.evaluate('''() => ['grillePasser', 'resumeSortir', 'unePasser', 'passerPodium', 'standPneusChoisi', 'tuto_conduite_consigne', 'tuto_depart_consigne', 'tuto_raison_attente'].map(k => [k, texteDoigt(k)])''')
+    mauvais = [x for x in mots if re.search(r'[←→↑↓]|Esc|Échap|Entrée|Enter|Space|Espace|Tab\b|clic|click|\bkey', x[1], re.I)]
+    t(f'{titre} : au doigt, aucun texte (grille, résumé, une, podium, pneus, leçons) ne cite une touche du clavier', not mauvais, str(mauvais))
+    pg.evaluate('() => { BOUCLE.simuler(3); JEU.joueur.pneus.usure = 0.5; JEU.joueur.versStands = true; }')
+    for _ in range(150):
+        pg.evaluate('() => BOUCLE.simuler(2)')
+        if pg.evaluate('() => !!JEU.course.arretEnCours'): break
+    pg.evaluate('() => BOUCLE.arreter()')
+    e = pg.evaluate(PANNEAU)
+    pg.evaluate('() => { SCENE3D.dessiner(); }'); pg.wait_for_timeout(300); pg.screenshot(path=os.path.join(CAPTURES, 'tactile-pneus-640.png'))
+    t(f'{titre} : pendant l’arrêt, un bouton par pneu ({len(e["types"])}), au moins 40 px de haut, tous dans l’écran, rien ne se recouvre', e['arret'] and not e['cache'] and len(e['bs']) == len(e['types']) and all(b['h'] >= 40 and b['dedans'] for b in e['bs']) and not e['chev'], str(e))
+    t(f'{titre} : le pneu qui sera monté est marqué, le texte ne cite aucune touche (← →)', sum(b['choisi'] for b in e['bs']) == 1 and '←' not in e['texte'] and 'touche un pneu' in e['texte'], str(e))
+    for type_ in [x for x in e['types'] if x != e['prochain']][:2] + [e['types'][0]]:
+        toucher(pg, f'#tactilePneus [data-pneu="{type_}"]')
+        pg.wait_for_timeout(100)
+        r = pg.evaluate(PANNEAU)
+        t(f'{titre} : un toucher sur « {type_} » change le pneu monté et le marque', r['prochain'] == type_ and [b['type'] for b in r['bs'] if b['choisi']] == [type_], str(r))
+    choisi = pg.evaluate('() => JEU.joueur.pneusProchain')
+    for _ in range(60):
+        pg.evaluate('() => BOUCLE.simuler(1)')
+        if pg.evaluate('() => !!JEU.course.arrets && JEU.course.arrets.length === 1'): break
+    fin = pg.evaluate('() => [JEU.joueur.typePneus, (JEU.course.arrets || []).length]')
+    t(f'{titre} : après l’arrêt, la voiture repart avec le pneu touché ({choisi})', fin == [choisi, 1], str(fin))
+    pg.evaluate('() => BOUCLE.simuler(1)')
+    t(f'{titre} : la rangée se cache après l’arrêt', pg.evaluate(PANNEAU)['cache'])
 def tactile_ecran(pg, titre, l, h, page):
+    if 'tactile-pneus' in page: return tactile_pneus(pg, titre, l, h)
     if 'tactile-titre' in page: return titre_simple(pg, titre, l, h)
     if 'tactile-aides' in page: return tactile_aides(pg, titre, l, h)
     if 'tactile-classement' in page: return tactile_classement(pg, titre, l, h)
@@ -2360,6 +2475,12 @@ def tactile_ecran(pg, titre, l, h, page):
     # (tour 52b) le premier geste demande le plein écran puis le verrou en paysage (une seule fois), et le refus ne se voit pas
     pg.evaluate("() => { document.body.dispatchEvent(new PointerEvent('pointerup', { bubbles: true })); document.body.dispatchEvent(new PointerEvent('pointerup', { bubbles: true })); }"); pg.wait_for_timeout(200)
     t(f'{titre} : au premier geste sur un écran tactile, le plein écran puis le verrou en paysage sont demandés, une seule fois', pg.evaluate('() => window.__plein === 2'), str(pg.evaluate('() => window.__plein')))
+    # (tour 56, le propriétaire : le message venait trop souvent) debout un instant (0,3 s, un volant tourné fort) : ni message ni pause
+    vu = []
+    pg.evaluate('() => { REGLAGES.PORTRAIT_TOURNER = false; }'); 
+    pg.set_viewport_size({'width': h, 'height': l}); pg.wait_for_timeout(300); vu.append(pg.evaluate('() => document.getElementById("tactilePortrait").classList.contains("cache")'))
+    pg.set_viewport_size({'width': l, 'height': h}); pg.wait_for_timeout(1200)
+    t(f'{titre} : téléphone debout un instant (0,3 s) : ni « Tourne ton téléphone » ni pause', vu[0] and pg.evaluate('() => JEU.ecran === "course" && document.getElementById("tactilePortrait").classList.contains("cache")'), str([vu, pg.evaluate('() => JEU.ecran')]))
     # le téléphone debout pendant la course : le message par-dessus tout et la course en pause ; couché : le message part, la pause reste jusqu'à « Reprendre »
     pg.set_viewport_size({'width': h, 'height': l}); attendre(pg, '() => JEU.ecran === "pause" && !document.getElementById("tactilePortrait").classList.contains("cache")', None, 8000)
     d = pg.evaluate(TACTILE_ETAT)
@@ -2454,6 +2575,7 @@ def tactile_iphone(pg, titre, l, h):
     e2 = pg.evaluate(TACTILE_ETAT)
     t(f'{titre} : accordée, le bouton disparaît, le volant écoute (mode attente), puis une mesure le met en mode volant', e['activer']['cache'] and e['mode'] == 'attente' and e2['mode'] == 'volant' and e2['neutre'] == 30, str([e['mode'], e2['mode'], e2['neutre']]))
     # le téléphone debout, sur la grille : le message par-dessus tout et la course en pause (même si le plein écran est refusé) ; couché : le message part, la pause reste
+    pg.evaluate('() => { REGLAGES.PORTRAIT_TOURNER = false; }'); 
     pg.set_viewport_size({'width': h, 'height': l}); attendre(pg, '() => JEU.ecran === "pause" && !document.getElementById("tactilePortrait").classList.contains("cache")', None, 8000)
     p1 = pg.evaluate(TACTILE_ETAT)
     pg.set_viewport_size({'width': l, 'height': h}); attendre(pg, '() => document.getElementById("tactilePortrait").classList.contains("cache")', None, 5000)
@@ -4596,7 +4718,7 @@ with sync_playwright() as p:
             pg.on('requestfailed', lambda r: console.append('FICHIER MANQUANT ' + r.url))
             if 'test=sdk' in page or 'test=decouverte' in page or 'test=amis' in page or 'test=tournoi' in page or 'test=livree' in page or 'test=essai' in page: pg.add_init_script(FAUX_SDK)
             # la météo dessinée (meteo3d.js) : une fausse météo de test (window.METEO_TEST, jamais dans le jeu), ?meteo=pluie ou ?meteo=risque
-            if 'test=manette' in page: pg.add_init_script(FAUSSES_MANETTES)   # la manette (tour 38) : de fausses manettes
+            if 'test=manette' in page or 'test=pad-enligne' in page: pg.add_init_script(FAUSSES_MANETTES)   # la manette (tour 38) : de fausses manettes
             pg.add_init_script('window.__plein = 0; try { Element.prototype.requestFullscreen = function () { window.__plein++; return Promise.resolve(); }; } catch (e) {} try { screen.orientation.lock = () => { window.__plein++; return Promise.resolve(); }; } catch (e) {}')   # (tour 52b : combien de fois le plein écran ou le verrou en paysage est demandé)
             if 'test=tactile' in page and 'test=tactile-iphone' not in page: pg.add_init_script('try { DeviceOrientationEvent.requestPermission = undefined; } catch (e) {}')   # (tour 52b : un Chrome récent sur GitHub offre requestPermission, jamais résolue sans geste : ces pages simulent un Android, sans autorisation à demander)
             if 'test=tactile-iphone' in page: pg.add_init_script(FAUSSE_PERMISSION)   # le téléphone (tour 51k) : l'autorisation de l'iPhone, accordée ou refusée (sessionStorage perm)
@@ -4703,6 +4825,8 @@ with sync_playwright() as p:
                 t(f'{titre} : sans ?ips ni ?mesure, ni compteur ni panneau de mesure (aucun coût)', pg.evaluate('() => !document.getElementById("compteurIps") && !document.getElementById("mesurePanneau")'))
             if 'test=tactile' in page:
                 tactile_ecran(pg, titre, l, h, page)
+            if 'test=pad-enligne' in page:
+                pad_enligne(pg, titre)
             if 'test=manette-deux' in page:
                 manette_deux(pg, titre)
             elif 'test=manette' in page:
@@ -4788,7 +4912,7 @@ with sync_playwright() as p:
                 defi_ecran(pg, titre)
             elif 'test=fantome' in page:
                 fantome(pg, titre)
-            elif 'joueur=1' in page and 'test=supporters' not in page and 'test=sensations' not in page and 'test=conseil' not in page and 'test=qualite' not in page and 'test=retro' not in page:   # (la page des supporters a son propre parcours)
+            elif 'joueur=1' in page and 'test=tactile-pneus' not in page and 'test=supporters' not in page and 'test=sensations' not in page and 'test=conseil' not in page and 'test=qualite' not in page and 'test=retro' not in page:   # (la page des supporters a son propre parcours)
                 hud(pg, titre, l)
                 if l == 1280: course_joueur(pg, titre)
             if 'camera=auto' in page:
