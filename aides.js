@@ -42,6 +42,9 @@ const AIDES = (function () {
     { id: 'duel', genre: 'menu', quand: s => s.ecran === 'championnat' && s.coequipier && !s.choixAides, faite: () => false },   // (le choix des aides ouvert par-dessus : sa bulle à lui)
     // (tour 55, T12, T5) le Grand Prix à domicile d'un rival : au paddock, quand la prochaine course est celle du pays d'un rival
     { id: 'rivalDomicile', genre: 'menu', quand: s => s.ecran === 'championnat' && s.rivalDomicile && !s.choixAides, faite: () => false },
+    // (tour 56, T12) les batailles en ligne : le menu « En ligne », puis la salle d'attente (la première fois)
+    { id: 'enligne', genre: 'menu', quand: s => s.ecran === 'enligne', faite: () => false },
+    { id: 'enligneSalle', genre: 'menu', quand: s => s.ecran === 'enligneSalle', faite: () => false },
     { id: 'contrats', genre: 'menu', quand: s => s.ecran === 'contrats', faite: () => false },
     { id: 'interview', genre: 'menu', quand: s => s.ecran === 'interview', faite: () => false },
     // (tours 37g, 37l) les pneus drift (la voiture vivante, la règle du propriétaire du 2026-10-29) : la première course avec eux, en ligne droite

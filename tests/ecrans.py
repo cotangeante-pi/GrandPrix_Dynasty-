@@ -693,6 +693,11 @@ def enligne_ecran(pg, titre, l, h, page):
     t(f'{titre} : le nom vient d’une couleur choisie : aucun champ de texte dans le menu ni dans la salle', pg.evaluate('() => document.querySelectorAll("#enligne input, #enligneSalle input").length') == 0 and not pg.evaluate('() => REGLAGES.EN_LIGNE_NOMS_LIBRES'))
     pg.click('#enligneCouleurs button >> nth=3')
     t(f'{titre} : choisir la 4e couleur (vert) change le nom et se garde', pg.evaluate('() => document.getElementById("enligneNomChoisi").textContent.includes(texte("enligneCouleur_vert")) && SAUVEGARDE.option("enligne_couleur", 0) === 3'))
+    pg.click('#boutonEnligneComment')
+    t(f'{titre} : « Comment jouer en ligne » : les quatre étapes à la place du menu, dans l’écran', pg.evaluate('() => document.querySelectorAll("#enligneEtapes li").length') == 4 and pg.evaluate('() => !document.getElementById("enligneComment").classList.contains("cache") && document.getElementById("boutonEnligneCreer").offsetParent === null'))
+    verifier('comment jouer en ligne', '#enligne button', 'comment')
+    pg.keyboard.press('Escape')
+    t(f'{titre} : Échap referme « Comment jouer » (le menu revient, on reste sur En ligne)', pg.evaluate('() => JEU.ecran === "enligne" && document.getElementById("boutonEnligneCreer").offsetParent !== null'))
     # créer une salle
     pg.evaluate('() => { ENLIGNE_FAUX.auto = false; }')   # (les amis arrivent à la main, pour voir la salle seule d'abord)
     pg.click('#boutonEnligneCreer')
