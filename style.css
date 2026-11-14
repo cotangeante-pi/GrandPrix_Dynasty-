@@ -2171,7 +2171,7 @@ body.tactile.tactileFreinG #radar { --radar-taille: 130px; left: 134px; bottom: 
   body.tactile.tactileFreinG #tactileFrein { left: 12px; right: auto; }
   body.tactile.tactileFreinG #tableau, body.tactile.tactileFreinG #pneusHud { right: 116px; }
   body.tactile.tactileFreinG #radar { --radar-taille: 96px; left: 96px; bottom: 12px; }
-  body.tactile #bulleAide.bulleCourse { top: 164px; max-width: 190px; }   /* (tour 55, T17 : 164 px sous ⏸ ↩ (qui finissent à 158) ; 190 px pour laisser la place au message de course, décalé à droite) */
+  body.tactile #bulleAide.bulleCourse { top: 164px; max-width: 190px; font-size: 11px; line-height: 1.2; padding: 6px 10px; }   /* (tour 56, relecture : le texte le plus long, 4 lignes, finissait à 250 px et recouvrait l'état des pneus (234 px) sur iPhone SE et Galaxy S9+ ; 11 px et moins de marge : il finit avant 232 px) */   /* (tour 55, T17 : 164 px sous ⏸ ↩ (qui finissent à 158) ; 190 px pour laisser la place au message de course, décalé à droite) */
 }
 /* tourne:debut */@media (max-width: 420px) {
   :where(html.tourne) body.tactile.tactileFreinG #tactileFrein { left: 12px; right: auto; }
