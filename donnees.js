@@ -1512,7 +1512,6 @@ const REGLAGES = {
   EN_LIGNE_CIRCUITS_CHOIX: ['test', 'technique'],   // les circuits que l'hôte peut choisir (des clés de CIRCUITS) ; vide = tous
   EN_LIGNE_TOURS_CHOIX: [1, 3, 5],   // les longueurs de course (l'hôte)
   EN_LIGNE_IA_CHOIX: [0, 3, 5],      // les IA ajoutées aux humains (l'hôte) ; jamais plus de EN_LIGNE_JOUEURS_MAX voitures en tout
-  EN_LIGNE_METEO_CHOIX: ['sec', 'nuageux', 'pluie'],   // la météo de la course (l'hôte)
   EN_LIGNE_REGLAGES_DEFAUT: { circuit: 'test', tours: 3, meteo: 'sec', nbIA: 0 },   // ce que l'hôte voit d'abord
   EN_LIGNE_FAUX_DELAI: 0.8,     // s : le faux transport (enligne-faux.js, en attendant le vrai réseau) fait « arriver » un ami après ce délai, puis le fait « prêt » après le même
 
