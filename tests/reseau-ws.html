@@ -8,7 +8,7 @@
 window.S = { salle: null, joueurs: [], partie: null, fin: null, cmdsRecues: 0, controlesRecus: 0, refus: null, erreurs: [], ferme: false };
 window.jouer = function (url, nom, code, options) {
   const o = options || {};
-  REGLAGES.EN_LIGNE = true; REGLAGES.EN_LIGNE_URL = url;
+  REGLAGES.EN_LIGNE = true; REGLAGES.EN_LIGNE_URL = url; REGLAGES.EN_LIGNE_NOMS_LIBRES = true;   // PROVISOIRE : reseau.js n'a pas encore la décision D1 (noms = id de couleur) ; à retirer avec « --noms-libres » de reseau-ws.py quand il l'aura
   const r = window.r = RESEAU.client({ transport: 'websocket', url, version: REGLAGES.EN_LIGNE_VERSION + '-' + EN_LIGNE.version().h })   // (D4) la version annoncée : celle du jeu + l'empreinte des réglages de course;
   r.sur('salle', d => { S.salle = d; });
   r.sur('joueurs', d => { S.joueurs = d.liste; });
@@ -16,7 +16,7 @@ window.jouer = function (url, nom, code, options) {
   r.sur('erreur', d => { S.erreurs.push(JSON.stringify(d)); });
   r.sur('perdu', () => { S.ferme = true; });
   r.sur('depart', d => {
-    const envoyer = m => { if (m.t === 'cmd') r.cmd(m.n, m.c); else if (m.t === 'controle') r.controle(m.n, m.h); };
+    const envoyer = m => { if (m.t === 'cmd') r.cmd(m.n, m.c); else if (m.t === 'controle') r.controle(m.n, String(m.h));   // (D5) h voyage en chaîne ; le cœur compare des entiers };
     const p = S.partie = EN_LIGNE.demarrer(d, r.moi, envoyer, { pasMax: o.pasMax || 1400 });
     const k = r.moi % 7;
     const boucle = setInterval(() => {
@@ -34,7 +34,7 @@ window.jouer = function (url, nom, code, options) {
     }, 4);
   });
   r.sur('cmd', m => { S.cmdsRecues++; if (S.partie) S.partie.recevoir(m); });
-  r.sur('controle', m => { S.controlesRecus++; if (S.partie) S.partie.recevoir(m); });
+  r.sur('controle', m => { S.controlesRecus++; if (S.partie) S.partie.recevoir(Object.assign({}, m, { h: Number(m.h) })); });
   r.sur('parti', m => { if (S.partie) S.partie.recevoir(m); });
   return r.ouvrir().then(() => { if (code) r.rejoindre(code, nom); else r.creer(nom); });
 };
