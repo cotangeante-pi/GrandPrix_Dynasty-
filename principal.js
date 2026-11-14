@@ -2191,7 +2191,8 @@ function majManettes(dt) {
     const sens = MANETTE.sensMenu(MANETTES.menus[k] || (MANETTES.menus[k] = { sens: null, tenu: 0 }), m, dt);
     if (sens) {
       const bs = boutonsVisibles(), i = bs.indexOf(MANETTES.choix);
-      const j = MANETTE.voisin(bs.map(b => { const r = b.getBoundingClientRect(); return { x: r.left, y: r.top, l: r.width, h: r.height }; }), i, sens);
+      const j = MANETTE.voisin(bs.map(b => { const r = typeof TACTILE !== 'undefined' ? TACTILE.rectJeu(b) : b.getBoundingClientRect();   // (T15b : dans le jeu tourné, les rectangles sont ramenés dans le jeu, sinon la croix irait de travers)
+         return { x: r.left, y: r.top, l: r.width, h: r.height }; }), i, sens);
       if (j >= 0) choisirBouton(bs[j]);
     }
     if (f.includes('a')) { if (MANETTES.choix) MANETTES.choix.click(); else choisirBouton(boutonsVisibles()[0] || null); }
@@ -2475,7 +2476,7 @@ function majRetro(dt) {
   if (!JEU.retroPlace || JEU.retroMaj <= 0) {   // (la place du chrono, relue de temps en temps : lire une boîte force la mise en page)
     JEU.retroMaj = REGLAGES.RETRO_MAJ_ZONE;
     const tj = typeof TACTILE !== 'undefined' ? TACTILE.tailleJeu() : { l: window.innerWidth, h: window.innerHeight }, W = tj.l, H = tj.h, hud = document.getElementById('hudCourse');   // (tour 56, T15 : la taille du JEU, tourné ou non)
-    const r = hud && !hud.classList.contains('cache') ? hud.getBoundingClientRect() : null;
+    const r = hud && !hud.classList.contains('cache') ? (typeof TACTILE !== 'undefined' ? TACTILE.rectJeu(hud) : hud.getBoundingClientRect()) : null;   // (T15b : dans le jeu, tourné ou non)
     const l = Math.round(Math.min(REGLAGES.RETRO_LARGEUR_MAX, W * REGLAGES.RETRO_LARGEUR)), y = Math.round(r && r.height > 0 ? r.bottom + REGLAGES.RETRO_ECART : H * REGLAGES.RETRO_HAUT);
     const h = Math.max(REGLAGES.RETRO_HAUTEUR_MIN, Math.min(Math.round(l / REGLAGES.RETRO_RAPPORT), REGLAGES.RETRO_BAS_MAX - y));   // (au-dessus des messages de course)
     JEU.retroPlace = { x: Math.round((W - l) / 2), y, l, h };

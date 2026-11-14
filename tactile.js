@@ -264,6 +264,14 @@ const TACTILE = (function () {
   // la taille du JEU (celle qu'il voit : tournée, largeur et hauteur échangées) et les doigts / la souris ramenés dans le jeu
   const tailleJeu = () => V.tourne ? { l: window.innerHeight, h: window.innerWidth } : { l: window.innerWidth, h: window.innerHeight };
   // un écart (dx, dy) en pixels de la fenêtre -> le même écart dans le jeu (tourné de 90° dans le sens inverse des aiguilles : x_jeu = −dy, y_jeu = dx)
+  // le rectangle d'un élément DANS le jeu (getBoundingClientRect donne l'espace de la fenêtre : tourné, il faut le ramener) :
+  // fenêtre (X, Y) = (y_jeu, largeur_jeu − x_jeu), donc x_jeu = largeur_jeu − Y et y_jeu = X
+  function rectJeu(el) {
+    const r = el.getBoundingClientRect();
+    if (!V.tourne) return r;
+    const lj = window.innerHeight, left = lj - r.bottom, top = r.left;
+    return { left, top, right: lj - r.top, bottom: r.right, x: left, y: top, width: r.height, height: r.width };
+  }
   const ecartJeu = (dx, dy) => V.tourne ? { x: -dy, y: dx } : { x: dx, y: dy };
 
   function rafraichir() {
@@ -309,5 +317,5 @@ const TACTILE = (function () {
     return { gaz: tenus.gaz.size ? 1 : 0, frein: tenus.frein.size ? 1 : 0, direction };
   }
 
-  return { angle, braquage, lisser, sensEcran, fusionner, portrait, estPresent, tailleJeu, ecartJeu, brancher, maj, cibles, pneus, recentrer, activer, etat: V, reglages: G };
+  return { angle, braquage, lisser, sensEcran, fusionner, portrait, estPresent, tailleJeu, ecartJeu, rectJeu, brancher, maj, cibles, pneus, recentrer, activer, etat: V, reglages: G };
 })();
