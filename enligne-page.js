@@ -185,6 +185,7 @@ const ENLIGNE_PAGE = (function () {
     etat.partie = partie;
     const e = partie.e, P = e.pilotes;
     JEU.plateau = e;
+    if (!JEU.carte) JEU.carte = e.carte;   // (le « Préparation… » de la page et le reste lisent JEU.carte : celle du cœur)
     JEU.contre = true;
     JEU.ia = P.indexOf(partie.moi);   // la voiture du joueur (comme « contre les IA » : la caméra, le tableau et la minicarte la suivent)
     // les voitures : les IA aux couleurs des IA, les joueurs aux leurs (dans l'ordre de la salle : la même chose chez tous)

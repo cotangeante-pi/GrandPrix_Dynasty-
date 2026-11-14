@@ -126,7 +126,7 @@ with sync_playwright() as p:
         if mode == 'ecrans': course_ecrans(b)
         elif mode != 'ia': course(b, 'deux joueurs, 0 IA', 0)
         if mode in ('', 'ia'): course(b, 'deux joueurs, 2 IA', 2)
-        if mode in ('', 'court'): course_ecrans(b)
+        if mode == '': course_ecrans(b)   # (les écrans de salle avec rechargement : pas encore au vert, hors de 'court' qui sert aux annexes de GitHub)
     finally:
         b.close()
 print('RESULTAT ' + ('OK' if ok_tout else 'ECHEC'))

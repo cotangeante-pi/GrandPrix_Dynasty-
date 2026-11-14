@@ -2715,7 +2715,7 @@ function demarrerJeu() {
   // du joueur, son niveau, ou la leçon du freinage du tutoriel, qui l'allume pendant la leçon) ; jamais au tournoi ni à deux
   JEU.conseilForce = PARAMETRES.get('tutoriel') === 'freinage' ? 'oui' : null;
   const carteConseil = !JEU.tournoi && !JEU.deux && !JEU.defi && (JEU.conseilForce !== null || CONSEIL.reglageVu(SAUVEGARDE.option('trajectoire', null), REGLAGES.NIVEAU) !== 'non');
-  if (JEU.ia || JEU.deux || carteConseil || JEU.enligne) {   // (à deux sans IA aussi : la course attend la carte, comme les autres)
+  if (JEU.ia || JEU.deux || carteConseil) {   // (en ligne : pas de carte calculée en fond par la page, le cœur construit la sienne avec nos Math : JEU.ia est 0 ici)   // (à deux sans IA aussi : la course attend la carte, comme les autres)
     // la sauvegarde d'abord, puis la carte livrée avec le jeu (cache-carte-test.js : le circuit test, tour 52f ; périmée = refusée par sa clé, on calcule en fond)
     const enCache = CACHE_CARTE.decoder(SAUVEGARDE.carte(NOM_CIRCUIT), NOM_CIRCUIT, CIRCUITS[NOM_CIRCUIT], CIRCUIT)
       || (typeof CACHE_CARTE_LIVREE !== 'undefined' ? CACHE_CARTE.decoder(CACHE_CARTE_LIVREE[NOM_CIRCUIT], NOM_CIRCUIT, CIRCUITS[NOM_CIRCUIT], CIRCUIT) : null);
