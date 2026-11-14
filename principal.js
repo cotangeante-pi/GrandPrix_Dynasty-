@@ -2694,7 +2694,7 @@ function demarrerJeu() {
   JEU.contre = (PARAMETRES.get('joueur') === '1' && Number(PARAMETRES.get('ia')) >= 1) || !!JEU.championnat || JEU.decouverte || !!JEU.deux;
   if (EN_LIGNE_COURSE) JEU.contre = true;   // (en ligne : la course est une course contre d'autres voitures, vue par son joueur)
   JEU.ia = JEU.deux ? JEU.deux.nbIA : JEU.championnat ? JEU.championnat.pilotes.length - 1 : JEU.decouverte ? JEU.indices.length : Math.max(0, Math.min(REGLAGES.IA_PAGE_MAX - (JEU.contre ? 1 : 0), Math.floor(Number(PARAMETRES.get('ia'))) || 0));
-  if (EN_LIGNE_COURSE) { JEU.enligne = ENLIGNE_PAGE.preparer(EN_LIGNE_COURSE, PARAMETRES); JEU.ia = 0; }   // (la voiture du joueur : trouvée au départ)
+  if (EN_LIGNE_COURSE) { JEU.enligne = ENLIGNE_PAGE.preparer(EN_LIGNE_COURSE, PARAMETRES); JEU.ia = 0; document.body.classList.add('enligneCourse'); }   // (T10 : body.enligneCourse cache ⏸ au doigt : il n'y a pas de pause en ligne)   // (la voiture du joueur : trouvée au départ)
   // la carte des IA : lue du cache de la sauvegarde si elle y est et si sa clé est encore valable (cache-carte.js : les mêmes
   // nombres au bit près, les feux n'attendent plus), sinon calculée en fond puis mise en cache
   const carteFinie = t => {

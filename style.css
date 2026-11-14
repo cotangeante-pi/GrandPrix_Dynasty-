@@ -2779,3 +2779,5 @@ body.tactile #boutonEnligneTitre, body.tactile :is(#enligne, #enligneRejoindre, 
 @media (max-height: 420px) { #enligneEtapes { font-size: 14px; gap: 4px; } }
 /* tourne:debut */@media (max-width: 420px) { :where(html.tourne) #enligneEtapes { font-size: 14px; gap: 4px; } }/* tourne:fin */
 body.tactile #boutonEnligneComment { min-height: 40px; }
+/* (tour 56, T10) en ligne, pas de pause : le bouton ⏸ du téléphone ne sert à rien (les autres joueurs attendraient) */
+body.enligneCourse #tactilePause { display: none; }
