@@ -1,0 +1,127 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>réseau</title></head><body>
+<pre id="res"></pre>
+<script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));window.addEventListener('unhandledrejection',e=>__err.push('promesse : '+(e.reason&&e.reason.message||e.reason)));</script>
+<script src="../donnees.js"></script><script src="../reseau.js"></script>
+<script>
+// Le client réseau (tour 56, T4) : les transports qui demandent du temps ou le navigateur : un faux WebSocket relié au relais en JS (reconnexion,
+// délais, messages trop gros, silence) et le vrai BroadcastChannel (deux clients dans la même page, comme deux onglets). La mémoire est testée
+// dans tests/test.html (« réseau : … »). Les attentes passent par attendre() : --virtual-time-budget fait avancer les minuteurs.
+const L=[];let ok=0,ko=0;
+const v=(c,m)=>{if(!c)throw new Error(m||'faux');};
+function ecrire(fin){document.getElementById('res').textContent=`${fin?'':'EN COURS '}RESULTAT ${ok}/${ok+ko}\n`+L.join('\n');}
+const R=REGLAGES,FILE=[];
+function t(n,f){FILE.push([n,f]);}
+const attendre=(cond,ms=3000)=>new Promise((res,rej)=>{const t0=Date.now();(function boucle(){if(cond())return res();if(Date.now()-t0>ms)return rej(new Error('attente dépassée'));setTimeout(boucle,5);})();});
+const vide=()=>new Promise(r=>setTimeout(r,20));
+
+// une horloge qu'on avance à la main
+function horloge(){const h={t:0,id:1,liste:[],maintenant(){return h.t;},delai(f,ms){const i=h.id++;h.liste.push({i,f,a:h.t+ms});return i;},annuler(i){h.liste=h.liste.filter(x=>x.i!==i);},
+  async avancer(ms){const fin=h.t+ms;for(;;){const p=h.liste.filter(x=>x.a<=fin).sort((a,b)=>a.a-b.a)[0];if(!p)break;h.liste=h.liste.filter(x=>x!==p);h.t=Math.max(h.t,p.a);p.f();await Promise.resolve();await Promise.resolve();await vide();}h.t=fin;}};return h;}
+
+// un faux WebSocket relié à un relais en JS
+const SERVEUR={relais:null,socks:[],ouvre:true,muet:false,jamais:false};
+function reinitServeur(){SERVEUR.relais=RESEAU.creerRelais();SERVEUR.socks=[];SERVEUR.ouvre=true;SERVEUR.muet=false;SERVEUR.jamais=false;SERVEUR.envoyes=[];}
+class FauxWS{constructor(url){this.url=url;this.ouvert=false;SERVEUR.socks.push(this);
+  setTimeout(()=>{if(SERVEUR.jamais)return;if(!SERVEUR.ouvre){this.onerror&&this.onerror({});this.onclose&&this.onclose({});return;}
+    this.ouvert=true;this.conn=SERVEUR.relais.connecter(m=>{if(SERVEUR.muet&&m.t==='pong')return;setTimeout(()=>{if(this.ouvert&&this.onmessage)this.onmessage({data:JSON.stringify(m)});},1);});this.onopen&&this.onopen({});},1);}
+  send(d){SERVEUR.envoyes.push(d);const m=JSON.parse(d);setTimeout(()=>{if(this.ouvert&&this.conn)this.conn.recevoir(m);},1);}
+  close(){if(!this.ouvert)return;this.ouvert=false;if(this.conn)this.conn.fermer();}
+  coupe(){const o=this.ouvert;this.ouvert=false;if(this.conn)this.conn.fermer();if(o&&this.onclose)this.onclose({});}
+  recoit(d){if(this.onmessage)this.onmessage({data:d});}}
+const clientWS=(nom,h)=>{const c=RESEAU.client({transport:'websocket',url:'ws://essai',WebSocketClasse:FauxWS,horloge:h||undefined,ping:!!h});const j={c,vus:[],refus:[],etats:[],nom};
+  for(const k of ['salle','joueurs','depart','cmd','parti','nouvel-hote','perdu','reconnecte'])c.sur(k,d=>j.vus.push([k,d]));c.sur('refus',d=>j.refus.push(d.raison));c.sur('etat',d=>j.etats.push(d.etat));return j;};
+const de=(j,k)=>j.vus.filter(x=>x[0]===k).map(x=>x[1]);
+
+t('WebSocket : ouvrir, créer, rejoindre, lancer, relayer les cmd (même protocole que la mémoire)', async()=>{
+  reinitServeur();const a=clientWS('Pilote 1'),b=clientWS('Pilote 2');await a.c.ouvrir();await b.c.ouvrir();v(a.c.etat==='ouvert');
+  a.c.creer('Pilote 1');await attendre(()=>a.c.enSalle());b.c.rejoindre(a.c.code,'Pilote 2');await attendre(()=>b.c.enSalle()&&a.c.joueurs.length===2);
+  a.c.lancer({circuit:'test',tours:2,meteo:'sec',nbIA:3});await attendre(()=>de(a,'depart').length&&de(b,'depart').length);
+  v(de(a,'depart')[0].graine===de(b,'depart')[0].graine,'même graine');
+  for(let n=0;n<20;n++)b.c.cmd(n,[n]);await attendre(()=>de(a,'cmd').length===20);v(de(a,'cmd').map(x=>x.n).join()===[...Array(20).keys()].join(),'ordre');
+  a.c.fermer();b.c.fermer();});
+t('WebSocket : serveur injoignable → ouvrir() échoue proprement, état « ferme », sans exception ailleurs', async()=>{
+  reinitServeur();SERVEUR.ouvre=false;const a=clientWS('Pilote 1');let err=null;await a.c.ouvrir().catch(e=>err=e);v(err,'devait échouer');v(a.c.etat==='ferme','état '+a.c.etat);
+  v(a.c.creer('Pilote 1')===false,'créer fermé : refusé');
+  const sans=RESEAU.client({transport:'websocket',url:''});let e2=null;await sans.ouvrir().catch(e=>e2=e);v(e2&&sans.etat==='ferme','sans adresse : refusé (EN_LIGNE_URL vide)');});
+t('WebSocket : un serveur qui ne répond pas → délai d’ouverture (EN_LIGNE_OUVERTURE_MS)', async()=>{
+  reinitServeur();SERVEUR.jamais=true;const h=horloge(),a=clientWS('Pilote 1',h);let err=null;const p=a.c.ouvrir().catch(e=>err=e);await h.avancer(R.EN_LIGNE_OUVERTURE_MS+10);await p;v(err&&/délai/.test(err.message),'erreur : '+(err&&err.message));v(a.c.etat==='ferme');});
+t('WebSocket : messages trop gros ou mal formés, reçus : jetés ; envoyés : jamais partis', async()=>{
+  reinitServeur();const a=clientWS('Pilote 1');await a.c.ouvrir();a.c.creer('Pilote 1');await attendre(()=>a.c.enSalle());
+  const s=SERVEUR.socks[0],avant=a.vus.length;
+  s.recoit('pas du json');s.recoit('{"t":42}');s.recoit('[1,2]');s.recoit(JSON.stringify({t:'joueurs',liste:[],x:'x'.repeat(R.EN_LIGNE_TAILLE_MAX)}));s.recoit('null');
+  v(a.vus.length===avant,'rien n’a été pris en compte : '+a.vus.length+' / '+avant);
+  a.c.lancer({circuit:'test',tours:1,meteo:'sec',nbIA:0});a.c.pret(true);await vide();a.c.cmd(0,'x'.repeat(R.EN_LIGNE_TAILLE_MAX));const n=SERVEUR.envoyes.length;await vide();
+  v(!SERVEUR.envoyes.some(d=>d.length>R.EN_LIGNE_TAILLE_MAX),'rien de trop gros n’est parti');a.c.fermer();});
+t('WebSocket : coupure en salle d’attente → reconnexion courte et retour dans la même salle', async()=>{
+  reinitServeur();const h=horloge(),a=clientWS('Pilote 1',h),b=clientWS('Pilote 2',h);await a.c.ouvrir();await b.c.ouvrir();
+  a.c.creer('Pilote 1');await attendre(()=>a.c.enSalle());const code=a.c.code;b.c.rejoindre(code,'Pilote 2');await attendre(()=>b.c.enSalle());
+  SERVEUR.socks[1].coupe();await attendre(()=>b.c.etat==='coupe'||b.etats.includes('coupe'));
+  await attendre(()=>de(a,'parti').length===1,500);
+  await h.avancer(R.EN_LIGNE_RECONNEXION_MS+5);await attendre(()=>de(b,'reconnecte').length===1&&b.c.enSalle(),2000);
+  v(b.c.etat==='ouvert'&&b.c.code===code,'revenu dans '+code+' : '+b.c.code);v(a.c.joueurs.length===2,'l’hôte voit les deux joueurs');a.c.fermer();b.c.fermer();});
+t('WebSocket : pas de reconnexion possible → après EN_LIGNE_RECONNEXIONS essais, « perdu »', async()=>{
+  reinitServeur();const h=horloge(),a=clientWS('Pilote 1',h);await a.c.ouvrir();a.c.creer('Pilote 1');await attendre(()=>a.c.enSalle());
+  SERVEUR.ouvre=false;SERVEUR.socks[0].coupe();await attendre(()=>a.etats.includes('coupe'));
+  for(let k=1;k<=R.EN_LIGNE_RECONNEXIONS+1&&!de(a,'perdu').length;k++){await h.avancer(R.EN_LIGNE_RECONNEXION_MS*k+5);await vide();}
+  await attendre(()=>de(a,'perdu').length===1,2000);v(a.c.etat==='ferme'&&!a.c.enSalle(),'perdu, plus en salle');});
+t('WebSocket : une coupure en pleine course est définitive (pas de reconnexion)', async()=>{
+  reinitServeur();const h=horloge(),a=clientWS('Pilote 1',h),b=clientWS('Pilote 2',h);await a.c.ouvrir();await b.c.ouvrir();
+  a.c.creer('Pilote 1');await attendre(()=>a.c.enSalle());b.c.rejoindre(a.c.code,'Pilote 2');await attendre(()=>b.c.enSalle());
+  a.c.lancer({circuit:'test',tours:1,meteo:'sec',nbIA:0});await attendre(()=>de(b,'depart').length);
+  SERVEUR.socks[1].coupe();await attendre(()=>de(b,'perdu').length===1);v(b.c.etat==='ferme');await h.avancer(5000);v(SERVEUR.socks.length===2,'aucun nouvel essai de connexion');a.c.fermer();});
+t('WebSocket : un serveur muet (aucun pong) = connexion morte, détectée au bout de EN_LIGNE_SILENCE_MS', async()=>{
+  reinitServeur();const h=horloge(),a=clientWS('Pilote 1',h);await a.c.ouvrir();a.c.creer('Pilote 1');await attendre(()=>a.c.enSalle());
+  SERVEUR.muet=true;await h.avancer(R.EN_LIGNE_SILENCE_MS+3*R.EN_LIGNE_PING_MS);v(a.etats.includes('coupe'),'coupure détectée : '+a.etats.join());a.c.fermer();});
+t('WebSocket : la latence se mesure en continu (ping automatique)', async()=>{
+  reinitServeur();const h=horloge(),a=clientWS('Pilote 1',h);await a.c.ouvrir();a.c.creer('Pilote 1');await attendre(()=>a.c.enSalle());
+  await h.avancer(R.EN_LIGNE_PING_MS+5);await attendre(()=>a.c.latence!==null,1000);v(a.c.latence>=0,'latence '+a.c.latence);a.c.fermer();});
+
+// --- le vrai BroadcastChannel : deux clients dans la même page (chacun son canal, comme deux onglets)
+const clientBC=(nom,h,canal)=>{const c=RESEAU.client({transport:'diffusion',canal:canal||'gpd-essai',horloge:h,ping:false});const j={c,vus:[],refus:[],nom};
+  for(const k of ['salle','joueurs','depart','cmd','parti','nouvel-hote','perdu','emote'])c.sur(k,d=>j.vus.push([k,d]));c.sur('refus',d=>j.refus.push(d.raison));return j;};
+t('BroadcastChannel : deux « onglets » : créer, rejoindre par le code, lancer, relayer les cmd dans l’ordre', async()=>{
+  R.EN_LIGNE_ATTENTE_MS=80;const a=clientBC('Pilote 1'),b=clientBC('Pilote 2'),c=clientBC('Pilote 3');await a.c.ouvrir();await b.c.ouvrir();await c.c.ouvrir();
+  a.c.creer('Pilote 1');await attendre(()=>a.c.enSalle());v(/^[BCDFGHJKLMNPQRSTVWXZ]{4}$/.test(a.c.code),'code '+a.c.code);
+  b.c.rejoindre(a.c.code,'Pilote 2');await attendre(()=>b.c.enSalle());c.c.rejoindre(a.c.code.toLowerCase(),'Pilote 3');await attendre(()=>c.c.enSalle()&&a.c.joueurs.length===3);
+  v(b.c.joueurs.length===3&&c.c.moi===3&&b.c.moi===2&&b.c.hote===1,'ids et hôte');
+  b.c.pret(true);await attendre(()=>a.c.joueurs.find(j=>j.id===2).pret);
+  a.c.lancer({circuit:'test',tours:2,meteo:'sec',nbIA:0});await attendre(()=>de(a,'depart').length&&de(b,'depart').length&&de(c,'depart').length);
+  v(de(a,'depart')[0].graine===de(c,'depart')[0].graine&&JSON.stringify(de(b,'depart')[0].ordre)==='[1,2,3]','départ identique');
+  for(let n=0;n<30;n++){a.c.cmd(n,{n});b.c.cmd(n,{n});}await attendre(()=>de(c,'cmd').length===60&&de(a,'cmd').length===30);
+  for(const de_ of [1,2])v(de(c,'cmd').filter(x=>x.de===de_).map(x=>x.n).join()===[...Array(30).keys()].join(),'ordre de '+de_);
+  v(de(a,'cmd').every(x=>x.de===2),'pas d’écho');
+  c.c.emote(2);await attendre(()=>de(a,'emote').length===1&&de(b,'emote').length===1);
+  a.c.fermer();b.c.fermer();c.c.fermer();});
+t('BroadcastChannel : un code que personne ne connaît → « inconnue » après EN_LIGNE_ATTENTE_MS ; mauvaise version → « version »', async()=>{
+  R.EN_LIGNE_ATTENTE_MS=80;const a=clientBC('Pilote 1'),b=clientBC('Pilote 2');await a.c.ouvrir();await b.c.ouvrir();
+  b.c.rejoindre('BCDF','Pilote 2');await attendre(()=>b.refus.length===1);v(b.refus[0]==='inconnue'&&!b.c.enSalle());
+  a.c.creer('Pilote 1');await attendre(()=>a.c.enSalle());
+  const w=RESEAU.client({transport:'diffusion',canal:'gpd-essai',version:77,ping:false});const refus=[];w.sur('refus',d=>refus.push(d.raison));await w.ouvrir();w.rejoindre(a.c.code,'Pilote 4');await attendre(()=>refus.length===1);v(refus[0]==='version','version : '+refus);
+  w.fermer();a.c.fermer();b.c.fermer();});
+t('BroadcastChannel : salle pleine / commencée refusées ; un invité qui part est retiré ; deux salles ne se mélangent pas', async()=>{
+  R.EN_LIGNE_ATTENTE_MS=80;const js=[];for(let i=0;i<9;i++){const j=clientBC('Pilote '+(i+1));await j.c.ouvrir();js.push(j);}
+  js[0].c.creer('Pilote 1');await attendre(()=>js[0].c.enSalle());
+  for(let i=1;i<8;i++){js[i].c.rejoindre(js[0].c.code,'Pilote '+(i+1));await attendre(()=>js[i].c.enSalle());}
+  js[8].c.rejoindre(js[0].c.code,'Pilote 9');await attendre(()=>js[8].refus.length);v(js[8].refus[0]==='pleine','pleine : '+js[8].refus);
+  js[7].c.quitter();await attendre(()=>js[0].c.joueurs.length===7);v(de(js[0],'parti')[0].id===8,'parti');
+  js[0].c.lancer({circuit:'test',tours:1,meteo:'sec',nbIA:0});await attendre(()=>de(js[1],'depart').length);
+  js[8].c.rejoindre(js[0].c.code,'Pilote 9');await attendre(()=>js[8].refus.length===2);v(js[8].refus[1]==='commencee','commencée : '+js[8].refus);
+  for(const j of js)j.c.fermer();});
+t('BroadcastChannel : l’onglet qui fait le relais se ferme → les autres reçoivent « perdu » ; un onglet muet est retiré', async()=>{
+  R.EN_LIGNE_ATTENTE_MS=80;const h=horloge(),a=clientBC('Pilote 1',h),b=clientBC('Pilote 2',h);await a.c.ouvrir();await b.c.ouvrir();
+  a.c.creer('Pilote 1');await attendre(()=>a.c.enSalle());b.c.rejoindre(a.c.code,'Pilote 2');await attendre(()=>b.c.enSalle());
+  a.c.fermer();await attendre(()=>de(b,'perdu').length===1,2000);v(b.c.etat==='ferme'&&!b.c.enSalle(),'perdu');
+  b.c.fermer();});
+t('BroadcastChannel : un onglet fermé sans prévenir (aucun message depuis EN_LIGNE_SILENCE_MS) quitte la salle', async()=>{
+  R.EN_LIGNE_ATTENTE_MS=80;const h=horloge(),a=clientBC('Pilote 1',h),b=clientBC('Pilote 2',h),c=clientBC('Pilote 3',h);await a.c.ouvrir();await b.c.ouvrir();await c.c.ouvrir();
+  a.c.creer('Pilote 1');await attendre(()=>a.c.enSalle());b.c.rejoindre(a.c.code,'Pilote 2');await attendre(()=>b.c.enSalle());c.c.rejoindre(a.c.code,'Pilote 3');await attendre(()=>c.c.enSalle());
+  h.t+=R.EN_LIGNE_SILENCE_MS-1000;c.c.pret(true);await attendre(()=>a.c.joueurs.find(j=>j.id===3).pret);   // c parle, b se tait
+  h.t+=2000;c.c.pret(false);await attendre(()=>de(a,'parti').length===1);v(de(a,'parti')[0].id===2&&a.c.joueurs.length===2,'b retiré : '+JSON.stringify(a.c.joueurs));
+  a.c.fermer();b.c.fermer();c.c.fermer();});
+
+(async()=>{
+  for(const [n,f] of FILE){try{await f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}ecrire(false);}
+  if(__err.length){ko++;L.push('✘ aucune erreur JavaScript — '+__err.join(' | '));}else{ok++;L.push('✔ aucune erreur JavaScript');}
+  ecrire(true);
+})();
+</script></body></html>
