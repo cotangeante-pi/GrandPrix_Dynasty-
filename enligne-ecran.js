@@ -39,6 +39,7 @@ const ENLIGNE_ECRAN = (function () {
     $('boutonEnligneCreer').textContent = texte('enligneCreer');
     $('boutonEnligneRejoindre').textContent = texte('enligneRejoindre');
     $('boutonEnligneRetour').textContent = texte('enligneRetour');
+    majComment();
     $('enligneNomChoisi').textContent = texte('enligneNomChoisi').replace('{nom}', nomChoisi());
     const boite = vide($('enligneCouleurs'));
     boite.setAttribute('aria-label', texte('enligneCouleur'));
@@ -51,6 +52,16 @@ const ENLIGNE_ECRAN = (function () {
       b.addEventListener('click', () => { SAUVEGARDE.ecrireOption('enligne_couleur', i); majMenu(); });
       boite.appendChild(b);
     });
+  }
+  // « Comment jouer en ligne » : quatre étapes à la place du menu (même écran), un second appui revient
+  let commentOuvert = false;
+  function majComment() {
+    const ol = vide($('enligneEtapes'));
+    for (let i = 1; i <= 4; i++) { const li = document.createElement('li'); li.textContent = texte('enligneComment' + i); ol.appendChild(li); }
+    $('enligne').classList.toggle('comment', commentOuvert);
+    $('enligneComment').classList.toggle('cache', !commentOuvert);
+    $('boutonEnligneComment').textContent = commentOuvert ? texte('enligneRetour') : texte('enligneComment');
+    $('enligneTitre').textContent = texte(commentOuvert ? 'enligneCommentTitre' : 'enligneTitre');
   }
   const dire = (id, t) => { $(id).textContent = t || ''; };
 
@@ -249,12 +260,13 @@ const ENLIGNE_ECRAN = (function () {
   function aller(e) {
     ecran = e;
     rappels.aller(e);
-    if (e === 'enligne') { dire('enligneMessage', ''); majMenu(); }
+    if (e === 'enligne') { commentOuvert = false; dire('enligneMessage', ''); majMenu(); }
     else if (e === 'enligneRejoindre') { dire('enligneRejoindreMessage', ''); $('enligneCode').value = ''; majRejoindre(); if (!window.matchMedia('(pointer: coarse)').matches) $('enligneCode').focus(); }
     else majSalle();
   }
   api.ouvrir = function () { remiseAZero(); aller('enligne'); };
   api.echap = function () {
+    if (ecran === 'enligne' && commentOuvert) { commentOuvert = false; majComment(); return; }
     if (ecran === 'enligneSalle') quitterSalle();
     else if (ecran === 'enligneRejoindre') aller('enligne');
     else { remiseAZero(); rappels.retour(); }
@@ -264,6 +276,7 @@ const ENLIGNE_ECRAN = (function () {
   api.preparer = function (r) {
     rappels = Object.assign(rappels, r);
     bouton('boutonEnligneCreer', creer); bouton('boutonEnligneRejoindre', () => aller('enligneRejoindre')); bouton('boutonEnligneRetour', () => api.echap());
+    bouton('boutonEnligneComment', () => { commentOuvert = !commentOuvert; majComment(); });
     bouton('boutonEnligneGo', rejoindre); bouton('boutonEnligneRejoindreRetour', () => aller('enligne'));
     bouton('boutonEnlignePret', basculerPret); bouton('boutonEnligneLancer', lancer); bouton('boutonEnligneQuitter', quitterSalle);
     const champ = $('enligneCode');

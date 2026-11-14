@@ -75,7 +75,7 @@ async def tests_principaux(port, rel):
     t('créer : le code a 4 lettres sans voyelle ni Y', re.fullmatch(r'[BCDFGHJKLMNPQRSTVWXZ]{4}', sa['code']), sa['code'])
     t('créer : on est le joueur 1 et l’hôte', sa['toi'] == 1 and sa['hote'] == 1, sa)
     j = await h.jusqua('joueurs')
-    t('créer : la liste des joueurs donne id, nom, prêt, hôte', j['liste'] == [{'id': 1, 'nom': 'Pilote 1', 'pret': False, 'hote': True}], j)
+    t('créer : la liste des joueurs donne id, nom, prêt, hôte', j['liste'] == [{'id': 1, 'nom': 'Pilote 1', 'pret': False, 'hote': True, 'circuit': None, 'recharge': False}], j)
     # --- rejoindre (le code passe aussi en minuscules) ---
     b = await ouvre(port, 'Pilote 2 Bleu', code=sa['code'].lower())
     sb = await b.jusqua('salle')
@@ -283,6 +283,66 @@ async def tests_expiration(port, rel):
     t('salle commencée muette : elle expire aussi', cd == 1001, cd)
     await fin([h, b])
 
+async def tests_charge(port, rel):
+    # --- le jeton : « salle » le donne, aléatoire, différent pour chacun ---
+    h = await ouvre(port, 'Pilote 1', creer=True); sa = await h.jusqua('salle')
+    b = await ouvre(port, 'Pilote 2', code=sa['code']); sb = await b.jusqua('salle')
+    t('jeton : « salle » donne un jeton aléatoire, différent pour chaque joueur', isinstance(sa.get('jeton'), str) and len(sa['jeton']) >= 12 and sa['jeton'] != sb['jeton'], (sa, sb))
+    # --- charge : la liste porte le circuit ; lancer refusé tant qu'un joueur n'a pas le bon ---
+    rg = {'circuit': 'monza', 'tours': 3, 'meteo': 'sec', 'nbIA': 2}
+    await h.env(t='charge', circuit='monza')
+    j = await b.jusqua('joueurs')
+    while [x['circuit'] for x in j['liste']] != ['monza', None]: j = await b.jusqua('joueurs')
+    t('charge : la liste des joueurs porte le circuit chargé de chacun (null tant qu’il n’a rien annoncé)', [x['circuit'] for x in j['liste']] == ['monza', None], j)
+    await h.env(t='lancer', reglages=rg); r = await h.jusqua('erreur')
+    t('lancer refusé (erreur « charge ») tant qu’un joueur n’a pas annoncé le circuit des réglages', r['raison'] == 'charge', r)
+    await b.env(t='charge', circuit='spa'); await h.jusqua('joueurs'); await h.silence(0.2)
+    await h.env(t='lancer', reglages=rg); r = await h.jusqua('erreur')
+    t('lancer refusé aussi quand un joueur a un AUTRE circuit', r['raison'] == 'charge', r)
+    await b.env(t='charge', circuit='x' * 80); await b.env(t='charge', circuit=5); t('charge : un circuit absurde est jeté', True)
+    # --- la grâce : coupé, il revient avec son jeton, même id, pas de « parti » ---
+    await b.ws.close()
+    j = await h.jusqua('joueurs')
+    while not any(x['recharge'] for x in j['liste']): j = await h.jusqua('joueurs')
+    t('grâce : un joueur coupé reste dans la liste, marqué « recharge »', [x['id'] for x in j['liste'] if x['recharge']] == [2], j)
+    b2 = await ouvre(port); await b2.env(t='rejoindre', code=sa['code'], nom='Pilote 2', version='1', jeton=sb['jeton'])
+    s2 = await b2.jusqua('salle')
+    t('retour avec le jeton : même id, même jeton, l’hôte reste l’hôte', s2['toi'] == 2 and s2['hote'] == 1 and s2['jeton'] == sb['jeton'], s2)
+    j = await h.jusqua('joueurs')
+    while any(x['recharge'] for x in j['liste']): j = await h.jusqua('joueurs')
+    vus = [m for m in h.recus if m['t'] == 'parti']
+    t('retour avec le jeton : aucun « parti » n’a été envoyé, la liste n’a plus de « recharge »', not vus and len(j['liste']) == 2, (vus, j))
+    await b2.env(t='charge', circuit='monza'); await h.jusqua('joueurs'); await h.silence(0.2)
+    await h.env(t='lancer', reglages=rg); d = await h.jusqua('depart'); await b2.jusqua('depart')
+    t('lancer accepté quand tous ont le circuit des réglages (le joueur revenu compris)', d['reglages'] == rg and sorted(d['ordre']) == [1, 2], d)
+    await fin([h, b2]); await asyncio.sleep(0.2)
+    # --- mauvais jeton, jeton d'un autre, grâce passée ---
+    code, (h, b) = await salle_de(port, ['Pilote 1', 'Pilote 2'])
+    c = await ouvre(port); await c.env(t='rejoindre', code=code, nom='Pilote 2', version='1', jeton='nimporte-quoi'); r = await c.lire()
+    t('un faux jeton ne prend la place de personne (le nom pris reste refusé)', r == {'t': 'refus', 'raison': 'nom'}, r)
+    await b.ws.close(); await h.jusqua('parti', 6)
+    t('grâce passée : « parti » est envoyé', True)
+    await fin([h, c]); await asyncio.sleep(0.2)
+    # --- l'hôte qui recharge garde son rôle pendant la grâce ---
+    h = await ouvre(port, 'Pilote 1', creer=True); sh = await h.jusqua('salle')
+    b = await ouvre(port, 'Pilote 2', code=sh['code']); await b.jusqua('salle')
+    await h.ws.close(); await asyncio.sleep(0.3)
+    t('hôte coupé pendant la grâce : pas de « nouvel-hote » ni de « parti »', not [m for m in b.recus if m['t'] in ('parti', 'nouvel-hote')] and await b.silence(0.2) is not None)
+    h2 = await ouvre(port); await h2.env(t='rejoindre', code=sh['code'], nom='Pilote 1', version='1', jeton=sh['jeton']); s3 = await h2.jusqua('salle')
+    t('hôte qui recharge : il revient hôte (id 1)', s3['toi'] == 1 and s3['hote'] == 1, s3)
+    await fin([h2, b]); await asyncio.sleep(0.2)
+    # --- salle commencée : pas de grâce, « parti » tout de suite ---
+    h = await ouvre(port, 'Pilote 1', creer=True); sh = await h.jusqua('salle'); b = await ouvre(port, 'Pilote 2', code=sh['code']); await b.jusqua('salle')
+    await h.env(t='charge', circuit='monza'); await b.env(t='charge', circuit='monza'); await asyncio.sleep(0.2)
+    await h.env(t='lancer', reglages=rg); await h.jusqua('depart'); await b.jusqua('depart')
+    await b.ws.close(); p = await h.jusqua('parti', 1.0)
+    t('en course : pas de grâce, « parti » tout de suite', p == {'t': 'parti', 'id': 2}, p)
+    await fin([h]); await asyncio.sleep(0.2)
+    # --- grâce passée sans retour : la salle vide disparaît ---
+    h = await ouvre(port, 'Pilote 1', creer=True); sh = await h.jusqua('salle'); await h.ws.close()
+    await asyncio.sleep(2.0)
+    t('seul et coupé, la grâce passée : la salle disparaît', sh['code'] not in rel.salles, list(rel.salles))
+
 async def tests_adresse(port, rel):
     cs = [await ouvre(port) for _ in range(3)]
     c4 = await connect(f'ws://127.0.0.1:{port}', open_timeout=5)
@@ -302,11 +362,14 @@ async def lance(cfg, test):
         await test(s.port, rel)
 
 async def tout():
-    base = dict(delai_arrivee=1.5, delai_emote=0.5, nettoyage=0.2)
+    base = dict(delai_arrivee=1.5, delai_emote=0.5, nettoyage=0.2, exiger_charge=False, grace=0)   # (les parties d'avant le jeton : sans exiger « charge » ; la partie « charge » l'exige)
+    seule = os.environ.get('SERVEUR_PARTIE')   # (pour déboguer : une seule partie)
     for nom, cfg, f in (
         ('principal', R.Config(**base), tests_principaux), ('salles', R.Config(**base), tests_salles), ('limites', R.Config(**base), tests_limites),
         ('expiration', R.Config(attente_salle=1.0, attente_course=1.5, **base), tests_expiration),
+        ('charge et jeton', R.Config(**dict(base, exiger_charge=True, grace=1.5)), tests_charge),
         ('adresse', R.Config(max_par_ip=3, **base), tests_adresse), ('noms libres', R.Config(noms_libres=True, **base), tests_noms_libres)):
+        if seule and seule != nom: continue
         try: await asyncio.wait_for(lance(cfg, f), 90)
         except Exception as e:
             import traceback

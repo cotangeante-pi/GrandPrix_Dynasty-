@@ -30,7 +30,7 @@ const COMMENTAIRE = (function () {
     const place = new Map(ordre.map(o => [o.k, o]));
     return {
       ordre, place,
-      pilotes: e.pilotes.map(p => ({ tour: p.course.tours.length + 1, arrivee: p.arrivee, penalites: p.course.penalites || 0, stand: !!p.course.arretEnCours,
+      pilotes: e.pilotes.map(p => ({ tour: p.course.tours.length + 1, arrivee: p.arrivee, penalites: p.course.penalites || 0, limites: p.course.limites || 0, stand: !!p.course.arretEnCours,
         meilleur: p.course.meilleurTour, erreur: !!((p.pilote && p.pilote.enErreur) || p.v.surHerbe), degats: p.v.degats || 0, contacts: p.v.contactsVoiture || 0,
         s: p.v.piste ? p.v.piste.s : null, d: p.v.piste ? p.v.piste.d : null, x: p.v.x, z: p.v.z })),
       depassements: e.depassements ? e.depassements.length : 0,
@@ -87,6 +87,8 @@ const COMMENTAIRE = (function () {
       if (p.erreur && !a.erreur && (haut(k) || estJ(k)) && p.arrivee === null) pousser(c, t, 'erreur', prm(k), estJ(k));
       // (tour 55, T25) un aileron qui vient d'être abîmé (T8 : v.degats passe de 0 à plus), le joueur ou un pilote du haut de la grille
       if (R.DEGATS_ACTIF && p.degats > 0 && !(a.degats > 0) && (haut(k) || estJ(k)) && p.arrivee === null) pousser(c, t, 'degats', prm(k), estJ(k));
+      // (tour 56, T1) un avertissement de limites de piste : le compte monte (une pénalité le remet à 0 : elle a sa phrase)
+      if (p.limites > a.limites && p.penalites === a.penalites && (haut(k) || estJ(k))) pousser(c, t, 'limites', prm(k), estJ(k));
       if (p.penalites > a.penalites) pousser(c, t, 'penalite', prm(k, { s: p.penalites - a.penalites }), estJ(k));
       if (p.stand && !a.stand) pousser(c, t, 'stands', prm(k), estJ(k));
     });

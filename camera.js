@@ -130,8 +130,9 @@ const CAMERA = (function () {
     window.addEventListener('pointerup', () => { glisse = null; });
     window.addEventListener('pointermove', e => {
       if (!glisse) return;
-      libre.lacet -= (e.clientX - glisse.x) * R.CAMERA_LIBRE_SOURIS;
-      libre.tangage = Math.max(-1.5, Math.min(1.5, libre.tangage - (e.clientY - glisse.y) * R.CAMERA_LIBRE_SOURIS));
+      const d = typeof TACTILE !== 'undefined' ? TACTILE.ecartJeu(e.clientX - glisse.x, e.clientY - glisse.y) : { x: e.clientX - glisse.x, y: e.clientY - glisse.y };   // (tour 56, T15 : le glissé dans le sens du jeu, tourné ou non)
+      libre.lacet -= d.x * R.CAMERA_LIBRE_SOURIS;
+      libre.tangage = Math.max(-1.5, Math.min(1.5, libre.tangage - d.y * R.CAMERA_LIBRE_SOURIS));
       glisse = { x: e.clientX, y: e.clientY };
     });
     // la molette avance ou recule dans la direction du regard

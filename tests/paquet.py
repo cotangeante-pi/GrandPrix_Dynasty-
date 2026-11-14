@@ -286,6 +286,7 @@ try:
               appels[:2] == ['init', 'gameLoadingFinished'] and appels.count('gameLoadingFinished') == 1 and appels.count('gameplayStart') == 1 and 'commercialBreak' not in appels and not verifier_sdk(pg.evaluate('() => JOURNAL_SDK.slice()')), str(appels))
             L.append(f'  (téléphone émulé, depuis le zip, sous swiftshader : du clic sur « Jouer » aux feux éteints {(mesure or 0) / 1000:.1f} s ; la cible du propriétaire est 10 s sur un vrai appareil)')
             t(f'{titre} : la mesure du clic aux feux existe et reste raisonnable (< 40 s sous swiftshader)', mesure is not None and 0 < mesure < 40000, str(mesure))
+            pg.evaluate('() => { REGLAGES.PORTRAIT_TOURNER = false; }')   # (tour 56, T15 : ici le message d'avant ; le jeu tourné est dans tests/tourne.py)
             pg.set_viewport_size({'width': ht, 'height': lt})   # le téléphone debout
             pg.wait_for_function('() => JEU.ecran === "pause" && APPELS_SDK.slice(-1)[0] === "gameplayStop"', timeout=10000)
             t(f'{titre} : le téléphone debout en pleine course met la course en pause : gameplayStop, le message « tourne ton téléphone »', pg.evaluate('() => !document.getElementById("tactilePortrait").classList.contains("cache")'), str(pg.evaluate('() => APPELS_SDK.slice(-3)')))
