@@ -26,7 +26,8 @@ Client vers serveur :
 | message | sens |
 |---|---|
 | `{t:'creer', nom, version}` | crée une salle, on en est l'hôte |
-| `{t:'rejoindre', code, nom, version}` | le code se tape en majuscules ou minuscules |
+| `{t:'rejoindre', code, nom, version, jeton?}` | le code se tape en majuscules ou minuscules ; avec le `jeton` d'avant, dans les 20 s (`grace`) qui suivent une coupure avant le départ : même id, même rôle d'hôte |
+| `{t:'charge', circuit}` | à chaque arrivée en salle (la page vient de charger ce circuit) ; la liste des joueurs le porte |
 | `{t:'pret', pret:bool}` | |
 | `{t:'reglages', reglages}` | hôte seul, avant le lancement : renvoyé à tous (hôte compris) et gardé pour qui rejoint ensuite |
 | `{t:'lancer', reglages:{circuit, tours, meteo, nbIA}}` | hôte seul ; 2 joueurs au moins ; « prêt » est informatif (ne bloque pas) ; réglages : circuit (texte ≤ 40), tours 1 à 20, meteo (texte ≤ 20), nbIA 0 à 20, rien d'autre |
@@ -37,13 +38,13 @@ Client vers serveur :
 | `{t:'quitter'}` | quitte la salle, la connexion reste utilisable |
 | `{t:'ping', h}` | |
 
-Serveur vers client : `{t:'salle', code, toi, hote}`, `{t:'refus', raison}` (`inconnue`, `pleine`, `commencee`, `version`, `nom`),
-`{t:'joueurs', liste:[{id, nom, pret, hote}]}`, `{t:'depart', reglages, graine, ordre:[ids]}` (graine entière de 32 bits tirée par le serveur ;
+Serveur vers client : `{t:'salle', code, toi, hote, jeton}` (jeton aléatoire, à garder pour recharger la page), `{t:'refus', raison}` (`inconnue`, `pleine`, `commencee`, `version`, `nom`),
+`{t:'joueurs', liste:[{id, nom, pret, hote, circuit, recharge}]}`, `{t:'depart', reglages, graine, ordre:[ids]}` (graine entière de 32 bits tirée par le serveur ;
 `ordre` = les ids mélangés par le serveur), `{t:'cmd', de, n, c}`, `{t:'controle', de, n, h}`, `{t:'emote', de, i}`, `{t:'parti', id}`,
 `{t:'nouvel-hote', id}`, `{t:'pong', h}`, `{t:'reglages', reglages}`, `{t:'retour'}`.
 
 Un ajout du relais, hors du protocole du Chef (un client peut l'ignorer) : `{t:'erreur', raison}` quand un `lancer` est ignoré
-(`hote` : pas l'hôte, `commencee`, `pas-commencee` pour un retour trop tôt, `reglages` : réglages faux, `seul`).
+(`hote` : pas l'hôte, `commencee`, `pas-commencee` pour un retour trop tôt, `reglages` : réglages faux, `seul`, `charge` : un joueur n'a pas annoncé le circuit des réglages, ou recharge encore).
 
 ## Les règles
 
@@ -55,6 +56,7 @@ Un ajout du relais, hors du protocole du Chef (un client peut l'ignorer) : `{t:'
   (le surplus est jeté) ; 200 messages invalides (JSON faux, trame binaire, type inconnu, hors salle) et la connexion est coupée (1008) ;
   12 refus et coupé (1008) ; 10 s pour créer ou rejoindre une salle sinon coupé (1008) ; 24 connexions par adresse (1013) ; 500 salles ;
   un client trop lent (2000 messages en attente) est coupé (1013).
+- Grâce (changer de circuit = recharger la page) : avant le départ, un joueur dont la connexion tombe reste 20 s dans la salle, marqué `recharge: true`, sans `parti` ni nouvel hôte ; il revient avec son jeton (même id, même rôle, `circuit` à `null` jusqu'à son `charge`). Passé ce délai : `parti` (et `nouvel-hote` si c'était l'hôte). Après le départ, pas de grâce : `parti` tout de suite. `{t:'quitter'}` part sans grâce. Une salle dont tous les joueurs attendent leur retour disparaît à la fin de la grâce.
 - Expiration : une salle en attente muette 30 minutes, ou commencée muette 2 heures, expire : ses joueurs sont coupés (1001).
 - Les commandes ne sont relayées qu'après le départ ; les clients n'ont pas de droit sur les autres (le serveur remplit `de`).
   Les garde-fous contre la triche simple (commandes hors limites, pas en avance) viennent avec T9.
