@@ -80,7 +80,7 @@ const INTERFACE = (function () {
     const reserve = REGLAGES.HUD_PRECEDENT_RESERVE, rien = !precedent || finie;
     $('hudPrecedent').classList.toggle('cache', !reserve && rien);
     $('hudPrecedent').classList.toggle('vide', reserve && rien);
-    if (precedent) $('hudPrecedent').textContent = texte('tourPrecedent') + ' ' + formatTemps(precedent.temps) + (precedent.coupe ? ' ✂' : '');
+    if (precedent) $('hudPrecedent').textContent = texte('tourPrecedent') + ' ' + formatTemps(precedent.temps) + (precedent.coupe ? ' ✂' : precedent.limites ? ' ⚠' : '');
     else if (reserve) $('hudPrecedent').textContent = '\u00a0';
     for (let i = 0; i < 3; i++) {
       const el = $('hudS' + (i + 1)), t = secteurs[i];
@@ -1427,7 +1427,7 @@ const INTERFACE = (function () {
     liste.textContent = '';
     c.tours.forEach((t, i) => {
       const li = document.createElement('li');
-      li.textContent = texte('tour') + ' ' + (i + 1) + ' · ' + formatTemps(t.temps) + (t.coupe ? ' ✂' : '') + (t.temps === c.meilleurTour ? ' ★' : '');
+      li.textContent = texte('tour') + ' ' + (i + 1) + ' · ' + formatTemps(t.temps) + (t.coupe ? ' ✂' : t.limites ? ' ⚠' : '') + (t.temps === c.meilleurTour ? ' ★' : '');
       liste.appendChild(li);
     });
   }

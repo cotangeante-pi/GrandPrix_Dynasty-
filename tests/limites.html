@@ -25,7 +25,7 @@ v(longs.length>=10,longs.length+' circuits');
 
 t('mesure : à l’intérieur d’un long virage, 0,5 s dehors à 60 m/s ne coûte rien, 2 s et 4 s non plus : seulement un avertissement', ()=>{reglages({});
   for(const {nom,C,m} of longs)for(const sec of [0.5,2,4]){const c=balade(C,m,1,C.largeur/2+1.6,sec,60);v(c.penalites===0,nom+' '+sec+' s : '+c.penalites+' s de pénalité');
-    v(c.limites===1&&c.coupeTour,nom+' '+sec+' s : '+c.limites+' avertissement');}});
+    v(c.limites===1&&c.limitesTour&&!c.coupeTour,nom+' '+sec+' s : '+c.limites+' avertissement');}});
 t('mesure : le gain de l’intérieur d’un virage, contre le bord, reste petit (au plus SEUIL_COUPE_GRAVE ÷ 3) et contre le milieu atteignait le seuil d’avant', ()=>{reglages({});let maxB=-99,maxM=-99,qui='';
   for(const {nom,C,m} of longs){const sg=m.angles[0],{c,vo}=course(C,m.debut+(m.fin-m.debut)*0.25);let s=vo.piste.s;
     for(;s<m.debut+(m.fin-m.debut)*0.4;s+=28*DT)pas(C,c,vo,s,0,60);
@@ -49,11 +49,12 @@ t('quatre débordements : 1/3, 2/3, 3/3 sans pénalité, le 4e = +5 s, puis le c
   const vus=[];for(let i=0;i<8;i++){sort();vus.push(c.limites+'/'+c.penalites);}
   v(vus.join(' ')==='1/0 2/0 3/0 0/5 1/5 2/5 3/5 0/10',vus.join(' '));});
 t('LIMITES_AVERTISSEMENTS 0 : un débordement sans raccourci ne coûte rien et ne marque pas le tour (comme avant)', ()=>{reglages({LIMITES_AVERTISSEMENTS:0});const C=CIRCUIT_TEST,{c,vo}=course(C,300);let s=300;
-  for(let k=0;k<60;k++,s+=20*DT)pas(C,c,vo,s,C.largeur/2+4,20);for(let k=0;k<60;k++,s+=20*DT)pas(C,c,vo,s,0,20);v(c.penalites===0&&!c.coupeTour&&c.limites===0);reglages({});});
-t('un tour avec un avertissement n’est jamais le meilleur tour (comme un tour coupé)', ()=>{reglages({});const c=creerCourse(CIRCUIT_TEST,0);c.etat='course';c.etape=3;c.secteursTour=[20,20];c.temps=50;limitesDePiste(c);finirTour(c);v(c.meilleurTour===null&&c.tours[0].coupe);});
+  for(let k=0;k<60;k++,s+=20*DT)pas(C,c,vo,s,C.largeur/2+4,20);for(let k=0;k<60;k++,s+=20*DT)pas(C,c,vo,s,0,20);v(c.penalites===0&&!c.coupeTour&&!c.limitesTour&&c.limites===0);reglages({});});
+t('un tour avec un avertissement n’est jamais le meilleur tour (comme un tour coupé)', ()=>{reglages({});const c=creerCourse(CIRCUIT_TEST,0);c.etat='course';c.etape=3;c.secteursTour=[20,20];c.temps=50;c.surveille=true;limitesDePiste(c);finirTour(c);v(c.meilleurTour===null&&c.tours[0].limites&&!c.tours[0].coupe);
+  const ia=creerCourse(CIRCUIT_TEST,0);ia.etat='course';ia.etape=3;ia.secteursTour=[20,20];ia.temps=50;limitesDePiste(ia);finirTour(ia);v(ia.meilleurTour===50,'une IA garde son meilleur tour');});
 t('la voie des stands : jamais de limites ni de virage coupé (comme avant)', ()=>{reglages({});const C=construireCircuit(CIRCUITS.silverstoun||CIRCUITS.test);if(!C.stands)return;const {c,vo}=course(C,C.stands.entree+10);vo.dansStands=true;let s=vo.piste.s;
   for(let k=0;k<60;k++,s+=10*DT)pas(C,c,vo,s,C.largeur/2+5,10);v(c.limites===0&&c.penalites===0);});
-t('textes : l’avertissement et le commentaire existent en fr et en anglais, avec {n} et {max}', ()=>{for(const l of ['fr','en']){v(/\{n\}/.test(TEXTES[l].limites)&&/\{max\}/.test(TEXTES[l].limites),l+' limites');
-  v(Array.isArray(TEXTES[l].com_limites)&&TEXTES[l].com_limites.length>=3&&TEXTES[l].com_limites.every(x=>/\{qui\}/.test(x)&&/\{n\}/.test(x)),l+' com_limites');}v(REGLAGES.COMMENTAIRE_PRIORITES.limites>0);});
+t('textes : l’avertissement et le commentaire existent en fr et en anglais, ({n}/{max} au bandeau)', ()=>{for(const l of ['fr','en']){v(/\{n\}/.test(TEXTES[l].limites)&&/\{max\}/.test(TEXTES[l].limites),l+' limites');
+  v(Array.isArray(TEXTES[l].com_limites)&&TEXTES[l].com_limites.length>=3&&TEXTES[l].com_limites.every(x=>/\{qui\}/.test(x)&&x.replace(/\{qui\}/g,'Xxxxxxx').length<=REGLAGES.COMMENTAIRE_LONGUEUR_MAX),l+' com_limites');}v(REGLAGES.COMMENTAIRE_PRIORITES.limites>0);});
 document.getElementById('res').textContent=`RESULTAT ${ok}/${ok+ko}\n`+L.join('\n');
 </script></body></html>

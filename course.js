@@ -13,6 +13,7 @@ function creerCourse(circuit, nbTours) {
     secteursTour: [],        // les temps de secteur du tour en cours
     etape: -1,               // -1 : avant la première ligne ; 0 : secteur 1 ; 2 : secteur 2 vu ; 3 : secteur 3 vu
     coupeTour: false,
+    limitesTour: false,      // un avertissement de limites de piste dans ce tour : pas de record pour le joueur (tour.limites)
     limites: 0,              // les avertissements de limites de piste de la course (LIMITES_AVERTISSEMENTS), remis à 0 par une pénalité
     tours: [],               // [{ temps, secteurs: [t1, t2, t3], coupe }]
     meilleurTour: null,      // le meilleur tour sans virage coupé
@@ -167,7 +168,7 @@ function majCourse(c, v, dt) {
 // record (comme un tour coupé) ; au 4e, +PENALITE_COUPE, puis le compte repart (la vraie F1 : tour annulé, avertissement, puis 5 s)
 function limitesDePiste(c) {
   const R = REGLAGES;
-  c.coupeTour = true;
+  c.limitesTour = true;
   c.limites = (c.limites || 0) + 1;
   c.derniereLimite = c.temps;
   if (c.limites > R.LIMITES_AVERTISSEMENTS) {
@@ -248,8 +249,10 @@ function finirTour(c) {
   const temps = c.temps - c.debutTour;
   const secteurs = [c.secteursTour[0], c.secteursTour[1], temps - c.secteursTour[0] - c.secteursTour[1]];
   const tour = { temps, secteurs, coupe: c.coupeTour };
+  if (c.limitesTour) tour.limites = true;
   c.tours.push(tour);
-  if (!tour.coupe) {
+  // (tour 56, T1) un tour avec un avertissement de limites de piste n'est jamais un record du joueur ; une IA garde son meilleur tour
+  if (!tour.coupe && !(tour.limites && c.surveille)) {
     if (c.meilleurTour === null || temps < c.meilleurTour) c.meilleurTour = temps;
     for (let i = 0; i < 3; i++) if (c.meilleursSecteurs[i] === null || secteurs[i] < c.meilleursSecteurs[i]) c.meilleursSecteurs[i] = secteurs[i];
   }
@@ -257,6 +260,7 @@ function finirTour(c) {
   c.secteursTour = [];
   c.etape = 0;
   c.coupeTour = false;
+  c.limitesTour = false;
   if (c.nbTours > 0 && c.tours.length >= c.nbTours) c.etat = 'finie';
 }
 

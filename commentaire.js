@@ -88,7 +88,7 @@ const COMMENTAIRE = (function () {
       // (tour 55, T25) un aileron qui vient d'être abîmé (T8 : v.degats passe de 0 à plus), le joueur ou un pilote du haut de la grille
       if (R.DEGATS_ACTIF && p.degats > 0 && !(a.degats > 0) && (haut(k) || estJ(k)) && p.arrivee === null) pousser(c, t, 'degats', prm(k), estJ(k));
       // (tour 56, T1) un avertissement de limites de piste : le compte monte (une pénalité le remet à 0 : elle a sa phrase)
-      if (p.limites > a.limites && p.penalites === a.penalites && (haut(k) || estJ(k))) pousser(c, t, 'limites', prm(k, { n: p.limites, max: R.LIMITES_AVERTISSEMENTS }), estJ(k));
+      if (p.limites > a.limites && p.penalites === a.penalites && (haut(k) || estJ(k))) pousser(c, t, 'limites', prm(k), estJ(k));
       if (p.penalites > a.penalites) pousser(c, t, 'penalite', prm(k, { s: p.penalites - a.penalites }), estJ(k));
       if (p.stand && !a.stand) pousser(c, t, 'stands', prm(k), estJ(k));
     });
