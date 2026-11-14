@@ -131,16 +131,16 @@ async def tests_principaux(port, rel):
     # --- retour à la salle ---
     await b.env(t='retour'); r = await b.jusqua('erreur'); t('retour : refusé à qui n’est pas l’hôte', r['raison'] == 'hote' and await h.silence() is None, r)
     # --- relais ---
-    for n in range(1, 41): await h.env(t='cmd', n=n, c=[n % 7, 0.5, 1])
-    await b.env(t='cmd', n=1, c={'a': 1}); await h.env(t='controle', n=300, h=123456789); await h.env(t='emote', i=3)
+    for n in range(1, 41): await h.env(t='cmd', n=n, c=[n % 7])
+    await b.env(t='cmd', n=1, c=[16383, 0, 5]); await h.env(t='controle', n=300, h=123456789); await h.env(t='emote', i=3)
     recus = []
     while len(recus) < 42:
         recus.append(await b.lire())
     cmds = [m for m in recus if m['t'] == 'cmd']
-    t('relais : 40 commandes dans l’ordre, avec « de » et sans modification', [m['n'] for m in cmds] == list(range(1, 41)) and all(m['de'] == 1 and m['c'] == [m['n'] % 7, 0.5, 1] for m in cmds), cmds[:3])
+    t('relais : 40 commandes dans l’ordre, avec « de » et sans modification', [m['n'] for m in cmds] == list(range(1, 41)) and all(m['de'] == 1 and m['c'] == [m['n'] % 7] for m in cmds), cmds[:3])
     t('relais : empreinte de contrôle et émote arrivent aux autres', {'t': 'controle', 'de': 1, 'n': 300, 'h': 123456789} in recus and {'t': 'emote', 'de': 1, 'i': 3} in recus, recus[-3:])
     m = await h.jusqua('cmd')
-    t('relais : l’autre sens aussi (objet compact gardé tel quel)', m == {'t': 'cmd', 'de': 2, 'n': 1, 'c': {'a': 1}}, m)
+    t('relais : l’autre sens aussi (paquet gardé tel quel)', m == {'t': 'cmd', 'de': 2, 'n': 1, 'c': [16383, 0, 5]}, m)
     t('relais : l’expéditeur ne reçoit pas ses propres messages', await h.silence() is None)
     # --- ping ---
     await h.env(t='ping', h=42); t('ping : pong avec la même valeur', await h.lire() == {'t': 'pong', 'h': 42})
@@ -210,7 +210,7 @@ async def tests_salles(port, rel):
     await fin([h, b, c3]); await asyncio.sleep(0.2)
     # --- « parti » vient APRÈS la dernière cmd du joueur (même file), paquets de 4 entiers de 14 bits (cœur lockstep) ---
     code, (h, b, c) = await salle_de(port, ['Pilote 1', 'Pilote 2', 'Pilote 3'], lancee=True)
-    for n in range(200): await c.env(t='cmd', n=n, c=[(n * 37 + k) % 16384 for k in range(4)])
+    for n in range(0, 800, 4): await c.env(t='cmd', n=n, c=[(n * 37 + k) % 16384 for k in range(4)])
     await c.ws.close()
     for x in (h, b):
         ms = []
@@ -218,7 +218,7 @@ async def tests_salles(port, rel):
             m = await x.lire()
             if m['t'] in ('cmd', 'parti'): ms.append(m)
             if m['t'] == 'parti': break
-        t('en course : 200 paquets de 4 entiers 14 bits arrivent dans l’ordre, puis « parti » en dernier', [m['n'] for m in ms[:-1]] == list(range(200)) and ms[-1] == {'t': 'parti', 'id': 3} and ms[0]['c'] == [0, 1, 2, 3], (len(ms), ms[-1]))
+        t('en course : 200 paquets de 4 entiers 14 bits arrivent dans l’ordre, puis « parti » en dernier', [m['n'] for m in ms[:-1]] == list(range(0, 800, 4)) and ms[-1] == {'t': 'parti', 'id': 3} and ms[0]['c'] == [0, 1, 2, 3], (len(ms), ms[-1]))
     await fin([h, b]); await asyncio.sleep(0.2)
     # --- une partie : un joueur parti en pleine course ---
     code, (h, b, c) = await salle_de(port, ['Pilote 1', 'Pilote 2', 'Pilote 3'], lancee=True)
@@ -270,6 +270,57 @@ async def tests_limites(port, rel):
     c = await ouvre(port); await c.env(t='cmd', n=1, c=[1]); await c.env(t='lancer', reglages={}); await c.env(t='pret', pret=True)
     await c.env(t='ping', h=7); t('hors salle : cmd, lancer, prêt sont ignorés, ping répond', (await c.lire()) == {'t': 'pong', 'h': 7}); await fin([c])
 
+async def vider(x, delai=0.3):
+    """Tout ce que x a reçu en attendant un peu."""
+    ms = []
+    while True:
+        m = await x.silence(delai)
+        if m is None: return ms
+        ms.append(m)
+
+async def tests_garde_fous(port, rel):
+    """(tour 56, T9) la triche simple : des commandes hors format, qui reviennent en arrière, ou qui jouent trop en avance sur les autres."""
+    code, (h, b) = await salle_de(port, ['Pilote 1', 'Pilote 2'], lancee=True)
+    # le passé ne se réécrit pas : un paquet qui recouvre le précédent est jeté, le suivant (qui le prolonge) passe
+    for n in (10, 12, 14, 13, 9, 18): await h.env(t='cmd', n=n, c=[1, 2, 3, 4])
+    ns = [m['n'] for m in await vider(b) if m['t'] == 'cmd']
+    t('garde-fou : un paquet qui recouvre le précédent (retour en arrière) est jeté, le suivant passe', ns == [10, 14, 18], ns)
+    # le format : entier de 14 bits ou paquet de 1 à 32 entiers de 14 bits
+    mauvais = [-1, 16384, 1.5, 'x', True, None, [], [1] * 33, [1, 'a'], [[1]], {'a': 1}, [1, 2.0 + 0.5]]
+    for k, c in enumerate(mauvais): await b.env(t='cmd', n=100 + 40 * k, c=c)
+    await b.ws.send('{"t":"cmd","n":900,"c":[NaN]}'); await b.ws.send('{"t":"cmd","n":900,"c":[Infinity]}')
+    await b.env(t='cmd', n=22, c=16383)   # (h a envoyé jusqu'au pas 22 : b peut le suivre de 240 pas)
+    await b.env(t='cmd', n=23, c=[0] * 32)
+    ms = [m for m in await vider(h) if m['t'] == 'cmd']
+    t('garde-fou : commande hors format (négative, trop grande, décimale, texte, vide, trop longue, NaN, objet) jetée ; un entier de 14 bits et un paquet de 32 passent', [m['n'] for m in ms] == [22, 23], ms)
+    await fin([h, b]); await asyncio.sleep(0.2)
+    # pas en avance : le lockstep attend le plus lent, donc personne ne peut avoir envoyé plus de 240 pas au-delà de lui
+    code, (h, b, c3) = await salle_de(port, ['Pilote 1', 'Pilote 2', 'Pilote 3'], lancee=True)
+    for n in range(0, 400, 4): await h.env(t='cmd', n=n, c=[1, 1, 1, 1])
+    ms = [m['n'] for m in await vider(b) if m['t'] == 'cmd']
+    t('garde-fou : les autres n’ont rien envoyé : au plus 240 pas d’avance (60 paquets de 4), le reste est jeté', ms == list(range(0, 240, 4)), (len(ms), ms[-3:]))
+    await b.env(t='cmd', n=0, c=[1] * 8); await c3.env(t='cmd', n=0, c=[1] * 8); await asyncio.sleep(0.2)
+    await h.env(t='cmd', n=240, c=[1, 1, 1, 1])
+    ms = [m['n'] for m in await vider(b) if m['t'] == 'cmd']
+    t('garde-fou : quand les autres avancent, la limite avance avec le plus lent (8 pas chacun : 248 permis, 240 passe)', 240 in ms, ms)
+    # un joueur parti ne bloque plus les autres
+    await c3.ws.close(); await h.jusqua('parti'); await b.env(t='cmd', n=8, c=[1] * 8); await asyncio.sleep(0.2); await vider(h)
+    await h.env(t='cmd', n=244, c=[1, 1, 1, 1]); await h.env(t='cmd', n=248, c=[1, 1, 1, 1]); await h.env(t='cmd', n=252, c=[1, 1, 1, 1]); await h.env(t='cmd', n=256, c=[1, 1, 1, 1])
+    ms = [m['n'] for m in await vider(b) if m['t'] == 'cmd']
+    t('garde-fou : la limite se règle sur ceux qui restent (le parti ne bloque personne) : 244 à 252 passent (fin 256 = 16 + 240), 256 (fin 260) est jeté', ms == [244, 248, 252], ms)
+    await fin([h, b]); await asyncio.sleep(0.2)
+    # une nouvelle course dans la même salle repart de zéro
+    code, (h, b) = await salle_de(port, ['Pilote 1', 'Pilote 2'], lancee=True)
+    await h.env(t='cmd', n=0, c=[1] * 8); await b.env(t='cmd', n=0, c=[1] * 8); await vider(h); await vider(b)
+    await h.env(t='retour'); await b.jusqua('retour')
+    await h.env(t='lancer', reglages={'circuit': 'test', 'tours': 1, 'meteo': 'sec', 'nbIA': 0}); await b.jusqua('depart'); await h.jusqua('depart')
+    await h.env(t='cmd', n=0, c=[1, 2]); m = await b.jusqua('cmd')
+    t('garde-fou : après « retour » et un nouveau départ, les pas repartent de 0', m['n'] == 0, m)
+    # trop de commandes fausses : la connexion est coupée (1008)
+    for _ in range(260): await b.ws.send(json.dumps({'t': 'cmd', 'n': 0, 'c': -1}))
+    cd = await b.ferme(); t('garde-fou : 200 commandes fausses de suite : la connexion est coupée (1008)', cd == 1008, repr(cd))
+    await fin([h])
+
 async def tests_expiration(port, rel):
     code, (h, b) = await salle_de(port, ['Pilote 1', 'Pilote 2'])
     cd = await h.ferme(6)
@@ -302,11 +353,11 @@ async def lance(cfg, test):
         await test(s.port, rel)
 
 async def tout():
-    base = dict(delai_arrivee=1.5, delai_emote=0.5, nettoyage=0.2)
+    base = dict(delai_arrivee=1.5, delai_emote=0.5, nettoyage=0.2, avance_max=0)   # (avance_max 0 : les parties d'avant ne connaissent pas la limite d'avance ; la partie « garde-fous » la règle)
     for nom, cfg, f in (
         ('principal', R.Config(**base), tests_principaux), ('salles', R.Config(**base), tests_salles), ('limites', R.Config(**base), tests_limites),
         ('expiration', R.Config(attente_salle=1.0, attente_course=1.5, **base), tests_expiration),
-        ('adresse', R.Config(max_par_ip=3, **base), tests_adresse), ('noms libres', R.Config(noms_libres=True, **base), tests_noms_libres)):
+        ('garde-fous', R.Config(**dict(base, avance_max=240)), tests_garde_fous), ('adresse', R.Config(max_par_ip=3, **base), tests_adresse), ('noms libres', R.Config(noms_libres=True, **base), tests_noms_libres)):
         try: await asyncio.wait_for(lance(cfg, f), 90)
         except Exception as e:
             import traceback

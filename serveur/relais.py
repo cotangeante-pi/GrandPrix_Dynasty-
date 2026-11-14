@@ -44,6 +44,11 @@ class Config:
         self.max_par_ip = 24             # connexions simultanées d'une même adresse (0 = pas de limite ; derrière un proxy : 0)
         self.max_file = 2000             # messages en attente d'envoi à un client lent avant de le couper
         self.ping_intervalle = 20        # pings de la bibliothèque (connexions mortes)
+        # les garde-fous contre la triche simple (tour 56, T9) : une commande est un entier de 0 à code_max (14 bits : gaz, frein, direction, remise)
+        # ou un paquet de 1 à paquet_max entiers ; n est le premier pas du paquet
+        self.code_max = (1 << 14) - 1
+        self.paquet_max = 32             # pas dans un paquet (le jeu en envoie 4 : EN_LIGNE_PAQUET)
+        self.avance_max = 240            # pas (2 s) : un joueur ne peut pas avoir envoyé plus loin que le plus en retard des autres + ça ; 0 = pas de limite
         for k, v in kw.items():
             if not hasattr(self, k): raise TypeError('réglage inconnu : ' + k)
             setattr(self, k, v)
@@ -64,6 +69,9 @@ def nom_valide(nom, libres, nom_max=20):
     couleur = len(mots) > 1 and mots[-1] in COULEURS
     base = ' '.join(mots[:-1] if couleur else mots)
     return base in NOMS or bool(_PILOTE.match(base))
+
+def _refuser_constante(x):
+    raise ValueError(x)   # NaN, Infinity : pas du JSON permis
 
 def entier(v, lo, hi):
     return isinstance(v, int) and not isinstance(v, bool) and lo <= v <= hi
@@ -89,6 +97,7 @@ class Client:
         self.fautes = 0
         self.refus = 0
         self.derniere_emote = 0.0
+        self.fin_cmd = 0                 # le pas qui suit la dernière commande reçue de ce joueur (la prochaine doit commencer là ou après)
         self.minuteur = None
         self.ferme = False
 
@@ -185,7 +194,7 @@ class Relais:
         if not isinstance(brut, str):          # trame binaire : jamais utilisée par le protocole
             self._faute(c)
             return
-        try: m = json.loads(brut)
+        try: m = json.loads(brut, parse_constant=_refuser_constante)
         except ValueError:
             self._faute(c)
             return
@@ -217,7 +226,7 @@ class Relais:
             salle.reglages = r
             self._diffuser(salle, {'t': 'reglages', 'reglages': r})
         elif t == 'cmd':
-            if salle.commencee and entier(m.get('n'), 0, 10 ** 8) and 'c' in m:
+            if salle.commencee and self._cmd_valide(c, salle, m):
                 self._diffuser(salle, {'t': 'cmd', 'de': c.id, 'n': m['n'], 'c': m['c']}, sauf=c)
             else: self._faute(c)
         elif t == 'controle':
@@ -242,6 +251,21 @@ class Relais:
             self._armer(c)
         else:
             self._faute(c)
+
+    def _cmd_valide(self, c, salle, m):
+        """Une commande : n entier, c un entier de 14 bits ou un paquet d'entiers de 14 bits ; jamais en arrière (pas de réécriture du passé),
+        jamais trop en avance sur les autres (lockstep : on ne joue pas plus vite que le plus lent). Met à jour fin_cmd si elle passe."""
+        n, cmd, cfg = m.get('n'), m.get('c'), self.cfg
+        if not entier(n, 0, 10 ** 8): return False
+        paquet = cmd if isinstance(cmd, list) else [cmd]
+        if not (1 <= len(paquet) <= cfg.paquet_max and all(entier(x, 0, cfg.code_max) for x in paquet)): return False
+        if n < c.fin_cmd: return False
+        fin = n + len(paquet)
+        if cfg.avance_max:
+            autres = [j.fin_cmd for j in salle.joueurs.values() if j is not c]
+            if autres and fin > min(autres) + cfg.avance_max: return False
+        c.fin_cmd = fin
+        return True
 
     def _refuser(self, c, raison):
         c.refus += 1
@@ -303,6 +327,7 @@ class Relais:
         if reglages is None: return self._erreur(c, 'reglages')
         if len(salle.joueurs) < self.cfg.min_pour_lancer: return self._erreur(c, 'seul')
         salle.commencee = True
+        for j in salle.joueurs.values(): j.fin_cmd = 0
         ordre = list(salle.joueurs)
         self.hasard.shuffle(ordre)
         self._diffuser(salle, {'t': 'depart', 'reglages': reglages, 'graine': secrets.randbelow(2 ** 32), 'ordre': ordre})
