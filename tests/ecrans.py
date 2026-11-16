@@ -98,6 +98,7 @@ PAGES = [
     ('index.html?course=12&robot=1&pneus=1&circuit=test&lang=en&test=audit-stand', 960, 600, None),
     ('index.html?championnat=1&tours=2&robot=1&lang=en&test=audit-consigne', 960, 600, None),
     # (tour 56, T5) les batailles en ligne (enligne-ecran.js, derrière EN_LIGNE ; le faux transport enligne-faux.js) : titre, menu, rejoindre par code, salle d'attente, émotes, refus ; fr et en, au doigt en 640×360
+    ('index.html?enligne=1&test=pad-enligne', 960, 600, None),   # (tour 56, T10) les écrans En ligne à la manette : la croix choisit, A valide, B revient
     ('index.html?enligne=1&test=enligne&tel=1', 640, 360, None),
     ('index.html?enligne=1&test=enligne', 960, 600, None),
     ('index.html?enligne=1&test=enligne&lang=en&tel=1', 640, 360, None),
@@ -709,7 +710,7 @@ def enligne_ecran(pg, titre, l, h, page):
     t(f'{titre} : l’hôte change la longueur (▶) : 3 → 5 tours', etat()['reglages']['tours'] == 5, str(etat()['reglages']))
     pg.click('#enligneRegles .regle[data-cle=meteo] .enligneFleche >> nth=1'); pg.click('#enligneRegles .regle[data-cle=circuit] .enligneFleche >> nth=1'); pg.click('#enligneRegles .regle[data-cle=nbIA] .enligneFleche >> nth=1')
     r = etat()['reglages']
-    t(f'{titre} : l’hôte choisit aussi la météo, le circuit et les IA', r['meteo'] == 'nuageux' and r['circuit'] == 'technique' and r['nbIA'] == 3, str(r))
+    t(f'{titre} : l’hôte choisit aussi la météo, le circuit et les IA', r['meteo'] == 'pluie' and r['circuit'] == 'technique' and r['nbIA'] == 3, str(r))
     # un ami arrive (à la main), puis se dit prêt
     code = etat()['code']
     pg.evaluate('c => ENLIGNE_FAUX.ajouterAmi(c, false)', code)
@@ -763,9 +764,12 @@ def enligne_ecran(pg, titre, l, h, page):
     t(f'{titre} : une course déjà commencée : refusée avec son message', essayer('LMNP', 'commencee'))
     pg.evaluate('() => SAUVEGARDE.ecrireOption("enligne_couleur", 0)')
     pg.evaluate('() => ENLIGNE_ECRAN.echap()'); pg.click('#boutonEnligneRejoindre')
-    t(f'{titre} : une couleur déjà prise dans la salle : refusée (« choisis-en une autre »)', essayer('BCDF', 'nom'))
-    t(f'{titre} : un refus ferme la connexion, on reste sur l’écran du code', ecran() == 'enligneRejoindre' and not etat()['connecte'])
-    pg.evaluate('() => ENLIGNE_ECRAN.echap()')
+    pg.evaluate('() => { ENLIGNE_FAUX.auto = false; document.getElementById("enligneCode").value = "BCDF"; document.getElementById("boutonEnligneGo").click(); }')
+    entre = attendre(pg, '() => JEU.ecran === "enligneSalle" && !!ENLIGNE_ECRAN.etat().joueurs.find(j => j.id === ENLIGNE_ECRAN.etat().moi)', None, 5000)
+    moi_nom = pg.evaluate('() => { const e = ENLIGNE_ECRAN.etat(); const j = e.joueurs.find(x => x.id === e.moi); return j ? j.nom : null; }')
+    t(f'{titre} : une couleur déjà prise dans la salle (D1) : le nom sur le fil est l’id de la couleur, « bleu-2 » à la 2e tentative, jamais le nom traduit', entre and moi_nom == 'bleu-2', str(moi_nom))
+    t(f'{titre} : le nom affiché est traduit chez chacun (« Pilote Bleu 2 » / « Blue driver 2 »), les amis aussi, aucun id brut', pg.evaluate('() => { const l = [...document.querySelectorAll("#enligneListe .nom")].map(e => e.textContent); return l.some(x => x.includes(texte("enligneNom").replace("{c}", texte("enligneCouleur_bleu")) + " 2")) && l.every(x => !/^[a-z]+(-[2-8])?( \\(|$)/.test(x)); }'), pg.evaluate('() => [...document.querySelectorAll("#enligneListe .nom")].map(e => e.textContent)'))
+    pg.keyboard.press('Escape'); attendre(pg, '() => JEU.ecran === "enligne"', None, 3000)
     pg.click('#enligneCouleurs button >> nth=6')
     pg.click('#boutonEnligneRejoindre')
     pg.evaluate('() => { ENLIGNE_FAUX.auto = true; document.getElementById("enligneCode").value = "BCDF"; document.getElementById("boutonEnligneGo").click(); }')
@@ -797,6 +801,56 @@ def enligne_paddock(pg, titre, l, h, page):
     t(f'{titre} : le menu En ligne tient dans l’image, sans défilement ni recouvrement', d['dedans'] and d['defile'] and not d['recouvre'], str(d))
     pg.click('#boutonEnligneRetour')
     t(f'{titre} : « Retour » ramène au paddock', attendre(pg, '() => JEU.ecran === "championnat" && !document.getElementById("championnat").classList.contains("cache")', None, 3000))
+
+# (tour 56, T10) les batailles en ligne à la manette : de l'écran titre à la salle d'attente, à la croix, A et B (de fausses manettes)
+def pad_enligne(pg, titre):
+    if not attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "titre"', None, 60000):
+        t(f'{titre} : l’écran titre', False, ''); return
+    pg.evaluate('() => { REGLAGES.EN_LIGNE_FAUX_DELAI = 0.15; }')
+    HALO = '() => { const b = document.querySelector("button.manette-choix"); return b ? b.id || b.className : null; }'
+    def vers(cible):
+        # la croix vers un bouton : la direction du plus grand écart, jusqu'à ce que le halo y soit
+        for _ in range(40):
+            if pg.evaluate('() => { const b = document.querySelector("button.manette-choix"); return b ? b.id : null; }') == cible: return True
+            d = pg.evaluate('c => { const h = document.querySelector("button.manette-choix"), x = document.getElementById(c); if (!h || !x) return null; const a = h.getBoundingClientRect(), b = x.getBoundingClientRect(), dx = (b.left + b.width / 2) - (a.left + a.width / 2), dy = (b.top + b.height / 2) - (a.top + a.height / 2); return Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "droite" : "gauche") : (dy > 0 ? "bas" : "haut"); }', cible)
+            if d is None: manette_appui(pg, 0, 'bas')   # (pas encore de halo : un premier appui sur A le pose)
+            else: manette_appui(pg, 0, d)
+        return False
+    for _ in range(8):   # (le premier appui pose le halo sur le premier bouton ; sur une machine chargée il peut passer entre deux images)
+        manette_appui(pg, 0, 'a')
+        if pg.evaluate(HALO) is not None: break
+    t(f'{titre} : au titre, la manette pose un halo sur un bouton', pg.evaluate(HALO) is not None, str(pg.evaluate(HALO)))
+    t(f'{titre} : la croix mène à « En ligne »', vers('boutonEnligneTitre'))
+    for _ in range(10):
+        manette_appui(pg, 0, 'a')
+        if pg.evaluate('() => JEU.ecran') == 'enligne': break
+    t(f'{titre} : A ouvre le menu En ligne', pg.evaluate('() => JEU.ecran') == 'enligne', pg.evaluate('() => JEU.ecran'))
+    t(f'{titre} : la croix mène à « Créer une salle »', vers('boutonEnligneCreer'))
+    for _ in range(10):
+        manette_appui(pg, 0, 'a')
+        if pg.evaluate('() => JEU.ecran') == 'enligneSalle': break
+    t(f'{titre} : A crée la salle (la salle d’attente s’ouvre)', pg.evaluate('() => JEU.ecran') == 'enligneSalle', pg.evaluate('() => JEU.ecran'))
+    attendre(pg, '() => ENLIGNE_ECRAN.etat().joueurs.length >= 2', None, 8000)
+    t0 = pg.evaluate('() => ENLIGNE_ECRAN.etat().reglages.tours')
+    # ▶ des tours : la 2e flèche de la ligne « tours »
+    t(f'{titre} : la croix mène à ▶ de « Tours »', vers('enligneReg_tours_plus'))
+    for _ in range(10):
+        manette_appui(pg, 0, 'a')
+        if pg.evaluate('() => ENLIGNE_ECRAN.etat().reglages.tours') != t0: break
+    t(f'{titre} : A change la longueur de la course (choix de l’hôte)', pg.evaluate('() => ENLIGNE_ECRAN.etat().reglages.tours') != t0, str(pg.evaluate('() => ENLIGNE_ECRAN.etat().reglages')))
+    t(f'{titre} : la croix mène à une émote', vers('enligneEmote_3'))
+    for _ in range(10):
+        manette_appui(pg, 0, 'a')
+        if pg.evaluate('() => !!document.querySelector("#enligneListe li.moi .emote")'): break
+    t(f'{titre} : A envoie l’émote : elle s’affiche près de mon nom', pg.evaluate('() => !!document.querySelector("#enligneListe li.moi .emote")'))
+    for _ in range(10):
+        manette_appui(pg, 0, 'b')
+        if pg.evaluate('() => JEU.ecran') == 'enligne': break
+    t(f'{titre} : B quitte la salle (retour au menu En ligne)', pg.evaluate('() => JEU.ecran') == 'enligne', pg.evaluate('() => JEU.ecran'))
+    for _ in range(10):
+        manette_appui(pg, 0, 'b')
+        if pg.evaluate('() => JEU.ecran') == 'titre': break
+    t(f'{titre} : B au menu : retour à l’écran titre', pg.evaluate('() => JEU.ecran') == 'titre', pg.evaluate('() => JEU.ecran'))
 
 def clavier_titre(pg, titre, l, h):
     if not attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "titre"', None, 60000):
@@ -4664,7 +4718,7 @@ with sync_playwright() as p:
             pg.on('requestfailed', lambda r: console.append('FICHIER MANQUANT ' + r.url))
             if 'test=sdk' in page or 'test=decouverte' in page or 'test=amis' in page or 'test=tournoi' in page or 'test=livree' in page or 'test=essai' in page: pg.add_init_script(FAUX_SDK)
             # la météo dessinée (meteo3d.js) : une fausse météo de test (window.METEO_TEST, jamais dans le jeu), ?meteo=pluie ou ?meteo=risque
-            if 'test=manette' in page: pg.add_init_script(FAUSSES_MANETTES)   # la manette (tour 38) : de fausses manettes
+            if 'test=manette' in page or 'test=pad-enligne' in page: pg.add_init_script(FAUSSES_MANETTES)   # la manette (tour 38) : de fausses manettes
             pg.add_init_script('window.__plein = 0; try { Element.prototype.requestFullscreen = function () { window.__plein++; return Promise.resolve(); }; } catch (e) {} try { screen.orientation.lock = () => { window.__plein++; return Promise.resolve(); }; } catch (e) {}')   # (tour 52b : combien de fois le plein écran ou le verrou en paysage est demandé)
             if 'test=tactile' in page and 'test=tactile-iphone' not in page: pg.add_init_script('try { DeviceOrientationEvent.requestPermission = undefined; } catch (e) {}')   # (tour 52b : un Chrome récent sur GitHub offre requestPermission, jamais résolue sans geste : ces pages simulent un Android, sans autorisation à demander)
             if 'test=tactile-iphone' in page: pg.add_init_script(FAUSSE_PERMISSION)   # le téléphone (tour 51k) : l'autorisation de l'iPhone, accordée ou refusée (sessionStorage perm)
@@ -4771,6 +4825,8 @@ with sync_playwright() as p:
                 t(f'{titre} : sans ?ips ni ?mesure, ni compteur ni panneau de mesure (aucun coût)', pg.evaluate('() => !document.getElementById("compteurIps") && !document.getElementById("mesurePanneau")'))
             if 'test=tactile' in page:
                 tactile_ecran(pg, titre, l, h, page)
+            if 'test=pad-enligne' in page:
+                pad_enligne(pg, titre)
             if 'test=manette-deux' in page:
                 manette_deux(pg, titre)
             elif 'test=manette' in page:
