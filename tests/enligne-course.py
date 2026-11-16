@@ -43,10 +43,11 @@ def course(b, nom, ia, joueurs=2, tours=1):
         pg = ctx.new_page(); pg.set_default_timeout(30000)
         pg.on('pageerror', lambda e, i=i: erreurs.append('page %d : %s' % (i, e)))
         pg.on('console', lambda m, i=i: erreurs.append('console %d : %s' % (i, m.text)) if m.type in ('error', 'warning') else None)
+        pg.add_init_script("addEventListener('beforeunload', () => { try { const e = ENLIGNE_PAGE.etat; sessionStorage.setItem('dbg', JSON.stringify({ sortie: e.sortie, termine: e.termine, fin: e.partie && e.partie.fin, ecran: JEU.ecran, n: e.partie && e.partie.n, statut: e.statut })); } catch (x) {} })")
         pages.append(pg)
     base = 'file://' + RACINE + '/index.html?circuit=test&robot=1&tours=%d&ia=%d&canal=%s&joueurs=%d' % (tours, ia, canal, joueurs)
     pages[0].goto(base + '&enlignecourse=hote&nom=bleu', wait_until='domcontentloaded', timeout=120000)
-    pages[0].wait_for_function('() => window.__enligne && window.__enligne.code', polling=100, timeout=30000)
+    attendre(pages[0], '() => window.__enligne && window.__enligne.code', 30000)
     code = pages[0].evaluate('() => window.__enligne.code')
     dire(len(code) == 4 and not any(c in 'AEIOUY' for c in code), nom + ' : un code de salle sans voyelle', code)
     for i in range(1, joueurs):
@@ -54,9 +55,12 @@ def course(b, nom, ia, joueurs=2, tours=1):
     for pg in pages:
         attendre(pg, '() => window.__enligne && window.__enligne.partie', 60000)
     dire(True, nom + ' : la course part sur les %d pages' % joueurs)
+    for pg in pages: pg.evaluate('() => { REGLAGES.EN_LIGNE_ATTENTE_MAX_MS = 0; }')   # (le test fait avancer une page puis l'autre à la main : sans cela l'abandon « connexion trop lente » partirait ; tests/enligne-incidents.py le teste)
     t0 = time.monotonic(); resumes = None
     while time.monotonic() - t0 < 700:
-        resumes = [pg.evaluate('() => { if (JEU.ecran === "course") BOUCLE.simuler(24); return ENLIGNE_PAGE.resume(); }') for pg in pages]
+        try: resumes = [pg.evaluate('() => { if (JEU.ecran === "course") BOUCLE.simuler(24); return ENLIGNE_PAGE.resume(); }') for pg in pages]
+        except Exception as e:
+            print('DIAG', [p_.url[-120:] for p_ in pages], [p_.evaluate('() => sessionStorage.getItem("dbg")') for p_ in pages], erreurs[:6], str(e)[:200], flush=True); raise
         if all(r['ecran'] in ('podium', 'resultats') for r in resumes): break
         if any(r['desynchro'] for r in resumes): break
         time.sleep(0.02)
@@ -113,6 +117,7 @@ def course_ecrans(b, nom='écrans de salle'):
         for pg in pages:
             attendre(pg, '() => window.__enligne && window.__enligne.partie', 120000)
         dire(True, nom + ' : course %d : elle part sur les 2 pages' % k)
+        for pg in pages: pg.evaluate('() => { REGLAGES.EN_LIGNE_ATTENTE_MAX_MS = 0; }')   # (le test fait avancer une page puis l'autre à la main : sans cela l'abandon « connexion trop lente » partirait ; tests/enligne-incidents.py le teste)
         t0 = time.monotonic(); resumes = None
         while time.monotonic() - t0 < 700:
             resumes = [pg.evaluate('() => { if (JEU.ecran === "course") BOUCLE.simuler(24); return ENLIGNE_PAGE.resume(); }') for pg in pages]
@@ -148,12 +153,12 @@ def tactile(b):
     pages[0].add_init_script('try { DeviceOrientationEvent.requestPermission = undefined; } catch (e) {}')
     base = 'file://' + RACINE + '/index.html?circuit=test&tours=1&ia=0&canal=%s&joueurs=2' % canal
     pages[0].goto(base + '&enlignecourse=hote&nom=Pilote%201')
-    try: pages[0].wait_for_function('() => window.__enligne && window.__enligne.code', timeout=90000)
+    try: attendre(pages[0], '() => window.__enligne && window.__enligne.code', 90000)
     except Exception:
         dire(False, nom + ' : la salle de l\'hôte s\'ouvre', [pages[0].evaluate('() => [typeof JEU !== "undefined" && JEU.ecran, window.__enligne && JSON.stringify(window.__enligne).slice(0, 300)]'), erreurs[:3]]); ctx.close(); return
     code = pages[0].evaluate('() => window.__enligne.code')
     pages[1].goto(base + '&robot=1&enlignecourse=%s&nom=Pilote%%202' % code)
-    for pg in pages: pg.wait_for_function('() => window.__enligne && window.__enligne.partie', timeout=60000)
+    for pg in pages: attendre(pg, '() => window.__enligne && window.__enligne.partie', 60000)
     dire(True, nom + ' : la course part sur les deux pages')
     dire(pages[0].evaluate('() => TACTILE.estPresent()'), nom + ' : la page 1 est tactile (boutons GAZ / FREIN)')
     cdp = ctx.new_cdp_session(pages[0])
@@ -163,6 +168,7 @@ def tactile(b):
     centre = pages[0].evaluate('() => { const q = document.getElementById("tactileGaz").getBoundingClientRect(); return [q.left + q.width / 2, q.top + q.height / 2, q.width]; }')
     dire(centre[2] > 40, nom + ' : le bouton GAZ est visible et assez grand', centre)
     cdp.send('Input.dispatchTouchEvent', {'type': 'touchStart', 'touchPoints': [{'x': centre[0], 'y': centre[1], 'id': 1}]})
+    for pg in pages: pg.evaluate('() => { REGLAGES.EN_LIGNE_ATTENTE_MAX_MS = 0; }')
     t0 = time.monotonic(); vitesse = 0
     while time.monotonic() - t0 < 240 and vitesse < 8:
         for pg in pages: pg.evaluate('() => { majTactile(0.016); if (JEU.ecran === "course") BOUCLE.simuler(24); }')
