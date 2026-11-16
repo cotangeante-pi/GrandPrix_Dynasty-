@@ -119,11 +119,14 @@ def course_ecrans(b, nom='écrans de salle'):
     dire(not erreurs, nom + ' : console vide', erreurs[:3])
     ctx.close()
 
-def tactile(b):
+def tactile(b, p=None, debout=False):
     """(tour 56, T10) un téléphone dans la course en ligne : la page 1 est un téléphone émulé (écran tactile 640×360, sans robot), la page 2 un robot ; un vrai doigt
     tenu sur GAZ (protocole Chrome) fait rouler SA voiture (les commandes partent, l'autre page voit la même course, aucune désynchro) ; ni pause ni aide en ligne."""
-    nom = 'téléphone en ligne'
-    ctx = b.new_context(viewport={'width': 640, 'height': 360}, has_touch=True)
+    nom = 'téléphone en ligne' + (' debout' if debout else ' couché')
+    # (tour 57, T5) couché : 640×360 ; debout : un vrai profil (iPhone SE tenu portrait), le jeu est tourné de 90° (html.tourne), les rectangles suivent la rotation
+    if debout:
+        prof = p.devices['iPhone SE']; ctx = b.new_context(**{k: v for k, v in prof.items() if k != 'default_browser_type'})
+    else: ctx = b.new_context(viewport={'width': 640, 'height': 360}, has_touch=True)
     erreurs = []; canal = 'tactile-%d-%d' % (os.getpid(), time.time()); pages = []
     for i in range(2):
         pg = ctx.new_page(); pg.set_default_timeout(30000)
@@ -132,25 +135,55 @@ def tactile(b):
         pages.append(pg)
     pages[0].add_init_script('try { DeviceOrientationEvent.requestPermission = undefined; } catch (e) {}')
     base = 'file://' + RACINE + '/index.html?circuit=test&tours=1&ia=0&canal=%s&joueurs=2' % canal
-    pages[0].goto(base + '&enlignecourse=hote&nom=Pilote%201')
+    pages[0].goto(base + '&enlignecourse=hote&nom=bleu', wait_until='domcontentloaded', timeout=120000)
     try: pages[0].wait_for_function('() => window.__enligne && window.__enligne.code', timeout=90000)
     except Exception:
         dire(False, nom + ' : la salle de l\'hôte s\'ouvre', [pages[0].evaluate('() => [typeof JEU !== "undefined" && JEU.ecran, window.__enligne && JSON.stringify(window.__enligne).slice(0, 300)]'), erreurs[:3]]); ctx.close(); return
     code = pages[0].evaluate('() => window.__enligne.code')
-    pages[1].goto(base + '&robot=1&enlignecourse=%s&nom=Pilote%%202' % code)
+    pages[1].goto(base + '&robot=1&enlignecourse=%s&nom=rouge' % code, wait_until='domcontentloaded', timeout=120000)
     for pg in pages: pg.wait_for_function('() => window.__enligne && window.__enligne.partie', timeout=60000)
     dire(True, nom + ' : la course part sur les deux pages')
+    # (ici on n'essaie pas l'abandon : le Mac chargé pompe les deux pages à la main, des attentes de plusieurs secondes sont normales)
+    for pg in pages: pg.evaluate('() => { REGLAGES.EN_LIGNE_ATTENTE_MAX_MS = 0; REGLAGES.EN_LIGNE_SILENCE_MS = 600000; }')
+    pages[0].bring_to_front()   # (la page du téléphone au premier plan : c'est elle qu'on regarde ; l'autre est celle qui est cachée)
     dire(pages[0].evaluate('() => TACTILE.estPresent()'), nom + ' : la page 1 est tactile (boutons GAZ / FREIN)')
     cdp = ctx.new_cdp_session(pages[0])
     r = pages[0].evaluate('() => { pause(false); return JEU.ecran; }')
     dire(r == 'course' or r == 'grille', nom + ' : « pause » ne fait rien en ligne (les autres attendraient)', r)
-    pages[0].evaluate('() => { REGLAGES.PORTRAIT_TOURNER = false; }')
-    centre = pages[0].evaluate('() => { const q = document.getElementById("tactileGaz").getBoundingClientRect(); return [q.left + q.width / 2, q.top + q.height / 2, q.width]; }')
-    dire(centre[2] > 40, nom + ' : le bouton GAZ est visible et assez grand', centre)
+    if not debout: pages[0].evaluate('() => { REGLAGES.PORTRAIT_TOURNER = false; }')
+    else:
+        pages[0].wait_for_function('() => document.documentElement.classList.contains("tourne")', timeout=20000)
+        dire(True, nom + ' : le jeu est tourné (html.tourne)')
+    def ou(i): return pages[0].evaluate('(i) => { const q = document.getElementById(i).getBoundingClientRect(); return [q.left + q.width / 2, q.top + q.height / 2, Math.min(q.width, q.height)]; }', i)
+    dernier = [None, None]
+    def pomper(n=24):
+        # les deux pages avancent à la main (la page cachée n'a pas de requestAnimationFrame : sans cela l'autre l'attendrait et abandonnerait, T8)
+        for k, pg in enumerate(pages):
+            try: dernier[k] = pg.evaluate('(n) => { majTactile(0.016); if (JEU.ecran === "course") BOUCLE.simuler(n); const e = ENLIGNE_PAGE.etat; return [e.statut, e.sortie, e.partie && e.partie.attente, e.client && e.client.etat, performance.now() | 0]; }', n)
+            except Exception as e:
+                time.sleep(2); print('NAV page', k, dernier, [q.url[-60:] for q in pages], erreurs[:4], flush=True)
+                for q in pages:
+                    try: print('  ', q.evaluate('() => [JEU.ecran, document.body.innerText.slice(0, 200)]'))
+                    except Exception as e2: print('  ?', str(e2)[:60])
+                raise
+    def doigt(i, haut=False):
+        c = ou(i); cdp.send('Input.dispatchTouchEvent', {'type': 'touchEnd' if haut else 'touchStart', 'touchPoints': [] if haut else [{'x': c[0], 'y': c[1], 'id': 1}]})
+        pomper(1)
+        return pages[0].evaluate('() => TACTILE.cibles()')
+    centre = ou('tactileGaz')
+    dire(centre[2] >= 40, nom + ' : le bouton GAZ est visible et assez grand', centre)
+    # FREIN, ◀ et ▶ au doigt (les cibles du téléphone), avant de tenir GAZ
+    c = doigt('tactileFrein'); doigt('tactileFrein', True); dire(c['frein'] == 1 and c['gaz'] == 0, nom + ' : un doigt sur FREIN freine', c)
+    for i, sens in (('tactileGauche', -1), ('tactileDroite', 1)):
+        c = doigt(i); doigt(i, True); dire(c['direction'] * sens > 0, nom + ' : un doigt sur ' + i[7:] + ' tourne du bon côté', c)
+    dire(pages[0].evaluate('() => !document.getElementById("tactilePause") || getComputedStyle(document.getElementById("tactilePause")).display === "none"'), nom + ' : pas de ⏸ en ligne')
     cdp.send('Input.dispatchTouchEvent', {'type': 'touchStart', 'touchPoints': [{'x': centre[0], 'y': centre[1], 'id': 1}]})
     t0 = time.monotonic(); vitesse = 0
     while time.monotonic() - t0 < 240 and vitesse < 8:
-        for pg in pages: pg.evaluate('() => { majTactile(0.016); if (JEU.ecran === "course") BOUCLE.simuler(24); }')
+        try:
+            pomper()
+        except Exception as e:
+            dire(False, nom + ' : les pages restent sur la course', [str(e)[:120], [q.url[-80:] for q in pages], erreurs[:3]]); break
         vitesse = pages[0].evaluate('() => Math.abs(JEU.joueur.u)')
         time.sleep(0.02)
     cdp.send('Input.dispatchTouchEvent', {'type': 'touchEnd', 'touchPoints': []})
@@ -166,11 +199,11 @@ with sync_playwright() as p:
     try:
         mode = sys.argv[1] if len(sys.argv) > 1 else ''
         if mode == 'ecrans': course_ecrans(b)
-        elif mode == 'tactile': tactile(b)
+        elif mode == 'tactile': tactile(b, p); tactile(b, p, True)
         else:
             if mode != 'ia': course(b, 'deux joueurs, 0 IA', 0)
             if mode in ('', 'ia'): course(b, 'deux joueurs, 2 IA', 2)
-            if mode in ('', 'court'): tactile(b)
+            if mode in ('', 'court'): tactile(b, p); tactile(b, p, True)
             if mode == '': course_ecrans(b)   # (les écrans de salle avec rechargement : hors de 'court' qui sert aux annexes de GitHub)
     finally:
         b.close()
