@@ -87,7 +87,7 @@ t('BroadcastChannel : deux « onglets » : créer, rejoindre par le code, lancer
   b.c.pret(true);await attendre(()=>a.c.joueurs.find(j=>j.id===2).pret);
   a.c.lancer({circuit:'test',tours:2,meteo:'sec',nbIA:0});await attendre(()=>de(a,'depart').length&&de(b,'depart').length&&de(c,'depart').length);
   v(de(a,'depart')[0].graine===de(c,'depart')[0].graine&&JSON.stringify(de(b,'depart')[0].ordre)==='[1,2,3]','départ identique');
-  for(let n=0;n<30;n++){a.c.cmd(n,{n});b.c.cmd(n,{n});}await attendre(()=>de(c,'cmd').length===60&&de(a,'cmd').length===30);
+  for(let n=0;n<30;n++){a.c.cmd(n,[n]);b.c.cmd(n,[n]);}await attendre(()=>de(c,'cmd').length===60&&de(a,'cmd').length===30);
   for(const de_ of [1,2])v(de(c,'cmd').filter(x=>x.de===de_).map(x=>x.n).join()===[...Array(30).keys()].join(),'ordre de '+de_);
   v(de(a,'cmd').every(x=>x.de===2),'pas d’écho');
   c.c.emote(2);await attendre(()=>de(a,'emote').length===1&&de(b,'emote').length===1);
@@ -110,13 +110,15 @@ t('BroadcastChannel : salle pleine / commencée refusées ; un invité qui part 
 t('BroadcastChannel : l’onglet qui fait le relais se ferme → les autres reçoivent « perdu » ; un onglet muet est retiré', async()=>{
   R.EN_LIGNE_ATTENTE_MS=80;const h=horloge(),a=clientBC('bleu',h),b=clientBC('rouge',h);await a.c.ouvrir();await b.c.ouvrir();
   a.c.creer('bleu');await attendre(()=>a.c.enSalle());b.c.rejoindre(a.c.code,'rouge');await attendre(()=>b.c.enSalle());
-  a.c.fermer();await attendre(()=>de(b,'perdu').length===1,2000);v(b.c.etat==='ferme'&&!b.c.enSalle(),'perdu');
+  a.c.fermer();for(let k=1;k<=R.EN_LIGNE_RECONNEXIONS+1&&!de(b,'perdu').length;k++){await h.avancer(R.EN_LIGNE_RECONNEXION_MS*k+5);await vide();}   // (la salle de l'hôte parti ne revient pas : après les essais, « perdu »)
+  await attendre(()=>de(b,'perdu').length===1,2000);v(b.c.etat==='ferme'&&!b.c.enSalle(),'perdu');
   b.c.fermer();});
 t('BroadcastChannel : un onglet fermé sans prévenir (aucun message depuis EN_LIGNE_SILENCE_MS) quitte la salle', async()=>{
   R.EN_LIGNE_ATTENTE_MS=80;const h=horloge(),a=clientBC('bleu',h),b=clientBC('rouge',h),c=clientBC('jaune',h);await a.c.ouvrir();await b.c.ouvrir();await c.c.ouvrir();
   a.c.creer('bleu');await attendre(()=>a.c.enSalle());b.c.rejoindre(a.c.code,'rouge');await attendre(()=>b.c.enSalle());c.c.rejoindre(a.c.code,'jaune');await attendre(()=>c.c.enSalle());
   h.t+=R.EN_LIGNE_SILENCE_MS-1000;c.c.pret(true);await attendre(()=>a.c.joueurs.find(j=>j.id===3).pret);   // c parle, b se tait
-  h.t+=2000;c.c.pret(false);await attendre(()=>de(a,'parti').length===1);v(de(a,'parti')[0].id===2&&a.c.joueurs.length===2,'b retiré : '+JSON.stringify(a.c.joueurs));
+  h.t+=2000;c.c.pret(false);await h.avancer(R.EN_LIGNE_GRACE*1000+100);await attendre(()=>de(a,'parti').length===1);   // (un onglet muet est coupé, puis la grâce passe)
+  v(de(a,'parti')[0].id===2&&a.c.joueurs.length===2,'b retiré : '+JSON.stringify(a.c.joueurs));
   a.c.fermer();b.c.fermer();c.c.fermer();});
 
 (async()=>{
