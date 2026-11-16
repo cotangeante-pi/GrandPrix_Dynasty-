@@ -19,16 +19,19 @@ const ENLIGNE_ECRAN = (function () {
   const hex = c => '#' + c.toString(16).padStart(6, '0');
   let rappels = { aller: () => {}, retour: () => {}, depart: () => {} };
   let transport = null, ecran = 'enligne', code = '', moi = null, hote = false, joueurs = [], note = '', emotes = {}, prochaineEmote = 0;
-  let reglages = null, pretMoi = false, minuterieNote = null;
+  let reglages = null, pretMoi = false, minuterieNote = null, demande = null, rang = 1, repris = false;   // (demande : la dernière demande de « rejoindre », pour retenter avec -2, -3…)
   const api = { fabrique: () => ENLIGNE_FAUX.creer() };
 
-  const nomDe = id => texte('enligneNom').replace('{c}', texte('enligneCouleur_' + id));
-  const couleurDeNom = nom => R.EN_LIGNE_COULEURS.find(c => nomDe(c.id) === nom) || null;
+  // (D1) le nom sur le fil ne dépend pas de la langue : l'id d'une couleur (« rouge »), suivi de « -2 » à « -8 » si elle est déjà prise dans la salle
+  // (« rouge-2 ») ; chaque client affiche le nom traduit (« Pilote Rouge », « Red driver », « Pilote Rouge 2 »)
+  const lireNom = nom => { const m = /^([a-z]+)(?:-([2-8]))?$/.exec(String(nom)); const c = m && R.EN_LIGNE_COULEURS.find(x => x.id === m[1]); return c ? { couleur: c, rang: m[2] ? Number(m[2]) : 1 } : null; };
+  const nomAffiche = nom => { const n = lireNom(nom); return n ? texte('enligneNom').replace('{c}', texte('enligneCouleur_' + n.couleur.id)) + (n.rang > 1 ? ' ' + n.rang : '') : String(nom); };
+  const couleurDeNom = nom => { const n = lireNom(nom); return n ? n.couleur : null; };
   function couleurChoisie() {
     const i = Number(SAUVEGARDE.option('enligne_couleur', 0));
     return Number.isInteger(i) && i >= 0 && i < R.EN_LIGNE_COULEURS.length ? i : 0;
   }
-  const nomChoisi = () => nomDe(R.EN_LIGNE_COULEURS[couleurChoisie()].id);
+  const nomChoisi = () => R.EN_LIGNE_COULEURS[couleurChoisie()].id;   // (l'id sur le fil)
   const bouton = (id, f) => { const b = $(id); b.tabIndex = 0; b.addEventListener('mousedown', e => e.preventDefault()); b.addEventListener('click', f); return b; };
   const vide = el => { el.textContent = ''; return el; };
 
@@ -39,7 +42,8 @@ const ENLIGNE_ECRAN = (function () {
     $('boutonEnligneCreer').textContent = texte('enligneCreer');
     $('boutonEnligneRejoindre').textContent = texte('enligneRejoindre');
     $('boutonEnligneRetour').textContent = texte('enligneRetour');
-    $('enligneNomChoisi').textContent = texte('enligneNomChoisi').replace('{nom}', nomChoisi());
+    majComment();
+    $('enligneNomChoisi').textContent = texte('enligneNomChoisi').replace('{nom}', nomAffiche(nomChoisi()));
     const boite = vide($('enligneCouleurs'));
     boite.setAttribute('aria-label', texte('enligneCouleur'));
     R.EN_LIGNE_COULEURS.forEach((c, i) => {
@@ -52,6 +56,16 @@ const ENLIGNE_ECRAN = (function () {
       boite.appendChild(b);
     });
   }
+  // « Comment jouer en ligne » : quatre étapes à la place du menu (même écran), un second appui revient
+  let commentOuvert = false;
+  function majComment() {
+    const ol = vide($('enligneEtapes'));
+    for (let i = 1; i <= 4; i++) { const li = document.createElement('li'); li.textContent = texte('enligneComment' + i); ol.appendChild(li); }
+    $('enligne').classList.toggle('comment', commentOuvert);
+    $('enligneComment').classList.toggle('cache', !commentOuvert);
+    $('boutonEnligneComment').textContent = commentOuvert ? texte('enligneRetour') : texte('enligneComment');
+    $('enligneTitre').textContent = texte(commentOuvert ? 'enligneCommentTitre' : 'enligneTitre');
+  }
   const dire = (id, t) => { $(id).textContent = t || ''; };
 
   // --- la connexion ---
@@ -63,7 +77,7 @@ const ENLIGNE_ECRAN = (function () {
     return transport;
   }
   function fermerTransport() { if (transport) { try { transport.fermer(); } catch (e) { /* déjà fermé */ } } transport = null; }
-  function remiseAZero() { fermerTransport(); code = ''; moi = null; hote = false; joueurs = []; note = ''; emotes = {}; reglages = null; pretMoi = false; clearTimeout(minuterieNote); }
+  function remiseAZero() { demande = null; repris = false; fermerTransport(); code = ''; moi = null; hote = false; joueurs = []; note = ''; emotes = {}; reglages = null; pretMoi = false; clearTimeout(minuterieNote); }
 
   function creer() {
     if (ecran !== 'enligne') return;
@@ -75,7 +89,8 @@ const ENLIGNE_ECRAN = (function () {
     const c = $('enligneCode').value;
     if (c.length < R.EN_LIGNE_CODE_LONGUEUR) { dire('enligneRejoindreMessage', texte('enligneCodeCourt')); return; }
     dire('enligneRejoindreMessage', texte('enligneConnexion'));
-    ouvrirTransport().envoyer({ t: 'rejoindre', code: c, nom: nomChoisi(), version: R.EN_LIGNE_VERSION });
+    demande = { t: 'rejoindre', code: c, version: R.EN_LIGNE_VERSION }; rang = 1;
+    ouvrirTransport().envoyer(Object.assign({ nom: nomChoisi() }, demande));
   }
 
   function recevoir(m) {
@@ -84,8 +99,13 @@ const ENLIGNE_ECRAN = (function () {
       code = String(m.code || ''); moi = m.toi; hote = m.hote === true || m.hote === m.toi; joueurs = []; pretMoi = false; emotes = {};
       reglages = Object.assign({}, R.EN_LIGNE_REGLAGES_DEFAUT);
       ecran = 'enligneSalle'; rappels.aller('enligneSalle'); majSalle();
-      if (hote) envoyerReglages();   // (l'hôte dit tout de suite son choix : les invités le voient)
+      if (hote && !repris) envoyerReglages();   // (l'hôte dit tout de suite son choix : les invités le voient ; repris : le relais garde son choix et le renvoie)
     } else if (m.t === 'refus') {
+      // (D1) couleur déjà prise dans la salle : on retente avec « -2 », « -3 »… jusqu'à « -8 » (la salle est de 8 au plus)
+      if (m.raison === 'nom' && demande && ecran === 'enligneRejoindre' && rang < R.EN_LIGNE_JOUEURS_MAX) {
+        rang++; const nom = nomChoisi() + '-' + rang; fermerTransport();
+        ouvrirTransport().envoyer(Object.assign({ nom }, demande)); return;
+      }
       fermerTransport();
       const t = texte('enligneRefus_' + m.raison) || texte('enligneCoupure');
       dire(ecran === 'enligneRejoindre' ? 'enligneRejoindreMessage' : 'enligneMessage', t);
@@ -101,10 +121,10 @@ const ENLIGNE_ECRAN = (function () {
       if (lui) { hote = !!lui.hote; pretMoi = !!lui.pret; }
       majSalle();
     } else if (m.t === 'reglages') {
-      if (!hote && m.reglages && typeof m.reglages === 'object') { for (const x of regles()) if (m.reglages[x.cle] !== undefined && (x.cle === 'nbIA' ? Number.isInteger(m.reglages[x.cle]) : x.valeurs.includes(m.reglages[x.cle]))) reglages[x.cle] = m.reglages[x.cle]; majSalle(); }
+      if ((!hote || repris) && m.reglages && typeof m.reglages === 'object') { for (const x of regles()) if (m.reglages[x.cle] !== undefined && (x.cle === 'nbIA' ? Number.isInteger(m.reglages[x.cle]) : x.valeurs.includes(m.reglages[x.cle]))) reglages[x.cle] = m.reglages[x.cle]; majSalle(); }
     } else if (m.t === 'parti') {
       const j = joueurs.find(x => x.id === m.id);
-      if (j) dirNote(texte('enligneParti').replace('{nom}', j.nom));
+      if (j) dirNote(texte('enligneParti').replace('{nom}', nomAffiche(j.nom)));
     } else if (m.t === 'nouvel-hote') {
       if (m.id === moi) { hote = true; dirNote(texte('enligneNouvelHote')); }
       majSalle();
@@ -144,7 +164,7 @@ const ENLIGNE_ECRAN = (function () {
   const regles = () => [
     { cle: 'circuit', libelle: 'enligneCircuit', valeurs: circuitsPermis(), nom: v => texte('circuit_' + v) || v },
     { cle: 'tours', libelle: 'enligneTours', valeurs: R.EN_LIGNE_TOURS_CHOIX, nom: v => String(v) },
-    { cle: 'meteo', libelle: 'enligneMeteo', valeurs: R.EN_LIGNE_METEO_CHOIX, nom: v => texte('enligneMeteo_' + v) },
+    { cle: 'meteo', libelle: 'enligneMeteo', valeurs: R.EN_LIGNE_METEOS, nom: v => texte('enligneMeteo_' + v) },
     { cle: 'nbIA', libelle: 'enligneIA', valeurs: iaPermis(), nom: v => String(v) },
   ];
   function valeurReglage(r) {   // la valeur courante, ramenée dans la liste permise (moins de places = moins d'IA)
@@ -170,6 +190,9 @@ const ENLIGNE_ECRAN = (function () {
     $('enligneSalleNom').textContent = texte('enligneSalle');
     $('enligneSalleCode').textContent = code;
     $('enligneJoueursTitre').textContent = texte('enligneJoueurs').replace('{n}', joueurs.length).replace('{max}', R.EN_LIGNE_JOUEURS_MAX);
+    // (T10) la manette : le halo d'un bouton de la salle survit au redessin (un message du réseau refait la liste, les réglages et les émotes)
+    const halo = document.querySelector('#enligneSalle button.manette-choix');
+    const gardeId = halo ? halo.id : null;
     const ul = vide($('enligneListe'));
     for (const j of joueurs) {
       const li = document.createElement('li');
@@ -177,7 +200,7 @@ const ENLIGNE_ECRAN = (function () {
       if (j.id === moi) li.className = 'moi';
       const pastille = document.createElement('i'); const c = couleurDeNom(j.nom);
       pastille.className = 'pastille'; pastille.style.background = c ? hex(c.hex) : '#8a8f9c';
-      const nom = document.createElement('span'); nom.className = 'nom'; nom.textContent = j.nom + (j.id === moi ? ' (' + texte('enligneToi') + ')' : '');
+      const nom = document.createElement('span'); nom.className = 'nom'; nom.textContent = nomAffiche(j.nom) + (j.id === moi ? ' (' + texte('enligneToi') + ')' : '');
       const etat = document.createElement('span'); etat.className = 'etat';
       etat.textContent = j.hote ? '★ ' + texte('enligneHote') : j.pret ? '✔ ' + texte('enlignePret') : '… ' + texte('enlignePasPret');
       li.append(pastille, nom, etat);
@@ -193,7 +216,7 @@ const ENLIGNE_ECRAN = (function () {
       const ligne = document.createElement('div'); ligne.className = 'regle'; ligne.dataset.cle = r.cle;
       const l = document.createElement('span'); l.className = 'libelle'; l.textContent = texte(r.libelle);
       const moins = document.createElement('button'), val = document.createElement('strong'), plus = document.createElement('button');
-      moins.tabIndex = plus.tabIndex = 0; moins.className = plus.className = 'enligneFleche';
+      moins.tabIndex = plus.tabIndex = 0; moins.className = plus.className = 'enligneFleche'; moins.id = 'enligneReg_' + r.cle + '_moins'; plus.id = 'enligneReg_' + r.cle + '_plus';
       moins.textContent = '◀'; plus.textContent = '▶'; moins.setAttribute('aria-label', '◀ ' + texte(r.libelle)); plus.setAttribute('aria-label', texte(r.libelle) + ' ▶');
       val.textContent = r.valeurs.length ? r.nom(valeurReglage(r)) : '–';
       for (const [b, s] of [[moins, -1], [plus, 1]]) { b.addEventListener('mousedown', e => e.preventDefault()); b.addEventListener('click', () => changerReglage(r.cle, s)); }
@@ -205,7 +228,7 @@ const ENLIGNE_ECRAN = (function () {
     boite.setAttribute('aria-label', texte('enligneEmotes'));
     R.EN_LIGNE_EMOTES.forEach((e, i) => {
       const b = document.createElement('button');
-      b.tabIndex = 0; b.className = 'enligneEmote'; b.textContent = e; b.title = texte('enligneEmote_' + i); b.setAttribute('aria-label', texte('enligneEmote_' + i));
+      b.tabIndex = 0; b.className = 'enligneEmote'; b.id = 'enligneEmote_' + i; b.textContent = e; b.title = texte('enligneEmote_' + i); b.setAttribute('aria-label', texte('enligneEmote_' + i));
       b.addEventListener('mousedown', ev => ev.preventDefault());
       b.addEventListener('click', () => envoyerEmote(i));
       boite.appendChild(b);
@@ -216,6 +239,7 @@ const ENLIGNE_ECRAN = (function () {
     lancer.textContent = texte('enligneLancer'); lancer.disabled = !tousPrets();
     pret.textContent = texte(pretMoi ? 'enlignePretAnnuler' : 'enlignePretBouton'); pret.classList.toggle('actif', pretMoi);
     $('boutonEnligneQuitter').textContent = texte('enligneQuitter');
+    if (gardeId && typeof choisirBouton === 'function') { const nouveau = document.getElementById(gardeId); if (nouveau && nouveau !== halo) choisirBouton(nouveau); }
     $('enligneSalleMessage').textContent = note || (joueurs.length < 2 ? texte('enligneAttenteAmi') : tousPrets() ? texte('enligneLancerPret') : texte('enligneAttentePrets'));
   }
 
@@ -249,12 +273,25 @@ const ENLIGNE_ECRAN = (function () {
   function aller(e) {
     ecran = e;
     rappels.aller(e);
-    if (e === 'enligne') { dire('enligneMessage', ''); majMenu(); }
+    if (e === 'enligne') { commentOuvert = false; dire('enligneMessage', ''); majMenu(); }
     else if (e === 'enligneRejoindre') { dire('enligneRejoindreMessage', ''); $('enligneCode').value = ''; majRejoindre(); if (!window.matchMedia('(pointer: coarse)').matches) $('enligneCode').focus(); }
     else majSalle();
   }
   api.ouvrir = function () { remiseAZero(); aller('enligne'); };
+  // (T7b) la page s'est rechargée sur le bon circuit : on se rattache à la même salle avec le jeton gardé (code, nom, jeton : reseau.js, RESEAU.session)
+  // (T7) la course est finie : on revient à la salle d'attente (la même connexion, les « prêt » à faux) ; sans connexion, au menu
+  api.retourSalle = function () {
+    if (!transport) { remiseAZero(); aller('enligne'); return; }
+    pretMoi = false; emotes = {}; note = '';
+    aller('enligneSalle');
+  };
+  api.reprendre = function (s) {
+    remiseAZero(); repris = true; aller('enligne');
+    dire('enligneMessage', texte('enligneConnexion'));
+    ouvrirTransport().envoyer({ t: 'rejoindre', code: s.code, nom: s.nom, version: R.EN_LIGNE_VERSION, jeton: s.jeton });
+  };
   api.echap = function () {
+    if (ecran === 'enligne' && commentOuvert) { commentOuvert = false; majComment(); return; }
     if (ecran === 'enligneSalle') quitterSalle();
     else if (ecran === 'enligneRejoindre') aller('enligne');
     else { remiseAZero(); rappels.retour(); }
@@ -264,6 +301,7 @@ const ENLIGNE_ECRAN = (function () {
   api.preparer = function (r) {
     rappels = Object.assign(rappels, r);
     bouton('boutonEnligneCreer', creer); bouton('boutonEnligneRejoindre', () => aller('enligneRejoindre')); bouton('boutonEnligneRetour', () => api.echap());
+    bouton('boutonEnligneComment', () => { commentOuvert = !commentOuvert; majComment(); });
     bouton('boutonEnligneGo', rejoindre); bouton('boutonEnligneRejoindreRetour', () => aller('enligne'));
     bouton('boutonEnlignePret', basculerPret); bouton('boutonEnligneLancer', lancer); bouton('boutonEnligneQuitter', quitterSalle);
     const champ = $('enligneCode');

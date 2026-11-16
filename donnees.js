@@ -1494,7 +1494,7 @@ const REGLAGES = {
   EN_LIGNE_VOITURES_MAX: 16,    // des voitures en piste au plus (joueurs + IA)
   EN_LIGNE_TOURS_MAX: 30,       // des tours au plus
   EN_LIGNE_TOURS_DEFAUT: 3,     // si les tours demandés ne sont pas permis
-  EN_LIGNE_METEOS: ['auto', 'sec', 'nuageux', 'pluie', 'averse', 'eclaircie'],   // les météos au choix de l'hôte (auto : tirée avec la graine selon le lieu, comme en carrière)
+  EN_LIGNE_METEOS: ['auto', 'sec', 'pluie', 'averse', 'eclaircie'],   // les météos au choix de l'hôte (auto : tirée avec la graine selon le lieu, comme en carrière)
   EN_LIGNE_MATHS: true,         // enligne.js remplace sin, cos, tan, atan, atan2, exp, cbrt, hypot pendant une course en ligne par des calculs à nous, identiques au bit près sur tous les navigateurs (faux : ceux du navigateur)
   GRAINE_GRILLE_LIGNE: 23000,   // la grille tirée au sort d'une course en ligne : la graine de la course + ce nombre
   // (tour 56, T5 : les écrans ; CLAUDE.md « Les batailles en ligne »). Tout reste derrière EN_LIGNE : faux = le jeu d'avant,
@@ -1512,7 +1512,6 @@ const REGLAGES = {
   EN_LIGNE_CIRCUITS_CHOIX: ['test', 'technique'],   // les circuits que l'hôte peut choisir (des clés de CIRCUITS) ; vide = tous
   EN_LIGNE_TOURS_CHOIX: [1, 3, 5],   // les longueurs de course (l'hôte)
   EN_LIGNE_IA_CHOIX: [0, 3, 5],      // les IA ajoutées aux humains (l'hôte) ; jamais plus de EN_LIGNE_JOUEURS_MAX voitures en tout
-  EN_LIGNE_METEO_CHOIX: ['sec', 'nuageux', 'pluie'],   // la météo de la course (l'hôte)
   EN_LIGNE_REGLAGES_DEFAUT: { circuit: 'test', tours: 3, meteo: 'sec', nbIA: 0 },   // ce que l'hôte voit d'abord
   EN_LIGNE_FAUX_DELAI: 0.8,     // s : le faux transport (enligne-faux.js, en attendant le vrai réseau) fait « arriver » un ami après ce délai, puis le fait « prêt » après le même
 
@@ -1522,10 +1521,9 @@ const REGLAGES = {
   // les batailles en ligne (tour 56 ; rien ne se voit ni ne se connecte tant que EN_LIGNE est faux ; ?enligne=1 l'ouvre)
   EN_LIGNE_URL: '',             // l'adresse WebSocket du relais (wss://…), vide tant que le propriétaire n'a pas choisi l'hébergement
   EN_LIGNE_CANAL: 'gpd-en-ligne',   // le nom du BroadcastChannel (deux onglets du même navigateur, sans serveur)
+  EN_LIGNE_GRACE: 20,           // s : un joueur dont la connexion tombe garde sa place (même id, même rôle) et peut se rattacher avec le jeton de sa salle (rechargement sur le bon circuit)
   EN_LIGNE_JOUEURS_MIN: 2,      // pour lancer une course
-  EN_LIGNE_NOM_MAX: 20,         // lettres d'un nom
-  EN_LIGNE_NOMS_COULEURS: ['Rouge', 'Bleu', 'Vert', 'Jaune', 'Orange', 'Violet', 'Rose', 'Blanc'],   // …un nom de la liste peut porter une de ces couleurs (« Éclair Rouge ») ; ceux des écrans : « Pilote <couleur> » (textes.js : enligneNom)
-  EN_LIGNE_NOMS: ['Éclair', 'Turbo', 'Comète', 'Fusée', 'Tonnerre', 'Mistral', 'Phénix', 'Faucon', 'Panthère', 'Requin', 'Étoile', 'Tempête'],
+  EN_LIGNE_NOM_MAX: 20,         // lettres d'un nom (noms libres seulement : sinon l'id d'une couleur de EN_LIGNE_COULEURS, avec -2 à -8)
   EN_LIGNE_TAILLE_MAX: 4096,    // caractères d'un message ; au-delà il est jeté
   EN_LIGNE_OUVERTURE_MS: 5000,  // attente de l'ouverture d'un WebSocket
   EN_LIGNE_ATTENTE_MS: 600,     // BroadcastChannel : sans réponse d'une salle après ce temps = « inconnue »
