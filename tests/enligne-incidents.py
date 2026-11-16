@@ -121,7 +121,7 @@ def incident_pub_podium(b):
     p1.evaluate(FAUX_POKI)   # (posé après le chargement : sdk.js relit window.PokiSDK à chaque appel)
     p1.evaluate(FAUX_POKI)
     pub = p1.evaluate('() => new Promise(r => SDK.pubEntreCourses(() => r(window.__pub), () => {}))')
-    dire(pub == 1, nom + ' : hors course (podium), la pub reste permise (Poki la demande une fois)', pub)
+    dire(pub == 1, nom + ' : hors course (podium), la pub reste permise (Poki la demande une fois)', 'pub=%r ecran=%s' % (pub, [pg.evaluate('() => [JEU.ecran, JEU.enligne, SDK.pubEnCours, SDK.present]') for pg in (p1, p2)]))
     ctx.close()
 
 def incident_lent(b):
