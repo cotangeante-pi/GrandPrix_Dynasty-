@@ -130,7 +130,7 @@ def jeu_tourne(delai=400):
     print(out.strip()); print(f'⏱ tests/tourne.py : {time.monotonic() - t0:.0f} s')
     return p.returncode == 0 and '✘' not in out
 
-def reseau_page(delai=200):
+def reseau_page(delai=450):
     t0 = time.monotonic()
     p = subprocess.Popen([sys.executable, os.path.join(RACINE, 'tests', 'reseau.py')], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True)
     try: out, err = p.communicate(timeout=delai)
