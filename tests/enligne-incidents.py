@@ -67,13 +67,14 @@ def incident_parti(b):
 
 def incident_cache(b):
     nom = 'onglet caché'
-    ctx, (p1, p2), erreurs = deux_pages(b, nom, tours=3)
+    ctx, (p1, p2), erreurs = deux_pages(b, nom, tours=12)
     for _ in range(5): avancer([p1, p2], 2)
     n0 = p1.evaluate('() => ENLIGNE_PAGE.etat.partie.n')
     p1.evaluate('() => { REGLAGES.EN_LIGNE_FOND_MS = 50; ENLIGNE_PAGE.cacher(true); }')   # (la page de l'hôte est cachée : seul le minuteur de fond la fait avancer)
     t0 = time.monotonic()
     while time.monotonic() - t0 < 6:   # l'autre page avance en même temps, par tranches
-        p2.evaluate('() => { if (JEU.ecran === "course") BOUCLE.simuler(0.5); }'); time.sleep(0.02)
+        try: p2.evaluate('() => { if (JEU.ecran === "course") BOUCLE.simuler(0.5); }'); time.sleep(0.02)
+        except Exception as e: print('DEBUG p2 parti', time.monotonic() - t0, p1.evaluate('() => [ENLIGNE_PAGE.etat.statut, ENLIGNE_PAGE.etat.sortie, ENLIGNE_PAGE.etat.partie.n, !!ENLIGNE_PAGE.etat.fond && Object.keys(ENLIGNE_PAGE.etat.fond)]')); raise
     n1 = p1.evaluate('() => ENLIGNE_PAGE.etat.partie.n')
     dire(n1 - n0 > 120, nom + ' : le minuteur de fond fait avancer la course sans requestAnimationFrame (%d pas)' % (n1 - n0), [n0, n1])
     p1.evaluate('() => ENLIGNE_PAGE.cacher(false)')
@@ -153,46 +154,39 @@ def incident_perdu(b):
     dire(('perdue' in s or 'lost' in s) and p1.evaluate('() => ENLIGNE_PAGE.etat.sortie') == 'perdu', nom + ' : « Connexion perdue » est affiché et la sortie est lancée', s)
     ctx.close()
 
-def incident_cache_vrai(b2):
-    """(T57) Un onglet VRAIMENT caché (document.hidden, une autre page devant, navigateur avec fenêtre) : le Worker fait avancer la course
-    à plein débit alors que setInterval, seul, est ralenti ; repli sur setInterval si le Worker est refusé."""
-    nom = 'onglet vraiment caché'
-    ctx, (p1, p2), erreurs = deux_pages(b2, nom, tours=3)
-    p2.bring_to_front(); time.sleep(0.5)
-    cache = p1.evaluate('() => document.hidden')
-    if not cache:
-        dire(True, nom + ' : (non mesurable ici : l’onglet n’est pas caché par ce navigateur, essai sauté)'); ctx.close(); return
+def incident_cache_worker(b):
+    """(T57) Le tic du minuteur de fond vient d'un Worker (non ralenti dans un onglet caché ; un onglet vraiment caché ne se fabrique pas
+    avec Playwright, donc on vérifie le chemin) et, si le Worker est absent ou refusé, setInterval prend le relais et la course avance."""
+    nom = 'onglet caché (Worker)'
+    ctx, (p1, p2), erreurs = deux_pages(b, nom, tours=12)
     for _ in range(3): avancer([p1, p2], 2)
-    def mesure(worker):
-        p1.evaluate('(w) => { REGLAGES.EN_LIGNE_FOND_WORKER = w; REGLAGES.EN_LIGNE_FOND_MS = 50; ENLIGNE_PAGE.cacher(true); }', worker)
+    def mesure(worker, casse=False):
+        p1.evaluate('([w, c]) => { REGLAGES.EN_LIGNE_FOND_WORKER = w; REGLAGES.EN_LIGNE_FOND_MS = 50; if (c) window.__W = Worker, window.Worker = function () { throw new Error("refuse"); }; ENLIGNE_PAGE.cacher(true); }', [worker, casse])
         n0 = p1.evaluate('() => ENLIGNE_PAGE.etat.partie.n'); t0 = time.monotonic()
-        while time.monotonic() - t0 < 8:
+        while time.monotonic() - t0 < 4:
             p2.evaluate('() => { if (JEU.ecran === "course") BOUCLE.simuler(0.5); }'); time.sleep(0.02)
         n1 = p1.evaluate('() => ENLIGNE_PAGE.etat.partie.n')
         genre = p1.evaluate('() => ENLIGNE_PAGE.etat.fond && (ENLIGNE_PAGE.etat.fond.w ? "worker" : "intervalle")')
-        p1.evaluate('() => ENLIGNE_PAGE.cacher(false)')
-        return n1 - n0, genre, p1.evaluate('() => document.hidden')
-    n_w, g_w, h = mesure(True)
-    dire(g_w == 'worker' and n_w > 300, nom + ' : avec le Worker la course avance (%d pas en 8 s, hidden=%s)' % (n_w, h), [n_w, g_w])
-    n_i, g_i, h = mesure(False)
-    print('  (mesure : Worker %d pas, setInterval seul %d pas, en 8 s)' % (n_w, n_i), flush=True)
-    dire(n_w >= n_i, nom + ' : le Worker n’avance pas moins que setInterval seul', [n_w, n_i])
+        p1.evaluate('() => { ENLIGNE_PAGE.cacher(false); if (window.__W) window.Worker = window.__W; }')
+        return n1 - n0, genre
+    n, g = mesure(True)
+    dire(g == 'worker' and n > 100, nom + ' : le tic vient d’un Worker et la course avance (%d pas)' % n, [n, g])
+    n, g = mesure(False)
+    dire(g == 'intervalle' and n > 100, nom + ' : réglage à false : setInterval seul, la course avance (%d pas)' % n, [n, g])
+    n, g = mesure(True, True)
+    dire(g == 'intervalle' and n > 100, nom + ' : Worker refusé par le navigateur : repli sur setInterval, la course avance (%d pas)' % n, [n, g])
     dire(not erreurs, nom + ' : console vide', erreurs[:3])
     ctx.close()
 
 with sync_playwright() as p:
     b = p.chromium.launch(channel='chrome', args=['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--allow-file-access-from-files', '--disable-audio-output'])
     try:
-        for f in (incident_parti, incident_cache, incident_echap_pub, incident_pub_podium, incident_lent, incident_desynchro, incident_perdu):
+        for f in (incident_parti, incident_cache, incident_echap_pub, incident_pub_podium, incident_lent, incident_desynchro, incident_perdu, incident_cache_worker):
             if FILTRE and FILTRE not in f.__name__: continue
             try: f(b)
-            except Exception as e: dire(False, f.__name__ + ' : exception', repr(e))
+            except Exception as e:
+                import traceback; traceback.print_exc(); dire(False, f.__name__ + ' : exception', repr(e))
     finally:
         b.close()
-    b2 = p.chromium.launch(channel='chrome', headless=False, args=['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--allow-file-access-from-files', '--disable-audio-output'])
-    try:
-        if not FILTRE or FILTRE in 'incident_cache_vrai': incident_cache_vrai(b2)
-    except Exception as e: dire(False, 'incident_cache_vrai : exception', repr(e))
-    finally: b2.close()
 print('RESULTAT ' + ('OK' if ok_tout else 'ECHEC'))
 sys.exit(0 if ok_tout else 1)
