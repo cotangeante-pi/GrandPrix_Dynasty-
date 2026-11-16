@@ -192,7 +192,7 @@ with sync_playwright() as p:
             if mode != 'ia': course(b, 'deux joueurs, 0 IA', 0)
             if mode in ('', 'ia'): course(b, 'deux joueurs, 2 IA', 2)
             if mode in ('', 'court'): tactile(b)
-            if mode == '': course_ecrans(b)   # (les écrans de salle avec rechargement : hors de 'court' qui sert aux annexes de GitHub)
+            if mode in ('', 'court'): course_ecrans(b)   # (salle, rechargement de l'invité, 2 courses : dans les annexes de GitHub ; sur le Mac, `ecrans` seul)
     finally:
         b.close()
 print('RESULTAT ' + ('OK' if ok_tout else 'ECHEC'))
