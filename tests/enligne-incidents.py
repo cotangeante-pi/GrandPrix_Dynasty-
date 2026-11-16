@@ -27,7 +27,7 @@ def dire(ok, nom, detail=''):
     print(('✔ ' if ok else '✘ ') + nom + (' — ' + str(detail)[:600] if (detail and not ok) else ''), flush=True)
 
 FAUX_POKI = "() => { window.__pub = 0; window.PokiSDK = new Proxy({}, { get: (t, k) => k === 'commercialBreak' ? () => { window.__pub++; return Promise.resolve(); } : () => Promise.resolve() }); }"
-def deux_pages(b, nom, tours=1):
+def deux_pages(b, nom, tours=1, noms=('%C3%89clair', 'Turbo'), patient=False):   # (D1 : le nom est l'id d'une couleur : noms=('bleu', 'rouge'), patient=True)
     ctx = b.new_context(viewport={'width': 960, 'height': 600})
     erreurs = []; pages = []
     canal = 'incident-%d-%d' % (os.getpid(), time.time())
@@ -37,13 +37,13 @@ def deux_pages(b, nom, tours=1):
         pg.on('console', lambda m, i=i: erreurs.append('console %d : %s' % (i, m.text)) if m.type in ('error',) else None)
         pages.append(pg)
     base = 'file://' + RACINE + '/index.html?circuit=test&robot=1&tours=%d&ia=0&canal=%s&joueurs=2' % (tours, canal)
-    pages[0].goto(base + '&enlignecourse=hote&nom=%C3%89clair')
+    pages[0].goto(base + '&enlignecourse=hote&nom=' + noms[0])
     pages[0].wait_for_function('() => window.__enligne && window.__enligne.code', timeout=120000)
     code = pages[0].evaluate('() => window.__enligne.code')
-    pages[1].goto(base + '&enlignecourse=%s&nom=Turbo' % code)
+    pages[1].goto(base + '&enlignecourse=%s&nom=' % code + noms[1])
     for pg in pages: pg.wait_for_function('() => window.__enligne && window.__enligne.partie', timeout=120000)
     # les pages sont pilotées à la main par tranches (le dessin du Mac, en logiciel, est trop lent) : la boucle du navigateur est arrêtée
-    for pg in pages: pg.evaluate('() => BOUCLE.arreter()')
+    for pg in pages: pg.evaluate('(p) => { if (p) REGLAGES.EN_LIGNE_ATTENTE_MAX_MS = 0; BOUCLE.arreter(); }', patient)   # (patient : la machine lente n'abandonne pas la course avant la mesure)
     return ctx, pages, erreurs
 
 def avancer(pages, pas=2, tours=1):
@@ -67,7 +67,7 @@ def incident_parti(b):
 
 def incident_cache(b):
     nom = 'onglet caché'
-    ctx, (p1, p2), erreurs = deux_pages(b, nom, tours=12)
+    ctx, (p1, p2), erreurs = deux_pages(b, nom, tours=12, noms=('bleu', 'rouge'), patient=True)
     for _ in range(5): avancer([p1, p2], 2)
     n0 = p1.evaluate('() => ENLIGNE_PAGE.etat.partie.n')
     p1.evaluate('() => { REGLAGES.EN_LIGNE_FOND_MS = 50; ENLIGNE_PAGE.cacher(true); }')   # (la page de l'hôte est cachée : seul le minuteur de fond la fait avancer)
@@ -158,7 +158,7 @@ def incident_cache_worker(b):
     """(T57) Le tic du minuteur de fond vient d'un Worker (non ralenti dans un onglet caché ; un onglet vraiment caché ne se fabrique pas
     avec Playwright, donc on vérifie le chemin) et, si le Worker est absent ou refusé, setInterval prend le relais et la course avance."""
     nom = 'onglet caché (Worker)'
-    ctx, (p1, p2), erreurs = deux_pages(b, nom, tours=12)
+    ctx, (p1, p2), erreurs = deux_pages(b, nom, tours=12, noms=('bleu', 'rouge'), patient=True)
     for _ in range(3): avancer([p1, p2], 2)
     def mesure(worker, casse=False):
         p1.evaluate('([w, c]) => { REGLAGES.EN_LIGNE_FOND_WORKER = w; REGLAGES.EN_LIGNE_FOND_MS = 50; if (c) window.__W = Worker, window.Worker = function () { throw new Error("refuse"); }; ENLIGNE_PAGE.cacher(true); }', [worker, casse])
