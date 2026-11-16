@@ -97,18 +97,130 @@ const ENLIGNE_PAGE = (function () {
           if (m.t === 'parti' && etat.depart && !etat.termine) annoncer(texte('enl_parti').replace('{nom}', nomAffiche(etat.noms.get(m.id) || ('#' + m.id))));   // (T8) la voiture roule sur sa dernière commande puis s'arrête (enligne.js)
           break;
         case 'coupure': if (!etat.termine && !etat.ecrans) dire(texte('enl_coupure')); break;
-  }
-
-        case 'coupure': if (!etat.termine) dire(texte('enl_coupure')); break;
         default:
       }
     });
   }
 
-  // ---- les incidents (tour 56, T8)
+  // le circuit de la course et sa carte, calculés avec nos Math d'avance (une à deux secondes) : dans la salle, dès que l'hôte a choisi (ou ici, pour l'entrée directe)
   function preparerCircuit(reglages) {
     if (!reglages || reglages.circuit !== NOM_CIRCUIT || etat.partie) return;
+    try { EN_LIGNE.preparerCircuit(reglages.circuit); } catch (e) { etat.erreur = 'circuit'; }
+  }
+  // l'hôte a dit « retour » : la salle se rouvre (les « prêt » repartent à faux) ; la course d'avant est finie
+  function retourALaSalle() {
+    if (etat.partie) { etat.partie.terminer(); }
+    etat.partie = null; etat.depart = null; etat.tampon = []; etat.lance = false; etat.erreur = null;
+    if (etat.ecrans && typeof ENLIGNE_ECRAN !== 'undefined' && ENLIGNE_ECRAN.retourSalle) ENLIGNE_ECRAN.retourSalle();
+    else if (!etat.ecrans) { dire(''); if (JEU.ecran === 'podium' || JEU.ecran === 'resultats') location.href = location.pathname; }
+  }
+
+  // --- le circuit et le rechargement ---
+  // l'hôte a choisi un circuit que cette page n'a pas : on garde la session (code, nom, jeton) et on recharge la page sur ce circuit
+  function verifierCircuit(reglages) {
+    const c = etat.client;
+    if (!c || etat.depart || !reglages || typeof reglages.circuit !== 'string' || reglages.circuit === NOM_CIRCUIT || !Object.prototype.hasOwnProperty.call(CIRCUITS, reglages.circuit)) return;
+    if (etat.transport === 'diffusion' && c.estHote()) return;   // la page de l'hôte est le relais : elle ne se recharge pas
+    rechargerPour(reglages.circuit);
+  }
+  function rechargerPour(circuit) {
+    const c = etat.client;
+    if (!c || !c.code || !c.jeton) return false;
+    RESEAU.session.ecrire(c, { circuit });
+    const p = new URLSearchParams({ enlignecourse: 'reprise', circuit });
+    for (const k of ['canal', 'transport', 'lang', 'robot', 'tours', 'ia']) if (PARAMETRES.get(k)) p.set(k, PARAMETRES.get(k));
+    location.href = location.pathname + '?' + p.toString();   // (jamais c.fermer() : un « quitter » ferait perdre la place ; la connexion tombe, la grâce la garde)
+    return true;
+  }
+
+  // le transport que les écrans de salle utilisent (enligne-ecran.js : { envoyer(msg), sur(f), fermer() }) : le client réseau, ouvert à la première
+  // demande (les messages envoyés avant l'ouverture attendent) ; un client qui annonce le circuit de la page à chaque arrivée en salle
+  function fabrique() {
+    const c = RESEAU.client({ transport: etat.transport, canal: etat.canal, ping: true, circuit: NOM_CIRCUIT });
+    const file = [], ecouteurs = [];
+    let ouvert = false;
+    brancher(c);
+    c.ouvrir().then(() => { ouvert = true; for (const m of file.splice(0)) c.envoyer(m); }, () => { for (const f of ecouteurs) f({ t: 'coupure' }); });
+    return {
+      client: c,
+      envoyer: m => { if (ouvert) c.envoyer(m); else file.push(m); },
+      sur: f => { ecouteurs.push(f); c.sur(f); },
+      fermer: () => c.fermer(),
+    };
+  }
+
+  // ---- les incidents (tour 56, T8)
   // le nom d'un joueur à l'écran : le fil porte l'id d'une couleur (« rouge », « rouge-2 », D1) ; chaque client l'affiche dans sa langue
+  function nomAffiche(nom) {
+    const m = /^([a-z]+)(?:-(\d+))?$/.exec(String(nom || ''));
+    const couleur = m && typeof TEXTES !== 'undefined' && TEXTES[LANGUE] ? TEXTES[LANGUE]['enligneCouleur_' + m[1]] : null;
+    return couleur ? texte('enligneNom').replace('{c}', couleur) + (m[2] ? ' ' + m[2] : '') : String(nom);
+  }
+  // un message court en cours de course (un joueur parti…) : il s'efface seul
+  function annoncer(msg) {
+    dire(msg);
+    clearTimeout(etat.annonceT);
+    etat.annonceT = setTimeout(() => { if (etat.statut === msg && !etat.sortie) dire(''); }, 4000);
+  }
+  // le message d'un incident qui finit la course pour moi, puis le retour (à la salle, ou au début si la connexion est perdue)
+  function sortirApres(raison) {
+    if (etat.sortie) return;
+    etat.sortie = raison;
+    const ms = REGLAGES.EN_LIGNE_RETOUR_MS;
+    setTimeout(() => { if (raison === 'perdu') { etat.termine = true; location.href = location.pathname; } else retourSalle(); }, ms);
+  }
+  // onglet caché : requestAnimationFrame est coupé, donc la boucle du jeu ne tourne plus et les autres joueurs nous attendraient ; un minuteur
+  // fait avancer la course (mes commandes : neutres, personne ne conduit un onglet caché) au rythme du temps réel
+  function cacher(cache) {
+    const ms = REGLAGES.EN_LIGNE_FOND_MS;
+    if (!cache) { if (etat.fond !== null) { clearInterval(etat.fond); etat.fond = null; } return; }
+    if (!ms || etat.fond !== null || !etat.partie) return;
+    etat.fondT = performance.now();   // (l'horloge de la page, jamais dans la simulation)
+    etat.fond = setInterval(() => {
+      const t = performance.now(), pas = Math.min(REGLAGES.EN_LIGNE_FOND_PAS_MAX, Math.floor((t - etat.fondT) / 1000 / REGLAGES.PAS_PHYSIQUE));
+      if (pas <= 0) return;
+      etat.fondT += pas * REGLAGES.PAS_PHYSIQUE * 1000;
+      const p = etat.partie;
+      for (let i = 0; i < pas && p && JEU.ecran === 'course' && !etat.sortie; i++) {
+        p.local = { gaz: 0, frein: 0, direction: 0, remise: false };
+        if (!p.avancer(1)) break;   // (on attend un autre : le prochain passage réessaie)
+      }
+      surveillerAttente();
+    }, ms);
+  }
+  document.addEventListener('visibilitychange', () => cacher(document.hidden));
+  // attendre les commandes d'un autre : « On attend … » après un moment, abandon après un long moment (connexion trop lente)
+  function surveillerAttente() {
+    const p = etat.partie;
+    if (!p || etat.sortie) return;
+    if (p.attente === null) {
+      if (etat.attenteDepuis !== null) { etat.attenteDepuis = null; if (!etat.annonceT || etat.statut === etat.msgAttente) dire(''); }
+      return;
+    }
+    const maintenant = performance.now();
+    if (etat.attenteDepuis === null) etat.attenteDepuis = maintenant;
+    const duree = maintenant - etat.attenteDepuis;
+    if (REGLAGES.EN_LIGNE_ATTENTE_MAX_MS && duree >= REGLAGES.EN_LIGNE_ATTENTE_MAX_MS) { dire(texte('enl_trop_lent')); sortirApres('lent'); return; }
+    if (duree >= REGLAGES.EN_LIGNE_ATTENTE_ANNONCE_MS) {
+      etat.msgAttente = texte('enl_lent').replace('{noms}', p.attente.map(id => nomAffiche(etat.noms.get(id) || ('#' + id))).join(', '));
+      if (etat.statut !== etat.msgAttente) dire(etat.msgAttente);
+    }
+  }
+
+  // Échap (ou ⏸) pendant la course en ligne : pas de pause (les autres attendraient) ; deux fois de suite en 3 s = quitter la course
+  function echap() {
+    if (!etat.partie || etat.termine || etat.sortie) return;
+    const t = performance.now();
+    if (etat.echapT && t - etat.echapT < 3000) { quitter(); return; }
+    etat.echapT = t;
+    annoncer(texte('enl_quitter'));
+  }
+  function quitter() {
+    etat.termine = true; etat.sortie = 'quitte';
+    const c = etat.client;
+    try { if (etat.partie && etat.partie.vider) etat.partie.vider(); } catch (err) { /* rien */ }   // (mes dernières commandes partent avant « quitter » : les autres ont le même dernier pas)
+    try { if (c && c.quitter) c.quitter(); } catch (err) { /* rien */ }
+    location.href = location.pathname;
   }
 
   function majSalle() {
@@ -137,6 +249,12 @@ const ENLIGNE_PAGE = (function () {
     if (!etat.actif) return;
     if (etat.depart && !etat.partie) demarrerCourse();
     const p = etat.partie;
+    if (p && p.desynchro && !etat.erreur) { etat.erreur = 'desynchro'; p.terminer(); dire(texte('enl_desynchro')); sortirApres('desynchro'); }   // (T8) message clair, puis retour à la salle
+    // la course est finie (podium, résultats, salle) : nos Math reviennent (les fonctions de la page ne sont plus remplacées)
+    if (p && JEU.ecran !== 'course' && JEU.ecran !== 'pause') p.terminer();
+    surveillerAttente();
+  }
+
   // sortir de la course : `retour` (la salle se rouvre pour tous) SEULEMENT une fois la course finie pour tous (partie.fin, au podium) ; avant,
   // c'est `quitter` (sinon l'hôte qui abandonne rouvrirait la salle et bloquerait les autres, relecture T11 n° 19) ; les Math du navigateur sont rendus.
   // Avec les écrans de salle, la salle se rouvre dans la même page ; sans (l'entrée directe des essais), on quitte la page.
@@ -217,8 +335,6 @@ const ENLIGNE_PAGE = (function () {
     return !!p && p.fin !== null && p.fin !== undefined;
   }
 
-  return { etat, preparer, ouvrir, lancer, image, pas, podiumPret, retourSalle, resume, dire, fabrique, rechargerPour, verifierCircuit, surPerdu, echap, quitter, cacher, surveillerAttente, sortirApres };
-  }
 
   // le classement final et ses empreintes, pour les tests (le même chez tous les clients)
   function resume() {
@@ -227,4 +343,5 @@ const ENLIGNE_PAGE = (function () {
     return { n: p.n, empreinte: p.empreinte(), arrivees: p.e.pilotes.map(q => q.arrivee), final: JEU.final ? JEU.final.map(x => [x.k, x.place, x.total]) : null, desynchro: p.desynchro, ecran: JEU.ecran };
   }
 
+  return { etat, preparer, ouvrir, lancer, image, pas, podiumPret, retourSalle, resume, dire, fabrique, rechargerPour, verifierCircuit, surPerdu, echap, quitter, cacher, surveillerAttente, sortirApres };
 })();
