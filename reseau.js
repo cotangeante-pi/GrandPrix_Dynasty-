@@ -93,6 +93,7 @@ const RESEAU = (function () {
     }
     function entrer(conn, salle, nom) {
       conn.salle = salle; conn.nom = nom.trim(); conn.pret = false;
+      conn.id = salle.suivant = (salle.suivant || 1); salle.suivant++;      // (comme relais.py : les numéros se comptent par salle, de 1)
       salle.joueurs.push(conn);
       conn.jeton = jetonNouveau();
       env(conn, { t: 'salle', code: salle.code, toi: conn.id, hote: salle.hote.id, jeton: conn.jeton, nom: conn.nom });
@@ -167,16 +168,17 @@ const RESEAU = (function () {
           if (salle.commencee || typeof m.pret !== 'boolean') return;
           conn.pret = m.pret; annoncer(salle); return;
         case 'reglages': {         // l'hôte seul, avant le lancement : tout le monde les voit, et les suivants à leur arrivée
-          if (conn !== salle.hote || salle.commencee) return;
+          if (conn !== salle.hote || salle.commencee) { env(conn, { t: 'erreur', raison: conn !== salle.hote ? 'hote' : 'commencee' }); return; }   // (comme relais.py)
           const g = reglagesAccepte(m.reglages, salle.joueurs.length);
           if (!g) { env(conn, { t: 'erreur', raison: 'reglages' }); return; }   // D3
           salle.reglages = g; diffuser(salle, { t: 'reglages', reglages: g });
           return;
         }
         case 'lancer': {
-          if (conn !== salle.hote || salle.commencee || salle.joueurs.length < min) return;
+          if (conn !== salle.hote || salle.commencee) { env(conn, { t: 'erreur', raison: conn !== salle.hote ? 'hote' : 'commencee' }); return; }
           const g = reglagesAccepte(m.reglages, salle.joueurs.length);
           if (!g) { env(conn, { t: 'erreur', raison: 'reglages' }); return; }   // D3
+          if (salle.joueurs.length < min) { env(conn, { t: 'erreur', raison: 'seul' }); return; }
           if (salle.joueurs.some(j => j.absent || (exiger ? j.circuit !== g.circuit : j.circuit !== undefined && j.circuit !== g.circuit))) { env(conn, { t: 'erreur', raison: 'charge' }); return; }
           salle.commencee = true;
           const graine = Math.floor(hasard() * 4294967296) >>> 0;
@@ -186,7 +188,7 @@ const RESEAU = (function () {
           return;
         }
         case 'retour':             // l'hôte, après la course : la salle se rouvre, les « prêt » repartent à faux
-          if (conn !== salle.hote || !salle.commencee) return;
+          if (conn !== salle.hote || !salle.commencee) { env(conn, { t: 'erreur', raison: conn !== salle.hote ? 'hote' : 'pas-commencee' }); return; }
           salle.commencee = false;
           for (const j of salle.joueurs) { j.pret = false; j.dernierN = undefined; }
           diffuser(salle, { t: 'retour' }); annoncer(salle);

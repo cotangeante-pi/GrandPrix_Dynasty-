@@ -8,7 +8,7 @@ import asyncio, json, os, socket, subprocess, sys, threading, time
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 threading.Timer(180, lambda: os._exit(2)).start()
 V = '1-3735928559'
-RG = {'circuit': 'monza', 'tours': 2, 'meteo': 'sec', 'nbIA': 1}
+RG = {'circuit': 'monzo', 'tours': 2, 'meteo': 'sec', 'nbIA': 1}
 S = [   # (le client, le message) ; « $CODE » = le code de la salle
     (0, {'t': 'creer', 'nom': 'bleu', 'version': V}),
     (1, {'t': 'rejoindre', 'code': '$CODE', 'nom': 'rouge', 'version': V}),
@@ -24,7 +24,7 @@ S = [   # (le client, le message) ; « $CODE » = le code de la salle
     (0, {'t': 'reglages', 'reglages': RG}),
     (7, {'t': 'rejoindre', 'code': '$CODE', 'nom': 'jaune', 'version': V}),
     (0, {'t': 'lancer', 'reglages': RG}),                                         # erreur charge (personne n'a annoncé)
-    (0, {'t': 'charge', 'circuit': 'monza'}), (1, {'t': 'charge', 'circuit': 'monza'}), (2, {'t': 'charge', 'circuit': 'monza'}), (7, {'t': 'charge', 'circuit': 'spa'}),
+    (0, {'t': 'charge', 'circuit': 'monzo'}), (1, {'t': 'charge', 'circuit': 'monzo'}), (2, {'t': 'charge', 'circuit': 'monzo'}), (7, {'t': 'charge', 'circuit': 'silverstoun'}),
     (0, {'t': 'lancer', 'reglages': RG}),                                         # erreur charge (un autre circuit)
     (7, {'t': 'quitter'}),
     (1, {'t': 'lancer', 'reglages': RG}),                                         # pas l'hôte : rien
@@ -56,6 +56,8 @@ def normaliser(recus, code):
             if m.get('code') == code: m['code'] = 'CODE'
             if 'jeton' in m: m['jeton'] = 'JETON'
             if 'graine' in m: m['graine'] = 'GRAINE'
+            if m.get('t') == 'depart':      # (seules différences voulues : le relais Python règle le délai d'entrée selon les latences et mélange la grille ; reseau.js non)
+                m['reglages'] = {k: v for k, v in m['reglages'].items() if k != 'delai'}; m['ordre'] = sorted(m['ordre'])
             out.append(m)
         sortie.append(out)
     return sortie
