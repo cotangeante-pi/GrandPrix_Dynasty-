@@ -90,7 +90,7 @@ const EN_LIGNE = (function () {
       const c = p.course;
       h = melangerNombre(h, c.progression); h = melangerNombre(h, c.temps); h = melangerNombre(h, c.penalites); h = melangerTexte(h, c.etat);
       h = melanger(h, c.tours.length);
-      h = melanger(h, p.arrivee === null ? 0 : 1);
+      h = melanger(h, p.arrivee === null ? (p.abandon ? 2 : 0) : 1);
       if (p.arrivee !== null) h = melangerNombre(h, p.arrivee);
     }
     return h >>> 0;
@@ -351,6 +351,10 @@ const EN_LIGNE = (function () {
       for (const id of ordre) if (codeDe(id, n) === undefined) manque.push(id);
       if (manque.length) { attente = manque; pasAttendus++; return false; }
       attente = null; pasAttendus = 0;
+      // un joueur parti ABANDONNE au premier pas qui suit sa dernière commande : retiré de la piste (plus de collision, plus vu des IA, du radar ni
+      // dessiné), classé après tout le monde (non classé). Le pas est le même chez tous : on ne peut pas passer le pas dernier + 1 sans savoir
+      // qu'il est parti (codeDe attend sa commande ou « parti »), et le serveur envoie « parti » après sa dernière commande. Arrivé avant : il reste arrivé.
+      for (const [id, dernier] of sortis) { const q = pilotes.get(id); if (n > dernier && q.arrivee === null && !q.abandon) { q.abandon = true; q.abandonPas = n; q.abandonTemps = e.temps; } }
       const cmds = new Map();
       for (const id of ordre) cmds.set(pilotes.get(id), decoder(codeDe(id, n)));
       pasCourseIA(e, PAS, (p, dt) => conduire(e, p, cmds.get(p), dt));
@@ -365,7 +369,7 @@ const EN_LIGNE = (function () {
       // Un joueur parti ne compte comme tel qu'une fois son pas dernier + 1 joué (il faut alors savoir qu'il est parti : la même chose chez tous)
       if (finPas === null) {
         const encore = ordre.filter(id => !(sortis.has(id) && n > sortis.get(id) + 1)).map(id => pilotes.get(id));
-        if (e.pilotes.every(q => q.arrivee !== null) || !encore.length) finPas = n;
+        if (e.pilotes.every(q => q.arrivee !== null || q.abandon) || !encore.length) finPas = n;
         else if (encore.every(q => q.arrivee !== null) && e.temps - Math.max(...encore.map(q => q.arrivee)) >= R.ARRIVEE_ATTENTE_MAX) finPas = n;
       }
       // le ménage : les commandes d'il y a longtemps ne servent plus
@@ -373,7 +377,7 @@ const EN_LIGNE = (function () {
       if (n % periode === 0) {
         const h = empreinte(e);
         miens.set(n, h);
-        envoyer({ t: 'controle', n, h });
+        envoyer({ t: 'controle', n, h: String(h) });   // (décision D5 : h est une chaîne ; le relais refuse un nombre, et coupe qui en envoie trop)
         comparer(n);
         for (const k of [...miens.keys()]) if (k <= n - 10 * periode) { miens.delete(k); siens.delete(k); }
       }
@@ -400,10 +404,13 @@ const EN_LIGNE = (function () {
         const horizon = n + 2 * delai + 8;
         liste.forEach((x, i) => { const k = msg.n + i; if (k >= delai && k >= n - 1 && k <= horizon && !mes.has(k)) mes.set(k, codeValide(x) ? x : CODE_NEUTRE); });
       } else if (msg.t === 'controle') {
-        if (msg.de === moi || !codes.has(msg.de) || !Number.isInteger(msg.n) || !Number.isInteger(msg.h) || msg.h < 0 || msg.h > 4294967295) return;
+        if (msg.de === moi || !codes.has(msg.de) || !Number.isInteger(msg.n)) return;
+        // l'empreinte arrive en chaîne décimale (D5) ; un entier de 32 bits est aussi accepté (le faux réseau des tests)
+        const h = typeof msg.h === 'string' ? (/^[0-9]{1,10}$/.test(msg.h) ? Number(msg.h) : -1) : msg.h;
+        if (!Number.isInteger(h) || h < 0 || h > 4294967295) return;
         if (msg.n % periode !== 0 || msg.n > n + 2 * delai + 8 || msg.n < n - 10 * periode) return;   // (relecture T11) un contrôle trop loin ne sert à rien et remplirait la mémoire
         if (!siens.has(msg.n)) siens.set(msg.n, new Map());
-        siens.get(msg.n).set(msg.de, msg.h);
+        siens.get(msg.n).set(msg.de, h);
         comparer(msg.n);
       } else if (msg.t === 'parti') {
         partie.quitter(msg.id);
@@ -422,7 +429,7 @@ const EN_LIGNE = (function () {
     // tous les humains encore là sont arrivés (ou toutes les voitures)
     partie.finie = function () {
       const encore = ordre.filter(id => !sortis.has(id)).map(id => pilotes.get(id));
-      return encore.length ? encore.every(p => p.arrivee !== null) : e.pilotes.every(p => p.arrivee !== null);
+      return encore.length ? encore.every(p => p.arrivee !== null) : e.pilotes.every(p => p.arrivee !== null || p.abandon);
     };
     partie.empreinte = () => empreinte(e);
     partie.vider = vider;

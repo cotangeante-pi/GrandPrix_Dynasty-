@@ -178,7 +178,7 @@ function majConsignes(e) {
   e.consigneVue = e.temps;
   for (let a = 0; a < P.length; a++) for (let b = 0; b < P.length; b++) {
     const dev = P[a], der = P[b];
-    if (a === b || ecurieDe(e, a) !== ecurieDe(e, b) || dev.arrivee !== null || der.arrivee !== null || (dev.humain && der.humain)) continue;
+    if (a === b || ecurieDe(e, a) !== ecurieDe(e, b) || dev.arrivee !== null || der.arrivee !== null || dev.abandon || der.abandon || (dev.humain && der.humain)) continue;
     // (pas pendant un arrêt au stand, une erreur ou une attaque : la consigne attend un moment calme)
     if ([dev, der].some(q => q.v.dansStands || (q.pilote && (q.pilote.stand || q.pilote.enErreur || q.pilote.attaque)))) continue;
     const ecart = distanceCourse(dev) - distanceCourse(der);
@@ -346,7 +346,7 @@ function qualifier(e) {
 // conduireJoueur(p, dt) (facultatif) : met les commandes de la voiture du joueur (sinon, elle ne bouge pas)
 function pasCourseIA(e, dt, conduireJoueur) {
   const R = REGLAGES;
-  const enCourse = e.pilotes.filter(p => p.arrivee === null);
+  const enCourse = e.pilotes.filter(p => p.arrivee === null && !p.abandon);   // (en ligne, un joueur parti a abandonné : retiré de la piste, enligne.js)
   const voitures = enCourse.map(p => p.v);
   if (typeof DRAPEAUX !== 'undefined') DRAPEAUX.pas(e, dt);   // les drapeaux (drapeaux.js, tour 55 : jaune, bleu, VSC)
   if (e.meteo) pasMeteo(e, enCourse, dt);   // la météo (étape 12) ; sans e.meteo (le sec d'avant) : rien ne change
@@ -439,12 +439,14 @@ function classementCourse(e) {
   const P = e.pilotes, rang = p => p.place === null ? Infinity : p.place;
   const ordre = P.map((p, k) => k).sort((a, b) => {
     const A = P[a], B = P[b];
+    if (!!A.abandon !== !!B.abandon) return A.abandon ? 1 : -1;   // (un abandon est classé après tout le monde, non classé)
     if (A.place !== null || B.place !== null) return rang(A) - rang(B);
     return distanceCourse(B) - distanceCourse(A);
   });
   return ordre.map((k, i) => {
     const p = P[k];
     const stand = !!((p.v && p.v.dansStands) || p.course.arretEnCours);   // dans la voie des stands (étape 7) : « STAND » dans la tour
+    if (p.abandon) return { k, place: i + 1, ecart: null, tours: 0, penalites: p.course.penalites, stand: false, abandon: true };
     if (i === 0) return { k, place: 1, ecart: null, tours: 0, penalites: p.course.penalites, stand };
     const q = P[ordre[i - 1]];
     const passe = p.arrivee !== null || (e.go !== null && distanceCourse(p) > 0);   // il a passé la ligne au moins une fois
@@ -475,6 +477,7 @@ function classementFinal(e) {
       k, place: i + 1, ligne: arrive ? p.place : null, temps: arrive ? p.arrivee - go : null, total: arrive ? total(p) : null,
       penalites: p.course.penalites, ecart: arrive ? total(p) - premier : null, grille: grille.indexOf(k) + 1,
       arrets: (p.course.arrets || []).map(a => a.tour),   // les tours de ses arrêts au stand (étape 7), [] sans arrêt
+      abandon: !!p.abandon,   // (en ligne) un joueur parti en pleine course : non classé, après tout le monde
     };
   });
 }
@@ -484,7 +487,7 @@ function classementFinal(e) {
 function podiumConnu(e) {
   const n = Math.min(3, e.pilotes.length), f = classementFinal(e).slice(0, n);
   if (f.some(x => x.total === null)) return false;
-  if (e.pilotes.every(p => p.arrivee !== null)) return true;
+  if (e.pilotes.every(p => p.arrivee !== null || p.abandon)) return true;
   return e.temps - e.go > f[n - 1].total;
 }
 

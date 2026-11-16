@@ -71,7 +71,7 @@ const MINICARTE = (function () {
     ctx.drawImage(fond, 0, 0, l, h);
     points = voitures.map((v, k) => { const p = versCarte(v.x, v.z); return { k, x: p[0], y: p[1] }; });
     for (const p of points) {
-      if (p.k === moi) continue;
+      if (p.k === moi || voitures[p.k].cache) continue;   // (cache : une voiture retirée de la piste, en ligne : un joueur parti)
       ctx.fillStyle = '#' + voitures[p.k].couleur.toString(16).padStart(6, '0');
       ctx.beginPath(); ctx.arc(p.x, p.y, R.MINICARTE_POINT, 0, 2 * Math.PI); ctx.fill();
     }

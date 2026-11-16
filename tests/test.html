@@ -3982,6 +3982,7 @@ function enlReference(ids,opts,pasFin,dernierDe){EN_LIGNE.maths.activer();try{re
 function enlReference_(ids,opts,pasFin,dernierDe){const o=opts||enlOpts(),delai=REGLAGES.EN_LIGNE_DELAI,{e,humains}=EN_LIGNE.creerCourseEnLigne(EN_LIGNE.reglagesValides(o.reglages,ids.length),o.graine,ids.length,{circuit:C,carte:CARTES_T.test});
   const idx=new Map(ids.map((id,i)=>[id,i]));
   for(let n=0;n<(pasFin||ENL_N);n++){const cmds=new Map();for(const id of ids){const dernier=dernierDe&&dernierDe[id]!==undefined?dernierDe[id]:Infinity;
+      if(n>dernier&&!humains[idx.get(id)].abandon&&humains[idx.get(id)].arrivee===null) humains[idx.get(id)].abandon=true;   // (T8 : un joueur parti abandonne au pas qui suit sa dernière commande)
       const brut=n<delai||n>dernier?EN_LIGNE.NEUTRE:enlScript(id,n-delai);cmds.set(humains[idx.get(id)],EN_LIGNE.decoder(EN_LIGNE.coder(brut)));}
     pasCourseIA(e,DT,(p,dt)=>EN_LIGNE.conduire(e,p,cmds.get(p),dt));}
   return EN_LIGNE.empreinte(e);}
@@ -4042,7 +4043,7 @@ enlT('en ligne : un joueur qui part (« parti ») : ses commandes arrivées comp
   const dernier=b.parties.get('a').sortis.get('c');v(dernier>=399&&b.parties.get('b').sortis.get('c')===dernier,'dernier pas de c : '+dernier+' / '+b.parties.get('b').sortis.get('c'));
   const ha=b.parties.get('a').empreinte(),hb=b.parties.get('b').empreinte();v(ha===hb,'a b');
   v(ha===enlReference(ids,enlOpts(),900,{c:dernier}),'la référence (c neutre après '+dernier+')');
-  v(b.parties.get('a').pilotes.get('c').v.gaz===0,'c lève le pied');});
+  const pc=b.parties.get('a').pilotes.get('c');v(pc.abandon===true&&pc.abandonPas===dernier+1&&b.parties.get('b').pilotes.get('c').abandonPas===dernier+1,'c abandonne au pas dernier + 1 chez tous : '+pc.abandonPas);});
 enlT('en ligne : rien ne lit le hasard du navigateur ni l’horloge pendant une course en ligne (Math.random et Date.now qui échouent), avec pneus et averse', ()=>{
   const mr=Math.random,dn=Date.now,pn=performance.now.bind(performance);let b=null;
   try{Math.random=()=>{throw new Error('Math.random');};Date.now=()=>{throw new Error('Date.now');};performance.now=()=>{throw new Error('performance.now');};
@@ -4060,7 +4061,7 @@ enlT('en ligne : les messages sortants suivent le protocole (cmd par paquets san
   const cmds=out.filter(m=>m.t==='cmd'),ctrl=out.filter(m=>m.t==='controle');
   v(cmds.length>=70&&cmds.every(m=>Array.isArray(m.c)&&m.c.length===REGLAGES.EN_LIGNE_PAQUET&&m.c.every(EN_LIGNE.codeValide)),'paquets : '+cmds.length);
   v(cmds[0].n===delai&&cmds.every((m,i)=>i===0||m.n===cmds[i-1].n+cmds[i-1].c.length),'paquets sans trou, le premier au pas du délai');
-  v(ctrl.length===2&&ctrl[0].n===120&&ctrl[1].n===240&&Number.isInteger(ctrl[0].h),'contrôles : '+JSON.stringify(ctrl));
+  v(ctrl.length===2&&ctrl[0].n===120&&ctrl[1].n===240&&typeof ctrl[0].h==='string'&&/^[0-9]{1,10}$/.test(ctrl[0].h),'contrôles : '+JSON.stringify(ctrl));
   const n0=p.n;for(const m of [null,3,'x',{},{t:'cmd'},{t:'cmd',de:'zz',n:0,c:[0]},{t:'cmd',de:'x',n:0,c:[1]},{t:'cmd',de:'y',n:'a',c:[1]},{t:'cmd',de:'y',n:-4,c:[1]},{t:'controle',de:'y',n:1,h:'x'},{t:'parti',id:'zz'},{t:'parti',id:'x'},{t:'inconnu'}]) p.recevoir(m);
   v(p.n===n0&&p.desynchro===null&&!p.sortis.size,'messages abîmés');
   // des valeurs hors bornes dans un paquet : neutres, jamais d'erreur
@@ -4105,9 +4106,10 @@ enlT('en ligne : (relecture) rien de trop en avance n’est gardé (un client ab
   const course=(msgControle)=>{const q=nouvelle();let suivant=delai,envoye=false;
     for(let k=0;k<300;k+=4){while(suivant<q.n+2*delai){q.recevoir({t:'cmd',de:'y',n:suivant,c:[neutre,neutre,neutre,neutre]});suivant+=4;}
       if(!envoye&&q.n>=100){for(const m of msgControle) q.recevoir(m);envoye=true;}q.avancer(4);}q.terminer();return q;};
-  const mauvais=[{t:'controle',de:'y',n:121,h:5},{t:'controle',de:'y',n:120,h:'abc'},{t:'controle',de:'y',n:120,h:-4},{t:'controle',de:'y',n:120,h:1.5},{t:'controle',de:'y',n:1200000,h:5},{t:'controle',de:'y',n:-120,h:5}];
+  const mauvais=[{t:'controle',de:'y',n:121,h:5},{t:'controle',de:'y',n:120,h:'abc'},{t:'controle',de:'y',n:120,h:-4},{t:'controle',de:'y',n:120,h:1.5},{t:'controle',de:'y',n:120,h:'12345678901'},{t:'controle',de:'y',n:120,h:'-3'},{t:'controle',de:'y',n:1200000,h:5},{t:'controle',de:'y',n:-120,h:5}];
   v(course(mauvais).desynchro===null,'un contrôle mal formé a compté');
   const d=course([{t:'controle',de:'y',n:120,h:5}]).desynchro;v(d&&d.n===120&&d.de==='y'&&d.siens===5,'un contrôle faux au pas 120 : '+JSON.stringify(d));
+  const d2=course([{t:'controle',de:'y',n:120,h:'5'}]).desynchro;v(d2&&d2.n===120&&d2.siens===5,'un contrôle en chaîne (D5) : '+JSON.stringify(d2));
   const prep=EN_LIGNE.preparerCircuit('test');v(prep.circuit&&prep.carte&&EN_LIGNE.preparerCircuit('test').circuit===prep.circuit&&EN_LIGNE.preparerCircuit('test').carte===prep.carte,'preparerCircuit : mêmes objets');
   v(EN_LIGNE.maths.actives()===0&&EN_LIGNE.preparerCircuit('nimporte').circuit===prep.circuit,'maths rendus ; circuit inconnu = test');
   const q=EN_LIGNE.demarrer({reglages:ENL_REG,graine:7,ordre:['x','y']},'x',()=>{});v(q.e.circuit===prep.circuit&&q.e.carte===prep.carte,'demarrer retrouve le circuit et la carte préparés');q.terminer();});
@@ -4127,6 +4129,41 @@ enlT('en ligne : (relecture) la fin de la course est décidée au même pas chez
     v(b.parties.get('a').n===fa&&b.parties.get('b').n===fb&&b.parties.get('a').empreinte()===b.parties.get('b').empreinte(),'la partie continue après la fin : '+b.parties.get('a').n);
     b.fin();
   }finally{REGLAGES.ARRIVEE_ATTENTE_MAX=att;}});
+
+enlT('en ligne : (T8) un joueur parti ABANDONNE au même pas chez tous : retiré de la piste (plus de collision, plus vu), classé après tout le monde (abandon, non classé), les autres finissent et ont le même classement au bit près', ()=>{
+  const att=REGLAGES.ARRIVEE_ATTENTE_MAX;REGLAGES.ARRIVEE_ATTENTE_MAX=2;
+  try{const ids=['a','b','c'],b=EN_LIGNE.banc(ids,enlOpts({pasMax:0,latence:(de,vers,tick)=>(de.charCodeAt(0)+vers.charCodeAt(0)+Math.floor(tick/50))%6}));
+    for(let k=0;k<30000&&b.parties.get('c').n<300;k++) b.avancer();
+    b.partir('c');
+    for(let k=0;k<30000&&!enlTous(b,500);k++) if([...b.parties].every(([id,p])=>b.partis.has(id)||p.n>=500)) break; else b.avancer();
+    const pa=b.parties.get('a'),pb=b.parties.get('b'),dernier=pa.sortis.get('c');
+    v(dernier!==undefined&&dernier===pb.sortis.get('c'),'dernier pas '+dernier);
+    const ca=pa.pilotes.get('c'),cb=pb.pilotes.get('c');
+    v(ca.abandon===true&&cb.abandon===true&&ca.abandonPas===dernier+1&&cb.abandonPas===dernier+1&&ca.abandonTemps===cb.abandonTemps,'abandon au pas '+ca.abandonPas+' / '+cb.abandonPas);
+    const x0=ca.v.x,z0=ca.v.z;for(let k=0;k<60;k++) b.avancer();
+    v(ca.v.x===x0&&ca.v.z===z0,'la voiture abandonnée ne bouge plus');
+    // les deux autres « arrivent » (le même pas chez tous, comme la simulation) : classement final, c après tout le monde, abandon
+    for(const id of ['a','b']){const p=b.parties.get(id);p.pilotes.get('a').arrivee=p.e.temps;p.pilotes.get('a').place=1;p.pilotes.get('b').arrivee=p.e.temps+0.5;p.pilotes.get('b').place=2;}
+    for(let k=0;k<30000;k++){b.avancer();if(['a','b'].every(i=>b.parties.get(i).fin!==null)&&k>50) break;}
+    v(pa.fin!==null&&pa.fin===pb.fin,'fin : '+pa.fin+' / '+pb.fin);
+    const fa=classementFinal(pa.e),fb=classementFinal(pb.e);
+    v(JSON.stringify(fa)===JSON.stringify(fb),'même classement final partout');
+    const kc=pa.e.pilotes.indexOf(ca),last=fa[fa.length-1];
+    v(last.k===kc&&last.abandon===true&&last.total===null&&last.ligne===null&&fa.filter(x=>x.abandon).length===1,'c est classé dernier, abandon, sans temps : '+JSON.stringify(last));
+    v(classementCourse(pa.e).slice(-1)[0].abandon===true,'aussi dans le classement en direct');
+    v(pa.empreinte()===pb.empreinte(),'même course au bit près');
+    b.fin();
+  }finally{REGLAGES.ARRIVEE_ATTENTE_MAX=att;}});
+enlT('en ligne : (T8) une voiture qui a abandonné n’est plus vue ni touchée : une autre roule à travers sans choc, et les IA ne la voient plus', ()=>{
+  EN_LIGNE.maths.activer();
+  try{const {e,humains}=EN_LIGNE.creerCourseEnLigne(EN_LIGNE.reglagesValides(ENL_REG,2),7,2,{circuit:C,carte:CARTES_T.test});
+    const [h0,h1]=humains;for(let k=0;k<400;k++) pasCourseIA(e,DT,(p,dt)=>EN_LIGNE.conduire(e,p,EN_LIGNE.decoder(EN_LIGNE.coder({gaz:p===h0?1:0,frein:0,direction:0,remise:false})),dt));
+    h1.abandon=true;h1.v.x=h0.v.x;h1.v.z=h0.v.z;   // exactement au même endroit : sans l'abandon, le choc serait immédiat
+    const chocs=h0.v.chocs.length,vit=h0.v.u;
+    for(let k=0;k<30;k++) pasCourseIA(e,DT,(p,dt)=>EN_LIGNE.conduire(e,p,EN_LIGNE.decoder(EN_LIGNE.coder({gaz:p===h0?1:0,frein:0,direction:0,remise:false})),dt));
+    v(h0.v.chocs.length===chocs&&h0.v.u>=vit-1e-6,'pas de choc avec la voiture abandonnée : '+h0.v.chocs.length+' / '+chocs+', vitesse '+vit+' → '+h0.v.u);
+    const x1=h1.v.x;pasCourseIA(e,DT,()=>{});v(h1.v.x===x1,'la voiture abandonnée n\'est plus simulée');
+  }finally{EN_LIGNE.maths.desactiver();}});
 
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 ecrire();

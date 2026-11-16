@@ -2677,11 +2677,12 @@ body.tactile:has(#pause:not(.cache)) #boutonSon { display: none; }   /* (tour 55
 }/* tourne:fin */
 
 /* (tour 56, T14) au doigt, le choix des pneus pendant l'arrêt au stand : une rangée de boutons (≥ 40 px), sous le bandeau de l'arrêt, au centre (tactile.js, pneus) ; sans écran tactile, jamais affichée (← → comme avant) */
-#tactilePneus { position: absolute; top: 292px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; pointer-events: auto; touch-action: none; }
+#tactilePneus { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; pointer-events: auto; touch-action: none; }   /* (en bas au centre : GAZ, FREIN et ◀ ▶ sont aux coins ; le bandeau de l'arrêt monte au-dessus) */
 #tactilePneus.cache { display: none; }
-.tactilePneu { min-width: 0; min-height: 44px; padding: 0 6px; display: flex; align-items: center; justify-content: center; box-sizing: border-box; border-radius: 10px;
-  border: 2px solid rgba(255, 255, 255, 0.5); background: rgba(0, 0, 0, 0.6); color: #fff; font: 700 11px/1.1 var(--police); text-align: center; user-select: none; -webkit-user-select: none; }
+.tactilePneu { width: 52px; height: 44px; display: flex; align-items: center; justify-content: center; box-sizing: border-box; border-radius: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.5); background: rgba(0, 0, 0, 0.6); color: #fff; font: 700 22px/1 var(--police); user-select: none; -webkit-user-select: none; }
 body.tactileStand #tableau, body.tactileStand #pneusHud { visibility: hidden; }
+body.tactile.tactileStand #hudStand { top: auto; bottom: 60px; left: 50%; max-width: 230px; }   /* (au centre, entre FREIN et ◀ ▶ / GAZ) */
 .tactilePneu.choisi { background: #1f6fe0; border-color: #fff; }
 
 /* (tour 56, T5) les batailles en ligne : « En ligne », « rejoindre par code », la salle d'attente (enligne-ecran.js ; rien ne s'affiche sans EN_LIGNE) */
@@ -2779,3 +2780,5 @@ body.tactile #boutonEnligneTitre, body.tactile :is(#enligne, #enligneRejoindre, 
 @media (max-height: 420px) { #enligneEtapes { font-size: 14px; gap: 4px; } }
 /* tourne:debut */@media (max-width: 420px) { :where(html.tourne) #enligneEtapes { font-size: 14px; gap: 4px; } }/* tourne:fin */
 body.tactile #boutonEnligneComment { min-height: 40px; }
+/* (tour 56, T10) en ligne, pas de pause : le bouton ⏸ du téléphone ne sert à rien (les autres joueurs attendraient) */
+body.enligneCourse #tactilePause { display: none; }
