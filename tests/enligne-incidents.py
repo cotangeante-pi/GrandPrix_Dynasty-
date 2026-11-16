@@ -26,8 +26,18 @@ def dire(ok, nom, detail=''):
     ok_tout = ok_tout and bool(ok)
     print(('✔ ' if ok else '✘ ') + nom + (' — ' + str(detail)[:600] if (detail and not ok) else ''), flush=True)
 
+def attendre(pg, expr, ms=120000):
+    """Attend qu'une expression soit vraie : une boucle d'evaluate à nous (le wait_for_function par défaut, sur requestAnimationFrame, ne tourne pas dans un onglet qui n'est pas au premier plan)."""
+    t0 = time.monotonic(); derniere = None
+    while time.monotonic() - t0 < ms / 1000:
+        try:
+            if pg.evaluate(expr): return True
+        except Exception as e: derniere = e
+        time.sleep(0.1)
+    raise TimeoutError('attendre : %s (%s)' % (expr[:90], derniere))
+
 FAUX_POKI = "() => { window.__pub = 0; window.PokiSDK = new Proxy({}, { get: (t, k) => k === 'commercialBreak' ? () => { window.__pub++; return Promise.resolve(); } : () => Promise.resolve() }); }"
-def deux_pages(b, nom, tours=1, noms=('bleu', 'rouge'), patient=False):   # (D1 : le nom est l'id d'une couleur : noms=('bleu', 'rouge'), patient=True)
+def deux_pages(b, nom, tours=1, noms=('bleu', 'rouge'), patient=True):   # (D1 : le nom est l'id d'une couleur : noms=('bleu', 'rouge'), patient=True)
     ctx = b.new_context(viewport={'width': 960, 'height': 600})
     erreurs = []; pages = []
     canal = 'incident-%d-%d' % (os.getpid(), time.time())
@@ -38,10 +48,10 @@ def deux_pages(b, nom, tours=1, noms=('bleu', 'rouge'), patient=False):   # (D1 
         pages.append(pg)
     base = 'file://' + RACINE + '/index.html?circuit=test&robot=1&tours=%d&ia=0&canal=%s&joueurs=2' % (tours, canal)
     pages[0].goto(base + '&enlignecourse=hote&nom=' + noms[0])
-    pages[0].wait_for_function('() => window.__enligne && window.__enligne.code', timeout=120000)
+    attendre(pages[0], '() => window.__enligne && window.__enligne.code', 120000)
     code = pages[0].evaluate('() => window.__enligne.code')
     pages[1].goto(base + '&enlignecourse=%s&nom=' % code + noms[1])
-    for pg in pages: pg.wait_for_function('() => window.__enligne && window.__enligne.partie', timeout=120000)
+    for pg in pages: attendre(pg, '() => window.__enligne && window.__enligne.partie', 120000)
     # les pages sont pilotées à la main par tranches (le dessin du Mac, en logiciel, est trop lent) : la boucle du navigateur est arrêtée
     for pg in pages: pg.evaluate('(p) => { if (p) REGLAGES.EN_LIGNE_ATTENTE_MAX_MS = 0; BOUCLE.arreter(); }', patient)   # (patient : la machine lente n'abandonne pas la course avant la mesure)
     return ctx, pages, erreurs
@@ -55,7 +65,7 @@ def incident_parti(b):
     ctx, (p1, p2), erreurs = deux_pages(b, nom, tours=3)
     for _ in range(5): avancer([p1, p2], 2)   # (BOUCLE.simuler compte des SECONDES de jeu ; une tranche de 2 s, une page puis l'autre)
     p2.evaluate('() => { ENLIGNE_PAGE.etat.partie.vider(); __enligne.client.quitter(); }')
-    p1.wait_for_function('() => ENLIGNE_PAGE.etat.partie.sortis.size === 1', timeout=120000)
+    attendre(p1, '() => ENLIGNE_PAGE.etat.partie.sortis.size === 1', 120000)
     dire(('a quitté' in statut(p1) or 'left' in statut(p1)) and ('Rouge' in statut(p1) or 'Red' in statut(p1)), nom + ' : l’autre voit « Pilote Rouge a quitté la course »', statut(p1))
     n0 = p1.evaluate('() => ENLIGNE_PAGE.etat.partie.n')
     for _ in range(10): p1.evaluate('() => { if (JEU.ecran === "course") BOUCLE.simuler(6); }')
@@ -96,9 +106,9 @@ def incident_echap_pub(b):
     pub = p1.evaluate('() => new Promise(r => SDK.pubEntreCourses(() => r(window.__pub), () => {}))')
     dire(pub == 0, nom + ' : la pub est refusée pendant la course en ligne (le rappel part, rien demandé à Poki)', pub)
     p1.evaluate('() => pause(true)')   # le second appui, dans les 3 s : quitter (la page se recharge au début)
-    p1.wait_for_function('() => !location.search.includes("enlignecourse")', timeout=120000)
+    attendre(p1, '() => !location.search.includes("enlignecourse")', 120000)
     dire('enlignecourse' not in p1.url, nom + ' : le second appui quitte la course (retour au début)', p1.url)
-    p2.wait_for_function('() => ENLIGNE_PAGE.etat.partie.sortis.size === 1', timeout=15000)
+    attendre(p2, '() => ENLIGNE_PAGE.etat.partie.sortis.size === 1', 15000)
     dire(True, nom + ' : l’autre joueur voit « parti »')
     ctx.close()
 
@@ -116,7 +126,7 @@ def incident_pub_podium(b):
 
 def incident_lent(b):
     nom = 'connexion lente'
-    ctx, (p1, p2), erreurs = deux_pages(b, nom, tours=3)
+    ctx, (p1, p2), erreurs = deux_pages(b, nom, tours=3, patient=False)   # (c'est ce délai que ce test vérifie)
     p1.evaluate('() => { REGLAGES.EN_LIGNE_ATTENTE_ANNONCE_MS = 500; REGLAGES.EN_LIGNE_ATTENTE_MAX_MS = 3500; REGLAGES.EN_LIGNE_RETOUR_MS = 600000; }')
     t0 = time.monotonic(); vu_annonce = False; sortie = None
     while time.monotonic() - t0 < 12:   # p2 ne répond plus : on ne le fait pas avancer ; p1 essaie d'avancer
