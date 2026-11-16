@@ -78,7 +78,7 @@ const ENLIGNE_PAGE = (function () {
   }
 
   // la connexion est perdue pour de bon (reseau.js : « perdu » ne passe pas par le gestionnaire général) : le message, puis le retour au début
-  function surPerdu() { if (!etat.termine && !etat.sortie) { dire(texte('enl_perdu')); sortirApres('perdu'); } }
+  function surPerdu() { if (!etat.termine && !etat.sortie && (etat.partie || !etat.ecrans)) { dire(texte('enl_perdu')); sortirApres('perdu'); } }
 
   function brancher(c) {
     etat.client = c;
@@ -97,7 +97,6 @@ const ENLIGNE_PAGE = (function () {
           if (m.t === 'parti' && etat.depart && !etat.termine) annoncer(texte('enl_parti').replace('{nom}', nomAffiche(etat.noms.get(m.id) || ('#' + m.id))));   // (T8) la voiture roule sur sa dernière commande puis s'arrête (enligne.js)
           break;
         case 'coupure': if (!etat.termine && !etat.ecrans) dire(texte('enl_coupure')); break;
-        case 'perdu': if (!etat.ecrans) dire(texte('enl_coupure')); break;
   }
 
         case 'coupure': if (!etat.termine) dire(texte('enl_coupure')); break;
