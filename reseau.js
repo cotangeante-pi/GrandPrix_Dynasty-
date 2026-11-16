@@ -474,7 +474,7 @@ const RESEAU = (function () {
         if (horloge.maintenant() - dernierRecu > R.EN_LIGNE_SILENCE_MS) {       // muet : la connexion est morte
           transport.fermer(); surFermeture(); return;
         }
-        if (c.code) c.envoyerBrut({ t: 'ping', h: horloge.maintenant() });
+        if (c.code) c.envoyerBrut({ t: 'ping', h: horloge.maintenant(), l: c.latence === null ? undefined : Math.round(c.latence) });
         ping_();
       }, R.EN_LIGNE_PING_MS);
     }
@@ -553,7 +553,7 @@ const RESEAU = (function () {
     c.controle = function (n, h) { return c.depart && Number.isInteger(n) && n >= 0 && empreinteValide(h) ? envoyer({ t: 'controle', n, h }) : erreur('controle'); };
     c.emote = function (i) { return c.code && Number.isInteger(i) && i >= 0 && i < R.EN_LIGNE_EMOTES.length ? envoyer({ t: 'emote', i }) : erreur('emote'); };
     c.quitter = function () { if (!c.code) return false; const ok = envoyer({ t: 'quitter' }); oublierSalle(); return ok; };
-    c.ping = function () { return c.code ? envoyer({ t: 'ping', h: horloge.maintenant() }) : false; };
+    c.ping = function () { return c.code ? envoyer({ t: 'ping', h: horloge.maintenant(), l: c.latence === null ? undefined : Math.round(c.latence) }) : false; };
     c.fermer = function () {
       volontaire = true; stopPing();
       if (minuteurRecon !== null) { horloge.annuler(minuteurRecon); minuteurRecon = null; }

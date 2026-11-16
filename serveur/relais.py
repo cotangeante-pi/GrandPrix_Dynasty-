@@ -12,7 +12,7 @@ Il faut le paquet « websockets » (pip install websockets, version 13 ou plus) 
 Rien n'est écrit sur le disque, rien n'est gardé après la fin d'une salle, aucune adresse n'est journalisée.
 """
 from __future__ import annotations
-import argparse, asyncio, json, logging, os, random, re, secrets, time
+import argparse, asyncio, json, logging, math, os, random, re, secrets, time
 
 from websockets.asyncio.server import serve
 from websockets.exceptions import ConnectionClosed
@@ -45,10 +45,21 @@ class Config:
         self.max_file = 2000             # messages en attente d'envoi à un client lent avant de le couper
         self.grace = 20.0                # EN_LIGNE_GRACE : s pendant lesquelles un joueur coupé (il recharge la page) peut revenir avec son jeton, sans « parti »
         self.exiger_charge = True        # « lancer » refusé tant qu'un joueur n'a pas annoncé (charge) le circuit des réglages
+        self.delai_base = 12             # EN_LIGNE_DELAI : le plus petit délai d'entrée (pas de physique) ; au départ le relais l'augmente selon les latences mesurées
+        self.delai_max = 120             # EN_LIGNE_DELAI_MAX
+        self.delai_marge = 6             # EN_LIGNE_DELAI_MARGE : pas ajoutés au trajet mesuré
+        self.pas_ms = 1000.0 / 120       # un pas de physique (REGLAGES.PAS_PHYSIQUE)
+        self.mesure_periode = 2.0        # s : le relais mesure lui-même l'aller-retour de chaque client (ping de la connexion websocket) ; 0 = pas de mesure
         self.ping_intervalle = 20        # pings de la bibliothèque (connexions mortes)
         for k, v in kw.items():
             if not hasattr(self, k): raise TypeError('réglage inconnu : ' + k)
             setattr(self, k, v)
+
+# les mêmes règles que reseau.js (nomAutorise), mêmes listes que donnees.js (EN_LIGNE_NOMS, EN_LIGNE_COULEURS)
+NOMS = ['Éclair', 'Turbo', 'Comète', 'Fusée', 'Tonnerre', 'Mistral', 'Phénix', 'Faucon', 'Panthère', 'Requin', 'Étoile', 'Tempête']
+COULEURS = ['Rouge', 'Bleu', 'Vert', 'Jaune', 'Orange', 'Violet', 'Rose', 'Blanc']
+_NOM_LIBRE = re.compile(r'^[\w _-]+$')
+_PILOTE = re.compile(r'^Pilote [1-9][0-9]?$')
 
 # les mêmes règles que reseau.js (nomAutorise), mêmes listes que donnees.js (EN_LIGNE_NOMS, EN_LIGNE_COULEURS)
 NOMS = ['Éclair', 'Turbo', 'Comète', 'Fusée', 'Tonnerre', 'Mistral', 'Phénix', 'Faucon', 'Panthère', 'Requin', 'Étoile', 'Tempête']
@@ -96,6 +107,7 @@ class Client:
         self.jeton = None      # le jeton de retour (tiré à l'entrée en salle)
         self.absent = False    # coupé pendant la grâce : il reste dans la salle, « recharge »
         self.grace_minuteur = None
+        self.rtt = None        # son temps d'aller-retour en ms, mesuré par le relais (_mesurer) : le délai d'entrée du départ en dépend
         self.circuit = None    # le circuit que sa page a chargé (message « charge »)
 
     def envoyer_texte(self, texte):
@@ -150,6 +162,7 @@ class Relais:
             return
         self.par_ip[ip] = n + 1
         ecrivain = asyncio.ensure_future(self._ecrire(c))
+        mesureur = asyncio.ensure_future(self._mesurer(c)) if self.cfg.mesure_periode > 0 else None
         self._armer(c)
         try:
             async for brut in ws:
@@ -161,8 +174,26 @@ class Relais:
             c.ferme = True
             self._deconnecte(c)
             ecrivain.cancel()
+            if mesureur: mesureur.cancel()
             self.par_ip[ip] = self.par_ip.get(ip, 1) - 1
             if self.par_ip[ip] <= 0: self.par_ip.pop(ip, None)
+
+    async def _mesurer(self, c):
+        """L'aller-retour du client, mesuré par le relais (ping de la connexion, auquel le navigateur répond tout seul) : ce que le client
+        dit de sa latence (champ l des « ping ») n'est PAS cru, un client ne peut pas imposer un délai énorme à toute la salle."""
+        try:
+            while not c.ferme:
+                debut = time.monotonic()
+                try:
+                    attente = await c.ws.ping()
+                    await asyncio.wait_for(attente, 10)
+                    ms = (time.monotonic() - debut) * 1000
+                    c.rtt = ms if c.rtt is None else c.rtt * 0.7 + ms * 0.3
+                except asyncio.TimeoutError:
+                    c.rtt = 10000.0
+                await asyncio.sleep(self.cfg.mesure_periode)
+        except (ConnectionClosed, asyncio.CancelledError):
+            return
 
     def _armer(self, c):
         """Sans salle, une connexion a delai_arrivee secondes pour en créer ou en rejoindre une."""
@@ -341,7 +372,17 @@ class Relais:
         salle.commencee = True
         ordre = list(salle.joueurs)
         self.hasard.shuffle(ordre)
+        delai = self._delai(salle)
+        if delai is not None: reglages = dict(reglages, delai=delai)
         self._diffuser(salle, {'t': 'depart', 'reglages': reglages, 'graine': secrets.randbelow(2 ** 32), 'ordre': ordre})
+
+    def _delai(self, salle):
+        """Le délai d'entrée (en pas) du départ, le même pour tous : le trajet d'une commande entre les deux joueurs les plus lents
+        ((rtt A + rtt B) / 2 : chacun passe par le relais), plus une marge, entre delai_base et delai_max. None : aucune latence mesurée."""
+        rtts = sorted((j.rtt for j in salle.joueurs.values() if j.rtt is not None and not j.absent), reverse=True)
+        if not rtts: return None
+        trajet = (rtts[0] + rtts[1]) / 2 if len(rtts) > 1 else rtts[0]
+        return int(max(self.cfg.delai_base, min(self.cfg.delai_max, math.ceil(trajet / self.cfg.pas_ms) + self.cfg.delai_marge)))
 
     def _erreur(self, c, raison):
         """Hors protocole du Chef, ajout du relais : pourquoi un « lancer » est ignoré (les clients peuvent l'ignorer)."""

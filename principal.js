@@ -150,7 +150,7 @@ function suivreSuivante() {
   const pilotes = JEU.plateau.pilotes;
   for (let i = 1; i <= pilotes.length; i++) {
     const k = (JEU.suivie + i) % pilotes.length;
-    if (pilotes[k].arrivee === null) { suivre(k); return; }
+    if (pilotes[k].arrivee === null && !pilotes[k].abandon) { suivre(k); return; }
   }
 }
 
@@ -1789,7 +1789,7 @@ function retourBoutique() {
 }
 
 function pause(oui) {
-  if (JEU.enligne) return;   // (tour 56, T7) en ligne, la course ne s'arrête pas pour un joueur : les autres l'attendraient (T8 : le menu sans pause)
+  if (JEU.enligne) { if (oui) ENLIGNE_PAGE.echap(); return; }   // (tour 56, T7/T8) en ligne, la course ne s'arrête pas pour un joueur : les autres l'attendraient ; Échap deux fois = quitter
   if (!oui && touchesOuvertes()) return;   // (tour 50c) pendant le choix des touches, la pause ne se ferme pas
   if (oui && JEU.ecran === 'course' && JEU.deux) INTERFACE.remplirTouchesDeux(MANETTE.lireManettes().length);   // à deux : les touches des deux dans le menu pause
   INTERFACE.montrerTouchesPause(!!JEU.deux);
@@ -2379,14 +2379,14 @@ function majClassementRadar() {
     stand: x.stand,   // dans la voie des stands (étape 7, Codeur 1)
   })) : null);
   const autres = [];
-  P.forEach((p, k) => { if (k !== JEU.suivie && p.arrivee === null) autres.push({ x: p.v.x, z: p.v.z, couleur: JEU.couleurs[k] }); });
+  P.forEach((p, k) => { if (k !== JEU.suivie && p.arrivee === null && !p.abandon) autres.push({ x: p.v.x, z: p.v.z, couleur: JEU.couleurs[k] }); });
   if (!JEU.deux) RADAR.dessiner(CIRCUIT, JEU.joueur, autres);   // (pas de radar à deux : trop chargé en demi-écran)
   // la minicarte : le circuit entier, toutes les voitures, le joueur mis en valeur ; jamais à deux
   const mc = !JEU.deux;
   document.getElementById('minicarte').classList.toggle('cache', !mc);
   if (mc) {
     MINICARTE.preparer(CIRCUIT);
-    const voitures = JEU.plateau ? P.map((p, k) => ({ x: p.v.x, z: p.v.z, couleur: JEU.couleurs[k] })) : [{ x: JEU.joueur.x, z: JEU.joueur.z, couleur: REGLAGES.COULEUR_JOUEUR }];
+    const voitures = JEU.plateau ? P.map((p, k) => ({ x: p.v.x, z: p.v.z, couleur: JEU.couleurs[k], cache: !!p.abandon })) : [{ x: JEU.joueur.x, z: JEU.joueur.z, couleur: REGLAGES.COULEUR_JOUEUR }];
     MINICARTE.dessiner(voitures, JEU.plateau ? (JEU.contre ? JEU.suivie : null) : 0);
   }
 }
@@ -3039,13 +3039,13 @@ function demarrerJeu() {
     // ?ia=N : chaque IA à sa place ; une IA arrivée quitte la piste (elle n'est plus dessinée)
     if (JEU.plateau && !apres) JEU.plateau.pilotes.forEach((p, k) => {
       const m = JEU.modeles[k];
-      m.groupe.visible = p.arrivee === null || k === JEU.suivie || (JEU.deux && !!p.joueur);   // (à deux, les deux joueurs restent visibles après l'arrivée)
+      m.groupe.visible = (p.arrivee === null && !p.abandon) || (k === JEU.suivie && !p.abandon) || (JEU.deux && !!p.joueur);   // (à deux, les deux joueurs restent visibles après l'arrivée)
       if (m !== JEU.modele) { VOITURE3D.majDegats(m, p.v.degats); VOITURE3D.placer(m, etatAffiche(p.v, alpha), p.v); m.tete.visible = true; }
     });
     const etat = etatAffiche(JEU.joueur, alpha);
     // les sensations de conduite (sensations.js, tour 37) : ce que vit chaque voiture, lu une fois par image pour le son,
     // la caméra et les effets (rien n'est écrit dans les voitures)
-    const voituresSens = JEU.plateau ? JEU.plateau.pilotes.filter(p => p.arrivee === null || p.v === JEU.joueur).map(p => p.v) : [JEU.joueur];
+    const voituresSens = JEU.plateau ? JEU.plateau.pilotes.filter(p => !p.abandon && (p.arrivee === null || p.v === JEU.joueur)).map(p => p.v) : [JEU.joueur];
     if (typeof SENSATIONS !== 'undefined') SENSATIONS.observer(apres ? [] : voituresSens, CIRCUIT);
     if (apres) {
       JEU.tempsPodium += dt;
