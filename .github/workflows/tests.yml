@@ -20,11 +20,17 @@ jobs:
     name: ${{ matrix.nom }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # Passage court (tour 58) : sur une branche « enligne-* », seuls les travaux marqués « court » jouent leurs tests ; les autres
+    # finissent en quelques secondes (étapes sautées) pour libérer les machines : GitHub ne donne que 20 travaux à la fois, un
+    # passage complet en prend 18, donc sans ça les branches attendent leur tour l'une après l'autre. Un passage court vert
+    # n'est PAS un 18/18 : avant main, toujours un passage complet (branche fusion-*, ou toute autre branche).
+    env:
+      COURT: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/heads/enligne-') }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - { nom: moteur, partie: moteur recoins, recoins: 'defi,stockage,manette,touches-deux' }   # (+ des parties de tests/recoins.py, réparties au tour 51m selon les durées du passage 42425442653 : chaque travail sous ~430 s, sauf stands.html seul, ~450 s, et saison.py seul, ~530 s ; voir CLAUDE.md, « Répartition de tests/recoins.py »)
+          - { nom: moteur, court: true, partie: moteur recoins, recoins: 'defi,stockage,manette,touches-deux' }   # (+ des parties de tests/recoins.py, réparties au tour 51m selon les durées du passage 42425442653 : chaque travail sous ~430 s, sauf stands.html seul, ~450 s, et saison.py seul, ~530 s ; voir CLAUDE.md, « Répartition de tests/recoins.py »)
           - { nom: courses, partie: courses recoins, recoins: 'tailles-jeux-1920,pendant' }
           - { nom: stands, partie: stands }   # (stands.html seul : ~440 s, le plus long des tests, on ne lui ajoute rien)
           - { nom: consignes, partie: consignes recoins, recoins: 'sauvegardes-racine,sauvegardes-recentes' }
@@ -37,7 +43,7 @@ jobs:
           - { nom: ecrans-4, partie: ecrans, tranche: 4/6 }
           - { nom: ecrans-5, partie: ecrans, tranche: 5/6 }
           - { nom: ecrans-6, partie: ecrans, tranche: 6/6 }
-          - { nom: annexes, partie: annexes recoins, recoins: 'saison-en' }   # (+ la saison entière en anglais, tests/recoins.py)
+          - { nom: annexes, court: true, partie: annexes recoins, recoins: 'saison-en' }   # (+ la saison entière en anglais, tests/recoins.py)
           - { nom: paquet, partie: paquet recoins, recoins: 'aides-pilotage,sauvegarde' }   # (+ les aides au pilotage et la solidité de la sauvegarde, tests/recoins.py)
           - { nom: saison, partie: saison }   # la carrière entière jouée par le robot (tests/saison.py, Codeur 4)
           - { nom: premier, partie: premier recoins, recoins: 'ecrans,tuto,divisions' }   # le premier lancement : clic → feux, médiane de 3 essais (tests/premier.py), puis des recoins courts (8 min au plus par travail, Codeur 4)
@@ -46,7 +52,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Sauté (passage court)
+        if: env.COURT == 'true' && !matrix.court
+        run: echo "Passage court, branche enligne-* - ce travail ne joue pas ses tests. Pas un 18/18."
+
       - uses: actions/setup-python@v5
+        if: env.COURT != 'true' || matrix.court
         with:
           python-version: '3.12'
 
@@ -55,11 +66,13 @@ jobs:
       # (Essayé le 2026-10-22 : avec Chrome 150 comme sur le Mac, le test de la carte calculée en fond
       # reste rouge ici ; les écarts viennent de la machine, pas seulement de la version. Voir CLAUDE.md, « Aller plus vite ».)
       - name: Playwright
+        if: env.COURT != 'true' || matrix.court
         run: pip install playwright websockets   # (websockets : le serveur relais en ligne, tests/serveur.py)
 
       # le Mac du propriétaire est en français et les tests attendent les textes français : même langue ici
       # (sinon navigator.language = en-US et le jeu s'affiche en anglais)
       - name: La partie ${{ matrix.nom }}
+        if: env.COURT != 'true' || matrix.court
         env:
           LANG: fr_FR.UTF-8
           LANGUAGE: fr
