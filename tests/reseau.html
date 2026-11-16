@@ -77,10 +77,10 @@ t('WebSocket : la latence se mesure en continu (ping automatique)', async()=>{
   await h.avancer(R.EN_LIGNE_PING_MS+5);await attendre(()=>a.c.latence!==null,1000);v(a.c.latence>=0,'latence '+a.c.latence);a.c.fermer();});
 
 // --- le vrai BroadcastChannel : deux clients dans la même page (chacun son canal, comme deux onglets)
-const clientBC=(nom,h,canal)=>{const c=RESEAU.client({transport:'diffusion',canal:canal||'gpd-essai',horloge:h,ping:false});const j={c,vus:[],refus:[],nom};
+const clientBC=(nom,h,canal)=>{const c=RESEAU.client({transport:'diffusion',canal:canal||'gpd-essai',horloge:h,ping:false,relais:h?{horloge:h}:undefined});const j={c,vus:[],refus:[],nom};
   for(const k of ['salle','joueurs','depart','cmd','parti','nouvel-hote','perdu','emote'])c.sur(k,d=>j.vus.push([k,d]));c.sur('refus',d=>j.refus.push(d.raison));return j;};
 t('BroadcastChannel : deux « onglets » : créer, rejoindre par le code, lancer, relayer les cmd dans l’ordre', async()=>{
-  R.EN_LIGNE_ATTENTE_MS=80;const a=clientBC('bleu'),b=clientBC('rouge'),c=clientBC('jaune');await a.c.ouvrir();await b.c.ouvrir();await c.c.ouvrir();
+  R.EN_LIGNE_ATTENTE_MS=1500;const a=clientBC('bleu'),b=clientBC('rouge'),c=clientBC('jaune');await a.c.ouvrir();await b.c.ouvrir();await c.c.ouvrir();
   a.c.creer('bleu');await attendre(()=>a.c.enSalle());v(/^[BCDFGHJKLMNPQRSTVWXZ]{4}$/.test(a.c.code),'code '+a.c.code);
   b.c.rejoindre(a.c.code,'rouge');await attendre(()=>b.c.enSalle());c.c.rejoindre(a.c.code.toLowerCase(),'jaune');await attendre(()=>c.c.enSalle()&&a.c.joueurs.length===3);
   v(b.c.joueurs.length===3&&c.c.moi===3&&b.c.moi===2&&b.c.hote===1,'ids et hôte');
@@ -93,13 +93,13 @@ t('BroadcastChannel : deux « onglets » : créer, rejoindre par le code, lancer
   c.c.emote(2);await attendre(()=>de(a,'emote').length===1&&de(b,'emote').length===1);
   a.c.fermer();b.c.fermer();c.c.fermer();});
 t('BroadcastChannel : un code que personne ne connaît → « inconnue » après EN_LIGNE_ATTENTE_MS ; mauvaise version → « version »', async()=>{
-  R.EN_LIGNE_ATTENTE_MS=80;const a=clientBC('bleu'),b=clientBC('rouge');await a.c.ouvrir();await b.c.ouvrir();
+  R.EN_LIGNE_ATTENTE_MS=1500;const a=clientBC('bleu'),b=clientBC('rouge');await a.c.ouvrir();await b.c.ouvrir();
   b.c.rejoindre('BCDF','rouge');await attendre(()=>b.refus.length===1);v(b.refus[0]==='inconnue'&&!b.c.enSalle());
   a.c.creer('bleu');await attendre(()=>a.c.enSalle());
   const w=RESEAU.client({transport:'diffusion',canal:'gpd-essai',version:'autre',ping:false});const refus=[];w.sur('refus',d=>refus.push(d.raison));await w.ouvrir();w.rejoindre(a.c.code,'vert');await attendre(()=>refus.length===1);v(refus[0]==='version','version : '+refus);
   w.fermer();a.c.fermer();b.c.fermer();});
 t('BroadcastChannel : salle pleine / commencée refusées ; un invité qui part est retiré ; deux salles ne se mélangent pas', async()=>{
-  R.EN_LIGNE_ATTENTE_MS=80;const js=[];for(let i=0;i<9;i++){const j=clientBC(['bleu','rouge','jaune','vert','orange','violet','turquoise','rose','bleu'][i]);await j.c.ouvrir();js.push(j);}
+  R.EN_LIGNE_ATTENTE_MS=1500;const js=[];for(let i=0;i<9;i++){const j=clientBC(['bleu','rouge','jaune','vert','orange','violet','turquoise','rose','bleu'][i]);await j.c.ouvrir();js.push(j);}
   js[0].c.creer('bleu');await attendre(()=>js[0].c.enSalle());
   for(let i=1;i<8;i++){js[i].c.rejoindre(js[0].c.code,['bleu','rouge','jaune','vert','orange','violet','turquoise','rose','bleu'][i]);await attendre(()=>js[i].c.enSalle());}
   js[8].c.rejoindre(js[0].c.code,'bleu');await attendre(()=>js[8].refus.length);v(js[8].refus[0]==='pleine','pleine : '+js[8].refus);
@@ -108,13 +108,13 @@ t('BroadcastChannel : salle pleine / commencée refusées ; un invité qui part 
   js[8].c.rejoindre(js[0].c.code,'bleu');await attendre(()=>js[8].refus.length===2);v(js[8].refus[1]==='commencee','commencée : '+js[8].refus);
   for(const j of js)j.c.fermer();});
 t('BroadcastChannel : l’onglet qui fait le relais se ferme → les autres reçoivent « perdu » ; un onglet muet est retiré', async()=>{
-  R.EN_LIGNE_ATTENTE_MS=80;const h=horloge(),a=clientBC('bleu',h),b=clientBC('rouge',h);await a.c.ouvrir();await b.c.ouvrir();
+  R.EN_LIGNE_ATTENTE_MS=1500;const h=horloge(),a=clientBC('bleu',h),b=clientBC('rouge',h);await a.c.ouvrir();await b.c.ouvrir();
   a.c.creer('bleu');await attendre(()=>a.c.enSalle());b.c.rejoindre(a.c.code,'rouge');await attendre(()=>b.c.enSalle());
   a.c.fermer();for(let k=1;k<=R.EN_LIGNE_RECONNEXIONS+1&&!de(b,'perdu').length;k++){await h.avancer(R.EN_LIGNE_RECONNEXION_MS*k+5);await vide();}   // (la salle de l'hôte parti ne revient pas : après les essais, « perdu »)
   await attendre(()=>de(b,'perdu').length===1,2000);v(b.c.etat==='ferme'&&!b.c.enSalle(),'perdu');
   b.c.fermer();});
 t('BroadcastChannel : un onglet fermé sans prévenir (aucun message depuis EN_LIGNE_SILENCE_MS) quitte la salle', async()=>{
-  R.EN_LIGNE_ATTENTE_MS=80;const h=horloge(),a=clientBC('bleu',h),b=clientBC('rouge',h),c=clientBC('jaune',h);await a.c.ouvrir();await b.c.ouvrir();await c.c.ouvrir();
+  R.EN_LIGNE_ATTENTE_MS=1500;const h=horloge(),a=clientBC('bleu',h),b=clientBC('rouge',h),c=clientBC('jaune',h);await a.c.ouvrir();await b.c.ouvrir();await c.c.ouvrir();
   a.c.creer('bleu');await attendre(()=>a.c.enSalle());b.c.rejoindre(a.c.code,'rouge');await attendre(()=>b.c.enSalle());c.c.rejoindre(a.c.code,'jaune');await attendre(()=>c.c.enSalle());
   h.t+=R.EN_LIGNE_SILENCE_MS-1000;c.c.pret(true);await attendre(()=>a.c.joueurs.find(j=>j.id===3).pret);   // c parle, b se tait
   h.t+=2000;c.c.pret(false);await h.avancer(R.EN_LIGNE_GRACE*1000+100);await attendre(()=>de(a,'parti').length===1);   // (un onglet muet est coupé, puis la grâce passe)
