@@ -24,6 +24,16 @@ def dire(ok, nom, detail=''):
     ok_tout = ok_tout and ok
     print(('✔ ' if ok else '✘ ') + nom + (' — ' + str(detail) if (detail and not ok) else ''), flush=True)
 
+def attendre(pg, expr, ms=30000):
+    """Attend qu'une expression soit vraie dans la page. Une boucle d'evaluate à nous (la page de l'invité se recharge en route ; ENLIGNE_ECRAN est une const, pas window.ENLIGNE_ECRAN). Le défaut de wait_for_function (requestAnimationFrame) ne tourne pas dans un onglet qui n'est pas au premier plan."""
+    t0 = time.monotonic(); derniere = None
+    while time.monotonic() - t0 < ms / 1000:
+        try:
+            if pg.evaluate(expr): return True
+        except Exception as e: derniere = e   # (page en train de se recharger)
+        time.sleep(0.1)
+    raise TimeoutError('attendre : %s (%s)' % (expr[:90], derniere))
+
 def course(b, nom, ia, joueurs=2, tours=1):
     ctx = b.new_context(viewport={'width': 960, 'height': 600})
     erreurs = []
@@ -33,20 +43,24 @@ def course(b, nom, ia, joueurs=2, tours=1):
         pg = ctx.new_page(); pg.set_default_timeout(30000)
         pg.on('pageerror', lambda e, i=i: erreurs.append('page %d : %s' % (i, e)))
         pg.on('console', lambda m, i=i: erreurs.append('console %d : %s' % (i, m.text)) if m.type in ('error', 'warning') else None)
+        pg.add_init_script("addEventListener('beforeunload', () => { try { const e = ENLIGNE_PAGE.etat; sessionStorage.setItem('dbg', JSON.stringify({ sortie: e.sortie, termine: e.termine, fin: e.partie && e.partie.fin, ecran: JEU.ecran, n: e.partie && e.partie.n, statut: e.statut })); } catch (x) {} })")
         pages.append(pg)
     base = 'file://' + RACINE + '/index.html?circuit=test&robot=1&tours=%d&ia=%d&canal=%s&joueurs=%d' % (tours, ia, canal, joueurs)
     pages[0].goto(base + '&enlignecourse=hote&nom=bleu', wait_until='domcontentloaded', timeout=120000)
-    pages[0].wait_for_function('() => window.__enligne && window.__enligne.code', timeout=30000)
+    attendre(pages[0], '() => window.__enligne && window.__enligne.code', 30000)
     code = pages[0].evaluate('() => window.__enligne.code')
     dire(len(code) == 4 and not any(c in 'AEIOUY' for c in code), nom + ' : un code de salle sans voyelle', code)
     for i in range(1, joueurs):
         pages[i].goto(base + '&enlignecourse=%s&nom=%s' % (code, ['bleu', 'rouge', 'jaune', 'vert'][i]), wait_until='domcontentloaded', timeout=120000)
     for pg in pages:
-        pg.wait_for_function('() => window.__enligne && window.__enligne.partie', timeout=60000)
+        attendre(pg, '() => window.__enligne && window.__enligne.partie', 60000)
     dire(True, nom + ' : la course part sur les %d pages' % joueurs)
+    for pg in pages: pg.evaluate('() => { REGLAGES.EN_LIGNE_ATTENTE_MAX_MS = 0; }')   # (le test fait avancer une page puis l'autre à la main : sans cela l'abandon « connexion trop lente » partirait ; tests/enligne-incidents.py le teste)
     t0 = time.monotonic(); resumes = None
     while time.monotonic() - t0 < 700:
-        resumes = [pg.evaluate('() => { if (JEU.ecran === "course") BOUCLE.simuler(24); return ENLIGNE_PAGE.resume(); }') for pg in pages]
+        try: resumes = [pg.evaluate('() => { if (JEU.ecran === "course") BOUCLE.simuler(24); return ENLIGNE_PAGE.resume(); }') for pg in pages]
+        except Exception as e:
+            print('DIAG', [p_.url[-120:] for p_ in pages], [p_.evaluate('() => sessionStorage.getItem("dbg")') for p_ in pages], erreurs[:6], str(e)[:200], flush=True); raise
         if all(r['ecran'] in ('podium', 'resultats') for r in resumes): break
         if any(r['desynchro'] for r in resumes): break
         time.sleep(0.02)
@@ -59,7 +73,7 @@ def course(b, nom, ia, joueurs=2, tours=1):
     ctx.close()
 
 def salle_prete(pg, nom):
-    pg.wait_for_function('() => ENLIGNE_ECRAN.etat().ecran === "enligneSalle"', timeout=30000)
+    attendre(pg, '() => ENLIGNE_ECRAN.etat().ecran === "enligneSalle"', 30000)
 
 def course_ecrans(b, nom='écrans de salle'):
     # les vrais écrans de salle (enligne-ecran.js) : l'hôte crée sa salle sur le circuit « technique », l'invité (page chargée sur le circuit « test ») la rejoint par son code,
@@ -73,31 +87,37 @@ def course_ecrans(b, nom='écrans de salle'):
         pg.on('console', lambda m, i=i: erreurs.append('console %d : %s' % (i, m.text)) if m.type in ('error', 'warning') else None)
     base = 'file://' + RACINE + '/index.html?robot=1&tours=1&ia=0&canal=' + canal
     hote.goto(base + '&circuit=technique&enlignecourse=menu', wait_until='domcontentloaded', timeout=120000)
-    hote.wait_for_function('() => ENLIGNE_ECRAN.etat().ecran === "enligne"')
+    attendre(hote, '() => ENLIGNE_ECRAN.etat().ecran === "enligne"', 30000)
     hote.click('#boutonEnligneCreer'); salle_prete(hote, 'hote')
     etat = hote.evaluate('() => ENLIGNE_ECRAN.etat()'); code = etat['code']
     dire(len(code) == 4 and etat['hote'], nom + ' : l\'hôte crée la salle ' + code, etat)
     dire(etat['reglages']['circuit'] == 'technique', nom + ' : l\'hôte propose le circuit de sa page', etat['reglages'])
     invite.goto(base + '&circuit=test&enlignecourse=menu', wait_until='domcontentloaded', timeout=120000)
-    invite.wait_for_function('() => ENLIGNE_ECRAN.etat().ecran === "enligne"')
+    attendre(invite, '() => ENLIGNE_ECRAN.etat().ecran === "enligne"', 30000)
     invite.click('#boutonEnligneRejoindre'); invite.fill('#enligneCode', code); invite.click('#boutonEnligneGo')
     # l'invité se recharge sur le circuit de l'hôte puis revient dans la salle
-    invite.wait_for_function('() => /circuit=technique/.test(location.search) && /enlignecourse=reprise/.test(location.search)', timeout=30000)
-    invite.wait_for_function('() => window.ENLIGNE_ECRAN && ENLIGNE_ECRAN.etat().ecran === "enligneSalle" && ENLIGNE_ECRAN.etat().joueurs.length === 2', timeout=60000)
+    attendre(invite, '() => /circuit=technique/.test(location.search) && /enlignecourse=reprise/.test(location.search)', 30000)
+    try:
+        attendre(invite, '() => typeof ENLIGNE_ECRAN !== "undefined" && ENLIGNE_ECRAN.etat().ecran === "enligneSalle" && ENLIGNE_ECRAN.etat().joueurs.length === 2', 60000)
+    except Exception:
+        print('DIAG invité :', invite.url, invite.evaluate('() => JSON.stringify({e: ENLIGNE_ECRAN.etat(), s: sessionStorage.getItem("gpd-enligne-session"), msg: document.getElementById("enligneMessage") && document.getElementById("enligneMessage").textContent})'), erreurs[:5], flush=True)
+        print('DIAG hôte :', hote.evaluate('() => JSON.stringify(ENLIGNE_ECRAN.etat())'), flush=True)
+        raise
     ei = invite.evaluate('() => ENLIGNE_ECRAN.etat()')
     dire(sorted(j['nom'] for j in ei['joueurs']) == ['bleu', 'bleu-2'], nom + ' : les noms sur le fil (la couleur prise reçoit -2)', [j['nom'] for j in ei['joueurs']])
     dire(not any(j.get('absent') for j in ei['joueurs']), nom + ' : l\'invité est revenu dans la salle (même place)', ei['joueurs'])
-    hote.wait_for_function('() => ENLIGNE_ECRAN.etat().joueurs.length === 2 && ENLIGNE_ECRAN.etat().joueurs.every(j => j.circuit === "technique")', timeout=30000)
+    attendre(hote, '() => ENLIGNE_ECRAN.etat().joueurs.length === 2 && ENLIGNE_ECRAN.etat().joueurs.every(j => j.circuit === "technique")', 30000)
     dire(True, nom + ' : les deux pages ont annoncé le circuit « technique »')
     invite.click('#boutonEnlignePret')
-    hote.wait_for_function('() => !document.getElementById("boutonEnligneLancer").disabled', timeout=30000)
+    attendre(hote, '() => !document.getElementById("boutonEnligneLancer").disabled', 30000)
     for k in (1, 2):
         if k == 2:
-            hote.wait_for_function('() => !document.getElementById("boutonEnligneLancer").disabled', timeout=30000)
+            attendre(hote, '() => !document.getElementById("boutonEnligneLancer").disabled', 30000)
         hote.click('#boutonEnligneLancer')
         for pg in pages:
-            pg.wait_for_function('() => window.__enligne && window.__enligne.partie', timeout=120000)
+            attendre(pg, '() => window.__enligne && window.__enligne.partie', 120000)
         dire(True, nom + ' : course %d : elle part sur les 2 pages' % k)
+        for pg in pages: pg.evaluate('() => { REGLAGES.EN_LIGNE_ATTENTE_MAX_MS = 0; }')   # (le test fait avancer une page puis l'autre à la main : sans cela l'abandon « connexion trop lente » partirait ; tests/enligne-incidents.py le teste)
         t0 = time.monotonic(); resumes = None
         while time.monotonic() - t0 < 700:
             resumes = [pg.evaluate('() => { if (JEU.ecran === "course") BOUCLE.simuler(24); return ENLIGNE_PAGE.resume(); }') for pg in pages]
@@ -111,9 +131,9 @@ def course_ecrans(b, nom='écrans de salle'):
         if k == 1:
             hote.evaluate('() => ENLIGNE_PAGE.retourSalle()')
             for pg in pages:
-                pg.wait_for_function('() => ENLIGNE_ECRAN.etat().ecran === "enligneSalle" && !window.__enligne.partie', timeout=30000)
+                attendre(pg, '() => ENLIGNE_ECRAN.etat().ecran === "enligneSalle" && !window.__enligne.partie', 30000)
             dire(all(pg.evaluate('() => Math.sin.toString().includes("[native code]") && Math.atan2.toString().includes("[native code]")') for pg in pages), nom + ' : les Math du navigateur sont revenues')
-            invite.wait_for_function('() => ENLIGNE_ECRAN.etat().joueurs.every(j => !j.pret || j.hote)', timeout=30000)
+            attendre(invite, '() => ENLIGNE_ECRAN.etat().joueurs.every(j => !j.pret || j.hote)', 30000)
             invite.click('#boutonEnlignePret')
             dire(True, nom + ' : retour à la salle, les prêts repartent à faux, on se remet prêt')
     dire(not erreurs, nom + ' : console vide', erreurs[:3])
@@ -132,13 +152,13 @@ def tactile(b):
         pages.append(pg)
     pages[0].add_init_script('try { DeviceOrientationEvent.requestPermission = undefined; } catch (e) {}')
     base = 'file://' + RACINE + '/index.html?circuit=test&tours=1&ia=0&canal=%s&joueurs=2' % canal
-    pages[0].goto(base + '&enlignecourse=hote&nom=Pilote%201')
-    try: pages[0].wait_for_function('() => window.__enligne && window.__enligne.code', timeout=90000)
+    pages[0].goto(base + '&enlignecourse=hote&nom=bleu')
+    try: attendre(pages[0], '() => window.__enligne && window.__enligne.code', 90000)
     except Exception:
         dire(False, nom + ' : la salle de l\'hôte s\'ouvre', [pages[0].evaluate('() => [typeof JEU !== "undefined" && JEU.ecran, window.__enligne && JSON.stringify(window.__enligne).slice(0, 300)]'), erreurs[:3]]); ctx.close(); return
     code = pages[0].evaluate('() => window.__enligne.code')
-    pages[1].goto(base + '&robot=1&enlignecourse=%s&nom=Pilote%%202' % code)
-    for pg in pages: pg.wait_for_function('() => window.__enligne && window.__enligne.partie', timeout=60000)
+    pages[1].goto(base + '&robot=1&enlignecourse=%s&nom=rouge' % code)
+    for pg in pages: attendre(pg, '() => window.__enligne && window.__enligne.partie', 60000)
     dire(True, nom + ' : la course part sur les deux pages')
     dire(pages[0].evaluate('() => TACTILE.estPresent()'), nom + ' : la page 1 est tactile (boutons GAZ / FREIN)')
     cdp = ctx.new_cdp_session(pages[0])
@@ -148,6 +168,7 @@ def tactile(b):
     centre = pages[0].evaluate('() => { const q = document.getElementById("tactileGaz").getBoundingClientRect(); return [q.left + q.width / 2, q.top + q.height / 2, q.width]; }')
     dire(centre[2] > 40, nom + ' : le bouton GAZ est visible et assez grand', centre)
     cdp.send('Input.dispatchTouchEvent', {'type': 'touchStart', 'touchPoints': [{'x': centre[0], 'y': centre[1], 'id': 1}]})
+    for pg in pages: pg.evaluate('() => { REGLAGES.EN_LIGNE_ATTENTE_MAX_MS = 0; }')
     t0 = time.monotonic(); vitesse = 0
     while time.monotonic() - t0 < 240 and vitesse < 8:
         for pg in pages: pg.evaluate('() => { majTactile(0.016); if (JEU.ecran === "course") BOUCLE.simuler(24); }')
