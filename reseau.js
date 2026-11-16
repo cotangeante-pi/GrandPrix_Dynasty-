@@ -427,7 +427,7 @@ const RESEAU = (function () {
           if (opt.circuit) c.charge(opt.circuit);      // « mon circuit chargé » : le lancement attend que tous aient celui des réglages
           break;
         case 'erreur': emettre('erreur', { raison: m.raison, relais: true }); break;
-        case 'refus': emettre('refus', m); break;
+        case 'refus': if (reprise) { reprise = false; oublierSalle(); perdu(); break; } emettre('refus', m); break;   // (la salle d'avant n'existe plus : le rattachement après une coupure est refusé = perdu)
         case 'joueurs': c.joueurs = Array.isArray(m.liste) ? m.liste : []; emettre('joueurs', m); break;
         case 'reglages': c.reglagesSalle = m.reglages; emettre('reglages', m); break;
         case 'depart': c.depart = m; emettre('depart', m); break;
@@ -449,6 +449,7 @@ const RESEAU = (function () {
       stopPing();
       if (c.etat === 'ouvert') { changer('coupe'); emettre('coupure', {}); essayer(); }
     }
+    let reprise = false;   // vrai entre le rattachement d'après coupure et la réponse du relais
     function perdu() { stopPing(); changer('ferme'); emettre('perdu', {}); }
     function essayer() {
       essai++;
@@ -461,7 +462,7 @@ const RESEAU = (function () {
           const code = c.code, jeton = c.jeton; oublierSalle();
           changer('ouvert'); dernierRecu = horloge.maintenant(); essai = 0; ping_();
           emettre('reconnecte', { code });
-          if (code && c.nom) c.envoyerBrut({ t: 'rejoindre', code, nom: c.nom, version, jeton });
+          if (code && c.nom) { reprise = true; c.envoyerBrut({ t: 'rejoindre', code, nom: c.nom, version, jeton }); }
         }, () => { if (!volontaire) essayer(); });
       }, R.EN_LIGNE_RECONNEXION_MS * essai);
     }
