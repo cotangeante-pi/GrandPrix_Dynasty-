@@ -447,7 +447,7 @@ async def tests_charge(port, rel):
 async def tests_delai(port, rel):
     # --- le délai d'entrée du départ suit les latences MESURÉES par le relais (jamais celles que le client annonce) ---
     async def depart_avec(rtts):
-        code, cl = await salle_de(port, [f'Pilote {i + 1}' for i in range(len(rtts))])
+        code, cl = await salle_de(port, ['bleu', 'rouge', 'jaune', 'vert'][:len(rtts)])
         salle = rel.salles[code]
         for j, r in zip(salle.joueurs.values(), rtts): j.rtt = r   # (le test pose les mesures : sans mesure automatique, mesure_periode = 0)
         await cl[0].env(t='lancer', reglages={'circuit': 'monza', 'tours': 3, 'meteo': 'sec', 'nbIA': 0})
@@ -463,7 +463,7 @@ async def tests_delai(port, rel):
 
 async def tests_mesure(port, rel):
     # --- le relais mesure lui-même : ce que le client annonce (champ l) ne compte pas ---
-    code, cl = await salle_de(port, ['Pilote 1', 'Pilote 2'])
+    code, cl = await salle_de(port, ['bleu', 'rouge'])
     await cl[0].env(t='ping', h=1, l=60000); await cl[1].env(t='ping', h=1, l=60000); await asyncio.sleep(0.5)
     rtts = [j.rtt for j in rel.salles[code].joueurs.values()]
     t('mesure : le relais mesure l\'aller-retour de chaque client lui-même (en local : quelques ms)', all(r is not None and r < 500 for r in rtts), rtts)
