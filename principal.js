@@ -802,7 +802,7 @@ function montrerAmis() {
 function montrerEnligne() {
   if (!REGLAGES.EN_LIGNE || (JEU.ecran !== 'titre' && JEU.ecran !== 'championnat')) return;
   // (T7) le menu et la salle vivent dans une page propre : pas de carrière, le circuit de la salle (la page se recharge dessus) ; ici seulement le chemin
-  if (!JEU.enligne) { location.href = adresseAvec({ enlignecourse: 'menu' }); return; }
+  if (!JEU.enligne && !PARAMETRES.has('test')) { location.href = adresseAvec({ enlignecourse: 'menu' }); return; }   // (les pages de test des écrans, ?test=…, gardent les écrans dans la page, avec le faux transport)
   JEU.enligneDepuis = JEU.ecran;
   PODIUM3D.cacher();
   ENLIGNE_ECRAN.ouvrir();
