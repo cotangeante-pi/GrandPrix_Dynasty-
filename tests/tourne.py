@@ -108,7 +108,7 @@ def enligne_tourne(b):
     pg.on('console', lambda m: console.append(m.type + ': ' + m.text) if m.type in ('error', 'warning') and 'GL Driver Message' not in m.text else None)
     pg.on('pageerror', lambda e: console.append('PAGEERROR ' + str(e)))
     pg.add_init_script('try { Element.prototype.requestFullscreen = function () { return Promise.resolve(); }; screen.orientation.lock = () => Promise.resolve(); } catch (e) {} try { DeviceOrientationEvent.requestPermission = undefined; } catch (e) {}')
-    pg.goto('file://' + RACINE + '/index.html?enligne=1'); pg.wait_for_timeout(1500)
+    pg.goto('file://' + RACINE + '/index.html?enligne=1&test=enligne'); pg.wait_for_timeout(1500)   # (&test=enligne : les écrans restent dans la page avec le faux transport ; sans lui, « En ligne » ouvre la page propre ?enlignecourse=menu)
     if not attendre(pg, '() => typeof JEU !== "undefined" && JEU.ecran === "titre"', None, 60000): t(f'{titre} : l\'écran titre', False); ctx.close(); return
     pg.evaluate('() => { REGLAGES.EN_LIGNE_FAUX_DELAI = 0.15; }')
     pg.set_viewport_size({'width': 360, 'height': 640})
