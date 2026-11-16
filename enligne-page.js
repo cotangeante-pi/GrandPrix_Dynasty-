@@ -97,23 +97,47 @@ const ENLIGNE_PAGE = (function () {
     setTimeout(() => { if (raison === 'perdu') { etat.termine = true; location.href = location.pathname; } else retourSalle(); }, ms);
   }
   // onglet caché : requestAnimationFrame est coupé, donc la boucle du jeu ne tourne plus et les autres joueurs nous attendraient ; un minuteur
-  // fait avancer la course (mes commandes : neutres, personne ne conduit un onglet caché) au rythme du temps réel
+  // fait avancer la course (mes commandes : neutres, personne ne conduit un onglet caché) au rythme du temps réel.
+  // (T57) Chrome ralentit setInterval d'un onglet caché (1 par seconde, puis 1 par minute) mais pas celui d'un Worker dédié : le « tic » vient
+  // d'un Worker (écrit en texte, pas de fichier de plus) ; sans Worker (ou refusé par le navigateur), repli sur setInterval.
+  function ticFond(ms, f) {
+    try {
+      if (REGLAGES.EN_LIGNE_FOND_WORKER && typeof Worker !== 'undefined' && typeof Blob !== 'undefined' && window.URL && URL.createObjectURL) {
+        const url = URL.createObjectURL(new Blob(['var t=setInterval(function(){postMessage(0)},' + (ms | 0) + ');onmessage=function(){clearInterval(t);close()}'], { type: 'text/javascript' }));
+        const w = new Worker(url);
+        URL.revokeObjectURL(url);
+        let vu = false;
+        w.onmessage = () => { vu = true; f(); };
+        w.onerror = (e) => { if (e && e.preventDefault) e.preventDefault(); if (!vu && etat.fond && etat.fond.w === w) { etat.fond = { i: setInterval(f, ms) }; } try { w.terminate(); } catch (e2) { } };
+        return { w };
+      }
+    } catch (e) { }
+    return { i: setInterval(f, ms) };
+  }
+  function arreterFond() {
+    const f = etat.fond;
+    etat.fond = null;
+    if (!f) return;
+    if (f.w) { try { f.w.postMessage(0); f.w.terminate(); } catch (e) { } }
+    if (f.i) clearInterval(f.i);
+  }
+  function passerFond() {
+    const t = performance.now(), pas = Math.min(REGLAGES.EN_LIGNE_FOND_PAS_MAX, Math.floor((t - etat.fondT) / 1000 / REGLAGES.PAS_PHYSIQUE));
+    if (pas <= 0) return;
+    etat.fondT += pas * REGLAGES.PAS_PHYSIQUE * 1000;
+    const p = etat.partie;
+    for (let i = 0; i < pas && p && JEU.ecran === 'course' && !etat.sortie; i++) {
+      p.local = { gaz: 0, frein: 0, direction: 0, remise: false };
+      if (!p.avancer(1)) break;   // (on attend un autre : le prochain passage réessaie)
+    }
+    surveillerAttente();
+  }
   function cacher(cache) {
     const ms = REGLAGES.EN_LIGNE_FOND_MS;
-    if (!cache) { if (etat.fond !== null) { clearInterval(etat.fond); etat.fond = null; } return; }
+    if (!cache) { arreterFond(); return; }
     if (!ms || etat.fond !== null || !etat.partie) return;
     etat.fondT = performance.now();   // (l'horloge de la page, jamais dans la simulation)
-    etat.fond = setInterval(() => {
-      const t = performance.now(), pas = Math.min(REGLAGES.EN_LIGNE_FOND_PAS_MAX, Math.floor((t - etat.fondT) / 1000 / REGLAGES.PAS_PHYSIQUE));
-      if (pas <= 0) return;
-      etat.fondT += pas * REGLAGES.PAS_PHYSIQUE * 1000;
-      const p = etat.partie;
-      for (let i = 0; i < pas && p && JEU.ecran === 'course' && !etat.sortie; i++) {
-        p.local = { gaz: 0, frein: 0, direction: 0, remise: false };
-        if (!p.avancer(1)) break;   // (on attend un autre : le prochain passage réessaie)
-      }
-      surveillerAttente();
-    }, ms);
+    etat.fond = ticFond(ms, passerFond);
   }
   document.addEventListener('visibilitychange', () => cacher(document.hidden));
   // attendre les commandes d'un autre : « On attend … » après un moment, abandon après un long moment (connexion trop lente)

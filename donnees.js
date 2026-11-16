@@ -1536,6 +1536,7 @@ const REGLAGES = {
   EN_LIGNE_ATTENTE_MAX_MS: 15000,      // (T8) … et plus longtemps que ça : on abandonne (« connexion trop lente »), retour à la salle ; 0 = jamais
   EN_LIGNE_RETOUR_MS: 4000,            // (T8) le temps de lire le message (connexion perdue, trop lente, désynchro) avant le retour à la salle
   EN_LIGNE_FOND_MS: 250,               // (T8) onglet caché : la course avance depuis un minuteur de cette période (requestAnimationFrame est coupé) ; 0 = rien (les autres attendraient)
+  EN_LIGNE_FOND_WORKER: true,          // (T57) le tic du minuteur de fond vient d'un Worker dédié (Chrome ne le ralentit pas dans un onglet caché) ; false = setInterval seul (ralenti : les autres attendraient)
   EN_LIGNE_FOND_PAS_MAX: 2400,         // (T8) pas rattrapés au plus par passage du minuteur de fond (le navigateur ralentit les minuteurs cachés)
   EN_LIGNE_DELAI_MAX: 120,             // (T8) le délai d'entrée adaptatif choisi par le relais à l'arrivée au départ ne dépasse pas ce nombre de pas
   EN_LIGNE_DELAI_MARGE: 6,             // (T8) pas de marge ajoutés au temps de trajet mesuré (le relais, serveur/relais.py : Config.delai_marge)
