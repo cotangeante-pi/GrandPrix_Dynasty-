@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """(tour 56, T8) Les incidents d'une course en ligne : python3 tests/enligne-incidents.py
 Deux pages de la vraie page de jeu reliées par un BroadcastChannel (comme tests/enligne-course.py), sur le circuit d'essai :
-- un joueur qui part (quitter) : l'autre voit « Turbo a quitté la course », la partie le marque sorti, la course continue seule jusqu'au podium ;
+- un joueur qui part (quitter) : l'autre voit « Pilote Rouge a quitté la course », la partie le marque sorti, la course continue seule jusqu'au podium ;
 - onglet caché : la boucle (requestAnimationFrame) est coupée, un minuteur de fond fait quand même avancer la course ; revenu, il s'arrête ;
 - Échap pendant la course : pas de pause, le premier appui prévient, le second (en 3 s) quitte ;
 - la pub Poki : refusée pendant la course en ligne (le rappel part tout de suite, rien demandé au SDK), permise au podium ;
-- un joueur qui ne répond plus : « Connexion lente : on attend Turbo… » puis, après EN_LIGNE_ATTENTE_MAX_MS, « Connexion trop lente » et la sortie ;
+- un joueur qui ne répond plus : « Connexion lente : on attend Pilote Rouge… » puis, après EN_LIGNE_ATTENTE_MAX_MS, « Connexion trop lente » et la sortie ;
 - une désynchro (un bit changé chez l'un) : message clair puis la sortie ;
 - la connexion perdue en course (événement « perdu ») : message puis retour au début.
 Plafond dur : 10 minutes."""
@@ -27,7 +27,7 @@ def dire(ok, nom, detail=''):
     print(('✔ ' if ok else '✘ ') + nom + (' — ' + str(detail)[:600] if (detail and not ok) else ''), flush=True)
 
 FAUX_POKI = "() => { window.__pub = 0; window.PokiSDK = new Proxy({}, { get: (t, k) => k === 'commercialBreak' ? () => { window.__pub++; return Promise.resolve(); } : () => Promise.resolve() }); }"
-def deux_pages(b, nom, tours=1, noms=('%C3%89clair', 'Turbo'), patient=False):   # (D1 : le nom est l'id d'une couleur : noms=('bleu', 'rouge'), patient=True)
+def deux_pages(b, nom, tours=1, noms=('bleu', 'rouge'), patient=False):   # (D1 : le nom est l'id d'une couleur : noms=('bleu', 'rouge'), patient=True)
     ctx = b.new_context(viewport={'width': 960, 'height': 600})
     erreurs = []; pages = []
     canal = 'incident-%d-%d' % (os.getpid(), time.time())
@@ -56,7 +56,7 @@ def incident_parti(b):
     for _ in range(5): avancer([p1, p2], 2)   # (BOUCLE.simuler compte des SECONDES de jeu ; une tranche de 2 s, une page puis l'autre)
     p2.evaluate('() => { ENLIGNE_PAGE.etat.partie.vider(); __enligne.client.quitter(); }')
     p1.wait_for_function('() => ENLIGNE_PAGE.etat.partie.sortis.size === 1', timeout=120000)
-    dire('a quitté' in statut(p1) and 'Turbo' in statut(p1) or True, nom + ' : l’autre voit « Turbo a quitté la course »', statut(p1))
+    dire(('a quitté' in statut(p1) or 'left' in statut(p1)) and ('Rouge' in statut(p1) or 'Red' in statut(p1)), nom + ' : l’autre voit « Pilote Rouge a quitté la course »', statut(p1))
     n0 = p1.evaluate('() => ENLIGNE_PAGE.etat.partie.n')
     for _ in range(10): p1.evaluate('() => { if (JEU.ecran === "course") BOUCLE.simuler(6); }')
     n1 = p1.evaluate('() => ENLIGNE_PAGE.etat.partie.n')
@@ -122,11 +122,11 @@ def incident_lent(b):
     while time.monotonic() - t0 < 12:   # p2 ne répond plus : on ne le fait pas avancer ; p1 essaie d'avancer
         p1.evaluate('() => { if (JEU.ecran === "course") BOUCLE.simuler(2); ENLIGNE_PAGE.surveillerAttente(); }')
         s = statut(p1)
-        if ('lente' in s or 'Slow' in s) and 'Turbo' in s: vu_annonce = True
+        if ('lente' in s or 'Slow' in s) and ('Rouge' in s or 'Red' in s): vu_annonce = True
         sortie = p1.evaluate('() => ENLIGNE_PAGE.etat.sortie')
         if sortie: break
         time.sleep(0.1)
-    dire(vu_annonce, nom + ' : après un moment, « Connexion lente : on attend Turbo… »', statut(p1))
+    dire(vu_annonce, nom + ' : après un moment, « Connexion lente : on attend Pilote Rouge… »', statut(p1))
     dire(sortie == 'lent' and ('trop lente' in statut(p1) or 'too slow' in statut(p1)), nom + ' : après EN_LIGNE_ATTENTE_MAX_MS, « Connexion trop lente » et la sortie', [sortie, statut(p1)])
     ctx.close()
 
@@ -178,10 +178,22 @@ def incident_cache_worker(b):
     dire(not erreurs, nom + ' : console vide', erreurs[:3])
     ctx.close()
 
+def incident_erreur_relais(b):
+    nom = 'erreur du relais'
+    ctx, (p1, p2), erreurs = deux_pages(b, nom, patient=True)
+    p1.evaluate("() => ENLIGNE_PAGE.etat.statut = ''")
+    for raison, fr, en in (('hote', 'hôte', 'host'), ('seul', 'autre pilote', 'one more'), ('charge', 'charge', 'loading')):
+        p1.evaluate('(r) => { REGLAGES.EN_LIGNE_FOND_MS = 0; ENLIGNE_PAGE.erreurRelais(r); }', raison)
+        s = statut(p1)
+        dire(fr in s or en in s, nom + ' : « %s » est affiché (fr ou en)' % raison, s)
+    p1.evaluate("() => ENLIGNE_PAGE.erreurRelais('ecouteur')")
+    dire(not erreurs, nom + ' : console vide', erreurs[:3])
+    ctx.close()
+
 with sync_playwright() as p:
     b = p.chromium.launch(channel='chrome', args=['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--allow-file-access-from-files', '--disable-audio-output'])
     try:
-        for f in (incident_parti, incident_cache, incident_echap_pub, incident_pub_podium, incident_lent, incident_desynchro, incident_perdu, incident_cache_worker):
+        for f in (incident_parti, incident_cache, incident_echap_pub, incident_pub_podium, incident_lent, incident_desynchro, incident_perdu, incident_cache_worker, incident_erreur_relais):
             if FILTRE and FILTRE not in f.__name__: continue
             try: f(b)
             except Exception as e:

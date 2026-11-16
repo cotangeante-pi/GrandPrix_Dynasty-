@@ -80,9 +80,18 @@ const ENLIGNE_PAGE = (function () {
   // la connexion est perdue pour de bon (reseau.js : « perdu » ne passe pas par le gestionnaire général) : le message, puis le retour au début
   function surPerdu() { if (!etat.termine && !etat.sortie && (etat.partie || !etat.ecrans)) { dire(texte('enl_perdu')); sortirApres('perdu'); } }
 
+  // (T57) {t:'erreur'} du relais (le « lancer » refusé…) : dans la salle, ou sur le message de la page
+  function erreurRelais(raison) {
+    if (!raison || raison === 'ecouteur' || etat.termine) return;
+    if (etat.ecrans && typeof ENLIGNE_ECRAN !== 'undefined' && ENLIGNE_ECRAN.erreur) { ENLIGNE_ECRAN.erreur(raison); return; }
+    const t = texte('enligneErreur_' + String(raison).replace(/-/g, '_'));
+    if (t && t.indexOf('enligneErreur_') !== 0) annoncer(t);
+  }
+
   function brancher(c) {
     etat.client = c;
     if (c.sur) c.sur('perdu', surPerdu);
+    if (c.sur) c.sur('erreur', d => erreurRelais(d && d.raison));
     window.__enligne = etat;   // (les tests lisent le code de la salle et l'état de la partie)
     c.sur(m => {
       switch (m.t) {
@@ -367,5 +376,5 @@ const ENLIGNE_PAGE = (function () {
     return { n: p.n, empreinte: p.empreinte(), arrivees: p.e.pilotes.map(q => q.arrivee), final: JEU.final ? JEU.final.map(x => [x.k, x.place, x.total]) : null, desynchro: p.desynchro, ecran: JEU.ecran };
   }
 
-  return { etat, preparer, ouvrir, lancer, image, pas, podiumPret, retourSalle, resume, dire, fabrique, rechargerPour, verifierCircuit, surPerdu, echap, quitter, cacher, surveillerAttente, sortirApres };
+  return { etat, preparer, ouvrir, lancer, image, pas, podiumPret, retourSalle, resume, dire, fabrique, rechargerPour, verifierCircuit, surPerdu, erreurRelais, echap, quitter, cacher, surveillerAttente, sortirApres };
 })();

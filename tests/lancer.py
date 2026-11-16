@@ -132,7 +132,9 @@ def jeu_tourne(delai=400):
 
 def annexes():
     pages = all([serie(p, delai=300 if 'courses' in p else 600 if 'officiels' in p else 120, options=['--virtual-time-budget=5000'] if p.endswith('sdk.html') or p.endswith('reseau.html') else []) for p in ANNEXES])
-    return enligne_course() and enligne_incidents() and chasse_en() and serveur_relais() and reseau_ws() and jeu_tourne() and pages
+    # (T57) toutes les annexes tournent, même si l'une échoue (sinon un rouge cache les suivantes : les incidents en ligne n'étaient jamais atteints)
+    resultats = [f() for f in (enligne_course, enligne_incidents, chasse_en, serveur_relais, reseau_ws, jeu_tourne)]
+    return all(resultats) and pages
 
 # les parties de la suite, dans l'ordre : moteur (test.html), courses (courses.html, 30 courses entre IA), ecrans (ecrans.py), annexes
 # le paquet Poki (tests/paquet.py, Codeur 3) : le zip fabriqué, puis le jeu ouvert depuis le zip décompressé (vérifications Poki)
