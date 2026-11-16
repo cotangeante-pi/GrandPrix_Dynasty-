@@ -16,7 +16,7 @@ window.jouer = function (url, nom, code, options) {
   r.sur('erreur', d => { S.erreurs.push(JSON.stringify(d)); });
   r.sur('perdu', () => { S.ferme = true; });
   r.sur('depart', d => {
-    const envoyer = m => { if (m.t === 'cmd') r.cmd(m.n, m.c); else if (m.t === 'controle') r.controle(m.n, String(m.h));   // (D5) h voyage en chaîne ; le cœur compare des entiers };
+    const envoyer = m => { if (m.t === 'cmd') r.cmd(m.n, m.c); else if (m.t === 'controle') r.controle(m.n, String(m.h)); };   // (D5) h voyage en chaîne ; le cœur compare des entiers
     const p = S.partie = EN_LIGNE.demarrer(d, r.moi, envoyer, { pasMax: o.pasMax || 1400 });
     const k = r.moi % 7;
     const boucle = setInterval(() => {

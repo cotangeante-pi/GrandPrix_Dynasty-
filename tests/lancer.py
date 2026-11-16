@@ -59,7 +59,7 @@ def ecrans(delai=900):   # (tour 48a : 900 s, les 6 pages du nouveau paddock ont
 ANNEXES = ['tests/sdk.html', 'tests/pneus.html', 'tests/enregistreur.html', 'tests/circuits-a.html', 'tests/circuits-b.html', 'tests/textes.html', 'tests/decors.html', 'tests/banc-parle.html']   # (decors : les décors des 12 tracés, Codeur 3 ; banc-parle : les discussions, Codeur 3 ; officiels.html, les IA sur les 12 tracés : une partie à elle)
 ANNEXES.extend(['tests/aides.html', 'tests/tutoriel.html', 'tests/limites.html'])   # les aides au premier usage (aides.js, étape 11b) et le tutoriel guidé (tutoriel.js, étape 11d), Codeur 4
 ANNEXES.append('tests/cout-drapeaux.html')   # le coût des drapeaux sur les 12 circuits (tour 55, T19)
-ANNEXES.append('tests/reseau.html')   # le client réseau : WebSocket (faux), BroadcastChannel, reconnexion (tour 56, T4)
+# (tests/reseau.html : le client réseau, WebSocket (faux), BroadcastChannel, reconnexion (tour 56, T4) : en temps réel, par tests/reseau.py, voir reseau_page)
 ANNEXES.append('tests/drapeaux.html')   # les drapeaux : jaune, bleu, VSC (tour 55, T7)
 ANNEXES.append('tests/carriere-longue.html')   # la carrière entière : 15 saisons, 3 générations, vieilles sauvegardes (tour 55, T1)
 ANNEXES.append('tests/personnalisation.html')   # la personnalisation : livrée, célébration, boutique de skins (tour 48c, Codeur 3)
@@ -130,10 +130,20 @@ def jeu_tourne(delai=400):
     print(out.strip()); print(f'⏱ tests/tourne.py : {time.monotonic() - t0:.0f} s')
     return p.returncode == 0 and '✘' not in out
 
+def reseau_page(delai=200):
+    t0 = time.monotonic()
+    p = subprocess.Popen([sys.executable, os.path.join(RACINE, 'tests', 'reseau.py')], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True)
+    try: out, err = p.communicate(timeout=delai)
+    except subprocess.TimeoutExpired:
+        os.killpg(p.pid, signal.SIGKILL); out, err = p.communicate(); out += f'\n✘ reseau.py : plus de {delai} s, arrêté'
+    if 'RESULTAT' not in out: out += '\n✘ reseau.py s’est arrêté sans résultat :\n' + (err or '').strip()[-1500:]
+    print(out.strip()); print(f'⏱ tests/reseau.html : {time.monotonic() - t0:.0f} s')
+    return p.returncode == 0
+
 def annexes():
-    pages = all([serie(p, delai=300 if 'courses' in p else 600 if 'officiels' in p else 120, options=['--virtual-time-budget=5000'] if p.endswith('sdk.html') or p.endswith('reseau.html') else []) for p in ANNEXES])
+    pages = all([serie(p, delai=300 if 'courses' in p else 600 if 'officiels' in p else 120, options=['--virtual-time-budget=5000'] if p.endswith('sdk.html') else []) for p in ANNEXES])
     # (T57) toutes les annexes tournent, même si l'une échoue (sinon un rouge cache les suivantes : les incidents en ligne n'étaient jamais atteints)
-    resultats = [f() for f in (enligne_course, enligne_incidents, chasse_en, serveur_relais, reseau_ws, jeu_tourne)]
+    resultats = [f() for f in (enligne_course, enligne_incidents, reseau_page, chasse_en, serveur_relais, reseau_ws, jeu_tourne)]
     return all(resultats) and pages
 
 # les parties de la suite, dans l'ordre : moteur (test.html), courses (courses.html, 30 courses entre IA), ecrans (ecrans.py), annexes
