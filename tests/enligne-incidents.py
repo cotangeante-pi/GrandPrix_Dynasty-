@@ -37,7 +37,7 @@ def attendre(pg, expr, ms=120000):
     raise TimeoutError('attendre : %s (%s)' % (expr[:90], derniere))
 
 FAUX_POKI = "() => { window.__pub = 0; window.PokiSDK = new Proxy({}, { get: (t, k) => k === 'commercialBreak' ? () => { window.__pub++; return Promise.resolve(); } : () => Promise.resolve() }); }"
-def deux_pages(b, nom, tours=1, noms=('bleu', 'rouge'), patient=True):   # (D1 : le nom est l'id d'une couleur : noms=('bleu', 'rouge'), patient=True)
+def deux_pages(b, nom, tours=1, noms=('bleu', 'rouge'), patient=True, arreter=True):   # (D1 : le nom est l'id d'une couleur : noms=('bleu', 'rouge'), patient=True)
     ctx = b.new_context(viewport={'width': 960, 'height': 600})
     erreurs = []; pages = []
     canal = 'incident-%d-%d' % (os.getpid(), time.time())
@@ -53,7 +53,7 @@ def deux_pages(b, nom, tours=1, noms=('bleu', 'rouge'), patient=True):   # (D1 :
     pages[1].goto(base + '&enlignecourse=%s&nom=' % code + noms[1])
     for pg in pages: attendre(pg, '() => window.__enligne && window.__enligne.partie', 120000)
     # les pages sont pilotées à la main par tranches (le dessin du Mac, en logiciel, est trop lent) : la boucle du navigateur est arrêtée
-    for pg in pages: pg.evaluate('(p) => { if (p) REGLAGES.EN_LIGNE_ATTENTE_MAX_MS = 0; BOUCLE.arreter(); }', patient)   # (patient : la machine lente n'abandonne pas la course avant la mesure)
+    for pg in pages: pg.evaluate('([p, a]) => { if (p) REGLAGES.EN_LIGNE_ATTENTE_MAX_MS = 0; if (a) BOUCLE.arreter(); }', [patient, arreter])   # (patient : la machine lente n'abandonne pas la course avant la mesure)
     return ctx, pages, erreurs
 
 def avancer(pages, pas=2, tours=1):
@@ -114,7 +114,7 @@ def incident_echap_pub(b):
 
 def incident_pub_podium(b):
     nom = 'pub au podium'
-    ctx, (p1, p2), erreurs = deux_pages(b, nom)
+    ctx, (p1, p2), erreurs = deux_pages(b, nom, arreter=False)   # (la boucle du navigateur tourne : c'est elle qui montre le podium)
     t0 = time.monotonic()
     while time.monotonic() - t0 < 240:   # (comme tests/enligne-course.py : de grosses tranches, une page puis l'autre)
         avancer([p1, p2], 24)
