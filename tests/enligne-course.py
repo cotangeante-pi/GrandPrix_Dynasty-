@@ -152,12 +152,12 @@ def tactile(b):
         pages.append(pg)
     pages[0].add_init_script('try { DeviceOrientationEvent.requestPermission = undefined; } catch (e) {}')
     base = 'file://' + RACINE + '/index.html?circuit=test&tours=1&ia=0&canal=%s&joueurs=2' % canal
-    pages[0].goto(base + '&enlignecourse=hote&nom=Pilote%201')
+    pages[0].goto(base + '&enlignecourse=hote&nom=bleu')
     try: attendre(pages[0], '() => window.__enligne && window.__enligne.code', 90000)
     except Exception:
         dire(False, nom + ' : la salle de l\'hôte s\'ouvre', [pages[0].evaluate('() => [typeof JEU !== "undefined" && JEU.ecran, window.__enligne && JSON.stringify(window.__enligne).slice(0, 300)]'), erreurs[:3]]); ctx.close(); return
     code = pages[0].evaluate('() => window.__enligne.code')
-    pages[1].goto(base + '&robot=1&enlignecourse=%s&nom=Pilote%%202' % code)
+    pages[1].goto(base + '&robot=1&enlignecourse=%s&nom=rouge' % code)
     for pg in pages: attendre(pg, '() => window.__enligne && window.__enligne.partie', 60000)
     dire(True, nom + ' : la course part sur les deux pages')
     dire(pages[0].evaluate('() => TACTILE.estPresent()'), nom + ' : la page 1 est tactile (boutons GAZ / FREIN)')
