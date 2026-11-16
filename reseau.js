@@ -59,6 +59,8 @@ const RESEAU = (function () {
     // se rattacher avec le jeton de sa salle : le rechargement de la page sur le bon circuit, une coupure courte
     const grace = opt.grace === undefined ? R.EN_LIGNE_GRACE : opt.grace;
     const horloge = opt.horloge || { delai: (f, ms) => setTimeout(f, ms), annuler: id => clearTimeout(id) };
+    // exigerCharge (comme `exiger_charge` de serveur/relais.py, vrai par défaut là-bas) : « lancer » refusé tant qu'un joueur n'a pas annoncé (charge) le circuit des réglages ; faux ici par défaut (les tests lancent sans)
+    const exiger = !!opt.exigerCharge;
     let suivant = 1;
     const relais = { salles, rejets: 0 };
     function jetonNouveau() { let j = ''; for (let i = 0; i < 12; i++) j += Math.floor(hasard() * 36).toString(36); return j; }
@@ -175,7 +177,7 @@ const RESEAU = (function () {
           if (conn !== salle.hote || salle.commencee || salle.joueurs.length < min) return;
           const g = reglagesAccepte(m.reglages, salle.joueurs.length);
           if (!g) { env(conn, { t: 'erreur', raison: 'reglages' }); return; }   // D3
-          if (salle.joueurs.some(j => j.absent || (j.circuit !== undefined && j.circuit !== g.circuit))) { env(conn, { t: 'erreur', raison: 'charge' }); return; }
+          if (salle.joueurs.some(j => j.absent || (exiger ? j.circuit !== g.circuit : j.circuit !== undefined && j.circuit !== g.circuit))) { env(conn, { t: 'erreur', raison: 'charge' }); return; }
           salle.commencee = true;
           const graine = Math.floor(hasard() * 4294967296) >>> 0;
           for (const j of salle.joueurs) j.dernierN = undefined;

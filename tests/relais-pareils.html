@@ -1,0 +1,21 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>relais pareils</title></head><body>
+<pre id="res">pas lancé</pre>
+<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits-officiels-a.js"></script><script src="../circuits-officiels-b.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../sensations.js"></script><script src="../manette.js"></script><script src="../son.js"></script><script src="../effets3d.js"></script><script src="../conseil.js"></script><script src="../qualite.js"></script><script src="../assistance.js"></script><script src="../mesure.js"></script><script src="../regie.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../divisions.js"></script><script src="../decouverte.js"></script><script src="../pilote.js"></script><script src="../deux-joueurs.js"></script><script src="../enligne.js"></script><script src="../tournoi.js"></script><script src="../casque.js"></script><script src="../decors-officiels.js"></script><script src="../decor-public.js"></script><script src="../photo.js"></script><script src="../cache-carte.js"></script><script src="../cache-carte-test.js"></script><script src="../journal.js"></script><script src="../argent.js"></script><script src="../garage.js"></script><script src="../aileron.js"></script><script src="../carte2d.js"></script><script src="../saisons.js"></script><script src="../sponsors.js"></script><script src="../fiche.js"></script><script src="../interview.js"></script><script src="../carriere.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../meteo.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../resume.js"></script><script src="../reseau.js"></script><script src="../messages.js"></script><script src="../commentaire.js"></script><script src="../voix-sons.js"></script><script src="../fantome-pole.js"></script><script src="../foule.js"></script><script src="../decor.js"></script><script src="../stand3d.js"></script><script src="../fantome.js"></script><script src="../defi.js"></script><script src="../touches.js"></script><script src="../clavier.js"></script><script src="../principal.js"></script>
+<script>
+// (tour 57, tâche 3) le relais JS (RESEAU.creerRelais) rejoue le scénario de tests/relais-pareils.py : window.rejouer(scenario, code) -> les messages reçus par chaque client
+window.rejouer = function (scenario) {
+  const relais = RESEAU.creerRelais({ exigerCharge: true, grace: 0 });
+  const clients = [];
+  const recus = [];
+  let code = null;
+  for (const [i, msg] of scenario) {
+    while (clients.length <= i) { const k = clients.length; recus.push([]); clients.push(relais.connecter(m => recus[k].push(JSON.parse(JSON.stringify(m))))); }
+    const m = JSON.parse(JSON.stringify(msg));
+    if (m.code === '$CODE') m.code = code;
+    if (m.t === 'creer' || m.t === 'rejoindre' || m.t === 'quitter' || true) clients[i].recevoir(m);
+    if (code === null) { const s = recus[i].find(x => x.t === 'salle'); if (s) code = s.code; }
+    if (m.t === '$fermer') clients[i].fermer();
+  }
+  return { code, recus };
+};
+</script></body></html>

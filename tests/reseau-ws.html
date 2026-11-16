@@ -9,7 +9,7 @@ window.S = { salle: null, joueurs: [], partie: null, fin: null, cmdsRecues: 0, c
 window.jouer = function (url, nom, code, options) {
   const o = options || {};
   REGLAGES.EN_LIGNE = true; REGLAGES.EN_LIGNE_URL = url;
-  const r = window.r = RESEAU.client({ transport: 'websocket', url, version: REGLAGES.EN_LIGNE_VERSION + '-' + EN_LIGNE.version().h })   // (D4) la version annoncée : celle du jeu + l'empreinte des réglages de course;
+  const r = window.r = RESEAU.client({ transport: 'websocket', url, circuit: 'test', version: REGLAGES.EN_LIGNE_VERSION + '-' + EN_LIGNE.version().h })   // (D4) la version annoncée : celle du jeu + l'empreinte des réglages de course;
   r.sur('salle', d => { S.salle = d; });
   r.sur('joueurs', d => { S.joueurs = d.liste; });
   r.sur('refus', d => { S.refus = d.raison; });
