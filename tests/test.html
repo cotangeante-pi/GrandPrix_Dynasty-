@@ -3813,7 +3813,7 @@ t('drapeaux : majMessages éteint le bandeau du drapeau (INTERFACE.majDrapeau(nu
     js[1].c.rejoindre; const x=nouveau(m,'bleu');x.c.rejoindre(js[0].c.code,'rouge-3');pomper(m);v(x.c.enSalle()&&x.c.nom==='rouge-5','un nom pris avec suffixe : le suivant libre ('+x.c.nom+')');});
   t('réseau : les choix des écrans (enligne-ecran.js) sont tous valides pour EN_LIGNE.reglagesValides et pour le relais (circuit, tours, météo, IA)', ()=>{
     const R=REGLAGES,circuits=R.EN_LIGNE_CIRCUITS_CHOIX.length?R.EN_LIGNE_CIRCUITS_CHOIX:Object.keys(CIRCUITS);let n=0;
-    for(const circuit of circuits)for(const tours of R.EN_LIGNE_TOURS_CHOIX)for(const meteo of R.EN_LIGNE_METEO_CHOIX)for(const nbIA of R.EN_LIGNE_IA_CHOIX)for(const humains of [2,3,8]){
+    for(const circuit of circuits)for(const tours of R.EN_LIGNE_TOURS_CHOIX)for(const meteo of R.EN_LIGNE_METEOS)for(const nbIA of R.EN_LIGNE_IA_CHOIX)for(const humains of [2,3,8]){
       if(nbIA+humains>R.EN_LIGNE_JOUEURS_MAX)continue;   // les écrans ne proposent jamais plus de EN_LIGNE_JOUEURS_MAX voitures
       const g={circuit,tours,meteo,nbIA},c=EN_LIGNE.reglagesValides(g,humains);
       v(c.circuit===circuit&&c.tours===tours&&c.meteo===meteo&&c.nbIA===nbIA,'corrigé : '+JSON.stringify(g)+' → '+JSON.stringify(c));
