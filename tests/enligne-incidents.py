@@ -115,13 +115,16 @@ def incident_echap_pub(b):
 def incident_pub_podium(b):
     nom = 'pub au podium'
     ctx, (p1, p2), erreurs = deux_pages(b, nom)
-    for _ in range(4000):
-        avancer([p1, p2], 2)
+    t0 = time.monotonic()
+    while time.monotonic() - t0 < 240:   # (comme tests/enligne-course.py : de grosses tranches, une page puis l'autre)
+        avancer([p1, p2], 24)
         if all(pg.evaluate('() => JEU.ecran') in ('podium', 'resultats') for pg in (p1, p2)): break
+        time.sleep(0.02)
+    diag = [pg.evaluate('() => { const e = ENLIGNE_PAGE.etat; return [JEU.ecran, e.partie && e.partie.n, e.partie && e.partie.attente, e.sortie, e.statut]; }') for pg in (p1, p2)]
     p1.evaluate(FAUX_POKI)   # (posé après le chargement : sdk.js relit window.PokiSDK à chaque appel)
     p1.evaluate(FAUX_POKI)
     pub = p1.evaluate('() => new Promise(r => SDK.pubEntreCourses(() => r(window.__pub), () => {}))')
-    dire(pub == 1, nom + ' : hors course (podium), la pub reste permise (Poki la demande une fois)', 'pub=%r ecran=%s' % (pub, [pg.evaluate('() => [JEU.ecran, JEU.enligne, SDK.pubEnCours, SDK.present]') for pg in (p1, p2)]))
+    dire(pub == 1, nom + ' : hors course (podium), la pub reste permise (Poki la demande une fois)', 'pub=%r diag=%s' % (pub, diag))
     ctx.close()
 
 def incident_lent(b):
