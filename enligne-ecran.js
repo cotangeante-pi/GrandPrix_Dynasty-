@@ -277,6 +277,8 @@ const ENLIGNE_ECRAN = (function () {
     else if (e === 'enligneRejoindre') { dire('enligneRejoindreMessage', ''); $('enligneCode').value = ''; majRejoindre(); if (!window.matchMedia('(pointer: coarse)').matches) $('enligneCode').focus(); }
     else majSalle();
   }
+  // (T57) le relais refuse un « lancer » ou un autre ordre ({t:'erreur', raison}) : le message dans la salle (aucun texte pour une raison inconnue : on n'invente rien)
+  api.erreur = function (raison) { const t = texte('enligneErreur_' + String(raison).replace(/-/g, '_')); if (t && t !== 'enligneErreur_' + String(raison).replace(/-/g, '_')) dirNote(t); return !!t; };
   api.ouvrir = function () { remiseAZero(); aller('enligne'); };
   // (T7b) la page s'est rechargée sur le bon circuit : on se rattache à la même salle avec le jeton gardé (code, nom, jeton : reseau.js, RESEAU.session)
   // (T7) la course est finie : on revient à la salle d'attente (la même connexion, les « prêt » à faux) ; sans connexion, au menu
