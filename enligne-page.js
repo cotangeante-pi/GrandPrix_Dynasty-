@@ -15,7 +15,7 @@
 // En BroadcastChannel, la page de l'hôte est le relais : elle ne se recharge pas (l'hôte n'y propose que le circuit de sa page).
 //
 // Les paramètres de l'adresse : enlignecourse=menu|reprise|hote|CODE, canal=<nom du BroadcastChannel>, joueurs=N (l'hôte attend N joueurs), tours=N, ia=N,
-// nom=<l'id d'une couleur : bleu, rouge…>, robot=1 (le robot d'essai conduit), transport=diffusion|websocket|memoire.
+// nom=<l'id d'une couleur : bleu, rouge…>, robot=1 (le robot d'essai conduit), conduite=ia (l'IA de la course conduit ma voiture : tests/enligne-course.py ia), transport=diffusion|websocket|memoire.
 const ENLIGNE_PAGE = (function () {
   const R = REGLAGES;
   const etat = { actif: false, client: null, role: null, partie: null, depart: null, tampon: [], joueurs: [], code: null, erreur: null, statut: '', attendus: 2, lance: false, termine: false, noms: new Map(), attenteDepuis: null, fond: null, fondT: 0, sortie: null };
@@ -137,7 +137,7 @@ const ENLIGNE_PAGE = (function () {
     if (!c || !c.code || !c.jeton) return false;
     RESEAU.session.ecrire(c, { circuit });
     const p = new URLSearchParams({ enlignecourse: 'reprise', circuit });
-    for (const k of ['canal', 'transport', 'lang', 'robot', 'tours', 'ia']) if (PARAMETRES.get(k)) p.set(k, PARAMETRES.get(k));
+    for (const k of ['canal', 'transport', 'lang', 'robot', 'conduite', 'tours', 'ia']) if (PARAMETRES.get(k)) p.set(k, PARAMETRES.get(k));
     location.href = location.pathname + '?' + p.toString();   // (jamais c.fermer() : un « quitter » ferait perdre la place ; la connexion tombe, la grâce la garde)
     return true;
   }
@@ -347,10 +347,23 @@ const ENLIGNE_PAGE = (function () {
   function pas() {
     const p = etat.partie;
     if (!p || JEU.ecran !== 'course' || etat.sortie) return;   // (au podium, la course ne bouge plus ; la pause n'existe pas en ligne : les autres nous attendraient)
-    const moi = p.moi, cmd = JEU.robot ? commandeRobot(moi) : JEU.cibles;
+    const moi = p.moi, cmd = JEU.robot ? commandeRobot(moi) : conduiteIA() ? commandeIA(p, moi) : JEU.cibles;
     p.local = { gaz: cmd.gaz, frein: cmd.frein, direction: cmd.direction, remise: !!JEU.remettre };
     JEU.remettre = false;
     if (p.avancer(1)) enregistrerPas();
+  }
+
+  // l'IA de la course conduit ma voiture (?conduite=ia, pour les tests) : le pilote neutre d'ia.js (sans hasard : rien ne touche à la suite tirée), qui regarde les
+  // autres voitures comme une IA ; seules les commandes qui en sortent voyagent, comme celles d'un humain. Avant la 1re position sur la piste : rien.
+  const conduiteIA = () => PARAMETRES.get('conduite') === 'ia';
+  function commandeIA(p, moi) {
+    const c = moi.course, e = p.e;
+    if (!courseAutorise(c)) { const d = c.depart; return { gaz: d && d.extinction !== null ? 1 : 0, frein: 0, direction: 0 }; }
+    if (!moi.v.piste) return { gaz: 0, frein: 0, direction: 0 };
+    if (!etat.piloteIA || etat.piloteIA.partie !== p) etat.piloteIA = { partie: p, pilote: creerPilote(e.carte) };
+    const enCourse = e.pilotes.filter(q => q.arrivee === null && !q.abandon);
+    const vues = voituresVues(moi.v, enCourse.map(q => q.v), e.circuit);
+    return piloterIA(etat.piloteIA.pilote, moi.v, vues, R.PAS_PHYSIQUE);
   }
 
   // le robot d'essai (?robot=1) : gaz tenu à l'extinction des feux, ensuite la ligne du milieu

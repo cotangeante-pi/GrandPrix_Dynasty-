@@ -34,7 +34,7 @@ def attendre(pg, expr, ms=30000):
         time.sleep(0.1)
     raise TimeoutError('attendre : %s (%s)' % (expr[:90], derniere))
 
-def course(b, nom, ia, joueurs=2, tours=1):
+def course(b, nom, ia, joueurs=2, tours=1, conduite=False):
     ctx = b.new_context(viewport={'width': 960, 'height': 600})
     erreurs = []
     canal = 'essai-%d-%d' % (os.getpid(), time.time())
@@ -44,8 +44,9 @@ def course(b, nom, ia, joueurs=2, tours=1):
         pg.on('pageerror', lambda e, i=i: erreurs.append('page %d : %s' % (i, e)))
         pg.on('console', lambda m, i=i: erreurs.append('console %d : %s' % (i, m.text)) if m.type in ('error', 'warning') else None)
         pg.add_init_script("addEventListener('beforeunload', () => { try { const e = ENLIGNE_PAGE.etat; sessionStorage.setItem('dbg', JSON.stringify({ sortie: e.sortie, termine: e.termine, fin: e.partie && e.partie.fin, ecran: JEU.ecran, n: e.partie && e.partie.n, statut: e.statut })); } catch (x) {} })")
+        if conduite: pg.add_init_script("addEventListener('DOMContentLoaded', () => { REGLAGES.EN_LIGNE_ATTENTE_MAX_MS = 0; REGLAGES.EN_LIGNE_SILENCE_MS = 600000; })")   # (la 1re décision de l'IA est longue sur un Mac chargé : avant que le test ait la main, l'autre page abandonnerait)
         pages.append(pg)
-    base = 'file://' + RACINE + '/index.html?circuit=test&robot=1&tours=%d&ia=%d&canal=%s&joueurs=%d' % (tours, ia, canal, joueurs)
+    base = 'file://' + RACINE + '/index.html?circuit=test&%s&tours=%d&ia=%d&canal=%s&joueurs=%d' % ('conduite=ia' if conduite else 'robot=1', tours, ia, canal, joueurs)
     pages[0].goto(base + '&enlignecourse=hote&nom=bleu', wait_until='domcontentloaded', timeout=120000)
     attendre(pages[0], '() => window.__enligne && window.__enligne.code', 30000)
     code = pages[0].evaluate('() => window.__enligne.code')
@@ -55,19 +56,33 @@ def course(b, nom, ia, joueurs=2, tours=1):
     for pg in pages:
         attendre(pg, '() => window.__enligne && window.__enligne.partie', 60000)
     dire(True, nom + ' : la course part sur les %d pages' % joueurs)
-    for pg in pages: pg.evaluate('() => { REGLAGES.EN_LIGNE_ATTENTE_MAX_MS = 0; }')   # (le test fait avancer une page puis l'autre à la main : sans cela l'abandon « connexion trop lente » partirait ; tests/enligne-incidents.py le teste)
+    try:
+        for pg in pages: pg.evaluate('() => { REGLAGES.EN_LIGNE_ATTENTE_MAX_MS = 0; REGLAGES.EN_LIGNE_SILENCE_MS = 600000; }')   # (le test fait avancer une page puis l'autre à la main : sans cela l'abandon « connexion trop lente » ou « silence » partirait ; tests/enligne-incidents.py le teste)
+    except Exception:
+        print('DIAG', [p_.url[-120:] for p_ in pages], [p_.evaluate('() => sessionStorage.getItem("dbg")') for p_ in pages], erreurs[:6], flush=True); raise
     t0 = time.monotonic(); resumes = None
     while time.monotonic() - t0 < 700:
         try: resumes = [pg.evaluate('() => { if (JEU.ecran === "course") BOUCLE.simuler(24); return ENLIGNE_PAGE.resume(); }') for pg in pages]
         except Exception as e:
             print('DIAG', [p_.url[-120:] for p_ in pages], [p_.evaluate('() => sessionStorage.getItem("dbg")') for p_ in pages], erreurs[:6], str(e)[:200], flush=True); raise
+        if any(r is None for r in resumes):
+            print('DIAG partie perdue', [p_.url[-100:] for p_ in pages], [p_.evaluate('() => sessionStorage.getItem("dbg")') for p_ in pages], erreurs[:6], flush=True); break
         if all(r['ecran'] in ('podium', 'resultats') for r in resumes): break
         if any(r['desynchro'] for r in resumes): break
         time.sleep(0.02)
+    if any(r is None for r in resumes): dire(False, nom + ' : une page a quitté la course'); ctx.close(); return
     dire(all(r['ecran'] in ('podium', 'resultats') for r in resumes), nom + ' : toutes les pages arrivent au podium (%.0f s, pas %s)' % (time.monotonic() - t0, [r['n'] for r in resumes]), [r['ecran'] for r in resumes])
     dire(not any(r['desynchro'] for r in resumes), nom + ' : aucune désynchro', [r['desynchro'] for r in resumes])
     dire(all(r['final'] is not None for r in resumes) and all(r['final'] == resumes[0]['final'] for r in resumes), nom + ' : le même classement final partout', [r['final'] for r in resumes])
     dire(all(r['arrivees'] == resumes[0]['arrivees'] for r in resumes), nom + ' : les mêmes temps d\'arrivée au bit près', [r['arrivees'] for r in resumes])
+    if conduite:
+        # (tour 58, C) l'IA a vraiment conduit : les deux voitures des joueurs ont fini (une arrivée chacune), pas une voiture immobile ; le podium est le même
+        humains = [x for x in (resumes[0]['final'] or []) if x[0] >= ia]
+        dire(len(humains) == joueurs and all(x[2] is not None and x[2] > 0 for x in humains), nom + ' : les %d voitures conduites par l\'IA ont fini la course' % joueurs, humains)
+        dire(all(r['arrivees'][k] is not None for r in resumes for k in range(ia, ia + joueurs)), nom + ' : une arrivée pour chaque voiture conduite', [r['arrivees'] for r in resumes])
+        dire(all(r['empreinte'] == resumes[0]['empreinte'] for r in resumes), nom + ' : la même empreinte de contrôle des deux côtés', [r['empreinte'] for r in resumes])
+        podiums = [pg.evaluate('() => JEU.final.slice(0, 3).map(x => x.k)') for pg in pages]
+        dire(all(x == podiums[0] for x in podiums), nom + ' : le même podium', podiums)
     if resumes[0]['final']: print('   classement : ' + ' '.join('P%d=k%d' % (x[1], x[0]) for x in resumes[0]['final']))
     dire(not erreurs, nom + ' : console vide', erreurs[:3])
     ctx.close()
@@ -222,8 +237,11 @@ with sync_playwright() as p:
         if mode == 'ecrans': course_ecrans(b)
         elif mode == 'tactile': tactile(b, p); tactile(b, p, True)
         else:
-            if mode != 'ia': course(b, 'deux joueurs, 0 IA', 0)
-            if mode in ('', 'ia'): course(b, 'deux joueurs, 2 IA', 2)
+            if mode == 'ia': course(b, 'deux clients conduits par l\'IA, 2 IA', 2, tours=3, conduite=True)   # (tour 58, C) la course entière : 3 tours
+            else:
+                course(b, 'deux joueurs, 0 IA', 0)
+                if mode == '': course(b, 'deux joueurs, 2 IA', 2)
+            if mode == 'court': course(b, 'deux clients conduits par l\'IA (1 tour)', 2, tours=1, conduite=True)   # (tour 58, C ; la course entière : `ia`)
             if mode in ('', 'court'): tactile(b, p); tactile(b, p, True)
             if mode in ('', 'court'): course_ecrans(b)   # (salle, rechargement de l'invité, 2 courses : dans les annexes de GitHub ; sur le Mac, `ecrans` seul)
     finally:
