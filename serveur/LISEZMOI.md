@@ -38,8 +38,8 @@ Client vers serveur :
 | `{t:'quitter'}` | quitte la salle, la connexion reste utilisable |
 | `{t:'ping', h}` | |
 
-Serveur vers client : `{t:'salle', code, toi, hote, jeton}` (jeton aléatoire, à garder pour recharger la page), `{t:'refus', raison}` (`inconnue`, `pleine`, `commencee`, `version`, `nom`),
-`{t:'joueurs', liste:[{id, nom, pret, hote, circuit, recharge}]}`, `{t:'depart', reglages, graine, ordre:[ids]}` (graine entière de 32 bits tirée par le serveur ;
+Serveur vers client : `{t:'salle', code, toi, hote, jeton, nom}` (jeton aléatoire, à garder pour recharger la page), `{t:'refus', raison}` (`inconnue`, `pleine`, `commencee`, `version`, `nom`),
+`{t:'joueurs', liste:[{id, nom, pret, hote, circuit?, absent?}]}`, `{t:'depart', reglages, graine, ordre:[ids]}` (graine entière de 32 bits tirée par le serveur ;
 `ordre` = les ids mélangés par le serveur), `{t:'cmd', de, n, c}`, `{t:'controle', de, n, h}`, `{t:'emote', de, i}`, `{t:'parti', id}`,
 `{t:'nouvel-hote', id}`, `{t:'pong', h}`, `{t:'reglages', reglages}`, `{t:'retour'}`.
 
@@ -58,7 +58,7 @@ Un ajout du relais, hors du protocole du Chef (un client peut l'ignorer) : `{t:'
   (le surplus est jeté) ; 200 messages invalides (JSON faux, trame binaire, type inconnu, hors salle) et la connexion est coupée (1008) ;
   12 refus et coupé (1008) ; 10 s pour créer ou rejoindre une salle sinon coupé (1008) ; 24 connexions par adresse (1013) ; 500 salles ;
   un client trop lent (2000 messages en attente) est coupé (1013).
-- Grâce (changer de circuit = recharger la page) : avant le départ, un joueur dont la connexion tombe reste 20 s dans la salle, marqué `recharge: true`, sans `parti` ni nouvel hôte ; il revient avec son jeton (même id, même rôle, `circuit` à `null` jusqu'à son `charge`). Passé ce délai : `parti` (et `nouvel-hote` si c'était l'hôte). Après le départ, pas de grâce : `parti` tout de suite. `{t:'quitter'}` part sans grâce. Une salle dont tous les joueurs attendent leur retour disparaît à la fin de la grâce.
+- Grâce (changer de circuit = recharger la page) : avant le départ, un joueur dont la connexion tombe reste 20 s dans la salle, marqué `absent: true`, sans `parti` ni nouvel hôte ; il revient avec son jeton (même id, même rôle, `circuit` absent jusqu'à son `charge`). Passé ce délai : `parti` (et `nouvel-hote` si c'était l'hôte). Après le départ, pas de grâce : `parti` tout de suite. `{t:'quitter'}` part sans grâce. Une salle dont tous les joueurs attendent leur retour disparaît à la fin de la grâce.
 - Expiration : une salle en attente muette 30 minutes, ou commencée muette 2 heures, expire : ses joueurs sont coupés (1001).
 - Les commandes ne sont relayées qu'après le départ ; les clients n'ont pas de droit sur les autres (le serveur remplit `de`).
 - Garde-fous contre la triche simple (T9, D5) : `cmd` = `{n, c}` avec `c` un tableau de 1 à 128 entiers de 0 à 16383 (14 bits) et `n` un entier qui ne revient jamais en arrière (un paquet qui recouvre le précédent est jeté) ; personne ne peut avoir envoyé plus de 240 pas (2 s) au-delà du plus en retard des autres (le lockstep attend le plus lent) ; un joueur parti ne compte plus. `controle` = `{n, h}` avec `h` une chaîne de 64 signes au plus et `n` croissant. NaN et Infinity sont refusés. Un message jeté compte comme une faute (200 fautes : connexion coupée, 1008).

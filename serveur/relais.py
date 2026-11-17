@@ -349,9 +349,23 @@ class Relais:
         if self._retour(c, salle, m): return
         raison = self._controle_entree(c, m, salle)
         if not raison and len(salle.joueurs) >= self.cfg.max_joueurs: raison = 'pleine'
-        if not raison and any(j.nom.lower() == m['nom'].strip().lower() for j in salle.joueurs.values()): raison = 'nom'
+        nom = None
+        if not raison:
+            nom = self._nom_libre(salle, m['nom'].strip())
+            if nom is None: raison = 'pleine'      # (comme reseau.js : plus de nom libre dans la salle)
         if raison: return self._refuser(c, raison)
-        self._entrer(c, salle, m['nom'].strip())
+        self._entrer(c, salle, nom)
+
+    def _nom_libre(self, salle, nom):
+        """D1 : la couleur est prise : « rouge-2 » à « rouge-8 » (comme reseau.js ; avec les noms libres, un nom pris est refusé) ; None si rien n'est libre."""
+        pris = {j.nom.lower() for j in salle.joueurs.values()}
+        if nom.lower() not in pris: return nom
+        if self.cfg.noms_libres: return None
+        base = re.sub(r'-[2-8]$', '', nom)
+        if base.lower() not in pris: return base
+        for k in range(2, 9):
+            if '%s-%d' % (base, k) not in pris: return '%s-%d' % (base, k)
+        return None
 
     def _retour(self, c, salle, m):
         """Un joueur qui revient avec son jeton pendant la grâce reprend sa place (même id, même rôle d'hôte) ; vrai si c'était lui."""
@@ -366,7 +380,7 @@ class Relais:
         salle.joueurs[c.id] = c
         salle.activite = time.monotonic()
         if c.minuteur: c.minuteur.cancel(); c.minuteur = None
-        c.envoyer({'t': 'salle', 'code': salle.code, 'toi': c.id, 'hote': salle.hote, 'jeton': c.jeton})
+        c.envoyer({'t': 'salle', 'code': salle.code, 'toi': c.id, 'hote': salle.hote, 'jeton': c.jeton, 'nom': c.nom})
         self._diffuser(salle, self._liste(salle))
         if salle.reglages is not None: c.envoyer({'t': 'reglages', 'reglages': salle.reglages})
         return True
@@ -384,12 +398,18 @@ class Relais:
         if salle.hote is None: salle.hote = c.id
         salle.activite = time.monotonic()
         if c.minuteur: c.minuteur.cancel(); c.minuteur = None
-        c.envoyer({'t': 'salle', 'code': salle.code, 'toi': c.id, 'hote': salle.hote, 'jeton': c.jeton})
+        c.envoyer({'t': 'salle', 'code': salle.code, 'toi': c.id, 'hote': salle.hote, 'jeton': c.jeton, 'nom': c.nom})
         self._diffuser(salle, self._liste(salle))
         if salle.reglages is not None: c.envoyer({'t': 'reglages', 'reglages': salle.reglages})
 
     def _liste(self, salle):
-        return {'t': 'joueurs', 'liste': [{'id': j.id, 'nom': j.nom, 'pret': j.pret, 'hote': j.id == salle.hote, 'circuit': j.circuit, 'recharge': j.absent} for j in salle.joueurs.values()]}
+        liste = []
+        for j in salle.joueurs.values():
+            x = {'id': j.id, 'nom': j.nom, 'pret': j.pret, 'hote': j.id == salle.hote}
+            if j.circuit is not None: x['circuit'] = j.circuit      # (comme reseau.js : « circuit » et « absent » seulement quand ils disent quelque chose)
+            if j.absent: x['absent'] = True
+            liste.append(x)
+        return {'t': 'joueurs', 'liste': liste}
 
     def _pret(self, c, m):
         salle = c.salle
