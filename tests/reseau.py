@@ -2,11 +2,11 @@
 """(tour 57) tests/reseau.html en temps réel : python3 tests/reseau.py
 Les cas BroadcastChannel dépendent de messages entre « onglets » et de minuteurs : sous --virtual-time-budget le minuteur d'attente passe avant la
 réponse du relais (« inconnue » au lieu de « version »). La page tourne donc dans un vrai Chrome, en temps réel, et on lit son résultat.
-Plafond dur : 400 s (tour 58 : la page dure ~180 s sur GitHub ; l ancien plafond de 180 s coupait le processus, code 2)."""
+Plafond dur : 400 s (tour 58 : la vraie cause du rouge « annexes » : un minuteur non daemon gardait le processus 180 s puis sortait en code 2)."""
 import os, sys, threading
 from playwright.sync_api import sync_playwright
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-threading.Timer(400, lambda: os._exit(2)).start()
+_t = threading.Timer(400, lambda: os._exit(2)); _t.daemon = True; _t.start()   # daemon : sans cela le minuteur gardait le processus en vie jusqu'à son terme et le tuait (code 2) même page réussie
 with sync_playwright() as p:
     b = p.chromium.launch(channel='chrome', args=['--allow-file-access-from-files'])
     pg = b.new_page(); pg.set_default_timeout(30000)
