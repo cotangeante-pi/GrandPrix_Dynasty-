@@ -59,6 +59,7 @@ def ecrans(delai=900):   # (tour 48a : 900 s, les 6 pages du nouveau paddock ont
 ANNEXES = ['tests/sdk.html', 'tests/pneus.html', 'tests/enregistreur.html', 'tests/circuits-a.html', 'tests/circuits-b.html', 'tests/textes.html', 'tests/decors.html', 'tests/banc-parle.html']   # (decors : les décors des 12 tracés, Codeur 3 ; banc-parle : les discussions, Codeur 3 ; officiels.html, les IA sur les 12 tracés : une partie à elle)
 ANNEXES.extend(['tests/aides.html', 'tests/tutoriel.html', 'tests/limites.html'])   # les aides au premier usage (aides.js, étape 11b) et le tutoriel guidé (tutoriel.js, étape 11d), Codeur 4
 ANNEXES.append('tests/cout-drapeaux.html')   # le coût des drapeaux sur les 12 circuits (tour 55, T19)
+# (tests/reseau.html : le client réseau, WebSocket (faux), BroadcastChannel, reconnexion (tour 56, T4) : en temps réel, par tests/reseau.py, voir reseau_page)
 ANNEXES.append('tests/drapeaux.html')   # les drapeaux : jaune, bleu, VSC (tour 55, T7)
 ANNEXES.append('tests/carriere-longue.html')   # la carrière entière : 15 saisons, 3 générations, vieilles sauvegardes (tour 55, T1)
 ANNEXES.append('tests/personnalisation.html')   # la personnalisation : livrée, célébration, boutique de skins (tour 48c, Codeur 3)
@@ -74,6 +75,28 @@ def chasse_en(delai=600):
     print(out.strip()); print(f'⏱ tests/chasse-en.py : {time.monotonic() - t0:.0f} s')
     return p.returncode == 0 and '✘' not in out
 
+def enligne_course(delai=600):
+    # (tour 56, T7) une course en ligne de bout en bout : deux pages de la vraie page reliées par un BroadcastChannel, 1 tour, mêmes résultats (tests/enligne-course.py)
+    t0 = time.monotonic()
+    p = subprocess.Popen([sys.executable, os.path.join(RACINE, 'tests', 'enligne-course.py'), 'court'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True)
+    try: out, err = p.communicate(timeout=delai)
+    except subprocess.TimeoutExpired:
+        os.killpg(p.pid, signal.SIGKILL); out, err = p.communicate(); out += f'\n✘ enligne-course.py : plus de {delai} s, arrêté'
+    if 'RESULTAT' not in out: out += '\n✘ enligne-course.py s’est arrêté sans résultat :\n' + (err or '').strip()[-2000:]
+    print(out.strip()); print(f'⏱ tests/enligne-course.py : {time.monotonic() - t0:.0f} s')
+    return p.returncode == 0 and '✘' not in out
+
+def enligne_incidents(delai=840):
+    # (tour 56, T8) les incidents d'une course en ligne : un joueur qui part, onglet caché, Échap, pub, connexion lente, désynchro, connexion perdue (tests/enligne-incidents.py)
+    t0 = time.monotonic()
+    p = subprocess.Popen([sys.executable, os.path.join(RACINE, 'tests', 'enligne-incidents.py')], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True)
+    try: out, err = p.communicate(timeout=delai)
+    except subprocess.TimeoutExpired:
+        os.killpg(p.pid, signal.SIGKILL); out, err = p.communicate(); out += f'\n✘ enligne-incidents.py : plus de {delai} s, arrêté'
+    if 'RESULTAT' not in out: out += '\n✘ enligne-incidents.py s’est arrêté sans résultat :\n' + (err or '').strip()[-2000:]
+    print(out.strip()); print(f'⏱ tests/enligne-incidents.py : {time.monotonic() - t0:.0f} s')
+    return p.returncode == 0 and '✘' not in out
+
 def serveur_relais(delai=300):
     # (tour 56, T3) le serveur relais des batailles en ligne, avec de vrais clients websockets (tests/serveur.py : une trentaine de secondes ; pip install websockets)
     t0 = time.monotonic()
@@ -83,6 +106,28 @@ def serveur_relais(delai=300):
         os.killpg(p.pid, signal.SIGKILL); out, err = p.communicate(); out += f'\n✘ serveur.py : plus de {delai} s, arrêté'
     if 'RESULTAT' not in out: out += '\n✘ serveur.py s’est arrêté sans résultat :\n' + (err or '').strip()[-2000:]
     print(out.strip()); print(f'⏱ tests/serveur.py : {time.monotonic() - t0:.0f} s')
+    return p.returncode == 0 and '✘' not in out
+
+def reseau_ws(delai=420):
+    # (tour 56, T9) le vrai réseau : serveur/relais.py (un vrai processus) et deux pages du jeu par WebSocket (tests/reseau-ws.py : ~20 s sur un Mac libre)
+    t0 = time.monotonic()
+    p = subprocess.Popen([sys.executable, os.path.join(RACINE, 'tests', 'reseau-ws.py')], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True)
+    try: out, err = p.communicate(timeout=delai)
+    except subprocess.TimeoutExpired:
+        os.killpg(p.pid, signal.SIGKILL); out, err = p.communicate(); out += f'\n✘ reseau-ws.py : plus de {delai} s, arrêté'
+    if 'RESULTAT' not in out: out += '\n✘ reseau-ws.py s’est arrêté sans résultat :\n' + (err or '').strip()[-2000:]
+    print(out.strip()); print(f'⏱ tests/reseau-ws.py : {time.monotonic() - t0:.0f} s')
+    return p.returncode == 0 and '✘' not in out
+
+def relais_pareils(delai=200):
+    # (tour 58, B) les deux relais (serveur/relais.py et RESEAU.creerRelais) répondent pareil au même scénario (tests/relais-pareils.py : ~10 s)
+    t0 = time.monotonic()
+    p = subprocess.Popen([sys.executable, os.path.join(RACINE, 'tests', 'relais-pareils.py')], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True)
+    try: out, err = p.communicate(timeout=delai)
+    except subprocess.TimeoutExpired:
+        os.killpg(p.pid, signal.SIGKILL); out, err = p.communicate(); out += f'\n✘ relais-pareils.py : plus de {delai} s, arrêté'
+    if 'RESULTAT' not in out: out += '\n✘ relais-pareils.py s’est arrêté sans résultat :\n' + (err or '').strip()[-2000:]
+    print(out.strip()); print(f'⏱ tests/relais-pareils.py : {time.monotonic() - t0:.0f} s')
     return p.returncode == 0 and '✘' not in out
 
 def jeu_tourne(delai=400):
@@ -96,9 +141,22 @@ def jeu_tourne(delai=400):
     print(out.strip()); print(f'⏱ tests/tourne.py : {time.monotonic() - t0:.0f} s')
     return p.returncode == 0 and '✘' not in out
 
+def reseau_page(delai=450):
+    t0 = time.monotonic()
+    p = subprocess.Popen([sys.executable, os.path.join(RACINE, 'tests', 'reseau.py')], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True)
+    try: out, err = p.communicate(timeout=delai)
+    except subprocess.TimeoutExpired:
+        os.killpg(p.pid, signal.SIGKILL); out, err = p.communicate(); out += f'\n✘ reseau.py : plus de {delai} s, arrêté'
+    if 'RESULTAT' not in out: out += '\n✘ reseau.py s’est arrêté sans résultat :\n' + (err or '').strip()[-1500:]
+    print(out.strip()); print(f'⏱ tests/reseau.html : {time.monotonic() - t0:.0f} s')
+    return p.returncode == 0
+
 def annexes():
     pages = all([serie(p, delai=300 if 'courses' in p else 600 if 'officiels' in p else 120, options=['--virtual-time-budget=5000'] if p.endswith('sdk.html') else []) for p in ANNEXES])
-    return chasse_en() and serveur_relais() and jeu_tourne() and pages
+    # (T57) toutes les annexes tournent, même si l'une échoue (sinon un rouge cache les suivantes : les incidents en ligne n'étaient jamais atteints)
+    # (reseau_ws, tests/reseau-ws.py : la course de bout en bout par WebSocket, dépasse 420 s : hors des annexes, à lancer à la main avec `python3 tests/reseau-ws.py` ; reste du tour 57)
+    resultats = [f() for f in (enligne_course, enligne_incidents, reseau_page, chasse_en, serveur_relais, relais_pareils, jeu_tourne)]
+    return all(resultats) and pages
 
 # les parties de la suite, dans l'ordre : moteur (test.html), courses (courses.html, 30 courses entre IA), ecrans (ecrans.py), annexes
 # le paquet Poki (tests/paquet.py, Codeur 3) : le zip fabriqué, puis le jeu ouvert depuis le zip décompressé (vérifications Poki)

@@ -19,7 +19,7 @@ const ENLIGNE_ECRAN = (function () {
   const hex = c => '#' + c.toString(16).padStart(6, '0');
   let rappels = { aller: () => {}, retour: () => {}, depart: () => {} };
   let transport = null, ecran = 'enligne', code = '', moi = null, hote = false, joueurs = [], note = '', emotes = {}, prochaineEmote = 0;
-  let reglages = null, pretMoi = false, minuterieNote = null, demande = null, rang = 1;   // (demande : la dernière demande de « rejoindre », pour retenter avec -2, -3…)
+  let reglages = null, pretMoi = false, minuterieNote = null, demande = null, rang = 1, repris = false;   // (demande : la dernière demande de « rejoindre », pour retenter avec -2, -3…)
   const api = { fabrique: () => ENLIGNE_FAUX.creer() };
 
   // (D1) le nom sur le fil ne dépend pas de la langue : l'id d'une couleur (« rouge »), suivi de « -2 » à « -8 » si elle est déjà prise dans la salle
@@ -77,7 +77,7 @@ const ENLIGNE_ECRAN = (function () {
     return transport;
   }
   function fermerTransport() { if (transport) { try { transport.fermer(); } catch (e) { /* déjà fermé */ } } transport = null; }
-  function remiseAZero() { demande = null; fermerTransport(); code = ''; moi = null; hote = false; joueurs = []; note = ''; emotes = {}; reglages = null; pretMoi = false; clearTimeout(minuterieNote); }
+  function remiseAZero() { demande = null; repris = false; fermerTransport(); code = ''; moi = null; hote = false; joueurs = []; note = ''; emotes = {}; reglages = null; pretMoi = false; clearTimeout(minuterieNote); }
 
   function creer() {
     if (ecran !== 'enligne') return;
@@ -99,7 +99,7 @@ const ENLIGNE_ECRAN = (function () {
       code = String(m.code || ''); moi = m.toi; hote = m.hote === true || m.hote === m.toi; joueurs = []; pretMoi = false; emotes = {};
       reglages = Object.assign({}, R.EN_LIGNE_REGLAGES_DEFAUT);
       ecran = 'enligneSalle'; rappels.aller('enligneSalle'); majSalle();
-      if (hote) envoyerReglages();   // (l'hôte dit tout de suite son choix : les invités le voient)
+      if (hote && !repris) envoyerReglages();   // (l'hôte dit tout de suite son choix : les invités le voient ; repris : le relais garde son choix et le renvoie)
     } else if (m.t === 'refus') {
       // (D1) couleur déjà prise dans la salle : on retente avec « -2 », « -3 »… jusqu'à « -8 » (la salle est de 8 au plus)
       if (m.raison === 'nom' && demande && ecran === 'enligneRejoindre' && rang < R.EN_LIGNE_JOUEURS_MAX) {
@@ -121,7 +121,7 @@ const ENLIGNE_ECRAN = (function () {
       if (lui) { hote = !!lui.hote; pretMoi = !!lui.pret; }
       majSalle();
     } else if (m.t === 'reglages') {
-      if (!hote && m.reglages && typeof m.reglages === 'object') { for (const x of regles()) if (m.reglages[x.cle] !== undefined && (x.cle === 'nbIA' ? Number.isInteger(m.reglages[x.cle]) : x.valeurs.includes(m.reglages[x.cle]))) reglages[x.cle] = m.reglages[x.cle]; majSalle(); }
+      if ((!hote || repris) && m.reglages && typeof m.reglages === 'object') { for (const x of regles()) if (m.reglages[x.cle] !== undefined && (x.cle === 'nbIA' ? Number.isInteger(m.reglages[x.cle]) : x.valeurs.includes(m.reglages[x.cle]))) reglages[x.cle] = m.reglages[x.cle]; majSalle(); }
     } else if (m.t === 'parti') {
       const j = joueurs.find(x => x.id === m.id);
       if (j) dirNote(texte('enligneParti').replace('{nom}', nomAffiche(j.nom)));
@@ -277,7 +277,21 @@ const ENLIGNE_ECRAN = (function () {
     else if (e === 'enligneRejoindre') { dire('enligneRejoindreMessage', ''); $('enligneCode').value = ''; majRejoindre(); if (!window.matchMedia('(pointer: coarse)').matches) $('enligneCode').focus(); }
     else majSalle();
   }
+  // (T57) le relais refuse un « lancer » ou un autre ordre ({t:'erreur', raison}) : le message dans la salle (aucun texte pour une raison inconnue : on n'invente rien)
+  api.erreur = function (raison) { const t = texte('enligneErreur_' + String(raison).replace(/-/g, '_')); if (t && t !== 'enligneErreur_' + String(raison).replace(/-/g, '_')) dirNote(t); return !!t; };
   api.ouvrir = function () { remiseAZero(); aller('enligne'); };
+  // (T7b) la page s'est rechargée sur le bon circuit : on se rattache à la même salle avec le jeton gardé (code, nom, jeton : reseau.js, RESEAU.session)
+  // (T7) la course est finie : on revient à la salle d'attente (la même connexion, les « prêt » à faux) ; sans connexion, au menu
+  api.retourSalle = function () {
+    if (!transport) { remiseAZero(); aller('enligne'); return; }
+    pretMoi = false; emotes = {}; note = '';
+    aller('enligneSalle');
+  };
+  api.reprendre = function (s) {
+    remiseAZero(); repris = true; aller('enligne');
+    dire('enligneMessage', texte('enligneConnexion'));
+    ouvrirTransport().envoyer({ t: 'rejoindre', code: s.code, nom: s.nom, version: R.EN_LIGNE_VERSION, jeton: s.jeton });
+  };
   api.echap = function () {
     if (ecran === 'enligne' && commentOuvert) { commentOuvert = false; majComment(); return; }
     if (ecran === 'enligneSalle') quitterSalle();

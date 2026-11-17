@@ -90,7 +90,7 @@ const EN_LIGNE = (function () {
       const c = p.course;
       h = melangerNombre(h, c.progression); h = melangerNombre(h, c.temps); h = melangerNombre(h, c.penalites); h = melangerTexte(h, c.etat);
       h = melanger(h, c.tours.length);
-      h = melanger(h, p.arrivee === null ? 0 : 1);
+      h = melanger(h, p.arrivee === null ? (p.abandon ? 2 : 0) : 1);
       if (p.arrivee !== null) h = melangerNombre(h, p.arrivee);
     }
     return h >>> 0;
@@ -214,6 +214,7 @@ const EN_LIGNE = (function () {
   function planMeteo(choix, nomCircuit, graine, nbTours, circuit) {
     const duree = Math.max(1, nbTours) * circuit.longueur / R.METEO_VITESSE_MOYENNE;
     if (choix === 'sec') return { prevision: { type: 'sec', pourcent: 0 }, debut: 0, change: null };
+    if (choix === 'nuageux') return { prevision: { type: 'nuageux', pourcent: 20 }, debut: 0, change: null };   // (les écrans : couvert, sans pluie)
     if (choix === 'pluie') return { prevision: { type: 'pluie', pourcent: 100 }, debut: 0.8, change: null };
     if (choix === 'averse') return { prevision: { type: 'risque', pourcent: 100 }, debut: 0, change: { t: duree / 3, pluie: 0.8 } };
     if (choix === 'eclaircie') return { prevision: { type: 'pluie', pourcent: 100 }, debut: 0.8, change: { t: duree / 3, pluie: 0 } };
@@ -350,6 +351,10 @@ const EN_LIGNE = (function () {
       for (const id of ordre) if (codeDe(id, n) === undefined) manque.push(id);
       if (manque.length) { attente = manque; pasAttendus++; return false; }
       attente = null; pasAttendus = 0;
+      // un joueur parti ABANDONNE au premier pas qui suit sa dernière commande : retiré de la piste (plus de collision, plus vu des IA, du radar ni
+      // dessiné), classé après tout le monde (non classé). Le pas est le même chez tous : on ne peut pas passer le pas dernier + 1 sans savoir
+      // qu'il est parti (codeDe attend sa commande ou « parti »), et le serveur envoie « parti » après sa dernière commande. Arrivé avant : il reste arrivé.
+      for (const [id, dernier] of sortis) { const q = pilotes.get(id); if (n > dernier && q.arrivee === null && !q.abandon) { q.abandon = true; q.abandonPas = n; q.abandonTemps = e.temps; } }
       const cmds = new Map();
       for (const id of ordre) cmds.set(pilotes.get(id), decoder(codeDe(id, n)));
       pasCourseIA(e, PAS, (p, dt) => conduire(e, p, cmds.get(p), dt));
@@ -364,7 +369,7 @@ const EN_LIGNE = (function () {
       // Un joueur parti ne compte comme tel qu'une fois son pas dernier + 1 joué (il faut alors savoir qu'il est parti : la même chose chez tous)
       if (finPas === null) {
         const encore = ordre.filter(id => !(sortis.has(id) && n > sortis.get(id) + 1)).map(id => pilotes.get(id));
-        if (e.pilotes.every(q => q.arrivee !== null) || !encore.length) finPas = n;
+        if (e.pilotes.every(q => q.arrivee !== null || q.abandon) || !encore.length) finPas = n;
         else if (encore.every(q => q.arrivee !== null) && e.temps - Math.max(...encore.map(q => q.arrivee)) >= R.ARRIVEE_ATTENTE_MAX) finPas = n;
       }
       // le ménage : les commandes d'il y a longtemps ne servent plus
@@ -424,7 +429,7 @@ const EN_LIGNE = (function () {
     // tous les humains encore là sont arrivés (ou toutes les voitures)
     partie.finie = function () {
       const encore = ordre.filter(id => !sortis.has(id)).map(id => pilotes.get(id));
-      return encore.length ? encore.every(p => p.arrivee !== null) : e.pilotes.every(p => p.arrivee !== null);
+      return encore.length ? encore.every(p => p.arrivee !== null) : e.pilotes.every(p => p.arrivee !== null || p.abandon);
     };
     partie.empreinte = () => empreinte(e);
     partie.vider = vider;

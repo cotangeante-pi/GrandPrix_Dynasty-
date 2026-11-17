@@ -1517,6 +1517,28 @@ const REGLAGES = {
 
   // le mode ?debug=1
   DEBUG_PERIODE_IPS: 0.5,       // secondes entre deux mises à jour du compteur d'images
+
+  // les batailles en ligne (tour 56 ; rien ne se voit ni ne se connecte tant que EN_LIGNE est faux ; ?enligne=1 l'ouvre)
+  EN_LIGNE_URL: '',             // l'adresse WebSocket du relais (wss://…), vide tant que le propriétaire n'a pas choisi l'hébergement
+  EN_LIGNE_CANAL: 'gpd-en-ligne',   // le nom du BroadcastChannel (deux onglets du même navigateur, sans serveur)
+  EN_LIGNE_GRACE: 20,           // s : un joueur dont la connexion tombe garde sa place (même id, même rôle) et peut se rattacher avec le jeton de sa salle (rechargement sur le bon circuit)
+  EN_LIGNE_JOUEURS_MIN: 2,      // pour lancer une course
+  EN_LIGNE_NOM_MAX: 20,         // lettres d'un nom (noms libres seulement : sinon l'id d'une couleur de EN_LIGNE_COULEURS, avec -2 à -8)
+  EN_LIGNE_TAILLE_MAX: 4096,    // caractères d'un message ; au-delà il est jeté
+  EN_LIGNE_OUVERTURE_MS: 5000,  // attente de l'ouverture d'un WebSocket
+  EN_LIGNE_ATTENTE_MS: 600,     // BroadcastChannel : sans réponse d'une salle après ce temps = « inconnue »
+  EN_LIGNE_RECONNEXIONS: 3,     // essais après une coupure (0 = pas de reconnexion)
+  EN_LIGNE_RECONNEXION_MS: 400, // attente avant le k-ième essai : k × ce temps
+  EN_LIGNE_PING_MS: 2000,       // un ping tous les…
+  EN_LIGNE_ATTENTE_ANNONCE_MS: 1000,   // (T8) attendre les commandes d'un joueur plus longtemps que ça : « On attend … » à l'écran
+  EN_LIGNE_ATTENTE_MAX_MS: 15000,      // (T8) … et plus longtemps que ça : on abandonne (« connexion trop lente »), retour à la salle ; 0 = jamais
+  EN_LIGNE_RETOUR_MS: 4000,            // (T8) le temps de lire le message (connexion perdue, trop lente, désynchro) avant le retour à la salle
+  EN_LIGNE_FOND_MS: 250,               // (T8) onglet caché : la course avance depuis un minuteur de cette période (requestAnimationFrame est coupé) ; 0 = rien (les autres attendraient)
+  EN_LIGNE_FOND_WORKER: true,          // (T57) le tic du minuteur de fond vient d'un Worker dédié (Chrome ne le ralentit pas dans un onglet caché) ; false = setInterval seul (ralenti : les autres attendraient)
+  EN_LIGNE_FOND_PAS_MAX: 2400,         // (T8) pas rattrapés au plus par passage du minuteur de fond (le navigateur ralentit les minuteurs cachés)
+  EN_LIGNE_DELAI_MAX: 120,             // (T8) le délai d'entrée adaptatif choisi par le relais à l'arrivée au départ ne dépasse pas ce nombre de pas
+  EN_LIGNE_DELAI_MARGE: 6,             // (T8) pas de marge ajoutés au temps de trajet mesuré (le relais, serveur/relais.py : Config.delai_marge)
+  EN_LIGNE_SILENCE_MS: 10000,   // rien reçu depuis ce temps = connexion morte (côté client) ; un client muet disparaît de la salle (relais en onglet)
 };
 
 // Les circuits, décrits par morceaux dans l'ordre de la course, la ligne d'arrivée au début du premier :
