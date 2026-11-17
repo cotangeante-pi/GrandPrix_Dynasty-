@@ -62,7 +62,7 @@ const ENLIGNE_PAGE = (function () {
     }
     dire(texte('enl_connexion'));
     preparerCircuit({ circuit: NOM_CIRCUIT });
-    const c = RESEAU.client({ transport: etat.transport, canal: etat.canal, ping: true, circuit: NOM_CIRCUIT, relais: { exigerCharge: true } });
+    const c = RESEAU.client({ transport: etat.transport, canal: etat.canal, ping: true, circuit: NOM_CIRCUIT });
     brancher(c);
     c.ouvrir().then(() => {
       if (etat.role === 'hote') c.creer(etat.nom); else c.rejoindre(etat.code, etat.nom);
@@ -145,7 +145,7 @@ const ENLIGNE_PAGE = (function () {
   // le transport que les écrans de salle utilisent (enligne-ecran.js : { envoyer(msg), sur(f), fermer() }) : le client réseau, ouvert à la première
   // demande (les messages envoyés avant l'ouverture attendent) ; un client qui annonce le circuit de la page à chaque arrivée en salle
   function fabrique() {
-    const c = RESEAU.client({ transport: etat.transport, canal: etat.canal, ping: true, circuit: NOM_CIRCUIT, relais: { exigerCharge: true } });
+    const c = RESEAU.client({ transport: etat.transport, canal: etat.canal, ping: true, circuit: NOM_CIRCUIT });
     const file = [], ecouteurs = [];
     let ouvert = false;
     brancher(c);

@@ -6,7 +6,7 @@ page). Les messages reçus par chaque client doivent être identiques (le code d
 Il faut playwright et websockets. Plafond dur : 3 minutes."""
 import asyncio, json, os, socket, subprocess, sys, threading, time
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-threading.Timer(180, lambda: os._exit(2)).start()
+_t = threading.Timer(180, lambda: os._exit(2)); _t.daemon = True; _t.start()
 V = '1-3735928559'
 RG = {'circuit': 'monzo', 'tours': 2, 'meteo': 'sec', 'nbIA': 1}
 S = [   # (le client, le message) ; « $CODE » = le code de la salle
