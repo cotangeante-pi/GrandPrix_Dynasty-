@@ -389,6 +389,15 @@ const DISCUSSION = (function () {
     const p = ch.pilotes[k];
     if (!p || p.humain) return null;
     const analyse = PARLE.comprendre(txt, noms(ch));
+    // (tour 58) le bavardage d'abord : la vie, les sujets de tous les jours, la réponse à sa question en attente (bavardage.js) ; ce qui
+    // touche la course (un contact, une excuse, laisser passer…) reste ici, comme avant
+    const bav = typeof BAVARDAGE !== 'undefined' ? BAVARDAGE.repondre(ch, k, txt, analyse) : null;
+    if (bav && bav.texte) {
+      const mb = memoire(p);
+      mb.derniere = bav.texte;
+      mb.dernieres = (Array.isArray(mb.dernieres) ? mb.dernieres : []).concat([bav.texte]).slice(-R.DISCUSSION_OUVERTURES);
+      return { analyse, reaction: 'bavardage', reactions: ['bavardage'], raisons: [], effets: {}, faits: {}, texte: bav.texte, sujet: bav.sujet };
+    }
     // (tour 36) la place demandée (« t'as fini combien ? », « where did you finish ? ») : lue sur la phrase mise à plat
     if (analyse.demandePlace === undefined) analyse.demandePlace = /\b(combien|fini|finis|finit|place|position|classe|classee|finish|finished|where did you)\b/.test(PARLE.aplatir(txt));
     const r = raisonner(ch, k, analyse);
@@ -406,6 +415,9 @@ const DISCUSSION = (function () {
         reactions.push(r2.reaction);
       }
     }
+    // (tour 58) il ne comprend pas : il propose un sujet de tous les jours ; au salut, il se souvient de ce que le joueur lui a dit
+    if (typeof BAVARDAGE !== 'undefined' && ['incompris', 'incompris_encore', 'question'].includes(r.reaction)) { const x = BAVARDAGE.relanceIncompris(ch, k); if (x) rep = rep + ' ' + x; }
+    if (typeof BAVARDAGE !== 'undefined' && analyse.acte === 'SALUT' && !['salut_froid'].includes(r.reaction)) { const x = BAVARDAGE.rappelSalut(ch, k); if (x) rep = rep + ' ' + x; }
     const m = memoire(p);
     if (m.derniere && m.derniere === rep) rep = rep + ' ' + texte('dis_encore');   // (jamais tout à fait la même réponse deux fois de suite)
     m.derniere = rep;

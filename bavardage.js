@@ -98,8 +98,8 @@ const BAVARDAGE = (function () {
     ['moiaussi', /\b(moi aussi|moi pareil|pareil|pareil pour moi|me too|same|same here|so do i)\b/],
     ['vraiment', /^\s*(ah bon|ah ouais|vraiment|serieux|serieusement|c est vrai|sans blague|wow|waouh|trop bien|really|for real|no way|seriously|is that true|cool)\s*[?!]*\s*$/],
     ['rire', /^\s*(lol|mdr|ptdr|xd|jpp|haha|ahah|hihi|hehe|lmao|rofl|trop drole|so funny)( lol| mdr)?\s*[!?]*\s*$/],
-    ['oui', /^\s*(oui|ouais|ouai|yes|yeah|yep|yup|ok|okay|ok ok|d accord|bien sur|grave|carrement|exact|exactement|of course|sure|totally|absolutely|si)\s*[!.]*\s*$/],
-    ['non', /^\s*(non|nan|nope|no|pas du tout|jamais|not really|pas vraiment|never|nah)\s*[!.]*\s*$/],
+    ['oui', /^\s*(oui|ouais|ouai|yes|yeah|yep|yup|ok|okay|d accord|bien sur|grave|carrement|exact|exactement|of course|sure|totally|absolutely|si)\b/],
+    ['non', /^\s*(non|nan|nope|no|pas du tout|pas trop|pas vraiment|pas tellement|jamais|not really|not much|never|nah)\b/],
   ];
   // qui la phrase vise : le pilote (« tu », « ton », « you ») ou le joueur qui parle de lui (« je », « mon », « I », « my »)
   const VERS_LUI = /\b(tu|t|te|ton|ta|tes|toi|vous|votre|you|your|u|ur|yours)\b/;
@@ -125,7 +125,7 @@ const BAVARDAGE = (function () {
     let s = String(txt).trim().replace(/[?!.…]+$/g, '').trim();
     s = s.replace(/^(moi,?\s*|bah\s*|ben\s*|euh\s*|hmm\s*|alors\s*)/i, '')
       .replace(/^(j[’']?aime (bien |beaucoup |trop )?|j[’']?adore |je préfère |je prefere |mon (préféré|prefere) c[’']?est |ma (préférée|preferee) c[’']?est |c[’']?est |je dirais |je fais (du |de la |de l[’']|des )?|i (like|love|prefer) |i play |i do |probably |maybe |my favou?rite is |it[’']?s )/i, '')
-      .replace(/^(le |la |les |l[’']|du |de la |des |un |une |the |a |an )/i, '').trim();
+      .trim();
     if (!s || s.length > 28 || s.split(/\s+/).length > 3 || /\d{3,}/.test(s)) return null;
     if (typeof PARLE !== 'undefined' && ['INSULTE', 'MENACE'].includes(PARLE.comprendre(s, []).acte)) return null;
     return s;
@@ -134,6 +134,8 @@ const BAVARDAGE = (function () {
   // --- 3. répondre. repondre(ch, k, txt, analyse) : la réponse { texte, sujet } si c'est du bavardage, sinon null (discussion.js
   // répond alors à la course comme avant).
   const COURSE = ['CONTACT', 'RECLAMATION', 'PASSER', 'PROMESSE', 'BLOQUER', 'MENACE', 'INSULTE', 'EXCUSE', 'PAIX', 'DUEL', 'MERCI', 'COMPLIMENT', 'ADIEU', 'CONTRAT'];
+  // ceux-là cèdent à une vraie question de tous les jours (« qui est premier au championnat ? » n'est pas un compliment)
+  const COURSE_DOUX = ['MERCI', 'COMPLIMENT', 'ADIEU', 'DUEL'];
   const ATTENTES = ['age', 'animal', 'animalnom', 'hobby', 'sport', 'plat', 'musique', 'film', 'jeu', 'ecole', 'circuitfav', 'reve', 'couleur', 'pronostic', 'origine'];
   // les sujets où il pose une question en retour (bav_q_<sujet>), et l'attente qu'elle crée
   const RETOUR = { age: 'age', animal: 'animal', hobby: 'hobby', sport: 'sport', plat: 'plat', musique: 'musique', film: 'film', jeu: 'jeu', ecole: 'ecole',
@@ -147,7 +149,9 @@ const BAVARDAGE = (function () {
     if (!p || p.humain) return null;
     const b = memoire(p), l = lire(txt), a = analyse || { acte: 'INCONNU' };
     if (b.gp !== cleGP(ch)) { b.gp = cleGP(ch); b.ici = 0; }
-    const fort = COURSE.includes(a.acte) && (a.score === undefined || a.score >= 0.5);
+    const fort = COURSE.includes(a.acte) && (a.score === undefined || a.score >= 0.5) && !(l.sujet && l.question && COURSE_DOUX.includes(a.acte));
+    // un autre pilote nommé avec « tu penses quoi de… » : son avis sur lui (d'après le vrai caractère de l'autre)
+    if (a.cible !== undefined && a.cible !== null && a.cible !== k && ch.pilotes[a.cible] && /\b(pense|penses|avis|think|opinion|aimes|like|connais|know|parle moi de|tell me about)\b/.test(l.t)) l.sujet = 'avispilote';
     // ce qui revient au bavardage : un sujet de la vie (sauf si la phrase dit d'abord quelque chose de la course), une réponse à sa
     // question en attente, un petit mot juste après du bavardage, ce que le joueur dit de lui
     let quoi = null;
@@ -177,7 +181,7 @@ const BAVARDAGE = (function () {
       const r = petitMot(l.petit, ctx, b, dire, alea);
       if (r) { morceaux.push(r.texte); sujet = r.sujet; }
     }
-    if (l.sujet && (quoi === 'sujet' || (quoi !== 'petit' && !morceaux.length) || (l.petit === 'etoi'))) {
+    if (l.sujet && l.sujet !== sujet && (quoi === 'sujet' || (quoi !== 'petit' && !morceaux.length) || (l.petit === 'etoi'))) {
       // le joueur parle de lui sur ce sujet (« moi j'adore le foot ») ou demande au pilote (« tu fais du sport ? »)
       const deLui = l.deMoi && !l.versLui && !l.question;
       if (deLui && liste('bav_j_' + l.sujet).length) {
@@ -204,7 +208,8 @@ const BAVARDAGE = (function () {
     return fin({ texte: morceaux.filter(Boolean).join(' '), sujet: sujet || 'petit' }, b);
   }
   function fin(r, b) { b.recents = b.recents.concat([r.texte.slice(0, 24)]).slice(-R.BAVARDAGE_MEMOIRE); return r; }
-  const minuscule = s => s ? s.charAt(0).toLowerCase() + s.slice(1) : s;
+  // (« I » reste en capitale en anglais)
+  const minuscule = s => s && !/^I\b|^I[’']/.test(s) ? s.charAt(0).toLowerCase() + s.slice(1) : s;
 
   // le contexte de la réponse : sa vie, la saison, son humeur envers le joueur
   function contexte(ch, k, p, b) {
@@ -267,6 +272,7 @@ const BAVARDAGE = (function () {
       case 'coequipier': return ctx.co ? (ctx.co.humain ? dire('bav_coequipier_toi') : dire('bav_coequipier')) : dire('bav_coequipier');
       case 'souvenir': return dire(ctx.s.victoires ? 'bav_souvenir_victoire' : ctx.s.podiums ? 'bav_souvenir_podium' : 'bav_souvenir');
       case 'conseil': return conseil(ctx, dire, a);
+      case 'avispilote': return a && a.cible !== undefined && a.cible !== null ? avisPilote(ctx, a.cible, dire) : dire('bav_vague');
       case 'circuitfav': return dire('bav_circuitfav');
       default: {
         const cle = 'bav_' + s;
@@ -294,6 +300,8 @@ const BAVARDAGE = (function () {
   // la suite d'une question qu'il a posée
   function suiteAttente(att, l, txt, ctx, b, dire, alea) {
     if (!att) return null;
+    // « pourquoi ? », « ah bon ? », « lol » ne répondent pas à la question : elle reste en attente
+    if (['pourquoi', 'vraiment', 'rire'].includes(l.petit)) { b.attente = att; return null; }
     const oui = l.petit === 'oui' || l.petit === 'moiaussi', non = l.petit === 'non' || l.petit === 'moinonplus';
     if (l.petit === 'etoi') return { texte: sujetLui(att === 'animalnom' ? 'animal' : att, ctx, b, dire, alea), sujet: att };
     if (att === 'animal') {
@@ -341,12 +349,12 @@ const BAVARDAGE = (function () {
   }
   // relancer la conversation : une question sur un sujet pas encore parlé, ou un souvenir de ce que le joueur a dit
   function relance(ctx, b, dire, alea) {
-    if (b.j.animalNom && alea() < 0.35) return dire('bav_rappel_animal');
+    if (b.j.animalNom && b.rappel !== cleGP(ctx.ch) && alea() < 0.35) { b.rappel = cleGP(ctx.ch); return dire('bav_rappel_animal'); }
     const libres = Object.keys(RETOUR).map(s => RETOUR[s]).filter((s, i, t) => t.indexOf(s) === i && !b.demandes.includes(s) && !b.j[s] && liste('bav_q_' + s).length);
     if (!libres.length) return '';
     const s = libres[Math.floor(alea() * libres.length)];
     b.attente = s; b.demandes = b.demandes.concat([s]).slice(-12);
-    return dire('bav_relance') + ' ' + minuscule(dire('bav_q_' + s));
+    return dire('bav_relance') + ' ' + dire('bav_q_' + s);
   }
   // une phrase à ajouter quand discussion.js ne comprend pas : il propose un sujet (et attend la réponse)
   function relanceIncompris(ch, k) {
