@@ -31,6 +31,7 @@ const BAVARDAGE = (function () {
     const cal = R.CALENDRIER_CIRCUITS;
     v.circuitFav = cal[Math.floor(a() * cal.length)];
     v.circuitDur = cal[(cal.indexOf(v.circuitFav) + 1 + Math.floor(a() * (cal.length - 1))) % cal.length];
+    v.vacances = Math.floor(a() * (liste('bav_l_vacances').length || 1));
     return v;
   }
   const de = (cle, i) => { const l = liste('bav_l_' + cle); return l.length ? l[i % l.length] : ''; };
@@ -64,7 +65,7 @@ const BAVARDAGE = (function () {
     ['veuxpilote', /\b((je|j) veux (etre|devenir|faire) (pilote|comme toi|champion|pilote de course)|je serai pilote|i (want|wanna) (to )?(be|become) (a )?(driver|racer|champion|like you)|i m gonna be a (driver|racer))\b/],
     ['secret', /\b(secret|confidence|personne ne sait|nobody knows)\b/],
     ['famille', /\b(freres?|soeurs?|famille|tes parents|ta mere|ton pere|ta maman|ton papa|brothers?|sisters?|siblings|family|your (mom|mum|dad|parents)|ur (mom|mum|dad|parents))\b/],
-    ['animal', /\b(animal|animaux|chiens?|chats?|hamster|lapin|poisson rouge|tortue|perroquet|pets?|dogs?|cats?|rabbit|hamster|goldfish)\b/],
+    ['animal', /\b(animal|animaux|chiens?|chats?|hamster|lapin|poissons?|tortue|tortoises?|turtles?|parrots?|perroquet|pets?|dogs?|cats?|rabbit|hamster|goldfish)\b/],
     ['debut', /\b(comment (tu as|t as|as tu) commence|depuis quand tu (cours|pilotes|fais de la course)|ton premier kart|t as commence comment|tu as commence comment|karting|how did (you|u) (start|begin|get into)|first kart|when did (you|u) start)\b/],
     ['reve', /\b(ton reve|tu reves|ton plus grand reve|ton but dans la vie|your dream|ur dream|dream of|your goal|ur goal)\b/],
     ['peur', /\b(peur|stresses?|stresse|angoisse|trac|scared|afraid|fear|nervous|anxious)\b/],
@@ -83,13 +84,14 @@ const BAVARDAGE = (function () {
     ['origine', /\b(tu viens? d ?ou|vous venez d ou|d ou tu viens|tu es d ou|t es d ou|ton pays|ou tu habites|tu habites ou|tu vis ou|where are you from|where r u from|where you from|where (do )?(you|u|r u) (live|from)|where r u from|where do you live|your country|ur country)\b/],
     ['ecole', /\b(l ?ecole|ecole|college|lycee|etudes|devoirs|maitresse|prof|matiere|school|homework|teacher|subject|maths?)\b/],
     ['jeu', /\b(jeux? video|console|manette de jeu|fortnite|minecraft|roblox|video ?games?|gaming|gamer|play games)\b/],
-    ['musique', /\b(musique|chansons?|tu ecoutes quoi|chanteur|chanteuse|rap|rock|music|songs?|singer|listen to|playlist)\b/],
-    ['film', /\b(films?|series?|netflix|dessins? animes?|cinema|movies?|tv shows?|anime|cartoons?)\b/],
-    ['plat', /\b(manger|tu manges?|tu bouffes?|plat prefere|nourriture|bouffe|repas|dessert|pizza|burger|pates|frites|gateau|food|eat|meal|dish|dessert|snack)\b/],
+    ['musique', /\b(musique|chansons?|tu ecoutes quoi|chanteur|chanteuse|rap|rock|jazz|reggae|electro|pop|metal|music|songs?|singer|listen to|playlist)\b/],
+    ['film', /\b(films?|series?|netflix|dessins? animes?|cinema|movies?|tv shows?|anime|cartoons?|comedies|comedie|comedy|documentaires?|documentaries|superhero|super heros|pirates?|horreur|horror)\b/],
+    ['plat', /\b(manger|tu manges?|tu bouffes?|plat prefere|nourriture|bouffe|repas|dessert|pizza|burgers?|pates|frites|gateau|tacos?|sushis?|lasagnes?|couscous|raclette|crepes?|spaghetti|pancakes|chips|food|eat|meal|dish|dessert|snack)\b/],
     ['couleur', /\b(couleur|colou?r)\b/],
-    ['sport', /\b(sports?|foot|football|basket|tennis|rugby|natation|soccer|swimming|gym|muscu)\b/],
-    ['hobby', /\b(hobby|hobbies|passions?|loisirs?|a part la course|en dehors de la course|en dehors des courses|quand tu cours pas|temps libre|tu aimes faire quoi|free time|for fun|outside (of )?racing|besides racing|when you re not racing)\b/],
-    ['weekend', /\b(week ?end|vacances|ce soir|demain|holidays?|vacation|tonight|tomorrow)\b/],
+    ['sport', /\b(sports?|foot|football|basket|basketball|tennis|rugby|natation|soccer|swimming|gym|muscu|escalade|ski|skate|boxe|boxing|climbing|skiing|skateboard|skateboarding)\b/],
+    ['hobby', /\b(guitare|echecs|chess|peche|fishing|cuisine|cooking|dessin|drawing|velo|cycling|surf|surfing|photographie|photography|puzzles?|jardinage|gardening|batterie|drums|maquettes?|model planes|hobby|hobbies|passions?|loisirs?|a part la course|en dehors de la course|en dehors des courses|quand tu cours pas|temps libre|tu aimes faire quoi|free time|for fun|outside (of )?racing|besides racing|when you re not racing)\b/],
+    ['vacances', /\b(vacances|holidays?|vacation|on holiday|en vacances)\b/],
+    ['weekend', /\b(week ?end|ce soir|demain|tonight|tomorrow)\b/],
     ['faire', /\b(tu fais quoi|tu fais koi|tfq|qu est ce que tu fais|tu fais quoi la|what are you doing|what r u doing|whatcha doing|wyd)\b/],
   ];
   // les petits mots qui suivent une réponse : ils ne veulent rien dire seuls, ils répondent au fil de la conversation
@@ -100,16 +102,33 @@ const BAVARDAGE = (function () {
     ['moiaussi', /\b(moi aussi|moi pareil|pareil|pareil pour moi|me too|same|same here|so do i)\b/],
     ['vraiment', /^\s*(ah bon|ah ouais|vraiment|serieux|serieusement|c est vrai|sans blague|wow|waouh|really|for real|no way|seriously|is that true)\s*[?!]*\s*$/],
     ['rire', /^\s*(lol|mdr|ptdr|xd|jpp|haha|ahah|hihi|hehe|lmao|rofl|trop drole|so funny)( lol| mdr)?\s*[!?]*\s*$/],
-    ['oui', /^\s*(moi )?(oui|cool|super|genial|nice|trop bien|great|ouais|ouai|yes|yeah|yep|yup|ok|okay|d accord|bien sur|grave|carrement|exact|exactement|of course|sure|totally|absolutely|si)\b/],
+    ['oui', /^\s*(moi )?(i do|i did|oui|cool|super|genial|nice|trop bien|great|ouais|ouai|yes|yeah|yep|yup|ok|okay|d accord|bien sur|grave|carrement|exact|exactement|of course|sure|totally|absolutely|si)\b/],
     ['non', /^\s*(moi )?(non|rien|nothing|nan|nope|no|pas du tout|pas trop|pas vraiment|pas tellement|jamais|not really|not much|never|nah)\b/],
   ];
   // qui la phrase vise : le pilote (« tu », « ton », « you ») ou le joueur qui parle de lui (« je », « mon », « I », « my »)
   const VERS_LUI = /\b(tu|t|te|ton|ta|tes|toi|vous|votre|you|your|u|ur|yours)\b/;
   const DE_MOI = /\b(je|j|moi|mon|ma|mes|i|my|me|im|i m)\b/;
 
+  // le nom de l'animal du joueur, sous toutes ses formes : « il s'appelle Mimi », « il sappel Mimi », « son nom c'est Mimi », « appelé Mimi »,
+  // « his name is Mimi », « it's called Mimi », « named Mimi »
+  const BETES = 'chien|chienne|chat|chatte|lapin|hamster|poisson|tortue|perroquet|chiot|chaton|dog|puppy|cat|kitten|rabbit|fish|turtle|tortoise|parrot|pet';
+  const PAS_UN_NOM = ['le', 'la', 'les', 'un', 'une', 'mon', 'ma', 'the', 'a', 'my', 'trop', 'tres', 'super', 'gentil', 'gentille', 'mignon', 'mignonne', 'so', 'very'];
+  const RE_NOM_1 = new RegExp('\\b(?:' + BETES + ')s?(?: rouge)?\\s*(?:,|et|and)?\\s*(?:il|elle|it|he|she)?\\s*(?:s appelle|s appel|se nomme|c est|est appele|est appelee|appele|appelee|is called|is named|called|named|s called|s named|name is|s name is)\\s+(\\w+)');
+  const RE_NOM_2 = /\b(?:son nom (?:c est|est)|(?:his|her|its|their) name(?: is)?|il s appelle|elle s appelle|il s appel|elle s appel|(?:he|she|it) s (?:called|named))\s+(\w+)/;
+  function nomAnimal(t) {
+    for (const re of [RE_NOM_2, RE_NOM_1]) { const m = t.match(re); if (m && !PAS_UN_NOM.includes(m[1]) && m[1].length > 1) return m[1]; }
+    return null;
+  }
+  // « j'en ai 2 » : le nombre dit par le joueur (frères et sœurs, enfants…)
+  const NOMBRES = { un: 1, une: 1, deux: 2, trois: 3, quatre: 4, cinq: 5, six: 6, one: 1, two: 2, three: 3, four: 4, five: 5 };
+  function nombreDit(t) {
+    const m = t.match(/\b(?:j en ai|i have|i got|i ve got|i ve|il y en a|ya)\s+(\d{1,2}|un|une|deux|trois|quatre|cinq|six|one|two|three|four|five|six)\b/)
+      || t.match(/\b(\d{1,2}|deux|trois|quatre|cinq|two|three|four|five) (?:freres|soeurs|freres et soeurs|brothers|sisters|siblings)\b/);
+    if (!m) return null; const n = /^\d/.test(m[1]) ? +m[1] : NOMBRES[m[1]]; return n >= 1 && n <= 20 ? n : null;
+  }
   function lire(txt) {
     // l'écriture des enfants : « jai », « jaime », « tadore », « sappel », « ta quel age », « cest »
-    const t = plat(txt).replace(/\bj(ai|aime|adore|suis|veux|vais|habite|joue|connais|deteste|prefere)\b/g, 'j $1').replace(/\bt(adore|aime)\b/g, 't $1')
+    const t = plat(txt).replace(/\bj(ai|aime|adore|suis|veux|vais|habite|joue|connais|deteste|prefere)\b/g, 'j $1').replace(/\bjen\b/g, 'j en').replace(/\bt(adore|aime)\b/g, 't $1')
       .replace(/\bsappel+e?s?\b/g, 's appelle').replace(/\bcest\b/g, 'c est').replace(/\bta (quel|un|une|des|peur|quelle)\b/g, 't as $1').replace(/\bjtm\b/g, 'je t aime');
     let sujet = null;
     for (const [s, re] of SUJETS) if (re.test(t)) { sujet = s; break; }
@@ -119,10 +138,10 @@ const BAVARDAGE = (function () {
     const versLui = VERS_LUI.test(t), deMoi = DE_MOI.test(t);
     // ce que le joueur dit de lui : son âge, le nom de son animal, ce qu'il aime
     const age = (t.match(/\b(?:j ai|j a|moi|i m|im|i am|i ve got)\s+(\d{1,2})\s*(?:ans|an|years?|yo)?\b/) || t.match(/\b(\d{1,2})\s*(?:ans|years old|yo)\b/) || [])[1];
-    const animalNom = (t.match(/\b(?:mon|ma) (?:chien|chat|chienne|chatte|lapin|hamster|poisson|tortue|perroquet) (?:s appelle|c est|il s appelle|elle s appelle) (\w+)/) || t.match(/\bmy (?:dog|cat|rabbit|hamster|fish|turtle|parrot)(?: s name)? (?:is|s) (?:called |named )?(\w+)/) || [])[1];
+    const animalNom = nomAnimal(t);
     const animal = (t.match(/\b(?:j ai|moi j ai|i have|i ve got|i got|mon|ma|my) (?:un |une |a |an )?(chien|chat|chienne|chatte|lapin|hamster|poisson|tortue|perroquet|dog|cat|rabbit|hamster|fish|turtle|parrot)\b/) || [])[1];
     const adieu = !/\?/.test(t) && /^\s*(a demain|see (you|ya) (tomorrow|tmrw)|cya (tmrw|tomorrow)|a bientot|a tout a l heure|a la prochaine)\s*$/.test(t);
-    return { adieu, t, sujet, petit, question, versLui, deMoi, age: age ? +age : null, animalNom: animalNom || null, animal: animal || null };
+    return { nombre: nombreDit(t), adieu, t, sujet, petit, question, versLui, deMoi, age: age ? +age : null, animalNom: animalNom || null, animal: animal || null };
   }
 
   // la chose que le joueur aime ou nomme, prise dans SA phrase (pour la lui redire) : 3 mots au plus, jamais une insulte
@@ -132,6 +151,7 @@ const BAVARDAGE = (function () {
       .replace(/^(j[’']?aime (bien |beaucoup |trop )?|j[’']?adore |je préfère |je prefere |mon (préféré|prefere) c[’']?est |ma (préférée|preferee) c[’']?est |c[’']?est |je dirais |je fais (du |de la |de l[’']|des )?|i (like|love|prefer) |i play |i do |probably |maybe |my favou?rite is |mine is |mine[’']?s |it[’']?s )/i, '')
       .trim();
     if (/\?/.test(txt) || VERS_LUI.test(plat(s)) || /^(est ce|do|does|did|are|is|can|what|who|how|where|quel|quelle|qui|comment|ou|quand|combien|pourquoi)\b/.test(plat(s).trim())) return null;
+    if (/^(i do|i did|i am|me|moi|yes|yeah|oui|ouais|non|no|nope)\b[ ,.!]*$/i.test(s)) return null;
     if (!s || s.length > 28 || s.split(/\s+/).length > 3 || /\d{3,}/.test(s)) return null;
     if (typeof PARLE !== 'undefined' && ['INSULTE', 'MENACE'].includes(PARLE.comprendre(s, []).acte)) return null;
     return s;
@@ -147,7 +167,7 @@ const BAVARDAGE = (function () {
   const RETOUR = { age: 'age', animal: 'animal', hobby: 'hobby', sport: 'sport', plat: 'plat', musique: 'musique', film: 'film', jeu: 'jeu', ecole: 'ecole',
     circuitfav: 'circuitfav', reve: 'reve', couleur: 'couleur', famille: 'hobby', debut: 'reve', origine: 'origine', faire: 'hobby', weekend: 'hobby', pronostic: 'pronostic' };
   // les sujets personnels : un pilote qui t'en veut n'a pas envie d'en parler
-  const PERSO = ['age', 'famille', 'animal', 'hobby', 'sport', 'plat', 'couleur', 'musique', 'film', 'jeu', 'ecole', 'origine', 'debut', 'reve', 'peur', 'idole', 'superstition', 'secret', 'weekend', 'faire'];
+  const PERSO = ['age', 'famille', 'animal', 'hobby', 'sport', 'plat', 'couleur', 'musique', 'film', 'jeu', 'ecole', 'origine', 'debut', 'reve', 'peur', 'idole', 'superstition', 'secret', 'weekend', 'vacances', 'faire'];
 
   const FLOU = ['INCONNU', 'QUESTION'];
   function repondre(ch, k, txt, analyse) {
@@ -163,6 +183,8 @@ const BAVARDAGE = (function () {
     // ce qui revient au bavardage : un sujet de la vie (sauf si la phrase dit d'abord quelque chose de la course), une réponse à sa
     // question en attente, un petit mot juste après du bavardage, ce que le joueur dit de lui
     let quoi = null;
+    const nb = l.nombre !== null && !fort && !l.question && (l.sujet === 'famille' || b.dernierSujet === 'famille');   // « oui j'en ai 2 » après les frères et sœurs
+    if (nb) quoi = 'fratrie'; else
     if (b.attente && l.sujet && !l.question && !l.versLui && !l.deMoi && !fort) quoi = 'attente';   // « oui un chien », « le basket » : la réponse à sa question, pas une nouvelle question
     else if (l.sujet && !fort) quoi = 'sujet';
     else if (b.attente && !fort && (l.petit || l.age !== null || l.animalNom || l.animal || ['INCONNU', 'QUESTION', 'ACCORD', 'REFUS', 'AVIS', 'ETAT'].includes(a.acte))) quoi = 'attente';
@@ -176,7 +198,7 @@ const BAVARDAGE = (function () {
     b.n++; b.ici = (b.ici || 0) + 1;
     const alea = ALEATOIRE.suite((ch.graine || 0) + R.GRAINE_BAVARDAGE + 5003 + k * 131 + b.n * 17 + ch.resultats.length * 1009);
     const ctx = contexte(ch, k, p, b);
-    ctx._t = l.t;
+    ctx._t = l.t; ctx._q = l.question; ctx._vers = l.versLui;
     const dire = makeDire(ctx, b, alea);
     if (b.ici > R.BAVARDAGE_PAR_GP) { b.attente = null; b.dernier = true; return fin({ texte: dire('bav_fin'), sujet: 'fin' }, b); }
     if (quoi === 'adieu') { b.attente = null; b.dernier = false; return fin({ texte: dire('bav_fin'), sujet: 'fin' }, b); }
@@ -185,7 +207,8 @@ const BAVARDAGE = (function () {
     const attente = b.attente; b.attente = null;
     // ce que le joueur confie de lui, d'abord (on le garde)
     if (l.age !== null && l.age >= 4 && l.age <= 99) { b.j.age = l.age; ctx.x = l.age; morceaux.push(dire(l.age < 13 ? 'bav_j_age_jeune' : l.age < 18 ? 'bav_j_age_ado' : 'bav_j_age_grand')); sujet = 'age'; }
-    if (l.animalNom) { b.j.animalNom = l.animalNom.charAt(0).toUpperCase() + l.animalNom.slice(1); ctx.x = b.j.animalNom; morceaux.push(dire('bav_j_animalnom')); sujet = 'animal'; }
+    if (quoi === 'fratrie') { b.j.fratrie = l.nombre; ctx.x = l.nombre; morceaux.push(dire(l.nombre === 1 ? 'bav_j_fratrie_un' : l.nombre === 2 ? 'bav_j_fratrie_deux' : 'bav_j_fratrie_plus')); sujet = 'famille'; }
+    if (l.animalNom) { b.j.animal = 1; b.j.animalNom = l.animalNom.charAt(0).toUpperCase() + l.animalNom.slice(1); ctx.x = b.j.animalNom; morceaux.push(dire('bav_j_animalnom')); sujet = 'animal'; }
     else if (l.animal && l.deMoi && !l.versLui) { b.j.animal = 1; morceaux.push(dire('bav_j_animal')); b.attente = 'animalnom'; sujet = 'animal'; }
     if (quoi === 'attente' && !morceaux.length) {
       const r = suiteAttente(attente, l, txt, ctx, b, dire, alea, a);
@@ -218,7 +241,7 @@ const BAVARDAGE = (function () {
     if (!b.attente && sujet && RETOUR[sujet] && ctx.humeur !== 'froid' && !b.demandes.includes(RETOUR[sujet]) && !b.j[RETOUR[sujet]] && alea() < R.BAVARDAGE_RETOUR) {
       const q = liste('bav_q_' + RETOUR[sujet]);
       if (q.length) { morceaux.push(dire('bav_q_' + RETOUR[sujet])); b.attente = RETOUR[sujet]; b.demandes = b.demandes.concat([RETOUR[sujet]]).slice(-12); }
-    } else if (!b.attente && ctx.humeur !== 'froid' && b.ici >= 3 && alea() < R.BAVARDAGE_RELANCE) {
+    } else if (!b.attente && ctx.humeur !== 'froid' && ((b.ici >= 3 && alea() < R.BAVARDAGE_RELANCE) || (['petit', 'attente'].includes(quoi) && ['oui', 'non'].includes(l.petit)))) {   // (un « cool » seul : il relance)
       const r = relance(ctx, b, dire, alea); if (r) morceaux.push(r);
     }
     b.dernier = true; b.dernierSujet = sujet || b.dernierSujet;
@@ -248,7 +271,7 @@ const BAVARDAGE = (function () {
         sport: de('sport', v.sport), plat: de('plat', v.plat), couleur: de('couleur', v.couleur), musique: de('musique', v.musique),
         film: de('film', v.film), jeu: de('jeu', v.jeu), matiere: de('matiere', v.matiere), debut: de('debut', v.debut), debut_age: v.debutAge,
         reve: de('reve', v.reve), peur: de('peur', v.peur), idole: de('idole', v.idole), superstition: de('superstition', v.superstition),
-        blague: de('blague', v.blague), secret: de('secret', v.secret), faire: de('faire', v.faire), weekend: de('weekend', v.weekend),
+        blague: de('blague', v.blague), secret: de('secret', v.secret), faire: de('faire', v.faire), weekend: de('weekend', v.weekend), vacances: de('vacances', v.vacances),
         circuit_fav: cir(v.circuitFav), circuit_dur: cir(v.circuitDur), prochain: cir(prochain && prochain.circuit), place,
         place_joueur: placeJ, leader: leader ? (leader.humain ? texte('bav_toi') : nomDe(leader)) : '', points: s.points || 0, victoires: s.victoires || 0,
         podiums: s.podiums || 0, ecurie: nomEcurie(ch.ecuries[p.ecurie]), coequipier: co ? nomDe(co) : '', saison: ch.saison,
@@ -274,10 +297,35 @@ const BAVARDAGE = (function () {
     };
   }
 
+  // une question oui / non sur ses goûts (« tu aimes le foot ? », « t'as un chien ? ») : il répond d'abord oui ou non, d'après sa vraie fiche
+  const TYPES_BETES = [/\b(chiens?|chiots?|dogs?|puppy)\b/, /\b(chats?|chatons?|cats?|kitten)\b/, /\b(poissons?( rouge)?|fish|goldfish)\b/, /\b(lapins?|rabbits?)\b/, /\b(tortues?|tortoise|turtle)\b/, /\b(perroquets?|parrots?)\b/];
+  const MOTS_VIDES = new Set(('tu t as es fais fait aimes aime joues joue mange manges regardes ecoutes ecoute pratiques vous du de des le la les un une et toi est ce que qu au aux en dans avec aussi deja vraiment comme chez ta ton tes pour sur par ' +
+    'do does you your ur u r like likes love play plays eat watch listen to the an any have got also too really with and are is favourite favorite fav sport sports musique music film films movie movies jeu jeux video games game gaming food plat couleur color colour ' +
+    'ecole school hobby hobbies passion passions loisirs animal animaux pets pet bouffe manger repas series serie cinema tele fan est ce faire fais').split(' '));
+  const QUESTION_OUVERTE = /\b(quoi|quel|quelle|quels|quelles|qui|comment|combien|pourquoi|what|which|who|how|why|whats|wat|wats|where|when|quand|ou)\b/;
+  const GOUT_DE = { sport: ['sport'], hobby: ['hobby1', 'hobby2'], plat: ['plat'], couleur: ['couleur'], musique: ['musique'], film: ['film'], jeu: ['jeu'] };
+  function ouiNon(s, ctx, dire) {
+    const t = ' ' + (ctx._t || '') + ' ';
+    if (!ctx._q || QUESTION_OUVERTE.test(t) || !ctx._vers) return null;
+    if (s === 'animal') {
+      const i = TYPES_BETES.findIndex(re => re.test(t)); if (i < 0) return null;
+      if (i === ctx.v.animal) return dire('bav_yn_oui') + ' ' + dire('bav_animal');
+      ctx.x = t.match(TYPES_BETES[i])[1].replace(/s$/, '');
+      return dire('bav_animal_non') + ' ' + dire('bav_animal_ou');
+    }
+    if (!GOUT_DE[s]) return null;
+    const mots = t.split(/\s+/).filter(m => m.length >= 3 && !MOTS_VIDES.has(m));
+    if (!mots.length) return null;
+    const fiche = GOUT_DE[s].map(c => plat(ctx.vals[c] || '')).join(' ');
+    const oui = mots.some(m => fiche.includes(m.slice(0, Math.min(m.length, 4))));
+    return dire(oui ? 'bav_yn_oui' : 'bav_yn_non') + ' ' + dire('bav_' + s);
+  }
+
   // ce qu'il dit de lui sur un sujet
   function sujetLui(s, ctx, b, dire, alea, a) {
     const { p, v } = ctx;
     if (ctx.humeur === 'froid' && PERSO.includes(s) && alea() < 0.6) return dire('bav_froid');
+    const yn = ouiNon(s, ctx, dire); if (yn) return yn;
     switch (s) {
       case 'pronostic': {
         if (a && a.cible !== undefined && a.cible !== null && ctx.ch.pilotes[a.cible] && a.cible !== ctx.k) return avisPilote(ctx, a.cible, dire);
@@ -336,7 +384,7 @@ const BAVARDAGE = (function () {
       const ch = ctx.ch, n = typeof PARLE !== 'undefined' ? PARLE.comprendre(txt, ch.pilotes.filter(x => !x.humain).map(x => ({ k: x.id, nom: nomDe(x) }))) : null;
       if (n && n.cible !== null && n.cible !== undefined) { ctx.x = nomDe(ch.pilotes[n.cible]); return { texte: dire(n.cible === ctx.k ? 'bav_j_pronostic_moi' : 'bav_j_pronostic'), sujet: 'pronostic' }; }
       if (/\b(moi|me|myself|i will|i ll)\b/.test(l.t)) return { texte: dire('bav_j_pronostic_toi'), sujet: 'pronostic' };
-      if (/\b(toi|you|u)\b/.test(l.t)) return { texte: dire('bav_j_pronostic_moi'), sujet: 'pronostic' };
+      if (!l.question && /\b(toi|you|u)\b/.test(l.t)) return { texte: dire('bav_j_pronostic_moi'), sujet: 'pronostic' };
     }
     if (oui && liste('bav_j_' + att + '_oui').length) return { texte: dire('bav_j_' + att + '_oui'), sujet: att };
     if (non && liste('bav_j_' + att + '_non').length) { b.j[att] = -1; return { texte: dire('bav_j_' + att + '_non'), sujet: att }; }

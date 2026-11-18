@@ -176,4 +176,64 @@ t('bavardage : un goût dit par le joueur est ressorti plus tard (une fois), jam
   let vu = 0; for (let i = 0; i < 12; i++) { gpCouru(ch); for (const ph of ctx) { b().attente = null; const r = dire(ch, k, ph); if (/basket/i.test(r.texte)) vu++; } }
   v(vu >= 1 && vu <= 1, 'ressorti ' + vu + ' fois');
 });
+
+// ---- les 4 défauts relevés par le Chef sur la conversation d'enfant (tour 59) : un nom donné est retenu, une question oui / non reçoit oui ou non,
+// les vacances ne sont pas le week-end, un nombre dit est repris et retenu ; et un « cool » seul relance
+const TXT = c => TEXTES[LANGUE][c];
+const commence = (texte, cle) => TXT(cle).some(x => texte.startsWith(x.split('{')[0].trim() || '@@'));
+t('bavardage : le nom de l’animal donné dans la phrase est retenu sous toutes ses formes, jamais redemandé', () => {
+  const phrases = LANGUE === 'fr' ? ['moi jai un chat il sappel Mimi', 'j’ai un chien, il s’appelle Mimi', 'mon chat s’appelle Mimi', 'jai un lapin elle sappelle Mimi', 'jai un chat son nom c’est Mimi', 'j’ai une chatte appelée Mimi']
+    : ['i have a cat his name is Mimi', 'i got a dog called Mimi', 'my cat is named Mimi', 'i have a rabbit, her name is Mimi', 'i have a hamster its name is Mimi', 'i got a fish named Mimi'];
+  for (const ph of phrases) {
+    const ch = nouveau(), k = rival(ch, 0.4); gpCouru(ch);
+    const r = dire(ch, k, ph), b = ch.pilotes[k].memoire.bav;
+    v(b.j.animalNom === 'Mimi' && b.j.animal === 1, '« ' + ph + ' » → retenu : ' + JSON.stringify(b.j));
+    v(r.texte.includes('Mimi') && !TXT('bav_j_animal').some(x => r.texte.includes(x)) && b.attente !== 'animalnom', '« ' + ph + ' » → ' + r.texte);
+  }
+});
+t('bavardage : une question oui / non sur ses goûts reçoit d’abord oui ou non, d’après sa vraie fiche (animal, sport)', () => {
+  const ch = nouveau(), k = rival(ch, 0.4); gpCouru(ch);
+  const vie = BAVARDAGE.persona(ch, ch.pilotes[k]), mal = [];
+  const betes = LANGUE === 'fr' ? ['chien', 'chat', 'poisson', 'lapin', 'tortue', 'perroquet'] : ['dog', 'cat', 'goldfish', 'rabbit', 'tortoise', 'parrot'];
+  betes.forEach((bete, i) => {
+    const c2 = nouveau(), k2 = rival(c2, 0.4); gpCouru(c2);
+    const v2 = BAVARDAGE.persona(c2, c2.pilotes[k2]);
+    const r = dire(c2, k2, LANGUE === 'fr' ? 'et toi t’as un ' + bete + ' ?' : 'and do you have a ' + bete + '?');
+    const oui = i === v2.animal;
+    if (oui ? !TXT('bav_yn_oui').some(x => r.texte.startsWith(x)) : (!TXT('bav_animal_non').some(x => r.texte.startsWith(x.replace('{x}', bete.replace(/ rouge/, '')).replace(/ \{x\}.*/, ''))) && !/^(Non|No|Pas|Not)/.test(r.texte))) mal.push(bete + ' → ' + r.texte);
+  });
+  const sports = TXT('bav_l_sport');
+  sports.forEach((sp, i) => {
+    const c2 = nouveau(), k2 = rival(c2, 0.4); gpCouru(c2);
+    const v2 = BAVARDAGE.persona(c2, c2.pilotes[k2]);
+    const r = dire(c2, k2, LANGUE === 'fr' ? 'tu aimes ' + sp + ' ?' : 'do you like ' + sp + '?');
+    const oui = i === v2.sport, repOui = TXT('bav_yn_oui').some(x => r.texte.startsWith(x)), repNon = TXT('bav_yn_non').some(x => r.texte.startsWith(x));
+    if (oui ? !repOui : !repNon) mal.push(sp + ' (' + (oui ? 'oui' : 'non') + ') → ' + r.texte);
+  });
+  v(!mal.length, mal.join(' ; '));
+});
+t('bavardage : les vacances ne sont pas le week-end (un lieu tiré de sa fiche), et jamais deux fois la même réponse', () => {
+  const ch = nouveau(), k = rival(ch, 0.4); gpCouru(ch);
+  const vie = BAVARDAGE.persona(ch, ch.pilotes[k]), lieu = TXT('bav_l_vacances')[vie.vacances], week = TXT('bav_l_weekend')[vie.weekend];
+  const a = dire(ch, k, LANGUE === 'fr' ? 'tu fais quoi ce weekend' : 'what are you doing this weekend'), b = dire(ch, k, LANGUE === 'fr' ? 'tu va ou en vacances' : 'where r u going on holiday');
+  v(a.texte.includes(week) && !a.texte.includes(lieu), a.texte);
+  v(b.sujet === 'vacances' && b.texte.includes(lieu) && !b.texte.includes(week), b.texte);
+  v(TXT('bav_l_vacances').length === TEXTES[LANGUE === 'fr' ? 'en' : 'fr'].bav_l_vacances.length, 'listes de même longueur');
+});
+t('bavardage : un nombre dit en réponse (« oui j’en ai 2 ») est repris et retenu', () => {
+  for (const [q, rs, n] of LANGUE === 'fr' ? [['ta des freres', 'oui jen ai 2', 2], ['tu as des frères et sœurs ?', 'j’en ai 3', 3], ['tu as des frères et sœurs ?', 'moi j’en ai un', 1]]
+    : [['do u have brothers', 'yes i got 2', 2], ['do you have siblings?', 'i have 3', 3], ['do you have siblings?', 'i have one', 1]]) {
+    const ch = nouveau(), k = rival(ch, 0.4); gpCouru(ch);
+    dire(ch, k, q); const r = dire(ch, k, rs), b = ch.pilotes[k].memoire.bav;
+    const cle = n === 1 ? 'bav_j_fratrie_un' : n === 2 ? 'bav_j_fratrie_deux' : 'bav_j_fratrie_plus';
+    v(b.j.fratrie === n && TXT(cle).some(x => r.texte.startsWith(x.replace('{x}', n).split('{')[0].slice(0, 12))), '« ' + rs + ' » → ' + r.texte + ' ' + JSON.stringify(b.j));
+    v(r.reaction === 'bavardage' && !TXT('bav_ok').includes(r.texte), r.texte);
+  }
+});
+t('bavardage : un « cool » seul n’est pas la fin de la conversation : il relance avec une question', () => {
+  const ch = nouveau(), k = rival(ch, 0.4); gpCouru(ch);
+  dire(ch, k, LANGUE === 'fr' ? 'ta couleur préférée ?' : 'favourite colour?'); ch.pilotes[k].memoire.bav.attente = null;
+  const r = dire(ch, k, LANGUE === 'fr' ? 'cool' : 'cool');
+  v(r.reaction === 'bavardage' && /\?/.test(r.texte), r.texte);
+});
 ecrire();
