@@ -610,6 +610,9 @@ const REGLAGES = {
   CASQUE_APERCU_VITESSE: 1.2,   // rad/s : le casque tourne dans l'éditeur
   // --- la personnalisation (CLAUDE.md « La personnalisation », tour 48c) : la livrée (livree.js), la célébration (celebration.js),
   // la boutique de skins (boutique.js). Un skin ne change que le look, jamais la vitesse
+  // --- le style « télé » (tour 59, Codeur 2 ; icones.js, bloc « style télé » à la fin de style.css) : un habillage de retransmission de course (plaques taillées en biais,
+  // aplats, grands chiffres, trois couleurs) et de vraies icônes dessinées à la place des émojis des menus. FAUX = l'ancien style, au pixel près ; ?tele=0 l'éteint aussi
+  STYLE_TELE: true,
   LIVREE_ACTIVE: true,          // false : la voiture d'avant, d'une seule couleur (sans texture)
   // les motifs de départ (libres) ; les motifs des skins viennent de SKINS (type livree)
   LIVREE_MOTIFS: ['uni', 'bandes', 'fleche', 'degrade', 'damier', 'flammes'],

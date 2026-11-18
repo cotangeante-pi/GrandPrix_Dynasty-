@@ -1475,7 +1475,7 @@ def championnat_en(pg, titre):
     pg.click('#boutonResultats')
     attendre(pg, '() => JEU.ecran === "resultats"')
     res = pg.evaluate('() => ({ entete: [...document.querySelectorAll("#resultatsEntete th")].map(e => e.textContent).join(","), texte: document.getElementById("resultats").innerText })')
-    t(f'{titre} : les résultats en anglais (Pos, No, Time, Penalty, Gap, Grid ; « Continue »)', res['entete'] == 'Pos,No,Time,Penalty,Gap,Grid' and 'Continue' in res['texte'] and not re.search(MOTS_FR, res['texte']), str(res)[:300])
+    t(f'{titre} : les résultats en anglais (Pos, No, Time, Penalty, Gap, Grid ; « Continue »)', res['entete'] == 'Pos,No,Time,Penalty,Gap,Grid' and 'continue' in res['texte'].lower() and not re.search(MOTS_FR, res['texte']), str(res)[:300])
     pg.click('#boutonChangerResultats')
     attendre(pg, '() => JEU.ecran === "interview"', None, 10000)
     t(f'{titre} : après les résultats, l’interview en anglais (« Post-race interview », « Skip »), pas un mot français', not re.search(MOTS_FR, pg.evaluate('() => document.getElementById("interview").innerText'))
@@ -3638,7 +3638,7 @@ THEME_ETAT = """() => { const id = JEU.ecran === "album" ? "une" : JEU.ecran, el
   const st = getComputedStyle(el), h1 = el.querySelector("h1"), racine = getComputedStyle(document.documentElement);
   const titre = racine.getPropertyValue("--tv-police-titre").trim(), duree = parseFloat(st.animationDuration) * (st.animationDuration.endsWith("ms") ? 0.001 : 1);
   const police = !h1 || id === "une" || getComputedStyle(h1).fontFamily.replace(/\\s/g, "") === titre.replace(/\\s/g, "");
-  const voile = id === "ceremonie" || st.backgroundImage.startsWith("linear-gradient");   // (la cérémonie laisse voir le podium 3D : pas de voile)
+  const voile = id === "ceremonie" || st.backgroundImage.startsWith("linear-gradient") || (document.body.classList.contains("styleTele") && st.backgroundColor !== "rgba(0, 0, 0, 0)");   // (la cérémonie laisse voir le podium 3D : pas de voile ; le style télé du tour 59 : un voile à plat, sans dégradé)
   return { id, voile, police, animation: st.animationName, duree, ok: voile && police && st.animationName === "tv-entree" && duree > 0 && duree < 0.25 }; }"""
 # le paddock en écran d'accueil (tour 32, Codeur 3) : le prochain Grand Prix en grand (surtitre, titre, carte 2D dessinée, domicile
 # seulement chez soi), ta place et l'écart au leader, les quatre groupes de boutons ; les points qui montent après une course (le
