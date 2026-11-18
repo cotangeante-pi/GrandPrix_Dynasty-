@@ -98,6 +98,7 @@ const ICONES = (() => {
   function installer() {
     if (!actif()) return false;
     document.body.classList.add('styleTele');
+    document.documentElement.classList.add('styleTele');   // (les variables --tv-* du style sont posées sur <html> : les tests les lisent à la racine)
     for (const nom in DESSINS) document.documentElement.style.setProperty('--ico-' + nom, uri(nom));
     const nettoyer = habiller;
     for (const id in PAR_ID) {

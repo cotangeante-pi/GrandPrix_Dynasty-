@@ -2796,7 +2796,7 @@ body.enligneCourse #tactilePause { display: none; }
    mesurent les boutons) : seulement des couleurs, des formes et des polices. Le survol et le choix à la manette : un aplat inversé (blanc) et un cadre intérieur, jamais
    d'ombre (le biais les couperait) ni de scale.
    ====================================================================================================================== */
-body.styleTele {
+html.styleTele {
   --tv-noir: #0b0c0f; --tv-blanc: #f4f4f1; --tv-jaune: #ffd100;
   --tv-police-titre: "Arial Narrow", "Helvetica Neue", "Roboto Condensed", "Liberation Sans Narrow", "DejaVu Sans Condensed", Arial, sans-serif;
   --tv-or: var(--tv-jaune);
@@ -2859,7 +2859,9 @@ body.styleTele .ecran button:hover:not(:disabled), body.styleTele #boutonSon:hov
 body.styleTele #boutonSon:hover { color: transparent; }
 body.styleTele #boutonSon:hover::before { background: var(--tv-noir); }
 body.styleTele button.manette-choix { box-shadow: inset 0 0 0 3px var(--tv-jaune) !important; background: #3a3d46; color: var(--tv-blanc); outline: none; }
-body.styleTele .boutons > button { text-transform: uppercase; font-weight: 800; letter-spacing: 0.02em; }
+body.styleTele .boutons > button { font-weight: 800; }
+/* les majuscules seulement là où les noms sont courts (un nom long passerait à la ligne et pousserait ses voisins) */
+body.styleTele :is(#titre, #pause, #amis, #garage, #resultats, #podium) .boutons > button { text-transform: uppercase; letter-spacing: 0.02em; }
 body.styleTele .ecran button[disabled], body.styleTele .ecran button:disabled { clip-path: polygon(var(--coupe) 0, 100% 0, calc(100% - var(--coupe)) 100%, 0 100%); }
 /* le bouton principal : rouge plein à plat, texte blanc ; au survol, il devient blanc à texte rouge */
 body.styleTele #boutonCourseSuivante, body.styleTele #boutonJouer, body.styleTele #boutonCarriere, body.styleTele #boutonQualifTour, body.styleTele #boutonQualifCourse, body.styleTele #boutonResultats,
@@ -2947,3 +2949,5 @@ body.styleTele #podiumGains { font-family: var(--tv-police-titre); font-weight: 
 /* la pause : les petits réglages restent en minuscules (ils sont longs : « Trajectoire conseillée : non ») */
 body.styleTele #pause .boutons > button.petit { text-transform: none; font-weight: 700; letter-spacing: 0; }
 body.styleTele #podium h1 { text-transform: uppercase; }
+/* les écrans à longs libellés (contrats, retraite : « Confirmer : arrêter maintenant ») gardent l'épaisseur d'avant : un mot de plus à la ligne ferait se recouvrir les boutons */
+body.styleTele :is(#contrats, #retraite) button { font-weight: 600; }
