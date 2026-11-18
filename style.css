@@ -2782,3 +2782,168 @@ body.tactile #boutonEnligneTitre, body.tactile :is(#enligne, #enligneRejoindre, 
 body.tactile #boutonEnligneComment { min-height: 40px; }
 /* (tour 56, T10) en ligne, pas de pause : le bouton ⏸ du téléphone ne sert à rien (les autres joueurs attendraient) */
 body.enligneCourse #tactilePause { display: none; }
+
+/* ======================================================================================================================
+   Le style « télé » (tour 59, Codeur 2 ; REGLAGES.STYLE_TELE, icones.js ; le propriétaire : « dès qu'on entre on voit directement que c'est fait IA »).
+   Ce que le style d'avant avait de « généré » : des cartes bleu nuit arrondies toutes pareilles, un liseré rouge à gauche de chaque bouton, un gros bouton rouge
+   en dégradé qui brille, des émojis comme icônes, un titre en italique avec son petit trait rouge. Ici, un habillage de retransmission de course :
+     - TROIS couleurs et un fond : noir, blanc, rouge de la chaîne, jaune (le joueur, l'argent) ; plus de bleu nuit, plus de dégradé ;
+     - des plaques À PLAT, taillées en biais (un coin coupé sur les cartes, un parallélogramme sur les boutons), jamais de coin arrondi, de lueur ni d'ombre ;
+     - des titres en capitales grasses et serrées, droites (pas d'italique), sur une plaque blanche à bout rouge pour le titre du jeu ;
+     - des chiffres en grand (argent, places, points) dans la police serrée ; la ligne du joueur en jaune plein ;
+     - de vraies icônes dessinées (icones.js), de la couleur du texte.
+   Tout est sous body.styleTele (posée par icones.js) : STYLE_TELE faux ou ?tele=0, rien de ce bloc ne s'applique. AUCUNE taille ni place ne change (les tests d'écran
+   mesurent les boutons) : seulement des couleurs, des formes et des polices. Le survol et le choix à la manette : un aplat inversé (blanc) et un cadre intérieur, jamais
+   d'ombre (le biais les couperait) ni de scale.
+   ====================================================================================================================== */
+body.styleTele {
+  --tv-noir: #0b0c0f; --tv-blanc: #f4f4f1; --tv-jaune: #ffd100;
+  --tv-police-titre: "Arial Narrow", "Helvetica Neue", "Roboto Condensed", "Liberation Sans Narrow", "DejaVu Sans Condensed", Arial, sans-serif;
+  --tv-or: var(--tv-jaune);
+  --tv-voile: rgba(8, 9, 12, 0.84);
+  --tv-panneau: #16181d; --tv-panneau-clair: rgba(255, 255, 255, 0.06); --tv-bord: transparent;
+  --tv-bouton: #323640; --tv-bouton-principal: var(--tv-rouge);
+  --tv-ligne-moi: var(--tv-jaune);
+  --tv-coin: 0px; --tv-coin-grand: 0px; --tv-ombre: none;
+  --tv-halo: inset 0 0 0 3px var(--tv-blanc);
+  --tv-hud: rgba(11, 12, 15, 0.9); --tv-hud-bord: 0 solid transparent; --tv-hud-ombre: none;
+  --coupe: 9px; --coupe-carte: 16px;
+}
+/* rien n'est arrondi (sauf les dessins : casques, cartes) */
+body.styleTele .ecran *:not(canvas):not(img):not(svg), body.styleTele #boutonSon, body.styleTele #podium *:not(canvas) { border-radius: 0 !important; }
+body.styleTele .ecran { background: var(--tv-voile); }
+
+/* --- les titres : droits, en capitales grasses ; le titre d'un écran = une plaque blanche à bout rouge (comme un bandeau de retransmission) --- */
+body.styleTele .ecran:not(#une) h1, body.styleTele #podium h1 { font-style: normal; font-weight: 900; letter-spacing: 0.015em; text-shadow: none; }
+body.styleTele .ecran:not(#une) h1::after, body.styleTele #podium h1::after, body.styleTele #ficheCarte h1::after, body.styleTele #interviewCarte h1::after { display: none; }
+body.styleTele .ecran:not(#une) > h1, body.styleTele #podium h1 {
+  padding: 0 0.7em 0 0.9em; color: var(--tv-noir);
+  background: linear-gradient(90deg, var(--tv-rouge) 0 0.28em, var(--tv-blanc) 0.28em);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 0.28em) 100%, 0 100%);
+}
+body.styleTele #podium h1 { pointer-events: none; }
+body.styleTele #titreNom { font-size: 58px; line-height: 1.12; padding-top: 6px; padding-bottom: 6px; margin-bottom: 14px; }
+@media (max-height: 460px) { body.styleTele #titreNom { font-size: 38px; padding-top: 2px; padding-bottom: 2px; margin-bottom: 6px; } }
+/* tourne:debut */@media (max-width: 460px) { :where(html.tourne) body.styleTele #titreNom { font-size: 38px; padding-top: 2px; padding-bottom: 2px; margin-bottom: 6px; } }/* tourne:fin */
+body.styleTele .ecran h2 { font-weight: 800; letter-spacing: 0.08em; }
+body.styleTele .pageTitre { font: 900 26px/1.1 var(--tv-police-titre) !important; font-style: normal !important; letter-spacing: 0.02em !important; display: flex; align-items: center; }
+body.styleTele .pageTitre::after { display: none; }
+body.styleTele #paddockMarque { font: 900 20px/1.02 var(--tv-police-titre) !important; font-style: normal !important; letter-spacing: 0.01em; }
+body.styleTele #paddockMarque::after { display: none; }
+body.styleTele #paddockMarque::first-line { color: var(--tv-rouge); }
+
+/* --- les icônes dessinées : devant le texte, de la couleur du texte, à la taille du texte --- */
+body.styleTele [data-ico]::before {
+  content: "" !important; display: inline-block; flex: 0 0 auto; width: 1.1em; height: 1.1em; margin: 0 0.45em 0 0; vertical-align: -0.2em; font-style: normal;
+  background: currentColor; -webkit-mask: var(--ico) center / contain no-repeat; mask: var(--ico) center / contain no-repeat;
+}
+body.styleTele .menuIcone { background: currentColor; -webkit-mask: var(--ico) center / contain no-repeat; mask: var(--ico) center / contain no-repeat; height: 1em; width: 1em; flex: 0 0 auto; }
+body.styleTele .menuEntree[data-ico]::before { display: none; }
+body.styleTele .menuEntree .menuIcone { width: 20px; height: 20px; font-size: 0; color: transparent; }
+body.styleTele .symbole { display: none; }   /* le symbole du début d'un texte (icones.js : habiller) : dans la page, jamais vu */
+body.styleTele #pageEquipe .pageBoutons button[data-ico]::before { width: 34px; height: 34px; margin: 0; }
+body.styleTele #boutonJouer[data-ico]::before { width: 0.9em; height: 0.9em; margin-right: 0.35em; }
+body.styleTele #boutonSon { color: transparent; }
+body.styleTele #boutonSon[data-ico]::before { content: "" !important; position: absolute; left: 50%; top: 50%; width: 24px; height: 24px; margin: -12px 0 0 -12px; background: var(--tv-blanc);
+  -webkit-mask: var(--ico) center / contain no-repeat; mask: var(--ico) center / contain no-repeat; }
+
+body.styleTele .boutons > button[data-ico] { display: flex; align-items: center; justify-content: center; gap: 0; }
+body.styleTele #pageCourse #boutonCourseSuivante[data-ico] { display: block; }
+
+/* --- les boutons : un parallélogramme à plat, plus de liseré rouge ni de dégradé ; majuscules pour les rangées du titre, de la pause et des amis --- */
+body.styleTele .ecran button, body.styleTele #boutonSon {
+  clip-path: polygon(var(--coupe) 0, 100% 0, calc(100% - var(--coupe)) 100%, 0 100%);
+  background: var(--tv-bouton); box-shadow: none; border: 0; font-family: var(--tv-police); font-weight: 700; letter-spacing: 0;
+}
+body.styleTele .ecran button:hover:not(:disabled), body.styleTele #boutonSon:hover { background: var(--tv-blanc); color: var(--tv-noir); box-shadow: none; }
+body.styleTele #boutonSon:hover { color: transparent; }
+body.styleTele #boutonSon:hover::before { background: var(--tv-noir); }
+body.styleTele button.manette-choix { box-shadow: inset 0 0 0 3px var(--tv-jaune) !important; background: #3a3d46; color: var(--tv-blanc); outline: none; }
+body.styleTele .boutons > button { text-transform: uppercase; font-weight: 800; letter-spacing: 0.02em; }
+body.styleTele .ecran button[disabled], body.styleTele .ecran button:disabled { clip-path: polygon(var(--coupe) 0, 100% 0, calc(100% - var(--coupe)) 100%, 0 100%); }
+/* le bouton principal : rouge plein à plat, texte blanc ; au survol, il devient blanc à texte rouge */
+body.styleTele #boutonCourseSuivante, body.styleTele #boutonJouer, body.styleTele #boutonCarriere, body.styleTele #boutonQualifTour, body.styleTele #boutonQualifCourse, body.styleTele #boutonResultats,
+body.styleTele #boutonPiloteValider, body.styleTele #boutonTournoiPartir, body.styleTele #boutonDeuxPartir, body.styleTele #boutonAmisDeux, body.styleTele #pageBoutique #boutonBoutique,
+body.styleTele #pageEquipe #boutonGarage, body.styleTele #pageMessages #boutonCourrier.nouveau, body.styleTele .paddockPage button.danger, body.styleTele #carriereConfirmation.danger #boutonCarriereOui {
+  background: var(--tv-rouge); color: #fff; box-shadow: none;
+}
+body.styleTele #boutonCourseSuivante:hover, body.styleTele #boutonJouer:hover, body.styleTele #boutonCarriere:hover, body.styleTele #boutonQualifTour:hover, body.styleTele #boutonQualifCourse:hover,
+body.styleTele #boutonResultats:hover, body.styleTele #boutonPiloteValider:hover, body.styleTele #pageEquipe #boutonGarage:hover, body.styleTele #pageCourse #boutonCourseSuivante:hover { background: var(--tv-blanc) !important; color: var(--tv-rouge) !important; box-shadow: none !important; }
+body.styleTele #boutonJouer { text-transform: uppercase; letter-spacing: 0.06em; font-weight: 900; }
+body.styleTele #pageCourse #boutonCourseSuivante { font-weight: 900; letter-spacing: 0.08em; box-shadow: none; clip-path: polygon(18px 0, 100% 0, calc(100% - 18px) 100%, 0 100%); }
+body.styleTele #pageCourse #boutonCourseSuivante::after { content: ""; display: inline-block; width: 0.8em; height: 0.8em; margin-left: 0.5em; background: currentColor; clip-path: polygon(0 0, 100% 50%, 0 100%); vertical-align: -0.05em; }
+body.styleTele #contrats #boutonRetraite { background: #4a1f22; }
+
+/* --- les plaques (cartes, lignes de liste) : un aplat sombre à deux coins coupés, plus de bordure, d'ombre ni de dégradé --- */
+body.styleTele .tvCarte, body.styleTele #ficheCarte, body.styleTele #interviewCarte, body.styleTele .deuxJoueur, body.styleTele #saisonTableaux, body.styleTele #discussionCarte {
+  background: var(--tv-panneau); border-color: transparent; box-shadow: none;
+  clip-path: polygon(0 0, calc(100% - var(--coupe-carte)) 0, 100% var(--coupe-carte), 100% 100%, var(--coupe-carte) 100%, 0 calc(100% - var(--coupe-carte)));
+}
+body.styleTele #garageListe li, body.styleTele #contratsListe li, body.styleTele #sponsorsListe > li, body.styleTele #calendrierListe li, body.styleTele #arbreGenerations li {
+  background: var(--tv-panneau); border-color: transparent; box-shadow: none;
+  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+}
+body.styleTele #paddockNouvelles.nouveau { box-shadow: none; background: #2a1316; }
+body.styleTele .tvSurtitre {
+  display: inline-block; justify-self: start; align-self: flex-start; padding: 0 12px 0 8px; color: #fff; background: var(--tv-rouge); letter-spacing: 0.12em;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+}
+body.styleTele .paddockPage .tvCarte h2:not([data-ico])::before { content: ""; display: inline-block; width: 9px; height: 9px; margin-right: 8px; background: var(--tv-rouge); vertical-align: 0.04em; }
+body.styleTele .paddockPage .tvCarte h2[data-ico]::before { color: var(--tv-rouge); }
+body.styleTele .paddockPage .tvCarte h2 { opacity: 1; }
+
+/* --- le menu du paddock : une colonne noire, l'entrée choisie en plaque rouge --- */
+body.styleTele #paddockMenu { background: var(--tv-noir); border-right: 0; box-shadow: none; }
+body.styleTele .ecran #paddockMenu button.menuEntree { background: transparent; color: var(--tv-texte-doux); text-transform: uppercase; letter-spacing: 0.06em; font-size: 13px; clip-path: polygon(var(--coupe) 0, 100% 0, calc(100% - var(--coupe)) 100%, 0 100%); }
+body.styleTele .ecran #paddockMenu button.menuEntree:hover { background: var(--tv-blanc); color: var(--tv-noir); box-shadow: none; }
+body.styleTele .ecran #paddockMenu button.menuEntree.actif { background: var(--tv-rouge); color: #fff; box-shadow: none; }
+body.styleTele .ecran #paddockMenu button.menuEntree.manette-choix { box-shadow: inset 0 0 0 3px var(--tv-jaune) !important; }
+body.styleTele .menuPoint { color: var(--tv-jaune); }
+
+/* --- les chiffres en grand, dans la police serrée --- */
+body.styleTele #championnatArgent, body.styleTele #boutiqueSoldePage, body.styleTele #resultatsArgent, body.styleTele .prix, body.styleTele #paddockPlace, body.styleTele .points,
+body.styleTele #paddockClassementCourt .place, body.styleTele #championnatTableaux .place { font-family: var(--tv-police-titre); font-style: normal; }
+body.styleTele #pageEquipe #championnatArgent { font-size: 40px; font-weight: 900; line-height: 1; color: var(--tv-jaune); }
+body.styleTele #boutiqueContenu #boutiqueSoldePage { font-size: 36px; font-weight: 900; color: var(--tv-jaune); }
+body.styleTele #paddockProchain h1 { font-weight: 900; letter-spacing: 0; clip-path: none; background: none; padding: 0; color: var(--tv-blanc); }
+body.styleTele #paddockPlace { font-weight: 900; }
+body.styleTele #garageListe .prix, body.styleTele #contratsListe .niveau, body.styleTele #sponsorsListe .montant { font-weight: 900; }
+body.styleTele #garage h1 + p, body.styleTele #garageSolde { font-family: var(--tv-police-titre); }
+
+/* --- les classements : la place sur un petit bloc blanc, la ligne du joueur en jaune plein à texte noir --- */
+body.styleTele #paddockClassementCourt li, body.styleTele #championnatTableaux li, body.styleTele #saisonPilotes li { border-radius: 0; }
+body.styleTele #paddockClassementCourt .place, body.styleTele #championnatTableaux li .place { box-sizing: border-box; padding: 0 2px; background: var(--tv-blanc); color: var(--tv-noir); text-align: center; opacity: 1; font-weight: 900; }
+body.styleTele #paddockClassementCourt li.moi, body.styleTele #championnatTableaux li.moi, body.styleTele #saisonPilotes li.moi { background: var(--tv-jaune); color: var(--tv-noir); }
+body.styleTele #paddockClassementCourt li.moi .place, body.styleTele #championnatTableaux li.moi .place { background: var(--tv-noir); color: var(--tv-jaune); }
+body.styleTele #paddockClassementCourt li.coequipier { box-shadow: none; background: rgba(255, 255, 255, 0.1); }
+body.styleTele #paddockClassementCourt .pastille { border-radius: 0 !important; }
+body.styleTele #pageSaison #championnatTableaux h2 { color: var(--tv-jaune); }
+
+/* --- les résultats et le podium --- */
+body.styleTele #resultatsTable th { color: var(--tv-jaune); opacity: 1; }
+body.styleTele #resultatsLignes tr td { background: rgba(255, 255, 255, 0.06); }
+body.styleTele #resultatsLignes tr td:first-child { box-shadow: none; font-family: var(--tv-police-titre); font-weight: 900; }
+body.styleTele #resultatsLignes tr.moi td, body.styleTele #resultatsTable tr.moi td { background: var(--tv-jaune); color: var(--tv-noir); }
+body.styleTele #resultatsLignes tr.moi td.gagne { color: #0a6b30; } body.styleTele #resultatsLignes tr.moi td.perd { color: #a3151b; }
+body.styleTele .marche { background: var(--tv-hud); border: 0; box-shadow: none; clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%); }
+body.styleTele .marche1 { border-bottom: 6px solid var(--tv-jaune); } body.styleTele .marche2 { border-bottom: 6px solid #c9ccd2; } body.styleTele .marche3 { border-bottom: 6px solid #b5651d; }
+body.styleTele #podiumGains { background: var(--tv-jaune); color: var(--tv-noir); }
+
+/* --- un statut en plaque : le message d'aide en bas du paddock, plus de liseré --- */
+body.styleTele #bulleAide { border-radius: 0; box-shadow: none; border-left: 0; clip-path: polygon(0 0, 100% 0, calc(100% - 10px) 100%, 0 100%); }
+body.styleTele #championnatReputation .plein { background: var(--tv-jaune); }
+/* l'état « choisi » : une plaque jaune à texte noir (le cadre posé par les anciennes règles serait coupé par le biais) */
+body.styleTele .ecran button.choisi, body.styleTele .ecran button.choisie, body.styleTele #garagePneus button.choisi, body.styleTele #tournoiFormules button.choisie,
+body.styleTele #paddockLongueurBoutons .longueurChoix.choisi, body.styleTele #deuxLongueurBoutons .longueurChoix.choisi, body.styleTele .tactilePneu.choisi { background: var(--tv-jaune); color: var(--tv-noir); box-shadow: none; }
+body.styleTele .ecran button.deuxPastille.choisie, body.styleTele .ecran button.enlignePastille.choisie { box-shadow: inset 0 0 0 4px var(--tv-blanc); }
+body.styleTele .longueurChoix b { font-family: var(--tv-police-titre); font-weight: 900; }
+body.styleTele #garageSolde { color: var(--tv-jaune); font-weight: 900; letter-spacing: 0.02em; }
+/* le podium : « Continuer » en rouge plein et « Résultats » en plaque sombre, tous deux en biais ; les gains en plaque jaune */
+body.styleTele #podium button { clip-path: polygon(var(--coupe) 0, 100% 0, calc(100% - var(--coupe)) 100%, 0 100%); box-shadow: none; border: 0; text-transform: uppercase; letter-spacing: 0.04em; }
+body.styleTele #boutonPodiumSuite { background: var(--tv-rouge); color: #fff; font-weight: 900; }
+body.styleTele #boutonPodiumSuite:hover, body.styleTele #podium button:hover { background: var(--tv-blanc); color: var(--tv-noir); box-shadow: none; }
+body.styleTele #podium #boutonResultats { background: var(--tv-bouton); color: var(--tv-blanc); font-weight: 800; }
+body.styleTele #podiumGains { font-family: var(--tv-police-titre); font-weight: 900; text-shadow: none; clip-path: polygon(12px 0, 100% 0, calc(100% - 12px) 100%, 0 100%); }
+/* la pause : les petits réglages restent en minuscules (ils sont longs : « Trajectoire conseillée : non ») */
+body.styleTele #pause .boutons > button.petit { text-transform: none; font-weight: 700; letter-spacing: 0; }
+body.styleTele #podium h1 { text-transform: uppercase; }

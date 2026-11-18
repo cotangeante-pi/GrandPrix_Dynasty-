@@ -62,6 +62,7 @@ ANNEXES.append('tests/cout-drapeaux.html')   # le coût des drapeaux sur les 12 
 # (tests/reseau.html : le client réseau, WebSocket (faux), BroadcastChannel, reconnexion (tour 56, T4) : en temps réel, par tests/reseau.py, voir reseau_page)
 ANNEXES.append('tests/drapeaux.html')   # les drapeaux : jaune, bleu, VSC (tour 55, T7)
 ANNEXES.append('tests/carriere-longue.html')   # la carrière entière : 15 saisons, 3 générations, vieilles sauvegardes (tour 55, T1)
+ANNEXES.append('tests/icones.html')   # les icônes du style télé (tour 59, Codeur 2)
 ANNEXES.append('tests/personnalisation.html')   # la personnalisation : livrée, célébration, boutique de skins (tour 48c, Codeur 3)
 ANNEXES.append('tests/reglages-voiture.html')   # les réglages de la voiture (tour 50b, Codeur 2) ; leur tableau sur les 12 tracés : tests/officiels.html
 def chasse_en(delai=600):

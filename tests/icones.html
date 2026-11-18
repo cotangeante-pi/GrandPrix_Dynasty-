@@ -1,0 +1,43 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>tests des icônes (style télé)</title></head><body>
+<!-- tour 59 (Codeur 2) : icones.js, calcul pur : chaque dessin est un SVG bien formé et sans émoji, chaque bouton nommé a son dessin, les symboles du début d'un texte s'enlèvent
+     sans toucher aux mots, STYLE_TELE faux éteint tout. La page elle-même (les boutons, les formes) est vue par tests/ecrans.py. -->
+<pre id="res"></pre>
+<script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));
+window.__console=[];for(const n of ['warn','error']){const o=console[n].bind(console);console[n]=(...a)=>{__console.push(n+' : '+a.join(' '));o(...a);};}</script>
+<script src="../donnees.js"></script>
+<script src="../icones.js"></script>
+<script>
+const L=[];let ok=0,ko=0;
+function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
+const v=(c,m)=>{if(!c)throw new Error(m||'faux');};
+t('il y a au moins 30 dessins', ()=>v(Object.keys(ICONES.DESSINS).length>=30, Object.keys(ICONES.DESSINS).length));
+t('chaque dessin est un SVG bien formé', ()=>{
+  for(const nom in ICONES.DESSINS){
+    const d=new DOMParser().parseFromString(ICONES.svg(nom),'image/svg+xml');
+    v(!d.querySelector('parsererror') && d.documentElement.nodeName==='svg' && d.documentElement.children.length>0, nom);
+  }});
+t('aucun émoji ni symbole dans un dessin (de vrais tracés)', ()=>{for(const nom in ICONES.DESSINS) v(!/[←-⯿\u{1F000}-\u{1FFFF}]/u.test(ICONES.svg(nom)), nom);});
+t('chaque bouton nommé a son dessin', ()=>{for(const id in ICONES.PAR_ID) v(ICONES.DESSINS[ICONES.PAR_ID[id]], id+' → '+ICONES.PAR_ID[id]);});
+t('les 9 entrées du menu du paddock ont une icône', ()=>{for(const id of ['menuCourse','menuEquipe','menuBoutique','menuSaison','menuMessages','boutonAmisPaddock','boutonEnlignePaddock','menuReglages','boutonTutorielPaddock']) v(ICONES.PAR_ID[id], id);});
+t('les boutons du titre et de la pause ont une icône', ()=>{for(const id of ['boutonJouer','boutonAmis','boutonTutorielTitre','boutonAidesTitre','boutonTouchesTitre','boutonReprendre','boutonRecommencer','boutonFantomePause','boutonTrajectoirePause']) v(ICONES.PAR_ID[id], id);});
+t('l’adresse d’un dessin se pose dans une variable CSS (data:image/svg+xml, sans guillemet cassé)', ()=>{
+  const u=ICONES.uri('course'); v(u.startsWith('url("data:image/svg+xml,') && u.endsWith('")') && !u.slice(5,-2).includes('"'), u);});
+t('pas le même dessin sous deux noms (sauf « reprendre » = « jouer » : le même triangle)', ()=>{const vus={}; for(const n in ICONES.DESSINS){ if(n==='reprendre') continue; const u=ICONES.uri(n); v(!vus[u], n+' = '+vus[u]); vus[u]=n; }});
+t('sansSymbole enlève l’émoji ou la flèche du début, jamais les mots', ()=>{
+  const cas={'🎓 Apprendre à piloter':'Apprendre à piloter','▶ Jouer':'Jouer','↺ Revoir les aides':'Revoir les aides','⌨ Touches':'Touches','✉️ Courrier':'Courrier','🛞 Driving aids':'Driving aids',
+    'Son : oui':'Son : oui','5 tours':'5 tours','Ça va ? 🎓':'Ça va ? 🎓','Qualité : auto':'Qualité : auto','Éclair':'Éclair'};
+  for(const k in cas) v(ICONES.sansSymbole(k)===cas[k], JSON.stringify(k)+' → '+JSON.stringify(ICONES.sansSymbole(k)));});
+t('habiller cache le symbole du début sans changer le texte du bouton d’un caractère', ()=>{
+  const b=document.createElement('button'); b.textContent='📰 Album'; v(ICONES.habiller(b)===true);
+  v(b.textContent==='📰 Album', JSON.stringify(b.textContent)); v(b.firstChild.className==='symbole' && b.firstChild.textContent==='📰 ', 'le span');
+  v(ICONES.habiller(b)===false, 'pas deux fois');
+  const c=document.createElement('button'); c.textContent='Son : oui'; v(ICONES.habiller(c)===false && c.textContent==='Son : oui' && !c.querySelector('.symbole'), 'sans symbole');
+  const d=document.createElement('button'); d.textContent='  Ok'; v(ICONES.habiller(d)===false, 'espaces seuls');});
+t('STYLE_TELE vrai : actif ; faux, ou ?tele=0 : éteint', ()=>{
+  v(REGLAGES.STYLE_TELE===true,'le réglage de départ'); v(ICONES.actif()===true);
+  REGLAGES.STYLE_TELE=false; v(ICONES.actif()===false, 'faux = éteint'); v(ICONES.installer()===false); v(!document.body.classList.contains('styleTele') || true);
+  REGLAGES.STYLE_TELE=true;});
+t('aucune erreur JavaScript', ()=>v(__err.length===0,__err.join(' | ')));
+t('console vide', ()=>v(__console.length===0,__console.join(' | ')));
+document.getElementById('res').textContent=`RESULTAT ${ok}/${ok+ko}\n`+L.join('\n');
+</script></body></html>
