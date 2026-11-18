@@ -98,9 +98,10 @@ t('bavardage : un pilote qui en veut au joueur ne raconte pas sa vie ; le bavard
   let n = 0; for (const ph of ['t’as quel âge ?', 'ta couleur préférée ?', 'tu as un animal ?', 'ton plat préféré ?', 'tu fais du sport ?']) if (froids.includes(dire(ch, k, ph).texte)) n++;
   v(n >= 2, 'refus : ' + n);
   const ch2 = nouveau(), k2 = rival(ch2, 0.4); gpCouru(ch2);
-  const avant = JSON.stringify([ch2.pilotes[k2].memoire && ch2.pilotes[k2].memoire.relation, ch2.pilotes[k2].disposition, ch2.pilotes[k2].rivalite, ch2.confiance]);
-  for (const ph of SUJETS_PHRASES.map(x => x[0])) dire(ch2, k2, ph);
-  v(JSON.stringify([ch2.pilotes[k2].memoire.relation || undefined, ch2.pilotes[k2].disposition, ch2.pilotes[k2].rivalite, ch2.confiance]) === avant.replace('[0', '[null').replace('[null', '[null') || !(ch2.pilotes[k2].memoire.relation), 'relation : ' + ch2.pilotes[k2].memoire.relation);
+  const rel = () => (ch2.pilotes[k2].memoire && ch2.pilotes[k2].memoire.relation) || 0, avant = [rel(), ch2.pilotes[k2].disposition, ch2.pilotes[k2].rivalite, ch2.confiance];
+  const course = []; for (const ph of SUJETS_PHRASES.map(x => x[0])) { const r = dire(ch2, k2, ph); if (r.reaction !== 'bavardage') course.push(ph + ' → ' + r.reaction); }
+  v(!course.length, 'pas du bavardage : ' + course.join(' ; '));
+  v(JSON.stringify([rel(), ch2.pilotes[k2].disposition, ch2.pilotes[k2].rivalite, ch2.confiance]) === JSON.stringify(avant), 'relation : ' + rel() + ' au lieu de ' + avant[0]);
 });
 t('bavardage : BAVARDAGE_ACTIF faux = les discussions d’avant (aucune réponse de bavardage)', () => {
   const avant = R.BAVARDAGE_ACTIF; R.BAVARDAGE_ACTIF = false;
@@ -119,5 +120,60 @@ t('bavardage : le hasard d’une course n’est pas touché (son propre hasard)'
   ALEATOIRE.semer(42); const ch = nouveau(), k = rival(ch, 0.4); gpCouru(ch);
   ALEATOIRE.semer(42); dire(ch, k, 't’as quel âge ?'); dire(ch, k, 'raconte une blague'); const b = [hasard(), hasard()];
   v(a[0] === b[0] && a[1] === b[1], JSON.stringify([a, b]));
+});
+
+// ---- trois conversations « d'enfant » (tour 59) : fautes, langage SMS, questions courtes ; imprimées dans la sortie, relues à la main
+const ENFANTS = {
+  fr: [
+    ['slt', 'ca va ?', 't as quel age', 'moi jai 9 ans', 'ta couleur preferee', 'moi cest le rouge', 'lol', 'tu fais quoi ce weekend', 'cool', 'et toi t as un chien ?', 'moi jai un chat il sappel Mimi',
+      'tu joue a fortnite', 'mdr', 'pk', 'tu es fort', 'tu gagne a la prochaine course ?', 'tu mange quoi le matin', 'jaime les pates', 'ta peur de koi', 'ah bon', 'ta des freres', 'oui jen ai 2', 'tu va ou en vacances', 'jtm bien', 'bye'],
+    ['bonjour monsieur', 'vous avez quel age ?', 'jai 11 ans et vous', 'cest quoi votre animal prefere', 'moi cest les chevaux', 'vous faites du foot ?', 'non', 'moi oui', 'cest quoi votre plat prefere', 'ah moi cest la pizza', 'vous etes riche',
+      'vous avez une voiture rapide ?', 'wow', 'vous allez gagner ?', 'oui', 'pourquoi', 'xd', 'vous connaissez Max ?', 'jveux etre pilote', 'vous avez des conseils', 'merci', 'a plus'],
+    ['coucou', 'tu fais koi', 'rien', 'tu veux etre mon ami', 'ta quel age', 'jai 10 ans', 'ta un animal', 'oui un chien', 'Rex', 'ta couleur preferee', 'le bleu', 'tu aime lecole', 'moi non', 'tu es marie', 'haha', 'raconte une blague',
+      'mdrrr', 'ta quelle voiture', 'cest laquelle ta preferee', 'je tadore', 'ok', 'tu vien dou', 'cool', 'a demain'],
+  ],
+  en: [
+    ['hi', 'wassup', 'how old r u', 'im 9', 'ur fav color?', 'mine is red', 'lol', 'wat r u doin this weekend', 'cool', 'u got a dog?', 'i got a cat his name is Mimi',
+      'do u play fortnite', 'lmao', 'why', 'ur so fast', 'will u win next race?', 'wat do u eat in the morning', 'i like pasta', 'wat r u scared of', 'really?', 'do u have brothers', 'yes i got 2', 'where r u going on holiday', 'luv u', 'bye'],
+    ['hello sir', 'how old are you?', 'im 11, you?', 'whats your favorite animal', 'mine is horses', 'do you play football?', 'no', 'i do', 'whats your favourite food', 'i love pizza', 'are you rich',
+      'is your car fast?', 'wow', 'are you gonna win?', 'yes', 'why', 'xd', 'do you know Max?', 'i wanna be a driver', 'any tips?', 'thanks', 'see ya'],
+    ['yo', 'wyd', 'nothing', 'be my friend?', 'how old r u', 'im 10', 'do u have a pet', 'yes a dog', 'Rex', 'fav colour?', 'blue', 'do u like school', 'me neither', 'r u married', 'haha', 'tell me a joke',
+      'lmaooo', 'what car do u drive', 'whats ur fav', 'i love u', 'ok', 'where u from', 'cool', 'cya tmrw'],
+  ],
+};
+const INCOMPRIS = () => TEXTES[LANGUE].dis_incompris.concat(TEXTES[LANGUE].dis_incompris_encore || [], TEXTES[LANGUE].dis_question || []);
+ENFANTS[LANGUE].forEach((fil, n) => t('bavardage : conversation d’enfant ' + (n + 1) + ' (' + LANGUE + ', ' + fil.length + ' messages) : jamais « je ne comprends pas », jamais deux fois de suite la même réponse, pas de trou', () => {
+  const ch = nouveau(), k = rival(ch, 0.4); gpCouru(ch);
+  const rs = fil.map(ph => [ph, dire(ch, k, ph)]);
+  L.push('  TRANSCRIPTION enfant ' + (n + 1) + ' (' + LANGUE + ') :'); for (const [ph, r] of rs) L.push('    — ' + ph + '\n      → ' + r.texte + '   [' + r.reaction + (r.sujet ? '/' + r.sujet : '') + ']');
+  const inc = INCOMPRIS();
+  const mal = rs.filter(([ph, r]) => !r || !r.texte || TROU.test(r.texte) || inc.some(i => r.texte.startsWith(i.slice(0, 40)))).map(([ph, r]) => '« ' + ph + ' » → ' + (r && r.reaction) + ' : ' + (r && r.texte));
+  v(!mal.length, 'incompris ou trou : ' + mal.join(' ; '));
+  const dbl = rs.filter(([ph, r], i) => i && r.texte === rs[i - 1][1].texte).map(([ph]) => ph);
+  v(!dbl.length, 'même réponse deux fois de suite : ' + dbl.join(' ; '));
+}));
+
+t('bavardage : une très longue conversation (plus de 60 messages variés) : jamais « je ne comprends pas », jamais deux fois de suite la même réponse, et il ressort ce qu’on lui a dit', () => {
+  const debut = LANGUE === 'fr' ? ['salut', 'ça va ?', 'ta couleur préférée ?', 'moi c’est le vert', 'tu fais du sport ?', 'moi j’adore le basket', 'tu penses gagner à la prochaine course ?', 'qui est premier au championnat ?', 'un conseil pour le départ ?', 'raconte une blague', 'lol', 'ton plat préféré ?', 'tu viens d’où ?', 'ah bon', 'c’est qui ton idole ?', 'pourquoi ?', 'tu aimes ton écurie ?', 'ta voiture est bien ?']
+    : ['hi', 'how are you?', 'your favourite colour?', 'mine is green', 'do you play any sport?', 'i love basketball', 'will you win the next race?', 'who is leading the championship?', 'any tips for the start?', 'tell me a joke', 'lol', 'favourite food?', 'where are you from?', 'really?', 'who is your idol?', 'why?', 'do you like your team?', 'is your car good?'];
+  const fil = debut.concat(ENFANTS[LANGUE][0], ENFANTS[LANGUE][1], ENFANTS[LANGUE][2]);
+  const ch = nouveau(), k = rival(ch, 0.4); gpCouru(ch);
+  const rs = [];
+  fil.forEach((ph, i) => { if (i && i % 20 === 0) gpCouru(ch); rs.push([ph, dire(ch, k, ph)]); });
+  const inc = INCOMPRIS();
+  const mal = rs.filter(([ph, r]) => !r || !r.texte || TROU.test(r.texte) || inc.some(x => r.texte.startsWith(x.slice(0, 40)))).map(([ph, r]) => '« ' + ph + ' » → ' + (r && r.texte));
+  v(fil.length >= 60 && !mal.length, fil.length + ' messages ; incompris : ' + mal.join(' ; '));
+  const dbl = rs.filter(([ph, r], i) => i && r.texte === rs[i - 1][1].texte).map(([ph]) => ph);
+  v(!dbl.length, 'deux fois de suite : ' + dbl.join(' ; '));
+});
+t('bavardage : un goût dit par le joueur est ressorti plus tard (une fois), jamais genré', () => {
+  const ch = nouveau(), k = rival(ch, 0.4); gpCouru(ch);
+  const b = () => ch.pilotes[k].memoire.bav;
+  dire(ch, k, LANGUE === 'fr' ? 'tu fais du sport ?' : 'do you play any sport?');
+  b().attente = 'sport'; dire(ch, k, LANGUE === 'fr' ? 'le basket' : 'basketball');
+  v(b().j.sport === (LANGUE === 'fr' ? 'le basket' : 'basketball'), JSON.stringify(b().j));
+  const ctx = [LANGUE === 'fr' ? 'salut' : 'hi', LANGUE === 'fr' ? 'ça va ?' : 'how are you?', LANGUE === 'fr' ? 'ta couleur préférée ?' : 'favourite colour?', LANGUE === 'fr' ? 'ton plat préféré ?' : 'favourite food?', LANGUE === 'fr' ? 'tu aimes l’école ?' : 'do you like school?', LANGUE === 'fr' ? 'tu as des frères ?' : 'do you have brothers?'];
+  let vu = 0; for (let i = 0; i < 12; i++) { gpCouru(ch); for (const ph of ctx) { b().attente = null; const r = dire(ch, k, ph); if (/basket/i.test(r.texte)) vu++; } }
+  v(vu >= 1 && vu <= 1, 'ressorti ' + vu + ' fois');
 });
 ecrire();

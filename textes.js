@@ -1533,7 +1533,7 @@ Object.assign(TEXTES.en, {
   bav_age_plus: ['So I’ve got a bit more mileage than you!', 'You’re younger than me, so you’ve got time on your side.'],
   bav_age_moins: ['So you’re the experienced one here!', 'Older than me? Then you can give me advice.'],
   bav_famille: ['I’ve got {famille}.', 'Family? {famille}. They come to watch when they can.', 'At home I’ve got {famille}.'],
-  bav_animal: ['I’ve got {animal} called {animal_nom}.', '{animal_nom}! That’s {animal}, and the real star of my house.', 'Yes, {animal} named {animal_nom}. It travels better than I do.'],
+  bav_animal: ['I’ve got {animal} called {animal_nom}.', '{animal_nom}! That’s {animal}, and the real star of my house.', '{animal} named {animal_nom}. It travels better than I do.'],
   bav_hobby: ['Outside racing? I love {hobby1}, and {hobby2} when I have time.', 'Mostly {hobby1}. It clears my head before a race.', '{hobby1} and {hobby2}. Racing drivers need hobbies too.'],
   bav_sport: ['I do a lot of sport, mostly {sport}. Good for the fitness.', '{sport}! I’m not great, but I love it.', 'Off the track, it’s {sport} for me.'],
   bav_plat: ['{plat}. Every time.', 'My favourite? {plat}. My nutritionist pretends not to know.', 'Easy: {plat}.'],
@@ -1565,7 +1565,7 @@ Object.assign(TEXTES.en, {
   bav_pronostic_haut: ['At {prochain}? I want the win, nothing less.', 'I’m P{place} in the championship, so at {prochain} I’m going for the podium.'],
   bav_pronostic_milieu: ['At {prochain}, if the car is good, a top five.', 'Points at {prochain}, and maybe a surprise.'],
   bav_pronostic_bas: ['At {prochain}? Honestly, a few points would make my day.', 'I’ll fight. Points at {prochain} would be a great result for us.'],
-  bav_pronostic_fav: ['And it’s my favourite track!', 'Plus I love that place.'],
+  bav_pronostic_fav: ['And it’s my favourite track!', 'I also love that place.'],
   bav_pronostic_dur: ['Even if that track never suits me.', 'Not my favourite track, though.'],
   bav_champion_moi: ['I’m leading! And I plan to stay there.', 'Me, for now. Enjoy the view from behind!'],
   bav_champion_toi: ['You are! Don’t get comfortable, I’m watching.', 'You’re in front. For now.'],
@@ -1679,7 +1679,7 @@ Object.assign(TEXTES.fr, {
   bav_l_peur: ['les araignées. Sérieusement. Donne-moi plutôt une épingle à 300', 'le dentiste', 'l’eau profonde', 'les orages', 'caler au départ devant toute la grille', 'les clowns', 'le vide, aussi bizarre que ça paraisse', 'oublier mon casque'],
   bav_l_idole: ['Tom Arlette', 'Rina Vasquez', 'Max Bellamy', 'Sacha Oduya', 'Nico Ferrand', 'Lena Kowal'],
   bav_l_superstition: ['je monte toujours dans la voiture par la gauche', 'je porte les mêmes chaussettes tout le week-end de course. Lavées, promis', 'je tapote deux fois l’aileron avant chaque départ', 'je mange exactement une banane avant la qualif', 'je ne regarde jamais le trophée avant une course', 'je fredonne toujours la même chanson sur la grille'],
-  bav_l_blague: ['Pourquoi la voiture de course a raté son examen ? Elle prenait tous les raccourcis !', 'Comment appelle-t-on une voiture de course qui dort ? Une sieste-car !', 'Pourquoi les mécanos sont si calmes ? Ils savent gérer la pression. Celle des pneus.', 'Comment une voiture de course dit au revoir ? Avec le drapeau à damier !', 'Pourquoi le pneu est allé à l’école ? Pour ne plus être à plat en maths.', 'Le plat préféré d’un pilote ? Le fast-food, évidemment !', 'Pourquoi les voitures de course ne jouent jamais à cache-cache ? On les entend arriver de loin.', 'Qu’a dit le volant au pilote ? Arrête de me faire tourner en rond !', 'Pourquoi le mécano dort sous la voiture ? Pour se réveiller bien huilé.', 'Que met une voiture de course pour dormir ? Un pyjama à damier !'],
+  bav_l_blague: ['Pourquoi la voiture de course a raté son examen ? Elle prenait tous les raccourcis !', 'Comment appelle-t-on un bolide qui dort ? Une sieste sur quatre roues !', 'Pourquoi les mécanos sont si calmes ? Ils savent gérer la pression. Celle des pneus.', 'Comment une voiture de course dit au revoir ? Avec le drapeau à damier !', 'Pourquoi le pneu est allé à l’école ? Pour ne plus être à plat en maths.', 'Le plat préféré d’un pilote ? Le fast-food, évidemment !', 'Pourquoi les voitures de course ne jouent jamais à cache-cache ? On les entend arriver de loin.', 'Qu’a dit le volant au pilote ? Arrête de me faire tourner en rond !', 'Pourquoi le mécano dort sous la voiture ? Pour se réveiller bien huilé.', 'Que met une voiture de course pour dormir ? Un pyjama à damier !'],
   bav_l_secret: ['je dors encore avec la lumière allumée avant une grosse course', 'je parle à ma voiture. À voix haute. Ça aide', 'j’ai raté mon premier permis de conduire', 'je ne sais pas siffler. Du tout', 'j’ai tourné en rond une heure dans le paddock, une fois'],
   bav_l_faire: ['je regarde des vidéos embarquées du prochain circuit', 'j’aide mes mécanos à nettoyer la voiture', 'je fais des exercices pour le cou, moins drôle que ça en a l’air', 'je mange, pour tout dire', 'j’essaie de battre mon ingénieur aux cartes', 'je réponds aux messages des supporters', 'j’étudie la météo du week-end', 'je joue sur mon téléphone, chut'],
   bav_l_weekend: ['dormir. Beaucoup', 'aller voir ma famille', 'une balade à vélo en montagne', 'une soirée film avec des amis', 'un peu de karting, juste pour le plaisir', 'cuisiner pour tout le monde', 'une promenade avec mon animal', 'un bon livre sur le canapé'],
@@ -1689,7 +1689,7 @@ Object.assign(TEXTES.fr, {
   bav_age_plus: ['J’ai donc un peu plus de kilomètres que toi !', 'Tu es plus jeune : le temps joue pour toi.'],
   bav_age_moins: ['C’est toi qui as de l’expérience, alors !', 'Tu as plus d’années que moi ? Alors donne-moi des conseils.'],
   bav_famille: ['J’ai {famille}.', 'Ma famille ? {famille}. Ils viennent me voir quand ils peuvent.', 'À la maison, il y a {famille}.'],
-  bav_animal: ['J’ai {animal} qui s’appelle {animal_nom}.', '{animal_nom} ! C’est {animal}, la vraie star de la maison.', 'Oui, {animal}, {animal_nom}. Ça voyage mieux que moi.'],
+  bav_animal: ['J’ai {animal} qui s’appelle {animal_nom}.', '{animal_nom} ! C’est {animal}, la vraie star de la maison.', '{animal}, {animal_nom}. Ça voyage mieux que moi.'],
   bav_hobby: ['À part la course ? J’adore {hobby1}, et {hobby2} quand j’ai le temps.', 'Surtout {hobby1}. Ça me vide la tête avant une course.', '{hobby1} et {hobby2}. Les pilotes aussi ont des passions.'],
   bav_sport: ['Je fais beaucoup de sport, surtout {sport}. Bon pour la forme.', '{sport} ! Je n’ai pas un grand niveau, mais j’adore.', 'En dehors de la piste, c’est {sport}.'],
   bav_plat: ['{plat}. À chaque fois.', 'Mon plat préféré ? {plat}. Mon nutritionniste fait semblant de ne pas savoir.', 'Facile : {plat}.'],
@@ -1817,4 +1817,18 @@ Object.assign(TEXTES.fr, {
   bav_pq_pronostic: ['Parce que je connais ma voiture, et je connais ce circuit.'],
   bav_etoi_vague: ['Moi ? Pose-moi une question précise !', 'Et moi quoi ? Vas-y, demande.'],
   bav_fin: ['Il faut vraiment que j’y aille, mes ingénieurs me font des signes. À bientôt sur la piste !', 'Bon, c’est l’heure du briefing. À plus tard !'],
+});
+
+// (tour 59, Codeur 1) le bavardage : l'affection, « je veux être pilote », et une phrase qu'il ne sait pas ranger (sans « je ne comprends pas »)
+Object.assign(TEXTES.en, {
+  bav_affection: ['Ha, that’s kind! I like talking with you too.', 'Aww, thanks! You’re good company in the paddock.', 'That’s sweet. Keep it up on the track and we’ll get along fine!'],
+  bav_veuxpilote: ['Go for it! Everyone starts somewhere, and I began in a kart too.', 'Then work hard and never give up. The track is waiting for you!', 'Good dream. Brake early, smile late.'],
+  bav_rappel_gout: ['By the way, you told me about {x}. Still into it?', 'I keep thinking about what you said: {x}. Good one.'],
+  bav_flou: ['Ha, good question! I’m not sure I have an answer.', 'Hmm, you caught me there. I’d need to think about that one.', 'Ha ha, that’s a new one for me!'],
+});
+Object.assign(TEXTES.fr, {
+  bav_affection: ['Ha, c’est gentil ! Moi aussi, j’aime bien discuter avec toi.', 'Oh, merci ! Tu es de bonne compagnie dans le paddock.', 'C’est adorable. Continue comme ça sur la piste et on s’entendra très bien !'],
+  bav_veuxpilote: ['Fonce ! Tout le monde commence quelque part, et moi aussi j’ai débuté en kart.', 'Alors travaille dur et ne lâche jamais. La piste t’attend !', 'Beau rêve. Freine tôt, souris tard.'],
+  bav_rappel_gout: ['Au fait, tu m’as parlé de {x}. Toujours à fond dedans ?', 'Je repense à ce que tu m’as dit : {x}. Bon choix.'],
+  bav_flou: ['Ha, bonne question ! Je ne suis pas sûr d’avoir la réponse.', 'Hum, tu me prends de court. Il faudrait que j’y réfléchisse.', 'Ha ha, celle-là, on ne me l’avait jamais posée !'],
 });
