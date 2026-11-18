@@ -43,6 +43,7 @@ class Config:
         self.attente_course = 7200.0     # une salle commencée, muette 2 heures, expire
         self.nettoyage = 15.0            # période du balayage des salles expirées
         self.max_salles = 500
+        self.origines = None             # (tour 59) None : toute page peut ouvrir une connexion ; sinon la liste exacte des origines permises (« https://exemple.fr »), une page d'ailleurs est refusée (403) ; sans en-tête Origin (un script) : refusé aussi
         self.max_par_ip = 24             # connexions simultanées d'une même adresse (0 = pas de limite ; derrière un proxy : 0)
         self.max_file = 2000             # messages en attente d'envoi à un client lent avant de le couper
         self.grace = 20.0                # EN_LIGNE_GRACE : s pendant lesquelles un joueur coupé (il recharge la page) peut revenir avec son jeton, sans « parti »
@@ -494,7 +495,7 @@ class Relais:
 
     async def servir(self, hote='127.0.0.1', port=8765):
         """À utiliser avec « async with » : renvoie le serveur websockets (son port réel dans .sockets)."""
-        serveur = serve(self.gerer, hote, port, max_size=self.cfg.max_octets, ping_interval=self.cfg.ping_intervalle, compression=None)
+        serveur = serve(self.gerer, hote, port, origins=self.cfg.origines, max_size=self.cfg.max_octets, ping_interval=self.cfg.ping_intervalle, compression=None)
         return _Lance(self, serveur)
 
 class _Lance:
@@ -509,7 +510,7 @@ class _Lance:
         return await self.serveur.__aexit__(*a)
 
 async def principal(args):
-    cfg = Config(version=args.version, noms_libres=args.noms_libres, max_par_ip=args.max_par_ip)
+    cfg = Config(version=args.version, noms_libres=args.noms_libres, max_par_ip=args.max_par_ip, origines=[o.strip() for o in args.origines.split(',') if o.strip()] if args.origines else None)
     relais = Relais(cfg)
     async with await relais.servir(args.hote, args.port) as s:
         journal.info('relais prêt sur %s:%d (version %s)', args.hote, s.port, cfg.version or 'celle du créateur de chaque salle')
@@ -522,6 +523,7 @@ if __name__ == '__main__':
     p.add_argument('--version', default=os.environ.get('RELAIS_VERSION') or None, help='imposer la version que le créateur d une salle doit annoncer (« 1-3735928559 ») ; sans cela, la version d une salle est celle de son créateur')
     p.add_argument('--noms-libres', action='store_true', help='noms tapés librement (interdit au public d enfants)')
     p.add_argument('--max-par-ip', type=int, default=24, help='connexions par adresse (0 = pas de limite, à mettre derrière un proxy)')
+    p.add_argument('--origines', default=os.environ.get('RELAIS_ORIGINES') or None, help='les pages permises, séparées par des virgules (« https://exemple.fr,https://autre.fr ») ; sans cela, toute page peut se connecter')
     logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
     try: asyncio.run(principal(p.parse_args()))
     except KeyboardInterrupt: pass

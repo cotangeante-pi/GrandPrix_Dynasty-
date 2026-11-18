@@ -1,7 +1,7 @@
 // Le démarrage : il branche la physique et l'affichage sur la boucle.
 // La voiture du joueur roule sur le circuit de test, ou sur celui de ?circuit=… (un nom de CIRCUITS, donnees.js).
 const PARAMETRES = new URLSearchParams(location.search);
-if (PARAMETRES.get('enligne') === '1') REGLAGES.EN_LIGNE = true; else if (PARAMETRES.get('enligne') === '0') REGLAGES.EN_LIGNE = false;   // (tour 56, T5) les batailles en ligne : ?enligne=1 montre « En ligne » au titre et au paddock (EN_LIGNE, donnees.js : faux d'office)
+if (EN_LIGNE.adresseAutorisee() && PARAMETRES.get('enligne') === '1') REGLAGES.EN_LIGNE = true; else if (PARAMETRES.get('enligne') === '0') REGLAGES.EN_LIGNE = false;   // (tour 56, T5) les batailles en ligne : ?enligne=1 montre « En ligne » au titre et au paddock (EN_LIGNE, donnees.js : faux d'office)
 if (PARAMETRES.get('drift') === '1') REGLAGES.PNEU_DRIFT = true;   // (tour 48b, tests) ?drift=1 rallume le pneu drift caché (PNEU_DRIFT, donnees.js)
 // la page nue (index.html sans paramètre de développement) est le vrai jeu (CLAUDE.md « En piste en 10 secondes ») : au
 // premier lancement, l'écran titre puis la course de découverte ; ensuite (découverte faite), le championnat = le paddock.
@@ -33,9 +33,9 @@ if (EST_PAGE && PARAMETRES.has('defi') && PARAMETRES.get('defi') !== '1') {
   } else { LIEN_DEFI_REFUS = r.raison; PARAMETRES.delete('defi'); }
 }
 // ?enlignecourse=hote|CODE (tour 56, T7, enligne-page.js) : une course en ligne de bout en bout ; rouvre EN_LIGNE le temps de la page
-const EN_LIGNE_COURSE = EST_PAGE ? PARAMETRES.get('enlignecourse') : null;
+const EN_LIGNE_COURSE = EST_PAGE && EN_LIGNE.adresseAutorisee() ? PARAMETRES.get('enlignecourse') : null;
 if (EN_LIGNE_COURSE) REGLAGES.EN_LIGNE = true;
-const PAGE_NUE = !['course', 'ia', 'camera', 'seul', 'joueur', 'championnat', 'deux', 'tournoi', 'defi', 'enlignecourse'].some(k => PARAMETRES.has(k));
+const PAGE_NUE = !['course', 'ia', 'camera', 'seul', 'joueur', 'championnat', 'deux', 'tournoi', 'defi'].some(k => PARAMETRES.has(k)) && !(EN_LIGNE.adresseAutorisee() && PARAMETRES.has('enlignecourse'));   // (tour 59 : ?enlignecourse= ne compte que si l'adresse peut ouvrir le jeu en ligne)
 const DECOUVERTE_EN_COURS = EST_PAGE && PAGE_NUE && !SAUVEGARDE.decouverteFaite();
 if (DECOUVERTE_EN_COURS) REGLAGES.NIVEAU = REGLAGES.DECOUVERTE_NIVEAU;   // les IA de la découverte sont au niveau débutant
 // ?championnat=1 (ou la page nue après la découverte) : le championnat sauvegardé, ou un nouveau ; son prochain Grand Prix choisit le circuit de la page
@@ -72,8 +72,8 @@ if (PARAMETRES.get('pneus') === '0') REGLAGES.PNEUS_ACTIFS = false;   // (tour 3
 // (tour 55, T30) « Dégâts : oui / non » et « Drapeaux : oui / non » dans ⚙ Réglages du paddock (options sauvegardées 'degats' et 'drapeaux', changées seulement au paddock,
 // hors course : comme les aides). La valeur de donnees.js (DEGATS_ACTIF, DRAPEAUX_ACTIFS) est le réglage de départ : faux là-bas, les boutons n'apparaissent pas ; vrai, le joueur peut les couper
 const DEGATS_DEFAUT = REGLAGES.DEGATS_ACTIF, DRAPEAUX_DEFAUT = REGLAGES.DRAPEAUX_ACTIFS;
-if (DEGATS_DEFAUT && SAUVEGARDE.option('degats', true) === false) REGLAGES.DEGATS_ACTIF = false;
-if (DRAPEAUX_DEFAUT && SAUVEGARDE.option('drapeaux', true) === false) REGLAGES.DRAPEAUX_ACTIFS = false;
+if (!EN_LIGNE_COURSE && DEGATS_DEFAUT && SAUVEGARDE.option('degats', true) === false) REGLAGES.DEGATS_ACTIF = false;   // (tour 59 : pas sur la page en ligne : tous les joueurs ont la même course, sinon la version ne concorde pas)
+if (!EN_LIGNE_COURSE && DRAPEAUX_DEFAUT && SAUVEGARDE.option('drapeaux', true) === false) REGLAGES.DRAPEAUX_ACTIFS = false;
 if (PARAMETRES.get('livree') === '0') REGLAGES.LIVREE_ACTIVE = false;   // (tour 48c) ?livree=0 : la voiture d'avant, d'une seule couleur (tests, mesure)
 
 // ?essai=<skin> (boutique.js, tour 48c) : l'essai d'un skin avant l'achat, seul sur le circuit de test, hors championnat (rien n'est
