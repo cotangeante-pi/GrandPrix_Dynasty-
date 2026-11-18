@@ -1496,6 +1496,8 @@ const REGLAGES = {
   EN_LIGNE_TOURS_DEFAUT: 3,     // si les tours demandés ne sont pas permis
   EN_LIGNE_METEOS: ['auto', 'sec', 'pluie', 'averse', 'eclaircie'],   // les météos au choix de l'hôte (auto : tirée avec la graine selon le lieu, comme en carrière)
   EN_LIGNE_MATHS: true,         // enligne.js remplace sin, cos, tan, atan, atan2, exp, cbrt, hypot pendant une course en ligne par des calculs à nous, identiques au bit près sur tous les navigateurs (faux : ceux du navigateur)
+  EN_LIGNE_HORS_EMPREINTE: ['COMMENTAIRE_MODE'],   // (tour 59) les réglages d'un joueur qui ne changent pas la course (le commentateur) : ils ne comptent pas dans la version de EN_LIGNE.version() (sinon un joueur qui a coupé le commentateur serait refusé « version »)
+  EN_LIGNE_ADRESSE: true,       // (tour 59) l'adresse de la page peut ouvrir le jeu en ligne (?enligne=1, ?enlignecourse=…) : vrai pour les essais ; FAUX dans la version publiée tant que EN_LIGNE est faux (alors aucune adresse n'ouvre rien ; EN_LIGNE vrai : les adresses des écrans marchent toujours)
   GRAINE_GRILLE_LIGNE: 23000,   // la grille tirée au sort d'une course en ligne : la graine de la course + ce nombre
   // (tour 56, T5 : les écrans ; CLAUDE.md « Les batailles en ligne »). Tout reste derrière EN_LIGNE : faux = le jeu d'avant,
   // aucun bouton « En ligne » nulle part ; ?enligne=1 l'ouvre pour la page, ?enligne=0 le ferme. Pas d'envoi à Poki avant 2027.

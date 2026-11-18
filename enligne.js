@@ -42,6 +42,7 @@ const EN_LIGNE = (function () {
   const CODE_NEUTRE = (Q << 8);
 
   const actif = () => !!R.EN_LIGNE;
+  const adresseAutorisee = () => R.EN_LIGNE_ADRESSE !== false || !!R.EN_LIGNE;   // (tour 59) une adresse (?enligne=1, ?enlignecourse=…) peut-elle ouvrir le jeu en ligne ? (principal.js) ; EN_LIGNE vrai : le jeu est ouvert, les adresses des écrans (?enlignecourse=menu) doivent marcher
 
   // --- les commandes, en entiers
   const nombre = x => (typeof x === 'number' && x === x) ? x : 0;
@@ -166,11 +167,12 @@ const EN_LIGNE = (function () {
   })();
 
   // --- la version du calcul : EN_LIGNE_VERSION (à monter à la main) et l'empreinte de tous les réglages (une valeur qui change = un autre jeu)
+  // (tour 59) les réglages qui ne changent pas la course (R.EN_LIGNE_HORS_EMPREINTE : le commentateur) ne comptent pas ; `neuf` refait le calcul (les tests)
   let versionCache = null;
-  function version() {
-    if (!versionCache) {
-      const sansEnLigne = {};
-      for (const k of Object.keys(R).sort()) if (!k.startsWith('EN_LIGNE')) sansEnLigne[k] = R[k];
+  function version(neuf) {
+    if (neuf || !versionCache) {
+      const sansEnLigne = {}, horsEmpreinte = Array.isArray(R.EN_LIGNE_HORS_EMPREINTE) ? R.EN_LIGNE_HORS_EMPREINTE : [];
+      for (const k of Object.keys(R).sort()) if (!k.startsWith('EN_LIGNE') && !horsEmpreinte.includes(k)) sansEnLigne[k] = R[k];
       versionCache = { v: R.EN_LIGNE_VERSION, h: melangerTexte(2166136261, JSON.stringify(sansEnLigne)) >>> 0 };
     }
     return { v: versionCache.v, h: versionCache.h };
@@ -509,5 +511,5 @@ const EN_LIGNE = (function () {
     return banc;
   }
 
-  return { actif, version, reglagesValides, coder, decoder, codeValide, empreinte, demarrer, creerPartie, creerCourseEnLigne, conduire, planMeteo, circuitDe, preparerCircuit, maths, banc, CODE_NEUTRE, NEUTRE };
+  return { actif, adresseAutorisee, version, reglagesValides, coder, decoder, codeValide, empreinte, demarrer, creerPartie, creerCourseEnLigne, conduire, planMeteo, circuitDe, preparerCircuit, maths, banc, CODE_NEUTRE, NEUTRE };
 })();

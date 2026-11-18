@@ -4165,6 +4165,24 @@ enlT('en ligne : (T8) une voiture qui a abandonné n’est plus vue ni touchée 
     const x1=h1.v.x;pasCourseIA(e,DT,()=>{});v(h1.v.x===x1,'la voiture abandonnée n\'est plus simulée');
   }finally{EN_LIGNE.maths.desactiver();}});
 
+// --- (tour 59, relecture finale) ce qui est propre à un joueur ne doit pas faire refuser « version » ; l'adresse n'ouvre le jeu en ligne que si EN_LIGNE_ADRESSE le permet
+enlT('en ligne : (tour 59) la version ne dépend pas du commentateur (réglage d’un joueur), mais change si un réglage de physique change', ()=>{
+  const avant=REGLAGES.COMMENTAIRE_MODE,phy=REGLAGES.MASSE;
+  try{
+    const base=EN_LIGNE.version(true);
+    for(const m of ['tout','joueur','non']){REGLAGES.COMMENTAIRE_MODE=m;v(EN_LIGNE.version(true).h===base.h,'le commentateur « '+m+' » change la version');}
+    REGLAGES.COMMENTAIRE_MODE=avant;REGLAGES.MASSE=phy+1;v(EN_LIGNE.version(true).h!==base.h,'un réglage de physique (MASSE) ne change pas la version');
+    REGLAGES.MASSE=phy;v(EN_LIGNE.version(true).h===base.h,'la version ne revient pas');
+    v(REGLAGES.EN_LIGNE_HORS_EMPREINTE.includes('COMMENTAIRE_MODE')&&!REGLAGES.EN_LIGNE_HORS_EMPREINTE.includes('DEGATS_ACTIF'),'liste hors empreinte');
+  }finally{REGLAGES.COMMENTAIRE_MODE=avant;REGLAGES.MASSE=phy;EN_LIGNE.version(true);}});
+enlT('en ligne : (tour 59) EN_LIGNE_ADRESSE faux ferme la porte des adresses (?enligne=1, ?enlignecourse=) tant que EN_LIGNE est faux ; EN_LIGNE vrai : elles marchent toujours', ()=>{
+  const a=REGLAGES.EN_LIGNE_ADRESSE,o=REGLAGES.EN_LIGNE;
+  try{
+    v(REGLAGES.EN_LIGNE_ADRESSE===true&&EN_LIGNE.adresseAutorisee()===true,'par défaut les adresses ouvrent (les essais)');
+    REGLAGES.EN_LIGNE_ADRESSE=false;REGLAGES.EN_LIGNE=false;v(EN_LIGNE.adresseAutorisee()===false,'la porte reste ouverte');
+    REGLAGES.EN_LIGNE=true;v(EN_LIGNE.adresseAutorisee()===true,'EN_LIGNE vrai : les écrans ne trouvent plus leur adresse');
+  }finally{REGLAGES.EN_LIGNE_ADRESSE=a;REGLAGES.EN_LIGNE=o;}});
+
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 ecrire();
 </script></body></html>

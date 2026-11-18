@@ -14,7 +14,7 @@ python3 serveur/relais.py --hote 0.0.0.0 --port 9000      # tout le réseau loca
 ```
 
 Options : `--version` (facultatif : impose la version que le créateur d'une salle doit annoncer ; sans cela, la version d'une salle est celle de son créateur et seuls les clients de la même version la rejoignent), `--noms-libres` (noms tapés librement,
-interdit au public d'enfants), `--max-par-ip` (0 derrière un proxy). Variables : `PORT`, `RELAIS_HOTE`, `RELAIS_VERSION`.
+interdit au public d'enfants), `--max-par-ip` (0 derrière un proxy), `--origines` (tour 59 : les pages permises, séparées par des virgules, par exemple `https://jeu.exemple` ; une page d'un autre site, ou un script sans en-tête Origin, est refusé en 403 ; sans cette option, toute page peut se connecter : à régler quand l'adresse publique du jeu est connue). Variables : `PORT`, `RELAIS_HOTE`, `RELAIS_VERSION`, `RELAIS_ORIGINES`.
 Tous les autres réglages (taille, cadence, délais, nombre de joueurs) sont dans la classe `Config` du fichier.
 
 Test : `python3 tests/serveur.py` (vrais clients websockets, une trentaine de secondes) ; il est aussi dans les annexes de `tests/lancer.py`.

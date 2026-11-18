@@ -486,6 +486,22 @@ async def tests_noms_libres(port, rel):
     c = await ouvre(port, 'Salut les copains', creer=True); r = await c.lire()
     t('noms libres (si on l’autorise) : un nom tapé passe', r['t'] == 'salle', r); await fin([c])
 
+async def tests_origines(port, rel):
+    # --- (tour 59, relecture T11 n° 12) l'en-tête Origin : une page d'un autre site ne peut pas ouvrir une connexion ---
+    from websockets.exceptions import InvalidStatus
+    async def essai(origine):
+        try:
+            ws = await connect(f'ws://127.0.0.1:{port}', open_timeout=5, origin=origine)
+            await ws.close(); return 'ouvert'
+        except InvalidStatus as e: return e.response.status_code
+        except Exception as e: return type(e).__name__
+    t('origines : la page permise se connecte', await essai('https://jeu.exemple') == 'ouvert')
+    t('origines : une page d’un autre site est refusée (403)', await essai('https://autre.exemple') == 403)
+    t('origines : sans en-tête Origin (un script) : refusé (403)', await essai(None) == 403)
+    c = await connect(f'ws://127.0.0.1:{port}', open_timeout=5, origin='https://jeu.exemple'); c = C(c)
+    await c.env(t='creer', nom='bleu', version=V); r = await c.jusqua('salle')
+    t('origines : la page permise crée sa salle normalement', r['t'] == 'salle', r); await fin([c])
+
 async def lance(cfg, test):
     rel = R.Relais(cfg)
     async with await rel.servir('127.0.0.1', 0) as s:
@@ -501,7 +517,8 @@ async def tout():
         ('délai', R.Config(**dict(base, mesure_periode=0)), tests_delai),
         ('mesure', R.Config(**dict(base, mesure_periode=0.1)), tests_mesure),
         ('garde-fous', R.Config(**dict(base, avance_max=240)), tests_garde_fous), ('décisions', R.Config(**base), tests_decisions),
-        ('adresse', R.Config(max_par_ip=3, **base), tests_adresse), ('noms libres', R.Config(noms_libres=True, **base), tests_noms_libres)):
+        ('adresse', R.Config(max_par_ip=3, **base), tests_adresse), ('noms libres', R.Config(noms_libres=True, **base), tests_noms_libres),
+        ('origines', R.Config(origines=['https://jeu.exemple'], **base), tests_origines)):
         if seule and seule != nom: continue
         try: await asyncio.wait_for(lance(cfg, f), 90)
         except Exception as e:
