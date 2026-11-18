@@ -34,6 +34,7 @@ Le carnet de bord, tenu par **le Chef** et mis à jour à chaque tour (voir `CLA
 
 ## Tour en cours
 
+**Tour 59 fini le 2026-11-18 sur main vert (fusion-59b, GitHub 44227027948, 18/18)** : la conversation avec les pilotes, le style télé, la relecture du jeu en ligne, les bugs de SUIVI vérifiés. Note inchangée (96/100) : tout attend l'essai du propriétaire. À la publication : `EN_LIGNE_ADRESSE` faux. caffeinate arrêté. Reprise : CLAUDE.md, « La reprise (tour 59) ».
 **2026-11-17 20h20 : le propriétaire : « fais tout, avec les codeurs … travaille avec des modèles moyens … jusqu'à ce que tout soit fini (peut-être plus de 24h), caffeinate et GitHub Actions »** → tour 59 (rapports/tour-59-rapport.md), pas d'heure de fin, Mac éveillé (caffeinate -i -s -d), Codeurs sur Sonnet : Codeur 1 la conversation avec les pilotes (idees-58) ; Codeur 2 le nouveau style (style-59) ; Codeur 3 les bugs connus (bugs-59) ; Codeur 4 la relecture finale du jeu en ligne (relecture-59). Le Chef vérifie sur GitHub et fusionne.
 **2026-11-07 12h15 : le propriétaire : « travaille jusqu'à 9h du soir avec 4 codeurs sur tout ce qui reste à faire »** → tour 51 (Codeurs sur Sonnet) : Codeur 1 le poleman en course courte (monter IA_ATTAQUE_TETE, chocs du duel ≤ 11) ; Codeur 2 le défi après une course seule, la négociation des patrons pour un promu, les salaires selon la division ; Codeur 3 les voix branchées dans le jeu (sons de l'essai n° 3 provisoires, coupés par défaut, ?voixsons=1) ; Codeur 4 la liste complète d'exclamations fabriquée avec Bark (français d'abord, voix provisoire en attendant le choix du propriétaire). Les batailles en ligne restent à la toute fin. Rien de nouveau après 20h30, push 20h40, figé à 20h50.
 **Journée du 2026-11-06 figée à 23h10 sur main vert (code de a0b5314, GitHub 42329241105, 18/18, 96/100). Reprise : rapports/fin-2026-11-06.md.**
@@ -125,6 +126,8 @@ Note du Chef session-5b (2026-10-23) : les lignes 18 à 19b ne s'additionnaient 
 
 ## À essayer par le propriétaire
 
+- **La conversation avec les pilotes** (tour 59) : au paddock, fiche d'un rival → « 💬 Discuter » ; parle-lui comme un enfant (« t'as quel âge », « t'as un chien », « lol », « tu vas où en vacances »). Dire : il tient la conversation ?
+- **Le style télé** (tour 59) : titre, paddock, garage, pause, résultats. Dire : ça fait encore « fait par une IA » ? (`STYLE_TELE: false` dans donnees.js = l'ancien style)
 - **Les aides au pilotage, choisies avant la course** (ta règle du 2026-10-30, faite par le Codeur 3) : bouton « 🛞 Aides au pilotage » au titre, au paddock, avant une course rapide ou une leçon : direction, freinage, anti-blocage, antipatinage, une par une ; le bonus annoncé ; pendant la course, le menu pause les montre sans les changer ; sur l'écran des gains, « bonus pilotage sans aide ». Dire : l'enfant s'y retrouve ? Le bonus donne envie de couper une aide ?
 
 - **Mesurer les images par seconde** (tour 45, en un clic) : Mac au calme, écran ouvert : `index.html?reglages=1&qualite=haute`, puis « ⏱ Mesurer les images par seconde (30 s) », puis « Copier » et colle le résultat au Chef. `?ips=1` montre un petit compteur partout.
