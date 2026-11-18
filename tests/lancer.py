@@ -60,6 +60,7 @@ ANNEXES = ['tests/sdk.html', 'tests/pneus.html', 'tests/enregistreur.html', 'tes
 ANNEXES.extend(['tests/aides.html', 'tests/tutoriel.html', 'tests/limites.html'])   # les aides au premier usage (aides.js, étape 11b) et le tutoriel guidé (tutoriel.js, étape 11d), Codeur 4
 ANNEXES.append('tests/cout-drapeaux.html')   # le coût des drapeaux sur les 12 circuits (tour 55, T19)
 # (tests/reseau.html : le client réseau, WebSocket (faux), BroadcastChannel, reconnexion (tour 56, T4) : en temps réel, par tests/reseau.py, voir reseau_page)
+ANNEXES.append('tests/banc-bavardage-en.html')   # le bavardage avec les pilotes, page en anglais (?lang=en ; tour 59, Codeur 1)
 ANNEXES.append('tests/drapeaux.html')   # les drapeaux : jaune, bleu, VSC (tour 55, T7)
 ANNEXES.append('tests/carriere-longue.html')   # la carrière entière : 15 saisons, 3 générations, vieilles sauvegardes (tour 55, T1)
 ANNEXES.append('tests/personnalisation.html')   # la personnalisation : livrée, célébration, boutique de skins (tour 48c, Codeur 3)

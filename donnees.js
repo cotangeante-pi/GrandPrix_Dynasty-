@@ -729,6 +729,14 @@ const REGLAGES = {
   DISCUSSION_MEMOIRE: 12,           // il se souvient des 12 derniers messages (compact : l'acte, la saison, le Grand Prix)
   DISCUSSION_MENACE_COURSES: 2,     // une menace sans suite pendant ce nombre de courses : du crédit perdu (il te le dira)…
   DISCUSSION_CREDIT_MAX: 3,         // … au plus ce nombre de fois
+  // (tour 58, le propriétaire : « tu n'arrives pas du tout à leur tenir conversation ») le bavardage (bavardage.js) : la vie des pilotes,
+  // les sujets de tous les jours, les questions en retour, la mémoire de ce que le joueur dit de lui ; faux = les discussions d'avant
+  BAVARDAGE_ACTIF: true,
+  GRAINE_BAVARDAGE: 24000,          // la vie d'un pilote et les variantes du bavardage : la graine du championnat + ça (une suite à part)
+  BAVARDAGE_PAR_GP: 40,             // au plus ce nombre de messages de bavardage à un même pilote par Grand Prix (à part des 14 de la course)
+  BAVARDAGE_RETOUR: 0.45,           // la part des réponses suivies d'une question en retour (« Et toi, tu as un animal ? »)
+  BAVARDAGE_RELANCE: 0.25,          // la part des réponses où il relance la conversation sur un autre sujet (après 3 messages)
+  BAVARDAGE_MEMOIRE: 8,             // une réponse ne recommence pas comme une de ses 8 dernières
   GRAINE_DISCUSSION: 15000,         // les variantes des réponses : la graine du championnat + ce nombre (une suite à part, ALEATOIRE.suite)
   // le courrier des pilotes (courrier-pilotes.js) : ils écrivent d'eux-mêmes après les faits
   COURRIER_PAR_GP: 3,               // au plus 3 messages par Grand Prix (les plus urgents)
