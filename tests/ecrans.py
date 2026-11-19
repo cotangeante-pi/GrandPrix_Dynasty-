@@ -174,7 +174,9 @@ PAGES = [
     ('index.html?course=3&ia=19&joueur=1&circuit=monzo&domicile=1&test=supporters', 1280, 720, None),   # le Grand Prix à domicile : la caméra de la grille longe d'abord la tribune des supporters ; capture supporters.png   # la réalisation télé (regie.js) : de vraies caméras, l'hélicoptère ; captures tele-monoco.png, tele-helico.png   # … et Monzo de jour : la luminosité de l'image, pour la comparer à la nuit   # le décor dans le vrai jeu : la course de nuit à Singapura, 20 voitures, vue télé ; capture jeu-singapura.png
     ('tests/lieu.html?circuit=monoco&vue=port', 1280, 720, None),
     ('tests/lieu.html?circuit=suzuko&vue=pont', 1280, 720, None),   # le pont de Suzuko (PONT_ACTIF) : une voiture dessus, une dessous ; capture pont-suzuko.png   # Monoco en détail : le port, les bateaux, les façades ; capture monoco.png
-    ('tests/lieu.html?circuit=monoco&domicile=1', 1280, 720, None),   # le Grand Prix à domicile : le public aux couleurs du pays, les banderoles ; capture banderoles.png
+    ('tests/lieu.html?circuit=monoco&domicile=1', 1280, 720, None),
+    ('tests/lieu.html?circuit=yasmarino&test=realisme', 1280, 720, None),   # (tour 60) le ciel d'un shader et le public qui bouge (REALISME_CIEL, REALISME_PUBLIC) ; captures realisme-*.png
+    ('tests/lieu.html?circuit=monoco&realisme=0', 1280, 720, None),         # (tour 60) … et réglages faux : le ciel et le public d'avant   # le Grand Prix à domicile : le public aux couleurs du pays, les banderoles ; capture banderoles.png
    # le décor du circuit test (étape 10) avec 20 voitures : appels de dessin, triangles, niveaux de détail ; captures decor-test.png, decor-dessus.png
     ('index.html?test=tournoi', 1280, 720, None),   # le tournoi chrono (tour 26b) : inscription de 3 joueurs → 3 manches (robot ; un abandon) → podium → Rejouer ; captures tournoi.png, tournoi-podium.png
     ('index.html?test=tournoi', 960, 600, None),    # … l'inscription de 8 joueurs tient en 960×600   # le mode 2 joueurs, tour 25b ordre 3 : titre → « Entre amis » → réglages → course à deux (robots) → podium → rivalité → Revanche → Menu ; captures entre-amis.png, deux-reglages.png, rivalite.png
@@ -2898,6 +2900,39 @@ PLAFONDS_IMAGE = {
     'singapura': (46, 106000),   # (tour 50c : 147 286 → 96 344)
     'yasmarino': (48, 97000),
 }
+# (tour 60, Codeur 3) le ciel et le public réalistes (decor.js : cielRealiste, publicRealiste, animer) : le ciel est UN maillage (le dôme,
+# nuages compris : plus de maillage de nuages), dessiné après les opaques ; le public reste en DEUX maillages (proches, imposteurs) : aucun
+# appel de dessin en plus ; il bouge par le temps des shaders (le même temps = la même image, au pixel près ; un autre temps = une autre),
+# les 4 voitures les plus proches l'excitent ; le pas « ciel » de l'Auto fine coupe nuages et étoiles. Réglages faux (?realisme=0) : le
+# ciel et le public d'avant (le maillage des nuages, les matériaux d'avant). Captures realisme-ciel.png, realisme-public.png, realisme-avant.png
+def realisme_ecran(pg, titre, page):
+    if 'realisme=0' in page:
+        r = pg.evaluate("""() => { const d = SCENE3D.decor, noms = []; let ciel = null, pub = []; d.groupe.traverse(o => { if (o.isMesh) noms.push(o.name); if (o.name === 'decor-ciel') ciel = o; if (/^decor-public/.test(o.name)) pub.push(o); });
+          return { nuages: noms.includes('decor-nuages'), shaderCiel: !!(ciel && ciel.userData.ciel), ordre: ciel ? ciel.renderOrder : null, publics: pub.length, cles: pub.map(m => m.material.customProgramCacheKey ? m.material.customProgramCacheKey() : '') }; }""")
+        t(f'{titre} : REALISME_CIEL et REALISME_PUBLIC faux : le ciel d’avant (coupole en dégradé et maillage des nuages) et le public d’avant', r['nuages'] and not r['shaderCiel'] and r['ordre'] == -1 and r['publics'] == 2 and not any('60' in k for k in r['cles']), str(r))
+        pg.screenshot(path=os.path.join(CAPTURES, 'realisme-avant.png'))
+        return
+    r = pg.evaluate("""() => { const d = SCENE3D.decor, cam = SCENE3D.camera, noms = []; let ciel = null, pub = []; d.groupe.traverse(o => { if (o.isMesh) noms.push(o.name); if (o.name === 'decor-ciel') ciel = o; if (/^decor-public/.test(o.name)) pub.push(o); });
+      // la caméra devant la tribune la plus proche de la ligne, les voitures tout près
+      const c = DEFS_LIEU().circuit; let tb = d.objets.tribune[0], best = Infinity;
+      for (const o of d.objets.tribune) { const q = Math.hypot(o.x - c.x[0], o.z - c.z[0]); if (q < best) { best = q; tb = o; } }
+      cam.position.set(tb.x - tb.bx * 22, 3, tb.z - tb.bz * 22); cam.lookAt(tb.x, 5, tb.z); cam.updateProjectionMatrix();
+      const image = t => { SCENE3D.reglerTemps(t); SCENE3D.dessiner(); return [SCENE3D.canvas.toDataURL(), SCENE3D.appelsDessin]; };
+      const a = image(3), a2 = image(3), b = image(4.7);
+      const excite = DECOR.ANIM.uVoitures.value.filter(v => v.z === 1).length;
+      SCENE3D.reglerQualite({ pixelRatio: REGLAGES.PIXEL_RATIO_MAX, detail: REGLAGES.DECOR_DETAIL_LOIN, rien: REGLAGES.DECOR_RIEN_LOIN, densite: 1, ciel: 0 }); SCENE3D.dessiner(); const sansNuages = d.cielU.detailCiel.value;
+      SCENE3D.reglerQualite(null); SCENE3D.dessiner(); const avecNuages = d.cielU.detailCiel.value;
+      return { nuages: noms.includes('decor-nuages'), shaderCiel: !!(ciel && ciel.userData.ciel), ordre: ciel ? ciel.renderOrder : null, publics: pub.length,
+        cles: pub.map(m => m.material.customProgramCacheKey ? m.material.customProgramCacheKey() : ''), memeTemps: a[0] === a2[0], bouge: a[0] !== b[0], appels: [a[1], b[1]], excite, sansNuages, avecNuages }; }""")
+    t(f'{titre} : le ciel d’un shader (un maillage, nuages compris, dessiné après les opaques) et le public réaliste en deux maillages (proches, imposteurs) : aucun appel de dessin en plus',
+      not r['nuages'] and r['shaderCiel'] and r['ordre'] == 1000 and r['publics'] == 2 and sorted(r['cles']) == ['public-60', 'public-60-loin'], str(r))
+    t(f'{titre} : le public et les nuages bougent par le temps des shaders (le même temps = la même image au pixel près, un autre = une autre, les mêmes appels de dessin) ; les voitures proches l’excitent ; le pas « ciel » de l’Auto coupe nuages et étoiles',
+      r['memeTemps'] and r['bouge'] and r['appels'][0] == r['appels'][1] and r['excite'] >= 1 and r['sansNuages'] == 0 and r['avecNuages'] == 1, str(r))
+    pg.screenshot(path=os.path.join(CAPTURES, 'realisme-public.png'))
+    pg.evaluate("""() => { const c = DEFS_LIEU().circuit, cam = SCENE3D.camera, h = (SCENE3D.decor.lieu.lumiere.hauteur || 45) * Math.PI / 180;
+      cam.position.set(c.x[0], 3, c.z[0]); cam.lookAt(c.x[0] + Math.cos(h) * 700, 3 + Math.sin(Math.min(h, 0.4)) * 300, c.z[0] + Math.cos(h) * 300); cam.updateProjectionMatrix(); SCENE3D.reglerTemps(3); SCENE3D.dessiner(); }""")
+    pg.screenshot(path=os.path.join(CAPTURES, 'realisme-ciel.png'))
+
 def lieu_ecran(pg, titre, page):
     nom = re.search(r'circuit=([a-z]+)', page).group(1)
     pret = attendre(pg, '() => !!window.__lieu', None, 60000)
@@ -2923,6 +2958,8 @@ def lieu_ecran(pg, titre, page):
         L.append(f"  (coûts de {nom}, caméra de course, 20 voitures, {c['points']} endroits du tour : appels {c['appelsMoy']} en moyenne, {c['appelsMax']} au pire ; triangles {c['trianglesMoy']} et {c['trianglesMax']} ; {c['materiaux']} matériaux, {c['programmes']} programmes, ombres {'oui' if c['ombres'] else 'non'} ; effets : fumée, étincelles et traces de pneus +{c['sensations']}, trajectoire conseillée +{c['conseil']})")
         t(f'{titre} : les coûts de {nom} à la caméra de course, avec 20 voitures : au pire {c["appelsMax"]} appels de dessin (plafond {pa}) et {c["trianglesMax"]} triangles (plafond {pt}) ; les effets coûtent au plus 4 appels (fumée, étincelles, traces de pneus, trajectoire conseillée)',
           c['appelsMax'] <= pa and c['trianglesMax'] <= pt and c['sensations'] + c['conseil'] <= 4 and not c['ombres'], str(c))
+    if 'test=realisme' in page or 'realisme=0' in page:
+        realisme_ecran(pg, titre, page)
     if 'vue=port' in page:
         t(f'{titre} : Monoco : le port (de l’eau), des bateaux, des façades et des immeubles', n['eau'] > 50 and n['bateau'] >= 20 and n['immeuble'] > 200, str(n))
     if 'vue=pont' in page:
