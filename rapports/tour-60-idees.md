@@ -2,6 +2,30 @@
 
 Date : 2026-11-19. Branche `idees-60` (depuis origin/main 2cd512d). **Rien n'est codé** : c'est un rapport d'idées pour le Chef et le propriétaire.
 
+## En une page, pour le propriétaire
+
+**Le problème.** Le jeu est riche, mais tout passe par la longue carrière. Un enfant qui a 5 minutes n'a rien de court à jouer, rien ne change d'un jour à l'autre, et il n'a rien de simple à montrer à ses copains.
+
+**Les 5 meilleures idées**
+
+1. **🗓 Le Grand Prix du jour.** Chaque jour, une course courte, la même pour tous les joueurs du monde (circuit, météo, place de départ). On gagne une médaille, on garde sa série de jours, et on envoie son résultat aux copains en une ligne.
+2. **🤝 Ton pote dans ta saison.** Tu envoies un lien à un ami : ton pilote apparaît dans **son** championnat, comme rival ou comme coéquipier, avec ta voiture et ton casque. C'est la seule idée qui fait venir de nouveaux joueurs.
+3. **⚡ Les défis-éclair.** 40 petites missions de course de 1 à 3 minutes (« dernier tour, bats Rossi », « l'averse arrive, rentre au stand »), avec 1 à 3 étoiles. Parfait quand on a peu de temps, et on recommence tout de suite.
+4. **🥇 Les médailles des circuits.** Sur chaque circuit, 4 fantômes à battre : bronze, argent, or, diamant. Une collection de 56 médailles qui donne envie de revenir sur chaque piste.
+5. **💨 La vitesse qui se sent.** À fond, l'image s'élargit, des traits filent sur les côtés, le vent souffle : la voiture a l'air d'aller aussi vite qu'elle va. Ça change chaque seconde de chaque course, pour pas cher. **Il faut que tu l'essaies** avant qu'on la garde.
+
+Et une **correction à faire tout de suite** : la ligne verte / jaune / rouge qui aide les débutants est illisible pour environ un garçon sur douze (les daltoniens). On ajoute des flèches dans la zone de freinage.
+
+**Les 3 questions que tu dois trancher**
+
+1. **Les noms des pilotes et des écuries.** Aujourd'hui, c'est « Pilote 14 » et « Écurie 6 ». Les idées 2, 3 et les cartes de pilotes ont besoin de vrais noms (inventés). Tu les choisis, ou tu laisses le Chef en proposer ?
+2. **On commence par quoi ?** Le Grand Prix du jour (le plus sûr), le pote dans ta saison (le plus nouveau) ou les défis-éclair (le plus de jeu) ? Le plan propose de faire les trois en deux tours de 4 Codeurs (annexe F).
+3. **Le téléphone tenu debout.** Aujourd'hui, le jeu s'affiche **tourné** quand on tient le téléphone debout. Poki dit que faire tourner le téléphone fait partir des joueurs. On leur demande si ça leur va (si oui, on ne change rien), ou on prépare une vraie conduite debout (gros travail) ?
+
+Le reste du fichier : le détail de chaque idée, prêt à coder, les maquettes des écrans, le plan de route et ce qui a été vérifié dans le code.
+
+---
+
 ## Ce que j'ai regardé
 
 - CLAUDE.md en entier (les sections du jeu, les refus, les règles Poki), SUIVI.md (« À essayer », « Décisions en attente », « Retours du propriétaire »), `rapports/tour-60-rapport.md` (les 4 autres Codeurs : conversation sur tous les thèmes, réalisme voitures/route, ciel/public/Auto, auto-guidage au téléphone), `rapports/plan-premiere-minute.md`, et le code là où une idée en dépend (`simulation.js`, `defi.js`, `photo.js`, `sauvegarde.js`, `donnees.js`, `tests/debout.py`).
@@ -45,6 +69,7 @@ Pourquoi cet ordre : 1 est moyen et touche tous les joueurs (le retour du lendem
 | 10 | Le jeu debout | 0 | 0 | 1 | 0 | gros | `PORTRAIT_JEU` |
 | 11 | Week-ends à thème | 2 | 1 | 1 | 1 | petit à moyen | `EVENEMENTS_ACTIF` |
 | 12 | Le champion de la division | 1 | 0 | 1 | 2 | petit | `CHAMPION_COURONNE` |
+| 13 | La vitesse qui se sent (annexe H, à classer **5e**) | 1 | 1 | 2 | 3 | petit | `VITESSE_RESSENTIE` |
 
 Le 10 a des zéros mais un enjeu à part (la **conversion** au premier lancement sur téléphone, et les pubs du portrait) : c'est une question à poser à Poki avant d'être une idée à coder.
 
@@ -244,7 +269,7 @@ Le 10 a des zéros mais un enjeu à part (la **conversion** au premier lancement
 
 ### 9. L'album des cartes de pilotes 🃏
 
-**Le moment.** Chaque rival a une **carte** (son casque, sa voiture, son caractère, son pays, une phrase). On la gagne en le battant pour la première fois ; elle devient **brillante** quand on le bat sur une saison entière, **dorée** quand on le bat à **son** Grand Prix à domicile. « Album : 23 cartes sur 76, 4 dorées » (19 rivaux par division).
+**Le moment.** Chaque rival a une **carte** (son casque, sa voiture, son caractère, son pays, une phrase). On la gagne en le battant pour la première fois ; elle devient **brillante** quand on le bat sur une saison entière, **dorée** quand on le bat à **son** Grand Prix à domicile. « Album : 23 cartes · 4 brillantes · 2 dorées » (les pilotes rencontrés ; annexe G9).
 
 **Pourquoi c'est fort.** Collectionner des cartes, c'est le plaisir n° 1 des enfants de 8 à 12 ans. Et c'est encore notre force (les rivaux ont un nom, un pays, une mémoire) : chaque carte rappelle une histoire (« celui-là, je l'ai eu à Monoco »).
 
@@ -1063,6 +1088,129 @@ Les idées 10 (le vrai portrait) et 11 (les week-ends à thème) attendent : la 
 - **Avant / après** dans les chiffres que Poki donne au développeur : le temps de jeu moyen et, s'il est donné, le retour du lendemain. Une version à la fois (le tour A seul, puis le tour B), sinon on ne sait pas ce qui a marché.
 - **Dans le jeu, sans rien envoyer** (aucune donnée ne quitte l'appareil) : la sauvegarde compte déjà les courses ; on y ajoute, à la racine, quelques compteurs (jours joués, défis tentés, liens `?jour=` et `?pilote=` reçus) que le propriétaire peut lire sur son propre appareil ou sur celui d'un enfant qui joue (un petit affichage à ajouter au panneau `?reglages=1`).
 - **Le plus fiable pour un jeu d'enfants** : faire jouer deux ou trois enfants une semaine et leur demander (le propriétaire l'a déjà fait pour l'auto-guidage, avec un résultat décisif).
+
+## Annexe G — Les idées 9 à 12, prêtes à coder
+
+### G9. L'album des cartes de pilotes
+
+**Les règles exactes.**
+- **Une carte par pilote rencontré** (rival IA, en carrière seulement), pas par course. Trois états : **normale** (le battre une fois : finir devant lui à l'arrivée d'un Grand Prix, pénalités comprises), **brillante** (finir devant lui **sur une saison** : plus de points que lui à la fin de la saison), **dorée** (le battre **à son Grand Prix à domicile** : `CHAMPIONNAT.rivauxADomicile`, ou, pour un rival sans circuit dans son pays, le battre au duel de la saison s'il était ton coéquipier). Une carte ne redescend jamais.
+- **Le coéquipier** compte comme les autres ; **le copain** (idée 2) a sa carte aussi, avec un cadre à part.
+- **Les plateaux des divisions** : chaque division a ses 19 rivaux ; les pilotes qui montent avec toi (`DIVISION_MONTEE_RIVAUX`) gardent leur carte. L'album compte les pilotes **rencontrés**, pas un total fixe : « 23 cartes · 4 brillantes · 2 dorées ». (J'avais écrit « 23 sur 76 » : un total fixe est faux, les retraités sont remplacés par des jeunes chaque saison et la relève continue le monde.)
+- **La relève** : l'album est celui de la dynastie (il continue avec l'héritier) ; une « Nouvelle dynastie » en ouvre un neuf, l'ancien reste au temple.
+- **Ce qu'on garde** : pour chaque carte, l'indice du pilote dans son plateau et 2 bits d'état, plus, pour un pilote parti à la retraite, son résumé compact qui existe déjà (nom, casque, totaux) : environ 4 octets par carte, quelques centaines d'octets pour une carrière.
+
+**Les écrans.** Une 4e tuile dans la page **Saison** du paddock (« Cartes ») ; une grille de cartes (casque en grand, nom, numéro, drapeau du pays, son caractère en un mot : « Fonceur », « Régulier », « Rusé », et la dernière phrase qu'il a dite sur toi, déjà gardée par l'interview) ; un appui ouvre sa fiche (`fiche.js`). Au doigt : cartes de 96×128 px, 4 par ligne en 640×360, la grille défile. Après un Grand Prix où une carte change : une petite bulle sur le podium (« 🃏 Nouvelle carte : Rossi ! »).
+
+**Les cas limites.** Une vieille sauvegarde : les cartes se reconstruisent depuis l'historique des duels des rivaux (déjà gardé : « ses duels contre le joueur », CLAUDE.md), seulement en normales (les saisons d'avant ne disent pas toujours qui était devant). Un pilote sans nom (« Pilote 14 ») : la carte s'affiche, mais l'idée attend les vrais noms.
+
+**Les tests.** Battre un rival → sa carte, une fois ; brillante et dorée à leurs conditions ; jamais de recul ; 15 saisons de `carriere-longue.html` avec l'album : pas de NaN, taille notée ; une vieille sauvegarde ; `CARTES_ACTIF` faux : rien.
+
+**Les réglages.** `CARTES_ACTIF`, `CARTES_CARACTERE_MOTS` (les mots du caractère selon `IA_CARACTERE`).
+
+**Les fichiers.** `cartes.js` (nouveau, calcul pur), `championnat.js` (noter après chaque Grand Prix, un bloc), `saisons.js` (la brillance en fin de saison, un bloc), `interface.js`, `index.html`, `textes.js`, `donnees.js`, `sauvegarde.js`.
+
+### G10. Le jeu debout, pour de vrai
+
+**D'abord la question à Poki** (le propriétaire) : le jeu affiché **tourné de 90°** quand le téléphone est debout (`PORTRAIT_TOURNER`, vrai depuis le tour 56) passe-t-il leur contrôle ? Que coûte-t-il en joueurs ? Si la réponse est « ça va », **on ne fait pas cette idée**.
+
+**Sinon, la version minimale (seulement la conduite)** :
+- **La caméra debout** : plus haute et plus reculée que `CAMERA_DERRIERE` (par exemple 11 m de recul, 4,5 m de haut) et un champ de vision **vertical** plus grand, pour voir le virage qui vient au-dessus de la voiture ; un réglage `PORTRAIT_CAMERA`.
+- **Les commandes** : FREIN en bas à gauche, GAZ en bas à droite (les mêmes boutons, plus larges : 45 % de la largeur chacun) ; **le volant ne marche pas debout** (incliner un téléphone debout, c'est le pencher vers soi) : la direction passe par **◀ ▶** posés au-dessus de GAZ et FREIN, ou par **glisser le pouce** sur la moitié basse de l'écran ; l'auto-guidage reste au choix.
+- **L'affichage** : la tour de classement réduite à 5 lignes en haut (toi, les deux devant, les deux derrière), le chrono en haut à droite, pas de minicarte.
+- **Les menus restent tournés** (le titre, le paddock, la boutique) : c'est la partie énorme, on ne la fait pas d'abord.
+
+**Les cas limites.** Tourner le téléphone **en pleine course** : on passe d'une mise en page à l'autre sans pause (aujourd'hui, debout = pause). iPhone sans plein écran : la barre d'adresse mange 50 à 80 px, la mise en page se règle sur `100dvh` (déjà le cas, tour 54b).
+
+**Les tests.** `tests/debout.py` (déjà là, 4 téléphones debout) : la course en portrait, rien hors de l'écran, boutons ≥ 40 px ; la course identique au bit près debout et couché (la physique ne change pas, seulement la caméra et les commandes).
+
+**Les réglages.** `PORTRAIT_JEU` (faux = `PORTRAIT_TOURNER`, comme aujourd'hui), `PORTRAIT_CAMERA`, `PORTRAIT_DIRECTION` (`'boutons'` ou `'glisser'`).
+
+**Les fichiers.** `tactile.js` (la direction debout), `camera.js`, `style.css` (la mise en page debout, un bloc), `principal.js`, `textes.js`, `donnees.js`, `tests/debout.py`.
+
+### G11. Les week-ends à thème
+
+**Les règles exactes.**
+- **Le calendrier** `EVENEMENTS` (dates fixes, chaque année) : par exemple **« Nuit des lanternes »** (une semaine en février : Singapura et Yas Marino de nuit, lanternes de couleur dans le public), **« Grand Prix de printemps »** (avril : tribunes fleuries, couleurs pastel), **« Grand Prix d'été »** (juillet : soleil bas et chaud), **« Grand Prix des citrouilles »** (fin octobre : tribunes orange et violettes), **« Grand Prix des neiges »** (décembre : décor blanc autour de la piste, la piste reste sèche).
+- **Ce qui change pendant l'événement** : (a) **le Grand Prix du jour** prend le thème (un circuit du thème, le nom « Grand Prix des citrouilles · Jour 3/7 ») ; (b) **les couleurs du public, des tribunes et du décor** (les teintes : rien de nouveau à dessiner) ; (c) **une livrée et un motif de casque de l'événement**, gagnés avec **une médaille d'argent au moins** au jour pendant l'événement (pas forcément tous les jours : une seule fois suffit).
+- **Rien ne se perd** : la livrée revient l'année suivante ; un enfant qui a raté l'événement peut la gagner l'an d'après. Aucun compte à rebours angoissant (« plus que 2 h ! ») : seulement « Jusqu'à dimanche ».
+- **La date** : la date locale, comme le jour ; hors des dates, le jeu d'avant au pixel près.
+
+**Les écrans.** Sur le titre : le bouton du jour prend la couleur et le nom de l'événement ; dans le jeu, le décor teinté ; sur l'arrivée du jour : « 🎃 Livrée Citrouille gagnée ! ».
+
+**Les cas limites.** Une fête qui n'est pas celle de tout le monde : les noms restent descriptifs (« citrouilles », « neiges », « lanternes »), jamais religieux. Les Codeurs 2 et 3 refont le ciel et le public en ce moment : **la teinte doit être un réglage de leur travail** (une couleur multipliée dans le shader du public et des tribunes), sinon cette idée devient chère.
+
+**Les tests.** Chaque date du calendrier allume le bon thème ; hors des dates, rien (capture au pixel près) ; la livrée gagnée une fois, gardée ; les appels de dessin identiques avec et sans thème.
+
+**Les réglages.** `EVENEMENTS_ACTIF`, `EVENEMENTS` (dates, circuits, teintes, livrée), `EVENEMENTS_MEDAILLE` (la médaille qui gagne la livrée).
+
+**Les fichiers.** `evenements.js` (nouveau, calcul pur : date → thème), `jour.js` (un bloc), `decor-public.js` / `foule.js` / `decor.js` (la teinte, à voir avec les Codeurs 2 et 3), `boutique.js` (les skins d'événement : un 4e mode d'obtention, « événement »), `textes.js`, `donnees.js`.
+
+### G12. Le champion de la division
+
+**Les règles exactes.**
+- **Qui** : le champion de la saison passée **de ton plateau** (`ch.saisons` garde `champion`, l'indice du pilote, à chaque fin de saison) ; s'il a pris sa retraite ou changé de plateau, le 2e de cette saison ; à la toute première saison d'une division (pas encore de saison jouée sur ce plateau), le pilote **au meilleur rythme**, appelé « le favori ».
+- **Les marques** : une couronne 👑 devant son nom dans la tour de classement, les classements et sa fiche ; le commentateur le dit au départ (`com_champion`) ; sur la grille, la caméra du départ passe une fois devant lui (comme la tribune des supporters du joueur).
+- **Le battre** : finir devant lui en Grand Prix → une ligne sur le podium (« Tu as battu le champion ! ») et, la première fois de la carrière, un motif de casque (`CASQUE_DEBLOCAGES` : `couronne` existe déjà pour le titre ; un nouveau, `sceptre`, pour ça). Prendre sa couronne au championnat = devenir champion de la division : la une du journal a son titre (« Le roi est tombé ! »).
+- **Jamais de triche** : le champion est un pilote comme les autres ; la couronne ne change rien à son pilotage.
+
+**Les écrans.** Rien de nouveau : une icône, quelques textes, la bulle d'aide la première fois (« 👑 Le champion de ta division. Bats-le ! »).
+
+**Les tests.** Le bon champion (saison passée, retraité, première saison) ; la couronne affichée une fois ; le motif débloqué une fois ; course identique au bit près avec et sans couronne.
+
+**Les réglages.** `CHAMPION_COURONNE`, `CHAMPION_MOTIF`.
+
+**Les fichiers.** `championnat.js` (qui est le champion, une petite fonction), `interface.js`, `commentaire.js` (une phrase), `journal.js` (un titre), `casque.js` (le motif), `textes.js`, `donnees.js`.
+
+## Annexe H — La deuxième chasse (son, vitesse à l'image, 30 premières secondes au doigt, accessibilité, revenir le lendemain)
+
+**La règle** : ne garder que ce qui bat l'idée n° 8 (le championnat à deux : un vrai plaisir, mais seulement pour deux enfants sur un même clavier). Ce que j'ai lu : `sensations.js`, `son.js`, les réglages `CAMERA_*`, `SECOUSSE_*`, `SENSATIONS_*`, `CONSEIL_*` et `TACTILE_*` de `donnees.js`, `tactile.js`.
+
+### Ce qui existe déjà
+
+- **Le son** : moteur avec rapports, vibreurs, crissement, aspiration, voiture qui passe, pluie (tour 37), voix du commentateur. **Pas de musique.**
+- **La vitesse à l'image** : le champ de vision passe de 60° à **66°** à pleine vitesse (`CAMERA_CHAMP` [60, 6]), la caméra recule de **0,5 m** (`CAMERA_RECUL_VITESSE`), de petites secousses aux vibreurs et aux chocs (`SECOUSSE_VIBREUR` 0,02 m, `SECOUSSE_CHOC` 0,09 m), fumée, étincelles.
+- **L'accessibilité** : les drapeaux ont toujours leur texte (jamais la couleur seule) ; l'écart au fantôme a son signe (« −0,34 », « +0,12 ») en plus du vert et du rouge.
+
+### Gardé : 13. La vitesse qui se sent (bat l'idée n° 8, je la classerais **5e**, entre les médailles et l'élimination)
+
+**Le constat.** 66° contre 60°, c'est presque invisible ; 0,5 m de recul aussi. À 300 km/h, notre F1 a l'air de rouler à 150. Or la **sensation de vitesse** est ce qu'un enfant ressent à chaque seconde de chaque course, dans tous les modes ; les jeux de course qui plaisent l'exagèrent tous. Et c'est peu coûteux : rien de nouveau à calculer, seulement la caméra et deux effets légers.
+
+**Le moment.** Léo sort de l'épingle de Monzo, plein gaz : l'image s'élargit doucement, des traits blancs fins filent sur les bords de l'écran, le moteur monte et un **souffle de vent** grandit sous le moteur ; au freinage, la caméra plonge un tout petit peu vers l'avant. Il dit « ça va trop vite ! » et il sourit.
+
+**Ce que ça veut dire, exactement** (tout derrière `VITESSE_RESSENTIE`, faux = le jeu d'avant au pixel près) :
+1. **Le champ de vision** : `CAMERA_CHAMP` [60, 6] → [58, **16**] (de 58° à l'arrêt à 74° à pleine vitesse), avec une montée **non linéaire** (rien sous 150 km/h, presque tout au-dessus de 250) : la vitesse se sent surtout en ligne droite. Réglage `VITESSE_CHAMP`.
+2. **La caméra qui « tire »** : à l'accélération, elle recule de 0,6 m de plus pendant une seconde, et revient ; au freinage fort, elle avance de 0,4 m et baisse de 0,15 m (le nez qui plonge). Lu dans les sensations (`SENSATIONS.faits`), jamais dans la physique.
+3. **Les traits de vitesse** : au-dessus de 250 km/h, une vingtaine de traits fins et transparents sur les bords de l'écran (pas au centre : la piste reste nette), dessinés **en un seul appel** (des segments dans un `LineSegments`, ou un calque 2D) ; retirés par l'Auto avant les ombres (dans l'ordre des pas de `qualite.js`).
+4. **Le son** : un souffle d'air (un bruit filtré généré par le code, Web Audio, aucun fichier) dont le volume suit la vitesse au carré ; il couvre un peu le moteur à 300 km/h.
+5. **Les vibrations** : sur téléphone, `navigator.vibrate` de 15 ms au passage d'un vibreur et 40 ms à un choc (Android seulement, iPhone l'ignore), coupé par le réglage « Effets de conduite » qui existe déjà.
+
+**Pourquoi elle bat l'idée 8** : elle touche **100 % des courses de 100 % des joueurs** (l'idée 8, une petite part des joueurs d'ordinateur), pour un coût petit.
+
+**Les risques.** (a) **Le propriétaire a déjà réagi** à la caméra (tour 3 : « la caméra est trop loin quand on accélère trop ») : il faut **son essai** avant de mettre les nouvelles valeurs par défaut ; le réglage est fait pour ça. (b) Le mal des transports chez certains enfants : « Effets de conduite : non » coupe tout (champ de vision compris). (c) Les images/s : les traits coûtent un appel de dessin (mesuré avec `tests/perf.py`, comme le tour 60). (d) À deux : un champ de vision plus large dans une moitié d'écran étroite déforme ; à deux, seulement le son.
+
+**Comment savoir qu'elle marche.** Test : `VITESSE_RESSENTIE` faux = captures au pixel près et course au bit près (la physique n'est jamais touchée) ; le champ de vision à 0, 150, 250, 330 km/h ; les traits absents sous 250 km/h et en qualité au plus bas ; `tests/perf.py` avant / après. Et surtout : le propriétaire et un enfant l'essaient (c'est une sensation).
+
+**Les réglages.** `VITESSE_RESSENTIE`, `VITESSE_CHAMP`, `VITESSE_CAMERA_TIRE`, `VITESSE_TRAITS` (le seuil, le nombre, l'opacité), `VITESSE_VENT`, `VIBRATIONS_ACTIVES`.
+
+**Les fichiers.** `camera.js`, `effets3d.js` (les traits), `son.js` (le vent), `sensations.js` (lu seulement), `qualite.js` (un pas de plus), `donnees.js`, `tests/`.
+
+### Gardé, mais comme **correction** (petite, à faire de toute façon) : la trajectoire conseillée pour les daltoniens
+
+**Le constat.** La trajectoire conseillée est **verte, jaune et rouge** (`COULEUR_CONSEIL_VERT` 0x2ecc40, `_JAUNE` 0xffd400, `_ROUGE` 0xff2a2a), **sans autre signe** ; elle est allumée d'office en débutant, donc pour les plus jeunes. Environ **1 garçon sur 12** voit mal la différence entre ce vert et ce rouge. Pour lui, l'aide la plus utile du jeu ne dit pas où freiner.
+
+**La correction.** Dans la zone **rouge**, des **chevrons** (des « V » pointés vers la voiture, dans la même bande : le même appel de dessin, une texture de 32 px), et un jaune plus clair que le vert (la luminance seule les sépare). En option, dans ⚙ Réglages : « Couleurs : normales / contrastées » (bleu, jaune, orange vif). Coût : petit (`conseil.js`, `donnees.js`, une option). Test : une capture de la zone de freinage passée dans une simulation de daltonisme (une matrice de couleurs dans le test) : la zone rouge se distingue de la verte.
+
+Pourquoi « correction » et pas « idée » : ce n'est pas une raison de revenir, mais c'est un défaut réel qui touche un enfant sur douze, pour presque rien. Elle passe avant toutes les idées de ce rapport.
+
+### Regardé et pas gardé
+
+- **La musique** : aucune aujourd'hui. Une musique de menus (paddock, podium) donnerait du « fini », mais elle ne fait ni revenir ni partager, beaucoup d'enfants coupent le son sur Poki, et le propriétaire est exigeant sur le son (les voix « casse-oreille ») : une musique moyenne ferait plus de mal que de bien. Elle ne bat pas l'idée 8. Si on la fait un jour : générée par le code (Web Audio), très courte, jamais en course.
+- **Les 30 premières secondes au doigt** : déjà travaillées à fond (plan de la première minute, titre simple, grille nue, « Tiens GAZ », départ doux, auto-guidage, tests sur 4 téléphones émulés). Un seul point m'inquiète : sur **iPhone**, le bouton « 🎮 Activer le volant » apparaît **pendant les feux**, et la fenêtre d'iOS (« Autoriser l'accès au mouvement ? ») tombe au moment où l'enfant doit tenir GAZ. Piste : demander l'autorisation **au toucher de « ▶ Jouer »** (c'est déjà un geste, iOS l'accepte), avant la grille, sans bouton de plus. Mais le propriétaire a choisi la grille au tour 53e, et **personne n'a essayé sur un vrai iPhone** : c'est une question pour son essai, pas une idée qui bat la 8.
+- **La lecture difficile** (les plus jeunes lisent lentement) : une option « Lire à voix haute » des menus avec la voix de synthèse qui existe. Utile pour les 6-7 ans, mais Poki touche surtout 8-14 ans, et le jeu parle déjà en course. Ne bat pas la 8.
+- **Revenir le lendemain sans notifications** : à part le Grand Prix du jour (idée 1, et son « Demain »), la recette connue est le **minuteur** (« ton mécanicien finit l'amélioration demain ») : je l'écarte, c'est une pression faite pour les jeux payants, et ça va contre la règle d'or (l'argent et le garage viennent des courses). La meilleure raison de revenir reste une **promesse** : « Demain : Singapura de nuit, grille inversée », et un copain dans sa saison (idée 2).
+
+**En honnêteté** : sur les cinq sujets, **une seule idée bat la n° 8** (la vitesse qui se sent), plus une **correction** qui passe avant tout (les daltoniens).
 
 ## Sources (ce que Poki dit)
 
