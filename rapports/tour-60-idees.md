@@ -917,8 +917,8 @@ Textes : `copain_titre` « Mets-toi dans le jeu d'un pote » / « Join a friend'
 │ ▌UN COPAIN VEUT COURIR DANS TA SAISON !                      │
 │  [voiture qui tourne, livrée et casque du copain]            │
 │   n° 7 · 🇧🇪 · Vitesse ●●●●○                                 │
-│   Comment s'appelle ton copain ? [ Inès              ] 48 px │
-│   Il court :  [ CONTRE TOI ] 48     [ AVEC TOI ] 48          │
+│   Comment s'appelle ton pote ?   [ Inès              ] 48 px │
+│   Course :    [ CONTRE TOI ] 48     [ AVEC TOI ] 48          │
 │              (avec toi : il devient ton coéquipier)          │
 │        [ ✓ ACCEPTER ] 56 px          [ Non merci ] 48        │
 └──────────────────────────────────────────────────────────────┘
@@ -997,6 +997,53 @@ Textes : `defis_titre` « Défis-éclair » / « Quick challenges » ; groupes `
 Textes : `defi_reessayer` « Réessayer » / « Try again » (le bouton principal, **jamais de pub avant**), `defi_suivant` « Suivant » / « Next », `defi_carte` « Carte » / « Map », `defi_resultat` « Tu finis {p}e. » / « You finished P{p}. », `defi_etoile_suivante` « {etoiles} : {but} ! » / « {etoiles}: {but}! », `defi_trois` « Parfait ! ⭐⭐⭐ » / « Perfect! ⭐⭐⭐ ». Les buts ont chacun leur clé (`defi_but_place` « Finir {p}e ou mieux » / « Finish P{p} or better », `defi_but_gagner` « Gagner » / « Win », `defi_but_places` « Gagner {n} places » / « Gain {n} places », `defi_but_devant` « Finir devant {qui} » / « Finish ahead of {qui} », `defi_but_propre` « … sans toucher l'herbe » / « … without touching the grass », `defi_but_penalite` « … sans pénalité » / « … without a penalty », `defi_but_depart` « Départ parfait » / « Perfect start », `defi_but_virage` « Premier au premier virage » / « First into turn 1 », `defi_but_stand` « Passer au stand » / « Make a pit stop »).
 
 **Ce que les maquettes ont fait trouver** : (1) « copain » est masculin, et l'on ne connaît pas le genre de l'ami : **dans les textes du jeu, « pote »** (épicène, et c'est le mot des enfants) ; les maquettes ci-dessus gardent « COPAIN » dans les dessins, les clés de texte disent « pote » ; (2) le texte « (avec toi : il devient ton coéquipier) » était **genré** sur un copain dont on ne connaît pas le genre (la règle des textes de CLAUDE.md) : corrigé en « (avec toi : ton coéquipier) ». Et au tout premier lancement, un gros bouton du jour à côté de « Jouer » ferait hésiter : il est plus petit et dessous.
+
+## Annexe F — Le plan de route (en tours de 4 Codeurs)
+
+**Le principe.** D'abord ce qui sert à plusieurs idées (une « course imposée » partagée par le jour et les défis, le codage des liens partagé par le défi et le copain), puis les idées elles-mêmes, en commençant par celles qui ne demandent rien au propriétaire. Chaque Codeur a **sa branche et ses fichiers à lui** ; les fichiers partagés (`donnees.js`, `textes.js`, `index.html`, `style.css`, `interface.js`, `principal.js`, `sauvegarde.js`) reçoivent chacun **un bloc à son nom**, sans reformater les autres (la règle du tour 60). Chaque branche passe **18/18 sur GitHub** avant que le Chef la fusionne ; sur le Mac, seulement la partie touchée, sous le verrou.
+
+**Avant le tour A, au propriétaire (rien à coder)** : (1) **les noms des pilotes et des écuries** (attendus depuis le 2026-10-29 : sans eux, le copain, les défis par rôle, les cartes et le commentateur parlent de « Pilote 14 ») ; (2) dire oui ou non aux idées 1, 2 et 3 ; (3) demander à Poki ce qu'il pense du jeu tourné en portrait et quels chiffres il donne au développeur (pour mesurer les idées).
+
+### Tour A — les fondations et les idées sans risque
+
+| Codeur | Branche | Ce qu'il fait | Ses fichiers | Ce qu'il ne touche pas |
+|---|---|---|---|---|
+| 1 | `jour-A` | **La course imposée** (`course-imposee.js`, calcul pur : place de départ par `QUALIFICATION.grille`, grille inversée, niveau, météo par `EN_LIGNE.planMeteo`, état de départ : aileron, usure des pneus) puis **le Grand Prix du jour** complet (annexe A) | `course-imposee.js`, `jour.js` (nouveaux) ; ses blocs dans `principal.js` (lancer une course imposée), `interface.js`, `index.html`, `textes.js`, `donnees.js`, `sauvegarde.js` (bloc `jour`) | `simulation.js`, `course.js` |
+| 2 | `elimination-A` | **La course à élimination** (annexe D5), en course rapide et à deux | `elimination.js` (nouveau) ; ses blocs dans `simulation.js` (le rangement final), `voiture3d.js` (l'effacement), `deux-joueurs.js`, `interface.js`, `textes.js`, `donnees.js` | `qualification.js`, `principal.js` hors son bloc |
+| 3 | `medailles-A` | **Les médailles des circuits** (annexe D4) | `medailles.js` (nouveau) ; ses blocs dans `fantome-pole.js` (l'option « non étiré »), `qualification.js` (le 3e choix de fantôme), `interface.js`, `textes.js`, `donnees.js`, `sauvegarde.js` (bloc `medailles`) | `simulation.js` |
+| 4 | `liens-A` | **Les mesures et le cœur des liens** : (a) la course du jour est-elle la même dans Chromium, Firefox et WebKit ? (7 jours tirés, robot, empreintes : la décision `JOUR_MATHS` de l'annexe A7) ; (b) `copain.js` en calcul pur **sans écran** : coder, décoder, la règle du rythme (annexe C1-C2), en exportant `ecrireEntier` / `lireEntier` de `defi.js` | `copain.js` (nouveau), `defi.js` (l'export seulement), un outil de mesure hors workflow dans `tests/` | tous les écrans |
+
+**Pourquoi ces quatre ensemble** : aucun ne modifie la même fonction qu'un autre ; seuls `simulation.js` (Codeur 2) et `qualification.js` / `fantome-pole.js` (Codeur 3) sont des fichiers de moteur, chacun à un seul Codeur. Le Codeur 1 a le plus gros morceau ; s'il n'a pas fini, le jour peut sortir **sans** « Demain » ni le lien `?jour=` (fusion en deux fois).
+
+**Sur GitHub** : `tests/test.html` (le travail « moteur ») reçoit les parties « course imposée », « jour », « élimination », « médailles », « copain » (calcul pur) ; `tests/ecrans.py` reçoit les pages `test=jour`, `test=jour-arrivee`, `test=elimination`, `test=elimination-deux`, `test=medailles` (réparties dans les 6 tranches : le Codeur qui ajoute une page la place dans la tranche la plus courte du dernier passage) ; `tests/courses.html` (« courses ») et `tests/stands.html` (« stands ») doivent rester verts **sans changement** : c'est la preuve que les courses normales n'ont pas bougé. **Pousser seulement quand c'est fini** : GitHub ne fait que 20 travaux à la fois et un passage en prend 18 ; les quatre branches passent l'une après l'autre (environ 10 minutes chacune). **Ordre de fusion** : 4 (rien d'affiché), 3, 2, puis 1.
+
+### Tour B — les idées qui s'appuient sur le tour A
+
+| Codeur | Branche | Ce qu'il fait | Dépend de |
+|---|---|---|---|
+| 1 | `defis-B` | **Les défis-éclair, plan B** : les 28 défis de l'annexe B1, la carte, les buts, les rivaux par rôle | `course-imposee.js` (tour A) |
+| 2 | `copain-B` | **Ton copain dans ta saison** : l'envoi, l'accueil, l'insertion dans le plateau (contre / avec toi), la découverte avec le copain, la ligne dans les classements, les textes « pote » (annexe C3, maquettes E2) | `copain.js` (tour A) |
+| 3 | `photo-finish-B` | **Le ralenti du photo-finish** (annexe D6) | rien |
+| 4 | `niveau-B` | **Le niveau de pilote** (annexe D7) : les points de toutes les courses (jour, médailles, élimination comprises), les cadeaux, **et les nouveaux motifs** (12 motifs, 4 célébrations) | jour, médailles, élimination (tour A) ; les étoiles des défis s'ajoutent quand `defis-B` est fusionné (un seul point de branchement, `NIVEAU_PILOTE.points(...)`) |
+
+**Les fichiers qui se croisent** : `championnat.js` (Codeur 2 seul) ; `photo.js`, `regie.js`, `camera.js` (Codeur 3 seul) ; `casque.js`, `livree.js`, `celebration.js` (Codeur 4 seul) ; `principal.js` : quatre blocs séparés (le lancement d'un défi, l'accueil du lien, le déclenchement après la ligne, les points à l'arrivée). **Sur GitHub** : `tests/carriere-longue.html` (annexes) doit passer **avec 3 copains** dans le plateau (le Codeur 2 ajoute ce cas) ; `tests/saison.py` (« saison ») doit rester vert ; pages `test=defis`, `test=defi-resultat`, `test=copain-envoi`, `test=copain-accueil`, `test=copain-decouverte`, `test=photo-finish`, `test=niveau` dans les tranches d'`ecrans.py`. **Ordre de fusion** : 3, 4, 1, 2 (le copain touche le plus de choses, en dernier).
+
+### Tour C — selon ce que le propriétaire a dit des tours A et B
+
+| Codeur | Branche | Ce qu'il fait |
+|---|---|---|
+| 1 | `championnat-deux-C` | **Le championnat à deux** (annexe D8) |
+| 2 | `defis-lances-C` | **Les défis lancés** (annexe B2) **seulement si le plan B a plu** : le départ lancé dans `simulation.js` (le seul à y toucher ce tour-là), les 12 défis |
+| 3 | `cartes-C` | **Les cartes des IA livrées** (les 12 circuits × normal et expert, chargées à la demande ; régénérées par un script comme `tests/regenerer-cache-carte.py`) et, si le Codeur 4 du tour A a trouvé des différences entre navigateurs, **la course du jour avec `EN_LIGNE_MATHS`** |
+| 4 | `cartes-pilotes-C` | **L'album des cartes de pilotes** (idée 9), si les noms des pilotes sont arrivés ; sinon **le champion de la division** (idée 12, petit) |
+
+Les idées 10 (le vrai portrait) et 11 (les week-ends à thème) attendent : la 10 la réponse de Poki, la 11 le Grand Prix du jour en ligne depuis quelques semaines (elle s'en sert).
+
+### Comment savoir que le plan marche (après la mise en ligne sur Poki)
+
+- **Avant / après** dans les chiffres que Poki donne au développeur : le temps de jeu moyen et, s'il est donné, le retour du lendemain. Une version à la fois (le tour A seul, puis le tour B), sinon on ne sait pas ce qui a marché.
+- **Dans le jeu, sans rien envoyer** (aucune donnée ne quitte l'appareil) : la sauvegarde compte déjà les courses ; on y ajoute, à la racine, quelques compteurs (jours joués, défis tentés, liens `?jour=` et `?pilote=` reçus) que le propriétaire peut lire sur son propre appareil ou sur celui d'un enfant qui joue (`?reglages=1` les affiche).
+- **Le plus fiable pour un jeu d'enfants** : faire jouer deux ou trois enfants une semaine et leur demander (le propriétaire l'a déjà fait pour l'auto-guidage, avec un résultat décisif).
 
 ## Sources (ce que Poki dit)
 
