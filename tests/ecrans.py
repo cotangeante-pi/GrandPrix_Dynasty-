@@ -2039,7 +2039,7 @@ def pluie_ecran(pg, titre, l, h):
     route = pg.evaluate("() => METEO3D.routeMateriau")
     L.append(f"  (pluie, 20 voitures, {l}×{h}, derrière la voiture : {m['appels']} appels de dessin, {m['gouttes'] // 2} gouttes, {m['gerbes']} gerbes)")
     t(f'{titre} : sous la pluie : la pluie tombe (un trait par goutte, en un appel), des gerbes derrière les voitures qui roulent, la route mouillée (à reflets) et sa trajectoire plus sèche, l’icône et l’eau sur la piste ; sous LIEU_APPELS_MAX appels avec 20 voitures',
-      pret and m['pluie'] and m['gouttes'] > 1000 and m['gerbes'] >= 3 and route == 'MeshPhongMaterial' and not m['hudCache'] and '75' in m['eau'] and m['icone'] == '🌧' and m['appels'] < m['max'] and pg.evaluate('() => !!(METEO3D.ligne && METEO3D.ligne.visible)'), str([m, route]))
+      pret and m['pluie'] and m['gouttes'] > 1000 and m['gerbes'] >= 3 and (route == 'MeshPhongMaterial' and pg.evaluate('() => !!(METEO3D.ligne && METEO3D.ligne.visible)') or pg.evaluate('() => !!(REGLAGES.REALISME_ROUTE && typeof ROUTE3D !== "undefined" && ROUTE3D.eau > 0.5)')) and not m['hudCache'] and '75' in m['eau'] and m['icone'] == '🌧' and m['appels'] < m['max'], str([m, route]))   # (tour 60 : la route réaliste se mouille dans son shader, la trajectoire plus sèche comprise)
     pg.screenshot(path=os.path.join(CAPTURES, 'pluie.png' if l == 1280 else 'pluie-960.png'))
     if l != 1280: return
     pg.evaluate('() => CAMERA.forcer("cockpit")'); pg.wait_for_timeout(800)

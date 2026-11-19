@@ -15,10 +15,14 @@ const SCENE3D = (function () {
   let flotte = null, nbLointaines = 0, joueurSimplifie = false;
   // la qualité de l'image (qualite.js, tour 40) : null = les réglages d'avant ; sinon { pixelRatio, detail, rien } d'un cran
   let qualite = null;
+  let lieuRealisme = null, ombres = null;   // (tour 60, REALISME_*) le lieu du circuit ; l'ombre douce sous toutes les voitures (un InstancedMesh, un appel de dessin)
   // (tour 49a : l'Auto continu ; q = QUALITE.reglages, avec aussi voitureLoin, voituresDetaillees, densite, effets ; le canvas n'est
   // refait que si les pixels changent)
   function reglerQualite(q) {
     qualite = q || null;
+    // (tour 60) l'Auto coupe les reflets des voitures et le détail de la route (des uniformes : aucun shader refait)
+    if (typeof VOITURE3D !== 'undefined' && VOITURE3D.reglerReflets) VOITURE3D.reglerReflets(!qualite || qualite.reflets !== false);
+    if (typeof ROUTE3D !== 'undefined') ROUTE3D.detail(!qualite || qualite.reflets !== false);
     if (!rendu) return;
     const pr = Math.min(window.devicePixelRatio || 1, qualite ? qualite.pixelRatio : R.PIXEL_RATIO_MAX);
     if (pr !== rendu.getPixelRatio()) { rendu.setPixelRatio(pr); redimensionner(); }
@@ -73,6 +77,8 @@ const SCENE3D = (function () {
     }
 
     // le pont : le relief du croisement (CIRCUITS[nom].croisement), avant la géométrie de la route
+    lieuRealisme = lieu;   // (tour 60 : le ciel reflété par la route mouillée et les voitures)
+    if (typeof VOITURE3D !== 'undefined' && VOITURE3D.refletsDuLieu) VOITURE3D.refletsDuLieu(lieu);
     relief = R.PONT_ACTIF && typeof DECOR !== 'undefined' && cle && typeof CIRCUITS !== 'undefined' && CIRCUITS[cle] && CIRCUITS[cle].croisement ? DECOR.relief(circuit, CIRCUITS[cle].croisement) : null;
     const t0 = performance.now();
     const groupe = construireCircuit3D(circuit, lieu ? lieu.sol : R.COULEUR_SOL);
@@ -203,12 +209,19 @@ const SCENE3D = (function () {
     // (assez grand pour le circuit et son paysage au loin : decor.js pose l'horizon jusqu'à HORIZON_RECUL + HORIZON_PROFONDEUR au-delà)
     const taille = Math.max(R.TAILLE_SOL, Math.hypot(xmax - xmin, zmax - zmin) + 2 * (R.HORIZON_RECUL + R.HORIZON_PROFONDEUR + 200));
     const sol = maillage(new THREE.PlaneGeometry(taille, taille), couleurSol === undefined ? R.COULEUR_SOL : couleurSol, { polygonOffset: true, polygonOffsetFactor: R.SOL_RECUL_PROFONDEUR, polygonOffsetUnits: R.SOL_RECUL_PROFONDEUR });
+    // (tour 60, REALISME_ROUTE : route3d.js ; l'herbe garde sa couleur, avec un grain doux)
+    const realiste = R.REALISME_ROUTE && typeof ROUTE3D !== 'undefined';
+    if (realiste) sol.material = ROUTE3D.materiau('herbe', { color: couleurSol === undefined ? R.COULEUR_SOL : couleurSol, polygonOffset: true, polygonOffsetFactor: R.SOL_RECUL_PROFONDEUR, polygonOffsetUnits: R.SOL_RECUL_PROFONDEUR });
     sol.rotation.x = -Math.PI / 2;
     sol.position.set((xmin + xmax) / 2, 0, (zmin + zmax) / 2);
     groupe.add(sol);
 
     // la route et ses bords (de petites hauteurs différentes : pas de clignotement entre deux surfaces)
-    const route = maillage(ruban(c, -demi, demi, 0.02), R.COULEUR_ROUTE);
+    let route;
+    if (realiste) {   // (tour 60 : le grain, la gomme, les freinages, la pluie dans le shader ; les bas-côtés, +1 appel de dessin)
+      const r = ROUTE3D.construire(c, haut, couleurSol === undefined ? R.COULEUR_SOL : couleurSol, lieuRealisme);
+      route = r.route; groupe.add(r.bas);
+    } else route = maillage(ruban(c, -demi, demi, 0.02), R.COULEUR_ROUTE);
     route.name = 'route';   // (meteo3d.js la mouille : plus sombre et brillante)
     groupe.add(route);
     groupe.add(maillage(ruban(c, -demi, -demi + R.LARGEUR_BORD, 0.03), R.COULEUR_BORD));
@@ -370,6 +383,7 @@ const SCENE3D = (function () {
     if (!rendu) return 0;
     rendu.info.reset();
     if (decor) DECOR.majDetail(decor, partage ? [camera.position, camera2.position] : [camera.position], qualite);   // le public et les arbres : proches, loin ou rien
+    placerOmbres();
     const cachees = lointaines();
     if (partage) {
       // UN rendu, UNE scène, deux zones : le joueur 1 en haut, le joueur 2 en bas (la zone est en pixels CSS, Three.js applique le pixel ratio)
@@ -408,7 +422,33 @@ const SCENE3D = (function () {
         flotte = { maillage: m, voitures: [] };
       }
       flotte.voitures.push(objet);
+      if (R.REALISME_VOITURES && !ombres) ombres = creerOmbres();
     }
+  }
+
+  // (tour 60) l'ombre de contact : un plan sous chaque voiture, une tache douce dessinée une fois dans un canvas ; toutes en UN appel
+  function creerOmbres() {
+    const cv = document.createElement('canvas'); cv.width = cv.height = 64;
+    const x = cv.getContext('2d'), g = x.createRadialGradient(32, 32, 4, 32, 32, 32);
+    g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(0.55, 'rgba(0,0,0,0.75)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+    x.fillStyle = g; x.fillRect(0, 0, 64, 64);
+    const geo = new THREE.PlaneGeometry(1, 1); geo.rotateX(-Math.PI / 2);
+    const m = new THREE.InstancedMesh(geo, new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv), color: 0x000000, transparent: true, opacity: R.OMBRE_CONTACT[2], depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }), R.VOITURES_LOINTAINES_MAX);
+    m.name = 'ombres-voitures'; m.frustumCulled = false; m.count = 0; m.renderOrder = -1;
+    scene.add(m);
+    return { maillage: m, mat: new THREE.Matrix4(), q: new THREE.Quaternion(), p: new THREE.Vector3(), e: new THREE.Vector3(R.OMBRE_CONTACT[0], 1, R.OMBRE_CONTACT[1]), axe: new THREE.Vector3(0, 1, 0) };
+  }
+  // avant de dessiner : une ombre sous chaque voiture visible (avant que les lointaines soient cachées le temps du dessin)
+  function placerOmbres() {
+    if (!ombres || !flotte) return;
+    const o = ombres, m = o.maillage;
+    let n = 0;
+    if (!qualite || qualite.ombresContact !== false) for (const g of flotte.voitures) {
+      if (!g.visible || !g.parent || n >= R.VOITURES_LOINTAINES_MAX) continue;
+      o.p.set(g.position.x, g.position.y + 0.05, g.position.z); o.q.setFromAxisAngle(o.axe, g.rotation.y);
+      m.setMatrixAt(n++, o.mat.compose(o.p, o.q, o.e));
+    }
+    m.count = n; m.visible = n > 0; m.instanceMatrix.needsUpdate = true;
   }
 
   // avant de dessiner : les voitures loin de toutes les caméras passent dans le maillage des voitures lointaines (et leur groupe est caché
