@@ -312,6 +312,18 @@ Le 10 a des zéros mais un enjeu à part (la **conversion** au premier lancement
 
 ---
 
+## La relecture (un enfant de 10 ans, puis un responsable Poki)
+
+Ce que j'ai réécrit après avoir relu les 12 idées avec ces deux regards :
+- **Des chiffres faux dans les histoires** : le Grand Prix du jour faisait partir Léo « 14e » alors que le jour a 10 voitures, et parlait de « Monoco de nuit » (seule Singapura est de nuit) : corrigés. Un enfant qui lit « 14e » puis voit 10 voitures ne croit plus le reste.
+- **Des mots qu'un enfant ne comprend pas** : « Invite-toi chez un copain » devient « Mets-toi dans le jeu d'un copain » ; « Série : 3 jours » devient « 🔥 3 jours de suite ».
+- **Une promesse fausse** : j'écrivais qu'un lien de copain trafiqué était « refusé par la somme de contrôle ». Faux : le code du jeu est lisible, la somme ne repère qu'un lien abîmé. Ce qui protège vraiment, c'est la règle du rythme (au pire, le copain roule comme le meilleur rival de la division).
+- **Une idée qui ne marchait pas** : le fantôme « diamant » des médailles, enregistré avec le robot d'essai, aurait été **plus lent** que les IA (62,5 s contre 54 à 56 s). Remplacé par quatre fantômes simulés, un par niveau, qui suivent les divisions et ne demandent aucun fichier.
+- **L'ordre des défis-éclair** : l'histoire racontait un défi « lancé » (le plus cher) ; elle raconte maintenant un défi du plan B, celui qu'on ferait d'abord.
+- **Le « avec toi »** du copain (il devient ton coéquipier, et le duel de la saison devient toi contre lui) n'était que dans l'annexe : c'est la meilleure partie de l'idée pour un enfant, elle est maintenant dans l'histoire.
+- **L'œil Poki** : il manquait une pub récompensée qui ne casse rien. Ajoutée au Grand Prix du jour : « 📺 Sauve ta série » (un jour manqué, une fois par semaine). Ce que Poki regarderait aussi, et qui tient : aucune pub entre un échec et « Rejouer », des sessions de 2 à 4 minutes, le premier lancement par un lien qui reste « en piste en 10 secondes », aucun texte libre qui voyage entre enfants.
+- **Ce que je n'ai pas changé** : l'ordre des 12. Je l'ai remis en question (élimination plus haut ? médailles plus haut ?) ; les trois premières restent les seules qui donnent à la fois une raison de revenir **demain** (1), une raison de **partager** (2) et des parties **courtes** à rejouer (3).
+
 ## Les idées écartées (et pourquoi)
 
 - **Un arrêt au stand à « taper » soi-même** (toucher les 4 roues vite) : amusant une fois, mais il rend l'arrêt plus long et coupe la course ; et l'arrêt dépend déjà des changeurs du garage.
