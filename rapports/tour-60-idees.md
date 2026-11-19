@@ -451,6 +451,114 @@ Clés `textes.js` : `jour_partage` (`{n}`, `{circuit}`, `{meteo}`, `{tours}`, `{
 
 **Fichiers** : `jour.js` (nouveau, calcul pur), `principal.js` (lancer la course du jour : les réglages imposés, la place, le piment), `interface.js` + `index.html` (bouton du titre et du paddock, écran du jour, arrivée), `textes.js`, `donnees.js`, `sauvegarde.js` (le bloc `jour` à la racine de la sauvegarde : il survit à une nouvelle carrière ; environ 100 octets), `sdk.js` (le paramètre `jour` en plus de `defi`), `tests/`.
 
+## Annexe B — Les 40 défis-éclair
+
+**Comment les lire.** Chaque défi est une ligne de données (`DEFIS_ECLAIR` dans `donnees.js`) : circuit, météo, tours, nombre d'IA et niveau, place de départ, état de départ (pneus, aileron), rivaux par rôle, et trois buts. ⭐ = réussi, ⭐⭐ et ⭐⭐⭐ = de mieux en mieux ; **chaque étoile inclut les précédentes** (on ne gagne pas la 3e sans la 1re). Tous les buts se mesurent avec ce que le moteur sait déjà : la place à l'arrivée (pénalités comprises), les places gagnées, l'écart à l'arrivée avec un pilote, le classement à une distance donnée (`passages`), le temps passé dans l'herbe (`herbe`), les pénalités, le résultat du départ (`depart.js` : parfait, bon, patinage, calé, faux départ), le meilleur tour, les arrêts au stand, l'aileron (`degats`).
+
+**Les rivaux par rôle** (tirés du plateau du joueur, ou du monde créé au premier lancement s'il n'a pas de carrière : le défi a toujours de vrais noms) :
+- **le champion** : le meilleur rythme du plateau ;
+- **le coéquipier** : l'autre pilote de l'écurie du joueur (sans carrière : un pilote de rythme moyen, présenté comme « ton coéquipier ») ;
+- **la bête noire** : le plus agressif (`IA_CARACTERE.agressivite`), ou la vraie bête noire de l'interview s'il y en a une ;
+- **le métronome** : le plus régulier ;
+- **le jeune** : le plus jeune pilote.
+
+Le nom est mis dans le titre (« Bats Rossi ») : l'enfant affronte des gens, pas des voitures. **Aucun défi ne triche** : les IA ont leurs règles habituelles ; seuls l'état de départ et le niveau changent.
+
+**Les niveaux** : d = débutant, n = normal, e = expert, l = légende (les `NIVEAUX` existants).
+
+### B1. Le plan B : 28 défis qui partent de la grille (rien à changer dans la simulation)
+
+Il suffit d'imposer à la course rapide : le nombre de tours, d'IA, le niveau, la météo (`planMeteo`), la place de départ (le temps de qualification fictif, comme la découverte), l'état de départ (`v.degats`, l'usure des pneus), et l'ordre de la grille (rangé par `qualifier`).
+
+**Groupe 1 — Le départ** (circuit `test` et Bahrayn : de longues lignes droites avant le premier virage)
+
+| # | Titre | Situation | ⭐ | ⭐⭐ | ⭐⭐⭐ | Rival |
+|---|---|---|---|---|---|---|
+| 1 | Feux verts | `test`, 1 tour, 5 IA d, tu pars 6e | pas de faux départ | départ « bon » ou mieux | premier au premier virage | — |
+| 2 | Le bon dosage | `test`, 1 tour, 5 IA d, 6e | départ « parfait » | 3 places gagnées au premier virage | gagner | — |
+| 3 | Sous la pluie | `test`, pluie, 1 tour, 7 IA d, 8e | pas de patinage | 3 places au premier virage | podium | — |
+| 4 | Pole à défendre | Bahrayn, 1 tour, 9 IA n, **1er** | finir 3e ou mieux | finir 1er | 1er sans jamais perdre la tête (classement à chaque passage) | le champion part 2e |
+| 5 | Dernière ligne | Bahrayn, 2 tours, 9 IA n, 10e | 7e ou mieux | 4e ou mieux | podium | — |
+| 6 | Le sprint | Monzo, 1 tour, 9 IA n, 5e | finir 5e ou mieux | podium | gagner | le champion en pole |
+| 7 | Tout le monde derrière | Monoco, 1 tour, 7 IA n, 1er | rester 1er au premier virage | gagner | gagner sans toucher l'herbe | la bête noire part 2e |
+| 8 | Coéquipiers | Barcelana, 2 tours, 9 IA n, 6e | finir devant ton coéquipier | 3e ou mieux | devant lui de plus de 2 s | le coéquipier part 5e |
+
+**Groupe 2 — La remontée**
+
+| # | Titre | Situation | ⭐ | ⭐⭐ | ⭐⭐⭐ | Rival |
+|---|---|---|---|---|---|---|
+| 9 | Remontada | `test`, 3 tours, 9 IA d, 10e | 5 places gagnées | podium | gagner | — |
+| 10 | Monzo à fond | Monzo, 2 tours, 9 IA n, 10e | 4 places | 6 places | podium | — |
+| 11 | Les rues de Monoco | Monoco, 3 tours, 7 IA n, 8e | 2 places (doubler à Monoco, c'est dur) | 4 places | podium sans pénalité | — |
+| 12 | Le huit de Suzuko | Suzuko, 2 tours, 9 IA n, 10e | 4 places | podium | gagner | — |
+| 13 | La chasse au champion | Silverstoun, 3 tours, 9 IA n, 10e | finir devant le jeune | finir devant le métronome | finir devant le champion | le champion part 1er |
+| 14 | Grille inversée | Spaa, 2 tours, 9 IA e, tu pars **5e** : les 4 devant toi sont les plus lents, les 5 derrière les plus rapides | finir 5e ou mieux | podium | gagner | le champion part 10e |
+| 15 | Les nuits de Singapura | Singapura, 2 tours, 9 IA n, 9e | 3 places | podium | gagner | — |
+| 16 | Montée de division | Interlagas, 3 tours, 9 IA e, 10e | 5 places | podium | gagner | le champion part 1er |
+
+**Groupe 3 — Les conditions** (la pluie, les pneus, l'aileron, le stand)
+
+| # | Titre | Situation | ⭐ | ⭐⭐ | ⭐⭐⭐ | Rival |
+|---|---|---|---|---|---|---|
+| 17 | Averse | Spaa, 3 tours, averse (au tiers), 9 IA n, 5e, en pneus secs | finir sans sortir plus de 3 s dans l'herbe | passer au stand prendre des pneus pluie et finir 5e ou mieux | podium | — |
+| 18 | Ça sèche ! | Interlagas, 3 tours, éclaircie, 9 IA n, 6e, en pneus pluie | finir | changer de pneus au bon moment et finir 4e ou mieux | podium | — |
+| 19 | Aileron cassé | Barcelana, 2 tours, 9 IA n, 3e, aileron à 0,4 | finir 6e ou mieux | finir 4e ou mieux | podium | — |
+| 20 | Le pari du stand | Montréol, 3 tours, 9 IA n, 4e, aileron à 0,6 | finir | passer au stand et finir 4e ou mieux | podium | — |
+| 21 | Pneus à bout | Yas Marino, 2 tours, 9 IA n, 2e, pneus à 70 % d'usure | finir 5e ou mieux | finir 3e ou mieux | gagner | le champion part 1er |
+| 22 | Déluge | Silverstoun, 2 tours, pluie forte, 9 IA n, 6e | finir sans pénalité | 3 places gagnées | podium | — |
+| 23 | Les drapeaux | `test`, 3 tours, 5 IA n, drapeaux allumés (une IA arrêtée comme la leçon 8, `TUTORIEL.scene`) | aucune pénalité de drapeau | 3e ou mieux sans pénalité | gagner sans pénalité | — |
+| 24 | Melbourn sous l'orage | Melbourn Park, 3 tours, averse, 9 IA e, 7e | finir | 3 places | podium | — |
+
+**Groupe 4 — Les duels** (sur la grille, une seule voiture compte)
+
+| # | Titre | Situation | ⭐ | ⭐⭐ | ⭐⭐⭐ | Rival |
+|---|---|---|---|---|---|---|
+| 25 | Bats ton coéquipier | Bahrayn, 3 tours, 9 IA n, 8e ; le coéquipier 6e | finir devant lui | devant lui et 5e ou mieux | devant lui de 3 s | le coéquipier |
+| 26 | La bête noire | Monzo, 2 tours, 9 IA n, 4e ; la bête noire 3e | finir devant elle | devant elle et sur le podium | devant elle sans contact (aucun choc noté entre vous) | la bête noire |
+| 27 | Le métronome | Suzuko, 3 tours, 9 IA e, 2e ; le métronome 1er | finir à moins de 3 s de lui | finir devant lui | finir devant lui avec le meilleur tour | le métronome |
+| 28 | Le jeune loup | Montréol, 2 tours, 9 IA n, 1er ; le jeune 2e | finir sur le podium | finir devant le jeune | gagner | le jeune |
+
+### B2. Avec le départ lancé : 12 défis (la simulation doit savoir poser des voitures en mouvement)
+
+Ces défis mettent l'enfant **au milieu d'une course** (un tour donné, des voitures déjà espacées). Ils demandent le départ lancé décrit dans l'idée 3 (`placerSurPiste` + vitesse + tour en cours + passages). À faire seulement si le plan B a plu.
+
+**Groupe 5 — Le dernier tour**
+
+| # | Titre | Situation | ⭐ | ⭐⭐ | ⭐⭐⭐ | Rival |
+|---|---|---|---|---|---|---|
+| 29 | Dernier tour à Monzo | dernier tour, tu es 2e à 0,8 s du champion | rester 2e | gagner | gagner de plus de 0,3 s | le champion |
+| 30 | Dernier tour à Monoco | dernier tour, 1er, la bête noire à 0,4 s | finir sur le podium | gagner | gagner sans toucher l'herbe | la bête noire |
+| 31 | Le photo-finish | dernier tour à Bahrayn, 3e, les deux de devant à 0,5 s | 3e | 2e | 1er | le champion 1er |
+| 32 | Le dernier virage | les 1 500 derniers mètres de Silverstoun, côte à côte avec le coéquipier | finir devant lui | gagner | gagner de 0,5 s | le coéquipier |
+
+**Groupe 6 — Les situations de course**
+
+| # | Titre | Situation | ⭐ | ⭐⭐ | ⭐⭐⭐ | Rival |
+|---|---|---|---|---|---|---|
+| 33 | Défends-toi ! | 2 tours, 1er, une voiture plus rapide à 0,5 s derrière | finir 2e ou mieux | gagner | gagner sans pénalité ni herbe | le champion derrière |
+| 34 | Le train | 2 tours, 6e d'une file de 6 voitures à 0,5 s l'une de l'autre | 2 places | 4 places | 1er de la file | — |
+| 35 | Après la VSC | fin de VSC (drapeau vert), 3e, tout le monde groupé | rester 3e | 2e | 1er | — |
+| 36 | Sortie de stand | tu ressors du stand 7e, pneus neufs, ceux de devant en pneus usés | 4e | 2e | 1er | — |
+| 37 | La pluie qui tombe | mi-course, 2e, la pluie commence, 2 tours | rester sur la piste | finir 2e | finir 1er | le champion 1er |
+| 38 | Le tour de rattrapage | 1 tour, 4e à 3 s du podium | gagner 1 s | podium | 2e | — |
+| 39 | Le retardataire | 2 tours, 1er, un groupe de retardataires (drapeau bleu) à passer | gagner | gagner avec 2 s d'avance | gagner sans pénalité ni herbe | la bête noire 2e |
+| 40 | Le grand final | le dernier tour du dernier Grand Prix d'une saison inventée : tu dois finir devant le champion pour le titre | finir devant lui | podium devant lui | gagner | le champion |
+
+### B3. Les règles de la carte des défis
+
+- **Débloquer** : les 8 premiers sont ouverts ; chaque groupe s'ouvre à 10 étoiles dans le groupe d'avant (`DEFIS_ECLAIR_OUVERTURE`). Jamais bloqué longtemps : un défi passé avec 1 étoile compte.
+- **Réessayer** : un gros bouton, **sans pub entre les deux**, et **la même course** (même graine) : une étoile vient de l'enfant, pas de la chance.
+- **Le tutoriel** : ses 8 leçons pourraient devenir la case 0 de chaque groupe (« Apprendre ce geste ») au lieu d'un endroit à part : à proposer au propriétaire, pas à imposer.
+- **Le commentateur** parle comme en course (il connaît le rival du défi par son nom).
+- **Le niveau de pilote** (idée 7) donne des points par étoile, si l'idée existe.
+
+### B4. Le plan des tests
+
+- Chaque défi du plan B : le **robot d'essai** obtient au moins ⭐ (sinon le défi est trop dur ou mal réglé) et **pas** ⭐⭐⭐ sur tous (sinon c'est trop facile) ; le même défi rejoué deux fois = la même empreinte.
+- Chaque but : un test unitaire avec une fausse arrivée (place, écart, herbe, pénalités, départ, stand).
+- Les rivaux par rôle : sur 5 plateaux tirés, le rôle donne toujours un pilote, jamais le joueur, jamais deux rôles sur le même pilote dans un défi.
+- Écran : la carte des 40 cases tient en 640×360 (elle défile, une rangée par groupe), cases ≥ 44 px au doigt.
+
 ## Sources (ce que Poki dit)
 
 - [Poki — What makes a high-quality browser game (2026)](https://poki.com/blog/what-makes-high-quality-browser-game) : sessions courtes, chargement rapide, pubs récompensées plutôt que coupures, couleurs vives.
