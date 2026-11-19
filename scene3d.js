@@ -218,9 +218,9 @@ const SCENE3D = (function () {
 
     // la route et ses bords (de petites hauteurs différentes : pas de clignotement entre deux surfaces)
     let route;
-    if (realiste) {   // (tour 60 : le grain, la gomme, les freinages, la pluie dans le shader ; les bas-côtés, +1 appel de dessin)
+    if (realiste) {   // (tour 60 : le grain, la gomme, les freinages, la pluie dans le shader ; les bas-côtés dans le même maillage)
       const r = ROUTE3D.construire(c, haut, couleurSol === undefined ? R.COULEUR_SOL : couleurSol, lieuRealisme);
-      route = r.route; groupe.add(r.bas);
+      route = r.route;
     } else route = maillage(ruban(c, -demi, demi, 0.02), R.COULEUR_ROUTE);
     route.name = 'route';   // (meteo3d.js la mouille : plus sombre et brillante)
     groupe.add(route);

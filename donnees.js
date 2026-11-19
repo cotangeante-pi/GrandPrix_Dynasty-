@@ -1226,7 +1226,7 @@ const REGLAGES = {
   // --- le réalisme des voitures et de la route (tour 60, Codeur 2 ; voiture3d.js, scene3d.js, route3d.js). Le principe : tout est calculé UNE
   // fois au chargement (petites textures faites par le code, une carte d'environnement figée tirée du ciel du lieu, la lumière cuite dans
   // les couleurs des sommets, la ligne idéale et les freinages de la route) et dessiné par des shaders bon marché en une passe, sans un
-  // objet de plus par voiture : +1 appel de dessin pour les ombres de toutes les voitures, +1 pour les bas-côtés. L'Auto les retire avant
+  // objet de plus par voiture : +1 appel de dessin pour les ombres de toutes les voitures (les bas-côtés sont dans le maillage de la route). L'Auto les retire avant
   // les pixels (QUALITE_PAS : ombresContact, reflets). FAUX = l'image d'avant au pixel près
   REALISME_VOITURES: true,
   REALISME_ROUTE: true,
@@ -1236,7 +1236,7 @@ const REGLAGES = {
   VOITURE_BRILLANCE: { peinture: 1, carbone: 0.3, noir: 0.1, jante: 0.85, miroir: 1, ecran: 0.5 },   // la brillance de chaque matière (reflet et tache du soleil)
   VOITURE_SPECULAIRE: 0x8a8a8a, VOITURE_SHININESS: 60,
   REFLET_TAILLE: 32,               // pixels d'une face de la carte d'environnement (6 faces, 24 Ko)
-  REFLET_FORCE: [0.06, 0.7],       // la part du reflet vu de face et en rasant (Fresnel), × la brillance
+  REFLET_FORCE: [0.04, 0.45],       // la part du reflet vu de face et en rasant (Fresnel), × la brillance
   REFLET_CIEL_DEFAUT: 0x4a90d9, REFLET_ROUTE: 0x45474c,
   PNEU_SEGMENTS: 20,
   PNEU_DESSIN: { gomme: 0x161617, flanc: 0x2a2b2e, bande: 0xf2c230, marque: 0xdedede, janteBord: 0xb8bcc4, janteFond: 0x3a3e45, janteFond2: 0x1d1f23, rayon: 0x8d939b, ecrou: 0xd0d4da, roulement: 0x232325, epaule: 0x121213 },
@@ -1251,9 +1251,10 @@ const REGLAGES = {
   ROUTE_FREIN: [0.8, 0.26, 0.7, 35, 28],   // les traces de freinage : demi-voie des roues (m), demi-largeur d'une trace (m), assombrissement, décélération (m/s²), écart de vitesse (m/s) d'une trace pleine
   ROUTE_ADHERENCE_LAT: 30, ROUTE_VITESSE_MAX: 90,   // m/s², m/s : la vitesse de passage estimée des virages (pour placer les freinages)
   ROUTE_BORD_SALE: [1.2, 0.12],    // m, part : l'asphalte près des bords, hors trajectoire, un peu plus clair (poussière)
-  ROUTE_MOUILLEE: [0.5, 0.1, 0.8], // sous la pluie : l'assombrissement, le reflet du ciel de face et en rasant
+  ROUTE_MOUILLEE: [0.5, 0.08, 0.65], // sous la pluie : l'assombrissement, le reflet du ciel de face et en rasant
   BAS_COTE: [4.5, 1.3],            // m : la largeur des bas-côtés qui se fondent dans le sol, et celle de l'herbe usée (terre) près du bord
-  BAS_COTE_TERRE: 0x7a7258,
+  BAS_COTE_TERRE: 0x7a7258, BAS_COTE_VERT: 0.02,   // (la terre seulement sur un sol vert : g dépasse r et b de cet écart, en linéaire ; sinon le sol assombri)
+  BAS_COTE_PAS: 2,                 // les bas-côtés : un morceau tous les 2 échantillons (4 m) : moitié moins de triangles que la route
   HERBE_REPETE: [23, 3.1], HERBE_FORCE: [0.2, 0.1],   // le grain de l'herbe du sol (m entre deux répétitions : les taches, le fin ; ± clarté), le même sous les bas-côtés
   GRAVIER: [9, 1 / 120, 0xcdb994], // les bacs à gravier, à l'extérieur des virages de rayon plus court : largeur (m), courbure, couleur
   COULEURS_SECTEURS: [0xe03a3a, 0x2f7de1, 0xf2c230],   // secteurs 1, 2, 3
