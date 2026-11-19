@@ -324,6 +324,25 @@ Ce que j'ai réécrit après avoir relu les 12 idées avec ces deux regards :
 - **L'œil Poki** : il manquait une pub récompensée qui ne casse rien. Ajoutée au Grand Prix du jour : « 📺 Sauve ta série » (un jour manqué, une fois par semaine). Ce que Poki regarderait aussi, et qui tient : aucune pub entre un échec et « Rejouer », des sessions de 2 à 4 minutes, le premier lancement par un lien qui reste « en piste en 10 secondes », aucun texte libre qui voyage entre enfants.
 - **Ce que je n'ai pas changé** : l'ordre des 12. Je l'ai remis en question (élimination plus haut ? médailles plus haut ?) ; les trois premières restent les seules qui donnent à la fois une raison de revenir **demain** (1), une raison de **partager** (2) et des parties **courtes** à rejouer (3).
 
+## La vérification dans le code (lecture seule, main 2cd512d)
+
+Chaque nom de fonction, de réglage et de fichier des annexes a été cherché dans le code. **Justes** : `creerCourseIA(circuit, nb, nbTours, graine, carte, avecJoueur)`, `placerSurPiste` (`physique.js`), `classementCourse`, `pasCourseIA` (ne fait rouler que `!p.abandon`), `QUALIFICATION.grille`, `DECOUVERTE.tempsMilieu`, `EN_LIGNE.planMeteo` / `preparerCircuit` / `maths` (exportés), `SDK.lienPartage(params, rappel, delai)` et `SDK.parametreUrl(nom)` (n'importe quel nom), `DEFI.somme` (exporté), `CASQUE.tousLesMotifs`, `FANTOME.ecart`, `creerEnregistreur` → `lire`, `momentsForts`, `REGIE.postes`, `ARRIVEE.accelerer`, `DEUX_JOUEURS.ajouterRivalite`, `DIVISIONS.numerosPris`, `SAISONS.evoluer`, `ALEATOIRE.suite`, `DEPART.resultat` (`'parfait'`, `'bon'`, `'patinage'`, `'cale'`, `'faux'`), `CACHE_CARTE.encoder`, les réglages `CALENDRIER_CIRCUITS`, `METEO_LIEUX`, `EN_LIGNE_METEOS`, `EN_LIGNE_MATHS`, `NIVEAUX`, `NIVEAU`, `IA_RYTHME`, `IA_CARACTERE`, `POINTS`, `DEUX_IA_CHOIX`, `DEUX_VOITURES_MAX`, `NUMERO_MIN` / `MAX`, `PAYS` (31), `CASQUE_PALETTE` (12), `CASQUE_MOTIFS` (6), `CASQUE_DEBLOCAGES` (5), `LIVREE_MOTIFS` (6), `CELEBRATIONS` (2), `PILOTE_PRENOMS`, `DEGATS_*`, `PNEUS_ACTIFS`, `TUTO_DRAPEAUX_DEGATS`, et les tests cités (`tests/courses.html`, `stands.html`, `drapeaux.html`, `carriere-longue.html`, `textes.html`, `paquet.py`).
+
+**Faux, corrigés dans les annexes** :
+1. La place de départ imposée passait par `qualifier(e)` : faux, `qualifier` met **toujours les humains derrière** les IA. C'est `QUALIFICATION.grille(e, tempsJoueur)` qu'il faut (comme `placerDecouverte`).
+2. `ecrireEntier` de `defi.js` n'est **pas exporté** : à exporter (avec `lireEntier`) pour `copain.js`.
+3. `FANTOME_POLE.tour(e)` prend une **course** avec sa grille, pas un plateau (CLAUDE.md écrit `tour(plateau)` : c'est la doc qui est fausse) ; il étire toujours le tour (`FANTOME_POLE_ETIRER`) : une option « non étiré » est à ajouter pour les médailles.
+4. `tourEstime(carte, rythme)` applique **déjà** l'échelle par circuit : ne pas la multiplier une 2e fois.
+5. La carte des IA **dépend du niveau** pour expert et légende (`MARGE_CARTE` dans la clé de `cache-carte.js`) : les mesures de A7 sont celles du niveau normal ; il y a un 2e jeu de cartes pour les jours « expert ».
+6. `p.herbe` compte des **pas de physique** (120 par seconde), pas des secondes.
+7. Le joueur **n'a pas d'âge** (`p.age` est `null` pour l'humain) : le copain ne peut pas « vieillir avec lui » ; règle réécrite.
+8. Le remplacement d'un pilote se fait dans `SAISONS.evoluer` (fin de saison), pas « comme la relève ».
+9. `TUTORIEL.scene` ne sert qu'à la leçon `drapeaux` : à généraliser pour le défi 23.
+10. Les paramètres `?jour=` et `?pilote=` se lisent au début de `principal.js` (comme `defi`) : `sdk.js` n'a rien à changer.
+11. `EN_LIGNE.preparerCircuit` pose `REGLAGES.NIVEAU = EN_LIGNE_NIVEAU` pendant le calcul : il faut une variante qui prend le niveau du jour.
+12. Le générateur du jour : `ALEATOIRE.suite(graine)` existe déjà (pas besoin d'en écrire un).
+13. Les textes « il devient ton coéquipier », « ton copain » étaient **genrés** sur un ami dont on ne connaît pas le genre : « pote » et « ton coéquipier » à la place.
+
 ## Les idées écartées (et pourquoi)
 
 - **Un arrêt au stand à « taper » soi-même** (toucher les 4 roues vite) : amusant une fois, mais il rend l'arrêt plus long et coupe la course ; et l'arrêt dépend déjà des changeurs du garage.
