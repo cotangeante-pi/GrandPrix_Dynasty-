@@ -1,5 +1,5 @@
 TOUR 60 — compte rendu du Codeur 4 (l'auto-guidage du téléphone, branche `guidage-60`)
-Commit : COMMIT (voir la fin)
+Commit : a62069d (code et tests ; ce compte rendu complété ensuite en [skip ci])
 Ordres : 1 fait / 2 fait / 3 fait / 4 fait / 5 fait (lien du passage plus bas)
 
 ## Le principe
@@ -39,7 +39,7 @@ explication en titre, sauvegardé (`tac_guidage`) ; une bulle d'aide la premièr
 - `tests/aides.html` : 30/30 (la bulle `guidage`) ; `tests/textes.html` : 2170/2170
 - `tests/ecrans.py` : `test=tactile` 640 (fr) 23/23, 960 (en) 23/23, `test=tactile-reglages` 58/58 (nouveaux : bouton de la pause et des
   Réglages ≥ 40 px, coupé, gardé après rechargement ; capture `tactile-pause-640.png` relue : la rangée « Auto-guidage : oui » tient)
-- GitHub : LIEN
+- GitHub : **18/18 vert** sur a62069d : https://github.com/cotangeante-pi/GrandPrix_Dynasty-/actions/runs/44633917192 (annexes : guidage.html 18/18 ; moteur : le test « auto-guidage du téléphone » ✔)
 
 ## Mesures (tests/guidage.html)
 
