@@ -21,7 +21,9 @@ t('36d : une phrase incomprise reçoit une réponse naturelle qui demande de ref
   const hors = ['zorglub patate', 'le chat de ma tante est bleu', 'asdfghjk', 'banane volante', 'my cat likes pizza', 'qwerty uiop', 'la tour eiffel', 'purple monkey dishwasher'];
   const faux = hors.map(p => [p, PARLE.comprendre(p, NOMS).acte]).filter(([p, a]) => a !== 'INCONNU' && a !== 'QUESTION');
   v(!faux.length, 'faux sens : ' + JSON.stringify(faux));
-  const ch = nouveau(), k = rival(ch, 0.5), r = DISCUSSION.dire(ch, k, 'zorglub patate');
+  // (tour 60 : avec BAVARDAGE_THEMES, la phrase inconnue est reprise par un de ses mots, tests/banc-themes.js ; ici, la réponse d'avant)
+  const thAvant = REGLAGES.BAVARDAGE_THEMES; REGLAGES.BAVARDAGE_THEMES = false;
+  let ch, k, r; try { ch = nouveau(); k = rival(ch, 0.5); r = DISCUSSION.dire(ch, k, 'zorglub patate'); } finally { REGLAGES.BAVARDAGE_THEMES = thAvant; }
   const demandes = TEXTES[LANGUE].dis_incompris.concat(TEXTES[LANGUE].dis_incompris_vif || [], TEXTES[LANGUE].dis_incompris_doux || []);
   v(r.reaction === 'incompris' && demandes.some(d => r.texte.startsWith(d.replace(/\{\w+\}/g, '').slice(0, 12))) && !r.effets.relation, JSON.stringify(r));
   v(demandes.filter(d => /\?/.test(d)).length >= 4, 'des demandes de reformuler');

@@ -396,7 +396,9 @@ const DISCUSSION = (function () {
       const mb = memoire(p);
       mb.derniere = bav.texte;
       mb.dernieres = (Array.isArray(mb.dernieres) ? mb.dernieres : []).concat([bav.texte]).slice(-R.DISCUSSION_OUVERTURES);
-      return { analyse, reaction: 'bavardage', reactions: ['bavardage'], raisons: [], effets: {}, faits: {}, texte: bav.texte, sujet: bav.sujet };
+      const rb = { analyse, reaction: 'bavardage', reactions: ['bavardage'], raisons: [], effets: {}, faits: {}, texte: bav.texte, sujet: bav.sujet };
+      if (bav.pont !== undefined) rb.pont = bav.pont;   // (tour 60) le pont vers la course, s'il y en a un (BAVARDAGE_THEMES)
+      return rb;
     }
     // (tour 36) la place demandée (« t'as fini combien ? », « where did you finish ? ») : lue sur la phrase mise à plat
     if (analyse.demandePlace === undefined) analyse.demandePlace = /\b(combien|fini|finis|finit|place|position|classe|classee|finish|finished|where did you)\b/.test(PARLE.aplatir(txt));

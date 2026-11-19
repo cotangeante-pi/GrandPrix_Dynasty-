@@ -740,6 +740,12 @@ const REGLAGES = {
   BAVARDAGE_RETOUR: 0.45,           // la part des réponses suivies d'une question en retour (« Et toi, tu as un animal ? »)
   BAVARDAGE_RELANCE: 0.25,          // la part des réponses où il relance la conversation sur un autre sujet (après 3 messages)
   BAVARDAGE_MEMOIRE: 8,             // une réponse ne recommence pas comme une de ses 8 dernières
+  // (tour 60, le propriétaire : « il faut que les IA comprennent tous les thèmes (mais elles doivent quand même essayer de rester sur la
+  // F1) ») les thèmes de tous les jours d'un enfant (l'école, les dinosaures, la neige, la tristesse…, bavardage.js THEMES), le pont doux
+  // vers la course, et la phrase inconnue reprise par un de ses mots ; faux = les réponses d'avant au mot près
+  BAVARDAGE_THEMES: true,
+  BAVARDAGE_PONT: 0.7,              // la première réponse sur un thème : la chance d'un pont vers la course (jamais deux réponses de suite)
+  BAVARDAGE_PONT_RESTE: 0.25,       // relancé sur le même thème : il y reste (petite chance de pont) ; à la 3e relance, le pont vient
   GRAINE_DISCUSSION: 15000,         // les variantes des réponses : la graine du championnat + ce nombre (une suite à part, ALEATOIRE.suite)
   // le courrier des pilotes (courrier-pilotes.js) : ils écrivent d'eux-mêmes après les faits
   COURRIER_PAR_GP: 3,               // au plus 3 messages par Grand Prix (les plus urgents)
