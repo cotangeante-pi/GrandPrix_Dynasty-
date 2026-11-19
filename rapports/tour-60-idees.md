@@ -329,6 +329,128 @@ Le 10 a des zéros mais un enjeu à part (la **conversion** au premier lancement
 - **Les noms des pilotes et des écuries** (attendus du propriétaire depuis le 2026-10-29) : « Pilote 14 » affaiblit tout ce qui repose sur les rivaux (idées 2, 9, 12, et le commentateur).
 - **Demander à Poki** : le jeu tourné de 90° en portrait passe-t-il leur contrôle, et quels chiffres le développeur reçoit-il (retour du lendemain, temps de jeu) pour mesurer les idées 1 à 3.
 
+## Annexe A — Le Grand Prix du jour, prêt à coder
+
+Tout ce qui suit est une proposition **réversible** : chaque nombre est un réglage `JOUR_*` de `donnees.js`. Le calcul est dans un fichier à lui, `jour.js`, **en calcul pur** (aucune page, aucun Three.js), testé sans écran.
+
+### A1. Le numéro du jour et sa graine
+
+- **La date** : la date **locale** de l'appareil (`new Date()` : `getFullYear`, `getMonth`, `getDate`), lue **une seule fois**, par la page, au moment où l'on ouvre l'écran du jour. `jour.js` ne lit jamais l'horloge : il reçoit `{ a, m, j }` (tests faciles, et la règle « pas de `Date` dans la simulation » tient).
+- **Le numéro** : `n = (Date.UTC(a, m, j) − Date.UTC(JOUR_DEBUT)) / 86 400 000 + 1` (`JOUR_DEBUT` = le jour de la mise en ligne). Calculé en UTC **à partir des chiffres de la date locale** : pas de saut d'heure d'été, pas de jour « 41,96 ». « Jour 42 » dans le texte à partager.
+- **La graine** : `g = a × 10 000 + (m + 1) × 100 + j` (20261119), plus `JOUR_GRAINE` (un décalage, pour ne pas croiser les graines des autres modes). Tous les tirages du jour passent par **un petit générateur à lui** dans `jour.js` (le même genre que `ALEATOIRE`, mais à part) : tirer le jour ne décale aucun autre tirage du jeu.
+
+### A2. Le tirage des paramètres
+
+Dans cet ordre (l'ordre fait partie de la règle : le changer change tous les jours futurs, donc on monte `JOUR_VERSION`).
+
+| Paramètre | Règle | Pourquoi |
+|---|---|---|
+| **Circuit** | Les 12 de `CALENDRIER_CIRCUITS`, en **cycles de 12 jours** : le cycle `k = ⌊(n − 1) / 12⌋` est un mélange des 12 (graine `JOUR_GRAINE + k`) ; si le premier du cycle est le dernier du cycle d'avant, on l'échange avec le 2e. | Chaque circuit revient tous les 12 jours, jamais deux jours de suite le même, et l'ordre change d'un cycle à l'autre. |
+| **Niveau des IA** | Par jour de la semaine (`JOUR_NIVEAUX`, de lundi à dimanche) : débutant, débutant, normal, normal, normal, **expert**, normal. | Le même pour tous les joueurs (comparaison juste), facile en début de semaine, un « samedi des pros ». |
+| **Nombre d'IA** | `JOUR_IA` = 9 (10 voitures). | Assez pour remonter, léger sur un téléphone. |
+| **Tours** | 3 si le circuit fait moins de `JOUR_LONGUEUR_3_TOURS` (4 800 m), sinon 2 (voir les longueurs mesurées en A7). | Une course de 2 à 4 minutes. |
+| **Place de départ** | Tirée dans `JOUR_PLACES` = 7, 8, 9, 10 (sur 10), avec les poids `JOUR_PLACES_POIDS` = 2, 2, 3, 3. | Partir derrière et remonter, c'est le plaisir ; jamais devant (la victoire ne doit pas être donnée). |
+| **Météo** | Si le lieu a de la pluie (`METEO_LIEUX`) : un tirage avec la chance `min(0,5 ; pluie × JOUR_PLUIE_FACTEUR)` (facteur 1,5) de **pluie** ; sinon **sec** ; Singapura reste de nuit (son décor). Les noms sont ceux de `EN_LIGNE_METEOS` (`sec`, `pluie`, `averse`, `eclaircie`) : le plan de météo existe déjà sans adresse (`planMeteo` d'`enligne.js`). | Spaa et Interlagas mouillés plus souvent que Bahrayn, comme en carrière. |
+| **Piment** | `JOUR_PIMENT_CHANCE` = 40 % des jours ; **jamais le samedi** (déjà difficile). Tiré dans la liste `JOUR_PIMENTS` (ci-dessous), en écartant ceux qui ne vont pas avec la météo. | Un petit événement, pas un piège. |
+
+**Les piments** (seulement des mécaniques qui existent, réglées comme dans le jeu) :
+
+| Piment | Ce qu'il fait | Texte (fr) | Condition |
+|---|---|---|---|
+| `averse` | météo `averse` à la place du sec (la pluie arrive au tiers de la course) | « Une averse arrive ! » | jour sec seulement |
+| `eclaircie` | météo `eclaircie` (il pleut, puis la piste sèche) | « Ça va sécher… » | jour de pluie seulement |
+| `aileron` | `v.degats` = `JOUR_PIMENT_DEGATS` (0,3, comme la leçon des drapeaux) au départ : on choisit entre rouler abîmé et passer au stand le réparer | « Ton aileron est abîmé » | dégâts actifs |
+| `pneus` | les pneus du joueur à `JOUR_PIMENT_USURE` (60 % d'usure) au départ ; les IA ont les leurs, neufs | « Pneus usés : tiens bon ou passe au stand » | pneus actifs |
+| `dernier` | le joueur part 10e **et** les IA sont rangées en ordre inverse (les plus rapides derrière lui) | « Grille inversée ! » | jamais un jour expert |
+
+Le piment `aileron` et le piment `pneus` font du stand un vrai choix dans une course de 2 ou 3 tours : c'est ce qui rend ces jours intéressants. Aucun piment ne touche aux règles ni à la physique : ils posent un **état de départ**.
+
+**La place de départ imposée** : comme la découverte (`DECOUVERTE.tempsMilieu`), on ne touche pas à la grille : on donne au joueur un temps de qualification fictif entre celui de l'IA qui doit être devant lui et celui de celle qui doit être derrière (`qualifier` range ensuite tout le monde). Aucune qualification à jouer.
+
+### A3. Les médailles
+
+Sur la **place finale** (pénalités comprises, comme le podium) :
+- 🥇 **or** : 1er ;
+- 🥈 **argent** : sur le podium ;
+- 🥉 **bronze** : au moins `JOUR_BRONZE_PLACES` (3) places gagnées sur la place de départ (parti 10e : 7e ou mieux).
+
+On peut rejouer autant qu'on veut **le jour même** ; la meilleure médaille est gardée. Une course abandonnée (« Abandonner » de la pause) ne compte pas. Les aides au pilotage restent au choix (règle du propriétaire) ; le texte partagé dit seulement « sans aide » quand toutes sont coupées (un plus, jamais une honte).
+
+### A4. La série
+
+- **La série** : le nombre de jours de suite où l'on a **fini** au moins une course du jour (une médaille n'est pas nécessaire : un petit qui finit 9e garde sa série).
+- Le jour où l'on finit une course : si `dernierJour` = `n − 1`, `serie + 1` ; si `dernierJour` = `n`, rien ; sinon `serie = 1`. On garde aussi `meilleureSerie` et `joues` (le total).
+- **Jamais de message triste** : une série cassée repart à 1 sans rien dire ; l'écran montre « 🔥 1 » et « Meilleure série : 9 ».
+- **Une horloge qui recule** (fuseau changé, date réglée à la main) : si `n < dernierJour`, la série et les médailles de ce jour ne changent pas (la course se joue quand même) ; jamais de valeur négative ni de NaN.
+
+### A5. Les cas limites
+
+| Cas | Ce qui se passe |
+|---|---|
+| **Minuit pendant la course** | La course garde **le jour où elle a commencé** (le numéro est posé sur la grille) : sa médaille et la série comptent pour ce jour-là, même si l'arrivée est après minuit. |
+| **Fuseau horaire** | La date locale de l'appareil : deux copains dans deux pays peuvent avoir deux jours différents quelques heures par jour ; le texte partagé dit « Jour 42 », le lien ouvre ce jour-là. |
+| **Joueur sans sauvegarde** (navigation privée, ordinateur d'école, `localStorage` refusé) | Le Grand Prix du jour se joue normalement ; la médaille s'affiche ; la série n'est pas gardée (une ligne discrète : « Ta série n'est pas gardée sur cet appareil »). |
+| **Nouveau joueur arrivé par un lien `?jour=`** | Directement sur la grille (comme la découverte, `gameLoadingFinished` puis grille), puis le podium du jour, puis la création du pilote comme après la découverte. La découverte est comptée comme faite. |
+| **Lien d'un jour passé** (`?jour=20261112`) | Ce jour-là se joue (marqué « Grand Prix du 12 novembre »), sans médaille ni série : seul le jour même compte. Un lien d'un jour **futur** ouvre le jour d'aujourd'hui (pas de triche à l'avance). |
+| **Lien abîmé** (`?jour=abc`) | Ignoré : le titre normal. Pas d'erreur console. |
+| **`JOUR_VERSION` monte** (le tirage a changé) | Les médailles et la série gardées ne bougent pas ; un lien d'avant ouvre le tirage d'aujourd'hui pour ce jour-là (on ne garde pas les anciens tirages). |
+| **Poki** | `gameplayStart` aux feux éteints, `gameplayStop` au podium ; **aucune pub entre « Rejouer » et la grille** ; une `commercialBreak` possible au retour au titre ou au paddock, comme entre deux courses. |
+| **Le joueur est en pleine carrière** | Le Grand Prix du jour est à part : pas de points, pas d'argent (ou une petite prime à part, à décider : je conseille **non**, pour ne pas en faire une corvée de carrière), mais il compte pour le niveau de pilote (idée 7) si elle existe. |
+
+### A6. Le texte à partager
+
+Une ligne de positions tour par tour (ce que l'enfant a vécu), une médaille, le lien Poki (`SDK.lienPartage({ jour: '20261119' })`, repli sur l'adresse où le jeu tourne, comme le défi).
+
+```
+🏁 Grand Prix Dynasty · Jour 42
+Spaa 🌧 · 2 tours · Normal
+P10 ▸ P6 ▸ P1 🥇 🔥5
+https://poki.com/…?jour=20261119
+```
+```
+🏁 Grand Prix Dynasty · Day 42
+Spaa 🌧 · 2 laps · Normal
+P10 ▸ P6 ▸ P1 🥇 🔥5
+https://poki.com/…?jour=20261119
+```
+Clés `textes.js` : `jour_partage` (`{n}`, `{circuit}`, `{meteo}`, `{tours}`, `{niveau}`, `{places}`, `{medaille}`, `{serie}`), `jour_titre`, `jour_demain`, `jour_bronze`, `jour_argent`, `jour_or`, `jour_aucune` (« Pas de médaille : retente ! »), `jour_serie`, `jour_sans_sauvegarde`, `jour_passe`, `jour_piment_<nom>`. Pas de place dans la ligne → `P10 ▸ P1` seulement. Pas de nom du joueur dans le texte (rien de personnel ne sort du jeu sans qu'il le tape lui-même).
+
+**« Demain »** : `jour.js` tire aussi le jour `n + 1` ; l'écran d'arrivée dit « Demain : Singapura 🌙 · grille inversée ! » (circuit, météo prévue et piment ; pas le niveau).
+
+### A7. La même course sur tous les navigateurs, et la carte des IA
+
+**Le problème.** Même graine, mêmes paramètres : la course est la même au bit près **dans un même navigateur**. Entre Chrome, Safari et Firefox, `Math.sin`, `cos`, `atan2`… peuvent différer d'un bit ; le circuit lui-même (sa géométrie) est calculé avec elles, donc une IA peut freiner un millimètre plus tôt, et la course peut finir dans un ordre légèrement différent.
+
+**Le plan, en deux marches.**
+1. **D'abord mesurer** (une demi-journée) : Playwright a les trois moteurs (Chromium, Firefox, WebKit, celui de Safari). Une page de test joue 7 jours tirés (une course d'IA seules, 10 voitures, le robot d'essai à la place du joueur) dans les trois et compare l'empreinte de la course (places et temps à l'arrivée, comme `tests/courses.html`). Si les trois donnent les mêmes places sur les 7 jours : **on s'arrête là** (les écarts d'un bit ne changent pas ce que voit un enfant).
+2. **Sinon, emprunter les maths du jeu en ligne** : `EN_LIGNE.preparerCircuit(nom)` construit déjà le circuit et la carte avec `EN_LIGNE_MATHS` (nos `sin`, `cos`, `atan2`… faits de + − × ÷ et `sqrt`, identiques partout), et `maths.activer()` / `desactiver()` encadrent une course. Pour le jour : les activer de la grille au podium, comme une partie en ligne. Deux conséquences : (a) la carte des IA de ce circuit est **une autre carte** (calculée avec nos maths) : il faut la livrer à part ou la calculer en fond ; (b) **la voiture du joueur roule aussi avec nos maths** pendant la course du jour : à tester (images/s, sensation identique).
+
+**La carte des IA** (le calcul qui fait « Préparation de la course… ») : mesures en cours (sous le verrou), ajoutées dès qu'elles sont là. Le plan :
+- **Sur le titre et au paddock**, dès que la page est prête, calculer **en fond** la carte du circuit du jour (comme le jeu le fait déjà pour la course suivante) et la garder dans le cache de la sauvegarde (`cache-carte.js`) : au clic, elle est prête ;
+- **pour un nouveau joueur arrivé par un lien** (pas de cache, pas de titre : il est sur la grille tout de suite), livrer les cartes **dans le paquet**, chargées seulement le jour où elles servent (un fichier par circuit, comme `cache-carte-test.js`).
+
+### A8. Le plan des tests
+
+- **Calcul pur** (`tests/test.html`, partie « jour ») :
+  1. la même date donne les mêmes paramètres (10 dates, comparées à des valeurs épinglées) ; deux dates qui se suivent ne donnent jamais le même circuit ;
+  2. sur 365 jours : chaque circuit 30 ou 31 fois, chaque piment au moins 10 fois, jamais un piment le samedi, jamais `averse` un jour de pluie ni `eclaircie` un jour sec ;
+  3. le numéro du jour : le 1er jour = 1, le passage à l'heure d'été et d'hiver ne saute ni ne double aucun jour, le 29 février, le 31 décembre → 1er janvier ;
+  4. les médailles : chaque place de 1 à 10 depuis chaque place de départ ; les pénalités comptent ;
+  5. la série : jour + 1 → +1 ; même jour → rien ; un jour sauté → 1 ; horloge qui recule → rien ; jamais négatif ;
+  6. le texte : fr et en, toutes les clés présentes, pas de « undefined », pas de lettre accentuée dans l'anglais (l'audit existant) ;
+  7. `JOUR_ACTIF` faux : aucun bouton, `?jour=` ignoré, le jeu d'avant au bit près.
+- **Une course** : la course du jour jouée deux fois par le robot donne la même empreinte ; la place de départ imposée est la bonne (7 à 10) ; les piments posent le bon état (aileron à 0,3, pneus à 60 %, grille inversée).
+- **Les écrans** (`tests/ecrans.py`, page `test=jour`, 1280×720, 960×600 et 640×360 au doigt, fr et en) : le bouton au titre (≥ 40 px au doigt), l'écran du jour, l'arrivée avec la médaille, « Demain », « 📋 Partager » ; rien hors de l'écran ni recouvert.
+- **Le lien** : `?jour=AAAAMMJJ` sans sauvegarde mène à la grille ; un lien futur ouvre aujourd'hui ; un lien abîmé ne fait rien ; console vide.
+- **Les navigateurs** : la mesure de A7 (Chromium, Firefox, WebKit), hors workflow, sous le verrou.
+- **Poki** (`tests/paquet.py`) : aucune pub entre « Rejouer » et la grille.
+
+### A9. Les réglages
+
+`JOUR_ACTIF`, `JOUR_VERSION`, `JOUR_DEBUT`, `JOUR_GRAINE`, `JOUR_IA`, `JOUR_NIVEAUX`, `JOUR_LONGUEUR_3_TOURS`, `JOUR_PLACES`, `JOUR_PLACES_POIDS`, `JOUR_PLUIE_FACTEUR`, `JOUR_PIMENT_CHANCE`, `JOUR_PIMENTS`, `JOUR_PIMENT_DEGATS`, `JOUR_PIMENT_USURE`, `JOUR_BRONZE_PLACES`, `JOUR_MATHS` (faux au début : voir A7), `JOUR_CARTES_LIVREES`.
+
+**Fichiers** : `jour.js` (nouveau, calcul pur), `principal.js` (lancer la course du jour : les réglages imposés, la place, le piment), `interface.js` + `index.html` (bouton du titre et du paddock, écran du jour, arrivée), `textes.js`, `donnees.js`, `sauvegarde.js` (le bloc `jour` à la racine de la sauvegarde : il survit à une nouvelle carrière ; environ 100 octets), `sdk.js` (le paramètre `jour` en plus de `defi`), `tests/`.
+
 ## Sources (ce que Poki dit)
 
 - [Poki — What makes a high-quality browser game (2026)](https://poki.com/blog/what-makes-high-quality-browser-game) : sessions courtes, chargement rapide, pubs récompensées plutôt que coupures, couleurs vives.
