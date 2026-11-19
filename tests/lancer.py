@@ -66,6 +66,7 @@ ANNEXES.append('tests/carriere-longue.html')   # la carrière entière : 15 sais
 ANNEXES.append('tests/icones.html')   # les icônes du style télé (tour 59, Codeur 2)
 ANNEXES.append('tests/personnalisation.html')   # la personnalisation : livrée, célébration, boutique de skins (tour 48c, Codeur 3)
 ANNEXES.append('tests/reglages-voiture.html')   # les réglages de la voiture (tour 50b, Codeur 2) ; leur tableau sur les 12 tracés : tests/officiels.html
+ANNEXES.append('tests/guidage.html')   # l'auto-guidage du téléphone : zigzags simulés, changement de file, virage, secours (tour 60, Codeur 4)
 def chasse_en(delai=600):
     # (tour 55, T24) l'anglais des nouveautés dans la vraie page, aux 3 tailles (tests/chasse-en.py : une dizaine de secondes)
     t0 = time.monotonic()

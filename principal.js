@@ -370,6 +370,7 @@ function pasTourQualif(pas) {
   const q = JEU.qualif.q, v = JEU.qualif.v, c = q.course;
   const permis = courseAutorise(c);
   if (JEU.remettre) { if (permis) remettreSurPiste(v, CIRCUIT); JEU.remettre = false; }
+  secoursJoueur(v, permis && c.etat !== 'finie');   // (tour 60 : le secours de l'auto-guidage du téléphone)
   if (c.etat === 'finie') appliquerCommandes(v, { gaz: 0, frein: v.u > REGLAGES.ARRET_APRES_ARRIVEE ? 1 : 0, direction: 0 });
   else if (JEU.robot && permis) appliquerCommandes(v, piloteRobot(v, CIRCUIT));
   else lisserCommandes(v, permis ? aiderJoueur(JEU.cibles, v) : AUCUNE, pas);
@@ -2255,8 +2256,29 @@ function aidesDe(p) {
 }
 function aiderJoueur(c, v, p) {
   const r = aidesDe(p);
-  if (!r) return c;
-  return ASSISTANCE.appliquer(c, v, { circuit: CIRCUIT, carte: JEU.carte }, r);
+  return guiderJoueur(c, r ? ASSISTANCE.appliquer(c, v, { circuit: CIRCUIT, carte: JEU.carte }, r) : c, v);
+}
+
+// (tour 60, Codeur 4, le propriétaire 2026-11-19) l'auto-guidage du téléphone (assistance.js : guider, secours, relancer ; CLAUDE.md « Le téléphone :
+// le volant ») : au volant d'un écran tactile seulement (TACTILE.guidageVoulu : le volant conduit et le joueur ne l'a pas coupé), jamais à deux, en
+// ligne ni pour le robot ; TACTILE_GUIDAGE et TACTILE_GUIDAGE_SECOURS faux (ou sans tactile) : les cibles telles quelles, au bit près
+const telephoneGuide = () => typeof TACTILE !== 'undefined' && TACTILE.guidageVoulu() && !JEU.deux && !JEU.enligne && !JEU.robot;
+function etatGuidage(v) {
+  if (!JEU.guidage || JEU.guidage.v !== v) JEU.guidage = { v, e: ASSISTANCE.creerGuidage() };   // (un état par voiture du joueur : neuf à chaque course)
+  return JEU.guidage.e;
+}
+// brut : le volant du joueur ; c : ses cibles après les autres aides
+function guiderJoueur(brut, c, v) {
+  if (!REGLAGES.TACTILE_GUIDAGE || !telephoneGuide()) return c;
+  const e = etatGuidage(v), r = ASSISTANCE.guider(e, brut, c, v, CIRCUIT, REGLAGES.PAS_PHYSIQUE);
+  if (e.allume) JEU.guidageVu = true;   // (la bulle « guidage » d'aides.js, une fois)
+  return r;
+}
+// le secours, à chaque pas de la voiture du joueur, là où Espace est traité : la voiture perdue repart sur la piste à la vitesse d'avant (bornée)
+function secoursJoueur(v, permis) {
+  if (!REGLAGES.TACTILE_GUIDAGE_SECOURS || !permis || !telephoneGuide()) return;
+  const u = ASSISTANCE.secours(etatGuidage(v), v, CIRCUIT, REGLAGES.PAS_PHYSIQUE);
+  if (u !== null) { ASSISTANCE.relancer(v, CIRCUIT, JEU.carte, u); JEU.secoursGuidage = (JEU.secoursGuidage || 0) + 1; }
 }
 
 // ?ia=N&joueur=1 : les commandes du joueur pour sa voiture dans la course entre IA (comme seul : rampes, Espace)
@@ -2285,6 +2307,7 @@ function conduireJoueur(p, pas) {
   if (p.course.arretEnCours && cmd.cibles) choisirPneusArret(p.v, cmd.cibles.direction, p.course.arretEnCours);
   if (cmd.remettre && courseAutorise(p.course)) remettreSurPiste(p.v, CIRCUIT);
   cmd.remettre = false;
+  if (!p.joueur || p.joueur === 1) secoursJoueur(p.v, courseAutorise(p.course) && commandesPermises(p.course) && !p.course.arretEnCours);   // (tour 60 : le secours de l'auto-guidage du téléphone ; jamais à deux)
   // après l'arrivée, sa voiture freine seule jusqu'à l'arrêt (les autres finissent leur course)
   // ?robot=1 : le robot d'essai conduit sa voiture (tests) ; il fait toujours un départ parfait, DEPART_ROBOT_REACTION après l'extinction
   let cibles = JEU.robot ? (courseAutorise(p.course) ? piloteRobot(p.v, CIRCUIT) : AUCUNE) : cmd.cibles;
@@ -2325,6 +2348,7 @@ function pasJoueur(pas) {
   // on conduit en survol, en essai, et en course une fois le GO donné (pas pendant le compte à rebours ni après l'arrivée)
   const permis = JEU.ecran === 'survol' ? CAMERA.conduite : (JEU.ecran === 'course' && c && courseAutorise(c));
   if (JEU.remettre) { if (permis) remettreSurPiste(v, CIRCUIT); JEU.remettre = false; }
+  secoursJoueur(v, permis && !JEU.ia && !(c && c.etat === 'finie'));   // (tour 60 : le secours de l'auto-guidage du téléphone)
   if (c && c.etat === 'finie') {
     // après l'arrivée : les commandes sont coupées et la voiture freine seule jusqu'à l'arrêt
     appliquerCommandes(v, { gaz: 0, frein: v.u > REGLAGES.ARRET_APRES_ARRIVEE ? 1 : 0, direction: 0 });
@@ -2763,7 +2787,7 @@ function demarrerJeu() {
   SCENE3D.colorerRepereStand(JEU.contre && JEU.couleurs.length > JEU.ia ? JEU.couleurs[JEU.ia] : REGLAGES.COULEUR_JOUEUR);   // le repère de la zone d'arrêt aux couleurs de l'écurie du joueur (tour 46d2)
   INTERFACE.preparerPause(() => pause(false), () => lancerCourse(JEU.course.nbTours));
   TACTILE.brancher({ pause: () => toucheVirtuelle('Escape'), remettre: () => { JEU.remettre = true; }, pneu: choisirPneuDoigt, camera: () => { if (!JEU.deux) CAMERA.suivante(); },
-    lire: () => ({ sensibilite: SAUVEGARDE.option('volant_sensibilite', 1), inverse: SAUVEGARDE.option('volant_inverse', false), choix: SAUVEGARDE.option('volant_choix', 'volant') }),   // (tour 53f : les réglages du volant, sauvegardés)
+    lire: () => ({ sensibilite: SAUVEGARDE.option('volant_sensibilite', 1), inverse: SAUVEGARDE.option('volant_inverse', false), choix: SAUVEGARDE.option('volant_choix', 'volant'), guidage: SAUVEGARDE.option('tac_guidage', true) }),   // (tour 53f : les réglages du volant, sauvegardés)
     ecrire: (nom, valeur) => SAUVEGARDE.ecrireOption(nom, valeur) });   // le téléphone (tactile.js, tour 51k)
   INTERFACE.preparerFin(() => lancerCourse(JEU.course.nbTours), allerAuChoix);
   if (JEU.championnat) {

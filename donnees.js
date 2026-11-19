@@ -194,6 +194,34 @@ const REGLAGES = {
   VOLANT_SENSIBILITE: [1.4, 1, 0.68], // (tour 53f) les 3 crans « doux, normal, vif » du joueur (Réglages, pause) : VOLANT_PLEIN × ce nombre (normal = 1 : le jeu d'avant) ; le cran est sauvegardé
   VOLANT_INVERSE: false,           // vrai : le sens du volant retourné (si un téléphone le prend à l'envers)
 
+  // (tour 60, Codeur 4, le propriétaire 2026-11-19) l'auto-guidage du téléphone (assistance.js : guider, secours ; principal.js : guiderJoueur) :
+  // en ligne droite, quand le joueur zigzague au volant (il sur-corrige), la direction vise le cap de la piste et le lacet s'amortit,
+  // sans toucher au gaz ni au frein ; seulement au volant d'un écran tactile, jamais à deux ni en ligne. Faux = comme avant au bit près
+  TACTILE_GUIDAGE: true,
+  TACTILE_GUIDAGE_SECOURS: true,   // la voiture perdue quand même (tête-à-queue, travers, herbe en ligne droite) : comme Espace, mais elle repart à la vitesse d'avant (bornée) ; faux = rien
+  GUIDAGE_AMPLITUDE: 0.25,         // |direction| du joueur au-delà de laquelle un côté compte (un coup de volant franc)…
+  GUIDAGE_FENETRE: 2,              // … s au plus entre deux changements de côté pour qu'ils se suivent (un zigzag)…
+  GUIDAGE_INVERSIONS: 2,           // … et le guidage s'allume à ce nombre de changements de côté à la suite (droite, gauche, droite)…
+  GUIDAGE_CAP_ALERTE: 8,           // … ou dès le premier changement de côté si le nez est (ou sera dans GUIDAGE_ANTICIPE s, à la rotation du moment et à celle que demande le volant) à plus de ces ° de la piste (une grosse sur-correction)
+  GUIDAGE_ANTICIPE: 0.4,
+  GUIDAGE_CAP_SORTIE: 15,          // ° : … ou d'emblée si le nez part (dans GUIDAGE_ANTICIPE s, à la rotation du moment seule) à plus de ça de la piste (un coup de volant qui jette la voiture dehors : à 200 km/h, 15° font sortir de la piste en moins d’1 s)
+  GUIDAGE_GLISSE: 6,               // ° : ou la voiture glisse (sa vitesse fait cet angle avec son nez) en ligne droite
+  GUIDAGE_REGARD: [60, 2.5],       // la ligne droite : la piste regardée devant, au moins ces m, ou ces s à la vitesse du moment…
+  GUIDAGE_COURBURE: [1 / 1500, 1 / 600], // … dont la courbure (1/m) reste sous la 1re (guidage entier) ; à la 2e (rayon 600 m), il s'efface tout à fait
+  GUIDAGE_TAU: 0.3,                // s : l'écart de cap à la piste se referme en ce temps…
+  GUIDAGE_AMORTI: 0.7,             // … et le lacet est amorti (la rotation de la voiture retenue : × ça)
+  GUIDAGE_CAP_JOUEUR: 12,          // ° : guidé, le volant du joueur tenu demande encore un cap (à fond : jusqu'à ces ° de la piste) : il change de file ou revient en douceur, sans pouvoir relancer le zigzag
+  GUIDAGE_MONTEE: 0.15,            // s pour que le guidage prenne la main…
+  GUIDAGE_DESCENTE: 0.5,           // … et pour qu'il la rende
+  GUIDAGE_CALME: 0.8,              // s droit (cap à moins de GUIDAGE_DROIT °), le volant du joueur au milieu, sans nouveau zigzag : il rend la main
+  GUIDAGE_DROIT: 1.5,              // °
+  GUIDAGE_EXPRES: [0.35, 0.4, 1.5], // le joueur tourne exprès : |direction| tenue au moins à ça, du même côté, plus de 0,4 s : le cap qu'il demande grandit jusqu'à GUIDAGE_CAP_JOUEUR en 1,5 s de plus (le guidage s'efface devant lui)
+  GUIDAGE_STANDS: 200,             // m avant l'entrée de la voie des stands (et jusqu'à sa sortie) : ni guidage ni secours d'herbe (on y tourne exprès)
+  GUIDAGE_VITESSE_MIN: 10,         // m/s : en dessous, ni guidage ni secours
+  GUIDAGE_STABLE: [5, 15],         // ° : la voiture est stable (glisse et cap à la piste sous ces angles, sur le goudron, sans zigzag) : sa vitesse est gardée pour le secours
+  GUIDAGE_PERDU: [80, 30, 0.5, 0.3], // perdue : cap à plus de 80° de la piste, ou glisse de plus de 30°, ou dans l'herbe 0,5 s en ligne droite ; pendant 0,3 s
+  GUIDAGE_SECOURS_PAUSE: 3,        // s entre deux secours
+
   // les aides au pilotage du joueur (assistance.js, tour 41) : seulement ses cibles, avant la physique ; toutes en débutant
   ASSIST_VITESSE_MIN: 5,           // m/s : en dessous, aucune aide
   ASSIST_REGARD: 250,              // m : le freinage assisté regarde jusque-là

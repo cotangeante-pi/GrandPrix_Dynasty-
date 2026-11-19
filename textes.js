@@ -1277,6 +1277,18 @@ Object.assign(TEXTES.fr, {
   tac_inverse_oui: 'Inversé : oui', tac_inverse_non: 'Inversé : non', tac_choix_volant: 'Direction : volant', tac_choix_boutons: 'Direction : ◀ ▶',
 });
 
+// (tour 60, Codeur 4) l'auto-guidage du téléphone : le bouton de la pause et des Réglages (22 caractères au plus), son explication, la bulle d'aide
+Object.assign(TEXTES.en, {
+  tac_guidage_oui: 'Auto-steer: on', tac_guidage_non: 'Auto-steer: off',
+  tac_guidage_aide: 'On straights, auto-steer calms your zigzags and puts the car back on track if it spins off. You can turn it off here.',
+  aide_guidage: 'Auto-steer just calmed your zigzag. You can turn it off in the pause menu.',
+});
+Object.assign(TEXTES.fr, {
+  tac_guidage_oui: 'Auto-guidage : oui', tac_guidage_non: 'Auto-guidage : non',
+  tac_guidage_aide: 'En ligne droite, l’auto-guidage calme tes zigzags et remet la voiture en piste si elle part. Tu peux le couper ici.',
+  aide_guidage: 'L’auto-guidage vient de calmer ton zigzag. Tu peux le couper dans la pause.',
+});
+
 // (tour 45c2, Codeur 3) le commentateur parle du championnat, en carrière : la place du joueur, le leader, ce que donnerait l'arrivée
 Object.assign(TEXTES.en, {
   com_combleChamp: ['Title race: you’re P{place}, {n} points off {qui}.', 'P{place} in the title race, {n} points behind {qui}.', '{qui} leads the title, {n} points ahead of you.'],
