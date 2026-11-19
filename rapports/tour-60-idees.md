@@ -458,6 +458,8 @@ Clés `textes.js` : `jour_partage` (`{n}`, `{circuit}`, `{meteo}`, `{tours}`, `{
 
 (Script de mesure : une page Playwright qui appelle ces trois fonctions pour chaque circuit ; rien n'a été ajouté au dépôt.)
 
+**Attention, une carte par niveau pour expert et légende** (vérifié dans `cache-carte.js` : la clé de validité ajoute `MARGE_CARTE` quand `NIVEAUX[NIVEAU].margeCarte` diffère de `IA_MARGE_BORD`, et seuls `expert` et `legende` en ont une). Les mesures ci-dessus sont celles du niveau **normal**, qui sert aussi au débutant. Les samedis « expert » du Grand Prix du jour demandent donc l'autre jeu de cartes : le même poids (≈ 0,5 Mo de plus si on les livre), ou le calcul en fond.
+
 **Ce que ça dit** : la carte pèse environ **10 Ko par 1 000 m** ; les 12 tiennent en **moins de 0,5 Mo compressé** (le zip actuel fait environ 1 Mo ; Poki conseille 5 Mo au premier chargement, 8 au total) ; une carte se calcule en 1,3 à 2,5 s sur cette machine, donc **la calculer en fond pendant que l'enfant lit l'écran du jour suffit presque toujours**. Avec `JOUR_LONGUEUR_3_TOURS` à 4 800 m : 3 tours à Monoco, Montréol, Barcelana et Interlagas, 2 tours ailleurs. Le plan :
 - **Sur le titre et au paddock**, dès que la page est prête, calculer **en fond** la carte du circuit du jour (comme le jeu le fait déjà pour la course suivante) et la garder dans le cache de la sauvegarde (`cache-carte.js`) : au clic, elle est prête ;
 - **pour un nouveau joueur arrivé par un lien** (pas de cache, pas de titre : il est sur la grille tout de suite), livrer les cartes **dans le paquet**, chargées seulement le jour où elles servent (un fichier par circuit, comme `cache-carte-test.js`).
@@ -669,6 +671,110 @@ Le pire cas d'un lien fabriqué : un copain qui roule comme le meilleur rival de
 - `COPAINS_ACTIF` faux : aucun bouton, `?pilote=` ignoré, le jeu d'avant au bit près.
 
 **Fichiers** : `copain.js` (nouveau, calcul pur : coder, décoder, rythme), `championnat.js` (insérer, retirer), `decouverte.js` (le copain dans la découverte), `interface.js` + `index.html` (envoi, accueil, fiche), `textes.js`, `donnees.js` (`COPAINS_*`), le début de `principal.js` (lire `pilote` comme `defi`, par `SDK.parametreUrl` ; `sdk.js` inchangé), `defi.js` (exporter `ecrireEntier` et `lireEntier`), `sauvegarde.js`.
+
+## Annexe D — Les idées 4 à 8, prêtes à coder
+
+Même règle que pour les annexes A à C : chaque nombre est un réglage de `donnees.js`, réversible ; le calcul est pur et testé sans écran ; tous les textes sont dans `textes.js`, fr et en ; « faux » = le jeu d'avant au bit près.
+
+### D4. Les médailles des circuits
+
+**Les règles exactes.**
+- **Les quatre fantômes** d'un circuit sont quatre tours **simulés** comme le fantôme du poleman : une IA seule, parfaitement régulière, rythme 1, tour lancé (`FANTOME_POLE_LANCE`), **non étiré**. Un par niveau, `MEDAILLES_NIVEAUX` = `['debutant', 'normal', 'expert', 'legende']` → 🥉 🥈 🥇 💎. Le niveau change la façon de piloter (`limite`, `marge`, `corde`… de `NIVEAUX`), donc le temps : le tour débutant est le plus lent, le légende le plus rapide. Si deux niveaux donnaient le même temps sur un circuit, l'écart minimal `MEDAILLES_ECART_MIN` (0,3 s) est imposé en allongeant le plus lent (le fantôme montré reste le vrai tour ; seul le temps à battre bouge).
+- **Le calcul** : `FANTOME_POLE.tour(e)` prend une course dont la grille a une IA en pole ; pour les médailles il faut une petite fonction voisine, `MEDAILLES.fantome(circuit, niveau)` dans un fichier à elle, qui fait la même chose sans grille (poser `REGLAGES.NIVEAU` le temps du calcul, comme `EN_LIGNE.preparerCircuit`, créer la course d'une IA, la faire rouler, compacter avec `FANTOME`). La **carte des IA** du niveau est nécessaire : normal et débutant partagent la leur, expert et légende ont chacun la sienne (annexe A7). Coût : 0,2 à 0,8 s par fantôme + la carte si elle n'est pas en cache ; calculé **une fois par circuit et par version du jeu**, gardé dans la sauvegarde (le temps seulement, quelques octets ; le fantôme lui-même est recalculé quand on le montre).
+- **Ce qui compte** : un tour **propre** (ni coupé, ni « limites de piste » marqué, ni par la voie des stands : exactement la règle du record et du fantôme d'aujourd'hui), en **qualification** (carrière ou course rapide) ou dans une **course seule** (essai libre : chaque tour y est déjà enregistré depuis le tour 51b). Pas en course contre des IA (l'aspiration aiderait), pas au tournoi, pas à deux, pas au Grand Prix du jour.
+- **La médaille gagnée** : la meilleure dont le temps est battu (strictement plus vite). On ne la perd jamais.
+- **Le fantôme montré** : en essai libre et en qualification, le choix « Fantôme : ton record / la pole » gagne une 3e valeur, **« la médaille »** : le fantôme de la **prochaine** médaille à gagner (or si on a l'argent). Avec 💎, plus rien à gagner : ton record.
+- **Les aides** : une médaille gagnée avec une aide est gardée, avec un petit signe à côté (comme au tournoi chrono : « avec aides ») ; la même médaille sans aide efface le signe. Jamais refusée.
+
+**Les écrans.**
+- **Page Saison** du paddock (et le menu « Choisis ta course ») : une rangée « Médailles : 🥇 4 · 🥈 3 · 🥉 2 · 💎 0 » et, au doigt, un appui ouvre la liste des 12 circuits avec leurs 4 temps (lignes de 40 px).
+- **Qualification / essai libre** : sous le chrono, la médaille visée et l'écart en direct (le même calcul que le fantôme : `FANTOME.ecart`) ; à la fin du tour : « 🥇 Médaille d'or à Suzuko ! » ou « Or à 0,412 s ».
+
+**Les cas limites.** Physique ou réglage `IA_*` changé : les temps changent ; la clé de la carte (`cache-carte.js`) change déjà dans ce cas, la même clé invalide les temps gardés (ils sont recalculés ; les médailles **gagnées** restent). Circuit `test` et `technique` : médailles aussi (ce sont les circuits de l'essai libre). Pluie : les médailles ne comptent qu'au sec (pas d'eau sur la piste, `meteo.js`), dit à l'écran (« Médailles : au sec seulement »).
+
+**Les tests.** Les 4 temps dans l'ordre sur les 14 circuits ; écart ≥ `MEDAILLES_ECART_MIN` ; le même fantôme deux fois = le même tour au bit près ; un tour coupé ne donne rien ; une médaille gagnée n'est jamais perdue ; le robot d'essai obtient le bronze sur au moins 10 circuits (sinon `MEDAILLES_NIVEAUX` est mal choisi) et jamais le diamant ; `MEDAILLES_ACTIF` faux : rien à l'écran, la qualification au bit près ; écrans 1280, 960 et 640 au doigt.
+
+**Les réglages.** `MEDAILLES_ACTIF`, `MEDAILLES_NIVEAUX`, `MEDAILLES_ECART_MIN`, `MEDAILLES_SEC_SEULEMENT`.
+
+**Les fichiers.** `medailles.js` (nouveau, calcul pur), `qualification.js` (le choix du fantôme), `principal.js` (le tour propre fini → la médaille), `interface.js` + `index.html`, `textes.js`, `donnees.js`, `sauvegarde.js` (`medailles` à la racine : survit à une nouvelle carrière), `tests/test.html`, `tests/ecrans.py`.
+
+### D5. La course à élimination
+
+**Les règles exactes.**
+- **Où** : course rapide (« Choisis ta course » : une 4e formule « 🚩 Élimination » à côté des trois longueurs) et à deux (écran « À deux »). **Jamais en carrière**, ni au tournoi, ni au jour.
+- **Les voitures** : de 4 à `ELIMINATION_VOITURES_MAX` (8) ; la longueur n'est pas choisie : **N − 1 tours** (8 voitures → 7 tours).
+- **Le moment** : quand **le meneur** franchit la ligne à la fin des tours 1 à N − 2, la voiture **dernière du classement de course à cet instant** (`classementCourse(e)`, la place de la piste, pénalités non comptées, comme la règle du propriétaire « pendant la course, la place est celle de la piste ») est éliminée : `p.abandon = true`, `p.elimine = tour`. Au dernier tour, il en reste deux : la ligne décide.
+- **Le classement final** : 1er et 2e à l'arrivée (pénalités comprises, comme toujours à l'arrivée), puis les éliminés **du dernier éliminé au premier**. `classementCourse` range déjà les abandons après tout le monde ; il faut seulement ranger les éliminés entre eux par `elimine` décroissant.
+- **La voiture éliminée** : retirée de la physique (`pasCourseIA` ne fait déjà rouler que `!p.abandon`) ; à l'écran elle **s'efface** en 1 s (transparence) puis n'est plus dessinée, pour ne pas faire de bouchon ni de VSC. Les drapeaux restent actifs pour le reste.
+- **Pas d'arrêt obligatoire** (course de moins de 12 tours), le stand reste ouvert.
+- **Le joueur éliminé** : la course continue pour les autres ; un voile « Éliminé ! P6 » avec **« ▶ Regarder la fin »** (la vue télé, puis « Passer » = l'accéléré existant, `ARRIVEE.accelerer`) et **« 🔁 Rejouer »**. **À deux** : la moitié de l'éliminé passe en vue télé de l'autre joueur, avec le bandeau « Éliminé ! » ; la course finit quand l'autre a fini ou est éliminé.
+
+**Les écrans.** Le bandeau de course « 🚩 {qui} ÉLIMINÉ ! » (le même `#drapeau` que les drapeaux, en rouge, avec son texte) ; dans la tour de classement, la dernière ligne clignote en rouge pendant le dernier secteur de chaque tour du meneur (« Zone d'élimination ») ; le commentateur (`com_elimine`, `com_zoneElimination`).
+
+**Les cas limites.** Deux voitures dernières à égalité de distance : celle qui a franchi la ligne la plus tard (le classement le fait déjà). Le meneur ralenti (VSC) : la règle ne change pas. Un joueur arrêté sur la piste : il peut être éliminé (c'est le jeu). Le joueur 1 et le joueur 2 derniers ensemble : un seul part par tour (le classement tranche).
+
+**Les tests.** 8 voitures → 7 tours, 6 éliminations, 2 à l'arrivée ; l'ordre final ; jamais un éliminé qui roule encore ; la règle ne tire aucun hasard (deux courses à la même graine = la même empreinte) ; à deux : l'élimination de l'un ne coupe pas l'autre moitié ; `ELIMINATION_ACTIF` faux : la formule n'existe pas, toutes les courses au bit près ; écrans 1280, 960, 640 au doigt.
+
+**Les réglages.** `ELIMINATION_ACTIF`, `ELIMINATION_VOITURES_MAX`, `ELIMINATION_VOITURES_MIN`, `ELIMINATION_EFFACER` (s).
+
+**Les fichiers.** `course.js` ou un petit `elimination.js` (la règle, calcul pur, appelée depuis `pasCourseIA` quand le meneur change de tour), `simulation.js` (le rangement final), `voiture3d.js` / `scene3d.js` (l'effacement), `deux-joueurs.js` (la moitié de l'éliminé), `interface.js`, `textes.js`, `donnees.js`, `tests/`.
+
+### D6. Le ralenti du photo-finish et du dépassement décisif
+
+**Les règles exactes.**
+- **Photo-finish** : quand le joueur passe la ligne d'arrivée **à moins de `PHOTO_FINISH_SEUIL` (0,15 s)** de la voiture juste devant ou juste derrière lui (au moment où la seconde des deux passe), et que l'enjeu est une place du **podium** (`PHOTO_FINISH_PLACES` = 3) ou le duel du coéquipier. Une fois par course au plus.
+- **Le dépassement décisif** : dans le **dernier tour**, le joueur double pour la **1re place** et la garde jusqu'à l'arrivée. Pris dans `enr.momentsForts()` (`enregistreur.js` sait déjà trouver les dépassements). Si les deux arrivent, le photo-finish passe d'abord.
+- **Le rejeu** : 3 s (`PHOTO_FINISH_DUREE`) avant le passage, au ralenti ×0,4, lus dans l'enregistreur de la course (`enr.lire(t)`, celui du résumé vidéo), sous la caméra de la régie la plus proche de la ligne (`REGIE.postes`), puis 1 s d'image figée avec la **bande du photo-finish** : un dessin 2D (comme `photo.js`) des deux nez et de la ligne, et le texte. La simulation, elle, continue derrière (les IA finissent leur course) ; rien ne change aux temps.
+- **Le moment** : seulement **après** la ligne du joueur. Un appui (ou Échap) passe tout de suite. À deux : en plein écran, une fois, pour l'arrivée la plus serrée entre les deux joueurs.
+
+**Les textes.** fr : « PHOTO-FINISH ! », « {qui} gagne de {ecart} s ! », « Battu de {ecart} s… », « Le dépassement de la victoire ! » ; en : « PHOTO FINISH! », « {qui} wins by {ecart} s! », « Beaten by {ecart} s… », « The race-winning move! ». L'écart en millièmes.
+
+**Les cas limites.** Une pénalité à l'arrivée qui inverse l'ordre : le texte dit la place **finale** (« … mais la pénalité de 5 s te fait reculer »). Qualité au plus bas (Auto) : le rejeu se joue quand même (même scène). Le résumé vidéo d'après la course garde le moment (déjà dans `momentsForts`). L'album : la une du jour peut prendre la bande comme « photo » (`photo.js`).
+
+**Les tests.** Une fausse arrivée à 0,05 s déclenche, à 0,5 s non ; hors podium non ; une fois par course ; « passer » marche ; les places et les temps de la course sont identiques avec et sans rejeu (au bit près) ; capture de la bande en 1280 et 640.
+
+**Les réglages.** `PHOTO_FINISH_ACTIF`, `PHOTO_FINISH_SEUIL`, `PHOTO_FINISH_PLACES`, `PHOTO_FINISH_DUREE`, `PHOTO_FINISH_RALENTI`, `DEPASSEMENT_DECISIF_ACTIF`.
+
+**Les fichiers.** `photo-finish.js` (nouveau : la détection, calcul pur), `principal.js` (déclencher après la ligne), `camera.js` / `regie.js` (le plan), `photo.js` (la bande), `interface.js`, `textes.js`, `donnees.js`, `tests/`.
+
+### D7. Le niveau de pilote
+
+**Les règles exactes.**
+- **Les points** (`NIVEAU_PILOTE_POINTS`), pour **toute course finie** (pas abandonnée) : 40 pour l'avoir finie, + 10 par place gagnée sur la grille (au plus 60), + 30 pour un podium, + 30 de plus pour une victoire, + 20 par étoile d'un défi-éclair (la première fois seulement), + 10 / 20 / 30 pour une médaille de bronze / argent / or du jour (une fois par jour), + 15 pour un tour propre en qualification. Au plus `NIVEAU_PILOTE_MAX_COURSE` (200) par course. **Les mêmes avec ou sans aides.** Le tournoi chrono : chaque joueur du tournoi n'est pas « le pilote » ; seul le pilote de la sauvegarde gagne des points, s'il joue. À deux : les deux joueurs n'ont pas de sauvegarde à eux ; seul le joueur 1 (celui du pilote) gagne des points.
+- **La courbe** : passer du niveau n au niveau n + 1 demande `100 + 25 × (n − 1)` points (niveau 10 ≈ 1 800 points ≈ 15 courses ; niveau 30 ≈ 13 000 ≈ 90 courses). Pas de niveau maximum.
+- **Les cadeaux** (`NIVEAU_PILOTE_CADEAUX`, une liste par niveau, les 30 premiers niveaux écrits à la main, ensuite tous les 5 niveaux) : des **motifs de casque**, des **motifs de livrée**, des **célébrations**, des **couleurs** de la palette (`CASQUE_PALETTE`) et des **titres** (un petit mot sous le nom dans la tour de classement : « Le rapide », « La fusée », « Légende » ; fr et en, jamais genré). **Jamais** les récompenses de carrière (« or, champion, légende », `SKINS` de type récompense), jamais de vitesse, jamais d'argent de carrière (l'argent reste celui des courses).
+- **Ce qu'il faut ajouter** : il n'y a aujourd'hui que 6 motifs de casque de départ + 5 à débloquer, 6 motifs de livrée et 2 célébrations de départ : il faut **au moins 12 motifs et 4 célébrations de plus** pour 30 niveaux (dessinés dans les atlas existants : aucun appel de dessin en plus). Les « pièces » (jantes, fumée, aileron) restent **non retenues** (décision du 2026-11-04).
+
+**Les écrans.** Sur le podium (carrière, course rapide, jour, défi) : une barre qui se remplit, « +120 » puis « Niveau 14 ! » et le cadeau (« 🎁 Motif de casque : Comète », « Mettre » / « Plus tard »). Au paddock, sous le nom du pilote : « Niv. 14 » et la barre fine. Au titre (lancements suivants) : rien (le titre reste simple).
+
+**Les cas limites.** Nouvelle carrière : le niveau **reste** (il est à la racine, comme les motifs débloqués) ; « Nouvelle carrière à 0 » l'efface. Une course rejouée en boucle (« Encore une course ? ») : les points comptent, le plafond par course tient ; pour éviter l'usine à points, `NIVEAU_PILOTE_COURSE_MIN` : une course de moins de 60 s de conduite ne donne que les 40 points de base.
+
+**Les tests.** Les points de chaque cas ; le plafond ; la courbe (niveaux 1, 10, 30) ; chaque cadeau tombe une fois, au bon niveau ; aides allumées ou coupées = les mêmes points ; la physique au bit près ; une vieille sauvegarde = niveau 1, 0 point ; `NIVEAU_PILOTE_ACTIF` faux : rien à l'écran.
+
+**Les réglages.** `NIVEAU_PILOTE_ACTIF`, `NIVEAU_PILOTE_POINTS`, `NIVEAU_PILOTE_MAX_COURSE`, `NIVEAU_PILOTE_COURBE` ([100, 25]), `NIVEAU_PILOTE_CADEAUX`, `NIVEAU_PILOTE_COURSE_MIN`.
+
+**Les fichiers.** `niveau-pilote.js` (nouveau, calcul pur), `casque.js`, `livree.js`, `celebration.js` (les nouveaux motifs et le déblocage par niveau, à côté de `CASQUE_DEBLOCAGES`), `principal.js` (les points à l'arrivée), `interface.js` + `index.html`, `textes.js`, `donnees.js`, `sauvegarde.js` (`niveauPilote` à la racine).
+
+### D8. Le championnat à deux
+
+**Les règles exactes.**
+- **Où** : « Entre amis » → « À deux » → un choix **« Une course »** (comme aujourd'hui) ou **« 🏆 Championnat (4 courses) »**.
+- **Les réglages, une fois pour tout le championnat** : les noms, couleurs et casques (l'écran d'aujourd'hui), le nombre d'IA (0, 3 ou 5, `DEUX_IA_CHOIX`), le niveau des IA, la longueur (les 3 gros boutons ; 5 tours proposé), et les circuits : **« Tirés au sort »** (4 circuits différents, graine = l'heure du lancement, gardée) ou choisis un par un.
+- **Les points** : ceux du championnat (`POINTS` : 25, 18, 15…) pour **toutes** les voitures, IA comprises (les IA peuvent gâcher la fête d'un joueur : c'est drôle). Le **classement à deux** affiché en grand ne montre que les deux joueurs ; le classement complet est en petit.
+- **Égalité** : le plus de victoires, puis la meilleure place à la dernière course.
+- **Entre deux courses** : l'écran du classement (« Léo 43 – 40 Emma »), « Course suivante ▶ » ; une pub (`commercialBreak`) peut venir **ici** (déjà permis entre deux courses à deux), jamais pendant une course.
+- **À la fin** : le podium 3D avec les deux casques (le gagnant au milieu, même si une IA a plus de points : c'est le **duel** qui est célébré ; les IA sont dans le classement complet), le score de la rivalité (`DEUX_JOUEURS.ajouterRivalite`) gagne **un point de championnat** à part (« Championnats : Léo 2 – 1 Emma »), et « 🔁 Revanche » (mêmes réglages, autres circuits tirés).
+- **Une page rechargée en plein championnat** : la sauvegarde garde le championnat en cours (à la racine, à part de la carrière, comme le score de la rivalité) ; au retour, « Reprendre le championnat ? ».
+
+**Les écrans.** Le choix « Une course / Championnat » (2 gros boutons de 56 px) ; le classement entre deux courses ; le podium final. Tout en 960×600 et 1280×720 ; le mode à deux n'existe pas au doigt (CLAUDE.md : pas à deux joueurs sur écran tactile), donc pas de 640×360.
+
+**Les cas limites.** Un joueur qui abandonne une course (pause → Abandonner) : 0 point pour lui, le championnat continue. Les deux noms changés entre deux championnats : un nouveau score de rivalité (la règle d'aujourd'hui). Moins de 4 circuits disponibles (jamais : il y en a 14).
+
+**Les tests.** 4 courses enchaînées avec de faux résultats : les points, l'égalité ; la reprise après rechargement ; la rivalité +1 au gagnant ; aucune pub pendant une course (faux SDK) ; la carrière n'est pas touchée ; `DEUX_CHAMPIONNAT_ACTIF` faux : l'écran « À deux » d'aujourd'hui au pixel près.
+
+**Les réglages.** `DEUX_CHAMPIONNAT_ACTIF`, `DEUX_CHAMPIONNAT_COURSES` (4), `DEUX_CHAMPIONNAT_TOURS_DEFAUT` (5).
+
+**Les fichiers.** `deux-joueurs.js` (le championnat : points, égalité, reprise, calcul pur), `principal.js` (enchaîner les courses), `interface.js` + `index.html`, `podium3d.js` (le podium des deux), `textes.js`, `donnees.js`, `sauvegarde.js`, `tests/`.
 
 ## Sources (ce que Poki dit)
 
