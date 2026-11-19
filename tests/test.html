@@ -706,6 +706,23 @@ t('aides au pilotage : toutes coupées, la course est celle d’avant au bit pr�
     for(let k=0;k<120*20;k++) pasCourseIA(e,DT,(p_,dt)=>{const c=piloteRobot(p_.v,TQ);lisserCommandes(p_.v,avec?ASSISTANCE.appliquer(c,p_.v,{circuit:TQ,carte:CARTES_T.technique},SANS):c,dt);});
     return JSON.stringify(e.pilotes.map(p_=>p_.v));};
   v(course(false)===course(true),'la course a changé');v(!/ASSISTANCE/.test(pasCourseIA.toString()+piloterIA.toString()+pasVoiture.toString()),'une IA ou la physique lit les aides');});
+// (tour 60, Codeur 4) l'auto-guidage du téléphone (assistance.js guider / secours ; principal.js guiderJoueur, secoursJoueur) : sans écran tactile, ou réglages faux, rien ne change
+t('auto-guidage du téléphone (tour 60) : sans tactile (ordinateur), ou TACTILE_GUIDAGE et TACTILE_GUIDAGE_SECOURS faux, ou à deux, en ligne, au robot : aiderJoueur rend les cibles d’avant et le secours ne bouge rien ; au volant du téléphone, un zigzag est guidé', ()=>{
+  const R_=REGLAGES,sauve={g:R_.TACTILE_GUIDAGE,s:R_.TACTILE_GUIDAGE_SECOURS,deux:JEU.deux,enligne:JEU.enligne,robot:JEU.robot,ass:JEU.assistance,guidage:JEU.guidage};
+  const zig=avecTactile=>{const v_=creerVoiture(C,100,0);v_.u=60;const vus=[];JEU.guidage=null;
+    for(let k=0;k<240;k++){const d=Math.sign(Math.sin(k*DT*2*Math.PI/0.8))*0.7,c={gaz:1,frein:0,direction:d},r=aiderJoueur(c,v_);vus.push(r===c?'=':'g');lisserCommandes(v_,r,DT);pasVoiture(v_,C,DT);secoursJoueur(v_,true);}
+    return {vus:vus.join(''),v:JSON.stringify([v_.x,v_.z,v_.cap,v_.u])};};
+  try{
+    JEU.assistance=null;JEU.deux=null;JEU.enligne=null;JEU.robot=false;
+    v(typeof TACTILE==='undefined','tactile.js chargé dans la page du moteur');
+    const sans=zig();v(!/g/.test(sans.vus),'guidé sans tactile');
+    window.TACTILE={guidageVoulu:()=>true};
+    const avec=zig();v(/g/.test(avec.vus)&&avec.v!==sans.v,'pas guidé au volant du téléphone');
+    R_.TACTILE_GUIDAGE=false;R_.TACTILE_GUIDAGE_SECOURS=false;const faux=zig();v(faux.vus===sans.vus&&faux.v===sans.v,'réglages faux : pas comme avant');
+    R_.TACTILE_GUIDAGE=true;R_.TACTILE_GUIDAGE_SECOURS=true;
+    for(const [k,x] of [['deux',{}],['enligne',{}],['robot',true]]){JEU[k]=x;const r=zig();JEU[k]=k==='robot'?false:null;v(r.v===sans.v,k);}
+    window.TACTILE={guidageVoulu:()=>false};v(zig().v===sans.v,'joueur qui l’a coupé');
+  }finally{delete window.TACTILE;R_.TACTILE_GUIDAGE=sauve.g;R_.TACTILE_GUIDAGE_SECOURS=sauve.s;JEU.deux=sauve.deux;JEU.enligne=sauve.enligne;JEU.robot=sauve.robot;JEU.assistance=sauve.ass;JEU.guidage=sauve.guidage;}});
 t('aides au pilotage : le freinage assisté évite les sorties d’un pilote qui ne freine jamais (75 m/s partout), au sec et sous la pluie, sans le rendre plus rapide que le meilleur tour de l’IA ; un bon pilote n’en va pas plus vite ; l’anti-blocage ôte la plupart des blocages en virage', ()=>{
   const res={},CT=CARTES_T.test,TOUTES={freinage:true,antipatinage:true,direction:true};
   for(const adh of [1,0.7]){res['fou sans '+adh]=tourAssiste(C,CT,FOU,SANS,adh);res['fou aidé '+adh]=tourAssiste(C,CT,FOU,TOUTES,adh);res['bon sans '+adh]=tourAssiste(C,CT,BON,SANS,adh);res['bon aidé '+adh]=tourAssiste(C,CT,BON,TOUTES,adh);

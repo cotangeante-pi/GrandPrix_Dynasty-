@@ -80,5 +80,135 @@ const ASSISTANCE = (function () {
     return gaz === c.gaz && frein === c.frein && direction === c.direction ? c : { gaz, frein, direction };
   }
 
-  return { appliquer, reglees, vitesseSure, bonus, AIDES };
+  // --- (tour 60, Codeur 4, le propriétaire 2026-11-19 : « quand tu te déstabilises et que tu fais des gros zigzags sur la piste droite,
+  // l'auto-guidage, sans freiner, doit te restabiliser ») l'auto-guidage du téléphone. Le principe :
+  // - la cause : le volant du téléphone est imprécis et en retard ; le joueur sur-corrige, la voiture répond un peu après (STABILITE_LACET),
+  //   il corrige encore plus fort de l'autre côté : un zigzag qui grandit. On le reconnaît au volant du joueur qui change franchement de côté
+  //   (|direction| ≥ GUIDAGE_AMPLITUDE) GUIDAGE_INVERSIONS fois à la suite, à moins de GUIDAGE_FENETRE s d'écart (ou à la voiture qui glisse) ;
+  //   un changement de file (un coup d'un côté, un coup de l'autre pour se redresser) n'en fait qu'un : il n'est pas touché ;
+  // - le remède : la direction passe (en GUIDAGE_MONTEE s) à un pilote qui vise le cap de la piste : la rotation voulue referme l'écart de cap
+  //   en GUIDAGE_TAU s et retient la rotation de la voiture (GUIDAGE_AMORTI), traduite en braquage par le modèle de la physique
+  //   (rotation = u·tan(braquage) / empattement) ; il garde la file où est la voiture (il ne la ramène pas au milieu) ; ni gaz ni frein touchés ;
+  // - seulement en ligne droite : la courbure de la piste devant (GUIDAGE_REGARD) le dose de 1 à 0 (GUIDAGE_COURBURE), rien en virage ;
+  // - il rend la main (en GUIDAGE_DESCENTE s) quand la voiture est droite depuis GUIDAGE_CALME s sans nouveau zigzag, ou dès que le joueur
+  //   tourne exprès (le volant tenu d'un côté : le cap qu'il demande grandit, GUIDAGE_EXPRES) ;
+  // - le secours : si la voiture est perdue quand même (GUIDAGE_PERDU), comme Espace mais à la vitesse d'avant (secours, relancer).
+  // Calcul pur ; l'état e vient de creerGuidage() (un par voiture du joueur).
+  const RAD = Math.PI / 180;
+  const angleVrai = a => Math.atan2(Math.sin(a), Math.cos(a));
+  function creerGuidage() {
+    return { t: 0, cote: 0, tInversion: -Infinity, inversions: 0, g: 0, actif: false, calme: 0, tenu: 0, coteTenu: 0, glisse: false, allume: 0,
+      uStable: 0, perdu: 0, herbe: 0, attente: 0, secours: 0 };
+  }
+  // la part « ligne droite » de la piste devant la voiture : 1 droite, 0 virage
+  function droiture(v, circuit) {
+    // (près de la voie des stands, de GUIDAGE_STANDS m avant son entrée jusqu'à sa sortie, on tourne exprès pour y entrer ou en sortir : rien)
+    const st = R.PNEUS_ACTIFS && circuit.stands, L = circuit.longueur;
+    if (st && ((v.piste.s - st.entree + R.GUIDAGE_STANDS) % L + L) % L < st.longueur + R.GUIDAGE_STANDS) return 0;
+    const R_ = R, n = Math.ceil(Math.max(R_.GUIDAGE_REGARD[0], Math.abs(v.u) * R_.GUIDAGE_REGARD[1]) / circuit.pas), [k0, k1] = R_.GUIDAGE_COURBURE;
+    let pire = 0;
+    for (let j = -2; j <= n; j++) pire = Math.max(pire, Math.abs(circuit.courbure[((v.piste.indice + j) % circuit.nb + circuit.nb) % circuit.nb]));
+    return Math.max(0, Math.min(1, (k1 - pire) / (k1 - k0)));
+  }
+  const capPiste = (v, circuit) => Math.atan2(circuit.tz[v.piste.indice], circuit.tx[v.piste.indice]);
+  // la direction (−1..1) du pilote qui tient le cap de la piste, plus psiCible (rad : le cap que demande encore le joueur, à droite > 0)
+  function directionDroite(v, circuit, psiCible = 0) {
+    const k = circuit.courbure[v.piste.indice], u = Math.max(1, v.u);
+    const psi = angleVrai(v.cap + Math.atan2(v.v, u) - capPiste(v, circuit)) - psiCible;   // le cap de la trajectoire (le nez et la glisse) moins celui voulu
+    const rVoulue = u * k - psi / R.GUIDAGE_TAU - R.GUIDAGE_AMORTI * (v.r - u * k);
+    return Math.max(-1, Math.min(1, Math.atan(rVoulue * R.EMPATTEMENT / u) / braquageMax(u)));
+  }
+  // brut : les cibles du joueur (son volant à lui) ; c : après les autres aides ; renvoie les cibles guidées (c lui-même si rien ne change).
+  // Guidé, le volant du joueur ne braque plus : il demande un cap (à fond, GUIDAGE_CAP_JOUEUR ° de la piste), que le pilote tient. Le zigzag
+  // venait du gain trop fort de la boucle « joueur en retard → braquage → rotation » : le cap borné et amorti la rend stable (sur-correction
+  // impossible), sans enlever au joueur le choix de sa file.
+  function guider(e, brut, c, v, circuit, dt) {
+    e.t += dt;
+    if (!v || !v.piste || !circuit || v.dansStands || v.u < R.GUIDAGE_VITESSE_MIN) { e.g = 0; e.actif = false; e.inversions = 0; e.cote = 0; return c; }
+    const d = brut.direction, A = R.GUIDAGE_AMPLITUDE;
+    // les changements de côté francs du volant du joueur, à la suite
+    if (Math.abs(d) >= A) {
+      const s = Math.sign(d);
+      if (e.cote && s !== e.cote) { e.inversions = e.t - e.tInversion <= R.GUIDAGE_FENETRE ? e.inversions + 1 : 1; e.tInversion = e.t; }
+      e.cote = s;
+    }
+    if (e.t - e.tInversion > R.GUIDAGE_FENETRE) e.inversions = 0;
+    const f = droiture(v, circuit);
+    // le volant tenu d'un côté (tourner exprès, revenir de loin) : guidé, le volant du joueur ne braque plus, il demande un cap, et seulement
+    // s'il est tenu : rien avant GUIDAGE_EXPRES[1] s (les coups alternés du zigzag ne demandent rien), puis le cap demandé grandit jusqu'à
+    // GUIDAGE_CAP_JOUEUR ° en GUIDAGE_EXPRES[2] s de plus : le guidage s'efface devant une vraie volonté, lentement (la boucle reste stable)
+    const [ae, t0, te] = R.GUIDAGE_EXPRES, cote = Math.abs(d) >= ae ? Math.sign(d) : 0;
+    e.tenu = cote && cote === e.coteTenu ? e.tenu + dt : 0; e.coteTenu = cote;
+    const psi = angleVrai(v.cap - capPiste(v, circuit)), psiCible = cote * Math.min(1, Math.abs(d)) * R.GUIDAGE_CAP_JOUEUR * RAD * Math.max(0, Math.min(1, (e.tenu - t0) / te));
+    const glisse = f > 0 && Math.abs(Math.atan2(v.v, v.u)) > R.GUIDAGE_GLISSE * RAD;
+    // le cap à la piste dans GUIDAGE_ANTICIPE s : la rotation du moment et celle que demande le volant du joueur (la physique y va), en moyenne
+    const rVolant = v.u * Math.tan(d * braquageMax(v.u)) / R.EMPATTEMENT, capVu = Math.abs(psi + (v.r + rVolant) / 2 * R.GUIDAGE_ANTICIPE);
+    const zigzag = e.inversions >= R.GUIDAGE_INVERSIONS || (e.inversions >= 1 && e.t - e.tInversion < 0.5 && capVu > R.GUIDAGE_CAP_ALERTE * RAD) || Math.abs(psi + v.r * R.GUIDAGE_ANTICIPE) > R.GUIDAGE_CAP_SORTIE * RAD;
+    if (!e.actif && f > 0 && (zigzag || glisse)) { e.actif = true; e.calme = 0; e.tenu = 0; e.allume++; }
+    if (e.actif) {
+      e.calme = Math.abs(psi) < R.GUIDAGE_DROIT * RAD && Math.abs(d) < A && e.t - e.tInversion > R.GUIDAGE_CALME ? e.calme + dt : 0;
+      if (e.calme >= R.GUIDAGE_CALME || f <= 0) { e.actif = false; e.inversions = 0; }
+    }
+    e.g = e.actif ? Math.min(1, e.g + dt / R.GUIDAGE_MONTEE) : Math.max(0, e.g - dt / R.GUIDAGE_DESCENTE);
+    const w = e.g * f;
+    if (!(w > 0)) return c;
+    const direction = c.direction + w * (directionDroite(v, circuit, psiCible) - c.direction);
+    return { gaz: c.gaz, frein: c.frein, direction };
+  }
+  // le secours : renvoie la vitesse (m/s) à laquelle relancer la voiture perdue, ou null ; à appeler à chaque pas de la voiture du joueur
+  function secours(e, v, circuit, dt) {
+    if (e.attente > 0) e.attente -= dt;
+    if (!v || !v.piste || !circuit || v.dansStands) { e.perdu = 0; e.herbe = 0; return null; }
+    const [gs, cs] = R.GUIDAGE_STABLE, [pc, pg, ph, pd] = R.GUIDAGE_PERDU;
+    const glisse = Math.abs(v.u) > 1 ? Math.abs(Math.atan2(v.v, Math.abs(v.u))) : 0, psi = Math.abs(angleVrai(v.cap - capPiste(v, circuit)));
+    if (v.u >= R.GUIDAGE_VITESSE_MIN && glisse < gs * RAD && psi < cs * RAD && !v.surHerbe && !e.actif && e.inversions === 0) e.uStable = v.u;   // la vitesse d'avant le trouble
+    e.herbe = v.surHerbe ? e.herbe + dt : 0;
+    const perdue = psi > pc * RAD || (glisse > pg * RAD && Math.abs(v.u) > 5) || (e.herbe >= ph && droiture(v, circuit) >= 0.5);
+    e.perdu = perdue ? e.perdu + dt : 0;
+    if (e.perdu < pd || e.attente > 0 || e.uStable < R.GUIDAGE_VITESSE_MIN) return null;
+    e.perdu = 0; e.herbe = 0; e.attente = R.GUIDAGE_SECOURS_PAUSE; e.secours++;
+    e.actif = false; e.g = 0; e.inversions = 0; e.cote = 0;
+    return e.uStable;
+  }
+  // le retour en piste du secours (tour 60, revue du Chef : à 230 km/h, il ne faut ni tomber sur une IA ni gagner quoi que ce soit) :
+  // - la place : le point le plus proche de la piste (celui d'Espace), jamais plus loin ; d'abord au milieu, puis sur les autres files
+  //   (GUIDAGE_POSE_FILES m), puis en reculant de GUIDAGE_POSE_PAS m jusqu'à GUIDAGE_POSE_RECUL m : la première place libre, c'est-à-dire
+  //   sans voiture dans la même bande (GUIDAGE_POSE_LARGEUR m de côté) à moins de GUIDAGE_POSE_DEVANT m devant, ni derrière à moins de
+  //   GUIDAGE_POSE_DERRIERE m (ou de ce qu'elle mettrait à nous rattraper en GUIDAGE_POSE_TEMPS s si elle va plus vite) ;
+  // - la vitesse : celle d'avant le trouble (u), bornée par ce qu'il faut pour passer ce qui arrive (vitesseSure, celle du freinage assisté)
+  //   et par la vitesse de la voiture qui roule devant dans la même bande à moins de GUIDAGE_POSE_SUIVI m (on ne l'emboutit pas) ;
+  // - posée par le code d'Espace (placerSurPiste : dans le sens de la piste), puis la vitesse ; la physique ne change pas.
+  // autres : les autres voitures (positions sur la piste lues dans v.piste) ; renvoie la vitesse donnée, ou null s'il n'y a aucune place libre
+  // (rien n'est bougé : le secours réessaie au pas suivant, reporter)
+  const devantDe = (circuit, a, b) => { const L = circuit.longueur; return ((a - b + L / 2) % L + L) % L - L / 2; };   // a − b le long de la piste, dans −L/2..L/2
+  function placeLibre(circuit, s0, u, autres) {
+    const lim = circuit.largeur / 2 - R.GUIDAGE_POSE_BORD, files = [0].concat(...R.GUIDAGE_POSE_FILES.map(f => [-f, f])).filter(d => Math.abs(d) <= lim);
+    const libre = (s, d) => !autres.some(o => {
+      if (!o || !o.piste || o.dansStands || Math.abs(o.piste.d - d) >= R.GUIDAGE_POSE_LARGEUR) return false;
+      const ds = devantDe(circuit, o.piste.s, s);
+      return ds >= 0 ? ds < R.GUIDAGE_POSE_DEVANT : -ds < Math.max(R.GUIDAGE_POSE_DERRIERE, (o.u - u) * R.GUIDAGE_POSE_TEMPS);
+    });
+    for (let recul = 0; recul <= R.GUIDAGE_POSE_RECUL; recul += R.GUIDAGE_POSE_PAS)
+      for (const d of files) if (libre(s0 - recul, d)) return { s: s0 - recul, d };
+    return null;
+  }
+  function relancer(v, circuit, carte, u, autres = []) {
+    const p = positionSurPiste(circuit, v.x, v.z, v.piste ? v.piste.indice : null);
+    const place = placeLibre(circuit, p.s, u, autres);
+    if (!place) return null;
+    placerSurPiste(v, circuit, place.s, place.d);
+    v.u = u;
+    let w = Math.min(u, vitesseSure(v, circuit, carte));
+    for (const o of autres) {
+      if (!o || !o.piste || o.dansStands || Math.abs(o.piste.d - place.d) >= R.GUIDAGE_POSE_LARGEUR) continue;
+      const ds = devantDe(circuit, o.piste.s, place.s);
+      if (ds > 0 && ds < R.GUIDAGE_POSE_SUIVI) w = Math.min(w, Math.max(0, o.u));
+    }
+    v.u = Math.max(0, w);
+    return v.u;
+  }
+  // pas de place libre : le secours n'a pas eu lieu, il réessaie au pas suivant (la voiture est toujours perdue)
+  function reporter(e) { e.attente = 0; e.perdu = R.GUIDAGE_PERDU[3]; e.secours--; }
+
+  return { appliquer, reglees, vitesseSure, bonus, AIDES, creerGuidage, guider, secours, relancer, reporter, placeLibre, droiture, directionDroite };
 })();

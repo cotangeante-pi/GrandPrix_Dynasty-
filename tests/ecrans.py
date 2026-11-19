@@ -2469,6 +2469,11 @@ def tactile_ecran(pg, titre, l, h, page):
     # ⏸ au doigt ouvre la pause ; les boutons de conduite se cachent ; « Reprendre » les rend
     pg.evaluate('() => document.getElementById("tactilePause").click()'); attendre(pg, '() => JEU.ecran === "pause" && document.getElementById("tactile").classList.contains("cache")', None, 4000)
     e = pg.evaluate(TACTILE_ETAT)
+    # (tour 60) l'auto-guidage : voulu au volant ; dans la pause, son bouton (« Auto-guidage : oui ») se voit, au moins 40 px ; capture de la pause
+    gp = pg.evaluate('''() => { const b = document.getElementById('pauseTactile_guidage'), r = b ? b.getBoundingClientRect() : null;
+      return { voulu: TACTILE.guidageVoulu(), la: !!b, l: r ? r.width : 0, h: r ? r.height : 0, texte: b ? b.textContent : '' }; }''')
+    pg.screenshot(path=os.path.join(CAPTURES, f'tactile-pause-{l}.png'))
+    t(f'{titre} : (tour 60) au volant, l’auto-guidage est voulu ; la pause montre « Auto-guidage : oui » (≥ 40 px de haut)', gp['voulu'] and gp['la'] and gp['l'] > 0 and gp['h'] >= 40 and gp['texte'] == pg.evaluate('() => texte("tac_guidage_oui")'), str(gp))
     pg.evaluate('() => document.getElementById("boutonReprendre").click()'); attendre(pg, '() => JEU.ecran === "course" && !document.getElementById("tactile").classList.contains("cache")', None, 4000)
     e2 = pg.evaluate(TACTILE_ETAT)
     t(f'{titre} : le bouton ⏸ ouvre la pause (les boutons de conduite se cachent) et « Reprendre » les rend', e['ecran'] == 'pause' and not e['tactile'] and e2['ecran'] == 'course' and e2['tactile'], str([e['ecran'], e['tactile'], e2['ecran'], e2['tactile']]))
@@ -2533,12 +2538,20 @@ def tactile_reglages(pg, titre, l, h):
     t(f'{titre} : chaque cran change le braquage pour un même angle (12,5° : doux < normal < vif), et le texte du bouton suit',
       doux['cran'] == 0 and normal['cran'] == 1 and vif['cran'] == 2 and 0 < doux['b'] < normal['b'] < vif['b'] <= 1 and len({e0['textes'][0], vif['textes'][0], doux['textes'][0]}) == 3, str([doux['b'], normal['b'], vif['b'], doux['textes'][0], normal['textes'][0], vif['textes'][0]]))
     clic('sens'); clic('sens')   # (vif, puis doux : le doux est gardé pour le rechargement)
+    # (tour 60) « Auto-guidage : oui / non » : le bouton (≥ 40 px, texte court, son explication en titre), un clic le coupe ; sauvegardé (vérifié après le rechargement)
+    g0 = pg.evaluate('''() => { const b = document.getElementById('reglagesVolant_guidage'), r = b ? b.getBoundingClientRect() : null;
+      return { la: !!b, h: r ? r.height : 0, texte: b ? b.textContent : '', titre: b ? b.title : '', guidage: TACTILE.reglages.guidage, pause: !!document.getElementById('pauseTactile_guidage') }; }''')
+    clic('guidage'); g1 = pg.evaluate('() => [TACTILE.reglages.guidage, document.getElementById("reglagesVolant_guidage").textContent]')
+    t(f'{titre} : (tour 60) « Auto-guidage » dans les Réglages et la pause : gros bouton (≥ 40 px), texte court, son explication ; allumé d’office, un clic le coupe',
+      g0['la'] and g0['pause'] and g0['h'] >= 40 and len(g0['texte']) <= 22 and g0['titre'] == pg.evaluate('() => texte("tac_guidage_aide")') and g0['guidage'] is True and g1[0] is False and g1[1] == pg.evaluate('() => texte("tac_guidage_non")'), str([g0, g1]))
     clic('inverse'); inv = pg.evaluate(ETAT)
     clic('choix'); cb = pg.evaluate(ETAT)
     t(f'{titre} : « Inversé » change le signe du braquage ; « Direction » passe aux boutons ◀ ▶', inv['inverse'] and inv['b'] < 0 and abs(inv['b'] + doux['b']) < 1e-6 and cb['choix'] == 'boutons' and cb['textes'][2] != inv['textes'][2], str([inv['b'], doux['b'], cb['choix']]))
     pg.reload(); attendre(pg, '() => typeof TACTILE !== "undefined" && TACTILE.estPresent() && JEU.ecran === "championnat"', None, 60000)
     ap = pg.evaluate(ETAT)
     t(f'{titre} : les choix du volant sont sauvegardés : après un rechargement, cran doux, inversé, direction ◀ ▶', ap['cran'] == 0 and ap['inverse'] and ap['choix'] == 'boutons' and ap['b'] < 0, str([ap['cran'], ap['inverse'], ap['choix'], ap['b']]))
+    gr = pg.evaluate('() => [TACTILE.reglages.guidage, document.getElementById("reglagesVolant_guidage").textContent]')
+    t(f'{titre} : (tour 60) « Auto-guidage : non » est gardé après un rechargement', gr[0] is False and gr[1] == pg.evaluate('() => texte("tac_guidage_non")'), str(gr))
     # sans tactile (la classe body.tactile retirée) : le bloc est caché
     pg.evaluate('() => { document.getElementById("menuReglages").click(); document.body.classList.remove("tactile"); }'); pg.wait_for_timeout(200)
     c = pg.evaluate('() => { const e = document.getElementById("reglagesVolant"); return getComputedStyle(e).display; }')
