@@ -15,6 +15,12 @@ Date : 2026-11-19. Branche `idees-60` (depuis origin/main 2cd512d). **Rien n'est
 
 Ce que Poki dit compter (sources à la fin) : les toutes premières secondes, des **sessions courtes**, peu de lecture, une interface lisible, des pubs récompensées plutôt que des coupures ; **les sauvegardes sont synchronisées par Poki pour un joueur connecté** (localStorage surveillé, plafond 1 Mo gzippé : notre sauvegarde unique de 85 à 261 Ko passe).
 
+## Ce que j'ai vu en ouvrant le jeu (main 2cd512d, Chrome sans carte graphique, 1280×720 et 844×390 au doigt)
+
+- **Le titre** : un fond très sombre (la grille de nuit, voilée), le nom en plaque blanche, « Jouer » en rouge. Propre, mais **rien ne bouge et rien ne brille**. Poki écrit que les visuels vifs et colorés marchent mieux que les palettes sombres ; le titre est la première image de chaque visite. Ce n'est pas une idée de ce rapport (les Codeurs 2 et 3 refont ciel, voitures et public), mais **je recommande de refaire les captures du titre et du paddock après leur fusion** et de regarder si le titre peut montrer la scène **de jour**, voitures en mouvement, avec moins de voile.
+- **Le paddock** : clair et bien rangé, mais « Pilote 1, Pilote 2, Pilote 3, Pilote 19 » partout : **un monde vivant sans noms**, c'est notre plus grande force qui reste éteinte (voir « Préalables »).
+- **Le titre au doigt** : trois boutons (Jouer, Entre amis, Aides). La place existe pour un 4e gros bouton « 🗓 Grand Prix du jour » (idée 1) sans rien serrer.
+
 ## Les 3 que je ferais en premier
 
 1. **Le Grand Prix du jour** (idée 1) : la raison de revenir *demain*, et un résultat à comparer avec les copains.
@@ -39,6 +45,10 @@ Pourquoi cet ordre : 1 est moyen et touche tous les joueurs (le retour du lendem
 - **Pas besoin de serveur** : le Grand Prix est tiré de la **date** (une graine = `AAAAMMJJ`), donc tout le monde a les mêmes IA, la même météo, la même grille, au bit près (notre simulation est déjà déterministe, c'est justement ce qui permet le jeu en ligne).
 
 **Le contenu d'un jour** (calcul pur, `jour.js`, tiré de la graine de la date) : un circuit parmi les 12, une météo (`METEO` existante), une longueur de 2 ou 3 tours, une place de départ (souvent loin : remonter, c'est le plaisir), le niveau des IA (celui du joueur, ou « normal » pour tous ? voir la critique), parfois un « piment » (départ sous VSC, aileron déjà abîmé, pneus usés). Les médailles : 🥉 gagner au moins N places, 🥈 podium, 🥇 victoire. Pas de chrono à battre : la place, un enfant la comprend.
+
+**Deux détails qui comptent beaucoup.**
+- **« Demain : … »** : comme le jour vient de la date, on connaît déjà celui de demain. Après la course du jour, une ligne : « Demain : 🌙 Singapura de nuit, départ dernier ». L'enfant part avec un rendez-vous (on montre le circuit et le piment, pas le niveau ni les médailles).
+- **Le lien partagé ouvre directement la course du jour** (`?jour=AAAAMMJJ`, par `SDK.lienPartage` comme le défi) : le copain qui clique, même nouveau venu, est **sur la grille en un clic**, exactement comme la découverte (« en piste en 10 secondes ») : le partage devient aussi un premier lancement réussi. Un lien d'un jour passé ouvre ce jour-là, marqué « Grand Prix du 12 novembre » (sans médaille ni série : seul le jour même compte).
 
 **Coût : moyen.** `jour.js` (date → paramètres, médailles, série ; testé sans écran), une entrée sur le titre et sur la page Course du paddock (`interface.js`, `index.html`), le texte à partager (`textes.js` fr/en), la série et les médailles dans la sauvegarde (quelques octets), `SDK.lienPartage` déjà là pour le lien. La course est une **course rapide** existante avec des réglages imposés (`creerCourseIA` prend déjà le circuit, le nombre d'IA, les tours, la graine). Jour de la carrière : rien ne change.
 
@@ -69,7 +79,7 @@ Pourquoi cet ordre : 1 est moyen et touche tous les joueurs (le retour du lendem
 
 **Comment.** « 📋 Invite-toi chez un copain » (paddock, Entre amis) donne un lien `?pilote=<code>` : numéro, casque, livrée, pays, et **un rythme mesuré** (voir plus bas). Chez celui qui reçoit : il **tape lui-même** le prénom de son ami (rien d'écrit par un autre enfant n'arrive sur son écran), on choisit le pilote remplacé (le plus faible du plateau, ou au choix), le copain devient un rival comme les autres (caractère tiré, fiche, mémoire, discussions). Au plus 3 copains par plateau (`COPAINS_MAX`).
 
-**Le rythme du copain, juste** : un enfant rapide doit être un rival rapide. On prend le meilleur tour propre du copain (le même enregistrement que le défi du fantôme, déjà dans `defi.js`) comparé au tour du poleman simulé sur ce circuit (`fantome-pole.js`), et on en tire un rythme **borné aux limites de la division** (`IA_RYTHME`, comme tout rival). Pas de tour enregistré : un rythme moyen.
+**Le rythme du copain, juste** : un enfant rapide doit être un rival rapide. Le code porte le **meilleur temps propre** du copain sur un circuit (un nombre, pas le tour entier : le lien reste court ; le défi du fantôme garde, lui, le tour entier), comparé au tour du poleman simulé sur ce circuit (`fantome-pole.js`), et on en tire un rythme **borné aux limites de la division** (`IA_RYTHME`, comme tout rival). Un temps trafiqué ne sert à rien : il est ramené aux bornes. Pas de temps : un rythme moyen.
 
 **Coût : moyen.** Un code de pilote (`copain.js` : coder / décoder / vérifier, somme de contrôle comme `defi.js`), l'insertion dans le plateau (`championnat.js` : remplacer un pilote en gardant 20 pilotes et 10 écuries, comme la relève remplace un retraité), l'écran d'accueil du lien (`interface.js`), quelques titres de une et phrases de commentaire (`textes.js` : « {qui}, ton copain… » n'est pas nécessaire, son prénom suffit), la sauvegarde (quelques dizaines d'octets).
 
@@ -189,7 +199,7 @@ Pourquoi cet ordre : 1 est moyen et touche tous les joueurs (le retour du lendem
 
 ### 8. Le championnat à deux (frères, sœurs, copains) 🏁🏁
 
-**Le moment.** Deux enfants sur le même ordinateur : « Championnat à deux — 4 Grands Prix ». Écran partagé, les 19 rivaux du monde autour, et **un tableau de points à deux** entre les courses : « Lucas 43 – Emma 40 ». Au 4e Grand Prix, tout se joue. Un podium final avec les deux casques.
+**Le moment.** Deux enfants sur le même ordinateur : « Championnat à deux — 4 Grands Prix ». Écran partagé, quelques rivaux du monde autour (le mode à deux en permet 5 au plus : `DEUX_VOITURES_MAX` 7), et **un tableau de points à deux** entre les courses : « Lucas 43 – Emma 40 ». Au 4e Grand Prix, tout se joue. Un podium final avec les deux casques.
 
 **Pourquoi c'est fort.** Le mode à deux existe, mais chaque course est isolée (un score de « rivalité », une revanche) ; un **petit championnat** donne une histoire à la soirée et un vainqueur. Aucun jeu de course Poki ne propose une saison à deux.
 
