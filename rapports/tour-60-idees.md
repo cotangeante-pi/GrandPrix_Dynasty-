@@ -643,8 +643,8 @@ Le pire cas d'un lien fabriqué : un copain qui roule comme le meilleur rival de
 │  UN COPAIN VEUT COURIR DANS TA SAISON !      │
 │  [voiture qui tourne, casque, n° 7, 🇧🇪]       │
 │  Vitesse : ●●●●○                             │
-│  Comment s'appelle ton copain ? [ Inès    ]  │
-│  Il court :  ( Contre toi )  ( Avec toi )    │
+│  Comment s'appelle ton pote ? [ Inès      ]  │
+│  Course :    ( Contre toi )  ( Avec toi )    │
 │  [  ACCEPTER  ]          [ Non merci ]       │
 └──────────────────────────────────────────────┘
 ```
@@ -775,6 +775,228 @@ Même règle que pour les annexes A à C : chaque nombre est un réglage de `don
 **Les réglages.** `DEUX_CHAMPIONNAT_ACTIF`, `DEUX_CHAMPIONNAT_COURSES` (4), `DEUX_CHAMPIONNAT_TOURS_DEFAUT` (5).
 
 **Les fichiers.** `deux-joueurs.js` (le championnat : points, égalité, reprise, calcul pur), `principal.js` (enchaîner les courses), `interface.js` + `index.html`, `podium3d.js` (le podium des deux), `textes.js`, `donnees.js`, `sauvegarde.js`, `tests/`.
+
+## Annexe E — Les maquettes des écrans des 3 premières idées
+
+**Comment les lire.** Une case = un écran, à l'échelle approximative (1280×720 : 1 caractère ≈ 20 px de large ; 640×360 : ≈ 10 px). `[ … ]` = un bouton, avec sa hauteur. Au doigt (`body.tactile`), **aucun bouton sous 40 px** (règle du tour 53b) ; les boutons principaux font 56 px en 1280×720 et 48 px en 640×360. Le style est celui d'aujourd'hui (`STYLE_TELE` : plaques en biais, titre en plaque blanche, bouton principal rouge, icônes SVG d'`icones.js` à la place des émojis dans les menus ; les émojis ci-dessous désignent l'icône). Les textes entre guillemets sont **les textes exacts**, fr puis en, avec leur clé `textes.js`. En 960×600, la mise en page de 1280×720 serrée (rien de neuf).
+
+### E1. Le Grand Prix du jour
+
+**E1.a — Le titre (lancements suivants et premier lancement)**
+
+1280×720 :
+```
+┌──────────────────────────────────────────────────────────────┐
+│                                                         [🔊] │
+│              ┌──────────────────────────────┐                │
+│              │      GRAND PRIX DYNASTY      │                │
+│              └──────────────────────────────┘                │
+│                    [  ▶ JOUER  ]  56 px                      │
+│     ┌───────────────────────────────────────────────┐        │
+│     │ 🗓 GRAND PRIX DU JOUR · Spaa 🌧 · 🔥 3        │ 48 px  │
+│     └───────────────────────────────────────────────┘        │
+│                    [ 👥 ENTRE AMIS ]  40 px                   │
+│   [ 📖 APPRENDRE ]   [ 🛞 AIDES ]   [ ⌨ TOUCHES ]   40 px     │
+└──────────────────────────────────────────────────────────────┘
+```
+640×360 au doigt (titre simple) :
+```
+┌────────────────────────────────────────┐
+│                                   [🔊] │ 36 px
+│   ┌──────────────────────────────┐     │
+│   │      GRAND PRIX DYNASTY      │     │
+│   └──────────────────────────────┘     │
+│        [   ▶ JOUER   ]  48 px          │
+│  [ 🗓 DU JOUR · Spaa 🌧 · 🔥 3 ] 44 px  │
+│        [ 👥 ENTRE AMIS ]  44 px         │
+│        [ 🛞 AIDES ]  44 px              │
+└────────────────────────────────────────┘
+```
+Textes : `jour_bouton` « Grand Prix du jour » / « Daily Grand Prix » ; court au doigt `tac_jour_bouton` « Du jour » / « Daily ». Suivi du circuit, de l'icône météo et de la série si elle est ≥ 2 (« 🔥 3 »). **Au tout premier lancement** (aucune sauvegarde), le bouton du jour est **sous** « Jouer », plus petit (40 px), pour que « Jouer » reste le seul gros bouton (la découverte d'abord : « en piste en 10 secondes »). Dans le paddock (page Course), une carte « Grand Prix du jour » sous « Course suivante », un bouton de 44 px.
+
+**E1.b — L'écran du jour (avant la course)**
+
+1280×720 :
+```
+┌──────────────────────────────────────────────────────────────┐
+│ ▌GRAND PRIX DU JOUR · JOUR 42                            [✕] │
+│                                                              │
+│  ┌──────────────┐   SPAA  🌧 Pluie                           │
+│  │  [carte du   │   2 tours · IA : Normal · 10 voitures      │
+│  │   circuit]   │   Tu pars : 10e                            │
+│  └──────────────┘   🌶 Ton aileron est abîmé                  │
+│                                                              │
+│   🥉 3 places gagnées   🥈 Podium   🥇 Victoire               │
+│   Ta meilleure aujourd'hui : 🥈        🔥 3 jours de suite    │
+│                                                              │
+│              [ ▶ C'EST PARTI ]  56 px     [ 🛞 Aides ] 40 px │
+└──────────────────────────────────────────────────────────────┘
+```
+640×360 au doigt :
+```
+┌────────────────────────────────────────┐
+│▌DU JOUR · JOUR 42                 [✕]  │ 40 px (le ✕ : 44×40)
+│ [carte]  SPAA 🌧 · 2 tours · Normal    │
+│          Tu pars 10e                   │
+│          🌶 Aileron abîmé               │
+│ 🥉 +3 places  🥈 Podium  🥇 Victoire     │
+│ Aujourd'hui : 🥈        🔥 3            │
+│ [ ▶ C'EST PARTI ] 48 px  [ 🛞 Aides ]44 │
+└────────────────────────────────────────┘
+```
+Textes : `jour_titre` « Grand Prix du jour · Jour {n} » / « Daily Grand Prix · Day {n} » ; `jour_tours` « {t} tours » / « {t} laps » ; `jour_niveau` « IA : {niveau} » / « AI: {niveau} » (les noms des niveaux existants) ; `jour_depart` « Tu pars : {p}e » / « You start: P{p} » ; piments `jour_piment_averse` « Une averse arrive ! » / « A shower is coming! », `jour_piment_eclaircie` « Ça va sécher… » / « It's going to dry… », `jour_piment_aileron` « Ton aileron est abîmé » / « Your front wing is damaged » (court : « Aileron abîmé » / « Damaged wing »), `jour_piment_pneus` « Pneus usés : tiens bon ou passe au stand » / « Worn tyres: hang on or pit » (court : « Pneus usés » / « Worn tyres »), `jour_piment_dernier` « Grille inversée ! » / « Reversed grid! » ; médailles `jour_bronze` « {n} places gagnées » / « {n} places gained » (court « +{n} places »), `jour_argent` « Podium », `jour_or` « Victoire » / « Win » ; `jour_meilleure` « Ta meilleure aujourd'hui : » / « Your best today: » (court « Aujourd'hui : » / « Today: ») ; `jour_serie` « 🔥 {n} jours de suite » / « 🔥 {n} days in a row » (court « 🔥 {n} ») ; `jour_go` « C'est parti » / « Let's go ». Pas de qualification : « C'est parti » mène à la grille.
+
+**E1.c — L'arrivée du jour (à la place du podium habituel, après le podium 3D)**
+
+1280×720 :
+```
+┌──────────────────────────────────────────────────────────────┐
+│ ▌GRAND PRIX DU JOUR · JOUR 42                                │
+│                     🥇  MÉDAILLE D'OR !                       │
+│              P10 ▸ P6 ▸ P1        🔥 4 jours de suite         │
+│                                                              │
+│   [ 📋 MONTRE TON RÉSULTAT ] 56 px     [ 🔁 Rejouer ] 48 px  │
+│                                                              │
+│   Demain : Singapura 🌙 · Grille inversée !                  │
+│                                            [ Continuer ▶ ] 48│
+└──────────────────────────────────────────────────────────────┘
+```
+Après « Montre ton résultat » : un cadre avec le texte exact de l'annexe A6 (lecture seule) et « Copier » (48 px) ; « Copié ! » pendant 2 s.
+
+640×360 au doigt :
+```
+┌────────────────────────────────────────┐
+│▌DU JOUR · JOUR 42                      │
+│         🥇 MÉDAILLE D'OR !              │
+│  P10 ▸ P6 ▸ P1          🔥 4            │
+│ [ 📋 MONTRE TON RÉSULTAT ] 48 px        │
+│ [ 🔁 Rejouer ] 44     [ Continuer ▶ ]44 │
+│ Demain : Singapura 🌙 · Grille inversée │
+└────────────────────────────────────────┘
+```
+Textes : `jour_or_titre` « Médaille d'or ! » / « Gold medal! », `jour_argent_titre` « Médaille d'argent ! » / « Silver medal! », `jour_bronze_titre` « Médaille de bronze ! » / « Bronze medal! », `jour_aucune` « Pas de médaille : retente ! » / « No medal: try again! » ; `jour_partager` « Montre ton résultat » / « Share your result » ; `jour_copier` « Copier » / « Copy » ; `jour_copie` « Copié ! » / « Copied! » ; `jour_rejouer` « Rejouer » / « Play again » ; `jour_demain` « Demain : {circuit} {meteo} · {piment} » / « Tomorrow: {circuit} {meteo} · {piment} » ; `jour_sauver` (📺, seulement si un jour a été manqué) « 📺 Sauve ta série (une pub) » / « 📺 Save your streak (one ad) » ; `jour_sans_sauvegarde` « Ta série n'est pas gardée sur cet appareil » / « Your streak isn't saved on this device ».
+
+### E2. Ton copain dans ta saison
+
+**E2.a — L'envoi (paddock → Entre amis)**
+
+1280×720 :
+```
+┌──────────────────────────────────────────────────────────────┐
+│ ▌ENTRE AMIS                                              [✕] │
+│  [ 🖥 ÉCRAN PARTAGÉ ] [ ⏱ TOURNOI CHRONO ] [ 👻 DÉFIER ]  48  │
+│  ┌────────────────────────────────────────────────────────┐  │
+│  │ 🤝 METS-TOI DANS LE JEU D'UN COPAIN                    │  │
+│  │ [voiture qui tourne]  n° 7 · 🇧🇪 · Vitesse ●●●○○        │  │
+│  │ Ton copain te verra courir dans sa saison.             │  │
+│  │ ┌──────────────────────────────────────┐ [ COPIER ] 48 │  │
+│  │ │ https://poki.com/…?pilote=1-HbA3cK…  │               │  │
+│  │ └──────────────────────────────────────┘               │  │
+│  └────────────────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────────────┘
+```
+640×360 au doigt :
+```
+┌────────────────────────────────────────┐
+│▌ENTRE AMIS                       [✕]   │
+│ [🖥 À DEUX]44 [⏱ CHRONO]44 [👻 DÉFI]44  │
+│ 🤝 METS-TOI DANS LE JEU D'UN COPAIN    │
+│ [voiture]  n° 7 · 🇧🇪 · ●●●○○           │
+│ ┌──────────────────────┐ [ COPIER ] 44 │
+│ │ …?pilote=1-HbA3cK…   │               │
+│ └──────────────────────┘               │
+└────────────────────────────────────────┘
+```
+Textes : `copain_titre` « Mets-toi dans le jeu d'un pote » / « Join a friend's game » ; `copain_explique` « Ton pote te verra courir dans sa saison. » / « Your friend will race against you in their season. » ; `copain_vitesse` « Vitesse » / « Speed » ; `copain_copier` « Copier » / « Copy » ; `copain_copie` « Copié ! Envoie-le à ton pote. » / « Copied! Send it to your friend. ». Sans record propre : la vitesse dit « ●○○○○ · fais un tour en essai libre pour la mesurer » / « ●○○○○ · do a lap in free practice to measure it ».
+
+**E2.b — L'accueil (celui qui reçoit le lien, a une carrière)**
+
+1280×720 :
+```
+┌──────────────────────────────────────────────────────────────┐
+│ ▌UN COPAIN VEUT COURIR DANS TA SAISON !                      │
+│  [voiture qui tourne, livrée et casque du copain]            │
+│   n° 7 · 🇧🇪 · Vitesse ●●●●○                                 │
+│   Comment s'appelle ton copain ? [ Inès              ] 48 px │
+│   Il court :  [ CONTRE TOI ] 48     [ AVEC TOI ] 48          │
+│              (avec toi : il devient ton coéquipier)          │
+│        [ ✓ ACCEPTER ] 56 px          [ Non merci ] 48        │
+└──────────────────────────────────────────────────────────────┘
+```
+640×360 au doigt (le clavier de l'écran couvre le bas quand le champ est touché : le champ est en haut, comme la création du pilote) :
+```
+┌────────────────────────────────────────┐
+│▌UN COPAIN VEUT COURIR AVEC TOI !       │
+│ Prénom : [ Inès           ] 44 px      │
+│ [voiture] n° 7 · 🇧🇪 · ●●●●○             │
+│ [ CONTRE TOI ] 44    [ AVEC TOI ] 44   │
+│ [ ✓ ACCEPTER ] 48    [ Non merci ] 44  │
+└────────────────────────────────────────┘
+```
+Textes : `copain_accueil` « Un pote veut courir dans ta saison ! » / « A friend wants to race in your season! » (court `tac_copain_accueil` « Un pote veut courir avec toi ! » / « A friend wants to race you! ») ; `copain_prenom` « Comment s'appelle ton pote ? » / « What's your friend's name? » (court « Prénom : » / « Name: ») ; `copain_contre` « Contre toi » / « Against you » ; `copain_avec` « Avec toi » / « With you » ; `copain_avec_aide` « (avec toi : il devient ton coéquipier) » / « (with you: they become your teammate) » — en anglais « they », en français « il » est ici le copain dont on ne connaît pas le genre : **à réécrire sans genre** : « (avec toi : ton coéquipier) » / « (with you: your teammate) » ; `copain_accepter` « Accepter » / « Accept » ; `copain_non` « Non merci » / « No thanks » ; `copain_numero_pris` « Le {n} est pris : {qui} courra avec le {m}. » / « Number {n} is taken: {qui} will race as {m}. » ; `copain_lien_casse` « Ce lien ne marche pas. » / « This friend link doesn't work. ». Le champ : 16 px de texte au moins (sinon Safari zoome, règle du tour 54b), 16 lettres au plus, « Accepter » grisé tant qu'il est vide.
+
+### E3. Les défis-éclair
+
+**E3.a — La carte des défis**
+
+1280×720 :
+```
+┌──────────────────────────────────────────────────────────────┐
+│ ▌DÉFIS-ÉCLAIR                         ⭐ 23 / 84        [✕]  │
+│  DÉPART      ①⭐⭐⭐ ②⭐⭐☆ ③⭐☆☆ ④☆☆☆ ⑤ ⑥ ⑦ ⑧               │
+│  REMONTÉE    ⑨⭐⭐☆ ⑩⭐☆☆ ⑪ ⑫ ⑬ ⑭ ⑮ ⑯                       │
+│  CONDITIONS  🔒 encore 4 ⭐ dans « Remontée »                │
+│  DUELS       🔒                                              │
+│                                                              │
+│   Prochain : ④ Pole à défendre · Bahrayn       [ ▶ JOUER ] 56│
+└──────────────────────────────────────────────────────────────┘
+```
+Chaque case : 56×56 px (le numéro, 3 étoiles en dessous) ; une case touchée ouvre E3.b.
+
+640×360 au doigt (une rangée par groupe, qui défile de gauche à droite ; la page ne défile pas) :
+```
+┌────────────────────────────────────────┐
+│▌DÉFIS-ÉCLAIR          ⭐ 23/84    [✕]  │
+│ DÉPART    [①][②][③][④][⑤][⑥] ▶          │ cases 44×44
+│ REMONTÉE  [⑨][⑩][⑪][⑫][⑬][⑭] ▶          │
+│ CONDITIONS 🔒 encore 4 ⭐               │
+│ DUELS     🔒                            │
+│ [ ▶ ④ POLE À DÉFENDRE ] 48 px           │
+└────────────────────────────────────────┘
+```
+Textes : `defis_titre` « Défis-éclair » / « Quick challenges » ; groupes `defis_g_depart` « Départ » / « Start », `defis_g_remontee` « Remontée » / « Comeback », `defis_g_conditions` « Conditions » / « Conditions », `defis_g_duels` « Duels » / « Duels » (plus tard `defis_g_dernier` « Dernier tour » / « Last lap », `defis_g_situations` « En course » / « Race moments ») ; `defis_verrou` « Encore {n} ⭐ dans « {groupe} » » / « {n} more ⭐ in "{groupe}" » ; `defis_prochain` « Prochain : » / « Next: ». Le total « 23 / 84 » = 28 défis × 3 étoiles (plan B).
+
+**E3.b — Avant un défi**
+
+1280×720 :
+```
+┌──────────────────────────────────────────────────────────────┐
+│ ▌④ POLE À DÉFENDRE                                      [✕] │
+│  Bahrayn · 1 tour · IA : Normal · Tu pars 1er                │
+│  Rossi, le plus rapide, part juste derrière toi.             │
+│   ⭐ Finir 3e ou mieux                                        │
+│   ⭐⭐ Gagner                                                  │
+│   ⭐⭐⭐ Gagner sans jamais perdre la tête                       │
+│              [ ▶ C'EST PARTI ] 56 px     [ 🛞 Aides ] 40     │
+└──────────────────────────────────────────────────────────────┘
+```
+640×360 : la même chose sur 6 lignes, les 3 buts sur une ligne chacun, boutons 48 et 44 px.
+
+**E3.c — Après un défi**
+
+```
+1280×720                                    640×360
+┌───────────────────────────────────┐       ┌──────────────────────────┐
+│ ▌④ POLE À DÉFENDRE                │       │▌④ POLE À DÉFENDRE        │
+│        ⭐ ⭐ ☆                     │       │   ⭐ ⭐ ☆   2e            │
+│   Tu finis 2e. ⭐⭐ : gagne !      │       │ ⭐⭐ : gagne !             │
+│ [ 🔁 RÉESSAYER ] 56  [ Suivant ▶ ]48│     │ [🔁 RÉESSAYER]48 [Suiv.▶]44│
+│                       [ Carte ] 40│       │ [ Carte ] 44             │
+└───────────────────────────────────┘       └──────────────────────────┘
+```
+Textes : `defi_reessayer` « Réessayer » / « Try again » (le bouton principal, **jamais de pub avant**), `defi_suivant` « Suivant » / « Next », `defi_carte` « Carte » / « Map », `defi_resultat` « Tu finis {p}e. » / « You finished P{p}. », `defi_etoile_suivante` « {etoiles} : {but} ! » / « {etoiles}: {but}! », `defi_trois` « Parfait ! ⭐⭐⭐ » / « Perfect! ⭐⭐⭐ ». Les buts ont chacun leur clé (`defi_but_place` « Finir {p}e ou mieux » / « Finish P{p} or better », `defi_but_gagner` « Gagner » / « Win », `defi_but_places` « Gagner {n} places » / « Gain {n} places », `defi_but_devant` « Finir devant {qui} » / « Finish ahead of {qui} », `defi_but_propre` « … sans toucher l'herbe » / « … without touching the grass », `defi_but_penalite` « … sans pénalité » / « … without a penalty », `defi_but_depart` « Départ parfait » / « Perfect start », `defi_but_virage` « Premier au premier virage » / « First into turn 1 », `defi_but_stand` « Passer au stand » / « Make a pit stop »).
+
+**Ce que les maquettes ont fait trouver** : (1) « copain » est masculin, et l'on ne connaît pas le genre de l'ami : **dans les textes du jeu, « pote »** (épicène, et c'est le mot des enfants) ; les maquettes ci-dessus gardent « COPAIN » dans les dessins, les clés de texte disent « pote » ; (2) le texte « (avec toi : il devient ton coéquipier) » était **genré** sur un copain dont on ne connaît pas le genre (la règle des textes de CLAUDE.md) : corrigé en « (avec toi : ton coéquipier) ». Et au tout premier lancement, un gros bouton du jour à côté de « Jouer » ferait hésiter : il est plus petit et dessous.
 
 ## Sources (ce que Poki dit)
 
