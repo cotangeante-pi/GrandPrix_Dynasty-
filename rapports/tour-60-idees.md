@@ -29,6 +29,25 @@ Ce que Poki dit compter (sources à la fin) : les toutes premières secondes, de
 
 Pourquoi cet ordre : 1 est moyen et touche tous les joueurs (le retour du lendemain) ; 2 est moyen et c'est le seul qui fait venir de **nouveaux** joueurs ; 3 est le plus gros, mais il multiplie le contenu avec ce qui existe déjà (drapeaux, pluie, dégâts, départ, aspiration, consignes).
 
+### Le tableau (mes notes, de 0 à 3)
+
+| # | Idée | Revenir demain | Partager | Différence Poki | Émotion | Coût | Réglage |
+|---|---|---|---|---|---|---|---|
+| 1 | Grand Prix du jour | 3 | 3 | 2 | 2 | petit à moyen | `JOUR_ACTIF` |
+| 2 | Ton copain dans ta saison | 2 | 3 | 3 | 3 | moyen | `COPAINS_ACTIF` |
+| 3 | Défis-éclair à 3 étoiles | 2 | 1 | 2 | 3 | gros (plan B moyen) | `DEFIS_ECLAIR_ACTIF` |
+| 4 | Médailles des circuits | 2 | 1 | 1 | 2 | petit à moyen | `MEDAILLES_ACTIF` |
+| 5 | Course à élimination | 1 | 1 | 1 | 3 | petit | `ELIMINATION_ACTIF` |
+| 6 | Ralenti du photo-finish | 0 | 1 | 1 | 3 | moyen | `PHOTO_FINISH_ACTIF` |
+| 7 | Niveau de pilote | 2 | 0 | 0 | 1 | moyen | `NIVEAU_PILOTE_ACTIF` |
+| 8 | Championnat à deux | 1 | 2 | 3 | 2 | moyen | `DEUX_CHAMPIONNAT_ACTIF` |
+| 9 | Cartes des pilotes | 2 | 1 | 2 | 2 | moyen | `CARTES_ACTIF` |
+| 10 | Le jeu debout | 0 | 0 | 1 | 0 | gros | `PORTRAIT_JEU` |
+| 11 | Week-ends à thème | 2 | 1 | 1 | 1 | petit à moyen | `EVENEMENTS_ACTIF` |
+| 12 | Le champion de la division | 1 | 0 | 1 | 2 | petit | `CHAMPION_COURONNE` |
+
+Le 10 a des zéros mais un enjeu à part (la **conversion** au premier lancement sur téléphone, et les pubs du portrait) : c'est une question à poser à Poki avant d'être une idée à coder.
+
 ---
 
 ## Les idées, de la meilleure à la moins bonne
@@ -50,7 +69,7 @@ Pourquoi cet ordre : 1 est moyen et touche tous les joueurs (le retour du lendem
 - **« Demain : … »** : comme le jour vient de la date, on connaît déjà celui de demain. Après la course du jour, une ligne : « Demain : 🌙 Singapura de nuit, départ dernier ». L'enfant part avec un rendez-vous (on montre le circuit et le piment, pas le niveau ni les médailles).
 - **Le lien partagé ouvre directement la course du jour** (`?jour=AAAAMMJJ`, par `SDK.lienPartage` comme le défi) : le copain qui clique, même nouveau venu, est **sur la grille en un clic**, exactement comme la découverte (« en piste en 10 secondes ») : le partage devient aussi un premier lancement réussi. Un lien d'un jour passé ouvre ce jour-là, marqué « Grand Prix du 12 novembre » (sans médaille ni série : seul le jour même compte).
 
-**Coût : moyen.** `jour.js` (date → paramètres, médailles, série ; testé sans écran), une entrée sur le titre et sur la page Course du paddock (`interface.js`, `index.html`), le texte à partager (`textes.js` fr/en), la série et les médailles dans la sauvegarde (quelques octets), `SDK.lienPartage` déjà là pour le lien. La course est une **course rapide** existante avec des réglages imposés (`creerCourseIA` prend déjà le circuit, le nombre d'IA, les tours, la graine). Jour de la carrière : rien ne change.
+**Coût : petit à moyen.** Un prototype tient déjà **dans une adresse** : `index.html?course=3&ia=9&joueur=1&circuit=spaa&meteo=averse&niveau=normal&graine=20261119` (tous ces paramètres existent). Il manque la place de départ imposée, les médailles, la série, « demain » et le texte à partager. Pour la vraie version : `jour.js` (date → paramètres, médailles, série ; testé sans écran), une entrée sur le titre et sur la page Course du paddock (`interface.js`, `index.html`), le texte à partager (`textes.js` fr/en), la série et les médailles dans la sauvegarde (quelques octets), `SDK.lienPartage` déjà là pour le lien. La course est une **course rapide** existante avec des réglages imposés (`creerCourseIA` prend déjà le circuit, le nombre d'IA, les tours, la graine). Jour de la carrière : rien ne change.
 
 **Risques.**
 - *La date* : prise **hors de la simulation** (seulement pour choisir la graine) : la règle « pas de `Date` dans la simulation » tient. Un enfant qui avance l'heure de sa tablette « triche » contre lui-même : sans enjeu (pas de classement mondial).
@@ -76,6 +95,8 @@ Pourquoi cet ordre : 1 est moyen et touche tous les joueurs (le retour du lendem
 - **Partage et acquisition** : c'est la seule idée qui fait **venir de nouveaux joueurs** (le lien ouvre le jeu sur Poki), et c'est un partage qui a du sens pour un enfant (« je suis dans ton jeu »).
 - **Différence** : aucun jeu de course Poki ne met ton copain *dans ton monde*, avec un journal et un commentateur qui parlent de lui. C'est exactement notre force (le monde vivant) mise au service du partage.
 - **Émotion** : le rival le plus motivant, c'est quelqu'un qu'on connaît.
+
+**Et si celui qui reçoit est un nouveau joueur ?** C'est le cas le plus précieux (le lien fait venir quelqu'un). Sans carrière, le lien l'emmène directement sur la grille de la **course de découverte**, avec la voiture et le casque de son copain parmi les 6 rivaux (« Ton ami est sur la grille ! ») ; à la création de son pilote, le copain entre dans son plateau. Le premier lancement reste « en piste en 10 secondes ».
 
 **Comment.** « 📋 Invite-toi chez un copain » (paddock, Entre amis) donne un lien `?pilote=<code>` : numéro, casque, livrée, pays, et **un rythme mesuré** (voir plus bas). Chez celui qui reçoit : il **tape lui-même** le prénom de son ami (rien d'écrit par un autre enfant n'arrive sur son écran), on choisit le pilote remplacé (le plus faible du plateau, ou au choix), le copain devient un rival comme les autres (caractère tiré, fiche, mémoire, discussions). Au plus 3 copains par plateau (`COPAINS_MAX`).
 
@@ -108,6 +129,8 @@ Pourquoi cet ordre : 1 est moyen et touche tous les joueurs (le retour du lendem
 
 **Comment.** Un défi = { circuit, météo, tour de départ, voitures placées (distance, écart, vitesse), état du joueur (pneus, aileron, place), but (place, écart, « ne pas perdre de place », temps), étoiles }. La difficulté technique est **le départ lancé** : `creerCourseIA` part toujours de la grille ; il faut une fonction qui pose les voitures en mouvement sur la piste (`s`, `d`, vitesse, tour en cours) puis laisse 1 à 2 s de « mise en route » aux IA avant de compter. 40 défis au début, rangés en 4 groupes (départ, attaque, défense, conditions), débloqués par les étoiles.
 
+**Ce qui existe déjà** : `placerSurPiste(v, circuit, s, d)` pose une voiture n'importe où sur la piste (la leçon des drapeaux s'en sert pour garer une IA, `TUTORIEL.scene`) ; ce qui manque, c'est de donner à chaque voiture sa vitesse, son tour en cours et ses passages de secteurs (le classement en direct en dépend : `passages`, `classementCourse`).
+
 **Coût : gros** (le départ lancé touche `simulation.js` et `course.js` ; l'écran de la carte des défis ; 40 défis à régler et à vérifier avec le robot d'essai). Fichiers : `defis-eclair.js` (données et réussite, calcul pur), `simulation.js` (départ lancé), `interface.js`, `textes.js`, `donnees.js`.
 
 **Risques.**
@@ -121,7 +144,7 @@ Pourquoi cet ordre : 1 est moyen et touche tous les joueurs (le retour du lendem
 
 **Comment la couper.** `DEFIS_ECLAIR_ACTIF` (faux = pas d'entrée, le jeu d'avant) ; `DEFIS_ECLAIR` (la liste) ; `DEFIS_PUB_TOUS` (une pub tous les N défis).
 
-**Critique de moi-même.** C'est le plus cher. Si le départ lancé est trop dur à rendre propre, un **plan B** garde 70 % de l'idée : des défis qui partent de la **grille** (courses de 1 à 3 tours avec un état imposé : « pars dernier, 2 tours, finis 5e », « averse au 2e tour », « aileron cassé »), sans toucher à la simulation.
+**Critique de moi-même.** C'est le plus cher. Si le départ lancé est trop dur à rendre propre, un **plan B** garde 70 % de l'idée : des défis qui partent de la **grille** (courses de 1 à 3 tours avec un état imposé : « pars dernier, 2 tours, finis 5e », « averse au 2e tour », « aileron cassé »), sans toucher à la simulation. Exemple : « Course d'un tour à Monzo, tu pars 2e, Rossi en pole : bats-le » donne presque la même émotion que « dernier tour, 0,8 s derrière ».
 
 ---
 
