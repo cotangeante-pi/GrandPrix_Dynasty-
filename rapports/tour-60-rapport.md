@@ -44,3 +44,9 @@ Codeur 4 — « Grand Prix Dynasty - codeur 4 », branche neuve `guidage-60` dep
 Chaque Codeur écrit son compte rendu dans rapports/tour-60-<N>-compte-rendu.md (format de CLAUDE.md), le commite sur sa branche, et le renvoie au Chef en fin de tâche.
 
 Questions pour le propriétaire : aucune (les choix sont réversibles par les réglages).
+
+AJOUT (le propriétaire, 17h40 : « fais un autre codeur qui doit juste réfléchir à des ultra-bonnes idées ; il aura fini quand le dernier codeur aura fini, et encore un autre qui va relire le code de fond en comble et trouver les erreurs, il commencera quand tout le monde aura fini et travaillera minimum 2 h et maximum le temps que ça lui prendra ; caffeinate jusqu'à la fin »)
+
+Codeur 5 — « Grand Prix Dynasty - codeur 5 », branche `idees-60` — seulement des idées (pas de code) : 10 à 15 idées fortes classées, dans rapports/tour-60-idees.md ; il travaille jusqu'au message « fin des Codeurs » du Chef.
+Codeur 6 — « Grand Prix Dynasty - codeur 6 », branche neuve depuis main APRÈS la fusion des Codeurs 1 à 4 — relecture du code de fond en comble, trouver et corriger les erreurs ; au moins 2 h, sans maximum ; rapport rapports/tour-60-relecture.md.
+caffeinate jusqu'à la fin du Codeur 6.
