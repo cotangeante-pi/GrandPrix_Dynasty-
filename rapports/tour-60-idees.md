@@ -73,6 +73,8 @@ Le 10 a des zéros mais un enjeu à part (la **conversion** au premier lancement
 
 **Risques.**
 - *La date* : prise **hors de la simulation** (seulement pour choisir la graine) : la règle « pas de `Date` dans la simulation » tient. Un enfant qui avance l'heure de sa tablette « triche » contre lui-même : sans enjeu (pas de classement mondial).
+- *« Le même Grand Prix pour tout le monde », vraiment ?* Mêmes paramètres et même graine, oui. Mais `Math.sin`, `cos`, `atan2`… peuvent différer d'un bit entre Chrome, Safari et Firefox (c'est pourquoi le jeu en ligne a ses propres fonctions, `EN_LIGNE_MATHS`) : deux copains sur deux navigateurs peuvent voir une IA freiner un poil différemment. Pour la comparaison entre copains, ça suffit ; si l'on veut le « au bit près » partout, la course du jour peut emprunter `EN_LIGNE_MATHS` (déjà écrit et testé).
+- *La carte des IA* : seule celle du circuit `test` est livrée dans le paquet ; un autre circuit la calcule au lancement (« Préparation de la course… », 2 à 3 s sur une vraie carte graphique, bien plus sur un ordinateur lent). Pour le jour : la calculer **en fond dès l'écran titre** (on sait quel circuit ce sera), ou livrer les 12 cartes si leur poids le permet (à mesurer).
 - *Fuseau horaire* : prendre la date locale (le jour change à minuit chez l'enfant, comme Wordle).
 - *Le niveau des IA* : s'il dépend du joueur, deux copains n'ont plus le même Grand Prix. **Choix proposé** : le jour a son niveau à lui (« normal » le plus souvent, « débutant » le lundi…), écrit dans le texte partagé ; les aides restent au choix (et affichées, comme au tournoi).
 - *La série* : ne pas la rendre culpabilisante pour un enfant (pas de « tu vas tout perdre ! ») : une série qui casse revient à 1 sans message triste, et on garde le total « 27 jours joués ».
@@ -82,6 +84,8 @@ Le 10 a des zéros mais un enjeu à part (la **conversion** au premier lancement
 **Comment savoir qu'elle marche.** Test : la même date donne exactement les mêmes paramètres et la même course (empreinte au bit près) ; deux dates donnent deux jours différents ; 365 jours tirés : chaque circuit revient, jamais deux jours pareils de suite. Mesure : dans les chiffres que Poki donne au développeur, le temps de jeu et les retours avant/après ; sur le Mac, le robot d'essai doit pouvoir gagner le jour en « normal » depuis la place de départ tirée (sinon le tirage est trop dur).
 
 **Comment la couper.** `JOUR_ACTIF` (faux = rien sur le titre ni le paddock, le jeu d'avant) ; `JOUR_TOURS`, `JOUR_MEDAILLES`, `JOUR_PIMENTS` (liste vide = pas de piment).
+
+**Un argument de plus, propre aux enfants de Poki** : beaucoup jouent sur des ordinateurs d'école partagés, où la sauvegarde disparaît (et la synchronisation de Poki demande d'être connecté). La carrière perd alors tout ; **le Grand Prix du jour, lui, marche sans sauvegarde** : le même pour tous, à jouer de n'importe quel ordinateur. Seule la série se perd.
 
 **Critique de moi-même.** La version simple risque d'être « une course rapide avec une date ». Ce qui la rend forte, c'est (a) **le texte à partager** et (b) **le « piment »** qui fait de chaque jour un petit événement. Si on n'a le temps que d'une chose : le texte à partager.
 
