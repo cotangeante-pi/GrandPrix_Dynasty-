@@ -1,5 +1,5 @@
 TOUR 60 — compte rendu du Codeur 4 (l'auto-guidage du téléphone, branche `guidage-60`)
-Commit : a62069d (code et tests ; ce compte rendu complété ensuite en [skip ci])
+Commit : 0b4067b (dernier code, 18/18) ; avant la revue du Chef : a62069d (18/18) ; ce compte rendu complété ensuite en [skip ci]
 Ordres : 1 fait / 2 fait / 3 fait / 4 fait / 5 fait (lien du passage plus bas)
 
 ## Le principe
@@ -59,7 +59,7 @@ connaît), un tremblement de la main (σ 2,5 à 4°), et un coup de volant de 18
   sortie dans l'herbe : relancée à 233 km/h, 0,8 s d'herbe (sans secours : 3,6 s d'herbe, bloquée à 0 km/h) ; borne : devant un virage,
   la vitesse rendue est celle de `vitesseSure`.
 
-## Revue du Chef : la place du secours (commit PLACE)
+## Revue du Chef : la place du secours (commit 0b4067b, GitHub 18/18 : https://github.com/cotangeante-pi/GrandPrix_Dynasty-/actions/runs/44638439098)
 
 Demandé : à ~230 km/h, ne jamais poser la voiture sur ou juste devant/derrière une IA, et ne jamais faire gagner place ni temps.
 Fait (`assistance.js` : `placeLibre`, `relancer(v, circuit, carte, u, autres)`, `reporter` ; `principal.js` : `secoursJoueur` passe les
