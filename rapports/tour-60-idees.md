@@ -559,6 +559,84 @@ Ces défis mettent l'enfant **au milieu d'une course** (un tour donné, des voit
 - Les rivaux par rôle : sur 5 plateaux tirés, le rôle donne toujours un pilote, jamais le joueur, jamais deux rôles sur le même pilote dans un défi.
 - Écran : la carte des 40 cases tient en 640×360 (elle défile, une rangée par groupe), cases ≥ 44 px au doigt.
 
+## Annexe C — « Ton copain dans ta saison », prêt à coder
+
+### C1. Le lien : court, sans texte libre
+
+`https://<adresse du jeu sur Poki>?pilote=1-<données>-<somme>` (par `SDK.lienPartage({ pilote: code })`, comme le défi ; repli sur l'adresse où le jeu tourne).
+
+Les **données** sont des entiers écrits avec les 64 signes de `defi.js` (`ecrireEntier`, sans « - ») :
+
+| Champ | Valeurs | Signes |
+|---|---|---|
+| numéro | 1 à 99 (`NUMERO_MIN`, `NUMERO_MAX`) | 2 |
+| pays | indice dans `PAYS` (31) | 1 |
+| motif du casque | indice dans tous les motifs (`CASQUE.tousLesMotifs()`) | 1 |
+| 3 couleurs du casque | indice de la couleur la plus proche dans `CASQUE_PALETTE` (12) | 3 |
+| motif de livrée | indice dans `LIVREE_MOTIFS` (6) | 1 |
+| couleur secondaire de livrée | indice dans `CASQUE_PALETTE` | 1 |
+| circuit du temps | indice dans `CALENDRIER_CIRCUITS`, ou 0 = pas de temps | 1 |
+| meilleur temps propre | en centièmes de seconde (ex. 1:23,45 → 8 345) | 3 |
+
+Environ **15 signes de données + 2 de somme** : `?pilote=1-HbA3cK9xQ2mZ7bB-Tq`. **Aucun nom, aucun texte** : seulement des nombres et des choix dans des listes du jeu. Une couleur de casque hors palette (rare) est ramenée à la plus proche : le casque du copain chez l'autre ressemble au sien sans être forcément identique au pixel (invisible pour un enfant).
+
+**Le temps envoyé** : le record propre du joueur sur le circuit où ce record est **le plus proche** du tour du poleman (son meilleur circuit) ; pas de record : champ circuit à 0.
+
+**La somme** : la même que celle du défi (`DEFI.somme`). Elle repère un lien **abîmé** (copié à moitié). Elle **n'empêche pas** un tricheur de fabriquer un lien (le code du jeu est lisible) : c'est la règle du rythme qui protège (C2).
+
+**Version** : le « 1- » du début ; une version inconnue est refusée proprement (« Ce lien vient d'une autre version du jeu »).
+
+### C2. La règle anti-triche du rythme
+
+Le copain est **une IA comme les autres** (même physique, mêmes règles, caractère tiré avec la graine). Seul son **rythme** (`p.rythme`, la part de la vitesse que sa carte permet) vient du lien :
+
+1. On calcule chez celui qui reçoit le **tour du poleman** du circuit du temps (`FANTOME_POLE`, déjà fait pour la qualification : 0,2 à 0,8 s, une fois) : `P`.
+2. `r = P / T` (T = le temps du copain). Un enfant aussi rapide que le poleman a `r ≈ 1`.
+3. **Le temps impossible** : `T < P × COPAINS_TEMPS_MIN` (0,97 : plus de 3 % plus vite qu'une IA parfaite) → le temps est ignoré (rythme moyen), avec un mot neutre (« On n'a pas pu lire son temps »), jamais « tricheur ».
+4. **Le rythme** : on place `r` entre `COPAINS_R_LENT` (0,85) et `COPAINS_R_RAPIDE` (1,0), et on l'étale entre **le rythme du plus lent et celui du plus rapide du plateau** de celui qui reçoit. Un copain très rapide est donc, **au plus, aussi rapide que le champion** de ta division, jamais plus ; un copain lent est le plus lent du plateau, jamais moins.
+5. Sans temps : le rythme médian du plateau.
+6. Le rythme est fixé à l'accueil. Un nouveau lien du **même copain** (même numéro et même casque) le met à jour, au plus une fois par Grand Prix.
+
+Le pire cas d'un lien fabriqué : un copain qui roule comme le meilleur rival de ta division. C'est un rival difficile, pas un tricheur invincible, et ça ne change rien pour les autres joueurs (il n'y a pas de classement commun).
+
+### C3. Ce que voit celui qui reçoit
+
+**Il a une carrière** : au chargement, avant le paddock, un écran (même style que la boutique : la voiture qui tourne, avec la livrée du copain) :
+
+```
+┌──────────────────────────────────────────────┐
+│  UN COPAIN VEUT COURIR DANS TA SAISON !      │
+│  [voiture qui tourne, casque, n° 7, 🇧🇪]       │
+│  Vitesse : ●●●●○                             │
+│  Comment s'appelle ton copain ? [ Inès    ]  │
+│  Il court :  ( Contre toi )  ( Avec toi )    │
+│  [  ACCEPTER  ]          [ Non merci ]       │
+└──────────────────────────────────────────────┘
+```
+
+- **Le prénom est tapé par celui qui reçoit** (16 lettres au plus, le même champ que le nom du pilote, avec le filtre de mots déjà utilisé pour les noms s'il y en a un). Rien d'écrit par un autre enfant ne s'affiche.
+- **« Vitesse » en 5 points** (le rythme placé dans le plateau), pas un chiffre.
+- **« Contre toi »** : il remplace le pilote **le plus lent d'une autre écurie** (ce pilote part « en retraite anticipée », comme un retraité : son résumé compact est gardé). **« Avec toi »** : il devient **ton coéquipier** (l'ancien coéquipier change d'écurie) : le duel de la saison devient **toi contre ton copain**, la meilleure idée de l'écran.
+- **Le numéro déjà pris** : il prend le plus proche de libre, et on le dit (« Le 7 est pris : Inès courra avec le 17 »).
+- **Au plus `COPAINS_MAX` (3) copains** par plateau ; au-delà : « Ta grille a déjà 3 copains : remplacer lequel ? ».
+- **Ensuite**, partout dans le jeu : sa ligne d'une couleur à part dans la tour de classement et les classements (« 🤝 » devant son prénom), le duel « Toi 3 – 1 Inès » sur la page Course du paddock, sa fiche (« Discuter » marche : il répond comme un rival, avec le caractère tiré), au moins **une une du journal par saison** sur vous deux, les phrases du commentateur avec son prénom. Dans sa fiche : **« Envoyer ma revanche »** (ton propre lien, pour qu'il t'ajoute chez lui) et « Retirer de ma saison ».
+- **Il vieillit avec toi** (l'âge du joueur) ; il ne prend sa retraite qu'avec toi ; la relève le garde (« l'ami de la famille »).
+
+**C'est un nouveau joueur** (pas de sauvegarde) : le lien l'emmène sur la grille de la **course de découverte**, la voiture du copain à la place de l'un des 6 rivaux, avec une bulle « 🤝 Ton copain est sur la grille ! » (son prénom n'est pas connu : il sera demandé à la création du pilote, juste après le podium, par la même question). Le reste de la découverte ne change pas (`DECOUVERTE_*`).
+
+**Le lien est abîmé ou d'une autre version** : un petit message sur le titre (« Ce lien de copain ne marche pas »), le jeu continue normalement. Console vide.
+
+### C4. Le plan des tests
+
+- Coder puis décoder : les mêmes champs ; tous les numéros, pays, motifs ; la longueur reste sous 30 signes.
+- Un signe changé → refusé ; une version inconnue → refusée ; un lien vide → rien.
+- Le rythme : un temps au poleman → le rythme du champion ; un temps à 0,85 → le plus lent ; un temps « impossible » → médian ; jamais hors des bornes du plateau, sur 1 000 temps tirés.
+- Le plateau : avec 1, 2, 3 copains (contre et avec toi), toujours 20 pilotes, 10 écuries, 2 par écurie, numéros uniques ; 15 saisons avec 3 copains (`tests/carriere-longue.html`) sans erreur ; la sauvegarde relue identique.
+- Les écrans : l'accueil du copain en 1280×720, 960×600, 640×360 au doigt, fr et en ; la découverte avec le copain ; aucun texte venu du lien à l'écran (le test cherche le contenu des données dans la page).
+- `COPAINS_ACTIF` faux : aucun bouton, `?pilote=` ignoré, le jeu d'avant au bit près.
+
+**Fichiers** : `copain.js` (nouveau, calcul pur : coder, décoder, rythme), `championnat.js` (insérer, retirer), `decouverte.js` (le copain dans la découverte), `interface.js` + `index.html` (envoi, accueil, fiche), `textes.js`, `donnees.js` (`COPAINS_*`), `sdk.js` (le paramètre `pilote`), `sauvegarde.js`.
+
 ## Sources (ce que Poki dit)
 
 - [Poki — What makes a high-quality browser game (2026)](https://poki.com/blog/what-makes-high-quality-browser-game) : sessions courtes, chargement rapide, pubs récompensées plutôt que coupures, couleurs vives.
