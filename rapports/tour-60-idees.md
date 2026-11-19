@@ -106,7 +106,7 @@ Le 10 a des zéros mais un enjeu à part (la **conversion** au premier lancement
 
 **Le rythme du copain, juste** : un enfant rapide doit être un rival rapide. Le code porte le **meilleur temps propre** du copain sur un circuit (un nombre, pas le tour entier : le lien reste court ; le défi du fantôme garde, lui, le tour entier), comparé au tour du poleman simulé sur ce circuit (`fantome-pole.js`), et on en tire un rythme **borné aux limites de la division** (`IA_RYTHME`, comme tout rival). Un temps trafiqué ne sert à rien : il est ramené aux bornes. Pas de temps : un rythme moyen.
 
-**Coût : moyen.** Un code de pilote (`copain.js` : coder / décoder / vérifier, somme de contrôle comme `defi.js`), l'insertion dans le plateau (`championnat.js` : remplacer un pilote en gardant 20 pilotes et 10 écuries, comme la relève remplace un retraité), l'écran d'accueil du lien (`interface.js`), quelques titres de une et phrases de commentaire (`textes.js` : « {qui}, ton copain… » n'est pas nécessaire, son prénom suffit), la sauvegarde (quelques dizaines d'octets).
+**Coût : moyen.** Un code de pilote (`copain.js` : coder / décoder / vérifier, somme de contrôle comme `defi.js`), l'insertion dans le plateau (`championnat.js` : remplacer un pilote en gardant 20 pilotes et 10 écuries, comme `SAISONS.evoluer` remplace un retraité par un jeune en fin de saison ; les numéros déjà pris de tous les plateaux : `DIVISIONS.numerosPris(ch)`), l'écran d'accueil du lien (`interface.js`), quelques titres de une et phrases de commentaire (`textes.js` : « {qui}, ton copain… » n'est pas nécessaire, son prénom suffit), la sauvegarde (quelques dizaines d'octets).
 
 **Risques.**
 - *Public d'enfants* : **aucun texte libre ne voyage** (le prénom est tapé par celui qui reçoit ; le code ne porte que des nombres et des choix de listes). C'est la même prudence que `EN_LIGNE_NOMS_LIBRES` faux.
@@ -349,7 +349,7 @@ Tout ce qui suit est une proposition **réversible** : chaque nombre est un rég
 
 - **La date** : la date **locale** de l'appareil (`new Date()` : `getFullYear`, `getMonth`, `getDate`), lue **une seule fois**, par la page, au moment où l'on ouvre l'écran du jour. `jour.js` ne lit jamais l'horloge : il reçoit `{ a, m, j }` (tests faciles, et la règle « pas de `Date` dans la simulation » tient).
 - **Le numéro** : `n = (Date.UTC(a, m, j) − Date.UTC(JOUR_DEBUT)) / 86 400 000 + 1` (`JOUR_DEBUT` = le jour de la mise en ligne). Calculé en UTC **à partir des chiffres de la date locale** : pas de saut d'heure d'été, pas de jour « 41,96 ». « Jour 42 » dans le texte à partager.
-- **La graine** : `g = a × 10 000 + (m + 1) × 100 + j` (20261119), plus `JOUR_GRAINE` (un décalage, pour ne pas croiser les graines des autres modes). Tous les tirages du jour passent par **un petit générateur à lui** dans `jour.js` (le même genre que `ALEATOIRE`, mais à part) : tirer le jour ne décale aucun autre tirage du jeu.
+- **La graine** : `g = a × 10 000 + (m + 1) × 100 + j` (20261119), plus `JOUR_GRAINE` (un décalage, pour ne pas croiser les graines des autres modes). Tous les tirages du jour passent par **`ALEATOIRE.suite(graine)`** (une suite fixe à part, qui ne touche pas à `semer` / `hasard` ; le public des tribunes s'en sert déjà) : tirer le jour ne décale aucun autre tirage du jeu.
 
 ### A2. Le tirage des paramètres
 
@@ -377,7 +377,7 @@ Dans cet ordre (l'ordre fait partie de la règle : le changer change tous les jo
 
 Le piment `aileron` et le piment `pneus` font du stand un vrai choix dans une course de 2 ou 3 tours : c'est ce qui rend ces jours intéressants. Aucun piment ne touche aux règles ni à la physique : ils posent un **état de départ**.
 
-**La place de départ imposée** : comme la découverte (`DECOUVERTE.tempsMilieu`), on ne touche pas à la grille : on donne au joueur un temps de qualification fictif entre celui de l'IA qui doit être devant lui et celui de celle qui doit être derrière (`qualifier` range ensuite tout le monde). Aucune qualification à jouer.
+**La place de départ imposée** : comme la découverte (`DECOUVERTE.tempsMilieu`), on ne touche pas à la grille : on donne au joueur un temps de qualification fictif entre celui de l'IA qui doit être devant lui et celui de celle qui doit être derrière, puis `QUALIFICATION.grille(e, tempsJoueur)` range tout le monde par temps (c'est exactement ce que fait `placerDecouverte` dans `principal.js` avec `DECOUVERTE.tempsMilieu`). Attention : `qualifier(e)` de `simulation.js`, lui, met toujours les humains **derrière** les IA ; il ne faut pas s'en servir pour ça. Aucune qualification à jouer. **Grille inversée** (piment `dernier`) : avant `QUALIFICATION.grille`, remplacer chaque `p.qualif` des IA par son opposé (`-p.qualif`) : les plus rapides partent derrière, l'ordre reste déterministe.
 
 ### A3. Les médailles
 
@@ -435,7 +435,7 @@ Clés `textes.js` : `jour_partage` (`{n}`, `{circuit}`, `{meteo}`, `{tours}`, `{
 
 **Le plan, en deux marches.**
 1. **D'abord mesurer** (une demi-journée) : Playwright a les trois moteurs (Chromium, Firefox, WebKit, celui de Safari). Une page de test joue 7 jours tirés (une course d'IA seules, 10 voitures, le robot d'essai à la place du joueur) dans les trois et compare l'empreinte de la course (places et temps à l'arrivée, comme `tests/courses.html`). Si les trois donnent les mêmes places sur les 7 jours : **on s'arrête là** (les écarts d'un bit ne changent pas ce que voit un enfant).
-2. **Sinon, emprunter les maths du jeu en ligne** : `EN_LIGNE.preparerCircuit(nom)` construit déjà le circuit et la carte avec `EN_LIGNE_MATHS` (nos `sin`, `cos`, `atan2`… faits de + − × ÷ et `sqrt`, identiques partout), et `maths.activer()` / `desactiver()` encadrent une course. Pour le jour : les activer de la grille au podium, comme une partie en ligne. Deux conséquences : (a) la carte des IA de ce circuit est **une autre carte** (calculée avec nos maths) : il faut la livrer à part ou la calculer en fond ; (b) **la voiture du joueur roule aussi avec nos maths** pendant la course du jour : à tester (images/s, sensation identique).
+2. **Sinon, emprunter les maths du jeu en ligne** : `EN_LIGNE.preparerCircuit(nom)` (exporté par `enligne.js`) construit déjà le circuit et la carte avec `EN_LIGNE_MATHS` (nos `sin`, `cos`, `atan2`… faits de + − × ÷ et `sqrt`, identiques partout), et `EN_LIGNE.maths.activer()` / `EN_LIGNE.maths.desactiver()` (un compteur : on peut les emboîter) encadrent une course ; attention, `preparerCircuit` pose aussi `REGLAGES.NIVEAU = EN_LIGNE_NIVEAU` le temps du calcul : pour le jour, il faut une variante qui prend le niveau du jour. Pour le jour : les activer de la grille au podium, comme une partie en ligne. Deux conséquences : (a) la carte des IA de ce circuit est **une autre carte** (calculée avec nos maths) : il faut la livrer à part ou la calculer en fond ; (b) **la voiture du joueur roule aussi avec nos maths** pendant la course du jour : à tester (images/s, sensation identique).
 
 **La carte des IA** (le calcul qui fait « Préparation de la course… »), **mesurée** le 2026-11-19 sous le verrou : la vraie page (`index.html`), `construireCircuit` + `calculerTrajectoire`, encodée par `CACHE_CARTE.encoder` comme `cache-carte-test.js` (Chromium sans fenêtre sur le Mac, pendant que d'autres Codeurs travaillaient : temps de calcul **relatifs**).
 
@@ -482,7 +482,7 @@ Clés `textes.js` : `jour_partage` (`{n}`, `{circuit}`, `{meteo}`, `{tours}`, `{
 
 `JOUR_ACTIF`, `JOUR_VERSION`, `JOUR_DEBUT`, `JOUR_GRAINE`, `JOUR_IA`, `JOUR_NIVEAUX`, `JOUR_LONGUEUR_3_TOURS`, `JOUR_PLACES`, `JOUR_PLACES_POIDS`, `JOUR_PLUIE_FACTEUR`, `JOUR_PIMENT_CHANCE`, `JOUR_PIMENTS`, `JOUR_PIMENT_DEGATS`, `JOUR_PIMENT_USURE`, `JOUR_BRONZE_PLACES`, `JOUR_MATHS` (faux au début : voir A7), `JOUR_CARTES_LIVREES`.
 
-**Fichiers** : `jour.js` (nouveau, calcul pur), `principal.js` (lancer la course du jour : les réglages imposés, la place, le piment), `interface.js` + `index.html` (bouton du titre et du paddock, écran du jour, arrivée), `textes.js`, `donnees.js`, `sauvegarde.js` (le bloc `jour` à la racine de la sauvegarde : il survit à une nouvelle carrière ; environ 100 octets), `sdk.js` (le paramètre `jour` en plus de `defi`), `tests/`.
+**Fichiers** : `jour.js` (nouveau, calcul pur), `principal.js` (lancer la course du jour : les réglages imposés, la place, le piment), `interface.js` + `index.html` (bouton du titre et du paddock, écran du jour, arrivée), `textes.js`, `donnees.js`, `sauvegarde.js` (le bloc `jour` à la racine de la sauvegarde : il survit à une nouvelle carrière ; environ 100 octets), le début de `principal.js` (lire `jour` comme `defi` l'est déjà : `SDK.parametreUrl('jour')` sur Poki, l'adresse sinon ; `sdk.js` n'a rien à changer, `parametreUrl` et `lienPartage` prennent n'importe quel nom), `tests/`.
 
 ## Annexe B — Les 40 défis-éclair
 
@@ -501,7 +501,7 @@ Le nom est mis dans le titre (« Bats Rossi ») : l'enfant affronte des gens, pa
 
 ### B1. Le plan B : 28 défis qui partent de la grille (rien à changer dans la simulation)
 
-Il suffit d'imposer à la course rapide : le nombre de tours, d'IA, le niveau, la météo (`planMeteo`), la place de départ (le temps de qualification fictif, comme la découverte), l'état de départ (`v.degats`, l'usure des pneus), et l'ordre de la grille (rangé par `qualifier`).
+Il suffit d'imposer à la course rapide : le nombre de tours, d'IA, le niveau, la météo (`EN_LIGNE.planMeteo(choix, nomCircuit, graine, nbTours, circuit)`, exporté, sans lien avec l'adresse de la page), la place de départ (le temps de qualification fictif, comme la découverte), l'état de départ (`v.degats`, l'usure des pneus), et l'ordre de la grille (rangé par `qualifier`).
 
 **Groupe 1 — Le départ** (circuit `test` et Bahrayn : de longues lignes droites avant le premier virage)
 
@@ -533,13 +533,13 @@ Il suffit d'imposer à la course rapide : le nombre de tours, d'IA, le niveau, l
 
 | # | Titre | Situation | ⭐ | ⭐⭐ | ⭐⭐⭐ | Rival |
 |---|---|---|---|---|---|---|
-| 17 | Averse | Spaa, 3 tours, averse (au tiers), 9 IA n, 5e, en pneus secs | finir sans sortir plus de 3 s dans l'herbe | passer au stand prendre des pneus pluie et finir 5e ou mieux | podium | — |
+| 17 | Averse | Spaa, 3 tours, averse (au tiers), 9 IA n, 5e, en pneus secs | finir avec moins de 3 s dans l'herbe (`p.herbe` < 360 pas : il compte des pas de physique, 120 par seconde) | passer au stand prendre des pneus pluie et finir 5e ou mieux | podium | — |
 | 18 | Ça sèche ! | Interlagas, 3 tours, éclaircie, 9 IA n, 6e, en pneus pluie | finir | changer de pneus au bon moment et finir 4e ou mieux | podium | — |
 | 19 | Aileron cassé | Barcelana, 2 tours, 9 IA n, 3e, aileron à 0,4 | finir 6e ou mieux | finir 4e ou mieux | podium | — |
 | 20 | Le pari du stand | Montréol, 3 tours, 9 IA n, 4e, aileron à 0,6 | finir | passer au stand et finir 4e ou mieux | podium | — |
 | 21 | Pneus à bout | Yas Marino, 2 tours, 9 IA n, 2e, pneus à 70 % d'usure | finir 5e ou mieux | finir 3e ou mieux | gagner | le champion part 1er |
 | 22 | Déluge | Silverstoun, 2 tours, pluie forte, 9 IA n, 6e | finir sans pénalité | 3 places gagnées | podium | — |
-| 23 | Les drapeaux | `test`, 3 tours, 5 IA n, drapeaux allumés (une IA arrêtée comme la leçon 8, `TUTORIEL.scene`) | aucune pénalité de drapeau | 3e ou mieux sans pénalité | gagner sans pénalité | — |
+| 23 | Les drapeaux | `test`, 3 tours, 5 IA n, drapeaux allumés (une IA arrêtée comme la leçon 8 ; `TUTORIEL.scene` ne vise aujourd'hui que la leçon `drapeaux` : à généraliser en une petite fonction partagée) | aucune pénalité de drapeau | 3e ou mieux sans pénalité | gagner sans pénalité | — |
 | 24 | Melbourn sous l'orage | Melbourn Park, 3 tours, averse, 9 IA e, 7e | finir | 3 places | podium | — |
 
 **Groupe 4 — Les duels** (sur la grille, une seule voiture compte)
@@ -598,7 +598,7 @@ Ces défis mettent l'enfant **au milieu d'une course** (un tour donné, des voit
 
 `https://<adresse du jeu sur Poki>?pilote=1-<données>-<somme>` (par `SDK.lienPartage({ pilote: code })`, comme le défi ; repli sur l'adresse où le jeu tourne).
 
-Les **données** sont des entiers écrits avec les 64 signes de `defi.js` (`ecrireEntier`, sans « - ») :
+Les **données** sont des entiers écrits avec les 64 signes de `defi.js` (`ecrireEntier` y est **interne**, pas exporté : l'exporter dans le `return` de `DEFI`, avec `lireEntier`, plutôt que de le recopier ; pas de « - » dans les signes) :
 
 | Champ | Valeurs | Signes |
 |---|---|---|
@@ -623,7 +623,7 @@ Environ **15 signes de données + 2 de somme** : `?pilote=1-HbA3cK9xQ2mZ7bB-Tq`.
 
 Le copain est **une IA comme les autres** (même physique, mêmes règles, caractère tiré avec la graine). Seul son **rythme** (`p.rythme`, la part de la vitesse que sa carte permet) vient du lien :
 
-1. On calcule chez celui qui reçoit le **tour du poleman** du circuit du temps (`FANTOME_POLE`, déjà fait pour la qualification : 0,2 à 0,8 s, une fois) : `P`.
+1. On calcule chez celui qui reçoit le **tour du poleman** du circuit du temps : `P`. `FANTOME_POLE.tour(e)` prend une **course** (`e`, avec sa carte et sa grille, pas un plateau ; CLAUDE.md écrit `tour(plateau)`, c'est le code qui a raison) : il faut donc une course de ce circuit avec sa **carte des IA** (en cache, livrée, ou calculée : 1,3 à 2,5 s, mesuré en A7) ; on la prépare pendant que l'écran d'accueil du copain est affiché. Pour ne pas dépendre du poleman d'un tirage, prendre le **vrai tour simulé non étiré** (option à ajouter : aujourd'hui `FANTOME_POLE_ETIRER` étire toujours). Plus simple et presque aussi juste : `tourEstime(carte, 1)` × l'échelle de qualification du circuit (`QUALIF_ECHELLE_CIRCUIT`), sans simulation.
 2. `r = P / T` (T = le temps du copain). Un enfant aussi rapide que le poleman a `r ≈ 1`.
 3. **Le temps impossible** : `T < P × COPAINS_TEMPS_MIN` (0,97 : plus de 3 % plus vite qu'une IA parfaite) → le temps est ignoré (rythme moyen), avec un mot neutre (« On n'a pas pu lire son temps »), jamais « tricheur ».
 4. **Le rythme** : on place `r` entre `COPAINS_R_LENT` (0,85) et `COPAINS_R_RAPIDE` (1,0), et on l'étale entre **le rythme du plus lent et celui du plus rapide du plateau** de celui qui reçoit. Un copain très rapide est donc, **au plus, aussi rapide que le champion** de ta division, jamais plus ; un copain lent est le plus lent du plateau, jamais moins.
@@ -653,7 +653,7 @@ Le pire cas d'un lien fabriqué : un copain qui roule comme le meilleur rival de
 - **Le numéro déjà pris** : il prend le plus proche de libre, et on le dit (« Le 7 est pris : Inès courra avec le 17 »).
 - **Au plus `COPAINS_MAX` (3) copains** par plateau ; au-delà : « Ta grille a déjà 3 copains : remplacer lequel ? ».
 - **Ensuite**, partout dans le jeu : sa ligne d'une couleur à part dans la tour de classement et les classements (« 🤝 » devant son prénom), le duel « Toi 3 – 1 Inès » sur la page Course du paddock, sa fiche (« Discuter » marche : il répond comme un rival, avec le caractère tiré), au moins **une une du journal par saison** sur vous deux, les phrases du commentateur avec son prénom. Dans sa fiche : **« Envoyer ma revanche »** (ton propre lien, pour qu'il t'ajoute chez lui) et « Retirer de ma saison ».
-- **Il vieillit avec toi** (l'âge du joueur) ; il ne prend sa retraite qu'avec toi ; la relève le garde (« l'ami de la famille »).
+- **Son âge** : le joueur n'a pas d'âge dans la sauvegarde (`p.age` est `null` pour l'humain, `championnat.js`) ; le copain prend l'âge le plus bas du plateau (`AGE_DEPART`), vieillit comme les rivaux dans `SAISONS.evoluer`, mais **ne prend pas sa retraite** tant que le joueur court (`COPAINS_RETRAITE` faux) ; la relève le garde (« l'ami de la famille »).
 
 **C'est un nouveau joueur** (pas de sauvegarde) : le lien l'emmène sur la grille de la **course de découverte**, la voiture du copain à la place de l'un des 6 rivaux, avec une bulle « 🤝 Ton copain est sur la grille ! » (son prénom n'est pas connu : il sera demandé à la création du pilote, juste après le podium, par la même question). Le reste de la découverte ne change pas (`DECOUVERTE_*`).
 
@@ -668,7 +668,7 @@ Le pire cas d'un lien fabriqué : un copain qui roule comme le meilleur rival de
 - Les écrans : l'accueil du copain en 1280×720, 960×600, 640×360 au doigt, fr et en ; la découverte avec le copain ; aucun texte venu du lien à l'écran (le test cherche le contenu des données dans la page).
 - `COPAINS_ACTIF` faux : aucun bouton, `?pilote=` ignoré, le jeu d'avant au bit près.
 
-**Fichiers** : `copain.js` (nouveau, calcul pur : coder, décoder, rythme), `championnat.js` (insérer, retirer), `decouverte.js` (le copain dans la découverte), `interface.js` + `index.html` (envoi, accueil, fiche), `textes.js`, `donnees.js` (`COPAINS_*`), `sdk.js` (le paramètre `pilote`), `sauvegarde.js`.
+**Fichiers** : `copain.js` (nouveau, calcul pur : coder, décoder, rythme), `championnat.js` (insérer, retirer), `decouverte.js` (le copain dans la découverte), `interface.js` + `index.html` (envoi, accueil, fiche), `textes.js`, `donnees.js` (`COPAINS_*`), le début de `principal.js` (lire `pilote` comme `defi`, par `SDK.parametreUrl` ; `sdk.js` inchangé), `defi.js` (exporter `ecrireEntier` et `lireEntier`), `sauvegarde.js`.
 
 ## Sources (ce que Poki dit)
 
