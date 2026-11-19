@@ -59,6 +59,26 @@ connaît), un tremblement de la main (σ 2,5 à 4°), et un coup de volant de 18
   sortie dans l'herbe : relancée à 233 km/h, 0,8 s d'herbe (sans secours : 3,6 s d'herbe, bloquée à 0 km/h) ; borne : devant un virage,
   la vitesse rendue est celle de `vitesseSure`.
 
+## Revue du Chef : la place du secours (commit PLACE)
+
+Demandé : à ~230 km/h, ne jamais poser la voiture sur ou juste devant/derrière une IA, et ne jamais faire gagner place ni temps.
+Fait (`assistance.js` : `placeLibre`, `relancer(v, circuit, carte, u, autres)`, `reporter` ; `principal.js` : `secoursJoueur` passe les
+voitures du plateau ; `GUIDAGE_POSE_*` dans donnees.js) :
+- **la place** : le point d'Espace ou **en arrière, jamais plus loin** ; le milieu, puis les files à ±3 et ±4,5 m (à 1,5 m du bord au
+  plus), puis en reculant de 10 m en 10 m jusqu'à 120 m. Libre = aucune autre voiture dans la même bande (3,5 m de côté) à moins de 30 m
+  devant ni 30 m derrière (plus si celle de derrière va plus vite : ce qu'elle rattraperait en 2 s). Posée par `placerSurPiste` (le code
+  d'Espace), dans le sens de la piste ;
+- **la vitesse** : celle d'avant, bornée par `vitesseSure` et par la vitesse de la voiture qui roule devant dans la bande à moins de 120 m ;
+- **pas de place du tout** : rien ne bouge, le secours réessaie au pas suivant.
+
+Mesures (tests/guidage.html, 21/21) : IA au point même → posée file −4,5 m, 0 chevauchement en 3 s ; 15 m devant → idem ; 15 m derrière
+et plus rapide (270 km/h) → idem ; à côté et au milieu → idem ; trois files prises (5 IA) → posée 30 m en arrière, file +3 m, 216 km/h
+(plafonnée par l'IA de devant), 0 chevauchement ; IA 60 m devant à 144 km/h → posée au milieu à 144 km/h ; piste bouchée sur 150 m →
+pas posée, faite au premier pas où la place se libère. **Pas de gain** : la même voiture, même départ, même GAZ, avec et sans faute :
+après un tête-à-queue relancé (1,29 s), elle n'est jamais devant (au mieux à égalité avant la faute), 34,7 m derrière à 6 s ; après une
+sortie dans l'herbe relancée (2,65 s), 39,7 m derrière. La pose n'étant jamais plus loin que le point d'Espace, aucun virage n'est coupé
+(pas de pénalité de limites).
+
 ## Ce que je n'ai pas pu vérifier
 
 - **Jamais essayé sur un vrai téléphone** : le joueur simulé n'est pas un enfant. La sensation (« le volant repris » est-il gênant ?

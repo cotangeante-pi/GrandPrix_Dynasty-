@@ -221,6 +221,16 @@ const REGLAGES = {
   GUIDAGE_STABLE: [5, 15],         // ° : la voiture est stable (glisse et cap à la piste sous ces angles, sur le goudron, sans zigzag) : sa vitesse est gardée pour le secours
   GUIDAGE_PERDU: [80, 30, 0.5, 0.3], // perdue : cap à plus de 80° de la piste, ou glisse de plus de 30°, ou dans l'herbe 0,5 s en ligne droite ; pendant 0,3 s
   GUIDAGE_SECOURS_PAUSE: 3,        // s entre deux secours
+  // (revue du Chef) la place du secours : jamais sur une autre voiture ni devant le point où la voiture a quitté la piste (assistance.js : placeLibre, relancer)
+  GUIDAGE_POSE_FILES: [3, 4.5],    // m : les files essayées de chaque côté du milieu (d'abord le milieu)…
+  GUIDAGE_POSE_BORD: 1.5,          // … sans aller à moins de ça du bord de la piste
+  GUIDAGE_POSE_RECUL: 120,         // m : on recule le point de pose au plus de ça (jamais plus loin que le point d'Espace)…
+  GUIDAGE_POSE_PAS: 10,            // … par pas de ça
+  GUIDAGE_POSE_LARGEUR: 3.5,       // m de côté : une voiture plus près que ça est dans la même bande
+  GUIDAGE_POSE_DEVANT: 30,         // m : la place est libre sans voiture de la bande à moins de ça devant…
+  GUIDAGE_POSE_DERRIERE: 30,       // … ni à moins de ça derrière…
+  GUIDAGE_POSE_TEMPS: 2,           // … ni d'une voiture plus rapide qui nous rattraperait en moins de ces s
+  GUIDAGE_POSE_SUIVI: 120,         // m : une voiture de la bande devant à moins de ça plafonne la vitesse rendue à la sienne
 
   // les aides au pilotage du joueur (assistance.js, tour 41) : seulement ses cibles, avant la physique ; toutes en débutant
   ASSIST_VITESSE_MIN: 5,           // m/s : en dessous, aucune aide

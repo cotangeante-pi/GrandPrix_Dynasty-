@@ -2278,7 +2278,10 @@ function guiderJoueur(brut, c, v) {
 function secoursJoueur(v, permis) {
   if (!REGLAGES.TACTILE_GUIDAGE_SECOURS || !permis || !telephoneGuide()) return;
   const u = ASSISTANCE.secours(etatGuidage(v), v, CIRCUIT, REGLAGES.PAS_PHYSIQUE);
-  if (u !== null) { ASSISTANCE.relancer(v, CIRCUIT, JEU.carte, u); JEU.secoursGuidage = (JEU.secoursGuidage || 0) + 1; }
+  if (u === null) return;
+  const autres = JEU.plateau ? JEU.plateau.pilotes.map(q => q.v).filter(o => o && o !== v) : [];   // (revue du Chef : jamais posée sur une IA)
+  if (ASSISTANCE.relancer(v, CIRCUIT, JEU.carte, u, autres) === null) ASSISTANCE.reporter(etatGuidage(v));   // (pas de place libre : au pas suivant)
+  else JEU.secoursGuidage = (JEU.secoursGuidage || 0) + 1;
 }
 
 // ?ia=N&joueur=1 : les commandes du joueur pour sa voiture dans la course entre IA (comme seul : rampes, Espace)

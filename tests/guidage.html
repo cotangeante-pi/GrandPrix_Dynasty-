@@ -171,6 +171,54 @@ t('secours : sortie dans l’herbe en ligne droite (le joueur part de côté) : 
 t('secours : la vitesse rendue est bornée par ce qu’il faut pour passer le virage qui arrive (vitesseSure)',()=>{
   const v=creerVoiture(C,2950,0);v.cap+=2;
   const donne=ASSISTANCE.relancer(v,C,null,150);v_(donne<150&&donne>30,donne);});
+// (revue du Chef) la place du secours : jamais sur une IA, jamais devant ; la vitesse plafonnée par la voiture de devant
+// une IA qui roule tout droit dans sa file à vitesse constante (gaz dosé, direction 0) ; le joueur relancé roule sans gaz ni volant
+function ia(s,d,u){const o=creerVoiture(C,s,d);o.u=u;o.ia=true;return o;}
+function rouleIA(o){const c=o.u<o.cible?1:0;appliquerCommandes(o,{gaz:c,frein:0,direction:0});pasVoiture(o,C,DT);}
+function chevauche(a,b){const ds=Math.abs(((a.piste.s-b.piste.s+C.longueur/2)%C.longueur+C.longueur)%C.longueur-C.longueur/2);return ds<R.LONGUEUR_VOITURE+1&&Math.abs(a.piste.d-b.piste.d)<R.DEMI_LARGEUR_VOITURE*2+0.4;}
+function poser(cas){
+  const v=creerVoiture(C,1000,0);v.u=20;v.cap+=110/DEG;const s0=v.piste.s;
+  const autres=cas.map(([ds,d,u])=>{const o=ia(s0+ds,d,u);o.cible=u;return o;});
+  const donne=ASSISTANCE.relancer(v,C,null,64,autres);
+  if(donne===null)return {donne,autres,v,s0};
+  let choc=0,dMin=Infinity;const a0=autres.map(o=>o.piste.s);
+  for(let k=0;k<3/DT;k++){for(const o of autres)rouleIA(o);lisserCommandes(v,{gaz:0,frein:0,direction:0},DT);pasVoiture(v,C,DT);
+    for(const o of autres){if(chevauche(v,o))choc++;}}
+  return {donne,autres,v,s0,choc,pose:null};}
+t('secours, la place (revue du Chef) : une IA au point de pose (devant, derrière, à côté, plusieurs files prises) : la voiture est posée sur une place libre (une autre file ou plus en arrière, jamais plus loin que le point d’Espace), dans le sens de la piste, et 3 s ensuite sans aucun chevauchement',()=>{
+  const res=[];
+  const CAS={'IA au point même':[[0,0,55]],'IA 15 m devant':[[15,0,50]],'IA 15 m derrière, plus rapide':[[-15,0,75]],'IA à côté (file de droite) et au milieu':[[0,0,60],[2,3,60]],
+    'trois files prises':[[0,0,60],[5,3,60],[-5,-3,60],[10,4.5,60],[-8,-4.5,60]],'IA 60 m devant, plus lente':[[60,0,40]]};
+  for(const [nom,cas] of Object.entries(CAS)){
+    const v=creerVoiture(C,1000,0);v.u=20;v.cap+=110/DEG;const s0=v.piste.s;
+    const r=poser(cas);v_(r.donne!==null,nom+' : aucune place');
+    const v2=creerVoiture(C,1000,0);v2.u=20;v2.cap+=110/DEG;const autres2=cas.map(([ds,d,u])=>ia(s0+ds,d,u));const u2=ASSISTANCE.relancer(v2,C,null,64,autres2);
+    const gain=((v2.piste.s-s0+C.longueur/2)%C.longueur+C.longueur)%C.longueur-C.longueur/2;
+    res.push(`${nom} : posée à ${fx(gain,0)} m, file ${fx(v2.piste.d,1)} m, ${fx(u2*3.6,0)} km/h, chevauchements ${r.choc}`);
+    v_(r.choc===0&&gain<=0.5&&Math.abs(ecartCap(v2))<0.5&&Math.abs(v2.piste.d)<=C.largeur/2-R.GUIDAGE_POSE_BORD+1e-9,res.join(' ; '));
+    for(const o of autres2){const ds=((o.piste.s-v2.piste.s+C.longueur/2)%C.longueur+C.longueur)%C.longueur-C.longueur/2;
+      if(Math.abs(o.piste.d-v2.piste.d)<R.GUIDAGE_POSE_LARGEUR){v_(ds>=R.GUIDAGE_POSE_DEVANT||-ds>=R.GUIDAGE_POSE_DERRIERE,nom+' : trop près ('+fx(ds)+' m)');if(ds>0&&ds<R.GUIDAGE_POSE_SUIVI)v_(u2<=o.u+1e-9,nom+' : plus vite que la voiture de devant');}}}
+  TABLE.push('  secours, la place : '+res.join(' ; '));});
+t('secours, pas de place du tout (la piste bouchée sur 150 m) : la voiture n’est pas bougée, le secours réessaie au pas suivant, et se fait dès que la place se libère',()=>{
+  const v=creerVoiture(C,1000,0);v.u=20;v.cap+=110/DEG;const s0=v.piste.s,x0=v.x;const autres=[];
+  for(let ds=-160;ds<=40;ds+=12)for(const d of [-4.5,-3,0,3,4.5])autres.push(ia(s0+ds,d,v.u));
+  v_(ASSISTANCE.relancer(v,C,null,64,autres)===null&&v.x===x0,'posée quand même');
+  const e=ASSISTANCE.creerGuidage();e.uStable=64;let n=0,fait=null;
+  for(let k=0;k<1/DT&&fait===null;k++){const u=ASSISTANCE.secours(e,v,C,DT);if(u!==null){n++;const r=ASSISTANCE.relancer(v,C,null,u,k<60?autres:[]);if(r===null)ASSISTANCE.reporter(e);else fait=k;}}
+  v_(fait===60&&e.secours===1,'fait au pas '+fait+', secours '+e.secours);});
+t('secours, jamais plus rapide que de rester sur la piste : une voiture qui part en tête-à-queue puis est relancée reste toujours derrière la même voiture qui n’a rien eu (même départ, même GAZ) ; pareil pour une sortie dans l’herbe',()=>{
+  const res=[];
+  for(const [nom,faute] of [['tête-à-queue',v=>{v.cap+=110/DEG;}],['herbe',null]]){
+    const a=creerVoiture(C,300,0),b=creerVoiture(C,300,0);a.u=b.u=60;const e=ASSISTANCE.creerGuidage();let pire=-Infinity,t=0,relance=null;
+    for(let k=0;k<6/DT;k++){t+=DT;
+      if(faute&&Math.abs(t-1)<DT/2)faute(b);
+      const u=ASSISTANCE.secours(e,b,C,DT);if(u!==null){ASSISTANCE.relancer(b,C,null,u,[]);relance=t;}
+      lisserCommandes(a,{gaz:1,frein:0,direction:0},DT);pasVoiture(a,C,DT);
+      lisserCommandes(b,{gaz:1,frein:0,direction:!faute&&t>1&&t<1.6?0.5:0},DT);pasVoiture(b,C,DT);
+      pire=Math.max(pire,b.piste.s-a.piste.s);}
+    res.push(`${nom} : relancée à ${relance===null?'—':fx(relance)+' s'}, au mieux ${fx(pire,2)} m par rapport à la voiture sans faute, ${fx((a.piste.s-b.piste.s),1)} m derrière à 6 s`);
+    v_(relance!==null&&pire<=0.01,res.join(' ; '));}
+  TABLE.push('  secours, pas de gain : '+res.join(' ; '));});
 t('secours : une voiture stable n’est jamais relancée ; une voiture stable dans un virage non plus ; et pas deux secours en moins de GUIDAGE_SECOURS_PAUSE s',()=>{
   const e=ASSISTANCE.creerGuidage(),v=creerVoiture(C,300,0);v.u=60;
   for(let k=0;k<5/DT;k++){v_(ASSISTANCE.secours(e,v,C,DT)===null,'stable relancée');lisserCommandes(v,piloteRobot(v,C),DT);pasVoiture(v,C,DT);}

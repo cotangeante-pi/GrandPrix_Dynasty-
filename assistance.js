@@ -170,15 +170,45 @@ const ASSISTANCE = (function () {
     e.actif = false; e.g = 0; e.inversions = 0; e.cote = 0;
     return e.uStable;
   }
-  // le retour en piste du secours : celui d'Espace (remettreSurPiste : au plus près, au milieu, dans le sens de la piste), puis la vitesse
-  // d'avant, bornée à ce qu'il faut pour passer ce qui arrive (vitesseSure, celle du freinage assisté) ; renvoie la vitesse donnée
-  function relancer(v, circuit, carte, u) {
-    remettreSurPiste(v, circuit);
+  // le retour en piste du secours (tour 60, revue du Chef : à 230 km/h, il ne faut ni tomber sur une IA ni gagner quoi que ce soit) :
+  // - la place : le point le plus proche de la piste (celui d'Espace), jamais plus loin ; d'abord au milieu, puis sur les autres files
+  //   (GUIDAGE_POSE_FILES m), puis en reculant de GUIDAGE_POSE_PAS m jusqu'à GUIDAGE_POSE_RECUL m : la première place libre, c'est-à-dire
+  //   sans voiture dans la même bande (GUIDAGE_POSE_LARGEUR m de côté) à moins de GUIDAGE_POSE_DEVANT m devant, ni derrière à moins de
+  //   GUIDAGE_POSE_DERRIERE m (ou de ce qu'elle mettrait à nous rattraper en GUIDAGE_POSE_TEMPS s si elle va plus vite) ;
+  // - la vitesse : celle d'avant le trouble (u), bornée par ce qu'il faut pour passer ce qui arrive (vitesseSure, celle du freinage assisté)
+  //   et par la vitesse de la voiture qui roule devant dans la même bande à moins de GUIDAGE_POSE_SUIVI m (on ne l'emboutit pas) ;
+  // - posée par le code d'Espace (placerSurPiste : dans le sens de la piste), puis la vitesse ; la physique ne change pas.
+  // autres : les autres voitures (positions sur la piste lues dans v.piste) ; renvoie la vitesse donnée, ou null s'il n'y a aucune place libre
+  // (rien n'est bougé : le secours réessaie au pas suivant, reporter)
+  const devantDe = (circuit, a, b) => { const L = circuit.longueur; return ((a - b + L / 2) % L + L) % L - L / 2; };   // a − b le long de la piste, dans −L/2..L/2
+  function placeLibre(circuit, s0, u, autres) {
+    const lim = circuit.largeur / 2 - R.GUIDAGE_POSE_BORD, files = [0].concat(...R.GUIDAGE_POSE_FILES.map(f => [-f, f])).filter(d => Math.abs(d) <= lim);
+    const libre = (s, d) => !autres.some(o => {
+      if (!o || !o.piste || o.dansStands || Math.abs(o.piste.d - d) >= R.GUIDAGE_POSE_LARGEUR) return false;
+      const ds = devantDe(circuit, o.piste.s, s);
+      return ds >= 0 ? ds < R.GUIDAGE_POSE_DEVANT : -ds < Math.max(R.GUIDAGE_POSE_DERRIERE, (o.u - u) * R.GUIDAGE_POSE_TEMPS);
+    });
+    for (let recul = 0; recul <= R.GUIDAGE_POSE_RECUL; recul += R.GUIDAGE_POSE_PAS)
+      for (const d of files) if (libre(s0 - recul, d)) return { s: s0 - recul, d };
+    return null;
+  }
+  function relancer(v, circuit, carte, u, autres = []) {
+    const p = positionSurPiste(circuit, v.x, v.z, v.piste ? v.piste.indice : null);
+    const place = placeLibre(circuit, p.s, u, autres);
+    if (!place) return null;
+    placerSurPiste(v, circuit, place.s, place.d);
     v.u = u;
-    const sure = vitesseSure(v, circuit, carte);
-    v.u = Math.max(0, Math.min(u, sure));
+    let w = Math.min(u, vitesseSure(v, circuit, carte));
+    for (const o of autres) {
+      if (!o || !o.piste || o.dansStands || Math.abs(o.piste.d - place.d) >= R.GUIDAGE_POSE_LARGEUR) continue;
+      const ds = devantDe(circuit, o.piste.s, place.s);
+      if (ds > 0 && ds < R.GUIDAGE_POSE_SUIVI) w = Math.min(w, Math.max(0, o.u));
+    }
+    v.u = Math.max(0, w);
     return v.u;
   }
+  // pas de place libre : le secours n'a pas eu lieu, il réessaie au pas suivant (la voiture est toujours perdue)
+  function reporter(e) { e.attente = 0; e.perdu = R.GUIDAGE_PERDU[3]; e.secours--; }
 
-  return { appliquer, reglees, vitesseSure, bonus, AIDES, creerGuidage, guider, secours, relancer, droiture, directionDroite };
+  return { appliquer, reglees, vitesseSure, bonus, AIDES, creerGuidage, guider, secours, relancer, reporter, placeLibre, droiture, directionDroite };
 })();
