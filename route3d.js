@@ -125,15 +125,15 @@ float herbe( vec2 p ) {
     const u = uniformes();
     m.onBeforeCompile = sh => {
       for (const k in u) sh.uniforms[k] = u[k];
-      const attr = sorte === 'herbe' ? '' : 'attribute vec4 aRoute;\nvarying vec4 vRoute;\n';
+      const attr = sorte === 'herbe' ? '' : 'attribute vec4 aRoute;\nattribute float aTache;\nvarying vec4 vRoute;\nvarying float vTache;\n';
       sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec2 vMonde;\n' + attr)
-        .replace('#include <begin_vertex>', '#include <begin_vertex>\n  vMonde = ( modelMatrix * vec4( transformed, 1.0 ) ).xz;' + (attr ? '\n  vRoute = aRoute;' : ''));
+        .replace('#include <begin_vertex>', '#include <begin_vertex>\n  vMonde = ( modelMatrix * vec4( transformed, 1.0 ) ).xz;' + (attr ? '\n  vRoute = aRoute;\n  vTache = aTache;' : ''));
       sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\n' + HERBE_GLSL + `
 uniform float uDetail;
 uniform vec2 uRep, uForce, uEau, uBas;
 uniform vec3 uGomme, uFrein, uBord, uCiel, uMouille, uSol, uTerre, uGravier;
-` + (attr ? 'varying vec4 vRoute;\n' : ''))
-        .replace('#include <color_fragment>', '#include <color_fragment>\n' + (sorte === 'route' ? ROUTE_GLSL + BAS_GLSL : '  diffuseColor.rgb *= herbe( vMonde );'))
+` + (attr ? 'varying vec4 vRoute;\nvarying float vTache;\n' : ''))
+        .replace('#include <color_fragment>', '#include <color_fragment>\n' + (sorte === 'route' ? ROUTE_GLSL + BAS_GLSL.replace('HERBE_ICI', R.ROUTE_HERBE_GRAIN ? '* herbe( vMonde )' : '') : '  diffuseColor.rgb *= herbe( vMonde );'))
         .replace('#include <envmap_fragment>', sorte === 'route' ? PLUIE_GLSL : '');
     };
     m.customProgramCacheKey = () => 'gpd-route-' + sorte;
@@ -147,13 +147,13 @@ uniform vec3 uGomme, uFrein, uBord, uCiel, uMouille, uSol, uTerre, uGravier;
   bool estRoute = vRoute.w >= 0.0;
   if ( estRoute ) {
   float gFin = texture2D( uGrain, vRoute.xy / uRep.x ).r;
-  gTache = texture2D( uGrain, vRoute.xy / uRep.y ).g;
+  gTache = vTache;   // (les taches : une valeur douce par sommet, calculée une fois ; aucune lecture de texture)
   dl = abs( vRoute.x - vRoute.z );
   float gomme = 1.0 - smoothstep( uGomme.x, uGomme.y, dl );
   float kRoute = 1.0 + ( gFin - 0.5 ) * uForce.x;
   if ( uDetail > 0.5 ) {
     float trace = vRoute.w * ( 1.0 - smoothstep( uFrein.y * 0.4, uFrein.y, abs( dl - uFrein.x ) ) );
-    trace *= smoothstep( 0.3, 0.7, texture2D( uGrain, vec2( vRoute.x * 0.5, vRoute.y * 0.1 ) ).b );
+    if ( trace > 0.0 ) trace *= smoothstep( 0.3, 0.7, texture2D( uGrain, vec2( vRoute.x * 0.5, vRoute.y * 0.1 ) ).b );   // (la lecture seulement sur les traces)
     float bord = smoothstep( uBord.z - uBord.x, uBord.z, abs( vRoute.x ) ) * ( 1.0 - gomme );
     kRoute *= ( 1.0 + ( gTache - 0.5 ) * uForce.y ) * ( 1.0 - uFrein.z * trace ) * ( 1.0 + uBord.y * bord );
   }
@@ -171,9 +171,9 @@ uniform vec3 uGomme, uFrein, uBord, uCiel, uMouille, uSol, uTerre, uGravier;
   // les bas-côtés : vRoute = (m depuis le bord, s ramené, part de gravier, -largeur) ; au bord extérieur, exactement l'herbe du sol
   const BAS_GLSL = `
   float tBas = clamp( vRoute.x / max( - vRoute.w, 0.01 ), 0.0, 1.0 );
-  float bFin = texture2D( uGrain, vMonde / uRep.x ).r, bTache = texture2D( uGrain, vMonde / 9.0 ).g;
+  float bFin = texture2D( uGrain, vMonde / uRep.x ).r, bTache = vTache;
   float bb = ( bTache - 0.5 ) * 1.6 + ( bFin - 0.5 ) * 0.5;
-  vec3 solIci = uSol * herbe( vMonde );
+  vec3 solIci = uSol HERBE_ICI;
   float usure = 1.0 - smoothstep( 0.0, uBas.x, vRoute.x + bb * 0.9 );
   vec3 cBas = mix( solIci, uTerre * ( 0.85 + 0.3 * bFin ), usure * 0.85 );
   float gv = vRoute.z * ( 1.0 - smoothstep( 0.62, 0.9, tBas + bb * 0.12 ) );
@@ -224,10 +224,14 @@ uniform vec3 uGomme, uFrein, uBord, uCiel, uMouille, uSol, uTerre, uGravier;
     route.name = 'route';
     return { route, ligne, frein, graviers: gr };
   }
+  // la tache d'un sommet (0 à 1) : un bruit doux et sans hasard de sa position (x, z), des taches de 10 à 60 m
+  const tache = (x, z) => 0.5 + 0.2 * Math.sin(x * 0.11 + z * 0.07) + 0.15 * Math.sin(x * -0.043 + z * 0.13 + 1.3) + 0.15 * Math.sin(x * 0.29 - z * 0.23 + 2.1);
   function geometrie(pos, att) {
-    const g = new THREE.BufferGeometry();
+    const g = new THREE.BufferGeometry(), t = new Float32Array(pos.length / 3);
+    for (let i = 0; i < t.length; i++) t[i] = tache(pos[3 * i], pos[3 * i + 2]);
     g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
     g.setAttribute('aRoute', new THREE.Float32BufferAttribute(att, 4));
+    g.setAttribute('aTache', new THREE.Float32BufferAttribute(t, 1));
     g.computeVertexNormals();
     return g;
   }

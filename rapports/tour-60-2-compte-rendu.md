@@ -1,5 +1,5 @@
 TOUR 60 — compte rendu du Codeur 2 (le réalisme des voitures et de la route)
-Commit : 2577b6b (branche `realisme-60`, depuis main e5516e2)
+Commit : 64f3e4c (branche `realisme-60` : mon travail 845a378, vert 18/18 au passage https://github.com/cotangeante-pi/GrandPrix_Dynasty-/actions/runs/44646286680, puis la fusion de origin/fusion-60b : ciel, public, Auto fine du Codeur 3, conflits réglés dans CLAUDE.md et tests/test.html)
 Passage GitHub : PASSAGE_A_REMPLIR
 
 Ordres : 1 fait / 2 fait / 3 fait (images/s : dans le bruit d'un Mac chargé, voir plus bas) / 4 fait / 5 fait
@@ -46,6 +46,10 @@ matériaux et programmes).
    `{ ombresContact: false }` puis `{ reflets: false }` (les reflets des voitures et le détail de la route : taches, traces,
    bords). Un pas dont le réalisme est éteint n'existe pas (`realisme: [...]` dans le pas, filtré par `niveaux`). 21 niveaux
    au lieu de 19. Le test de l'ordre des pas connaît les deux nouvelles clés (famille 5, celle des ombres).
+   Après la fusion de l'Auto fine du Codeur 3 (`QUALITE_FINE`) : les deux mêmes pas sont aussi à la fin de `QUALITE_PAS_FIN`
+   (après le rétroviseur ; leur valeur du plus beau, vrai, est déjà dans `plusBeau`), filtrés de la même façon dans `niveauxFin` :
+   ils marchent avec `QUALITE_FINE` vrai et faux (tests/test.html?filtre=qualit : 18/18 après la fusion ; Auto fine : 15 pas de
+   contenu).
 4. Captures avant/après dans `rapports/captures-tour60/` (préfixe `voitures-route-`, JPEG) : Monzo, Monoco, Singapura (nuit),
    derrière la voiture, cockpit, télé en 1280×720 et 844×390, de près en 1280 ; Monzo dans le jeu sous la pluie et au sec
    (`index.html`, 8 IA) ; la chicane de Monzo vue du dessus (gomme, freinages, gravier). Relues : les voitures ont du volume
@@ -78,6 +82,11 @@ Mesures :
   côtés. **L'écart avant / après est plus petit que l'écart entre deux passages du même code.**
 
 Ce que je n'ai pas pu vérifier :
+- Le premier passage (2577b6b) était rouge : ecrans-1 arrêté à 900 s et le test des dégâts (`test=degats`) qui lisait la voiture
+  0,8 s après la réparation. Cause : sous swiftshader (les tests), une image coûtait 210 ms avant, 335 ms après (mesuré sur le Mac :
+  le filtrage anisotrope 55 ms, la route 34, l'herbe 13, le Phong des voitures 12, les ombres 2). Remède : filtrage anisotrope
+  coupé (`ROUTE_GRAIN_ANISOTROPIE` 1), le test des dégâts attend l'image suivante (`attendre`, 10 s au plus) au lieu de 0,8 s fixe.
+  Le passage suivant (845a378) : 18/18.
 - Un vrai téléphone et un ordinateur d'école (le Mac n'a qu'une Intel Iris chargée par les autres Codeurs ; swiftshader pour les
   captures). Sur un GPU très lent, le coût est surtout dans le shader de la route (3 lectures de texture par pixel au lieu de 0) :
   le pas « reflets » de l'Auto le ramène à une seule lecture.

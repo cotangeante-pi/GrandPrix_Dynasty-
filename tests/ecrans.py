@@ -2910,7 +2910,7 @@ PLAFONDS_IMAGE = {
     'melbourn': (48, 99000),
     'barcelana': (44, 108000),
     'bahrayn': (45, 94000),
-    'singapura': (46, 106000),   # (tour 50c : 147 286 → 96 344)
+    'singapura': (46, 112000),   # (tour 50c : 147 286 → 96 344 ; tour 60 : 96 344 → ~106 000 avec le public du Codeur 3 et les bas-côtés de la route du Codeur 2, ~3 300 triangles fixes, et les voitures détaillées)
     'yasmarino': (48, 97000),
 }
 # (tour 60, Codeur 3) le ciel et le public réalistes (decor.js : cielRealiste, publicRealiste, animer) : le ciel est UN maillage (le dôme,

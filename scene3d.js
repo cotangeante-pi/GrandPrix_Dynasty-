@@ -222,7 +222,7 @@ const SCENE3D = (function () {
     const sol = maillage(new THREE.PlaneGeometry(taille, taille), couleurSol === undefined ? R.COULEUR_SOL : couleurSol, { polygonOffset: true, polygonOffsetFactor: R.SOL_RECUL_PROFONDEUR, polygonOffsetUnits: R.SOL_RECUL_PROFONDEUR });
     // (tour 60, REALISME_ROUTE : route3d.js ; l'herbe garde sa couleur, avec un grain doux)
     const realiste = R.REALISME_ROUTE && typeof ROUTE3D !== 'undefined';
-    if (realiste) sol.material = ROUTE3D.materiau('herbe', { color: couleurSol === undefined ? R.COULEUR_SOL : couleurSol, polygonOffset: true, polygonOffsetFactor: R.SOL_RECUL_PROFONDEUR, polygonOffsetUnits: R.SOL_RECUL_PROFONDEUR });
+    if (realiste && R.ROUTE_HERBE_GRAIN) sol.material = ROUTE3D.materiau('herbe', { color: couleurSol === undefined ? R.COULEUR_SOL : couleurSol, polygonOffset: true, polygonOffsetFactor: R.SOL_RECUL_PROFONDEUR, polygonOffsetUnits: R.SOL_RECUL_PROFONDEUR });
     sol.rotation.x = -Math.PI / 2;
     sol.position.set((xmin + xmax) / 2, 0, (zmin + zmax) / 2);
     groupe.add(sol);

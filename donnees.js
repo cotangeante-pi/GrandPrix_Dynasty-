@@ -1276,7 +1276,7 @@ const REGLAGES = {
   REFLET_TAILLE: 32,               // pixels d'une face de la carte d'environnement (6 faces, 24 Ko)
   REFLET_FORCE: [0.04, 0.45],       // la part du reflet vu de face et en rasant (Fresnel), × la brillance
   REFLET_CIEL_DEFAUT: 0x4a90d9, REFLET_ROUTE: 0x45474c,
-  PNEU_SEGMENTS: 20,
+  PNEU_SEGMENTS: 18,
   PNEU_DESSIN: { gomme: 0x161617, flanc: 0x2a2b2e, bande: 0xf2c230, marque: 0xdedede, janteBord: 0xb8bcc4, janteFond: 0x3a3e45, janteFond2: 0x1d1f23, rayon: 0x8d939b, ecrou: 0xd0d4da, roulement: 0x232325, epaule: 0x121213 },
   OMBRE_CONTACT: [6.4, 2.7, 0.8], // m : la longueur et la largeur de l'ombre douce sous chaque voiture (un plan, pas une vraie ombre), son opacité
   ROUTE_GRAIN_ANISOTROPIE: 1,      // le filtrage anisotrope du grain (net en rasant) : 1 = aucun ; à 4, +25 % de temps d'image sous swiftshader (les tests), à mesurer sur une vraie carte
@@ -1292,7 +1292,8 @@ const REGLAGES = {
   ROUTE_MOUILLEE: [0.5, 0.08, 0.65], // sous la pluie : l'assombrissement, le reflet du ciel de face et en rasant
   BAS_COTE: [4.5, 1.3],            // m : la largeur des bas-côtés qui se fondent dans le sol, et celle de l'herbe usée (terre) près du bord
   BAS_COTE_TERRE: 0x7a7258, BAS_COTE_VERT: 0.02,   // (la terre seulement sur un sol vert : g dépasse r et b de cet écart, en linéaire ; sinon le sol assombri)
-  BAS_COTE_PAS: 2,                 // les bas-côtés : un morceau tous les 2 échantillons (4 m) : moitié moins de triangles que la route
+  BAS_COTE_PAS: 3,                 // les bas-côtés : un morceau tous les 3 échantillons (6 m) : trois fois moins de triangles que la route
+  ROUTE_HERBE_GRAIN: false,        // le grain de l'herbe du sol (2 lectures de texture sur tout le sol) : faux, trop cher sous swiftshader (les tests) pour ce qu'il montre ; les bas-côtés se fondent alors dans le sol uni
   HERBE_REPETE: [23, 3.1], HERBE_FORCE: [0.2, 0.1],   // le grain de l'herbe du sol (m entre deux répétitions : les taches, le fin ; ± clarté), le même sous les bas-côtés
   GRAVIER: [9, 1 / 120, 0xcdb994], // les bacs à gravier, à l'extérieur des virages de rayon plus court : largeur (m), courbure, couleur
   COULEURS_SECTEURS: [0xe03a3a, 0x2f7de1, 0xf2c230],   // secteurs 1, 2, 3
