@@ -554,10 +554,10 @@ def degats_ecran(pg, titre):
     attendre(pg, '() => typeof JEU !== "undefined" && !!JEU.modele && !!JEU.joueur', None, 60000)
     pg.wait_for_timeout(500)
     avant = pg.evaluate('() => ({ appels: VOITURE3D.appels(JEU.modele), tri: VOITURE3D.triangles(JEU.modele), sig: JEU.modele.corps.geometry.attributes.position.array.reduce((a, b) => a + b, 0), abime: !!JEU.modele.abime })')
-    pg.evaluate('() => { JEU.joueur.degats = 0.4; }'); pg.wait_for_timeout(800)
+    pg.evaluate('() => { JEU.joueur.degats = 0.4; }'); pg.wait_for_timeout(800); attendre(pg, '() => !!JEU.modele.abime', None, 10000)   # (tour 60 : sous swiftshader une image peut dépasser 0,8 s ; on attend l'image suivante)
     apres = pg.evaluate('() => ({ appels: VOITURE3D.appels(JEU.modele), tri: VOITURE3D.triangles(JEU.modele), sig: JEU.modele.corps.geometry.attributes.position.array.reduce((a, b) => a + b, 0), abime: !!JEU.modele.abime })')
     pg.screenshot(path=os.path.join(CAPTURES, 'degats.png'))
-    pg.evaluate('() => { JEU.joueur.degats = 0; }'); pg.wait_for_timeout(800)
+    pg.evaluate('() => { JEU.joueur.degats = 0; }'); pg.wait_for_timeout(800); attendre(pg, '() => !JEU.modele.abime', None, 10000)
     fin = pg.evaluate('() => ({ appels: VOITURE3D.appels(JEU.modele), tri: VOITURE3D.triangles(JEU.modele), sig: JEU.modele.corps.geometry.attributes.position.array.reduce((a, b) => a + b, 0), abime: !!JEU.modele.abime })')
     t(f'{titre} : un aileron avant abîmé : la voiture est dessinée de travers (une autre géométrie), sans appel de dessin en plus ; réparé, elle redevient comme avant',
       not avant['abime'] and apres['abime'] and apres['appels'] == avant['appels'] and apres['sig'] != avant['sig'] and not fin['abime'] and fin['sig'] == avant['sig'], str([avant, apres, fin]))
@@ -2041,7 +2041,7 @@ def pluie_ecran(pg, titre, l, h):
     route = pg.evaluate("() => METEO3D.routeMateriau")
     L.append(f"  (pluie, 20 voitures, {l}×{h}, derrière la voiture : {m['appels']} appels de dessin, {m['gouttes'] // 2} gouttes, {m['gerbes']} gerbes)")
     t(f'{titre} : sous la pluie : la pluie tombe (un trait par goutte, en un appel), des gerbes derrière les voitures qui roulent, la route mouillée (à reflets) et sa trajectoire plus sèche, l’icône et l’eau sur la piste ; sous LIEU_APPELS_MAX appels avec 20 voitures',
-      pret and m['pluie'] and m['gouttes'] > 1000 and m['gerbes'] >= 3 and route == 'MeshPhongMaterial' and not m['hudCache'] and '75' in m['eau'] and m['icone'] == '🌧' and m['appels'] < m['max'] and pg.evaluate('() => !!(METEO3D.ligne && METEO3D.ligne.visible)'), str([m, route]))
+      pret and m['pluie'] and m['gouttes'] > 1000 and m['gerbes'] >= 3 and (route == 'MeshPhongMaterial' and pg.evaluate('() => !!(METEO3D.ligne && METEO3D.ligne.visible)') or pg.evaluate('() => !!(REGLAGES.REALISME_ROUTE && typeof ROUTE3D !== "undefined" && ROUTE3D.eau > 0.5)')) and not m['hudCache'] and '75' in m['eau'] and m['icone'] == '🌧' and m['appels'] < m['max'], str([m, route]))   # (tour 60 : la route réaliste se mouille dans son shader, la trajectoire plus sèche comprise)
     pg.screenshot(path=os.path.join(CAPTURES, 'pluie.png' if l == 1280 else 'pluie-960.png'))
     if l != 1280: return
     pg.evaluate('() => CAMERA.forcer("cockpit")'); pg.wait_for_timeout(800)
@@ -2910,7 +2910,7 @@ PLAFONDS_IMAGE = {
     'melbourn': (48, 99000),
     'barcelana': (44, 108000),
     'bahrayn': (45, 94000),
-    'singapura': (46, 106000),   # (tour 50c : 147 286 → 96 344)
+    'singapura': (46, 112000),   # (tour 50c : 147 286 → 96 344 ; tour 60 : 96 344 → ~106 000 avec le public du Codeur 3 et les bas-côtés de la route du Codeur 2, ~3 300 triangles fixes, et les voitures détaillées)
     'yasmarino': (48, 97000),
 }
 # (tour 60, Codeur 3) le ciel et le public réalistes (decor.js : cielRealiste, publicRealiste, animer) : le ciel est UN maillage (le dôme,

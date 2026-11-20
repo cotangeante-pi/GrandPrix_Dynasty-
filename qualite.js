@@ -17,14 +17,16 @@ const QUALITE = (function () {
   // le plus beau : l'image d'avant (les réglages de toujours de donnees.js)
   function plusBeau() {
     return { pixelRatio: R.PIXEL_RATIO_MAX, detail: R.DECOR_DETAIL_LOIN, rien: R.DECOR_RIEN_LOIN, voitureLoin: R.VOITURE_LOIN,
-      voituresDetaillees: R.VOITURES_DETAILLEES_MAX, densite: 1, effets: 1, retro: true };
+      voituresDetaillees: R.VOITURES_DETAILLEES_MAX, densite: 1, effets: 1, retro: true, ombresContact: true, reflets: true };   // (tour 60 : ombresContact, reflets)
   }
   // les niveaux de l'Auto : [plus beau, après le pas 1, …] ; dpr : les pixels par pixel CSS de l'écran (un pas qui ne change rien
   // à l'écran, comme 1,5 → 1,35 sur un écran à 1 pixel par pixel CSS, est sauté : il ferait perdre une demi-seconde pour rien)
   function niveaux(dpr) {
     const d = dpr > 0 ? dpr : Infinity, vu = r => JSON.stringify(Object.assign({}, r, { pixelRatio: Math.min(d, r.pixelRatio) }));
     const liste = [plusBeau()];
-    for (const p of R.QUALITE_PAS) {
+    for (const p0 of R.QUALITE_PAS) {
+      if (p0.realisme && !p0.realisme.some(k => R[k])) continue;   // (tour 60 : le pas d'un réalisme éteint n'existe pas)
+      const p = Object.assign({}, p0); delete p.realisme;
       const r = Object.assign({}, liste[liste.length - 1], p);
       if (vu(r) !== vu(liste[liste.length - 1])) liste.push(r);
     }
@@ -121,7 +123,9 @@ const QUALITE = (function () {
   // les niveaux du contenu (sans pixels : pixelRatio reste celui du plus beau, les pixels sont l'autre axe)
   function niveauxFin() {
     const liste = [plusBeauFin()];
-    for (const p of R.QUALITE_PAS_FIN) {
+    for (const p0 of R.QUALITE_PAS_FIN) {
+      if (p0.realisme && !p0.realisme.some(k => R[k])) continue;   // (tour 60, Codeur 2 : le pas d'un réalisme éteint n'existe pas)
+      const p = Object.assign({}, p0); delete p.realisme;
       const r = Object.assign({}, liste[liste.length - 1], p);
       if (JSON.stringify(r) !== JSON.stringify(liste[liste.length - 1])) liste.push(r);
     }

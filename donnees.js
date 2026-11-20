@@ -1267,6 +1267,42 @@ const REGLAGES = {
   COULEUR_VIBREUR_B: 0xf2f2f2,
   COULEUR_BARRIERE: 0x9aa3ad,
   COULEUR_JOUEUR: 0x1f6fe0,     // provisoire : la couleur viendra de l'écurie (étape 6)
+  // --- le réalisme des voitures et de la route (tour 60, Codeur 2 ; voiture3d.js, scene3d.js, route3d.js). Le principe : tout est calculé UNE
+  // fois au chargement (petites textures faites par le code, une carte d'environnement figée tirée du ciel du lieu, la lumière cuite dans
+  // les couleurs des sommets, la ligne idéale et les freinages de la route) et dessiné par des shaders bon marché en une passe, sans un
+  // objet de plus par voiture : +1 appel de dessin pour les ombres de toutes les voitures (les bas-côtés sont dans le maillage de la route). L'Auto les retire avant
+  // les pixels (QUALITE_PAS : ombresContact, reflets). FAUX = l'image d'avant au pixel près
+  REALISME_VOITURES: true,
+  REALISME_ROUTE: true,
+  REALISME_LOGICIEL_LEGER: true,  // un rendu en logiciel (SwiftShader : carte graphique bloquée, ordinateurs d'école ; aussi les tests) : reflets et détail de la route coupés d'office (comme le pas « reflets » de l'Auto)
+  // les formes : [hauteur à l'avant, largeur à l'avant, hauteur à l'arrière, largeur à l'arrière, (depuis le haut)] de chaque boîte
+  VOITURE_FORMES: { coque: [0.86, 0.62, 1, 1], nez: [0.6, 0.55, 1, 1.12, true], capot: [1, 1, 0.42, 0.36], prise: [0.85, 0.8, 1, 1], ponton: [1, 1, 0.45, 0.62] },
+  VOITURE_AO: [0.5, 0.75, 0.55],   // la lumière cuite : le bas de la voiture à 50 % de sa couleur, pleine à 0,75 m ; les faces tournées vers le sol × 0,55
+  VOITURE_BRILLANCE: { peinture: 1, carbone: 0.3, noir: 0.1, jante: 0.85, miroir: 1, ecran: 0.5 },   // la brillance de chaque matière (reflet et tache du soleil)
+  VOITURE_SPECULAIRE: 0x8a8a8a, VOITURE_SHININESS: 60,
+  REFLET_TAILLE: 32,               // pixels d'une face de la carte d'environnement (6 faces, 24 Ko)
+  REFLET_FORCE: [0.04, 0.45],       // la part du reflet vu de face et en rasant (Fresnel), × la brillance
+  REFLET_CIEL_DEFAUT: 0x4a90d9, REFLET_ROUTE: 0x45474c,
+  PNEU_SEGMENTS: 18,
+  PNEU_DESSIN: { gomme: 0x161617, flanc: 0x2a2b2e, bande: 0xf2c230, marque: 0xdedede, janteBord: 0xb8bcc4, janteFond: 0x3a3e45, janteFond2: 0x1d1f23, rayon: 0x8d939b, ecrou: 0xd0d4da, roulement: 0x232325, epaule: 0x121213 },
+  OMBRE_CONTACT: [6.4, 2.7, 0.8], // m : la longueur et la largeur de l'ombre douce sous chaque voiture (un plan, pas une vraie ombre), son opacité
+  ROUTE_GRAIN_ANISOTROPIE: 1,      // le filtrage anisotrope du grain (net en rasant) : 1 = aucun ; à 4, +25 % de temps d'image sous swiftshader (les tests), à mesurer sur une vraie carte
+  ROUTE_GRAIN_TAILLE: 128,         // pixels de la petite texture du grain de l'asphalte (répétée)
+  ROUTE_GRAIN_REPETE: [2.5, 50],   // m : le grain fin se répète tous les 2,5 m, les taches (usure, réparations) tous les 50 m (le premier divise le second : aucune couture)
+  ROUTE_GRAIN_FORCE: [0.3, 0.2],   // ± la clarté du grain fin et des taches
+  ROUTE_GOMME: [0.7, 2.6, 0.4],    // la trajectoire gommée : pleine jusqu'à 0,6 m de la ligne idéale, fondue à 2,4 m ; elle assombrit de 40 %
+  ROUTE_LIGNE_MARGE: 1.6,          // m : la ligne idéale (calculée au chargement, sans rapport avec les IA) reste à cette distance des bords
+  ROUTE_LIGNE_PASSES: [[20, 60], [8, 80], [3, 60]],   // le lissage de la ligne : (voisins, passes), du plus large au plus fin
+  ROUTE_FREIN: [0.8, 0.26, 0.7, 35, 28],   // les traces de freinage : demi-voie des roues (m), demi-largeur d'une trace (m), assombrissement, décélération (m/s²), écart de vitesse (m/s) d'une trace pleine
+  ROUTE_ADHERENCE_LAT: 30, ROUTE_VITESSE_MAX: 90,   // m/s², m/s : la vitesse de passage estimée des virages (pour placer les freinages)
+  ROUTE_BORD_SALE: [1.2, 0.12],    // m, part : l'asphalte près des bords, hors trajectoire, un peu plus clair (poussière)
+  ROUTE_MOUILLEE: [0.5, 0.08, 0.65], // sous la pluie : l'assombrissement, le reflet du ciel de face et en rasant
+  BAS_COTE: [4.5, 1.3],            // m : la largeur des bas-côtés qui se fondent dans le sol, et celle de l'herbe usée (terre) près du bord
+  BAS_COTE_TERRE: 0x7a7258, BAS_COTE_VERT: 0.02,   // (la terre seulement sur un sol vert : g dépasse r et b de cet écart, en linéaire ; sinon le sol assombri)
+  BAS_COTE_PAS: 3,                 // les bas-côtés : un morceau tous les 3 échantillons (6 m) : trois fois moins de triangles que la route
+  ROUTE_HERBE_GRAIN: false,        // le grain de l'herbe du sol (2 lectures de texture sur tout le sol) : faux, trop cher sous swiftshader (les tests) pour ce qu'il montre ; les bas-côtés se fondent alors dans le sol uni
+  HERBE_REPETE: [23, 3.1], HERBE_FORCE: [0.2, 0.1],   // le grain de l'herbe du sol (m entre deux répétitions : les taches, le fin ; ± clarté), le même sous les bas-côtés
+  GRAVIER: [9, 1 / 120, 0xcdb994], // les bacs à gravier, à l'extérieur des virages de rayon plus court : largeur (m), courbure, couleur
   COULEURS_SECTEURS: [0xe03a3a, 0x2f7de1, 0xf2c230],   // secteurs 1, 2, 3
   BROUILLARD: [1500, 5000],     // début et fin du brouillard (m)
 
@@ -1501,6 +1537,7 @@ const REGLAGES = {
     { effets: 0.5 }, { effets: 0.25 },                                                    // 4) la part de fumée, d'étincelles, de gerbes, de gouttes
     // 5) les ombres : le jeu n'en dessine pas aujourd'hui (shadowMap éteint) ; leur pas viendra avec elles. À leur place : le rétroviseur
     { retro: false },
+    { ombresContact: false, realisme: ['REALISME_VOITURES'] }, { reflets: false, realisme: ['REALISME_VOITURES', 'REALISME_ROUTE'] },   // (tour 60) les ombres sous les voitures, puis les reflets et le détail de la route (sautés si leur réalisme est éteint)
     { pixelRatio: 1.35 }, { pixelRatio: 1.2 }, { pixelRatio: 1.05 }, { pixelRatio: 0.9 }, { pixelRatio: 0.75 }, { pixelRatio: 0.6 },   // 6) les pixels par pixel CSS
   ],
   // l'arrière-plan du paddock et des menus (stand3d.js, tour 49a-2) : la voiture du joueur garée devant le garage de son écurie, la
@@ -1571,6 +1608,7 @@ const REGLAGES = {
     { effets: 0.5 }, { effets: 0.25 },                                                    // 4) les effets
     { ciel: 0 },                                                                          // 4b) le ciel sans nuages ni étoiles (le dégradé et le soleil restent)
     { retro: false },                                                                     // 5) le rétroviseur
+    { ombresContact: false, realisme: ['REALISME_VOITURES'] }, { reflets: false, realisme: ['REALISME_VOITURES', 'REALISME_ROUTE'] },   // 5b) (tour 60, Codeur 2) les ombres sous les voitures, puis les reflets et le détail de la route (sautés si leur réalisme est éteint)
   ],
   QUALITE_PLUS_BEAU_FIN: { ciel: 1 },
   QUALITE_RESOLUTIONS: [1.5, 1.4, 1.3, 1.2, 1.1, 1, 0.9, 0.8, 0.7, 0.6],   // les pixels par pixel CSS, à petits pas (le premier = PIXEL_RATIO_MAX)

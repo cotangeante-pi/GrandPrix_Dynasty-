@@ -91,7 +91,10 @@ const METEO3D = (function () {
     if (m.monde.ambiance) m.monde.ambiance.intensity = m.base.ambiance * (1 - R.CIEL_COUVERT_AMBIANCE * e.ciel);
     if (m.monde.soleil) m.monde.soleil.intensity = m.base.soleil * (1 - R.CIEL_COUVERT_SOLEIL * e.ciel);
     // la piste mouillée : plus sombre et brillante (un matériau à reflets, fait à la première goutte)
-    if (m.route) {
+    // (tour 60, REALISME_ROUTE : la route réaliste se mouille dans son shader, route3d.js, la trajectoire plus sèche comprise)
+    const realiste = m.route && m.route.material.userData.realiste === 'route' && typeof ROUTE3D !== 'undefined';
+    if (realiste) ROUTE3D.mouiller(e.eau, e.eauTrajectoire, m.scene.fog ? m.scene.fog.color : null);
+    else if (m.route) {
       if (e.eau > 0) {
         if (!m.routeMouillee) m.routeMouillee = new THREE.MeshPhongMaterial({ color: R.COULEUR_ROUTE, specular: 0x000000, shininess: R.ROUTE_MOUILLEE_BRILLANCE });
         m.routeMouillee.color.set(R.COULEUR_ROUTE).lerp(new THREE.Color(R.COULEUR_ROUTE_MOUILLEE), e.eau);
@@ -101,7 +104,7 @@ const METEO3D = (function () {
     }
     // la trajectoire plus sèche que le reste de la route
     const ecartLigne = e.eau - e.eauTrajectoire;
-    if (ecartLigne > R.LIGNE_SECHE_ECART && circuit && trajectoire && !m.ligne) { m.ligne = faireLigne(circuit, trajectoire); m.scene.add(m.ligne); }
+    if (!realiste && ecartLigne > R.LIGNE_SECHE_ECART && circuit && trajectoire && !m.ligne) { m.ligne = faireLigne(circuit, trajectoire); m.scene.add(m.ligne); }
     if (m.ligne) {
       m.ligne.visible = ecartLigne > R.LIGNE_SECHE_ECART;
       if (m.ligne.visible) { m.ligne.material.color.set(R.COULEUR_ROUTE).lerp(new THREE.Color(R.COULEUR_ROUTE_MOUILLEE), e.eauTrajectoire); m.ligne.material.specular.setScalar(R.ROUTE_MOUILLEE_REFLET * e.eauTrajectoire); }
@@ -148,6 +151,7 @@ const METEO3D = (function () {
     if (m.monde.ambiance) m.monde.ambiance.intensity = m.base.ambiance;
     if (m.monde.soleil) m.monde.soleil.intensity = m.base.soleil;
     if (m.route) m.route.material = m.routeSec;
+    if (typeof ROUTE3D !== 'undefined') ROUTE3D.mouiller(0);
     m.pluie.visible = false; m.gerbes.visible = false; m.gerbes.count = 0;
     if (m.ligne) m.ligne.visible = false;
   }
