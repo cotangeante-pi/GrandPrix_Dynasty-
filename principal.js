@@ -297,6 +297,9 @@ function finirFantome(q) {
   const record = SAUVEGARDE.proposerFantome(NOM_CIRCUIT, compact, !propre);
   const ecart = f.rejeu ? FANTOME.ecartFinal(f.rejeu, q.temps) : null;
   if (f.pole) return { record, pole: true, ecartPole: ecart, gagne: null, ecart: null, taille: FANTOME.taille(compact), compact: propre ? compact : null };   // (tour 55, T6 : contre le poleman, l'écart à son tour)
+  // (tour 60, relecture) plus rapide que le record, mais pas propre (limites de piste, secours) : pas un écart négatif (« +-0,42 s du
+  // record »), une phrase qui dit pourquoi ce tour ne compte pas
+  if (!record && !propre && ecart !== null && ecart < 0) return { record, gagne: null, ecart: null, horsRecord: true, taille: FANTOME.taille(compact), compact: null };
   return { record, gagne: record && ecart !== null ? -ecart : null, ecart: !record && ecart !== null ? ecart : null, taille: FANTOME.taille(compact), compact: propre ? compact : null };   // (compact : le tour, pour « 📋 Défier un ami », tour 49b)
 }
 

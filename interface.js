@@ -715,7 +715,7 @@ const INTERFACE = (function () {
         + (f.record ? ' · ' + (f.gagne === null ? texte('nouveauRecord') : texte('fantomeRecord').replace('{s}', s(f.gagne))) : '');
     } else
     $('qualifFantome').textContent = !f ? '' : f.record ? (f.gagne === null ? texte('nouveauRecord') : texte('fantomeRecord').replace('{s}', s(f.gagne)))
-      : f.ecart !== null ? texte('fantomeEcart').replace('{s}', s(f.ecart)) : '';
+      : f.horsRecord ? texte('fantomeHorsRecord') : f.ecart !== null ? texte('fantomeEcart').replace('{s}', s(f.ecart)) : '';   // (tour 60, relecture : horsRecord, un tour plus rapide qui ne compte pas)
     $('boutonFantomeQualif').classList.toggle('cache', etat !== 'choix');
     if (etat !== 'choix') $('boutonFantomePole').classList.add('cache');
   }

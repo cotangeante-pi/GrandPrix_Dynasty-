@@ -80,7 +80,7 @@ const TEXTES = {
     placeCourse: 'P{p} / {n}',
     secondes: '{s} s',
     // le fantôme du meilleur tour (fantome.js)
-    fantomeRecord: 'New record! {s} s faster', fantomeEcart: '+{s} s off your record',
+    fantomeRecord: 'New record! {s} s faster', fantomeEcart: '+{s} s off your record', fantomeHorsRecord: 'Faster, but no record: track limits or auto-steer.',
     fantomeOui: 'Ghost: shown', fantomeNon: 'Ghost: hidden',
     // le départ parfait (depart.js)
     departAide: 'Hold ↑ in the green · lights out: release and press ↑ again for a perfect start',
@@ -484,7 +484,7 @@ const TEXTES = {
     titreGrandPrix: 'Grand Prix {i} / {n} — {circuit}',
     placeCourse: 'P{p} / {n}',
     secondes: '{s} s',
-    fantomeRecord: 'Nouveau record ! {s} s de mieux', fantomeEcart: '+{s} s du record',
+    fantomeRecord: 'Nouveau record ! {s} s de mieux', fantomeEcart: '+{s} s du record', fantomeHorsRecord: 'Plus vite, mais pas de record : limites de piste ou auto-guidage.',
     fantomeOui: 'Fantôme : affiché', fantomeNon: 'Fantôme : masqué',
     departAide: 'Tiens ↑ dans le vert · feux éteints : lâche et réappuie ↑ pour un départ parfait',
     departParfait: 'Départ parfait !', departBon: 'Bon départ', departPatinage: 'Patinage !', departCale: 'Calé !', departFaux: 'Faux départ !',

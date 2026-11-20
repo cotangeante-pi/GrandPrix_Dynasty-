@@ -81,5 +81,10 @@ t('course seule (sans feux, la voiture n’est pas « surveillée ») : le recor
   v(c.meilleurTour===50,'course.js garde ce tour (voiture non surveillée), comme avant');v(meilleurTourPropre(c)===60,'le record : '+meilleurTourPropre(c));
   const d=creerCourse(CIRCUIT_TEST,0);d.etat='course';d.etape=3;d.secteursTour=[20,20];d.temps=50;limitesDePiste(d);finirTour(d);v(meilleurTourPropre(d)===null,'aucun tour propre');
   v(/RECORD_PROPRE \? meilleurTourPropre\(c\) : c\.meilleurTour/.test(finDeCourse.toString()),'finDeCourse le lit');});
+t('qualification : un tour plus rapide que le record mais pas propre dit « pas de record » (horsRecord), jamais un écart négatif', ()=>{
+  // (finirFantome lit NOM_CIRCUIT, qui n'existe pas dans cette page sans écran : on lit sa règle, et les textes)
+  const src=finirFantome.toString();
+  v(/if \(!record && !propre && ecart !== null && ecart < 0\) return \{ record, gagne: null, ecart: null, horsRecord: true/.test(src),'la règle');
+  v(TEXTES.fr.fantomeHorsRecord&&TEXTES.en.fantomeHorsRecord,'le texte');});
 document.getElementById('res').textContent=`RESULTAT ${ok}/${ok+ko}\n`+L.join('\n');
 </script></body></html>
