@@ -2951,11 +2951,21 @@ function demarrerJeu() {
     const bs = ['boutonQualitePause', 'boutonQualitePaddock'].map(id => document.getElementById(id)), demandee = PARAMETRES.get('qualite');   // (le menu pause et la page « Réglages » du paddock, tour 48a)
     JEU.qualiteAuto = !(navigator.webdriver && !QUALITE.REGLES.includes(demandee));
     JEU.qualite = QUALITE.creer(QUALITE.REGLES.includes(demandee) ? demandee : SAUVEGARDE.option('qualite', 'auto'),
-      { niveau: JEU.qualiteAuto ? SAUVEGARDE.option('qualite_niveau', 0) : 0, dpr: window.devicePixelRatio || 1 });
+      { niveau: JEU.qualiteAuto ? SAUVEGARDE.option('qualite_niveau', 0) : 0, dpr: window.devicePixelRatio || 1, res: JEU.qualiteAuto ? SAUVEGARDE.option('qualite_res', 0) : 0 });   // (tour 60 : res, les pixels de l'Auto fine)
     JEU.qualiteASauver = false;
     const appliquer = () => SCENE3D.reglerQualite(QUALITE.reglages(JEU.qualite));
     const ecrire = () => { for (const b of bs) b.textContent = texte(QUALITE.auPlusSimple(JEU.qualite) ? 'qualite_autoSimple' : 'qualite_' + JEU.qualite.regle); };
     JEU.appliquerQualite = () => { appliquer(); ecrire(); };
+    // (tour 60, QUALITE_FINE) la première fois (aucun niveau gardé), un petit essai de dessin au chargement choisit le niveau de départ
+    // au lieu de commencer au plus beau ; le niveau trouvé est gardé (on ne remesure plus)
+    if (REGLAGES.QUALITE_FINE && JEU.qualiteAuto && JEU.qualite.regle === 'auto' && SAUVEGARDE.option('qualite_niveau', null) === null && SCENE3D.actif) {
+      try {
+        const ms = SCENE3D.essaiDessin(REGLAGES.QUALITE_DEPART_ESSAI);
+        JEU.qualiteDepart = ms;
+        if (QUALITE.depart(JEU.qualite, ms)) appliquer();
+        SAUVEGARDE.ecrireOption('qualite_niveau', JEU.qualite.niveauAuto); SAUVEGARDE.ecrireOption('qualite_res', JEU.qualite.resAuto || 0);
+      } catch (e) { /* rien : l'Auto partira du plus beau, comme avant */ }
+    }
     appliquer(); ecrire();
     for (const b of bs) {
       b.addEventListener('mousedown', e => e.preventDefault());
@@ -3056,6 +3066,7 @@ function demarrerJeu() {
   BOUCLE.surAffichage((alpha, dt) => {
     JEU.alpha = alpha;
     JEU.dtImage = dt;
+    if (SCENE3D.avancer) SCENE3D.avancer(dt);   // (tour 60 : le temps du ciel et du public, qui bougent dans leurs shaders)
     if (JEU.enligne) ENLIGNE_PAGE.image();   // (tour 56, T7) la course en ligne démarre dès que le départ et la carte sont là
     if (JEU.ecran === 'une' && REGLAGES.UNE_AUTO_DUREE > 0 && (JEU.tempsUne += dt) >= REGLAGES.UNE_AUTO_DUREE) passerUne();   // (tour 53d) la une du journal passe toute seule
     majManettes(dt);   // la manette (manette.js) : lue à chaque image
@@ -3145,9 +3156,9 @@ function demarrerJeu() {
     // une fois tenu QUALITE_PAS_RETOUR s (pas à chaque pas : écrire la sauvegarde coûte une image), jamais pendant les feux
     if (JEU.qualite && JEU.qualiteAuto) {
       const feux = !!(JEU.course && JEU.course.etat === 'compte');
-      const n = QUALITE.observer(JEU.qualite, dt, feux, BOUCLE.debutImage !== null ? (performance.now() - BOUCLE.debutImage) / 1000 : undefined);
+      const n = QUALITE.observer(JEU.qualite, dt, feux, BOUCLE.debutImage !== null ? (performance.now() - BOUCLE.debutImage) / 1000 : undefined, SCENE3D.tempsGpu !== null ? SCENE3D.tempsGpu / 1000 : undefined);   // (tour 60 : le temps de la carte graphique, quand on le connaît)
       if (n !== null) { JEU.appliquerQualite(); JEU.qualiteASauver = true; }
-      else if (JEU.qualiteASauver && !feux && JEU.qualite.depuis >= REGLAGES.QUALITE_PAS_RETOUR) { JEU.qualiteASauver = false; SAUVEGARDE.ecrireOption('qualite_niveau', JEU.qualite.niveauAuto); }
+      else if (JEU.qualiteASauver && !feux && JEU.qualite.depuis >= REGLAGES.QUALITE_PAS_RETOUR) { JEU.qualiteASauver = false; SAUVEGARDE.ecrireOption('qualite_niveau', JEU.qualite.niveauAuto); if (JEU.qualite.fine) SAUVEGARDE.ecrireOption('qualite_res', JEU.qualite.resAuto); }
     }
   });
   if (PARAMETRES.get('debug') === '1') brancherDebug();

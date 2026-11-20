@@ -1530,6 +1530,50 @@ const REGLAGES = {
     { pixelRatio: 0.75, detail: 90, rien: 900, retro: false },    // basse (sans rétroviseur)
   ],
 
+  // --- (tour 60, Codeur 3) le ciel, le public et l'Auto plus fine (CLAUDE.md « Le ciel, le public et l'Auto fine »). Le principe : calculé
+  // UNE fois (le bruit des nuages, une petite texture faite au chargement ; les couleurs cuites dans les sommets) et des shaders bon marché
+  // (le public bouge dans le shader des sommets, en instancing) ; aucun appel de dessin en plus. Faux = l'image d'avant, au pixel près.
+  REALISME_CIEL: true,          // le dôme du ciel dessiné par un shader : dégradé selon le soleil, nuages qui passent, soleil et halo, étoiles et lune la nuit
+  REALISME_PUBLIC: true,        // des spectateurs plus vrais : jambes, bras, tête, casquettes, drapeaux, pancartes ; ils bougent (bras levés, sauts, ola)
+  QUALITE_FINE: true,           // l'Auto plus fine : les pixels à part, par petits pas, selon ce qui coûte (carte graphique ou calcul) ; faux = l'Auto du tour 49a
+  // le ciel (decor.js, cielRealiste) : la texture de bruit (côté, en pixels, répétée), l'échelle et le vent des nuages, le halo du soleil
+  CIEL_BRUIT_TAILLE: 128,
+  CIEL_NUAGES_ECHELLE: 0.35, CIEL_NUAGES_VENT: [0.006, 0.0025],   // (unités de la texture par unité de distance projetée ; par seconde)
+  CIEL_NUAGES_MIN: 0.3,         // une couverture d'au moins tant (quelques voiles hauts, même sur un ciel « sans nuages » : beaux au couchant)
+  CIEL_NUAGES_PART: 0.8,        // la couverture = nuages du lieu × tant (+ le ciel couvert de la météo)
+  CIEL_HALO: [0.22, 0.45],      // la force du grand halo du soleil, puis du petit
+  CIEL_LUEUR_SOIR: 0.55,        // la lueur de l'horizon du côté du soleil, quand il est bas (crépuscule, couchant)
+  CIEL_ETOILES: 0.9965,         // la part du ciel sans étoile (une cellule sur ~300 en a une)
+  CIEL_AMBIANCE_TEINTE: 0.2,    // la lumière d'ambiance prend tant de la couleur du haut du ciel (accordée au ciel)
+  CIEL_TEST: { heure: 'jour', haut: 0x3f86d8, horizon: 0xbfe0f5, nuages: 0.35 },   // le ciel du circuit d'essai (le premier circuit du joueur ; il n'a pas de lieu)
+  // le public (decor.js, publicRealiste)
+  PUBLIC_DETAIL_REALISTE: 0.25, // part de la distance de détail pour le public : au-delà (45 m), une carte plate qui dessine sa silhouette (imposteur)
+  PUBLIC_DRAPEAUX: 0.07, PUBLIC_PANCARTES: 0.05,   // la part des spectateurs qui agitent un drapeau, qui tiennent une pancarte
+  PUBLIC_EXCITATION: [14, 55],  // m : une voiture plus près que le premier chiffre excite pleinement le public, plus du tout au-delà du second
+  PUBLIC_SAUT: 0.11,            // la hauteur d'un saut (en part de la taille)
+  PUBLIC_OLA: { periode: 45, duree: 16, vitesse: 2.2, largeur: 0.07 },   // s entre deux olas, s de chacune, sa vitesse (rad/s), ses vagues (rad/m)
+  PUBLIC_PANTALONS: [0x27334d, 0x1a1c22, 0x8a7d62, 0x4a4f57, 0x2f4f7a],
+  PUBLIC_PEAUX: [0xf1c9a5, 0xd9a47c, 0xa8704a, 0x6b4428],
+  PUBLIC_CHEVEUX: [0x2a1d14, 0x16120f, 0x8a6a3a, 0xc9a86a],
+  // l'Auto fine (qualite.js) : les contenus d'un côté (QUALITE_PAS_FIN, sans les pixels), les pixels de l'autre (QUALITE_RESOLUTIONS)
+  // AJOUTER UN PAS : une ligne { cle: valeur } dans QUALITE_PAS_FIN, à sa place du moins visible au plus visible, et sa valeur du plus
+  // beau dans QUALITE_PLUS_BEAU_FIN ; le dessin lit SCENE3D.qualite.<cle> (null ou undefined = le plus beau)
+  QUALITE_PAS_FIN: [
+    { voitureLoin: 35, voituresDetaillees: 6 }, { voitureLoin: 25, voituresDetaillees: 4 }, { voitureLoin: 15, voituresDetaillees: 2 },   // 1) les voitures lointaines
+    { densite: 0.75 }, { densite: 0.5 }, { densite: 0.3 },                                // 2) la part du public, des arbres et des piles de pneus
+    { detail: 150, rien: 1350 }, { detail: 120, rien: 1100 }, { detail: 90, rien: 900 },  // 3) la distance de dessin du décor
+    { effets: 0.5 }, { effets: 0.25 },                                                    // 4) les effets
+    { ciel: 0 },                                                                          // 4b) le ciel sans nuages ni étoiles (le dégradé et le soleil restent)
+    { retro: false },                                                                     // 5) le rétroviseur
+  ],
+  QUALITE_PLUS_BEAU_FIN: { ciel: 1 },
+  QUALITE_RESOLUTIONS: [1.5, 1.4, 1.3, 1.2, 1.1, 1, 0.9, 0.8, 0.7, 0.6],   // les pixels par pixel CSS, à petits pas (le premier = PIXEL_RATIO_MAX)
+  QUALITE_RES_DOUCE: 1,         // à partir de là et au-dessus, une baisse de pixels se voit à peine (un écran dense) : prise en premier si la carte graphique limite
+  QUALITE_PART_CALCUL: 0.8,     // sans mesure de la carte graphique : si le calcul d'une image prend moins de tant de sa durée, c'est la carte graphique qui limite
+  QUALITE_DEPART_ESSAI: 4,      // images dessinées (et attendues) au chargement pour choisir le niveau de départ (la première fois seulement)
+  QUALITE_DEPART_BUDGET: 0.8,   // … le départ vise une image en moins de tant du temps permis
+  QUALITE_DEPART_CONTENU: 0.35, // … la part du coût que retirent tous les pas de contenu (au plus simple) : un modèle prudent
+
   // --- (tour 56, T2) les batailles en ligne : le cœur du lockstep (enligne.js, calcul pur). Tout est derrière EN_LIGNE : faux = le jeu d'avant,
   // identique (enligne.js ne change rien tant qu'on ne l'appelle pas). Voir rapports/en-ligne-conception.md
   EN_LIGNE: false,              // le jeu en ligne est ouvert ? (?enligne=1 l'ouvre pour les essais ; le propriétaire n'a pas encore dit oui)

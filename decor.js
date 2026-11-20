@@ -493,8 +493,8 @@ const DECOR = (function () {
       instances(F.garage, objets.garage, 'garage'),
       instances(F.panneau, objets.panneau, 'panneau'),
     ];
-    const publicG = groupeDetail([objets.public], [F.personne], F.personneLoin, 'public', true, { side: THREE.DoubleSide });
-    publicG.partDetail = R.DECOR_PUBLIC_DETAIL;   // (le public passe en plaque plus près que les arbres)
+    const publicG = R.REALISME_PUBLIC ? publicRealiste(objets.public) : groupeDetail([objets.public], [F.personne], F.personneLoin, 'public', true, { side: THREE.DoubleSide });
+    publicG.partDetail = R.REALISME_PUBLIC ? R.PUBLIC_DETAIL_REALISTE : R.DECOR_PUBLIC_DETAIL;   // (le public passe en plaque plus près que les arbres ; tour 60 : une plaque qui dessine sa silhouette, encore plus près)
     const arbres = groupeDetail([objets.arbreA, objets.arbreB], [F.arbreA, F.arbreB], F.arbreLoin, 'arbres', false);
     const pneus = groupeDetail([objets.pneus], [F.pneus], null, 'pneus', true);   // les piles de pneus : de près seulement (de loin, on ne les voit pas)
     const C = R.DECOR_COULEURS;
@@ -520,10 +520,11 @@ const DECOR = (function () {
     }
     const banderoles = construireBanderoles(objets.banderole);
     if (banderoles) fixes.push(banderoles);
-    if (lieu) for (const m of ciel(c, lieu)) fixes.push(m);
+    if (lieu) for (const m of (R.REALISME_CIEL ? [cielRealiste(c, lieu.ciel, lieu.lumiere, lieu.brouillard.couleur, nuitDe(lieu))] : ciel(c, lieu))) fixes.push(m);   // (tour 60 : le ciel d'un shader, les nuages dedans : un appel de dessin de moins)
     for (const m of fixes) groupe.add(m);
     for (const g of [publicG, arbres, pneus]) { for (const m of g.proches) groupe.add(m); if (g.loin) groupe.add(g.loin); }
     const decor = { groupe, objets, refus, detail: [publicG, arbres, pneus], lieu: lieu || null, ms: (typeof performance !== 'undefined' ? performance.now() : 0) - t0 };
+    for (const m of fixes) if (m.userData && m.userData.ciel) decor.cielU = m.userData.ciel;   // (tour 60 : le ciel réaliste, pour l'Auto)
     decor.triangles = 0;
     groupe.traverse(o => { if (o.isInstancedMesh) decor.triangles += o.geometry.attributes.position.count / 3 * o.count; });
     return decor;
@@ -653,5 +654,244 @@ const DECOR = (function () {
     }
   }
 
-  return { nuitDe, TYPES, placer, construire, majDetail, postesTele, zonePodium, verificateur, tirage, pour, descriptionOfficielle, relief };
+  // ===================================================================================================================================
+  // (tour 60, Codeur 3) LE CIEL ET LE PUBLIC RÉALISTES (REALISME_CIEL, REALISME_PUBLIC ; faux = tout ce qui précède, au pixel près).
+  // Le principe : calculé UNE fois (la texture de bruit des nuages, les couleurs cuites dans les sommets) et des shaders bon marché ;
+  // le public bouge dans le shader des sommets (instancing : aucun calcul par spectateur en JavaScript, aucun appel de dessin en plus) ;
+  // à chaque image, seulement quelques nombres partagés (ANIM : le temps, les 4 voitures les plus proches, la ola), DECOR.animer.
+  // ===================================================================================================================================
+  const ANIM = typeof THREE === 'undefined' ? null : {
+    uTemps: { value: 0 }, uOla: { value: 0 },
+    uVoitures: { value: [0, 1, 2, 3].map(() => new THREE.Vector4(1e6, 1e6, 0, 0)) },
+  };
+
+  // la texture de bruit des nuages : deux bruits fractals répétables (rouge : les grandes formes, vert : le détail), faits une fois
+  let bruitCiel = null;
+  function textureBruit() {
+    if (bruitCiel) return bruitCiel;
+    const N = R.CIEL_BRUIT_TAILLE, d = new Uint8Array(N * N * 4), rnd = tirage(R.DECOR_GRAINE + 60);
+    const fbm = periodes => {
+      const out = new Float32Array(N * N), grilles = periodes.map(p => { const g = new Float32Array(p * p); for (let i = 0; i < g.length; i++) g[i] = rnd(); return g; });
+      let t = 0, a = 1;
+      periodes.forEach((p, o) => {
+        const g = grilles[o];
+        for (let y = 0; y < N; y++) {
+          const fy = y * p / N, y0 = Math.floor(fy), ty = fy - y0, sy = ty * ty * (3 - 2 * ty), j0 = (y0 % p) * p, j1 = ((y0 + 1) % p) * p;
+          for (let x = 0; x < N; x++) {
+            const fx = x * p / N, x0 = Math.floor(fx), tx = fx - x0, sx = tx * tx * (3 - 2 * tx), i0 = x0 % p, i1 = (x0 + 1) % p;
+            const v0 = g[j0 + i0] + (g[j0 + i1] - g[j0 + i0]) * sx, v1 = g[j1 + i0] + (g[j1 + i1] - g[j1 + i0]) * sx;
+            out[y * N + x] += a * (v0 + (v1 - v0) * sy);
+          }
+        }
+        t += a; a *= 0.5;
+      });
+      // (étiré : le bruit fractal reste près de 0,5 ; on le ramène sur 0..1)
+      let mn = Infinity, mx = -Infinity;
+      for (let k = 0; k < out.length; k++) { out[k] /= t; mn = Math.min(mn, out[k]); mx = Math.max(mx, out[k]); }
+      for (let k = 0; k < out.length; k++) out[k] = (out[k] - mn) / (mx - mn || 1);
+      return out;
+    };
+    const a = fbm([4, 8, 16, 32]), b = fbm([8, 16, 32, 64]);
+    for (let k = 0; k < N * N; k++) { d[4 * k] = Math.round(a[k] * 255); d[4 * k + 1] = Math.round(b[k] * 255); d[4 * k + 2] = 0; d[4 * k + 3] = 255; }
+    const tex = new THREE.DataTexture(d, N, N);
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.magFilter = THREE.LinearFilter; tex.minFilter = THREE.LinearMipmapLinearFilter;
+    tex.generateMipmaps = true; tex.needsUpdate = true;
+    bruitCiel = tex;
+    return tex;
+  }
+
+  // le dôme du ciel, dessiné par un shader : le dégradé (horizon → haut), la lueur de l'horizon du côté du soleil (le soir), le halo et
+  // le disque du soleil, les nuages (deux lectures de la texture de bruit, qui glissent avec le vent), la nuit les étoiles et la lune ;
+  // tout en bas, le fondu dans la couleur du brouillard (le loin et le ciel se rejoignent sans trait). UN appel de dessin (les nuages
+  // d'avant, un maillage à part, ne sont plus faits). Dessiné APRÈS tout ce qui est opaque (renderOrder) : la carte graphique ne calcule
+  // le ciel que là où il se voit (le test de profondeur écarte le reste). material.color reste le « ciel couvert » de meteo3d.js.
+  // ciel : { heure, haut, horizon, nuages } ; lumiere : { soleil, hauteur } ; brume : la couleur du brouillard ; nuit : 0 à 1
+  function cielRealiste(c, ciel, lumiere, brume, nuit) {
+    let xmin = Infinity, xmax = -Infinity, zmin = Infinity, zmax = -Infinity;
+    for (let i = 0; i < c.nb; i++) { xmin = Math.min(xmin, c.x[i]); xmax = Math.max(xmax, c.x[i]); zmin = Math.min(zmin, c.z[i]); zmax = Math.max(zmax, c.z[i]); }
+    const h = (lumiere.hauteur || 45) * Math.PI / 180, dir = new THREE.Vector3(Math.cos(h) * 700, Math.sin(h) * 700, Math.cos(h) * 300).normalize();   // (le soleil de scene3d.js)
+    const nuitPleine = ciel.heure === 'nuit', lueur = nuitPleine ? 0 : Math.max(0, Math.min(1, 1 - (lumiere.hauteur || 45) / 25)) * R.CIEL_LUEUR_SOIR + 0.12;
+    const couverture = Math.max(R.CIEL_NUAGES_MIN, (ciel.nuages || 0) * R.CIEL_NUAGES_PART);
+    const mat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.BackSide, fog: false, depthWrite: false });
+    const U = {
+      cHaut: { value: new THREE.Color(ciel.haut) }, cHorizon: { value: new THREE.Color(ciel.horizon) }, cBrume: { value: new THREE.Color(brume) },
+      cSoleil: { value: new THREE.Color(lumiere.soleil) }, dSoleil: { value: dir }, couverture: { value: couverture }, nuitCiel: { value: nuitPleine ? 1 : 0 },
+      soirCiel: { value: nuit }, lueur: { value: lueur }, soleilVu: { value: nuitPleine ? 0 : 1 }, detailCiel: { value: 1 }, bruitCiel: { value: textureBruit() },
+      ventCiel: { value: new THREE.Vector2(R.CIEL_NUAGES_VENT[0], R.CIEL_NUAGES_VENT[1]) }, echelleCiel: { value: R.CIEL_NUAGES_ECHELLE },
+      halo: { value: new THREE.Vector2(R.CIEL_HALO[0], R.CIEL_HALO[1]) }, etoiles: { value: R.CIEL_ETOILES }, uTemps: ANIM.uTemps,
+    };
+    mat.onBeforeCompile = sh => {
+      Object.assign(sh.uniforms, U);
+      sh.vertexShader = 'varying vec3 vMondeCiel;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  vMondeCiel = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+      sh.fragmentShader = `uniform vec3 cHaut, cHorizon, cBrume, cSoleil, dSoleil; uniform float couverture, nuitCiel, soirCiel, lueur, soleilVu, detailCiel, etoiles, uTemps;
+uniform sampler2D bruitCiel; uniform vec2 ventCiel, halo; uniform float echelleCiel; varying vec3 vMondeCiel;
+float hashCiel(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+` + sh.fragmentShader.replace('#include <color_fragment>', `
+  vec3 dirC = normalize(vMondeCiel - cameraPosition);
+  float yC = dirC.y, yh = max(yC, 0.0);
+  float couv = clamp((1.0 - (diffuse.r + diffuse.g + diffuse.b) / 3.0) / 0.42, 0.0, 1.0);
+  vec3 col = mix(cHorizon, cHaut, sqrt(yh));
+  float cs = max(dot(dirC, dSoleil), 0.0), voile = 1.0 - 0.85 * couv;
+  col += cSoleil * lueur * pow(cs, 3.0) * (1.0 - smoothstep(0.0, 0.45, yh)) * voile;
+  col += cSoleil * (halo.x * pow(cs, 10.0) + halo.y * pow(cs, 180.0)) * soleilVu * voile;
+  float dens = 0.0;
+  if (detailCiel > 0.5 && yC > 0.0) {
+    vec2 uvC = dirC.xz / (yC + 0.12) * echelleCiel, v = ventCiel * uTemps;
+    float n = texture2D(bruitCiel, uvC + v).r * 0.62 + texture2D(bruitCiel, uvC * 2.7 - v * 1.7).g * 0.38;
+    float cv = clamp(couverture + couv * 0.85, 0.0, 0.97);
+    dens = smoothstep(1.0 - cv, 1.0 - cv + 0.3, n) * smoothstep(0.0, 0.16, yC);
+    float epais = smoothstep(0.5, 1.0, n);
+    vec3 clair = mix(mix(vec3(1.0), cSoleil, 0.2 + lueur), cHorizon * 1.3 + cHaut * 0.4, nuitCiel);
+    vec3 ombre = mix(cHaut, cHorizon, 0.6) * mix(0.8, 1.1, nuitCiel);
+    vec3 cn = mix(clair, ombre, epais * 0.65) + cSoleil * pow(cs, 5.0) * 0.45 * soleilVu;
+    col = mix(col, cn, dens * 0.9);
+  }
+  col += cSoleil * smoothstep(0.99972, 0.99986, cs) * 3.0 * soleilVu * (1.0 - dens) * voile;
+  if (nuitCiel > 0.5) {
+    if (detailCiel > 0.5) {
+      vec3 gC = dirC * 170.0, ce = floor(gC); float hh = hashCiel(ce);
+      float e = step(etoiles, hh) * (1.0 - smoothstep(0.08, 0.3, length(fract(gC) - 0.5)));
+      col += vec3(0.75) * e * (0.65 + 0.35 * sin(uTemps * 2.3 + hh * 60.0)) * smoothstep(0.03, 0.25, yC) * (1.0 - dens);
+    }
+    col += vec3(0.7, 0.74, 0.82) * smoothstep(0.99972, 0.99984, cs) * (1.0 - dens) + cSoleil * pow(cs, 80.0) * 0.12;
+  }
+  col = mix(cBrume, col, smoothstep(-0.01, 0.08, yC));
+  diffuseColor.rgb = col * diffuse;`);
+    };
+    mat.customProgramCacheKey = () => 'ciel-60';
+    const coupole = new THREE.Mesh(new THREE.SphereGeometry(R.CIEL_RAYON, 24, 12), mat);
+    coupole.position.set((xmin + xmax) / 2, 0, (zmin + zmax) / 2);
+    coupole.name = 'decor-ciel'; coupole.renderOrder = 1000; coupole.frustumCulled = false;
+    coupole.userData.ciel = U;   // (l'Auto : U.detailCiel ; les tests)
+    return coupole;
+  }
+
+  // --- le public réaliste : un spectateur de 1 m (mis à sa taille par son instance), en parties marquées (attribut « partie ») que le
+  // shader des sommets anime et colore : 0 jambes, 1 torse, 2 et 3 bras (gauche, droit), 4 tête, 5 haut de la tête (cheveux ou casquette),
+  // 6 hampe, 7 drapeau, 8 et 9 pancarte (le fond, puis le blanc). Les couleurs des sommets sont l'ombre cuite (gris : le bas plus sombre).
+  // Seules les faces qu'on voit depuis la piste sont faites (le devant, les côtés, le haut ; ~44 triangles).
+  function publicRealiste(liste) {
+    const pos = [], col = [], part = [];
+    const ajouter = (x0, x1, y0, y1, z0, z1, p, faces, ombre) => {
+      const n0 = pos.length;
+      boite(pos, col, x0, x1, y0, y1, z0, z1, 0xffffff, 'vfgdhb'.split('').filter(f => !faces.includes(f)).join(''));
+      for (let k = n0 / 3; k < pos.length / 3; k++) { const y = pos[3 * k + 1], g = ombre ? ombre[0] + (ombre[1] - ombre[0]) * (y - y0) / (y1 - y0 || 1) : 1; col[3 * k] = col[3 * k + 1] = col[3 * k + 2] = g; part.push(p); }
+    };
+    const plaque = (x0, x1, y0, y1, z, p, deuxFaces) => {
+      const q = [[x0, y0], [x1, y0], [x1, y1], [x0, y0], [x1, y1], [x0, y1]];
+      for (const [x, y] of q) { pos.push(x, y, z); col.push(1, 1, 1); part.push(p); }
+      if (deuxFaces) for (const [x, y] of q.slice().reverse()) { pos.push(x, y, z + 0.004); col.push(1, 1, 1); part.push(p); }
+    };
+    ajouter(-0.11, 0.11, 0, 0.46, -0.06, 0.06, 0, 'vgd', [0.55, 0.85]);              // les jambes
+    ajouter(-0.14, 0.14, 0.45, 0.8, -0.08, 0.08, 1, 'vgdh', [0.8, 1]);               // le torse
+    ajouter(-0.2, -0.14, 0.42, 0.78, -0.05, 0.05, 2, 'vg', [0.85, 1]);                // le bras gauche
+    ajouter(0.14, 0.2, 0.42, 0.78, -0.05, 0.05, 3, 'vd', [0.85, 1]);                  // le bras droit
+    ajouter(-0.075, 0.075, 0.82, 0.97, -0.075, 0.075, 4, 'vgd', [0.9, 1]);           // la tête
+    ajouter(-0.08, 0.08, 0.95, 1.01, -0.08, 0.085, 5, 'vh', null);                   // les cheveux ou la casquette
+    plaque(0.275, 0.305, 1.0, 1.76, -0.02, 6, false);                                 // la hampe du drapeau (main droite levée)
+    plaque(0.305, 0.72, 1.36, 1.72, -0.02, 7, true);                                  // le drapeau
+    plaque(-0.33, 0.33, 1.05, 1.42, -0.1, 8, true);                                   // la pancarte : le fond…
+    plaque(-0.29, 0.29, 1.09, 1.38, -0.105, 9, false);                                // … et le blanc
+    const g = geometrie(pos, col);
+    g.setAttribute('partie', new THREE.Float32BufferAttribute(part, 1));
+    // l'imposteur : une carte plate (2 triangles) assez grande pour un bras levé, un drapeau ou une pancarte ; le shader des fragments
+    // y dessine la silhouette (tête, torse, jambes, bras, drapeau, pancarte) et jette le reste
+    const pl = [], cl = [];
+    for (const [x, y] of [[-0.36, 0], [0.74, 0], [0.74, 1.78], [-0.36, 0], [0.74, 1.78], [-0.36, 1.78]]) { pl.push(x, y, 0); cl.push(1, 1, 1); }
+    const gl = geometrie(pl, cl);
+    const groupe = groupeDetail([liste], [g], gl, 'public', true, { side: THREE.DoubleSide });
+    animerPublic(groupe.proches[0].material, false);
+    animerPublic(groupe.loin.material, true);
+    return groupe;
+  }
+
+  // le shader du public : ce qui est commun aux deux formes (le tirage de chacun par sa place, l'excitation quand une voiture passe près,
+  // la ola, les bras levés, les sauts), puis la forme (loin : l'imposteur dessine sa silhouette)
+  function animerPublic(materiau, loin) {
+    const L = v => new THREE.Color(v);
+    const U = { uPantalons: { value: R.PUBLIC_PANTALONS.map(L) }, uPeaux: { value: R.PUBLIC_PEAUX.map(L) }, uCheveux: { value: R.PUBLIC_CHEVEUX.map(L) } };
+    const f = x => (Math.round(x * 1e5) / 1e5).toFixed(5), O = R.PUBLIC_OLA;
+    const commun = `uniform float uTemps, uOla; uniform vec4 uVoitures[4]; uniform vec3 uPantalons[${R.PUBLIC_PANTALONS.length}], uPeaux[${R.PUBLIC_PEAUX.length}], uCheveux[${R.PUBLIC_CHEVEUX.length}];
+float hP(vec2 p, float k) { return fract(sin(dot(p, vec2(12.9898 + k, 78.233 - k))) * 43758.5453); }
+vec2 rot2(vec2 v, float a) { float c = cos(a), s = sin(a); return vec2(c * v.x - s * v.y, s * v.x + c * v.y); }
+`;
+    const anim = `
+  vec3 pI = vec3(instanceMatrix[3][0], instanceMatrix[3][1], instanceMatrix[3][2]);
+  float h1 = hP(pI.xz, 0.0), h2 = hP(pI.xz, 1.7), h3 = hP(pI.xz, 3.1), h4 = hP(pI.xz, 5.3);
+  float exc = 0.0;
+  for (int i = 0; i < 4; i++) exc = max(exc, uVoitures[i].z * (1.0 - smoothstep(${f(R.PUBLIC_EXCITATION[0])}, ${f(R.PUBLIC_EXCITATION[1])}, length(uVoitures[i].xy - pI.xz))));
+  float olaV = uOla * pow(max(sin((pI.x * 0.8 + pI.z * 0.6) * ${f(O.largeur)} - uTemps * ${f(O.vitesse)}), 0.0), 6.0);
+  float drapeau = step(h4, ${f(R.PUBLIC_DRAPEAUX)}), pancarte = (1.0 - drapeau) * step(h4, ${f(R.PUBLIC_DRAPEAUX + R.PUBLIC_PANCARTES)});
+  float bras = clamp(max(exc * step(0.3, h3), olaV), 0.0, 1.0);
+  float brasG = max(bras, pancarte), brasD = max(bras, max(drapeau, pancarte));
+  float agite = sin(uTemps * (7.0 + 3.0 * h1) + h2 * 6.283);
+  float saut = ${f(R.PUBLIC_SAUT)} * (exc * step(0.45, h2) * abs(sin(uTemps * (6.0 + 2.0 * h3) + h1 * 6.283)) + olaV);
+  float angG = -(brasG * 2.75 + (brasG - pancarte) * 0.2 * agite), angD = brasD * 2.75 + (brasD - pancarte - drapeau * 0.5) * 0.2 * agite;
+  vec3 chemiseP = vec3(1.0);
+  #ifdef USE_INSTANCING_COLOR
+    chemiseP = instanceColor.rgb;
+  #endif
+  vec3 pantalonP = uPantalons[int(h1 * ${R.PUBLIC_PANTALONS.length}.0)], peauP = uPeaux[int(h2 * ${R.PUBLIC_PEAUX.length}.0)];
+  vec3 hautP = h3 < 0.3 ? chemiseP : uCheveux[int(fract(h1 * 7.0) * ${R.PUBLIC_CHEVEUX.length}.0)];
+`;
+    materiau.onBeforeCompile = sh => {
+      Object.assign(sh.uniforms, U, { uTemps: ANIM.uTemps, uOla: ANIM.uOla, uVoitures: ANIM.uVoitures });
+      if (!loin) {
+        sh.vertexShader = commun + 'attribute float partie;\nvarying vec3 vCouleurP;\n' + sh.vertexShader
+          .replace('#include <beginnormal_vertex>', anim + `
+  float pa = partie;
+  vec3 objN = vec3(normal);
+  vec3 tr = vec3(position);
+  if (pa > 1.5 && pa < 3.5) {   // les bras : autour de l'épaule
+    float a = pa < 2.5 ? angG : angD; vec2 piv = vec2(pa < 2.5 ? -0.17 : 0.17, 0.76);
+    tr.xy = piv + rot2(tr.xy - piv, a); objN.xy = rot2(objN.xy, a);
+  }
+  if (pa > 6.5 && pa < 7.5) tr.z += sin(uTemps * 6.0 + tr.x * 14.0 + h1 * 6.283) * 0.08 * (tr.x - 0.305) / 0.415;
+  if ((pa > 5.5 && pa < 7.5 && drapeau < 0.5) || (pa > 7.5 && pancarte < 0.5)) tr = vec3(0.0, 0.6, 0.0);   // (pas de drapeau, pas de pancarte : rien)
+  tr.y += saut;
+  float ao = color.r;
+  vCouleurP = ao * (pa < 0.5 ? pantalonP : pa < 3.5 ? chemiseP * (pa > 1.5 ? 0.92 : 1.0) : pa < 4.5 ? peauP : pa < 5.5 ? hautP : pa < 6.5 ? vec3(0.45) : pa < 8.5 ? chemiseP : vec3(0.92));
+  vec3 objectNormal = objN;
+  #ifdef USE_TANGENT
+    vec3 objectTangent = vec3(tangent.xyz);
+  #endif`)
+          .replace('#include <begin_vertex>', 'vec3 transformed = tr;');
+        sh.fragmentShader = 'varying vec3 vCouleurP;\n' + sh.fragmentShader.replace('#include <color_fragment>', '#include <color_fragment>\n  diffuseColor.rgb = vCouleurP;');
+      } else {
+        sh.vertexShader = commun + 'varying vec2 vLocalP; varying vec4 vBrasP; varying vec3 vPantalonP, vPeauP, vHautP; varying float vObjetP;\n' + sh.vertexShader
+          .replace('#include <begin_vertex>', anim + `
+  vec3 transformed = vec3(position);
+  transformed.y += saut;
+  vLocalP = position.xy; vBrasP = vec4(rot2(vec2(0.0, -1.0), angG), rot2(vec2(0.0, -1.0), angD));
+  vPantalonP = pantalonP; vPeauP = peauP; vHautP = hautP; vObjetP = drapeau + 2.0 * pancarte;`);
+        sh.fragmentShader = 'varying vec2 vLocalP; varying vec4 vBrasP; varying vec3 vPantalonP, vPeauP, vHautP; varying float vObjetP;\n' + sh.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
+  vec2 pP = vLocalP; vec3 cP = vec3(-1.0); vec3 chemise = diffuseColor.rgb;
+  vec2 qG = pP - vec2(-0.17, 0.76), qD = pP - vec2(0.17, 0.76);
+  if (length((pP - vec2(0.0, 0.9)) / vec2(0.08, 0.095)) < 1.0) cP = pP.y > 0.955 ? vHautP : vPeauP;
+  else if (abs(pP.x) < 0.14 && pP.y > 0.45 && pP.y < 0.81) cP = chemise;
+  else if (abs(pP.x) < 0.11 && pP.y <= 0.45) cP = vPantalonP * (0.6 + 0.3 * pP.y / 0.45);
+  else if (length(qG - vBrasP.xy * clamp(dot(qG, vBrasP.xy), 0.0, 0.36)) < 0.042 || length(qD - vBrasP.zw * clamp(dot(qD, vBrasP.zw), 0.0, 0.36)) < 0.042) cP = chemise * 0.92;
+  else if (vObjetP > 0.5 && vObjetP < 1.5 && abs(pP.x - 0.29) < 0.02 && pP.y > 1.0 && pP.y < 1.76) cP = vec3(0.45);
+  else if (vObjetP > 0.5 && vObjetP < 1.5 && pP.x > 0.29 && pP.x < 0.72 && pP.y > 1.36 && pP.y < 1.72) cP = chemise;
+  else if (vObjetP > 1.5 && abs(pP.x) < 0.33 && pP.y > 1.05 && pP.y < 1.42) cP = (abs(pP.x) < 0.29 && pP.y > 1.09 && pP.y < 1.38) ? vec3(0.92) : chemise;
+  if (cP.x < 0.0) discard;
+  diffuseColor.rgb = cP;`);
+      }
+    };
+    materiau.customProgramCacheKey = () => loin ? 'public-60-loin' : 'public-60';
+  }
+
+  // à chaque image (scene3d.js) : le temps (s), les voitures [{ x, z }] les plus proches de la caméra (4 au plus) ; la ola revient toutes
+  // les PUBLIC_OLA.periode s pendant PUBLIC_OLA.duree s ; qualite : SCENE3D.qualite (ciel : 0 = sans nuages ni étoiles)
+  function animer(decor, temps, voitures, qualite) {
+    if (!ANIM || !decor) return;
+    ANIM.uTemps.value = temps;
+    const O = R.PUBLIC_OLA, k = temps % O.periode;
+    ANIM.uOla.value = k < O.duree ? Math.sin(Math.PI * k / O.duree) : 0;
+    const v = ANIM.uVoitures.value;
+    for (let i = 0; i < 4; i++) { const w = voitures && voitures[i]; if (w) v[i].set(w.x, w.z, 1, 0); else v[i].set(1e6, 1e6, 0, 0); }
+    if (decor.cielU) decor.cielU.detailCiel.value = qualite && qualite.ciel === 0 ? 0 : 1;
+  }
+
+  return { nuitDe, TYPES, placer, construire, majDetail, postesTele, zonePodium, verificateur, tirage, pour, descriptionOfficielle, relief, cielRealiste, animer, textureBruit, ANIM };
 })();
