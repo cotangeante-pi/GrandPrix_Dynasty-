@@ -552,10 +552,10 @@ def degats_ecran(pg, titre):
     attendre(pg, '() => typeof JEU !== "undefined" && !!JEU.modele && !!JEU.joueur', None, 60000)
     pg.wait_for_timeout(500)
     avant = pg.evaluate('() => ({ appels: VOITURE3D.appels(JEU.modele), tri: VOITURE3D.triangles(JEU.modele), sig: JEU.modele.corps.geometry.attributes.position.array.reduce((a, b) => a + b, 0), abime: !!JEU.modele.abime })')
-    pg.evaluate('() => { JEU.joueur.degats = 0.4; }'); pg.wait_for_timeout(800)
+    pg.evaluate('() => { JEU.joueur.degats = 0.4; }'); pg.wait_for_timeout(800); attendre(pg, '() => !!JEU.modele.abime', None, 10000)   # (tour 60 : sous swiftshader une image peut dépasser 0,8 s ; on attend l'image suivante)
     apres = pg.evaluate('() => ({ appels: VOITURE3D.appels(JEU.modele), tri: VOITURE3D.triangles(JEU.modele), sig: JEU.modele.corps.geometry.attributes.position.array.reduce((a, b) => a + b, 0), abime: !!JEU.modele.abime })')
     pg.screenshot(path=os.path.join(CAPTURES, 'degats.png'))
-    pg.evaluate('() => { JEU.joueur.degats = 0; }'); pg.wait_for_timeout(800)
+    pg.evaluate('() => { JEU.joueur.degats = 0; }'); pg.wait_for_timeout(800); attendre(pg, '() => !JEU.modele.abime', None, 10000)
     fin = pg.evaluate('() => ({ appels: VOITURE3D.appels(JEU.modele), tri: VOITURE3D.triangles(JEU.modele), sig: JEU.modele.corps.geometry.attributes.position.array.reduce((a, b) => a + b, 0), abime: !!JEU.modele.abime })')
     t(f'{titre} : un aileron avant abîmé : la voiture est dessinée de travers (une autre géométrie), sans appel de dessin en plus ; réparé, elle redevient comme avant',
       not avant['abime'] and apres['abime'] and apres['appels'] == avant['appels'] and apres['sig'] != avant['sig'] and not fin['abime'] and fin['sig'] == avant['sig'], str([avant, apres, fin]))

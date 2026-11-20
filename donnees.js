@@ -1241,7 +1241,7 @@ const REGLAGES = {
   PNEU_SEGMENTS: 20,
   PNEU_DESSIN: { gomme: 0x161617, flanc: 0x2a2b2e, bande: 0xf2c230, marque: 0xdedede, janteBord: 0xb8bcc4, janteFond: 0x3a3e45, janteFond2: 0x1d1f23, rayon: 0x8d939b, ecrou: 0xd0d4da, roulement: 0x232325, epaule: 0x121213 },
   OMBRE_CONTACT: [6.4, 2.7, 0.8], // m : la longueur et la largeur de l'ombre douce sous chaque voiture (un plan, pas une vraie ombre), son opacité
-  ROUTE_GRAIN_ANISOTROPIE: 4,      // le grain reste net en rasant (filtrage anisotrope de la carte graphique, si elle l'a)
+  ROUTE_GRAIN_ANISOTROPIE: 1,      // le filtrage anisotrope du grain (net en rasant) : 1 = aucun ; à 4, +25 % de temps d'image sous swiftshader (les tests), à mesurer sur une vraie carte
   ROUTE_GRAIN_TAILLE: 128,         // pixels de la petite texture du grain de l'asphalte (répétée)
   ROUTE_GRAIN_REPETE: [2.5, 50],   // m : le grain fin se répète tous les 2,5 m, les taches (usure, réparations) tous les 50 m (le premier divise le second : aucune couture)
   ROUTE_GRAIN_FORCE: [0.3, 0.2],   // ± la clarté du grain fin et des taches
