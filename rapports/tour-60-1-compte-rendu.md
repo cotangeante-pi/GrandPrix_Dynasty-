@@ -1,5 +1,5 @@
 TOUR 60 — compte rendu du Codeur 1 (la conversation sur tous les thèmes)
-Commit : c6f746b (branche themes-60, poussée ; ce compte rendu vient par-dessus avec [skip ci])
+Commit : 8987039 (branche themes-60, après la revue du Chef ; 1re passe c6f746b ; ce compte rendu vient par-dessus avec [skip ci])
 Ordres : 1 fait / 2 fait / 3 fait / 4 fait (banc-bavardage fr et en verts, textes.html vert, 3 conversations d'enfant hors course jouées en fr et en en, transcriptions ci-dessous) / 5 fait (18/18 sur GitHub)
 
 Ce qui est fait (tout derrière BAVARDAGE_THEMES dans donnees.js ; faux = les réponses d'avant au mot près) :
@@ -24,7 +24,7 @@ Mesures :
 Ce que je n'ai pas pu vérifier : l'écran (fiche « Discuter » d'interface.js, non lancé ; aucun changement d'écran) ; ecrans.py sur le Mac (GitHub l'a fait). Limites connues : la reconnaissance reste par mots-clés, une phrase très libre peut tomber sur le mauvais thème (« j'ai demandé une switch au père Noël » → consoles, pas Noël) ; quelques réponses de reprise restent génériques (« Maison ? Ha, tu m'intrigues, explique-moi ! » après Minecraft) ; un enfant qui répond « oui » à une question à choix (« calcul ou géométrie ? ») reçoit un « Très bien » et une relance.
 Réévalue.
 
-APRÈS LA REVUE DU CHEF (même branche ; commit en tête du compte rendu mis à jour plus bas)
+APRÈS LA REVUE DU CHEF (même branche, commit 8987039)
 Les 8 points, avant → après, chacun avec son test dans tests/banc-themes.js (« revue 1 » à « revue 8 », plus « revue (suite) ») :
 1. « en la géographie » : les trous suivant « en », « à », « de » s’accordent (« en géographie », « au », « aux », « du », « des »), une capitale revient après « ? », « ! », « . » (« Mon plat préféré ? Les sushis »), « il y a ni frère ni sœur » → « il n’y a ni… ». Vérifié sur les 70 phrases de sujets pour les 19 pilotes, fr et en. Seulement avec BAVARDAGE_THEMES (faux : au mot près, empreinte inchangée).
 2. « tu connais minecraft » → avant : trois morceaux collés (le oui/non de sa fiche + une variante de bav_jeu qui supposait « Mes ingénieurs… combien de temps » + rien). Cause : la question tombait sur le sujet « jeu » (oui/non sur sa fiche « aux jeux de stratégie ») et la variante 2 de bav_jeu était cassée. Maintenant : thème « jeuvideo » (Minecraft, Fortnite, Roblox, Mario, Zelda, FIFA, Among Us, Brawl Stars, Sonic, Animal Crossing… fautes comprises), qui répond même à une question au pilote, en nommant le jeu (« Minecraft ? Oui, j’y joue un peu ! ») ; bav_jeu refait (bav_jeu_th) pour les questions générales.
@@ -35,7 +35,7 @@ Les 8 points, avant → après, chacun avec son test dans tests/banc-themes.js (
 7. « bonne nuit » → « Bonne nuit ! Dors bien. » ; « bonne journée », « bonne soirée » → « Bonne journée à toi ! » ; « à demain » → « À demain ! » (fr et en).
 8. Les notes : « jai eu 7 » → « 7/20, c’est un peu bas… mais une note, ça se rattrape ! » ; « 18 sur 20 » → « 18/20 ! Bravo » ; sur 10 compris (« 3/10 », « 9 sur 10 », « i got 3 out of 10 »).
 Relu aussi avec le même œil et corrigé : ne plus demander « c’est quoi ton préféré ? » quand l’enfant vient de le dire (ni une question quand il raconte en 4 mots ou plus) ; « c’était trop bien » → il partage sa joie (plus « Cetait trop bien ? J’aurais dit pareil ! ») ; après la tristesse, « il a cassé mon château » reste sur la tristesse (plus « chevaliers ») ; « my mum told me off » reconnu ; un autre jeu nommé (« et zelda ? ») est un sujet neuf.
-Sortie après la revue (Mac, sous le verrou) : banc-parle.html 110/110, banc-bavardage-en.html 110/110, textes.html 2578/2578 ; empreinte BAVARDAGE_THEMES faux inchangée (fr ffc4fe41:211, en 982108b6:211). GitHub : RESULTAT_GITHUB_2
+Sortie après la revue (Mac, sous le verrou) : banc-parle.html 110/110, banc-bavardage-en.html 110/110, textes.html 2578/2578 ; empreinte BAVARDAGE_THEMES faux inchangée (fr ffc4fe41:211, en 982108b6:211). GitHub : https://github.com/cotangeante-pi/GrandPrix_Dynasty-/actions/runs/44643486593 (commit 8987039) : completed success, 18/18 travaux.
 
 TRANSCRIPTIONS ACTUELLES (après la revue) : les 3 conversations hors course d’avant, rejouées, puis 3 nouvelles par langue (« après revue ») ; [réaction/sujet, pont]
 
