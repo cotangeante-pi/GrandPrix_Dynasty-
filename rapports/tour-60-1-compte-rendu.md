@@ -17,14 +17,27 @@ Sortie des tests (Mac, sous le verrou, pages de calcul seules) :
 - GitHub : https://github.com/cotangeante-pi/GrandPrix_Dynasty-/actions/runs/44637321960 (commit c6f746b) : completed success, 18/18 travaux ; dans « annexes » : banc-parle.html 98/98, banc-bavardage-en.html 98/98, textes.html 2468/2468.
 
 Mesures :
-- 74 thèmes (dont 6 sensibles) ; 444 tournures au banc reconnues (222 fr, 222 en).
-- Longue conversation hors course (40 messages) : fr 13 ponts sur 38 réponses de thème (34 %), en 13 sur 39 (33 %) : environ 1 sur 3.
+- 75 thèmes après la revue (74 + jeux vidéo nommés ; dont 6 sensibles) ; 444 tournures au banc reconnues (222 fr, 222 en).
+- Longue conversation hors course (40 messages) : fr 13 ponts sur 38 réponses de thème (34 %), en 13 sur 39 (33 %) : environ 1 sur 3. Après la revue (moins de questions sur le thème, donc plus de place pour le pont) : fr 16 sur 38 (42 %), en 17 sur 39 (44 %) : environ 1 sur 2,3, dans la borne du banc (28 à 55 %).
 - 30 phrases au hasard : fr 26 mots repris sur 30, en 27 sur 30 ; aucune vide, aucune répétée.
 
 Ce que je n'ai pas pu vérifier : l'écran (fiche « Discuter » d'interface.js, non lancé ; aucun changement d'écran) ; ecrans.py sur le Mac (GitHub l'a fait). Limites connues : la reconnaissance reste par mots-clés, une phrase très libre peut tomber sur le mauvais thème (« j'ai demandé une switch au père Noël » → consoles, pas Noël) ; quelques réponses de reprise restent génériques (« Maison ? Ha, tu m'intrigues, explique-moi ! » après Minecraft) ; un enfant qui répond « oui » à une question à choix (« calcul ou géométrie ? ») reçoit un « Très bien » et une relance.
 Réévalue.
 
-TRANSCRIPTIONS (3 conversations d'enfant hors course, fr puis en ; [réaction/sujet, pont])
+APRÈS LA REVUE DU CHEF (même branche ; commit en tête du compte rendu mis à jour plus bas)
+Les 8 points, avant → après, chacun avec son test dans tests/banc-themes.js (« revue 1 » à « revue 8 », plus « revue (suite) ») :
+1. « en la géographie » : les trous suivant « en », « à », « de » s’accordent (« en géographie », « au », « aux », « du », « des »), une capitale revient après « ? », « ! », « . » (« Mon plat préféré ? Les sushis »), « il y a ni frère ni sœur » → « il n’y a ni… ». Vérifié sur les 70 phrases de sujets pour les 19 pilotes, fr et en. Seulement avec BAVARDAGE_THEMES (faux : au mot près, empreinte inchangée).
+2. « tu connais minecraft » → avant : trois morceaux collés (le oui/non de sa fiche + une variante de bav_jeu qui supposait « Mes ingénieurs… combien de temps » + rien). Cause : la question tombait sur le sujet « jeu » (oui/non sur sa fiche « aux jeux de stratégie ») et la variante 2 de bav_jeu était cassée. Maintenant : thème « jeuvideo » (Minecraft, Fortnite, Roblox, Mario, Zelda, FIFA, Among Us, Brawl Stars, Sonic, Animal Crossing… fautes comprises), qui répond même à une question au pilote, en nommant le jeu (« Minecraft ? Oui, j’y joue un peu ! ») ; bav_jeu refait (bav_jeu_th) pour les questions générales.
+3. « jai construit une maison » après Minecraft → « Dans Minecraft ? Moi, je construirais un circuit avec une grande épingle ! » ; « avec une piscine dedans » → reste sur Minecraft.
+4. « c’est dur les fractions » → un encouragement (bav_th_dur) ; « oui » à une question « A ou B ? » → « Les deux ? Bonne réponse, je crois. » / « non » → « Ni l’un ni l’autre ? … ».
+5. « et toi tu veux quoi comme cadeau » → « Moi ? Un nouveau casque, avec des flammes dessus ! Et un gros gâteau. » : une question au pilote (même sans « ? ») reçoit d’abord sa réponse à lui (bav_moi_<thème>, 37 thèmes, ou ses réactions qui parlent de lui).
+6. Plus jamais « Encore ? » pour un thème qui continue ; une phrase redite mot pour mot → « Tu me l’as déjà dit, ha ha ! » ; la suite d’une histoire → il écoute (« C’est chouette que tu me racontes tout ça. »).
+7. « bonne nuit » → « Bonne nuit ! Dors bien. » ; « bonne journée », « bonne soirée » → « Bonne journée à toi ! » ; « à demain » → « À demain ! » (fr et en).
+8. Les notes : « jai eu 7 » → « 7/20, c’est un peu bas… mais une note, ça se rattrape ! » ; « 18 sur 20 » → « 18/20 ! Bravo » ; sur 10 compris (« 3/10 », « 9 sur 10 », « i got 3 out of 10 »).
+Relu aussi avec le même œil et corrigé : ne plus demander « c’est quoi ton préféré ? » quand l’enfant vient de le dire (ni une question quand il raconte en 4 mots ou plus) ; « c’était trop bien » → il partage sa joie (plus « Cetait trop bien ? J’aurais dit pareil ! ») ; après la tristesse, « il a cassé mon château » reste sur la tristesse (plus « chevaliers ») ; « my mum told me off » reconnu ; un autre jeu nommé (« et zelda ? ») est un sujet neuf.
+Sortie après la revue (Mac, sous le verrou) : banc-parle.html 110/110, banc-bavardage-en.html 110/110, textes.html 2578/2578 ; empreinte BAVARDAGE_THEMES faux inchangée (fr ffc4fe41:211, en 982108b6:211). GitHub : RESULTAT_GITHUB_2
+
+TRANSCRIPTIONS ACTUELLES (après la revue) : les 3 conversations hors course d’avant, rejouées, puis 3 nouvelles par langue (« après revue ») ; [réaction/sujet, pont]
 
 TRANSCRIPTION hors course 1 (fr) :
     — slt
@@ -32,13 +45,13 @@ TRANSCRIPTION hors course 1 (fr) :
     — jai eu un controle de math
       → Un contrôle ? Révise un peu, et fais-toi confiance ! En qualif, c’est comme un contrôle : un seul tour pour tout donner. Tu as déjà réussi un départ parfait ?   [bavardage/th_notes, pont]
     — jai eu 7
-      → Les notes, ça monte et ça descend. L’important, c’est de progresser.   [bavardage/th_notes]
+      → 7/20, c’est un peu bas… mais une note, ça se rattrape ! Revois un petit peu chaque jour, et la prochaine sera meilleure.   [bavardage/th_notes]
     — cest dur les fraction
-      → Tu préfères le calcul ou la géométrie ?   [bavardage/th_maths]
+      → Moi aussi, j’ai trouvé ça dur. Demande de l’aide : ce n’est pas une honte, c’est malin. En course, on calcule tout le temps : l’écart avec celui de devant, l’usure des pneus… Tu préfères doubler ou défendre ?   [bavardage/th_maths, pont]
     — oui
-      → Très bien. Dis-moi. Tu préfères quel circuit ?   [bavardage/th_maths]
+      → Les deux ? Bonne réponse, je crois.   [bavardage/th_maths]
     — et toi t etais fort a lecole ?
-      → L’école ? J’avais de bonnes notes en la géographie, et je dessinais des voitures dans tous mes cahiers.   [bavardage/ecole]
+      → L’école ? J’avais de bonnes notes en géographie, et je dessinais des voitures dans tous mes cahiers.   [bavardage/ecole]
     — jaime pas la maitresse
       → Les profs, ils sont là pour t’aider, même quand ils sont sévères. Les meilleurs pilotes écoutent leurs ingénieurs comme de bons élèves. Tu mettrais quelle couleur sur ta voiture ?   [bavardage/th_prof, pont]
     — elle crie tout le temps
@@ -61,69 +74,136 @@ TRANSCRIPTION hors course 2 (fr) :
     — coucou
       → Salut.   [salut]
     — tu aimes les dinosaures ?
-      → Les dinosaures ! C’est quoi ton préféré ?   [bavardage/th_dinosaures]
+      → Moi ? Oui, j’ai vu tous les films de dinosaures ! Mon préféré, c’est le tricératops. Un T-rex dans une monoplace, ce serait drôle : ses petits bras n’atteindraient jamais le volant ! Tu as déjà réussi un départ parfait ?   [bavardage/th_dinosaures, pont]
     — moi mon prefere cest le t rex
-      → Moi, mon préféré, c’est le tricératops : trois cornes et une collerette, la classe ! Tu savais que le vélociraptor courait à soixante à l’heure ? Moi, je vais un peu plus vite ! Et toi, tu préfères les courses sous la pluie ou au sec ?   [bavardage/th_dinosaures, pont]
+      → Moi, mon préféré, c’est le tricératops : trois cornes et une collerette, la classe !   [bavardage/th_dinosaures]
     — parce que il est trop fort
-      → Imagine un T-rex au feu rouge… Les dinosaures, c’est fascinant.   [bavardage/th_dinosaures]
+      → Imagine un T-rex au feu rouge… Les dinosaures, c’est fascinant. Tu savais que le vélociraptor courait à soixante à l’heure ? Moi, je vais un peu plus vite ! Tu préfères doubler ou défendre ?   [bavardage/th_dinosaures, pont]
     — tu as vu jurassic park
-      → Encore ? Ha ha, je vois que c’est ton truc ! Un T-rex dans une monoplace, ce serait drôle : ses petits bras n’atteindraient jamais le volant ! Tu préfères les circuits rapides ou ceux avec plein de virages ?   [bavardage/th_dinosaures, pont]
+      → Moi, les dinosaures, j’adore : j’ai même un tricératops en plastique dans ma valise !   [bavardage/th_dinosaures]
     — jai peur des fois la nuit
-      → Les monstres ? Ils n’existent pas, mais je comprends que ça fasse peur la nuit. Tu as un doudou pour te protéger ?   [bavardage/th_cauchemar]
+      → Moi aussi, enfant, j’avais peur du noir. Mon truc : une lampe de poche sous l’oreiller.   [bavardage/th_cauchemar]
     — jai fai un cochemar de monstre
       → Les cauchemars, ça fait peur, mais ce ne sont que des rêves. Une petite lumière, et hop, les monstres disparaissent ! Avant une course, j’ai parfois le trac, comme un petit cauchemar. Et puis les feux s’éteignent, et tout s’en va. Tu mettrais quelle couleur sur ta voiture ?   [bavardage/th_cauchemar, pont]
     — ma maman ma fait un calin
-      → Moi aussi, enfant, j’avais peur du noir. Mon truc : une lampe de poche sous l’oreiller.   [bavardage/th_cauchemar]
+      → Je vois ! J’aime bien quand tu me racontes ça.   [bavardage/th_cauchemar]
     — cest quoi ton doudou
       → Moi, j’avais une petite voiture rouge que je ne lâchais jamais. Certains pilotes ont un porte-bonheur en peluche dans le garage !   [bavardage/th_jouets, pont]
     — jai un lapin en peluche
-      → Les doudous et les jouets, c’est précieux. Tu as un préféré ?   [bavardage/th_jouets]
+      → Les peluches, ce sont les meilleures gardiennes de secrets.   [bavardage/th_jouets]
     — il sappelle pompon
       → Pompon, j’adore. Fais-lui une caresse de ma part. Dis-moi. Tu écoutes quoi ?   [bavardage/animal]
     — jai trop sommeil
       → Le sommeil, c’est sacré ! Moi, je dors au moins huit heures avant une course. La veille d’un Grand Prix, je me couche tôt : les feux s’éteignent tôt le lendemain ! Et toi, tu préfères les courses sous la pluie ou au sec ?   [bavardage/th_sommeil, pont]
     — bonne nuit
-      → Bon, c’est l’heure du briefing. À plus tard !   [bavardage/fin]
+      → Dors bien, à bientôt !   [bavardage/fin]
 TRANSCRIPTION hors course 3 (fr) :
     — yo
       → Salut.   [salut]
     — il neige trop chez moi
-      → La neige ! Bonhomme de neige ou bataille de boules ?   [bavardage/th_neige]
+      → Moi, une luge et une bonne pente, et je suis aux anges. Une luge qui descend suit une trajectoire, comme dans un virage ! Tu as déjà réussi un départ parfait ?   [bavardage/th_neige, pont]
     — jai fait un bonhomme de neige
-      → Moi, une luge et une bonne pente, et je suis aux anges. On ne court jamais sur la neige, heureusement : même les pneus pluie n’y arriveraient pas ! Et toi, tu préfères les courses sous la pluie ou au sec ?   [bavardage/th_neige, pont]
+      → Rien de plus beau qu’un matin tout blanc.   [bavardage/th_neige]
     — avec une carotte
-      → Les carottes, il paraît que ça fait voir dans le noir !   [bavardage/th_legumes]
+      → C’est chouette que tu me racontes tout ça. On ne court jamais sur la neige, heureusement : même les pneus pluie n’y arriveraient pas ! Tu préfères doubler ou défendre ?   [bavardage/th_neige, pont]
     — apres on a bu un chocolat chaud
-      → Moi, ma boisson préférée, c’est la limonade. Sur le podium, on s’arrose avec une boisson qui pétille ! Tu préfères les circuits rapides ou ceux avec plein de virages ?   [bavardage/th_boisson, pont]
+      → Moi, ma boisson préférée, c’est la limonade.   [bavardage/th_boisson]
     — tu fais quoi a noel
-      → Moi, à Noël, je mange trop de chocolats.   [bavardage/th_noel]
+      → Moi, cette année, j’ai demandé au Père Noël un nouvel aileron !   [bavardage/th_noel]
     — jai demandé une switch au pere noel
-      → Les consoles ! Tu joues à quoi dessus ?   [bavardage/th_console]
+      → Moi, j’ai toujours une console dans ma valise pour les voyages. Les jeux de course sur console, c’est comme ça que beaucoup de pilotes s’entraînent. Tu mettrais quelle couleur sur ta voiture ?   [bavardage/th_console, pont]
     — jsui tro contente
       → Trop bien ! Ça fait plaisir de te savoir de bonne humeur.   [bavardage/th_joie]
     — et toi tu veux quoi comme cadeau
-      → Les fêtes avec un gros gâteau, c’est le meilleur. Le plus beau cadeau pour moi, c’est une coupe sur le podium.   [bavardage/th_anniversaire, pont]
+      → Moi ? Un nouveau casque, avec des flammes dessus ! Et un gros gâteau. Le plus beau cadeau pour moi, c’est une coupe sur le podium.   [bavardage/th_anniversaire, pont]
     — zorglub
       → Oh, Zorglub ! Tu m’en dis plus ?   [bavardage/inconnu]
     — mdrrr cest un mot inventé
       → Tu as un super rire.   [bavardage/inconnu]
     — tu connais minecraft
-      → Pas vraiment. Surtout aux jeux de stratégie. Ne dis pas à mes ingénieurs combien de temps.   [bavardage/jeu]
+      → Minecraft ? Oui, j’y joue un peu ! Surtout pour me détendre avant une course. Les jeux vidéo, c’est bon pour les réflexes : très utile au départ, quand les feux s’éteignent. Et toi, tu préfères les courses sous la pluie ou au sec ?   [bavardage/th_jeuvideo, pont]
     — jai construit une maison
-      → Maison ? Ha, tu m’intrigues, explique-moi !   [bavardage/inconnu]
+      → Trop bien ! Dans Minecraft, on peut tout inventer.   [bavardage/th_jeuvideo]
     — a plus
       → Salut, et bon week-end de course.   [adieu]
+TRANSCRIPTION après revue 1 (fr) :
+    — salut
+      → Salut.   [salut]
+    — tu connais minecraft
+      → Minecraft ? Oui, j’y joue un peu ! Surtout pour me détendre avant une course. Les jeux vidéo, c’est bon pour les réflexes : très utile au départ, quand les feux s’éteignent. Tu as déjà réussi un départ parfait ?   [bavardage/th_jeuvideo, pont]
+    — jai construit une maison
+      → Dans Minecraft ? Moi, je construirais un circuit avec une grande épingle !   [bavardage/th_jeuvideo]
+    — avec une piscine dedans
+      → Trop bien ! Dans Minecraft, on peut tout inventer. Si Minecraft avait des monoplaces, je serais le premier à jouer ! Tu préfères doubler ou défendre ?   [bavardage/th_jeuvideo, pont]
+    — tu joues a fortnite toi ?
+      → Fortnite, je connais ! J’y joue avec mes mécanos entre deux Grands Prix.   [bavardage/th_jeuvideo]
+    — et zelda ?
+      → Ah, Zelda ! Mes mécanos y jouent dans le camion entre deux Grands Prix.   [bavardage/th_jeuvideo]
+    — jai eu 7 en maths
+      → 7/20, c’est un peu bas… mais une note, ça se rattrape ! Revois un petit peu chaque jour, et la prochaine sera meilleure. En qualif, c’est comme un contrôle : un seul tour pour tout donner. Tu mettrais quelle couleur sur ta voiture ?   [bavardage/th_notes, pont]
+    — cest dur les fraction
+      → C’est dur au début, c’est normal. Un peu chaque jour, et tu vas y arriver !   [bavardage/th_maths]
+    — tu prefere les maths ou le francais
+      → Moi, j’aimais bien les maths, surtout le calcul mental.   [bavardage/th_maths]
+    — oui
+      → Ça marche ! Dis-moi. Tu as des animaux ?   [bavardage/th_maths]
+    — bonne nuit
+      → Bonne nuit ! Fais de beaux rêves… de course, peut-être !   [bavardage/fin]
+TRANSCRIPTION après revue 2 (fr) :
+    — coucou
+      → Salut.   [salut]
+    — jai eu 18 sur 20 en dictée
+      → 18/20 ! Bravo, c’est une super note ! En qualif, c’est comme un contrôle : un seul tour pour tout donner. Tu as déjà réussi un départ parfait ?   [bavardage/th_notes, pont]
+    — merci
+      → Pas de quoi.   [merci]
+    — et toi tu veux quoi comme cadeau
+      → Moi ? Un nouveau casque, avec des flammes dessus ! Et un gros gâteau. Une année, mes mécanos m’ont offert un gâteau en forme de volant ! Et toi, tu préfères les courses sous la pluie ou au sec ?   [bavardage/th_anniversaire, pont]
+    — moi un velo
+      → Le vélo, c’est la liberté !   [bavardage/th_velo]
+    — tu as vu jurassic park
+      → Moi, les dinosaures, j’adore : j’ai même un tricératops en plastique dans ma valise ! Un T-rex dans une monoplace, ce serait drôle : ses petits bras n’atteindraient jamais le volant ! Tu préfères les circuits rapides ou ceux avec plein de virages ?   [bavardage/th_dinosaures, pont]
+    — le t rex il fait peur
+      → Imagine un T-rex au feu rouge… Les dinosaures, c’est fascinant.   [bavardage/th_dinosaures]
+    — jadore les dinosaures
+      → Moi, mon préféré, c’est le tricératops : trois cornes et une collerette, la classe ! Tu savais que le vélociraptor courait à soixante à l’heure ? Moi, je vais un peu plus vite ! Tu mettrais quelle couleur sur ta voiture ?   [bavardage/th_dinosaures, pont]
+    — jadore les dinosaures
+      → Tu me l’as déjà dit, ha ha ! Raconte-moi autre chose.   [bavardage/th_dinosaures]
+    — il fait trop froid
+      → Le froid, ça pique le nez !   [bavardage/th_froid]
+    — bonne journée
+      → Bonne journée à toi !   [bavardage/fin]
+TRANSCRIPTION après revue 3 (fr) :
+    — yo
+      → Salut.   [salut]
+    — mon petit frere ma piqué mes legos
+      → Les frères et sœurs, ça se chamaille, mais ça s’aime fort ! Le duel avec son coéquipier, c’est comme entre frères et sœurs : on veut toujours être devant. Tu as déjà réussi un départ parfait ?   [bavardage/th_petitfrere, pont]
+    — ma mere ma grondé
+      → Aïe, une punition ? Ça arrive à tout le monde. La prochaine fois, ça ira mieux.   [bavardage/th_puni]
+    — jsui triste
+      → Courage ! Parler à quelqu’un qu’on aime, ça aide beaucoup. Et un câlin, aussi.   [bavardage/th_triste]
+    — il a cassé mon chateau
+      → C’est vraiment dommage… Un câlin, et demain, ça ira mieux.   [bavardage/th_triste]
+    — tu as des freres toi ?
+      → À la maison, il n’y a ni frère ni sœur, juste mes parents et ma grand-mère, ma plus grande supportrice.   [bavardage/famille]
+    — tu aimes la neige ?
+      → Moi, une luge et une bonne pente, et je suis aux anges. Une luge qui descend suit une trajectoire, comme dans un virage ! Tu mettrais quelle couleur sur ta voiture ?   [bavardage/th_neige, pont]
+    — on a fait une bataille de boules de neige
+      → Rien de plus beau qu’un matin tout blanc.   [bavardage/th_neige]
+    — cetait trop bien
+      → Ça me fait plaisir que tu t’amuses ! On ne court jamais sur la neige, heureusement : même les pneus pluie n’y arriveraient pas !   [bavardage/th_neige, pont]
+    — a demain
+      → À demain !   [bavardage/fin]
 TRANSCRIPTION hors course 1 (en) :
     — hey
       → Hi.   [salut]
     — i had a maths test today
       → A test? Revise a bit and trust yourself! Qualifying is like a test: one lap to give it everything. Have you ever nailed a perfect start?   [bavardage/th_notes, pont]
     — i got 7 out of 10
-      → Marks go up and down. What matters is getting better.   [bavardage/th_notes]
+      → 7/10, that’s decent! A little more effort and it’ll be excellent.   [bavardage/th_notes]
     — fractions r so hard
-      → Do you prefer sums or shapes?   [bavardage/th_maths]
+      → I found it hard too. Ask for help: it’s not embarrassing, it’s smart. In a race you’re always doing sums: the gap to the car ahead, tyre wear… Do you prefer overtaking or defending?   [bavardage/th_maths, pont]
     — yes
-      → Good stuff. So, tell me. Which track do you prefer?   [bavardage/th_maths]
+      → Both? Good answer, I reckon.   [bavardage/th_maths]
     — were u good at school?
       → School? I was good at geography, and I drew racing cars in all my notebooks.   [bavardage/ecole]
     — my teacher is mean
@@ -148,58 +228,122 @@ TRANSCRIPTION hors course 2 (en) :
     — hi
       → Hi.   [salut]
     — do u like dinosaurs?
-      → Dinosaurs! Which one is your favourite?   [bavardage/th_dinosaures]
+      → Me? Yes, I’ve seen all the dinosaur films! My favourite is the triceratops. A T-rex in a racing car would be funny: those little arms would never reach the wheel! Have you ever nailed a perfect start?   [bavardage/th_dinosaures, pont]
     — my fav is t rex
-      → Mine is the triceratops: three horns and a frill, so cool! Did you know velociraptors ran at forty miles an hour? I go a bit faster! And you, do you prefer racing in the rain or the dry?   [bavardage/th_dinosaures, pont]
+      → Mine is the triceratops: three horns and a frill, so cool!   [bavardage/th_dinosaures]
     — because hes so strong
-      → Imagine a T-rex at a red light… Dinosaurs are amazing.   [bavardage/th_dinosaures]
+      → Imagine a T-rex at a red light… Dinosaurs are amazing. Did you know velociraptors ran at forty miles an hour? I go a bit faster! Do you prefer overtaking or defending?   [bavardage/th_dinosaures, pont]
     — have u seen jurassic park
-      → Again? Ha ha, I can tell it’s your thing! A T-rex in a racing car would be funny: those little arms would never reach the wheel! Do you prefer fast tracks or twisty ones?   [bavardage/th_dinosaures, pont]
+      → I love dinosaurs: I even keep a plastic triceratops in my suitcase!   [bavardage/th_dinosaures]
     — i get scared at night sometimes
-      → Monsters? They don’t exist, but I get why they’re scary at night. Do you have a cuddly toy to protect you?   [bavardage/th_cauchemar]
+      → As a kid, I was scared of the dark too. My trick: a torch under my pillow.   [bavardage/th_cauchemar]
     — i had a nightmare about monsters
       → Nightmares are scary, but they’re only dreams. A little light, and poof, the monsters are gone! Before a race I sometimes get the jitters, like a little nightmare. Then the lights go out and it all goes away. What colour would you paint your car?   [bavardage/th_cauchemar, pont]
     — my mum gave me a hug
-      → As a kid, I was scared of the dark too. My trick: a torch under my pillow.   [bavardage/th_cauchemar]
+      → I see! I like it when you tell me about this.   [bavardage/th_cauchemar]
     — do u have a teddy
       → I had a little red car I never let go of. Some racers have a lucky cuddly toy in the garage!   [bavardage/th_jouets, pont]
     — i have a bunny plushie
-      → Cuddly toys and toys are precious. Do you have a favourite?   [bavardage/th_jouets]
+      → Teddies are the best secret keepers.   [bavardage/th_jouets]
     — its called fluffy
       → Fluffy, love it. Give it a pat from me. So, tell me. What do you listen to?   [bavardage/animal]
     — im so tired
       → Sleep is sacred! I sleep at least eight hours before a race. The night before a Grand Prix, I go to bed early: the lights go out early the next day! And you, do you prefer racing in the rain or the dry?   [bavardage/th_sommeil, pont]
     — good night
-      → Okay, briefing time. Talk soon!   [bavardage/fin]
+      → Sleep tight, talk soon!   [bavardage/fin]
 TRANSCRIPTION hors course 3 (en) :
     — yo
       → Hi.   [salut]
     — its snowing so much here
-      → Snow! Snowman or snowball fight?   [bavardage/th_neige]
+      → Give me a sledge and a good slope and I’m in heaven. A sledge going downhill follows a racing line, just like a corner! Have you ever nailed a perfect start?   [bavardage/th_neige, pont]
     — i made a snowman
-      → Give me a sledge and a good slope and I’m in heaven. We never race on snow, luckily: even wet tyres couldn’t handle it! And you, do you prefer racing in the rain or the dry?   [bavardage/th_neige, pont]
+      → Nothing is prettier than a white morning.   [bavardage/th_neige]
     — with a carrot nose
-      → They say carrots help you see in the dark!   [bavardage/th_legumes]
+      → It’s nice that you tell me all this. We never race on snow, luckily: even wet tyres couldn’t handle it! Do you prefer overtaking or defending?   [bavardage/th_neige, pont]
     — then we had hot chocolate
-      → My favourite drink is lemonade. On the podium we spray each other with a fizzy drink! Do you prefer fast tracks or twisty ones?   [bavardage/th_boisson, pont]
+      → My favourite drink is lemonade.   [bavardage/th_boisson]
     — what do u do for christmas
-      → At Christmas I eat way too many chocolates.   [bavardage/th_noel]
+      → This year I asked Santa for a new wing!   [bavardage/th_noel]
     — i asked santa for a switch
-      → Consoles! What do you play on yours?   [bavardage/th_console]
+      → I always pack a console in my suitcase for trips. Racing games on a console are how lots of racers train. What colour would you paint your car?   [bavardage/th_console, pont]
     — im so happy
       → Awesome! Great to hear you’re in a good mood.   [bavardage/th_joie]
     — what do u want for a present
-      → Parties with a big cake are the best. The best present for me is a trophy on the podium.   [bavardage/th_anniversaire, pont]
+      → Me? A new helmet, with flames on it! And a big cake. The best present for me is a trophy on the podium.   [bavardage/th_anniversaire, pont]
     — zorglub
       → Oh, Zorglub! What’s that about?   [bavardage/inconnu]
     — lmao its a made up word
       → You’ve got a great laugh.   [bavardage/inconnu]
     — do u know minecraft
-      → Not really. Mostly strategy games. Don’t tell my engineers how much.   [bavardage/jeu]
+      → Minecraft? Yes, I play it a bit! Mostly to relax before a race. Video games are good for your reflexes: really handy at the start, when the lights go out. And you, do you prefer racing in the rain or the dry?   [bavardage/th_jeuvideo, pont]
     — i built a house
-      → House? Ha, now I’m curious, explain!   [bavardage/inconnu]
+      → Brilliant! In Minecraft, you can make up anything.   [bavardage/th_jeuvideo]
     — see ya
       → Bye, and have a good race weekend.   [adieu]
-
-Exemple de relance sur le même thème (fr) :
-(relancé : « jadore les dinosaures » → « Les dinosaures ! C’est quoi ton préféré ? » ; « surtout le t-rex » → « Moi, mon préféré, c’est le tricératops : trois cornes et une collerette, la classe ! Tu savais que le vélociraptor courait à soixante à l’heure ? Moi, je vais un peu plus vite ! Et toi, tu préfères les courses sous la pluie ou au sec ? » ; « et les diplodocus aussi » → « Imagine un T-rex au feu rouge… Les dinosaures, c’est fascinant. » ; « les dinos cest ma passion » → « Encore ? Ha ha, je vois que c’est ton truc ! Un T-rex dans une monoplace, ce serait drôle : ses petits bras n’atteindraient jamais le volant ! Tu préfères les circuits rapides ou ceux avec plein de virages ? »)
+TRANSCRIPTION après revue 1 (en) :
+    — hi
+      → Hi.   [salut]
+    — do u know minecraft
+      → Minecraft? Yes, I play it a bit! Mostly to relax before a race. Video games are good for your reflexes: really handy at the start, when the lights go out. Have you ever nailed a perfect start?   [bavardage/th_jeuvideo, pont]
+    — i built a house
+      → In Minecraft? I’d build a racetrack with a huge hairpin!   [bavardage/th_jeuvideo]
+    — with a pool inside
+      → Brilliant! In Minecraft, you can make up anything. If Minecraft had racing cars in it, I’d be the first to play! Do you prefer overtaking or defending?   [bavardage/th_jeuvideo, pont]
+    — do u play fortnite?
+      → Fortnite, I know it! I play it with my mechanics between Grands Prix.   [bavardage/th_jeuvideo]
+    — what about zelda?
+      → Ah, Zelda! My mechanics play it in the truck between Grands Prix.   [bavardage/th_jeuvideo]
+    — i got 3 out of 10 in maths
+      → 3/10, that’s a bit low… but a mark can be fixed! Go over it a little every day and the next one will be better. Qualifying is like a test: one lap to give it everything. What colour would you paint your car?   [bavardage/th_notes, pont]
+    — fractions r so hard
+      → It’s hard at first, that’s normal. A little every day and you’ll get there!   [bavardage/th_maths]
+    — do u prefer maths or english
+      → I quite liked maths, especially mental arithmetic.   [bavardage/th_maths]
+    — yes
+      → Alright! So, tell me. Do you have any pets?   [bavardage/th_maths]
+    — good night
+      → Night night! Sweet dreams… of racing, maybe!   [bavardage/fin]
+TRANSCRIPTION après revue 2 (en) :
+    — hey
+      → Hi.   [salut]
+    — i got 9/10 on my spelling test
+      → 9/10! Well done, that’s a great mark! Qualifying is like a test: one lap to give it everything. Have you ever nailed a perfect start?   [bavardage/th_notes, pont]
+    — thanks
+      → No worries.   [merci]
+    — what do u want for a present
+      → Me? A new helmet, with flames on it! And a big cake. One year, my mechanics gave me a cake shaped like a steering wheel! And you, do you prefer racing in the rain or the dry?   [bavardage/th_anniversaire, pont]
+    — i want a bike
+      → Cycling is freedom!   [bavardage/th_velo]
+    — have u seen jurassic park
+      → I love dinosaurs: I even keep a plastic triceratops in my suitcase! A T-rex in a racing car would be funny: those little arms would never reach the wheel! Do you prefer fast tracks or twisty ones?   [bavardage/th_dinosaures, pont]
+    — the t rex is scary
+      → Imagine a T-rex at a red light… Dinosaurs are amazing.   [bavardage/th_dinosaures]
+    — i love dinosaurs
+      → Dinosaurs! Which one is your favourite?   [bavardage/th_dinosaures]
+    — i love dinosaurs
+      → You already told me, ha ha! Tell me something else.   [bavardage/th_dinosaures]
+    — its so cold
+      → The cold nips your nose! When the track is cold the car slides: you take it easy at first.   [bavardage/th_froid, pont]
+    — have a nice day
+      → Have a great day!   [bavardage/fin]
+TRANSCRIPTION après revue 3 (en) :
+    — yo
+      → Hi.   [salut]
+    — my little brother took my lego
+      → Brothers and sisters squabble, but they love each other loads! The battle with your teammate is like with siblings: you always want to be in front. Have you ever nailed a perfect start?   [bavardage/th_petitfrere, pont]
+    — my mum told me off
+      → Ouch, in trouble? Happens to everyone. Next time will be better.   [bavardage/th_puni]
+    — im so sad
+      → Hang in there! Talking to someone you love helps a lot. And so does a hug.   [bavardage/th_triste]
+    — he broke my castle
+      → That’s a real shame… A hug, and tomorrow will be better.   [bavardage/th_triste]
+    — do u have brothers?
+      → At home I’ve got no brothers or sisters, just my parents and my gran, my biggest fan.   [bavardage/famille]
+    — do u like snow?
+      → Give me a sledge and a good slope and I’m in heaven. A sledge going downhill follows a racing line, just like a corner! What colour would you paint your car?   [bavardage/th_neige, pont]
+    — we had a snowball fight
+      → Nothing is prettier than a white morning.   [bavardage/th_neige]
+    — it was so fun
+      → Glad you had fun! We never race on snow, luckily: even wet tyres couldn’t handle it!   [bavardage/th_neige, pont]
+    — see you tomorrow
+      → See you tomorrow!   [bavardage/fin]

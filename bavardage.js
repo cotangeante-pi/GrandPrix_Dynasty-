@@ -117,12 +117,12 @@ const BAVARDAGE = (function () {
     ['jouets', /\b(doudous?|peluches?|jouets?|poupees?|barbies?|toys?|teddy|teddy bear|stuffed animals?|plush\w*|dolls?|action figures?)\b/, 0],
     ['dents', /\b(dents?|dentiste|appareil dentaire|petite souri\w*|teeth|tooth|dentist|braces|tooth fairy)\b/, 0],
     ['sommeil', /\b(dormir|dormi|dors|dodo|sommeil|fatigu\w*|sieste|me coucher|au lit|nuit blanche|sleep\w*|tired|bedtime|nap|go to bed)\b/, 0],
-    ['puni', /\b(puni\w*|prive de|privee de|grond\w*|engueul\w*|grounded|punished|in trouble|told off)\b/, 0],
+    ['puni', /\b(puni\w*|prive de|privee de|grond\w*|engueul\w*|grounded|punished|in trouble|told (me )?off)\b/, 0],
     ['demenagement', /\b(demenag\w*|nouvelle maison|nouvelle ecole|moving house|new house|new school|we re moving|we moved|moving to)\b/, 0],
     ['copains', /\b(meilleure? ami\w*|meilleure? pote|meilleure? copine|meilleur copain|bff|best friends?|best mate|mes potes|mes copains|mes copines|mes amis|my friends|my mates|my buddies)\b/, 0],
     ['argentpoche', /\b((d |l )?argent de poche|dargent de poche|tirelire|mes economies|mes sous|pocket money|allowance|piggy bank|my savings)\b/, 0],
     ['devoirs', /\b(devoirs?|devoire?s?|dvr|exos?|exercices?|homework|hw|home work)\b/, 0],
-    ['notes', /\b(controles?|interros?|evals?|evaluations?|bulletin|(bonne|mauvaise|sale|super|bonnes|mauvaises) notes?|eu \d+ sur|eu \d+(?! ?ans)|\d+ sur (10|20)|\d+ out of \d+|exams?|tests? (today|tomorrow|at school)|school tests?|grades?|report card|spelling test|quiz)\b/, 0],
+    ['notes', /\b(controles?|interros?|evals?|evaluations?|bulletin|(bonne|mauvaise|sale|super|bonnes|mauvaises) notes?|eu \d+ sur|eu \d+(?! ?ans)|i got (a |an )?\d{1,2}(?! ?(years|yo))|\d+ sur (10|20)|\d+ out of \d+|exams?|tests? (today|tomorrow|at school)|school tests?|grades?|report card|spelling test|quiz)\b/, 0],
     ['maths', /\b(maths?|matematique\w*|mathematique\w*|calculs?|calcul mental|multiplications?|tables? de multiplication|additions?|soustractions?|fractions?|geometrie|algebra|times tables?|equations?)\b/, 0],
     ['prof', /\b(maitresse|maitre|maicresse|maitress|prof|profs|professeure?s?|instit\w*|teachers?)\b/, 0],
     ['recre', /\b(recre\w*|recreation|recess|playground|break ?time|at break)\b/, 0],
@@ -134,6 +134,7 @@ const BAVARDAGE = (function () {
     ['telephone', /\b(telephone|telefone|telephon\w*|portable|tel|smartphone|iphone|tablette|tablete|phone|tablet|ipad|mobile)\b/, 0],
     ['tele', /\b(tele|television|tv|telly|zapping|watch tv|watching tv)\b/, 0],
     ['console', /\b(ps4|ps5|playstation|play station|xbox|switch|nintendo|game ?boy|wii)\b/, 0],
+    ['jeuvideo', /\b(minecraft|mincraft|maincraft|minecraf|fortnite|fortnight|fornite|fortnit|roblox|robloxe|zelda|super mario|mario bros|mario(?! ?kart)|fifa|fc ?2[4-7]|among us|amongus|brawl ?stars?|clash royale|clash of clans|sonic|animal crossing|splatoon|rocket league|subway surf\w*|candy crush|stumble guys|geometry dash|kirby|tetris|pac ?man)\b/, 0],
     ['jeucourse', /\b(mario ?kart|jeux? de (course|voiture)s?|racing games?|car games?|gran turismo|need for speed|forza)\b/, 0],
     ['pokemon', /\b(pokemon\w*|pikachu|dracaufeu|charizard|pokedex|poke mon)\b/, 0],
     ['superpouvoir', /\b(super ?pouvoirs?|pouvoirs? magiques?|super ?heros?|super ?heroes|spider ?man|batman|superman|iron ?man|hulk|marvel|avengers|super ?powers?|invisible)\b/, 0],
@@ -173,6 +174,20 @@ const BAVARDAGE = (function () {
     ['toilettes', /\b(caca|pipi|prout\w*|crottes?|toilettes?|wc|poop\w*|fart\w*|pee|poo|toilets?|burp\w*)\b/, 0],
     ['jeuxsociete', /\b(jeux? de societe|monopoly|uno|jeux? de cartes|dominos?|dames|board ?games?|card games?|dominoes|checkers|cluedo|scrabble)\b/, 0],
   ];
+  // le nom d'un jeu vidéo, écrit proprement (« mincraft » → « Minecraft ») : il le redit dans sa réponse
+  const JEUX = [[/minecra|mincraft|maincraft/, 'Minecraft'], [/fortni|fornite/, 'Fortnite'], [/roblox/, 'Roblox'], [/zelda/, 'Zelda'], [/mario/, 'Mario'], [/fifa|fc ?2\d/, 'FIFA'],
+    [/among ?us/, 'Among Us'], [/brawl/, 'Brawl Stars'], [/clash/, 'Clash Royale'], [/sonic/, 'Sonic'], [/animal crossing/, 'Animal Crossing'], [/splatoon/, 'Splatoon'],
+    [/rocket league/, 'Rocket League'], [/subway/, 'Subway Surfers'], [/candy/, 'Candy Crush'], [/stumble/, 'Stumble Guys'], [/geometry/, 'Geometry Dash'], [/kirby/, 'Kirby'], [/tetris/, 'Tetris'], [/pac ?man/, 'Pac-Man']];
+  const nomJeu = t => { for (const [re, n] of JEUX) if (re.test(t)) return n; return null; };
+  // les thèmes qui répondent même à une question sur ses goûts (« tu connais Minecraft ? » n'est pas « tu joues aux jeux vidéo ? »)
+  const THEMES_FORTS = ['jeuvideo', 'jeucourse', 'pokemon', 'console', 'bonbons', 'glace', 'legumes', 'fastfood', 'boisson', 'petitdej'];   // (« tu manges des bonbons ? » n'est pas « ton plat préféré »)
+  // les thèmes où « c'est dur » appelle un encouragement, pas une question
+  const DUR_THEMES = ['devoirs', 'notes', 'maths', 'prof', 'lecture', 'sciences', 'instruments', 'art', 'velo', 'trottinette', 'piscine', 'danse', 'tech', 'jeuvideo'];
+  const DUR = /\b(dur|dure|durs|difficile|difficiles|complique|compliquee|galere|j y arrive pas|j arrive pas|nul en|nulle en|hard|difficult|tough|can t do|cant do|struggle|struggling)\b/;
+  // une réponse qui parle de lui (pour « et toi ? »)
+  const PERSO_RE = /^(Moi|Ma |Mon |Mes |J’|Je |Si j’|I |I’|My |Mine |As a kid|For me|At school, I|When I)/;
+  const APPRECIE = /\b(c ?etait (trop |tro |super |vraiment )?(bien|cool|genial|drole|top)|cetait \w+|trop bien|tro bien|trop cool|genial|it was (so |really )?(fun|good|great|cool|awesome)|so fun|awesome|amazing)\b/;
+  const FAVORI = /\b(prefere|preferee|prefer|fav|favou?rite|le meilleur|la meilleure|the best)\b/;
   const themeDe = t => { for (const [id, re] of THEMES) if (re.test(t)) return id; return null; };
   const SENSIBLES = THEMES.filter(x => x[2]).map(x => x[0]);
   // les sujets « larges » qu'un thème plus précis remplace quand l'enfant parle de lui (« j'ai un contrôle de maths » n'est pas
@@ -253,7 +268,16 @@ const BAVARDAGE = (function () {
     const r = { nombre: nombreDit(t), adieu, t, sujet, petit, question, versLui, deMoi, age: age ? +age : null, animalNom: animalNom || null, animal: animal || null };
     if (R.BAVARDAGE_THEMES) {
       r.theme = themeDe(t);   // (tour 60) le thème de tous les jours (l'école, les dinosaures, la neige…)
-      if (!r.adieu && /^\s*(bonne nuit|bne nuit|good ?night|night night|nighty night|gn)\s*!*\s*$/.test(t)) r.adieu = true;   // (« bonne nuit » : au revoir)
+      // les au revoir du moment : « bonne nuit » (il te souhaite de bien dormir), « bonne journée », « à demain »
+      const adieuT = /^\s*(bonne nuit|bne nuit|bonne nuit a toi|good ?night|night night|nighty night|gn|sweet dreams)\s*!*\s*$/.test(t) ? 'nuit'
+        : /^\s*(bonne journee|bonne soiree|bonne aprem|bonne apres midi|have a (good|nice|great) (day|evening|afternoon)|good day)\s*!*\s*$/.test(t) ? 'jour'
+        : /^\s*(a demain|a 2main|see (you|u|ya) (tomorrow|tmrw)|cya (tmrw|tomorrow)|bye see (you|u|ya) tomorrow)\s*!*\s*$/.test(t) ? 'demain' : null;
+      if (adieuT) { r.adieu = true; r.adieuType = adieuT; }
+      if (r.theme === 'jeuvideo') r.jeu = nomJeu(t);
+      if (r.theme === 'notes' || /\b\d{1,2}\s*\/\s*(10|20)\b/.test(String(txt))) {   // (une note : sur 20 ou sur 10)
+        const m = String(txt).match(/\b(\d{1,2})\s*(?:\/|sur|out of|on)\s*(10|20)\b/i) || t.match(/\b(?:eu|got|have|ai)\s+(?:a |an |un |une )?(\d{1,2})\b(?! ?(?:ans|an|years?|yo)\b)/);
+        if (m) { const n = +m[1], base = m[2] ? +m[2] : n > 10 || LANGUE === 'fr' ? 20 : 10; if (n <= base) { r.note = { n, base }; r.theme = 'notes'; } }
+      }
       if (!r.animalNom) { const m = t.match(/\b(?:its|it is|hes|shes|he is|she is) (?:called|named) (\w+)/); if (m && !PAS_UN_NOM.includes(m[1]) && m[1].length > 1) r.animalNom = m[1]; }
       if (r.age !== null && new RegExp('\\b' + r.age + '\\s+(?!ans?\\b|years?\\b|yo\\b|et\\b|and\\b|moi\\b|toi\\b|you\\b|u\\b|vous\\b)[a-z]').test(t)) r.age = null;   // (« j'ai 10 euros » n'est pas un âge)
     }
@@ -313,14 +337,22 @@ const BAVARDAGE = (function () {
     // sujet large ou un petit mot ; jamais devant ce qui touche vraiment la course, un sujet précis, sa question en attente ou ce que
     // le joueur confie de lui. La réponse d'après à sa petite question sur le thème est reprise (« le T-rex ! »). Une phrase que rien
     // ne range : il en reprend un mot, sinon il relance sur la course.
-    const TH = R.BAVARDAGE_THEMES, thQ = TH && b.thQ;
-    if (TH) b.thQ = false;
+    const TH = R.BAVARDAGE_THEMES, thQ = TH && b.thQ, choixAvant = TH && b.choix, redit = TH && b.dernierJ === l.t;
+    if (TH) { b.thQ = false; b.choix = false; b.dernierJ = l.t; }
     const sensible = TH && SENSIBLES.includes(l.theme), mots = l.t.trim().split(/\s+/).length;
     if (TH && l.theme && !l.adieu && !(fort && l.versLui && !COURSE_DOUX.includes(a.acte))   // (« j'adore les glaces » n'est pas un contact)
-      && (sensible || (!(l.sujet && (!LARGES.includes(l.sujet) || (l.question && l.versLui && !l.deMoi && (GOUT_DE[l.sujet] || l.sujet === 'animal'))))
+      && (sensible || (!(l.sujet && (!LARGES.includes(l.sujet) || (l.question && l.versLui && !l.deMoi && !THEMES_FORTS.includes(l.theme) && (GOUT_DE[l.sujet] || l.sujet === 'animal'))))
       && !['fratrie', 'confie'].includes(quoi) && !(quoi === 'attente' && mots < 3)))) quoi = 'theme';
-    else if (TH && !quoi && thQ && !fort && !l.question && !l.versLui && l.t.trim().split(/\s+/).length <= 4 && chose(txt)) quoi = 'threp';
+    else if (TH && !quoi && thQ && !fort && !l.question && !l.versLui && l.t.trim().split(/\s+/).length <= 4 && !APPRECIE.test(l.t) && chose(txt)) quoi = 'threp';
+    // après un thème sensible (la tristesse…), ce que l'enfant raconte reste sur ce thème ; « avec une piscine dedans » continue le thème d'avant
+    if (TH && quoi === 'theme' && b.theme && b.dernier && b.dernierSujet === 'th_' + b.theme && !l.question && !sensible
+      && (SENSIBLES.includes(b.theme) || (/^\s*(avec|with|et|and)\b/.test(l.t) && mots <= 6))) quoi = 'thsuite';
     if (l.adieu && !fort) quoi = 'adieu';
+    if (TH && l.adieuType && (!fort || a.acte === 'ADIEU')) quoi = 'adieu';
+    // « oui » à une question « A ou B ? » : il le relève (« Les deux, alors ? »)
+    if (TH && choixAvant && ['oui', 'non'].includes(l.petit) && mots <= 3 && !fort) quoi = 'choix';
+    // la même phrase redite mot pour mot : il le remarque gentiment
+    if (TH && redit && mots >= 3 && !(fort && l.versLui) && quoi !== 'adieu') quoi = 'redit';
     // (la suite d'un thème : « elle crie tout le temps » après la maîtresse, « il est trop fort » après le T-rex : il reste sur le thème)
     if (TH && (!quoi || quoi === 'flou' || (quoi === 'attente' && b.attente === 'f1')) && b.theme && b.dernier && b.dernierSujet === 'th_' + b.theme && !l.question && !l.adieu && mots >= 3 && !l.sujet
       && !(fort && (l.versLui || !COURSE_DOUX.includes(a.acte)))) quoi = 'thsuite';
@@ -333,10 +365,12 @@ const BAVARDAGE = (function () {
     ctx._t = l.t; ctx._q = l.question; ctx._vers = l.versLui;
     const dire = makeDire(ctx, b, alea);
     if (b.ici > R.BAVARDAGE_PAR_GP) { b.attente = null; b.dernier = true; return fin({ texte: dire('bav_fin'), sujet: 'fin' }, b); }
-    if (quoi === 'adieu') { b.attente = null; b.dernier = false; return fin({ texte: dire('bav_fin'), sujet: 'fin' }, b); }
-    if (quoi === 'theme') return fin(repTheme(l.theme, ctx, b, dire, alea), b);
+    if (quoi === 'adieu') { b.attente = null; b.dernier = false; return fin({ texte: dire(TH && l.adieuType ? 'bav_adieu_' + l.adieuType : 'bav_fin'), sujet: 'fin' }, b); }
+    if (quoi === 'choix') { b.attente = null; b.dernier = true; return fin({ texte: dire(l.petit === 'oui' ? 'bav_choix_oui' : 'bav_choix_non'), sujet: b.dernierSujet || 'petit' }, b); }
+    if (quoi === 'redit') { b.dernier = true; return fin({ texte: dire('bav_redit'), sujet: b.dernierSujet || 'petit' }, b); }
+    if (quoi === 'theme') return fin(repTheme(l.theme, ctx, b, dire, alea, l), b);
     if (quoi === 'threp') { b.attente = null; ctx.x = chose(txt); return fin(avecPont(dire('bav_th_rep'), b.theme, ctx, b, dire, alea, 'th_' + b.theme), b); }
-    if (quoi === 'thsuite') return fin(repTheme(b.theme, ctx, b, dire, alea), b);
+    if (quoi === 'thsuite') return fin(repTheme(b.theme, ctx, b, dire, alea, l, true), b);
     if (quoi === 'inconnu') { b.attente = null; return fin(repInconnu(txt, l, ctx, b, dire, alea), b); }
     const morceaux = [];
     let sujet = null;
@@ -417,16 +451,26 @@ const BAVARDAGE = (function () {
   }
   // dire(cle) : une variante pas dite récemment, ses trous remplis
   function makeDire(ctx, b, alea) {
-    return function dire(cle, extra, eviter) {
+    return function dire(cle, extra, eviter, filtre) {
       const ton = ctx.humeur === 'froid' ? '_froid' : (ctx.p.caractere && ctx.p.caractere.agressivite >= R.DISCUSSION_FOUGUEUX) ? '_vif' : '';
-      let v = liste(cle);
+      const TH = R.BAVARDAGE_THEMES;
+      let v = TH && liste(cle + '_th').length ? liste(cle + '_th') : liste(cle);   // (tour 60 : des variantes refaites, seulement avec les thèmes)
       if (ton && liste(cle + ton).length) v = v.concat(liste(cle + ton), liste(cle + ton));
+      if (filtre) v = v.filter(x => filtre.test(x));
       if (!v.length) return '';
       const vals = Object.assign({}, ctx.vals, { x: ctx.x !== undefined ? ctx.x : '' }, extra || {});
       const remplir = t => {
         let r = t;
         if (ctx.anonyme) r = r.replace(/,\s*\{nom\}/g, '').replace(/\s+\{nom\}/g, '').replace(/\{nom\},\s*/g, '').replace(/\{nom\}/g, '');
+        if (TH) {   // (tour 60) « en la géographie » → « en géographie », « à le » → « au » ; une capitale après « ? », « ! », « . »
+          r = r.replace(/(^|\s)(en|à|de) \{(\w+)\}/g, (m, e, prep, c) => {
+            const x = vals[c]; if (x === undefined || typeof x !== 'string') return m;
+            const y = prep === 'en' ? x.replace(/^(la |le |les |l’)/, '') : prep === 'à' ? x.replace(/^le /, 'au ').replace(/^les /, 'aux ') : x.replace(/^le /, 'du ').replace(/^les /, 'des ');
+            return e + (/^(au|aux|du|des) /.test(y) && prep !== 'en' ? y : prep + ' ' + y);
+          });
+        }
         r = r.replace(/\{(\w+)\}/g, (m, c) => vals[c] !== undefined ? vals[c] : m);
+        if (TH) r = r.replace(/([?!.]) ([a-zàâäéèêëîïôöûüç])/g, (m, p, c) => p + ' ' + c.toUpperCase()).replace(/\bJ’ai ni /g, 'Je n’ai ni ').replace(/\bil y a ni /g, 'il n’y a ni ');
         return r.charAt(0).toUpperCase() + r.slice(1);
       };
       const i0 = Math.floor(alea() * v.length);
@@ -571,17 +615,38 @@ const BAVARDAGE = (function () {
   // --- (tour 60, BAVARDAGE_THEMES) un thème de tous les jours : il en parle (sa réaction, jamais deux fois la même), il y reste un peu
   // si l'enfant y revient, et il ramène doucement à la course : un pont du thème vers la course (une fois sur deux ou trois, jamais
   // deux réponses de suite, jamais le même pont deux fois de suite), parfois suivi d'une question sur la course (attendue).
-  function repTheme(id, ctx, b, dire, alea) {
+  function repTheme(id, ctx, b, dire, alea, l, suite) {
     b.attente = null;
     const meme = b.theme === id;
     b.themeN = meme ? (b.themeN || 0) + 1 : 0; b.theme = id;
+    if (id === 'jeuvideo' && l && l.jeu) { if (meme && b.thX && b.thX !== l.jeu) b.themeN = 0; b.thX = l.jeu; }   // (un autre jeu nommé : un sujet neuf)
+    ctx.x = id === 'jeuvideo' ? (b.thX || (LANGUE === 'fr' ? 'ce jeu' : 'that game')) : ctx.x;
     const sensible = SENSIBLES.includes(id);
+    const q = l && l.versLui && !l.deMoi && !suite && (l.question || /\b(et toi|et vous|and (you|u)|quoi|what|which|quel|quelle|tu veux|tu aimes|t aimes)\b/.test(l.t) || /^\s*(have|has|did|do|does|can|are|is|tu as|t as|as tu|tu connais|tu sais|t es|tu es)\b/.test(l.t));   // (« et toi tu veux quoi comme cadeau » est une question)
     let t;
     if (ctx.humeur === 'froid' && !sensible && alea() < 0.5) t = dire('bav_froid');
+    else if (id === 'notes' && l && l.note) {   // (une note : le réconfort si elle est basse, les félicitations si elle est haute)
+      const r = l.note.n / l.note.base;
+      ctx.x = l.note.n + '/' + l.note.base;
+      t = dire(r < 0.5 ? 'bav_note_basse' : r >= 0.75 ? 'bav_note_haute' : 'bav_note_moyenne');
+    }
+    else if (l && !q && !sensible && DUR_THEMES.includes(id) && DUR.test(l.t)) t = dire('bav_th_dur');   // (« c'est dur les fractions » : un encouragement)
+    else if (suite && !sensible && l && APPRECIE.test(l.t)) t = dire('bav_th_content');   // (« c'était trop bien » : il partage sa joie)
+    else if (suite && (b.suites || []).filter(x => x === id).length < liste('bav_suite_' + id).length) { b.suites = (b.suites || []).concat([id]).slice(-8); t = dire('bav_suite_' + id); }
+    else if (q && !sensible && (liste('bav_th_' + id).some(x => PERSO_RE.test(x)) || liste('bav_moi_' + id).length)) {   // (« et toi ? » : d'abord sa réponse à lui)
+      t = liste('bav_moi_' + id).length ? dire('bav_moi_' + id) : dire('bav_th_' + id, null, null, PERSO_RE);
+    }
     else {
-      t = b.themeN >= liste('bav_th_' + id).length ? dire('bav_th_encore') : dire('bav_th_' + id);   // (ses réactions dites : « encore ? »)
+      // l'enfant a déjà dit l'essentiel (« mon préféré c'est le T-rex », une phrase de 4 mots ou plus) : pas de question qui le lui redemande
+      const dejaDit = suite || (l && !l.question && (FAVORI.test(l.t) || l.t.trim().split(/\s+/).length >= 4));   // (la suite d'une histoire : il écoute, il ne redemande pas)
+      const SANS_Q = /[^?]\s*$/;
+      const assez = suite ? 'bav_th_ecoute' : 'bav_th_encore';   // (ses réactions toutes dites : il écoute la suite, ou il aime en parler)
+      t = b.themeN >= liste('bav_th_' + id).length ? dire(assez)
+        : dejaDit ? (liste('bav_th_' + id).some(x => SANS_Q.test(x) && !b.recents.includes(x.slice(0, 24))) ? dire('bav_th_' + id, null, null, SANS_Q) : dire(assez))
+        : dire('bav_th_' + id);   // (ses réactions toutes dites : il aime en parler)
     }
     b.thQ = /\?\s*$/.test(t);
+    b.choix = b.thQ && / (ou|or) [^?]*\?\s*$/.test(t);
     return avecPont(t, id, ctx, b, dire, alea, 'th_' + id);
   }
   function avecPont(t, id, ctx, b, dire, alea, sujet) {
@@ -592,7 +657,7 @@ const BAVARDAGE = (function () {
       if (!Array.isArray(b.ponts)) b.ponts = [];
       pont = dire('bav_pont_' + id, null, b.ponts);
       b.ponts = b.ponts.concat([pont]).slice(-4);
-      if (alea() < 0.7) { pont += ' ' + dire('bav_q_f1', null, b.ponts); b.attente = 'f1'; }
+      if (alea() < 0.7) { const qf = dire('bav_q_f1', null, b.ponts); pont += ' ' + qf; b.attente = 'f1'; b.choix = / (ou|or) [^?]*\?\s*$/.test(qf); }
     }
     b.pontDernier = !!pont;
     b.dernier = true; b.dernierSujet = sujet;
@@ -604,7 +669,7 @@ const BAVARDAGE = (function () {
     let t;
     if (/^\s*(mdr|lol|ptdr|xd|haha|ahah|hihi|lmao|rofl|jpp)\b/.test(l.t)) t = dire('bav_rire');   // (« mdr c'est un mot inventé » : il rit avec toi)
     else if (m) { ctx.x = m.charAt(0).toUpperCase() + m.slice(1); t = dire(l.question ? 'bav_inc_q' : 'bav_inc'); }
-    else { t = dire('bav_inc_sans') + ' ' + dire('bav_q_f1', null, b.ponts || []); b.attente = 'f1'; }
+    else { const qf = dire('bav_q_f1', null, b.ponts || []); t = dire('bav_inc_sans') + ' ' + qf; b.attente = 'f1'; b.choix = / (ou|or) [^?]*\?\s*$/.test(qf); }
     b.pontDernier = false; b.dernier = true; b.theme = null; b.dernierSujet = 'inconnu';
     return { texte: t, sujet: 'inconnu' };
   }

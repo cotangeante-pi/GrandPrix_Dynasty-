@@ -37,6 +37,7 @@ const TH_PHRASES = {
   telephone: { fr: ['j’ai eu un téléphone', 'ma tablette est cassée', 'jai un nouveau telefone'], en: ['i got a new phone', 'my tablet is broken', 'can i get a iphone'] },
   tele: { fr: ['je regarde la télé', 'il y a rien à la télévision', 'jregarde la tv'], en: ['i am watching tv', 'nothing good on the telly', 'i watch tv all day'] },
   console: { fr: ['j’ai eu une switch', 'je joue à la ps5', 'jai une xbox'], en: ['i got a switch', 'i play on my ps5', 'my xbox is broken'] },
+  jeuvideo: { fr: ['tu connais minecraft', 'je joue a fortnite tout le temps', 'jadore roblox'], en: ['do u know minecraft', 'i play fortnite every day', 'roblox is so fun'] },
   jeucourse: { fr: ['je joue à mario kart', 'j’adore les jeux de course', 'je joue a des jeu de voiture'], en: ['i play mario kart', 'i love racing games', 'i play car games all day'] },
   pokemon: { fr: ['j’adore les pokémon', 'j’ai une carte pikachu', 'jai plein de carte pokemon'], en: ['i love pokemon', 'i got a charizard card', 'pikachu is my fav'] },
   superpouvoir: { fr: ['si j’avais un super pouvoir', 'j’adore spiderman', 'les super heros cest trop bien'], en: ['if i had a superpower', 'i love spiderman', 'batman is the best'] },
@@ -81,6 +82,9 @@ const TH_PHRASES = {
   jeuxrecre: { fr: ['on a joué à cache-cache', 'je joue aux billes', 'on a fait un 1 2 3 soleil'], en: ['we played hide and seek', 'i play marbles', 'we did jump rope'] },
 };
 const THTXT = c => TEXTES[LANGUE][c] || [];
+// une réponse qui vient d'un modèle à trous (« {x} ! J'y joue… ») : chaque morceau fixe s'y retrouve, dans l'ordre
+const selonModele = (texte, m) => { let i = 0; for (const b of m.split(/\{\w+\}/)) { if (!b) continue; const j = texte.indexOf(b, i); if (j < 0) return false; i = j + b.length; } return true; };
+const parleDe = (texte, id) => ['bav_th_' + id, 'bav_moi_' + id, 'bav_th_dur', 'bav_note_basse', 'bav_note_moyenne', 'bav_note_haute'].some(c => THTXT(c).some(m => selonModele(texte, m)));
 const thDe = r => r && r.sujet && r.sujet.startsWith('th_') ? r.sujet.slice(3) : null;
 t('thèmes : au moins 60 thèmes de tous les jours, chacun avec 3 réactions et (s’il n’est pas sensible) 2 ponts vers la course, dans les deux langues', () => {
   const ids = BAVARDAGE.THEMES;
@@ -96,7 +100,7 @@ t('thèmes : chaque thème est reconnu sous ses 3 tournures d’enfant (' + LANG
     n++;
     const ch = nouveau(), k = rival(ch, 0.4); gpCouru(ch);
     const r = DISCUSSION.dire(ch, k, ph);
-    const parle = r && THTXT('bav_th_' + id).some(x => r.texte.startsWith(x));
+    const parle = r && parleDe(r.texte, id);
     if (!r || r.reaction !== 'bavardage' || thDe(r) !== id || !parle || TROU.test(r.texte)) mal.push('« ' + ph + ' » (' + id + ') → ' + (r ? r.reaction + '/' + r.sujet + ' : ' + r.texte : 'rien'));
   }
   v(!mal.length, mal.length + ' / ' + n + ' : ' + mal.join(' ; '));
@@ -216,6 +220,132 @@ TH_ENFANTS[LANGUE].forEach((fil, n) => t('thèmes : conversation d’enfant hors
   L.push('  TRANSCRIPTION hors course ' + (n + 1) + ' (' + LANGUE + ') :'); for (const [ph, r] of rs) L.push('    — ' + ph + '\n      → ' + r.texte + '   [' + r.reaction + (r.sujet ? '/' + r.sujet : '') + (r.pont ? ', pont' : '') + ']');
   const inc = TEXTES[LANGUE].dis_incompris.concat(TEXTES[LANGUE].dis_incompris_encore || [], TEXTES[LANGUE].dis_question || []);
   const mal = rs.filter(([, r]) => !r || !r.texte || TROU.test(r.texte) || inc.some(i => r.texte.startsWith(i.replace(/\{\w+\}/g, '').slice(0, 14)))).map(([ph, r]) => '« ' + ph + ' » → ' + (r && r.texte));
+  v(!mal.length, mal.join(' ; '));
+  const dbl = rs.filter(([, r], i) => i && r.texte === rs[i - 1][1].texte).map(([ph]) => ph);
+  v(!dbl.length, dbl.join(' ; '));
+}));
+
+// ---- la revue du Chef (tour 60) : chaque défaut relevé dans les transcriptions a son test
+const FR = LANGUE === 'fr';
+const neuf = () => { const ch = nouveau(), k = rival(ch, 0.4); gpCouru(ch); return [ch, k]; };
+t('revue 1 : les phrases à trou s’accordent (« en géographie », jamais « en la géographie » ; une capitale après « ? »), pour chaque pilote', () => {
+  const mal = [], RE = FR ? /\b(en (la|le|les) |en l’|à (le|les) |de (le|les) |J’ai ni |il y a ni )/ : /\b(a (an?|the) )/;
+  const ch = nouveau(); gpCouru(ch);
+  for (const p of ch.pilotes.filter(x => !x.humain)) for (const [ph] of SUJETS_PHRASES) {
+    const r = DISCUSSION.dire(ch, p.id, ph); if (!r) continue;
+    if (RE.test(r.texte) || /[?!.] [a-zàâéèêîôûç]/.test(r.texte)) mal.push('« ' + ph + ' » → ' + r.texte);
+  }
+  v(!mal.length, mal.length + ' : ' + mal.slice(0, 6).join(' ; '));
+  const [c2, k2] = neuf();
+  const r = DISCUSSION.dire(c2, k2, FR ? 'et toi t etais fort a lecole ?' : 'were u good at school?');
+  L.push('  (revue 1 : « ' + (FR ? 'et toi t etais fort a lecole ?' : 'were u good at school?') + ' » → « ' + r.texte + ' »)');
+});
+t('revue 2 : les jeux vidéo nommés (Minecraft, Fortnite, Roblox, Mario, Zelda, FIFA, Among Us…) sont reconnus, avec une vraie réponse qui les nomme', () => {
+  const mal = [];
+  for (const [jeu, nom] of [['minecraft', 'Minecraft'], ['mincraft', 'Minecraft'], ['fortnite', 'Fortnite'], ['roblox', 'Roblox'], ['mario', 'Mario'], ['zelda', 'Zelda'], ['fifa', 'FIFA'], ['among us', 'Among Us'], ['brawl stars', 'Brawl Stars']]) {
+    const [ch, k] = neuf();
+    const r = DISCUSSION.dire(ch, k, (FR ? 'tu connais ' : 'do you know ') + jeu);
+    if (thDe(r) !== 'jeuvideo' || !r.texte.includes(nom) || /combien de temps|how much\./.test(r.texte)) mal.push(jeu + ' → ' + r.sujet + ' : ' + r.texte);
+  }
+  v(!mal.length, mal.join(' ; '));
+  const [ch, k] = neuf();
+  const r = DISCUSSION.dire(ch, k, FR ? 'tu joue a fortnite' : 'do u play fortnite');
+  v(r.texte.includes('Fortnite'), r.texte);
+});
+t('revue 3 : après un jeu vidéo, « j’ai construit une maison » reste sur le jeu (« Dans Minecraft ? Moi, je construirais un circuit ! »)', () => {
+  const [ch, k] = neuf();
+  DISCUSSION.dire(ch, k, FR ? 'tu connais minecraft' : 'do u know minecraft');
+  const r = DISCUSSION.dire(ch, k, FR ? 'jai construit une maison' : 'i built a house');
+  v(thDe(r) === 'jeuvideo' && r.texte.includes('Minecraft'), r.sujet + ' : ' + r.texte);
+  L.push('  (revue 3 : « ' + (FR ? 'jai construit une maison' : 'i built a house') + ' » après Minecraft → « ' + r.texte + ' »)');
+});
+t('revue 4 : « c’est dur les fractions » reçoit un encouragement ; « oui » à une question « A ou B ? » est relevé', () => {
+  const [ch, k] = neuf();
+  const r = DISCUSSION.dire(ch, k, FR ? 'cest dur les fraction' : 'fractions r so hard');
+  v(THTXT('bav_th_dur').some(m => r.texte.startsWith(m)), r.texte);
+  let vu = 0;
+  for (let s2 = 0; s2 < 30 && vu < 2; s2++) {
+    const [c2, k2] = neuf(); c2.graine = (c2.graine || 0) + s2 * 131;
+    const r1 = DISCUSSION.dire(c2, k2, FR ? 'jaime les maths' : 'i like maths');
+    if (!c2.pilotes[k2].memoire.bav.choix) continue;
+    vu++;
+    const rep = vu === 1 ? (FR ? 'oui' : 'yes') : (FR ? 'non' : 'no');
+    const r2 = DISCUSSION.dire(c2, k2, rep);
+    v(THTXT(vu === 1 ? 'bav_choix_oui' : 'bav_choix_non').includes(r2.texte), r1.texte + ' / ' + rep + ' → ' + r2.texte);
+  }
+  v(vu >= 1, 'questions « A ou B ? » vues : ' + vu);
+});
+t('revue 5 : une question au pilote sur un thème (« et toi, tu veux quoi comme cadeau ? ») reçoit d’abord sa réponse à lui', () => {
+  const mal = [];
+  for (const ph of FR ? ['et toi tu veux quoi comme cadeau', 'et toi tu aimes la neige ?', 'tu aimes les dinosaures ?', 'tu as peur des monstres ?', 'tu manges des bonbons ?', 'tu aimes la plage ?']
+    : ['what do u want for a present', 'do you like snow?', 'do u like dinosaurs?', 'are you scared of monsters?', 'do you eat sweets?', 'do you like the beach?']) {
+    const [ch, k] = neuf();
+    const r = DISCUSSION.dire(ch, k, ph), id = thDe(r);
+    const perso = id && (THTXT('bav_moi_' + id).some(m => selonModele(r.texte, m)) || THTXT('bav_th_' + id).some(m => r.texte.startsWith(m) && /^(Moi|Ma |Mon |Mes |J’|Je |Si j’|I |I’|My |Mine |As a kid|For me|At school, I|When I)/.test(m)));
+    if (!perso) mal.push(ph + ' → ' + (r && r.texte));
+  }
+  v(!mal.length, mal.join(' ; '));
+});
+t('revue 6 : rester sur un thème ne fait jamais dire « Encore ? » ; seule une phrase redite mot pour mot le relève', () => {
+  v(!THTXT('bav_th_encore').some(x => /^(Encore|Again)/.test(x)), 'bav_th_encore');
+  const [ch, k] = neuf();
+  const fil = FR ? ['jadore les dinosaures', 'surtout le t-rex', 'tu as vu jurassic park', 'les dinos cest ma passion', 'les dinos cest ma passion'] : ['i love dinosaurs', 'especially t rex', 'have u seen jurassic park', 'dinos are my thing', 'dinos are my thing'];
+  const rs = fil.map(ph => DISCUSSION.dire(ch, k, ph));
+  v(rs.slice(0, 4).every(r => !/^(Encore|Again)/.test(r.texte)), rs.map(r => r.texte).join(' | '));
+  v(THTXT('bav_redit').includes(rs[4].texte), 'redite : ' + rs[4].texte);
+});
+t('revue 7 : « bonne nuit », « bonne journée », « à demain » reçoivent le bon au revoir', () => {
+  for (const [ph, c] of FR ? [['bonne nuit', 'nuit'], ['bonne journée', 'jour'], ['à demain', 'demain'], ['bonne soirée !', 'jour']] : [['good night', 'nuit'], ['have a nice day', 'jour'], ['see you tomorrow', 'demain']]) {
+    const [ch, k] = neuf(); DISCUSSION.dire(ch, k, FR ? 'jadore la neige' : 'i love snow');
+    const r = DISCUSSION.dire(ch, k, ph);
+    v(THTXT('bav_adieu_' + c).includes(r.texte), ph + ' → ' + r.texte);
+  }
+});
+t('revue 8 : une note est comprise sur 20 ou sur 10 : réconfort si elle est basse, bravo si elle est haute', () => {
+  for (const [ph, c, x] of FR ? [['jai eu 7', 'basse', '7/20'], ['j’ai eu 18 sur 20', 'haute', '18/20'], ['jai eu 12 en dictée', 'moyenne', '12/20'], ['jai eu 3/10 en maths', 'basse', '3/10'], ['jai eu 9 sur 10', 'haute', '9/10']]
+    : [['i got 3 out of 10', 'basse', '3/10'], ['i got 9/10 on my test', 'haute', '9/10'], ['i got 7', 'moyenne', '7/10'], ['i got 16/20', 'haute', '16/20']]) {
+    const [ch, k] = neuf();
+    const r = DISCUSSION.dire(ch, k, ph);
+    v(THTXT('bav_note_' + c).some(m => selonModele(r.texte, m)) && r.texte.includes(x), ph + ' → ' + r.texte);
+  }
+});
+
+t('revue (suite) : pas de question sur ce que l’enfant vient de dire ; « c’était trop bien » partagé ; une histoire triste reste triste ; « avec… » continue le thème', () => {
+  let [ch, k] = neuf();
+  for (const ph of FR ? ['mon prefere cest le t rex', 'on a fait une bataille de boules de neige', 'le t rex il fait peur'] : ['my fav is t rex', 'we had a snowball fight', 'the t rex is scary']) {
+    [ch, k] = neuf(); const r = DISCUSSION.dire(ch, k, ph); v(!/\?\s*$/.test(r.texte.split(/[.!] /)[0] + '') || r.pont, ph + ' → ' + r.texte);
+    v(!/(préféré \?|favourite\?|bataille de boules \?|snowball fight\?)/.test(r.texte), ph + ' → ' + r.texte);
+  }
+  [ch, k] = neuf(); DISCUSSION.dire(ch, k, FR ? 'il neige trop' : 'its snowing so much');
+  const r1 = DISCUSSION.dire(ch, k, FR ? 'cetait trop bien' : 'it was so fun');
+  v(THTXT('bav_th_content').includes(r1.texte.split(/(?<=[.!]) (?=[A-ZÀ-Ý])/)[0]) || THTXT('bav_th_content').some(x => r1.texte.startsWith(x)), r1.texte);
+  [ch, k] = neuf(); DISCUSSION.dire(ch, k, FR ? 'jsui triste' : 'im so sad');
+  const r2 = DISCUSSION.dire(ch, k, FR ? 'il a cassé mon chateau' : 'he broke my castle');
+  v(thDe(r2) === 'triste' && !r2.pont, r2.sujet + ' : ' + r2.texte);
+  [ch, k] = neuf(); DISCUSSION.dire(ch, k, FR ? 'tu connais minecraft' : 'do u know minecraft'); DISCUSSION.dire(ch, k, FR ? 'jai construit une maison' : 'i built a house');
+  const r3 = DISCUSSION.dire(ch, k, FR ? 'avec une piscine dedans' : 'with a pool inside');
+  v(thDe(r3) === 'jeuvideo', r3.sujet + ' : ' + r3.texte);
+  [ch, k] = neuf(); const r4 = DISCUSSION.dire(ch, k, FR ? 'ma mere ma grondé' : 'my mum told me off');
+  v(thDe(r4) === 'puni', r4.sujet + ' : ' + r4.texte);
+});
+// trois nouvelles conversations d'enfant, jouées après la revue du Chef (imprimées et relues)
+const TH_ENFANTS2 = {
+  fr: [
+    ['salut', 'tu connais minecraft', 'jai construit une maison', 'avec une piscine dedans', 'tu joues a fortnite toi ?', 'et zelda ?', 'jai eu 7 en maths', 'cest dur les fraction', 'tu prefere les maths ou le francais', 'oui', 'bonne nuit'],
+    ['coucou', 'jai eu 18 sur 20 en dictée', 'merci', 'et toi tu veux quoi comme cadeau', 'moi un velo', 'tu as vu jurassic park', 'le t rex il fait peur', 'jadore les dinosaures', 'jadore les dinosaures', 'il fait trop froid', 'bonne journée'],
+    ['yo', 'mon petit frere ma piqué mes legos', 'ma mere ma grondé', 'jsui triste', 'il a cassé mon chateau', 'tu as des freres toi ?', 'tu aimes la neige ?', 'on a fait une bataille de boules de neige', 'cetait trop bien', 'a demain'],
+  ],
+  en: [
+    ['hi', 'do u know minecraft', 'i built a house', 'with a pool inside', 'do u play fortnite?', 'what about zelda?', 'i got 3 out of 10 in maths', 'fractions r so hard', 'do u prefer maths or english', 'yes', 'good night'],
+    ['hey', 'i got 9/10 on my spelling test', 'thanks', 'what do u want for a present', 'i want a bike', 'have u seen jurassic park', 'the t rex is scary', 'i love dinosaurs', 'i love dinosaurs', 'its so cold', 'have a nice day'],
+    ['yo', 'my little brother took my lego', 'my mum told me off', 'im so sad', 'he broke my castle', 'do u have brothers?', 'do u like snow?', 'we had a snowball fight', 'it was so fun', 'see you tomorrow'],
+  ],
+};
+TH_ENFANTS2[LANGUE].forEach((fil, n) => t('revue : nouvelle conversation d’enfant ' + (n + 1) + ' (' + LANGUE + ', ' + fil.length + ' messages) : pas de réponse à côté connue, jamais deux fois de suite la même, pas de trou', () => {
+  const [ch, k] = neuf();
+  const rs = fil.map(ph => [ph, DISCUSSION.dire(ch, k, ph)]);
+  L.push('  TRANSCRIPTION après revue ' + (n + 1) + ' (' + LANGUE + ') :'); for (const [ph, r] of rs) L.push('    — ' + ph + '\n      → ' + r.texte + '   [' + r.reaction + (r.sujet ? '/' + r.sujet : '') + (r.pont ? ', pont' : '') + ']');
+  const mal = rs.filter(([, r]) => !r || !r.texte || TROU.test(r.texte) || /\ben (la|le|les) |^Encore \?|^Again\?|combien de temps\.|[?!.] [a-zàâéèêîôûç]/.test(r.texte)).map(([ph, r]) => ph + ' → ' + (r && r.texte));
   v(!mal.length, mal.join(' ; '));
   const dbl = rs.filter(([, r], i) => i && r.texte === rs[i - 1][1].texte).map(([ph]) => ph);
   v(!dbl.length, dbl.join(' ; '));
