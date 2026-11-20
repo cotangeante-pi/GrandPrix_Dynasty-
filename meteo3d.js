@@ -65,7 +65,10 @@ const METEO3D = (function () {
     gerbes.name = 'meteo-gerbes'; gerbes.frustumCulled = false; gerbes.visible = false; gerbes.count = 0;
     // (tour 60, relecture, GERBE_OMBRE) une gerbe douce : opaque au milieu, transparente sur ses bords (vus de biais), au lieu d'une ellipse
     // nette posée sur la route qu'on prenait pour une ombre claire ; le même appel de dessin, un calcul de plus par sommet
+    // (et dessinée AVANT l'ombre de contact, renderOrder −1 de scene3d.js : l'ombre passe par-dessus et assombrit toujours ; les autres
+    // objets transparents, comme le fantôme, gardent leur ordre)
     if (R.GERBE_OMBRE) {
+      gerbes.renderOrder = -2;
       gerbes.material.onBeforeCompile = sh => {
         sh.vertexShader = 'varying float vBordGerbe;\n' + sh.vertexShader.replace('#include <project_vertex>', `#include <project_vertex>
   vec3 nGerbe = vec3( normal );

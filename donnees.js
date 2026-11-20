@@ -1388,8 +1388,8 @@ const REGLAGES = {
   PLUIE_COULEUR: 0xc8d4e4, PLUIE_OPACITE: 0.55,
   GERBE_COULEUR: 0xe6ecf2, GERBE_OPACITE: 0.26, GERBE_CAMERA_MIN: 12, GERBE_VITESSE_MIN: 8, GERBE_VITESSE_PLEINE: 70, GERBE_RECUL: 3.4, GERBE_HAUTEUR: 0.7, GERBE_TAILLE: [3.2, 1.1, 1.3],
   // (tour 60, relecture) sous la pluie, la gerbe (claire, 3,2 m de rayon, 3,4 m derrière) couvrait l'arrière de l'ombre de contact
-  // (REALISME_VOITURES) et coupait la route d'une ellipse nette : une tache gris clair sous chaque voiture. Vrai : l'ombre est dessinée
-  // après les gerbes (elle assombrit toujours) et la gerbe est posée sur la route (son bas touche le sol, sans ellipse) ; faux = comme avant
+  // (REALISME_VOITURES) et coupait la route d'une ellipse nette : une tache gris clair sous chaque voiture. Vrai : les gerbes sont dessinées
+  // avant l'ombre (elle assombrit toujours) et la gerbe est posée sur la route (son bas touche le sol, sans ellipse) ; faux = comme avant
   GERBE_OMBRE: true,
   COULEUR_ROUTE_MOUILLEE: 0x24262b, ROUTE_MOUILLEE_REFLET: 0.35, ROUTE_MOUILLEE_BRILLANCE: 40,
   CIEL_COUVERT: 0x9aa2ab, CIEL_COUVERT_COUPOLE: 0x8e959d, CIEL_COUVERT_PART: 0.85, CIEL_COUVERT_CLARTE: 1.4, CIEL_COUVERT_AMBIANCE: 0.25, CIEL_COUVERT_SOLEIL: 0.6,
