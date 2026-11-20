@@ -12,7 +12,7 @@ Date : 2026-11-19. Branche `idees-60` (depuis origin/main 2cd512d). **Rien n'est
 2. **🤝 Ton pote dans ta saison.** Tu envoies un lien à un ami : ton pilote apparaît dans **son** championnat, comme rival ou comme coéquipier, avec ta voiture et ton casque. C'est la seule idée qui fait venir de nouveaux joueurs.
 3. **⚡ Les défis-éclair.** 40 petites missions de course de 1 à 3 minutes (« dernier tour, bats Rossi », « l'averse arrive, rentre au stand »), avec 1 à 3 étoiles. Parfait quand on a peu de temps, et on recommence tout de suite.
 4. **🥇 Les médailles des circuits.** Sur chaque circuit, 4 fantômes à battre : bronze, argent, or, diamant. Une collection de 56 médailles qui donne envie de revenir sur chaque piste.
-5. **💨 La vitesse qui se sent.** À fond, l'image s'élargit, des traits filent sur les côtés, le vent souffle : la voiture a l'air d'aller aussi vite qu'elle va. Ça change chaque seconde de chaque course, pour pas cher. **Il faut que tu l'essaies** avant qu'on la garde.
+5. **💨 La vitesse qui se sent.** À fond, l'image s'élargit, des traits filent sur les côtés, le vent souffle : la voiture a l'air d'aller aussi vite qu'elle va. Ça change chaque seconde de chaque course, pour pas cher. La nouvelle route du tour 60 aide déjà, mais sur les ordinateurs sans carte graphique (ceux des écoles) elle est simplifiée : c'est là que ça compte le plus. **Il faut que tu l'essaies** avant qu'on la garde.
 
 Et une **correction à faire tout de suite** : la ligne verte / jaune / rouge qui aide les débutants est illisible pour environ un garçon sur douze (les daltoniens). On ajoute des flèches dans la zone de freinage.
 
@@ -25,6 +25,16 @@ Et une **correction à faire tout de suite** : la ligne verte / jaune / rouge qu
 Le reste du fichier : le détail de chaque idée, prêt à coder, les maquettes des écrans, le plan de route et ce qui a été vérifié dans le code.
 
 ---
+
+## Ce que le tour 60 a livré, et ce que ça change à ce rapport (relu sur origin/fusion-60d, 3adb190)
+
+Les 4 autres Codeurs ont fini pendant que j'écrivais. Ce qui est dans `fusion-60d` et ce que j'en ai fait :
+- **C1, la conversation sur tous les thèmes** (`BAVARDAGE_THEMES` : 74 thèmes, un pont vers la course dans environ 43 % des réponses). → **Idée 2 renforcée** : le pote ajouté à ta saison est un pilote à qui l'on peut parler de tout (l'école, le foot, les animaux), pas seulement de course. Rien à coder pour ça.
+- **C2, les voitures et la route réalistes** (`REALISME_VOITURES`, `REALISME_ROUTE`, `route3d.js` : grain de l'asphalte, gomme, traces de freinage, reflets figés ; `REALISME_LOGICIEL_LEGER` : sans carte graphique, ces détails sont coupés d'office). → **Idée 13 (la vitesse) changée** : le grain et les traces font déjà défiler la route ; mais sur les ordinateurs sans carte graphique (souvent ceux des écoles) ils sont coupés, et ce sont ces enfants-là qui n'ont plus aucun repère de vitesse : les traits de vitesse et le champ de vision servent d'abord à eux.
+- **C3, le ciel, le public et l'Auto fine** (`REALISME_CIEL` : nuit, étoiles, lune, couchant ; `REALISME_PUBLIC` : drapeaux, pancartes, sauts au passage des voitures, ola ; `QUALITE_FINE`). → **Idée 11 (week-ends à thème) moins chère** : le public a déjà ses palettes (`PUBLIC_PANTALONS`, `PUBLIC_PEAUX`…), ses drapeaux et pancartes, et le ciel sait faire la nuit : un thème = d'autres palettes et une heure, rien à dessiner. **Idée 6 (photo-finish)** : le public peut **sauter et lancer une ola** pendant le ralenti (le réglage `PUBLIC_EXCITATION` existe). Le **titre très sombre** que j'avais relevé est à recapturer avec le nouveau ciel.
+- **C4, l'auto-guidage au téléphone** (`TACTILE_GUIDAGE`, `TACTILE_GUIDAGE_SECOURS` : la voiture perdue repart **à la vitesse d'avant**, `JEU.secoursGuidage` les compte). → **Une règle à ajouter aux idées 1, 3 et 4** : un tour où le **secours** a servi ne compte **ni pour une médaille de circuit, ni pour un record** (il replace la voiture sans lui faire perdre de vitesse) ; au Grand Prix du jour et aux défis, la course compte, mais le texte partagé et l'écran disent « avec aides », comme pour les autres aides. **À vérifier dans le code** : aujourd'hui, un secours en qualification invalide-t-il le tour pour le record et le fantôme ? (`JEU.secoursGuidage` est compté, je n'ai pas trouvé qui le lit.)
+
+**Rien de ce que j'ai proposé n'a été fait par un autre Codeur** : aucune idée n'est retirée. Les noms des pilotes sont toujours vides (`NOMS_PILOTES`, « les noms inventés, à approuver par le propriétaire, viendront ici »).
 
 ## Ce que j'ai regardé
 
@@ -311,7 +321,7 @@ Le 10 a des zéros mais un enjeu à part (la **conversion** au premier lancement
 
 **Pourquoi c'est fort.** Une raison datée de revenir, une récompense « que tout le monde n'a pas », et un jeu qui a l'air vivant et entretenu (les jeux de course Poki qui durent sortent des éditions saisonnières).
 
-**Coût : petit à moyen** (après l'idée 1) : des couleurs de décor et du public (les Codeurs 2 et 3 refont justement le ciel et le public : y prévoir une « teinte » réglable), une livrée par événement, un calendrier dans `donnees.js`.
+**Coût : petit** (après l'idée 1) : depuis le tour 60, le public a ses palettes (`PUBLIC_PANTALONS`, `PUBLIC_PEAUX`, `PUBLIC_CHEVEUX`), ses drapeaux et pancartes (`PUBLIC_DRAPEAUX`, `PUBLIC_PANCARTES`) et le ciel sait faire la nuit (`REALISME_CIEL`) : un thème = d'autres palettes, une heure, une livrée, une ligne de calendrier dans `donnees.js`.
 
 **Risques.** Une fête n'est pas universelle (Halloween, Noël) : préférer des thèmes neutres ou plusieurs (hiver, été, nuit des lanternes) ; la livrée de l'événement **revient chaque année** (pas de peur de rater). Aucune marque.
 
@@ -379,6 +389,15 @@ Chaque nom de fonction, de réglage et de fichier des annexes a été cherché d
 - **Un ingénieur à la radio qui conseille** : refusé pour l'aileron (« aucun conseil ») ; je ne le repropose pas.
 - **Des pièces de voiture à débloquer** (jantes, fumée) : non retenu le 2026-11-04.
 - **Se connecter avec le compte Poki pour afficher son pseudo** : possible (`getUser`), mais un nom venu d'ailleurs sur l'écran d'un enfant, pour un gain faible ; la synchronisation des sauvegardes, elle, est déjà automatique.
+
+## Les écarts de doc relevés (CLAUDE.md contre le code, encore vrais sur fusion-60d)
+
+1. **Le téléphone tenu debout** : la ligne « Plein écran et paysage » décrit le message « 📱 Tourne ton téléphone » et la pause comme le comportement actuel ; or `PORTRAIT_TOURNER` est **vrai** depuis le tour 56 (le jeu s'affiche tourné de 90°, sans message ni pause : `donnees.js`, et `tests/debout.py` le teste) et CLAUDE.md ne nomme nulle part ce réglage.
+2. **`FANTOME_POLE.tour(plateau)`** (deux fois, section « Le fantôme du meilleur tour ») : le code prend une **course** (`tour(e)`, avec sa carte et sa grille, `fantome-pole.js`).
+3. **La section « Le fantôme du poleman » est en double** (deux paragraphes presque identiques, le second avec le T11).
+4. (À vérifier, pas un écart prouvé) : qui lit `JEU.secoursGuidage` pour le record et le fantôme ?
+
+Le code a raison : c'est le texte à corriger (règle de CLAUDE.md).
 
 ## Ce qu'il faudrait d'abord (préalables, pas des idées)
 
@@ -725,7 +744,7 @@ Même règle que pour les annexes A à C : chaque nombre est un réglage de `don
 **Les règles exactes.**
 - **Les quatre fantômes** d'un circuit sont quatre tours **simulés** comme le fantôme du poleman : une IA seule, parfaitement régulière, rythme 1, tour lancé (`FANTOME_POLE_LANCE`), **non étiré**. Un par niveau, `MEDAILLES_NIVEAUX` = `['debutant', 'normal', 'expert', 'legende']` → 🥉 🥈 🥇 💎. Le niveau change la façon de piloter (`limite`, `marge`, `corde`… de `NIVEAUX`), donc le temps : le tour débutant est le plus lent, le légende le plus rapide. Si deux niveaux donnaient le même temps sur un circuit, l'écart minimal `MEDAILLES_ECART_MIN` (0,3 s) est imposé en allongeant le plus lent (le fantôme montré reste le vrai tour ; seul le temps à battre bouge).
 - **Le calcul** : `FANTOME_POLE.tour(e)` prend une course dont la grille a une IA en pole ; pour les médailles il faut une petite fonction voisine, `MEDAILLES.fantome(circuit, niveau)` dans un fichier à elle, qui fait la même chose sans grille (poser `REGLAGES.NIVEAU` le temps du calcul, comme `EN_LIGNE.preparerCircuit`, créer la course d'une IA, la faire rouler, compacter avec `FANTOME`). La **carte des IA** du niveau est nécessaire : normal et débutant partagent la leur, expert et légende ont chacun la sienne (annexe A7). Coût : 0,2 à 0,8 s par fantôme + la carte si elle n'est pas en cache ; calculé **une fois par circuit et par version du jeu**, gardé dans la sauvegarde (le temps seulement, quelques octets ; le fantôme lui-même est recalculé quand on le montre).
-- **Ce qui compte** : un tour **propre** (ni coupé, ni « limites de piste » marqué, ni par la voie des stands : exactement la règle du record et du fantôme d'aujourd'hui), en **qualification** (carrière ou course rapide) ou dans une **course seule** (essai libre : chaque tour y est déjà enregistré depuis le tour 51b). Pas en course contre des IA (l'aspiration aiderait), pas au tournoi, pas à deux, pas au Grand Prix du jour.
+- **Ce qui compte** : un tour **propre** (ni coupé, ni « limites de piste » marqué, ni par la voie des stands, **ni avec un secours de l'auto-guidage** (`JEU.secoursGuidage`, tour 60) : la règle du record et du fantôme d'aujourd'hui, plus le secours), en **qualification** (carrière ou course rapide) ou dans une **course seule** (essai libre : chaque tour y est déjà enregistré depuis le tour 51b). Pas en course contre des IA (l'aspiration aiderait), pas au tournoi, pas à deux, pas au Grand Prix du jour.
 - **La médaille gagnée** : la meilleure dont le temps est battu (strictement plus vite). On ne la perd jamais.
 - **Le fantôme montré** : en essai libre et en qualification, le choix « Fantôme : ton record / la pole » gagne une 3e valeur, **« la médaille »** : le fantôme de la **prochaine** médaille à gagner (or si on a l'argent). Avec 💎, plus rien à gagner : ton record.
 - **Les aides** : une médaille gagnée avec une aide est gardée, avec un petit signe à côté (comme au tournoi chrono : « avec aides ») ; la même médaille sans aide efface le signe. Jamais refusée.
@@ -768,7 +787,7 @@ Même règle que pour les annexes A à C : chaque nombre est un réglage de `don
 **Les règles exactes.**
 - **Photo-finish** : quand le joueur passe la ligne d'arrivée **à moins de `PHOTO_FINISH_SEUIL` (0,15 s)** de la voiture juste devant ou juste derrière lui (au moment où la seconde des deux passe), et que l'enjeu est une place du **podium** (`PHOTO_FINISH_PLACES` = 3) ou le duel du coéquipier. Une fois par course au plus.
 - **Le dépassement décisif** : dans le **dernier tour**, le joueur double pour la **1re place** et la garde jusqu'à l'arrivée. Pris dans `enr.momentsForts()` (`enregistreur.js` sait déjà trouver les dépassements). Si les deux arrivent, le photo-finish passe d'abord.
-- **Le rejeu** : 3 s (`PHOTO_FINISH_DUREE`) avant le passage, au ralenti ×0,4, lus dans l'enregistreur de la course (`enr.lire(t)`, celui du résumé vidéo), sous la caméra de la régie la plus proche de la ligne (`REGIE.postes`), puis 1 s d'image figée avec la **bande du photo-finish** : un dessin 2D (comme `photo.js`) des deux nez et de la ligne, et le texte. La simulation, elle, continue derrière (les IA finissent leur course) ; rien ne change aux temps.
+- **Le rejeu** : 3 s (`PHOTO_FINISH_DUREE`) avant le passage, au ralenti ×0,4, lus dans l'enregistreur de la course (`enr.lire(t)`, celui du résumé vidéo), sous la caméra de la régie la plus proche de la ligne (`REGIE.postes`), pendant que le public de la tribune de la ligne **saute** (l'excitation du public existe depuis le tour 60, `PUBLIC_EXCITATION`), puis 1 s d'image figée avec la **bande du photo-finish** : un dessin 2D (comme `photo.js`) des deux nez et de la ligne, et le texte. La simulation, elle, continue derrière (les IA finissent leur course) ; rien ne change aux temps.
 - **Le moment** : seulement **après** la ligne du joueur. Un appui (ou Échap) passe tout de suite. À deux : en plein écran, une fois, pour l'arrivée la plus serrée entre les deux joueurs.
 
 **Les textes.** fr : « PHOTO-FINISH ! », « {qui} gagne de {ecart} s ! », « Battu de {ecart} s… », « Le dépassement de la victoire ! » ; en : « PHOTO FINISH! », « {qui} wins by {ecart} s! », « Beaten by {ecart} s… », « The race-winning move! ». L'écart en millièmes.
@@ -1138,7 +1157,7 @@ Les idées 10 (le vrai portrait) et 11 (les week-ends à thème) attendent : la 
 
 **Les écrans.** Sur le titre : le bouton du jour prend la couleur et le nom de l'événement ; dans le jeu, le décor teinté ; sur l'arrivée du jour : « 🎃 Livrée Citrouille gagnée ! ».
 
-**Les cas limites.** Une fête qui n'est pas celle de tout le monde : les noms restent descriptifs (« citrouilles », « neiges », « lanternes »), jamais religieux. Les Codeurs 2 et 3 refont le ciel et le public en ce moment : **la teinte doit être un réglage de leur travail** (une couleur multipliée dans le shader du public et des tribunes), sinon cette idée devient chère.
+**Les cas limites.** Une fête qui n'est pas celle de tout le monde : les noms restent descriptifs (« citrouilles », « neiges », « lanternes »), jamais religieux. Le public et le ciel du tour 60 sont faits (fusion-60d) : un thème change leurs palettes et l'heure du ciel ; pas de nouveau shader. Sans carte graphique (`REALISME_LOGICIEL_LEGER`), le public reste celui d'avant : le thème n'y change que les couleurs.
 
 **Les tests.** Chaque date du calendrier allume le bon thème ; hors des dates, rien (capture au pixel près) ; la livrée gagnée une fois, gardée ; les appels de dessin identiques avec et sans thème.
 
@@ -1174,14 +1193,14 @@ Les idées 10 (le vrai portrait) et 11 (les week-ends à thème) attendent : la 
 
 ### Gardé : 13. La vitesse qui se sent (bat l'idée n° 8, je la classerais **5e**, entre les médailles et l'élimination)
 
-**Le constat.** 66° contre 60°, c'est presque invisible ; 0,5 m de recul aussi. À 300 km/h, notre F1 a l'air de rouler à 150. Or la **sensation de vitesse** est ce qu'un enfant ressent à chaque seconde de chaque course, dans tous les modes ; les jeux de course qui plaisent l'exagèrent tous. Et c'est peu coûteux : rien de nouveau à calculer, seulement la caméra et deux effets légers.
+**Le constat** (relu sur `fusion-60d` : `CAMERA_CHAMP` est toujours [60, 6]). 66° contre 60°, c'est presque invisible ; 0,5 m de recul aussi. Le tour 60 a donné à la route du grain, de la gomme et des traces (`REALISME_ROUTE`) qui la font défiler, et un public qui saute au passage : c'est mieux, **sauf sur les ordinateurs sans carte graphique**, où `REALISME_LOGICIEL_LEGER` coupe le grain : là, il ne reste rien qui dise la vitesse. À 300 km/h, notre F1 a l'air de rouler à 150. Or la **sensation de vitesse** est ce qu'un enfant ressent à chaque seconde de chaque course, dans tous les modes ; les jeux de course qui plaisent l'exagèrent tous. Et c'est peu coûteux : rien de nouveau à calculer, seulement la caméra et deux effets légers.
 
 **Le moment.** Léo sort de l'épingle de Monzo, plein gaz : l'image s'élargit doucement, des traits blancs fins filent sur les bords de l'écran, le moteur monte et un **souffle de vent** grandit sous le moteur ; au freinage, la caméra plonge un tout petit peu vers l'avant. Il dit « ça va trop vite ! » et il sourit.
 
 **Ce que ça veut dire, exactement** (tout derrière `VITESSE_RESSENTIE`, faux = le jeu d'avant au pixel près) :
 1. **Le champ de vision** : `CAMERA_CHAMP` [60, 6] → [58, **16**] (de 58° à l'arrêt à 74° à pleine vitesse), avec une montée **non linéaire** (rien sous 150 km/h, presque tout au-dessus de 250) : la vitesse se sent surtout en ligne droite. Réglage `VITESSE_CHAMP`.
 2. **La caméra qui « tire »** : à l'accélération, elle recule de 0,6 m de plus pendant une seconde, et revient ; au freinage fort, elle avance de 0,4 m et baisse de 0,15 m (le nez qui plonge). Lu dans les sensations (`SENSATIONS.faits`), jamais dans la physique.
-3. **Les traits de vitesse** : au-dessus de 250 km/h, une vingtaine de traits fins et transparents sur les bords de l'écran (pas au centre : la piste reste nette), dessinés **en un seul appel** (des segments dans un `LineSegments`, ou un calque 2D) ; retirés par l'Auto avant les ombres (dans l'ordre des pas de `qualite.js`).
+3. **Les traits de vitesse** (d'abord pour le rendu en logiciel, où le grain de la route est coupé ; avec la route réaliste, moins nombreux) : au-dessus de 250 km/h, une vingtaine de traits fins et transparents sur les bords de l'écran (pas au centre : la piste reste nette), dessinés **en un seul appel** (des segments dans un `LineSegments`, ou un calque 2D) ; retirés par l'Auto avant les ombres (dans l'ordre des pas de `qualite.js`).
 4. **Le son** : un souffle d'air (un bruit filtré généré par le code, Web Audio, aucun fichier) dont le volume suit la vitesse au carré ; il couvre un peu le moteur à 300 km/h.
 5. **Les vibrations** : sur téléphone, `navigator.vibrate` de 15 ms au passage d'un vibreur et 40 ms à un choc (Android seulement, iPhone l'ignore), coupé par le réglage « Effets de conduite » qui existe déjà.
 
