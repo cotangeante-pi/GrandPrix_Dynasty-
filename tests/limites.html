@@ -56,5 +56,25 @@ t('la voie des stands : jamais de limites ni de virage coupé (comme avant)', ()
   for(let k=0;k<60;k++,s+=10*DT)pas(C,c,vo,s,C.largeur/2+5,10);v(c.limites===0&&c.penalites===0);});
 t('textes : l’avertissement et le commentaire existent en fr et en anglais, ({n}/{max} au bandeau)', ()=>{for(const l of ['fr','en']){v(/\{n\}/.test(TEXTES[l].limites)&&/\{max\}/.test(TEXTES[l].limites),l+' limites');
   v(Array.isArray(TEXTES[l].com_limites)&&TEXTES[l].com_limites.length>=3&&TEXTES[l].com_limites.every(x=>/\{qui\}/.test(x)&&x.replace(/\{qui\}/g,'Xxxxxxx').length<=REGLAGES.COMMENTAIRE_LONGUEUR_MAX),l+' com_limites');}v(REGLAGES.COMMENTAIRE_PRIORITES.limites>0);});
+// (tour 60, relecture) le record et le fantôme : ni un tour avec un avertissement de limites (en qualification, il comptait), ni un tour
+// relancé par le secours de l'auto-guidage (sans perdre sa vitesse) ; le temps de qualification reste valable pour la grille ; RECORD_PROPRE faux = avant
+function tourQualif(C,o){const vo=creerVoiture(C,0,0),q=QUALIFICATION.creer(C,vo);q.course.etat='course';q.course.compte=0;const c=q.course;c.sAvant=vo.piste.s;c.xAvant=vo.x;c.zAvant=vo.z;
+  let s=vo.piste.s,k=0;const u=40;
+  while(!q.fini&&k<200000){const i=Math.round(((s%C.longueur)+C.longueur)%C.longueur/C.pas)%C.nb;vo.x=C.x[i];vo.z=C.z[i];vo.u=u;vo.piste=positionSurPiste(C,vo.x,vo.z,vo.piste.indice);
+    if(o.avant&&!q.lance&&k===20)c.limitesTour=true;
+    if(o.limites&&q.lance&&k%4000===2000)c.limitesTour=true;
+    if(o.secours&&q.lance&&k%4000===2000)c.secoursTour=true;
+    QUALIFICATION.pas(q,vo,DT);s+=u*DT;k++;}
+  return q;}
+t('qualification : un tour avec un avertissement de limites ou un secours de l’auto-guidage reste valable pour la grille mais n’est ni record ni fantôme ; un avertissement AVANT la ligne ne compte pas ; RECORD_PROPRE faux = avant', ()=>{reglages({});const C=construireCircuit(CIRCUITS.test);
+  const net=tourQualif(C,{}),lim=tourQualif(C,{limites:true}),sec=tourQualif(C,{secours:true}),avant=tourQualif(C,{avant:true});
+  v(net.fini&&net.valide&&net.propre,'net '+JSON.stringify([net.fini,net.valide,net.propre]));
+  v(lim.valide&&lim.temps===net.temps&&!lim.propre,'limites');
+  v(sec.valide&&sec.temps===net.temps&&!sec.propre,'secours');
+  v(avant.valide&&avant.propre,'limites avant la ligne');
+  REGLAGES.RECORD_PROPRE=false;const avantR=tourQualif(C,{avant:true});REGLAGES.RECORD_PROPRE=true;v(avantR.valide&&!avantR.propre,'faux : l’avertissement d’avant la ligne restait (comme avant)');});
+t('course : un tour relancé par le secours n’est jamais le meilleur tour ; ni le défi de la course seule', ()=>{reglages({});const c=creerCourse(CIRCUIT_TEST,0);c.etat='course';c.etape=3;c.secteursTour=[20,20];c.temps=50;c.secoursTour=true;finirTour(c);
+  v(c.meilleurTour===null&&c.tours[0].secours&&!c.secoursTour,'secours');c.etape=3;c.secteursTour=[20,20];c.temps=110;finirTour(c);v(c.meilleurTour===60&&!c.tours[1].secours,'le tour suivant compte');});
+t('secoursJoueur : le tour est marqué seulement quand la voiture est vraiment relancée, et seulement avec RECORD_PROPRE', ()=>{const src=secoursJoueur.toString();v(/c\.secoursTour = true/.test(src)&&/RECORD_PROPRE/.test(src));});
 document.getElementById('res').textContent=`RESULTAT ${ok}/${ok+ko}\n`+L.join('\n');
 </script></body></html>

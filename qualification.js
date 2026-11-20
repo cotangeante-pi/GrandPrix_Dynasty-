@@ -17,11 +17,12 @@ const QUALIFICATION = (function () {
     const c = q.course;
     majCourse(c, v, dt);
     // la ligne passée une première fois : le tour lancé commence là (le chrono de course.js partait au premier mouvement)
-    if (!q.lance && c.etape === 0) { q.lance = true; c.debutTour = c.temps; c.secteursTour = []; c.coupeTour = false; q.progressionLigne = c.progression; q.penalitesLigne = c.penalites; }
+    if (!q.lance && c.etape === 0) { q.lance = true; c.debutTour = c.temps; c.secteursTour = []; c.coupeTour = false; if (REGLAGES.RECORD_PROPRE) { c.limitesTour = false; if (c.secoursTour) c.secoursTour = false; } q.progressionLigne = c.progression; q.penalitesLigne = c.penalites; }
     if (c.etat === 'finie' && !q.fini) {
       q.fini = true;
       const t = c.tours[0];
       q.valide = !t.coupe;
+      q.propre = q.valide && !t.limites && !t.secours;   // (tour 60, relecture) le record et le fantôme : ni limites de piste ni secours de l'auto-guidage
       q.temps = q.valide ? t.temps : null;
       q.fin = c.progression - q.progressionLigne;
       // le tournoi chrono (tournoi.js) : le temps du tour même coupé, et les pénalités du tour lancé (course.js : PENALITE_COUPE par virage coupé)

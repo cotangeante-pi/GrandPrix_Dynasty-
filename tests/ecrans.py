@@ -2044,6 +2044,15 @@ def pluie_ecran(pg, titre, l, h):
       pret and m['pluie'] and m['gouttes'] > 1000 and m['gerbes'] >= 3 and (route == 'MeshPhongMaterial' and pg.evaluate('() => !!(METEO3D.ligne && METEO3D.ligne.visible)') or pg.evaluate('() => !!(REGLAGES.REALISME_ROUTE && typeof ROUTE3D !== "undefined" && ROUTE3D.eau > 0.5)')) and not m['hudCache'] and '75' in m['eau'] and m['icone'] == '🌧' and m['appels'] < m['max'], str([m, route]))   # (tour 60 : la route réaliste se mouille dans son shader, la trajectoire plus sèche comprise)
     pg.screenshot(path=os.path.join(CAPTURES, 'pluie.png' if l == 1280 else 'pluie-960.png'))
     if l != 1280: return
+    # (tour 60, relecture, GERBE_OMBRE) sous la pluie, l'ombre de contact assombrit toujours : elle est dessinée APRÈS les gerbes (claires,
+    # transparentes elles aussi), chaque gerbe est posée sur la route (son bas au-dessus du sol : plus d'ellipse nette sur la route) et douce
+    # sur ses bords ; faux = comme avant
+    go = pg.evaluate('''() => { const sc = METEO3D.gerbes.parent; let ombre = null; sc.traverse(o => { if (o.name === 'ombres-voitures') ombre = o; });
+      const g = METEO3D.gerbes, m = new THREE.Matrix4(), p = new THREE.Vector3(), q = new THREE.Quaternion(), e = new THREE.Vector3(); let bas = Infinity;
+      for (let i = 0; i < g.count; i++) { g.getMatrixAt(i, m); m.decompose(p, q, e); bas = Math.min(bas, p.y - e.y); }
+      return { actif: REGLAGES.GERBE_OMBRE, realiste: REGLAGES.REALISME_VOITURES, ombre: ombre ? ombre.renderOrder : null, gerbe: g.renderOrder, bas, cle: g.material.customProgramCacheKey() }; }''')
+    t(f'{titre} : sous la pluie, l’ombre sous les voitures est dessinée après les gerbes (elle assombrit toujours), les gerbes sont posées sur la route et douces (GERBE_OMBRE)',
+      not go['actif'] or ((not go['realiste'] or (go['ombre'] is not None and go['ombre'] > go['gerbe'])) and go['bas'] >= -1e-6 and go['cle'] == 'gerbe-douce'), str(go))
     pg.evaluate('() => CAMERA.forcer("cockpit")'); pg.wait_for_timeout(800)
     t(f'{titre} : en vue cockpit sous la pluie, des gouttes sur la visière', pg.evaluate('() => !document.getElementById("gouttes").classList.contains("cache")'))
     pg.screenshot(path=os.path.join(CAPTURES, 'pluie-cockpit.png'))
@@ -2752,7 +2761,10 @@ def qualite_ecran(pg, titre, page):
         t(f'{titre} : sous un automate, sans ?qualite, la qualité ne bouge pas seule (les mesures restent comparables)', pg.evaluate('() => JEU.qualite.niveau === 0 && SCENE3D.qualite === null'), pg.evaluate('() => [JEU.qualite.niveau, JEU.qualiteAuto]'))
         return
     # (sous swiftshader, une image peut dépasser QUALITE_DT_MAX, faite pour les chargements : ici, toutes les images comptent)
-    pg.evaluate('() => { REGLAGES.QUALITE_DT_MAX = 10; window.__qFeux = 0; window.__qJoueur = 0; BOUCLE.surAffichage(() => { if (SCENE3D.joueurSimplifie && JEU.qualite.niveau > 0) window.__qJoueur++; if (JEU.course && JEU.course.etat === "compte" && window.__qAvant !== undefined) window.__qFeux = Math.max(window.__qFeux, Math.abs(JEU.qualite.niveau - window.__qAvant)); }); }')
+    # (tour 60, relecture : la voiture du joueur passe en forme simple quand la caméra est à plus de VOITURE_LOIN d'elle, quelle que soit la
+    # qualité, par exemple pendant le survol de la grille avant les feux, alors que les menus ont déjà simplifié l'Auto : ces images ne
+    # comptent pas, sinon le test échouait au hasard (main 5a4907a) ; on compte seulement une voiture du joueur PROCHE dessinée en forme simple)
+    pg.evaluate('() => { REGLAGES.QUALITE_DT_MAX = 10; window.__qFeux = 0; window.__qJoueur = 0; BOUCLE.surAffichage(() => { if (SCENE3D.joueurSimplifie && JEU.qualite.niveau > 0 && JEU.modele && JEU.modele.groupe.position.distanceTo(SCENE3D.camera.position) < REGLAGES.VOITURE_LOIN * REGLAGES.VOITURE_LOIN_CHAMP / SCENE3D.camera.fov) window.__qJoueur++; if (JEU.course && JEU.course.etat === "compte" && window.__qAvant !== undefined) window.__qFeux = Math.max(window.__qFeux, Math.abs(JEU.qualite.niveau - window.__qAvant)); }); }')
     attendre(pg, '() => JEU.ecran === "qualif" && JEU.qualif && JEU.qualif.etat === "choix"', None, 60000)
     pg.evaluate('() => document.getElementById("boutonQualifPasser").click()')
     attendre(pg, '() => JEU.qualif && JEU.qualif.etat === "resultat"', None, 180000)

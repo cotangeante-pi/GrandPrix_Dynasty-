@@ -32,17 +32,20 @@ jobs:
         include:
           - { nom: moteur, court: true, partie: moteur recoins, recoins: 'defi,stockage,manette,touches-deux' }   # (+ des parties de tests/recoins.py, réparties au tour 51m selon les durées du passage 42425442653 : chaque travail sous ~430 s, sauf stands.html seul, ~450 s, et saison.py seul, ~530 s ; voir CLAUDE.md, « Répartition de tests/recoins.py »)
           - { nom: courses, partie: courses recoins, recoins: 'tailles-jeux-1920,pendant' }
-          - { nom: stands, partie: stands }   # (stands.html seul : ~440 s, le plus long des tests, on ne lui ajoute rien)
+          - { nom: stands, partie: stands ecrans, tranche: 8/8 }   # (stands.html : 256 à 382 s au tour 60 ; + la 8e tranche d'ecrans.py, tour 60 relecture)
           - { nom: consignes, partie: consignes recoins, recoins: 'sauvegardes-racine,sauvegardes-recentes' }
           - { nom: officiels, partie: officiels recoins, recoins: 'fin' }
-          - { nom: meteo, partie: meteo recoins, recoins: 'carrieres' }
+          - { nom: meteo, partie: meteo recoins ecrans, recoins: 'carrieres', tranche: 7/8 }   # (+ la 7e tranche d'ecrans.py, tour 60 relecture)
           # (6 tranches depuis le 2026-11-05, tour 48c-2 : à 4, elles tournaient entre 500 et 597 s pour une limite de 600 s)
-          - { nom: ecrans-1, partie: ecrans, tranche: 1/6 }   # (tour 51m : plus aucune partie de recoins.py dans les tranches ecrans, ~380 s chacune : leur durée varie beaucoup d'une machine à l'autre, ecrans-4 a fait 597 s pour 384 prévues sur le passage 42425442653)
-          - { nom: ecrans-2, partie: ecrans, tranche: 2/6 }
-          - { nom: ecrans-3, partie: ecrans, tranche: 3/6 }
-          - { nom: ecrans-4, partie: ecrans, tranche: 4/6 }
-          - { nom: ecrans-5, partie: ecrans, tranche: 5/6 }
-          - { nom: ecrans-6, partie: ecrans, tranche: 6/6 }
+          # (8 tranches depuis le tour 60, relecture : à 6, ecrans-1 et ecrans-2 tournaient entre 820 et 916 s pour une limite de 900 s ;
+          # tests/ecrans-durees.json = la plus longue durée de chaque page sur 4 passages, ~550 s par tranche au pire ; les tranches 7 et 8
+          # tournent dans les travaux meteo et stands, les plus courts, pour rester à 18 travaux)
+          - { nom: ecrans-1, partie: ecrans, tranche: 1/8 }   # (tour 51m : plus aucune partie de recoins.py dans les tranches ecrans, ~380 s chacune : leur durée varie beaucoup d'une machine à l'autre, ecrans-4 a fait 597 s pour 384 prévues sur le passage 42425442653)
+          - { nom: ecrans-2, partie: ecrans, tranche: 2/8 }
+          - { nom: ecrans-3, partie: ecrans, tranche: 3/8 }
+          - { nom: ecrans-4, partie: ecrans, tranche: 4/8 }
+          - { nom: ecrans-5, partie: ecrans, tranche: 5/8 }
+          - { nom: ecrans-6, partie: ecrans, tranche: 6/8 }
           - { nom: annexes, court: true, partie: annexes recoins, recoins: 'saison-en' }   # (+ la saison entière en anglais, tests/recoins.py)
           - { nom: paquet, partie: paquet recoins, recoins: 'aides-pilotage,sauvegarde' }   # (+ les aides au pilotage et la solidité de la sauvegarde, tests/recoins.py)
           - { nom: saison, partie: saison }   # la carrière entière jouée par le robot (tests/saison.py, Codeur 4)

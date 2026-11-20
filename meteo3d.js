@@ -63,6 +63,20 @@ const METEO3D = (function () {
     for (let k = 0; k < N; k++) { gouttes[3 * k] = (rnd() * 2 - 1) * B; gouttes[3 * k + 1] = rnd() * H; gouttes[3 * k + 2] = (rnd() * 2 - 1) * B; }
     const gerbes = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 8, 6), new THREE.MeshBasicMaterial({ color: R.GERBE_COULEUR, transparent: true, opacity: R.GERBE_OPACITE, depthWrite: false }), R.VOITURES_LOINTAINES_MAX);
     gerbes.name = 'meteo-gerbes'; gerbes.frustumCulled = false; gerbes.visible = false; gerbes.count = 0;
+    // (tour 60, relecture, GERBE_OMBRE) une gerbe douce : opaque au milieu, transparente sur ses bords (vus de biais), au lieu d'une ellipse
+    // nette posée sur la route qu'on prenait pour une ombre claire ; le même appel de dessin, un calcul de plus par sommet
+    if (R.GERBE_OMBRE) {
+      gerbes.material.onBeforeCompile = sh => {
+        sh.vertexShader = 'varying float vBordGerbe;\n' + sh.vertexShader.replace('#include <project_vertex>', `#include <project_vertex>
+  vec3 nGerbe = vec3( normal );
+  #ifdef USE_INSTANCING
+    nGerbe = mat3( instanceMatrix ) * nGerbe;
+  #endif
+  vBordGerbe = abs( dot( normalize( normalMatrix * nGerbe ), normalize( - mvPosition.xyz ) ) );`);
+        sh.fragmentShader = 'varying float vBordGerbe;\n' + sh.fragmentShader.replace('#include <color_fragment>', '#include <color_fragment>\n  diffuseColor.a *= smoothstep( 0.0, 0.9, vBordGerbe );');
+      };
+      gerbes.material.customProgramCacheKey = () => 'gerbe-douce';
+    }
     scene.add(gerbes);
     const route = monde.route;
     m = {
@@ -134,7 +148,7 @@ const METEO3D = (function () {
       const u = Math.abs(v.u || 0);
       if (u < R.GERBE_VITESSE_MIN || Math.hypot(v.x - camera.position.x, v.z - camera.position.z) < R.GERBE_CAMERA_MIN) continue;   // (pas la gerbe qui passerait devant l'objectif)
       const t = Math.min(1, u / R.GERBE_VITESSE_PLEINE) * e.eau, fx = Math.cos(v.cap), fz = Math.sin(v.cap);
-      po.set(v.x - fx * R.GERBE_RECUL, R.GERBE_HAUTEUR * t, v.z - fz * R.GERBE_RECUL);
+      po.set(v.x - fx * R.GERBE_RECUL, (R.GERBE_OMBRE ? Math.max(R.GERBE_HAUTEUR, R.GERBE_TAILLE[1]) : R.GERBE_HAUTEUR) * t, v.z - fz * R.GERBE_RECUL);   // (GERBE_OMBRE : posée sur la route, sans ellipse nette)
       q.setFromAxisAngle(haut, -v.cap);
       sc.set(R.GERBE_TAILLE[0] * t, R.GERBE_TAILLE[1] * t, R.GERBE_TAILLE[2] * t);
       gb.setMatrixAt(k++, mat.compose(po, q, sc));

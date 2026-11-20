@@ -293,10 +293,11 @@ function finirFantome(q) {
   const f = JEU.fantome;
   if (!f || q.temps === null) return null;
   const compact = FANTOME.compacter(f.tour, q.temps, q.fin);
-  const record = SAUVEGARDE.proposerFantome(NOM_CIRCUIT, compact, !q.valide);
+  const propre = REGLAGES.RECORD_PROPRE ? q.propre : q.valide;   // (tour 60, relecture : ni un tour avec un avertissement de limites ni un tour relancé par le secours)
+  const record = SAUVEGARDE.proposerFantome(NOM_CIRCUIT, compact, !propre);
   const ecart = f.rejeu ? FANTOME.ecartFinal(f.rejeu, q.temps) : null;
-  if (f.pole) return { record, pole: true, ecartPole: ecart, gagne: null, ecart: null, taille: FANTOME.taille(compact), compact: q.valide ? compact : null };   // (tour 55, T6 : contre le poleman, l'écart à son tour)
-  return { record, gagne: record && ecart !== null ? -ecart : null, ecart: !record && ecart !== null ? ecart : null, taille: FANTOME.taille(compact), compact: q.valide ? compact : null };   // (compact : le tour, pour « 📋 Défier un ami », tour 49b)
+  if (f.pole) return { record, pole: true, ecartPole: ecart, gagne: null, ecart: null, taille: FANTOME.taille(compact), compact: propre ? compact : null };   // (tour 55, T6 : contre le poleman, l'écart à son tour)
+  return { record, gagne: record && ecart !== null ? -ecart : null, ecart: !record && ecart !== null ? ecart : null, taille: FANTOME.taille(compact), compact: propre ? compact : null };   // (compact : le tour, pour « 📋 Défier un ami », tour 49b)
 }
 
 // --- le défi après une course seule (tour 51b, CLAUDE.md « Le défi du fantôme entre amis ») : chaque tour de la course seule est enregistré
@@ -309,7 +310,7 @@ function noterFantomeSeul(c, v) {
   const f = JEU.fantomeSeul || (JEU.fantomeSeul = { tour: null, nTours: 0, ligne: 0, sale: false, meilleur: null });
   if (c.tours.length > f.nTours) {   // un tour vient de finir
     const t = c.tours[c.tours.length - 1];
-    if (f.tour && !f.sale && !t.coupe && !t.limites && (!f.meilleur || t.temps < f.meilleur.temps)) {
+    if (f.tour && !f.sale && !t.coupe && !t.limites && !t.secours && (!f.meilleur || t.temps < f.meilleur.temps)) {
       FANTOME.noter(f.tour, t.temps, v, c.progression - f.ligne);
       f.meilleur = { temps: t.temps, compact: FANTOME.compacter(f.tour, t.temps, c.progression - f.ligne) };
     }
@@ -370,7 +371,7 @@ function pasTourQualif(pas) {
   const q = JEU.qualif.q, v = JEU.qualif.v, c = q.course;
   const permis = courseAutorise(c);
   if (JEU.remettre) { if (permis) remettreSurPiste(v, CIRCUIT); JEU.remettre = false; }
-  secoursJoueur(v, permis && c.etat !== 'finie');   // (tour 60 : le secours de l'auto-guidage du téléphone)
+  secoursJoueur(v, permis && c.etat !== 'finie', c);   // (tour 60 : le secours de l'auto-guidage du téléphone)
   if (c.etat === 'finie') appliquerCommandes(v, { gaz: 0, frein: v.u > REGLAGES.ARRET_APRES_ARRIVEE ? 1 : 0, direction: 0 });
   else if (JEU.robot && permis) appliquerCommandes(v, piloteRobot(v, CIRCUIT));
   else lisserCommandes(v, permis ? aiderJoueur(JEU.cibles, v) : AUCUNE, pas);
@@ -464,7 +465,7 @@ function finirTourTournoi(q, abandon) {
   // (tour 49b) « 📋 Défier un ami » sous le classement de la manche : le tour qui vient d'être fait, s'il est propre (sans virage coupé :
   // le code garde le temps du tour, sans pénalité), signé du prénom et du casque du joueur, avec ses aides
   const aidesJ = aidesDe(null);
-  JEU.tournoiDefi = !abandon && f && q.valide && !q.penalites ? { circuit: NOM_CIRCUIT, fantome: JEU.tournoiFantomes[j], nom: t.joueurs[j].prenom || null, casque: t.joueurs[j].casque || null, aileron: null, aides: aidesJ ? ASSISTANCE.AIDES.filter(a => aidesJ[a]) : [] } : null;
+  JEU.tournoiDefi = !abandon && f && (REGLAGES.RECORD_PROPRE ? q.propre : q.valide) && !q.penalites ? { circuit: NOM_CIRCUIT, fantome: JEU.tournoiFantomes[j], nom: t.joueurs[j].prenom || null, casque: t.joueurs[j].casque || null, aileron: null, aides: aidesJ ? ASSISTANCE.AIDES.filter(a => aidesJ[a]) : [] } : null;
   TOURNOI.enregistrer(t, j, abandon ? { abandon: true } : { tour: q.tour, penalites: q.penalites });
   JEU.fantome = null;
   JEU.qualif = null;
@@ -552,7 +553,8 @@ function commencerTourDefi() {
 
 // le tour fini, coupé ou abandonné : l'écart au fantôme (et le meilleur gardé dans la liste des défis reçus), son propre code
 function finirTourDefi(q, abandon) {
-  const d = JEU.defi.d, f = JEU.fantome, temps = !abandon && q.valide ? q.temps : null;
+  const valide = REGLAGES.RECORD_PROPRE ? q.propre : q.valide;   // (tour 60, relecture : un tour relancé par le secours, ou avec un avertissement de limites, compte comme coupé)
+  const d = JEU.defi.d, f = JEU.fantome, temps = !abandon && valide ? q.temps : null;
   const e = temps === null ? null : DEFI.ecart(d, temps);
   const s = SAUVEGARDE.defis();
   DEFI.noterResultat(s.liste, d.id, e);
@@ -562,7 +564,7 @@ function finirTourDefi(q, abandon) {
   JEU.fantome = null;
   JEU.qualif = null;
   if (JEU.modeleFantome) JEU.modeleFantome.groupe.visible = false;
-  DEFI_ECRAN.remplirFin({ d, e, coupe: !abandon && !q.valide, abandon, code: JEU.defi.code });
+  DEFI_ECRAN.remplirFin({ d, e, coupe: !abandon && !valide, abandon, code: JEU.defi.code });
   JEU.ecran = 'defiFin';
   INTERFACE.montrer('defiFin');
 }
@@ -2275,13 +2277,16 @@ function guiderJoueur(brut, c, v) {
   return r;
 }
 // le secours, à chaque pas de la voiture du joueur, là où Espace est traité : la voiture perdue repart sur la piste à la vitesse d'avant (bornée)
-function secoursJoueur(v, permis) {
+function secoursJoueur(v, permis, c) {
   if (!REGLAGES.TACTILE_GUIDAGE_SECOURS || !permis || !telephoneGuide()) return;
   const u = ASSISTANCE.secours(etatGuidage(v), v, CIRCUIT, REGLAGES.PAS_PHYSIQUE);
   if (u === null) return;
   const autres = JEU.plateau ? JEU.plateau.pilotes.map(q => q.v).filter(o => o && o !== v) : [];   // (revue du Chef : jamais posée sur une IA)
   if (ASSISTANCE.relancer(v, CIRCUIT, JEU.carte, u, autres) === null) ASSISTANCE.reporter(etatGuidage(v));   // (pas de place libre : au pas suivant)
-  else JEU.secoursGuidage = (JEU.secoursGuidage || 0) + 1;
+  else {
+    JEU.secoursGuidage = (JEU.secoursGuidage || 0) + 1;
+    if (c && REGLAGES.RECORD_PROPRE) c.secoursTour = true;   // (tour 60, relecture : relancé sans perdre sa vitesse, ce tour ne compte ni pour le record ni pour le fantôme)
+  }
 }
 
 // ?ia=N&joueur=1 : les commandes du joueur pour sa voiture dans la course entre IA (comme seul : rampes, Espace)
@@ -2310,7 +2315,7 @@ function conduireJoueur(p, pas) {
   if (p.course.arretEnCours && cmd.cibles) choisirPneusArret(p.v, cmd.cibles.direction, p.course.arretEnCours);
   if (cmd.remettre && courseAutorise(p.course)) remettreSurPiste(p.v, CIRCUIT);
   cmd.remettre = false;
-  if (!p.joueur || p.joueur === 1) secoursJoueur(p.v, courseAutorise(p.course) && commandesPermises(p.course) && !p.course.arretEnCours);   // (tour 60 : le secours de l'auto-guidage du téléphone ; jamais à deux)
+  if (!p.joueur || p.joueur === 1) secoursJoueur(p.v, courseAutorise(p.course) && commandesPermises(p.course) && !p.course.arretEnCours, p.course);   // (tour 60 : le secours de l'auto-guidage du téléphone ; jamais à deux)
   // après l'arrivée, sa voiture freine seule jusqu'à l'arrêt (les autres finissent leur course)
   // ?robot=1 : le robot d'essai conduit sa voiture (tests) ; il fait toujours un départ parfait, DEPART_ROBOT_REACTION après l'extinction
   let cibles = JEU.robot ? (courseAutorise(p.course) ? piloteRobot(p.v, CIRCUIT) : AUCUNE) : cmd.cibles;
@@ -2351,7 +2356,7 @@ function pasJoueur(pas) {
   // on conduit en survol, en essai, et en course une fois le GO donné (pas pendant le compte à rebours ni après l'arrivée)
   const permis = JEU.ecran === 'survol' ? CAMERA.conduite : (JEU.ecran === 'course' && c && courseAutorise(c));
   if (JEU.remettre) { if (permis) remettreSurPiste(v, CIRCUIT); JEU.remettre = false; }
-  secoursJoueur(v, permis && !JEU.ia && !(c && c.etat === 'finie'));   // (tour 60 : le secours de l'auto-guidage du téléphone)
+  secoursJoueur(v, permis && !JEU.ia && !(c && c.etat === 'finie'), c);   // (tour 60 : le secours de l'auto-guidage du téléphone)
   if (c && c.etat === 'finie') {
     // après l'arrivée : les commandes sont coupées et la voiture freine seule jusqu'à l'arrêt
     appliquerCommandes(v, { gaz: 0, frein: v.u > REGLAGES.ARRET_APRES_ARRIVEE ? 1 : 0, direction: 0 });

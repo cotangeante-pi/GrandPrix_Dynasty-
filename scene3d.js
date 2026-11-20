@@ -513,7 +513,7 @@ const SCENE3D = (function () {
     x.fillStyle = g; x.fillRect(0, 0, 64, 64);
     const geo = new THREE.PlaneGeometry(1, 1); geo.rotateX(-Math.PI / 2);
     const m = new THREE.InstancedMesh(geo, new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv), color: 0x000000, transparent: true, opacity: R.OMBRE_CONTACT[2], depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }), R.VOITURES_LOINTAINES_MAX);
-    m.name = 'ombres-voitures'; m.frustumCulled = false; m.count = 0; m.renderOrder = -1;
+    m.name = 'ombres-voitures'; m.frustumCulled = false; m.count = 0; m.renderOrder = R.GERBE_OMBRE ? 1 : -1;   // (GERBE_OMBRE : après les gerbes de la pluie, transparentes elles aussi, pour toujours assombrir)
     scene.add(m);
     return { maillage: m, mat: new THREE.Matrix4(), q: new THREE.Quaternion(), p: new THREE.Vector3(), e: new THREE.Vector3(R.OMBRE_CONTACT[0], 1, R.OMBRE_CONTACT[1]), axe: new THREE.Vector3(0, 1, 0) };
   }

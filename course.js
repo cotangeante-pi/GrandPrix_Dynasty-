@@ -250,9 +250,10 @@ function finirTour(c) {
   const secteurs = [c.secteursTour[0], c.secteursTour[1], temps - c.secteursTour[0] - c.secteursTour[1]];
   const tour = { temps, secteurs, coupe: c.coupeTour };
   if (c.limitesTour) tour.limites = true;
+  if (c.secoursTour) tour.secours = true;   // (tour 60, relecture : le secours de l'auto-guidage, voir principal.js secoursJoueur)
   c.tours.push(tour);
   // (tour 56, T1) un tour avec un avertissement de limites de piste n'est jamais un record du joueur ; une IA garde son meilleur tour
-  if (!tour.coupe && !(tour.limites && c.surveille)) {
+  if (!tour.coupe && !(tour.limites && c.surveille) && !tour.secours) {
     if (c.meilleurTour === null || temps < c.meilleurTour) c.meilleurTour = temps;
     for (let i = 0; i < 3; i++) if (c.meilleursSecteurs[i] === null || secteurs[i] < c.meilleursSecteurs[i]) c.meilleursSecteurs[i] = secteurs[i];
   }
@@ -261,6 +262,7 @@ function finirTour(c) {
   c.etape = 0;
   c.coupeTour = false;
   c.limitesTour = false;
+  if (c.secoursTour) c.secoursTour = false;
   if (c.nbTours > 0 && c.tours.length >= c.nbTours) c.etat = 'finie';
 }
 

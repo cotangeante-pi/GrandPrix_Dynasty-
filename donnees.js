@@ -198,6 +198,10 @@ const REGLAGES = {
   // en ligne droite, quand le joueur zigzague au volant (il sur-corrige), la direction vise le cap de la piste et le lacet s'amortit,
   // sans toucher au gaz ni au frein ; seulement au volant d'un écran tactile, jamais à deux ni en ligne. Faux = comme avant au bit près
   TACTILE_GUIDAGE: true,
+  // (tour 60, relecture) un tour où le secours a relancé la voiture (sans perdre sa vitesse) ou avec un avertissement de limites de piste
+  // (tour 56) ne compte ni pour le record du circuit, ni pour le fantôme, ni pour un défi (comme un tour coupé) ; en qualification, le temps
+  // reste valable pour la grille ; faux = avant (la qualification ignorait les limites, le secours comptait)
+  RECORD_PROPRE: true,
   TACTILE_GUIDAGE_SECOURS: true,   // la voiture perdue quand même (tête-à-queue, travers, herbe en ligne droite) : comme Espace, mais elle repart à la vitesse d'avant (bornée) ; faux = rien
   GUIDAGE_AMPLITUDE: 0.25,         // |direction| du joueur au-delà de laquelle un côté compte (un coup de volant franc)…
   GUIDAGE_FENETRE: 2,              // … s au plus entre deux changements de côté pour qu'ils se suivent (un zigzag)…
@@ -1381,6 +1385,10 @@ const REGLAGES = {
   PLUIE_GOUTTES: 2400, PLUIE_BOITE: [45, 30], PLUIE_VITESSE: 22, PLUIE_LONGUEUR: 0.9, PLUIE_VENT: 0.12,   // m, m/s
   PLUIE_COULEUR: 0xc8d4e4, PLUIE_OPACITE: 0.55,
   GERBE_COULEUR: 0xe6ecf2, GERBE_OPACITE: 0.26, GERBE_CAMERA_MIN: 12, GERBE_VITESSE_MIN: 8, GERBE_VITESSE_PLEINE: 70, GERBE_RECUL: 3.4, GERBE_HAUTEUR: 0.7, GERBE_TAILLE: [3.2, 1.1, 1.3],
+  // (tour 60, relecture) sous la pluie, la gerbe (claire, 3,2 m de rayon, 3,4 m derrière) couvrait l'arrière de l'ombre de contact
+  // (REALISME_VOITURES) et coupait la route d'une ellipse nette : une tache gris clair sous chaque voiture. Vrai : l'ombre est dessinée
+  // après les gerbes (elle assombrit toujours) et la gerbe est posée sur la route (son bas touche le sol, sans ellipse) ; faux = comme avant
+  GERBE_OMBRE: true,
   COULEUR_ROUTE_MOUILLEE: 0x24262b, ROUTE_MOUILLEE_REFLET: 0.35, ROUTE_MOUILLEE_BRILLANCE: 40,
   CIEL_COUVERT: 0x9aa2ab, CIEL_COUVERT_COUPOLE: 0x8e959d, CIEL_COUVERT_PART: 0.85, CIEL_COUVERT_CLARTE: 1.4, CIEL_COUVERT_AMBIANCE: 0.25, CIEL_COUVERT_SOLEIL: 0.6,
   METEO_ICONE_PLUIE: 0.1, METEO_ICONE_NUAGES: 0.3, GOUTTES_OPACITE: 1.2,
