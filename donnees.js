@@ -1268,6 +1268,7 @@ const REGLAGES = {
   // les pixels (QUALITE_PAS : ombresContact, reflets). FAUX = l'image d'avant au pixel près
   REALISME_VOITURES: true,
   REALISME_ROUTE: true,
+  REALISME_LOGICIEL_LEGER: true,  // un rendu en logiciel (SwiftShader : carte graphique bloquée, ordinateurs d'école ; aussi les tests) : reflets et détail de la route coupés d'office (comme le pas « reflets » de l'Auto)
   // les formes : [hauteur à l'avant, largeur à l'avant, hauteur à l'arrière, largeur à l'arrière, (depuis le haut)] de chaque boîte
   VOITURE_FORMES: { coque: [0.86, 0.62, 1, 1], nez: [0.6, 0.55, 1, 1.12, true], capot: [1, 1, 0.42, 0.36], prise: [0.85, 0.8, 1, 1], ponton: [1, 1, 0.45, 0.62] },
   VOITURE_AO: [0.5, 0.75, 0.55],   // la lumière cuite : le bas de la voiture à 50 % de sa couleur, pleine à 0,75 m ; les faces tournées vers le sol × 0,55

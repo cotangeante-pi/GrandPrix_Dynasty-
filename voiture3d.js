@@ -472,6 +472,8 @@ const VOITURE3D = (function () {
     uniformesVoiture.uRefletForce.value.set(R.REFLET_FORCE[0], R.REFLET_FORCE[1]);
     // (la carte n'est pas l'envMap de Three.js, qui assombrissait tout le Lambert/Phong de r152 : un samplerCube à nous)
     uniformesVoiture.uCarteReflets.value = carte();
+    // (un rendu en logiciel, scene3d.js : un Lambert, comme avant ; les formes, la lumière cuite et les pneus restent)
+    if (typeof SCENE3D !== 'undefined' && SCENE3D.rendusLogiciel) return new THREE.MeshLambertMaterial(options);
     const m = new THREE.MeshPhongMaterial(Object.assign({ specular: R.VOITURE_SPECULAIRE, shininess: R.VOITURE_SHININESS }, options));
     m.onBeforeCompile = sh => {
       for (const k in uniformesVoiture) sh.uniforms[k] = uniformesVoiture[k];

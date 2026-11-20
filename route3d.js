@@ -14,6 +14,7 @@ const ROUTE3D = (function () {
   const R = REGLAGES;
   let grain = null;
   const U = {};   // les uniformes partagés par la route, l'herbe et les bas-côtés
+  let detailVoulu = 1;   // (l'Auto ou le rendu en logiciel peuvent le demander avant que la route existe)
 
   // --- calcul pur (testé sans écran) ---
   // la ligne idéale : chaque point va vers le milieu de ses voisins (à k échantillons), borné à la piste moins ROUTE_LIGNE_MARGE ; du plus
@@ -110,7 +111,7 @@ float herbe( vec2 p ) {
     if (U.uGrain) return U;
     const c = (n) => new THREE.Color(n);
     Object.assign(U, {
-      uGrain: { value: texture() }, uDetail: { value: 1 },
+      uGrain: { value: texture() }, uDetail: { value: detailVoulu },
       uHerbe: { value: new THREE.Vector4(R.HERBE_REPETE[0], R.HERBE_REPETE[1], R.HERBE_FORCE[0], R.HERBE_FORCE[1]) },
       uRep: { value: new THREE.Vector2(R.ROUTE_GRAIN_REPETE[0], R.ROUTE_GRAIN_REPETE[1]) }, uForce: { value: new THREE.Vector2(R.ROUTE_GRAIN_FORCE[0], R.ROUTE_GRAIN_FORCE[1]) },
       uGomme: { value: new THREE.Vector3(...R.ROUTE_GOMME) }, uFrein: { value: new THREE.Vector3(...R.ROUTE_FREIN.slice(0, 3)) }, uBord: { value: new THREE.Vector3(R.ROUTE_BORD_SALE[0], R.ROUTE_BORD_SALE[1], 0) },
@@ -146,7 +147,8 @@ uniform vec3 uGomme, uFrein, uBord, uCiel, uMouille, uSol, uTerre, uGravier;
   float dl = 0.0, gTache = 0.5;
   bool estRoute = vRoute.w >= 0.0;
   if ( estRoute ) {
-  float gFin = texture2D( uGrain, vRoute.xy / uRep.x ).r;
+  float gFin = 0.5;
+  if ( uDetail > 0.5 ) gFin = texture2D( uGrain, vRoute.xy / uRep.x ).r;   // (l'Auto, pas « reflets » : plus aucune lecture de texture)
   gTache = vTache;   // (les taches : une valeur douce par sommet, calculée une fois ; aucune lecture de texture)
   dl = abs( vRoute.x - vRoute.z );
   float gomme = 1.0 - smoothstep( uGomme.x, uGomme.y, dl );
@@ -171,7 +173,8 @@ uniform vec3 uGomme, uFrein, uBord, uCiel, uMouille, uSol, uTerre, uGravier;
   // les bas-côtés : vRoute = (m depuis le bord, s ramené, part de gravier, -largeur) ; au bord extérieur, exactement l'herbe du sol
   const BAS_GLSL = `
   float tBas = clamp( vRoute.x / max( - vRoute.w, 0.01 ), 0.0, 1.0 );
-  float bFin = texture2D( uGrain, vMonde / uRep.x ).r, bTache = vTache;
+  float bFin = 0.5, bTache = vTache;
+  if ( uDetail > 0.5 ) bFin = texture2D( uGrain, vMonde / uRep.x ).r;
   float bb = ( bTache - 0.5 ) * 1.6 + ( bFin - 0.5 ) * 0.5;
   vec3 solIci = uSol HERBE_ICI;
   float usure = 1.0 - smoothstep( 0.0, uBas.x, vRoute.x + bb * 0.9 );
@@ -204,7 +207,8 @@ uniform vec3 uGomme, uFrein, uBord, uCiel, uMouille, uSol, uTerre, uGravier;
     }
     // les bas-côtés : des deux côtés, du bord à BAS_COTE[0] m (GRAVIER[0] à l'extérieur des virages), jamais dans la voie des stands
     const pb = pos, ab = att, st = c.stands;   // (dans le même maillage que la route : un seul appel de dessin)
-    for (const cote of [-1, 1]) for (let i = 0; i < c.nb; i += R.BAS_COTE_PAS) {
+    const sansBas = typeof SCENE3D !== 'undefined' && SCENE3D.rendusLogiciel;   // (un rendu en logiciel : pas de bas-côtés, des pixels de moins à dessiner deux fois)
+    if (!sansBas) for (const cote of [-1, 1]) for (let i = 0; i < c.nb; i += R.BAS_COTE_PAS) {
       const k = Math.min(i + R.BAS_COTE_PAS, c.nb) % c.nb, base = Math.floor(c.s[i] / P) * P;
       const largeur = j => {
         let w = R.BAS_COTE[0], g = gr.cote[j] === cote ? gr.g[j] : 0;
@@ -243,7 +247,7 @@ uniform vec3 uGomme, uFrein, uBord, uCiel, uMouille, uSol, uTerre, uGravier;
     if (ciel) U.uCiel.value.copy(ciel);
   }
   // l'Auto : le détail de la route (taches, traces, bords) coupé ou rendu
-  function detail(oui) { if (U.uDetail) U.uDetail.value = oui === false ? 0 : 1; }
+  function detail(oui) { detailVoulu = oui === false ? 0 : 1; if (U.uDetail) U.uDetail.value = detailVoulu; }
 
   return { get uniformes() { return U; }, ligneIdeale, freinages, graviers, texture, materiau, construire, mouiller, detail, get eau() { return U.uEau ? U.uEau.value.x : 0; } };
 })();

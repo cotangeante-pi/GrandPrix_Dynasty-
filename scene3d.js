@@ -15,14 +15,20 @@ const SCENE3D = (function () {
   let flotte = null, nbLointaines = 0, joueurSimplifie = false;
   // la qualité de l'image (qualite.js, tour 40) : null = les réglages d'avant ; sinon { pixelRatio, detail, rien } d'un cran
   let qualite = null;
-  let lieuRealisme = null, ombres = null;   // (tour 60, REALISME_*) le lieu du circuit ; l'ombre douce sous toutes les voitures (un InstancedMesh, un appel de dessin)
+  let lieuRealisme = null, ombres = null, logiciel = false;
+  // (tour 60) l'Auto coupe les reflets des voitures et le détail de la route (des uniformes : aucun shader refait) ; un rendu en
+  // logiciel (SwiftShader, llvmpipe : la carte graphique bloquée par le navigateur, des ordinateurs d'école) les coupe d'office
+  // (REALISME_LOGICIEL_LEGER) : chaque lecture de texture y coûte cher
+  function appliquerRealisme() {
+    const plein = !logiciel && (!qualite || qualite.reflets !== false);
+    if (typeof VOITURE3D !== 'undefined' && VOITURE3D.reglerReflets) VOITURE3D.reglerReflets(plein);
+    if (typeof ROUTE3D !== 'undefined') ROUTE3D.detail(plein);
+  }   // (tour 60, REALISME_*) le lieu du circuit ; l'ombre douce sous toutes les voitures (un InstancedMesh, un appel de dessin)
   // (tour 49a : l'Auto continu ; q = QUALITE.reglages, avec aussi voitureLoin, voituresDetaillees, densite, effets ; le canvas n'est
   // refait que si les pixels changent)
   function reglerQualite(q) {
     qualite = q || null;
-    // (tour 60) l'Auto coupe les reflets des voitures et le détail de la route (des uniformes : aucun shader refait)
-    if (typeof VOITURE3D !== 'undefined' && VOITURE3D.reglerReflets) VOITURE3D.reglerReflets(!qualite || qualite.reflets !== false);
-    if (typeof ROUTE3D !== 'undefined') ROUTE3D.detail(!qualite || qualite.reflets !== false);
+    appliquerRealisme();
     if (!rendu) return;
     const pr = Math.min(window.devicePixelRatio || 1, qualite ? qualite.pixelRatio : R.PIXEL_RATIO_MAX);
     if (pr !== rendu.getPixelRatio()) { rendu.setPixelRatio(pr); redimensionner(); }
@@ -36,6 +42,10 @@ const SCENE3D = (function () {
       rendu = new THREE.WebGLRenderer({ antialias: true });
     } catch (e) {
       return false;   // pas de WebGL : le jeu le dira plus tard à l'écran
+    }
+    if (R.REALISME_LOGICIEL_LEGER && (R.REALISME_VOITURES || R.REALISME_ROUTE)) {
+      try { const gl = rendu.getContext(), ext = gl.getExtension('WEBGL_debug_renderer_info'); logiciel = !!ext && /swiftshader|llvmpipe|software/i.test(String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL))); } catch (e) { logiciel = false; }
+      appliquerRealisme();
     }
     // un écran Retina a 4 fois plus de pixels : on plafonne (réglage), c'est là que partent les images par seconde
     rendu.setPixelRatio(Math.min(window.devicePixelRatio || 1, R.PIXEL_RATIO_MAX));
@@ -576,7 +586,7 @@ const SCENE3D = (function () {
     get trianglesDessines() { return trianglesDessines; },
     reglerTemps(t) { tempsFixe = t === undefined ? null : t; }, avancer, essaiDessin, get tempsGpu() { return tempsGpu; },   // (tour 60 : l'animation du public et du ciel ; l'Auto fine)
     get appelsDessin() { return appelsDessin; },
-    reglerQualite, get qualite() { return qualite; }, get pixelRatio() { return rendu ? rendu.getPixelRatio() : 0; },
+    reglerQualite, get qualite() { return qualite; }, get rendusLogiciel() { return logiciel; }, get pixelRatio() { return rendu ? rendu.getPixelRatio() : 0; },
     get programmes() { return rendu && rendu.info.programs ? rendu.info.programs.length : 0; },   // (la mesure des coûts, tour 40 : les shaders compilés)
     get ombres() { return !!(rendu && rendu.shadowMap.enabled); },
     get nbObjets() { let n = 0; if (scene) scene.traverse(o => { if (o.isMesh || o.isInstancedMesh || o.isPoints || o.isLine) n++; }); return n; },   // (tests : le résumé n'ajoute rien à la scène)
