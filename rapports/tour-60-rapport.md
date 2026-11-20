@@ -4,7 +4,7 @@ Commit vérifié : main 2cd512d (code de 6c0ad02, GitHub 18/18)
 Note : 96/100
 Pas d'heure de fin : jusqu'à ce que les 3 demandes soient faites. Mac gardé éveillé (caffeinate, arrêté à la fin). Codeurs sur Opus 5.5 (demande du propriétaire, pas de Fable).
 
-Règles (celles du tour 59) : un Codeur ne pousse jamais sur main ; 18/18 sur GitHub avant chaque fusion (le Chef fusionne) ; aucune info personnelle (git grep -i -E "elijah|/Users/" avant de pousser) ; jamais `git stash` ; tests sur le Mac seulement la partie concernée, sous le verrou /tmp/gpd-tests.lock ; la suite complète sur GitHub ; choix réversibles (un réglage dans donnees.js, faux = comme avant au bit près) ; rien d'hébergé ni d'envoyé à Poki ; EN_LIGNE faux.
+Règles (celles du tour 59) : un Codeur ne pousse jamais sur main ; 18/18 sur GitHub avant chaque fusion (le Chef fusionne) ; aucune info personnelle (la recherche d’infos perso avant de pousser) ; jamais `git stash` ; tests sur le Mac seulement la partie concernée, sous le verrou /tmp/gpd-tests.lock ; la suite complète sur GitHub ; choix réversibles (un réglage dans donnees.js, faux = comme avant au bit près) ; rien d'hébergé ni d'envoyé à Poki ; EN_LIGNE faux.
 GitHub ne donne que 20 travaux à la fois et un passage complet en prend 18 : ne poussez que quand vous pensez avoir fini.
 Fichiers partagés (textes.js, donnees.js, index.html, style.css, principal.js, scene3d.js, decor*.js, qualite.js) : chacun ajoute ses blocs, sans reformater ni déplacer ceux des autres.
 La physique et les résultats de course ne changent jamais (sauf C4, derrière son réglage, et seulement pour le joueur sur écran tactile).
