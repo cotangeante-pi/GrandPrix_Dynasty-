@@ -1,7 +1,7 @@
 TOUR 60 — compte rendu du Codeur 3 (le ciel, le public, l'Auto plus intelligente)
 Branche : ciel-public-60 (depuis origin/main e5516e2)
-Commit : COMMIT_ICI
-Passage GitHub : PASSAGE_ICI
+Commit : c6b9ced (le code ; ce compte rendu est un commit [skip ci] de plus, après le passage vert)
+Passage GitHub : https://github.com/cotangeante-pi/GrandPrix_Dynasty-/actions/runs/44642201901 — vert, 18/18 (le travail « annexes » a été relancé une fois : « connexion lente » des batailles en ligne, un test de temps de tests/enligne-incidents.py qui n'a rien à voir avec ce tour, vert au premier passage 44640284868 avec le même code)
 Ordres : 1 fait / 2 fait / 3 fait (sauf la mesure sur un vrai téléphone, impossible ici) / 4 fait / 5 fait (voir le passage)
 
 ## Le principe (pour tout ce qui suit)
@@ -69,13 +69,16 @@ rechuter et bloqué 90 s doublé ; rien pendant les feux ; niveau gardé). Ce qu
   l'Auto d'avant, la même ligne dans `QUALITE_PAS` et sa clé dans `FAM` du test « l'ordre des pas ».
 
 ## Sortie des tests (Mac, sous le verrou, seulement la partie concernée)
-- `tests/test.html?filtre=qualité` (Chrome) : TH_ICI ; aussi par osascript : 14/14 (les 9 d'avant en `QUALITE_FINE` faux + 5 fins ; le
+- `tests/test.html?filtre=qualité` (Chrome) : 18/18 (dont « la course ne bouge pas d'un bit » en Auto fine) ; `filtre=décor` 6/6 ; aussi par osascript : 14/14 (les 9 d'avant en `QUALITE_FINE` faux + 5 fins ; le
   test « course au bit près » fin tourne seulement dans Chrome).
 - `ECRANS_PAGES=tests/lieu.html` : 187/187 (les 12 décors, plafonds `PLAFONDS_IMAGE` tenus, + 2 pages nouvelles : `test=realisme`
   et `realisme=0`) ; `test=jeudecor` 20/20 (la nuit de Singapura reste sombre) ; `test=pluie` 20/20 (au sec, pas un pixel ne change) ;
   `test=qualite` 19/19 (l'Auto fine va au plus simple sous swiftshader, jamais pendant les feux) ; `test=retro` 36/36.
 - Course identique au bit près : test « qualité fine : la course ne bouge pas d'un bit » (le dessin ne touche à rien d'autre).
 - Un test de pixels cassé parce que l'image a changé exprès : aucun (il n'y a pas de référence d'image ; les seuils de nuit tiennent).
+- Un test changé exprès : `test=decor` « à l'échelle : un spectateur fait entre 1,1 et 1,9 m » mesurait la boîte de la géométrie,
+  qui contient maintenant le drapeau et la pancarte tenus au-dessus de la tête (2,0 à 2,4 m) : il mesure le corps (parties 0 à 5).
+  Vu au premier passage GitHub (44640284868, ecrans-5 : 565/566), corrigé, 13/13 sur le Mac.
 
 ## Mesures
 Coûts (`tests/lieu.html` → `__couts`, caméra de course, 20 voitures, 12 endroits du tour, swiftshader 1280×720), avant → après :
