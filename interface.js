@@ -2414,7 +2414,7 @@ const DEFI_ECRAN = (function () {
   function remplirFin(r) {
     $('defiFinTitre').textContent = texte('defiFinTitre');
     $('defiFinContre').textContent = contre(r.d);
-    $('defiFinTexte').textContent = r.abandon ? texte('defiAbandon') : r.coupe ? texte('defiCoupe')
+    $('defiFinTexte').textContent = r.abandon ? texte('defiAbandon') : r.coupe ? texte('defiCoupe') : r.secours ? texte('defiSecours')
       : r.e < 0 ? texte('defiReleve').replace('{s}', '−' + s3(r.e)) : texte('defiEncore').replace('{s}', s3(r.e));
     $('defiFinCode').classList.add('cache');
     $('boutonDefiRecommencer').textContent = texte('defiRecommencer');

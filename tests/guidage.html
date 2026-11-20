@@ -140,12 +140,16 @@ t('à l’approche d’un virage, la part du guidage descend à 0 (la droiture :
   const v=creerVoiture(C,1000,0);v.u=60;const a=ASSISTANCE.droiture(v,C);
   const v2=creerVoiture(C,3000-60*2.5+20,0);v2.u=60;const b=ASSISTANCE.droiture(v2,C);
   v_(a===1&&b===0,a+' '+b);});
-t('près de la voie des stands (de GUIDAGE_STANDS m avant son entrée jusqu’à sa sortie), le guidage ne fait rien : on y tourne exprès',()=>{
+t('près de la voie des stands (de GUIDAGE_STANDS m avant son entrée jusqu’au bout de sa rampe, et dans sa rampe de sortie), le guidage ne fait rien : on y tourne exprès ; entre les rampes (le muret), il marche',()=>{
   const st=C.stands;v_(R.PNEUS_ACTIFS&&st,'pas de stands');const L=C.longueur;let n=0,hors=0;
-  for(const ds of [-R.GUIDAGE_STANDS+5,-50,0,st.longueur/2,st.longueur-5]){const v=creerVoiture(C,((st.entree+ds)%L+L)%L,0);v.u=60;n+=ASSISTANCE.droiture(v,C)===0?0:1;}
+  for(const ds of [-R.GUIDAGE_STANDS+5,-50,0,R.STAND_RAMPE-5,st.longueur-R.STAND_RAMPE+5,st.longueur-5]){const v=creerVoiture(C,((st.entree+ds)%L+L)%L,0);v.u=60;n+=ASSISTANCE.droiture(v,C)===0?0:1;}
   const v=creerVoiture(C,((st.entree+st.longueur+400)%L+L)%L,0);v.u=60;hors=ASSISTANCE.droiture(v,C);
-  TABLE.push(`  stands : entrée à ${fx(st.entree,0)} m, longueur ${fx(st.longueur,0)} m`);
-  v_(n===0&&hors===1,n+' '+hors);});
+  // (tour 60, relecture, GUIDAGE_STANDS_RAMPES) entre les deux rampes (le muret), la ligne droite des stands est guidée comme une autre ;
+  // faux : rien sur toute la longueur de la voie (comme avant)
+  const vm=creerVoiture(C,((st.entree+st.longueur/2)%L+L)%L,0);vm.u=60;const milieu=ASSISTANCE.droiture(vm,C),sans=ASSISTANCE.droiture(vm,Object.assign({},C,{stands:null}));
+  R.GUIDAGE_STANDS_RAMPES=false;const milieuAvant=ASSISTANCE.droiture(vm,C);R.GUIDAGE_STANDS_RAMPES=true;
+  TABLE.push(`  stands : entrée à ${fx(st.entree,0)} m, longueur ${fx(st.longueur,0)} m ; au milieu de la ligne droite des stands : droiture ${fx(milieu,2)} (avant : ${fx(milieuAvant,0)})`);
+  v_(n===0&&hors===1&&milieu===sans&&milieu>0&&milieuAvant===0,[n,hors,milieu,sans,milieuAvant].join(' '));});
 t('sous GUIDAGE_VITESSE_MIN, dans les stands ou sans position, rien',()=>{const e=ASSISTANCE.creerGuidage(),v=creerVoiture(C,300,0);v.u=5;const c={gaz:1,frein:0,direction:0.6};
   v_(ASSISTANCE.guider(e,c,c,v,C,DT)===c);v.u=60;v.dansStands=true;v_(ASSISTANCE.guider(e,c,c,v,C,DT)===c);});
 

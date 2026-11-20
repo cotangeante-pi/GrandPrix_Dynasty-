@@ -76,5 +76,10 @@ t('qualification : un tour avec un avertissement de limites ou un secours de l�
 t('course : un tour relancé par le secours n’est jamais le meilleur tour ; ni le défi de la course seule', ()=>{reglages({});const c=creerCourse(CIRCUIT_TEST,0);c.etat='course';c.etape=3;c.secteursTour=[20,20];c.temps=50;c.secoursTour=true;finirTour(c);
   v(c.meilleurTour===null&&c.tours[0].secours&&!c.secoursTour,'secours');c.etape=3;c.secteursTour=[20,20];c.temps=110;finirTour(c);v(c.meilleurTour===60&&!c.tours[1].secours,'le tour suivant compte');});
 t('secoursJoueur : le tour est marqué seulement quand la voiture est vraiment relancée, et seulement avec RECORD_PROPRE', ()=>{const src=secoursJoueur.toString();v(/c\.secoursTour = true/.test(src)&&/RECORD_PROPRE/.test(src));});
+t('course seule (sans feux, la voiture n’est pas « surveillée ») : le record du circuit ne prend jamais un tour avec un avertissement de limites (meilleurTourPropre)', ()=>{reglages({});const c=creerCourse(CIRCUIT_TEST,0);c.etat='course';
+  c.etape=3;c.secteursTour=[20,20];c.temps=50;limitesDePiste(c);finirTour(c);c.etape=3;c.secteursTour=[20,20];c.temps=110;finirTour(c);
+  v(c.meilleurTour===50,'course.js garde ce tour (voiture non surveillée), comme avant');v(meilleurTourPropre(c)===60,'le record : '+meilleurTourPropre(c));
+  const d=creerCourse(CIRCUIT_TEST,0);d.etat='course';d.etape=3;d.secteursTour=[20,20];d.temps=50;limitesDePiste(d);finirTour(d);v(meilleurTourPropre(d)===null,'aucun tour propre');
+  v(/RECORD_PROPRE \? meilleurTourPropre\(c\) : c\.meilleurTour/.test(finDeCourse.toString()),'finDeCourse le lit');});
 document.getElementById('res').textContent=`RESULTAT ${ok}/${ok+ko}\n`+L.join('\n');
 </script></body></html>

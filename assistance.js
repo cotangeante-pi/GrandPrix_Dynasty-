@@ -104,7 +104,13 @@ const ASSISTANCE = (function () {
   function droiture(v, circuit) {
     // (près de la voie des stands, de GUIDAGE_STANDS m avant son entrée jusqu'à sa sortie, on tourne exprès pour y entrer ou en sortir : rien)
     const st = R.PNEUS_ACTIFS && circuit.stands, L = circuit.longueur;
-    if (st && ((v.piste.s - st.entree + R.GUIDAGE_STANDS) % L + L) % L < st.longueur + R.GUIDAGE_STANDS) return 0;
+    if (st && ((v.piste.s - st.entree + R.GUIDAGE_STANDS) % L + L) % L < st.longueur + R.GUIDAGE_STANDS) {
+      // (tour 60, relecture, GUIDAGE_STANDS_RAMPES) entre les deux rampes, un muret sépare la piste de la voie (physique.js) : on n'y tourne
+      // pas pour entrer ni sortir ; or c'est la ligne droite des stands, souvent la plus longue du circuit : le guidage y marche. Seulement
+      // de GUIDAGE_STANDS m avant l'entrée jusqu'au bout de la rampe d'entrée, et dans la rampe de sortie, rien ; faux = rien sur toute la voie
+      const depuis = ((v.piste.s - st.entree) % L + L) % L;
+      if (!R.GUIDAGE_STANDS_RAMPES || depuis > st.longueur || depuis < R.STAND_RAMPE || depuis > st.longueur - R.STAND_RAMPE) return 0;
+    }
     const R_ = R, n = Math.ceil(Math.max(R_.GUIDAGE_REGARD[0], Math.abs(v.u) * R_.GUIDAGE_REGARD[1]) / circuit.pas), [k0, k1] = R_.GUIDAGE_COURBURE;
     let pire = 0;
     for (let j = -2; j <= n; j++) pire = Math.max(pire, Math.abs(circuit.courbure[((v.piste.indice + j) % circuit.nb + circuit.nb) % circuit.nb]));

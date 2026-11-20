@@ -553,7 +553,7 @@ function commencerTourDefi() {
 
 // le tour fini, coupé ou abandonné : l'écart au fantôme (et le meilleur gardé dans la liste des défis reçus), son propre code
 function finirTourDefi(q, abandon) {
-  const valide = REGLAGES.RECORD_PROPRE ? q.propre : q.valide;   // (tour 60, relecture : un tour relancé par le secours, ou avec un avertissement de limites, compte comme coupé)
+  const secours = !!(REGLAGES.RECORD_PROPRE && q.secours), valide = q.valide && !secours;   // (tour 60, relecture : un tour relancé par le secours de l'auto-guidage, sans perdre sa vitesse, n'a pas de temps)
   const d = JEU.defi.d, f = JEU.fantome, temps = !abandon && valide ? q.temps : null;
   const e = temps === null ? null : DEFI.ecart(d, temps);
   const s = SAUVEGARDE.defis();
@@ -564,7 +564,7 @@ function finirTourDefi(q, abandon) {
   JEU.fantome = null;
   JEU.qualif = null;
   if (JEU.modeleFantome) JEU.modeleFantome.groupe.visible = false;
-  DEFI_ECRAN.remplirFin({ d, e, coupe: !abandon && !valide, abandon, code: JEU.defi.code });
+  DEFI_ECRAN.remplirFin({ d, e, coupe: !abandon && !q.valide, secours: !abandon && q.valide && secours, abandon, code: JEU.defi.code });
   JEU.ecran = 'defiFin';
   INTERFACE.montrer('defiFin');
 }
@@ -2025,11 +2025,20 @@ function quitterResume() {
   INTERFACE.montrer('resultats');
 }
 
+// (tour 60, relecture, RECORD_PROPRE) le meilleur tour qui peut devenir le record : ni coupé, ni avec un avertissement de limites de piste,
+// ni relancé par le secours de l'auto-guidage (dans la course seule, c.meilleurTour gardait les tours avec un avertissement : course.js ne
+// les écarte que pour la voiture surveillée, celle des feux) ; null s'il n'y en a pas
+function meilleurTourPropre(c) {
+  let m = null;
+  for (const t of c.tours) if (!t.coupe && !t.limites && !t.secours && (m === null || t.temps < m)) m = t.temps;
+  return m;
+}
+
 // la course est finie : le record, puis l'écran de fin
 function finDeCourse() {
   const c = JEU.course;
   // une course entre IA ne bat pas les records du joueur
-  const nouveau = JEU.plateau ? false : SAUVEGARDE.proposerRecord(c.nbTours, c.meilleurTour, NOM_CIRCUIT);
+  const nouveau = JEU.plateau ? false : SAUVEGARDE.proposerRecord(c.nbTours, REGLAGES.RECORD_PROPRE ? meilleurTourPropre(c) : c.meilleurTour, NOM_CIRCUIT);
   const defi = finirFantomeSeul(c);
   INTERFACE.remplirFin(c, nouveau, !!defi);
   SON.signal('arrivee');

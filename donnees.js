@@ -199,8 +199,9 @@ const REGLAGES = {
   // sans toucher au gaz ni au frein ; seulement au volant d'un écran tactile, jamais à deux ni en ligne. Faux = comme avant au bit près
   TACTILE_GUIDAGE: true,
   // (tour 60, relecture) un tour où le secours a relancé la voiture (sans perdre sa vitesse) ou avec un avertissement de limites de piste
-  // (tour 56) ne compte ni pour le record du circuit, ni pour le fantôme, ni pour un défi (comme un tour coupé) ; en qualification, le temps
-  // reste valable pour la grille ; faux = avant (la qualification ignorait les limites, le secours comptait)
+  // (tour 56) ne compte ni pour le record du circuit, ni pour le fantôme (comme un tour coupé) ; en qualification, le temps reste valable
+  // pour la grille ; au défi du fantôme, un tour relancé par le secours n'a pas de temps ; faux = avant (la qualification et la course seule
+  // ignoraient les limites, le secours comptait)
   RECORD_PROPRE: true,
   TACTILE_GUIDAGE_SECOURS: true,   // la voiture perdue quand même (tête-à-queue, travers, herbe en ligne droite) : comme Espace, mais elle repart à la vitesse d'avant (bornée) ; faux = rien
   GUIDAGE_AMPLITUDE: 0.25,         // |direction| du joueur au-delà de laquelle un côté compte (un coup de volant franc)…
@@ -220,6 +221,7 @@ const REGLAGES = {
   GUIDAGE_CALME: 0.8,              // s droit (cap à moins de GUIDAGE_DROIT °), le volant du joueur au milieu, sans nouveau zigzag : il rend la main
   GUIDAGE_DROIT: 1.5,              // °
   GUIDAGE_EXPRES: [0.35, 0.4, 1.5], // le joueur tourne exprès : |direction| tenue au moins à ça, du même côté, plus de 0,4 s : le cap qu'il demande grandit jusqu'à GUIDAGE_CAP_JOUEUR en 1,5 s de plus (le guidage s'efface devant lui)
+  GUIDAGE_STANDS_RAMPES: true,     // (tour 60, relecture) le guidage marche sur la ligne droite des stands, entre les deux rampes (le muret : on n'y entre pas) ; faux = rien sur toute la longueur de la voie
   GUIDAGE_STANDS: 200,             // m avant l'entrée de la voie des stands (et jusqu'à sa sortie) : ni guidage ni secours d'herbe (on y tourne exprès)
   GUIDAGE_VITESSE_MIN: 10,         // m/s : en dessous, ni guidage ni secours
   GUIDAGE_STABLE: [5, 15],         // ° : la voiture est stable (glisse et cap à la piste sous ces angles, sur le goudron, sans zigzag) : sa vitesse est gardée pour le secours

@@ -1358,7 +1358,7 @@ Object.assign(TEXTES.en, {
   defiAide_direction: 'steering', defiAide_freinage: 'braking', defiAide_antiblocage: 'ABS', defiAide_antipatinage: 'traction',
   defiMeilleurReleve: 'beaten {s}', defiMeilleurEncore: 'best: {s} behind', defiPasCouru: 'not raced yet',
   defiFinTitre: 'Challenge', defiReleve: 'Challenge beaten! {s}', defiEncore: 'Still {s} to go',
-  defiCoupe: 'Corner cut: no time.', defiAbandon: 'Lap abandoned: no time.',
+  defiCoupe: 'Corner cut: no time.', defiAbandon: 'Lap abandoned: no time.', defiSecours: 'Auto-steer put you back on track: no time.',
   defiRecommencer: '🔁 Try again', defiRenvoyer: '📋 Send back my link', defiQuitter: 'Back',
   // (tour 50b) le lien de défi
   defiCopierLien: '🔗 Copy the link', defiLienAide: 'Send this link to a friend: one click and they race against your lap.',
@@ -1379,7 +1379,7 @@ Object.assign(TEXTES.fr, {
   defiAide_direction: 'direction', defiAide_freinage: 'freinage', defiAide_antiblocage: 'anti-blocage', defiAide_antipatinage: 'antipatinage',
   defiMeilleurReleve: 'relevé {s}', defiMeilleurEncore: 'au mieux à {s}', defiPasCouru: 'pas encore couru',
   defiFinTitre: 'Le défi', defiReleve: 'Défi relevé ! {s}', defiEncore: 'Encore {s}',
-  defiCoupe: 'Virage coupé : pas de temps.', defiAbandon: 'Tour abandonné : pas de temps.',
+  defiCoupe: 'Virage coupé : pas de temps.', defiAbandon: 'Tour abandonné : pas de temps.', defiSecours: 'L’auto-guidage t’a remis en piste : pas de temps.',
   defiRecommencer: '🔁 Recommencer', defiRenvoyer: '📋 Renvoyer mon lien', defiQuitter: 'Retour',
   // (tour 50b) le lien de défi
   defiCopierLien: '🔗 Copier le lien', defiLienAide: 'Envoie ce lien à un ami : un clic, et il court contre ton tour.',

@@ -23,6 +23,7 @@ const QUALIFICATION = (function () {
       const t = c.tours[0];
       q.valide = !t.coupe;
       q.propre = q.valide && !t.limites && !t.secours;   // (tour 60, relecture) le record et le fantôme : ni limites de piste ni secours de l'auto-guidage
+      q.secours = !!t.secours;
       q.temps = q.valide ? t.temps : null;
       q.fin = c.progression - q.progressionLigne;
       // le tournoi chrono (tournoi.js) : le temps du tour même coupé, et les pénalités du tour lancé (course.js : PENALITE_COUPE par virage coupé)
