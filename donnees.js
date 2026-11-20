@@ -1391,6 +1391,7 @@ const REGLAGES = {
   // (REALISME_VOITURES) et coupait la route d'une ellipse nette : une tache gris clair sous chaque voiture. Vrai : les gerbes sont dessinées
   // avant l'ombre (elle assombrit toujours) et la gerbe est posée sur la route (son bas touche le sol, sans ellipse) ; faux = comme avant
   GERBE_OMBRE: true,
+  GERBE_CAMERA2: true,   // (tour 60, relecture) à deux sous la pluie, pas de gerbe devant la caméra du joueur 2 non plus (avant : seulement devant celle du joueur 1) ; faux = comme avant
   COULEUR_ROUTE_MOUILLEE: 0x24262b, ROUTE_MOUILLEE_REFLET: 0.35, ROUTE_MOUILLEE_BRILLANCE: 40,
   CIEL_COUVERT: 0x9aa2ab, CIEL_COUVERT_COUPOLE: 0x8e959d, CIEL_COUVERT_PART: 0.85, CIEL_COUVERT_CLARTE: 1.4, CIEL_COUVERT_AMBIANCE: 0.25, CIEL_COUVERT_SOLEIL: 0.6,
   METEO_ICONE_PLUIE: 0.1, METEO_ICONE_NUAGES: 0.3, GOUTTES_OPACITE: 1.2,

@@ -3162,7 +3162,7 @@ function demarrerJeu() {
     if (typeof CONSEIL !== 'undefined') CONSEIL.maj(JEU.joueur, JEU.carte, CONSEIL.mode({ reglage: JEU.reglageTrajectoire, niveau: REGLAGES.NIVEAU, ecran: JEU.ecran, qualifClassee: enTourQualif() && !!JEU.plateau,
       tournoi: !!JEU.tournoi, deux: !!JEU.deux, spectateur: !!JEU.plateau && !JEU.contre, carte: JEU.carte, force: JEU.conseilForce }), SCENE3D.relief);
     // la météo dessinée (meteo3d.js, l'état de meteo.js) : la pluie, les gerbes, la piste mouillée, le ciel couvert ; rien au sec
-    if (typeof METEO3D !== 'undefined') METEO3D.maj(METEO3D.etat(JEU.plateau || JEU.course), SCENE3D.camera, JEU.plateau ? JEU.plateau.pilotes.map(p => p.v) : [JEU.joueur], dt, CAMERA.mode === 'cockpit' && JEU.ecran === 'course', CIRCUIT, JEU.carte ? JEU.carte.trajectoire : null);
+    if (typeof METEO3D !== 'undefined') METEO3D.maj(METEO3D.etat(JEU.plateau || JEU.course), SCENE3D.camera, JEU.plateau ? JEU.plateau.pilotes.map(p => p.v) : [JEU.joueur], dt, CAMERA.mode === 'cockpit' && JEU.ecran === 'course', CIRCUIT, JEU.carte ? JEU.carte.trajectoire : null, SCENE3D.partage ? SCENE3D.camera2 : null);   // (tour 60, relecture : à deux, la caméra du joueur 2 aussi)
     // (tour 46, l'arrivée lente : pendant « passer », la scène n'est redessinée qu'une image sur ARRIVEE_IMAGE_TOUS : le budget va au calcul)
     if (!(JEU.attente && JEU.attente.passer) || ((JEU.attente.images = (JEU.attente.images || 0) + 1) % REGLAGES.ARRIVEE_IMAGE_TOUS) === 1) SCENE3D.dessiner();
     // l'Auto (qualite.js) : sous QUALITE_IPS_MIN images par seconde, un pas plus simple à la fois jusqu'à QUALITE_IPS_VISEE ; le détail revient

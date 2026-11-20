@@ -2051,6 +2051,18 @@ def pluie_ecran(pg, titre, l, h):
       const g = METEO3D.gerbes, m = new THREE.Matrix4(), p = new THREE.Vector3(), q = new THREE.Quaternion(), e = new THREE.Vector3(); let bas = Infinity;
       for (let i = 0; i < g.count; i++) { g.getMatrixAt(i, m); m.decompose(p, q, e); bas = Math.min(bas, p.y - e.y); }
       return { actif: REGLAGES.GERBE_OMBRE, realiste: REGLAGES.REALISME_VOITURES, ombre: ombre ? ombre.renderOrder : null, gerbe: g.renderOrder, bas, cle: g.material.customProgramCacheKey() }; }''')
+    # (tour 60, relecture, GERBE_CAMERA2) à deux : pas de gerbe devant la caméra du joueur 2 non plus (une caméra posée 7,5 m derrière une voiture
+    # qui roule, loin de la caméra 1) ; sans elle, comme avant
+    c2 = pg.evaluate('''() => { BOUCLE.arreter(); const vs = JEU.plateau.pilotes.map(p => p.v), c1 = SCENE3D.camera.position;
+      const v0 = vs.find(v => Math.abs(v.u) > 15 && Math.hypot(v.x - c1.x, v.z - c1.z) > 30); if (!v0) { BOUCLE.demarrer(); return null; }
+      const cam2 = new THREE.PerspectiveCamera(55, 1, 0.5, 1000); cam2.position.set(v0.x - Math.cos(v0.cap) * 7.5, 2.4, v0.z - Math.sin(v0.cap) * 7.5);
+      const g = METEO3D.gerbes, pres = () => { const m = new THREE.Matrix4(), q = new THREE.Vector3(), r = new THREE.Quaternion(), e = new THREE.Vector3(); let n = 0;
+        for (let i = 0; i < g.count; i++) { g.getMatrixAt(i, m); m.decompose(q, r, e); if (Math.hypot(q.x - cam2.position.x, q.z - cam2.position.z) < REGLAGES.GERBE_RECUL + REGLAGES.GERBE_CAMERA_MIN) n++; } return n; };
+      METEO3D.maj(METEO3D.etat(JEU.plateau), SCENE3D.camera, vs, 0, false); const sans = [g.count, pres()];
+      METEO3D.maj(METEO3D.etat(JEU.plateau), SCENE3D.camera, vs, 0, false, null, null, cam2); const avec = [g.count, pres()];
+      BOUCLE.demarrer(); return { sans, avec, actif: REGLAGES.GERBE_CAMERA2 }; }''')
+    t(f'{titre} : à deux sous la pluie, pas de gerbe juste devant la caméra du joueur 2 (GERBE_CAMERA2)', c2 is not None and (not c2['actif'] or (c2['avec'][0] < c2['sans'][0] and c2['sans'][1] >= 1 and c2['avec'][1] < c2['sans'][1])), str(c2))
+    L.append(f'  (à deux sous la pluie, gerbes [nombre, près de la caméra 2] : sans la caméra 2 {c2 and c2["sans"]}, avec {c2 and c2["avec"]})')
     t(f'{titre} : sous la pluie, l’ombre sous les voitures est dessinée après les gerbes (elle assombrit toujours), les gerbes sont posées sur la route et douces (GERBE_OMBRE)',
       not go['actif'] or ((not go['realiste'] or (go['ombre'] is not None and go['ombre'] > go['gerbe'])) and go['bas'] >= -1e-6 and go['cle'] == 'gerbe-douce'), str(go))
     pg.evaluate('() => CAMERA.forcer("cockpit")'); pg.wait_for_timeout(800)

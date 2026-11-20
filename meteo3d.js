@@ -91,8 +91,8 @@ const METEO3D = (function () {
   }
 
   // une image : e (etat ou null), camera (la caméra principale), voitures [{ x, z, cap, u }], dt (s), cockpit (vue cockpit)
-  // circuit, trajectoire (facultatifs) : pour la ligne plus sèche
-  function maj(e, camera, voitures, dt, cockpit, circuit, trajectoire) {
+  // circuit, trajectoire (facultatifs) : pour la ligne plus sèche ; camera2 (facultative) : la caméra du joueur 2 à l'écran partagé
+  function maj(e, camera, voitures, dt, cockpit, circuit, trajectoire, camera2) {
     if (!m) return;
     const rien = sec(e);
     if (rien && dernier === 'sec') { interfaceMeteo(e, false); return; }
@@ -150,6 +150,9 @@ const METEO3D = (function () {
       if (!v || k >= gb.instanceMatrix.count * part) break;
       const u = Math.abs(v.u || 0);
       if (u < R.GERBE_VITESSE_MIN || Math.hypot(v.x - camera.position.x, v.z - camera.position.z) < R.GERBE_CAMERA_MIN) continue;   // (pas la gerbe qui passerait devant l'objectif)
+      // (tour 60, relecture, GERBE_CAMERA2) à deux, sous la pluie, la gerbe de la voiture du joueur 2 remplissait le bas de SA moitié d'écran
+      // (seule la caméra du joueur 1 était écartée) : celle de la caméra 2 aussi ; faux = comme avant
+      if (camera2 && R.GERBE_CAMERA2 && Math.hypot(v.x - camera2.position.x, v.z - camera2.position.z) < R.GERBE_CAMERA_MIN) continue;
       const t = Math.min(1, u / R.GERBE_VITESSE_PLEINE) * e.eau, fx = Math.cos(v.cap), fz = Math.sin(v.cap);
       po.set(v.x - fx * R.GERBE_RECUL, (R.GERBE_OMBRE ? Math.max(R.GERBE_HAUTEUR, R.GERBE_TAILLE[1]) : R.GERBE_HAUTEUR) * t, v.z - fz * R.GERBE_RECUL);   // (GERBE_OMBRE : posée sur la route, sans ellipse nette)
       q.setFromAxisAngle(haut, -v.cap);
