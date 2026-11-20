@@ -1,0 +1,1239 @@
+# Tour 60 — des idées pour faire revenir, partager et sortir du lot (Codeur 5)
+
+Date : 2026-11-19. Branche `idees-60` (depuis origin/main 2cd512d). **Rien n'est codé** : c'est un rapport d'idées pour le Chef et le propriétaire.
+
+## En une page, pour le propriétaire
+
+**Le problème.** Le jeu est riche, mais tout passe par la longue carrière. Un enfant qui a 5 minutes n'a rien de court à jouer, rien ne change d'un jour à l'autre, et il n'a rien de simple à montrer à ses copains.
+
+**Les 5 meilleures idées**
+
+1. **🗓 Le Grand Prix du jour.** Chaque jour, une course courte, la même pour tous les joueurs du monde (circuit, météo, place de départ). On gagne une médaille, on garde sa série de jours, et on envoie son résultat aux copains en une ligne.
+2. **🤝 Ton pote dans ta saison.** Tu envoies un lien à un ami : ton pilote apparaît dans **son** championnat, comme rival ou comme coéquipier, avec ta voiture et ton casque. C'est la seule idée qui fait venir de nouveaux joueurs.
+3. **⚡ Les défis-éclair.** 40 petites missions de course de 1 à 3 minutes (« dernier tour, bats Rossi », « l'averse arrive, rentre au stand »), avec 1 à 3 étoiles. Parfait quand on a peu de temps, et on recommence tout de suite.
+4. **🥇 Les médailles des circuits.** Sur chaque circuit, 4 fantômes à battre : bronze, argent, or, diamant. Une collection de 56 médailles qui donne envie de revenir sur chaque piste.
+5. **💨 La vitesse qui se sent.** À fond, l'image s'élargit, des traits filent sur les côtés, le vent souffle : la voiture a l'air d'aller aussi vite qu'elle va. Ça change chaque seconde de chaque course, pour pas cher. La nouvelle route du tour 60 aide déjà, mais sur les ordinateurs sans carte graphique (ceux des écoles) elle est simplifiée : c'est là que ça compte le plus. **Il faut que tu l'essaies** avant qu'on la garde.
+
+Et une **correction à faire tout de suite** : la ligne verte / jaune / rouge qui aide les débutants est illisible pour environ un garçon sur douze (les daltoniens). On ajoute des flèches dans la zone de freinage.
+
+**Les 3 questions que tu dois trancher**
+
+1. **Les noms des pilotes et des écuries.** Aujourd'hui, c'est « Pilote 14 » et « Écurie 6 ». Les idées 2, 3 et les cartes de pilotes ont besoin de vrais noms (inventés). Tu les choisis, ou tu laisses le Chef en proposer ?
+2. **On commence par quoi ?** Le Grand Prix du jour (le plus sûr), le pote dans ta saison (le plus nouveau) ou les défis-éclair (le plus de jeu) ? Le plan propose de faire les trois en deux tours de 4 Codeurs (annexe F).
+3. **Le téléphone tenu debout.** Aujourd'hui, le jeu s'affiche **tourné** quand on tient le téléphone debout. Poki dit que faire tourner le téléphone fait partir des joueurs. On leur demande si ça leur va (si oui, on ne change rien), ou on prépare une vraie conduite debout (gros travail) ?
+
+Le reste du fichier : le détail de chaque idée, prêt à coder, les maquettes des écrans, le plan de route et ce qui a été vérifié dans le code.
+
+---
+
+## Ce que le tour 60 a livré, et ce que ça change à ce rapport (relu sur origin/fusion-60d, 3adb190)
+
+Les 4 autres Codeurs ont fini pendant que j'écrivais. Ce qui est dans `fusion-60d` et ce que j'en ai fait :
+- **C1, la conversation sur tous les thèmes** (`BAVARDAGE_THEMES` : 74 thèmes, un pont vers la course dans environ 43 % des réponses). → **Idée 2 renforcée** : le pote ajouté à ta saison est un pilote à qui l'on peut parler de tout (l'école, le foot, les animaux), pas seulement de course. Rien à coder pour ça.
+- **C2, les voitures et la route réalistes** (`REALISME_VOITURES`, `REALISME_ROUTE`, `route3d.js` : grain de l'asphalte, gomme, traces de freinage, reflets figés ; `REALISME_LOGICIEL_LEGER` : sans carte graphique, ces détails sont coupés d'office). → **Idée 13 (la vitesse) changée** : le grain et les traces font déjà défiler la route ; mais sur les ordinateurs sans carte graphique (souvent ceux des écoles) ils sont coupés, et ce sont ces enfants-là qui n'ont plus aucun repère de vitesse : les traits de vitesse et le champ de vision servent d'abord à eux.
+- **C3, le ciel, le public et l'Auto fine** (`REALISME_CIEL` : nuit, étoiles, lune, couchant ; `REALISME_PUBLIC` : drapeaux, pancartes, sauts au passage des voitures, ola ; `QUALITE_FINE`). → **Idée 11 (week-ends à thème) moins chère** : le public a déjà ses palettes (`PUBLIC_PANTALONS`, `PUBLIC_PEAUX`…), ses drapeaux et pancartes, et le ciel sait faire la nuit : un thème = d'autres palettes et une heure, rien à dessiner. **Idée 6 (photo-finish)** : le public peut **sauter et lancer une ola** pendant le ralenti (le réglage `PUBLIC_EXCITATION` existe). Le **titre très sombre** que j'avais relevé est à recapturer avec le nouveau ciel.
+- **C4, l'auto-guidage au téléphone** (`TACTILE_GUIDAGE`, `TACTILE_GUIDAGE_SECOURS` : la voiture perdue repart **à la vitesse d'avant**, `JEU.secoursGuidage` les compte). → **Une règle à ajouter aux idées 1, 3 et 4** : un tour où le **secours** a servi ne compte **ni pour une médaille de circuit, ni pour un record** (il replace la voiture sans lui faire perdre de vitesse) ; au Grand Prix du jour et aux défis, la course compte, mais le texte partagé et l'écran disent « avec aides », comme pour les autres aides. **À vérifier dans le code** : aujourd'hui, un secours en qualification invalide-t-il le tour pour le record et le fantôme ? (`JEU.secoursGuidage` est compté, je n'ai pas trouvé qui le lit.)
+
+**Rien de ce que j'ai proposé n'a été fait par un autre Codeur** : aucune idée n'est retirée. Les noms des pilotes sont toujours vides (`NOMS_PILOTES`, « les noms inventés, à approuver par le propriétaire, viendront ici »).
+
+## Ce que j'ai regardé
+
+- CLAUDE.md en entier (les sections du jeu, les refus, les règles Poki), SUIVI.md (« À essayer », « Décisions en attente », « Retours du propriétaire »), `rapports/tour-60-rapport.md` (les 4 autres Codeurs : conversation sur tous les thèmes, réalisme voitures/route, ciel/public/Auto, auto-guidage au téléphone), `rapports/plan-premiere-minute.md`, et le code là où une idée en dépend (`simulation.js`, `defi.js`, `photo.js`, `sauvegarde.js`, `donnees.js`, `tests/debout.py`).
+- Ce que Poki dit lui-même (blog et documentation, 2026), en sources à la fin.
+
+## Le diagnostic en trois phrases
+
+1. **Le jeu est très riche, mais presque tout est rangé dans une seule longue boucle** : la carrière (12 Grands Prix, paddock, garage, interview, une…). Un enfant qui a 5 minutes n'a pas de « petit morceau » à mordre, et **rien ne change d'un jour à l'autre** s'il ne joue pas sa carrière : il n'a aucune raison précise de revenir *demain*.
+2. **Le partage existe (le lien de défi du fantôme), mais il demande un effort** (faire un tour propre, copier un lien, que le copain ait envie d'un contre-la-montre) : il n'y a pas encore de chose qu'un enfant a *envie* de montrer en deux secondes.
+3. **Face aux autres jeux de course Poki** (niveaux courts à étoiles, cascades, dérapage à un bouton), notre force unique est **le monde vivant** (19 rivaux qui ont un nom, une mémoire, une voix, un journal). Les meilleures idées ci-dessous s'appuient sur cette force au lieu d'imiter les autres.
+
+Ce que Poki dit compter (sources à la fin) : les toutes premières secondes, des **sessions courtes**, peu de lecture, une interface lisible, des pubs récompensées plutôt que des coupures ; **les sauvegardes sont synchronisées par Poki pour un joueur connecté** (localStorage surveillé, plafond 1 Mo gzippé : notre sauvegarde unique de 85 à 261 Ko passe).
+
+## Ce que j'ai vu en ouvrant le jeu (main 2cd512d, Chrome sans carte graphique, 1280×720 et 844×390 au doigt)
+
+- **Le titre** : un fond très sombre (la grille de nuit, voilée), le nom en plaque blanche, « Jouer » en rouge. Propre, mais **rien ne bouge et rien ne brille**. Poki écrit que les visuels vifs et colorés marchent mieux que les palettes sombres ; le titre est la première image de chaque visite. Ce n'est pas une idée de ce rapport (les Codeurs 2 et 3 refont ciel, voitures et public), mais **je recommande de refaire les captures du titre et du paddock après leur fusion** et de regarder si le titre peut montrer la scène **de jour**, voitures en mouvement, avec moins de voile.
+- **Le paddock** : clair et bien rangé, mais « Pilote 1, Pilote 2, Pilote 3, Pilote 19 » partout : **un monde vivant sans noms**, c'est notre plus grande force qui reste éteinte (voir « Préalables »).
+- **Le titre au doigt** : trois boutons (Jouer, Entre amis, Aides). La place existe pour un 4e gros bouton « 🗓 Grand Prix du jour » (idée 1) sans rien serrer.
+
+## Les 3 que je ferais en premier
+
+1. **Le Grand Prix du jour** (idée 1) : la raison de revenir *demain*, et un résultat à comparer avec les copains.
+2. **Ton copain dans ta saison** (idée 2) : la raison de *partager*, et un moment que seul notre jeu peut offrir (le monde vivant + le copain dedans).
+3. **Les défis-éclair à 3 étoiles** (idée 3) : la session de 2 minutes qui manque, et le moteur qui nourrit l'idée 1 tous les jours.
+
+Pourquoi cet ordre : 1 est moyen et touche tous les joueurs (le retour du lendemain) ; 2 est moyen et c'est le seul qui fait venir de **nouveaux** joueurs ; 3 est le plus gros, mais il multiplie le contenu avec ce qui existe déjà (drapeaux, pluie, dégâts, départ, aspiration, consignes).
+
+### Le tableau (mes notes, de 0 à 3)
+
+| # | Idée | Revenir demain | Partager | Différence Poki | Émotion | Coût | Réglage |
+|---|---|---|---|---|---|---|---|
+| 1 | Grand Prix du jour | 3 | 3 | 2 | 2 | moyen | `JOUR_ACTIF` |
+| 2 | Ton copain dans ta saison | 2 | 3 | 3 | 3 | moyen | `COPAINS_ACTIF` |
+| 3 | Défis-éclair à 3 étoiles | 2 | 1 | 2 | 3 | plan B moyen, lancés gros | `DEFIS_ECLAIR_ACTIF` |
+| 4 | Médailles des circuits | 2 | 1 | 1 | 2 | petit | `MEDAILLES_ACTIF` |
+| 5 | Course à élimination | 1 | 1 | 1 | 3 | petit | `ELIMINATION_ACTIF` |
+| 6 | Ralenti du photo-finish | 0 | 1 | 1 | 3 | moyen | `PHOTO_FINISH_ACTIF` |
+| 7 | Niveau de pilote | 2 | 0 | 0 | 1 | moyen | `NIVEAU_PILOTE_ACTIF` |
+| 8 | Championnat à deux | 1 | 2 | 3 | 2 | moyen | `DEUX_CHAMPIONNAT_ACTIF` |
+| 9 | Cartes des pilotes | 2 | 1 | 2 | 2 | moyen | `CARTES_ACTIF` |
+| 10 | Le jeu debout | 0 | 0 | 1 | 0 | gros | `PORTRAIT_JEU` |
+| 11 | Week-ends à thème | 2 | 1 | 1 | 1 | petit à moyen | `EVENEMENTS_ACTIF` |
+| 12 | Le champion de la division | 1 | 0 | 1 | 2 | petit | `CHAMPION_COURONNE` |
+| 13 | La vitesse qui se sent (annexe H, à classer **5e**) | 1 | 1 | 2 | 3 | petit | `VITESSE_RESSENTIE` |
+
+Le 10 a des zéros mais un enjeu à part (la **conversion** au premier lancement sur téléphone, et les pubs du portrait) : c'est une question à poser à Poki avant d'être une idée à coder.
+
+---
+
+## Les idées, de la meilleure à la moins bonne
+
+### 1. Le Grand Prix du jour 🗓 (et sa série de jours)
+
+**Le moment.** Léo ouvre le jeu après l'école. Sur le titre et en haut du paddock : « **Grand Prix du jour — Spaa sous la pluie, tu pars 10e, 2 tours** ». Il le joue (3 minutes). Il finit 3e : 🥈 « Argent ! L'or, c'est la victoire. ». Il le rejoue deux fois, gagne : 🥇 et « 🔥 3 jours de suite ». En bas : « 📋 Montre ton résultat » copie :
+« Jour 42 · Spaa 🌧 · P10 ▸ P6 ▸ P1 🥇 » et le lien du jeu (le texte exact est en annexe A6). Le lendemain, c'est Singapura de nuit, grille inversée. À la récré, tout le monde a eu **le même** Grand Prix : « t'as eu l'or ? ».
+
+**Pourquoi c'est fort.**
+- **Rétention** : c'est la mécanique la plus éprouvée pour le retour du lendemain (le « jeu du jour » à la Wordle, les défis quotidiens des jeux mobiles). Notre jeu n'a aujourd'hui **aucune** raison datée de revenir.
+- **Partage** : le résultat tient en une ligne de texte avec des émojis, qu'un enfant colle partout ; le même Grand Prix pour tout le monde rend la comparaison juste.
+- **Poki** : une session courte et complète (ce que Poki demande), jouable dès la 2e visite sans passer par la carrière.
+- **Pas besoin de serveur** : le Grand Prix est tiré de la **date** (une graine = `AAAAMMJJ`), donc tout le monde a les mêmes IA, la même météo, la même grille, au bit près (notre simulation est déjà déterministe, c'est justement ce qui permet le jeu en ligne).
+
+**Le contenu d'un jour** (calcul pur, `jour.js`, tiré de la graine de la date) : un circuit parmi les 12, une météo (`METEO` existante), une longueur de 2 ou 3 tours, une place de départ (7e à 10e : remonter, c'est le plaisir), un niveau des IA propre au jour (le même pour tous), parfois un « piment » (averse, aileron abîmé, pneus usés, grille inversée). Le tirage exact est en **annexe A**. Les médailles : 🥉 gagner au moins N places, 🥈 podium, 🥇 victoire. Pas de chrono à battre : la place, un enfant la comprend.
+
+**Deux détails qui comptent beaucoup.**
+- **« Demain : … »** : comme le jour vient de la date, on connaît déjà celui de demain. Après la course du jour, une ligne : « Demain : 🌙 Singapura de nuit, départ dernier ». L'enfant part avec un rendez-vous (on montre le circuit et le piment, pas le niveau ni les médailles).
+- **Le lien partagé ouvre directement la course du jour** (`?jour=AAAAMMJJ`, par `SDK.lienPartage` comme le défi) : le copain qui clique, même nouveau venu, est **sur la grille en un clic**, exactement comme la découverte (« en piste en 10 secondes ») : le partage devient aussi un premier lancement réussi. Un lien d'un jour passé ouvre ce jour-là, marqué « Grand Prix du 12 novembre » (sans médaille ni série : seul le jour même compte).
+
+**Coût : petit à moyen.** Un prototype tient déjà **dans une adresse** : `index.html?course=3&ia=9&joueur=1&circuit=spaa&meteo=averse&niveau=normal&graine=20261119` (tous ces paramètres existent). Il manque la place de départ imposée, les médailles, la série, « demain » et le texte à partager. Pour la vraie version : `jour.js` (date → paramètres, médailles, série ; testé sans écran), une entrée sur le titre et sur la page Course du paddock (`interface.js`, `index.html`), le texte à partager (`textes.js` fr/en), la série et les médailles dans la sauvegarde (quelques octets), `SDK.lienPartage` déjà là pour le lien. La course est une **course rapide** existante avec des réglages imposés (`creerCourseIA` prend déjà le circuit, le nombre d'IA, les tours, la graine). Jour de la carrière : rien ne change.
+
+**Risques.**
+- *La date* : prise **hors de la simulation** (seulement pour choisir la graine) : la règle « pas de `Date` dans la simulation » tient. Un enfant qui avance l'heure de sa tablette « triche » contre lui-même : sans enjeu (pas de classement mondial).
+- *« Le même Grand Prix pour tout le monde », vraiment ?* Mêmes paramètres et même graine, oui. Mais `Math.sin`, `cos`, `atan2`… peuvent différer d'un bit entre Chrome, Safari et Firefox (c'est pourquoi le jeu en ligne a ses propres fonctions, `EN_LIGNE_MATHS`) : deux copains sur deux navigateurs peuvent voir une IA freiner un poil différemment. Pour la comparaison entre copains, ça suffit ; si l'on veut le « au bit près » partout, la course du jour peut emprunter `EN_LIGNE_MATHS` (déjà écrit et testé).
+- *La carte des IA* : seule celle du circuit `test` est livrée dans le paquet ; un autre circuit la calcule au lancement (« Préparation de la course… », 2 à 3 s sur une vraie carte graphique, bien plus sur un ordinateur lent). Pour le jour : la calculer **en fond dès l'écran titre** (on sait quel circuit ce sera), ou livrer les 12 cartes : **mesuré**, de 34 Ko (Monoco) à 72 Ko (Spaa), 474 Ko compressées pour les 12 (annexe A7), chargées seulement le jour où elles servent (Poki conseille 5 Mo au premier chargement : on en est loin).
+- *Fuseau horaire* : prendre la date locale (le jour change à minuit chez l'enfant, comme Wordle).
+- *Le niveau des IA* : s'il dépend du joueur, deux copains n'ont plus le même Grand Prix. **Choix proposé** : le jour a son niveau à lui (« normal » le plus souvent, « débutant » le lundi…), écrit dans le texte partagé ; les aides restent au choix (et affichées, comme au tournoi).
+- *La série* : ne pas la rendre culpabilisante pour un enfant (pas de « tu vas tout perdre ! ») : une série qui casse revient à 1 sans message triste, et on garde le total « 27 jours joués ».
+- *Poki* : aucun lien externe (le lien est celui de Poki via `shareableURL`), pas de pub avant la course du jour ni entre « Rejouer » et la grille. **La pub récompensée qui va bien** (relu avec l'œil d'un responsable Poki, qui la voudra) : « 📺 Sauve ta série » quand on a manqué **un seul** jour (la série reprend comme si on avait joué hier ; une fois par semaine au plus, `JOUR_SAUVER_SERIE`). Elle ne change rien à la course ni aux médailles, donc la comparaison reste juste ; et elle n'est proposée que si l'enfant revient, jamais comme une menace. Je **déconseille** toujours « 📺 une place de mieux sur la grille » (ça casse la comparaison).
+- *Jamais de triche* : mêmes règles, même physique, mêmes IA pour tous.
+
+**Comment savoir qu'elle marche.** Test : la même date donne exactement les mêmes paramètres et la même course (empreinte au bit près) ; deux dates donnent deux jours différents ; 365 jours tirés : chaque circuit revient, jamais deux jours pareils de suite. Mesure : dans les chiffres que Poki donne au développeur, le temps de jeu et les retours avant/après ; sur le Mac, le robot d'essai doit pouvoir gagner le jour en « normal » depuis la place de départ tirée (sinon le tirage est trop dur).
+
+**Comment la couper.** `JOUR_ACTIF` (faux = rien sur le titre ni le paddock, le jeu d'avant) ; `JOUR_TOURS`, `JOUR_MEDAILLES`, `JOUR_PIMENTS` (liste vide = pas de piment).
+
+**Un argument de plus, propre aux enfants de Poki** : beaucoup jouent sur des ordinateurs d'école partagés, où la sauvegarde disparaît (et la synchronisation de Poki demande d'être connecté). La carrière perd alors tout ; **le Grand Prix du jour, lui, marche sans sauvegarde** : le même pour tous, à jouer de n'importe quel ordinateur. Seule la série se perd.
+
+**Critique de moi-même.** La version simple risque d'être « une course rapide avec une date ». Ce qui la rend forte, c'est (a) **le texte à partager** et (b) **le « piment »** qui fait de chaque jour un petit événement. Si on n'a le temps que d'une chose : le texte à partager.
+
+---
+
+### 2. Ton copain dans ta saison 🤝
+
+**Le moment.** Inès appuie sur « 📋 Mets-toi dans le jeu d'un copain » et envoie le lien à Hugo. Hugo clique : « **Un copain veut courir dans ta saison ! Comment s'appelle-t-il ?** » [Inès], puis « Contre toi » ou « **Avec toi** » (elle devient sa coéquipière : le duel de la saison, c'est Hugo contre Inès). Au Grand Prix suivant, sur la grille, il y a le casque et la livrée d'Inès, le commentateur crie « Inès plonge à l'intérieur ! », la une titre « Hugo et Inès, la guerre est déclarée », et Hugo peut aller lui « parler » au paddock. Le lendemain, Hugo raconte : « je t'ai battue à Monzo ! ». Inès veut sa revanche… et met Hugo dans **son** jeu.
+
+**Pourquoi c'est fort.**
+- **Partage et acquisition** : c'est la seule idée qui fait **venir de nouveaux joueurs** (le lien ouvre le jeu sur Poki), et c'est un partage qui a du sens pour un enfant (« je suis dans ton jeu »).
+- **Différence** : aucun jeu de course Poki ne met ton copain *dans ton monde*, avec un journal et un commentateur qui parlent de lui. C'est exactement notre force (le monde vivant) mise au service du partage.
+- **Émotion** : le rival le plus motivant, c'est quelqu'un qu'on connaît.
+
+**Et si celui qui reçoit est un nouveau joueur ?** C'est le cas le plus précieux (le lien fait venir quelqu'un). Sans carrière, le lien l'emmène directement sur la grille de la **course de découverte**, avec la voiture et le casque de son copain parmi les 6 rivaux (« Ton ami est sur la grille ! ») ; à la création de son pilote, le copain entre dans son plateau. Le premier lancement reste « en piste en 10 secondes ».
+
+**Comment.** « 📋 Mets-toi dans le jeu d'un copain » (paddock, Entre amis) donne un lien `?pilote=<code>` : numéro, casque, livrée, pays, et un meilleur temps (voir plus bas). Chez celui qui reçoit : il **tape lui-même** le prénom de son ami (rien d'écrit par un autre enfant n'arrive sur son écran), il choisit « contre toi » (le copain remplace le plus lent d'une autre écurie) ou « avec toi » (il devient le coéquipier), et le copain devient un pilote comme les autres (caractère tiré, fiche, mémoire, discussions). Au plus 3 copains par plateau (`COPAINS_MAX`). Le détail (format du lien, rythme, écran) est en **annexe C**.
+
+**Le rythme du copain, juste** : un enfant rapide doit être un rival rapide. Le code porte le **meilleur temps propre** du copain sur un circuit (un nombre, pas le tour entier : le lien reste court ; le défi du fantôme garde, lui, le tour entier), comparé au tour du poleman simulé sur ce circuit (`fantome-pole.js`), et on en tire un rythme **borné aux limites de la division** (`IA_RYTHME`, comme tout rival). Un temps trafiqué ne sert à rien : il est ramené aux bornes. Pas de temps : un rythme moyen.
+
+**Coût : moyen.** Un code de pilote (`copain.js` : coder / décoder / vérifier, somme de contrôle comme `defi.js`), l'insertion dans le plateau (`championnat.js` : remplacer un pilote en gardant 20 pilotes et 10 écuries, comme `SAISONS.evoluer` remplace un retraité par un jeune en fin de saison ; les numéros déjà pris de tous les plateaux : `DIVISIONS.numerosPris(ch)`), l'écran d'accueil du lien (`interface.js`), quelques titres de une et phrases de commentaire (`textes.js` : « {qui}, ton copain… » n'est pas nécessaire, son prénom suffit), la sauvegarde (quelques dizaines d'octets).
+
+**Risques.**
+- *Public d'enfants* : **aucun texte libre ne voyage** (le prénom est tapé par celui qui reçoit ; le code ne porte que des nombres et des choix de listes). C'est la même prudence que `EN_LIGNE_NOMS_LIBRES` faux.
+- *Jamais de triche* : le copain est une IA comme les autres, mêmes règles ; seul son rythme est tiré de son vrai tour, et borné.
+- *Code trafiqué* : la somme de contrôle ne repère qu'un lien **abîmé** (le code du jeu est lisible, un tricheur peut la recalculer) ; ce qui protège, c'est la règle du rythme : au pire, le copain roule comme le meilleur rival de la division, jamais plus vite (annexe C2).
+- *Le monde* : les tests de `tests/carriere-longue.html` (20 pilotes, numéros uniques, sauvegarde relue) doivent rester verts avec des copains dedans (le numéro du copain déjà pris : on lui en donne un libre et on le dit).
+
+**Comment savoir qu'elle marche.** Test : un code → un pilote identique après décodage ; plateau toujours à 20 pilotes / 10 écuries, numéros uniques ; un code abîmé d'un caractère refusé ; le rythme toujours dans les bornes ; 15 saisons avec 3 copains sans erreur. Mesure : la part des liens `?pilote=` à l'arrivée (un compteur dans la sauvegarde, et les visites venues d'un lien dans les chiffres Poki si disponibles).
+
+**Comment la couper.** `COPAINS_ACTIF` (faux = pas de bouton, un lien `?pilote=` est ignoré), `COPAINS_MAX`, `COPAINS_RYTHME_MESURE` (faux = rythme moyen pour tous).
+
+**Critique de moi-même.** Le risque est que le copain « disparaisse » dans la masse des 19. Il faut qu'il **se voie** : une couleur à lui dans la tour de classement (comme le coéquipier), une ligne au paddock (« Toi 3 – 1 Inès »), et la une qui parle de lui au moins une fois par saison. Sans ça, l'idée tombe à plat. Et il ne faut pas que le copain gagne tout (rythme borné, caractère normal).
+
+---
+
+### 3. Les défis-éclair à 3 étoiles ⭐⭐⭐
+
+**Le moment.** Nina a 3 minutes avant le dîner. Elle ouvre « ⚡ Défis » : une carte de cases, comme les niveaux d'un jeu de plateforme. Défi 6, « **Le sprint** » : un seul tour à Monzo, elle part 5e, Rossi en pole. Feux, aspiration dans la grande ligne droite, freinage tardif : 2e, ⭐⭐ (« ⭐ de plus : gagne »). Elle recommence tout de suite, même course, mêmes rivaux. Défi 17, « **Averse** » : la pluie tombe, elle est en pneus secs, il faut rentrer au stand au bon moment. Défi 19 : « **Aileron cassé** », 2 tours, ne pas couler. (La liste des 40 est en **annexe B**.)
+
+**Pourquoi c'est fort.**
+- **C'est la formule des succès Poki** (niveaux courts, étoiles, « encore un ») appliquée à **notre** course, pas une copie : les défis sont des **moments de course** (dernier tour, remontée, pluie, VSC, défense, départ), pas des cascades.
+- **Ça apprend en jouant** (Poki : « l'apprentissage doit ressembler à du jeu, pas à des consignes ») : chaque système qu'on a construit (drapeaux, pneus, aspiration, consignes, dégâts) devient un défi au lieu d'une page d'aide.
+- **Le contenu sans fin** : un défi = une ligne de données ; et le **Grand Prix du jour** (idée 1) peut, plus tard, tirer un défi du jour avec la même mécanique.
+
+**Comment, dans l'ordre.** **D'abord le plan B** (28 défis qui partent de la grille, annexe B1) : il ne touche pas à la simulation, seulement à l'état de départ (tours, IA, niveau, météo, place, aileron, pneus), comme le Grand Prix du jour ; on le met en ligne, on regarde si les enfants rejouent. **Ensuite seulement**, si ça plaît, les 12 défis « lancés » (annexe B2) : un défi = { circuit, météo, tour de départ, voitures placées (distance, écart, vitesse), état du joueur, buts, étoiles }. Leur difficulté technique est **le départ lancé** : `creerCourseIA` part toujours de la grille ; il faut une fonction qui pose les voitures en mouvement sur la piste (`s`, `d`, vitesse, tour en cours) puis laisse 1 à 2 s de « mise en route » aux IA avant de compter. 40 défis au début, rangés en 4 groupes (départ, attaque, défense, conditions), débloqués par les étoiles.
+
+**Ce qui existe déjà** : `placerSurPiste(v, circuit, s, d)` pose une voiture n'importe où sur la piste (la leçon des drapeaux s'en sert pour garer une IA, `TUTORIEL.scene`) ; ce qui manque, c'est de donner à chaque voiture sa vitesse, son tour en cours et ses passages de secteurs (le classement en direct en dépend : `passages`, `classementCourse`).
+
+**Coût : moyen pour le plan B** (la carte des défis, les buts, 28 lignes de données ; les mêmes outils que le jour) ; **gros pour les défis lancés** (le départ lancé touche `simulation.js` et `course.js` ; l'écran de la carte des défis ; 40 défis à régler et à vérifier avec le robot d'essai). Fichiers : `defis-eclair.js` (données et réussite, calcul pur), `simulation.js` (départ lancé), `interface.js`, `textes.js`, `donnees.js`.
+
+**Risques.**
+- *Le départ lancé* : les IA ne doivent pas faire n'importe quoi la première seconde (freinage brusque, choc). À tester sur chaque défi avec le test des chocs de `tests/courses.html`.
+- *Le déterminisme* : un défi a sa graine, la même course à chaque essai (sinon une étoile serait de la chance).
+- *Confusion avec le tutoriel* (8 leçons à étoiles) : le tutoriel apprend les gestes seul en piste ; les défis sont des **situations de course contre des rivaux nommés**. Les leçons pourraient devenir les 8 premières cases de la carte (un seul endroit au lieu de deux).
+- *Poki* : `gameplayStart` / `gameplayStop` à chaque défi ; une pub (`commercialBreak`) au plus toutes les quelques défis, jamais entre un échec et le « Réessayer » (c'est là que l'enfant part).
+- *Jamais de triche* : les IA d'un défi ont leurs règles habituelles ; un défi n'est pas « arrangé » en cours de route.
+
+**Comment savoir qu'elle marche.** Test : chaque défi est réussi par le robot d'essai (au moins 1 étoile) et raté si l'on ne fait rien ; le même défi rejoué = la même course ; aucun choc > 5 m/s dans la première seconde. Mesure : le nombre de « Réessayer » par défi (un défi jamais rejoué est trop facile ou ennuyeux, un défi rejoué 20 fois sans réussite est trop dur).
+
+**Comment la couper.** `DEFIS_ECLAIR_ACTIF` (faux = pas d'entrée, le jeu d'avant) ; `DEFIS_ECLAIR` (la liste) ; `DEFIS_PUB_TOUS` (une pub tous les N défis).
+
+**Critique de moi-même.** C'est le plus cher. Si le départ lancé est trop dur à rendre propre, un **plan B** garde 70 % de l'idée : des défis qui partent de la **grille** (courses de 1 à 3 tours avec un état imposé : « pars dernier, 2 tours, finis 5e », « averse au 2e tour », « aileron cassé »), sans toucher à la simulation. Exemple : « Course d'un tour à Monzo, tu pars 2e, Rossi en pole : bats-le » donne presque la même émotion que « dernier tour, 0,8 s derrière ».
+
+---
+
+### 4. Les médailles des circuits (le « temps du créateur ») 🥉🥈🥇💎
+
+**Le moment.** Sur chaque circuit, en essai libre ou en qualification, quatre fantômes à battre : 🥉 bronze, 🥈 argent, 🥇 or et 💎 **diamant** (« la légende »). Théo bat l'or à Suzuko après 20 essais, et voit le fantôme diamant encore 0,4 s devant lui. Il revient le lendemain pour le diamant. Sur l'écran des circuits, une rangée de médailles : 9 or sur 12.
+
+**Pourquoi c'est fort.** C'est le moteur de rejeu des jeux de chrono qui durent des années (des médailles par piste et un temps « de l'auteur » à battre). Nous avons déjà tout : le fantôme, l'écart en direct, le fantôme du poleman simulé. Il manque **un but clair et une collection**. Pour un enfant, « bats le fantôme doré » se comprend tout de suite.
+
+**Coût : petit.** Rien à enregistrer ni à livrer : les quatre fantômes sont **simulés** comme le fantôme du poleman (`fantome-pole.js` : une IA seule, parfaitement régulière, 0,2 à 0,8 s de calcul), un par niveau : 🥉 = le poleman du niveau débutant, 🥈 = normal, 🥇 = expert, 💎 = légende. Les médailles suivent donc les divisions (un enfant qui a l'or est prêt pour la division 2), et elles bougent toutes seules si la physique change. (J'avais d'abord proposé un fantôme diamant enregistré par nous avec le robot d'essai : faux, le robot est plus lent que les IA, 62,5 s contre 54 à 56 s sur le circuit d'essai.) Les médailles dans la sauvegarde ; une rangée de médailles sur la page des circuits (`interface.js`).
+
+**Risques.** Le fantôme du poleman simulé dure environ 16 % de plus que la pole de la grille (`FANTOME_POLE_ETIRER` l'étire) : pour les médailles, prendre **le vrai tour simulé, non étiré** (atteignable ; c'est ce qui compte pour un enfant). Le bronze doit être accessible : le vérifier sur les 12 circuits avec le robot (il doit l'avoir presque partout). Les aides : une médaille gagnée avec l'auto-guidage est affichée avec un petit signe (comme au tournoi), jamais refusée.
+
+**Comment savoir qu'elle marche.** Test : les quatre temps sont dans l'ordre sur chaque circuit ; le robot d'essai obtient le bronze sur au moins 10 circuits et jamais le diamant ; chaque fantôme rejoue au bit près. Mesure : la part des joueurs qui retournent sur un circuit déjà fait.
+
+**Comment la couper.** `MEDAILLES_ACTIF`, `MEDAILLES_NIVEAUX` (les niveaux des quatre fantômes).
+
+**Critique de moi-même.** Ça parle surtout aux enfants qui aiment le chrono (pas aux plus petits). C'est pourquoi elle passe derrière les trois premières. Mais elle est peu chère et donne aux 12 circuits une vie hors carrière.
+
+---
+
+### 5. La course à élimination 🚩
+
+**Le moment.** En course rapide ou à deux : « Élimination — à la fin de chaque tour, le dernier sort ». 8 voitures, 7 tours. Au 5e tour, Sam est 4e sur 4, il voit sur la minicarte la voiture devant lui à 1 s, il prend l'aspiration et passe sur la ligne : « **Moreau ÉLIMINÉ !** ». À deux, sur l'écran partagé, les deux frères hurlent.
+
+**Pourquoi c'est fort.** Chaque tour a un enjeu (pas de milieu de course mou), la tension monte jusqu'au dernier duel, les parties sont courtes, et **c'est génial à deux** (le mode écran partagé gagne une deuxième formule). Tout se comprend sans texte.
+
+**Coût : petit.** Dans `course.js` : à chaque passage de ligne du meneur sur un nouveau tour, le dernier classé est retiré (classé à sa place, la voiture rentre au stand ou devient transparente puis disparaît). Une option dans « Choisis ta course » et l'écran « À deux ». Une phrase du commentateur et un bandeau.
+
+**Risques.** Ce n'est pas une règle de vraie F1 : **hors carrière** seulement (course rapide, à deux, jour possible). Le joueur éliminé tôt : ne pas le laisser regarder 5 minutes, proposer « Regarder la fin » (accéléré déjà fait) ou « Rejouer ». Déterminisme : la règle ne tire aucun hasard.
+
+**Comment savoir qu'elle marche.** Test : avec N voitures, il en reste 1 après N−1 tours ; le joueur éliminé voit le bon écran ; à deux, l'élimination d'un joueur ne coupe pas l'autre moitié. Mesure : la part des courses rapides jouées dans cette formule.
+
+**Comment la couper.** `ELIMINATION_ACTIF` (faux = l'option n'existe pas).
+
+**Critique de moi-même.** Idée connue (beaucoup de jeux de course l'ont), donc ce n'est pas elle qui fait la différence ; mais elle coûte peu et rend la course rapide et le mode à deux bien plus vivants. À faire « en passant ».
+
+---
+
+### 6. Le ralenti du photo-finish et du dépassement décisif 📸
+
+**Le moment.** Dernier virage, Léa et Rossi côte à côte. Ligne. L'image se fige une demi-seconde, **ralenti** de 3 s sous la caméra de la ligne, puis la bande du photo-finish : « **Léa gagne de 0,004 s !** ». Ou au dernier tour, le dépassement qui donne la victoire est rejoué tout de suite au ralenti avant le podium.
+
+**Pourquoi c'est fort.** C'est le moment dont l'enfant parle le lendemain (« j'ai gagné de 4 millièmes ! »). Le résumé vidéo existe, mais il vient **après**, quand l'émotion est passée ; ici c'est **dans** l'instant, 3 secondes, seulement quand c'est serré.
+
+**Coût : moyen.** L'enregistreur des positions et la régie télé existent (`enregistreur.js`, `regie.js`, `resume.js`) ; il faut un rejeu court au ralenti juste après l'arrivée (le jeu continue en dessous, ou la course est déjà finie pour le joueur) et la « bande » du photo-finish (un dessin 2D, comme `photo.js`). Gardée dans l'album (la une a déjà la photo).
+
+**Risques.** Ne jamais couper le pilotage : seulement après la ligne du joueur (ou dans le dernier tour pour un dépassement, après coup). Images/s : le rejeu dessine la même scène (aucun coût en plus). Le seuil (0,1 s ?) dans `donnees.js`.
+
+**Comment savoir qu'elle marche.** Test : une arrivée à moins du seuil déclenche le ralenti, une arrivée à 2 s non ; « passer » marche. Mesure : à l'œil, avec le propriétaire.
+
+**Comment la couper.** `PHOTO_FINISH_ACTIF`, `PHOTO_FINISH_SEUIL`.
+
+**Critique de moi-même.** Elle n'a lieu que dans quelques courses : c'est voulu (rare = précieux), mais ça veut dire que son effet sur la rétention est faible. Une émotion forte, pas une raison de revenir.
+
+---
+
+### 7. Le niveau de pilote (une barre pour tous les modes) ⬆
+
+**Le moment.** Après chaque course, quelle qu'elle soit (carrière, course rapide, jour, défi, à deux, tournoi), une barre se remplit : « +120 · Niveau 13 ». Au niveau 14 : « 🎁 Nouveau motif de casque : Éclair ». Tous les 5 niveaux, un plus gros cadeau (une livrée, une célébration).
+
+**Pourquoi c'est fort.** Aujourd'hui, seuls la carrière (argent) et des exploits rares débloquent des choses ; une course rapide ou à deux « ne compte pour rien ». Une barre commune donne de la valeur à **chaque** partie, et le « encore une pour le niveau 14 » est le plus vieux moteur de « encore une » des jeux pour enfants.
+
+**Coût : moyen.** `niveau-pilote.js` (points par course, courbe, récompenses), un écran de gain (on peut le poser sur le podium existant), la liste des récompenses dans `donnees.js` (les motifs, livrées, célébrations existent ; il en faut plus : des variantes de couleurs coûtent peu).
+
+**Risques.** Faire doublon avec l'argent de la carrière (deux monnaies) : les points de niveau ne s'achètent pas et ne servent qu'aux cosmétiques. **Jamais de vitesse** (comme les skins). Les points ne dépendent pas des aides (sinon on punirait l'enfant qui garde l'auto-guidage).
+
+**Comment savoir qu'elle marche.** Test : chaque mode donne des points, les récompenses tombent aux bons niveaux, rien ne change à la physique. Mesure : le nombre de courses par visite.
+
+**Comment la couper.** `NIVEAU_PILOTE_ACTIF`, `NIVEAU_PILOTE_COURBE`, `NIVEAU_PILOTE_RECOMPENSES`.
+
+**Critique de moi-même.** Efficace mais **pas original** : c'est un multiplicateur des autres idées, pas une idée qui fait parler. Elle vaut surtout si les idées 1, 3 et 5 existent (sinon, il n'y a pas grand-chose de court à jouer pour la remplir).
+
+---
+
+### 8. Le championnat à deux (frères, sœurs, copains) 🏁🏁
+
+**Le moment.** Deux enfants sur le même ordinateur : « Championnat à deux — 4 Grands Prix ». Écran partagé, quelques rivaux du monde autour (le mode à deux en permet 5 au plus : `DEUX_VOITURES_MAX` 7), et **un tableau de points à deux** entre les courses : « Lucas 43 – Emma 40 ». Au 4e Grand Prix, tout se joue. Un podium final avec les deux casques.
+
+**Pourquoi c'est fort.** Le mode à deux existe, mais chaque course est isolée (un score de « rivalité », une revanche) ; un **petit championnat** donne une histoire à la soirée et un vainqueur. Aucun jeu de course Poki ne propose une saison à deux.
+
+**Coût : moyen.** Le mode à deux (`deux-joueurs.js`) et les points du championnat (`championnat.js`) existent ; il faut l'enchaînement de 3 ou 4 courses, le tableau à deux, le podium final (le podium 3D sait déjà afficher des casques). Pas d'argent, pas de garage (comme le mode à deux aujourd'hui).
+
+**Risques.** Performance du mode à deux avec plus d'IA (mesuré à 5 IA aujourd'hui) : garder le même nombre d'IA. Une pub entre deux Grands Prix (comme aujourd'hui entre deux courses à deux).
+
+**Comment savoir qu'elle marche.** Test : 4 courses enchaînées, les points justes, l'égalité tranchée ; le propriétaire l'essaie à deux.
+
+**Comment la couper.** `DEUX_CHAMPIONNAT_ACTIF`, `DEUX_CHAMPIONNAT_COURSES`.
+
+**Critique de moi-même.** Ne touche que les enfants qui jouent à deux sur un clavier (et pas le téléphone). Mais pour eux, c'est la meilleure soirée possible, et ce sont eux qui en parlent à l'école.
+
+---
+
+### 9. L'album des cartes de pilotes 🃏
+
+**Le moment.** Chaque rival a une **carte** (son casque, sa voiture, son caractère, son pays, une phrase). On la gagne en le battant pour la première fois ; elle devient **brillante** quand on le bat sur une saison entière, **dorée** quand on le bat à **son** Grand Prix à domicile. « Album : 23 cartes · 4 brillantes · 2 dorées » (les pilotes rencontrés ; annexe G9).
+
+**Pourquoi c'est fort.** Collectionner des cartes, c'est le plaisir n° 1 des enfants de 8 à 12 ans. Et c'est encore notre force (les rivaux ont un nom, un pays, une mémoire) : chaque carte rappelle une histoire (« celui-là, je l'ai eu à Monoco »).
+
+**Coût : moyen.** Les fiches et les dessins existent (`fiche.js`, `photo.js`, `casque.js`) ; il faut la carte, l'album (`interface.js`), les règles (calcul pur, à partir des résultats déjà gardés), la sauvegarde (un octet par carte).
+
+**Risques.** La relève, les retraites et les plateaux par division font des centaines de pilotes sur une longue carrière : l'album doit garder une carte compacte (comme l'album des unes). Aucun vrai pilote, aucune vraie marque (les noms sont inventés).
+
+**Comment savoir qu'elle marche.** Test : battre un rival donne sa carte une seule fois, les conditions de brillance et d'or, une vieille sauvegarde reconstruit les cartes de son passé. Mesure : à l'œil.
+
+**Comment la couper.** `CARTES_ACTIF`.
+
+**Critique de moi-même.** Ça vit **dans** la carrière : ça ne fait pas revenir l'enfant qui n'a pas accroché à la carrière. Plus fort si les noms des pilotes sont enfin choisis (aujourd'hui « Pilote 14 », ce qui tue une collection : une carte « Pilote 14 » ne fait rêver personne). **Les noms des pilotes sont un préalable** pour 2, 9 et 11.
+
+---
+
+### 10. Le jeu debout, pour de vrai 📱
+
+**Le constat.** Poki écrit en 2026 que « demander de tourner le téléphone tue la conversion » et que les pubs de la barre de jeu (Gamebar) ne viennent qu'en portrait ; sa page des exigences demande seulement que le jeu couvre l'écran dans un sens ou dans l'autre. Aujourd'hui, `PORTRAIT_TOURNER` (tour 56) affiche le jeu **tourné de 90°** sur un téléphone debout : l'image couvre l'écran, mais l'enfant doit quand même tourner son téléphone pour la lire. (Au passage : la ligne de CLAUDE.md « Plein écran et paysage » parle encore du message « Tourne ton téléphone » comme comportement actuel ; le code a raison, la doc est à corriger.)
+
+**Le moment.** Un enfant ouvre le jeu dans le bus, téléphone debout. Il appuie sur « Jouer » et **joue debout** : la caméra est plus haute derrière la voiture (on voit plus loin devant, comme dans les jeux de course en portrait), GAZ et FREIN en bas sous les pouces, il tourne en inclinant ou avec ◀ ▶.
+
+**Pourquoi c'est fort.** La conversion au premier lancement sur téléphone (la part d'enfants qui commence vraiment à jouer), et les pubs du portrait.
+
+**Coût : gros.** Une caméra et une mise en page du HUD pour un écran étroit, tous les menus en 360×640 (le paddock, la boutique…) : des semaines de travail et de tests. **Version minimale** : seulement la **course de découverte et la course rapide** en portrait (la caméra et le HUD), les menus restent tournés.
+
+**Risques.** Une F1 vue dans un écran étroit voit peu de virage : à essayer avant de décider. Le volant (l'inclinaison) change de sens debout. Images/s : moins de pixels, plutôt mieux.
+
+**Comment savoir qu'elle marche.** `tests/debout.py` existe déjà (4 téléphones debout, parcours entier) : il deviendrait le test du vrai portrait. Mesure : la part des parties sur téléphone dans les chiffres Poki, avant/après.
+
+**Comment la couper.** `PORTRAIT_JEU` (faux = `PORTRAIT_TOURNER` comme aujourd'hui).
+
+**Critique de moi-même.** Je la classe 10e parce qu'elle est très chère et que le gain n'est pas sûr pour un jeu de F1 (beaucoup de jeux de course Poki restent en paysage). **À faire avant tout : demander à Poki** si le paysage tourné passe leur contrôle et ce qu'il coûte en conversion.
+
+---
+
+### 11. Les week-ends à thème (une fois par mois) 🎃❄
+
+**Le moment.** Fin octobre, les tribunes sont orange, des citrouilles le long de la piste à Singapura de nuit ; le Grand Prix du jour est « Grand Prix d'Halloween » et sa médaille d'or donne la livrée « Citrouille ». En décembre, Montréol sous la neige (décor seulement, la piste reste sèche).
+
+**Pourquoi c'est fort.** Une raison datée de revenir, une récompense « que tout le monde n'a pas », et un jeu qui a l'air vivant et entretenu (les jeux de course Poki qui durent sortent des éditions saisonnières).
+
+**Coût : petit** (après l'idée 1) : depuis le tour 60, le public a ses palettes (`PUBLIC_PANTALONS`, `PUBLIC_PEAUX`, `PUBLIC_CHEVEUX`), ses drapeaux et pancartes (`PUBLIC_DRAPEAUX`, `PUBLIC_PANCARTES`) et le ciel sait faire la nuit (`REALISME_CIEL`) : un thème = d'autres palettes, une heure, une livrée, une ligne de calendrier dans `donnees.js`.
+
+**Risques.** Une fête n'est pas universelle (Halloween, Noël) : préférer des thèmes neutres ou plusieurs (hiver, été, nuit des lanternes) ; la livrée de l'événement **revient chaque année** (pas de peur de rater). Aucune marque.
+
+**Comment la couper.** `EVENEMENTS_ACTIF`, `EVENEMENTS` (le calendrier).
+
+**Critique de moi-même.** Seule, elle est faible (une déco) ; avec le Grand Prix du jour, elle donne des pics. À garder pour après l'idée 1.
+
+---
+
+### 12. Le champion de la division (un « boss » à faire tomber) 👑
+
+**Le moment.** En division 4, un pilote porte une couronne dans la tour de classement : **le champion en titre**. Avant la course : « Rossi, champion en titre, part en pole ». Le battre en course : gros titre de la une, une phrase du commentateur, un motif de casque à la première fois. Le battre au championnat : on lui prend la couronne, et on monte.
+
+**Pourquoi c'est fort.** Les enfants comprennent un **boss** mieux qu'un tableau de points ; la montée de division gagne un visage.
+
+**Coût : petit** : le champion de la saison passée existe déjà dans l'historique ; une icône, quelques textes, un déblocage.
+
+**Risques.** Jamais de triche : le champion est seulement le meilleur pilote (même physique, mêmes règles). Recouvre un peu la bête noire et le duel : à garder discret.
+
+**Comment la couper.** `CHAMPION_COURONNE`.
+
+**Critique de moi-même.** Petite idée, petit coût, petit effet. Je la garde parce qu'elle donne un but lisible à un enfant de 8 ans dès sa première saison.
+
+---
+
+## La relecture (un enfant de 10 ans, puis un responsable Poki)
+
+Ce que j'ai réécrit après avoir relu les 12 idées avec ces deux regards :
+- **Des chiffres faux dans les histoires** : le Grand Prix du jour faisait partir Léo « 14e » alors que le jour a 10 voitures, et parlait de « Monoco de nuit » (seule Singapura est de nuit) : corrigés. Un enfant qui lit « 14e » puis voit 10 voitures ne croit plus le reste.
+- **Des mots qu'un enfant ne comprend pas** : « Invite-toi chez un copain » devient « Mets-toi dans le jeu d'un copain » ; « Série : 3 jours » devient « 🔥 3 jours de suite ».
+- **Une promesse fausse** : j'écrivais qu'un lien de copain trafiqué était « refusé par la somme de contrôle ». Faux : le code du jeu est lisible, la somme ne repère qu'un lien abîmé. Ce qui protège vraiment, c'est la règle du rythme (au pire, le copain roule comme le meilleur rival de la division).
+- **Une idée qui ne marchait pas** : le fantôme « diamant » des médailles, enregistré avec le robot d'essai, aurait été **plus lent** que les IA (62,5 s contre 54 à 56 s). Remplacé par quatre fantômes simulés, un par niveau, qui suivent les divisions et ne demandent aucun fichier.
+- **L'ordre des défis-éclair** : l'histoire racontait un défi « lancé » (le plus cher) ; elle raconte maintenant un défi du plan B, celui qu'on ferait d'abord.
+- **Le « avec toi »** du copain (il devient ton coéquipier, et le duel de la saison devient toi contre lui) n'était que dans l'annexe : c'est la meilleure partie de l'idée pour un enfant, elle est maintenant dans l'histoire.
+- **L'œil Poki** : il manquait une pub récompensée qui ne casse rien. Ajoutée au Grand Prix du jour : « 📺 Sauve ta série » (un jour manqué, une fois par semaine). Ce que Poki regarderait aussi, et qui tient : aucune pub entre un échec et « Rejouer », des sessions de 2 à 4 minutes, le premier lancement par un lien qui reste « en piste en 10 secondes », aucun texte libre qui voyage entre enfants.
+- **Ce que je n'ai pas changé** : l'ordre des 12. Je l'ai remis en question (élimination plus haut ? médailles plus haut ?) ; les trois premières restent les seules qui donnent à la fois une raison de revenir **demain** (1), une raison de **partager** (2) et des parties **courtes** à rejouer (3).
+
+## La vérification dans le code (lecture seule, main 2cd512d)
+
+Chaque nom de fonction, de réglage et de fichier des annexes a été cherché dans le code. **Justes** : `creerCourseIA(circuit, nb, nbTours, graine, carte, avecJoueur)`, `placerSurPiste` (`physique.js`), `classementCourse`, `pasCourseIA` (ne fait rouler que `!p.abandon`), `QUALIFICATION.grille`, `DECOUVERTE.tempsMilieu`, `EN_LIGNE.planMeteo` / `preparerCircuit` / `maths` (exportés), `SDK.lienPartage(params, rappel, delai)` et `SDK.parametreUrl(nom)` (n'importe quel nom), `DEFI.somme` (exporté), `CASQUE.tousLesMotifs`, `FANTOME.ecart`, `creerEnregistreur` → `lire`, `momentsForts`, `REGIE.postes`, `ARRIVEE.accelerer`, `DEUX_JOUEURS.ajouterRivalite`, `DIVISIONS.numerosPris`, `SAISONS.evoluer`, `ALEATOIRE.suite`, `DEPART.resultat` (`'parfait'`, `'bon'`, `'patinage'`, `'cale'`, `'faux'`), `CACHE_CARTE.encoder`, les réglages `CALENDRIER_CIRCUITS`, `METEO_LIEUX`, `EN_LIGNE_METEOS`, `EN_LIGNE_MATHS`, `NIVEAUX`, `NIVEAU`, `IA_RYTHME`, `IA_CARACTERE`, `POINTS`, `DEUX_IA_CHOIX`, `DEUX_VOITURES_MAX`, `NUMERO_MIN` / `MAX`, `PAYS` (31), `CASQUE_PALETTE` (12), `CASQUE_MOTIFS` (6), `CASQUE_DEBLOCAGES` (5), `LIVREE_MOTIFS` (6), `CELEBRATIONS` (2), `PILOTE_PRENOMS`, `DEGATS_*`, `PNEUS_ACTIFS`, `TUTO_DRAPEAUX_DEGATS`, et les tests cités (`tests/courses.html`, `stands.html`, `drapeaux.html`, `carriere-longue.html`, `textes.html`, `paquet.py`).
+
+**Faux, corrigés dans les annexes** :
+1. La place de départ imposée passait par `qualifier(e)` : faux, `qualifier` met **toujours les humains derrière** les IA. C'est `QUALIFICATION.grille(e, tempsJoueur)` qu'il faut (comme `placerDecouverte`).
+2. `ecrireEntier` de `defi.js` n'est **pas exporté** : à exporter (avec `lireEntier`) pour `copain.js`.
+3. `FANTOME_POLE.tour(e)` prend une **course** avec sa grille, pas un plateau (CLAUDE.md écrit `tour(plateau)` : c'est la doc qui est fausse) ; il étire toujours le tour (`FANTOME_POLE_ETIRER`) : une option « non étiré » est à ajouter pour les médailles.
+4. `tourEstime(carte, rythme)` applique **déjà** l'échelle par circuit : ne pas la multiplier une 2e fois.
+5. La carte des IA **dépend du niveau** pour expert et légende (`MARGE_CARTE` dans la clé de `cache-carte.js`) : les mesures de A7 sont celles du niveau normal ; il y a un 2e jeu de cartes pour les jours « expert ».
+6. `p.herbe` compte des **pas de physique** (120 par seconde), pas des secondes.
+7. Le joueur **n'a pas d'âge** (`p.age` est `null` pour l'humain) : le copain ne peut pas « vieillir avec lui » ; règle réécrite.
+8. Le remplacement d'un pilote se fait dans `SAISONS.evoluer` (fin de saison), pas « comme la relève ».
+9. `TUTORIEL.scene` ne sert qu'à la leçon `drapeaux` : à généraliser pour le défi 23.
+10. Les paramètres `?jour=` et `?pilote=` se lisent au début de `principal.js` (comme `defi`) : `sdk.js` n'a rien à changer.
+11. `EN_LIGNE.preparerCircuit` pose `REGLAGES.NIVEAU = EN_LIGNE_NIVEAU` pendant le calcul : il faut une variante qui prend le niveau du jour.
+12. Le générateur du jour : `ALEATOIRE.suite(graine)` existe déjà (pas besoin d'en écrire un).
+13. Les textes « il devient ton coéquipier », « ton copain » étaient **genrés** sur un ami dont on ne connaît pas le genre : « pote » et « ton coéquipier » à la place.
+
+## Les idées écartées (et pourquoi)
+
+- **Un arrêt au stand à « taper » soi-même** (toucher les 4 roues vite) : amusant une fois, mais il rend l'arrêt plus long et coupe la course ; et l'arrêt dépend déjà des changeurs du garage.
+- **Le commentateur qui dit le prénom du joueur** : la synthèse lit déjà `{qui}` ; les voix enregistrées ne peuvent pas dire un prénom tapé (on pourrait enregistrer une liste de prénoms, mais c'est lourd pour un petit plaisir).
+- **Un écran « pendant ton absence »** au retour : il ne sert qu'à ceux qui sont déjà revenus ; ce n'est pas lui qui fait revenir.
+- **Créer sa propre écurie** (devenir patron) : de la gestion, loin de ce qui plaît à un enfant sur Poki, et très cher.
+- **Un classement mondial** : il faut un serveur et une modération ; le jeu en ligne attend déjà l'accord du propriétaire et de Poki. Le texte à partager (idée 1) donne l'essentiel sans serveur.
+- **Des accidents spectaculaires, la casse** : refusé (seulement l'aileron avant, « jamais de casse totale »).
+- **Un ingénieur à la radio qui conseille** : refusé pour l'aileron (« aucun conseil ») ; je ne le repropose pas.
+- **Des pièces de voiture à débloquer** (jantes, fumée) : non retenu le 2026-11-04.
+- **Se connecter avec le compte Poki pour afficher son pseudo** : possible (`getUser`), mais un nom venu d'ailleurs sur l'écran d'un enfant, pour un gain faible ; la synchronisation des sauvegardes, elle, est déjà automatique.
+
+## Les écarts de doc relevés (CLAUDE.md contre le code, encore vrais sur fusion-60d)
+
+1. **Le téléphone tenu debout** : la ligne « Plein écran et paysage » décrit le message « 📱 Tourne ton téléphone » et la pause comme le comportement actuel ; or `PORTRAIT_TOURNER` est **vrai** depuis le tour 56 (le jeu s'affiche tourné de 90°, sans message ni pause : `donnees.js`, et `tests/debout.py` le teste) et CLAUDE.md ne nomme nulle part ce réglage.
+2. **`FANTOME_POLE.tour(plateau)`** (deux fois, section « Le fantôme du meilleur tour ») : le code prend une **course** (`tour(e)`, avec sa carte et sa grille, `fantome-pole.js`).
+3. **La section « Le fantôme du poleman » est en double** (deux paragraphes presque identiques, le second avec le T11).
+4. (À vérifier, pas un écart prouvé) : qui lit `JEU.secoursGuidage` pour le record et le fantôme ?
+
+Le code a raison : c'est le texte à corriger (règle de CLAUDE.md).
+
+## Ce qu'il faudrait d'abord (préalables, pas des idées)
+
+- **Les noms des pilotes et des écuries** (attendus du propriétaire depuis le 2026-10-29) : « Pilote 14 » affaiblit tout ce qui repose sur les rivaux (idées 2, 9, 12, et le commentateur).
+- **Demander à Poki** : le jeu tourné de 90° en portrait passe-t-il leur contrôle, et quels chiffres le développeur reçoit-il (retour du lendemain, temps de jeu) pour mesurer les idées 1 à 3.
+
+## Annexe A — Le Grand Prix du jour, prêt à coder
+
+Tout ce qui suit est une proposition **réversible** : chaque nombre est un réglage `JOUR_*` de `donnees.js`. Le calcul est dans un fichier à lui, `jour.js`, **en calcul pur** (aucune page, aucun Three.js), testé sans écran.
+
+### A1. Le numéro du jour et sa graine
+
+- **La date** : la date **locale** de l'appareil (`new Date()` : `getFullYear`, `getMonth`, `getDate`), lue **une seule fois**, par la page, au moment où l'on ouvre l'écran du jour. `jour.js` ne lit jamais l'horloge : il reçoit `{ a, m, j }` (tests faciles, et la règle « pas de `Date` dans la simulation » tient).
+- **Le numéro** : `n = (Date.UTC(a, m, j) − Date.UTC(JOUR_DEBUT)) / 86 400 000 + 1` (`JOUR_DEBUT` = le jour de la mise en ligne). Calculé en UTC **à partir des chiffres de la date locale** : pas de saut d'heure d'été, pas de jour « 41,96 ». « Jour 42 » dans le texte à partager.
+- **La graine** : `g = a × 10 000 + (m + 1) × 100 + j` (20261119), plus `JOUR_GRAINE` (un décalage, pour ne pas croiser les graines des autres modes). Tous les tirages du jour passent par **`ALEATOIRE.suite(graine)`** (une suite fixe à part, qui ne touche pas à `semer` / `hasard` ; le public des tribunes s'en sert déjà) : tirer le jour ne décale aucun autre tirage du jeu.
+
+### A2. Le tirage des paramètres
+
+Dans cet ordre (l'ordre fait partie de la règle : le changer change tous les jours futurs, donc on monte `JOUR_VERSION`).
+
+| Paramètre | Règle | Pourquoi |
+|---|---|---|
+| **Circuit** | Les 12 de `CALENDRIER_CIRCUITS`, en **cycles de 12 jours** : le cycle `k = ⌊(n − 1) / 12⌋` est un mélange des 12 (graine `JOUR_GRAINE + k`) ; si le premier du cycle est le dernier du cycle d'avant, on l'échange avec le 2e. | Chaque circuit revient tous les 12 jours, jamais deux jours de suite le même, et l'ordre change d'un cycle à l'autre. |
+| **Niveau des IA** | Par jour de la semaine (`JOUR_NIVEAUX`, de lundi à dimanche) : débutant, débutant, normal, normal, normal, **expert**, normal. | Le même pour tous les joueurs (comparaison juste), facile en début de semaine, un « samedi des pros ». |
+| **Nombre d'IA** | `JOUR_IA` = 9 (10 voitures). | Assez pour remonter, léger sur un téléphone. |
+| **Tours** | 3 si le circuit fait moins de `JOUR_LONGUEUR_3_TOURS` (4 800 m), sinon 2 (voir les longueurs mesurées en A7). | Une course de 2 à 4 minutes. |
+| **Place de départ** | Tirée dans `JOUR_PLACES` = 7, 8, 9, 10 (sur 10), avec les poids `JOUR_PLACES_POIDS` = 2, 2, 3, 3. | Partir derrière et remonter, c'est le plaisir ; jamais devant (la victoire ne doit pas être donnée). |
+| **Météo** | Si le lieu a de la pluie (`METEO_LIEUX`) : un tirage avec la chance `min(0,5 ; pluie × JOUR_PLUIE_FACTEUR)` (facteur 1,5) de **pluie** ; sinon **sec** ; Singapura reste de nuit (son décor). Les noms sont ceux de `EN_LIGNE_METEOS` (`sec`, `pluie`, `averse`, `eclaircie`) : le plan de météo existe déjà sans adresse (`planMeteo` d'`enligne.js`). | Spaa et Interlagas mouillés plus souvent que Bahrayn, comme en carrière. |
+| **Piment** | `JOUR_PIMENT_CHANCE` = 40 % des jours ; **jamais le samedi** (déjà difficile). Tiré dans la liste `JOUR_PIMENTS` (ci-dessous), en écartant ceux qui ne vont pas avec la météo. | Un petit événement, pas un piège. |
+
+**Les piments** (seulement des mécaniques qui existent, réglées comme dans le jeu) :
+
+| Piment | Ce qu'il fait | Texte (fr) | Condition |
+|---|---|---|---|
+| `averse` | météo `averse` à la place du sec (la pluie arrive au tiers de la course) | « Une averse arrive ! » | jour sec seulement |
+| `eclaircie` | météo `eclaircie` (il pleut, puis la piste sèche) | « Ça va sécher… » | jour de pluie seulement |
+| `aileron` | `v.degats` = `JOUR_PIMENT_DEGATS` (0,3, comme la leçon des drapeaux) au départ : on choisit entre rouler abîmé et passer au stand le réparer | « Ton aileron est abîmé » | dégâts actifs |
+| `pneus` | les pneus du joueur à `JOUR_PIMENT_USURE` (60 % d'usure) au départ ; les IA ont les leurs, neufs | « Pneus usés : tiens bon ou passe au stand » | pneus actifs |
+| `dernier` | le joueur part 10e **et** les IA sont rangées en ordre inverse (les plus rapides derrière lui) | « Grille inversée ! » | jamais un jour expert |
+
+Le piment `aileron` et le piment `pneus` font du stand un vrai choix dans une course de 2 ou 3 tours : c'est ce qui rend ces jours intéressants. Aucun piment ne touche aux règles ni à la physique : ils posent un **état de départ**.
+
+**La place de départ imposée** : comme la découverte (`DECOUVERTE.tempsMilieu`), on ne touche pas à la grille : on donne au joueur un temps de qualification fictif entre celui de l'IA qui doit être devant lui et celui de celle qui doit être derrière, puis `QUALIFICATION.grille(e, tempsJoueur)` range tout le monde par temps (c'est exactement ce que fait `placerDecouverte` dans `principal.js` avec `DECOUVERTE.tempsMilieu`). Attention : `qualifier(e)` de `simulation.js`, lui, met toujours les humains **derrière** les IA ; il ne faut pas s'en servir pour ça. Aucune qualification à jouer. **Grille inversée** (piment `dernier`) : avant `QUALIFICATION.grille`, remplacer chaque `p.qualif` des IA par son opposé (`-p.qualif`) : les plus rapides partent derrière, l'ordre reste déterministe.
+
+### A3. Les médailles
+
+Sur la **place finale** (pénalités comprises, comme le podium) :
+- 🥇 **or** : 1er ;
+- 🥈 **argent** : sur le podium ;
+- 🥉 **bronze** : au moins `JOUR_BRONZE_PLACES` (3) places gagnées sur la place de départ (parti 10e : 7e ou mieux).
+
+On peut rejouer autant qu'on veut **le jour même** ; la meilleure médaille est gardée. Une course abandonnée (« Abandonner » de la pause) ne compte pas. Les aides au pilotage restent au choix (règle du propriétaire) ; le texte partagé dit seulement « sans aide » quand toutes sont coupées (un plus, jamais une honte).
+
+### A4. La série
+
+- **La série** : le nombre de jours de suite où l'on a **fini** au moins une course du jour (une médaille n'est pas nécessaire : un petit qui finit 9e garde sa série).
+- Le jour où l'on finit une course : si `dernierJour` = `n − 1`, `serie + 1` ; si `dernierJour` = `n`, rien ; sinon `serie = 1`. On garde aussi `meilleureSerie` et `joues` (le total).
+- **Jamais de message triste** : une série cassée repart à 1 sans rien dire ; l'écran montre « 🔥 1 » et « Meilleure série : 9 ».
+- **Une horloge qui recule** (fuseau changé, date réglée à la main) : si `n < dernierJour`, la série et les médailles de ce jour ne changent pas (la course se joue quand même) ; jamais de valeur négative ni de NaN.
+
+### A5. Les cas limites
+
+| Cas | Ce qui se passe |
+|---|---|
+| **Minuit pendant la course** | La course garde **le jour où elle a commencé** (le numéro est posé sur la grille) : sa médaille et la série comptent pour ce jour-là, même si l'arrivée est après minuit. |
+| **Fuseau horaire** | La date locale de l'appareil : deux copains dans deux pays peuvent avoir deux jours différents quelques heures par jour ; le texte partagé dit « Jour 42 », le lien ouvre ce jour-là. |
+| **Joueur sans sauvegarde** (navigation privée, ordinateur d'école, `localStorage` refusé) | Le Grand Prix du jour se joue normalement ; la médaille s'affiche ; la série n'est pas gardée (une ligne discrète : « Ta série n'est pas gardée sur cet appareil »). |
+| **Nouveau joueur arrivé par un lien `?jour=`** | Directement sur la grille (comme la découverte, `gameLoadingFinished` puis grille), puis le podium du jour, puis la création du pilote comme après la découverte. La découverte est comptée comme faite. |
+| **Lien d'un jour passé** (`?jour=20261112`) | Ce jour-là se joue (marqué « Grand Prix du 12 novembre »), sans médaille ni série : seul le jour même compte. Un lien d'un jour **futur** ouvre le jour d'aujourd'hui (pas de triche à l'avance). |
+| **Lien abîmé** (`?jour=abc`) | Ignoré : le titre normal. Pas d'erreur console. |
+| **`JOUR_VERSION` monte** (le tirage a changé) | Les médailles et la série gardées ne bougent pas ; un lien d'avant ouvre le tirage d'aujourd'hui pour ce jour-là (on ne garde pas les anciens tirages). |
+| **Poki** | `gameplayStart` aux feux éteints, `gameplayStop` au podium ; **aucune pub entre « Rejouer » et la grille** ; une `commercialBreak` possible au retour au titre ou au paddock, comme entre deux courses. |
+| **Le joueur est en pleine carrière** | Le Grand Prix du jour est à part : pas de points, pas d'argent (ou une petite prime à part, à décider : je conseille **non**, pour ne pas en faire une corvée de carrière), mais il compte pour le niveau de pilote (idée 7) si elle existe. |
+
+### A6. Le texte à partager
+
+Une ligne de positions tour par tour (ce que l'enfant a vécu), une médaille, le lien Poki (`SDK.lienPartage({ jour: '20261119' })`, repli sur l'adresse où le jeu tourne, comme le défi).
+
+```
+🏁 Grand Prix Dynasty · Jour 42
+Spaa 🌧 · 2 tours · Normal
+P10 ▸ P6 ▸ P1 🥇 🔥5
+https://poki.com/…?jour=20261119
+```
+```
+🏁 Grand Prix Dynasty · Day 42
+Spaa 🌧 · 2 laps · Normal
+P10 ▸ P6 ▸ P1 🥇 🔥5
+https://poki.com/…?jour=20261119
+```
+Clés `textes.js` : `jour_partage` (`{n}`, `{circuit}`, `{meteo}`, `{tours}`, `{niveau}`, `{places}`, `{medaille}`, `{serie}`), `jour_titre`, `jour_demain`, `jour_bronze`, `jour_argent`, `jour_or`, `jour_aucune` (« Pas de médaille : retente ! »), `jour_serie`, `jour_sans_sauvegarde`, `jour_passe`, `jour_piment_<nom>`. Pas de place dans la ligne → `P10 ▸ P1` seulement. Pas de nom du joueur dans le texte (rien de personnel ne sort du jeu sans qu'il le tape lui-même).
+
+**« Demain »** : `jour.js` tire aussi le jour `n + 1` ; l'écran d'arrivée dit « Demain : Singapura 🌙 · grille inversée ! » (circuit, météo prévue et piment ; pas le niveau).
+
+### A7. La même course sur tous les navigateurs, et la carte des IA
+
+**Le problème.** Même graine, mêmes paramètres : la course est la même au bit près **dans un même navigateur**. Entre Chrome, Safari et Firefox, `Math.sin`, `cos`, `atan2`… peuvent différer d'un bit ; le circuit lui-même (sa géométrie) est calculé avec elles, donc une IA peut freiner un millimètre plus tôt, et la course peut finir dans un ordre légèrement différent.
+
+**Le plan, en deux marches.**
+1. **D'abord mesurer** (une demi-journée) : Playwright a les trois moteurs (Chromium, Firefox, WebKit, celui de Safari). Une page de test joue 7 jours tirés (une course d'IA seules, 10 voitures, le robot d'essai à la place du joueur) dans les trois et compare l'empreinte de la course (places et temps à l'arrivée, comme `tests/courses.html`). Si les trois donnent les mêmes places sur les 7 jours : **on s'arrête là** (les écarts d'un bit ne changent pas ce que voit un enfant).
+2. **Sinon, emprunter les maths du jeu en ligne** : `EN_LIGNE.preparerCircuit(nom)` (exporté par `enligne.js`) construit déjà le circuit et la carte avec `EN_LIGNE_MATHS` (nos `sin`, `cos`, `atan2`… faits de + − × ÷ et `sqrt`, identiques partout), et `EN_LIGNE.maths.activer()` / `EN_LIGNE.maths.desactiver()` (un compteur : on peut les emboîter) encadrent une course ; attention, `preparerCircuit` pose aussi `REGLAGES.NIVEAU = EN_LIGNE_NIVEAU` le temps du calcul : pour le jour, il faut une variante qui prend le niveau du jour. Pour le jour : les activer de la grille au podium, comme une partie en ligne. Deux conséquences : (a) la carte des IA de ce circuit est **une autre carte** (calculée avec nos maths) : il faut la livrer à part ou la calculer en fond ; (b) **la voiture du joueur roule aussi avec nos maths** pendant la course du jour : à tester (images/s, sensation identique).
+
+**La carte des IA** (le calcul qui fait « Préparation de la course… »), **mesurée** le 2026-11-19 sous le verrou : la vraie page (`index.html`), `construireCircuit` + `calculerTrajectoire`, encodée par `CACHE_CARTE.encoder` comme `cache-carte-test.js` (Chromium sans fenêtre sur le Mac, pendant que d'autres Codeurs travaillaient : temps de calcul **relatifs**).
+
+| Circuit | Longueur | Carte (JSON) | Compressée (gzip) | Calcul |
+|---|---|---|---|---|
+| test | 3 184 m | 33,2 Ko | 24,3 Ko | 1,2 s |
+| Bahrayn | 5 451 m | 56,8 Ko | 42,1 Ko | 2,2 s |
+| Melbourn Park | 5 262 m | 54,9 Ko | 40,1 Ko | 2,3 s |
+| Suzuko | 6 200 m | 64,6 Ko | 47,4 Ko | 2,5 s |
+| Montréol | 4 359 m | 45,5 Ko | 33,4 Ko | 1,8 s |
+| Monoco | 3 262 m | 34,0 Ko | 24,9 Ko | 1,3 s |
+| Barcelana | 4 670 m | 48,7 Ko | 35,9 Ko | 1,6 s |
+| Silverstoun | 5 574 m | 58,1 Ko | 42,9 Ko | 1,8 s |
+| Spaa | 6 879 m | 71,7 Ko | 52,7 Ko | 2,2 s |
+| Monzo | 5 506 m | 57,4 Ko | 42,1 Ko | 2,0 s |
+| Singapura | 4 942 m | 51,5 Ko | 38,1 Ko | 1,8 s |
+| Interlagas | 4 387 m | 45,8 Ko | 33,6 Ko | 1,7 s |
+| Yas Marino | 5 311 m | 55,4 Ko | 40,5 Ko | 2,0 s |
+| **Les 12 circuits** | | **644 Ko** | **474 Ko** | **≈ 23 s** |
+
+(Script de mesure : une page Playwright qui appelle ces trois fonctions pour chaque circuit ; rien n'a été ajouté au dépôt.)
+
+**Attention, une carte par niveau pour expert et légende** (vérifié dans `cache-carte.js` : la clé de validité ajoute `MARGE_CARTE` quand `NIVEAUX[NIVEAU].margeCarte` diffère de `IA_MARGE_BORD`, et seuls `expert` et `legende` en ont une). Les mesures ci-dessus sont celles du niveau **normal**, qui sert aussi au débutant. Les samedis « expert » du Grand Prix du jour demandent donc l'autre jeu de cartes : le même poids (≈ 0,5 Mo de plus si on les livre), ou le calcul en fond.
+
+**Ce que ça dit** : la carte pèse environ **10 Ko par 1 000 m** ; les 12 tiennent en **moins de 0,5 Mo compressé** (le zip actuel fait environ 1 Mo ; Poki conseille 5 Mo au premier chargement, 8 au total) ; une carte se calcule en 1,3 à 2,5 s sur cette machine, donc **la calculer en fond pendant que l'enfant lit l'écran du jour suffit presque toujours**. Avec `JOUR_LONGUEUR_3_TOURS` à 4 800 m : 3 tours à Monoco, Montréol, Barcelana et Interlagas, 2 tours ailleurs. Le plan :
+- **Sur le titre et au paddock**, dès que la page est prête, calculer **en fond** la carte du circuit du jour (comme le jeu le fait déjà pour la course suivante) et la garder dans le cache de la sauvegarde (`cache-carte.js`) : au clic, elle est prête ;
+- **pour un nouveau joueur arrivé par un lien** (pas de cache, pas de titre : il est sur la grille tout de suite), livrer les cartes **dans le paquet**, chargées seulement le jour où elles servent (un fichier par circuit, comme `cache-carte-test.js`).
+
+### A8. Le plan des tests
+
+- **Calcul pur** (`tests/test.html`, partie « jour ») :
+  1. la même date donne les mêmes paramètres (10 dates, comparées à des valeurs épinglées) ; deux dates qui se suivent ne donnent jamais le même circuit ;
+  2. sur 365 jours : chaque circuit 30 ou 31 fois, chaque piment au moins 10 fois, jamais un piment le samedi, jamais `averse` un jour de pluie ni `eclaircie` un jour sec ;
+  3. le numéro du jour : le 1er jour = 1, le passage à l'heure d'été et d'hiver ne saute ni ne double aucun jour, le 29 février, le 31 décembre → 1er janvier ;
+  4. les médailles : chaque place de 1 à 10 depuis chaque place de départ ; les pénalités comptent ;
+  5. la série : jour + 1 → +1 ; même jour → rien ; un jour sauté → 1 ; horloge qui recule → rien ; jamais négatif ;
+  6. le texte : fr et en, toutes les clés présentes, pas de « undefined », pas de lettre accentuée dans l'anglais (l'audit existant) ;
+  7. `JOUR_ACTIF` faux : aucun bouton, `?jour=` ignoré, le jeu d'avant au bit près.
+- **Une course** : la course du jour jouée deux fois par le robot donne la même empreinte ; la place de départ imposée est la bonne (7 à 10) ; les piments posent le bon état (aileron à 0,3, pneus à 60 %, grille inversée).
+- **Les écrans** (`tests/ecrans.py`, page `test=jour`, 1280×720, 960×600 et 640×360 au doigt, fr et en) : le bouton au titre (≥ 40 px au doigt), l'écran du jour, l'arrivée avec la médaille, « Demain », « 📋 Partager » ; rien hors de l'écran ni recouvert.
+- **Le lien** : `?jour=AAAAMMJJ` sans sauvegarde mène à la grille ; un lien futur ouvre aujourd'hui ; un lien abîmé ne fait rien ; console vide.
+- **Les navigateurs** : la mesure de A7 (Chromium, Firefox, WebKit), hors workflow, sous le verrou.
+- **Poki** (`tests/paquet.py`) : aucune pub entre « Rejouer » et la grille.
+
+### A9. Les réglages
+
+`JOUR_ACTIF`, `JOUR_VERSION`, `JOUR_DEBUT`, `JOUR_GRAINE`, `JOUR_IA`, `JOUR_NIVEAUX`, `JOUR_LONGUEUR_3_TOURS`, `JOUR_PLACES`, `JOUR_PLACES_POIDS`, `JOUR_PLUIE_FACTEUR`, `JOUR_PIMENT_CHANCE`, `JOUR_PIMENTS`, `JOUR_PIMENT_DEGATS`, `JOUR_PIMENT_USURE`, `JOUR_BRONZE_PLACES`, `JOUR_MATHS` (faux au début : voir A7), `JOUR_CARTES_LIVREES`.
+
+**Fichiers** : `jour.js` (nouveau, calcul pur), `principal.js` (lancer la course du jour : les réglages imposés, la place, le piment), `interface.js` + `index.html` (bouton du titre et du paddock, écran du jour, arrivée), `textes.js`, `donnees.js`, `sauvegarde.js` (le bloc `jour` à la racine de la sauvegarde : il survit à une nouvelle carrière ; environ 100 octets), le début de `principal.js` (lire `jour` comme `defi` l'est déjà : `SDK.parametreUrl('jour')` sur Poki, l'adresse sinon ; `sdk.js` n'a rien à changer, `parametreUrl` et `lienPartage` prennent n'importe quel nom), `tests/`.
+
+## Annexe B — Les 40 défis-éclair
+
+**Comment les lire.** Chaque défi est une ligne de données (`DEFIS_ECLAIR` dans `donnees.js`) : circuit, météo, tours, nombre d'IA et niveau, place de départ, état de départ (pneus, aileron), rivaux par rôle, et trois buts. ⭐ = réussi, ⭐⭐ et ⭐⭐⭐ = de mieux en mieux ; **chaque étoile inclut les précédentes** (on ne gagne pas la 3e sans la 1re). Tous les buts se mesurent avec ce que le moteur sait déjà : la place à l'arrivée (pénalités comprises), les places gagnées, l'écart à l'arrivée avec un pilote, le classement à une distance donnée (`passages`), le temps passé dans l'herbe (`herbe`), les pénalités, le résultat du départ (`depart.js` : parfait, bon, patinage, calé, faux départ), le meilleur tour, les arrêts au stand, l'aileron (`degats`).
+
+**Les rivaux par rôle** (tirés du plateau du joueur, ou du monde créé au premier lancement s'il n'a pas de carrière : le défi a toujours de vrais noms) :
+- **le champion** : le meilleur rythme du plateau ;
+- **le coéquipier** : l'autre pilote de l'écurie du joueur (sans carrière : un pilote de rythme moyen, présenté comme « ton coéquipier ») ;
+- **la bête noire** : le plus agressif (`IA_CARACTERE.agressivite`), ou la vraie bête noire de l'interview s'il y en a une ;
+- **le métronome** : le plus régulier ;
+- **le jeune** : le plus jeune pilote.
+
+Le nom est mis dans le titre (« Bats Rossi ») : l'enfant affronte des gens, pas des voitures. **Aucun défi ne triche** : les IA ont leurs règles habituelles ; seuls l'état de départ et le niveau changent.
+
+**Les niveaux** : d = débutant, n = normal, e = expert, l = légende (les `NIVEAUX` existants).
+
+### B1. Le plan B : 28 défis qui partent de la grille (rien à changer dans la simulation)
+
+Il suffit d'imposer à la course rapide : le nombre de tours, d'IA, le niveau, la météo (`EN_LIGNE.planMeteo(choix, nomCircuit, graine, nbTours, circuit)`, exporté, sans lien avec l'adresse de la page), la place de départ (le temps de qualification fictif, comme la découverte), l'état de départ (`v.degats`, l'usure des pneus), et l'ordre de la grille (rangé par `qualifier`).
+
+**Groupe 1 — Le départ** (circuit `test` et Bahrayn : de longues lignes droites avant le premier virage)
+
+| # | Titre | Situation | ⭐ | ⭐⭐ | ⭐⭐⭐ | Rival |
+|---|---|---|---|---|---|---|
+| 1 | Feux verts | `test`, 1 tour, 5 IA d, tu pars 6e | pas de faux départ | départ « bon » ou mieux | premier au premier virage | — |
+| 2 | Le bon dosage | `test`, 1 tour, 5 IA d, 6e | départ « parfait » | 3 places gagnées au premier virage | gagner | — |
+| 3 | Sous la pluie | `test`, pluie, 1 tour, 7 IA d, 8e | pas de patinage | 3 places au premier virage | podium | — |
+| 4 | Pole à défendre | Bahrayn, 1 tour, 9 IA n, **1er** | finir 3e ou mieux | finir 1er | 1er sans jamais perdre la tête (classement à chaque passage) | le champion part 2e |
+| 5 | Dernière ligne | Bahrayn, 2 tours, 9 IA n, 10e | 7e ou mieux | 4e ou mieux | podium | — |
+| 6 | Le sprint | Monzo, 1 tour, 9 IA n, 5e | finir 5e ou mieux | podium | gagner | le champion en pole |
+| 7 | Tout le monde derrière | Monoco, 1 tour, 7 IA n, 1er | rester 1er au premier virage | gagner | gagner sans toucher l'herbe | la bête noire part 2e |
+| 8 | Coéquipiers | Barcelana, 2 tours, 9 IA n, 6e | finir devant ton coéquipier | 3e ou mieux | devant lui de plus de 2 s | le coéquipier part 5e |
+
+**Groupe 2 — La remontée**
+
+| # | Titre | Situation | ⭐ | ⭐⭐ | ⭐⭐⭐ | Rival |
+|---|---|---|---|---|---|---|
+| 9 | Remontada | `test`, 3 tours, 9 IA d, 10e | 5 places gagnées | podium | gagner | — |
+| 10 | Monzo à fond | Monzo, 2 tours, 9 IA n, 10e | 4 places | 6 places | podium | — |
+| 11 | Les rues de Monoco | Monoco, 3 tours, 7 IA n, 8e | 2 places (doubler à Monoco, c'est dur) | 4 places | podium sans pénalité | — |
+| 12 | Le huit de Suzuko | Suzuko, 2 tours, 9 IA n, 10e | 4 places | podium | gagner | — |
+| 13 | La chasse au champion | Silverstoun, 3 tours, 9 IA n, 10e | finir devant le jeune | finir devant le métronome | finir devant le champion | le champion part 1er |
+| 14 | Grille inversée | Spaa, 2 tours, 9 IA e, tu pars **5e** : les 4 devant toi sont les plus lents, les 5 derrière les plus rapides | finir 5e ou mieux | podium | gagner | le champion part 10e |
+| 15 | Les nuits de Singapura | Singapura, 2 tours, 9 IA n, 9e | 3 places | podium | gagner | — |
+| 16 | Montée de division | Interlagas, 3 tours, 9 IA e, 10e | 5 places | podium | gagner | le champion part 1er |
+
+**Groupe 3 — Les conditions** (la pluie, les pneus, l'aileron, le stand)
+
+| # | Titre | Situation | ⭐ | ⭐⭐ | ⭐⭐⭐ | Rival |
+|---|---|---|---|---|---|---|
+| 17 | Averse | Spaa, 3 tours, averse (au tiers), 9 IA n, 5e, en pneus secs | finir avec moins de 3 s dans l'herbe (`p.herbe` < 360 pas : il compte des pas de physique, 120 par seconde) | passer au stand prendre des pneus pluie et finir 5e ou mieux | podium | — |
+| 18 | Ça sèche ! | Interlagas, 3 tours, éclaircie, 9 IA n, 6e, en pneus pluie | finir | changer de pneus au bon moment et finir 4e ou mieux | podium | — |
+| 19 | Aileron cassé | Barcelana, 2 tours, 9 IA n, 3e, aileron à 0,4 | finir 6e ou mieux | finir 4e ou mieux | podium | — |
+| 20 | Le pari du stand | Montréol, 3 tours, 9 IA n, 4e, aileron à 0,6 | finir | passer au stand et finir 4e ou mieux | podium | — |
+| 21 | Pneus à bout | Yas Marino, 2 tours, 9 IA n, 2e, pneus à 70 % d'usure | finir 5e ou mieux | finir 3e ou mieux | gagner | le champion part 1er |
+| 22 | Déluge | Silverstoun, 2 tours, pluie forte, 9 IA n, 6e | finir sans pénalité | 3 places gagnées | podium | — |
+| 23 | Les drapeaux | `test`, 3 tours, 5 IA n, drapeaux allumés (une IA arrêtée comme la leçon 8 ; `TUTORIEL.scene` ne vise aujourd'hui que la leçon `drapeaux` : à généraliser en une petite fonction partagée) | aucune pénalité de drapeau | 3e ou mieux sans pénalité | gagner sans pénalité | — |
+| 24 | Melbourn sous l'orage | Melbourn Park, 3 tours, averse, 9 IA e, 7e | finir | 3 places | podium | — |
+
+**Groupe 4 — Les duels** (sur la grille, une seule voiture compte)
+
+| # | Titre | Situation | ⭐ | ⭐⭐ | ⭐⭐⭐ | Rival |
+|---|---|---|---|---|---|---|
+| 25 | Bats ton coéquipier | Bahrayn, 3 tours, 9 IA n, 8e ; le coéquipier 6e | finir devant lui | devant lui et 5e ou mieux | devant lui de 3 s | le coéquipier |
+| 26 | La bête noire | Monzo, 2 tours, 9 IA n, 4e ; la bête noire 3e | finir devant elle | devant elle et sur le podium | devant elle sans contact (aucun choc noté entre vous) | la bête noire |
+| 27 | Le métronome | Suzuko, 3 tours, 9 IA e, 2e ; le métronome 1er | finir à moins de 3 s de lui | finir devant lui | finir devant lui avec le meilleur tour | le métronome |
+| 28 | Le jeune loup | Montréol, 2 tours, 9 IA n, 1er ; le jeune 2e | finir sur le podium | finir devant le jeune | gagner | le jeune |
+
+### B2. Avec le départ lancé : 12 défis (la simulation doit savoir poser des voitures en mouvement)
+
+Ces défis mettent l'enfant **au milieu d'une course** (un tour donné, des voitures déjà espacées). Ils demandent le départ lancé décrit dans l'idée 3 (`placerSurPiste` + vitesse + tour en cours + passages). À faire seulement si le plan B a plu.
+
+**Groupe 5 — Le dernier tour**
+
+| # | Titre | Situation | ⭐ | ⭐⭐ | ⭐⭐⭐ | Rival |
+|---|---|---|---|---|---|---|
+| 29 | Dernier tour à Monzo | dernier tour, tu es 2e à 0,8 s du champion | rester 2e | gagner | gagner de plus de 0,3 s | le champion |
+| 30 | Dernier tour à Monoco | dernier tour, 1er, la bête noire à 0,4 s | finir sur le podium | gagner | gagner sans toucher l'herbe | la bête noire |
+| 31 | Le photo-finish | dernier tour à Bahrayn, 3e, les deux de devant à 0,5 s | 3e | 2e | 1er | le champion 1er |
+| 32 | Le dernier virage | les 1 500 derniers mètres de Silverstoun, côte à côte avec le coéquipier | finir devant lui | gagner | gagner de 0,5 s | le coéquipier |
+
+**Groupe 6 — Les situations de course**
+
+| # | Titre | Situation | ⭐ | ⭐⭐ | ⭐⭐⭐ | Rival |
+|---|---|---|---|---|---|---|
+| 33 | Défends-toi ! | 2 tours, 1er, une voiture plus rapide à 0,5 s derrière | finir 2e ou mieux | gagner | gagner sans pénalité ni herbe | le champion derrière |
+| 34 | Le train | 2 tours, 6e d'une file de 6 voitures à 0,5 s l'une de l'autre | 2 places | 4 places | 1er de la file | — |
+| 35 | Après la VSC | fin de VSC (drapeau vert), 3e, tout le monde groupé | rester 3e | 2e | 1er | — |
+| 36 | Sortie de stand | tu ressors du stand 7e, pneus neufs, ceux de devant en pneus usés | 4e | 2e | 1er | — |
+| 37 | La pluie qui tombe | mi-course, 2e, la pluie commence, 2 tours | rester sur la piste | finir 2e | finir 1er | le champion 1er |
+| 38 | Le tour de rattrapage | 1 tour, 4e à 3 s du podium | gagner 1 s | podium | 2e | — |
+| 39 | Le retardataire | 2 tours, 1er, un groupe de retardataires (drapeau bleu) à passer | gagner | gagner avec 2 s d'avance | gagner sans pénalité ni herbe | la bête noire 2e |
+| 40 | Le grand final | le dernier tour du dernier Grand Prix d'une saison inventée : tu dois finir devant le champion pour le titre | finir devant lui | podium devant lui | gagner | le champion |
+
+### B3. Les règles de la carte des défis
+
+- **Débloquer** : les 8 premiers sont ouverts ; chaque groupe s'ouvre à 10 étoiles dans le groupe d'avant (`DEFIS_ECLAIR_OUVERTURE`). Jamais bloqué longtemps : un défi passé avec 1 étoile compte.
+- **Réessayer** : un gros bouton, **sans pub entre les deux**, et **la même course** (même graine) : une étoile vient de l'enfant, pas de la chance.
+- **Le tutoriel** : ses 8 leçons pourraient devenir la case 0 de chaque groupe (« Apprendre ce geste ») au lieu d'un endroit à part : à proposer au propriétaire, pas à imposer.
+- **Le commentateur** parle comme en course (il connaît le rival du défi par son nom).
+- **Le niveau de pilote** (idée 7) donne des points par étoile, si l'idée existe.
+
+### B4. Le plan des tests
+
+- Chaque défi du plan B : le **robot d'essai** obtient au moins ⭐ (sinon le défi est trop dur ou mal réglé) et **pas** ⭐⭐⭐ sur tous (sinon c'est trop facile) ; le même défi rejoué deux fois = la même empreinte.
+- Chaque but : un test unitaire avec une fausse arrivée (place, écart, herbe, pénalités, départ, stand).
+- Les rivaux par rôle : sur 5 plateaux tirés, le rôle donne toujours un pilote, jamais le joueur, jamais deux rôles sur le même pilote dans un défi.
+- Écran : la carte des 40 cases tient en 640×360 (elle défile, une rangée par groupe), cases ≥ 44 px au doigt.
+
+## Annexe C — « Ton copain dans ta saison », prêt à coder
+
+### C1. Le lien : court, sans texte libre
+
+`https://<adresse du jeu sur Poki>?pilote=1-<données>-<somme>` (par `SDK.lienPartage({ pilote: code })`, comme le défi ; repli sur l'adresse où le jeu tourne).
+
+Les **données** sont des entiers écrits avec les 64 signes de `defi.js` (`ecrireEntier` y est **interne**, pas exporté : l'exporter dans le `return` de `DEFI`, avec `lireEntier`, plutôt que de le recopier ; pas de « - » dans les signes) :
+
+| Champ | Valeurs | Signes |
+|---|---|---|
+| numéro | 1 à 99 (`NUMERO_MIN`, `NUMERO_MAX`) | 2 |
+| pays | indice dans `PAYS` (31) | 1 |
+| motif du casque | indice dans tous les motifs (`CASQUE.tousLesMotifs()`) | 1 |
+| 3 couleurs du casque | indice de la couleur la plus proche dans `CASQUE_PALETTE` (12) | 3 |
+| motif de livrée | indice dans `LIVREE_MOTIFS` (6) | 1 |
+| couleur secondaire de livrée | indice dans `CASQUE_PALETTE` | 1 |
+| circuit du temps | indice dans `CALENDRIER_CIRCUITS`, ou 0 = pas de temps | 1 |
+| meilleur temps propre | en centièmes de seconde (ex. 1:23,45 → 8 345) | 3 |
+
+Environ **15 signes de données + 2 de somme** : `?pilote=1-HbA3cK9xQ2mZ7bB-Tq`. **Aucun nom, aucun texte** : seulement des nombres et des choix dans des listes du jeu. Une couleur de casque hors palette (rare) est ramenée à la plus proche : le casque du copain chez l'autre ressemble au sien sans être forcément identique au pixel (invisible pour un enfant).
+
+**Le temps envoyé** : le record propre du joueur sur le circuit où ce record est **le plus proche** du tour du poleman (son meilleur circuit) ; pas de record : champ circuit à 0.
+
+**La somme** : la même que celle du défi (`DEFI.somme`). Elle repère un lien **abîmé** (copié à moitié). Elle **n'empêche pas** un tricheur de fabriquer un lien (le code du jeu est lisible) : c'est la règle du rythme qui protège (C2).
+
+**Version** : le « 1- » du début ; une version inconnue est refusée proprement (« Ce lien vient d'une autre version du jeu »).
+
+### C2. La règle anti-triche du rythme
+
+Le copain est **une IA comme les autres** (même physique, mêmes règles, caractère tiré avec la graine). Seul son **rythme** (`p.rythme`, la part de la vitesse que sa carte permet) vient du lien :
+
+1. On calcule chez celui qui reçoit le **tour du poleman** du circuit du temps : `P`. `FANTOME_POLE.tour(e)` prend une **course** (`e`, avec sa carte et sa grille, pas un plateau ; CLAUDE.md écrit `tour(plateau)`, c'est le code qui a raison) : il faut donc une course de ce circuit avec sa **carte des IA** (en cache, livrée, ou calculée : 1,3 à 2,5 s, mesuré en A7) ; on la prépare pendant que l'écran d'accueil du copain est affiché. Pour ne pas dépendre du poleman d'un tirage, prendre le **vrai tour simulé non étiré** (option à ajouter : aujourd'hui `FANTOME_POLE_ETIRER` étire toujours). **Plus simple, et c'est ce que je conseille** : `tourEstime(carte, 1)` (`ia.js`), qui applique **déjà** l'échelle par circuit et par niveau (`echelleQualif`, `QUALIF_ECHELLE_CIRCUIT`, tour 55 T23 : au rythme 1, elle colle au tour simulé à 1 % près) ; aucune simulation, seulement la carte.
+2. `r = P / T` (T = le temps du copain). Un enfant aussi rapide que le poleman a `r ≈ 1`.
+3. **Le temps impossible** : `T < P × COPAINS_TEMPS_MIN` (0,97 : plus de 3 % plus vite qu'une IA parfaite) → le temps est ignoré (rythme moyen), avec un mot neutre (« On n'a pas pu lire son temps »), jamais « tricheur ».
+4. **Le rythme** : on place `r` entre `COPAINS_R_LENT` (0,85) et `COPAINS_R_RAPIDE` (1,0), et on l'étale entre **le rythme du plus lent et celui du plus rapide du plateau** de celui qui reçoit. Un copain très rapide est donc, **au plus, aussi rapide que le champion** de ta division, jamais plus ; un copain lent est le plus lent du plateau, jamais moins.
+5. Sans temps : le rythme médian du plateau.
+6. Le rythme est fixé à l'accueil. Un nouveau lien du **même copain** (même numéro et même casque) le met à jour, au plus une fois par Grand Prix.
+
+Le pire cas d'un lien fabriqué : un copain qui roule comme le meilleur rival de ta division. C'est un rival difficile, pas un tricheur invincible, et ça ne change rien pour les autres joueurs (il n'y a pas de classement commun).
+
+### C3. Ce que voit celui qui reçoit
+
+**Il a une carrière** : au chargement, avant le paddock, un écran (même style que la boutique : la voiture qui tourne, avec la livrée du copain) :
+
+```
+┌──────────────────────────────────────────────┐
+│  UN COPAIN VEUT COURIR DANS TA SAISON !      │
+│  [voiture qui tourne, casque, n° 7, 🇧🇪]       │
+│  Vitesse : ●●●●○                             │
+│  Comment s'appelle ton pote ? [ Inès      ]  │
+│  Course :    ( Contre toi )  ( Avec toi )    │
+│  [  ACCEPTER  ]          [ Non merci ]       │
+└──────────────────────────────────────────────┘
+```
+
+- **Le prénom est tapé par celui qui reçoit** (16 lettres au plus, le même champ que le nom du pilote, avec le filtre de mots déjà utilisé pour les noms s'il y en a un). Rien d'écrit par un autre enfant ne s'affiche.
+- **« Vitesse » en 5 points** (le rythme placé dans le plateau), pas un chiffre.
+- **« Contre toi »** : il remplace le pilote **le plus lent d'une autre écurie** (ce pilote part « en retraite anticipée », comme un retraité : son résumé compact est gardé). **« Avec toi »** : il devient **ton coéquipier** (l'ancien coéquipier change d'écurie) : le duel de la saison devient **toi contre ton copain**, la meilleure idée de l'écran.
+- **Le numéro déjà pris** : il prend le plus proche de libre, et on le dit (« Le 7 est pris : Inès courra avec le 17 »).
+- **Au plus `COPAINS_MAX` (3) copains** par plateau ; au-delà : « Ta grille a déjà 3 copains : remplacer lequel ? ».
+- **Ensuite**, partout dans le jeu : sa ligne d'une couleur à part dans la tour de classement et les classements (« 🤝 » devant son prénom), le duel « Toi 3 – 1 Inès » sur la page Course du paddock, sa fiche (« Discuter » marche : il répond comme un rival, avec le caractère tiré), au moins **une une du journal par saison** sur vous deux, les phrases du commentateur avec son prénom. Dans sa fiche : **« Envoyer ma revanche »** (ton propre lien, pour qu'il t'ajoute chez lui) et « Retirer de ma saison ».
+- **Son âge** : le joueur n'a pas d'âge dans la sauvegarde (`p.age` est `null` pour l'humain, `championnat.js`) ; le copain prend l'âge le plus bas du plateau (`AGE_DEPART`), vieillit comme les rivaux dans `SAISONS.evoluer`, mais **ne prend pas sa retraite** tant que le joueur court (`COPAINS_RETRAITE` faux) ; la relève le garde (« l'ami de la famille »).
+
+**C'est un nouveau joueur** (pas de sauvegarde) : le lien l'emmène sur la grille de la **course de découverte**, la voiture du copain à la place de l'un des 6 rivaux, avec une bulle « 🤝 Ton copain est sur la grille ! » (son prénom n'est pas connu : il sera demandé à la création du pilote, juste après le podium, par la même question). Le reste de la découverte ne change pas (`DECOUVERTE_*`).
+
+**Le lien est abîmé ou d'une autre version** : un petit message sur le titre (« Ce lien de copain ne marche pas »), le jeu continue normalement. Console vide.
+
+### C4. Le plan des tests
+
+- Coder puis décoder : les mêmes champs ; tous les numéros, pays, motifs ; la longueur reste sous 30 signes.
+- Un signe changé → refusé ; une version inconnue → refusée ; un lien vide → rien.
+- Le rythme : un temps au poleman → le rythme du champion ; un temps à 0,85 → le plus lent ; un temps « impossible » → médian ; jamais hors des bornes du plateau, sur 1 000 temps tirés.
+- Le plateau : avec 1, 2, 3 copains (contre et avec toi), toujours 20 pilotes, 10 écuries, 2 par écurie, numéros uniques ; 15 saisons avec 3 copains (`tests/carriere-longue.html`) sans erreur ; la sauvegarde relue identique.
+- Les écrans : l'accueil du copain en 1280×720, 960×600, 640×360 au doigt, fr et en ; la découverte avec le copain ; aucun texte venu du lien à l'écran (le test cherche le contenu des données dans la page).
+- `COPAINS_ACTIF` faux : aucun bouton, `?pilote=` ignoré, le jeu d'avant au bit près.
+
+**Fichiers** : `copain.js` (nouveau, calcul pur : coder, décoder, rythme), `championnat.js` (insérer, retirer), `decouverte.js` (le copain dans la découverte), `interface.js` + `index.html` (envoi, accueil, fiche), `textes.js`, `donnees.js` (`COPAINS_*`), le début de `principal.js` (lire `pilote` comme `defi`, par `SDK.parametreUrl` ; `sdk.js` inchangé), `defi.js` (exporter `ecrireEntier` et `lireEntier`), `sauvegarde.js`.
+
+## Annexe D — Les idées 4 à 8, prêtes à coder
+
+Même règle que pour les annexes A à C : chaque nombre est un réglage de `donnees.js`, réversible ; le calcul est pur et testé sans écran ; tous les textes sont dans `textes.js`, fr et en ; « faux » = le jeu d'avant au bit près.
+
+### D4. Les médailles des circuits
+
+**Les règles exactes.**
+- **Les quatre fantômes** d'un circuit sont quatre tours **simulés** comme le fantôme du poleman : une IA seule, parfaitement régulière, rythme 1, tour lancé (`FANTOME_POLE_LANCE`), **non étiré**. Un par niveau, `MEDAILLES_NIVEAUX` = `['debutant', 'normal', 'expert', 'legende']` → 🥉 🥈 🥇 💎. Le niveau change la façon de piloter (`limite`, `marge`, `corde`… de `NIVEAUX`), donc le temps : le tour débutant est le plus lent, le légende le plus rapide. Si deux niveaux donnaient le même temps sur un circuit, l'écart minimal `MEDAILLES_ECART_MIN` (0,3 s) est imposé en allongeant le plus lent (le fantôme montré reste le vrai tour ; seul le temps à battre bouge).
+- **Le calcul** : `FANTOME_POLE.tour(e)` prend une course dont la grille a une IA en pole ; pour les médailles il faut une petite fonction voisine, `MEDAILLES.fantome(circuit, niveau)` dans un fichier à elle, qui fait la même chose sans grille (poser `REGLAGES.NIVEAU` le temps du calcul, comme `EN_LIGNE.preparerCircuit`, créer la course d'une IA, la faire rouler, compacter avec `FANTOME`). La **carte des IA** du niveau est nécessaire : normal et débutant partagent la leur, expert et légende ont chacun la sienne (annexe A7). Coût : 0,2 à 0,8 s par fantôme + la carte si elle n'est pas en cache ; calculé **une fois par circuit et par version du jeu**, gardé dans la sauvegarde (le temps seulement, quelques octets ; le fantôme lui-même est recalculé quand on le montre).
+- **Ce qui compte** : un tour **propre** (ni coupé, ni « limites de piste » marqué, ni par la voie des stands, **ni avec un secours de l'auto-guidage** (`JEU.secoursGuidage`, tour 60) : la règle du record et du fantôme d'aujourd'hui, plus le secours), en **qualification** (carrière ou course rapide) ou dans une **course seule** (essai libre : chaque tour y est déjà enregistré depuis le tour 51b). Pas en course contre des IA (l'aspiration aiderait), pas au tournoi, pas à deux, pas au Grand Prix du jour.
+- **La médaille gagnée** : la meilleure dont le temps est battu (strictement plus vite). On ne la perd jamais.
+- **Le fantôme montré** : en essai libre et en qualification, le choix « Fantôme : ton record / la pole » gagne une 3e valeur, **« la médaille »** : le fantôme de la **prochaine** médaille à gagner (or si on a l'argent). Avec 💎, plus rien à gagner : ton record.
+- **Les aides** : une médaille gagnée avec une aide est gardée, avec un petit signe à côté (comme au tournoi chrono : « avec aides ») ; la même médaille sans aide efface le signe. Jamais refusée.
+
+**Les écrans.**
+- **Page Saison** du paddock (et le menu « Choisis ta course ») : une rangée « Médailles : 🥇 4 · 🥈 3 · 🥉 2 · 💎 0 » et, au doigt, un appui ouvre la liste des 12 circuits avec leurs 4 temps (lignes de 40 px).
+- **Qualification / essai libre** : sous le chrono, la médaille visée et l'écart en direct (le même calcul que le fantôme : `FANTOME.ecart`) ; à la fin du tour : « 🥇 Médaille d'or à Suzuko ! » ou « Or à 0,412 s ».
+
+**Les cas limites.** Physique ou réglage `IA_*` changé : les temps changent ; la clé de la carte (`cache-carte.js`) change déjà dans ce cas, la même clé invalide les temps gardés (ils sont recalculés ; les médailles **gagnées** restent). Circuit `test` et `technique` : médailles aussi (ce sont les circuits de l'essai libre). Pluie : les médailles ne comptent qu'au sec (pas d'eau sur la piste, `meteo.js`), dit à l'écran (« Médailles : au sec seulement »).
+
+**Les tests.** Les 4 temps dans l'ordre sur les 14 circuits ; écart ≥ `MEDAILLES_ECART_MIN` ; le même fantôme deux fois = le même tour au bit près ; un tour coupé ne donne rien ; une médaille gagnée n'est jamais perdue ; le robot d'essai obtient le bronze sur au moins 10 circuits (sinon `MEDAILLES_NIVEAUX` est mal choisi) et jamais le diamant ; `MEDAILLES_ACTIF` faux : rien à l'écran, la qualification au bit près ; écrans 1280, 960 et 640 au doigt.
+
+**Les réglages.** `MEDAILLES_ACTIF`, `MEDAILLES_NIVEAUX`, `MEDAILLES_ECART_MIN`, `MEDAILLES_SEC_SEULEMENT`.
+
+**Les fichiers.** `medailles.js` (nouveau, calcul pur), `qualification.js` (le choix du fantôme), `principal.js` (le tour propre fini → la médaille), `interface.js` + `index.html`, `textes.js`, `donnees.js`, `sauvegarde.js` (`medailles` à la racine : survit à une nouvelle carrière), `tests/test.html`, `tests/ecrans.py`.
+
+### D5. La course à élimination
+
+**Les règles exactes.**
+- **Où** : course rapide (« Choisis ta course » : une 4e formule « 🚩 Élimination » à côté des trois longueurs) et à deux (écran « À deux »). **Jamais en carrière**, ni au tournoi, ni au jour.
+- **Les voitures** : de 4 à `ELIMINATION_VOITURES_MAX` (8) ; la longueur n'est pas choisie : **N − 1 tours** (8 voitures → 7 tours).
+- **Le moment** : quand **le meneur** franchit la ligne à la fin des tours 1 à N − 2, la voiture **dernière du classement de course à cet instant** (`classementCourse(e)`, la place de la piste, pénalités non comptées, comme la règle du propriétaire « pendant la course, la place est celle de la piste ») est éliminée : `p.abandon = true`, `p.elimine = tour`. Au dernier tour, il en reste deux : la ligne décide.
+- **Le classement final** : 1er et 2e à l'arrivée (pénalités comprises, comme toujours à l'arrivée), puis les éliminés **du dernier éliminé au premier**. `classementCourse` range déjà les abandons après tout le monde ; il faut seulement ranger les éliminés entre eux par `elimine` décroissant.
+- **La voiture éliminée** : retirée de la physique (`pasCourseIA` ne fait déjà rouler que `!p.abandon`) ; à l'écran elle **s'efface** en 1 s (transparence) puis n'est plus dessinée, pour ne pas faire de bouchon ni de VSC. Les drapeaux restent actifs pour le reste.
+- **Pas d'arrêt obligatoire** (course de moins de 12 tours), le stand reste ouvert.
+- **Le joueur éliminé** : la course continue pour les autres ; un voile « Éliminé ! P6 » avec **« ▶ Regarder la fin »** (la vue télé, puis « Passer » = l'accéléré existant, `ARRIVEE.accelerer`) et **« 🔁 Rejouer »**. **À deux** : la moitié de l'éliminé passe en vue télé de l'autre joueur, avec le bandeau « Éliminé ! » ; la course finit quand l'autre a fini ou est éliminé.
+
+**Les écrans.** Le bandeau de course « 🚩 {qui} ÉLIMINÉ ! » (le même `#drapeau` que les drapeaux, en rouge, avec son texte) ; dans la tour de classement, la dernière ligne clignote en rouge pendant le dernier secteur de chaque tour du meneur (« Zone d'élimination ») ; le commentateur (`com_elimine`, `com_zoneElimination`).
+
+**Les cas limites.** Deux voitures dernières à égalité de distance : celle qui a franchi la ligne la plus tard (le classement le fait déjà). Le meneur ralenti (VSC) : la règle ne change pas. Un joueur arrêté sur la piste : il peut être éliminé (c'est le jeu). Le joueur 1 et le joueur 2 derniers ensemble : un seul part par tour (le classement tranche).
+
+**Les tests.** 8 voitures → 7 tours, 6 éliminations, 2 à l'arrivée ; l'ordre final ; jamais un éliminé qui roule encore ; la règle ne tire aucun hasard (deux courses à la même graine = la même empreinte) ; à deux : l'élimination de l'un ne coupe pas l'autre moitié ; `ELIMINATION_ACTIF` faux : la formule n'existe pas, toutes les courses au bit près ; écrans 1280, 960, 640 au doigt.
+
+**Les réglages.** `ELIMINATION_ACTIF`, `ELIMINATION_VOITURES_MAX`, `ELIMINATION_VOITURES_MIN`, `ELIMINATION_EFFACER` (s).
+
+**Les fichiers.** `course.js` ou un petit `elimination.js` (la règle, calcul pur, appelée depuis `pasCourseIA` quand le meneur change de tour), `simulation.js` (le rangement final), `voiture3d.js` / `scene3d.js` (l'effacement), `deux-joueurs.js` (la moitié de l'éliminé), `interface.js`, `textes.js`, `donnees.js`, `tests/`.
+
+### D6. Le ralenti du photo-finish et du dépassement décisif
+
+**Les règles exactes.**
+- **Photo-finish** : quand le joueur passe la ligne d'arrivée **à moins de `PHOTO_FINISH_SEUIL` (0,15 s)** de la voiture juste devant ou juste derrière lui (au moment où la seconde des deux passe), et que l'enjeu est une place du **podium** (`PHOTO_FINISH_PLACES` = 3) ou le duel du coéquipier. Une fois par course au plus.
+- **Le dépassement décisif** : dans le **dernier tour**, le joueur double pour la **1re place** et la garde jusqu'à l'arrivée. Pris dans `enr.momentsForts()` (`enregistreur.js` sait déjà trouver les dépassements). Si les deux arrivent, le photo-finish passe d'abord.
+- **Le rejeu** : 3 s (`PHOTO_FINISH_DUREE`) avant le passage, au ralenti ×0,4, lus dans l'enregistreur de la course (`enr.lire(t)`, celui du résumé vidéo), sous la caméra de la régie la plus proche de la ligne (`REGIE.postes`), pendant que le public de la tribune de la ligne **saute** (l'excitation du public existe depuis le tour 60, `PUBLIC_EXCITATION`), puis 1 s d'image figée avec la **bande du photo-finish** : un dessin 2D (comme `photo.js`) des deux nez et de la ligne, et le texte. La simulation, elle, continue derrière (les IA finissent leur course) ; rien ne change aux temps.
+- **Le moment** : seulement **après** la ligne du joueur. Un appui (ou Échap) passe tout de suite. À deux : en plein écran, une fois, pour l'arrivée la plus serrée entre les deux joueurs.
+
+**Les textes.** fr : « PHOTO-FINISH ! », « {qui} gagne de {ecart} s ! », « Battu de {ecart} s… », « Le dépassement de la victoire ! » ; en : « PHOTO FINISH! », « {qui} wins by {ecart} s! », « Beaten by {ecart} s… », « The race-winning move! ». L'écart en millièmes.
+
+**Les cas limites.** Une pénalité à l'arrivée qui inverse l'ordre : le texte dit la place **finale** (« … mais la pénalité de 5 s te fait reculer »). Qualité au plus bas (Auto) : le rejeu se joue quand même (même scène). Le résumé vidéo d'après la course garde le moment (déjà dans `momentsForts`). L'album : la une du jour peut prendre la bande comme « photo » (`photo.js`).
+
+**Les tests.** Une fausse arrivée à 0,05 s déclenche, à 0,5 s non ; hors podium non ; une fois par course ; « passer » marche ; les places et les temps de la course sont identiques avec et sans rejeu (au bit près) ; capture de la bande en 1280 et 640.
+
+**Les réglages.** `PHOTO_FINISH_ACTIF`, `PHOTO_FINISH_SEUIL`, `PHOTO_FINISH_PLACES`, `PHOTO_FINISH_DUREE`, `PHOTO_FINISH_RALENTI`, `DEPASSEMENT_DECISIF_ACTIF`.
+
+**Les fichiers.** `photo-finish.js` (nouveau : la détection, calcul pur), `principal.js` (déclencher après la ligne), `camera.js` / `regie.js` (le plan), `photo.js` (la bande), `interface.js`, `textes.js`, `donnees.js`, `tests/`.
+
+### D7. Le niveau de pilote
+
+**Les règles exactes.**
+- **Les points** (`NIVEAU_PILOTE_POINTS`), pour **toute course finie** (pas abandonnée) : 40 pour l'avoir finie, + 10 par place gagnée sur la grille (au plus 60), + 30 pour un podium, + 30 de plus pour une victoire, + 20 par étoile d'un défi-éclair (la première fois seulement), + 10 / 20 / 30 pour une médaille de bronze / argent / or du jour (une fois par jour), + 15 pour un tour propre en qualification. Au plus `NIVEAU_PILOTE_MAX_COURSE` (200) par course. **Les mêmes avec ou sans aides.** Le tournoi chrono : chaque joueur du tournoi n'est pas « le pilote » ; seul le pilote de la sauvegarde gagne des points, s'il joue. À deux : les deux joueurs n'ont pas de sauvegarde à eux ; seul le joueur 1 (celui du pilote) gagne des points.
+- **La courbe** : passer du niveau n au niveau n + 1 demande `100 + 25 × (n − 1)` points (niveau 10 ≈ 1 800 points ≈ 15 courses ; niveau 30 ≈ 13 000 ≈ 90 courses). Pas de niveau maximum.
+- **Les cadeaux** (`NIVEAU_PILOTE_CADEAUX`, une liste par niveau, les 30 premiers niveaux écrits à la main, ensuite tous les 5 niveaux) : des **motifs de casque**, des **motifs de livrée**, des **célébrations**, des **couleurs** de la palette (`CASQUE_PALETTE`) et des **titres** (un petit mot sous le nom dans la tour de classement : « Le rapide », « La fusée », « Légende » ; fr et en, jamais genré). **Jamais** les récompenses de carrière (« or, champion, légende », `SKINS` de type récompense), jamais de vitesse, jamais d'argent de carrière (l'argent reste celui des courses).
+- **Ce qu'il faut ajouter** : il n'y a aujourd'hui que 6 motifs de casque de départ + 5 à débloquer, 6 motifs de livrée et 2 célébrations de départ : il faut **au moins 12 motifs et 4 célébrations de plus** pour 30 niveaux (dessinés dans les atlas existants : aucun appel de dessin en plus). Les « pièces » (jantes, fumée, aileron) restent **non retenues** (décision du 2026-11-04).
+
+**Les écrans.** Sur le podium (carrière, course rapide, jour, défi) : une barre qui se remplit, « +120 » puis « Niveau 14 ! » et le cadeau (« 🎁 Motif de casque : Comète », « Mettre » / « Plus tard »). Au paddock, sous le nom du pilote : « Niv. 14 » et la barre fine. Au titre (lancements suivants) : rien (le titre reste simple).
+
+**Les cas limites.** Nouvelle carrière : le niveau **reste** (il est à la racine, comme les motifs débloqués) ; « Nouvelle carrière à 0 » l'efface. Une course rejouée en boucle (« Encore une course ? ») : les points comptent, le plafond par course tient ; pour éviter l'usine à points, `NIVEAU_PILOTE_COURSE_MIN` : une course de moins de 60 s de conduite ne donne que les 40 points de base.
+
+**Les tests.** Les points de chaque cas ; le plafond ; la courbe (niveaux 1, 10, 30) ; chaque cadeau tombe une fois, au bon niveau ; aides allumées ou coupées = les mêmes points ; la physique au bit près ; une vieille sauvegarde = niveau 1, 0 point ; `NIVEAU_PILOTE_ACTIF` faux : rien à l'écran.
+
+**Les réglages.** `NIVEAU_PILOTE_ACTIF`, `NIVEAU_PILOTE_POINTS`, `NIVEAU_PILOTE_MAX_COURSE`, `NIVEAU_PILOTE_COURBE` ([100, 25]), `NIVEAU_PILOTE_CADEAUX`, `NIVEAU_PILOTE_COURSE_MIN`.
+
+**Les fichiers.** `niveau-pilote.js` (nouveau, calcul pur), `casque.js`, `livree.js`, `celebration.js` (les nouveaux motifs et le déblocage par niveau, à côté de `CASQUE_DEBLOCAGES`), `principal.js` (les points à l'arrivée), `interface.js` + `index.html`, `textes.js`, `donnees.js`, `sauvegarde.js` (`niveauPilote` à la racine).
+
+### D8. Le championnat à deux
+
+**Les règles exactes.**
+- **Où** : « Entre amis » → « À deux » → un choix **« Une course »** (comme aujourd'hui) ou **« 🏆 Championnat (4 courses) »**.
+- **Les réglages, une fois pour tout le championnat** : les noms, couleurs et casques (l'écran d'aujourd'hui), le nombre d'IA (0, 3 ou 5, `DEUX_IA_CHOIX`), le niveau des IA, la longueur (les 3 gros boutons ; 5 tours proposé), et les circuits : **« Tirés au sort »** (4 circuits différents, graine = l'heure du lancement, gardée) ou choisis un par un.
+- **Les points** : ceux du championnat (`POINTS` : 25, 18, 15…) pour **toutes** les voitures, IA comprises (les IA peuvent gâcher la fête d'un joueur : c'est drôle). Le **classement à deux** affiché en grand ne montre que les deux joueurs ; le classement complet est en petit.
+- **Égalité** : le plus de victoires, puis la meilleure place à la dernière course.
+- **Entre deux courses** : l'écran du classement (« Léo 43 – 40 Emma »), « Course suivante ▶ » ; une pub (`commercialBreak`) peut venir **ici** (déjà permis entre deux courses à deux), jamais pendant une course.
+- **À la fin** : le podium 3D avec les deux casques (le gagnant au milieu, même si une IA a plus de points : c'est le **duel** qui est célébré ; les IA sont dans le classement complet), le score de la rivalité (`DEUX_JOUEURS.ajouterRivalite`) gagne **un point de championnat** à part (« Championnats : Léo 2 – 1 Emma »), et « 🔁 Revanche » (mêmes réglages, autres circuits tirés).
+- **Une page rechargée en plein championnat** : la sauvegarde garde le championnat en cours (à la racine, à part de la carrière, comme le score de la rivalité) ; au retour, « Reprendre le championnat ? ».
+
+**Les écrans.** Le choix « Une course / Championnat » (2 gros boutons de 56 px) ; le classement entre deux courses ; le podium final. Tout en 960×600 et 1280×720 ; le mode à deux n'existe pas au doigt (CLAUDE.md : pas à deux joueurs sur écran tactile), donc pas de 640×360.
+
+**Les cas limites.** Un joueur qui abandonne une course (pause → Abandonner) : 0 point pour lui, le championnat continue. Les deux noms changés entre deux championnats : un nouveau score de rivalité (la règle d'aujourd'hui). Moins de 4 circuits disponibles (jamais : il y en a 14).
+
+**Les tests.** 4 courses enchaînées avec de faux résultats : les points, l'égalité ; la reprise après rechargement ; la rivalité +1 au gagnant ; aucune pub pendant une course (faux SDK) ; la carrière n'est pas touchée ; `DEUX_CHAMPIONNAT_ACTIF` faux : l'écran « À deux » d'aujourd'hui au pixel près.
+
+**Les réglages.** `DEUX_CHAMPIONNAT_ACTIF`, `DEUX_CHAMPIONNAT_COURSES` (4), `DEUX_CHAMPIONNAT_TOURS_DEFAUT` (5).
+
+**Les fichiers.** `deux-joueurs.js` (le championnat : points, égalité, reprise, calcul pur), `principal.js` (enchaîner les courses), `interface.js` + `index.html`, `podium3d.js` (le podium des deux), `textes.js`, `donnees.js`, `sauvegarde.js`, `tests/`.
+
+## Annexe E — Les maquettes des écrans des 3 premières idées
+
+**Comment les lire.** Une case = un écran, à l'échelle approximative (1280×720 : 1 caractère ≈ 20 px de large ; 640×360 : ≈ 10 px). `[ … ]` = un bouton, avec sa hauteur. Au doigt (`body.tactile`), **aucun bouton sous 40 px** (règle du tour 53b) ; les boutons principaux font 56 px en 1280×720 et 48 px en 640×360. Le style est celui d'aujourd'hui (`STYLE_TELE` : plaques en biais, titre en plaque blanche, bouton principal rouge, icônes SVG d'`icones.js` à la place des émojis dans les menus ; les émojis ci-dessous désignent l'icône). Les textes entre guillemets sont **les textes exacts**, fr puis en, avec leur clé `textes.js`. En 960×600, la mise en page de 1280×720 serrée (rien de neuf).
+
+### E1. Le Grand Prix du jour
+
+**E1.a — Le titre (lancements suivants et premier lancement)**
+
+1280×720 :
+```
+┌──────────────────────────────────────────────────────────────┐
+│                                                         [🔊] │
+│              ┌──────────────────────────────┐                │
+│              │      GRAND PRIX DYNASTY      │                │
+│              └──────────────────────────────┘                │
+│                    [  ▶ JOUER  ]  56 px                      │
+│     ┌───────────────────────────────────────────────┐        │
+│     │ 🗓 GRAND PRIX DU JOUR · Spaa 🌧 · 🔥 3        │ 48 px  │
+│     └───────────────────────────────────────────────┘        │
+│                    [ 👥 ENTRE AMIS ]  40 px                   │
+│   [ 📖 APPRENDRE ]   [ 🛞 AIDES ]   [ ⌨ TOUCHES ]   40 px     │
+└──────────────────────────────────────────────────────────────┘
+```
+640×360 au doigt (titre simple) :
+```
+┌────────────────────────────────────────┐
+│                                   [🔊] │ 36 px
+│   ┌──────────────────────────────┐     │
+│   │      GRAND PRIX DYNASTY      │     │
+│   └──────────────────────────────┘     │
+│        [   ▶ JOUER   ]  48 px          │
+│  [ 🗓 DU JOUR · Spaa 🌧 · 🔥 3 ] 44 px  │
+│        [ 👥 ENTRE AMIS ]  44 px         │
+│        [ 🛞 AIDES ]  44 px              │
+└────────────────────────────────────────┘
+```
+Textes : `jour_bouton` « Grand Prix du jour » / « Daily Grand Prix » ; court au doigt `tac_jour_bouton` « Du jour » / « Daily ». Suivi du circuit, de l'icône météo et de la série si elle est ≥ 2 (« 🔥 3 »). **Au tout premier lancement** (aucune sauvegarde), le bouton du jour est **sous** « Jouer », plus petit (40 px), pour que « Jouer » reste le seul gros bouton (la découverte d'abord : « en piste en 10 secondes »). Dans le paddock (page Course), une carte « Grand Prix du jour » sous « Course suivante », un bouton de 44 px.
+
+**E1.b — L'écran du jour (avant la course)**
+
+1280×720 :
+```
+┌──────────────────────────────────────────────────────────────┐
+│ ▌GRAND PRIX DU JOUR · JOUR 42                            [✕] │
+│                                                              │
+│  ┌──────────────┐   SPAA  🌧 Pluie                           │
+│  │  [carte du   │   2 tours · IA : Normal · 10 voitures      │
+│  │   circuit]   │   Tu pars : 10e                            │
+│  └──────────────┘   🌶 Ton aileron est abîmé                  │
+│                                                              │
+│   🥉 3 places gagnées   🥈 Podium   🥇 Victoire               │
+│   Ta meilleure aujourd'hui : 🥈        🔥 3 jours de suite    │
+│                                                              │
+│              [ ▶ C'EST PARTI ]  56 px     [ 🛞 Aides ] 40 px │
+└──────────────────────────────────────────────────────────────┘
+```
+640×360 au doigt :
+```
+┌────────────────────────────────────────┐
+│▌DU JOUR · JOUR 42                 [✕]  │ 40 px (le ✕ : 44×40)
+│ [carte]  SPAA 🌧 · 2 tours · Normal    │
+│          Tu pars 10e                   │
+│          🌶 Aileron abîmé               │
+│ 🥉 +3 places  🥈 Podium  🥇 Victoire     │
+│ Aujourd'hui : 🥈        🔥 3            │
+│ [ ▶ C'EST PARTI ] 48 px  [ 🛞 Aides ]44 │
+└────────────────────────────────────────┘
+```
+Textes : `jour_titre` « Grand Prix du jour · Jour {n} » / « Daily Grand Prix · Day {n} » ; `jour_tours` « {t} tours » / « {t} laps » ; `jour_niveau` « IA : {niveau} » / « AI: {niveau} » (les noms des niveaux existants) ; `jour_depart` « Tu pars : {p}e » / « You start: P{p} » ; piments `jour_piment_averse` « Une averse arrive ! » / « A shower is coming! », `jour_piment_eclaircie` « Ça va sécher… » / « It's going to dry… », `jour_piment_aileron` « Ton aileron est abîmé » / « Your front wing is damaged » (court : « Aileron abîmé » / « Damaged wing »), `jour_piment_pneus` « Pneus usés : tiens bon ou passe au stand » / « Worn tyres: hang on or pit » (court : « Pneus usés » / « Worn tyres »), `jour_piment_dernier` « Grille inversée ! » / « Reversed grid! » ; médailles `jour_bronze` « {n} places gagnées » / « {n} places gained » (court « +{n} places »), `jour_argent` « Podium », `jour_or` « Victoire » / « Win » ; `jour_meilleure` « Ta meilleure aujourd'hui : » / « Your best today: » (court « Aujourd'hui : » / « Today: ») ; `jour_serie` « 🔥 {n} jours de suite » / « 🔥 {n} days in a row » (court « 🔥 {n} ») ; `jour_go` « C'est parti » / « Let's go ». Pas de qualification : « C'est parti » mène à la grille.
+
+**E1.c — L'arrivée du jour (à la place du podium habituel, après le podium 3D)**
+
+1280×720 :
+```
+┌──────────────────────────────────────────────────────────────┐
+│ ▌GRAND PRIX DU JOUR · JOUR 42                                │
+│                     🥇  MÉDAILLE D'OR !                       │
+│              P10 ▸ P6 ▸ P1        🔥 4 jours de suite         │
+│                                                              │
+│   [ 📋 MONTRE TON RÉSULTAT ] 56 px     [ 🔁 Rejouer ] 48 px  │
+│                                                              │
+│   Demain : Singapura 🌙 · Grille inversée !                  │
+│                                            [ Continuer ▶ ] 48│
+└──────────────────────────────────────────────────────────────┘
+```
+Après « Montre ton résultat » : un cadre avec le texte exact de l'annexe A6 (lecture seule) et « Copier » (48 px) ; « Copié ! » pendant 2 s.
+
+640×360 au doigt :
+```
+┌────────────────────────────────────────┐
+│▌DU JOUR · JOUR 42                      │
+│         🥇 MÉDAILLE D'OR !              │
+│  P10 ▸ P6 ▸ P1          🔥 4            │
+│ [ 📋 MONTRE TON RÉSULTAT ] 48 px        │
+│ [ 🔁 Rejouer ] 44     [ Continuer ▶ ]44 │
+│ Demain : Singapura 🌙 · Grille inversée │
+└────────────────────────────────────────┘
+```
+Textes : `jour_or_titre` « Médaille d'or ! » / « Gold medal! », `jour_argent_titre` « Médaille d'argent ! » / « Silver medal! », `jour_bronze_titre` « Médaille de bronze ! » / « Bronze medal! », `jour_aucune` « Pas de médaille : retente ! » / « No medal: try again! » ; `jour_partager` « Montre ton résultat » / « Share your result » ; `jour_copier` « Copier » / « Copy » ; `jour_copie` « Copié ! » / « Copied! » ; `jour_rejouer` « Rejouer » / « Play again » ; `jour_demain` « Demain : {circuit} {meteo} · {piment} » / « Tomorrow: {circuit} {meteo} · {piment} » ; `jour_sauver` (📺, seulement si un jour a été manqué) « 📺 Sauve ta série (une pub) » / « 📺 Save your streak (one ad) » ; `jour_sans_sauvegarde` « Ta série n'est pas gardée sur cet appareil » / « Your streak isn't saved on this device ».
+
+### E2. Ton copain dans ta saison
+
+**E2.a — L'envoi (paddock → Entre amis)**
+
+1280×720 :
+```
+┌──────────────────────────────────────────────────────────────┐
+│ ▌ENTRE AMIS                                              [✕] │
+│  [ 🖥 ÉCRAN PARTAGÉ ] [ ⏱ TOURNOI CHRONO ] [ 👻 DÉFIER ]  48  │
+│  ┌────────────────────────────────────────────────────────┐  │
+│  │ 🤝 METS-TOI DANS LE JEU D'UN COPAIN                    │  │
+│  │ [voiture qui tourne]  n° 7 · 🇧🇪 · Vitesse ●●●○○        │  │
+│  │ Ton copain te verra courir dans sa saison.             │  │
+│  │ ┌──────────────────────────────────────┐ [ COPIER ] 48 │  │
+│  │ │ https://poki.com/…?pilote=1-HbA3cK…  │               │  │
+│  │ └──────────────────────────────────────┘               │  │
+│  └────────────────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────────────┘
+```
+640×360 au doigt :
+```
+┌────────────────────────────────────────┐
+│▌ENTRE AMIS                       [✕]   │
+│ [🖥 À DEUX]44 [⏱ CHRONO]44 [👻 DÉFI]44  │
+│ 🤝 METS-TOI DANS LE JEU D'UN COPAIN    │
+│ [voiture]  n° 7 · 🇧🇪 · ●●●○○           │
+│ ┌──────────────────────┐ [ COPIER ] 44 │
+│ │ …?pilote=1-HbA3cK…   │               │
+│ └──────────────────────┘               │
+└────────────────────────────────────────┘
+```
+Textes : `copain_titre` « Mets-toi dans le jeu d'un pote » / « Join a friend's game » ; `copain_explique` « Ton pote te verra courir dans sa saison. » / « Your friend will race against you in their season. » ; `copain_vitesse` « Vitesse » / « Speed » ; `copain_copier` « Copier » / « Copy » ; `copain_copie` « Copié ! Envoie-le à ton pote. » / « Copied! Send it to your friend. ». Sans record propre : la vitesse dit « ●○○○○ · fais un tour en essai libre pour la mesurer » / « ●○○○○ · do a lap in free practice to measure it ».
+
+**E2.b — L'accueil (celui qui reçoit le lien, a une carrière)**
+
+1280×720 :
+```
+┌──────────────────────────────────────────────────────────────┐
+│ ▌UN COPAIN VEUT COURIR DANS TA SAISON !                      │
+│  [voiture qui tourne, livrée et casque du copain]            │
+│   n° 7 · 🇧🇪 · Vitesse ●●●●○                                 │
+│   Comment s'appelle ton pote ?   [ Inès              ] 48 px │
+│   Course :    [ CONTRE TOI ] 48     [ AVEC TOI ] 48          │
+│              (avec toi : il devient ton coéquipier)          │
+│        [ ✓ ACCEPTER ] 56 px          [ Non merci ] 48        │
+└──────────────────────────────────────────────────────────────┘
+```
+640×360 au doigt (le clavier de l'écran couvre le bas quand le champ est touché : le champ est en haut, comme la création du pilote) :
+```
+┌────────────────────────────────────────┐
+│▌UN COPAIN VEUT COURIR AVEC TOI !       │
+│ Prénom : [ Inès           ] 44 px      │
+│ [voiture] n° 7 · 🇧🇪 · ●●●●○             │
+│ [ CONTRE TOI ] 44    [ AVEC TOI ] 44   │
+│ [ ✓ ACCEPTER ] 48    [ Non merci ] 44  │
+└────────────────────────────────────────┘
+```
+Textes : `copain_accueil` « Un pote veut courir dans ta saison ! » / « A friend wants to race in your season! » (court `tac_copain_accueil` « Un pote veut courir avec toi ! » / « A friend wants to race you! ») ; `copain_prenom` « Comment s'appelle ton pote ? » / « What's your friend's name? » (court « Prénom : » / « Name: ») ; `copain_contre` « Contre toi » / « Against you » ; `copain_avec` « Avec toi » / « With you » ; `copain_avec_aide` « (avec toi : il devient ton coéquipier) » / « (with you: they become your teammate) » — en anglais « they », en français « il » est ici le copain dont on ne connaît pas le genre : **à réécrire sans genre** : « (avec toi : ton coéquipier) » / « (with you: your teammate) » ; `copain_accepter` « Accepter » / « Accept » ; `copain_non` « Non merci » / « No thanks » ; `copain_numero_pris` « Le {n} est pris : {qui} courra avec le {m}. » / « Number {n} is taken: {qui} will race as {m}. » ; `copain_lien_casse` « Ce lien ne marche pas. » / « This friend link doesn't work. ». Le champ : 16 px de texte au moins (sinon Safari zoome, règle du tour 54b), 16 lettres au plus, « Accepter » grisé tant qu'il est vide.
+
+### E3. Les défis-éclair
+
+**E3.a — La carte des défis**
+
+1280×720 :
+```
+┌──────────────────────────────────────────────────────────────┐
+│ ▌DÉFIS-ÉCLAIR                         ⭐ 23 / 84        [✕]  │
+│  DÉPART      ①⭐⭐⭐ ②⭐⭐☆ ③⭐☆☆ ④☆☆☆ ⑤ ⑥ ⑦ ⑧               │
+│  REMONTÉE    ⑨⭐⭐☆ ⑩⭐☆☆ ⑪ ⑫ ⑬ ⑭ ⑮ ⑯                       │
+│  CONDITIONS  🔒 encore 4 ⭐ dans « Remontée »                │
+│  DUELS       🔒                                              │
+│                                                              │
+│   Prochain : ④ Pole à défendre · Bahrayn       [ ▶ JOUER ] 56│
+└──────────────────────────────────────────────────────────────┘
+```
+Chaque case : 56×56 px (le numéro, 3 étoiles en dessous) ; une case touchée ouvre E3.b.
+
+640×360 au doigt (une rangée par groupe, qui défile de gauche à droite ; la page ne défile pas) :
+```
+┌────────────────────────────────────────┐
+│▌DÉFIS-ÉCLAIR          ⭐ 23/84    [✕]  │
+│ DÉPART    [①][②][③][④][⑤][⑥] ▶          │ cases 44×44
+│ REMONTÉE  [⑨][⑩][⑪][⑫][⑬][⑭] ▶          │
+│ CONDITIONS 🔒 encore 4 ⭐               │
+│ DUELS     🔒                            │
+│ [ ▶ ④ POLE À DÉFENDRE ] 48 px           │
+└────────────────────────────────────────┘
+```
+Textes : `defis_titre` « Défis-éclair » / « Quick challenges » ; groupes `defis_g_depart` « Départ » / « Start », `defis_g_remontee` « Remontée » / « Comeback », `defis_g_conditions` « Conditions » / « Conditions », `defis_g_duels` « Duels » / « Duels » (plus tard `defis_g_dernier` « Dernier tour » / « Last lap », `defis_g_situations` « En course » / « Race moments ») ; `defis_verrou` « Encore {n} ⭐ dans « {groupe} » » / « {n} more ⭐ in "{groupe}" » ; `defis_prochain` « Prochain : » / « Next: ». Le total « 23 / 84 » = 28 défis × 3 étoiles (plan B).
+
+**E3.b — Avant un défi**
+
+1280×720 :
+```
+┌──────────────────────────────────────────────────────────────┐
+│ ▌④ POLE À DÉFENDRE                                      [✕] │
+│  Bahrayn · 1 tour · IA : Normal · Tu pars 1er                │
+│  Rossi, le plus rapide, part juste derrière toi.             │
+│   ⭐ Finir 3e ou mieux                                        │
+│   ⭐⭐ Gagner                                                  │
+│   ⭐⭐⭐ Gagner sans jamais perdre la tête                       │
+│              [ ▶ C'EST PARTI ] 56 px     [ 🛞 Aides ] 40     │
+└──────────────────────────────────────────────────────────────┘
+```
+640×360 : la même chose sur 6 lignes, les 3 buts sur une ligne chacun, boutons 48 et 44 px.
+
+**E3.c — Après un défi**
+
+```
+1280×720                                    640×360
+┌───────────────────────────────────┐       ┌──────────────────────────┐
+│ ▌④ POLE À DÉFENDRE                │       │▌④ POLE À DÉFENDRE        │
+│        ⭐ ⭐ ☆                     │       │   ⭐ ⭐ ☆   2e            │
+│   Tu finis 2e. ⭐⭐ : gagne !      │       │ ⭐⭐ : gagne !             │
+│ [ 🔁 RÉESSAYER ] 56  [ Suivant ▶ ]48│     │ [🔁 RÉESSAYER]48 [Suiv.▶]44│
+│                       [ Carte ] 40│       │ [ Carte ] 44             │
+└───────────────────────────────────┘       └──────────────────────────┘
+```
+Textes : `defi_reessayer` « Réessayer » / « Try again » (le bouton principal, **jamais de pub avant**), `defi_suivant` « Suivant » / « Next », `defi_carte` « Carte » / « Map », `defi_resultat` « Tu finis {p}e. » / « You finished P{p}. », `defi_etoile_suivante` « {etoiles} : {but} ! » / « {etoiles}: {but}! », `defi_trois` « Parfait ! ⭐⭐⭐ » / « Perfect! ⭐⭐⭐ ». Les buts ont chacun leur clé (`defi_but_place` « Finir {p}e ou mieux » / « Finish P{p} or better », `defi_but_gagner` « Gagner » / « Win », `defi_but_places` « Gagner {n} places » / « Gain {n} places », `defi_but_devant` « Finir devant {qui} » / « Finish ahead of {qui} », `defi_but_propre` « … sans toucher l'herbe » / « … without touching the grass », `defi_but_penalite` « … sans pénalité » / « … without a penalty », `defi_but_depart` « Départ parfait » / « Perfect start », `defi_but_virage` « Premier au premier virage » / « First into turn 1 », `defi_but_stand` « Passer au stand » / « Make a pit stop »).
+
+**Ce que les maquettes ont fait trouver** : (1) « copain » est masculin, et l'on ne connaît pas le genre de l'ami : **dans les textes du jeu, « pote »** (épicène, et c'est le mot des enfants) ; les maquettes ci-dessus gardent « COPAIN » dans les dessins, les clés de texte disent « pote » ; (2) le texte « (avec toi : il devient ton coéquipier) » était **genré** sur un copain dont on ne connaît pas le genre (la règle des textes de CLAUDE.md) : corrigé en « (avec toi : ton coéquipier) ». Et au tout premier lancement, un gros bouton du jour à côté de « Jouer » ferait hésiter : il est plus petit et dessous.
+
+## Annexe F — Le plan de route (en tours de 4 Codeurs)
+
+**Le principe.** D'abord ce qui sert à plusieurs idées (une « course imposée » partagée par le jour et les défis, le codage des liens partagé par le défi et le copain), puis les idées elles-mêmes, en commençant par celles qui ne demandent rien au propriétaire. Chaque Codeur a **sa branche et ses fichiers à lui** ; les fichiers partagés (`donnees.js`, `textes.js`, `index.html`, `style.css`, `interface.js`, `principal.js`, `sauvegarde.js`) reçoivent chacun **un bloc à son nom**, sans reformater les autres (la règle du tour 60). Chaque branche passe **18/18 sur GitHub** avant que le Chef la fusionne ; sur le Mac, seulement la partie touchée, sous le verrou.
+
+**Avant le tour A, au propriétaire (rien à coder)** : (1) **les noms des pilotes et des écuries** (attendus depuis le 2026-10-29 : sans eux, le copain, les défis par rôle, les cartes et le commentateur parlent de « Pilote 14 ») ; (2) dire oui ou non aux idées 1, 2 et 3 ; (3) demander à Poki ce qu'il pense du jeu tourné en portrait et quels chiffres il donne au développeur (pour mesurer les idées).
+
+### Tour A — les fondations et les idées sans risque
+
+| Codeur | Branche | Ce qu'il fait | Ses fichiers | Ce qu'il ne touche pas |
+|---|---|---|---|---|
+| 1 | `jour-A` | **La course imposée** (`course-imposee.js`, calcul pur : place de départ par `QUALIFICATION.grille`, grille inversée, niveau, météo par `EN_LIGNE.planMeteo`, état de départ : aileron, usure des pneus) puis **le Grand Prix du jour** complet (annexe A) | `course-imposee.js`, `jour.js` (nouveaux) ; ses blocs dans `principal.js` (lancer une course imposée), `interface.js`, `index.html`, `textes.js`, `donnees.js`, `sauvegarde.js` (bloc `jour`) | `simulation.js`, `course.js` |
+| 2 | `elimination-A` | **La course à élimination** (annexe D5), en course rapide et à deux | `elimination.js` (nouveau) ; ses blocs dans `simulation.js` (le rangement final), `voiture3d.js` (l'effacement), `deux-joueurs.js`, `interface.js`, `textes.js`, `donnees.js` | `qualification.js`, `principal.js` hors son bloc |
+| 3 | `medailles-A` | **Les médailles des circuits** (annexe D4) | `medailles.js` (nouveau) ; ses blocs dans `fantome-pole.js` (l'option « non étiré »), `qualification.js` (le 3e choix de fantôme), `interface.js`, `textes.js`, `donnees.js`, `sauvegarde.js` (bloc `medailles`) | `simulation.js` |
+| 4 | `liens-A` | **Les mesures et le cœur des liens** : (a) la course du jour est-elle la même dans Chromium, Firefox et WebKit ? (7 jours tirés, robot, empreintes : la décision `JOUR_MATHS` de l'annexe A7) ; (b) `copain.js` en calcul pur **sans écran** : coder, décoder, la règle du rythme (annexe C1-C2), en exportant `ecrireEntier` / `lireEntier` de `defi.js` | `copain.js` (nouveau), `defi.js` (l'export seulement), un outil de mesure hors workflow dans `tests/` | tous les écrans |
+
+**Pourquoi ces quatre ensemble** : aucun ne modifie la même fonction qu'un autre ; seuls `simulation.js` (Codeur 2) et `qualification.js` / `fantome-pole.js` (Codeur 3) sont des fichiers de moteur, chacun à un seul Codeur. Le Codeur 1 a le plus gros morceau ; s'il n'a pas fini, le jour peut sortir **sans** « Demain » ni le lien `?jour=` (fusion en deux fois).
+
+**Sur GitHub** : `tests/test.html` (le travail « moteur ») reçoit les parties « course imposée », « jour », « élimination », « médailles », « copain » (calcul pur) ; `tests/ecrans.py` reçoit les pages `test=jour`, `test=jour-arrivee`, `test=elimination`, `test=elimination-deux`, `test=medailles` (réparties dans les 6 tranches : le Codeur qui ajoute une page la place dans la tranche la plus courte du dernier passage) ; `tests/courses.html` (« courses ») et `tests/stands.html` (« stands ») doivent rester verts **sans changement** : c'est la preuve que les courses normales n'ont pas bougé. **Pousser seulement quand c'est fini** : GitHub ne fait que 20 travaux à la fois et un passage en prend 18 ; les quatre branches passent l'une après l'autre (environ 10 minutes chacune). **Ordre de fusion** : 4 (rien d'affiché), 3, 2, puis 1.
+
+### Tour B — les idées qui s'appuient sur le tour A
+
+| Codeur | Branche | Ce qu'il fait | Dépend de |
+|---|---|---|---|
+| 1 | `defis-B` | **Les défis-éclair, plan B** : les 28 défis de l'annexe B1, la carte, les buts, les rivaux par rôle | `course-imposee.js` (tour A) |
+| 2 | `copain-B` | **Ton copain dans ta saison** : l'envoi, l'accueil, l'insertion dans le plateau (contre / avec toi), la découverte avec le copain, la ligne dans les classements, les textes « pote » (annexe C3, maquettes E2) | `copain.js` (tour A) |
+| 3 | `photo-finish-B` | **Le ralenti du photo-finish** (annexe D6) | rien |
+| 4 | `niveau-B` | **Le niveau de pilote** (annexe D7) : les points de toutes les courses (jour, médailles, élimination comprises), les cadeaux, **et les nouveaux motifs** (12 motifs, 4 célébrations) | jour, médailles, élimination (tour A) ; les étoiles des défis s'ajoutent quand `defis-B` est fusionné (un seul point de branchement, `NIVEAU_PILOTE.points(...)`) |
+
+**Les fichiers qui se croisent** : `championnat.js` (Codeur 2 seul) ; `photo.js`, `regie.js`, `camera.js` (Codeur 3 seul) ; `casque.js`, `livree.js`, `celebration.js` (Codeur 4 seul) ; `principal.js` : quatre blocs séparés (le lancement d'un défi, l'accueil du lien, le déclenchement après la ligne, les points à l'arrivée). **Sur GitHub** : `tests/carriere-longue.html` (annexes) doit passer **avec 3 copains** dans le plateau (le Codeur 2 ajoute ce cas) ; `tests/saison.py` (« saison ») doit rester vert ; pages `test=defis`, `test=defi-resultat`, `test=copain-envoi`, `test=copain-accueil`, `test=copain-decouverte`, `test=photo-finish`, `test=niveau` dans les tranches d'`ecrans.py`. **Ordre de fusion** : 3, 4, 1, 2 (le copain touche le plus de choses, en dernier).
+
+### Tour C — selon ce que le propriétaire a dit des tours A et B
+
+| Codeur | Branche | Ce qu'il fait |
+|---|---|---|
+| 1 | `championnat-deux-C` | **Le championnat à deux** (annexe D8) |
+| 2 | `defis-lances-C` | **Les défis lancés** (annexe B2) **seulement si le plan B a plu** : le départ lancé dans `simulation.js` (le seul à y toucher ce tour-là), les 12 défis |
+| 3 | `cartes-C` | **Les cartes des IA livrées** (les 12 circuits × normal et expert, chargées à la demande ; régénérées par un script comme `tests/regenerer-cache-carte.py`) et, si le Codeur 4 du tour A a trouvé des différences entre navigateurs, **la course du jour avec `EN_LIGNE_MATHS`** |
+| 4 | `cartes-pilotes-C` | **L'album des cartes de pilotes** (idée 9), si les noms des pilotes sont arrivés ; sinon **le champion de la division** (idée 12, petit) |
+
+Les idées 10 (le vrai portrait) et 11 (les week-ends à thème) attendent : la 10 la réponse de Poki, la 11 le Grand Prix du jour en ligne depuis quelques semaines (elle s'en sert).
+
+### Comment savoir que le plan marche (après la mise en ligne sur Poki)
+
+- **Avant / après** dans les chiffres que Poki donne au développeur : le temps de jeu moyen et, s'il est donné, le retour du lendemain. Une version à la fois (le tour A seul, puis le tour B), sinon on ne sait pas ce qui a marché.
+- **Dans le jeu, sans rien envoyer** (aucune donnée ne quitte l'appareil) : la sauvegarde compte déjà les courses ; on y ajoute, à la racine, quelques compteurs (jours joués, défis tentés, liens `?jour=` et `?pilote=` reçus) que le propriétaire peut lire sur son propre appareil ou sur celui d'un enfant qui joue (un petit affichage à ajouter au panneau `?reglages=1`).
+- **Le plus fiable pour un jeu d'enfants** : faire jouer deux ou trois enfants une semaine et leur demander (le propriétaire l'a déjà fait pour l'auto-guidage, avec un résultat décisif).
+
+## Annexe G — Les idées 9 à 12, prêtes à coder
+
+### G9. L'album des cartes de pilotes
+
+**Les règles exactes.**
+- **Une carte par pilote rencontré** (rival IA, en carrière seulement), pas par course. Trois états : **normale** (le battre une fois : finir devant lui à l'arrivée d'un Grand Prix, pénalités comprises), **brillante** (finir devant lui **sur une saison** : plus de points que lui à la fin de la saison), **dorée** (le battre **à son Grand Prix à domicile** : `CHAMPIONNAT.rivauxADomicile`, ou, pour un rival sans circuit dans son pays, le battre au duel de la saison s'il était ton coéquipier). Une carte ne redescend jamais.
+- **Le coéquipier** compte comme les autres ; **le copain** (idée 2) a sa carte aussi, avec un cadre à part.
+- **Les plateaux des divisions** : chaque division a ses 19 rivaux ; les pilotes qui montent avec toi (`DIVISION_MONTEE_RIVAUX`) gardent leur carte. L'album compte les pilotes **rencontrés**, pas un total fixe : « 23 cartes · 4 brillantes · 2 dorées ». (J'avais écrit « 23 sur 76 » : un total fixe est faux, les retraités sont remplacés par des jeunes chaque saison et la relève continue le monde.)
+- **La relève** : l'album est celui de la dynastie (il continue avec l'héritier) ; une « Nouvelle dynastie » en ouvre un neuf, l'ancien reste au temple.
+- **Ce qu'on garde** : pour chaque carte, l'indice du pilote dans son plateau et 2 bits d'état, plus, pour un pilote parti à la retraite, son résumé compact qui existe déjà (nom, casque, totaux) : environ 4 octets par carte, quelques centaines d'octets pour une carrière.
+
+**Les écrans.** Une 4e tuile dans la page **Saison** du paddock (« Cartes ») ; une grille de cartes (casque en grand, nom, numéro, drapeau du pays, son caractère en un mot : « Fonceur », « Régulier », « Rusé », et la dernière phrase qu'il a dite sur toi, déjà gardée par l'interview) ; un appui ouvre sa fiche (`fiche.js`). Au doigt : cartes de 96×128 px, 4 par ligne en 640×360, la grille défile. Après un Grand Prix où une carte change : une petite bulle sur le podium (« 🃏 Nouvelle carte : Rossi ! »).
+
+**Les cas limites.** Une vieille sauvegarde : les cartes se reconstruisent depuis l'historique des duels des rivaux (déjà gardé : « ses duels contre le joueur », CLAUDE.md), seulement en normales (les saisons d'avant ne disent pas toujours qui était devant). Un pilote sans nom (« Pilote 14 ») : la carte s'affiche, mais l'idée attend les vrais noms.
+
+**Les tests.** Battre un rival → sa carte, une fois ; brillante et dorée à leurs conditions ; jamais de recul ; 15 saisons de `carriere-longue.html` avec l'album : pas de NaN, taille notée ; une vieille sauvegarde ; `CARTES_ACTIF` faux : rien.
+
+**Les réglages.** `CARTES_ACTIF`, `CARTES_CARACTERE_MOTS` (les mots du caractère selon `IA_CARACTERE`).
+
+**Les fichiers.** `cartes.js` (nouveau, calcul pur), `championnat.js` (noter après chaque Grand Prix, un bloc), `saisons.js` (la brillance en fin de saison, un bloc), `interface.js`, `index.html`, `textes.js`, `donnees.js`, `sauvegarde.js`.
+
+### G10. Le jeu debout, pour de vrai
+
+**D'abord la question à Poki** (le propriétaire) : le jeu affiché **tourné de 90°** quand le téléphone est debout (`PORTRAIT_TOURNER`, vrai depuis le tour 56) passe-t-il leur contrôle ? Que coûte-t-il en joueurs ? Si la réponse est « ça va », **on ne fait pas cette idée**.
+
+**Sinon, la version minimale (seulement la conduite)** :
+- **La caméra debout** : plus haute et plus reculée que `CAMERA_DERRIERE` (par exemple 11 m de recul, 4,5 m de haut) et un champ de vision **vertical** plus grand, pour voir le virage qui vient au-dessus de la voiture ; un réglage `PORTRAIT_CAMERA`.
+- **Les commandes** : FREIN en bas à gauche, GAZ en bas à droite (les mêmes boutons, plus larges : 45 % de la largeur chacun) ; **le volant ne marche pas debout** (incliner un téléphone debout, c'est le pencher vers soi) : la direction passe par **◀ ▶** posés au-dessus de GAZ et FREIN, ou par **glisser le pouce** sur la moitié basse de l'écran ; l'auto-guidage reste au choix.
+- **L'affichage** : la tour de classement réduite à 5 lignes en haut (toi, les deux devant, les deux derrière), le chrono en haut à droite, pas de minicarte.
+- **Les menus restent tournés** (le titre, le paddock, la boutique) : c'est la partie énorme, on ne la fait pas d'abord.
+
+**Les cas limites.** Tourner le téléphone **en pleine course** : on passe d'une mise en page à l'autre sans pause (aujourd'hui, debout = pause). iPhone sans plein écran : la barre d'adresse mange 50 à 80 px, la mise en page se règle sur `100dvh` (déjà le cas, tour 54b).
+
+**Les tests.** `tests/debout.py` (déjà là, 4 téléphones debout) : la course en portrait, rien hors de l'écran, boutons ≥ 40 px ; la course identique au bit près debout et couché (la physique ne change pas, seulement la caméra et les commandes).
+
+**Les réglages.** `PORTRAIT_JEU` (faux = `PORTRAIT_TOURNER`, comme aujourd'hui), `PORTRAIT_CAMERA`, `PORTRAIT_DIRECTION` (`'boutons'` ou `'glisser'`).
+
+**Les fichiers.** `tactile.js` (la direction debout), `camera.js`, `style.css` (la mise en page debout, un bloc), `principal.js`, `textes.js`, `donnees.js`, `tests/debout.py`.
+
+### G11. Les week-ends à thème
+
+**Les règles exactes.**
+- **Le calendrier** `EVENEMENTS` (dates fixes, chaque année) : par exemple **« Nuit des lanternes »** (une semaine en février : Singapura et Yas Marino de nuit, lanternes de couleur dans le public), **« Grand Prix de printemps »** (avril : tribunes fleuries, couleurs pastel), **« Grand Prix d'été »** (juillet : soleil bas et chaud), **« Grand Prix des citrouilles »** (fin octobre : tribunes orange et violettes), **« Grand Prix des neiges »** (décembre : décor blanc autour de la piste, la piste reste sèche).
+- **Ce qui change pendant l'événement** : (a) **le Grand Prix du jour** prend le thème (un circuit du thème, le nom « Grand Prix des citrouilles · Jour 3/7 ») ; (b) **les couleurs du public, des tribunes et du décor** (les teintes : rien de nouveau à dessiner) ; (c) **une livrée et un motif de casque de l'événement**, gagnés avec **une médaille d'argent au moins** au jour pendant l'événement (pas forcément tous les jours : une seule fois suffit).
+- **Rien ne se perd** : la livrée revient l'année suivante ; un enfant qui a raté l'événement peut la gagner l'an d'après. Aucun compte à rebours angoissant (« plus que 2 h ! ») : seulement « Jusqu'à dimanche ».
+- **La date** : la date locale, comme le jour ; hors des dates, le jeu d'avant au pixel près.
+
+**Les écrans.** Sur le titre : le bouton du jour prend la couleur et le nom de l'événement ; dans le jeu, le décor teinté ; sur l'arrivée du jour : « 🎃 Livrée Citrouille gagnée ! ».
+
+**Les cas limites.** Une fête qui n'est pas celle de tout le monde : les noms restent descriptifs (« citrouilles », « neiges », « lanternes »), jamais religieux. Le public et le ciel du tour 60 sont faits (fusion-60d) : un thème change leurs palettes et l'heure du ciel ; pas de nouveau shader. Sans carte graphique (`REALISME_LOGICIEL_LEGER`), le public reste celui d'avant : le thème n'y change que les couleurs.
+
+**Les tests.** Chaque date du calendrier allume le bon thème ; hors des dates, rien (capture au pixel près) ; la livrée gagnée une fois, gardée ; les appels de dessin identiques avec et sans thème.
+
+**Les réglages.** `EVENEMENTS_ACTIF`, `EVENEMENTS` (dates, circuits, teintes, livrée), `EVENEMENTS_MEDAILLE` (la médaille qui gagne la livrée).
+
+**Les fichiers.** `evenements.js` (nouveau, calcul pur : date → thème), `jour.js` (un bloc), `decor-public.js` / `foule.js` / `decor.js` (la teinte, à voir avec les Codeurs 2 et 3), `boutique.js` (les skins d'événement : un 4e mode d'obtention, « événement »), `textes.js`, `donnees.js`.
+
+### G12. Le champion de la division
+
+**Les règles exactes.**
+- **Qui** : le champion de la saison passée **de ton plateau** (`ch.saisons` garde `champion`, l'indice du pilote, à chaque fin de saison) ; s'il a pris sa retraite ou changé de plateau, le 2e de cette saison ; à la toute première saison d'une division (pas encore de saison jouée sur ce plateau), le pilote **au meilleur rythme**, appelé « le favori ».
+- **Les marques** : une couronne 👑 devant son nom dans la tour de classement, les classements et sa fiche ; le commentateur le dit au départ (`com_champion`) ; sur la grille, la caméra du départ passe une fois devant lui (comme la tribune des supporters du joueur).
+- **Le battre** : finir devant lui en Grand Prix → une ligne sur le podium (« Tu as battu le champion ! ») et, la première fois de la carrière, un motif de casque (`CASQUE_DEBLOCAGES` : `couronne` existe déjà pour le titre ; un nouveau, `sceptre`, pour ça). Prendre sa couronne au championnat = devenir champion de la division : la une du journal a son titre (« Le roi est tombé ! »).
+- **Jamais de triche** : le champion est un pilote comme les autres ; la couronne ne change rien à son pilotage.
+
+**Les écrans.** Rien de nouveau : une icône, quelques textes, la bulle d'aide la première fois (« 👑 Le champion de ta division. Bats-le ! »).
+
+**Les tests.** Le bon champion (saison passée, retraité, première saison) ; la couronne affichée une fois ; le motif débloqué une fois ; course identique au bit près avec et sans couronne.
+
+**Les réglages.** `CHAMPION_COURONNE`, `CHAMPION_MOTIF`.
+
+**Les fichiers.** `championnat.js` (qui est le champion, une petite fonction), `interface.js`, `commentaire.js` (une phrase), `journal.js` (un titre), `casque.js` (le motif), `textes.js`, `donnees.js`.
+
+## Annexe H — La deuxième chasse (son, vitesse à l'image, 30 premières secondes au doigt, accessibilité, revenir le lendemain)
+
+**La règle** : ne garder que ce qui bat l'idée n° 8 (le championnat à deux : un vrai plaisir, mais seulement pour deux enfants sur un même clavier). Ce que j'ai lu : `sensations.js`, `son.js`, les réglages `CAMERA_*`, `SECOUSSE_*`, `SENSATIONS_*`, `CONSEIL_*` et `TACTILE_*` de `donnees.js`, `tactile.js`.
+
+### Ce qui existe déjà
+
+- **Le son** : moteur avec rapports, vibreurs, crissement, aspiration, voiture qui passe, pluie (tour 37), voix du commentateur. **Pas de musique.**
+- **La vitesse à l'image** : le champ de vision passe de 60° à **66°** à pleine vitesse (`CAMERA_CHAMP` [60, 6]), la caméra recule de **0,5 m** (`CAMERA_RECUL_VITESSE`), de petites secousses aux vibreurs et aux chocs (`SECOUSSE_VIBREUR` 0,02 m, `SECOUSSE_CHOC` 0,09 m), fumée, étincelles.
+- **L'accessibilité** : les drapeaux ont toujours leur texte (jamais la couleur seule) ; l'écart au fantôme a son signe (« −0,34 », « +0,12 ») en plus du vert et du rouge.
+
+### Gardé : 13. La vitesse qui se sent (bat l'idée n° 8, je la classerais **5e**, entre les médailles et l'élimination)
+
+**Le constat** (relu sur `fusion-60d` : `CAMERA_CHAMP` est toujours [60, 6]). 66° contre 60°, c'est presque invisible ; 0,5 m de recul aussi. Le tour 60 a donné à la route du grain, de la gomme et des traces (`REALISME_ROUTE`) qui la font défiler, et un public qui saute au passage : c'est mieux, **sauf sur les ordinateurs sans carte graphique**, où `REALISME_LOGICIEL_LEGER` coupe le grain : là, il ne reste rien qui dise la vitesse. À 300 km/h, notre F1 a l'air de rouler à 150. Or la **sensation de vitesse** est ce qu'un enfant ressent à chaque seconde de chaque course, dans tous les modes ; les jeux de course qui plaisent l'exagèrent tous. Et c'est peu coûteux : rien de nouveau à calculer, seulement la caméra et deux effets légers.
+
+**Le moment.** Léo sort de l'épingle de Monzo, plein gaz : l'image s'élargit doucement, des traits blancs fins filent sur les bords de l'écran, le moteur monte et un **souffle de vent** grandit sous le moteur ; au freinage, la caméra plonge un tout petit peu vers l'avant. Il dit « ça va trop vite ! » et il sourit.
+
+**Ce que ça veut dire, exactement** (tout derrière `VITESSE_RESSENTIE`, faux = le jeu d'avant au pixel près) :
+1. **Le champ de vision** : `CAMERA_CHAMP` [60, 6] → [58, **16**] (de 58° à l'arrêt à 74° à pleine vitesse), avec une montée **non linéaire** (rien sous 150 km/h, presque tout au-dessus de 250) : la vitesse se sent surtout en ligne droite. Réglage `VITESSE_CHAMP`.
+2. **La caméra qui « tire »** : à l'accélération, elle recule de 0,6 m de plus pendant une seconde, et revient ; au freinage fort, elle avance de 0,4 m et baisse de 0,15 m (le nez qui plonge). Lu dans les sensations (`SENSATIONS.faits`), jamais dans la physique.
+3. **Les traits de vitesse** (d'abord pour le rendu en logiciel, où le grain de la route est coupé ; avec la route réaliste, moins nombreux) : au-dessus de 250 km/h, une vingtaine de traits fins et transparents sur les bords de l'écran (pas au centre : la piste reste nette), dessinés **en un seul appel** (des segments dans un `LineSegments`, ou un calque 2D) ; retirés par l'Auto avant les ombres (dans l'ordre des pas de `qualite.js`).
+4. **Le son** : un souffle d'air (un bruit filtré généré par le code, Web Audio, aucun fichier) dont le volume suit la vitesse au carré ; il couvre un peu le moteur à 300 km/h.
+5. **Les vibrations** : sur téléphone, `navigator.vibrate` de 15 ms au passage d'un vibreur et 40 ms à un choc (Android seulement, iPhone l'ignore), coupé par le réglage « Effets de conduite » qui existe déjà.
+
+**Pourquoi elle bat l'idée 8** : elle touche **100 % des courses de 100 % des joueurs** (l'idée 8, une petite part des joueurs d'ordinateur), pour un coût petit.
+
+**Les risques.** (a) **Le propriétaire a déjà réagi** à la caméra (tour 3 : « la caméra est trop loin quand on accélère trop ») : il faut **son essai** avant de mettre les nouvelles valeurs par défaut ; le réglage est fait pour ça. (b) Le mal des transports chez certains enfants : « Effets de conduite : non » coupe tout (champ de vision compris). (c) Les images/s : les traits coûtent un appel de dessin (mesuré avec `tests/perf.py`, comme le tour 60). (d) À deux : un champ de vision plus large dans une moitié d'écran étroite déforme ; à deux, seulement le son.
+
+**Comment savoir qu'elle marche.** Test : `VITESSE_RESSENTIE` faux = captures au pixel près et course au bit près (la physique n'est jamais touchée) ; le champ de vision à 0, 150, 250, 330 km/h ; les traits absents sous 250 km/h et en qualité au plus bas ; `tests/perf.py` avant / après. Et surtout : le propriétaire et un enfant l'essaient (c'est une sensation).
+
+**Les réglages.** `VITESSE_RESSENTIE`, `VITESSE_CHAMP`, `VITESSE_CAMERA_TIRE`, `VITESSE_TRAITS` (le seuil, le nombre, l'opacité), `VITESSE_VENT`, `VIBRATIONS_ACTIVES`.
+
+**Les fichiers.** `camera.js`, `effets3d.js` (les traits), `son.js` (le vent), `sensations.js` (lu seulement), `qualite.js` (un pas de plus), `donnees.js`, `tests/`.
+
+### Gardé, mais comme **correction** (petite, à faire de toute façon) : la trajectoire conseillée pour les daltoniens
+
+**Le constat.** La trajectoire conseillée est **verte, jaune et rouge** (`COULEUR_CONSEIL_VERT` 0x2ecc40, `_JAUNE` 0xffd400, `_ROUGE` 0xff2a2a), **sans autre signe** ; elle est allumée d'office en débutant, donc pour les plus jeunes. Environ **1 garçon sur 12** voit mal la différence entre ce vert et ce rouge. Pour lui, l'aide la plus utile du jeu ne dit pas où freiner.
+
+**La correction.** Dans la zone **rouge**, des **chevrons** (des « V » pointés vers la voiture, dans la même bande : le même appel de dessin, une texture de 32 px), et un jaune plus clair que le vert (la luminance seule les sépare). En option, dans ⚙ Réglages : « Couleurs : normales / contrastées » (bleu, jaune, orange vif). Coût : petit (`conseil.js`, `donnees.js`, une option). Test : une capture de la zone de freinage passée dans une simulation de daltonisme (une matrice de couleurs dans le test) : la zone rouge se distingue de la verte.
+
+Pourquoi « correction » et pas « idée » : ce n'est pas une raison de revenir, mais c'est un défaut réel qui touche un enfant sur douze, pour presque rien. Elle passe avant toutes les idées de ce rapport.
+
+### Regardé et pas gardé
+
+- **La musique** : aucune aujourd'hui. Une musique de menus (paddock, podium) donnerait du « fini », mais elle ne fait ni revenir ni partager, beaucoup d'enfants coupent le son sur Poki, et le propriétaire est exigeant sur le son (les voix « casse-oreille ») : une musique moyenne ferait plus de mal que de bien. Elle ne bat pas l'idée 8. Si on la fait un jour : générée par le code (Web Audio), très courte, jamais en course.
+- **Les 30 premières secondes au doigt** : déjà travaillées à fond (plan de la première minute, titre simple, grille nue, « Tiens GAZ », départ doux, auto-guidage, tests sur 4 téléphones émulés). Un seul point m'inquiète : sur **iPhone**, le bouton « 🎮 Activer le volant » apparaît **pendant les feux**, et la fenêtre d'iOS (« Autoriser l'accès au mouvement ? ») tombe au moment où l'enfant doit tenir GAZ. Piste : demander l'autorisation **au toucher de « ▶ Jouer »** (c'est déjà un geste, iOS l'accepte), avant la grille, sans bouton de plus. Mais le propriétaire a choisi la grille au tour 53e, et **personne n'a essayé sur un vrai iPhone** : c'est une question pour son essai, pas une idée qui bat la 8.
+- **La lecture difficile** (les plus jeunes lisent lentement) : une option « Lire à voix haute » des menus avec la voix de synthèse qui existe. Utile pour les 6-7 ans, mais Poki touche surtout 8-14 ans, et le jeu parle déjà en course. Ne bat pas la 8.
+- **Revenir le lendemain sans notifications** : à part le Grand Prix du jour (idée 1, et son « Demain »), la recette connue est le **minuteur** (« ton mécanicien finit l'amélioration demain ») : je l'écarte, c'est une pression faite pour les jeux payants, et ça va contre la règle d'or (l'argent et le garage viennent des courses). La meilleure raison de revenir reste une **promesse** : « Demain : Singapura de nuit, grille inversée », et un copain dans sa saison (idée 2).
+
+**En honnêteté** : sur les cinq sujets, **une seule idée bat la n° 8** (la vitesse qui se sent), plus une **correction** qui passe avant tout (les daltoniens).
+
+## Sources (ce que Poki dit)
+
+- [Poki — What makes a high-quality browser game (2026)](https://poki.com/blog/what-makes-high-quality-browser-game) : sessions courtes, chargement rapide, pubs récompensées plutôt que coupures, couleurs vives.
+- [Poki — Building web browser games in 2026](https://poki.com/blog/building-web-browser-games-2026) : le portrait, « tourner le téléphone tue la conversion », un apprentissage qui ressemble à du jeu.
+- [Poki for Developers — Accounts et sauvegardes dans le nuage](https://developers.poki.com/guide/accounts) : synchronisation automatique de localStorage pour un joueur connecté, plafond 1 Mo gzippé, préfixe `poki_ignore`.
+- [Poki — exigences (sdk.poki.com/requirements)](https://sdk.poki.com/requirements) : couvrir l'écran en portrait ou en paysage, les deux pour la meilleure expérience.
