@@ -216,8 +216,9 @@ t('bavardage : les vacances ne sont pas le week-end (un lieu tiré de sa fiche),
   const ch = nouveau(), k = rival(ch, 0.4); gpCouru(ch);
   const vie = BAVARDAGE.persona(ch, ch.pilotes[k]), lieu = TXT('bav_l_vacances')[vie.vacances], week = TXT('bav_l_weekend')[vie.weekend];
   const a = dire(ch, k, LANGUE === 'fr' ? 'tu fais quoi ce weekend' : 'what are you doing this weekend'), b = dire(ch, k, LANGUE === 'fr' ? 'tu va ou en vacances' : 'where r u going on holiday');
-  v(a.texte.includes(week) && !a.texte.includes(lieu), a.texte);
-  v(b.sujet === 'vacances' && b.texte.includes(lieu) && !b.texte.includes(week), b.texte);
+  const bas = x => x.toLowerCase();   // (tour 60 : une capitale après « ? » avec les thèmes)
+  v(bas(a.texte).includes(bas(week)) && !bas(a.texte).includes(bas(lieu)), a.texte);
+  v(b.sujet === 'vacances' && bas(b.texte).includes(bas(lieu)) && !bas(b.texte).includes(bas(week)), b.texte);
   v(TXT('bav_l_vacances').length === TEXTES[LANGUE === 'fr' ? 'en' : 'fr'].bav_l_vacances.length, 'listes de même longueur');
 });
 t('bavardage : un nombre dit en réponse (« oui j’en ai 2 ») est repris et retenu', () => {
