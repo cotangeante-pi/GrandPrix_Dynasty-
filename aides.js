@@ -52,6 +52,8 @@ const AIDES = (function () {
     { id: 'vivante', genre: 'course', quand: s => enCourse(s) && s.etat === 'course' && s.drift, faite: () => false },
     // (tour 37g) la première fois qu'on ouvre le choix des aides au pilotage (interface.js, ouvrirAides) : ce que fait chaque aide, le bonus
     { id: 'choixAides', genre: 'menu', quand: s => s.choixAides, faite: () => false },
+    // (tour 60) l'auto-guidage du téléphone vient de calmer un zigzag (principal.js : JEU.guidageVu) : il existe, on peut le couper dans la pause
+    { id: 'guidage', genre: 'course', quand: s => enCourse(s) && s.etat === 'course' && s.guidage, faite: () => false },
   ];
   const PAR_ID = {};
   for (const a of LISTE) PAR_ID[a.id] = a;
@@ -102,6 +104,7 @@ const AIDES = (function () {
       poleDispo: typeof polePossible === 'function' && !!polePossible(),
       rivalDomicile: rivalDomicile(J),
       pneusDrift: typeof METEO !== 'undefined' && Array.isArray(METEO.TYPES) && METEO.TYPES.includes('drift'), choixAides: !!J.choixAides, pneusTouches: !!J.pneusTouches,
+      guidage: !!J.guidageVu,   // (tour 60 : l'auto-guidage du téléphone a pris la main au moins une fois)
     };
   }
 

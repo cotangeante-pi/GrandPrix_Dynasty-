@@ -370,6 +370,7 @@ function pasTourQualif(pas) {
   const q = JEU.qualif.q, v = JEU.qualif.v, c = q.course;
   const permis = courseAutorise(c);
   if (JEU.remettre) { if (permis) remettreSurPiste(v, CIRCUIT); JEU.remettre = false; }
+  secoursJoueur(v, permis && c.etat !== 'finie');   // (tour 60 : le secours de l'auto-guidage du téléphone)
   if (c.etat === 'finie') appliquerCommandes(v, { gaz: 0, frein: v.u > REGLAGES.ARRET_APRES_ARRIVEE ? 1 : 0, direction: 0 });
   else if (JEU.robot && permis) appliquerCommandes(v, piloteRobot(v, CIRCUIT));
   else lisserCommandes(v, permis ? aiderJoueur(JEU.cibles, v) : AUCUNE, pas);
@@ -2255,8 +2256,32 @@ function aidesDe(p) {
 }
 function aiderJoueur(c, v, p) {
   const r = aidesDe(p);
-  if (!r) return c;
-  return ASSISTANCE.appliquer(c, v, { circuit: CIRCUIT, carte: JEU.carte }, r);
+  return guiderJoueur(c, r ? ASSISTANCE.appliquer(c, v, { circuit: CIRCUIT, carte: JEU.carte }, r) : c, v);
+}
+
+// (tour 60, Codeur 4, le propriétaire 2026-11-19) l'auto-guidage du téléphone (assistance.js : guider, secours, relancer ; CLAUDE.md « Le téléphone :
+// le volant ») : au volant d'un écran tactile seulement (TACTILE.guidageVoulu : le volant conduit et le joueur ne l'a pas coupé), jamais à deux, en
+// ligne ni pour le robot ; TACTILE_GUIDAGE et TACTILE_GUIDAGE_SECOURS faux (ou sans tactile) : les cibles telles quelles, au bit près
+const telephoneGuide = () => typeof TACTILE !== 'undefined' && TACTILE.guidageVoulu() && !JEU.deux && !JEU.enligne && !JEU.robot;
+function etatGuidage(v) {
+  if (!JEU.guidage || JEU.guidage.v !== v) JEU.guidage = { v, e: ASSISTANCE.creerGuidage() };   // (un état par voiture du joueur : neuf à chaque course)
+  return JEU.guidage.e;
+}
+// brut : le volant du joueur ; c : ses cibles après les autres aides
+function guiderJoueur(brut, c, v) {
+  if (!REGLAGES.TACTILE_GUIDAGE || !telephoneGuide()) return c;
+  const e = etatGuidage(v), r = ASSISTANCE.guider(e, brut, c, v, CIRCUIT, REGLAGES.PAS_PHYSIQUE);
+  if (e.allume) JEU.guidageVu = true;   // (la bulle « guidage » d'aides.js, une fois)
+  return r;
+}
+// le secours, à chaque pas de la voiture du joueur, là où Espace est traité : la voiture perdue repart sur la piste à la vitesse d'avant (bornée)
+function secoursJoueur(v, permis) {
+  if (!REGLAGES.TACTILE_GUIDAGE_SECOURS || !permis || !telephoneGuide()) return;
+  const u = ASSISTANCE.secours(etatGuidage(v), v, CIRCUIT, REGLAGES.PAS_PHYSIQUE);
+  if (u === null) return;
+  const autres = JEU.plateau ? JEU.plateau.pilotes.map(q => q.v).filter(o => o && o !== v) : [];   // (revue du Chef : jamais posée sur une IA)
+  if (ASSISTANCE.relancer(v, CIRCUIT, JEU.carte, u, autres) === null) ASSISTANCE.reporter(etatGuidage(v));   // (pas de place libre : au pas suivant)
+  else JEU.secoursGuidage = (JEU.secoursGuidage || 0) + 1;
 }
 
 // ?ia=N&joueur=1 : les commandes du joueur pour sa voiture dans la course entre IA (comme seul : rampes, Espace)
@@ -2285,6 +2310,7 @@ function conduireJoueur(p, pas) {
   if (p.course.arretEnCours && cmd.cibles) choisirPneusArret(p.v, cmd.cibles.direction, p.course.arretEnCours);
   if (cmd.remettre && courseAutorise(p.course)) remettreSurPiste(p.v, CIRCUIT);
   cmd.remettre = false;
+  if (!p.joueur || p.joueur === 1) secoursJoueur(p.v, courseAutorise(p.course) && commandesPermises(p.course) && !p.course.arretEnCours);   // (tour 60 : le secours de l'auto-guidage du téléphone ; jamais à deux)
   // après l'arrivée, sa voiture freine seule jusqu'à l'arrêt (les autres finissent leur course)
   // ?robot=1 : le robot d'essai conduit sa voiture (tests) ; il fait toujours un départ parfait, DEPART_ROBOT_REACTION après l'extinction
   let cibles = JEU.robot ? (courseAutorise(p.course) ? piloteRobot(p.v, CIRCUIT) : AUCUNE) : cmd.cibles;
@@ -2325,6 +2351,7 @@ function pasJoueur(pas) {
   // on conduit en survol, en essai, et en course une fois le GO donné (pas pendant le compte à rebours ni après l'arrivée)
   const permis = JEU.ecran === 'survol' ? CAMERA.conduite : (JEU.ecran === 'course' && c && courseAutorise(c));
   if (JEU.remettre) { if (permis) remettreSurPiste(v, CIRCUIT); JEU.remettre = false; }
+  secoursJoueur(v, permis && !JEU.ia && !(c && c.etat === 'finie'));   // (tour 60 : le secours de l'auto-guidage du téléphone)
   if (c && c.etat === 'finie') {
     // après l'arrivée : les commandes sont coupées et la voiture freine seule jusqu'à l'arrêt
     appliquerCommandes(v, { gaz: 0, frein: v.u > REGLAGES.ARRET_APRES_ARRIVEE ? 1 : 0, direction: 0 });
@@ -2763,7 +2790,7 @@ function demarrerJeu() {
   SCENE3D.colorerRepereStand(JEU.contre && JEU.couleurs.length > JEU.ia ? JEU.couleurs[JEU.ia] : REGLAGES.COULEUR_JOUEUR);   // le repère de la zone d'arrêt aux couleurs de l'écurie du joueur (tour 46d2)
   INTERFACE.preparerPause(() => pause(false), () => lancerCourse(JEU.course.nbTours));
   TACTILE.brancher({ pause: () => toucheVirtuelle('Escape'), remettre: () => { JEU.remettre = true; }, pneu: choisirPneuDoigt, camera: () => { if (!JEU.deux) CAMERA.suivante(); },
-    lire: () => ({ sensibilite: SAUVEGARDE.option('volant_sensibilite', 1), inverse: SAUVEGARDE.option('volant_inverse', false), choix: SAUVEGARDE.option('volant_choix', 'volant') }),   // (tour 53f : les réglages du volant, sauvegardés)
+    lire: () => ({ sensibilite: SAUVEGARDE.option('volant_sensibilite', 1), inverse: SAUVEGARDE.option('volant_inverse', false), choix: SAUVEGARDE.option('volant_choix', 'volant'), guidage: SAUVEGARDE.option('tac_guidage', true) }),   // (tour 53f : les réglages du volant, sauvegardés)
     ecrire: (nom, valeur) => SAUVEGARDE.ecrireOption(nom, valeur) });   // le téléphone (tactile.js, tour 51k)
   INTERFACE.preparerFin(() => lancerCourse(JEU.course.nbTours), allerAuChoix);
   if (JEU.championnat) {
@@ -2924,11 +2951,21 @@ function demarrerJeu() {
     const bs = ['boutonQualitePause', 'boutonQualitePaddock'].map(id => document.getElementById(id)), demandee = PARAMETRES.get('qualite');   // (le menu pause et la page « Réglages » du paddock, tour 48a)
     JEU.qualiteAuto = !(navigator.webdriver && !QUALITE.REGLES.includes(demandee));
     JEU.qualite = QUALITE.creer(QUALITE.REGLES.includes(demandee) ? demandee : SAUVEGARDE.option('qualite', 'auto'),
-      { niveau: JEU.qualiteAuto ? SAUVEGARDE.option('qualite_niveau', 0) : 0, dpr: window.devicePixelRatio || 1 });
+      { niveau: JEU.qualiteAuto ? SAUVEGARDE.option('qualite_niveau', 0) : 0, dpr: window.devicePixelRatio || 1, res: JEU.qualiteAuto ? SAUVEGARDE.option('qualite_res', 0) : 0 });   // (tour 60 : res, les pixels de l'Auto fine)
     JEU.qualiteASauver = false;
     const appliquer = () => SCENE3D.reglerQualite(QUALITE.reglages(JEU.qualite));
     const ecrire = () => { for (const b of bs) b.textContent = texte(QUALITE.auPlusSimple(JEU.qualite) ? 'qualite_autoSimple' : 'qualite_' + JEU.qualite.regle); };
     JEU.appliquerQualite = () => { appliquer(); ecrire(); };
+    // (tour 60, QUALITE_FINE) la première fois (aucun niveau gardé), un petit essai de dessin au chargement choisit le niveau de départ
+    // au lieu de commencer au plus beau ; le niveau trouvé est gardé (on ne remesure plus)
+    if (REGLAGES.QUALITE_FINE && JEU.qualiteAuto && JEU.qualite.regle === 'auto' && SAUVEGARDE.option('qualite_niveau', null) === null && SCENE3D.actif) {
+      try {
+        const ms = SCENE3D.essaiDessin(REGLAGES.QUALITE_DEPART_ESSAI);
+        JEU.qualiteDepart = ms;
+        if (QUALITE.depart(JEU.qualite, ms)) appliquer();
+        SAUVEGARDE.ecrireOption('qualite_niveau', JEU.qualite.niveauAuto); SAUVEGARDE.ecrireOption('qualite_res', JEU.qualite.resAuto || 0);
+      } catch (e) { /* rien : l'Auto partira du plus beau, comme avant */ }
+    }
     appliquer(); ecrire();
     for (const b of bs) {
       b.addEventListener('mousedown', e => e.preventDefault());
@@ -3029,6 +3066,7 @@ function demarrerJeu() {
   BOUCLE.surAffichage((alpha, dt) => {
     JEU.alpha = alpha;
     JEU.dtImage = dt;
+    if (SCENE3D.avancer) SCENE3D.avancer(dt);   // (tour 60 : le temps du ciel et du public, qui bougent dans leurs shaders)
     if (JEU.enligne) ENLIGNE_PAGE.image();   // (tour 56, T7) la course en ligne démarre dès que le départ et la carte sont là
     if (JEU.ecran === 'une' && REGLAGES.UNE_AUTO_DUREE > 0 && (JEU.tempsUne += dt) >= REGLAGES.UNE_AUTO_DUREE) passerUne();   // (tour 53d) la une du journal passe toute seule
     majManettes(dt);   // la manette (manette.js) : lue à chaque image
@@ -3118,9 +3156,9 @@ function demarrerJeu() {
     // une fois tenu QUALITE_PAS_RETOUR s (pas à chaque pas : écrire la sauvegarde coûte une image), jamais pendant les feux
     if (JEU.qualite && JEU.qualiteAuto) {
       const feux = !!(JEU.course && JEU.course.etat === 'compte');
-      const n = QUALITE.observer(JEU.qualite, dt, feux, BOUCLE.debutImage !== null ? (performance.now() - BOUCLE.debutImage) / 1000 : undefined);
+      const n = QUALITE.observer(JEU.qualite, dt, feux, BOUCLE.debutImage !== null ? (performance.now() - BOUCLE.debutImage) / 1000 : undefined, SCENE3D.tempsGpu !== null ? SCENE3D.tempsGpu / 1000 : undefined);   // (tour 60 : le temps de la carte graphique, quand on le connaît)
       if (n !== null) { JEU.appliquerQualite(); JEU.qualiteASauver = true; }
-      else if (JEU.qualiteASauver && !feux && JEU.qualite.depuis >= REGLAGES.QUALITE_PAS_RETOUR) { JEU.qualiteASauver = false; SAUVEGARDE.ecrireOption('qualite_niveau', JEU.qualite.niveauAuto); }
+      else if (JEU.qualiteASauver && !feux && JEU.qualite.depuis >= REGLAGES.QUALITE_PAS_RETOUR) { JEU.qualiteASauver = false; SAUVEGARDE.ecrireOption('qualite_niveau', JEU.qualite.niveauAuto); if (JEU.qualite.fine) SAUVEGARDE.ecrireOption('qualite_res', JEU.qualite.resAuto); }
     }
   });
   if (PARAMETRES.get('debug') === '1') brancherDebug();

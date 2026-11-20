@@ -10,7 +10,7 @@ const L=[];let ok=0,ko=0;
 function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
 const v=(c,m)=>{if(!c)throw new Error(m||'faux');};
 const R=REGLAGES;
-const IDS=['depart','qualif','fantome','fantomePole','stand','degats','drapeauJaune','drapeauBleu','drapeauVsc','pluie','consigne','pneus','garage','aileron','duel','rivalDomicile','enligne','enligneSalle','contrats','interview','vivante','choixAides'];   // (tour 37g : la voiture vivante, le choix des aides ; tour 37l : le choix des pneus)
+const IDS=['depart','qualif','fantome','fantomePole','stand','degats','drapeauJaune','drapeauBleu','drapeauVsc','pluie','consigne','pneus','garage','aileron','duel','rivalDomicile','enligne','enligneSalle','contrats','interview','vivante','choixAides','guidage'];   // (tour 60 : l'auto-guidage du téléphone)   // (tour 37g : la voiture vivante, le choix des aides ; tour 37l : le choix des pneus)
 
 // une situation de base : rien ne sert (un écran sans aide), la voiture en ligne droite
 const base=()=>({ecran:'choix',deux:false,tournoi:false,decouverte:false,attente:false,aidesDecouverte:false,feux:false,compte:false,etat:null,qualif:null,fantome:false,
@@ -37,6 +37,7 @@ const MOMENT={
   vivante:avec({ecran:'course',etat:'course',drift:true}),
   pneus:avec({ecran:'garage',pneusDrift:true,pneusTouches:true,vitesse:0}),
   choixAides:avec({ecran:'championnat',choixAides:true,vitesse:0}),
+  guidage:avec({ecran:'course',etat:'course',guidage:true}),
 };
 const unPas=(e,s,dt=1/60)=>AIDES.pas(e,s,dt);
 // (la bulle du fantôme de la pole vient après celle de la qualification, sur le même écran : la 2e fois)

@@ -19,6 +19,7 @@
   const DEFS = Object.assign({}, CIRCUITS, CIRCUITS_OFFICIELS_A, CIRCUITS_OFFICIELS_B);
   const c = construireCircuit(DEFS[NOM]);
   const ch = P.get('domicile') === '1' ? { graine: 1, pilotes: [{ humain: true, nom: 'le propriétaire', numero: 27, pays: R.CIRCUITS_PAYS[NOM], coeur: NOM }] } : null;
+  if (P.get('realisme') === '0') { R.REALISME_CIEL = false; R.REALISME_PUBLIC = false; }   // (tour 60 : le ciel et le public d'avant)
   if (!SCENE3D.init(document.getElementById('scene3d'), c, { championnat: ch, circuit: NOM })) return;
   // 20 voitures sur la grille, en deux files derrière la ligne
   VOITURE3D.preparerCasques(Array.from({ length: 20 }, (_, k) => CASQUE.neutre()));

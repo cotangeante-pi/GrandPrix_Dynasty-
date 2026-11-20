@@ -31,6 +31,7 @@ const SCENE3D = (function () {
   // gp (facultatif) : { championnat, circuit } du Grand Prix (le public du décor, decor-public.js)
   function init(element, circuit, gp) {
     conteneur = element;
+    infoCircuitCourant = circuit;
     try {
       rendu = new THREE.WebGLRenderer({ antialias: true });
     } catch (e) {
@@ -74,6 +75,9 @@ const SCENE3D = (function () {
       scene.background = new THREE.Color(lieu.ciel.horizon);
       const b = lieu.brouillard, debut = b.debut + (R.NUIT_BROUILLARD[0] - b.debut) * nuit, fin = b.fin + (R.NUIT_BROUILLARD[1] - b.fin) * nuit;
       scene.fog = new THREE.Fog(b.couleur, debut, fin);
+      // (tour 60, REALISME_CIEL) le ciel d'un shader se fond en bas dans la couleur du brouillard : le fond aussi, et l'ambiance prend un
+      // peu de la couleur du haut du ciel (la lumière accordée au ciel)
+      if (R.REALISME_CIEL) { scene.background.set(b.couleur); ambiance.color.lerp(new THREE.Color(lieu.ciel.haut), R.CIEL_AMBIANCE_TEINTE); }
     }
 
     // le pont : le relief du croisement (CIRCUITS[nom].croisement), avant la géométrie de la route
@@ -88,6 +92,13 @@ const SCENE3D = (function () {
     if (choix) {
       decor = DECOR.construire(circuit, choix.description, gp || { championnat: null, circuit: cle }, lieu);
       scene.add(decor.groupe);
+      // (tour 60, REALISME_CIEL) le circuit d'essai (le premier du joueur) n'a pas de lieu : il reçoit le ciel CIEL_TEST (un appel de dessin)
+      if (R.REALISME_CIEL && !lieu && DECOR.cielRealiste) {
+        const h = Math.atan2(soleil.position.y, Math.hypot(soleil.position.x, soleil.position.z)) * 180 / Math.PI;
+        const coupole = DECOR.cielRealiste(circuit, R.CIEL_TEST, { soleil: 0xfff4e0, hauteur: h }, R.COULEUR_CIEL, 0);
+        decor.groupe.add(coupole); decor.cielU = coupole.userData.ciel;
+        ambiance.color.lerp(new THREE.Color(R.CIEL_TEST.haut), R.CIEL_AMBIANCE_TEINTE);
+      }
     }
 
     // la météo (meteo3d.js) : ce qu'elle assombrit sous la pluie (la route, la coupole du ciel du lieu, les deux lumières)
@@ -378,10 +389,67 @@ const SCENE3D = (function () {
     appelsRetro = rendu.info.render.calls - avant; trianglesRetro = rendu.info.render.triangles - avantT;
   }
 
+  // (tour 60, Codeur 3) l'animation du ciel et du public (decor.js, DECOR.animer) : le temps avance seulement par la boucle d'affichage
+  // (avancer(dt), principal.js : deux dessins sans image entre eux sont identiques au pixel près, les tests en ont besoin), ramené tous
+  // les 2000 s pour garder la précision des shaders ; tempsFixe : les tests et les captures ; les 4 voitures les plus proches de la caméra
+  let tempsFixe = null, tempsAnim = 0;
+  const prochesAnim = [];
+  function avancer(dt) { if (dt > 0) tempsAnim = (tempsAnim + Math.min(dt, 0.1)) % 2000; }
+  function animerDecor() {
+    if (!decor || !(R.REALISME_PUBLIC || R.REALISME_CIEL) || !DECOR.animer) return;
+    const t = tempsFixe !== null ? tempsFixe : tempsAnim;
+    prochesAnim.length = 0;
+    if (flotte) {
+      const p = camera.position;
+      for (const g of flotte.voitures) if (g.parent) prochesAnim.push({ x: g.position.x, z: g.position.z, d: (g.position.x - p.x) * (g.position.x - p.x) + (g.position.z - p.z) * (g.position.z - p.z) });
+      prochesAnim.sort((a, b) => a.d - b.d);
+    }
+    DECOR.animer(decor, t, prochesAnim, qualite);
+  }
+  // (tour 60, QUALITE_FINE) le temps de la carte graphique (EXT_disjoint_timer_query_webgl2, quand le navigateur le donne) : une requête
+  // autour du dessin de l'image, lue quelques images plus tard ; tempsGpu en ms, ou null (inconnu)
+  let minuteur = null, tempsGpu = null;
+  function debutGpu() {
+    if (!R.QUALITE_FINE || minuteur === false) return false;
+    if (!minuteur) {
+      const gl = rendu.getContext(), ext = gl && typeof WebGL2RenderingContext !== 'undefined' && gl instanceof WebGL2RenderingContext ? gl.getExtension('EXT_disjoint_timer_query_webgl2') : null;
+      minuteur = ext ? { gl, ext, attente: [] } : false;
+      if (!minuteur) return false;
+    }
+    const { gl, ext, attente } = minuteur;
+    while (attente.length && gl.getQueryParameter(attente[0], gl.QUERY_RESULT_AVAILABLE)) {
+      const q = attente.shift(), ns = gl.getQueryParameter(q, gl.QUERY_RESULT);
+      if (!gl.getParameter(ext.GPU_DISJOINT_EXT)) tempsGpu = ns / 1e6;
+      gl.deleteQuery(q);
+    }
+    if (attente.length >= 4) return false;
+    const q = gl.createQuery(); gl.beginQuery(ext.TIME_ELAPSED_EXT, q); attente.push(q);
+    return true;
+  }
+  function finGpu(ok) { if (ok) minuteur.gl.endQuery(minuteur.ext.TIME_ELAPSED_EXT); }
+  // le départ de l'Auto fine : n images de la grille dessinées et ATTENDUES (readPixels d'un pixel), après une première qui compile les
+  // shaders ; renvoie le temps d'une image en ms (la caméra est remise comme avant)
+  function essaiDessin(n) {
+    if (!rendu || !infoCircuitCourant) return 0;
+    const c = infoCircuitCourant, P0 = camera.position.clone(), Q0 = camera.quaternion.clone(), px = new Uint8Array(4), gl = rendu.getContext();
+    const i = Math.round(c.nb - 30 / c.pas) % c.nb, fx = c.tx[i], fz = c.tz[i];
+    camera.position.set(c.x[i] - fx * 8, 2.4, c.z[i] - fz * 8); camera.lookAt(c.x[i] + fx * 20, 1, c.z[i] + fz * 20);
+    const attendre = () => gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+    dessiner(); attendre();
+    const t = performance.now();
+    for (let k = 0; k < n; k++) { dessiner(); attendre(); }
+    const ms = (performance.now() - t) / Math.max(1, n);
+    camera.position.copy(P0); camera.quaternion.copy(Q0);
+    return ms;
+  }
+  let infoCircuitCourant = null;
+
   // renvoie le nombre de triangles dessinés
   function dessiner() {
     if (!rendu) return 0;
     rendu.info.reset();
+    animerDecor();
+    const gpuOk = debutGpu();
     if (decor) DECOR.majDetail(decor, partage ? [camera.position, camera2.position] : [camera.position], qualite);   // le public et les arbres : proches, loin ou rien
     placerOmbres();
     const cachees = lointaines();
@@ -403,6 +471,7 @@ const SCENE3D = (function () {
       }
       appelsRetro = 0; trianglesRetro = 0;
     } else { rendu.render(scene, camera); dessinerRetro(); }
+    finGpu(gpuOk);
     for (const g of cachees) g.visible = true;   // (les voitures lointaines retrouvent leur état : le jeu ne voit pas la différence)
     trianglesDessines = rendu.info.render.triangles - trianglesRetro;
     appelsDessin = rendu.info.render.calls - appelsRetro;
@@ -505,6 +574,7 @@ const SCENE3D = (function () {
     get joueurSimplifie() { return joueurSimplifie; },
     reglerRetro, get retroZone() { return retroZone; }, get appelsRetro() { return appelsRetro; }, get trianglesRetro() { return trianglesRetro; },   // (le rétroviseur ; tests : sa zone, ses appels de dessin à la dernière image)   // (tests : la voiture du joueur dessinée en forme simple à la dernière image)   // (tests : les voitures dessinées en forme simple à la dernière image)   // (tests : le décor placé, ses maillages, ses niveaux de détail)
     get trianglesDessines() { return trianglesDessines; },
+    reglerTemps(t) { tempsFixe = t === undefined ? null : t; }, avancer, essaiDessin, get tempsGpu() { return tempsGpu; },   // (tour 60 : l'animation du public et du ciel ; l'Auto fine)
     get appelsDessin() { return appelsDessin; },
     reglerQualite, get qualite() { return qualite; }, get pixelRatio() { return rendu ? rendu.getPixelRatio() : 0; },
     get programmes() { return rendu && rendu.info.programs ? rendu.info.programs.length : 0; },   // (la mesure des coûts, tour 40 : les shaders compilés)

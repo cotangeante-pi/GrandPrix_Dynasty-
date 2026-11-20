@@ -1,0 +1,236 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>tests de l'auto-guidage du téléphone</title></head><body>
+<pre id="res"></pre>
+<script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));</script>
+<script src="../donnees.js"></script><script src="../aleatoire.js"></script><script src="../circuits-officiels-a.js"></script><script src="../circuits-officiels-b.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../ia.js"></script><script src="../robot.js"></script><script src="../assistance.js"></script><script src="../tactile.js"></script>
+<script>
+// L'auto-guidage du téléphone (tour 60, Codeur 4 ; assistance.js : guider, secours, relancer), en calcul pur : des zigzags simulés
+// réalistes (un joueur au volant du téléphone, en retard et qui sur-corrige, avec la zone morte et le lissage du vrai volant,
+// TACTILE.braquage et TACTILE.lisser), avec et sans le guidage ; puis le changement de file exprès, le virage, le secours.
+const L=[];let ok=0,ko=0;
+function t(n,f){try{f();ok++;L.push('✔ '+n);}catch(e){ko++;L.push('✘ '+n+' — '+e.message);}}
+const v_=(c,m)=>{if(!c)throw new Error(m||'faux');};
+const R=REGLAGES, DT=R.PAS_PHYSIQUE, DEG=180/Math.PI;
+const fx=(x,n=2)=>x.toFixed(n);
+// un circuit d'essai : deux droites de 3 km et deux virages de 200 m de rayon
+const C=construireCircuit({nom:'guidage',largeur:13,secteurs:[0,0.34,0.67],depart:[0,0,0],morceaux:[['droite',3000],['virage',200,180],['droite',3000],['virage',200,180]]});
+const capPiste=v=>Math.atan2(C.tz[v.piste.indice],C.tx[v.piste.indice]);
+const ecartCap=v=>{const a=v.cap-capPiste(v);return Math.atan2(Math.sin(a),Math.cos(a))*DEG;};
+// un générateur à graine (le jeu n'est pas touché)
+function hasardDe(g){let s=g>>>0||1;return()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296;};}
+
+// le joueur au téléphone : il veut aller tout droit, dans sa file (ramenée sur le goudron s'il en sort) ; il vise un point de cette file à `regard` s devant lui ; il incline le téléphone de `gain` degrés par degré d'écart,
+// au-delà de la zone morte (il la connaît), avec `retard` s de retard (voir, décider, bouger) et une main qui suit en 0,1 s ; un tremblement (σ `bruit` °) ; un coup de volant de `coup` °
+// pendant 0,35 s à t = 1 s (il se déstabilise) ; puis le vrai volant du jeu : zone morte, plein, lissage (TACTILE.braquage, TACTILE.lisser)
+function joueur(o){
+  const h=hasardDe(o.graine||1),buf=[],nRet=Math.round((o.retard??0.35)/DT);
+  let theta=0,lisse=0,tremble=0,t=0;
+  return v=>{
+    t+=DT;
+    const p=v.piste,dVise=typeof o.file==='function'?o.file(t):o.file===undefined?Math.max(-4.5,Math.min(4.5,p.d)):o.file   // (sans file donnée : tout droit, dans la file où il est, ramené sur le goudron)
+    ,dist=Math.max(20,v.u*(o.regard??0.9));
+    const q=[0,0];pointPiste(C,p.s+dist,dVise,q);
+    const dx=q[0]-v.x,dz=q[1]-v.z,c=Math.cos(v.cap),s=Math.sin(v.cap);
+    const alpha=Math.atan2(-s*dx+c*dz,c*dx+s*dz)*DEG;   // le point visé, en degrés à droite du nez
+    buf.push(alpha);const vu=buf.length>nRet?buf.shift():0;
+    let voulu=(o.gain??4)*vu+R.VOLANT_ZONE_MORTE*Math.sign(vu)*Math.min(1,Math.abs(vu)/1.5);   // (il sait que les 10° du milieu ne braquent pas : il passe la zone morte)
+    if(o.coup&&t>=1&&t<1.35)voulu=o.coup;
+    voulu=Math.max(-45,Math.min(45,voulu));
+    theta+=(voulu-theta)*Math.min(1,DT/0.1);
+    tremble+=(-tremble/0.5+((h()+h()+h()-1.5)*2)*(o.bruit??2)*Math.sqrt(2/0.5/DT))*DT;
+    lisse=TACTILE.lisser(lisse,theta+tremble,DT);
+    return {gaz:1,frein:0,direction:TACTILE.braquage(lisse,0,1)};
+  };
+}
+// une course de `duree` s sur la première droite, à `u0` m/s ; guide : avec le guidage ; renvoie les mesures
+function rouler(o,guide,duree=8,u0=60,s0=300){
+  const v=creerVoiture(C,s0,o.d0||0);v.u=u0;
+  const pilote=joueur(o),e=ASSISTANCE.creerGuidage();
+  const m={capMax:0,dMax:0,herbe:0,barriere:0,inversions:0,actifDebut:null,stable:null,sorties:0,u:[],caps:[],d:[],w:0,touche:0,secours:0};
+  let calme=0,t=0;
+  for(let k=0;k<duree/DT;k++){
+    t+=DT;
+    const brut=pilote(v);let c=brut;
+    if(guide){c=ASSISTANCE.guider(e,brut,brut,v,C,DT);if(c!==brut)m.touche++;
+      if(e.actif&&m.actifDebut===null)m.actifDebut=t;
+      if(o.secours){const u=ASSISTANCE.secours(e,v,C,DT);if(u!==null){ASSISTANCE.relancer(v,C,null,u);m.secours++;}}}
+    lisserCommandes(v,c,DT);pasVoiture(v,C,DT);
+    const ec=Math.abs(ecartCap(v));
+    if(t>1.35){m.capMax=Math.max(m.capMax,ec);m.dMax=Math.max(m.dMax,Math.abs(v.piste.d));}
+    if(v.surHerbe)m.herbe+=DT;
+    // droite et calme : cap à moins de 2°, rotation sous 0,03 rad/s, pendant 0,5 s
+    calme=ec<2&&Math.abs(v.r)<0.03&&t>1.35?calme+DT:0;
+    if(calme>=0.5&&m.stable===null)m.stable=t-0.5;
+    if(k%12===0){m.u.push(v.u);m.caps.push(ecartCap(v));m.d.push(v.piste.d);}
+  }
+  m.uFin=v.u;m.barriere=v.contactsBarriere;m.allume=e.allume;m.v=v;m.e=e;
+  // l'amplitude du zigzag dans les 2 dernières secondes
+  m.capFin=Math.max(...m.caps.slice(-Math.round(2/(12*DT))).map(Math.abs));
+  return m;
+}
+
+// --- 1. les zigzags simulés : 12 joueurs (gain, retard, tremblement, coup de volant, graine) ; sans guidage d'abord (ils zigzaguent vraiment), puis avec
+const JOUEURS=[];
+for(const gain of [3,4,6])for(const retard of [0.3,0.45])for(const graine of [1,2,3])JOUEURS.push({gain,retard,bruit:graine===3?4:2.5,coup:[0,20,-24,18][graine],graine,regard:0.9});
+const TABLE=[];
+t('zigzags simulés : sans guidage, les joueurs qui sur-corrigent zigzaguent vraiment (cap à plus de 4° de la piste après le coup de volant)',()=>{
+  let n=0;for(const o of JOUEURS){const s=rouler(o,false);o.sans=s;if(s.capMax>4)n++;}
+  v_(n>=JOUEURS.length*0.75,n+' sur '+JOUEURS.length);});
+t('zigzags simulés : avec le guidage, chaque zigzag en ligne droite revient droit (cap à moins de 2°, rotation calme) en moins de 1,5 s après que le guidage a pris la main, et en moins de 3 s après le coup de volant',()=>{
+  const pires=[];
+  for(const o of JOUEURS){const a=rouler(o,true);o.avec=a;
+    const depuisGuidage=a.stable!==null&&a.actifDebut!==null?a.stable-a.actifDebut:null,depuisCoup=a.stable!==null?a.stable-1.35:null;
+    TABLE.push(`  gain ${o.gain} retard ${o.retard} s graine ${o.graine} : sans guidage cap max ${fx(o.sans.capMax,1)}°, ${fx(o.sans.capFin,1)}° à la fin, écart max ${fx(o.sans.dMax,1)} m, herbe ${fx(o.sans.herbe,1)} s, ${fx(o.sans.uFin*3.6,1)} km/h ; avec : cap max ${fx(a.capMax,1)}°, ${fx(a.capFin,1)}° à la fin, écart max ${fx(a.dMax,1)} m, herbe ${fx(a.herbe,1)} s, ${fx(a.uFin*3.6,1)} km/h, guidage à ${a.actifDebut===null?'—':fx(a.actifDebut)} s, droit ${depuisGuidage===null?'jamais':fx(depuisGuidage)+' s après'} (${depuisCoup===null?'—':fx(depuisCoup)+' s après le coup'}), allumé ${a.allume} fois`);
+    if(a.actifDebut!==null&&(depuisGuidage===null||depuisGuidage>1.5||depuisCoup>3))pires.push(o.gain+'/'+o.retard+'/'+o.graine+' : '+depuisGuidage);
+    if(o.sans.capMax>4&&a.actifDebut===null)pires.push(o.gain+'/'+o.retard+'/'+o.graine+' : jamais allumé');}
+  v_(!pires.length,pires.join(' ; '));});
+t('zigzags simulés : le guidage ne coûte aucune vitesse (ni gaz ni frein touchés) : la vitesse à la fin est au moins celle sans guidage (les zigzags freinent la voiture, la physique le fait de toute façon)',()=>{
+  const pires=JOUEURS.filter(o=>o.avec.uFin<o.sans.uFin-0.05).map(o=>o.gain+'/'+o.retard+'/'+o.graine+' '+fx(o.avec.uFin)+' < '+fx(o.sans.uFin));
+  v_(!pires.length,pires.join(' ; '));});
+t('zigzags simulés : avec le guidage, moins d’herbe et moins d’écart au cap qu’avant, en somme sur les 12 joueurs',()=>{
+  const S=k=>JOUEURS.reduce((x,o)=>[x[0]+o.sans[k],x[1]+o.avec[k]],[0,0]);
+  const h=S('herbe'),c=S('capFin');TABLE.push(`  somme : herbe ${fx(h[0],1)} s → ${fx(h[1],1)} s ; cap à la fin ${fx(c[0],1)}° → ${fx(c[1],1)}°`);
+  v_(h[1]<=h[0]&&c[1]<c[0]*0.5,JSON.stringify([h,c]));});
+t('zigzags simulés à d’autres vitesses (140 et 290 km/h au départ) et avec d’autres tremblements (graines 4 à 9) : le guidage les ramène droit, en 1,6 s au plus en médiane et 2,6 s au pire (plus lent à 290 km/h : le braquage y est plus petit)',()=>{
+  const res=[];let pire=0;const tous=[];
+  for(const u0 of [39,80]){const ts=[];let jamais=0,herbeS=0,herbeA=0;
+    for(const gain of [3,4,6])for(const retard of [0.3,0.45])for(const graine of [4,5,6,7,8,9]){
+      const o={gain,retard,bruit:graine%2?2.5:4,coup:(graine%3?1:-1)*(16+graine*1.5),graine,regard:0.9};
+      const s_=rouler(o,false,8,u0),a=rouler(o,true,8,u0);herbeS+=s_.herbe;herbeA+=a.herbe;
+      if(a.actifDebut===null){if(s_.capMax>4)jamais++;continue;}
+      if(a.stable===null){jamais++;continue;}ts.push(a.stable-a.actifDebut);}
+    ts.sort((x,y)=>x-y);const med=ts[Math.floor(ts.length/2)],max=ts[ts.length-1];pire=Math.max(pire,max);tous.push([med,max,jamais]);
+    res.push(`${fx(u0*3.6,0)} km/h : ${ts.length} zigzags guidés, droit en ${fx(med)} s (médiane), ${fx(max)} s au pire, ${jamais} jamais droits ; herbe ${fx(herbeS,1)} s → ${fx(herbeA,1)} s`);}
+  TABLE.push('  autres vitesses : '+res.join(' ; '));
+  v_(tous.every(([m,x,j])=>m<1.6&&x<2.6&&j===0),res.join(' ; '));});
+t('le guidage ne touche jamais au gaz ni au frein',()=>{const e=ASSISTANCE.creerGuidage(),v=creerVoiture(C,300,0);v.u=60;v.cap+=0.1;
+  for(const d of [0.6,-0.6,0.6,-0.6,0.6]){for(let k=0;k<50;k++){const c={gaz:0.7,frein:0.2,direction:d},r=ASSISTANCE.guider(e,c,c,v,C,DT);v_(r.gaz===0.7&&r.frein===0.2,'touché');}}
+  v_(e.actif,'pas allumé');});
+
+// --- 2. un vrai changement de file exprès : un coup d'un côté, un coup de l'autre pour se redresser, 4 m plus loin ; le guidage n'y touche pas
+t('un changement de file exprès (un coup de volant d’un côté, un de l’autre pour se redresser ; puis le retour 3 s plus tard) n’est pas empêché : le guidage ne s’allume pas, les cibles du joueur ne sont jamais touchées, la voiture change de file exactement comme sans guidage',()=>{
+  const res=[];
+  for(const [a,dur] of [[0.1,0.6],[0.15,0.4],[0.2,0.4],[0.25,0.25],[0.3,0.25]]){
+    const essai=guide=>{const v=creerVoiture(C,300,-3),e=ASSISTANCE.creerGuidage();v.u=60;let touche=0,t=0,capMax=0;
+      const seq=[[1,0],[dur,a],[dur,-a],[3,0],[dur,-a],[dur,a],[3,0]];let k0=0,fin=0;
+      for(const [d_,x] of seq){fin+=d_;while(t<fin){t+=DT;const c={gaz:1,frein:0,direction:x};const r=guide?ASSISTANCE.guider(e,c,c,v,C,DT):c;if(r!==c)touche++;lisserCommandes(v,r,DT);pasVoiture(v,C,DT);capMax=Math.max(capMax,Math.abs(ecartCap(v)));if(Math.abs(t-(1+2*dur+2.5))<DT/2)k0=v.piste.d;}}
+      return {d1:k0,d2:v.piste.d,touche,allume:e.allume,capMax};};
+    const s_=essai(false),g=essai(true);
+    res.push(`${a} pendant ${dur} s : cap max ${fx(s_.capMax,1)}°, file ${fx(s_.d1,2)} m puis ${fx(s_.d2,2)} m (avec guidage ${fx(g.d1,2)} / ${fx(g.d2,2)}), allumé ${g.allume}`);
+    v_(g.touche===0&&g.allume===0&&g.d1===s_.d1&&g.d2===s_.d2,res.join(' ; '));}
+  TABLE.push('  changement de file : '+res.join(' ; '));});
+t('le volant tenu d’un côté (tourner exprès) : guidé, la voiture prend quand même le cap demandé, qui grandit avec le temps tenu (GUIDAGE_EXPRES) ; lâché au milieu, le guidage rend la main',()=>{
+  const e=ASSISTANCE.creerGuidage(),v=creerVoiture(C,300,0);v.u=60;const pas=c=>{const r=ASSISTANCE.guider(e,c,c,v,C,DT);lisserCommandes(v,r,DT);pasVoiture(v,C,DT);return r;};
+  for(const d of [0.6,-0.6,0.6])for(let k=0;k<30;k++)pas({gaz:1,frein:0,direction:d});
+  v_(e.actif,'pas allumé');
+  for(let k=0;k<0.5/DT;k++)pas({gaz:1,frein:0,direction:0});
+  const c0=ecartCap(v);for(let k=0;k<0.6/DT;k++)pas({gaz:1,frein:0,direction:1});const c1=ecartCap(v);
+  for(let k=0;k<1.5/DT;k++)pas({gaz:1,frein:0,direction:1});const c2=ecartCap(v);
+  TABLE.push(`  volant tenu à fond, guidé : cap ${fx(c0,1)}° → ${fx(c1,1)}° (0,6 s) → ${fx(c2,1)}° (2,1 s)`);
+  v_(c2>R.GUIDAGE_CAP_JOUEUR*0.7,[c0,c1,c2].join(' '));
+  let r;for(let k=0;k<(R.GUIDAGE_CALME+R.GUIDAGE_FENETRE+R.GUIDAGE_DESCENTE+1.5)/DT;k++)r=pas({gaz:1,frein:0,direction:0});
+  v_(!e.actif&&e.g===0,'toujours guidé');const c={gaz:1,frein:0,direction:0.3};v_(ASSISTANCE.guider(e,c,c,v,C,DT)===c,'le volant n’est pas rendu');});
+
+// --- 3. en virage, il ne fait rien (même un zigzag) ; à l'approche d'un virage, il s'efface
+t('en virage, le guidage ne fait rien : un joueur qui zigzague dans le virage de 200 m garde ses cibles telles quelles',()=>{
+  const e=ASSISTANCE.creerGuidage(),v=creerVoiture(C,3000+60,0);v.u=35;let touche=0;
+  for(let k=0;k<4/DT;k++){const c=piloteRobot(v,C,35);c.direction+=0.5*Math.sign(Math.sin(k*DT*2*Math.PI/0.8));c.direction=Math.max(-1,Math.min(1,c.direction));
+    const r=ASSISTANCE.guider(e,c,c,v,C,DT);if(r!==c)touche++;lisserCommandes(v,r,DT);pasVoiture(v,C,DT);}
+  v_(touche===0&&ASSISTANCE.droiture(v,C)===0,touche+' pas touchés');});
+t('à l’approche d’un virage, la part du guidage descend à 0 (la droiture : 1 au milieu de la droite, 0 à 2,5 s du virage à 60 m/s)',()=>{
+  const v=creerVoiture(C,1000,0);v.u=60;const a=ASSISTANCE.droiture(v,C);
+  const v2=creerVoiture(C,3000-60*2.5+20,0);v2.u=60;const b=ASSISTANCE.droiture(v2,C);
+  v_(a===1&&b===0,a+' '+b);});
+t('près de la voie des stands (de GUIDAGE_STANDS m avant son entrée jusqu’à sa sortie), le guidage ne fait rien : on y tourne exprès',()=>{
+  const st=C.stands;v_(R.PNEUS_ACTIFS&&st,'pas de stands');const L=C.longueur;let n=0,hors=0;
+  for(const ds of [-R.GUIDAGE_STANDS+5,-50,0,st.longueur/2,st.longueur-5]){const v=creerVoiture(C,((st.entree+ds)%L+L)%L,0);v.u=60;n+=ASSISTANCE.droiture(v,C)===0?0:1;}
+  const v=creerVoiture(C,((st.entree+st.longueur+400)%L+L)%L,0);v.u=60;hors=ASSISTANCE.droiture(v,C);
+  TABLE.push(`  stands : entrée à ${fx(st.entree,0)} m, longueur ${fx(st.longueur,0)} m`);
+  v_(n===0&&hors===1,n+' '+hors);});
+t('sous GUIDAGE_VITESSE_MIN, dans les stands ou sans position, rien',()=>{const e=ASSISTANCE.creerGuidage(),v=creerVoiture(C,300,0);v.u=5;const c={gaz:1,frein:0,direction:0.6};
+  v_(ASSISTANCE.guider(e,c,c,v,C,DT)===c);v.u=60;v.dansStands=true;v_(ASSISTANCE.guider(e,c,c,v,C,DT)===c);});
+
+// --- 4. le secours : la voiture perdue quand même repart à la vitesse d'avant, dans le sens de la piste
+t('secours : un tête-à-queue en ligne droite (cap à 110° de la piste) : après 0,3 s, la voiture est remise sur la piste, dans le sens de la piste, à la vitesse qu’elle avait avant (pas à zéro)',()=>{
+  const e=ASSISTANCE.creerGuidage(),v=creerVoiture(C,300,0);v.u=62;let u=null,k=0;
+  for(;k<60;k++){ASSISTANCE.secours(e,v,C,DT);lisserCommandes(v,{gaz:1,frein:0,direction:0},DT);pasVoiture(v,C,DT);}
+  const avant=e.uStable;v.cap+=110/DEG;
+  for(k=0;k<1/DT&&u===null;k++){u=ASSISTANCE.secours(e,v,C,DT);if(u===null){lisserCommandes(v,{gaz:1,frein:0,direction:0},DT);pasVoiture(v,C,DT);}}
+  v_(u!==null&&Math.abs(k*DT-0.3)<0.05,'pas de secours ('+k*DT+')');
+  const donne=ASSISTANCE.relancer(v,C,null,u);
+  TABLE.push(`  secours tête-à-queue : vitesse d’avant ${fx(avant*3.6,1)} km/h, relancée à ${fx(donne*3.6,1)} km/h après ${fx(k*DT)} s`);
+  v_(Math.abs(donne-avant)<1e-9&&donne>60&&Math.abs(ecartCap(v))<0.5&&Math.abs(v.piste.d)<0.5,donne+' '+ecartCap(v));});
+t('secours : sortie dans l’herbe en ligne droite (le joueur part de côté) : remise en piste à la vitesse d’avant après 0,5 s d’herbe ; sans secours, la voiture traîne dans l’herbe',()=>{
+  const essai=sec=>{const e=ASSISTANCE.creerGuidage(),v=creerVoiture(C,300,0);v.u=60;let u=null,t=0,donne=null,herbe=0;
+    for(let k=0;k<5/DT;k++){t+=DT;const c={gaz:1,frein:0,direction:t>0.5&&t<1.1?0.5:0};
+      if(sec){u=ASSISTANCE.secours(e,v,C,DT);if(u!==null&&donne===null){donne=ASSISTANCE.relancer(v,C,null,u);}}
+      lisserCommandes(v,c,DT);pasVoiture(v,C,DT);if(v.surHerbe)herbe+=DT;}
+    return {donne,uFin:v.u,herbe,avant:e.uStable};};
+  const a=essai(true),s=essai(false);
+  TABLE.push(`  secours herbe : relancée à ${a.donne===null?'—':fx(a.donne*3.6,1)} km/h, ${fx(a.herbe,1)} s d’herbe, ${fx(a.uFin*3.6,1)} km/h à 5 s ; sans secours ${fx(s.herbe,1)} s d’herbe, ${fx(s.uFin*3.6,1)} km/h à 5 s`);
+  v_(a.donne!==null&&a.donne>50&&a.uFin>s.uFin&&a.herbe<s.herbe,JSON.stringify([a,s]));});
+t('secours : la vitesse rendue est bornée par ce qu’il faut pour passer le virage qui arrive (vitesseSure)',()=>{
+  const v=creerVoiture(C,2950,0);v.cap+=2;
+  const donne=ASSISTANCE.relancer(v,C,null,150);v_(donne<150&&donne>30,donne);});
+// (revue du Chef) la place du secours : jamais sur une IA, jamais devant ; la vitesse plafonnée par la voiture de devant
+// une IA qui roule tout droit dans sa file à vitesse constante (gaz dosé, direction 0) ; le joueur relancé roule sans gaz ni volant
+function ia(s,d,u){const o=creerVoiture(C,s,d);o.u=u;o.ia=true;return o;}
+function rouleIA(o){const c=o.u<o.cible?1:0;appliquerCommandes(o,{gaz:c,frein:0,direction:0});pasVoiture(o,C,DT);}
+function chevauche(a,b){const ds=Math.abs(((a.piste.s-b.piste.s+C.longueur/2)%C.longueur+C.longueur)%C.longueur-C.longueur/2);return ds<R.LONGUEUR_VOITURE+1&&Math.abs(a.piste.d-b.piste.d)<R.DEMI_LARGEUR_VOITURE*2+0.4;}
+function poser(cas){
+  const v=creerVoiture(C,1000,0);v.u=20;v.cap+=110/DEG;const s0=v.piste.s;
+  const autres=cas.map(([ds,d,u])=>{const o=ia(s0+ds,d,u);o.cible=u;return o;});
+  const donne=ASSISTANCE.relancer(v,C,null,64,autres);
+  if(donne===null)return {donne,autres,v,s0};
+  let choc=0,dMin=Infinity;const a0=autres.map(o=>o.piste.s);
+  for(let k=0;k<3/DT;k++){for(const o of autres)rouleIA(o);lisserCommandes(v,{gaz:0,frein:0,direction:0},DT);pasVoiture(v,C,DT);
+    for(const o of autres){if(chevauche(v,o))choc++;}}
+  return {donne,autres,v,s0,choc,pose:null};}
+t('secours, la place (revue du Chef) : une IA au point de pose (devant, derrière, à côté, plusieurs files prises) : la voiture est posée sur une place libre (une autre file ou plus en arrière, jamais plus loin que le point d’Espace), dans le sens de la piste, et 3 s ensuite sans aucun chevauchement',()=>{
+  const res=[];
+  const CAS={'IA au point même':[[0,0,55]],'IA 15 m devant':[[15,0,50]],'IA 15 m derrière, plus rapide':[[-15,0,75]],'IA à côté (file de droite) et au milieu':[[0,0,60],[2,3,60]],
+    'trois files prises':[[0,0,60],[5,3,60],[-5,-3,60],[10,4.5,60],[-8,-4.5,60]],'IA 60 m devant, plus lente':[[60,0,40]]};
+  for(const [nom,cas] of Object.entries(CAS)){
+    const v=creerVoiture(C,1000,0);v.u=20;v.cap+=110/DEG;const s0=v.piste.s;
+    const r=poser(cas);v_(r.donne!==null,nom+' : aucune place');
+    const v2=creerVoiture(C,1000,0);v2.u=20;v2.cap+=110/DEG;const autres2=cas.map(([ds,d,u])=>ia(s0+ds,d,u));const u2=ASSISTANCE.relancer(v2,C,null,64,autres2);
+    const gain=((v2.piste.s-s0+C.longueur/2)%C.longueur+C.longueur)%C.longueur-C.longueur/2;
+    res.push(`${nom} : posée à ${fx(gain,0)} m, file ${fx(v2.piste.d,1)} m, ${fx(u2*3.6,0)} km/h, chevauchements ${r.choc}`);
+    v_(r.choc===0&&gain<=0.5&&Math.abs(ecartCap(v2))<0.5&&Math.abs(v2.piste.d)<=C.largeur/2-R.GUIDAGE_POSE_BORD+1e-9,res.join(' ; '));
+    for(const o of autres2){const ds=((o.piste.s-v2.piste.s+C.longueur/2)%C.longueur+C.longueur)%C.longueur-C.longueur/2;
+      if(Math.abs(o.piste.d-v2.piste.d)<R.GUIDAGE_POSE_LARGEUR){v_(ds>=R.GUIDAGE_POSE_DEVANT||-ds>=R.GUIDAGE_POSE_DERRIERE,nom+' : trop près ('+fx(ds)+' m)');if(ds>0&&ds<R.GUIDAGE_POSE_SUIVI)v_(u2<=o.u+1e-9,nom+' : plus vite que la voiture de devant');}}}
+  TABLE.push('  secours, la place : '+res.join(' ; '));});
+t('secours, pas de place du tout (la piste bouchée sur 150 m) : la voiture n’est pas bougée, le secours réessaie au pas suivant, et se fait dès que la place se libère',()=>{
+  const v=creerVoiture(C,1000,0);v.u=20;v.cap+=110/DEG;const s0=v.piste.s,x0=v.x;const autres=[];
+  for(let ds=-160;ds<=40;ds+=12)for(const d of [-4.5,-3,0,3,4.5])autres.push(ia(s0+ds,d,v.u));
+  v_(ASSISTANCE.relancer(v,C,null,64,autres)===null&&v.x===x0,'posée quand même');
+  const e=ASSISTANCE.creerGuidage();e.uStable=64;let n=0,fait=null;
+  for(let k=0;k<1/DT&&fait===null;k++){const u=ASSISTANCE.secours(e,v,C,DT);if(u!==null){n++;const r=ASSISTANCE.relancer(v,C,null,u,k<60?autres:[]);if(r===null)ASSISTANCE.reporter(e);else fait=k;}}
+  v_(fait===60&&e.secours===1,'fait au pas '+fait+', secours '+e.secours);});
+t('secours, jamais plus rapide que de rester sur la piste : une voiture qui part en tête-à-queue puis est relancée reste toujours derrière la même voiture qui n’a rien eu (même départ, même GAZ) ; pareil pour une sortie dans l’herbe',()=>{
+  const res=[];
+  for(const [nom,faute] of [['tête-à-queue',v=>{v.cap+=110/DEG;}],['herbe',null]]){
+    const a=creerVoiture(C,300,0),b=creerVoiture(C,300,0);a.u=b.u=60;const e=ASSISTANCE.creerGuidage();let pire=-Infinity,t=0,relance=null;
+    for(let k=0;k<6/DT;k++){t+=DT;
+      if(faute&&Math.abs(t-1)<DT/2)faute(b);
+      const u=ASSISTANCE.secours(e,b,C,DT);if(u!==null){ASSISTANCE.relancer(b,C,null,u,[]);relance=t;}
+      lisserCommandes(a,{gaz:1,frein:0,direction:0},DT);pasVoiture(a,C,DT);
+      lisserCommandes(b,{gaz:1,frein:0,direction:!faute&&t>1&&t<1.6?0.5:0},DT);pasVoiture(b,C,DT);
+      pire=Math.max(pire,b.piste.s-a.piste.s);}
+    res.push(`${nom} : relancée à ${relance===null?'—':fx(relance)+' s'}, au mieux ${fx(pire,2)} m par rapport à la voiture sans faute, ${fx((a.piste.s-b.piste.s),1)} m derrière à 6 s`);
+    v_(relance!==null&&pire<=0.01,res.join(' ; '));}
+  TABLE.push('  secours, pas de gain : '+res.join(' ; '));});
+t('secours : une voiture stable n’est jamais relancée ; une voiture stable dans un virage non plus ; et pas deux secours en moins de GUIDAGE_SECOURS_PAUSE s',()=>{
+  const e=ASSISTANCE.creerGuidage(),v=creerVoiture(C,300,0);v.u=60;
+  for(let k=0;k<5/DT;k++){v_(ASSISTANCE.secours(e,v,C,DT)===null,'stable relancée');lisserCommandes(v,piloteRobot(v,C),DT);pasVoiture(v,C,DT);}
+  const v2=creerVoiture(C,3000,0);v2.u=30;const e2=ASSISTANCE.creerGuidage();
+  for(let k=0;k<5/DT;k++){v_(ASSISTANCE.secours(e2,v2,C,DT)===null,'virage relancé');lisserCommandes(v2,piloteRobot(v2,C,30),DT);pasVoiture(v2,C,DT);}
+  v.cap+=2;let n=0;for(let k=0;k<2/DT;k++)if(ASSISTANCE.secours(e,v,C,DT)!==null)n++;v_(n===1,n+' secours');});
+t('l’Espace du clavier reste comme avant : remettreSurPiste repose la voiture à l’arrêt (la physique n’a pas changé)',()=>{
+  const v=creerVoiture(C,300,0);v.u=60;v.cap+=1;remettreSurPiste(v,C);v_(v.u===0&&v.v===0&&v.r===0);
+  v_(!/guid|ASSISTANCE/i.test(pasVoiture.toString()+remettreSurPiste.toString()+placerSurPiste.toString()),'la physique lit le guidage');});
+t('réglages : TACTILE_GUIDAGE et TACTILE_GUIDAGE_SECOURS existent (vrais) ; les seuils sont cohérents',()=>{
+  v_(R.TACTILE_GUIDAGE===true&&R.TACTILE_GUIDAGE_SECOURS===true);v_(R.GUIDAGE_COURBURE[0]<R.GUIDAGE_COURBURE[1]&&R.GUIDAGE_INVERSIONS>=2&&R.GUIDAGE_EXPRES[1]>0);});
+
+L.push('Les mesures (zigzags simulés, 8 s sur une droite de 3 km, départ à 216 km/h, GAZ tenu) :');L.push(...TABLE);
+document.getElementById('res').textContent=`RESULTAT ${ok}/${ok+ko}\n`+L.join('\n')+(window.__err&&window.__err.length?'\nERREURS : '+window.__err.join(' | '):'');
+</script></body></html>

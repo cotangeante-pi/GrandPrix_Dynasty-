@@ -9,7 +9,7 @@
 const TACTILE = (function () {
   const R = REGLAGES;
   // (tour 53f) les réglages du joueur (Réglages du paddock et pause, sauvegardés) : le cran de sensibilité (0 doux, 1 normal, 2 vif) et le sens retourné
-  const G = { cran: 1, inverse: false };
+  const G = { cran: 1, inverse: false, guidage: true };   // (tour 60) guidage : l'auto-guidage du joueur (TACTILE_GUIDAGE ; « Auto-guidage : oui / non », sauvegardé)
   const DEG = 180 / Math.PI;
 
   // --- le calcul pur
@@ -141,6 +141,7 @@ const TACTILE = (function () {
       else if (cle === 'inverse') b.textContent = texte(G.inverse ? 'tac_inverse_oui' : 'tac_inverse_non');
       else if (cle === 'choix') b.textContent = texte(V.choix === 'volant' ? 'tac_choix_volant' : 'tac_choix_boutons');
       else if (cle === 'recentrer') b.textContent = texte('tac_recentrer');
+      else if (cle === 'guidage') { b.textContent = texte(G.guidage ? 'tac_guidage_oui' : 'tac_guidage_non'); b.title = texte('tac_guidage_aide'); b.setAttribute('aria-label', texte('tac_guidage_aide')); }
     }
     const ti = $('reglagesVolantTitre'); if (ti) ti.textContent = texte('tac_titreVolant');
   }
@@ -149,6 +150,7 @@ const TACTILE = (function () {
     inverse: () => { G.inverse = !G.inverse; sauver('volant_inverse', G.inverse); },
     choix: () => { V.choix = V.choix === 'volant' ? 'boutons' : 'volant'; sauver('volant_choix', V.choix); },
     recentrer: () => recentrer(),
+    guidage: () => { G.guidage = !G.guidage; sauver('tac_guidage', G.guidage); },
   };
   function construireReglages(parent, prefixe, cles) {
     if (!parent) return;
@@ -164,7 +166,7 @@ const TACTILE = (function () {
   function brancher(f) {
     rappels = f || {};
     if (!estPresent() || typeof document === 'undefined') return false;
-    if (rappels.lire) { const d = rappels.lire() || {}; if ([0, 1, 2].includes(d.sensibilite)) G.cran = d.sensibilite; G.inverse = d.inverse === true; if (d.choix === 'volant' || d.choix === 'boutons') V.choix = d.choix; }
+    if (rappels.lire) { const d = rappels.lire() || {}; if ([0, 1, 2].includes(d.sensibilite)) G.cran = d.sensibilite; G.inverse = d.inverse === true; if (d.choix === 'volant' || d.choix === 'boutons') V.choix = d.choix; G.guidage = d.guidage !== false; }
     document.body.classList.add('tactile'); document.body.classList.toggle('commentaireSansTexte', !R.COMMENTAIRE_TEXTE_TACTILE);   // (tour 55 : pas de bandeau texte du commentateur au doigt)   // (style.css : la vitesse et les pneus s'écartent des boutons, l'aide du clavier se cache)
     for (const [id, nom] of [['tactileGaz', 'gaz'], ['tactileFrein', 'frein'], ['tactileGauche', 'gauche'], ['tactileDroite', 'droite']]) { E[nom] = $(id); if (E[nom]) brancherBouton(E[nom], nom); }
     E.gaz.textContent = texte('tac_gaz'); E.frein.textContent = texte('tac_frein');
@@ -182,7 +184,8 @@ const TACTILE = (function () {
       b.addEventListener('mousedown', e => e.preventDefault()); b.addEventListener('click', g);
     }
     const pt = $('pauseTactile'), pg = document.querySelector('#reglagesVolant .pageBoutons');
-    construireReglages(pt, 'pauseTactile', ['sens', 'inverse']); construireReglages(pg, 'reglagesVolant', ['sens', 'inverse', 'choix', 'recentrer']);
+    const gd = R.TACTILE_GUIDAGE || R.TACTILE_GUIDAGE_SECOURS ? ['guidage'] : [];   // (tour 60 : « Auto-guidage : oui / non », seulement s'il existe)
+    construireReglages(pt, 'pauseTactile', ['sens', 'inverse'].concat(gd)); construireReglages(pg, 'reglagesVolant', ['sens', 'inverse', 'choix', 'recentrer'].concat(gd));
     if (R.TACTILE_PAYSAGE) for (const ev of ['pointerup', 'touchend', 'click']) document.addEventListener(ev, premierGeste, true);   // (le plein écran demande un vrai geste : au premier appui lâché)
     window.addEventListener('blur', toutLacher);
     document.addEventListener('visibilitychange', toutLacher);
@@ -222,6 +225,8 @@ const TACTILE = (function () {
   function recentrer() { if (V.brut !== null) { V.neutre = V.brut; V.lisse = V.brut; } rafraichir(); }
   // le volant conduit-il (plutôt que les boutons ◀ ▶) ?
   const volantActif = () => V.mode === 'volant' && V.choix === 'volant';
+  // (tour 60) l'auto-guidage : au volant (l'inclinaison, le seul imprécis) et si le joueur ne l'a pas coupé ; principal.js : guiderJoueur, secoursJoueur
+  const guidageVoulu = () => !!E.gaz && volantActif() && G.guidage;
   // (tour 56) debout « pour de bon » : depuis PORTRAIT_DELAI s au moins (un volant tourné fort fait parfois pivoter l'écran un instant :
   // ni message ni pause pour ça) ; couché, tout de suite ; PORTRAIT_DELAI 0 = comme avant
   // (tour 56, le propriétaire : « il me réaffiche ce message même si mon téléphone est couché ») : après une rotation, certains
@@ -318,5 +323,5 @@ const TACTILE = (function () {
     return { gaz: tenus.gaz.size ? 1 : 0, frein: tenus.frein.size ? 1 : 0, direction };
   }
 
-  return { angle, braquage, lisser, sensEcran, fusionner, portrait, estPresent, tailleJeu, ecartJeu, rectJeu, brancher, maj, cibles, pneus, recentrer, activer, etat: V, reglages: G };
+  return { angle, braquage, lisser, sensEcran, fusionner, portrait, estPresent, tailleJeu, ecartJeu, rectJeu, brancher, maj, cibles, pneus, recentrer, activer, guidageVoulu, etat: V, reglages: G };
 })();

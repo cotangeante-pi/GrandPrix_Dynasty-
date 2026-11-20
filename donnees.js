@@ -194,6 +194,44 @@ const REGLAGES = {
   VOLANT_SENSIBILITE: [1.4, 1, 0.68], // (tour 53f) les 3 crans « doux, normal, vif » du joueur (Réglages, pause) : VOLANT_PLEIN × ce nombre (normal = 1 : le jeu d'avant) ; le cran est sauvegardé
   VOLANT_INVERSE: false,           // vrai : le sens du volant retourné (si un téléphone le prend à l'envers)
 
+  // (tour 60, Codeur 4, le propriétaire 2026-11-19) l'auto-guidage du téléphone (assistance.js : guider, secours ; principal.js : guiderJoueur) :
+  // en ligne droite, quand le joueur zigzague au volant (il sur-corrige), la direction vise le cap de la piste et le lacet s'amortit,
+  // sans toucher au gaz ni au frein ; seulement au volant d'un écran tactile, jamais à deux ni en ligne. Faux = comme avant au bit près
+  TACTILE_GUIDAGE: true,
+  TACTILE_GUIDAGE_SECOURS: true,   // la voiture perdue quand même (tête-à-queue, travers, herbe en ligne droite) : comme Espace, mais elle repart à la vitesse d'avant (bornée) ; faux = rien
+  GUIDAGE_AMPLITUDE: 0.25,         // |direction| du joueur au-delà de laquelle un côté compte (un coup de volant franc)…
+  GUIDAGE_FENETRE: 2,              // … s au plus entre deux changements de côté pour qu'ils se suivent (un zigzag)…
+  GUIDAGE_INVERSIONS: 2,           // … et le guidage s'allume à ce nombre de changements de côté à la suite (droite, gauche, droite)…
+  GUIDAGE_CAP_ALERTE: 8,           // … ou dès le premier changement de côté si le nez est (ou sera dans GUIDAGE_ANTICIPE s, à la rotation du moment et à celle que demande le volant) à plus de ces ° de la piste (une grosse sur-correction)
+  GUIDAGE_ANTICIPE: 0.4,
+  GUIDAGE_CAP_SORTIE: 15,          // ° : … ou d'emblée si le nez part (dans GUIDAGE_ANTICIPE s, à la rotation du moment seule) à plus de ça de la piste (un coup de volant qui jette la voiture dehors : à 200 km/h, 15° font sortir de la piste en moins d’1 s)
+  GUIDAGE_GLISSE: 6,               // ° : ou la voiture glisse (sa vitesse fait cet angle avec son nez) en ligne droite
+  GUIDAGE_REGARD: [60, 2.5],       // la ligne droite : la piste regardée devant, au moins ces m, ou ces s à la vitesse du moment…
+  GUIDAGE_COURBURE: [1 / 1500, 1 / 600], // … dont la courbure (1/m) reste sous la 1re (guidage entier) ; à la 2e (rayon 600 m), il s'efface tout à fait
+  GUIDAGE_TAU: 0.3,                // s : l'écart de cap à la piste se referme en ce temps…
+  GUIDAGE_AMORTI: 0.7,             // … et le lacet est amorti (la rotation de la voiture retenue : × ça)
+  GUIDAGE_CAP_JOUEUR: 12,          // ° : guidé, le volant du joueur tenu demande encore un cap (à fond : jusqu'à ces ° de la piste) : il change de file ou revient en douceur, sans pouvoir relancer le zigzag
+  GUIDAGE_MONTEE: 0.15,            // s pour que le guidage prenne la main…
+  GUIDAGE_DESCENTE: 0.5,           // … et pour qu'il la rende
+  GUIDAGE_CALME: 0.8,              // s droit (cap à moins de GUIDAGE_DROIT °), le volant du joueur au milieu, sans nouveau zigzag : il rend la main
+  GUIDAGE_DROIT: 1.5,              // °
+  GUIDAGE_EXPRES: [0.35, 0.4, 1.5], // le joueur tourne exprès : |direction| tenue au moins à ça, du même côté, plus de 0,4 s : le cap qu'il demande grandit jusqu'à GUIDAGE_CAP_JOUEUR en 1,5 s de plus (le guidage s'efface devant lui)
+  GUIDAGE_STANDS: 200,             // m avant l'entrée de la voie des stands (et jusqu'à sa sortie) : ni guidage ni secours d'herbe (on y tourne exprès)
+  GUIDAGE_VITESSE_MIN: 10,         // m/s : en dessous, ni guidage ni secours
+  GUIDAGE_STABLE: [5, 15],         // ° : la voiture est stable (glisse et cap à la piste sous ces angles, sur le goudron, sans zigzag) : sa vitesse est gardée pour le secours
+  GUIDAGE_PERDU: [80, 30, 0.5, 0.3], // perdue : cap à plus de 80° de la piste, ou glisse de plus de 30°, ou dans l'herbe 0,5 s en ligne droite ; pendant 0,3 s
+  GUIDAGE_SECOURS_PAUSE: 3,        // s entre deux secours
+  // (revue du Chef) la place du secours : jamais sur une autre voiture ni devant le point où la voiture a quitté la piste (assistance.js : placeLibre, relancer)
+  GUIDAGE_POSE_FILES: [3, 4.5],    // m : les files essayées de chaque côté du milieu (d'abord le milieu)…
+  GUIDAGE_POSE_BORD: 1.5,          // … sans aller à moins de ça du bord de la piste
+  GUIDAGE_POSE_RECUL: 120,         // m : on recule le point de pose au plus de ça (jamais plus loin que le point d'Espace)…
+  GUIDAGE_POSE_PAS: 10,            // … par pas de ça
+  GUIDAGE_POSE_LARGEUR: 3.5,       // m de côté : une voiture plus près que ça est dans la même bande
+  GUIDAGE_POSE_DEVANT: 30,         // m : la place est libre sans voiture de la bande à moins de ça devant…
+  GUIDAGE_POSE_DERRIERE: 30,       // … ni à moins de ça derrière…
+  GUIDAGE_POSE_TEMPS: 2,           // … ni d'une voiture plus rapide qui nous rattraperait en moins de ces s
+  GUIDAGE_POSE_SUIVI: 120,         // m : une voiture de la bande devant à moins de ça plafonne la vitesse rendue à la sienne
+
   // les aides au pilotage du joueur (assistance.js, tour 41) : seulement ses cibles, avant la physique ; toutes en débutant
   ASSIST_VITESSE_MIN: 5,           // m/s : en dessous, aucune aide
   ASSIST_REGARD: 250,              // m : le freinage assisté regarde jusque-là
@@ -1526,6 +1564,51 @@ const REGLAGES = {
     { pixelRatio: 1, detail: 130, rien: 1200 },     // moyenne
     { pixelRatio: 0.75, detail: 90, rien: 900, retro: false },    // basse (sans rétroviseur)
   ],
+
+  // --- (tour 60, Codeur 3) le ciel, le public et l'Auto plus fine (CLAUDE.md « Le ciel, le public et l'Auto fine »). Le principe : calculé
+  // UNE fois (le bruit des nuages, une petite texture faite au chargement ; les couleurs cuites dans les sommets) et des shaders bon marché
+  // (le public bouge dans le shader des sommets, en instancing) ; aucun appel de dessin en plus. Faux = l'image d'avant, au pixel près.
+  REALISME_CIEL: true,          // le dôme du ciel dessiné par un shader : dégradé selon le soleil, nuages qui passent, soleil et halo, étoiles et lune la nuit
+  REALISME_PUBLIC: true,        // des spectateurs plus vrais : jambes, bras, tête, casquettes, drapeaux, pancartes ; ils bougent (bras levés, sauts, ola)
+  QUALITE_FINE: true,           // l'Auto plus fine : les pixels à part, par petits pas, selon ce qui coûte (carte graphique ou calcul) ; faux = l'Auto du tour 49a
+  // le ciel (decor.js, cielRealiste) : la texture de bruit (côté, en pixels, répétée), l'échelle et le vent des nuages, le halo du soleil
+  CIEL_BRUIT_TAILLE: 128,
+  CIEL_NUAGES_ECHELLE: 0.35, CIEL_NUAGES_VENT: [0.006, 0.0025],   // (unités de la texture par unité de distance projetée ; par seconde)
+  CIEL_NUAGES_MIN: 0.3,         // une couverture d'au moins tant (quelques voiles hauts, même sur un ciel « sans nuages » : beaux au couchant)
+  CIEL_NUAGES_PART: 0.8,        // la couverture = nuages du lieu × tant (+ le ciel couvert de la météo)
+  CIEL_HALO: [0.22, 0.45],      // la force du grand halo du soleil, puis du petit
+  CIEL_LUEUR_SOIR: 0.55,        // la lueur de l'horizon du côté du soleil, quand il est bas (crépuscule, couchant)
+  CIEL_ETOILES: 0.9965,         // la part du ciel sans étoile (une cellule sur ~300 en a une)
+  CIEL_AMBIANCE_TEINTE: 0.2,    // la lumière d'ambiance prend tant de la couleur du haut du ciel (accordée au ciel)
+  CIEL_TEST: { heure: 'jour', haut: 0x3f86d8, horizon: 0xbfe0f5, nuages: 0.35 },   // le ciel du circuit d'essai (le premier circuit du joueur ; il n'a pas de lieu)
+  // le public (decor.js, publicRealiste)
+  PUBLIC_DETAIL_REALISTE: 0.25, // part de la distance de détail pour le public : au-delà (45 m), une carte plate qui dessine sa silhouette (imposteur)
+  PUBLIC_DRAPEAUX: 0.07, PUBLIC_PANCARTES: 0.05,   // la part des spectateurs qui agitent un drapeau, qui tiennent une pancarte
+  PUBLIC_EXCITATION: [14, 55],  // m : une voiture plus près que le premier chiffre excite pleinement le public, plus du tout au-delà du second
+  PUBLIC_SAUT: 0.11,            // la hauteur d'un saut (en part de la taille)
+  PUBLIC_OLA: { periode: 45, duree: 16, vitesse: 2.2, largeur: 0.07 },   // s entre deux olas, s de chacune, sa vitesse (rad/s), ses vagues (rad/m)
+  PUBLIC_PANTALONS: [0x27334d, 0x1a1c22, 0x8a7d62, 0x4a4f57, 0x2f4f7a],
+  PUBLIC_PEAUX: [0xf1c9a5, 0xd9a47c, 0xa8704a, 0x6b4428],
+  PUBLIC_CHEVEUX: [0x2a1d14, 0x16120f, 0x8a6a3a, 0xc9a86a],
+  // l'Auto fine (qualite.js) : les contenus d'un côté (QUALITE_PAS_FIN, sans les pixels), les pixels de l'autre (QUALITE_RESOLUTIONS)
+  // AJOUTER UN PAS : une ligne { cle: valeur } dans QUALITE_PAS_FIN, à sa place du moins visible au plus visible, et sa valeur du plus
+  // beau dans QUALITE_PLUS_BEAU_FIN ; le dessin lit SCENE3D.qualite.<cle> (null ou undefined = le plus beau)
+  QUALITE_PAS_FIN: [
+    { voitureLoin: 35, voituresDetaillees: 6 }, { voitureLoin: 25, voituresDetaillees: 4 }, { voitureLoin: 15, voituresDetaillees: 2 },   // 1) les voitures lointaines
+    { densite: 0.75 }, { densite: 0.5 }, { densite: 0.3 },                                // 2) la part du public, des arbres et des piles de pneus
+    { detail: 150, rien: 1350 }, { detail: 120, rien: 1100 }, { detail: 90, rien: 900 },  // 3) la distance de dessin du décor
+    { effets: 0.5 }, { effets: 0.25 },                                                    // 4) les effets
+    { ciel: 0 },                                                                          // 4b) le ciel sans nuages ni étoiles (le dégradé et le soleil restent)
+    { retro: false },                                                                     // 5) le rétroviseur
+    { ombresContact: false, realisme: ['REALISME_VOITURES'] }, { reflets: false, realisme: ['REALISME_VOITURES', 'REALISME_ROUTE'] },   // 5b) (tour 60, Codeur 2) les ombres sous les voitures, puis les reflets et le détail de la route (sautés si leur réalisme est éteint)
+  ],
+  QUALITE_PLUS_BEAU_FIN: { ciel: 1 },
+  QUALITE_RESOLUTIONS: [1.5, 1.4, 1.3, 1.2, 1.1, 1, 0.9, 0.8, 0.7, 0.6],   // les pixels par pixel CSS, à petits pas (le premier = PIXEL_RATIO_MAX)
+  QUALITE_RES_DOUCE: 1,         // à partir de là et au-dessus, une baisse de pixels se voit à peine (un écran dense) : prise en premier si la carte graphique limite
+  QUALITE_PART_CALCUL: 0.8,     // sans mesure de la carte graphique : si le calcul d'une image prend moins de tant de sa durée, c'est la carte graphique qui limite
+  QUALITE_DEPART_ESSAI: 4,      // images dessinées (et attendues) au chargement pour choisir le niveau de départ (la première fois seulement)
+  QUALITE_DEPART_BUDGET: 0.8,   // … le départ vise une image en moins de tant du temps permis
+  QUALITE_DEPART_CONTENU: 0.35, // … la part du coût que retirent tous les pas de contenu (au plus simple) : un modèle prudent
 
   // --- (tour 56, T2) les batailles en ligne : le cœur du lockstep (enligne.js, calcul pur). Tout est derrière EN_LIGNE : faux = le jeu d'avant,
   // identique (enligne.js ne change rien tant qu'on ne l'appelle pas). Voir rapports/en-ligne-conception.md
