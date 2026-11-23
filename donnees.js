@@ -1689,6 +1689,15 @@ const REGLAGES = {
   EN_LIGNE_DELAI_MAX: 120,             // (T8) le délai d'entrée adaptatif choisi par le relais à l'arrivée au départ ne dépasse pas ce nombre de pas
   EN_LIGNE_DELAI_MARGE: 6,             // (T8) pas de marge ajoutés au temps de trajet mesuré (le relais, serveur/relais.py : Config.delai_marge)
   EN_LIGNE_SILENCE_MS: 10000,   // rien reçu depuis ce temps = connexion morte (côté client) ; un client muet disparaît de la salle (relais en onglet)
+  // (tour 61) jouer à la maison, et la coupure du Wi-Fi en pleine course
+  EN_LIGNE_MAISON: true,               // la page servie par serveur/maison.py (la marque <meta name="gpd-relais">) trouve le relais toute seule : même adresse que la page ; faux = jamais
+  EN_LIGNE_GRACE_COURSE: 12,           // s (serveur/relais.py : Config.grace_course) : un joueur coupé EN COURSE garde sa place ce temps-là, puis « parti » (voiture neutre) ; DOIT rester sous EN_LIGNE_ATTENTE_MAX_MS (les autres attendent)
+  EN_LIGNE_RECONNEXION_COURSE_MS: 11000, // en course, le client réessaie de se rattacher pendant ce temps (0 = pas de reprise : une coupure en course est définitive, comme avant)
+  EN_LIGNE_RECONNEXION_COURSE_PAUSE_MS: 700, // … un essai toutes les… (le premier tout de suite)
+  EN_LIGNE_SILENCE_COURSE_PART: 0.4,   // en course, la connexion est vue morte après EN_LIGNE_SILENCE_MS × ce nombre sans rien recevoir (4 s : plus court qu'avant la course, on rattrape vite) ; 1 = comme avant
+  EN_LIGNE_HISTOIRE_PAS: 1500,         // pas de commandes à nous gardés pour les renvoyer au relais après une reprise (au moins 4 délais)
+  EN_LIGNE_QUALITE_BONNE_MS: 80,       // l'indicateur de connexion : vert jusqu'à ce ping (ms), orange jusqu'à EN_LIGNE_QUALITE_MOYENNE_MS, rouge au-delà
+  EN_LIGNE_QUALITE_MOYENNE_MS: 200,
 };
 
 // Les circuits, décrits par morceaux dans l'ordre de la course, la ligne d'arrivée au début du premier :

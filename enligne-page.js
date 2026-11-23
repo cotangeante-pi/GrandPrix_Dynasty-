@@ -18,7 +18,7 @@
 // nom=<l'id d'une couleur : bleu, rouge…>, robot=1 (le robot d'essai conduit), conduite=ia (l'IA de la course conduit ma voiture : tests/enligne-course.py ia), transport=diffusion|websocket|memoire.
 const ENLIGNE_PAGE = (function () {
   const R = REGLAGES;
-  const etat = { actif: false, client: null, role: null, partie: null, depart: null, tampon: [], joueurs: [], code: null, erreur: null, statut: '', attendus: 2, lance: false, termine: false, noms: new Map(), attenteDepuis: null, fond: null, fondT: 0, sortie: null };
+  const etat = { actif: false, client: null, role: null, partie: null, depart: null, tampon: [], joueurs: [], code: null, erreur: null, statut: '', attendus: 2, lance: false, termine: false, noms: new Map(), attenteDepuis: null, qualite: {}, reconnexion: false, fond: null, fondT: 0, sortie: null };
 
   function zone() { return document.getElementById('enligneInfo'); }
   function dire(msg) {
@@ -38,7 +38,7 @@ const ENLIGNE_PAGE = (function () {
     etat.nbIA = Math.max(0, Math.floor(Number(parametres.get('ia'))) || 0);
     etat.nom = parametres.get('nom') || (etat.role === 'hote' ? 'bleu' : 'rouge');   // (D1 : l'id d'une couleur)
     etat.canal = parametres.get('canal') || undefined;
-    etat.transport = parametres.get('transport') || (R.EN_LIGNE_URL ? 'websocket' : 'diffusion');
+    etat.transport = parametres.get('transport') || (RESEAU.urlRelais() ? 'websocket' : 'diffusion');
     if (etat.ecrans) {
       // l'hôte voit d'abord le circuit de cette page ; en BroadcastChannel (sa page est le relais, elle ne peut pas se recharger) il n'a que celui-là
       const choix = { circuit: NOM_CIRCUIT };
@@ -88,6 +88,43 @@ const ENLIGNE_PAGE = (function () {
     if (t && t.indexOf('enligneErreur_') !== 0) annoncer(t);
   }
 
+  // --- (tour 61) la coupure du Wi-Fi en pleine course : la partie s'arrête (rien de nouveau n'est produit qu'on ne pourrait pas envoyer), le client réessaie de se
+  // rattacher avec son jeton (reseau.js) ; quand le relais a rejoué ce qu'on a manqué, « reprise » dit où il en est de nos commandes : on renvoie les perdues
+  function coupureEnCourse() {
+    if (etat.termine || etat.sortie) return;
+    etat.reconnexion = true;
+    if (etat.partie) { etat.partie.gele = true; dire(texte('enl_reconnexion')); }
+  }
+  function reprendre(fin) {
+    etat.reconnexion = false;
+    const p = etat.partie;
+    if (!p) return;
+    if (p.rejouer(fin) === false) { dire(texte('enl_perdu')); sortirApres('perdu'); return; }   // (le relais attend de nous un pas que nous ne gardons plus)
+    etat.attenteDepuis = null;
+    annoncer(texte('enl_repris'));
+  }
+
+  // l'indicateur de connexion en course : un point de couleur et le ping de chacun (jamais la couleur seule : le nombre est là)
+  function majQualite() {
+    let z = document.getElementById('enligneQualite');
+    if (!z) {
+      if (!etat.depart || !etat.partie) return;
+      z = document.createElement('div'); z.id = 'enligneQualite'; z.setAttribute('aria-hidden', 'true'); document.body.appendChild(z);
+    }
+    const visible = !!etat.partie && !etat.termine;
+    z.classList.toggle('cache', !visible);
+    if (!visible) return;
+    const ids = etat.partie.ordre.filter(id => typeof etat.qualite[id] === 'number');
+    z.textContent = '';
+    for (const id of ids) {
+      const ms = etat.qualite[id], q = EN_LIGNE.qualite(ms);
+      const s = document.createElement('span'); s.className = (q || '') + (id === etat.partie.idMoi ? ' moi' : ''); s.dataset.id = String(id);
+      s.textContent = '● ' + Math.round(ms) + ' ms';
+      s.title = nomAffiche(etat.noms.get(id) || ('#' + id)) + ' : ' + texte('enl_ping_' + (q || 'moyenne'));
+      z.appendChild(s);
+    }
+  }
+
   function brancher(c) {
     etat.client = c;
     if (c.sur) c.sur('perdu', surPerdu);
@@ -105,7 +142,14 @@ const ENLIGNE_PAGE = (function () {
           if (etat.partie) etat.partie.recevoir(m); else etat.tampon.push(m);
           if (m.t === 'parti' && etat.depart && !etat.termine) annoncer(texte('enl_parti').replace('{nom}', nomAffiche(etat.noms.get(m.id) || ('#' + m.id))));   // (T8) la voiture roule sur sa dernière commande puis s'arrête (enligne.js)
           break;
-        case 'coupure': if (!etat.termine && !etat.ecrans) dire(texte('enl_coupure')); break;
+        case 'coupure':
+          if (m.enCourse) { coupureEnCourse(); break; }   // (tour 61) le client se rattache seul : la course s'arrête, rien d'autre
+          if (!etat.termine && !etat.ecrans) dire(texte('enl_coupure'));
+          break;
+        case 'reprise': reprendre(m.fin); break;
+        case 'coupe': if (etat.depart && !etat.termine) annoncer(texte('enl_coupe').replace('{nom}', nomAffiche(etat.noms.get(m.id) || ('#' + m.id)))); break;
+        case 'revenu': if (etat.depart && !etat.termine) annoncer(texte('enl_revenu').replace('{nom}', nomAffiche(etat.noms.get(m.id) || ('#' + m.id)))); break;
+        case 'qualite': etat.qualite[m.id] = m.ms; majQualite(); break;
         default:
       }
     });
@@ -119,7 +163,7 @@ const ENLIGNE_PAGE = (function () {
   // l'hôte a dit « retour » : la salle se rouvre (les « prêt » repartent à faux) ; la course d'avant est finie
   function retourALaSalle() {
     if (etat.partie) { etat.partie.terminer(); }
-    etat.partie = null; etat.depart = null; etat.tampon = []; etat.lance = false; etat.erreur = null;
+    etat.partie = null; etat.depart = null; etat.tampon = []; etat.lance = false; etat.erreur = null; etat.reconnexion = false; majQualite();
     if (etat.ecrans && typeof ENLIGNE_ECRAN !== 'undefined' && ENLIGNE_ECRAN.retourSalle) ENLIGNE_ECRAN.retourSalle();
     else if (!etat.ecrans) { dire(''); if (JEU.ecran === 'podium' || JEU.ecran === 'resultats') location.href = location.pathname; }
   }
@@ -226,6 +270,7 @@ const ENLIGNE_PAGE = (function () {
   function surveillerAttente() {
     const p = etat.partie;
     if (!p || etat.sortie) return;
+    if (p.gele) { etat.attenteDepuis = null; return; }   // (tour 61) c'est nous qui sommes coupés : la reprise a son propre délai (reseau.js)
     if (p.attente === null) {
       if (etat.attenteDepuis !== null) { etat.attenteDepuis = null; if (!etat.annonceT || etat.statut === etat.msgAttente) dire(''); }
       return;
@@ -297,7 +342,7 @@ const ENLIGNE_PAGE = (function () {
     try { if (p && p.terminer) p.terminer(); } catch (err) { /* rien */ }
     try { if (c) { if (finie) { if (c.estHote() && c.depart) c.retour(); } else if (c.quitter) c.quitter(); } } catch (err) { /* rien */ }
     if (etat.ecrans && typeof ENLIGNE_ECRAN !== 'undefined' && ENLIGNE_ECRAN.retourSalle) {
-      etat.partie = null; etat.depart = null; etat.tampon = []; etat.lance = false; etat.termine = false; etat.sortie = null;
+      etat.partie = null; etat.depart = null; etat.tampon = []; etat.lance = false; etat.termine = false; etat.sortie = null; etat.reconnexion = false; majQualite();
       if (c && !c.estHote()) c.depart = null;   // (l'invité n'attend plus la course d'avant ; le « retour » de l'hôte rouvre la salle pour de bon)
       ENLIGNE_ECRAN.retourSalle(c);
       return;
@@ -313,6 +358,7 @@ const ENLIGNE_PAGE = (function () {
     // le cœur construit lui-même le circuit et sa carte avec nos Math (identiques sur tous les navigateurs : relecture T11, point 5) ; la page garde CIRCUIT pour le dessin
     const partie = EN_LIGNE.demarrer(d, c.moi, msg => c.envoyer(msg), {});
     etat.partie = partie;
+    if (etat.reconnexion) partie.gele = true;
     const e = partie.e, P = e.pilotes;
     JEU.plateau = e;
     if (!JEU.carte) JEU.carte = e.carte;   // (le « Préparation… » de la page et le reste lisent JEU.carte : celle du cœur)
@@ -339,6 +385,7 @@ const ENLIGNE_PAGE = (function () {
     JEU.ecran = 'course';
     INTERFACE.montrer('course');
     dire('');
+    majQualite();
     for (const m of etat.tampon) partie.recevoir(m);
     etat.tampon = [];
   }

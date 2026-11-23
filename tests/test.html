@@ -4128,6 +4128,26 @@ enlT('en ligne : une commande en retard (un lien coupé 90 ticks) : les autres a
   const b2=EN_LIGNE.banc(ids,enlOpts({latence:(de,vers,tick)=>de==='c'?40:0}));let ecartMax=0;
   for(let k=0;k<2000;k++){b2.avancer();const ns=[...b2.parties.values()].map(p=>p.n);ecartMax=Math.max(ecartMax,Math.max(...ns)-Math.min(...ns));}
   v(ecartMax<=REGLAGES.EN_LIGNE_DELAI+REGLAGES.EN_LIGNE_PAQUET+45,'écart de pas entre joueurs : '+ecartMax);});
+enlT('en ligne : (tour 61) le Wi-Fi d’un joueur tombe en pleine course puis revient : le relais lui rejoue ce qu’il a manqué et il renvoie ses commandes perdues ; même état partout au bit près, même que la référence, sans « parti »', ()=>{
+  for(const [debut,duree] of [[300,5],[420,60],[640,200]]){
+    const ids=['a','b','c'],b=EN_LIGNE.banc(ids,enlOpts({latence:(de,vers)=>de==='b'||vers==='b'?3:1}));let attendu=false,ok=null;
+    for(let k=0;k<ENL_N*30&&!enlTous(b,ENL_N);k++){
+      if(k===debut) b.couper('b');
+      if(k===debut+duree) ok=b.revenir('b');
+      b.avancer();for(const id of ['a','c']) if(b.parties.get(id).attente&&k>debut&&k<debut+duree) attendu=true;}
+    v(ok===true,'la reprise a échoué ('+debut+')');
+    v(enlTous(b,ENL_N),'pas atteints ('+debut+') : '+[...b.parties].map(([i,p])=>i+'='+p.n).join(' '));
+    const h=ids.map(i=>b.parties.get(i).empreinte());v(h.every(x=>x===h[0]),'empreintes '+h.join(' ')+' ('+debut+')');
+    v(h[0]===enlReference(ids),'la référence ('+debut+')');
+    v(b.parties.get('a').desynchro===null&&b.parties.get('b').desynchro===null,'désynchro ('+debut+')');
+    v(b.parties.get('a').sortis.size===0,'quelqu’un est « parti » ('+debut+')');
+    if(duree>=60) v(attendu,'les autres n’ont pas attendu : le test ne prouve rien');}
+  EN_LIGNE.maths.actives()&&0;
+  // rejouer : un relais qui attend un pas plus ancien que ce que nous gardons = la reprise est impossible ; un entier faux aussi
+  const b2=EN_LIGNE.banc(['a','b'],enlOpts());b2.jusqua(300);const p=b2.parties.get('a');
+  v(p.rejouer(-1)===false&&p.rejouer(1.5)===false&&p.rejouer('x')===false,'rejouer accepte une valeur fausse');
+  const garde=REGLAGES.EN_LIGNE_HISTOIRE_PAS;REGLAGES.EN_LIGNE_HISTOIRE_PAS=10;
+  const b3=EN_LIGNE.banc(['a','b'],enlOpts());b3.jusqua(900);v(b3.parties.get('a').rejouer(20)===false,'un relais en retard de 900 pas ne peut pas être rattrapé');REGLAGES.EN_LIGNE_HISTOIRE_PAS=garde;});
 enlT('en ligne : une empreinte de contrôle différente = désynchro signalée par les deux côtés, au premier contrôle qui suit, et la partie s’arrête ; sans écart, aucune alerte sur 1400 pas', ()=>{
   const b=EN_LIGNE.banc(['a','b'],enlOpts({latence:()=>2}));b.jusqua(250);
   v(b.parties.get('a').desynchro===null&&b.parties.get('b').desynchro===null,'alerte sans raison');

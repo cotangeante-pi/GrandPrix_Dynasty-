@@ -110,6 +110,7 @@ const ENLIGNE_ECRAN = (function () {
       const t = texte('enligneRefus_' + m.raison) || texte('enligneCoupure');
       dire(ecran === 'enligneRejoindre' ? 'enligneRejoindreMessage' : 'enligneMessage', t);
     } else if (m.t === 'coupure') {
+      if (m.enCourse) return;   // (tour 61) coupure en pleine course : le client se rattache tout seul (la page de la course le dit)
       const dans = ecran === 'enligneSalle';
       remiseAZero();
       if (dans) { ecran = 'enligne'; rappels.aller('enligne'); majMenu(); }
@@ -128,8 +129,21 @@ const ENLIGNE_ECRAN = (function () {
     } else if (m.t === 'nouvel-hote') {
       if (m.id === moi) { hote = true; dirNote(texte('enligneNouvelHote')); }
       majSalle();
+    } else if (m.t === 'qualite') {
+      pings[m.id] = m.ms;
+      const li = document.querySelector('#enligneListe li[data-id="' + m.id + '"] .ping');
+      if (li) remplirPing(li, m.ms);
     } else if (m.t === 'emote') montrerEmote(m.de, m.i);
     else if (m.t === 'depart') { dirNote(texte('enligneDepart')); rappels.depart(m); }
+  }
+
+  // (tour 61) la qualité de la connexion de chacun : un point de couleur ET le mot (jamais la couleur seule) et le ping
+  const pings = {};
+  function remplirPing(el, ms) {
+    const q = typeof EN_LIGNE !== 'undefined' ? EN_LIGNE.qualite(ms) : null;
+    el.className = 'ping' + (q ? ' ' + q : '');
+    el.textContent = q ? '● ' + Math.round(ms) + ' ms' : '';
+    el.title = q ? texte('enl_ping') + ' : ' + texte('enl_ping_' + q) : '';
   }
 
   function dirNote(t) { note = t; majSalle(); clearTimeout(minuterieNote); minuterieNote = setTimeout(() => { note = ''; if (ecran === 'enligneSalle') majSalle(); }, 4000); }
@@ -201,9 +215,10 @@ const ENLIGNE_ECRAN = (function () {
       const pastille = document.createElement('i'); const c = couleurDeNom(j.nom);
       pastille.className = 'pastille'; pastille.style.background = c ? hex(c.hex) : '#8a8f9c';
       const nom = document.createElement('span'); nom.className = 'nom'; nom.textContent = nomAffiche(j.nom) + (j.id === moi ? ' (' + texte('enligneToi') + ')' : '');
+      const ping = document.createElement('span'); ping.className = 'ping'; remplirPing(ping, pings[j.id]);
       const etat = document.createElement('span'); etat.className = 'etat';
       etat.textContent = j.hote ? '★ ' + texte('enligneHote') : j.pret ? '✔ ' + texte('enlignePret') : '… ' + texte('enlignePasPret');
-      li.append(pastille, nom, etat);
+      li.append(pastille, nom, ping, etat);
       const e = emotes[j.id];
       if (e) { const s = document.createElement('span'); s.className = 'emote'; s.textContent = R.EN_LIGNE_EMOTES[e.i] || ''; s.setAttribute('role', 'img'); s.setAttribute('aria-label', texte('enligneEmote_' + e.i)); li.appendChild(s); }
       ul.appendChild(li);

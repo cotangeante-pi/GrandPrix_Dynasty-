@@ -47,6 +47,8 @@ class Config:
         self.max_par_ip = 24             # connexions simultanées d'une même adresse (0 = pas de limite ; derrière un proxy : 0)
         self.max_file = 2000             # messages en attente d'envoi à un client lent avant de le couper
         self.grace = 20.0                # EN_LIGNE_GRACE : s pendant lesquelles un joueur coupé (il recharge la page) peut revenir avec son jeton, sans « parti »
+        self.grace_course = 12.0         # EN_LIGNE_GRACE_COURSE (tour 61) : s pendant lesquelles un joueur coupé EN PLEINE COURSE (le Wi-Fi qui saute) garde sa place ; il revient avec son jeton et rattrape les commandes manquées ; au-delà : « parti » (voiture neutre) ; 0 = pas de grâce en course
+        self.journal_max = 150000        # commandes gardées par salle pour ce rattrapage (au-delà : plus de grâce en course, un joueur coupé est « parti » tout de suite)
         self.exiger_charge = True        # « lancer » refusé tant qu'un joueur n'a pas annoncé (charge) le circuit des réglages
         self.delai_base = 12             # EN_LIGNE_DELAI : le plus petit délai d'entrée (pas de physique) ; au départ le relais l'augmente selon les latences mesurées
         self.delai_max = 120             # EN_LIGNE_DELAI_MAX
@@ -122,6 +124,7 @@ class Client:
         self.grace_minuteur = None
         self.rtt = None        # son temps d'aller-retour en ms, mesuré par le relais (_mesurer) : le délai d'entrée du départ en dépend
         self.circuit = None    # le circuit que sa page a chargé (message « charge »)
+        self.coupe_a = None    # (tour 61) coupé en pleine course : l'instant de la coupure
 
     def envoyer_texte(self, texte):
         if self.ferme: return
@@ -156,6 +159,8 @@ class Salle:
         self.commencee = False
         self.version = None    # celle de son créateur (D4)
         self.reglages = None   # les derniers réglages choisis par l'hôte (renvoyés à qui rejoint ensuite)
+        self.journal = []      # (tour 61) la course en cours : ('cmd', de, n, c) et ('parti', id) dans l'ordre où le relais les a diffusés (pour le joueur qui revient)
+        self.journal_plein = False
         self.activite = time.monotonic()
 
 class Relais:
@@ -205,6 +210,8 @@ class Relais:
                     c.rtt = ms if c.rtt is None else c.rtt * 0.7 + ms * 0.3
                 except asyncio.TimeoutError:
                     c.rtt = 10000.0
+                if c.salle is not None and not c.absent:   # (tour 61) la qualité de la connexion de chacun, pour l'indicateur de la salle et de la course
+                    self._diffuser(c.salle, {'t': 'qualite', 'id': c.id, 'ms': int(min(9999, round(c.rtt)))})
                 await asyncio.sleep(self.cfg.mesure_periode)
         except (ConnectionClosed, asyncio.CancelledError):
             return
@@ -269,6 +276,7 @@ class Relais:
             self._diffuser(salle, {'t': 'reglages', 'reglages': r})
         elif t == 'cmd':
             if salle.commencee and self._cmd_valide(c, salle, m):
+                self._noter(salle, ('cmd', c.id, m['n'], m['c']))
                 self._diffuser(salle, {'t': 'cmd', 'de': c.id, 'n': m['n'], 'c': m['c']}, sauf=c)
             else: self._faute(c)
         elif t == 'controle':
@@ -291,6 +299,7 @@ class Relais:
         elif t == 'retour':
             if c.id != salle.hote or not salle.commencee: return self._erreur(c, 'hote' if c.id != salle.hote else 'pas-commencee')
             salle.commencee = False
+            salle.journal, salle.journal_plein = [], False
             for j in salle.joueurs.values(): j.pret = False
             self._diffuser(salle, {'t': 'retour'})
             self._diffuser(salle, self._liste(salle))
@@ -346,8 +355,8 @@ class Relais:
         code = m.get('code')
         salle = self.salles.get(code.strip().upper()) if isinstance(code, str) and len(code) <= 8 else None
         if salle is None: return self._refuser(c, 'inconnue')
-        if salle.commencee: return self._refuser(c, 'commencee')
         if self._retour(c, salle, m): return
+        if salle.commencee: return self._refuser(c, 'commencee')
         raison = self._controle_entree(c, m, salle)
         if not raison and len(salle.joueurs) >= self.cfg.max_joueurs: raison = 'pleine'
         nom = None
@@ -369,22 +378,59 @@ class Relais:
         return None
 
     def _retour(self, c, salle, m):
-        """Un joueur qui revient avec son jeton pendant la grâce reprend sa place (même id, même rôle d'hôte) ; vrai si c'était lui."""
+        """Un joueur qui revient avec son jeton reprend sa place (même id, même rôle d'hôte) ; vrai si c'était lui. Avant le départ : après un rechargement de page
+        (grâce de 20 s). En pleine course (tour 61) : après une coupure du Wi-Fi (grâce de 12 s) ; il rattrape alors les commandes qu'il a manquées et
+        le relais lui dit où reprendre les siennes. Si l'ancienne connexion n'est pas encore vue comme morte, la nouvelle la remplace (le jeton est secret)."""
         jeton = m.get('jeton')
         if not isinstance(jeton, str) or not jeton: return False
-        vieux = next((j for j in salle.joueurs.values() if j.absent and j.jeton and secrets.compare_digest(j.jeton.encode(), jeton.encode())), None)
+        vieux = next((j for j in salle.joueurs.values() if j is not c and j.jeton and secrets.compare_digest(j.jeton.encode(), jeton.encode())), None)
         if vieux is None: return False
         if self._controle_version(m, salle): self._refuser(c, 'version'); return True
+        if salle.commencee and salle.journal_plein: self._refuser(c, 'commencee'); return True   # (trop de commandes à rejouer : la règle d'avant, voiture neutre)
         if vieux.grace_minuteur: vieux.grace_minuteur.cancel()
+        remplace = not vieux.absent
         vieux.salle = None
+        if remplace: vieux.couper(1000, 'remplacée')
         c.salle, c.id, c.nom, c.pret, c.jeton = salle, vieux.id, vieux.nom, vieux.pret, vieux.jeton
+        c.fin_cmd, c.dernier_controle, c.rtt = vieux.fin_cmd, vieux.dernier_controle, vieux.rtt
+        if salle.commencee or remplace: c.circuit = vieux.circuit
         salle.joueurs[c.id] = c
         salle.activite = time.monotonic()
         if c.minuteur: c.minuteur.cancel(); c.minuteur = None
         c.envoyer({'t': 'salle', 'code': salle.code, 'toi': c.id, 'hote': salle.hote, 'jeton': c.jeton, 'nom': c.nom})
+        if salle.commencee:
+            self._diffuser(salle, {'t': 'revenu', 'id': c.id}, sauf=c)
+            self._rattraper(c, salle, m)
+            c.envoyer({'t': 'reprise', 'fin': c.fin_cmd})   # (le prochain pas de commande que le relais attend de lui : il renvoie ce qu'il a produit depuis)
+            return True
         self._diffuser(salle, self._liste(salle))
         if salle.reglages is not None: c.envoyer({'t': 'reglages', 'reglages': salle.reglages})
         return True
+
+    def _rattraper(self, c, salle, m):
+        """Rejoue à c ce que les autres ont envoyé pendant sa coupure : m['vu'] = {id: le pas qui suit la dernière commande reçue de cet id}, m['partis'] = les ids déjà vus partis."""
+        vu_brut, partis_brut = m.get('vu'), m.get('partis')
+        vu = {}
+        if isinstance(vu_brut, dict) and len(vu_brut) <= 16:
+            for k, v in vu_brut.items():
+                if isinstance(k, str) and k.isdigit() and entier(v, 0, 10 ** 8): vu[int(k)] = v
+        partis = {x for x in partis_brut if entier(x, 1, 64)} if isinstance(partis_brut, list) and len(partis_brut) <= 16 else set()
+        for e in salle.journal:
+            if e[0] == 'cmd':
+                _, de, n, cm = e
+                if de == c.id: continue
+                deja = vu.get(de, 0)
+                if n + len(cm) <= deja: continue
+                if n < deja: n, cm = deja, cm[deja - n:]
+                c.envoyer({'t': 'cmd', 'de': de, 'n': n, 'c': cm})
+            elif e[1] not in partis:
+                c.envoyer({'t': 'parti', 'id': e[1]})
+
+    def _noter(self, salle, entree):
+        """Garde ce que le relais diffuse pendant la course (pour un joueur qui revient) ; trop long : on arrête (plus de grâce en course)."""
+        if salle.journal_plein or not self.cfg.grace_course: return
+        salle.journal.append(entree)
+        if len(salle.journal) > self.cfg.journal_max: salle.journal, salle.journal_plein = [], True
 
     def _controle_version(self, m, salle):
         """Vrai si la version annoncée n'est pas celle de la salle (D4 : celle de son créateur)."""
@@ -428,6 +474,7 @@ class Relais:
         salle.commencee = True
         salle.reglages = reglages   # (le délai de la course règle la limite d'avance)
         for j in salle.joueurs.values(): j.fin_cmd, j.dernier_controle = 0, -1
+        salle.journal, salle.journal_plein = [], False
         ordre = list(salle.joueurs)
         self.hasard.shuffle(ordre)
         delai = self._delai(salle)
@@ -455,7 +502,13 @@ class Relais:
         """La connexion de c est finie. Avant le départ, il reste GRACE s dans la salle (il recharge sa page) : ni « parti » ni nouvel hôte."""
         salle = c.salle
         if salle is None: return
-        if salle.commencee or self.cfg.grace <= 0 or not c.jeton: return self._sortir(c)
+        if salle.commencee:   # (tour 61) en pleine course : quelques secondes pour que le Wi-Fi revienne ; les autres attendent ses commandes (« On attend… »)
+            if self.cfg.grace_course <= 0 or not c.jeton or salle.journal_plein: return self._sortir(c)
+            c.absent = True
+            self._diffuser(salle, {'t': 'coupe', 'id': c.id}, sauf=c)
+            c.grace_minuteur = asyncio.get_running_loop().call_later(self.cfg.grace_course, lambda: self._sortir(c) if c.absent and c.salle is not None else None)
+            return
+        if self.cfg.grace <= 0 or not c.jeton: return self._sortir(c)
         c.absent, c.circuit = True, None
         self._diffuser(salle, self._liste(salle))
         c.grace_minuteur = asyncio.get_running_loop().call_later(self.cfg.grace, lambda: self._sortir(c) if c.absent and c.salle is not None else None)
@@ -470,6 +523,7 @@ class Relais:
         if not salle.joueurs:
             self.salles.pop(salle.code, None)
             return
+        if salle.commencee: self._noter(salle, ('parti', c.id))
         self._diffuser(salle, {'t': 'parti', 'id': c.id})
         if salle.hote == c.id:
             salle.hote = next(iter(salle.joueurs))
@@ -493,9 +547,10 @@ class Relais:
             await asyncio.sleep(self.cfg.nettoyage)
             self.nettoyer()
 
-    async def servir(self, hote='127.0.0.1', port=8765):
-        """À utiliser avec « async with » : renvoie le serveur websockets (son port réel dans .sockets)."""
-        serveur = serve(self.gerer, hote, port, origins=self.cfg.origines, max_size=self.cfg.max_octets, ping_interval=self.cfg.ping_intervalle, compression=None)
+    async def servir(self, hote='127.0.0.1', port=8765, process_request=None):
+        """À utiliser avec « async with » : renvoie le serveur websockets (son port réel dans .sockets).
+        process_request (tour 61, serveur/maison.py) : sert aussi des pages HTTP sur le même port, et refuse les adresses qui ne sont pas du réseau local."""
+        serveur = serve(self.gerer, hote, port, origins=self.cfg.origines, max_size=self.cfg.max_octets, ping_interval=self.cfg.ping_intervalle, compression=None, process_request=process_request)
         return _Lance(self, serveur)
 
 class _Lance:

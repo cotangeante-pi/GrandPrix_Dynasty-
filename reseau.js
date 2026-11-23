@@ -400,11 +400,12 @@ const RESEAU = (function () {
     const transport = typeof opt.transport === 'object' && opt.transport ? opt.transport
       : opt.transport === 'memoire' ? transportMemoire(opt.monde || (opt.monde = monde()))
       : opt.transport === 'diffusion' ? transportDiffusion({ horloge, canal: opt.canal, relais: opt.relais })
-      : transportWebSocket(opt.url === undefined ? R.EN_LIGNE_URL : opt.url, { horloge, WebSocketClasse: opt.WebSocketClasse });
+      : transportWebSocket(opt.url === undefined ? urlRelais() : opt.url, { horloge, WebSocketClasse: opt.WebSocketClasse });
     const version = opt.version === undefined ? versionLocale() : opt.version;
     const ecouteurs = {};
-    const c = { etat: 'ferme', code: null, moi: null, hote: null, joueurs: [], depart: null, jeton: null, reglagesSalle: null, latence: null, nom: null, transport, rejets: 0 };
+    const c = { qualite: {}, vu: {}, partis: [], etat: 'ferme', code: null, moi: null, hote: null, joueurs: [], depart: null, jeton: null, reglagesSalle: null, latence: null, nom: null, transport, rejets: 0 };
     let volontaire = false, dernierRecu = 0, minuteurPing = null, minuteurRecon = null, essai = 0;
+    let repriseCourse = false, coupureT = null;   // (tour 61) le rattachement d'après une coupure EN COURSE ; l'instant où elle a commencé
 
     function emettre(t, d) {
       if (t !== '*' && t !== 'etat' && t !== 'erreur' && t !== 'latence' && t !== 'reconnecte' && t !== 'perdu') emettre('*', Object.assign({ t }, d));
@@ -427,6 +428,10 @@ const RESEAU = (function () {
       dernierRecu = horloge.maintenant();
       switch (m.t) {
         case 'salle':
+          if (repriseCourse) {   // le même joueur est revenu dans la course : rien ne repart de zéro (le départ, ce qu'on a reçu, tout est gardé)
+            c.code = m.code; c.moi = m.toi; c.hote = m.hote; if (typeof m.jeton === 'string') c.jeton = m.jeton;
+            break;
+          }
           c.code = m.code; c.moi = m.toi; c.hote = m.hote; if (typeof m.nom === 'string') c.nom = m.nom; c.depart = null; c.jeton = typeof m.jeton === 'string' ? m.jeton : null; emettre('salle', m);
           if (opt.circuit) c.charge(opt.circuit);      // « mon circuit chargé » : le lancement attend que tous aient celui des réglages
           break;
@@ -434,8 +439,11 @@ const RESEAU = (function () {
         case 'refus': if (reprise) { reprise = false; oublierSalle(); perdu(); break; } emettre('refus', m); break;   // (la salle d'avant n'existe plus : le rattachement après une coupure est refusé = perdu)
         case 'joueurs': c.joueurs = Array.isArray(m.liste) ? m.liste : []; emettre('joueurs', m); break;
         case 'reglages': c.reglagesSalle = m.reglages; emettre('reglages', m); break;
-        case 'depart': c.depart = m; emettre('depart', m); break;
-        case 'retour': c.depart = null; emettre('retour', m); break;
+        case 'depart': c.depart = m; c.vu = {}; c.partis = []; emettre('depart', m); break;
+        case 'retour': c.depart = null; c.vu = {}; c.partis = []; emettre('retour', m); break;
+        case 'coupe': case 'revenu': emettre(m.t, m); break;      // (tour 61) un autre joueur a perdu sa connexion en course / est revenu
+        case 'qualite': if (Number.isInteger(m.id) && typeof m.ms === 'number') { c.qualite[m.id] = m.ms; emettre('qualite', m); } break;
+        case 'reprise': if (repriseCourse) { repriseCourse = false; emettre('reprise', m); } break;      // le relais dit où reprendre nos commandes : la page les renvoie
         case 'nouvel-hote': c.hote = m.id; emettre('nouvel-hote', m); break;
         case 'pong':
           if (typeof m.h === 'number') {
@@ -444,18 +452,42 @@ const RESEAU = (function () {
             emettre('latence', { ms: c.latence });
           }
           emettre('pong', m); break;
-        case 'cmd': case 'controle': case 'emote': case 'parti': emettre(m.t, m); break;
+        case 'cmd':
+          if (Number.isInteger(m.de) && Number.isInteger(m.n) && Array.isArray(m.c)) c.vu[m.de] = Math.max(c.vu[m.de] || 0, m.n + m.c.length);   // (tour 61) ce que j'ai reçu de chacun, pour la reprise
+          emettre(m.t, m); break;
+        case 'parti': if (c.partis.indexOf(m.id) < 0) c.partis.push(m.id); emettre(m.t, m); break;
+        case 'controle': case 'emote': emettre(m.t, m); break;
         default: c.rejets++;
       }
     }
     function surFermeture() {
       if (volontaire) return;
       stopPing();
-      if (c.etat === 'ouvert') { changer('coupe'); emettre('coupure', {}); essayer(); }
+      if (c.etat === 'ouvert') { changer('coupe'); emettre('coupure', c.depart && c.code && c.jeton && R.EN_LIGNE_RECONNEXION_COURSE_MS > 0 ? { enCourse: true } : {}); essayer(); }   // (tour 61) enCourse : la reprise est tentée, les écrans ne font rien
     }
     let reprise = false;   // vrai entre le rattachement d'après coupure et la réponse du relais
-    function perdu() { stopPing(); changer('ferme'); emettre('perdu', {}); }
+    function perdu() { stopPing(); repriseCourse = false; coupureT = null; changer('ferme'); emettre('perdu', {}); }
+    // (tour 61) coupure EN COURSE (le Wi-Fi saute) : on réessaie de se rattacher pendant EN_LIGNE_RECONNEXION_COURSE_MS avec le jeton ; le relais garde
+    // la place EN_LIGNE_GRACE_COURSE s, rejoue ce qu'on a manqué (vu, partis) puis dit « reprise » ; passé le délai : perdu, comme avant
+    function essayerCourse() {
+      if (coupureT === null) coupureT = horloge.maintenant();
+      if (horloge.maintenant() - coupureT > R.EN_LIGNE_RECONNEXION_COURSE_MS) { oublierSalle(); return perdu(); }
+      const premier = essai++ === 0;
+      minuteurRecon = horloge.delai(() => {
+        minuteurRecon = null;
+        if (volontaire) return;
+        transport.ouvrir(recevoir, surFermeture).then(() => {
+          if (volontaire) return;
+          coupureT = null; essai = 0;
+          changer('ouvert'); dernierRecu = horloge.maintenant(); ping_();
+          emettre('reconnecte', { code: c.code });
+          reprise = true; repriseCourse = true;
+          c.envoyerBrut({ t: 'rejoindre', code: c.code, nom: c.nom, version, jeton: c.jeton, vu: c.vu, partis: c.partis });
+        }, () => { if (!volontaire) essayerCourse(); });
+      }, premier ? 0 : R.EN_LIGNE_RECONNEXION_COURSE_PAUSE_MS);
+    }
     function essayer() {
+      if (c.depart && c.code && c.jeton && R.EN_LIGNE_RECONNEXION_COURSE_MS > 0) return essayerCourse();
       essai++;
       if (essai > R.EN_LIGNE_RECONNEXIONS || (c.depart && c.code)) { oublierSalle(); return perdu(); }   // en pleine course, une coupure est définitive
       minuteurRecon = horloge.delai(() => {
@@ -476,7 +508,7 @@ const RESEAU = (function () {
       minuteurPing = horloge.delai(() => {
         minuteurPing = null;
         if (c.etat !== 'ouvert') return;
-        if (horloge.maintenant() - dernierRecu > R.EN_LIGNE_SILENCE_MS) {       // muet : la connexion est morte
+        if (horloge.maintenant() - dernierRecu > R.EN_LIGNE_SILENCE_MS * (c.depart ? R.EN_LIGNE_SILENCE_COURSE_PART : 1)) {       // muet : la connexion est morte
           transport.fermer(); surFermeture(); return;
         }
         if (c.code) c.envoyerBrut({ t: 'ping', h: horloge.maintenant(), l: c.latence === null ? undefined : Math.round(c.latence) });
@@ -581,5 +613,15 @@ const RESEAU = (function () {
     effacer() { try { sessionStorage.removeItem(CLE_SESSION); } catch (e) { /* tant pis */ } },
   };
 
-  return { session, client, creerRelais, monde, transportMemoire, transportDiffusion, transportWebSocket, horlogeReelle, nomAutorise, nomAuHasard, TYPES_CLIENT };
+  // (tour 61) l'adresse du relais quand rien n'est réglé : celle de la page si c'est serveur/maison.py qui l'a servie (il ajoute <meta name="gpd-relais">), sinon vide
+  function urlRelais() {
+    if (R.EN_LIGNE_URL) return R.EN_LIGNE_URL;
+    try {
+      if (R.EN_LIGNE_MAISON && typeof document !== 'undefined' && document.querySelector('meta[name="gpd-relais"]') && /^https?:$/.test(location.protocol))
+        return (location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + location.host;
+    } catch (e) { /* pas de page */ }
+    return '';
+  }
+
+  return { session, urlRelais, client, creerRelais, monde, transportMemoire, transportDiffusion, transportWebSocket, horlogeReelle, nomAutorise, nomAuHasard, TYPES_CLIENT };
 })();

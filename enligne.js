@@ -333,9 +333,16 @@ const EN_LIGNE = (function () {
       return undefined;
     }
 
+    // (tour 61) mes paquets envoyés les derniers pas : après une coupure du Wi-Fi, ceux que le relais n'a pas reçus repartent (rejouer)
+    const histoire = [];
+    const histoireMax = Math.max(4 * delai + 64, Math.floor(o.histoire || R.EN_LIGNE_HISTOIRE_PAS || 0));
+    let gele = false;
     function vider() {
       if (!paquet.c.length) return;
-      envoyer({ t: 'cmd', n: paquet.n, c: paquet.c });
+      const m = { n: paquet.n, c: paquet.c };
+      histoire.push(m);
+      while (histoire.length > 1 && m.n + m.c.length - histoire[0].n > histoireMax) histoire.shift();
+      envoyer({ t: 'cmd', n: m.n, c: m.c });
       paquet = { n: paquet.n + paquet.c.length, c: [] };
     }
 
@@ -348,7 +355,7 @@ const EN_LIGNE = (function () {
 
     // un pas, si les commandes de tous sont là ; sinon false (et attente dit qui)
     function unPas() {
-      if (desynchro || n >= pasMax || finPas !== null) return false;
+      if (desynchro || gele || n >= pasMax || finPas !== null) return false;
       const manque = [];
       for (const id of ordre) if (codeDe(id, n) === undefined) manque.push(id);
       if (manque.length) { attente = manque; pasAttendus++; return false; }
@@ -435,6 +442,24 @@ const EN_LIGNE = (function () {
     };
     partie.empreinte = () => empreinte(e);
     partie.vider = vider;
+    // (tour 61) la connexion est coupée : la partie ne fait plus de pas (rien de nouveau n'est produit qu'on ne pourrait pas envoyer) ; dégelée par rejouer
+    Object.defineProperty(partie, 'gele', { get: () => gele, set: v => { gele = !!v; } });
+    // le relais dit qu'il attend de moi le pas `fin` (sa copie de mes commandes s'arrête là) : je renvoie ce qu'il n'a pas, dans l'ordre ; faux si ce que
+    // le relais attend est plus ancien que ce que je garde (la reprise est impossible)
+    partie.rejouer = function (fin) {
+      if (!Number.isInteger(fin) || fin < 0) return false;
+      if (histoire.length && histoire[0].n > fin) return false;
+      let renvoyes = 0;
+      for (const m of histoire) {
+        const bout = m.n + m.c.length;
+        if (bout <= fin) continue;
+        const c = m.n < fin ? m.c.slice(fin - m.n) : m.c;
+        envoyer({ t: 'cmd', n: Math.max(m.n, fin), c });
+        renvoyes += c.length;
+      }
+      gele = false;
+      return renvoyes;
+    };
     // la course est finie (ou quittée) : les fonctions Math du navigateur reviennent ; à appeler une fois
     let termine = false;
     partie.terminer = function () { if (!termine) { termine = true; if (mathsOn) maths.desactiver(); } };
@@ -466,8 +491,11 @@ const EN_LIGNE = (function () {
       dernierArrivee.set(lien, arrivee);
       file.push({ t: arrivee, seq: seq++, vers, msg });
     }
+    const coupes = new Set(), finRelais = new Map(), journal = [], vu = new Map(ids.map(id => [id, new Map()]));   // vu : id → (de → le pas qui suit la dernière commande qu'il a reçue)
     for (const id of ids) {
       const partie = demarrer(depart, id, msg => {
+        if (coupes.has(id)) return;   // (tour 61) la liaison de id est coupée : le relais ne reçoit rien de lui
+        if (msg.t === 'cmd') { finRelais.set(id, Math.max(finRelais.get(id) || 0, msg.n + msg.c.length)); journal.push({ de: id, msg }); }
         for (const autre of ids) if (autre !== id && parties.has(autre)) poster(id, autre, Object.assign({}, msg, { de: id }));
       }, { carte: o.carte, circuit: o.circuit, delai: o.delai, paquet: o.paquet, controle: o.controle, pasMax: o.pasMax });
       parties.set(id, partie);
@@ -482,6 +510,8 @@ const EN_LIGNE = (function () {
         file.sort((a, b) => a.t - b.t || a.seq - b.seq);
         while (file.length && file[0].t <= tick) {
           const m = file.shift();
+          if (coupes.has(m.vers)) continue;   // (perdu : la liaison est coupée)
+          if (m.msg.t === 'cmd') { const mv = vu.get(m.vers); mv.set(m.msg.de, Math.max(mv.get(m.msg.de) || 0, m.msg.n + m.msg.c.length)); }
           if (!partis.has(m.vers)) parties.get(m.vers).recevoir(m.msg);
         }
         for (const [id, p] of parties) {
@@ -504,6 +534,23 @@ const EN_LIGNE = (function () {
         partis.add(id);
         for (const autre of ids) if (autre !== id && !partis.has(autre)) poster(id, autre, { t: 'parti', id });
       },
+      // (tour 61) la liaison de id tombe (le Wi-Fi) : ce qui lui était destiné et n'est pas arrivé est perdu, ce qu'il envoie n'arrive plus au relais ; sa partie s'arrête
+      couper(id) { coupes.add(id); parties.get(id).gele = true; },
+      // elle revient : comme le relais, on lui rejoue ce que les autres ont envoyé depuis (au-delà de ce qu'il avait reçu), puis il renvoie ses commandes depuis
+      // le pas que le relais attend de lui (rejouer) ; vrai si la reprise a marché
+      revenir(id) {
+        coupes.delete(id);
+        const mv = vu.get(id);
+        for (const { de, msg } of journal) {
+          if (de === id) continue;
+          const deja = mv.get(de) || 0, bout = msg.n + msg.c.length;
+          if (bout <= deja) continue;
+          const m2 = msg.n < deja ? { t: 'cmd', n: deja, c: msg.c.slice(deja - msg.n) } : msg;
+          mv.set(de, bout);
+          parties.get(id).recevoir(Object.assign({}, m2, { de }));
+        }
+        return parties.get(id).rejouer(finRelais.get(id) || 0) !== false;
+      },
       // la course est finie : les Math du navigateur reviennent
       fin() { for (const p of parties.values()) p.terminer(); },
       partis,
@@ -511,5 +558,11 @@ const EN_LIGNE = (function () {
     return banc;
   }
 
-  return { actif, adresseAutorisee, version, reglagesValides, coder, decoder, codeValide, empreinte, demarrer, creerPartie, creerCourseEnLigne, conduire, planMeteo, circuitDe, preparerCircuit, maths, banc, CODE_NEUTRE, NEUTRE };
+  // (tour 61) la qualité d'une connexion d'après son ping (ms) : 'bonne', 'moyenne', 'mauvaise' ; null si on ne sait pas
+  function qualite(ms) {
+    if (typeof ms !== 'number' || !isFinite(ms) || ms < 0) return null;
+    return ms <= R.EN_LIGNE_QUALITE_BONNE_MS ? 'bonne' : ms <= R.EN_LIGNE_QUALITE_MOYENNE_MS ? 'moyenne' : 'mauvaise';
+  }
+
+  return { qualite, actif, adresseAutorisee, version, reglagesValides, coder, decoder, codeValide, empreinte, demarrer, creerPartie, creerCourseEnLigne, conduire, planMeteo, circuitDe, preparerCircuit, maths, banc, CODE_NEUTRE, NEUTRE };
 })();

@@ -471,7 +471,105 @@ async def tests_mesure(port, rel):
     await cl[0].env(t='lancer', reglages={'circuit': 'monza', 'tours': 3, 'meteo': 'sec', 'nbIA': 0})
     d = await cl[0].jusqua('depart')
     t('mesure : un client qui annonce 60 000 ms n\'impose rien (le délai reste celui du jeu)', d['reglages'].get('delai', 12) == 12, d)
+    # (tour 61) la qualité de la connexion de chacun est diffusée dans la salle (un message par mesure) : id et ping en ms
+    q = await cl[1].jusqua('qualite', 3)
+    t('qualité : « qualite » donne l\'id du joueur et son ping en ms (entier de 0 à 9999)', isinstance(q['id'], int) and isinstance(q['ms'], int) and 0 <= q['ms'] <= 9999, q)
+    ids = set()
+    for _ in range(12):
+        try: q = await cl[1].jusqua('qualite', 1.5)
+        except asyncio.TimeoutError: break
+        ids.add(q['id'])
+        if ids == {1, 2}: break
+    t('qualité : chacun des deux joueurs est mesuré et diffusé à tous', ids == {1, 2}, ids)
     await fin(cl)
+
+def paquet(n, k=4, v=1):
+    return {'t': 'cmd', 'n': n, 'c': [v] * k}
+
+async def tests_reprise(port, rel):
+    """(tour 61) la coupure du Wi-Fi en pleine course : le joueur garde sa place quelques secondes, revient avec son jeton, le relais lui rejoue ce qu'il a manqué."""
+    code, cl = await salle_de(port, ['bleu', 'rouge', 'jaune'], lancee=True)
+    a, b, c = cl
+    salle = rel.salles[code]
+    jetons = {j.id: j.jeton for j in salle.joueurs.values()}
+    await a.env(**paquet(0, 4, 1)); await b.env(**paquet(0, 4, 2)); await c.env(**paquet(0, 4, 3))
+    await asyncio.sleep(0.2)
+    # B perd sa connexion
+    await b.ws.close()
+    m = await a.jusqua('coupe', 2)
+    t('reprise : les autres sont prévenus (« coupe ») et personne n\'est « parti »', m['id'] == 2 and not any(x.get('t') == 'parti' for x in a.recus + c.recus), m)
+    await a.env(**paquet(4, 4, 5)); await c.env(**paquet(4, 4, 6)); await a.env(**paquet(8, 2, 7))
+    await asyncio.sleep(0.2)
+    nb = await ouvre_reprise(port, code, 'rouge', jetons[2], vu={'1': 4, '3': 4}, partis=[])
+    s2 = await nb.jusqua('salle')
+    t('reprise : même place (id 2), même jeton', s2['toi'] == 2 and s2['jeton'] == jetons[2], s2)
+    rr = await nb.jusqua('reprise')
+    t('reprise : « reprise » dit le pas que le relais attend de lui (4)', rr['fin'] == 4, rr)
+    cmds = [(x['de'], x['n'], x['c']) for x in nb.recus if x.get('t') == 'cmd']
+    t('reprise : il reçoit, dans l\'ordre, ce qu\'il a manqué de chacun (et rien de ce qu\'il avait déjà, ni de lui-même)', sorted(cmds) == [(1, 4, [5] * 4), (1, 8, [7] * 2), (3, 4, [6] * 4)] and [x for x in cmds if x[0] == 1] == [(1, 4, [5] * 4), (1, 8, [7] * 2)], cmds)
+    t('reprise : les autres voient « revenu »', (await a.jusqua('revenu', 2))['id'] == 2 and (await c.jusqua('revenu', 2))['id'] == 2)
+    await nb.env(**paquet(4, 4, 9))
+    m = await a.jusqua('cmd', 2)
+    t('reprise : ses commandes repartent là où elles s\'étaient arrêtées', m['de'] == 2 and m['n'] == 4, m)
+    await nb.env(**paquet(0, 4, 9)); await asyncio.sleep(0.2)
+    t('reprise : un paquet qui recouvre ce que le relais a déjà est jeté (pas de réécriture du passé)', not any(x.get('t') == 'cmd' and x.get('de') == 2 and x.get('n') == 0 for x in a.recus[-3:]))
+    # avec un « vu » en retard : un paquet à cheval est coupé en deux
+    nb2 = None
+    await a.env(**paquet(10, 4, 8)); await asyncio.sleep(0.1)
+    await nb.ws.close(); await asyncio.sleep(0.1)
+    nb2 = await ouvre_reprise(port, code, 'rouge', jetons[2], vu={'1': 9, '3': 8}, partis=[])
+    await nb2.jusqua('reprise')
+    cmds = [(x['de'], x['n'], x['c']) for x in nb2.recus if x.get('t') == 'cmd']
+    t('reprise : un paquet à cheval sur ce qu\'il a déjà est coupé (n = ce qu\'il attend)', (1, 9, [7]) in cmds and (1, 10, [8] * 4) in cmds, cmds)
+    # la connexion de B n'est pas encore vue comme morte : la nouvelle la remplace (le jeton est secret)
+    nb3 = await ouvre_reprise(port, code, 'rouge', jetons[2], vu={'1': 14, '3': 8}, partis=[])
+    s3 = await nb3.jusqua('salle')
+    t('reprise : une nouvelle connexion avec le jeton remplace l\'ancienne, encore ouverte (qui est coupée)', s3['toi'] == 2 and await nb2.ferme(2) is not None)
+    await nb3.jusqua('reprise')
+    # un faux jeton ne prend la place de personne : la salle est commencée
+    x = await ouvre_reprise(port, code, 'rouge', 'faux-jeton', vu={}, partis=[])
+    r = await x.jusqua('refus'); t('reprise : un faux jeton est refusé (« commencee »)', r['raison'] == 'commencee', r)
+    # C ne revient pas : au bout de la grâce, « parti » ; B (qui revient plus tard) le sait par le relais
+    await c.ws.close()
+    await a.jusqua('coupe', 2)
+    m = await a.jusqua('parti', 3)
+    t('reprise : sans retour dans la grâce, « parti » (voiture neutre, la règle d\'avant)', m['id'] == 3, m)
+    await nb3.ws.close(); await asyncio.sleep(0.1)
+    nb4 = await ouvre_reprise(port, code, 'rouge', jetons[2], vu={'1': 14, '3': 8}, partis=[])
+    await nb4.jusqua('reprise')
+    t('reprise : le « parti » de C manqué pendant la coupure est rejoué', any(x.get('t') == 'parti' and x['id'] == 3 for x in nb4.recus), nb4.recus)
+    nb4b = None
+    await nb4.ws.close(); await asyncio.sleep(0.1)
+    nb4b = await ouvre_reprise(port, code, 'rouge', jetons[2], vu={'1': 14}, partis=[3])
+    await nb4b.jusqua('reprise')
+    t('reprise : un « parti » déjà vu n\'est pas rejoué', not any(x.get('t') == 'parti' for x in nb4b.recus), nb4b.recus)
+    # puis l'ancien joueur C ne peut plus revenir (sa place est rendue)
+    y = await ouvre_reprise(port, code, 'jaune', jetons[3], vu={}, partis=[])
+    r = await y.jusqua('refus'); t('reprise : passé la grâce, la place est perdue (refus)', r['raison'] == 'commencee', r)
+    # B coupé et jamais revenu : « parti » après la grâce, la salle continue pour A
+    await nb4b.ws.close()
+    m = await a.jusqua('parti', 3)
+    t('reprise : B non plus ne revient pas : « parti » au bout de la grâce', m['id'] == 2, m)
+    await fin([a, y, x])
+
+async def ouvre_reprise(port, code, nom, jeton, vu, partis):
+    ws = await connect(f'ws://127.0.0.1:{port}', open_timeout=5)
+    cl = C(ws)
+    await cl.env(t='rejoindre', code=code, nom=nom, version=V, jeton=jeton, vu=vu, partis=partis)
+    return cl
+
+async def tests_reprise_limites(port, rel):
+    # sans grâce en course (grace_course = 0) : « parti » tout de suite, comme avant le tour 61 (testé dans les autres parties) ; ici le journal plein
+    code, cl = await salle_de(port, ['bleu', 'rouge'], lancee=True)
+    a, b = cl
+    for i in range(6): await a.env(**paquet(i * 4, 4, 1))
+    await asyncio.sleep(0.2)
+    salle = rel.salles[code]
+    t('limites : le journal est plein au-delà de journal_max (plus de grâce en course)', salle.journal_plein, len(salle.journal))
+    await b.ws.close()
+    m = await a.jusqua('parti', 1.5)
+    t('limites : journal plein : un joueur coupé est « parti » tout de suite', m['id'] == 2, m)
+    await fin([a])
 
 async def tests_adresse(port, rel):
     cs = [await ouvre(port) for _ in range(3)]
@@ -508,7 +606,7 @@ async def lance(cfg, test):
         await test(s.port, rel)
 
 async def tout():
-    base = dict(delai_arrivee=1.5, delai_emote=0.5, nettoyage=0.2, exiger_charge=False, grace=0, mesure_periode=0, avance_max=0)   # (les parties d'avant le jeton : sans exiger « charge » ; avance_max 0 : sans la limite d'avance, que la partie « garde-fous » règle)
+    base = dict(delai_arrivee=1.5, delai_emote=0.5, nettoyage=0.2, exiger_charge=False, grace=0, grace_course=0, mesure_periode=0, avance_max=0)   # (les parties d'avant le jeton : sans exiger « charge » ; avance_max 0 : sans la limite d'avance, que la partie « garde-fous » règle)
     seule = os.environ.get('SERVEUR_PARTIE')   # (pour déboguer : une seule partie)
     for nom, cfg, f in (
         ('principal', R.Config(**base), tests_principaux), ('salles', R.Config(**base), tests_salles), ('limites', R.Config(**base), tests_limites),
@@ -516,6 +614,7 @@ async def tout():
         ('charge et jeton', R.Config(**dict(base, exiger_charge=True, grace=1.5)), tests_charge),
         ('délai', R.Config(**dict(base, mesure_periode=0)), tests_delai),
         ('mesure', R.Config(**dict(base, mesure_periode=0.1)), tests_mesure),
+        ('reprise', R.Config(**dict(base, grace_course=1.2)), tests_reprise), ('reprise limites', R.Config(**dict(base, grace_course=1.2, journal_max=4)), tests_reprise_limites),
         ('garde-fous', R.Config(**dict(base, avance_max=240)), tests_garde_fous), ('décisions', R.Config(**base), tests_decisions),
         ('adresse', R.Config(max_par_ip=3, **base), tests_adresse), ('noms libres', R.Config(noms_libres=True, **base), tests_noms_libres),
         ('origines', R.Config(origines=['https://jeu.exemple'], **base), tests_origines)):

@@ -2951,3 +2951,13 @@ body.styleTele #pause .boutons > button.petit { text-transform: none; font-weigh
 body.styleTele #podium h1 { text-transform: uppercase; }
 /* les écrans à longs libellés (contrats, retraite : « Confirmer : arrêter maintenant ») gardent l'épaisseur d'avant : un mot de plus à la ligne ferait se recouvrir les boutons */
 body.styleTele :is(#contrats, #retraite) button { font-weight: 600; }
+
+/* (tour 61) la qualité de la connexion de chacun : un point de couleur, le ping et (au survol) le mot ; dans la salle et pendant la course en ligne */
+#enligneListe .ping { flex: none; min-width: 64px; text-align: right; font-size: 12px; opacity: 0.9; }
+#enligneListe .ping.bonne, #enligneQualite .bonne { color: #7bd88f; }
+#enligneListe .ping.moyenne, #enligneQualite .moyenne { color: #ffb347; }
+#enligneListe .ping.mauvaise, #enligneQualite .mauvaise { color: #ff6b6b; }
+#enligneQualite { position: fixed; left: 50%; bottom: 4px; transform: translateX(-50%); z-index: 6; display: flex; gap: 8px; padding: 2px 8px; border-radius: 8px;
+  background: rgba(0, 0, 0, 0.4); font: 700 11px/1.3 var(--tv-police, system-ui, sans-serif); color: #fff; pointer-events: none; white-space: nowrap; }
+#enligneQualite.cache { display: none; }
+#enligneQualite .moi { text-decoration: underline; }
