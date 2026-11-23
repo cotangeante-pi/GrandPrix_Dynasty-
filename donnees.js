@@ -1635,6 +1635,11 @@ const REGLAGES = {
   EN_LIGNE_VERSION: 2,          // à monter quand le calcul de la course change sans qu'un réglage change (deux clients de versions différentes ne jouent pas ensemble)
   EN_LIGNE_DRAPEAUX: true,      // (tour 61) les drapeaux (jaune, bleu, VSC, pénalités) en ligne, pour tous les humains ; faux = coupés (tour 56)
   EN_LIGNE_PNEUS_ARRET: true,   // (tour 61) le choix des pneus à l'arrêt au stand en ligne (← →, ou le bouton au doigt) : il voyage dans la direction de la commande, daté par pas ; faux = l'équipe choisit seule (tour 56)
+  EN_LIGNE_QUALIF: true,        // (tour 61) la qualification en ligne est permise (réglage de l'hôte) ; faux = toujours la grille tirée au sort (tour 56)
+  EN_LIGNE_QUALIFS: ['sort', 'fantomes', 'seul'],   // les choix de l'hôte : la grille tirée au sort (d'avant), ou un tour lancé chacun en même temps (on voit les autres en fantômes, ou on ne les voit pas)
+  EN_LIGNE_QUALIF_ATTENTE: 25,  // s : la qualification finit ce temps après le premier tour fini (qui n'a pas fini = en queue de grille)
+  EN_LIGNE_QUALIF_MAX: 240,     // s : … et au plus tard ici
+  EN_LIGNE_SALLE_POINTS: [25, 18, 15, 12, 10, 8, 6, 4],   // (tour 61) le classement de la salle : les points d'une course selon le rang parmi les humains (les IA ne comptent pas) ; rien sans classement
   EN_LIGNE_DELAI: 12,           // pas de physique entre le moment où un joueur appuie et celui où sa commande agit (12 pas = 0,1 s) : le temps de faire voyager la commande
   EN_LIGNE_PAQUET: 4,           // pas : les commandes partent par paquets de ce nombre de pas (30 messages par seconde) ; jamais plus que le délai
   EN_LIGNE_CONTROLE: 120,       // pas : toutes les 120 pas (1 s), une empreinte de l'état de la course est envoyée pour voir si tous les clients voient la même course

@@ -137,7 +137,7 @@ const ENLIGNE_PAGE = (function () {
     if (!c || !c.code || !c.jeton) return false;
     RESEAU.session.ecrire(c, { circuit });
     const p = new URLSearchParams({ enlignecourse: 'reprise', circuit });
-    for (const k of ['canal', 'transport', 'lang', 'robot', 'conduite', 'tours', 'ia']) if (PARAMETRES.get(k)) p.set(k, PARAMETRES.get(k));
+    for (const k of ['canal', 'transport', 'lang', 'robot', 'conduite', 'tours', 'ia', 'qualif']) if (PARAMETRES.get(k)) p.set(k, PARAMETRES.get(k));
     location.href = location.pathname + '?' + p.toString();   // (jamais c.fermer() : un « quitter » ferait perdre la place ; la connexion tombe, la grâce la garde)
     return true;
   }
@@ -267,7 +267,8 @@ const ENLIGNE_PAGE = (function () {
     const c = etat.client;
     if (etat.role !== 'hote' || etat.lance || !c || !c.estHote() || etat.joueurs.length < etat.attendus) return;
     etat.lance = true;
-    c.lancer({ circuit: NOM_CIRCUIT, tours: etat.tours, meteo: 'sec', nbIA: etat.nbIA });
+    const q = PARAMETRES.get('qualif');   // (tour 61, les essais) ?qualif=fantomes|seul : la qualification en ligne
+    c.lancer(Object.assign({ circuit: NOM_CIRCUIT, tours: etat.tours, meteo: 'sec', nbIA: etat.nbIA }, q && R.EN_LIGNE_QUALIFS.includes(q) && q !== R.EN_LIGNE_QUALIFS[0] ? { qualif: q } : {}));
   }
 
   function recevoirDepart(m) {
@@ -285,6 +286,8 @@ const ENLIGNE_PAGE = (function () {
     if (p && p.desynchro && !etat.erreur) { etat.erreur = 'desynchro'; p.terminer(); dire(texte('enl_desynchro')); sortirApres('desynchro'); }   // (T8) message clair, puis retour à la salle
     // la course est finie (podium, résultats, salle) : nos Math reviennent (les fonctions de la page ne sont plus remplacées)
     if (p && JEU.ecran !== 'course' && JEU.ecran !== 'pause') p.terminer();
+    if (p && JEU.plateau === p.e) majQualif(p);
+    if (p && p.fin !== null && p.fin !== undefined && (JEU.ecran === 'podium' || JEU.ecran === 'resultats')) finCourse(p);   // (tour 61) le classement de la salle et le record, une fois par course
     surveillerAttente();
   }
 
@@ -313,6 +316,7 @@ const ENLIGNE_PAGE = (function () {
     // le cœur construit lui-même le circuit et sa carte avec nos Math (identiques sur tous les navigateurs : relecture T11, point 5) ; la page garde CIRCUIT pour le dessin
     const partie = EN_LIGNE.demarrer(d, c.moi, msg => c.envoyer(msg), {});
     etat.partie = partie;
+    effacerBilan();
     const e = partie.e, P = e.pilotes;
     JEU.plateau = e;
     if (!JEU.carte) JEU.carte = e.carte;   // (le « Préparation… » de la page et le reste lisent JEU.carte : celle du cœur)
@@ -328,6 +332,9 @@ const ENLIGNE_PAGE = (function () {
     JEU.modeles = [];
     JEU.couleurs.forEach((couleur, k) => JEU.modeles.push(VOITURE3D.creer(couleur, k === JEU.ia, undefined, k, k)));
     for (const m of JEU.modeles) SCENE3D.ajouter(m.groupe);
+    if (etat.fantomes) for (const g of etat.fantomes.values()) g.groupe.visible = false;   // (tour 61) ceux d'une course d'avant
+    etat.fantomes = new Map(); etat.grilleVue = undefined; etat.msgQualif = '';
+    P.forEach((p, k) => { if (p.humain && k !== JEU.ia) { const g = VOITURE3D.creerFantome(R.FANTOME_COULEUR, R.FANTOME_OPACITE); SCENE3D.ajouter(g.groupe); etat.fantomes.set(k, g); } });   // les tours des autres (qualification « fantômes »)
     if (JEU.modele) JEU.modele.groupe.visible = false;   // la voiture « seul en piste » du chargement
     suivre(JEU.ia);
     SCENE3D.colorerRepereStand(JEU.couleurs[JEU.ia]);
@@ -380,10 +387,83 @@ const ENLIGNE_PAGE = (function () {
     return f.shift();
   }
 
+  // ---- (tour 61) la qualification en ligne : ce que la page en montre (le calcul est dans enligne.js, tout en lockstep)
+  // pendant le tour : le HUD de la course (le chrono, le 3-2-1) lit le tour de MA voiture (e.qualif.qs) ; les tours des autres sont des fantômes (réglage « fantomes ») ou
+  // rien (« seul ») ; un texte dit où j'en suis (mon chrono, puis « en attente des autres »), puis ma place sur la grille
+  function cacher(p, k) {   // une voiture que la page ne dessine pas : pendant la qualification, les autres joueurs (le fantôme les remplace, ou rien)
+    const e = etat.partie && etat.partie.e;
+    return !!(e && e.qualif && p.humain && k !== JEU.ia);
+  }
+  function majQualif(partie) {
+    const e = partie.e, moi = partie.moi, s = e.qualif ? e.qualif.qs.get(moi.numero) : null;
+    const c = s ? s.q.course : moi.course;
+    if (JEU.course !== c) JEU.course = c;
+    // les fantômes des autres tours
+    if (etat.fantomes) for (const [k, g] of etat.fantomes) {
+      const q = e.pilotes[k], visible = !!e.qualif && e.qualif.mode === 'fantomes' && !q.abandon;
+      g.groupe.visible = visible;
+      if (visible) VOITURE3D.placer(g, etatAffiche(q.v, JEU.alpha || 0), q.v);
+    }
+    let msg = '';
+    if (s) {
+      const q = s.q;
+      if (q.fini) msg = q.valide ? texte('enl_qualif_fini').replace('{t}', INTERFACE.formatTemps(q.temps)) : texte('enl_qualif_coupe');
+      else if (q.lance) msg = texte('enl_qualif_tour').replace('{t}', INTERFACE.formatTemps(QUALIFICATION.chrono(q)));
+      else msg = texte('enl_qualif');
+    } else if (e.qualifFinie) {
+      if (etat.grilleVue === undefined) etat.grilleVue = partie.n;
+      if (partie.n - etat.grilleVue < 600) {   // 5 s : ma place sur la grille
+        const place = e.grille.findIndex(g => g.numero === moi.numero) + 1, t = moi.qualif;
+        msg = texte('enl_grille').replace('{p}', String(place)).replace('{t}', t === null ? '—' : INTERFACE.formatTemps(t));
+      }
+    }
+    if (msg !== etat.msgQualif && (etat.statut === '' || etat.statut === etat.msgQualif)) { etat.msgQualif = msg; dire(msg); }
+  }
+
+  // ---- (tour 61) après la course : le classement de la salle (points sur plusieurs courses de suite dans la même salle) et mon record personnel par circuit
+  // Le calcul est pur (enligne.js : resultatsSalle, salleAjouter, salleClassement, recordPropose) et ne lit que le classement final, le même chez tous : chaque client
+  // tient sa table, sans message de plus. La table est gardée dans sessionStorage sous le code de la salle (la page se recharge quand l'hôte change de circuit) ; le
+  // record dans localStorage (gpd-enligne-records, à part de la sauvegarde du jeu : rien ne touche à la carrière). Tout est dans des try (stockage refusé : en mémoire).
+  const CLE_RECORDS = 'gpd-enligne-records', CLE_SALLE = 'gpd-enligne-salle-';
+  function lire(stock, cle, memoire) { try { const s = window[stock]; const x = s ? JSON.parse(s.getItem(cle) || 'null') : null; return x || memoire[cle] || null; } catch (err) { return memoire[cle] || null; } }
+  function ecrire(stock, cle, valeur, memoire) { memoire[cle] = valeur; try { const s = window[stock]; if (s) s.setItem(cle, JSON.stringify(valeur)); } catch (err) { /* rien : la mémoire de la page garde */ } }
+  const memoire = {};
+  function finCourse(p) {
+    if (etat.bilanDe === p) return;
+    etat.bilanDe = p;
+    const code = (etat.client && etat.client.code) || etat.code || '';
+    let table = lire('sessionStorage', CLE_SALLE + code, memoire);
+    table = EN_LIGNE.salleAjouter(table, EN_LIGNE.resultatsSalle(p), p.graine);
+    ecrire('sessionStorage', CLE_SALLE + code, table, memoire);
+    const t = p.moi.abandon ? null : p.moi.course.meilleurTour, r = EN_LIGNE.recordPropose(lire('localStorage', CLE_RECORDS, memoire), p.reglages.circuit, t);
+    if (r.nouveau) ecrire('localStorage', CLE_RECORDS, r.records, memoire);
+    etat.bilan = { table, classement: EN_LIGNE.salleClassement(table), record: { circuit: p.reglages.circuit, temps: t, nouveau: r.nouveau, ancien: r.ancien, courant: r.nouveau ? t : r.ancien } };
+    montrerBilan();
+  }
+  function montrerBilan() {
+    const b = etat.bilan, z = document.getElementById('enligneSalleClassement'), rec = document.getElementById('enligneRecord');
+    if (!b || !z || !rec) return;
+    z.textContent = '';
+    const titre = document.createElement('strong'); titre.textContent = texte('enl_salle_titre').replace('{n}', String(b.table.courses)); z.appendChild(titre);
+    const moiId = etat.partie ? etat.partie.idMoi : null;
+    for (const x of b.classement) {
+      const s = document.createElement('span');
+      s.textContent = texte('enl_salle_ligne').replace('{r}', String(x.rang)).replace('{nom}', nomAffiche(etat.noms.get(x.id) || ('#' + x.id)) + (x.id === moiId ? ' (' + texte('enligneToi') + ')' : '')).replace('{pts}', String(x.points));
+      if (x.id === moiId) s.className = 'moi';
+      z.appendChild(s);
+    }
+    z.classList.remove('cache');
+    const r = b.record, circuit = texte('circuit_' + r.circuit) || r.circuit;
+    if (r.courant) { rec.textContent = texte(r.nouveau ? 'enl_record_nouveau' : 'enl_record').replace('{circuit}', circuit).replace('{t}', INTERFACE.formatTemps(r.courant)); rec.classList.remove('cache'); }
+    else rec.classList.add('cache');
+  }
+  function effacerBilan() { for (const id of ['enligneSalleClassement', 'enligneRecord']) { const z = document.getElementById(id); if (z) z.classList.add('cache'); } etat.bilan = null; }
+
   // l'IA de la course conduit ma voiture (?conduite=ia, pour les tests) : le pilote neutre d'ia.js (sans hasard : rien ne touche à la suite tirée), qui regarde les
   // autres voitures comme une IA ; seules les commandes qui en sortent voyagent, comme celles d'un humain. Avant la 1re position sur la piste : rien.
   const conduiteIA = () => PARAMETRES.get('conduite') === 'ia';
   function commandeIA(p, moi) {
+    if (p.e.qualif) return commandeRobot(moi);   // (tour 61) la qualification : le robot d'essai fait le tour
     const c = moi.course, e = p.e;
     if (!courseAutorise(c)) { const d = c.depart; return { gaz: d && d.extinction !== null ? 1 : 0, frein: 0, direction: 0 }; }
     if (!moi.v.piste) return { gaz: 0, frein: 0, direction: 0 };
@@ -395,6 +475,8 @@ const ENLIGNE_PAGE = (function () {
 
   // le robot d'essai (?robot=1) : gaz tenu à l'extinction des feux, ensuite la ligne du milieu
   function commandeRobot(moi) {
+    const s = etat.partie && etat.partie.e.qualif ? etat.partie.e.qualif.qs.get(moi.numero) : null;   // (tour 61) pendant la qualification : la voiture et le chrono du TOUR
+    if (s) return courseAutorise(s.q.course) ? piloteRobot(s.v, CIRCUIT) : AUCUNE;
     const c = moi.course;
     if (courseAutorise(c)) return piloteRobot(moi.v, CIRCUIT);
     const d = c.depart;
@@ -416,5 +498,5 @@ const ENLIGNE_PAGE = (function () {
     return { n: p.n, empreinte: p.empreinte(), arrivees: p.e.pilotes.map(q => q.arrivee), final: JEU.final ? JEU.final.map(x => [x.k, x.place, x.total]) : null, desynchro: p.desynchro, ecran: JEU.ecran };
   }
 
-  return { etat, preparer, ouvrir, lancer, image, pas, podiumPret, retourSalle, resume, dire, fabrique, choisirPneu, impulsionPneu, rechargerPour, verifierCircuit, surPerdu, erreurRelais, echap, quitter, cacher, surveillerAttente, sortirApres };
+  return { etat, preparer, ouvrir, lancer, image, pas, podiumPret, retourSalle, resume, dire, fabrique, finCourse, montrerBilan, cacher, majQualif, choisirPneu, impulsionPneu, rechargerPour, verifierCircuit, surPerdu, erreurRelais, echap, quitter, cacher, surveillerAttente, sortirApres };
 })();

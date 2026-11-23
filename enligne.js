@@ -94,6 +94,7 @@ const EN_LIGNE = (function () {
       h = melanger(h, p.arrivee === null ? (p.abandon ? 2 : 0) : 1);
       if (p.arrivee !== null) h = melangerNombre(h, p.arrivee);
     }
+    if (e.qualif) { h = melanger(h, e.qualif.pas); for (const sq of e.qualif.qs.values()) { h = melangerObjet(h, sq.v, PROFONDEUR_VOITURE); h = melangerNombre(h, sq.q.course.temps); h = melangerNombre(h, sq.q.course.progression); h = melanger(h, sq.q.fini ? 1 : 0); } }   // (tour 61) la qualification
     const dr = e.drapeaux;   // (tour 61) les drapeaux : la VSC, les incidents, les pénalités déjà données (la même chose chez tous, sinon la course diverge)
     if (dr) { h = melanger(h, (dr.vsc ? 1 : 0) + (dr.nbVsc << 1)); h = melanger(h, dr.incidents.size); h = melanger(h, dr.punis.size); h = melanger(h, dr.zones.length); }
     return h >>> 0;
@@ -190,6 +191,7 @@ const EN_LIGNE = (function () {
     const iaMax = Math.max(0, Math.min(R.EN_LIGNE_IA_MAX, R.EN_LIGNE_VOITURES_MAX - nbJ));
     const nbIA = Number.isInteger(r.nbIA) && r.nbIA >= 0 ? Math.min(r.nbIA, iaMax) : 0;
     const sortie = { circuit, tours, meteo, nbIA };
+    if (R.EN_LIGNE_QUALIF && R.EN_LIGNE_QUALIFS.includes(r.qualif) && r.qualif !== R.EN_LIGNE_QUALIFS[0]) sortie.qualif = r.qualif;   // (tour 61) « sort » (la grille tirée au sort, d'avant) n'est pas écrit : les réglages d'avant sont les mêmes au caractère près
     if (Number.isInteger(r.delai) && r.delai >= 1 && r.delai <= 120) sortie.delai = r.delai;   // facultatif : l'hôte peut imposer le délai d'entrée (le même pour tous)
     return sortie;
   }
@@ -265,11 +267,77 @@ const EN_LIGNE = (function () {
       });
       placerGrille(e, graine);
       if (R.METEO_ACTIVE) poserMeteo(e, planMeteo(reglages.meteo, reglages.circuit, graine, reglages.tours, circuit));
-      armerFeux(e.pilotes, graine);
+      if (reglages.qualif) entrerQualif(e, humains, reglages.qualif);   // (tour 61) la qualification d'abord ; les feux sont armés à sa fin
+      else armerFeux(e.pilotes, graine);
       return { e, humains };
     } finally {
       R.NIVEAU = niveauAvant;
     }
+  }
+
+  // --- (tour 61) la qualification en ligne (réglage de l'hôte : reglages.qualif = 'fantomes' ou 'seul' ; absent = la grille tirée au sort)
+  // Un tour lancé chacun, TOUS EN MÊME TEMPS, mais chacun SEUL sur la piste (comme la qualification de la carrière : QUALIFICATION.creer / pas) : la
+  // voiture du tour de chaque joueur est une voiture à part (e.qualif.qs : numéro → { v, q }), sans contact avec les autres ; la voiture de la course
+  // (p.v) en recopie la pose pour que la page la dessine et la suive. Les commandes sont celles de la partie (mêmes bits, même délai) : la qualification
+  // fait partie du même lockstep, sans aucun message de plus. Elle finit à un pas précis, le même chez tous : tous les tours finis, ou EN_LIGNE_QUALIF_ATTENTE s
+  // après le premier tour fini, ou EN_LIGNE_QUALIF_MAX s. Alors la grille se range d'après les temps (les IA ont le leur, simulation.js : qualifier ; un tour
+  // coupé, abandonné ou pas fini = en queue), les voitures sont posées, les feux armés, et la course commence : e.temps n'a pas bougé pendant la qualification.
+  // « fantomes » / « seul » : ce que CHAQUE page montre des tours des autres (rien ne change au calcul).
+  const POSE = ['x', 'z', 'cap', 'u', 'v', 'r', 'gaz', 'frein', 'direction', 'braquage', 'rotationRoues', 'surHerbe'];
+  function recopierPose(p, vq) {
+    const v = p.v;
+    for (const k of POSE) v[k] = vq[k];
+    v.avant.x = vq.avant.x; v.avant.z = vq.avant.z; v.avant.cap = vq.avant.cap;
+    v.piste = vq.piste;
+  }
+  function entrerQualif(e, humains, mode) {
+    const qs = new Map();
+    for (const p of humains) {
+      const vq = creerVoiture(e.circuit); vq.joueur = true;
+      const q = QUALIFICATION.creer(e.circuit, vq);
+      qs.set(p.numero, { v: vq, q, remisePrec: false });
+      recopierPose(p, vq);
+    }
+    for (const p of e.pilotes) if (!p.humain) p.abandon = true;   // (cachées pendant la qualification : retirées de la piste, rendues à la grille)
+    e.qualif = { mode, qs, pas: 0, premierFini: null };
+  }
+  function pasQualif(e, dt, cmds) {
+    const Q = e.qualif;
+    for (const p of e.pilotes) {
+      if (!p.humain) continue;
+      const s = Q.qs.get(p.numero), q = s.q, c = q.course, cmd = cmds.get(p);
+      if (p.abandon) { if (!q.fini) { q.fini = true; q.valide = false; q.temps = null; } continue; }   // un joueur parti : pas de temps
+      const front = cmd.remise && !s.remisePrec; s.remisePrec = cmd.remise;
+      if (front && courseAutorise(c) && c.etat !== 'finie') remettreSurPiste(s.v, e.circuit);
+      if (c.etat === 'finie') appliquerCommandes(s.v, { gaz: 0, frein: s.v.u > R.ARRET_APRES_ARRIVEE ? 1 : 0, direction: 0 });
+      else lisserCommandes(s.v, courseAutorise(c) ? cmd : AUCUNE, dt);
+      pasVoiture(s.v, e.circuit, dt);
+      QUALIFICATION.pas(q, s.v, dt);
+      recopierPose(p, s.v);
+    }
+    Q.pas++;
+    const tous = [...Q.qs.values()];
+    if (Q.premierFini === null && tous.some(s => s.q.fini)) Q.premierFini = Q.pas;
+    const fin = tous.every(s => s.q.fini) || (Q.premierFini !== null && Q.pas - Q.premierFini >= R.EN_LIGNE_QUALIF_ATTENTE / dt) || Q.pas * dt >= R.EN_LIGNE_QUALIF_MAX;
+    if (fin) finQualif(e);
+  }
+  function finQualif(e) {
+    const c = e.circuit, Q = e.qualif;
+    for (const p of e.pilotes) if (p.humain) { const q = Q.qs.get(p.numero).q; p.qualif = q.fini && q.valide ? q.temps : null; }
+    for (const p of e.pilotes) if (!p.humain) p.abandon = false;
+    const ordre = e.pilotes.map((p, i) => ({ p, i })).sort((a, b) => ((a.p.qualif === null) - (b.p.qualif === null)) || (a.p.qualif !== null && b.p.qualif !== null && a.p.qualif !== b.p.qualif ? a.p.qualif - b.p.qualif : 0) || a.i - b.i).map(x => x.p);
+    const places = placesGrille(c, ordre.length);
+    ordre.forEach((p, k) => {
+      placerSurPiste(p.v, c, places[k].s, places[k].d);
+      p.v.rotationRoues = 0;
+      p.depart = places[k].s - c.longueur;
+      if (p.pilote) p.pilote.grille = p.v.piste.d;
+    });
+    e.devant.clear();
+    e.grille = ordre.map(p => ({ numero: p.numero, qualif: p.qualif }));
+    e.qualifFinie = { pas: Q.pas, mode: Q.mode };   // (la page : « Grille : P3 »)
+    e.qualif = null;
+    armerFeux(e.pilotes, e.graine);
   }
 
   // --- la conduite d'un joueur humain à un pas, depuis sa commande décodée (comme conduireJoueur de principal.js, sans la page : ni
@@ -298,6 +366,48 @@ const EN_LIGNE = (function () {
     }
     lisserCommandes(p.v, commandesPermises(p.course) ? cibles : p.course.etat === 'finie' ? FREIN_SEUL : AUCUNE, dt);
     if (p.v.pneus) { pasPneus(p.v.pneus, p.v, dt, REGLAGES_PNEUS.GESTION_MOYENNE); p.v.adherence = facteurAdherence(p.v.pneus.usure); }
+  }
+
+  // --- (tour 61) le classement de la salle et le record personnel (calcul pur, le même chez tous les clients : il ne lit que le classement final de la course,
+  // qui est le même partout au bit près). Les points se comptent entre HUMAINS (EN_LIGNE_SALLE_POINTS, le rang parmi les joueurs : les IA ne comptent pas) ;
+  // un joueur parti ou non classé n'a aucun point, mais sa course compte. La table est { courses, graine (la dernière course ajoutée : jamais deux fois), lignes : { id : { points,
+  // victoires, podiums, courses } } } : de l'objet simple, qu'on peut garder dans sessionStorage (la page se recharge quand l'hôte change de circuit).
+  function salleVide() { return { courses: 0, graine: null, lignes: {} }; }
+  // les rangs de la course finie (une partie ou une course e et sa liste d'ids) : [{ id, rang }] (rang parmi les humains, null : non classé)
+  function resultatsSalle(partie) {
+    const e = partie.e, f = classementFinal(e), rang = new Map();
+    let r = 0;
+    for (const x of f) { const p = e.pilotes[x.k]; if (p.humain && !p.abandon && x.total !== null) rang.set(p, ++r); }
+    return partie.ordre.map(id => ({ id, rang: rang.has(partie.pilotes.get(id)) ? rang.get(partie.pilotes.get(id)) : null }));
+  }
+  function salleAjouter(table, resultats, graine) {
+    const t = table && typeof table === 'object' && table.lignes ? table : salleVide();
+    if (graine !== undefined && t.graine === graine) return t;   // déjà comptée
+    const lignes = {};
+    for (const k of Object.keys(t.lignes)) lignes[k] = Object.assign({}, t.lignes[k]);
+    for (const x of resultats) {
+      const l = lignes[x.id] || (lignes[x.id] = { points: 0, victoires: 0, podiums: 0, courses: 0 });
+      l.courses++;
+      if (x.rang !== null) { l.points += R.EN_LIGNE_SALLE_POINTS[x.rang - 1] || 0; if (x.rang === 1) l.victoires++; if (x.rang <= 3) l.podiums++; }
+    }
+    return { courses: t.courses + 1, graine: graine === undefined ? t.graine : graine, lignes };
+  }
+  // le classement : les points, puis les victoires, puis les podiums, puis l'id (jamais d'égalité floue : le même ordre chez tous)
+  function salleClassement(table) {
+    if (!table || !table.lignes) return [];
+    const l = Object.keys(table.lignes).map(id => Object.assign({ id }, table.lignes[id]));
+    l.sort((a, b) => b.points - a.points || b.victoires - a.victoires || b.podiums - a.podiums || (String(a.id) < String(b.id) ? -1 : String(a.id) > String(b.id) ? 1 : 0));
+    let rang = 0, prec = null;
+    return l.map((x, i) => { if (!prec || prec.points !== x.points || prec.victoires !== x.victoires || prec.podiums !== x.podiums) rang = i + 1; prec = x; return Object.assign({}, x, { rang }); });
+  }
+  // le record personnel par circuit (gardé en local par la page) : records = { circuit : temps } ; un meilleur tour valide est-il un record ?
+  // → { records, nouveau, ancien } (records n'est copié que si un record tombe ; temps null ou absurde : rien)
+  function recordPropose(records, circuit, temps) {
+    const r = records && typeof records === 'object' ? records : {};
+    const ancien = typeof r[circuit] === 'number' && r[circuit] > 0 ? r[circuit] : null;
+    if (typeof temps !== 'number' || !(temps > 0) || !isFinite(temps) || typeof circuit !== 'string') return { records: r, nouveau: false, ancien };
+    if (ancien !== null && temps >= ancien) return { records: r, nouveau: false, ancien };
+    return { records: Object.assign({}, r, { [circuit]: temps }), nouveau: true, ancien };
   }
 
   // --- la partie
@@ -373,7 +483,8 @@ const EN_LIGNE = (function () {
       for (const [id, dernier] of sortis) { const q = pilotes.get(id); if (n > dernier && q.arrivee === null && !q.abandon) { q.abandon = true; q.abandonPas = n; q.abandonTemps = e.temps; } }
       const cmds = new Map();
       for (const id of ordre) cmds.set(pilotes.get(id), decoder(codeDe(id, n)));
-      pasCourseIA(e, PAS, (p, dt) => conduire(e, p, cmds.get(p), dt));
+      if (e.qualif) pasQualif(e, PAS, cmds);
+      else pasCourseIA(e, PAS, (p, dt) => conduire(e, p, cmds.get(p), dt));
       // ma commande, prise maintenant, agira au pas n + délai
       const code = coder(partie.local);
       codes.get(moi).set(n + delai, code);
@@ -525,5 +636,5 @@ const EN_LIGNE = (function () {
     return banc;
   }
 
-  return { actif, adresseAutorisee, version, reglagesValides, coder, decoder, codeValide, empreinte, demarrer, creerPartie, creerCourseEnLigne, conduire, choisirPneusArret, planMeteo, circuitDe, preparerCircuit, maths, banc, CODE_NEUTRE, NEUTRE };
+  return { actif, adresseAutorisee, version, reglagesValides, coder, decoder, codeValide, empreinte, demarrer, creerPartie, creerCourseEnLigne, conduire, pasQualif, salleVide, salleAjouter, salleClassement, resultatsSalle, recordPropose, choisirPneusArret, planMeteo, circuitDe, preparerCircuit, maths, banc, CODE_NEUTRE, NEUTRE };
 })();

@@ -998,6 +998,13 @@ body.deux #departResultat { bottom: auto; top: calc(50% - 60px); }
 .marche.joueur1 { box-shadow: 0 0 0 3px #1f6fe0; }
 .marche.joueur2 { box-shadow: 0 0 0 3px #d8262e; }
 #resultatsRivalite { font: 800 20px/1.3 var(--police); color: #f2c230; }
+/* (tour 61) en ligne : le classement de la salle (une ligne qui se replie) et le record personnel */
+#enligneSalleClassement { font: 700 15px/1.35 var(--police); text-align: center; max-width: 92vw; margin: 4px auto; }
+#enligneSalleClassement strong { display: block; color: #f2c230; margin-bottom: 2px; }
+#enligneSalleClassement span { display: inline-block; margin: 0 8px; white-space: nowrap; }
+#enligneSalleClassement span.moi { color: #7fe3a0; }
+#enligneRecord { font: 800 16px/1.3 var(--police); color: #f2c230; margin: 2px 0; }
+@media (max-height: 420px) { #enligneSalleClassement { font-size: 13px; margin: 2px auto; } #enligneRecord { font-size: 13px; } }
 /* la cérémonie du champion (Codeur 3) : le podium 3D se voit (pas de voile), le texte en haut, « Suite » en bas */
 #ceremonie { background: none; justify-content: space-between; padding: 22px 0 26px; box-sizing: border-box; pointer-events: none; }
 #ceremonie button { pointer-events: auto; }

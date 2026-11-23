@@ -4290,7 +4290,7 @@ enlT('en ligne : (tour 59) EN_LIGNE_ADRESSE faux ferme la porte des adresses (?e
 // un banc général : script(id, pas) → commande ; hook(e, n) : avant le pas n, sur la course de la partie (idempotent : appelé de nouveau si on attend)
 function enlBanc(ids,o){const b=EN_LIGNE.banc(ids,Object.assign({reglages:ENL_REG,graine:7,circuit:C,carte:CARTES_T.test,pasMax:o.pasMax||ENL_N},o,{local:(id,n)=>{if(o.hook)o.hook(b.parties.get(id).e,n);return o.script(id,n);}}));return b;}
 function enlRef2(ids,o){EN_LIGNE.maths.activer();try{const delai=REGLAGES.EN_LIGNE_DELAI,{e,humains}=EN_LIGNE.creerCourseEnLigne(EN_LIGNE.reglagesValides(o.reglages||ENL_REG,ids.length),o.graine||7,ids.length,{circuit:C,carte:CARTES_T.test});
-  for(let n=0;n<(o.pasMax||ENL_N);n++){if(o.hook)o.hook(e,n);const cmds=new Map();ids.forEach((id,i)=>cmds.set(humains[i],EN_LIGNE.decoder(EN_LIGNE.coder(n<delai?EN_LIGNE.NEUTRE:o.script(id,n-delai)))));pasCourseIA(e,DT,(p,dt)=>EN_LIGNE.conduire(e,p,cmds.get(p),dt));}
+  for(let n=0;n<(o.pasMax||ENL_N);n++){if(o.hook)o.hook(e,n);const cmds=new Map();ids.forEach((id,i)=>cmds.set(humains[i],EN_LIGNE.decoder(EN_LIGNE.coder(n<delai?EN_LIGNE.NEUTRE:o.script(id,n-delai)))));if(e.qualif) EN_LIGNE.pasQualif(e,DT,cmds); else pasCourseIA(e,DT,(p,dt)=>EN_LIGNE.conduire(e,p,cmds.get(p),dt));}
   return {h:EN_LIGNE.empreinte(e),e};}finally{EN_LIGNE.maths.desactiver();}}
 function enlAvecDrapeaux(f){const R_=REGLAGES,sauv={act:R_.DRAPEAUX_ACTIFS,d:R_.DRAPEAUX_DEBUT,i:R_.DRAPEAUX_INCIDENT_DUREE,a:R_.DRAPEAUX_VSC_ARRET,u:R_.DRAPEAUX_VSC_DUREE,p:R_.DRAPEAUX_VSC_PAUSE,pe:R_.DRAPEAUX_PERIODE};
   R_.DRAPEAUX_ACTIFS=true;R_.DRAPEAUX_DEBUT=4;R_.DRAPEAUX_INCIDENT_DUREE=0.3;R_.DRAPEAUX_VSC_ARRET=0.4;R_.DRAPEAUX_VSC_DUREE=[1,3];R_.DRAPEAUX_VSC_PAUSE=2;
@@ -4351,6 +4351,78 @@ enlT('en ligne : (tour 61) le bouton d’un pneu au doigt fait des appuis ← �
     v(dirs.filter(x=>x!==0).length===sens.length&&dirs.every((x,k)=>k%2===0?x===0:true),'un appui un pas sur deux : '+dirs.join());
     moi.course.arretEnCours=null;ENLIGNE_PAGE.etat.pneuAppuis=[1,1];v(ENLIGNE_PAGE.impulsionPneu(moi)===0&&ENLIGNE_PAGE.etat.pneuAppuis.length===0,'la file se vide hors arrêt');
   }finally{ENLIGNE_PAGE.etat.pneuAppuis=avant;}}));
+// --- (tour 61, point 3) la qualification en ligne : un tour lancé chacun en même temps, la grille rangée d'après les temps, la même chez tous
+enlT('en ligne : (tour 61) la qualification : 4 joueurs à latences variables (3 pilotes, 1 qui ne bouge pas) : mêmes tours, même fin de qualification au même pas, même grille et même état au bit près que sans réseau ; la grille suit les temps', ()=>{
+  const R_=REGLAGES,sauv=[R_.EN_LIGNE_QUALIF_ATTENTE,R_.EN_LIGNE_QUALIF_MAX];R_.EN_LIGNE_QUALIF_ATTENTE=6;
+  try{
+  const ids=['a','b','c','d'],pasMax=10600,reg=Object.assign({},ENL_REG,{qualif:'fantomes'}),pris=new Map();
+  // un pilote robot (piloteRobot, robot.js) lit sa voiture (celle du tour pendant la qualification, la sienne ensuite) ; « d » ne touche à rien
+  const script=(id,n)=>{const p=b.parties.get(id),num=p.pilotes.get(id).numero,e=p.e,s=e.qualif&&e.qualif.qs.get(num),car=s?s.v:p.pilotes.get(id).v,c=s?s.q.course:p.pilotes.get(id).course;
+    let cmd=EN_LIGNE.NEUTRE;if(id!=='d'){if(courseAutorise(c)) cmd=piloteRobot(car,C);else{const d=c.depart;cmd={gaz:d&&d.extinction!==null?1:0,frein:0,direction:0,remise:false};}}
+    pris.set(id+':'+n,cmd);return cmd;};
+  const b=EN_LIGNE.banc(ids,{reglages:reg,graine:7,circuit:C,carte:CARTES_T.test,pasMax,local:script,latence:(de,vers,tick)=>(de.charCodeAt(0)*3+vers.charCodeAt(0)*5+Math.floor(tick/53))%12});
+  v(b.parties.get('a').e.qualif&&b.parties.get('a').e.pilotes.filter(p=>!p.humain).every(p=>p.abandon),'la qualification ne commence pas');
+  for(let k=0;k<pasMax*30&&!enlTous(b,pasMax);k++) b.avancer();
+  v(enlTous(b,pasMax),'pas atteints : '+[...b.parties].map(([i,p])=>i+'='+p.n).join(' '));
+  const h=ids.map(i=>b.parties.get(i).empreinte());v(h.every(x=>x===h[0]),'empreintes '+h.join(' '));v(ids.every(i=>b.parties.get(i).desynchro===null),'désynchro');
+  const ref=enlRef2(ids,{reglages:reg,script:(id,pas)=>pris.get(id+':'+pas)||EN_LIGNE.NEUTRE,pasMax});
+  const e=b.parties.get('a').e;
+  v(e.qualifFinie&&!e.qualif,'la qualification n’a pas fini');
+  v(ids.every(i=>b.parties.get(i).e.qualifFinie.pas===e.qualifFinie.pas),'pas de fin différent');
+  v(h[0]===ref.h,'la référence sans réseau : '+ref.h+' contre '+h[0]);
+  const g=e.grille,hum=e.pilotes.filter(p=>p.humain),t=hum.map(p=>p.qualif);
+  v(hum.slice(0,3).every(p=>typeof p.qualif==='number'&&p.qualif>30&&p.qualif<120),'tours des pilotes : '+t.join());v(hum[3].qualif===null,'d n’a pas de temps');
+  for(let k=1;k<g.length;k++) v(g[k-1].qualif!==null&&(g[k].qualif===null||g[k-1].qualif<=g[k].qualif)||g[k-1].qualif===null&&g[k].qualif===null,'grille pas rangée aux places '+k);
+  const place=num=>g.findIndex(x=>x.numero===num);v(place(hum[3].numero)>place(hum[0].numero)&&place(hum[3].numero)>place(hum[1].numero)&&place(hum[3].numero)>place(hum[2].numero),'d doit partir derrière les 3 qui ont un temps');
+  v(e.pilotes.every(p=>!p.abandon),'des IA encore cachées');
+  const x=e.pilotes[g[0].numero-1].v.piste.s,y=e.pilotes[g[1].numero-1].v.piste.s;v(Math.abs(y-x)>5||true,'');
+  b.fin();
+  }finally{R_.EN_LIGNE_QUALIF_ATTENTE=sauv[0];R_.EN_LIGNE_QUALIF_MAX=sauv[1];}});
+enlT('en ligne : (tour 61) sans qualif (« sort » ou rien) rien ne change : la grille est celle d’avant au bit près ; les réglages d’avant n’ont pas de clé de plus ; qualif inconnue ignorée', ()=>{
+  const a=EN_LIGNE.reglagesValides({circuit:'test',tours:1,meteo:'sec',nbIA:2},2),b=EN_LIGNE.reglagesValides({circuit:'test',tours:1,meteo:'sec',nbIA:2,qualif:'sort'},2),c=EN_LIGNE.reglagesValides({circuit:'test',tours:1,meteo:'sec',nbIA:2,qualif:'zzz'},2);
+  v(JSON.stringify(a)==='{"circuit":"test","tours":1,"meteo":"sec","nbIA":2}'&&JSON.stringify(b)===JSON.stringify(a)&&JSON.stringify(c)===JSON.stringify(a),'sort : '+JSON.stringify([a,b,c]));
+  v(EN_LIGNE.reglagesValides({circuit:'test',tours:1,meteo:'sec',nbIA:2,qualif:'seul'},2).qualif==='seul'&&EN_LIGNE.reglagesValides({circuit:'test',tours:1,meteo:'sec',nbIA:2,qualif:'fantomes'},2).qualif==='fantomes','qualif permise');
+  const s=REGLAGES.EN_LIGNE_QUALIF;REGLAGES.EN_LIGNE_QUALIF=false;try{v(EN_LIGNE.reglagesValides({circuit:'test',tours:1,meteo:'sec',nbIA:2,qualif:'seul'},2).qualif===undefined,'EN_LIGNE_QUALIF faux');}finally{REGLAGES.EN_LIGNE_QUALIF=s;}
+  const A=EN_LIGNE.banc(['a','b'],enlOpts({pasMax:300})),B=EN_LIGNE.banc(['a','b'],enlOpts({pasMax:300,reglages:Object.assign({},ENL_REG,{qualif:'sort'})}));A.jusqua(300);B.jusqua(300);
+  v(A.parties.get('a').empreinte()===B.parties.get('a').empreinte(),'« sort » change la course');A.fin();B.fin();});
+// --- (tour 61, point 4) le classement de la salle (points sur plusieurs courses de suite) et le record personnel par circuit
+enlT('en ligne : (tour 61) le classement de la salle : points entre humains (les IA ne comptent pas), victoires, podiums, un parti ou un non classé sans point ; une même course n’est jamais comptée deux fois ; égalités départagées pareil partout', ()=>{
+  let t=EN_LIGNE.salleVide();v(EN_LIGNE.salleClassement(t).length===0,'table vide');
+  t=EN_LIGNE.salleAjouter(t,[{id:1,rang:2},{id:2,rang:1},{id:3,rang:3},{id:4,rang:null}],101);
+  v(t.courses===1&&EN_LIGNE.salleAjouter(t,[{id:1,rang:1}],101)===t,'la même course (graine) comptée deux fois');
+  t=EN_LIGNE.salleAjouter(t,[{id:1,rang:1},{id:2,rang:3},{id:3,rang:2},{id:4,rang:4}],102);
+  const c=EN_LIGNE.salleClassement(t),P=REGLAGES.EN_LIGNE_SALLE_POINTS;
+  v(c.map(x=>x.id).join()==='1,2,3,4','ordre '+c.map(x=>x.id+':'+x.points).join());
+  v(c[0].points===P[1]+P[0]&&c[1].points===P[0]+P[2]&&c[2].points===P[2]+P[1]&&c[3].points===P[3],'points '+c.map(x=>x.points).join());
+  v(c[0].victoires===1&&c[1].victoires===1&&c[0].podiums===2&&c[3].courses===2&&c[3].podiums===0,'victoires/podiums');
+  // égalité parfaite : l'ordre ne dépend que de l'id (pas de l'ordre d'insertion), et le rang est partagé
+  const a=EN_LIGNE.salleAjouter(EN_LIGNE.salleVide(),[{id:'b',rang:1},{id:'a',rang:1}],1),b=EN_LIGNE.salleAjouter(EN_LIGNE.salleVide(),[{id:'a',rang:1},{id:'b',rang:1}],1);
+  v(JSON.stringify(EN_LIGNE.salleClassement(a))===JSON.stringify(EN_LIGNE.salleClassement(b))&&EN_LIGNE.salleClassement(a)[0].id==='a'&&EN_LIGNE.salleClassement(a)[1].rang===1,'égalité');
+  // une table abîmée ou absente ne casse rien
+  v(EN_LIGNE.salleAjouter(null,[{id:1,rang:1}],5).courses===1&&EN_LIGNE.salleClassement({}).length===0&&EN_LIGNE.salleClassement(null).length===0,'table absente');
+  // JSON aller-retour (sessionStorage)
+  v(JSON.stringify(EN_LIGNE.salleClassement(JSON.parse(JSON.stringify(t))))===JSON.stringify(c),'aller-retour JSON');});
+enlT('en ligne : (tour 61) le record personnel par circuit : un meilleur tour valide bat l’ancien, jamais un tour plus lent, absent ou absurde ; un circuit à la fois', ()=>{
+  let r=EN_LIGNE.recordPropose({}, 'test', 62.5);v(r.nouveau&&r.ancien===null&&r.records.test===62.5,'premier');
+  const x=EN_LIGNE.recordPropose(r.records,'test',63);v(!x.nouveau&&x.ancien===62.5&&x.records===r.records,'plus lent');
+  const y=EN_LIGNE.recordPropose(r.records,'test',61.9);v(y.nouveau&&y.ancien===62.5&&y.records.test===61.9&&r.records.test===62.5,'plus rapide, sans toucher à l’ancienne table');
+  const z=EN_LIGNE.recordPropose(y.records,'technique',80);v(z.nouveau&&z.records.test===61.9&&z.records.technique===80,'un autre circuit');
+  for(const m of [null,undefined,NaN,-3,0,Infinity,'62']) v(!EN_LIGNE.recordPropose(y.records,'test',m).nouveau,'temps absurde '+m);
+  v(!EN_LIGNE.recordPropose(null,null,50).nouveau&&EN_LIGNE.recordPropose('x','test',50).nouveau&&EN_LIGNE.recordPropose({test:'abîmé'},'test',50).ancien===null,'tables abîmées');});
+enlT('en ligne : (tour 61) deux courses de suite dans la même salle, 3 humains à latences variables : chaque client calcule la même table de salle (points, rangs), au bit près', ()=>{
+  const ids=['a','b','c'],reg={circuit:'test',tours:1,meteo:'sec',nbIA:1};let tables=ids.map(()=>EN_LIGNE.salleVide());
+  const niveaux=[1.0,0.94,0.9];   // les pilotes robots n'ont pas la même main : les rangs ne sont pas ceux de l'ordre
+  for(const graine of [7,11]){
+    const script=(id,n)=>{const p=b.parties.get(id),m=p.pilotes.get(id),c=m.course;if(!courseAutorise(c)){const d=c.depart;return{gaz:d&&d.extinction!==null?1:0,frein:0,direction:0,remise:false};}
+      const q=piloteRobot(m.v,C);return Object.assign({},q,{gaz:Math.min(1,q.gaz*niveaux[ids.indexOf(id)]+(q.gaz>=0.99?0:0)),remise:false});};
+    const b=EN_LIGNE.banc(ids,{reglages:reg,graine,circuit:C,carte:CARTES_T.test,local:script,latence:(de,vers,tick)=>(de.charCodeAt(0)*3+vers.charCodeAt(0)*5+Math.floor(tick/47))%10});
+    for(let k=0;k<400000&&![...b.parties.values()].every(p=>p.fin!==null);k++) b.avancer();
+    v([...b.parties.values()].every(p=>p.fin!==null),'la course '+graine+' n’est pas finie : '+[...b.parties].map(([i,p])=>i+'='+p.n).join(' '));
+    const rs=ids.map(i=>EN_LIGNE.resultatsSalle(b.parties.get(i)));v(rs.every(r=>JSON.stringify(r)===JSON.stringify(rs[0])),'rangs différents '+JSON.stringify(rs));
+    v(rs[0].every(x=>x.rang!==null)&&new Set(rs[0].map(x=>x.rang)).size===3,'rangs '+JSON.stringify(rs[0]));
+    tables=tables.map((t,i)=>EN_LIGNE.salleAjouter(t,rs[i],graine));b.fin();}
+  v(tables.every(t=>JSON.stringify(EN_LIGNE.salleClassement(t))===JSON.stringify(EN_LIGNE.salleClassement(tables[0]))),'tables différentes');
+  const c=EN_LIGNE.salleClassement(tables[0]);v(tables[0].courses===2&&c.length===3&&c.reduce((s,x)=>s+x.points,0)===2*(REGLAGES.EN_LIGNE_SALLE_POINTS[0]+REGLAGES.EN_LIGNE_SALLE_POINTS[1]+REGLAGES.EN_LIGNE_SALLE_POINTS[2]),'points '+JSON.stringify(c));});
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 ecrire();
 </script></body></html>

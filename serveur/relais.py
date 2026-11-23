@@ -22,6 +22,7 @@ journal = logging.getLogger('relais')
 # (décision D3 du Chef : une seule source, le cœur ; ces nombres sont ceux de donnees.js) EN_LIGNE_TOURS_MAX, EN_LIGNE_IA_MAX, EN_LIGNE_VOITURES_MAX, EN_LIGNE_METEOS
 TOURS_MAX, IA_MAX, VOITURES_MAX = 30, 8, 16
 METEOS = ('auto', 'sec', 'pluie', 'averse', 'eclaircie')
+QUALIFS = ('sort', 'fantomes', 'seul')   # (tour 61) la qualification en ligne (EN_LIGNE_QUALIFS) : « sort » = la grille tirée au sort, rien n'est écrit
 CONSONNES = 'BCDFGHJKLMNPQRSTVWXZ'   # le code d'une salle : 4 lettres sans voyelle (donc aucun mot) ni Y
 
 class Config:
@@ -87,7 +88,7 @@ def entier(v, lo, hi):
     return isinstance(v, int) and not isinstance(v, bool) and lo <= v <= hi
 
 def reglages_valides(r, humains=2):
-    """Les réglages d'une course (comme le cœur, enligne.js reglagesValides) : circuit, tours, meteo, nbIA, rien d'autre ; au plus VOITURES_MAX voitures
+    """Les réglages d'une course (comme le cœur, enligne.js reglagesValides) : circuit, tours, meteo, nbIA (+ qualif, delai), rien d'autre ; au plus VOITURES_MAX voitures
     (humains + IA)."""
     if not isinstance(r, dict): return None
     c, m = r.get('circuit'), r.get('meteo')
@@ -95,6 +96,9 @@ def reglages_valides(r, humains=2):
     if not (entier(r.get('tours'), 1, TOURS_MAX) and entier(r.get('nbIA'), 0, IA_MAX)): return None
     if humains + r['nbIA'] > VOITURES_MAX: return None
     out = {'circuit': c, 'tours': r['tours'], 'meteo': m, 'nbIA': r['nbIA']}
+    if 'qualif' in r:   # (tour 61) la qualification : « sort » (ou rien) = la grille tirée au sort ; « fantomes » ou « seul » : un tour lancé chacun en même temps
+        if r['qualif'] not in QUALIFS: return None
+        if r['qualif'] != QUALIFS[0]: out['qualif'] = r['qualif']
     if 'delai' in r:   # le délai d'entrée choisi pour la salle (pas) : la limite d'avance s'y adapte
         if not entier(r['delai'], 1, 240): return None
         out['delai'] = r['delai']

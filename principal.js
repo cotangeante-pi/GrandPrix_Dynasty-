@@ -3096,7 +3096,7 @@ function demarrerJeu() {
     // ?ia=N : chaque IA à sa place ; une IA arrivée quitte la piste (elle n'est plus dessinée)
     if (JEU.plateau && !apres) JEU.plateau.pilotes.forEach((p, k) => {
       const m = JEU.modeles[k];
-      m.groupe.visible = (p.arrivee === null && !p.abandon) || (k === JEU.suivie && !p.abandon) || (JEU.deux && !!p.joueur);   // (à deux, les deux joueurs restent visibles après l'arrivée)
+      m.groupe.visible = ((p.arrivee === null && !p.abandon) || (k === JEU.suivie && !p.abandon) || (JEU.deux && !!p.joueur)) && !(JEU.enligne && ENLIGNE_PAGE.cacher(p, k));   // (à deux, les deux joueurs restent visibles après l'arrivée)
       if (m !== JEU.modele) { VOITURE3D.majDegats(m, p.v.degats); VOITURE3D.placer(m, etatAffiche(p.v, alpha), p.v); m.tete.visible = true; }
     });
     const etat = etatAffiche(JEU.joueur, alpha);

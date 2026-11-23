@@ -38,7 +38,9 @@ const RESEAU = (function () {
     if (typeof EN_LIGNE === 'undefined' || !EN_LIGNE.reglagesValides) return typeof g.circuit === 'string' && g.circuit && typeof g.meteo === 'string' && Number.isInteger(g.tours) && g.tours >= 1 && Number.isInteger(g.nbIA) && g.nbIA >= 0
       ? { circuit: g.circuit, tours: g.tours, meteo: g.meteo, nbIA: g.nbIA } : null;
     const c = EN_LIGNE.reglagesValides(g, nbJoueurs);
-    return c.circuit === g.circuit && c.tours === g.tours && c.meteo === g.meteo && c.nbIA === g.nbIA ? c : null;
+    // (tour 61) « qualif » : absent ou « sort » = la grille tirée au sort (rien n'est écrit) ; un autre choix permis est gardé ; un choix inconnu est refusé
+    const qualifOk = g.qualif === undefined || (typeof g.qualif === 'string' && R.EN_LIGNE_QUALIFS.includes(g.qualif) && c.qualif === (g.qualif === R.EN_LIGNE_QUALIFS[0] ? undefined : g.qualif));
+    return c.circuit === g.circuit && c.tours === g.tours && c.meteo === g.meteo && c.nbIA === g.nbIA && qualifOk ? c : null;
   }
   // D4 : la version = EN_LIGNE_VERSION + l'empreinte des réglages de la course (le cœur) : deux jeux qui ne calculent pas la même course ne jouent pas ensemble
   function versionLocale() {

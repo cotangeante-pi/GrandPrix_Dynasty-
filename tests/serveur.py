@@ -106,6 +106,14 @@ async def tests_principaux(port, rel):
     c3 = await ouvre(port, 'jaune', code=sa['code']); await c3.jusqua('salle'); r = await c3.jusqua('reglages')
     t('réglages : gardés et envoyés à qui rejoint ensuite', r == {'t': 'reglages', 'reglages': rg}, r)
     await c3.env(t='quitter'); await h.jusqua('parti'); await b.jusqua('parti'); await h.silence(); await b.silence()
+    # (tour 61) la qualification en ligne : « qualif » (fantomes, seul) est gardé et relayé ; « sort » (la grille d'avant) n'est pas écrit ; un autre mot est refusé ; puis les réglages d'avant sont remis
+    rq = dict(rg, qualif='fantomes')
+    await h.env(t='reglages', reglages=rq)
+    t('réglages : la qualification (fantomes) est relayée à tous', await h.jusqua('reglages') == {'t': 'reglages', 'reglages': rq} and await b.jusqua('reglages') == {'t': 'reglages', 'reglages': rq})
+    await h.env(t='reglages', reglages=dict(rg, qualif='sort'))
+    t('réglages : « sort » n’est pas écrit (les réglages d’avant, au caractère près)', await h.jusqua('reglages') == {'t': 'reglages', 'reglages': rg} and await b.jusqua('reglages') == {'t': 'reglages', 'reglages': rg})
+    await h.env(t='reglages', reglages=dict(rg, qualif='zzz')); r = await h.jusqua('erreur')
+    t('réglages : une qualification inconnue est refusée', r['raison'] == 'reglages' and await b.silence() is None, r)
     # --- prêt, lancer ---
     await b.env(t='pret', pret=True)
     jh = await h.jusqua('joueurs'); await b.jusqua('joueurs')

@@ -121,7 +121,7 @@ const ENLIGNE_ECRAN = (function () {
       if (lui) { hote = !!lui.hote; pretMoi = !!lui.pret; }
       majSalle();
     } else if (m.t === 'reglages') {
-      if ((!hote || repris) && m.reglages && typeof m.reglages === 'object') { for (const x of regles()) if (m.reglages[x.cle] !== undefined && (x.cle === 'nbIA' ? Number.isInteger(m.reglages[x.cle]) : x.valeurs.includes(m.reglages[x.cle]))) reglages[x.cle] = m.reglages[x.cle]; majSalle(); }
+      if ((!hote || repris) && m.reglages && typeof m.reglages === 'object') { const mr = Object.assign({ qualif: R.EN_LIGNE_QUALIFS[0] }, m.reglages); for (const x of regles()) if (mr[x.cle] !== undefined && (x.cle === 'nbIA' ? Number.isInteger(mr[x.cle]) : x.valeurs.includes(mr[x.cle]))) reglages[x.cle] = mr[x.cle]; majSalle(); }   // (tour 61) « qualif » absent = « sort » (le cœur ne l'écrit pas)
     } else if (m.t === 'parti') {
       const j = joueurs.find(x => x.id === m.id);
       if (j) dirNote(texte('enligneParti').replace('{nom}', nomAffiche(j.nom)));
@@ -166,7 +166,7 @@ const ENLIGNE_ECRAN = (function () {
     { cle: 'tours', libelle: 'enligneTours', valeurs: R.EN_LIGNE_TOURS_CHOIX, nom: v => String(v) },
     { cle: 'meteo', libelle: 'enligneMeteo', valeurs: R.EN_LIGNE_METEOS, nom: v => texte('enligneMeteo_' + v) },
     { cle: 'nbIA', libelle: 'enligneIA', valeurs: iaPermis(), nom: v => String(v) },
-  ];
+  ].concat(R.EN_LIGNE_QUALIF && R.EN_LIGNE_QUALIFS.length > 1 ? [{ cle: 'qualif', libelle: 'enligneQualif', valeurs: R.EN_LIGNE_QUALIFS, nom: v => texte('enligneQualif_' + v) }] : []);   // (tour 61) la grille : tirée au sort, ou une qualification
   function valeurReglage(r) {   // la valeur courante, ramenée dans la liste permise (moins de places = moins d'IA)
     const l = r.valeurs, v = reglages[r.cle];
     if (l.includes(v)) return v;
