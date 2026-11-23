@@ -13,7 +13,7 @@
 const RESEAU = (function () {
   const R = REGLAGES;
   const CONSONNES = 'BCDFGHJKLMNPQRSTVWXZ';      // pas de voyelle (ni Y) : le code ne forme jamais un mot
-  const TYPES_CLIENT = ['creer', 'rejoindre', 'pret', 'reglages', 'charge', 'lancer', 'retour', 'cmd', 'controle', 'emote', 'quitter', 'ping'];
+  const TYPES_CLIENT = ['creer', 'rejoindre', 'pret', 'reglages', 'charge', 'lancer', 'retour', 'cmd', 'controle', 'emote', 'reprise', 'etat', 'quitter', 'ping'];
 
   // ---------------------------------------------------------------- les noms (jamais de texte libre devant des enfants)
   // D1 : le nom qui voyage est neutre de langue : l'id d'une couleur de EN_LIGNE_COULEURS (« rouge »), suivi de « -2 » à « -8 » quand la couleur est déjà
@@ -79,6 +79,8 @@ const RESEAU = (function () {
     function liste(salle) { return salle.joueurs.map(j => { const x = { id: j.id, nom: j.nom, pret: j.pret, hote: j === salle.hote }; if (j.circuit !== undefined) x.circuit = j.circuit; if (j.absent) x.absent = true; return x; }); }
     function annoncer(salle) { diffuser(salle, { t: 'joueurs', liste: liste(salle) }); }
     const nomValide = nomAutorise;
+    // (tour 61) une pièce de l'instantané de l'hôte (la reprise après une désynchro) : n, i < k, h entier de 32 bits, d un texte de EN_LIGNE_ETAT_PIECE + 200 caractères au plus
+    const etatValide = m => entier(m.n, 0, 1e9) && entier(m.k, 1, R.EN_LIGNE_ETAT_PIECES_MAX) && entier(m.i, 0, R.EN_LIGNE_ETAT_PIECES_MAX - 1) && m.i < m.k && entier(m.h, 0, 4294967295) && typeof m.d === 'string' && m.d.length <= R.EN_LIGNE_ETAT_PIECE + 200;
 
     function retirer(conn) {
       const salle = conn.salle;
@@ -129,7 +131,7 @@ const RESEAU = (function () {
       if (!m || typeof m !== 'object' || typeof m.t !== 'string' || !TYPES_CLIENT.includes(m.t)) { relais.rejets++; return; }
       const salle = conn.salle;
       switch (m.t) {
-        case 'ping': env(conn, { t: 'pong', h: m.h }); return;
+        case 'ping': if (typeof m.l === 'number' && m.l >= 0 && m.l < 1e5) conn.rtt = m.l; env(conn, { t: 'pong', h: m.h }); return;   // (tour 61) la latence que le client dit avoir : un relais dans un onglet n'a rien de mieux ; le délai du départ en vient
         case 'creer':
           if (salle) return;
           if (!nomValide(m.nom)) return env(conn, { t: 'refus', raison: 'nom' });
@@ -183,6 +185,9 @@ const RESEAU = (function () {
           salle.commencee = true;
           const graine = Math.floor(hasard() * 4294967296) >>> 0;
           for (const j of salle.joueurs) j.dernierN = undefined;
+          // (tour 61) le délai d'entrée du départ, le même pour tous : le plus petit qui tient pour les latences annoncées par les clients (EN_LIGNE.delaiPour) ; aucune latence annoncée : rien (le délai de base)
+          const rtts = salle.joueurs.filter(j => !j.absent && typeof j.rtt === 'number').map(j => j.rtt);
+          if (rtts.length && typeof EN_LIGNE !== 'undefined') { const dl = EN_LIGNE.delaiPour(rtts); if (dl > R.EN_LIGNE_DELAI) g.delai = dl; }
           salle.depart = { t: 'depart', reglages: g, graine, ordre: salle.joueurs.map(j => j.id) };
           diffuser(salle, salle.depart);
           return;
@@ -205,6 +210,12 @@ const RESEAU = (function () {
         case 'emote':
           if (!entier(m.i, 0, R.EN_LIGNE_EMOTES.length - 1)) return;
           diffuser(salle, { t: 'emote', de: conn.id, i: m.i }, conn); return;
+        case 'reprise':      // (tour 61) un invité demande à l'hôte l'instantané de sa course (la reprise après une désynchro, enligne.js)
+          if (!salle.commencee || !entier(m.n, 0, 1e9)) { relais.rejets++; return; }
+          diffuser(salle, { t: 'reprise', de: conn.id, n: m.n }, conn); return;
+        case 'etat':         // (tour 61) l'instantané de l'hôte, par pièces
+          if (!salle.commencee || conn !== salle.hote || !etatValide(m)) { relais.rejets++; return; }
+          diffuser(salle, { t: 'etat', de: conn.id, n: m.n, i: m.i, k: m.k, h: m.h, d: m.d }, conn); return;
         default:
       }
     }
@@ -444,7 +455,7 @@ const RESEAU = (function () {
             emettre('latence', { ms: c.latence });
           }
           emettre('pong', m); break;
-        case 'cmd': case 'controle': case 'emote': case 'parti': emettre(m.t, m); break;
+        case 'cmd': case 'controle': case 'emote': case 'parti': case 'reprise': case 'etat': emettre(m.t, m); break;
         default: c.rejets++;
       }
     }
@@ -545,6 +556,8 @@ const RESEAU = (function () {
         case 'cmd': return c.cmd(m.n, m.c);
         case 'controle': return c.controle(m.n, m.h);
         case 'emote': return c.emote(m.i);
+        case 'reprise': return c.demanderReprise(m.n);
+        case 'etat': return c.envoyerEtat(m);
         case 'quitter': return c.quitter();
         case 'ping': return c.ping();
         default: return erreur('type');
@@ -556,6 +569,13 @@ const RESEAU = (function () {
       return envoyer({ t: 'cmd', n, c: cmds });
     };
     c.controle = function (n, h) { return c.depart && Number.isInteger(n) && n >= 0 && empreinteValide(h) ? envoyer({ t: 'controle', n, h }) : erreur('controle'); };
+    // (tour 61) la reprise après une désynchro (enligne.js) : un invité demande l'instantané ; l'hôte l'envoie par pièces
+    c.demanderReprise = function (n) { return c.depart && Number.isInteger(n) && n >= 0 ? envoyer({ t: 'reprise', n }) : erreur('reprise'); };
+    c.envoyerEtat = function (m) {
+      const ok = c.depart && Number.isInteger(m.n) && m.n >= 0 && Number.isInteger(m.k) && m.k >= 1 && m.k <= R.EN_LIGNE_ETAT_PIECES_MAX && Number.isInteger(m.i) && m.i >= 0 && m.i < m.k
+        && Number.isInteger(m.h) && m.h >= 0 && m.h <= 4294967295 && typeof m.d === 'string' && m.d.length <= R.EN_LIGNE_ETAT_PIECE + 200;
+      return ok ? envoyer({ t: 'etat', n: m.n, i: m.i, k: m.k, h: m.h, d: m.d }) : erreur('etat');
+    };
     c.emote = function (i) { return c.code && Number.isInteger(i) && i >= 0 && i < R.EN_LIGNE_EMOTES.length ? envoyer({ t: 'emote', i }) : erreur('emote'); };
     c.quitter = function () { if (!c.code) return false; const ok = envoyer({ t: 'quitter' }); oublierSalle(); return ok; };
     c.ping = function () { return c.code ? envoyer({ t: 'ping', h: horloge.maintenant(), l: c.latence === null ? undefined : Math.round(c.latence) }) : false; };

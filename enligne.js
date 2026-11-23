@@ -286,6 +286,177 @@ const EN_LIGNE = (function () {
     if (p.v.pneus) { pasPneus(p.v.pneus, p.v, dt, REGLAGES_PNEUS.GESTION_MOYENNE); p.v.adherence = facteurAdherence(p.v.pneus.usure); }
   }
 
+  // --- le délai d'entrée choisi au départ (tour 61) : le plus petit qui tient pour tous. rtts : les temps d'aller-retour (ms) mesurés de chaque joueur
+  // avec le relais ; une commande de A passe par le relais avant d'arriver chez B (la moitié de l'aller-retour de chacun), donc le trajet à tenir est la
+  // moyenne des deux plus lents ; on le compte en pas de physique, plus la marge, entre EN_LIGNE_DELAI et EN_LIGNE_DELAI_MAX. Aucune mesure : EN_LIGNE_DELAI.
+  // C'est la même règle que serveur/relais.py (_delai) ; le résultat voyage dans le message de départ (reglages.delai) : le même chez tous les clients.
+  function delaiPour(rtts) {
+    const l = (Array.isArray(rtts) ? rtts : []).filter(x => typeof x === 'number' && x >= 0 && x < Infinity).sort((a, b) => b - a);
+    if (!l.length) return R.EN_LIGNE_DELAI;
+    const trajet = l.length > 1 ? (l[0] + l[1]) / 2 : l[0];
+    return Math.max(R.EN_LIGNE_DELAI, Math.min(R.EN_LIGNE_DELAI_MAX, Math.ceil(trajet / (R.PAS_PHYSIQUE * 1000)) + R.EN_LIGNE_DELAI_MARGE));
+  }
+
+  // --- l'AFFICHAGE d'une course en ligne (tour 61) : rien de ce qui suit n'entre dans la simulation (jamais d'écriture dans la course)
+  // une copie profonde d'une voiture (nombres, tableaux, objets simples) : la prédiction joue sur la copie
+  function copier(x) {
+    if (x === null || typeof x !== 'object') return x;
+    if (ArrayBuffer.isView(x)) return x.slice();
+    if (Array.isArray(x)) return x.map(copier);
+    if (x instanceof Map || x instanceof Set) return x;   // (pas d'écriture : la copie les partage)
+    const o = {};
+    for (const k of Object.keys(x)) o[k] = copier(x[k]);
+    return o;
+  }
+
+  // le lisseur : garde la position de chaque voiture après chacun des derniers pas (noter), et donne une position à un instant d'affichage `d` (en pas,
+  // fractionnaire) qui suit l'instant visé en douceur : après une attente, une rafale de pas ne fait pas sauter les voitures, l'affichage rattrape au plus
+  // à double vitesse ; il ne recule jamais ni ne dépasse le dernier pas connu ; trop en retard (EN_LIGNE_LISSAGE_MAX pas) : il saute.
+  function creerLisseur(taille) {
+    const T = Math.max(8, Math.floor(taille || 64));
+    const anneau = new Array(T).fill(null);
+    let dernier = -1, d = null;
+    const lisseur = {
+      get dernier() { return dernier; },
+      get instant() { return d; },
+      // les positions [{x, z, cap}…] de toutes les voitures après s pas (appelé à chaque pas, dans l'ordre)
+      noter(s, positions) {
+        if (s <= dernier) { lisseur.vider(); }
+        anneau[s % T] = { s, p: positions.map(q => ({ x: q.x, z: q.z, cap: q.cap })) };
+        dernier = s;
+      },
+      vider() { anneau.fill(null); dernier = -1; d = null; },
+      // une image : dtPas = le temps de l'image en pas de physique ; alpha = la fraction du pas suivant déjà écoulée (boucle.js)
+      avancer(dtPas, alpha, direct) {
+        if (dernier < 0) return null;
+        const a = alpha > 0 ? (alpha < 1 ? alpha : 1) : 0;
+        const cible = Math.min(dernier, dernier - 1 + a);   // ce que l'affichage d'avant aurait montré
+        if (d === null || direct || cible - d > R.EN_LIGNE_LISSAGE_MAX) d = Math.max(0, cible);   // direct : sans lissage (EN_LIGNE_LISSAGE faux)
+        else if (cible > d) {
+          const ecart = cible - d;
+          d = Math.min(dernier, d + Math.max(0, dtPas) * (1 + Math.min(1, ecart * 0.25)), Math.max(cible, d));   // jusqu'à ×2, sans dépasser la cible
+        }
+        return d;
+      },
+      // la voiture k à l'instant d : entre deux pas notés (le plus ancien gardé si l'instant est plus vieux que la mémoire)
+      lire(k) {
+        if (d === null || dernier < 0) return null;
+        let i = Math.floor(d); const f = d - i;
+        const a = anneau[i % T], b = anneau[(i + 1) % T];
+        const A = a && a.s === i ? a.p[k] : null, B = b && b.s === i + 1 ? b.p[k] : null;
+        if (A && B) {
+          let dc = B.cap - A.cap;
+          dc = Math.atan2(Math.sin(dc), Math.cos(dc));
+          return { x: A.x + (B.x - A.x) * f, z: A.z + (B.z - A.z) * f, cap: A.cap + dc * f };
+        }
+        const X = A || B || (anneau[dernier % T] && anneau[dernier % T].p[k]);
+        return X ? { x: X.x, z: X.z, cap: X.cap } : null;
+      },
+    };
+    return lisseur;
+  }
+
+  // --- l'instantané (tour 61) : l'état ENTIER de la course (les voitures, les IA avec leurs choix en cours, la météo, les feux…), sérialisé, pour qu'un client
+  // qui ne voit plus la même course (désynchro) reparte de celui de l'hôte, au bit près (les nombres JSON se relisent exactement).
+  // Ce qui est immuable (le circuit et la carte des IA, très gros : 800 ko) n'est pas copié : un renvoi par chemin (« $x ») vers l'objet que le client a déjà.
+  // L'arbre : nombre, texte, booléen, null tels quels ; un tableau = un tableau ; un objet = un objet (clés triées) ; les cas spéciaux ont une clé en « $ » :
+  // $n (NaN, ±infini, -0), $u (undefined), $r (un objet déjà vu : son numéro, dans l'ordre où l'arbre est parcouru), $x (un renvoi vers le circuit ou la carte),
+  // $m (Map : [[clé, valeur]…] dans l'ordre), $s (Set), $f (tableau typé). L'application se fait SUR PLACE : les objets du client (les pilotes de la partie,
+  // les voitures, leurs tableaux) gardent leur identité, seul leur contenu est réécrit.
+  const instantane = (function () {
+    const TYPES = { Float64Array, Float32Array, Int32Array, Uint32Array, Int16Array, Uint16Array, Int8Array, Uint8Array };
+    const special = x => ({ $n: x !== x ? 'N' : x === Infinity ? 'I' : x === -Infinity ? '-I' : 'Z' });
+    const nombre = x => (x === x && x !== Infinity && x !== -Infinity && !(x === 0 && 1 / x < 0)) ? x : special(x);
+    const lireNombre = z => z === 'N' ? NaN : z === 'I' ? Infinity : z === '-I' ? -Infinity : -0;
+    const simple = o => !Array.isArray(o) && !(o instanceof Map) && !(o instanceof Set) && !ArrayBuffer.isView(o);
+    // objet immuable → son chemin (« c/…/clé » depuis le circuit, « k/… » depuis la carte) ; les clés triées : le même ordre chez tous
+    function externes(e) {
+      const m = new Map();
+      const marcher = (o, chemin) => {
+        if (o === null || typeof o !== 'object' || m.has(o)) return;
+        m.set(o, chemin);
+        if (o instanceof Map || o instanceof Set || ArrayBuffer.isView(o)) return;
+        for (const k of Object.keys(o).sort()) if (k.indexOf('/') < 0) marcher(o[k], chemin + '/' + k);
+      };
+      marcher(e.circuit, 'c'); marcher(e.carte, 'k');
+      return m;
+    }
+    function resoudre(e, chemin) {
+      const seg = String(chemin).split('/');
+      let o = seg[0] === 'c' ? e.circuit : seg[0] === 'k' ? e.carte : undefined;
+      for (let i = 1; i < seg.length && o !== undefined && o !== null; i++) o = o[seg[i]];
+      if (o === undefined || o === null || typeof o !== 'object') throw new Error('instantané : renvoi introuvable ' + chemin);
+      return o;
+    }
+    // l'ordre où l'on parcourt les clés d'un objet (le même à l'encodage et au décodage) : les clés triées, les Map et les Set EN DERNIER : les objets qu'ils
+    // renvoient sont alors déjà vus (renvoi « $r ») et gardent leur identité chez le client au lieu d'être refaits
+    const contenant = x => x instanceof Map || x instanceof Set;
+    const contenantArbre = d => d !== null && typeof d === 'object' && (d.$m !== undefined || d.$s !== undefined);
+    const cles = (o, est) => Object.keys(o).sort().sort((a, b) => (est(o[a]) ? 1 : 0) - (est(o[b]) ? 1 : 0));   // (le tri est stable)
+    // l'arbre de l'état de la course e (ext : externes(e))
+    function encoder(e, ext) {
+      const ids = new Map();
+      function enc(x) {
+        const t = typeof x;
+        if (t === 'number') return nombre(x);
+        if (t === 'string' || t === 'boolean' || x === null) return x;
+        if (t !== 'object') return { $u: 1 };
+        const c = ext.get(x); if (c !== undefined) return { $x: c };
+        const r = ids.get(x); if (r !== undefined) return { $r: r };
+        ids.set(x, ids.size);
+        if (Array.isArray(x)) { const a = new Array(x.length); for (let i = 0; i < x.length; i++) a[i] = enc(x[i]); return a; }
+        if (x instanceof Map) { const m = []; for (const [k, v] of x) { const ek = enc(k); m.push([ek, enc(v)]); } return { $m: m }; }
+        if (x instanceof Set) { const m = []; for (const k of x) m.push(enc(k)); return { $s: m }; }
+        if (ArrayBuffer.isView(x)) return { $f: Array.from(x, nombre), t: x.constructor.name };
+        const o = {};
+        for (const k of cles(x, contenant)) {
+          const y = x[k];
+          if (y === undefined || typeof y === 'function' || typeof y === 'symbol') continue;
+          if (k.charCodeAt(0) === 36) throw new Error('instantané : clé en $ (' + k + ')');
+          o[k] = enc(y);
+        }
+        return o;
+      }
+      return enc(e);
+    }
+    // réécrit e (sur place) d'après l'arbre ; renvoie e. Lève une erreur si l'arbre n'est pas le bon : e est alors à moitié écrit (l'appelant abandonne)
+    function appliquer(e, arbre, ext) {
+      const tab = [];
+      function dec(ex, d) {
+        if (d === null || typeof d !== 'object') return d;
+        if (Array.isArray(d)) {
+          const a = Array.isArray(ex) ? ex : []; tab.push(a);
+          a.length = d.length;
+          for (let i = 0; i < d.length; i++) a[i] = dec(a[i], d[i]);
+          return a;
+        }
+        if (d.$r !== undefined) { const o = tab[d.$r]; if (o === undefined) throw new Error('instantané : renvoi inconnu'); return o; }
+        if (d.$x !== undefined) return resoudre(e, d.$x);
+        if (d.$u !== undefined) return undefined;
+        if (d.$n !== undefined) return lireNombre(d.$n);
+        if (d.$m !== undefined) {
+          const m = ex instanceof Map ? ex : new Map(), avant = new Map(m); tab.push(m); m.clear();
+          for (const [k, v] of d.$m) { const kk = dec(undefined, k); m.set(kk, dec(avant.get(kk), v)); }
+          return m;
+        }
+        if (d.$s !== undefined) { const m = ex instanceof Set ? ex : new Set(); tab.push(m); m.clear(); for (const k of d.$s) m.add(dec(undefined, k)); return m; }
+        if (d.$f !== undefined) {
+          const T = TYPES[d.t]; if (!T) throw new Error('instantané : type ' + d.t);
+          const a = ex instanceof T && ex.length === d.$f.length ? ex : new T(d.$f.length); tab.push(a);
+          for (let i = 0; i < d.$f.length; i++) { const x = d.$f[i]; a[i] = typeof x === 'number' ? x : lireNombre(x && x.$n); }
+          return a;
+        }
+        const o = ex !== null && typeof ex === 'object' && simple(ex) ? ex : {}; tab.push(o);
+        for (const k of cles(d, contenantArbre)) o[k] = dec(o[k], d[k]);
+        for (const k of Object.keys(o)) if (!Object.prototype.hasOwnProperty.call(d, k)) delete o[k];
+        return o;
+      }
+      dec(e, arbre);
+      return e;
+    }
+    return { externes, encoder, appliquer };
+  })();
+
   // --- la partie
   function creerPartie(o) {
     const ordre = o.ordre.slice();
@@ -312,6 +483,19 @@ const EN_LIGNE = (function () {
     let finPas = null;
     let attente = null;
     let pasAttendus = 0;                                       // de suite, sans pouvoir avancer (pour le délai adaptatif, le « le joueur ne répond plus »)
+    // (tour 61) la reprise après une désynchro : l'hôte (o.hote) fait foi ; un invité qui ne voit plus la course de l'hôte lui demande un instantané de l'état
+    // et repart de lui ; il ne joue plus pendant qu'il l'attend (ses commandes déjà prises restent valables : les autres n'attendent que celles qui manquent)
+    const hote = o.hote;
+    const reprisePermise = (o.reprise !== undefined ? !!o.reprise : !!R.EN_LIGNE_REPRISE) && hote !== undefined && codes.has(hote);
+    let incoherent = null;     // la désynchro avec l'hôte en cours de réparation : { n, de, miens, siens }
+    let attenteEtat = false;   // j'ai demandé l'instantané : je ne joue plus en l'attendant
+    let reprises = 0;          // instantanés appliqués
+    let restaurations = 0;
+    let envoisEtat = 0;        // (l'hôte) instantanés envoyés
+    let assemblage = null;     // (un invité) l'instantané qui arrive par pièces : { n, h, k, pieces, vues }
+    let prochain = delai;      // le prochain pas dont ma commande doit être prise (n + délai quand tout va bien ; plus loin après un retour en arrière)
+    let controleEnvoye = -1;   // le dernier pas dont l'empreinte est partie (jamais deux fois, jamais en arrière : le relais l'exige)
+    let ext = null;            // les objets immuables de la course (circuit, carte) : leurs chemins, pour l'instantané
 
     const partie = {
       e, pilotes, moi: pilotes.get(moi), idMoi: moi, ordre, delai, reglages, graine: o.graine,
@@ -321,6 +505,9 @@ const EN_LIGNE = (function () {
       get desynchro() { return desynchro; },
       get fin() { return finPas; },
       get pasAttendus() { return pasAttendus; },
+      get reprise() { return attenteEtat && incoherent ? { n: incoherent.n, de: incoherent.de } : null; },   // je répare : { n, de } ; sinon null
+      get reprises() { return reprises; },
+      get restaurations() { return restaurations; },   // le nombre d'instantanés appliqués (l'affichage repart de zéro quand il change)
       sortis,
     };
 
@@ -340,15 +527,33 @@ const EN_LIGNE = (function () {
     }
 
     function comparer(pas) {
-      if (desynchro || !miens.has(pas) || !siens.has(pas)) return;
+      if (desynchro || incoherent || !miens.has(pas) || !siens.has(pas)) return;
       for (const [de, h] of siens.get(pas)) {
-        if (h !== miens.get(pas)) { desynchro = { n: pas, de, miens: miens.get(pas), siens: h }; return; }
+        if (h === miens.get(pas)) continue;
+        const d = { n: pas, de, miens: miens.get(pas), siens: h };
+        if (!reprisePermise) { desynchro = d; return; }
+        if (de !== hote || moi === hote) continue;   // l'hôte fait foi : un invité qui diffère d'un autre invité lui laisse le soin de demander ; l'hôte ne se répare pas
+        if (reprises >= R.EN_LIGNE_REPRISE_MAX) { desynchro = d; return; }
+        incoherent = d; attenteEtat = true;
+        envoyer({ t: 'reprise', n: pas });
+        return;
+      }
+    }
+
+    // mes commandes jusqu'au pas k compris : celles qui ne sont pas encore prises le sont maintenant (une seule en temps normal), et partent par paquets
+    function prendreMesCommandes(k) {
+      while (prochain <= k) {
+        const code = coder(partie.local);
+        codes.get(moi).set(prochain, code);
+        paquet.c.push(code);
+        prochain++;
+        if (paquet.c.length >= taillePaquet) vider();
       }
     }
 
     // un pas, si les commandes de tous sont là ; sinon false (et attente dit qui)
     function unPas() {
-      if (desynchro || n >= pasMax || finPas !== null) return false;
+      if (desynchro || attenteEtat || n >= pasMax || finPas !== null) return false;
       const manque = [];
       for (const id of ordre) if (codeDe(id, n) === undefined) manque.push(id);
       if (manque.length) { attente = manque; pasAttendus++; return false; }
@@ -360,11 +565,8 @@ const EN_LIGNE = (function () {
       const cmds = new Map();
       for (const id of ordre) cmds.set(pilotes.get(id), decoder(codeDe(id, n)));
       pasCourseIA(e, PAS, (p, dt) => conduire(e, p, cmds.get(p), dt));
-      // ma commande, prise maintenant, agira au pas n + délai
-      const code = coder(partie.local);
-      codes.get(moi).set(n + delai, code);
-      paquet.c.push(code);
-      if (paquet.c.length >= taillePaquet) vider();
+      // ma commande, prise maintenant, agira au pas n + délai (après une reprise qui m'a fait avancer, toutes celles qui manquent jusque-là)
+      prendreMesCommandes(n + delai);
       n++;
       // (relecture T11, 2e passe) la fin de la course est décidée à un pas précis : si chaque page décidait « podium » à son image, l'une s'arrêterait
       // quelques pas avant l'autre (jusqu'à 12 pas par image, autant que le délai) et la plus lente attendrait pour toujours les commandes de l'autre.
@@ -379,7 +581,7 @@ const EN_LIGNE = (function () {
       if (n % periode === 0) {
         const h = empreinte(e);
         miens.set(n, h);
-        envoyer({ t: 'controle', n, h: String(h) });   // (décision D5 : h est une chaîne ; le relais refuse un nombre, et coupe qui en envoie trop)
+        if (n > controleEnvoye) { controleEnvoye = n; envoyer({ t: 'controle', n, h: String(h) }); }   // (décision D5 : h est une chaîne ; le relais refuse un nombre, et coupe qui en envoie trop) ; (tour 61) jamais deux fois le même pas : après un retour en arrière, on rejoue sans renvoyer
         comparer(n);
         for (const k of [...miens.keys()]) if (k <= n - 10 * periode) { miens.delete(k); siens.delete(k); }
       }
@@ -416,7 +618,83 @@ const EN_LIGNE = (function () {
         comparer(msg.n);
       } else if (msg.t === 'parti') {
         partie.quitter(msg.id);
+      } else if (msg.t === 'reprise') {
+        // (tour 61, l'hôte) un invité ne voit plus ma course : je lui envoie l'état de la mienne, là où elle en est
+        if (reprisePermise && moi === hote && msg.de !== moi && codes.has(msg.de) && Number.isInteger(msg.n) && msg.n >= 0) partie.envoyerEtat();
+      } else if (msg.t === 'etat') {
+        // (tour 61, un invité qui a demandé la reprise) une pièce de l'instantané de l'hôte, et seulement de lui
+        if (reprisePermise && attenteEtat && moi !== hote && msg.de === hote) recevoirPiece(msg);
       }
+    };
+
+    // --- la reprise (tour 61)
+    // l'hôte : l'état de la course maintenant, découpé en pièces (EN_LIGNE_ETAT_PIECE caractères : un message ne dépasse jamais EN_LIGNE_TAILLE_MAX, même si chaque
+    // caractère était échappé), avec les commandes que je connais pour les pas à venir (celles des autres arrivent de leur côté ; ce sont des faits, pas des états).
+    // → le nombre de pièces envoyées (0 : rien envoyé : course finie, trop gros, trop de reprises déjà)
+    partie.etatTexte = function () {
+      if (!ext) ext = instantane.externes(e);
+      const c = {};
+      for (const id of ordre) c[String(id)] = [...codes.get(id)].filter(([k]) => k >= n).sort((a, b) => a[0] - b[0]);
+      return JSON.stringify({ n, c, e: instantane.encoder(e, ext) });
+    };
+    partie.envoyerEtat = function () {
+      if (finPas !== null || desynchro || envoisEtat >= 3 * R.EN_LIGNE_REPRISE_MAX * Math.max(1, ordre.length - 1)) return 0;
+      let texte;
+      try { texte = partie.etatTexte(); } catch (err) { return 0; }
+      const P = Math.max(100, Math.floor(R.EN_LIGNE_ETAT_PIECE)), k = Math.ceil(texte.length / P);
+      if (texte.length > R.EN_LIGNE_ETAT_MAX || k > R.EN_LIGNE_ETAT_PIECES_MAX) return 0;
+      const h = melangerTexte(2166136261, texte) >>> 0;
+      envoisEtat++;
+      for (let i = 0; i < k; i++) envoyer({ t: 'etat', n, i, k, h, d: texte.slice(i * P, (i + 1) * P) });
+      vider();
+      return k;
+    };
+    // l'invité : les pièces arrivent dans le désordre permis ; l'instantané n'est appliqué que complet et d'empreinte juste
+    function recevoirPiece(m) {
+      const P = Math.max(100, Math.floor(R.EN_LIGNE_ETAT_PIECE));
+      if (!Number.isInteger(m.n) || m.n < 0 || !Number.isInteger(m.k) || m.k < 1 || m.k > R.EN_LIGNE_ETAT_PIECES_MAX || !Number.isInteger(m.i) || m.i < 0 || m.i >= m.k
+        || !Number.isInteger(m.h) || m.h < 0 || m.h > 4294967295 || typeof m.d !== 'string' || m.d.length > P) return;
+      if (!assemblage || assemblage.n !== m.n || assemblage.h !== m.h || assemblage.k !== m.k) assemblage = { n: m.n, h: m.h, k: m.k, pieces: new Array(m.k), vues: 0 };
+      if (assemblage.pieces[m.i] !== undefined) return;
+      assemblage.pieces[m.i] = m.d; assemblage.vues++;
+      if (assemblage.vues < assemblage.k) return;
+      const texte = assemblage.pieces.join(''), h = assemblage.h;
+      assemblage = null;
+      if (texte.length > R.EN_LIGNE_ETAT_MAX || (melangerTexte(2166136261, texte) >>> 0) !== h) return;   // abîmé : on attend un autre (ou l'abandon de la page)
+      appliquerEtat(texte);
+    }
+    function appliquerEtat(texte) {
+      let obj;
+      try { obj = JSON.parse(texte); } catch (err) { return; }
+      if (!obj || typeof obj !== 'object' || !Number.isInteger(obj.n) || obj.n < 0 || obj.n > 1e9 || !obj.e || typeof obj.e !== 'object') return;
+      try {
+        if (!ext) ext = instantane.externes(e);
+        instantane.appliquer(e, obj.e, ext);
+      } catch (err) {
+        desynchro = incoherent || { n: obj.n, de: hote, miens: 0, siens: 0 };   // l'état est à moitié écrit : la reprise a échoué pour de bon
+        attenteEtat = false; incoherent = null;
+        return;
+      }
+      n = obj.n;
+      // les commandes : celles de l'hôte pour les pas à venir (des faits : on garde les nôtres si on les a déjà), le ménage des anciennes
+      for (const id of ordre) {
+        const m = codes.get(id), liste = obj.c && obj.c[String(id)];
+        if (Array.isArray(liste)) for (const kx of liste) if (Array.isArray(kx) && Number.isInteger(kx[0]) && kx[0] >= n && kx[0] >= delai && kx[0] <= n + 2 * delai + 8 && codeValide(kx[1]) && !m.has(kx[0])) m.set(kx[0], kx[1]);
+        for (const k of [...m.keys()]) if (k < n - 1) m.delete(k);
+      }
+      prendreMesCommandes(n + delai - 1);   // si j'étais en retard sur l'hôte : mes commandes jusqu'au pas où je repars (les autres les attendent)
+      miens.clear();
+      for (const k of [...siens.keys()]) if (k <= n) siens.delete(k);
+      attente = null; pasAttendus = 0; finPas = null;
+      incoherent = null; attenteEtat = false;
+      reprises++; restaurations++;
+      vider();
+    }
+    // la page n'a pas reçu l'instantané à temps : la désynchro arrête la partie, comme sans reprise
+    partie.abandonnerReprise = function () {
+      if (!attenteEtat) return false;
+      desynchro = incoherent; incoherent = null; attenteEtat = false;
+      return true;
     };
 
     // le joueur id est parti : ses commandes arrivées sont les dernières, ensuite elles sont neutres (la même chose pour tous : le serveur
@@ -433,6 +711,21 @@ const EN_LIGNE = (function () {
       const encore = ordre.filter(id => !sortis.has(id)).map(id => pilotes.get(id));
       return encore.length ? encore.every(p => p.arrivee !== null) : e.pilotes.every(p => p.arrivee !== null || p.abandon);
     };
+    // (tour 61) la prédiction d'AFFICHAGE : où serait ma voiture dans `pas` pas (au plus le délai, EN_LIGNE_PREDICTION par défaut) avec les commandes que
+    // j'ai déjà prises (elles agiront dans les pas qui viennent) : la voiture du joueur local est dessinée là, la direction répond tout de suite à l'œil.
+    // Jouée sur une COPIE de ma voiture (physique d'une voiture seule : ni choc ni pneus), jamais dans la course : aucune empreinte ne change.
+    // → { x, z, cap }, ou null (feux, arrivée, abandon, désynchro : on dessine la simulation)
+    partie.prediction = function (pas) {
+      const p = partie.moi, k = Math.max(0, Math.min(delai, Math.floor(pas === undefined ? R.EN_LIGNE_PREDICTION : pas)));
+      if (!k || !p || p.arrivee !== null || p.abandon || desynchro || finPas !== null || !courseAutorise(p.course)) return null;
+      const v = copier(p.v), mes = codes.get(moi);
+      for (let i = 0; i < k; i++) {
+        const x = mes.get(n + i);
+        lisserCommandes(v, decoder(x === undefined ? coder(partie.local) : x), PAS);
+        pasVoiture(v, e.circuit, PAS);
+      }
+      return { x: v.x, z: v.z, cap: v.cap };
+    };
     partie.empreinte = () => empreinte(e);
     partie.vider = vider;
     // la course est finie (ou quittée) : les fonctions Math du navigateur reviennent ; à appeler une fois
@@ -448,7 +741,7 @@ const EN_LIGNE = (function () {
   // la partie depuis le message « depart » du serveur : { reglages, graine, ordre : [ids] }
   function demarrer(depart, moi, envoyer, options) {
     const o = options || {};
-    return creerPartie({ reglages: depart.reglages, graine: depart.graine, ordre: depart.ordre, moi, envoyer, carte: o.carte, circuit: o.circuit, delai: o.delai, paquet: o.paquet, controle: o.controle, pasMax: o.pasMax });
+    return creerPartie({ reglages: depart.reglages, graine: depart.graine, ordre: depart.ordre, moi, envoyer, carte: o.carte, circuit: o.circuit, delai: o.delai, paquet: o.paquet, controle: o.controle, pasMax: o.pasMax, hote: o.hote, reprise: o.reprise });
   }
 
   // --- un faux réseau en mémoire : le serveur relais d'un seul cran, pour les tests. Chaque message d'un joueur arrive chez les autres après
@@ -469,7 +762,7 @@ const EN_LIGNE = (function () {
     for (const id of ids) {
       const partie = demarrer(depart, id, msg => {
         for (const autre of ids) if (autre !== id && parties.has(autre)) poster(id, autre, Object.assign({}, msg, { de: id }));
-      }, { carte: o.carte, circuit: o.circuit, delai: o.delai, paquet: o.paquet, controle: o.controle, pasMax: o.pasMax });
+      }, { carte: o.carte, circuit: o.circuit, delai: o.delai, paquet: o.paquet, controle: o.controle, pasMax: o.pasMax, hote: o.hote !== undefined ? o.hote : ids[0], reprise: o.reprise });
       parties.set(id, partie);
     }
     const partis = new Set();
@@ -511,5 +804,5 @@ const EN_LIGNE = (function () {
     return banc;
   }
 
-  return { actif, adresseAutorisee, version, reglagesValides, coder, decoder, codeValide, empreinte, demarrer, creerPartie, creerCourseEnLigne, conduire, planMeteo, circuitDe, preparerCircuit, maths, banc, CODE_NEUTRE, NEUTRE };
+  return { actif, adresseAutorisee, version, delaiPour, instantane, creerLisseur, reglagesValides, coder, decoder, codeValide, empreinte, demarrer, creerPartie, creerCourseEnLigne, conduire, planMeteo, circuitDe, preparerCircuit, maths, banc, CODE_NEUTRE, NEUTRE };
 })();

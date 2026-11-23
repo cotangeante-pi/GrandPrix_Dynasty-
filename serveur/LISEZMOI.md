@@ -35,12 +35,14 @@ Client vers serveur :
 | `{t:'cmd', n, c}` | commandes du pas `n` (ou d'un paquet de pas), relayées aux autres, jamais à l'expéditeur |
 | `{t:'controle', n, h}` | empreinte de l'état au pas `n` (entier ou texte court) |
 | `{t:'emote', i}` | indice d'une émote préréglée (0 à 7), 1 toutes les 0,5 s ; jamais de texte |
+| `{t:'reprise', n}` | (tour 61) un invité qui ne voit plus la course de l'hôte lui demande un instantané ; `n` : le pas où il a vu la différence ; relayé aux autres |
+| `{t:'etat', n, i, k, h, d}` | (tour 61) l'hôte seul : l'instantané de sa course, pièce `i` sur `k` (`d` : 2000 caractères au plus, `k` ≤ 160, `h` : l'empreinte du texte entier, entier de 32 bits, `n` : le pas de l'instantané) ; relayé aux autres |
 | `{t:'quitter'}` | quitte la salle, la connexion reste utilisable |
 | `{t:'ping', h}` | |
 
 Serveur vers client : `{t:'salle', code, toi, hote, jeton, nom}` (jeton aléatoire, à garder pour recharger la page), `{t:'refus', raison}` (`inconnue`, `pleine`, `commencee`, `version`, `nom`),
 `{t:'joueurs', liste:[{id, nom, pret, hote, circuit?, absent?}]}`, `{t:'depart', reglages, graine, ordre:[ids]}` (graine entière de 32 bits tirée par le serveur ;
-`ordre` = les ids mélangés par le serveur), `{t:'cmd', de, n, c}`, `{t:'controle', de, n, h}`, `{t:'emote', de, i}`, `{t:'parti', id}`,
+`ordre` = les ids mélangés par le serveur), `{t:'cmd', de, n, c}`, `{t:'controle', de, n, h}`, `{t:'emote', de, i}`, `{t:'reprise', de, n}`, `{t:'etat', de, n, i, k, h, d}`, `{t:'parti', id}`,
 `{t:'nouvel-hote', id}`, `{t:'pong', h}`, `{t:'reglages', reglages}`, `{t:'retour'}`.
 
 Un ajout du relais, hors du protocole du Chef (un client peut l'ignorer) : `{t:'erreur', raison}` quand un `lancer` est ignoré

@@ -20,6 +20,33 @@ const ENLIGNE_PAGE = (function () {
   const R = REGLAGES;
   const etat = { actif: false, client: null, role: null, partie: null, depart: null, tampon: [], joueurs: [], code: null, erreur: null, statut: '', attendus: 2, lance: false, termine: false, noms: new Map(), attenteDepuis: null, fond: null, fondT: 0, sortie: null };
 
+  // (tour 61) l'AFFICHAGE de la course : la prédiction de ma voiture et le lissage entre les pas (enligne.js : creerLisseur, prediction) ; rien de ceci n'entre dans la simulation
+  function noterPas() {
+    const p = etat.partie;
+    if (!p || (!R.EN_LIGNE_LISSAGE && !R.EN_LIGNE_PREDICTION)) return;
+    if (!etat.lisseur) etat.lisseur = EN_LIGNE.creerLisseur();
+    const P = p.e.pilotes, positions = P.map(q => ({ x: q.v.x, z: q.v.z, cap: q.v.cap }));
+    const pr = R.EN_LIGNE_PREDICTION ? p.prediction() : null;
+    if (pr) positions[P.indexOf(p.moi)] = pr;
+    etat.lisseur.noter(p.n, positions);
+  }
+  // ce que l'écran dessine pour la voiture v (principal.js : etatVu) : la position lissée (et prédite pour moi) ; sans lisseur, l'interpolation d'avant
+  function etatVu(v, alpha) {
+    const L = etat.lisseur, p = etat.partie;
+    if (L && p) {
+      const k = p.e.pilotes.findIndex(q => q.v === v), r = k >= 0 ? L.lire(k) : null;
+      if (r) return r;
+    }
+    return etatAffiche(v, alpha);
+  }
+  // une image : l'instant d'affichage avance (appelé avant le dessin)
+  function majAffichage() {
+    const L = etat.lisseur, p = etat.partie;
+    if (!L || !p) return;
+    if (p.restaurations !== etat.restaurationsVues) { etat.restaurationsVues = p.restaurations; L.vider(); }   // (une reprise : l'état a changé d'un coup)
+    L.avancer((JEU.dtImage || 0) / R.PAS_PHYSIQUE, JEU.alpha, !R.EN_LIGNE_LISSAGE);
+  }
+
   function zone() { return document.getElementById('enligneInfo'); }
   function dire(msg) {
     etat.statut = msg || '';
@@ -101,7 +128,7 @@ const ENLIGNE_PAGE = (function () {
         case 'reglages': if (etat.ecrans) { verifierCircuit(m.reglages); preparerCircuit(m.reglages); } break;
         case 'retour': retourALaSalle(); break;
         case 'depart': recevoirDepart(m); break;
-        case 'cmd': case 'controle': case 'parti':
+        case 'cmd': case 'controle': case 'parti': case 'reprise': case 'etat':
           if (etat.partie) etat.partie.recevoir(m); else etat.tampon.push(m);
           if (m.t === 'parti' && etat.depart && !etat.termine) annoncer(texte('enl_parti').replace('{nom}', nomAffiche(etat.noms.get(m.id) || ('#' + m.id))));   // (T8) la voiture roule sur sa dernière commande puis s'arrête (enligne.js)
           break;
@@ -211,6 +238,7 @@ const ENLIGNE_PAGE = (function () {
     for (let i = 0; i < pas && p && JEU.ecran === 'course' && !etat.sortie; i++) {
       p.local = { gaz: 0, frein: 0, direction: 0, remise: false };
       if (!p.avancer(1)) break;   // (on attend un autre : le prochain passage réessaie)
+      noterPas();
     }
     surveillerAttente();
   }
@@ -222,17 +250,29 @@ const ENLIGNE_PAGE = (function () {
     etat.fond = ticFond(ms, passerFond);
   }
   document.addEventListener('visibilitychange', () => cacher(document.hidden));
+  // (tour 61) l'indicateur discret « connexion lente » : visible quand on attend les commandes d'un autre depuis plus de EN_LIGNE_LENT_MS (0 = jamais) ;
+  // le message « on attend … » (EN_LIGNE_ATTENTE_ANNONCE_MS) vient plus tard, l'abandon (EN_LIGNE_ATTENTE_MAX_MS) encore après
+  const lenteurVisible = ms => R.EN_LIGNE_LENT_MS > 0 && ms >= R.EN_LIGNE_LENT_MS;
+  function montrerLent(oui) {
+    const z = document.getElementById('enligneLent');
+    if (!z || etat.lentVu === oui) return;
+    etat.lentVu = oui;
+    if (oui) z.textContent = texte('enl_lent_court');
+    z.classList.toggle('cache', !oui);
+  }
   // attendre les commandes d'un autre : « On attend … » après un moment, abandon après un long moment (connexion trop lente)
   function surveillerAttente() {
     const p = etat.partie;
     if (!p || etat.sortie) return;
     if (p.attente === null) {
       if (etat.attenteDepuis !== null) { etat.attenteDepuis = null; if (!etat.annonceT || etat.statut === etat.msgAttente) dire(''); }
+      montrerLent(false);
       return;
     }
     const maintenant = performance.now();
     if (etat.attenteDepuis === null) etat.attenteDepuis = maintenant;
     const duree = maintenant - etat.attenteDepuis;
+    montrerLent(lenteurVisible(duree));
     if (REGLAGES.EN_LIGNE_ATTENTE_MAX_MS && duree >= REGLAGES.EN_LIGNE_ATTENTE_MAX_MS) { dire(texte('enl_trop_lent')); sortirApres('lent'); return; }
     if (duree >= REGLAGES.EN_LIGNE_ATTENTE_ANNONCE_MS) {
       etat.msgAttente = texte('enl_lent').replace('{noms}', p.attente.map(id => nomAffiche(etat.noms.get(id) || ('#' + id))).join(', '));
@@ -283,9 +323,26 @@ const ENLIGNE_PAGE = (function () {
     if (etat.depart && !etat.partie) demarrerCourse();
     const p = etat.partie;
     if (p && p.desynchro && !etat.erreur) { etat.erreur = 'desynchro'; p.terminer(); dire(texte('enl_desynchro')); sortirApres('desynchro'); }   // (T8) message clair, puis retour à la salle
+    surveillerReprise();
     // la course est finie (podium, résultats, salle) : nos Math reviennent (les fonctions de la page ne sont plus remplacées)
     if (p && JEU.ecran !== 'course' && JEU.ecran !== 'pause') p.terminer();
+    majAffichage();
     surveillerAttente();
+  }
+
+  // (tour 61) la reprise : quand la course ne ressemble plus à celle de l'hôte, la partie attend son instantané (« Resynchronisation… ») et repart de lui ; si l'instantané
+  // n'arrive pas en EN_LIGNE_REPRISE_MS, la désynchro arrête la partie comme avant (le test ci-dessus)
+  function surveillerReprise() {
+    const p = etat.partie;
+    if (!p || etat.sortie) return;
+    if (p.reprise) {
+      const t = performance.now();
+      if (etat.repriseDepuis === null || etat.repriseDepuis === undefined) { etat.repriseDepuis = t; etat.msgReprise = texte('enl_reprise'); dire(etat.msgReprise); }
+      else if (t - etat.repriseDepuis > R.EN_LIGNE_REPRISE_MS) p.abandonnerReprise();
+    } else if (etat.repriseDepuis !== null && etat.repriseDepuis !== undefined) {
+      etat.repriseDepuis = null;
+      if (etat.statut === etat.msgReprise) dire('');
+    }
   }
 
   // sortir de la course : `retour` (la salle se rouvre pour tous) SEULEMENT une fois la course finie pour tous (partie.fin, au podium) ; avant,
@@ -311,8 +368,8 @@ const ENLIGNE_PAGE = (function () {
   function demarrerCourse() {
     const c = etat.client, d = etat.depart;
     // le cœur construit lui-même le circuit et sa carte avec nos Math (identiques sur tous les navigateurs : relecture T11, point 5) ; la page garde CIRCUIT pour le dessin
-    const partie = EN_LIGNE.demarrer(d, c.moi, msg => c.envoyer(msg), {});
-    etat.partie = partie;
+    const partie = EN_LIGNE.demarrer(d, c.moi, msg => c.envoyer(msg), { hote: c.hote });   // (tour 61 : l'hôte fait foi pour la reprise après une désynchro)
+    etat.partie = partie; etat.lisseur = null; etat.restaurationsVues = partie.restaurations;
     const e = partie.e, P = e.pilotes;
     JEU.plateau = e;
     if (!JEU.carte) JEU.carte = e.carte;   // (le « Préparation… » de la page et le reste lisent JEU.carte : celle du cœur)
@@ -350,7 +407,7 @@ const ENLIGNE_PAGE = (function () {
     const moi = p.moi, cmd = JEU.robot ? commandeRobot(moi) : conduiteIA() ? commandeIA(p, moi) : JEU.cibles;
     p.local = { gaz: cmd.gaz, frein: cmd.frein, direction: cmd.direction, remise: !!JEU.remettre };
     JEU.remettre = false;
-    if (p.avancer(1)) enregistrerPas();
+    if (p.avancer(1)) { noterPas(); enregistrerPas(); }
   }
 
   // l'IA de la course conduit ma voiture (?conduite=ia, pour les tests) : le pilote neutre d'ia.js (sans hasard : rien ne touche à la suite tirée), qui regarde les
@@ -389,5 +446,5 @@ const ENLIGNE_PAGE = (function () {
     return { n: p.n, empreinte: p.empreinte(), arrivees: p.e.pilotes.map(q => q.arrivee), final: JEU.final ? JEU.final.map(x => [x.k, x.place, x.total]) : null, desynchro: p.desynchro, ecran: JEU.ecran };
   }
 
-  return { etat, preparer, ouvrir, lancer, image, pas, podiumPret, retourSalle, resume, dire, fabrique, rechargerPour, verifierCircuit, surPerdu, erreurRelais, echap, quitter, cacher, surveillerAttente, sortirApres };
+  return { etat, etatVu, majAffichage, noterPas, preparer, ouvrir, lancer, image, pas, podiumPret, retourSalle, resume, dire, fabrique, rechargerPour, verifierCircuit, surPerdu, erreurRelais, echap, quitter, cacher, surveillerAttente, surveillerReprise, sortirApres, lenteurVisible, montrerLent };
 })();

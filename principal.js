@@ -137,6 +137,9 @@ const JEU = {
 const SURVOL = ['auto', 'libre', 'dessus', 'virage', 'vitrine'];
 
 // ?ia=N : la caméra, le tableau et le bandeau de course suivent la voiture k
+// (tour 61) ce que l'écran dessine pour une voiture : en ligne, la position lissée (et prédite pour la mienne), enligne-page.js ; sinon l'interpolation d'avant
+const etatVu = (v, alpha) => JEU.enligne ? ENLIGNE_PAGE.etatVu(v, alpha) : etatAffiche(v, alpha);
+
 function suivre(k) {
   JEU.suivie = k;
   const p = JEU.plateau.pilotes[k];
@@ -3095,9 +3098,9 @@ function demarrerJeu() {
     if (JEU.plateau && !apres) JEU.plateau.pilotes.forEach((p, k) => {
       const m = JEU.modeles[k];
       m.groupe.visible = (p.arrivee === null && !p.abandon) || (k === JEU.suivie && !p.abandon) || (JEU.deux && !!p.joueur);   // (à deux, les deux joueurs restent visibles après l'arrivée)
-      if (m !== JEU.modele) { VOITURE3D.majDegats(m, p.v.degats); VOITURE3D.placer(m, etatAffiche(p.v, alpha), p.v); m.tete.visible = true; }
+      if (m !== JEU.modele) { VOITURE3D.majDegats(m, p.v.degats); VOITURE3D.placer(m, etatVu(p.v, alpha), p.v); m.tete.visible = true; }
     });
-    const etat = etatAffiche(JEU.joueur, alpha);
+    const etat = etatVu(JEU.joueur, alpha);
     // les sensations de conduite (sensations.js, tour 37) : ce que vit chaque voiture, lu une fois par image pour le son,
     // la caméra et les effets (rien n'est écrit dans les voitures)
     const voituresSens = JEU.plateau ? JEU.plateau.pilotes.filter(p => !p.abandon && (p.arrivee === null || p.v === JEU.joueur)).map(p => p.v) : [JEU.joueur];
@@ -3114,7 +3117,7 @@ function demarrerJeu() {
       JEU.modele.tete.visible = CAMERA.mode !== 'cockpit';   // en vue cockpit, l'œil est dans le casque
       // après l'arrivée du joueur, la caméra télé suit une voiture encore en course
       const tele = JEU.attente && JEU.attente.tele !== null ? JEU.plateau.pilotes[JEU.attente.tele].v : null;
-      CAMERA.maj(dt, tele ? etatAffiche(tele, alpha) : etat, tele || JEU.joueur);
+      CAMERA.maj(dt, tele ? etatVu(tele, alpha) : etat, tele || JEU.joueur);
       // le mode 2 joueurs : la seconde caméra, derrière la voiture du joueur 2 (la moitié du bas)
       if (JEU.deux) { const j2 = DEUX_JOUEURS.joueurs(JEU.plateau)[1]; CAMERA.majSeconde(dt, SCENE3D.camera2, etatAffiche(j2.v, alpha), j2.v); }
     }
@@ -3159,7 +3162,7 @@ function demarrerJeu() {
     // (le son : la voiture la plus proche, la pluie sur la carrosserie ; au podium, plus rien de la course)
     if (typeof FOULE !== 'undefined') FOULE.maj(JEU.joueur, JEU.ecran === 'course' && !apres);   // (tour 55 : la rumeur des tribunes)
     SON.maj(JEU.joueur, apres ? null : { voisins: voituresSens, pluie: typeof METEO3D !== 'undefined' ? (METEO3D.etat(JEU.plateau || JEU.course) || { pluie: 0 }).pluie : 0 });
-    if (typeof EFFETS3D !== 'undefined') EFFETS3D.maj(apres ? [] : voituresSens.map(w => ({ v: w, pos: w === JEU.joueur ? etat : etatAffiche(w, alpha) })), CAMERA.position, dt);
+    if (typeof EFFETS3D !== 'undefined') EFFETS3D.maj(apres ? [] : voituresSens.map(w => ({ v: w, pos: w === JEU.joueur ? etat : etatVu(w, alpha) })), CAMERA.position, dt);
     // la trajectoire conseillée (conseil.js) : devant le joueur, selon le réglage du menu pause (en débutant par défaut) ;
     // jamais en qualification classée, en tournoi chrono, à deux, ni pour une course entre IA qu'on regarde
     if (typeof CONSEIL !== 'undefined') CONSEIL.maj(JEU.joueur, JEU.carte, CONSEIL.mode({ reglage: JEU.reglageTrajectoire, niveau: REGLAGES.NIVEAU, ecran: JEU.ecran, qualifClassee: enTourQualif() && !!JEU.plateau,

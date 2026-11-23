@@ -4129,7 +4129,7 @@ enlT('en ligne : une commande en retard (un lien coupé 90 ticks) : les autres a
   for(let k=0;k<2000;k++){b2.avancer();const ns=[...b2.parties.values()].map(p=>p.n);ecartMax=Math.max(ecartMax,Math.max(...ns)-Math.min(...ns));}
   v(ecartMax<=REGLAGES.EN_LIGNE_DELAI+REGLAGES.EN_LIGNE_PAQUET+45,'écart de pas entre joueurs : '+ecartMax);});
 enlT('en ligne : une empreinte de contrôle différente = désynchro signalée par les deux côtés, au premier contrôle qui suit, et la partie s’arrête ; sans écart, aucune alerte sur 1400 pas', ()=>{
-  const b=EN_LIGNE.banc(['a','b'],enlOpts({latence:()=>2}));b.jusqua(250);
+  const b=EN_LIGNE.banc(['a','b'],enlOpts({latence:()=>2,reprise:false}));b.jusqua(250);   // (tour 61 : sans reprise ; avec, la désynchro est réparée : voir « la reprise » plus bas)
   v(b.parties.get('a').desynchro===null&&b.parties.get('b').desynchro===null,'alerte sans raison');
   b.parties.get('b').moi.v.x+=1e-9;   // un seul bit de travers
   b.jusqua(700);
@@ -4283,6 +4283,185 @@ enlT('en ligne : (tour 59) EN_LIGNE_ADRESSE faux ferme la porte des adresses (?e
     REGLAGES.EN_LIGNE_ADRESSE=false;REGLAGES.EN_LIGNE=false;v(EN_LIGNE.adresseAutorisee()===false,'la porte reste ouverte');
     REGLAGES.EN_LIGNE=true;v(EN_LIGNE.adresseAutorisee()===true,'EN_LIGNE vrai : les écrans ne trouvent plus leur adresse');
   }finally{REGLAGES.EN_LIGNE_ADRESSE=a;REGLAGES.EN_LIGNE=o;}});
+
+// --- (tour 61, Codeur 3 : le ressenti) le délai d'entrée choisi au départ, la prédiction et le lissage d'affichage
+enlT('en ligne : (tour 61) le délai d’entrée du départ vient des pings (les deux plus lents, une marge, bornes), le même chez tous : un délai de 30 pas cache des latences que le délai de base ne cache pas', ()=>{
+  const R=REGLAGES,pas=R.PAS_PHYSIQUE*1000,D=EN_LIGNE.delaiPour;
+  v(D([])===R.EN_LIGNE_DELAI&&D(null)===R.EN_LIGNE_DELAI&&D([NaN,'x',-5])===R.EN_LIGNE_DELAI,'sans mesure : le délai de base');
+  v(D([0,0])===R.EN_LIGNE_DELAI&&D([20,30])===R.EN_LIGNE_DELAI,'de bonnes connexions : le délai de base ('+D([20,30])+')');
+  v(D([100,100])===Math.ceil(100/pas)+R.EN_LIGNE_DELAI_MARGE,'100 ms : '+D([100,100]));
+  v(D([200,40,10])===Math.ceil(120/pas)+R.EN_LIGNE_DELAI_MARGE,'les deux plus lents comptent : '+D([200,40,10])+' (le troisième ne compte pas)');
+  v(D([300])===Math.ceil(300/pas)+R.EN_LIGNE_DELAI_MARGE,'un seul joueur mesuré');
+  v(D([90000,90000])===R.EN_LIGNE_DELAI_MAX,'plafonné à EN_LIGNE_DELAI_MAX');
+  v(D([100,400])>=D([100,100])&&D([100,100])>=D([50,50]),'croissant');
+  // le délai voyage dans le message de départ (reglages.delai) : toutes les parties ont le même
+  const reg=Object.assign({},ENL_REG,{delai:30});v(EN_LIGNE.reglagesValides(reg,2).delai===30,'le délai passe les réglages');
+  const lat=(de,vers,tick)=>(de.charCodeAt(0)*3+vers.charCodeAt(0)*5+Math.floor(tick/37))%15+6;   // 6 à 20 ticks de réseau
+  const attend=opts=>{const b=EN_LIGNE.banc(['a','b','c'],enlOpts(Object.assign({latence:lat,pasMax:700},opts)));let att=0;for(let k=0;k<9000&&!enlTous(b,700);k++){b.avancer();for(const p of b.parties.values()) if(p.attente) att++;}v(enlTous(b,700),'pas atteints');return {b,att};};
+  const court=attend({}),long=attend({reglages:reg});
+  v([...long.b.parties.values()].every(p=>p.delai===30),'le délai de départ est chez tous les clients');
+  v(court.att>0,'avec le délai de base, ces latences font attendre : le test ne prouve rien');
+  v(long.att===0,'avec 30 pas, personne n’attend ('+long.att+')');
+  const h=[...long.b.parties.values()].map(p=>p.empreinte());v(h.every(x=>x===h[0]),'même état partout avec le délai choisi');
+  v([...long.b.parties.values()].every(p=>p.desynchro===null),'désynchro');});
+enlT('en ligne : (tour 61) la prédiction d’affichage : ma voiture est dessinée là où mes commandes déjà prises la mèneront, jamais dans la simulation (empreintes inchangées), et juste (au pas près, sans choc)', ()=>{
+  const lance=sonde=>{const b=EN_LIGNE.banc(['a','b'],enlOpts({pasMax:1300}));const rel=[];
+    for(let k=0;k<4000&&!enlTous(b,1300);k++){b.avancer();if(sonde)for(const p of b.parties.values()) sonde(p,rel);}
+    v(enlTous(b,1300),'pas');return {b,rel};};
+  const sans=lance(null),avec=lance((p,rel)=>{if(p.n>=1000&&p.n<1288&&p.n%12===0&&p.idMoi==='a'&&!rel.some(r=>r.n===p.n)){const pr=p.prediction(),v0=p.moi.v;rel.push({n:p.n,pr,x:v0.x,z:v0.z,cap:v0.cap});}});
+  v(sans.b.parties.get('a').empreinte()===avec.b.parties.get('a').empreinte()&&sans.b.parties.get('b').empreinte()===avec.b.parties.get('b').empreinte(),'la prédiction a changé la course');
+  v(avec.rel.length>=20,'peu de sondes : '+avec.rel.length);
+  // chaque prédiction (au pas n, pour n + délai pas) est comparée à la voiture au pas n + délai (relevée plus tard dans la même course)
+  const reel=new Map();{const b=EN_LIGNE.banc(['a','b'],enlOpts({pasMax:1300}));for(let k=0;k<4000&&!enlTous(b,1300);k++){b.avancer();const p=b.parties.get('a');if(p.n>=1000&&!reel.has(p.n)) reel.set(p.n,{x:p.moi.v.x,z:p.moi.v.z,cap:p.moi.v.cap});}}
+  let pire=0,n=0;for(const r of avec.rel){const f=reel.get(r.n+REGLAGES.EN_LIGNE_DELAI);if(!f||!r.pr) continue;
+    if([...Array(12).keys()].some(i=>(r.n+i-REGLAGES.EN_LIGNE_DELAI)%610===609)) continue;   // (la remise en piste est une téléportation : on ne la prédit pas)
+    n++;pire=Math.max(pire,Math.hypot(r.pr.x-f.x,r.pr.z-f.z));}
+  v(n>=15,'prédictions comparées : '+n);v(pire<0.05,'écart max entre la prédiction et la voiture douze pas plus tard : '+pire.toFixed(4)+' m');
+  // la direction répond tout de suite à l'œil : on braque à fond au pas 1000 ; la simulation ne tourne que 12 pas plus tard, la prédiction tout de suite
+  const b=EN_LIGNE.banc(['a','b'],enlOpts({pasMax:1100,local:(id,pas)=>({gaz:1,frein:0,direction:pas>=1000&&id==='a'?1:0,remise:false})}));
+  b.jusqua(1011);const pa=b.parties.get('a'),pr=pa.prediction(),v0=pa.moi.v;   // (le braquage pris au pas 1000 agit au pas 1012 : la simulation n'a pas encore tourné)
+  v(Math.abs(v0.direction)<1e-9,'la simulation a déjà braqué : '+v0.direction);
+  v(pr&&Math.abs(pr.cap-v0.cap)>0.001,'la prédiction n’a pas tourné : '+(pr&&(pr.cap-v0.cap).toExponential(2)));
+  v(pa.prediction(0)===null&&pa.prediction(-3)===null,'0 pas : rien');
+  const z=REGLAGES.EN_LIGNE_PREDICTION;try{REGLAGES.EN_LIGNE_PREDICTION=0;v(pa.prediction()===null,'EN_LIGNE_PREDICTION 0 : rien');}finally{REGLAGES.EN_LIGNE_PREDICTION=z;}
+  v(EN_LIGNE.banc(['a','b'],enlOpts({pasMax:5})).parties.get('a').prediction()===null,'aux feux (la course n’est pas lancée) : pas de prédiction');});
+enlT('en ligne : (tour 61) le lissage d’affichage : l’instant affiché ne recule jamais, ne dépasse pas le dernier pas, ne saute pas après une attente ni une rafale de pas, rattrape en douce, et saute quand le retard est trop grand', ()=>{
+  const L=EN_LIGNE.creerLisseur(),x=()=>L.lire(0).x;let s=0;const pas=k=>{for(let i=0;i<k;i++){s++;L.noter(s,[{x:s,z:0,cap:0.1*s}]);}};
+  pas(1);L.avancer(0,0);
+  const vus=[];const image=(k,alpha)=>{pas(k);L.avancer(2,alpha);vus.push(x());};
+  for(let i=0;i<60;i++) image(2,0.5);   // régulier : deux pas par image
+  for(let i=1;i<vus.length;i++) v(Math.abs(vus[i]-vus[i-1]-2)<1e-9,'régulier : '+(vus[i]-vus[i-1]));
+  const apresRegulier=vus.length;
+  // l'attente : plus aucun pas, mais l'alpha du jeu continue de tourner (c'est ce qui faisait trembler les voitures)
+  for(let i=0;i<40;i++) image(0,(i%7)/7);
+  for(let i=apresRegulier+1;i<vus.length;i++) v(vus[i]>=vus[i-1]-1e-12&&vus[i]<=s+1e-9,'l’attente : recul ou dépassement '+vus[i-1]+' → '+vus[i]);
+  // une rafale de 12 pas d'un coup : jamais plus de ×2 la vitesse normale (2 pas d'image → au plus 4)
+  const avantRafale=vus.length;image(12,0.5);for(let i=0;i<20;i++) image(2,0.5);
+  for(let i=avantRafale;i<vus.length;i++) v(vus[i]-vus[i-1]<=4+1e-9&&vus[i]>=vus[i-1]-1e-12,'rafale : '+(vus[i]-vus[i-1]));
+  v(Math.abs(vus[vus.length-1]-(s-1+0.5))<0.6,'l’affichage rattrape la simulation : '+vus[vus.length-1]+' pour '+s);
+  // trop de retard : il saute
+  const m=vus.length;image(REGLAGES.EN_LIGNE_LISSAGE_MAX+10,0.5);v(Math.abs(vus[m]-(s-1+0.5))<1e-9,'un retard au-delà de EN_LIGNE_LISSAGE_MAX saute : '+vus[m]);
+  // entre deux pas : l'interpolation (x et cap), le plus court chemin pour le cap
+  const L2=EN_LIGNE.creerLisseur();L2.noter(1,[{x:0,z:0,cap:3.1}]);L2.noter(2,[{x:10,z:4,cap:-3.1}]);L2.avancer(0,0);L2.avancer(0.5,0.5);const q=L2.lire(0);
+  v(q&&q.x>=0&&q.x<=10&&Math.abs(Math.abs(q.cap)-Math.PI)<0.1,'cap par le plus court chemin : '+(q&&q.cap));
+  // direct (sans lissage) : exactement l'ancien affichage ; vider : on repart de zéro
+  const L3=EN_LIGNE.creerLisseur();for(let i=1;i<=5;i++) L3.noter(i,[{x:i,z:0,cap:0}]);L3.avancer(1,0.25,true);v(Math.abs(L3.lire(0).x-(5-1+0.25))<1e-9,'direct : '+L3.lire(0).x);
+  L3.vider();v(L3.lire(0)===null&&L3.avancer(1,0.5)===null,'vidé');
+  // un pas qui revient en arrière (une reprise) : la mémoire est repartie
+  L3.noter(10,[{x:1,z:0,cap:0}]);L3.noter(11,[{x:2,z:0,cap:0}]);L3.noter(8,[{x:7,z:0,cap:0}]);v(L3.dernier===8,'un pas qui recule vide la mémoire');});
+
+// --- (tour 61, Codeur 3) la reprise après une désynchro : l'hôte envoie un instantané de la course, le joueur qui diffère repart de lui
+const enlProfond=p=>JSON.stringify(EN_LIGNE.instantane.encoder(p.e,EN_LIGNE.instantane.externes(p.e)));   // tout l'état, pas seulement l'empreinte
+function enlJusqua(b,n,max){for(let k=0;k<(max||ENL_N*40)&&!enlTous(b,n);k++) b.avancer();v(enlTous(b,n),'pas atteints : '+[...b.parties].map(([i,p])=>i+'='+p.n+(p.reprise?'(reprise)':'')+(p.desynchro?'(désynchro)':'')).join(' '));}
+enlT('en ligne : (tour 61) l’instantané : l’état entier d’une course se sérialise et se réapplique SUR PLACE (mêmes objets), au bit près ; NaN, ±infini, -0, Map, Set, tableaux typés, cycles, objets partagés ; borné', ()=>{
+  const I=EN_LIGNE.instantane;
+  const E={circuit:{a:[1,2,{z:3}],s:new Float64Array([1,2])},carte:{c:{k:1}}};E.circuit.dedans=E.circuit.a[2];
+  const mk=()=>{const o={n:1,t:'x',b:true,nul:null,nan:NaN,inf:Infinity,moins:-Infinity,zero:-0,tab:[1,[2,3],{p:1}],m:new Map(),s:new Set([3,1,2]),f:new Float64Array([0.1,NaN,-0]),ext:E.circuit.dedans,ext2:E.carte.c,o:{}};
+    o.cycle=o;o.m.set(o.o,o.tab);o.m.set('k',o.tab[2]);o.o.retour=o.tab;o.tab.push(o.m);return Object.assign({circuit:E.circuit,carte:E.carte},o);};
+  const A=mk(),ext=I.externes(A);
+  v(ext.get(E.circuit.dedans)==='c/dedans'||ext.get(E.circuit.dedans)==='c/a/2','chemin d’un objet immuable : '+ext.get(E.circuit.dedans));
+  const t=JSON.stringify(I.encoder(A,ext));
+  v(t.indexOf('"circuit"')<0||t.indexOf('"$x"')>=0,'le circuit est copié');
+  const B=mk();B.n=99;B.nan=5;B.tab=[7];B.s=new Set([9]);B.zero=1;delete B.t;B.extra={z:1};B.m.clear();const idTab=B.tab,idM=B.m,idS=B.s,idF=B.f;
+  I.appliquer(B,JSON.parse(t),I.externes(B));
+  v(JSON.stringify(I.encoder(B,I.externes(B)))===t,'le texte d’après n’est pas celui d’avant');
+  v(B.m===idM&&B.s===idS&&B.f===idF&&B.tab===idTab,'les objets du client ont gardé leur identité');
+  v(B.cycle===B&&B.o.retour===B.tab&&B.m.get(B.o)===B.tab&&B.m.get('k')===B.tab[2]&&B.tab[3]===B.m,'cycles et objets partagés');
+  v(Number.isNaN(B.nan)&&B.inf===Infinity&&B.moins===-Infinity&&Object.is(B.zero,-0)&&Number.isNaN(B.f[1])&&Object.is(B.f[2],-0)&&B.extra===undefined&&!('t' in B)===false,'valeurs spéciales : '+JSON.stringify(Object.keys(B)));
+  v([...B.s].join()==='3,1,2'&&[...B.m.keys()].length===2,'l’ordre des Set et des Map');
+  v(B.ext===B.circuit.dedans&&B.ext2===B.carte.c,'les renvois vers le circuit et la carte');
+  let leve=false;try{I.appliquer(B,{$r:99},ext);}catch(e){leve=true;}v(leve,'un arbre abîmé doit lever');
+  // une vraie course : 3 joueurs, 2 IA, de l'eau ; un client qui diffère partout reprend l'état de l'autre
+  const bn=EN_LIGNE.banc(['a','b','c'],enlOpts({reglages:Object.assign({},ENL_REG,{meteo:'averse',nbIA:3}),pasMax:900}));bn.jusqua(900);
+  const pa=bn.parties.get('a'),pb=bn.parties.get('b');
+  const ta=pa.etatTexte();L.push('  (instantané de 3 joueurs et 3 IA : '+ta.length+' caractères, '+Math.ceil(ta.length/REGLAGES.EN_LIGNE_ETAT_PIECE)+' pièces de '+REGLAGES.EN_LIGNE_ETAT_PIECE+')');
+  v(ta.length<REGLAGES.EN_LIGNE_ETAT_MAX&&Math.ceil(ta.length/REGLAGES.EN_LIGNE_ETAT_PIECE)<=REGLAGES.EN_LIGNE_ETAT_PIECES_MAX,'trop gros : '+ta.length);
+  for(const q of pb.e.pilotes){q.v.x+=0.37;q.v.cap-=0.01;q.herbe+=3;if(q.pilote){q.pilote.erreur=null;}}pb.e.temps+=0.5;
+  v(pa.empreinte()!==pb.empreinte(),'la course n’est pas abîmée');
+  const idPil=pb.e.pilotes.map(q=>q.v);
+  I.appliquer(pb.e,JSON.parse(ta).e,I.externes(pb.e));
+  v(pa.empreinte()===pb.empreinte(),'empreinte après application');v(enlProfond(pa)===enlProfond(pb),'l’état entier après application n’est pas celui de l’hôte');
+  v(pb.e.pilotes.every((q,i)=>q.v===idPil[i])&&pb.moi===pb.pilotes.get('b'),'les voitures du client sont les mêmes objets');});
+enlT('en ligne : (tour 61) la reprise : une désynchro d’UN SEUL BIT est réparée par l’instantané de l’hôte, et la course reste ensuite identique à celle de l’hôte au bit près (empreinte et état entier), à 2, 3 et 4 joueurs avec IA', ()=>{
+  for(const [ids,corrompu,nbIA] of [[['a','b'],'b',2],[['a','b','c'],'c',2],[['a','b','c','d'],'b',3]]){
+    const b=EN_LIGNE.banc(ids,enlOpts({reglages:Object.assign({},ENL_REG,{nbIA}),latence:(de,vers)=>2+(de.charCodeAt(0)+vers.charCodeAt(0))%4}));b.jusqua(250);
+    v(ids.every(i=>b.parties.get(i).desynchro===null),'alerte sans raison');
+    b.parties.get(corrompu).moi.v.x+=1e-9;   // un seul bit de travers
+    enlJusqua(b,ENL_N);
+    const P=ids.map(i=>b.parties.get(i));
+    v(P.every(p=>p.desynchro===null),ids.length+' joueurs : désynchro : '+JSON.stringify(P.map(p=>p.desynchro)));
+    v(b.parties.get(corrompu).reprises>=1&&b.parties.get(corrompu).restaurations>=1,'le joueur '+corrompu+' n’a pas repris');
+    v(P.filter(p=>p.idMoi!==corrompu).every(p=>p.reprises===0),'un joueur qui n’avait pas de problème a repris');
+    const h=P.map(p=>p.empreinte());v(h.every(x=>x===h[0]),ids.length+' joueurs : empreintes '+h.join(' '));
+    const ref=enlProfond(P[0]);v(P.every(p=>enlProfond(p)===ref),ids.length+' joueurs : l’état entier diffère de celui de l’hôte');
+    v(P.every(p=>p.reprise===null),'une reprise reste en cours');}
+});
+enlT('en ligne : (tour 61) la reprise : l’hôte fait foi (c’est lui qui est de travers : les invités repartent de lui) ; deux invités qui diffèrent entre eux ne se réparent que par l’hôte ; un seul instantané par demande', ()=>{
+  const ids=['a','b','c'];
+  const b=EN_LIGNE.banc(ids,enlOpts({latence:()=>3}));b.jusqua(250);
+  b.parties.get('a').moi.v.z+=1e-9;enlJusqua(b,ENL_N);
+  const P=ids.map(i=>b.parties.get(i));
+  v(P.every(p=>p.desynchro===null)&&P.every(p=>p.empreinte()===P[0].empreinte())&&P.every(p=>enlProfond(p)===enlProfond(P[0])),'l’hôte de travers : les invités doivent le suivre');
+  v(P[0].reprises===0&&P[1].reprises===1&&P[2].reprises===1,'reprises : '+P.map(p=>p.reprises).join());
+  // un invité qui reçoit un « etat » sans l'avoir demandé l'ignore
+  const b2=EN_LIGNE.banc(['a','b'],enlOpts({latence:()=>1}));const pa2=b2.parties.get('a'),pb2=b2.parties.get('b');b2.jusqua(300);
+  v(pa2.envoyerEtat()>=1,'l’hôte n’a rien envoyé');
+  const n0=pb2.n;pb2.recevoir({t:'etat',de:'a',n:pb2.n,i:0,k:1,h:1,d:'{}'});v(pb2.n===n0&&pb2.reprises===0&&pb2.restaurations===0,'un etat non demandé a été appliqué');
+  const ec=EN_LIGNE.banc(['a','b'],enlOpts({latence:()=>1}));ec.jusqua(200);const ea=ec.parties.get('a');ea.moi.v.x+=1e-9;
+  ea.recevoir({t:'reprise',de:'b',n:5});v(true,'');});
+enlT('en ligne : (tour 61) la reprise échoue proprement : sans reprise (réglage faux), sans réponse de l’hôte (la page abandonne), après EN_LIGNE_REPRISE_MAX reprises, avec une pièce abîmée ou d’un autre que l’hôte : la désynchro arrête la partie comme avant', ()=>{
+  // réglage faux : comme avant
+  {const z=REGLAGES.EN_LIGNE_REPRISE;try{REGLAGES.EN_LIGNE_REPRISE=false;const b=EN_LIGNE.banc(['a','b'],enlOpts({latence:()=>2}));b.jusqua(250);b.parties.get('b').moi.v.x+=1e-9;b.jusqua(700);
+    v(b.parties.get('a').desynchro&&b.parties.get('b').desynchro&&b.parties.get('b').reprise===null,'sans reprise : la désynchro doit arrêter la partie');}finally{REGLAGES.EN_LIGNE_REPRISE=z;}}
+  // l'hôte ne répond pas (ses messages « etat » sont perdus) : l'invité attend, ne joue plus, puis la page abandonne
+  {const b=EN_LIGNE.banc(['a','b'],enlOpts({latence:(de,vers)=>de==='a'?9999:2}));
+    // (a n'est entendu de personne : on le laisse tel quel, mais b doit voir a pour comparer ; on coupe seulement les « etat » en les jetant à l'arrivée)
+    const pb=b.parties.get('b'),recevoir=pb.recevoir;pb.recevoir=m=>{if(m&&m.t==='etat') return;recevoir(m);};
+    const b2=EN_LIGNE.banc(['a','b'],enlOpts({latence:()=>2}));const pb2=b2.parties.get('b'),r2=pb2.recevoir;pb2.recevoir=m=>{if(m&&m.t==='etat') return;r2(m);};
+    b2.jusqua(250);pb2.moi.v.x+=1e-9;for(let k=0;k<400&&!pb2.reprise;k++) b2.avancer();
+    v(pb2.reprise&&pb2.reprise.de==='a','pas de reprise demandée : '+JSON.stringify(pb2.reprise));
+    const n=pb2.n;for(let k=0;k<60;k++) b2.avancer();v(pb2.n===n&&pb2.desynchro===null,'il doit attendre sans jouer ('+n+' → '+pb2.n+')');
+    v(pb2.abandonnerReprise()===true&&pb2.desynchro&&pb2.reprise===null&&pb2.abandonnerReprise()===false,'l’abandon doit donner la désynchro');}
+  // une pièce abîmée (empreinte fausse) est ignorée ; une pièce d'un autre que l'hôte aussi
+  {const b=EN_LIGNE.banc(['a','b','c'],enlOpts({latence:()=>2}));const pc=b.parties.get('c'),rc=pc.recevoir;
+    pc.recevoir=m=>{if(m&&m.t==='etat'&&m.de==='a') m=Object.assign({},m,{d:m.d.replace('1','2')});rc(m);};   // abîmée en route (l'empreinte du texte ne colle plus)
+    b.jusqua(250);pc.moi.v.x+=1e-9;for(let k=0;k<500&&!pc.reprise;k++) b.avancer();v(pc.reprise,'pas de reprise');
+    for(let k=0;k<200;k++) b.avancer();v(pc.reprise&&pc.restaurations===0,'une pièce abîmée a été appliquée');
+    const t=b.parties.get('a').etatTexte();pc.recevoir({t:'etat',de:'b',n:5,i:0,k:1,h:1,d:t.slice(0,100)});v(pc.restaurations===0,'une pièce d’un invité a été prise');}
+  // trop de reprises
+  {const b=EN_LIGNE.banc(['a','b'],enlOpts({latence:()=>2,pasMax:3000}));b.jusqua(250);const pb=b.parties.get('b');let faites=0;
+    for(let tour=0;tour<REGLAGES.EN_LIGNE_REPRISE_MAX+2&&!pb.desynchro;tour++){
+      pb.moi.v.x+=1e-9;for(let k=0;k<700&&!pb.desynchro&&!(pb.reprises>faites);k++) b.avancer();
+      for(let k=0;k<40;k++) b.avancer();faites=pb.reprises;}
+    v(pb.reprises<=REGLAGES.EN_LIGNE_REPRISE_MAX&&pb.desynchro,'après '+REGLAGES.EN_LIGNE_REPRISE_MAX+' reprises, la désynchro arrête la partie (reprises '+pb.reprises+', désynchro '+JSON.stringify(pb.desynchro)+')');}
+  // un client sans hôte connu (hote non donné) : pas de reprise
+  {const b=EN_LIGNE.banc(['a','b'],enlOpts({latence:()=>2,hote:'zzz'}));b.jusqua(250);b.parties.get('b').moi.v.x+=1e-9;b.jusqua(700);v(b.parties.get('b').desynchro&&b.parties.get('b').reprise===null,'un hôte inconnu doit désactiver la reprise');}
+});
+enlT('en ligne : (tour 61) la reprise, côté messages : l’instantané part en pièces de EN_LIGNE_ETAT_PIECE caractères, chaque message tient dans EN_LIGNE_TAILLE_MAX même échappé ; le relais en onglet relaie « reprise » et « etat » (de l’hôte seulement, bien formés) et choisit le délai du départ d’après les pings', ()=>{
+  const b=EN_LIGNE.banc(['a','b'],enlOpts({latence:()=>1,reglages:Object.assign({},ENL_REG,{nbIA:5})}));
+  const pieces=[],pb=b.parties.get('b'),r0=pb.recevoir;pb.recevoir=m=>{if(m&&m.t==='etat') pieces.push(m);r0(m);};
+  b.jusqua(300);const pa=b.parties.get('a'),nb=pa.envoyerEtat();for(let k=0;k<5;k++) b.avancer();
+  v(nb>=2&&pieces.length===nb,'pièces envoyées : '+nb+', reçues : '+pieces.length);
+  v(pieces.every((m,i)=>m.i===i&&m.k===nb&&m.n===pieces[0].n&&m.h===pieces[0].h&&m.de==='a'&&typeof m.d==='string'&&m.d.length<=REGLAGES.EN_LIGNE_ETAT_PIECE&&m.d.length>REGLAGES.EN_LIGNE_ETAT_PIECE/2||m.i===nb-1),'forme des pièces');
+  const pire=Math.max(...pieces.map(m=>JSON.stringify({t:'etat',de:7,n:m.n,i:m.i,k:m.k,h:m.h,d:m.d}).length));L.push('  (instantané de 2 joueurs et 5 IA : '+nb+' pièces, la plus grande fait '+pire+' octets en JSON sur '+REGLAGES.EN_LIGNE_TAILLE_MAX+')');
+  v(pire<=REGLAGES.EN_LIGNE_TAILLE_MAX,'une pièce dépasse la taille d’un message : '+pire);
+  // le relais en onglet (reseau.js) : mêmes règles que serveur/relais.py
+  const ver=EN_LIGNE.version(),vs=ver.v+'-'+ver.h,rel=RESEAU.creerRelais({hasard:()=>0.3,grace:0}),vus={h:[],g:[]};
+  const ch=rel.connecter(m=>vus.h.push(m)),cg=rel.connecter(m=>vus.g.push(m));
+  ch.recevoir({t:'creer',nom:'bleu',version:vs});const code=vus.h.find(m=>m.t==='salle').code;cg.recevoir({t:'rejoindre',code,nom:'rouge',version:vs});
+  ch.recevoir({t:'charge',circuit:'test'});cg.recevoir({t:'charge',circuit:'test'});
+  ch.recevoir({t:'ping',h:1,l:400});cg.recevoir({t:'ping',h:2,l:300});
+  ch.recevoir({t:'lancer',reglages:{circuit:'test',tours:1,meteo:'sec',nbIA:0}});
+  const dep=vus.g.find(m=>m.t==='depart');v(dep,'pas de départ');v(dep.reglages.delai===EN_LIGNE.delaiPour([400,300])&&dep.reglages.delai>REGLAGES.EN_LIGNE_DELAI,'le délai du départ vient des pings : '+dep.reglages.delai);
+  const bon={t:'etat',n:5,i:0,k:2,h:7,d:'abc'},avant=rel.rejets;
+  ch.recevoir(bon);v(vus.g.some(m=>m.t==='etat'&&m.de===1&&m.d==='abc'&&m.k===2),'l’etat de l’hôte n’est pas arrivé');
+  const nG=vus.g.length,nH=vus.h.length;
+  cg.recevoir(bon);v(vus.h.length===nH,'un etat d’un invité a été relayé');
+  for(const mal of [{i:2,k:2},{i:-1},{k:0},{k:99999},{h:-3},{h:1.5},{n:-1},{d:'x'.repeat(REGLAGES.EN_LIGNE_ETAT_PIECE+300)},{d:5}]) ch.recevoir(Object.assign({},bon,mal));
+  v(vus.g.length===nG,'un etat mal formé a été relayé');
+  cg.recevoir({t:'reprise',n:12});v(vus.h.some(m=>m.t==='reprise'&&m.de===2&&m.n===12),'la demande de reprise n’est pas arrivée chez l’hôte');
+  const nH2=vus.h.length;cg.recevoir({t:'reprise',n:-4});cg.recevoir({t:'reprise'});v(vus.h.length===nH2&&rel.rejets>avant,'une demande mal formée a été relayée');
+  v(RESEAU.TYPES_CLIENT.includes('reprise')&&RESEAU.TYPES_CLIENT.includes('etat'),'TYPES_CLIENT');});
 
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 ecrire();

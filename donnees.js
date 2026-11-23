@@ -1689,6 +1689,18 @@ const REGLAGES = {
   EN_LIGNE_DELAI_MAX: 120,             // (T8) le délai d'entrée adaptatif choisi par le relais à l'arrivée au départ ne dépasse pas ce nombre de pas
   EN_LIGNE_DELAI_MARGE: 6,             // (T8) pas de marge ajoutés au temps de trajet mesuré (le relais, serveur/relais.py : Config.delai_marge)
   EN_LIGNE_SILENCE_MS: 10000,   // rien reçu depuis ce temps = connexion morte (côté client) ; un client muet disparaît de la salle (relais en onglet)
+  // (tour 61, Codeur 3 : le ressenti d'une course en ligne ; tout ceci est de l'AFFICHAGE, rien n'entre dans la simulation)
+  EN_LIGNE_PREDICTION: 12,      // pas : de combien de pas (au plus, jamais plus que le délai) la voiture du joueur local est avancée À L'ÉCRAN avec ses propres commandes déjà prises (le délai d'entrée est caché : la direction répond tout de suite à l'œil) ; 0 = rien
+  EN_LIGNE_LISSAGE: true,       // l'affichage des voitures est lissé entre deux pas (une rafale de pas après une attente ne fait plus sauter les voitures) ; faux = l'interpolation d'avant
+  EN_LIGNE_LISSAGE_MAX: 24,     // pas : au-delà de ce retard de l'affichage sur la simulation, il saute (au lieu de rattraper en douceur)
+  EN_LIGNE_LENT_MS: 400,        // ms : attendre les commandes d'un autre plus longtemps que ça montre l'indicateur discret « connexion lente » (le message « on attend … » vient à EN_LIGNE_ATTENTE_ANNONCE_MS)
+  // la reprise après une désynchro (enligne.js, « L'instantané »)
+  EN_LIGNE_REPRISE: true,       // une désynchro avec l'hôte est réparée : l'hôte envoie un instantané de la course et le joueur repart de lui (faux : la désynchro arrête la partie, comme avant)
+  EN_LIGNE_REPRISE_MAX: 4,      // reprises au plus par course et par joueur ; ensuite, la désynchro arrête la partie
+  EN_LIGNE_REPRISE_MS: 8000,    // ms : un joueur qui demande une reprise attend l'instantané au plus ce temps (la page), sinon la désynchro arrête la partie
+  EN_LIGNE_ETAT_PIECE: 1800,    // caractères d'une pièce d'instantané (un message ne dépasse jamais EN_LIGNE_TAILLE_MAX, même si chaque caractère devait être échappé)
+  EN_LIGNE_ETAT_MAX: 240000,    // caractères d'un instantané au plus (au-delà : pas de reprise)
+  EN_LIGNE_ETAT_PIECES_MAX: 160,   // pièces au plus
 };
 
 // Les circuits, décrits par morceaux dans l'ordre de la course, la ligne d'arrivée au début du premier :

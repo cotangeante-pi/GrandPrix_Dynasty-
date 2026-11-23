@@ -57,6 +57,8 @@ class Config:
         # les garde-fous contre la triche simple (tour 56, T9) : une commande est un entier de 0 à code_max (14 bits : gaz, frein, direction, remise)
         # ou un paquet de 1 à paquet_max entiers ; n est le premier pas du paquet
         self.code_max = (1 << 14) - 1
+        self.etat_piece_max = 2000       # (tour 61) caractères d'une pièce d'instantané (la reprise après une désynchro : enligne.js, EN_LIGNE_ETAT_PIECE = 1800) ; avec les guillemets échappés, un message reste sous max_octets
+        self.etat_pieces_max = 160       # (tour 61) pièces au plus (EN_LIGNE_ETAT_PIECES_MAX)
         self.paquet_max = 128            # pas dans un paquet (le jeu en envoie 4 : EN_LIGNE_PAQUET) ; décision D5 : de 1 à 128 entiers
         self.avance_max = 240            # pas (2 s) : un joueur ne peut pas avoir envoyé plus loin que le plus en retard des autres + ça ; 0 = pas de limite
         for k, v in kw.items():
@@ -283,6 +285,17 @@ class Relais:
             elif now - c.derniere_emote >= self.cfg.delai_emote:   # trop vite : jetée sans bruit
                 c.derniere_emote = now
                 self._diffuser(salle, {'t': 'emote', 'de': c.id, 'i': m['i']}, sauf=c)
+        elif t == 'reprise':
+            # (tour 61) un invité ne voit plus la course de l'hôte : il lui demande un instantané (n : le pas où il a vu la différence)
+            if salle.commencee and entier(m.get('n'), 0, 10 ** 8): self._diffuser(salle, {'t': 'reprise', 'de': c.id, 'n': m['n']}, sauf=c)
+            else: self._faute(c)
+        elif t == 'etat':
+            # (tour 61) l'instantané de l'hôte, par pièces (i sur k) : une pièce de 2000 caractères au plus (le jeu en envoie 1800), 160 pièces au plus
+            d = m.get('d')
+            if (salle.commencee and c.id == salle.hote and entier(m.get('n'), 0, 10 ** 8) and entier(m.get('k'), 1, self.cfg.etat_pieces_max) and entier(m.get('i'), 0, self.cfg.etat_pieces_max - 1)
+                    and m['i'] < m['k'] and entier(m.get('h'), 0, 2 ** 32 - 1) and isinstance(d, str) and len(d) <= self.cfg.etat_piece_max):
+                self._diffuser(salle, {'t': 'etat', 'de': c.id, 'n': m['n'], 'i': m['i'], 'k': m['k'], 'h': m['h'], 'd': d}, sauf=c)
+            else: self._faute(c)
         elif t == 'charge':
             circuit = m.get('circuit')
             if salle.commencee or not (isinstance(circuit, str) and 0 < len(circuit) <= 40 and circuit.isprintable()): return self._faute(c)
