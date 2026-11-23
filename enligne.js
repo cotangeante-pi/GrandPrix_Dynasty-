@@ -94,6 +94,8 @@ const EN_LIGNE = (function () {
       h = melanger(h, p.arrivee === null ? (p.abandon ? 2 : 0) : 1);
       if (p.arrivee !== null) h = melangerNombre(h, p.arrivee);
     }
+    const dr = e.drapeaux;   // (tour 61) les drapeaux : la VSC, les incidents, les pénalités déjà données (la même chose chez tous, sinon la course diverge)
+    if (dr) { h = melanger(h, (dr.vsc ? 1 : 0) + (dr.nbVsc << 1)); h = melanger(h, dr.incidents.size); h = melanger(h, dr.punis.size); h = melanger(h, dr.zones.length); }
     return h >>> 0;
   }
 
@@ -252,7 +254,7 @@ const EN_LIGNE = (function () {
       const carte = o.carte || carteDe(circuit);
       // nbIA + nbHumains voitures : creerCourseIA en fait nb + 1 (la dernière est humaine), les autres joueurs sont les dernières IA
       const e = creerCourseIA(circuit, reglages.nbIA + nbHumains - 1, reglages.tours, graine, carte, true);
-      e.sansDrapeaux = true;   // les drapeaux (un seul joueur à la fois dans drapeaux.js) : pas en ligne pour l'instant
+      e.sansDrapeaux = !R.EN_LIGNE_DRAPEAUX;   // (tour 61) les drapeaux pour tous les humains (drapeaux.js : un état par humain) ; EN_LIGNE_DRAPEAUX faux = coupés comme au tour 56
       e.enLigne = true;
       const humains = e.pilotes.slice(reglages.nbIA);
       humains.forEach((p, i) => {

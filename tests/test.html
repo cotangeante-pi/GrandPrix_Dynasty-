@@ -1,7 +1,7 @@
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><title>tests</title></head><body>
 <pre id="res"></pre>
 <script>window.__err=[];window.addEventListener('error',e=>__err.push(e.message+' @'+e.filename+':'+e.lineno));window.addEventListener('unhandledrejection',e=>__err.push('promesse : '+(e.reason&&e.reason.message||e.reason)));</script>
-<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits-officiels-a.js"></script><script src="../circuits-officiels-b.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../sensations.js"></script><script src="../manette.js"></script><script src="../son.js"></script><script src="../effets3d.js"></script><script src="../conseil.js"></script><script src="../qualite.js"></script><script src="../route3d.js"></script><script src="../assistance.js"></script><script src="../mesure.js"></script><script src="../regie.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../divisions.js"></script><script src="../decouverte.js"></script><script src="../pilote.js"></script><script src="../deux-joueurs.js"></script><script src="../enligne.js"></script><script src="../tournoi.js"></script><script src="../casque.js"></script><script src="../decors-officiels.js"></script><script src="../decor-public.js"></script><script src="../photo.js"></script><script src="../cache-carte.js"></script><script src="../cache-carte-test.js"></script><script src="../journal.js"></script><script src="../argent.js"></script><script src="../garage.js"></script><script src="../aileron.js"></script><script src="../carte2d.js"></script><script src="../saisons.js"></script><script src="../sponsors.js"></script><script src="../fiche.js"></script><script src="../interview.js"></script><script src="../carriere.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../meteo.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../resume.js"></script><script src="../messages.js"></script><script src="../commentaire.js"></script><script src="../voix-sons.js"></script><script src="../fantome-pole.js"></script><script src="../foule.js"></script><script src="../decor.js"></script><script src="../stand3d.js"></script><script src="../fantome.js"></script><script src="../defi.js"></script><script src="../touches.js"></script><script src="../clavier.js"></script><script src="../reseau.js"></script><script src="../principal.js"></script><script src="../enligne-page.js"></script>
+<script src="../donnees.js"></script><script src="../textes.js"></script><script src="../aleatoire.js"></script><script src="../boucle.js"></script><script src="../circuits-officiels-a.js"></script><script src="../circuits-officiels-b.js"></script><script src="../circuits.js"></script><script src="../physique.js"></script><script src="../boite.js"></script><script src="../sensations.js"></script><script src="../manette.js"></script><script src="../son.js"></script><script src="../effets3d.js"></script><script src="../conseil.js"></script><script src="../qualite.js"></script><script src="../route3d.js"></script><script src="../assistance.js"></script><script src="../mesure.js"></script><script src="../regie.js"></script><script src="../camera.js"></script><script src="../robot.js"></script><script src="../ia.js"></script><script src="../simulation.js"></script><script src="../depart.js"></script><script src="../course.js"></script><script src="../drapeaux.js"></script><script src="../arrivee.js"></script><script src="../qualification.js"></script><script src="../sauvegarde.js"></script><script src="../championnat.js"></script><script src="../divisions.js"></script><script src="../decouverte.js"></script><script src="../pilote.js"></script><script src="../deux-joueurs.js"></script><script src="../enligne.js"></script><script src="../tournoi.js"></script><script src="../casque.js"></script><script src="../decors-officiels.js"></script><script src="../decor-public.js"></script><script src="../photo.js"></script><script src="../cache-carte.js"></script><script src="../cache-carte-test.js"></script><script src="../journal.js"></script><script src="../argent.js"></script><script src="../garage.js"></script><script src="../aileron.js"></script><script src="../carte2d.js"></script><script src="../saisons.js"></script><script src="../sponsors.js"></script><script src="../fiche.js"></script><script src="../interview.js"></script><script src="../carriere.js"></script><script src="../pneus-donnees.js"></script><script src="../pneus.js"></script><script src="../meteo.js"></script><script src="../enregistreur-donnees.js"></script><script src="../enregistreur.js"></script><script src="../resume.js"></script><script src="../messages.js"></script><script src="../commentaire.js"></script><script src="../voix-sons.js"></script><script src="../fantome-pole.js"></script><script src="../foule.js"></script><script src="../decor.js"></script><script src="../stand3d.js"></script><script src="../fantome.js"></script><script src="../defi.js"></script><script src="../touches.js"></script><script src="../clavier.js"></script><script src="../reseau.js"></script><script src="../principal.js"></script><script src="../enligne-page.js"></script>
 <script>
 const L=[];let ok=0,ko=0;
 // (tour 49d-2) les championnats des tests sont en division 3 (le jeu d'avant : l'argent, le garage, les sponsors au bit près) ; les tests
@@ -21,6 +21,8 @@ const CALENDRIER_JEU=REGLAGES.CALENDRIER_CIRCUITS;REGLAGES.CALENDRIER_CIRCUITS=[
 // de même, les tests du moteur sont écrits sans les pneus (PNEUS_ACTIFS, vrai dans le jeu depuis le tour 32) : ceux qui les veulent les
 // allument (avecPneus) ; les courses avec les pneus sont mesurées dans courses.html, stands.html, consignes.html et officiels.html
 REGLAGES.PNEUS_ACTIFS=false;
+// (tour 61) drapeaux.js est chargé pour les tests « en ligne : drapeaux » ; les autres tests sont écrits sans drapeaux (DRAPEAUX_ACTIFS faux = la course d'avant), les tests des drapeaux en ligne les allument (enlAvecDrapeaux)
+REGLAGES.DRAPEAUX_ACTIFS=false;
 // (tour 48b) le pneu drift est caché dans le jeu (PNEU_DRIFT faux) ; les tests de la voiture vivante et du choix des pneus sont écrits
 // avec lui : ils le rallument ici (« drift rallumé »), et le test « drift caché » l'éteint
 REGLAGES.PNEU_DRIFT=true;
@@ -4284,6 +4286,43 @@ enlT('en ligne : (tour 59) EN_LIGNE_ADRESSE faux ferme la porte des adresses (?e
     REGLAGES.EN_LIGNE=true;v(EN_LIGNE.adresseAutorisee()===true,'EN_LIGNE vrai : les écrans ne trouvent plus leur adresse');
   }finally{REGLAGES.EN_LIGNE_ADRESSE=a;REGLAGES.EN_LIGNE=o;}});
 
+// --- (tour 61, point 1) les drapeaux en ligne : jaune, bleu, VSC et pénalités pour TOUS les humains, dans la simulation commune
+// un banc général : script(id, pas) → commande ; hook(e, n) : avant le pas n, sur la course de la partie (idempotent : appelé de nouveau si on attend)
+function enlBanc(ids,o){const b=EN_LIGNE.banc(ids,Object.assign({reglages:ENL_REG,graine:7,circuit:C,carte:CARTES_T.test,pasMax:o.pasMax||ENL_N},o,{local:(id,n)=>{if(o.hook)o.hook(b.parties.get(id).e,n);return o.script(id,n);}}));return b;}
+function enlRef2(ids,o){EN_LIGNE.maths.activer();try{const delai=REGLAGES.EN_LIGNE_DELAI,{e,humains}=EN_LIGNE.creerCourseEnLigne(EN_LIGNE.reglagesValides(o.reglages||ENL_REG,ids.length),o.graine||7,ids.length,{circuit:C,carte:CARTES_T.test});
+  for(let n=0;n<(o.pasMax||ENL_N);n++){if(o.hook)o.hook(e,n);const cmds=new Map();ids.forEach((id,i)=>cmds.set(humains[i],EN_LIGNE.decoder(EN_LIGNE.coder(n<delai?EN_LIGNE.NEUTRE:o.script(id,n-delai)))));pasCourseIA(e,DT,(p,dt)=>EN_LIGNE.conduire(e,p,cmds.get(p),dt));}
+  return {h:EN_LIGNE.empreinte(e),e};}finally{EN_LIGNE.maths.desactiver();}}
+function enlAvecDrapeaux(f){const R_=REGLAGES,sauv={act:R_.DRAPEAUX_ACTIFS,d:R_.DRAPEAUX_DEBUT,i:R_.DRAPEAUX_INCIDENT_DUREE,a:R_.DRAPEAUX_VSC_ARRET,u:R_.DRAPEAUX_VSC_DUREE,p:R_.DRAPEAUX_VSC_PAUSE,pe:R_.DRAPEAUX_PERIODE};
+  R_.DRAPEAUX_ACTIFS=true;R_.DRAPEAUX_DEBUT=4;R_.DRAPEAUX_INCIDENT_DUREE=0.3;R_.DRAPEAUX_VSC_ARRET=0.4;R_.DRAPEAUX_VSC_DUREE=[1,3];R_.DRAPEAUX_VSC_PAUSE=2;
+  try{return f();}finally{R_.DRAPEAUX_ACTIFS=sauv.act;R_.DRAPEAUX_DEBUT=sauv.d;R_.DRAPEAUX_INCIDENT_DUREE=sauv.i;R_.DRAPEAUX_VSC_ARRET=sauv.a;R_.DRAPEAUX_VSC_DUREE=sauv.u;R_.DRAPEAUX_VSC_PAUSE=sauv.p;}}
+const enlEtatsDr=p=>JSON.stringify([...p.e.drapeaux.joueurs].map(([k,j])=>[k,j]));
+enlT('en ligne : (tour 61) les drapeaux jaune et VSC marchent en ligne pour tous : 4 joueurs à latences variables, un humain arrêté et une IA arrêtée = mêmes événements, mêmes pénalités, même état au bit près que sans réseau', ()=>enlAvecDrapeaux(()=>{
+  const ids=['a','b','c','d'],pasMax=3400,script=(id,pas)=>id==='c'&&pas>=900?{gaz:0,frein:1,direction:0,remise:false}:enlScript(id,pas);
+  const hook=(e,n)=>{if(n>=2000&&n<2600){e.pilotes[0].v.u=0;}};   // une IA (pas un humain) arrêtée 5 s : la VSC
+  const o={script,hook,pasMax};
+  const b=enlBanc(ids,Object.assign({latence:(de,vers,tick)=>(de.charCodeAt(0)*3+vers.charCodeAt(0)*5+Math.floor(tick/41))%13},o));
+  for(let k=0;k<pasMax*30&&!enlTous(b,pasMax);k++) b.avancer();
+  v(enlTous(b,pasMax),'pas atteints : '+[...b.parties].map(([i,p])=>i+'='+p.n).join(' '));
+  const ref=enlRef2(ids,o),h=ids.map(i=>b.parties.get(i).empreinte());
+  v(h.every(x=>x===h[0])&&h[0]===ref.h,'empreintes '+h.join(' ')+' / référence '+ref.h);
+  v(ids.every(i=>b.parties.get(i).desynchro===null),'désynchro');
+  const ev=p=>p.e.drapeaux?JSON.stringify(p.e.drapeaux.evenements):'rien',e0=ev(b.parties.get('a'));
+  v(ids.every(i=>ev(b.parties.get(i))===e0)&&e0===JSON.stringify(ref.e.drapeaux.evenements),'événements différents d’un client à l’autre');
+  const evs=b.parties.get('a').e.drapeaux.evenements;
+  v(evs.some(x=>x.type==='jaune'&&x.numero===b.parties.get('a').pilotes.get('c').numero),'pas de drapeau jaune pour le joueur arrêté : '+e0.slice(0,300));
+  v(evs.some(x=>x.type==='vsc')&&evs.some(x=>x.type==='vert'),'pas de VSC puis de drapeau vert : '+evs.map(x=>x.type).join());
+  const d0=b.parties.get('a').e.drapeaux;v(d0.joueurs.size===4,'un état de drapeau par humain : '+d0.joueurs.size);
+  v(ids.every(i=>enlEtatsDr(b.parties.get(i))===enlEtatsDr(b.parties.get('a'))),'états des bandeaux différents');
+  b.fin();}));
+enlT('en ligne : (tour 61) chaque humain a son bandeau (DRAPEAUX.etatJoueur(e, p)), sans p c’est le premier humain comme avant ; EN_LIGNE_DRAPEAUX faux coupe les drapeaux en ligne', ()=>enlAvecDrapeaux(()=>{
+  const ids=['a','b'],pasMax=1200,script=(id,pas)=>id==='b'&&pas>=200?{gaz:0,frein:1,direction:0,remise:false}:enlScript(id,pas),o={script,pasMax};
+  const b=enlBanc(ids,o);b.jusqua(pasMax);const e=b.parties.get('a').e,pa=b.parties.get('a').pilotes.get('a'),pb=b.parties.get('a').pilotes.get('b');
+  v(e.drapeaux&&!e.sansDrapeaux,'drapeaux absents');
+  const f={type:'jaune'};e.drapeaux.joueurs.set(pa.numero,null);e.drapeaux.joueurs.set(pb.numero,f);e.drapeaux.joueur=null;
+  v(DRAPEAUX.etatJoueur(e,pb)===f&&DRAPEAUX.etatJoueur(e,pa)===null&&DRAPEAUX.etatJoueur(e)===null,'un bandeau par humain');
+  b.fin();
+  const sauv=REGLAGES.EN_LIGNE_DRAPEAUX;REGLAGES.EN_LIGNE_DRAPEAUX=false;
+  try{const c=EN_LIGNE.banc(ids,Object.assign({pasMax:50},{reglages:ENL_REG,graine:7,circuit:C,carte:CARTES_T.test}));v(c.parties.get('a').e.sansDrapeaux===true,'drapeaux coupés');c.fin();}finally{REGLAGES.EN_LIGNE_DRAPEAUX=sauv;}}));
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 ecrire();
 </script></body></html>

@@ -14,7 +14,7 @@ const DRAPEAUX = (function () {
   const R = REGLAGES;
 
   function creer() {
-    return { t: -Infinity, id: 0, incidents: new Map(), zones: [], vsc: null, vscFin: -Infinity, nbVsc: 0, bleus: new Map(), evenements: [], dep: 0, punis: new Set(), joueur: null, bleuDit: new Map() };
+    return { t: -Infinity, id: 0, incidents: new Map(), zones: [], vsc: null, vscFin: -Infinity, nbVsc: 0, bleus: new Map(), evenements: [], dep: 0, punis: new Set(), joueur: null, joueurs: new Map(), bleuDit: new Map() };
   }
   const actif = e => !!R.DRAPEAUX_ACTIFS && !!e && !e.sansDrapeaux && e.go !== null && !!e.pilotes && e.pilotes.length >= 2 && !!e.circuit;
 
@@ -111,17 +111,24 @@ const DRAPEAUX = (function () {
       qui.course.penalites += R.DRAPEAUX_PENALITE;
       d.evenements.push({ type: 'infraction', temps: t, numero: qui.numero, s: R.DRAPEAUX_PENALITE, vsc: !!d.vsc });
     }
-    // 6) ce que voit le joueur (le bandeau) : la VSC, sinon le jaune de sa zone, sinon le bleu, sinon le vert qui suit la VSC
-    const h = P.find(p => p.humain);
-    let j = null;
-    if (h && h.arrivee === null && h.v.piste) {
-      if (d.vsc) j = { type: 'vsc', limite: R.DRAPEAUX_VSC_LIMITE_JOUEUR };
-      else if (d.zones.some(z => z.numero !== h.numero && dansZone(c, z, h.v.piste.s))) j = { type: 'jaune' };
-      else if (d.bleus.has(h.numero)) { j = { type: 'bleu', qui: d.bleus.get(h.numero) }; }
-      else if (t - d.vscFin < R.DRAPEAUX_VERT_DUREE) j = { type: 'vert' };
-      if (j && j.type === 'bleu' && !(t - (d.bleuDit.get(j.qui) === undefined ? -Infinity : d.bleuDit.get(j.qui)) < R.DRAPEAUX_BLEU_REPETITION)) { d.bleuDit.set(j.qui, t); d.evenements.push({ type: 'bleu', temps: t, numero: j.qui }); }
+    // 6) ce que voit chaque joueur humain (le bandeau) : la VSC, sinon le jaune de sa zone, sinon le bleu, sinon le vert qui suit la VSC.
+    // (tour 61, la course en ligne) un état par humain (d.joueurs : numéro → état) ; d.joueur reste celui du premier (le jeu hors ligne n'en a qu'un)
+    d.joueurs = new Map();
+    for (const h of P) {
+      if (!h.humain) continue;
+      let j = null;
+      if (h.arrivee === null && h.v.piste && !h.abandon) {
+        if (d.vsc) j = { type: 'vsc', limite: R.DRAPEAUX_VSC_LIMITE_JOUEUR };
+        else if (d.zones.some(z => z.numero !== h.numero && dansZone(c, z, h.v.piste.s))) j = { type: 'jaune' };
+        else if (d.bleus.has(h.numero)) { j = { type: 'bleu', qui: d.bleus.get(h.numero) }; }
+        else if (t - d.vscFin < R.DRAPEAUX_VERT_DUREE) j = { type: 'vert' };
+        const cle = h.numero + ':' + (j && j.qui);
+        if (j && j.type === 'bleu' && !(t - (d.bleuDit.get(cle) === undefined ? -Infinity : d.bleuDit.get(cle)) < R.DRAPEAUX_BLEU_REPETITION)) { d.bleuDit.set(cle, t); d.evenements.push({ type: 'bleu', temps: t, numero: j.qui, pour: h.numero }); }
+      }
+      d.joueurs.set(h.numero, j);
     }
-    d.joueur = j;
+    const premier = P.find(p => p.humain);
+    d.joueur = premier ? d.joueurs.get(premier.numero) : null;
   }
 
   // le leader est-il dans son dernier tour (pas de nouvelle VSC)
@@ -148,7 +155,12 @@ const DRAPEAUX = (function () {
   }
 
   // ce que le bandeau doit dire au joueur : { type: 'jaune' | 'bleu' | 'vsc' | 'vert', limite?, qui? } ou null
-  function etatJoueur(e) { return e && e.drapeaux && actif(e) ? e.drapeaux.joueur : null; }
+  // (tour 61) p : le pilote humain dont on veut le bandeau (la course en ligne en a plusieurs) ; sans p, le premier humain, comme avant
+  function etatJoueur(e, p) {
+    if (!e || !e.drapeaux || !actif(e)) return null;
+    if (p && e.drapeaux.joueurs) { const j = e.drapeaux.joueurs.get(p.numero); return j === undefined ? null : j; }
+    return e.drapeaux.joueur;
+  }
 
   return { creer, actif, pas, limiter, etatJoueur, liberer, dansZone };
 })();

@@ -2573,11 +2573,12 @@ function majMessages() {
 
 // les drapeaux (drapeaux.js, tour 55) : le bandeau du drapeau du joueur (jaune, bleu, VSC, vert), et la pénalité d'un dépassement interdit dite au joueur
 function majDrapeaux(e, m) {
-  const d = typeof DRAPEAUX !== 'undefined' ? DRAPEAUX.etatJoueur(e) : null;
+  const moi = JEU.enligne && JEU.ia >= 0 ? e.pilotes[JEU.ia] : null;   // (tour 61) en ligne, chaque client montre le drapeau de SA voiture (drapeaux.js : un état par humain)
+  const d = typeof DRAPEAUX !== 'undefined' ? DRAPEAUX.etatJoueur(e, moi) : null;
   INTERFACE.majDrapeau(d);
   if (!e.drapeaux) return;
   if (!JEU.drapeauxVus || JEU.drapeauxVus.plateau !== e) JEU.drapeauxVus = { plateau: e, n: 0 };
-  const j = e.pilotes.find(p => p.humain);
+  const j = moi || e.pilotes.find(p => p.humain);
   for (; JEU.drapeauxVus.n < e.drapeaux.evenements.length; JEU.drapeauxVus.n++) {
     const x = e.drapeaux.evenements[JEU.drapeauxVus.n];
     if (x.type === 'infraction' && j && x.numero === j.numero && e.temps - x.temps < 5) MESSAGES.pousserTexte(m, { type: 'commentaire', texte: '🚩 ' + texte('drapeau_infraction').replace('{s}', String(x.s)) });
