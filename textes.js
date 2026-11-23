@@ -26,7 +26,7 @@ const TEXTES = {
     // team orders
     consigneJoueur: 'Team order: let your teammate no. {n} through (faster). Ignoring it lowers the team\'s trust.', consigneSuivie: 'Thank you! The team\'s trust goes up.', consigneIgnoree: 'Order ignored: the team\'s trust goes down.',
     attenteArrivee: 'Finished — waiting for the other drivers',
-    enl_lent_court: 'Slow connection', enl_reprise: 'Resyncing with the host…',
+    enl_lent_court: 'Slow connection', enl_reprise: 'Resyncing with the host…', enl_spectateur: 'Finished — watching the rest of the race (click a driver in the standings to follow him)',
     // online race (enligne-page.js, tour 56 T7)
     enl_connexion: 'Connecting…', enl_salle: 'Room {code} — waiting for drivers ({n}/{max})', enl_attendre: 'Waiting for {noms}…', enl_demarrage: 'Starting the race…',
     enl_refus_inconnue: 'Unknown room', enl_refus_pleine: 'The room is full', enl_refus_commencee: 'The race has already started', enl_refus_version: 'Different game version', enl_refus_nom: 'This name is not allowed',
@@ -433,7 +433,7 @@ const TEXTES = {
     // les consignes d'équipe
     consigneJoueur: 'Consigne de l\'écurie : laisse passer ton coéquipier n°{n} (plus rapide). L\'ignorer fait baisser la confiance de l\'écurie.', consigneSuivie: 'Merci ! La confiance de l\'écurie monte.', consigneIgnoree: 'Consigne ignorée : la confiance de l\'écurie baisse.',
     attenteArrivee: 'Arrivée — en attendant les autres pilotes',
-    enl_lent_court: 'Connexion lente', enl_reprise: 'Resynchronisation avec l’hôte…',
+    enl_lent_court: 'Connexion lente', enl_reprise: 'Resynchronisation avec l’hôte…', enl_spectateur: 'Arrivée — tu regardes la fin de la course (clique un pilote du classement pour le suivre)',
     // la course en ligne (enligne-page.js, tour 56 T7)
     enl_connexion: 'Connexion…', enl_salle: 'Salle {code} — en attente de pilotes ({n}/{max})', enl_attendre: 'On attend {noms}…', enl_demarrage: 'La course démarre…',
     enl_refus_inconnue: 'Salle inconnue', enl_refus_pleine: 'La salle est pleine', enl_refus_commencee: 'La course a déjà commencé', enl_refus_version: 'Une autre version du jeu', enl_refus_nom: 'Ce nom n’est pas permis',

@@ -1902,8 +1902,8 @@ function attendreLesAutres() {
 // le bandeau d'attente : « en attendant les autres » et le bouton pour passer ; en accéléré, « ⏩ » et les voitures encore en course
 function majAttente() {
   const a = JEU.attente, n = ARRIVEE.restantes(JEU.plateau);
-  document.getElementById('attenteTexte').textContent = a && a.passer ? (n === 1 ? texte('attenteAccelere1') : texte('attenteAccelere').replace('{n}', n)) : texte('attenteArrivee');
-  document.getElementById('boutonPasser').classList.toggle('cache', !!(a && a.passer));
+  document.getElementById('attenteTexte').textContent = a && a.passer ? (n === 1 ? texte('attenteAccelere1') : texte('attenteAccelere').replace('{n}', n)) : texte(JEU.enligne ? 'enl_spectateur' : 'attenteArrivee');   // (tour 61) en ligne : tu regardes la fin de course, caméra sur les autres (un clic sur le classement choisit qui)
+  document.getElementById('boutonPasser').classList.toggle('cache', !!(a && a.passer) || !!JEU.enligne);   // (en ligne, pas d'accéléré : les autres joueurs attendent nos commandes)
 }
 
 // la fin de l'attente (podium, nouvelle course) : la caméra d'avant revient, le bandeau part

@@ -13,8 +13,8 @@ const ARRIVEE = (function () {
   // l'arrivée, et faute de bagarre, la voiture la plus proche de l'arrivée
   function voitureTele(e, actuelle) {
     const P = e.pilotes;
-    if (actuelle !== null && P[actuelle] && P[actuelle].arrivee === null) return actuelle;
-    const enCourse = P.map((p, k) => k).filter(k => P[k].arrivee === null)
+    if (actuelle !== null && P[actuelle] && P[actuelle].arrivee === null && !P[actuelle].abandon) return actuelle;   // (tour 61 : en ligne, un joueur parti a abandonné : on ne le suit pas, il n'est plus en piste)
+    const enCourse = P.map((p, k) => k).filter(k => P[k].arrivee === null && !P[k].abandon)
       .sort((a, b) => distanceCourse(P[b]) - distanceCourse(P[a]));
     if (!enCourse.length) return null;
     for (let i = 0; i + 1 < enCourse.length; i++) {

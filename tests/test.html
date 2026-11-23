@@ -4463,6 +4463,14 @@ enlT('en ligne : (tour 61) la reprise, côté messages : l’instantané part en
   const nH2=vus.h.length;cg.recevoir({t:'reprise',n:-4});cg.recevoir({t:'reprise'});v(vus.h.length===nH2&&rel.rejets>avant,'une demande mal formée a été relayée');
   v(RESEAU.TYPES_CLIENT.includes('reprise')&&RESEAU.TYPES_CLIENT.includes('etat'),'TYPES_CLIENT');});
 
+enlT('en ligne : (tour 61) après son arrivée, le joueur regarde les voitures encore en piste : la caméra télé ne suit jamais une voiture arrivée ni un joueur parti (abandon)', ()=>{
+  const mk=(prog,extra)=>Object.assign({arrivee:null,abandon:false,depart:0,course:{progression:prog}},extra||{});
+  const e={pilotes:[mk(900,{arrivee:50}),mk(800,{abandon:true}),mk(500),mk(300)]};
+  v(ARRIVEE.voitureTele(e,null)===2,'la plus avancée en piste : '+ARRIVEE.voitureTele(e,null));
+  v(ARRIVEE.voitureTele(e,1)===2,'on ne reste pas sur un joueur parti');
+  v(ARRIVEE.voitureTele(e,3)===3,'on garde la voiture suivie tant qu’elle roule');
+  e.pilotes[2].arrivee=60;e.pilotes[3].abandon=true;v(ARRIVEE.voitureTele(e,3)===null,'plus personne en piste');});
+
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 ecrire();
 </script></body></html>
