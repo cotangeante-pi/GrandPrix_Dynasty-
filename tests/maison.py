@@ -67,6 +67,7 @@ def tout(b, port):
     for i, pg in enumerate((pa, pb)):
         pg.set_default_timeout(60000)
         pg.add_init_script('(' + COMPTEURS + ')()')
+        pg.add_init_script("addEventListener('DOMContentLoaded', () => { REGLAGES.EN_LIGNE_SILENCE_MS = 600000; REGLAGES.EN_LIGNE_ATTENTE_MAX_MS = 0; })")   # (le test donne les pas à la main : une page occupée ne répond pas aux pings, ce n'est pas une connexion morte)
         pg.on('pageerror', lambda e, i=i: erreurs.append('page %d : %s' % (i, e)))
         pg.on('console', lambda m, i=i: erreurs.append('console %d : %s' % (i, m.text)) if m.type == 'error' else None)
     # --- titre → « En ligne » → créer (ordinateur)
@@ -128,7 +129,9 @@ def tout(b, port):
         pg.evaluate('() => { REGLAGES.EN_LIGNE_ATTENTE_MAX_MS = 0; JEU.robot = true; BOUCLE.arreter(); }')   # (le robot d'essai conduit ; la machine lente n'abandonne pas)
     # --- la course : des tranches, une page puis l'autre
     for _ in range(4): tranche((pa, pb), 2)
-    n0 = [resume(pg)['n'] for pg in (pa, pb)]
+    for nom_pg, pg in (('ordinateur', pa), ('téléphone', pb)):
+        if resume(pg) is None: print('DIAG', nom_pg, pg.url[-120:], pg.evaluate('() => [JEU.ecran, ENLIGNE_PAGE.etat.statut, ENLIGNE_PAGE.etat.sortie, ENLIGNE_PAGE.etat.termine, !!ENLIGNE_PAGE.etat.depart]'), erreurs[:4], flush=True)
+    n0 = [(resume(pg) or {'n': 0})['n'] for pg in (pa, pb)]
     dire(min(n0) > 600, 'la course avance chez les deux (pas %s)' % n0, n0)
     ok = attendre(pa, '() => Object.keys(ENLIGNE_PAGE.etat.qualite).length >= 1', 15000)
     dire(ok and pa.evaluate('() => !!document.getElementById("enligneQualite") && document.getElementById("enligneQualite").textContent.includes("ms")'), 'en course : l\'indicateur de connexion montre le ping', pa.evaluate('() => (document.getElementById("enligneQualite") || {}).textContent'))

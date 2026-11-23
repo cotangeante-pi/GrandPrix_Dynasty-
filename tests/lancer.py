@@ -122,6 +122,17 @@ def reseau_ws(delai=420):
     print(out.strip()); print(f'⏱ tests/reseau-ws.py : {time.monotonic() - t0:.0f} s')
     return p.returncode == 0 and '✘' not in out
 
+def maison(delai=900):
+    # (tour 61) jouer en ligne à la maison : serveur/maison.py, deux pages (un téléphone émulé) par le vrai WebSocket, la coupure du Wi-Fi en course (tests/maison.py ; lent : jamais sur le Mac chargé)
+    t0 = time.monotonic()
+    p = subprocess.Popen([sys.executable, os.path.join(RACINE, 'tests', 'maison.py')], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True)
+    try: out, err = p.communicate(timeout=delai)
+    except subprocess.TimeoutExpired:
+        os.killpg(p.pid, signal.SIGKILL); out, err = p.communicate(); out += f'\n✘ maison.py : plus de {delai} s, arrêté'
+    if 'RESULTAT' not in out: out += '\n✘ maison.py s’est arrêté sans résultat :\n' + (err or '').strip()[-2000:]
+    print(out.strip()); print(f'⏱ tests/maison.py : {time.monotonic() - t0:.0f} s')
+    return p.returncode == 0 and '✘' not in out
+
 def relais_pareils(delai=200):
     # (tour 58, B) les deux relais (serveur/relais.py et RESEAU.creerRelais) répondent pareil au même scénario (tests/relais-pareils.py : ~10 s)
     t0 = time.monotonic()
@@ -158,7 +169,7 @@ def annexes():
     pages = all([serie(p, delai=300 if 'courses' in p else 600 if 'officiels' in p else 120, options=['--virtual-time-budget=5000'] if p.endswith('sdk.html') else []) for p in ANNEXES])
     # (T57) toutes les annexes tournent, même si l'une échoue (sinon un rouge cache les suivantes : les incidents en ligne n'étaient jamais atteints)
     # (reseau_ws, tests/reseau-ws.py : la course de bout en bout par WebSocket, dépasse 420 s : hors des annexes, à lancer à la main avec `python3 tests/reseau-ws.py` ; reste du tour 57)
-    resultats = [f() for f in (enligne_course, enligne_incidents, reseau_page, chasse_en, serveur_relais, relais_pareils, jeu_tourne)]
+    resultats = [f() for f in (enligne_course, enligne_incidents, reseau_page, chasse_en, serveur_relais, relais_pareils, jeu_tourne, maison)]
     return all(resultats) and pages
 
 # les parties de la suite, dans l'ordre : moteur (test.html), courses (courses.html, 30 courses entre IA), ecrans (ecrans.py), annexes
