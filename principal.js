@@ -2315,9 +2315,10 @@ function choisirPneusArret(v, direction, arret) {
 }
 
 // (tour 56, T14) le pilote humain de la course (le bouton d'un pneu, au doigt, change ses pneus comme ← →)
-const pilotePlateauHumain = () => (JEU.plateau && JEU.plateau.pilotes.find(q => q.humain)) || null;
+const pilotePlateauHumain = () => (JEU.plateau && (JEU.enligne && JEU.ia >= 0 ? JEU.plateau.pilotes[JEU.ia] : JEU.plateau.pilotes.find(q => q.humain))) || null;   // (tour 61) en ligne : MA voiture
 function choisirPneuDoigt(type) {
   const h = pilotePlateauHumain();
+  if (JEU.enligne) { if (h && h.course.arretEnCours && METEO.TYPES.includes(type)) ENLIGNE_PAGE.choisirPneu(h, type); return; }   // (tour 61) en ligne : jamais d'écriture locale dans la course commune ; le choix voyage dans la commande (enligne-page.js)
   if (h && h.course.arretEnCours && METEO.TYPES.includes(type)) { h.v.pneusProchain = type; h.v.choixPneus = true; }
 }
 function conduireJoueur(p, pas) {

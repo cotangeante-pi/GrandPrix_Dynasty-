@@ -4323,6 +4323,34 @@ enlT('en ligne : (tour 61) chaque humain a son bandeau (DRAPEAUX.etatJoueur(e, p
   b.fin();
   const sauv=REGLAGES.EN_LIGNE_DRAPEAUX;REGLAGES.EN_LIGNE_DRAPEAUX=false;
   try{const c=EN_LIGNE.banc(ids,Object.assign({pasMax:50},{reglages:ENL_REG,graine:7,circuit:C,carte:CARTES_T.test}));v(c.parties.get('a').e.sansDrapeaux===true,'drapeaux coupés');c.fin();}finally{REGLAGES.EN_LIGNE_DRAPEAUX=sauv;}}));
+// --- (tour 61, point 2) le choix des pneus à l'arrêt au stand en ligne : ← → dans la direction de la commande, le même résultat chez tous
+enlT('en ligne : (tour 61) le choix des pneus à l’arrêt au stand voyage dans la commande (← →) : même pneu monté chez tous les clients, à latences variables, au bit près comme sans réseau ; sans appui, l’équipe choisit seule', ()=>avecPneus(()=>{
+  const ids=['a','b','c'],pasMax=1300,pulses=new Set([700,722,744]),T=METEO.TYPES;
+  // une voiture arrêtée au stand de force (la zone d'arrêt n'est pas le sujet) du pas 600 au pas 900
+  const hook=(e,n)=>{if(n===600){const p=e.pilotes[2],c=p.course,v=p.v;c.arrets=[];c.arretPassage=true;c.arretConseille=null;c.arretEnCours={reste:2.5,duree:2.5,tour:1,x:v.x,z:v.z,cap:v.cap,usure:v.pneus.usure};}};
+  const scriptAvec=(sens)=>(id,pas)=>id==='a'&&pulses.has(pas)?Object.assign({},enlScript(id,pas),{direction:sens}):id==='a'?Object.assign({},enlScript(id,pas),{direction:0}):enlScript(id,pas);
+  const fin=(sens,latence)=>{const o={script:scriptAvec(sens),hook,pasMax},b=enlBanc(ids,Object.assign({latence},o));
+    for(let k=0;k<pasMax*30&&!enlTous(b,pasMax);k++) b.avancer();v(enlTous(b,pasMax),'pas atteints');
+    const h=ids.map(i=>b.parties.get(i).empreinte()),ref=enlRef2(ids,o);
+    v(h.every(x=>x===h[0])&&h[0]===ref.h,'empreintes '+h.join(' ')+' / '+ref.h);v(ids.every(i=>b.parties.get(i).desynchro===null),'désynchro');
+    const types=ids.map(i=>b.parties.get(i).pilotes.get('a').v.typePneus);v(types.every(x=>x===types[0])&&types[0]===ref.e.pilotes[2].v.typePneus,'pneus montés différents : '+types.join());
+    const arrets=b.parties.get('a').pilotes.get('a').course.arrets.length;b.fin();return {type:types[0],arrets};};
+  const sans=fin(0,()=>0),plus=fin(1,(de,vers,tick)=>(de.charCodeAt(0)*3+vers.charCodeAt(0)*5+Math.floor(tick/29))%11),moins=fin(-1,()=>1);
+  v(sans.arrets===1&&plus.arrets===1&&moins.arrets===1,'l’arrêt a eu lieu : '+[sans.arrets,plus.arrets,moins.arrets]);
+  const i0=T.indexOf(sans.type);v(i0>=0,'pneu de l’équipe : '+sans.type);
+  v(plus.type===T[(i0+3)%T.length],'3 appuis → : '+plus.type+' attendu '+T[(i0+3)%T.length]);
+  v(moins.type===T[(i0-3+3*T.length)%T.length],'3 appuis ← : '+moins.type);
+  v(plus.type!==sans.type,'le choix ne change rien');
+  const sauv=REGLAGES.EN_LIGNE_PNEUS_ARRET;REGLAGES.EN_LIGNE_PNEUS_ARRET=false;
+  try{const coupe=fin(1,()=>0);v(coupe.type===sans.type,'EN_LIGNE_PNEUS_ARRET faux : le choix change encore le pneu ('+coupe.type+')');}finally{REGLAGES.EN_LIGNE_PNEUS_ARRET=sauv;}}));
+enlT('en ligne : (tour 61) le bouton d’un pneu au doigt fait des appuis ← → et jamais d’écriture dans la course', ()=>avecPneus(()=>{
+  const moi={v:{pneusProchain:'slick',typePneus:'slick'},course:{arretEnCours:{}}},avant=ENLIGNE_PAGE.etat.pneuAppuis;
+  try{ENLIGNE_PAGE.etat.pneuAppuis=[];ENLIGNE_PAGE.choisirPneu(moi,'inter');const sens=ENLIGNE_PAGE.etat.pneuAppuis.slice(),T=METEO.TYPES;
+    v(moi.v.pneusProchain==='slick','le bouton écrit dans la course');v(sens.length>=1&&sens.every(x=>x===sens[0])&&T[((T.indexOf('slick')+sens.length*sens[0])%T.length+T.length)%T.length]==='inter','appuis '+sens.join());
+    const dirs=[];for(let k=0;k<2*sens.length+2;k++) dirs.push(ENLIGNE_PAGE.impulsionPneu(moi));
+    v(dirs.filter(x=>x!==0).length===sens.length&&dirs.every((x,k)=>k%2===0?x===0:true),'un appui un pas sur deux : '+dirs.join());
+    moi.course.arretEnCours=null;ENLIGNE_PAGE.etat.pneuAppuis=[1,1];v(ENLIGNE_PAGE.impulsionPneu(moi)===0&&ENLIGNE_PAGE.etat.pneuAppuis.length===0,'la file se vide hors arrêt');
+  }finally{ENLIGNE_PAGE.etat.pneuAppuis=avant;}}));
 t('aucune erreur JavaScript', ()=>{v(__err.length===0,__err.join(' | '));});
 ecrire();
 </script></body></html>

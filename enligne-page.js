@@ -349,8 +349,35 @@ const ENLIGNE_PAGE = (function () {
     if (!p || JEU.ecran !== 'course' || etat.sortie) return;   // (au podium, la course ne bouge plus ; la pause n'existe pas en ligne : les autres nous attendraient)
     const moi = p.moi, cmd = JEU.robot ? commandeRobot(moi) : conduiteIA() ? commandeIA(p, moi) : JEU.cibles;
     p.local = { gaz: cmd.gaz, frein: cmd.frein, direction: cmd.direction, remise: !!JEU.remettre };
+    const imp = impulsionPneu(moi);
+    if (imp !== 0) p.local.direction = imp;   // (tour 61) le choix d'un pneu au doigt : des appuis ← → dans la commande
     JEU.remettre = false;
     if (p.avancer(1)) enregistrerPas();
+  }
+
+  // (tour 61) le choix des pneus à l'arrêt au stand : au clavier, ← → sont déjà dans la direction de la commande (enligne.js : choisirPneusArret) ; le bouton
+  // d'un pneu (au doigt) devient des appuis ← → : autant de crans que d'écart entre le pneu qu'on aura (la file des appuis déjà partis comprise) et celui voulu,
+  // un appui un pas sur deux (il faut lâcher entre deux appuis). Rien n'est jamais écrit dans la course commune hors de la commande.
+  function choisirPneu(moi, type) {
+    const T = METEO.TYPES, n = T.length;
+    const sens = etat.pneuAppuis || [];
+    let i = T.indexOf(moi.v.pneusProchain || moi.v.typePneus || 'slick');
+    for (const a of sens) i = (i + a + n) % n;   // les appuis déjà dans la file (pas encore pris en compte par la course : la commande voyage)
+    const cible = T.indexOf(type);
+    if (cible < 0 || i < 0) return;
+    const avant = (cible - i + n) % n, arriere = (i - cible + n) % n;
+    const s = avant <= arriere ? 1 : -1;
+    for (let k = 0, m = Math.min(avant, arriere); k < m; k++) sens.push(s);
+    etat.pneuAppuis = sens;
+  }
+  // la direction du pas : un appui (+1 ou -1) puis un pas à zéro, tant qu'on est à l'arrêt ; la file se vide si la voiture n'est plus à l'arrêt
+  function impulsionPneu(moi) {
+    const f = etat.pneuAppuis;
+    if (!f || !f.length) return 0;
+    if (!moi.course.arretEnCours) { etat.pneuAppuis = []; return 0; }
+    etat.pneuPas = (etat.pneuPas || 0) + 1;
+    if (etat.pneuPas % 2 === 1) return 0;   // le pas de repos
+    return f.shift();
   }
 
   // l'IA de la course conduit ma voiture (?conduite=ia, pour les tests) : le pilote neutre d'ia.js (sans hasard : rien ne touche à la suite tirée), qui regarde les
@@ -389,5 +416,5 @@ const ENLIGNE_PAGE = (function () {
     return { n: p.n, empreinte: p.empreinte(), arrivees: p.e.pilotes.map(q => q.arrivee), final: JEU.final ? JEU.final.map(x => [x.k, x.place, x.total]) : null, desynchro: p.desynchro, ecran: JEU.ecran };
   }
 
-  return { etat, preparer, ouvrir, lancer, image, pas, podiumPret, retourSalle, resume, dire, fabrique, rechargerPour, verifierCircuit, surPerdu, erreurRelais, echap, quitter, cacher, surveillerAttente, sortirApres };
+  return { etat, preparer, ouvrir, lancer, image, pas, podiumPret, retourSalle, resume, dire, fabrique, choisirPneu, impulsionPneu, rechargerPour, verifierCircuit, surPerdu, erreurRelais, echap, quitter, cacher, surveillerAttente, sortirApres };
 })();

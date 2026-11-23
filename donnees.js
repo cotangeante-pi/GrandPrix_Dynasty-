@@ -1634,6 +1634,7 @@ const REGLAGES = {
   EN_LIGNE: false,              // le jeu en ligne est ouvert ? (?enligne=1 l'ouvre pour les essais ; le propriétaire n'a pas encore dit oui)
   EN_LIGNE_VERSION: 2,          // à monter quand le calcul de la course change sans qu'un réglage change (deux clients de versions différentes ne jouent pas ensemble)
   EN_LIGNE_DRAPEAUX: true,      // (tour 61) les drapeaux (jaune, bleu, VSC, pénalités) en ligne, pour tous les humains ; faux = coupés (tour 56)
+  EN_LIGNE_PNEUS_ARRET: true,   // (tour 61) le choix des pneus à l'arrêt au stand en ligne (← →, ou le bouton au doigt) : il voyage dans la direction de la commande, daté par pas ; faux = l'équipe choisit seule (tour 56)
   EN_LIGNE_DELAI: 12,           // pas de physique entre le moment où un joueur appuie et celui où sa commande agit (12 pas = 0,1 s) : le temps de faire voyager la commande
   EN_LIGNE_PAQUET: 4,           // pas : les commandes partent par paquets de ce nombre de pas (30 messages par seconde) ; jamais plus que le délai
   EN_LIGNE_CONTROLE: 120,       // pas : toutes les 120 pas (1 s), une empreinte de l'état de la course est envoyée pour voir si tous les clients voient la même course

@@ -274,7 +274,19 @@ const EN_LIGNE = (function () {
 
   // --- la conduite d'un joueur humain à un pas, depuis sa commande décodée (comme conduireJoueur de principal.js, sans la page : ni
   // touches, ni aides au pilotage, ni choix des pneus à l'arrêt pour l'instant)
+  // (tour 61) ← → pendant l'arrêt au stand : le pneu suivant ou précédent (un appui = un cran), comme choisirPneusArret de principal.js ; la
+  // direction vient de la COMMANDE (5 bits, datée par pas comme tout le reste), donc le même choix chez tous les clients au même pas
+  function choisirPneusArret(v, direction, arret) {
+    const sens = direction > 0.5 ? 1 : direction < -0.5 ? -1 : 0;
+    if (arret && v.pneusArret !== arret) { v.pneusArret = arret; v.pneusSens = sens; return; }   // (la direction encore tenue pour se garer ne compte pas)
+    if (sens && sens !== v.pneusSens && typeof METEO !== 'undefined') {
+      const T = METEO.TYPES, i = T.indexOf(v.pneusProchain || v.typePneus || 'slick');
+      v.pneusProchain = T[(i + sens + T.length) % T.length]; v.choixPneus = true;
+    }
+    v.pneusSens = sens;
+  }
   function conduire(e, p, c, dt) {
+    if (R.EN_LIGNE_PNEUS_ARRET && p.v.pneus && p.course.arretEnCours) choisirPneusArret(p.v, c.direction, p.course.arretEnCours);
     const front = c.remise && !p.remisePrec;   // « retour en piste » : l'appui (le passage de lâchée à tenue), une fois
     p.remisePrec = c.remise;
     if (front && courseAutorise(p.course)) remettreSurPiste(p.v, e.circuit);
@@ -513,5 +525,5 @@ const EN_LIGNE = (function () {
     return banc;
   }
 
-  return { actif, adresseAutorisee, version, reglagesValides, coder, decoder, codeValide, empreinte, demarrer, creerPartie, creerCourseEnLigne, conduire, planMeteo, circuitDe, preparerCircuit, maths, banc, CODE_NEUTRE, NEUTRE };
+  return { actif, adresseAutorisee, version, reglagesValides, coder, decoder, codeValide, empreinte, demarrer, creerPartie, creerCourseEnLigne, conduire, choisirPneusArret, planMeteo, circuitDe, preparerCircuit, maths, banc, CODE_NEUTRE, NEUTRE };
 })();
